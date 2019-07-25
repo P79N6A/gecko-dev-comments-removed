@@ -62,7 +62,7 @@ Cu.import("resource://weave/base_records/keys.js");
 Cu.import("resource://weave/engines.js");
 Cu.import("resource://weave/identity.js");
 Cu.import("resource://weave/status.js");
-Cu.import("resource://weave/engines/clientData.js");
+Cu.import("resource://weave/engines/clients.js");
 
 
 let Weave = {};
@@ -78,7 +78,7 @@ Cu.import("resource://weave/stores.js", Weave);
 Cu.import("resource://weave/engines.js", Weave);
 
 Cu.import("resource://weave/engines/bookmarks.js", Weave);
-Cu.import("resource://weave/engines/clientData.js", Weave);
+Cu.import("resource://weave/engines/clients.js", Weave);
 Cu.import("resource://weave/engines/forms.js", Weave);
 Cu.import("resource://weave/engines/history.js", Weave);
 Cu.import("resource://weave/engines/prefs.js", Weave);
@@ -1143,7 +1143,7 @@ WeaveSvc.prototype = {
     Clients.sync();
 
     
-    if (Clients.getClients()[Clients.clientID].commands) {
+    if (Clients.localCommands) {
       try {
         if (!(this.processCommands())) {
           Status.sync = ABORT_SYNC_COMMAND;
@@ -1189,16 +1189,8 @@ WeaveSvc.prototype = {
 
 
   _updateClientMode: function _updateClientMode() {
-    let numClients = 0;
-    let hasMobile = false;
-
     
-    for each (let {type} in Clients.getClients()) {
-      numClients++;
-      hasMobile = hasMobile || type == "mobile";
-    }
-
-    
+    let {numClients, hasMobile} = Clients.stats;
     if (this.numClients == numClients)
       return;
 
@@ -1441,12 +1433,9 @@ WeaveSvc.prototype = {
 
   processCommands: function WeaveSvc_processCommands()
     this._notify("process-commands", "", function() {
-      let info = Clients.getInfo(Clients.clientID);
-      let commands = info.commands;
-
       
-      delete info.commands;
-      Clients.setInfo(Clients.clientID, info);
+      let commands = Clients.localCommands;
+      Clients.clearCommands();
 
       
       for each ({command: command, args: args} in commands) {
@@ -1503,39 +1492,8 @@ WeaveSvc.prototype = {
     }
 
     
-    let action = {
-      command: command,
-      args: args,
-    };
-    let actionStr = command + "(" + args + ")";
-
-    
-    let jsonArgs = JSON.stringify(args);
-    let notDupe = function(action) action.command != command ||
-      JSON.stringify(action.args) != jsonArgs;
-
-    this._log.info("Sending clients: " + actionStr + "; " + commandData.desc);
-
-    
-    for (let guid in Clients.getClients()) {
-      
-      if (guid == Clients.clientID)
-        continue;
-
-      let info = Clients.getInfo(guid);
-      
-      if (info.commands == null)
-        info.commands = [action];
-      
-      else if (info.commands.every(notDupe))
-        info.commands.push(action);
-      
-      else
-        continue;
-
-      Clients.setInfo(guid, info);
-      this._log.trace("Client " + guid + " got a new action: " + actionStr);
-    }
+    this._log.debug("Sending clients: " + [command, args, commandData.desc]);
+    Clients.sendCommand(command, args);
   },
 };
 

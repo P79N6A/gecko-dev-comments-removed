@@ -34,62 +34,94 @@
 
 
 
-const EXPORTED_SYMBOLS = ['Clients'];
+const EXPORTED_SYMBOLS = ["Clients"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+Cu.import("resource://weave/constants.js");
 Cu.import("resource://weave/util.js");
 Cu.import("resource://weave/engines.js");
 Cu.import("resource://weave/stores.js");
-Cu.import("resource://weave/trackers.js");
-Cu.import("resource://weave/type_records/clientData.js");
+Cu.import("resource://weave/type_records/clients.js");
 
-Utils.lazy(this, 'Clients', ClientEngine);
+Utils.lazy(this, "Clients", ClientEngine);
 
 function ClientEngine() {
   SyncEngine.call(this, "Clients");
 
   
   this._resetClient();
-  Utils.prefs.addObserver("", this, false);
 }
 ClientEngine.prototype = {
   __proto__: SyncEngine.prototype,
   _storeObj: ClientStore,
-  _trackerObj: ClientTracker,
-  _recordObj: ClientRecord,
+  _recordObj: ClientsRec,
 
   
+  get stats() {
+    let stats = {
+      hasMobile: this.localType == "mobile",
+      names: [this.localName],
+      numClients: 1,
+    };
 
-  
-  
+    for each (let {name, type} in this._store._remoteClients) {
+      stats.hasMobile = stats.hasMobile || type == "mobile";
+      stats.names.push(name);
+      stats.numClients++;
+    }
 
-  getClients: function ClientEngine_getClients() {
-    return this._store.clients;
-  },
-
-  getInfo: function ClientEngine_getInfo(id) {
-    return this._store.getInfo(id);
-  },
-
-  setInfo: function ClientEngine_setInfo(id, info) {
-    this._store.setInfo(id, info);
-    this._tracker.addChangedID(id);
+    return stats;
   },
 
   
-
-  get clientID() {
-    if (!Svc.Prefs.get("client.GUID"))
-      Svc.Prefs.set("client.GUID", Utils.makeGUID());
-    return Svc.Prefs.get("client.GUID");
+  clearCommands: function clearCommands() {
+    delete this.localCommands;
+    this._tracker.addChangedID(this.localID);
   },
 
-  get clientName() {
-    if (Svc.Prefs.isSet("client.name"))
-      return Svc.Prefs.get("client.name");
+  
+  sendCommand: function sendCommand(command, args) {
+    
+    let notDupe = function(other) other.command != command ||
+      JSON.stringify(other.args) != JSON.stringify(args);
+
+    
+    let action = {
+      command: command,
+      args: args,
+    };
+
+    
+    for (let [id, client] in Iterator(this._store._remoteClients)) {
+      
+      if (client.commands == null)
+        client.commands = [action];
+      
+      else if (client.commands.every(notDupe))
+        client.commands.push(action);
+      
+      else
+        continue;
+
+      this._log.trace("Client " + id + " got a new action: " + [command, args]);
+      this._tracker.addChangedID(id);
+    }
+  },
+
+  get localID() {
+    
+    let localID = Svc.Prefs.get("client.GUID", "");
+    return localID == "" ? this.localID = Utils.makeGUID() : localID;
+  },
+  set localID(value) Svc.Prefs.set("client.GUID", value),
+
+  get localName() {
+    let localName = Svc.Prefs.get("client.name", "");
+    if (localName != "")
+      return localName;
 
     
     let user = Svc.Env.get("USER") || Svc.Env.get("USERNAME");
@@ -109,38 +141,26 @@ ClientEngine.prototype = {
       }
     }
 
-    return this.clientName = Str.sync.get("client.name", [user, app, host]);
+    return this.localName = Str.sync.get("client.name", [user, app, host]);
   },
-  set clientName(value) { Svc.Prefs.set("client.name", value); },
+  set localName(value) Svc.Prefs.set("client.name", value),
 
-  get clientType() { return Svc.Prefs.get("client.type", "desktop"); },
-  set clientType(value) { Svc.Prefs.set("client.type", value); },
-
-  updateLocalInfo: function ClientEngine_updateLocalInfo(info) {
+  get localType() {
     
-    if (!info)
-      info = this.getInfo(this.clientID);
-
-    
-    info.name = this.clientName;
-    info.type = this.clientType;
-
-    return info;
-  },
-
-  observe: function ClientEngine_observe(subject, topic, data) {
-    switch (topic) {
-    case "nsPref:changed":
-      switch (data) {
-      case "client.name":
-      case "client.type":
-        
-        this.setInfo(this.clientID, this.updateLocalInfo());
-        break;
+    let localType = Svc.Prefs.get("client.type", "");
+    if (localType == "") {
+      
+      localType = "desktop";
+      switch (Svc.AppInfo.ID) {
+        case FENNEC_ID:
+          localType = "mobile";
+          break;
       }
-      break;
+      this.localType = localType;
     }
+    return localType;
   },
+  set localType(value) Svc.Prefs.set("client.type", value),
 
   
   _reconcile: function _reconcile() {
@@ -153,9 +173,6 @@ ClientEngine.prototype = {
   _wipeClient: function _wipeClient() {
     SyncEngine.prototype._resetClient.call(this);
     this._store.wipe();
-
-    
-    this.setInfo(this.clientID, this.updateLocalInfo({}));
   }
 };
 
@@ -163,72 +180,47 @@ function ClientStore(name) {
   Store.call(this, name);
 }
 ClientStore.prototype = {
-  
-  
-
-  clients: {},
-
   __proto__: Store.prototype,
 
-  
-  
+  create: function create(record) this.update(record),
 
-  
-
-
-  getInfo: function ClientStore_getInfo(id) this.clients[id],
-
-  
-
-
-  setInfo: function ClientStore_setInfo(id, info) {
-    this._log.debug("Setting client " + id + ": " + JSON.stringify(info));
-    this.clients[id] = info;
-  },
-
-  
-  
-
-  changeItemID: function ClientStore_changeItemID(oldID, newID) {
-    this._log.debug("Changing id from " + oldId + " to " + newID);
-    this.clients[newID] = this.clients[oldID];
-    delete this.clients[oldID];
-  },
-
-  create: function ClientStore_create(record) {
-    this.update(record);
+  update: function update(record) {
+    
+    if (record.id == Clients.localID) {
+      Clients.localName = record.name;
+      Clients.localType = record.type;
+      Clients.localCommands = record.commands;
+    }
+    else
+      this._remoteClients[record.id] = record.cleartext;
   },
 
   createRecord: function createRecord(guid) {
-    let record = new ClientRecord();
-    record.cleartext = this.clients[guid];
+    let record = new ClientsRec();
+
+    
+    if (guid == Clients.localID) {
+      record.name = Clients.localName;
+      record.type = Clients.localType;
+      record.commands = Clients.localCommands;
+    }
+    else
+      record.cleartext = this._remoteClients[guid];
+
     return record;
   },
 
-  getAllIDs: function ClientStore_getAllIDs() this.clients,
+  itemExists: function itemExists(id) id in this.getAllIDs(),
 
-  itemExists: function ClientStore_itemExists(id) id in this.clients,
-
-  remove: function ClientStore_remove(record) {
-    this._log.debug("Removing client " + record.id);
-    delete this.clients[record.id];
+  getAllIDs: function getAllIDs() {
+    let ids = {};
+    ids[Clients.localID] = true;
+    for (let id in this._remoteClients)
+      ids[id] = true;
+    return ids;
   },
 
-  update: function ClientStore_update(record) {
-    this._log.debug("Updating client " + record.id);
-    this.clients[record.id] = record.cleartext;
+  wipe: function wipe() {
+    this._remoteClients = {};
   },
-
-  wipe: function ClientStore_wipe() {
-    this._log.debug("Wiping local clients store")
-    this.clients = {};
-  },
-};
-
-function ClientTracker(name) {
-  Tracker.call(this, name);
-}
-ClientTracker.prototype = {
-  __proto__: Tracker.prototype,
-  get score() 100 
 };
