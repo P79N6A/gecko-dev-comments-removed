@@ -639,7 +639,9 @@ ion::ReorderBlocks(MIRGraph &graph)
     
     unsigned int nextSuccessor = current->numSuccessors() - 1;
 
-    DebugOnly<size_t> numBlocks = graph.numBlocks();
+#ifdef DEBUG
+    size_t numBlocks = graph.numBlocks();
+#endif
 
     graph.clearBlockList();
 
