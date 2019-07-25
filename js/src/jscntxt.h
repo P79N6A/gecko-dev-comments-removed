@@ -411,14 +411,7 @@ struct JSRuntime {
 
     js::gc::Chunk       *gcSystemAvailableChunkListHead;
     js::gc::Chunk       *gcUserAvailableChunkListHead;
-
-    
-
-
-
-
-    js::gc::Chunk       *gcEmptyChunkListHead;
-    size_t              gcEmptyChunkCount;
+    js::gc::ChunkPool   gcChunkPool;
 
     js::RootedValueMap  gcRootsHash;
     js::GCLocks         gcLocksHash;
