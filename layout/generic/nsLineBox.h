@@ -282,7 +282,7 @@ public:
 
   
   void SetLineIsImpactedByFloat(bool aValue) {
-    NS_ASSERTION((false==aValue || true==aValue), "somebody is playing fast and loose with bools and bits!");
+    NS_ASSERTION((PR_FALSE==aValue || PR_TRUE==aValue), "somebody is playing fast and loose with bools and bits!");
     mFlags.mImpactedByFloat = aValue;
   }
   bool IsImpactedByFloat() const {
@@ -291,7 +291,7 @@ public:
 
   
   void SetLineWrapped(bool aOn) {
-    NS_ASSERTION((false==aOn || true==aOn), "somebody is playing fast and loose with bools and bits!");
+    NS_ASSERTION((PR_FALSE==aOn || PR_TRUE==aOn), "somebody is playing fast and loose with bools and bits!");
     mFlags.mLineWrapped = aOn;
   }
   bool IsLineWrapped() const {
@@ -300,7 +300,7 @@ public:
 
   
   void SetInvalidateTextRuns(bool aOn) {
-    NS_ASSERTION((false==aOn || true==aOn), "somebody is playing fast and loose with bools and bits!");
+    NS_ASSERTION((PR_FALSE==aOn || PR_TRUE==aOn), "somebody is playing fast and loose with bools and bits!");
     mFlags.mInvalidateTextRuns = aOn;
   }
   bool GetInvalidateTextRuns() const {
@@ -309,10 +309,10 @@ public:
 
   
   void DisableResizeReflowOptimization() {
-    mFlags.mResizeReflowOptimizationDisabled = true;
+    mFlags.mResizeReflowOptimizationDisabled = PR_TRUE;
   }
   void EnableResizeReflowOptimization() {
-    mFlags.mResizeReflowOptimizationDisabled = false;
+    mFlags.mResizeReflowOptimizationDisabled = PR_FALSE;
   }
   bool ResizeReflowOptimizationDisabled() const {
     return mFlags.mResizeReflowOptimizationDisabled;
@@ -320,11 +320,11 @@ public:
 
   
   void SetHasBullet() {
-    mFlags.mHasBullet = true;
+    mFlags.mHasBullet = PR_TRUE;
     InvalidateCachedIsEmpty();
   }
   void ClearHasBullet() {
-    mFlags.mHasBullet = false;
+    mFlags.mHasBullet = PR_FALSE;
     InvalidateCachedIsEmpty();
   }
   bool HasBullet() const {
@@ -333,10 +333,10 @@ public:
 
   
   void SetHadFloatPushed() {
-    mFlags.mHadFloatPushed = true;
+    mFlags.mHadFloatPushed = PR_TRUE;
   }
   void ClearHadFloatPushed() {
-    mFlags.mHadFloatPushed = false;
+    mFlags.mHadFloatPushed = PR_FALSE;
   }
   bool HadFloatPushed() const {
     return mFlags.mHadFloatPushed;
@@ -486,14 +486,14 @@ public:
   
   
   
-  bool CachedIsEmpty() const;
+  bool CachedIsEmpty();
 
   void InvalidateCachedIsEmpty() {
-    mFlags.mEmptyCacheValid = false;
+    mFlags.mEmptyCacheValid = PR_FALSE;
   }
 
   
-  bool IsValidCachedIsEmpty() const {
+  bool IsValidCachedIsEmpty() {
     return mFlags.mEmptyCacheValid;
   }
 
@@ -514,8 +514,8 @@ public:
     PRUint32 mLineWrapped: 1;
     PRUint32 mInvalidateTextRuns : 1;
     PRUint32 mResizeReflowOptimizationDisabled: 1;  
-    mutable PRUint32 mEmptyCacheValid: 1;
-    mutable PRUint32 mEmptyCacheState: 1;
+    PRUint32 mEmptyCacheValid: 1;
+    PRUint32 mEmptyCacheState: 1;
     
     
     PRUint32 mHasBullet : 1;
