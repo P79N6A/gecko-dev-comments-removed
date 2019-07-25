@@ -328,6 +328,7 @@ struct ClosureInfo
   JSObject* typeObj;     
   JSObject* thisObj;     
   JSObject* jsfnObj;     
+  void* errResult;       
   ffi_closure* closure;  
 #ifdef DEBUG
   jsword cxThread;       
@@ -337,12 +338,15 @@ struct ClosureInfo
   
   ClosureInfo(JSRuntime* runtime)
     : rt(runtime)
+    , errResult(NULL)
     , closure(NULL)
   {}
 
   ~ClosureInfo() {
     if (closure)
       ffi_closure_free(closure);
+    if (errResult)
+      rt->free_(errResult);
   };
 };
 

@@ -5302,6 +5302,37 @@ CClosure::Create(JSContext* cx,
   cinfo->cxThread = JS_GetContextThread(cx);
 #endif
 
+  
+  
+  
+  
+  if (!JSVAL_IS_VOID(errVal)) {
+
+    
+    if (CType::GetTypeCode(cx, fninfo->mReturnType) == TYPE_void_t) {
+      JS_ReportError(cx, "A void callback can't pass an error sentinel");
+      return NULL;
+    }
+
+    
+    
+    JS_ASSERT(CType::IsSizeDefined(cx, fninfo->mReturnType));
+
+    
+    size_t rvSize = CType::GetSize(cx, fninfo->mReturnType);
+    cinfo->errResult = cx->malloc_(rvSize);
+    if (!cinfo->errResult)
+      return NULL;
+
+    
+    if (!ImplicitConvert(cx, errVal, fninfo->mReturnType, cinfo->errResult,
+                         false, NULL))
+      return NULL;
+  } else {
+    cinfo->errResult = NULL;
+  }
+
+  
   cinfo->closureObj = result;
   cinfo->typeObj = typeObj;
   cinfo->thisObj = thisObj;
