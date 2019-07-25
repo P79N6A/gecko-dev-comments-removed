@@ -366,8 +366,7 @@ ContentChild::RecvPMemoryReportRequestConstructor(PMemoryReportRequestChild* chi
 
     InfallibleTArray<MemoryReport> reports;
 
-    static const int maxLength = 31;   
-    nsPrintfCString process(maxLength, "Content (%d)", getpid());
+    nsPrintfCString process("Content (%d)", getpid());
 
     
     nsCOMPtr<nsISimpleEnumerator> e;
@@ -817,14 +816,6 @@ ContentChild::RecvSetID(const PRUint64 &id)
         NS_WARNING("Setting content child's ID twice?");
     }
     mID = id;
-    return true;
-}
-
-bool
-ContentChild::RecvLastPrivateDocShellDestroyed()
-{
-    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-    obs->NotifyObservers(nsnull, "last-pb-context-exited", nsnull);
     return true;
 }
 

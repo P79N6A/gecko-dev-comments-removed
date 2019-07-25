@@ -1146,13 +1146,13 @@ nsCanvasRenderingContext2DAzure::StyleColorToString(const nscolor& aColor, nsASt
   
   
   if (NS_GET_A(aColor) == 255) {
-    CopyUTF8toUTF16(nsPrintfCString(100, "#%02x%02x%02x",
+    CopyUTF8toUTF16(nsPrintfCString("#%02x%02x%02x",
                                     NS_GET_R(aColor),
                                     NS_GET_G(aColor),
                                     NS_GET_B(aColor)),
                     aStr);
   } else {
-    CopyUTF8toUTF16(nsPrintfCString(100, "rgba(%d, %d, %d, ",
+    CopyUTF8toUTF16(nsPrintfCString("rgba(%d, %d, %d, ",
                                     NS_GET_R(aColor),
                                     NS_GET_G(aColor),
                                     NS_GET_B(aColor)),
