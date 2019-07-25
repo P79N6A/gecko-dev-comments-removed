@@ -265,8 +265,11 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     let tabData = null;
     let self = this;
     let imageDataCb = function(imageData) {
-      Utils.assertThrow(tabData, "tabData");
       
+      if (!self.tab)
+        return;
+
+      Utils.assertThrow(tabData, "tabData");
       tabData.imageData = imageData;
 
       let currentUrl = self.tab.linkedBrowser.currentURI.spec;
