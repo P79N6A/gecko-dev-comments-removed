@@ -25,9 +25,7 @@ typedef PRUint64 uint64_t;
 #ifdef __OS2__
 
 #include <stdlib.h>
-#elif defined(__FreeBSD__)
-
-#else
+#elif !defined(__intptr_t_defined) && !defined(_UINTPTR_T_DEFINED)
 typedef PRUptrdiff uintptr_t;
 #endif
 #endif
