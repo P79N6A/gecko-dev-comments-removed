@@ -125,19 +125,29 @@ ElementStyle.prototype = {
   {
     this.rules = [];
 
-    
-    this.rules.push(new Rule(this, {
-      style: this.element.style,
-      selectorText: CssLogic.l10n("rule.sourceElement")
-    }));
+    let element = this.element;
+    do {
+      this._addElementRules(element);
+    } while ((element = element.parentNode) &&
+             element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
 
     
-    try {
-      var domRules = this.domUtils.getCSSStyleRules(this.element);
-    } catch (ex) {
-      Services.console.logStringMessage("ElementStyle_populate error: " + ex);
-      return;
-    }
+    this.markOverridden();
+  },
+
+  _addElementRules: function ElementStyle_addElementRules(aElement)
+  {
+    let inherited = aElement !== this.element ? aElement : null;
+
+    
+    this._maybeAddRule({
+      style: aElement.style,
+      selectorText: CssLogic.l10n("rule.sourceElement"),
+      inherited: inherited
+    });
+
+    
+    var domRules = this.domUtils.getCSSStyleRules(aElement);
 
     
     
@@ -150,14 +160,43 @@ ElementStyle.prototype = {
         continue;
       }
 
-      
-      if (domRule.type === Ci.nsIDOMCSSRule.STYLE_RULE) {
-        this.rules.push(new Rule(this, { domRule: domRule }));
+      if (domRule.type !== Ci.nsIDOMCSSRule.STYLE_RULE) {
+        continue;
       }
+
+      this._maybeAddRule({
+        domRule: domRule,
+        inherited: inherited
+      });
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  _maybeAddRule: function ElementStyle_maybeAddRule(aOptions)
+  {
+    
+    
+    if (aOptions.domRule &&
+        this.rules.some(function(rule) rule.domRule === aOptions.domRule)) {
+      return false;
     }
 
+    let rule = new Rule(this, aOptions);
+
     
-    this.markOverridden();
+    if (aOptions.inherited && rule.textProps.length == 0) {
+      return false;
+    }
+
+    this.rules.push(rule);
   },
 
   
@@ -178,7 +217,7 @@ ElementStyle.prototype = {
     let computedProps = [];
     for each (let textProp in textProps) {
       computedProps = computedProps.concat(textProp.computed);
-    };
+    }
 
     
     
@@ -275,13 +314,15 @@ ElementStyle.prototype = {
 
 
 
+
+
 function Rule(aElementStyle, aOptions)
 {
   this.elementStyle = aElementStyle;
   this.domRule = aOptions.domRule || null;
   this.style = aOptions.style || this.domRule.style;
   this.selectorText = aOptions.selectorText || this.domRule.selectorText;
-
+  this.inherited = aOptions.inherited || null;
   this._getTextProperties();
 }
 
@@ -297,6 +338,17 @@ Rule.prototype = {
       let line = this.elementStyle.domUtils.getRuleLine(this.domRule);
       this._title += ":" + line;
     }
+
+    if (this.inherited) {
+      let eltText = this.inherited.tagName.toLowerCase();
+      if (this.inherited.id) {
+        eltText += "#" + this.inherited.id;
+      }
+      let args = [eltText, this._title];
+      this._title = CssLogic._strings.formatStringFromName("rule.inheritedSource",
+                                                           args, args.length);
+    }
+
     return this._title;
   },
 
@@ -416,7 +468,13 @@ Rule.prototype = {
       if(!matches || !matches[2])
         continue;
 
-      let prop = new TextProperty(this, matches[1], matches[2], matches[3] || "");
+      let name = matches[1];
+      if (this.inherited &&
+          !this.elementStyle.domUtils.isInheritedProperty(name)) {
+        continue;
+      }
+
+      let prop = new TextProperty(this, name, matches[2], matches[3] || "");
       this.textProps.push(prop);
     }
   },
