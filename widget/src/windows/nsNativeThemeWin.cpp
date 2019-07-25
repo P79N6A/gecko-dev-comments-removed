@@ -1426,8 +1426,9 @@ RENDER_AGAIN:
       nsUXThemeData::drawThemeBG(theme, hdc, gripPart, state, &widgetRect, &clipRect);
     }
   }
-  else if (aWidgetType == NS_THEME_WINDOW_BUTTON_BOX ||
-           aWidgetType == NS_THEME_WINDOW_BUTTON_BOX_MAXIMIZED)
+  else if ((aWidgetType == NS_THEME_WINDOW_BUTTON_BOX ||
+            aWidgetType == NS_THEME_WINDOW_BUTTON_BOX_MAXIMIZED) &&
+            nsUXThemeData::CheckForCompositor())
   {
     
     
