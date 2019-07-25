@@ -129,13 +129,20 @@ public:
     
     NS_IMETHOD SetupFallbackChannel(const char *aFallbackKey);
 
-
-
 public:  
     typedef void (nsHttpChannel:: *nsAsyncCallback)(void);
     nsHttpResponseHead * GetResponseHead() const { return mResponseHead; }
-private:
 
+    nsresult SetReferrerInternal(nsIURI *referrer) {
+        nsCAutoString spec;
+        nsresult rv = referrer->GetAsciiSpec(spec);
+        if (NS_FAILED(rv)) return rv;
+        mReferrer = referrer;
+        mRequestHead.SetHeader(nsHttp::Referer, spec);
+        return NS_OK;
+    }
+
+private:
     
     template <class T>
     void GetCallback(nsCOMPtr<T> &aResult)

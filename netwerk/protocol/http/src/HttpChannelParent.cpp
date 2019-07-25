@@ -80,6 +80,8 @@ HttpChannelParent::RecvAsyncOpen(const nsCString&           uriSpec,
                                  const nsCString&           originalCharset,
                                  const nsCString&           docUriSpec, 
                                  const nsCString&           docCharset,
+                                 const nsCString&           referrerSpec,
+                                 const nsCString&           referrerCharset,
                                  const PRUint32&            loadFlags,
                                  const RequestHeaderTuples& requestHeaders,
                                  const nsHttpAtom&          requestMethod,
@@ -106,26 +108,33 @@ HttpChannelParent::RecvAsyncOpen(const nsCString&           uriSpec,
   if (NS_FAILED(rv))
     return false;       
 
-  nsCOMPtr<nsIHttpChannel> httpChan(do_QueryInterface(chan));
-  nsCOMPtr<nsIHttpChannelInternal> httpChanInt(do_QueryInterface(chan));
+  nsHttpChannel *httpChan = static_cast<nsHttpChannel *>(chan.get());
 
   if (!originalUriSpec.IsEmpty()) {
     nsCOMPtr<nsIURI> originalUri;
     rv = NS_NewURI(getter_AddRefs(originalUri), originalUriSpec, 
                    originalCharset.get(), nsnull, ios);
     if (!NS_FAILED(rv))
-      chan->SetOriginalURI(originalUri);
+      httpChan->SetOriginalURI(originalUri);
   }
   if (!docUriSpec.IsEmpty()) {
     nsCOMPtr<nsIURI> docUri;
     rv = NS_NewURI(getter_AddRefs(docUri), docUriSpec, 
                    docCharset.get(), nsnull, ios);
     if (!NS_FAILED(rv)) {
-      httpChanInt->SetDocumentURI(docUri);
+      httpChan->SetDocumentURI(docUri);
+    }
+  }
+  if (!referrerSpec.IsEmpty()) {
+    nsCOMPtr<nsIURI> referrerUri;
+    rv = NS_NewURI(getter_AddRefs(referrerUri), referrerSpec,
+                   referrerCharset.get(), nsnull, ios);
+    if (!NS_FAILED(rv)) {
+      httpChan->SetReferrerInternal(referrerUri);
     }
   }
   if (loadFlags != nsIRequest::LOAD_NORMAL)
-    chan->SetLoadFlags(loadFlags);
+    httpChan->SetLoadFlags(loadFlags);
 
   for (PRUint32 i = 0; i < requestHeaders.Length(); i++)
     httpChan->SetRequestHeader(requestHeaders[i].mHeader,
@@ -134,14 +143,14 @@ HttpChannelParent::RecvAsyncOpen(const nsCString&           uriSpec,
 
   
   
-
+  
 
   httpChan->SetRequestMethod(nsDependentCString(requestMethod.get()));
   httpChan->SetRedirectionLimit(redirectionLimit);
   httpChan->SetAllowPipelining(allowPipelining);
-  httpChanInt->SetForceAllowThirdPartyCookie(forceAllowThirdPartyCookie);
+  httpChan->SetForceAllowThirdPartyCookie(forceAllowThirdPartyCookie);
 
-  rv = chan->AsyncOpen(this, nsnull);
+  rv = httpChan->AsyncOpen(this, nsnull);
   if (NS_FAILED(rv))
     return false;       
 
