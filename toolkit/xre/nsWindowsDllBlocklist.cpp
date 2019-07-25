@@ -148,59 +148,6 @@ typedef NTSTATUS (NTAPI *LdrLoadDll_func) (PWCHAR filePath, PULONG flags, PUNICO
 
 static LdrLoadDll_func stub_LdrLoadDll = 0;
 
-namespace {
-
-template <class T>
-struct RVAMap {
-  RVAMap(HANDLE map, unsigned offset) {
-    mMappedView = reinterpret_cast<T*>
-      (::MapViewOfFile(map, FILE_MAP_READ, 0, offset, sizeof(T)));
-  }
-  ~RVAMap() {
-    if (mMappedView) {
-      ::UnmapViewOfFile(mMappedView);
-    }
-  }
-  operator const T*() const { return mMappedView; }
-  const T* operator->() const { return mMappedView; }
-private:
-  const T* mMappedView;
-};
-
-void
-ForceASLR(const wchar_t* path)
-{
-  HANDLE file = ::CreateFileW(path, GENERIC_READ, FILE_SHARE_READ,
-                              NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
-                              NULL);
-  if (file != INVALID_HANDLE_VALUE) {
-    HANDLE map = ::CreateFileMappingW(file, NULL, PAGE_READONLY, 0, 0, NULL);
-    if (map) {
-      RVAMap<IMAGE_DOS_HEADER> peHeader(map, 0);
-      if (peHeader) {
-        RVAMap<IMAGE_NT_HEADERS> ntHeader(map, peHeader->e_lfanew);
-        if (ntHeader) {
-          
-          
-          if (((ntHeader->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE) == 0) &&
-              (ntHeader->OptionalHeader.SizeOfCode > 0)) {
-            void* page = ::VirtualAlloc((LPVOID)ntHeader->OptionalHeader.ImageBase, 1,
-                                        MEM_RESERVE, PAGE_NOACCESS);
-            
-            
-
-            
-          }
-        }
-      }
-      ::CloseHandle(map);
-    }
-    ::CloseHandle(file);
-  }
-}
- 
-}
-
 static NTSTATUS NTAPI
 patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileName, PHANDLE handle)
 {
@@ -210,31 +157,8 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
   wchar_t *dll_part;
   DllBlockInfo *info;
 
-  
-  
-  
-  
-  PWCHAR sanitizedFilePath = (intptr_t(filePath) < 1024) ? NULL : filePath;
-
   int len = moduleFileName->Length / 2;
   wchar_t *fname = moduleFileName->Buffer;
-
-  
-  DWORD pathlen = SearchPathW(sanitizedFilePath, fname, L".dll", 0, NULL, NULL);
-  if (pathlen == 0) {
-    
-    printf_stderr("LdrLoadDll: Blocking load of '%s' (SearchPathW didn't find it?)\n", dllName);
-    return STATUS_DLL_NOT_FOUND;
-  }
-
-  nsAutoArrayPtr<wchar_t> full_fname(new wchar_t[pathlen+1]);
-  if (!full_fname) {
-    
-    return STATUS_DLL_NOT_FOUND;
-  }
-
-  
-  SearchPathW(sanitizedFilePath, fname, L".dll", pathlen+1, full_fname, NULL);
 
   
   
@@ -311,6 +235,29 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
 #endif
 
     if (info->maxVersion != ALL_VERSIONS) {
+      
+      
+      
+      
+      PWCHAR sanitizedFilePath = (intptr_t(filePath) < 1024) ? NULL : filePath;
+
+      
+      DWORD pathlen = SearchPathW(sanitizedFilePath, fname, L".dll", 0, NULL, NULL);
+      if (pathlen == 0) {
+        
+        printf_stderr("LdrLoadDll: Blocking load of '%s' (SearchPathW didn't find it?)\n", dllName);
+        return STATUS_DLL_NOT_FOUND;
+      }
+
+      wchar_t *full_fname = (wchar_t*) malloc(sizeof(wchar_t)*(pathlen+1));
+      if (!full_fname) {
+        
+        return STATUS_DLL_NOT_FOUND;
+      }
+
+      
+      SearchPathW(sanitizedFilePath, fname, L".dll", pathlen+1, full_fname, NULL);
+
       DWORD zero;
       DWORD infoSize = GetFileVersionInfoSizeW(full_fname, &zero);
 
@@ -334,6 +281,8 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
             load_ok = true;
         }
       }
+
+      free(full_fname);
     }
 
     if (!load_ok) {
@@ -348,8 +297,6 @@ continue_loading:
 #endif
 
   NS_SetHasLoadedNewDLLs();
-
-  ForceASLR(full_fname);
 
   return stub_LdrLoadDll(filePath, flags, moduleFileName, handle);
 }
