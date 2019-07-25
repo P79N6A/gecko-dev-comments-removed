@@ -231,6 +231,9 @@ class Permissions(object):
         
         permDB = sqlite3.connect(os.path.join(self._profileDir, "permissions.sqlite"))
         cursor = permDB.cursor();
+
+        cursor.execute("PRAGMA user_version=3");
+
         
         
         cursor.execute("""CREATE TABLE IF NOT EXISTS moz_hosts (
