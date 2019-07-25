@@ -1317,9 +1317,12 @@ public:
 
 
 
+
+
   static void TriggerLink(nsIContent *aContent, nsPresContext *aPresContext,
                           nsIURI *aLinkURI, const nsString& aTargetSpec,
-                          PRBool aClick, PRBool aIsUserTriggered);
+                          PRBool aClick, PRBool aIsUserTriggered,
+                          PRBool aIsTrusted);
 
   
 
