@@ -530,15 +530,6 @@ JSObject::denseArrayHasInlineSlots() const
     return slots == fixedSlots();
 }
 
-inline void
-JSObject::backfillDenseArrayHoles()
-{
-    
-    JS_ASSERT(isDenseArray());
-    ClearValueRange(slots + initializedLength, capacity - initializedLength, true);
-    initializedLength = capacity;
-}
-
 inline bool
 JSObject::callIsForEval() const
 {
@@ -897,16 +888,18 @@ JSObject::init(JSContext *cx, js::Class *aclasp, js::types::TypeObject *type,
 
 
 
+
+
     slots = NULL;
-    ClearValueRange(fixedSlots(), capacity, useHoles);
     if (useHoles) {
         slots = fixedSlots();
         flags |= PACKED_ARRAY;
+    } else {
+        ClearValueRange(fixedSlots(), capacity, useHoles);
     }
 
     newType = NULL;
     JS_ASSERT(initializedLength == 0);
-        initializedLength = 0;
 
     setType(type);
     setParent(parent);
@@ -1564,7 +1557,7 @@ static inline gc::FinalizeKind
 GuessObjectGCKind(size_t numSlots, bool isArray)
 {
     if (numSlots)
-        return gc::GetGCObjectKind(numSlots);
+        return gc::GetGCObjectKind(numSlots, isArray);
     return isArray ? gc::FINALIZE_OBJECT8 : gc::FINALIZE_OBJECT4;
 }
 

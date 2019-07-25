@@ -82,6 +82,20 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
@@ -520,7 +534,7 @@ DeleteArrayElement(JSContext *cx, JSObject *obj, jsdouble index, bool strict)
         if (index <= jsuint(-1)) {
             jsuint idx = jsuint(index);
             if (idx < obj->getDenseArrayInitializedLength()) {
-                obj->setDenseArrayNotPacked(cx);
+                obj->markDenseArrayNotPacked(cx);
                 obj->setDenseArrayElement(idx, MagicValue(JS_ARRAY_HOLE));
                 if (!js_SuppressDeletedIndexProperties(cx, obj, idx, idx+1))
                     return -1;
@@ -645,7 +659,7 @@ array_length_setter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value 
         if (oldinit > newlen) {
             obj->setDenseArrayInitializedLength(newlen);
             if (!cx->typeInferenceEnabled())
-                obj->backfillDenseArrayHoles();
+                obj->backfillDenseArrayHoles(cx);
         }
     } else if (oldlen - newlen < (1 << 24)) {
         do {
@@ -938,7 +952,7 @@ array_deleteProperty(JSContext *cx, JSObject *obj, jsid id, Value *rval, JSBool 
     }
 
     if (js_IdIsIndex(id, &i) && i < obj->getDenseArrayInitializedLength()) {
-        obj->setDenseArrayNotPacked(cx);
+        obj->markDenseArrayNotPacked(cx);
         obj->setDenseArrayElement(i, MagicValue(JS_ARRAY_HOLE));
     }
 
@@ -956,8 +970,8 @@ array_trace(JSTracer *trc, JSObject *obj)
 {
     JS_ASSERT(obj->isDenseArray());
 
-    uint32 capacity = obj->getDenseArrayInitializedLength();
-    MarkValueRange(trc, capacity, obj->getDenseArrayElements(), "element");
+    uint32 initLength = obj->getDenseArrayInitializedLength();
+    MarkValueRange(trc, initLength, obj->getDenseArrayElements(), "element");
 }
 
 static JSBool
@@ -1048,7 +1062,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     cx->markTypeObjectFlags(getType(),
                             js::types::OBJECT_FLAG_NON_PACKED_ARRAY |
                             js::types::OBJECT_FLAG_NON_DENSE_ARRAY);
-    setDenseArrayNotPacked(cx);
+    markDenseArrayNotPacked(cx);
 
     
 
@@ -1062,7 +1076,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     if (!InitScopeForObject(cx, this, &js_SlowArrayClass, getType(), kind))
         return false;
 
-    backfillDenseArrayHoles();
+    backfillDenseArrayHoles(cx);
 
     uint32 arrayCapacity = getDenseArrayCapacity();
     uint32 arrayInitialized = getDenseArrayInitializedLength();
@@ -1569,7 +1583,7 @@ InitArrayObject(JSContext *cx, JSObject *obj, jsuint length, const Value *vector
     if (cx->typeInferenceEnabled())
         obj->setDenseArrayInitializedLength(length);
     else
-        obj->backfillDenseArrayHoles();
+        obj->backfillDenseArrayHoles(cx);
 
     bool hole = false;
     for (jsuint i = 0; i < length; i++) {
@@ -1577,7 +1591,7 @@ InitArrayObject(JSContext *cx, JSObject *obj, jsuint length, const Value *vector
         hole |= vector[i].isMagic(JS_ARRAY_HOLE);
     }
     if (hole)
-        obj->setDenseArrayNotPacked(cx);
+        obj->markDenseArrayNotPacked(cx);
 
     return true;
 }
@@ -1645,13 +1659,7 @@ array_reverse(JSContext *cx, uintN argc, Value *vp)
         }
 
         
-        jsuint initlen = obj->getDenseArrayInitializedLength();
-        if (len > initlen) {
-            JS_ASSERT(cx->typeInferenceEnabled());
-            ClearValueRange(obj->getDenseArrayElements() + initlen, len - initlen, true);
-            obj->setDenseArrayNotPacked(cx);
-            obj->setDenseArrayInitializedLength(len);
-        }
+        obj->ensureDenseArrayInitializedLength(cx, len, 0);
 
         uint32 lo = 0, hi = len - 1;
         for (; lo < hi; lo++, hi--) {
@@ -2230,8 +2238,6 @@ ArrayCompPushImpl(JSContext *cx, JSObject *obj, const Value &v)
 
         if (!obj->ensureSlots(cx, length + 1))
             return false;
-        if (!cx->typeInferenceEnabled())
-            obj->backfillDenseArrayHoles();
     }
 
     if (cx->typeInferenceEnabled())
@@ -2680,7 +2686,7 @@ array_concat(JSContext *cx, uintN argc, Value *vp)
         nobj->setType(aobj->getType());
         nobj->setArrayLength(cx, length);
         if (!aobj->isPackedDenseArray())
-            nobj->setDenseArrayNotPacked(cx);
+            nobj->markDenseArrayNotPacked(cx);
         vp->setObject(*nobj);
         if (argc == 0)
             return JS_TRUE;
@@ -2812,7 +2818,7 @@ array_slice(JSContext *cx, uintN argc, Value *vp)
             return JS_FALSE;
         nobj->setType(type);
         if (!obj->isPackedDenseArray())
-            nobj->setDenseArrayNotPacked(cx);
+            nobj->markDenseArrayNotPacked(cx);
         vp->setObject(*nobj);
         return JS_TRUE;
     }
@@ -3500,13 +3506,13 @@ NewArray(JSContext *cx, jsuint length, JSObject *proto)
 
     obj->setArrayLength(cx, length);
 
-    if (allocateCapacity) {
-        if (!obj->ensureSlots(cx, length))
-            return NULL;
+    if (!cx->typeInferenceEnabled()) {
+        obj->markDenseArrayNotPacked(cx);
+        obj->backfillDenseArrayHoles(cx);
     }
 
-    if (!cx->typeInferenceEnabled())
-        obj->backfillDenseArrayHoles();
+    if (allocateCapacity && !obj->ensureSlots(cx, length))
+        return NULL;
 
     return obj;
 }
@@ -3751,7 +3757,7 @@ js_CloneDensePrimitiveArray(JSContext *cx, JSObject *obj, JSObject **clone)
         return JS_FALSE;
 
     if (!obj->isPackedDenseArray())
-        (*clone)->setDenseArrayNotPacked(cx);
+        (*clone)->markDenseArrayNotPacked(cx);
 
     
     (*clone)->setArrayLength(cx, length);

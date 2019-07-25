@@ -4356,8 +4356,9 @@ JSObject::allocSlots(JSContext *cx, size_t newcap)
 
     if (isDenseArray()) {
         
-        memcpy(slots, fixedSlots(), oldcap * sizeof(Value));
-        ClearValueRange(slots + oldcap, newcap - oldcap, true);
+        memcpy(slots, fixedSlots(), getDenseArrayInitializedLength() * sizeof(Value));
+        if (!cx->typeInferenceEnabled())
+            backfillDenseArrayHoles(cx);
     } else {
         
         ClearValueRange(slots, allocCount, false);
@@ -4413,7 +4414,10 @@ JSObject::growSlots(JSContext *cx, size_t newcap)
     slots = tmpslots;
     capacity = actualCapacity;
 
-    if (!isDenseArray()) {
+    if (isDenseArray()) {
+        if (!cx->typeInferenceEnabled())
+            backfillDenseArrayHoles(cx);
+    } else {
         
         ClearValueRange(slots + oldAllocCount, allocCount - oldAllocCount, false);
     }

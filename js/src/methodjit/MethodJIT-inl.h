@@ -107,11 +107,22 @@ CanMethodJITAtBranch(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecode
     JITScriptStatus status = script->getJITStatus(fp->isConstructing());
     if (status == JITScript_Invalid)
         return Compile_Abort;
-    if (status == JITScript_None &&
-        !cx->hasRunOption(JSOPTION_METHODJIT_ALWAYS) &&
-        script->incUseCount() <= USES_BEFORE_COMPILE)
-    {
-        return Compile_Skipped;
+    if (status == JITScript_None && !cx->hasRunOption(JSOPTION_METHODJIT_ALWAYS)) {
+        
+
+
+
+
+
+
+
+        if (cx->typeInferenceEnabled()) {
+            if (script->incUseCount() <= USES_BEFORE_COMPILE)
+                return Compile_Skipped;
+        } else {
+            if (cx->compartment->incBackEdgeCount(pc) <= USES_BEFORE_COMPILE)
+                return Compile_Skipped;
+        }
     }
     if (status == JITScript_None)
         return TryCompile(cx, fp);
