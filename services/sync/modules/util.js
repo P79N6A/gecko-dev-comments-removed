@@ -218,16 +218,31 @@ let Utils = {
     return message + location;
   },
 
-  stackTrace: function Weave_stackTrace(e) {
+  stackTraceFromFrame: function Weave_stackTraceFromFrame(frame, formatter) {
+    if (!formatter)
+      formatter = function defaultFormatter(frame) { return frame; };
+
+    let output = "";
+
+    while (frame) {
+      output += formatter(frame) + "\n";
+      frame = frame.caller;
+    }
+
+    return output;
+  },
+
+  stackTrace: function Weave_stackTrace(e, formatter) {
     let output = "";
     if (e.location) {
       
-      let frame = e.location;
-      while (frame) {
-        output += frame + "\n";
-        frame = frame.caller;
-      }
+      output += this.stackTraceFromFrame(e.location, formatter);
     } else if (e.stack)
+      
+
+      
+      
+      
       
       output += e.stack;
     else
