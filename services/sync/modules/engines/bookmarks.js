@@ -81,6 +81,14 @@ BookmarksSharingManager.prototype = {
     return this.__annoSvc;
   },
 
+  __bms: null,
+  get _bms() {
+    if (!this.__bms)
+      this._bms = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+        getService(Ci.nsINavBookmarksService);
+    return this.__bms;
+  },
+
   _init: function SharingManager__init(engine) {
     this._engine = engine;
     this._log = Log4Moz.Service.getLogger("Bookmark Share");
@@ -194,7 +202,7 @@ BookmarksSharingManager.prototype = {
     Notifications.add(notification);
   },
 
-  _share: function BmkSharing__share( selectedFolder, username ) {
+  _share: function BmkSharing__share( folderId, username ) {
     
     let ret = false;
     let self = yield;
@@ -202,21 +210,19 @@ BookmarksSharingManager.prototype = {
     
 
 
+    let folderName = this._bms.getItemTitle(folderId);
 
     
-    dump("Blah!\n");
-    this._createOutgoingShare.async( this, self.cb, selectedFolder, username );
-    dump( "Gonna yield?\n" );
+    this._createOutgoingShare.async( this, self.cb,
+				     folderId, folderName, username );
     let serverPath = yield;
     dump("in _share: annotated with serverPath = \" + serverPath + \"\n");
-    this._updateOutgoingShare.async( this, self.cb, selectedFolder );
+    this._updateOutgoingShare.async( this, self.cb, folderId );
     yield;
 
     
 
-    let folderItemId = selectedFolder.node.itemId;
-    let folderName = selectedFolder.getAttribute( "label" );
-    this._annoSvc.setItemAnnotation(folderItemId,
+    this._annoSvc.setItemAnnotation(folderId,
                                     OUTGOING_SHARED_ANNO,
                                     username,
                                     0,
@@ -241,15 +247,12 @@ BookmarksSharingManager.prototype = {
     self.done( ret );
   },
 
-  _stopSharing: function BmkSharing__stopSharing( selectedFolder, username ) {
+  _stopSharing: function BmkSharing__stopSharing( folderId, username ) {
     let self = yield;
-    dump( "selectedFolder is of type: " + typeof selectedFolder + "\n");
-    dump( "Value is " + selectedFolder  + "\n");
-    let folderName = selectedFolder.getAttribute( "label" );
-    let folderNode = selectedFolder.node;
+    let folderName = this._bms.getItemTitle(folderId);
 
-    if (this._annoSvc.itemHasAnnotation(folderNode.itemId, SERVER_PATH_ANNO)){
-      let serverPath = this._annoSvc.getItemAnnotation(folderNode.itemId,
+    if (this._annoSvc.itemHasAnnotation(folderId, SERVER_PATH_ANNO)){
+      let serverPath = this._annoSvc.getItemAnnotation(folderId,
                                                        SERVER_PATH_ANNO);
     } else {
       this._log.warn("The folder you are de-sharing has no path annotation.");
@@ -262,7 +265,7 @@ BookmarksSharingManager.prototype = {
 
 
     
-    this._stopOutgoingShare.async( this, self.cb, selectedFolder);
+    this._stopOutgoingShare.async(this, self.cb, folderId);
     yield;
 
     
@@ -325,17 +328,21 @@ BookmarksSharingManager.prototype = {
     self.done();
   },
 
-  _createOutgoingShare: function BmkSharing__createOutgoing(folder, username) {
+  _createOutgoingShare: function BmkSharing__createOutgoing(folderId,
+							    folderName,
+							    username) {
     
 
 
 
 
 
+
+
     let self = yield;
-    let myUserName = ID.get('WeaveID').username;
-    this._log.debug("Sharing bookmarks from " + folder.getAttribute( "label" )
-                    + " with " + username);
+    let myUserName = fID.get('WeaveID').username;
+    this._log.debug("Turning folder " + folderName + " into outgoing share" +
+		     + " with " + username);
 
     
 
@@ -353,7 +360,7 @@ BookmarksSharingManager.prototype = {
 
     
 
-    this._annoSvc.setItemAnnotation(folder.node.itemId,
+    this._annoSvc.setItemAnnotation(folderId,
                                     SERVER_PATH_ANNO,
                                     serverPath,
                                     0,
@@ -406,7 +413,7 @@ BookmarksSharingManager.prototype = {
     self.done( serverPath );
   },
 
-  _updateOutgoingShare: function BmkSharing__updateOutgoing(folderNode) {
+  _updateOutgoingShare: function BmkSharing__updateOutgoing(folderId) {
     
 
 
@@ -416,7 +423,7 @@ BookmarksSharingManager.prototype = {
     let myUserName = ID.get('WeaveID').username;
     
     
-    let serverPath = this._annoSvc.getItemAnnotation(folderNode,
+    let serverPath = this._annoSvc.getItemAnnotation(folderId,
                                                      SERVER_PATH_ANNO);
     
     
@@ -433,7 +440,8 @@ BookmarksSharingManager.prototype = {
     let bulkIV = keys.bulkIV;
 
     
-    let json = this._engine._store._wrapMount( folderNode, myUserName );
+    
+    let json = this._engine._store._wrapMount( folderId, myUserName );
     
 
 
@@ -451,13 +459,13 @@ BookmarksSharingManager.prototype = {
     self.done();
   },
 
-  _stopOutgoingShare: function BmkSharing__stopOutgoingShare(folderNode) {
+  _stopOutgoingShare: function BmkSharing__stopOutgoingShare(folderId) {
     
 
 
     let self = yield;
-    if (this._annoSvc.itemHasAnnotation(folderNode.itemId, SERVER_PATH_ANNO)){
-      let serverPath = this._annoSvc.getItemAnnotation( folderNode,
+    if (this._annoSvc.itemHasAnnotation(folderId, SERVER_PATH_ANNO)){
+      let serverPath = this._annoSvc.getItemAnnotation( folderId,
                                                       SERVER_PATH_ANNO );
       
       
@@ -471,18 +479,8 @@ BookmarksSharingManager.prototype = {
       
     }
     
-    this._annoSvc.setItemAnnotation(folderNode,
-                                    SERVER_PATH_ANNO,
-                                    "",
-                                    0,
-                                    this._annoSvc.EXPIRE_NEVER);
-    this._annoSvc.setItemAnnotation(folderNode,
-                                    OUTGOING_SHARED_ANNO,
-                                    "",
-                                    0,
-                                    this._annoSvc.EXPIRE_NEVER);
-    
-    
+    this._annoSvc.removeItemAnnotation(folderId, SERVER_PATH_ANNO);
+    this._annoSvc.removeItemAnnotation(folderId, OUTGOING_SHARED_ANNO);
     self.done();
   },
 
@@ -497,8 +495,6 @@ BookmarksSharingManager.prototype = {
 
 
 
-    let bms = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-      getService(Ci.nsINavBookmarksService);
 
     
 
@@ -508,9 +504,9 @@ BookmarksSharingManager.prototype = {
     if (a.length == 1)
       root = a[0];
     if (!root) {
-      root = bms.createFolder(bms.toolbarFolder,
-			      INCOMING_SHARE_ROOT_NAME,
-                              bms.DEFAULT_INDEX);
+      root = this._bms.createFolder(this._bms.toolbarFolder,
+			            INCOMING_SHARE_ROOT_NAME,
+                                    this._bms.DEFAULT_INDEX);
       this._annoSvc.setItemAnnotation(root,
                                       INCOMING_SHARE_ROOT_ANNO,
                                       true,
@@ -532,7 +528,7 @@ BookmarksSharingManager.prototype = {
       }
     }
     if (!itemExists) {
-      let newId = bms.createFolder(root, title, bms.DEFAULT_INDEX);
+      let newId = this._bms.createFolder(root, title, this._bms.DEFAULT_INDEX);
       
       this._annoSvc.setItemAnnotation(newId,
                                       INCOMING_SHARED_ANNO,
@@ -607,22 +603,19 @@ BookmarksSharingManager.prototype = {
   },
 
   _stopIncomingShare: function BmkSharing__stopIncomingShare(user,
-                                                            serverPath,
-                                                            folderName)
+                                                             serverPath,
+                                                             folderName)
   {
   
 
 
-
-    let bms = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-              getService(Ci.nsINavBookmarksService);
 
     let a = this._annoSvc.getItemsWithAnnotation(OUTGOING_SHARED_ANNO, {});
     for (let i = 0; i < a.length; i++) {
       let creator = this._annoSvc.getItemAnnotation(a[i], OUTGOING_SHARED_ANNO);
       let path = this._annoSvc.getItemAnnotation(a[i], SERVER_PATH_ANNO);
       if ( creator == user && path == serverPath ) {
-        bms.removeFolder( a[i]);
+        this._bms.removeFolder( a[i]);
       }
     }
   }
