@@ -118,13 +118,6 @@ private:
 
 
 
-
-  void RegisterCompositorWithJava();
-
-  
-
-
-
   void RequestViewTransform();
 
   

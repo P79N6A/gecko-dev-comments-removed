@@ -52,9 +52,9 @@ namespace mozilla {
 namespace layers {
 
 CompositorParent::CompositorParent(nsIWidget* aWidget)
-  : mPaused(false)
-  , mWidget(aWidget)
+  : mWidget(aWidget)
   , mCurrentCompositeTask(NULL)
+  , mPaused(false)
 {
   MOZ_COUNT_CTOR(CompositorParent);
 }
@@ -182,13 +182,18 @@ CompositorParent::Composite()
   printf_stderr("Correcting for position fixed %i, %i\n", -mScrollOffset.x, -mScrollOffset.y);
   worldTransform.Translate(offset);
   worldTransform.Scale(mXScale, mYScale, 1.0f);
+#ifdef MOZ_WIDGET_ANDROID
   Layer* layer = GetPrimaryScrollableLayer();
+#else
+  Layer* root = mLayerManager->GetRoot();
+#endif
   layer->AsShadowLayer()->SetShadowTransform(worldTransform);
 
   mLayerManager->EndEmptyTransaction();
   mLastCompose = mozilla::TimeStamp::Now();
 }
 
+#ifdef MOZ_WIDGET_ANDROID
 
 
 Layer*
@@ -218,6 +223,7 @@ CompositorParent::GetPrimaryScrollableLayer()
 
   return root;
 }
+#endif
 
 
 
@@ -411,12 +417,6 @@ CompositorParent::TestScroll()
 PLayersParent*
 CompositorParent::AllocPLayers(const LayersBackend &backendType)
 {
-#ifdef MOZ_WIDGET_ANDROID
-  
-  
-  
-#endif
-
   if (backendType == LayerManager::LAYERS_OPENGL) {
     nsRefPtr<LayerManagerOGL> layerManager = new LayerManagerOGL(mWidget);
     mWidget = NULL;
@@ -444,14 +444,6 @@ CompositorParent::DeallocPLayers(PLayersParent* actor)
   delete actor;
   return true;
 }
-
-#ifdef MOZ_WIDGET_ANDROID
-void
-CompositorParent::RegisterCompositorWithJava()
-{
-  mozilla::AndroidBridge::Bridge()->RegisterCompositor();
-}
-#endif
 
 } 
 } 
