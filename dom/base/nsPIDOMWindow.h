@@ -69,14 +69,6 @@ enum PopupControlState {
   openOverridden    
 };
 
-
-
-enum PopupOpenedState {
-  noTrack = -1,      
-  noOpenedPopup = 0, 
-  openedPopup = 1    
-};
-
 class nsIDocShell;
 class nsIContent;
 class nsIDocument;
@@ -304,8 +296,6 @@ public:
                                                   bool aForce) const = 0;
   virtual void PopPopupControlState(PopupControlState state) const = 0;
   virtual PopupControlState GetPopupControlState() const = 0;
-  virtual void SetPopupOpenedState(PopupOpenedState aValue) const = 0;
-  virtual PopupOpenedState GetPopupOpenedState() const = 0;
 
   
   
@@ -697,12 +687,6 @@ PushPopupControlState(PopupControlState aState, bool aForce);
 void
 PopPopupControlState(PopupControlState aState);
 
-PopupOpenedState
-GetPopupOpenedState();
-
-void
-SetPopupOpenedState(PopupOpenedState aState);
-
 #define NS_AUTO_POPUP_STATE_PUSHER nsAutoPopupStatePusherInternal
 #else
 #define NS_AUTO_POPUP_STATE_PUSHER nsAutoPopupStatePusherExternal
@@ -720,28 +704,19 @@ public:
 #ifdef _IMPL_NS_LAYOUT
   NS_AUTO_POPUP_STATE_PUSHER(PopupControlState aState, bool aForce = false)
     : mOldState(::PushPopupControlState(aState, aForce))
-    , mPreviousOpenState(::GetPopupOpenedState())
   {
-    SetPopupOpenedState(mPreviousOpenState == openedPopup ? openedPopup
-                                                          : noOpenedPopup);
   }
 
   ~NS_AUTO_POPUP_STATE_PUSHER()
   {
     PopPopupControlState(mOldState);
-    SetPopupOpenedState(mPreviousOpenState);
   }
 #else
   NS_AUTO_POPUP_STATE_PUSHER(nsPIDOMWindow *aWindow, PopupControlState aState)
-    : mWindow(aWindow)
-    , mOldState(openAbused)
-    , mPreviousOpenState(noTrack)
+    : mWindow(aWindow), mOldState(openAbused)
   {
     if (aWindow) {
       mOldState = aWindow->PushPopupControlState(aState, PR_FALSE);
-      mPreviousOpenState = aWindow->GetPopupOpenedState();
-      aWindow->SetPopupOpenedState(mPreviousOpenState == openedPopup ? openedPopup
-                                                                     : noOpenedPopup);
     }
   }
 
@@ -749,7 +724,6 @@ public:
   {
     if (mWindow) {
       mWindow->PopPopupControlState(mOldState);
-      mWindow->SetPopupOpenedState(mPreviousOpenState);
     }
   }
 #endif
@@ -759,7 +733,6 @@ protected:
   nsCOMPtr<nsPIDOMWindow> mWindow;
 #endif
   PopupControlState mOldState;
-  PopupOpenedState mPreviousOpenState;
 
 private:
   
