@@ -314,6 +314,8 @@ class Vector : AllocPolicy
 
     
 
+    enum { InlineLength = N };
+
     size_t length() const {
         return usingInlineStorage() ? inlineLength() : heapLength();
     }
