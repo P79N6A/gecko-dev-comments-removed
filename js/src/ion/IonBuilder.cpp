@@ -1750,8 +1750,11 @@ IonBuilder::forLoop(JSOp op, jssrcnote *sn)
         bodyStart = GetNextPc(bodyStart);
     } else {
         
-        JS_ASSERT(JSOp(*bodyStart) == JSOP_NOP);
-        bodyStart = GetNextPc(bodyStart);
+        if (op != JSOP_NOP) {
+            
+            JS_ASSERT(JSOp(*bodyStart) == JSOP_NOP);
+            bodyStart = GetNextPc(bodyStart);
+        }
         loopEntry = GetNextPc(bodyStart);
     }
     jsbytecode *loopHead = bodyStart;
