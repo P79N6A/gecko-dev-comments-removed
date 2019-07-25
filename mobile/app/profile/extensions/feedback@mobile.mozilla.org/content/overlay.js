@@ -39,6 +39,15 @@ var Feedback = {
   init: function(aEvent) {
     let appInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
     document.getElementById("feedback-about").setAttribute("desc", appInfo.version);
+
+    
+    messageManager.addMessageListener("DOMContentLoaded", function() {
+      
+      messageManager.removeMessageListener("DOMContentLoaded", arguments.callee, true);
+
+      
+      document.getElementById("feedback-container").hidden = false;
+    });
   },
 
   openReadme: function() {
