@@ -318,7 +318,8 @@ public:
   }
   PRUint32 GetCachedChildCount() const { return mChildren.Length(); }
   nsAccessible* GetCachedChildAt(PRUint32 aIndex) const { return mChildren.ElementAt(aIndex); }
-  PRBool AreChildrenCached() const { return mChildrenFlags != eChildrenUninitialized; }
+  inline bool AreChildrenCached() const
+    { return !IsChildrenFlag(eChildrenUninitialized); }
   bool IsBoundToParent() const { return !!mParent; }
 
   
@@ -467,6 +468,27 @@ protected:
                                            nsresult *aError = nsnull);
 
   
+
+
+  enum ChildrenFlags {
+    eChildrenUninitialized = 0, 
+    eMixedChildren = 1 << 0, 
+    eEmbeddedChildren = 1 << 1 
+  };
+
+  
+
+
+  inline bool IsChildrenFlag(ChildrenFlags aFlag) const
+    { return (mFlags & kChildrenFlagsMask) == aFlag; }
+
+  
+
+
+  inline void SetChildrenFlag(ChildrenFlags aFlag)
+    { mFlags = (mFlags & ~kChildrenFlagsMask) | aFlag; }
+
+  
   
 
   
@@ -580,12 +602,10 @@ protected:
   nsTArray<nsRefPtr<nsAccessible> > mChildren;
   PRInt32 mIndexInParent;
 
-  enum ChildrenFlags {
-    eChildrenUninitialized = 0x00,
-    eMixedChildren = 0x01,
-    eEmbeddedChildren = 0x02
-  };
-  ChildrenFlags mChildrenFlags;
+  static const PRUint32 kChildrenFlagsMask =
+    eChildrenUninitialized | eMixedChildren | eEmbeddedChildren;
+
+  PRUint32 mFlags;
 
   nsAutoPtr<EmbeddedObjCollector> mEmbeddedObjCollector;
   PRInt32 mIndexOfEmbeddedChild;
