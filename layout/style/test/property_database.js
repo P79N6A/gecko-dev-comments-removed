@@ -1338,6 +1338,7 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
 		
+		prerequisites: { "position": "relative" },
 		
 		initial_values: [ "auto" ],
 		other_values: [ "32px", "-3em", "12%" ],
@@ -1599,6 +1600,7 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
 		
+		prerequisites: { "position": "relative" },
 		
 		initial_values: [ "auto" ],
 		other_values: [ "32px", "-3em", "12%" ],
@@ -2045,6 +2047,7 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
 		
+		prerequisites: { "position": "relative" },
 		
 		initial_values: [ "auto" ],
 		other_values: [ "32px", "-3em", "12%" ],
@@ -2186,6 +2189,7 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
 		
+		prerequisites: { "position": "relative" },
 		
 		initial_values: [ "auto" ],
 		other_values: [ "32px", "-3em", "12%" ],
