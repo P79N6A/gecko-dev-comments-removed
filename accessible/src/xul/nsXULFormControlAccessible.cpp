@@ -251,7 +251,7 @@ nsXULButtonAccessible::CacheChildren()
 
     } else {
       
-      GetDocAccessible()->UnbindFromDocument(child);
+      Document()->UnbindFromDocument(child);
     }
   }
 

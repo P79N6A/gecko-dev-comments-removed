@@ -88,7 +88,7 @@ public:
   
 
 
-  nsDocAccessible* GetDocAccessible() const { return mDoc; }
+  nsDocAccessible* Document() const { return mDoc; }
 
   
 
