@@ -41,6 +41,7 @@
 #include "nscore.h"
 #include "nsISupportsImpl.h"
 #include "nsIThread.h"
+#include "nsAutoPtr.h"
 
 class nsAudioStream : public nsISupports
 {
@@ -63,7 +64,7 @@ public:
 
   
   
-  static nsIThread *GetGlobalThread();
+  virtual nsIThread *GetThread();
 
   
   
@@ -114,6 +115,9 @@ public:
 
   
   virtual PRBool IsPaused() = 0;
+
+protected:
+  nsCOMPtr<nsIThread> mAudioPlaybackThread;
 };
 
 #endif
