@@ -1,6 +1,6 @@
 let atob = Cu.import("resource://services-sync/util.js").atob;
 Cu.import("resource://services-sync/constants.js");
-Cu.import("resource://services-sync/base_records/crypto.js");
+Cu.import("resource://services-sync/record.js");
 
 
 
