@@ -45,6 +45,8 @@
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 
+#include "vm/String-inl.h"
+
 
 
 

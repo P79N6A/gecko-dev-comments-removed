@@ -46,7 +46,6 @@
 #include "jspubtd.h"
 #include "jsatom.h"
 #include "jsobj.h"
-#include "jsstr.h"
 
 
 const uintN MIN_SPARSE_INDEX = 256;
