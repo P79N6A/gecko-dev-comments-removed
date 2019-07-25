@@ -293,7 +293,15 @@ WinTaskbar::GetAppUserModelID(nsAString & aDefaultGroupId) {
     AppendASCIItoUTF16(val, aDefaultGroupId);
   }
 
-  return aDefaultGroupId.IsEmpty() ? PR_FALSE : PR_TRUE;
+  if (aDefaultGroupId.IsEmpty())
+    return PR_FALSE;
+
+  
+#if defined(_WIN64)
+  aDefaultGroupId.AppendLiteral(".Win64");
+#endif
+
+  return PR_TRUE;
 }
 
 
