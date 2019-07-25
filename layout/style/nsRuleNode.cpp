@@ -1429,7 +1429,9 @@ CheckTextCallback(const nsRuleDataStruct& aData,
 
 #define CSS_PROP_INCLUDE_NOT_CSS
 
-#define CHECK_DATA_FOR_PROPERTY(name_, id_, method_, flags_, datastruct_, member_, kwtable_, stylestructoffset_, animtype_) \
+#define CHECK_DATA_FOR_PROPERTY(name_, id_, method_, flags_, datastruct_,     \
+                                member_, parsevariant_, kwtable_,             \
+                                stylestructoffset_, animtype_)                \
   { offsetof(nsRuleData##datastruct_, member_), flags_ },
 
 static const PropertyCheckData FontCheckProperties[] = {
@@ -2175,7 +2177,8 @@ nsRuleNode::SetDefaultOnRoot(const nsStyleStructID aSID, nsStyleContext* aContex
     {
       nsStyleFont* fontData = new (mPresContext) nsStyleFont(mPresContext);
       if (NS_LIKELY(fontData != nsnull)) {
-        nscoord minimumFontSize = mPresContext->MinFontSize();
+        nscoord minimumFontSize =
+          mPresContext->GetCachedIntPref(kPresContext_MinimumFontSize);
 
         if (minimumFontSize > 0 && !mPresContext->IsChrome()) {
           fontData->mFont.size = NS_MAX(fontData->mSize, minimumFontSize);
@@ -3268,7 +3271,8 @@ nsRuleNode::ComputeFontData(void* aStartStruct,
   
 
   
-  nscoord minimumFontSize = mPresContext->MinFontSize();
+  nscoord minimumFontSize =
+    mPresContext->GetCachedIntPref(kPresContext_MinimumFontSize);
 
   if (minimumFontSize < 0)
     minimumFontSize = 0;
@@ -3489,7 +3493,8 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
         !textData.mLineHeight.IsRelativeLengthUnit()) {
       nscoord lh = nsStyleFont::ZoomText(mPresContext,
                                          text->mLineHeight.GetCoordValue());
-      nscoord minimumFontSize = mPresContext->MinFontSize();
+      nscoord minimumFontSize =
+        mPresContext->GetCachedIntPref(kPresContext_MinimumFontSize);
 
       if (minimumFontSize > 0 && !mPresContext->IsChrome()) {
         
