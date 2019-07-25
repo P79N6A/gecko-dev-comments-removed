@@ -534,14 +534,15 @@ function ReadManifest(aURL)
         }
 
         var expected_status = EXPECTED_PASS;
+        var allow_silent_fail = false;
         var minAsserts = 0;
         var maxAsserts = 0;
         var slow = false;
-        while (items[0].match(/^(fails|random|skip|asserts|slow)/)) {
+        while (items[0].match(/^(fails|random|skip|asserts|slow|silentfail)/)) {
             var item = items.shift();
             var stat;
             var cond;
-            var m = item.match(/^(fails|random|skip)-if(\(.*\))$/);
+            var m = item.match(/^(fails|random|skip|silentfail)-if(\(.*\))$/);
             if (m) {
                 stat = m[1];
                 
@@ -569,6 +570,9 @@ function ReadManifest(aURL)
                 cond = false;
                 if (Components.utils.evalInSandbox("(" + m[1] + ")", sandbox))
                     slow = true;
+            } else if (item == "silentfail") {
+                cond = false;
+                allow_silent_fail = true;
             } else {
                 throw "Error 1 in manifest file " + aURL.spec + " line " + lineNo;
             }
@@ -580,6 +584,8 @@ function ReadManifest(aURL)
                     expected_status = EXPECTED_RANDOM;
                 } else if (stat == "skip") {
                     expected_status = EXPECTED_DEATH;
+                } else if (stat == "silentfail") {
+                    allow_silent_fail = true;
                 }
             }
         }
@@ -637,6 +643,7 @@ function ReadManifest(aURL)
                                 CI.nsIScriptSecurityManager.DISALLOW_SCRIPT);
             gURLs.push( { type: TYPE_LOAD,
                           expected: expected_status,
+                          allowSilentFail: allow_silent_fail,
                           prettyPath: prettyPath,
                           minAsserts: minAsserts,
                           maxAsserts: maxAsserts,
@@ -657,6 +664,7 @@ function ReadManifest(aURL)
                                 CI.nsIScriptSecurityManager.DISALLOW_SCRIPT);
             gURLs.push( { type: TYPE_SCRIPT,
                           expected: expected_status,
+                          allowSilentFail: allow_silent_fail,
                           prettyPath: prettyPath,
                           minAsserts: minAsserts,
                           maxAsserts: maxAsserts,
@@ -680,6 +688,7 @@ function ReadManifest(aURL)
                                 CI.nsIScriptSecurityManager.DISALLOW_SCRIPT);
             gURLs.push( { type: items[0],
                           expected: expected_status,
+                          allowSilentFail: allow_silent_fail,
                           prettyPath: prettyPath,
                           minAsserts: minAsserts,
                           maxAsserts: maxAsserts,
@@ -1224,7 +1233,11 @@ function DocumentLoaded()
         else if (testcases.length == 0) {
             
             
-            missing_msg = "No test results reported. (SCRIPT)\n";
+            
+            if (!gURLs[0].allowSilentFail)
+                missing_msg = "No test results reported. (SCRIPT)\n";
+            else
+                dump("REFTEST INFO | An expected silent failure occurred \n");
         }
 
         if (missing_msg) {
@@ -1328,13 +1341,8 @@ function DocumentLoaded()
 
             var result = "REFTEST " + output.s + " | " +
                          gURLs[0].prettyPath + " | "; 
-            switch (gURLs[0].type) {
-                case TYPE_REFTEST_NOTEQUAL:
-                    result += "image comparison (!=) ";
-                    break;
-                case TYPE_REFTEST_EQUAL:
-                    result += "image comparison (==) ";
-                    break;
+            if (gURLs[0].type == TYPE_REFTEST_NOTEQUAL) {
+                result += "(!=) ";
             }
             gDumpLog(result + "\n");
 
