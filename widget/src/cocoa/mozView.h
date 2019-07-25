@@ -62,6 +62,8 @@ class nsIWidget;
   
 - (void)widgetDestroyed;
 
+- (BOOL)isDragInProgress;
+
 @end
 
 
