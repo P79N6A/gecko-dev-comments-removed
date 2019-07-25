@@ -2036,6 +2036,9 @@ nsFocusManager::SetCaretVisible(nsIPresShell* aPresShell,
       GetSelection(nsISelectionController::SELECTION_NORMAL);
     if (domSelection) {
       
+      caret->SetCaretVisible(PR_FALSE);
+
+      
       caret->SetCaretDOMSelection(domSelection);
 
       
