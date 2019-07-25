@@ -807,15 +807,34 @@ public:
     
 
     struct RectTriangles {
-        RectTriangles() : numRects(0) { }
+        RectTriangles() { }
 
         void addRect(GLfloat x0, GLfloat y0, GLfloat x1, GLfloat y1,
                      GLfloat tx0, GLfloat ty0, GLfloat tx1, GLfloat ty1);
 
-        int numRects;
         
-        GLfloat vertexCoords[4*3*2*2];
-        GLfloat texCoords[4*3*2*2];
+
+
+
+
+        float* vertexPointer() {
+            return &vertexCoords[0].x;
+        };
+
+        float* texCoordPointer() {
+            return &texCoords[0].u;
+        };
+
+        unsigned int elements() {
+            return vertexCoords.Length();
+        };
+
+        typedef struct { GLfloat x,y; } vert_coord;
+        typedef struct { GLfloat u,v; } tex_coord;
+    private:
+        
+        nsAutoTArray<vert_coord, 6> vertexCoords;
+        nsAutoTArray<tex_coord, 6>  texCoords;
     };
 
     

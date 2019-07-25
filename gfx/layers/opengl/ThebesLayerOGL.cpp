@@ -120,20 +120,22 @@ BindAndDrawQuadWithTextureRect(GLContext* aGl,
     GLContext::DecomposeIntoNoRepeatTriangles(aTexCoordRect, aTexSize, rects);
   }
 
+  
   aGl->fVertexAttribPointer(vertAttribIndex, 2,
                             LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
-                            rects.vertexCoords);
+                            rects.vertexPointer());
 
+  
   aGl->fVertexAttribPointer(texCoordAttribIndex, 2,
                             LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
-                            rects.texCoords);
+                            rects.texCoordPointer());
 
   {
     aGl->fEnableVertexAttribArray(texCoordAttribIndex);
     {
       aGl->fEnableVertexAttribArray(vertAttribIndex);
 
-      aGl->fDrawArrays(LOCAL_GL_TRIANGLES, 0, rects.numRects * 6);
+      aGl->fDrawArrays(LOCAL_GL_TRIANGLES, 0, rects.elements());
 
       aGl->fDisableVertexAttribArray(vertAttribIndex);
     }
