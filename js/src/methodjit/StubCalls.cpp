@@ -1150,6 +1150,12 @@ stubs::GreaterEqual(VMFrame &f)
     RELATIONAL(>=);
 }
 
+JSBool JS_FASTCALL
+stubs::ValueToBoolean(VMFrame &f)
+{
+    return js_ValueToBoolean(f.regs.sp[-1]);
+}
+
 
 
 

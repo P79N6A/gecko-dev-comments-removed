@@ -172,6 +172,16 @@ class BaseAssembler : public JSC::MacroAssembler
                  FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, pc)));
 
         
+        fixScriptStack(frameDepth);
+
+        
+        setupVMFrame();
+
+        return call(pfun);
+    }
+
+    void fixScriptStack(uint32 frameDepth) {
+        
         addPtr(Imm32(sizeof(JSStackFrame) + frameDepth * sizeof(jsval)),
                FpReg,
                ClobberInCall);
@@ -179,11 +189,10 @@ class BaseAssembler : public JSC::MacroAssembler
         
         storePtr(ClobberInCall,
                  FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, sp)));
-        
-        
-        move(MacroAssembler::stackPointerRegister, Registers::ArgReg0);
+    }
 
-        return call(pfun);
+    void setupVMFrame() {
+        move(MacroAssembler::stackPointerRegister, Registers::ArgReg0);
     }
 
     Call call(void *fun) {
