@@ -148,8 +148,17 @@ public:
 
   virtual already_AddRefed<gfxASurface> GetAsSurface();
 
-  nsRefPtr<IDirect3DTexture9> mTexture;
+  
+
+
+
+  virtual IDirect3DTexture9* GetOrCreateTexture();
+  const gfxIntSize& GetSize() { return mSize; }
+
+private:
   gfxIntSize mSize;
+  nsRefPtr<gfxASurface> mCachedSurface;
+  nsRefPtr<IDirect3DTexture9> mTexture;
   LayerManagerD3D9 *mManager;
 };
 
