@@ -2418,21 +2418,17 @@ IonBuilder::jsop_arginc(JSOp op)
 bool
 IonBuilder::jsop_compare(JSOp op)
 {
-    
     MDefinition *right = current->pop();
     MDefinition *left = current->pop();
 
-    
     MCompare *ins = MCompare::New(left, right, op);
     current->add(ins);
+    current->push(ins);
 
     ins->infer(cx, oracle->binaryTypes(script, pc));
 
-    if (ins->specialization() == MIRType_None)
-        return abort("unspecialized compare not yet supported");
-
-    
-    current->push(ins);
+    if (ins->isEffectful() && !resumeAfter(ins))
+        return false;
     return true;
 }
 
