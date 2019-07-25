@@ -14672,7 +14672,12 @@ TraceRecorder::record_JSOP_IN()
 
 
 
-    fuseIf(cx->regs->pc + 1, cond, x);
+    jsbytecode *pc = cx->regs->pc;
+    fuseIf(pc + 1, cond, x);
+
+    
+    if (pc[1] == JSOP_IFNE || pc[1] == JSOP_IFEQ)
+        CHECK_STATUS_A(checkTraceEnd(pc + 1));
 
     
 
