@@ -1115,12 +1115,12 @@ xpc_qsXPCOMObjectToJsval(XPCLazyCallContext &lccx, qsObjectHelper* aHelper,
                          const nsIID *iid, XPCNativeInterface **iface,
                          jsval *rval)
 {
+    NS_PRECONDITION(iface, "Who did that and why?");
+
     
     
 
     JSContext *cx = lccx.GetJSContext();
-    if(!iface)
-        return xpc_qsThrow(cx, NS_ERROR_XPC_BAD_CONVERT_NATIVE);
 
     
     
