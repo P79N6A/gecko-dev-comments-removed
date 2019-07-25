@@ -1514,6 +1514,7 @@ struct nsStyleDisplay {
   PRUint8 mOverflowY;           
   PRUint8 mResize;              
   PRUint8   mClipFlags;         
+  PRUint8 mOrient;              
 
   
   
