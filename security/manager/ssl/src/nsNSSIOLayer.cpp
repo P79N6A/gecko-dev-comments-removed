@@ -598,10 +598,27 @@ nsNSSSocketInfo::StartTLS()
   return ActivateSSL();
 }
 
+static NS_DEFINE_CID(kNSSCertificateCID, NS_X509CERT_CID);
+#define NSSSOCKETINFOMAGIC { 0xa9863a23, 0x26b8, 0x4a9c, \
+  { 0x83, 0xf1, 0xe9, 0xda, 0xdb, 0x36, 0xb8, 0x30 } }
+static NS_DEFINE_CID(kNSSSocketInfoMagic, NSSSOCKETINFOMAGIC);
+
 NS_IMETHODIMP
 nsNSSSocketInfo::Write(nsIObjectOutputStream* stream) {
-  stream->WriteCompoundObject(NS_ISUPPORTS_CAST(nsIX509Cert*, mCert),
-                              NS_GET_IID(nsISupports), PR_TRUE);
+  stream->WriteID(kNSSSocketInfoMagic);
+
+  
+  stream->WriteBoolean(!!mCert);
+
+  
+  
+  
+  nsCOMPtr<nsISerializable> certSerializable = do_QueryInterface(mCert);
+  if (certSerializable) {
+    stream->WriteID(kNSSCertificateCID);
+    stream->WriteID(NS_GET_IID(nsISupports));
+    certSerializable->Write(stream);
+  }
 
   
   
@@ -609,7 +626,7 @@ nsNSSSocketInfo::Write(nsIObjectOutputStream* stream) {
   
   
   
-  PRUint32 version = 2;
+  PRUint32 version = 3;
   stream->Write32(version | 0xFFFF0000);
   stream->Write32(mSecurityState);
   stream->WriteWStringZ(mShortDesc.get());
@@ -625,28 +642,90 @@ nsNSSSocketInfo::Write(nsIObjectOutputStream* stream) {
   return NS_OK;
 }
 
+static bool CheckUUIDEquals(PRUint32 m0,
+                            nsIObjectInputStream* stream,
+                            const nsCID& id)
+{
+  nsID tempID;
+  tempID.m0 = m0;
+  stream->Read16(&tempID.m1);
+  stream->Read16(&tempID.m2);
+  for (int i = 0; i < 8; ++i)
+    stream->Read8(&tempID.m3[i]);
+  return tempID.Equals(id);
+}
+
 NS_IMETHODIMP
 nsNSSSocketInfo::Read(nsIObjectInputStream* stream) {
-  nsCOMPtr<nsISupports> obj;
-  stream->ReadObject(PR_TRUE, getter_AddRefs(obj));
-  mCert = reinterpret_cast<nsNSSCertificate*>(obj.get());
+  nsresult rv;
 
   PRUint32 version;
-  stream->Read32(&version);
+  PRBool certificatePresent;
+
+  
+  PRUint32 UUID_0;
+  stream->Read32(&UUID_0);
+  if (UUID_0 == kNSSSocketInfoMagic.m0) {
+    
+    if (!CheckUUIDEquals(UUID_0, stream, kNSSSocketInfoMagic))
+      return NS_ERROR_FAILURE;
+
+    
+    
+    stream->ReadBoolean(&certificatePresent);
+    stream->Read32(&UUID_0);
+  }
+  else {
+    
+    
+    
+    certificatePresent = PR_TRUE;
+  }
+
+  if (certificatePresent && UUID_0 == kNSSCertificateCID.m0) {
+    
+    
+    if (!CheckUUIDEquals(UUID_0, stream, kNSSCertificateCID))
+      return NS_ERROR_FAILURE;
+
+    
+    nsID tempID;
+    stream->ReadID(&tempID);
+    if (!tempID.Equals(NS_GET_IID(nsISupports)))
+      return NS_ERROR_FAILURE;
+
+    nsCOMPtr<nsISerializable> serializable =
+        do_CreateInstance(kNSSCertificateCID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    serializable->Read(stream);
+    mCert = reinterpret_cast<nsNSSCertificate*>(serializable.get());
+
+    
+    
+    stream->Read32(&version);
+  }
+  else {
+    
+    version = UUID_0;
+    mCert = nsnull;
+  }
+
   
   
   
   if ((version & 0xFFFF0000) == 0xFFFF0000) {
-      version &= ~0xFFFF0000;
-      stream->Read32(&mSecurityState);
+    version &= ~0xFFFF0000;
+    stream->Read32(&mSecurityState);
   }
   else {
-      mSecurityState = version;
-      version = 1;
+    mSecurityState = version;
+    version = 1;
   }
   stream->ReadString(mShortDesc);
   stream->ReadString(mErrorMessage);
 
+  nsCOMPtr<nsISupports> obj;
   stream->ReadObject(PR_TRUE, getter_AddRefs(obj));
   mSSLStatus = reinterpret_cast<nsSSLStatus*>(obj.get());
 
