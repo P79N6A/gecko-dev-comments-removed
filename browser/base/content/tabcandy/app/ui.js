@@ -219,15 +219,15 @@ window.Page = {
           self.setActiveTab(nextTab);           
         }
         e.preventDefault();               
-      }      
-    });
-    
-    $(window).keyup(function(e){
+      }
       
-      
+      Utils.log('hizzzzz', $(":focus").length );
       if((e.which == 27 || e.which == 13) && $(":focus").length == 0 )
         if( self.getActiveTab() ) self.getActiveTab().zoom();
+      
+       
     });
+    
   },
     
   
