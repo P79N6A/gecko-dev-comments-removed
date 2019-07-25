@@ -868,30 +868,30 @@ nsContentTreeOwner::ProvideWindow(nsIDOMWindow* aParent,
   }
 
   if (aCalledFromJS) {
-  
+    
 
 
 
 
 
-  PRInt32 restrictionPref;
-  if (NS_FAILED(branch->GetIntPref("open_newwindow.restriction",
-                                   &restrictionPref)) ||
-      restrictionPref < 0 ||
-      restrictionPref > 2) {
-    restrictionPref = 2; 
-  }
+    PRInt32 restrictionPref;
+    if (NS_FAILED(branch->GetIntPref("open_newwindow.restriction",
+                                     &restrictionPref)) ||
+        restrictionPref < 0 ||
+        restrictionPref > 2) {
+      restrictionPref = 2; 
+    }
 
-  if (restrictionPref == 1) {
-    return NS_OK;
-  }
+    if (restrictionPref == 1) {
+      return NS_OK;
+    }
 
-  if (restrictionPref == 2 &&
-      
-      
-      (aChromeFlags != nsIWebBrowserChrome::CHROME_ALL ||
-       aPositionSpecified || aSizeSpecified)) {
-    return NS_OK;
+    if (restrictionPref == 2 &&
+        
+        
+        (aChromeFlags != nsIWebBrowserChrome::CHROME_ALL ||
+         aPositionSpecified || aSizeSpecified)) {
+      return NS_OK;
     }
   }
 
