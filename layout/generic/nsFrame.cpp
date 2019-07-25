@@ -6599,14 +6599,16 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
       o.UnionRectEdges(o, bounds);
     }
 
-    
-    
-    nsRect marginBounds(bounds);
-    nsMargin margin = GetUsedMargin();
-    ApplySkipSides(margin);
-    marginBounds.Inflate(margin);
-    nsRect &so = aOverflowAreas.ScrollableOverflow();
-    so.UnionRectEdges(so, marginBounds);
+    if (!nsLayoutUtils::IsPopup(this)) {
+      
+      
+      nsRect marginBounds(bounds);
+      nsMargin margin = GetUsedMargin();
+      ApplySkipSides(margin);
+      marginBounds.Inflate(margin);
+      nsRect& so = aOverflowAreas.ScrollableOverflow();
+      so.UnionRectEdges(so, marginBounds);
+    }
   }
 
   
