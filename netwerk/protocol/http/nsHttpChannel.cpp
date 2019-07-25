@@ -802,6 +802,12 @@ nsHttpChannel::CallOnStartRequest()
     rv = ApplyContentConversions();
     if (NS_FAILED(rv)) return rv;
 
+    
+    if (mCacheEntry && mChannelIsForDownload) {
+        mCacheEntry->Doom();
+        CloseCacheEntry(PR_FALSE);
+    }
+
     if (!mCanceled) {
         
         if (mCacheForOfflineUse) {

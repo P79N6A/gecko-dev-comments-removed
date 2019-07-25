@@ -94,6 +94,7 @@
 #include "nsMimeTypes.h"
 
 #include "nsIHttpChannel.h"
+#include "nsIHttpChannelInternal.h"
 #include "nsIEncodedChannel.h"
 #include "nsIMultiPartChannel.h"
 #include "nsIFileChannel.h"
@@ -1642,6 +1643,12 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
     }
 
     encChannel->SetApplyConversion( applyConversion );
+  }
+
+  
+  nsCOMPtr<nsIHttpChannelInternal> httpInternal = do_QueryInterface(aChannel);
+  if (httpInternal) {
+    httpInternal->SetChannelIsForDownload(PR_TRUE);
   }
 
   
