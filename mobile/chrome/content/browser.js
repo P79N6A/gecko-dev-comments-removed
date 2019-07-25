@@ -2166,7 +2166,7 @@ IdentityHandler.prototype = {
 
 
   checkIdentity: function() {
-    let browser= getBrowser();
+    let browser = getBrowser();
     let state = browser.securityUI.state;
     let location = browser.currentURI;
     let currentStatus = browser.securityUI.SSLStatus;
@@ -3165,7 +3165,9 @@ Tab.prototype = {
 
     browser.setAttribute("style", "overflow: -moz-hidden-unscrollable; visibility: hidden;");
     browser.setAttribute("type", "content");
-    browser.setAttribute("remote", "false");
+
+    let useRemote = gPrefService.getBoolPref("browser.tabs.remote");
+    browser.setAttribute("remote", useRemote ? "true" : "false");
 
     
     document.getElementById("browsers").appendChild(browser);
