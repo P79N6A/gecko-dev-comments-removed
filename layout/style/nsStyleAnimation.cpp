@@ -1937,25 +1937,15 @@ LookupStyleContext(dom::Element* aElement)
 
 
 
-
-
-
-
-
-
-
-
-
 already_AddRefed<nsStyleContext>
-StyleWithDeclarationAdded(nsCSSProperty aProperty,
-                          dom::Element* aTargetElement,
-                          const nsAString& aSpecifiedValue,
-                          PRBool aUseSVGMode)
+StyleWithRuleAdded(dom::Element* aTargetElement,
+                   css::StyleRule* aStyleRule)
 {
   NS_ABORT_IF_FALSE(aTargetElement, "null target element");
   NS_ABORT_IF_FALSE(aTargetElement->GetCurrentDoc(),
                     "element needs to be in a document "
                     "if we're going to look up its style context");
+  NS_ABORT_IF_FALSE(aStyleRule, "null style rule");
 
   
   nsRefPtr<nsStyleContext> styleContext = LookupStyleContext(aTargetElement);
@@ -1963,18 +1953,11 @@ StyleWithDeclarationAdded(nsCSSProperty aProperty,
     return nsnull;
   }
 
-  
-  nsRefPtr<css::StyleRule> styleRule =
-    BuildStyleRule(aProperty, aTargetElement, aSpecifiedValue, aUseSVGMode);
-  if (!styleRule) {
-    return nsnull;
-  }
-
-  styleRule->RuleMatched();
+  aStyleRule->RuleMatched();
 
   
   nsCOMArray<nsIStyleRule> ruleArray;
-  ruleArray.AppendObject(styleRule);
+  ruleArray.AppendObject(aStyleRule);
   nsStyleSet* styleSet = styleContext->PresContext()->StyleSet();
   return styleSet->ResolveStyleByAddingRules(styleContext, ruleArray);
 }
@@ -1995,9 +1978,14 @@ nsStyleAnimation::ComputeValue(nsCSSProperty aProperty,
     nsCSSProps::PropHasFlags(aProperty, CSS_PROPERTY_REPORT_OTHER_NAME)
       ? nsCSSProps::OtherNameFor(aProperty) : aProperty;
 
+  
+  nsRefPtr<css::StyleRule> styleRule =
+    BuildStyleRule(propToParse, aTargetElement, aSpecifiedValue, aUseSVGMode);
+  if (!styleRule) {
+    return PR_FALSE;
+  }
   nsRefPtr<nsStyleContext> tmpStyleContext =
-    StyleWithDeclarationAdded(propToParse, aTargetElement,
-                              aSpecifiedValue, aUseSVGMode);
+    StyleWithRuleAdded(aTargetElement, styleRule);
   if (!tmpStyleContext) {
     return PR_FALSE;
   }
