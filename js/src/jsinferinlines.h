@@ -1201,20 +1201,8 @@ inline TypeObject::TypeObject(jsid name, JSObject *proto)
 
     if (proto) {
         TypeObject *prototype = proto->getType();
-        if (prototype->unknownProperties) {
+        if (prototype->unknownProperties)
             unknownProperties = true;
-        } else if (proto->isArray()) {
-            
-
-
-
-
-
-
-
-
-            isDenseArray = isPackedArray = true;
-        }
         instanceNext = prototype->instanceList;
         prototype->instanceList = this;
     }
