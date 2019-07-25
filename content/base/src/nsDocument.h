@@ -929,6 +929,8 @@ public:
   virtual void AsyncRequestFullScreen(Element* aElement);
   virtual void RestorePreviousFullScreenState();
   virtual bool IsFullScreenDoc();
+  virtual void SetApprovedForFullscreen(bool aIsApproved);
+
   static void ExitFullScreen();
 
   
@@ -939,7 +941,14 @@ public:
 
   
   
-  void ClearFullScreenStack();
+  void CleanupFullscreenState();
+
+  
+  
+  
+  
+  nsresult AddFullscreenApprovedObserver();
+  nsresult RemoveFullscreenApprovedObserver();
 
   
   
@@ -1179,6 +1188,21 @@ protected:
   
   
   bool mParserAborted:1;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mIsApprovedForFullscreen:1;
 
   PRUint8 mXMLDeclarationBits;
 
