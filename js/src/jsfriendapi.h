@@ -651,6 +651,9 @@ PrepareCompartmentForGC(JSCompartment *comp);
 extern JS_FRIEND_API(void)
 PrepareForFullGC(JSRuntime *rt);
 
+extern JS_FRIEND_API(bool)
+IsGCScheduled(JSRuntime *rt);
+
 
 
 
