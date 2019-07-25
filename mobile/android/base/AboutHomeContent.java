@@ -201,15 +201,12 @@ public class AboutHomeContent extends ScrollView
             mLastTabs.hide();
     }
 
-    private void setTopSitesVisibility(boolean visible, boolean hasTopSites) {
-        int visibility = visible ? View.VISIBLE : View.GONE;
-        int visibilityWithTopSites = visible && hasTopSites ? View.VISIBLE : View.GONE;
-        int visibilityWithoutTopSites = visible && !hasTopSites ? View.VISIBLE : View.GONE;
+    private void setTopSitesVisibility(boolean hasTopSites) {
+        int visibility = hasTopSites ? View.VISIBLE : View.GONE;
 
-        findViewById(R.id.top_sites_grid).setVisibility(visibilityWithTopSites);
         findViewById(R.id.top_sites_title).setVisibility(visibility);
-        findViewById(R.id.all_top_sites_text).setVisibility(visibilityWithTopSites);
-        findViewById(R.id.no_top_sites_text).setVisibility(visibilityWithoutTopSites);
+        findViewById(R.id.top_sites_grid).setVisibility(visibility);
+        findViewById(R.id.all_top_sites_text).setVisibility(visibility);
     }
 
     private void setPromoBoxVisibility(boolean visible, AboutHomePromoBox.Type type) {
@@ -219,15 +216,10 @@ public class AboutHomeContent extends ScrollView
             mPromoBox.hide();
     }
 
-    private void updateLayout(GeckoApp.StartupMode startupMode, boolean syncIsSetup) {
-        
-        
-        
-
+    private void updateLayout(boolean syncIsSetup) {
         boolean hasTopSites = mTopSitesAdapter.getCount() > 0;
-        boolean isFirstRun = (startupMode == GeckoApp.StartupMode.NEW_PROFILE);
 
-        setTopSitesVisibility(!isFirstRun || hasTopSites, hasTopSites);
+        setTopSitesVisibility(hasTopSites);
         setPromoBoxVisibility(!syncIsSetup, AboutHomePromoBox.Type.SYNC);
     }
 
@@ -241,17 +233,12 @@ public class AboutHomeContent extends ScrollView
                 
                 
                 if (mTopSitesAdapter != null)
-                    updateLayout(startupMode, syncIsSetup);
+                    updateLayout(syncIsSetup);
             }
         });
     }
 
     private void loadTopSites() {
-        
-        
-        
-        final GeckoApp.StartupMode startupMode = mActivity.getStartupMode();
-
         
         
         final boolean syncIsSetup = SyncAccounts.syncAccountsExist(mActivity);
@@ -277,7 +264,7 @@ public class AboutHomeContent extends ScrollView
                     mTopSitesAdapter.changeCursor(mCursor);
                 }
 
-                updateLayout(startupMode, syncIsSetup);
+                updateLayout(syncIsSetup);
 
                 
                 if (oldCursor != null && !oldCursor.isClosed())
