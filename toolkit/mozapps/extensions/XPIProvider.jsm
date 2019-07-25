@@ -1437,6 +1437,13 @@ var XPIProvider = {
       
       let xulPrototypeCache = Cc["@mozilla.org/xul/xul-prototype-cache;1"].getService(Ci.nsISupports);
       Services.obs.notifyObservers(null, "startupcache-invalidate", null);
+
+      
+      
+      
+      
+      Services.obs.notifyObservers(null, "chrome-flush-skin-caches", null);
+      Services.obs.notifyObservers(null, "chrome-flush-caches", null);
     }
 
     this.enabledAddons = Prefs.getCharPref(PREF_EM_ENABLED_ADDONS, "");
