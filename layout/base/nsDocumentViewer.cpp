@@ -1533,6 +1533,13 @@ DocumentViewerImpl::Destroy()
         vm->GetRootView(rootView);
 
         if (rootView) {
+          
+          
+          
+          vm->UpdateViewNoSuppression(rootView,
+            rootView->GetBounds() - rootView->GetPosition(),
+            NS_VMREFRESH_NO_SYNC);
+
           nsIView *rootViewParent = rootView->GetParent();
           if (rootViewParent) {
             nsIViewManager *parentVM = rootViewParent->GetViewManager();
