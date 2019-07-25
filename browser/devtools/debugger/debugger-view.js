@@ -349,7 +349,7 @@ DebuggerView.Properties = {
     }
 
     
-    aId = aId || (aName + "-scope");
+    aId = aId || (aName.toLowerCase().trim().replace(" ", "-") + "-scope");
 
     
     let element = this._createPropertyElement(aName, aId, "scope", this._vars);
