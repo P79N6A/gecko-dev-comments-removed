@@ -899,7 +899,7 @@ struct RuleCascadeData {
   RuleHash                 mRuleHash;
   RuleHash*
     mPseudoElementRuleHashes[nsCSSPseudoElements::ePseudo_PseudoElementCount];
-  nsTArray<nsCSSSelector*> mStateSelectors;
+  nsTArray<nsCSSRuleProcessor::StateSelector>  mStateSelectors;
   nsEventStates            mSelectorDocumentStates;
   PLDHashTable             mClassSelectors;
   PLDHashTable             mIdSelectors;
@@ -2371,18 +2371,22 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
   
   nsRestyleHint hint = nsRestyleHint(0);
   if (cascade) {
-    nsCSSSelector **iter = cascade->mStateSelectors.Elements(),
-                  **end = iter + cascade->mStateSelectors.Length();
+    StateSelector *iter = cascade->mStateSelectors.Elements(),
+                  *end = iter + cascade->mStateSelectors.Length();
     NodeMatchContext nodeContext(aData->mStateMask, false);
     for(; iter != end; ++iter) {
-      nsCSSSelector* selector = *iter;
+      nsCSSSelector* selector = iter->mSelector;
+      nsEventStates states = iter->mStates;
 
       nsRestyleHint possibleChange = RestyleHintForOp(selector->mOperator);
 
       
       
       
+      
+      
       if ((possibleChange & ~hint) &&
+          states.HasAtLeastOneOfStates(aData->mStateMask) &&
           SelectorMatches(aData->mElement, selector, nodeContext,
                           aData->mTreeMatchContext) &&
           SelectorMatchesTree(aData->mElement, selector->mNext,
@@ -2622,9 +2626,11 @@ nsCSSRuleProcessor::ClearRuleCascades()
 
 
 
+
 inline
-bool IsStateSelector(nsCSSSelector& aSelector)
+nsEventStates ComputeSelectorStateDependence(nsCSSSelector& aSelector)
 {
+  nsEventStates states;
   for (nsPseudoClassList* pseudoClass = aSelector.mPseudoClassList;
        pseudoClass; pseudoClass = pseudoClass->mNext) {
     
@@ -2632,11 +2638,9 @@ bool IsStateSelector(nsCSSSelector& aSelector)
     if (pseudoClass->mType >= nsCSSPseudoClasses::ePseudoClass_Count) {
       continue;
     }
-    if (!sPseudoClassStates[pseudoClass->mType].IsEmpty()) {
-      return true;
-    }
+    states |= sPseudoClassStates[pseudoClass->mType];
   }
-  return false;
+  return states;
 }
 
 static bool
@@ -2684,8 +2688,12 @@ AddSelector(RuleCascadeData* aCascade,
     }
 
     
-    if (IsStateSelector(*negation))
-      aCascade->mStateSelectors.AppendElement(aSelectorInTopLevel);
+    nsEventStates dependentStates = ComputeSelectorStateDependence(*negation);
+    if (!dependentStates.IsEmpty()) {
+      aCascade->mStateSelectors.AppendElement(
+        nsCSSRuleProcessor::StateSelector(dependentStates,
+                                          aSelectorInTopLevel));
+    }
 
     
     if (negation == aSelectorInTopLevel) {
