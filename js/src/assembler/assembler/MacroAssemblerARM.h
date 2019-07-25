@@ -496,9 +496,14 @@ public:
         return Jump(m_assembler.jmp(ARMCondition(cond), useConstantPool));
     }
 
-    Jump branch32_force32(Condition cond, RegisterID left, Imm32 right, int useConstantPool = 0)
+    
+    
+    
+    
+    Jump branch32FixedLength(Condition cond, RegisterID left, Imm32 right)
     {
-        return branch32(cond, left, right, useConstantPool);
+        m_assembler.ldr_un_imm(ARMRegisters::S1, right.m_value);
+        return branch32(cond, left, ARMRegisters::S1, true);
     }
 
     

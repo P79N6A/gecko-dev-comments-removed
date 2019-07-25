@@ -857,7 +857,8 @@ public:
     
     
     
-    Jump branch32_force32(Condition cond, RegisterID left, Imm32 right)
+    
+    Jump branch32FixedLength(Condition cond, RegisterID left, Imm32 right)
     {
         m_assembler.cmpl_ir_force32(right.m_value, left);
         return Jump(m_assembler.jCC(x86Condition(cond)));
@@ -867,7 +868,7 @@ public:
     Jump branch32WithPatch(Condition cond, RegisterID left, Imm32 right, DataLabel32 &dataLabel)
     {
         
-        m_assembler.cmpl_ir(right.m_value, left);
+        m_assembler.cmpl_ir_force32(right.m_value, left);
         dataLabel = DataLabel32(this);
         return Jump(m_assembler.jCC(x86Condition(cond)));
     }
