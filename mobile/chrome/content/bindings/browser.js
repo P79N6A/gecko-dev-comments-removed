@@ -618,11 +618,16 @@ let ContentScroll =  {
         if (content != doc.defaultView) 
           return;
 
-        sendAsyncMessage("MozScrolledAreaChanged", {
-          width: aEvent.width,
-          height: aEvent.height,
-          left: aEvent.x
-        });
+        
+        
+        addEventListener("MozAfterPaint", function afterPaint() {
+          sendAsyncMessage("MozScrolledAreaChanged", {
+            width: aEvent.width,
+            height: aEvent.height,
+            left: aEvent.x
+          });
+          removeEventListener("MozAfterPaint", afterPaint, false);
+        }, false);
 
         break;
       }
