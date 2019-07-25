@@ -476,15 +476,6 @@ pref("full-screen-api.enabled", true);
 pref("media.volume.steps", 10);
 
 
-
-
-pref("ril.data.enabled", false);
-pref("ril.data.roaming.enabled", false);
-pref("ril.data.apn", "");
-pref("ril.data.user", "");
-pref("ril.data.passwd", "");
-
-
 pref("marionette.defaultPrefs.enabled", true);
 pref("marionette.defaultPrefs.port", 2828);
 
