@@ -104,8 +104,35 @@ EngineManagerSvc.prototype = {
     }
     return ret;
   },
-  register: function EngMgr_register(engine) {
-    this._engines[engine.name] = engine;
+
+  
+
+
+
+
+
+
+
+  register: function EngMgr_register(engineObject) {
+    if (Utils.isArray(engineObject))
+      return engineObject.map(this.register, this);
+
+    try {
+      let engine = new engineObject();
+      this._engines[engine.name] = engine;
+    }
+    catch(ex) {
+      let mesg = ex.message ? ex.message : ex;
+      let name = engineObject || "";
+      name = name.prototype || "";
+      name = name.name || "";
+
+      let out = "Could not initialize engine '" + name + "': " + mesg;
+      dump(out);
+      this._log.error(out);
+
+      return engineObject;
+    }
   },
   unregister: function EngMgr_unregister(val) {
     let name = val;
