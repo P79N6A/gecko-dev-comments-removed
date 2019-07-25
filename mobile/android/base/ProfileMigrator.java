@@ -159,6 +159,12 @@ public class ProfileMigrator {
     
 
 
+    private final String kHistoryCountQuery =
+        "SELECT COUNT(*) FROM moz_historyvisits";
+
+    
+
+
 
 
 
@@ -200,7 +206,16 @@ public class ProfileMigrator {
     }
 
     public void launch() {
+        boolean timeThisRun = false;
+        Telemetry.Timer timer = null;
+        
+        if (!hasMigrationRun()) {
+            timeThisRun = true;
+            timer = new Telemetry.Timer("BROWSERPROVIDER_XUL_IMPORT_TIME");
+        }
         launch(DEFAULT_HISTORY_MIGRATE_COUNT);
+        if (timeThisRun)
+            timer.stop();
     }
 
     public void launch(int maxEntries) {
@@ -481,6 +496,12 @@ public class ProfileMigrator {
             int queryResultEntries = 0;
 
             try {
+                Cursor cursor = db.rawQuery(kHistoryCountQuery, null);
+                cursor.moveToFirst();
+                int historyCount = cursor.getInt(0);
+                Telemetry.HistogramAdd("BROWSERPROVIDER_XUL_IMPORT_HISTORY",
+                                       historyCount);
+
                 final String currentTime = Long.toString(System.currentTimeMillis());
                 final String[] queryParams = new String[] {
                     
@@ -489,7 +510,7 @@ public class ProfileMigrator {
                     Integer.toString(maxEntries),
                     Integer.toString(currentEntries)
                 };
-                Cursor cursor = db.rawQuery(kHistoryQuery, queryParams);
+                cursor = db.rawQuery(kHistoryQuery, queryParams);
                 queryResultEntries = cursor.getCount();
 
                 final int urlCol = cursor.getColumnIndex(kHistoryUrl);
@@ -656,6 +677,11 @@ public class ProfileMigrator {
                 final int faviconDataCol = cursor.getColumnIndex(kFaviconData);
                 final int faviconUrlCol = cursor.getColumnIndex(kFaviconUrl);
                 final int faviconGuidCol = cursor.getColumnIndex(kFaviconGuid);
+
+                
+                int bookmarkCount = cursor.getCount();
+                Telemetry.HistogramAdd("BROWSERPROVIDER_XUL_IMPORT_BOOKMARKS",
+                                       bookmarkCount);
 
                 
                 Set<Long> openFolders = new HashSet<Long>();
