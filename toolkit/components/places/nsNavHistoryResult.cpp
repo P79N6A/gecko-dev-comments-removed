@@ -2343,9 +2343,10 @@ nsNavHistoryQueryResultNode::CanExpand()
 
   
   if ((mResult && mResult->mRootNode->mOptions->ExcludeItems()) ||
-      (mParent && mParent->mOptions->ExcludeItems()))
+      Options()->ExcludeItems())
     return PR_FALSE;
 
+  
   nsNavHistoryQueryOptions* options = GetGeneratingOptions();
   if (options) {
     if (options->ExcludeItems())
@@ -2353,8 +2354,10 @@ nsNavHistoryQueryResultNode::CanExpand()
     if (options->ExpandQueries())
       return PR_TRUE;
   }
+
   if (mResult && mResult->mRootNode == this)
     return PR_TRUE;
+
   return PR_FALSE;
 }
 

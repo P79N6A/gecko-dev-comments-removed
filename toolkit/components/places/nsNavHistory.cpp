@@ -2861,21 +2861,24 @@ nsNavHistory::ExecuteQueries(nsINavHistoryQuery** aQueries, PRUint32 aQueryCount
     queries.AppendObject(query);
   }
 
-  nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
-  NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
   
   nsRefPtr<nsNavHistoryContainerResultNode> rootNode;
   PRInt64 folderId = GetSimpleBookmarksQueryFolder(queries, options);
   if (folderId) {
     
     
+    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+    NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
     nsRefPtr<nsNavHistoryResultNode> tempRootNode;
     rv = bookmarks->ResultNodeForContainer(folderId, options,
                                            getter_AddRefs(tempRootNode));
-    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                     "Generating a generic empty node for a broken query!");
     if (NS_SUCCEEDED(rv)) {
       rootNode = tempRootNode->GetAsContainer();
+    }
+    else {
+      NS_WARNING("Generating a generic empty node for a broken query!");
+      
+      options->SetExcludeItems(PR_TRUE);
     }
   }
 
@@ -6148,8 +6151,9 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
           resultType != nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS) {
         
         
-        if (excludeFolders[queryIndex]->Contains(parentId))
+        if (excludeFolders[queryIndex]->Contains(parentId) || parentId == -1) {
           continue;
+        }
 
         if (!includeFolders[queryIndex]->Contains(parentId)) {
           
@@ -6533,6 +6537,8 @@ nsNavHistory::QueryRowToResult(PRInt64 itemId, const nsACString& aURI,
     
     *aNode = new nsNavHistoryQueryResultNode(aTitle, aFavicon, aURI);
     (*aNode)->mItemId = itemId;
+    
+    (*aNode)->GetAsQuery()->Options()->SetExcludeItems(PR_TRUE);
     NS_ADDREF(*aNode);
   }
 
@@ -6916,7 +6922,7 @@ GetSimpleBookmarksQueryFolder(const nsCOMArray<nsNavHistoryQuery>& aQueries,
 
   
   
-  NS_ASSERTION(query->Folders()[0] > 0, "bad folder id");
+
   return query->Folders()[0];
 }
 
