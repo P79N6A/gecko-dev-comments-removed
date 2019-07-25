@@ -53,22 +53,6 @@ a {
 
 
 
-#dbg-toolbar {
-  padding: 2px;
-}
-
-#dbg-toolbar > button {
-  text-align: center;
-}
-
-#dbg-toolbar > button, menulist {
-  -moz-appearance: toolbarbutton;
-}
-
-
-
-
-
 #dbg-content {
   padding: 6px;
 }

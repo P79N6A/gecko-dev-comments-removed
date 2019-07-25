@@ -149,3 +149,15 @@
 
   margin: -4px;
 }
+
+
+
+.devtools-horizontal-splitter {
+  -moz-appearance: none;
+  border-top: 1px solid black;
+  border-bottom-width: 0;
+  min-height: 3px;
+  height: 3px;
+  margin-bottom: -3px;
+  position: relative;
+}
