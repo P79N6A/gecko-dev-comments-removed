@@ -392,4 +392,7 @@ pref("dom.screenEnabledProperty.enabled", true);
 pref("dom.screenBrightnessProperty.enabled", true);
 
 
+pref("dom.sms.enabled", true);
+pref("dom.sms.whitelist", "file://,http://localhost:6666");
+
 pref("b2g.ignoreXFrameOptions", true);
