@@ -1843,7 +1843,9 @@ HeadsUpDisplay.prototype = {
       
       
       
-      if (ev.target.classList.contains("hud-msg-node")) {
+      let node = ev.target;
+      if (node.nodeType === node.ELEMENT_NODE &&
+          node.classList.contains("hud-msg-node")) {
         HUDService.adjustVisibilityForNewlyInsertedNode(self.hudId, ev.target);
       }
     }, false);
