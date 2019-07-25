@@ -1299,6 +1299,10 @@ mjit::Compiler::generateMethod()
             break;
           END_CASE(JSOP_GLOBALINC)
 
+          BEGIN_CASE(JSOP_DEFUPVAR)
+            frame.addEscaping(GET_SLOTNO(PC));
+          END_CASE(JSOP_DEFUPVAR)
+
           default:
            
 #ifdef JS_METHODJIT_SPEW
@@ -1560,7 +1564,7 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
 
 
 
-    frame.forgetEverything();
+    frame.syncForCall(argc + 2);
 
     Label invoke;
     if (!typeKnown) {

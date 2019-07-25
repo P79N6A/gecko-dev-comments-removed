@@ -335,6 +335,11 @@ class FrameState
     
 
 
+    void syncForCall(uint32 argc);
+
+    
+
+
 
 
     inline void forgetEverything(uint32 newStackDepth);
@@ -439,6 +444,8 @@ class FrameState
 
     void shimmy(uint32 n);
 
+    inline void addEscaping(uint32 local);
+
   private:
     inline RegisterID allocReg(FrameEntry *fe, RematInfo::RematType type, bool weak);
     inline void forgetReg(RegisterID reg);
@@ -521,6 +528,9 @@ class FrameState
     RegisterState regstate[Assembler::TotalRegisters];
 
     mutable ImmutableSync reifier;
+
+    uint32 *escaping;
+    bool eval;
 };
 
 } 

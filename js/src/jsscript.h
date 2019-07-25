@@ -157,6 +157,7 @@ struct JSScript {
     bool            hasSharps:1;      
     bool            strictModeCode:1; 
     bool            compileAndGo:1;   
+    bool            usesEval:1;       
 
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
