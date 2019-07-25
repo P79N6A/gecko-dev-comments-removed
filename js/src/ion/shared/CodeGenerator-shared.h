@@ -158,6 +158,13 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     bool assignFrameInfo(LSnapshot *snapshot);
 
+    
+    
+    bool createSafepoint(LInstruction *ins) {
+        JS_ASSERT(ins->safepoint());
+        return assignFrameInfo(ins->safepoint());
+    }
+
     inline bool isNextBlock(LBlock *block) {
         return (current->mir()->id() + 1 == block->mir()->id());
     }

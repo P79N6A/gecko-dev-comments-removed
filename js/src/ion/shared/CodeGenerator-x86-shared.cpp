@@ -109,7 +109,7 @@ CodeGeneratorX86Shared::generateEpilogue()
 
 
 bool
-CodeGeneratorX86Shared::callVM(const VMFunction * f, LSnapshot *snapshot)
+CodeGeneratorX86Shared::callVM(const VMFunction * f, LInstruction *ins)
 {
     JS_ASSERT(f);
     const VMFunction& fun = *f;
@@ -135,18 +135,14 @@ CodeGeneratorX86Shared::callVM(const VMFunction * f, LSnapshot *snapshot)
 
     
     
+    
+    
     masm.call(wrapper);
-    if (!assignFrameInfo(snapshot))
+    if (!createSafepoint(ins))
         return false;
 
     
     
-
-    
-    
-    
-    if (!bailoutIf(Assembler::Equal, snapshot))
-        return false;
 
     return true;
 }
@@ -846,7 +842,7 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
         masm.movePtr(Operand(objreg, offsetof(IonScript, method_)), objreg);
         masm.movePtr(Operand(objreg, IonCode::OffsetOfCode()), objreg);
         masm.call(objreg);
-        if (!assignFrameInfo(call->postSnapshot()))
+        if (!createSafepoint(call))
             return false;
         masm.jump(&rejoin);
 
@@ -855,7 +851,7 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
         masm.mov(Imm32(call->nargs()), ArgumentsRectifierReg);
         masm.movePtr(ImmWord(argumentsRectifier->raw()), ecx); 
         masm.call(ecx);
-        if (!assignFrameInfo(call->postSnapshot()))
+        if (!createSafepoint(call))
             return false;
         masm.bind(&rejoin);
     }
