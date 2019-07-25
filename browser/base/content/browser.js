@@ -130,6 +130,15 @@ __defineGetter__("gPrefService", function() {
   return this.gPrefService = Services.prefs;
 });
 
+__defineGetter__("AddonManager", function() {
+  Cu.import("resource://gre/modules/AddonManager.jsm");
+  return this.AddonManager;
+});
+__defineSetter__("AddonManager", function (val) {
+  delete this.AddonManager;
+  return this.AddonManager = val;
+});
+
 __defineGetter__("PluralForm", function() {
   Cu.import("resource://gre/modules/PluralForm.jsm");
   return this.PluralForm;
@@ -623,69 +632,142 @@ const gXPInstallObserver = {
   observe: function (aSubject, aTopic, aData)
   {
     var brandBundle = document.getElementById("bundle_brand");
+    var installInfo = aSubject.QueryInterface(Components.interfaces.amIWebInstallInfo);
+    var win = installInfo.originatingWindow;
+    var shell = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                   .getInterface(Components.interfaces.nsIWebNavigation)
+                   .QueryInterface(Components.interfaces.nsIDocShell);
+    var browser = this._getBrowser(shell);
+    if (!browser)
+      return;
+    const anchorID = "addons-notification-icon";
+    var messageString, action;
+    var brandShortName = brandBundle.getString("brandShortName");
+    var host = installInfo.originatingURI ? installInfo.originatingURI.host : browser.currentURI.host;
+
+    var notificationID = aTopic;
+
     switch (aTopic) {
     case "addon-install-blocked":
-      var installInfo = aSubject.QueryInterface(Components.interfaces.amIWebInstallInfo);
-      var win = installInfo.originatingWindow;
-      var shell = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-                     .getInterface(Components.interfaces.nsIWebNavigation)
-                     .QueryInterface(Components.interfaces.nsIDocShell);
-      var browser = this._getBrowser(shell);
-      if (browser) {
-        var host = installInfo.originatingURI.host;
-        var brandShortName = brandBundle.getString("brandShortName");
-        var notificationName, messageString, buttons;
-        var enabled = true;
-        try {
-          enabled = gPrefService.getBoolPref("xpinstall.enabled");
-        }
-        catch (e) {
-        }
-        if (!enabled) {
-          notificationName = "xpinstall-disabled"
-          if (gPrefService.prefIsLocked("xpinstall.enabled")) {
-            messageString = gNavigatorBundle.getString("xpinstallDisabledMessageLocked");
-            buttons = [];
-          }
-          else {
-            messageString = gNavigatorBundle.getFormattedString("xpinstallDisabledMessage",
-                                                                [brandShortName, host]);
+      var enabled = true;
+      try {
+        enabled = gPrefService.getBoolPref("xpinstall.enabled");
+      }
+      catch (e) {
+      }
 
-            buttons = [{
-              label: gNavigatorBundle.getString("xpinstallDisabledButton"),
-              accessKey: gNavigatorBundle.getString("xpinstallDisabledButton.accesskey"),
-              popup: null,
-              callback: function editPrefs() {
-                gPrefService.setBoolPref("xpinstall.enabled", true);
-                return false;
-              }
-            }];
-          }
+      if (!enabled) {
+        notificationID = "xpinstall-disabled"
+        if (PopupNotifications.getNotification(notificationID, browser))
+          return;
+
+        if (gPrefService.prefIsLocked("xpinstall.enabled")) {
+          messageString = gNavigatorBundle.getString("xpinstallDisabledMessageLocked");
+          buttons = [];
         }
         else {
-          notificationName = "xpinstall"
-          messageString = gNavigatorBundle.getFormattedString("xpinstallPromptWarning",
+          messageString = gNavigatorBundle.getFormattedString("xpinstallDisabledMessage",
                                                               [brandShortName, host]);
 
-          buttons = [{
-            label: gNavigatorBundle.getString("xpinstallPromptAllowButton"),
-            accessKey: gNavigatorBundle.getString("xpinstallPromptAllowButton.accesskey"),
-            popup: null,
-            callback: function() {
-              installInfo.install();
-              return false;
+          action = {
+            label: gNavigatorBundle.getString("xpinstallDisabledButton"),
+            accessKey: gNavigatorBundle.getString("xpinstallDisabledButton.accesskey"),
+            callback: function editPrefs() {
+              gPrefService.setBoolPref("xpinstall.enabled", true);
             }
-          }];
-        }
-
-        var notificationBox = gBrowser.getNotificationBox(browser);
-        if (!notificationBox.getNotificationWithValue(notificationName)) {
-          const priority = notificationBox.PRIORITY_WARNING_MEDIUM;
-          const iconURL = "chrome://mozapps/skin/update/update.png";
-          notificationBox.appendNotification(messageString, notificationName,
-                                             iconURL, priority, buttons);
+          };
         }
       }
+      else {
+        if (PopupNotifications.getNotification(notificationID, browser))
+          return;
+
+        messageString = gNavigatorBundle.getFormattedString("xpinstallPromptWarning",
+                                                            [brandShortName, host]);
+
+        action = {
+          label: gNavigatorBundle.getString("xpinstallPromptAllowButton"),
+          accessKey: gNavigatorBundle.getString("xpinstallPromptAllowButton.accesskey"),
+          callback: function() {
+            installInfo.install();
+          }
+        };
+      }
+
+      PopupNotifications.show(browser, notificationID, messageString, anchorID,
+                              action);
+      break;
+    case "addon-install-failed":
+      
+      installInfo.installs.forEach(function(aInstall) {
+        var error = "addonError";
+        if (aInstall.error != 0)
+          error += aInstall.error;
+        else if (aInstall.addon.blocklistState == Ci.nsIBlocklistService.STATE_BLOCKED)
+          error += "Blocklisted";
+        else
+          error += "Incompatible";
+
+        messageString = gNavigatorBundle.getString(error);
+        messageString = messageString.replace("#1", aInstall.name);
+        messageString = messageString.replace("#2", host);
+        messageString = messageString.replace("#3", brandShortName);
+        messageString = messageString.replace("#4", Services.appinfo.version);
+
+        PopupNotifications.show(browser, notificationID, messageString, anchorID,
+                                action);
+      });
+      break;
+    case "addon-install-complete":
+      var notification = PopupNotifications.getNotification(notificationID, browser);
+      if (notification)
+        PopupNotifications.remove(notification);
+
+      var needsRestart = installInfo.installs.some(function(i) {
+        return (i.addon.pendingOperations & AddonManager.PENDING_INSTALL) != 0;
+      });
+
+      if (needsRestart) {
+        messageString = gNavigatorBundle.getString("addonsInstalledNeedsRestart");
+        action = {
+          label: gNavigatorBundle.getString("addonInstallRestartButton"),
+          accessKey: gNavigatorBundle.getString("addonInstallRestartButton.accesskey"),
+          callback: function() {
+            Application.restart();
+          }
+        };
+      }
+      else {
+        messageString = gNavigatorBundle.getString("addonsInstalled");
+        action = {
+          label: gNavigatorBundle.getString("addonInstallManage"),
+          accessKey: gNavigatorBundle.getString("addonInstallManage.accesskey"),
+          callback: function() {
+            
+            
+            var types = {};
+            var bestType = null;
+            installInfo.installs.forEach(function(aInstall) {
+              if (aInstall.type in types)
+                types[aInstall.type]++;
+              else
+                types[aInstall.type] = 1;
+              if (!bestType || types[aInstall.type] > types[bestType])
+                bestType = aInstall.type;
+            });
+
+            BrowserOpenAddonsMgr("addons://list/" + bestType);
+          }
+        };
+      }
+
+      messageString = PluralForm.get(installInfo.installs.length, messageString);
+      messageString = messageString.replace("#1", installInfo.installs[0].name);
+      messageString = messageString.replace("#2", installInfo.installs.length);
+      messageString = messageString.replace("#3", brandShortName);
+
+      PopupNotifications.show(browser, notificationID, messageString, anchorID,
+                              action);
       break;
     }
   }
@@ -1218,6 +1300,8 @@ function prepareForStartup() {
 function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   Services.obs.addObserver(gSessionHistoryObserver, "browser:purge-session-history", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-blocked", false);
+  Services.obs.addObserver(gXPInstallObserver, "addon-install-failed", false);
+  Services.obs.addObserver(gXPInstallObserver, "addon-install-complete", false);
 
   BrowserOffline.init();
   OfflineApps.init();
@@ -1323,7 +1407,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   let NP = {};
-  Cu.import("resource:
+  Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
   NP.trackBrowserWindow(window);
 
   
@@ -1382,7 +1466,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
     if (Win7Features) {
       let tempScope = {};
-      Cu.import("resource:
+      Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm",
                 tempScope);
       tempScope.DownloadTaskbarProgress.onBrowserWindowLoad(window);
     }
@@ -1438,6 +1522,8 @@ function BrowserShutdown()
 
   Services.obs.removeObserver(gSessionHistoryObserver, "browser:purge-session-history");
   Services.obs.removeObserver(gXPInstallObserver, "addon-install-blocked");
+  Services.obs.removeObserver(gXPInstallObserver, "addon-install-failed");
+  Services.obs.removeObserver(gXPInstallObserver, "addon-install-complete");
   Services.obs.removeObserver(gPluginHandler.pluginCrashed, "plugin-crashed");
 
   try {
@@ -1502,7 +1588,7 @@ function nonBrowserWindowStartup()
 
   
   
-  if (window.location.href == "chrome:
+  if (window.location.href == "chrome://browser/content/hiddenWindow.xul")
   {
     var hiddenWindowDisabledItems = ['cmd_close', 'minimizeWindow', 'zoomWindow'];
     for (var id in hiddenWindowDisabledItems)
@@ -1817,14 +1903,14 @@ function openLocation() {
     }
     else {
       
-      win = window.openDialog("chrome:
+      win = window.openDialog("chrome://browser/content/", "_blank",
                               "chrome,all,dialog=no", "about:blank");
       win.addEventListener("load", openLocationCallback, false);
     }
     return;
   }
 #endif
-  openDialog("chrome:
+  openDialog("chrome://browser/content/openLocation.xul", "_blank",
              "chrome,modal,titlebar", window);
 }
 
@@ -1838,7 +1924,7 @@ function BrowserOpenTab()
 {
   if (!gBrowser) {
     
-    window.openDialog("chrome:
+    window.openDialog("chrome://browser/content/", "_blank",
                       "chrome,all,dialog=no", "about:blank");
     return;
   }
@@ -3272,7 +3358,7 @@ function addToUrlbarHistory(aUrlToAdd) {
 
 function toJavaScriptConsole()
 {
-  toOpenWindowByType("global:console", "chrome:
+  toOpenWindowByType("global:console", "chrome://global/content/console.xul");
 }
 
 function BrowserDownloadsUI()
@@ -3311,7 +3397,7 @@ function OpenBrowserWindow()
     charsetArg = "charset="+DocCharset;
 
     
-    win = window.openDialog("chrome:
+    win = window.openDialog("chrome://browser/content/", "_blank", "chrome,all,dialog=no", defaultArgs, charsetArg);
   }
   else 
   {
@@ -3342,7 +3428,7 @@ function BrowserCustomizeToolbar()
 
   BookmarksMenuButton.customizeStart();
 
-  var customizeURL = "chrome:
+  var customizeURL = "chrome://global/content/customizeToolbar.xul";
   gCustomizeSheet = getBoolPref("toolbar.customization.usesheet", false);
 
   if (gCustomizeSheet) {
@@ -3504,7 +3590,7 @@ function updateEditUIVisibility()
 
 var FullScreen =
 {
-  _XULNS: "http:
+  _XULNS: "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
   toggle: function()
   {
     
@@ -4465,7 +4551,7 @@ var TabsProgressListener = {
         }];
         notification =
           notificationBox.appendNotification(message, "refresh-blocked",
-                                             "chrome:
+                                             "chrome://browser/skin/Info.png",
                                              notificationBox.PRIORITY_INFO_MEDIUM,
                                              buttons);
         notification.refreshURI = aURI;
@@ -4799,7 +4885,7 @@ var gHomeButton = {
     
     if (!url) {
       var SBS = Cc["@mozilla.org/intl/stringbundle;1"].getService(Ci.nsIStringBundleService);
-      var configBundle = SBS.createBundle("chrome:
+      var configBundle = SBS.createBundle("chrome://branding/locale/browserconfig.properties");
       url = configBundle.GetStringFromName(this.prefDomain);
     }
 
