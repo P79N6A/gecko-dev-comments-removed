@@ -9,6 +9,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.json.simple.parser.ParseException;
@@ -155,7 +156,26 @@ public class GlobalSession implements CredentialsSource, PrefsSource {
     config.password      = password;
     config.syncKeyBundle = syncKeyBundle;
 
+    registerCommands();
     prepareStages();
+  }
+
+  protected void registerCommands() {
+    CommandProcessor processor = CommandProcessor.getProcessor();
+
+    processor.registerCommand("resetEngine", new CommandRunner() {
+      @Override
+      public void executeCommand(List<String> args) {
+        resetClient(new String[] { args.get(0) });
+      }
+    });
+
+    processor.registerCommand("resetAll", new CommandRunner() {
+      @Override
+      public void executeCommand(List<String> args) {
+        resetClient(null);
+      }
+    });
   }
 
   protected void prepareStages() {
@@ -415,7 +435,7 @@ public class GlobalSession implements CredentialsSource, PrefsSource {
     String localSyncID = this.getSyncID();
     if (!remoteSyncID.equals(localSyncID)) {
       
-      resetClient();
+      resetClient(null);
       if (config.collectionKeys != null) {
         config.collectionKeys.clear();
       }
@@ -468,7 +488,7 @@ public class GlobalSession implements CredentialsSource, PrefsSource {
 
       @Override
       public void onWiped(long timestamp) {
-        session.resetClient();
+        session.resetClient(null);
         session.config.collectionKeys.clear();      
         session.config.persistToPrefs();
 
@@ -643,10 +663,12 @@ public class GlobalSession implements CredentialsSource, PrefsSource {
 
 
 
-  private void resetClient() {
+  private void resetClient(String[] engines) {
+    if (engines == null) {
+      
+    }
     
     
-
   }
 
   
