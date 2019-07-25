@@ -1,0 +1,397 @@
+
+
+
+
+
+
+
+#ifdef JSGC_GENERATIONAL
+#ifndef jsgc_storebuffer_h___
+#define jsgc_storebuffer_h___
+
+#include "jsgc.h"
+#include "jsalloc.h"
+
+#include "gc/Marking.h"
+
+namespace js {
+namespace gc {
+
+
+
+
+
+class Nursery
+{
+    HashSet<void*, PointerHasher<void*, 3>, SystemAllocPolicy> nursery;
+
+  public:
+    Nursery() : nursery() {}
+
+    bool enable() {
+        if (!nursery.initialized())
+            return nursery.init();
+        return true;
+    }
+
+    void disable() {
+        if (!nursery.initialized())
+            return;
+        nursery.finish();
+    }
+
+    bool isInside(void *cell) const {
+        return nursery.initialized() && nursery.has(cell);
+    }
+
+    void insertPointer(void *cell) {
+        nursery.putNew(cell);
+    }
+};
+
+
+
+
+
+
+
+class BufferableRef
+{
+  public:
+    virtual bool match(void *location) = 0;
+    virtual void mark(JSTracer *trc) = 0;
+};
+
+
+
+
+
+
+template <typename Map, typename Key>
+class HashKeyRef : public BufferableRef
+{
+    Map *map;
+    Key key;
+
+    typedef typename Map::Ptr Ptr;
+
+  public:
+    HashKeyRef(Map *m, const Key &k) : map(m), key(k) {}
+
+    bool match(void *location) {
+        Ptr p = map->lookup(key);
+        if (!p)
+            return false;
+        return &p->key == location;
+    }
+
+    void mark(JSTracer *trc) {}
+};
+
+
+
+
+
+class StoreBuffer
+{
+    
+    static const size_t ValueBufferSize = 1 * 1024 * sizeof(Value *);
+    static const size_t CellBufferSize = 2 * 1024 * sizeof(Cell **);
+    static const size_t SlotBufferSize = 2 * 1024 * (sizeof(JSObject *) + sizeof(uint32_t));
+    static const size_t RelocValueBufferSize = 1 * 1024 * sizeof(Value *);
+    static const size_t RelocCellBufferSize = 1 * 1024 * sizeof(Cell **);
+    static const size_t GenericBufferSize = 1 * 1024 * sizeof(int);
+    static const size_t TotalSize = ValueBufferSize + CellBufferSize +
+                                    SlotBufferSize + RelocValueBufferSize + RelocCellBufferSize +
+                                    GenericBufferSize;
+
+    typedef HashSet<void *, PointerHasher<void *, 3>, SystemAllocPolicy> EdgeSet;
+
+    
+
+
+
+
+    template<typename T>
+    class MonoTypeBuffer
+    {
+        friend class StoreBuffer;
+
+        StoreBuffer *owner;
+        Nursery *nursery;
+
+        T *base;      
+        T *pos;       
+        T *top;       
+
+        MonoTypeBuffer(StoreBuffer *owner, Nursery *nursery)
+          : owner(owner), nursery(nursery), base(NULL), pos(NULL), top(NULL)
+        {}
+
+        MonoTypeBuffer &operator=(const MonoTypeBuffer& other) MOZ_DELETE;
+
+        bool enable(uint8_t *region, size_t len);
+        void disable();
+
+        bool isEmpty() const { return pos == base; }
+        bool isFull() const { JS_ASSERT(pos <= top); return pos == top; }
+
+        
+        void compactNotInSet();
+
+        
+
+
+
+        void compact();
+
+        
+        void put(const T &v);
+
+        
+        bool accumulateEdges(EdgeSet &edges);
+    };
+
+    
+
+
+
+    template <typename T>
+    class RelocatableMonoTypeBuffer : public MonoTypeBuffer<T>
+    {
+        friend class StoreBuffer;
+
+        RelocatableMonoTypeBuffer(StoreBuffer *owner, Nursery *nursery)
+          : MonoTypeBuffer<T>(owner, nursery)
+        {}
+
+        
+        void compactMoved();
+        void compact();
+
+        
+        void unput(const T &v);
+    };
+
+    class GenericBuffer
+    {
+        friend class StoreBuffer;
+
+        StoreBuffer *owner;
+        Nursery *nursery;
+
+        uint8_t *base; 
+        uint8_t *pos;  
+        uint8_t *top;  
+
+        GenericBuffer(StoreBuffer *owner, Nursery *nursery)
+          : owner(owner), nursery(nursery)
+        {}
+
+        GenericBuffer &operator=(const GenericBuffer& other) MOZ_DELETE;
+
+        bool enable(uint8_t *region, size_t len);
+        void disable();
+
+        
+        bool containsEdge(void *location) const;
+
+        template <typename T>
+        void put(const T &t) {
+            
+            if (!pos)
+                return;
+
+            
+            if (top - pos < (unsigned)(sizeof(unsigned) + sizeof(T))) {
+                owner->setOverflowed();
+                return;
+            }
+
+            *((unsigned *)pos) = sizeof(T);
+            pos += sizeof(unsigned);
+
+            T *p = (T *)pos;
+            new (p) T(t);
+            pos += sizeof(T);
+        }
+    };
+
+    class CellPtrEdge
+    {
+        friend class StoreBuffer;
+        friend class StoreBuffer::MonoTypeBuffer<CellPtrEdge>;
+        friend class StoreBuffer::RelocatableMonoTypeBuffer<CellPtrEdge>;
+
+        Cell **edge;
+
+        CellPtrEdge(Cell **v) : edge(v) {}
+        bool operator==(const CellPtrEdge &other) const { return edge == other.edge; }
+        bool operator!=(const CellPtrEdge &other) const { return edge != other.edge; }
+
+        void *location() const { return (void *)edge; }
+
+        bool inRememberedSet(Nursery *n) {
+            return !n->isInside(edge) && n->isInside(*edge);
+        }
+
+        bool isNullEdge() const {
+            return !*edge;
+        }
+
+        CellPtrEdge tagged() const { return CellPtrEdge((Cell **)(uintptr_t(edge) | 1)); }
+        CellPtrEdge untagged() const { return CellPtrEdge((Cell **)(uintptr_t(edge) & ~1)); }
+        bool isTagged() const { return bool(uintptr_t(edge) & 1); }
+    };
+
+    class ValueEdge
+    {
+        friend class StoreBuffer;
+        friend class StoreBuffer::MonoTypeBuffer<ValueEdge>;
+        friend class StoreBuffer::RelocatableMonoTypeBuffer<ValueEdge>;
+
+        Value *edge;
+
+        ValueEdge(Value *v) : edge(v) {}
+        bool operator==(const ValueEdge &other) const { return edge == other.edge; }
+        bool operator!=(const ValueEdge &other) const { return edge != other.edge; }
+
+        void *deref() const { return edge->isGCThing() ? edge->toGCThing() : NULL; }
+        void *location() const { return (void *)edge; }
+
+        bool inRememberedSet(Nursery *n) {
+            return !n->isInside(edge) && n->isInside(deref());
+        }
+
+        bool isNullEdge() const {
+            return !deref();
+        }
+
+        ValueEdge tagged() const { return ValueEdge((Value *)(uintptr_t(edge) | 1)); }
+        ValueEdge untagged() const { return ValueEdge((Value *)(uintptr_t(edge) & ~1)); }
+        bool isTagged() const { return bool(uintptr_t(edge) & 1); }
+    };
+
+    struct SlotEdge
+    {
+        friend class StoreBuffer;
+        friend class StoreBuffer::MonoTypeBuffer<SlotEdge>;
+
+        JSObject *object;
+        uint32_t offset;
+
+        SlotEdge(JSObject *object, uint32_t offset) : object(object), offset(offset) {}
+
+        bool operator==(const SlotEdge &other) const {
+            return object == other.object && offset == other.offset;
+        }
+
+        bool operator!=(const SlotEdge &other) const {
+            return object != other.object || offset != other.offset;
+        }
+
+        HeapSlot *slotLocation() const {
+            if (object->isDenseArray()) {
+                if (offset >= object->getDenseArrayInitializedLength())
+                    return NULL;
+                return (HeapSlot *)&object->getDenseArrayElement(offset);
+            }
+            if (offset >= object->slotSpan())
+                return NULL;
+            return &object->getSlotRef(offset);
+        }
+
+        void *deref() const {
+            HeapSlot *loc = slotLocation();
+            return (loc && loc->isGCThing()) ? loc->toGCThing() : NULL;
+        }
+
+        void *location() const {
+            return (void *)slotLocation();
+        }
+
+        bool inRememberedSet(Nursery *n) {
+            return !n->isInside(object) && n->isInside(deref());
+        }
+
+        bool isNullEdge() const {
+            return !deref();
+        }
+    };
+
+    MonoTypeBuffer<ValueEdge> bufferVal;
+    MonoTypeBuffer<CellPtrEdge> bufferCell;
+    MonoTypeBuffer<SlotEdge> bufferSlot;
+    RelocatableMonoTypeBuffer<ValueEdge> bufferRelocVal;
+    RelocatableMonoTypeBuffer<CellPtrEdge> bufferRelocCell;
+    GenericBuffer bufferGeneric;
+
+    Nursery *nursery;
+
+    void *buffer;
+
+    bool overflowed;
+    bool enabled;
+
+    
+    EdgeSet edgeSet;
+
+    
+    void setOverflowed() { overflowed = true; }
+
+  public:
+    StoreBuffer(Nursery *n)
+      : bufferVal(this, n), bufferCell(this, n), bufferSlot(this, n),
+        bufferRelocVal(this, n), bufferRelocCell(this, n), bufferGeneric(this, n),
+        nursery(n), buffer(NULL), overflowed(false), enabled(false)
+    {}
+
+    bool enable();
+    void disable();
+    bool isEnabled() { return enabled; }
+
+    
+    bool hasOverflowed() const { return overflowed; }
+
+    
+    void putValue(Value *v) {
+        bufferVal.put(v);
+    }
+    void putCell(Cell **o) {
+        bufferCell.put(o);
+    }
+    void putSlot(JSObject *obj, uint32_t slot) {
+        bufferSlot.put(SlotEdge(obj, slot));
+    }
+
+    
+    void putRelocatableValue(Value *v) {
+        bufferRelocVal.put(v);
+    }
+    void putRelocatableCell(Cell **c) {
+        bufferRelocCell.put(c);
+    }
+    void removeRelocatableValue(Value *v) {
+        bufferRelocVal.unput(v);
+    }
+    void removeRelocatableCell(Cell **c) {
+        bufferRelocCell.unput(c);
+    }
+
+    
+    template <typename T>
+    void putGeneric(const T &t) {
+        bufferGeneric.put(t);
+    }
+
+    
+    bool coalesceForVerification();
+    void releaseVerificationData();
+    bool containsEdgeAt(void *loc) const;
+};
+
+} 
+} 
+
+#endif 
+#endif 
