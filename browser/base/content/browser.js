@@ -7678,7 +7678,8 @@ var FeedHandler = {
     if (browserForLink == gBrowser.selectedBrowser) {
       
       
-      clearTimeout(this._updateFeedTimeout);
+      if (this._updateFeedTimeout)
+        clearTimeout(this._updateFeedTimeout);
       this._updateFeedTimeout = setTimeout(this.updateFeeds.bind(this), 100);
     }
   }
