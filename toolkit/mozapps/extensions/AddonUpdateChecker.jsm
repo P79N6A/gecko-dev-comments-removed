@@ -63,35 +63,14 @@ Components.utils.import("resource://gre/modules/CertUtils.jsm");
 var gRDF = Cc["@mozilla.org/rdf/rdf-service;1"].
            getService(Ci.nsIRDFService);
 
+["LOG", "WARN", "ERROR"].forEach(function(aName) {
+  this.__defineGetter__(aName, function() {
+    Components.utils.import("resource://gre/modules/AddonLogging.jsm");
 
-
-
-
-
-
-function LOG(aStr) {
-  dump("*** addons.updates: " + aStr + "\n");
-}
-
-
-
-
-
-
-
-function WARN(aStr) {
-  LOG(aStr);
-}
-
-
-
-
-
-
-
-function ERROR(aStr) {
-  LOG(str);
-}
+    LogManager.getLogger("addons.updates", this);
+    return this[aName];
+  });
+}, this);
 
 
 

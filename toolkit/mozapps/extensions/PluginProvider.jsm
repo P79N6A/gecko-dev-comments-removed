@@ -45,35 +45,14 @@ var EXPORTED_SYMBOLS = [];
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
+["LOG", "WARN", "ERROR"].forEach(function(aName) {
+  this.__defineGetter__(aName, function() {
+    Components.utils.import("resource://gre/modules/AddonLogging.jsm");
 
-
-
-
-
-
-function LOG(aStr) {
-  dump("*** addons.plugins: " + aStr + "\n");
-}
-
-
-
-
-
-
-
-function WARN(aStr) {
-  LOG(aStr);
-}
-
-
-
-
-
-
-
-function ERROR(aStr) {
-  LOG(aStr);
-}
+    LogManager.getLogger("addons.plugins", this);
+    return this[aName];
+  });
+}, this);
 
 var PluginProvider = {
   
