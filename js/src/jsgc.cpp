@@ -888,8 +888,26 @@ MarkThreadDataConservatively(JSTracer *trc, ThreadData *td)
 void
 MarkStackRangeConservatively(JSTracer *trc, Value *beginv, Value *endv)
 {
+    
+
+
+
+
+
+
+    struct AutoSkipChecking {
+        JSRuntime *runtime;
+        JSCompartment *savedCompartment;
+
+        AutoSkip(JSRuntime *rt)
+          : runtime(rt), savedCompartment(rt->gcCheckCompartment) {
+            rt->gcCheckCompartment = NULL;
+        }
+        ~AutoSkip() { runtime->gcCheckCompartment = savedCompartment; }
+    } as(trc->context->runtime);
+
     const jsuword *begin = beginv->payloadWord();
-    const jsuword *end = endv->payloadWord();;
+    const jsuword *end = endv->payloadWord();
 #ifdef JS_NUNBOX32
     
 
