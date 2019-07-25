@@ -44,8 +44,13 @@
 #include "nsCSSProperty.h"
 #include "nscore.h" 
 
-class nsIContent;
 class nsAString;
+
+namespace mozilla {
+namespace dom {
+class Element;
+} 
+} 
 
 
 
@@ -53,6 +58,8 @@ class nsAString;
 class nsSMILCSSValueType : public nsISMILType
 {
 public:
+  typedef mozilla::dom::Element Element;
+
   
   static nsSMILCSSValueType sSingleton;
 
@@ -97,7 +104,7 @@ public:
 
 
   static void ValueFromString(nsCSSProperty aPropID,
-                              nsIContent* aTargetElement,
+                              Element* aTargetElement,
                               const nsAString& aString,
                               nsSMILValue& aValue);
 
