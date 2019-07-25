@@ -2093,7 +2093,14 @@ FindFunArgs(JSFunctionBox *funbox, int level, JSFunctionBoxQueue *queue)
 
 
 
-        if (funbox->tcflags & TCF_FUN_HEAVYWEIGHT) {
+
+
+
+
+
+
+
+        if (funbox->tcflags & (TCF_FUN_HEAVYWEIGHT | TCF_FUN_IS_GENERATOR)) {
             fn->setFunArg();
             for (JSFunctionBox *kid = funbox->kids; kid; kid = kid->siblings)
                 kid->node->setFunArg();
