@@ -623,7 +623,12 @@ nsPlaintextEditor::GetTextSelectionOffsets(nsISelection *aSelection,
       }
     }
 #ifdef NS_DEBUG
-    ++nodeCount;
+    
+    
+    
+    if (!SameCOMIdentity(currentNode, rootNode)) {
+      ++nodeCount;
+    }
 #endif
   }
 
@@ -862,6 +867,7 @@ NS_IMETHODIMP nsPlaintextEditor::InsertLineBreak()
   shell->MaybeInvalidateCaretPosition();
 
   nsTextRulesInfo ruleInfo(nsTextEditRules::kInsertBreak);
+  ruleInfo.maxLength = mMaxTextLength;
   PRBool cancel, handled;
   res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
