@@ -331,6 +331,7 @@ public:
   void BindAndDrawQuad(ShaderProgramOGL *aProg,
                        bool aFlipped = false)
   {
+    NS_ASSERTION(aProg->HasInitialized(), "Shader program not correctly initialized");
     BindAndDrawQuad(aProg->AttribLocation(ShaderProgramOGL::VertexCoordAttrib),
                     aProg->AttribLocation(ShaderProgramOGL::TexCoordAttrib),
                     aFlipped);
@@ -448,21 +449,13 @@ private:
   
 
 
-
-
-
-
-
-
-
   void SetLayerProgramProjectionMatrix(const gfx3DMatrix& aMatrix);
 
   
 
 
 
-
-  bool InitAndAddPrograms(gl::ShaderProgramType aType);
+  void AddPrograms(gl::ShaderProgramType aType);
 
   
 
