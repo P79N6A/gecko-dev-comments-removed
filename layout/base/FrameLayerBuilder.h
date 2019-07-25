@@ -204,11 +204,6 @@ public:
   
 
 
-  static void DumpLayerTree(LayerManager* aManager);
-
-  
-
-
 
   void DumpRetainedLayerTree();
 #endif
