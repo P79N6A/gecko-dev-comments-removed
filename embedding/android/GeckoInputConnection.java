@@ -280,6 +280,11 @@ public class GeckoInputConnection
             return null;
 
         
+        
+        if (!GeckoApp.checkLaunchState(GeckoApp.LaunchState.GeckoRunning))
+            return null;
+
+        
 
         ExtractedText extract = new ExtractedText();
         extract.flags = 0;
