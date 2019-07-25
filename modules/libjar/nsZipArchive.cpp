@@ -594,7 +594,7 @@ nsresult nsZipArchive::BuildFileList()
   const PRUint8* startp = mFd->mFileData;
   const PRUint8* endp = startp + mFd->mLen;
   
-  PRUint32 centralOffset = 1;
+  PRUint32 centralOffset = 4;
   if (mFd->mLen > ZIPCENTRAL_SIZE && *(PRUint32*)(startp + centralOffset) == CENTRALSIG) {
     
   } else {
