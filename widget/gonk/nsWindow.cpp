@@ -69,6 +69,12 @@ static pthread_t sFramebufferWatchThread;
 
 namespace {
 
+static int
+CancelBufferNoop(ANativeWindow* aWindow, android_native_buffer_t* aBuffer)
+{
+    return 0;
+}
+
 android::FramebufferNativeWindow*
 NativeWindow()
 {
@@ -76,6 +82,12 @@ NativeWindow()
         
         
         gNativeWindow = new android::FramebufferNativeWindow();
+
+        
+        
+        
+        
+        gNativeWindow->cancelBuffer = CancelBufferNoop;
     }
     return gNativeWindow;
 }
