@@ -19,13 +19,6 @@ let HTMLIFrameElement = Ci.nsIDOMHTMLIFrameElement;
 let HTMLFrameElement = Ci.nsIDOMHTMLFrameElement;
 
 
-const kViewportMinScale  = 0;
-const kViewportMaxScale  = 10;
-const kViewportMinWidth  = 200;
-const kViewportMaxWidth  = 10000;
-const kViewportMinHeight = 223;
-const kViewportMaxHeight = 10000;
-
 
 const ElementTouchHelper = {
   get radius() {
@@ -218,14 +211,8 @@ function getContentClientRects(aElement) {
 
 
 function Coalescer() {
-  this._pendingDirtyRect = new Rect(0, 0, 0, 0);
   this._pendingSizeChange = null;
   this._timer = new Util.Timeout(this);
-
-  
-  
-  
-  this._incremental = false;
 }
 
 Coalescer.prototype = {
@@ -244,12 +231,6 @@ Coalescer.prototype = {
 
   handleEvent: function handleEvent(aEvent) {
     switch (aEvent.type) {
-      case "MozAfterPaint": {
-        let win = aEvent.originalTarget;
-        let scrollOffset = Util.getScrollOffset(win);
-        this.dirty(scrollOffset, aEvent.clientRects);
-        break;
-      }
       case "MozScrolledAreaChanged": {
         
         
@@ -270,10 +251,6 @@ Coalescer.prototype = {
         });
         break;
       }
-      case "scroll":
-        let scroll = Util.getScrollOffset(content);
-        sendAsyncMessage("Browser:PageScroll", { scrollX: scroll.x, scrollY: scroll.y });
-        break;
     }
   },
 
@@ -293,51 +270,15 @@ Coalescer.prototype = {
       height: height + (y < 0 ? y : 0)
     };
 
-    
-    
-    let rect = this._pendingDirtyRect;
-    rect.top = rect.bottom;
-    rect.left = rect.right;
-
     if (!this._timer.isPending())
       this.flush();
   },
 
-  dirty: function dirty(scrollOffset, clientRects) {
-    if (!this._pendingSizeChange) {
-      let unionRect = this._pendingDirtyRect;
-      for (let i = clientRects.length - 1; i >= 0; i--) {
-        let e = clientRects.item(i);
-        unionRect.expandToContain(new Rect(
-          e.left + scrollOffset.x, e.top + scrollOffset.y, e.width, e.height));
-      }
-
-      if (!this._timer.isPending())
-        this.flush();
-    }
-  },
-
   flush: function flush() {
-    let dirtyRect = this._pendingDirtyRect;
     let sizeChange = this._pendingSizeChange;
     if (sizeChange) {
       sendAsyncMessage("Browser:MozScrolledAreaChanged", { width: sizeChange.width, height: sizeChange.height });
-      if (!this._incremental)
-        sendAsyncMessage("Browser:MozAfterPaint", { rects: [ { left: 0, top: 0, right: sizeChange.width, bottom: sizeChange.height } ] });
-
       this._pendingSizeChange = null;
-
-      
-      
-      this._incremental = true;
-    }
-    else if (!dirtyRect.isEmpty()) {
-      
-      sendAsyncMessage("Browser:MozAfterPaint", { rects: [dirtyRect] });
-
-      
-      dirtyRect.top = dirtyRect.bottom;
-      dirtyRect.left = dirtyRect.right;
     }
   }
 };
@@ -436,10 +377,14 @@ function Content() {
   addMessageListener("Browser:ZoomToPoint", this);
 
   this._coalescer = new Coalescer();
-  addEventListener("MozAfterPaint", this._coalescer, false);
   addEventListener("MozScrolledAreaChanged", this._coalescer, false);
   addEventListener("MozApplicationManifest", this._coalescer, false);
-  addEventListener("scroll", this._coalescer, false);
+
+  addMessageListener("MozScrollBy", function(message) {
+    content.scrollBy(message.json.x, message.json.y);
+    let scroll = Util.getScrollOffset(content);
+    sendAsyncMessage("MozScrolled", scroll);
+  }, false);
 
   this._progressController = new ProgressController(this);
   this._progressController.start();
@@ -459,13 +404,13 @@ Content.prototype = {
     switch (aMessage.name) {
       case "Browser:Blur":
         docShell.isOffScreenBrowser = false;
-        docShell.isActive = false;
+        docShell.isActive = true;
         this._selected = false;
         break;
 
       case "Browser:Focus":
         docShell.isOffScreenBrowser = true;
-        docShell.isActive = true;
+        docShell.isActive = false;
         this._selected = true;
         break;
 
@@ -486,22 +431,22 @@ Content.prototype = {
 
       case "Browser:MouseDown":
         this._overlayTimeout.clear();
-        this._contextTimeout.clear();
+        this._overlayTimeout.clear();
 
         let element = elementFromPoint(x, y);
         if (!element)
           return;
 
-        if (element.mozMatchesSelector("*:link,*:visited,*:link *,*:visited *,*[role=button],button,input,option,select,textarea,label")) {
-          this._overlayTimeout.once(kTapOverlayTimeout, function() {
-            let rects = getContentClientRects(element);
-            sendAsyncMessage("Browser:Highlight", { rects: rects });
-          });
-        }
+
+
+
+
+
+
 
         
         
-        this._contextTimeout.once(500 + kTapOverlayTimeout, function() {
+        this._contextTimeout.once(500 + 200, function() {
           let event = content.document.createEvent("PopupEvents");
           event.initEvent("contextmenu", true, true);
           element.dispatchEvent(event);
@@ -516,7 +461,6 @@ Content.prototype = {
             sendAsyncMessage("Browser:OpenURI", { uri: uri });
         } else if (!this._formAssistant.open(element)) {
           sendAsyncMessage("FindAssist:Hide", { });
-          this._sendMouseEvent("mousemove", element, x, y);
           this._sendMouseEvent("mousedown", element, x, y);
           this._sendMouseEvent("mouseup", element, x, y);
         }
@@ -608,7 +552,7 @@ Content.prototype = {
 
     let scrollOffset = Util.getScrollOffset(content);
     let windowUtils = Util.getWindowUtils(content);
-    windowUtils.sendMouseEventToWindow(aName, aX - scrollOffset.x, aY - scrollOffset.y, 0, 1, 0, true);
+    windowUtils.sendMouseEvent(aName, aX - scrollOffset.x, aY - scrollOffset.y, 0, 1, 0, true);
   },
 
   startLoading: function startLoading() {
@@ -794,10 +738,8 @@ var ContextHandler = {
       
       if (popupNode instanceof Ci.nsIImageLoadingContent && popupNode.currentURI) {
         state.types.push("image");
-        state.label = state.mediaURL = popupNode.currentURI.spec;
-      } else if (popupNode instanceof Ci.nsIDOMHTMLVideoElement) {
-        state.types.push("video");
-        state.label = state.mediaURL = popupNode.src;
+        state.mediaURL = popupNode.currentURI.spec;
+        state.label = state.mediaURL;
       }
     }
 
@@ -856,20 +798,6 @@ ContextHandler.registerType("callto", function(aState, aElement) {
 ContextHandler.registerType("link-saveable", function(aState, aElement) {
   let protocol = aState.linkProtocol;
   return (protocol && protocol != "mailto" && protocol != "javascript" && protocol != "news" && protocol != "snews");
-});
-
-ContextHandler.registerType("link-shareable", function(aState, aElement) {
-  return Util.isShareableScheme(aState.linkProtocol);
-});
-
-["image", "video"].forEach(function(aType) {
-  ContextHandler.registerType(aType+"-shareable", function(aState, aElement) {
-    if (aState.types.indexOf(aType) == -1)
-      return false;
-
-    let protocol = ContextHandler._getProtocol(ContextHandler._getURI(aState.mediaURL));
-    return Util.isShareableScheme(protocol);
-  });
 });
 
 ContextHandler.registerType("image-loaded", function(aState, aElement) {

@@ -44,9 +44,6 @@ let Ci = Components.interfaces;
 const kBrowserFormZoomLevelMin = 1.0;
 const kBrowserFormZoomLevelMax = 2.0;
 const kBrowserViewZoomLevelPrecision = 10000;
-const kBrowserViewPrefetchBeginIdleWait = 1;    
-const kBrowserViewPrefetchBeginIdleWaitLoading = 10;    
-const kBrowserViewCacheSize = 6;
 
 
 
@@ -174,39 +171,10 @@ BrowserView.prototype = {
   
 
   init: function init(container, visibleRectFactory) {
-    this._batchOps = [];
     this._container = container;
     this._browser = null;
     this._browserViewportState = null;
-    this._renderMode = 0;
-    this._offscreenDepth = 0;
-
-    let cacheSize = kBrowserViewCacheSize;
-    try {
-      cacheSize = Services.prefs.getIntPref("tile.cache.size");
-    } catch(e) {}
-
-    if (cacheSize == -1) {
-      let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
-      let device = sysInfo.get("device");
-      switch (device) {
-#ifdef MOZ_PLATFORM_MAEMO
-        case "Nokia N900":
-          cacheSize = 26;
-          break;
-        case "Nokia N8xx":
-          
-          cacheSize = 10;
-          break;
-#endif
-        default:
-          
-          cacheSize = 6;
-      }
-    }
-
     this._visibleRectFactory = visibleRectFactory;
-
     messageManager.addMessageListener("Browser:MozScrolledAreaChanged", this);
   },
 
@@ -479,10 +447,8 @@ BrowserView.prototype = {
   },
 
   _viewportChanged: function() {
-
-
-
-
+    getBrowser().style.MozTransformOrigin = "left top";
+    Browser.contentScrollboxScroller.updateTransition();
   },
 };
 
