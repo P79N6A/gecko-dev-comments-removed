@@ -135,15 +135,6 @@ typedef struct _cairo cairo_t;
 
 
 
-
-
-
-
-
-
-
-
-
 typedef struct _cairo_surface cairo_surface_t;
 
 
@@ -321,7 +312,8 @@ typedef enum _cairo_status {
 typedef enum _cairo_content {
     CAIRO_CONTENT_COLOR		= 0x1000,
     CAIRO_CONTENT_ALPHA		= 0x2000,
-    CAIRO_CONTENT_COLOR_ALPHA	= 0x3000
+    CAIRO_CONTENT_COLOR_ALPHA	= 0x3000,
+    CAIRO_CONTENT_COLOR16	= 0x4000
 } cairo_content_t;
 
 
@@ -451,41 +443,6 @@ cairo_pop_group_to_source (cairo_t *cr);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef enum _cairo_operator {
     CAIRO_OPERATOR_CLEAR,
 
@@ -503,23 +460,7 @@ typedef enum _cairo_operator {
 
     CAIRO_OPERATOR_XOR,
     CAIRO_OPERATOR_ADD,
-    CAIRO_OPERATOR_SATURATE,
-
-    CAIRO_OPERATOR_MULTIPLY,
-    CAIRO_OPERATOR_SCREEN,
-    CAIRO_OPERATOR_OVERLAY,
-    CAIRO_OPERATOR_DARKEN,
-    CAIRO_OPERATOR_LIGHTEN,
-    CAIRO_OPERATOR_COLOR_DODGE,
-    CAIRO_OPERATOR_COLOR_BURN,
-    CAIRO_OPERATOR_HARD_LIGHT,
-    CAIRO_OPERATOR_SOFT_LIGHT,
-    CAIRO_OPERATOR_DIFFERENCE,
-    CAIRO_OPERATOR_EXCLUSION,
-    CAIRO_OPERATOR_HSL_HUE,
-    CAIRO_OPERATOR_HSL_SATURATION,
-    CAIRO_OPERATOR_HSL_COLOR,
-    CAIRO_OPERATOR_HSL_LUMINOSITY
+    CAIRO_OPERATOR_SATURATE
 } cairo_operator_t;
 
 cairo_public void
@@ -797,9 +738,6 @@ cairo_in_stroke (cairo_t *cr, double x, double y);
 
 cairo_public cairo_bool_t
 cairo_in_fill (cairo_t *cr, double x, double y);
-
-cairo_public cairo_bool_t
-cairo_in_clip (cairo_t *cr, double x, double y);
 
 
 cairo_public void
@@ -1981,12 +1919,6 @@ cairo_surface_status (cairo_surface_t *surface);
 
 
 
-
-
-
-
-
-
 typedef enum _cairo_surface_type {
     CAIRO_SURFACE_TYPE_IMAGE,
     CAIRO_SURFACE_TYPE_PDF,
@@ -2004,13 +1936,7 @@ typedef enum _cairo_surface_type {
     CAIRO_SURFACE_TYPE_QUARTZ_IMAGE,
     CAIRO_SURFACE_TYPE_SCRIPT,
     CAIRO_SURFACE_TYPE_QT,
-    CAIRO_SURFACE_TYPE_RECORDING,
-    CAIRO_SURFACE_TYPE_VG,
-    CAIRO_SURFACE_TYPE_GL,
-    CAIRO_SURFACE_TYPE_DRM,
-    CAIRO_SURFACE_TYPE_TEE,
-    CAIRO_SURFACE_TYPE_XML,
-    CAIRO_SURFACE_TYPE_SKIA,
+    CAIRO_SURFACE_TYPE_META,
     CAIRO_SURFACE_TYPE_DDRAW,
     CAIRO_SURFACE_TYPE_D2D
 } cairo_surface_type_t;
@@ -2190,32 +2116,20 @@ cairo_image_surface_create_from_png_stream (cairo_read_func_t	read_func,
 
 
 cairo_public cairo_surface_t *
-cairo_recording_surface_create (cairo_content_t		 content,
-                                const cairo_rectangle_t *extents);
+cairo_meta_surface_create (cairo_content_t	content,
+			   double		width_pixels,
+			   double		height_pixels);
 
 cairo_public void
-cairo_recording_surface_ink_extents (cairo_surface_t *surface,
-                                     double *x0,
-                                     double *y0,
-                                     double *width,
-                                     double *height);
+cairo_meta_surface_ink_extents (cairo_surface_t *surface,
+				double *x0,
+				double *y0,
+				double *width,
+				double *height);
 
-
-
-cairo_public cairo_surface_t *
-cairo_tee_surface_create (cairo_surface_t *master);
-
-cairo_public void
-cairo_tee_surface_add (cairo_surface_t *surface,
-		       cairo_surface_t *target);
-
-cairo_public void
-cairo_tee_surface_remove (cairo_surface_t *surface,
-			  cairo_surface_t *target);
-
-cairo_public cairo_surface_t *
-cairo_tee_surface_index (cairo_surface_t *surface,
-			 int index);
+cairo_public cairo_status_t
+cairo_meta_surface_replay (cairo_surface_t *surface,
+			   cairo_surface_t *target);
 
 
 
@@ -2485,51 +2399,45 @@ cairo_public cairo_region_t *
 cairo_region_create_rectangle (const cairo_rectangle_int_t *rectangle);
 
 cairo_public cairo_region_t *
-cairo_region_create_rectangles (const cairo_rectangle_int_t *rects,
+cairo_region_create_rectangles (cairo_rectangle_int_t *rects,
 				int count);
 
 cairo_public cairo_region_t *
-cairo_region_copy (const cairo_region_t *original);
-
-cairo_public cairo_region_t *
-cairo_region_reference (cairo_region_t *);
+cairo_region_copy (cairo_region_t *original);
 
 cairo_public void
 cairo_region_destroy (cairo_region_t *region);
 
-cairo_public cairo_bool_t
-cairo_region_equal (const cairo_region_t *a, const cairo_region_t *b);
-
 cairo_public cairo_status_t
-cairo_region_status (const cairo_region_t *region);
+cairo_region_status (cairo_region_t *region);
 
 cairo_public void
-cairo_region_get_extents (const cairo_region_t        *region,
+cairo_region_get_extents (cairo_region_t        *region,
 			  cairo_rectangle_int_t *extents);
 
 cairo_public int
-cairo_region_num_rectangles (const cairo_region_t *region);
+cairo_region_num_rectangles (cairo_region_t *region);
 
 cairo_public void
-cairo_region_get_rectangle (const cairo_region_t        *region,
+cairo_region_get_rectangle (cairo_region_t        *region,
 			    int                    nth_rectangle,
 			    cairo_rectangle_int_t *rectangle);
 
 cairo_public cairo_bool_t
-cairo_region_is_empty (const cairo_region_t *region);
+cairo_region_is_empty (cairo_region_t *region);
 
 cairo_public cairo_region_overlap_t
-cairo_region_contains_rectangle (const cairo_region_t *region,
+cairo_region_contains_rectangle (cairo_region_t *region,
 				 const cairo_rectangle_int_t *rectangle);
 
 cairo_public cairo_bool_t
-cairo_region_contains_point (const cairo_region_t *region, int x, int y);
+cairo_region_contains_point (cairo_region_t *region, int x, int y);
 
 cairo_public void
 cairo_region_translate (cairo_region_t *region, int dx, int dy);
 
 cairo_public cairo_status_t
-cairo_region_subtract (cairo_region_t *dst, const cairo_region_t *other);
+cairo_region_subtract (cairo_region_t *dst, cairo_region_t *other);
 
 cairo_public cairo_status_t
 cairo_region_subtract_rectangle (cairo_region_t *dst,
