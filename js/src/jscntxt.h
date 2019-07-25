@@ -226,12 +226,6 @@ struct ThreadData {
 
     
     void triggerOperationCallback(JSRuntime *rt);
-
-    
-
-
-
-    InterpreterFrames *interpreterFrames;
 };
 
 } 
