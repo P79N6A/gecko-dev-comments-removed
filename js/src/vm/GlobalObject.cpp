@@ -113,16 +113,15 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
         JS_ASSERT(proto == functionProto);
         functionProto->flags |= JSFUN_PROTOTYPE;
 
-        Rooted<JSScript*> script(cx);
-        script = JSScript::Create(cx,
-                                   false,
-                                   NULL,
-                                   NULL,
-                                   false,
-                                   true,
-                                   NULL,
-                                  JSVERSION_DEFAULT,
-                                   0);
+        Rooted<JSScript*> script(cx, JSScript::Create(cx,
+                                                       false,
+                                                       NULL,
+                                                       NULL,
+                                                       false,
+                                                       true,
+                                                       NULL,
+                                                      JSVERSION_DEFAULT,
+                                                       0));
         if (!script || !script->fullyInitTrivial(cx))
             return NULL;
 

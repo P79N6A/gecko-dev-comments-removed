@@ -14,6 +14,7 @@
 
 #include "jspubtd.h"
 
+#include "js/TemplateLib.h"
 #include "js/Utility.h"
 
 namespace JS {
@@ -71,6 +72,18 @@ struct RootMethods { };
 
 
 
+
+
+struct NullPtr
+{
+    static void * const constNullValue;
+};
+
+
+
+
+
+
 template <typename T>
 class Handle
 {
@@ -81,6 +94,13 @@ class Handle
            typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0)
     {
         ptr = reinterpret_cast<const T *>(handle.address());
+    }
+
+    
+    Handle(NullPtr)
+    {
+        typedef typename js::tl::StaticAssert<js::tl::IsPointerType<T>::result>::result _;
+        ptr = reinterpret_cast<const T *>(&NullPtr::constNullValue);
     }
 
     

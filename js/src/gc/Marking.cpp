@@ -17,6 +17,8 @@
 
 #include "vm/String-inl.h"
 
+void * const js::NullPtr::constNullValue = NULL;
+
 
 
 

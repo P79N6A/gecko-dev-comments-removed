@@ -4570,8 +4570,7 @@ CheckNewScriptProperties(JSContext *cx, HandleTypeObject type, JSFunction *fun)
         return;
 
     
-    RootedObject baseobj(cx);
-    baseobj = NewBuiltinClassInstance(cx, &ObjectClass, gc::FINALIZE_OBJECT16);
+    RootedObject baseobj(cx, NewBuiltinClassInstance(cx, &ObjectClass, gc::FINALIZE_OBJECT16));
     if (!baseobj) {
         if (type->newScript)
             type->clearNewScript(cx);
