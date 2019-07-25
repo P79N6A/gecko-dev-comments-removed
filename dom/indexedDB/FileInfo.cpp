@@ -4,7 +4,6 @@
 
 
 
-#include "IndexedDatabaseManager.h"
 #include "FileInfo.h"
 
 USING_INDEXEDDB_NAMESPACE

@@ -7,6 +7,7 @@
 #include "IndexedDatabaseManager.h"
 #include "DatabaseInfo.h"
 
+#include "nsIAtom.h"
 #include "nsIDOMScriptObjectFactory.h"
 #include "nsIFile.h"
 #include "nsIFileStorage.h"
@@ -437,33 +438,25 @@ IndexedDatabaseManager::AllowNextSynchronizedOp(const nsACString& aOrigin,
 }
 
 nsresult
-IndexedDatabaseManager::AcquireExclusiveAccess(const nsACString& aOrigin, 
-                                               IDBDatabase* aDatabase,
-                                               AsyncConnectionHelper* aHelper,
-                                               WaitingOnDatabasesCallback aCallback,
-                                               void* aClosure)
+IndexedDatabaseManager::AcquireExclusiveAccess(
+                                           const nsACString& aOrigin,
+                                           IDBDatabase* aDatabase,
+                                           AsyncConnectionHelper* aHelper,
+                                           nsIRunnable* aRunnable,
+                                           WaitingOnDatabasesCallback aCallback,
+                                           void* aClosure)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(aHelper, "Why are you talking to me?");
+  NS_ASSERTION(!aDatabase || aHelper, "Need a helper with a database!");
+  NS_ASSERTION(aDatabase || aRunnable, "Need a runnable without a database!");
 
   
-  SynchronizedOp* op = nsnull;
-  PRUint32 count = mSynchronizedOps.Length();
-  for (PRUint32 index = 0; index < count; index++) {
-    SynchronizedOp* currentop = mSynchronizedOps[index].get();
-    if (currentop->mOrigin.Equals(aOrigin)) {
-      if (!currentop->mId ||
-          (aDatabase && currentop->mId == aDatabase->Id())) {
-        
-        NS_ASSERTION(!currentop->mHelper,
-                     "SynchronizedOp already has a helper?!?");
-        op = currentop;
-        break;
-      }
-    }
-  }
+  SynchronizedOp* op =
+    FindSynchronizedOp(aOrigin, aDatabase ? aDatabase->Id() : nsnull);
 
   NS_ASSERTION(op, "We didn't find a SynchronizedOp?");
+  NS_ASSERTION(!op->mHelper, "SynchronizedOp already has a helper?!?");
+  NS_ASSERTION(!op->mRunnable, "SynchronizedOp already has a runnable?!?");
 
   nsTArray<IDBDatabase*>* array;
   mLiveDatabases.Get(aOrigin, &array);
@@ -474,33 +467,50 @@ IndexedDatabaseManager::AcquireExclusiveAccess(const nsACString& aOrigin,
   nsTArray<nsRefPtr<IDBDatabase> > liveDatabases;
 
   if (array) {
-    PRUint32 count = array->Length();
-    for (PRUint32 index = 0; index < count; index++) {
-      IDBDatabase*& database = array->ElementAt(index);
-      if (!database->IsClosed() &&
-          (!aDatabase ||
-           (aDatabase &&
+    if (aDatabase) {
+      
+      
+      for (PRUint32 index = 0; index < array->Length(); index++) {
+        IDBDatabase*& database = array->ElementAt(index);
+        if (!database->IsClosed() &&
             database != aDatabase &&
-            database->Id() == aDatabase->Id()))) {
-        liveDatabases.AppendElement(database);
+            database->Id() == aDatabase->Id()) {
+          liveDatabases.AppendElement(database);
+        }
       }
+    }
+    else {
+      
+      
+      liveDatabases.AppendElements(*array);
     }
   }
 
-  if (liveDatabases.IsEmpty()) {
-    IndexedDatabaseManager::DispatchHelper(aHelper);
-    return NS_OK;
+  op->mHelper = aHelper;
+  op->mRunnable = aRunnable;
+
+  if (!liveDatabases.IsEmpty()) {
+    NS_ASSERTION(op->mDatabases.IsEmpty(),
+                 "How do we already have databases here?");
+    op->mDatabases.AppendElements(liveDatabases);
+
+    
+    aCallback(liveDatabases, aClosure);
+
+    NS_ASSERTION(liveDatabases.IsEmpty(),
+                 "Should have done something with the array!");
+
+    if (aDatabase) {
+      
+      return NS_OK;
+    }
   }
 
-  NS_ASSERTION(op->mDatabases.IsEmpty(), "How do we already have databases here?");
-  op->mDatabases.AppendElements(liveDatabases);
-  op->mHelper = aHelper;
-
   
-  aCallback(liveDatabases, aClosure);
+  
+  nsresult rv = RunSynchronizedOp(aDatabase, op);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  NS_ASSERTION(liveDatabases.IsEmpty(),
-               "Should have done something with the array!");
   return NS_OK;
 }
 
@@ -585,59 +595,23 @@ IndexedDatabaseManager::OnDatabaseClosed(IDBDatabase* aDatabase)
 
   
   
-  PRUint32 count = mSynchronizedOps.Length();
-  for (PRUint32 index = 0; index < count; index++) {
-    nsAutoPtr<SynchronizedOp>& op = mSynchronizedOps[index];
-
-    if (op->mOrigin == aDatabase->Origin() &&
-        (op->mId == aDatabase->Id() || !op->mId)) {
+  SynchronizedOp* op = FindSynchronizedOp(aDatabase->Origin(), aDatabase->Id());
+  if (op) {
+    
+    
+    if (op->mDatabases.RemoveElement(aDatabase)) {
       
-      
-      if (op->mDatabases.RemoveElement(aDatabase)) {
+      NS_ASSERTION(op->mHelper || op->mRunnable,
+                   "How did we get rid of the helper/runnable before "
+                    "removing the last database?");
+      if (op->mDatabases.IsEmpty()) {
         
-        NS_ASSERTION(op->mHelper, "How did we get rid of the helper before "
-                     "removing the last database?");
-        if (op->mDatabases.IsEmpty()) {
-          
-          
-          
-          
-
-          FileService* service = FileService::Get();
-          TransactionThreadPool* pool = TransactionThreadPool::Get();
-
-          PRUint32 count = !!service + !!pool;
-
-          nsRefPtr<WaitForTransactionsToFinishRunnable> runnable =
-            new WaitForTransactionsToFinishRunnable(op,
-                                                    NS_MAX<PRUint32>(count, 1));
-
-          if (!count) {
-            runnable->Run();
-          }
-          else {
-            
-
-            if (service) {
-              nsTArray<nsCOMPtr<nsIFileStorage> > array;
-              array.AppendElement(aDatabase);
-
-              if (!service->WaitForAllStoragesToComplete(array, runnable)) {
-                NS_WARNING("Failed to wait for storages to complete!");
-              }
-            }
-
-            if (pool) {
-              nsTArray<nsRefPtr<IDBDatabase> > array;
-              array.AppendElement(aDatabase);
-
-              if (!pool->WaitForAllDatabasesToComplete(array, runnable)) {
-                NS_WARNING("Failed to wait for databases to complete!");
-              }
-            }
-          }
+        
+        
+        
+        if (NS_FAILED(RunSynchronizedOp(aDatabase, op))) {
+          NS_WARNING("Failed to run synchronized op!");
         }
-        break;
       }
     }
   }
@@ -1101,41 +1075,62 @@ IndexedDatabaseManager::AsyncDeleteFile(FileManager* aFileManager,
 
 
 nsresult
-IndexedDatabaseManager::DispatchHelper(AsyncConnectionHelper* aHelper)
+IndexedDatabaseManager::RunSynchronizedOp(IDBDatabase* aDatabase,
+                                          SynchronizedOp* aOp)
 {
-  nsresult rv = NS_OK;
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  NS_ASSERTION(aOp, "Null pointer!");
+  NS_ASSERTION(!aDatabase || aOp->mHelper, "No helper on this op!");
+  NS_ASSERTION(aDatabase || aOp->mRunnable, "No runnable on this op!");
+  NS_ASSERTION(!aDatabase || aOp->mDatabases.IsEmpty(),
+               "This op isn't ready to run!");
 
-  
-  
-  if (aHelper->HasTransaction()) {
-    rv = aHelper->DispatchToTransactionPool();
+  FileService* service = FileService::Get();
+  TransactionThreadPool* pool = TransactionThreadPool::Get();
+
+  nsTArray<nsRefPtr<IDBDatabase> > databases;
+  if (aDatabase) {
+    if (service || pool) {
+      databases.AppendElement(aDatabase);
+    }
   }
   else {
-    
-    IndexedDatabaseManager* manager = IndexedDatabaseManager::Get();
-    NS_ASSERTION(manager, "We should definitely have a manager here");
-
-    rv = aHelper->Dispatch(manager->IOThread());
+    aOp->mDatabases.SwapElements(databases);
   }
 
-  NS_ENSURE_SUCCESS(rv, rv);
-  return rv;
-}
+  PRUint32 waitCount = service && pool && !databases.IsEmpty() ? 2 : 1;
 
-bool
-IndexedDatabaseManager::IsClearOriginPending(const nsACString& origin)
-{
+  nsRefPtr<WaitForTransactionsToFinishRunnable> runnable =
+    new WaitForTransactionsToFinishRunnable(aOp, waitCount);
+
   
   
-  PRUint32 count = mSynchronizedOps.Length();
-  for (PRUint32 index = 0; index < count; index++) {
-    nsAutoPtr<SynchronizedOp>& op = mSynchronizedOps[index];
-    if (op->mOrigin.Equals(origin) && !op->mId) {
-      return true;
+  
+  if (!(service || pool) || databases.IsEmpty()) {
+    nsresult rv = runnable->Run();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+  
+  if (service) {
+    
+    nsTArray<nsCOMPtr<nsIFileStorage> > array;
+    array.AppendElements(databases);
+
+    if (!service->WaitForAllStoragesToComplete(array, runnable)) {
+      NS_WARNING("Failed to wait for storages to complete!");
+      return NS_ERROR_FAILURE;
     }
   }
 
-  return false;
+  if (pool && !pool->WaitForAllDatabasesToComplete(databases, runnable)) {
+    NS_WARNING("Failed to wait for databases to complete!");
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
 }
 
 NS_IMPL_ISUPPORTS2(IndexedDatabaseManager, nsIIndexedDatabaseManager,
@@ -1237,33 +1232,31 @@ IndexedDatabaseManager::ClearDatabasesForURI(nsIURI* aURI)
   }
 
   
-  nsRefPtr<OriginClearRunnable> runnable =
-    new OriginClearRunnable(origin, mIOThread);
+  nsRefPtr<OriginClearRunnable> runnable = new OriginClearRunnable(origin);
 
   rv = WaitForOpenAllowed(origin, nsnull, runnable);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  runnable->AdvanceState();
 
   
   
   
   nsTArray<nsRefPtr<IDBDatabase> > liveDatabases;
 
-  
   nsTArray<IDBDatabase*>* array;
   if (mLiveDatabases.Get(origin, &array)) {
     liveDatabases.AppendElements(*array);
   }
 
-  
   for (PRUint32 index = 0; index < liveDatabases.Length(); index++) {
     liveDatabases[index]->Invalidate();
   }
-  
+
   DatabaseInfo::RemoveAllForOrigin(origin);
 
   
   
-
   return NS_OK;
 }
 
@@ -1374,60 +1367,105 @@ IndexedDatabaseManager::Observe(nsISupports* aSubject,
 NS_IMPL_THREADSAFE_ISUPPORTS1(IndexedDatabaseManager::OriginClearRunnable,
                               nsIRunnable)
 
+
+void
+IndexedDatabaseManager::
+OriginClearRunnable::InvalidateOpenedDatabases(
+                                   nsTArray<nsRefPtr<IDBDatabase> >& aDatabases,
+                                   void* aClosure)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
+  OriginClearRunnable* self = static_cast<OriginClearRunnable*>(aClosure);
+
+  nsTArray<nsRefPtr<IDBDatabase> > databases;
+  databases.SwapElements(aDatabases);
+
+  for (PRUint32 index = 0; index < databases.Length(); index++) {
+    databases[index]->Invalidate();
+  }
+
+  DatabaseInfo::RemoveAllForOrigin(self->mOrigin);
+}
+
 NS_IMETHODIMP
 IndexedDatabaseManager::OriginClearRunnable::Run()
 {
   IndexedDatabaseManager* mgr = IndexedDatabaseManager::Get();
   NS_ASSERTION(mgr, "This should never fail!");
 
-  if (NS_IsMainThread()) {
-    
-    if (mFirstCallback) {
-      NS_ASSERTION(mThread, "Should have a thread here!");
+  switch (mCallbackState) {
+    case Pending: {
+      NS_NOTREACHED("Should never get here without being dispatched!");
+      return NS_ERROR_UNEXPECTED;
+    }
 
-      mFirstCallback = false;
+    case OpenAllowed: {
+      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-      nsCOMPtr<nsIThread> thread;
-      mThread.swap(thread);
+      AdvanceState();
 
       
-      if (NS_FAILED(thread->Dispatch(this, NS_DISPATCH_NORMAL))) {
-        NS_WARNING("Failed to dispatch to IO thread!");
+      
+      nsresult rv =
+        mgr->AcquireExclusiveAccess(mOrigin, this, InvalidateOpenedDatabases,
+                                    this);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      return NS_OK;
+    }
+
+    case IO: {
+      NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
+
+      AdvanceState();
+
+      
+      nsCOMPtr<nsIFile> directory;
+      nsresult rv =
+        mgr->GetDirectoryForOrigin(mOrigin, getter_AddRefs(directory));
+      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to get directory to remove!");
+
+      if (NS_SUCCEEDED(rv)) {
+        bool exists;
+        rv = directory->Exists(&exists);
+        NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
+                         "Failed to check that the directory exists!");
+
+        if (NS_SUCCEEDED(rv) && exists && NS_FAILED(directory->Remove(true))) {
+          
+          
+          NS_ERROR("Failed to remove directory!");
+        }
+      }
+
+      
+      if (NS_FAILED(NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL))) {
+        NS_WARNING("Failed to dispatch to main thread!");
         return NS_ERROR_FAILURE;
       }
 
       return NS_OK;
     }
 
-    NS_ASSERTION(!mThread, "Should have been cleared already!");
+    case Complete: {
+      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-    mgr->InvalidateFileManagersForOrigin(mOrigin);
+      mgr->InvalidateFileManagersForOrigin(mOrigin);
 
-    
-    mgr->AllowNextSynchronizedOp(mOrigin, nsnull);
+      
+      mgr->AllowNextSynchronizedOp(mOrigin, nsnull);
 
-    return NS_OK;
-  }
-
-  NS_ASSERTION(!mThread, "Should have been cleared already!");
-
-  
-  nsCOMPtr<nsIFile> directory;
-  nsresult rv = mgr->GetDirectoryForOrigin(mOrigin, getter_AddRefs(directory));
-  if (NS_SUCCEEDED(rv)) {
-    bool exists;
-    rv = directory->Exists(&exists);
-    if (NS_SUCCEEDED(rv) && exists) {
-      rv = directory->Remove(true);
+      return NS_OK;
     }
+
+    default:
+      NS_ERROR("Unknown state value!");
+      return NS_ERROR_UNEXPECTED;
   }
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to remove directory!");
 
-  
-  rv = NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
+  NS_NOTREACHED("Should never get here!");
+  return NS_ERROR_UNEXPECTED;
 }
 
 IndexedDatabaseManager::AsyncUsageRunnable::AsyncUsageRunnable(
@@ -1591,14 +1629,16 @@ IndexedDatabaseManager::AsyncUsageRunnable::Run()
   return NS_OK;
 }
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(IndexedDatabaseManager::WaitForTransactionsToFinishRunnable,
-                              nsIRunnable)
+NS_IMPL_THREADSAFE_ISUPPORTS1(
+                    IndexedDatabaseManager::WaitForTransactionsToFinishRunnable,
+                    nsIRunnable)
 
 NS_IMETHODIMP
 IndexedDatabaseManager::WaitForTransactionsToFinishRunnable::Run()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(mOp && mOp->mHelper, "What?");
+  NS_ASSERTION(mOp, "Null op!");
+  NS_ASSERTION(mOp->mHelper || mOp->mRunnable, "Nothing to run!");
   NS_ASSERTION(mCountdown, "Wrong countdown!");
 
   if (--mCountdown) {
@@ -1609,18 +1649,40 @@ IndexedDatabaseManager::WaitForTransactionsToFinishRunnable::Run()
   nsRefPtr<AsyncConnectionHelper> helper;
   helper.swap(mOp->mHelper);
 
+  nsCOMPtr<nsIRunnable> runnable;
+  runnable.swap(mOp->mRunnable);
+
   mOp = nsnull;
 
-  IndexedDatabaseManager::DispatchHelper(helper);
+  nsresult rv;
+
+  if (helper && helper->HasTransaction()) {
+    
+    
+    rv = helper->DispatchToTransactionPool();
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  else {
+    
+    IndexedDatabaseManager* manager = IndexedDatabaseManager::Get();
+    NS_ASSERTION(manager, "We should definitely have a manager here");
+
+    nsIEventTarget* target = manager->IOThread();
+
+    rv = helper ?
+         helper->Dispatch(target) :
+         target->Dispatch(runnable, NS_DISPATCH_NORMAL);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   
-
   return NS_OK;
 }
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(IndexedDatabaseManager::WaitForLockedFilesToFinishRunnable,
-                              nsIRunnable)
+NS_IMPL_THREADSAFE_ISUPPORTS1(
+                     IndexedDatabaseManager::WaitForLockedFilesToFinishRunnable,
+                     nsIRunnable)
 
 NS_IMETHODIMP
 IndexedDatabaseManager::WaitForLockedFilesToFinishRunnable::Run()
@@ -1632,8 +1694,9 @@ IndexedDatabaseManager::WaitForLockedFilesToFinishRunnable::Run()
   return NS_OK;
 }
 
-IndexedDatabaseManager::SynchronizedOp::SynchronizedOp(const nsACString& aOrigin,
-                                                       nsIAtom* aId)
+IndexedDatabaseManager::
+SynchronizedOp::SynchronizedOp(const nsACString& aOrigin,
+                               nsIAtom* aId)
 : mOrigin(aOrigin), mId(aId)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
