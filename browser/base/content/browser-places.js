@@ -127,7 +127,7 @@ var StarUI = {
         }
         break;
       case "keypress":
-        if (aEvent.getPreventDefault()) {
+        if (aEvent.defaultPrevented) {
           
           break;
         }

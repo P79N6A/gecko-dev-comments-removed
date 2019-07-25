@@ -1,8 +1,8 @@
 <!DOCTYPE HTML>
 <html>
-<!--
-https://bugzilla.mozilla.org/show_bug.cgi?id=493251
--->
+
+
+
 <head>
   <title>Test for Bug 493251</title>
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
@@ -60,8 +60,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=493251
 
   function dumpEvent(aEvent) {
     var detail = "target=" + aEvent.target + ", originalTarget=" +
-                 aEvent.originalTarget + ", getPreventDefault()=" +
-                 aEvent.getPreventDefault() + ", isTrusted=" + aEvent.isTrusted;
+                 aEvent.originalTarget + ", defaultPrevented=" +
+                 aEvent.defaultPrevented + ", isTrusted=" + aEvent.isTrusted;
     switch (aEvent.type) {
       case "keydown":
       case "keypress":
