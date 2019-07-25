@@ -359,13 +359,17 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
 
         JSAutoRequest ar(ctx);
 
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(ctx, object))
+          return NS_ERROR_FAILURE;
+
         
         JSObject* param = JS_NewObject(ctx, NULL, NULL, NULL);
         NS_ENSURE_TRUE(param, NS_ERROR_OUT_OF_MEMORY);
 
         jsval targetv;
         nsContentUtils::WrapNative(ctx,
-                                   JS_GetGlobalObject(ctx),
+                                   JS_GetGlobalForObject(ctx, object),
                                    aTarget, &targetv);
 
         
@@ -402,11 +406,6 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
 
         jsval thisValue = JSVAL_VOID;
 
-        JSAutoEnterCompartment ac;
-
-        if (!ac.enter(ctx, object))
-          return NS_ERROR_FAILURE;
-
         jsval funval = JSVAL_VOID;
         if (JS_ObjectIsFunction(ctx, object)) {
           
@@ -422,7 +421,7 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
             defaultThisValue = aTarget;
           }
           nsContentUtils::WrapNative(ctx,
-                                     JS_GetGlobalObject(ctx),
+                                     JS_GetGlobalForObject(ctx, object),
                                      defaultThisValue, &thisValue);
         } else {
           
