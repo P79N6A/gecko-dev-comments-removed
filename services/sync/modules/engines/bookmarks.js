@@ -35,6 +35,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ['BookmarksEngine', 'BookmarksSharingManager'];
 
 const Cc = Components.classes;
@@ -290,6 +291,34 @@ BookmarksSharingManager.prototype = {
     self.done( true );
   },
 
+  
+
+
+
+
+  getNewShares: function BmkSharing_getNewShares(onComplete) {
+    this._getNewShares.async(this, onComplete);
+  },
+  _getNewShares: function BmkSharing__getNewShares() {
+    let self = yield;
+
+    let sharingApi = new Sharing.Api( DAV );
+    let result = yield sharingApi.getShares(self.cb);
+
+		this._log.info("Got Shares: " + result);
+		let shares = result.split(',');
+		if (shares.length > 1) {
+		  this._log.info('Found shares');
+		  for (var i = 0; i < shares.length - 1; i++) {
+		    let share = shares[i].split(':');
+		    let name = share[0];
+		    let user = share[1];
+		    let path = share[2];
+		    this._incomingShareOffer(user, '/user/' + user + '/' + path, name);
+		  }
+		}
+  },
+  
   updateAllIncomingShares: function BmkSharing_updateAllIncoming(onComplete) {
     this._updateAllIncomingShares.async(this, onComplete);
   },
@@ -436,8 +465,9 @@ BookmarksSharingManager.prototype = {
     
     let sharingApi = new Sharing.Api( DAV );
     let result = yield sharingApi.shareWithUsers( serverPath,
-						  [username],
+						  [username], folderName,
 						  self.cb );
+		this._log.info(result.errorText);
     
     self.done( serverPath );
   },
@@ -725,6 +755,7 @@ BookmarksEngine.prototype = {
     
 
     let self = yield;
+    let ret = yield this._sharing.getNewShares(self.cb);
     this.__proto__.__proto__._sync.async(this, self.cb );
     yield;
     this._sharing.updateAllOutgoingShares(self.cb);
@@ -1089,11 +1120,9 @@ BookmarksStore.prototype = {
           itemId, this._getItemIdForGUID(command.data.parentGUID), index);
       } break;
       case "tags": {
-        
-        let tags = command.data.tags.filter(function(t) t);
         let tagsURI = this._bms.getBookmarkURI(itemId);
         this._ts.untagURI(tagsURI, null);
-        this._ts.tagURI(tagsURI, tags);
+        this._ts.tagURI(tagsURI, command.data.tags);
       } break;
       case "keyword":
         this._bms.setKeywordForBookmark(itemId, command.data.keyword);
