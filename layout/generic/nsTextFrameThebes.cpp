@@ -6368,7 +6368,8 @@ HasSoftHyphenBefore(const nsTextFragment* aFrag, gfxTextRun* aTextRun,
 }
 
 void
-nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout)
+nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout,
+                       PRUint32 aSetLengthFlags)
 {
   mContentLengthHint = aLength;
   PRInt32 end = GetContentOffset() + aLength;
@@ -6393,7 +6394,11 @@ nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout)
     if (aLineLayout &&
         GetStyleText()->WhiteSpaceIsSignificant() &&
         HasTerminalNewline() &&
-        GetParent()->GetType() != nsGkAtoms::letterFrame) {
+        GetParent()->GetType() != nsGkAtoms::letterFrame &&
+        (aSetLengthFlags & ALLOW_FRAME_CREATION_AND_DESTRUCTION)) {
+      
+      
+      
       
       
       
@@ -6436,7 +6441,11 @@ nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout)
     
     
     
-    if (next && next->mContentOffset <= end && f->GetNextSibling() == next) {
+    if (next && next->mContentOffset <= end && f->GetNextSibling() == next &&
+        (aSetLengthFlags & ALLOW_FRAME_CREATION_AND_DESTRUCTION)) {
+      
+      
+      
       
       
       
@@ -6627,7 +6636,8 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   
   
   if (aLineLayout.GetInFirstLetter() || aLineLayout.GetInFirstLine()) {
-    SetLength(maxContentLength, &aLineLayout);
+    SetLength(maxContentLength, &aLineLayout,
+              ALLOW_FRAME_CREATION_AND_DESTRUCTION);
 
     if (aLineLayout.GetInFirstLetter()) {
       
@@ -6669,7 +6679,8 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
         
         
         
-        SetLength(offset + length - GetContentOffset(), &aLineLayout);
+        SetLength(offset + length - GetContentOffset(), &aLineLayout,
+                  ALLOW_FRAME_CREATION_AND_DESTRUCTION);
         
         ClearTextRun(nsnull);
       }
@@ -7001,7 +7012,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
         charsFit - numJustifiableCharacters);
   }
 
-  SetLength(contentLength, &aLineLayout);
+  SetLength(contentLength, &aLineLayout, ALLOW_FRAME_CREATION_AND_DESTRUCTION);
 
   if (mContent->HasFlag(NS_TEXT_IN_SELECTION)) {
     SelectionDetails* details = GetSelectionDetails();
@@ -7445,7 +7456,7 @@ nsTextFrame::AdjustOffsetsForBidi(PRInt32 aStart, PRInt32 aEnd)
   }
 
   mContentOffset = aStart;
-  SetLength(aEnd - aStart, nsnull);
+  SetLength(aEnd - aStart, nsnull, 0);
 }
 
 

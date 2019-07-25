@@ -177,7 +177,11 @@ public:
   NS_IMETHOD CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex, PRInt32 aEndIndex, PRBool aRecurse, PRBool *aFinished, PRBool *_retval);
   
   
-  void SetLength(PRInt32 aLength, nsLineLayout* aLineLayout);
+  enum { ALLOW_FRAME_CREATION_AND_DESTRUCTION = 0x01 };
+
+  
+  void SetLength(PRInt32 aLength, nsLineLayout* aLineLayout,
+                 PRUint32 aSetLengthFlags = 0);
   
   NS_IMETHOD GetOffsets(PRInt32 &start, PRInt32 &end)const;
   
