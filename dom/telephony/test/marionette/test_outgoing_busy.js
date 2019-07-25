@@ -1,0 +1,78 @@
+
+
+
+MARIONETTE_TIMEOUT = 10000;
+
+const WHITELIST_PREF = "dom.telephony.app.phone.url";
+SpecialPowers.setCharPref(WHITELIST_PREF, window.location.href);
+
+let telephony = window.navigator.mozTelephony;
+let number = "5555552368";
+let outgoing;
+let calls;
+
+function verifyInitialState() {
+  log("Verifying initial state.");
+  ok(telephony);
+  is(telephony.active, null);
+  ok(telephony.calls);
+  is(telephony.calls.length, 0);
+  calls = telephony.calls;
+
+  runEmulatorCmd("gsm list", function(result) {
+    log("Initial call list: " + result);
+    is(result[0], "OK");
+    dial();
+  });
+}
+
+function dial() {
+  log("Make an outgoing call.");
+
+  outgoing = telephony.dial(number);
+  ok(outgoing);
+  is(outgoing.number, number);
+  is(outgoing.state, "dialing");
+
+  
+  
+  
+  
+
+outgoing.onstatechange = function onstatechange(event) {
+  log("outgoing call state: " + outgoing.state);
+};
+
+  runEmulatorCmd("gsm list", function(result) {
+    log("Call list is now: " + result);
+    is(result[0], "outbound to  " + number + " : unknown");
+    is(result[1], "OK");
+    busy();
+  });
+}
+
+function busy() {
+  log("The receiver is busy.");
+
+  outgoing.onbusy = function onbusy(event) {
+    log("Received 'busy' call event.");
+    is(outgoing, event.call);
+    is(outgoing.state, "busy");
+
+    
+
+    runEmulatorCmd("gsm list", function(result) {
+      log("Call list is now: " + result);
+      is(result[0], "OK");
+      cleanUp();
+    });
+  };
+  runEmulatorCmd("gsm busy " + number);
+};
+
+function cleanUp() {
+  SpecialPowers.clearUserPref(WHITELIST_PREF);
+  finish();
+}
+
+verifyInitialState();
