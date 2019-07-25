@@ -2406,30 +2406,37 @@ JSContext::checkMallocGCPressure(void *p)
     }
 
 #ifdef JS_THREADSAFE
+    JS_ASSERT(thread);
     JS_ASSERT(thread->gcThreadMallocBytes <= 0);
     ptrdiff_t n = JS_GC_THREAD_MALLOC_LIMIT - thread->gcThreadMallocBytes;
     thread->gcThreadMallocBytes = JS_GC_THREAD_MALLOC_LIMIT;
 
     AutoLockGC lock(runtime);
     runtime->gcMallocBytes -= n;
-    if (runtime->isGCMallocLimitReached())
+
+    
+
+
+
+    if (runtime->isGCMallocLimitReached() && requestDepth != 0)
 #endif
     {
-        JS_ASSERT(runtime->isGCMallocLimitReached());
-        runtime->gcMallocBytes = -1;
+        if (!runtime->gcRunning) {
+            JS_ASSERT(runtime->isGCMallocLimitReached());
+            runtime->gcMallocBytes = -1;
 
-        
-
-
-
+            
 
 
 
-        JS_THREAD_DATA(this)->purgeGCFreeLists();
-        js_TriggerGC(this, true);
+
+
+
+            JS_THREAD_DATA(this)->purgeGCFreeLists();
+            js_TriggerGC(this, true);
+        }
     }
 }
-
 
 bool
 JSContext::isConstructing()
