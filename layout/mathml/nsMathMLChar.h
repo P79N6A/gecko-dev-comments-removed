@@ -59,9 +59,11 @@ enum {
   NS_STRETCH_LARGER   = 0x08, 
   
   NS_STRETCH_LARGEOP  = 0x10,
+  NS_STRETCH_INTEGRAL  = 0x20,
+
   
   
-  NS_STRETCH_MAXWIDTH = 0x20
+  NS_STRETCH_MAXWIDTH = 0x40
 };
 
 
@@ -105,6 +107,9 @@ public:
     mStyleContext = nsnull;
     mSibling = nsnull;
     mParent = aParent;
+    mUnscaledAscent = 0;
+    mScaleX = mScaleY = 1.0;
+    mDrawNormal = PR_TRUE;
   }
 
   ~nsMathMLChar() { 
@@ -245,6 +250,12 @@ private:
   
   
   nsString           mFamily;
+  
+  nscoord            mUnscaledAscent;
+  
+  float              mScaleX, mScaleY;
+  
+  PRPackedBool       mDrawNormal;
 
   class StretchEnumContext;
   friend class StretchEnumContext;
@@ -283,6 +294,9 @@ private:
                     nsStyleContext*      aStyleContext,
                     nsGlyphTable*        aGlyphTable,
                     nsRect&              aRect);
+
+  void
+  ApplyTransforms(nsIRenderingContext& aRenderingContext, nsRect &r);
 };
 
 #endif 

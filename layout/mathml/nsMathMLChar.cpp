@@ -872,11 +872,6 @@ nsMathMLChar::SetData(nsPresContext* aPresContext,
     
     
     mGlyphTable = gGlyphTableList->GetGlyphTableFor(aPresContext, this);
-    
-    
-    if (!mGlyphTable) { 
-      mDirection = NS_STRETCH_DIRECTION_UNSUPPORTED;
-    }
   }
 }
 
@@ -1565,7 +1560,13 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
                                          aDesiredStretchSize);
   if (NS_FAILED(rv)) {
     NS_WARNING("GetBoundingMetrics failed");
+    mDirection = NS_STRETCH_DIRECTION_UNSUPPORTED;
     return rv;
+  }
+
+  if (!maxWidth) {
+    mScaleY = mScaleX = 1.0;
+    mUnscaledAscent = aDesiredStretchSize.ascent;
   }
 
   
@@ -1573,10 +1574,10 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   
 
   
-  if (!mGlyphTable ||
-      (aStretchDirection != direction &&
+  if ((aStretchDirection != direction &&
        aStretchDirection != NS_STRETCH_DIRECTION_DEFAULT) ||
       (aStretchHint & ~NS_STRETCH_MAXWIDTH) == NS_STRETCH_NONE) {
+    mDirection = NS_STRETCH_DIRECTION_UNSUPPORTED;
     return NS_OK;
   }
 
@@ -1634,32 +1635,36 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
     }
   }
 
-  if (!maxWidth && !largeop) {
-    
-    
-    nscoord charSize =
-      isVertical ? aDesiredStretchSize.ascent + aDesiredStretchSize.descent
-      : aDesiredStretchSize.rightBearing - aDesiredStretchSize.leftBearing;
+  nsBoundingMetrics initialSize = aDesiredStretchSize;
+  nscoord charSize =
+    isVertical ? initialSize.ascent + initialSize.descent
+    : initialSize.rightBearing - initialSize.leftBearing;
 
+  PRBool done = (mGlyphTable ? PR_FALSE : PR_TRUE);
+
+  if (!done && !maxWidth && !largeop) {
+    
+    
     if ((targetSize <= 0) || 
         ((isVertical && charSize >= targetSize) ||
          IsSizeOK(aPresContext, charSize, targetSize, aStretchHint)))
-      return NS_OK;
+      done = PR_TRUE;
   }
 
   
   
   
 
-  font = mStyleContext->GetStyleFont()->mFont;
   nsAutoString cssFamilies;
-  cssFamilies = font.name;
 
-  PRBool done = PR_FALSE;
+  if (!done) {
+    font = mStyleContext->GetStyleFont()->mFont;
+    cssFamilies = font.name;
+  }
 
   
-  if (GetFontExtensionPref(prefBranch, mData[0], eExtension_variants,
-                           families)) {
+  if (!done && GetFontExtensionPref(prefBranch, mData[0], eExtension_variants,
+                                    families)) {
     font.name = families;
 
     StretchEnumContext enumData(this, aPresContext, aRenderingContext,
@@ -1705,6 +1710,75 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
     font.EnumerateFamilies(StretchEnumContext::EnumCallback, &enumData);
   }
 
+  if (!maxWidth) {
+    
+    
+    mDrawNormal = (mGlyph.font == -1);
+    mUnscaledAscent = aDesiredStretchSize.ascent;
+  }
+    
+  
+  if (stretchy) {
+    if (isVertical) {
+      float scale =
+        float(aContainerSize.ascent + aContainerSize.descent) /
+        (aDesiredStretchSize.ascent + aDesiredStretchSize.descent);
+      if (!largeop || scale > 1.0) {
+        
+        mScaleY *= scale;
+        aDesiredStretchSize.ascent *= scale;
+        aDesiredStretchSize.descent *= scale;
+      }
+    } else {
+      float scale =
+        float(aContainerSize.rightBearing - aContainerSize.leftBearing) /
+        (aDesiredStretchSize.rightBearing - aDesiredStretchSize.leftBearing);
+      if (!largeop || scale > 1.0) {
+        
+        mScaleX *= scale;
+        aDesiredStretchSize.leftBearing *= scale;
+        aDesiredStretchSize.rightBearing *= scale;
+        aDesiredStretchSize.width *= scale;
+      }
+    }
+  }
+
+  
+  
+  if (mGlyph.font == -1 && largeop) {
+    float scale;
+    float largeopFactor = M_SQRT2;
+
+    
+    
+    if ((aDesiredStretchSize.rightBearing - aDesiredStretchSize.leftBearing) <
+        largeopFactor * (initialSize.rightBearing - initialSize.leftBearing)) {
+      scale = (largeopFactor *
+               (initialSize.rightBearing - initialSize.leftBearing)) /
+        (aDesiredStretchSize.rightBearing - aDesiredStretchSize.leftBearing);
+      mScaleX *= scale;
+      aDesiredStretchSize.leftBearing *= scale;
+      aDesiredStretchSize.rightBearing *= scale;
+      aDesiredStretchSize.width *= scale;
+    }
+
+    
+    
+    if (NS_STRETCH_INTEGRAL & aStretchHint) {
+      
+      largeopFactor = 2.0;
+    }
+    if ((aDesiredStretchSize.ascent + aDesiredStretchSize.descent) <
+        largeopFactor * (initialSize.ascent + initialSize.descent)) {
+      scale = (largeopFactor *
+               (initialSize.ascent + initialSize.descent)) /
+        (aDesiredStretchSize.ascent + aDesiredStretchSize.descent);
+      mScaleY *= scale;
+      aDesiredStretchSize.ascent *= scale;
+      aDesiredStretchSize.descent *= scale;
+    }
+  }
+
   return NS_OK;
 }
 
@@ -1717,7 +1791,8 @@ nsMathMLChar::Stretch(nsPresContext*           aPresContext,
                       PRUint32                 aStretchHint)
 {
   NS_ASSERTION(!(aStretchHint &
-                 ~(NS_STRETCH_VARIABLE_MASK | NS_STRETCH_LARGEOP)),
+                 ~(NS_STRETCH_VARIABLE_MASK | NS_STRETCH_LARGEOP |
+                   NS_STRETCH_INTEGRAL)),
                "Unexpected stretch flags");
 
   
@@ -1727,12 +1802,6 @@ nsMathMLChar::Stretch(nsPresContext*           aPresContext,
   nsresult rv =
     StretchInternal(aPresContext, aRenderingContext, mDirection,
                     aContainerSize, aDesiredStretchSize, aStretchHint);
-
-  if (mGlyph.font == -1) { 
-    
-    
-    mDirection = NS_STRETCH_DIRECTION_UNSUPPORTED;
-  }
 
   
   mBoundingMetrics = aDesiredStretchSize;
@@ -1996,7 +2065,7 @@ nsMathMLChar::Display(nsDisplayListBuilder*   aBuilder,
   nsStyleContext* parentContext = mStyleContext->GetParent();
   nsStyleContext* styleContext = mStyleContext;
 
-  if (NS_STRETCH_DIRECTION_UNSUPPORTED == mDirection) {
+  if (mDrawNormal) {
     
     
     styleContext = parentContext;
@@ -2038,6 +2107,19 @@ nsMathMLChar::Display(nsDisplayListBuilder*   aBuilder,
 }
 
 void
+nsMathMLChar::ApplyTransforms(nsIRenderingContext& aRenderingContext, nsRect &r)
+{
+  
+  aRenderingContext.Translate(r.x, r.y);
+  aRenderingContext.Scale(mScaleX, mScaleY);
+
+  
+  r.x = r.y = 0;
+  r.width /= mScaleX;
+  r.height /= mScaleY;
+}
+
+void
 nsMathMLChar::PaintForeground(nsPresContext* aPresContext,
                               nsIRenderingContext& aRenderingContext,
                               nsPoint aPt,
@@ -2046,7 +2128,7 @@ nsMathMLChar::PaintForeground(nsPresContext* aPresContext,
   nsStyleContext* parentContext = mStyleContext->GetParent();
   nsStyleContext* styleContext = mStyleContext;
 
-  if (NS_STRETCH_DIRECTION_UNSUPPORTED == mDirection) {
+  if (mDrawNormal) {
     
     
     styleContext = parentContext;
@@ -2067,14 +2149,17 @@ nsMathMLChar::PaintForeground(nsPresContext* aPresContext,
   }
   aRenderingContext.SetFont(theFont, aPresContext->GetUserFontSet());
 
-  if (NS_STRETCH_DIRECTION_UNSUPPORTED == mDirection) {
+  aRenderingContext.PushState();
+  nsRect r = mRect + aPt;
+  ApplyTransforms(aRenderingContext, r);
+
+  if (mDrawNormal) {
     
     
     PRUint32 len = PRUint32(mData.Length());
 
 
-    aRenderingContext.DrawString(mData.get(), len, mRect.x + aPt.x,
-                                 mRect.y + aPt.y + mBoundingMetrics.ascent);
+    aRenderingContext.DrawString(mData.get(), len, 0, mUnscaledAscent);
   }
   else {
     
@@ -2082,22 +2167,10 @@ nsMathMLChar::PaintForeground(nsPresContext* aPresContext,
     if (mGlyph.Exists()) {
 
 
-      aRenderingContext.DrawString(&mGlyph.code, 1, mRect.x + aPt.x,
-                                   mRect.y + aPt.y + mBoundingMetrics.ascent);
+      aRenderingContext.DrawString(&mGlyph.code, 1, 0, mUnscaledAscent);
     }
     else { 
-      
-      if (!mParent && mSibling) { 
-        for (nsMathMLChar* child = mSibling; child; child = child->mSibling) {
 
-
-          child->PaintForeground(aPresContext, aRenderingContext, aPt,
-                                 aIsSelected);
-        }
-        return; 
-       }
-
-      nsRect r = mRect + aPt;
       if (NS_STRETCH_DIRECTION_VERTICAL == mDirection)
         PaintVertically(aPresContext, aRenderingContext, theFont, styleContext,
                         mGlyphTable, r);
@@ -2106,6 +2179,8 @@ nsMathMLChar::PaintForeground(nsPresContext* aPresContext,
                           mGlyphTable, r);
     }
   }
+
+  aRenderingContext.PopState();
 }
 
 
