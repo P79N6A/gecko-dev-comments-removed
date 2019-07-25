@@ -6569,14 +6569,16 @@ void nsTextFrame::MarkIntrinsicWidthsDirty()
 
 void
 nsTextFrame::AddInlineMinWidthForFlow(nsRenderingContext *aRenderingContext,
-                                      nsIFrame::InlineMinWidthData *aData)
+                                      nsIFrame::InlineMinWidthData *aData,
+                                      float aInflation,
+                                      TextRunType aTextRunType)
 {
   PRUint32 flowEndInTextRun;
   gfxContext* ctx = aRenderingContext->ThebesContext();
   gfxSkipCharsIterator iter =
-    EnsureTextRun(nsTextFrame::eNotInflated, 1.0f, ctx, aData->lineContainer,
+    EnsureTextRun(aTextRunType, aInflation, ctx, aData->lineContainer,
                   aData->line, &flowEndInTextRun);
-  gfxTextRun *textRun = GetTextRun(nsTextFrame::eNotInflated);
+  gfxTextRun *textRun = GetTextRun(aTextRunType);
   if (!textRun)
     return;
 
@@ -6598,7 +6600,7 @@ nsTextFrame::AddInlineMinWidthForFlow(nsRenderingContext *aRenderingContext,
                  tmp.ConvertSkippedToOriginal(flowEndInTextRun)) - iter.GetOriginalOffset();
   }
   PropertyProvider provider(textRun, textStyle, frag, this,
-                            iter, len, nsnull, 0, nsTextFrame::eNotInflated);
+                            iter, len, nsnull, 0, aTextRunType);
 
   bool collapseWhitespace = !textStyle->WhiteSpaceIsSignificant();
   bool preformatNewlines = textStyle->NewlineIsSignificant();
@@ -6699,6 +6701,10 @@ nsTextFrame::AddInlineMinWidthForFlow(nsRenderingContext *aRenderingContext,
 nsTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
                                nsIFrame::InlineMinWidthData *aData)
 {
+  float inflation =
+    nsLayoutUtils::FontSizeInflationFor(this, nsLayoutUtils::eInReflow);
+  TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
+
   nsTextFrame* f;
   gfxTextRun* lastTextRun = nsnull;
   
@@ -6707,7 +6713,7 @@ nsTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
     
     
     
-    if (f == this || f->GetTextRun(nsTextFrame::eNotInflated) != lastTextRun) {
+    if (f == this || f->GetTextRun(trtype) != lastTextRun) {
       nsIFrame* lc;
       if (aData->lineContainer &&
           aData->lineContainer != (lc = FindLineContainer(f))) {
@@ -6718,8 +6724,9 @@ nsTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
       }
 
       
-      f->AddInlineMinWidthForFlow(aRenderingContext, aData);
-      lastTextRun = f->GetTextRun(nsTextFrame::eNotInflated);
+      f->AddInlineMinWidthForFlow(aRenderingContext, aData,
+                                  inflation, trtype);
+      lastTextRun = f->GetTextRun(trtype);
     }
   }
 }
@@ -6728,14 +6735,16 @@ nsTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
 
 void
 nsTextFrame::AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
-                                       nsIFrame::InlinePrefWidthData *aData)
+                                       nsIFrame::InlinePrefWidthData *aData,
+                                       float aInflation,
+                                       TextRunType aTextRunType)
 {
   PRUint32 flowEndInTextRun;
   gfxContext* ctx = aRenderingContext->ThebesContext();
   gfxSkipCharsIterator iter =
-    EnsureTextRun(nsTextFrame::eNotInflated, 1.0f, ctx, aData->lineContainer,
+    EnsureTextRun(aTextRunType, aInflation, ctx, aData->lineContainer,
                   aData->line, &flowEndInTextRun);
-  gfxTextRun *textRun = GetTextRun(nsTextFrame::eNotInflated);
+  gfxTextRun *textRun = GetTextRun(aTextRunType);
   if (!textRun)
     return;
 
@@ -6745,8 +6754,7 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
   const nsStyleText* textStyle = GetStyleText();
   const nsTextFragment* frag = mContent->GetText();
   PropertyProvider provider(textRun, textStyle, frag, this,
-                            iter, PR_INT32_MAX, nsnull, 0,
-                            nsTextFrame::eNotInflated);
+                            iter, PR_INT32_MAX, nsnull, 0, aTextRunType);
 
   bool collapseWhitespace = !textStyle->WhiteSpaceIsSignificant();
   bool preformatNewlines = textStyle->NewlineIsSignificant();
@@ -6826,6 +6834,10 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
 nsTextFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
                                 nsIFrame::InlinePrefWidthData *aData)
 {
+  float inflation =
+    nsLayoutUtils::FontSizeInflationFor(this, nsLayoutUtils::eInReflow);
+  TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
+
   nsTextFrame* f;
   gfxTextRun* lastTextRun = nsnull;
   
@@ -6834,7 +6846,7 @@ nsTextFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
     
     
     
-    if (f == this || f->GetTextRun(nsTextFrame::eNotInflated) != lastTextRun) {
+    if (f == this || f->GetTextRun(trtype) != lastTextRun) {
       nsIFrame* lc;
       if (aData->lineContainer &&
           aData->lineContainer != (lc = FindLineContainer(f))) {
@@ -6845,8 +6857,9 @@ nsTextFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
       }
 
       
-      f->AddInlinePrefWidthForFlow(aRenderingContext, aData);
-      lastTextRun = f->GetTextRun(nsTextFrame::eNotInflated);
+      f->AddInlinePrefWidthForFlow(aRenderingContext, aData,
+                                   inflation, trtype);
+      lastTextRun = f->GetTextRun(trtype);
     }
   }
 }

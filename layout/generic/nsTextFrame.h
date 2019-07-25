@@ -272,10 +272,22 @@ public:
   nsOverflowAreas
     RecomputeOverflow(const nsHTMLReflowState& aBlockReflowState);
 
+  enum TextRunType {
+    
+    
+    
+    eInflated,
+    
+    
+    eNotInflated
+  };
+
   void AddInlineMinWidthForFlow(nsRenderingContext *aRenderingContext,
-                                nsIFrame::InlineMinWidthData *aData);
+                                nsIFrame::InlineMinWidthData *aData,
+                                float aInflation, TextRunType aTextRunType);
   void AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
-                                 InlinePrefWidthData *aData);
+                                 InlinePrefWidthData *aData,
+                                 float aInflation, TextRunType aTextRunType);
 
   
 
@@ -368,16 +380,6 @@ public:
   
   
   PRInt32 GetInFlowContentLength();
-
-  enum TextRunType {
-    
-    
-    
-    eInflated,
-    
-    
-    eNotInflated
-  };
 
   
 
