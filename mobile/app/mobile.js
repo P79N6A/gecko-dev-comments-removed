@@ -313,8 +313,6 @@ pref("privacy.item.sessions", true);
 pref("privacy.item.geolocation", true);
 pref("privacy.item.siteSettings", true);
 
-pref("plugin.load_plugins", false);
-
 #ifdef MOZ_PLATFORM_HILDON
 pref("plugins.force.wmode", "opaque");
 #endif
@@ -358,6 +356,7 @@ pref("browser.ui.kinetic.speedSensitivity", 80);
 pref("browser.ui.kinetic.swipeLength", 160);
 
 
+pref("plugin.disable", true);
 pref("plugin.default_plugin_disabled", true);
 
 
