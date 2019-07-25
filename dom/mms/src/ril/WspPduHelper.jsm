@@ -2489,6 +2489,9 @@ const WSP_WELL_KNOWN_CONTENT_TYPES = (function () {
 
   
   
+  add("application/vnd.wap.multipart.mixed", 0x23);
+
+  
   add("application/vnd.wap.multipart.related", 0x33);
 
   
