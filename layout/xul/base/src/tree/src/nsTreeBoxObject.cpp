@@ -116,13 +116,18 @@ static void FindBodyElement(nsIContent* aParent, nsIContent** aResult)
 nsTreeBodyFrame*
 nsTreeBoxObject::GetTreeBody(bool aFlushLayout)
 {
-  if (mTreeBody) {
-    return mTreeBody;
-  }
-
+  
+  
+  
+  
   nsIFrame* frame = GetFrame(aFlushLayout);
   if (!frame)
     return nsnull;
+
+  if (mTreeBody) {
+    
+    return mTreeBody;
+  }
 
   
   nsCOMPtr<nsIContent> content;
