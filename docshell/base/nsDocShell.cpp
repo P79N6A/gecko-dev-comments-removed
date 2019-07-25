@@ -5018,19 +5018,11 @@ nsDocShell::SetIsActive(bool aIsActive)
   }
 
   
-  
   PRInt32 n = mChildList.Count();
   for (PRInt32 i = 0; i < n; ++i) {
       nsCOMPtr<nsIDocShell> docshell = do_QueryInterface(ChildAt(i));
-      if (!docshell) {
-          continue;
-      }
-
-      bool isBrowser = false;
-      docshell->GetIsBrowserFrame(&isBrowser);
-      if (!isBrowser) {
-          docshell->SetIsActive(aIsActive);
-      }
+      if (docshell)
+        docshell->SetIsActive(aIsActive);
   }
 
   return NS_OK;
