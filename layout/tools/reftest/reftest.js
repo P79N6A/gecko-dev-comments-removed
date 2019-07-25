@@ -108,6 +108,7 @@ var gExplicitPendingPaintsCompleteHook;
 var gCurrentURL;
 var gFailureTimeout = null;
 var gFailureReason;
+var gTestLog = [];
 var gServer;
 var gCount = 0;
 var gAssertionCount = 0;
@@ -150,6 +151,26 @@ var gRecycledCanvases = new Array();
 
 var gDumpLog = dump;
 
+function LogWarning(str)
+{
+    gDumpLog("REFTEST INFO | " + str + "\n");
+    gTestLog.push(str);
+}
+
+function LogInfo(str)
+{
+    
+    gTestLog.push(str);
+}
+
+function FlushTestLog()
+{
+    for (var i = 0; i < gTestLog.length; ++i) {
+        gDumpLog("REFTEST INFO | Saved log: " + gTestLog[i] + "\n");
+    }
+    gTestLog = [];
+}
+
 function AllocateCanvas()
 {
     var windowElem = document.documentElement;
@@ -172,14 +193,29 @@ function ReleaseCanvas(canvas)
         gRecycledCanvases.push(canvas);
 }
 
+function IDForEventTarget(event)
+{
+    try {
+        return "'" + event.target.getAttribute('id') + "'";
+    } catch (ex) {
+        return "<unknown>";
+    }
+}
+
 function PaintWaitListener(event)
 {
+    LogInfo("MozPaintWait received for ID " + IDForEventTarget(event));
     gExplicitPendingPaintCount++;
 }
 
 function PaintWaitFinishedListener(event)
 {
+    LogInfo("MozPaintWaitFinished received for ID " + IDForEventTarget(event));
     gExplicitPendingPaintCount--;
+    if (gExplicitPendingPaintCount < 0) {
+        LogWarning("Underrun in gExplicitPendingPaintCount\n");
+        gExplicitPendingPaintCount = 0;
+    }
     if (gExplicitPendingPaintCount == 0 &&
         gExplicitPendingPaintsCompleteHook) {
         gExplicitPendingPaintsCompleteHook();
@@ -459,8 +495,8 @@ function BuildConditionSandbox(aURL) {
         return testPluginIsOOP;
     };
 
-    dump("REFTEST INFO | Dumping JSON representation of sandbox \n");
-    dump("REFTEST INFO | " + JSON.stringify(sandbox) + " \n");
+    gDumpLog("REFTEST INFO | Dumping JSON representation of sandbox \n");
+    gDumpLog("REFTEST INFO | " + JSON.stringify(sandbox) + " \n");
 
     return sandbox;
 }
@@ -756,6 +792,8 @@ function ServeFiles(manifestURL, depth, aURL, files)
 
 function StartCurrentTest()
 {
+    gTestLog = [];
+
     
     while (gURLs.length > 0) {
         var test = gURLs[0];
@@ -796,6 +834,13 @@ function StartCurrentURI(aState)
 
     gState = aState;
     gCurrentURL = gURLs[0]["url" + aState].spec;
+    
+    
+    if (gExplicitPendingPaintCount != 0) {
+        LogWarning("Resetting gExplicitPendingPaintCount to zero (currently " +
+                   gExplicitPendingPaintCount + "\n");
+        gExplicitPendingPaintCount = 0;
+    }
 
     if (gURICanvases[gCurrentURL] &&
         (gURLs[0].type == TYPE_REFTEST_EQUAL ||
@@ -806,6 +851,7 @@ function StartCurrentURI(aState)
         setTimeout(RecordResult, 0);
     } else {
         gDumpLog("REFTEST TEST-START | " + gCurrentURL + "\n");
+        LogInfo("START " + gCurrentURL);
         gBrowser.loadURI(gCurrentURL);
     }
 }
@@ -818,27 +864,27 @@ function DoneTests()
     gDumpLog("REFTEST INFO | Result summary:\n");
     var count = gTestResults.Pass + gTestResults.LoadOnly;
     gDumpLog("REFTEST INFO | Successful: " + count + " (" +
-         gTestResults.Pass + " pass, " +
-         gTestResults.LoadOnly + " load only)\n");
+             gTestResults.Pass + " pass, " +
+             gTestResults.LoadOnly + " load only)\n");
     count = gTestResults.Exception + gTestResults.FailedLoad +
             gTestResults.UnexpectedFail + gTestResults.UnexpectedPass +
             gTestResults.AssertionUnexpected +
             gTestResults.AssertionUnexpectedFixed;
     gDumpLog("REFTEST INFO | Unexpected: " + count + " (" +
-         gTestResults.UnexpectedFail + " unexpected fail, " +
-         gTestResults.UnexpectedPass + " unexpected pass, " +
-         gTestResults.AssertionUnexpected + " unexpected asserts, " +
-         gTestResults.AssertionUnexpectedFixed + " unexpected fixed asserts, " +
-         gTestResults.FailedLoad + " failed load, " +
-         gTestResults.Exception + " exception)\n");
+             gTestResults.UnexpectedFail + " unexpected fail, " +
+             gTestResults.UnexpectedPass + " unexpected pass, " +
+             gTestResults.AssertionUnexpected + " unexpected asserts, " +
+             gTestResults.AssertionUnexpectedFixed + " unexpected fixed asserts, " +
+             gTestResults.FailedLoad + " failed load, " +
+             gTestResults.Exception + " exception)\n");
     count = gTestResults.KnownFail + gTestResults.AssertionKnown +
             gTestResults.Random + gTestResults.Skip + gTestResults.Slow;
-    dump("REFTEST INFO | Known problems: " + count + " (" +
-         gTestResults.KnownFail + " known fail, " +
-         gTestResults.AssertionKnown + " known asserts, " +
-         gTestResults.Random + " random, " +
-         gTestResults.Skip + " skipped, " +
-         gTestResults.Slow + " slow)\n");
+    gDumpLog("REFTEST INFO | Known problems: " + count + " (" +
+             gTestResults.KnownFail + " known fail, " +
+             gTestResults.AssertionKnown + " known asserts, " +
+             gTestResults.Random + " random, " +
+             gTestResults.Skip + " skipped, " +
+             gTestResults.Slow + " slow)\n");
 
     gDumpLog("REFTEST INFO | Total canvas count = " + gRecycledCanvases.length + "\n");
 
@@ -927,28 +973,48 @@ function WaitForTestEnd() {
 
     var stopAfterPaintReceived = false;
     var currentDoc = gBrowser.contentDocument;
-    var utils = gBrowser.contentWindow.QueryInterface(CI.nsIInterfaceRequestor)
-        .getInterface(CI.nsIDOMWindowUtils);
     var state = STATE_WAITING_TO_FIRE_INVALIDATE_EVENT;
-    gFailureReason = "timed out waiting for pending paint count to reach zero";
 
     function FlushRendering() {
+        var anyPendingPaintsGeneratedInDescendants = false;
+
         function flushWindow(win) {
+            var utils = win.QueryInterface(CI.nsIInterfaceRequestor)
+                        .getInterface(CI.nsIDOMWindowUtils);
+            var afterPaintWasPending = utils.isMozAfterPaintPending;
+
             try {
+                
                 win.document.documentElement.getBoundingClientRect();
-            } catch (e) {}
+            } catch (e) {
+                LogWarning("flushWindow failed: " + e + "\n");
+            }
+            
+            if (!afterPaintWasPending && utils.isMozAfterPaintPending) {
+                LogInfo("FlushRendering generated paint for window " + win.location.href);
+                anyPendingPaintsGeneratedInDescendants = true;
+            }
+
             for (var i = 0; i < win.frames.length; ++i) {
                 flushWindow(win.frames[i]);
             }
         }
-              
+
+        flushWindow(gBrowser.contentWindow);
+
+        if (anyPendingPaintsGeneratedInDescendants &&
+            !gWindowUtils.isMozAfterPaintPending) {
+            LogWarning("Internal error: descendant frame generated a MozAfterPaint event, but the root document doesn't have one!");
+        }
+
         
-        flushWindow(contentRootElement.ownerDocument.defaultView);
-        
+        var utils = gBrowser.contentWindow.QueryInterface(CI.nsIInterfaceRequestor)
+                    .getInterface(CI.nsIDOMWindowUtils);
         utils.processUpdates();
     }
 
     function AfterPaintListener(event) {
+        LogInfo("AfterPaintListener in " + event.target.document.location.href);
         if (event.target.document != document) {
             
             
@@ -962,6 +1028,7 @@ function WaitForTestEnd() {
     }
 
     function AttrModifiedListener() {
+        LogInfo("AttrModifiedListener fired");
         
         
         
@@ -970,6 +1037,7 @@ function WaitForTestEnd() {
     }
 
     function ExplicitPaintsCompleteListener() {
+        LogInfo("ExplicitPaintsCompleteListener fired");
         
         
         setTimeout(MakeProgress, 0);
@@ -990,32 +1058,58 @@ function WaitForTestEnd() {
     
     
     function MakeProgress() {
-        if (state >= STATE_COMPLETED)
+        if (state >= STATE_COMPLETED) {
+            LogInfo("MakeProgress: STATE_COMPLETED");
             return;
+        }
 
         FlushRendering();
 
         switch (state) {
-        case STATE_WAITING_TO_FIRE_INVALIDATE_EVENT:
-            if (shouldWaitForExplicitPaintWaiters() || shouldWaitForPendingPaints())
+        case STATE_WAITING_TO_FIRE_INVALIDATE_EVENT: {
+            LogInfo("MakeProgress: STATE_WAITING_TO_FIRE_INVALIDATE_EVENT");
+            if (shouldWaitForExplicitPaintWaiters() || shouldWaitForPendingPaints()) {
+                gFailureReason = "timed out waiting for pending paint count to reach zero";
+                if (shouldWaitForExplicitPaintWaiters()) {
+                    gFailureReason += " (waiting for MozPaintWaitFinished)";
+                    LogInfo("MakeProgress: waiting for MozPaintWaitFinished");
+                }
+                if (shouldWaitForPendingPaints()) {
+                    gFailureReason += " (waiting for MozAfterPaint)";
+                    LogInfo("MakeProgress: waiting for MozAfterPaint");
+                }
                 return;
+            }
+
             state = STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL;
-            gFailureReason = "timed out waiting for reftest-wait to be removed";
+            var hasReftestWait = shouldWaitForReftestWaitRemoval();            
             
             var notification = document.createEvent("Events");
             notification.initEvent("MozReftestInvalidate", true, false);
             contentRootElement.dispatchEvent(notification);
+            if (hasReftestWait && !shouldWaitForReftestWaitRemoval()) {
+                
+                
+                FlushRendering();
+                if (!shouldWaitForPendingPaints() && !shouldWaitForExplicitPaintWaiters()) {
+                    LogWarning("MozInvalidateEvent didn't invalidate");
+                }
+            }
             
             MakeProgress();
             return;
+        }
 
         case STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL:
-            if (shouldWaitForReftestWaitRemoval())
+            LogInfo("MakeProgress: STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL");
+            if (shouldWaitForReftestWaitRemoval()) {
+                gFailureReason = "timed out waiting for reftest-wait to be removed";
+                LogInfo("MakeProgress: waiting for reftest-wait to be removed");
                 return;
+            }
             state = STATE_WAITING_TO_FINISH;
-            gFailureReason = "timed out waiting for pending paint count to " +
-                "reach zero (after reftest-wait removed and switch to print mode)";
             if (doPrintMode(contentRootElement)) {
+                LogInfo("MakeProgress: setting up print mode");
                 setupPrintMode();
                 didPrintMode = true;
             }
@@ -1024,8 +1118,21 @@ function WaitForTestEnd() {
             return;
 
         case STATE_WAITING_TO_FINISH:
-            if (shouldWaitForExplicitPaintWaiters() || shouldWaitForPendingPaints())
+            LogInfo("MakeProgress: STATE_WAITING_TO_FINISH");
+            if (shouldWaitForExplicitPaintWaiters() || shouldWaitForPendingPaints()) {
+                gFailureReason = "timed out waiting for pending paint count to " +
+                    "reach zero (after reftest-wait removed and switch to print mode)";
+                if (shouldWaitForExplicitPaintWaiters()) {
+                    gFailureReason += " (waiting for MozPaintWaitFinished)";
+                    LogInfo("MakeProgress: waiting for MozPaintWaitFinished");
+                }
+                if (shouldWaitForPendingPaints()) {
+                    gFailureReason += " (waiting for MozAfterPaint)";
+                    LogInfo("MakeProgress: waiting for MozAfterPaint");
+                }
                 return;
+            }
+            LogInfo("MakeProgress: Completed");
             state = STATE_COMPLETED;
             gFailureReason = "timed out while taking snapshot (bug in harness?)";
             RemoveListeners();
@@ -1054,17 +1161,21 @@ function OnDocumentLoad(event)
         return;
     }
 
-    if (gBrowser.contentDocument.location.href != gCurrentURL)
+    if (gBrowser.contentDocument.location.href != gCurrentURL) {
+        LogInfo("OnDocumentLoad fired for previous document");
         
         return;
+    }
 
     var contentRootElement = gBrowser.contentDocument.documentElement;
 
     setupZoom(contentRootElement);
 
     function AfterOnLoadScripts() {
-        if (doPrintMode(contentRootElement))
+        if (doPrintMode(contentRootElement)) {
+            LogInfo("AfterOnLoadScripts setting up print mode");
             setupPrintMode();
+        }
 
         
         
@@ -1073,6 +1184,7 @@ function OnDocumentLoad(event)
         InitCurrentCanvasWithSnapshot();
 
         if (shouldWaitForExplicitPaintWaiters()) {
+            LogInfo("AfterOnLoadScripts belatedly entering WaitForTestEnd");
             
             WaitForTestEnd();
         } else {
@@ -1084,6 +1196,7 @@ function OnDocumentLoad(event)
         
         
         gFailureReason = "timed out waiting for test to complete (trying to get into WaitForTestEnd)";
+        LogInfo("OnDocumentLoad triggering WaitForTestEnd");
         setTimeout(function() {
             InitCurrentCanvasWithSnapshot();
             WaitForTestEnd();
@@ -1094,6 +1207,7 @@ function OnDocumentLoad(event)
         
         
         gFailureReason = "timed out waiting for test to complete (waiting for onload scripts to complete)";
+        LogInfo("OnDocumentLoad triggering AfterOnLoadScripts");
         setTimeout(setTimeout, 0, AfterOnLoadScripts, 0);
     }
 }
@@ -1142,14 +1256,15 @@ function DoDrawWindow(ctx, x, y, w, h)
         } else {
             
             
-            dump("REFTEST INFO | WARNING: USE_WIDGET_LAYERS disabled\n");
+            gDumpLog("REFTEST INFO | WARNING: USE_WIDGET_LAYERS disabled\n");
         }
-        dump("REFTEST INFO | drawWindow flags = " + flagsStr +
-             "; window size = " + window.innerWidth + "," + window.innerHeight +
-             "; test browser size = " + testRect.width + "," + testRect.height +
-             "\n");
+        gDumpLog("REFTEST INFO | drawWindow flags = " + flagsStr +
+                 "; window size = " + window.innerWidth + "," + window.innerHeight +
+                 "; test browser size = " + testRect.width + "," + testRect.height +
+                 "\n");
     }
 
+    LogInfo("DoDrawWindow " + x + "," + y + "," + w + "," + h);
     ctx.drawWindow(window, x, y, w, h, "rgb(255,255,255)",
                    gDrawWindowFlags);
 }
@@ -1196,6 +1311,8 @@ function UpdateCurrentCanvasForEvent(event)
 
 function RecordResult()
 {
+    LogInfo("RecordResult fired");
+
     
     var currentTestRunTime = Date.now() - gCurrentTestStartTime;
     if (currentTestRunTime > gSlowestTestTime) {
@@ -1258,7 +1375,7 @@ function RecordResult()
             if (!gURLs[0].allowSilentFail)
                 missing_msg = "No test results reported. (SCRIPT)\n";
             else
-                dump("REFTEST INFO | An expected silent failure occurred \n");
+                gDumpLog("REFTEST INFO | An expected silent failure occurred \n");
         }
 
         if (missing_msg) {
@@ -1298,6 +1415,10 @@ function RecordResult()
                     result.description + " item " + (++index) + "\n";
                 gDumpLog(result);
             });
+
+        if (anyFailed && expected == EXPECTED_PASS) {
+            FlushTestLog();
+        }
 
         FinishTestItem();
         return;
@@ -1373,6 +1494,10 @@ function RecordResult()
                 }
             }
 
+            if (!test_passed && expected == EXPECTED_PASS) {
+                FlushTestLog();
+            }
+
             UpdateCanvasCache(gURLs[0].url1, gCanvas1);
             UpdateCanvasCache(gURLs[0].url2, gCanvas2);
 
@@ -1392,6 +1517,7 @@ function LoadFailed()
     ++gTestResults.FailedLoad;
     gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | " +
          gURLs[0]["url" + gState].spec + " | " + gFailureReason + "\n");
+    FlushTestLog();
     FinishTestItem();
 }
 
