@@ -163,6 +163,9 @@ protected:
   void StopSampling(nsRefreshDriver* aRefreshDriver);
 
   
+  void MaybeStartSampling(nsRefreshDriver* aRefreshDriver);
+
+  
   virtual void DoSample();
   void DoSample(PRBool aSkipUnchangedContainers);
 
