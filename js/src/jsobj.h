@@ -1000,22 +1000,6 @@ struct JSObject : js::gc::Cell
 
     
 
-
-
-  private:
-    static const uint32_t JSSLOT_PRIMITIVE_THIS = 0;
-
-  public:
-    inline const js::Value &getPrimitiveThis() const;
-    inline void setPrimitiveThis(const js::Value &pthis);
-
-    static size_t getPrimitiveThisOffset() {
-        
-        return getFixedSlotOffset(JSSLOT_PRIMITIVE_THIS);
-    }
-
-    
-
     js::ObjectElements *getElementsHeader() const {
         return js::ObjectElements::fromElements(elements);
     }
