@@ -48,12 +48,18 @@ function test() {
   runNextTest();
 }
 
-let tests = [test_cascade, test_select];
+let tests = [test_cascade, test_select, test_multiWindowState,
+             test_setWindowStateNoOverwrite, test_setWindowStateOverwrite,
+             test_setBrowserStateInterrupted];
 function runNextTest() {
+  
+  try {
+    Services.prefs.clearUserPref("browser.sessionstore.max_concurrent_tabs");
+  } catch (e) {}
+
+  
   if (tests.length) {
-    ss.setWindowState(window,
-                      JSON.stringify({ windows: [{ tabs: [{ url: 'about:blank' }], }] }),
-                      true);
+    ss.setBrowserState(JSON.stringify({ windows: [{ tabs: [{ url: 'about:blank' }], }] }));
     executeSoon(tests.shift());
   }
   else {
@@ -70,7 +76,8 @@ function test_cascade() {
   
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
-      if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+      if (aBrowser.__SS_restoring &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
           aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
           aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW)
         test_cascade_progressCallback();
@@ -102,28 +109,18 @@ function test_cascade() {
 
   function test_cascade_progressCallback() {
     loadCount++;
-    
-    
-    
-    
-    if (loadCount <= state.windows[0].tabs.length)
-      return;
-
     let counts = countTabs();
-    let expected = expectedCounts[loadCount - state.windows[0].tabs.length - 1];
+    let expected = expectedCounts[loadCount - 1];
 
     is(counts[0], expected[0], "test_cascade: load " + loadCount + " - # tabs that need to be restored");
     is(counts[1], expected[1], "test_cascade: load " + loadCount + " - # tabs that are restoring");
     is(counts[2], expected[2], "test_cascade: load " + loadCount + " - # tabs that has been restored");
 
-    if (loadCount == state.windows[0].tabs.length * 2) {
-      window.gBrowser.removeTabsProgressListener(progressListener);
-      
-      try {
-        Services.prefs.clearUserPref("browser.sessionstore.max_concurrent_tabs");
-      } catch (e) {}
-      runNextTest();
-    }
+    if (loadCount < state.windows[0].tabs.length)
+      return;
+
+    window.gBrowser.removeTabsProgressListener(progressListener);
+    runNextTest();
   }
 
   
@@ -140,7 +137,8 @@ function test_select() {
   
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
-      if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+      if (aBrowser.__SS_restoring &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
           aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
           aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW)
         test_select_progressCallback(aBrowser);
@@ -154,7 +152,7 @@ function test_select() {
     { entries: [{ url: "http://example.org" }], extData: { "uniq": r() } },
     { entries: [{ url: "http://example.org" }], extData: { "uniq": r() } },
     { entries: [{ url: "http://example.org" }], extData: { "uniq": r() } }
-  ], selectedIndex: 1 }] };
+  ], selected: 1 }] };
 
   let loadCount = 0;
   
@@ -171,32 +169,17 @@ function test_select() {
 
   function test_select_progressCallback(aBrowser) {
     loadCount++;
-    
-    
-    
-    
-    if (loadCount <= state.windows[0].tabs.length)
-      return;
 
-    let loadIndex = loadCount - state.windows[0].tabs.length - 1;
     let counts = countTabs();
-    let expected = expectedCounts[loadIndex];
+    let expected = expectedCounts[loadCount - 1];
 
     is(counts[0], expected[0], "test_select: load " + loadCount + " - # tabs that need to be restored");
     is(counts[1], expected[1], "test_select: load " + loadCount + " - # tabs that are restoring");
     is(counts[2], expected[2], "test_select: load " + loadCount + " - # tabs that has been restored");
 
-    if (loadCount == state.windows[0].tabs.length * 2) {
-      window.gBrowser.removeTabsProgressListener(progressListener);
+    if (loadCount < state.windows[0].tabs.length) {
       
-      try {
-        Services.prefs.clearUserPref("browser.sessionstore.max_concurrent_tabs");
-      } catch (e) {}
-      runNextTest();
-    }
-    else {
-      
-      let expectedData = state.windows[0].tabs[tabOrder[loadIndex]].extData.uniq;
+      let expectedData = state.windows[0].tabs[tabOrder[loadCount - 1]].extData.uniq;
       let tab;
       for (let i = 0; i < window.gBrowser.tabs.length; i++) {
         if (!tab && window.gBrowser.tabs[i].linkedBrowser == aBrowser)
@@ -205,12 +188,346 @@ function test_select() {
       is(ss.getTabValue(tab, "uniq"), expectedData, "test_select: load " + loadCount + " - correct tab was restored");
 
       
-      window.gBrowser.selectTabAtIndex(tabOrder[loadIndex + 1]);
+      window.gBrowser.selectTabAtIndex(tabOrder[loadCount]);
+      return;
     }
+
+    window.gBrowser.removeTabsProgressListener(progressListener);
+    runNextTest();
   }
 
   window.gBrowser.addTabsProgressListener(progressListener);
   ss.setBrowserState(JSON.stringify(state));
+}
+
+
+function test_multiWindowState() {
+  
+  let progressListener = {
+    onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
+      
+      
+      if (aBrowser.__SS_restoring &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW)
+        test_multiWindowState_progressCallback(aBrowser);
+    }
+  }
+
+  
+  
+  let state = { windows: [
+    {
+      tabs: [
+        { entries: [{ url: "http://example.org#0" }], extData: { "uniq": r() } }
+      ],
+      selected: 1
+    },
+    {
+      tabs: [
+        { entries: [{ url: "http://example.com#1" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.com#2" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.com#3" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.com#4" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.com#5" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.com#6" }], extData: { "uniq": r() } }
+      ],
+      selected: 4
+    }
+  ] };
+  let numTabs = state.windows[0].tabs.length + state.windows[1].tabs.length;
+
+  let loadCount = 0;
+  function test_multiWindowState_progressCallback(aBrowser) {
+    loadCount++;
+
+    if (loadCount < numTabs)
+      return;
+
+    
+    
+    is(loadCount, numTabs, "test_multiWindowState: all tabs were restored");
+    let count = countTabs();
+    is(count[0], 0,
+       "test_multiWindowState: there are no tabs left needing restore");
+
+    
+    
+    window.gBrowser.removeTabsProgressListener(progressListener);
+    runNextTest();
+  }
+
+  
+  function windowObserver(aSubject, aTopic, aData) {
+    let theWin = aSubject.QueryInterface(Ci.nsIDOMWindow);
+    if (aTopic == "domwindowopened") {
+      theWin.addEventListener("load", function() {
+        theWin.removeEventListener("load", arguments.callee, false);
+
+        Services.ww.unregisterNotification(windowObserver);
+        theWin.gBrowser.addTabsProgressListener(progressListener);
+      }, false);
+    }
+  }
+  Services.ww.registerNotification(windowObserver);
+
+  window.gBrowser.addTabsProgressListener(progressListener);
+  ss.setBrowserState(JSON.stringify(state));
+}
+
+
+function test_setWindowStateNoOverwrite() {
+  
+  Services.prefs.setIntPref("browser.sessionstore.max_concurrent_tabs", 1);
+
+  
+  let progressListener = {
+    onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
+      
+      
+      if (aBrowser.__SS_restoring &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW)
+        test_setWindowStateNoOverwrite_progressCallback(aBrowser);
+    }
+  }
+
+  
+  
+  let state1 = { windows: [{ tabs: [
+    { entries: [{ url: "http://example.com#1" }] },
+    { entries: [{ url: "http://example.com#2" }] },
+    { entries: [{ url: "http://example.com#3" }] },
+    { entries: [{ url: "http://example.com#4" }] },
+    { entries: [{ url: "http://example.com#5" }] },
+  ] }] };
+  let state2 = { windows: [{ tabs: [
+    { entries: [{ url: "http://example.org#1" }] },
+    { entries: [{ url: "http://example.org#2" }] },
+    { entries: [{ url: "http://example.org#3" }] },
+    { entries: [{ url: "http://example.org#4" }] },
+    { entries: [{ url: "http://example.org#5" }] }
+  ] }] };
+
+  let numTabs = state1.windows[0].tabs.length + state2.windows[0].tabs.length;
+
+  let loadCount = 0;
+  function test_setWindowStateNoOverwrite_progressCallback(aBrowser) {
+    loadCount++;
+
+    
+    if (loadCount == 2)
+      ss.setWindowState(window, JSON.stringify(state2), false);
+
+    if (loadCount < numTabs)
+      return;
+
+    
+    
+    is(loadCount, numTabs, "test_setWindowStateNoOverwrite: all tabs were restored");
+    is(window.__SS_tabsToRestore, 0,
+       "test_setWindowStateNoOverwrite: window doesn't think there are more tabs to restore");
+    let count = countTabs();
+    is(count[0], 0,
+       "test_setWindowStateNoOverwrite: there are no tabs left needing restore");
+
+    
+    
+    window.gBrowser.removeTabsProgressListener(progressListener);
+
+    runNextTest();
+  }
+
+  window.gBrowser.addTabsProgressListener(progressListener);
+  ss.setWindowState(window, JSON.stringify(state1), true);
+}
+
+
+function test_setWindowStateOverwrite() {
+  
+  Services.prefs.setIntPref("browser.sessionstore.max_concurrent_tabs", 1);
+
+  
+  let progressListener = {
+    onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
+      
+      
+      if (aBrowser.__SS_restoring &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW)
+        test_setWindowStateOverwrite_progressCallback(aBrowser);
+    }
+  }
+
+  
+  
+  let state1 = { windows: [{ tabs: [
+    { entries: [{ url: "http://example.com#1" }] },
+    { entries: [{ url: "http://example.com#2" }] },
+    { entries: [{ url: "http://example.com#3" }] },
+    { entries: [{ url: "http://example.com#4" }] },
+    { entries: [{ url: "http://example.com#5" }] },
+  ] }] };
+  let state2 = { windows: [{ tabs: [
+    { entries: [{ url: "http://example.org#1" }] },
+    { entries: [{ url: "http://example.org#2" }] },
+    { entries: [{ url: "http://example.org#3" }] },
+    { entries: [{ url: "http://example.org#4" }] },
+    { entries: [{ url: "http://example.org#5" }] }
+  ] }] };
+
+  let numTabs = 2 + state2.windows[0].tabs.length;
+
+  let loadCount = 0;
+  function test_setWindowStateOverwrite_progressCallback(aBrowser) {
+    loadCount++;
+
+    
+    if (loadCount == 2)
+      ss.setWindowState(window, JSON.stringify(state2), true);
+
+    if (loadCount < numTabs)
+      return;
+
+    
+    
+    is(loadCount, numTabs, "test_setWindowStateOverwrite: all tabs were restored");
+    is(window.__SS_tabsToRestore, 0,
+       "test_setWindowStateOverwrite: window doesn't think there are more tabs to restore");
+    let count = countTabs();
+    is(count[0], 0,
+       "test_setWindowStateOverwrite: there are no tabs left needing restore");
+
+    
+    
+    window.gBrowser.removeTabsProgressListener(progressListener);
+
+    runNextTest();
+  }
+
+  window.gBrowser.addTabsProgressListener(progressListener);
+  ss.setWindowState(window, JSON.stringify(state1), true);
+}
+
+
+function test_setBrowserStateInterrupted() {
+  
+  Services.prefs.setIntPref("browser.sessionstore.max_concurrent_tabs", 1);
+
+  
+  let progressListener = {
+    onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
+      
+      
+      if (aBrowser.__SS_restoring &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW)
+        test_setBrowserStateInterrupted_progressCallback(aBrowser);
+    }
+  }
+
+  
+  
+  let state1 = { windows: [
+    {
+      tabs: [
+        { entries: [{ url: "http://example.org#1" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.org#2" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.org#3" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.org#4" }], extData: { "uniq": r() } }
+      ],
+      selected: 1
+    },
+    {
+      tabs: [
+        { entries: [{ url: "http://example.com#1" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.com#2" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.com#3" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.com#4" }], extData: { "uniq": r() } },
+      ],
+      selected: 3
+    }
+  ] };
+  let state2 = { windows: [
+    {
+      tabs: [
+        { entries: [{ url: "http://example.org#5" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.org#6" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.org#7" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.org#8" }], extData: { "uniq": r() } }
+      ],
+      selected: 3
+    },
+    {
+      tabs: [
+        { entries: [{ url: "http://example.com#5" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.com#6" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.com#7" }], extData: { "uniq": r() } },
+        { entries: [{ url: "http://example.com#8" }], extData: { "uniq": r() } },
+      ],
+      selected: 1
+    }
+  ] };
+
+  
+  let interruptedAfter = 0;
+  let loadedWindow1 = false;
+  let loadedWindow2 = false;
+  let numTabs = state2.windows[0].tabs.length + state2.windows[1].tabs.length;
+
+  let loadCount = 0;
+  function test_setBrowserStateInterrupted_progressCallback(aBrowser) {
+    loadCount++;
+
+    if (aBrowser.currentURI.spec == state1.windows[0].tabs[2].entries[0].url)
+      loadedWindow1 = true;
+    if (aBrowser.currentURI.spec == state1.windows[1].tabs[0].entries[0].url)
+      loadedWindow2 = true;
+
+    if (!interruptedAfter && loadedWindow1 && loadedWindow2) {
+      interruptedAfter = loadCount;
+      ss.setBrowserState(JSON.stringify(state2));
+      return;
+    }
+
+    if (loadCount < numTabs + interruptedAfter)
+      return;
+
+    
+    
+    is(loadCount, numTabs + interruptedAfter,
+       "test_setBrowserStateInterrupted: all tabs were restored");
+    let count = countTabs();
+    is(count[0], 0,
+       "test_setBrowserStateInterrupted: there are no tabs left needing restore");
+
+    
+    
+    window.gBrowser.removeTabsProgressListener(progressListener);
+    Services.ww.unregisterNotification(windowObserver);
+    runNextTest();
+  }
+
+  
+  function windowObserver(aSubject, aTopic, aData) {
+    let theWin = aSubject.QueryInterface(Ci.nsIDOMWindow);
+    if (aTopic == "domwindowopened") {
+      theWin.addEventListener("load", function() {
+        theWin.removeEventListener("load", arguments.callee, false);
+
+        Services.ww.unregisterNotification(windowObserver);
+        theWin.gBrowser.addTabsProgressListener(progressListener);
+      }, false);
+    }
+  }
+  Services.ww.registerNotification(windowObserver);
+
+  window.gBrowser.addTabsProgressListener(progressListener);
+  ss.setBrowserState(JSON.stringify(state1));
 }
 
 

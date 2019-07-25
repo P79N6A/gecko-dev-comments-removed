@@ -853,15 +853,7 @@ SessionStoreService.prototype = {
 
     
     
-    if (browser.__SS_restoring) {
-      this.restoreNextTab(true);
-    }
-    else if (browser.__SS_needsRestore) {
-      if (aTab.hidden)
-        this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab));
-      else
-        this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(aTab));
-    }
+    this._resetTabRestoringState(aTab, true);
 
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
@@ -2203,6 +2195,24 @@ SessionStoreService.prototype = {
     }
 
     
+    if (aOverwriteTabs) {
+      for (let i = 0; i < tabbrowser.tabs.length; i++)
+        this._resetTabRestoringState(tabbrowser.tabs[i], false);
+    }
+
+    
+    
+    
+    
+    
+    if (!aWindow.__SS_tabsToRestore)
+      aWindow.__SS_tabsToRestore = 0;
+    if (aOverwriteTabs)
+      aWindow.__SS_tabsToRestore = newTabCount;
+    else
+      aWindow.__SS_tabsToRestore += newTabCount;
+
+    
     
     
     delete aWindow.__SS_lastSessionWindowID;
@@ -2287,61 +2297,12 @@ SessionStoreService.prototype = {
         }
       }
     }
-    
-    
-    for (t = 0; t < aTabs.length; t++) {
-      let tab = aTabs[t];
-      let browser = tabbrowser.getBrowserForTab(tab);
-      let tabData = aTabData[t];
 
-      if (tabData.pinned)
-        tabbrowser.pinTab(tab);
-      else
-        tabbrowser.unpinTab(tab);
-      tab.hidden = tabData.hidden;
-
-      tabData._tabStillLoading = true;
-
-      
-      
-      browser.__SS_data = tabData;
-      browser.__SS_needsRestore = true;
-
-      if (!tabData.entries || tabData.entries.length == 0) {
-        
-        
-        browser.contentDocument.location = "about:blank";
-        continue;
-      }
-      
-      browser.stop(); 
-      
-      tab.setAttribute("busy", "true");
-      tabbrowser.updateIcon(tab);
-      
-      
-      
-      let activeIndex = (tabData.index || tabData.entries.length) - 1;
-      let activePageData = tabData.entries[activeIndex] || null;
-      browser.userTypedValue = activePageData ? activePageData.url || null : null;
-
-      
-      if (activePageData) {
-        if (activePageData.title) {
-          tab.label = activePageData.title;
-          tab.crop = "end";
-        } else if (activePageData.url != "about:blank") {
-          tab.label = activePageData.url;
-          tab.crop = "center";
-        }
-      }
-    }
-    
     if (aTabs.length > 0) {
       
       let unhiddenTabs = aTabs.length;
       for (let t = 0; t < unhiddenTabs; ) {
-        if (aTabs[t].hidden) {
+        if (aTabData[t].hidden) {
           aTabs = aTabs.concat(aTabs.splice(t, 1));
           aTabData = aTabData.concat(aTabData.splice(t, 1));
           if (aSelectTab > t)
@@ -2377,6 +2338,51 @@ SessionStoreService.prototype = {
         aTabData.unshift(aTabData.splice(aSelectTab, 1)[0]);
         tabbrowser.selectedTab = aTabs[0];
       }
+    }
+
+    
+    
+    
+    
+    for (t = 0; t < aTabs.length; t++) {
+      let tab = aTabs[t];
+      let browser = tabbrowser.getBrowserForTab(tab);
+      let tabData = aTabData[t];
+
+      if (tabData.pinned)
+        tabbrowser.pinTab(tab);
+      else
+        tabbrowser.unpinTab(tab);
+      tab.hidden = tabData.hidden;
+
+      tabData._tabStillLoading = true;
+
+      
+      
+      browser.__SS_data = tabData;
+      browser.__SS_needsRestore = true;
+
+      if (!tabData.entries || tabData.entries.length == 0) {
+        
+        
+        browser.contentDocument.location = "about:blank";
+        continue;
+      }
+
+      browser.stop(); 
+
+      tab.setAttribute("busy", "true");
+      tabbrowser.updateIcon(tab);
+
+      
+      
+      let activeIndex = (tabData.index || tabData.entries.length) - 1;
+      let activePageData = tabData.entries[activeIndex] || null;
+      browser.userTypedValue = activePageData ? activePageData.url || null : null;
+
+      
+      if (activePageData && activePageData.title)
+        tab.label = activePageData.title;
     }
 
     if (!this._isWindowLoaded(aWindow)) {
@@ -2485,6 +2491,7 @@ SessionStoreService.prototype = {
   },
 
   restoreTab: function(aTab) {
+    let window = aTab.ownerDocument.defaultView;
     let browser = aTab.linkedBrowser;
     let tabData = browser.__SS_data;
 
@@ -2495,6 +2502,9 @@ SessionStoreService.prototype = {
 
     
     this._tabsRestoringCount++;
+
+    
+    window.__SS_tabsToRestore--;
 
     delete browser.__SS_needsRestore;
 
@@ -2576,9 +2586,11 @@ SessionStoreService.prototype = {
     else {
       
       this._forEachBrowserWindow(function(aWindow) {
-        
-        
-        aWindow.gBrowser.removeTabsProgressListener(gRestoreTabsProgressListener)
+        if (!aWindow.__SS_tabsToRestore) {
+          
+          
+          aWindow.gBrowser.removeTabsProgressListener(gRestoreTabsProgressListener);
+        }
       });
     }
   },
@@ -3498,9 +3510,34 @@ SessionStoreService.prototype = {
 
 
   _resetRestoringState: function sss__initRestoringState() {
-    
     this._tabsToRestore = { visible: [], hidden: [] };
     this._tabsRestoringCount = 0;
+  },
+
+  _resetTabRestoringState: function sss__resetTabRestoringState(aTab, aRestoreNextTab) {
+    let browser = aTab.linkedBrowser;
+
+    if (browser.__SS_restoring) {
+      delete browser.__SS_restoring;
+      if (aRestoreNextTab) {
+        
+        this.restoreNextTab(true);
+      }
+      else {
+        
+        
+        this._tabsRestoringCount--;
+      }
+    }
+    else if (browser.__SS_needsRestore) {
+      let window = aTab.ownerDocument.defaultView;
+      window.__SS_tabsToRestore--;
+      delete browser.__SS_needsRestore;
+      if (aTab.hidden)
+        this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab));
+      else
+        this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(aTab));
+    }
   },
 
 
