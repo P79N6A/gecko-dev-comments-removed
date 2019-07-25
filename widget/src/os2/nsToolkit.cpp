@@ -55,6 +55,7 @@ static PRUintn gToolkitTLSIndex = 0;
 
 nsToolkit::nsToolkit()  
 {
+    MOZ_COUNT_CTOR(nsToolkit);
 }
 
 
@@ -65,6 +66,7 @@ nsToolkit::nsToolkit()
 
 nsToolkit::~nsToolkit()
 {
+    MOZ_COUNT_DTOR(nsToolkit);
     
     PR_SetThreadPrivate(gToolkitTLSIndex, nsnull);
 }
