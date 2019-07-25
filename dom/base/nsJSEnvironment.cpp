@@ -1623,6 +1623,8 @@ nsJSContext::ExecuteScript(void *aScriptObject,
     
     rv = JSValueToAString(mContext, val, aRetValue, aIsUndefined);
   } else {
+    ReportPendingException();
+
     if (aIsUndefined) {
       *aIsUndefined = PR_TRUE;
     }
