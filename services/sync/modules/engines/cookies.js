@@ -173,10 +173,10 @@ CookieStore.prototype = {
 
 
 
-    this._cookieManager.remove( command.data.host,
-				command.data.name,
-				command.data.path,
-				false );
+    this._cookieManager.remove(this._lookup[command.GUID].host,
+                               this._lookup[command.GUID].name,
+                               this._lookup[command.GUID].path,
+                               false );
   },
 
   _editCommand: function CookieStore__editCommand(command) {
