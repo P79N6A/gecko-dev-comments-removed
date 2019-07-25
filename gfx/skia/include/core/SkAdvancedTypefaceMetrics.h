@@ -34,7 +34,7 @@ public:
         kCFF_Font,
         kTrueType_Font,
         kOther_Font,
-        kNotEmbeddable_Font,
+        kNotEmbeddable_Font
     };
     
     
@@ -56,7 +56,7 @@ public:
         kItalic_Style      = 0x00040,
         kAllCaps_Style     = 0x10000,
         kSmallCaps_Style   = 0x20000,
-        kForceBold_Style   = 0x40000,
+        kForceBold_Style   = 0x40000
     };
     uint16_t fStyle;        
     int16_t fItalicAngle;   
@@ -75,7 +75,7 @@ public:
       kHAdvance_PerGlyphInfo   = 0x1, 
       kVAdvance_PerGlyphInfo   = 0x2, 
       kGlyphNames_PerGlyphInfo = 0x4, 
-      kToUnicode_PerGlyphInfo  = 0x8, 
+      kToUnicode_PerGlyphInfo  = 0x8  
                                       
     };
 
@@ -84,7 +84,7 @@ public:
         enum MetricType {
             kDefault,  
             kRange,    
-            kRun,      
+            kRun       
         };
         MetricType fType;
         uint16_t fStartId;

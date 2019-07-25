@@ -182,21 +182,22 @@ public:
         kGenA8FromLCD_Flag        = 0x0800,
 
 #ifdef SK_USE_COLOR_LUMINANCE
-        kLuminance_Bits           = 3,
+        kLuminance_Bits           = 3
 #else
         
         kLuminance_Shift          = 13, 
-        kLuminance_Bits           = 3,  
+        kLuminance_Bits           = 3   
 #endif
     };
     
     
     enum {
-        kHinting_Mask   = kHintingBit1_Flag | kHintingBit2_Flag,
 #ifdef SK_USE_COLOR_LUMINANCE
+        kHinting_Mask   = kHintingBit1_Flag | kHintingBit2_Flag
 #else
+        kHinting_Mask   = kHintingBit1_Flag | kHintingBit2_Flag,
         kLuminance_Max  = (1 << kLuminance_Bits) - 1,
-        kLuminance_Mask = kLuminance_Max << kLuminance_Shift,
+        kLuminance_Mask = kLuminance_Max << kLuminance_Shift
 #endif
     };
 

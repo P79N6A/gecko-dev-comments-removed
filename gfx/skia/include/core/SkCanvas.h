@@ -148,7 +148,7 @@ public:
 
 
         kRGBA_Premul_Config8888,
-        kRGBA_Unpremul_Config8888,
+        kRGBA_Unpremul_Config8888
     };
 
     
