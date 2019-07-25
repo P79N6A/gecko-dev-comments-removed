@@ -89,6 +89,7 @@ class FrameState
 {
     typedef JSC::MacroAssembler::RegisterID RegisterID;
     typedef JSC::MacroAssembler::Address Address;
+    typedef JSC::MacroAssembler::Jump Jump;
     typedef JSC::MacroAssembler::Imm32 Imm32;
 
     struct Tracker {
@@ -163,6 +164,13 @@ class FrameState
     
 
 
+
+
+    inline void pushUntypedPayload(uint32 tag, RegisterID payload);
+
+    
+
+
     inline void pop();
 
     
@@ -174,9 +182,13 @@ class FrameState
     
 
 
+
+
     inline RegisterID tempRegForType(FrameEntry *fe);
 
     
+
+
 
 
     inline RegisterID tempRegForData(FrameEntry *fe);
@@ -186,7 +198,24 @@ class FrameState
 
 
 
-    inline RegisterID ownRegForData(FrameEntry *fe);
+
+
+
+
+    RegisterID ownRegForData(FrameEntry *fe);
+
+    
+
+
+
+    RegisterID copyData(FrameEntry *fe);
+
+    
+
+
+
+
+    inline bool shouldAvoidTypeRemat(FrameEntry *fe);
 
     
 
@@ -252,6 +281,12 @@ class FrameState
 
 
     inline void learnType(FrameEntry *fe, uint32 tag);
+
+    
+
+
+
+    inline Jump testInt32(Assembler::Condition cond, FrameEntry *fe);
 
     
 
