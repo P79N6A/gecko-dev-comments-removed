@@ -274,7 +274,6 @@ static nsresult    initialize_prefs        (void);
 
 
 nsWindow *nsWindow::sLastDragMotionWindow = NULL;
-bool nsWindow::sIsDraggingOutOf = false;
 
 
 
@@ -2516,10 +2515,6 @@ nsWindow::OnMotionNotifyEvent(GtkWidget *aWidget, GdkEventMotion *aEvent)
 {
     
     
-    sIsDraggingOutOf = false;
-
-    
-    
     
     bool synthEvent = false;
 #ifdef MOZ_X11
@@ -3398,8 +3393,6 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
       }
     }
 
-    sIsDraggingOutOf = false;
-
     
     nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
     nsDragService *dragServiceGTK =
@@ -3451,8 +3444,6 @@ nsWindow::OnDragLeaveEvent(GtkWidget *aWidget,
     
 
     LOGDRAG(("nsWindow::OnDragLeaveSignal(%p)\n", (void*)this));
-
-    sIsDraggingOutOf = true;
 
     if (mDragLeaveTimer) {
         return;
@@ -5112,10 +5103,15 @@ check_for_rollup(gdouble aMouseX, gdouble aMouseY,
 bool
 nsWindow::DragInProgress(void)
 {
-    
-    
-    
-    return (sLastDragMotionWindow || sIsDraggingOutOf);
+    nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
+
+    if (!dragService)
+        return false;
+
+    nsCOMPtr<nsIDragSession> currentDragSession;
+    dragService->GetCurrentSession(getter_AddRefs(currentDragSession));
+
+    return currentDragSession != nsnull;
 }
 
 static bool

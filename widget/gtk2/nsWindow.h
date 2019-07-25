@@ -507,8 +507,6 @@ private:
     
     nsSizeMode         mLastSizeMode;
 
-    static bool        sIsDraggingOutOf;
-    
     static bool DragInProgress(void);
 
     void         FireDragLeaveTimer       (void);
