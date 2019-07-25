@@ -317,6 +317,7 @@ TabTracker.prototype = {
     let window = aSubject.QueryInterface(Ci.nsIDOMWindow);
     
     
+    
     if (! window.getBrowser)
       return;
     let browser = window.getBrowser();
@@ -330,6 +331,7 @@ TabTracker.prototype = {
       container.removeEventListener("TabOpen", this.onTabChanged, false);
       container.removeEventListener("TabClose", this.onTabChanged, false);
     }
+    
   },
 
   onTabChanged: function TabTracker_onTabChanged(event) {
@@ -337,6 +339,7 @@ TabTracker.prototype = {
   },
 
   get changedIDs() {
+    
     let obj = {};
     obj[Clients.clientID] = true;
     return obj;
