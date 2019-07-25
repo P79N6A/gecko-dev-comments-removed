@@ -202,7 +202,7 @@ CookieStore.prototype = {
     var matchingCookie = null;
     while (iter.hasMoreElements()){
       let cookie = iter.getNext();
-      if (cookie.QueryInterface( Ci.nsICookie ) ){
+      if (cookie.QueryInterface( Ci.nsICookie2 ) ){
         
 	let key = cookie.host + ":" + cookie.path + ":" + cookie.name;
 	if (key == command.GUID) {
@@ -247,7 +247,7 @@ CookieStore.prototype = {
     var iter = this._cookieManager.enumerator;
     while (iter.hasMoreElements()) {
       var cookie = iter.getNext();
-      if (cookie.QueryInterface( Ci.nsICookie )) {
+      if (cookie.QueryInterface( Ci.nsICookie2 )) {
 	      
 	      
 	      if ( cookie.isSession ) {
