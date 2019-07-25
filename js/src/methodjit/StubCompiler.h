@@ -138,6 +138,7 @@ class StubCompiler
 
     
     void linkExit(Jump j, Uses uses);
+    void linkExitForBranch(Jump j);
     void linkExitDirect(Jump j, Label L);
 
     void leave();

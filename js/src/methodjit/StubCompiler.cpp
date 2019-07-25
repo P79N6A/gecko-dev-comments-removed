@@ -105,10 +105,25 @@ StubCompiler::syncExitAndJump(Uses uses)
 
 
 
+
+
+
+
 void
 StubCompiler::linkExit(Jump j, Uses uses)
 {
     Label l = syncExit(uses);
+    linkExitDirect(j, l);
+}
+
+
+
+
+
+void
+StubCompiler::linkExitForBranch(Jump j)
+{
+    Label l = syncExit(Uses(frame.frameDepth()));
     linkExitDirect(j, l);
 }
 
