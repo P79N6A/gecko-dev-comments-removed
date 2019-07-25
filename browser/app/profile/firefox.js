@@ -1049,7 +1049,7 @@ pref("devtools.styleeditor.transitions", true);
 pref("devtools.chrome.enabled", false);
 
 
-pref("devtools.gcli.enable", true);
+pref("devtools.gcli.enable", false);
 
 
 
