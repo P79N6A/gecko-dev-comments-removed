@@ -87,8 +87,6 @@ public:
   NS_DECL_NSIOBSERVER
 
   
-  virtual nsAccessible* GetAccessibleInShell(nsINode* aNode,
-                                             nsIPresShell* aPresShell);
   virtual nsAccessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
                                                   bool aCanCreate);
 
@@ -190,28 +188,14 @@ public:
 
 
 
-
-  nsAccessible* GetOrCreateAccessible(nsINode* aNode, nsIPresShell* aPresShell,
-                                      nsIWeakReference* aWeakShell,
+  nsAccessible* GetOrCreateAccessible(nsINode* aNode, nsDocAccessible* aDoc,
                                       bool* aIsSubtreeHidden = nsnull);
 
   
 
 
-  nsAccessible* GetAccessible(nsINode* aNode);
 
-  
-
-
-
-
-
-  inline nsAccessible* GetAccessibleInWeakShell(nsINode* aNode,
-                                                nsIWeakReference* aWeakShell)
-  {
-    
-    return GetAccessible(aNode);
-  }
+  nsAccessible* GetAccessible(nsINode* aNode, nsIPresShell* aPresShell);
 
   
 

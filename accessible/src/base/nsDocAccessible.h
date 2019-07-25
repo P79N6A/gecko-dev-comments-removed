@@ -97,7 +97,7 @@ public:
   using nsAccessible::GetParent;
 
   nsDocAccessible(nsIDocument *aDocument, nsIContent *aRootContent,
-                  nsIWeakReference* aShell);
+                  nsIPresShell* aPresShell);
   virtual ~nsDocAccessible();
 
   
@@ -142,12 +142,6 @@ public:
 
 
   nsIPresShell* PresShell() const { return mPresShell; }
-
-  
-
-
-  nsIWeakReference* GetWeakShell() const
-    { return do_GetWeakReference(mPresShell).get(); }
 
   
 

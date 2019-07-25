@@ -71,8 +71,8 @@ public:
 
 
 
-  virtual nsAccessible* GetAccessibleInShell(nsINode* aNode,
-                                             nsIPresShell* aPresShell) = 0;
+  virtual nsAccessible* GetAccessible(nsINode* aNode,
+                                      nsIPresShell* aPresShell) = 0;
 
   
 
