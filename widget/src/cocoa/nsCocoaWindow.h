@@ -81,6 +81,8 @@ typedef struct _nsCocoaWindowList {
   
   
   float mDPI;
+
+  NSTrackingArea* mTrackingArea;
 }
 
 - (void)importState:(NSDictionary*)aState;
@@ -93,6 +95,12 @@ typedef struct _nsCocoaWindowList {
 - (void)deferredInvalidateShadow;
 - (void)invalidateShadow;
 - (float)getDPI;
+
+- (void)mouseEntered:(NSEvent*)aEvent;
+- (void)mouseExited:(NSEvent*)aEvent;
+- (void)mouseMoved:(NSEvent*)aEvent;
+- (void)updateTrackingArea;
+- (NSView*)trackingAreaView;
 
 @end
 
