@@ -123,7 +123,7 @@ public:
 
   
   static void InitTitlebarInfo();
-  static void UpdateTitlebarInfo(TITLEBARINFOEX& info);
+  static void UpdateTitlebarInfo(HWND aWnd);
 
   static inline BOOL IsAppThemed() {
     return isAppThemed && isAppThemed();

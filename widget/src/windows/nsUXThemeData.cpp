@@ -170,6 +170,8 @@ nsUXThemeData::Invalidate() {
     
     sFlatMenus = PR_FALSE;
   }
+  
+  sTitlebarInfoPopulated = PR_FALSE;
 }
 
 HANDLE
@@ -244,14 +246,22 @@ nsUXThemeData::InitTitlebarInfo()
   sCommandButtons[0].cy = GetSystemMetrics(SM_CYSIZE);
   sCommandButtons[1].cx = sCommandButtons[2].cx = sCommandButtons[0].cx;
   sCommandButtons[1].cy = sCommandButtons[2].cy = sCommandButtons[0].cy;
+
+  
+  if (nsWindow::GetWindowsVersion() < VISTA_VERSION)
+    sTitlebarInfoPopulated = PR_TRUE;
 }
 
 
 void
-nsUXThemeData::UpdateTitlebarInfo(TITLEBARINFOEX& info)
+nsUXThemeData::UpdateTitlebarInfo(HWND aWnd)
 {
-  if (sTitlebarInfoPopulated)
+  if (sTitlebarInfoPopulated || !aWnd)
     return;
+
+  TITLEBARINFOEX info = {0};
+  info.cbSize = sizeof(TITLEBARINFOEX);
+  SendMessage(aWnd, WM_GETTITLEBARINFOEX, 0, (LPARAM)&info); 
 
   
   if ((info.rgrect[2].right - info.rgrect[2].left) == 0 ||
