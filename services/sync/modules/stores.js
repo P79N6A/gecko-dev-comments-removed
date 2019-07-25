@@ -813,26 +813,44 @@ CookieStore.prototype = {
   _editCommand: function CookieStore__editCommand(command) {
     
 
-
-
-
-
-
-
-    
-
-
     this._log.info("CookieStore got editCommand: " + command );
 
-    this._log.debug( "Info on command object passed in: " );
-    for ( var x in command )
-      {
-	this._log.debug( "Command." + x + " = " + command[x] );
-      }
-    for ( var y in command.data )
-      {
-	this._log.debug( "Command.data." + y + " = " + command.data[y] );
-      }
+    
+    var iter = this._cookieManager.enumerator;
+    var matchingCookie = null;
+    while (iter.hasMoreElements()){
+      let cookie = iter.getNext();
+      if (cookie instanceof Ci.nsICookie){
+        
+	let key = cookie.host + ":" + cookie.path + ":" + cookie.name;
+	if (key == command.GUID) {
+	  matchingCookie = cookie;
+	  break;
+	}
+      }   
+    }
+    
+    for (var key in command.data) {
+      
+      matchingCookie[ key ] = command.data[ key ]
+    }
+    
+    this._cookieManager.remove( matchingCookie.host,
+				matchingCookie.name,
+				matchingCookie.path,
+				false );
+    
+    this._cookieManager.add( matchingCookie.host,
+			     matchingCookie.path,
+			     matchingCookie.name,
+			     matchingCookie.value,
+			     matchingCookie.isSecure,
+			     matchingCookie.isHttpOnly,
+			     matchingCookie.isSession,
+			     matchingCookie.expiry );
+    
+    
+    
   },
 
   wrap: function CookieStore_wrap() {
