@@ -1563,10 +1563,26 @@ namespace nanojit
             
             Register r = findRegFor(lhs, GpRegs);
             if (c == 0 && cond->isop(LIR_eqi)) {
-                NanoAssert(N_LOOKAHEAD >= 3);
-                if ((lhs->isop(LIR_andi) || lhs->isop(LIR_ori)) &&
-                    cond == lookahead[1] && lhs == lookahead[2])
-                {
+                bool canSkipTest = lhs->isop(LIR_andi) || lhs->isop(LIR_ori);
+                if (canSkipTest) {
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    LirReader lookahead(currIns);
+                    canSkipTest = currIns == lookahead.read() &&
+                                  cond == lookahead.read() &&
+                                  lhs == lookahead.read();
+                }
+                if (canSkipTest) {
                     
                     
                     

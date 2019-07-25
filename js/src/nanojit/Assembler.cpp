@@ -79,7 +79,6 @@ namespace nanojit
     #endif
         , _config(config)
     {
-        VMPI_memset(lookahead, 0, N_LOOKAHEAD * sizeof(LInsp));
         nInit(core);
         (void)logc;
         verbose_only( _logc = logc; )
@@ -1322,27 +1321,18 @@ namespace nanojit
         
 
         
-        
-        
-        
-
-        
         NanoAssert(reader->finalIns()->isop(LIR_x)    ||
                    reader->finalIns()->isop(LIR_xtbl) ||
                    reader->finalIns()->isRet()        ||
                    isLiveOpcode(reader->finalIns()->opcode()));
 
-        for (int32_t i = 0; i < N_LOOKAHEAD; i++)
-            lookahead[i] = reader->read();
-
-        while (!lookahead[0]->isop(LIR_start))
+        for (currIns = reader->read(); !currIns->isop(LIR_start); currIns = reader->read())
         {
-            LInsp ins = lookahead[0];   
-            LOpcode op = ins->opcode();
+            LInsp ins = currIns;        
 
             if (!ins->isLive()) {
                 NanoAssert(!ins->isExtant());
-                goto ins_is_dead;
+                continue;
             }
 
 #ifdef NJ_VERBOSE
@@ -1356,6 +1346,7 @@ namespace nanojit
                 printRegState();
 #endif
 
+            LOpcode op = ins->opcode();
             switch (op)
             {
                 default:
@@ -1895,11 +1886,6 @@ namespace nanojit
             
             debug_only( pageValidate(); )
             debug_only( resourceConsistencyCheck();  )
-
-          ins_is_dead:
-            for (int32_t i = 1; i < N_LOOKAHEAD; i++)
-                lookahead[i-1] = lookahead[i];
-            lookahead[N_LOOKAHEAD-1] = reader->read();
         }
     }
 

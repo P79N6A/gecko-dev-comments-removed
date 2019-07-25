@@ -1112,7 +1112,11 @@ namespace nanojit
 
 
 
-            else if (ins->isGuard()) {
+
+
+
+
+            else if (ins->isGuard() && ins->isLive()) {
                 stk.reset();
                 top = getTop(ins);
                 top >>= 3;
