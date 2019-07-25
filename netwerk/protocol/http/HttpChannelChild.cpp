@@ -111,7 +111,7 @@ HttpChannelChild::RecvOnStartRequest(const nsHttpResponseHead& responseHead)
   mResponseHead = new nsHttpResponseHead(responseHead);
 
   nsresult rv = mListener->OnStartRequest(this, mListenerContext);
-  if (!NS_SUCCEEDED(rv)) {
+  if (NS_FAILED(rv)) {
     
     
     
@@ -119,6 +119,9 @@ HttpChannelChild::RecvOnStartRequest(const nsHttpResponseHead& responseHead)
     
     return false;  
   }
+
+  SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
+
   return true;
 }
 
@@ -141,14 +144,14 @@ HttpChannelChild::RecvOnDataAvailable(const nsCString& data,
                                       data.get(),
                                       count,
                                       NS_ASSIGNMENT_DEPEND);
-  if (!NS_SUCCEEDED(rv)) {
+  if (NS_FAILED(rv)) {
     
     return false;  
   }
   rv = mListener->OnDataAvailable(this, mListenerContext,
                                   stringStream, offset, count);
   stringStream->Close();
-  if (!NS_SUCCEEDED(rv)) {
+  if (NS_FAILED(rv)) {
     
     return false; 
   }
@@ -175,7 +178,7 @@ HttpChannelChild::RecvOnStopRequest(const nsresult& statusCode)
   
   this->Release();
   
-  if (!NS_SUCCEEDED(rv)) {
+  if (NS_FAILED(rv)) {
     
     return false;  
   }
@@ -292,7 +295,7 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
     mUploadStream->Available(&bytes);
     if (bytes > 0) {
       rv = NS_ReadInputStreamToString(mUploadStream, uploadStreamData, bytes);
-      if (!NS_SUCCEEDED(rv))
+      if (NS_FAILED(rv))
         return rv;
     }
 
@@ -302,7 +305,12 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
     uploadStreamInfo = eUploadStream_null;
   }
 
-  
+  const char *cookieHeader = mRequestHead.PeekHeader(nsHttp::Cookie);
+  if (cookieHeader) {
+    mUserSetCookieHeader = cookieHeader;
+  }
+
+  AddCookiesToRequest();
 
   
   
@@ -388,7 +396,6 @@ HttpChannelChild::SetupFallbackChannel(const char *aFallbackKey)
 {
   DROP_DEAD();
 }
-
 
 
 

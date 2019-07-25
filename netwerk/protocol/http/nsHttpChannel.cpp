@@ -115,6 +115,7 @@ nsHttpChannel::nsHttpChannel()
     , mLoadedFromApplicationCache(PR_FALSE)
     , mTracingEnabled(PR_TRUE)
     , mCustomConditionalRequest(PR_FALSE)
+    , mRemoteChannel(PR_FALSE)
 {
     LOG(("Creating nsHttpChannel [this=%p]\n", this));
 }
@@ -559,32 +560,6 @@ nsHttpChannel::SetupTransaction()
     return rv;
 }
 
-void
-nsHttpChannel::AddCookiesToRequest()
-{
-    if (mLoadFlags & LOAD_ANONYMOUS) {
-      return;
-    }
-
-    nsXPIDLCString cookie;
-
-    nsICookieService *cs = gHttpHandler->GetCookieService();
-    if (cs)
-        cs->GetCookieStringFromHttp(mURI,
-                                    mDocumentURI ? mDocumentURI : mOriginalURI,
-                                    this,
-                                    getter_Copies(cookie));
-    if (cookie.IsEmpty())
-        cookie = mUserSetCookieHeader;
-    else if (!mUserSetCookieHeader.IsEmpty())
-        cookie.Append(NS_LITERAL_CSTRING("; ") + mUserSetCookieHeader);
-
-    
-    
-    
-    mRequestHead.SetHeader(nsHttp::Cookie, cookie, PR_FALSE);
-}
-
 nsresult
 nsHttpChannel::ApplyContentConversions()
 {
@@ -848,9 +823,12 @@ nsHttpChannel::ProcessResponse()
     
     gHttpHandler->OnExamineResponse(this);
 
-    
-    
-    SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
+    if (!mRemoteChannel) {
+      
+      
+      
+      SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
+    }
 
     
     if (httpStatus != 401 && httpStatus != 407) {
@@ -2712,6 +2690,9 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
     
     httpChannel->SetRedirectionLimit(mRedirectionLimit - 1);
 
+    nsHttpChannel *httpChannelImpl = static_cast<nsHttpChannel*>(httpChannel.get());
+    httpChannelImpl->SetRemoteChannel(mRemoteChannel);
+
     nsCOMPtr<nsIHttpChannelInternal> httpInternal = do_QueryInterface(newChannel);
     if (httpInternal) {
         
@@ -4124,13 +4105,17 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
         }
     }
     
-    
-    const char *cookieHeader = mRequestHead.PeekHeader(nsHttp::Cookie);
-    if (cookieHeader)
-        mUserSetCookieHeader = cookieHeader;
+    if (!mRemoteChannel) {
+      
 
-    
-    AddCookiesToRequest();
+      
+      const char *cookieHeader = mRequestHead.PeekHeader(nsHttp::Cookie);
+      if (cookieHeader) {
+        mUserSetCookieHeader = cookieHeader;
+      }
+
+      AddCookiesToRequest();
+    }
 
     
     gHttpHandler->OnModifyRequest(this);
@@ -4937,7 +4922,11 @@ nsHttpChannel::DoAuthRetry(nsAHttpConnection *conn)
     
     
     
-    AddCookiesToRequest();
+    
+    if (!mRemoteChannel) {
+      
+      AddCookiesToRequest();
+    }
 
     
     gHttpHandler->OnModifyRequest(this);

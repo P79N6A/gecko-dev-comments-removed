@@ -940,6 +940,42 @@ HttpBaseChannel::AdjustPriority(PRInt32 delta)
 
 
 
+
+
+
+
+void
+HttpBaseChannel::AddCookiesToRequest()
+{
+  if (mLoadFlags & LOAD_ANONYMOUS) {
+    return;
+  }
+
+  nsXPIDLCString cookie;
+
+  nsICookieService *cs = gHttpHandler->GetCookieService();
+  if (cs) {
+    cs->GetCookieStringFromHttp(mURI,
+                                mDocumentURI ? mDocumentURI : mOriginalURI,
+                                this,
+                                getter_Copies(cookie));
+  }
+
+  if (cookie.IsEmpty()) {
+    cookie = mUserSetCookieHeader;
+  }
+  else if (!mUserSetCookieHeader.IsEmpty()) {
+    cookie.Append(NS_LITERAL_CSTRING("; ") + mUserSetCookieHeader);
+  }
+
+  
+  
+  
+  SetRequestHeader(nsDependentCString(nsHttp::Cookie), cookie, PR_FALSE);
 }
-}
+
+
+
+}  
+}  
 
