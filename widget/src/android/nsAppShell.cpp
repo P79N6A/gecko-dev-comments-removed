@@ -244,6 +244,9 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
         int curType = curEvent->Type();
         int nextType = nextEvent->Type();
 
+        
+        
+#ifndef MOZ_JAVA_COMPOSITOR
         while (nextType == AndroidGeckoEvent::DRAW &&
                mNumDraws > 1)
         {
@@ -263,6 +266,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
             nextEvent = PeekNextEvent();
             nextType = nextEvent->Type();
         }
+#endif
 
         
         
