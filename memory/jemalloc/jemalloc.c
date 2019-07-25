@@ -197,14 +197,12 @@
 
 
 
-#if (!defined(MOZ_MEMORY_WINDOWS) && !defined(MOZ_MEMORY_DARWIN))
-   
 
 
 
 
-#define MALLOC_PAGEFILE
-#endif
+
+
 
 #ifdef MALLOC_PAGEFILE
 
@@ -2311,8 +2309,9 @@ pages_map(void *addr, size_t size, int pfd)
 	}
 	assert(ret != NULL);
 
-	if (ret == MAP_FAILED)
+	if (ret == MAP_FAILED) {
 		ret = NULL;
+        }
 #if defined(__ia64__)
         
 
@@ -2526,6 +2525,10 @@ malloc_rtree_set(malloc_rtree_t *rtree, uintptr_t key, void *val)
 }
 #endif
 
+#if defined(MOZ_MEMORY_WINDOWS) || defined(JEMALLOC_USES_MAP_ALIGN) || defined(MALLOC_PAGEFILE)
+
+
+
 static void *
 chunk_alloc_mmap(size_t size, bool pagefile)
 {
@@ -2543,16 +2546,6 @@ chunk_alloc_mmap(size_t size, bool pagefile)
 	} else
 #endif
 		pfd = -1;
-
-	
-
-
-
-
-
-
-
-
 
 #ifdef JEMALLOC_USES_MAP_ALIGN
 	ret = pages_map_align(size, pfd, chunksize);
@@ -2605,6 +2598,143 @@ RETURN:
 #endif
 	return (ret);
 }
+
+#else 
+
+
+
+
+
+#ifndef NO_TLS
+static __thread bool mmap_unaligned_tls __attribute__((tls_model("initial-exec")));
+#define	MMAP_UNALIGNED_GET()	mmap_unaligned_tls
+#define	MMAP_UNALIGNED_SET(v)	do {					\
+	mmap_unaligned_tls = (v);					\
+} while (0)
+#else
+#define NEEDS_PTHREAD_MMAP_UNALIGNED_TSD
+static pthread_key_t	mmap_unaligned_tsd;
+#define	MMAP_UNALIGNED_GET()	((bool)pthread_getspecific(mmap_unaligned_tsd))
+#define	MMAP_UNALIGNED_SET(v)	do {					\
+	pthread_setspecific(mmap_unaligned_tsd, (void *)(v));		\
+} while (0)
+#endif
+
+
+
+
+static void *
+chunk_alloc_mmap_slow(size_t size, bool unaligned)
+{
+	void *ret;
+	size_t offset;
+
+	
+	if (size + chunksize <= size)
+		return (NULL);
+
+	ret = pages_map(NULL, size + chunksize, -1);
+	if (ret == NULL)
+		return (NULL);
+
+	
+	offset = CHUNK_ADDR2OFFSET(ret);
+	if (offset != 0) {
+		
+		unaligned = true;
+
+		
+		pages_unmap(ret, chunksize - offset);
+
+		ret = (void *)((uintptr_t)ret +
+		    (chunksize - offset));
+
+		
+		pages_unmap((void *)((uintptr_t)ret + size),
+		    offset);
+	} else {
+		
+		pages_unmap((void *)((uintptr_t)ret + size),
+		    chunksize);
+	}
+
+	
+
+
+
+
+	if (unaligned == false)
+		MMAP_UNALIGNED_SET(false);
+
+	return (ret);
+}
+
+static void *
+chunk_alloc_mmap(size_t size, bool pagefile)
+{
+	void *ret;
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	if (MMAP_UNALIGNED_GET() == false) {
+		size_t offset;
+
+		ret = pages_map(NULL, size, -1);
+		if (ret == NULL)
+			return (NULL);
+
+		offset = CHUNK_ADDR2OFFSET(ret);
+		if (offset != 0) {
+			MMAP_UNALIGNED_SET(true);
+			
+			if (pages_map((void *)((uintptr_t)ret + size),
+			    chunksize - offset, -1) == NULL) {
+				
+
+
+
+				pages_unmap(ret, size);
+				ret = chunk_alloc_mmap_slow(size, true);
+			} else {
+				
+				pages_unmap(ret, chunksize - offset);
+				ret = (void *)((uintptr_t)ret + (chunksize -
+				    offset));
+			}
+		}
+	} else
+		ret = chunk_alloc_mmap_slow(size, false);
+
+	return (ret);
+}
+
+#endif 
 
 #ifdef MALLOC_PAGEFILE
 static int
@@ -5927,45 +6057,51 @@ MALLOC_OUT:
 		return (true);
 #endif
 
+#if defined(NEEDS_PTHREAD_MMAP_UNALIGNED_TSD)
+	if (pthread_key_create(&mmap_unaligned_tsd, NULL) != 0) {
+		malloc_printf("<jemalloc>: Error in pthread_key_create()\n");
+	}
+#endif
+
 	malloc_initialized = true;
 
 #ifdef MOZ_MEMORY_DARWIN
-    
+	
 
 
-    default_zone = malloc_default_zone();
+	default_zone = malloc_default_zone();
 
-    
-
-
-
+	
 
 
 
-    osx_use_jemalloc = (default_zone->version == LEOPARD_MALLOC_ZONE_T_VERSION ||
-                        default_zone->version == SNOW_LEOPARD_MALLOC_ZONE_T_VERSION);
 
-    
+
+	osx_use_jemalloc = default_zone->version == LEOPARD_MALLOC_ZONE_T_VERSION ||
+			   default_zone->version == SNOW_LEOPARD_MALLOC_ZONE_T_VERSION ||
+			   default_zone->version == LION_MALLOC_ZONE_T_VERSION;
+
+	
 	if (getenv("NO_MAC_JEMALLOC"))
-        osx_use_jemalloc = false;
+		osx_use_jemalloc = false;
 
-    if (osx_use_jemalloc) {
-        size_t size;
+	if (osx_use_jemalloc) {
+		size_t size;
 
-        
-        malloc_zone_register(create_zone(default_zone->version));
+		
+		malloc_zone_register(create_zone(default_zone->version));
 
-        
-
-
+		
 
 
-        size = zone_version_size(default_zone->version);
-        szone2ozone(default_zone, size);
-    }
-    else {
-        szone = default_zone;
-    }
+
+
+		size = zone_version_size(default_zone->version);
+		szone2ozone(default_zone, size);
+	}
+	else {
+		szone = default_zone;
+	}
 #endif
 
 #ifndef MOZ_MEMORY_WINDOWS
