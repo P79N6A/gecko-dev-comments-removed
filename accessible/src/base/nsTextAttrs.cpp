@@ -44,7 +44,7 @@
 
 #include "gfxFont.h"
 #include "gfxUserFontSet.h"
-#include "nsIThebesFontMetrics.h"
+#include "nsIFontMetrics.h"
 
 
 
@@ -537,8 +537,7 @@ nsFontWeightTextAttr::GetFontWeight(nsIFrame *aFrame)
     GetMetricsFor(styleFont->mFont, aFrame->GetStyleVisibility()->mLanguage,
                   fs, *getter_AddRefs(fm));
 
-  nsCOMPtr<nsIThebesFontMetrics> tfm = do_QueryInterface(fm);
-  gfxFontGroup *fontGroup = tfm->GetThebesFontGroup();
+  gfxFontGroup *fontGroup = fm->GetThebesFontGroup();
   gfxFont *font = fontGroup->GetFontAt(0);
 
   

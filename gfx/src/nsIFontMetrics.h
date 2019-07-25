@@ -46,13 +46,15 @@ class nsString;
 class nsIDeviceContext;
 class nsIAtom;
 class gfxUserFontSet;
+struct nsTextDimensions;
+struct nsBoundingMetrics;
+class gfxFontGroup;
+class nsRenderingContext;
 
 
 #define NS_IFONT_METRICS_IID   \
 { 0x360C5575, 0xF7AC, 0x4079, \
 { 0xB8, 0xA6, 0x56, 0x91, 0x4B, 0xEA, 0x2A, 0xEA } }
-
-
 
 
 
@@ -215,6 +217,84 @@ public:
 
 
   NS_IMETHOD  GetSpaceWidth(nscoord& aSpaceCharWidth) = 0;
+
+  
+
+  
+  
+  
+  virtual nsresult GetWidth(const char* aString, PRUint32 aLength,
+                            nscoord& aWidth, nsRenderingContext *aContext) = 0;
+  virtual nsresult GetWidth(const PRUnichar* aString, PRUint32 aLength,
+                            nscoord& aWidth, PRInt32 *aFontID,
+                            nsRenderingContext *aContext) = 0;
+
+  
+  virtual nsresult GetTextDimensions(const PRUnichar* aString,
+                                     PRUint32 aLength,
+                                     nsTextDimensions& aDimensions,
+                                     PRInt32* aFontID) = 0;
+  virtual nsresult GetTextDimensions(const char*         aString,
+                                     PRInt32             aLength,
+                                     PRInt32             aAvailWidth,
+                                     PRInt32*            aBreaks,
+                                     PRInt32             aNumBreaks,
+                                     nsTextDimensions&   aDimensions,
+                                     PRInt32&            aNumCharsFit,
+                                     nsTextDimensions&   aLastWordDimensions,
+                                     PRInt32*            aFontID) = 0;
+  virtual nsresult GetTextDimensions(const PRUnichar*    aString,
+                                     PRInt32             aLength,
+                                     PRInt32             aAvailWidth,
+                                     PRInt32*            aBreaks,
+                                     PRInt32             aNumBreaks,
+                                     nsTextDimensions&   aDimensions,
+                                     PRInt32&            aNumCharsFit,
+                                     nsTextDimensions&   aLastWordDimensions,
+                                     PRInt32*            aFontID) = 0;
+
+  
+  virtual nsresult DrawString(const char *aString, PRUint32 aLength,
+                              nscoord aX, nscoord aY,
+                              const nscoord* aSpacing,
+                              nsRenderingContext *aContext) = 0;
+  virtual nsresult DrawString(const PRUnichar* aString, PRUint32 aLength,
+                              nscoord aX, nscoord aY,
+                              PRInt32 aFontID,
+                              const nscoord* aSpacing,
+                              nsRenderingContext *aContext) = 0;
+  virtual nsresult DrawString(const PRUnichar* aString, PRUint32 aLength,
+                              nscoord aX, nscoord aY,
+                              nsRenderingContext *aContext,
+                              nsRenderingContext *aTextRunConstructionContext) = 0;
+
+#ifdef MOZ_MATHML
+  
+  
+  
+  
+  virtual nsresult GetBoundingMetrics(const char *aString, PRUint32 aLength,
+                                      nsRenderingContext *aContext,
+                                      nsBoundingMetrics &aBoundingMetrics) = 0;
+  
+  virtual nsresult GetBoundingMetrics(const PRUnichar *aString,
+                                      PRUint32 aLength,
+                                      nsRenderingContext *aContext,
+                                      nsBoundingMetrics &aBoundingMetrics) = 0;
+#endif 
+
+  
+  virtual nsresult SetRightToLeftText(PRBool aIsRTL) = 0;
+  virtual PRBool GetRightToLeftText() = 0;
+  virtual void SetTextRunRTL(PRBool aIsRTL) = 0;
+
+  virtual PRInt32 GetMaxStringLength() = 0;
+
+  virtual gfxFontGroup* GetThebesFontGroup() = 0;
+
+  
+  
+  virtual gfxUserFontSet* GetUserFontSet() = 0;
 
 protected:
 
