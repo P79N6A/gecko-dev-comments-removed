@@ -1700,13 +1700,13 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
   }
 
   gfxMatrix transform2d;
-  bool is2D = transform.Is2D(&transform2d);
+  bool canDraw2D = transform.CanDraw2D(&transform2d);
   gfxSize scale;
   bool isRetained = aLayerBuilder->GetRetainingLayerManager() == aLayer->Manager();
   
   
   
-  if (is2D && isRetained) {
+  if (canDraw2D && isRetained) {
     
     scale = transform2d.ScaleFactors(true);
     
@@ -1756,7 +1756,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
       result.mInActiveTransformedSubtree = true;
     }
   }
-  if (isRetained && (!is2D || transform2d.HasNonIntegerTranslation())) {
+  if (isRetained && (!canDraw2D || transform2d.HasNonIntegerTranslation())) {
     result.mDisableSubpixelAntialiasingInDescendants = true;
   }
   return result;
