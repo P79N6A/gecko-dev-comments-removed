@@ -45,6 +45,7 @@
 #include "imgIContainer.h"
 #include "imgIDecoderObserver.h"
 #include "gfxContext.h"
+#include "mozilla/Preferences.h"
 
 using namespace mozilla;
 
@@ -167,6 +168,28 @@ nsSVGImageElement::LoadSVGImage(bool aForce, bool aNotify)
 
 
 
+nsresult
+nsSVGImageElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, bool aNotify)
+{
+  if (aNamespaceID == kNameSpaceID_XLink && aName == nsGkAtoms::href) {
+    
+    
+    if (Preferences::GetBool("dom.disable_image_src_set") &&
+        !nsContentUtils::IsCallerChrome()) {
+      return NS_OK;
+    }
+
+    if (aValue) {
+      LoadSVGImage(true, aNotify);
+    } else {
+      CancelImageRequests(aNotify);
+    }
+  }
+  return nsSVGImageElementBase::AfterSetAttr(aNamespaceID, aName,
+                                             aValue, aNotify);
+}
+
 void
 nsSVGImageElement::MaybeLoadSVGImage()
 {
@@ -256,6 +279,17 @@ nsSVGImageElement::GetStringInfo()
 {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
                               ArrayLength(sStringInfo));
+}
+
+void
+nsSVGImageElement::DidAnimateString(PRUint8 aAttrEnum)
+{
+  if (aAttrEnum == HREF) {
+    LoadSVGImage(true, false);
+    return;
+  }
+
+  nsSVGImageElementBase::DidAnimateString(aAttrEnum);
 }
 
 nsresult
