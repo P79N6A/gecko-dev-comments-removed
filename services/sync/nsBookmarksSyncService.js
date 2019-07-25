@@ -272,6 +272,7 @@ BookmarksSyncService.prototype = {
     items[guid] = item;
   },
 
+  
   _getEdits: function BSS__getEdits(a, b) {
     
     if (a.type != b.type)
@@ -447,13 +448,12 @@ BookmarksSyncService.prototype = {
   
   
 
-  _reconcile: function BSS__reconcile(onComplete, commandLists) {
+  _reconcile: function BSS__reconcile(onComplete, listA, listB) {
     let generator = yield;
     this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    let handlers = this._handlersForGenerator(generator);
+    let handlers = generatorHandlers(generator);
     let listener = new EventListener(handlers['complete']);
 
-    let [listA, listB] = commandLists;
     let propagations = [[], []];
     let conflicts = [[], []];
 
@@ -514,7 +514,7 @@ BookmarksSyncService.prototype = {
 
     this._timer = null;
     let ret = {propagations: propagations, conflicts: conflicts};
-    this._generatorDone(onComplete, ret);
+    generatorDone(this, onComplete, ret);
 
     
     let cookie = yield;
@@ -724,24 +724,43 @@ BookmarksSyncService.prototype = {
 
   _doSync: function BSS__doSync() {
     var generator = yield;
-    var handlers = this._handlersForGenerator(generator);
+    var handlers = generatorHandlers(generator);
 
     this._os.notifyObservers(null, "bookmarks-sync:start", "");
     this.notice("Beginning sync");
 
     try {
-      
-      
-      var data;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       var localJson = this._getBookmarks();
       
 
       
-      let gsd_gen = this._getServerData(handlers['complete'], localJson);
-      gsd_gen.next(); 
-      gsd_gen.send(gsd_gen);
-      let server = yield;
+      if (asyncRun(this, this._getServerData, handlers.complete, localJson))
+        let server = yield;
+      else
+        return
 
       this.notice("Local snapshot version: " + this._snapshotVersion);
       this.notice("Server status: " + server.status);
@@ -758,12 +777,6 @@ BookmarksSyncService.prototype = {
       this.notice("Server updates: " + this._mungeCommands(server.updates));
 
       
-      
-      
-      
-      
-
-      
 
       let localUpdates = this._detectUpdates(this._snapshot, localJson);
       this.notice("Local updates: " + this._mungeCommands(localUpdates));
@@ -778,13 +791,13 @@ BookmarksSyncService.prototype = {
       
 
       this.notice("Reconciling client/server updates");
-      let rec_gen = this._reconcile(handlers.load,
-                                    [localUpdates, server.updates]);
-      rec_gen.next(); 
-      rec_gen.send(rec_gen);
-      let ret = yield;
+      if (asyncRun(this, this._reconcile, handlers.complete,
+                   localUpdates, server.updates))
+        let ret = yield;
+      else
+        return
       
-      rec_gen.close();
+      
 
       let clientChanges = [];
       let serverChanges = [];
@@ -873,8 +886,14 @@ BookmarksSyncService.prototype = {
       this._os.notifyObservers(null, "bookmarks-sync:end", "");
       this.notice("Sync complete");
     } finally {
-      
-      
+
+
+
+
+
+
+
+
       this._os.notifyObservers(null, "bookmarks-sync:end", "");
     }
   },
@@ -899,11 +918,9 @@ BookmarksSyncService.prototype = {
 
 
 
-  
-  
   _getServerData: function BSS__getServerData(onComplete, localJson) {
     let generator = yield;
-    let handlers = this._handlersForGenerator(generator);
+    let handlers = generatorHandlers(generator);
 
     let ret = {status: -1,
                formatVersion: null, maxVersion: null, snapVersion: null,
@@ -920,6 +937,14 @@ BookmarksSyncService.prototype = {
       let status = eval(statusResp.target.responseText);
       let snap, deltas, allDeltas;
 
+      
+      if (status.formatVersion > STORAGE_FORMAT_VERSION) {
+        this.notice("Error: server uses storage format v" + status.formatVersion +
+                    ", this client understands up to v" + STORAGE_FORMAT_VERSION);
+        generatorDone(this, onComplete, ret)
+        return;
+      }
+
       if (status.guid != this._snapshotGuid) {
         this.notice("Remote/local sync guids do not match.  " +
                     "Forcing initial sync.");
@@ -935,19 +960,22 @@ BookmarksSyncService.prototype = {
         this.notice("Downloading server snapshot");
         this._dav.GET("bookmarks-snapshot.json", handlers);
         let snapResp = yield;
-        if (snapResp.target.status == 200)
-          snap = eval(snapResp.target.responseText);
-        else
+        if (snapResp.target.status < 200 || snapResp.target.status >= 300) {
           this.notice("Error: could not download server snapshot");
+          generatorDone(this, onComplete, ret)
+          return;
+        }
+        snap = eval(snapResp.target.responseText);
 
         this.notice("Downloading server deltas");
         this._dav.GET("bookmarks-deltas.json", handlers);
         let deltasResp = yield;
-        if (deltasResp.target.status == 200)
-          allDeltas = eval(deltasResp.target.responseText);
-        else
+        if (deltasResp.target.status < 200 || deltasResp.target.status >= 300) {
           this.notice("Error: could not download server deltas");
-
+          generatorDone(this, onComplete, ret)
+          return;
+        }
+        allDeltas = eval(deltasResp.target.responseText);
         deltas = eval(uneval(allDeltas));
 
       } else if (this._snapshotVersion >= status.snapVersion &&
@@ -957,13 +985,13 @@ BookmarksSyncService.prototype = {
         this.notice("Downloading server deltas");
         this._dav.GET("bookmarks-deltas.json", handlers);
         let deltasResp = yield;
-        if (deltasResp.target.status == 200)
-          allDeltas = eval(deltasResp.target.responseText);
-        else
+        if (deltasResp.target.status < 200 || deltasResp.target.status >= 300) {
           this.notice("Error: could not download server deltas");
-
-        let start = this._snapshotVersion - status.snapVersion;
-        deltas = allDeltas.slice(start);
+          generatorDone(this, onComplete, ret)
+          return;
+        }
+        allDeltas = eval(deltasResp.target.responseText);
+        deltas = allDeltas.slice(this._snapshotVersion - status.snapVersion);
 
       } else if (this._snapshotVersion == status.maxVersion) {
         snap = eval(uneval(this._snapshot));
@@ -972,16 +1000,18 @@ BookmarksSyncService.prototype = {
         this.notice("Downloading server deltas");
         this._dav.GET("bookmarks-deltas.json", handlers);
         let deltasResp = yield;
-        if (deltasResp.target.status == 200)
-          allDeltas = eval(deltasResp.target.responseText);
-        else
+        if (deltasResp.target.status < 200 || deltasResp.target.status >= 300) {
           this.notice("Error: could not download server deltas");
-
+          generatorDone(this, onComplete, ret)
+          return;
+        }
+        allDeltas = eval(deltasResp.target.responseText);
         deltas = [];
 
       } else { 
         this.notice("Error: server snapshot is older than local snapshot");
-        
+        generatorDone(this, onComplete, ret)
+        return;
       }
 
       for (var i = 0; i < deltas.length; i++) {
@@ -1004,14 +1034,22 @@ BookmarksSyncService.prototype = {
       this._snapshotVersion = 0;
       this._snapshotGuid = null; 
 
-      
-
       this._dav.PUT("bookmarks-snapshot.json",
                     uneval(this._snapshot), handlers);
       let snapPut = yield;
+      if (snapPut.target.status < 200 || snapPut.target.status >= 300) {
+        this.notice("Error: could not upload snapshot to server");
+        generatorDone(this, onComplete, ret)
+        return;
+      }
 
       this._dav.PUT("bookmarks-deltas.json", uneval([]), handlers);
       let deltasPut = yield;
+      if (deltasPut.target.status < 200 || deltasPut.target.status >= 300) {
+        this.notice("Error: could not upload deltas to server");
+        generatorDone(this, onComplete, ret)
+        return;
+      }
 
       this._dav.PUT("bookmarks-status.json",
                     uneval({guid: this._snapshotGuid,
@@ -1019,16 +1057,14 @@ BookmarksSyncService.prototype = {
                             snapVersion: this._snapshotVersion,
                             maxVersion: this._snapshotVersion}), handlers);
       let statusPut = yield;
-
-      if (snapPut.target.status >= 200 && snapPut.target.status < 300 &&
-          deltasPut.target.status >= 200 && deltasPut.target.status < 300 &&
-          statusPut.target.status >= 200 && statusPut.target.status < 300) {
-        this.notice("Initial upload to server successful");
-        this._saveSnapshot();
-      } else {
-        
-        this.notice("Error: could not upload files to server");
+      if (statusPut.target.status < 200 || statusPut.target.status >= 300) {
+        this.notice("Error: could not upload status file to server");
+        generatorDone(this, onComplete, ret)
+        return;
       }
+
+      this.notice("Initial upload to server successful");
+      this._saveSnapshot();
 
       ret.status = 0;
       ret.formatVersion = STORAGE_FORMAT_VERSION;
@@ -1044,35 +1080,7 @@ BookmarksSyncService.prototype = {
                   statusResp.target.status);
       break;
     }
-    this._generatorDone(onComplete, ret)
-
-  },
-
-  _handlersForGenerator: function BSS__handlersForGenerator(generator) {
-    var h = {load: bind2(this, function(data) { continueGenerator(generator, data); }),
-             error: bind2(this, function(data) { this.notice("Request failed: " + uneval(data)); })};
-    h['complete'] = h['load'];
-    return h;
-  },
-
-  
-  
-  
-  
-  
-  
-  _generatorDone: function BSS__generatorDone(callback, retval) {
-    if (this._timer)
-      throw "Called generatorDone when there is a timer already set."
-
-    let cb = bind2(this, function(event) {
-      this._timer = null;
-      callback(retval);
-    });
-
-    this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    this._timer.initWithCallback(new EventListener(cb),
-                                 0, this._timer.TYPE_ONE_SHOT);
+    generatorDone(this, onComplete, ret)
   },
 
   _onLogin: function BSS__onLogin(event) {
@@ -1098,9 +1106,7 @@ BookmarksSyncService.prototype = {
   
 
   sync: function BSS_sync() {
-    let sync_gen = this._doSync();
-    sync_gen.next(); 
-    sync_gen.send(sync_gen);
+    asyncRun(this, this._doSync);
   },
 
   login: function BSS_login() {
@@ -1144,15 +1150,58 @@ function bind2(object, method) {
   return function innerBind() { return method.apply(object, arguments); }
 }
 
+function asyncRun(object, method, onComplete, extra) {
+  let args = Array.prototype.slice.call(arguments, 2); 
+  let ret = false;
+  try {
+    let gen = method.apply(object, args);
+    gen.next(); 
+    gen.send(gen);
+    ret = true;
+  } catch (e) {
+    if (e instanceof StopIteration)
+      dump("Warning: generator stopped unexpectedly");
+    else
+      throw e;
+  }
+  return ret;
+}
+
 function continueGenerator(generator, data) {
   try { generator.send(data); }
   catch (e) {
-    
     if (e instanceof StopIteration)
       generator = null;
     else
-	throw e;
+      throw e;
   }
+}
+
+function generatorHandlers(generator) {
+  let cb = function(data) {
+    continueGenerator(generator, data);
+  };
+  return {load: cb, error: cb, complete: cb};
+}
+
+
+
+
+
+
+
+function generatorDone(object, callback, retval) {
+  if (object._timer)
+    throw "Called generatorDone when there is a timer already set."
+
+  let cb = bind2(object, function(event) {
+    object._timer = null;
+    callback(retval);
+  });
+
+  object._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+  object._timer.initWithCallback(new EventListener(cb),
+                                 0, object._timer.TYPE_ONE_SHOT);
 }
 
 function EventListener(handler) {
@@ -1179,15 +1228,26 @@ EventListener.prototype = {
   }
 };
 
+function xpath(xmlDoc, xpathString) {
+  let root = xmlDoc.ownerDocument == null ?
+    xmlDoc.documentElement : xmlDoc.ownerDocument.documentElement
+  let nsResolver = xmlDoc.createNSResolver(root);
+
+  return xmlDoc.evaluate(xpathString, xmlDoc, nsResolver,
+                         Ci.nsIDOMXPathResult.ANY_TYPE, null);
+}
+
 function DAVCollection(baseURL) {
   this._baseURL = baseURL;
   this._authProvider = new DummyAuthProvider();
 }
 DAVCollection.prototype = {
-  _loggedIn: false,
-
-  get baseURL() {
-    return this._baseURL;
+  __dp: null,
+  get _dp() {
+    if (!this.__dp)
+      this.__dp = Cc["@mozilla.org/xmlextras/domparser;1"].
+        createInstance(Ci.nsIDOMParser);
+    return this.__dp;
   },
 
   __base64: {},
@@ -1202,6 +1262,11 @@ DAVCollection.prototype = {
     return this.__base64;
   },
 
+  get baseURL() {
+    return this._baseURL;
+  },
+
+  _loggedIn: false,
   _authString: null,
   _currentUserPath: "nobody",
 
@@ -1242,6 +1307,8 @@ DAVCollection.prototype = {
       headers = {'Content-type': 'text/plain'};
     if (this._authString)
       headers['Authorization'] = this._authString;
+    if (this._token)
+      headers['If'] = "(<" + this._token + ">)";
 
     var request = this._makeRequest("GET", path, handlers, headers);
     request.send(null);
@@ -1252,6 +1319,8 @@ DAVCollection.prototype = {
       headers = {'Content-type': 'text/plain'};
     if (this._authString)
       headers['Authorization'] = this._authString;
+    if (this._token)
+      headers['If'] = "(<" + this._token + ">)";
 
     var request = this._makeRequest("PUT", path, handlers, headers);
     request.send(data);
@@ -1352,52 +1421,113 @@ DAVCollection.prototype = {
 
   
 
-  
-  lock: function DC_lock(handlers) {
-    this._lockHandlers = handlers;
-    internalHandlers = {load: bind2(this, this._onLock),
-                        error: bind2(this, this._onLockError)};
+  _getActiveLock: function DC__getActiveLock(onComplete) {
+    let generator = yield;
+    let handlers = generatorHandlers(generator);
+
+    let headers = {'Content-Type': 'text/xml; charset="utf-8"',
+                   'Depth': '0'};
+    if (this._authString)
+      headers['Authorization'] = this._authString;
+
+    let request = this._makeRequest("PROPFIND", "", handlers, headers);
+    request.send("<?xml version=\"1.0\" encoding=\"utf-8\" ?>" +
+                 "<D:propfind xmlns:D='DAV:'>" +
+                 "<D:prop><D:lockdiscovery/></D:prop>" +
+                 "</D:propfind>");
+    let event = yield;
+    let tokens = xpath(event.target.responseXML, '//D:locktoken');
+    let token = tokens.iterateNext();
+    if (token)
+      generatorDone(this, onComplete, token.textContent);
+    else
+      generatorDone(this, onComplete, null);
+  },
+
+  lock: function DC_lock(onComplete) {
+    let generator = yield;
+    let handlers = generatorHandlers(generator);
+
     headers = {'Content-Type': 'text/xml; charset="utf-8"'};
-    var request = this._makeRequest("LOCK", "", internalHandlers, headers);
+    if (this._authString)
+      headers['Authorization'] = this._authString;
+
+    let request = this._makeRequest("LOCK", "", handlers, headers);
     request.send("<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n" +
                  "<D:lockinfo xmlns:D=\"DAV:\">\n" +
                  "  <D:locktype><D:write/></D:locktype>\n" +
                  "  <D:lockscope><D:exclusive/></D:lockscope>\n" +
                  "</D:lockinfo>");
+    let event = yield;
+
+    if (event.target.status < 200 || event.target.status >= 300) {
+      generatorDone(this, onComplete, false);
+      return;
+    }
+
+    let tokens = xpath(event.target.responseXML, '//D:locktoken');
+    let token = tokens.iterateNext();
+    if (token) {
+      this._token = token.textContent;
+      this._token = this._token.replace("\n", "").replace("\n", "");
+      generatorDone(this, onComplete, true);
+    }
+
+    generatorDone(this, onComplete, false);
   },
 
-  
-  unlock: function DC_unlock(handlers) {
-    this._lockHandlers = handlers;
-    internalHandlers = {load: bind2(this, this._onUnlock),
-                        error: bind2(this, this._onUnlockError)};
+  unlock: function DC_unlock(onComplete) {
+    let generator = yield;
+    let handlers = generatorHandlers(generator);
+
+    if (!this._token) {
+      generatorDone(this, onComplete, false);
+      return;
+    }
+
     headers = {'Lock-Token': "<" + this._token + ">"};
-    var request = this._makeRequest("UNLOCK", "", internalHandlers, headers);
+    if (this._authString)
+      headers['Authorization'] = this._authString;
+
+    let request = this._makeRequest("UNLOCK", "", handlers, headers);
     request.send(null);
-  },
+    let event = yield;
 
-  _onLock: function DC__onLock(event) {
-    
-    this._token = "woo";
-    if (this._lockHandlers && this._lockHandlers.load)
-      this._lockHandlers.load(event);
-  },
-  _onLockError: function DC__onLockError(event) {
-    
-    if (this._lockHandlers && this._lockHandlers.error)
-      this._lockHandlers.error(event);
-  },
+    if (event.target.status < 200 || event.target.status >= 300) {
+      generatorDone(this, onComplete, false);
+      return;
+    }
 
-  _onUnlock: function DC__onUnlock(event) {
-    
     this._token = null;
-    if (this._lockHandlers && this._lockHandlers.load)
-      this._lockHandlers.load(event);
+
+    generatorDone(this, onComplete, true);
   },
-  _onUnlockError: function DC__onUnlockError(event) {
-    
-    if (this._lockHandlers && this._lockHandlers.error)
-      this._lockHandlers.error(event);
+
+  stealLock: function DC_stealLock(onComplete) {
+    let generator = yield;
+    let handlers = generatorHandlers(generator);
+    let stolen = false;
+
+    try {
+      if (!asyncRun(this, this._getActiveLock, handlers.complete))
+        return;
+      this._token = yield;
+      this._token = this._token.replace("\n", "").replace("\n", "");
+  
+      if (!asyncRun(this, this.unlock, handlers.complete))
+        return;
+      let unlocked = yield;
+
+      if (!unlocked)
+        return;
+  
+      if (!asyncRun(this, this.lock, handlers.complete))
+        return;
+      stolen = yield;
+
+    } finally {
+      generatorDone(this, onComplete, stolen);
+    }
   }
 };
 
@@ -1413,6 +1543,7 @@ DummyAuthProvider.prototype = {
                Ci.nsIAuthPromptProvider,
                Ci.nsIAuthPrompt,
                Ci.nsIPrompt,
+               Ci.nsIProgressEventSink,
                Ci.nsIInterfaceRequestor,
                Ci.nsISupports],
 
@@ -1534,6 +1665,16 @@ DummyAuthProvider.prototype = {
         throw Cr.NS_ERROR_NOT_IMPLEMENTED;
       }
     };
+  },
+
+  
+
+  onProgress: function DAP_onProgress(aRequest, aContext,
+                                      aProgress, aProgressMax) {
+  },
+
+  onStatus: function DAP_onStatus(aRequest, aContext,
+                                  aStatus, aStatusArg) {
   }
 };
 
