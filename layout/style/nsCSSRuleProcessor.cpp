@@ -2391,6 +2391,24 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
       
       if ((possibleChange & ~hint) &&
           states.HasAtLeastOneOfStates(aData->mStateMask) &&
+          
+          
+          
+          
+          
+          
+          
+          
+          (states != NS_EVENT_STATE_HOVER ||
+           aData->mElement->HasFlag(NODE_HAS_RELEVANT_HOVER_RULES) ||
+           selector->mIDList || selector->mClassList ||
+           
+           
+           (selector->mPseudoClassList &&
+            (selector->mPseudoClassList->mNext ||
+             selector->mPseudoClassList->mType !=
+               nsCSSPseudoClasses::ePseudoClass_hover)) ||
+           selector->mAttrList || selector->mNegations) &&
           SelectorMatches(aData->mElement, selector, nodeContext,
                           aData->mTreeMatchContext) &&
           SelectorMatchesTree(aData->mElement, selector->mNext,
