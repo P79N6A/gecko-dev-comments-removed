@@ -1034,6 +1034,13 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
         JS_APPEND_LINK(&wp->links, &rt->watchPointList);
         ++rt->debuggerMutations;
     }
+
+    
+
+
+
+    obj->watchpointOwnShapeChange(cx);
+
     wp->handler = handler;
     wp->closure = reinterpret_cast<JSObject*>(closure);
     DBG_UNLOCK(rt);
