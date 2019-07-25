@@ -700,7 +700,7 @@ window.TabItems = {
   
   
   init: function() {
-    Utils.assert("TabManager must be initialized first", window.Tabs);
+    Utils.assert("TabManager must be initialized first", window.AllTabs);
     var self = this;
 
     

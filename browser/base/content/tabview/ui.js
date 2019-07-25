@@ -179,6 +179,8 @@ var UIManager = {
       this._addTabActionHandlers();
 
       
+      
+      GroupItems.init();
 
       var groupItemsData = Storage.readGroupItemsData(gWindow);
       var firstTime = !groupItemsData || Utils.isEmptyObject(groupItemsData);

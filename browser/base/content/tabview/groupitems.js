@@ -1367,6 +1367,15 @@ window.GroupItems = {
 
   
   
+  init: function() {
+
+
+
+
+  },
+
+  
+  
   
   getNextID: function() {
     var result = this.nextID;
