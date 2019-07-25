@@ -4616,16 +4616,16 @@ nsGenericElement::CanSkipInCC(nsINode* aNode)
     return false;
   }
 
-  
-  
-  if (UnoptimizableCCNode(aNode)) {
-    return false;
-  }
-
   nsIDocument* currentDoc = aNode->GetCurrentDoc();
   if (currentDoc &&
       nsCCUncollectableMarker::InGeneration(currentDoc->GetMarkedCCGeneration())) {
     return !NeedsScriptTraverse(aNode);
+  }
+
+  
+  
+  if (UnoptimizableCCNode(aNode)) {
+    return false;
   }
 
   nsINode* root =
@@ -4762,6 +4762,13 @@ NodeHasActiveFrame(nsIDocument* aCurrentDoc, nsINode* aNode)
          aNode->AsElement()->GetPrimaryFrame();
 }
 
+bool
+OwnedByBindingManager(nsIDocument* aCurrentDoc, nsINode* aNode)
+{
+  return aNode->IsElement() &&
+    aCurrentDoc->BindingManager()->GetBinding(aNode->AsElement());
+}
+
 
 
 
@@ -4780,10 +4787,12 @@ nsGenericElement::CanSkip(nsINode* aNode, bool aRemovingAllowed)
   nsIDocument* currentDoc = aNode->GetCurrentDoc();
   if (currentDoc &&
       nsCCUncollectableMarker::InGeneration(currentDoc->GetMarkedCCGeneration()) &&
-      (!unoptimizable || NodeHasActiveFrame(currentDoc, aNode))) {
+      (!unoptimizable || NodeHasActiveFrame(currentDoc, aNode) ||
+       OwnedByBindingManager(currentDoc, aNode))) {
     MarkNodeChildren(aNode);
     return true;
   }
+
   if (unoptimizable) {
     return false;
   }
