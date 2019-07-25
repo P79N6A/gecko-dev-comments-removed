@@ -186,6 +186,18 @@ nsSMILTimedElement::RemoveInstanceTimes(InstanceTimeList& aArray,
   for (PRUint32 i = 0; i < aArray.Length(); ++i) {
     nsSMILInstanceTime* item = aArray[i].get();
     if (aTest(item, i)) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      NS_ABORT_IF_FALSE(!GetPreviousInterval() ||
+        item != GetPreviousInterval()->End(),
+        "Removing end instance time of previous interval");
       item->Unlink();
     } else {
       newArray.AppendElement(item);
