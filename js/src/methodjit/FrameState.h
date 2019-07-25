@@ -293,7 +293,7 @@ class FrameState
 
 
 
-    inline void pushUntypedValue(const Value &value);
+    inline void pushUntypedValue(Value &value);
 
     
 
