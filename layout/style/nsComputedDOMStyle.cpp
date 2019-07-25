@@ -2280,12 +2280,32 @@ nsComputedDOMStyle::DoGetTextDecoration()
 {
   nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
 
-  PRUint8 line = GetStyleTextReset()->mTextDecorationLine;
+  const nsStyleTextReset* textReset = GetStyleTextReset();
+
+  
+  
+  
+  if (textReset->GetDecorationStyle() != NS_STYLE_TEXT_DECORATION_STYLE_SOLID) {
+    return nsnull;
+  }
+
+  nscolor color;
+  PRBool isForegroundColor;
+  textReset->GetDecorationColor(color, isForegroundColor);
+  if (!isForegroundColor) {
+    return nsnull;
+  }
+
+  
+  
+  
+
+  PRUint8 line = textReset->mTextDecorationLine;
   
   
   line &= ~(NS_STYLE_TEXT_DECORATION_LINE_PREF_ANCHORS |
             NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL);
-  PRUint8 blink = GetStyleTextReset()->mTextBlink;
+  PRUint8 blink = textReset->mTextBlink;
 
   if (blink == NS_STYLE_TEXT_BLINK_NONE &&
       line == NS_STYLE_TEXT_DECORATION_LINE_NONE) {
