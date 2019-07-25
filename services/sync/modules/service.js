@@ -1127,7 +1127,7 @@ WeaveSvc.prototype = {
 
       
       for each (let engine in engines)
-        yield engine.resetClient(self.cb);
+        engine.resetClient();
 
       
       try {
