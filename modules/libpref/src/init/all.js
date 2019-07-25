@@ -3122,7 +3122,7 @@ pref("image.http.accept", "image/png,image/*;q=0.8,*/*;q=0.5");
 
 
 
-pref("image.mem.discardable", false);
+pref("image.mem.discardable", true);
 
 
 
