@@ -822,6 +822,10 @@ abstract public class GeckoApp
         if (tab == null)
             return;
 
+        
+        if (!mDoorHangerPopup.isShowing() || !uri.equals(tab.getURL()))
+            tab.removeTransientDoorHangers();
+
         tab.updateURL(uri);
         tab.setDocumentURI(documentURI);
 
@@ -829,7 +833,6 @@ abstract public class GeckoApp
         tab.clearFavicon();
         tab.updateIdentityData(null);
         tab.setReaderEnabled(false);
-        tab.removeTransientDoorHangers();
         tab.setAllowZoom(true);
         tab.setDefaultZoom(0);
         tab.setMinZoom(0);
