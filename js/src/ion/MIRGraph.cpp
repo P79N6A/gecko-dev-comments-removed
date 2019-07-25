@@ -502,6 +502,14 @@ MBasicBlock::assertUsesAreNotWithin(MUseIterator use, MUseIterator end)
 #endif
 }
 
+static inline MDefinition *
+FollowCopy(MDefinition *def)
+{
+    MDefinition *ret = def->isCopy() ? def->getOperand(0) : def;
+    JS_ASSERT(!ret->isCopy());
+    return ret;
+}
+
 bool
 MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
 {
@@ -527,7 +535,45 @@ MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
 
         
         
-        if (entryDef == exitDef)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+
+        
+        
+        if (FollowCopy(entryDef) == FollowCopy(exitDef))
             continue;
 
         

@@ -101,6 +101,7 @@ class TypeAnalyzer
     bool specializePhis();
     bool specializeInstructions();
     bool determineSpecializations();
+    void replaceRedundantPhi(MPhi *phi);
     bool insertConversions();
     bool adjustPhiInputs(MPhi *phi);
     bool adjustInputs(MDefinition *def);
@@ -120,13 +121,13 @@ TypeAnalyzer::buildWorklist()
     
     
     for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
-        MDefinitionIterator iter(*block);
-        while (iter) {
+        MInstructionIterator iter = block->begin();
+        while (iter != block->end()) {
             if (iter->isCopy()) {
                 
                 MCopy *copy = iter->toCopy();
                 copy->replaceAllUsesWith(copy->getOperand(0));
-                iter = block->removeDefAt(iter);
+                iter = block->removeAt(iter);
                 continue;
             }
             if (!push(*iter))
@@ -346,6 +347,17 @@ TypeAnalyzer::adjustInputs(MDefinition *def)
     return true;
 }
 
+void
+TypeAnalyzer::replaceRedundantPhi(MPhi *phi)
+{
+    MBasicBlock *block = phi->block();
+    js::Value v = (phi->type() == MIRType_Undefined) ? UndefinedValue() : NullValue();
+    MConstant *c = MConstant::New(v);
+    
+    block->insertBefore(*(block->begin()), c);
+    phi->replaceAllUsesWith(c);
+}
+
 bool
 TypeAnalyzer::insertConversions()
 {
@@ -353,11 +365,17 @@ TypeAnalyzer::insertConversions()
     
     
     for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
-        for (MPhiIterator phi(block->phisBegin()); phi != block->phisEnd(); phi++) {
-            if (!adjustPhiInputs(*phi))
-                return false;
-            if (phi->type() == MIRType_Value && !adjustOutput(*phi))
-                return false;
+        for (MPhiIterator phi(block->phisBegin()); phi != block->phisEnd();) {
+            if (phi->type() <= MIRType_Null) {
+                replaceRedundantPhi(*phi);
+                phi = block->removePhiAt(phi);
+            } else {
+                if (!adjustPhiInputs(*phi))
+                    return false;
+                if (phi->type() == MIRType_Value && !adjustOutput(*phi))
+                    return false;
+                phi++;
+            }
         }
         for (MInstructionIterator iter(block->begin()); iter != block->end(); iter++) {
             if (!adjustInputs(*iter))
