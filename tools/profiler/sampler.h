@@ -86,6 +86,13 @@
 #endif
 
 
+#if defined(ANDROID) || defined(XP_MACOSX)
+
+#include "sps_sampler.h"
+
+#else
+
+
 
 #define SAMPLER_INIT()
 #define SAMPLER_DEINIT()
@@ -99,12 +106,6 @@
 #define SAMPLER_GET_RESPONSIVENESS() NULL
 #define SAMPLE_LABEL(name_space, info)
 #define SAMPLE_MARKER(info)
-
-
-#if defined(ANDROID) || defined(XP_MACOSX)
-
-#include "sps_sampler.h"
-
 #endif
 
 #endif
