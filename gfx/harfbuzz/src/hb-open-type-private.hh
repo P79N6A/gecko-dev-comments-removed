@@ -705,6 +705,11 @@ struct HeadlessArrayOf
   DEFINE_SIZE_ARRAY (sizeof (USHORT), array);
 };
 
+#if __GNUC__ && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 4))
+
+
+#pragma GCC visibility push(default)
+#endif
 
 
 template <typename Type>
@@ -720,6 +725,9 @@ struct SortedArrayOf : ArrayOf<Type> {
   }
 };
 
+#if __GNUC__ && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 4))
+#pragma GCC visibility pop
+#endif
 
 HB_BEGIN_DECLS
 HB_END_DECLS
