@@ -107,6 +107,110 @@ const ERRORS = { LOG_MESSAGE_MISSING_ARGS:
                  LOG_OUTPUT_FAILED: "Log Failure: Could not append messageNode to outputNode",
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var NetworkHelper =
+{
+  
+
+
+
+
+
+  getWindowForRequest: function NH_getWindowForRequest(aRequest)
+  {
+    let loadContext = this.getRequestLoadContext(aRequest);
+    if (loadContext) {
+      return loadContext.associatedWindow;
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+  getRequestLoadContext: function NH_getRequestLoadContext(aRequest)
+  {
+    if (aRequest && aRequest.notificationCallbacks) {
+      try {
+        return aRequest.notificationCallbacks.getInterface(Ci.nsILoadContext);
+      } catch (ex) { }
+    }
+
+    if (aRequest && aRequest.loadGroup
+                 && aRequest.loadGroup.notificationCallbacks) {
+      try {
+        return aRequest.loadGroup.notificationCallbacks.getInterface(Ci.nsILoadContext);
+      } catch (ex) { }
+    }
+
+    return null;
+   }
+}
+
+
+
 function HUD_SERVICE()
 {
   
@@ -182,12 +286,12 @@ HUD_SERVICE.prototype =
   
 
 
-  uriRegistry: {},
+  windowRegistry: {},
 
   
 
 
-  loadGroups: {},
+  uriRegistry: {},
 
   
 
@@ -607,21 +711,22 @@ HUD_SERVICE.prototype =
 
 
 
-  registerDisplay: function HS_registerDisplay(aHUDId, aURISpec)
+  registerDisplay: function HS_registerDisplay(aHUDId, aContentWindow)
   {
     
 
-    if (!aHUDId || !aURISpec){
+    if (!aHUDId || !aContentWindow){
       throw new Error(ERRORS.MISSING_ARGS);
     }
+    var URISpec = aContentWindow.document.location.href
     this.filterPrefs[aHUDId] = this.defaultFilterPrefs;
-    this.displayRegistry[aHUDId] = aURISpec;
+    this.displayRegistry[aHUDId] = URISpec;
     this._headsUpDisplays[aHUDId] = { id: aHUDId, };
     this.registerActiveContext(aHUDId);
     
     this.storage.createDisplay(aHUDId);
 
-    var huds = this.uriRegistry[aURISpec];
+    var huds = this.uriRegistry[URISpec];
     var foundHUDId = false;
 
     if (huds) {
@@ -633,11 +738,19 @@ HUD_SERVICE.prototype =
         }
       }
       if (!foundHUDId) {
-        this.uriRegistry[aURISpec].push(aHUDId);
+        this.uriRegistry[URISpec].push(aHUDId);
       }
     }
     else {
-      this.uriRegistry[aURISpec] = [aHUDId];
+      this.uriRegistry[URISpec] = [aHUDId];
+    }
+
+    var windows = this.windowRegistry[aHUDId];
+    if (!windows) {
+      this.windowRegistry[aHUDId] = [aContentWindow];
+    }
+    else {
+      windows.push(aContentWindow);
     }
   },
 
@@ -669,6 +782,9 @@ HUD_SERVICE.prototype =
     this.deleteHeadsUpDisplay(aId);
     
     this.storage.removeDisplay(aId);
+    
+    delete this.windowRegistry[aId];
+
     let displays = this.displays();
 
     var uri  = this.displayRegistry[aId];
@@ -727,6 +843,24 @@ HUD_SERVICE.prototype =
       
       return this.getHeadsUpDisplay(hudIds[0]);
     }
+  },
+
+  
+
+
+
+
+
+
+  getHudIdByWindow: function HS_getHudIdByWindow(aContentWindow)
+  {
+    for (let hudId in this.windowRegistry) {
+      if (this.windowRegistry[hudId] &&
+          this.windowRegistry[hudId].indexOf(aContentWindow) != -1) {
+        return hudId;
+      }
+    }
+    return null;
   },
 
   
@@ -958,51 +1092,6 @@ HUD_SERVICE.prototype =
 
   applicationHooks: null,
 
-  
-
-
-
-
-
-  getLoadContext: function HS_getLoadContext(aChannel)
-  {
-    if (!aChannel) {
-      return null;
-    }
-    var loadContext;
-    var callbacks = aChannel.notificationCallbacks;
-
-    loadContext =
-      aChannel.notificationCallbacks.getInterface(Ci.nsILoadContext);
-    if (!loadContext) {
-      loadContext =
-        aChannel.QueryInterface(Ci.nsIRequest).loadGroup.notificationCallbacks.getInterface(Ci.nsILoadContext);
-    }
-    return loadContext;
-  },
-
-  
-
-
-
-
-
-  getWindowFromContext: function HS_getWindowFromContext(aLoadContext)
-  {
-    if (!aLoadContext) {
-      throw new Error("loadContext is null");
-    }
-    if (aLoadContext.isContent) {
-      if (aLoadContext.associatedWindow) {
-        return aLoadContext.associatedWindow;
-      }
-      else if (aLoadContext.topWindow) {
-        return aLoadContext.topWindow;
-      }
-    }
-    throw new Error("Cannot get window from " + aLoadContext);
-  },
-
   getChromeWindowFromContentWindow:
   function HS_getChromeWindowFromContentWindow(aContentWindow)
   {
@@ -1025,63 +1114,6 @@ HUD_SERVICE.prototype =
 
 
 
-
-  getOutputNodeFromWindow:
-  function HS_getOutputNodeFromWindow(aWindow)
-  {
-    var browser = gBrowser.getBrowserForDocument(aWindow.top.document);
-    var tabId = gBrowser.getNotificationBox(browser).getAttribute("id");
-    var hudId = "hud_" + tabId;
-    var displayNode = this.getHeadsUpDisplay(hudId);
-    return displayNode.querySelectorAll(".hud-output-node")[0];
-  },
-
-  
-
-
-
-
-
-  getOutputNodeFromRequest: function HS_getOutputNodeFromRequest(aRequest)
-  {
-    var context = this.getLoadContext(aRequest);
-    var window = this.getWindowFromContext(context);
-    return this.getOutputNodeFromWindow(window);
-  },
-
-  getLoadContextFromChannel: function HS_getLoadContextFromChannel(aChannel)
-  {
-    try {
-      return aChannel.QueryInterface(Ci.nsIChannel).notificationCallbacks.getInterface(Ci.nsILoadContext);
-    }
-    catch (ex) {
-      
-    }
-    try {
-      return aChannel.QueryInterface(Ci.nsIChannel).loadGroup.notificationCallbacks.getInterface(Ci.nsILoadContext);
-    }
-    catch (ex) {
-      
-    }
-    return null;
-  },
-
-  getWindowFromLoadContext:
-  function HS_getWindowFromLoadContext(aLoadContext)
-  {
-    if (aLoadContext.topWindow) {
-      return aLoadContext.topWindow;
-    }
-    else {
-      return aLoadContext.associatedWindow;
-    }
-  },
-
-  
-
-
-
-
   startHTTPObservation: function HS_httpObserverFactory()
   {
     
@@ -1094,55 +1126,43 @@ HUD_SERVICE.prototype =
         var loadGroup;
         if (aActivityType ==
             activityDistributor.ACTIVITY_TYPE_HTTP_TRANSACTION) {
-          try {
-            var loadContext = self.getLoadContextFromChannel(aChannel);
-            
-            
-            var window = self.getWindowFromLoadContext(loadContext);
-            window = XPCNativeWrapper.unwrap(window);
-            var chromeWin = self.getChromeWindowFromContentWindow(window);
-            var vboxes =
-              chromeWin.document.getElementsByTagName("vbox");
-            var hudId;
-            for (var i = 0; i < vboxes.length; i++) {
-              if (vboxes[i].getAttribute("class") == "hud-box") {
-                hudId = vboxes[i].getAttribute("id");
-              }
-            }
-            loadGroup = self.getLoadGroup(hudId);
-          }
-          catch (ex) {
-            loadGroup = aChannel.QueryInterface(Ci.nsIChannel)
-                        .QueryInterface(Ci.nsIRequest).loadGroup;
-          }
-
-          if (!loadGroup) {
-              return;
-          }
 
           aChannel = aChannel.QueryInterface(Ci.nsIHttpChannel);
 
           var transCodes = this.httpTransactionCodes;
 
-          var httpActivity = {
-            channel: aChannel,
-            loadGroup: loadGroup,
-            type: aActivityType,
-            subType: aActivitySubtype,
-            timestamp: aTimestamp,
-            extraSizeData: aExtraSizeData,
-            extraStringData: aExtraStringData,
-            stage: transCodes[aActivitySubtype],
-          };
           if (aActivitySubtype ==
               activityDistributor.ACTIVITY_SUBTYPE_REQUEST_HEADER ) {
-                
-                
-                httpActivity.httpId = self.sequenceId();
-                let loggedNode =
-                  self.logActivity("network", aChannel.URI, httpActivity);
-                self.httpTransactions[aChannel] =
-                  new Number(httpActivity.httpId);
+            
+            let win = NetworkHelper.getWindowForRequest(aChannel);
+            if (!win) {
+              return;
+            }
+
+            
+            let hudId = self.getHudIdByWindow(win);
+            if (!hudId) {
+              return;
+            }
+
+            var httpActivity = {
+              channel: aChannel,
+              type: aActivityType,
+              subType: aActivitySubtype,
+              timestamp: aTimestamp,
+              extraSizeData: aExtraSizeData,
+              extraStringData: aExtraStringData,
+              stage: transCodes[aActivitySubtype],
+              hudId: hudId
+            };
+
+            
+            
+            httpActivity.httpId = self.sequenceId();
+            let loggedNode =
+              self.logActivity("network", aChannel.URI, httpActivity);
+            self.httpTransactions[aChannel] =
+              new Number(httpActivity.httpId);
           }
         }
       },
@@ -1173,22 +1193,11 @@ HUD_SERVICE.prototype =
 
   logNetActivity: function HS_logNetActivity(aType, aURI, aActivityObject)
   {
-    var displayNode, outputNode, hudId;
+    var outputNode, hudId;
     try {
-      displayNode =
-      this.getDisplayByLoadGroup(aActivityObject.loadGroup,
-                                 {URI: aURI}, aActivityObject);
-      if (!displayNode) {
-        return;
-      }
-      outputNode = displayNode.querySelectorAll(".hud-output-node")[0];
-      hudId = displayNode.getAttribute("id");
-
-      if (!outputNode) {
-        outputNode = this.getOutputNodeFromRequest(aActivityObject.request);
-        hudId = outputNode.ownerDocument.querySelectorAll(".hud-box")[0].
-                getAttribute("id");
-      }
+      hudId = aActivityObject.hudId;
+      outputNode = this.getHeadsUpDisplay(hudId).
+                                  querySelector(".hud-output-node");
 
       
       
@@ -1348,88 +1357,6 @@ HUD_SERVICE.prototype =
 
     aConsoleNode.appendChild(groupNode);
     return groupNode;
-  },
-
-  
-
-
-
-
-
-
-  updateLoadGroup: function HS_updateLoadGroup(aId, aLoadGroup)
-  {
-    if (this.loadGroups[aId] == undefined) {
-      this.loadGroups[aId] = { id: aId,
-                               loadGroup: Cu.getWeakReference(aLoadGroup) };
-    }
-    else {
-      this.loadGroups[aId].loadGroup = Cu.getWeakReference(aLoadGroup);
-    }
-  },
-
-  
-
-
-
-
-
-  getLoadGroup: function HS_getLoadGroup(aId)
-  {
-    try {
-      return this.loadGroups[aId].loadGroup.get();
-    }
-    catch (ex) {
-      return null;
-    }
-  },
-
-  
-
-
-
-
-
-  getDisplayByLoadGroup:
-  function HS_getDisplayByLoadGroup(aLoadGroup, aChannel, aActivityObject)
-  {
-    if (!aLoadGroup) {
-      return null;
-    }
-    var trackedLoadGroups = this.getAllLoadGroups();
-    var len = trackedLoadGroups.length;
-    for (var i = 0; i < len; i++) {
-      try {
-        var unwrappedLoadGroup =
-        XPCNativeWrapper.unwrap(trackedLoadGroups[i].loadGroup);
-        if (aLoadGroup == unwrappedLoadGroup) {
-          return this.getOutputNodeById(trackedLoadGroups[i].hudId);
-        }
-      }
-      catch (ex) {
-        
-      }
-    }
-    
-    
-    return null;
-  },
-
-  
-
-
-
-
-  getAllLoadGroups: function HS_getAllLoadGroups()
-  {
-    var loadGroups = [];
-    for (var hudId in this.loadGroups) {
-      let loadGroupObj = { loadGroup: this.loadGroups[hudId].loadGroup.get(),
-                           hudId: this.loadGroups[hudId].id,
-                         };
-      loadGroups.push(loadGroupObj);
-    }
-    return loadGroups;
   },
 
   
@@ -1602,7 +1529,7 @@ HUD_SERVICE.prototype =
       return;
     }
 
-    this.registerDisplay(hudId, aContentWindow.document.location.href);
+    this.registerDisplay(hudId, aContentWindow);
 
     
     let _console = aContentWindow.wrappedJSObject.console;
@@ -1863,20 +1790,6 @@ HeadsUpDisplay.prototype = {
     else {
       throw new Error("Cannot get output node");
     }
-  },
-
-  
-
-
-
-
-  get loadGroup()
-  {
-    var loadGroup = this.contentWindow
-                    .QueryInterface(Ci.nsIInterfaceRequestor)
-                    .getInterface(Ci.nsIWebNavigation)
-                    .QueryInterface(Ci.nsIDocumentLoader).loadGroup;
-    return loadGroup;
   },
 
   
@@ -2201,8 +2114,6 @@ function HUDConsole(aHeadsUpDisplay)
   let chromeDocument = hud.chromeDocument;
 
   aHeadsUpDisplay._console = this;
-
-  HUDService.updateLoadGroup(hudId, hud.loadGroup);
 
   let sendToHUDService = function console_send(aLevel, aArguments)
   {
