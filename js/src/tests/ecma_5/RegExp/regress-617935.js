@@ -23,7 +23,7 @@ foo += "a";
 var bar = "bbbbbbbbbbbbbbbb";
 
 
-for (i = 0; i < 12; ++i) {
+for (i = 0; i < 9; ++i) {
     bar += bar;
 }
 
@@ -39,4 +39,4 @@ try {
 }
 reportCompare(true, true, "No crash occurred.");
 
-print("All tests passed!");
+print("Tests complete");
