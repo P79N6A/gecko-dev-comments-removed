@@ -118,7 +118,7 @@ class nsDisplayItem;
 
 
 
-class NS_STACK_CLASS nsDisplayListBuilder {
+class nsDisplayListBuilder {
 public:
   typedef mozilla::FramePropertyDescriptor FramePropertyDescriptor;
   typedef mozilla::FrameLayerBuilder FrameLayerBuilder;
@@ -400,10 +400,6 @@ public:
   NS_DECLARE_FRAME_PROPERTY(OutOfFlowDirtyRectProperty, nsIFrame::DestroyRect)
 
 private:
-  
-  
-  void* operator new(size_t sz) CPP_THROW_NEW;
-  
   struct PresShellState {
     nsIPresShell* mPresShell;
     nsIFrame*     mCaretFrame;
