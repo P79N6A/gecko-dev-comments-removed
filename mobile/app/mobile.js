@@ -405,6 +405,7 @@ pref("browser.ui.kinetic.swipeLength", 160);
 pref("browser.ui.zoom.pageFitGranularity", 9); 
 pref("browser.ui.zoom.animationDuration", 200); 
 pref("browser.ui.zoom.reflow", false); 
+pref("browser.ui.zoom.reflow.fontSize", 720);
 
 
 pref("browser.ui.pinch.maxGrowth", 150);     
