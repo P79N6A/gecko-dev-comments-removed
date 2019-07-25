@@ -145,20 +145,20 @@ nsHTMLCSSStyleSheet::Init(nsIURI* aURL, nsIDocument* aDocument)
 }
 
 
-nsRestyleHint
+ nsRestyleHint
 nsHTMLCSSStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
 {
   return nsRestyleHint(0);
 }
 
-PRBool
+ PRBool
 nsHTMLCSSStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
 {
   return PR_FALSE;
 }
 
 
-nsRestyleHint
+ nsRestyleHint
 nsHTMLCSSStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
 {
   
@@ -189,83 +189,84 @@ nsHTMLCSSStyleSheet::Reset(nsIURI* aURL)
   return NS_OK;
 }
 
-already_AddRefed<nsIURI>
+ already_AddRefed<nsIURI>
 nsHTMLCSSStyleSheet::GetSheetURI() const
 {
   NS_IF_ADDREF(mURL);
   return mURL;
 }
 
-already_AddRefed<nsIURI>
+ already_AddRefed<nsIURI>
 nsHTMLCSSStyleSheet::GetBaseURI() const
 {
   NS_IF_ADDREF(mURL);
   return mURL;
 }
 
-void
+ void
 nsHTMLCSSStyleSheet::GetTitle(nsString& aTitle) const
 {
   aTitle.AssignLiteral("Internal HTML/CSS Style Sheet");
 }
 
-void
+ void
 nsHTMLCSSStyleSheet::GetType(nsString& aType) const
 {
   aType.AssignLiteral("text/html");
 }
 
-PRBool
+ PRBool
 nsHTMLCSSStyleSheet::HasRules() const
 {
   
   return PR_TRUE;
 }
 
-PRBool
-nsHTMLCSSStyleSheet::GetApplicable() const
+ PRBool
+nsHTMLCSSStyleSheet::IsApplicable() const
 {
   return PR_TRUE;
 }
 
-void
+ void
 nsHTMLCSSStyleSheet::SetEnabled(PRBool aEnabled)
 { 
 }
 
-PRBool
-nsHTMLCSSStyleSheet::GetComplete() const
+ PRBool
+nsHTMLCSSStyleSheet::IsComplete() const
 {
   return PR_TRUE;
 }
 
-void
+ void
 nsHTMLCSSStyleSheet::SetComplete()
 {
 }
 
 
-already_AddRefed<nsIStyleSheet>
+ already_AddRefed<nsIStyleSheet>
 nsHTMLCSSStyleSheet::GetParentSheet() const
 {
   return nsnull;
 }
 
-already_AddRefed<nsIDocument>
+ already_AddRefed<nsIDocument>
 nsHTMLCSSStyleSheet::GetOwningDocument() const
 {
   NS_IF_ADDREF(mDocument);
   return mDocument;
 }
 
-void
+ void
 nsHTMLCSSStyleSheet::SetOwningDocument(nsIDocument* aDocument)
 {
   mDocument = aDocument;
 }
 
 #ifdef DEBUG
-void nsHTMLCSSStyleSheet::List(FILE* out, PRInt32 aIndent) const
+ void
+nsHTMLCSSStyleSheet::List(FILE* out, PRInt32 aIndent) const
 {
   
   for (PRInt32 index = aIndent; --index >= 0; ) fputs("  ", out);

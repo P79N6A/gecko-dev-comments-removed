@@ -1104,13 +1104,11 @@ Loader::CreateSheet(nsIURI* aURI,
     }
     
     if (sheet) {
-#ifdef DEBUG
       
       
-      PRBool complete = sheet->GetComplete();
-      NS_ASSERTION(complete,
+      NS_ASSERTION(sheet->IsComplete(),
                    "Sheet thinks it's not complete while we think it is");
-#endif
+
       
       if (sheet->IsModified()) {
         LOG(("  Not cloning completed sheet %p because it's been modified",
@@ -1164,13 +1162,11 @@ Loader::CreateSheet(nsIURI* aURI,
 
     if (sheet) {
       
-#ifdef DEBUG
-      PRBool complete = sheet->GetComplete();
-      NS_ASSERTION(!sheet->IsModified() || !complete,
+      NS_ASSERTION(!sheet->IsModified() || !sheet->IsComplete(),
                    "Unexpected modified complete sheet");
-      NS_ASSERTION(complete || aSheetState != eSheetComplete,
+      NS_ASSERTION(sheet->IsComplete() || aSheetState != eSheetComplete,
                    "Sheet thinks it's not complete while we think it is");
-#endif
+
       *aSheet = sheet->Clone(nsnull, nsnull, nsnull, nsnull).get();
     }
   }

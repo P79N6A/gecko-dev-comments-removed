@@ -291,7 +291,7 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
 }
 
 
-nsRestyleHint
+ nsRestyleHint
 nsHTMLStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
 {
   if (aData->mIsHTMLContent &&
@@ -306,13 +306,13 @@ nsHTMLStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
   return nsRestyleHint(0);
 }
 
-PRBool
+ PRBool
 nsHTMLStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
 {
   return PR_FALSE;
 }
 
-nsRestyleHint
+ nsRestyleHint
 nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
 {
   
@@ -374,74 +374,74 @@ nsHTMLStyleSheet::RulesMatching(XULTreeRuleProcessorData* aData)
 #endif
 
   
-already_AddRefed<nsIURI>
+ already_AddRefed<nsIURI>
 nsHTMLStyleSheet::GetSheetURI() const
 {
   NS_IF_ADDREF(mURL);
   return mURL;
 }
 
-already_AddRefed<nsIURI>
+ already_AddRefed<nsIURI>
 nsHTMLStyleSheet::GetBaseURI() const
 {
   NS_IF_ADDREF(mURL);
   return mURL;
 }
 
-void
+ void
 nsHTMLStyleSheet::GetTitle(nsString& aTitle) const
 {
   aTitle.Truncate();
 }
 
-void
+ void
 nsHTMLStyleSheet::GetType(nsString& aType) const
 {
   aType.AssignLiteral("text/html");
 }
 
-PRBool
+ PRBool
 nsHTMLStyleSheet::HasRules() const
 {
   return PR_TRUE; 
 }
 
-PRBool
-nsHTMLStyleSheet::GetApplicable() const
+ PRBool
+nsHTMLStyleSheet::IsApplicable() const
 {
   return PR_TRUE;
 }
 
-void
+ void
 nsHTMLStyleSheet::SetEnabled(PRBool aEnabled)
 { 
 }
 
-PRBool
-nsHTMLStyleSheet::GetComplete() const
+ PRBool
+nsHTMLStyleSheet::IsComplete() const
 {
   return PR_TRUE;
 }
 
-void
+ void
 nsHTMLStyleSheet::SetComplete()
 {
 }
 
-already_AddRefed<nsIStyleSheet>
+ already_AddRefed<nsIStyleSheet>
 nsHTMLStyleSheet::GetParentSheet() const
 {
   return nsnull;
 }
 
-already_AddRefed<nsIDocument>
+ already_AddRefed<nsIDocument>
 nsHTMLStyleSheet::GetOwningDocument() const
 {
   NS_IF_ADDREF(mDocument);
   return mDocument;
 }
 
-void
+ void
 nsHTMLStyleSheet::SetOwningDocument(nsIDocument* aDocument)
 {
   mDocument = aDocument; 
@@ -577,7 +577,8 @@ nsHTMLStyleSheet::DropMappedAttributes(nsMappedAttributes* aMapped)
 }
 
 #ifdef DEBUG
-void nsHTMLStyleSheet::List(FILE* out, PRInt32 aIndent) const
+ void
+nsHTMLStyleSheet::List(FILE* out, PRInt32 aIndent) const
 {
   
   for (PRInt32 index = aIndent; --index >= 0; ) fputs("  ", out);
