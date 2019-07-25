@@ -201,7 +201,9 @@ class GeckoSurfaceView
         
         
         
-        if (mDrawMode == DRAW_GLES_2) {
+        
+        if (mDrawMode == DRAW_GLES_2 && 
+            (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.HONEYCOMB)) {
             
             
             

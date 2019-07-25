@@ -5913,11 +5913,11 @@ nsGlobalWindow::CallerInnerWindow()
     }
 
     if (fp)
-      scope = JS_GetFrameScopeChainRaw(fp);
+      scope = JS_GetGlobalForFrame(fp);
   }
 
   if (!scope)
-    scope = JS_GetScopeChain(cx);
+    scope = JS_GetGlobalForScopeChain(cx);
 
   JSAutoEnterCompartment ac;
   if (!ac.enter(cx, scope))
@@ -5925,8 +5925,7 @@ nsGlobalWindow::CallerInnerWindow()
 
   nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
   nsContentUtils::XPConnect()->
-    GetWrappedNativeOfJSObject(cx, ::JS_GetGlobalForObject(cx, scope),
-                               getter_AddRefs(wrapper));
+    GetWrappedNativeOfJSObject(cx, scope, getter_AddRefs(wrapper));
   if (!wrapper)
     return nsnull;
 
@@ -6014,7 +6013,7 @@ PostMessageReadStructuredClone(JSContext* cx,
 
     nsISupports* supports;
     if (JS_ReadBytes(reader, &supports, sizeof(supports))) {
-      JSObject* global = JS_GetGlobalForObject(cx, JS_GetScopeChain(cx));
+      JSObject* global = JS_GetGlobalForScopeChain(cx);
       if (global) {
         jsval val;
         nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
