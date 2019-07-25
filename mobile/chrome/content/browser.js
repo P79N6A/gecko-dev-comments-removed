@@ -318,6 +318,7 @@ var Browser = {
 
         setTimeout(function() { scrollInterface.ensureElementIsVisible(currentElement) }, 0);
       }
+      getBrowser().finishFuzzyZoom();
     }
     window.addEventListener("resize", resizeHandler, false);
 
@@ -2534,11 +2535,8 @@ Tab.prototype = {
     
     let oldScale = browser.scale;
     let newScale = this.clampZoomLevel(oldScale * aNewWidth / aOldWidth);
-    browser.scale = newScale;
-
-    
     let scaleRatio = newScale / oldScale;
-    view.scrollTo(pos.x * scaleRatio, pos.y * scaleRatio);
+    browser.fuzzyZoom(newScale, pos.x * scaleRatio, pos.y * scaleRatio);
   },
 
   startLoading: function startLoading() {
