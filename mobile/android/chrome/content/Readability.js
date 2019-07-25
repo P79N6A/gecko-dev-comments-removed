@@ -49,6 +49,9 @@ Readability.prototype = {
   MAX_PAGES: 5,
 
   
+  GEN_ITERATIONS: 100,
+
+  
   
   REGEXPS: {
     unlikelyCandidates: /combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter/i,
@@ -326,6 +329,20 @@ Readability.prototype = {
     node.readability.contentScore += this._getClassWeight(node);
   },
 
+  _grabArticle: function () {
+    let gen = this._grabArticleGenerator();
+    let iterate = function () {
+      for (let i = this.GEN_ITERATIONS; i--;) {
+        let result = gen.next();
+        if (result !== undefined) {
+          return result;
+        }
+      }
+      return iterate();
+    }.bind(this);
+    return iterate();
+  },
+
   
 
 
@@ -333,7 +350,7 @@ Readability.prototype = {
 
 
 
-  _grabArticle: function(page) {
+  _grabArticleGenerator: function(page) {
     while (true) {
       let doc = this._doc;
       let stripUnlikelyCandidates = this._flagIsActive(this.FLAG_STRIP_UNLIKELYS);
@@ -345,6 +362,7 @@ Readability.prototype = {
       let pageCacheHtml = page.innerHTML;
       let allElements = page.getElementsByTagName('*');
 
+      yield;
 
       
       
@@ -401,6 +419,8 @@ Readability.prototype = {
             }
           }
         }
+
+        yield;
       }
 
       
@@ -452,6 +472,8 @@ Readability.prototype = {
 
         if (grandParentNode)
           grandParentNode.readability.contentScore += contentScore / 2;
+
+        yield;
       }
 
       
@@ -472,6 +494,8 @@ Readability.prototype = {
           candidates[c].readability.contentScore > topCandidate.readability.contentScore) {
           topCandidate = candidates[c];
         }
+
+        yield;
       }
 
       
@@ -481,7 +505,7 @@ Readability.prototype = {
         
         if (isChecking) {
           dump('No top candidate found, failed readability check');
-          return null;
+          yield null;
         }
 
         topCandidate = doc.createElement("DIV");
@@ -496,7 +520,7 @@ Readability.prototype = {
 
         
         
-        return {};
+        yield {};
       }
 
       
@@ -568,10 +592,14 @@ Readability.prototype = {
           
           articleContent.appendChild(nodeToAppend);
         }
+
+        yield;
       }
 
       
       this._prepArticle(articleContent);
+
+      yield;
 
       if (this._curPageNum === 1)
         articleContent.innerHTML = '<div id="readability-page-1" class="page">' + articleContent.innerHTML + '</div>';
@@ -591,10 +619,10 @@ Readability.prototype = {
         } else if (this._flagIsActive(this.FLAG_CLEAN_CONDITIONALLY)) {
           this._removeFlag(this.FLAG_CLEAN_CONDITIONALLY);
         } else {
-          return null;
+          yield null;
         }
       } else {
-        return articleContent;
+        yield articleContent;
       }
     }
   },
