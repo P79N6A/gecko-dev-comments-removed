@@ -462,14 +462,13 @@ TelemetryPing.prototype = {
 
     let slug = (isTestPing ? reason : this._uuid);
     payloadObj.info = this.getMetadata(reason);
-    return { previous: false, slug: slug, payload: JSON.stringify(payloadObj) };
+    return { slug: slug, payload: JSON.stringify(payloadObj) };
   },
 
   getPayloads: function getPayloads(reason) {
     function payloadIter() {
       if (this._pendingPings.length > 0) {
         let data = this._pendingPings.pop();
-        data.previous = true;
         
         if (reason == "test-ping") {
           data.slug = reason;
@@ -490,7 +489,8 @@ TelemetryPing.prototype = {
   send: function send(reason, server) {
     
     this.gatherMemory();
-    this.sendPingsFromIterator(server, Iterator(this.getPayloads(reason)));
+    this.sendPingsFromIterator(server, reason,
+                               Iterator(this.getPayloads(reason)));
   },
 
   
@@ -505,25 +505,32 @@ TelemetryPing.prototype = {
 
 
 
-  sendPingsFromIterator: function sendPingsFromIterator(server, i) {
+  sendPingsFromIterator: function sendPingsFromIterator(server, reason, i) {
+    function finishPings(reason) {
+      if (reason == "test-ping") {
+        Services.obs.notifyObservers(null, "telemetry-test-xhr-complete", null);
+      }
+    }
+
     let data = null;
     try {
       data = i.next();
     } catch (e if e instanceof StopIteration) {
+      finishPings(reason);
       return;
     }
     function onSuccess() {
-      this.sendPingsFromIterator(server, i);
+      this.sendPingsFromIterator(server, reason, i);
     }
     function onError() {
       
+      finishPings(reason);
     }
-    this.doPing(server, data.slug, data.payload, !data.previous,
+    this.doPing(server, data.slug, data.payload,
                 onSuccess.bind(this), onError.bind(this));
   },
 
-  doPing: function doPing(server, slug, payload, recordSuccess,
-                          onSuccess, onError) {
+  doPing: function doPing(server, slug, payload, onSuccess, onError) {
     let submitPath = "/submit/telemetry/" + slug;
     let url = server + submitPath;
     let request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
@@ -552,8 +559,6 @@ TelemetryPing.prototype = {
       if (success && file.exists()) {
         file.remove(true);
       }
-      if (slug == "test-ping" && recordSuccess)
-        Services.obs.notifyObservers(null, "telemetry-test-xhr-complete", null);
     }
 
     function handler(callback) {
