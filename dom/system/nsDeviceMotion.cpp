@@ -236,7 +236,9 @@ nsDeviceMotion::DeviceMotionChanged(PRUint32 type, double x, double y, double z)
     
     
     nsCOMPtr<nsPIDOMWindow> pwindow = do_QueryInterface(mWindowListeners[i]);
-    if (!pwindow || pwindow->GetOuterWindow()->IsBackground())
+    if (!pwindow ||
+        !pwindow->GetOuterWindow() ||
+        pwindow->GetOuterWindow()->IsBackground())
       continue;
 
     nsCOMPtr<nsIDOMDocument> domdoc;
