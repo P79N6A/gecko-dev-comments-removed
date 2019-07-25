@@ -297,8 +297,6 @@ SyncEngine.prototype = {
   
   
   _syncStartup: function SyncEngine__syncStartup() {
-    let self = yield;
-
     this._log.debug("Ensuring server crypto records are there");
 
     let meta = CryptoMetas.get(this.cryptoMetaURL);
@@ -461,8 +459,6 @@ SyncEngine.prototype = {
 
   
   _uploadOutgoing: function SyncEngine__uploadOutgoing() {
-    let self = yield;
-
     let outnum = [i for (i in this._tracker.changedIDs)].length;
     this._log.debug("Preparing " + outnum + " outgoing records");
     if (outnum) {
@@ -509,8 +505,7 @@ SyncEngine.prototype = {
 
   
   
-  _syncFinish: function SyncEngine__syncFinish(error) {
-    let self = yield;
+  _syncFinish: function SyncEngine__syncFinish() {
     this._log.debug("Finishing up sync");
     this._tracker.resetScore();
   },
@@ -519,12 +514,12 @@ SyncEngine.prototype = {
     let self = yield;
 
     try {
-      yield this._syncStartup.async(this, self.cb);
+      this._syncStartup();
       Observers.notify("weave:engine:sync:status", "process-incoming");
       yield this._processIncoming.async(this, self.cb);
       Observers.notify("weave:engine:sync:status", "upload-outgoing");
-      yield this._uploadOutgoing.async(this, self.cb);
-      yield this._syncFinish.async(this, self.cb);
+      this._uploadOutgoing();
+      this._syncFinish();
     }
     catch (e) {
       this._log.warn("Sync failed");
