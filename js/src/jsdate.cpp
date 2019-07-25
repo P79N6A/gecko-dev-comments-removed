@@ -1760,12 +1760,6 @@ date_makeTime(JSContext *cx, Native native, unsigned maxargs, JSBool local, unsi
     double result = obj->getDateUTCTime().toNumber();
 
     
-    if (!JSDOUBLE_IS_FINITE(result)) {
-        args.rval().setNumber(result);
-        return true;
-    }
-
-    
 
 
 
@@ -1782,14 +1776,30 @@ date_makeTime(JSContext *cx, Native native, unsigned maxargs, JSBool local, unsi
     unsigned numNums = Min(args.length(), maxargs);
     JS_ASSERT(numNums <= 4);
     double nums[4];
+    bool argIsNotFinite = false;
     for (unsigned i = 0; i < numNums; i++) {
         if (!ToNumber(cx, args[i], &nums[i]))
             return false;
         if (!JSDOUBLE_IS_FINITE(nums[i])) {
-            SetDateToNaN(cx, obj, &args.rval());
-            return true;
+            argIsNotFinite = true;
+        } else {
+            nums[i] = js_DoubleToInteger(nums[i]);
         }
-        nums[i] = js_DoubleToInteger(nums[i]);
+    }
+
+    
+
+
+
+    if (!JSDOUBLE_IS_FINITE(result)) {
+        args.rval().setNumber(result);
+        return true;
+    }
+
+    
+    if (argIsNotFinite) {
+        SetDateToNaN(cx, obj, &args.rval());
+        return true;
     }
 
     double lorutime;  
@@ -1902,14 +1912,21 @@ date_makeDate(JSContext *cx, Native native, unsigned maxargs, JSBool local, unsi
     unsigned numNums = Min(args.length(), maxargs);
     JS_ASSERT(1 <= numNums && numNums <= 3);
     double nums[3];
+    bool argIsNotFinite = false;
     for (unsigned i = 0; i < numNums; i++) {
         if (!ToNumber(cx, args[i], &nums[i]))
             return JS_FALSE;
         if (!JSDOUBLE_IS_FINITE(nums[i])) {
-            SetDateToNaN(cx, obj, &args.rval());
-            return true;
+            argIsNotFinite = true;
+        } else {
+            nums[i] = js_DoubleToInteger(nums[i]);
         }
-        nums[i] = js_DoubleToInteger(nums[i]);
+    }
+
+    
+    if (argIsNotFinite) {
+        SetDateToNaN(cx, obj, &args.rval());
+        return true;
     }
 
     
@@ -1917,7 +1934,7 @@ date_makeDate(JSContext *cx, Native native, unsigned maxargs, JSBool local, unsi
 
 
     double lorutime; 
-    if (!(JSDOUBLE_IS_FINITE(result))) {
+    if (!JSDOUBLE_IS_FINITE(result)) {
         if (maxargs < 3) {
             args.rval().setDouble(result);
             return true;
