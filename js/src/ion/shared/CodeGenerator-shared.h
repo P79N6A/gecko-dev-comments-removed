@@ -184,7 +184,6 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     
     bool markSafepoint(LInstruction *ins);
-    bool markSafepointAt(uint32 offset, LInstruction *ins);
 
     
     
