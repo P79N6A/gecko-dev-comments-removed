@@ -258,7 +258,7 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
     
     
     
-    ctx->SetMatrix(GetImageTransform());
+    ctx->Multiply(GetImageTransform());
 
     
     
