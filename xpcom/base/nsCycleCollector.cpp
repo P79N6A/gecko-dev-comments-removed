@@ -1063,11 +1063,6 @@ struct nsCycleCollectionXPCOMRuntime :
         return NS_OK;
     }
 
-    nsresult FinishCycleCollection() 
-    {
-        return NS_OK;
-    }
-
     inline nsCycleCollectionParticipant *ToParticipant(void *p);
 };
 
@@ -3207,19 +3202,9 @@ nsCycleCollector::FinishCollection(nsICycleCollectorListener *aListener)
         mStats.Dump();
 #endif
 
-    for (PRUint32 i = 0; i <= nsIProgrammingLanguage::MAX; ++i) {
-        if (mRuntimes[i])
-            mRuntimes[i]->FinishCycleCollection();
-    }
-    timeLog.Checkpoint("mRuntimes[*]->FinishCycleCollection()");
-
     mFollowupCollection = true;
 
 #ifdef DEBUG_CC
-    
-    
-    
-    
     PRUint32 i, count = mWhiteNodes->Length();
     for (i = 0; i < count; ++i) {
         PtrInfo *pinfo = mWhiteNodes->ElementAt(i);
