@@ -421,3 +421,6 @@ pref("b2g.ignoreXFrameOptions", true);
 
 
 pref("layout.frame_rate.precise", true);
+
+
+pref("power.screen.timeout", 60);

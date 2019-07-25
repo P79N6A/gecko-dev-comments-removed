@@ -57,6 +57,10 @@ XPCOMUtils.defineLazyGetter(Services, 'ss', function() {
   return Cc['@mozilla.org/content/style-sheet-service;1']
            .getService(Ci.nsIStyleSheetService);
 });
+XPCOMUtils.defineLazyGetter(Services, 'idle', function() {
+  return Cc['@mozilla.org/widget/idleservice;1']
+           .getService(Ci.nsIIdleService);
+});
 
 
 
@@ -286,7 +290,20 @@ var shell = {
   }
 };
 
-
+(function PowerManager() {
+  let idleHandler = {
+    observe: function(subject, topic, time) {
+      if (topic === "idle") {
+        
+        shell.turnScreenOff();
+      }
+    },
+  }
+  let idleTimeout = Services.prefs.getIntPref("power.screen.timeout");
+  if (idleTimeout) {
+    Services.idle.addIdleObserver(idleHandler, idleTimeout);
+  }
+})();
 
 function nsBrowserAccess() {
 }
