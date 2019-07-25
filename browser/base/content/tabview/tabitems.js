@@ -704,7 +704,7 @@ window.TabItems = {
     var self = this;
 
     
-    Tabs.onOpen(function() {
+    AllTabs.onOpen(function() {
       if (this.ownerDocument.defaultView != gWindow)
         return;
 
@@ -716,7 +716,7 @@ window.TabItems = {
 
     
     
-    Tabs.onChange(function() {
+    AllTabs.onChange(function() {
       if (this.ownerDocument.defaultView != gWindow)
         return;
 
@@ -727,7 +727,7 @@ window.TabItems = {
     });
 
     
-    Tabs.onClose(function() {
+    AllTabs.onClose(function() {
       if (this.ownerDocument.defaultView != gWindow)
         return;
 
@@ -738,7 +738,7 @@ window.TabItems = {
     });
 
     
-    Tabs.allTabs.forEach(function(tab) {
+    AllTabs.tabs.forEach(function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
