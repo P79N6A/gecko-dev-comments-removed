@@ -261,13 +261,15 @@ nsSVGPathGeometryFrame::NotifySVGChanged(PRUint32 aFlags)
   }
 }
 
-gfxRect
+SVGBBox
 nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
                                             PRUint32 aFlags)
 {
+  SVGBBox bbox;
+
   if (aToBBoxUserspace.IsSingular()) {
     
-    return gfxRect(0.0, 0.0, 0.0, 0.0);
+    return bbox;
   }
 
   nsRefPtr<gfxContext> context =
@@ -275,8 +277,6 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
 
   GeneratePath(context, &aToBBoxUserspace);
   context->IdentityMatrix();
-
-  gfxRect bbox;
 
   
   
@@ -316,10 +316,9 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
       pathExtents.MoveTo(context->GetUserStrokeExtent().Center());
       pathExtents.SizeTo(0, 0);
     }
-    bbox =
-      bbox.Union(nsSVGUtils::PathExtentsToMaxStrokeExtents(pathExtents,
-                                                           this,
-                                                           aToBBoxUserspace));
+    bbox.UnionEdges(nsSVGUtils::PathExtentsToMaxStrokeExtents(pathExtents,
+                                                              this,
+                                                              aToBBoxUserspace));
   }
 
   
@@ -337,28 +336,28 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
       if (num) {
         nsSVGMarkerFrame *frame = properties.GetMarkerStartFrame();
         if (frame) {
-          gfxRect mbbox =
+          SVGBBox mbbox =
             frame->GetMarkBBoxContribution(aToBBoxUserspace, aFlags, this,
                                            &marks[0], strokeWidth);
-          bbox.UnionRect(bbox, mbbox);
+          bbox.UnionEdges(mbbox);
         }
 
         frame = properties.GetMarkerMidFrame();
         if (frame) {
           for (PRUint32 i = 1; i < num - 1; i++) {
-            gfxRect mbbox =
+            SVGBBox mbbox =
               frame->GetMarkBBoxContribution(aToBBoxUserspace, aFlags, this,
                                              &marks[i], strokeWidth);
-            bbox.UnionRect(bbox, mbbox);
+            bbox.UnionEdges(mbbox);
           }
         }
 
         frame = properties.GetMarkerEndFrame();
         if (frame) {
-          gfxRect mbbox =
+          SVGBBox mbbox =
             frame->GetMarkBBoxContribution(aToBBoxUserspace, aFlags, this,
                                            &marks[num-1], strokeWidth);
-          bbox.UnionRect(bbox, mbbox);
+          bbox.UnionEdges(mbbox);
         }
       }
     }

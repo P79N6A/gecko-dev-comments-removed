@@ -251,13 +251,12 @@ nsSVGDisplayContainerFrame::NotifySVGChanged(PRUint32 aFlags)
   nsSVGUtils::NotifyChildrenOfSVGChange(this, aFlags);
 }
 
-gfxRect
+SVGBBox
 nsSVGDisplayContainerFrame::GetBBoxContribution(
   const gfxMatrix &aToBBoxUserspace,
   PRUint32 aFlags)
 {
-  gfxRect bboxUnion;
-  bool firstChild = true;
+  SVGBBox bboxUnion;
 
   nsIFrame* kid = mFrames.FirstChild();
   while (kid) {
@@ -271,14 +270,7 @@ nsSVGDisplayContainerFrame::GetBBoxContribution(
       }
       
       
-      
-      gfxRect childBBox = svgKid->GetBBoxContribution(transform, aFlags);
-      if (firstChild && (childBBox.Width() > 0 || childBBox.Height() > 0)) {
-        bboxUnion = childBBox;
-        firstChild = false;
-        continue;
-      }
-      bboxUnion = bboxUnion.UnionEdges(childBBox);
+      bboxUnion.UnionEdges(svgKid->GetBBoxContribution(transform, aFlags));
     }
     kid = kid->GetNextSibling();
   }
