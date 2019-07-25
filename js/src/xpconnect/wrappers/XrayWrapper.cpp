@@ -93,7 +93,7 @@ static JSObject *
 GetWrappedNativeObjectFromHolder(JSObject *holder)
 {
     NS_ASSERTION(holder->getJSClass() == &HolderClass, "expected a native property holder object");
-    return holder->getSlot(JSSLOT_WN_OBJ).toObjectOrNull();
+    return holder->getSlot(JSSLOT_WN_OBJ).asObjectOrNull();
 }
 
 

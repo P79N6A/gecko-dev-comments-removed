@@ -241,7 +241,7 @@ AccessCheck::needsSystemOnlyWrapper(JSObject *obj)
 void
 AccessCheck::deny(JSContext *cx, jsid id)
 {
-    if (id == JSVID_VOID) {
+    if (id == JSID_VOID) {
         JS_ReportError(cx, "Permission denied to access object");
     } else {
         jsval idval;
@@ -273,7 +273,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, bool set
         return true; 
     }
 
-    if (id == JSVAL_VOID) {
+    if (id == JSID_VOID) {
         
         perm = PermitPropertyAccess;
         return true;

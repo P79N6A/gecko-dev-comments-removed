@@ -41,7 +41,6 @@
 #include "mozilla/jsipc/ObjectWrapperParent.h"
 #include "mozilla/jsipc/ContextWrapperParent.h"
 #include "mozilla/jsipc/CPOWTypes.h"
-#include "mozilla/unused.h"
 
 #include "jsobj.h"
 #include "jsfun.h"
@@ -169,32 +168,36 @@ with_error(JSContext* cx,
     return rval;
 }
 
-const js::Class ObjectWrapperParent::sCPOW_JSClass = {
-      "CrossProcessObjectWrapper",
-      JSCLASS_NEW_RESOLVE | JSCLASS_NEW_ENUMERATE |
+const JSExtendedClass ObjectWrapperParent::sCPOW_JSClass = {
+    
+    { "CrossProcessObjectWrapper",
+      JSCLASS_NEW_RESOLVE | JSCLASS_NEW_ENUMERATE | JSCLASS_IS_EXTENDED |
       JSCLASS_HAS_PRIVATE | JSCLASS_HAS_RESERVED_SLOTS(sNumSlots),
-      js::Valueify(ObjectWrapperParent::CPOW_AddProperty),
-      js::Valueify(ObjectWrapperParent::CPOW_DelProperty),
-      js::Valueify(ObjectWrapperParent::CPOW_GetProperty),
-      js::Valueify(ObjectWrapperParent::CPOW_SetProperty),
+      ObjectWrapperParent::CPOW_AddProperty,
+      ObjectWrapperParent::CPOW_DelProperty,
+      ObjectWrapperParent::CPOW_GetProperty,
+      ObjectWrapperParent::CPOW_SetProperty,
       (JSEnumerateOp) ObjectWrapperParent::CPOW_NewEnumerate,
-      (JSResolveOp) ObjectWrapperParent::CPOW_NewResolve,
-      js::Valueify(ObjectWrapperParent::CPOW_Convert),
+        (JSResolveOp) ObjectWrapperParent::CPOW_NewResolve,
+      ObjectWrapperParent::CPOW_Convert,
       ObjectWrapperParent::CPOW_Finalize,
       nsnull, 
       nsnull, 
-      js::Valueify(ObjectWrapperParent::CPOW_Call),
-      js::Valueify(ObjectWrapperParent::CPOW_Construct),
+      ObjectWrapperParent::CPOW_Call,
+      ObjectWrapperParent::CPOW_Construct,
       nsnull, 
-      js::Valueify(ObjectWrapperParent::CPOW_HasInstance),
+      ObjectWrapperParent::CPOW_HasInstance,
       nsnull, 
-      {
-          js::Valueify(ObjectWrapperParent::CPOW_Equality),
-          nsnull, 
-          nsnull, 
-          nsnull, 
-          nsnull, 
-    }
+      nsnull, 
+    },
+
+    
+    ObjectWrapperParent::CPOW_Equality,
+    nsnull, 
+    nsnull, 
+    nsnull, 
+    nsnull, 
+    JSCLASS_NO_RESERVED_MEMBERS
 };
 
 void
@@ -216,8 +219,8 @@ ObjectWrapperParent::Manager()
 JSObject*
 ObjectWrapperParent::GetJSObject(JSContext* cx) const
 {
-    js::Class *clasp = const_cast<js::Class *>(&ObjectWrapperParent::sCPOW_JSClass);
-    if (!mObj && (mObj = JS_NewObject(cx, js::Jsvalify(clasp), NULL, NULL))) {
+    JSClass* clasp = const_cast<JSClass*>(&ObjectWrapperParent::sCPOW_JSClass.base);
+    if (!mObj && (mObj = JS_NewObject(cx, clasp, NULL, NULL))) {
         JS_SetPrivate(cx, mObj, (void*)this);
         JS_SetReservedSlot(cx, mObj, sFlagsSlot, JSVAL_ZERO);
     }
@@ -227,7 +230,7 @@ ObjectWrapperParent::GetJSObject(JSContext* cx) const
 static ObjectWrapperParent*
 Unwrap(JSContext* cx, JSObject* obj)
 {
-    while (obj->getClass() != &ObjectWrapperParent::sCPOW_JSClass)
+    while (obj->getJSClass() != &ObjectWrapperParent::sCPOW_JSClass.base)
         if (!(obj = obj->getProto()))
             return NULL;
     
@@ -565,7 +568,6 @@ ObjectWrapperParent::CPOW_NewEnumerate(JSContext *cx, JSObject *obj,
 
     switch (enum_op) {
     case JSENUMERATE_INIT:
-    case JSENUMERATE_INIT_ALL:
         self->Manager()->RequestRunToCompletion();
         return self->NewEnumerateInit(cx, statep, idp);
     case JSENUMERATE_NEXT:
@@ -637,7 +639,7 @@ ObjectWrapperParent::CPOW_Finalize(JSContext* cx, JSObject* obj)
     ObjectWrapperParent* self = Unwrap(cx, obj);
     if (self) {
         self->mObj = NULL;
-        unused << ObjectWrapperParent::Send__delete__(self);
+        ObjectWrapperParent::Send__delete__(self);
     }
 }
 

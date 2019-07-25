@@ -270,7 +270,7 @@ GetLine(char *bufp,
         const char *prompt)
 {
     char line[256];
-    fputs(prompt, stdout);
+    fprintf(stdout, prompt);
     fflush(stdout);
     if (!fgets(line, sizeof line, file))
         return JS_FALSE;
@@ -1171,8 +1171,6 @@ XPCShellEnvironment::Init()
     nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
     rv = xpc->InitClassesWithNewWrappedGlobal(cx, backstagePass,
                                               NS_GET_IID(nsISupports),
-                                              principal,
-                                              EmptyCString(),
                                               nsIXPConnect::
                                                   FLAG_SYSTEM_GLOBAL_OBJECT,
                                               getter_AddRefs(holder));
@@ -1215,9 +1213,6 @@ bool
 XPCShellEnvironment::EvaluateString(const nsString& aString,
                                     nsString* aResult)
 {
-  XPCShellEnvironment* env = Environment(mCx);
-  XPCShellEnvironment::AutoContextPusher pusher(env);
-
   JSAutoRequest ar(mCx);
 
   JS_ClearPendingException(mCx);
