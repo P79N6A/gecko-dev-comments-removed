@@ -52,14 +52,16 @@
 #include "nsCOMPtr.h"
 #include "nsIPluginInstanceOwner.h"
 #include "nsIPluginTagInfo.h"
-#include "nsIDOMMouseListener.h"
-#include "nsIDOMMouseMotionListener.h"
-#include "nsIDOMKeyListener.h"
-#include "nsIDOMFocusListener.h"
+#include "nsIDOMEventListener.h"
 #include "nsIScrollPositionListener.h"
 #include "nsPluginHost.h"
 #include "nsPluginNativeWindow.h"
 #include "gfxRect.h"
+
+
+#ifdef KeyPress
+#undef KeyPress
+#endif
 
 #ifdef XP_MACOSX
 #include "nsCoreAnimationSupport.h"
@@ -90,12 +92,14 @@ class gfxXlibSurface;
 #include <os2.h>
 #endif
 
+
+#ifdef KeyPress
+#undef KeyPress
+#endif
+
 class nsPluginInstanceOwner : public nsIPluginInstanceOwner,
                               public nsIPluginTagInfo,
-                              public nsIDOMMouseListener,
-                              public nsIDOMMouseMotionListener,
-                              public nsIDOMKeyListener,
-                              public nsIDOMFocusListener,
+                              public nsIDOMEventListener,
                               public nsIScrollPositionListener
 {
 public:
@@ -120,27 +124,11 @@ public:
   NS_DECL_NSIPLUGINTAGINFO
   
   
-  NS_IMETHOD MouseDown(nsIDOMEvent* aMouseEvent);
-  NS_IMETHOD MouseUp(nsIDOMEvent* aMouseEvent);
-  NS_IMETHOD MouseClick(nsIDOMEvent* aMouseEvent);
-  NS_IMETHOD MouseDblClick(nsIDOMEvent* aMouseEvent);
-  NS_IMETHOD MouseOver(nsIDOMEvent* aMouseEvent);
-  NS_IMETHOD MouseOut(nsIDOMEvent* aMouseEvent);
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);     
+  NS_DECL_NSIDOMEVENTLISTENER
   
-  
-  NS_IMETHOD MouseMove(nsIDOMEvent* aMouseEvent);
-  NS_IMETHOD DragMove(nsIDOMEvent* aMouseEvent) { return NS_OK; }
-  
-  
-  NS_IMETHOD KeyDown(nsIDOMEvent* aKeyEvent);
-  NS_IMETHOD KeyUp(nsIDOMEvent* aKeyEvent);
-  NS_IMETHOD KeyPress(nsIDOMEvent* aKeyEvent);
-  
-  
-  NS_IMETHOD Focus(nsIDOMEvent * aFocusEvent);
-  NS_IMETHOD Blur(nsIDOMEvent * aFocusEvent);
-  
+  nsresult MouseDown(nsIDOMEvent* aKeyEvent);
+  nsresult KeyPress(nsIDOMEvent* aKeyEvent);
+
   nsresult Destroy();  
   
   void PrepareToStop(PRBool aDelayedStop);
