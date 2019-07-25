@@ -626,6 +626,11 @@ CSPSourceList.prototype = {
 
   equals:
   function(that) {
+    
+    
+    if (that._permitAllSources != this._permitAllSources) {
+      return false;
+    }
     if (that._sources.length != this._sources.length) {
       return false;
     }
