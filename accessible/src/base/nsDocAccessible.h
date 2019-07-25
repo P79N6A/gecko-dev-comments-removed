@@ -415,25 +415,6 @@ protected:
 
     void ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute);
 
-    
-
-
-
-
-
-
-
-
-    void FireTextChangeEventForText(nsIContent *aContent,
-                                    CharacterDataChangeInfo* aInfo,
-                                    PRBool aIsInserted);
-
-  
-
-
-
-  void FireValueChangeForTextFields(nsAccessible *aAccessible);
-
   
 
 

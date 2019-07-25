@@ -1248,14 +1248,12 @@ void nsDocAccessible::CharacterDataWillChange(nsIDocument *aDocument,
                                               nsIContent* aContent,
                                               CharacterDataChangeInfo* aInfo)
 {
-  FireTextChangeEventForText(aContent, aInfo, PR_FALSE);
 }
 
 void nsDocAccessible::CharacterDataChanged(nsIDocument *aDocument,
                                            nsIContent* aContent,
                                            CharacterDataChangeInfo* aInfo)
 {
-  FireTextChangeEventForText(aContent, aInfo, PR_TRUE);
 }
 
 void
@@ -1682,81 +1680,6 @@ nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
   }
 
   return false;
-}
-
-void
-nsDocAccessible::FireValueChangeForTextFields(nsAccessible *aAccessible)
-{
-  if (aAccessible->Role() != nsIAccessibleRole::ROLE_ENTRY)
-    return;
-
-  
-  nsRefPtr<AccEvent> valueChangeEvent =
-    new AccEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, aAccessible,
-                 eAutoDetect, AccEvent::eRemoveDupes);
-  FireDelayedAccessibleEvent(valueChangeEvent);
-}
-
-void
-nsDocAccessible::FireTextChangeEventForText(nsIContent *aContent,
-                                            CharacterDataChangeInfo* aInfo,
-                                            PRBool aIsInserted)
-{
-  if (!IsContentLoaded())
-    return;
-
-  PRInt32 contentOffset = aInfo->mChangeStart;
-  PRUint32 contentLength = aIsInserted ?
-    aInfo->mReplaceLength: 
-    aInfo->mChangeEnd - contentOffset; 
-
-  if (contentLength == 0)
-    return;
-
-  nsAccessible *accessible = GetAccService()->GetAccessible(aContent);
-  if (!accessible)
-    return;
-
-  nsAccessible* parent = accessible->GetParent();
-  if (!parent)
-    return;
-
-  nsHyperTextAccessible* textAccessible = parent->AsHyperText();
-  if (!textAccessible)
-    return;
-
-  
-  
-  PRInt32 offset = textAccessible->GetChildOffset(accessible, PR_TRUE);
-
-  
-  nsIFrame* frame = aContent->GetPrimaryFrame();
-  if (!frame)
-    return;
-
-  PRUint32 textOffset = 0;
-  nsresult rv = textAccessible->ContentToRenderedOffset(frame, contentOffset,
-                                                        &textOffset);
-  if (NS_FAILED(rv))
-    return;
-
-  nsAutoString text;
-  rv = accessible->AppendTextTo(text, textOffset, contentLength);
-  if (NS_FAILED(rv))
-    return;
-
-  if (text.IsEmpty())
-    return;
-
-  
-  
-  
-  nsRefPtr<AccEvent> event =
-    new AccTextChangeEvent(textAccessible, offset + textOffset, text,
-                          aIsInserted);
-  FireDelayedAccessibleEvent(event);
-
-  FireValueChangeForTextFields(textAccessible);
 }
 
 
