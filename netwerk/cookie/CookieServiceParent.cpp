@@ -70,8 +70,8 @@ CookieServiceParent::RecvGetCookieString(const IPC::URI& aHost,
 
   
   
-  nsCOMPtr<nsIURI> hostURI = aHost;
-  nsCOMPtr<nsIURI> originatingURI = aOriginating;
+  nsCOMPtr<nsIURI> hostURI(aHost);
+  nsCOMPtr<nsIURI> originatingURI(aOriginating);
   if (!hostURI)
     return false;
 
@@ -92,8 +92,8 @@ CookieServiceParent::RecvSetCookieString(const IPC::URI& aHost,
 
   
   
-  nsCOMPtr<nsIURI> hostURI = aHost;
-  nsCOMPtr<nsIURI> originatingURI = aOriginating;
+  nsCOMPtr<nsIURI> hostURI(aHost);
+  nsCOMPtr<nsIURI> originatingURI(aOriginating);
   if (!hostURI)
     return false;
 
