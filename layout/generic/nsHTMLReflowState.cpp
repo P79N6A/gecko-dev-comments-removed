@@ -305,12 +305,6 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
                    "have unconstrained width; this should only result from "
                    "very large sizes, not attempts at intrinsic width "
                    "calculation");
-
-  if (frame->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT) {
-    
-    
-    nsFontInflationData::UpdateFontInflationDataWidthFor(*this);
-  }
 }
 
 void nsHTMLReflowState::InitCBReflowState()
@@ -364,6 +358,20 @@ IsQuirkContainingBlockHeight(const nsHTMLReflowState* rs, nsIAtom* aFrameType)
 void
 nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameType)
 {
+  if (frame->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT) {
+    
+    
+    bool dirty = nsFontInflationData::UpdateFontInflationDataWidthFor(*this);
+    if (dirty) {
+      
+      
+      
+      
+      
+      frame->AddStateBits(NS_FRAME_IS_DIRTY);
+    }
+  }
+
   mFlags.mHResize = !(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
                     frame->GetSize().width !=
                       mComputedWidth + mComputedBorderPadding.LeftRight();
