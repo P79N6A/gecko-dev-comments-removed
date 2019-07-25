@@ -4322,11 +4322,13 @@ nsXPCComponents_Utils::RecomputeWrappers(const jsval &vobj, JSContext *cx)
 
     
     if (!c)
-        return js::RecomputeWrappers(cx, js::AllCompartments(), js::AllCompartments());
-
+        js::RecomputeWrappers(cx, js::AllCompartments(), js::AllCompartments());
     
-    return js::RecomputeWrappers(cx, js::SingleCompartment(c), js::AllCompartments()) &&
-           js::RecomputeWrappers(cx, js::AllCompartments(), js::SingleCompartment(c));
+    else
+        js::RecomputeWrappers(cx, js::SingleCompartment(c), js::AllCompartments()) &&
+        js::RecomputeWrappers(cx, js::AllCompartments(), js::SingleCompartment(c));
+
+    return NS_OK;
 }
 
 
