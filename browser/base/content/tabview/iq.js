@@ -420,27 +420,31 @@ iQ.fn = iQ.prototype = {
   
 	width: function(unused) {
     Utils.assert('does not yet support setting', unused === undefined);
-    Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
-    return this[0].clientWidth;
+
+    return parseInt(this.css('width')); 
   },
 
   
   
 	height: function(unused) {
     Utils.assert('does not yet support setting', unused === undefined);
-    Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
-    return this[0].clientHeight;
+
+    return parseInt(this.css('height')); 
   },
 
   
   
   position: function(unused) {
     Utils.assert('does not yet support setting', unused === undefined);
-    Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
-    var el = this[0];
+
+
     return {
-      left: (parseInt(el.style.left) || el.offsetLeft), 
-      top: (parseInt(el.style.top) || el.offsetTop)
+      left: parseInt(this.css('left')),
+      top: parseInt(this.css('top'))
+
+
+
+
     };
   },
   
@@ -536,18 +540,18 @@ iQ.fn = iQ.prototype = {
   
   css: function(a, b) {
     var properties = null;
-
-
-
-
-
-
     
     if(typeof a === 'string') {
       var key = a; 
       if(b === undefined) {
         Utils.assert('retrieval does not support multi-objects (or null objects)', this.length == 1);      
-        return window.getComputedStyle(this[0], null).getPropertyValue(key);  
+
+        var substitutions = {
+          'MozTransform': '-moz-transform',
+          'zIndex': 'z-index'
+        };
+
+        return window.getComputedStyle(this[0], null).getPropertyValue(substitutions[key] || key);  
       } else {
         properties = {};
         properties[key] = b;
