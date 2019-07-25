@@ -816,10 +816,9 @@ public:
 
 
 
-  nsIntRect CalculateScissorRect(bool aIntermediate,
-                                 const nsIntRect& aVisibleRect,
-                                 const nsIntRect& aParentScissor,
-                                 const gfxMatrix& aTransform);
+
+  nsIntRect CalculateScissorRect(const nsIntRect& aCurrentScissorRect,
+                                 const gfxMatrix* aWorldTransform);
 
   virtual const char* Name() const =0;
   virtual LayerType GetType() const =0;
@@ -1058,6 +1057,16 @@ public:
 
 
   PRBool UseIntermediateSurface() { return mUseIntermediateSurface; }
+
+  
+
+
+
+  nsIntRect GetIntermediateSurfaceRect()
+  {
+    NS_ASSERTION(mUseIntermediateSurface, "Must have intermediate surface");
+    return mVisibleRegion.GetBounds();
+  }
 
   
 

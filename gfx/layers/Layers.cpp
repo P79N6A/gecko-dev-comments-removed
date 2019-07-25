@@ -45,6 +45,7 @@
 #include "gfxPlatform.h"
 #include "ReadbackLayer.h"
 #include "gfxUtils.h"
+#include "mozilla/Util.h"
 
 using namespace mozilla::layers;
 
@@ -304,44 +305,55 @@ Layer::SnapTransform(const gfx3DMatrix& aTransform,
 }
 
 nsIntRect 
-Layer::CalculateScissorRect(bool aIntermediate,
-                            const nsIntRect& aVisibleRect,
-                            const nsIntRect& aParentScissor,
-                            const gfxMatrix& aTransform)
+Layer::CalculateScissorRect(const nsIntRect& aCurrentScissorRect,
+                            const gfxMatrix* aWorldTransform)
 {
-  nsIntRect scissorRect(aVisibleRect);
+  ContainerLayer* container = GetParent();
+  NS_ASSERTION(container, "This can't be called on the root!");
+
+  
+  
+  nsIntRect currentClip;
+  if (container->UseIntermediateSurface()) {
+    currentClip.SizeTo(container->GetIntermediateSurfaceRect().Size());
+  } else {
+    currentClip = aCurrentScissorRect;
+  }
 
   const nsIntRect *clipRect = GetEffectiveClipRect();
+  if (!clipRect)
+    return currentClip;
 
-  if (!aIntermediate && !clipRect) {
-    return aParentScissor;
-  }
-
-  if (clipRect) {
-    if (clipRect->IsEmpty()) {
-      return *clipRect;
-    }
-    scissorRect = *clipRect;
-    if (!aIntermediate) {
-      gfxRect r(scissorRect.x, scissorRect.y, scissorRect.width, scissorRect.height);
-      gfxRect trScissor = aTransform.TransformBounds(r);
-      trScissor.Round();
-      if (!gfxUtils::GfxRectToIntRect(trScissor, &scissorRect)) {
-        scissorRect = aVisibleRect;
-      }
-    }
-  }
+  if (clipRect->IsEmpty()) {
     
-  if (aIntermediate) {
-    scissorRect.MoveBy(- aVisibleRect.TopLeft());
-  } else if (clipRect) {
-    scissorRect.IntersectRect(scissorRect, aParentScissor);
+    
+    return nsIntRect(currentClip.TopLeft(), nsIntSize(0, 0));
   }
 
-  NS_ASSERTION(scissorRect.x >= 0 && scissorRect.y >= 0,
-               "Attempting to scissor out of bounds!");
+  nsIntRect scissor = *clipRect;
+  if (!container->UseIntermediateSurface()) {
+    gfxMatrix matrix;
+    DebugOnly<bool> is2D = container->GetEffectiveTransform().Is2D(&matrix);
+    
+    NS_ASSERTION(is2D && !matrix.HasNonIntegerTranslation(),
+                 "Non-integer-translation transform with clipped child should have forced intermediate surface");
+    scissor.MoveBy(nsIntPoint(PRInt32(matrix.x0), PRInt32(matrix.y0)));
 
-  return scissorRect;
+    
+    do {
+      container = container->GetParent();
+    } while (container && !container->UseIntermediateSurface());
+  }
+  if (container) {
+    scissor.MoveBy(-container->GetIntermediateSurfaceRect().TopLeft());
+  } else if (aWorldTransform) {
+    gfxRect r(scissor.x, scissor.y, scissor.width, scissor.height);
+    gfxRect trScissor = aWorldTransform->TransformBounds(r);
+    trScissor.Round();
+    if (!gfxUtils::GfxRectToIntRect(trScissor, &scissor))
+      return nsIntRect(currentClip.TopLeft(), nsIntSize(0, 0));
+  }
+  return currentClip.Intersect(scissor);
 }
 
 const gfx3DMatrix&
@@ -396,7 +408,7 @@ ContainerLayer::DefaultComputeEffectiveTransforms(const gfx3DMatrix& aTransformT
     useIntermediateSurface = PR_FALSE;
     gfxMatrix contTransform;
     if (!mEffectiveTransform.Is2D(&contTransform) ||
-        !contTransform.PreservesAxisAlignedRectangles()) {
+        contTransform.HasNonIntegerTranslation()) {
       for (Layer* child = GetFirstChild(); child; child = child->GetNextSibling()) {
         const nsIntRect *clipRect = child->GetEffectiveClipRect();
         
