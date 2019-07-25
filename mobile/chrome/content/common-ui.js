@@ -1,4 +1,44 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const kBrowserFormZoomLevelMin = 0.8;
+const kBrowserFormZoomLevelMax = 2.0;
+
 var BrowserSearch = {
   get _popup() {
     delete this._popup;
@@ -563,7 +603,11 @@ var FindHelperUI = {
 
     if (Browser.selectedTab.allowZoom) {
       let zoomLevel = Browser._getZoomLevelForRect(aElementRect);
-      zoomLevel = Math.min(Math.max(kBrowserFormZoomLevelMin, zoomLevel), kBrowserFormZoomLevelMax);
+
+      
+      let defaultZoomLevel = Browser.selectedTab.getDefaultZoomLevel();
+      zoomLevel = Util.clamp(zoomLevel, (defaultZoomLevel * kBrowserFormZoomLevelMin),
+                                        (defaultZoomLevel * kBrowserFormZoomLevelMax));
       zoomLevel = Browser.selectedTab.clampZoomLevel(zoomLevel);
 
       let zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, zoomLevel);
@@ -1150,7 +1194,11 @@ var FormHelperUI = {
   _getZoomLevelForRect: function _getZoomLevelForRect(aRect) {
     const margin = 30;
     let zoomLevel = getBrowser().getBoundingClientRect().width / (aRect.width + margin);
-    return Util.clamp(zoomLevel, kBrowserFormZoomLevelMin, kBrowserFormZoomLevelMax);
+
+    
+    let defaultZoomLevel = Browser.selectedTab.getDefaultZoomLevel();
+    return Util.clamp(zoomLevel, (defaultZoomLevel * kBrowserFormZoomLevelMin),
+                                 (defaultZoomLevel * kBrowserFormZoomLevelMax));
   },
 
   _getOffsetForCaret: function _formHelperGetOffsetForCaret(aCaretRect, aRect) {
