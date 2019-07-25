@@ -54,6 +54,7 @@
 #include "nsIAccessibleRelation.h"
 #include "nsTextEquivUtils.h"
 #include "Relation.h"
+#include "Role.h"
 #include "States.h"
 
 #include "nsIDOMElement.h"
@@ -1475,7 +1476,7 @@ nsAccessible::State()
   
   ApplyARIAState(&state);
 
-  if (mRoleMapEntry && mRoleMapEntry->role == nsIAccessibleRole::ROLE_PAGETAB &&
+  if (mRoleMapEntry && mRoleMapEntry->role == roles::PAGETAB &&
       !(state & states::SELECTED) &&
       !mContent->AttrValueIs(kNameSpaceID_None,
                              nsGkAtoms::aria_selected,
@@ -1489,7 +1490,7 @@ nsAccessible::State()
       Relation rel = RelationByType(nsIAccessibleRelation::RELATION_LABEL_FOR);
       nsAccessible* relTarget = nsnull;
       while ((relTarget = rel.Next())) {
-        if (relTarget->Role() == nsIAccessibleRole::ROLE_PROPERTYPAGE &&
+        if (relTarget->Role() == roles::PROPERTYPAGE &&
             FocusMgr()->IsFocusWithin(relTarget))
           state |= states::SELECTED;
       }
@@ -1562,7 +1563,7 @@ nsAccessible::ApplyARIAState(PRUint64* aState)
     
     
     
-    if (mRoleMapEntry->role != nsIAccessibleRole::ROLE_NOTHING)
+    if (mRoleMapEntry->role != roles::NOTHING)
       *aState &= ~states::READONLY;
 
     if (mContent->HasAttr(kNameSpaceID_None, mContent->GetIDAttributeName())) {
@@ -1739,7 +1740,7 @@ nsAccessible::GetKeyBindings(PRUint8 aActionIndex,
   return NS_OK;
 }
 
-PRUint32
+role
 nsAccessible::ARIARoleInternal()
 {
   NS_PRECONDITION(mRoleMapEntry && mRoleMapEntry->roleRule == kUseMapRole,
@@ -1747,11 +1748,11 @@ nsAccessible::ARIARoleInternal()
 
   
   
-  if (mRoleMapEntry->role == nsIAccessibleRole::ROLE_PUSHBUTTON) {
+  if (mRoleMapEntry->role == roles::PUSHBUTTON) {
     if (nsAccUtils::HasDefinedARIAToken(mContent, nsGkAtoms::aria_pressed)) {
       
       
-      return nsIAccessibleRole::ROLE_TOGGLE_BUTTON;
+      return roles::TOGGLE_BUTTON;
     }
 
     if (mContent->AttrValueIs(kNameSpaceID_None,
@@ -1759,35 +1760,34 @@ nsAccessible::ARIARoleInternal()
                               nsGkAtoms::_true,
                               eCaseMatters)) {
       
-      return nsIAccessibleRole::ROLE_BUTTONMENU;
+      return roles::BUTTONMENU;
     }
 
-  } else if (mRoleMapEntry->role == nsIAccessibleRole::ROLE_LISTBOX) {
+  } else if (mRoleMapEntry->role == roles::LISTBOX) {
     
     
-    if (mParent && mParent->Role() == nsIAccessibleRole::ROLE_COMBOBOX) {
-      return nsIAccessibleRole::ROLE_COMBOBOX_LIST;
+    if (mParent && mParent->Role() == roles::COMBOBOX) {
+      return roles::COMBOBOX_LIST;
 
       Relation rel = RelationByType(nsIAccessibleRelation::RELATION_NODE_CHILD_OF);
       nsAccessible* targetAcc = nsnull;
       while ((targetAcc = rel.Next()))
-        if (targetAcc->Role() == nsIAccessibleRole::ROLE_COMBOBOX)
-          return nsIAccessibleRole::ROLE_COMBOBOX_LIST;
+        if (targetAcc->Role() == roles::COMBOBOX)
+          return roles::COMBOBOX_LIST;
     }
 
-  } else if (mRoleMapEntry->role == nsIAccessibleRole::ROLE_OPTION) {
-    if (mParent && mParent->Role() == nsIAccessibleRole::ROLE_COMBOBOX_LIST)
-      return nsIAccessibleRole::ROLE_COMBOBOX_OPTION;
+  } else if (mRoleMapEntry->role == roles::OPTION) {
+    if (mParent && mParent->Role() == roles::COMBOBOX_LIST)
+      return roles::COMBOBOX_OPTION;
   }
 
   return mRoleMapEntry->role;
 }
 
-PRUint32
+role
 nsAccessible::NativeRole()
 {
-  return nsCoreUtils::IsXLink(mContent) ?
-    nsIAccessibleRole::ROLE_LINK : nsIAccessibleRole::ROLE_NOTHING;
+  return nsCoreUtils::IsXLink(mContent) ? roles::LINK : roles::NOTHING;
 }
 
 
@@ -1993,9 +1993,8 @@ nsAccessible::RelationByType(PRUint32 aType)
       
       
       
-      if (mRoleMapEntry &&
-          (mRoleMapEntry->role == nsIAccessibleRole::ROLE_OUTLINEITEM ||
-           mRoleMapEntry->role == nsIAccessibleRole::ROLE_ROW)) {
+      if (mRoleMapEntry && (mRoleMapEntry->role == roles::OUTLINEITEM || 
+	  mRoleMapEntry->role == roles::ROW)) {
         AccGroupInfo* groupInfo = GetGroupInfo();
         if (!groupInfo)
           return rel;
@@ -3138,8 +3137,8 @@ nsAccessible::GetLevelInternal()
   if (!IsBoundToParent())
     return level;
 
-  PRUint32 role = Role();
-  if (role == nsIAccessibleRole::ROLE_OUTLINEITEM) {
+  roles::Role role = Role();
+  if (role == roles::OUTLINEITEM) {
     
     
     
@@ -3147,16 +3146,16 @@ nsAccessible::GetLevelInternal()
 
     nsAccessible* parent = this;
     while ((parent = parent->Parent())) {
-      PRUint32 parentRole = parent->Role();
+      roles::Role parentRole = parent->Role();
 
-      if (parentRole == nsIAccessibleRole::ROLE_OUTLINE)
+      if (parentRole == roles::OUTLINE)
         break;
-      if (parentRole == nsIAccessibleRole::ROLE_GROUPING)
+      if (parentRole == roles::GROUPING)
         ++ level;
 
     }
 
-  } else if (role == nsIAccessibleRole::ROLE_LISTITEM) {
+  } else if (role == roles::LISTITEM) {
     
     
     
@@ -3166,11 +3165,11 @@ nsAccessible::GetLevelInternal()
     level = 0;
     nsAccessible* parent = this;
     while ((parent = parent->Parent())) {
-      PRUint32 parentRole = parent->Role();
+      roles::Role parentRole = parent->Role();
 
-      if (parentRole == nsIAccessibleRole::ROLE_LISTITEM)
+      if (parentRole == roles::LISTITEM)
         ++ level;
-      else if (parentRole != nsIAccessibleRole::ROLE_LIST)
+      else if (parentRole != roles::LIST)
         break;
 
     }
@@ -3184,8 +3183,7 @@ nsAccessible::GetLevelInternal()
         nsAccessible* sibling = parent->GetChildAt(siblingIdx);
 
         nsAccessible* siblingChild = sibling->LastChild();
-        if (siblingChild &&
-            siblingChild->Role() == nsIAccessibleRole::ROLE_LIST)
+        if (siblingChild && siblingChild->Role() == roles::LIST)
           return 1;
       }
     } else {

@@ -72,7 +72,7 @@ public:
   virtual ~nsHTMLSelectListAccessible() {}
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -118,7 +118,7 @@ public:
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   virtual PRInt32 GetLevelInternal();
@@ -160,7 +160,7 @@ public:
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -198,7 +198,7 @@ public:
 
   
   virtual void Description(nsString& aDescription);
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual void InvalidateChildren();
 

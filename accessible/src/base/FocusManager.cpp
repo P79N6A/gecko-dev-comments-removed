@@ -40,6 +40,7 @@
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
 #include "nsRootAccessible.h"
+#include "Role.h"
 
 #include "nsEventStateManager.h"
 #include "nsFocusManager.h"
@@ -296,10 +297,10 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
   }
 
   
-  if (target->ARIARole() == nsIAccessibleRole::ROLE_MENUITEM) {
+  if (target->ARIARole() == roles::MENUITEM) {
     
     nsAccessible* ARIAMenubar =
-      nsAccUtils::GetAncestorWithRole(target, nsIAccessibleRole::ROLE_MENUBAR);
+      nsAccUtils::GetAncestorWithRole(target, roles::MENUBAR);
 
     if (ARIAMenubar != mActiveARIAMenubar) {
       

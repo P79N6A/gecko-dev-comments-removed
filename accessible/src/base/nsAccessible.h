@@ -39,8 +39,9 @@
 #ifndef _nsAccessible_H_
 #define _nsAccessible_H_
 
-#include "nsAccessNodeWrap.h"
+#include "mozilla/a11y/Role.h"
 #include "mozilla/a11y/States.h"
+#include "nsAccessNodeWrap.h"
 
 #include "nsIAccessible.h"
 #include "nsIAccessibleHyperLink.h"
@@ -157,7 +158,7 @@ public:
   
 
 
-  inline PRUint32 Role()
+  inline mozilla::a11y::role Role()
   {
     if (!mRoleMapEntry || mRoleMapEntry->roleRule != kUseMapRole)
       return NativeRole();
@@ -169,10 +170,10 @@ public:
 
 
 
-  inline PRUint32 ARIARole()
+  inline mozilla::a11y::role ARIARole()
   {
     if (!mRoleMapEntry || mRoleMapEntry->roleRule != kUseMapRole)
-      return nsIAccessibleRole::ROLE_NOTHING;
+      return mozilla::a11y::roles::NOTHING;
 
     return ARIARoleInternal();
   }
@@ -181,7 +182,7 @@ public:
 
 
 
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
 
   
 
@@ -672,7 +673,7 @@ protected:
   
 
 
-  PRUint32 ARIARoleInternal();
+  mozilla::a11y::role ARIARoleInternal();
 
   virtual nsIFrame* GetBoundsFrame();
   virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);

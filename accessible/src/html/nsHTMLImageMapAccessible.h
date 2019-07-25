@@ -58,7 +58,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
 
   
   virtual PRUint32 AnchorCount();

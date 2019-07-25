@@ -45,6 +45,7 @@
 #include "nsAccUtils.h"
 #include "nsCoreUtils.h"
 #include "Relation.h"
+#include "Role.h"
 #include "States.h"
 
 #include "mozilla/dom/Element.h"
@@ -142,7 +143,7 @@ nsRootAccessible::GetName(nsAString& aName)
   return document->GetTitle(aName);
 }
 
-PRUint32
+role
 nsRootAccessible::NativeRole()
 {
   
@@ -153,7 +154,7 @@ nsRootAccessible::NativeRole()
       nsAutoString name;
       rootElement->GetLocalName(name);
       if (name.EqualsLiteral("dialog") || name.EqualsLiteral("wizard")) {
-        return nsIAccessibleRole::ROLE_DIALOG; 
+        return roles::DIALOG; 
       }
     }
   }
@@ -502,7 +503,7 @@ nsRootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
     HandlePopupShownEvent(accessible);
   }
   else if (eventType.EqualsLiteral("DOMMenuInactive")) {
-    if (accessible->Role() == nsIAccessibleRole::ROLE_MENUPOPUP) {
+    if (accessible->Role() == roles::MENUPOPUP) {
       nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
                               accessible);
     }
@@ -649,16 +650,16 @@ nsRootAccessible::RelationByType(PRUint32 aType)
 void
 nsRootAccessible::HandlePopupShownEvent(nsAccessible* aAccessible)
 {
-  PRUint32 role = aAccessible->Role();
+  roles::Role role = aAccessible->Role();
 
-  if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
+  if (role == roles::MENUPOPUP) {
     
     nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
                             aAccessible);
     return;
   }
 
-  if (role == nsIAccessibleRole::ROLE_TOOLTIP) {
+  if (role == roles::TOOLTIP) {
     
     
     
@@ -667,15 +668,15 @@ nsRootAccessible::HandlePopupShownEvent(nsAccessible* aAccessible)
     return;
   }
 
-  if (role == nsIAccessibleRole::ROLE_COMBOBOX_LIST) {
+  if (role == roles::COMBOBOX_LIST) {
     
     nsAccessible* combobox = aAccessible->Parent();
     if (!combobox)
       return;
 
-    PRUint32 comboboxRole = combobox->Role();
-    if (comboboxRole == nsIAccessibleRole::ROLE_COMBOBOX ||
-        comboboxRole == nsIAccessibleRole::ROLE_AUTOCOMPLETE) {
+    roles::Role comboboxRole = combobox->Role();
+    if (comboboxRole == roles::COMBOBOX || 
+	comboboxRole == roles::AUTOCOMPLETE) {
       nsRefPtr<AccEvent> event =
         new AccStateChangeEvent(combobox, states::EXPANDED, true);
       if (event)

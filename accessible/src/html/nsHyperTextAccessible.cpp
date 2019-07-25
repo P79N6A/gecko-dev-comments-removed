@@ -39,10 +39,11 @@
 
 #include "nsHyperTextAccessible.h"
 
-#include "States.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
 #include "nsTextAttrs.h"
+#include "Role.h"
+#include "States.h"
 
 #include "nsIClipboard.h"
 #include "nsFocusManager.h"
@@ -90,11 +91,11 @@ nsresult nsHyperTextAccessible::QueryInterface(REFNSIID aIID, void** aInstancePt
   }
 
   if (mRoleMapEntry &&
-      (mRoleMapEntry->role == nsIAccessibleRole::ROLE_GRAPHIC ||
-       mRoleMapEntry->role == nsIAccessibleRole::ROLE_IMAGE_MAP ||
-       mRoleMapEntry->role == nsIAccessibleRole::ROLE_SLIDER ||
-       mRoleMapEntry->role == nsIAccessibleRole::ROLE_PROGRESSBAR ||
-       mRoleMapEntry->role == nsIAccessibleRole::ROLE_SEPARATOR)) {
+      (mRoleMapEntry->role == roles::GRAPHIC ||
+       mRoleMapEntry->role == roles::IMAGE_MAP ||
+       mRoleMapEntry->role == roles::SLIDER ||
+       mRoleMapEntry->role == roles::PROGRESSBAR ||
+       mRoleMapEntry->role == roles::SEPARATOR)) {
     
     return nsAccessible::QueryInterface(aIID, aInstancePtr);
   }
@@ -120,46 +121,42 @@ nsresult nsHyperTextAccessible::QueryInterface(REFNSIID aIID, void** aInstancePt
   return nsAccessible::QueryInterface(aIID, aInstancePtr);
 }
 
-PRUint32
+role
 nsHyperTextAccessible::NativeRole()
 {
   nsIAtom *tag = mContent->Tag();
 
   if (tag == nsGkAtoms::form)
-    return nsIAccessibleRole::ROLE_FORM;
+    return roles::FORM;
 
-  if (tag == nsGkAtoms::blockquote ||
-      tag == nsGkAtoms::div ||
+  if (tag == nsGkAtoms::blockquote || tag == nsGkAtoms::div ||
       tag == nsGkAtoms::nav)
-    return nsIAccessibleRole::ROLE_SECTION;
+    return roles::SECTION;
 
-  if (tag == nsGkAtoms::h1 ||
-      tag == nsGkAtoms::h2 ||
-      tag == nsGkAtoms::h3 ||
-      tag == nsGkAtoms::h4 ||
-      tag == nsGkAtoms::h5 ||
-      tag == nsGkAtoms::h6)
-    return nsIAccessibleRole::ROLE_HEADING;
+  if (tag == nsGkAtoms::h1 || tag == nsGkAtoms::h2 ||
+      tag == nsGkAtoms::h3 || tag == nsGkAtoms::h4 ||
+      tag == nsGkAtoms::h5 || tag == nsGkAtoms::h6)
+    return roles::HEADING;
 
   if (tag == nsGkAtoms::article)
-    return nsIAccessibleRole::ROLE_DOCUMENT;
+    return roles::DOCUMENT;
         
   
   if (tag == nsGkAtoms::header)
-    return nsIAccessibleRole::ROLE_HEADER;
+    return roles::HEADER;
 
   if (tag == nsGkAtoms::footer)
-    return nsIAccessibleRole::ROLE_FOOTER;
+    return roles::FOOTER;
 
   if (tag == nsGkAtoms::aside)
-    return nsIAccessibleRole::ROLE_NOTE;
+    return roles::NOTE;
 
   
   nsIFrame *frame = GetFrame();
   if (frame && frame->GetType() == nsGkAtoms::blockFrame)
-    return nsIAccessibleRole::ROLE_PARAGRAPH;
+    return roles::PARAGRAPH;
 
-  return nsIAccessibleRole::ROLE_TEXT_CONTAINER; 
+  return roles::TEXT_CONTAINER; 
 }
 
 PRUint64
@@ -280,7 +277,7 @@ nsHyperTextAccessible::GetPosAndText(PRInt32& aStartOffset, PRInt32& aEndOffset,
   PRInt32 startOffset = aStartOffset;
   PRInt32 endOffset = aEndOffset;
   
-  bool isPassword = (Role() == nsIAccessibleRole::ROLE_PASSWORD_TEXT);
+  bool isPassword = (Role() == roles::PASSWORD_TEXT);
 
   
   if (aText) {
@@ -838,7 +835,7 @@ nsHyperTextAccessible::GetRelativeOffset(nsIPresShell *aPresShell,
     nsAccessible *firstChild = mChildren.SafeElementAt(0, nsnull);
     
     if (pos.mContentOffset == 0 && firstChild &&
-        firstChild->Role() == nsIAccessibleRole::ROLE_STATICTEXT &&
+        firstChild->Role() == roles::STATICTEXT &&
         static_cast<PRInt32>(nsAccUtils::TextLength(firstChild)) == hyperTextOffset) {
       
       hyperTextOffset = 0;
@@ -850,7 +847,7 @@ nsHyperTextAccessible::GetRelativeOffset(nsIPresShell *aPresShell,
   else if (aAmount == eSelectEndLine && finalAccessible) { 
     
     
-    if (finalAccessible->Role() == nsIAccessibleRole::ROLE_WHITESPACE) {  
+    if (finalAccessible->Role() == roles::WHITESPACE) {  
       
       
       
@@ -1008,7 +1005,7 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
     nsRefPtr<nsAccessible> endAcc;
     nsIFrame *endFrame = GetPosAndText(startOffset, endOffset, nsnull, nsnull,
                                        nsnull, getter_AddRefs(endAcc));
-    if (endAcc && endAcc->Role() == nsIAccessibleRole::ROLE_STATICTEXT) {
+    if (endAcc && endAcc->Role() == roles::STATICTEXT) {
       
       
       startOffset = endOffset = finalStartOffset +

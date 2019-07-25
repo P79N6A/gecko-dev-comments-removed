@@ -37,11 +37,12 @@
 
 #include "AccGroupInfo.h"
 
+#include "Role.h"
 #include "States.h"
 
 using namespace mozilla::a11y;
 
-AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
+AccGroupInfo::AccGroupInfo(nsAccessible* aItem, role aRole) :
   mPosInSet(0), mSetSize(0), mParent(nsnull)
 {
   MOZ_COUNT_CTOR(AccGroupInfo);
@@ -62,10 +63,10 @@ AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
   mPosInSet = 1;
   for (PRInt32 idx = indexInParent - 1; idx >=0 ; idx--) {
     nsAccessible* sibling = parent->GetChildAt(idx);
-    PRUint32 siblingRole = sibling->Role();
+    roles::Role siblingRole = sibling->Role();
 
     
-    if (siblingRole == nsIAccessibleRole::ROLE_SEPARATOR)
+    if (siblingRole == roles::SEPARATOR)
       break;
 
     
@@ -104,10 +105,10 @@ AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
   for (PRInt32 idx = indexInParent + 1; idx < siblingCount; idx++) {
     nsAccessible* sibling = parent->GetChildAt(idx);
 
-    PRUint32 siblingRole = sibling->Role();
+    roles::Role siblingRole = sibling->Role();
 
     
-    if (siblingRole == nsIAccessibleRole::ROLE_SEPARATOR)
+    if (siblingRole == roles::SEPARATOR)
       break;
 
     
@@ -137,7 +138,7 @@ AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
   if (mParent)
     return;
 
-  PRUint32 parentRole = parent->Role();
+  roles::Role parentRole = parent->Role();
   if (IsConceptualParent(aRole, parentRole))
     mParent = parent;
 
@@ -145,16 +146,15 @@ AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
   
   
   
-  if (parentRole != nsIAccessibleRole::ROLE_GROUPING ||
-      aRole != nsIAccessibleRole::ROLE_OUTLINEITEM)
+  if (parentRole != roles::GROUPING || aRole != roles::OUTLINEITEM)
     return;
 
   nsAccessible* parentPrevSibling = parent->PrevSibling();
   if (!parentPrevSibling)
     return;
 
-  PRUint32 parentPrevSiblingRole = parentPrevSibling->Role();
-  if (parentPrevSiblingRole == nsIAccessibleRole::ROLE_TEXT_LEAF) {
+  roles::Role parentPrevSiblingRole = parentPrevSibling->Role();
+  if (parentPrevSiblingRole == roles::TEXT_LEAF) {
     
     
     
@@ -166,39 +166,31 @@ AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
 
   
   
-  if (parentPrevSiblingRole == nsIAccessibleRole::ROLE_OUTLINEITEM)
+  if (parentPrevSiblingRole == roles::OUTLINEITEM)
     mParent = parentPrevSibling;
 }
 
 bool
-AccGroupInfo::IsConceptualParent(PRUint32 aRole, PRUint32 aParentRole)
+AccGroupInfo::IsConceptualParent(role aRole, role aParentRole)
 {
-  if (aParentRole == nsIAccessibleRole::ROLE_OUTLINE &&
-      aRole == nsIAccessibleRole::ROLE_OUTLINEITEM)
+  if (aParentRole == roles::OUTLINE && aRole == roles::OUTLINEITEM)
     return true;
-  if ((aParentRole == nsIAccessibleRole::ROLE_TABLE ||
-       aParentRole == nsIAccessibleRole::ROLE_TREE_TABLE) &&
-      aRole == nsIAccessibleRole::ROLE_ROW)
+  if ((aParentRole == roles::TABLE || aParentRole == roles::TREE_TABLE) &&
+      aRole == roles::ROW)
     return true;
-  if (aParentRole == nsIAccessibleRole::ROLE_ROW &&
-      (aRole == nsIAccessibleRole::ROLE_CELL ||
-       aRole == nsIAccessibleRole::ROLE_GRID_CELL))
+  if (aParentRole == roles::ROW &&
+      (aRole == roles::CELL || aRole == roles::GRID_CELL))
     return true;
-  if (aParentRole == nsIAccessibleRole::ROLE_LIST &&
-      aRole == nsIAccessibleRole::ROLE_LISTITEM)
+  if (aParentRole == roles::LIST && aRole == roles::LISTITEM)
     return true;
-  if (aParentRole == nsIAccessibleRole::ROLE_COMBOBOX_LIST &&
-      aRole == nsIAccessibleRole::ROLE_COMBOBOX_OPTION)
+  if (aParentRole == roles::COMBOBOX_LIST && aRole == roles::COMBOBOX_OPTION)
     return true;
-  if (aParentRole == nsIAccessibleRole::ROLE_LISTBOX &&
-      aRole == nsIAccessibleRole::ROLE_OPTION)
+  if (aParentRole == roles::LISTBOX && aRole == roles::OPTION)
     return true;
-  if (aParentRole == nsIAccessibleRole::ROLE_PAGETABLIST &&
-      aRole == nsIAccessibleRole::ROLE_PAGETAB)
+  if (aParentRole == roles::PAGETABLIST && aRole == roles::PAGETAB)
     return true;
-  if ((aParentRole == nsIAccessibleRole::ROLE_POPUP_MENU ||
-       aParentRole == nsIAccessibleRole::ROLE_MENUPOPUP) &&
-      aRole == nsIAccessibleRole::ROLE_MENUITEM)
+  if ((aParentRole == roles::POPUP_MENU || aParentRole == roles::MENUPOPUP) &&
+      aRole == roles::MENUITEM)
     return true;
 
   return false;

@@ -63,7 +63,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -108,7 +108,7 @@ public:
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 State();
   virtual PRUint64 NativeState();
 
@@ -136,7 +136,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -171,7 +171,7 @@ public:
   
   virtual void ApplyARIAState(PRUint64* aState);
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 State();
   virtual PRUint64 NativeState();
 
@@ -193,7 +193,7 @@ public:
   nsHTMLFileInputAccessible(nsIContent* aContent, nsIWeakReference* aShell);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual nsresult HandleAccEvent(AccEvent* aAccEvent);
 };
 
@@ -207,7 +207,7 @@ public:
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual Relation RelationByType(PRUint32 aType);
 
 protected:
@@ -224,7 +224,7 @@ public:
   nsHTMLLegendAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual Relation RelationByType(PRUint32 aType);
 };
 
@@ -239,7 +239,7 @@ public:
   
   virtual nsresult GetAttributesInternal(nsIPersistentProperties* aAttributes);
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual Relation RelationByType(PRUint32 aType);
 
 protected:
@@ -256,7 +256,7 @@ public:
   nsHTMLFigcaptionAccessible(nsIContent* aContent, nsIWeakReference* aShell);
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual Relation RelationByType(PRUint32 aType);
 };
 

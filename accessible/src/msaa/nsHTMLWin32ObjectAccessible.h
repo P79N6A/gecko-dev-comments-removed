@@ -61,7 +61,7 @@ public:
   virtual void Shutdown();
 
   
-  virtual PRUint32 NativeRole();
+  virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
 protected:
