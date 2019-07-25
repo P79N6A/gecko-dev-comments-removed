@@ -452,6 +452,15 @@ function openTroubleshootingPage()
   openUILinkIn("about:support", "tab");
 }
 
+
+
+
+function openFeedbackPage()
+{
+  openUILinkIn("http://input.mozilla.com/sad", "tab");
+}
+
+
 #ifdef MOZ_UPDATER
 
 
