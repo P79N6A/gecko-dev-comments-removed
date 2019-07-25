@@ -1405,10 +1405,9 @@ nsIEProfileMigrator::CopyFavoritesBatched(bool aReplace)
   }
   else {
     
-    nsCOMPtr<nsIFile> profile;
-    GetProfilePath(nsnull, profile);
-    rv = InitializeBookmarks(profile);
-    NS_ENSURE_SUCCESS(rv, rv);
+    
+    DebugOnly<nsresult> rv = ImportDefaultBookmarks();
+    MOZ_ASSERT(NS_SUCCEEDED(rv), "Should be able to import default bookmarks");
 
     
     
