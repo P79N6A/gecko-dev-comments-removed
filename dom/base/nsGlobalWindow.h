@@ -806,6 +806,8 @@ protected:
 
   nsresult CreateOuterObject(nsGlobalWindow* aNewInner);
   nsresult SetOuterObject(JSContext* aCx, JSObject* aOuterObject);
+  nsresult CloneStorageEvent(const nsAString& aType,
+                             nsCOMPtr<nsIDOMStorageEvent>& aEvent);
 
   
   
