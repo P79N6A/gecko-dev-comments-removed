@@ -278,8 +278,7 @@ nsNodeUtils::LastRelease(nsINode* aNode)
         aNode->HasFlag(ADDED_TO_FORM)) {
       
       
-      static_cast<nsGenericHTMLFormElement*>(aNode)->ClearForm(PR_TRUE,
-                                                               PR_FALSE);
+      static_cast<nsGenericHTMLFormElement*>(aNode)->ClearForm(PR_TRUE);
     }
   }
   aNode->UnsetFlags(NODE_HAS_PROPERTIES);

@@ -191,9 +191,8 @@ public:
 
 
 
-
   nsresult RemoveElement(nsGenericHTMLFormElement* aElement,
-                         bool aUpdateValidity, PRBool aNotify);
+                         bool aUpdateValidity);
 
   
 
@@ -303,18 +302,17 @@ protected:
 
   class RemoveElementRunnable : public nsRunnable {
   public:
-    RemoveElementRunnable(nsHTMLFormElement* aForm, PRBool aNotify):
-      mForm(aForm), mNotify(aNotify)
+    RemoveElementRunnable(nsHTMLFormElement* aForm)
+      : mForm(aForm)
     {}
 
     NS_IMETHOD Run() {
-      mForm->HandleDefaultSubmitRemoval(mNotify);
+      mForm->HandleDefaultSubmitRemoval();
       return NS_OK;
     }
 
   private:
     nsRefPtr<nsHTMLFormElement> mForm;
-    PRBool mNotify;
   };
 
   nsresult DoSubmitOrReset(nsEvent* aEvent,
@@ -322,7 +320,7 @@ protected:
   nsresult DoReset();
 
   
-  void HandleDefaultSubmitRemoval(PRBool aNotify);
+  void HandleDefaultSubmitRemoval();
 
   
   

@@ -493,7 +493,7 @@ CollectOrphans(nsINode* aRemovalRoot, nsTArray<nsGenericHTMLFormElement*> aArray
     if (node->HasFlag(MAYBE_ORPHAN_FORM_ELEMENT)) {
       node->UnsetFlags(MAYBE_ORPHAN_FORM_ELEMENT);
       if (!nsContentUtils::ContentIsDescendantOf(node, aRemovalRoot)) {
-        node->ClearForm(PR_TRUE, PR_TRUE);
+        node->ClearForm(PR_TRUE);
 
         
         if (node->IsSubmitControl()) {
@@ -1235,8 +1235,7 @@ nsHTMLFormElement::AddElementToTable(nsGenericHTMLFormElement* aChild,
 
 nsresult
 nsHTMLFormElement::RemoveElement(nsGenericHTMLFormElement* aChild,
-                                 bool aUpdateValidity,
-                                 PRBool aNotify)
+                                 bool aUpdateValidity)
 {
   
   
@@ -1282,7 +1281,7 @@ nsHTMLFormElement::RemoveElement(nsGenericHTMLFormElement* aChild,
     
     
     mDefaultSubmitElement = nsnull;
-    nsContentUtils::AddScriptRunner(new RemoveElementRunnable(this, aNotify));
+    nsContentUtils::AddScriptRunner(new RemoveElementRunnable(this));
 
     
     
@@ -1305,7 +1304,7 @@ nsHTMLFormElement::RemoveElement(nsGenericHTMLFormElement* aChild,
 }
 
 void
-nsHTMLFormElement::HandleDefaultSubmitRemoval(PRBool aNotify)
+nsHTMLFormElement::HandleDefaultSubmitRemoval()
 {
   if (mDefaultSubmitElement) {
     
@@ -1331,7 +1330,7 @@ nsHTMLFormElement::HandleDefaultSubmitRemoval(PRBool aNotify)
                    "What happened here?");
 
   
-  if (aNotify && mDefaultSubmitElement) {
+  if (mDefaultSubmitElement) {
     nsIDocument* document = GetCurrentDoc();
     if (document) {
       MOZ_AUTO_DOC_UPDATE(document, UPDATE_CONTENT_STATE, PR_TRUE);
@@ -2093,12 +2092,12 @@ nsFormControlList::Clear()
   
   PRInt32 i;
   for (i = mElements.Length()-1; i >= 0; i--) {
-    mElements[i]->ClearForm(PR_FALSE, PR_TRUE);
+    mElements[i]->ClearForm(PR_FALSE);
   }
   mElements.Clear();
 
   for (i = mNotInElements.Length()-1; i >= 0; i--) {
-    mNotInElements[i]->ClearForm(PR_FALSE, PR_TRUE);
+    mNotInElements[i]->ClearForm(PR_FALSE);
   }
   mNotInElements.Clear();
 
