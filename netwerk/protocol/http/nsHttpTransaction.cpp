@@ -369,21 +369,22 @@ nsHttpTransaction::TakeResponseHead()
 
     
     
+    nsHttpResponseHead *head;
+    if (mForTakeResponseHead) {
+        head = mForTakeResponseHead;
+        mForTakeResponseHead = nsnull;
+        return head;
+    }
+    
+    
+    
     if (!mHaveAllHeaders) {
         NS_WARNING("response headers not available or incomplete");
         return nsnull;
     }
 
-    
-    nsHttpResponseHead *head;
-    if (mForTakeResponseHead) {
-        head = mForTakeResponseHead;
-        mForTakeResponseHead = nsnull;
-    }
-    else {
-        head = mResponseHead;
-        mResponseHead = nsnull;
-    }
+    head = mResponseHead;
+    mResponseHead = nsnull;
     return head;
 }
 
@@ -840,8 +841,6 @@ nsHttpTransaction::RestartInProgress()
 {
     NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
     
-    return NS_ERROR_FAILURE;
-    
     
     MutexAutoLock lock(*nsHttp::GetLock());
 
@@ -1262,7 +1261,8 @@ nsHttpTransaction::HandleContentStart()
     }
 
     mDidContentStart = true;
-    mRestartInProgressVerifier.Set(mContentLength, mResponseHead);
+    if (mRequestHead->Method() == nsHttp::Get)
+        mRestartInProgressVerifier.Set(mContentLength, mResponseHead);
     return NS_OK;
 }
 
@@ -1593,6 +1593,9 @@ nsHttpTransaction::RestartVerifier::Verify(PRInt64 contentLength,
     if (mContentLength != contentLength)
         return false;
 
+    if (newHead->Status() != 200)
+        return false;
+
     if (!matchOld(newHead, mContentRange, nsHttp::Content_Range))
         return false;
 
@@ -1616,6 +1619,13 @@ nsHttpTransaction::RestartVerifier::Set(PRInt64 contentLength,
                                         nsHttpResponseHead *head)
 {
     if (mSetup)
+        return;
+
+    
+    
+
+    
+    if (head->Status() != 200)
         return;
 
     mContentLength = contentLength;
