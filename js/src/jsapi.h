@@ -1118,6 +1118,14 @@ typedef JSBool
 typedef void
 (* JSErrorReporter)(JSContext *cx, const char *message, JSErrorReport *report);
 
+#ifdef MOZ_TRACE_JSCALLS
+typedef void
+(* JSFunctionCallback)(const JSFunction *fun,
+                       const JSScript *scr,
+                       const JSContext *cx,
+                       int entering);
+#endif
+
 
 
 
@@ -2100,6 +2108,9 @@ JS_GetRuntime(JSContext *cx);
 
 extern JS_PUBLIC_API(JSContext *)
 JS_ContextIterator(JSRuntime *rt, JSContext **iterp);
+
+extern JS_PUBLIC_API(JSContext *)
+JS_ContextIteratorUnlocked(JSRuntime *rt, JSContext **iterp);
 
 extern JS_PUBLIC_API(JSVersion)
 JS_GetVersion(JSContext *cx);
@@ -4176,6 +4187,23 @@ JS_SaveFrameChain(JSContext *cx);
 
 extern JS_PUBLIC_API(void)
 JS_RestoreFrameChain(JSContext *cx);
+
+#ifdef MOZ_TRACE_JSCALLS
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_SetFunctionCallback(JSContext *cx, JSFunctionCallback fcb);
+
+extern JS_PUBLIC_API(JSFunctionCallback)
+JS_GetFunctionCallback(JSContext *cx);
+#endif 
 
 
 

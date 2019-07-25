@@ -137,6 +137,35 @@ ThreadData::init()
     return stackSpace.init() && !!(dtoaState = js_NewDtoaState());
 }
 
+#ifdef JS_THREADSAFE
+void
+ThreadData::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
+                                size_t *regexpCode, size_t *stackCommitted)
+{
+    
+
+
+
+
+
+    
+
+
+
+    *normal = mallocSizeOf(dtoaState, 0);
+
+    *temporary = tempLifoAlloc.sizeOfExcludingThis(mallocSizeOf);
+
+    size_t method = 0, regexp = 0, unused = 0;
+    if (execAlloc)
+        execAlloc->sizeOfCode(&method, &regexp, &unused);
+    JS_ASSERT(method == 0);     
+    *regexpCode = regexp + unused;
+
+    *stackCommitted = stackSpace.sizeOfCommitted();
+}
+#endif
+
 void
 ThreadData::triggerOperationCallback(JSRuntime *rt)
 {
@@ -218,6 +247,14 @@ js_GetCurrentScript(JSContext *cx)
 
 
 #ifdef JS_THREADSAFE
+
+void
+JSThread::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
+                              size_t *regexpCode, size_t *stackCommitted)
+{
+    data.sizeOfExcludingThis(mallocSizeOf, normal, temporary, regexpCode, stackCommitted);
+    *normal += mallocSizeOf(this, sizeof(JSThread));
+}
 
 JSThread *
 js_CurrentThreadAndLockGC(JSRuntime *rt)
@@ -775,6 +812,17 @@ js_ReportOutOfMemory(JSContext *cx)
 JS_FRIEND_API(void)
 js_ReportOverRecursed(JSContext *maybecx)
 {
+#ifdef JS_MORE_DETERMINISTIC
+    
+
+
+
+
+
+
+
+    fprintf(stderr, "js_ReportOverRecursed called\n");
+#endif
     if (maybecx)
         JS_ReportErrorNumber(maybecx, js_GetErrorMessage, NULL, JSMSG_OVER_RECURSED);
 }
@@ -1653,6 +1701,18 @@ JSContext::updateJITEnabled()
 # endif
                         ;
 #endif
+}
+
+size_t
+JSContext::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const
+{
+    
+
+
+
+
+    return mallocSizeOf(this, sizeof(JSContext)) +
+           busyArrays.sizeOfExcludingThis(mallocSizeOf);
 }
 
 namespace js {

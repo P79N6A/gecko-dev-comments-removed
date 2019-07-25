@@ -578,28 +578,6 @@ js_ResumeVtune();
 
 #endif 
 
-#ifdef MOZ_TRACE_JSCALLS
-typedef void (*JSFunctionCallback)(const JSFunction *fun,
-                                   const JSScript *scr,
-                                   const JSContext *cx,
-                                   int entering);
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_SetFunctionCallback(JSContext *cx, JSFunctionCallback fcb);
-
-extern JS_PUBLIC_API(JSFunctionCallback)
-JS_GetFunctionCallback(JSContext *cx);
-#endif 
-
 extern JS_PUBLIC_API(void)
 JS_DumpBytecode(JSContext *cx, JSScript *script);
 

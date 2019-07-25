@@ -665,7 +665,6 @@ struct BytecodeEmitter : public TreeContext
     SlotVector      closedArgs;
     SlotVector      closedVars;
 
-    uint16          traceIndex;     
     uint16          typesetCount;   
 
     BytecodeEmitter(Parser *parser, uintN lineno);
@@ -948,7 +947,7 @@ enum SrcNoteType {
     SRC_WHILE       = 4,        
 
 
-    SRC_TRACE       = 4,        
+    SRC_LOOPHEAD    = 4,        
     SRC_CONTINUE    = 5,        
 
 
