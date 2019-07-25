@@ -8,12 +8,8 @@
 
 #include "mozilla/layers/PImageContainerChild.h"
 #include "mozilla/layers/ImageBridgeChild.h"
-#include "ImageTypes.h"
 
 namespace mozilla {
-
-class ReentrantMonitor;
-
 namespace layers {
 
 class ImageBridgeCopyAndSendTask;
@@ -119,32 +115,7 @@ public:
 
 
   void SetIdleNow();
-
   
-
-
-
-  already_AddRefed<Image> CreateImage(const ImageFormat *aFormats,
-                                      uint32_t aNumFormats);
-
-  
-
-
-
-
-
-
-  void AllocateSharedBufferForImage(Image* aImage);
-
-  
-
-
-
-
-
-
-  void RecycleSharedImage(SharedImage* aImage);
-
 protected:
   virtual PGrallocBufferChild*
   AllocPGrallocBuffer(const gfxIntSize&, const gfxContentType&,
@@ -217,28 +188,6 @@ protected:
 
 
   SharedImage * CreateSharedImageFromData(Image* aImage);
-  
-
-
-
-  void AllocateSharedBufferForImageNow(Image* aImage);
-
-  
-
-
-
-
-  void AllocateSharedBufferForImageSync(ReentrantMonitor* aBarrier,
-                                        bool* aDone,
-                                        Image* aImage);
-
-  
-
-
-
-
-  void RecycleSharedImageNow(SharedImage* aImage);
-
 
 private:
   uint64_t mImageContainerID;

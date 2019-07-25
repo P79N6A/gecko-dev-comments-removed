@@ -39,7 +39,6 @@ class Shmem;
 namespace layers {
 
 class ImageContainerChild;
-class SharedPlanarYCbCrImage;
 
 struct ImageBackendData
 {
@@ -484,14 +483,6 @@ public:
 
   RemoteImageData *GetRemoteImageData() { return mRemoteData; }
 
-  
-
-
-  static void CopyPlane(uint8_t *aDst, uint8_t *aSrc,
-                        const gfxIntSize &aSize,
-                        int32_t aSrcStride, int32_t aDstStride,
-                        int32_t aOffset, int32_t aSkip);
-
 protected:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 
@@ -660,13 +651,7 @@ public:
 
   virtual ~PlanarYCbCrImage();
 
-  virtual SharedPlanarYCbCrImage* AsSharedPlanarYCbCrImage()
-  {
-    return nullptr;
-  }
-
   
-
 
 
 
@@ -683,23 +668,6 @@ public:
 
 
   virtual const Data* GetData() { return &mData; }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual void Allocate(Data& aData);
 
   
 
