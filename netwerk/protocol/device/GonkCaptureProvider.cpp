@@ -3,6 +3,9 @@
 
 
 
+#include <dlfcn.h>
+#include "cutils/properties.h"
+
 #include "base/basictypes.h"
 #include "GonkCaptureProvider.h"
 #include "nsXULAppAPI.h"
@@ -41,8 +44,11 @@
 #undef CameraHardwareInterface
 
 
-#include <dlfcn.h>
-#include "cutils/properties.h"
+
+
+
+
+static const size_t kTemporaryMaxNumCameras = 2;
 
 using namespace android;
 using namespace mozilla;
@@ -120,7 +126,7 @@ template<class T> class CameraImpl : public CameraHardwareInterface {
     typedef sp<T> (*HAL_openCameraHardware_DEFAULT)(int);
     typedef sp<T> (*HAL_openCameraHardware_SGS2)(int);
     typedef sp<T> (*HAL_openCameraHardware_MAGURO)(int, int);
-    
+
     CameraImpl(PRUint32 aCamera = 0) : mOk(false), mCamera(nsnull) {
       DlopenWrapper wrapper("system/lib/libcamera.so");
 
@@ -259,11 +265,10 @@ GonkCameraInputStream::Init(nsACString& aContentType, nsCaptureParams* aParams)
   mWidth = aParams->width;
   mHeight = aParams->height;
   mCamera = aParams->camera;
- 
-  PRUint32 maxCameras = HAL_getNumberOfCameras();
 
-  if (mCamera >= maxCameras)
-    mCamera = maxCameras - 1;
+  
+  if (mCamera >= kTemporaryMaxNumCameras)
+    mCamera = 0;
 
   mHardware = CameraHardwareInterface::openCamera(mCamera);
 
