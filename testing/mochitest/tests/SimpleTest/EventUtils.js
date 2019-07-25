@@ -535,6 +535,12 @@ function _getDOMWindowUtils(aWindow)
 }
 
 
+const COMPOSITION_ATTR_RAWINPUT              = 0x02;
+const COMPOSITION_ATTR_SELECTEDRAWTEXT       = 0x03;
+const COMPOSITION_ATTR_CONVERTEDTEXT         = 0x04;
+const COMPOSITION_ATTR_SELECTEDCONVERTEDTEXT = 0x05;
+
+
 
 
 
