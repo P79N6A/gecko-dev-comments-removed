@@ -129,6 +129,11 @@ public:
   
 
 
+  virtual bool Init();
+
+  
+
+
   virtual void Description(nsString& aDescription);
 
   
