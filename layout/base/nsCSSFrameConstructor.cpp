@@ -95,6 +95,9 @@
 #include "nsIDOMXULDocument.h"
 #include "nsIXULDocument.h"
 #endif
+#ifdef MOZ_FLEXBOX
+#include "nsFlexContainerFrame.h"
+#endif
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
 #endif
@@ -4292,17 +4295,6 @@ nsCSSFrameConstructor::BuildScrollFrame(nsFrameConstructorState& aState,
     FinishBuildingScrollFrame(aNewFrame, aScrolledFrame);
     return NS_OK;
 }
-
-#ifdef MOZ_FLEXBOX
-
-
-nsIFrame*
-NS_NewFlexContainerFrame(nsIPresShell* aPresShell,
-                         nsStyleContext* aContext)
-{
-  return nsnull;
-}
-#endif 
 
 const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
