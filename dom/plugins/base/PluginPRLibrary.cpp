@@ -48,7 +48,6 @@ PluginPRLibrary::NP_Initialize(NPNetscapeFuncs* bFuncs,
 
   
   mNPP_New = pFuncs->newp;
-  mNPP_GetValue = pFuncs->getvalue;
   mNPP_ClearSiteData = pFuncs->clearsitedata;
   mNPP_GetSitesWithData = pFuncs->getsiteswithdata;
   return NS_OK;
