@@ -146,7 +146,7 @@ public class JPakeCrypto {
       hmacSha256.init(secret_key);
       result = hmacSha256.doFinal(data);
     } catch (GeneralSecurityException e) {
-      Logger.debug(LOG_TAG, e.toString());
+      Logger.error(LOG_TAG, "Got exception calculating HMAC.", e);
     }
     return result;
   }
@@ -167,7 +167,7 @@ public class JPakeCrypto {
 
     
     BigInteger h = computeBHash(g, gr, gx, id);
-    Logger.error(LOG_TAG, "myhash: " + h.toString(16));
+    Logger.debug(LOG_TAG, "myhash: " + h.toString(16));
 
     
     BigInteger b = r.subtract(x.multiply(h)).mod(Q);

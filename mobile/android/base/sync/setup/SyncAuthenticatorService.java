@@ -100,7 +100,6 @@ public class SyncAuthenticatorService extends Service {
 
       
       
-      Logger.info(LOG_TAG, "AccountManager.get(" + mContext + ")");
       final AccountManager am = AccountManager.get(mContext);
       final String password = am.getPassword(account);
       if (password != null) {
@@ -119,8 +118,8 @@ public class SyncAuthenticatorService extends Service {
         
         try {
           String username = Utils.usernameFromAccount(account.name);
-          Logger.pii(LOG_TAG, "Account " + account.name + " hashes to " + username);
-          Logger.info(LOG_TAG, "Setting username. Null? " + (username == null));
+          Logger.pii(LOG_TAG, "Account " + account.name + " hashes to " + username + ".");
+          Logger.debug(LOG_TAG, "Setting username. Null? " + (username == null));
           result.putString(Constants.OPTION_USERNAME, username);
         } catch (NoSuchAlgorithmException e) {
           
@@ -130,7 +129,7 @@ public class SyncAuthenticatorService extends Service {
 
         
         final String syncKey = am.getUserData(account, Constants.OPTION_SYNCKEY);
-        Logger.info(LOG_TAG, "Setting Sync Key. Null? " + (syncKey == null));
+        Logger.debug(LOG_TAG, "Setting sync key. Null? " + (syncKey == null));
         result.putString(Constants.OPTION_SYNCKEY, syncKey);
 
         
