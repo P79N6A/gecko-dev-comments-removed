@@ -6,6 +6,7 @@
 #include <windows.h>
 #include <delayimp.h>
 #include "nsToolkit.h"
+#include "mozilla/Assertions.h"
 
 #if defined(__GNUC__)
 
@@ -52,6 +53,16 @@ BOOL APIENTRY DllMain(
 
 
 
+
+
+
+
+
+
+
+
+
+
 static bool IsWin8OrHigher()
 {
   static PRInt32 version = 0;
@@ -71,28 +82,46 @@ static bool IsWin8OrHigher()
 
 const char* kvccorlib = "vccorlib";
 const char* kwinrtprelim = "api-ms-win-core-winrt";
+const char* kfailfast = "?__abi_FailFast";
 
-static bool IsWinRTDLLPresent(PDelayLoadInfo pdli, const char* aLibToken)
+static bool IsWinRTDLLNotPresent(PDelayLoadInfo pdli, const char* aLibToken)
 {
   return (!IsWin8OrHigher() && pdli->szDll &&
           !strnicmp(pdli->szDll, aLibToken, strlen(aLibToken)));
 }
 
+static bool IsWinRTDLLPresent(PDelayLoadInfo pdli, const char* aLibToken)
+{
+  return (IsWin8OrHigher() && pdli->szDll &&
+          !strnicmp(pdli->szDll, aLibToken, strlen(aLibToken)));
+}
+
+void __stdcall __abi_MozFailFast()
+{
+  MOZ_CRASH();
+}
+
 FARPROC WINAPI DelayDllLoadHook(unsigned dliNotify, PDelayLoadInfo pdli)
 {
   if (dliNotify == dliNotePreLoadLibrary) {
-    if (IsWinRTDLLPresent(pdli, kvccorlib)) {
+    if (IsWinRTDLLNotPresent(pdli, kvccorlib)) {
       return (FARPROC)LoadLibraryA("dummyvccorlib.dll");
     }
-    NS_ASSERTION(!IsWinRTDLLPresent(pdli, kwinrtprelim),
+    NS_ASSERTION(!IsWinRTDLLNotPresent(pdli, kwinrtprelim),
       "Attempting to load winrt libs in non-metro environment. "
       "(Winrt variable type placed in global scope?)");
   }
-  if (dliNotify == dliFailGetProc && IsWinRTDLLPresent(pdli, kvccorlib)) {
+  if (dliNotify == dliFailGetProc && IsWinRTDLLNotPresent(pdli, kvccorlib)) {
     NS_WARNING("Attempting to access winrt vccorlib entry point in non-metro environment.");
     NS_WARNING(pdli->szDll);
     NS_WARNING(pdli->dlp.szProcName);
     NS_ABORT();
+  }
+  if (dliNotify == dliNotePreGetProcAddress &&
+      IsWinRTDLLPresent(pdli, kvccorlib) &&
+      pdli->dlp.szProcName &&
+      !strnicmp(pdli->dlp.szProcName, kfailfast, strlen(kfailfast))) {
+    return (FARPROC)__abi_MozFailFast;
   }
   return NULL;
 }
