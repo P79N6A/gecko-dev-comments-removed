@@ -928,8 +928,6 @@ protected:
   virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                 const nsAString* aValue, PRBool aNotify);
 
-  void UpdateEditableFormControlState(PRBool aNotify);
-
   
 
 

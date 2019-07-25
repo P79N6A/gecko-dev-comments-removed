@@ -662,12 +662,7 @@ nsSelectAllCommand::IsCommandEnabled(const char * aCommandName,
   NS_ENSURE_ARG_POINTER(outCmdEnabled);
 
   
-  
-  nsCOMPtr<nsIEditor> editor = do_QueryInterface(aCommandRefCon);
-  if (editor)
-    return editor->GetIsSelectionEditable(outCmdEnabled);
-
-  *outCmdEnabled = PR_FALSE;
+  *outCmdEnabled = PR_TRUE;
   return NS_OK;
 }
 
