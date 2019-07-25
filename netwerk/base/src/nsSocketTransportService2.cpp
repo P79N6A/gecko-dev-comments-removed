@@ -593,6 +593,19 @@ NS_IMETHODIMP
 nsSocketTransportService::OnProcessNextEvent(nsIThreadInternal *thread,
                                              PRBool mayWait, PRUint32 depth)
 {
+    
+    
+    
+    if (depth > 1)
+        return NS_OK;
+
+    
+    DoPollIteration(PR_FALSE);
+
+    PRBool val;
+    while (mayWait && NS_SUCCEEDED(thread->HasPendingEvents(&val)) && !val)
+        DoPollIteration(PR_TRUE);
+
     return NS_OK;
 }
 
@@ -622,24 +635,8 @@ nsSocketTransportService::Run()
     threadInt->SetObserver(this);
 
     for (;;) {
-        PRBool pendingEvents = PR_FALSE;
-        thread->HasPendingEvents(&pendingEvents);
-
-        do {
-            
-            
-            DoPollIteration(!pendingEvents);
-            
-            
-            if (!pendingEvents)
-                thread->HasPendingEvents(&pendingEvents);
-
-            if (pendingEvents) {
-                NS_ProcessNextEvent(thread);
-                pendingEvents = PR_FALSE;
-                thread->HasPendingEvents(&pendingEvents);
-            }
-        } while (pendingEvents);
+        
+        NS_ProcessPendingEvents(thread);
 
         
         {
@@ -647,6 +644,9 @@ nsSocketTransportService::Run()
             if (mShuttingDown)
                 break;
         }
+
+        
+        NS_ProcessNextEvent(thread);
     }
 
     SOCKET_LOG(("STS shutting down thread\n"));
