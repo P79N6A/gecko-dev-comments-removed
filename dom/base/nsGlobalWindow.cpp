@@ -1920,6 +1920,15 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     if (aDocument != oldDoc) {
       nsWindowSH::InvalidateGlobalScopePolluter(cx, currentInner->mJSObject);
     }
+
+    
+    
+    
+    
+    
+    if (!JS_TransplantObject(cx, mJSObject, mJSObject)) {
+      return NS_ERROR_FAILURE;
+    }
   } else {
     if (aState) {
       newInnerWindow = wsh->GetInnerWindow();
