@@ -197,14 +197,14 @@ namespace nanojit
     # pragma intrinsic(_BitScanReverse)
 
     
-    static inline int msbSet32(uint32_t x) {
+    static inline unsigned msbSet32(uint32_t x) {
         unsigned long idx;
         _BitScanReverse(&idx, (unsigned long)(x | 1)); 
         return idx;
     }
 
     
-    static inline int lsbSet32(uint32_t x) {
+    static inline unsigned lsbSet32(uint32_t x) {
         unsigned long idx;
         _BitScanForward(&idx, (unsigned long)(x | 0x80000000)); 
         return idx;
@@ -217,25 +217,25 @@ namespace nanojit
     # pragma intrinsic(_BitScanReverse64)
 
     
-    static inline int msbSet64(uint64_t x) {
+    static inline unsigned msbSet64(uint64_t x) {
         unsigned long idx;
         _BitScanReverse64(&idx, (unsigned __int64)(x | 1)); 
         return idx;
     }
 
     
-    static inline int lsbSet64(uint64_t x) {
+    static inline unsigned lsbSet64(uint64_t x) {
         unsigned long idx;
         _BitScanForward64(&idx, (unsigned __int64)(x | 0x8000000000000000LL)); 
         return idx;
     }
 #else
     
-    static int msbSet64(uint64_t x) {
+    static unsigned msbSet64(uint64_t x) {
         return (x & 0xffffffff00000000LL) ? msbSet32(uint32_t(x >> 32)) + 32 : msbSet32(uint32_t(x));
     }
     
-    static int lsbSet64(uint64_t x) {
+    static unsigned lsbSet64(uint64_t x) {
         return (x & 0x00000000ffffffffLL) ? lsbSet32(uint32_t(x)) : lsbSet32(uint32_t(x >> 32)) + 32;
     }
 #endif
@@ -243,29 +243,29 @@ namespace nanojit
 #elif (__GNUC__ >= 4) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
 
     
-    static inline int msbSet32(uint32_t x) {
+    static inline unsigned msbSet32(uint32_t x) {
         return 31 - __builtin_clz(x | 1);
     }
 
     
-    static inline int lsbSet32(uint32_t x) {
+    static inline unsigned lsbSet32(uint32_t x) {
         return __builtin_ctz(x | 0x80000000);
     }
 
     
-    static inline int msbSet64(uint64_t x) {
+    static inline unsigned msbSet64(uint64_t x) {
         return 63 - __builtin_clzll(x | 1);
     }
 
     
-    static inline int lsbSet64(uint64_t x) {
+    static inline unsigned lsbSet64(uint64_t x) {
         return __builtin_ctzll(x | 0x8000000000000000LL);
     }
 
 #else
 
     
-    static int msbSet32(uint32_t x) {
+    static unsigned msbSet32(uint32_t x) {
         for (int i = 31; i >= 0; i--)
             if ((1 << i) & x)
                 return i;
@@ -273,7 +273,7 @@ namespace nanojit
     }
 
     
-    static int lsbSet32(uint32_t x) {
+    static unsigned lsbSet32(uint32_t x) {
         for (int i = 0; i < 32; i++)
             if ((1 << i) & x)
                 return i;
@@ -281,7 +281,7 @@ namespace nanojit
     }
 
     
-    static int msbSet64(uint64_t x) {
+    static unsigned msbSet64(uint64_t x) {
         for (int i = 63; i >= 0; i--)
             if ((1LL << i) & x)
                 return i;
@@ -289,7 +289,7 @@ namespace nanojit
     }
 
     
-    static int lsbSet64(uint64_t x) {
+    static unsigned lsbSet64(uint64_t x) {
         for (int i = 0; i < 64; i++)
             if ((1LL << i) & x)
                 return i;
