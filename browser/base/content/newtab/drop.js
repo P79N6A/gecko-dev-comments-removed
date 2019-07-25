@@ -45,8 +45,7 @@ let gDrop = {
 
 
 
-
-  drop: function Drop_drop(aCell, aEvent, aCallback) {
+  drop: function Drop_drop(aCell, aEvent) {
     
     
     if (aCell.containsPinnedSite())
@@ -58,7 +57,7 @@ let gDrop = {
     this._cancelDelayedArrange();
 
     
-    gUpdater.updateGrid(aCallback);
+    gUpdater.updateGrid();
   },
 
   

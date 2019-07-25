@@ -17,45 +17,45 @@ function runTests() {
   yield addNewTabPageTab();
   checkGrid("0,1p,2,3,4,5,6,7,8");
 
-  let resetButton = cw.document.getElementById("toolbar-button-reset");
+  let resetButton = getContentDocument().getElementById("toolbar-button-reset");
   ok(!resetButton.hasAttribute("modified"), "page is not modified");
 
-  let oldCw = cw;
+  let oldSites = getGrid().sites;
   let oldResetButton = resetButton;
 
   
   yield addNewTabPageTab();
   checkGrid("0,1p,2,3,4,5,6,7,8");
 
-  resetButton = cw.document.getElementById("toolbar-button-reset");
+  resetButton = getContentDocument().getElementById("toolbar-button-reset");
   ok(!resetButton.hasAttribute("modified"), "page is not modified");
 
   
-  yield unpinCell(cells[1]);
+  yield unpinCell(1);
   checkGrid("0,1,2,3,4,5,6,7,8");
-  checkGrid("0,1,2,3,4,5,6,7,8", oldCw.gGrid.sites);
+  checkGrid("0,1,2,3,4,5,6,7,8", oldSites);
 
   
-  yield blockCell(cells[1]);
+  yield blockCell(1);
   checkGrid("0,2,3,4,5,6,7,8,9");
-  checkGrid("0,2,3,4,5,6,7,8,9", oldCw.gGrid.sites);
+  checkGrid("0,2,3,4,5,6,7,8,9", oldSites);
   ok(resetButton.hasAttribute("modified"), "page is modified");
   ok(oldResetButton.hasAttribute("modified"), "page is modified");
 
   
-  yield simulateDrop(cells[1]);
+  yield simulateDrop(1);
   checkGrid("0,99p,2,3,4,5,6,7,8");
-  checkGrid("0,99p,2,3,4,5,6,7,8", oldCw.gGrid.sites);
+  checkGrid("0,99p,2,3,4,5,6,7,8", oldSites);
 
   
-  yield simulateDrop(cells[1], cells[2]);
+  yield simulateDrop(1, 2);
   checkGrid("0,2p,99p,3,4,5,6,7,8");
-  checkGrid("0,2p,99p,3,4,5,6,7,8", oldCw.gGrid.sites);
+  checkGrid("0,2p,99p,3,4,5,6,7,8", oldSites);
 
   
-  yield cw.gToolbar.reset(TestRunner.next);
+  yield getContentWindow().gToolbar.reset(TestRunner.next);
   checkGrid("0,1,2,3,4,5,6,7,8");
-  checkGrid("0,1,2,3,4,5,6,7,8", oldCw.gGrid.sites);
+  checkGrid("0,1,2,3,4,5,6,7,8", oldSites);
   ok(!resetButton.hasAttribute("modified"), "page is not modified");
   ok(!oldResetButton.hasAttribute("modified"), "page is not modified");
 }

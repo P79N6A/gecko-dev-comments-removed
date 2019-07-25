@@ -19,12 +19,6 @@ registerCleanupFunction(function () {
 
 
 
-let cw;
-let cells;
-
-
-
-
 let originalProvider = NewTabUtils.links._provider;
 
 
@@ -80,6 +74,39 @@ let TestRunner = {
       cleanupAndFinish();
   }
 };
+
+
+
+
+
+function getContentWindow() {
+  return gBrowser.selectedBrowser.contentWindow;
+}
+
+
+
+
+
+function getContentDocument() {
+  return gBrowser.selectedBrowser.contentDocument;
+}
+
+
+
+
+
+function getGrid() {
+  return getContentWindow().gGrid;
+}
+
+
+
+
+
+
+function getCell(aIndex) {
+  return getGrid().cells[aIndex];
+}
 
 
 
@@ -143,18 +170,14 @@ function addNewTabPageTab() {
   browser.addEventListener("load", function onLoad() {
     browser.removeEventListener("load", onLoad, true);
 
-    cw = browser.contentWindow;
-
     if (NewTabUtils.allPages.enabled) {
       
       NewTabUtils.links.populateCache(function () {
-        cells = cw.gGrid.cells;
         executeSoon(TestRunner.next);
       });
     } else {
       TestRunner.next();
     }
-
   }, true);
 }
 
@@ -169,92 +192,32 @@ function addNewTabPageTab() {
 
 
 function checkGrid(aSitesPattern, aSites) {
-  let valid = true;
+  let length = aSitesPattern.split(",").length;
+  let sites = (aSites || getGrid().sites).slice(0, length);
+  let expected = sites.map(function (aSite) {
+    if (!aSite)
+      return "";
 
-  aSites = aSites || cw.gGrid.sites;
+    let pinned = aSite.isPinned();
+    let pinButton = aSite.node.querySelector(".newtab-control-pin");
+    let hasPinnedAttr = pinButton.hasAttribute("pinned");
 
-  aSitesPattern.split(/\s*,\s*/).forEach(function (id, index) {
-    let site = aSites[index];
-    let match = id.match(/^\d+/);
+    if (pinned != hasPinnedAttr)
+      ok(false, "invalid state (site.isPinned() != site[pinned])");
 
-    
-    if (!match) {
-      if (site) {
-        valid = false;
-        ok(false, "expected cell#" + index + " to be empty");
-      }
-
-      return;
-    }
-
-    
-    if (!site) {
-      valid = false;
-      ok(false, "didn't expect cell#" + index + " to be empty");
-
-      return;
-    }
-
-    let num = match[0];
-
-    
-    if (site.url != "about:blank#" + num) {
-      valid = false;
-      is(site.url, "about:blank#" + num, "cell#" + index + " has the wrong url");
-    }
-
-    let shouldBePinned = /p$/.test(id);
-    let cellContainsPinned = site.isPinned();
-    let cssClassPinned = site.node && site.node.querySelector(".newtab-control-pin").hasAttribute("pinned");
-
-    
-    if (shouldBePinned) {
-      if (!cellContainsPinned) {
-        valid = false;
-        ok(false, "expected cell#" + index + " to be pinned");
-      } else if (!cssClassPinned) {
-        valid = false;
-        ok(false, "expected cell#" + index + " to have css class 'pinned'");
-      }
-    } else {
-      if (cellContainsPinned) {
-        valid = false;
-        ok(false, "didn't expect cell#" + index + " to be pinned");
-      } else if (cssClassPinned) {
-        valid = false;
-        ok(false, "didn't expect cell#" + index + " to have css class 'pinned'");
-      }
-    }
+    return aSite.url.replace(/^about:blank#(\d+)$/, "$1") + (pinned ? "p" : "");
   });
 
-  
-  if (valid)
-    ok(true, "grid status = " + aSitesPattern);
+  is(aSitesPattern, expected, "grid status = " + aSitesPattern);
 }
 
 
 
 
 
-function blockCell(aCell) {
-  aCell.site.block(function () executeSoon(TestRunner.next));
-}
-
-
-
-
-
-
-function pinCell(aCell, aIndex) {
-  aCell.site.pin(aIndex);
-}
-
-
-
-
-
-function unpinCell(aCell) {
-  aCell.site.unpin(function () executeSoon(TestRunner.next));
+function blockCell(aIndex) {
+  whenPagesUpdated();
+  getCell(aIndex).site.block();
 }
 
 
@@ -262,25 +225,85 @@ function unpinCell(aCell) {
 
 
 
-function simulateDrop(aDropTarget, aDragSource) {
-  let event = {
-    clientX: 0,
-    clientY: 0,
-    dataTransfer: {
-      mozUserCancelled: false,
-      setData: function () null,
-      setDragImage: function () null,
-      getData: function () "about:blank#99\nblank"
+function pinCell(aIndex, aPinIndex) {
+  getCell(aIndex).site.pin(aPinIndex);
+}
+
+
+
+
+
+function unpinCell(aIndex) {
+  whenPagesUpdated();
+  getCell(aIndex).site.unpin();
+}
+
+
+
+
+
+
+function simulateDrop(aDropIndex, aDragIndex) {
+  let draggedSite;
+  let {gDrag: drag, gDrop: drop} = getContentWindow();
+  let event = createDragEvent("drop", "about:blank#99\nblank");
+
+  if (typeof aDragIndex != "undefined")
+    draggedSite = getCell(aDragIndex).site;
+
+  if (draggedSite)
+    drag.start(draggedSite, event);
+
+  whenPagesUpdated();
+  drop.drop(getCell(aDropIndex), event);
+
+  if (draggedSite)
+    drag.end(draggedSite);
+}
+
+
+
+
+
+
+
+function sendDragEvent(aEventType, aTarget, aData) {
+  let event = createDragEvent(aEventType, aData);
+  let ifaceReq = getContentWindow().QueryInterface(Ci.nsIInterfaceRequestor);
+  let windowUtils = ifaceReq.getInterface(Ci.nsIDOMWindowUtils);
+  windowUtils.dispatchDOMEventViaPresShell(aTarget, event, true);
+}
+
+
+
+
+
+
+
+function createDragEvent(aEventType, aData) {
+  let dataTransfer = {
+    mozUserCancelled: false,
+    setData: function () null,
+    setDragImage: function () null,
+    getData: function () aData,
+
+    types: {
+      contains: function (aType) aType == "text/x-moz-url"
+    },
+
+    mozGetDataAt: function (aType, aIndex) {
+      if (aIndex || aType != "text/x-moz-url")
+        return null;
+
+      return aData;
     }
   };
 
-  if (aDragSource)
-    cw.gDrag.start(aDragSource.site, event);
+  let event = getContentDocument().createEvent("DragEvents");
+  event.initDragEvent(aEventType, true, true, getContentWindow(), 0, 0, 0, 0, 0,
+                      false, false, false, false, 0, null, dataTransfer);
 
-  cw.gDrop.drop(aDropTarget, event, function () executeSoon(TestRunner.next));
-
-  if (aDragSource)
-    cw.gDrag.end(aDragSource.site);
+  return event;
 }
 
 

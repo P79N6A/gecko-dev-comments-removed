@@ -62,12 +62,11 @@ Site.prototype = {
   
 
 
-
-  unpin: function Site_unpin(aCallback) {
+  unpin: function Site_unpin() {
     if (this.isPinned()) {
       this._updateAttributes(false);
       gPinnedLinks.unpin(this._link);
-      gUpdater.updateGrid(aCallback);
+      gUpdater.updateGrid();
     }
   },
 
@@ -83,14 +82,13 @@ Site.prototype = {
 
 
 
-
-  block: function Site_block(aCallback) {
+  block: function Site_block() {
     if (gBlockedLinks.isBlocked(this._link)) {
       if (aCallback)
         aCallback();
     } else {
       gBlockedLinks.block(this._link);
-      gUpdater.updateGrid(aCallback);
+      gUpdater.updateGrid();
     }
   },
 
