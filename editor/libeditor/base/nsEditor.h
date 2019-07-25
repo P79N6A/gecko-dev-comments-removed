@@ -193,6 +193,12 @@ public:
 
   nsresult CreateHTMLContent(const nsAString& aTag, nsIContent** aContent);
 
+  
+  virtual nsresult BeginIMEComposition();
+  virtual nsresult UpdateIMEComposition(const nsAString &aCompositionString,
+                                        nsIPrivateTextRangeList *aTextRange)=0;
+  nsresult EndIMEComposition();
+
 protected:
   nsCString mContentMIMEType;       
 

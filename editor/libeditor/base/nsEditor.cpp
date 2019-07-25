@@ -1852,48 +1852,43 @@ nsEditor::StopPreservingSelection()
 
 #ifdef XP_MAC
 #pragma mark -
-#pragma mark  nsIEditorIMESupport 
+#pragma mark  IME event handlers 
 #pragma mark -
 #endif
 
-
-
-
-NS_IMETHODIMP
-nsEditor::BeginComposition()
+nsresult
+nsEditor::BeginIMEComposition()
 {
-#ifdef DEBUG_tague
-  printf("nsEditor::StartComposition\n");
-#endif
   mInIMEMode = PR_TRUE;
-  if (mPhonetic)
+  if (mPhonetic) {
     mPhonetic->Truncate(0);
-
+  }
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsEditor::EndComposition(void)
+nsresult
+nsEditor::EndIMEComposition()
 {
   NS_ENSURE_TRUE(mInIMEMode, NS_OK); 
-  
-  nsresult result = NS_OK;
+
+  nsresult rv = NS_OK;
 
   
   
-  if (mTxnMgr) 
-  {
+  if (mTxnMgr) {
     nsCOMPtr<nsITransaction> txn;
-    result = mTxnMgr->PeekUndoStack(getter_AddRefs(txn));  
+    rv = mTxnMgr->PeekUndoStack(getter_AddRefs(txn));
+    NS_ASSERTION(NS_SUCCEEDED(rv), "PeekUndoStack() failed");
     nsCOMPtr<nsIAbsorbingTransaction> plcTxn = do_QueryInterface(txn);
-    if (plcTxn)
-    {
-      result = plcTxn->Commit();
+    if (plcTxn) {
+      rv = plcTxn->Commit();
+      NS_ASSERTION(NS_SUCCEEDED(rv),
+                   "nsIAbsorbingTransaction::Commit() failed");
     }
   }
 
   
-  mIMETextNode = do_QueryInterface(nsnull);
+  mIMETextNode = nsnull;
   mIMETextOffset = 0;
   mIMEBufferLength = 0;
   mInIMEMode = PR_FALSE;
@@ -1902,15 +1897,16 @@ nsEditor::EndComposition(void)
   
   NotifyEditorObservers();
 
-  return result;
+  return rv;
 }
 
-NS_IMETHODIMP
-nsEditor::SetCompositionString(const nsAString& aCompositionString,
-                               nsIPrivateTextRangeList* aTextRangeList)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
+
+#ifdef XP_MAC
+#pragma mark -
+#pragma mark  nsIPhonetic
+#pragma mark -
+#endif
+
 
 NS_IMETHODIMP
 nsEditor::GetPhonetic(nsAString& aPhonetic)
@@ -1922,6 +1918,13 @@ nsEditor::GetPhonetic(nsAString& aPhonetic)
 
   return NS_OK;
 }
+
+
+#ifdef XP_MAC
+#pragma mark -
+#pragma mark  nsIEditorIMESupport 
+#pragma mark -
+#endif
 
 
 static nsresult
