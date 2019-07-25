@@ -423,7 +423,11 @@ protected:
     }
     aCallback(this, aContext, aRegionToDraw, aRegionToInvalidate,
               aCallbackData);
-    mValidRegion.Or(mValidRegion, aRegionToDraw);
+    
+    
+    
+    
+    mValidRegion.Or(mValidRegion, mVisibleRegion);
   }
 
   Buffer mBuffer;
