@@ -8422,6 +8422,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     
     
     
+
     deadline = aTimeout->mWhen;
   } else {
     deadline = now;
