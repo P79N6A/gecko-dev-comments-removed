@@ -1249,7 +1249,9 @@ nsContentUtils::IsHTMLVoid(nsIAtom* aLocalName)
     (aLocalName == nsGkAtoms::link) ||
     (aLocalName == nsGkAtoms::meta) ||
     (aLocalName == nsGkAtoms::param) ||
+#ifdef MOZ_MEDIA
     (aLocalName == nsGkAtoms::source) ||
+#endif
     (aLocalName == nsGkAtoms::track) ||
     (aLocalName == nsGkAtoms::wbr);
 }
@@ -3658,9 +3660,9 @@ nsContentUtils::MaybeFireNodeRemoved(nsINode* aChild, nsINode* aParent,
   
   
   
-  NS_ASSERTION(aChild->IsNodeOfType(nsINode::eCONTENT) &&
+  NS_ASSERTION((aChild->IsNodeOfType(nsINode::eCONTENT) &&
                static_cast<nsIContent*>(aChild)->
-                 IsInNativeAnonymousSubtree() ||
+                 IsInNativeAnonymousSubtree()) ||
                IsSafeToRunScript() ||
                sDOMNodeRemovedSuppressCount,
                "Want to fire DOMNodeRemoved event, but it's not safe");
