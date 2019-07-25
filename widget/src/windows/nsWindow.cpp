@@ -3831,8 +3831,11 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
           IsWindow((HWND)lParam))
         handled = PR_TRUE;
     break;
-
     
+    case WM_MOUSEWHEEL:
+    case WM_MOUSEHWHEEL:
+    case WM_HSCROLL:
+    case WM_VSCROLL:
     
     case WM_SETFOCUS:
     case WM_KILLFOCUS:

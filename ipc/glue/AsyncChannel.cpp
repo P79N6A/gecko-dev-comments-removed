@@ -54,6 +54,25 @@ struct RunnableMethodTraits<mozilla::ipc::AsyncChannel>
     static void ReleaseCallee(mozilla::ipc::AsyncChannel* obj) { }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+template<>
+struct RunnableMethodTraits<mozilla::ipc::AsyncChannel::Transport>
+{
+    static void RetainCallee(mozilla::ipc::AsyncChannel::Transport* obj) { }
+    static void ReleaseCallee(mozilla::ipc::AsyncChannel::Transport* obj) { }
+};
+
 namespace {
 
 
@@ -217,8 +236,7 @@ AsyncChannel::Send(Message* msg)
             return false;
         }
 
-        mIOLoop->PostTask(FROM_HERE,
-                          NewRunnableMethod(this, &AsyncChannel::OnSend, msg));
+        SendThroughTransport(msg);
     }
 
     return true;
@@ -254,10 +272,17 @@ void
 AsyncChannel::SendSpecialMessage(Message* msg)
 {
     AssertWorkerThread();
+    SendThroughTransport(msg);
+}
+
+void
+AsyncChannel::SendThroughTransport(Message* msg)
+{
+    AssertWorkerThread();
 
     mIOLoop->PostTask(
         FROM_HERE,
-        NewRunnableMethod(this, &AsyncChannel::OnSend, msg));
+        NewRunnableMethod(mTransport, &Transport::Send, msg));
 }
 
 void
@@ -467,14 +492,6 @@ AsyncChannel::PostErrorNotifyTask()
     mChannelErrorTask =
         NewRunnableMethod(this, &AsyncChannel::OnNotifyMaybeChannelError);
     mWorkerLoop->PostTask(FROM_HERE, mChannelErrorTask);
-}
-
-void
-AsyncChannel::OnSend(Message* aMsg)
-{
-    AssertIOThread();
-    mTransport->Send(aMsg);
-    
 }
 
 void
