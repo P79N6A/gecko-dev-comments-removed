@@ -87,18 +87,28 @@ class SpecificLayerAttributes;
 
 
 struct FrameMetrics {
+public:
+  
+  typedef PRUint64 ViewID;
+  static const ViewID NULL_SCROLL_ID;   
+  static const ViewID ROOT_SCROLL_ID;   
+  static const ViewID START_SCROLL_ID;  
+                                        
+
   FrameMetrics()
-    : mViewportSize(0, 0)
+    : mViewport(0, 0, 0, 0)
     , mViewportScrollOffset(0, 0)
+    , mScrollId(NULL_SCROLL_ID)
   {}
 
   
 
   PRBool operator==(const FrameMetrics& aOther) const
   {
-    return (mViewportSize == aOther.mViewportSize &&
+    return (mViewport == aOther.mViewport &&
             mViewportScrollOffset == aOther.mViewportScrollOffset &&
-            mDisplayPort == aOther.mDisplayPort);
+            mDisplayPort == aOther.mDisplayPort &&
+            mScrollId == aOther.mScrollId);
   }
 
   PRBool IsDefault() const
@@ -106,9 +116,20 @@ struct FrameMetrics {
     return (FrameMetrics() == *this);
   }
 
-  nsIntSize mViewportSize;
+  PRBool IsRootScrollable() const
+  {
+    return mScrollId == ROOT_SCROLL_ID;
+  }
+
+  PRBool IsScrollable() const
+  {
+    return mScrollId != NULL_SCROLL_ID;
+  }
+
+  nsIntRect mViewport;
   nsIntPoint mViewportScrollOffset;
   nsIntRect mDisplayPort;
+  ViewID mScrollId;
 };
 
 #define MOZ_LAYER_DECL_NAME(n, e)                           \
