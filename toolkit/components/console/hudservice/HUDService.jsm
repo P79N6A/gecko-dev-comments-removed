@@ -63,6 +63,12 @@ XPCOMUtils.defineLazyServiceGetter(this, "sss",
                                    "@mozilla.org/content/style-sheet-service;1",
                                    "nsIStyleSheetService");
 
+XPCOMUtils.defineLazyGetter(this, "NetUtil", function () {
+  var obj = {};
+  Cu.import("resource://gre/modules/NetUtil.jsm", obj);
+  return obj.NetUtil;
+});
+
 XPCOMUtils.defineLazyGetter(this, "PropertyPanel", function () {
   var obj = {};
   try {
@@ -106,6 +112,143 @@ const ERRORS = { LOG_MESSAGE_MISSING_ARGS:
                  MISSING_ARGS: "Missing arguments",
                  LOG_OUTPUT_FAILED: "Log Failure: Could not append messageNode to outputNode",
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function ResponseListener(aHttpActivity) {
+  this.receivedData = "";
+  this.httpActivity = aHttpActivity;
+}
+
+ResponseListener.prototype =
+{
+  
+
+
+  originalListener: null,
+
+  
+
+
+  httpActivity: null,
+
+  
+
+
+  receivedData: null,
+
+  
+
+
+
+
+  setResponseHeader: function RL_setResponseHeader(aRequest)
+  {
+    let httpActivity = this.httpActivity;
+    
+    if (!httpActivity.response.header) {
+      httpActivity.response.header = {};
+      if (aRequest instanceof Ci.nsIHttpChannel) {
+        aRequest.visitResponseHeaders({
+          visitHeader: function(aName, aValue) {
+            httpActivity.response.header[aName] = aValue;
+          }
+        });
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  onDataAvailable: function RL_onDataAvailable(aRequest, aContext, aInputStream,
+                                                aOffset, aCount)
+  {
+    this.setResponseHeader(aRequest);
+
+    let StorageStream = Components.Constructor("@mozilla.org/storagestream;1",
+                                                "nsIStorageStream",
+                                                "init");
+    let BinaryOutputStream = Components.Constructor("@mozilla.org/binaryoutputstream;1",
+                                                      "nsIBinaryOutputStream",
+                                                      "setOutputStream");
+
+    storageStream = new StorageStream(8192, aCount, null);
+    binaryOutputStream = new BinaryOutputStream(storageStream.getOutputStream(0));
+
+    let data = NetUtil.readInputStreamToString(aInputStream, aCount);
+    this.receivedData += data;
+    binaryOutputStream.writeBytes(data, aCount);
+
+    this.originalListener.onDataAvailable(aRequest, aContext,
+      storageStream.newInputStream(0), aOffset, aCount);
+  },
+
+  
+
+
+
+
+
+
+  onStartRequest: function RL_onStartRequest(aRequest, aContext)
+  {
+    this.originalListener.onStartRequest(aRequest, aContext);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  onStopRequest: function RL_onStopRequest(aRequest, aContext, aStatusCode)
+  {
+    this.originalListener.onStopRequest(aRequest, aContext, aStatusCode);
+
+    this.setResponseHeader(aRequest);
+    this.httpActivity.response.body = this.receivedData;
+
+    if (HUDService.lastFinishedRequestCallback) {
+      HUDService.lastFinishedRequestCallback(this.httpActivity);
+    }
+    this.httpActivity = null;
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIStreamListener,
+    Ci.nsISupports
+  ])
+}
 
 
 
@@ -169,6 +312,109 @@ const ERRORS = { LOG_MESSAGE_MISSING_ARGS:
 
 var NetworkHelper =
 {
+  
+
+
+
+
+
+
+
+
+
+  convertToUnicode: function NH_convertToUnicode(aText, aCharset)
+  {
+    let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
+               createInstance(Ci.nsIScriptableUnicodeConverter);
+    conv.charset = aCharset || "UTF-8";
+    return conv.ConvertToUnicode(aText);
+  },
+
+  
+
+
+
+
+
+
+
+  readAndConvertFromStream: function NH_readAndConvertFromStream(aStream, aCharset)
+  {
+    let text = null;
+    try {
+      text = NetUtil.readInputStreamToString(aStream, aStream.available())
+      return this.convertToUnicode(text, aCharset);
+    }
+    catch (err) {
+      return text;
+    }
+  },
+
+   
+
+
+
+
+
+
+
+
+  readPostTextFromRequest: function NH_readPostTextFromRequest(aRequest, aBrowser)
+  {
+    if (aRequest instanceof Ci.nsIUploadChannel) {
+      let iStream = aRequest.uploadStream;
+
+      let isSeekableStream = false;
+      if (iStream instanceof Ci.nsISeekableStream) {
+        isSeekableStream = true;
+      }
+
+      let prevOffset;
+      if (isSeekableStream) {
+        prevOffset = iStream.tell();
+        iStream.seek(Ci.nsISeekableStream.NS_SEEK_SET, 0);
+      }
+
+      
+      let charset = aBrowser.contentWindow.document.characterSet;
+      let text = this.readAndConvertFromStream(iStream, charset);
+
+      
+      
+      
+      if (isSeekableStream && prevOffset == 0) {
+        iStream.seek(Ci.nsISeekableStream.NS_SEEK_SET, 0);
+      }
+      return text;
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+  readPostTextFromPage: function NH_readPostTextFromPage(aBrowser)
+  {
+    let webNav = aBrowser.webNavigation;
+    if (webNav instanceof Ci.nsIWebPageDescriptor) {
+      let descriptor = webNav.currentDescriptor;
+
+      if (descriptor instanceof Ci.nsISHEntry && descriptor.postData &&
+          descriptor instanceof Ci.nsISeekableStream) {
+        descriptor.seek(NS_SEEK_SET, 0);
+
+        let charset = browser.contentWindow.document.characterSet;
+        return this.readAndConvertFromStream(descriptor, charset);
+      }
+    }
+    return null;
+  },
+
   
 
 
@@ -1112,6 +1358,17 @@ HUD_SERVICE.prototype =
   
 
 
+  openRequests: {},
+
+  
+
+
+
+  lastFinishedRequestCallback: null,
+
+  
+
+
 
 
   startHTTPObservation: function HS_httpObserverFactory()
@@ -1123,13 +1380,15 @@ HUD_SERVICE.prototype =
       function (aChannel, aActivityType, aActivitySubtype,
                 aTimestamp, aExtraSizeData, aExtraStringData)
       {
-        var loadGroup;
         if (aActivityType ==
-            activityDistributor.ACTIVITY_TYPE_HTTP_TRANSACTION) {
+              activityDistributor.ACTIVITY_TYPE_HTTP_TRANSACTION ||
+            aActivityType ==
+              activityDistributor.ACTIVITY_TYPE_SOCKET_TRANSPORT) {
 
           aChannel = aChannel.QueryInterface(Ci.nsIHttpChannel);
 
-          var transCodes = this.httpTransactionCodes;
+          let transCodes = this.httpTransactionCodes;
+          let hudId;
 
           if (aActivitySubtype ==
               activityDistributor.ACTIVITY_SUBTYPE_REQUEST_HEADER ) {
@@ -1140,29 +1399,158 @@ HUD_SERVICE.prototype =
             }
 
             
-            let hudId = self.getHudIdByWindow(win);
+            hudId = self.getHudIdByWindow(win);
             if (!hudId) {
               return;
             }
 
-            var httpActivity = {
+            
+            
+            let httpActivity = {
+              id: self.sequenceId(),
+              hudId: hudId,
+              url: aChannel.URI.spec,
+              method: aChannel.requestMethod,
               channel: aChannel,
-              type: aActivityType,
-              subType: aActivitySubtype,
-              timestamp: aTimestamp,
-              extraSizeData: aExtraSizeData,
-              extraStringData: aExtraStringData,
-              stage: transCodes[aActivitySubtype],
-              hudId: hudId
+
+              request: {
+                header: { }
+              },
+              response: {
+                header: null
+              },
+              timing: {
+                "REQUEST_HEADER": aTimestamp
+              }
             };
 
             
-            
-            httpActivity.httpId = self.sequenceId();
             let loggedNode =
               self.logActivity("network", aChannel.URI, httpActivity);
-            self.httpTransactions[aChannel] =
-              new Number(httpActivity.httpId);
+
+            
+            
+            if (!loggedNode) {
+              return;
+            }
+
+            
+            let newListener = new ResponseListener(httpActivity);
+            aChannel.QueryInterface(Ci.nsITraceableChannel);
+            newListener.originalListener = aChannel.setNewListener(newListener);
+            httpActivity.response.listener = newListener;
+
+            
+            aChannel.visitRequestHeaders({
+              visitHeader: function(aName, aValue) {
+                httpActivity.request.header[aName] = aValue;
+              }
+            });
+
+            
+            httpActivity.messageObject = loggedNode;
+            self.openRequests[httpActivity.id] = httpActivity;
+          }
+          else {
+            
+            
+            let httpActivity = null;
+            for each (var item in self.openRequests) {
+              if (item.channel !== aChannel) {
+                continue;
+              }
+              httpActivity = item;
+              break;
+            }
+
+            if (!httpActivity) {
+              return;
+            }
+
+            let msgObject;
+            let data, textNode;
+            
+            httpActivity.timing[transCodes[aActivitySubtype]] = aTimestamp;
+
+            switch (aActivitySubtype) {
+              case activityDistributor.ACTIVITY_SUBTYPE_REQUEST_BODY_SENT:
+                let gBrowser = HUDService.currentContext().gBrowser;
+
+                let sentBody = NetworkHelper.readPostTextFromRequest(
+                                aChannel, gBrowser);
+                if (!sentBody) {
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  if (httpActivity.url == gBrowser.contentWindow.location.href) {
+                    sentBody = NetworkHelper.readPostTextFromPage(gBrowser);
+                  }
+                  if (!sentBody) {
+                    sentBody = "";
+                  }
+                }
+                httpActivity.request.body = sentBody;
+                break;
+
+              case activityDistributor.ACTIVITY_SUBTYPE_RESPONSE_HEADER:
+                msgObject = httpActivity.messageObject;
+
+                
+                
+                
+                
+                
+                
+                
+                
+                httpActivity.response.status =
+                  aExtraStringData.split(/\r\n|\n|\r/)[0];
+
+                
+                
+                textNode = msgObject.messageNode.firstChild;
+                textNode.parentNode.removeChild(textNode);
+
+                data = [ httpActivity.url,
+                         httpActivity.response.status ];
+
+                msgObject.messageNode.appendChild(
+                  msgObject.textFactory(
+                    msgObject.prefix +
+                    self.getFormatStr("networkUrlWithStatus", data)));
+
+                break;
+
+              case activityDistributor.ACTIVITY_SUBTYPE_TRANSACTION_CLOSE:
+                msgObject = httpActivity.messageObject;
+
+
+                let timing = httpActivity.timing;
+                let requestDuration =
+                  Math.round((timing.RESPONSE_COMPLETE -
+                                timing.REQUEST_HEADER) / 1000);
+
+                
+                
+                textNode = msgObject.messageNode.firstChild;
+                textNode.parentNode.removeChild(textNode);
+
+                data = [ httpActivity.url,
+                         httpActivity.response.status,
+                         requestDuration ];
+
+                msgObject.messageNode.appendChild(
+                  msgObject.textFactory(
+                    msgObject.prefix +
+                    self.getFormatStr("networkUrlWithStatusAndDuration", data)));
+
+                delete self.openRequests[item.id];
+                break;
+            }
           }
         }
       },
@@ -1174,15 +1562,18 @@ HUD_SERVICE.prototype =
         0x5004: "RESPONSE_HEADER",
         0x5005: "RESPONSE_COMPLETE",
         0x5006: "TRANSACTION_CLOSE",
+
+        0x804b0003: "STATUS_RESOLVING",
+        0x804b0007: "STATUS_CONNECTING_TO",
+        0x804b0004: "STATUS_CONNECTED_TO",
+        0x804b0005: "STATUS_SENDING_TO",
+        0x804b000a: "STATUS_WAITING_FOR",
+        0x804b0006: "STATUS_RECEIVING_FROM"
       }
     };
 
     activityDistributor.addObserver(httpObserver);
   },
-
-  
-  
-  httpTransactions: {},
 
   
 
@@ -1211,13 +1602,20 @@ HUD_SERVICE.prototype =
                     };
       var msgType = this.getStr("typeNetwork");
       var msg = msgType + " " +
-        aActivityObject.channel.requestMethod +
+        aActivityObject.method +
         " " +
-        aURI.spec;
+        aActivityObject.url;
       message.message = msg;
+
       var messageObject =
-      this.messageFactory(message, aType, outputNode, aActivityObject);
+        this.messageFactory(message, aType, outputNode, aActivityObject);
+
+      var timestampedMessage = messageObject.timestampedMessage;
+      var urlIdx = timestampedMessage.indexOf(aActivityObject.url);
+      messageObject.prefix = timestampedMessage.substring(0, urlIdx);
+
       this.logMessage(messageObject.messageObject, outputNode, messageObject.messageNode);
+      return messageObject;
     }
     catch (ex) {
       Cu.reportError(ex);
@@ -1307,7 +1705,7 @@ HUD_SERVICE.prototype =
     var displayNode, outputNode, hudId;
 
     if (aType == "network") {
-      var result = this.logNetActivity(aType, aURI, aActivityObject);
+      return this.logNetActivity(aType, aURI, aActivityObject);
     }
     else if (aType == "console-listener") {
       this.logConsoleActivity(aURI, aActivityObject);
@@ -3145,9 +3543,9 @@ LogMessage.prototype = {
     this.messageNode = this.xulElementFactory("label");
 
     var ts = ConsoleUtils.timestamp();
-    var timestampedMessage = ConsoleUtils.timestampString(ts) + ": " +
+    this.timestampedMessage = ConsoleUtils.timestampString(ts) + ": " +
       this.message.message;
-    var messageTxtNode = this.textFactory(timestampedMessage);
+    var messageTxtNode = this.textFactory(this.timestampedMessage);
 
     this.messageNode.appendChild(messageTxtNode);
 
