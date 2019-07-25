@@ -79,21 +79,16 @@ private:
 
 
 
-
-
-
-
-
-
 struct nsPurpleBufferEntry {
   union {
-    nsISupports *mObject;                 
+    void *mObject;                        
     nsPurpleBufferEntry *mNextInFreeList; 
   };
   
   
   
   nsrefcnt mRefCnt;
+  nsCycleCollectionParticipant *mParticipant; 
 };
 
 class nsCycleCollectingAutoRefCnt {
@@ -108,7 +103,7 @@ public:
   {
   }
 
-  nsrefcnt incr(nsISupports *owner)
+  nsrefcnt incr(void *owner)
   {
     if (NS_UNLIKELY(mTagged == NS_CCAR_TAGGED_STABILIZED_REFCNT)) {
       
@@ -151,6 +146,11 @@ public:
 
   nsrefcnt decr(nsISupports *owner)
   {
+    return decr(owner, nullptr);
+  }
+
+  nsrefcnt decr(void *owner, nsCycleCollectionParticipant *p)
+  {
     if (NS_UNLIKELY(mTagged == NS_CCAR_TAGGED_STABILIZED_REFCNT))
       return 1;
 
@@ -177,7 +177,7 @@ public:
 
       nsPurpleBufferEntry *e;
       if (NS_LIKELY(refcount > 0) &&
-          ((e = NS_CycleCollectorSuspect2(owner)))) {
+          ((e = NS_CycleCollectorSuspect2(owner, p)))) {
         e->mRefCnt = refcount;
         mTagged = NS_CCAR_PURPLE_ENTRY_TO_TAGGED(e);
       } else {
