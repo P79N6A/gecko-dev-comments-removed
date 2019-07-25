@@ -547,6 +547,16 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
           return false;
         }
         break;
+      case DT_FLAGS:
+        {
+           Word flags = dyn->d_un.d_val;
+           
+           flags &= ~DF_SYMBOLIC;
+           if (flags)
+             log("%s: Warning: unhandled flags #%" PRIxAddr" not handled",
+                 GetPath(), flags);
+        }
+        break;
       case DT_SONAME: 
       case DT_SYMBOLIC: 
 
