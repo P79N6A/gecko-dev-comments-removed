@@ -275,8 +275,6 @@ mjit::Compiler::popActiveFrame()
         if (status_ != Compile_Okay) {                               \
             if (oomInVector || masm.oom() || stubcc.masm.oom())      \
                 js_ReportOutOfMemory(cx);                            \
-            if (!cx->compartment->types.checkPendingRecompiles(cx))  \
-                return Compile_Error;                                \
             return status_;                                          \
         }                                                            \
     JS_END_MACRO
@@ -301,7 +299,7 @@ mjit::Compiler::performCompilation(JITScript **jitp)
     outerScript->debugMode = debugMode();
 #endif
 
-    types::AutoEnterTypeInference enter(cx, true);
+    JS_ASSERT(cx->compartment->types.inferenceDepth);
 
     CHECK_STATUS(pushActiveFrame(outerScript, 0));
     CHECK_STATUS(generatePrologue());
@@ -316,9 +314,6 @@ mjit::Compiler::performCompilation(JITScript **jitp)
 
     JaegerSpew(JSpew_Scripts, "successfully compiled (code \"%p\") (size \"%ld\")\n",
                (*jitp)->code.m_code.executableAddress(), (*jitp)->code.m_size);
-
-    if (!cx->compartment->types.checkPendingRecompiles(cx))
-        return Compile_Error;
 
     if (!*jitp)
         return Compile_Abort;
@@ -444,6 +439,8 @@ mjit::TryCompile(JSContext *cx, JSStackFrame *fp)
     if (fp->isConstructing() && !fp->script()->nslots)
         fp->script()->nslots++;
 
+    types::AutoEnterTypeInference enter(cx, true);
+
     
     
     
@@ -453,6 +450,9 @@ mjit::TryCompile(JSContext *cx, JSStackFrame *fp)
                     fp->scopeChain().getGlobal(), NULL, fp->script()->inlineParents);
         status = cc.compile();
     }
+
+    if (!cx->compartment->types.checkPendingRecompiles(cx))
+        return Compile_Error;
 
     return status;
 }
@@ -3598,6 +3598,18 @@ mjit::Compiler::inlineScriptedFunction(uint32 argc, bool callingNew)
 
     if (types->objectCount >= INLINE_SITE_LIMIT)
         return Compile_InlineAbort;
+
+    
+
+
+
+
+
+    for (unsigned i = 0; patchFrames && i < patchFrames->length(); i++) {
+        const PatchableFrame &frame = (*patchFrames)[i];
+        if (frame.pc == PC && !frame.scriptedCall)
+            return Compile_InlineAbort;
+    }
 
     
 
