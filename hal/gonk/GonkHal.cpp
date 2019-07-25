@@ -12,33 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "hardware_legacy/uevent.h"
 #include "Hal.h"
 #include "HalImpl.h"
@@ -54,6 +27,8 @@
 #include "nsIThread.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
+#include "hardware/lights.h"
+#include "hardware/hardware.h"
 #include "hardware_legacy/vibrator.h"
 #include <stdio.h>
 #include <math.h>
@@ -314,7 +289,6 @@ namespace {
 
 
 const char *screenEnabledFilename = "/sys/power/state";
-const char *screenBrightnessFilename = "/sys/class/leds/lcd-backlight/brightness";
 
 template<ssize_t n>
 bool ReadFromFile(const char *filename, char (&buf)[n])
@@ -374,24 +348,13 @@ SetScreenEnabled(bool enabled)
 double
 GetScreenBrightness()
 {
-  char buf[32];
-  ReadFromFile(screenBrightnessFilename, buf);
+  hal::LightConfiguration aConfig;
+  hal::LightType light = hal::eHalLightID_Backlight;
 
-  errno = 0;
-  unsigned long val = strtoul(buf, NULL, 10);
-  if (errno) {
-    HAL_LOG(("Cannot parse contents of %s; expected an unsigned "
-             "int, but contains \"%s\".",
-             screenBrightnessFilename, buf));
-    return 1;
-  }
-
-  if (val > 255) {
-    HAL_LOG(("Got out-of-range brightness %d, truncating to 1.0", val));
-    val = 255;
-  }
-
-  return val / 255.0;
+  hal::GetLight(light, &aConfig);
+  
+  int brightness = aConfig.color() & 0xFF;
+  return brightness / 255.0;
 }
 
 void
@@ -408,11 +371,119 @@ SetScreenBrightness(double brightness)
   
   
   int val = static_cast<int>(round(brightness * 255));
-  char str[4];
-  DebugOnly<int> numChars = snprintf(str, sizeof(str), "%d", val);
-  MOZ_ASSERT(numChars < static_cast<int>(sizeof(str)));
+  uint32_t color = (0xff<<24) + (val<<16) + (val<<8) + val;
 
-  WriteToFile(screenBrightnessFilename, str);
+  hal::LightConfiguration aConfig;
+  aConfig.mode() = hal::eHalLightMode_User;
+  aConfig.flash() = hal::eHalLightFlash_None;
+  aConfig.flashOnMS() = aConfig.flashOffMS() = 0;
+  aConfig.color() = color;
+  hal::SetLight(hal::eHalLightID_Backlight, aConfig);
+}
+
+static light_device_t* sLights[hal::eHalLightID_Count];	
+
+light_device_t* GetDevice(hw_module_t* module, char const* name)
+{
+  int err;
+  hw_device_t* device;
+  err = module->methods->open(module, name, &device);
+  if (err == 0) {
+    return (light_device_t*)device;
+  } else {
+    return NULL;
+  }
+}
+
+void
+InitLights()
+{
+  
+  
+  if (!sLights[hal::eHalLightID_Backlight]) {
+    int err;
+    hw_module_t* module;
+
+    err = hw_get_module(LIGHTS_HARDWARE_MODULE_ID, (hw_module_t const**)&module);
+    if (err == 0) {
+      sLights[hal::eHalLightID_Backlight]
+             = GetDevice(module, LIGHT_ID_BACKLIGHT);
+      sLights[hal::eHalLightID_Keyboard]
+             = GetDevice(module, LIGHT_ID_KEYBOARD);
+      sLights[hal::eHalLightID_Buttons]
+             = GetDevice(module, LIGHT_ID_BUTTONS);
+      sLights[hal::eHalLightID_Battery]
+             = GetDevice(module, LIGHT_ID_BATTERY);
+      sLights[hal::eHalLightID_Notifications]
+             = GetDevice(module, LIGHT_ID_NOTIFICATIONS);
+      sLights[hal::eHalLightID_Attention]
+             = GetDevice(module, LIGHT_ID_ATTENTION);
+      sLights[hal::eHalLightID_Bluetooth]
+             = GetDevice(module, LIGHT_ID_BLUETOOTH);
+      sLights[hal::eHalLightID_Wifi]
+             = GetDevice(module, LIGHT_ID_WIFI);
+        }
+    }
+}
+
+
+
+
+
+static light_state_t sStoredLightState[hal::eHalLightID_Count];
+
+bool
+SetLight(hal::LightType light, const hal::LightConfiguration& aConfig)
+{
+  light_state_t state;
+
+  InitLights();
+
+  if (light < 0 || light >= hal::eHalLightID_Count || sLights[light] == NULL) {
+    return false;
+  }
+
+  memset(&state, 0, sizeof(light_state_t));
+  state.color = aConfig.color();
+  state.flashMode = aConfig.flash();
+  state.flashOnMS = aConfig.flashOnMS();
+  state.flashOffMS = aConfig.flashOffMS();
+  state.brightnessMode = aConfig.mode();
+
+  sLights[light]->set_light(sLights[light], &state);
+  sStoredLightState[light] = state;
+  return true;
+}
+
+bool
+GetLight(hal::LightType light, hal::LightConfiguration* aConfig)
+{
+  light_state_t state;
+
+#ifdef HAVEGETLIGHT
+  InitLights();
+#endif
+
+  if (light < 0 || light >= hal::eHalLightID_Count || sLights[light] == NULL) {
+    return false;
+  }
+
+  memset(&state, 0, sizeof(light_state_t));
+
+#ifdef HAVEGETLIGHT
+  sLights[light]->get_light(sLights[light], &state);
+#else
+  state = sStoredLightState[light];
+#endif
+
+  aConfig->light() = light;
+  aConfig->color() = state.color;
+  aConfig->flash() = hal::FlashMode(state.flashMode);
+  aConfig->flashOnMS() = state.flashOnMS;
+  aConfig->flashOffMS() = state.flashOffMS;
+  aConfig->mode() = hal::LightMode(state.brightnessMode);
+
+  return true;
 }
 
 void

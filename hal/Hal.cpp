@@ -10,33 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "Hal.h"
 #include "HalImpl.h"
 #include "HalSandbox.h"
@@ -342,6 +315,18 @@ void SetScreenBrightness(double brightness)
 {
   AssertMainThread();
   PROXY_IF_SANDBOXED(SetScreenBrightness(clamped(brightness, 0.0, 1.0)));
+}
+
+bool SetLight(LightType light, const hal::LightConfiguration& aConfig)
+{
+  AssertMainThread();
+  RETURN_PROXY_IF_SANDBOXED(SetLight(light, aConfig));
+}
+
+bool GetLight(LightType light, hal::LightConfiguration* aConfig)
+{
+  AssertMainThread();
+  RETURN_PROXY_IF_SANDBOXED(GetLight(light, aConfig));
 }
 
 void

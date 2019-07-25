@@ -10,33 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_Hal_h
 #define mozilla_Hal_h 1
 
@@ -169,6 +142,23 @@ double GetScreenBrightness();
 
 
 void SetScreenBrightness(double brightness);
+
+
+
+
+
+
+
+
+
+
+
+bool SetLight(hal::LightType light, const hal::LightConfiguration& aConfig);
+
+
+
+
+bool GetLight(hal::LightType light, hal::LightConfiguration* aConfig);
 
 
 
