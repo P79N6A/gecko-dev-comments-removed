@@ -54,8 +54,24 @@
 
 extern const SEC_ASN1Template NSSCMSContentInfoTemplate[];
 
+struct NSSCMSContentInfoPrivateStr {
+    NSSCMSCipherContext *ciphcx;
+    NSSCMSDigestContext *digcx;
+    PRBool  dontStream;
+};
+
 
 SEC_BEGIN_PROTOS
+
+
+
+
+
+
+
+
+SECStatus NSS_CMSContentInfo_Private_Init(NSSCMSContentInfo *cinfo);
+
 
 
 
@@ -340,6 +356,33 @@ NSS_CMSAttributeArray_SetAttr(PLArenaPool *poolp, NSSCMSAttribute ***attrs, SECO
 extern SECStatus
 NSS_CMSSignedData_AddTempCertificate(NSSCMSSignedData *sigd, CERTCertificate *cert);
 
+
+
+
+
+
+
+
+
+PRBool NSS_CMSType_IsWrapper(SECOidTag type);
+PRBool NSS_CMSType_IsData(SECOidTag type);
+size_t NSS_CMSType_GetContentSize(SECOidTag type);
+const SEC_ASN1Template * NSS_CMSType_GetTemplate(SECOidTag type);
+
+void NSS_CMSGenericWrapperData_Destroy(SECOidTag type,
+					NSSCMSGenericWrapperData *gd);
+SECStatus NSS_CMSGenericWrapperData_Decode_BeforeData(SECOidTag type, 
+					NSSCMSGenericWrapperData *gd);
+SECStatus NSS_CMSGenericWrapperData_Decode_AfterData(SECOidTag type, 
+					NSSCMSGenericWrapperData *gd);
+SECStatus NSS_CMSGenericWrapperData_Decode_AfterEnd(SECOidTag type, 
+					NSSCMSGenericWrapperData *gd);
+SECStatus NSS_CMSGenericWrapperData_Encode_BeforeStart(SECOidTag type, 
+					NSSCMSGenericWrapperData *gd);
+SECStatus NSS_CMSGenericWrapperData_Encode_BeforeData(SECOidTag type, 
+					NSSCMSGenericWrapperData *gd);
+SECStatus NSS_CMSGenericWrapperData_Encode_AfterData(SECOidTag type, 
+					NSSCMSGenericWrapperData *gd);
 
 SEC_END_PROTOS
 

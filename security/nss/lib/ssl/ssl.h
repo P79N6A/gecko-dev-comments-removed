@@ -376,6 +376,15 @@ SSL_IMPORT SECStatus SSL_ConfigSecureServer(
 
 
 
+SSL_IMPORT SECStatus
+SSL_ConfigSecureServerWithCertChain(PRFileDesc *fd, CERTCertificate *cert,
+                                    const CERTCertificateList *certChainOpt,
+                                    SECKEYPrivateKey *key, SSLKEAType kea);
+
+
+
+
+
 
 
 

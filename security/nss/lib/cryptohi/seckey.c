@@ -1000,6 +1000,15 @@ seckey_GetKeyType (SECOidTag tag) {
       case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
 	keyType = ecKey;
 	break;
+      
+
+      case SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION:
+      case SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION:
+      case SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION:
+      case SEC_OID_PKCS1_SHA384_WITH_RSA_ENCRYPTION:
+      case SEC_OID_PKCS1_SHA512_WITH_RSA_ENCRYPTION:
+	keyType = rsaKey;
+	break;
       default:
 	keyType = nullKey;
     }
@@ -2225,7 +2234,7 @@ SECKEY_DestroyPrivateKeyInfo(SECKEYPrivateKeyInfo *pvk,
 	    SECITEM_ZfreeItem(&pvk->version, PR_FALSE);
 	    SECITEM_ZfreeItem(&pvk->privateKey, PR_FALSE);
 	    SECOID_DestroyAlgorithmID(&pvk->algorithm, PR_FALSE);
-	    PORT_Memset((char *)pvk, 0, sizeof(pvk));
+	    PORT_Memset((char *)pvk, 0, sizeof(*pvk));
 	    if(freeit == PR_TRUE) {
 		PORT_Free(pvk);
 	    }
@@ -2255,7 +2264,7 @@ SECKEY_DestroyEncryptedPrivateKeyInfo(SECKEYEncryptedPrivateKeyInfo *epki,
 	} else {
 	    SECITEM_ZfreeItem(&epki->encryptedData, PR_FALSE);
 	    SECOID_DestroyAlgorithmID(&epki->algorithm, PR_FALSE);
-	    PORT_Memset((char *)epki, 0, sizeof(epki));
+	    PORT_Memset((char *)epki, 0, sizeof(*epki));
 	    if(freeit == PR_TRUE) {
 		PORT_Free(epki);
 	    }
@@ -2325,19 +2334,24 @@ SECKEY_ImportDERPublicKey(SECItem *derKey, CK_KEY_TYPE type)
     SECKEYPublicKey *pubk = NULL;
     SECStatus rv = SECFailure;
     SECItem newDerKey;
+    PRArenaPool *arena = NULL;
 
     if (!derKey) {
         return NULL;
     } 
 
-    pubk = PORT_ZNew(SECKEYPublicKey);
-    if(pubk == NULL) {
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (arena == NULL) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
         goto finish;
     }
-    pubk->arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if (NULL == pubk->arena) {
+
+    pubk = PORT_ArenaZNew(arena, SECKEYPublicKey);
+    if (pubk == NULL) {
         goto finish;
     }
+    pubk->arena = arena;
+
     rv = SECITEM_CopyItem(pubk->arena, &newDerKey, derKey);
     if (SECSuccess != rv) {
         goto finish;
@@ -2368,11 +2382,10 @@ SECKEY_ImportDERPublicKey(SECItem *derKey, CK_KEY_TYPE type)
     }
 
 finish:
-    if( rv != SECSuccess && pubk != NULL) {
-        if (pubk->arena) {
-            PORT_FreeArena(pubk->arena, PR_TRUE);
+    if (rv != SECSuccess) {
+        if (arena != NULL) {
+            PORT_FreeArena(arena, PR_TRUE);
         }
-        PORT_Free(pubk);
         pubk = NULL;
     }
     return pubk;

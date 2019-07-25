@@ -479,6 +479,20 @@ const SEC_ASN1Template NSS_PointerToCMSEncryptedDataTemplate[] = {
     { SEC_ASN1_POINTER, 0, NSSCMSEncryptedDataTemplate }
 };
 
+const SEC_ASN1Template NSSCMSGenericWrapperDataTemplate[] = {
+    { SEC_ASN1_INLINE,
+	  offsetof(NSSCMSGenericWrapperData,contentInfo),
+	  NSSCMSEncapsulatedContentInfoTemplate },
+};
+
+SEC_ASN1_CHOOSER_IMPLEMENT(NSSCMSGenericWrapperDataTemplate);
+
+const SEC_ASN1Template NSS_PointerToCMSGenericWrapperDataTemplate[] = {
+    { SEC_ASN1_POINTER, 0, NSSCMSGenericWrapperDataTemplate }
+};
+
+SEC_ASN1_CHOOSER_IMPLEMENT(NSS_PointerToCMSGenericWrapperDataTemplate);
+
 
 
 
@@ -547,15 +561,17 @@ nss_cms_choose_content_template(void *src_or_dest, PRBool encoding)
 {
     const SEC_ASN1Template *theTemplate;
     NSSCMSContentInfo *cinfo;
+    SECOidTag type;
 
     PORT_Assert (src_or_dest != NULL);
     if (src_or_dest == NULL)
 	return NULL;
 
     cinfo = (NSSCMSContentInfo *)src_or_dest;
-    switch (NSS_CMSContentInfo_GetContentTypeTag(cinfo)) {
+    type = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
+    switch (type) {
     default:
-	theTemplate = SEC_ASN1_GET(SEC_PointerToAnyTemplate);
+	theTemplate = NSS_CMSType_GetTemplate(type);
 	break;
     case SEC_OID_PKCS7_DATA:
 	theTemplate = SEC_ASN1_GET(SEC_PointerToOctetStringTemplate);

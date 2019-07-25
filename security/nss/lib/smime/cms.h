@@ -306,6 +306,14 @@ NSS_CMSContentInfo_SetContent_EncryptedData(NSSCMSMessage *cmsg, NSSCMSContentIn
 
 
 
+extern SECStatus
+NSS_CMSContentInfo_SetDontStream(NSSCMSContentInfo *cinfo, PRBool dontStream);
+
+
+
+
+
+
 
 extern void *
 NSS_CMSContentInfo_GetContent(NSSCMSContentInfo *cinfo);
@@ -1127,6 +1135,51 @@ extern SECStatus
 NSS_CMSDEREncode(NSSCMSMessage *cmsg, SECItem *input, SECItem *derOut, 
                  PLArenaPool *arena);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SECStatus NSS_CMSType_RegisterContentType(SECOidTag type,
+                          SEC_ASN1Template *asn1Template, size_t size,
+                          NSSCMSGenericWrapperDataDestroy  destroy,
+                          NSSCMSGenericWrapperDataCallback decode_before,
+                          NSSCMSGenericWrapperDataCallback decode_after,
+                          NSSCMSGenericWrapperDataCallback decode_end,
+                          NSSCMSGenericWrapperDataCallback encode_start,
+                          NSSCMSGenericWrapperDataCallback encode_before,
+                          NSSCMSGenericWrapperDataCallback encode_after,
+                          PRBool isData);
 
 
 SEC_END_PROTOS
