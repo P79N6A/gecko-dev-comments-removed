@@ -63,6 +63,7 @@ enum {
 namespace mozilla {
 namespace ipc {
 
+class AsyncChannel;
 
 
 
@@ -119,6 +120,7 @@ public:
 
     
     virtual ProcessHandle OtherProcess() const = 0;
+    virtual AsyncChannel* GetIPCChannel() = 0;
 };
 
 
