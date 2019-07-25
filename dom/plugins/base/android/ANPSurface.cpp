@@ -143,14 +143,6 @@ static bool init() {
   gSurfaceFunctions.lock = (int (*)(void*, SurfaceInfo*, void*))dlsym(handle, "_ZN7android7Surface4lockEPNS0_11SurfaceInfoEPNS_6RegionEb");
   gSurfaceFunctions.unlockAndPost = (int (*)(void*))dlsym(handle, "_ZN7android7Surface13unlockAndPostEv");
 
-
-  if (!gSurfaceFunctions.lock) {
-    
-    handle = dlopen("libgui.so", RTLD_LAZY);
-    gSurfaceFunctions.lock = (int (*)(void*, SurfaceInfo*, void*))dlsym(handle, "_ZN7android7Surface4lockEPNS0_11SurfaceInfoEPNS_6RegionE");
-    gSurfaceFunctions.unlockAndPost = (int (*)(void*))dlsym(handle, "_ZN7android7Surface13unlockAndPostEv");
-  }
-
   handle = dlopen("libui.so", RTLD_LAZY);
   if (!handle) {
     LOG("Failed to open libui.so");
@@ -165,7 +157,6 @@ static bool init() {
   LOG("Initialized? %d\n", gSurfaceFunctions.initialized);
   return gSurfaceFunctions.initialized;
 }
-
 
 static bool anp_surface_lock(JNIEnv* env, jobject surfaceView, ANPBitmap* bitmap, ANPRectI* dirtyRect) {
   if (!bitmap || !surfaceView) {

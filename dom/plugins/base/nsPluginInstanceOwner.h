@@ -277,12 +277,6 @@ public:
   }
 
   void Invalidate();
-
-  void RequestFullScreen();
-  void ExitFullScreen();
-
-  
-  static void ExitFullScreen(jobject view);
 #endif
   
 private:
@@ -299,13 +293,10 @@ private:
 #ifdef MOZ_WIDGET_ANDROID
   void SendSize(int width, int height);
 
-  bool AddPluginView(const gfxRect& aRect = gfxRect(0, 0, 0, 0));
+  bool AddPluginView(const gfxRect& aRect);
   void RemovePluginView();
 
   bool mInverted;
-  bool mFullScreen;
-
-  void* mJavaView;
 
   
   nsRefPtr<mozilla::AndroidMediaLayer> mLayer;
