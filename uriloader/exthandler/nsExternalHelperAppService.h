@@ -191,10 +191,6 @@ protected:
 
 
   nsCOMArray<nsIFile> mTemporaryPrivateFilesList;
-  
-
-
-  bool mInPrivateBrowsing;
 };
 
 
