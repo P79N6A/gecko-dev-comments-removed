@@ -122,6 +122,10 @@ public:
       const tracked_objects::Location& from_here, Task* task, int delay_ms);
 
   
+  void PostIdleTask(
+      const tracked_objects::Location& from_here, Task* task);
+
+  
   
   
   
