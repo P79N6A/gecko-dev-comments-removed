@@ -1923,7 +1923,7 @@ static PRBool SelectorMatches(Element* aElement,
           aTreeMatchContext.mCompatMode == eCompatibility_NavQuirks &&
           
           !aSelector->HasTagSelector() && !aSelector->mIDList && 
-          !aSelector->mAttrList &&
+          !aSelector->mClassList && !aSelector->mAttrList &&
           
           
           
