@@ -261,7 +261,7 @@ public:
   
 
 
-  virtual nsAccessible* GetParent();
+  nsAccessible* GetParent() const { return mParent; }
 
   
 

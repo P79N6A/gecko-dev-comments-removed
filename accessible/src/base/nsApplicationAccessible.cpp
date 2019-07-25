@@ -410,12 +410,6 @@ nsApplicationAccessible::InvalidateChildren()
   
 }
 
-nsAccessible*
-nsApplicationAccessible::GetParent()
-{
-  return nsnull;
-}
-
 
 
 

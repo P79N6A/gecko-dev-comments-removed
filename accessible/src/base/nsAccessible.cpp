@@ -2829,37 +2829,6 @@ nsAccessible::RemoveChild(nsAccessible* aChild)
 }
 
 nsAccessible*
-nsAccessible::GetParent()
-{
-  if (mParent)
-    return mParent;
-
-  if (IsDefunct())
-    return nsnull;
-
-  
-  
-  
-  NS_WARNING("Bad accessible tree!");
-
-#ifdef DEBUG
-  nsDocAccessible *docAccessible = GetDocAccessible();
-  NS_ASSERTION(docAccessible, "No document accessible for valid accessible!");
-#endif
-
-  nsAccessible* parent = GetAccService()->GetContainerAccessible(mContent,
-                                                                 mWeakShell);
-  NS_ASSERTION(parent, "No accessible parent for valid accessible!");
-  if (!parent)
-    return nsnull;
-
-  
-  parent->EnsureChildren();
-  NS_ASSERTION(parent == mParent, "Wrong children repair!");
-  return parent;
-}
-
-nsAccessible*
 nsAccessible::GetChildAt(PRUint32 aIndex)
 {
   if (EnsureChildren())
