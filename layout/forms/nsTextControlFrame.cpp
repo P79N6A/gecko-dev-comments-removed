@@ -46,6 +46,7 @@
 
 #include "nsBoxLayoutState.h"
 
+#include "nsIPrivateDOMEvent.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDocument.h" 
 #include "nsIStyleSheet.h"
@@ -76,6 +77,8 @@
 #include "mozilla/FunctionTimer.h"
 
 #define DEFAULT_COLUMN_WIDTH 20
+
+using namespace mozilla;
 
 nsIFrame*
 NS_NewTextControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -1064,7 +1067,7 @@ nsTextControlFrame::GetSelectionRange(PRInt32* aSelectionStart,
   rv = selPriv->GetFrameSelection(getter_AddRefs(frameSel));
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(frameSel, NS_ERROR_FAILURE);
-  nsRefPtr<nsTypedSelection> typedSel =
+  nsRefPtr<Selection> typedSel =
     frameSel->GetSelection(nsISelectionController::SELECTION_NORMAL);
   NS_ENSURE_TRUE(typedSel, NS_ERROR_FAILURE);
 

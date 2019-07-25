@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsTypedSelection_h
-#define nsTypedSelection_h
+#ifndef mozilla_Selection_h__
+#define mozilla_Selection_h__
 
 #include "nsIWeakReference.h"
 
@@ -19,6 +19,7 @@ class nsAutoScrollTimer;
 class nsIContentIterator;
 class nsIFrame;
 struct SelectionDetails;
+class nsSelectionIterator;
 
 struct RangeData
 {
@@ -35,17 +36,18 @@ struct RangeData
 
 
 
+namespace mozilla {
 
-class nsTypedSelection : public nsISelectionPrivate,
-                         public nsSupportsWeakReference
+class Selection : public nsISelectionPrivate,
+                  public nsSupportsWeakReference
 {
 public:
-  nsTypedSelection();
-  nsTypedSelection(nsFrameSelection *aList);
-  virtual ~nsTypedSelection();
+  Selection();
+  Selection(nsFrameSelection *aList);
+  virtual ~Selection();
   
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsTypedSelection, nsISelectionPrivate)
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(Selection, nsISelectionPrivate)
   NS_DECL_NSISELECTION
   NS_DECL_NSISELECTIONPRIVATE
 
@@ -127,7 +129,7 @@ public:
   nsresult     StopAutoScrollTimer();
 
 private:
-  friend class nsAutoScrollTimer;
+  friend class ::nsAutoScrollTimer;
 
   
   nsresult DoAutoScroll(nsIFrame *aFrame, nsPoint& aPoint);
@@ -139,7 +141,7 @@ public:
   nsresult     NotifySelectionListeners();
 
 private:
-  friend class nsSelectionIterator;
+  friend class ::nsSelectionIterator;
 
   class ScrollSelectionIntoViewEvent;
   friend class ScrollSelectionIntoViewEvent;
@@ -147,21 +149,21 @@ private:
   class ScrollSelectionIntoViewEvent : public nsRunnable {
   public:
     NS_DECL_NSIRUNNABLE
-    ScrollSelectionIntoViewEvent(nsTypedSelection *aTypedSelection,
+    ScrollSelectionIntoViewEvent(Selection* aSelection,
                                  SelectionRegion aRegion,
                                  nsIPresShell::ScrollAxis aVertical,
                                  nsIPresShell::ScrollAxis aHorizontal,
                                  bool aFirstAncestorOnly)
-      : mTypedSelection(aTypedSelection),
+      : mSelection(aSelection),
         mRegion(aRegion),
         mVerticalScroll(aVertical),
         mHorizontalScroll(aHorizontal),
         mFirstAncestorOnly(aFirstAncestorOnly) {
-      NS_ASSERTION(aTypedSelection, "null parameter");
+      NS_ASSERTION(aSelection, "null parameter");
     }
-    void Revoke() { mTypedSelection = nsnull; }
+    void Revoke() { mSelection = nsnull; }
   private:
-    nsTypedSelection *mTypedSelection;
+    Selection *mSelection;
     SelectionRegion mRegion;
     nsIPresShell::ScrollAxis mVerticalScroll;
     nsIPresShell::ScrollAxis mHorizontalScroll;
@@ -217,5 +219,7 @@ private:
   nsDirection mDirection;
   SelectionType mType;
 };
+
+} 
 
 #endif 

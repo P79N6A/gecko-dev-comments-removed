@@ -46,7 +46,7 @@ nsHTMLEditor::AbsolutePositionSelection(bool aEnabled)
   
   
   
-  nsRefPtr<nsTypedSelection> selection = GetTypedSelection();
+  nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
   nsTextRulesInfo ruleInfo(aEnabled ? kOpSetAbsolutePosition :
@@ -159,7 +159,7 @@ nsHTMLEditor::RelativeChangeZIndex(PRInt32 aChange)
   
   
   
-  nsRefPtr<nsTypedSelection> selection = GetTypedSelection();
+  nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   nsTextRulesInfo ruleInfo(aChange < 0 ? kOpDecreaseZIndex :
                                          kOpIncreaseZIndex);
