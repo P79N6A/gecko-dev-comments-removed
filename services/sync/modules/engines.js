@@ -650,10 +650,11 @@ Engine.prototype = {
   },
 
   _share: function Engine__share(guid, username) {
+    let self = yield;
     
 
 
-    return;
+    self.done();
   },
 
   

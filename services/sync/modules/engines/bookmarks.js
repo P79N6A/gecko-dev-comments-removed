@@ -58,6 +58,7 @@ Cu.import("resource://weave/trackers.js");
 
 
 
+
 Cu.import("resource://weave/xmpp/xmppClient.js");
 
 Function.prototype.async = Async.sugar;
@@ -181,30 +182,30 @@ BookmarksEngine.prototype = {
 
   _share: function BmkEngine__share( selectedFolder, username ) {
     
+    let ret = false;
+    let ans = Cc["@mozilla.org/browser/annotation-service;1"].
+      getService(Ci.nsIAnnotationService);
+    let self = yield;
 
     
     
     
-
+    
+    
     
 
     let folderItemId = selectedFolder.node.itemId;
     let folderName = selectedFolder.getAttribute( "label" );
-    let annotation = { name: "weave/share/shared_outgoing",
-		       value: username,
-		       flags: 0,
-		       mimeType: null,
-		       type: PlacesUtils.TYPE_STRING,
-		       expires: PlacesUtils.EXPIRE_NEVER };
+    ans.setItemAnnotation(folderItemId, OUTGOING_SHARED_ANNO, username, 0,
+                            ans.EXPIRE_NEVER);
     
-    PlacesUtils.setAnnotationsForItem( folderItemId, [ annotation ] );
     
 
 
 
-    
-    dump( "In bookmarkEngine._share.  Sharing " +folderName + " with " + username );
-    return true;
+    dump( "Bookmark engine shared " +folderName + " with " + username );
+    ret = true;
+    self.done( ret );
   },
 
   updateAllIncomingShares: function BmkEngine_updateAllIncoming(onComplete) {
