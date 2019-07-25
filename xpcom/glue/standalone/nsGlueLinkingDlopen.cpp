@@ -36,8 +36,17 @@
 
 
 
+
 #include "nsGlueLinking.h"
 #include "nsXPCOMGlue.h"
+
+#ifdef LINUX
+#define _GNU_SOURCE 
+#include <fcntl.h>
+#include <unistd.h>
+#include <elf.h>
+#include <limits.h>
+#endif
 
 #include <dlfcn.h>
 #include <stdlib.h>
@@ -73,9 +82,69 @@ AppendDependentLib(void *libHandle)
     sTop = d;
 }
 
+#ifdef LINUX
+static const unsigned int bufsize = 4096;
+
+#ifdef HAVE_64BIT_OS
+typedef Elf64_Ehdr Elf_Ehdr;
+typedef Elf64_Phdr Elf_Phdr;
+static const unsigned char ELFCLASS = ELFCLASS64;
+typedef Elf64_Off Elf_Off;
+#else
+typedef Elf32_Ehdr Elf_Ehdr;
+typedef Elf32_Phdr Elf_Phdr;
+static const unsigned char ELFCLASS = ELFCLASS32;
+typedef Elf32_Off Elf_Off;
+#endif
+
 static void
-ReadDependentCB(const char *aDependentLib)
+preload(const char *file)
 {
+    union {
+        char buf[bufsize];
+        Elf_Ehdr ehdr;
+    } elf;
+    int fd = open(file, O_RDONLY);
+    if (fd < 0)
+        return;
+    
+    
+    
+    
+    if ((read(fd, elf.buf, bufsize) <= 0) ||
+        (memcmp(elf.buf, ELFMAG, 4)) ||
+        (elf.ehdr.e_ident[EI_CLASS] != ELFCLASS) ||
+        (elf.ehdr.e_phoff + elf.ehdr.e_phentsize * elf.ehdr.e_phnum >= bufsize)) {
+        close(fd);
+        return;
+    }
+    
+    
+    
+    
+    
+    Elf_Phdr *phdr = (Elf_Phdr *)&elf.buf[elf.ehdr.e_phoff];
+    Elf_Off end = 0;
+    for (int phnum = elf.ehdr.e_phnum; phnum; phdr++, phnum--)
+        if ((phdr->p_type == PT_LOAD) &&
+            (end < phdr->p_offset + phdr->p_filesz))
+            end = phdr->p_offset + phdr->p_filesz;
+    
+    
+    if (end > 0) {
+        readahead(fd, 0, end);
+    }
+    close(fd);
+}
+#endif
+
+static void
+ReadDependentCB(const char *aDependentLib, PRBool do_preload)
+{
+#ifdef LINUX
+    if (do_preload)
+        preload(aDependentLib);
+#endif
     void *libHandle = dlopen(aDependentLib, RTLD_GLOBAL | RTLD_LAZY);
     if (!libHandle)
         return;
