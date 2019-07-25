@@ -1013,10 +1013,8 @@ mjit::Compiler::jsop_localinc(JSOp op, uint32 slot, bool popped)
         
         
         
-        if (!jsop_binary(JSOP_SUB, stubs::Sub, type)) {
-            markLocalOverflow(slot);
+        if (!jsop_binary(JSOP_SUB, stubs::Sub, type, localTypeSet(slot)))
             return false;
-        }
 
         
         
@@ -1045,10 +1043,8 @@ mjit::Compiler::jsop_localinc(JSOp op, uint32 slot, bool popped)
 
         
         
-        if (!jsop_binary(JSOP_ADD, stubs::Add, type)) {
-            markLocalOverflow(slot);
+        if (!jsop_binary(JSOP_ADD, stubs::Add, type, localTypeSet(slot)))
             return false;
-        }
 
         
         
@@ -1081,10 +1077,8 @@ mjit::Compiler::jsop_arginc(JSOp op, uint32 slot, bool popped)
         
         
         
-        if (!jsop_binary(JSOP_SUB, stubs::Sub, type)) {
-            markArgumentOverflow(slot);
+        if (!jsop_binary(JSOP_SUB, stubs::Sub, type, argTypeSet(slot)))
             return false;
-        }
 
         
         
@@ -1113,10 +1107,8 @@ mjit::Compiler::jsop_arginc(JSOp op, uint32 slot, bool popped)
 
         
         
-        if (!jsop_binary(JSOP_ADD, stubs::Add, type)) {
-            markArgumentOverflow(slot);
+        if (!jsop_binary(JSOP_ADD, stubs::Add, type, argTypeSet(slot)))
             return false;
-        }
 
         
         
