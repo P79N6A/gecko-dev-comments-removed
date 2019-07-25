@@ -147,14 +147,14 @@ public:
 
 
 
-  nsresult AppendText(nsIAtom* aLangGroup, const PRUnichar* aText, PRUint32 aLength,
+  nsresult AppendText(nsIAtom* aHyphenationLanguage, const PRUnichar* aText, PRUint32 aLength,
                       PRUint32 aFlags, nsILineBreakSink* aSink);
   
 
 
 
 
-  nsresult AppendText(nsIAtom* aLangGroup, const PRUint8* aText, PRUint32 aLength,
+  nsresult AppendText(nsIAtom* aHyphenationLanguage, const PRUint8* aText, PRUint32 aLength,
                       PRUint32 aFlags, nsILineBreakSink* aSink);
   
 
@@ -198,7 +198,7 @@ private:
   
   nsresult FlushCurrentWord();
 
-  void UpdateCurrentWordLangGroup(nsIAtom *aLangGroup);
+  void UpdateCurrentWordLanguage(nsIAtom *aHyphenationLanguage);
 
   void FindHyphenationPoints(nsHyphenator *aHyphenator,
                              const PRUnichar *aTextStart,
@@ -208,7 +208,7 @@ private:
   nsAutoTArray<PRUnichar,100> mCurrentWord;
   
   nsAutoTArray<TextItem,2>    mTextItems;
-  nsIAtom*                    mCurrentWordLangGroup;
+  nsIAtom*                    mCurrentWordLanguage;
   bool                        mCurrentWordContainsMixedLang;
   bool                        mCurrentWordContainsComplexChar;
 
