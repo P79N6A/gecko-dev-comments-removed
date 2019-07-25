@@ -628,6 +628,9 @@ public:
 
 
 
+
+
+
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) {}
   

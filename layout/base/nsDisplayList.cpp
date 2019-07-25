@@ -2624,6 +2624,7 @@ void nsDisplayTransform::HitTest(nsDisplayListBuilder *aBuilder,
   
   nsRect resultingRect;
   if (aRect.width == 1 && aRect.height == 1) {
+    
     gfxPoint point = matrix.Inverse().ProjectPoint(
                        gfxPoint(NSAppUnitsToFloatPixels(aRect.x, factor),
                                 NSAppUnitsToFloatPixels(aRect.y, factor)));

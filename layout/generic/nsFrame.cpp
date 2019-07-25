@@ -1546,13 +1546,20 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   nsRect dirtyRect = aDirtyRect;
 
   PRBool inTransform = aBuilder->IsInTransform();
-  
-
-
   if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
       disp->HasTransform()) {
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (Preserves3DChildren() || !nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0), &dirtyRect)) {
+      
       dirtyRect = GetVisualOverflowRectRelativeToSelf();
     }
     inTransform = PR_TRUE;
@@ -1653,20 +1660,23 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     
     resultList.AppendToTop(item);
   }
- 
+
   
+
+
+
+
   if (usingSVGEffects) {
     
     rv = resultList.AppendNewToTop(
         new (aBuilder) nsDisplaySVGEffects(aBuilder, this, &resultList));
     if (NS_FAILED(rv))
       return rv;
-  } else
-
+  }
   
 
 
-  if (disp->mOpacity < 1.0f && !resultList.IsEmpty()) {
+  else if (disp->mOpacity < 1.0f && !resultList.IsEmpty()) {
     rv = resultList.AppendNewToTop(
         new (aBuilder) nsDisplayOpacity(aBuilder, this, &resultList));
     if (NS_FAILED(rv))
