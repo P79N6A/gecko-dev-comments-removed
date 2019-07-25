@@ -440,6 +440,21 @@ ValueNumberer::setClass(MDefinition *def, MDefinition *rep)
     def->valueNumberData()->setClass(def, rep);
 }
 
+bool
+ValueNumberer::needsSplit(MDefinition *def)
+{
+    for (MDefinition *vncheck = def->valueNumberData()->classNext;
+         vncheck != NULL;
+         vncheck = vncheck->valueNumberData()->classNext) {
+        if (!def->congruentTo(vncheck)) {
+            IonSpew(IonSpew_GVN, "Proceeding with split because %d is not congruent to %d",
+                    def->id(), vncheck->id());
+            return true;
+        }
+    }
+    return false;
+}
+
 void
 ValueNumberer::breakClass(MDefinition *def)
 {
@@ -452,8 +467,9 @@ ValueNumberer::breakClass(MDefinition *def)
             return;
         
         
-        if (def->congruentTo(defdata->classNext))
+        if (!needsSplit(def))
             return;
+
         
         MDefinition *newRep = defdata->classNext;
 
@@ -469,15 +485,14 @@ ValueNumberer::breakClass(MDefinition *def)
                 continue;
             IonSpew(IonSpew_GVN, "Moving to a new congruence class: %d", tmp->id());
             tmp->setValueNumber(newRep->id());
-            markConsumers(tmp);
+            markDefinition(tmp);
         }
 
         
         
         
         
-        
-        values.putNew(newRep, newRep->id());
+        values.put(newRep, newRep->id());
     } else {
         
         
