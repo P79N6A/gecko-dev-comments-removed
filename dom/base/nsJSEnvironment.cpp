@@ -945,7 +945,11 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
   else
     newDefaultJSOptions &= ~JSOPTION_STRICT;
 
-  nsIScriptGlobalObject *global = context->GetGlobalObject();
+  
+  
+  
+  nsIScriptGlobalObject *global = context->GetGlobalObjectRef();
+
   
   
   nsCOMPtr<nsIDOMWindow> contentWindow(do_QueryInterface(global));

@@ -1199,6 +1199,18 @@ xpc_CreateGlobalObject(JSContext *cx, JSClass *clasp,
                        bool wantXrays, JSObject **global,
                        JSCompartment **compartment)
 {
+    
+    
+    mozilla::DebugOnly<bool> isSystem;
+    mozilla::DebugOnly<nsIScriptSecurityManager*> ssm;
+    MOZ_ASSERT_IF(strcmp(clasp->name, "Sandbox") &&
+                  strcmp(clasp->name, "nsXBLPrototypeScript compilation scope") &&
+                  strcmp(clasp->name, "nsXULPrototypeScript compilation scope") &&
+                  (ssm = XPCWrapper::GetSecurityManager()) &&
+                  NS_SUCCEEDED(ssm->IsSystemPrincipal(principal, &isSystem.value)) &&
+                  !isSystem.value,
+                  JS_GetOptions(cx) & JSOPTION_TYPE_INFERENCE);
+
     NS_ABORT_IF_FALSE(NS_IsMainThread(), "using a principal off the main thread?");
     NS_ABORT_IF_FALSE(principal, "bad key");
 

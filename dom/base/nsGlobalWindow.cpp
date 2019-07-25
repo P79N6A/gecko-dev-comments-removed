@@ -1605,6 +1605,10 @@ nsGlobalWindow::SetScriptContext(nsIScriptContext *aScriptContext)
     
     aScriptContext->WillInitializeContext();
 
+    
+    
+    aScriptContext->SetGlobalObject(this);
+
     nsresult rv = aScriptContext->InitContext();
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1874,8 +1878,6 @@ NS_IMPL_ISUPPORTS1(WindowStateHolder, WindowStateHolder)
 nsresult
 nsGlobalWindow::CreateOuterObject(nsGlobalWindow* aNewInner)
 {
-  mContext->SetGlobalObject(this);
-
   JSContext* cx = mContext->GetNativeContext();
 
   if (IsChromeWindow()) {
