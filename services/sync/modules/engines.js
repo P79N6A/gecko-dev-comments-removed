@@ -288,6 +288,9 @@ SyncEngine.prototype = {
 
     let outnum = [i for (i in this._tracker.changedIDs)].length;
     this._log.info(outnum + " outgoing items pre-reconciliation");
+
+    
+    this._delete = {};
   },
 
   
@@ -484,6 +487,17 @@ SyncEngine.prototype = {
   _syncFinish: function SyncEngine__syncFinish() {
     this._log.trace("Finishing up sync");
     this._tracker.resetScore();
+
+    for (let [key, val] in Iterator(this._delete)) {
+      
+      delete this._delete[key];
+
+      
+      this._log.info("Sending delete for " + key + ": " + val);
+      let coll = new Collection(this.engineURL, this._recordObj);
+      coll[key] = val;
+      coll.delete();
+    }
   },
 
   _sync: function SyncEngine__sync() {
