@@ -108,6 +108,9 @@ var gPlayTests = [
   { name:"seek.webm", type:"video/webm", duration:3.966 },
 
   
+  { name:"split.webm", type:"video/webm", duration:1.967 },
+  
+  
   { name:"seek.yuv", type:"video/x-raw-yuv", duration:1.833 },
 
   { name:"bogus.duh", type:"bogus/duh", duration:Number.NaN }
@@ -204,6 +207,7 @@ var gSeekTests = [
   { name:"320x240.ogv", type:"video/ogg", duration:0.233 },
   { name:"seek.webm", type:"video/webm", duration:3.966 },
   { name:"bug516323.indexed.ogv", type:"video/ogg", duration:4.208 },
+  { name:"split.webm", type:"video/webm", duration:1.967 },
   { name:"bogus.duh", type:"bogus/duh", duration:123 }
 ];
 

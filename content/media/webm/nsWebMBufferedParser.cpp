@@ -205,7 +205,8 @@ void nsWebMBufferedParser::Append(const unsigned char* aBuffer, PRUint32 aLength
 
 void nsWebMBufferedState::CalculateBufferedForRange(nsTimeRanges* aBuffered,
                                                     PRInt64 aStartOffset, PRInt64 aEndOffset,
-                                                    PRUint64 aTimecodeScale)
+                                                    PRUint64 aTimecodeScale,
+                                                    PRInt64 aStartTimeOffsetNS)
 {
   
   PRUint32 start;
@@ -239,8 +240,12 @@ void nsWebMBufferedState::CalculateBufferedForRange(nsTimeRanges* aBuffered,
                  "Must have found greatest nsWebMTimeDataOffset for end");
   }
 
-  float startTime = mTimeMapping[start].mTimecode * aTimecodeScale / NS_PER_S;
-  float endTime = mTimeMapping[end].mTimecode * aTimecodeScale / NS_PER_S;
+  
+  
+  
+
+  float startTime = (mTimeMapping[start].mTimecode * aTimecodeScale - aStartTimeOffsetNS) / NS_PER_S;
+  float endTime = (mTimeMapping[end].mTimecode * aTimecodeScale - aStartTimeOffsetNS) / NS_PER_S;
   aBuffered->Add(startTime, endTime);
 }
 

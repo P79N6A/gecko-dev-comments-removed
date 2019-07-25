@@ -245,6 +245,11 @@ public:
     mReader->NotifyDataArrived(aBuffer, aLength, aOffset);
   }
 
+  PRInt64 GetEndMediaTime() const {
+    mDecoder->GetMonitor().AssertCurrentThreadIn();
+    return mEndTime;
+  }
+
 protected:
 
   
@@ -478,7 +483,7 @@ protected:
 
   
   
-  PRPackedBool mGotDurationFromHeader;
+  PRPackedBool mGotDurationFromMetaData;
     
   
   

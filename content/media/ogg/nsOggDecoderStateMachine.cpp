@@ -51,13 +51,11 @@ void nsOggDecoderStateMachine::LoadMetadata()
   nsBuiltinDecoderStateMachine::LoadMetadata();
 
   
+  
+  
+  
+  
 
-  
-  
-  
-  
-  
-  mGotDurationFromHeader = (GetDuration() != -1);
   if (mState != DECODER_STATE_SHUTDOWN &&
       mDecoder->GetCurrentStream()->GetLength() >= 0 &&
       mSeekable &&
