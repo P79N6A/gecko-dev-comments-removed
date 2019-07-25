@@ -152,7 +152,7 @@ protected:
   nsMutationReceiverBase(nsINode* aRegisterTarget,
                          nsMutationReceiverBase* aParent)
   : mTarget(nsnull), mObserver(nsnull), mParent(aParent),
-    mRegisterTarget(aRegisterTarget)
+    mRegisterTarget(aRegisterTarget), mKungFuDeathGrip(aParent->Target())
   {
     NS_ASSERTION(mParent->Subtree(), "Should clone a non-subtree observer!");
     mRegisterTarget->AddMutationObserver(this);
@@ -195,6 +195,9 @@ protected:
   
   nsINode*                           mRegisterTarget;
   nsCOMArray<nsMutationReceiverBase> mTransientReceivers;
+  
+  
+  nsCOMPtr<nsINode>                  mKungFuDeathGrip;
   
 private:
   bool                               mSubtree;
