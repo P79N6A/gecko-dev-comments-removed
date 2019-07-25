@@ -112,13 +112,23 @@ GetObjectMap(JSObject *obj)
 }
 
 static JSObject *
-NonNullObject(JSContext *cx, Value *vp)
+GetKeyArg(JSContext *cx, CallArgs &args) 
 {
+    Value *vp = &args[0];
     if (vp->isPrimitive()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_NONNULL_OBJECT);
         return NULL;
     }
-    return &vp->toObject();
+    JSObject *key = &vp->toObject();
+    if (!key)
+        return NULL;
+
+    
+    
+    
+    
+    
+    return JS_UnwrapObject(key);
 }
 
 static JSBool
@@ -136,9 +146,10 @@ WeakMap_has(JSContext *cx, uintN argc, Value *vp)
                              "WeakMap.has", "0", "s");
         return false;
     }
-    JSObject *key = NonNullObject(cx, &args[0]);
+    JSObject *key = GetKeyArg(cx, args);
     if (!key)
         return false;
+
     ObjectValueMap *map = GetObjectMap(obj);
     if (map) {
         ObjectValueMap::Ptr ptr = map->lookup(key);
@@ -167,9 +178,10 @@ WeakMap_get(JSContext *cx, uintN argc, Value *vp)
                              "WeakMap.get", "0", "s");
         return false;
     }
-    JSObject *key = NonNullObject(cx, &args[0]);
+    JSObject *key = GetKeyArg(cx, args);
     if (!key)
         return false;
+
     ObjectValueMap *map = GetObjectMap(obj);
     if (map) {
         ObjectValueMap::Ptr ptr = map->lookup(key);
@@ -198,9 +210,10 @@ WeakMap_delete(JSContext *cx, uintN argc, Value *vp)
                              "WeakMap.delete", "0", "s");
         return false;
     }
-    JSObject *key = NonNullObject(cx, &args[0]);
+    JSObject *key = GetKeyArg(cx, args);
     if (!key)
         return false;
+    
     ObjectValueMap *map = GetObjectMap(obj);
     if (map) {
         ObjectValueMap::Ptr ptr = map->lookup(key);
@@ -230,9 +243,10 @@ WeakMap_set(JSContext *cx, uintN argc, Value *vp)
                              "WeakMap.set", "0", "s");
         return false;
     }
-    JSObject *key = NonNullObject(cx, &args[0]);
+    JSObject *key = GetKeyArg(cx, args);
     if (!key)
         return false;
+    
     Value value = (args.length() > 1) ? args[1] : UndefinedValue();
 
     ObjectValueMap *map = GetObjectMap(obj);
@@ -277,7 +291,12 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *obj, JSObject **ret)
     ObjectValueMap *map = GetObjectMap(obj);
     if (map) {
         for (ObjectValueMap::Range r = map->nondeterministicAll(); !r.empty(); r.popFront()) {
-            if (!js_NewbornArrayPush(cx, arr, ObjectValue(*r.front().key)))
+            JSObject *key = r.front().key;
+            
+            if (!JS_WrapObject(cx, &key))
+                return false;
+
+            if (!js_NewbornArrayPush(cx, arr, ObjectValue(*key)))
                 return false;
         }
     }
