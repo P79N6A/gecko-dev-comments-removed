@@ -142,25 +142,36 @@ ThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer,
   nsIntRegion rgnToPaint = mVisibleRegion;
   rgnToPaint.Sub(rgnToPaint, mValidRegion);
   PRBool textureBound = PR_FALSE;
-  if (!rgnToPaint.IsEmpty())
-  {
+  if (!rgnToPaint.IsEmpty()) {
     nsIntRect visibleRect = mVisibleRegion.GetBounds();
+
     
-    nsIntRegion bufRgnToPaint = rgnToPaint;
-    bufRgnToPaint.MoveBy(-visibleRect.x, -visibleRect.y);
-    nsRefPtr<gfxContext> ctx = mTexImage->BeginUpdate(bufRgnToPaint);
-    if (!ctx)
-    {
+    
+    
+    
+    
+    
+    rgnToPaint.MoveBy(-visibleRect.TopLeft());
+
+    
+    
+    nsRefPtr<gfxContext> ctx = mTexImage->BeginUpdate(rgnToPaint);
+    if (!ctx) {
       NS_WARNING("unable to get context for update");
       return;
     }
+
+    
+    
+    rgnToPaint.MoveBy(visibleRect.TopLeft());
+
+    
     
     ctx->Translate(-gfxPoint(visibleRect.x, visibleRect.y));
 
     TextureImage::ContentType contentType = mTexImage->GetContentType();
     
-    if (gfxASurface::CONTENT_COLOR_ALPHA == contentType)
-    {
+    if (gfxASurface::CONTENT_COLOR_ALPHA == contentType) {
       ctx->SetOperator(gfxContext::OPERATOR_CLEAR);
       ctx->Paint();
       ctx->SetOperator(gfxContext::OPERATOR_OVER);
