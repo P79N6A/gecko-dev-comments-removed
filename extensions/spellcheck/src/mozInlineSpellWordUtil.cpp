@@ -95,12 +95,10 @@ mozInlineSpellWordUtil::Init(nsWeakPtr aWeakEditor)
   nsCOMPtr<nsIDOMDocument> domDoc;
   rv = editor->GetDocument(getter_AddRefs(domDoc));
   NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(domDoc, NS_ERROR_NULL_POINTER);
 
-  mDocument = do_QueryInterface(domDoc, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  mDOMDocumentRange = do_QueryInterface(domDoc, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
+  mDOMDocument = domDoc;
+  mDocument = do_QueryInterface(domDoc);
 
   
   nsCOMPtr<nsIDOMWindow> window;
@@ -375,10 +373,10 @@ nsresult
 mozInlineSpellWordUtil::MakeRange(NodeOffset aBegin, NodeOffset aEnd,
                                   nsIDOMRange** aRange)
 {
-  if (! mDOMDocumentRange)
+  if (!mDOMDocument)
     return NS_ERROR_NOT_INITIALIZED;
 
-  nsresult rv = mDOMDocumentRange->CreateRange(aRange);
+  nsresult rv = mDOMDocument->CreateRange(aRange);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = (*aRange)->SetStart(aBegin.mNode, aBegin.mOffset);

@@ -53,7 +53,7 @@
 #include "nsIDOMHTMLInputElement.h"
 #include "nsIDOMHTMLMapElement.h"
 #include "nsIDOMHTMLLegendElement.h"
-#include "nsIDOMDocumentRange.h"
+#include "nsIDOMDocument.h"
 #include "nsIDOMRange.h"
 #include "nsIHTMLDocument.h"
 #include "nsIFormControlFrame.h"
@@ -2010,8 +2010,8 @@ void
 nsFocusManager::MoveCaretToFocus(nsIPresShell* aPresShell, nsIContent* aContent)
 {
   
-  nsCOMPtr<nsIDOMDocumentRange> rangeDoc(do_QueryInterface(aPresShell->GetDocument()));
-  if (rangeDoc) {
+  nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(aPresShell->GetDocument());
+  if (domDoc) {
     nsCOMPtr<nsFrameSelection> frameSelection = aPresShell->FrameSelection();
     nsCOMPtr<nsISelection> domSelection = frameSelection->
       GetSelection(nsISelectionController::SELECTION_NORMAL);
@@ -2022,7 +2022,7 @@ nsFocusManager::MoveCaretToFocus(nsIPresShell* aPresShell, nsIContent* aContent)
       domSelection->RemoveAllRanges();
       if (currentFocusNode) {
         nsCOMPtr<nsIDOMRange> newRange;
-        nsresult rv = rangeDoc->CreateRange(getter_AddRefs(newRange));
+        nsresult rv = domDoc->CreateRange(getter_AddRefs(newRange));
         if (NS_SUCCEEDED(rv)) {
           
           

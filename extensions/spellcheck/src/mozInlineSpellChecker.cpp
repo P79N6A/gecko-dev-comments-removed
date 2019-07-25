@@ -71,7 +71,6 @@
 #include "nsCRT.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
-#include "nsIDOMDocumentRange.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsPIDOMEventTarget.h"
@@ -145,12 +144,12 @@ mozInlineSpellStatus::InitForEditorChange(
 {
   nsresult rv;
 
-  nsCOMPtr<nsIDOMDocumentRange> docRange;
-  rv = GetDocumentRange(getter_AddRefs(docRange));
+  nsCOMPtr<nsIDOMDocument> doc;
+  rv = GetDocument(getter_AddRefs(doc));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = PositionToCollapsedRange(docRange, aAnchorNode, aAnchorOffset,
+  rv = PositionToCollapsedRange(doc, aAnchorNode, aAnchorOffset,
                                 getter_AddRefs(mAnchorRange));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -166,7 +165,7 @@ mozInlineSpellStatus::InitForEditorChange(
   mOp = eOpChange;
 
   
-  rv = docRange->CreateRange(getter_AddRefs(mRange));
+  rv = doc->CreateRange(getter_AddRefs(mRange));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -253,14 +252,14 @@ mozInlineSpellStatus::InitForNavigation(
     return NS_OK;
   }
 
-  nsCOMPtr<nsIDOMDocumentRange> docRange;
-  rv = GetDocumentRange(getter_AddRefs(docRange));
+  nsCOMPtr<nsIDOMDocument> doc;
+  rv = GetDocument(getter_AddRefs(doc));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = PositionToCollapsedRange(docRange, aOldAnchorNode, aOldAnchorOffset,
+  rv = PositionToCollapsedRange(doc, aOldAnchorNode, aOldAnchorOffset,
                                 getter_AddRefs(mOldNavigationAnchorRange));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = PositionToCollapsedRange(docRange, aNewAnchorNode, aNewAnchorOffset,
+  rv = PositionToCollapsedRange(doc, aNewAnchorNode, aNewAnchorOffset,
                                 getter_AddRefs(mAnchorRange));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -447,10 +446,10 @@ mozInlineSpellStatus::FillNoCheckRangeFromAnchor(
 
 
 nsresult
-mozInlineSpellStatus::GetDocumentRange(nsIDOMDocumentRange** aDocRange)
+mozInlineSpellStatus::GetDocument(nsIDOMDocument** aDocument)
 {
   nsresult rv;
-  *aDocRange = nsnull;
+  *aDocument = nsnull;
   if (! mSpellChecker->mEditor)
     return NS_ERROR_UNEXPECTED;
 
@@ -460,11 +459,8 @@ mozInlineSpellStatus::GetDocumentRange(nsIDOMDocumentRange** aDocRange)
   nsCOMPtr<nsIDOMDocument> domDoc;
   rv = editor->GetDocument(getter_AddRefs(domDoc));
   NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIDOMDocumentRange> docRange = do_QueryInterface(domDoc, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  docRange.swap(*aDocRange);
+  NS_ENSURE_TRUE(domDoc, NS_ERROR_NULL_POINTER);
+  domDoc.forget(aDocument);
   return NS_OK;
 }
 
@@ -475,12 +471,12 @@ mozInlineSpellStatus::GetDocumentRange(nsIDOMDocumentRange** aDocRange)
 
 
 nsresult
-mozInlineSpellStatus::PositionToCollapsedRange(nsIDOMDocumentRange* aDocRange,
+mozInlineSpellStatus::PositionToCollapsedRange(nsIDOMDocument* aDocument,
     nsIDOMNode* aNode, PRInt32 aOffset, nsIDOMRange** aRange)
 {
   *aRange = nsnull;
   nsCOMPtr<nsIDOMRange> range;
-  nsresult rv = aDocRange->CreateRange(getter_AddRefs(range));
+  nsresult rv = aDocument->CreateRange(getter_AddRefs(range));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = range->SetStart(aNode, aOffset);
@@ -1032,12 +1028,10 @@ mozInlineSpellChecker::MakeSpellCheckRange(
   nsCOMPtr<nsIDOMDocument> doc;
   rv = editor->GetDocument(getter_AddRefs(doc));
   NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIDOMDocumentRange> docrange = do_QueryInterface(doc);
-  NS_ENSURE_TRUE(docrange, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIDOMRange> range;
-  rv = docrange->CreateRange(getter_AddRefs(range));
+  rv = doc->CreateRange(getter_AddRefs(range));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
