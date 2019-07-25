@@ -59,6 +59,33 @@ typedef PRUptrdiff PtrBits;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class nsWrapperCache
 {
   friend class nsContentUtils;
@@ -82,8 +109,6 @@ public:
 
 
 
-
-
   JSObject* GetWrapper() const;
 
   
@@ -94,13 +119,36 @@ public:
 
 
 
+
+
   JSObject* GetWrapperPreserveColor() const;
+
+  
+
+
+
+
+
+
+
+
+
+
 
   JSObject* GetExpandoObjectPreserveColor() const;
 
   void SetWrapper(JSObject* aWrapper);
 
+  
+
+
+
   void ClearWrapper();
+
+  
+
+
+
   void ClearWrapperIfProxy();
 
   bool PreservingWrapper()
@@ -158,8 +206,27 @@ private:
 
   static JSObject *GetExpandoFromSlot(JSObject *obj);
 
+  
+
+
+
+
+
+
+
+
+
+
   enum { WRAPPER_BIT_PRESERVED = 1 << 0 };
+
+  
+
+
+
+
+
   enum { WRAPPER_IS_PROXY = 1 << 1 };
+
   enum { kWrapperBitMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_PROXY) };
 
   PtrBits mWrapperPtrBits;
