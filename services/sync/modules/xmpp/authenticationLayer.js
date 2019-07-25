@@ -1,9 +1,5 @@
 const EXPORTED_SYMBOLS = [ "PlainAuthenticator", "Md5DigestAuthenticator" ];
 
-function LOG(aMsg) {
-  dump("Weave::AuthenticationLayer: " + aMsg + "\n");
-}
-
 if (typeof(atob) == 'undefined') {
   
   
@@ -367,7 +363,6 @@ PlainAuthenticator.prototype = {
       this._jid = jidNodes[0].firstChild.nodeValue;
       
       
-      LOG( "JID set to " + this._jid );
 
       
       if ( this._needSession ) {
