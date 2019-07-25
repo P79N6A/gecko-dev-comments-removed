@@ -1161,9 +1161,10 @@ ScrollwheelModule.prototype = {
       evInfo.event.preventDefault();
     }
   },
+
   handleEventImpl: function handleEventImpl(zoomlevel) {
-	this.pendingEvent = 0;
-	Browser.zoom(zoomlevel);
+    this.pendingEvent = 0;
+    Browser.zoom(zoomlevel);
   },
 
   

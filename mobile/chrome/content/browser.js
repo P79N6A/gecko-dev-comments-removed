@@ -407,13 +407,12 @@ var Browser = {
       
       BrowserUI.sizeControls(w, h);
       
-      bv.zoomToPage();
-
-      
-      bv._browserViewportState.zoomChanged = false;
-
-      
-      Browser.hideSidebars();
+      let bvs = Browser.selectedTab.browserViewportState;
+      if (bvs.zoomLevel == bvs.defaultZoomLevel) {
+        bv.zoomToPage();
+        Browser.hideSidebars();
+        bv.onAfterVisibleMove();
+      }
 
       bv.commitBatchOperation();
     }
@@ -2509,13 +2508,10 @@ Tab.prototype = {
     if (this == Browser.selectedTab) {
       let restoringPage = (this._state != null);
 
-      if (!this._browserViewportState.zoomChanged && !restoringPage) {
+      if (this._browserViewportState.zoomLevel == this._browserViewportState.defaultZoomLevel && !restoringPage) {
         
         
         bv.zoomToPage();
-        
-        
-        this._browserViewportState.zoomChanged = false;
       }
 
     }
@@ -2537,7 +2533,7 @@ Tab.prototype = {
 
   startLoading: function() {
     this._loading = true;
-    this._browserViewportState.zoomChanged = false;
+    this._browserViewportState.defaultZoomLevel = this._browserViewportState.zoomLevel;
 
     if (!this._loadingTimeout) {
       Browser._browserView.beginBatchOperation();
@@ -2576,8 +2572,6 @@ Tab.prototype = {
       browser.className = "browser";
     }
 
-    
-    
     this.setIcon(browser.mIconURL);
 
     this._loading = false;
