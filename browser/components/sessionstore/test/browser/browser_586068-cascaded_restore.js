@@ -49,7 +49,7 @@ function test() {
   waitForExplicitFinish();
   
   
-  requestLongerTimeout(2);
+  requestLongerTimeout(4);
   runNextTest();
 }
 
