@@ -976,49 +976,55 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
     nscoord blockYOffset = blockFrame->GetOffsetTo(aContainingBlock).y;
     PRBool isValid;
     nsBlockInFlowLineIterator iter(blockFrame, aPlaceholderFrame, &isValid);
-    NS_ASSERTION(isValid, "Can't find placeholder!");
-    NS_ASSERTION(iter.GetContainer() == blockFrame, "Found placeholder in wrong block!");
-    nsBlockFrame::line_iterator lineBox = iter.GetLine();
-
-    
-    
-    if (NS_STYLE_DISPLAY_INLINE == mStyleDisplay->mOriginalDisplay) {
+    if (!isValid) {
       
       
-      aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
+      aHypotheticalBox.mTop = placeholderOffset.y;
     } else {
-      
-      
-      
-      
-      
-      
-      if (lineBox != iter.End()) {
-        nsIFrame * firstFrame = lineBox->mFirstChild;
-        PRBool found = PR_FALSE;
-        PRBool allEmpty = PR_TRUE;
-        while (firstFrame) { 
-          allEmpty = AreAllEarlierInFlowFramesEmpty(firstFrame,
-            aPlaceholderFrame, &found);
-          if (found || !allEmpty)
-            break;
-          firstFrame = firstFrame->GetNextSibling();
-        }
-        NS_ASSERTION(firstFrame, "Couldn't find placeholder!");
+      NS_ASSERTION(iter.GetContainer() == blockFrame,
+                   "Found placeholder in wrong block!");
+      nsBlockFrame::line_iterator lineBox = iter.GetLine();
 
-        if (allEmpty) {
-          
-          
-          
-          aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
-        } else {
-          
-          
-          aHypotheticalBox.mTop = lineBox->mBounds.YMost() + blockYOffset;
-        }
+      
+      
+      if (NS_STYLE_DISPLAY_INLINE == mStyleDisplay->mOriginalDisplay) {
+        
+        
+        aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
       } else {
         
-        aHypotheticalBox.mTop = placeholderOffset.y;
+        
+        
+        
+        
+        
+        if (lineBox != iter.End()) {
+          nsIFrame * firstFrame = lineBox->mFirstChild;
+          PRBool found = PR_FALSE;
+          PRBool allEmpty = PR_TRUE;
+          while (firstFrame) { 
+            allEmpty = AreAllEarlierInFlowFramesEmpty(firstFrame,
+              aPlaceholderFrame, &found);
+            if (found || !allEmpty)
+              break;
+            firstFrame = firstFrame->GetNextSibling();
+          }
+          NS_ASSERTION(firstFrame, "Couldn't find placeholder!");
+
+          if (allEmpty) {
+            
+            
+            
+            aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
+          } else {
+            
+            
+            aHypotheticalBox.mTop = lineBox->mBounds.YMost() + blockYOffset;
+          }
+        } else {
+          
+          aHypotheticalBox.mTop = placeholderOffset.y;
+        }
       }
     }
   } else {
