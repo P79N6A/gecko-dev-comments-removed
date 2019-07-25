@@ -427,11 +427,6 @@ typedef PRUint32 nsrefcnt;
 
 
 
-#define NS_CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
-
-
-
-
 
 
 

@@ -52,6 +52,8 @@
 #include "nsDisplayList.h"
 #include "nsCSSRendering.h"
 
+using namespace mozilla;
+
 class nsColumnSetFrame : public nsHTMLContainerFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -1019,8 +1021,8 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
         
         nextGuess = colData.mSumHeight/config.mBalanceColCount + 600;
         
-        nextGuess = NS_MIN(NS_MAX(nextGuess, knownInfeasibleHeight + 1),
-                           knownFeasibleHeight - 1);
+        nextGuess = clamped(nextGuess, knownInfeasibleHeight + 1,
+                                       knownFeasibleHeight - 1);
       } else if (knownFeasibleHeight == NS_INTRINSICSIZE) {
         
         
