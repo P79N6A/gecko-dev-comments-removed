@@ -793,7 +793,8 @@ JSRuntime::JSRuntime()
 #ifdef DEBUG
     noGCOrAllocationCheck(0),
 #endif
-    inOOMReport(0)
+    inOOMReport(0),
+    jitHardening(false)
 {
     
     JS_INIT_CLIST(&contextList);
