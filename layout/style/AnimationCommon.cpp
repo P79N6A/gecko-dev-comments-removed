@@ -3,7 +3,7 @@
 
 
 
-#include "CompositorParent.h"
+#include "gfxPlatform.h"
 #include "AnimationCommon.h"
 #include "nsRuleData.h"
 #include "nsCSSValue.h"
@@ -239,7 +239,7 @@ CommonElementAnimationData::CanAnimatePropertyOnCompositor(const dom::Element *a
                                                            bool aHasGeometricProperties)
 {
   bool shouldLog = nsLayoutUtils::IsAnimationLoggingEnabled();
-  if (shouldLog && !layers::CompositorParent::CompositorLoop()) {
+  if (shouldLog && !gfxPlatform::OffMainThreadCompositingEnabled()) {
     nsCString message;
     message.AppendLiteral("Performance warning: Compositor disabled");
     LogAsyncAnimationFailure(message);
