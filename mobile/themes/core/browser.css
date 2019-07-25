@@ -919,6 +919,9 @@ documenttab[selected="true"] {
 .documenttab-thumbnail {
   background-color: white;
   opacity: 0.5;
+
+  
+  outline: 0px solid transparent;
 }
 
 documenttab:hover:active > stack > .documenttab-thumbnail,
