@@ -189,13 +189,11 @@ private:
       mImageContent(aImageContent),
       mNotify(aNotify)
     {
-      NS_ASSERTION(!mImageContent->mStartingLoad,
-                   "Nested AutoStateChangers somehow?");
-      mImageContent->mStartingLoad = PR_TRUE;
+      mImageContent->mStateChangerDepth++;
     }
     ~AutoStateChanger()
     {
-      mImageContent->mStartingLoad = PR_FALSE;
+      mImageContent->mStateChangerDepth--;
       mImageContent->UpdateImageState(mNotify);
     }
 
@@ -249,8 +247,49 @@ protected:
   void CreateStaticImageClone(nsImageLoadingContent* aDest) const;
 
   
+
+
+
+
+
+   nsCOMPtr<imgIRequest>& PrepareNextRequest();
+
+  
+
+
+
+  void SetBlockedRequest(nsIURI* aURI, PRInt16 aContentDecision);
+
+  
+
+
+
+
+
+
+  nsCOMPtr<imgIRequest>& PrepareCurrentRequest();
+  nsCOMPtr<imgIRequest>& PreparePendingRequest();
+
+  
+
+
+  void ClearCurrentRequest(nsresult aReason);
+  void ClearPendingRequest(nsresult aReason);
+
+  
+
+
+
+  static bool HaveSize(imgIRequest *aImage);
+
+  
   nsCOMPtr<imgIRequest> mCurrentRequest;
   nsCOMPtr<imgIRequest> mPendingRequest;
+
+  
+  
+  
+  
   nsCOMPtr<nsIURI>      mCurrentURI;
 
 private:
@@ -272,7 +311,6 @@ private:
 
   PRInt16 mImageBlockingStatus;
   PRPackedBool mLoadingEnabled : 1;
-  PRPackedBool mStartingLoad : 1;
 
   
 
@@ -292,6 +330,9 @@ private:
 
 
   PRPackedBool mBlockingOnload : 1;
+
+  
+  PRUint8 mStateChangerDepth;
 };
 
 #endif 
