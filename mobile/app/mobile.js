@@ -270,6 +270,9 @@ pref("gfx.color_management.mode", 0);
 pref("dom.disable_window_move_resize", true);
 
 
+pref("browser.enable_click_image_resizing", false);
+
+
 
 pref("browser.link.open_external", 3);
 pref("browser.link.open_newwindow", 3);
