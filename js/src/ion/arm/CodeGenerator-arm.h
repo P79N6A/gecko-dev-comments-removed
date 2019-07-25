@@ -1,0 +1,171 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef jsion_codegen_arm_h__
+#define jsion_codegen_arm_h__
+
+#include "Assembler-arm.h"
+#include "ion/shared/CodeGenerator-shared.h"
+
+namespace js {
+namespace ion {
+
+class OutOfLineBailout;
+
+class CodeGeneratorARM : public CodeGeneratorShared
+{
+    friend class MoveResolverARM;
+    CodeGeneratorARM *thisFromCtor() {return this;}
+  protected:
+    
+    HeapLabel *returnLabel_;
+    HeapLabel *deoptLabel_;
+
+    inline Operand ToOperand(const LAllocation &a) {
+        if (a.isGeneralReg())
+            return Operand(a.toGeneralReg()->reg());
+        if (a.isFloatReg())
+            return Operand(a.toFloatReg()->reg());
+        return Operand(StackPointer, ToStackOffset(&a));
+    }
+    inline Operand ToOperand(const LAllocation *a) {
+        return ToOperand(*a);
+    }
+    inline Operand ToOperand(const LDefinition *def) {
+        return ToOperand(def->output());
+    }
+
+    MoveResolver::MoveOperand toMoveOperand(const LAllocation *a) const;
+
+    bool bailoutIf(Assembler::Condition condition, LSnapshot *snapshot);
+
+  protected:
+    bool generatePrologue();
+    bool generateEpilogue();
+    bool generateOutOfLineCode();
+
+    bool emitDoubleToInt32(const FloatRegister &src, const Register &dest, LSnapshot *snapshot);
+
+  public:
+    
+    virtual bool visitGoto(LGoto *jump);
+    virtual bool visitAddI(LAddI *ins);
+    virtual bool visitMulI(LMulI *ins);
+    virtual bool visitBitNot(LBitNot *ins);
+    virtual bool visitBitOp(LBitOp *ins);
+    virtual bool visitMoveGroup(LMoveGroup *group);
+    virtual bool visitInteger(LInteger *ins);
+    virtual bool visitTestIAndBranch(LTestIAndBranch *test);
+    virtual bool visitCompareI(LCompareI *comp);
+    virtual bool visitCompareIAndBranch(LCompareIAndBranch *comp);
+    virtual bool visitMathD(LMathD *math);
+    virtual bool visitTableSwitch(LTableSwitch *ins);
+
+    
+    bool visitOutOfLineBailout(OutOfLineBailout *ool);
+private:
+    class DeferredDouble : public TempObject
+    {
+        AbsoluteLabel label_;
+        uint32 index_;
+
+      public:
+        DeferredDouble(uint32 index) : index_(index)
+        { }
+
+        AbsoluteLabel *label() {
+            return &label_;
+        }
+        uint32 index() const {
+            return index_;
+        }
+    };
+
+  private:
+    js::Vector<DeferredDouble *, 0, SystemAllocPolicy> deferredDoubles_;
+
+  protected:
+    ValueOperand ToValue(LInstruction *ins, size_t pos);
+
+  protected:
+    void linkAbsoluteLabels();
+
+  public:
+    CodeGeneratorARM(MIRGenerator *gen, LIRGraph &graph);
+
+  public:
+    bool visitBox(LBox *box);
+    bool visitBoxDouble(LBoxDouble *box);
+    bool visitUnbox(LUnbox *unbox);
+    bool visitUnboxDouble(LUnboxDouble *ins);
+    bool visitValue(LValue *value);
+    bool visitReturn(LReturn *ret);
+    bool visitDouble(LDouble *ins);
+    bool visitCompareD(LCompareD *comp);
+    bool visitCompareDAndBranch(LCompareDAndBranch *comp);
+};
+
+typedef CodeGeneratorARM CodeGeneratorSpecific;
+
+
+class OutOfLineBailout : public OutOfLineCodeBase<CodeGeneratorARM>
+{
+    LSnapshot *snapshot_;
+    uint32 frameSize_;
+
+  public:
+    OutOfLineBailout(LSnapshot *snapshot, uint32 frameSize)
+      : snapshot_(snapshot),
+        frameSize_(frameSize)
+    { }
+
+    bool accept(CodeGeneratorARM *codegen);
+
+    LSnapshot *snapshot() const {
+        return snapshot_;
+    }
+};
+
+} 
+} 
+
+#endif 
+

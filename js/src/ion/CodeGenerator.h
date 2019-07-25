@@ -46,6 +46,10 @@
 # include "x86/CodeGenerator-x86.h"
 #elif defined(JS_CPU_X64)
 # include "x64/CodeGenerator-x64.h"
+#elif defined(JS_CPU_ARM)
+# include "arm/CodeGenerator-arm.h"
+#else
+#error "CPU Not Supported"
 #endif
 
 namespace js {
