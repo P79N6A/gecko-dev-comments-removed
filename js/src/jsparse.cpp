@@ -2535,6 +2535,134 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
     return true;
 }
 
+bool
+Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunction *fun,
+                          JSParseNode **listp)
+{
+    if (tokenStream.getToken() != TOK_LP) {
+        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_PAREN_BEFORE_FORMAL);
+        return false;
+    }
+
+    if (!tokenStream.matchToken(TOK_RP)) {
+#if JS_HAS_DESTRUCTURING
+        JSAtom *duplicatedArg = NULL;
+        bool destructuringArg = false;
+        JSParseNode *list = NULL;
+#endif
+        do {
+            switch (TokenKind tt = tokenStream.getToken()) {
+#if JS_HAS_DESTRUCTURING
+              case TOK_LB:
+              case TOK_LC:
+              {
+                
+                if (duplicatedArg)
+                    goto report_dup_and_destructuring;
+                destructuringArg = true;
+
+                
+
+
+
+
+
+                BindData data;
+                data.pn = NULL;
+                data.op = JSOP_DEFVAR;
+                data.binder = BindDestructuringArg;
+                JSParseNode *lhs = destructuringExpr(&data, tt);
+                if (!lhs)
+                    return false;
+
+                
+
+
+
+                jsint slot = fun->nargs;
+                if (!js_AddLocal(context, fun, NULL, JSLOCAL_ARG))
+                    return false;
+
+                
+
+
+
+
+                JSParseNode *rhs = NameNode::create(context->runtime->atomState.emptyAtom, &funtc);
+                if (!rhs)
+                    return false;
+                rhs->pn_type = TOK_NAME;
+                rhs->pn_op = JSOP_GETARG;
+                rhs->pn_cookie.set(funtc.staticLevel, uint16(slot));
+                rhs->pn_dflags |= PND_BOUND;
+
+                JSParseNode *item = JSParseNode::newBinaryOrAppend(TOK_ASSIGN, JSOP_NOP, lhs, rhs, &funtc);
+                if (!item)
+                    return false;
+                if (!list) {
+                    list = ListNode::create(&funtc);
+                    if (!list)
+                        return false;
+                    list->pn_type = TOK_COMMA;
+                    list->makeEmpty();
+                    *listp = list;
+                }
+                list->append(item);
+                break;
+              }
+#endif 
+
+              case TOK_NAME:
+              {
+                JSAtom *atom = tokenStream.currentToken().t_atom;
+                if (!DefineArg(funbox->node, atom, fun->nargs, &funtc))
+                    return false;
+#ifdef JS_HAS_DESTRUCTURING
+                
+
+
+
+
+
+
+
+
+
+                if (js_LookupLocal(context, fun, atom, NULL) != JSLOCAL_NONE) {
+                    duplicatedArg = atom;
+                    if (destructuringArg)
+                        goto report_dup_and_destructuring;
+                }
+#endif
+                if (!js_AddLocal(context, fun, atom, JSLOCAL_ARG))
+                    return false;
+                break;
+              }
+
+              default:
+                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_MISSING_FORMAL);
+                
+              case TOK_ERROR:
+                return false;
+
+#if JS_HAS_DESTRUCTURING
+              report_dup_and_destructuring:
+                JSDefinition *dn = ALE_DEFN(funtc.decls.lookup(duplicatedArg));
+                reportErrorNumber(dn, JSREPORT_ERROR, JSMSG_DESTRUCT_DUP_ARG);
+                return false;
+#endif
+            }
+        } while (tokenStream.matchToken(TOK_COMMA));
+
+        if (tokenStream.getToken() != TOK_RP) {
+            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_PAREN_AFTER_FORMAL);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 JSParseNode *
 Parser::functionDef(JSAtom *funAtom, uintN lambda)
 {
@@ -2673,124 +2801,9 @@ Parser::functionDef(JSAtom *funAtom, uintN lambda)
     JSFunction *fun = (JSFunction *) funbox->object;
 
     
-#if JS_HAS_DESTRUCTURING
     JSParseNode *list = NULL;
-#endif
-    MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_BEFORE_FORMAL);
-    if (!tokenStream.matchToken(TOK_RP)) {
-#if JS_HAS_DESTRUCTURING
-        JSAtom *duplicatedArg = NULL;
-        bool destructuringArg = false;
-#endif
-        do {
-            TokenKind tt = tokenStream.getToken();
-            switch (tt) {
-#if JS_HAS_DESTRUCTURING
-              case TOK_LB:
-              case TOK_LC:
-              {
-                BindData data;
-                JSParseNode *lhs, *rhs;
-                jsint slot;
-
-                
-                if (duplicatedArg)
-                    goto report_dup_and_destructuring;
-                destructuringArg = true;
-
-                
-
-
-
-
-
-                data.pn = NULL;
-                data.op = JSOP_DEFVAR;
-                data.binder = BindDestructuringArg;
-                lhs = destructuringExpr(&data, tt);
-                if (!lhs)
-                    return NULL;
-
-                
-
-
-
-                slot = fun->nargs;
-                if (!js_AddLocal(context, fun, NULL, JSLOCAL_ARG))
-                    return NULL;
-
-                
-
-
-
-
-                rhs = NameNode::create(context->runtime->atomState.emptyAtom, &funtc);
-                if (!rhs)
-                    return NULL;
-                rhs->pn_type = TOK_NAME;
-                rhs->pn_op = JSOP_GETARG;
-                rhs->pn_cookie.set(funtc.staticLevel, uint16(slot));
-                rhs->pn_dflags |= PND_BOUND;
-
-                JSParseNode *item = JSParseNode::newBinaryOrAppend(TOK_ASSIGN, JSOP_NOP, lhs, rhs, &funtc);
-                if (!item)
-                    return NULL;
-                if (!list) {
-                    list = ListNode::create(&funtc);
-                    if (!list)
-                        return NULL;
-                    list->pn_type = TOK_COMMA;
-                    list->makeEmpty();
-                }
-                list->append(item);
-                break;
-              }
-#endif 
-
-              case TOK_NAME:
-              {
-                JSAtom *atom = tokenStream.currentToken().t_atom;
-                if (!DefineArg(pn, atom, fun->nargs, &funtc))
-                    return NULL;
-#ifdef JS_HAS_DESTRUCTURING
-                
-
-
-
-
-
-
-
-
-
-                if (js_LookupLocal(context, fun, atom, NULL) != JSLOCAL_NONE) {
-                    duplicatedArg = atom;
-                    if (destructuringArg)
-                        goto report_dup_and_destructuring;
-                }
-#endif
-                if (!js_AddLocal(context, fun, atom, JSLOCAL_ARG))
-                    return NULL;
-                break;
-              }
-
-              default:
-                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_MISSING_FORMAL);
-                
-              case TOK_ERROR:
-                return NULL;
-
-#if JS_HAS_DESTRUCTURING
-              report_dup_and_destructuring:
-                JSDefinition *dn = ALE_DEFN(funtc.decls.lookup(duplicatedArg));
-                reportErrorNumber(dn, JSREPORT_ERROR, JSMSG_DESTRUCT_DUP_ARG);
-                return NULL;
-#endif
-            }
-        } while (tokenStream.matchToken(TOK_COMMA));
-
-        MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_FORMAL);
-    }
+    if (!functionArguments(funtc, funbox, fun, &list))
+        return NULL;
 
 #if JS_HAS_EXPR_CLOSURES
     TokenKind tt = tokenStream.getToken(TSF_OPERAND);
