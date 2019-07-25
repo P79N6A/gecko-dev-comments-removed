@@ -2851,17 +2851,26 @@ HUD_SERVICE.prototype =
     
 
     let strings = [];
+    let newGroup = false;
     for (let i = 0; i < aOutputNode.selectedCount; i++) {
       let item = aOutputNode.selectedItems[i];
 
       
       
       if (i > 0 && item.classList.contains("webconsole-new-group")) {
-        strings.push("\n");
+        newGroup = true;
       }
 
-      let timestampString = ConsoleUtils.timestampString(item.timestamp);
-      strings.push("[" + timestampString + "] " + item.clipboardText);
+      
+      if (!item.classList.contains("hud-filtered-by-type") &&
+          !item.classList.contains("hud-filtered-by-string")) {
+        let timestampString = ConsoleUtils.timestampString(item.timestamp);
+        if (newGroup) {
+          strings.push("\n");
+          newGroup = false;
+        }
+        strings.push("[" + timestampString + "] " + item.clipboardText);
+      }
     }
     clipboardHelper.copyString(strings.join("\n"));
   }
