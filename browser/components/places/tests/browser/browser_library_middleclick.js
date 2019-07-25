@@ -64,7 +64,8 @@ var gTabsListener = {
        "Tab has been opened in current browser window");
   },
 
-  onLocationChange: function(aBrowser, aWebProgress, aRequest, aLocationURI) {
+  onLocationChange: function(aBrowser, aWebProgress, aRequest, aLocationURI,
+                             aFlags) {
     var spec = aLocationURI.spec;
     ok(true, spec);
     

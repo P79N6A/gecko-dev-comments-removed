@@ -270,9 +270,11 @@ public:
     friend class OnLinkClickEvent;
 
     
+    
     void FireDummyOnLocationChange()
     {
-      FireOnLocationChange(this, nsnull, mCurrentURI);
+        FireOnLocationChange(this, nsnull, mCurrentURI,
+                             LOCATION_CHANGE_SAME_DOCUMENT);
     }
 
     nsresult HistoryTransactionRemoved(PRInt32 aIndex);
@@ -593,7 +595,8 @@ protected:
     
     
     bool SetCurrentURI(nsIURI *aURI, nsIRequest *aRequest,
-                         bool aFireOnLocationChange);
+                       bool aFireOnLocationChange,
+                       PRUint32 aLocationFlags);
 
     
     

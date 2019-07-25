@@ -1774,13 +1774,15 @@ nsDocShell::GetChromeEventHandler(nsIDOMEventTarget** aChromeEventHandler)
 NS_IMETHODIMP
 nsDocShell::SetCurrentURI(nsIURI *aURI)
 {
-    SetCurrentURI(aURI, nsnull, true);
+    
+    
+    SetCurrentURI(aURI, nsnull, true, 0);
     return NS_OK;
 }
 
 bool
 nsDocShell::SetCurrentURI(nsIURI *aURI, nsIRequest *aRequest,
-                          bool aFireOnLocationChange)
+                          bool aFireOnLocationChange, PRUint32 aLocationFlags)
 {
 #ifdef PR_LOGGING
     if (gDocShellLeakLog && PR_LOG_TEST(gDocShellLeakLog, PR_LOG_DEBUG)) {
@@ -1824,7 +1826,7 @@ nsDocShell::SetCurrentURI(nsIURI *aURI, nsIRequest *aRequest,
     }
 
     if (aFireOnLocationChange) {
-        FireOnLocationChange(this, aRequest, aURI);
+        FireOnLocationChange(this, aRequest, aURI, aLocationFlags);
     }
     return !aFireOnLocationChange;
 }
@@ -5928,7 +5930,7 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
                 
                 rv = AddToSessionHistory(uri, wcwgChannel, nsnull, false,
                                          getter_AddRefs(mLSHE));
-                SetCurrentURI(uri, aRequest, true);
+                SetCurrentURI(uri, aRequest, true, 0);
                 
                 rv = PersistLayoutHistoryState();
                 
@@ -5984,8 +5986,8 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
 }
 
 NS_IMETHODIMP
-nsDocShell::OnLocationChange(nsIWebProgress * aProgress,
-                             nsIRequest * aRequest, nsIURI * aURI)
+nsDocShell::OnLocationChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
+                             nsIURI * aURI, PRUint32 aFlags)
 {
     NS_NOTREACHED("notification excluded in AddProgressListener(...)");
     return NS_OK;
@@ -6515,7 +6517,7 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
         viewer->SetContainer(static_cast<nsIContentViewerContainer *>(this));
         Embed(viewer, "", 0);
 
-        SetCurrentURI(blankDoc->GetDocumentURI(), nsnull, true);
+        SetCurrentURI(blankDoc->GetDocumentURI(), nsnull, true, 0);
         rv = mIsBeingDestroyed ? NS_ERROR_NOT_AVAILABLE : NS_OK;
       }
     }
@@ -7166,7 +7168,7 @@ nsDocShell::RestoreFromHistory()
         
         nsCOMPtr<nsIURI> uri;
         origLSHE->GetURI(getter_AddRefs(uri));
-        SetCurrentURI(uri, document->GetChannel(), true);
+        SetCurrentURI(uri, document->GetChannel(), true, 0);
     }
 
     
@@ -7505,7 +7507,7 @@ nsDocShell::CreateContentViewer(const char *aContentType,
     }
 
     if (onLocationChangeNeeded) {
-      FireOnLocationChange(this, request, mCurrentURI);
+      FireOnLocationChange(this, request, mCurrentURI, 0);
     }
   
     return NS_OK;
@@ -8362,6 +8364,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             if (mOSHE) {
                 mOSHE->GetOwner(getter_AddRefs(owner));
             }
+            
+            
+            
+            
+            
             
             
             
@@ -9418,8 +9425,14 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
 #endif
         }
     }
+
+    
+    PRUint32 locationFlags = aCloneSHChildren?
+                                 PRUint32(LOCATION_CHANGE_SAME_DOCUMENT) : 0;
+
     bool onLocationChangeNeeded = SetCurrentURI(aURI, aChannel,
-                                                  aFireOnLocationChange);
+                                                aFireOnLocationChange,
+                                                locationFlags);
     
     SetupReferrerFromChannel(aChannel);
     return onLocationChangeNeeded;
@@ -9727,8 +9740,14 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     
     
     
+    
+    
+    
+    
+    
+    
     if (!equalURIs) {
-        SetCurrentURI(newURI, nsnull, true);
+        SetCurrentURI(newURI, nsnull, true, LOCATION_CHANGE_SAME_DOCUMENT);
         document->SetDocumentURI(newURI);
 
         AddURIVisit(newURI, oldURI, oldURI, 0);

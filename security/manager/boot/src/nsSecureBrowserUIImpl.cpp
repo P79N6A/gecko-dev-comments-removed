@@ -1511,7 +1511,8 @@ nsresult nsSecureBrowserUIImpl::TellTheWorld(bool showWarning,
 NS_IMETHODIMP
 nsSecureBrowserUIImpl::OnLocationChange(nsIWebProgress* aWebProgress,
                                         nsIRequest* aRequest,
-                                        nsIURI* aLocation)
+                                        nsIURI* aLocation,
+                                        PRUint32 aFlags)
 {
 #ifdef DEBUG
   nsAutoAtomic atomic(mOnStateLocationChangeReentranceDetection);
@@ -1553,7 +1554,8 @@ nsSecureBrowserUIImpl::OnLocationChange(nsIWebProgress* aWebProgress,
 
   
   
-  if (!aRequest)
+  
+  if (aFlags & LOCATION_CHANGE_SAME_DOCUMENT)
     return NS_OK;
 
   
