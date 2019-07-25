@@ -110,6 +110,10 @@
 #include "nsFrameMessageManager.h"
 #include "mozilla/TimeStamp.h"
 
+
+#include "jsapi.h"
+#include "jswrapper.h"
+
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
 
@@ -230,6 +234,25 @@ private:
 
 
 
+class nsOuterWindowProxy : public JSWrapper
+{
+public:
+  nsOuterWindowProxy() : JSWrapper(0) {}
+
+  virtual bool isOuterWindow() {
+    return true;
+  }
+  JSString *obj_toString(JSContext *cx, JSObject *wrapper);
+
+  static nsOuterWindowProxy singleton;
+};
+
+JSObject *NS_NewOuterWindowProxy(JSContext *cx, JSObject *parent);
+
+
+
+
+
 
 
 
@@ -257,6 +280,7 @@ class nsGlobalWindow : public nsPIDOMWindow,
                        public nsIDOMStorageWindow,
                        public nsSupportsWeakReference,
                        public nsIInterfaceRequestor,
+                       public nsWrapperCache,
                        public PRCListStr
 {
 public:

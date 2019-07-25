@@ -1322,8 +1322,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
 
   NS_DEFINE_CLASSINFO_DATA(FileList, nsFileListSH,
                            ARRAY_SCRIPTABLE_FLAGS)
-  NS_DEFINE_CLASSINFO_DATA(Blob, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(File, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(FileException, nsDOMGenericSH,
@@ -3832,12 +3830,7 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMFileError)
   DOM_CLASSINFO_MAP_END
 
-  DOM_CLASSINFO_MAP_BEGIN(Blob, nsIDOMBlob)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMBlob)
-  DOM_CLASSINFO_MAP_END
-
   DOM_CLASSINFO_MAP_BEGIN(File, nsIDOMFile)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMBlob)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMFile)
   DOM_CLASSINFO_MAP_END
 
@@ -3939,6 +3932,7 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(TimeRanges, nsIDOMTimeRanges)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMTimeRanges)
+    DOM_CLASSINFO_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END  
 #endif
 
@@ -5323,17 +5317,6 @@ nsCommonWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       rv = WrapNative(cx, frameWin->GetGlobalJSObject(), frame,
                       &NS_GET_IID(nsIDOMWindow), PR_TRUE, vp,
                       getter_AddRefs(holder));
-
-      if (NS_SUCCEEDED(rv) && !win->IsChromeWindow()) {
-        JSObject *scopeobj = JS_GetScopeChain(cx);
-        if (!scopeobj) {
-          *_retval = JS_FALSE;
-          return NS_ERROR_FAILURE;
-        }
-
-        rv = sXPConnect->GetXOWForObject(cx, scopeobj, JSVAL_TO_OBJECT(*vp),
-                                         vp);
-      }
     }
 
     return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
@@ -5536,21 +5519,6 @@ nsCommonWindowSH::DelProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
       return NS_OK;
     }
-  }
-
-  
-
-  nsGlobalWindow *outerWin = win->GetOuterWindowInternal();
-  if (outerWin) {
-    nsCOMPtr<nsIXPConnectWrappedNative> wn;
-    nsIXPConnect *xpc = nsContentUtils::XPConnect();
-    nsresult rv =
-      xpc->GetWrappedNativeOfJSObject(cx, outerWin->GetGlobalJSObject(),
-                                      getter_AddRefs(wn));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = xpc->UpdateXOWs(cx, wn, nsIXPConnect::XPC_XOW_CLEARSCOPE);
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   return NS_OK;
@@ -6956,17 +6924,6 @@ nsCommonWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                     &v, getter_AddRefs(holder));
     NS_ENSURE_SUCCESS(rv, rv);
 
-#ifdef DEBUG
-    if (!win->IsChromeWindow()) {
-          NS_ASSERTION(JSVAL_IS_OBJECT(v) &&
-                       !strcmp(JSVAL_TO_OBJECT(v)->getClass()->name,
-                               "XPCCrossOriginWrapper"),
-                       "Didn't wrap a location object!");
-    }
-#endif
-
-    JSAutoRequest ar(cx);
-
     JSBool ok = ::JS_DefinePropertyById(cx, obj, id, v, nsnull, nsnull,
                                         JSPROP_PERMANENT | JSPROP_ENUMERATE);
 
@@ -7066,29 +7023,15 @@ nsCommonWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
     if (id == sWindow_id) {
       
-      nsGlobalWindow *oldWin = win;
       win = win->GetOuterWindowInternal();
       NS_ENSURE_TRUE(win, NS_ERROR_NOT_AVAILABLE);
 
-      JSAutoRequest ar(cx);
+      jsval winVal;
+      nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
+      rv = WrapNative(cx, obj, nsGlobalWindow::ToSupports(win), PR_TRUE,
+                      &winVal, getter_AddRefs(holder));
+      NS_ENSURE_SUCCESS(rv, rv);
 
-      jsval winVal = OBJECT_TO_JSVAL(win->GetGlobalJSObject());
-      if (!win->IsChromeWindow()) {
-        JSObject *scope;
-        nsGlobalWindow *innerWin;
-        if (oldWin->IsInnerWindow()) {
-          scope = oldWin->GetGlobalJSObject();
-        } else if ((innerWin = oldWin->GetCurrentInnerWindowInternal())) {
-          scope = innerWin->GetGlobalJSObject();
-        } else {
-          NS_ERROR("I don't know what scope to use!");
-          scope = oldWin->GetGlobalJSObject();
-        }
-
-        rv = sXPConnect->GetXOWForObject(cx, scope, JSVAL_TO_OBJECT(winVal),
-                                         &winVal);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
       PRBool ok =
         ::JS_DefinePropertyById(cx, obj, id, winVal, JS_PropertyStub, JS_PropertyStub,
                                 JSPROP_READONLY | JSPROP_ENUMERATE);

@@ -102,10 +102,7 @@
 #include "nsITimelineService.h"
 #include "nsDOMScriptObjectHolder.h"
 #include "prmem.h"
-
-#ifdef NS_DEBUG
 #include "nsGlobalWindow.h"
-#endif
 
 #ifdef MOZ_JSDEBUGGER
 #include "jsdIDebuggerService.h"
@@ -2407,7 +2404,11 @@ nsJSContext::GetGlobalObject()
   JSObject *global = ::JS_GetGlobalObject(mContext);
 
   if (!global) {
-    NS_WARNING("Context has no global.");
+    return nsnull;
+  }
+
+  OBJ_TO_INNER_OBJECT(mContext, global);
+  if (!global) {
     return nsnull;
   }
 
@@ -2436,7 +2437,11 @@ nsJSContext::GetGlobalObject()
 
   
   
-  return sgo;
+  nsCOMPtr<nsPIDOMWindow> pwin(do_QueryInterface(sgo));
+  if (!pwin)
+    return sgo;
+
+  return static_cast<nsGlobalWindow *>(pwin->GetOuterWindow());
 }
 
 void *
@@ -2564,17 +2569,28 @@ nsJSContext::CreateOuterObject(nsIScriptGlobalObject *aGlobalObject,
     JS_SetOptions(mContext, JS_GetOptions(mContext) | JSOPTION_XML);
   }
 
+  JSObject *outer =
+    NS_NewOuterWindowProxy(mContext, aCurrentInner->GetGlobalJSObject());
+  if (!outer) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return SetOuterObject(outer);
+}
+
+nsresult
+nsJSContext::SetOuterObject(void *aOuterObject)
+{
+  JSObject *outer = static_cast<JSObject *>(aOuterObject);
+
   nsIXPConnect *xpc = nsContentUtils::XPConnect();
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-  nsresult rv = xpc->WrapNative(mContext, aCurrentInner->GetGlobalJSObject(),
-                                aGlobalObject, NS_GET_IID(nsISupports),
-                                getter_AddRefs(holder));
+
+  nsresult rv = xpc->HoldObject(mContext, outer, getter_AddRefs(holder));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  JSObject *globalObj;
-  holder->GetJSObject(&globalObj);
-  JS_SetGlobalObject(mContext, globalObj);
+  JS_SetGlobalObject(mContext, outer);
 
   
   
@@ -2587,32 +2603,8 @@ nsresult
 nsJSContext::InitOuterWindow()
 {
   JSObject *global = JS_GetGlobalObject(mContext);
-  nsIScriptGlobalObject *sgo = GetGlobalObject();
 
-  
-  
-  
-  JS_ClearScope(mContext, global);
-
-  nsresult rv = NS_OK;
-
-  nsCOMPtr<nsIClassInfo> ci(do_QueryInterface(sgo));
-  if (ci) {
-    jsval v;
-
-    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-    rv = nsContentUtils::WrapNative(mContext, global, sgo, &v,
-                                    getter_AddRefs(holder));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsIXPConnectWrappedNative> wrapper(do_QueryInterface(holder));
-    NS_ENSURE_TRUE(wrapper, NS_ERROR_FAILURE);
-
-    rv = wrapper->RefreshPrototype();
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  rv = InitClasses(global); 
+  nsresult rv = InitClasses(global); 
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

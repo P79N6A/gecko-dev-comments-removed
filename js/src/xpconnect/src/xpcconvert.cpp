@@ -1148,376 +1148,244 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
     if(pErr)
         *pErr = NS_ERROR_XPC_BAD_CONVERT_NATIVE;
 
-
-
-
-
-
-
-
-
-#define XPC_DO_DOUBLE_WRAP 1
-
-#ifndef XPC_DO_DOUBLE_WRAP
     
-    if(nsXPCWrappedJSClass::IsWrappedJS(src))
+    
+    
+    
+    
+    
+    
+    JSContext* cx = lccx.GetJSContext();
+
+    XPCWrappedNativeScope* xpcscope =
+        XPCWrappedNativeScope::FindInJSObjectScope(cx, scope);
+    if(!xpcscope)
+        return JS_FALSE;
+
+    
+    
+    
+    
+    
+    
+    nsWrapperCache *cache = aHelper.GetWrapperCache();
+
+    JSObject *callee;
+    JSScript *script;
+
+    PRBool tryConstructSlimWrapper = PR_FALSE;
+    JSObject *flat;
+    if(cache)
     {
-        NS_ASSERTION(!isGlobal, "The global object must be native");
+        flat = cache->GetWrapper();
+        if(cache->IsProxy())
+        {
+            XPCCallContext &ccx = lccx.GetXPCCallContext();
+            if(!ccx.IsValid())
+                return JS_FALSE;
 
-        
-        nsCOMPtr<nsISupports> wrapper;
-        if(iid)
-            src->QueryInterface(*iid, (void**)getter_AddRefs(wrapper));
-        else
-            wrapper = do_QueryInterface(src);
-        nsCOMPtr<nsIXPConnectJSObjectHolder> holder =
-            do_QueryInterface(wrapper);
-        JSObject* flat;
-        if(!holder || !(flat = holder->GetFlatJSObject()))
-            return JS_FALSE;
+            if(!flat)
+                flat = ConstructProxyObject(ccx, aHelper, xpcscope);
 
-        *d = OBJECT_TO_JSVAL(flat);
-        if(dest)
-            holder.swap(*dest);
-        return JS_TRUE;
+            ComputeWrapperInfo(ccx, &callee, &script);
+            if(!callee)
+            {
+                callee = xpcscope->GetGlobalJSObject();
+                OBJ_TO_INNER_OBJECT(ccx, callee);
+                if(!callee)
+                    return JS_FALSE;
+            }
+
+            JSAutoEnterCompartment ac;
+            if(!ac.enter(ccx, callee) || !JS_WrapObject(ccx, &flat))
+                return JS_FALSE;
+
+            return CreateHolderIfNeeded(ccx, flat, d, dest);
+        }
+
+        if(!dest)
+        {
+            if(!flat)
+            {
+                tryConstructSlimWrapper = PR_TRUE;
+            }
+            else if(IS_SLIM_WRAPPER_OBJECT(flat))
+            {
+                JSObject* global = JS_GetGlobalForObject(cx, flat);
+                if(global == xpcscope->GetGlobalJSObject())
+                {
+                    *d = OBJECT_TO_JSVAL(flat);
+                    return JS_TRUE;
+                }
+            }
+        }
     }
     else
-#endif 
     {
-        JSContext* cx = lccx.GetJSContext();
+        flat = nsnull;
+    }
 
-        XPCWrappedNativeScope* xpcscope =
-            XPCWrappedNativeScope::FindInJSObjectScope(cx, scope);
-        if(!xpcscope)
+    
+    
+    if(tryConstructSlimWrapper)
+    {
+        XPCCallContext &ccx = lccx.GetXPCCallContext();
+        if(!ccx.IsValid())
             return JS_FALSE;
 
-        nsWrapperCache *cache = aHelper.GetWrapperCache();
-
-        JSObject *callee = nsnull;
-        JSScript *script = nsnull;
-
-        PRBool tryConstructSlimWrapper = PR_FALSE;
-        JSObject *flat;
-        if(cache)
+        jsval slim;
+        if(ConstructSlimWrapper(ccx, aHelper, xpcscope, &slim))
         {
-            flat = cache->GetWrapper();
-            if(cache->IsProxy())
-            {
-                if(flat)
-                {
-                    XPCCallContext &ccx = lccx.GetXPCCallContext();
-                    if(!ccx.IsValid())
-                        return JS_FALSE;
+            *d = slim;
+            return JS_TRUE;
+        }
 
-                    ComputeWrapperInfo(ccx, &callee, &script);
-                    if(!callee)
-                        callee = xpcscope->GetGlobalJSObject();
+        
+        
+        
+        
+        flat = cache->GetWrapper();
+    }
 
-                    JSAutoCrossCompartmentCall accc;
-                    if(!accc.enter(ccx, callee) || !JS_WrapObject(ccx, &flat))
-                        return JS_FALSE;
+    
+    
+    
+    
+    
+    AutoMarkingNativeInterfacePtr iface;
+    if(iid)
+    {
+        XPCCallContext &ccx = lccx.GetXPCCallContext();
+        if(!ccx.IsValid())
+            return JS_FALSE;
 
-                    return CreateHolderIfNeeded(ccx, flat, d, dest);
-                }
-                else
-                {
-                    tryConstructSlimWrapper = PR_TRUE;
-                }
-            }
+        iface.Init(ccx);
 
-            if(!dest)
-            {
-                if(!flat)
-                {
-                    tryConstructSlimWrapper = PR_TRUE;
-                }
-                else if(IS_SLIM_WRAPPER_OBJECT(flat))
-                {
-                    JSObject* global = JS_GetGlobalForObject(cx, flat);
-                    if(global == xpcscope->GetGlobalJSObject())
-                    {
-                        *d = OBJECT_TO_JSVAL(flat);
-                        return JS_TRUE;
-                    }
-                }
-            }
+        if(Interface)
+            iface = *Interface;
+
+        if(!iface)
+        {
+            iface = XPCNativeInterface::GetNewOrUsed(ccx, iid);
+            if(!iface)
+                return JS_FALSE;
+
+            if(Interface)
+                *Interface = iface;
+        }
+    }
+
+    NS_ASSERTION(!flat || IS_WRAPPER_CLASS(flat->getClass()),
+                 "What kind of wrapper is this?");
+
+    nsresult rv;
+    XPCWrappedNative* wrapper;
+    nsRefPtr<XPCWrappedNative> strongWrapper;
+    if(!flat)
+    {
+        XPCCallContext &ccx = lccx.GetXPCCallContext();
+        if(!ccx.IsValid())
+            return JS_FALSE;
+
+        rv = XPCWrappedNative::GetNewOrUsed(ccx, aHelper, xpcscope, iface,
+                                            isGlobal,
+                                            getter_AddRefs(strongWrapper));
+
+        wrapper = strongWrapper;
+    }
+    else if(IS_WN_WRAPPER_OBJECT(flat))
+    {
+        wrapper = static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(flat));
+
+        
+        
+        
+        if(dest)
+            strongWrapper = wrapper;
+        
+        
+        
+        if(iface)
+            wrapper->FindTearOff(lccx.GetXPCCallContext(), iface, JS_FALSE,
+                                 &rv);
+        else
+            rv = NS_OK;
+    }
+    else
+    {
+        NS_ASSERTION(IS_SLIM_WRAPPER(flat),
+                     "What kind of wrapper is this?");
+
+        XPCCallContext &ccx = lccx.GetXPCCallContext();
+        if(!ccx.IsValid())
+            return JS_FALSE;
+
+        SLIM_LOG(("***** morphing from XPCConvert::NativeInterface2JSObject"
+                  "(%p)\n",
+                  static_cast<nsISupports*>(xpc_GetJSPrivate(flat))));
+
+        rv = XPCWrappedNative::Morph(ccx, flat, iface, cache,
+                                     getter_AddRefs(strongWrapper));
+        wrapper = strongWrapper;
+    }
+
+    if(pErr)
+        *pErr = rv;
+
+    
+    if(NS_FAILED(rv) || !wrapper)
+        return JS_FALSE;
+
+    
+    
+    flat = wrapper->GetFlatJSObject();
+    jsval v = OBJECT_TO_JSVAL(flat);
+    if(!XPCPerThreadData::IsMainThread(lccx.GetJSContext()) ||
+       !allowNativeWrapper)
+    {
+        *d = v;
+        if(dest)
+            *dest = strongWrapper.forget().get();
+        return JS_TRUE;
+    }
+
+    XPCCallContext &ccx = lccx.GetXPCCallContext();
+    if(!ccx.IsValid())
+        return JS_FALSE;
+
+    ComputeWrapperInfo(ccx, &callee, &script);
+    if(!callee)
+    {
+        callee = xpcscope->GetGlobalJSObject();
+        OBJ_TO_INNER_OBJECT(cx, callee);
+        if(!callee)
+            return JS_FALSE;
+    }
+
+    JSAutoEnterCompartment ac;
+    if(!ac.enter(ccx, callee) || !JS_WrapObject(ccx, &flat))
+        return JS_FALSE;
+
+    *d = OBJECT_TO_JSVAL(flat);
+    if(dest)
+    {
+        
+        if(OBJECT_TO_JSVAL(flat) == *d)
+        {
+            *dest = strongWrapper.forget().get();
         }
         else
         {
-            flat = nsnull;
-        }
-
-        if(tryConstructSlimWrapper)
-        {
-            XPCCallContext &ccx = lccx.GetXPCCallContext();
-            if(!ccx.IsValid())
+            nsRefPtr<XPCJSObjectHolder> objHolder =
+                XPCJSObjectHolder::newHolder(ccx, JSVAL_TO_OBJECT(*d));
+            if(!objHolder)
                 return JS_FALSE;
 
-            jsval slim;
-            if(ConstructSlimWrapper(ccx, aHelper, xpcscope, &slim))
-            {
-                *d = slim;
-                return JS_TRUE;
-            }
-
-            
-            
-            
-            
-            flat = cache->GetWrapper();
-            if(cache->IsProxy())
-            {
-                XPCCallContext &ccx = lccx.GetXPCCallContext();
-                if(!ccx.IsValid())
-                    return JS_FALSE;
-
-                ComputeWrapperInfo(ccx, &callee, &script);
-                if(!callee)
-                    callee = xpcscope->GetGlobalJSObject();
-
-                JSAutoCrossCompartmentCall accc;
-                if(!accc.enter(ccx, callee) || !JS_WrapObject(ccx, &flat))
-                    return JS_FALSE;
-
-                return CreateHolderIfNeeded(ccx, flat, d, dest);
-            }
-        }
-
-        AutoMarkingNativeInterfacePtr iface;
-        if(iid)
-        {
-            XPCCallContext &ccx = lccx.GetXPCCallContext();
-            if(!ccx.IsValid())
-                return JS_FALSE;
-
-            iface.Init(ccx);
-
-            if(Interface)
-                iface = *Interface;
-
-            if(!iface)
-            {
-                iface = XPCNativeInterface::GetNewOrUsed(ccx, iid);
-                if(!iface)
-                    return JS_FALSE;
-
-                if(Interface)
-                    *Interface = iface;
-            }
-        }
-
-        NS_ASSERTION(!flat || IS_WRAPPER_CLASS(flat->getClass()) ||
-                     cache->IsProxy(),
-                     "What kind of wrapper is this?");
-
-        nsresult rv;
-        XPCWrappedNative* wrapper;
-        nsRefPtr<XPCWrappedNative> strongWrapper;
-        if(!flat)
-        {
-            XPCCallContext &ccx = lccx.GetXPCCallContext();
-            if(!ccx.IsValid())
-                return JS_FALSE;
-
-            rv = XPCWrappedNative::GetNewOrUsed(ccx, aHelper, xpcscope, iface,
-                                                isGlobal,
-                                                getter_AddRefs(strongWrapper));
-
-            wrapper = strongWrapper;
-        }
-        else if(IS_WN_WRAPPER_OBJECT(flat))
-        {
-            wrapper = static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(flat));
-
-            
-            
-            
-            if(dest)
-                strongWrapper = wrapper;
-            
-            
-            
-            if(iface)
-                wrapper->FindTearOff(lccx.GetXPCCallContext(), iface, JS_FALSE,
-                                     &rv);
-            else
-                rv = NS_OK;
-        }
-        else if(!cache->IsProxy())
-        {
-            NS_ASSERTION(IS_SLIM_WRAPPER(flat),
-                         "What kind of wrapper is this?");
-
-            XPCCallContext &ccx = lccx.GetXPCCallContext();
-            if(!ccx.IsValid())
-                return JS_FALSE;
-
-            SLIM_LOG(("***** morphing from XPCConvert::NativeInterface2JSObject"
-                      "(%p)\n",
-                      static_cast<nsISupports*>(xpc_GetJSPrivate(flat))));
-
-            rv = XPCWrappedNative::Morph(ccx, flat, iface, cache,
-                                         getter_AddRefs(strongWrapper));
-            wrapper = strongWrapper;
-        }
-
-        if(pErr)
-            *pErr = rv;
-        if(NS_SUCCEEDED(rv) && wrapper)
-        {
-            XPCCallContext &ccx = lccx.GetXPCCallContext();
-            if(!ccx.IsValid())
-                return JS_FALSE;
-
-            uint32 flags = 0;
-            flat = wrapper->GetFlatJSObject();
-            jsval v = OBJECT_TO_JSVAL(flat);
-
-            JSBool sameOrigin;
-            if (allowNativeWrapper &&
-                !xpc_SameScope(wrapper->GetScope(), xpcscope, &sameOrigin))
-            {
-                
-                
-                
-                
-                
-
-                
-
-                ComputeWrapperInfo(ccx, &callee, &script);
-
-                flags = script ? JS_GetScriptFilenameFlags(script) : 0;
-                NS_ASSERTION(flags != JSFILENAME_NULL, "null script filename");
-
-                if(!JS_IsSystemObject(ccx, flat))
-                {
-                    
-                    
-                    if(!strongWrapper)
-                        strongWrapper = wrapper;
-
-                    JSObject *destObj = nsnull;
-                    JSBool triedWrapping = JS_FALSE;
-                    if(flags & JSFILENAME_PROTECTED)
-                    {
-#ifdef DEBUG_XPCNativeWrapper
-                        {
-                            char *s = wrapper->ToString(ccx);
-                            printf("Content accessed from chrome, wrapping "
-                                   "wrapper (%s) in XPCNativeWrapper\n", s);
-                            if (s)
-                                JS_smprintf_free(s);
-                        }
-#endif
-                        nsIScriptSecurityManager *ssm =
-                            XPCWrapper::GetSecurityManager();
-                        nsCOMPtr<nsIPrincipal> objPrincipal;
-                        if(callee)
-                        {
-                            
-                            nsresult rv =
-                                ssm->GetObjectPrincipal(ccx, callee,
-                                                        getter_AddRefs(objPrincipal));
-                            if(NS_FAILED(rv))
-                                return JS_FALSE;
-                        }
-                        else
-                        {
-                            JSPrincipals *scriptPrincipal =
-                                JS_GetScriptPrincipals(ccx, script);
-                            if(scriptPrincipal)
-                            {
-                                nsJSPrincipals *nsjsp =
-                                    static_cast<nsJSPrincipals *>(scriptPrincipal);
-                                objPrincipal = nsjsp->nsIPrincipalPtr;
-                            }
-                        }
-
-                        destObj =
-                            XPCNativeWrapper::GetNewOrUsed(ccx, wrapper,
-                                                           scope, objPrincipal);
-                        triedWrapping = JS_TRUE;
-                    }
-                    else if (flags & JSFILENAME_SYSTEM)
-                    {
-#ifdef DEBUG_mrbkap
-                        printf("Content accessed from chrome, wrapping in an "
-                               "XPCSafeJSObjectWrapper\n");
-#endif
-
-                        if(XPCSafeJSObjectWrapper::WrapObject(ccx, scope, v, &v))
-                            destObj = JSVAL_TO_OBJECT(v);
-                        triedWrapping = JS_TRUE;
-                    }
-                    else if (!sameOrigin)
-                    {
-                        
-                        
-                        if (XPCCrossOriginWrapper::WrapObject(ccx, scope, &v))
-                            destObj = JSVAL_TO_OBJECT(v);
-                        triedWrapping = JS_TRUE;
-                    }
-
-                    if(triedWrapping)
-                    {
-                        if(!destObj)
-                            return JS_FALSE;
-
-                        jsval wrappedObjVal = OBJECT_TO_JSVAL(destObj);
-                        AUTO_MARK_JSVAL(ccx, &wrappedObjVal);
-                        if(wrapper->NeedsSOW())
-                        {
-                            using SystemOnlyWrapper::WrapObject;
-                            if(!WrapObject(ccx, xpcscope->GetGlobalJSObject(),
-                                           OBJECT_TO_JSVAL(destObj),
-                                           &wrappedObjVal))
-                                return JS_FALSE;
-                        }
-
-                        return CreateHolderIfNeeded(ccx, JSVAL_TO_OBJECT(wrappedObjVal),
-                                                    d, dest);
-                    }
-                }
-            }
-
-            const char *name = flat->getClass()->name;
-            if(allowNativeWrapper &&
-               !(flags & JSFILENAME_SYSTEM) &&
-               !JS_IsSystemObject(ccx, flat) &&
-               XPCCrossOriginWrapper::ClassNeedsXOW(name))
-            {
-                
-                
-                if(!strongWrapper)
-                    strongWrapper = wrapper;
-
-                AUTO_MARK_JSVAL(ccx, &v);
-                return XPCCrossOriginWrapper::WrapObject(ccx, scope, &v) &&
-                       (!wrapper->NeedsSOW() ||
-                        SystemOnlyWrapper::WrapObject(ccx, xpcscope->GetGlobalJSObject(),
-                                                      v, &v)) &&
-                       CreateHolderIfNeeded(ccx, JSVAL_TO_OBJECT(v), d, dest);
-            }
-
-            *d = v;
-            if(allowNativeWrapper)
-            {
-                if(wrapper->NeedsSOW())
-                    if(!SystemOnlyWrapper::WrapObject(ccx,
-                                                      xpcscope->GetGlobalJSObject(),
-                                                      v, d))
-                        return JS_FALSE;
-                if(wrapper->NeedsCOW())
-                    if(!ChromeObjectWrapper::WrapObject(ccx, xpcscope->GetGlobalJSObject(), v, d))
-                        return JS_FALSE;
-            }
-            if(dest)
-                *dest = strongWrapper.forget().get();
-            return JS_TRUE;
+            *dest = objHolder.forget().get();
         }
     }
-    return JS_FALSE;
+
+    return JS_TRUE;
 }
 
 
