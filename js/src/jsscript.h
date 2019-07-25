@@ -638,7 +638,7 @@ struct JSScript : public js::gc::Cell {
     void resetUseCount() { useCount = 0; }
 
     
-    size_t jitDataSize(JSMallocSizeOfFun mallocSizeOf);
+    size_t sizeOfJitScripts(JSMallocSizeOfFun mallocSizeOf);
 
 #endif
 
@@ -660,8 +660,9 @@ struct JSScript : public js::gc::Cell {
 
 
 
-    JS_FRIEND_API(size_t) dataSize();                               
-    JS_FRIEND_API(size_t) dataSize(JSMallocSizeOfFun mallocSizeOf); 
+    size_t computedSizeOfData();
+    size_t sizeOfData(JSMallocSizeOfFun mallocSizeOf);
+
     uint32_t numNotes();  
 
     

@@ -1727,7 +1727,7 @@ mjit::Compiler::finishThisUp()
 
     JS_ASSERT(size_t(cursor - (uint8_t*)chunk) == dataSize);
     
-    JS_ASSERT(chunk->scriptDataSize(NULL) == dataSize);
+    JS_ASSERT(chunk->computedSizeOfIncludingThis() == dataSize);
 
     
     stubcc.fixCrossJumps(result, masm.size(), masm.size() + stubcc.size());
