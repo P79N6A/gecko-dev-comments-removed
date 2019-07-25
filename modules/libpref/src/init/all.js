@@ -3366,3 +3366,6 @@ pref("layout.3d-transforms.enabled", true);
 
 
 pref("dom.battery.enabled", true);
+
+
+pref("browser.dom.window.dump.enabled", false);
