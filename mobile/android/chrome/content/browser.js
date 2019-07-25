@@ -163,11 +163,30 @@ var MetadataProvider = {
   },
 
   paintingSuppressed: function paintingSuppressed() {
-    let browser = BrowserApp.selectedBrowser;
-    if (!browser)
+    
+    let tab = BrowserApp.selectedTab;
+    if (!tab)
       return false;
-    let cwu = browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                                   .getInterface(Ci.nsIDOMWindowUtils);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    let viewportDocumentId = tab.documentIdForCurrentViewport;
+    let contentDocumentId = ViewportHandler.getIdForDocument(tab.browser.contentDocument);
+    if (viewportDocumentId != null && viewportDocumentId != contentDocumentId)
+      return true;
+
+    
+    let cwu = tab.browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                       .getInterface(Ci.nsIDOMWindowUtils);
     return cwu.paintingSuppressed;
   }
 };
@@ -1246,6 +1265,7 @@ function Tab(aURL, aParams) {
   this._viewport = { x: 0, y: 0, width: gScreenWidth, height: gScreenHeight, offsetX: 0, offsetY: 0,
                      pageWidth: gScreenWidth, pageHeight: gScreenHeight, zoom: 1.0 };
   this.viewportExcess = { x: 0, y: 0 };
+  this.documentIdForCurrentViewport = null;
   this.userScrollPos = { x: 0, y: 0 };
   this._pluginsToPlay = [];
   this._pluginOverlayShowing = false;
@@ -1302,8 +1322,10 @@ Tab.prototype = {
     this.browser.addEventListener("scroll", this, true);
     this.browser.addEventListener("PluginClickToPlay", this, true);
     this.browser.addEventListener("pagehide", this, true);
+    this.browser.addEventListener("pageshow", this, true);
 
     Services.obs.addObserver(this, "http-on-modify-request", false);
+    Services.obs.addObserver(this, "document-shown", false);
 
     if (!aParams.delayLoad) {
       let flags = "flags" in aParams ? aParams.flags : Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
@@ -1363,6 +1385,7 @@ Tab.prototype = {
     this.browser.removeEventListener("scroll", this, true);
     this.browser.removeEventListener("PluginClickToPlay", this, true);
     this.browser.removeEventListener("pagehide", this, true);
+    this.browser.removeEventListener("pageshow", this, true);
 
     
     
@@ -1373,6 +1396,7 @@ Tab.prototype = {
     Services.obs.removeObserver(this, "http-on-modify-request", false);
     this.browser = null;
     this.vbox = null;
+    this.documentIdForCurrentViewport = null;
     let message = {
       gecko: {
         type: "Tab:Closed",
@@ -1528,8 +1552,6 @@ Tab.prototype = {
         
         if (target.defaultView != this.browser.contentWindow)
           return;
-
-        this.updateViewport(true);
 
         sendMessageToJava({
           gecko: {
@@ -1924,18 +1946,31 @@ Tab.prototype = {
   },
 
   observe: function(aSubject, aTopic, aData) {
-    if (!(aSubject instanceof Ci.nsIHttpChannel))
-      return;
+    switch (aTopic) {
+      case "http-on-modify-request":
+        if (!(aSubject instanceof Ci.nsIHttpChannel))
+          return;
 
-    let channel = aSubject.QueryInterface(Ci.nsIHttpChannel);
-    if (!(channel.loadFlags & Ci.nsIChannel.LOAD_DOCUMENT_URI))
-      return;
+        let channel = aSubject.QueryInterface(Ci.nsIHttpChannel);
+        if (!(channel.loadFlags & Ci.nsIChannel.LOAD_DOCUMENT_URI))
+          return;
 
-    let channelWindow = this.getWindowForRequest(channel);
-    if (channelWindow == this.browser.contentWindow) {
-      this.setHostFromURL(channel.URI.spec);
-      if (this.agentMode == UA_MODE_DESKTOP)
-        channel.setRequestHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:7.0.1) Gecko/20100101 Firefox/7.0.1", false);
+        let channelWindow = this.getWindowForRequest(channel);
+        if (channelWindow == this.browser.contentWindow) {
+          this.setHostFromURL(channel.URI.spec);
+          if (this.agentMode == UA_MODE_DESKTOP)
+            channel.setRequestHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:7.0.1) Gecko/20100101 Firefox/7.0.1", false);
+        }
+        break;
+
+      case "document-shown":
+        
+        let contentDocument = aSubject;
+        if (contentDocument == this.browser.contentDocument) {
+          ViewportHandler.updateMetadata(this);
+          this.documentIdForCurrentViewport = ViewportHandler.getIdForDocument(contentDocument);
+        }
+        break;
     }
   },
 
@@ -2828,6 +2863,11 @@ var ViewportHandler = {
   
   _metadata: new WeakMap(),
 
+  
+  
+  _documentIds: new WeakMap(),
+  _nextDocumentId: 0,
+
   init: function init() {
     addEventListener("DOMWindowCreated", this, false);
     addEventListener("DOMMetaAdded", this, false);
@@ -3001,6 +3041,19 @@ var ViewportHandler = {
       autoScale: true,
       scaleRatio: ViewportHandler.getScaleRatio()
     };
+  },
+
+  
+
+
+
+  getIdForDocument: function getIdForDocument(aDocument) {
+    let id = this._documentIds.get(aDocument, null);
+    if (id == null) {
+      id = this._nextDocumentId++;
+      this._documentIds.set(aDocument, id);
+    }
+    return id;
   }
 };
 
