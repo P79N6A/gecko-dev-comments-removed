@@ -322,6 +322,18 @@ public:
     
     nsRect ApproximateIntersect(const nsRect& aRect) const;
 
+    
+    
+    
+    
+    bool IsRectClippedByRoundedCorner(const nsRect& aRect) const;
+
+    
+    nsRect NonRoundedIntersection() const;
+
+    
+    void RemoveRoundedCorners();
+
     bool operator==(const Clip& aOther) const {
       return mHaveClipRect == aOther.mHaveClipRect &&
              (!mHaveClipRect || mClipRect == aOther.mClipRect) &&
