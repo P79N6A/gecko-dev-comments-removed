@@ -129,6 +129,16 @@ function _do_quit() {
 
 function _execute_test() {
   
+  let (ios = Components.classes["@mozilla.org/network/io-service;1"]
+             .getService(Components.interfaces.nsIIOService)) {
+    let protocolHandler =
+      ios.getProtocolHandler("resource")
+         .QueryInterface(Components.interfaces.nsIResProtocolHandler);
+    let curDirURI = ios.newFileURI(do_get_cwd());
+    protocolHandler.setSubstitution("test", curDirURI);
+  }
+
+  
   _load_files(_HEAD_FILES);
   
   _load_files(_TEST_FILE);

@@ -164,6 +164,8 @@ private:
   
   NS_HIDDEN_(nsresult) UpdateBaseWindowPositionAndSize(nsIFrame *aIFrame);
   nsresult CheckURILoad(nsIURI* aURI);
+  void FireErrorEvent();
+  nsresult ReallyStartLoadingInternal();
 
 #ifdef MOZ_IPC
   

@@ -147,10 +147,6 @@ public:
     bool NPObjectIsRegistered(NPObject* aObject);
 #endif
 
-    bool
-    PluginInstanceDestroyed(PluginInstanceChild* aActor,
-                            NPError* rv);
-
     
 
 
@@ -245,22 +241,25 @@ private:
 
     nsTHashtable<NPObjectData> mObjectMap;
 
+public: 
     
-
 
 
 
     static void DeallocNPObject(NPObject* o);
 
+    NPError NPP_Destroy(PluginInstanceChild* instance) {
+        return mFunctions.destroy(instance->GetNPP(), 0);
+    }
+
     
 
 
 
-    void DeallocNPObjectsForInstance(PluginInstanceChild* instance);
-    
+    void FindNPObjectsForInstance(PluginInstanceChild* instance);
 
-
-    static PLDHashOperator DeallocForInstance(NPObjectData* d, void* userArg);
+private:
+    static PLDHashOperator CollectForInstance(NPObjectData* d, void* userArg);
 };
 
 } 

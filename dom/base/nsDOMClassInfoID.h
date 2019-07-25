@@ -481,6 +481,8 @@ enum nsDOMClassInfoID {
 
   eDOMClassInfo_ContentFrameMessageManager_id,
 
+  eDOMClassInfo_FormData_id,
+
   
   eDOMClassInfoIDCount
 };
