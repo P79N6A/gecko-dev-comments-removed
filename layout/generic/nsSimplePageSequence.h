@@ -62,8 +62,6 @@ public:
   nsSize      mReflowSize;
   nsMargin    mReflowMargin;
   
-  nsSize      mShadowSize;
-  
   
   nsMargin    mExtraMargin;
   
@@ -101,9 +99,6 @@ public:
   NS_IMETHOD SetPageNo(PRInt32 aPageNo) { return NS_OK;}
   NS_IMETHOD SetSelectionHeight(nscoord aYOffset, nscoord aHeight) { mYSelOffset = aYOffset; mSelectionHeight = aHeight; return NS_OK; }
   NS_IMETHOD SetTotalNumPages(PRInt32 aTotal) { mTotalPages = aTotal; return NS_OK; }
-
-  
-  NS_IMETHOD GetDeadSpaceValue(nscoord* aValue) { *aValue = NS_INCHES_TO_INT_TWIPS(0.25); return NS_OK; }
   
   
   NS_IMETHOD GetSTFPercent(float& aSTFPercent);
@@ -119,6 +114,10 @@ public:
   NS_IMETHOD IsDoingPrintRange(PRBool* aDoing);
   NS_IMETHOD GetPrintRange(PRInt32* aFromPage, PRInt32* aToPage);
   NS_IMETHOD DoPageEnd();
+
+  
+  
+  virtual PRBool HonorPrintBackgroundSettings() { return PR_FALSE; }
 
   
 
@@ -144,6 +143,12 @@ protected:
   
   void SetDateTimeStr(PRUnichar * aDateTimeStr);
   void SetPageNumberFormat(PRUnichar * aFormatStr, PRBool aForPageNumOnly);
+
+  
+  
+  void SetDesiredSize(nsHTMLReflowMetrics& aDesiredSize,
+                      const nsHTMLReflowState& aReflowState,
+                      nscoord aWidth, nscoord aHeight);
 
   nsMargin mMargin;
 

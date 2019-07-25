@@ -87,7 +87,6 @@ nsSharedPageData::nsSharedPageData() :
   mDocURL(nsnull),
   mReflowSize(0,0),
   mReflowMargin(0,0,0,0),
-  mShadowSize(0,0),
   mExtraMargin(0,0,0,0),
   mEdgePaperMargin(0,0,0,0),
   mPageContentXMost(0),
@@ -146,6 +145,22 @@ NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 
 
+void
+nsSimplePageSequenceFrame::SetDesiredSize(nsHTMLReflowMetrics& aDesiredSize,
+                                          const nsHTMLReflowState& aReflowState,
+                                          nscoord aWidth,
+                                          nscoord aHeight)
+{
+    
+    
+    
+    
+    aDesiredSize.width = NS_MAX(aReflowState.availableWidth,
+                                nscoord(aWidth * PresContext()->GetPrintPreviewScale()));
+    aDesiredSize.height = NS_MAX(aReflowState.ComputedHeight(),
+                                 nscoord(aHeight * PresContext()->GetPrintPreviewScale()));
+}
+
 NS_IMETHODIMP
 nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
                                   nsHTMLReflowMetrics&     aDesiredSize,
@@ -164,15 +179,11 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
   
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
     
-    aDesiredSize.height  = mSize.height * PresContext()->GetPrintPreviewScale();
-    aDesiredSize.width   = mSize.width * PresContext()->GetPrintPreviewScale();
+    SetDesiredSize(aDesiredSize, aReflowState, mSize.width, mSize.height);
     aDesiredSize.SetOverflowAreasToDesiredBounds();
     FinishAndStoreOverflow(&aDesiredSize);
     return NS_OK;
   }
-
-  PRBool isPrintPreview =
-    aPresContext->Type() == nsPresContext::eContext_PrintPreview;
 
   
   if (!mPageData->mPrintSettings &&
@@ -235,29 +246,21 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
   nscoord extraGap = aPresContext->CSSTwipsToAppUnits(gapInTwips);
   extraGap = NS_MIN(extraGap, extraThreshold); 
 
-  nscoord  deadSpaceGap = 0;
-  if (isPrintPreview) {
-    GetDeadSpaceValue(&gapInTwips);
-    deadSpaceGap = aPresContext->CSSTwipsToAppUnits(gapInTwips);
-  }
-
   nsMargin extraMargin(0,0,0,0);
-  nsSize   shadowSize(0,0);
   if (aPresContext->IsScreen()) {
     extraMargin.SizeTo(extraGap, extraGap, extraGap, extraGap);
-    nscoord fourPixels = nsPresContext::CSSPixelsToAppUnits(4);
-    shadowSize.SizeTo(fourPixels, fourPixels);
   }
 
-  mPageData->mShadowSize      = shadowSize;
-  mPageData->mExtraMargin     = extraMargin;
+  mPageData->mExtraMargin = extraMargin;
 
-  const nscoord x = deadSpaceGap;
-  nscoord y = deadSpaceGap;
+  
+  
+  
+  nscoord y = 0;
+  nscoord maxXMost = 0;
 
-  nsSize availSize(pageSize.width + shadowSize.width + extraMargin.LeftRight(),
-                   pageSize.height + shadowSize.height +
-                   extraMargin.TopBottom());
+  nsSize availSize(pageSize.width + extraMargin.LeftRight(),
+                   pageSize.height + extraMargin.TopBottom());
 
   
   nsHTMLReflowMetrics kidSize;
@@ -275,15 +278,19 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
     
     PR_PL(("AV W: %d   H: %d\n", kidReflowState.availableWidth, kidReflowState.availableHeight));
 
+    nsMargin pageCSSMargin = kidReflowState.mComputedMargin;
+    y += pageCSSMargin.top;
+    const nscoord x = pageCSSMargin.left;
+
     
     
     ReflowChild(kidFrame, aPresContext, kidSize, kidReflowState, x, y, 0, status);
 
     FinishReflowChild(kidFrame, aPresContext, nsnull, kidSize, x, y, 0);
     y += kidSize.height;
+    y += pageCSSMargin.bottom;
 
-    
-    y += deadSpaceGap;
+    maxXMost = NS_MAX(maxXMost, x + kidSize.width + pageCSSMargin.right);
 
     
     nsIFrame* kidNextInFlow = kidFrame->GetNextInFlow();
@@ -346,16 +353,14 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
   
   
   
-  nscoord w = (x + availSize.width + deadSpaceGap);
-  aDesiredSize.height  = y * PresContext()->GetPrintPreviewScale(); 
-  aDesiredSize.width   = w * PresContext()->GetPrintPreviewScale();
+  SetDesiredSize(aDesiredSize, aReflowState, maxXMost, y);
 
   aDesiredSize.SetOverflowAreasToDesiredBounds();
   FinishAndStoreOverflow(&aDesiredSize);
 
   
   
-  mSize.width  = w;
+  mSize.width  = maxXMost;
   mSize.height = y;
 
   NS_FRAME_TRACE_REFLOW_OUT("nsSimplePageSequeceFrame::Reflow", aStatus);

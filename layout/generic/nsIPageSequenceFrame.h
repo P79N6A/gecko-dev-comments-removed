@@ -82,9 +82,6 @@ public:
   NS_IMETHOD SetTotalNumPages(PRInt32 aTotal) = 0;
 
   
-  NS_IMETHOD GetDeadSpaceValue(nscoord* aValue) = 0;
-
-  
   NS_IMETHOD GetSTFPercent(float& aSTFPercent) = 0;
 };
 

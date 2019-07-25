@@ -81,8 +81,10 @@ public:
 
   virtual void SetSharedPageData(nsSharedPageData* aPD);
 
-  void PaintPrintPreviewBackground(nsRenderingContext& aRenderingContext,
-                                   nsPoint aPt);
+  
+  
+  virtual PRBool HonorPrintBackgroundSettings() { return PR_FALSE; }
+
   void PaintHeaderFooter(nsRenderingContext& aRenderingContext,
                          nsPoint aPt);
   void PaintPageContent(nsRenderingContext& aRenderingContext,
