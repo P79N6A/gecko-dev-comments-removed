@@ -411,6 +411,10 @@ SyncEngine.prototype = {
     let handled = [];
     newitems.recordHandler = Utils.bind2(this, function(item) {
       
+      if (this.lastModified == null || item.modified > this.lastModified)
+        this.lastModified = item.modified;
+
+      
       handled.push(item.id);
 
       try {
@@ -432,7 +436,7 @@ SyncEngine.prototype = {
     });
 
     
-    if (this.lastModified > this.lastSync) {
+    if (this.lastModified == null || this.lastModified > this.lastSync) {
       let resp = newitems.get();
       if (!resp.success) {
         resp.failureCode = ENGINE_DOWNLOAD_FAIL;
