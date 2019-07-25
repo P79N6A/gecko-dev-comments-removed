@@ -2816,7 +2816,8 @@ function FillInHTMLTooltip(tipElement)
        tipElement instanceof HTMLTextAreaElement ||
        tipElement instanceof HTMLSelectElement ||
        tipElement instanceof HTMLButtonElement) &&
-      !tipElement.hasAttribute('title')) {
+      !tipElement.hasAttribute('title') &&
+      (!tipElement.form || !tipElement.form.noValidate)) {
     
     
     titleText = tipElement.validationMessage;
