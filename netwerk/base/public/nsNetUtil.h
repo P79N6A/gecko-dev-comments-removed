@@ -1838,6 +1838,7 @@ NS_MakeRandomInvalidURLString(nsCString& result)
 
 
 
+
   
 inline nsresult
 NS_CheckIsJavaCompatibleURLString(nsCString& urlString, PRBool *result)
@@ -1864,11 +1865,29 @@ NS_CheckIsJavaCompatibleURLString(nsCString& urlString, PRBool *result)
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (PL_strcasecmp(scheme.get(), "http") &&
         PL_strcasecmp(scheme.get(), "https") &&
         PL_strcasecmp(scheme.get(), "file") &&
         PL_strcasecmp(scheme.get(), "ftp") &&
-        PL_strcasecmp(scheme.get(), "gopher"))
+        PL_strcasecmp(scheme.get(), "gopher") &&
+        PL_strcasecmp(scheme.get(), "chrome"))
       compatible = PR_FALSE;
   } else {
     compatible = PR_FALSE;
