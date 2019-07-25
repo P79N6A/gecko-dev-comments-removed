@@ -1,17 +1,15 @@
 
 
 var g = newGlobal('new-compartment');
-g.n = 0;
-g.eval("function f(frame) { n++; return 42; }");
-print('ok');
+g.eval("function f() { return 1; }\n");
+var N = g.N = RUNLOOP + 2;
+g.eval("function h() {\n" +
+       "    for (var i = 0; i < N; i += f()) {}\n" +
+       "}");
+g.h(); 
+
 var dbg = Debugger(g);
-dbg.onEnterFrame = g.f;
-
-
-var x = g.f();
-assertEq(x, 42);
-assertEq(g.n > 20, true);
-
-
-
-quit(0);
+var log = '';
+dbg.onEnterFrame = function (frame) { log += frame.callee.name; };
+g.h();
+assertEq(log, 'h' + Array(N + 1).join('f'));
