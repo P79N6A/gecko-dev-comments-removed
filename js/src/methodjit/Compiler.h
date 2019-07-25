@@ -44,8 +44,8 @@
 #include "jstl.h"
 #include "BytecodeAnalyzer.h"
 #include "MethodJIT.h"
-#include "assembler/assembler/MacroAssembler.h"
 #include "CodeGenIncludes.h"
+#include "StubCompiler.h"
 
 namespace js {
 namespace mjit {
@@ -57,7 +57,6 @@ class Compiler
     typedef JSC::MacroAssembler::RegisterID RegisterID;
     typedef JSC::MacroAssembler::Address Address;
     typedef JSC::MacroAssembler::Jump Jump;
-    typedef JSC::MacroAssembler MacroAssembler;
 
     struct BranchPatch {
         BranchPatch(const Jump &j, jsbytecode *pc)
@@ -76,10 +75,11 @@ class Compiler
     BytecodeAnalyzer analysis;
     Label *jumpMap;
     jsbytecode *PC;
-    MacroAssembler masm;
+    Assembler masm;
     FrameState frame;
     CodeGenerator cg;
     js::Vector<BranchPatch, 64> branchPatches;
+    StubCompiler stubcc;
 
   public:
     
@@ -90,6 +90,8 @@ class Compiler
     ~Compiler();
 
     CompileStatus Compile();
+
+    jsbytecode *getPC() { return PC; }
 
   private:
     CompileStatus generatePrologue();

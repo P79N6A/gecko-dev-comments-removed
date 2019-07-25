@@ -44,24 +44,23 @@
 #include "jstl.h"
 #include "methodjit/MethodJIT.h"
 #include "methodjit/nunbox/FrameState.h"
-#include "assembler/assembler/MacroAssembler.h"
+#include "methodjit/nunbox/Assembler.h"
 
 namespace js {
 namespace mjit {
 
 class CodeGenerator
 {
-    typedef JSC::MacroAssembler MacroAssembler;
     typedef JSC::MacroAssembler::Address Address;
     typedef JSC::MacroAssembler::Imm32 Imm32;
     typedef JSC::MacroAssembler::ImmPtr ImmPtr;
     typedef JSC::MacroAssembler::RegisterID RegisterID;
 
-    MacroAssembler &masm;
+    Assembler      &masm;
     FrameState     &frame;
 
   public:
-    CodeGenerator(MacroAssembler &masm, FrameState &frame);
+    CodeGenerator(Assembler &masm, FrameState &frame);
 
     void storeValue(FrameEntry *vi, Address address, bool popped);
     void storeJsval(const Value &v, Address address);
