@@ -1041,6 +1041,11 @@ nsresult nsHTMLMediaElement::LoadResource()
   if (other) {
     
     nsresult rv = InitializeDecoderAsClone(other->mDecoder);
+    
+    
+    
+    
+    mMimeType = other->mMimeType;
     if (NS_SUCCEEDED(rv))
       return rv;
   }
