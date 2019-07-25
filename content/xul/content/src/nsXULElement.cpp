@@ -3141,7 +3141,6 @@ nsXULPrototypeScript::Compile(const PRUnichar* aText,
     nsScriptObjectHolder newScriptObject(context);
     rv = context->CompileScript(aText,
                                 aTextLength,
-                                nsnull,
                                 
                                 
                                 
