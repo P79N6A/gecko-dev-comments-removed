@@ -1823,6 +1823,8 @@ var XPIProvider = {
                                                       aMigrateData,
                                                       aActiveBundles) {
     let visibleAddons = {};
+    let oldBootstrappedAddons = this.bootstrappedAddons;
+    this.bootstrappedAddons = {};
 
     
 
@@ -1870,12 +1872,8 @@ var XPIProvider = {
         else
           WARN("Could not uninstall invalid item from locked install location");
         
-        if (aOldAddon.active) {
-          if (aOldAddon.bootstrap)
-            delete XPIProvider.bootstrappedAddons[aOldAddon.id];
-          else
-            return true;
-        }
+        if (aOldAddon.active)
+          return true;
 
         return false;
       }
@@ -1994,20 +1992,18 @@ var XPIProvider = {
             
             aOldAddon.active = !isDisabled;
             XPIDatabase.updateAddonActive(aOldAddon);
-            if (aOldAddon.active) {
-              XPIProvider.bootstrappedAddons[aOldAddon.id] = {
-                version: aOldAddon.version,
-                descriptor: aAddonState.descriptor
-              };
-            }
-            else {
-              delete XPIProvider.bootstrappedAddons[aOldAddon.id];
-            }
           }
           else {
             changed = true;
           }
         }
+      }
+
+      if (aOldAddon.visible && aOldAddon.active && aOldAddon.bootstrap) {
+        XPIProvider.bootstrappedAddons[aOldAddon.id] = {
+          version: aOldAddon.version,
+          descriptor: aAddonState.descriptor
+        };
       }
 
       return changed;
@@ -2036,15 +2032,8 @@ var XPIProvider = {
           XPIProvider.enableDefaultTheme();
 
         
-        
         if (!aOldAddon.bootstrap)
           return true;
-
-        
-        
-        if (aOldAddon.id in XPIProvider.bootstrappedAddons &&
-            XPIProvider.bootstrappedAddons[aOldAddon.id].descriptor == aOldAddon._descriptor)
-          XPIProvider.unloadBootstrapScope(aOldAddon.id);
       }
 
       return false;
@@ -2164,8 +2153,9 @@ var XPIProvider = {
         let installReason = BOOTSTRAP_REASONS.ADDON_INSTALL;
 
         
-        if (newAddon.id in XPIProvider.bootstrappedAddons) {
-          let oldBootstrap = XPIProvider.bootstrappedAddons[newAddon.id];
+        if (newAddon.id in oldBootstrappedAddons) {
+          let oldBootstrap = oldBootstrappedAddons[newAddon.id];
+          XPIProvider.bootstrappedAddons[newAddon.id] = oldBootstrap;
 
           installReason = Services.vc.compare(oldBootstrap.version, newAddon.version) < 0 ?
                           BOOTSTRAP_REASONS.ADDON_UPGRADE :
@@ -2365,6 +2355,24 @@ var XPIProvider = {
       
       let cache = Prefs.getCharPref(PREF_INSTALL_CACHE, null);
       updateDatabase |= cache != JSON.stringify(state);
+    }
+
+    if (!updateDatabase) {
+      let bootstrapDescriptors = [this.bootstrappedAddons[b].descriptor
+                                  for (b in this.bootstrappedAddons)];
+
+      state.forEach(function(aInstallLocationState) {
+        for (let id in aInstallLocationState.addons) {
+          let pos = bootstrapDescriptors.indexOf(aInstallLocationState.addons[id].descriptor);
+          if (pos != -1)
+            bootstrapDescriptors.splice(pos, 1);
+        }
+      });
+  
+      if (bootstrapDescriptors.length > 0) {
+        WARN("Bootstrap state is invalid (missing add-ons: " + bootstrapDescriptors.toSource() + ")");
+        updateDatabase = true;
+      }
     }
 
     
@@ -2898,6 +2906,11 @@ var XPIProvider = {
     let bootstrap = aFile.clone();
     let name = aFile.leafName;
     let spec;
+
+    if (!bootstrap.exists()) {
+      ERROR("Attempted to load bootstrap scope from missing directory " + bootstrap.path);
+      return;
+    }
 
     if (bootstrap.isDirectory()) {
       bootstrap.append("bootstrap.js");
