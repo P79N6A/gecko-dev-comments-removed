@@ -56,7 +56,15 @@ class Profile(object):
     """Handles all operations regarding profile. Created new profiles, installs extensions,
     sets preferences and handles cleanup."""
 
-    def __init__(self, profile=None, addons=None, addon_manifests=None, preferences=None, locations=None, proxy=False, restore=True):
+    def __init__(self,
+                 profile=None, 
+                 addons=None,  
+                 addon_manifests=None,  
+                 preferences=None, 
+                 locations=None, 
+                 proxy=False, 
+                 restore=True 
+                 ):
 
         
         self.restore = restore
@@ -221,7 +229,7 @@ class Profile(object):
 
 
     def cleanup(self):
-        """Cleanup operations on the profile."""
+        """Cleanup operations for the profile."""
         if self.restore:
             if self.create_new:
                 if os.path.exists(self.profile):

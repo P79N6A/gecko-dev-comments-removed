@@ -170,12 +170,18 @@ def _install_dmg(src, dest):
             if appFile.endswith(".app"):
                  appName = appFile
                  break
-        subprocess.call("cp -r " + os.path.join(appDir, appName) + " " + dest,
+
+        dest = os.path.join(dest, appName)
+        assert not os.path.isfile(dest)
+        if not os.path.isdir(dest):
+            os.makedirs(dest)
+        subprocess.call("cp -r " +
+                        os.path.join(appDir,appName, "*") + " " + dest,
                         shell=True)
     finally:
         subprocess.call("hdiutil detach " + appDir + " -quiet",
                         shell=True)
-    return os.path.join(dest, appName)
+    return dest
 
 def _install_exe(src, dest):
     
