@@ -129,6 +129,7 @@ public:
 
   enum ShaderMode {
     RGBLAYER,
+    RGBALAYER,
     YCBCRLAYER,
     SOLIDCOLORLAYER
   };
@@ -177,6 +178,9 @@ private:
 
   
   nsRefPtr<IDirect3DPixelShader9> mRGBPS;
+
+  
+  nsRefPtr<IDirect3DPixelShader9> mRGBAPS;
 
   
   nsRefPtr<IDirect3DPixelShader9> mYCbCrPS;
