@@ -27,7 +27,7 @@ import java.util.Set;
 
 
 
-public class SQLiteBridge {
+public final class SQLiteBridge {
     private static final String LOGTAG = "SQLiteBridge";
 
     

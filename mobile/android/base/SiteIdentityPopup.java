@@ -24,7 +24,7 @@ import org.json.JSONException;
 
 
 
-public class SiteIdentityPopup extends PopupWindow {
+final class SiteIdentityPopup extends PopupWindow {
     private static final String LOGTAG = "GeckoSiteIdentityPopup";
 
     public static final String UNKNOWN = "unknown";
@@ -50,7 +50,7 @@ public class SiteIdentityPopup extends PopupWindow {
         mInflated = false;
     }
 
-    private static class InstanceHolder {
+    private static final class InstanceHolder {
         private static final SiteIdentityPopup INSTANCE = new SiteIdentityPopup();
     }
 

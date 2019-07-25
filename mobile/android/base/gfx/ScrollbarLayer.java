@@ -23,7 +23,7 @@ import org.mozilla.gecko.GeckoAppShell;
 
 
 
-public class ScrollbarLayer extends TileLayer {
+final class ScrollbarLayer extends TileLayer {
     public static final long FADE_DELAY = 500; 
     private static final float FADE_AMOUNT = 0.03f; 
 

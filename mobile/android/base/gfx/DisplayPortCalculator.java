@@ -221,7 +221,7 @@ final class DisplayPortCalculator {
     
 
 
-    private static class NoMarginStrategy extends DisplayPortStrategy {
+    private static final class NoMarginStrategy extends DisplayPortStrategy {
         NoMarginStrategy(Map<String, Integer> prefs) {
             
         }
@@ -252,7 +252,7 @@ final class DisplayPortCalculator {
 
 
 
-    private static class FixedMarginStrategy extends DisplayPortStrategy {
+    private static final class FixedMarginStrategy extends DisplayPortStrategy {
         
         
         private final float SIZE_MULTIPLIER;
@@ -318,7 +318,7 @@ final class DisplayPortCalculator {
 
 
 
-    private static class VelocityBiasStrategy extends DisplayPortStrategy {
+    private static final class VelocityBiasStrategy extends DisplayPortStrategy {
         
         
         private final float SIZE_MULTIPLIER;
@@ -444,7 +444,7 @@ final class DisplayPortCalculator {
 
 
 
-    private static class DynamicResolutionStrategy extends DisplayPortStrategy {
+    private static final class DynamicResolutionStrategy extends DisplayPortStrategy {
         
         
         private static final float SIZE_MULTIPLIER = 1.5f;
@@ -644,7 +644,7 @@ final class DisplayPortCalculator {
 
 
 
-    private static class PredictionBiasStrategy extends DisplayPortStrategy {
+    private static final class PredictionBiasStrategy extends DisplayPortStrategy {
         private static float VELOCITY_THRESHOLD;
 
         private int mPixelArea;         

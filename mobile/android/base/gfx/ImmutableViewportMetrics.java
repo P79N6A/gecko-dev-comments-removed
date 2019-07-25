@@ -13,7 +13,7 @@ import android.graphics.RectF;
 
 
 
-public class ImmutableViewportMetrics {
+public final class ImmutableViewportMetrics {
 
     
     

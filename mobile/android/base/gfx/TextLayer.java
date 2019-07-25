@@ -22,7 +22,7 @@ import java.nio.IntBuffer;
 
 
 
-public class TextLayer extends SingleTileLayer {
+final class TextLayer extends SingleTileLayer {
     private final ByteBuffer mBuffer;   
     private final IntSize mSize;
 
@@ -70,4 +70,3 @@ public class TextLayer extends SingleTileLayer {
         bitmap.copyPixelsToBuffer(mBuffer.asIntBuffer());
     }
 }
-

@@ -26,7 +26,7 @@ import android.view.View.OnTouchListener;
 
 
 
-public class LayerController {
+public final class LayerController {
     private static final String LOGTAG = "GeckoLayerController";
 
     private Layer mRootLayer;                   

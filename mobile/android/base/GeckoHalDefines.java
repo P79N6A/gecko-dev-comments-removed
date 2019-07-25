@@ -5,8 +5,9 @@
 
 package org.mozilla.gecko;
 
-public class GeckoHalDefines
-{
+final class GeckoHalDefines {
+    private GeckoHalDefines() {}
+
     
 
 
@@ -22,4 +23,4 @@ public class GeckoHalDefines
     public static final int SENSOR_ACCURACY_LOW = 1;
     public static final int SENSOR_ACCURACY_MED = 2;
     public static final int SENSOR_ACCURACY_HIGH = 3;
-};
+}

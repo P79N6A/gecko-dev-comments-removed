@@ -33,7 +33,7 @@ import android.net.Uri;
 import android.provider.Browser;
 import android.util.Log;
 
-public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
+public final class LocalBrowserDB implements BrowserDB.BrowserDBIface {
     
     
     private static final String LOGTAG = "GeckoLocalBrowserDB";
@@ -853,7 +853,7 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
 
     
     
-    private class SpecialFoldersCursorWrapper extends CursorWrapper {
+    private static final class SpecialFoldersCursorWrapper extends CursorWrapper {
         private int mIndexOffset;
 
         private int mDesktopBookmarksIndex = -1;
@@ -942,7 +942,7 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         }
     }
 
-    private static class LocalDBCursor extends CursorWrapper {
+    private static final class LocalDBCursor extends CursorWrapper {
         public LocalDBCursor(Cursor c) {
             super(c);
         }

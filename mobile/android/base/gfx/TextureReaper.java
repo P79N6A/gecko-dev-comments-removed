@@ -9,7 +9,7 @@ import android.opengl.GLES20;
 import java.util.ArrayList;
 
 
-public class TextureReaper {
+final class TextureReaper {
     private static TextureReaper sSharedInstance;
     private ArrayList<Integer> mDeadTextureIDs;
 
@@ -39,5 +39,3 @@ public class TextureReaper {
         GLES20.glDeleteTextures(deadTextureIDs.length, deadTextureIDs, 0);
     }
 }
-
-

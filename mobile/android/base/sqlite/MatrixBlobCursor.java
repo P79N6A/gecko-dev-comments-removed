@@ -39,7 +39,7 @@ import java.util.ArrayList;
 
 
 
-public class MatrixBlobCursor extends AbstractCursor {
+public final class MatrixBlobCursor extends AbstractCursor {
 
     private final String[] columnNames;
     private Object[] data;
@@ -200,7 +200,7 @@ public class MatrixBlobCursor extends AbstractCursor {
 
 
 
-    public class RowBuilder {
+    public final class RowBuilder {
 
         private int index;
         private final int endIndex;

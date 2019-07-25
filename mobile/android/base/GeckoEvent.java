@@ -35,7 +35,7 @@ import android.util.Log;
 
 
 
-public class GeckoEvent {
+public final class GeckoEvent {
     private static final String LOGTAG = "GeckoEvent";
 
     private static final int INVALID = -1;

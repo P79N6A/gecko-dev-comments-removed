@@ -12,7 +12,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 
 
-public class CairoUtils {
+final class CairoUtils {
     private CairoUtils() {  }
 
     public static int bitsPerPixelForCairoFormat(int cairoFormat) {
@@ -50,4 +50,3 @@ public class CairoUtils {
         }
     }
 }
-

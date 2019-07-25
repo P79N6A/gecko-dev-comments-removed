@@ -12,7 +12,7 @@ import java.nio.ShortBuffer;
 import java.util.Arrays;
 
 
-public class CheckerboardImage extends CairoImage {
+final class CheckerboardImage extends CairoImage {
     
     private static final int SIZE = 16;
     
@@ -136,4 +136,3 @@ public class CheckerboardImage extends CairoImage {
         return FORMAT;
     }
 }
-

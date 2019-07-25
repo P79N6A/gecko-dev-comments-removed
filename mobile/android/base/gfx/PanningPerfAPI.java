@@ -10,7 +10,7 @@ import java.util.List;
 import android.os.SystemClock;
 import android.util.Log;
 
-public class PanningPerfAPI {
+final class PanningPerfAPI {
     private static final String LOGTAG = "GeckoPanningPerfAPI";
 
     

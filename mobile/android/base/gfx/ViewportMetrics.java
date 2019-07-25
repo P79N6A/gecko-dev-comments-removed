@@ -23,7 +23,7 @@ import android.util.Log;
 
 
 
-public class ViewportMetrics {
+public final class ViewportMetrics {
     private static final String LOGTAG = "GeckoViewportMetrics";
 
     private RectF mPageRect;
@@ -231,4 +231,3 @@ public class ViewportMetrics {
         return buff.toString();
     }
 }
-

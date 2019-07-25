@@ -20,7 +20,7 @@ import java.nio.FloatBuffer;
 
 
 
-public abstract class TileLayer extends Layer {
+abstract class TileLayer extends Layer {
     private static final String LOGTAG = "GeckoTileLayer";
 
     private final Rect mDirtyRect;
@@ -169,4 +169,3 @@ public abstract class TileLayer extends Layer {
         GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, repeatMode);
     }
 }
-

@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
-public class INIParser extends INISection {
+final class INIParser extends INISection {
     
     private File mFile = null;
 

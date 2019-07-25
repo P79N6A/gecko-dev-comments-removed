@@ -16,7 +16,7 @@ import android.view.Surface;
 
 import java.nio.FloatBuffer;
 
-public class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrameAvailableListener {
+public final class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrameAvailableListener {
     private static final String LOGTAG = "SurfaceTextureLayer";
     private static final int LOCAL_GL_TEXTURE_EXTERNAL_OES = 0x00008d65; 
 
@@ -273,4 +273,3 @@ public class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrame
         return mSurface;
     }
 }
-
