@@ -134,34 +134,39 @@ def headerparserhandler(request):
     Args:
         request: mod_python request.
 
-    This function is named headerparserhandler because it is the default name
-    for a PythonHeaderParserHandler.
+    This function is named headerparserhandler because it is the default
+    name for a PythonHeaderParserHandler.
     """
 
+    handshake_is_done = False
     try:
         allowDraft75 = apache.main_server.get_options().get(
             _PYOPT_ALLOW_DRAFT75, None)
-        handshaker = handshake.Handshaker(request, _dispatcher,
-                                          allowDraft75=allowDraft75)
-        handshaker.do_handshake()
+        handshake.do_handshake(
+            request, _dispatcher, allowDraft75=allowDraft75)
+        handshake_is_done = True
         request.log_error(
             'mod_pywebsocket: resource: %r' % request.ws_resource,
             apache.APLOG_DEBUG)
-        try:
-            _dispatcher.transfer_data(request)
-        except Exception, e:
-            
-            
-            
-            request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_WARNING)
-    except handshake.HandshakeError, e:
+        request._dispatcher = _dispatcher
+        _dispatcher.transfer_data(request)
+    except dispatch.DispatchException, e:
+        request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_WARNING)
+        if not handshake_is_done:
+            return e.status
+    except handshake.AbortedByUserException, e:
+        request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_INFO)
+    except handshake.HandshakeException, e:
         
         
         request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_INFO)
-        return apache.DECLINED
-    except dispatch.DispatchError, e:
+        return e.status
+    except Exception, e:
         request.log_error('mod_pywebsocket: %s' % e, apache.APLOG_WARNING)
-        return apache.DECLINED
+        
+        
+        if not handshake_is_done:
+            return apache.DECLINE
     
     request.assbackwards = 1
     return apache.DONE  

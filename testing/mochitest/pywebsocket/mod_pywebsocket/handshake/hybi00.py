@@ -45,7 +45,7 @@ import struct
 from mod_pywebsocket import common
 from mod_pywebsocket.stream import StreamHixie75
 from mod_pywebsocket import util
-from mod_pywebsocket.handshake._base import HandshakeError
+from mod_pywebsocket.handshake._base import HandshakeException
 from mod_pywebsocket.handshake._base import build_location
 from mod_pywebsocket.handshake._base import check_header_lines
 from mod_pywebsocket.handshake._base import format_header
@@ -87,6 +87,10 @@ class Handshaker(object):
             ws_challenge_md5: WebSocket handshake information.
             ws_stream: Frame generation/parsing class.
             ws_version: Protocol version.
+
+        Raises:
+            HandshakeException: when any error happened in parsing the opening
+                                handshake request.
         """
 
         
@@ -113,7 +117,7 @@ class Handshaker(object):
         subprotocol = self._request.headers_in.get(
             common.SEC_WEBSOCKET_PROTOCOL_HEADER)
         if subprotocol is not None:
-            validate_subprotocol(subprotocol)
+            validate_subprotocol(subprotocol, hixie=True)
         self._request.ws_protocol = subprotocol
 
     def _set_location(self):
@@ -125,29 +129,16 @@ class Handshaker(object):
 
     def _set_origin(self):
         
-        origin = self._request.headers_in['Origin']
+        origin = self._request.headers_in.get(common.ORIGIN_HEADER)
         if origin is not None:
             self._request.ws_origin = origin
 
     def _set_protocol_version(self):
         
-        draft = self._request.headers_in.get('Sec-WebSocket-Draft')
-        if draft is not None:
-            try:
-                draft_int = int(draft)
-
-                
-                
-                
-                
-
-                if draft_int == 1 or draft_int == 2:
-                    raise HandshakeError('HyBi 01-03 are not supported')
-                elif draft_int != 0:
-                    raise ValueError
-            except ValueError, e:
-                raise HandshakeError(
-                    'Illegal value for Sec-WebSocket-Draft: %s' % draft)
+        draft = self._request.headers_in.get(common.SEC_WEBSOCKET_DRAFT_HEADER)
+        if draft is not None and draft != '0':
+            raise HandshakeException('Illegal value for %s: %s' %
+                                     (common.SEC_WEBSOCKET_DRAFT_HEADER, draft))
 
         self._logger.debug('IETF HyBi 00 protocol')
         self._request.ws_version = common.VERSION_HYBI00
@@ -180,12 +171,12 @@ class Handshaker(object):
         try:
             key_number = int(re.sub("\\D", "", key_value))
         except:
-            raise HandshakeError('%s field contains no digit' % key_field)
+            raise HandshakeException('%s field contains no digit' % key_field)
         
         
         spaces = re.subn(" ", "", key_value)[1]
         if spaces == 0:
-            raise HandshakeError('%s field contains no space' % key_field)
+            raise HandshakeException('%s field contains no space' % key_field)
 
         self._logger.debug(
             '%s: Key-number is %d and number of spaces is %d',
@@ -194,7 +185,7 @@ class Handshaker(object):
         
         
         if key_number % spaces != 0:
-            raise HandshakeError(
+            raise HandshakeException(
                 '%s: Key-number (%d) is not an integral multiple of spaces '
                 '(%d)' % (key_field, key_number, spaces))
         
@@ -204,8 +195,8 @@ class Handshaker(object):
 
     def _get_challenge(self):
         
-        key1 = self._get_key_value('Sec-WebSocket-Key1')
-        key2 = self._get_key_value('Sec-WebSocket-Key2')
+        key1 = self._get_key_value(common.SEC_WEBSOCKET_KEY1_HEADER)
+        key2 = self._get_key_value(common.SEC_WEBSOCKET_KEY2_HEADER)
         
         challenge = ''
         challenge += struct.pack('!I', key1)  
@@ -225,7 +216,7 @@ class Handshaker(object):
         response.append(format_header(
             common.CONNECTION_HEADER, common.UPGRADE_CONNECTION_TYPE))
         response.append(format_header(
-            'Sec-WebSocket-Location', self._request.ws_location))
+            common.SEC_WEBSOCKET_LOCATION_HEADER, self._request.ws_location))
         response.append(format_header(
             common.SEC_WEBSOCKET_ORIGIN_HEADER, self._request.ws_origin))
         if self._request.ws_protocol:
