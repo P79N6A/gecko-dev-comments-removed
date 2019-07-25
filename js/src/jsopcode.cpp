@@ -76,6 +76,7 @@
 #include "jsvector.h"
 
 #include "jsscriptinlines.h"
+#include "jscntxtinlines.h"
 
 #include "jsautooplen.h"
 
@@ -5171,8 +5172,12 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v_in,
 
 
 
-            if (sp < stackBase + pcdepth)
-                pc = pcstack[sp - stackBase];
+            if (sp >= stackBase + pcdepth) {
+                pcdepth = -1;
+                goto release_pcstack;
+            }
+
+            pc = pcstack[sp - stackBase];
         }
 
       release_pcstack:
