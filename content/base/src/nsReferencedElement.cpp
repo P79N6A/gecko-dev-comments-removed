@@ -105,34 +105,45 @@ nsReferencedElement::Reset(nsIContent* aFromContent, nsIURI* aURI,
   if (!doc)
     return;
 
-  
-  
-  
-  nsCOMPtr<nsIURL> documentURL = do_QueryInterface(doc->GetDocumentURI());
   nsIContent* bindingParent = aFromContent->GetBindingParent();
-  PRBool isXBL = PR_FALSE;
   if (bindingParent) {
     nsXBLBinding* binding = doc->BindingManager()->GetBinding(bindingParent);
     if (binding) {
-      
-      
-      
-      
-      
-      
-      
-      documentURL = do_QueryInterface(binding->PrototypeBinding()->DocURI());
-      isXBL = PR_TRUE;
+      nsCOMPtr<nsIURL> bindingDocumentURL =
+        do_QueryInterface(binding->PrototypeBinding()->DocURI());
+      if (EqualExceptRef(url, bindingDocumentURL)) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        nsINodeList* anonymousChildren =
+          doc->BindingManager()->GetAnonymousNodesFor(bindingParent);
+
+        if (anonymousChildren) {
+          PRUint32 length;
+          anonymousChildren->GetLength(&length);
+          for (PRUint32 i = 0; i < length && !mElement; ++i) {
+            mElement =
+              nsContentUtils::MatchElementId(anonymousChildren->GetNodeAt(i), ref);
+          }
+        }
+
+        
+        return;
+      }
     }
   }
+
+  nsCOMPtr<nsIURL> documentURL = do_QueryInterface(doc->GetDocumentURI());
   if (!documentURL)
     return;
 
   if (!EqualExceptRef(url, documentURL)) {
-    
-    
-    
-    isXBL = PR_FALSE;
     nsRefPtr<nsIDocument::ExternalResourceLoad> load;
     doc = doc->RequestExternalResource(url, aFromContent, getter_AddRefs(load));
     if (!doc) {
@@ -149,24 +160,6 @@ nsReferencedElement::Reset(nsIContent* aFromContent, nsIURI* aURI,
       }
       
     }
-  }
-
-  
-  if (isXBL) {
-    nsINodeList* anonymousChildren =
-      doc->BindingManager()-> GetAnonymousNodesFor(bindingParent);
-
-    if (anonymousChildren) {
-      PRUint32 length;
-      anonymousChildren->GetLength(&length);
-      for (PRUint32 i = 0; i < length && !mElement; ++i) {
-        mElement =
-          nsContentUtils::MatchElementId(anonymousChildren->GetNodeAt(i), ref);
-      }
-    }
-
-    
-    return;
   }
 
   if (aWatch) {
