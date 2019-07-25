@@ -1345,9 +1345,15 @@ protected:
   bool mDirty;
 };
 
-#ifdef MOZ_DUMP_PAINTING
-void WriteSnapshotToDumpFile(Layer* aLayer, gfxASurface* aSurf);
-void WriteSnapshotToDumpFile(LayerManager* aManager, gfxASurface* aSurf);
+#ifdef MOZ_WIDGET_ANDROID
+class TransformLayerUserData : public LayerUserData {
+public:
+    gfx3DMatrix matrix;
+
+    TransformLayerUserData(gfx3DMatrix& aMatrix) : matrix(aMatrix) {}
+    virtual ~TransformLayerUserData() {}
+};
+
 #endif
 
 }
