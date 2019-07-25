@@ -61,7 +61,7 @@ abstract class Axis {
     
     private static final float OVERSCROLL_DECEL_RATE = 0.04f;
     
-    private static final float SNAP_LIMIT = 0.75f;
+    private static final float SNAP_LIMIT = 0.3f;
 
     
     
