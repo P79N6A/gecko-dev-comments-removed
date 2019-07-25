@@ -10,6 +10,7 @@
 
 #include <float.h>
 #include <limits.h>
+#include <algorithm>
 
 #include "compiler/localintermediate.h"
 #include "compiler/QualifierAlive.h"
@@ -17,9 +18,10 @@
 
 bool CompareStructure(const TType& leftNodeType, ConstantUnion* rightUnionArray, ConstantUnion* leftUnionArray);
 
-TPrecision GetHighestPrecision( TPrecision left, TPrecision right ){
+static TPrecision GetHigherPrecision( TPrecision left, TPrecision right ){
     return left > right ? left : right;
 }
+
 
 
 
@@ -110,12 +112,6 @@ TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIn
 
     TIntermConstantUnion *leftTempConstant = left->getAsConstantUnion();
     TIntermConstantUnion *rightTempConstant = right->getAsConstantUnion();
-
-    if (leftTempConstant)
-        leftTempConstant = left->getAsConstantUnion();
-
-    if (rightTempConstant)
-        rightTempConstant = right->getAsConstantUnion();
 
     
     
@@ -764,16 +760,9 @@ bool TIntermUnary::promote(TInfoSink&)
 
 bool TIntermBinary::promote(TInfoSink& infoSink)
 {
-    int size = left->getNominalSize();
-    if (right->getNominalSize() > size)
-        size = right->getNominalSize();
-
-    TBasicType type = left->getBasicType();
-
     
     
-    
-    if ((left->isArray() || right->isArray()) && (left->getType() != right->getType()))
+    if (left->getBasicType() != right->getBasicType())
         return false;
 
     
@@ -782,16 +771,27 @@ bool TIntermBinary::promote(TInfoSink& infoSink)
     
     setType(left->getType());
 
-    TPrecision highestPrecision = GetHighestPrecision(left->getPrecision(), right->getPrecision());
-    getTypePointer()->changePrecision(highestPrecision);
+    
+    TPrecision higherPrecision = GetHigherPrecision(left->getPrecision(), right->getPrecision());
+    getTypePointer()->changePrecision(higherPrecision);
+
+    
+    
+    if (left->getQualifier() != EvqConst || right->getQualifier() != EvqConst) {
+        getTypePointer()->changeQualifier(EvqTemporary);
+    }
 
     
     
     
-    if (left->isArray()) {
+    if (left->isArray() || right->isArray()) {
+        
+        
+        
+        if (left->getType() != right->getType())
+            return false;
 
         switch (op) {
-
             
             
             
@@ -812,17 +812,16 @@ bool TIntermBinary::promote(TInfoSink& infoSink)
             default:
                 return false;
         }
-
         return true;
     }
+
+    int size = std::max(left->getNominalSize(), right->getNominalSize());
 
     
     
     
     if (size == 1) {
-
         switch (op) {
-
             
             
             
@@ -840,33 +839,36 @@ bool TIntermBinary::promote(TInfoSink& infoSink)
             
             case EOpLogicalAnd:
             case EOpLogicalOr:
+                
                 if (left->getBasicType() != EbtBool || right->getBasicType() != EbtBool)
                     return false;
                 setType(TType(EbtBool, EbpUndefined));
                 break;
 
-            
-            
-            
             default:
-                if (left->getBasicType() != right->getBasicType() ||
-                    left->isMatrix()     != right->isMatrix())
-                    return false;
+                break;
         }
-
         return true;
     }
 
     
     
     
-    if ( left->getNominalSize() != size &&  left->getNominalSize() != 1 ||
-        right->getNominalSize() != size && right->getNominalSize() != 1)
-        return false;
+    
+    if (left->getNominalSize() != right->getNominalSize()) {
+        
+        
+        if (left->getNominalSize() != 1 && right->getNominalSize() != 1)
+            return false;
+        
+        if (op == EOpAssign || op == EOpInitialize)
+            return false;
+    }
 
     
     
     
+    TBasicType basicType = left->getBasicType();
     switch (op) {
         case EOpMul:
             if (!left->isMatrix() && right->isMatrix()) {
@@ -874,12 +876,12 @@ bool TIntermBinary::promote(TInfoSink& infoSink)
                     op = EOpVectorTimesMatrix;
                 else {
                     op = EOpMatrixTimesScalar;
-                    setType(TType(type, highestPrecision, EvqTemporary, size, true));
+                    setType(TType(basicType, higherPrecision, EvqTemporary, size, true));
                 }
             } else if (left->isMatrix() && !right->isMatrix()) {
                 if (right->isVector()) {
                     op = EOpMatrixTimesVector;
-                    setType(TType(type, highestPrecision, EvqTemporary, size, false));
+                    setType(TType(basicType, higherPrecision, EvqTemporary, size, false));
                 } else {
                     op = EOpMatrixTimesScalar;
                 }
@@ -890,7 +892,7 @@ bool TIntermBinary::promote(TInfoSink& infoSink)
                     
                 } else if (left->isVector() || right->isVector()) {
                     op = EOpVectorTimesScalar;
-                    setType(TType(type, highestPrecision, EvqTemporary, size, false));
+                    setType(TType(basicType, higherPrecision, EvqTemporary, size, false));
                 }
             } else {
                 infoSink.info.message(EPrefixInternalError, "Missing elses", getLine());
@@ -919,18 +921,16 @@ bool TIntermBinary::promote(TInfoSink& infoSink)
                     if (! left->isVector())
                         return false;
                     op = EOpVectorTimesScalarAssign;
-                    setType(TType(type, highestPrecision, EvqTemporary, size, false));
+                    setType(TType(basicType, higherPrecision, EvqTemporary, size, false));
                 }
             } else {
                 infoSink.info.message(EPrefixInternalError, "Missing elses", getLine());
                 return false;
             }
             break;
+
         case EOpAssign:
         case EOpInitialize:
-            if (left->getNominalSize() != right->getNominalSize())
-                return false;
-            
         case EOpAdd:
         case EOpSub:
         case EOpDiv:
@@ -938,10 +938,9 @@ bool TIntermBinary::promote(TInfoSink& infoSink)
         case EOpSubAssign:
         case EOpDivAssign:
             if (left->isMatrix() && right->isVector() ||
-                left->isVector() && right->isMatrix() ||
-                left->getBasicType() != right->getBasicType())
+                left->isVector() && right->isMatrix())
                 return false;
-            setType(TType(type, highestPrecision, EvqTemporary, size, left->isMatrix() || right->isMatrix()));
+            setType(TType(basicType, higherPrecision, EvqTemporary, size, left->isMatrix() || right->isMatrix()));
             break;
 
         case EOpEqual:
@@ -951,8 +950,7 @@ bool TIntermBinary::promote(TInfoSink& infoSink)
         case EOpLessThanEqual:
         case EOpGreaterThanEqual:
             if (left->isMatrix() && right->isVector() ||
-                left->isVector() && right->isMatrix() ||
-                left->getBasicType() != right->getBasicType())
+                left->isVector() && right->isMatrix())
                 return false;
             setType(TType(EbtBool, EbpUndefined));
             break;
@@ -960,24 +958,7 @@ bool TIntermBinary::promote(TInfoSink& infoSink)
         default:
             return false;
     }
-
     
-    
-    
-    switch (op) {
-        case EOpAssign:
-        case EOpInitialize:
-        case EOpAddAssign:
-        case EOpSubAssign:
-        case EOpMulAssign:
-        case EOpDivAssign:
-            if (getType() != left->getType())
-                return false;
-            break;
-        default:
-            break;
-    }
-
     return true;
 }
 

@@ -42,11 +42,6 @@
 
 
 
-
-
-
-
-
 # include "compiler/preprocessor/slglobals.h"
 extern CPPStruct *cpp;
 int InitCPPStruct(void);

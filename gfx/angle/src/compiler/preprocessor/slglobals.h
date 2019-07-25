@@ -45,11 +45,6 @@
 
 
 
-
-
-
-
-
 #if !defined(__SLGLOBALS_H)
 #define __SLGLOBALS_H 1
 

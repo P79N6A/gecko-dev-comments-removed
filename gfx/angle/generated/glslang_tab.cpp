@@ -97,7 +97,7 @@
 #define parseContext ((TParseContext*)(parseContextLocal))
 #define YYLEX_PARAM parseContextLocal
 #define YY_DECL int yylex(YYSTYPE* pyylval, void* parseContextLocal)
-extern void yyerror(char*);
+extern void yyerror(const char*);
 
 #define FRAG_VERT_ONLY(S, L) {                                                  \
     if (parseContext->language != EShLangFragment &&                             \
