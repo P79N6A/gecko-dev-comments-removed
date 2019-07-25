@@ -2,6 +2,17 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_dom_system_b2g_audiomanager_h__
 #define mozilla_dom_system_b2g_audiomanager_h__
 

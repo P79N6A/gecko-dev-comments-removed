@@ -3,6 +3,17 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GonkDeviceCaptureProvider_h_
 #define GonkDeviceCaptureProvider_h_
 
