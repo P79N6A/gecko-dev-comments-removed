@@ -215,14 +215,7 @@ AsyncExecuteStatements::execute(StatementDataArray &aStatements,
 
   
   nsIEventTarget *target = aConnection->getAsyncExecutionTarget();
-
-  
-  
-  
-  
-  
-  MOZ_ASSERT(target);
-
+  NS_ENSURE_TRUE(target, NS_ERROR_NOT_AVAILABLE);
   nsresult rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, rv);
 
