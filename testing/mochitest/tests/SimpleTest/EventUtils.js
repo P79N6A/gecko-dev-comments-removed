@@ -263,45 +263,42 @@ function synthesizeTouchAtCenter(aTarget, aEvent, aWindow)
 
 
 
-
-
-
-
-
-
-
-
-function synthesizeMouseScroll(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
+function synthesizeWheel(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 {
   var utils = _getDOMWindowUtils(aWindow);
-
-  if (utils) {
-    
-    const kIsVertical = 0x02;
-    const kIsHorizontal = 0x04;
-    const kHasPixels = 0x08;
-    const kIsMomentum = 0x40;
-
-    var button = aEvent.button || 0;
-    var modifiers = _parseModifiers(aEvent);
-
-    var rect = aTarget.getBoundingClientRect();
-
-    var left = rect.left;
-    var top = rect.top;
-
-    var type = (("type" in aEvent) && aEvent.type) || "DOMMouseScroll";
-    var axis = aEvent.axis || "vertical";
-    var scrollFlags = (axis == "horizontal") ? kIsHorizontal : kIsVertical;
-    if (aEvent.hasPixels) {
-      scrollFlags |= kHasPixels;
-    }
-    if (aEvent.isMomentum) {
-      scrollFlags |= kIsMomentum;
-    }
-    utils.sendMouseScrollEvent(type, left + aOffsetX, top + aOffsetY, button,
-                               scrollFlags, aEvent.delta, modifiers);
+  if (!utils) {
+    return;
   }
+
+  var modifiers = _parseModifiers(aEvent);
+  var options = 0;
+  if (aEvent.isPixelOnlyDevice &&
+      (aEvent.deltaMode == WheelEvent.DOM_DELTA_PIXEL)) {
+    options |= utils.WHEEL_EVENT_CAUSED_BY_PIXEL_ONLY_DEVICE;
+  }
+  if (aEvent.isMomentum) {
+    options |= utils.WHEEL_EVENT_CAUSED_BY_MOMENTUM;
+  }
+  if (aEvent.isCustomizedByPrefs) {
+    options |= utils.WHEEL_EVENT_CUSTOMIZED_BY_USER_PREFS;
+  }
+  var isPixelOnlyDevice =
+    aEvent.isPixelOnlyDevice && aEvent.deltaMode == WheelEvent.DOM_DELTA_PIXEL;
+  var lineOrPageDeltaX =
+    aEvent.lineOrPageDeltaX != null ? aEvent.lineOrPageDeltaX :
+                  aEvent.deltaX > 0 ? Math.floor(aEvent.deltaX) :
+                                      Math.ceil(aEvent.deltaX);
+  var lineOrPageDeltaY =
+    aEvent.lineOrPageDeltaY != null ? aEvent.lineOrPageDeltaY :
+                  aEvent.deltaY > 0 ? Math.floor(aEvent.deltaY) :
+                                      Math.ceil(aEvent.deltaY);
+  var rect = aTarget.getBoundingClientRect();
+  utils.sendWheelEvent(rect.left + aOffsetX, rect.top + aOffsetY,
+                       aEvent.deltaX ? aEvent.deltaX : 0.0,
+                       aEvent.deltaY ? aEvent.deltaY : 0.0,
+                       aEvent.deltaZ ? aEvent.deltaZ : 0.0,
+                       aEvent.deltaMode, modifiers,
+                       lineOrPageDeltaX, lineOrPageDeltaY, options);
 }
 
 function _computeKeyCodeFromChar(aChar)
