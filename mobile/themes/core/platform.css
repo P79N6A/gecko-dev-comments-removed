@@ -186,6 +186,11 @@ button:focus > .button-box {
 }
 
 
+.button-icon {
+  display: -moz-initial !important;
+}
+
+
 
 
 
