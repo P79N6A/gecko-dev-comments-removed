@@ -419,7 +419,7 @@ pref("browser.ui.zoom.animationDuration", 200);
 pref("browser.ui.zoom.reflow", false); 
 pref("browser.ui.zoom.reflow.fontSize", 720);
 
-pref("font.size.inflation.minTwips", 160);
+pref("font.size.inflation.minTwips", 120);
 
 
 pref("browser.ui.pinch.maxGrowth", 150);     
