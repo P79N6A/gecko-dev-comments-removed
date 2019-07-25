@@ -94,7 +94,8 @@ nsSMILAnimationFunction::nsSMILAnimationFunction()
     mLastValue(false),
     mHasChanged(true),
     mValueNeedsReparsingEverySample(false),
-    mPrevSampleWasSingleValueAnimation(false)
+    mPrevSampleWasSingleValueAnimation(false),
+    mWasSkippedInPrevSample(false)
 {
 }
 
@@ -233,6 +234,7 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
 {
   mHasChanged = false;
   mPrevSampleWasSingleValueAnimation = false;
+  mWasSkippedInPrevSample = false;
 
   
   if (!IsActiveOrFrozen() || mErrorFlags != 0)
