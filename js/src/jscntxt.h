@@ -1218,6 +1218,9 @@ struct JSCompartment {
     void sweep(JSContext *cx);
 };
 
+typedef void
+(* JSActivityCallback)(void *arg, JSBool active);
+
 struct JSRuntime {
     
     JSCompartment       *defaultCompartment;
@@ -1233,6 +1236,20 @@ struct JSRuntime {
 
     
     JSCompartmentCallback compartmentCallback;
+
+    
+
+
+
+
+
+    void setActivityCallback(JSActivityCallback cb, void *arg) {
+        activityCallback = cb;
+        activityCallbackArg = arg;
+    }
+
+    JSActivityCallback    activityCallback;
+    void                 *activityCallbackArg;
 
     
 
