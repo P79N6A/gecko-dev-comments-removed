@@ -45,6 +45,7 @@ import android.graphics.*;
 import android.widget.*;
 import android.hardware.*;
 import android.location.*;
+import android.util.FloatMath;
 
 import android.util.Log;
 
@@ -95,7 +96,7 @@ public class GeckoEvent {
     public long mTime;
     public Point mP0, mP1;
     public Rect mRect;
-    public float mX, mY, mZ;
+    public double mAlpha, mBeta, mGamma;
 
     public int mMetaState, mFlags;
     public int mKeyCode, mUnicodeChar;
@@ -140,9 +141,17 @@ public class GeckoEvent {
 
     public GeckoEvent(SensorEvent s) {
         mType = SENSOR_EVENT;
-        mX = s.values[0] / SensorManager.GRAVITY_EARTH;
-        mY = s.values[1] / SensorManager.GRAVITY_EARTH;
-        mZ = s.values[2] / SensorManager.GRAVITY_EARTH;
+        
+        
+        
+        
+        
+        float magnitude = FloatMath.sqrt(s.values[0] * s.values[0] +
+                                         s.values[1] * s.values[1] + 
+                                         s.values[2] * s.values[2]);
+        mAlpha = 0; 
+        mBeta = Math.toDegrees(Math.asin(s.values[1] / magnitude));
+        mGamma = -Math.toDegrees(Math.asin(s.values[0] / magnitude));
     }
 
     public GeckoEvent(Location l, Address a) {
