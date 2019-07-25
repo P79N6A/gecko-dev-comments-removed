@@ -1830,10 +1830,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     
     
     
-    
-    
     xpc_UnmarkGrayObject(mJSObject);
-    if (!JS_TransplantObject(cx, mJSObject, mJSObject)) {
+    if (!JS_RefreshCrossCompartmentWrappers(cx, mJSObject)) {
       return NS_ERROR_FAILURE;
     }
   } else {

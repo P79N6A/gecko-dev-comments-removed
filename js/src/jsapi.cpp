@@ -1505,14 +1505,42 @@ JS_WrapValue(JSContext *cx, jsval *vp)
     return cx->compartment->wrap(cx, vp);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool RemapWrappers(JSContext *cx, JSObject *orig, JSObject *target);
+
 JS_PUBLIC_API(JSObject *)
 JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
 {
     AssertNoGC(cx);
+    JS_ASSERT(origobj != target);
 
-     
-     
-     
     JSCompartment *destination = target->compartment();
     WrapperMap &map = destination->crossCompartmentWrappers;
     Value origv = ObjectValue(*origobj);
@@ -1523,16 +1551,10 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
         
         
         
-        
-        
-        
-        
-        if (origobj != target && !origobj->swap(cx, target))
+        if (!origobj->swap(cx, target))
             return NULL;
         obj = origobj;
     } else if (WrapperMap::Ptr p = map.lookup(origv)) {
-        
-        
         
         
         
@@ -1542,20 +1564,45 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
             return NULL;
     } else {
         
-        
         obj = target;
+    }
+    Value targetv = ObjectValue(*obj);
+
+    
+    
+    if (!RemapWrappers(cx, origobj, obj))
+        return NULL;
+
+    
+    if (origobj->compartment() != destination) {
+        AutoCompartment ac(cx, origobj);
+        JSObject *tobj = obj;
+        if (!ac.enter() || !JS_WrapObject(cx, &tobj))
+            return NULL;
+        if (!origobj->swap(cx, tobj))
+            return NULL;
+        origobj->compartment()->crossCompartmentWrappers.put(targetv, origv);
     }
 
     
     
-    
-    
-    
-    Value targetv = ObjectValue(*obj);
+    return obj;
+}
+
+
+
+
+
+static bool
+RemapWrappers(JSContext *cx, JSObject *orig, JSObject *target)
+{
+    Value origv = ObjectValue(*orig);
+    Value targetv = ObjectValue(*target);
+
     CompartmentVector &vector = cx->runtime->compartments;
     AutoValueVector toTransplant(cx);
     if (!toTransplant.reserve(vector.length()))
-        return NULL;
+        return false;
 
     for (JSCompartment **p = vector.begin(), **end = vector.end(); p != end; ++p) {
         WrapperMap &pmap = (*p)->crossCompartmentWrappers;
@@ -1575,9 +1622,9 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
         
         
         AutoCompartment ac(cx, wobj);
-        JSObject *tobj = obj;
+        JSObject *tobj = target;
         if (!ac.enter() || !wcompartment->wrap(cx, &tobj))
-            return NULL;
+            return false;
 
         
         
@@ -1585,22 +1632,11 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
         
         JS_ASSERT(tobj != wobj);
         if (!wobj->swap(cx, tobj))
-            return NULL;
+            return false;
         pmap.put(targetv, ObjectValue(*wobj));
     }
 
-    
-    if (origobj->compartment() != destination) {
-        AutoCompartment ac(cx, origobj);
-        JSObject *tobj = obj;
-        if (!ac.enter() || !JS_WrapObject(cx, &tobj))
-            return NULL;
-        if (!origobj->swap(cx, tobj))
-            return NULL;
-        origobj->compartment()->crossCompartmentWrappers.put(targetv, origv);
-    }
-
-    return obj;
+    return true;
 }
 
 
@@ -1701,6 +1737,17 @@ js_TransplantObjectWithWrapper(JSContext *cx,
     }
 
     return obj;
+}
+
+
+
+
+
+
+JS_PUBLIC_API(JSBool)
+JS_RefreshCrossCompartmentWrappers(JSContext *cx, JSObject *obj)
+{
+    return RemapWrappers(cx, obj, obj);
 }
 
 JS_PUBLIC_API(JSObject *)
