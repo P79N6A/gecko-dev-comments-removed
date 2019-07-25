@@ -55,8 +55,6 @@
 #include "frontend/ParseNode.h"
 #include "frontend/TreeContext.h"
 
-#define NUM_TEMP_FREELISTS      6U      /* 32 to 2048 byte size classes (32 bit) */
-
 typedef struct BindData BindData;
 
 namespace js {
@@ -70,15 +68,12 @@ enum VarContext { HoistVars, DontHoistVars };
 struct Parser : private AutoGCRooter
 {
     JSContext           *const context; 
-    void                *tempFreeList[NUM_TEMP_FREELISTS];
     TokenStream         tokenStream;
     void                *tempPoolMark;  
     JSPrincipals        *principals;    
     JSPrincipals        *originPrincipals;   
     StackFrame          *const callerFrame;  
-    JSObject            *const callerVarObj; 
     ParseNodeAllocator  allocator;
-    uint32_t            functionCount;  
     ObjectBox           *traceListHead; 
 
     TreeContext         *tc;            

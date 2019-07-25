@@ -123,7 +123,6 @@ struct BytecodeEmitter
     Parser          *parser;        
 
     OwnedAtomIndexMapPtr atomIndices; 
-    AtomDefnMapPtr  roLexdeps;
     unsigned        firstLine;      
 
     int             stackDepth;     

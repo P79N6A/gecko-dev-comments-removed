@@ -272,9 +272,6 @@ struct TreeContext {
     ParseNode       *yieldNode;     
 
 
-    ParseNode       *argumentsNode; 
-
-
 
   private:
     TreeContext     **parserTC;     
