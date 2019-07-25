@@ -768,8 +768,9 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
         
 
         
-        NS_ASSERTION(IsRefreshEnabled(),
-            "shouldn't be receiving paint events while refresh is disabled!");
+        NS_ASSERTION(IsPaintingAllowed(),
+                     "shouldn't be receiving paint events while painting is "
+                     "disallowed!");
         nsRefPtr<nsViewManager> rootVM = RootViewManager();
 
         

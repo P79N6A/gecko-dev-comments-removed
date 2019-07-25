@@ -365,7 +365,7 @@ void nsView::ResetWidgetBounds(bool aRecurse, bool aMoveOnly,
     
     
     
-    if (!mViewManager->IsRefreshEnabled()) {
+    if (!mViewManager->IsPaintingAllowed()) {
       mViewManager->PostPendingUpdate();
       return;
     }
