@@ -353,6 +353,10 @@ var gSyncSetup = {
       return valid;
 
     
+    if (!this._haveCustomSyncKey)
+      return valid;
+
+    
     let pp = document.getElementById("weavePassphrase").value;
     let bits = Weave.Utils.passphraseStrength(pp);
     let meter = document.getElementById("passphraseStrength");
