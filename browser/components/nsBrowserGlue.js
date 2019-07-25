@@ -188,6 +188,13 @@ BrowserGlue.prototype = {
         
         
         this._setPrefToSaveSession();
+        try {
+          let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"].
+                           getService(Ci.nsIAppStartup);
+          appStartup.trackStartupCrashEnd();
+        } catch (e) {
+          Cu.reportError("Could not end startup crash tracking in quit-application-granted: " + e);
+        }
         break;
 #ifdef OBSERVE_LASTWINDOW_CLOSE_TOPICS
       case "browser-lastwindow-close-requested":

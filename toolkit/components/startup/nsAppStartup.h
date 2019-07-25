@@ -93,6 +93,8 @@ private:
   bool mAttemptingQuit; 
   bool mRestart;        
   bool mInterrupted;    
+  bool mIsSafeModeNecessary;       
+  bool mStartupCrashTrackingEnded; 
 
 #if defined(XP_WIN)
   

@@ -76,7 +76,8 @@ static bool sDisableSignalHandling = false;
 #endif
 
 nsProfileLock::nsProfileLock() :
-    mHaveLock(false)
+    mHaveLock(false),
+    mReplacedLockTime(0)
 #if defined (XP_WIN)
     ,mLockFileHandle(INVALID_HANDLE_VALUE)
 #elif defined (XP_OS2)
@@ -231,9 +232,18 @@ void nsProfileLock::FatalSignalHandler(int signo
     _exit(signo);
 }
 
-nsresult nsProfileLock::LockWithFcntl(const nsACString& lockFilePath)
+nsresult nsProfileLock::LockWithFcntl(nsILocalFile *aLockFile)
 {
     nsresult rv = NS_OK;
+
+    nsCAutoString lockFilePath;
+    rv = aLockFile->GetNativePath(lockFilePath);
+    if (NS_FAILED(rv)) {
+        NS_ERROR("Could not get native path");
+        return rv;
+    }
+
+    aLockFile->GetLastModifiedTime(&mReplacedLockTime);
 
     mLockFileDesc = open(PromiseFlatCString(lockFilePath).get(),
                           O_WRONLY | O_CREAT | O_TRUNC, 0666);
@@ -332,9 +342,19 @@ static bool IsSymlinkStaleLock(struct in_addr* aAddr, const char* aFileName,
     return true;
 }
 
-nsresult nsProfileLock::LockWithSymlink(const nsACString& lockFilePath, bool aHaveFcntlLock)
+nsresult nsProfileLock::LockWithSymlink(nsILocalFile *aLockFile, bool aHaveFcntlLock)
 {
     nsresult rv;
+    nsCAutoString lockFilePath;
+    rv = aLockFile->GetNativePath(lockFilePath);
+    if (NS_FAILED(rv)) {
+        NS_ERROR("Could not get native path");
+        return rv;
+    }
+
+    
+    if (!mReplacedLockTime)
+        aLockFile->GetLastModifiedTimeOfLink(&mReplacedLockTime);
 
     struct in_addr inaddr;
     inaddr.s_addr = htonl(INADDR_LOOPBACK);
@@ -443,6 +463,11 @@ PR_BEGIN_MACRO                                                          \
 }
 #endif 
 
+nsresult nsProfileLock::GetReplacedLockTime(PRInt64 *aResult) {
+    *aResult = mReplacedLockTime;
+    return NS_OK;
+}
+
 nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
                              nsIProfileUnlocker* *aUnlocker)
 {
@@ -481,17 +506,13 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
 #if defined(XP_MACOSX)
     
     
-    nsCAutoString filePath;
-    rv = lockFile->GetNativePath(filePath);
-    if (NS_FAILED(rv))
-        return rv;
 
-    rv = LockWithFcntl(filePath);
+    rv = LockWithFcntl(lockFile);
     if (NS_FAILED(rv) && (rv != NS_ERROR_FILE_ACCESS_DENIED))
     {
         
         
-        rv = LockWithSymlink(filePath, false);
+        rv = LockWithSymlink(lockFile, false);
     }
     
     if (NS_SUCCEEDED(rv))
@@ -543,33 +564,24 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
         rv = NS_OK; 
     }
 #elif defined(XP_UNIX)
-    nsCAutoString filePath;
-    rv = lockFile->GetNativePath(filePath);
-    if (NS_FAILED(rv))
-        return rv;
-
     
-    nsCOMPtr<nsIFile> oldLockFile;
-    rv = aProfileDir->Clone(getter_AddRefs(oldLockFile));
+    nsCOMPtr<nsILocalFile> oldLockFile;
+    rv = aProfileDir->Clone((nsIFile **)((void **)getter_AddRefs(oldLockFile)));
     if (NS_FAILED(rv))
         return rv;
     rv = oldLockFile->Append(OLD_LOCKFILE_NAME);
     if (NS_FAILED(rv))
         return rv;
-    nsCAutoString oldFilePath;
-    rv = oldLockFile->GetNativePath(oldFilePath);
-    if (NS_FAILED(rv))
-        return rv;
 
     
     
-    rv = LockWithFcntl(filePath);
+    rv = LockWithFcntl(lockFile);
     if (NS_SUCCEEDED(rv)) {
         
         
         
         
-        rv = LockWithSymlink(oldFilePath, true);
+        rv = LockWithSymlink(oldLockFile, true);
 
         
         
@@ -586,7 +598,7 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
         
         
         
-        rv = LockWithSymlink(oldFilePath, false);
+        rv = LockWithSymlink(oldLockFile, false);
     }
 
 #elif defined(XP_WIN)
@@ -595,12 +607,16 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
     if (NS_FAILED(rv))
         return rv;
 
+    lockFile->GetLastModifiedTime(&mReplacedLockTime);
+
+    
+    
     mLockFileHandle = CreateFileW(filePath.get(),
                                   GENERIC_READ | GENERIC_WRITE,
                                   0, 
                                   nsnull,
-                                  OPEN_ALWAYS,
-                                  FILE_FLAG_DELETE_ON_CLOSE,
+                                  CREATE_ALWAYS,
+                                  nsnull,
                                   nsnull);
     if (mLockFileHandle == INVALID_HANDLE_VALUE) {
         
@@ -611,6 +627,8 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
     rv = lockFile->GetNativePath(filePath);
     if (NS_FAILED(rv))
         return rv;
+
+    lockFile->GetLastModifiedTime(&mReplacedLockTime);
 
     ULONG   ulAction = 0;
     APIRET  rc;
@@ -632,6 +650,8 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
     rv = lockFile->GetNativePath(filePath);
     if (NS_FAILED(rv))
         return rv;
+
+    lockFile->GetLastModifiedTime(&mReplacedLockTime);
 
     mLockFileDesc = open_noshr(filePath.get(), O_CREAT, 0666);
     if (mLockFileDesc == -1)
