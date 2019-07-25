@@ -279,12 +279,10 @@ RadioInterfaceLayer.prototype = {
         
         
         
-        if (DEBUG) {
-          debug("nitzTime networkTime=" + message.networkTimeInSeconds
-               + " timezone=" + message.networkTimeZoneInMinutes
-               + " dst=" + message.dstFlag
-               + " timestamp=" + message.localTimeStampInMS);
-        }
+        debug("nitzTime networkTime=" + message.networkTimeInSeconds +
+              " timezone=" + message.networkTimeZoneInMinutes +
+              " dst=" + message.dstFlag +
+              " timestamp=" + message.localTimeStampInMS);
         break;
       case "siminfo":
         this.radioState.msisdn = message.msisdn;
