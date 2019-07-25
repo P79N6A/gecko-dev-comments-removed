@@ -473,7 +473,6 @@ function test_processIncoming_emptyServer() {
     
     engine._processIncoming();
     do_check_eq(engine.lastSync, 0);
-    do_check_eq(engine.toFetch.length, 0);
 
   } finally {
     server.stop(do_test_finished);
@@ -676,14 +675,22 @@ function test_processIncoming_reconcile() {
 }
 
 
-function test_processIncoming_fetchNum() {
-  _("SyncEngine._processIncoming doesn't fetch everything at ones on mobile clients");
+function test_processIncoming_mobile_batchSize() {
+  _("SyncEngine._processIncoming doesn't fetch everything at once on mobile clients");
 
   Svc.Prefs.set("clusterURL", "http://localhost:8080/");
   Svc.Prefs.set("username", "foo");
   Svc.Prefs.set("client.type", "mobile");
   let crypto_steam = new ServerWBO('steam');
+
+  
   let collection = new ServerCollection();
+  collection.get_log = [];
+  collection._get = collection.get;
+  collection.get = function (options) {
+    this.get_log.push(options);
+    return this._get(options);
+  };
 
   
   
@@ -708,70 +715,29 @@ function test_processIncoming_fetchNum() {
   try {
 
     
-    
     engine._processIncoming();
-    do_check_eq([id for (id in engine._store.items)].length, 50);
+    do_check_eq([id for (id in engine._store.items)].length, 234);
     do_check_true('record-no-0' in engine._store.items);
     do_check_true('record-no-49' in engine._store.items);
-    do_check_eq(engine.toFetch.length, 234 - 50);
-
-
-    
-    
-    engine._processIncoming();
-    do_check_eq([id for (id in engine._store.items)].length, 100);
     do_check_true('record-no-50' in engine._store.items);
-    do_check_true('record-no-99' in engine._store.items);
-    do_check_eq(engine.toFetch.length, 234 - 100);
-
-
-    
-    for (i=0; i < 5; i++) {
-      let id = 'new-record-no-' + i;
-      let payload = encryptPayload({id: id, denomination: "New record No. " + i});
-      let wbo = new ServerWBO(id, payload);
-      wbo.modified = Date.now()/1000 - 60*i;
-      collection.wbos[id] = wbo;
-    }
-    
-    
-    engine.lastModified = Date.now() / 1000 + 1;
-
-    
-    
-    engine._processIncoming();
-    do_check_eq([id for (id in engine._store.items)].length, 150);
-    do_check_true('new-record-no-0' in engine._store.items);
-    do_check_true('new-record-no-4' in engine._store.items);
-    do_check_true('record-no-100' in engine._store.items);
-    do_check_true('record-no-144' in engine._store.items);
-    do_check_eq(engine.toFetch.length, 234 - 100 - 45);
-
-
-    
-    
-    collection.wbos['record-no-3'].modified = Date.now()/1000 + 1;
-    collection.wbos['record-no-41'].modified = Date.now()/1000 + 1;
-    collection.wbos['record-no-122'].modified = Date.now()/1000 + 1;
-
-    
-    
-    
-    engine.lastModified = Date.now() / 1000 + 2;
-    engine._processIncoming();
-    do_check_eq([id for (id in engine._store.items)].length, 197);
-    do_check_true('record-no-145' in engine._store.items);
-    do_check_true('record-no-191' in engine._store.items);
-    do_check_eq(engine.toFetch.length, 234 - 100 - 45 - 47);
-
-
-    
-    
-    while(engine.toFetch.length) {
-      engine._processIncoming();
-    }
-    do_check_eq([id for (id in engine._store.items)].length, 234 + 5);
     do_check_true('record-no-233' in engine._store.items);
+
+    
+    
+    do_check_eq(collection.get_log.length,
+                Math.ceil(234 / MOBILE_BATCH_SIZE) + 1);
+    do_check_eq(collection.get_log[0].full, 1);
+    do_check_eq(collection.get_log[0].limit, MOBILE_BATCH_SIZE);
+    do_check_eq(collection.get_log[1].full, undefined);
+    do_check_eq(collection.get_log[1].limit, undefined);
+    for (let i = 1; i <= Math.floor(234 / MOBILE_BATCH_SIZE); i++) {
+      do_check_eq(collection.get_log[i+1].full, 1);
+      do_check_eq(collection.get_log[i+1].limit, undefined);
+      if (i < Math.floor(234 / MOBILE_BATCH_SIZE))
+        do_check_eq(collection.get_log[i+1].ids.length, MOBILE_BATCH_SIZE);
+      else
+        do_check_eq(collection.get_log[i+1].ids.length, 234 % MOBILE_BATCH_SIZE);
+    }
 
   } finally {
     server.stop(do_test_finished);
@@ -1162,7 +1128,7 @@ function run_test() {
   test_processIncoming_emptyServer();
   test_processIncoming_createFromServer();
   test_processIncoming_reconcile();
-  test_processIncoming_fetchNum();
+  test_processIncoming_mobile_batchSize();
   test_uploadOutgoing_toEmptyServer();
   test_uploadOutgoing_failed();
   test_uploadOutgoing_MAX_UPLOAD_RECORDS();

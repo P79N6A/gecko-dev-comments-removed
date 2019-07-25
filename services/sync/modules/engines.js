@@ -282,7 +282,6 @@ Engine.prototype = {
 
 function SyncEngine(name) {
   Engine.call(this, name || "SyncEngine");
-  this.loadToFetch();
 }
 SyncEngine.prototype = {
   __proto__: Engine.prototype,
@@ -320,19 +319,6 @@ SyncEngine.prototype = {
     this._log.debug("Resetting " + this.name + " last sync time");
     Svc.Prefs.reset(this.name + ".lastSync");
     Svc.Prefs.set(this.name + ".lastSync", "0");
-  },
-
-  get toFetch() this._toFetch,
-  set toFetch(val) {
-    this._toFetch = val;
-    Utils.jsonSave("toFetch/" + this.name, this, val);
-  },
-
-  loadToFetch: function loadToFetch() {
-    
-    this._toFetch = [];
-    Utils.jsonLoad("toFetch/" + this.name, this, Utils.bind2(this, function(o)
-      this._toFetch = o));
   },
 
   
@@ -444,18 +430,14 @@ SyncEngine.prototype = {
     this._log.trace("Downloading & applying server changes");
 
     
-    
-    
-    let fetchNum = Infinity;
-
+    let batchSize = Infinity;
     let newitems = new Collection(this.engineURL, this._recordObj);
     if (Svc.Prefs.get("client.type") == "mobile") {
-      fetchNum = 50;
-      newitems.sort = "index";
+      batchSize = MOBILE_BATCH_SIZE;
     }
     newitems.newer = this.lastSync;
     newitems.full = true;
-    newitems.limit = fetchNum;
+    newitems.limit = batchSize;
 
     let count = {applied: 0, reconciled: 0};
     let handled = [];
@@ -502,16 +484,13 @@ SyncEngine.prototype = {
         resp.failureCode = ENGINE_DOWNLOAD_FAIL;
         throw resp;
       }
-
-      
-      fetchNum -= handled.length;
     }
 
     
+    let toFetch = [];
     if (handled.length == newitems.limit) {
       let guidColl = new Collection(this.engineURL);
       guidColl.newer = this.lastSync;
-      guidColl.sort = "index";
 
       let guids = guidColl.get();
       if (!guids.success)
@@ -521,20 +500,18 @@ SyncEngine.prototype = {
       
       let extra = Utils.arraySub(guids.obj, handled);
       if (extra.length > 0)
-        this.toFetch = extra.concat(Utils.arraySub(this.toFetch, extra));
+        toFetch = extra.concat(Utils.arraySub(toFetch, extra));
     }
 
     
-    while (this.toFetch.length > 0 && fetchNum > 0) {
+    while (toFetch.length) {
       
       newitems.limit = 0;
       newitems.newer = 0;
 
       
-      let minFetch = Math.min(150, this.toFetch.length, fetchNum);
-      newitems.ids = this.toFetch.slice(0, minFetch);
-      this.toFetch = this.toFetch.slice(minFetch);
-      fetchNum -= minFetch;
+      newitems.ids = toFetch.slice(0, batchSize);
+      toFetch = toFetch.slice(batchSize);
 
       
       let resp = newitems.get();
@@ -548,7 +525,7 @@ SyncEngine.prototype = {
       this.lastSync = this.lastModified;
 
     this._log.info(["Records:", count.applied, "applied,", count.reconciled,
-      "reconciled,", this.toFetch.length, "left to fetch"].join(" "));
+      "reconciled."].join(" "));
   },
 
   
@@ -788,7 +765,6 @@ SyncEngine.prototype = {
 
   _resetClient: function SyncEngine__resetClient() {
     this.resetLastSync();
-    this.toFetch = [];
   },
 
   wipeServer: function wipeServer(ignoreCrypto) {
