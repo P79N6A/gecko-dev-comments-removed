@@ -1451,6 +1451,27 @@ private:
 };
 
 
+class AutoClonePrivateGuard NS_STACK_CLASS {
+public:
+    AutoClonePrivateGuard(JSObject *aOld, JSObject *aNew)
+        : mOldReflector(aOld), mNewReflector(aNew)
+    {
+        MOZ_ASSERT(JS_GetPrivate(aOld) == JS_GetPrivate(aNew));
+    }
+
+    ~AutoClonePrivateGuard()
+    {
+        if (JS_GetPrivate(mOldReflector)) {
+            JS_SetPrivate(mNewReflector, nullptr);
+        }
+    }
+
+private:
+    JSObject* mOldReflector;
+    JSObject* mNewReflector;
+};
+
+
 nsresult
 XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                                          XPCWrappedNativeScope* aOldScope,
@@ -1553,18 +1574,37 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
             if (!newobj)
                 return NS_ERROR_FAILURE;
 
-            JSObject *propertyHolder =
-                JS_NewObjectWithGivenProto(ccx, NULL, NULL, aNewParent);
-            if (!propertyHolder)
-                return NS_ERROR_OUT_OF_MEMORY;
-            if (!JS_CopyPropertiesFrom(ccx, propertyHolder, flat))
-                return NS_ERROR_FAILURE;
+            
+            
+            
+            
+            
+            
+            
+            JSObject *propertyHolder;
+            {
+                AutoClonePrivateGuard cloneGuard(flat, newobj);
 
-            
-            
-            SetExpandoChain(newobj, nullptr);
-            if (!XrayUtils::CloneExpandoChain(ccx, newobj, flat))
-                return NS_ERROR_FAILURE;
+                propertyHolder = JS_NewObjectWithGivenProto(ccx, NULL, NULL, aNewParent);
+                if (!propertyHolder)
+                    return NS_ERROR_OUT_OF_MEMORY;
+                if (!JS_CopyPropertiesFrom(ccx, propertyHolder, flat))
+                    return NS_ERROR_FAILURE;
+
+                
+                
+                SetExpandoChain(newobj, nullptr);
+                if (!XrayUtils::CloneExpandoChain(ccx, newobj, flat))
+                    return NS_ERROR_FAILURE;
+
+                
+                
+                
+                
+                
+                
+                JS_SetPrivate(flat, nullptr);
+            }
 
             {   
                 Native2WrappedNativeMap* oldMap = aOldScope->GetWrappedNativeMap();
@@ -1610,17 +1650,6 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                     !wrapper->GetSameCompartmentSecurityWrapper(ccx))
                     return NS_ERROR_FAILURE;
             }
-
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            JS_SetPrivate(flat, nullptr);
 
             JSObject *ww = wrapper->GetWrapper();
             if (ww) {
