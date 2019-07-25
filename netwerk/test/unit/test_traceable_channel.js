@@ -22,14 +22,42 @@ TracingListener.prototype = {
 
     request.QueryInterface(Components.interfaces.nsIHttpChannelInternal);
 
+    var localAddr = "unknown";
+    var localPort = "unknown";
+    var remoteAddr = "unknown";
+    var remotePort = "unknown";
+    try {
+      localAddr = request.localAddress;
+      dump("got local address\n");
+    } catch(e) {
+      dump("couldn't get local address\n");
+    }
+    try {
+      localPort = request.localPort;
+      dump("got local port\n");
+    } catch(e) {
+      dump("couldn't get local port\n");
+    }
+    try {
+      remoteAddr = request.remoteAddress;
+      dump("got remote address\n");
+    } catch(e) {
+      dump("couldn't get remote address\n");
+    }
+    try {
+      remotePort = request.remotePort;
+      dump("got remote port\n");
+    } catch(e) {
+      dump("couldn't get remote port\n");
+    }
 
+    do_check_eq(localAddr, "127.0.0.1");
+    do_check_eq(localPort > 0, true);
+    do_check_eq(remoteAddr, "127.0.0.1");
+    do_check_eq(remotePort, 4444);
 
-
-
-
-
-
-
+    request.QueryInterface(Components.interfaces.nsISupportsPriority);
+    request.priority = Ci.nsISupportsPriority.PRIORITY_LOW;
 
     
     request.QueryInterface(Components.interfaces.nsITraceableChannel);
@@ -63,9 +91,10 @@ TracingListener.prototype = {
       input.close();
     } catch (e) {
       dump("TracingListener.onStopRequest swallowing exception: " + e + "\n");
-    } finally {
-      httpserver.stop(do_test_finished);
     }
+
+    
+    run_next_test();
   },
 
   QueryInterface: function(iid) {
@@ -135,18 +164,37 @@ function make_channel(url) {
 
 
 function channel_finished(request, input, ctx) {
-  httpserver.stop(do_test_finished);
+  
+  
+}
+
+
+var observer = new HttpResponseExaminer();
+
+var testRuns = 1;  
+var iteration = 1;
+
+function run_next_test() {
+  if (iteration > testRuns) {
+    dump("Shutting down\n");
+    httpserver.stop(do_test_finished);
+    return;
+  }
+  if (iteration > 1) {
+    dump("^^^ test iteration=" + iteration + "\n");
+  }
+  var channel = make_channel("http://localhost:4444/testdir");
+  channel.asyncOpen(new ChannelListener(channel_finished), null);
+  iteration++;
 }
 
 function run_test() {
-  var observer = new HttpResponseExaminer();
   observer.register();
 
   httpserver = new nsHttpServer();
   httpserver.registerPathHandler("/testdir", test_handler);
   httpserver.start(4444);
 
-  var channel = make_channel("http://localhost:4444/testdir");
-  channel.asyncOpen(new ChannelListener(channel_finished), null);
+  run_next_test();
   do_test_pending();
 }
