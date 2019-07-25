@@ -20,63 +20,42 @@ BEGIN_BLUETOOTH_NAMESPACE
 
 
 
-
-
-
-
 class BluetoothDBusService : public BluetoothService
                            , private mozilla::ipc::RawDBusConnection
 {
 public:
-  
-
-
-
-
-
-
   virtual nsresult StartInternal();
-
-  
-
-
-
-
-
-
   virtual nsresult StopInternal();
-
-  
-
-
-
-
-
   virtual nsresult GetDefaultAdapterPathInternal(BluetoothReplyRunnable* aRunnable);
-
-  
-
-
-
-
-
-
   virtual nsresult StartDiscoveryInternal(const nsAString& aAdapterPath,
                                           BluetoothReplyRunnable* aRunnable);
-  
-
-
-
-
-
-
   virtual nsresult StopDiscoveryInternal(const nsAString& aAdapterPath,
                                          BluetoothReplyRunnable* aRunnable);
+  virtual nsresult
+  GetProperties(BluetoothObjectType aType,
+                const nsAString& aPath,
+                BluetoothReplyRunnable* aRunnable);
+  virtual nsresult
+  SetProperty(BluetoothObjectType aType,
+              const nsAString& aPath,
+              const BluetoothNamedValue& aValue,
+              BluetoothReplyRunnable* aRunnable);
+  virtual bool
+  GetDevicePath(const nsAString& aAdapterPath,
+                const nsAString& aDeviceAddress,
+                nsAString& aDevicePath);
 
 private:
+  nsresult SendGetPropertyMessage(const nsAString& aPath,
+                                  const char* aInterface,
+                                  void (*aCB)(DBusMessage *, void *),
+                                  BluetoothReplyRunnable* aRunnable);
   nsresult SendDiscoveryMessage(const nsAString& aAdapterPath,
                                 const char* aMessageName,
                                 BluetoothReplyRunnable* aRunnable);
+  nsresult SendSetPropertyMessage(const nsString& aPath, const char* aInterface,
+                                  const BluetoothNamedValue& aValue,
+                                  BluetoothReplyRunnable* aRunnable);
 };
 
 END_BLUETOOTH_NAMESPACE

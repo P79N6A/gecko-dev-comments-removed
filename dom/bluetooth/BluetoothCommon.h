@@ -25,6 +25,15 @@ BEGIN_BLUETOOTH_NAMESPACE
 class BluetoothSignal;
 typedef mozilla::Observer<BluetoothSignal> BluetoothSignalObserver;
 
+
+
+
+enum BluetoothObjectType {
+  TYPE_MANAGER = 0,
+  TYPE_ADAPTER = 1,
+  TYPE_DEVICE = 2 
+};
+
 END_BLUETOOTH_NAMESPACE
 
 #endif 

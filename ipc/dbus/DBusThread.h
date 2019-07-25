@@ -12,8 +12,6 @@ struct DBusMessage;
 namespace mozilla {
 namespace ipc {
 
-class nsCString;
-
 
 
 

@@ -143,6 +143,50 @@ public:
 
   virtual nsresult StopInternal() = 0;
 
+  
+
+
+
+
+
+
+
+
+  virtual nsresult
+  GetProperties(BluetoothObjectType aType,
+                const nsAString& aPath,
+                BluetoothReplyRunnable* aRunnable) = 0;
+
+  
+
+
+
+
+
+
+
+
+
+  virtual nsresult
+  SetProperty(BluetoothObjectType aType,
+              const nsAString& aPath,
+              const BluetoothNamedValue& aValue,
+              BluetoothReplyRunnable* aRunnable) = 0;
+
+  
+
+
+
+
+
+
+
+
+  virtual bool
+  GetDevicePath(const nsAString& aAdapterPath,
+                const nsAString& aDeviceAddress,
+                nsAString& aDevicePath) = 0;
+
 protected:
   BluetoothService()
   {
