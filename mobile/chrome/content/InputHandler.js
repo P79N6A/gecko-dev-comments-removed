@@ -128,6 +128,9 @@ function InputHandler(browserViewContainer) {
   window.addEventListener("mouseup", this, true);
   window.addEventListener("mousemove", this, true);
   window.addEventListener("click", this, true);
+  window.addEventListener("MozMagnifyGestureStart", this, true);
+  window.addEventListener("MozMagnifyGestureUpdate", this, true);
+  window.addEventListener("MozMagnifyGesture", this, true);
 
   
   browserViewContainer.addEventListener("keypress", this, false);
@@ -135,10 +138,11 @@ function InputHandler(browserViewContainer) {
   browserViewContainer.addEventListener("keydown", this, false);
   browserViewContainer.addEventListener("DOMMouseScroll", this, true);
   browserViewContainer.addEventListener("MozMousePixelScroll", this, true);
-  browserViewContainer.addEventListener("contextmenu", this, false);
+  browserViewContainer.addEventListener("contextmenu", this, true);
 
   this.addModule(new MouseModule(this, browserViewContainer));
   this.addModule(new KeyModule(this, browserViewContainer));
+  this.addModule(new GestureModule(this, browserViewContainer));
   this.addModule(new ScrollwheelModule(this, browserViewContainer));
 }
 
@@ -380,6 +384,12 @@ MouseModule.prototype = {
             this._dragger.dragStop(0, 0, this._targetScrollInterface);
           this.cancelPending();
         }
+        break;
+      case "MozMagnifyGestureStart":
+      case "MozMagnifyGesture":
+        
+        if (this._dragData.dragging)
+          this._doDragStop(0, 0, true);
         break;
     }
   },
@@ -660,7 +670,8 @@ MouseModule.prototype = {
 
   _doDoubleClick: function _doDoubleClick() {
     let mouseUp1 = this._downUpEvents[1].event;
-    let mouseUp2 = this._downUpEvents[3].event;
+    
+    let mouseUp2 = this._downUpEvents[Math.min(3, this._downUpEvents.length - 1)].event;
     this._cleanClickBuffer(4);
     this._clicker.doubleClick(mouseUp1.clientX, mouseUp1.clientY,
                               mouseUp2.clientX, mouseUp2.clientY);
@@ -1196,4 +1207,145 @@ ScrollwheelModule.prototype = {
 
   
   cancelPending: function cancelPending() {}
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+function GestureModule(owner, browserViewContainer) {
+  this._owner = owner;
+  this._browserViewContainer = browserViewContainer;
+}
+
+GestureModule.prototype = {
+
+  
+
+
+
+
+
+
+  handleEvent: function handleEvent(evInfo) {
+    try {
+      let consume = false;
+      switch (evInfo.event.type) {
+        case "MozMagnifyGestureStart":
+          consume = true;
+          this._pinchStart(evInfo.event);
+          break;
+
+        case "MozMagnifyGestureUpdate":
+          consume = true;
+          if (this._ignoreNextUpdate)
+            this._ignoreNextUpdate = false;
+          else
+            this._pinchUpdate(evInfo.event);
+          break;
+
+        case "MozMagnifyGesture":
+          consume = true;
+          this._pinchEnd(evInfo.event);
+          break;
+
+        case "contextmenu":
+          
+          if (this._pinchZoom)
+            consume = true;
+          break;
+      }
+      if (consume) {
+        
+        evInfo.event.stopPropagation();
+        evInfo.event.preventDefault();
+      }
+    }
+    catch (e) {
+      Util.dumpLn("Error while handling gesture event", evInfo.event.type,
+                  "\nPlease report error at:", e.getSource());
+    }
+  },
+
+  cancelPending: function cancelPending() {
+    
+    if (this._pinchZoom) {
+      this._pinchZoom.finish();
+      this._pinchZoom = null;
+    }
+  },
+
+  _pinchStart: function _pinchStart(aEvent) {
+    let bv = Browser._browserView;
+    
+    if (this._pinchZoom || (aEvent.target instanceof XULElement) || !bv.allowZoom)
+      return;
+
+    
+    this._owner.grab(this);
+
+    
+    document.getElementById("tile-container").customClicker.panBegin();
+
+    
+    this._pinchZoom = new AnimatedZoom(bv);
+
+    
+    this._pinchZoomLevel = bv.getZoomLevel();
+    this._pinchDelta = 0;
+    this._ignoreNextUpdate = true; 
+
+    
+    this._maxGrowth = gPrefService.getIntPref("browser.ui.pinch.maxGrowth");
+    this._maxShrink = gPrefService.getIntPref("browser.ui.pinch.maxShrink");
+    this._scalingFactor = gPrefService.getIntPref("browser.ui.pinch.scalingFactor");
+
+    
+    [this._pinchStartX, this._pinchStartY] =
+        Browser.transformClientToBrowser(aEvent.clientX, aEvent.clientY);
+  },
+
+  _pinchUpdate: function _pinchUpdate(aEvent) {
+    if (!this._pinchZoom || !aEvent.delta)
+      return;
+
+    
+    this._pinchDelta += aEvent.delta;
+
+    
+    let delta = Math.max(-this._maxShrink, Math.min(this._maxGrowth, this._pinchDelta));
+    this._pinchZoomLevel *= (1 + delta / this._scalingFactor);
+    this._pinchZoomLevel = Browser._browserView.clampZoomLevel(this._pinchZoomLevel);
+    this._pinchDelta = 0;
+
+    
+    let [pX, pY] =
+        Browser.transformClientToBrowser(aEvent.clientX, aEvent.clientY);
+
+    
+    let rect = Browser._getZoomRectForPoint(2 * this._pinchStartX - pX,
+                                            2 * this._pinchStartY - pY,
+                                            this._pinchZoomLevel);
+    this._pinchZoom.updateTo(rect);
+  },
+
+  _pinchEnd: function _pinchEnd(aEvent) {
+    
+    this._owner.ungrab(this);
+
+    
+    if (this._pinchZoom) {
+      
+      this._pinchZoom.finish();
+      this._pinchZoom = null;
+    }
+  }
 };

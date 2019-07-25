@@ -45,6 +45,9 @@
 
 
 
+
+
+
 let Cc = Components.classes;
 let Ci = Components.interfaces;
 let Cu = Components.utils;
@@ -1071,7 +1074,7 @@ var Browser = {
     zoomLevel = Math.max(zoomLevel, bv.getPageZoomLevel());
 
     let center = this.getVisibleRect().center().map(bv.viewportToBrowser);
-    this.setVisibleRect(this._getZoomRectForPoint(center.x, center.y, zoomLevel));
+    this.animatedZoomTo(this._getZoomRectForPoint(center.x, center.y, zoomLevel));
   },
 
   
@@ -1123,6 +1126,11 @@ var Browser = {
     return result.translateInside(bv._browserViewportState.viewportRect);
   },
 
+  animatedZoomTo: function animatedZoomTo(rect) {
+    let zoom = new AnimatedZoom(this._browserView);
+    zoom.animateTo(rect);
+  },
+
   setVisibleRect: function setVisibleRect(rect) {
     let bv = this._browserView;
     let vis = bv.getVisibleRect();
@@ -1172,19 +1180,19 @@ var Browser = {
     if (!zoomRect && bv.isDefaultZoom())
       zoomRect = this._getZoomRectForPoint(x, y, bv.getZoomLevel() * 2);
 
-    if (zoomRect)
-      this.setVisibleRect(zoomRect);
+    if (zoomRect && bv.allowZoom)
+      this.animatedZoomTo(zoomRect);
 
     return zoomRect;
   },
 
   zoomFromPoint: function zoomFromPoint(cX, cY) {
     let bv = this._browserView;
-    if (!bv.isDefaultZoom()) {
+    if (!bv.isDefaultZoom() && bv.allowZoom) {
       let zoomLevel = bv.getDefaultZoomLevel();
       let [x, y] = this.transformClientToBrowser(cX, cY);
       let zoomRect = this._getZoomRectForPoint(x, y, zoomLevel);
-      this.setVisibleRect(zoomRect);
+      this.animatedZoomTo(zoomRect);
     }
   }, 
 
@@ -2703,9 +2711,6 @@ var ImagePreloader = {
 
 function rendererFactory(aBrowser, aCanvas) {
   let wrapper = {};
-
-  if (!aCanvas.parentNode)
-    throw "Canvas Must have a parent node";
 
   if (aBrowser.contentWindow) {
     let ctx = aCanvas.getContext("2d");

@@ -591,4 +591,33 @@ Rect.prototype = {
 
     return result;
   },
+
+  
+
+
+
+
+
+  blend: function blend(rect, scalar) {
+    return new Rect(
+      this.left   + (rect.left   - this.left  ) * scalar,
+      this.top    + (rect.top    - this.top   ) * scalar,
+      this.width  + (rect.width  - this.width ) * scalar,
+      this.height + (rect.height - this.height) * scalar);
+  },
+
+  
+
+
+
+  inflate: function inflate(xscl, yscl) {
+    let xAdj = (this.width * xscl - this.width) / 2;
+    let s = (arguments.length > 1) ? yscl : xscl;
+    let yAdj = (this.height * s - this.height) / 2;
+    this.left -= xAdj;
+    this.right += xAdj;
+    this.top -= yAdj;
+    this.bottom += yAdj;
+    return this;
+  }
 };
