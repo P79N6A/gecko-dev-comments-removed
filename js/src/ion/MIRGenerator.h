@@ -44,6 +44,7 @@
 
 
 
+#include <stdarg.h>
 
 #include "jscntxt.h"
 #include "jscompartment.h"
