@@ -53,10 +53,8 @@ public:
 
 
 
-
-
   static PRBool
-  HaveFeature(nsISupports* aObject, const nsAString& aFeature);
+  HaveFeature(const nsAString& aFeature);
 
   
 
@@ -102,10 +100,8 @@ private:
 
 
 
-
-
   static PRBool
-  HaveFeatures(nsISupports* aObject, const nsSubstring& aFeatures);
+  HaveFeatures(const nsSubstring& aFeatures);
 
   
 
