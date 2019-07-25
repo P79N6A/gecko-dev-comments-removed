@@ -1544,8 +1544,9 @@ function Variables(t, x, letBlock) {
                 throw t.newSyntaxError("Invalid variable initialization");
 
             
-            var id = mkIdentifier(n2.tokenizer, n2.name, true);
+            var id = new Node(n2.tokenizer, IDENTIFIER);
             var n3 = b.ASSIGN$build(t);
+            id.name = id.value = n2.name;
             b.ASSIGN$addOperand(n3, id);
             b.ASSIGN$addOperand(n3, AssignExpression(t, x));
             b.ASSIGN$finish(n3);
