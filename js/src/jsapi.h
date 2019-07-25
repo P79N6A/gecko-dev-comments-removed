@@ -1269,6 +1269,146 @@ js_AddGCThingRootRT(JSRuntime *rt, void **rp, const char *name);
 extern JS_FRIEND_API(JSBool)
 js_RemoveRoot(JSRuntime *rt, void *rp);
 
+#ifdef __cplusplus
+JS_END_EXTERN_C
+
+namespace js {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T> class AnchorPermitted;
+template<typename T>
+class Anchor: AnchorPermitted<T> {
+  public:
+    Anchor() { }
+    explicit Anchor(T t) { hold = t; }
+    ~Anchor() {
+#ifdef __GNUC__
+        
+
+
+
+
+
+
+
+
+
+
+        asm volatile("":: "g" (hold) : "memory");
+#else
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        volatile T sink;
+        sink = hold;
+#endif
+    }
+    T &get()      { return hold; }
+    void set(T t) { hold = t; }
+    void clear()  { hold = 0; }
+  private:
+    T hold;
+    
+    Anchor(const Anchor &);
+    const Anchor &operator=(const Anchor &);
+};
+
+
+
+
+
+template<> class AnchorPermitted<JSObject *> { };
+template<> class AnchorPermitted<const JSObject *> { };
+template<> class AnchorPermitted<JSFunction *> { };
+template<> class AnchorPermitted<const JSFunction *> { };
+template<> class AnchorPermitted<JSString *> { };
+template<> class AnchorPermitted<const JSString *> { };
+template<> class AnchorPermitted<jsval> { };
+
+}  
+
+JS_BEGIN_EXTERN_C
+#endif
+
 
 
 
