@@ -1032,6 +1032,10 @@ let UI = {
         
         
         self.enableSearch(event);
+      } else if (event.keyCode == KeyEvent.DOM_VK_BACK_SPACE) {
+        
+        event.stopPropagation();
+        event.preventDefault();
       }
     });
   },
