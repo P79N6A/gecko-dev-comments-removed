@@ -96,7 +96,14 @@ class Loop
     
     bool isInLoop(MInstruction *ins);
     bool isLoopInvariant(MInstruction *ins);
-    bool isHoistable(MInstruction *ins);
+
+    
+    
+    bool shouldHoist(MInstruction *ins);
+
+    
+    
+    bool checkHotness(MBasicBlock *block);
 
     
     InstructionQueue worklist_;

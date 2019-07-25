@@ -388,6 +388,18 @@ class MInstruction
         return false;
     }
 
+    
+    
+    
+    enum HoistWin {
+        NO_WIN,
+        POTENTIAL_WIN,
+        BIG_WIN
+    };
+    virtual HoistWin estimateHoistWin() {
+        return NO_WIN;
+    }
+
   public:
     
 #   define OPCODE_CASTS(opcode)                                             \
@@ -469,6 +481,9 @@ class MConstant : public MAryInstruction<0>
     }
     const js::Value *vp() const {
         return &value_;
+    }
+    HoistWin estimateHoistWin() {
+        return POTENTIAL_WIN;
     }
     void printOpcode(FILE *fp);
 };
@@ -727,6 +742,9 @@ class MBitAnd : public MBinaryInstruction
     MIRType requiredInputType(size_t index) const {
         return specialization();
     }
+    HoistWin estimateHoistWin() {
+        return BIG_WIN;
+    }
 };
 
 class MAdd : public MBinaryInstruction
@@ -742,9 +760,11 @@ class MAdd : public MBinaryInstruction
     static MAdd *New(MInstruction *left, MInstruction *right) {
         return new MAdd(left, right);
     }
-
     MIRType requiredInputType(size_t index) const {
         return specialization();
+    }
+    HoistWin estimateHoistWin() {
+        return BIG_WIN;
     }
 };
 
