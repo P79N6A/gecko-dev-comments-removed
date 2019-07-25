@@ -13,6 +13,9 @@ var gIoService = Components.classes["@mozilla.org/network/io-service;1"]
 
 
 
+
+
+
 var gTests = [
   { spec:    "about:blank",
     scheme:  "about",
@@ -114,6 +117,24 @@ var gTests = [
     username: "foo",
     password: "bar",
     path:    "/pub/mozilla.org/README",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "ftp://foo:@ftp.mozilla.org:100/pub/mozilla.org/README",
+    scheme:  "ftp",
+    prePath: "ftp://foo:@ftp.mozilla.org:100",
+    port:    100,
+    username: "foo",
+    password: "",
+    path:    "/pub/mozilla.org/README",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  
+  { spec:    "http:x:@",
+    scheme:  "http",
+    prePath: "http://x:@",
+    username: "x",
+    password: "",
+    path:    "",
     ref:     "",
     nsIURL:  true, nsINestedURI: false },
   { spec:    "gopher://mozilla.org/",
