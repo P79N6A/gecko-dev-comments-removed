@@ -44,8 +44,7 @@
 
   let areJsCompartmentsPresent = false;
   let isSandboxLocationShown = false;
-  let areLayoutShellsPresent = false;
-  let areDomInnerWindowsPresent = false;
+  let areWindowObjectsPresent = false;
   let isPlacesPresent = false;
   let isImagesPresent = false;
   let isXptiWorkingSetPresent = false;
@@ -63,7 +62,7 @@
       vsizeAmounts.push(aAmount);
     } else if (aPath === "resident") {
       residentAmounts.push(aAmount);
-    } else if (aPath === "js-gc-heap") {
+    } else if (aPath === "js-main-runtime-gc-heap-committed") {
       jsGcHeapAmounts.push(aAmount); 
     } else if (aPath === "heap-allocated") {
       heapAllocatedAmounts.push(aAmount);
@@ -73,10 +72,8 @@
     // Check the presence of some other notable reporters.
     } else if (aPath.search(/^explicit\/js\/compartment\(/) >= 0) {
       areJsCompartmentsPresent = true;
-    } else if (aPath.search(/^explicit\/layout\/shell\(/) >= 0) {
-      areLayoutShellsPresent = true;
-    } else if (aPath.search(/^explicit\/dom\+style\/window-objects\/.*inner-window\(/) >= 0) {
-      areDomInnerWindowsPresent = true;
+    } else if (aPath.search(/^explicit\/window-objects\/top\(/) >= 0) {
+      areWindowObjectsPresent = true;
     } else if (aPath.search(/^explicit\/storage\/sqlite\/places.sqlite/) >= 0) {
       isPlacesPresent = true;
     } else if (aPath.search(/^explicit\/images/) >= 0) {
@@ -125,17 +122,16 @@
        aName + "'s size is reasonable");
   }
 
-  checkSpecialReport("explicit",       explicitAmounts);
-  checkSpecialReport("vsize",          vsizeAmounts);
-  checkSpecialReport("resident",       residentAmounts);
-  checkSpecialReport("js-gc-heap",     jsGcHeapAmounts);
-  checkSpecialReport("heap-allocated", heapAllocatedAmounts);
-  checkSpecialReport("storage-sqlite", storageSqliteAmounts);
+  checkSpecialReport("explicit",                          explicitAmounts);
+  checkSpecialReport("vsize",                             vsizeAmounts);
+  checkSpecialReport("resident",                          residentAmounts);
+  checkSpecialReport("js-main-runtime-gc-heap-committed", jsGcHeapAmounts);
+  checkSpecialReport("heap-allocated",                    heapAllocatedAmounts);
+  checkSpecialReport("storage-sqlite",                    storageSqliteAmounts);
 
   ok(areJsCompartmentsPresent,  "js compartments are present");
   ok(isSandboxLocationShown,    "sandbox locations are present");
-  ok(areLayoutShellsPresent,    "layout shells are present");
-  ok(areDomInnerWindowsPresent, "dom inner-windows are present");
+  ok(areWindowObjectsPresent,   "window objects are present");
   ok(isPlacesPresent,           "places is present");
   ok(isImagesPresent,           "images is present");
   ok(isXptiWorkingSetPresent,   "xpti-working-set is present");
