@@ -96,7 +96,7 @@ PRInt32 nsExceptionManager::totalInstances = 0;
 
 
 
-NS_IMPL_ISUPPORTS1(nsExceptionManager, nsIExceptionManager)
+NS_IMPL_THREADSAFE_ISUPPORTS1(nsExceptionManager, nsIExceptionManager)
 
 nsExceptionManager::nsExceptionManager(nsExceptionService *svc) :
   mNextThread(nsnull),
