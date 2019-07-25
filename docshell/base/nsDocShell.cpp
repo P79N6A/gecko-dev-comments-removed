@@ -8595,7 +8595,18 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     
     nsCOMPtr<nsIDocShell> kungFuDeathGrip(this);
 
-    rv = MaybeInitTiming();
+    
+    
+    
+
+    
+    
+    
+    
+    
+    if (!bIsJavascript) {
+        MaybeInitTiming();
+    }
     if (mTiming) {
       mTiming->NotifyBeforeUnload();
     }
