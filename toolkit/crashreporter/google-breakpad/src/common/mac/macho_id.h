@@ -36,7 +36,6 @@
 
 #include <limits.h>
 #include <mach-o/loader.h>
-#include <openssl/sha.h>
 
 #include "common/md5.h"
 
@@ -66,10 +65,6 @@ class MachoID {
   
   bool MD5(int cpu_type, unsigned char identifier[16]);
 
-  
-  
-  bool SHA1(int cpu_type, unsigned char identifier[16]);
-
  private:
   
   typedef void (MachoID::*UpdateFunction)(unsigned char *bytes, size_t size);
@@ -81,10 +76,6 @@ class MachoID {
   
   
   void UpdateMD5(unsigned char *bytes, size_t size);
-
-  
-  
-  void UpdateSHA1(unsigned char *bytes, size_t size);
 
   
   void Update(MachoWalker *walker, off_t offset, size_t size);
@@ -112,9 +103,6 @@ class MachoID {
 
   
   MD5Context md5_context_;
-
-  
-  SHA_CTX sha1_context_;
 
   
   UpdateFunction update_function_;
