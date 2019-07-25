@@ -34,7 +34,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ['Resource', 'RemoteStore'];
+const EXPORTED_SYMBOLS = ['Resource', 'RemoteStore', 'JsonFilter'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;

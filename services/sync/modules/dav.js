@@ -183,7 +183,7 @@ DAVCollection.prototype = {
 
         
         if (components[i] == '')
-          break;
+          continue;
 
         path2 = path2 + components[i];
 

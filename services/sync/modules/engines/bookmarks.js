@@ -217,7 +217,7 @@ BookmarksSharingManager.prototype = {
     this._createOutgoingShare.async( this, self.cb,
 				     folderId, folderName, username );
     let serverPath = yield;
-    dump("in _share: annotated with serverPath = \" + serverPath + \"\n");
+    dump("in _share: annotated with serverPath = " + serverPath + "\n");
     this._updateOutgoingShare.async( this, self.cb, folderId );
     yield;
 
@@ -230,6 +230,7 @@ BookmarksSharingManager.prototype = {
                                     this._annoSvc.EXPIRE_NEVER);
     
     if ( this._xmppClient ) {
+      
       if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
 	let msgText = "share " + serverPath + " " + folderName;
 	this._log.debug( "Sending XMPP message: " + msgText );
@@ -330,46 +331,15 @@ BookmarksSharingManager.prototype = {
     self.done();
   },
 
-  _createOutgoingShare: function BmkSharing__createOutgoing(folderId,
-							    folderName,
-							    username) {
+  _createKeyChain: function BmkSharing__createKeychain(serverPath,
+						       myUserName,
+						       username){
     
-
-
-
-
-
 
 
 
 
     let self = yield;
-    let myUserName = ID.get('WeaveID').username;
-    this._log.debug("Turning folder " + folderName + " into outgoing share" +
-		     + " with " + username);
-
-    
-
-    let folderGuid = Utils.makeGUID();
-
-    
-    let serverPath = "/user/" + myUserName + "/share/" + folderGuid;
-    DAV.MKCOL(serverPath, self.cb);
-    let ret = yield;
-    if (!ret) {
-      this._log.error("Can't create remote folder for outgoing share.");
-      self.done(false);
-    }
-    
-
-    
-
-    this._annoSvc.setItemAnnotation(folderId,
-                                    SERVER_PATH_ANNO,
-                                    serverPath,
-                                    0,
-                                    this._annoSvc.EXPIRE_NEVER);
-
     
     
     
@@ -386,15 +356,29 @@ BookmarksSharingManager.prototype = {
     
 
     let idRSA = ID.get('WeaveCryptoID');
-    let userPubKeyFile = new Resource("/user/" + username + "/public/pubkey"); 
+    let userPubKeyFile = new Resource("/user/" + username + "/public/pubkey");
+    userPubKeyFile.pushFilter( new JsonFilter() );
+    
+    
     userPubKeyFile.get(self.cb);
     let userPubKey = yield;
+    userPubKey = userPubKey.pubkey;
 
     
 
-    Crypto.wrapKey.async(Crypto, self.cb, bulkKey, {realm : "tmpWrapID", pubkey: idRSA.pubkey} );
+
+
+
+
+    
+
+    dump( "Calling crypto to wrap sym key with my public key.\n" );
+    Crypto.wrapKey.async(Crypto, self.cb, bulkKey, {realm : "tmpWrapID",
+						    pubkey: idRSA.pubkey} );
     let encryptedForMe = yield;
-    Crypto.wrapKey.async(Crypto, self.cb, bulkKey, {realm : "tmpWrapID", pubkey: userPubKey} );
+    dump( "Calling crypto to wrap sym key with sharee's public key.\n" );
+    Crypto.wrapKey.async(Crypto, self.cb, bulkKey, {realm : "tmpWrapID",
+						    pubkey: userPubKey} );
     let encryptedForYou = yield;
     let keys = {
                  ring   : { },
@@ -404,15 +388,64 @@ BookmarksSharingManager.prototype = {
     keys.ring[username]   = encryptedForYou;
 
     let keyringFile = new Resource( serverPath + "/" + KEYRING_FILE_NAME );
-    let jsonService = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
-    keyringFile.put( self.cb, jsonService.encode( keys ) );
+    keyringFile.pushFilter(new JsonFilter());
+    keyringFile.put( self.cb, keys);
     yield;
+
+    self.done();
+  },
+
+  _createOutgoingShare: function BmkSharing__createOutgoing(folderId,
+							    folderName,
+							    username) {
+    
+
+
+
+
+
+
+
+
+
+    let self = yield;
+    let myUserName = ID.get('WeaveID').username;
+    this._log.debug("Turning folder " + folderName + " into outgoing share"
+		     + " with " + username);
+
+    
+
+    let folderGuid = Utils.makeGUID();
+
+    
+    let serverPath = "share/" + folderGuid;
+    dump( "Trying to create " + serverPath + "\n");
+    let ret = yield DAV.MKCOL(serverPath, self.cb);
+
+    if (!ret) {
+      this._log.error("Can't create remote folder for outgoing share.");
+      self.done(false);
+    }
+    
+
+    
+
+    this._annoSvc.setItemAnnotation(folderId,
+                                    SERVER_PATH_ANNO,
+                                    serverPath,
+                                    0,
+                                    this._annoSvc.EXPIRE_NEVER);
+
+    let encryptionTurnedOn = true;
+    if (encryptionTurnedOn) {
+      yield this._createKeyChain.async(this, self.cb, serverPath, myUserName, username);
+    }
 
     
     let sharingApi = new Sharing.Api( DAV );
-    sharingApi.shareWithUsers( serverPath, [username], self.cb );
-    let result = yield;
-
+    let result = yield sharingApi.shareWithUsers( serverPath,
+						  [username],
+						  self.cb );
     
     self.done( serverPath );
   },
@@ -433,7 +466,9 @@ BookmarksSharingManager.prototype = {
     
     
     
+    dump( "in _updateOutgoingShare.  serverPath is " + serverPath +"\n");
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
+    keyringFile.pushFilter(new JsonFilter());
     keyringFile.get(self.cb);
     let keys = yield;
 
