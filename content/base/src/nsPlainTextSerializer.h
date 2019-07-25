@@ -254,6 +254,8 @@ protected:
   
   PRUint32          mIgnoreAboveIndex;
 
+  
+  PRInt32         *mOLStack;
   PRUint32         mOLStackIndex;
 
   PRUint32         mULCount;
