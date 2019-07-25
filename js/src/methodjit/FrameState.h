@@ -281,6 +281,12 @@ class FrameState
     inline FPRegisterID pushRegs(RegisterID type, RegisterID data, JSValueType knownType);
 
     
+
+
+
+    inline void reloadEntry(Assembler &masm, Address address, FrameEntry *fe);
+
+    
     void pushDouble(FPRegisterID fpreg);
     void pushDouble(Address address);
 
