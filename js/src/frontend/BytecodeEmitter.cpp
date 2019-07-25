@@ -5797,7 +5797,6 @@ EmitObject(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             return false;
     }
 
-    unsigned methodInits = 0, slowMethodInits = 0;
     for (ParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
         
         ParseNode *pn3 = pn2->pn_left;
