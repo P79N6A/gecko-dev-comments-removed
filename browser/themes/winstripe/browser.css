@@ -609,12 +609,8 @@ menuitem.bookmark-item {
 }
 
 .bookmark-item[container][livemark] .bookmark-item {
-  list-style-image: url("chrome://browser/skin/places/livemark-item.png");
-  -moz-image-region: rect(0px, 16px, 16px, 0px);
-}
-
-.bookmark-item[container][livemark] .bookmark-item[visited] {
-  -moz-image-region: rect(0px, 32px, 16px, 16px);
+  list-style-image: url("chrome://browser/skin/livemark-item.png");
+  -moz-image-region: auto;
 }
 
 .bookmark-item[container][query] {
@@ -2687,10 +2683,6 @@ panel[dimmed="true"] {
   border-top: 1px solid hsla(211,68%,6%,.65) !important;
 }
 
-#inspector-toolbar[treepanel-open] {
-  padding-top: 0;
-}
-
 #devtools-side-splitter {
   border: 0;
   -moz-border-start: 1px solid #242b33;
@@ -2703,15 +2695,6 @@ panel[dimmed="true"] {
 
 #devtools-sidebar-box {
   background-color: -moz-Field;
-}
-
-
-
-#inspector-top-resizer {
-  -moz-appearance: none;
-  cursor: n-resize;
-  background: none;
-  height: 4px;
 }
 
 
@@ -2953,4 +2936,16 @@ html|*#highlighter-nodeinfobar-id {
 .inspector-breadcrumbs-button[siblings-menu-open]:last-of-type[checked]:-moz-locale-dir(rtl),
 .inspector-breadcrumbs-button:last-of-type[checked]:hover:active:-moz-locale-dir(rtl) {
   -moz-border-image: url("chrome://browser/skin/devtools/breadcrumbs/rtl-end-selected-pressed.png") 2 13 2 13 fill stretch;
+}
+
+
+
+#inspector-tree-splitter {
+  -moz-appearance: none;
+  border-top: 1px solid black;
+  border-bottom-width: 0;
+  min-height: 3px;
+  height: 3px;
+  margin-bottom: -3px;
+  position: relative;
 }
