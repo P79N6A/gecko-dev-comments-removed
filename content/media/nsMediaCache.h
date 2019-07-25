@@ -227,6 +227,7 @@ public:
   
   nsMediaCacheStream(nsMediaChannelStream* aClient)
     : mClient(aClient), mResourceID(0), mInitialized(false),
+      mHasHadUpdate(false),
       mIsSeekable(false), mCacheSuspended(false),
       mDidNotifyDataEnded(false),
       mUsingNullPrincipal(false),
@@ -263,6 +264,11 @@ public:
   bool IsClosed() const { return mClosed; }
   
   nsIPrincipal* GetCurrentPrincipal() { return mPrincipal; }
+  
+  
+  
+  
+  void EnsureCacheUpdate();
 
   
   
@@ -345,6 +351,9 @@ public:
   void SetPlaybackRate(PRUint32 aBytesPerSecond);
   
   bool IsSeekable();
+
+  
+  bool AreAllStreamsForResourceSuspended();
 
   
   
@@ -447,6 +456,9 @@ private:
   PRInt64                mResourceID;
   
   bool                   mInitialized;
+  
+  
+  bool                   mHasHadUpdate;
 
   
   

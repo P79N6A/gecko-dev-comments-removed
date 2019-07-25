@@ -452,6 +452,9 @@ void nsBuiltinDecoder::MetadataLoaded(PRUint32 aChannels,
   }
 
   
+  mStream->EnsureCacheUpToDate();
+
+  
   
   
   
@@ -467,6 +470,10 @@ void nsBuiltinDecoder::MetadataLoaded(PRUint32 aChannels,
   if (resourceIsLoaded) {
     ResourceLoaded();
   }
+
+  
+  
+  NotifySuspendedStatusChanged();
 }
 
 void nsBuiltinDecoder::ResourceLoaded()

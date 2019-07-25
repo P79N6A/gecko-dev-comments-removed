@@ -1369,6 +1369,8 @@ nsMediaCache::Update()
       break;
     }
 
+    stream->mHasHadUpdate = true;
+
     if (NS_FAILED(rv)) {
       
       
@@ -1885,6 +1887,18 @@ nsMediaCacheStream::IsSeekable()
   return mIsSeekable;
 }
 
+bool
+nsMediaCacheStream::AreAllStreamsForResourceSuspended()
+{
+  ReentrantMonitorAutoEnter mon(gMediaCache->GetReentrantMonitor());
+  nsMediaCache::ResourceStreamIterator iter(mResourceID);
+  while (nsMediaCacheStream* stream = iter.Next()) {
+    if (!stream->mCacheSuspended)
+      return false;
+  }
+  return true;
+}
+
 void
 nsMediaCacheStream::Close()
 {
@@ -1896,6 +1910,14 @@ nsMediaCacheStream::Close()
   
   
   gMediaCache->QueueUpdate();
+}
+
+void
+nsMediaCacheStream::EnsureCacheUpdate()
+{
+  if (mHasHadUpdate)
+    return;
+  gMediaCache->Update();
 }
 
 void
