@@ -108,39 +108,38 @@ let PageThumbs = {
 
 
 
+  captureAndStore: function PageThumbs_captureAndStore(aBrowser, aCallback) {
+    this.capture(aBrowser.contentWindow, function (aInputStream) {
+      let telemetryStoreTime = new Date();
 
+      function finish(aSuccessful) {
+        if (aSuccessful) {
+          Services.telemetry.getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
+            .add(new Date() - telemetryStoreTime);
+        }
 
-
-  store: function PageThumbs_store(aKey, aInputStream, aCallback) {
-    let telemetryStoreTime = new Date();
-
-    function finish(aSuccessful) {
-      if (aSuccessful) {
-        Services.telemetry.getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
-          .add(new Date() - telemetryStoreTime);
+        if (aCallback)
+          aCallback(aSuccessful);
       }
-
-      if (aCallback)
-        aCallback(aSuccessful);
-    }
-
-    
-    PageThumbsCache.getWriteEntry(aKey, function (aEntry) {
-      if (!aEntry) {
-        finish(false);
-        return;
-      }
-
-      let outputStream = aEntry.openOutputStream(0);
 
       
-      NetUtil.asyncCopy(aInputStream, outputStream, function (aResult) {
-        let success = Components.isSuccessCode(aResult);
-        if (success)
-          aEntry.markValid();
+      PageThumbsCache.getWriteEntry(aBrowser.currentURI.spec, function (aEntry) {
+        if (!aEntry) {
+          finish(false);
+          return;
+        }
 
-        aEntry.close();
-        finish(success);
+        let outputStream = aEntry.openOutputStream(0);
+
+        
+        NetUtil.asyncCopy(aInputStream, outputStream, function (aResult) {
+          let success = Components.isSuccessCode(aResult);
+          if (success)
+            aEntry.markValid();
+
+          aEntry.close();
+          finish(success);
+        });
       });
     });
   },
