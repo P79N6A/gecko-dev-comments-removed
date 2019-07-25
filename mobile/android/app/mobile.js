@@ -362,9 +362,20 @@ pref("places.frecency.unvisitedTypedBonus", 200);
 
 
 pref("gfx.color_management.mode", 0);
+
 #ifdef ANDROID
 
 pref("gfx.displayport.strategy", 1);
+
+
+
+pref("gfx.displayport.strategy_fm.multiplier", -1); 
+pref("gfx.displayport.strategy_fm.danger_x", -1); 
+pref("gfx.displayport.strategy_fm.danger_y", -1); 
+
+pref("gfx.displayport.strategy_vb.multiplier", -1); 
+pref("gfx.displayport.strategy_vb.threshold", -1); 
+pref("gfx.displayport.strategy_vb.reverse_buffer", -1); 
 #endif
 
 
