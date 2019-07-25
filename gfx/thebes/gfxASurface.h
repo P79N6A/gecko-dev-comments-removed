@@ -257,6 +257,14 @@ protected:
     static void SetSurfaceWrapper(cairo_surface_t *csurf, gfxASurface *asurf);
 
     
+
+
+
+
+    void FastMovePixels(const nsIntRect& aSourceRect,
+                        const nsIntPoint& aDestTopLeft);
+
+    
     
     
     void Init(cairo_surface_t *surface, PRBool existingSurface = PR_FALSE);
