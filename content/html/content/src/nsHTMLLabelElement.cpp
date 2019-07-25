@@ -36,7 +36,6 @@
 
 #include "nsCOMPtr.h"
 #include "nsIDOMHTMLLabelElement.h"
-#include "nsIDOMNSHTMLLabelElement.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
@@ -54,8 +53,7 @@
 #include "nsFocusManager.h"
 
 class nsHTMLLabelElement : public nsGenericHTMLFormElement,
-                           public nsIDOMHTMLLabelElement,
-                           public nsIDOMNSHTMLLabelElement
+                           public nsIDOMHTMLLabelElement
 {
 public:
   nsHTMLLabelElement(already_AddRefed<nsINodeInfo> aNodeInfo);
@@ -75,9 +73,6 @@ public:
 
   
   NS_DECL_NSIDOMHTMLLABELELEMENT
-
-  
-  NS_DECL_NSIDOMNSHTMLLABELELEMENT
 
   
   NS_IMETHOD_(PRUint32) GetType() const { return NS_FORM_LABEL; }
@@ -146,9 +141,8 @@ DOMCI_NODE_DATA(HTMLLabelElement, nsHTMLLabelElement)
 
 
 NS_INTERFACE_TABLE_HEAD(nsHTMLLabelElement)
-  NS_HTML_CONTENT_INTERFACE_TABLE2(nsHTMLLabelElement,
-                                   nsIDOMHTMLLabelElement,
-                                   nsIDOMNSHTMLLabelElement)
+  NS_HTML_CONTENT_INTERFACE_TABLE1(nsHTMLLabelElement,
+                                   nsIDOMHTMLLabelElement)
   NS_HTML_CONTENT_INTERFACE_TABLE_TO_MAP_SEGUE(nsHTMLLabelElement,
                                                nsGenericHTMLFormElement)
 NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLLabelElement)
