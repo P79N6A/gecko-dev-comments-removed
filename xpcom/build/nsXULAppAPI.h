@@ -362,8 +362,22 @@ XRE_API(nsresult,
 
 
 
+
+
+
+
+
+
+
+enum NSLocationType
+{
+  NS_COMPONENT_LOCATION,
+  NS_SKIN_LOCATION
+};
+
 XRE_API(nsresult,
-        XRE_AddComponentLocation, (nsILocalFile* aLocation))
+        XRE_AddComponentLocation, (NSLocationType aType,
+                                   nsILocalFile* aLocation))
 
 
 
