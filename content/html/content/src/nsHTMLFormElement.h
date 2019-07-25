@@ -305,9 +305,7 @@ protected:
 
 
 
-
-  nsresult WalkFormElements(nsFormSubmission* aFormSubmission,
-                            nsIContent* aSubmitElement);
+  nsresult WalkFormElements(nsFormSubmission* aFormSubmission);
 
   
 

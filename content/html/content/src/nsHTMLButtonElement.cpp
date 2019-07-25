@@ -102,8 +102,7 @@ public:
   
   NS_IMETHOD_(PRUint32) GetType() const { return mType; }
   NS_IMETHOD Reset();
-  NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission,
-                               nsIContent* aSubmitElement);
+  NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission);
   NS_IMETHOD SaveState();
   PRBool RestoreState(nsPresState* aState);
 
@@ -526,15 +525,14 @@ nsHTMLButtonElement::Reset()
 }
 
 NS_IMETHODIMP
-nsHTMLButtonElement::SubmitNamesValues(nsFormSubmission* aFormSubmission,
-                                       nsIContent* aSubmitElement)
+nsHTMLButtonElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
 {
   nsresult rv = NS_OK;
 
   
   
   
-  if (aSubmitElement != this) {
+  if (aFormSubmission->GetOriginatingElement() != this) {
     return NS_OK;
   }
 

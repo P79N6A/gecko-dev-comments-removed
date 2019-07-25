@@ -122,26 +122,37 @@ public:
     aCharset = mCharset;
   }
 
+  nsIContent* GetOriginatingElement() const
+  {
+    return mOriginatingElement.get();
+  }
+
 protected:
   
 
 
 
 
-  nsFormSubmission(const nsACString& aCharset)
+
+  nsFormSubmission(const nsACString& aCharset, nsIContent* aOriginatingElement)
     : mCharset(aCharset)
+    , mOriginatingElement(aOriginatingElement)
   {
     MOZ_COUNT_CTOR(nsFormSubmission);
   }
 
   
   nsCString mCharset;
+
+  
+  nsCOMPtr<nsIContent> mOriginatingElement;
 };
 
 class nsEncodingFormSubmission : public nsFormSubmission
 {
 public:
-  nsEncodingFormSubmission(const nsACString& aCharset);
+  nsEncodingFormSubmission(const nsACString& aCharset,
+                           nsIContent* aOriginatingElement);
 
   virtual ~nsEncodingFormSubmission();
 
@@ -169,7 +180,8 @@ public:
   
 
 
-  nsFSMultipartFormData(const nsACString& aCharset);
+  nsFSMultipartFormData(const nsACString& aCharset,
+                        nsIContent* aOriginatingElement);
   ~nsFSMultipartFormData();
  
   virtual nsresult AddNameValuePair(const nsAString& aName,
@@ -225,7 +237,9 @@ private:
 
 
 
+
 nsresult GetSubmissionFromForm(nsGenericHTMLElement* aForm,
+                               nsIContent* aOriginatingElement,
                                nsFormSubmission** aFormSubmission);
 
 #endif 
