@@ -6536,13 +6536,27 @@ nsHTMLEditRules::ReturnInHeader(nsISelection *aSelection,
     NS_ENSURE_SUCCESS(res, res);
     if (!sibling || !nsTextEditUtils::IsBreak(sibling))
     {
-      res = CreateMozBR(headerParent, offset+1, address_of(sibling));
+      
+      NS_NAMED_LITERAL_STRING(pType, "p");
+      nsCOMPtr<nsIDOMNode> pNode;
+      res = mHTMLEditor->CreateNode(pType, headerParent, offset+1, getter_AddRefs(pNode));
       NS_ENSURE_SUCCESS(res, res);
+
+      
+      nsCOMPtr<nsIDOMNode> brNode;
+      res = mHTMLEditor->CreateBR(pNode, 0, address_of(brNode));
+      NS_ENSURE_SUCCESS(res, res);
+
+      
+      res = aSelection->Collapse(pNode, 0);
     }
-    res = nsEditor::GetNodeLocation(sibling, address_of(headerParent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
-    
-    res = aSelection->Collapse(headerParent,offset+1);
+    else
+    {
+      res = nsEditor::GetNodeLocation(sibling, address_of(headerParent), &offset);
+      NS_ENSURE_SUCCESS(res, res);
+      
+      res = aSelection->Collapse(headerParent,offset+1);
+    }
   }
   else
   {
@@ -6780,13 +6794,18 @@ nsHTMLEditRules::ReturnInListItem(nsISelection *aSelection,
       NS_ENSURE_SUCCESS(res, res);
       
       
-      nsCOMPtr<nsIDOMNode> brNode;
-      res = CreateMozBR(listparent, offset+1, address_of(brNode));
+      NS_NAMED_LITERAL_STRING(pType, "p");
+      nsCOMPtr<nsIDOMNode> pNode;
+      res = mHTMLEditor->CreateNode(pType, listparent, offset+1, getter_AddRefs(pNode));
       NS_ENSURE_SUCCESS(res, res);
+
       
+      nsCOMPtr<nsIDOMNode> brNode;
+      res = mHTMLEditor->CreateBR(pNode, 0, address_of(brNode));
+      NS_ENSURE_SUCCESS(res, res);
+
       
-      selPriv->SetInterlinePosition(PR_TRUE);
-      res = aSelection->Collapse(listparent,offset+1);
+      res = aSelection->Collapse(pNode, 0);
     }
     return res;
   }
