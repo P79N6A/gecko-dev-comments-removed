@@ -661,7 +661,7 @@ nsAccUtils::TextLength(nsAccessible *aAccessible)
   
   
   nsAutoString text;
-  aAccessible->AppendTextTo(text, 0, PR_UINT32_MAX); 
+  aAccessible->AppendTextTo(text); 
   return text.Length();
 }
 

@@ -142,8 +142,8 @@ public:
   
   virtual PRUint32 NativeRole();
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
-  virtual nsresult AppendTextTo(nsAString& aText, PRUint32 aStartOffset,
-                                PRUint32 aLength);
+  virtual void AppendTextTo(nsAString& aText, PRUint32 aStartOffset = 0,
+                            PRUint32 aLength = PR_UINT32_MAX);
 
 protected:
   
