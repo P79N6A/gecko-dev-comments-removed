@@ -1376,7 +1376,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
                                                oldShape->getObjectParent(), kind);
     if (!shape)
         return false;
-    setLastPropertyInfallible(shape);
+    this->shape_ = shape;
 
     
     HeapValue *elems = elements;
@@ -1390,7 +1390,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
 
     if (!AddLengthProperty(cx, this)) {
-        setLastPropertyInfallible(oldShape);
+        this->shape_ = oldShape;
         cx->free_(getElementsHeader());
         elements = elems;
         return false;
@@ -1410,7 +1410,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
             continue;
 
         if (!addDataProperty(cx, id, next, JSPROP_ENUMERATE)) {
-            JS_ALWAYS_TRUE(setLastProperty(cx, oldShape));
+            this->shape_ = oldShape;
             cx->free_(getElementsHeader());
             elements = elems;
             return false;
@@ -3900,8 +3900,12 @@ NewArray(JSContext *cx, jsuint length, JSObject *proto)
     if (!type)
         return NULL;
 
+    
+
+
+
     Shape *shape = EmptyShape::getInitialShape(cx, &ArrayClass, proto,
-                                               proto->getParent(), kind);
+                                               proto->getParent(), gc::FINALIZE_OBJECT0);
     if (!shape)
         return NULL;
 
