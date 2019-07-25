@@ -129,6 +129,13 @@ public:
 
 
 
+
+    static bool RectToIntRect(const mozilla::gfx::Rect& aIn, mozilla::gfx::IntRect* aOut);
+
+    
+
+
+
     static gfxFloat ClampToScaleFactor(gfxFloat aVal);
 
     
