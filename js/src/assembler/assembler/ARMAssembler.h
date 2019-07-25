@@ -586,7 +586,7 @@ namespace JSC {
             }
             char const * off_sign = (posOffset) ? ("+") : ("-");
             js::JaegerSpew(js::JSpew_Insns, 
-                           IPFX "%sr%s%s %s, [%s, #%s%u]\n", 
+                           IPFX "%sr%s%s, [%s, #%s%u]\n", 
                            MAYBE_PAD, mnemonic_act, mnemonic_sign, mnemonic_size,
                            nameGpReg(rd), nameGpReg(rb), off_sign, offset);
             if (size == 32 || (size == 8 && !isSigned)) {
@@ -626,7 +626,7 @@ namespace JSC {
             }
             char const * off_sign = (posOffset) ? ("+") : ("-");
             js::JaegerSpew(js::JSpew_Insns, 
-                           IPFX "%sr%s%s %s, [%s, #%s%s]\n", MAYBE_PAD, mnemonic_act, mnemonic_sign, mnemonic_size,
+                           IPFX "%sr%s%s, [%s, #%s%s]\n", MAYBE_PAD, mnemonic_act, mnemonic_sign, mnemonic_size,
                            nameGpReg(rd), nameGpReg(rb), off_sign, nameGpReg(rm));
             if (size == 32 || (size == 8 && !isSigned)) {
                 
@@ -1052,7 +1052,7 @@ namespace JSC {
         static void repatchInt32(void* from, int32_t to)
         {
             js::JaegerSpew(js::JSpew_Insns,
-                           ISPFX "##repatchInt32    ((%p)) holds ((%#x))\n",
+                           ISPFX "##repatchInt32    ((%p)) holds ((%p))\n",
                            from, to);
 
             patchPointerInternal(reinterpret_cast<intptr_t>(from), reinterpret_cast<void*>(to));
@@ -1456,7 +1456,12 @@ namespace JSC {
             
             return ((reg << 5) & 0x20) | ((reg >> 1) & 0xf);
         }
-
+        ARMWord SN(int reg)
+        {
+            ASSERT(reg <= ARMRegisters::d31);
+            
+            return ((reg << 15) & 0xf0000) | ((reg & 1) << 7);
+        }
         static ARMWord getConditionalField(ARMWord i)
         {
             return i & 0xf0000000;
@@ -1600,17 +1605,16 @@ namespace JSC {
             emitVFPInst(static_cast<ARMWord>(cc) | VFP_DXFER | VFP_MOV |
                         (fromFP ? DT_LOAD : 0) |
                         (isDbl ? VFP_DBL : 0), RD(r1), RN(r2), isDbl ? DM(rFP) : SM(rFP));
-            
         }
 
         void fcpyd_r(int dd, int dm, Condition cc = AL)
         {
             js::JaegerSpew(js::JSpew_Insns,
-                    IPFX   "%-15s %s, %s\n", MAYBE_PAD, "vmov.f64", 
+                    IPFX   "%-15s %s, %s, %s\n", MAYBE_PAD, "vmov.f64", 
                            nameFpRegD(dd), nameFpRegD(dm));
             
             
-            emitInst(static_cast<ARMWord>(cc) | FCPYD, dd, dd, dm);
+            emitVFPInst(static_cast<ARMWord>(cc) | FCPYD, DD(dd), DM(dm), 0);
         }
 
         void faddd_r(int dd, int dn, int dm, Condition cc = AL)
@@ -1619,7 +1623,7 @@ namespace JSC {
                     IPFX   "%-15s %s, %s, %s\n", MAYBE_PAD, "vadd.f64", nameFpRegD(dd), nameFpRegD(dn), nameFpRegD(dm));
             
             
-            emitInst(static_cast<ARMWord>(cc) | FADDD, dd, dn, dm);
+            emitVFPInst(static_cast<ARMWord>(cc) | FADDD, DD(dd), DN(dn), DM(dm));
         }
 
         void fnegd_r(int dd, int dm, Condition cc = AL)
@@ -1635,7 +1639,7 @@ namespace JSC {
                     IPFX   "%-15s %s, %s, %s\n", MAYBE_PAD, "vdiv.f64", nameFpRegD(dd), nameFpRegD(dn), nameFpRegD(dm));
             
             
-            emitInst(static_cast<ARMWord>(cc) | FDIVD, dd, dn, dm);
+            emitVFPInst(static_cast<ARMWord>(cc) | FDIVD, DD(dd), DN(dn), DM(dm));
         }
 
         void fsubd_r(int dd, int dn, int dm, Condition cc = AL)
@@ -1644,13 +1648,13 @@ namespace JSC {
                     IPFX   "%-15s %s, %s, %s\n", MAYBE_PAD, "vsub.f64", nameFpRegD(dd), nameFpRegD(dn), nameFpRegD(dm));
             
             
-            emitInst(static_cast<ARMWord>(cc) | FSUBD, dd, dn, dm);
+            emitVFPInst(static_cast<ARMWord>(cc) | FSUBD, DD(dd), DN(dn), DM(dm));
         }
 
         void fabsd_r(int dd, int dm, Condition cc = AL)
         {
             js::JaegerSpew(js::JSpew_Insns,
-                    IPFX   "%-15s %s, %s\n", MAYBE_PAD, "fabsd", nameFpRegD(dd), nameFpRegD(dm));
+                    IPFX   "%-15s %s, %s, %s, %s\n", MAYBE_PAD, "fabsd", nameFpRegD(dd), nameFpRegD(dm));
             m_buffer.putInt(static_cast<ARMWord>(cc) | FABSD | DD(dd) | DM(dm));
         }
 
@@ -1660,7 +1664,7 @@ namespace JSC {
                     IPFX   "%-15s %s, %s, %s\n", MAYBE_PAD, "vmul.f64", nameFpRegD(dd), nameFpRegD(dn), nameFpRegD(dm));
             
             
-            emitInst(static_cast<ARMWord>(cc) | FMULD, dd, dn, dm);
+            emitVFPInst(static_cast<ARMWord>(cc) | FMULD, DD(dd), DN(dn), DM(dm));
         }
 
         void fcmpd_r(int dd, int dm, Condition cc = AL)
@@ -1669,7 +1673,7 @@ namespace JSC {
                     IPFX   "%-15s %s, %s\n", MAYBE_PAD, "vcmp.f64", nameFpRegD(dd), nameFpRegD(dm));
             
             
-            emitInst(static_cast<ARMWord>(cc) | FCMPD, dd, 0, dm);
+            emitVFPInst(static_cast<ARMWord>(cc) | FCMPD, DD(dd), 0, DM(dm));
         }
 
         void fsqrtd_r(int dd, int dm, Condition cc = AL)
@@ -1678,49 +1682,49 @@ namespace JSC {
                     IPFX   "%-15s %s, %s\n", MAYBE_PAD, "vsqrt.f64", nameFpRegD(dd), nameFpRegD(dm));
             
             
-            emitInst(static_cast<ARMWord>(cc) | FSQRTD, dd, 0, dm);
+            emitVFPInst(static_cast<ARMWord>(cc) | FSQRTD, DD(dd), 0, DM(dm));
         }
 
         void fmsr_r(int dd, int rn, Condition cc = AL)
         {
             
             
-            emitInst(static_cast<ARMWord>(cc) | FMSR, rn, dd, 0);
+            emitVFPInst(static_cast<ARMWord>(cc) | FMSR, RD(rn), SN(dd), 0);
         }
 
         void fmrs_r(int rd, int dn, Condition cc = AL)
         {
             
             
-            emitInst(static_cast<ARMWord>(cc) | FMRS, rd, dn, 0);
+            emitVFPInst(static_cast<ARMWord>(cc) | FMRS, RD(rd), SN(dn), 0);
         }
 
+        
+        
         void fsitod_r(int dd, int dm, Condition cc = AL)
         {
             
             
-            emitInst(static_cast<ARMWord>(cc) | FSITOD, dd, 0, dm);
+            emitVFPInst(static_cast<ARMWord>(cc) | FSITOD, DD(dd), 0, SM(dm));
         }
 
         void fuitod_r(int dd, int dm, Condition cc = AL)
         {
             
             
-            emitInst(static_cast<ARMWord>(cc) | FUITOD, dd, 0, dm);
+            emitVFPInst(static_cast<ARMWord>(cc) | FUITOD, DD(dd), 0, SM(dm));
         }
 
         void ftosid_r(int fd, int dm, Condition cc = AL)
         {
             
-            
-            emitInst(static_cast<ARMWord>(cc) | FTOSID, fd, 0, dm);
+            emitVFPInst(static_cast<ARMWord>(cc) | FTOSID, SD(fd), 0, DM(dm));
         }
 
         void ftosizd_r(int fd, int dm, Condition cc = AL)
         {
             
-            
-            emitInst(static_cast<ARMWord>(cc) | FTOSIZD, fd, 0, dm);
+            emitVFPInst(static_cast<ARMWord>(cc) | FTOSIZD, SD(fd), 0, DM(dm));
         }
 
         void fmstat(Condition cc = AL)
