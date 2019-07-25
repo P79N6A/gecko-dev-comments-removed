@@ -57,6 +57,7 @@
 
 #include "nsStyleContext.h"
 #include "nsGkAtoms.h"
+#include "nsLayoutUtils.h"
 
 
 #include "prenv.h"
@@ -67,17 +68,14 @@ nsImageLoader::nsImageLoader(nsIFrame *aFrame, PRUint32 aActions,
                              nsImageLoader *aNextLoader)
   : mFrame(aFrame),
     mActions(aActions),
-    mNextLoader(aNextLoader)
+    mNextLoader(aNextLoader),
+    mRequestRegistered(false)
 {
 }
 
 nsImageLoader::~nsImageLoader()
 {
-  mFrame = nsnull;
-
-  if (mRequest) {
-    mRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
-  }
+  Destroy();
 }
 
  already_AddRefed<nsImageLoader>
@@ -105,12 +103,15 @@ nsImageLoader::Destroy()
     todestroy->Destroy();
   }
 
-  mFrame = nsnull;
+  if (mRequest && mFrame) {
+    nsPresContext* presContext = mFrame->PresContext();
 
-  if (mRequest) {
+    nsLayoutUtils::DeregisterImageRequest(presContext, mRequest,
+                                          &mRequestRegistered);
     mRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
   }
 
+  mFrame = nsnull;
   mRequest = nsnull;
 }
 
@@ -129,14 +130,28 @@ nsImageLoader::Load(imgIRequest *aImage)
 
   
   
+  nsPresContext* presContext = mFrame->PresContext();
+
+  nsLayoutUtils::DeregisterImageRequest(presContext, mRequest,
+                                        &mRequestRegistered);
+
+  
+  
   
   nsCOMPtr<imgIRequest> newRequest;
   nsresult rv = aImage->Clone(this, getter_AddRefs(newRequest));
   mRequest.swap(newRequest);
+
+  
+  
+  nsLayoutUtils::RegisterImageRequest(presContext, mRequest,
+                                      &mRequestRegistered);
+
+  nsLayoutUtils::DeregisterImageRequestIfNotAnimated(presContext, mRequest,
+                                                     &mRequestRegistered);
+
   return rv;
 }
-
-                    
 
 NS_IMETHODIMP nsImageLoader::OnStartContainer(imgIRequest *aRequest,
                                               imgIContainer *aImage)
@@ -268,4 +283,36 @@ nsImageLoader::DoRedraw(const nsRect* aDamageRect)
   if (mFrame->GetStyleVisibility()->IsVisible()) {
     mFrame->Invalidate(bounds);
   }
+}
+
+NS_IMETHODIMP
+nsImageLoader::OnStartDecode(imgIRequest *aRequest)
+{
+  
+  nsPresContext* presContext = mFrame->PresContext();
+  if (!presContext) {
+    return NS_OK;
+  }
+
+  if (mRequest == aRequest) {
+    nsLayoutUtils::RegisterImageRequest(presContext, mRequest,
+                                        &mRequestRegistered);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsImageLoader::OnStopDecode(imgIRequest *aRequest, nsresult status,
+                            const PRUnichar *statusArg)
+{
+  if (mRequest == aRequest) {
+    
+    
+    nsLayoutUtils::DeregisterImageRequestIfNotAnimated(mFrame->PresContext(),
+                                                       mRequest,
+                                                       &mRequestRegistered);
+  }
+
+  return NS_OK;
 }
