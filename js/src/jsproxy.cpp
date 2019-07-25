@@ -1768,6 +1768,10 @@ js::NewProxyObject(JSContext *cx, BaseProxyHandler *handler, const Value &priv_,
     
     MarkTypeObjectUnknownProperties(cx, obj->type());
 
+    
+    if (clasp == &OuterWindowProxyClass && !obj->setSingletonType(cx))
+        return NULL;
+
     return obj;
 }
 
