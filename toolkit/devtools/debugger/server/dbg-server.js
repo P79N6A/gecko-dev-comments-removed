@@ -51,6 +51,9 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm");
 let wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 
+Cu.import("resource://gre/modules/jsdebugger.jsm");
+addDebuggerToGlobal(this);
+
 function dumpn(str) {
   if (wantLogging) {
     dump("DBG-SERVER: " + str + "\n");
@@ -96,13 +99,6 @@ var DebuggerServer = {
     if (this.initialized) {
       return;
     }
-
-    
-    
-    
-    
-    const init = Cc["@mozilla.org/jsdebugger;1"].createInstance(Ci.IJSDebugger);
-    init.addClass();  
 
     this.xpcInspector = Cc["@mozilla.org/jsinspector;1"].getService(Ci.nsIJSInspector);
     this.initTransport();

@@ -1775,6 +1775,12 @@ JS_UnwrapObject(JSObject *obj)
     return UnwrapObject(obj);
 }
 
+JS_PUBLIC_API(JSObject *)
+JS_UnwrapObjectAndInnerize(JSObject *obj)
+{
+    return UnwrapObject(obj,  false);
+}
+
 JS_FRIEND_API(JSBool)
 js_CallContextDebugHandler(JSContext *cx)
 {

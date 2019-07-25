@@ -36,7 +36,7 @@
 
 
 
-let EXPORTED_SYMBOLS = [ "Debugger" ];
+let EXPORTED_SYMBOLS = [ "addDebuggerToGlobal" ];
 
 
 
@@ -52,4 +52,6 @@ let EXPORTED_SYMBOLS = [ "Debugger" ];
 
 
 const init = Components.classes["@mozilla.org/jsdebugger;1"].createInstance(Components.interfaces.IJSDebugger);
-init.addClass();
+function addDebuggerToGlobal(global) {
+  init.addClass(global);
+};
