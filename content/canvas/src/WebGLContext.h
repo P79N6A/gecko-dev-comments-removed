@@ -506,9 +506,8 @@ public:
     
     static void LogMessage(const char *fmt, ...);
     static void LogMessage(const char *fmt, va_list ap);
-    
-    static void LogMessage(bool display, const char *fmt, ...);
     void LogMessageIfVerbose(const char *fmt, ...);
+    void LogMessageIfVerbose(const char *fmt, va_list ap);
 
     friend class WebGLTexture;
 };
