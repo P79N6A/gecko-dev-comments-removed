@@ -54,7 +54,6 @@
 #include "nsTObserverArray.h"
 #include "nsIObserver.h"
 #include "nsIPrefService.h"
-#include "nsIPrefBranch.h"
 #include "nsServiceManagerUtils.h"
 #include "nsXULAppAPI.h"
 #include "nsWeakReference.h"
@@ -78,111 +77,6 @@ using namespace mozilla::places;
 
 namespace mozilla {
 namespace dom {
-
-class PrefObserver
-{
-public:
-    
-
-
-
-
-
-    PrefObserver(nsIObserver *aObserver, bool aHoldWeak,
-                 const nsCString& aPrefRoot, const nsCString& aDomain)
-        : mPrefRoot(aPrefRoot)
-        , mDomain(aDomain)
-    {
-        if (aHoldWeak) {
-            nsCOMPtr<nsISupportsWeakReference> supportsWeakRef = 
-                do_QueryInterface(aObserver);
-            if (supportsWeakRef)
-                mWeakObserver = do_GetWeakReference(aObserver);
-        } else {
-            mObserver = aObserver;
-        }
-    }
-
-    ~PrefObserver() {}
-
-    
-
-
-
-    bool IsDead() const
-    {
-        nsCOMPtr<nsIObserver> observer = GetObserver();
-        return !observer;
-    }
-
-    
-
-
-
-    bool ShouldRemoveFrom(nsIObserver* aObserver,
-                          const nsCString& aPrefRoot,
-                          const nsCString& aDomain) const
-    {
-        nsCOMPtr<nsIObserver> observer = GetObserver();
-        return (observer == aObserver &&
-                mDomain == aDomain && mPrefRoot == aPrefRoot);
-    }
-
-    
-
-
-    bool Observes(const nsCString& aPref) const
-    {
-        nsCAutoString myPref(mPrefRoot);
-        myPref += mDomain;
-        return StringBeginsWith(aPref, myPref);
-    }
-
-    
-
-
-
-
-    bool Notify() const
-    {
-        nsCOMPtr<nsIObserver> observer = GetObserver();
-        if (!observer) {
-            return false;
-        }
-
-        nsCOMPtr<nsIPrefBranch> prefBranch;
-        nsCOMPtr<nsIPrefService> prefService =
-            do_GetService(NS_PREFSERVICE_CONTRACTID);
-        if (prefService) {
-            prefService->GetBranch(mPrefRoot.get(), 
-                                   getter_AddRefs(prefBranch));
-            observer->Observe(prefBranch, "nsPref:changed",
-                              NS_ConvertASCIItoUTF16(mDomain).get());
-        }
-        return true;
-    }
-
-private:
-    already_AddRefed<nsIObserver> GetObserver() const
-    {
-        nsCOMPtr<nsIObserver> observer =
-            mObserver ? mObserver : do_QueryReferent(mWeakObserver);
-        return observer.forget();
-    }
-
-    
-    
-    
-    nsCOMPtr<nsIObserver> mObserver;
-    nsWeakPtr mWeakObserver;
-    nsCString mPrefRoot;
-    nsCString mDomain;
-
-    
-    PrefObserver(const PrefObserver&);
-    PrefObserver& operator=(const PrefObserver&);
-};
-
 class AlertObserver
 {
 public:
@@ -222,7 +116,6 @@ private:
 ContentChild* ContentChild::sSingleton;
 
 ContentChild::ContentChild()
-    : mDead(false)
 {
 }
 
@@ -359,14 +252,6 @@ ContentChild::ActorDestroy(ActorDestroyReason why)
     QuickExit();
 #endif
 
-    
-    
-    
-    
-    
-    
-    mDead = true;
-    mPrefObservers.Clear();
     mAlertObservers.Clear();
     XRE_ShutdownChildProcess();
 }
@@ -399,47 +284,6 @@ ContentChild::QuickExit()
 }
 
 nsresult
-ContentChild::AddRemotePrefObserver(const nsCString& aDomain, 
-                                    const nsCString& aPrefRoot, 
-                                    nsIObserver* aObserver, 
-                                    PRBool aHoldWeak)
-{
-    if (aObserver) {
-        mPrefObservers.AppendElement(
-            new PrefObserver(aObserver, aHoldWeak, aPrefRoot, aDomain));
-    }
-    return NS_OK;
-}
-
-nsresult
-ContentChild::RemoveRemotePrefObserver(const nsCString& aDomain, 
-                                       const nsCString& aPrefRoot, 
-                                       nsIObserver* aObserver)
-{
-    if (mDead) {
-        
-        
-        return NS_OK;
-    }
-
-    for (PRUint32 i = 0; i < mPrefObservers.Length();
-         ) {
-        PrefObserver* observer = mPrefObservers[i];
-        if (observer->IsDead()) {
-            mPrefObservers.RemoveElementAt(i);
-            continue;
-        } else if (observer->ShouldRemoveFrom(aObserver, aPrefRoot, aDomain)) {
-            mPrefObservers.RemoveElementAt(i);
-            return NS_OK;
-        }
-        ++i;
-    }
-
-    NS_WARNING("RemoveRemotePrefObserver(): no observer was matched!");
-    return NS_ERROR_UNEXPECTED;
-}
-
-nsresult
 ContentChild::AddRemoteAlertObserver(const nsString& aData,
                                      nsIObserver* aObserver)
 {
@@ -449,28 +293,16 @@ ContentChild::AddRemoteAlertObserver(const nsString& aData,
 }
 
 bool
-ContentChild::RecvNotifyRemotePrefObserver(const nsCString& aPref)
+ContentChild::RecvPreferenceUpdate(const nsCString& aPref)
 {
-    for (PRUint32 i = 0; i < mPrefObservers.Length();
-         ) {
-        PrefObserver* observer = mPrefObservers[i];
-        if (observer->Observes(aPref) &&
-            !observer->Notify()) {
-            
-            
-            mPrefObservers.RemoveElementAt(i);
-            continue;
-        }
-        ++i;
-    }
+    nsCOMPtr<nsIPrefServiceInternal> prefs = do_GetService("@mozilla.org/preferences-service;1");
+    prefs->ReadPrefBuffer(aPref);
     return true;
 }
 
 bool
 ContentChild::RecvNotifyAlertsObserver(const nsCString& aType, const nsString& aData)
 {
-    printf("ContentChild::RecvNotifyAlertsObserver %s\n", aType.get() );
-
     for (PRUint32 i = 0; i < mAlertObservers.Length();
          ) {
         AlertObserver* observer = mAlertObservers[i];

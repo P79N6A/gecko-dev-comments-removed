@@ -98,22 +98,10 @@ public:
     virtual bool RecvSetOffline(const PRBool& offline);
 
     virtual bool RecvNotifyVisited(const IPC::URI& aURI);
-
-    
-
-
-
-    nsresult AddRemotePrefObserver(const nsCString& aDomain, 
-                                   const nsCString& aPrefRoot, 
-                                   nsIObserver* aObserver, PRBool aHoldWeak);
-    nsresult RemoveRemotePrefObserver(const nsCString& aDomain, 
-                                      const nsCString& aPrefRoot, 
-                                      nsIObserver* aObserver);
-
     
     nsresult AddRemoteAlertObserver(const nsString& aData, nsIObserver* aObserver);
 
-    virtual bool RecvNotifyRemotePrefObserver(const nsCString& aDomain);
+    virtual bool RecvPreferenceUpdate(const nsCString& aDomain);
     
     virtual bool RecvNotifyAlertsObserver(const nsCString& aType, const nsString& aData);
 
