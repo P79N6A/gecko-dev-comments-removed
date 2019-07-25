@@ -2987,6 +2987,7 @@ let SessionStoreInternal = {
       
       browser.__SS_data = tabData;
       browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
+      browser.setAttribute("pending", "true");
       tab.setAttribute("pending", "true");
 
       
@@ -3171,6 +3172,7 @@ let SessionStoreInternal = {
 
     
     browser.__SS_restoreState = TAB_STATE_RESTORING;
+    browser.removeAttribute("pending");
     aTab.removeAttribute("pending");
 
     
@@ -4334,6 +4336,9 @@ let SessionStoreInternal = {
 
     
     delete browser.__SS_restoreState;
+
+    aTab.removeAttribute("pending");
+    browser.removeAttribute("pending");
 
     
     

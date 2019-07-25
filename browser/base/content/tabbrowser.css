@@ -53,3 +53,13 @@ tabpanels {
 .tabbrowser-tabs:not(:hover) > .tabbrowser-arrowscrollbox > .closing-tabs-spacer {
   transition: width .15s ease-out;
 }
+
+
+
+
+
+
+
+browser[pending] {
+  display: none;
+}
