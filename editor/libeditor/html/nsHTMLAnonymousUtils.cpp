@@ -55,7 +55,7 @@ using namespace mozilla;
 static PRInt32 GetCSSFloatValue(nsIDOMCSSStyleDeclaration * aDecl,
                                 const nsAString & aProperty)
 {
-  NS_ENSURE_ARG_POINTER(aDecl);
+  MOZ_ASSERT(aDecl);
 
   nsCOMPtr<nsIDOMCSSValue> value;
   
@@ -134,7 +134,7 @@ nsHTMLEditor::CreateAnonymousElement(const nsAString & aTag, nsIDOMNode *  aPare
 {
   NS_ENSURE_ARG_POINTER(aParentNode);
   NS_ENSURE_ARG_POINTER(aReturn);
-  *aReturn = nullptr;
+  *aReturn = nsnull;
 
   nsCOMPtr<nsIContent> parentContent( do_QueryInterface(aParentNode) );
   NS_ENSURE_TRUE(parentContent, NS_OK);
@@ -303,7 +303,7 @@ nsHTMLEditor::CheckSelectionStateForAnonymousButtons(nsISelection * aSelection)
     
     
     res = GetElementOrParentByTagName(NS_LITERAL_STRING("td"),
-                                      nullptr,
+                                      nsnull,
                                       getter_AddRefs(cellElement));
     NS_ENSURE_SUCCESS(res, res);
   }
