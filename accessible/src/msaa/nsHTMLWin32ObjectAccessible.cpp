@@ -101,6 +101,10 @@ nsHTMLWin32ObjectOwnerAccessible::CacheChildren()
 nsHTMLWin32ObjectAccessible::nsHTMLWin32ObjectAccessible(void* aHwnd):
 nsLeafAccessible(nsnull, nsnull)
 {
+  
+  
+  mFlags |= eIsDefunct;
+
   mHwnd = aHwnd;
   if (mHwnd) {
     
