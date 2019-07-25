@@ -461,11 +461,11 @@ BasicBufferOGL::BeginPaint(ContentType aContentType)
   
   
   result.mContext = mTexImage->BeginUpdate(result.mRegionToDraw);
-  result.mContext->Translate(-gfxPoint(quadrantRect.x, quadrantRect.y));
   if (!result.mContext) {
     NS_WARNING("unable to get context for update");
     return result;
   }
+  result.mContext->Translate(-gfxPoint(quadrantRect.x, quadrantRect.y));
   
   
   result.mRegionToDraw.MoveBy(-offset);
