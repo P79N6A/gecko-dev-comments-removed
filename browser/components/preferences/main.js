@@ -50,7 +50,7 @@ var gMainPane = {
 
     
     this._updateUseCurrentButton();
-    window.addEventListener("focus", this._updateUseCurrentButton, false);
+    window.addEventListener("focus", this._updateUseCurrentButton.bind(this), false);
 
     this.updateBrowserStartupLastSession();
     this.startupPagePrefChanged();
@@ -128,23 +128,13 @@ var gMainPane = {
 
   setHomePageToCurrent: function ()
   {
-    var win;
-    if (document.documentElement.instantApply) {
-      
-      var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                         .getService(Components.interfaces.nsIWindowMediator);
-      win = wm.getMostRecentWindow("navigator:browser");
-    }
-    else
-      win = window.opener;
+    let homePage = document.getElementById("browser.startup.homepage");
+    let tabs = this._getTabsForHomePage();
+    function getTabURI(t) t.linkedBrowser.currentURI.spec;
 
-    if (win) {
-      var homePage = document.getElementById("browser.startup.homepage");
-      var tabs = win.gBrowser.visibleTabs;
-      function getTabURI(t) t.linkedBrowser.currentURI.spec;
-      
+    
+    if (tabs.length)
       homePage.value = tabs.map(getTabURI).join("|");
-    }
   },
 
   
@@ -170,10 +160,26 @@ var gMainPane = {
 
 
   _updateUseCurrentButton: function () {
-    var useCurrent = document.getElementById("useCurrent");
+    let useCurrent = document.getElementById("useCurrent");
 
-    var windowIsPresent;
+    let tabs = this._getTabsForHomePage();
+    if (tabs.length > 1)
+      useCurrent.label = useCurrent.getAttribute("label2");
+    else
+      useCurrent.label = useCurrent.getAttribute("label1");
+
+    
+    if (document.getElementById
+        ("pref.browser.homepage.disable_button.current_page").locked)
+      return;
+
+    useCurrent.disabled = !tabs.length
+  },
+
+  _getTabsForHomePage: function ()
+  {
     var win;
+    var tabs = [];
     if (document.documentElement.instantApply) {
       const Cc = Components.classes, Ci = Components.interfaces;
       
@@ -181,30 +187,17 @@ var gMainPane = {
                  .getService(Ci.nsIWindowMediator);
       win = wm.getMostRecentWindow("navigator:browser");
     }
-    else
+    else {
       win = window.opener;
+    }
 
     if (win && win.document.documentElement
                   .getAttribute("windowtype") == "navigator:browser") {
-      windowIsPresent = true;
-
-      var tabbrowser = win.document.getElementById("content");
-      if (tabbrowser.browsers.length > 1)
-        useCurrent.label = useCurrent.getAttribute("label2");
-      else
-        useCurrent.label = useCurrent.getAttribute("label1");
-    }
-    else {
-      windowIsPresent = false;
-      useCurrent.label = useCurrent.getAttribute("label1");
+      
+      tabs = win.gBrowser.visibleTabs.slice(win.gBrowser._numPinnedTabs);
     }
 
-    
-    if (document.getElementById
-        ("pref.browser.homepage.disable_button.current_page").locked)
-      return;
-
-    useCurrent.disabled = !windowIsPresent;
+    return tabs;
   },
 
   
