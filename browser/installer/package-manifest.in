@@ -57,20 +57,10 @@
 @BINPATH@/mozce_shunt.dll
 #elifdef XP_WIN32
 #ifndef MOZ_MEMORY
-#if _MSC_VER == 1400
 @BINPATH@/Microsoft.VC80.CRT.manifest
 @BINPATH@/msvcm80.dll
 @BINPATH@/msvcp80.dll
 @BINPATH@/msvcr80.dll
-#elif _MSC_VER == 1500
-@BINPATH@/Microsoft.VC90.CRT.manifest
-@BINPATH@/msvcm90.dll
-@BINPATH@/msvcp90.dll
-@BINPATH@/msvcr90.dll
-#elif _MSC_VER == 1600
-@BINPATH@/msvcp100.dll
-@BINPATH@/msvcr100.dll
-#endif
 #else
 @BINPATH@/mozcrt19.dll
 @BINPATH@/mozcpp19.dll
@@ -146,6 +136,7 @@
 @BINPATH@/components/dom_events.xpt
 @BINPATH@/components/dom_geolocation.xpt
 @BINPATH@/components/dom_html.xpt
+@BINPATH@/components/dom_indexeddb.xpt
 @BINPATH@/components/dom_offline.xpt
 @BINPATH@/components/dom_json.xpt
 @BINPATH@/components/dom_range.xpt
@@ -265,6 +256,7 @@
 @BINPATH@/components/FeedWriter.js
 @BINPATH@/components/fuelApplication.js
 @BINPATH@/components/WebContentConverter.js
+@BINPATH@/components/nsAddonRepository.js
 @BINPATH@/components/nsBrowserContentHandler.js
 @BINPATH@/components/nsBrowserGlue.js
 @BINPATH@/components/nsSetDefaultBrowser.js
@@ -332,7 +324,6 @@
 @BINPATH@/components/@DLL_PREFIX@dbusservice@DLL_SUFFIX@
 #endif
 @BINPATH@/components/nsINIProcessor.js
-@BINPATH@/components/nsPrompter.js
 
 ; Modules
 @BINPATH@/modules/*
