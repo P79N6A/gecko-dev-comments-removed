@@ -142,12 +142,36 @@ class JS_FRIEND_API(AbstractWrapper) : public Wrapper,
 
 
 
-class JS_FRIEND_API(DirectWrapper) : public AbstractWrapper
+class JS_FRIEND_API(DirectWrapper) : public Wrapper, public DirectProxyHandler
 {
   public:
     explicit DirectWrapper(unsigned flags);
 
     virtual ~DirectWrapper();
+
+    virtual BaseProxyHandler* toBaseProxyHandler() {
+        return this;
+    }
+
+    virtual Wrapper *toWrapper() {
+        return this;
+    }
+
+    
+    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                       jsid id, bool set,
+                                       PropertyDescriptor *desc) MOZ_OVERRIDE;
+    virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                          jsid id, bool set,
+                                          PropertyDescriptor *desc) MOZ_OVERRIDE;
+    virtual bool defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
+                                PropertyDescriptor *desc) MOZ_OVERRIDE;
+    virtual bool getOwnPropertyNames(JSContext *cx, JSObject *wrapper,
+                                     AutoIdVector &props) MOZ_OVERRIDE;
+    virtual bool delete_(JSContext *cx, JSObject *wrapper, jsid id,
+                         bool *bp) MOZ_OVERRIDE;
+    virtual bool enumerate(JSContext *cx, JSObject *wrapper,
+                           AutoIdVector &props) MOZ_OVERRIDE;
 
     
     virtual bool has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp) MOZ_OVERRIDE;
