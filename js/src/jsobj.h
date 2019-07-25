@@ -851,31 +851,62 @@ struct JSObject : js::gc::Cell
         return type_->proto;
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     inline JSObject *getParent() const;
     bool setParent(JSContext *cx, JSObject *newParent);
 
+    
+    inline JSObject *scopeChain() const;
+
     inline bool isGlobal() const;
     inline js::GlobalObject *asGlobal();
-
     inline js::GlobalObject *getGlobal() const;
+
+    inline bool isInternalScope() const;
+
+    
+    inline JSObject *internalScopeChain() const;
+    inline bool setInternalScopeChain(JSContext *cx, JSObject *obj);
+    static inline size_t offsetOfInternalScopeChain();
 
     
 
 
 
 
-    inline bool isScope() const;
-    inline JSObject *scopeChain() const;
-    inline bool setScopeChain(JSContext *cx, JSObject *obj);
-
-    static inline size_t offsetOfScopeChain();
-
-    inline JSObject *getParentOrScopeChain() const;
-    inline JSObject *getParentMaybeScope() const;
     inline JSObject *getStaticBlockScopeChain() const;
     inline void setStaticBlockScopeChain(JSObject *obj);
 
+    
     static const uint32 SCOPE_CHAIN_SLOT = 0;
+
+    
 
     inline bool hasPrivate() const;
     inline void *getPrivate() const;

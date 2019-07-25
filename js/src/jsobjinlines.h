@@ -274,74 +274,56 @@ JSObject::finalize(JSContext *cx, bool background)
 inline JSObject *
 JSObject::getParent() const
 {
-    JS_ASSERT(!isScope());
     return lastProperty()->getObjectParent();
 }
 
 inline bool
-JSObject::isScope() const
+JSObject::isInternalScope() const
 {
     return isCall() || isDeclEnv() || isBlock() || isWith();
 }
 
 inline JSObject *
-JSObject::scopeChain() const
+JSObject::internalScopeChain() const
 {
-    JS_ASSERT(isScope());
-    return &getFixedSlot(0).toObject();
+    JS_ASSERT(isInternalScope());
+    return &getFixedSlot(SCOPE_CHAIN_SLOT).toObject();
+}
+
+inline bool
+JSObject::setInternalScopeChain(JSContext *cx, JSObject *obj)
+{
+    JS_ASSERT(isInternalScope());
+    if (!obj->setDelegate(cx))
+        return false;
+    setFixedSlot(SCOPE_CHAIN_SLOT, JS::ObjectValue(*obj));
+    return true;
+}
+
+ inline size_t
+JSObject::offsetOfInternalScopeChain()
+{
+    return getFixedSlotOffset(SCOPE_CHAIN_SLOT);
 }
 
 inline JSObject *
-JSObject::getParentOrScopeChain() const
+JSObject::scopeChain() const
 {
-    return isScope() ? scopeChain() : getParent();
+    return isInternalScope() ? internalScopeChain() : getParent();
 }
 
 inline JSObject *
 JSObject::getStaticBlockScopeChain() const
 {
-    
-
-
-
     JS_ASSERT(isStaticBlock());
-    return getFixedSlot(0).isObject() ? &getFixedSlot(0).toObject() : NULL;
+    return getFixedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
 }
 
 inline void
 JSObject::setStaticBlockScopeChain(JSObject *obj)
 {
-    
-
-
-
     JS_ASSERT(isStaticBlock());
-    if (obj)
-        setFixedSlot(0, js::ObjectValue(*obj));
-    else
-        setFixedSlot(0, js::UndefinedValue());
-}
-
-inline JSObject *
-JSObject::getParentMaybeScope() const
-{
-    return lastProperty()->getObjectParent();
-}
-
-inline bool
-JSObject::setScopeChain(JSContext *cx, JSObject *obj)
-{
-    JS_ASSERT(isScope());
-    if (!obj->setDelegate(cx))
-        return false;
-    setFixedSlot(0, JS::ObjectValue(*obj));
-    return true;
-}
-
- inline size_t
-JSObject::offsetOfScopeChain()
-{
-    return getFixedSlotOffset(0);
+    setFixedSlot(SCOPE_CHAIN_SLOT, JS::ObjectOrNullValue(obj));
 }
 
 
@@ -1281,7 +1263,7 @@ inline js::GlobalObject *
 JSObject::getGlobal() const
 {
     JSObject *obj = const_cast<JSObject *>(this);
-    while (JSObject *parent = obj->getParentMaybeScope())
+    while (JSObject *parent = obj->getParent())
         obj = parent;
     return obj->asGlobal();
 }

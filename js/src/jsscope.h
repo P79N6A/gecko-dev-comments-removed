@@ -330,6 +330,16 @@ class PropertyTree;
 
 
 
+
+
+
+
+
+
+
+
+
+
 class UnownedBaseShape;
 
 class BaseShape : public js::gc::Cell
@@ -566,7 +576,7 @@ struct Shape : public js::gc::Cell
     js::Shape *getChildBinding(JSContext *cx, const js::Shape &child, js::Shape **lastBinding);
 
     
-    static bool replaceLastProperty(JSContext *cx, const js::Shape &child, Shape **lastp);
+    static bool replaceLastProperty(JSContext *cx, const BaseShape &base, Shape **lastp);
 
     bool hashify(JSContext *cx);
     void handoffTableTo(Shape *newShape);
