@@ -779,10 +779,13 @@ WeaveSvc.prototype = {
         if (!cryptoKeys) {
           
           
-          this.generateNewSymmetricKeys();
           
           
           this.resetClient();
+          
+          
+          this.generateNewSymmetricKeys();
+          
           return true;
         }
         
@@ -944,6 +947,7 @@ WeaveSvc.prototype = {
 
       
       this.resetClient();
+      CollectionKeys.clear();
 
       
       this.login();
@@ -958,6 +962,7 @@ WeaveSvc.prototype = {
     
     
     this.resetClient();
+    CollectionKeys.clear();
     
     
     this._ignorePrefObserver = true;
@@ -1271,6 +1276,7 @@ WeaveSvc.prototype = {
       
       this._log.info("Sync IDs differ. Local is " + this.syncID + ", remote is " + meta.payload.syncID);
       this.resetClient();
+      CollectionKeys.clear();
       this.syncID = meta.payload.syncID;
       this._log.debug("Clear cached values and take syncId: " + this.syncID);
 
@@ -1806,6 +1812,7 @@ WeaveSvc.prototype = {
   _freshStart: function WeaveSvc__freshStart() {
     this._log.info("Fresh start. Resetting client and considering key upgrade.");
     this.resetClient();
+    CollectionKeys.clear();
     this.upgradeSyncKey(this.syncID);
 
     let meta = new WBORecord("meta", "global");
@@ -1931,6 +1938,7 @@ WeaveSvc.prototype = {
     this._catch(this._notify("wipe-remote", "", function() {
       
       this.resetClient(engines);
+      CollectionKeys.clear();
 
       
       this.wipeServer(engines);
@@ -1941,6 +1949,9 @@ WeaveSvc.prototype = {
       
       else
         this.prepCommand("wipeAll", []);
+    
+      
+      this.generateNewSymmetricKeys();
 
       
       Clients.sync();
@@ -1983,9 +1994,6 @@ WeaveSvc.prototype = {
       
       for each (let engine in engines)
         engine.resetClient();
-      
-      
-      CollectionKeys.clear();
     }))(),
 
   
