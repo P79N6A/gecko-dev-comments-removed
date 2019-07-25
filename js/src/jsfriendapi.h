@@ -187,15 +187,12 @@ GetRuntime(const JSContext *cx)
 typedef bool
 (* PreserveWrapperCallback)(JSContext *cx, JSObject *obj);
 
-#ifdef DEBUG
  
 
 
 
 extern JS_FRIEND_API(void)
 DumpHeapComplete(JSRuntime *rt, FILE *fp);
-
-#endif
 
 class JS_FRIEND_API(AutoSwitchCompartment) {
   private:

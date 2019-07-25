@@ -3490,14 +3490,14 @@ JS_TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind);
 extern JS_PUBLIC_API(void)
 JS_TraceRuntime(JSTracer *trc);
 
-#ifdef DEBUG
-
 extern JS_PUBLIC_API(void)
-JS_PrintTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
-                       void *thing, JSGCTraceKind kind, JSBool includeDetails);
+JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
+                     void *thing, JSGCTraceKind kind, JSBool includeDetails);
 
 extern JS_PUBLIC_API(const char *)
 JS_GetTraceEdgeName(JSTracer *trc, char *buffer, int bufferSize);
+
+#ifdef DEBUG
 
 
 
