@@ -277,7 +277,7 @@ nsNPAPIPlugin::PluginCrashed(const nsAString& pluginDumpID,
 
 #ifdef MOZ_IPC
 
-#ifdef XP_MACOSX
+#if defined(XP_MACOSX) && defined(__i386__)
 static PRInt32 OSXVersion()
 {
   static PRInt32 gOSXVersion = 0x0;
@@ -292,7 +292,6 @@ static PRInt32 OSXVersion()
   return gOSXVersion;
 }
 
-#if defined(__i386__)
 
 
 #define CGLRendererIDMatchingMask 0x00FE7F00
@@ -317,7 +316,6 @@ static PRBool GMA9XXGraphics()
   return hasIntelGMA9XX;
 }
 #endif
-#endif
 
 PRBool
 nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
@@ -330,7 +328,7 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
     return PR_FALSE;
   }
 
-#ifdef XP_MACOSX
+#if defined(XP_MACOSX) && defined(__i386__)
   
   if (OSXVersion() < 0x00001060) {
     return PR_FALSE;
@@ -352,13 +350,11 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
       }
     }
 
-#if defined(__i386__)
     
     
     if (GMA9XXGraphics()) {
       return PR_FALSE;
     }
-#endif
   }
 #endif
 
