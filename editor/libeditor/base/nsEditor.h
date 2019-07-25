@@ -535,9 +535,9 @@ public:
 
   
   bool CanContain(nsIDOMNode* aParent, nsIDOMNode* aChild);
-  bool CanContainTag(nsIDOMNode* aParent, const nsAString &aTag);
-  bool TagCanContain(const nsAString &aParentTag, nsIDOMNode* aChild);
-  virtual bool TagCanContainTag(const nsAString &aParentTag, const nsAString &aChildTag);
+  bool CanContainTag(nsIDOMNode* aParent, nsIAtom* aTag);
+  bool TagCanContain(nsIAtom* aParentTag, nsIDOMNode* aChild);
+  virtual bool TagCanContainTag(nsIAtom* aParentTag, nsIAtom* aChildTag);
 
   
   bool IsRootNode(nsIDOMNode *inNode);

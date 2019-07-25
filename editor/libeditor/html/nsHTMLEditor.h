@@ -324,7 +324,7 @@ public:
   NS_IMETHOD EndOperation();
 
   
-  virtual bool TagCanContainTag(const nsAString& aParentTag, const nsAString& aChildTag);
+  virtual bool TagCanContainTag(nsIAtom* aParentTag, nsIAtom* aChildTag);
   
   
   virtual bool IsContainer(nsINode* aNode);

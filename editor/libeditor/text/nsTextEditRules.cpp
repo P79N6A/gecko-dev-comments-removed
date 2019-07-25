@@ -707,8 +707,10 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
   NS_ENSURE_SUCCESS(res, res);
 
   
-  if (!mEditor->IsTextNode(selNode) && !mEditor->CanContainTag(selNode, NS_LITERAL_STRING("#text")))
+  if (!mEditor->IsTextNode(selNode) &&
+      !mEditor->CanContainTag(selNode, nsGkAtoms::textTagName)) {
     return NS_ERROR_FAILURE;
+  }
 
   
   nsCOMPtr<nsIDOMDocument> doc = mEditor->GetDOMDocument();
