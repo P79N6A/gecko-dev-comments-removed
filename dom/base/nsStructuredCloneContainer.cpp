@@ -97,7 +97,10 @@ nsStructuredCloneContainer::InitFromVariant(nsIVariant *aData, JSContext *aCx)
   if (!mData) {
     mSize = 0;
     mVersion = 0;
-    free(jsBytes);
+
+    
+    JS_free(aCx, jsBytes);
+
     return NS_ERROR_FAILURE;
   }
   else {
@@ -105,7 +108,9 @@ nsStructuredCloneContainer::InitFromVariant(nsIVariant *aData, JSContext *aCx)
   }
 
   memcpy(mData, jsBytes, mSize);
-  free(jsBytes);
+
+  
+  JS_free(aCx, jsBytes);
   return NS_OK;
 }
 
