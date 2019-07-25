@@ -967,10 +967,8 @@ ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *a
 
 
 
-
-
 extern JS_REQUIRES_STACK bool
-DirectEval(JSContext *cx, JSFunction *evalfun, uint32 argc, Value *vp);
+DirectEval(JSContext *cx, uint32 argc, Value *vp);
 
 
 

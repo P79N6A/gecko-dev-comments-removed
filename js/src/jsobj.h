@@ -1940,8 +1940,16 @@ extern bool
 EvalKernel(JSContext *cx, uintN argc, js::Value *vp, EvalType evalType, JSStackFrame *caller,
            JSObject *scopeobj);
 
+
+
+
+
 extern bool
-IsBuiltinEvalFunction(JSFunction *fun);
+IsBuiltinEvalForScope(JSObject *scopeChain, const js::Value &v);
+
+
+extern bool
+IsAnyBuiltinEval(JSFunction *fun);
 
 }
 
