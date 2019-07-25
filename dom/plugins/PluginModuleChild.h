@@ -83,9 +83,6 @@ typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_GETENTRYPOINTS) (NPPluginFuncs* pCal
 typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGININIT) (const NPNetscapeFuncs* pCallbacks);
 typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGINUNIXINIT) (const NPNetscapeFuncs* pCallbacks, NPPluginFuncs* fCallbacks);
 typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_PLUGINSHUTDOWN) (void);
-#ifdef XP_MACOSX
-typedef NS_NPAPIPLUGIN_CALLBACK(NPError, NP_MAIN) (NPNetscapeFuncs* nCallbacks, NPPluginFuncs* pCallbacks, NPP_ShutdownProcPtr* unloadProcPtr);
-#endif
 
 namespace mozilla {
 namespace plugins {
@@ -169,6 +166,15 @@ public:
 
 private:
     bool InitGraphics();
+#if defined(MOZ_WIDGET_GTK2)
+    static gboolean DetectNestedEventLoop(gpointer data);
+    static gboolean ProcessBrowserEvents(gpointer data);
+
+    NS_OVERRIDE
+    virtual void EnteredCxxStack();
+    NS_OVERRIDE
+    virtual void ExitedCxxStack();
+#endif
 
     std::string mPluginFilename;
     PRLibrary* mLibrary;
@@ -181,9 +187,43 @@ private:
     NP_PLUGININIT mInitializeFunc;
     NP_GETENTRYPOINTS mGetEntryPointsFunc;
 #endif
+
     NP_PLUGINSHUTDOWN mShutdownFunc;
     NPPluginFuncs mFunctions;
     NPSavedData mSavedData;
+
+#if defined(MOZ_WIDGET_GTK2)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    guint mNestedLoopTimerId;
+#endif
 
     struct NPObjectData : public nsPtrHashKey<NPObject>
     {
