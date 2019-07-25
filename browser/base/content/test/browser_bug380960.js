@@ -13,7 +13,10 @@ function test() {
   waitForExplicitFinish();
 
   Services.prefs.setBoolPref("browser.tabs.animate", true);
-  preperForNextText();
+
+
+  todo(false, "async tests disabled because of intermittent failures (bug 585361)");
+  cleanup();
 }
 
 function tabAdded() {
