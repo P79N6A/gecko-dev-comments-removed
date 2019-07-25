@@ -1539,11 +1539,23 @@ XML_Parse(XML_Parser parser, const char *s, int len, int isFinal)
         break;
       case XML_INITIALIZED:
       case XML_PARSING:
+
+#if 0
         result = XML_STATUS_OK;
         if (isFinal) {
           ps_parsing = XML_FINISHED;
           return result;
         }
+#else
+        if (isFinal) {
+          ps_parsing = XML_FINISHED;
+          return XML_STATUS_OK;
+        }
+      
+      default:
+        result = XML_STATUS_OK;
+#endif
+
       }
     }
 
@@ -1579,7 +1591,7 @@ XML_Parse(XML_Parser parser, const char *s, int len, int isFinal)
     eventEndPtr = bufferPtr;
     return result;
   }
-#endif  
+#endif
   else {
     void *buff = XML_GetBuffer(parser, len);
     if (buff == NULL)
