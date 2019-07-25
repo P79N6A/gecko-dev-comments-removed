@@ -42,6 +42,8 @@
 #ifndef nsFloatManager_h_
 #define nsFloatManager_h_
 
+#include "mozilla/Types.h"
+
 #include "nsIntervalSet.h"
 #include "nsCoord.h"
 #include "nsRect.h"
@@ -344,8 +346,8 @@ private:
   static PRInt32 sCachedFloatManagerCount;
   static void* sCachedFloatManagers[NS_FLOAT_MANAGER_CACHE_SIZE];
 
-  nsFloatManager(const nsFloatManager&);  
-  void operator=(const nsFloatManager&);  
+  nsFloatManager(const nsFloatManager&) MOZ_DELETE;
+  void operator=(const nsFloatManager&) MOZ_DELETE;
 };
 
 
