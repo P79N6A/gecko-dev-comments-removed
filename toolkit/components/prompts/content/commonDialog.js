@@ -46,16 +46,16 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 
-let gArgs, promptType, numButtons, iconClass, soundID, hasInputField = true;
-let gDelayExpired = false, gBlurred = false;
+let gArgs = window.arguments[0].QueryInterface(Ci.nsIWritablePropertyBag2)
+                               .QueryInterface(Ci.nsIWritablePropertyBag);
+
+let promptType, numButtons, iconClass, soundID, hasInputField = true;
+
 
 function earlyInit() {
     
     
     
-
-    gArgs = window.arguments[0].QueryInterface(Ci.nsIWritablePropertyBag2)
-                               .QueryInterface(Ci.nsIWritablePropertyBag);
 
     promptType = gArgs.getProperty("promptType");
 
@@ -124,7 +124,7 @@ function initTextbox(aName, aValue) {
     document.getElementById(aName + "Textbox").setAttribute("value", aValue);
 }
 
-function setLabelForNode(aNode, aLabel) {
+function setLabelForNode(aNode, aLabel, aIsLabelFlag) {
     
     
     
@@ -145,7 +145,11 @@ function setLabelForNode(aNode, aLabel) {
 
     
     aLabel = aLabel.replace(/\&\&/g, "&");
-    aNode.label = aLabel;
+    if (aIsLabelFlag) {    
+        aNode.setAttribute("value", aLabel);
+    } else {    
+        aNode.label = aLabel;
+    }
 
     
     
@@ -170,34 +174,44 @@ function commonDialogOnLoad() {
 
     
     let title = gArgs.getProperty("title");
-    document.title = title;
-    
+#ifdef XP_MACOSX
     document.getElementById("info.title").appendChild(document.createTextNode(title));
+#else
+    document.title = title;
+#endif
 
     Services.obs.addObserver(softkbObserver, "softkb-change", false);
 
     
     let dialog = document.documentElement;
     switch (numButtons) {
-      case 4:
-        setLabelForNode(dialog.getButton("extra2"), gArgs.getProperty("button3Label"));
-        dialog.getButton("extra2").hidden = false;
-        
-      case 3:
-        setLabelForNode(dialog.getButton("extra1"), gArgs.getProperty("button2Label"));
-        dialog.getButton("extra1").hidden = false;
-        
-      case 2:
-        if (gArgs.hasKey("button1Label"))
-            setLabelForNode(dialog.getButton("cancel"), gArgs.getProperty("button1Label"));
-        break;
-
       case 1:
         dialog.getButton("cancel").hidden = true;
         break;
+      case 4:
+        dialog.getButton("extra2").hidden = false;
+      case 3:
+        dialog.getButton("extra1").hidden = false;
     }
-    if (gArgs.hasKey("button0Label"))
-        setLabelForNode(dialog.getButton("accept"), gArgs.getProperty("button0Label"));
+
+    
+    switch (numButtons) {
+      case 4:
+        setLabelForNode(document.documentElement.getButton("extra2"), gArgs.getProperty("button3Label"));
+        
+      case 3:
+        setLabelForNode(document.documentElement.getButton("extra1"), gArgs.getProperty("button2Label"));
+        
+      default:
+      case 2:
+        if (gArgs.hasKey("button1Label"))
+            setLabelForNode(document.documentElement.getButton("cancel"), gArgs.getProperty("button1Label"));
+        
+      case 1:
+        if (gArgs.hasKey("button0Label"))
+            setLabelForNode(document.documentElement.getButton("accept"), gArgs.getProperty("button0Label"));
+        break;
+    }
 
     
     
@@ -234,9 +248,9 @@ function commonDialogOnLoad() {
             b = gArgs.getProperty("defaultButtonNum");
         let dButton = dlgButtons[b];
         
-        dialog.defaultButton = dButton;
+        document.documentElement.defaultButton = dButton;
 #ifndef XP_MACOSX
-        dialog.getButton(dButton).focus();
+        document.documentElement.getButton(dButton).focus();
 #endif
     } else {
         if (promptType == "promptPassword")
@@ -247,13 +261,12 @@ function commonDialogOnLoad() {
 
     if (gArgs.hasKey("enableDelay") && gArgs.getProperty("enableDelay")) {
         let delayInterval = Services.prefs.getIntPref("security.dialog_enable_delay");
-        setButtonsEnabledState(dialog, false);
-        setTimeout(function () {
-                        
-                        if (!gBlurred)
-                            setButtonsEnabledState(dialog, true);
-                        gDelayExpired = true;
-                    }, delayInterval);
+
+        document.documentElement.getButton("accept").disabled = true;
+        document.documentElement.getButton("extra1").disabled = true;
+        document.documentElement.getButton("extra2").disabled = true;
+
+        setTimeout(commonDialogReenableButtons, delayInterval);
 
         addEventListener("blur", commonDialogBlur, false);
         addEventListener("focus", commonDialogFocus, false);
@@ -273,33 +286,46 @@ function commonDialogOnLoad() {
     Services.obs.notifyObservers(window, "common-dialog-loaded", null);
 }
 
-function setButtonsEnabledState(dialog, enabled) {
-    dialog.getButton("accept").disabled = !enabled;
-    dialog.getButton("extra1").disabled = !enabled;
-    dialog.getButton("extra2").disabled = !enabled;
-}
-
 function commonDialogOnUnload() {
     Services.obs.removeObserver(softkbObserver, "softkb-change");
 }
+
+
+var gDelayExpired = false;
+var gBlurred = false;
 
 function commonDialogBlur(aEvent) {
     if (aEvent.target != document)
         return;
     gBlurred = true;
-    let dialog = document.documentElement;
-    setButtonsEnabledState(dialog, false);
+    document.documentElement.getButton("accept").disabled = true;
+    document.documentElement.getButton("extra1").disabled = true;
+    document.documentElement.getButton("extra2").disabled = true;
 }
 
 function commonDialogFocus(aEvent) {
     if (aEvent.target != document)
         return;
     gBlurred = false;
-    let dialog = document.documentElement;
     
     
-    if (gDelayExpired)
-        setTimeout(setButtonsEnabledState, 250, dialog, true);
+    if (gDelayExpired) {
+        let script;
+        script  = "document.documentElement.getButton('accept').disabled = false; ";
+        script += "document.documentElement.getButton('extra1').disabled = false; ";
+        script += "document.documentElement.getButton('extra2').disabled = false;";
+        setTimeout(script, 250);
+    }
+}
+
+function commonDialogReenableButtons() {
+    
+    if (!gBlurred) {
+        document.documentElement.getButton("accept").disabled = false;
+        document.documentElement.getButton("extra1").disabled = false;
+        document.documentElement.getButton("extra2").disabled = false;
+    }
+    gDelayExpired = true;
 }
 
 function onCheckboxClick(aCheckboxElement) {
