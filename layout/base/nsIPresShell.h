@@ -133,10 +133,6 @@ typedef struct CapturingContentInfo {
   PRPackedBool mRetargetToElement;
   PRPackedBool mPreventDrag;
   nsIContent* mContent;
-
-  CapturingContentInfo() :
-    mAllowed(PR_FALSE), mRetargetToElement(PR_FALSE), mPreventDrag(PR_FALSE),
-    mContent(nsnull) { }
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
@@ -1244,4 +1240,4 @@ protected:
 nsresult
 NS_NewPresShell(nsIPresShell** aInstancePtrResult);
 
-#endif 
+#endif

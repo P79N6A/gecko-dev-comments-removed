@@ -237,7 +237,9 @@ using namespace mozilla::dom;
 using namespace mozilla::layers;
 
 PRBool nsIPresShell::gIsAccessibilityActive = PR_FALSE;
-CapturingContentInfo nsIPresShell::gCaptureInfo;
+CapturingContentInfo nsIPresShell::gCaptureInfo =
+  { PR_FALSE ,     PR_FALSE ,
+    PR_FALSE , nsnull  };
 nsIContent* nsIPresShell::gKeyDownTarget;
 
 static PRUint32
