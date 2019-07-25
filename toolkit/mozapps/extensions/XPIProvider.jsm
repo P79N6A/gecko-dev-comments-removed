@@ -1669,7 +1669,7 @@ var XPIProvider = {
 
 
 
-  getAddon: function XPI_getAddon(aId, aCallback) {
+  getAddonByID: function XPI_getAddonByID(aId, aCallback) {
     XPIDatabase.getVisibleAddonForID(aId, function(aAddon) {
       if (aAddon)
         aCallback(createWrapper(aAddon));
@@ -1700,8 +1700,8 @@ var XPIProvider = {
 
 
 
-  getAddonsWithPendingOperations:
-  function XPI_getAddonsWithPendingOperations(aTypes, aCallback) {
+  getAddonsWithOperationsByTypes:
+  function XPI_getAddonsWithOperationsByTypes(aTypes, aCallback) {
     XPIDatabase.getVisibleAddonsWithPendingOperations(aTypes, function(aAddons) {
       let results = [createWrapper(a) for each (a in aAddons)];
       XPIProvider.installs.forEach(function(aInstall) {
@@ -1722,7 +1722,7 @@ var XPIProvider = {
 
 
 
-  getInstalls: function XPI_getInstalls(aTypes, aCallback) {
+  getInstallsByTypes: function XPI_getInstallsByTypes(aTypes, aCallback) {
     let results = [];
     this.installs.forEach(function(aInstall) {
       if (!aTypes || aTypes.indexOf(aInstall.type) >= 0)

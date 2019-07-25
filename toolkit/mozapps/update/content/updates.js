@@ -523,7 +523,7 @@ var gUpdates = {
     }
 
     var self = this;
-    AddonManager.getAddonsByTypes(["extension", "theme", "locale"], function(addons) {
+    AddonManager.getAllAddons(function(addons) {
       self.addons = [];
       addons.forEach(function(addon) {
         
