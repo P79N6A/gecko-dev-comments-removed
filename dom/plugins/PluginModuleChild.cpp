@@ -66,9 +66,6 @@
 using namespace mozilla::plugins;
 
 #if defined(XP_WIN)
-#ifndef WM_MOUSEHWHEEL
-#define WM_MOUSEHWHEEL     0x020E
-#endif
 const PRUnichar * kFlashFullscreenClass = L"ShockwaveFlashFullScreen";
 #endif
 
@@ -1903,60 +1900,16 @@ PluginModuleChild::CallWindowProcHook(int nCode, WPARAM wParam, LPARAM lParam)
     if (nCode >= 0 &&
         (InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
         CWPSTRUCT* pCwp = reinterpret_cast<CWPSTRUCT*>(lParam);
-        switch(pCwp->message) {
+        if (pCwp->message == WM_KILLFOCUS) {
             
-            case WM_SETFOCUS:
-            case WM_MOUSEHWHEEL:
-            case WM_MOUSEWHEEL:
-            case WM_HSCROLL:
-            case WM_VSCROLL:
-            case WM_CONTEXTMENU:
-            case WM_IME_SETCONTEXT:
-            case WM_WINDOWPOSCHANGED:
-                ReplyMessage(0);
-            break;
-            case WM_KILLFOCUS:
-            {
-                
-                
-                
-                
-                PRUnichar szClass[26];
-                if (GetClassNameW(pCwp->hwnd, szClass,
-                                  sizeof(szClass)/sizeof(PRUnichar)) &&
-                    !wcscmp(szClass, kFlashFullscreenClass)) {
-                    gDelayFlashFocusReplyUntilEval = true;
-                }
-                else {
-                    ReplyMessage(0);
-                }
-            }
-            break;
             
-            case WM_WINDOWPOSCHANGING:
-            case WM_DESTROY:
-            case WM_PAINT:
-            break;
             
-            default: {
-#ifdef DEBUG
-              nsCAutoString log("Child plugin module received untrapped ");
-              log.AppendLiteral("synchronous message for window. msg=");
-              char szTmp[40];
-              sprintf(szTmp, "0x%06X", pCwp->message);
-              log.Append(szTmp);
-              log.AppendLiteral(" hwnd=");
-              sprintf(szTmp, "0x%08X", pCwp->hwnd);
-              log.Append(szTmp);
-              PRUnichar className[256] = { 0 };
-              if (GetClassNameW(pCwp->hwnd, className,
-                                sizeof(className)/sizeof(PRUnichar)) > 0) {
-                  log.AppendLiteral(" class='");
-                  log.Append(NS_ConvertUTF16toUTF8((PRUnichar*)className));
-                  log.AppendLiteral("'");
-              }
-              NS_WARNING(log.get());
-#endif
+            
+            PRUnichar szClass[26];
+            if (GetClassNameW(pCwp->hwnd, szClass,
+                              sizeof(szClass)/sizeof(PRUnichar)) &&
+                !wcscmp(szClass, kFlashFullscreenClass)) {
+                gDelayFlashFocusReplyUntilEval = true;
             }
         }
     }
