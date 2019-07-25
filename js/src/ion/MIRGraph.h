@@ -161,6 +161,8 @@ class MIRGraph
         return blocks_[i];
     }
     void allocInstructionId(MInstruction *ins) {
+        
+        
         idGen_ += 2;
         ins->setId(idGen_);
     }
@@ -491,7 +493,7 @@ class MDefinitionIterator
     }
 
     bool more() {
-        return phiIndex_ < block_->numPhis() || iter_ != block_->end();
+        return phiIndex_ < block_->numPhis() || iter_ != block_->lastIns();
     }
 };
 

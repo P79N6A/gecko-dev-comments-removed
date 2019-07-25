@@ -53,6 +53,8 @@ namespace ion {
     _(Abort)                                \
     /* Information during MIR building */   \
     _(MIR)                                  \
+    /* Information during GVN */            \
+    _(GVN)                                  \
     /* Information during LICM */           \
     _(LICM)
 
