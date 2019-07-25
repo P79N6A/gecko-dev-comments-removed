@@ -167,6 +167,12 @@ js_DoubleToUint32(jsdouble d)
 }
 JS_DEFINE_CALLINFO_1(extern, UINT32, js_DoubleToUint32, DOUBLE, 1, ACCSET_NONE)
 
+
+
+
+
+
+
 jsdouble FASTCALL
 js_StringToNumber(JSContext* cx, JSString* str, JSBool *ok)
 {
@@ -174,7 +180,8 @@ js_StringToNumber(JSContext* cx, JSString* str, JSBool *ok)
     *ok = StringToNumberType<jsdouble>(cx, str, &out);
     return out;
 }
-JS_DEFINE_CALLINFO_3(extern, DOUBLE, js_StringToNumber, CONTEXT, STRING, BOOLPTR, 1, ACCSET_NONE)
+JS_DEFINE_CALLINFO_3(extern, DOUBLE, js_StringToNumber, CONTEXT, STRING, BOOLPTR,
+                     0, ACCSET_STORE_ANY)
 
 int32 FASTCALL
 js_StringToInt32(JSContext* cx, JSString* str, JSBool *ok)
@@ -183,7 +190,8 @@ js_StringToInt32(JSContext* cx, JSString* str, JSBool *ok)
     *ok = StringToNumberType<int32>(cx, str, &out);
     return out;
 }
-JS_DEFINE_CALLINFO_3(extern, INT32, js_StringToInt32, CONTEXT, STRING, BOOLPTR, 1, ACCSET_NONE)
+JS_DEFINE_CALLINFO_3(extern, INT32, js_StringToInt32, CONTEXT, STRING, BOOLPTR,
+                     0, ACCSET_STORE_ANY)
 
 
 static inline JSBool
