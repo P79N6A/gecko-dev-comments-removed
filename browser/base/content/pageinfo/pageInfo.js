@@ -42,17 +42,18 @@
 # ***** END LICENSE BLOCK *****
 
 
-function pageInfoTreeView(copycol)
+function pageInfoTreeView(treeid, copycol)
 {
   
   
+  this.treeid = treeid;
   this.copycol = copycol;
   this.rows = 0;
   this.tree = null;
   this.data = [ ];
   this.selection = null;
-  this.sortcol = null;
-  this.sortdir = 0;
+  this.sortcol = -1;
+  this.sortdir = false;
 }
 
 pageInfoTreeView.prototype = {
@@ -121,6 +122,25 @@ pageInfoTreeView.prototype = {
     }
   },
 
+  onPageMediaSort : function(columnname)
+  {
+    var tree = document.getElementById(this.treeid);
+    var treecol = tree.columns.getNamedColumn(columnname);
+
+    this.sortdir =
+      gTreeUtils.sort(
+        tree,
+        this,
+        this.data,
+        treecol.index,
+        function textComparator(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); },
+        this.sortcol,
+        this.sortdir
+      );
+
+    this.sortcol = treecol.index;
+  },
+
   getRowProperties: function(row, prop) { },
   getCellProperties: function(row, column, prop) { },
   getColumnProperties: function(column, prop) { },
@@ -166,9 +186,8 @@ const COPYCOL_META_CONTENT = 1;
 const COPYCOL_IMAGE = COL_IMAGE_ADDRESS;
 
 
-var gMetaView = new pageInfoTreeView(COPYCOL_META_CONTENT);
-var gImageView = new pageInfoTreeView(COPYCOL_IMAGE);
-
+var gMetaView = new pageInfoTreeView('metatree', COPYCOL_META_CONTENT);
+var gImageView = new pageInfoTreeView('imagetree', COPYCOL_IMAGE);
 
 var atomSvc = Components.classes["@mozilla.org/atom-service;1"]
                         .getService(Components.interfaces.nsIAtomService);
@@ -185,6 +204,44 @@ gImageView.getCellProperties = function(row, col, props) {
 
   if (col.element.id == "image-address")
     props.AppendElement(this._ltrAtom);
+};
+
+gImageView.getCellText = function(row, column) {
+  var value = this.data[row][column.index];
+  if (column.index == COL_IMAGE_SIZE) {
+    if (value == -1) {
+      return gStrings.unknown;
+    } else {
+      var kbSize = Number(Math.round(value / 1024 * 100) / 100);
+      return gBundle.getFormattedString("mediaFileSize", [kbSize]);
+    }
+  }
+  return value || "";
+};
+
+gImageView.onPageMediaSort = function(columnname) {
+  var tree = document.getElementById(this.treeid);
+  var treecol = tree.columns.getNamedColumn(columnname);
+
+  var comparator;
+  if (treecol.index == COL_IMAGE_SIZE) {
+    comparator = function numComparator(a, b) { return a - b; };
+  } else {
+    comparator = function textComparator(a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); };
+  }
+
+  this.sortdir =
+    gTreeUtils.sort(
+      tree,
+      this,
+      this.data,
+      treecol.index,
+      comparator,
+      this.sortcol,
+      this.sortdir
+    );
+
+  this.sortcol = treecol.index;
 };
 
 var gImageHash = { };
@@ -585,15 +642,8 @@ function addImage(url, type, alt, elem, isBg)
       catch(ex2) { }
     }
 
-    var sizeText;
-    if (cacheEntryDescriptor) {
-      var pageSize = cacheEntryDescriptor.dataSize;
-      var kbSize = formatNumber(Math.round(pageSize / 1024 * 100) / 100);
-      sizeText = gBundle.getFormattedString("mediaFileSize", [kbSize]);
-    }
-    else
-      sizeText = gStrings.unknown;
-    gImageView.addRow([url, type, sizeText, alt, 1, elem, isBg]);
+    var dataSize = (cacheEntryDescriptor) ? cacheEntryDescriptor.dataSize : -1;
+    gImageView.addRow([url, type, dataSize, alt, 1, elem, isBg]);
 
     
     if (gImageView.data.length == 1) {
@@ -700,7 +750,10 @@ function getSelectedImage(tree)
     return null;
 
   
-  var clickedRow = tree.currentIndex;
+  var clickedRow = tree.view.selection.currentIndex;
+  if (clickedRow == -1)
+    return null;
+
   
   return gImageView.data[clickedRow][COL_IMAGE_NODE];
 }
