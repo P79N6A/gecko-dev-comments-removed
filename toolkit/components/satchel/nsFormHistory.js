@@ -137,6 +137,7 @@ FormHistory.prototype = {
         this.messageManager.addMessageListener("FormHistory:FormSubmitEntries", this);
 
         
+        Services.obs.addObserver(this, "profile-change-teardown", true);
         Services.obs.addObserver(this, "profile-before-change", true);
         Services.obs.addObserver(this, "idle-daily", true);
         Services.obs.addObserver(this, "formhistory-expire-now", true);
@@ -402,6 +403,9 @@ FormHistory.prototype = {
             this.expireOldEntries();
             break;
         case "profile-before-change":
+            
+            break;
+        case "profile-change-teardown":
             this._dbFinalize();
             break;
         default:
@@ -870,7 +874,6 @@ FormHistory.prototype = {
 
 
     _dbFinalize : function FH__dbFinalize() {
-        
         for each (let stmt in this.dbStmts) {
             stmt.finalize();
         }
