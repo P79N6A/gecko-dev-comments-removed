@@ -97,6 +97,7 @@ struct VisitData {
   , typed(false)
   , transitionType(PR_UINT32_MAX)
   , visitTime(0)
+  , frecency(-1)
   , titleChanged(false)
   {
     guid.SetIsVoid(true);
@@ -112,6 +113,7 @@ struct VisitData {
   , typed(false)
   , transitionType(PR_UINT32_MAX)
   , visitTime(0)
+  , frecency(-1)
   , titleChanged(false)
   {
     (void)aURI->GetSpec(spec);
@@ -130,14 +132,9 @@ struct VisitData {
 
 
 
-
   void SetTransitionType(PRUint32 aTransitionType)
   {
     typed = aTransitionType == nsINavHistoryService::TRANSITION_TYPED;
-    bool redirected =
-      aTransitionType == nsINavHistoryService::TRANSITION_REDIRECT_TEMPORARY ||
-      aTransitionType == nsINavHistoryService::TRANSITION_REDIRECT_PERMANENT;
-    hidden = GetHiddenState(redirected, aTransitionType);
     transitionType = aTransitionType;
   }
 
@@ -171,6 +168,7 @@ struct VisitData {
   bool typed;
   PRUint32 transitionType;
   PRTime visitTime;
+  PRInt32 frecency;
 
   
 
@@ -1057,7 +1055,7 @@ private:
     rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("visit_date"),
                                _place.visitTime);
     NS_ENSURE_SUCCESS(rv, rv);
-    PRInt32 transitionType = _place.transitionType;
+    PRUint32 transitionType = _place.transitionType;
     NS_ASSERTION(transitionType >= nsINavHistoryService::TRANSITION_LINK &&
                  transitionType <= nsINavHistoryService::TRANSITION_FRAMED_LINK,
                  "Invalid transition type!");
@@ -1087,6 +1085,11 @@ private:
 
   nsresult UpdateFrecency(const VisitData& aPlace)
   {
+    
+    if (aPlace.frecency == 0) {
+      return NS_OK;
+    }
+
     nsresult rv;
     { 
       nsCOMPtr<mozIStorageStatement> stmt;
@@ -1116,7 +1119,7 @@ private:
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    { 
+    if (!aPlace.hidden) {
       
       nsCOMPtr<mozIStorageStatement> stmt;
       if (aPlace.placeId) {
@@ -1561,8 +1564,8 @@ History::InsertPlace(const VisitData& aPlace)
 
   nsCOMPtr<mozIStorageStatement> stmt = GetStatement(
       "INSERT INTO moz_places "
-        "(url, title, rev_host, hidden, typed, guid) "
-      "VALUES (:url, :title, :rev_host, :hidden, :typed, :guid) "
+        "(url, title, rev_host, hidden, typed, frecency, guid) "
+      "VALUES (:url, :title, :rev_host, :hidden, :typed, :frecency, :guid) "
     );
   NS_ENSURE_STATE(stmt);
   mozStorageStatementScoper scoper(stmt);
@@ -1582,6 +1585,8 @@ History::InsertPlace(const VisitData& aPlace)
   }
   NS_ENSURE_SUCCESS(rv, rv);
   rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("typed"), aPlace.typed);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("frecency"), aPlace.frecency);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("hidden"), aPlace.hidden);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1868,29 +1873,36 @@ History::VisitURI(nsIURI* aURI,
   
   
 
+  PRUint32 transitionType = nsINavHistoryService::TRANSITION_LINK;
+
   if (!(aFlags & IHistory::TOP_LEVEL) && !isFollowedLink) {
     
-    place.SetTransitionType(nsINavHistoryService::TRANSITION_EMBED);
+    transitionType = nsINavHistoryService::TRANSITION_EMBED;
   }
   else if (aFlags & IHistory::REDIRECT_TEMPORARY) {
-    place.SetTransitionType(nsINavHistoryService::TRANSITION_REDIRECT_TEMPORARY);
+    transitionType = nsINavHistoryService::TRANSITION_REDIRECT_TEMPORARY;
   }
   else if (aFlags & IHistory::REDIRECT_PERMANENT) {
-    place.SetTransitionType(nsINavHistoryService::TRANSITION_REDIRECT_PERMANENT);
+    transitionType = nsINavHistoryService::TRANSITION_REDIRECT_PERMANENT;
   }
   else if (recentFlags & nsNavHistory::RECENT_TYPED) {
-    place.SetTransitionType(nsINavHistoryService::TRANSITION_TYPED);
+    transitionType = nsINavHistoryService::TRANSITION_TYPED;
   }
   else if (recentFlags & nsNavHistory::RECENT_BOOKMARKED) {
-    place.SetTransitionType(nsINavHistoryService::TRANSITION_BOOKMARK);
+    transitionType = nsINavHistoryService::TRANSITION_BOOKMARK;
   }
   else if (!(aFlags & IHistory::TOP_LEVEL) && isFollowedLink) {
     
-    place.SetTransitionType(nsINavHistoryService::TRANSITION_FRAMED_LINK);
+    transitionType = nsINavHistoryService::TRANSITION_FRAMED_LINK;
   }
-  else {
-    
-    place.SetTransitionType(nsINavHistoryService::TRANSITION_LINK);
+
+  place.SetTransitionType(transitionType);
+  place.hidden = GetHiddenState(aFlags & IHistory::REDIRECT_SOURCE,
+                                transitionType);
+
+  
+  if (aFlags & IHistory::UNRECOVERABLE_ERROR) {
+    place.frecency = 0;
   }
 
   
@@ -2097,6 +2109,7 @@ History::AddDownload(nsIURI* aSource, nsIURI* aReferrer,
 
   place.visitTime = aStartTime;
   place.SetTransitionType(nsINavHistoryService::TRANSITION_DOWNLOAD);
+  place.hidden = false;
 
   mozIStorageConnection* dbConn = GetDBConn();
   NS_ENSURE_STATE(dbConn);
@@ -2220,6 +2233,7 @@ History::UpdatePlaces(const jsval& aPlaceInfos,
                           nsINavHistoryService::TRANSITION_LINK,
                           nsINavHistoryService::TRANSITION_FRAMED_LINK);
       data.SetTransitionType(transitionType);
+      data.hidden = GetHiddenState(false, transitionType);
 
       
       
