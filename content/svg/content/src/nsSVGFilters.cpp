@@ -5435,7 +5435,7 @@ nsSVGFEImageElement::LoadSVGImage(PRBool aForce, PRBool aNotify)
     NS_MakeAbsoluteURI(href, href, baseURI);
 
   
-  nsIDocument* doc = GetOurDocument();
+  nsIDocument* doc = GetOwnerDoc();
   if (doc) {
     nsCOMPtr<nsIURI> hrefAsURI;
     if (NS_SUCCEEDED(StringToURI(href, doc, getter_AddRefs(hrefAsURI)))) {
