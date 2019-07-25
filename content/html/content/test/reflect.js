@@ -19,36 +19,40 @@
 
 
 
-function reflectString(aElement, aAttr, aOtherValues)
-{
-  var otherValues = aOtherValues !== undefined ? aOtherValues : [];
 
-  ok(aAttr in aElement, aAttr + " should be an IDL attribute of this element");
-  is(typeof aElement[aAttr], "string", aAttr + " IDL attribute should be a string");
+function reflectString(aParameters)
+{
+  var element = aParameters.element;
+  var attr = aParameters.attribute;
+  var otherValues = aParameters.otherValues !== undefined
+    ? aParameters.otherValues : [];
+
+  ok(attr in element, attr + " should be an IDL attribute of this element");
+  is(typeof element[attr], "string", attr + " IDL attribute should be a string");
 
   
-  is(aElement.getAttribute(aAttr), null,
-     "When not set, the content attribute should be undefined.");
-  is(aElement[aAttr], "",
+  is(element.getAttribute(attr), null,
+     "When not set, the content attribute should be null.");
+  is(element[attr], "",
      "When not set, the IDL attribute should return the empty string");
 
   
 
 
 
-  aElement.setAttribute(aAttr, null);
-  todo_is(aElement.getAttribute(aAttr), "null",
+  element.setAttribute(attr, null);
+  todo_is(element.getAttribute(attr), "null",
      "null should have been stringified to 'null'");
-  todo_is(aElement[aAttr], "null",
+  todo_is(element[attr], "null",
      "null should have been stringified to 'null'");
-  aElement.removeAttribute(aAttr);
+  element.removeAttribute(attr);
 
-  aElement[aAttr] = null;
-  todo_is(aElement.getAttribute(aAttr), "null",
+  element[attr] = null;
+  todo_is(element.getAttribute(attr), "null",
      "null should have been stringified to 'null'");
-  todo_is(aElement[aAttr], "null",
+  todo_is(element[attr], "null",
      "null should have been stringified to 'null'");
-  aElement.removeAttribute(aAttr);
+  element.removeAttribute(attr);
 
   
   var stringsToTest = [
@@ -57,7 +61,7 @@ function reflectString(aElement, aAttr, aOtherValues)
     [ "null", "null" ],
     [ "undefined", "undefined" ],
     [ "foo", "foo" ],
-    [ aAttr, aAttr ],
+    [ attr, attr ],
     
     
     [ undefined, "undefined" ],
@@ -80,25 +84,25 @@ function reflectString(aElement, aAttr, aOtherValues)
   otherValues.forEach(function(v) { stringsToTest.push([v, v]) });
 
   stringsToTest.forEach(function([v, r]) {
-    aElement.setAttribute(aAttr, v);
-    is(aElement[aAttr], r,
+    element.setAttribute(attr, v);
+    is(element[attr], r,
        "IDL attribute should return the value it has been set to.");
-    is(aElement.getAttribute(aAttr), r,
+    is(element.getAttribute(attr), r,
        "Content attribute should return the value it has been set to.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
 
-    aElement[aAttr] = v;
-    is(aElement[aAttr], r,
+    element[attr] = v;
+    is(element[attr], r,
        "IDL attribute should return the value it has been set to.");
-    is(aElement.getAttribute(aAttr), r,
+    is(element.getAttribute(attr), r,
        "Content attribute should return the value it has been set to.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
   });
 
   
-  is(aElement.getAttribute(aAttr), null,
-     "When not set, the content attribute should be undefined.");
-  is(aElement[aAttr], "",
+  is(element.getAttribute(attr), null,
+     "When not set, the content attribute should be null.");
+  is(element[attr], "",
      "When not set, the IDL attribute should return the empty string");
 }
 
@@ -106,51 +110,60 @@ function reflectString(aElement, aAttr, aOtherValues)
 
 
 
-function reflectUnsignedInt(aElement, aAttr, aNonNull, aDefault)
-{
-  function checkGetter(aElement, aAttr, aValue)
-  {
-    is(aElement[aAttr], aValue, "." + aAttr + " should be equals " + aValue);
-    is(aElement.getAttribute(aAttr), aValue,
-       "@" + aAttr + " should be equals " + aValue);
-  }
 
-  if (!aDefault) {
-    if (aNonNull) {
-      aDefault = 1;
+
+
+
+
+
+function reflectUnsignedInt(aParameters)
+{
+  var element = aParameters.element;
+  var attr = aParameters.attribute;
+  var nonZero = aParameters.nonZero;
+  var defaultValue = aParameters.defaultValue;
+
+  if (defaultValue === undefined) {
+    if (nonZero) {
+      defaultValue = 1;
     } else {
-      aDefault = 0;
+      defaultValue = 0;
     }
   }
 
-  ok(aAttr in aElement, aAttr + " should be an IDL attribute of this element");
-  is(typeof aElement[aAttr], "number", aAttr + " IDL attribute should be a string");
+  ok(attr in element, attr + " should be an IDL attribute of this element");
+  is(typeof element[attr], "number", attr + " IDL attribute should be a number");
 
   
-  is(aElement[aAttr], aDefault, "default value should be " + aDefault);
-  ok(!aElement.hasAttribute(aAttr), aAttr + " shouldn't be present");
+  is(element[attr], defaultValue, "default value should be " + defaultValue);
+  ok(!element.hasAttribute(attr), attr + " shouldn't be present");
 
   var values = [ 1, 3, 42, 2147483647 ];
 
   for each (var value in values) {
-    aElement[aAttr] = value;
-    checkGetter(aElement, aAttr, value);
-  }
+    element[attr] = value;
+    is(element[attr], value, "." + attr + " should be equals " + value);
+    is(element.getAttribute(attr), value,
+       "@" + attr + " should be equals " + value);
 
-  for each (var value in values) {
-    aElement.setAttribute(aAttr, value);
-    checkGetter(aElement, aAttr, value);
+    element.setAttribute(attr, value);
+    is(element[attr], value, "." + attr + " should be equals " + value);
+    is(element.getAttribute(attr), value,
+       "@" + attr + " should be equals " + value);
   }
 
   
-  aElement[aAttr] = -3000000000;
-  checkGetter(aElement, aAttr, 1294967296);
+  element[attr] = -3000000000;
+  is(element[attr], 1294967296, "." + attr + " should be equals to 1294967296");
+  is(element.getAttribute(attr), 1294967296,
+     "@" + attr + " should be equals to 1294967296");
+
   
-  aElement.setAttribute(aAttr, -3000000000);
-  is(aElement.getAttribute(aAttr), -3000000000,
-     "@" + aAttr + " should be equals to " + -3000000000);
-  is(aElement[aAttr], aDefault,
-     "." + aAttr + " should be equals to " + aDefault);
+  element.setAttribute(attr, -3000000000);
+  is(element.getAttribute(attr), -3000000000,
+     "@" + attr + " should be equals to " + -3000000000);
+  is(element[attr], defaultValue,
+     "." + attr + " should be equals to " + defaultValue);
 
   var nonValidValues = [
     
@@ -160,44 +173,44 @@ function reflectUnsignedInt(aElement, aAttr, aNonNull, aDefault)
   ];
 
   for each (var values in nonValidValues) {
-    aElement[aAttr] = values[0];
-    is(aElement.getAttribute(aAttr), values[1],
-       "@" + aAttr + " should be equals to " + values[1]);
-    is(aElement[aAttr], aDefault,
-       "." + aAttr + " should be equals to " + aDefault);
+    element[attr] = values[0];
+    is(element.getAttribute(attr), values[1],
+       "@" + attr + " should be equals to " + values[1]);
+    is(element[attr], defaultValue,
+       "." + attr + " should be equals to " + defaultValue);
   }
 
   for each (var values in nonValidValues) {
-    aElement.setAttribute(aAttr, values[0]);
-    is(aElement.getAttribute(aAttr), values[0],
-       "@" + aAttr + " should be equals to " + values[0]);
-    is(aElement[aAttr], aDefault,
-       "." + aAttr + " should be equals to " + aDefault);
+    element.setAttribute(attr, values[0]);
+    is(element.getAttribute(attr), values[0],
+       "@" + attr + " should be equals to " + values[0]);
+    is(element[attr], defaultValue,
+       "." + attr + " should be equals to " + defaultValue);
   }
 
   
   var caught = false;
   try {
-    aElement[aAttr] = 0;
+    element[attr] = 0;
   } catch(e) {
     caught = true;
     is(e.code, DOMException.INDEX_SIZE_ERR, "exception should be INDEX_SIZE_ERR");
   }
 
-  if (aNonNull) {
+  if (nonZero) {
     ok(caught, "an exception should have been caught");
   } else {
     ok(!caught, "no exception should have been caught");
   }
 
   
-  aElement.setAttribute(aAttr, 0);
-  is(aElement.getAttribute(aAttr), 0, "@" + aAttr + " should be equals to 0");
-  if (aNonNull) {
-    is(aElement[aAttr], aDefault,
-       "." + aAttr + " should be equals to " + aDefault);
+  element.setAttribute(attr, 0);
+  is(element.getAttribute(attr), 0, "@" + attr + " should be equals to 0");
+  if (nonZero) {
+    is(element[attr], defaultValue,
+       "." + attr + " should be equals to " + defaultValue);
   } else {
-    is(aElement[aAttr], 0, "." + aAttr + " should be equals to 0");
+    is(element[attr], 0, "." + attr + " should be equals to 0");
   }
 }
 
@@ -209,99 +222,107 @@ function reflectUnsignedInt(aElement, aAttr, aNonNull, aDefault)
 
 
 
-function reflectLimitedEnumerated(aElement, aAttr, aValidValues, aInvalidValues,
-                                  aDefaultValue, aUnsupportedValues)
-{
-  var defaultValue = aDefaultValue !== undefined ? aDefaultValue : "";
-  var unsupportedValues = aUnsupportedValues !== undefined ? aUnsupportedValues
-                                                           : [];
 
-  ok(aAttr in aElement, aAttr + " should be an IDL attribute of this element");
-  is(typeof aElement[aAttr], "string", aAttr + " IDL attribute should be a string");
+
+
+
+function reflectLimitedEnumerated(aParameters)
+{
+  var element = aParameters.element;
+  var attr = aParameters.attribute;
+  var validValues = aParameters.validValues;
+  var invalidValues = aParameters.invalidValues;
+  var defaultValue = aParameters.defaultValue !== undefined
+    ? aParameters.defaultValue : "";
+  var unsupportedValues = aParameters.unsupportedValues !== undefined
+    ? aParameters.unsupportedValues : [];
+
+  ok(attr in element, attr + " should be an IDL attribute of this element");
+  is(typeof element[attr], "string", attr + " IDL attribute should be a string");
 
   
-  aElement.removeAttribute(aAttr);
-  is(aElement[aAttr], defaultValue,
+  element.removeAttribute(attr);
+  is(element[attr], defaultValue,
      "When no attribute is set, the value should be the default value.");
 
   
-  aValidValues.forEach(function (v) {
-    aElement.setAttribute(aAttr, v);
-    is(aElement[aAttr], v,
-       v + " should be accepted as a valid value for " + aAttr);
-    is(aElement.getAttribute(aAttr), v,
+  validValues.forEach(function (v) {
+    element.setAttribute(attr, v);
+    is(element[attr], v,
+       v + " should be accepted as a valid value for " + attr);
+    is(element.getAttribute(attr), v,
        "Content attribute should return the value it has been set to.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
 
-    aElement.setAttribute(aAttr, v.toUpperCase());
-    is(aElement[aAttr], v,
+    element.setAttribute(attr, v.toUpperCase());
+    is(element[attr], v,
        "Enumerated attributes should be case-insensitive.");
-    is(aElement.getAttribute(aAttr), v.toUpperCase(),
+    is(element.getAttribute(attr), v.toUpperCase(),
        "Content attribute should not be lower-cased.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
 
-    aElement[aAttr] = v;
-    is(aElement[aAttr], v,
-       v + " should be accepted as a valid value for " + aAttr);
-    is(aElement.getAttribute(aAttr), v,
+    element[attr] = v;
+    is(element[attr], v,
+       v + " should be accepted as a valid value for " + attr);
+    is(element.getAttribute(attr), v,
        "Content attribute should return the value it has been set to.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
 
-    aElement[aAttr] = v.toUpperCase();
-    is(aElement[aAttr], v,
+    element[attr] = v.toUpperCase();
+    is(element[attr], v,
        "Enumerated attributes should be case-insensitive.");
-    is(aElement.getAttribute(aAttr), v.toUpperCase(),
+    is(element.getAttribute(attr), v.toUpperCase(),
        "Content attribute should not be lower-cased.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
   });
 
   
-  aInvalidValues.forEach(function (v) {
-    aElement.setAttribute(aAttr, v);
-    is(aElement[aAttr], defaultValue,
+  invalidValues.forEach(function (v) {
+    element.setAttribute(attr, v);
+    is(element[attr], defaultValue,
        "When the content attribute is set to an invalid value, the default value should be returned.");
-    is(aElement.getAttribute(aAttr), v,
+    is(element.getAttribute(attr), v,
        "Content attribute should not have been changed.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
 
-    aElement[aAttr] = v;
-    is(aElement[aAttr], defaultValue,
+    element[attr] = v;
+    is(element[attr], defaultValue,
        "When the value is set to an invalid value, the default value should be returned.");
-    is(aElement.getAttribute(aAttr), v,
+    is(element.getAttribute(attr), v,
        "Content attribute should not have been changed.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
   });
 
   
   
   unsupportedValues.forEach(function (v) {
-    aElement.setAttribute(aAttr, v);
-    todo_is(aElement[aAttr], v,
-            v + " should be accepted as a valid value for " + aAttr);
-    is(aElement.getAttribute(aAttr), v,
+    element.setAttribute(attr, v);
+    todo_is(element[attr], v,
+            v + " should be accepted as a valid value for " + attr);
+    is(element.getAttribute(attr), v,
        "Content attribute should return the value it has been set to.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
 
-    aElement.setAttribute(aAttr, v.toUpperCase());
-    todo_is(aElement[aAttr], v,
+    element.setAttribute(attr, v.toUpperCase());
+    todo_is(element[attr], v,
             "Enumerated attributes should be case-insensitive.");
-    is(aElement.getAttribute(aAttr), v.toUpperCase(),
+    is(element.getAttribute(attr), v.toUpperCase(),
        "Content attribute should not be lower-cased.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
 
-    aElement[aAttr] = v;
-    todo_is(aElement[aAttr], v,
-            v + " should be accepted as a valid value for " + aAttr);
-    is(aElement.getAttribute(aAttr), v,
+    element[attr] = v;
+    todo_is(element[attr], v,
+            v + " should be accepted as a valid value for " + attr);
+    is(element.getAttribute(attr), v,
        "Content attribute should return the value it has been set to.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
 
-    aElement[aAttr] = v.toUpperCase();
-    todo_is(aElement[aAttr], v,
+    element[attr] = v.toUpperCase();
+    todo_is(element[attr], v,
             "Enumerated attributes should be case-insensitive.");
-    is(aElement.getAttribute(aAttr), v.toUpperCase(),
+    is(element.getAttribute(attr), v.toUpperCase(),
        "Content attribute should not be lower-cased.");
-    aElement.removeAttribute(aAttr);
+    element.removeAttribute(attr);
   });
 }
 

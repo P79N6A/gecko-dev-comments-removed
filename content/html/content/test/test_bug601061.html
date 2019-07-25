@@ -18,7 +18,12 @@
 
 /** Test for Bug 601061 **/
 
-reflectUnsignedInt(document.createElement("input"), "size", true, 20);
+reflectUnsignedInt({
+  element: document.createElement("input"),
+  attribute: "size",
+  nonZero: true,
+  defaultValue: 20,
+});
 
 </script>
 </pre>
