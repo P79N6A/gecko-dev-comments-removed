@@ -48,8 +48,8 @@ class nsIArray;
 class nsPIWindowRoot;
 
 #define NS_PIDOMWINDOW_IID \
-{ 0xf0bafbe6, 0xe45c, 0x490e, \
-  { 0xa2, 0x1c, 0xfe, 0x14, 0x2f, 0xb6, 0x34, 0xba } }
+{ 0xfcc2db29, 0x03ba, 0x4eb3, \
+  { 0x96, 0xb8, 0xea, 0x0f, 0x6f, 0x1f, 0x61, 0x55 } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -353,7 +353,13 @@ public:
   
 
 
+
   virtual void SetDocShell(nsIDocShell *aDocShell) = 0;
+
+  
+
+
+  virtual void DetachFromDocShell() = 0;
 
   
 
