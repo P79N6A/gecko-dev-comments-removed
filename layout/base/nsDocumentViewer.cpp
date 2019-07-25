@@ -1762,6 +1762,10 @@ DocumentViewerImpl::SetDocumentInternal(nsIDocument* aDocument,
   aDocument->SetContainer(container);
 
   if (mDocument != aDocument) {
+    if (mDocument->IsStaticDocument()) {
+      mDocument->SetScriptGlobalObject(nsnull);
+      mDocument->Destroy();
+    }
     
     
     mDocument = aDocument;
