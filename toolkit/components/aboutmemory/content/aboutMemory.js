@@ -411,19 +411,22 @@ function updateAboutMemory()
   let mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
       getService(Ci.nsIMemoryReporterManager);
 
-  let treesByProcess = {}, othersByProcess = {};
-  getTreesAndOthersByProcess(mgr, treesByProcess, othersByProcess);
+  let treesByProcess = {}, othersByProcess = {}, heapTotalByProcess = {};
+  getTreesAndOthersByProcess(mgr, treesByProcess, othersByProcess,
+                             heapTotalByProcess);
 
   
   
   let hasMozMallocUsableSize = mgr.hasMozMallocUsableSize;
   appendProcessAboutMemoryElements(body, "Main", treesByProcess["Main"],
                                    othersByProcess["Main"],
+                                   heapTotalByProcess["Main"],
                                    hasMozMallocUsableSize);
   for (let process in treesByProcess) {
     if (process !== "Main") {
       appendProcessAboutMemoryElements(body, process, treesByProcess[process],
                                        othersByProcess[process],
+                                       heapTotalByProcess[process],
                                        hasMozMallocUsableSize);
     }
   }
@@ -494,7 +497,11 @@ function updateAboutMemory()
 
 
 
-function getTreesAndOthersByProcess(aMgr, aTreesByProcess, aOthersByProcess)
+
+
+
+function getTreesAndOthersByProcess(aMgr, aTreesByProcess, aOthersByProcess,
+                                    aHeapTotalByProcess)
 {
   
   
@@ -555,8 +562,20 @@ function getTreesAndOthersByProcess(aMgr, aTreesByProcess, aOthersByProcess)
       } else {
         
         u._amount = aAmount;
-        u._description = aDescription;
-        u._kind = aKind;
+        if (unsafeNames[0] === "explicit") {
+          u._description = kindToString(aKind) + aDescription;
+        } else {
+          
+          
+          u._description = aDescription;
+        }
+      }
+
+      if (unsafeNames[0] === "explicit" && aKind == KIND_HEAP) {
+        if (!aHeapTotalByProcess[process]) {
+          aHeapTotalByProcess[process] = 0;
+        }
+        aHeapTotalByProcess[process] += aAmount;
       }
 
     } else {
@@ -587,7 +606,6 @@ function TreeNode(aUnsafeName)
 {
   
   this._unsafeName = aUnsafeName;
-  
   
   
   
@@ -649,12 +667,10 @@ function fillInTree(aTreeOfTrees, aTreePrefix)
   {
     if (!aT._kids) {
       
-      assert(aT._kind !== undefined, "aT._kind is undefined for leaf node");
 
     } else if (aT._kids.length === 1 && !aCannotMerge) {
       
       
-      assert(aT._kind === undefined, "aT._kind is defined for non-leaf node");
       let kid = aT._kids[0];
       let kidBytes = fillInNonLeafNodes(kid);
       aT._unsafeName += '/' + kid._unsafeName;
@@ -665,9 +681,6 @@ function fillInTree(aTreeOfTrees, aTreePrefix)
       }
       aT._amount = kid._amount;
       aT._description = kid._description;
-      if (kid._kind !== undefined) {
-        aT._kind = kid._kind;
-      }
       if (kid._nMerged !== undefined) {
         aT._nMerged = kid._nMerged
       }
@@ -676,7 +689,6 @@ function fillInTree(aTreeOfTrees, aTreePrefix)
     } else {
       
       
-      assert(aT._kind === undefined, "aT._kind is defined for non-leaf node");
       let kidsBytes = 0;
       for (let i = 0; i < aT._kids.length; i++) {
         kidsBytes += fillInNonLeafNodes(aT._kids[i]);
@@ -705,39 +717,22 @@ function fillInTree(aTreeOfTrees, aTreePrefix)
 
 
 
-function fixUpExplicitTree(aT, aOthers)
-{
-  
-  function getKnownHeapUsedBytes(aT)
-  {
-    let n = 0;
-    if (!aT._kids) {
-      
-      assert(aT._kind !== undefined, "aT._kind is undefined for leaf node");
-      n = aT._kind === KIND_HEAP ? aT._amount : 0;
-    } else {
-      for (let i = 0; i < aT._kids.length; i++) {
-        n += getKnownHeapUsedBytes(aT._kids[i]);
-      }
-    }
-    return n;
-  }
 
-  
-  
-  
+
+
+function addHeapUnclassifiedNode(aT, aOthers, aHeapTotal)
+{
   let heapAllocatedReport = aOthers["heap-allocated"];
   if (heapAllocatedReport === undefined)
     return false;
 
   let heapAllocatedBytes = heapAllocatedReport._amount;
   let heapUnclassifiedT = new TreeNode("heap-unclassified");
-  heapUnclassifiedT._amount = heapAllocatedBytes - getKnownHeapUsedBytes(aT);
-  heapUnclassifiedT._description =
+  heapUnclassifiedT._amount = heapAllocatedBytes - aHeapTotal;
+  heapUnclassifiedT._description = kindToString(KIND_HEAP) +
       "Memory not classified by a more specific reporter. This includes " +
       "slop bytes due to internal fragmentation in the heap allocator " +
       "(caused when the allocator rounds up request sizes).";
-  heapUnclassifiedT._kind = KIND_HEAP;
   aT._kids.push(heapUnclassifiedT);
   aT._amount += heapUnclassifiedT._amount;
   return true;
@@ -886,7 +881,7 @@ function appendWarningElements(aP, aHasKnownHeapAllocated,
 
 
 function appendProcessAboutMemoryElements(aP, aProcess, aTreeOfTrees, aOthers,
-                                          aHasMozMallocUsableSize)
+                                          aHeapTotal, aHasMozMallocUsableSize)
 {
   appendElementWithText(aP, "h1", "", aProcess + " Process\n\n");
 
@@ -894,7 +889,8 @@ function appendProcessAboutMemoryElements(aP, aProcess, aTreeOfTrees, aOthers,
   let warningsDiv = appendElement(aP, "div", "accuracyWarning");
 
   let explicitTree = fillInTree(aTreeOfTrees, "explicit/");
-  let hasKnownHeapAllocated = fixUpExplicitTree(explicitTree, aOthers);
+  let hasKnownHeapAllocated =
+    addHeapUnclassifiedNode(explicitTree, aOthers, aHeapTotal);
   sortTreeAndInsertAggregateNodes(explicitTree._amount, explicitTree);
   appendTreeElements(aP, explicitTree, aProcess);
 
@@ -1067,20 +1063,19 @@ function kindToString(aKind)
    case KIND_NONHEAP: return "(Non-heap) ";
    case KIND_HEAP:    return "(Heap) ";
    case KIND_OTHER:
-   case undefined:    return "";
+   case undefined:
    default:           assert(false, "bad kind in kindToString");
   }
 }
 
-function appendMrNameSpan(aP, aKind, aDescription, aUnsafeName,
-                          aIsInvalid, aNMerged)
+function appendMrNameSpan(aP, aDescription, aUnsafeName, aIsInvalid, aNMerged)
 {
   let safeName = flipBackslashes(aUnsafeName);
   if (!aIsInvalid && !aNMerged) {
     safeName += "\n";
   }
   let nameSpan = appendElementWithText(aP, "span", "mrName", safeName);
-  nameSpan.title = kindToString(aKind) + aDescription;
+  nameSpan.title = aDescription;
 
   if (aIsInvalid) {
     let noteText = " [?!]";
@@ -1284,10 +1279,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
     appendElementWithText(d, "span", "mrPerc", percText);
     appendElementWithText(d, "span", "mrSep", sep);
 
-    
-    
-    let kind = isExplicitTree ? aT._kind : undefined;
-    appendMrNameSpan(d, kind, aT._description, aT._unsafeName,
+    appendMrNameSpan(d, aT._description, aT._unsafeName,
                      tIsInvalid, aT._nMerged);
 
     
@@ -1338,7 +1330,6 @@ function appendTreeElements(aPOuter, aT, aProcess)
 
 function OtherReport(aUnsafePath, aUnits, aAmount, aDescription, aNMerged)
 {
-  
   this._unsafePath = aUnsafePath;
   this._units    = aUnits;
   this._amount = aAmount;
@@ -1416,8 +1407,7 @@ function appendOtherElements(aP, aOthers)
     }
     appendMrValueSpan(pre, pad(o._asString, maxStringLength, ' '), oIsInvalid);
     appendElementWithText(pre, "span", "mrSep", kNoKidsSep);
-    appendMrNameSpan(pre, KIND_OTHER, o._description, o._unsafePath,
-                     oIsInvalid);
+    appendMrNameSpan(pre, o._description, o._unsafePath, oIsInvalid);
   }
 
   appendTextNode(aP, "\n");  
