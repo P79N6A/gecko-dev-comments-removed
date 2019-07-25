@@ -600,11 +600,18 @@ IonBuilder::finalizeLoop(CFGState &state, MInstruction *last)
     
     MBasicBlock *breaks = NULL;
     if (state.loop.breaks) {
-        breaks = newBlock(state.loop.exitpc);
+        DeferredEdge *edge = state.loop.breaks;
+
+        breaks = newBlock(edge->block, state.loop.exitpc);
         if (!breaks)
             return false;
 
-        DeferredEdge *edge = state.loop.breaks;
+        
+        
+        edge->block->end(MGoto::New(breaks));
+        edge = edge->next;
+
+        
         while (edge) {
             edge->block->end(MGoto::New(breaks));
             if (!breaks->addPredecessor(edge->block))
@@ -749,7 +756,9 @@ IonBuilder::processDeferredContinues(CFGState &state)
     
     
     if (state.loop.continues) {
-        MBasicBlock *update = newBlock(pc);
+        DeferredEdge *edge = state.loop.continues;
+
+        MBasicBlock *update = newBlock(edge->block, pc);
         if (!update)
             return false;
 
@@ -759,7 +768,12 @@ IonBuilder::processDeferredContinues(CFGState &state)
                 return ControlStatus_Error;
         }
 
-        DeferredEdge *edge = state.loop.continues;
+        
+        
+        edge->block->end(MGoto::New(update));
+        edge = edge->next;
+
+        
         while (edge) {
             edge->block->end(MGoto::New(update));
             if (!update->addPredecessor(edge->block))
