@@ -4,8 +4,27 @@
 
 let EXPORTED_SYMBOLS = ["TelemetryTimestamps"];
 
+
+
+
+
+
+
+
+
+
+let timeStamps = {};
+
 let TelemetryTimestamps = {
-  timeStamps: {},
+  
+
+
+
+
+
+
+
+
   add: function TT_add(name, value) {
     
     if (value == null)
@@ -15,12 +34,19 @@ let TelemetryTimestamps = {
       throw new Error("Value must be a timestamp");
 
     
-    if (this.timeStamps.hasOwnProperty(name))
+    if (timeStamps.hasOwnProperty(name))
       return;
 
-    this.timeStamps[name] = value;
+    timeStamps[name] = value;
   },
+
+  
+
+
+
+
   get: function TT_get() {
-    return JSON.parse(JSON.stringify(this.timeStamps));
+    
+    return JSON.parse(JSON.stringify(timeStamps));
   }
 };
