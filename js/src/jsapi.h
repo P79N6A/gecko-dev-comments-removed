@@ -1399,10 +1399,16 @@ JS_GetExternalStringGCType(JSRuntime *rt, JSString *str);
 
 
 
+extern JS_PUBLIC_API(void)
+JS_SetThreadStackLimit(JSContext *cx, jsuword limitAddr);
+
+
+
 
 
 extern JS_PUBLIC_API(void)
-JS_SetThreadStackLimit(JSContext *cx, jsuword limitAddr);
+JS_SetNativeStackQuota(JSContext *cx, size_t stackSize);
+
 
 
 

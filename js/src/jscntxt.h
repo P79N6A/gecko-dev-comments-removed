@@ -1027,7 +1027,10 @@ struct JSThreadData {
     } dtoaCache;
 
     
-    JSObject *cachedNativeIterators[NATIVE_ITER_CACHE_SIZE];
+    JSObject            *cachedNativeIterators[NATIVE_ITER_CACHE_SIZE];
+
+    
+    jsuword             *nativeStackBase;
 
     bool init();
     void finish();
