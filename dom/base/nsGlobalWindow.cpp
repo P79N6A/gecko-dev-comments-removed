@@ -4103,7 +4103,7 @@ nsGlobalWindow::Dump(const nsAString& aStr)
 
 #if defined(XP_MAC) || defined(XP_MACOSX)
   
-  char *c = cstr, *cEnd = cstr + aStr.Length();
+  char *c = cstr, *cEnd = cstr + strlen(cstr);
   while (c < cEnd) {
     if (*c == '\r')
       *c = '\n';
