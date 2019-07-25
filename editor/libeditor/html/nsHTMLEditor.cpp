@@ -415,11 +415,6 @@ nsHTMLEditor::FindSelectionRoot(nsINode *aNode)
   }
 
   if (!content->HasFlag(NODE_IS_EDITABLE)) {
-    
-    
-    if (content->IntrinsicState().HasState(NS_EVENT_STATE_MOZ_READWRITE)) {
-      return content.forget();
-    }
     return nsnull;
   }
 
@@ -6034,23 +6029,4 @@ nsHTMLEditor::GetPreferredIMEState(PRUint32 *aState)
   
   *aState = nsIContent::IME_STATUS_ENABLE;
   return NS_OK;
-}
-
-PRBool
-nsHTMLEditor::IsEditable(nsIDOMNode* aNode) {
-  if (!nsPlaintextEditor::IsEditable(aNode)) {
-    return PR_FALSE;
-  }
-  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
-  if (!node) {
-    
-    return PR_FALSE;
-  }
-  if (node->IsElement()) {
-    
-    return node->IsEditable();
-  }
-  
-  
-  return PR_TRUE;
 }

@@ -144,10 +144,12 @@
 #ifdef MOZ_MATHML
 #include "nsMathMLParts.h"
 #endif
+#ifdef MOZ_SVG
 #include "nsSVGFeatures.h"
 #include "nsSVGEffects.h"
 #include "nsSVGUtils.h"
 #include "nsSVGOuterSVGFrame.h"
+#endif
 
 #include "nsRefreshDriver.h"
 
@@ -162,8 +164,11 @@ nsIFrame*
 NS_NewHTMLVideoFrame (nsIPresShell* aPresShell, nsStyleContext* aContext);
 #endif
 
+#ifdef MOZ_SVG
 #include "nsSVGTextContainerFrame.h"
 
+PRBool
+NS_SVGEnabled();
 nsIFrame*
 NS_NewSVGOuterSVGFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
@@ -212,6 +217,7 @@ nsIFrame*
 NS_NewSVGMaskFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewSVGLeafFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+#endif
 
 #include "nsIDocument.h"
 #include "nsIDOMElement.h"
@@ -2402,8 +2408,9 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
   }
   else
 #endif
+#ifdef MOZ_SVG
   if (aDocElement->GetNameSpaceID() == kNameSpaceID_SVG) {
-    if (aDocElement->Tag() == nsGkAtoms::svg) {
+    if (aDocElement->Tag() == nsGkAtoms::svg && NS_SVGEnabled()) {
       contentFrame = NS_NewSVGOuterSVGFrame(mPresShell, styleContext);
       if (NS_UNLIKELY(!contentFrame)) {
         return NS_ERROR_OUT_OF_MEMORY;
@@ -2429,7 +2436,10 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     } else {
       return NS_ERROR_FAILURE;
     }
-  } else {
+  }
+  else
+#endif
+  {
     PRBool docElemIsTable = (display->mDisplay == NS_STYLE_DISPLAY_TABLE);
     if (docElemIsTable) {
       
@@ -3361,6 +3371,7 @@ FindAncestorWithGeneratedContentPseudo(nsIFrame* aFrame)
 const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindTextData(nsIFrame* aParentFrame)
 {
+#ifdef MOZ_SVG
   if (aParentFrame && aParentFrame->IsFrameOfType(nsIFrame::eSVG)) {
     nsIFrame *ancestorFrame =
       nsSVGUtils::GetFirstNonAAncestorFrame(aParentFrame);
@@ -3374,6 +3385,7 @@ nsCSSFrameConstructor::FindTextData(nsIFrame* aParentFrame)
     }
     return nsnull;
   }
+#endif
 
   static const FrameConstructionData sTextData =
     FCDATA_DECL(FCDATA_IS_LINE_PARTICIPANT, NS_NewTextFrame);
@@ -3915,31 +3927,6 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
   return NS_OK;
 }
 
-static void
-SetFlagsOnSubtree(nsIContent *aNode, PtrBits aFlagsToSet)
-{
-#ifdef DEBUG
-  
-  {
-    nsIDocument *doc = aNode->GetOwnerDoc();
-    NS_ASSERTION(doc, "The node must be in a document");
-    NS_ASSERTION(!doc->BindingManager()->GetXBLChildNodesFor(aNode),
-                 "The node should not have any XBL children");
-  }
-#endif
-
-  
-  aNode->SetFlags(aFlagsToSet);
-
-  
-  PRUint32 count;
-  nsIContent * const *children = aNode->GetChildArray(&count);
-
-  for (PRUint32 index = 0; index < count; ++index) {
-    SetFlagsOnSubtree(children[index], aFlagsToSet);
-  }
-}
-
 nsresult
 nsCSSFrameConstructor::GetAnonymousContent(nsIContent* aParent,
                                            nsIFrame* aParentFrame,
@@ -3958,26 +3945,19 @@ nsCSSFrameConstructor::GetAnonymousContent(nsIContent* aParent,
     nsIContent* content = aContent[i];
     NS_ASSERTION(content, "null anonymous content?");
 
+#ifdef MOZ_SVG
     
     
     if (aParent &&
         aParent->NodeInfo()->Equals(nsGkAtoms::use, kNameSpaceID_SVG)) {
       content->SetFlags(NODE_IS_ANONYMOUS);
-    } else {
+    } else
+#endif
+    {
       content->SetNativeAnonymous();
     }
 
-    PRBool anonContentIsEditable = content->HasFlag(NODE_IS_EDITABLE);
     rv = content->BindToTree(mDocument, aParent, aParent, PR_TRUE);
-    
-    
-    
-    
-    if (anonContentIsEditable) {
-      NS_ASSERTION(aParentFrame->GetType() == nsGkAtoms::textInputFrame,
-                   "We only expect this for anonymous content under a text control frame");
-      SetFlagsOnSubtree(content, NODE_IS_EDITABLE);
-    }
     if (NS_FAILED(rv)) {
       content->UnbindFromTree();
       return rv;
@@ -4752,6 +4732,7 @@ nsCSSFrameConstructor::FindMathMLData(nsIContent* aContent,
 }
 #endif 
 
+#ifdef MOZ_SVG
 
 
 #define SIMPLE_SVG_FCDATA(_func)                                        \
@@ -4769,7 +4750,7 @@ nsCSSFrameConstructor::FindSVGData(nsIContent* aContent,
                                    nsIFrame* aParentFrame,
                                    nsStyleContext* aStyleContext)
 {
-  if (aNameSpaceID != kNameSpaceID_SVG) {
+  if (aNameSpaceID != kNameSpaceID_SVG || !NS_SVGEnabled()) {
     return nsnull;
   }
 
@@ -4991,6 +4972,8 @@ nsCSSFrameConstructor::ConstructSVGForeignObjectFrame(nsFrameConstructorState& a
   return rv;
 }
 
+#endif 
+
 void
 nsCSSFrameConstructor::AddPageBreakItem(nsIContent* aContent,
                                         nsStyleContext* aMainStyleContext,
@@ -5208,11 +5191,14 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
   const FrameConstructionData* data;
   if (isText) {
     data = FindTextData(aParentFrame);
+#ifdef MOZ_SVG
     if (!data) {
       
       return;
     }
+#endif 
   } else {
+#ifdef MOZ_SVG
     
     if (aNameSpaceID != kNameSpaceID_SVG &&
         aParentFrame &&
@@ -5223,6 +5209,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
                               isGeneratedContent);
       return;
     }
+#endif 
 
     data = FindHTMLData(aContent, aTag, aNameSpaceID, aParentFrame,
                         styleContext);
@@ -5234,10 +5221,12 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
       data = FindMathMLData(aContent, aTag, aNameSpaceID, styleContext);
     }
 #endif
+#ifdef MOZ_SVG
     if (!data) {
       data = FindSVGData(aContent, aTag, aNameSpaceID, aParentFrame,
                          styleContext);
     }
+#endif 
 
     
     if (!data) {
@@ -6209,6 +6198,25 @@ nsCSSFrameConstructor::ReframeTextIfNeeded(nsIContent* aParentContent,
 
 
 
+
+
+
+
+
+
+
+
+
+static inline PRBool
+IsActuallyEditable(nsIContent* aContainer, nsIContent* aChild)
+{
+  return (aChild->IsEditable() &&
+          (aContainer->IsEditable() ||
+           aChild->HasFlag(NODE_MAY_HAVE_CONTENT_EDITABLE_ATTR)));
+}
+
+
+
 PRBool
 nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
                                             nsIContent* aContainer,
@@ -6221,7 +6229,7 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
 
   if (aOperation == CONTENTINSERT) {
     if (aChild->IsRootOfAnonymousSubtree() ||
-        aChild->IsEditable() || aChild->IsXUL()) {
+        aChild->IsXUL() || IsActuallyEditable(aContainer, aChild)) {
       return PR_FALSE;
     }
   } else { 
@@ -6230,7 +6238,7 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
     for (nsIContent* child = aChild; child; child = child->GetNextSibling()) {
       NS_ASSERTION(!child->IsRootOfAnonymousSubtree(),
                    "Should be coming through the CONTENTAPPEND case");
-      if (child->IsXUL() || child->IsEditable()) {
+      if (child->IsXUL() || IsActuallyEditable(aContainer, child)) {
         return PR_FALSE;
       }
     }
@@ -7730,6 +7738,7 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
     
     if (aChange & nsChangeHint_RepaintFrame) {
       if (aFrame->IsFrameOfType(nsIFrame::eSVG)) {
+#ifdef MOZ_SVG
         if (!(aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
           nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(aFrame);
           if (outerSVGFrame) {
@@ -7747,6 +7756,7 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
             outerSVGFrame->UpdateAndInvalidateCoveredRegion(aFrame);
           }
         }
+#endif
       } else {
         aFrame->InvalidateOverflowRect();
       }
@@ -8035,9 +8045,11 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       RecreateFramesForContent(content, PR_FALSE);
     } else {
       NS_ASSERTION(frame, "This shouldn't happen");
+#ifdef MOZ_SVG
       if (hint & nsChangeHint_UpdateEffects) {
         nsSVGEffects::UpdateEffects(frame);
       }
+#endif
       if (hint & nsChangeHint_NeedReflow) {
         StyleChangeReflow(frame, hint);
         didReflow = PR_TRUE;

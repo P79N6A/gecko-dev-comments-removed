@@ -155,7 +155,6 @@ public:
   virtual already_AddRefed<nsPIDOMEventTarget> GetPIDOMEventTarget();
   virtual already_AddRefed<nsIContent> FindSelectionRoot(nsINode *aNode);
   virtual PRBool IsAcceptableInputEvent(nsIDOMEvent* aEvent);
-  virtual PRBool IsEditable(nsIDOMNode *aNode);
 
   
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED

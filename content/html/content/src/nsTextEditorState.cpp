@@ -1526,9 +1526,6 @@ nsTextEditorState::CreateRootNode()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  mRootNode->SetFlags(NODE_IS_EDITABLE);
-
-  
   
   
   nsAutoString classValue;
