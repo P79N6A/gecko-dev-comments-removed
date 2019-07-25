@@ -48,30 +48,31 @@
 
 #include "jsinferinlines.h"
 
-namespace js {
+using namespace js;
+using namespace js::frontend;
 
 
 
 
-Compiler::Compiler(JSContext *cx, JSPrincipals *prin, StackFrame *cfp)
+BytecodeCompiler::BytecodeCompiler(JSContext *cx, JSPrincipals *prin, StackFrame *cfp)
   : parser(cx, prin, cfp), globalScope(NULL)
 {}
 
 JSScript *
-Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerFrame,
-                        JSPrincipals *principals, uint32 tcflags,
-                        const jschar *chars, size_t length,
-                        const char *filename, uintN lineno, JSVersion version,
-                        JSString *source ,
-                        uintN staticLevel )
+BytecodeCompiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerFrame,
+                                JSPrincipals *principals, uint32 tcflags,
+                                const jschar *chars, size_t length,
+                                const char *filename, uintN lineno, JSVersion version,
+                                JSString *source ,
+                                uintN staticLevel )
 {
     TokenKind tt;
-    JSParseNode *pn;
+    ParseNode *pn;
     JSScript *script;
     bool inDirectivePrologue;
 
     JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL | TCF_NEED_MUTABLE_SCRIPT |
-                            TCF_COMPILE_FOR_EVAL | TCF_NEED_SCRIPT_OBJECT)));
+                            TCF_COMPILE_FOR_EVAL | TCF_NEED_SCRIPT_GLOBAL)));
 
     
 
@@ -80,15 +81,15 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     JS_ASSERT_IF(callerFrame, tcflags & TCF_COMPILE_N_GO);
     JS_ASSERT_IF(staticLevel != 0, callerFrame);
 
-    Compiler compiler(cx, principals, callerFrame);
+    BytecodeCompiler compiler(cx, principals, callerFrame);
     if (!compiler.init(chars, length, filename, lineno, version))
         return NULL;
 
     Parser &parser = compiler.parser;
     TokenStream &tokenStream = parser.tokenStream;
 
-    JSCodeGenerator cg(&parser, tokenStream.getLineno());
-    if (!cg.init(cx, JSTreeContext::USED_AS_TREE_CONTEXT))
+    CodeGenerator cg(&parser, tokenStream.getLineno());
+    if (!cg.init(cx, TreeContext::USED_AS_TREE_CONTEXT))
         return NULL;
 
     Probes::compileScriptBegin(cx, filename, lineno);
@@ -143,7 +144,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
 
 
-            JSObjectBox *funbox = parser.newObjectBox(callerFrame->fun());
+            ObjectBox *funbox = parser.newObjectBox(callerFrame->fun());
             if (!funbox)
                 goto out;
             funbox->emitLink = cg.objectList.lastbox;
@@ -189,21 +190,21 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
         if (inDirectivePrologue && !parser.recognizeDirectivePrologue(pn, &inDirectivePrologue))
             goto out;
 
-        if (!js_FoldConstants(cx, pn, &cg))
+        if (!FoldConstants(cx, pn, &cg))
             goto out;
 
         if (!parser.analyzeFunctions(&cg))
             goto out;
         cg.functionList = NULL;
 
-        if (!js_EmitTree(cx, &cg, pn))
+        if (!EmitTree(cx, &cg, pn))
             goto out;
 
 #if JS_HAS_XML_SUPPORT
         if (!pn->isKind(TOK_SEMI) || !pn->pn_kid || !TreeTypeIsXML(pn->pn_kid->getKind()))
             onlyXML = false;
 #endif
-        RecycleTree(pn, &cg);
+        cg.freeTree(pn);
     }
 
 #if JS_HAS_XML_SUPPORT
@@ -257,7 +258,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
 
 
-    if (js_Emit1(cx, &cg, JSOP_STOP) < 0)
+    if (Emit1(cx, &cg, JSOP_STOP) < 0)
         goto out;
 
     JS_ASSERT(cg.version() == version);
@@ -282,7 +283,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 }
 
 bool
-Compiler::defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script)
+BytecodeCompiler::defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script)
 {
     JSObject *globalObj = globalScope.globalObj;
 
@@ -325,7 +326,7 @@ Compiler::defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *scrip
         def.knownSlot = shape->slot();
     }
 
-    js::Vector<JSScript *, 16> worklist(cx);
+    Vector<JSScript *, 16> worklist(cx);
     if (!worklist.append(script))
         return false;
 
@@ -388,11 +389,11 @@ Compiler::defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *scrip
 
 
 bool
-Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
-                              Bindings *bindings, const jschar *chars, size_t length,
-                              const char *filename, uintN lineno, JSVersion version)
+BytecodeCompiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
+                                      Bindings *bindings, const jschar *chars, size_t length,
+                                      const char *filename, uintN lineno, JSVersion version)
 {
-    Compiler compiler(cx, principals);
+    BytecodeCompiler compiler(cx, principals);
 
     if (!compiler.init(chars, length, filename, lineno, version))
         return false;
@@ -400,8 +401,8 @@ Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *prin
     Parser &parser = compiler.parser;
     TokenStream &tokenStream = parser.tokenStream;
 
-    JSCodeGenerator funcg(&parser, tokenStream.getLineno());
-    if (!funcg.init(cx, JSTreeContext::USED_AS_TREE_CONTEXT))
+    CodeGenerator funcg(&parser, tokenStream.getLineno());
+    if (!funcg.init(cx, TreeContext::USED_AS_TREE_CONTEXT))
         return false;
 
     funcg.flags |= TCF_IN_FUNCTION;
@@ -413,7 +414,7 @@ Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *prin
 
     
     tokenStream.mungeCurrentToken(TOK_NAME);
-    JSParseNode *fn = FunctionNode::create(&funcg);
+    ParseNode *fn = FunctionNode::create(&funcg);
     if (fn) {
         fn->pn_body = NULL;
         fn->pn_cookie.makeFree();
@@ -444,15 +445,16 @@ Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *prin
 
 
 
+
     tokenStream.mungeCurrentToken(TOK_LC);
-    JSParseNode *pn = fn ? parser.functionBody() : NULL;
+    ParseNode *pn = fn ? parser.functionBody() : NULL;
     if (pn) {
         if (!CheckStrictParameters(cx, &funcg)) {
             pn = NULL;
         } else if (!tokenStream.matchToken(TOK_EOF)) {
             parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
             pn = NULL;
-        } else if (!js_FoldConstants(cx, pn, &funcg)) {
+        } else if (!FoldConstants(cx, pn, &funcg)) {
             
             pn = NULL;
         } else if (!parser.analyzeFunctions(&funcg)) {
@@ -465,12 +467,10 @@ Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *prin
                 pn = fn->pn_body;
             }
 
-            if (!js_EmitFunctionScript(cx, &funcg, pn))
+            if (!EmitFunctionScript(cx, &funcg, pn))
                 pn = NULL;
         }
     }
 
     return pn != NULL;
 }
-
-} 

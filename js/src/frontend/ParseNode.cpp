@@ -40,9 +40,6 @@
 
 #include "frontend/ParseNode.h"
 
-#include "frontend/BytecodeGenerator.h"
-#include "frontend/Parser.h"
-
 #include "jsscriptinlines.h"
 
 #include "frontend/ParseMaps-inl.h"
@@ -53,21 +50,21 @@ using namespace js;
 
 
 
-#define pn_offsetof(m)  offsetof(JSParseNode, m)
+#define pn_offsetof(m)  offsetof(ParseNode, m)
 
 JS_STATIC_ASSERT(pn_offsetof(pn_link) == pn_offsetof(dn_uses));
 
 #undef pn_offsetof
 
 void
-JSParseNode::become(JSParseNode *pn2)
+ParseNode::become(ParseNode *pn2)
 {
     JS_ASSERT(!pn_defn);
     JS_ASSERT(!pn2->isDefn());
 
     JS_ASSERT(!pn_used);
     if (pn2->isUsed()) {
-        JSParseNode **pnup = &pn2->pn_lexdef->dn_uses;
+        ParseNode **pnup = &pn2->pn_lexdef->dn_uses;
         while (*pnup != pn2)
             pnup = &(*pnup)->pn_link;
         *pnup = this;
@@ -102,7 +99,7 @@ JSParseNode::become(JSParseNode *pn2)
 }
 
 void
-JSParseNode::clear()
+ParseNode::clear()
 {
     pn_type = TOK_EOF;
     setOp(JSOP_NOP);
@@ -111,9 +108,8 @@ JSParseNode::clear()
     pn_parens = false;
 }
 
-
 bool
-JSFunctionBox::joinable() const
+FunctionBox::joinable() const
 {
     return function()->isNullClosure() &&
            (tcflags & (TCF_FUN_USES_ARGUMENTS |
@@ -122,9 +118,9 @@ JSFunctionBox::joinable() const
 }
 
 bool
-JSFunctionBox::inAnyDynamicScope() const
+FunctionBox::inAnyDynamicScope() const
 {
-    for (const JSFunctionBox *funbox = this; funbox; funbox = funbox->parent) {
+    for (const FunctionBox *funbox = this; funbox; funbox = funbox->parent) {
         if (funbox->tcflags & (TCF_IN_WITH | TCF_FUN_EXTENSIBLE_SCOPE))
             return true;
     }
@@ -132,19 +128,17 @@ JSFunctionBox::inAnyDynamicScope() const
 }
 
 bool
-JSFunctionBox::scopeIsExtensible() const
+FunctionBox::scopeIsExtensible() const
 {
     return tcflags & TCF_FUN_EXTENSIBLE_SCOPE;
 }
 
-namespace js {
-
 
 void
-AddNodeToFreeList(JSParseNode *pn, js::Parser *parser)
+ParseNodeAllocator::freeNode(ParseNode *pn)
 {
     
-    JS_ASSERT(pn != parser->nodeList);
+    JS_ASSERT(pn != freelist);
 
     
 
@@ -156,15 +150,15 @@ AddNodeToFreeList(JSParseNode *pn, js::Parser *parser)
     JS_ASSERT(!pn->isDefn());
 
     if (pn->isArity(PN_NAMESET) && pn->pn_names.hasMap())
-        pn->pn_names.releaseMap(parser->context);
+        pn->pn_names.releaseMap(cx);
 
 #ifdef DEBUG
     
     memset(pn, 0xab, sizeof(*pn));
 #endif
 
-    pn->pn_next = parser->nodeList;
-    parser->nodeList = pn;
+    pn->pn_next = freelist;
+    freelist = pn;
 }
 
 
@@ -180,28 +174,26 @@ class NodeStack {
   public:
     NodeStack() : top(NULL) { }
     bool empty() { return top == NULL; }
-    void push(JSParseNode *pn) {
+    void push(ParseNode *pn) {
         pn->pn_next = top;
         top = pn;
     }
-    void pushUnlessNull(JSParseNode *pn) { if (pn) push(pn); }
+    void pushUnlessNull(ParseNode *pn) { if (pn) push(pn); }
     
-    void pushList(JSParseNode *pn) {
+    void pushList(ParseNode *pn) {
         
         *pn->pn_tail = top;
         top = pn->pn_head;
     }
-    JSParseNode *pop() {
+    ParseNode *pop() {
         JS_ASSERT(!empty());
-        JSParseNode *hold = top; 
+        ParseNode *hold = top; 
         top = top->pn_next;
         return hold;
     }
   private:
-    JSParseNode *top;
+    ParseNode *top;
 };
-
-} 
 
 
 
@@ -212,12 +204,11 @@ class NodeStack {
 
 
 static bool
-PushNodeChildren(JSParseNode *pn, NodeStack *stack)
+PushNodeChildren(ParseNode *pn, NodeStack *stack)
 {
     switch (pn->getArity()) {
       case PN_FUNC:
         
-
 
 
 
@@ -241,7 +232,6 @@ PushNodeChildren(JSParseNode *pn, NodeStack *stack)
 
       case PN_NAME:
         
-
 
 
 
@@ -287,15 +277,13 @@ PushNodeChildren(JSParseNode *pn, NodeStack *stack)
     return true;
 }
 
-namespace js {
-
 
 
 
 
 
 void
-PrepareNodeForMutation(JSParseNode *pn, JSTreeContext *tc)
+ParseNodeAllocator::prepareNodeForMutation(ParseNode *pn)
 {
     if (!pn->isArity(PN_NULLARY)) {
         if (pn->isArity(PN_FUNC)) {
@@ -326,7 +314,7 @@ PrepareNodeForMutation(JSParseNode *pn, JSTreeContext *tc)
         while (!stack.empty()) {
             pn = stack.pop();
             if (PushNodeChildren(pn, &stack))
-                AddNodeToFreeList(pn, tc->parser);
+                freeNode(pn);
         }
     }
 }
@@ -341,18 +329,18 @@ PrepareNodeForMutation(JSParseNode *pn, JSTreeContext *tc)
 
 
 
-JSParseNode *
-RecycleTree(JSParseNode *pn, JSTreeContext *tc)
+ParseNode *
+ParseNodeAllocator::freeTree(ParseNode *pn)
 {
     if (!pn)
         return NULL;
 
-    JSParseNode *savedNext = pn->pn_next;
+    ParseNode *savedNext = pn->pn_next;
 
     NodeStack stack;
     for (;;) {
         if (PushNodeChildren(pn, &stack))
-            AddNodeToFreeList(pn, tc->parser);
+            freeNode(pn);
         if (stack.empty())
             break;
         pn = stack.pop();
@@ -365,59 +353,34 @@ RecycleTree(JSParseNode *pn, JSTreeContext *tc)
 
 
 
-JSParseNode *
-NewOrRecycledNode(JSTreeContext *tc)
+void *
+ParseNodeAllocator::allocNode()
 {
-    JSParseNode *pn;
-
-    pn = tc->parser->nodeList;
-    if (!pn) {
-        JSContext *cx = tc->parser->context;
-        pn = cx->tempLifoAlloc().new_<JSParseNode>();
-        if (!pn)
-            js_ReportOutOfMemory(cx);
-    } else {
-        tc->parser->nodeList = pn->pn_next;
+    if (ParseNode *pn = freelist) {
+        freelist = pn->pn_next;
+        return pn;
     }
 
-    if (pn) {
-        pn->setUsed(false);
-        pn->setDefn(false);
-        memset(&pn->pn_u, 0, sizeof pn->pn_u);
-        pn->pn_next = NULL;
-    }
-    return pn;
+    void *p = cx->tempLifoAlloc().alloc(sizeof (ParseNode));
+    if (!p)
+        js_ReportOutOfMemory(cx);
+    return p;
 }
 
-} 
 
 
-
-JSParseNode *
-JSParseNode::create(JSParseNodeArity arity, JSTreeContext *tc)
+ParseNode *
+ParseNode::create(ParseNodeArity arity, TreeContext *tc)
 {
-    const Token &tok = tc->parser->tokenStream.currentToken();
-    return create(arity, tok.type, JSOP_NOP, tok.pos, tc);
+    Parser *parser = tc->parser;
+    const Token &tok = parser->tokenStream.currentToken();
+    return parser->new_<ParseNode>(tok.type, JSOP_NOP, arity, tok.pos);
 }
 
-JSParseNode *
-JSParseNode::create(JSParseNodeArity arity, TokenKind type, JSOp op, const TokenPos &pos,
-                    JSTreeContext *tc)
+ParseNode *
+ParseNode::newBinaryOrAppend(TokenKind tt, JSOp op, ParseNode *left, ParseNode *right,
+                             TreeContext *tc)
 {
-    JSParseNode *pn = NewOrRecycledNode(tc);
-    if (!pn)
-        return NULL;
-    pn->init(type, op, arity);
-    pn->pn_pos = pos;
-    return pn;
-}
-
-JSParseNode *
-JSParseNode::newBinaryOrAppend(TokenKind tt, JSOp op, JSParseNode *left, JSParseNode *right,
-                               JSTreeContext *tc)
-{
-    JSParseNode *pn, *pn1, *pn2;
-
     if (!left || !right)
         return NULL;
 
@@ -425,11 +388,9 @@ JSParseNode::newBinaryOrAppend(TokenKind tt, JSOp op, JSParseNode *left, JSParse
 
 
 
-    if (left->isKind(tt) &&
-        left->isOp(op) &&
-        (js_CodeSpec[op].format & JOF_LEFTASSOC)) {
+    if (left->isKind(tt) && left->isOp(op) && (js_CodeSpec[op].format & JOF_LEFTASSOC)) {
         if (left->pn_arity != PN_LIST) {
-            pn1 = left->pn_left, pn2 = left->pn_right;
+            ParseNode *pn1 = left->pn_left, *pn2 = left->pn_right;
             left->setArity(PN_LIST);
             left->pn_parens = false;
             left->initList(pn1);
@@ -466,32 +427,21 @@ JSParseNode::newBinaryOrAppend(TokenKind tt, JSOp op, JSParseNode *left, JSParse
     if (tt == TOK_PLUS &&
         left->isKind(TOK_NUMBER) &&
         right->isKind(TOK_NUMBER) &&
-        tc->parser->foldConstants) {
+        tc->parser->foldConstants)
+    {
         left->pn_dval += right->pn_dval;
         left->pn_pos.end = right->pn_pos.end;
-        RecycleTree(right, tc);
+        tc->freeTree(right);
         return left;
     }
 
-    pn = NewOrRecycledNode(tc);
-    if (!pn)
-        return NULL;
-    pn->init(tt, op, PN_BINARY);
-    pn->pn_pos.begin = left->pn_pos.begin;
-    pn->pn_pos.end = right->pn_pos.end;
-    pn->pn_left = left;
-    pn->pn_right = right;
-    return pn;
+    return tc->parser->new_<BinaryNode>(tt, op, left, right);
 }
 
-namespace js {
-
 NameNode *
-NameNode::create(JSAtom *atom, JSTreeContext *tc)
+NameNode::create(JSAtom *atom, TreeContext *tc)
 {
-    JSParseNode *pn;
-
-    pn = JSParseNode::create(PN_NAME, tc);
+    ParseNode *pn = ParseNode::create(PN_NAME, tc);
     if (pn) {
         pn->pn_atom = atom;
         ((NameNode *)pn)->initCommon(tc);
@@ -499,14 +449,12 @@ NameNode::create(JSAtom *atom, JSTreeContext *tc)
     return (NameNode *)pn;
 }
 
-} 
-
 const char js_argument_str[] = "argument";
 const char js_variable_str[] = "variable";
 const char js_unknown_str[]  = "unknown";
 
 const char *
-JSDefinition::kindString(Kind kind)
+Definition::kindString(Kind kind)
 {
     static const char *table[] = {
         js_var_str, js_const_str, js_let_str,
@@ -523,23 +471,18 @@ JSDefinition::kindString(Kind kind)
 
 
 
-static JSParseNode *
-CloneParseTree(JSParseNode *opn, JSTreeContext *tc)
+static ParseNode *
+CloneParseTree(ParseNode *opn, TreeContext *tc)
 {
     JS_CHECK_RECURSION(tc->parser->context, return NULL);
 
-    JSParseNode *pn, *pn2, *opn2;
-
-    pn = NewOrRecycledNode(tc);
+    ParseNode *pn = tc->parser->new_<ParseNode>(opn->getKind(), opn->getOp(), opn->getArity(),
+                                                opn->pn_pos);
     if (!pn)
         return NULL;
-    pn->setKind(opn->getKind());
-    pn->setOp(opn->getOp());
-    pn->setUsed(opn->isUsed());
-    pn->setDefn(opn->isDefn());
-    pn->setArity(opn->getArity());
     pn->setInParens(opn->isInParens());
-    pn->pn_pos = opn->pn_pos;
+    pn->setDefn(opn->isDefn());
+    pn->setUsed(opn->isUsed());
 
     switch (pn->getArity()) {
 #define NULLCHECK(e)    JS_BEGIN_MACRO if (!(e)) return NULL; JS_END_MACRO
@@ -555,7 +498,8 @@ CloneParseTree(JSParseNode *opn, JSTreeContext *tc)
 
       case PN_LIST:
         pn->makeEmpty();
-        for (opn2 = opn->pn_head; opn2; opn2 = opn2->pn_next) {
+        for (ParseNode *opn2 = opn->pn_head; opn2; opn2 = opn2->pn_next) {
+            ParseNode *pn2;
             NULLCHECK(pn2 = CloneParseTree(opn2, tc));
             pn->append(pn2);
         }
@@ -592,7 +536,7 @@ CloneParseTree(JSParseNode *opn, JSTreeContext *tc)
 
 
 
-            JSDefinition *dn = pn->pn_lexdef;
+            Definition *dn = pn->pn_lexdef;
 
             pn->pn_link = dn->dn_uses;
             dn->dn_uses = pn;
@@ -605,7 +549,7 @@ CloneParseTree(JSParseNode *opn, JSTreeContext *tc)
 
             if (opn->isDefn()) {
                 opn->setDefn(false);
-                LinkUseToDef(opn, (JSDefinition *) pn, tc);
+                LinkUseToDef(opn, (Definition *) pn, tc);
             }
         }
         break;
@@ -627,7 +571,6 @@ CloneParseTree(JSParseNode *opn, JSTreeContext *tc)
 
 #endif 
 
-namespace js {
 
 
 
@@ -638,38 +581,35 @@ namespace js {
 
 
 
-
-JSParseNode *
-CloneLeftHandSide(JSParseNode *opn, JSTreeContext *tc)
+ParseNode *
+js::CloneLeftHandSide(ParseNode *opn, TreeContext *tc)
 {
-    JSParseNode *pn = NewOrRecycledNode(tc);
+    ParseNode *pn = tc->parser->new_<ParseNode>(opn->getKind(), opn->getOp(), opn->getArity(),
+                                                opn->pn_pos);
     if (!pn)
         return NULL;
-    pn->setKind(opn->getKind());
-    pn->setOp(opn->getOp());
-    pn->setUsed(opn->isUsed());
-    pn->setDefn(opn->isDefn());
-    pn->setArity(opn->getArity());
     pn->setInParens(opn->isInParens());
-    pn->pn_pos = opn->pn_pos;
+    pn->setDefn(opn->isDefn());
+    pn->setUsed(opn->isUsed());
 
 #if JS_HAS_DESTRUCTURING
     if (opn->isArity(PN_LIST)) {
         JS_ASSERT(opn->isKind(TOK_RB) || opn->isKind(TOK_RC));
         pn->makeEmpty();
-        for (JSParseNode *opn2 = opn->pn_head; opn2; opn2 = opn2->pn_next) {
-            JSParseNode *pn2;
+        for (ParseNode *opn2 = opn->pn_head; opn2; opn2 = opn2->pn_next) {
+            ParseNode *pn2;
             if (opn->isKind(TOK_RC)) {
                 JS_ASSERT(opn2->isArity(PN_BINARY));
                 JS_ASSERT(opn2->isKind(TOK_COLON));
 
-                JSParseNode *tag = CloneParseTree(opn2->pn_left, tc);
+                ParseNode *tag = CloneParseTree(opn2->pn_left, tc);
                 if (!tag)
                     return NULL;
-                JSParseNode *target = CloneLeftHandSide(opn2->pn_right, tc);
+                ParseNode *target = CloneLeftHandSide(opn2->pn_right, tc);
                 if (!target)
                     return NULL;
-                pn2 = BinaryNode::create(TOK_COLON, JSOP_INITPROP, opn2->pn_pos, tag, target, tc);
+
+                pn2 = tc->parser->new_<BinaryNode>(TOK_COLON, JSOP_INITPROP, opn2->pn_pos, tag, target);
             } else if (opn2->isArity(PN_NULLARY)) {
                 JS_ASSERT(opn2->isKind(TOK_COMMA));
                 pn2 = CloneParseTree(opn2, tc);
@@ -693,7 +633,7 @@ CloneLeftHandSide(JSParseNode *opn, JSTreeContext *tc)
     pn->pn_u.name = opn->pn_u.name;
     pn->setOp(JSOP_SETNAME);
     if (opn->isUsed()) {
-        JSDefinition *dn = pn->pn_lexdef;
+        Definition *dn = pn->pn_lexdef;
 
         pn->pn_link = dn->dn_uses;
         dn->dn_uses = pn;
@@ -705,10 +645,8 @@ CloneLeftHandSide(JSParseNode *opn, JSTreeContext *tc)
             pn->pn_dflags &= ~PND_BOUND;
             pn->setDefn(false);
 
-            LinkUseToDef(pn, (JSDefinition *) opn, tc);
+            LinkUseToDef(pn, (Definition *) opn, tc);
         }
     }
     return pn;
 }
-
-} 

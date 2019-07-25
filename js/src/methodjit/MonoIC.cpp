@@ -819,15 +819,24 @@ class CallCompiler : public BaseCompiler
         types::TypeScript::Monitor(f.cx, f.script(), f.pc(), args.rval());
 
         
+
+
+
+
+
+        if (f.script()->function()) {
+            f.script()->uninlineable = true;
+            MarkTypeObjectFlags(cx, f.script()->function(), types::OBJECT_FLAG_UNINLINEABLE);
+        }
+
+        
         if (monitor.recompiled())
             return true;
 
-        
-        if (ic.fastGuardedNative || ic.hasJsFunCheck)
-            return true;
+        JS_ASSERT(!f.regs.inlined());
 
         
-        if (f.regs.inlined())
+        if (ic.fastGuardedNative || ic.hasJsFunCheck)
             return true;
 
         
@@ -1250,166 +1259,6 @@ JITScript::resetArgsCheck()
 
     Repatcher repatch(this);
     repatch.relink(argsCheckJump, argsCheckStub);
-}
-
-void
-JITScript::purgeMICs()
-{
-    if (!nGetGlobalNames || !nSetGlobalNames)
-        return;
-
-    Repatcher repatch(this);
-
-    ic::GetGlobalNameIC *getGlobalNames_ = getGlobalNames();
-    for (uint32 i = 0; i < nGetGlobalNames; i++) {
-        ic::GetGlobalNameIC &ic = getGlobalNames_[i];
-        JSC::CodeLocationDataLabelPtr label = ic.fastPathStart.dataLabelPtrAtOffset(ic.shapeOffset);
-        repatch.repatch(label, NULL);
-    }
-
-    ic::SetGlobalNameIC *setGlobalNames_ = setGlobalNames();
-    for (uint32 i = 0; i < nSetGlobalNames; i++) {
-        ic::SetGlobalNameIC &ic = setGlobalNames_[i];
-        ic.patchInlineShapeGuard(repatch, NULL);
-
-        if (ic.hasExtraStub) {
-            Repatcher repatcher(ic.extraStub);
-            ic.patchExtraShapeGuard(repatcher, NULL);
-        }
-    }
-}
-
-void
-ic::PurgeMICs(JSContext *cx, JSScript *script)
-{
-    if (script->jitNormal)
-        script->jitNormal->purgeMICs();
-    if (script->jitCtor)
-        script->jitCtor->purgeMICs();
-}
-
-void
-JITScript::nukeScriptDependentICs()
-{
-    if (!nCallICs)
-        return;
-
-    Repatcher repatcher(this);
-
-    ic::CallICInfo *callICs_ = callICs();
-    for (uint32 i = 0; i < nCallICs; i++) {
-        ic::CallICInfo &ic = callICs_[i];
-        if (!ic.fastGuardedObject)
-            continue;
-        repatcher.repatch(ic.funGuard, NULL);
-        repatcher.relink(ic.funJump, ic.slowPathStart);
-        ic.releasePool(CallICInfo::Pool_ClosureStub);
-        ic.fastGuardedObject = NULL;
-        ic.hasJsFunCheck = false;
-    }
-}
-
-void
-JITScript::sweepCallICs(JSContext *cx, bool purgeAll)
-{
-    Repatcher repatcher(this);
-
-    
-
-
-
-
-
-    ic::CallICInfo *callICs_ = callICs();
-    for (uint32 i = 0; i < nCallICs; i++) {
-        ic::CallICInfo &ic = callICs_[i];
-
-        
-
-
-
-
-        bool fastFunDead = ic.fastGuardedObject &&
-            (purgeAll || IsAboutToBeFinalized(cx, ic.fastGuardedObject));
-        bool hasNative = ic.fastGuardedNative != NULL;
-
-        
-
-
-
-
-
-
-
-
-
-        if (purgeAll || hasNative || (fastFunDead && ic.hasJsFunCheck)) {
-            repatcher.relink(ic.funJump, ic.slowPathStart);
-            ic.hit = false;
-        }
-
-        if (fastFunDead) {
-            repatcher.repatch(ic.funGuard, NULL);
-            ic.purgeGuardedObject();
-        }
-
-        if (hasNative)
-            ic.fastGuardedNative = NULL;
-
-        if (purgeAll) {
-            ic.releasePool(CallICInfo::Pool_ScriptStub);
-            JSC::CodeLocationJump oolJump = ic.slowPathStart.jumpAtOffset(ic.oolJumpOffset);
-            JSC::CodeLocationLabel icCall = ic.slowPathStart.labelAtOffset(ic.icCallOffset);
-            repatcher.relink(oolJump, icCall);
-        }
-    }
-
-    
-    if (argsCheckPool)
-        resetArgsCheck();
-
-    if (purgeAll) {
-        
-        uint32 released = 0;
-
-        ic::EqualityICInfo *equalityICs_ = equalityICs();
-        for (uint32 i = 0; i < nEqualityICs; i++) {
-            ic::EqualityICInfo &ic = equalityICs_[i];
-            if (!ic.generated)
-                continue;
-
-            JSC::FunctionPtr fptr(JS_FUNC_TO_DATA_PTR(void *, ic::Equality));
-            repatcher.relink(ic.stubCall, fptr);
-            repatcher.relink(ic.jumpToStub, ic.stubEntry);
-
-            ic.generated = false;
-            released++;
-        }
-
-        ic::SetGlobalNameIC *setGlobalNames_ = setGlobalNames();
-        for (uint32 i = 0; i < nSetGlobalNames; i ++) {
-            ic::SetGlobalNameIC &ic = setGlobalNames_[i];
-            if (!ic.hasExtraStub)
-                continue;
-            repatcher.relink(ic.fastPathStart.jumpAtOffset(ic.inlineShapeJump), ic.slowPathStart);
-            ic.hasExtraStub = false;
-            released++;
-        }
-
-        JS_ASSERT(released == execPools.length());
-        for (uint32 i = 0; i < released; i++)
-            execPools[i]->release();
-        execPools.clear();
-    }
-}
-
-void
-ic::SweepCallICs(JSContext *cx, JSScript *script, bool purgeAll)
-{
-    if (script->jitNormal)
-        script->jitNormal->sweepCallICs(cx, purgeAll);
-    if (script->jitCtor)
-        script->jitCtor->sweepCallICs(cx, purgeAll);
 }
 
 #endif 

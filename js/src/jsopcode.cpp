@@ -1752,10 +1752,8 @@ DecompileDestructuring(SprintStack *ss, jsbytecode *pc, jsbytecode *endpc)
 #if JS_HAS_DESTRUCTURING_SHORTHAND
             nameoff = ss->sprinter.offset;
 #endif
-            if (!QuoteString(&ss->sprinter, atom,
-                             js_IsIdentifier(atom) ? 0 : (jschar)'\'')) {
+            if (!QuoteString(&ss->sprinter, atom, IsIdentifier(atom) ? 0 : (jschar)'\''))
                 return NULL;
-            }
             if (SprintPut(&ss->sprinter, ": ", 2) < 0)
                 return NULL;
             break;
@@ -1997,8 +1995,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                ? JSOP_IFEQ                                                    \
                : JSOP_NOP)
 
-#define ATOM_IS_IDENTIFIER(atom) js_IsIdentifier(atom)
-
 
 
 
@@ -2007,7 +2003,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 #define GET_QUOTE_AND_FMT(qfmt, ufmt, rval)                                   \
     JS_BEGIN_MACRO                                                            \
         jschar quote_;                                                        \
-        if (!ATOM_IS_IDENTIFIER(atom)) {                                      \
+        if (!IsIdentifier(atom)) {                                            \
             quote_ = '\'';                                                    \
             fmt = qfmt;                                                       \
         } else {                                                              \
@@ -4562,8 +4558,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
               case JSOP_INITPROP:
               case JSOP_INITMETHOD:
                 LOAD_ATOM(0);
-                xval = QuoteString(&ss->sprinter, atom,
-                                   jschar(ATOM_IS_IDENTIFIER(atom) ? 0 : '\''));
+                xval = QuoteString(&ss->sprinter, atom, jschar(IsIdentifier(atom) ? 0 : '\''));
                 if (!xval)
                     return NULL;
                 isFirst = IsInitializerOp(ss->opcodes[ss->top - 2]);
@@ -4811,7 +4806,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 #undef POP_STR
 #undef POP_STR_PREC
 #undef LOCAL_ASSERT
-#undef ATOM_IS_IDENTIFIER
 #undef GET_QUOTE_AND_FMT
 #undef GET_ATOM_QUOTE_AND_FMT
 

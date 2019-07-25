@@ -187,26 +187,6 @@ mjit::Compiler::jsop_bitop(JSOp op)
         return;
     }
 
-    bool lhsIntOrDouble = !(lhs->isNotType(JSVAL_TYPE_DOUBLE) && 
-                            lhs->isNotType(JSVAL_TYPE_INT32));
-
-    
-    if (!lhs->isConstant() && rhs->isConstant() && lhsIntOrDouble &&
-        rhs->isType(JSVAL_TYPE_INT32) && rhs->getValue().toInt32() == 0 &&
-        (op == JSOP_BITOR || op == JSOP_LSH)) {
-        ensureInteger(lhs, Uses(2));
-        RegisterID reg = frame.ownRegForData(lhs);
-
-        stubcc.leave();
-        OOL_STUBCALL(stub, REJOIN_FALLTHROUGH);
-
-        frame.popn(2);
-        frame.pushTypedPayload(JSVAL_TYPE_INT32, reg);
-
-        stubcc.rejoin(Changes(1));
-        return;
-    }
-
     
     if (rhs->isConstant() && rhs->getValue().isDouble())
         rhs->convertConstantDoubleToInt32(cx);
@@ -282,7 +262,7 @@ mjit::Compiler::jsop_bitop(JSOp op)
                 masm.and32(Imm32(rhsInt), reg);
             else if (op == JSOP_BITXOR)
                 masm.xor32(Imm32(rhsInt), reg);
-            else
+            else if (rhsInt != 0)
                 masm.or32(Imm32(rhsInt), reg);
         } else if (frame.shouldAvoidDataRemat(rhs)) {
             Address rhsAddr = masm.payloadOf(frame.addressOf(rhs));
@@ -1404,7 +1384,8 @@ mjit::Compiler::jsop_setelem_typed(int atype)
         objReg = frame.copyDataIntoReg(obj);
 
         
-        Jump lengthGuard = masm.guardArrayExtent(TypedArray::lengthOffset(),
+        int lengthOffset = TypedArray::lengthOffset() + offsetof(jsval_layout, s.payload);
+        Jump lengthGuard = masm.guardArrayExtent(lengthOffset,
                                                  objReg, key, Assembler::BelowOrEqual);
         stubcc.linkExit(lengthGuard, Uses(3));
 
@@ -1932,7 +1913,8 @@ mjit::Compiler::jsop_getelem_typed(int atype)
         objReg = frame.copyDataIntoReg(obj);
 
         
-        Jump lengthGuard = masm.guardArrayExtent(TypedArray::lengthOffset(),
+        int lengthOffset = TypedArray::lengthOffset() + offsetof(jsval_layout, s.payload);
+        Jump lengthGuard = masm.guardArrayExtent(lengthOffset,
                                                  objReg, key, Assembler::BelowOrEqual);
         stubcc.linkExit(lengthGuard, Uses(2));
 
@@ -1991,7 +1973,6 @@ mjit::Compiler::jsop_getelem_typed(int atype)
 
     frame.popn(2);
 
-    BarrierState barrier;
     if (dataReg.isFPReg()) {
         frame.pushDouble(dataReg.fpreg());
     } else if (typeReg.isSet()) {
@@ -2001,8 +1982,6 @@ mjit::Compiler::jsop_getelem_typed(int atype)
         frame.pushTypedPayload(JSVAL_TYPE_INT32, dataReg.reg());
     }
     stubcc.rejoin(Changes(2));
-
-    finishBarrier(barrier, REJOIN_FALLTHROUGH, 0);
 
     return true;
 }
@@ -2027,6 +2006,11 @@ mjit::Compiler::jsop_getelem(bool isCall)
     if (cx->typeInferenceEnabled() && id->mightBeType(JSVAL_TYPE_INT32) && !isCall) {
         types::TypeSet *types = analysis->poppedTypes(PC, 1);
         if (types->isLazyArguments(cx) && !outerScript->analysis()->modifiesArguments()) {
+            
+            
+            
+            
+            
             
             jsop_getelem_args();
             return true;

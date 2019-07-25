@@ -133,7 +133,7 @@ typedef enum JSOp {
 
 #define JOF_SHARPSLOT    (1U<<24) /* first immediate is uint16 stack slot no.
                                      that needs fixup when in global code (see
-                                     Compiler::compileScript) */
+                                     BytecodeCompiler::compileScript) */
 #define JOF_GNAME        (1U<<25) /* predicted global name */
 #define JOF_TYPESET      (1U<<26) /* has an entry in a script's type sets */
 #define JOF_DECOMPOSE    (1U<<27) /* followed by an equivalent decomposed
@@ -171,6 +171,7 @@ typedef enum JSOp {
                                  (pc)[2] = JUMP_OFFSET_LO(off))
 #define JUMP_OFFSET_MIN         ((int16)0x8000)
 #define JUMP_OFFSET_MAX         ((int16)0x7fff)
+
 
 
 

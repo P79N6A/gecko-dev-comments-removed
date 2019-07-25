@@ -347,7 +347,7 @@ types::TypeFailure(JSContext *cx, const char *fmt, ...)
     
     JS_Assert(msgbuf, __FILE__, __LINE__);
     
-    *((int*)NULL) = 0;  
+    *((volatile int *)NULL) = 0;  
 }
 
 
@@ -1458,6 +1458,8 @@ GetValueTypeFromTypeFlags(TypeFlags flags)
         return JSVAL_TYPE_STRING;
       case TYPE_FLAG_LAZYARGS:
         return JSVAL_TYPE_MAGIC;
+      case TYPE_FLAG_ANYOBJECT:
+        return JSVAL_TYPE_OBJECT;
       default:
         return JSVAL_TYPE_UNKNOWN;
     }
@@ -4944,7 +4946,7 @@ MarkIteratorUnknownSlow(JSContext *cx)
 
 void
 TypeMonitorCallSlow(JSContext *cx, JSObject *callee,
-                    const CallArgs &args, bool constructing)
+                    CallArgs &args, bool constructing)
 {
     unsigned nargs = callee->toFunction()->nargs;
     JSScript *script = callee->toFunction()->script();
@@ -4962,8 +4964,10 @@ TypeMonitorCallSlow(JSContext *cx, JSObject *callee,
         TypeScript::SetArgument(cx, script, arg, args[arg]);
 
     
-    for (; arg < nargs; arg++)
-        TypeScript::SetArgument(cx, script, arg, UndefinedValue());
+    for (; arg < nargs; arg++) {
+        Value v = UndefinedValue();
+        TypeScript::SetArgument(cx, script, arg, v);
+    }
 }
 
 static inline bool
@@ -5081,8 +5085,10 @@ TypeDynamicResult(JSContext *cx, JSScript *script, jsbytecode *pc, Type type)
 }
 
 void
-TypeMonitorResult(JSContext *cx, JSScript *script, jsbytecode *pc, const js::Value &rval)
+TypeMonitorResult(JSContext *cx, JSScript *script, jsbytecode *pc, js::Value &rval)
 {
+    TryCoerceNumberToInt32(rval);
+
     UntrapOpcode untrap(cx, script, pc);
 
     
@@ -6149,21 +6155,6 @@ TypeScript::Sweep(JSContext *cx, JSScript *script)
 
 
 
-
-    
-
-
-
-#ifdef JS_METHODJIT
-    mjit::ReleaseScriptCode(cx, script);
-
-    
-
-
-
-
-    script->resetUseCount();
-#endif
 }
 
 void
