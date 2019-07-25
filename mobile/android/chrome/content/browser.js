@@ -6471,7 +6471,7 @@ let Reader = {
     });
   },
 
-  _dowloadDocument: function Reader_downloadDocument(url, callback) {
+  _downloadDocument: function Reader_downloadDocument(url, callback) {
     
     
     
@@ -6516,7 +6516,7 @@ let Reader = {
     try {
       this.log("Needs to fetch page, creating request: " + url);
 
-      request.browser = this._dowloadDocument(url, function(doc) {
+      request.browser = this._downloadDocument(url, function(doc) {
         this.log("Finished loading page: " + doc);
 
         
