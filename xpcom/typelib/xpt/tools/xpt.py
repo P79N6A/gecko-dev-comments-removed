@@ -1210,14 +1210,15 @@ class Typelib(object):
                         else:
                             
                             raise DataError, \
-                                  "Typelibs contain definitions of interface %s"\
-                                  " with different IIDs!" % i.name
+                                  "Typelibs contain definitions of interface %s" \
+                                    " with different IIDs (%s vs %s)!" % \
+                                    (i.name, i.iid, j.iid)
                 elif i.iid == j.iid and i.iid != Interface.UNRESOLVED_IID:
                     
                     raise DataError, \
-                          "Typelibs contain definitions of interface %s"\
-                          " with different names (%s vs. %s)!" %  \
-                          (i.iid, i.name, j.name)
+                          "Typelibs contain definitions of interface %s" \
+                            " with different names (%s vs %s)!" % \
+                            (i.iid, i.name, j.name)
             if not merged:
                 
                 self.interfaces.append(i)
