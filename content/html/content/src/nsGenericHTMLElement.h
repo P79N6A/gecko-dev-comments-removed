@@ -1316,7 +1316,16 @@ NS_NewHTML##_elementName##Element(nsINodeInfo *aNodeInfo,         \
   return NS_NewHTMLSharedElement(aNodeInfo, aFromParser);         \
 }
 
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4003)
+#endif
 NS_DECLARE_NS_NEW_HTML_ELEMENT() 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Shared)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(SharedList)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(SharedObject)
