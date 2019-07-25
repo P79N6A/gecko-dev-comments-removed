@@ -170,6 +170,11 @@ Tester.prototype = {
       };
 
       
+      
+      
+      document.popupNode = null;
+
+      
       let time = Date.now() - this.lastStartTime;
       this.dumper.dump("INFO TEST-END | " + this.currentTest.path + " | finished in " + time + "ms\n");
       this.currentTest.setDuration(time);
