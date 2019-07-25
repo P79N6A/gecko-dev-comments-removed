@@ -198,8 +198,7 @@ window.Page = {
     
     $(window).keyup(function(e){
       
-      
-      if((e.which == 27 || e.which == 13) && $(":focus").length == 0 )
+      if(e.which == 27 || e.which == 13)
         if( self.getActiveTab() ) self.getActiveTab().zoom();
     });
   },
@@ -356,9 +355,24 @@ window.Page = {
   
   
   setActiveTab: function(tab){
-    if( this._activeTab ) this._activeTab.makeDeactive();
+    if(tab == this._activeTab)
+      return;
+      
+    if(this._activeTab) { 
+      this._activeTab.makeDeactive();
+      this._activeTab.removeOnClose(this);
+    }
+      
     this._activeTab = tab;
-    tab.makeActive();
+    
+    if(this._activeTab) {
+      var self = this;
+      this._activeTab.addOnClose(this, function() {
+        self._activeTab = null;
+      });
+
+      this._activeTab.makeActive();
+    }
   },
   
   
@@ -544,7 +558,7 @@ UIClass.prototype = {
   addDevMenu: function() {
     var self = this;
     
-    var html = '<select style="position:absolute; bottom:5px; right:5px; opacity:.2;">'; 
+    var html = '<select style="position:absolute; top:5px;">'; 
     var $select = $(html)
       .appendTo('body')
       .change(function () {
@@ -554,7 +568,7 @@ UIClass.prototype = {
       });
       
     var commands = [{
-      name: 'dev menu', 
+      name: '*', 
       code: function() {
       }
     }, {
