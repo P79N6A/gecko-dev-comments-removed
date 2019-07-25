@@ -1089,7 +1089,12 @@ PropertyAccess(JSContext *cx, JSScript *script, jsbytecode *pc, TypeObject *obje
 
     
 
-    HeapTypeSet *types = object->getProperty(cx, id, false);
+
+
+
+
+    bool markOwn = access == PROPERTY_WRITE && JSID_IS_VOID(id);
+    HeapTypeSet *types = object->getProperty(cx, id, markOwn);
     if (!types)
         return;
     if (access == PROPERTY_WRITE) {
