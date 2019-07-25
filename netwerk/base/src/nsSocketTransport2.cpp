@@ -1134,13 +1134,6 @@ nsSocketTransport::InitiateSocket()
     
     
     
-    opt.option = PR_SockOpt_NoDelay;
-    opt.value.no_delay = PR_TRUE;
-    PR_SetSocketOption(fd, &opt);
-
-    
-    
-    
     PRInt32 sndBufferSize;
     gSocketTransportService->GetSendBufferSize(&sndBufferSize);
     if (sndBufferSize > 0) {
@@ -1232,6 +1225,16 @@ nsSocketTransport::InitiateSocket()
                 
                 
             }
+        }
+        
+        
+        
+        
+        else if (PR_UNKNOWN_ERROR == code &&
+                 mProxyTransparent &&
+                 !mProxyHost.IsEmpty()) {
+            code = PR_GetOSError();
+            rv = ErrorAccordingToNSPR(code);
         }
         
         
@@ -1556,7 +1559,16 @@ nsSocketTransport::OnSocketReady(PRFileDesc *fd, PRInt16 outFlags)
                 mPollFlags = (PR_POLL_EXCEPT | PR_POLL_WRITE);
                 
                 mPollTimeout = mTimeouts[TIMEOUT_CONNECT];
-            } 
+            }
+            
+            
+            
+            else if (PR_UNKNOWN_ERROR == code &&
+                     mProxyTransparent &&
+                     !mProxyHost.IsEmpty()) {
+                code = PR_GetOSError();
+                mCondition = ErrorAccordingToNSPR(code);
+            }
             else {
                 
                 
