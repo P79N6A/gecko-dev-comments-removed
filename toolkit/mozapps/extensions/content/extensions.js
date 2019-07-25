@@ -146,52 +146,120 @@ function loadView(aViewId) {
 
 
 
+var HTML5History = {
+  get canGoBack() {
+    return window.QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsIWebNavigation)
+                 .canGoBack;
+  },
 
+  get canGoForward() {
+    return window.QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsIWebNavigation)
+                 .canGoForward;
+  },
 
-var gHistory = {
-  states: [],
+  back: function() {
+    window.history.back();
+    gViewController.updateCommand("cmd_back");
+    gViewController.updateCommand("cmd_forward");
+  },
+
+  forward: function() {
+    window.history.forward();
+    gViewController.updateCommand("cmd_back");
+    gViewController.updateCommand("cmd_forward");
+  },
 
   pushState: function(aState) {
-    try {
-      window.history.pushState(aState, document.title);
-    }
-    catch(e) {
-      while (this.states.length > 1)
-        this.states.shift();
-      this.states.push(aState);
-    }
+    window.history.pushState(aState, document.title);
   },
 
   replaceState: function(aState) {
-    try {
-      window.history.replaceState(aState, document.title);
-    }
-    catch (e) {
-      this.states.pop();
-      this.states.push(aState);
-    }
+    window.history.replaceState(aState, document.title);
   },
 
   popState: function() {
-    
-    if (this.states.length == 0) {
-      window.addEventListener("popstate", function(event) {
-        window.removeEventListener("popstate", arguments.callee, true);
-        
-        
-        
-        window.history.pushState(event.state, document.title);
-      }, true);
-      window.history.back();
-    } else {
-      if (this.states.length < 2)
-        throw new Error("Cannot popState from this view");
+    window.addEventListener("popstate", function(event) {
+      window.removeEventListener("popstate", arguments.callee, true);
+      
+      
+      
+      window.history.pushState(event.state, document.title);
+    }, true);
+    window.history.back();
+    gViewController.updateCommand("cmd_back");
+    gViewController.updateCommand("cmd_forward");
+  }
+};
 
-      this.states.pop();
-      let state = this.states[this.states.length - 1];
-      gViewController.statePopped({ state: state });
-    }
+
+
+
+var FakeHistory = {
+  pos: 0,
+  states: [null],
+
+  get canGoBack() {
+    return this.pos > 0;
   },
+
+  get canGoForward() {
+    return (this.pos + 1) < this.states.length;
+  },
+
+  back: function() {
+    if (this.pos == 0)
+      throw new Error("Cannot go back from this point");
+
+    this.pos--;
+    gViewController.statePopped({ state: this.states[this.pos] });
+    gViewController.updateCommand("cmd_back");
+    gViewController.updateCommand("cmd_forward");
+  },
+
+  forward: function() {
+    if ((this.pos + 1) >= this.states.length)
+      throw new Error("Cannot go forward from this point");
+
+    this.pos++;
+    gViewController.statePopped({ state: this.states[this.pos] });
+    gViewController.updateCommand("cmd_back");
+    gViewController.updateCommand("cmd_forward");
+  },
+
+  pushState: function(aState) {
+    this.pos++;
+    this.states.splice(this.pos);
+    this.states.push(aState);
+  },
+
+  replaceState: function(aState) {
+    this.states[this.pos] = aState;
+  },
+
+  popState: function() {
+    if (this.pos == 0)
+      throw new Error("Cannot popState from this view");
+
+    this.states.splice(this.pos);
+    this.pos--;
+
+    gViewController.statePopped({ state: this.states[this.pos] });
+    gViewController.updateCommand("cmd_back");
+    gViewController.updateCommand("cmd_forward");
+  }
+};
+
+
+
+if (window.QueryInterface(Ci.nsIInterfaceRequestor)
+          .getInterface(Ci.nsIWebNavigation)
+          .sessionHistory) {
+  var gHistory = HTML5History;
+}
+else {
+  gHistory = FakeHistory;
 }
 
 var gEventManager = {
@@ -545,23 +613,19 @@ var gViewController = {
   commands: {
     cmd_back: {
       isEnabled: function() {
-        return window.QueryInterface(Ci.nsIInterfaceRequestor)
-                     .getInterface(Ci.nsIWebNavigation)
-                     .canGoBack;
+        return gHistory.canGoBack;
       },
       doCommand: function() {
-        window.history.back();
+        gHistory.back();
       }
     },
 
     cmd_forward: {
       isEnabled: function() {
-        return window.QueryInterface(Ci.nsIInterfaceRequestor)
-                     .getInterface(Ci.nsIWebNavigation)
-                     .canGoForward;
+        return gHistory.canGoForward;
       },
       doCommand: function() {
-        window.history.forward();
+        gHistory.forward();
       }
     },
 
@@ -1296,6 +1360,42 @@ var gHeader = {
 
       gViewController.loadView("addons://search/" + encodeURIComponent(query));
     }, false);
+
+    if (this.shouldShowNavButtons) {
+      document.getElementById("back-btn").hidden = false;
+      document.getElementById("forward-btn").hidden = false;
+    }
+  },
+
+  get shouldShowNavButtons() {
+    var docshellItem = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                             .getInterface(Ci.nsIWebNavigation)
+                             .QueryInterface(Ci.nsIDocShellTreeItem);
+
+    
+    if (docshellItem.rootTreeItem == docshellItem)
+      return true;
+
+    var outerWin = docshellItem.rootTreeItem.QueryInterface(Ci.nsIInterfaceRequestor)
+                                            .getInterface(Ci.nsIDOMWindow);
+    var outerDoc = outerWin.document;
+    var node = outerDoc.getElementById("back-button");
+    
+    if (!node)
+      return true;
+
+    
+    
+    while (node != outerDoc) {
+      var style = outerWin.getComputedStyle(node, "");
+      if (style.display == "none")
+        return true;
+      if (style.visibility != "visible")
+        return true;
+      node = node.parentNode;
+    }
+
+    return false;
   },
 
   get searchQuery() {
