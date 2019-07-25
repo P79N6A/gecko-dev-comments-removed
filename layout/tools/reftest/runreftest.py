@@ -72,11 +72,10 @@ class RefTest(object):
       {'allowXULXBL': [('localhost', True), ('<file>', True)]})
 
     
+    
+    
     prefsFile = open(os.path.join(profileDir, "user.js"), "w")
-    prefsFile.write("""user_pref("browser.dom.window.dump.enabled", true);
-    """)
     prefsFile.write('user_pref("reftest.timeout", %d);\n' % (options.timeout * 1000))
-    prefsFile.write('user_pref("ui.caretBlinkTime", -1);\n')
 
     if options.totalChunks != None:
       prefsFile.write('user_pref("reftest.totalChunks", %d);\n' % options.totalChunks)
@@ -92,9 +91,6 @@ class RefTest(object):
         sys.exit(1)
       part = 'user_pref("%s", %s);\n' % (thispref[0], thispref[1])
       prefsFile.write(part)
-    
-    prefsFile.write('user_pref("dom.max_script_run_time", 0);')
-    prefsFile.write('user_pref("dom.max_chrome_script_run_time", 0);')
     prefsFile.close()
 
     
