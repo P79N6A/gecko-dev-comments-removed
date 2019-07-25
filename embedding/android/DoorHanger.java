@@ -146,7 +146,9 @@ public class DoorHanger extends LinearLayout implements Button.OnClickListener {
     
     
     public boolean shouldRemove() {
-        if (mPersistence > 0) {
+        
+        
+        if (mPersistence != 0) {
             mPersistence--;
             return false;
         }
