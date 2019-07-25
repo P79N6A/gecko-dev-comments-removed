@@ -428,7 +428,7 @@ ThreadActor.prototype = {
         
         
         if (i + scripts[i].lineCount < location.line) {
-          break;
+          continue;
         }
         script = scripts[i];
         break;
