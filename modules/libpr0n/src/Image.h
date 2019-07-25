@@ -93,7 +93,13 @@ public:
 
 
 
-  virtual PRUint32 GetDataSize() = 0;
+  PRUint32 GetDataSize();
+
+  
+
+      
+  virtual PRUint32 GetDecodedDataSize() = 0;
+  virtual PRUint32 GetSourceDataSize() = 0;
 
   
   enum eDecoderType {
@@ -130,6 +136,7 @@ protected:
   PRUint32                    mAnimationConsumers;
   PRPackedBool                mInitialized;   
   PRPackedBool                mAnimating;
+  PRPackedBool                mError;         
 
   
 

@@ -72,7 +72,8 @@ public:
                 const char* aURIString,
                 PRUint32 aFlags);
   void GetCurrentFrameRect(nsIntRect& aRect);
-  PRUint32 GetDataSize();
+  PRUint32 GetDecodedDataSize();
+  PRUint32 GetSourceDataSize();
 
   
   void InvalidateObserver();
@@ -106,8 +107,6 @@ private:
                                           
   PRPackedBool   mHaveRestrictedRegion:1; 
                                           
-
-  PRPackedBool   mError:1;                
 };
 
 } 

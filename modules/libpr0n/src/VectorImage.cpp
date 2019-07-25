@@ -214,8 +214,7 @@ VectorImage::VectorImage(imgStatusTracker* aStatusTracker) :
   mIsInitialized(PR_FALSE),
   mIsFullyLoaded(PR_FALSE),
   mHaveAnimations(PR_FALSE),
-  mHaveRestrictedRegion(PR_FALSE),
-  mError(PR_FALSE)
+  mHaveRestrictedRegion(PR_FALSE)
 {
 }
 
@@ -255,11 +254,19 @@ VectorImage::GetCurrentFrameRect(nsIntRect& aRect)
 }
 
 PRUint32
-VectorImage::GetDataSize()
+VectorImage::GetDecodedDataSize()
+{
+  
+  return sizeof(*this);
+}
+
+PRUint32
+VectorImage::GetSourceDataSize()
 {
   
   
-  return sizeof(*this);
+  
+  return 0;
 }
 
 nsresult
