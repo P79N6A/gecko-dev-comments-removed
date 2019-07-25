@@ -185,7 +185,7 @@ nsEditingSession::MakeWindowEditable(nsIDOMWindow *aWindow,
   
   
   
-  rv = SetupEditorCommandController("@mozilla.org/editor/editorcontroller;1",
+  rv = SetupEditorCommandController("@mozilla.org/editor/editingcontroller;1",
                                     aWindow,
                                     static_cast<nsIEditingSession*>(this),
                                     &mBaseCommandControllerId);
@@ -1435,7 +1435,7 @@ nsEditingSession::ReattachToWindow(nsIDOMWindow* aWindow)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = SetupEditorCommandController("@mozilla.org/editor/editorcontroller;1",
+  rv = SetupEditorCommandController("@mozilla.org/editor/editingcontroller;1",
                                     aWindow,
                                     static_cast<nsIEditingSession*>(this),
                                     &mBaseCommandControllerId);
