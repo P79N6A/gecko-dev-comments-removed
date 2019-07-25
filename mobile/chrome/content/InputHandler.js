@@ -134,7 +134,7 @@ function InputHandler(browserViewContainer) {
   
 
   this.addModule(new MouseModule(this));
-  this.addModule(new ScrollwheelModule(this, Browser._browserView, browserViewContainer));
+  this.addModule(new ScrollwheelModule(this, browserViewContainer));
 }
 
 
@@ -1067,16 +1067,15 @@ KineticController.prototype = {
 
 
 
-function ScrollwheelModule(owner, browserView, browserViewContainer) {
+function ScrollwheelModule(owner, browserViewContainer) {
   this._owner = owner;
-  this._browserView = browserView;
   this._browserViewContainer = browserViewContainer;
 }
 
 ScrollwheelModule.prototype = {
   handleEvent: function handleEvent(evInfo) {
     if (evInfo.event.type == "DOMMouseScroll") {
-      this._browserView.zoom(evInfo.event.detail);
+      Browser.zoom(evInfo.event.detail);
       evInfo.event.stopPropagation();
       evInfo.event.preventDefault();
     }
