@@ -1027,26 +1027,13 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
 
     case gif_sub_block:
       mGIFStruct.count = *q;
-      if (mGIFStruct.count) {
-        
-        
-        
-        if (!mGIFStruct.rows_remaining) {
-#ifdef DONT_TOLERATE_BROKEN_GIFS
-          mGIFStruct.state = gif_error;
-          break;
-#else
-          
-          GETN(1, gif_sub_block);
-#endif
-          if (mGIFStruct.count == GIF_TRAILER) {
-            
-            GETN(1, gif_done);
-            break;
-          }
-        }
+      
+      
+      
+      if (mGIFStruct.count && mGIFStruct.rows_remaining) {
         GETN(mGIFStruct.count, gif_lzw);
       } else {
+        
         
         EndImageFrame();
         GETN(1, gif_image_start);
