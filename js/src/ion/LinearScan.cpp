@@ -371,6 +371,11 @@ LinearScanAllocator::createDataStructures()
 bool
 LinearScanAllocator::buildLivenessInfo()
 {
+    Vector<MBasicBlock *, 1, SystemAllocPolicy> loopWorkList;
+    BitSet *loopDone = BitSet::New(graph.numBlockIds());
+    if (!loopDone)
+        return false;
+
     for (size_t i = graph.numBlocks(); i > 0; i--) {
         LBlock *block = graph.getBlock(i - 1);
         MBasicBlock *mblock = block->mir();
@@ -378,6 +383,7 @@ LinearScanAllocator::buildLivenessInfo()
         BitSet *live = BitSet::New(graph.numVirtualRegisters());
         if (!live)
             return false;
+        liveIn[mblock->id()] = live;
 
         
         for (size_t i = 0; i < mblock->lastIns()->numSuccessors(); i++) {
@@ -462,18 +468,50 @@ LinearScanAllocator::buildLivenessInfo()
             }
         }
 
-        
-        
         if (mblock->isLoopHeader()) {
-            MBasicBlock *backedge = mblock->backedge();
-            for (BitSet::Iterator i(live->begin()); i != live->end(); i++) {
-                vregs[*i].getInterval(0)->addRange(inputOf(block->firstId()),
-                                                   outputOf(backedge->lir()->lastId()));
+            
+            
+            
+            
+            
+            MBasicBlock *loopBlock = mblock->backedge();
+            while (true) {
+                
+                for (BitSet::Iterator i(live->begin()); i != live->end(); i++) {
+                    vregs[*i].getInterval(0)->addRange(inputOf(loopBlock->lir()->firstId()),
+                                                       outputOf(loopBlock->lir()->lastId()));
+                }
+
+                
+                liveIn[loopBlock->id()]->insertAll(live);
+
+                
+                loopDone->insert(loopBlock->id());
+
+                
+                
+                
+                if (loopBlock != mblock) {
+                    for (size_t i = 0; i < loopBlock->numPredecessors(); i++) {
+                        MBasicBlock *pred = loopBlock->getPredecessor(i);
+                        if (loopDone->contains(pred->id()))
+                            continue;
+                        if (!loopWorkList.append(pred))
+                            return false;
+                    }
+                }
+
+                
+                if (loopWorkList.empty())
+                    break;
+                loopBlock = loopWorkList.popCopy();
             }
+
+            
+            loopDone->clear();
         }
 
         JS_ASSERT_IF(!mblock->numPredecessors(), live->empty());
-        liveIn[mblock->id()] = live;
     }
 
     return true;

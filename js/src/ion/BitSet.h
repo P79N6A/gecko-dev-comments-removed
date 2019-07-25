@@ -113,6 +113,9 @@ class BitSet : private TempObject
     void complement();
 
     
+    void clear();
+
+    
     Iterator begin();
 
     
