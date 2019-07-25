@@ -1439,16 +1439,21 @@ JSStackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
 
         if (&fun->compiledFunObj() == &funobj && fun->methodAtom()) {
             JSObject *thisp = &thisv.toObject();
-            JS_ASSERT(thisp->canHaveMethodBarrier());
+            JSObject *first_barriered_thisp = NULL;
 
-            if (thisp->hasMethodBarrier()) {
-                const Shape *shape = thisp->nativeLookup(ATOM_TO_JSID(fun->methodAtom()));
-
+            do {
                 
 
 
 
 
+                if (!thisp->isNative())
+                    continue;
+
+                if (thisp->hasMethodBarrier()) {
+                    const Shape *shape = thisp->nativeLookup(ATOM_TO_JSID(fun->methodAtom()));
+                    if (shape) {
+                        
 
 
 
@@ -1456,43 +1461,56 @@ JSStackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
 
 
 
-                if (shape) {
-                    if (shape->isMethod() && &shape->methodObject() == &funobj) {
-                        if (!thisp->methodReadBarrier(cx, *shape, vp))
-                            return false;
-                        calleeValue().setObject(vp->toObject());
-                        return true;
-                    }
-                    if (shape->hasSlot()) {
-                        Value v = thisp->getSlot(shape->slot);
-                        JSObject *clone;
 
-                        if (IsFunctionObject(v, &clone) &&
-                            GET_FUNCTION_PRIVATE(cx, clone) == fun &&
-                            clone->hasMethodObj(*thisp)) {
-                            JS_ASSERT(clone != &funobj);
-                            *vp = v;
-                            calleeValue().setObject(*clone);
+
+                        if (shape->isMethod() && &shape->methodObject() == &funobj) {
+                            if (!thisp->methodReadBarrier(cx, *shape, vp))
+                                return false;
+                            calleeValue().setObject(vp->toObject());
                             return true;
                         }
+
+                        if (shape->hasSlot()) {
+                            Value v = thisp->getSlot(shape->slot);
+                            JSObject *clone;
+
+                            if (IsFunctionObject(v, &clone) &&
+                                GET_FUNCTION_PRIVATE(cx, clone) == fun &&
+                                clone->hasMethodObj(*thisp)) {
+                                JS_ASSERT(clone != &funobj);
+                                *vp = v;
+                                calleeValue().setObject(*clone);
+                                return true;
+                            }
+                        }
                     }
+
+                    if (!first_barriered_thisp)
+                        first_barriered_thisp = thisp;
                 }
+            } while ((thisp = thisp->getProto()) != NULL);
 
-                
-
-
-
-
-
-
-
-                JSObject *newfunobj = CloneFunctionObject(cx, fun, fun->getParent());
-                if (!newfunobj)
-                    return false;
-                newfunobj->setMethodObj(*thisp);
-                calleeValue().setObject(*newfunobj);
+            if (!first_barriered_thisp)
                 return true;
-            }
+
+            
+
+
+
+
+
+
+
+
+
+
+            JSObject *newfunobj = CloneFunctionObject(cx, fun, fun->getParent());
+            if (!newfunobj)
+                return false;
+            newfunobj->setMethodObj(*first_barriered_thisp);
+            calleeValue().setObject(*newfunobj);
+            vp->setObject(*newfunobj);
+            return true;
         }
     }
 

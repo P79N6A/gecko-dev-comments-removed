@@ -4882,6 +4882,21 @@ js_LookupPropertyWithFlagsInline(JSContext *cx, JSObject *obj, jsid id, uintN fl
         if (!proto->isNative()) {
             if (!proto->lookupProperty(cx, id, objp, propp))
                 return -1;
+#ifdef DEBUG
+            
+
+
+
+
+
+
+
+
+            if (*propp && (*objp)->isNative()) {
+                while ((proto = proto->getProto()) != *objp)
+                    JS_ASSERT(proto);
+            }
+#endif
             return protoIndex + 1;
         }
 
@@ -5816,9 +5831,15 @@ js_DeleteProperty(JSContext *cx, JSObject *obj, jsid id, Value *rval, JSBool str
                     for (JSStackFrame *fp = cx->maybefp(); fp; fp = fp->prev()) {
                         if (fp->isFunctionFrame() &&
                             &fp->callee() == &fun->compiledFunObj() &&
-                            fp->thisValue().isObject() &&
-                            &fp->thisValue().toObject() == obj) {
-                            fp->calleeValue().setObject(*funobj);
+                            fp->thisValue().isObject())
+                        {
+                            JSObject *tmp = &fp->thisValue().toObject();
+                            do {
+                                if (tmp == obj) {
+                                    fp->calleeValue().setObject(*funobj);
+                                    break;
+                                }
+                            } while ((tmp = tmp->getProto()) != NULL);
                         }
                     }
                 }
