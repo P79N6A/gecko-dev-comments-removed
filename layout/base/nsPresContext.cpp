@@ -764,6 +764,11 @@ nsPresContext::GetUserPreferences()
                                GET_BIDI_OPTION_SUPPORT(bidiOptions));
   SET_BIDI_OPTION_SUPPORT(bidiOptions, prefInt);
 
+  prefInt =
+    nsContentUtils::GetIntPref(IBMBIDI_CHARSET_STR,
+                               GET_BIDI_OPTION_CHARACTERSET(bidiOptions));
+  SET_BIDI_OPTION_CHARACTERSET(bidiOptions, prefInt);
+
   
   
   
