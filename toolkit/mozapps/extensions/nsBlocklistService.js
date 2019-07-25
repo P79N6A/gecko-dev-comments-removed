@@ -55,6 +55,7 @@ const KEY_APPDIR                      = "XCurProcD";
 const FILE_BLOCKLIST                  = "blocklist.xml";
 const PREF_BLOCKLIST_LASTUPDATETIME   = "app.update.lastUpdateTime.blocklist-background-update-timer";
 const PREF_BLOCKLIST_URL              = "extensions.blocklist.url";
+const PREF_BLOCKLIST_ITEM_URL         = "extensions.blocklist.itemURL";
 const PREF_BLOCKLIST_ENABLED          = "extensions.blocklist.enabled";
 const PREF_BLOCKLIST_INTERVAL         = "extensions.blocklist.interval";
 const PREF_BLOCKLIST_LEVEL            = "extensions.blocklist.level";
@@ -417,6 +418,28 @@ Blocklist.prototype = {
     return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
   },
 
+  
+  getAddonBlocklistURL: function(id, version, appVersion, toolkitVersion) {
+    if (!gBlocklistEnabled)
+      return "";
+
+    if (!this._addonEntries)
+      this._loadBlocklist();
+
+    let blItem = this._addonEntries[id];
+    if (!blItem || !blItem.blockID)
+      return null;
+
+    return this._createBlocklistURL(blItem.blockID);
+  },
+
+  _createBlocklistURL: function(id) {
+    let url = Services.urlFormatter.formatURLPref(PREF_BLOCKLIST_ITEM_URL);
+    url = url.replace(/%blockID%/g, id);
+
+    return url;
+  },
+
   notify: function(aTimer) {
     if (!gBlocklistEnabled)
       return;
@@ -743,6 +766,8 @@ Blocklist.prototype = {
     
     if (result[id].length == 0)
       result[id].push(new BlocklistItemData(null));
+
+    result[id].blockID = blocklistElement.getAttribute("blockID");
   },
 
   _handlePluginItemNode: function(blocklistElement, result) {
@@ -752,7 +777,8 @@ Blocklist.prototype = {
     var matchNodes = blocklistElement.childNodes;
     var blockEntry = {
       matches: {},
-      versions: []
+      versions: [],
+      blockID: null,
     };
     var hasMatch = false;
     for (var x = 0; x < matchNodes.length; ++x) {
@@ -778,6 +804,9 @@ Blocklist.prototype = {
     
     if (blockEntry.versions.length == 0)
       blockEntry.versions.push(new BlocklistItemData(null));
+
+    blockEntry.blockID = blocklistElement.getAttribute("blockID");
+
     result.push(blockEntry);
   },
 
@@ -844,6 +873,34 @@ Blocklist.prototype = {
     return Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
   },
 
+  
+  getPluginBlocklistURL: function(plugin) {
+    if (!gBlocklistEnabled)
+      return "";
+
+    if (!this._pluginEntries)
+      this._loadBlocklist();
+
+    for each (let blockEntry in this._pluginEntries) {
+      let matchFailed = false;
+      for (let name in blockEntry.matches) {
+        if (!(name in plugin) ||
+            typeof(plugin[name]) != "string" ||
+            !blockEntry.matches[name].test(plugin[name])) {
+          matchFailed = true;
+          break;
+        }
+      }
+
+      if (!matchFailed) {
+        if(!blockEntry.blockID)
+          return null;
+        else
+          return this._createBlocklistURL(blockEntry.blockID);
+      }
+    }
+  },
+
   _blocklistUpdated: function(oldAddonEntries, oldPluginEntries) {
     var addonList = [];
 
@@ -891,7 +948,8 @@ Blocklist.prototype = {
           icon: addons[i].iconURL,
           disable: false,
           blocked: state == Ci.nsIBlocklistService.STATE_BLOCKED,
-          item: addons[i]
+          item: addons[i],
+          url: self.getAddonBlocklistURL(addons[i].id),
         });
       }
 
@@ -927,7 +985,8 @@ Blocklist.prototype = {
               icon: "chrome://mozapps/skin/plugins/pluginGeneric.png",
               disable: false,
               blocked: state == Ci.nsIBlocklistService.STATE_BLOCKED,
-              item: plugins[i]
+              item: plugins[i],
+              url: self.getPluginBlocklistURL(plugins[i]),
             });
           }
         }
@@ -958,25 +1017,39 @@ Blocklist.prototype = {
       
       args.wrappedJSObject = args;
 
-      var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-               getService(Ci.nsIWindowWatcher);
-      ww.openWindow(null, URI_BLOCKLIST_DIALOG, "",
-                    "chrome,centerscreen,dialog,modal,titlebar", args);
+      
 
-      for (let i = 0; i < addonList.length; i++) {
-        if (!addonList[i].disable)
-          continue;
 
-        if (addonList[i].item instanceof Ci.nsIPluginTag)
-          addonList[i].item.disabled = true;
-        else
-          addonList[i].item.softDisabled = true;
+
+      let applyBlocklistChanges = function() {
+        for (let i = 0; i < addonList.length; i++) {
+          if (!addonList[i].disable)
+            continue;
+
+          if (addonList[i].item instanceof Ci.nsIPluginTag)
+            addonList[i].item.disabled = true;
+          else
+            addonList[i].item.softDisabled = true;
+        }
+
+        if (args.restart)
+          restartApp();
+
+        Services.obs.notifyObservers(self, "blocklist-updated", "");
+        Services.obs.removeObserver(arguments.callee, "addon-blocklist-closed");
       }
 
-      if (args.restart)
-        restartApp();
+      Services.obs.addObserver(applyBlocklistChanges, "addon-blocklist-closed", false)
 
-      Services.obs.notifyObservers(self, "blocklist-updated", "");
+      let blocklistWindow = Services.ww.openWindow(null, URI_BLOCKLIST_DIALOG, "",
+                              "chrome,centerscreen,dialog,titlebar", args);
+
+      blocklistWindow.addEventListener("unload", function(event) {
+        if(event.target.location == URI_BLOCKLIST_DIALOG) {
+          applyBlocklistChanges();
+          blocklistWindow.removeEventListener("unload", arguments.callee);
+        }
+      },false)
     });
   },
 

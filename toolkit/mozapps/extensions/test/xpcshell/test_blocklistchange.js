@@ -288,6 +288,10 @@ var WindowWatcher = {
       if (!aItem.blocked)
         aItem.disable = true;
     });
+
+    
+    Services.obs.notifyObservers(null, "addon-blocklist-closed", null);
+
   },
 
   QueryInterface: function(iid) {
