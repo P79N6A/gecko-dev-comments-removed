@@ -91,6 +91,13 @@ public:
 
 
 
+  void AdvanceTimeAndRefresh(PRInt64 aMilliseconds);
+  void RestoreNormalRefresh();
+
+  
+
+
+
 
 
 
@@ -237,6 +244,7 @@ private:
 
   bool mFrozen;
   bool mThrottled;
+  bool mTestControllingRefreshes;
   
 
 
