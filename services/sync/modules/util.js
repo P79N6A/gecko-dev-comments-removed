@@ -58,6 +58,25 @@ let Utils = {
 
 
 
+  catch: function Utils_catch(func) {
+    let thisArg = this;
+    return function WrappedCatch() {
+      try {
+        return func.call(thisArg);
+      }
+      catch(ex) {
+        thisArg._log.debug(["Caught exception:", Utils.exceptionStr(ex),
+          Utils.stackTrace(ex)].join(" ").replace(/\n/g, " "));
+      }
+    };
+  },
+
+  
+
+
+
+
+
 
 
   notify: function Utils_notify(prefix) {
