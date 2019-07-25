@@ -185,6 +185,22 @@ var tests = [
 
 
 
+
+
+
+
+
+function tagURI(aURI, aTags) {
+  PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                       aURI,
+                                       PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                       "A title");
+  tagssvc.tagURI(aURI, aTags);
+}
+
+
+
+
 function run_test() {
   
   var prefs = Cc["@mozilla.org/preferences-service;1"].
@@ -192,12 +208,12 @@ function run_test() {
   prefs.setIntPref("browser.urlbar.search.sources", 3);
   prefs.setIntPref("browser.urlbar.default.behavior", 0);
 
-  tagssvc.tagURI(uri1, ["foo"]);
-  tagssvc.tagURI(uri2, ["bar"]);
-  tagssvc.tagURI(uri3, ["cheese"]);
-  tagssvc.tagURI(uri4, ["foo bar"]);
-  tagssvc.tagURI(uri5, ["bar cheese"]);
-  tagssvc.tagURI(uri6, ["foo bar cheese"]);
+  tagURI(uri1, ["foo"]);
+  tagURI(uri2, ["bar"]);
+  tagURI(uri3, ["cheese"]);
+  tagURI(uri4, ["foo bar"]);
+  tagURI(uri5, ["bar cheese"]);
+  tagURI(uri6, ["foo bar cheese"]);
 
   tests[0]();
 }
