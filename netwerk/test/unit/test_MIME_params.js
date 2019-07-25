@@ -296,6 +296,11 @@ var tests = [
 
   ["attachment; filename*=\"a%20b\"", 
    "attachment", "a b"],
+
+  
+
+  ["attachment; filename=\"", 
+   "attachment", ""], 
 ];
 
 function do_tests(whichRFC)
