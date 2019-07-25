@@ -1140,6 +1140,12 @@ JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForScopeChain(JSContext *cx);
 
+
+
+
+extern JS_PUBLIC_API(JSObject *)
+JS_InitReflect(JSContext *cx, JSObject *global);
+
 #ifdef JS_HAS_CTYPES
 
 
