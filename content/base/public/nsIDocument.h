@@ -1529,7 +1529,8 @@ public:
 
   virtual Element* LookupImageElement(const nsAString& aElementId) = 0;
 
-  void ScheduleFrameRequestCallback(nsIFrameRequestCallback* aCallback);
+  nsresult ScheduleFrameRequestCallback(nsIFrameRequestCallback* aCallback,
+                                        PRInt32 *aHandle);
 
   typedef nsTArray< nsCOMPtr<nsIFrameRequestCallback> > FrameRequestCallbackList;
   
@@ -1811,12 +1812,32 @@ protected:
   PRUint32 mExternalScriptsBeingEvaluated;
 
   
+
+
+  PRInt32 mFrameRequestCallbackCounter;
+
+  
   
   nsPIDOMWindow *mWindow;
 
   nsCOMPtr<nsIDocumentEncoder> mCachedEncoder;
 
-  FrameRequestCallbackList mFrameRequestCallbacks;
+  struct FrameRequest {
+    FrameRequest(nsIFrameRequestCallback* aCallback,
+                 PRInt32 aHandle) :
+      mCallback(aCallback),
+      mHandle(aHandle)
+    {}
+
+    
+    
+    operator nsIFrameRequestCallback* const () const { return mCallback; }
+    
+    nsCOMPtr<nsIFrameRequestCallback> mCallback;
+    PRInt32 mHandle;
+  };
+
+  nsTArray<FrameRequest> mFrameRequestCallbacks;
 
   
   
