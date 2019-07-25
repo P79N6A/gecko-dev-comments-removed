@@ -659,6 +659,11 @@ protected:
   
   void RunTimeout(nsTimeout *aTimeout);
   void RunTimeout() { RunTimeout(nsnull); }
+  
+  bool RunTimeoutHandler(nsTimeout* aTimeout, nsIScriptContext* aScx);
+  
+  bool RescheduleTimeout(nsTimeout* aTimeout, const TimeStamp& now,
+                         bool aRunningPendingTimeouts);
 
   void ClearAllTimeouts();
   
