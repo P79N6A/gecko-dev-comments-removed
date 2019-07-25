@@ -279,16 +279,8 @@ class BasicTextureImage
     : public TextureImage
 {
 public:
-    virtual ~BasicTextureImage();
-
-    virtual gfxContext* BeginUpdate(nsIntRegion& aRegion);
-    virtual PRBool EndUpdate();
-
-    virtual PRBool InUpdate() const { return !!mUpdateContext; }
-
-    virtual void Resize(const nsIntSize& aSize);
-protected:
     typedef gfxASurface::gfxImageFormat ImageFormat;
+    virtual ~BasicTextureImage();
 
     BasicTextureImage(GLuint aTexture,
                       const nsIntSize& aSize,
@@ -301,8 +293,25 @@ protected:
         , mUpdateOffset(0, 0)
     {}
 
+    virtual gfxContext* BeginUpdate(nsIntRegion& aRegion);
+    virtual PRBool EndUpdate();
+
+    
     virtual already_AddRefed<gfxASurface>
-    CreateUpdateSurface(const gfxIntSize& aSize, ImageFormat aFmt) = 0;
+      GetSurfaceForUpdate(const gfxIntSize& aSize, ImageFormat aFmt);
+
+    
+    
+    
+    virtual bool FinishedSurfaceUpdate();
+
+    
+    virtual void FinishedSurfaceUpload();
+
+    virtual PRBool InUpdate() const { return !!mUpdateContext; }
+
+    virtual void Resize(const nsIntSize& aSize);
+protected:
 
     PRBool mTextureInited;
     GLContext* mGLContext;
@@ -748,11 +757,15 @@ public:
 
 
 
+
+
+
     ShaderProgramType UploadSurfaceToTexture(gfxASurface *aSurface, 
                                              const nsIntRect& aSrcRect,
                                              GLuint& aTexture,
                                              bool aOverwrite = false,
-                                             const nsIntPoint& aDstPoint = nsIntPoint(0, 0));
+                                             const nsIntPoint& aDstPoint = nsIntPoint(0, 0),
+                                             bool aPixelBuffer = PR_FALSE);
 
     
 
@@ -808,6 +821,7 @@ public:
         EXT_read_format_bgra,
         APPLE_client_storage,
         ARB_texture_non_power_of_two,
+        ARB_pixel_buffer_object,
         Extensions_Max
     };
 
@@ -912,7 +926,11 @@ protected:
                             GLenum aWrapMode,
                             TextureImage::ContentType aContentType,
                             GLContext* aContext)
-    { return NULL; }
+    {
+        nsRefPtr<BasicTextureImage> teximage(
+            new BasicTextureImage(aTexture, aSize, aWrapMode, aContentType, aContext));
+        return teximage.forget();
+    }
 
 protected:
     nsTArray<nsIntRect> mViewportStack;
@@ -1840,6 +1858,20 @@ public:
             mSymbols.fClearDepth(v);
         }
         AFTER_GL_CALL;
+    }
+
+    void* fMapBuffer(GLenum target, GLenum access) {
+        BEFORE_GL_CALL;
+        void *ret = mSymbols.fMapBuffer(target, access);
+        AFTER_GL_CALL;
+        return ret;
+    }
+
+    realGLboolean fUnmapBuffer(GLenum target) {
+        BEFORE_GL_CALL;
+        realGLboolean ret = mSymbols.fUnmapBuffer(target);
+        AFTER_GL_CALL;
+        return ret;
     }
 
 
