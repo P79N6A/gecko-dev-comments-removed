@@ -375,5 +375,55 @@ ContainerLayerD3D10::Validate()
   }
 }
 
+ShadowContainerLayerD3D10::ShadowContainerLayerD3D10(LayerManagerD3D10 *aManager) 
+  : ShadowContainerLayer(aManager, NULL)
+  , LayerD3D10(aManager)
+{
+  mImplData = static_cast<LayerD3D10*>(this);
+}
+
+ShadowContainerLayerD3D10::~ShadowContainerLayerD3D10() {}
+
+void
+ShadowContainerLayerD3D10::InsertAfter(Layer* aChild, Layer* aAfter)
+{
+  mFirstChild = aChild;
+}
+
+void
+ShadowContainerLayerD3D10::RemoveChild(Layer* aChild)
+{
+
+}
+
+void
+ShadowContainerLayerD3D10::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+{
+  DefaultComputeEffectiveTransforms(aTransformToSurface);
+}
+
+LayerD3D10*
+ShadowContainerLayerD3D10::GetFirstChildD3D10()
+{
+  return static_cast<LayerD3D10*>(mFirstChild->ImplData());
+}
+
+void
+ShadowContainerLayerD3D10::RenderLayer()
+{
+  LayerD3D10* layerToRender = GetFirstChildD3D10();
+  layerToRender->RenderLayer();
+}
+
+void
+ShadowContainerLayerD3D10::Validate()
+{
+}
+ 
+void
+ShadowContainerLayerD3D10::LayerManagerDestroyed()
+{
+}
+
 } 
 } 
