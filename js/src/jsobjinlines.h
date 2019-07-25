@@ -540,9 +540,9 @@ namespace js {
 
 
 static inline JSAtom *
-CallObjectLambdaName(JSFunction *fun)
+CallObjectLambdaName(JSFunction &fun)
 {
-    return (fun->flags & JSFUN_LAMBDA) ? fun->atom.get() : NULL;
+    return (fun.flags & JSFUN_LAMBDA) ? fun.atom.get() : NULL;
 }
 
 } 

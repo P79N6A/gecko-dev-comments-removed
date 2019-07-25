@@ -142,9 +142,7 @@ class CallObject : public ScopeObject
 
 
 
-    inline JSObject *getCallee() const;
-    inline JSFunction *getCalleeFunction() const;
-    inline void setCallee(JSObject *callee);
+    inline JSFunction &callee() const;
 
     
     inline const Value &arg(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
