@@ -3907,6 +3907,14 @@ nsBlockFrame::SplitFloat(nsBlockReflowState& aState,
   
   NS_MergeReflowStatusInto(&aState.mReflowStatus, aFloatStatus);
 
+  if (aFloat->GetStyleDisplay()->mFloats == NS_STYLE_FLOAT_LEFT) {
+    aState.mFloatManager->SetSplitLeftFloatAcrossBreak();
+  } else {
+    NS_ABORT_IF_FALSE(aFloat->GetStyleDisplay()->mFloats ==
+                        NS_STYLE_FLOAT_RIGHT, "unexpected float side");
+    aState.mFloatManager->SetSplitRightFloatAcrossBreak();
+  }
+
   if (nextInFlow) {
     
     aState.AppendFloatContinuation(nextInFlow);

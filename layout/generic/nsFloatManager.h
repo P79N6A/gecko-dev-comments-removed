@@ -113,6 +113,8 @@ public:
     nscoord mX, mY;
     PRPackedBool mPushedLeftFloatPastBreak;
     PRPackedBool mPushedRightFloatPastBreak;
+    PRPackedBool mSplitLeftFloatAcrossBreak;
+    PRPackedBool mSplitRightFloatAcrossBreak;
 
     friend class nsFloatManager;
   };
@@ -189,10 +191,21 @@ public:
 
 
 
+
   void SetPushedLeftFloatPastBreak()
     { mPushedLeftFloatPastBreak = PR_TRUE; }
   void SetPushedRightFloatPastBreak()
     { mPushedRightFloatPastBreak = PR_TRUE; }
+
+  
+
+
+
+
+  void SetSplitLeftFloatAcrossBreak()
+    { mSplitLeftFloatAcrossBreak = PR_TRUE; }
+  void SetSplitRightFloatAcrossBreak()
+    { mSplitRightFloatAcrossBreak = PR_TRUE; }
 
   
 
@@ -276,6 +289,10 @@ public:
                    mPushedLeftFloatPastBreak &&
                  aState->mPushedRightFloatPastBreak ==
                    mPushedRightFloatPastBreak &&
+                 aState->mSplitLeftFloatAcrossBreak ==
+                   mSplitLeftFloatAcrossBreak &&
+                 aState->mSplitRightFloatAcrossBreak ==
+                   mSplitRightFloatAcrossBreak &&
                  aState->mFloatInfoCount == mFloats.Length(),
                  "float manager state should match saved state");
   }
@@ -314,6 +331,12 @@ private:
   
   PRPackedBool mPushedLeftFloatPastBreak;
   PRPackedBool mPushedRightFloatPastBreak;
+
+  
+  
+  
+  PRPackedBool mSplitLeftFloatAcrossBreak;
+  PRPackedBool mSplitRightFloatAcrossBreak;
 
   static PRInt32 sCachedFloatManagerCount;
   static void* sCachedFloatManagers[NS_FLOAT_MANAGER_CACHE_SIZE];
