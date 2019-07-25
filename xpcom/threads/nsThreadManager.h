@@ -39,6 +39,7 @@
 #ifndef nsThreadManager_h__
 #define nsThreadManager_h__
 
+#include "mozilla/Mutex.h"
 #include "nsIThreadManager.h"
 #include "nsRefPtrHashtable.h"
 #include "nsThread.h"
@@ -91,7 +92,9 @@ private:
   PRUintn             mCurThreadIndex;  
   nsRefPtr<nsThread>  mMainThread;
   PRThread           *mMainPRThread;
-  PRLock             *mLock;  
+  
+  
+  nsAutoPtr<mozilla::Mutex> mLock;  
   PRBool              mInitialized;
 };
 

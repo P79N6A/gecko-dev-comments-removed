@@ -40,11 +40,13 @@
 #define nsMediaCache_h_
 
 #include "nsTArray.h"
-#include "nsAutoLock.h"
 #include "nsIPrincipal.h"
 #include "nsCOMPtr.h"
 
 class nsByteRange;
+namespace mozilla {
+class MonitorAutoEnter;
+}
 
 
 
@@ -209,6 +211,8 @@ class nsMediaChannelStream;
 
 
 class nsMediaCacheStream {
+  typedef mozilla::MonitorAutoEnter MonitorAutoEnter;
+
 public:
   enum {
     
@@ -429,7 +433,7 @@ private:
   
   
   
-  void CloseInternal(nsAutoMonitor* aMonitor);
+  void CloseInternal(MonitorAutoEnter& aMonitor);
   
   void UpdatePrincipal(nsIPrincipal* aPrincipal);
 

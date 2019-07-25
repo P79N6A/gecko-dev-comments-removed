@@ -40,18 +40,17 @@
 #define nsEventQueue_h__
 
 #include <stdlib.h>
-#include "prmon.h"
+#include "mozilla/Monitor.h"
 #include "nsIRunnable.h"
 
 
 class NS_COM nsEventQueue
 {
+  typedef mozilla::Monitor Monitor;
+
 public:
   nsEventQueue();
   ~nsEventQueue();
-
-  
-  PRBool IsInitialized() { return mMonitor != nsnull; }
 
   
   
@@ -83,7 +82,7 @@ public:
   }
 
   
-  PRMonitor *Monitor() {
+  Monitor& GetMonitor() {
     return mMonitor;
   }
 
@@ -111,7 +110,7 @@ private:
     free(p);
   }
 
-  PRMonitor *mMonitor;
+  Monitor mMonitor;
 
   Page *mHead;
   Page *mTail;

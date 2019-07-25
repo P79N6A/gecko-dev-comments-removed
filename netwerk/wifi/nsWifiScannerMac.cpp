@@ -53,6 +53,8 @@
 #include "nsComponentManagerUtils.h"
 #include "nsIMutableArray.h"
 
+using namespace mozilla;
+
 
 
 
@@ -75,7 +77,7 @@ nsWifiMonitor::DoScanWithCoreWLAN()
     nsCOMArray<nsIWifiListener> currentListeners;
 
     {
-      nsAutoMonitor mon(mMonitor);
+      MonitorAutoEnter mon(mMonitor);
 
       for (PRUint32 i = 0; i < mListeners.Length(); i++) {
         if (!mListeners[i].mHasSentData || accessPointsChanged) {
@@ -125,7 +127,7 @@ nsWifiMonitor::DoScanWithCoreWLAN()
     
     LOG(("waiting on monitor\n"));
 
-    nsAutoMonitor mon(mMonitor);
+    MonitorAutoEnter mon(mMonitor);
     mon.Wait(PR_SecondsToInterval(60));
   }
   while (mKeepGoing);
@@ -210,7 +212,7 @@ nsWifiMonitor::DoScanOld()
     nsCOMArray<nsIWifiListener> currentListeners;
 
     {
-      nsAutoMonitor mon(mMonitor);
+      MonitorAutoEnter mon(mMonitor);
 
       for (PRUint32 i = 0; i < mListeners.Length(); i++) {
         if (!mListeners[i].mHasSentData || accessPointsChanged) {
@@ -261,7 +263,7 @@ nsWifiMonitor::DoScanOld()
     
     LOG(("waiting on monitor\n"));
 
-    nsAutoMonitor mon(mMonitor);
+    MonitorAutoEnter mon(mMonitor);
     mon.Wait(PR_SecondsToInterval(60));
   }
   while (mKeepGoing);

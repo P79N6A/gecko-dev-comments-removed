@@ -38,8 +38,8 @@
 
 
 #include "nsHttp.h"
-#include "nsAutoLock.h"
 #include "pldhash.h"
+#include "mozilla/Mutex.h"
 #include "nsCRT.h"
 #include "prbit.h"
 
@@ -60,6 +60,8 @@ enum {
 };
 #undef HTTP_ATOM
 
+using namespace mozilla;
+
 
 
 
@@ -71,7 +73,7 @@ struct HttpHeapAtom {
 
 static struct PLDHashTable  sAtomTable = {0};
 static struct HttpHeapAtom *sHeapAtoms = nsnull;
-static PRLock              *sLock = nsnull;
+static Mutex               *sLock = nsnull;
 
 HttpHeapAtom *
 NewHeapAtom(const char *value) {
@@ -129,9 +131,7 @@ nsHttp::CreateAtomTable()
     NS_ASSERTION(!sAtomTable.ops, "atom table already initialized");
 
     if (!sLock) {
-        sLock = nsAutoLock::NewLock("nsHttp::sLock");
-        if (!sLock)
-            return NS_ERROR_OUT_OF_MEMORY;
+        sLock = new Mutex("nsHttp.sLock");
     }
 
     
@@ -179,7 +179,7 @@ nsHttp::DestroyAtomTable()
     }
 
     if (sLock) {
-        nsAutoLock::DestroyLock(sLock);
+        delete sLock;
         sLock = nsnull;
     }
 }
@@ -193,7 +193,7 @@ nsHttp::ResolveAtom(const char *str)
     if (!str || !sAtomTable.ops)
         return atom;
 
-    nsAutoLock lock(sLock);
+    MutexAutoLock lock(*sLock);
 
     PLDHashEntryStub *stub = reinterpret_cast<PLDHashEntryStub *>
                                              (PL_DHashTableOperate(&sAtomTable, str, PL_DHASH_ADD));
