@@ -52,6 +52,7 @@
 #include "Image.h"
 #include "ImageErrors.h"
 #include "ImageLogging.h"
+#include "imgLoader.h"
 
 #include "nspr.h"
 
@@ -533,6 +534,14 @@ NS_IMETHODIMP imgRequestProxy::Clone(imgIDecoderObserver* aObserver,
   
   
   clone->SyncNotifyListener();
+
+  
+  
+  
+  if (mOwner && mOwner->mValidator) {
+    clone->SetNotificationsDeferred(PR_TRUE);
+    mOwner->mValidator->AddProxy(clone);
+  }
 
   return NS_OK;
 }
