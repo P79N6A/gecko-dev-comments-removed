@@ -38,6 +38,7 @@
 
 
 
+
 "use strict";
 
 const Cc = Components.classes;
@@ -807,7 +808,7 @@ CssRuleView.prototype = {
     for each (let rule in this._elementStyle.rules) {
       
       
-      let editor = new RuleEditor(this.doc, rule);
+      let editor = new RuleEditor(this, rule);
       this.element.appendChild(editor.element);
     }
   },
@@ -822,9 +823,11 @@ CssRuleView.prototype = {
 
 
 
-function RuleEditor(aDoc, aRule)
+
+function RuleEditor(aRuleView, aRule)
 {
-  this.doc = aDoc;
+  this.ruleView = aRuleView;
+  this.doc = this.ruleView.doc;
   this.rule = aRule;
 
   this._onNewProperty = this._onNewProperty.bind(this);
@@ -893,8 +896,16 @@ RuleEditor.prototype = {
 
     
     
-    this.closeBrace.addEventListener("focus", function() {
-      this.newProperty();
+    this.closeBrace.addEventListener("focus", function(aEvent) {
+      if (!this.ruleView._selectionMode) {
+        this.newProperty();
+      }
+    }.bind(this), true);
+    this.closeBrace.addEventListener("mousedown", function(aEvent) {
+      aEvent.preventDefault();
+    }.bind(this), true);
+    this.closeBrace.addEventListener("click", function(aEvent) {
+      this.closeBrace.focus();
     }.bind(this), true);
   },
 
@@ -1260,6 +1271,21 @@ function editableField(aOptions)
 {
   aOptions.element.addEventListener("focus", function() {
     new InplaceEditor(aOptions);
+  }, false);
+
+  
+  
+  aOptions.element.addEventListener("mousedown", function(evt) {
+    evt.preventDefault();
+  }, false);
+  aOptions.element.addEventListener("click", function(evt) {
+    let win = this.ownerDocument.defaultView;
+    let selection = win.getSelection();
+    if (selection.isCollapsed) {
+      aOptions.element.focus();
+    } else {
+      selection.removeAllRanges();
+    }
   }, false);
 }
 var _editableField = editableField;
