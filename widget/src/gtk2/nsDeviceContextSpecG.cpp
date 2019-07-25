@@ -62,10 +62,8 @@
 #include "nsStringEnumerator.h"
 #include "nsIServiceManager.h" 
 
-#ifdef USE_POSTSCRIPT
 #include "nsPSPrinters.h"
 #include "nsPaperPS.h"  
-#endif 
 
 #include "nsPrintSettingsGTK.h"
 
@@ -569,12 +567,8 @@ NS_IMETHODIMP nsDeviceContextSpecGTK::GetPrintMethod(PrintMethod &aMethod)
 
 nsresult nsDeviceContextSpecGTK::GetPrintMethod(const char *aPrinter, PrintMethod &aMethod)
 {
-#if defined(USE_POSTSCRIPT)
   aMethod = pmPostScript;
   return NS_OK;
-#else
-  return NS_ERROR_UNEXPECTED;
-#endif
 }
 
 static void
@@ -778,7 +772,6 @@ NS_IMETHODIMP nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter(const PRUnich
   if (NS_FAILED(rv))
     return rv;
 
-#ifdef USE_POSTSCRIPT
   
   if (type == pmPostScript) {
     
@@ -787,7 +780,6 @@ NS_IMETHODIMP nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter(const PRUnich
     if (kNotFound != slash)
       printerName.Cut(0, slash + 1);
   }
-#endif 
 
 #ifdef SET_PRINTER_FEATURES_VIA_PREFS
   
@@ -813,7 +805,6 @@ NS_IMETHODIMP nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter(const PRUnich
 
   aPrintSettings->SetIsInitializedFromPrinter(PR_TRUE);
 
-#ifdef USE_POSTSCRIPT
   if (type == pmPostScript) {
     DO_PR_DEBUG_LOG(("InitPrintSettingsFromPrinter() for PostScript printer\n"));
 
@@ -950,7 +941,6 @@ NS_IMETHODIMP nsPrinterEnumeratorGTK::InitPrintSettingsFromPrinter(const PRUnich
 
     return NS_OK;    
   }
-#endif 
 
   return NS_ERROR_UNEXPECTED;
 }
@@ -976,7 +966,6 @@ nsresult GlobalPrinters::InitializeGlobalPrinters ()
   if (NS_FAILED(rv))
     return rv;
       
-#ifdef USE_POSTSCRIPT
   nsPSPrinterList psMgr;
   if (NS_SUCCEEDED(psMgr.Init()) && psMgr.Enabled()) {
     
@@ -990,8 +979,7 @@ nsresult GlobalPrinters::InitializeGlobalPrinters ()
       mGlobalPrinterList->AppendElement(NS_ConvertUTF8toUTF16(printerList[i]));
     }
   }
-#endif   
-      
+
   
   if (!mGlobalPrinterList->Length())
   {

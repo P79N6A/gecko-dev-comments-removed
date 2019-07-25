@@ -42,7 +42,6 @@
 
 #include "prtypes.h"
 #include "nsDebug.h"
-#include "psSharedCore.h"
 
 struct nsPaperSizePS_ {
     const char *name;
@@ -51,7 +50,7 @@ struct nsPaperSizePS_ {
     PRBool isMetric;        
 };
 
-class NS_PSSHARED nsPaperSizePS {
+class nsPaperSizePS {
     public:
         
 
@@ -119,9 +118,8 @@ class NS_PSSHARED nsPaperSizePS {
 
     private:
         unsigned int mCurrent;
-        
-        static NS_PSSHARED_STATIC_MEMBER_(const nsPaperSizePS_) mList[];
-        static NS_PSSHARED_STATIC_MEMBER_(const unsigned int) mCount;
+        static const nsPaperSizePS_ mList[];
+        static const unsigned int mCount;
 };
 
 #endif
