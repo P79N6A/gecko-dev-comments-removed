@@ -373,8 +373,4 @@ class nsAutoLockListener
   PRPackedBool mOldState;
 };
 
-
-nsresult NS_NewTextEditRules(nsIEditRules** aInstancePtrResult);
-
 #endif 
-
