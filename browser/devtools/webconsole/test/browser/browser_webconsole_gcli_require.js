@@ -107,11 +107,11 @@ function testUncompilable() {
   
   
   try {
-      let unrequireable = require('gclitest/unrequirable');
-      fail();
+    let unrequireable = require('gclitest/unrequirable');
+    fail();
   }
   catch (ex) {
-      console.log(ex);
+    
   }
 }
 
