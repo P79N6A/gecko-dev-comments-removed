@@ -2861,7 +2861,6 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
 
 
 
-
     TypeObject *type = (fun->getProto() == proto) ? fun->getType() : proto->getNewType(cx);
     if (!type)
         return NULL;
