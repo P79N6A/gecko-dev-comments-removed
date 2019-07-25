@@ -1276,12 +1276,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   
-  
-  
-  
-  reorderBasedOnTabOrder: function(topChild){    
-    this.topChild = topChild;
-    
+  reorderBasedOnTabOrder: function(){    
     var groupTabs = [];
     for( var i=0; i<UI.tabBar.el.children.length; i++ ){
       var tab = UI.tabBar.el.children[i];
@@ -1292,6 +1287,16 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     this._children.sort(function(a,b){
       return groupTabs.indexOf(a.tab.raw) - groupTabs.indexOf(b.tab.raw)
     });
+    
+    this.arrange({animate: false});
+    
+  },
+  
+  
+  
+  
+  setTopChild: function(topChild){    
+    this.topChild = topChild;
     
     this.arrange({animate: false});
     
