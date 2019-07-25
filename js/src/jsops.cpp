@@ -224,10 +224,11 @@ BEGIN_CASE(JSOP_STOP)
         fp->rval = fp->thisv;
 
     JSBool ok;
-    ok = JS_TRUE;
     if (inlineCallCount)
   inline_return:
     {
+        ok = JS_TRUE;  
+
         JS_ASSERT(!fp->blockChain);
         JS_ASSERT(!js_IsActiveWithOrBlock(cx, fp->scopeChain, 0));
 
@@ -4387,7 +4388,7 @@ BEGIN_CASE(JSOP_LEAVEBLOCK)
     fp->blockChain = fp->blockChain->getParent();
 
     
-    Value *vp;
+    Value *vp = NULL;  
     if (op == JSOP_LEAVEBLOCKEXPR)
         vp = &regs.sp[-1];
     regs.sp -= GET_UINT16(regs.pc);
