@@ -784,53 +784,44 @@ bool nsHTMLEditor::IsOnlyAttribute(nsIDOMNode *aNode,
   return true;
 }
 
-bool nsHTMLEditor::HasAttr(nsIDOMNode *aNode, 
-                             const nsAString *aAttribute)
+bool nsHTMLEditor::HasAttr(nsIDOMNode* aNode,
+                           const nsAString* aAttribute)
 {
   NS_ENSURE_TRUE(aNode, false);
-  if (!aAttribute || aAttribute->IsEmpty()) return true;  
+  if (!aAttribute || aAttribute->IsEmpty()) {
+    
+    return true;
+  }
+
   
-  
-  nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
-  NS_ENSURE_TRUE(elem, false);
-  
-  
-  nsCOMPtr<nsIDOMAttr> attNode;
-  nsresult res = elem->GetAttributeNode(*aAttribute, getter_AddRefs(attNode));
-  if ((NS_FAILED(res)) || !attNode) return false;
-  return true;
+  nsCOMPtr<dom::Element> element = do_QueryInterface(aNode);
+  NS_ENSURE_TRUE(element, false);
+
+  nsCOMPtr<nsIAtom> atom = do_GetAtom(*aAttribute);
+  NS_ENSURE_TRUE(atom, false);
+
+  return element->HasAttr(kNameSpaceID_None, atom);
 }
 
 
-bool nsHTMLEditor::HasAttrVal(nsIDOMNode *aNode, 
-                                const nsAString *aAttribute, 
-                                const nsAString *aValue)
+bool nsHTMLEditor::HasAttrVal(nsIDOMNode* aNode,
+                              const nsAString* aAttribute,
+                              const nsAString* aValue)
 {
   NS_ENSURE_TRUE(aNode, false);
-  if (!aAttribute || aAttribute->IsEmpty()) return true;  
+  if (!aAttribute || aAttribute->IsEmpty()) {
+    
+    return true;
+  }
+
   
-  
-  nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
-  NS_ENSURE_TRUE(elem, false);
-  
-  
-  nsCOMPtr<nsIDOMAttr> attNode;
-  nsresult res = elem->GetAttributeNode(*aAttribute, getter_AddRefs(attNode));
-  if ((NS_FAILED(res)) || !attNode) return false;
-  
-  
-  bool isSet;
-  attNode->GetSpecified(&isSet);
-  
-  if (!isSet && (!aValue || aValue->IsEmpty())) return true; 
-  
-  
-  nsAutoString attrVal;
-  attNode->GetValue(attrVal);
-  
-  
-  if (attrVal.Equals(*aValue,nsCaseInsensitiveStringComparator())) return true;
-  return false;
+  nsCOMPtr<dom::Element> element = do_QueryInterface(aNode);
+  NS_ENSURE_TRUE(element, false);
+
+  nsCOMPtr<nsIAtom> atom = do_GetAtom(*aAttribute);
+  NS_ENSURE_TRUE(atom, false);
+
+  return element->AttrValueIs(kNameSpaceID_None, atom, *aValue, eIgnoreCase);
 }
 
 nsresult nsHTMLEditor::PromoteRangeIfStartsOrEndsInNamedAnchor(nsIDOMRange *inRange)
