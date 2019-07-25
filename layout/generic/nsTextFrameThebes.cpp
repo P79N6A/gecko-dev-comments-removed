@@ -1996,68 +1996,6 @@ BuildTextRunsScanner::SetupBreakSinksForTextRun(gfxTextRun* aTextRun,
   }
 }
 
-void
-BuildTextRunsScanner::AssignTextRun(gfxTextRun* aTextRun)
-{
-  PRUint32 i;
-  for (i = 0; i < mMappedFlows.Length(); ++i) {
-    MappedFlow* mappedFlow = &mMappedFlows[i];
-    nsTextFrame* startFrame = mappedFlow->mStartFrame;
-    nsTextFrame* endFrame = mappedFlow->mEndFrame;
-    nsTextFrame* f;
-    for (f = startFrame; f != endFrame;
-         f = static_cast<nsTextFrame*>(f->GetNextContinuation())) {
-#ifdef DEBUG_roc
-      if (f->GetTextRun()) {
-        gfxTextRun* textRun = f->GetTextRun();
-        if (textRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW) {
-          if (mMappedFlows[0].mStartFrame != static_cast<nsTextFrame*>(textRun->GetUserData())) {
-            NS_WARNING("REASSIGNING SIMPLE FLOW TEXT RUN!");
-          }
-        } else {
-          TextRunUserData* userData =
-            static_cast<TextRunUserData*>(textRun->GetUserData());
-         
-          if (PRUint32(userData->mMappedFlowCount) >= mMappedFlows.Length() ||
-              userData->mMappedFlows[userData->mMappedFlowCount - 1].mStartFrame !=
-              mMappedFlows[userData->mMappedFlowCount - 1].mStartFrame) {
-            NS_WARNING("REASSIGNING MULTIFLOW TEXT RUN (not append)!");
-          }
-        }
-      }
-#endif
-#ifdef DEBUG
-      gfxTextRun* oldTextRun = f->GetTextRun();
-      nsTextFrame* firstFrame = nsnull;
-      if (oldTextRun) {
-        if (oldTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW) {
-          firstFrame = static_cast<nsTextFrame*>(oldTextRun->GetUserData());
-        }
-        else {
-          TextRunUserData* userData =
-            static_cast<TextRunUserData*>(oldTextRun->GetUserData());
-          firstFrame = userData->mMappedFlows[0].mStartFrame;
-        }
-      }
-#endif
-      f->ClearTextRun(f);
-#ifdef DEBUG
-      if (firstFrame && !firstFrame->GetTextRun()) {
-        
-        for (PRUint32 i = 0; i < mBreakSinks.Length(); ++i) {
-          NS_ASSERTION(oldTextRun != mBreakSinks[i]->mTextRun,
-                       "destroyed text run is still in use");
-        }
-      }
-#endif
-      f->SetTextRun(aTextRun);
-    }
-    
-    
-    startFrame->AddStateBits(TEXT_IN_TEXTRUN_USER_DATA);
-  }
-}
-
 
 static inline TextRunMappedFlow*
 FindFlowForContent(TextRunUserData* aUserData, nsIContent* aContent)
@@ -2100,6 +2038,88 @@ FindFlowForContent(TextRunUserData* aUserData, nsIContent* aContent)
   }
 
   return nsnull;
+}
+
+void
+BuildTextRunsScanner::AssignTextRun(gfxTextRun* aTextRun)
+{
+  PRUint32 i;
+  for (i = 0; i < mMappedFlows.Length(); ++i) {
+    MappedFlow* mappedFlow = &mMappedFlows[i];
+    nsTextFrame* startFrame = mappedFlow->mStartFrame;
+    nsTextFrame* endFrame = mappedFlow->mEndFrame;
+    nsTextFrame* f;
+    for (f = startFrame; f != endFrame;
+         f = static_cast<nsTextFrame*>(f->GetNextContinuation())) {
+#ifdef DEBUG_roc
+      if (f->GetTextRun()) {
+        gfxTextRun* textRun = f->GetTextRun();
+        if (textRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW) {
+          if (mMappedFlows[0].mStartFrame != static_cast<nsTextFrame*>(textRun->GetUserData())) {
+            NS_WARNING("REASSIGNING SIMPLE FLOW TEXT RUN!");
+          }
+        } else {
+          TextRunUserData* userData =
+            static_cast<TextRunUserData*>(textRun->GetUserData());
+         
+          if (PRUint32(userData->mMappedFlowCount) >= mMappedFlows.Length() ||
+              userData->mMappedFlows[userData->mMappedFlowCount - 1].mStartFrame !=
+              mMappedFlows[userData->mMappedFlowCount - 1].mStartFrame) {
+            NS_WARNING("REASSIGNING MULTIFLOW TEXT RUN (not append)!");
+          }
+        }
+      }
+#endif
+
+      gfxTextRun* oldTextRun = f->GetTextRun();
+      if (oldTextRun) {
+        nsTextFrame* firstFrame = nsnull;
+        PRUint32 startOffset = 0;
+        if (oldTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW) {
+          firstFrame = static_cast<nsTextFrame*>(oldTextRun->GetUserData());
+        }
+        else {
+          TextRunUserData* userData = static_cast<TextRunUserData*>(oldTextRun->GetUserData());
+          firstFrame = userData->mMappedFlows[0].mStartFrame;
+          if (NS_UNLIKELY(f != firstFrame)) {
+            TextRunMappedFlow* flow = FindFlowForContent(userData, f->GetContent());
+            if (flow) {
+              startOffset = flow->mDOMOffsetToBeforeTransformOffset;
+            }
+            else {
+              NS_ERROR("Can't find flow containing frame 'f'");
+            }
+          }
+        }
+
+        
+        
+        nsTextFrame* clearFrom = nsnull;
+        if (NS_UNLIKELY(f != firstFrame)) {
+          
+          
+          gfxSkipCharsIterator iter(oldTextRun->GetSkipChars(), startOffset, f->GetContentOffset());
+          PRUint32 textRunOffset = iter.ConvertOriginalToSkipped(f->GetContentOffset());
+          clearFrom = textRunOffset == oldTextRun->GetLength() ? f : nsnull;
+        }
+        f->ClearTextRun(clearFrom);
+
+#ifdef DEBUG
+        if (firstFrame && !firstFrame->GetTextRun()) {
+          
+          for (PRUint32 i = 0; i < mBreakSinks.Length(); ++i) {
+            NS_ASSERTION(oldTextRun != mBreakSinks[i]->mTextRun,
+                         "destroyed text run is still in use");
+          }
+        }
+#endif
+      }
+      f->SetTextRun(aTextRun);
+    }
+    
+    
+    startFrame->AddStateBits(TEXT_IN_TEXTRUN_USER_DATA);
+  }
 }
 
 gfxSkipCharsIterator
