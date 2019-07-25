@@ -126,9 +126,9 @@ VideoData* VideoData::Create(nsVideoInfo& aInfo,
   PRUint32 picXLimit;
   PRUint32 picYLimit;
   if (!AddOverflow32(aInfo.mPicture.x, aInfo.mPicture.width, picXLimit) ||
-      picXLimit > PRUint32(aBuffer.mPlanes[0].mStride) ||
+      picXLimit > aBuffer.mPlanes[0].mStride ||
       !AddOverflow32(aInfo.mPicture.y, aInfo.mPicture.height, picYLimit) ||
-      picYLimit > PRUint32(aBuffer.mPlanes[0].mHeight))
+      picYLimit > aBuffer.mPlanes[0].mHeight)
   {
     
     
