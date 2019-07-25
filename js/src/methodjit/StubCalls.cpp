@@ -715,6 +715,39 @@ FetchElementId(VMFrame &f, JSObject *obj, const Value &idval, jsid &id, Value *v
 }
 
 void JS_FASTCALL
+stubs::CallElem(VMFrame &f)
+{
+    JSContext *cx = f.cx;
+    JSFrameRegs &regs = f.regs;
+
+    
+    JSObject *obj = ValueToObject(cx, &regs.sp[-2]);
+    if (!obj)
+        THROW();
+
+    
+    jsid id;
+    if (!FetchElementId(f, obj, regs.sp[-1], id, &regs.sp[-2]))
+        THROW();
+
+    
+    if (!js_GetMethod(cx, obj, id, JSGET_NO_METHOD_BARRIER, &regs.sp[-2]))
+        THROW();
+
+#if JS_HAS_NO_SUCH_METHOD
+    if (JS_UNLIKELY(regs.sp[-2].isUndefined())) {
+        regs.sp[-2] = regs.sp[-1];
+        regs.sp[-1].setObject(*obj);
+        if (!js_OnUnknownMethod(cx, regs.sp - 2))
+            THROW();
+    } else
+#endif
+    {
+        regs.sp[-1].setObject(*obj);
+    }
+}
+
+void JS_FASTCALL
 stubs::SetElem(VMFrame &f)
 {
     JSContext *cx = f.cx;
