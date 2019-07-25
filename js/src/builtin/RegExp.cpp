@@ -602,7 +602,7 @@ ExecuteRegExp(JSContext *cx, Native native, uintN argc, Value *vp)
     const Value &lastIndex = reobj.getLastIndex();
 
     
-    jsdouble i;
+    double i;
     if (!ToInteger(cx, lastIndex, &i))
         return false;
 
