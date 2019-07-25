@@ -320,12 +320,12 @@ var PlacesUtils = {
         Services.obs.removeObserver(this, this.TOPIC_SHUTDOWN);
         this._shutdownFunctions.forEach(function (aFunc) aFunc.apply(this), this);
         if (this._bookmarksServiceObserversQueue.length > 0) {
-          Services.obs.removeObserver(this, "bookmarks-service-ready", false);
+          
           this._bookmarksServiceObserversQueue.length = 0;
         }
         break;
       case "bookmarks-service-ready":
-        Services.obs.removeObserver(this, "bookmarks-service-ready", false);
+        this._bookmarksServiceReady = true;
         while (this._bookmarksServiceObserversQueue.length > 0) {
           let observer = this._bookmarksServiceObserversQueue.shift();
           this.bookmarks.addObserver(observer, false);
@@ -2120,16 +2120,6 @@ var PlacesUtils = {
     });
   },
 
-  _isServiceInstantiated: function PU__isServiceInstantiated(aContractID) {
-    try {
-      return Components.manager
-                       .QueryInterface(Ci.nsIServiceManager)
-                       .isServiceInstantiatedByContractID(aContractID,
-                                                          Ci.nsISupports);
-    } catch (ex) {}
-    return false;
-  },
-
   
 
 
@@ -2141,16 +2131,17 @@ var PlacesUtils = {
 
 
 
+  _bookmarksServiceReady: false,
   _bookmarksServiceObserversQueue: [],
   addLazyBookmarkObserver:
   function PU_addLazyBookmarkObserver(aObserver) {
-    if (this._isServiceInstantiated("@mozilla.org/browser/nav-bookmarks-service;1")) {
+    if (this._bookmarksServiceReady) {
       this.bookmarks.addObserver(aObserver, false);
       return;
     }
-    Services.obs.addObserver(this, "bookmarks-service-ready", false);
     this._bookmarksServiceObserversQueue.push(aObserver);
   },
+
   
 
 
@@ -2159,7 +2150,7 @@ var PlacesUtils = {
 
   removeLazyBookmarkObserver:
   function PU_removeLazyBookmarkObserver(aObserver) {
-    if (this._bookmarksServiceObserversQueue.length == 0) {
+    if (this._bookmarksServiceReady) {
       this.bookmarks.removeObserver(aObserver, false);
       return;
     }

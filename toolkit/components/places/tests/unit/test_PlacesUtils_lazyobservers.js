@@ -2,6 +2,8 @@
 
 
 function run_test() {
+  do_test_pending();
+  
   const TEST_URI = NetUtil.newURI("http://moz.org/")
   let observer = {
     QueryInterface: XPCOMUtils.generateQI([
@@ -26,7 +28,19 @@ function run_test() {
   PlacesUtils.addLazyBookmarkObserver(observer);
   PlacesUtils.removeLazyBookmarkObserver(observer);
 
+  
   PlacesUtils.addLazyBookmarkObserver(observer);
+
+  
+  
+  PlacesUtils.bookmarks;
+  PlacesUtils.addLazyBookmarkObserver(observer);
+  PlacesUtils.removeLazyBookmarkObserver(observer);
+  try {
+    PlacesUtils.bookmarks.removeObserver(observer);
+    do_throw("Trying to remove a nonexisting observer should throw!");
+  } catch (ex) {}
+
   PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
                                        TEST_URI,
                                        PlacesUtils.bookmarks.DEFAULT_INDEX,
