@@ -92,18 +92,61 @@ GetZeroValueForUnit(nsStyleAnimation::Unit aUnit)
   }
 }
 
-static void
-InvertSign(nsStyleAnimation::Value& aStyleCoord)
+
+
+
+
+
+
+
+
+
+
+static const PRBool
+FinalizeStyleAnimationValues(const nsStyleAnimation::Value*& aValue1,
+                             const nsStyleAnimation::Value*& aValue2)
 {
-  switch (aStyleCoord.GetUnit()) {
+  NS_ABORT_IF_FALSE(aValue1 || aValue2,
+                    "expecting at least one non-null value");
+
+  
+  if (!aValue1) {
+    aValue1 = GetZeroValueForUnit(aValue2->GetUnit());
+    return !!aValue1; 
+  }
+  if (!aValue2) {
+    aValue2 = GetZeroValueForUnit(aValue1->GetUnit());
+    return !!aValue2; 
+  }
+
+  
+  
+  
+  
+  
+  if (*aValue1 == sZeroCoord &&
+      aValue2->GetUnit() == nsStyleAnimation::eUnit_Float) {
+    aValue1 = &sZeroFloat;
+  } else if (*aValue2 == sZeroCoord &&
+             aValue1->GetUnit() == nsStyleAnimation::eUnit_Float) {
+    aValue2 = &sZeroFloat;
+  }
+
+  return PR_TRUE;
+}
+
+static void
+InvertSign(nsStyleAnimation::Value& aValue)
+{
+  switch (aValue.GetUnit()) {
     case nsStyleAnimation::eUnit_Coord:
-      aStyleCoord.SetCoordValue(-aStyleCoord.GetCoordValue());
+      aValue.SetCoordValue(-aValue.GetCoordValue());
       break;
     case nsStyleAnimation::eUnit_Percent:
-      aStyleCoord.SetPercentValue(-aStyleCoord.GetPercentValue());
+      aValue.SetPercentValue(-aValue.GetPercentValue());
       break;
     case nsStyleAnimation::eUnit_Float:
-      aStyleCoord.SetFloatValue(-aStyleCoord.GetFloatValue());
+      aValue.SetFloatValue(-aValue.GetFloatValue());
       break;
     default:
       NS_NOTREACHED("Calling InvertSign with an unsupported unit");
@@ -154,9 +197,6 @@ nsSMILCSSValueType::Assign(nsSMILValue& aDest, const nsSMILValue& aSrc) const
     if (!destWrapper) {
       
       aDest.mU.mPtr = new ValueWrapper(*srcWrapper);
-      if (!aDest.mU.mPtr) {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
     } else {
       
       *destWrapper = *srcWrapper;
@@ -221,33 +261,27 @@ nsSMILCSSValueType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
     return NS_ERROR_FAILURE;
   }
 
-  
-  const nsStyleAnimation::Value* realValueToAdd = valueToAddWrapper ?
-    &valueToAddWrapper->mCSSValue :
-    GetZeroValueForUnit(destWrapper->mCSSValue.GetUnit());
-  if (!realValueToAdd) {
-    
+  const nsStyleAnimation::Value* valueToAdd = valueToAddWrapper ?
+    &valueToAddWrapper->mCSSValue : nsnull;
+  const nsStyleAnimation::Value* destValue = destWrapper ?
+    &destWrapper->mCSSValue : nsnull;
+  if (!FinalizeStyleAnimationValues(valueToAdd, destValue)) {
     return NS_ERROR_FAILURE;
+  }
+  
+  
+  if (destWrapper && &destWrapper->mCSSValue != destValue) {
+    destWrapper->mCSSValue = *destValue;
   }
 
   
   if (!destWrapper) {
-    
-    const nsStyleAnimation::Value* zeroVal =
-      GetZeroValueForUnit(valueToAddWrapper->mCSSValue.GetUnit());
-    if (!zeroVal) {
-      
-      return NS_ERROR_FAILURE;
-    }
     aDest.mU.mPtr = destWrapper =
-      new ValueWrapper(property, *zeroVal, valueToAddWrapper->mPresContext);
-    if (!destWrapper) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+      new ValueWrapper(property, *destValue, valueToAddWrapper->mPresContext);
   }
 
-  return nsStyleAnimation::Add(property, destWrapper->mCSSValue,
-                               *realValueToAdd, aCount) ?
+  return nsStyleAnimation::Add(property,
+                               destWrapper->mCSSValue, *valueToAdd, aCount) ?
     NS_OK : NS_ERROR_FAILURE;
 }
 
@@ -265,15 +299,15 @@ nsSMILCSSValueType::ComputeDistance(const nsSMILValue& aFrom,
   NS_ABORT_IF_FALSE(toWrapper, "expecting non-null endpoint");
 
   const nsStyleAnimation::Value* fromCSSValue = fromWrapper ?
-    &fromWrapper->mCSSValue :
-    GetZeroValueForUnit(toWrapper->mCSSValue.GetUnit());
-  if (!fromCSSValue) {
-    
+    &fromWrapper->mCSSValue : nsnull;
+  const nsStyleAnimation::Value* toCSSValue = &toWrapper->mCSSValue;
+  if (!FinalizeStyleAnimationValues(fromCSSValue, toCSSValue)) {
     return NS_ERROR_FAILURE;
   }
 
-  return nsStyleAnimation::ComputeDistance(toWrapper->mPropID, *fromCSSValue,
-                                           toWrapper->mCSSValue, aDistance) ?
+  return nsStyleAnimation::ComputeDistance(toWrapper->mPropID,
+                                           *fromCSSValue, *toCSSValue,
+                                           aDistance) ?
     NS_OK : NS_ERROR_FAILURE;
 }
 
@@ -290,27 +324,26 @@ nsSMILCSSValueType::Interpolate(const nsSMILValue& aStartVal,
   NS_ABORT_IF_FALSE(aResult.mType == this, "Unexpected result type");
   NS_ABORT_IF_FALSE(aUnitDistance >= 0.0 && aUnitDistance <= 1.0,
                     "unit distance value out of bounds");
+  NS_ABORT_IF_FALSE(!aResult.mU.mPtr, "expecting barely-initialized outparam");
 
   const ValueWrapper* startWrapper = ExtractValueWrapper(aStartVal);
   const ValueWrapper* endWrapper = ExtractValueWrapper(aEndVal);
   NS_ABORT_IF_FALSE(endWrapper, "expecting non-null endpoint");
-  NS_ABORT_IF_FALSE(!aResult.mU.mPtr, "expecting barely-initialized outparam");
 
   const nsStyleAnimation::Value* startCSSValue = startWrapper ?
-    &startWrapper->mCSSValue :
-    GetZeroValueForUnit(endWrapper->mCSSValue.GetUnit());
-  if (!startCSSValue) {
-    
+    &startWrapper->mCSSValue : nsnull;
+  const nsStyleAnimation::Value* endCSSValue = &endWrapper->mCSSValue;
+  if (!FinalizeStyleAnimationValues(startCSSValue, endCSSValue)) {
     return NS_ERROR_FAILURE;
   }
 
   nsStyleAnimation::Value resultValue;
-  if (nsStyleAnimation::Interpolate(endWrapper->mPropID, *startCSSValue,
-                                    endWrapper->mCSSValue, aUnitDistance,
-                                    resultValue)) {
+  if (nsStyleAnimation::Interpolate(endWrapper->mPropID,
+                                    *startCSSValue, *endCSSValue,
+                                    aUnitDistance, resultValue)) {
     aResult.mU.mPtr = new ValueWrapper(endWrapper->mPropID, resultValue,
                                        endWrapper->mPresContext);
-    return aResult.mU.mPtr ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+    return NS_OK;
   }
   return NS_ERROR_FAILURE;
 }
@@ -389,11 +422,6 @@ nsSMILCSSValueType::ValueFromString(nsCSSProperty aPropID,
                             aString, parsedValue)) {
     sSingleton.Init(aValue);
     aValue.mU.mPtr = new ValueWrapper(aPropID, parsedValue, presContext);
-    if (!aValue.mU.mPtr) {
-      
-      
-      sSingleton.Destroy(aValue);
-    }
   }
 }
 
