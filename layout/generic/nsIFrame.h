@@ -602,6 +602,8 @@ public:
 
 
 
+
+
   NS_IMETHOD  SetInitialChildList(ChildListID     aListID,
                                   nsFrameList&    aChildList) = 0;
 
@@ -2747,6 +2749,8 @@ protected:
 private:
   nsIFrame*        mNextSibling;  
   nsIFrame*        mPrevSibling;  
+
+  void MarkAbsoluteFramesForDisplayList(nsDisplayListBuilder* aBuilder, const nsRect& aDirtyRect);
 
   static void DestroyPaintedPresShellList(void* propertyValue) {
     nsTArray<nsWeakPtr>* list = static_cast<nsTArray<nsWeakPtr>*>(propertyValue);

@@ -47,7 +47,6 @@
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsRenderingContext.h"
-#include "nsAbsoluteContainingBlock.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsAutoPtr.h"
 #include "nsFrameManager.h"
@@ -414,7 +413,9 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
   }
 
   rv = ReflowFrames(aPresContext, aReflowState, irs, aMetrics, aStatus);
-  
+
+  ReflowAbsoluteFrames(aPresContext, aMetrics, aReflowState, aStatus);
+
   
   
 
@@ -918,6 +919,13 @@ nsInlineFrame::GetBaseline() const
   return mBaseline;
 }
 
+void
+nsInlineFrame::DestroyFrom(nsIFrame* aDestructRoot)
+{
+  DestroyAbsoluteFrames(aDestructRoot);
+  nsInlineFrameSuper::DestroyFrom(aDestructRoot);
+}
+
 #ifdef ACCESSIBILITY
 already_AddRefed<nsAccessible>
 nsInlineFrame::CreateAccessible()
@@ -1097,6 +1105,8 @@ nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
   rv = ReflowFrames(aPresContext, aReflowState, irs, aMetrics, aStatus);
   aReflowState.mLineLayout->SetInFirstLine(PR_FALSE);
 
+  ReflowAbsoluteFrames(aPresContext, aMetrics, aReflowState, aStatus);
+
   
 
   return rv;
@@ -1117,160 +1127,3 @@ nsFirstLineFrame::PullOverflowsFromPrevInFlow()
   }
 }
 
-
-
-nsIFrame*
-NS_NewPositionedInlineFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-{
-  return new (aPresShell) nsPositionedInlineFrame(aContext);
-}
-
-NS_IMPL_FRAMEARENA_HELPERS(nsPositionedInlineFrame)
-
-void
-nsPositionedInlineFrame::DestroyFrom(nsIFrame* aDestructRoot)
-{
-  mAbsoluteContainer.DestroyFrames(this, aDestructRoot);
-  nsInlineFrame::DestroyFrom(aDestructRoot);
-}
-
-NS_IMETHODIMP
-nsPositionedInlineFrame::SetInitialChildList(ChildListID     aListID,
-                                             nsFrameList&    aChildList)
-{
-  nsresult  rv;
-
-  if (kAbsoluteList == aListID) {
-    rv = mAbsoluteContainer.SetInitialChildList(this, aListID, aChildList);
-  } else {
-    rv = nsInlineFrame::SetInitialChildList(aListID, aChildList);
-  }
-
-  return rv;
-}
-
-NS_IMETHODIMP
-nsPositionedInlineFrame::AppendFrames(ChildListID     aListID,
-                                      nsFrameList&    aFrameList)
-{
-  nsresult  rv;
-  
-  if (kAbsoluteList == aListID) {
-    rv = mAbsoluteContainer.AppendFrames(this, aListID, aFrameList);
-  } else {
-    rv = nsInlineFrame::AppendFrames(aListID, aFrameList);
-  }
-
-  return rv;
-}
-  
-NS_IMETHODIMP
-nsPositionedInlineFrame::InsertFrames(ChildListID     aListID,
-                                      nsIFrame*       aPrevFrame,
-                                      nsFrameList&    aFrameList)
-{
-  nsresult  rv;
-
-  if (kAbsoluteList == aListID) {
-    rv = mAbsoluteContainer.InsertFrames(this, aListID, aPrevFrame,
-                                         aFrameList);
-  } else {
-    rv = nsInlineFrame::InsertFrames(aListID, aPrevFrame, aFrameList);
-  }
-
-  return rv;
-}
-  
-NS_IMETHODIMP
-nsPositionedInlineFrame::RemoveFrame(ChildListID     aListID,
-                                     nsIFrame*       aOldFrame)
-{
-  nsresult  rv;
-
-  if (kAbsoluteList == aListID) {
-    mAbsoluteContainer.RemoveFrame(this, aListID, aOldFrame);
-    rv = NS_OK;
-  } else {
-    rv = nsInlineFrame::RemoveFrame(aListID, aOldFrame);
-  }
-
-  return rv;
-}
-
-NS_IMETHODIMP
-nsPositionedInlineFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                          const nsRect&           aDirtyRect,
-                                          const nsDisplayListSet& aLists)
-{
-  aBuilder->MarkFramesForDisplayList(this, mAbsoluteContainer.GetChildList(),
-				     aDirtyRect);
-  return nsHTMLContainerFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
-}
-
-nsFrameList
-nsPositionedInlineFrame::GetChildList(ChildListID aListID) const
-{
-  if (kAbsoluteList == aListID)
-    return mAbsoluteContainer.GetChildList();
-
-  return nsInlineFrame::GetChildList(aListID);
-}
-
-void
-nsPositionedInlineFrame::GetChildLists(nsTArray<ChildList>* aLists) const
-{
-  nsInlineFrame::GetChildLists(aLists);
-  mAbsoluteContainer.AppendChildList(aLists, kAbsoluteList);
-}
-
-nsIAtom*
-nsPositionedInlineFrame::GetType() const
-{
-  return nsGkAtoms::positionedInlineFrame;
-}
-
-NS_IMETHODIMP
-nsPositionedInlineFrame::Reflow(nsPresContext*          aPresContext,
-                                nsHTMLReflowMetrics&     aDesiredSize,
-                                const nsHTMLReflowState& aReflowState,
-                                nsReflowStatus&          aStatus)
-{
-  nsresult  rv = NS_OK;
-
-  
-  
-
-  
-  rv = nsInlineFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (NS_SUCCEEDED(rv) &&
-      mAbsoluteContainer.HasAbsoluteFrames()) {
-    
-    nsMargin computedBorder =
-      aReflowState.mComputedBorderPadding - aReflowState.mComputedPadding;
-    nscoord containingBlockWidth =
-      aDesiredSize.width - computedBorder.LeftRight();
-    nscoord containingBlockHeight =
-      aDesiredSize.height - computedBorder.TopBottom();
-
-    
-    
-    
-    
-    rv = mAbsoluteContainer.Reflow(this, aPresContext, aReflowState, aStatus,
-                                   containingBlockWidth, containingBlockHeight,
-                                   PR_TRUE, PR_TRUE, PR_TRUE, 
-                                   &aDesiredSize.mOverflowAreas);
-  }
-
-  return rv;
-}

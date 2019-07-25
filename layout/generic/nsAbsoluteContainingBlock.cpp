@@ -427,7 +427,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
   bool constrainHeight = (aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE)
     && aConstrainHeight
        
-    && (aDelegatingFrame->GetType() != nsGkAtoms::positionedInlineFrame)
+    && (aDelegatingFrame->GetType() != nsGkAtoms::inlineFrame)
        
     && (aKidFrame->GetRect().y <= aReflowState.availableHeight);
        

@@ -667,7 +667,6 @@ IsPercentageAware(const nsIFrame* aFrame)
   
   
   
-  
 
   const nsStyleMargin* margin = aFrame->GetStyleMargin();
   if (HasPercentageUnitSide(margin->mMargin)) {
