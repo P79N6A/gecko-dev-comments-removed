@@ -177,15 +177,21 @@ let Util = {
       return this._isTablet = true;
 
 #ifdef ANDROID
-    
     let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
     let shellVersion = sysInfo.get("shellVersion") || "";
     let matches = shellVersion.match(/\((\d+)\)$/);
     if (matches) {
       let sdkVersion = parseInt(matches[1]);
-      if (sdkVersion < 11 || sdkVersion > 13)
+      
+      if (sdkVersion < 11)
         return this._isTablet = false;
+
+      
+      if (sdkVersion < 14)
+        return this._isTablet = true;
     }
+    
+    return this._isTablet = sysInfo.get("isTablet");
 #endif
 
     let dpi = this.displayDPI;
