@@ -263,13 +263,16 @@ struct TraceMonitor {
     
     nanojit::Seq<nanojit::Fragment*>* branches;
     uint32                  lastFragID;
-    
-
-
-
     VMAllocator*            profAlloc;
     FragStatsMap*           profTab;
+
+    void logFragProfile();
 #endif
+
+    TraceMonitor();
+    ~TraceMonitor();
+
+    bool init(JSRuntime* rt);
 
     bool ontrace() const {
         return !!tracecx;
@@ -285,10 +288,6 @@ struct TraceMonitor {
     void mark(JSTracer *trc);
 
     bool outOfMemory() const;
-
-    JS_FRIEND_API(void) getCodeAllocStats(size_t &total, size_t &frag_size, size_t &free_size) const;
-    JS_FRIEND_API(size_t) getVMAllocatorsMainSize() const;
-    JS_FRIEND_API(size_t) getVMAllocatorsReserveSize() const;
 };
 
 namespace mjit {
@@ -413,13 +412,6 @@ struct JS_FRIEND_API(JSCompartment) {
 
 #ifdef JS_METHODJIT
     js::mjit::JaegerCompartment  *jaegerCompartment;
-    
-
-
-
-
-
-    size_t getMjitCodeSize() const;
 #endif
 
     

@@ -409,7 +409,6 @@ public:
       : mOutOfMemory(false)
       , mSize(0)
       , mReserve(reserve)
-      , mReserveSize(reserveSize)
       , mReserveCurr(uintptr_t(reserve))
       , mReserveLimit(uintptr_t(reserve + reserveSize))
       , mRt(rt)
@@ -471,7 +470,6 @@ public:
 
     
     char* mReserve;
-    size_t mReserveSize;
     uintptr_t mReserveCurr;
     uintptr_t mReserveLimit;
 
@@ -1697,11 +1695,11 @@ MonitorTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist,
 extern JS_REQUIRES_STACK TraceRecorder::AbortResult
 AbortRecording(JSContext* cx, const char* reason);
 
-extern bool
-InitJIT(TraceMonitor *tm, JSRuntime *rt);
+extern void
+InitJIT();
 
 extern void
-FinishJIT(TraceMonitor *tm);
+FinishJIT();
 
 extern void
 PurgeScriptFragments(TraceMonitor* tm, JSScript* script);
