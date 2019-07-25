@@ -41,13 +41,13 @@
 
 namespace mozilla {
 namespace dom {
-
 NS_IMPL_THREADSAFE_ADDREF(AudioChild);
 NS_IMPL_THREADSAFE_RELEASE(AudioChild);
 
 AudioChild::AudioChild()
   : mLastSampleOffset(-1),
     mLastSampleOffsetTime(0),
+    mMinWriteSample(-2),
     mAudioReentrantMonitor("AudioChild.mReentrantMonitor"),
     mIPCOpen(PR_TRUE),
     mDrained(PR_FALSE)
@@ -80,6 +80,25 @@ AudioChild::RecvDrainDone()
 {
   ReentrantMonitorAutoEnter mon(mAudioReentrantMonitor);
   mDrained = PR_TRUE;
+  mAudioReentrantMonitor.NotifyAll();
+  return true;
+}
+
+PRInt32
+AudioChild::WaitForMinWriteSample()
+{
+  ReentrantMonitorAutoEnter mon(mAudioReentrantMonitor);
+  
+  while (mMinWriteSample == -2 && mIPCOpen)
+    mAudioReentrantMonitor.Wait();
+  return mMinWriteSample;
+}
+
+bool
+AudioChild::RecvMinWriteSampleDone(const PRInt32& minSamples)
+{
+  ReentrantMonitorAutoEnter mon(mAudioReentrantMonitor);
+  mMinWriteSample = minSamples;
   mAudioReentrantMonitor.NotifyAll();
   return true;
 }
