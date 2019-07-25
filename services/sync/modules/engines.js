@@ -143,7 +143,6 @@ Engine.prototype = {
     this._osPrefix = "weave:" + this.name + ":";
 
     this._tracker; 
-    dump(this.name + "engine initialized.\n");
     this._log.debug("Engine initialized");
   },
 
