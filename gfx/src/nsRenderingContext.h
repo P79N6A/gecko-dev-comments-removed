@@ -123,7 +123,6 @@ public:
     void SetFont(nsFontMetrics *aFontMetrics);
     nsFontMetrics *FontMetrics() { return mFontMetrics; } 
 
-    void SetRightToLeftText(PRBool aIsRTL);
     void SetTextRunRTL(PRBool aIsRTL);
 
     nscoord GetWidth(char aC);
