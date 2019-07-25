@@ -5,15 +5,15 @@ function doNothing() { }
 
 function myparent(nested) {
   if (nested) {
-    
-    trap(myparent, 24, "success()");
+    /* JSOP_CALL to doNothing in myparent with nested = true. */
+    trap(myparent, 25, "success()");
     doNothing();
   } else {
     doNothing();
   }
 }
-
-trap(myparent, 35, "myparent(true)");
+/* JSOP_CALL to doNothing in myparent with nested = false. */
+trap(myparent, 36, "myparent(true)");
 
 function success() {
   x = "success";
