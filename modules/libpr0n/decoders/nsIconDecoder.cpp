@@ -47,20 +47,10 @@
 
 #include "ImageErrors.h"
 
-using namespace mozilla::imagelib;
-
-NS_IMPL_THREADSAFE_ADDREF(nsIconDecoder)
-NS_IMPL_THREADSAFE_RELEASE(nsIconDecoder)
-
-NS_INTERFACE_MAP_BEGIN(nsIconDecoder)
-   NS_INTERFACE_MAP_ENTRY(imgIDecoder)
-NS_INTERFACE_MAP_END_THREADSAFE
-
+namespace mozilla {
+namespace imagelib {
 
 nsIconDecoder::nsIconDecoder() :
-  mImage(nsnull),
-  mObserver(nsnull),
-  mFlags(imgIDecoder::DECODER_FLAG_NONE),
   mWidth(-1),
   mHeight(-1),
   mPixBytesRead(0),
@@ -76,21 +66,9 @@ nsIconDecoder::~nsIconDecoder()
 { }
 
 
-
-
-NS_IMETHODIMP nsIconDecoder::Init(imgIContainer *aImage,
-                                  imgIDecoderObserver *aObserver,
-                                  PRUint32 aFlags)
+nsresult
+nsIconDecoder::InitInternal()
 {
-
-  
-  NS_ABORT_IF_FALSE(aImage->GetType() == imgIContainer::TYPE_RASTER,
-                    "wrong type of imgIContainer for decoding into");
-
-  mImage = static_cast<RasterImage*>(aImage);
-  mObserver = aObserver;
-  mFlags = aFlags;
-
   
   if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && mObserver)
     mObserver->OnStartDecode(nsnull);
@@ -98,7 +76,8 @@ NS_IMETHODIMP nsIconDecoder::Init(imgIContainer *aImage,
   return NS_OK;
 }
 
-NS_IMETHODIMP nsIconDecoder::Close(PRUint32 aFlags)
+nsresult
+nsIconDecoder::ShutdownInternal(PRUint32 aFlags)
 {
   
   
@@ -107,17 +86,11 @@ NS_IMETHODIMP nsIconDecoder::Close(PRUint32 aFlags)
       !mNotifiedDone)
     NotifyDone( PR_FALSE);
 
-  mImage = nsnull;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsIconDecoder::Flush()
-{
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsIconDecoder::Write(const char *aBuffer, PRUint32 aCount)
+nsresult
+nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
   nsresult rv;
 
@@ -242,3 +215,5 @@ nsIconDecoder::NotifyDone(PRBool aSuccess)
   mNotifiedDone = PR_TRUE;
 }
 
+} 
+} 

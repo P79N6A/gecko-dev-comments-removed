@@ -84,6 +84,9 @@
 #include "gfxPlatform.h"
 #include "qcms.h"
 
+namespace mozilla {
+namespace imagelib {
+
 
 
 
@@ -103,11 +106,6 @@
 #define GETINT16(p)   ((p)[1]<<8|(p)[0])
 
 
-
-
-
-
-NS_IMPL_ISUPPORTS1(nsGIFDecoder2, imgIDecoder)
 
 nsGIFDecoder2::nsGIFDecoder2()
   : mCurrentRow(-1)
@@ -130,26 +128,9 @@ nsGIFDecoder2::~nsGIFDecoder2()
 {
 }
 
-
-
-
-
-
-
-
-
-NS_IMETHODIMP nsGIFDecoder2::Init(imgIContainer *aImage,
-                                  imgIDecoderObserver *aObserver,
-                                  PRUint32 aFlags)
+nsresult
+nsGIFDecoder2::InitInternal()
 {
-  NS_ABORT_IF_FALSE(aImage->GetType() == imgIContainer::TYPE_RASTER,
-                    "wrong type of imgIContainer for decoding into");
-
-  
-  mImage = static_cast<mozilla::imagelib::RasterImage*>(aImage);
-  mObserver = aObserver;
-  mFlags = aFlags;
-
   
   if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && mObserver)
     mObserver->OnStartDecode(nsnull);
@@ -161,14 +142,8 @@ NS_IMETHODIMP nsGIFDecoder2::Init(imgIContainer *aImage,
   return NS_OK;
 }
 
-
-
-
-
-
-
-
-NS_IMETHODIMP nsGIFDecoder2::Close(PRUint32 aFlags)
+nsresult
+nsGIFDecoder2::ShutdownInternal(PRUint32 aFlags)
 {
   
   if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) &&
@@ -180,16 +155,7 @@ NS_IMETHODIMP nsGIFDecoder2::Close(PRUint32 aFlags)
 
   PR_FREEIF(mGIFStruct.local_colormap);
 
-  mImage = nsnull;
-
   return NS_OK;
-}
-
-
-
-NS_IMETHODIMP nsGIFDecoder2::Flush()
-{
-    return NS_OK;
 }
 
 
@@ -237,10 +203,8 @@ nsGIFDecoder2::FlushImageData()
   return rv;
 }
 
-
-
-NS_IMETHODIMP
-nsGIFDecoder2::Write(const char *aBuffer, PRUint32 aCount)
+nsresult
+nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
   
   if (mError)
@@ -1227,3 +1191,6 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
 
   return NS_OK;
 }
+
+} 
+} 
