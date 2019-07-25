@@ -219,28 +219,98 @@ struct BaseIC : public MacroAssemblerTypedefs {
     bool isCallOp();
 };
 
-struct BasePolyIC : public BaseIC {
-    BasePolyIC() : execPools(SystemAllocPolicy()) { }
-    ~BasePolyIC() { releasePools(); }
+class BasePolyIC : public BaseIC {
+    typedef Vector<JSC::ExecutablePool *, 2, SystemAllocPolicy> ExecPoolVector;
+
+    
+    
+    
+    
+    
+    
+    
+    union {
+        JSC::ExecutablePool *execPool;      
+        ExecPoolVector *taggedExecPools;    
+    } u;
+
+    static bool isTagged(void *p) {
+        return !!(intptr_t(p) & 1);
+    }
+
+    static ExecPoolVector *tag(ExecPoolVector *p) {
+        JS_ASSERT(!isTagged(p));
+        return (ExecPoolVector *)(intptr_t(p) | 1);
+    }
+
+    static ExecPoolVector *detag(ExecPoolVector *p) {
+        JS_ASSERT(isTagged(p));
+        return (ExecPoolVector *)(intptr_t(p) & ~1);
+    }
+
+    bool areZeroPools()     { return !u.execPool; }
+    bool isOnePool()        { return u.execPool && !isTagged(u.execPool); }
+    bool areMultiplePools() { return isTagged(u.taggedExecPools); }
+
+    ExecPoolVector *multiplePools() {
+        JS_ASSERT(areMultiplePools());
+        return detag(u.taggedExecPools);
+    }
+
+  public:
+    BasePolyIC() {
+        u.execPool = NULL;
+    }
+
+    ~BasePolyIC() {
+        releasePools();
+        if (areMultiplePools())
+            delete multiplePools();
+    }
 
     void reset() {
         BaseIC::reset();
         releasePools();
-        execPools.clear();
+        if (areZeroPools()) {
+            
+        } else if (isOnePool()) {
+            u.execPool = NULL;
+        } else {
+            multiplePools()->clear();
+        }
     }
 
-    typedef Vector<JSC::ExecutablePool *, 0, SystemAllocPolicy> ExecPoolVector;
-
-    
-    ExecPoolVector execPools;
-
-    
     void releasePools() {
-        for (JSC::ExecutablePool **pExecPool = execPools.begin();
-             pExecPool != execPools.end();
-             ++pExecPool) {
-            (*pExecPool)->release();
+        if (areZeroPools()) {
+            
+        } else if (isOnePool()) {
+            u.execPool->release();
+        } else {
+            ExecPoolVector *execPools = multiplePools();
+            for (size_t i = 0; i < execPools->length(); i++)
+                (*execPools)[i]->release();
         }
+    }
+
+    bool addPool(JSContext *cx, JSC::ExecutablePool *pool) {
+        if (areZeroPools()) {
+            u.execPool = pool;
+            return true;
+        }
+        if (isOnePool()) {
+            JSC::ExecutablePool *oldPool = u.execPool;
+            JS_ASSERT(!isTagged(oldPool));
+            ExecPoolVector *execPools = new ExecPoolVector(SystemAllocPolicy()); 
+            if (!execPools)
+                return false;
+            if (!execPools->append(oldPool) || !execPools->append(pool)) {
+                delete execPools;
+                return false;
+            }
+            u.taggedExecPools = tag(execPools);
+            return true;
+        }
+        return multiplePools()->append(pool); 
     }
 };
 
