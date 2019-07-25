@@ -1052,13 +1052,12 @@ nsHTMLCSSUtils::GetCSSEquivalentToHTMLInlineStyleSet(nsINode* aNode,
 
 
 
-
 nsresult
-nsHTMLCSSUtils::IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
+nsHTMLCSSUtils::IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode *aNode,
                                                     nsIAtom *aHTMLProperty,
-                                                    const nsAString * aHTMLAttribute,
-                                                    bool & aIsSet,
-                                                    nsAString & valueString,
+                                                    const nsAString *aHTMLAttribute,
+                                                    bool& aIsSet,
+                                                    nsAString& valueString,
                                                     PRUint8 aStyleType)
 {
   NS_ENSURE_TRUE(aNode, NS_ERROR_NULL_POINTER);
@@ -1066,7 +1065,6 @@ nsHTMLCSSUtils::IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
   nsAutoString htmlValueString(valueString);
   aIsSet = false;
   nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
-  NS_NAMED_LITERAL_STRING(boldStr, "bold");
   do {
     valueString.Assign(htmlValueString);
     
@@ -1075,64 +1073,54 @@ nsHTMLCSSUtils::IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
     NS_ENSURE_SUCCESS(res, res);
 
     
-    if (valueString.IsEmpty()) return NS_OK;
+    if (valueString.IsEmpty()) {
+      return NS_OK;
+    }
 
     if (nsEditProperty::b == aHTMLProperty) {
-      if (valueString.Equals(boldStr)) {
+      if (valueString.EqualsLiteral("bold")) {
         aIsSet = true;
-      }
-      else if (valueString.EqualsLiteral("normal")) {
+      } else if (valueString.EqualsLiteral("normal")) {
         aIsSet = false;
-      }
-      else if (valueString.EqualsLiteral("bolder")) {
+      } else if (valueString.EqualsLiteral("bolder")) {
         aIsSet = true;
-        valueString.Assign(boldStr);
-      }
-      else {
+        valueString.AssignLiteral("bold");
+      } else {
         PRInt32 weight = 0;
         PRInt32 errorCode;
         nsAutoString value(valueString);
         weight = value.ToInteger(&errorCode, 10);
         if (400 < weight) {
           aIsSet = true;
-          valueString.Assign(boldStr);
-        }
-        else {
+          valueString.AssignLiteral("bold");
+        } else {
           aIsSet = false;
           valueString.AssignLiteral("normal");
         }
       }
-    }
-    
-    else if (nsEditProperty::i == aHTMLProperty) {
+    } else if (nsEditProperty::i == aHTMLProperty) {
       if (valueString.EqualsLiteral("italic") ||
           valueString.EqualsLiteral("oblique")) {
-        aIsSet= true;
+        aIsSet = true;
       }
-    }
-
-    else if (nsEditProperty::u == aHTMLProperty) {
+    } else if (nsEditProperty::u == aHTMLProperty) {
       nsAutoString val;
       val.AssignLiteral("underline");
       aIsSet = bool(ChangeCSSInlineStyleTxn::ValueIncludes(valueString, val, false));
-    }
-
-    else if (nsEditProperty::strike == aHTMLProperty) {
+    } else if (nsEditProperty::strike == aHTMLProperty) {
       nsAutoString val;
       val.AssignLiteral("line-through");
       aIsSet = bool(ChangeCSSInlineStyleTxn::ValueIncludes(valueString, val, false));
-    }
-
-    else if (aHTMLAttribute &&
-             ( (nsEditProperty::font == aHTMLProperty && 
-                aHTMLAttribute->EqualsLiteral("color")) ||
-               aHTMLAttribute->EqualsLiteral("bgcolor"))) {
-      if (htmlValueString.IsEmpty())
+    } else if (aHTMLAttribute &&
+               ((nsEditProperty::font == aHTMLProperty &&
+                 aHTMLAttribute->EqualsLiteral("color")) ||
+                aHTMLAttribute->EqualsLiteral("bgcolor"))) {
+      if (htmlValueString.IsEmpty()) {
         aIsSet = true;
-      else {
+      } else {
         nscolor rgba;
         nsAutoString subStr;
-        htmlValueString.Right(subStr, htmlValueString.Length()-1);
+        htmlValueString.Right(subStr, htmlValueString.Length() - 1);
         if (NS_ColorNameToRGB(htmlValueString, &rgba) ||
             NS_HexToRGB(subStr, &rgba)) {
           nsAutoString htmlColor, tmpStr;
@@ -1154,19 +1142,15 @@ nsHTMLCSSUtils::IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
           htmlColor.Append(PRUnichar(')'));
           aIsSet = htmlColor.Equals(valueString,
                                     nsCaseInsensitiveStringComparator());
-        }
-        else
+        } else {
           aIsSet = htmlValueString.Equals(valueString,
                                     nsCaseInsensitiveStringComparator());
+        }
       }
-    }
-
-    else if (nsEditProperty::tt == aHTMLProperty) {
+    } else if (nsEditProperty::tt == aHTMLProperty) {
       aIsSet = StringBeginsWith(valueString, NS_LITERAL_STRING("monospace"));
-    }
-    
-    else if ((nsEditProperty::font == aHTMLProperty) && aHTMLAttribute
-             && aHTMLAttribute->EqualsLiteral("face")) {
+    } else if (nsEditProperty::font == aHTMLProperty && aHTMLAttribute &&
+               aHTMLAttribute->EqualsLiteral("face")) {
       if (!htmlValueString.IsEmpty()) {
         const PRUnichar commaSpace[] = { PRUnichar(','), PRUnichar(' '), 0 };
         const PRUnichar comma[] = { PRUnichar(','), 0 };
@@ -1175,8 +1159,7 @@ nsHTMLCSSUtils::IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
         valueStringNorm.ReplaceSubstring(commaSpace, comma);
         aIsSet = htmlValueString.Equals(valueStringNorm,
                                         nsCaseInsensitiveStringComparator());
-      }
-      else {
+      } else {
         
         nsAutoString valueStringLower;
         ToLowerCase(valueString, valueStringLower);
@@ -1184,21 +1167,17 @@ nsHTMLCSSUtils::IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
                  !valueStringLower.EqualsLiteral("serif");
       }
       return NS_OK;
-    }
-    else if (aHTMLAttribute
-             && aHTMLAttribute->EqualsLiteral("align")) {
+    } else if (aHTMLAttribute && aHTMLAttribute->EqualsLiteral("align")) {
       aIsSet = true;
-    }
-    else {
+    } else {
       aIsSet = false;
       return NS_OK;
     }
 
-    if (!htmlValueString.IsEmpty()) {
-      if (htmlValueString.Equals(valueString,
-                                 nsCaseInsensitiveStringComparator())) {
-        aIsSet = true;
-      }
+    if (!htmlValueString.IsEmpty() &&
+        htmlValueString.Equals(valueString,
+                               nsCaseInsensitiveStringComparator())) {
+      aIsSet = true;
     }
 
     if (nsEditProperty::u == aHTMLProperty || nsEditProperty::strike == aHTMLProperty) {
