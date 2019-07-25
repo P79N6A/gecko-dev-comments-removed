@@ -693,5 +693,10 @@ GLContextProviderWGL::GetGlobalContext()
     return static_cast<GLContext*>(gGlobalContext);
 }
 
+void
+GLContextProviderWGL::Shutdown()
+{
+}
+
 } 
 } 

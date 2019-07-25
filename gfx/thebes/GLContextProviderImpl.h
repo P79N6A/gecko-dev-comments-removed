@@ -108,4 +108,10 @@ public:
 
     static GLContext *
     GetGlobalContext();
+
+    
+
+
+    static void
+    Shutdown();
 };

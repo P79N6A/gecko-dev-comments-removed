@@ -285,5 +285,10 @@ GLContextProviderOSMesa::GetGlobalContext()
     return nsnull;
 }
 
+void
+GLContextProviderOSMesa::Shutdown()
+{
+}
+
 } 
 } 
