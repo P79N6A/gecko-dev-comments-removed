@@ -100,3 +100,15 @@ html|*#highlighter-nodeinfobar-tagname {
 .devtools-toolbarbutton:not([label]) > .toolbarbutton-text {
   display: none;
 }
+
+#inspector-layoutview-container > iframe {
+  -moz-transition-property: height;
+  -moz-transition-duration: 0.1s;
+  
+  height: 22px;
+}
+
+#inspector-layoutview-container > iframe[open] {
+  
+  height: 177px;
+}

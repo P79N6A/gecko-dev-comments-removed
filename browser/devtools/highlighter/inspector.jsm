@@ -56,6 +56,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/TreePanel.jsm");
 Cu.import("resource:///modules/highlighter.jsm");
+Cu.import("resource:///modules/devtools/LayoutView.jsm");
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
 
 
@@ -1405,6 +1406,12 @@ InspectorStyleSidebar.prototype = {
 
   destroy: function ISS_destroy()
   {
+    
+    if (this._layoutview) {
+      this._layoutview.destroy();
+      this._layoutview = null;
+    }
+
     for each (let toolID in Object.getOwnPropertyNames(this._tools)) {
       this.removeTool(toolID);
     }
@@ -1514,6 +1521,15 @@ InspectorStyleSidebar.prototype = {
 
     this._inspector._sidebarOpen = true;
     Services.prefs.setBoolPref("devtools.inspector.sidebarOpen", true);
+
+    
+    if (Services.prefs.getBoolPref("devtools.layoutview.enabled")
+        && !this._layoutview) {
+      this._layoutview = new LayoutView({
+        document: this._chromeDoc,
+        inspector: this._inspector,
+      });
+    }
   },
 
   
