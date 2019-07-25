@@ -654,6 +654,9 @@ protected:
   bool          mNavQuirkMode : 1;
 
   
+  bool mHashlessColorQuirk : 1;
+
+  
   bool mUnsafeRulesEnabled : 1;
 
   
@@ -746,6 +749,7 @@ CSSParserImpl::CSSParserImpl()
     mNameSpaceMap(nsnull),
     mHavePushBack(false),
     mNavQuirkMode(false),
+    mHashlessColorQuirk(false),
     mUnsafeRulesEnabled(false),
     mHTMLMediaMode(false),
     mParsingCompoundProperty(false)
@@ -3752,7 +3756,7 @@ CSSParserImpl::ParseColor(nsCSSValue& aValue)
   }
 
   
-  if (mNavQuirkMode && !IsParsingCompoundProperty()) {
+  if (mHashlessColorQuirk) {
     
     
     
@@ -4553,7 +4557,7 @@ CSSParserImpl::ParseVariant(nsCSSValue& aValue,
     return ParseElement(aValue);
   }
   if ((aVariantMask & VARIANT_COLOR) != 0) {
-    if ((mNavQuirkMode && !IsParsingCompoundProperty()) || 
+    if (mHashlessColorQuirk || 
         (eCSSToken_ID == tk->mType) ||
         (eCSSToken_Ref == tk->mType) ||
         (eCSSToken_Ident == tk->mType) ||
@@ -5614,36 +5618,58 @@ static const nsCSSProperty kOutlineRadiusIDs[] = {
 bool
 CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
 {
+  
+  NS_ABORT_IF_FALSE(!mHashlessColorQuirk,
+                    "hashless color quirk should not be set");
+  if (mNavQuirkMode) {
+    mHashlessColorQuirk =
+      nsCSSProps::PropHasFlags(aPropID, CSS_PROPERTY_HASHLESS_COLOR_QUIRK);
+  }
+
   NS_ASSERTION(aPropID < eCSSProperty_COUNT, "index out of range");
+  bool result;
   switch (nsCSSProps::PropertyParseType(aPropID)) {
     case CSS_PROPERTY_PARSE_INACCESSIBLE: {
       
       REPORT_UNEXPECTED(PEInaccessibleProperty2);
-      return false;
+      result = false;
+      break;
     }
     case CSS_PROPERTY_PARSE_FUNCTION: {
-      return ParsePropertyByFunction(aPropID);
+      result = ParsePropertyByFunction(aPropID);
+      break;
     }
     case CSS_PROPERTY_PARSE_VALUE: {
+      result = false;
       nsCSSValue value;
       if (ParseSingleValueProperty(value, aPropID)) {
         if (ExpectEndProperty()) {
           AppendValue(aPropID, value);
-          return true;
+          result = true;
         }
         
       }
       
-      return false;
+      break;
     }
     case CSS_PROPERTY_PARSE_VALUE_LIST: {
-      return ParseValueList(aPropID);
+      result = ParseValueList(aPropID);
+      break;
+    }
+    default: {
+      result = false;
+      NS_ABORT_IF_FALSE(false,
+                        "Property's flags field in nsCSSPropList.h is missing "
+                        "one of the CSS_PROPERTY_PARSE_* constants");
+      break;
     }
   }
-  NS_ABORT_IF_FALSE(false,
-                    "Property's flags field in nsCSSPropList.h is missing "
-                    "one of the CSS_PROPERTY_PARSE_* constants");
-  return false;
+
+  if (mNavQuirkMode) {
+    mHashlessColorQuirk = false;
+  }
+
+  return result;
 }
 
 bool
