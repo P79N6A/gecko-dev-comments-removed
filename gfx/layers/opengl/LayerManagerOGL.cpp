@@ -407,7 +407,10 @@ LayerManagerOGL::EndTransaction(DrawThebesLayerCallback aCallback,
   mThebesLayerCallback = aCallback;
   mThebesLayerCallbackData = aCallbackData;
 
-  Render();
+  
+  if (aCallback) {
+    Render();
+  }
 
   mThebesLayerCallback = nsnull;
   mThebesLayerCallbackData = nsnull;
