@@ -45,8 +45,6 @@
 #include "nsIDOMSVGNumber.h"
 #include "gfxMatrix.h"
 
-class nsSVGForeignObjectFrame;
-
 
 
 
@@ -63,13 +61,6 @@ protected:
 public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
-
-#ifdef DEBUG
-  ~nsSVGOuterSVGFrame() {
-    NS_ASSERTION(mForeignObjectHash.Count() == 0,
-                 "foreignObject(s) still registered!");
-  }
-#endif
 
   
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
@@ -130,14 +121,6 @@ public:
   
   virtual gfxMatrix GetCanvasTM();
 
-  
-
-
-
-
-  void RegisterForeignObject(nsSVGForeignObjectFrame* aFrame);
-  void UnregisterForeignObject(nsSVGForeignObjectFrame* aFrame);
-
 #ifdef XP_MACOSX
   bool BitmapFallbackEnabled() const {
     return mEnableBitmapFallback;
@@ -154,7 +137,17 @@ public:
 
   bool VerticalScrollbarNotNeeded() const;
 
+#ifdef DEBUG
+  bool IsCallingUpdateBounds() const {
+    return mCallingUpdateBounds;
+  }
+#endif
+
 protected:
+
+#ifdef DEBUG
+  bool mCallingUpdateBounds;
+#endif
 
   
 
@@ -166,11 +159,6 @@ protected:
 
 
   bool IsRootOfImage();
-
-  
-  
-  
-  nsTHashtable<nsVoidPtrHashKey> mForeignObjectHash;
 
   nsAutoPtr<gfxMatrix> mCanvasTM;
 

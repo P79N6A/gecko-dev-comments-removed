@@ -7622,11 +7622,10 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
       if (aFrame->IsFrameOfType(nsIFrame::eSVG)) {
         if (aChange & nsChangeHint_UpdateEffects) {
           
-          
-          nsSVGUtils::UpdateGraphic(aFrame);
+          nsSVGUtils::InvalidateAndScheduleBoundsUpdate(aFrame);
         } else {
           
-          nsSVGUtils::InvalidateCoveredRegion(aFrame);
+          nsSVGUtils::InvalidateBounds(aFrame);
         }
       } else {
         aFrame->InvalidateOverflowRect();

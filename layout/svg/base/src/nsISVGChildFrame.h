@@ -88,13 +88,13 @@ public:
 
   
   NS_IMETHOD_(nsRect) GetCoveredRegion()=0;
-  NS_IMETHOD UpdateCoveredRegion()=0;
 
   
   
   
   
-  NS_IMETHOD InitialUpdate()=0;
+  
+  virtual void UpdateBounds()=0;
 
   
   

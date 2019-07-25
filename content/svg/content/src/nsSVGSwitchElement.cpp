@@ -91,14 +91,18 @@ nsSVGSwitchElement::MaybeInvalidate()
   
   
 
-  if (FindActiveChild() == mActiveChild) {
+  nsIContent *newActiveChild = FindActiveChild();
+
+  if (newActiveChild == mActiveChild) {
     return;
   }
 
   nsIFrame *frame = GetPrimaryFrame();
   if (frame) {
-    nsSVGUtils::UpdateGraphic(frame);
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(frame);
   }
+
+  mActiveChild = newActiveChild;
 }
 
 

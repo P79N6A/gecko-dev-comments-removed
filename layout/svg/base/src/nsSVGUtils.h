@@ -293,13 +293,54 @@ public:
   
 
 
-  static void InvalidateCoveredRegion(nsIFrame *aFrame);
+
+
+
+
+  static void InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate = false);
 
   
 
 
 
-  static void UpdateGraphic(nsIFrame *aFrame);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void ScheduleBoundsUpdate(nsIFrame *aFrame);
+
+  
+
+
+
+
+  static void InvalidateAndScheduleBoundsUpdate(nsIFrame *aFrame);
+
+  
+
+
+
+  static bool NeedsUpdatedBounds(nsIFrame *aFrame);
 
   
 
@@ -523,6 +564,8 @@ public:
 #ifdef DEBUG
   static void
   WritePPM(const char *fname, gfxImageSurface *aSurface);
+
+  static bool OuterSVGIsCallingUpdateBounds(nsIFrame *aFrame);
 #endif
 
   
