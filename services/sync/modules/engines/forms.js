@@ -110,7 +110,7 @@ let FormWrapper = {
   createStatement: function createStatement(query) {
     try {
       
-      return Svc.Form.DBConnection.createStatement(query);
+      return Utils.createStatement(Svc.Form.DBConnection, query);
     }
     catch(ex) {
       
@@ -121,7 +121,7 @@ let FormWrapper = {
         "ON moz_formhistory (guid)");
 
       
-      return Svc.Form.DBConnection.createStatement(query);
+      return Utils.createStatement(Svc.Form.DBConnection, query);
     }
   }
 };

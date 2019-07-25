@@ -146,6 +146,15 @@ let Utils = {
         throw batchEx;
     };
   },
+  
+  createStatement: function createStatement(db, query) {
+    
+    if (db.createAsyncStatement)
+      return db.createAsyncStatement(query);
+
+    
+    return db.createStatement(query);
+  },
 
   queryAsync: function(query, names) {
     
