@@ -1849,6 +1849,44 @@ TypeSet::knownNonEmpty(JSContext *cx)
     return false;
 }
 
+int
+TypeSet::getTypedArrayType(JSContext *cx)
+{
+    int arrayType = TypedArray::TYPE_MAX;
+    unsigned count = getObjectCount();
+
+    for (unsigned i = 0; i < count; i++) {
+        TypeObject *object = getObject(i);
+        if (!object)
+            continue;
+
+        JS_ASSERT(!object->hasAnyFlags(OBJECT_FLAG_NON_TYPED_ARRAY));
+        int objArrayType = object->proto->getClass() - TypedArray::slowClasses;
+        JS_ASSERT(objArrayType >= 0 && objArrayType < TypedArray::TYPE_MAX);
+
+        
+
+
+
+        if (arrayType == TypedArray::TYPE_MAX)
+            arrayType = objArrayType;
+        else if (arrayType != objArrayType)
+            return TypedArray::TYPE_MAX;
+    }
+
+    
+
+
+
+
+    JS_ASSERT(arrayType != TypedArray::TYPE_MAX);
+
+    
+    addFreeze(cx);
+
+    return arrayType;
+}
+
 JSObject *
 TypeSet::getSingleton(JSContext *cx)
 {
