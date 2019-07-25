@@ -93,6 +93,9 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
     private boolean mViewportSizeChanged;
 
     
+    private boolean mHasDirectTexture;
+
+    
     
     
     
@@ -136,10 +139,6 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         }
     }
 
-    public void installWidgetLayer() {
-        mTileLayer = new WidgetTileLayer(mCairoImage);
-    }
-
     
     @Override
     public void setLayerController(LayerController layerController) {
@@ -162,6 +161,31 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         }
 
         sendResizeEventIfNecessary();
+    }
+
+    private void setHasDirectTexture(boolean hasDirectTexture) {
+        if (hasDirectTexture == mHasDirectTexture)
+            return;
+
+        mHasDirectTexture = hasDirectTexture;
+
+        IntSize tileSize;
+        if (mHasDirectTexture) {
+            mTileLayer = new WidgetTileLayer(mCairoImage);
+            tileSize = new IntSize(0, 0);
+        } else {
+            mTileLayer = new MultiTileLayer(mCairoImage, TILE_SIZE);
+            tileSize = TILE_SIZE;
+        }
+
+        getLayerController().setRoot(mTileLayer);
+
+        GeckoEvent event = new GeckoEvent(GeckoEvent.TILE_SIZE, tileSize);
+        GeckoAppShell.sendEventToGecko(event);
+
+        
+        
+        sendResizeEventIfNecessary(true);
     }
 
     public void beginDrawing(int width, int height) {
@@ -224,14 +248,16 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
 
 
 
-    public void endDrawing(int x, int y, int width, int height, String metadata) {
+    public void endDrawing(int x, int y, int width, int height, String metadata, boolean hasDirectTexture) {
         synchronized (getLayerController()) {
             try {
                 updateViewport(metadata, !mUpdateViewportOnEndDraw);
                 mUpdateViewportOnEndDraw = false;
                 Rect rect = new Rect(x, y, x + width, y + height);
 
-                if (mTileLayer instanceof MultiTileLayer)
+                setHasDirectTexture(hasDirectTexture);
+
+                if (!mHasDirectTexture)
                     ((MultiTileLayer)mTileLayer).invalidate(rect);
             } finally {
                 endTransaction(mTileLayer);
@@ -325,13 +351,17 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         render();
     }
 
-    
     private void sendResizeEventIfNecessary() {
+        sendResizeEventIfNecessary(false);
+    }
+
+    
+    private void sendResizeEventIfNecessary(boolean force) {
         DisplayMetrics metrics = new DisplayMetrics();
         GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(metrics);
 
-        if (metrics.widthPixels == mScreenSize.width &&
-                metrics.heightPixels == mScreenSize.height) {
+        if (!force && metrics.widthPixels == mScreenSize.width &&
+            metrics.heightPixels == mScreenSize.height) {
             return;
         }
 
