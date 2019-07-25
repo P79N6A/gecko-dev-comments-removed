@@ -230,7 +230,8 @@ PRLogModuleInfo* nsPluginLogging::gPluginLog = nsnull;
 #define DEFAULT_NUMBER_OF_STOPPED_PLUGINS 10
 
 #ifdef CALL_SAFETY_ON
-PRBool gSkipPluginSafeCalls = PR_FALSE;
+
+PRBool gSkipPluginSafeCalls = PR_TRUE;
 #endif
 
 nsIFile *nsPluginHost::sPluginTempDir;
