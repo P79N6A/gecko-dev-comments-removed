@@ -5345,7 +5345,8 @@ nsRuleNode::ComputeOutlineData(void* aStartStruct,
   }
   else {
     SetCoord(marginData.mOutlineWidth, outline->mOutlineWidth,
-             parentOutline->mOutlineWidth, SETCOORD_LEH, aContext,
+             parentOutline->mOutlineWidth,
+             SETCOORD_LEH | SETCOORD_CALC_LENGTH_ONLY, aContext,
              mPresContext, canStoreInRuleTree);
   }
 
@@ -6027,8 +6028,14 @@ nsRuleNode::ComputeColumnData(void* aStartStruct,
   
   SetCoord(columnData.mColumnGap,
            column->mColumnGap, parent->mColumnGap,
-           SETCOORD_LPH | SETCOORD_NORMAL | SETCOORD_INITIAL_NORMAL,
+           SETCOORD_LH | SETCOORD_NORMAL | SETCOORD_INITIAL_NORMAL |
+           SETCOORD_CALC_LENGTH_ONLY,
            aContext, mPresContext, canStoreInRuleTree);
+  
+  if (column->mColumnGap.GetUnit() == eStyleUnit_Coord) {
+    column->mColumnGap.SetCoordValue(
+      NS_MAX(column->mColumnGap.GetCoordValue(), 0));
+  }
 
   
   if (eCSSUnit_Auto == columnData.mColumnCount.GetUnit() ||
