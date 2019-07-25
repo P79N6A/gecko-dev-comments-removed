@@ -249,7 +249,7 @@ public:
 
 
 
-  nsIDocument* OwnerDoc() const
+  nsIDocument* GetOwnerDoc() const
   { return mOwnerContent ? mOwnerContent->OwnerDoc() : nsnull; }
 
   PBrowserParent* GetRemoteBrowser();
