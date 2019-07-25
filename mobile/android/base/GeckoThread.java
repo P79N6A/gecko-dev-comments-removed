@@ -46,6 +46,16 @@ public class GeckoThread extends Thread {
     }
 
     public void run() {
+
+        
+        
+        
+        
+        
+        
+        GeckoAppShell.sGfxInfoThread = new GfxInfoThread();
+        GeckoAppShell.sGfxInfoThread.start();
+
         final GeckoApp app = GeckoApp.mAppContext;
 
         
