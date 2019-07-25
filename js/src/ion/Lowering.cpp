@@ -144,10 +144,61 @@ LIRGenerator::visitTest(MTest *test)
     if (opd->type() == MIRType_Undefined || opd->type() == MIRType_Null)
         return add(new LGoto(ifFalse));
 
+    
+    
+    
+    if (opd->isCompare()) {
+        MCompare *comp = opd->toCompare();
+        MDefinition *left = comp->getOperand(0);
+        MDefinition *right = comp->getOperand(1);
+
+        if (comp->specialization() == MIRType_Int32) {
+            return add(new LCompareIAndBranch(comp->jsop(), useRegister(left), use(right),
+                                              ifTrue, ifFalse));
+        }
+        if (comp->specialization() == MIRType_Double) {
+            return add(new LCompareDAndBranch(comp->jsop(), useRegister(left), use(right),
+                                              ifTrue, ifFalse));
+        }
+        
+    }
+
     if (opd->type() == MIRType_Double)
         return add(new LTestDAndBranch(useRegister(opd), temp(LDefinition::DOUBLE), ifTrue, ifFalse));
 
     return add(new LTestIAndBranch(useRegister(opd), ifTrue, ifFalse));
+}
+
+bool
+LIRGenerator::visitCompare(MCompare *comp)
+{
+    
+    
+    
+    bool willOptimize = true;
+    for (MUseDefIterator iter(comp->toDefinition()); iter; iter++) {
+        MDefinition *consumer = iter.def();
+        if (!consumer->isControlInstruction()) {
+            willOptimize = false;
+            break;
+        }
+    }
+
+    
+    if (willOptimize)
+        return true;
+
+    MDefinition *left = comp->getOperand(0);
+    MDefinition *right = comp->getOperand(1);
+
+    if (comp->specialization() == MIRType_Int32)
+        return define(new LCompareI(comp->jsop(), useRegister(left), use(right)), comp);
+    if (comp->specialization() == MIRType_Double)
+        return define(new LCompareD(comp->jsop(), useRegister(left), use(right)), comp);
+
+    
+    JS_NOT_REACHED("LCompareV NYI");
+    return true;
 }
 
 static void

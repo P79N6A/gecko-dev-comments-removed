@@ -729,6 +729,10 @@ class MTest : public MAryControlInstruction<1>
     MBasicBlock *ifFalse() const {
         return getSuccessor(1);
     }
+
+    bool isControlInstruction() {
+        return true;
+    }
 };
 
 
@@ -825,11 +829,11 @@ class MCompare
   : public MBinaryInstruction,
     public ComparePolicy
 {
-    JSOp compareOp_;
+    JSOp jsop_;
 
     MCompare(MDefinition *left, MDefinition *right, JSOp op)
       : MBinaryInstruction(left, right),
-        compareOp_(op)
+        jsop_(op)
     {
         setResultType(MIRType_Boolean);
     }
@@ -839,6 +843,13 @@ class MCompare
     static MCompare *New(MDefinition *left, MDefinition *right, JSOp op);
 
     void infer(const TypeOracle::Binary &b);
+    MIRType specialization() const {
+        return specialization_;
+    }
+
+    JSOp jsop() const {
+        return jsop_;
+    }
 };
 
 
