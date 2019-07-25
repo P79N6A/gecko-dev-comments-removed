@@ -278,9 +278,7 @@ public:
 
   inline bool IsInHTMLDocument() const
   {
-    nsIDocument* doc = OwnerDoc();
-    return doc && 
-           doc->IsHTML();
+    return OwnerDoc()->IsHTML();
   }
 
   

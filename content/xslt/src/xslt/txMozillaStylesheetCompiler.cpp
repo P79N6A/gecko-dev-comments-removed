@@ -721,7 +721,6 @@ TX_CompileStylesheet(nsINode* aNode, txMozillaXSLTProcessor* aProcessor,
 {
     
     nsCOMPtr<nsIDocument> doc = aNode->OwnerDoc();
-    NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
     nsCOMPtr<nsIURI> uri;
     if (aNode->IsNodeOfType(nsINode::eCONTENT)) {

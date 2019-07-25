@@ -3248,9 +3248,6 @@ nsContentUtils::HasMutationListeners(nsINode* aNode,
                                      nsINode* aTargetForSubtreeModified)
 {
   nsIDocument* doc = aNode->OwnerDoc();
-  if (!doc) {
-    return false;
-  }
 
   
   nsPIDOMWindow* window = doc->GetInnerWindow();
@@ -3494,8 +3491,6 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
   
   
   nsCOMPtr<nsIDocument> document = aContextNode->OwnerDoc();
-  NS_ENSURE_TRUE(document, NS_ERROR_NOT_AVAILABLE);
-
   bool isHTML = document->IsHTML();
 #ifdef DEBUG
   nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
@@ -4736,15 +4731,9 @@ nsContentUtils::GetContextForEventHandlers(nsINode* aNode,
                                            nsresult* aRv)
 {
   *aRv = NS_OK;
-  nsIDocument* ownerDoc = aNode->OwnerDoc();
-  if (!ownerDoc) {
-    *aRv = NS_ERROR_UNEXPECTED;
-    return nsnull;
-  }
-
   bool hasHadScriptObject = true;
   nsIScriptGlobalObject* sgo =
-    ownerDoc->GetScriptHandlingObject(hasHadScriptObject);
+    aNode->OwnerDoc()->GetScriptHandlingObject(hasHadScriptObject);
   
   
   if (!sgo && hasHadScriptObject) {
@@ -5354,7 +5343,6 @@ AllocClassMatchingInfo(nsINode* aRootNode,
   }
 
   info->mCaseTreatment =
-    aRootNode->OwnerDoc() &&
     aRootNode->OwnerDoc()->GetCompatibilityMode() == eCompatibility_NavQuirks ?
     eIgnoreCase : eCaseMatters;
   return info;

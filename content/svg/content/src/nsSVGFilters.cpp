@@ -5438,14 +5438,12 @@ nsSVGFEImageElement::LoadSVGImage(bool aForce, bool aNotify)
 
   
   nsIDocument* doc = OwnerDoc();
-  if (doc) {
-    nsCOMPtr<nsIURI> hrefAsURI;
-    if (NS_SUCCEEDED(StringToURI(href, doc, getter_AddRefs(hrefAsURI)))) {
-      bool isEqual;
-      if (NS_SUCCEEDED(hrefAsURI->Equals(baseURI, &isEqual)) && isEqual) {
-        
-        return NS_OK;
-      }
+  nsCOMPtr<nsIURI> hrefAsURI;
+  if (NS_SUCCEEDED(StringToURI(href, doc, getter_AddRefs(hrefAsURI)))) {
+    bool isEqual;
+    if (NS_SUCCEEDED(hrefAsURI->Equals(baseURI, &isEqual)) && isEqual) {
+      
+      return NS_OK;
     }
   }
 

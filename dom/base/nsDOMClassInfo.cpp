@@ -7257,16 +7257,6 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
   
   nsIDocument* doc = node->OwnerDoc();
 
-  if (!doc) {
-    
-    
-
-    *parentObj = globalObj;
-
-    return node->IsInNativeAnonymousSubtree() ?
-      NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
-  }
-
   
   
   
@@ -7619,10 +7609,6 @@ nsElementSH::Enumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   NS_ENSURE_TRUE(content, NS_ERROR_UNEXPECTED);
 
   nsIDocument* doc = content->OwnerDoc();
-  if (!doc) {
-    
-    return NS_OK;
-  }
 
   nsRefPtr<nsXBLBinding> binding = doc->BindingManager()->GetBinding(content);
   if (!binding) {
@@ -8160,7 +8146,6 @@ nsDOMStringMapSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
   nsDOMStringMap* dataset = static_cast<nsDOMStringMap*>(nativeObj);
 
   nsIDocument* document = dataset->GetElement()->OwnerDoc();
-  NS_ENSURE_TRUE(document, NS_OK);
 
   nsCOMPtr<nsIScriptGlobalObject> sgo =
       do_GetInterface(document->GetScopeObject());

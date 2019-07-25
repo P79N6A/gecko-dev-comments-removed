@@ -88,13 +88,6 @@ URIUtils::ResetWithSource(nsIDocument *aNewDoc, nsIDOMNode *aSourceNode)
     }
 
     nsCOMPtr<nsIDocument> sourceDoc = node->OwnerDoc();
-    if (!sourceDoc) {
-        NS_ERROR("no source document found");
-        
-        aNewDoc->Reset(nsnull, nsnull);
-        return;
-    }
-
     nsIPrincipal* sourcePrincipal = sourceDoc->NodePrincipal();
 
     

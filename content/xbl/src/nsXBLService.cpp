@@ -549,10 +549,6 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
 
   nsCOMPtr<nsIDocument> document = aContent->OwnerDoc();
 
-  
-  if (!document)
-    return NS_OK;
-
   nsCAutoString urlspec;
   if (nsContentUtils::GetWrapperSafeScriptFilename(document, aURL, urlspec)) {
     
@@ -659,10 +655,6 @@ nsXBLService::FlushStyleBindings(nsIContent* aContent)
 {
   nsCOMPtr<nsIDocument> document = aContent->OwnerDoc();
 
-  
-  if (! document)
-    return NS_OK;
-
   nsBindingManager *bindingManager = document->BindingManager();
   
   nsXBLBinding *binding = bindingManager->GetBinding(aContent);
@@ -687,14 +679,8 @@ nsXBLService::ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID,
                          nsIAtom** aResult)
 {
   nsIDocument* document = aContent->OwnerDoc();
-  if (document) {
-    *aResult = document->BindingManager()->ResolveTag(aContent, aNameSpaceID);
-    NS_IF_ADDREF(*aResult);
-  }
-  else {
-    *aNameSpaceID = aContent->GetNameSpaceID();
-    NS_ADDREF(*aResult = aContent->Tag());
-  }
+  *aResult = document->BindingManager()->ResolveTag(aContent, aNameSpaceID);
+  NS_IF_ADDREF(*aResult);
 
   return NS_OK;
 }

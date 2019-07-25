@@ -312,9 +312,9 @@ nsStyledElementNotElementCSSInlineStyle::ParseStyleAttribute(const nsAString& aV
 {
   nsIDocument* doc = OwnerDoc();
 
-  if (doc && (aForceInDataDoc ||
-              !doc->IsLoadedAsData() ||
-              doc->IsStaticDocument())) {
+  if (aForceInDataDoc ||
+      !doc->IsLoadedAsData() ||
+      doc->IsStaticDocument()) {
     bool isCSS = true; 
 
     if (!IsInNativeAnonymousSubtree()) {  

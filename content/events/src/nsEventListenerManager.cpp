@@ -196,9 +196,7 @@ nsEventListenerManager::GetInnerWindowForTarget()
   if (node) {
     
     
-    nsIDocument* document = node->OwnerDoc();
-    if (document)
-      return document->GetInnerWindow();
+    return node->OwnerDoc()->GetInnerWindow();
   }
 
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mTarget);
@@ -467,9 +465,7 @@ nsEventListenerManager::AddScriptEventListener(nsIAtom *aName,
     
     
     
-    doc = node->OwnerDoc();
-    if (doc)
-      global = doc->GetScriptGlobalObject();
+    global = node->OwnerDoc()->GetScriptGlobalObject();
   } else {
     nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(mTarget));
     if (win) {

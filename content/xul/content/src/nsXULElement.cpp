@@ -515,8 +515,6 @@ nsXULElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer)
     
     
     nsIDocument* doc = OwnerDoc();
-    if (!doc)
-        return nsnull; 
 
     nsPIDOMWindow *window;
     Element *root = doc->GetRootElement();
@@ -1855,9 +1853,7 @@ nsXULElement::GetBoxObject(nsIBoxObject** aResult)
   *aResult = nsnull;
 
   
-  nsIDocument* nsDoc = OwnerDoc();
-
-  return nsDoc ? nsDoc->GetBoxObjectFor(this, aResult) : NS_ERROR_FAILURE;
+  return OwnerDoc()->GetBoxObjectFor(this, aResult);
 }
 
 

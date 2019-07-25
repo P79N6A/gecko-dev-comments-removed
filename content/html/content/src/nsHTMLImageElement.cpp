@@ -447,7 +447,7 @@ nsHTMLImageElement::IsHTMLFocusable(bool aWithMouse,
     
     
     
-    if (OwnerDoc() && OwnerDoc()->FindImageMap(usemap)) {
+    if (OwnerDoc()->FindImageMap(usemap)) {
       if (aTabIndex) {
         
         *aTabIndex = (sTabFocusModel & eTabFocus_linksMask)? 0 : -1;
