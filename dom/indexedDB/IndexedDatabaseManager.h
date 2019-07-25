@@ -102,7 +102,8 @@ public:
 
   
   
-  void CloseDatabasesForWindow(nsPIDOMWindow* aWindow);
+  
+  void AbortCloseDatabasesForWindow(nsPIDOMWindow* aWindow);
 
   
   bool HasOpenTransactions(nsPIDOMWindow* aWindow);

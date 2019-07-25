@@ -85,6 +85,10 @@ public:
                                    nsIRunnable* aCallback);
 
   
+  
+  void AbortTransactionsForDatabase(IDBDatabase* aDatabase);
+
+  
   bool HasTransactionsForDatabase(IDBDatabase* aDatabase);
 
 protected:
