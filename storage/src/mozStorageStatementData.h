@@ -129,7 +129,7 @@ public:
 
 
 
-  inline bool hasParametersToBeBound() const { return mParamsArray != nsnull; }
+  inline bool hasParametersToBeBound() const { return !!mParamsArray; }
   
 
 
