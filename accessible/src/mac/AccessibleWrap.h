@@ -109,4 +109,8 @@ private:
   bool mNativeInited;  
 };
 
+
+typedef class nsHTMLTableCellAccessible    nsHTMLTableCellAccessibleWrap;
+typedef class nsHTMLTableAccessible        nsHTMLTableAccessibleWrap;
+
 #endif

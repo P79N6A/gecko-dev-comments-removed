@@ -227,11 +227,22 @@ DWORD (*tick_function)(void) = &timeGetTimeWrapper;
 
 
 
-class NowSingleton {
+class NowSingleton : public base::SystemMonitor::PowerObserver {
  public:
   NowSingleton()
     : rollover_(TimeDelta::FromMilliseconds(0)),
-      last_seen_(0) {
+      last_seen_(0),
+      hi_res_clock_enabled_(false) {
+    base::SystemMonitor* system = base::SystemMonitor::Get();
+    system->AddObserver(this);
+    UseHiResClock(!system->BatteryPower());
+  }
+
+  ~NowSingleton() {
+    UseHiResClock(false);
+    base::SystemMonitor* monitor = base::SystemMonitor::Get();
+    if (monitor)
+      monitor->RemoveObserver(this);
   }
 
   TimeDelta Now() {
@@ -245,10 +256,30 @@ class NowSingleton {
     return TimeDelta::FromMilliseconds(now) + rollover_;
   }
 
+  
+  void OnPowerStateChange(base::SystemMonitor* system) {
+    UseHiResClock(!system->BatteryPower());
+  }
+
+  void OnSuspend(base::SystemMonitor* system) {}
+  void OnResume(base::SystemMonitor* system) {}
+
  private:
+  
+  void UseHiResClock(bool enabled) {
+    if (enabled == hi_res_clock_enabled_)
+      return;
+    if (enabled)
+      timeBeginPeriod(1);
+    else
+      timeEndPeriod(1);
+    hi_res_clock_enabled_ = enabled;
+  }
+
   Lock lock_;  
   TimeDelta rollover_;  
   DWORD last_seen_;  
+  bool hi_res_clock_enabled_;
 
   DISALLOW_COPY_AND_ASSIGN(NowSingleton);
 };

@@ -1,0 +1,228 @@
+
+
+
+
+
+
+#include "nsXULTextAccessible.h"
+
+#include "Accessible-inl.h"
+#include "BaseAccessibles.h"
+#include "nsAccUtils.h"
+#include "nsCoreUtils.h"
+#include "nsTextEquivUtils.h"
+#include "Relation.h"
+#include "Role.h"
+#include "States.h"
+
+#include "nsIAccessibleRelation.h"
+#include "nsIDOMXULDescriptionElement.h"
+#include "nsINameSpaceManager.h"
+#include "nsString.h"
+#include "nsNetUtil.h"
+
+using namespace mozilla::a11y;
+
+
+
+
+
+nsXULTextAccessible::
+  nsXULTextAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+  HyperTextAccessibleWrap(aContent, aDoc)
+{
+}
+
+nsresult
+nsXULTextAccessible::GetNameInternal(nsAString& aName)
+{
+  
+  
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, aName);
+  return NS_OK;
+}
+
+role
+nsXULTextAccessible::NativeRole()
+{
+  return roles::LABEL;
+}
+
+PRUint64
+nsXULTextAccessible::NativeState()
+{
+  
+  
+  return HyperTextAccessibleWrap::NativeState() | states::READONLY;
+}
+
+Relation
+nsXULTextAccessible::RelationByType(PRUint32 aType)
+{
+  Relation rel = HyperTextAccessibleWrap::RelationByType(aType);
+  if (aType == nsIAccessibleRelation::RELATION_LABEL_FOR) {
+    
+    nsIContent *parent = mContent->GetParent();
+    if (parent && parent->Tag() == nsGkAtoms::caption) {
+      Accessible* parent = Parent();
+      if (parent && parent->Role() == roles::GROUPING)
+        rel.AppendTarget(parent);
+    }
+  }
+
+  return rel;
+}
+
+
+
+
+
+
+nsXULTooltipAccessible::
+  nsXULTooltipAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+  LeafAccessible(aContent, aDoc)
+{
+}
+
+PRUint64
+nsXULTooltipAccessible::NativeState()
+{
+  return LeafAccessible::NativeState() | states::READONLY;
+}
+
+role
+nsXULTooltipAccessible::NativeRole()
+{
+  return roles::TOOLTIP;
+}
+
+
+
+
+
+
+nsXULLinkAccessible::
+  nsXULLinkAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+  HyperTextAccessibleWrap(aContent, aDoc)
+{
+}
+
+
+NS_IMPL_ISUPPORTS_INHERITED1(nsXULLinkAccessible, HyperTextAccessibleWrap,
+                             nsIAccessibleHyperLink)
+
+
+
+
+void
+nsXULLinkAccessible::Value(nsString& aValue)
+{
+  aValue.Truncate();
+
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::href, aValue);
+}
+
+nsresult
+nsXULLinkAccessible::GetNameInternal(nsAString& aName)
+{
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, aName);
+  if (!aName.IsEmpty())
+    return NS_OK;
+
+  return nsTextEquivUtils::GetNameFromSubtree(this, aName);
+}
+
+role
+nsXULLinkAccessible::NativeRole()
+{
+  return roles::LINK;
+}
+
+
+PRUint64
+nsXULLinkAccessible::NativeLinkState() const
+{
+  return states::LINKED;
+}
+
+PRUint8
+nsXULLinkAccessible::ActionCount()
+{
+  return 1;
+}
+
+NS_IMETHODIMP
+nsXULLinkAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+{
+  aName.Truncate();
+
+  if (aIndex != eAction_Jump)
+    return NS_ERROR_INVALID_ARG;
+  
+  aName.AssignLiteral("jump");
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULLinkAccessible::DoAction(PRUint8 aIndex)
+{
+  if (aIndex != eAction_Jump)
+    return NS_ERROR_INVALID_ARG;
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  DoCommand();
+  return NS_OK;
+}
+
+
+
+
+bool
+nsXULLinkAccessible::IsLink()
+{
+  
+  return true;
+}
+
+PRUint32
+nsXULLinkAccessible::StartOffset()
+{
+  
+  
+  
+  
+  
+  if (Accessible::IsLink())
+    return Accessible::StartOffset();
+  return IndexInParent();
+}
+
+PRUint32
+nsXULLinkAccessible::EndOffset()
+{
+  if (Accessible::IsLink())
+    return Accessible::EndOffset();
+  return IndexInParent() + 1;
+}
+
+already_AddRefed<nsIURI>
+nsXULLinkAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
+{
+  if (aAnchorIndex != 0)
+    return nsnull;
+
+  nsAutoString href;
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::href, href);
+
+  nsCOMPtr<nsIURI> baseURI = mContent->GetBaseURI();
+  nsIDocument* document = mContent->OwnerDoc();
+
+  nsIURI* anchorURI = nsnull;
+  NS_NewURI(&anchorURI, href,
+            document->GetDocumentCharacterSet().get(),
+            baseURI);
+
+  return anchorURI;
+}

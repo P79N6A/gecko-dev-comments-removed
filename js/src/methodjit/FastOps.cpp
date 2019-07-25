@@ -960,10 +960,7 @@ mjit::Compiler::jsop_arginc(JSOp op, uint32_t slot)
     if (!analysis->incrementInitialValueObserved(PC)) {
         
         
-        if (script->argsObjAliasesFormals())
-            jsop_aliasedArg(slot,  true);
-        else
-            frame.pushArg(slot);
+        frame.pushArg(slot);
 
         
         
@@ -977,18 +974,11 @@ mjit::Compiler::jsop_arginc(JSOp op, uint32_t slot)
 
         
         
-        bool popGuaranteed = analysis->popGuaranteed(PC);
-        if (script->argsObjAliasesFormals())
-            jsop_aliasedArg(slot,  false, popGuaranteed);
-        else
-            frame.storeArg(slot, popGuaranteed);
+        frame.storeArg(slot, analysis->popGuaranteed(PC));
     } else {
         
         
-        if (script->argsObjAliasesFormals())
-            jsop_aliasedArg(slot,  true);
-        else
-            frame.pushArg(slot);
+        frame.pushArg(slot);
 
         
         
@@ -1009,10 +999,7 @@ mjit::Compiler::jsop_arginc(JSOp op, uint32_t slot)
 
         
         
-        if (script->argsObjAliasesFormals())
-            jsop_aliasedArg(slot,  false, true);
-        else
-            frame.storeArg(slot, true);
+        frame.storeArg(slot, true);
 
         
         

@@ -297,7 +297,7 @@ nsHTMLLabelElement::GetLabeledElement()
   if (!GetAttr(kNameSpaceID_None, nsGkAtoms::_for, elementId)) {
     
     
-    return GetFirstLabelableDescendant();
+    return GetFirstDescendantFormControl();
   }
 
   
@@ -308,7 +308,13 @@ nsHTMLLabelElement::GetLabeledElement()
   }
 
   Element* element = doc->GetElementById(elementId);
-  if (element && element->IsLabelable()) {
+  if (!element) {
+    return nsnull;
+  }
+
+  nsCOMPtr<nsIFormControl> controlElement = do_QueryInterface(element);
+  if (controlElement && controlElement->IsLabelableControl()) {
+    
     return element;
   }
 
@@ -316,13 +322,16 @@ nsHTMLLabelElement::GetLabeledElement()
 }
 
 Element*
-nsHTMLLabelElement::GetFirstLabelableDescendant()
+nsHTMLLabelElement::GetFirstDescendantFormControl()
 {
-  for (nsIContent* cur = nsINode::GetFirstChild(); cur;
+  
+  for (nsINode* cur = static_cast<nsINode*>(this)->GetFirstChild();
+       cur;
        cur = cur->GetNextNode(this)) {
-    Element* element = cur->IsElement() ? cur->AsElement() : nsnull;
-    if (element && element->IsLabelable()) {
-      return element;
+    nsCOMPtr<nsIFormControl> element = do_QueryInterface(cur);
+    if (element && element->IsLabelableControl()) {
+      NS_ASSERTION(cur->IsElement(), "How did that happen?");
+      return cur->AsElement();
     }
   }
 

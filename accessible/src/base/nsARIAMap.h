@@ -11,8 +11,7 @@
 #include "ARIAStateMap.h"
 #include "mozilla/a11y/Role.h"
 
-#include "nsIAtom.h"
-
+class nsIAtom;
 class nsIContent;
 class nsINode;
 
@@ -138,20 +137,8 @@ enum EDefaultStateRule
 struct nsRoleMapEntry
 {
   
-
-
-  bool Is(nsIAtom* aARIARole) const
-    { return *roleAtom == aARIARole; }
-
+  const char *roleString;
   
-
-
-  const nsDependentAtomString ARIARoleString() const
-    { return nsDependentAtomString(*roleAtom); }
-
-  
-  nsIAtom** roleAtom;
-
   
   mozilla::a11y::role role;
   

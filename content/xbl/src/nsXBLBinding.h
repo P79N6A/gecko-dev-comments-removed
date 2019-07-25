@@ -89,8 +89,8 @@ public:
 
   
   
-  void GetInsertionPointsFor(nsIContent* aParent,
-                             nsInsertionPointList** aResult);
+  nsresult GetInsertionPointsFor(nsIContent* aParent,
+                                 nsInsertionPointList** aResult);
 
   nsInsertionPointList* GetExistingInsertionPointsFor(nsIContent* aParent);
 

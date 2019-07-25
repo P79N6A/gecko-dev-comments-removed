@@ -3363,6 +3363,7 @@ js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, StackFrame *fp, const jschar 
 
 
 
+
     JSPrincipals *prin = fp->scopeChain()->principals(cx);
     bool compileAndGo = true;
     bool noScriptRval = false;
@@ -3370,7 +3371,8 @@ js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, StackFrame *fp, const jschar 
     JSScript *script = frontend::CompileScript(cx, env, fp, prin, prin,
                                                compileAndGo, noScriptRval, needScriptGlobal,
                                                chars, length, filename, lineno,
-                                               cx->findVersion(), NULL,  1);
+                                               cx->findVersion(), NULL,
+                                               UpvarCookie::UPVAR_LEVEL_LIMIT);
     if (!script)
         return false;
 

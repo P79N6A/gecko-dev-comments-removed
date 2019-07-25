@@ -173,9 +173,7 @@ struct nsPrevNextBidiLevels
   PRUint8 mLevelAfter;
 };
 
-namespace mozilla {
-class Selection;
-}
+class nsTypedSelection;
 class nsIScrollableFrame;
 
 
@@ -353,7 +351,7 @@ public:
 
 
 
-  mozilla::Selection* GetSelection(SelectionType aType) const;
+  nsTypedSelection* GetSelection(SelectionType aType) const;
 
   
 
@@ -620,7 +618,7 @@ private:
     return retval;
   }
 
-  friend class mozilla::Selection;
+  friend class nsTypedSelection; 
 #ifdef DEBUG
   void printSelection();       
 #endif 
@@ -647,7 +645,7 @@ private:
   
   nsresult     NotifySelectionListeners(SelectionType aType);     
 
-  nsRefPtr<mozilla::Selection> mDomSelections[nsISelectionController::NUM_SELECTIONTYPES];
+  nsRefPtr<nsTypedSelection> mDomSelections[nsISelectionController::NUM_SELECTIONTYPES];
 
   
   

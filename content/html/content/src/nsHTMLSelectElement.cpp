@@ -21,6 +21,7 @@
 #include "nsIDOMHTMLOptGroupElement.h"
 #include "nsEventStates.h"
 #include "nsGUIEvent.h"
+#include "nsIPrivateDOMEvent.h"
 
 
 #include "nsIDocument.h"

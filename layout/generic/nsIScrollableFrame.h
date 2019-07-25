@@ -93,11 +93,6 @@ public:
 
 
   virtual nsRect GetScrollRange() const = 0;
-  
-
-
-
-  virtual nsSize GetScrollPositionClampingScrollPortSize() const = 0;
 
   
 

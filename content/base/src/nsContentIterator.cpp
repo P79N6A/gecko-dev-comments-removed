@@ -177,19 +177,29 @@ private:
 
 
 
-already_AddRefed<nsIContentIterator>
-NS_NewContentIterator()
+nsresult NS_NewContentIterator(nsIContentIterator** aInstancePtrResult)
 {
-  nsCOMPtr<nsIContentIterator> iter = new nsContentIterator(false);
-  return iter.forget();
+  nsContentIterator * iter = new nsContentIterator(false);
+  if (!iter) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  NS_ADDREF(*aInstancePtrResult = iter);
+
+  return NS_OK;
 }
 
 
-already_AddRefed<nsIContentIterator>
-NS_NewPreContentIterator()
+nsresult NS_NewPreContentIterator(nsIContentIterator** aInstancePtrResult)
 {
-  nsCOMPtr<nsIContentIterator> iter = new nsContentIterator(true);
-  return iter.forget();
+  nsContentIterator * iter = new nsContentIterator(true);
+  if (!iter) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  NS_ADDREF(*aInstancePtrResult = iter);
+
+  return NS_OK;
 }
 
 
@@ -1174,6 +1184,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsContentSubtreeIterator, nsCont
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mRange)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
+nsresult NS_NewContentSubtreeIterator(nsIContentIterator** aInstancePtrResult);
 
 
 
@@ -1181,11 +1192,17 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 
 
-already_AddRefed<nsIContentIterator>
-NS_NewContentSubtreeIterator()
+
+nsresult NS_NewContentSubtreeIterator(nsIContentIterator** aInstancePtrResult)
 {
-  nsCOMPtr<nsIContentIterator> iter = new nsContentSubtreeIterator();
-  return iter.forget();
+  nsContentIterator * iter = new nsContentSubtreeIterator();
+  if (!iter) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  NS_ADDREF(*aInstancePtrResult = iter);
+
+  return NS_OK;
 }
 
 

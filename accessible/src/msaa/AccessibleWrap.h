@@ -312,4 +312,8 @@ protected:
   };
 };
 
+
+typedef class nsHTMLTextFieldAccessible    nsHTMLTextFieldAccessibleWrap;
+typedef class nsXULTextFieldAccessible     nsXULTextFieldAccessibleWrap;
+
 #endif

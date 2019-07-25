@@ -98,7 +98,7 @@ public:
 
   mozilla::dom::Element* GetLabeledElement();
 protected:
-  mozilla::dom::Element* GetFirstLabelableDescendant();
+  mozilla::dom::Element* GetFirstDescendantFormControl();
 
   
   bool mHandlingEvent;

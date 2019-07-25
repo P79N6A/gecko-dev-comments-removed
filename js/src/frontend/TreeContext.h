@@ -148,7 +148,7 @@ struct SharedContext {
     const RootedObject scopeChain_; 
 
   public:
-    const unsigned  staticLevel;    
+    unsigned        staticLevel;    
 
     Bindings        bindings;       
 
@@ -158,8 +158,7 @@ struct SharedContext {
 
     
     
-    inline SharedContext(JSContext *cx, JSObject *scopeChain, JSFunction *fun, FunctionBox *funbox,
-                         unsigned staticLevel);
+    inline SharedContext(JSContext *cx, JSObject *scopeChain, JSFunction *fun, FunctionBox *funbox);
 
     
     
@@ -368,6 +367,9 @@ struct StmtInfo {
     ((stmt)->update = (top), (stmt)->breaks = (stmt)->continues = (-1))
 
 namespace frontend {
+
+bool
+SetStaticLevel(SharedContext *sc, unsigned staticLevel);
 
 bool
 GenerateBlockId(SharedContext *sc, uint32_t &blockid);

@@ -28,6 +28,7 @@
 #include "nsEventListenerManager.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMMouseEvent.h"
+#include "nsIPrivateDOMEvent.h"
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIComponentManager.h"
@@ -1849,8 +1850,9 @@ nsListControlFrame::MouseUp(nsIDOMEvent* aMouseEvent)
     
     
     
+    nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(aMouseEvent));
     nsMouseEvent * mouseEvent;
-    mouseEvent = (nsMouseEvent *) aMouseEvent->GetInternalNSEvent();
+    mouseEvent = (nsMouseEvent *) privateEvent->GetInternalNSEvent();
 
     PRInt32 selectedIndex;
     if (NS_SUCCEEDED(GetIndexFromDOMEvent(aMouseEvent, selectedIndex))) {

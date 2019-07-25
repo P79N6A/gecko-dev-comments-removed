@@ -102,12 +102,11 @@ function ContentPrefService() {
 
   
   this._inPrivateBrowsing = false;
-  
-  if (["@mozilla.org/privatebrowsing;1"] in Cc) {
+  try { 
     var pbs = Cc["@mozilla.org/privatebrowsing;1"].
                 getService(Ci.nsIPrivateBrowsingService);
     this._inPrivateBrowsing = pbs.privateBrowsingEnabled;
-  }
+  } catch (e) {}
   this._observerSvc.addObserver(this, "private-browsing", false);
 
   

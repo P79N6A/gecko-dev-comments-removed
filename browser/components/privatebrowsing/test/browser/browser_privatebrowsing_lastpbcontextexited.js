@@ -19,7 +19,7 @@ function test() {
       }
     };
     Services.obs.addObserver(observer, "last-pb-context-exited", false);
-    setPrivateWindow(newWin, true);
+    newWin.gPrivateBrowsingUI.privateWindow = true;
     expected = true;
     newWin.close(); 
     newWin = null;

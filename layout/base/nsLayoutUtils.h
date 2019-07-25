@@ -809,13 +809,8 @@ public:
 
 
 
-  static nsIFrame* GetParentOrPlaceholderFor(nsIFrame* aFrame);
-
-  
-
-
-
-  static nsIFrame* GetParentOrPlaceholderForCrossDoc(nsIFrame* aFrame);
+  static nsIFrame* GetParentOrPlaceholderFor(nsFrameManager* aFrameManager,
+                                             nsIFrame* aFrame);
 
   
 

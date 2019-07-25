@@ -91,7 +91,8 @@ nsSMILCSSProperty::GetBaseValue() const
   
   
   
-  nsICSSDeclaration* overrideDecl = mElement->GetSMILOverrideStyle();
+  nsCOMPtr<nsICSSDeclaration> overrideDecl =
+    do_QueryInterface(mElement->GetSMILOverrideStyle());
   nsAutoString cachedOverrideStyleVal;
   if (overrideDecl) {
     overrideDecl->GetPropertyValue(mPropID, cachedOverrideStyleVal);
@@ -162,7 +163,8 @@ nsSMILCSSProperty::SetAnimValue(const nsSMILValue& aValue)
   }
 
   
-  nsICSSDeclaration* overrideDecl = mElement->GetSMILOverrideStyle();
+  nsCOMPtr<nsICSSDeclaration> overrideDecl =
+    do_QueryInterface(mElement->GetSMILOverrideStyle());
   if (overrideDecl) {
     nsAutoString oldValStr;
     overrideDecl->GetPropertyValue(mPropID, oldValStr);
@@ -178,7 +180,8 @@ void
 nsSMILCSSProperty::ClearAnimValue()
 {
   
-  nsICSSDeclaration* overrideDecl = mElement->GetSMILOverrideStyle();
+  nsCOMPtr<nsICSSDeclaration> overrideDecl =
+    do_QueryInterface(mElement->GetSMILOverrideStyle());
   if (overrideDecl) {
     overrideDecl->SetPropertyValue(mPropID, EmptyString());
   }

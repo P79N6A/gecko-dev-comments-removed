@@ -882,7 +882,7 @@ SourceScripts.prototype = {
 
     this._addScript({ url: aPacket.url, startLine: aPacket.startLine }, true);
     
-    for each (let bp in DebuggerController.Breakpoints.store) {
+    for (let bp of DebuggerController.Breakpoints.store) {
       if (bp.location.url == aPacket.url) {
         DebuggerController.Breakpoints.displayBreakpoint(bp.location);
       }

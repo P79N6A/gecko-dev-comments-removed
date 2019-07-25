@@ -26,6 +26,7 @@
 #include "nsIPermissionManager.h"
 #include "nsPluginHost.h"
 #include "nsIPresShell.h"
+#include "nsIPrivateDOMEvent.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIStreamConverterService.h"
@@ -249,15 +250,16 @@ nsPluginCrashedEvent::Run()
   nsCOMPtr<nsIDOMEvent> event;
   domDoc->CreateEvent(NS_LITERAL_STRING("datacontainerevents"),
                       getter_AddRefs(event));
+  nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(event));
   nsCOMPtr<nsIDOMDataContainerEvent> containerEvent(do_QueryInterface(event));
-  if (!containerEvent) {
+  if (!privateEvent || !containerEvent) {
     NS_WARNING("Couldn't QI event for PluginCrashed event!");
     return NS_OK;
   }
 
   event->InitEvent(NS_LITERAL_STRING("PluginCrashed"), true, true);
-  event->SetTrusted(true);
-  event->GetInternalNSEvent()->flags |= NS_EVENT_FLAG_ONLY_CHROME_DISPATCH;
+  privateEvent->SetTrusted(true);
+  privateEvent->GetInternalNSEvent()->flags |= NS_EVENT_FLAG_ONLY_CHROME_DISPATCH;
   
   nsCOMPtr<nsIWritableVariant> variant;
 
@@ -780,26 +782,15 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
   
   
   
-  
-  
-  
-  
-  
-  bool isOctetStream = (channelType.EqualsASCII(APPLICATION_OCTET_STREAM) ||
-                        channelType.EqualsASCII(BINARY_OCTET_STREAM));
-  ObjectType typeOfContent = GetTypeOfContent(mContentType);
-  bool caseOne = (isOctetStream &&
-                  !mContentType.IsEmpty() &&
-                  typeOfContent != eType_Document);
-  nsresult pluginState = IsPluginEnabledForType(mContentType);
-  bool pluginSupported = (NS_SUCCEEDED(pluginState) || 
-                          pluginState == NS_ERROR_PLUGIN_CLICKTOPLAY);
-  PRUint32 caps = GetCapabilities();
-  bool caseTwo = (pluginSupported && 
-                  (caps & eSupportPlugins) &&
-                  typeOfContent != eType_Image &&
-                  typeOfContent != eType_Document);
-  if (caseOne || caseTwo) {
+  if (((channelType.EqualsASCII(APPLICATION_OCTET_STREAM) ||
+        channelType.EqualsASCII(BINARY_OCTET_STREAM)) && 
+       !mContentType.IsEmpty() &&
+       GetTypeOfContent(mContentType) != eType_Document) ||
+      
+      
+      
+      (NS_SUCCEEDED(IsPluginEnabledForType(mContentType)) && 
+       GetTypeOfContent(mContentType) == eType_Plugin)) {
     
     
     

@@ -21,19 +21,18 @@ function run_test()
   let search = Services.search;
 
   do_test_pending();
+  afterCommit(
+    function()
+    {
+      
+      let metadata = gProfD.clone();
+      metadata.append("search-metadata.json");
+      do_check_true(metadata.exists());
 
-  afterCommit(function commit_complete() {
-    
-    let metadata = gProfD.clone();
-    metadata.append("search-metadata.json");
-    do_check_true(metadata.exists());
+      removeMetadata();
+      do_test_finished();
+    }
+  );
 
-    removeMetadata();
-    do_test_finished();
-  });
-
-  search.init(function ss_initialized(rv) {
-    do_check_true(Components.isSuccessCode(rv));
-    search.getEngines();
-  });
+  search.getEngines();
 }

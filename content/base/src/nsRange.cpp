@@ -33,6 +33,9 @@
 
 using namespace mozilla;
 
+nsresult NS_NewContentIterator(nsIContentIterator** aInstancePtrResult);
+nsresult NS_NewContentSubtreeIterator(nsIContentIterator** aInstancePtrResult);
+
 
 
 
@@ -1167,7 +1170,8 @@ RangeSubtreeIterator::Init(nsIDOMRange *aRange)
     
     
 
-    mIter = NS_NewContentSubtreeIterator();
+    res = NS_NewContentSubtreeIterator(getter_AddRefs(mIter));
+    if (NS_FAILED(res)) return res;
 
     res = mIter->Init(aRange);
     if (NS_FAILED(res)) return res;
@@ -2240,8 +2244,10 @@ nsRange::ToString(nsAString& aReturn)
 
 
 
-  nsCOMPtr<nsIContentIterator> iter = NS_NewContentIterator();
-  nsresult rv = iter->Init(this);
+  nsCOMPtr<nsIContentIterator> iter;
+  nsresult rv = NS_NewContentIterator(getter_AddRefs(iter));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = iter->Init(this);
   NS_ENSURE_SUCCESS(rv, rv);
   
   nsString tempString;

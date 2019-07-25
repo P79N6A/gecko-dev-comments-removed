@@ -977,9 +977,6 @@ extern void _PR_MD_YIELD(void);
 extern void _PR_MD_SET_PRIORITY(_MDThread *md, PRThreadPriority newPri);
 #define    _PR_MD_SET_PRIORITY _MD_SET_PRIORITY
 
-extern void _PR_MD_SET_CURRENT_THREAD_NAME(const char *name);
-#define    _PR_MD_SET_CURRENT_THREAD_NAME _MD_SET_CURRENT_THREAD_NAME
-
 NSPR_API(void) _PR_MD_SUSPENDALL(void);
 #define    _PR_MD_SUSPENDALL _MD_SUSPENDALL
 
@@ -1536,7 +1533,6 @@ struct PRThread {
     PRIntn  errorStringLength;      
     PRInt32 errorStringSize;        
     char *errorString;              
-    char *name;                     
 
 #if defined(_PR_PTHREADS)
     pthread_t id;                   

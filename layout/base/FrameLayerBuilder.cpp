@@ -1143,7 +1143,11 @@ ContainerState::ThebesLayerData::UpdateCommonClipCount(
 already_AddRefed<ImageContainer>
 ContainerState::ThebesLayerData::CanOptimizeImageLayer()
 {
+#ifdef MOZ_ENABLE_MASK_LAYERS
   if (!mImage) {
+#else
+  if (!mImage || !mItemClip.mRoundedClipRects.IsEmpty()) {
+#endif
     return nsnull;
   }
 
@@ -1173,6 +1177,10 @@ ContainerState::PopThebesLayerData()
       gfx3DMatrix transform = imageLayer->GetTransform()*
         gfx3DMatrix::ScalingMatrix(mParameters.mXScale, mParameters.mYScale, 1.0f);
       imageLayer->SetTransform(transform);
+#ifndef MOZ_ENABLE_MASK_LAYERS
+      NS_ASSERTION(data->mItemClip.mRoundedClipRects.IsEmpty(),
+                   "How did we get rounded clip rects here?");
+#endif
       if (data->mItemClip.mHaveClipRect) {
         nsIntRect clip = ScaleToNearestPixels(data->mItemClip.mClipRect);
         imageLayer->IntersectClipRect(clip);
@@ -1254,6 +1262,7 @@ ContainerState::PopThebesLayerData()
     }
     userData->mForcedBackgroundColor = backgroundColor;
 
+#ifdef MOZ_ENABLE_MASK_LAYERS
     
     PRInt32 commonClipCount = data->mCommonClipCount;
     NS_ASSERTION(commonClipCount >= 0, "Inconsistent clip count.");
@@ -1265,6 +1274,7 @@ ContainerState::PopThebesLayerData()
   } else {
     
     SetupMaskLayer(layer, data->mItemClip);
+#endif
   }
   PRUint32 flags;
   if (isOpaque && !data->mForceTransparentSurface) {
@@ -1627,10 +1637,16 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     
     if (layerState == LAYER_ACTIVE_FORCE ||
         layerState == LAYER_ACTIVE_EMPTY ||
+#ifdef MOZ_ENABLE_MASK_LAYERS
         layerState == LAYER_ACTIVE) {
+#else
+        (layerState == LAYER_ACTIVE &&
+         (aClip.mRoundedClipRects.IsEmpty() ||
+          !aClip.IsRectClippedByRoundedCorner(item->GetVisibleRect())))) {
+#endif
 
-      
-      
+
+
       NS_ASSERTION(layerState != LAYER_ACTIVE_EMPTY ||
                    itemVisibleRect.IsEmpty(),
                    "State is LAYER_ACTIVE_EMPTY but visible rect is not.");
@@ -1689,11 +1705,13 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       }
       RestrictVisibleRegionForLayer(ownLayer, itemVisibleRect);
 
+#ifdef MOZ_ENABLE_MASK_LAYERS
       
       
       if (aClip.IsRectClippedByRoundedCorner(itemContent)) {
           SetupMaskLayer(ownLayer, aClip);
       }
+#endif
 
       ContainerLayer* oldContainer = ownLayer->GetParent();
       if (oldContainer && oldContainer != mContainerLayer) {
@@ -2812,6 +2830,7 @@ void
 ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aClip,
                                PRUint32 aRoundedRectClipCount) 
 {
+#ifdef MOZ_ENABLE_MASK_LAYERS
   nsIntRect boundingRect = aLayer->GetEffectiveVisibleRegion().GetBounds();
   
   if (aClip.mRoundedClipRects.IsEmpty() ||
@@ -2906,6 +2925,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
   userData->mBounds = aLayer->GetEffectiveVisibleRegion().GetBounds();
 
   aLayer->SetMaskLayer(maskLayer);
+#endif
   return;
 }
 

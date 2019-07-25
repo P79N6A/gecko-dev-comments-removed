@@ -6,8 +6,6 @@
 package org.mozilla.gecko;
 
 import android.R;
-import android.os.Build;
-import android.os.SystemClock;
 import android.content.Context;
 import android.text.Editable;
 import android.text.InputType;
@@ -63,24 +61,6 @@ public class GeckoInputConnection
     private static final int NO_COMPOSITION_STRING = -1;
 
     private static final int INLINE_IME_MIN_DISPLAY_SIZE = 480;
-
-    private static final char UNICODE_BULLET                    = '\u2022';
-    private static final char UNICODE_CENT_SIGN                 = '\u00a2';
-    private static final char UNICODE_COPYRIGHT_SIGN            = '\u00a9';
-    private static final char UNICODE_DIVISION_SIGN             = '\u00f7';
-    private static final char UNICODE_DOUBLE_LOW_QUOTATION_MARK = '\u201e';
-    private static final char UNICODE_ELLIPSIS                  = '\u2026';
-    private static final char UNICODE_EURO_SIGN                 = '\u20ac';
-    private static final char UNICODE_INVERTED_EXCLAMATION_MARK = '\u00a1';
-    private static final char UNICODE_MULTIPLICATION_SIGN       = '\u00d7';
-    private static final char UNICODE_PI                        = '\u03a0';
-    private static final char UNICODE_PILCROW_SIGN              = '\u00b6';
-    private static final char UNICODE_POUND_SIGN                = '\u00a3';
-    private static final char UNICODE_REGISTERED_SIGN           = '\u00ae';
-    private static final char UNICODE_SQUARE_ROOT               = '\u221a';
-    private static final char UNICODE_TRADEMARK_SIGN            = '\u2122';
-    private static final char UNICODE_WHITE_BULLET              = '\u25e6';
-    private static final char UNICODE_YEN_SIGN                  = '\u00a5';
 
     private static final Timer mIMETimer = new Timer("GeckoInputConnection Timer");
     private static int mIMEState;
@@ -565,10 +545,6 @@ public class GeckoInputConnection
         }
 
         CharSequence changedText = s.subSequence(start, start + count);
-        if (DEBUG) {
-            Log.d(LOGTAG, "onTextChanged: changedText=\"" + changedText + "\"");
-        }
-
         if (changedText.length() == 1) {
             char changedChar = changedText.charAt(0);
 
@@ -584,7 +560,7 @@ public class GeckoInputConnection
 
             
             
-            if (mCommittingText && !hasCompositionString() && sendKeyEventsToGecko(changedChar)) {
+            if (mCommittingText && !hasCompositionString() && synthesizeKeyEvents(changedChar)) {
                 
                 GeckoAppShell.geckoEventSync();
                 return;
@@ -626,9 +602,14 @@ public class GeckoInputConnection
         GeckoAppShell.geckoEventSync();
     }
 
-    private boolean sendKeyEventsToGecko(char inputChar) {
+    private boolean synthesizeKeyEvents(char inputChar) {
+        if (mKeyCharacterMap == null) {
+            mKeyCharacterMap = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD);
+        }
+
         
-        KeyEvent[] events = synthesizeKeyEvents(inputChar);
+        char[] inputChars = { inputChar };
+        KeyEvent[] events = mKeyCharacterMap.getEvents(inputChars);
         if (events == null) {
             if (DEBUG) {
                 Log.d(LOGTAG, "synthesizeKeyEvents: char '" + inputChar
@@ -653,69 +634,6 @@ public class GeckoInputConnection
         }
 
         return sentKeyEvents;
-    }
-
-    private KeyEvent[] synthesizeKeyEvents(char inputChar) {
-        
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.GINGERBREAD_MR1) {
-            switch (inputChar) {
-                case '&':
-                    
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-                        return createKeyDownKeyUpEvents(KeyEvent.KEYCODE_7, KeyEvent.META_SHIFT_ON);
-                    }
-                    
-                    break;
-
-                case '<':
-                case '>':
-                    
-                    
-                    
-                    return null;
-
-                
-                
-                
-                case UNICODE_BULLET:
-                case UNICODE_CENT_SIGN:
-                case UNICODE_COPYRIGHT_SIGN:
-                case UNICODE_DIVISION_SIGN:
-                case UNICODE_DOUBLE_LOW_QUOTATION_MARK:
-                case UNICODE_ELLIPSIS:
-                case UNICODE_EURO_SIGN:
-                case UNICODE_INVERTED_EXCLAMATION_MARK:
-                case UNICODE_MULTIPLICATION_SIGN:
-                case UNICODE_PI:
-                case UNICODE_PILCROW_SIGN:
-                case UNICODE_POUND_SIGN:
-                case UNICODE_REGISTERED_SIGN:
-                case UNICODE_SQUARE_ROOT:
-                case UNICODE_TRADEMARK_SIGN:
-                case UNICODE_WHITE_BULLET:
-                case UNICODE_YEN_SIGN:
-                    return null;
-
-                default:
-                    
-                    break;
-            }
-        }
-
-        if (mKeyCharacterMap == null) {
-            mKeyCharacterMap = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD);
-        }
-
-        char[] inputChars = { inputChar };
-        return mKeyCharacterMap.getEvents(inputChars);
-    }
-
-    private static KeyEvent[] createKeyDownKeyUpEvents(int keyCode, int metaState) {
-        long now = SystemClock.uptimeMillis();
-        KeyEvent keyDown = new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, metaState);
-        KeyEvent keyUp = KeyEvent.changeAction(keyDown, KeyEvent.ACTION_UP);
-        KeyEvent[] events = { keyDown, keyUp };
-        return events;
     }
 
     private void endComposition() {
@@ -1119,7 +1037,16 @@ public class GeckoInputConnection
                 return;
 
             if (mIMEState != IME_STATE_DISABLED) {
-                imm.showSoftInput(v, 0);
+                if (!v.isFocused()) {
+                    GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
+                        public void run() {
+                            v.requestFocus();
+                            imm.showSoftInput(v, 0);
+                        }
+                    });
+                } else {
+                    imm.showSoftInput(v, 0);
+                }
             } else {
                 imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
             }

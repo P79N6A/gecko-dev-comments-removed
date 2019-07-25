@@ -1073,7 +1073,7 @@ public:
 
   
   void ParseMappedAttrValue(nsIAtom* aMappedAttrName,
-                            const nsAString& aMappedAttrValue);
+                            nsAString& aMappedAttrValue);
 
   
   
@@ -1121,7 +1121,7 @@ MappedAttrParser::~MappedAttrParser()
 
 void
 MappedAttrParser::ParseMappedAttrValue(nsIAtom* aMappedAttrName,
-                                       const nsAString& aMappedAttrValue)
+                                       nsAString& aMappedAttrValue)
 {
   if (!mDecl) {
     mDecl = new css::Declaration();
@@ -1243,7 +1243,11 @@ ParseMappedAttrAnimValueCallback(void*    aObject,
     static_cast<MappedAttrParser*>(aData);
 
   nsStringBuffer* valueBuf = static_cast<nsStringBuffer*>(aPropertyValue);
-  mappedAttrParser->ParseMappedAttrValue(aPropertyName, nsCheapString(valueBuf));
+  nsAutoString value;
+  PRUint32 len = NS_strlen(static_cast<PRUnichar*>(valueBuf->Data()));
+  valueBuf->ToString(len, value);
+
+  mappedAttrParser->ParseMappedAttrValue(aPropertyName, value);
 }
 
 

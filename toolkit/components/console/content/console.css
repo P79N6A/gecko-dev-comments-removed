@@ -60,10 +60,6 @@
   display: none;
 }
 
-.filtered-by-string {
-  display: none;
-}
-
 
 .lineNumberRow[line="0"] {
   display: none;

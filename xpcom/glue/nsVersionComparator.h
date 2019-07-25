@@ -14,31 +14,6 @@
 #include "nsStringGlue.h"
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 namespace mozilla {
 
 PRInt32 NS_COM_GLUE

@@ -19,8 +19,7 @@ groupbox[closed="true"] > .groupbox-body {
   visibility: collapse;
 }
 
-#thepreviewimage {
-  display: block;
 
+#thepreviewimage {
   min-width: 1px;
 }

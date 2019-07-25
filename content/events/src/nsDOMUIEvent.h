@@ -22,12 +22,14 @@ public:
 
   
   NS_DECL_NSIDOMUIEVENT
+
   
-  
-  NS_FORWARD_TO_NSDOMEVENT_NO_SERIALIZATION_NO_DUPLICATION
   NS_IMETHOD DuplicatePrivateData();
-  NS_IMETHOD_(void) Serialize(IPC::Message* aMsg, bool aSerializeInterfaceType);
-  NS_IMETHOD_(bool) Deserialize(const IPC::Message* aMsg, void** aIter);
+  virtual void Serialize(IPC::Message* aMsg, bool aSerializeInterfaceType);
+  virtual bool Deserialize(const IPC::Message* aMsg, void** aIter);
+  
+  
+  NS_FORWARD_TO_NSDOMEVENT
 
   NS_FORWARD_NSIDOMNSEVENT(nsDOMEvent::)
 
@@ -122,22 +124,8 @@ protected:
   bool GetModifierStateInternal(const nsAString& aKey);
 };
 
-#define NS_FORWARD_TO_NSDOMUIEVENT                          \
-  NS_FORWARD_NSIDOMUIEVENT(nsDOMUIEvent::)                  \
-  NS_FORWARD_TO_NSDOMEVENT_NO_SERIALIZATION_NO_DUPLICATION  \
-  NS_IMETHOD DuplicatePrivateData()                         \
-  {                                                         \
-    return nsDOMUIEvent::DuplicatePrivateData();            \
-  }                                                         \
-  NS_IMETHOD_(void) Serialize(IPC::Message* aMsg,           \
-                              bool aSerializeInterfaceType) \
-  {                                                         \
-    nsDOMUIEvent::Serialize(aMsg, aSerializeInterfaceType); \
-  }                                                         \
-  NS_IMETHOD_(bool) Deserialize(const IPC::Message* aMsg,   \
-                                void** aIter)               \
-  {                                                         \
-    return nsDOMUIEvent::Deserialize(aMsg, aIter);          \
-  }
+#define NS_FORWARD_TO_NSDOMUIEVENT \
+  NS_FORWARD_NSIDOMUIEVENT(nsDOMUIEvent::) \
+  NS_FORWARD_TO_NSDOMEVENT
 
 #endif 
