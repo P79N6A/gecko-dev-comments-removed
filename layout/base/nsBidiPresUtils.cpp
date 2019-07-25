@@ -817,8 +817,13 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
                                          NS_MIN(end, endLine) - start));
               }
 
+              if (end < endLine) {
+                mPrevContent = nsnull;
+                break;
+              }
+
               PRBool createdContinuation = PR_FALSE;
-              if (end >= endLine && PRUint32(endLine) < text.Length()) {
+              if (PRUint32(endLine) < text.Length()) {
                 
 
 
