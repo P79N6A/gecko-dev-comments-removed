@@ -1510,6 +1510,17 @@ mjit::Compiler::generateMethod()
         SPEW_OPCODE();
         JS_ASSERT(frame.stackDepth() == opinfo->stackDepth);
 
+        
+        
+        
+        
+        
+        
+        if (op == JSOP_ENTERBLOCK && analysis->getCode(PC).exceptionEntry) {
+            masm.loadPtr(FrameAddress(VMFrame::offsetOfFp), JSFrameReg);
+            interruptCheckHelper();
+        }
+
         if (trap) {
             prepareStubCall(Uses(0));
             masm.move(Imm32(trap), Registers::ArgReg1);
@@ -6661,17 +6672,6 @@ mjit::Compiler::jumpAndTrace(Jump j, jsbytecode *target, Jump *slow, bool *tramp
 void
 mjit::Compiler::enterBlock(JSObject *obj)
 {
-    
-    
-    
-    
-    
-    
-    if (analysis->getCode(PC).exceptionEntry) {
-        masm.loadPtr(FrameAddress(VMFrame::offsetOfFp), JSFrameReg);
-        interruptCheckHelper();
-    }
-
     
     frame.syncAndForgetEverything();
     masm.move(ImmPtr(obj), Registers::ArgReg1);
