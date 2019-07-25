@@ -1259,6 +1259,7 @@ TransformIntRect(nsIntRect& aRect, const gfxMatrix& aMatrix,
 
 
 
+
 static void
 MarkLeafLayersCoveredByOpaque(Layer* aLayer, const nsIntRect& aClipRect,
                               nsIntRegion& aRegion)
@@ -1267,7 +1268,6 @@ MarkLeafLayersCoveredByOpaque(Layer* aLayer, const nsIntRect& aClipRect,
   BasicImplData* data = ToData(aLayer);
   data->SetCoveredByOpaque(PR_FALSE);
 
-  const nsIntRect* clipRect = aLayer->GetEffectiveClipRect();
   nsIntRect newClipRect(aClipRect);
 
   
@@ -1277,14 +1277,21 @@ MarkLeafLayersCoveredByOpaque(Layer* aLayer, const nsIntRect& aClipRect,
     newClipRect.SetRect(0, 0, 0, 0);
   }
 
-  if (clipRect) {
-    nsIntRect cr = *clipRect;
-    gfxMatrix tr;
-    if (aLayer->GetEffectiveTransform().Is2D(&tr)) {
-      TransformIntRect(cr, tr, ToInsideIntRect);
+  {
+    const nsIntRect* clipRect = aLayer->GetEffectiveClipRect();
+    if (clipRect) {
+      nsIntRect cr = *clipRect;
+      
+      
+      if (aLayer->GetParent()) {
+        gfxMatrix tr;
+        if (aLayer->GetParent()->GetEffectiveTransform().Is2D(&tr)) {
+          TransformIntRect(cr, tr, ToInsideIntRect);
+        } else {
+          cr.SetRect(0, 0, 0, 0);
+        }
+      }
       newClipRect.IntersectRect(newClipRect, cr);
-    } else {
-      newClipRect.SetRect(0, 0, 0, 0);
     }
   }
 
