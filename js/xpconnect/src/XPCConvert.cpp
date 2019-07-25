@@ -69,68 +69,6 @@ using namespace mozilla;
 
 #define ILLEGAL_CHAR_RANGE(c) (0!=((c) & 0x80))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define XPC_MK_BIT(p,o) (1 << (((p)?1:0)+((o)?2:0)))
-#define XPC_IS_REFLECTABLE(f, p, o) ((f) & XPC_MK_BIT((p),(o)))
-#define XPC_MK_FLAG(np_no,p_no,np_o,p_o) \
-        ((uint8)((np_no) | ((p_no) << 1) | ((np_o) << 2) | ((p_o) << 3)))
-
-
-
-
-
-#define XPC_FLAG_COUNT (1 << 5)
-
-
-static uint8 xpc_reflectable_flags[XPC_FLAG_COUNT] = {
-    
-    
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  1  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  0  ,  0  ,   0 ,  0 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  1 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  0 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  1 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  1 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  1 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  1 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  1 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  1 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  1 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  0 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  0 ), 
-    XPC_MK_FLAG(  0  ,  1  ,   0 ,  0 ), 
-    XPC_MK_FLAG(  1  ,  0  ,   1 ,  0 ), 
-    XPC_MK_FLAG(  0  ,  0  ,   0 ,  0 ), 
-    XPC_MK_FLAG(  0  ,  0  ,   0 ,  0 ), 
-    XPC_MK_FLAG(  0  ,  0  ,   0 ,  0 ), 
-    XPC_MK_FLAG(  0  ,  0  ,   0 ,  0 ), 
-    XPC_MK_FLAG(  0  ,  0  ,   0 ,  0 )  
-    };
-
 static intN sXPCOMUCStringFinalizerIndex = -1;
 
 
@@ -146,11 +84,9 @@ XPCConvert::IsMethodReflectable(const XPTMethodDescriptor& info)
         const nsXPTParamInfo& param = info.params[i];
         const nsXPTType& type = param.GetType();
 
-        uint8 base_type = type.TagPart();
-        NS_ASSERTION(base_type < XPC_FLAG_COUNT, "BAD TYPE");
-
-        if (!XPC_IS_REFLECTABLE(xpc_reflectable_flags[base_type],
-                                type.IsPointer(), param.IsOut()))
+        
+        
+        if (type.TagPart() == nsXPTType::T_VOID)
             return JS_FALSE;
     }
     return JS_TRUE;
