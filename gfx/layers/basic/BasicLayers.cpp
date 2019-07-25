@@ -1287,7 +1287,13 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
       PopGroupWithCachedSurface(finalTarget, cachedSurfaceOffset);
     }
 
-    mTarget = nsnull;
+    if (!mTransactionIncomplete) {
+      
+      mTarget = nsnull;
+    } else {
+      
+      mTarget = finalTarget;
+    }
   }
 
 #ifdef MOZ_LAYERS_HAVE_LOG
@@ -1300,10 +1306,17 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
   
   mPhase = mTransactionIncomplete ? PHASE_CONSTRUCTION : PHASE_NONE;
 #endif
-  mUsingDefaultTarget = PR_FALSE;
+
+  if (!mTransactionIncomplete) {
+    
+    mUsingDefaultTarget = PR_FALSE;
+  }
 
   NS_ASSERTION(!aCallback || !mTransactionIncomplete,
                "If callback is not null, transaction must be complete");
+
+  
+  
 
   return !mTransactionIncomplete;
 }
