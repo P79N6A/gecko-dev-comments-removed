@@ -117,6 +117,16 @@ Compatibility::Init()
   if (::GetModuleHandleW(L"OsmHooks"))
     statistics::A11yConsumers(COBRA);
 
+  if (::GetModuleHandleW(L"WebFinderRemote"))
+    statistics::A11yConsumers(ZOOMTEXT);
+
+  if (::GetModuleHandleW(L"Kazahook"))
+    statistics::A11yConsumers(KAZAGURU);
+
+  if (::GetModuleHandleW(L"TextExtractorImpl32") ||
+      ::GetModuleHandleW(L"TextExtractorImpl64"))
+    statistics::A11yConsumers(YOUDAO);
+
   
   if (sMode & JAWSMode || sMode & WEMode) {
     
