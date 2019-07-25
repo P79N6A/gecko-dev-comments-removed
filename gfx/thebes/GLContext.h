@@ -48,12 +48,15 @@
 #endif
 
 #include "GLDefs.h"
+#include "gfxASurface.h"
+#include "gfxContext.h"
 #include "gfxRect.h"
 #include "nsISupportsImpl.h"
 #include "prlink.h"
 
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
+#include "nsRegion.h"
 
 #ifndef GLAPIENTRY
 #ifdef XP_WIN
@@ -72,6 +75,8 @@ typedef char realGLboolean;
 
 namespace mozilla {
 namespace gl {
+
+class GLContext;
 
 class LibrarySymbolLoader
 {
@@ -114,6 +119,93 @@ protected:
     PlatformLookupFunction mLookupFunc;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class TextureImage
+{
+    NS_INLINE_DECL_REFCOUNTING(TextureImage)
+public:
+    typedef gfxASurface::gfxContentType ContentType;
+
+    virtual ~TextureImage() {}
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual gfxContext* BeginUpdate(nsIntRegion& aRegion) = 0;
+    
+
+
+
+
+
+
+    virtual PRBool EndUpdate() = 0;
+
+    
+
+
+
+
+
+
+    GLuint Texture() { return mTexture; }
+
+    
+    const nsIntSize& GetSize() const { return mSize; }
+    ContentType GetContentType() const { return mContentType; }
+
+protected:
+    
+
+
+
+
+
+    TextureImage(GLuint aTexture, const nsIntSize& aSize, ContentType aContentType)
+        : mTexture(aTexture)
+        , mSize(aSize)
+        , mContentType(aContentType)
+    {}
+
+    GLuint mTexture;
+    nsIntSize mSize;
+    ContentType mContentType;
+};
 
 class GLContext
     : public LibrarySymbolLoader
@@ -191,6 +283,27 @@ public:
         MakeCurrent();
         fDeleteTextures(1, &tex); 
     }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual already_AddRefed<TextureImage>
+    CreateTextureImage(const nsIntSize& aSize,
+                       TextureImage::ContentType aContentType,
+                       GLint aWrapMode,
+                       PRBool aUseNearestFilter=PR_FALSE)
+    { return NULL; }
+
 protected:
 
     PRBool mInitialized;
