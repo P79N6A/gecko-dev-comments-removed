@@ -2053,7 +2053,16 @@ JSScript::applySpeculationFailed(JSContext *cx)
 {
     JS_ASSERT(analyzedArgsUsage());
     JS_ASSERT(argumentsHasLocalBinding());
-    JS_ASSERT(!needsArgsObj());
+
+    
+
+
+
+
+
+    if (needsArgsObj())
+        return true;
+
     needsArgsObj_ = true;
 
     const unsigned slot = argumentsLocalSlot();
