@@ -109,6 +109,9 @@ pref("offline-apps.quota.max", 2048);
 pref("offline-apps.quota.warn", 1024); 
 
 
+pref("browser.cache.compression_level", 1);
+
+
 pref("network.protocol-handler.warn-external.tel", false);
 pref("network.protocol-handler.warn-external.mailto", false);
 pref("network.protocol-handler.warn-external.vnd.youtube", false);
