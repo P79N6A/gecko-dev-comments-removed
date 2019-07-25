@@ -674,6 +674,18 @@ var Browser = {
   },
 
   
+  scrollContentToBottom: function scrollContentToTop() {
+    let x = {}, y = {};
+    this.contentScrollboxScroller.getScrolledSize(x, y);
+    this.contentScrollboxScroller.scrollTo(0, y.value);
+
+    this.pageScrollboxScroller.getScrolledSize(x, y);
+    this.pageScrollboxScroller.scrollTo(0, y.value);
+
+    this._browserView.onAfterVisibleMove();
+  },
+
+  
   scrollBrowserToContent: function scrollBrowserToContent() {
     let browser = this.selectedBrowser;
     if (browser) {
