@@ -167,7 +167,7 @@ JS_STATIC_ASSERT(offsetof(JSFrameRegs, sp) == 0);
 # define HIDE_SYMBOL(name)
 #endif
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(_WIN64)
 
 
 #ifdef JS_CPU_ARM
@@ -558,9 +558,7 @@ SYMBOL_STRING(JaegerStubVeneer) ":"         "\n"
 # else
 #  error "Unsupported CPU!"
 # endif
-#elif defined(_MSC_VER)
-
-#if defined(JS_CPU_X86)
+#elif defined(_MSC_VER) && defined(JS_CPU_X86)
 
 
 
@@ -666,7 +664,9 @@ extern "C" {
     }
 }
 
-#elif defined(JS_CPU_X64)
+
+
+#elif defined(_WIN64)
 
 
 
@@ -677,12 +677,6 @@ JS_STATIC_ASSERT(offsetof(VMFrame, savedRBX) == 0x58);
 JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) == 0x38);
 JS_STATIC_ASSERT(JSVAL_TAG_MASK == 0xFFFF800000000000LL);
 JS_STATIC_ASSERT(JSVAL_PAYLOAD_MASK == 0x00007FFFFFFFFFFFLL);
-
-
-
-#else
-#  error "Unsupported CPU!"
-#endif
 
 #endif                   
 
