@@ -62,7 +62,7 @@ Decoder::~Decoder()
 
 
 
-nsresult
+void
 Decoder::Init(RasterImage* aImage, imgIDecoderObserver* aObserver)
 {
   
@@ -82,10 +82,9 @@ Decoder::Init(RasterImage* aImage, imgIDecoderObserver* aObserver)
   
   InitInternal();
   mInitialized = true;
-  return IsError() ? NS_ERROR_FAILURE : NS_OK;
 }
 
-nsresult
+void
 Decoder::Write(const char* aBuffer, PRUint32 aCount)
 {
   
@@ -94,14 +93,13 @@ Decoder::Write(const char* aBuffer, PRUint32 aCount)
 
   
   if (IsDataError())
-    return NS_OK;
+    return;
 
   
   WriteInternal(aBuffer, aCount);
-  return IsError() ? NS_ERROR_FAILURE : NS_OK;
 }
 
-nsresult
+void
 Decoder::Finish()
 {
   
@@ -129,8 +127,6 @@ Decoder::Finish()
       mObserver->OnStopDecode(nsnull, salvage ? NS_OK : NS_ERROR_FAILURE, nsnull);
     }
   }
-
-  return NS_OK;
 }
 
 void

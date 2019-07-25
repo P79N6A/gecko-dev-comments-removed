@@ -57,15 +57,11 @@ public:
 
 
 
-  
 
 
 
 
-
-
-
-  nsresult Init(RasterImage* aImage, imgIDecoderObserver* aObserver);
+  void Init(RasterImage* aImage, imgIDecoderObserver* aObserver);
 
   
 
@@ -77,14 +73,14 @@ public:
 
 
 
-  nsresult Write(const char* aBuffer, PRUint32 aCount);
+  void Write(const char* aBuffer, PRUint32 aCount);
 
   
 
 
 
 
-  nsresult Finish();
+  void Finish();
 
   
 
