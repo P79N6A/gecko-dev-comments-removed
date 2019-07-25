@@ -42,6 +42,7 @@
 #include "nsCycleCollectionParticipant.h"
 
 struct JSObject;
+class nsContentUtils;
 
 typedef PRUptrdiff PtrBits;
 
@@ -58,6 +59,8 @@ typedef PRUptrdiff PtrBits;
 
 class nsWrapperCache
 {
+  friend class nsContentUtils;
+
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_WRAPPERCACHE_IID)
 
@@ -70,7 +73,25 @@ public:
                  "Destroying cache with a preserved wrapper!");
   }
 
-  JSObject* GetWrapper() const
+  
+
+
+
+
+
+
+
+  inline JSObject* GetWrapper() const;
+
+  
+
+
+
+
+
+
+
+  JSObject* GetWrapperPreserveColor() const
   {
     return reinterpret_cast<JSObject*>(mWrapperPtrBits & ~kWrapperBitMask);
   }
@@ -88,6 +109,23 @@ public:
     mWrapperPtrBits = 0;
   }
 
+  PRBool PreservingWrapper()
+  {
+    return (mWrapperPtrBits & WRAPPER_BIT_PRESERVED) != 0;
+  }
+
+  void SetIsProxy()
+  {
+    mWrapperPtrBits |= WRAPPER_IS_PROXY;
+  }
+
+  PRBool IsProxy()
+  {
+    return (mWrapperPtrBits & WRAPPER_IS_PROXY) != 0;
+  }
+
+private:
+  
   void SetPreservingWrapper(PRBool aPreserve)
   {
     if(aPreserve) {
@@ -98,22 +136,6 @@ public:
     }
   }
 
-  PRBool PreservingWrapper()
-  {
-    return (mWrapperPtrBits & WRAPPER_BIT_PRESERVED) != 0;
-  }
-
-  void SetIsProxy()
-  {
-      mWrapperPtrBits |= WRAPPER_IS_PROXY;
-  }
-
-  PRBool IsProxy()
-  {
-      return (mWrapperPtrBits & WRAPPER_IS_PROXY) != 0;
-  }
-
-private:
   enum { WRAPPER_BIT_PRESERVED = 1 << 0 };
   enum { WRAPPER_IS_PROXY = 1 << 1 };
   enum { kWrapperBitMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_PROXY) };
@@ -129,4 +151,4 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsWrapperCache, NS_WRAPPERCACHE_IID)
     return NS_OK;                                                             \
   }
 
-#endif
+#endif 

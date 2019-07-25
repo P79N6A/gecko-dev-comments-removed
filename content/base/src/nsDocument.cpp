@@ -883,17 +883,6 @@ TransferZoomLevels(nsIDocument* aFromDoc,
   toCtxt->SetTextZoom(fromCtxt->TextZoom());
 }
 
-void
-TransferShowingState(nsIDocument* aFromDoc, nsIDocument* aToDoc)
-{
-  NS_ABORT_IF_FALSE(aFromDoc && aToDoc,
-                    "transferring showing state from/to null doc");
-
-  if (aFromDoc->IsShowing()) {
-    aToDoc->OnPageShow(PR_TRUE, nsnull);
-  }
-}
-
 nsresult
 nsExternalResourceMap::AddExternalResource(nsIURI* aURI,
                                            nsIDocumentViewer* aViewer,
@@ -953,7 +942,6 @@ nsExternalResourceMap::AddExternalResource(nsIURI* aURI,
     newResource->mLoadGroup = aLoadGroup;
     if (doc) {
       TransferZoomLevels(aDisplayDocument, doc);
-      TransferShowingState(aDisplayDocument, doc);
     }
   }
 
@@ -3802,7 +3790,7 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
     if (!mWillReparent) {
       
       
-      JSObject *obj = GetWrapper();
+      JSObject *obj = GetWrapperPreserveColor();
       if (obj) {
         JSObject *newScope = aScriptGlobalObject->GetGlobalJSObject();
         nsIScriptContext *scx = aScriptGlobalObject->GetContext();
