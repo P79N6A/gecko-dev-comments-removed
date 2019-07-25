@@ -106,14 +106,6 @@ const kStateActive = 0x00000001;
 
 
 
-
-
-
-
-
-
-
-
 function InputHandler(browserViewContainer) {
   
   this._modules = [];
@@ -187,20 +179,8 @@ InputHandler.prototype = {
 
 
 
-
-
-
-
-
-
   grab: function grab(grabber) {
-    if (grabber == null) {
-      this._grabber = null;
-      this._grabDepth = -1;   
-    }
-
     if (!this._grabber || this._grabber == grabber) {
-
       if (!this._grabber) {
         
         let mods = this._modules;
@@ -208,12 +188,9 @@ InputHandler.prototype = {
           if (mods[i] != grabber)
             mods[i].cancelPending();
       }
-
       this._grabber = grabber;
-      this._grabDepth++;
       return true;
     }
-
     return false;
   },
 
@@ -224,36 +201,9 @@ InputHandler.prototype = {
 
 
 
-
-
-
-
-
-
-
-
-  ungrab: function ungrab(grabber, restoreEventInfos) {
+  ungrab: function ungrab(grabber) {
     if (this._grabber == grabber) {  
-      this._grabDepth--;
-
-      if (this._grabDepth == 0) {    
-        this._grabber = null;
-
-        if (restoreEventInfos) {
-          let mods = this._modules;
-          let grabberIndex = 0;
-
-          for (let i = 0, len = mods.length; i < len; ++i) {
-            if (mods[i] == grabber) {
-              grabberIndex = i;      
-              break;
-            }
-          }
-
-          for (i = 0, len = restoreEventInfos.length; i < len; ++i)
-            this._passToModules(restoreEventInfos[i], grabberIndex + 1);
-        }
-      }
+      this._grabber = null;
     }
   },
 
