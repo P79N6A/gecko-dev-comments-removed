@@ -1482,7 +1482,8 @@ class AutoGCRooter {
         STRING =      -14, 
         IDVECTOR =    -15, 
         BINDINGS =    -16, 
-        SHAPEVECTOR = -17  
+        SHAPEVECTOR = -17, 
+        OBJVECTOR =   -18  
     };
 
     private:
@@ -2483,6 +2484,19 @@ class AutoValueVector : public AutoVectorRooter<Value>
 
     const jsval *jsval_end() const { return Jsvalify(end()); }
     jsval *jsval_end() { return Jsvalify(end()); }
+
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+class AutoObjectVector : public AutoVectorRooter<JSObject *>
+{
+  public:
+    explicit AutoObjectVector(JSContext *cx
+                              JS_GUARD_OBJECT_NOTIFIER_PARAM)
+        : AutoVectorRooter<JSObject *>(cx, OBJVECTOR)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
