@@ -825,6 +825,36 @@ CssLogic.sheetMediaAllowed = function CssLogic_sheetMediaAllowed(aDomObject)
 
 
 
+CssLogic.shortSource = function CssLogic_shortSource(aSheet)
+{
+    
+    if (!aSheet || !aSheet.href) {
+      return CssLogic.l10n("rule.sourceInline");
+    }
+
+    
+    let url = Services.io.newURI(aSheet.href, null, null);
+    url = url.QueryInterface(Ci.nsIURL);
+    if (url.fileName) {
+      return url.fileName;
+    }
+
+    if (url.filePath) {
+      return url.filePath;
+    }
+
+    if (url.query) {
+      return url.query;
+    }
+
+    return this.domSheet.href;
+}
+
+
+
+
+
+
 
 
 
@@ -885,31 +915,7 @@ CssSheet.prototype = {
       return this._shortSource;
     }
 
-    
-    if (!this.domSheet.href) {
-      this._shortSource = CssLogic.l10n("rule.sourceInline");
-      return this._shortSource;
-    }
-
-    
-    let url = Services.io.newURI(this.domSheet.href, null, null);
-    url = url.QueryInterface(Ci.nsIURL);
-    if (url.fileName) {
-      this._shortSource = url.fileName;
-      return this._shortSource;
-    }
-
-    if (url.filePath) {
-      this._shortSource = url.filePath;
-      return this._shortSource;
-    }
-
-    if (url.query) {
-      this._shortSource = url.query;
-      return this._shortSource;
-    }
-
-    this._shortSource = this.domSheet.href;
+    this._shortSource = CssLogic.shortSource(this.domSheet);
     return this._shortSource;
   },
 
