@@ -109,6 +109,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
         mLayerRenderer = new LayerRenderer(view);
 
         GeckoAppShell.registerGeckoEventListener("Viewport:Update", this);
+        GeckoAppShell.registerGeckoEventListener("Viewport:PageSize", this);
         GeckoAppShell.registerGeckoEventListener("Viewport:CalculateDisplayPort", this);
         GeckoAppShell.registerGeckoEventListener("Checkerboard:Toggle", this);
 
@@ -243,24 +244,54 @@ public class GeckoLayerClient implements GeckoEventResponder,
     }
 
     
+
+
+
+
+    private enum ViewportMessageType {
+        UPDATE,       
+        PAGE_SIZE     
+    }
+
+    
+    private void handleViewportMessage(JSONObject message, ViewportMessageType type) throws JSONException {
+        ViewportMetrics messageMetrics = new ViewportMetrics(message);
+        synchronized (mLayerController) {
+            final ViewportMetrics newMetrics;
+            ImmutableViewportMetrics oldMetrics = mLayerController.getViewportMetrics();
+
+            switch (type) {
+            default:
+            case UPDATE:
+                newMetrics = messageMetrics;
+                
+                newMetrics.setSize(oldMetrics.getSize());
+                mLayerController.abortPanZoomAnimation();
+                break;
+            case PAGE_SIZE:
+                newMetrics = new ViewportMetrics(oldMetrics);
+                newMetrics.setPageSize(messageMetrics.getPageSize());
+                break;
+            }
+
+            mLayerController.post(new Runnable() {
+                public void run() {
+                    mGeckoViewport = newMetrics;
+                }
+            });
+            mLayerController.setViewportMetrics(newMetrics);
+            mDisplayPort = calculateDisplayPort(mLayerController.getViewportMetrics());
+        }
+        mReturnDisplayPort = mDisplayPort;
+    }
+
+    
     public void handleMessage(String event, JSONObject message) {
         try {
             if ("Viewport:Update".equals(event)) {
-                final ViewportMetrics newMetrics = new ViewportMetrics(message);
-                synchronized (mLayerController) {
-                    
-                    ImmutableViewportMetrics oldMetrics = mLayerController.getViewportMetrics();
-                    newMetrics.setSize(oldMetrics.getSize());
-                    mLayerController.post(new Runnable() {
-                        public void run() {
-                            mGeckoViewport = newMetrics;
-                        }
-                    });
-                    mLayerController.setViewportMetrics(newMetrics);
-                    mLayerController.abortPanZoomAnimation();
-                    mDisplayPort = calculateDisplayPort(mLayerController.getViewportMetrics());
-                    mReturnDisplayPort = mDisplayPort;
-                }
+                handleViewportMessage(message, ViewportMessageType.UPDATE);
+            } else if ("Viewport:PageSize".equals(event)) {
+                handleViewportMessage(message, ViewportMessageType.PAGE_SIZE);
             } else if ("Viewport:CalculateDisplayPort".equals(event)) {
                 ImmutableViewportMetrics newMetrics = new ImmutableViewportMetrics(new ViewportMetrics(message));
                 mReturnDisplayPort = calculateDisplayPort(newMetrics);

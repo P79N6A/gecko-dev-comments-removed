@@ -1515,6 +1515,7 @@ Tab.prototype = {
     this.browser.addEventListener("DOMWindowClose", this, true);
     this.browser.addEventListener("DOMWillOpenModalDialog", this, true);
     this.browser.addEventListener("scroll", this, true);
+    this.browser.addEventListener("MozScrolledAreaChanged", this, true);
     this.browser.addEventListener("PluginClickToPlay", this, true);
     this.browser.addEventListener("pagehide", this, true);
     this.browser.addEventListener("pageshow", this, true);
@@ -1562,6 +1563,7 @@ Tab.prototype = {
     this.browser.removeEventListener("DOMWillOpenModalDialog", this, true);
     this.browser.removeEventListener("scroll", this, true);
     this.browser.removeEventListener("PluginClickToPlay", this, true);
+    this.browser.removeEventListener("MozScrolledAreaChanged", this, true);
     this.browser.removeEventListener("pagehide", this, true);
     this.browser.removeEventListener("pageshow", this, true);
 
@@ -1689,15 +1691,14 @@ Tab.prototype = {
     return viewport;
   },
 
-  sendViewportUpdate: function() {
+  sendViewportUpdate: function(aPageSizeUpdate) {
     let message;
-    if (BrowserApp.selectedTab == this) {
-      
-      
-      if (!BrowserApp.isBrowserContentDocumentDisplayed())
-        return;
+    
+    
+    
+    if (BrowserApp.selectedTab == this && BrowserApp.isBrowserContentDocumentDisplayed()) {
       message = this.getViewport();
-      message.type = "Viewport:Update";
+      message.type = aPageSizeUpdate ? "Viewport:PageSize" : "Viewport:Update";
     } else {
       
       
@@ -1856,6 +1857,17 @@ Tab.prototype = {
         if (this.userScrollPos.x != win.scrollX || this.userScrollPos.y != win.scrollY) {
           this.sendViewportUpdate();
         }
+        break;
+      }
+
+      case "MozScrolledAreaChanged": {
+        
+        
+        
+        if (aEvent.originalTarget != this.browser.contentDocument)
+          return;
+
+        this.sendViewportUpdate(true);
         break;
       }
 
@@ -2198,7 +2210,8 @@ Tab.prototype = {
           
           
           
-          this.setDisplayPort(0, 0, {left: 0, top: 0, right: gScreenWidth, bottom: gScreenHeight });
+          
+          this.sendViewportUpdate();
 
           BrowserApp.displayedDocumentChanged();
           this.contentDocumentIsDisplayed = true;
