@@ -50,6 +50,9 @@
 
 #include <math.h>
 #include <string.h>     
+
+#include "mozilla/Util.h"
+
 #include "jstypes.h"
 #include "jsstdint.h"
 #include "jsutil.h"
@@ -102,6 +105,7 @@
 # include <valgrind/memcheck.h>
 #endif
 
+using namespace mozilla;
 using namespace js;
 using namespace js::gc;
 
@@ -548,7 +552,7 @@ Chunk::init()
 
     
     ArenaHeader **prevp = &info.emptyArenaListHead;
-    Arena *end = &arenas[JS_ARRAY_LENGTH(arenas)];
+    Arena *end = &arenas[ArrayLength(arenas)];
     for (Arena *a = &arenas[0]; a != end; ++a) {
         *prevp = &a->aheader;
         a->aheader.setAsNotAllocated();
@@ -940,7 +944,7 @@ MarkThreadDataConservatively(JSTracer *trc, ThreadData *td)
     JS_ASSERT(stackMin <= stackEnd);
     MarkRangeConservatively(trc, stackMin, stackEnd);
     MarkRangeConservatively(trc, ctd->registerSnapshot.words,
-                            JS_ARRAY_END(ctd->registerSnapshot.words));
+                            ArrayEnd(ctd->registerSnapshot.words));
 }
 
 void
