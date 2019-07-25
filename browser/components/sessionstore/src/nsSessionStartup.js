@@ -148,6 +148,12 @@ SessionStartup.prototype = {
       initialState.session.state == STATE_RUNNING_STR;
 
     
+    
+    
+    let Telemetry = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
+    Telemetry.getHistogramById("SHUTDOWN_OK").add(!lastSessionCrashed);
+
+    
     if (lastSessionCrashed && resumeFromCrash)
       this._sessionType = Ci.nsISessionStartup.RECOVER_SESSION;
     else if (!lastSessionCrashed && doResumeSession)
