@@ -14,11 +14,26 @@ function test()
   var key;
   var root;
 
+  
+
+
+  function sendChar(aChar)
+  {
+    key = aChar;
+    dispatchedKeyEvents = kNoKeyEvents;
+    EventUtils.sendChar(key, gBrowser.contentWindow);
+    is(dispatchedKeyEvents, expectedKeyEvents,
+       "unexpected key events were dispatched or not dispatched: " + key);
+  }
+
+  
+
+
   function sendKey(aKey)
   {
     key = aKey;
     dispatchedKeyEvents = kNoKeyEvents;
-    EventUtils.synthesizeKey(key, {}, gBrowser.contentWindow);
+    EventUtils.sendKey(key, gBrowser.contentWindow);
     is(dispatchedKeyEvents, expectedKeyEvents,
        "unexpected key events were dispatched or not dispatched: " + key);
   }
@@ -69,7 +84,7 @@ function test()
 
     
     expectedKeyEvents = kAllKeyEvents;
-    sendKey("A");
+    sendChar("A");
 
     
     EventUtils.synthesizeMouse(root, 10, 10, { button: 1 },
@@ -77,24 +92,24 @@ function test()
 
     
     expectedKeyEvents = kNoKeyEvents;
-    sendKey("A");
-    sendKey("VK_DOWN");
-    sendKey("VK_RETURN");
-    sendKey("VK_ENTER");
-    sendKey("VK_HOME");
-    sendKey("VK_END");
-    sendKey("VK_TAB");
-    sendKey("VK_ENTER");
+    sendChar("A");
+    sendKey("DOWN");
+    sendKey("RETURN");
+    sendKey("ENTER");
+    sendKey("HOME");
+    sendKey("END");
+    sendKey("TAB");
+    sendKey("ENTER");
 
     
     
     
     expectedKeyEvents = kKeyUpEvent;
-    sendKey("VK_ESCAPE");
+    sendKey("ESCAPE");
 
     
     expectedKeyEvents = kAllKeyEvents;
-    sendKey("A");
+    sendChar("A");
 
     root.removeEventListener("keydown", onKey, true);
     root.removeEventListener("keypress", onKey, true);
