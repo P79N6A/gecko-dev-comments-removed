@@ -986,6 +986,9 @@ nsHTMLTextAreaElement::ContentChanged(nsIContent* aContent)
 {
   if (!mValueChanged && mDoneAddingChildren &&
       nsContentUtils::IsInSameAnonymousTree(this, aContent)) {
+    
+    
+    nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
     Reset();
   }
 }

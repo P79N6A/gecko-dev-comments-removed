@@ -140,6 +140,12 @@ public:
 
 
 
+
+
+
+
+
+
   virtual void CharacterDataChanged(nsIDocument *aDocument,
                                     nsIContent* aContent,
                                     CharacterDataChangeInfo* aInfo) = 0;
