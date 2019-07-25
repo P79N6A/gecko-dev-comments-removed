@@ -291,25 +291,18 @@ struct TypeStack
     TypeStack *mergedGroup;
 
     
-    int id;
-
-    
-    unsigned stackDepth;
-
-    
     TypeStack *innerStack;
 
     
     TypeSet types;
 
     
-    bool hasMerged;
 
-    
+
+
+
+    jsid letVariable;
     bool boundWith;
-
-    
-    bool isForEach;
 
     
 
@@ -317,11 +310,10 @@ struct TypeStack
 
     bool ignoreTypeTag;
 
+#ifdef DEBUG
     
-    jsid letVariable;
-
-    
-    VariableSet *scopeVars;
+    int id;
+#endif
 
     
     inline TypeStack* group();
@@ -419,8 +411,11 @@ struct VariableSet
 
     JSArenaPool *pool;
 
+    
+    bool unknown;
+
     VariableSet(JSArenaPool *pool)
-        : variables(NULL), propagateSet(NULL), propagateCount(NULL), pool(pool)
+        : variables(NULL), propagateSet(NULL), propagateCount(NULL), pool(pool), unknown(false)
     {
         JS_ASSERT(pool);
     }
@@ -435,6 +430,9 @@ struct VariableSet
 
 
     bool addPropagate(JSContext *cx, VariableSet *target, bool excludePrototype);
+
+    
+    void markUnknown(JSContext *cx);
 
     void print(JSContext *cx);
 };
@@ -451,12 +449,6 @@ struct TypeObject
 
     
     bool isFunction;
-
-    
-
-
-
-    bool monitored;
 
     
 
@@ -490,6 +482,13 @@ struct TypeObject
     bool isPackedArray;
 
     
+
+
+
+
+    bool possiblePackedArray;
+
+    
     TypeObject(JSContext *cx, JSArenaPool *pool, jsid id, bool isArray);
 
     
@@ -506,6 +505,9 @@ struct TypeObject
 
     
     inline VariableSet& properties(JSContext *cx);
+
+    
+    bool unknownProperties() { return propertySet.unknown; }
 
     
     inline TypeSet* indexTypes(JSContext *cx);
@@ -749,24 +751,15 @@ struct TypeCompartment
 
 
 
-    bool warnings;
-
-    
-
-
-
-    bool ignoreWarnings;
-
-    
-
-
-
     uint64_t analysisTime;
 
     
     static const unsigned TYPE_COUNT_LIMIT = 4;
     unsigned typeCounts[TYPE_COUNT_LIMIT];
     unsigned typeCountOver;
+
+    
+    unsigned recompilations;
 
     void init();
     ~TypeCompartment();
@@ -826,16 +819,18 @@ enum SpewChannel {
 
 #ifdef DEBUG
 
-
 void InferSpew(SpewChannel which, const char *fmt, ...);
-void InferSpewType(SpewChannel which, JSContext *cx, jstype type, const char *fmt, ...);
+const char * TypeString(jstype type);
 
 #else
 
 inline void InferSpew(SpewChannel which, const char *fmt, ...) {}
-inline void InferSpewType(SpewChannel which, JSContext *cx, jstype type, const char *fmt, ...) {}
+inline const char * TypeString(jstype type) { return NULL; }
 
 #endif
+
+
+void TypeFailure(JSContext *cx, const char *fmt, ...);
 
 } 
 } 

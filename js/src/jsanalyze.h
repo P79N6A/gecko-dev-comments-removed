@@ -140,12 +140,6 @@ struct Bytecode
     bool hasIncDecOverflow : 1;
 
     
-
-
-
-    bool missingTypes : 1;
-
-    
     inline JSArenaPool &pool();
 
     
@@ -163,7 +157,9 @@ struct Bytecode
 
     inline types::TypeObject* getInitObject(JSContext *cx, bool isArray);
 
+#ifdef DEBUG
     void print(JSContext *cx);
+#endif
 
 #endif 
 
@@ -349,37 +345,115 @@ class Script
     
     inline Bytecode *parentCode();
 
-    void print(JSContext *cx);
+    
+    void finish(JSContext *cx);
 
     
 
     
-    struct TypeState {
+
+    struct AnalyzeStateStack {
+        
+        bool isForEach;
+
+        
+        types::VariableSet *scopeVars;
+
+        
+        bool hasDouble;
+        double doubleValue;
+
+        
+        bool isZero;
+
+        
+        bool isConstant;
+    };
+
+    struct AnalyzeState {
+        AnalyzeStateStack *stack;
+
+        
+        unsigned stackDepth;
+
         
         bool hasGetSet;
 
         
         bool hasHole;
 
-        TypeState()
-            : hasGetSet(false), hasHole(false)
+        
+        bool zeroLocals[4];
+        uint32 constLocals[4];
+        unsigned numConstLocals;
+
+        AnalyzeState()
+            : stack(NULL), stackDepth(0), hasGetSet(false), hasHole(false), numConstLocals(0)
         {}
+
+        bool init(JSContext *cx, JSScript *script)
+        {
+            if (script->nslots) {
+                stack = (AnalyzeStateStack *)
+                    cx->calloc(script->nslots * sizeof(AnalyzeStateStack));
+                return (stack != NULL);
+            }
+            return true;
+        }
+
+        void destroy(JSContext *cx)
+        {
+            cx->free(stack);
+        }
+
+        AnalyzeStateStack &popped(unsigned i) {
+            JS_ASSERT(i < stackDepth);
+            return stack[stackDepth - 1 - i];
+        }
+
+        const AnalyzeStateStack &popped(unsigned i) const {
+            JS_ASSERT(i < stackDepth);
+            return stack[stackDepth - 1 - i];
+        }
+
+        void addConstLocal(uint32 local, bool zero) {
+            if (numConstLocals == JS_ARRAY_LENGTH(constLocals))
+                return;
+            if (maybeLocalConst(local, false))
+                return;
+            zeroLocals[numConstLocals] = zero;
+            constLocals[numConstLocals++] = local;
+        }
+
+        bool maybeLocalConst(uint32 local, bool zero) {
+            for (unsigned i = 0; i < numConstLocals; i++) {
+                if (constLocals[i] == local)
+                    return !zero || zeroLocals[i];
+            }
+            return false;
+        }
+
+        void clearLocal(uint32 local) {
+            for (unsigned i = 0; i < numConstLocals; i++) {
+                if (constLocals[i] == local) {
+                    constLocals[i] = constLocals[--numConstLocals];
+                    return;
+                }
+            }
+        }
     };
 
     
-    void analyzeTypes(JSContext *cx, Bytecode *codeType, TypeState &state);
+    void analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state);
 
     
-
-
-
-    inline jsid getLocalId(unsigned index, types::TypeStack *stack);
+    inline jsid getLocalId(unsigned index, Bytecode *code);
 
     
     inline jsid getArgumentId(unsigned index);
 
     
-    inline types::TypeSet *getStackTypes(unsigned index, types::TypeStack *stack);
+    inline types::TypeSet *getStackTypes(unsigned index, Bytecode *code);
 
     
     inline JSValueType knownArgumentTypeTag(JSContext *cx, JSScript *script, unsigned arg);
@@ -387,7 +461,7 @@ class Script
 
     void trace(JSTracer *trc);
 
-#endif
+#endif 
 
 };
 

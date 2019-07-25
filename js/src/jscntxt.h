@@ -2455,13 +2455,10 @@ public:
     inline void aliasTypeProperties(js::types::TypeObject *obj, jsid first, jsid second);
 
     
-    inline void markTypeArrayNotPacked(js::types::TypeObject *obj, bool notDense);
+    inline void markTypeArrayNotPacked(js::types::TypeObject *obj, bool notDense, bool dynamic = true);
 
     
-
-
-
-    inline void monitorTypeObject(js::types::TypeObject *obj);
+    inline void markTypeObjectUnknownProperties(js::types::TypeObject *obj);
 
   private:
     
