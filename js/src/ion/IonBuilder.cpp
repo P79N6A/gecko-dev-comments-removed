@@ -2495,6 +2495,20 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *pc)
     osrBlock->linkOsrValues(start);
 
     
+    
+    
+    JS_ASSERT(predecessor->stackDepth() == osrBlock->stackDepth());
+    for (uint32 i = 0; i < osrBlock->stackDepth(); i++) {
+        MIRType guessType = predecessor->getSlot(i)->type();
+        if (guessType != MIRType_Value) {
+            MDefinition *def = osrBlock->getSlot(i);
+            MInstruction *actual = MUnbox::New(def, guessType, MUnbox::Fallible);
+            osrBlock->add(actual);
+            osrBlock->rewriteSlot(i, actual);
+        }
+    }
+
+    
     osrBlock->end(MGoto::New(preheader));
     preheader->addPredecessor(osrBlock);
     graph().setOsrBlock(osrBlock);
