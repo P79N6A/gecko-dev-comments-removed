@@ -154,6 +154,27 @@ public:
 
   nsCString getFilename();
 
+  
+
+
+
+
+
+
+
+
+  int prepareStatement(const nsCString &aSQL, sqlite3_stmt **_stmt);
+
+  
+
+
+
+
+
+
+
+  int stepStatement(sqlite3_stmt* aStatement);
+
 private:
   ~Connection();
 

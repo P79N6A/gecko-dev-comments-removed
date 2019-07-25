@@ -98,6 +98,24 @@ private:
   const TimeStamp start;
   MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
+
+
+
+
+
+
+
+
+
+void RecordSlowSQLStatement(const nsACString &statement,
+                            const nsACString &dbName,
+                            PRUint32 delay);
+
+
+
+
+const PRUint32 kSlowStatementThreshold = 100;
+
 } 
 } 
 #endif
