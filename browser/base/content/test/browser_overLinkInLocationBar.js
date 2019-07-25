@@ -47,6 +47,9 @@ var gTestIter;
 let gTests = [
 
   function smokeTestGenerator() {
+    
+    gBrowser.contentWindow.focus();
+
     if (ensureOverLinkHidden())
       yield;
 
@@ -60,29 +63,25 @@ let gTests = [
   },
 
   function hostPathLabels() {
-    setOverLink("http://example.com/");
+    updateOverLink("http://example.com/");
     hostLabelIs("http://example.com/");
     pathLabelIs("");
 
-    setOverLink("http://example.com/foo");
+    updateOverLink("http://example.com/foo");
     hostLabelIs("http://example.com/");
     pathLabelIs("foo");
 
-    setOverLink("javascript:popup('http://example.com/')");
+    updateOverLink("javascript:popup('http://example.com/')");
     hostLabelIs("");
     pathLabelIs("javascript:popup('http://example.com/')");
 
-    setOverLink("javascript:popup('http://example.com/foo')");
+    updateOverLink("javascript:popup('http://example.com/foo')");
     hostLabelIs("");
     pathLabelIs("javascript:popup('http://example.com/foo')");
 
-    setOverLink("about:home");
+    updateOverLink("about:home");
     hostLabelIs("");
     pathLabelIs("about:home");
-
-    
-    if (ensureOverLinkHidden())
-      yield;
   }
 
 ];
@@ -164,9 +163,22 @@ function checkURLBar(shouldShowOverLink) {
 
 
 function setOverLinkWait(str) {
+  dump("Setting over-link and waiting: " + str + "\n");
+
   let overLink = gURLBar._overLinkBox;
+  let opacity = window.getComputedStyle(overLink, null).opacity;
+  dump("Opacity is " + opacity + "\n");
+
+  ok(str || opacity != 0,
+     "Test assumption: either showing or if hiding, not already hidden");
+  ok(!str || opacity != 1,
+     "Test assumption: either hiding or if showing, not already shown");
+
   overLink.addEventListener("transitionend", function onTrans(event) {
+    dump("transitionend received: " + (event.target == overLink) + " " +
+         event.propertyName + "\n");
     if (event.target == overLink && event.propertyName == "opacity") {
+      dump("target transitionend received\n");
       overLink.removeEventListener("transitionend", onTrans, false);
       cont();
     }
@@ -182,6 +194,17 @@ function setOverLinkWait(str) {
 
 
 function setOverLink(str) {
+  dump("Setting over-link but not waiting: " + str + "\n");
+
+  let overLink = gURLBar._overLinkBox;
+  let opacity = window.getComputedStyle(overLink, null).opacity;
+  dump("Opacity is " + opacity + "\n");
+
+  ok(str || opacity == 0,
+     "Test assumption: either showing or if hiding, already hidden");
+  ok(!str || opacity == 1,
+     "Test assumption: either hiding or if showing, already shown");
+
   gURLBar.setOverLink(str);
 }
 
@@ -192,12 +215,27 @@ function setOverLink(str) {
 
 
 
+
+function updateOverLink(str) {
+  gURLBar._updateOverLink(str);
+}
+
+
+
+
+
+
+
+
 function ensureOverLinkHidden() {
+  dump("Ensuring over-link is hidden" + "\n");
+
   let overLink = gURLBar._overLinkBox;
-  if (window.getComputedStyle(overLink, null).opacity == 0) {
-    setOverLink("");
+  let opacity = window.getComputedStyle(overLink, null).opacity;
+  dump("Opacity is " + opacity + "\n");
+
+  if (opacity == 0)
     return false;
-  }
 
   setOverLinkWait("");
   return true;

@@ -158,15 +158,6 @@ html|*.urlbar-input {
 
 
 
-
-
-.urlbar-textbox-container:not([overlinkstate]),
-.urlbar-over-link-layer:not([overlinkstate]),
-.urlbar-textbox-container-children:not([overlinkstate]),
-.urlbar-over-link-box:not([overlinkstate]) {
-  -moz-transition-delay: 100ms;
-}
-
 .urlbar-over-link-layer[overlinkstate="fade-in"],
 .urlbar-textbox-container:not([overlinkstate]) {
   -moz-transition-property: color;
