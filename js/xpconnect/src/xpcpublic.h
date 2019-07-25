@@ -219,7 +219,8 @@ bool Base64Decode(JSContext *cx, JS::Value val, JS::Value *out);
 
 
 
-bool StringToJsval(JSContext *cx, nsString &str, JS::Value *rval);
+bool StringToJsval(JSContext *cx, nsAString &str, JS::Value *rval);
+bool NonVoidStringToJsval(JSContext *cx, nsAString &str, JS::Value *rval);
 
 void *GetCompartmentName(JSContext *cx, JSCompartment *c);
 void DestroyCompartmentName(void *string);
