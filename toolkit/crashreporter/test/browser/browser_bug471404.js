@@ -55,15 +55,19 @@ function test() {
 
   let tab = gBrowser.selectedTab = gBrowser.addTab("about:blank");
   let browser = gBrowser.getBrowserForTab(tab);
-  browser.addEventListener("load", function() {
-      executeSoon(function() {
-          if (run_test_onload(tab)) {
-            
-            run_test_setup(crD);
-            executeSoon(function() { browser.loadURI("about:crashes", null, null); });
-          }
-        });
-    }, true);
+  let onLoad = function () {
+    executeSoon(function() {
+      if (run_test_onload(tab)) {
+        
+        run_test_setup(crD);
+        executeSoon(function() { browser.loadURI("about:crashes", null, null); });
+      }
+    });
+  };
+  browser.addEventListener("load", onLoad, true);
+  registerCleanupFunction(function () {
+    browser.removeEventListener("load", onLoad, true);
+  });
   
   run_test_setup(crD);
   browser.loadURI("about:crashes", null, null);

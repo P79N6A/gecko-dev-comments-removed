@@ -52,9 +52,9 @@ function test() {
         tabToDetach.linkedBrowser.contentDocument != event.target)
       return;
 
-    if (!newWindow) {
-      gBrowser.removeEventListener("pageshow", onPageShow, false);
+    event.currentTarget.removeEventListener("pageshow", onPageShow, false);
 
+    if (!newWindow) {
       
       
       
@@ -65,12 +65,10 @@ function test() {
         
         newWindow = gBrowser.replaceTabWithWindow(tabToDetach);
         
-        function onLoad(event) {
-          newWindow.gBrowser
-                   .addEventListener("pageshow", onPageShow, false);
+        newWindow.addEventListener("load", function () {
           newWindow.removeEventListener("load", arguments.callee, false);
-        }
-        newWindow.addEventListener("load", onLoad, false);
+          newWindow.gBrowser.addEventListener("pageshow", onPageShow, false);
+        }, false);
       }, 0);
       return;
     }

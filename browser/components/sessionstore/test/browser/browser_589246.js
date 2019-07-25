@@ -206,7 +206,10 @@ function onStateRestored(aSubject, aTopic, aData) {
       if (shouldPinTab)
         newWin.gBrowser.pinTab(newWin.gBrowser.selectedTab);
 
-      newWin.addEventListener("unload", onWindowUnloaded, false);
+      newWin.addEventListener("unload", function () {
+        newWin.removeEventListener("unload", arguments.callee, false);
+        onWindowUnloaded();
+      }, false);
       
       
       
@@ -257,6 +260,8 @@ function onWindowUnloaded() {
     newWin.removeEventListener("load", arguments.callee, false);
 
     newWin.gBrowser.selectedBrowser.addEventListener("load", function () {
+      newWin.gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
+
       
       afterTestCallback(previousClosedWindowData, ss.getClosedWindowData());
       afterTestCleanup(newWin);

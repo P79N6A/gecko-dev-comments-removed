@@ -10,6 +10,8 @@ function test() {
     newWin.close();
   });
   newWin.addEventListener("load", function test_win_onLoad() {
+    newWin.removeEventListener("load", test_win_onLoad, false);
+
     
     newWin.gURLBar.parentNode.removeChild(newWin.gURLBar);
 
