@@ -41,11 +41,12 @@
 #include "nsIDOMHTMLCollection.h"
 
 class nsIContent;
+class nsWrapperCache;
 
 
 #define NS_IHTMLCOLLECTION_IID \
-{ 0x81e08958, 0x76e3, 0x4055, \
- { 0xa0, 0xf3, 0xb3, 0x6b, 0x85, 0xfe, 0xed, 0x73 } }
+{ 0xf38b43dc, 0x74d4, 0x4b11, \
+ { 0xa6, 0xc9, 0xf8, 0xf4, 0xb5, 0xd3, 0x84, 0xe3 } }
 
 
 
@@ -65,6 +66,7 @@ public:
 
 
   virtual nsISupports* GetNamedItem(const nsAString& aName,
+                                    nsWrapperCache** aCache,
                                     nsresult* aResult) = 0;
 };
 

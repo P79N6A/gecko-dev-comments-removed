@@ -270,7 +270,9 @@ public:
 
   
   virtual nsIContent* GetNodeAt(PRUint32 aIndex, nsresult* aResult);
-  virtual nsISupports* GetNamedItem(const nsAString& aName, nsresult* aResult);
+  virtual nsISupports* GetNamedItem(const nsAString& aName,
+                                    nsWrapperCache** aCache,
+                                    nsresult* aResult);
 
   
   NS_HIDDEN_(nsINode*) GetParentObject() { return mRootNode; }
