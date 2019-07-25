@@ -3371,16 +3371,16 @@ CSSParserImpl::ParsePseudoClassWithIdentArg(nsCSSSelector& aSelector,
     return eSelectorParsingStatus_Error; 
   }
 
+  nsCOMPtr<nsIAtom> atom = do_GetAtom(mToken.mIdent);
   
   if (aType == nsCSSPseudoClasses::ePseudoClass_mozLocaleDir) {
-    if (!mToken.mIdent.EqualsLiteral("ltr") &&
-        !mToken.mIdent.EqualsLiteral("rtl")) {
+    if (atom != nsGkAtoms::ltr && atom != nsGkAtoms::rtl) {
       return eSelectorParsingStatus_Error; 
     }
   }
 
   
-  aSelector.AddPseudoClass(aType, mToken.mIdent.get());
+  aSelector.AddPseudoClass(aType, atom);
 
   
   if (!ExpectSymbol(')', true)) {
