@@ -459,7 +459,7 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts, b
 
 #ifdef XP_MACOSX
   
-  const int kTimeoutMs = 1000;
+  const int kTimeoutMs = 10000;
 
   MachReceiveMessage child_message;
   ReceivePort parent_recv_port(mach_connection_name.c_str());
