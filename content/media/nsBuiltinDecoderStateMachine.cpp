@@ -918,10 +918,6 @@ nsresult nsBuiltinDecoderStateMachine::Run()
         PRInt64 seekTime = mSeekTime;
         mDecoder->StopProgressUpdates();
 
-        StopPlayback(AUDIO_SHUTDOWN);
-        StopDecodeThreads();
-        ResetPlayback();
-
         
         
         
@@ -932,6 +928,12 @@ nsresult nsBuiltinDecoderStateMachine::Run()
           NS_DispatchToMainThread(startEvent, NS_DISPATCH_SYNC);
         }
         if (mCurrentFrameTime != mSeekTime - mStartTime) {
+          
+          
+          
+          StopPlayback(AUDIO_SHUTDOWN);
+          StopDecodeThreads();
+          ResetPlayback();
           nsresult res;
           {
             MonitorAutoExit exitMon(mDecoder->GetMonitor());
