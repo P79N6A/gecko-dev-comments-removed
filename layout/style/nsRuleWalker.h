@@ -93,14 +93,6 @@ public:
     eLinksVisitedOrUnvisited
   };
 
-  void ResetForVisitedMatching() {
-    Reset();
-    mVisitedHandling = eRelevantLinkVisited;
-  }
-  VisitedHandlingType VisitedHandling() const { return mVisitedHandling; }
-  void SetHaveRelevantLink() { mHaveRelevantLink = PR_TRUE; }
-  PRBool HaveRelevantLink() const { return mHaveRelevantLink; }
-
 private:
   nsRuleNode* mCurrent; 
   nsRuleNode* mRoot; 
@@ -110,23 +102,10 @@ private:
                                         
                                         
 
-  
-  
-  
-  
-  
-  
-  
-  PRBool mHaveRelevantLink;
-
-  VisitedHandlingType mVisitedHandling;
-
 public:
   nsRuleWalker(nsRuleNode* aRoot)
     : mCurrent(aRoot)
     , mRoot(aRoot)
-    , mHaveRelevantLink(PR_FALSE)
-    , mVisitedHandling(eRelevantLinkUnvisited)
   {
     NS_ASSERTION(mCurrent, "Caller screwed up and gave us null node");
     MOZ_COUNT_CTOR(nsRuleWalker);
