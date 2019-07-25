@@ -39,6 +39,9 @@
 #include <winternl.h>
 
 #include <stdio.h>
+#include <string.h>
+
+#include <map>
 
 #ifdef XRE_WANT_DLL_BLOCKLIST
 #define XRE_SetupDllBlocklist SetupDllBlocklist
@@ -148,9 +151,67 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
 
 #undef DEBUG_very_verbose
 
+namespace {
+
 typedef NTSTATUS (NTAPI *LdrLoadDll_func) (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileName, PHANDLE handle);
 
 static LdrLoadDll_func stub_LdrLoadDll = 0;
+
+
+
+
+
+
+
+
+
+
+
+class ReentrancySentinel
+{
+public:
+  explicit ReentrancySentinel(const char* dllName)
+  {
+    DWORD currentThreadId = GetCurrentThreadId();
+    EnterCriticalSection(&sLock);
+    mPreviousDllName = (*sThreadMap)[currentThreadId];
+
+    
+    
+    mReentered = mPreviousDllName && !stricmp(mPreviousDllName, dllName);
+    (*sThreadMap)[currentThreadId] = dllName;
+    LeaveCriticalSection(&sLock);
+  }
+    
+  ~ReentrancySentinel()
+  {
+    DWORD currentThreadId = GetCurrentThreadId();
+    EnterCriticalSection(&sLock);
+    (*sThreadMap)[currentThreadId] = mPreviousDllName;
+    LeaveCriticalSection(&sLock);
+  }
+
+  bool BailOut() const
+  {
+    return mReentered;
+  };
+    
+  static void InitializeStatics()
+  {
+    InitializeCriticalSection(&sLock);
+    sThreadMap = new std::map<DWORD, const char*>;
+  }
+
+private:
+  static CRITICAL_SECTION sLock;
+  static std::map<DWORD, const char*>* sThreadMap;
+
+  const char* mPreviousDllName;
+  bool mReentered;
+};
+
+CRITICAL_SECTION ReentrancySentinel::sLock;
+std::map<DWORD, const char*>* ReentrancySentinel::sThreadMap;
 
 static NTSTATUS NTAPI
 patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileName, PHANDLE handle)
@@ -239,6 +300,11 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
 #endif
 
     if (info->maxVersion != ALL_VERSIONS) {
+      ReentrancySentinel sentinel(dllName);
+      if (sentinel.BailOut()) {
+        goto continue_loading;
+      }
+
       
       
       
@@ -307,10 +373,14 @@ continue_loading:
 
 WindowsDllInterceptor NtDllIntercept;
 
+} 
+
 void
 XRE_SetupDllBlocklist()
 {
   NtDllIntercept.Init("ntdll.dll");
+
+  ReentrancySentinel::InitializeStatics();
 
   bool ok = NtDllIntercept.AddHook("LdrLoadDll", reinterpret_cast<intptr_t>(patched_LdrLoadDll), (void**) &stub_LdrLoadDll);
 
