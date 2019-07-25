@@ -246,7 +246,7 @@ var BrowserApp = {
       WebAppRT.init(updated);
     } else {
       SearchEngines.init();
-      this.addBrowserContextMenuItems();
+      this.initContextMenu();
     }
 
     if (url == "about:empty")
@@ -350,7 +350,7 @@ var BrowserApp = {
     return "";
   },
 
-  addBrowserContextMenuItems: function ba_addBrowserContextMenuItems() {
+  initContextMenu: function ba_initContextMenu() {
     
     NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.openInNewTab"),
       NativeWindow.contextmenus.linkOpenableContext,
