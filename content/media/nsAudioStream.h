@@ -121,5 +121,8 @@ class nsAudioStream
 
   
   PRPackedBool mPaused;
+
+  
+  PRPackedBool mInError;
 };
 #endif
