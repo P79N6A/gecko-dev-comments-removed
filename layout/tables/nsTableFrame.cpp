@@ -1473,7 +1473,17 @@ nsTableFrame::ProcessRowInserted(nscoord aNewHeight)
  void
 nsTableFrame::MarkIntrinsicWidthsDirty()
 {
-  LayoutStrategy()->MarkIntrinsicWidthsDirty();
+  nsITableLayoutStrategy* tls = LayoutStrategy();
+  if (NS_UNLIKELY(!tls)) {
+    
+    
+    
+    
+    
+    
+    return;
+  }
+  tls->MarkIntrinsicWidthsDirty();
 
   
 
