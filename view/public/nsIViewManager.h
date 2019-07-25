@@ -46,11 +46,10 @@ class nsIWidget;
 struct nsRect;
 class nsRegion;
 class nsDeviceContext;
-class nsIViewObserver;
 
 #define NS_IVIEWMANAGER_IID \
-{ 0x144ef328, 0xbece, 0x43d6, \
-  { 0xac, 0xac, 0x1a, 0x90, 0x4b, 0x5c, 0xc1, 0x11 } }
+{ 0x1262a33f, 0xc19f, 0x4e5b, \
+  { 0x85, 0x00, 0xab, 0xf3, 0x7d, 0xcf, 0x30, 0x1d } }
 
 class nsIViewManager : public nsISupports
 {
@@ -261,12 +260,12 @@ public:
 
 
 
-  virtual void SetViewObserver(nsIViewObserver *aObserver) = 0;
+  virtual void SetPresShell(nsIPresShell *aPresShell) = 0;
 
   
 
 
-  virtual nsIViewObserver* GetViewObserver() = 0;
+  virtual nsIPresShell* GetPresShell() = 0;
 
   
 

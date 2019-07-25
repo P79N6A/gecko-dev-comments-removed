@@ -158,7 +158,7 @@ nsViewManager::~nsViewManager()
     gViewManagers = nsnull;
   }
 
-  mObserver = nsnull;
+  mPresShell = nsnull;
 }
 
 NS_IMPL_ISUPPORTS1(nsViewManager, nsIViewManager)
@@ -257,15 +257,15 @@ void nsViewManager::DoSetWindowDimensions(nscoord aWidth, nscoord aHeight)
   if (!oldDim.IsEqualEdges(newDim)) {
     
     mRootView->SetDimensions(newDim, true, false);
-    if (mObserver)
-      mObserver->ResizeReflow(mRootView, aWidth, aHeight);
+    if (mPresShell)
+      mPresShell->ResizeReflow(aWidth, aHeight);
   }
 }
 
 NS_IMETHODIMP nsViewManager::SetWindowDimensions(nscoord aWidth, nscoord aHeight)
 {
   if (mRootView) {
-    if (mRootView->IsEffectivelyVisible() && mObserver && mObserver->IsVisible()) {
+    if (mRootView->IsEffectivelyVisible() && mPresShell && mPresShell->IsVisible()) {
       if (mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
           mDelayedResize != nsSize(aWidth, aHeight)) {
         
@@ -292,9 +292,8 @@ NS_IMETHODIMP nsViewManager::FlushDelayedResize(bool aDoReflow)
     if (aDoReflow) {
       DoSetWindowDimensions(mDelayedResize.width, mDelayedResize.height);
       mDelayedResize.SizeTo(NSCOORD_NONE, NSCOORD_NONE);
-    } else if (mObserver) {
-      nsCOMPtr<nsIPresShell> shell = do_QueryInterface(mObserver);
-      nsPresContext* presContext = shell->GetPresContext();
+    } else if (mPresShell) {
+      nsPresContext* presContext = mPresShell->GetPresContext();
       if (presContext) {
         presContext->SetVisibleArea(nsRect(nsPoint(0, 0), mDelayedResize));
       }
@@ -410,9 +409,9 @@ void nsViewManager::RenderViews(nsView *aView, nsIWidget *aWidget,
   NS_ASSERTION(GetDisplayRootFor(aView) == aView,
                "Widgets that we paint must all be display roots");
 
-  if (mObserver) {
-    mObserver->Paint(aView, aWidget, aRegion, aIntRegion,
-                     aPaintDefaultBackground, aWillSendDidPaint);
+  if (mPresShell) {
+    mPresShell->Paint(aView, aWidget, aRegion, aIntRegion,
+                      aPaintDefaultBackground, aWillSendDidPaint);
     mozilla::StartupTimeline::RecordOnce(mozilla::StartupTimeline::FIRST_PAINT);
   }
 }
@@ -602,8 +601,8 @@ static bool
 ShouldIgnoreInvalidation(nsViewManager* aVM)
 {
   while (aVM) {
-    nsIViewObserver* vo = aVM->GetViewObserver();
-    if (!vo || vo->ShouldIgnoreInvalidation()) {
+    nsIPresShell* shell = aVM->GetPresShell();
+    if (!shell || shell->ShouldIgnoreInvalidation()) {
       return true;
     }
     nsView* view = aVM->GetRootViewImpl()->GetParent();
@@ -763,15 +762,15 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 
     case NS_DONESIZEMOVE:
       {
-        nsCOMPtr<nsIPresShell> shell = do_QueryInterface(mObserver);
-        if (shell) {
-          nsPresContext* presContext = shell->GetPresContext();
+        if (mPresShell) {
+          nsPresContext* presContext = mPresShell->GetPresContext();
           if (presContext) {
             nsEventStateManager::ClearGlobalActiveContent(nsnull);
           }
-    
-          mObserver->ClearMouseCapture(aView);
+
         }
+
+        nsIPresShell::ClearMouseCapture(nsnull);
       }
       break;
   
@@ -827,7 +826,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
                       : nsnull) {
             if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
                 vm->mRootView->IsEffectivelyVisible() &&
-                mObserver && mObserver->IsVisible()) {
+                mPresShell && mPresShell->IsVisible()) {
               vm->FlushDelayedResize(true);
 
               
@@ -855,8 +854,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 
             nsView* view = static_cast<nsView*>(aView);
             if (!transparentWindow) {
-              nsIViewObserver* observer = GetViewObserver();
-              if (observer) {
+              if (mPresShell) {
                 
                 
                 
@@ -950,12 +948,12 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 
     case NS_SYSCOLORCHANGED:
       {
-        
-        
-        
-        nsCOMPtr<nsIViewObserver> obs = GetViewObserver();
-        if (obs) {
-          obs->HandleEvent(aView->GetFrame(), aEvent, false, aStatus);
+        if (mPresShell) {
+          
+          
+          
+          nsCOMPtr<nsIPresShell> presShell = mPresShell;
+          presShell->HandleEvent(aView->GetFrame(), aEvent, false, aStatus);
         }
       }
       break; 
@@ -980,10 +978,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
         if (aEvent->message == NS_DEACTIVATE) {
           
           
-          nsIViewObserver* viewObserver = GetViewObserver();
-          if (viewObserver) {
-            viewObserver->ClearMouseCapture(nsnull);
-          }
+          nsIPresShell::ClearMouseCapture(nsnull);
         }
 
         
@@ -1016,9 +1011,9 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
           
           
           
-          nsCOMPtr<nsIViewObserver> obs = view->GetViewManager()->GetViewObserver();
-          if (obs) {
-            obs->HandleEvent(frame, aEvent, false, aStatus);
+          nsCOMPtr<nsIPresShell> shell = view->GetViewManager()->GetPresShell();
+          if (shell) {
+            shell->HandleEvent(frame, aEvent, false, aStatus);
           }
         }
     
@@ -1572,9 +1567,9 @@ nsViewManager::CallWillPaintOnObservers(bool aWillSendDidPaint)
     if (vm->RootViewManager() == this) {
       
       if (vm->mRootView && vm->mRootView->IsEffectivelyVisible()) {
-        nsCOMPtr<nsIViewObserver> obs = vm->GetViewObserver();
-        if (obs) {
-          obs->WillPaint(aWillSendDidPaint);
+        nsCOMPtr<nsIPresShell> shell = vm->GetPresShell();
+        if (shell) {
+          shell->WillPaint(aWillSendDidPaint);
           NS_ASSERTION(mUpdateBatchCnt == savedUpdateBatchCnt,
                        "Observer did not end view batch?");
         }
@@ -1594,9 +1589,9 @@ nsViewManager::CallDidPaintOnObservers()
     if (vm->RootViewManager() == this) {
       
       if (vm->mRootView && vm->mRootView->IsEffectivelyVisible()) {
-        nsCOMPtr<nsIViewObserver> obs = vm->GetViewObserver();
-        if (obs) {
-          obs->DidPaint();
+        nsCOMPtr<nsIPresShell> shell = vm->GetPresShell();
+        if (shell) {
+          shell->DidPaint();
         }
       }
     }
