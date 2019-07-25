@@ -22,7 +22,9 @@ let WebappsInstaller = {
 
   install: function(aData) {
 
-#ifdef XP_MACOSX
+#ifdef XP_WIN
+    let shell = new WinNativeApp(aData);
+#elifdef XP_MACOSX
     let shell = new MacNativeApp(aData);
 #else
     return false;
@@ -102,7 +104,333 @@ function NativeApp(aData) {
   this.profileFolder = Services.dirsvc.get("ProfD", Ci.nsIFile);
 }
 
-#ifdef XP_MACOSX
+#ifdef XP_WIN
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function WinNativeApp(aData) {
+  NativeApp.call(this, aData);
+  this._init();
+}
+
+WinNativeApp.prototype = {
+  
+
+
+
+  install: function() {
+    
+    this._removeInstallation();
+
+    try {
+      this._createDirectoryStructure();
+      this._copyPrebuiltFiles();
+      this._createConfigFiles();
+      this._createShortcutFiles();
+      this._writeSystemKeys();
+    } catch (ex) {
+      this._removeInstallation();
+      throw(ex);
+    }
+
+    getIconForApp(this, function() {});
+  },
+
+  
+
+
+
+  _init: function() {
+    let filenameRE = new RegExp("[<>:\"/\\\\|\\?\\*]", "gi");
+
+    this.appNameAsFilename = this.appNameAsFilename.replace(filenameRE, "");
+    if (this.appNameAsFilename == "") {
+      this.appNameAsFilename = "webapp";
+    }
+
+    
+    
+    
+    
+    this.installDir = Services.dirsvc.get("AppData", Ci.nsIFile);
+    this.installDir.append(this.launchURI.host + ";" + 
+                           this.launchURI.scheme + ";" +
+                           this.launchURI.port);
+
+    this.uninstallDir = this.installDir.clone();
+    this.uninstallDir.append("uninstall");
+
+    this.uninstallerFile = this.installDir.clone();
+    this.uninstallerFile.append("webapp-uninstaller.exe");
+
+    this.iconFile = this.installDir.clone();
+    this.iconFile.append("chrome");
+    this.iconFile.append("icons");
+    this.iconFile.append("default");
+    this.iconFile.append("topwindow.ico");
+
+    this.processFolder = Services.dirsvc.get("CurProcD", Ci.nsIFile);
+
+    this.desktopShortcut = Services.dirsvc.get("Desk", Ci.nsILocalFile);
+    this.desktopShortcut.append(this.appNameAsFilename + ".lnk");
+    this.desktopShortcut.followLinks = false;
+
+    this.startMenuShortcut = Services.dirsvc.get("Progs", Ci.nsILocalFile);
+    this.startMenuShortcut.append(this.appNameAsFilename + ".lnk");
+    this.startMenuShortcut.followLinks = false;
+
+    this.uninstallSubkeyStr = this.launchURI.scheme + "://" +
+                              this.launchURI.host + ":" +
+                              this.launchURI.port;
+  },
+
+  
+
+
+  _removeInstallation : function() {
+    let uninstallKey;
+    try {
+      uninstallKey = Cc["@mozilla.org/windows-registry-key;1"]
+                     .createInstance(Ci.nsIWindowsRegKey);
+      uninstallKey.open(uninstallKey.ROOT_KEY_CURRENT_USER,
+                        "SOFTWARE\\Microsoft\\Windows\\" +
+                        "CurrentVersion\\Uninstall",
+                        uninstallKey.ACCESS_WRITE);
+      if(uninstallKey.hasChild(this.uninstallSubkeyStr)) {
+        uninstallKey.removeChild(this.uninstallSubkeyStr);
+      }
+    } finally {
+      if(uninstallKey)
+        uninstallKey.close();
+    }
+
+    try {
+      if(this.installDir.exists()) {
+        let dir = this.installDir.QueryInterface(Ci.nsILocalFile);
+        
+        
+        
+        dir.followLinks = false;
+        dir.remove(true);
+      }
+    } catch(ex) {
+    }
+
+    try {
+      if(this.desktopShortcut && this.desktopShortcut.exists()) {
+        this.desktopShortcut.remove(false);
+      }
+
+      if(this.startMenuShortcut && this.startMenuShortcut.exists()) {
+        this.startMenuShortcut.remove(false);
+      }
+    } catch(ex) {
+    }
+  },
+
+  
+
+
+  _createDirectoryStructure: function() {
+    this.installDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
+    this.uninstallDir.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
+  },
+
+  
+
+
+  _copyPrebuiltFiles: function() {
+    let webapprt = this.processFolder.clone();
+    webapprt.append("webapprt-stub.exe");
+    webapprt.copyTo(this.installDir, this.appNameAsFilename + ".exe");
+
+    let uninstaller = this.processFolder.clone();
+    uninstaller.append("webapp-uninstaller.exe");
+    uninstaller.copyTo(this.uninstallDir, this.uninstallerFile.leafName);
+  },
+
+  
+
+
+  _createConfigFiles: function() {
+    
+    let json = {
+      "registryDir": this.profileFolder.path,
+      "app": this.app
+    };
+
+    let configJson = this.installDir.clone();
+    configJson.append("webapp.json");
+    writeToFile(configJson, JSON.stringify(json), function() {});
+
+    
+    let webappINI = this.installDir.clone().QueryInterface(Ci.nsILocalFile);
+    webappINI.append("webapp.ini");
+
+    let factory = Cc["@mozilla.org/xpcom/ini-processor-factory;1"]
+                    .getService(Ci.nsIINIParserFactory);
+
+    let writer = factory.createINIParser(webappINI).QueryInterface(Ci.nsIINIParserWriter);
+    writer.setString("Webapp", "Name", this.appName);
+    writer.setString("Webapp", "Profile", this.installDir.leafName);
+    writer.setString("Webapp", "Executable", this.appNameAsFilename + ".exe");
+    writer.setString("WebappRT", "InstallDir", this.processFolder.path);
+    writer.setString("Branding", "BrandFullName", this.appName);
+    writer.setString("Branding", "BrandShortName", this.appName);
+    writer.writeFile();
+
+    
+    let shortcutLogsINI = this.uninstallDir.clone().QueryInterface(Ci.nsILocalFile);
+    shortcutLogsINI.append("shortcut_logs.ini");
+
+    writer = factory.createINIParser(shortcutLogsINI).QueryInterface(Ci.nsIINIParserWriter);
+    writer.setString("STARTMENU", "Shortcut", this.appNameAsFilename + ".lnk");
+    writer.setString("DESKTOP", "Shortcut", this.appNameAsFilename + ".lnk");
+    writer.setString("TASKBAR", "Migrated", "true");
+
+    writer = null;
+    factory = null;
+
+    
+    let uninstallContent = 
+      "File: \\webapp.ini\r\n" +
+      "File: \\webapp.json\r\n" +
+      "File: \\webapprt.old\r\n" +
+      "File: \\chrome\\icons\\default\\topwindow.ico";
+    let uninstallLog = this.uninstallDir.clone();
+    uninstallLog.append("uninstall.log");
+    writeToFile(uninstallLog, uninstallContent, function() {});
+  },
+
+  
+
+
+
+  _writeSystemKeys: function() {
+    let parentKey;
+    let uninstallKey;
+    let subKey;
+
+    try {
+      parentKey = Cc["@mozilla.org/windows-registry-key;1"]
+                  .createInstance(Ci.nsIWindowsRegKey);
+      parentKey.open(parentKey.ROOT_KEY_CURRENT_USER,
+                     "SOFTWARE\\Microsoft\\Windows\\CurrentVersion",
+                     parentKey.ACCESS_WRITE);
+      uninstallKey = parentKey.createChild("Uninstall", parentKey.ACCESS_WRITE)
+      subKey = uninstallKey.createChild(this.uninstallSubkeyStr, uninstallKey.ACCESS_WRITE);
+
+      subKey.writeStringValue("DisplayName", this.appName);
+
+      subKey.writeStringValue("UninstallString", this.uninstallerFile.path);
+      subKey.writeStringValue("InstallLocation", this.installDir.path);
+      subKey.writeStringValue("AppFilename", this.appNameAsFilename);
+
+      if(this.iconFile) {
+        subKey.writeStringValue("DisplayIcon", this.iconFile.path);
+      }
+
+      subKey.writeIntValue("NoModify", 1);
+      subKey.writeIntValue("NoRepair", 1);
+    } catch(ex) {
+      throw(ex);
+    } finally {
+      if(subKey) subKey.close();
+      if(uninstallKey) uninstallKey.close();
+      if(parentKey) parentKey.close();
+    }
+  },
+
+  
+
+
+
+  _createShortcutFiles: function() {
+    let shortcut = this.installDir.clone().QueryInterface(Ci.nsILocalFileWin);
+    shortcut.append(this.appNameAsFilename + ".lnk");
+
+    let target = this.installDir.clone();
+    target.append(this.appNameAsFilename + ".exe");
+
+    
+
+
+    shortcut.setShortcut(target, this.installDir.clone(), null,
+                         this.shortDescription, this.iconFile, 0);
+
+    let desktop = Services.dirsvc.get("Desk", Ci.nsILocalFile);
+    let startMenu = Services.dirsvc.get("Progs", Ci.nsILocalFile);
+
+    shortcut.copyTo(desktop, this.appNameAsFilename + ".lnk");
+    shortcut.copyTo(startMenu, this.appNameAsFilename + ".lnk");
+  },
+
+  
+
+
+
+
+
+  useTmpForIcon: false,
+
+  
+
+
+
+
+
+
+
+
+
+  processIcon: function(aMimeType, aImageStream, aCallback) {
+    let iconStream;
+    try {
+      let imgTools = Cc["@mozilla.org/image/tools;1"]
+                       .createInstance(Ci.imgITools);
+      let imgContainer = { value: null };
+
+      imgTools.decodeImageData(aImageStream, aMimeType, imgContainer);
+      iconStream = imgTools.encodeImage(imgContainer.value,
+                                        "image/vnd.microsoft.icon",
+                                        "format=bmp;bpp=32");
+    } catch (e) {
+      throw("processIcon - Failure converting icon (" + e + ")");
+    }
+
+    this.iconFile.parent.create(Ci.nsIFile.DIRECTORY_TYPE, 0755);
+    let outputStream = FileUtils.openSafeFileOutputStream(this.iconFile);
+    NetUtil.asyncCopy(iconStream, outputStream);
+  }
+}
+
+#elifdef XP_MACOSX
 
 function MacNativeApp(aData) {
   NativeApp.call(this, aData);
