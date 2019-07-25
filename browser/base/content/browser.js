@@ -819,8 +819,7 @@ const gFormSubmitObserver = {
       return;
     }
 
-    
-    this.panel.firstChild.textContent = element.validationMessage.substring(0, 256);
+    this.panel.firstChild.textContent = element.validationMessage;
 
     element.focus();
 
@@ -3985,6 +3984,27 @@ var XULBrowserWindow = {
     link = link.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
                         encodeURIComponent);
     gURLBar.setOverLink(link);
+  },
+  
+  
+  onBeforeLinkTraversal: function(originalTarget, linkURI, linkNode, isAppTab) {
+    
+    
+    if (originalTarget != "" || !isAppTab)
+      return originalTarget;
+
+    let docURI = linkNode.ownerDocument.documentURIObject;
+    try {
+      let docURIDomain = Services.eTLD.getBaseDomain(docURI, 0);
+      let linkURIDomain = Services.eTLD.getBaseDomain(linkURI, 0);
+      
+      
+      if (docURIDomain != linkURIDomain)
+        return "_blank";
+    } catch(e) {
+      
+    }
+    return originalTarget;
   },
 
   onLinkIconAvailable: function (aIconURL) {
@@ -7487,6 +7507,7 @@ let gPrivateBrowsingUI = {
     
     document.getElementById("Tools:Sanitize").setAttribute("disabled", "true");
 
+    let docElement = document.documentElement;
     if (this._privateBrowsingService.autoStarted) {
       
       document.getElementById("privateBrowsingItem")
@@ -7497,15 +7518,16 @@ let gPrivateBrowsingUI = {
 #endif
       document.getElementById("Tools:PrivateBrowsing")
               .setAttribute("disabled", "true");
+      if (window.location.href == getBrowserURL())
+        docElement.setAttribute("privatebrowsingmode", "permanent");
     }
     else if (window.location.href == getBrowserURL()) {
       
-      let docElement = document.documentElement;
       docElement.setAttribute("title",
         docElement.getAttribute("title_privatebrowsing"));
       docElement.setAttribute("titlemodifier",
         docElement.getAttribute("titlemodifier_privatebrowsing"));
-      docElement.setAttribute("browsingmode", "private");
+      docElement.setAttribute("privatebrowsingmode", "temporary");
       gBrowser.updateTitlebar();
     }
 
@@ -7552,7 +7574,7 @@ let gPrivateBrowsingUI = {
         docElement.getAttribute("title_normal"));
       docElement.setAttribute("titlemodifier",
         docElement.getAttribute("titlemodifier_normal"));
-      docElement.setAttribute("browsingmode", "normal");
+      docElement.removeAttribute("privatebrowsingmode");
     }
 
     
