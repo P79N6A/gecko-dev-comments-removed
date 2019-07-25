@@ -2451,7 +2451,7 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
 #endif
 
   nsRefPtr<nsFrameSelection> fc = const_cast<nsFrameSelection*>(frameselection);
-  if (me->clickCount >1 )
+  if (me->clickCount > 1)
   {
     
     
@@ -2465,6 +2465,14 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
 
   if (!offsets.content)
     return NS_ERROR_FAILURE;
+
+  
+  
+  if (Preferences::GetBool("browser.ignoreNativeFrameTextSelection", false)) {
+    return fc->HandleClick(offsets.content, offsets.StartOffset(),
+                           offsets.EndOffset(), false, false,
+                           offsets.associateWithNext);
+  }
 
   
   nsCOMPtr<nsIContent>parentContent;

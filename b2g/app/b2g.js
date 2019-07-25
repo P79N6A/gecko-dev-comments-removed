@@ -53,6 +53,9 @@ pref("browser.viewport.scaleRatio", -1);
 pref("ui.scrollbarsCanOverlapContent", 1);
 
 
+pref("browser.ignoreNativeFrameTextSelection", true);
+
+
 pref("browser.cache.disk.enable", false);
 pref("browser.cache.disk.capacity", 0); 
 pref("browser.cache.disk.smart_size.enabled", false);
