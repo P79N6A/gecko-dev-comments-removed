@@ -230,6 +230,12 @@ GetVersionFile(nsIFile *dir, nsCOMPtr<nsILocalFile> &result)
   return GetFile(dir, NS_LITERAL_CSTRING("update.version"), result);
 }
 
+static PRBool
+GetChannelChangeFile(nsIFile *dir, nsCOMPtr<nsILocalFile> &result)
+{
+  return GetFile(dir, NS_LITERAL_CSTRING("channelchange"), result);
+}
+
 
 
 static PRBool
@@ -513,11 +519,13 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
   nsCOMPtr<nsILocalFile> statusFile;
   if (GetStatusFile(updatesDir, statusFile) && IsPending(statusFile)) {
     nsCOMPtr<nsILocalFile> versionFile;
+    nsCOMPtr<nsILocalFile> channelChangeFile;
     
     
     
-    if (!GetVersionFile(updatesDir, versionFile) ||
-        IsOlderVersion(versionFile, appVersion)) {
+    if (!GetChannelChangeFile(updatesDir, channelChangeFile) &&
+        (!GetVersionFile(updatesDir, versionFile) ||
+         IsOlderVersion(versionFile, appVersion))) {
       updatesDir->Remove(PR_TRUE);
     } else {
       ApplyUpdate(greDir, updatesDir, statusFile, appDir, argc, argv);
