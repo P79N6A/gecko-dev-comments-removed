@@ -100,18 +100,6 @@ public:
 
 
 
-static PRBool IsViewVisible(nsView *aView)
-{
-  if (!aView->IsEffectivelyVisible())
-    return PR_FALSE;
-
-  
-  
-  
-  nsIViewObserver* vo = aView->GetViewManager()->GetViewObserver();
-  return vo && vo->IsVisible();
-}
-
 void
 nsViewManager::PostInvalidateEvent()
 {
@@ -324,7 +312,7 @@ void nsViewManager::DoSetWindowDimensions(nscoord aWidth, nscoord aHeight)
 NS_IMETHODIMP nsViewManager::SetWindowDimensions(nscoord aWidth, nscoord aHeight)
 {
   if (mRootView) {
-    if (IsViewVisible(mRootView)) {
+    if (mRootView->IsEffectivelyVisible()) {
       mDelayedResize.SizeTo(NSCOORD_NONE, NSCOORD_NONE);
       DoSetWindowDimensions(aWidth, aHeight);
     } else {
@@ -879,7 +867,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
                       ? vm->mRootView->GetParent()->GetViewManager()
                       : nsnull) {
             if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
-                IsViewVisible(vm->mRootView)) {
+                vm->mRootView->IsEffectivelyVisible()) {
               vm->FlushDelayedResize(PR_TRUE);
 
               
