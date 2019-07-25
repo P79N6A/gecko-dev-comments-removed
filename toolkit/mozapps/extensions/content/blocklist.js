@@ -35,12 +35,23 @@
 #
 # ***** END LICENSE BLOCK *****
 
+Components.utils.import("resource://gre/modules/Services.jsm");
+
 var gArgs;
 
 function init() {
   var hasHardBlocks = false;
   var hasSoftBlocks = false;
   gArgs = window.arguments[0].wrappedJSObject;
+
+  
+  
+  let bundle = Services.strings.
+              createBundle("chrome://mozapps/locale/update/updates.properties");
+  let cancelButton = document.documentElement.getButton("cancel");
+  cancelButton.setAttribute("label", bundle.GetStringFromName("restartLaterButton"));
+  cancelButton.setAttribute("accesskey",
+                            bundle.GetStringFromName("restartLaterButton.accesskey"));
 
   var richlist = document.getElementById("addonList");
   var list = gArgs.list;
@@ -75,8 +86,8 @@ function init() {
   link.setAttribute("href", url);
 }
 
-function accept() {
-  gArgs.restart = true;
+function finish(shouldRestartNow) {
+  gArgs.restart = shouldRestartNow;
   var list = gArgs.list;
   var items = document.getElementById("addonList").childNodes;
   for (let i = 0; i < list.length; i++) {
