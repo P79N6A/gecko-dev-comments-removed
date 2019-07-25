@@ -2605,23 +2605,26 @@ static JSFunctionSpec object_static_methods[] = {
 JSBool
 js_Object(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *rval)
 {
-    if (argc == 0) {
+    if (argc > 0) {
         
-        rval->setNull();
-    } else {
-        
-        if (!js_ValueToObjectOrNull(cx, argv[0], rval))
+        Value objv;
+        if (!js_ValueToObjectOrNull(cx, argv[0], &objv))
             return JS_FALSE;
-    }
-    if (rval->isNull()) {
-        JS_ASSERT(!argc || argv[0].isNull() || argv[0].isUndefined());
-        if (JS_IsConstructing(cx))
+        if (!objv.isNull()) {
+            *rval = objv;
             return JS_TRUE;
-        JSObject *nullobj = NewObject(cx, &js_ObjectClass, NULL, NULL);
-        if (!nullobj)
-            return JS_FALSE;
-        rval->setNonFunObj(*nullobj);
+        }
     }
+
+    JS_ASSERT(!argc || argv[0].isNull() || argv[0].isUndefined());
+    if (cx->isConstructing())
+        return JS_TRUE;
+
+    JSObject *nullobj = NewObject(cx, &js_ObjectClass, NULL, NULL);
+    if (!nullobj)
+        return JS_FALSE;
+
+    rval->setNonFunObj(*nullobj);
     return JS_TRUE;
 }
 
@@ -3843,7 +3846,7 @@ js_FreeSlot(JSContext *cx, JSObject *obj, uint32 slot)
 
 
 
-#define JSVAL_INT_MAX_STRING "1073741823"
+#define JSBOXEDWORD_INT_MAX_STRING "1073741823"
 
 
 
@@ -3870,7 +3873,7 @@ js_CheckForStringIndex(jsid id)
         return id;
 
     size_t n = str->flatLength() - negative;
-    if (n > sizeof(JSVAL_INT_MAX_STRING) - 1)
+    if (n > sizeof(JSBOXEDWORD_INT_MAX_STRING) - 1)
         return id;
 
     const jschar *cp = s;
@@ -3896,8 +3899,8 @@ js_CheckForStringIndex(jsid id)
     if (cp != end || (negative && index == 0))
         return id;
 
-    if (oldIndex < JSVAL_INT_MAX / 10 ||
-        (oldIndex == JSVAL_INT_MAX / 10 && c <= (JSVAL_INT_MAX % 10))) {
+    if (oldIndex < JSBOXEDWORD_INT_MAX / 10 ||
+        (oldIndex == JSBOXEDWORD_INT_MAX / 10 && c <= (JSBOXEDWORD_INT_MAX % 10))) {
         if (negative)
             index = 0 - index;
         id = INT_TO_JSID((jsint)index);
