@@ -45,6 +45,7 @@
 #include "SharedMemorySysV.h"
 
 #include "nsAutoPtr.h"
+#include "mozilla/unused.h"
 
 
 namespace mozilla {
@@ -356,7 +357,10 @@ Shmem::AssertInvariants() const
   
   char checkMappingFront = *reinterpret_cast<char*>(mData);
   char checkMappingBack = *(reinterpret_cast<char*>(mData) + mSize - 1);
-  checkMappingFront = checkMappingBack; 
+
+  
+  unused << checkMappingFront;
+  unused << checkMappingBack;
 }
 
 void
