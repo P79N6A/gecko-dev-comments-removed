@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories.android;
 
 import java.util.ArrayList;
@@ -119,8 +85,12 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
   protected abstract Record retrieveDuringFetch(Cursor cur) throws NoGuidForIdException, NullCursorException, ParentNotFoundException;
 
   
-  protected boolean checkRecordType(Record record) {
-    return true;
+
+
+
+
+  protected boolean shouldIgnore(Record record) {
+    return false;
   }
 
   
@@ -393,8 +363,8 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
         
         
         
-        if (!checkRecordType(record)) {
-          Logger.debug(LOG_TAG, "Ignoring record " + record.guid + " due to unknown record type.");
+        if (shouldIgnore(record)) {
+          Logger.debug(LOG_TAG, "Ignoring record " + record.guid);
 
           
           
