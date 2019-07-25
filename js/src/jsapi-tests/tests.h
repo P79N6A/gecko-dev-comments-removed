@@ -286,7 +286,10 @@ protected:
         if (!global)
             return NULL;
 
-        JSAutoEnterCompartment enter(cx, global);
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, global))
+            return NULL;
+
         
 
         if (!JS_InitStandardClasses(cx, global))

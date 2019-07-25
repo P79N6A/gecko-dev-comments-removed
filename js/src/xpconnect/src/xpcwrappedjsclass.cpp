@@ -247,9 +247,9 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
     JSBool success = JS_FALSE;
     jsid funid;
     jsval fun;
-    JSAutoCrossCompartmentCall accc;
 
-    if(!accc.enter(cx, jsobj))
+    JSAutoEnterCompartment ac;
+    if(!ac.enter(cx, jsobj))
         return nsnull;
 
     
@@ -1311,7 +1311,9 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
 
     obj = thisObj = wrapper->GetJSObject();
 
-    JSAutoEnterCompartment autoCompartment(ccx, obj);
+    JSAutoEnterCompartment ac;
+    if(!ac.enter(ccx, obj))
+        goto pre_call_clean_up;
 
     
     paramCount = info->num_args;
