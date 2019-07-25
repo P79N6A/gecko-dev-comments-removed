@@ -253,6 +253,14 @@ Installer.prototype = {
   onInstallEnded: function(aInstall) {
     aInstall.removeListener(this);
     this.installed.push(aInstall);
+
+    
+    if (aInstall.addon.type == "theme" &&
+        aInstall.addon.userDisabled == true &&
+        aInstall.addon.appDisabled == false) {
+      aInstall.addon.userDisabled = false;
+    }
+
     this.checkAllInstalled();
   }
 };
