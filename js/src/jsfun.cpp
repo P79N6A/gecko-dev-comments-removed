@@ -647,10 +647,6 @@ args_enumerate(JSContext *cx, JSObject *obj)
         JSProperty *prop;
         if (!js_LookupProperty(cx, obj, id, &pobj, &prop))
             return false;
-
-        
-        if (prop)
-            pobj->dropProperty(cx, prop);
     }
     return true;
 }
@@ -776,26 +772,18 @@ strictargs_enumerate(JSContext *cx, JSObject *obj)
     
     if (!js_LookupProperty(cx, obj, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom), &pobj, &prop))
         return false;
-    if (prop)
-        pobj->dropProperty(cx, prop);
 
     
     if (!js_LookupProperty(cx, obj, ATOM_TO_JSID(cx->runtime->atomState.calleeAtom), &pobj, &prop))
         return false;
-    if (prop)
-        pobj->dropProperty(cx, prop);
 
     
     if (!js_LookupProperty(cx, obj, ATOM_TO_JSID(cx->runtime->atomState.callerAtom), &pobj, &prop))
         return false;
-    if (prop)
-        pobj->dropProperty(cx, prop);
 
     for (uint32 i = 0, argc = obj->getArgsInitialLength(); i < argc; i++) {
         if (!js_LookupProperty(cx, obj, INT_TO_JSID(i), &pobj, &prop))
             return false;
-        if (prop)
-            pobj->dropProperty(cx, prop);
     }
 
     return true;
@@ -2304,7 +2292,7 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
 
 
 
-    JSObject *aobj = &vp[3].toObject();
+    JSObject *aobj = vp[3].toObject().wrappedObject(cx);
     jsuint length;
     if (aobj->isArray()) {
         length = aobj->getArrayLength();
@@ -2496,7 +2484,7 @@ fun_bind(JSContext *cx, uintN argc, Value *vp)
         return false;
 
     
-    if (!target->isCallable()) {
+    if (!target->wrappedObject(cx)->isCallable()) {
         if (JSString *str = js_ValueToString(cx, vp[1])) {
             if (const char *bytes = js_GetStringBytes(cx, str)) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,

@@ -300,7 +300,6 @@ typedef struct JSDebugHooks {
 
 
 
-
 typedef JSBool
 (* JSLookupPropOp)(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
                    JSProperty **propp);

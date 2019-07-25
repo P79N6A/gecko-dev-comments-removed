@@ -655,147 +655,6 @@ js_ShareWaitingTitles(JSContext *cx)
         JS_NOTIFY_ALL_CONDVAR(cx->runtime->titleSharingDone);
 }
 
-
-JS_FRIEND_API(jsval)
-js_GetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot)
-{
-    jsval v;
-#ifndef NSPR_LOCK
-    JSThinLock *tl;
-    jsword me;
-#endif
-
-    OBJ_CHECK_SLOT(obj, slot);
-
-    
-
-
-
-    JS_ASSERT(obj->title.ownercx != cx);
-    JS_ASSERT(obj->containsSlot(slot));
-
-    
-
-
-
-
-
-    if (CX_THREAD_IS_RUNNING_GC(cx) ||
-        !obj->isExtensible() ||
-        (obj->title.ownercx && ClaimTitle(&obj->title, cx))) {
-        return Jsvalify(obj->getSlot(slot));
-    }
-
-#ifndef NSPR_LOCK
-    tl = &obj->title.lock;
-    me = CX_THINLOCK_ID(cx);
-    JS_ASSERT(CURRENT_THREAD_IS_ME(me));
-    if (NativeCompareAndSwap(&tl->owner, 0, me)) {
-        
-
-
-
-
-
-        v = Jsvalify(obj->getSlot(slot));
-        if (!NativeCompareAndSwap(&tl->owner, me, 0)) {
-            
-            JS_ASSERT(obj->title.ownercx != cx);
-            LOGIT(obj->title, '1');
-            obj->title.u.count = 1;
-            js_UnlockObj(cx, obj);
-        }
-        return v;
-    }
-    if (Thin_RemoveWait(ReadWord(tl->owner)) == me)
-        return Jsvalify(obj->getSlot(slot));
-#endif
-
-    js_LockObj(cx, obj);
-    v = Jsvalify(obj->getSlot(slot));
-
-    
-
-
-
-
-
-
-
-
-    if (obj->title.ownercx != cx)
-        js_UnlockTitle(cx, &obj->title);
-    return v;
-}
-
-void
-js_SetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot, jsval v)
-{
-#ifndef NSPR_LOCK
-    JSThinLock *tl;
-    jsword me;
-#endif
-
-    OBJ_CHECK_SLOT(obj, slot);
-
-    
-    if (JSVAL_IS_STRING(v) &&
-        !js_MakeStringImmutable(cx, JSVAL_TO_STRING(v))) {
-        
-        v = JSVAL_NULL;
-    }
-
-    
-
-
-
-    JS_ASSERT(obj->title.ownercx != cx);
-    JS_ASSERT(obj->containsSlot(slot));
-
-    
-
-
-
-
-
-    if (CX_THREAD_IS_RUNNING_GC(cx) ||
-        !obj->isExtensible() ||
-        (obj->title.ownercx && ClaimTitle(&obj->title, cx))) {
-        obj->lockedSetSlot(slot, Valueify(v));
-        return;
-    }
-
-#ifndef NSPR_LOCK
-    tl = &obj->title.lock;
-    me = CX_THINLOCK_ID(cx);
-    JS_ASSERT(CURRENT_THREAD_IS_ME(me));
-    if (NativeCompareAndSwap(&tl->owner, 0, me)) {
-        obj->lockedSetSlot(slot, Valueify(v));
-        if (!NativeCompareAndSwap(&tl->owner, me, 0)) {
-            
-            JS_ASSERT(obj->title.ownercx != cx);
-            LOGIT(obj->title, '1');
-            obj->title.u.count = 1;
-            js_UnlockObj(cx, obj);
-        }
-        return;
-    }
-    if (Thin_RemoveWait(ReadWord(tl->owner)) == me) {
-        obj->lockedSetSlot(slot, Valueify(v));
-        return;
-    }
-#endif
-
-    js_LockObj(cx, obj);
-    obj->lockedSetSlot(slot, Valueify(v));
-
-    
-
-
-    if (obj->title.ownercx != cx)
-        js_UnlockTitle(cx, &obj->title);
-}
-
 #ifndef NSPR_LOCK
 
 static JSFatLock *
@@ -1232,34 +1091,6 @@ js_UnlockTitle(JSContext *cx, JSTitle *title)
 }
 
 void
-js_LockObj(JSContext *cx, JSObject *obj)
-{
-    JS_ASSERT(obj->isNative());
-
-    
-
-
-
-
-    if (CX_THREAD_IS_RUNNING_GC(cx))
-        return;
-
-    if (!obj->isExtensible() && !cx->thread->lockedSealedTitle) {
-        cx->thread->lockedSealedTitle = &obj->title;
-        return;
-    }
-
-    js_LockTitle(cx, &obj->title);
-}
-
-void
-js_UnlockObj(JSContext *cx, JSObject *obj)
-{
-    JS_ASSERT(obj->isNative());
-    js_UnlockTitle(cx, &obj->title);
-}
-
-void
 js_InitTitle(JSContext *cx, JSTitle *title)
 {
 #ifdef JS_THREADSAFE
@@ -1295,12 +1126,6 @@ JSBool
 js_IsRuntimeLocked(JSRuntime *rt)
 {
     return js_CurrentThreadId() == rt->rtLockOwner;
-}
-
-JSBool
-js_IsObjLocked(JSContext *cx, JSObject *obj)
-{
-    return js_IsTitleLocked(cx, &obj->title);
 }
 
 JSBool

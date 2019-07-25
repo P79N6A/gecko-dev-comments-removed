@@ -200,7 +200,6 @@ struct JSObjectMap {
 
 
 
-
 extern JS_FRIEND_API(JSBool)
 js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
                   JSProperty **propp);
@@ -355,10 +354,6 @@ struct JSObject : js::gc::Cell {
 
     uint32      flags;                      
     uint32      objShape;                   
-
-#ifdef JS_THREADSAFE
-    JSTitle     title;
-#endif
 
     
     js::EmptyShape **emptyShapes;
@@ -612,9 +607,21 @@ struct JSObject : js::gc::Cell {
         return slots[slot];
     }
 
+    js::Value &nativeGetSlotRef(uintN slot) {
+        JS_ASSERT(isNative());
+        JS_ASSERT(containsSlot(slot));
+        return getSlotRef(slot);
+    }
+
     const js::Value &getSlot(uintN slot) const {
         JS_ASSERT(slot < capacity);
         return slots[slot];
+    }
+
+    const js::Value &nativeGetSlot(uintN slot) const {
+        JS_ASSERT(isNative());
+        JS_ASSERT(containsSlot(slot));
+        return getSlot(slot);
     }
 
     void setSlot(uintN slot, const js::Value &value) {
@@ -622,16 +629,11 @@ struct JSObject : js::gc::Cell {
         slots[slot] = value;
     }
 
-    inline const js::Value &lockedGetSlot(uintN slot) const;
-    inline void lockedSetSlot(uintN slot, const js::Value &value);
-
-    
-
-
-
-
-    inline js::Value getSlotMT(JSContext *cx, uintN slot);
-    inline void setSlotMT(JSContext *cx, uintN slot, const js::Value &value);
+    void nativeSetSlot(uintN slot, const js::Value &value) {
+        JS_ASSERT(isNative());
+        JS_ASSERT(containsSlot(slot));
+        return setSlot(slot, value);
+    }
 
     inline js::Value getReservedSlot(uintN index) const;
 
@@ -1097,6 +1099,8 @@ struct JSObject : js::gc::Cell {
         return (op ? op : js_TypeOf)(cx, this);
     }
 
+    JSObject *wrappedObject(JSContext *cx) const;
+
     
     JSObject *thisObject(JSContext *cx) {
         JSObjectOp op = getOps()->thisObject;
@@ -1104,8 +1108,6 @@ struct JSObject : js::gc::Cell {
     }
 
     static bool thisObject(JSContext *cx, const js::Value &v, js::Value *vp);
-
-    inline void dropProperty(JSContext *cx, JSProperty *prop);
 
     inline JSCompartment *getCompartment() const;
 
@@ -1174,8 +1176,6 @@ struct JSObject_Slots12 : JSObject { js::Value fslots[12]; };
 struct JSObject_Slots16 : JSObject { js::Value fslots[16]; };
 
 #define JSSLOT_FREE(clasp)  JSCLASS_RESERVED_SLOTS(clasp)
-
-#define OBJ_CHECK_SLOT(obj,slot) JS_ASSERT((obj)->containsSlot(slot))
 
 #ifdef JS_THREADSAFE
 
@@ -1470,8 +1470,6 @@ const uintN JSDNP_SET_METHOD   = 4;
 
 
 const uintN JSDNP_UNQUALIFIED  = 8; 
-
-
 
 
 
