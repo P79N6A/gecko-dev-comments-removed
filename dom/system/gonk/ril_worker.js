@@ -2469,6 +2469,12 @@ RIL[UNSOLICITED_OEM_HOOK_RAW] = null;
 RIL[UNSOLICITED_RINGBACK_TONE] = null;
 RIL[UNSOLICITED_RESEND_INCALL_MUTE] = null;
 RIL[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNECTED(length) {
+  
+  
+  if (!length) {
+    return;
+  }
+
   let version = Buf.readUint32List()[0];
   RILQUIRKS_V5_LEGACY = (version < 5);
   if (DEBUG) {
@@ -2476,7 +2482,6 @@ RIL[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNECTED(length) {
     debug("RILQUIRKS_V5_LEGACY is " + RILQUIRKS_V5_LEGACY);
   }
 };
-
 
 
 
