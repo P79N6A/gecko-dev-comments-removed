@@ -1500,6 +1500,12 @@ public:
 
 
 
+  static bool UseBackgroundNearestFiltering();
+
+  
+
+
+
   static void UnionChildOverflow(nsIFrame* aFrame,
                                  nsOverflowAreas& aOverflowAreas);
 
