@@ -296,6 +296,8 @@ CloneStaticBlockObject(JSContext *cx, StaticBlockObject &srcBlock,
 
 
 
+class ScopeIterKey;
+
 
 
 
@@ -311,39 +313,53 @@ CloneStaticBlockObject(JSContext *cx, StaticBlockObject &srcBlock,
 
 class ScopeIter
 {
+    friend class ScopeIterKey;
+
   public:
     enum Type { Call, Block, With, StrictEvalScope };
 
   private:
     StackFrame *fp_;
-    JSObject *cur_;
-    StaticBlockObject *block_;
+    RootedObject cur_;
+    Rooted<StaticBlockObject *> block_;
     Type type_;
     bool hasScopeObject_;
 
     void settle();
 
+    
+    ScopeIter(const ScopeIter &si) MOZ_DELETE;
+
   public:
     
-    explicit ScopeIter();
+    explicit ScopeIter(JSContext *cx
+                       JS_GUARD_OBJECT_NOTIFIER_PARAM);
 
     
-    explicit ScopeIter(StackFrame *fp);
+    explicit ScopeIter(const ScopeIter &si, JSContext *cx
+                       JS_GUARD_OBJECT_NOTIFIER_PARAM);
+
+    
+    explicit ScopeIter(StackFrame *fp, JSContext *cx
+                       JS_GUARD_OBJECT_NOTIFIER_PARAM);
 
     
 
 
 
-    explicit ScopeIter(JSObject &enclosingScope);
+    explicit ScopeIter(JSObject &enclosingScope, JSContext *cx
+                       JS_GUARD_OBJECT_NOTIFIER_PARAM);
 
     
 
 
 
-    ScopeIter(ScopeIter si, StackFrame *fp);
+    ScopeIter(const ScopeIter &si, StackFrame *fp, JSContext *cx
+              JS_GUARD_OBJECT_NOTIFIER_PARAM);
 
     
-    ScopeIter(StackFrame *fp, ScopeObject &scope);
+    ScopeIter(StackFrame *fp, ScopeObject &scope, JSContext *cx
+              JS_GUARD_OBJECT_NOTIFIER_PARAM);
 
     bool done() const { return !fp_; }
 
@@ -353,7 +369,7 @@ class ScopeIter
 
     
 
-    ScopeIter enclosing() const;
+    ScopeIter &operator++();
 
     StackFrame *fp() const { JS_ASSERT(!done()); return fp_; }
     Type type() const { JS_ASSERT(!done()); return type_; }
@@ -362,10 +378,29 @@ class ScopeIter
 
     StaticBlockObject &staticBlock() const { JS_ASSERT(type() == Block); return *block_; }
 
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+class ScopeIterKey
+{
+    StackFrame *fp_;
+    JSObject *cur_;
+    StaticBlockObject *block_;
+    ScopeIter::Type type_;
+
+  public:
+    ScopeIterKey() : fp_(NULL), cur_(NULL), block_(NULL), type_() {}
+    ScopeIterKey(const ScopeIter &si)
+      : fp_(si.fp_), cur_(si.cur_), block_(si.block_), type_(si.type_)
+    {}
+
+    StackFrame *fp() const { return fp_; }
+    ScopeIter::Type type() const { return type_; }
+
     
-    typedef ScopeIter Lookup;
-    static HashNumber hash(ScopeIter si);
-    static bool match(ScopeIter si1, ScopeIter si2);
+    typedef ScopeIterKey Lookup;
+    static HashNumber hash(ScopeIterKey si);
+    static bool match(ScopeIterKey si1, ScopeIterKey si2);
 };
 
 
@@ -429,9 +464,9 @@ class DebugScopes
 
 
 
-    typedef HashMap<ScopeIter,
+    typedef HashMap<ScopeIterKey,
                     ReadBarriered<DebugScopeObject>,
-                    ScopeIter,
+                    ScopeIterKey,
                     RuntimeAllocPolicy> MissingScopeMap;
     MissingScopeMap missingScopes;
 
@@ -459,8 +494,8 @@ class DebugScopes
     DebugScopeObject *hasDebugScope(JSContext *cx, ScopeObject &scope) const;
     bool addDebugScope(JSContext *cx, ScopeObject &scope, DebugScopeObject &debugScope);
 
-    DebugScopeObject *hasDebugScope(JSContext *cx, ScopeIter si) const;
-    bool addDebugScope(JSContext *cx, ScopeIter si, DebugScopeObject &debugScope);
+    DebugScopeObject *hasDebugScope(JSContext *cx, const ScopeIter &si) const;
+    bool addDebugScope(JSContext *cx, const ScopeIter &si, DebugScopeObject &debugScope);
 
     bool updateLiveScopes(JSContext *cx);
     StackFrame *hasLiveFrame(ScopeObject &scope);
@@ -469,11 +504,11 @@ class DebugScopes
 
 
 
-    void onPopCall(StackFrame *fp);
+    void onPopCall(StackFrame *fp, JSContext *cx);
     void onPopBlock(JSContext *cx, StackFrame *fp);
     void onPopWith(StackFrame *fp);
     void onPopStrictEvalScope(StackFrame *fp);
-    void onGeneratorFrameChange(StackFrame *from, StackFrame *to);
+    void onGeneratorFrameChange(StackFrame *from, StackFrame *to, JSContext *cx);
     void onCompartmentLeaveDebugMode(JSCompartment *c);
 };
 
