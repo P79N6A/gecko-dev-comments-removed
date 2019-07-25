@@ -153,8 +153,9 @@ static const Register
     SBZ = { 0 } ;   
                     
 
-static const uint32_t FirstRegNum = R0;
-static const uint32_t LastRegNum = D7;
+
+static const uint32_t FirstRegNum = 0; 
+static const uint32_t LastRegNum = 23; 
 }
 
 #define NJ_USE_UINT32_REGISTER 1
