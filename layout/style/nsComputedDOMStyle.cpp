@@ -3489,8 +3489,16 @@ nsComputedDOMStyle::GetOffsetWidthFor(mozilla::css::Side aSide,
 
   AssertFlushedPendingReflows();
 
+  PRUint8 position = display->mPosition;
+  if (!mOuterFrame) {
+    
+    
+    
+    position = NS_STYLE_POSITION_STATIC;
+  }
+
   nsresult rv = NS_OK;
-  switch (display->mPosition) {
+  switch (position) {
     case NS_STYLE_POSITION_STATIC:
       rv = GetStaticOffset(aSide, aValue);
       break;
