@@ -58,7 +58,7 @@ public:
   NS_DECL_NSIDOMCSSVALUE
 
   
-  nsDOMCSSValueList(PRBool aCommaDelimited, PRBool aReadonly);
+  nsDOMCSSValueList(bool aCommaDelimited, bool aReadonly);
   virtual ~nsDOMCSSValueList();
 
   
@@ -89,11 +89,11 @@ public:
   }
 
 private:
-  PRPackedBool                mCommaDelimited;  
+  bool                        mCommaDelimited;  
                                                 
                                                 
 
-  PRPackedBool                mReadonly;    
+  bool                        mReadonly;    
 
   InfallibleTArray<nsCOMPtr<nsIDOMCSSValue> > mCSSValues;
 };

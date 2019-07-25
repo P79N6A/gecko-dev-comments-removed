@@ -87,7 +87,7 @@ nsBMPDecoder::~nsBMPDecoder()
 
 
 void 
-nsBMPDecoder::SetUseAlphaData(PRBool useAlphaData) 
+nsBMPDecoder::SetUseAlphaData(bool useAlphaData) 
 {
   mUseAlphaData = useAlphaData;
 }
@@ -145,7 +145,7 @@ nsBMPDecoder::GetCompressedImageSize() const
 
 
 
-PRBool 
+bool 
 nsBMPDecoder::HasAlphaData() const 
 {
   return mHaveAlphaData;
@@ -181,7 +181,7 @@ static void calcBitmask(PRUint32 aMask, PRUint8& aBegin, PRUint8& aLength)
 {
     
     PRUint8 pos;
-    PRBool started = PR_FALSE;
+    bool started = false;
     aBegin = aLength = 0;
     for (pos = 0; pos <= 31; pos++) {
         if (!started && (aMask & (1 << pos))) {

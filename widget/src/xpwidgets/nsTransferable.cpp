@@ -206,7 +206,7 @@ DataStruct::ReadCache(nsISupports** aData, PRUint32* aDataLen)
 
   
   nsCOMPtr<nsIFile> cacheFile ( getter_AddRefs(GetFileSpec(mCacheFileName)) );
-  PRBool exists;
+  bool exists;
   if ( cacheFile && NS_SUCCEEDED(cacheFile->Exists(&exists)) && exists ) {
     
     PRInt64 fileSize;
@@ -335,13 +335,13 @@ nsTransferable::GetTransferData(const char *aFlavor, nsISupports **aData, PRUint
     }
   }
 
-  PRBool found = PR_FALSE;
+  bool found = false;
 
   
   if ( mFormatConv ) {
     for (i = 0; i < mDataArray.Length(); ++i) {
       DataStruct& data = mDataArray.ElementAt(i);
-      PRBool canConvert = PR_FALSE;
+      bool canConvert = false;
       mFormatConv->CanConvert(data.GetFlavor().get(), aFlavor, &canConvert);
       if ( canConvert ) {
         nsCOMPtr<nsISupports> dataBytes;
@@ -422,7 +422,7 @@ nsTransferable::SetTransferData(const char *aFlavor, nsISupports *aData, PRUint3
   if ( mFormatConv ) {
     for (i = 0; i < mDataArray.Length(); ++i) {
       DataStruct& data = mDataArray.ElementAt(i);
-      PRBool canConvert = PR_FALSE;
+      bool canConvert = false;
       mFormatConv->CanConvert(aFlavor, data.GetFlavor().get(), &canConvert);
 
       if ( canConvert ) {
@@ -485,7 +485,7 @@ nsTransferable::RemoveDataFlavor(const char *aDataFlavor)
 
 
 NS_IMETHODIMP
-nsTransferable::IsLargeDataSet(PRBool *_retval)
+nsTransferable::IsLargeDataSet(bool *_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
   *_retval = PR_FALSE;

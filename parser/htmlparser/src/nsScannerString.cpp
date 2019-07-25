@@ -292,7 +292,7 @@ nsScannerSubstring::EndReading( nsScannerIterator& iter ) const
     return iter;
   }
 
-PRBool
+bool
 nsScannerSubstring::GetNextFragment( nsScannerFragment& frag ) const
   {
     
@@ -314,7 +314,7 @@ nsScannerSubstring::GetNextFragment( nsScannerFragment& frag ) const
     return PR_TRUE;
   }
 
-PRBool
+bool
 nsScannerSubstring::GetPrevFragment( nsScannerFragment& frag ) const
   {
     
@@ -434,7 +434,7 @@ nsScannerSharedSubstring::Rebind(const nsScannerIterator &aStart,
   
 
   Buffer *buffer = const_cast<Buffer*>(aStart.buffer());
-  PRBool sameBuffer = buffer == aEnd.buffer();
+  bool sameBuffer = buffer == aEnd.buffer();
 
   nsScannerBufferList *bufferList;
 
@@ -549,7 +549,7 @@ AppendUnicodeTo( const nsScannerIterator& aSrcStart,
     copy_multifragment_string(fromBegin, aSrcEnd, writer);
   }
 
-PRBool
+bool
 FindCharInReadable( PRUnichar aChar,
                     nsScannerIterator& aSearchStart,
                     const nsScannerIterator& aSearchEnd )
@@ -574,13 +574,13 @@ FindCharInReadable( PRUnichar aChar,
     return PR_FALSE;
   }
 
-PRBool
+bool
 FindInReadable( const nsAString& aPattern,
                 nsScannerIterator& aSearchStart,
                 nsScannerIterator& aSearchEnd,
                 const nsStringComparator& compare )
   {
-    PRBool found_it = PR_FALSE;
+    bool found_it = false;
 
       
     if ( aSearchStart != aSearchEnd )
@@ -648,13 +648,13 @@ FindInReadable( const nsAString& aPattern,
 
 
 
-PRBool
+bool
 RFindInReadable( const nsAString& aPattern,
                  nsScannerIterator& aSearchStart,
                  nsScannerIterator& aSearchEnd,
                  const nsStringComparator& aComparator )
   {
-    PRBool found_it = PR_FALSE;
+    bool found_it = false;
 
     nsScannerIterator savedSearchEnd(aSearchEnd);
     nsScannerIterator searchStart(aSearchStart), searchEnd(aSearchEnd);

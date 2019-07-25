@@ -69,7 +69,7 @@ public:
   NS_IMETHOD_(char*) GetBuffer(void) const = 0;
 
   
-  NS_IMETHOD_(PRBool) Grow(PRUint32 aNewSize) = 0;
+  NS_IMETHOD_(bool) Grow(PRUint32 aNewSize) = 0;
 
   
 

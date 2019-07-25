@@ -207,7 +207,7 @@ public:
                                  nsPoint*               outPoint);
 
   NS_IMETHOD  GetChildFrameContainingOffset(PRInt32     inContentOffset,
-                                 PRBool                 inHint,
+                                 bool                   inHint,
                                  PRInt32*               outFrameContentOffset,
                                  nsIFrame*              *outChildFrame);
 
@@ -233,17 +233,17 @@ public:
   NS_IMETHOD  SetNextInFlow(nsIFrame*);
   NS_IMETHOD  GetOffsetFromView(nsPoint& aOffset, nsIView** aView) const;
   virtual nsIAtom* GetType() const;
-  virtual PRBool IsContainingBlock() const;
+  virtual bool IsContainingBlock() const;
 
-  NS_IMETHOD  GetSelected(PRBool *aSelected) const;
-  NS_IMETHOD  IsSelectable(PRBool* aIsSelectable, PRUint8* aSelectStyle) const;
+  NS_IMETHOD  GetSelected(bool *aSelected) const;
+  NS_IMETHOD  IsSelectable(bool* aIsSelectable, PRUint8* aSelectStyle) const;
 
   NS_IMETHOD  GetSelectionController(nsPresContext *aPresContext, nsISelectionController **aSelCon);
 
-  virtual PRBool PeekOffsetNoAmount(PRBool aForward, PRInt32* aOffset);
-  virtual PRBool PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset,
-                                     PRBool aRespectClusters = PR_TRUE);
-  virtual PRBool PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool aIsKeyboardSelect,
+  virtual bool PeekOffsetNoAmount(bool aForward, PRInt32* aOffset);
+  virtual bool PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
+                                     bool aRespectClusters = true);
+  virtual bool PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,
                                 PRInt32* aOffset, PeekWordState *aState);
   
 
@@ -253,12 +253,12 @@ public:
 
 
 
-  PRBool BreakWordBetweenPunctuation(const PeekWordState* aState,
-                                     PRBool aForward,
-                                     PRBool aPunctAfter, PRBool aWhitespaceAfter,
-                                     PRBool aIsKeyboardSelect);
+  bool BreakWordBetweenPunctuation(const PeekWordState* aState,
+                                     bool aForward,
+                                     bool aPunctAfter, bool aWhitespaceAfter,
+                                     bool aIsKeyboardSelect);
 
-  NS_IMETHOD  CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex, PRInt32 aEndIndex, PRBool aRecurse, PRBool *aFinished, PRBool *_retval);
+  NS_IMETHOD  CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex, PRInt32 aEndIndex, bool aRecurse, bool *aFinished, bool *_retval);
 
   NS_IMETHOD  GetOffsets(PRInt32 &aStart, PRInt32 &aEnd) const;
   virtual void ChildIsDirty(nsIFrame* aChild);
@@ -280,8 +280,8 @@ public:
 
   nsIFrame* DoGetParentStyleContextFrame();
 
-  virtual PRBool IsEmpty();
-  virtual PRBool IsSelfEmpty();
+  virtual bool IsEmpty();
+  virtual bool IsSelfEmpty();
 
   virtual void MarkIntrinsicWidthsDirty();
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
@@ -298,7 +298,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             PRBool aShrinkWrap);
+                             bool aShrinkWrap);
 
   
   
@@ -322,7 +322,7 @@ public:
   virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
-                                 nsSize aPadding, PRBool aShrinkWrap);
+                                 nsSize aPadding, bool aShrinkWrap);
 
   
 
@@ -339,7 +339,7 @@ public:
   NS_IMETHOD  DidReflow(nsPresContext*           aPresContext,
                         const nsHTMLReflowState*  aReflowState,
                         nsDidReflowStatus         aStatus);
-  virtual PRBool CanContinueTextRun() const;
+  virtual bool CanContinueTextRun() const;
 
   
   
@@ -352,7 +352,7 @@ public:
   NS_IMETHOD HandleMultiplePress(nsPresContext* aPresContext,
                          nsGUIEvent *    aEvent,
                          nsEventStatus*  aEventStatus,
-                         PRBool          aControlHeld);
+                         bool            aControlHeld);
 
   NS_IMETHOD HandleDrag(nsPresContext* aPresContext,
                         nsGUIEvent *    aEvent,
@@ -366,8 +366,8 @@ public:
                                     nsSelectionAmount aAmountForward,
                                     PRInt32 aStartPos,
                                     nsPresContext* aPresContext,
-                                    PRBool aJumpLines,
-                                    PRBool aMultipleSelection);
+                                    bool aJumpLines,
+                                    bool aMultipleSelection);
 
 
   
@@ -383,7 +383,7 @@ public:
 
   
   
-  virtual PRBool ComputesOwnOverflowArea() { return PR_TRUE; }
+  virtual bool ComputesOwnOverflowArea() { return true; }
 
   
   
@@ -403,7 +403,7 @@ public:
   
   
   
-  PRBool IsFrameTreeTooDeep(const nsHTMLReflowState& aReflowState,
+  bool IsFrameTreeTooDeep(const nsHTMLReflowState& aReflowState,
                             nsHTMLReflowMetrics& aMetrics,
                             nsReflowStatus& aStatus);
 
@@ -422,8 +422,8 @@ public:
 
 
 
-  void Trace(const char* aMethod, PRBool aEnter);
-  void Trace(const char* aMethod, PRBool aEnter, nsReflowStatus aStatus);
+  void Trace(const char* aMethod, bool aEnter);
+  void Trace(const char* aMethod, bool aEnter, nsReflowStatus aStatus);
   void TraceMsg(const char* fmt, ...);
 
   
@@ -505,7 +505,7 @@ public:
 
   nsresult DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
                                           const nsDisplayListSet& aLists,
-                                          PRBool aForceBackground = PR_FALSE);
+                                          bool aForceBackground = false);
   
 
 
@@ -517,7 +517,7 @@ public:
 
   nsresult DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
                                           const nsDisplayListSet& aLists,
-                                          PRBool aForceBackground = PR_FALSE);
+                                          bool aForceBackground = false);
   
 
 
@@ -556,7 +556,7 @@ protected:
   nsresult DisplaySelectionOverlay(nsDisplayListBuilder* aBuilder,
       nsDisplayList* aList, PRUint16 aContentType = nsISelectionDisplay::DISPLAY_FRAMES);
 
-  PRInt16 DisplaySelection(nsPresContext* aPresContext, PRBool isOkToTurnOn = PR_FALSE);
+  PRInt16 DisplaySelection(nsPresContext* aPresContext, bool isOkToTurnOn = false);
   
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
@@ -572,11 +572,11 @@ public:
   
   
   static PRInt32 GetLineNumber(nsIFrame *aFrame,
-                               PRBool aLockScroll,
+                               bool aLockScroll,
                                nsIFrame** aContainingBlock = nsnull);
 
   
-  static PRBool ApplyPaginatedOverflowClipping(const nsIFrame* aFrame)
+  static bool ApplyPaginatedOverflowClipping(const nsIFrame* aFrame)
   {
     
     
@@ -610,7 +610,7 @@ protected:
   virtual void GetBoxName(nsAutoString& aName);
 #endif
 
-  void InitBoxMetrics(PRBool aClear);
+  void InitBoxMetrics(bool aClear);
   nsBoxLayoutMetrics* BoxMetrics() const;
 
   
@@ -625,7 +625,7 @@ private:
                      nscoord aY,
                      nscoord aWidth,
                      nscoord aHeight,
-                     PRBool aMoveFrame = PR_TRUE);
+                     bool aMoveFrame = true);
 
   NS_IMETHODIMP RefreshSizeCache(nsBoxLayoutState& aState);
 
@@ -672,12 +672,12 @@ public:
 
 
 
-  static PRBool GetVerifyStyleTreeEnable();
+  static bool GetVerifyStyleTreeEnable();
 
   
 
 
-  static void SetVerifyStyleTreeEnable(PRBool aEnabled);
+  static void SetVerifyStyleTreeEnable(bool aEnabled);
 
   
 
@@ -689,12 +689,12 @@ public:
   static PRLogModuleInfo* GetLogModuleInfo();
 
   
-  static void ShowFrameBorders(PRBool aEnable);
-  static PRBool GetShowFrameBorders();
+  static void ShowFrameBorders(bool aEnable);
+  static bool GetShowFrameBorders();
 
   
-  static void ShowEventTargetFrameBorder(PRBool aEnable);
-  static PRBool GetShowEventTargetFrameBorder();
+  static void ShowEventTargetFrameBorder(bool aEnable);
+  static bool GetShowEventTargetFrameBorder();
 
   static void PrintDisplayList(nsDisplayListBuilder* aBuilder,
                                const nsDisplayList& aList);

@@ -510,7 +510,7 @@ RasterImage::GetCurrentDrawableImgFrame()
 
 
 NS_IMETHODIMP
-RasterImage::GetCurrentFrameIsOpaque(PRBool *aIsOpaque)
+RasterImage::GetCurrentFrameIsOpaque(bool *aIsOpaque)
 {
   NS_ENSURE_ARG_POINTER(aIsOpaque);
 
@@ -572,7 +572,7 @@ RasterImage::GetNumFrames()
 
 
 NS_IMETHODIMP
-RasterImage::GetAnimated(PRBool *aAnimated)
+RasterImage::GetAnimated(bool *aAnimated)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1878,7 +1878,7 @@ RasterImage::ClearFrame(imgFrame *aFrame, nsIntRect &aRect)
 
 
 
-PRBool
+bool
 RasterImage::CopyFrameImage(imgFrame *aSrcFrame,
                             imgFrame *aDstFrame)
 {
@@ -2041,7 +2041,7 @@ RasterImage::Set(const char *prop, nsISupports *value)
 }
 
 NS_IMETHODIMP
-RasterImage::Has(const char *prop, PRBool *_retval)
+RasterImage::Has(const char *prop, bool *_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
   if (!mProperties) {
@@ -2631,14 +2631,14 @@ RasterImage::DecodeSomeData(PRUint32 aMaxBytes)
 
 
 
-PRBool
+bool
 RasterImage::IsDecodeFinished()
 {
   
   NS_ABORT_IF_FALSE(mDecoder, "Can't call IsDecodeFinished() without decoder!");
 
   
-  PRBool decodeFinished = PR_FALSE;
+  bool decodeFinished = false;
 
   
   

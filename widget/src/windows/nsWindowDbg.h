@@ -68,7 +68,7 @@
 #endif 
 
 #if defined(POPUP_ROLLUP_DEBUG_OUTPUT) || defined(EVENT_DEBUG_OUTPUT) || 1
-void PrintEvent(UINT msg, PRBool aShowAllEvents, PRBool aShowMouseMoves);
+void PrintEvent(UINT msg, bool aShowAllEvents, bool aShowMouseMoves);
 #endif 
 
 #if defined(POPUP_ROLLUP_DEBUG_OUTPUT)
@@ -87,7 +87,7 @@ void DDError(const char *msg, HRESULT hr);
 #endif 
 
 #if defined(DEBUG_VK)
-PRBool is_vk_down(int vk);
+bool is_vk_down(int vk);
 #define IS_VK_DOWN is_vk_down
 #else
 #define IS_VK_DOWN(a) (GetKeyState(a) < 0)

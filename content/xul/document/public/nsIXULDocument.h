@@ -108,12 +108,12 @@ public:
 
 
 
-  NS_IMETHOD OnPrototypeLoadDone(PRBool aResumeWalk) = 0;
+  NS_IMETHOD OnPrototypeLoadDone(bool aResumeWalk) = 0;
 
   
 
 
-  virtual PRBool OnDocumentParserError() = 0;
+  virtual bool OnDocumentParserError() = 0;
 
   
 

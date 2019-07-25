@@ -129,7 +129,7 @@ private:
   }
 
   
-  PRBool IsAnimValList() const {
+  bool IsAnimValList() const {
     NS_ABORT_IF_FALSE(this == mAList->mBaseVal || this == mAList->mAnimVal,
                       "Calling IsAnimValList() too early?!");
     return this == mAList->mAnimVal;

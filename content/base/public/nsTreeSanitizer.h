@@ -53,7 +53,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-    nsTreeSanitizer(PRBool aAllowStyles, PRBool aAllowComments);
+    nsTreeSanitizer(bool aAllowStyles, bool aAllowComments);
 
     static void InitializeStatics();
     static void ReleaseStatics();
@@ -72,21 +72,12 @@ class NS_STACK_CLASS nsTreeSanitizer {
     
 
 
-    PRBool mAllowStyles;
+    bool mAllowStyles;
 
     
 
 
-    PRBool mAllowComments;
-
-    
-
-
-
-
-
-
-    PRBool MustFlatten(PRInt32 aNamespace, nsIAtom* aLocal);
+    bool mAllowComments;
 
     
 
@@ -95,8 +86,17 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
+    bool MustFlatten(PRInt32 aNamespace, nsIAtom* aLocal);
 
-    PRBool MustPrune(PRInt32 aNamespace,
+    
+
+
+
+
+
+
+
+    bool MustPrune(PRInt32 aNamespace,
                      nsIAtom* aLocal,
                      mozilla::dom::Element* aElement);
 
@@ -107,7 +107,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-    PRBool IsURL(nsIAtom*** aURLs, nsIAtom* aLocalName);
+    bool IsURL(nsIAtom*** aURLs, nsIAtom* aLocalName);
 
     
 
@@ -126,9 +126,9 @@ class NS_STACK_CLASS nsTreeSanitizer {
     void SanitizeAttributes(mozilla::dom::Element* aElement,
                             nsTHashtable<nsISupportsHashKey>* aAllowed,
                             nsIAtom*** aURLs,
-                            PRBool aAllowXLink,
-                            PRBool aAllowStyle,
-                            PRBool aAllowDangerousSrc);
+                            bool aAllowXLink,
+                            bool aAllowStyle,
+                            bool aAllowDangerousSrc);
 
     
 
@@ -139,7 +139,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-    PRBool SanitizeURL(mozilla::dom::Element* aElement,
+    bool SanitizeURL(mozilla::dom::Element* aElement,
                        PRInt32 aNamespace,
                        nsIAtom* aLocalName);
 
@@ -152,7 +152,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-    PRBool SanitizeStyleRule(mozilla::css::StyleRule* aRule,
+    bool SanitizeStyleRule(mozilla::css::StyleRule* aRule,
                              nsAutoString &aRuleText);
 
     
@@ -167,7 +167,7 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-    PRBool SanitizeStyleSheet(const nsAString& aOriginal,
+    bool SanitizeStyleSheet(const nsAString& aOriginal,
                               nsAString& aSanitized,
                               nsIDocument* aDocument,
                               nsIURI* aBaseURI);

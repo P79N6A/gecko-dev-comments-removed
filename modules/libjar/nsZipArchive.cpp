@@ -459,7 +459,7 @@ nsZipArchive::FindInit(const char * aPattern, nsZipFind **aFind)
   
   *aFind = NULL;
 
-  PRBool  regExp = PR_FALSE;
+  bool    regExp = false;
   char*   pattern = 0;
 
   
@@ -522,7 +522,7 @@ MOZ_WIN_MEM_TRY_BEGIN
     
     mItem = mItem ? mItem->next : mArchive->mFiles[mSlot];
 
-    PRBool found = PR_FALSE;
+    bool found = false;
     if (!mItem)
       ++mSlot;                          
     else if (!mPattern)
@@ -697,7 +697,7 @@ MOZ_WIN_MEM_TRY_BEGIN
 
         
         PRUint32 hash = HashName(item->Name(), dirlen);
-        PRBool found = PR_FALSE;
+        bool found = false;
         for (nsZipItem* zi = mFiles[hash]; zi != NULL; zi = zi->next)
         {
           if ((dirlen == zi->nameLength) &&
@@ -800,7 +800,7 @@ nsZipArchive::~nsZipArchive()
 
 
 
-nsZipFind::nsZipFind(nsZipArchive* aZip, char* aPattern, PRBool aRegExp) : 
+nsZipFind::nsZipFind(nsZipArchive* aZip, char* aPattern, bool aRegExp) : 
   mArchive(aZip),
   mPattern(aPattern),
   mItem(0),

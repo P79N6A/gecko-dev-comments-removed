@@ -66,7 +66,7 @@ public:
 
 
 
-    virtual PRBool CanPropagate(nsIRDFResource* aSource,
+    virtual bool CanPropagate(nsIRDFResource* aSource,
                                 nsIRDFResource* aProperty,
                                 nsIRDFNode* aTarget,
                                 Instantiation& aInitialBindings) const = 0;

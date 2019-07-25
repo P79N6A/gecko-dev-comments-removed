@@ -73,7 +73,7 @@ char    *optarg;
 #define BADCH   (int)'?'
 #define EMSG    ""
 
-getopt(int nargc, char **nargv, char *ostr)
+int getopt(int nargc, char **nargv, char *ostr)
 {
 	static char *place = EMSG;              
 	register char *oli;                     

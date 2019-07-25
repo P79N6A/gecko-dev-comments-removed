@@ -112,7 +112,7 @@ nsTSubstringTuple_CharT::WriteTo( char_type *buf, PRUint32 bufLen ) const
 
 
 
-PRBool
+bool
 nsTSubstringTuple_CharT::IsDependentOn( const char_type *start, const char_type *end ) const
   {
     

@@ -92,5 +92,5 @@ nsEventShell::GetEventAttributes(nsINode *aNode,
 
 
 
-PRBool nsEventShell::sEventFromUserInput = PR_FALSE;
+bool nsEventShell::sEventFromUserInput = false;
 nsCOMPtr<nsINode> nsEventShell::sEventTargetNode;

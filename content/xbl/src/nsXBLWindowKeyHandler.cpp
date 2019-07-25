@@ -83,7 +83,7 @@ public:
   static const char sHTMLBindingStr[];
   static const char sUserHTMLBindingStr[];
 
-  PRBool mInitialized;
+  bool mInitialized;
 
 public:
   void LoadDocInfo();
@@ -220,7 +220,7 @@ BuildHandlerChain(nsIContent* aContent, nsXBLPrototypeHandler** aResult)
       
       
       nsAutoString valKey, valCharCode, valKeyCode;
-      PRBool attrExists =
+      bool attrExists =
         key->GetAttr(kNameSpaceID_None, nsGkAtoms::key, valKey) ||
         key->GetAttr(kNameSpaceID_None, nsGkAtoms::charcode, valCharCode) ||
         key->GetAttr(kNameSpaceID_None, nsGkAtoms::keycode, valKeyCode);
@@ -246,7 +246,7 @@ BuildHandlerChain(nsIContent* aContent, nsXBLPrototypeHandler** aResult)
 
 
 nsresult
-nsXBLWindowKeyHandler::EnsureHandlers(PRBool *aIsEditor)
+nsXBLWindowKeyHandler::EnsureHandlers(bool *aIsEditor)
 {
   nsCOMPtr<nsIDOMElement> el = GetElement();
   NS_ENSURE_STATE(!mWeakPtrForElement || el);
@@ -272,7 +272,7 @@ nsXBLWindowKeyHandler::EnsureHandlers(PRBool *aIsEditor)
     sXBLSpecialDocInfo->LoadDocInfo();
 
     
-    PRBool isEditor = IsEditor();
+    bool isEditor = IsEditor();
     if (isEditor) {
       sXBLSpecialDocInfo->GetAllHandlers("editor", &mHandler, &mUserHandler);
     }
@@ -290,7 +290,7 @@ nsXBLWindowKeyHandler::EnsureHandlers(PRBool *aIsEditor)
 static nsINativeKeyBindings*
 GetEditorKeyBindings()
 {
-  static PRBool noBindings = PR_FALSE;
+  static bool noBindings = false;
   if (!sNativeEditorBindings && !noBindings) {
     CallGetService(NS_NATIVEKEYBINDINGS_CONTRACTID_PREFIX "editor",
                    &sNativeEditorBindings);
@@ -320,12 +320,12 @@ nsresult
 nsXBLWindowKeyHandler::WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType)
 {
   nsCOMPtr<nsIDOMNSEvent> domNSEvent = do_QueryInterface(aKeyEvent);
-  PRBool prevent;
+  bool prevent;
   domNSEvent->GetPreventDefault(&prevent);
   if (prevent)
     return NS_OK;
 
-  PRBool trustedEvent = PR_FALSE;
+  bool trustedEvent = false;
   if (domNSEvent) {
     
     domNSEvent->GetIsTrusted(&trustedEvent);
@@ -334,7 +334,7 @@ nsXBLWindowKeyHandler::WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventTy
   if (!trustedEvent)
     return NS_OK;
 
-  PRBool isEditor;
+  bool isEditor;
   nsresult rv = EnsureHandlers(&isEditor);
   NS_ENSURE_SUCCESS(rv, rv);
   
@@ -366,7 +366,7 @@ nsXBLWindowKeyHandler::WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventTy
       root->GetControllers(getter_AddRefs(controllers));
     }
 
-    PRBool handled = PR_FALSE;
+    bool handled = false;
     if (aEventType == nsGkAtoms::keypress) {
       if (nsContentUtils::DOMEventToNativeKeyEvent(aKeyEvent, &nativeEvent, PR_TRUE))
         handled = sNativeEditorBindings->KeyPress(nativeEvent,
@@ -409,11 +409,11 @@ nsXBLWindowKeyHandler::HandleEvent(nsIDOMEvent* aEvent)
 
 
 
-PRBool
+bool
 nsXBLWindowKeyHandler::EventMatched(nsXBLPrototypeHandler* inHandler,
                                     nsIAtom* inEventType,
                                     nsIDOMKeyEvent* inEvent,
-                                    PRUint32 aCharCode, PRBool aIgnoreShiftKey)
+                                    PRUint32 aCharCode, bool aIgnoreShiftKey)
 {
   return inHandler->KeyEventMatched(inEventType, inEvent, aCharCode,
                                     aIgnoreShiftKey);
@@ -430,7 +430,7 @@ nsXBLWindowKeyHandler::ShutDown()
 
 
 
-PRBool
+bool
 nsXBLWindowKeyHandler::IsEditor()
 {
   
@@ -487,12 +487,12 @@ nsXBLWindowKeyHandler::WalkHandlersInternal(nsIDOMKeyEvent* aKeyEvent,
   return NS_OK;
 }
 
-PRBool
+bool
 nsXBLWindowKeyHandler::WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent,
                                               nsIAtom* aEventType,
                                               nsXBLPrototypeHandler* aHandler,
                                               PRUint32 aCharCode,
-                                              PRBool aIgnoreShiftKey)
+                                              bool aIgnoreShiftKey)
 {
   nsresult rv;
   nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(aKeyEvent));
@@ -500,7 +500,7 @@ nsXBLWindowKeyHandler::WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent,
   
   for (nsXBLPrototypeHandler *currHandler = aHandler; currHandler;
        currHandler = currHandler->GetNextHandler()) {
-    PRBool stopped = privateEvent->IsDispatchStopped();
+    bool stopped = privateEvent->IsDispatchStopped();
     if (stopped) {
       
       return NS_OK;

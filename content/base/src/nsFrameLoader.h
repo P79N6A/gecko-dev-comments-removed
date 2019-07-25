@@ -104,7 +104,7 @@ public:
 
     
 
-    PRBool operator==(const ViewConfig& aOther) const
+    bool operator==(const ViewConfig& aOther) const
     {
       return (mScrollOffset == aOther.mScrollOffset &&
               mXScale == aOther.mXScale &&
@@ -170,7 +170,7 @@ class nsFrameLoader : public nsIFrameLoader,
   typedef mozilla::layout::RenderFrameParent RenderFrameParent;
 
 protected:
-  nsFrameLoader(nsIContent *aOwner, PRBool aNetworkCreated);
+  nsFrameLoader(nsIContent *aOwner, bool aNetworkCreated);
 
 public:
   ~nsFrameLoader() {
@@ -181,12 +181,12 @@ public:
     nsFrameLoader::Destroy();
   }
 
-  PRBool AsyncScrollEnabled() const
+  bool AsyncScrollEnabled() const
   {
     return !!(mRenderMode & RENDER_MODE_ASYNC_SCROLL);
   }
 
-  static nsFrameLoader* Create(nsIContent* aOwner, PRBool aNetworkCreated);
+  static nsFrameLoader* Create(nsIContent* aOwner, bool aNetworkCreated);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsFrameLoader, nsIFrameLoader)
@@ -203,7 +203,7 @@ public:
 
 
 
-  PRBool Show(PRInt32 marginWidth, PRInt32 marginHeight,
+  bool Show(PRInt32 marginWidth, PRInt32 marginHeight,
               PRInt32 scrollbarPrefX, PRInt32 scrollbarPrefY,
               nsSubDocumentFrame* frame);
 
@@ -319,20 +319,20 @@ public:
   nsRefPtr<nsFrameMessageManager> mMessageManager;
   nsCOMPtr<nsIInProcessContentFrameMessageManager> mChildMessageManager;
 private:
-  PRPackedBool mDepthTooGreat : 1;
-  PRPackedBool mIsTopLevelContent : 1;
-  PRPackedBool mDestroyCalled : 1;
-  PRPackedBool mNeedsAsyncDestroy : 1;
-  PRPackedBool mInSwap : 1;
-  PRPackedBool mInShow : 1;
-  PRPackedBool mHideCalled : 1;
+  bool mDepthTooGreat : 1;
+  bool mIsTopLevelContent : 1;
+  bool mDestroyCalled : 1;
+  bool mNeedsAsyncDestroy : 1;
+  bool mInSwap : 1;
+  bool mInShow : 1;
+  bool mHideCalled : 1;
   
   
   
-  PRPackedBool mNetworkCreated : 1;
+  bool mNetworkCreated : 1;
 
-  PRPackedBool mDelayRemoteDialogs : 1;
-  PRPackedBool mRemoteBrowserShown : 1;
+  bool mDelayRemoteDialogs : 1;
+  bool mRemoteBrowserShown : 1;
   bool mRemoteFrame;
   
   nsCOMPtr<nsIObserver> mChildHost;

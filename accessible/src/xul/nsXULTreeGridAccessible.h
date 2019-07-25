@@ -156,7 +156,7 @@ public:
 
   
   virtual bool IsDefunct() const;
-  virtual PRBool Init();
+  virtual bool Init();
   virtual bool IsPrimaryForNode() const;
 
   
@@ -194,7 +194,7 @@ protected:
   
 
 
-  PRBool IsEditable() const;
+  bool IsEditable() const;
 
   enum { eAction_Click = 0 };
 

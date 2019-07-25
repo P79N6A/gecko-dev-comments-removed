@@ -97,7 +97,7 @@ struct ElementPropertyTransition
   
   double ValuePortionFor(TimeStamp aRefreshTime) const;
 
-  PRBool IsRemovedSentinel() const
+  bool IsRemovedSentinel() const
   {
     return mStartTime.IsNull();
   }
@@ -195,7 +195,7 @@ ElementTransitions::EnsureStyleRuleFor(TimeStamp aRefreshTime)
 
       double valuePortion = pt.ValuePortionFor(aRefreshTime);
 #ifdef DEBUG
-      PRBool ok =
+      bool ok =
 #endif
         nsStyleAnimation::Interpolate(pt.mProperty,
                                       pt.mStartValue, pt.mEndValue,
@@ -276,7 +276,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   
   
   
-  PRBool startedAny = PR_FALSE;
+  bool startedAny = false;
   nsCSSPropertySet whichStarted;
   for (PRUint32 i = disp->mTransitionPropertyCount; i-- != 0; ) {
     const nsTransition& t = disp->mTransitions[i];
@@ -319,7 +319,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   
   
   if (et) {
-    PRBool checkProperties =
+    bool checkProperties =
       disp->mTransitions[0].GetProperty() != eCSSPropertyExtra_all_properties;
     nsCSSPropertySet allTransitionProperties;
     if (checkProperties) {
@@ -419,7 +419,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
                        ElementTransitions *&aElementTransitions,
                        nsStyleContext *aOldStyleContext,
                        nsStyleContext *aNewStyleContext,
-                       PRBool *aStartedAny,
+                       bool *aStartedAny,
                        nsCSSPropertySet *aWhichStarted)
 {
   
@@ -440,12 +440,12 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
 
   ElementPropertyTransition pt;
   nsStyleAnimation::Value dummyValue;
-  PRBool haveValues =
+  bool haveValues =
     ExtractComputedValueForTransition(aProperty, aOldStyleContext,
                                       pt.mStartValue) &&
     ExtractComputedValueForTransition(aProperty, aNewStyleContext,
                                       pt.mEndValue);
-  PRBool shouldAnimate =
+  bool shouldAnimate =
     haveValues &&
     pt.mStartValue != pt.mEndValue &&
     
@@ -601,7 +601,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
 ElementTransitions*
 nsTransitionManager::GetElementTransitions(dom::Element *aElement,
                                            nsCSSPseudoElements::Type aPseudoType,
-                                           PRBool aCreateIfNeeded)
+                                           bool aCreateIfNeeded)
 {
   if (!aCreateIfNeeded && PR_CLIST_IS_EMPTY(&mElementData)) {
     

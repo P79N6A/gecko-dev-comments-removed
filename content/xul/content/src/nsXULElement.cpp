@@ -269,7 +269,7 @@ nsXULElement::CreateSlots()
 
 already_AddRefed<nsXULElement>
 nsXULElement::Create(nsXULPrototypeElement* aPrototype, nsINodeInfo *aNodeInfo,
-                     PRBool aIsScriptable)
+                     bool aIsScriptable)
 {
     nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
     nsXULElement *element = new nsXULElement(ni.forget());
@@ -308,7 +308,7 @@ nsXULElement::Create(nsXULPrototypeElement* aPrototype, nsINodeInfo *aNodeInfo,
 nsresult
 nsXULElement::Create(nsXULPrototypeElement* aPrototype,
                      nsIDocument* aDocument,
-                     PRBool aIsScriptable,
+                     bool aIsScriptable,
                      Element** aResult)
 {
     
@@ -509,7 +509,7 @@ nsXULElement::GetElementsByAttributeNS(const nsAString& aNamespaceURI,
 }
 
 nsEventListenerManager*
-nsXULElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName, PRBool* aDefer)
+nsXULElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer)
 {
     
     
@@ -533,15 +533,15 @@ nsXULElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName, PRBool* aDefer)
 }
 
 
-static PRBool IsNonList(nsINodeInfo* aNodeInfo)
+static bool IsNonList(nsINodeInfo* aNodeInfo)
 {
   return !aNodeInfo->Equals(nsGkAtoms::tree) &&
          !aNodeInfo->Equals(nsGkAtoms::listbox) &&
          !aNodeInfo->Equals(nsGkAtoms::richlistbox);
 }
 
-PRBool
-nsXULElement::IsFocusable(PRInt32 *aTabIndex, PRBool aWithMouse)
+bool
+nsXULElement::IsFocusable(PRInt32 *aTabIndex, bool aWithMouse)
 {
   
 
@@ -572,7 +572,7 @@ nsXULElement::IsFocusable(PRInt32 *aTabIndex, PRBool aWithMouse)
 
 
   
-  PRBool shouldFocus = PR_FALSE;
+  bool shouldFocus = false;
 
 #ifdef XP_MACOSX
   
@@ -583,7 +583,7 @@ nsXULElement::IsFocusable(PRInt32 *aTabIndex, PRBool aWithMouse)
   nsCOMPtr<nsIDOMXULControlElement> xulControl = do_QueryObject(this);
   if (xulControl) {
     
-    PRBool disabled;
+    bool disabled;
     xulControl->GetDisabled(&disabled);
     if (disabled) {
       if (aTabIndex)
@@ -633,8 +633,8 @@ nsXULElement::IsFocusable(PRInt32 *aTabIndex, PRBool aWithMouse)
 }
 
 void
-nsXULElement::PerformAccesskey(PRBool aKeyCausesActivation,
-                               PRBool aIsTrustedEvent)
+nsXULElement::PerformAccesskey(bool aKeyCausesActivation,
+                               bool aIsTrustedEvent)
 {
     nsCOMPtr<nsIContent> content(this);
 
@@ -680,7 +680,7 @@ nsXULElement::PerformAccesskey(PRBool aKeyCausesActivation,
             if (tag == nsGkAtoms::radio) {
               nsCOMPtr<nsIDOMXULSelectControlItemElement> controlItem(do_QueryInterface(content));
               if (controlItem) {
-                PRBool disabled;
+                bool disabled;
                 controlItem->GetDisabled(&disabled);
                 if (!disabled) {
                   nsCOMPtr<nsIDOMXULSelectControlElement> selectControl;
@@ -832,7 +832,7 @@ nsScriptEventHandlerOwnerTearoff::CompileEventHandler(
 
 void
 nsXULElement::AddListenerFor(const nsAttrName& aName,
-                             PRBool aCompileEventHandlers)
+                             bool aCompileEventHandlers)
 {
     
     
@@ -870,7 +870,7 @@ nsXULElement::MaybeAddPopupListener(nsIAtom* aLocalName)
 
 
 void
-nsXULElement::UpdateEditableState(PRBool aNotify)
+nsXULElement::UpdateEditableState(bool aNotify)
 {
     
     
@@ -884,7 +884,7 @@ nsresult
 nsXULElement::BindToTree(nsIDocument* aDocument,
                          nsIContent* aParent,
                          nsIContent* aBindingParent,
-                         PRBool aCompileEventHandlers)
+                         bool aCompileEventHandlers)
 {
   nsresult rv = nsStyledElement::BindToTree(aDocument, aParent,
                                             aBindingParent,
@@ -902,7 +902,7 @@ nsXULElement::BindToTree(nsIDocument* aDocument,
 }
 
 void
-nsXULElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
+nsXULElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
     
     
@@ -933,7 +933,7 @@ nsXULElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 }
 
 nsresult
-nsXULElement::RemoveChildAt(PRUint32 aIndex, PRBool aNotify)
+nsXULElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
 {
     nsresult rv;
     nsCOMPtr<nsIContent> oldKid = mAttrsAndChildren.GetSafeChildAt(aIndex);
@@ -946,7 +946,7 @@ nsXULElement::RemoveChildAt(PRUint32 aIndex, PRBool aNotify)
     
     nsCOMPtr<nsIDOMXULMultiSelectControlElement> controlElement;
     nsCOMPtr<nsIListBoxObject> listBox;
-    PRBool fireSelectionHandler = PR_FALSE;
+    bool fireSelectionHandler = false;
 
     
     
@@ -1063,7 +1063,7 @@ nsXULElement::UnregisterAccessKey(const nsAString& aOldValue)
 
 nsresult
 nsXULElement::BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
-                            const nsAString* aValue, PRBool aNotify)
+                            const nsAString* aValue, bool aNotify)
 {
     if (aNamespaceID == kNameSpaceID_None && aName == nsGkAtoms::accesskey &&
         IsInDoc()) {
@@ -1105,7 +1105,7 @@ nsXULElement::BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
 
 nsresult
 nsXULElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
-                           const nsAString* aValue, PRBool aNotify)
+                           const nsAString* aValue, bool aNotify)
 {
     if (aNamespaceID == kNameSpaceID_None) {
         
@@ -1119,7 +1119,7 @@ nsXULElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
             
             
             
-            PRBool defer = mPrototype == nsnull ||
+            bool defer = mPrototype == nsnull ||
                            mPrototype->mScriptTypeID == GetScriptTypeID();
             AddScriptEventListener(aName, *aValue, defer);
         }
@@ -1181,7 +1181,7 @@ nsXULElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
                                          aValue, aNotify);
 }
 
-PRBool
+bool
 nsXULElement::ParseAttribute(PRInt32 aNamespaceID,
                              nsIAtom* aAttribute,
                              const nsAString& aValue,
@@ -1219,7 +1219,7 @@ nsXULElement::InternalGetExistingAttrNameFromQName(const nsAString& aStr) const
     return nsnull;
 }
 
-PRBool
+bool
 nsXULElement::GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                       nsAString& aResult) const
 {
@@ -1242,7 +1242,7 @@ nsXULElement::GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     return PR_TRUE;
 }
 
-PRBool
+bool
 nsXULElement::HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const
 {
     NS_ASSERTION(nsnull != aName, "must have attribute name");
@@ -1253,7 +1253,7 @@ nsXULElement::HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const
            FindPrototypeAttribute(aNameSpaceID, aName);
 }
 
-PRBool
+bool
 nsXULElement::AttrValueIs(PRInt32 aNameSpaceID,
                           nsIAtom* aName,
                           const nsAString& aValue,
@@ -1266,7 +1266,7 @@ nsXULElement::AttrValueIs(PRInt32 aNameSpaceID,
   return val && val->Equals(aValue, aCaseSensitive);
 }
 
-PRBool
+bool
 nsXULElement::AttrValueIs(PRInt32 aNameSpaceID,
                           nsIAtom* aName,
                           nsIAtom* aValue,
@@ -1303,7 +1303,7 @@ nsXULElement::FindAttrValueIn(PRInt32 aNameSpaceID,
 }
 
 nsresult
-nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
+nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, bool aNotify)
 {
     
     
@@ -1331,7 +1331,7 @@ nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
     nsIDocument* doc = GetCurrentDoc();
     mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, aNotify);
 
-    PRBool isId = PR_FALSE;
+    bool isId = false;
     if (aName == nsGkAtoms::id && aNameSpaceID == kNameSpaceID_None) {
       
       RemoveFromIdTable();
@@ -1354,7 +1354,7 @@ nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
                                          nsIDOMMutationEvent::REMOVAL);
     }
 
-    PRBool hasMutationListeners = aNotify &&
+    bool hasMutationListeners = aNotify &&
         nsContentUtils::HasMutationListeners(this,
             NS_EVENT_BITS_MUTATION_ATTRMODIFIED, this);
 
@@ -1823,7 +1823,7 @@ nsXULElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
     return retval;
 }
 
-NS_IMETHODIMP_(PRBool)
+NS_IMETHODIMP_(bool)
 nsXULElement::IsAttributeMapped(const nsIAtom* aAttribute) const
 {
     return PR_FALSE;
@@ -1877,14 +1877,14 @@ nsXULElement::GetBoxObject(nsIBoxObject** aResult)
 
 #define NS_IMPL_XUL_BOOL_ATTR(_method, _atom)                       \
   NS_IMETHODIMP                                                     \
-  nsXULElement::Get##_method(PRBool* aResult)                       \
+  nsXULElement::Get##_method(bool* aResult)                       \
   {                                                                 \
     *aResult = BoolAttrIsTrue(nsGkAtoms::_atom);                   \
                                                                     \
     return NS_OK;                                                   \
   }                                                                 \
   NS_IMETHODIMP                                                     \
-  nsXULElement::Set##_method(PRBool aValue)                         \
+  nsXULElement::Set##_method(bool aValue)                         \
   {                                                                 \
     if (aValue)                                                     \
       SetAttr(kNameSpaceID_None, nsGkAtoms::_atom,                 \
@@ -2096,7 +2096,7 @@ nsXULElement::ClickWithInputSource(PRUint16 aInputSource)
             
             nsRefPtr<nsPresContext> context = shell->GetPresContext();
 
-            PRBool isCallerChrome = nsContentUtils::IsCallerChrome();
+            bool isCallerChrome = nsContentUtils::IsCallerChrome();
 
             nsMouseEvent eventDown(isCallerChrome, NS_MOUSE_BUTTON_DOWN,
                                    nsnull, nsMouseEvent::eReal);
@@ -2145,7 +2145,7 @@ nsXULElement::GetBindingParent() const
     return mBindingParent;
 }
 
-PRBool
+bool
 nsXULElement::IsNodeOfType(PRUint32 aFlags) const
 {
     return !(aFlags & ~eCONTENT);
@@ -2179,7 +2179,7 @@ nsresult
 nsXULElement::AddPopupListener(nsIAtom* aName)
 {
     
-    PRBool isContext = (aName == nsGkAtoms::context ||
+    bool isContext = (aName == nsGkAtoms::context ||
                         aName == nsGkAtoms::contextmenu);
     nsIAtom* listenerAtom = isContext ?
                             nsGkAtoms::contextmenulistener :
@@ -2288,7 +2288,7 @@ nsresult nsXULElement::MakeHeavyweight()
     nsRefPtr<nsXULPrototypeElement> proto;
     proto.swap(mPrototype);
 
-    PRBool hadAttributes = mAttrsAndChildren.AttrCount() > 0;
+    bool hadAttributes = mAttrsAndChildren.AttrCount() > 0;
 
     PRUint32 i;
     nsresult rv;
@@ -2334,7 +2334,7 @@ nsresult nsXULElement::MakeHeavyweight()
 }
 
 nsresult
-nsXULElement::HideWindowChrome(PRBool aShouldHide)
+nsXULElement::HideWindowChrome(bool aShouldHide)
 {
     nsIDocument* doc = GetCurrentDoc();
     if (!doc || doc->GetRootElement() != this)
@@ -2384,7 +2384,7 @@ nsXULElement::GetWindowWidget()
 }
 
 void
-nsXULElement::SetTitlebarColor(nscolor aColor, PRBool aActive)
+nsXULElement::SetTitlebarColor(nscolor aColor, bool aActive)
 {
     nsIWidget* mainWidget = GetWindowWidget();
     if (mainWidget) {
@@ -2395,7 +2395,7 @@ nsXULElement::SetTitlebarColor(nscolor aColor, PRBool aActive)
 class SetDrawInTitleBarEvent : public nsRunnable
 {
 public:
-  SetDrawInTitleBarEvent(nsIWidget* aWidget, PRBool aState)
+  SetDrawInTitleBarEvent(nsIWidget* aWidget, bool aState)
     : mWidget(aWidget)
     , mState(aState)
   {}
@@ -2409,11 +2409,11 @@ public:
 
 private:
   nsCOMPtr<nsIWidget> mWidget;
-  PRBool mState;
+  bool mState;
 };
 
 void
-nsXULElement::SetDrawsInTitlebar(PRBool aState)
+nsXULElement::SetDrawsInTitlebar(bool aState)
 {
     nsIWidget* mainWidget = GetWindowWidget();
     if (mainWidget) {
@@ -2476,7 +2476,7 @@ nsXULElement::ResetChromeMargins()
     nsContentUtils::AddScriptRunner(new MarginSetter(mainWidget));
 }
 
-PRBool
+bool
 nsXULElement::BoolAttrIsTrue(nsIAtom* aName)
 {
     const nsAttrValue* attr =
@@ -2490,7 +2490,7 @@ void
 nsXULElement::RecompileScriptEventListeners()
 {
     PRInt32 i, count = mAttrsAndChildren.AttrCount();
-    PRBool haveLocalAttributes = (count > 0);
+    bool haveLocalAttributes = (count > 0);
     for (i = 0; i < count; ++i) {
         const nsAttrName *name = mAttrsAndChildren.AttrNameAt(i);
 
@@ -2793,7 +2793,7 @@ nsXULPrototypeElement::Deserialize(nsIObjectInputStream* aStream,
                 child = script;
                 child->mType = childType;
 
-                rv |= aStream->Read8(&script->mOutOfLine);
+                rv |= aStream->ReadBoolean(&script->mOutOfLine);
                 if (! script->mOutOfLine) {
                     rv |= script->Deserialize(aStream, aGlobal, aDocumentURI,
                                               aNodeInfos);
@@ -2957,7 +2957,7 @@ nsXULPrototypeScript::SerializeOutOfLine(nsIObjectOutputStream* aStream,
 {
     nsresult rv = NS_ERROR_NOT_IMPLEMENTED;
 
-    PRBool isChrome = PR_FALSE;
+    bool isChrome = false;
     if (NS_FAILED(mSrcURI->SchemeIs("chrome", &isChrome)) || !isChrome)
        
        return rv;
@@ -2968,7 +2968,7 @@ nsXULPrototypeScript::SerializeOutOfLine(nsIObjectOutputStream* aStream,
 
     NS_ASSERTION(cache->IsEnabled(),
                  "writing to the cache file, but the XUL cache is off?");
-    PRBool exists;
+    bool exists;
     cache->HasData(mSrcURI, &exists);
     
     
@@ -3035,7 +3035,7 @@ nsXULPrototypeScript::DeserializeOutOfLine(nsIObjectInputStream* aInput,
   
     nsCOMPtr<nsIObjectInputStream> objectInput = aInput;
     if (cache) {
-        PRBool useXULCache = PR_TRUE;
+        bool useXULCache = true;
         if (mSrcURI) {
             
             
@@ -3086,7 +3086,7 @@ nsXULPrototypeScript::DeserializeOutOfLine(nsIObjectInputStream* aInput,
 
             if (NS_SUCCEEDED(rv)) {
                 if (useXULCache && mSrcURI) {
-                    PRBool isChrome = PR_FALSE;
+                    bool isChrome = false;
                     mSrcURI->SchemeIs("chrome", &isChrome);
                     if (isChrome) {
                         cache->PutScript(mSrcURI,

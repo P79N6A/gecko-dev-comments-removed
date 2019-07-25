@@ -72,7 +72,7 @@ public:
 
   virtual LRESULT WndProc(UINT nMsg, WPARAM wParam, LPARAM lParam);
 private:
-  virtual nsresult ShowActive(PRBool active);
+  virtual nsresult ShowActive(bool active);
   virtual HWND &PreviewWindow();
 
   virtual nsresult UpdateTaskbarProperties();
@@ -83,9 +83,9 @@ private:
   nsresult UpdateButtons();
 
   
-  PRBool                  mCustomDrawing;
+  bool                    mCustomDrawing;
   
-  PRBool                  mHaveButtons;
+  bool                    mHaveButtons;
   
   THUMBBUTTON             mThumbButtons[nsITaskbarWindowPreview::NUM_TOOLBAR_BUTTONS];
   
@@ -105,7 +105,7 @@ private:
   nsString                mIconDescription;
 
   
-  static PRBool TaskbarWindowHook(void *aContext,
+  static bool TaskbarWindowHook(void *aContext,
                                   HWND hWnd, UINT nMsg,
                                   WPARAM wParam, LPARAM lParam,
                                   LRESULT *aResult);

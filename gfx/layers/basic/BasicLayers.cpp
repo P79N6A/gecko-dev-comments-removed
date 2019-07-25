@@ -145,8 +145,8 @@ public:
 
 
 
-  void SetHidden(PRBool aCovered) { mHidden = aCovered; }
-  PRBool IsHidden() const { return PR_FALSE; }
+  void SetHidden(bool aCovered) { mHidden = aCovered; }
+  bool IsHidden() const { return false; }
   
 
 
@@ -161,12 +161,12 @@ public:
   }
   gfxContext::GraphicsOperator GetOperator() const { return mOperator; }
 
-  PRBool GetClipToVisibleRegion() { return mClipToVisibleRegion; }
-  void SetClipToVisibleRegion(PRBool aClip) { mClipToVisibleRegion = aClip; }
+  bool GetClipToVisibleRegion() { return mClipToVisibleRegion; }
+  void SetClipToVisibleRegion(bool aClip) { mClipToVisibleRegion = aClip; }
 
 protected:
-  PRPackedBool mHidden;
-  PRPackedBool mClipToVisibleRegion;
+  bool mHidden;
+  bool mClipToVisibleRegion;
   gfxContext::GraphicsOperator mOperator;
 };
 
@@ -274,7 +274,7 @@ public:
 
 
 
-  PRBool ChildrenPartitionVisibleRegion(const nsIntRect& aInRect);
+  bool ChildrenPartitionVisibleRegion(const nsIntRect& aInRect);
 
   void ForceIntermediateSurface() { mUseIntermediateSurface = PR_TRUE; }
 
@@ -294,7 +294,7 @@ BasicContainerLayer::~BasicContainerLayer()
   MOZ_COUNT_DTOR(BasicContainerLayer);
 }
 
-PRBool
+bool
 BasicContainerLayer::ChildrenPartitionVisibleRegion(const nsIntRect& aInRect)
 {
   gfxMatrix transform;
@@ -543,7 +543,7 @@ protected:
               const nsIntRegion& aRegionToDraw,
               const nsIntRegion& aExtendedRegionToDraw,
               const nsIntRegion& aRegionToInvalidate,
-              PRBool aDidSelfCopy,
+              bool aDidSelfCopy,
               LayerManager::DrawThebesLayerCallback aCallback,
               void* aCallbackData)
   {
@@ -571,7 +571,7 @@ protected:
 
 
 
-static PRBool
+static bool
 ClipToContain(gfxContext* aContext, const nsIntRect& aRect)
 {
   gfxRect userRect(aRect.x, aRect.y, aRect.width, aRect.height);
@@ -618,11 +618,11 @@ SetAntialiasingFlags(Layer* aLayer, gfxContext* aTarget)
 already_AddRefed<gfxContext>
 BasicLayerManager::PushGroupForLayer(gfxContext* aContext, Layer* aLayer,
                                      const nsIntRegion& aRegion,
-                                     PRBool* aNeedsClipToVisibleRegion)
+                                     bool* aNeedsClipToVisibleRegion)
 {
   
   
-  PRBool didCompleteClip = ClipToContain(aContext, aRegion.GetBounds());
+  bool didCompleteClip = ClipToContain(aContext, aRegion.GetBounds());
 
   nsRefPtr<gfxContext> result;
   if (aLayer->CanUseOpaqueSurface() &&
@@ -657,7 +657,7 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
     aReadback->GetThebesLayerUpdates(this, &readbackUpdates);
   }
 
-  PRBool canUseOpaqueSurface = CanUseOpaqueSurface();
+  bool canUseOpaqueSurface = CanUseOpaqueSurface();
   Buffer::ContentType contentType =
     canUseOpaqueSurface ? gfxASurface::CONTENT_COLOR :
                           gfxASurface::CONTENT_COLOR_ALPHA;
@@ -681,8 +681,8 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
 
       aContext->Save();
 
-      PRBool needsClipToVisibleRegion = GetClipToVisibleRegion();
-      PRBool needsGroup =
+      bool needsClipToVisibleRegion = GetClipToVisibleRegion();
+      bool needsGroup =
           opacity != 1.0 || GetOperator() != gfxContext::OPERATOR_OVER;
       nsRefPtr<gfxContext> groupContext;
       if (needsGroup) {
@@ -766,7 +766,7 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
   }
 }
 
-static PRBool
+static bool
 IsClippingCheap(gfxContext* aTarget, const nsIntRegion& aRegion)
 {
   
@@ -1047,8 +1047,8 @@ protected:
   
   PRUint32 mCanvasFramebuffer;
 
-  PRPackedBool mGLBufferIsPremultiplied;
-  PRPackedBool mNeedsYFlip;
+  bool mGLBufferIsPremultiplied;
+  bool mNeedsYFlip;
 };
 
 void
@@ -1487,7 +1487,7 @@ MarkLayersHidden(Layer* aLayer, const nsIntRect& aClipRect,
     }
   } else {
     Layer* child = aLayer->GetLastChild();
-    PRBool allHidden = PR_TRUE;
+    bool allHidden = true;
     for (; child; child = child->GetPrevSibling()) {
       MarkLayersHidden(child, newClipRect, aDirtyRect, aOpaqueRegion, newFlags);
       if (!ToData(child)->IsHidden()) {
@@ -1749,7 +1749,7 @@ PixmanTransform(const gfxImageSurface *aDest,
 static already_AddRefed<gfxASurface> 
 Transform3D(gfxASurface* aSource, gfxContext* aDest, 
             const gfxRect& aBounds, const gfx3DMatrix& aTransform, 
-            gfxPoint& aDrawOffset, PRBool aDontBlit)
+            gfxPoint& aDrawOffset, bool aDontBlit)
 {
   nsRefPtr<gfxImageSurface> sourceImage = aSource->GetAsImageSurface();
   if (!sourceImage) {
@@ -1775,7 +1775,7 @@ Transform3D(gfxASurface* aSource, gfxContext* aDest,
   nsRefPtr<gfxImageSurface> destImage = dest->GetAsImageSurface();
   destImage = nsnull;
   gfxPoint offset;
-  PRBool blitComplete;
+  bool blitComplete;
   if (!destImage || aDontBlit || !aDest->ClipContainsRect(destRect)) {
     destImage = new gfxImageSurface(gfxIntSize(destRect.width, destRect.height),
                                     gfxASurface::ImageFormatARGB32);
@@ -1812,10 +1812,10 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
   const nsIntRect* clipRect = aLayer->GetEffectiveClipRect();
   const gfx3DMatrix& effectiveTransform = aLayer->GetEffectiveTransform();
   BasicContainerLayer* container = static_cast<BasicContainerLayer*>(aLayer);
-  PRBool needsGroup = aLayer->GetFirstChild() &&
+  bool needsGroup = aLayer->GetFirstChild() &&
     container->UseIntermediateSurface();
   BasicImplData* data = ToData(aLayer);
-  PRBool needsClipToVisibleRegion =
+  bool needsClipToVisibleRegion =
     data->GetClipToVisibleRegion() && !aLayer->AsThebesLayer();
   NS_ASSERTION(needsGroup || !aLayer->GetFirstChild() ||
                container->GetOperator() == gfxContext::OPERATOR_OVER,
@@ -1823,7 +1823,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
 
   
   
-  PRBool needsSaveRestore = needsGroup || clipRect || needsClipToVisibleRegion;
+  bool needsSaveRestore = needsGroup || clipRect || needsClipToVisibleRegion;
   gfxMatrix savedMatrix;
   if (needsSaveRestore) {
     aTarget->Save();
@@ -1839,7 +1839,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
 
   gfxMatrix transform;
   
-  PRBool is2D = effectiveTransform.CanDraw2D(&transform);
+  bool is2D = effectiveTransform.CanDraw2D(&transform);
   NS_ABORT_IF_FALSE(is2D || needsGroup || !aLayer->GetFirstChild(), "Must PushGroup for 3d transforms!");
   if (is2D) {
     aTarget->SetMatrix(transform);
@@ -1857,7 +1857,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
     needsClipToVisibleRegion = PR_FALSE;
   }
 
-  PRBool pushedTargetOpaqueRect = PR_FALSE;
+  bool pushedTargetOpaqueRect = false;
   nsRefPtr<gfxASurface> currentSurface = aTarget->CurrentSurface();
   const gfxRect& targetOpaqueRect = currentSurface->GetOpaqueRect();
 
@@ -1907,7 +1907,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
   }
 
   if (needsGroup) {
-    PRBool blitComplete = PR_FALSE;
+    bool blitComplete = false;
     if (is2D) {
       PopGroupToSourceWithCachedSurface(aTarget, groupTarget);
     } else {
@@ -1917,7 +1917,7 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
       gfxRect bounds = visibleRegion.GetBounds();
 
       gfxPoint offset;
-      PRBool dontBlit = needsClipToVisibleRegion || mTransactionIncomplete || 
+      bool dontBlit = needsClipToVisibleRegion || mTransactionIncomplete || 
                         aLayer->GetEffectiveOpacity() != 1.0f;
       nsRefPtr<gfxASurface> result = 
         Transform3D(sourceSurface, aTarget, bounds,
@@ -2206,7 +2206,7 @@ private:
               const nsIntRegion& aRegionToDraw,
               const nsIntRegion& aExtendedRegionToDraw,
               const nsIntRegion& aRegionToInvalidate,
-              PRBool aDidSelfCopy,
+              bool aDidSelfCopy,
               LayerManager::DrawThebesLayerCallback aCallback,
               void* aCallbackData);
 
@@ -2218,7 +2218,7 @@ private:
   
   SurfaceDescriptor mBackBuffer;
 
-  PRPackedBool mIsNewBuffer;
+  bool mIsNewBuffer;
 };
 
 void
@@ -2263,7 +2263,7 @@ BasicShadowableThebesLayer::PaintBuffer(gfxContext* aContext,
                                         const nsIntRegion& aRegionToDraw,
                                         const nsIntRegion& aExtendedRegionToDraw,
                                         const nsIntRegion& aRegionToInvalidate,
-                                        PRBool aDidSelfCopy,
+                                        bool aDidSelfCopy,
                                         LayerManager::DrawThebesLayerCallback aCallback,
                                         void* aCallbackData)
 {
@@ -3009,7 +3009,7 @@ private:
   }
 
   SurfaceDescriptor mFrontSurface;
-  PRPackedBool mNeedsYFlip;
+  bool mNeedsYFlip;
 };
 
 
@@ -3361,7 +3361,7 @@ BasicShadowLayerManager::Hold(Layer* aLayer)
   return shadowable;
 }
 
-PRBool
+bool
 BasicShadowLayerManager::IsCompositingCheap()
 {
   

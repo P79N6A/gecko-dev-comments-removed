@@ -63,7 +63,7 @@ protected:
 
 
 
-  PRBool ImportRegistryProfiles(const nsACString& aAppName);
+  bool ImportRegistryProfiles(const nsACString& aAppName);
 };
 
 #endif

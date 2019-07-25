@@ -82,7 +82,7 @@ class nsPacketQueue : private nsDeque {
 public:
   nsPacketQueue() : nsDeque(new OggPacketDeallocator()) {}
   ~nsPacketQueue() { Erase(); }
-  PRBool IsEmpty() { return nsDeque::GetSize() == 0; }
+  bool IsEmpty() { return nsDeque::GetSize() == 0; }
   void Append(ogg_packet* aPacket);
   ogg_packet* PopFront() { return static_cast<ogg_packet*>(nsDeque::PopFront()); }
   ogg_packet* PeekFront() { return static_cast<ogg_packet*>(nsDeque::PeekFront()); }
@@ -112,7 +112,7 @@ public:
   virtual CodecType GetType() { return TYPE_UNKNOWN; }
   
   
-  virtual PRBool DecodeHeader(ogg_packet* aPacket) {
+  virtual bool DecodeHeader(ogg_packet* aPacket) {
     return (mDoneReadingHeaders = PR_TRUE);
   }
 
@@ -123,11 +123,11 @@ public:
   virtual PRInt64 StartTime(PRInt64 granulepos) { return -1; }
 
   
-  virtual PRBool Init();
+  virtual bool Init();
 
   
   
-  PRBool DoneReadingHeaders() { return mDoneReadingHeaders; }
+  bool DoneReadingHeaders() { return mDoneReadingHeaders; }
 
   
   
@@ -146,7 +146,7 @@ public:
   
   
   
-  virtual PRBool IsHeader(ogg_packet* aPacket) { return PR_FALSE; }
+  virtual bool IsHeader(ogg_packet* aPacket) { return false; }
 
   
   
@@ -181,16 +181,16 @@ public:
   nsPacketQueue mPackets;
 
   
-  PRPackedBool mActive;
+  bool mActive;
   
   
-  PRPackedBool mDoneReadingHeaders;
+  bool mDoneReadingHeaders;
 
 protected:
   
   
   
-  nsOggCodecState(ogg_page* aBosPage, PRBool aActive);
+  nsOggCodecState(ogg_page* aBosPage, bool aActive);
 
   
   void ClearUnstamped();
@@ -202,7 +202,7 @@ protected:
   
   
   
-  nsresult PacketOutUntilGranulepos(PRBool& aFoundGranulepos);
+  nsresult PacketOutUntilGranulepos(bool& aFoundGranulepos);
 
   
   
@@ -215,11 +215,11 @@ public:
   virtual ~nsVorbisState();
 
   CodecType GetType() { return TYPE_VORBIS; }
-  PRBool DecodeHeader(ogg_packet* aPacket);
+  bool DecodeHeader(ogg_packet* aPacket);
   PRInt64 Time(PRInt64 granulepos);
-  PRBool Init();
+  bool Init();
   nsresult Reset();
-  PRBool IsHeader(ogg_packet* aPacket);
+  bool IsHeader(ogg_packet* aPacket);
   nsresult PageIn(ogg_page* aPage); 
 
   
@@ -285,11 +285,11 @@ public:
   virtual ~nsTheoraState();
 
   CodecType GetType() { return TYPE_THEORA; }
-  PRBool DecodeHeader(ogg_packet* aPacket);
+  bool DecodeHeader(ogg_packet* aPacket);
   PRInt64 Time(PRInt64 granulepos);
   PRInt64 StartTime(PRInt64 granulepos);
-  PRBool Init();
-  PRBool IsHeader(ogg_packet* aPacket);
+  bool Init();
+  bool IsHeader(ogg_packet* aPacket);
   nsresult PageIn(ogg_page* aPage); 
 
   
@@ -326,14 +326,14 @@ public:
   nsSkeletonState(ogg_page* aBosPage);
   ~nsSkeletonState();
   CodecType GetType() { return TYPE_SKELETON; }
-  PRBool DecodeHeader(ogg_packet* aPacket);
+  bool DecodeHeader(ogg_packet* aPacket);
   PRInt64 Time(PRInt64 granulepos) { return -1; }
-  PRBool Init() { return PR_TRUE; }
-  PRBool IsHeader(ogg_packet* aPacket) { return PR_TRUE; }
+  bool Init() { return true; }
+  bool IsHeader(ogg_packet* aPacket) { return true; }
 
   
   
-  PRBool IsPresentable(PRInt64 aTime) { return aTime >= mPresentationTime; }
+  bool IsPresentable(PRInt64 aTime) { return aTime >= mPresentationTime; }
 
   
   
@@ -353,7 +353,7 @@ public:
     
     PRInt64 mTime;
 
-    PRBool IsNull() {
+    bool IsNull() {
       return mOffset == PR_INT64_MAX &&
              mTime == PR_INT64_MAX;
     }
@@ -366,7 +366,7 @@ public:
     nsSeekTarget() : mSerial(0) {}
     nsKeyPoint mKeyPoint;
     PRUint32 mSerial;
-    PRBool IsNull() {
+    bool IsNull() {
       return mKeyPoint.IsNull() &&
              mSerial == 0;
     }
@@ -379,7 +379,7 @@ public:
                              nsTArray<PRUint32>& aTracks,
                              nsSeekTarget& aResult);
 
-  PRBool HasIndex() const {
+  bool HasIndex() const {
     return mIndex.IsInitialized() && mIndex.Count() > 0;
   }
 
@@ -392,7 +392,7 @@ public:
 private:
 
   
-  PRBool DecodeIndex(ogg_packet* aPacket);
+  bool DecodeIndex(ogg_packet* aPacket);
 
   
   

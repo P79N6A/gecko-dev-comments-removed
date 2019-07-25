@@ -167,8 +167,8 @@ private:
 
 protected:
   
-  PRPackedBool                      mLoopFlag;
-  PRPackedBool                      mNoHRefURI;
+  bool                              mLoopFlag;
+  bool                              mNoHRefURI;
 };
 
 #endif

@@ -123,42 +123,42 @@ public:
 
 
 
-  PRBool AddRefreshObserver(nsARefreshObserver *aObserver,
+  bool AddRefreshObserver(nsARefreshObserver *aObserver,
                             mozFlushType aFlushType);
-  PRBool RemoveRefreshObserver(nsARefreshObserver *aObserver,
+  bool RemoveRefreshObserver(nsARefreshObserver *aObserver,
                                mozFlushType aFlushType);
 
   
 
 
-  PRBool AddStyleFlushObserver(nsIPresShell* aShell) {
+  bool AddStyleFlushObserver(nsIPresShell* aShell) {
     NS_ASSERTION(!mStyleFlushObservers.Contains(aShell),
 		 "Double-adding style flush observer");
-    PRBool appended = mStyleFlushObservers.AppendElement(aShell) != nsnull;
+    bool appended = mStyleFlushObservers.AppendElement(aShell) != nsnull;
     EnsureTimerStarted(false);
     return appended;
   }
   void RemoveStyleFlushObserver(nsIPresShell* aShell) {
     mStyleFlushObservers.RemoveElement(aShell);
   }
-  PRBool AddLayoutFlushObserver(nsIPresShell* aShell) {
+  bool AddLayoutFlushObserver(nsIPresShell* aShell) {
     NS_ASSERTION(!IsLayoutFlushObserver(aShell),
 		 "Double-adding layout flush observer");
-    PRBool appended = mLayoutFlushObservers.AppendElement(aShell) != nsnull;
+    bool appended = mLayoutFlushObservers.AppendElement(aShell) != nsnull;
     EnsureTimerStarted(false);
     return appended;
   }
   void RemoveLayoutFlushObserver(nsIPresShell* aShell) {
     mLayoutFlushObservers.RemoveElement(aShell);
   }
-  PRBool IsLayoutFlushObserver(nsIPresShell* aShell) {
+  bool IsLayoutFlushObserver(nsIPresShell* aShell) {
     return mLayoutFlushObservers.Contains(aShell);
   }
 
   
 
 
-  PRBool ScheduleBeforePaintEvent(nsIDocument* aDocument);
+  bool ScheduleBeforePaintEvent(nsIDocument* aDocument);
 
   
 
@@ -212,7 +212,7 @@ public:
   
 
 
-  PRBool IsRefreshObserver(nsARefreshObserver *aObserver,
+  bool IsRefreshObserver(nsARefreshObserver *aObserver,
 			   mozFlushType aFlushType);
 #endif
 

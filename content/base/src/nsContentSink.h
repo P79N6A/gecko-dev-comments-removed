@@ -127,7 +127,7 @@ class nsContentSink : public nsICSSLoaderObserver,
   NS_DECL_NSITIMERCALLBACK
 
   
-  NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet, PRBool aWasAlternate,
+  NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet, bool aWasAlternate,
                               nsresult aStatus);
 
   virtual nsresult ProcessMETATag(nsIContent* aContent);
@@ -138,9 +138,9 @@ class nsContentSink : public nsICSSLoaderObserver,
   NS_HIDDEN_(nsresult) WillResumeImpl(void);
   NS_HIDDEN_(nsresult) DidProcessATokenImpl(void);
   NS_HIDDEN_(void) WillBuildModelImpl(void);
-  NS_HIDDEN_(void) DidBuildModelImpl(PRBool aTerminated);
+  NS_HIDDEN_(void) DidBuildModelImpl(bool aTerminated);
   NS_HIDDEN_(void) DropParserAndPerfHint(void);
-  PRBool IsScriptExecutingImpl();
+  bool IsScriptExecutingImpl();
 
   void NotifyAppend(nsIContent* aContent, PRUint32 aStartIndex);
 
@@ -150,8 +150,8 @@ class nsContentSink : public nsICSSLoaderObserver,
 
   virtual void UpdateChildCounts() = 0;
 
-  PRBool IsTimeToNotify();
-  PRBool LinkContextIsOurDocument(const nsSubstring& aAnchor);
+  bool IsTimeToNotify();
+  bool LinkContextIsOurDocument(const nsSubstring& aAnchor);
 
   static void InitializeStatics();
 
@@ -196,13 +196,13 @@ protected:
 
   virtual nsresult ProcessStyleLink(nsIContent* aElement,
                                     const nsSubstring& aHref,
-                                    PRBool aAlternate,
+                                    bool aAlternate,
                                     const nsSubstring& aTitle,
                                     const nsSubstring& aType,
                                     const nsSubstring& aMedia);
 
   void PrefetchHref(const nsAString &aHref, nsIContent *aSource,
-                    PRBool aExplicit);
+                    bool aExplicit);
 
   
   
@@ -229,7 +229,7 @@ protected:
   
   nsresult SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
                              nsIURI *aManifestURI,
-                             PRBool aFetchedWithHTTPGetOrEquiv,
+                             bool aFetchedWithHTTPGetOrEquiv,
                              CacheSelectionAction *aAction);
 
   
@@ -273,13 +273,13 @@ protected:
   
   
 public:
-  void StartLayout(PRBool aIgnorePendingSheets);
+  void StartLayout(bool aIgnorePendingSheets);
 
   static void NotifyDocElementCreated(nsIDocument* aDoc);
 
 protected:
   void
-  FavorPerformanceHint(PRBool perfOverStarvation, PRUint32 starvationDelay);
+  FavorPerformanceHint(bool perfOverStarvation, PRUint32 starvationDelay);
 
   inline PRInt32 GetNotificationInterval()
   {
@@ -298,7 +298,7 @@ protected:
 
   
   
-  PRBool WaitForPendingSheets() { return mPendingSheetCount > 0; }
+  bool WaitForPendingSheets() { return mPendingSheetCount > 0; }
 
   void DoProcessLinkHeader();
 
@@ -361,7 +361,7 @@ protected:
   PRUint32 mDeflectedCount;
 
   
-  PRBool mHasPendingEvent;
+  bool mHasPendingEvent;
 
   
   PRUint32 mCurrentParseEndTime;
@@ -383,7 +383,7 @@ protected:
     mProcessLinkHeaderEvent;
 
   
-  static PRBool sNotifyOnTimer;
+  static bool sNotifyOnTimer;
   
   static PRInt32 sBackoffCount;
   
@@ -406,7 +406,7 @@ protected:
   static PRInt32 sInitialPerfTime;
   
   static PRInt32 sEnablePerfMode;
-  static PRBool sCanInterruptParser;
+  static bool sCanInterruptParser;
 };
 
 #endif 

@@ -118,7 +118,7 @@ public:
   
 
 
-  virtual PRBool Init();
+  virtual bool Init();
 
   
 
@@ -157,7 +157,7 @@ public:
   
 
 
-  PRBool IsContent() const
+  bool IsContent() const
   {
     return GetNode() && GetNode()->IsNodeOfType(nsINode::eCONTENT);
   }
@@ -206,12 +206,12 @@ protected:
     
 
 
-    static void NotifyA11yInitOrShutdown(PRBool aIsInit);
+    static void NotifyA11yInitOrShutdown(bool aIsInit);
 
     
     static nsIStringBundle *gStringBundle;
 
-    static PRBool gIsFormFillEnabled;
+    static bool gIsFormFillEnabled;
 
 private:
   static nsApplicationAccessible *gApplicationAccessible;

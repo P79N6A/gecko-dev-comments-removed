@@ -62,15 +62,15 @@ public:
   
   NS_IMETHOD AddPrefixes(const PRUint32* aArray, PRUint32 aLength);
   
-  NS_IMETHOD Contains(PRUint32 aPrefix, PRBool* aFound);
+  NS_IMETHOD Contains(PRUint32 aPrefix, bool* aFound);
   
   
   
-  NS_IMETHOD Probe(PRUint32 aPrefix, PRUint32 aKey, PRBool* aReady, PRBool* aFound);
+  NS_IMETHOD Probe(PRUint32 aPrefix, PRUint32 aKey, bool* aReady, bool* aFound);
   
   
   NS_IMETHOD EstimateSize(PRUint32* aSize);
-  NS_IMETHOD IsEmpty(PRBool * aEmpty);
+  NS_IMETHOD IsEmpty(bool * aEmpty);
   NS_IMETHOD LoadFromFile(nsIFile* aFile);
   NS_IMETHOD StoreToFile(nsIFile* aFile);
   
@@ -93,7 +93,7 @@ protected:
 
   
   
-  PRBool mHasPrefixes;
+  bool mHasPrefixes;
   
   PRUint32 mRandomKey;
   

@@ -83,7 +83,7 @@ public:
   
   NS_IMETHOD OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
   NS_IMETHOD OnStopFrame(imgIRequest *aRequest, PRUint32 aFrame);
-  NS_IMETHOD OnStopRequest(imgIRequest *aRequest, PRBool aLastPart);
+  NS_IMETHOD OnStopRequest(imgIRequest *aRequest, bool aLastPart);
   
   
   

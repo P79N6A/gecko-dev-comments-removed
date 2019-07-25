@@ -86,7 +86,7 @@ class nsGeolocationRequest
                        nsIDOMGeoPositionCallback* callback,
                        nsIDOMGeoPositionErrorCallback* errorCallback,
                        nsIDOMGeoPositionOptions* options,
-                       PRBool watchPositionRequest = PR_FALSE);
+                       bool watchPositionRequest = false);
   nsresult Init();
   void Shutdown();
 
@@ -95,8 +95,8 @@ class nsGeolocationRequest
 
   void SendLocation(nsIDOMGeoPosition* location);
   void MarkCleared();
-  PRBool IsActive() {return !mCleared;}
-  PRBool Allowed() {return mAllowed;}
+  bool IsActive() {return !mCleared;}
+  bool Allowed() {return mAllowed;}
   void SetTimeoutTimer();
 
   ~nsGeolocationRequest();
@@ -107,9 +107,9 @@ class nsGeolocationRequest
  private:
 
   void NotifyError(PRInt16 errorCode);
-  PRPackedBool mAllowed;
-  PRPackedBool mCleared;
-  PRPackedBool mIsWatchPositionRequest;
+  bool mAllowed;
+  bool mCleared;
+  bool mIsWatchPositionRequest;
 
   nsCOMPtr<nsITimer> mTimeoutTimer;
   nsCOMPtr<nsIDOMGeoPositionCallback> mCallback;
@@ -199,7 +199,7 @@ public:
   void Update(nsIDOMGeoPosition* aPosition);
 
   
-  PRBool HasActiveCallbacks();
+  bool HasActiveCallbacks();
 
   
   void RemoveRequest(nsGeolocationRequest* request);
@@ -214,7 +214,7 @@ public:
   nsIWeakReference* GetOwner() { return mOwner; }
 
   
-  PRBool WindowOwnerStillExists();
+  bool WindowOwnerStillExists();
 
 private:
 

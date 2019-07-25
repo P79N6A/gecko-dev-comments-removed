@@ -53,7 +53,7 @@ public:
     nsresult DialDefault(const PRUnichar* hostName);
 
     
-    PRBool ShouldDialOnNetworkError();
+    bool ShouldDialOnNetworkError();
 };
 
 #endif 

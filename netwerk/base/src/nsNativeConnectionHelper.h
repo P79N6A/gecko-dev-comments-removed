@@ -50,14 +50,14 @@ public:
 
 
 
-    static PRBool OnConnectionFailed(const PRUnichar* hostName);
+    static bool OnConnectionFailed(const PRUnichar* hostName);
 
     
 
 
 
    
-    static PRBool IsAutodialEnabled();
+    static bool IsAutodialEnabled();
 };
 
 #endif 

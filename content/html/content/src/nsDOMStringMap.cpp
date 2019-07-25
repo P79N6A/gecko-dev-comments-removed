@@ -102,7 +102,7 @@ protected:
 };
 
 
-NS_IMETHODIMP_(PRBool) nsDOMStringMap::HasDataAttr(const nsAString& aProp)
+NS_IMETHODIMP_(bool) nsDOMStringMap::HasDataAttr(const nsAString& aProp)
 {
   nsAutoString attr;
   if (!DataPropToAttr(aProp, attr)) {
@@ -251,7 +251,7 @@ nsresult nsDOMStringMap::GetDataPropList(nsTArray<nsString>& aResult)
 
 
 
-PRBool nsDOMStringMap::DataPropToAttr(const nsAString& aProp,
+bool nsDOMStringMap::DataPropToAttr(const nsAString& aProp,
                                       nsAString& aResult)
 {
   const PRUnichar* cur = aProp.BeginReading();
@@ -294,7 +294,7 @@ PRBool nsDOMStringMap::DataPropToAttr(const nsAString& aProp,
 
 
 
-PRBool nsDOMStringMap::AttrToDataProp(const nsAString& aAttr,
+bool nsDOMStringMap::AttrToDataProp(const nsAString& aAttr,
                                       nsAString& aResult)
 {
   

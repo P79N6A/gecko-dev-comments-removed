@@ -82,7 +82,7 @@ private:
   
   void SetHotSpotIfCursor();
   
-  PRBool FillBitmapFileHeaderBuffer(PRInt8 *bfh);
+  bool FillBitmapFileHeaderBuffer(PRInt8 *bfh);
   
   void FillBitmapInformationBufferHeight(PRInt8 *bih);
   
@@ -112,9 +112,9 @@ private:
   
   char mBIHraw[40];
   
-  PRPackedBool mIsCursor;
+  bool mIsCursor;
   
-  PRPackedBool mIsPNG;
+  bool mIsPNG;
 };
 
 } 

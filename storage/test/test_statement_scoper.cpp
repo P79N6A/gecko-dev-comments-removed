@@ -68,7 +68,7 @@ test_automatic_reset()
   
   {
     mozStorageStatementScoper scoper(stmt);
-    PRBool hasMore;
+    bool hasMore;
     do_check_true(NS_SUCCEEDED(stmt->ExecuteStep(&hasMore)));
 
     
@@ -107,7 +107,7 @@ test_Abandon()
   
   {
     mozStorageStatementScoper scoper(stmt);
-    PRBool hasMore;
+    bool hasMore;
     do_check_true(NS_SUCCEEDED(stmt->ExecuteStep(&hasMore)));
 
     

@@ -102,7 +102,7 @@ protected:
   
   
   
-  virtual mozilla::css::Declaration* GetCSSDeclaration(PRBool aAllocate) = 0;
+  virtual mozilla::css::Declaration* GetCSSDeclaration(bool aAllocate) = 0;
   virtual nsresult SetCSSDeclaration(mozilla::css::Declaration* aDecl) = 0;
   
   
@@ -135,7 +135,7 @@ protected:
 
   nsresult ParsePropertyValue(const nsCSSProperty aPropID,
                               const nsAString& aPropValue,
-                              PRBool aIsImportant);
+                              bool aIsImportant);
 
   
   

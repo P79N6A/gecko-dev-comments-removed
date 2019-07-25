@@ -75,7 +75,7 @@ public:
   virtual nsAccessible* GetAccessibleInShell(nsINode* aNode,
                                              nsIPresShell* aPresShell);
   virtual nsAccessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
-                                                  PRBool aCanCreate);
+                                                  bool aCanCreate);
 
   virtual already_AddRefed<nsAccessible>
     CreateHTMLBRAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
@@ -160,7 +160,7 @@ public:
   
 
 
-  static PRBool IsShutdown() { return gIsShutdown; }
+  static bool IsShutdown() { return gIsShutdown; }
 
   
 
@@ -222,7 +222,7 @@ private:
   
 
 
-  PRBool Init();
+  bool Init();
 
   
 
@@ -278,7 +278,7 @@ private:
   
 
 
-  static PRBool gIsShutdown;
+  static bool gIsShutdown;
 
   
 
@@ -287,7 +287,7 @@ private:
 
 
 
-  PRBool HasUniversalAriaProperty(nsIContent *aContent);
+  bool HasUniversalAriaProperty(nsIContent *aContent);
 
   friend nsAccessibilityService* GetAccService();
   friend mozilla::a11y::FocusManager* mozilla::a11y::FocusMgr();

@@ -168,7 +168,7 @@ public:
 
 
 
-  virtual void SetDelayedConversion(PRBool aDelayed) {}
+  virtual void SetDelayedConversion(bool aDelayed) {}
 
   
 
@@ -222,7 +222,7 @@ public:
 
 
 
-  virtual PRBool SetLayerManager(LayerManager *aManager) = 0;
+  virtual bool SetLayerManager(LayerManager *aManager) = 0;
 
   
 
@@ -316,7 +316,7 @@ protected:
   TimeStamp mPaintTime;
 
   
-  PRPackedBool mPreviousImagePainted;
+  bool mPreviousImagePainted;
 };
 
 
@@ -434,7 +434,7 @@ public:
 
 
 
-  virtual void SetDelayedConversion(PRBool aDelayed) { }
+  virtual void SetDelayedConversion(bool aDelayed) { }
 
   
 

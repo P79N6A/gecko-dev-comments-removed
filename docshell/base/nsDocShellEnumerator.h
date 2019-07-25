@@ -110,7 +110,7 @@ protected:
   PRUint32                    mCurIndex;
   
   PRInt32                     mDocShellType;  
-  PRPackedBool                mArrayValid;    
+  bool                        mArrayValid;    
 
   const PRInt8                mEnumerationDirection;
 };

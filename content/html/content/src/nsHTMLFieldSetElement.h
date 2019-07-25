@@ -80,11 +80,11 @@ public:
   
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
   virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                                const nsAString* aValue, PRBool aNotify);
+                                const nsAString* aValue, bool aNotify);
 
   virtual nsresult InsertChildAt(nsIContent* aChild, PRUint32 aIndex,
-                                     PRBool aNotify);
-  virtual nsresult RemoveChildAt(PRUint32 aIndex, PRBool aNotify);
+                                     bool aNotify);
+  virtual nsresult RemoveChildAt(PRUint32 aIndex, bool aNotify);
 
   
   NS_IMETHOD_(PRUint32) GetType() const { return NS_FORM_FIELDSET; }
@@ -111,10 +111,10 @@ private:
 
 
 
-  void NotifyElementsForFirstLegendChange(PRBool aNotify);
+  void NotifyElementsForFirstLegendChange(bool aNotify);
 
   
-  static PRBool MatchListedElements(nsIContent* aContent, PRInt32 aNamespaceID,
+  static bool MatchListedElements(nsIContent* aContent, PRInt32 aNamespaceID,
                                     nsIAtom* aAtom, void* aData);
 
   

@@ -129,7 +129,7 @@ nsNativeDragTarget::GetGeckoDragAction(DWORD grfKeyState, LPDWORD pdwEffect,
 {
   
   
-  PRBool isEnabled;
+  bool isEnabled;
   if (NS_SUCCEEDED(mWindow->IsEnabled(&isEnabled)) && !isEnabled) {
     *pdwEffect = DROPEFFECT_NONE;
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_NONE;
@@ -168,7 +168,7 @@ nsNativeDragTarget::GetGeckoDragAction(DWORD grfKeyState, LPDWORD pdwEffect,
 }
 
 inline
-PRBool
+bool
 IsKeyDown(char key)
 {
   return GetKeyState(key) < 0;
@@ -230,7 +230,7 @@ nsNativeDragTarget::ProcessDrag(PRUint32     aEventType,
   if (aEventType != NS_DRAGDROP_DROP) {
     
     
-    PRBool canDrop;
+    bool canDrop;
     currSession->GetCanDrop(&canDrop);
     if (!canDrop) {
       *pdwEffect = DROPEFFECT_NONE;

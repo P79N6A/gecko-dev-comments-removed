@@ -80,7 +80,7 @@ public:
   NS_DECL_ISUPPORTS
   
   NS_IMETHOD OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
-  NS_IMETHOD OnDataAvailable(imgIRequest *aRequest, PRBool aCurrentFrame,
+  NS_IMETHOD OnDataAvailable(imgIRequest *aRequest, bool aCurrentFrame,
                              const nsIntRect *aRect);
   NS_IMETHOD OnStopDecode(imgIRequest *aRequest, nsresult status,
                           const PRUnichar *statusArg);
@@ -145,7 +145,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return ImageFrameSuper::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
   }
@@ -172,7 +172,7 @@ public:
 
 
 
-  static PRBool ShouldCreateImageFrameFor(mozilla::dom::Element* aElement,
+  static bool ShouldCreateImageFrameFor(mozilla::dom::Element* aElement,
                                           nsStyleContext* aStyleContext);
   
   void DisplayAltFeedback(nsRenderingContext& aRenderingContext,
@@ -198,14 +198,14 @@ protected:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             PRBool aShrinkWrap);
+                             bool aShrinkWrap);
 
-  PRBool IsServerImageMap();
+  bool IsServerImageMap();
 
   void TranslateEventCoords(const nsPoint& aPoint,
                             nsIntPoint& aResult);
 
-  PRBool GetAnchorHREFTargetAndNode(nsIURI** aHref, nsString& aTarget,
+  bool GetAnchorHREFTargetAndNode(nsIURI** aHref, nsString& aTarget,
                                     nsIContent** aNode);
   
 
@@ -234,7 +234,7 @@ protected:
 protected:
   friend class nsImageListener;
   nsresult OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
-  nsresult OnDataAvailable(imgIRequest *aRequest, PRBool aCurrentFrame,
+  nsresult OnDataAvailable(imgIRequest *aRequest, bool aCurrentFrame,
                            const nsIntRect *rect);
   nsresult OnStopDecode(imgIRequest *aRequest,
                         nsresult aStatus,
@@ -259,7 +259,7 @@ private:
 
 
 
-  PRBool UpdateIntrinsicSize(imgIContainer* aImage);
+  bool UpdateIntrinsicSize(imgIContainer* aImage);
 
   
 
@@ -267,7 +267,7 @@ private:
 
 
 
-  PRBool UpdateIntrinsicRatio(imgIContainer* aImage);
+  bool UpdateIntrinsicRatio(imgIContainer* aImage);
 
   
 
@@ -278,15 +278,15 @@ private:
 
 
 
-  PRBool GetSourceToDestTransform(nsTransform2D& aTransform);
+  bool GetSourceToDestTransform(nsTransform2D& aTransform);
 
   
 
 
 
 
-  PRBool IsPendingLoad(imgIRequest* aRequest) const;
-  PRBool IsPendingLoad(imgIContainer* aContainer) const;
+  bool IsPendingLoad(imgIRequest* aRequest) const;
+  bool IsPendingLoad(imgIContainer* aContainer) const;
 
   
 
@@ -302,7 +302,7 @@ private:
   nsIFrame::IntrinsicSize mIntrinsicSize;
   nsSize mIntrinsicRatio;
 
-  PRBool mDisplayingIcon;
+  bool mDisplayingIcon;
 
   static nsIIOService* sIOService;
   
@@ -342,7 +342,7 @@ private:
 
     void RemoveIconObserver(nsImageFrame *frame) {
 #ifdef DEBUG
-        PRBool rv =
+        bool rv =
 #endif
             mIconObservers.RemoveElement(frame);
         NS_ABORT_IF_FALSE(rv, "Observer not in array");
@@ -356,8 +356,8 @@ private:
   public:
     nsCOMPtr<imgIRequest> mLoadingImage;
     nsCOMPtr<imgIRequest> mBrokenImage;
-    PRPackedBool     mPrefForceInlineAltText;
-    PRPackedBool     mPrefShowPlaceholders;
+    bool             mPrefForceInlineAltText;
+    bool             mPrefShowPlaceholders;
   };
   
 public:

@@ -58,12 +58,12 @@ public:
   
 
 
-  virtual PRBool IsDroppedDown() = 0;
+  virtual bool IsDroppedDown() = 0;
 
   
 
 
-  virtual void ShowDropDown(PRBool aDoDropDown) = 0;
+  virtual void ShowDropDown(bool aDoDropDown) = 0;
 
   
 

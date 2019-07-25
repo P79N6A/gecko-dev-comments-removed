@@ -65,7 +65,7 @@ public:
 
 
 
-  PRBool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const;
+  bool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const;
 
   
 
@@ -78,7 +78,7 @@ public:
 
 
 
-  Interface* GetWeak(KeyType aKey, PRBool* aFound = nsnull) const;
+  Interface* GetWeak(KeyType aKey, bool* aFound = nsnull) const;
 };
 
 
@@ -102,7 +102,7 @@ public:
 
 
 
-  PRBool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const;
+  bool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const;
 
   
   
@@ -115,7 +115,7 @@ public:
 
 
 template<class KeyClass,class Interface>
-PRBool
+bool
 nsInterfaceHashtable<KeyClass,Interface>::Get
   (KeyType aKey, UserDataType* pInterface) const
 {
@@ -156,7 +156,7 @@ nsInterfaceHashtable<KeyClass,Interface>::Get(KeyType aKey) const
 template<class KeyClass,class Interface>
 Interface*
 nsInterfaceHashtable<KeyClass,Interface>::GetWeak
-  (KeyType aKey, PRBool* aFound) const
+  (KeyType aKey, bool* aFound) const
 {
   typename base_type::EntryType* ent = this->GetEntry(aKey);
 
@@ -179,7 +179,7 @@ nsInterfaceHashtable<KeyClass,Interface>::GetWeak
 
 
 template<class KeyClass,class Interface>
-PRBool
+bool
 nsInterfaceHashtableMT<KeyClass,Interface>::Get
   (KeyType aKey, UserDataType* pInterface) const
 {

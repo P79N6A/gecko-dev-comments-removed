@@ -104,7 +104,7 @@ public:
   NS_DECL_NSIDOCUMENTOBSERVER
 
   
-  virtual PRBool Init();
+  virtual bool Init();
   virtual void Shutdown();
   virtual nsIFrame* GetFrame() const;
   virtual bool IsDefunct() const;
@@ -132,7 +132,7 @@ public:
   
 
 
-  PRBool IsContentLoaded() const
+  bool IsContentLoaded() const
   {
     
     
@@ -305,7 +305,7 @@ public:
 
 
 
-  PRBool IsDependentID(const nsAString& aID) const
+  bool IsDependentID(const nsAString& aID) const
     { return mDependentIDsHash.Get(aID, nsnull); }
 
   

@@ -132,10 +132,10 @@ nsPrintingPromptService::ShowProgress(nsIDOMWindow*            parent,
                                       nsIWebBrowserPrint*      webBrowserPrint,    
                                       nsIPrintSettings*        printSettings,      
                                       nsIObserver*             openDialogObserver, 
-                                      PRBool                   isForPrinting,
+                                      bool                     isForPrinting,
                                       nsIWebProgressListener** webProgressListener,
                                       nsIPrintProgressParams** printProgressParams, 
-                                      PRBool*                  notifyOnOpen)
+                                      bool*                  notifyOnOpen)
 {
     NS_ENSURE_ARG(webProgressListener);
     NS_ENSURE_ARG(printProgressParams);

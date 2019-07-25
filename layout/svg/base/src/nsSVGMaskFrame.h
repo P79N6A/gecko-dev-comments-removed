@@ -110,7 +110,7 @@ private:
   nsIFrame *mMaskParent;
   nsAutoPtr<gfxMatrix> mMaskParentMatrix;
   
-  PRPackedBool mInUse;
+  bool mInUse;
 
   
   virtual gfxMatrix GetCanvasTM();

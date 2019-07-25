@@ -474,7 +474,7 @@ void NS_MergeReflowStatusInto(nsReflowStatus* aPrimary,
 
 
 
-typedef PRBool nsDidReflowStatus;
+typedef bool nsDidReflowStatus;
 
 #define NS_FRAME_REFLOW_NOT_FINISHED PR_FALSE
 #define NS_FRAME_REFLOW_FINISHED     PR_TRUE
@@ -784,7 +784,7 @@ public:
   
 
                  
-  PRBool HasBorder() const;
+  bool HasBorder() const;
 
   
 
@@ -969,7 +969,7 @@ public:
 
 
 
-  static PRBool ComputeBorderRadii(const nsStyleCorners& aBorderRadius,
+  static bool ComputeBorderRadii(const nsStyleCorners& aBorderRadius,
                                    const nsSize& aFrameSize,
                                    const nsSize& aBorderArea,
                                    PRIntn aSkipSides,
@@ -997,10 +997,10 @@ public:
 
 
 
-  virtual PRBool GetBorderRadii(nscoord aRadii[8]) const;
+  virtual bool GetBorderRadii(nscoord aRadii[8]) const;
 
-  PRBool GetPaddingBoxBorderRadii(nscoord aRadii[8]) const;
-  PRBool GetContentBoxBorderRadii(nscoord aRadii[8]) const;
+  bool GetPaddingBoxBorderRadii(nscoord aRadii[8]) const;
+  bool GetContentBoxBorderRadii(nscoord aRadii[8]) const;
 
   
 
@@ -1115,10 +1115,10 @@ public:
   virtual nscolor GetCaretColorAt(PRInt32 aOffset);
 
  
-  PRBool IsThemed(nsITheme::Transparency* aTransparencyState = nsnull) const {
+  bool IsThemed(nsITheme::Transparency* aTransparencyState = nsnull) const {
     return IsThemed(GetStyleDisplay(), aTransparencyState);
   }
-  PRBool IsThemed(const nsStyleDisplay* aDisp,
+  bool IsThemed(const nsStyleDisplay* aDisp,
                   nsITheme::Transparency* aTransparencyState = nsnull) const {
     nsIFrame* mutable_this = const_cast<nsIFrame*>(this);
     if (!aDisp->mAppearance)
@@ -1161,8 +1161,8 @@ public:
                         const nsDisplayListSet& aToSet,
                         const nsRect&           aClipRect,
                         const nscoord           aClipRadii[8],
-                        PRBool                  aClipBorderBackground = PR_FALSE,
-                        PRBool                  aClipAll = PR_FALSE);
+                        bool                    aClipBorderBackground = false,
+                        bool                    aClipAll = false);
 
   enum {
     DISPLAY_CHILD_FORCE_PSEUDO_STACKING_CONTEXT = 0x01,
@@ -1196,25 +1196,25 @@ public:
   
 
 
-  virtual PRBool NeedsView() { return PR_FALSE; }
+  virtual bool NeedsView() { return false; }
 
   
 
 
 
-  virtual PRBool IsTransformed() const;
+  virtual bool IsTransformed() const;
 
   
 
 
 
-  PRBool Preserves3DChildren() const;
+  bool Preserves3DChildren() const;
 
   
 
 
 
-  PRBool Preserves3D() const;
+  bool Preserves3D() const;
 
   
   void ComputePreserve3DChildrenOverflow(nsOverflowAreas& aOverflowAreas, const nsRect& aBounds);
@@ -1254,7 +1254,7 @@ public:
   
   struct NS_STACK_CLASS ContentOffsets {
     nsCOMPtr<nsIContent> content;
-    PRBool IsNull() { return !content; }
+    bool IsNull() { return !content; }
     PRInt32 offset;
     PRInt32 secondaryOffset;
     
@@ -1264,7 +1264,7 @@ public:
     
     
     
-    PRBool associateWithNext;
+    bool associateWithNext;
   };
   
 
@@ -1274,10 +1274,10 @@ public:
 
 
   ContentOffsets GetContentOffsetsFromPoint(nsPoint aPoint,
-                                            PRBool aIgnoreSelectionStyle = PR_FALSE);
+                                            bool aIgnoreSelectionStyle = false);
 
   virtual ContentOffsets GetContentOffsetsFromPointExternal(nsPoint aPoint,
-                                                            PRBool aIgnoreSelectionStyle = PR_FALSE)
+                                                            bool aIgnoreSelectionStyle = false)
   { return GetContentOffsetsFromPoint(aPoint, aIgnoreSelectionStyle); }
 
   
@@ -1288,7 +1288,7 @@ public:
   struct NS_STACK_CLASS Cursor {
     nsCOMPtr<imgIContainer> mContainer;
     PRInt32                 mCursor;
-    PRBool                  mHaveHotspot;
+    bool                    mHaveHotspot;
     float                   mHotspotX, mHotspotY;
   };
   
@@ -1314,7 +1314,7 @@ public:
 
 
   NS_IMETHOD  GetChildFrameContainingOffset(PRInt32       inContentOffset,
-                                 PRBool                   inHint,
+                                 bool                     inHint,
                                  PRInt32*                 outFrameContentOffset,
                                  nsIFrame*                *outChildFrame) = 0;
 
@@ -1484,7 +1484,7 @@ public:
     
     
     
-    PRBool skipWhitespace;
+    bool skipWhitespace;
 
     
     
@@ -1519,7 +1519,7 @@ public:
     
     
     
-    PRBool atStartOfLine;
+    bool atStartOfLine;
   };
 
   struct InlinePrefWidthData : public InlineIntrinsicWidthData {
@@ -1598,10 +1598,10 @@ public:
     IntrinsicSize& operator=(const IntrinsicSize& rhs) {
       width = rhs.width; height = rhs.height; return *this;
     }
-    PRBool operator==(const IntrinsicSize& rhs) {
+    bool operator==(const IntrinsicSize& rhs) {
       return width == rhs.width && height == rhs.height;
     }
-    PRBool operator!=(const IntrinsicSize& rhs) {
+    bool operator!=(const IntrinsicSize& rhs) {
       return !(*this == rhs);
     }
   };
@@ -1660,7 +1660,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             PRBool aShrinkWrap) = 0;
+                             bool aShrinkWrap) = 0;
 
   
 
@@ -1766,7 +1766,7 @@ public:
 
 
 
-  virtual PRBool CanContinueTextRun() const = 0;
+  virtual bool CanContinueTextRun() const = 0;
 
   
 
@@ -1795,7 +1795,7 @@ public:
 
 
 
-  virtual PRBool HasAnyNoncollapsedCharacters()
+  virtual bool HasAnyNoncollapsedCharacters()
   { return PR_FALSE; }
 
   
@@ -1803,7 +1803,7 @@ public:
 
 
 
-  PRBool HasView() const { return !!(mState & NS_FRAME_HAS_VIEW); }
+  bool HasView() const { return !!(mState & NS_FRAME_HAS_VIEW); }
   nsIView* GetView() const;
   virtual nsIView* GetViewExternal() const;
   nsresult SetView(nsIView* aView);
@@ -1887,7 +1887,7 @@ public:
 
 
 
-  virtual PRBool AreAncestorViewsVisible() const;
+  virtual bool AreAncestorViewsVisible() const;
 
   
 
@@ -1966,7 +1966,7 @@ public:
 
 
 
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
 #ifdef DEBUG
     return !(aFlags & ~(nsIFrame::eDEBUGAllFrames));
@@ -1978,13 +1978,13 @@ public:
   
 
 
-  virtual PRBool IsContainingBlock() const = 0;
+  virtual bool IsContainingBlock() const = 0;
 
   
 
 
 
-  virtual PRBool IsFloatContainingBlock() const { return PR_FALSE; }
+  virtual bool IsFloatContainingBlock() const { return false; }
 
   
 
@@ -1995,7 +1995,7 @@ public:
 
 
 
-  virtual PRBool IsLeaf() const;
+  virtual bool IsLeaf() const;
 
   
 
@@ -2029,7 +2029,7 @@ public:
   
 
 
-  PRBool AreLayersMarkedActive();
+  bool AreLayersMarkedActive();
   
 
 
@@ -2037,7 +2037,7 @@ public:
 
 
 
-  PRBool AreLayersMarkedActive(nsChangeHint aChangeHint);
+  bool AreLayersMarkedActive(nsChangeHint aChangeHint);
 
   
 
@@ -2265,7 +2265,7 @@ public:
 
 
 
-  PRBool HasOverflowAreas() const {
+  bool HasOverflowAreas() const {
     return mOverflow.mType != NS_FRAME_OVERFLOW_NONE;
   }
 
@@ -2295,10 +2295,10 @@ public:
 
 
 
-  virtual void SetSelected(PRBool        aSelected,
+  virtual void SetSelected(bool          aSelected,
                            SelectionType aType);
 
-  NS_IMETHOD  GetSelected(PRBool *aSelected) const = 0;
+  NS_IMETHOD  GetSelected(bool *aSelected) const = 0;
 
   
 
@@ -2309,7 +2309,7 @@ public:
 
 
 
-  NS_IMETHOD  IsSelectable(PRBool* aIsSelectable, PRUint8* aSelectStyle) const = 0;
+  NS_IMETHOD  IsSelectable(bool* aIsSelectable, PRUint8* aSelectStyle) const = 0;
 
   
 
@@ -2352,9 +2352,9 @@ public:
 
 
 
-  nsresult GetFrameFromDirection(nsDirection aDirection, PRBool aVisual,
-                                 PRBool aJumpLines, PRBool aScrollViewStop, 
-                                 nsIFrame** aOutFrame, PRInt32* aOutOffset, PRBool* aOutJumpedLine);
+  nsresult GetFrameFromDirection(nsDirection aDirection, bool aVisual,
+                                 bool aJumpLines, bool aScrollViewStop, 
+                                 nsIFrame** aOutFrame, PRInt32* aOutOffset, bool* aOutJumpedLine);
 
   
 
@@ -2367,7 +2367,7 @@ public:
 
 
 
-  NS_IMETHOD CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex, PRInt32 aEndIndex, PRBool aRecurse, PRBool *aFinished, PRBool *_retval)=0;
+  NS_IMETHOD CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex, PRInt32 aEndIndex, bool aRecurse, bool *aFinished, bool *_retval)=0;
 
   
 
@@ -2405,40 +2405,40 @@ public:
 
 
 
-  PRBool IsVisibleForPainting(nsDisplayListBuilder* aBuilder);
+  bool IsVisibleForPainting(nsDisplayListBuilder* aBuilder);
   
 
 
 
-  PRBool IsVisibleOrCollapsedForPainting(nsDisplayListBuilder* aBuilder);
+  bool IsVisibleOrCollapsedForPainting(nsDisplayListBuilder* aBuilder);
   
 
 
 
-  PRBool IsVisibleForPainting();
+  bool IsVisibleForPainting();
   
 
 
 
-  PRBool IsVisibleInSelection(nsDisplayListBuilder* aBuilder);
+  bool IsVisibleInSelection(nsDisplayListBuilder* aBuilder);
 
   
 
 
   
-  virtual PRBool IsVisibleInSelection(nsISelection* aSelection);
+  virtual bool IsVisibleInSelection(nsISelection* aSelection);
 
   
 
 
 
 
-  PRBool IsPseudoStackingContextFromStyle() {
+  bool IsPseudoStackingContextFromStyle() {
     const nsStyleDisplay* disp = GetStyleDisplay();
     return disp->mOpacity != 1.0f || disp->IsPositioned() || disp->IsFloating();
   }
   
-  virtual PRBool HonorPrintBackgroundSettings() { return PR_TRUE; }
+  virtual bool HonorPrintBackgroundSettings() { return true; }
 
   
 
@@ -2449,17 +2449,17 @@ public:
 
 
 
-  virtual PRBool IsEmpty() = 0;
+  virtual bool IsEmpty() = 0;
   
 
 
 
-  virtual PRBool CachedIsEmpty();
+  virtual bool CachedIsEmpty();
   
 
 
 
-  virtual PRBool IsSelfEmpty() = 0;
+  virtual bool IsSelfEmpty() = 0;
 
   
 
@@ -2467,7 +2467,7 @@ public:
 
 
 
-  PRBool IsGeneratedContentFrame() {
+  bool IsGeneratedContentFrame() {
     return (mState & NS_FRAME_GENERATED_CONTENT) != 0;
   }
 
@@ -2479,7 +2479,7 @@ public:
 
 
    
-  PRBool IsPseudoFrame(nsIContent* aParentContent) {
+  bool IsPseudoFrame(nsIContent* aParentContent) {
     return mContent == aParentContent;
   }
 
@@ -2501,7 +2501,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
 
 
 
-  virtual PRBool SupportsVisibilityHidden() { return PR_TRUE; }
+  virtual bool SupportsVisibilityHidden() { return true; }
 
   
 
@@ -2509,7 +2509,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
 
 
 
-  PRBool GetAbsPosClipRect(const nsStyleDisplay* aDisp, nsRect* aRect,
+  bool GetAbsPosClipRect(const nsStyleDisplay* aDisp, nsRect* aRect,
                            const nsSize& aSize) const;
 
   
@@ -2530,16 +2530,16 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
 
 
 
-  virtual PRBool IsFocusable(PRInt32 *aTabIndex = nsnull, PRBool aWithMouse = PR_FALSE);
+  virtual bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false);
 
   
   
   
-  PRBool IsBoxFrame() const
+  bool IsBoxFrame() const
   {
     return IsFrameOfType(nsIFrame::eXULBox);
   }
-  PRBool IsBoxWrapped() const
+  bool IsBoxWrapped() const
   { return (!IsBoxFrame() && mParent && mParent->IsBoxFrame()); }
 
   enum Halignment {
@@ -2587,14 +2587,14 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
 
   virtual nscoord GetFlex(nsBoxLayoutState& aBoxLayoutState) = 0;
   virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState) = 0;
-  virtual PRBool IsCollapsed(nsBoxLayoutState& aBoxLayoutState) = 0;
+  virtual bool IsCollapsed(nsBoxLayoutState& aBoxLayoutState) = 0;
   
   
   
   
   
   virtual void SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
-                         PRBool aRemoveOverflowAreas = PR_FALSE) = 0;
+                         bool aRemoveOverflowAreas = false) = 0;
   NS_HIDDEN_(nsresult) Layout(nsBoxLayoutState& aBoxLayoutState);
   nsIBox* GetChildBox() const
   {
@@ -2624,17 +2624,17 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
   virtual Valignment GetVAlign() const = 0;
   virtual Halignment GetHAlign() const = 0;
 
-  PRBool IsHorizontal() const { return (mState & NS_STATE_IS_HORIZONTAL) != 0; }
-  PRBool IsNormalDirection() const { return (mState & NS_STATE_IS_DIRECTION_NORMAL) != 0; }
+  bool IsHorizontal() const { return (mState & NS_STATE_IS_HORIZONTAL) != 0; }
+  bool IsNormalDirection() const { return (mState & NS_STATE_IS_DIRECTION_NORMAL) != 0; }
 
   NS_HIDDEN_(nsresult) Redraw(nsBoxLayoutState& aState, const nsRect* aRect = nsnull);
   NS_IMETHOD RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIBox* aChild)=0;
   
-  virtual PRBool GetMouseThrough() const { return PR_FALSE; };
+  virtual bool GetMouseThrough() const { return false; };
 
 #ifdef DEBUG_LAYOUT
-  NS_IMETHOD SetDebug(nsBoxLayoutState& aState, PRBool aDebug)=0;
-  NS_IMETHOD GetDebug(PRBool& aDebug)=0;
+  NS_IMETHOD SetDebug(nsBoxLayoutState& aState, bool aDebug)=0;
+  NS_IMETHOD GetDebug(bool& aDebug)=0;
 
   NS_IMETHOD DumpBox(FILE* out)=0;
 #endif
@@ -2643,19 +2643,19 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
 
 
 
-  virtual PRBool HasTerminalNewline() const;
+  virtual bool HasTerminalNewline() const;
 
-  static PRBool AddCSSPrefSize(nsIBox* aBox, nsSize& aSize, PRBool& aWidth, PRBool& aHeightSet);
-  static PRBool AddCSSMinSize(nsBoxLayoutState& aState, nsIBox* aBox,
-                              nsSize& aSize, PRBool& aWidth, PRBool& aHeightSet);
-  static PRBool AddCSSMaxSize(nsIBox* aBox, nsSize& aSize, PRBool& aWidth, PRBool& aHeightSet);
-  static PRBool AddCSSFlex(nsBoxLayoutState& aState, nsIBox* aBox, nscoord& aFlex);
-
-  
-  
-  
+  static bool AddCSSPrefSize(nsIBox* aBox, nsSize& aSize, bool& aWidth, bool& aHeightSet);
+  static bool AddCSSMinSize(nsBoxLayoutState& aState, nsIBox* aBox,
+                              nsSize& aSize, bool& aWidth, bool& aHeightSet);
+  static bool AddCSSMaxSize(nsIBox* aBox, nsSize& aSize, bool& aWidth, bool& aHeightSet);
+  static bool AddCSSFlex(nsBoxLayoutState& aState, nsIBox* aBox, nscoord& aFlex);
 
   
+  
+  
+
+  
 
 
 
@@ -2666,7 +2666,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
 
 
 
-  nsPeekOffsetStruct GetExtremeCaretPosition(PRBool aStart);
+  nsPeekOffsetStruct GetExtremeCaretPosition(bool aStart);
 
   
 
@@ -2796,7 +2796,7 @@ protected:
 
 
 
-  virtual PRBool PeekOffsetNoAmount(PRBool aForward, PRInt32* aOffset) = 0;
+  virtual bool PeekOffsetNoAmount(bool aForward, PRInt32* aOffset) = 0;
   
   
 
@@ -2810,8 +2810,8 @@ protected:
 
 
 
-  virtual PRBool PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset,
-                                     PRBool aRespectClusters = PR_TRUE) = 0;
+  virtual bool PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
+                                     bool aRespectClusters = true) = 0;
   
   
 
@@ -2834,16 +2834,16 @@ protected:
   struct PeekWordState {
     
     
-    PRPackedBool mAtStart;
+    bool mAtStart;
     
     
-    PRPackedBool mSawBeforeType;
+    bool mSawBeforeType;
     
-    PRPackedBool mLastCharWasPunctuation;
+    bool mLastCharWasPunctuation;
     
-    PRPackedBool mLastCharWasWhitespace;
+    bool mLastCharWasWhitespace;
     
-    PRPackedBool mSeenNonPunctuationSinceWhitespace;
+    bool mSeenNonPunctuationSinceWhitespace;
     
     
     
@@ -2853,7 +2853,7 @@ protected:
         mLastCharWasPunctuation(PR_FALSE), mLastCharWasWhitespace(PR_FALSE),
         mSeenNonPunctuationSinceWhitespace(PR_FALSE) {}
     void SetSawBeforeType() { mSawBeforeType = PR_TRUE; }
-    void Update(PRBool aAfterPunctuation, PRBool aAfterWhitespace) {
+    void Update(bool aAfterPunctuation, bool aAfterWhitespace) {
       mLastCharWasPunctuation = aAfterPunctuation;
       mLastCharWasWhitespace = aAfterWhitespace;
       if (aAfterWhitespace) {
@@ -2864,7 +2864,7 @@ protected:
       mAtStart = PR_FALSE;
     }
   };
-  virtual PRBool PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool aIsKeyboardSelect,
+  virtual bool PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,
                                 PRInt32* aOffset, PeekWordState* aState) = 0;
 
   
@@ -2963,7 +2963,7 @@ public:
     mPrev = nsnull;
   }
 
-  PRBool IsAlive() { return !!mFrame; }
+  bool IsAlive() { return !!mFrame; }
 
   nsIFrame* GetFrame() const { return mFrame; }
 

@@ -256,7 +256,7 @@ NS_IMETHODIMP nsICOEncoder::StartImageEncode(PRUint32 aWidth,
 
   
   PRUint32 bpp = 24;
-  PRBool usePNG = PR_TRUE;
+  bool usePNG = true;
   nsresult rv = ParseOptions(aOutputOptions, &bpp, &usePNG);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -292,7 +292,7 @@ NS_IMETHODIMP nsICOEncoder::EndImageEncode()
 
 nsresult
 nsICOEncoder::ParseOptions(const nsAString& aOptions, PRUint32* bpp, 
-                           PRBool *usePNG)
+                           bool *usePNG)
 {
   
   if (aOptions.Length() == 0) {
@@ -413,7 +413,7 @@ NS_IMETHODIMP nsICOEncoder::ReadSegments(nsWriteSegmentFun aWriter,
 }
 
 NS_IMETHODIMP 
-nsICOEncoder::IsNonBlocking(PRBool *_retval)
+nsICOEncoder::IsNonBlocking(bool *_retval)
 {
   *_retval = PR_TRUE;
   return NS_OK;

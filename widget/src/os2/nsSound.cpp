@@ -84,7 +84,7 @@ typedef struct _ARGBUFFER
 
 
 
-static PRBool   sDllError = FALSE;      
+static bool     sDllError = FALSE;      
 static char *   sSoundFiles[EVENT_CNT] = {0}; 
 
 
@@ -94,7 +94,7 @@ static ULONG  (*APIENTRY _mciSendCommand)(USHORT, USHORT, ULONG, PVOID, USHORT);
 
 
 static void   initSounds(void);
-static PRBool initDlls(void);
+static bool initDlls(void);
 static void   playSound(void *aArgs);
 static FOURCC determineFourCC(PRUint32 aDataLen, const char *aData);
 
@@ -335,7 +335,7 @@ nsresult nsSound::PlaySoundFile(const nsACString &aSoundFile)
 
 static void initSounds(void)
 {
-  static PRBool sSoundInit = FALSE;
+  static bool sSoundInit = FALSE;
 
   if (sSoundInit) {
     return;
@@ -415,9 +415,9 @@ static void initSounds(void)
 
 
 
-static PRBool initDlls(void)
+static bool initDlls(void)
 {
-  static PRBool sDllInit = FALSE;
+  static bool sDllInit = FALSE;
 
   if (sDllInit) {
     return TRUE;

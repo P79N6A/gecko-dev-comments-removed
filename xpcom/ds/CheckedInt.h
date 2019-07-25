@@ -406,9 +406,9 @@ public:
     
 
 
-    PRBool valid() const
+    bool valid() const
     {
-        return PRBool(mIsValid);
+        return bool(mIsValid);
     }
 
     
@@ -440,9 +440,9 @@ public:
     }
 
     
-    PRBool operator ==(const CheckedInt& other) const
+    bool operator ==(const CheckedInt& other) const
     {
-        return PRBool(mIsValid & other.mIsValid & (value() == other.mValue));
+        return bool(mIsValid & other.mIsValid & (value() == other.mValue));
     }
 
     
@@ -480,7 +480,7 @@ private:
 
 
     template<typename U>
-    PRBool operator !=(U other) const { return !(*this == other); }
+    bool operator !=(U other) const { return !(*this == other); }
 };
 
 #define CHECKEDINT_BASIC_BINARY_OPERATOR(NAME, OP)               \
@@ -565,13 +565,13 @@ CHECKEDINT_CONVENIENCE_BINARY_OPERATORS(-, -=)
 CHECKEDINT_CONVENIENCE_BINARY_OPERATORS(/, /=)
 
 template<typename T, typename U>
-inline PRBool operator ==(const CheckedInt<T> &lhs, U rhs)
+inline bool operator ==(const CheckedInt<T> &lhs, U rhs)
 {
     return lhs == cast_to_CheckedInt<T>(rhs);
 }
 
 template<typename T, typename U>
-inline PRBool operator ==(U  lhs, const CheckedInt<T> &rhs)
+inline bool operator ==(U  lhs, const CheckedInt<T> &rhs)
 {
     return cast_to_CheckedInt<T>(lhs) == rhs;
 }

@@ -59,7 +59,7 @@ public:
   NS_DECL_EDITTXN
 
   NS_IMETHOD RedoTransaction();
-  NS_IMETHOD Merge(nsITransaction *aTransaction, PRBool *aDidMerge);
+  NS_IMETHOD Merge(nsITransaction *aTransaction, bool *aDidMerge);
 
   
   NS_IMETHOD AppendChild(EditTxn *aTxn);

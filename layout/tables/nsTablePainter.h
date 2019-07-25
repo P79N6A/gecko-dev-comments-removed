@@ -114,7 +114,7 @@ class TableBackgroundPainter
 
 
     nsresult PaintTable(nsTableFrame* aTableFrame, const nsMargin& aDeflate,
-                        PRBool aPaintTableBackground);
+                        bool aPaintTableBackground);
 
     
 
@@ -157,9 +157,9 @@ class TableBackgroundPainter
 
 
     nsresult PaintRowGroup(nsTableRowGroupFrame* aFrame,
-                           PRBool                aPassThrough);
+                           bool                  aPassThrough);
     nsresult PaintRow(nsTableRowFrame* aFrame,
-                      PRBool           aPassThrough);
+                      bool             aPassThrough);
 
     
 
@@ -167,7 +167,7 @@ class TableBackgroundPainter
 
 
     nsresult PaintCell(nsTableCellFrame* aFrame,
-                       PRBool            aPassSelf);
+                       bool              aPassSelf);
 
     
 
@@ -183,11 +183,11 @@ class TableBackgroundPainter
       nsIFrame*                 mFrame;
       
       nsRect                    mRect;
-      PRBool                    mVisible;
+      bool                      mVisible;
       const nsStyleBorder*      mBorder;
 
       
-      PRBool IsVisible() const { return mVisible; }
+      bool IsVisible() const { return mVisible; }
 
       
       TableBackgroundData();
@@ -212,7 +212,7 @@ class TableBackgroundPainter
       void SetData();
 
       
-      PRBool ShouldSetBCBorder();
+      bool ShouldSetBCBorder();
 
       
       nsresult SetBCBorder(nsMargin&               aBorderWidth,
@@ -239,7 +239,7 @@ class TableBackgroundPainter
 #ifdef DEBUG
     nsCompatibility      mCompatMode;
 #endif
-    PRBool               mIsBorderCollapse;
+    bool                 mIsBorderCollapse;
     Origin               mOrigin; 
 
     ColData*             mCols;  

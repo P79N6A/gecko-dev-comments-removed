@@ -100,7 +100,7 @@ public:
   NS_DECL_NSIINTERFACEREQUESTOR
 
   
-  static PRBool PrefEnabled();
+  static bool PrefEnabled();
 
 protected:
   nsresult GetBaseURI(nsIURI **aBaseURI);
@@ -138,7 +138,7 @@ protected:
   nsresult ResetEvent();
   nsresult DispatchCurrentMessageEvent();
   nsresult ParseCharacter(PRUnichar aChr);
-  PRBool CheckCanRequestSrc(nsIURI* aSrc = nsnull);  
+  bool CheckCanRequestSrc(nsIURI* aSrc = nsnull);  
   nsresult CheckHealthOfRequestCallback(nsIRequest *aRequestCallback);
   nsresult OnRedirectVerifyCallback(nsresult result);
 
@@ -212,9 +212,9 @@ protected:
   };
   ParserStatus mStatus;
 
-  PRPackedBool mFrozen;
-  PRPackedBool mErrorLoadOnRedirect;
-  PRPackedBool mGoingToDispatchAllMessages;
+  bool mFrozen;
+  bool mErrorLoadOnRedirect;
+  bool mGoingToDispatchAllMessages;
 
   
   nsCOMPtr<nsIUnicodeDecoder> mUnicodeDecoder;

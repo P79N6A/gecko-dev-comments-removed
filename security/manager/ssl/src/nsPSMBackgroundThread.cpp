@@ -71,7 +71,7 @@ nsPSMBackgroundThread::~nsPSMBackgroundThread()
 {
 }
 
-PRBool
+bool
 nsPSMBackgroundThread::exitRequested(const MutexAutoLock & ) const
 {
   return exitRequestedNoLock();

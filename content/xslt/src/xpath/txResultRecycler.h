@@ -94,7 +94,7 @@ public:
 
 
     void getEmptyStringResult(txAExprResult** aResult);
-    void getBoolResult(PRBool aValue, txAExprResult** aResult);
+    void getBoolResult(bool aValue, txAExprResult** aResult);
 
     
 

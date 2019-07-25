@@ -88,7 +88,7 @@ public:
   
   
   
-  virtual PRBool Init(nsHTMLMediaElement* aElement);
+  virtual bool Init(nsHTMLMediaElement* aElement);
 
   
   
@@ -120,10 +120,10 @@ public:
   
   
   
-  virtual void SetInfinite(PRBool aInfinite) = 0;
+  virtual void SetInfinite(bool aInfinite) = 0;
 
   
-  virtual PRBool IsInfinite() = 0;
+  virtual bool IsInfinite() = 0;
 
   
   virtual void Pause() = 0;
@@ -152,11 +152,11 @@ public:
 
   
   
-  virtual PRBool IsSeeking() const = 0;
+  virtual bool IsSeeking() const = 0;
 
   
   
-  virtual PRBool IsEnded() const = 0;
+  virtual bool IsEnded() const = 0;
 
   struct Statistics {
     
@@ -177,11 +177,11 @@ public:
     
     
     
-    PRPackedBool mDownloadRateReliable;
+    bool mDownloadRateReliable;
     
     
     
-    PRPackedBool mPlaybackRateReliable;
+    bool mPlaybackRateReliable;
   };
 
   
@@ -288,10 +288,10 @@ public:
   virtual void SetDuration(double aDuration) = 0;
 
   
-  virtual void SetSeekable(PRBool aSeekable) = 0;
+  virtual void SetSeekable(bool aSeekable) = 0;
 
   
-  virtual PRBool IsSeekable() = 0;
+  virtual bool IsSeekable() = 0;
 
   
   virtual nsresult GetSeekable(nsTimeRanges* aSeekable) = 0;
@@ -307,7 +307,7 @@ public:
   
   
   
-  virtual void Progress(PRBool aTimer);
+  virtual void Progress(bool aTimer);
 
   
   
@@ -349,7 +349,7 @@ public:
   
   
   
-  virtual void Resume(PRBool aForceBuffering) = 0;
+  virtual void Resume(bool aForceBuffering) = 0;
 
   
   
@@ -388,7 +388,7 @@ public:
 
   
   
-  PRBool CanPlayThrough();
+  bool CanPlayThrough();
 
   
   
@@ -461,13 +461,13 @@ protected:
 
   
   
-  PRPackedBool mPinnedForSeek;
+  bool mPinnedForSeek;
 
   
   
   
   
-  PRPackedBool mSizeChanged;
+  bool mSizeChanged;
 
   
   
@@ -475,13 +475,13 @@ protected:
   
   
   
-  PRPackedBool mImageContainerSizeChanged;
+  bool mImageContainerSizeChanged;
 
   
   
   
   
-  PRPackedBool mShuttingDown;
+  bool mShuttingDown;
 };
 
 namespace mozilla {

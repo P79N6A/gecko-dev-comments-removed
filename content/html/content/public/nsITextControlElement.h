@@ -64,31 +64,31 @@ public:
   
 
 
-  NS_IMETHOD SetValueChanged(PRBool changed) = 0;
+  NS_IMETHOD SetValueChanged(bool changed) = 0;
 
   
 
 
 
-  NS_IMETHOD_(PRBool) IsSingleLineTextControl() const = 0;
+  NS_IMETHOD_(bool) IsSingleLineTextControl() const = 0;
 
   
 
 
 
-  NS_IMETHOD_(PRBool) IsTextArea() const = 0;
+  NS_IMETHOD_(bool) IsTextArea() const = 0;
 
   
 
 
 
-  NS_IMETHOD_(PRBool) IsPlainTextControl() const = 0;
+  NS_IMETHOD_(bool) IsPlainTextControl() const = 0;
 
   
 
 
 
-  NS_IMETHOD_(PRBool) IsPasswordTextControl() const = 0;
+  NS_IMETHOD_(bool) IsPasswordTextControl() const = 0;
 
   
 
@@ -115,7 +115,7 @@ public:
   
 
 
-  NS_IMETHOD_(PRBool) ValueChanged() const = 0;
+  NS_IMETHOD_(bool) ValueChanged() const = 0;
 
   
 
@@ -124,7 +124,7 @@ public:
 
 
 
-  NS_IMETHOD_(void) GetTextEditorValue(nsAString& aValue, PRBool aIgnoreWrap) const = 0;
+  NS_IMETHOD_(void) GetTextEditorValue(nsAString& aValue, bool aIgnoreWrap) const = 0;
 
   
 
@@ -132,7 +132,7 @@ public:
 
 
 
-  NS_IMETHOD_(void) SetTextEditorValue(const nsAString& aValue, PRBool aUserInput) = 0;
+  NS_IMETHOD_(void) SetTextEditorValue(const nsAString& aValue, bool aUserInput) = 0;
 
   
 
@@ -192,17 +192,17 @@ public:
   
 
 
-  NS_IMETHOD_(void) UpdatePlaceholderText(PRBool aNotify) = 0;
+  NS_IMETHOD_(void) UpdatePlaceholderText(bool aNotify) = 0;
 
   
 
 
-  NS_IMETHOD_(void) SetPlaceholderClass(PRBool aVisible, PRBool aNotify) = 0;
+  NS_IMETHOD_(void) SetPlaceholderClass(bool aVisible, bool aNotify) = 0;
 
   
 
 
-  NS_IMETHOD_(void) OnValueChanged(PRBool aNotify) = 0;
+  NS_IMETHOD_(void) OnValueChanged(bool aNotify) = 0;
 
   static const PRInt32 DEFAULT_COLS = 20;
   static const PRInt32 DEFAULT_ROWS = 1;
@@ -216,7 +216,7 @@ public:
     eHTMLTextWrap_Soft    = 3     
   } nsHTMLTextWrap;
 
-  static PRBool
+  static bool
   GetWrapPropertyEnum(nsIContent* aContent, nsHTMLTextWrap& aWrapProp);
 
   
@@ -225,7 +225,7 @@ public:
 
 
 
-  NS_IMETHOD_(PRBool) HasCachedSelection() = 0;
+  NS_IMETHOD_(bool) HasCachedSelection() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsITextControlElement,

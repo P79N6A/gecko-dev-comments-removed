@@ -111,16 +111,16 @@ public:
     return static_cast<double>(mValue) / aOther.mValue;
   }
 
-  PRBool operator<(const TimeDuration& aOther) const {
+  bool operator<(const TimeDuration& aOther) const {
     return mValue < aOther.mValue;
   }
-  PRBool operator<=(const TimeDuration& aOther) const {
+  bool operator<=(const TimeDuration& aOther) const {
     return mValue <= aOther.mValue;
   }
-  PRBool operator>=(const TimeDuration& aOther) const {
+  bool operator>=(const TimeDuration& aOther) const {
     return mValue >= aOther.mValue;
   }
-  PRBool operator>(const TimeDuration& aOther) const {
+  bool operator>(const TimeDuration& aOther) const {
     return mValue > aOther.mValue;
   }
 
@@ -199,7 +199,7 @@ public:
   
 
 
-  PRBool IsNull() const { return mValue == 0; }
+  bool IsNull() const { return mValue == 0; }
   
 
 
@@ -246,33 +246,33 @@ public:
     return *this;
   }
 
-  PRBool operator<(const TimeStamp& aOther) const {
+  bool operator<(const TimeStamp& aOther) const {
     MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     return mValue < aOther.mValue;
   }
-  PRBool operator<=(const TimeStamp& aOther) const {
+  bool operator<=(const TimeStamp& aOther) const {
     MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     return mValue <= aOther.mValue;
   }
-  PRBool operator>=(const TimeStamp& aOther) const {
+  bool operator>=(const TimeStamp& aOther) const {
     MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     return mValue >= aOther.mValue;
   }
-  PRBool operator>(const TimeStamp& aOther) const {
+  bool operator>(const TimeStamp& aOther) const {
     MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     return mValue > aOther.mValue;
   }
-  PRBool operator==(const TimeStamp& aOther) const {
+  bool operator==(const TimeStamp& aOther) const {
     
     MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");
     return mValue == aOther.mValue;
   }
-  PRBool operator!=(const TimeStamp& aOther) const {
+  bool operator!=(const TimeStamp& aOther) const {
     
     MOZ_ASSERT(!IsNull() && "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull() && "Cannot compute with aOther null value");

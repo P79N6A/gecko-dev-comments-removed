@@ -105,12 +105,12 @@ public:
 
 
 
-  virtual PRBool GetAnimAttr(nsIAtom* aAttName, nsAString& aResult) const = 0;
+  virtual bool GetAnimAttr(nsIAtom* aAttName, nsAString& aResult) const = 0;
 
   
 
 
-  virtual PRBool HasAnimAttr(nsIAtom* aAttName) const = 0;
+  virtual bool HasAnimAttr(nsIAtom* aAttName) const = 0;
 
   
 
@@ -120,7 +120,7 @@ public:
   
 
 
-  virtual PRBool GetTargetAttributeName(PRInt32* aNamespaceID,
+  virtual bool GetTargetAttributeName(PRInt32* aNamespaceID,
                                         nsIAtom** aLocalName) const = 0;
 
   

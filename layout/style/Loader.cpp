@@ -144,7 +144,7 @@ public:
                 nsIURI* aURI,
                 nsCSSStyleSheet* aSheet,
                 nsIStyleSheetLinkingElement* aOwningElement,
-                PRBool aIsAlternate,
+                bool aIsAlternate,
                 nsICSSLoaderObserver* aObserver,
                 nsIPrincipal* aLoaderPrincipal);
 
@@ -160,9 +160,9 @@ public:
   SheetLoadData(Loader* aLoader,
                 nsIURI* aURI,
                 nsCSSStyleSheet* aSheet,
-                PRBool aSyncLoad,
-                PRBool aAllowUnsafeRules,
-                PRBool aUseSystemPrincipal,
+                bool aSyncLoad,
+                bool aAllowUnsafeRules,
+                bool aUseSystemPrincipal,
                 const nsCString& aCharset,
                 nsICSSLoaderObserver* aObserver,
                 nsIPrincipal* aLoaderPrincipal);
@@ -208,48 +208,48 @@ public:
 
   
   
-  PRPackedBool               mSyncLoad : 1;
+  bool                       mSyncLoad : 1;
 
   
   
   
-  PRPackedBool               mIsNonDocumentSheet : 1;
-
-  
-  
-  
-  
-  PRPackedBool               mIsLoading : 1;
+  bool                       mIsNonDocumentSheet : 1;
 
   
   
   
   
-  PRPackedBool               mIsCancelled : 1;
+  bool                       mIsLoading : 1;
+
+  
+  
+  
+  
+  bool                       mIsCancelled : 1;
 
   
   
   
   
   
-  PRPackedBool               mMustNotify : 1;
+  bool                       mMustNotify : 1;
 
   
   
-  PRPackedBool               mWasAlternate : 1;
+  bool                       mWasAlternate : 1;
 
   
   
-  PRPackedBool               mAllowUnsafeRules : 1;
+  bool                       mAllowUnsafeRules : 1;
 
   
   
   
-  PRPackedBool               mUseSystemPrincipal : 1;
+  bool                       mUseSystemPrincipal : 1;
 
   
   
-  PRPackedBool               mSheetAlreadyComplete : 1;
+  bool                       mSheetAlreadyComplete : 1;
 
   
   
@@ -332,7 +332,7 @@ SheetLoadData::SheetLoadData(Loader* aLoader,
                              nsIURI* aURI,
                              nsCSSStyleSheet* aSheet,
                              nsIStyleSheetLinkingElement* aOwningElement,
-                             PRBool aIsAlternate,
+                             bool aIsAlternate,
                              nsICSSLoaderObserver* aObserver,
                              nsIPrincipal* aLoaderPrincipal)
   : mLoader(aLoader),
@@ -404,9 +404,9 @@ SheetLoadData::SheetLoadData(Loader* aLoader,
 SheetLoadData::SheetLoadData(Loader* aLoader,
                              nsIURI* aURI,
                              nsCSSStyleSheet* aSheet,
-                             PRBool aSyncLoad,
-                             PRBool aAllowUnsafeRules,
-                             PRBool aUseSystemPrincipal,
+                             bool aSyncLoad,
+                             bool aAllowUnsafeRules,
+                             bool aUseSystemPrincipal,
                              const nsCString& aCharset,
                              nsICSSLoaderObserver* aObserver,
                              nsIPrincipal* aLoaderPrincipal)
@@ -460,7 +460,7 @@ SheetLoadData::OnDispatchedEvent(nsIThreadInternal* aThread)
 
 NS_IMETHODIMP
 SheetLoadData::OnProcessNextEvent(nsIThreadInternal* aThread,
-                                  PRBool aMayWait,
+                                  bool aMayWait,
                                   PRUint32 aRecursionDepth)
 {
   
@@ -645,7 +645,7 @@ static nsresult GetCharsetFromData(const unsigned char* aStyleSheetData,
     return NS_ERROR_NOT_AVAILABLE;
   PRUint32 step = 1;
   PRUint32 pos = 0;
-  PRBool bigEndian = PR_FALSE;
+  bool bigEndian = false;
   
   
   
@@ -915,7 +915,7 @@ SheetLoadData::OnStreamComplete(nsIUnicharStreamLoader* aLoader,
   
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel));
   if (httpChannel) {
-    PRBool requestSucceeded;
+    bool requestSucceeded;
     result = httpChannel->GetRequestSucceeded(&requestSucceeded);
     if (NS_SUCCEEDED(result) && !requestSucceeded) {
       LOG(("  Load returned an error page"));
@@ -934,17 +934,17 @@ SheetLoadData::OnStreamComplete(nsIUnicharStreamLoader* aLoader,
   
   
 
-  PRBool validType = contentType.EqualsLiteral("text/css") ||
+  bool validType = contentType.EqualsLiteral("text/css") ||
     contentType.EqualsLiteral(UNKNOWN_CONTENT_TYPE) ||
     contentType.IsEmpty();
 
   if (!validType) {
     const char *errorMessage;
     PRUint32 errorFlag;
-    PRBool sameOrigin = PR_TRUE;
+    bool sameOrigin = true;
 
     if (mLoaderPrincipal) {
-      PRBool subsumed;
+      bool subsumed;
       result = mLoaderPrincipal->Subsumes(principal, &subsumed);
       if (NS_FAILED(result) || !subsumed) {
         sameOrigin = PR_FALSE;
@@ -985,24 +985,24 @@ SheetLoadData::OnStreamComplete(nsIUnicharStreamLoader* aLoader,
   
   mSheet->SetURIs(channelURI, originalURI, channelURI);
 
-  PRBool completed;
+  bool completed;
   result = mLoader->ParseSheet(aBuffer, this, completed);
   NS_ASSERTION(completed || !mSyncLoad, "sync load did not complete");
   return result;
 }
 
 #ifdef MOZ_XUL
-static PRBool IsChromeURI(nsIURI* aURI)
+static bool IsChromeURI(nsIURI* aURI)
 {
   NS_ASSERTION(aURI, "Have to pass in a URI");
-  PRBool isChrome = PR_FALSE;
+  bool isChrome = false;
   aURI->SchemeIs("chrome", &isChrome);
   return isChrome;
 }
 #endif
 
-PRBool
-Loader::IsAlternate(const nsAString& aTitle, PRBool aHasAlternateRel)
+bool
+Loader::IsAlternate(const nsAString& aTitle, bool aHasAlternateRel)
 {
   
   
@@ -1090,7 +1090,7 @@ nsresult
 Loader::CreateSheet(nsIURI* aURI,
                     nsIContent* aLinkingContent,
                     nsIPrincipal* aLoaderPrincipal,
-                    PRBool aSyncLoad,
+                    bool aSyncLoad,
                     StyleSheetState& aSheetState,
                     nsCSSStyleSheet** aSheet)
 {
@@ -1156,7 +1156,7 @@ Loader::CreateSheet(nsIURI* aURI,
         LOG(("  From loading: %p", sheet.get()));
 
 #ifdef DEBUG
-        PRBool debugEqual;
+        bool debugEqual;
         NS_ASSERTION((!aLoaderPrincipal && !loadData->mLoaderPrincipal) ||
                      (aLoaderPrincipal && loadData->mLoaderPrincipal &&
                       NS_SUCCEEDED(aLoaderPrincipal->
@@ -1176,7 +1176,7 @@ Loader::CreateSheet(nsIURI* aURI,
           LOG(("  From pending: %p", sheet.get()));
 
 #ifdef DEBUG
-          PRBool debugEqual;
+          bool debugEqual;
           NS_ASSERTION((!aLoaderPrincipal && !loadData->mLoaderPrincipal) ||
                        (aLoaderPrincipal && loadData->mLoaderPrincipal &&
                         NS_SUCCEEDED(aLoaderPrincipal->
@@ -1239,8 +1239,8 @@ Loader::PrepareSheet(nsCSSStyleSheet* aSheet,
                      const nsSubstring& aTitle,
                      const nsSubstring& aMediaString,
                      nsMediaList* aMediaList,
-                     PRBool aHasAlternateRel,
-                     PRBool *aIsAlternate)
+                     bool aHasAlternateRel,
+                     bool *aIsAlternate)
 {
   NS_PRECONDITION(aSheet, "Must have a sheet!");
 
@@ -1265,7 +1265,7 @@ Loader::PrepareSheet(nsCSSStyleSheet* aSheet,
   aSheet->SetMedia(mediaList);
 
   aSheet->SetTitle(aTitle);
-  PRBool alternate = IsAlternate(aTitle, aHasAlternateRel);
+  bool alternate = IsAlternate(aTitle, aHasAlternateRel);
   aSheet->SetEnabled(! alternate);
   if (aIsAlternate) {
     *aIsAlternate = alternate;
@@ -1562,7 +1562,7 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
   channel->SetContentType(NS_LITERAL_CSTRING("text/css"));
 
   if (aLoadData->mLoaderPrincipal) {
-    PRBool inherit;
+    bool inherit;
     rv = NS_URIChainHasFlags(aLoadData->mURI,
                              nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
                              &inherit);
@@ -1615,7 +1615,7 @@ Loader::LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState)
 nsresult
 Loader::ParseSheet(const nsAString& aInput,
                    SheetLoadData* aLoadData,
-                   PRBool& aCompleted)
+                   bool& aCompleted)
 {
   LOG(("css::Loader::ParseSheet"));
   NS_PRECONDITION(aLoadData, "Must have load data");
@@ -1812,8 +1812,8 @@ Loader::LoadInlineStyle(nsIContent* aElement,
                         const nsAString& aTitle,
                         const nsAString& aMedia,
                         nsICSSLoaderObserver* aObserver,
-                        PRBool* aCompleted,
-                        PRBool* aIsAlternate)
+                        bool* aCompleted,
+                        bool* aIsAlternate)
 {
   LOG(("css::Loader::LoadInlineStyle"));
   NS_ASSERTION(mParsingDatas.Length() == 0, "We're in the middle of a parse?");
@@ -1874,9 +1874,9 @@ Loader::LoadStyleLink(nsIContent* aElement,
                       nsIURI* aURL,
                       const nsAString& aTitle,
                       const nsAString& aMedia,
-                      PRBool aHasAlternateRel,
+                      bool aHasAlternateRel,
                       nsICSSLoaderObserver* aObserver,
-                      PRBool* aIsAlternate)
+                      bool* aIsAlternate)
 {
   LOG(("css::Loader::LoadStyleLink"));
   NS_PRECONDITION(aURL, "Must have URL to load");
@@ -1962,7 +1962,7 @@ Loader::LoadStyleLink(nsIContent* aElement,
   return rv;
 }
 
-static PRBool
+static bool
 HaveAncestorDataWithURI(SheetLoadData *aData, nsIURI *aURI)
 {
   if (!aData->mURI) {
@@ -1972,7 +1972,7 @@ HaveAncestorDataWithURI(SheetLoadData *aData, nsIURI *aURI)
     return PR_FALSE;
   }
 
-  PRBool equal;
+  bool equal;
   if (NS_FAILED(aData->mURI->Equals(aURI, &equal)) || equal) {
     return PR_TRUE;
   }
@@ -2090,7 +2090,7 @@ Loader::LoadChildSheet(nsCSSStyleSheet* aParentSheet,
                                           observer, principal);
 
   NS_ADDREF(data);
-  PRBool syncLoad = data->mSyncLoad;
+  bool syncLoad = data->mSyncLoad;
 
   
   rv = LoadSheet(data, state);
@@ -2104,8 +2104,8 @@ Loader::LoadChildSheet(nsCSSStyleSheet* aParentSheet,
 }
 
 nsresult
-Loader::LoadSheetSync(nsIURI* aURL, PRBool aAllowUnsafeRules,
-                      PRBool aUseSystemPrincipal,
+Loader::LoadSheetSync(nsIURI* aURL, bool aAllowUnsafeRules,
+                      bool aUseSystemPrincipal,
                       nsCSSStyleSheet** aSheet)
 {
   LOG(("css::Loader::LoadSheetSync"));
@@ -2142,8 +2142,8 @@ Loader::LoadSheet(nsIURI* aURL,
 
 nsresult
 Loader::InternalLoadNonDocumentSheet(nsIURI* aURL,
-                                     PRBool aAllowUnsafeRules,
-                                     PRBool aUseSystemPrincipal,
+                                     bool aAllowUnsafeRules,
+                                     bool aUseSystemPrincipal,
                                      nsIPrincipal* aOriginPrincipal,
                                      const nsCString& aCharset,
                                      nsCSSStyleSheet** aSheet,
@@ -2173,7 +2173,7 @@ Loader::InternalLoadNonDocumentSheet(nsIURI* aURL,
 
   StyleSheetState state;
   nsRefPtr<nsCSSStyleSheet> sheet;
-  PRBool syncLoad = (aObserver == nsnull);
+  bool syncLoad = (aObserver == nsnull);
 
   rv = CreateSheet(aURL, nsnull, aOriginPrincipal, syncLoad, state,
                    getter_AddRefs(sheet));
@@ -2217,7 +2217,7 @@ nsresult
 Loader::PostLoadEvent(nsIURI* aURI,
                       nsCSSStyleSheet* aSheet,
                       nsICSSLoaderObserver* aObserver,
-                      PRBool aWasAlternate,
+                      bool aWasAlternate,
                       nsIStyleSheetLinkingElement* aElement)
 {
   LOG(("css::Loader::PostLoadEvent"));
@@ -2345,7 +2345,7 @@ Loader::Stop()
   return NS_OK;
 }
 
-PRBool
+bool
 Loader::HasPendingLoads()
 {
   return

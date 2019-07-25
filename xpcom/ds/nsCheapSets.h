@@ -68,7 +68,7 @@ public:
 
 
 
-  PRBool Contains(const nsAString& aVal)
+  bool Contains(const nsAString& aVal)
   {
     nsStringHashSet* set = GetHash();
     
@@ -142,7 +142,7 @@ public:
 
 
 
-  PRBool Contains(PRInt32 aVal)
+  bool Contains(PRInt32 aVal)
   {
     nsInt32HashSet* set = GetHash();
     if (set) {
@@ -163,7 +163,7 @@ private:
     return PtrBits(mValOrHash) & 0x1 ? nsnull : (nsInt32HashSet*)mValOrHash;
   }
   
-  PRBool IsInt()
+  bool IsInt()
   {
     return !!(PtrBits(mValOrHash) & 0x1);
   }

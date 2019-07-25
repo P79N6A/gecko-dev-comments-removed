@@ -72,9 +72,9 @@ private:
 protected:
   nsRefPtr<nsGenericHTMLElement> mElement;
   
-  PRBool mRemovingProp;
-  PRBool DataPropToAttr(const nsAString& aProp, nsAString& aResult);
-  PRBool AttrToDataProp(const nsAString& aAttr, nsAString& aResult);
+  bool mRemovingProp;
+  bool DataPropToAttr(const nsAString& aProp, nsAString& aResult);
+  bool AttrToDataProp(const nsAString& aAttr, nsAString& aResult);
 };
 
 #endif

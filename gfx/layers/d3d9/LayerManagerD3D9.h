@@ -103,7 +103,7 @@ public:
 
 
 
-  PRBool Initialize();
+  bool Initialize();
 
   
 
@@ -180,7 +180,7 @@ public:
   
 
 
-  void SetClippingEnabled(PRBool aEnabled);
+  void SetClippingEnabled(bool aEnabled);
 
   void SetShaderMode(DeviceManagerD3D9::ShaderMode aMode)
     { mDeviceManager->SetShaderMode(aMode); }

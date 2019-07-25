@@ -66,7 +66,7 @@ public:
   
   
   
-  static PRBool ValidateVideoRegion(const nsIntSize& aFrame,
+  static bool ValidateVideoRegion(const nsIntSize& aFrame,
                                     const nsIntRect& aPicture,
                                     const nsIntSize& aDisplay);
 
@@ -84,10 +84,10 @@ public:
   mozilla::layers::StereoMode mStereoMode;
 
   
-  PRPackedBool mHasAudio;
+  bool mHasAudio;
 
   
-  PRPackedBool mHasVideo;
+  bool mHasVideo;
 };
 
 #ifdef MOZ_TREMOR
@@ -184,7 +184,7 @@ public:
                            PRInt64 aTime,
                            PRInt64 aEndTime,
                            const YCbCrBuffer &aBuffer,
-                           PRBool aKeyframe,
+                           bool aKeyframe,
                            PRInt64 aTimecode,
                            nsIntRect aPicture);
 
@@ -227,8 +227,8 @@ public:
 
   
   
-  PRPackedBool mDuplicate;
-  PRPackedBool mKeyframe;
+  bool mDuplicate;
+  bool mKeyframe;
 
 public:
   VideoData(PRInt64 aOffset, PRInt64 aTime, PRInt64 aEndTime, PRInt64 aTimecode)
@@ -246,7 +246,7 @@ public:
   VideoData(PRInt64 aOffset,
             PRInt64 aTime,
             PRInt64 aEndTime,
-            PRBool aKeyframe,
+            bool aKeyframe,
             PRInt64 aTimecode,
             nsIntSize aDisplay)
     : mDisplay(aDisplay),
@@ -341,7 +341,7 @@ template <class T> class MediaQueue : private nsDeque {
     mEndOfStream = PR_FALSE;
   }
 
-  PRBool AtEndOfStream() {
+  bool AtEndOfStream() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return GetSize() == 0 && mEndOfStream;
   }
@@ -349,7 +349,7 @@ template <class T> class MediaQueue : private nsDeque {
   
   
   
-  PRBool IsFinished() {
+  bool IsFinished() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return mEndOfStream;
   }
@@ -381,7 +381,7 @@ private:
 
   
   
-  PRBool mEndOfStream;
+  bool mEndOfStream;
 };
 
 
@@ -407,16 +407,16 @@ public:
   
   
   
-  virtual PRBool DecodeAudioData() = 0;
+  virtual bool DecodeAudioData() = 0;
 
   
   
   
-  virtual PRBool DecodeVideoFrame(PRBool &aKeyframeSkip,
+  virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
                                   PRInt64 aTimeThreshold) = 0;
 
-  virtual PRBool HasAudio() = 0;
-  virtual PRBool HasVideo() = 0;
+  virtual bool HasAudio() = 0;
+  virtual bool HasVideo() = 0;
 
   
   
@@ -508,7 +508,7 @@ protected:
 
   
   
-  typedef PRBool (nsBuiltinDecoderReader::*DecodeFn)();
+  typedef bool (nsBuiltinDecoderReader::*DecodeFn)();
 
   
   
@@ -518,8 +518,8 @@ protected:
 
   
   
-  PRBool DecodeVideoFrame() {
-    PRBool f = PR_FALSE;
+  bool DecodeVideoFrame() {
+    bool f = false;
     return DecodeVideoFrame(f, 0);
   }
 

@@ -118,15 +118,15 @@ inline nsChangeHint NS_SubtractHint(nsChangeHint aH1, nsChangeHint aH2) {
 
 
 
-inline PRBool NS_UpdateHint(nsChangeHint& aDest, nsChangeHint aSrc) {
+inline bool NS_UpdateHint(nsChangeHint& aDest, nsChangeHint aSrc) {
   nsChangeHint r = (nsChangeHint)(aDest | aSrc);
-  PRBool changed = (int)r != (int)aDest;
+  bool changed = (int)r != (int)aDest;
   aDest = r;
   return changed;
 }
 
 
-inline PRBool NS_IsHintSubset(nsChangeHint aSubset, nsChangeHint aSuperSet) {
+inline bool NS_IsHintSubset(nsChangeHint aSubset, nsChangeHint aSuperSet) {
   return (aSubset & aSuperSet) == aSubset;
 }
 

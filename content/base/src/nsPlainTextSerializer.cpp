@@ -154,8 +154,8 @@ NS_IMPL_ISUPPORTS4(nsPlainTextSerializer,
 
 NS_IMETHODIMP 
 nsPlainTextSerializer::Init(PRUint32 aFlags, PRUint32 aWrapColumn,
-                            const char* aCharSet, PRBool aIsCopying,
-                            PRBool aIsWholeDocument)
+                            const char* aCharSet, bool aIsCopying,
+                            bool aIsWholeDocument)
 {
 #ifdef DEBUG
   
@@ -235,8 +235,8 @@ nsPlainTextSerializer::Init(PRUint32 aFlags, PRUint32 aWrapColumn,
   return NS_OK;
 }
 
-PRBool
-nsPlainTextSerializer::GetLastBool(const nsTArray<PRPackedBool>& aStack)
+bool
+nsPlainTextSerializer::GetLastBool(const nsTArray<bool>& aStack)
 {
   PRUint32 size = aStack.Length();
   if (size == 0) {
@@ -246,7 +246,7 @@ nsPlainTextSerializer::GetLastBool(const nsTArray<PRPackedBool>& aStack)
 }
 
 void
-nsPlainTextSerializer::SetLastBool(nsTArray<PRPackedBool>& aStack, PRBool aValue)
+nsPlainTextSerializer::SetLastBool(nsTArray<bool>& aStack, bool aValue)
 {
   PRUint32 size = aStack.Length();
   if (size > 0) {
@@ -258,15 +258,15 @@ nsPlainTextSerializer::SetLastBool(nsTArray<PRPackedBool>& aStack, PRBool aValue
 }
 
 void
-nsPlainTextSerializer::PushBool(nsTArray<PRPackedBool>& aStack, PRBool aValue)
+nsPlainTextSerializer::PushBool(nsTArray<bool>& aStack, bool aValue)
 {
-    aStack.AppendElement(PRPackedBool(aValue));
+    aStack.AppendElement(bool(aValue));
 }
 
-PRBool
-nsPlainTextSerializer::PopBool(nsTArray<PRPackedBool>& aStack)
+bool
+nsPlainTextSerializer::PopBool(nsTArray<bool>& aStack)
 {
-  PRBool returnValue = PR_FALSE;
+  bool returnValue = false;
   PRUint32 size = aStack.Length();
   if (size > 0) {
     returnValue = aStack.ElementAt(size-1);
@@ -393,7 +393,7 @@ nsPlainTextSerializer::AppendElementStart(Element* aElement,
   nsresult rv;
   PRInt32 id = GetIdForContent(mElement);
 
-  PRBool isContainer = IsContainer(id);
+  bool isContainer = IsContainer(id);
 
   mOutputString = &aStr;
 
@@ -425,7 +425,7 @@ nsPlainTextSerializer::AppendElementEnd(Element* aElement,
   nsresult rv;
   PRInt32 id = GetIdForContent(mElement);
 
-  PRBool isContainer = IsContainer(id);
+  bool isContainer = IsContainer(id);
 
   mOutputString = &aStr;
 
@@ -521,7 +521,7 @@ nsPlainTextSerializer::OpenHead()
 }
 
 NS_IMETHODIMP
-nsPlainTextSerializer::IsEnabled(PRInt32 aTag, PRBool* aReturn)
+nsPlainTextSerializer::IsEnabled(PRInt32 aTag, bool* aReturn)
 {
   nsHTMLTag theHTMLTag = nsHTMLTag(aTag);
 
@@ -568,7 +568,7 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
   
   mHasWrittenCiteBlockquote = mHasWrittenCiteBlockquote && aTag == eHTMLTag_pre;
 
-  PRBool isInCiteBlockquote = PR_FALSE;
+  bool isInCiteBlockquote = false;
 
   
   
@@ -793,7 +793,7 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
   
 
   
-  PRBool currentNodeIsConverted = IsCurrentNodeConverted(aNode);
+  bool currentNodeIsConverted = IsCurrentNodeConverted(aNode);
   PushBool(mCurrentNodeIsConverted, currentNodeIsConverted);
 
   if (type == eHTMLTag_h1 || type == eHTMLTag_h2 ||
@@ -976,7 +976,7 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
     FlushLine();    
 
     
-    PRBool isInCiteBlockquote = PopBool(mIsInCiteBlockquote);
+    bool isInCiteBlockquote = PopBool(mIsInCiteBlockquote);
 
     if (isInCiteBlockquote) {
       NS_ASSERTION(mCiteQuoteLevel, "CiteQuote level will be negative!");
@@ -1020,7 +1020,7 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
   
 
   
-  PRBool currentNodeIsConverted = PopBool(mCurrentNodeIsConverted);
+  bool currentNodeIsConverted = PopBool(mCurrentNodeIsConverted);
   
   if (type == eHTMLTag_h1 || type == eHTMLTag_h2 ||
       type == eHTMLTag_h3 || type == eHTMLTag_h4 ||
@@ -1271,7 +1271,7 @@ nsPlainTextSerializer::Output(nsString& aString)
   mOutputString->Append(aString);
 }
 
-static PRBool
+static bool
 IsSpaceStuffable(const PRUnichar *s)
 {
   if (s[0] == '>' || s[0] == ' ' || s[0] == kNBSP ||
@@ -1418,7 +1418,7 @@ nsPlainTextSerializer::AddToLine(const PRUnichar * aLineFragment,
           mCurrentLine.Right(restOfLine, linelength-goodSpace);
         }
         
-        PRBool breakBySpace = mCurrentLine.CharAt(goodSpace) == ' ';
+        bool breakBySpace = mCurrentLine.CharAt(goodSpace) == ' ';
         mCurrentLine.Truncate(goodSpace); 
         EndLine(PR_TRUE, breakBySpace);
         mCurrentLine.Truncate();
@@ -1458,7 +1458,7 @@ nsPlainTextSerializer::AddToLine(const PRUnichar * aLineFragment,
 
 
 void
-nsPlainTextSerializer::EndLine(PRBool aSoftlinebreak, PRBool aBreakBySpace)
+nsPlainTextSerializer::EndLine(bool aSoftlinebreak, bool aBreakBySpace)
 {
   PRUint32 currentlinelength = mCurrentLine.Length();
 
@@ -1515,7 +1515,7 @@ nsPlainTextSerializer::EndLine(PRBool aSoftlinebreak, PRBool aBreakBySpace)
     
     
     
-    PRBool stripTrailingSpaces = mCurrentLine.IsEmpty();
+    bool stripTrailingSpaces = mCurrentLine.IsEmpty();
     OutputQuotesAndIndent(stripTrailingSpaces);
   }
 
@@ -1536,7 +1536,7 @@ nsPlainTextSerializer::EndLine(PRBool aSoftlinebreak, PRBool aBreakBySpace)
 
 
 void
-nsPlainTextSerializer::OutputQuotesAndIndent(PRBool stripTrailingSpaces )
+nsPlainTextSerializer::OutputQuotesAndIndent(bool stripTrailingSpaces )
 {
   nsAutoString stringToOutput;
   
@@ -1650,10 +1650,10 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
     
     
     while(bol<totLen) {
-      PRBool outputQuotes = mAtFirstColumn;
-      PRBool atFirstColumn = mAtFirstColumn;
-      PRBool outputLineBreak = PR_FALSE;
-      PRBool spacesOnly = PR_TRUE;
+      bool outputQuotes = mAtFirstColumn;
+      bool atFirstColumn = mAtFirstColumn;
+      bool outputLineBreak = false;
+      bool spacesOnly = true;
 
       
       
@@ -1849,7 +1849,7 @@ nsPlainTextSerializer::GetAttributeValue(const nsIParserNode* aNode,
 
 
 
-PRBool 
+bool 
 nsPlainTextSerializer::IsCurrentNodeConverted(const nsIParserNode* aNode)
 {
   nsAutoString value;
@@ -1878,10 +1878,10 @@ nsPlainTextSerializer::GetIdForContent(nsIContent* aContent)
 
 
 
-PRBool 
+bool 
 nsPlainTextSerializer::IsBlockLevel(PRInt32 aId)
 {
-  PRBool isBlock = PR_FALSE;
+  bool isBlock = false;
 
   nsIParserService* parserService = nsContentUtils::GetParserService();
   if (parserService) {
@@ -1894,10 +1894,10 @@ nsPlainTextSerializer::IsBlockLevel(PRInt32 aId)
 
 
 
-PRBool 
+bool 
 nsPlainTextSerializer::IsContainer(PRInt32 aId)
 {
-  PRBool isContainer = PR_FALSE;
+  bool isContainer = false;
 
   nsIParserService* parserService = nsContentUtils::GetParserService();
   if (parserService) {
@@ -1914,7 +1914,7 @@ nsPlainTextSerializer::IsContainer(PRInt32 aId)
 
 
   
-PRBool
+bool
 nsPlainTextSerializer::IsInPre()
 {
   PRInt32 i = mTagStackIndex;
@@ -1936,7 +1936,7 @@ nsPlainTextSerializer::IsInPre()
 
 
 
-PRBool
+bool
 nsPlainTextSerializer::IsInOL()
 {
   PRInt32 i = mTagStackIndex;

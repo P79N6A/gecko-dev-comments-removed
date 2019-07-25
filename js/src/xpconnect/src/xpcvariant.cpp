@@ -796,7 +796,7 @@ NS_IMETHODIMP XPCVariant::GetAsDouble(double *_retval)
 }
 
 
-NS_IMETHODIMP XPCVariant::GetAsBool(PRBool *_retval)
+NS_IMETHODIMP XPCVariant::GetAsBool(bool *_retval)
 {
     return nsVariant::ConvertToBool(mData, _retval);
 }

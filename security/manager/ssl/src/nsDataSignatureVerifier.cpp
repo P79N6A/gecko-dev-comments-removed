@@ -60,7 +60,7 @@ NS_IMETHODIMP
 nsDataSignatureVerifier::VerifyData(const nsACString & aData,
                                     const nsACString & aSignature,
                                     const nsACString & aPublicKey,
-                                    PRBool *_retval)
+                                    bool *_retval)
 {
     
     PRArenaPool *arena;

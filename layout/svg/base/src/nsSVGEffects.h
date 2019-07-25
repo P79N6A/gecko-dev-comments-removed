@@ -86,14 +86,14 @@ public:
   
   void NotifyEvictedFromRenderingObserverList();
 
-  PRBool IsInObserverList() const { return mInObserverList; }
+  bool IsInObserverList() const { return mInObserverList; }
 
   nsIFrame* GetReferencedFrame();
   
 
 
 
-  nsIFrame* GetReferencedFrame(nsIAtom* aFrameType, PRBool* aOK);
+  nsIFrame* GetReferencedFrame(nsIAtom* aFrameType, bool* aOK);
 
   Element* GetReferencedElement();
 
@@ -110,7 +110,7 @@ protected:
   virtual Element* GetTarget() = 0;
 
   
-  PRPackedBool mInObserverList;
+  bool mInObserverList;
 };
 
 
@@ -128,7 +128,7 @@ class nsSVGIDRenderingObserver : public nsSVGRenderingObserver {
 public:
   typedef mozilla::dom::Element Element;
   nsSVGIDRenderingObserver(nsIURI* aURI, nsIFrame *aFrame,
-                         PRBool aReferenceImage);
+                         bool aReferenceImage);
   virtual ~nsSVGIDRenderingObserver();
 
 protected:
@@ -151,7 +151,7 @@ protected:
 
 
 
-    virtual PRBool IsPersistent() { return PR_TRUE; }
+    virtual bool IsPersistent() { return true; }
   private:
     nsSVGIDRenderingObserver* mContainer;
   };
@@ -171,7 +171,7 @@ class nsSVGFilterProperty :
   public nsSVGIDRenderingObserver, public nsISVGFilterProperty {
 public:
   nsSVGFilterProperty(nsIURI *aURI, nsIFrame *aFilteredFrame,
-                      PRBool aReferenceImage)
+                      bool aReferenceImage)
     : nsSVGIDRenderingObserver(aURI, aFilteredFrame, aReferenceImage) {}
 
   
@@ -192,7 +192,7 @@ private:
 
 class nsSVGMarkerProperty : public nsSVGIDRenderingObserver {
 public:
-  nsSVGMarkerProperty(nsIURI *aURI, nsIFrame *aFrame, PRBool aReferenceImage)
+  nsSVGMarkerProperty(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
     : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage) {}
 
 protected:
@@ -201,7 +201,7 @@ protected:
 
 class nsSVGTextPathProperty : public nsSVGIDRenderingObserver {
 public:
-  nsSVGTextPathProperty(nsIURI *aURI, nsIFrame *aFrame, PRBool aReferenceImage)
+  nsSVGTextPathProperty(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
     : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage) {}
 
 protected:
@@ -210,7 +210,7 @@ protected:
  
 class nsSVGPaintingProperty : public nsSVGIDRenderingObserver {
 public:
-  nsSVGPaintingProperty(nsIURI *aURI, nsIFrame *aFrame, PRBool aReferenceImage)
+  nsSVGPaintingProperty(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
     : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage) {}
 
 protected:
@@ -250,10 +250,10 @@ public:
   void Remove(nsSVGRenderingObserver* aObserver)
   { mObservers.RemoveEntry(aObserver); }
 #ifdef DEBUG
-  PRBool Contains(nsSVGRenderingObserver* aObserver)
+  bool Contains(nsSVGRenderingObserver* aObserver)
   { return (mObservers.GetEntry(aObserver) != nsnull); }
 #endif
-  PRBool IsEmpty()
+  bool IsEmpty()
   { return mObservers.Count() == 0; }
 
   
@@ -311,21 +311,21 @@ public:
 
 
 
-    nsSVGClipPathFrame *GetClipPathFrame(PRBool *aOK);
+    nsSVGClipPathFrame *GetClipPathFrame(bool *aOK);
     
 
 
 
 
 
-    nsSVGMaskFrame *GetMaskFrame(PRBool *aOK);
+    nsSVGMaskFrame *GetMaskFrame(bool *aOK);
     
 
 
 
 
 
-    nsSVGFilterFrame *GetFilterFrame(PRBool *aOK) {
+    nsSVGFilterFrame *GetFilterFrame(bool *aOK) {
       if (!mFilter)
         return nsnull;
       nsSVGFilterFrame *filter = mFilter->GetFilterFrame();

@@ -68,7 +68,7 @@ public:
   
   
   
-  static PRBool   IsAllowed(nsIDocument *aDocument);
+  static bool     IsAllowed(nsIDocument *aDocument);
  
   static nsresult Initialize();
   static nsresult Shutdown();
@@ -130,7 +130,7 @@ public:
     PRUint32                  mActiveLoaderCount;
 
     nsCOMPtr<nsITimer>        mTimer;
-    PRBool                    mTimerArmed;
+    bool                      mTimerArmed;
     static void Tick(nsITimer *aTimer, void *aClosure);
     
     static const int          sMaxDeferred = 512;  

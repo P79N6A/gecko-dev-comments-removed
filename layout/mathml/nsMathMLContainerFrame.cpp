@@ -153,7 +153,7 @@ void nsDisplayMathMLError::Paint(nsDisplayListBuilder* aBuilder,
 
 
 
-static PRBool
+static bool
 IsForeignChild(const nsIFrame* aFrame)
 {
   
@@ -245,13 +245,13 @@ nsMathMLContainerFrame::GetPreferredStretchSize(nsRenderingContext& aRenderingCo
   }
   else {
     
-    PRBool stretchAll =
+    bool stretchAll =
       NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags) ||
       NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags);
     NS_ASSERTION(NS_MATHML_IS_EMBELLISH_OPERATOR(mEmbellishData.flags) ||
                  stretchAll,
                  "invalid call to GetPreferredStretchSize");
-    PRBool firstTime = PR_TRUE;
+    bool firstTime = true;
     nsBoundingMetrics bm, bmChild;
     nsIFrame* childFrame =
       stretchAll ? GetFirstPrincipalChild() : mPresentationData.baseFrame;
@@ -350,7 +350,7 @@ nsMathMLContainerFrame::Stretch(nsRenderingContext& aRenderingContext,
       nsIMathMLFrame* mathMLFrame = do_QueryFrame(baseFrame);
       NS_ASSERTION(mathMLFrame, "Something is wrong somewhere");
       if (mathMLFrame) {
-        PRBool stretchAll =
+        bool stretchAll =
           NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags) ||
           NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags);
 
@@ -500,7 +500,7 @@ nsMathMLContainerFrame::FinalizeReflow(nsRenderingContext& aRenderingContext,
   
   
   
-  PRBool placeOrigin = !NS_MATHML_IS_EMBELLISH_OPERATOR(mEmbellishData.flags) ||
+  bool placeOrigin = !NS_MATHML_IS_EMBELLISH_OPERATOR(mEmbellishData.flags) ||
                        (mEmbellishData.coreFrame != this && !mPresentationData.baseFrame &&
                         mEmbellishData.direction == NS_STRETCH_DIRECTION_UNSUPPORTED);
   nsresult rv = Place(aRenderingContext, placeOrigin, aDesiredSize);
@@ -516,7 +516,7 @@ nsMathMLContainerFrame::FinalizeReflow(nsRenderingContext& aRenderingContext,
     return rv;
   }
 
-  PRBool parentWillFireStretch = PR_FALSE;
+  bool parentWillFireStretch = false;
   if (!placeOrigin) {
     
     
@@ -538,7 +538,7 @@ nsMathMLContainerFrame::FinalizeReflow(nsRenderingContext& aRenderingContext,
     if (!parentWillFireStretch) {
       
 
-      PRBool stretchAll =
+      bool stretchAll =
         
         NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags);
 
@@ -1266,7 +1266,7 @@ private:
 
  nsresult
 nsMathMLContainerFrame::Place(nsRenderingContext& aRenderingContext,
-                              PRBool               aPlaceOrigin,
+                              bool                 aPlaceOrigin,
                               nsHTMLReflowMetrics& aDesiredSize)
 {
   
@@ -1324,7 +1324,7 @@ nsMathMLContainerFrame::PositionRowChildFrames(nscoord aOffsetX,
 
 class ForceReflow : public nsIReflowCallback {
 public:
-  virtual PRBool ReflowFinished() {
+  virtual bool ReflowFinished() {
     return PR_TRUE;
   }
   virtual void ReflowCallbackCanceled() {}
@@ -1335,7 +1335,7 @@ public:
 static ForceReflow gForceReflow;
 
 void
-nsMathMLContainerFrame::SetIncrementScriptLevel(PRInt32 aChildIndex, PRBool aIncrement)
+nsMathMLContainerFrame::SetIncrementScriptLevel(PRInt32 aChildIndex, bool aIncrement)
 {
   nsIFrame* child = PrincipalChildList().FrameAt(aChildIndex);
   if (!child)
@@ -1472,7 +1472,7 @@ nsMathMLContainerFrame::TransmitAutomaticDataForMrowLikeElement()
   
   
   nsIFrame *childFrame, *baseFrame;
-  PRBool embellishedOpFound = PR_FALSE;
+  bool embellishedOpFound = false;
   nsEmbellishData embellishData;
   
   for (childFrame = GetFirstPrincipalChild();

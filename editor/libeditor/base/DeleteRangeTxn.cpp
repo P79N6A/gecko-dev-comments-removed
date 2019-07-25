@@ -48,7 +48,7 @@
 #include "nsComponentManagerUtils.h"
 
 #ifdef NS_DEBUG
-static PRBool gNoisy = PR_FALSE;
+static bool gNoisy = false;
 #endif
 
 
@@ -198,7 +198,7 @@ NS_IMETHODIMP DeleteRangeTxn::DoTransaction(void)
   NS_ENSURE_SUCCESS(result, result);
   
   
-  PRBool bAdjustSelection;
+  bool bAdjustSelection;
   mEditor->ShouldTxnSetSelection(&bAdjustSelection);
   if (bAdjustSelection)
   {

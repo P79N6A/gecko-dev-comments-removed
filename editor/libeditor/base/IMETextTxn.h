@@ -82,7 +82,7 @@ public:
 
   NS_DECL_EDITTXN
 
-  NS_IMETHOD Merge(nsITransaction *aTransaction, PRBool *aDidMerge);
+  NS_IMETHOD Merge(nsITransaction *aTransaction, bool *aDidMerge);
 
   NS_IMETHOD MarkFixed(void);
 
@@ -115,7 +115,7 @@ protected:
   
   nsIEditor *mEditor;
 
-  PRBool	mFixed;
+  bool	mFixed;
 };
 
 #endif

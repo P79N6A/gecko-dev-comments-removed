@@ -95,7 +95,7 @@ public:
 
 
 
-  PRBool Init(PRUint32 initSize = PL_DHASH_MIN_SIZE)
+  bool Init(PRUint32 initSize = PL_DHASH_MIN_SIZE)
   { return nsTHashtable<EntryType>::Init(initSize); }
 
   
@@ -103,7 +103,7 @@ public:
 
 
 
-  PRBool IsInitialized() const { return !!this->mTable.entrySize; }
+  bool IsInitialized() const { return !!this->mTable.entrySize; }
 
   
 
@@ -121,9 +121,9 @@ public:
 
 
 
-  PRBool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const
+  bool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const
   {
-    EntryType* ent = GetEntry(aKey);
+    EntryType* ent = this->GetEntry(aKey);
 
     if (!ent)
       return PR_FALSE;
@@ -145,7 +145,7 @@ public:
 
   UserDataType Get(KeyType aKey) const
   {
-    EntryType* ent = GetEntry(aKey);
+    EntryType* ent = this->GetEntry(aKey);
     if (!ent)
       return NULL;
 
@@ -158,9 +158,9 @@ public:
 
 
 
-  PRBool Put(KeyType aKey, UserDataType aData)
+  bool Put(KeyType aKey, UserDataType aData)
   {
-    EntryType* ent = PutEntry(aKey);
+    EntryType* ent = this->PutEntry(aKey);
 
     if (!ent)
       return PR_FALSE;
@@ -174,7 +174,7 @@ public:
 
 
 
-  void Remove(KeyType aKey) { RemoveEntry(aKey); }
+  void Remove(KeyType aKey) { this->RemoveEntry(aKey); }
 
   
 
@@ -293,11 +293,11 @@ public:
   nsBaseHashtableMT() : mLock(nsnull) { }
   ~nsBaseHashtableMT();
 
-  PRBool Init(PRUint32 initSize = PL_DHASH_MIN_SIZE);
-  PRBool IsInitialized() const { return mLock != nsnull; }
+  bool Init(PRUint32 initSize = PL_DHASH_MIN_SIZE);
+  bool IsInitialized() const { return mLock != nsnull; }
   PRUint32 Count() const;
-  PRBool Get(KeyType aKey, UserDataType* pData) const;
-  PRBool Put(KeyType aKey, UserDataType aData);
+  bool Get(KeyType aKey, UserDataType* pData) const;
+  bool Put(KeyType aKey, UserDataType aData);
   void Remove(KeyType aKey);
 
   PRUint32 EnumerateRead(EnumReadFunction enumFunc, void* userArg) const;
@@ -377,7 +377,7 @@ nsBaseHashtableMT<KeyClass,DataType,UserDataType>::~nsBaseHashtableMT()
 }
 
 template<class KeyClass,class DataType,class UserDataType>
-PRBool
+bool
 nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Init(PRUint32 initSize)
 {
   if (!nsTHashtable<EntryType>::IsInitialized() && !nsTHashtable<EntryType>::Init(initSize))
@@ -401,12 +401,12 @@ nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Count() const
 }
 
 template<class KeyClass,class DataType,class UserDataType>
-PRBool
+bool
 nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Get(KeyType       aKey,
                                                            UserDataType* pData) const
 {
   PR_Lock(this->mLock);
-  PRBool res =
+  bool res =
     nsBaseHashtable<KeyClass,DataType,UserDataType>::Get(aKey, pData);
   PR_Unlock(this->mLock);
 
@@ -414,12 +414,12 @@ nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Get(KeyType       aKey,
 }
 
 template<class KeyClass,class DataType,class UserDataType>
-PRBool
+bool
 nsBaseHashtableMT<KeyClass,DataType,UserDataType>::Put(KeyType      aKey,
                                                            UserDataType aData)
 {
   PR_Lock(this->mLock);
-  PRBool res =
+  bool res =
     nsBaseHashtable<KeyClass,DataType,UserDataType>::Put(aKey, aData);
   PR_Unlock(this->mLock);
 

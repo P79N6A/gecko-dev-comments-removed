@@ -68,11 +68,11 @@ public:
   
   
   NS_IMETHOD LoadBindings(nsIContent* aContent, nsIURI* aURL,
-                          nsIPrincipal* aOriginPrincipal, PRBool aAugmentFlag,
-                          nsXBLBinding** aBinding, PRBool* aResolveStyle) = 0;
+                          nsIPrincipal* aOriginPrincipal, bool aAugmentFlag,
+                          nsXBLBinding** aBinding, bool* aResolveStyle) = 0;
 
   
-  NS_IMETHOD BindingReady(nsIContent* aBoundElement, nsIURI* aURI, PRBool* aIsReady) = 0;
+  NS_IMETHOD BindingReady(nsIContent* aBoundElement, nsIURI* aURI, bool* aIsReady) = 0;
 
   
   NS_IMETHOD ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID, nsIAtom** aResult) = 0;
@@ -84,7 +84,7 @@ public:
                                      nsIDocument* aBoundDocument,
                                      nsIURI* aBindingURI,
                                      nsIPrincipal* aOriginPrincipal,
-                                     PRBool aForceSyncLoad,
+                                     bool aForceSyncLoad,
                                      nsXBLDocumentInfo** aResult) = 0;
 
   

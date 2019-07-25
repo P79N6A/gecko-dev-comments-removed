@@ -246,7 +246,7 @@ nsTreeBodyFrame::GetMinSize(nsBoxLayoutState& aBoxLayoutState)
   min.height = mRowHeight * desiredRows;
 
   AddBorderAndPadding(min);
-  PRBool widthSet, heightSet;
+  bool widthSet, heightSet;
   nsIBox::AddCSSMinSize(aBoxLayoutState, this, min, widthSet, heightSet);
 
   return min;
@@ -406,7 +406,7 @@ nsTreeBodyFrame::EnsureView()
 
 void
 nsTreeBodyFrame::SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
-                           PRBool aRemoveOverflowArea)
+                           bool aRemoveOverflowArea)
 {
   nscoord horzWidth = CalcHorzWidth(GetScrollParts());
   if ((!aRect.IsEqualEdges(mRect) || mHorzWidth != horzWidth) && !mReflowCallbackPosted) {
@@ -420,7 +420,7 @@ nsTreeBodyFrame::SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRec
 }
 
 
-PRBool
+bool
 nsTreeBodyFrame::ReflowFinished()
 {
   if (!mView) {
@@ -542,14 +542,14 @@ nsTreeBodyFrame::SetView(nsITreeView * aView)
 }
 
 nsresult
-nsTreeBodyFrame::GetFocused(PRBool* aFocused)
+nsTreeBodyFrame::GetFocused(bool* aFocused)
 {
   *aFocused = mFocused;
   return NS_OK;
 }
 
 nsresult
-nsTreeBodyFrame::SetFocused(PRBool aFocused)
+nsTreeBodyFrame::SetFocused(bool aFocused)
 {
   if (mFocused != aFocused) {
     mFocused = aFocused;
@@ -649,7 +649,7 @@ nsTreeBodyFrame::GetSelectionRegion(nsIScriptableRegion **aRegion)
   PRInt32 end = GetLastVisibleRow();
   PRInt32 rowHeight = nsPresContext::AppUnitsToIntCSSPixels(mRowHeight);
   for (PRInt32 i = mTopRowIndex; i <= end; i++) {
-    PRBool isSelected;
+    bool isSelected;
     selection->IsSelected(i, &isSelected);
     if (isSelected)
       region->UnionRect(x, y, rect.width, rowHeight);
@@ -910,8 +910,8 @@ nsTreeBodyFrame::UpdateScrollbars(const ScrollParts& aParts)
 void
 nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts)
 {
-  PRBool verticalOverflowChanged = PR_FALSE;
-  PRBool horizontalOverflowChanged = PR_FALSE;
+  bool verticalOverflowChanged = false;
+  bool horizontalOverflowChanged = false;
 
   if (!mVerticalOverflow && mRowCount > mPageLength) {
     mVerticalOverflow = PR_TRUE;
@@ -1110,7 +1110,7 @@ nsTreeBodyFrame::GetCoordsForCellItem(PRInt32 aRow, nsITreeColumn* aCol, const n
   *aWidth = 0;
   *aHeight = 0;
 
-  PRBool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  bool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
   nscoord currX = mInnerBox.x - mHorzPosition;
 
   
@@ -1506,7 +1506,7 @@ nsTreeBodyFrame::GetItemWithinCellAt(nscoord aX, const nsRect& aCellRect,
   nscoord remainingWidth = cellRect.width;
 
   
-  PRBool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  bool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
 
   nsPresContext* presContext = PresContext();
   nsRefPtr<nsRenderingContext> rc =
@@ -1531,11 +1531,11 @@ nsTreeBodyFrame::GetItemWithinCellAt(nscoord aX, const nsRect& aCellRect,
 
     
     nsRect twistyRect(currX, cellRect.y, remainingWidth, cellRect.height);
-    PRBool hasTwisty = PR_FALSE;
-    PRBool isContainer = PR_FALSE;
+    bool hasTwisty = false;
+    bool isContainer = false;
     mView->IsContainer(aRowIndex, &isContainer);
     if (isContainer) {
-      PRBool isContainerEmpty = PR_FALSE;
+      bool isContainerEmpty = false;
       mView->IsContainerEmpty(aRowIndex, &isContainerEmpty);
       if (!isContainerEmpty)
         hasTwisty = PR_TRUE;
@@ -1755,7 +1755,7 @@ nsTreeBodyFrame::GetCellWidth(PRInt32 aRow, nsTreeColumn* aCol,
 }
 
 nsresult
-nsTreeBodyFrame::IsCellCropped(PRInt32 aRow, nsITreeColumn* aCol, PRBool *_retval)
+nsTreeBodyFrame::IsCellCropped(PRInt32 aRow, nsITreeColumn* aCol, bool *_retval)
 {  
   nscoord currentSize, desiredSize;
   nsresult rv;
@@ -1859,7 +1859,7 @@ nsTreeBodyFrame::RowCountChanged(PRInt32 aIndex, PRInt32 aCount)
     return NS_OK;
   }
 
-  PRBool needsInvalidation = PR_FALSE;
+  bool needsInvalidation = false;
   
   if (aCount > 0) {
     if (mTopRowIndex > aIndex) {
@@ -1929,7 +1929,7 @@ nsTreeBodyFrame::PrefillPropertyArray(PRInt32 aRowIndex, nsTreeColumn* aCol)
     mScratchArray->AppendElement(nsGkAtoms::focus);
 
   
-  PRBool sorted = PR_FALSE;
+  bool sorted = false;
   mView->IsSorted(&sorted);
   if (sorted)
     mScratchArray->AppendElement(nsGkAtoms::sorted);
@@ -1947,7 +1947,7 @@ nsTreeBodyFrame::PrefillPropertyArray(PRInt32 aRowIndex, nsTreeColumn* aCol)
 
     if (selection) {
       
-      PRBool isSelected;
+      bool isSelected;
       selection->IsSelected(aRowIndex, &isSelected);
       if (isSelected)
         mScratchArray->AppendElement(nsGkAtoms::selected);
@@ -1968,13 +1968,13 @@ nsTreeBodyFrame::PrefillPropertyArray(PRInt32 aRowIndex, nsTreeColumn* aCol)
     }
 
     
-    PRBool isContainer = PR_FALSE;
+    bool isContainer = false;
     mView->IsContainer(aRowIndex, &isContainer);
     if (isContainer) {
       mScratchArray->AppendElement(nsGkAtoms::container);
 
       
-      PRBool isOpen = PR_FALSE;
+      bool isOpen = false;
       mView->IsContainerOpen(aRowIndex, &isOpen);
       if (isOpen)
         mScratchArray->AppendElement(nsGkAtoms::open);
@@ -2074,7 +2074,7 @@ nsTreeBodyFrame::GetTwistyRect(PRInt32 aRowIndex,
   else
     aTwistyRect.width = aImageRect.width;
 
-  PRBool useTheme = PR_FALSE;
+  bool useTheme = false;
   nsITheme *theme = nsnull;
   const nsStyleDisplay* twistyDisplayData = aTwistyContext->GetStyleDisplay();
   if (twistyDisplayData->mAppearance) {
@@ -2085,7 +2085,7 @@ nsTreeBodyFrame::GetTwistyRect(PRInt32 aRowIndex,
 
   if (useTheme) {
     nsIntSize minTwistySizePx(0,0);
-    PRBool canOverride = PR_TRUE;
+    bool canOverride = true;
     theme->GetMinimumWidgetSize(&aRenderingContext, this, twistyDisplayData->mAppearance,
                                 &minTwistySizePx, &canOverride);
 
@@ -2102,8 +2102,8 @@ nsTreeBodyFrame::GetTwistyRect(PRInt32 aRowIndex,
 }
 
 nsresult
-nsTreeBodyFrame::GetImage(PRInt32 aRowIndex, nsTreeColumn* aCol, PRBool aUseContext,
-                          nsStyleContext* aStyleContext, PRBool& aAllowImageRegions, imgIContainer** aResult)
+nsTreeBodyFrame::GetImage(PRInt32 aRowIndex, nsTreeColumn* aCol, bool aUseContext,
+                          nsStyleContext* aStyleContext, bool& aAllowImageRegions, imgIContainer** aResult)
 {
   *aResult = nsnull;
 
@@ -2134,7 +2134,7 @@ nsTreeBodyFrame::GetImage(PRInt32 aRowIndex, nsTreeColumn* aCol, PRBool aUseCont
     imgIRequest *imgReq = entry.request;
     imgReq->GetImageStatus(&status);
     imgReq->GetImage(aResult); 
-    PRBool animated = PR_TRUE; 
+    bool animated = true; 
 
     
     if (*aResult && (status & imgIRequest::STATUS_DECODE_COMPLETE))
@@ -2212,7 +2212,7 @@ nsTreeBodyFrame::GetImage(PRInt32 aRowIndex, nsTreeColumn* aCol, PRBool aUseCont
   return NS_OK;
 }
 
-nsRect nsTreeBodyFrame::GetImageSize(PRInt32 aRowIndex, nsTreeColumn* aCol, PRBool aUseContext,
+nsRect nsTreeBodyFrame::GetImageSize(PRInt32 aRowIndex, nsTreeColumn* aCol, bool aUseContext,
                                      nsStyleContext* aStyleContext)
 {
   
@@ -2228,12 +2228,12 @@ nsRect nsTreeBodyFrame::GetImageSize(PRInt32 aRowIndex, nsTreeColumn* aCol, PRBo
 
   
   
-  PRBool needWidth = PR_FALSE;
-  PRBool needHeight = PR_FALSE;
+  bool needWidth = false;
+  bool needHeight = false;
 
   
   
-  PRBool useImageRegion = PR_TRUE;
+  bool useImageRegion = true;
   nsCOMPtr<imgIContainer> image;
   GetImage(aRowIndex, aCol, aUseContext, aStyleContext, useImageRegion, getter_AddRefs(image));
 
@@ -2298,14 +2298,14 @@ nsRect nsTreeBodyFrame::GetImageSize(PRInt32 aRowIndex, nsTreeColumn* aCol, PRBo
 
 nsSize
 nsTreeBodyFrame::GetImageDestSize(nsStyleContext* aStyleContext,
-                                  PRBool useImageRegion,
+                                  bool useImageRegion,
                                   imgIContainer* image)
 {
   nsSize size(0,0);
 
   
-  PRBool needWidth = PR_FALSE;
-  PRBool needHeight = PR_FALSE;
+  bool needWidth = false;
+  bool needHeight = false;
 
   
   
@@ -2394,7 +2394,7 @@ nsTreeBodyFrame::GetImageDestSize(nsStyleContext* aStyleContext,
 
 nsRect
 nsTreeBodyFrame::GetImageSourceRect(nsStyleContext* aStyleContext,
-                                    PRBool useImageRegion,
+                                    bool useImageRegion,
                                     imgIContainer* image)
 {
   nsRect r(0,0,0,0);
@@ -2513,7 +2513,7 @@ nsTreeBodyFrame::GetCursor(const nsPoint& aPoint,
 {
   
   
-  PRBool dummy;
+  bool dummy;
   if (mView && GetContent()->GetCurrentDoc()->GetScriptHandlingObject(dummy)) {
     PRInt32 row;
     nsTreeColumn* col;
@@ -2665,10 +2665,10 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
         if (!mSlots->mTimer && mSlots->mDropOrient == nsITreeView::DROP_ON) {
           
           
-          PRBool isContainer = PR_FALSE;
+          bool isContainer = false;
           mView->IsContainer(mSlots->mDropRow, &isContainer);
           if (isContainer) {
-            PRBool isOpen = PR_FALSE;
+            bool isOpen = false;
             mView->IsContainerOpen(mSlots->mDropRow, &isOpen);
             if (!isOpen) {
               
@@ -2683,7 +2683,7 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
         nsDragEvent* dragEvent = static_cast<nsDragEvent*>(aEvent);
         nsContentUtils::SetDataTransferInEvent(dragEvent);
 
-        PRBool canDropAtNewLocation = PR_FALSE;
+        bool canDropAtNewLocation = false;
         mView->CanDrop(mSlots->mDropRow, mSlots->mDropOrient,
                        dragEvent->dataTransfer, &canDropAtNewLocation);
 
@@ -2935,7 +2935,7 @@ nsTreeBodyFrame::PaintRow(PRInt32              aRowIndex,
   
   
   
-  PRBool useTheme = PR_FALSE;
+  bool useTheme = false;
   nsITheme *theme = nsnull;
   const nsStyleDisplay* displayData = rowContext->GetStyleDisplay();
   if (displayData->mAppearance) {
@@ -2943,7 +2943,7 @@ nsTreeBodyFrame::PaintRow(PRInt32              aRowIndex,
     if (theme && theme->ThemeSupportsWidget(aPresContext, nsnull, displayData->mAppearance))
       useTheme = PR_TRUE;
   }
-  PRBool isSelected = PR_FALSE;
+  bool isSelected = false;
   nsCOMPtr<nsITreeSelection> selection;
   mView->GetSelection(getter_AddRefs(selection));
   if (selection) 
@@ -2961,7 +2961,7 @@ nsTreeBodyFrame::PaintRow(PRInt32              aRowIndex,
   nsRect originalRowRect = rowRect;
   AdjustForBorderPadding(rowContext, rowRect);
 
-  PRBool isSeparator = PR_FALSE;
+  bool isSeparator = false;
   mView->IsSeparator(aRowIndex, &isSeparator);
   if (isSeparator) {
     
@@ -3062,7 +3062,7 @@ nsTreeBodyFrame::PaintSeparator(PRInt32              aRowIndex,
 {
   
   nsStyleContext* separatorContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreeseparator);
-  PRBool useTheme = PR_FALSE;
+  bool useTheme = false;
   nsITheme *theme = nsnull;
   const nsStyleDisplay* displayData = separatorContext->GetStyleDisplay();
   if ( displayData->mAppearance ) {
@@ -3125,7 +3125,7 @@ nsTreeBodyFrame::PaintCell(PRInt32              aRowIndex,
   
   nsStyleContext* cellContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreecell);
 
-  PRBool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  bool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
 
   
   
@@ -3184,7 +3184,7 @@ nsTreeBodyFrame::PaintCell(PRInt32              aRowIndex,
 
       const nsStyleBorder* borderStyle = lineContext->GetStyleBorder();
       nscolor color;
-      PRBool foreground;
+      bool foreground;
       borderStyle->GetBorderColor(NS_SIDE_LEFT, color, foreground);
       if (foreground) {
         
@@ -3214,7 +3214,7 @@ nsTreeBodyFrame::PaintCell(PRInt32              aRowIndex,
       for (PRInt32 i = level; i > 0; i--) {
         if (srcX <= cellRect.x + cellRect.width) {
           
-          PRBool hasNextSibling;
+          bool hasNextSibling;
           mView->HasNextSibling(currentParent, aRowIndex, &hasNextSibling);
           if (hasNextSibling)
             aRenderingContext.DrawLine(srcX, lineY, srcX, lineY + mRowHeight);
@@ -3252,7 +3252,7 @@ nsTreeBodyFrame::PaintCell(PRInt32              aRowIndex,
     nsRect elementRect(currX, cellRect.y, remainingWidth, cellRect.height);
     nsRect dirtyRect;
     if (dirtyRect.IntersectRect(aDirtyRect, elementRect)) {
-      PRBool textRTL = cellContext->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+      bool textRTL = cellContext->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
       switch (aColumn->GetType()) {
         case nsITreeColumn::TYPE_TEXT:
           PaintText(aRowIndex, aColumn, elementRect, aPresContext, aRenderingContext, aDirtyRect, currX,
@@ -3295,14 +3295,14 @@ nsTreeBodyFrame::PaintTwisty(PRInt32              aRowIndex,
 {
   NS_PRECONDITION(aColumn && aColumn->GetFrame(), "invalid column passed");
 
-  PRBool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  bool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
   nscoord rightEdge = aCurrX + aRemainingWidth;
   
-  PRBool shouldPaint = PR_FALSE;
-  PRBool isContainer = PR_FALSE;
+  bool shouldPaint = false;
+  bool isContainer = false;
   mView->IsContainer(aRowIndex, &isContainer);
   if (isContainer) {
-    PRBool isContainerEmpty = PR_FALSE;
+    bool isContainerEmpty = false;
     mView->IsContainerEmpty(aRowIndex, &isContainerEmpty);
     if (!isContainerEmpty)
       shouldPaint = PR_TRUE;
@@ -3357,7 +3357,7 @@ nsTreeBodyFrame::PaintTwisty(PRInt32              aRowIndex,
 
       
       nsCOMPtr<imgIContainer> image;
-      PRBool useImageRegion = PR_TRUE;
+      bool useImageRegion = true;
       GetImage(aRowIndex, aColumn, PR_TRUE, twistyContext, useImageRegion, getter_AddRefs(image));
       if (image) {
         nsPoint pt = twistyRect.TopLeft();
@@ -3388,7 +3388,7 @@ nsTreeBodyFrame::PaintImage(PRInt32              aRowIndex,
 {
   NS_PRECONDITION(aColumn && aColumn->GetFrame(), "invalid column passed");
 
-  PRBool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  bool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
   nscoord rightEdge = aCurrX + aRemainingWidth;
   
   nsStyleContext* imageContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreeimage);
@@ -3404,7 +3404,7 @@ nsTreeBodyFrame::PaintImage(PRInt32              aRowIndex,
   imageRect.Deflate(imageMargin);
 
   
-  PRBool useImageRegion = PR_TRUE;
+  bool useImageRegion = true;
   nsCOMPtr<imgIContainer> image;
   GetImage(aRowIndex, aColumn, PR_FALSE, imageContext, useImageRegion, getter_AddRefs(image));
 
@@ -3533,11 +3533,11 @@ nsTreeBodyFrame::PaintText(PRInt32              aRowIndex,
                            nsRenderingContext& aRenderingContext,
                            const nsRect&        aDirtyRect,
                            nscoord&             aCurrX,
-                           PRBool               aTextRTL)
+                           bool                 aTextRTL)
 {
   NS_PRECONDITION(aColumn && aColumn->GetFrame(), "invalid column passed");
 
-  PRBool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  bool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
 
   
   nsAutoString text;
@@ -3677,7 +3677,7 @@ nsTreeBodyFrame::PaintCheckbox(PRInt32              aRowIndex,
 
   
   nsCOMPtr<imgIContainer> image;
-  PRBool useImageRegion = PR_TRUE;
+  bool useImageRegion = true;
   GetImage(aRowIndex, aColumn, PR_TRUE, checkboxContext, useImageRegion, getter_AddRefs(image));
   if (image) {
     nsPoint pt = checkboxRect.TopLeft();
@@ -3747,7 +3747,7 @@ nsTreeBodyFrame::PaintProgressMeter(PRInt32              aRowIndex,
     if (GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL)
       meterRect.x += meterRect.width - meterWidth; 
     meterRect.width = meterWidth;
-    PRBool useImageRegion = PR_TRUE;
+    bool useImageRegion = true;
     nsCOMPtr<imgIContainer> image;
     GetImage(aRowIndex, aColumn, PR_TRUE, meterContext, useImageRegion, getter_AddRefs(image));
     if (image) {
@@ -3768,7 +3768,7 @@ nsTreeBodyFrame::PaintProgressMeter(PRInt32              aRowIndex,
     
     AdjustForBorderPadding(meterContext, meterRect);
 
-    PRBool useImageRegion = PR_TRUE;
+    bool useImageRegion = true;
     nsCOMPtr<imgIContainer> image;
     GetImage(aRowIndex, aColumn, PR_TRUE, meterContext, useImageRegion, getter_AddRefs(image));
     if (image) {
@@ -4192,7 +4192,7 @@ nsTreeBodyFrame::GetPseudoStyleContext(nsIAtom* aPseudoElement)
 }
 
 
-PRBool
+bool
 nsTreeBodyFrame::PseudoMatches(nsCSSSelector* aSelector)
 {
   
@@ -4256,8 +4256,8 @@ nsTreeBodyFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   mStringWidth = -1;
 }
 
-PRBool 
-nsTreeBodyFrame::OffsetForHorzScroll(nsRect& rect, PRBool clip)
+bool 
+nsTreeBodyFrame::OffsetForHorzScroll(nsRect& rect, bool clip)
 {
   rect.x -= mHorzPosition;
 
@@ -4282,7 +4282,7 @@ nsTreeBodyFrame::OffsetForHorzScroll(nsRect& rect, PRBool clip)
   return PR_TRUE;
 }
 
-PRBool
+bool
 nsTreeBodyFrame::CanAutoScroll(PRInt32 aRowIndex)
 {
   
@@ -4326,7 +4326,7 @@ nsTreeBodyFrame::ComputeDropPosition(nsGUIEvent* aEvent, PRInt32* aRow, PRInt16*
     
     PRInt32 yOffset = yTwips - mRowHeight * (*aRow - mTopRowIndex);
    
-    PRBool isContainer = PR_FALSE;
+    bool isContainer = false;
     mView->IsContainer (*aRow, &isContainer);
     if (isContainer) {
       
@@ -4625,8 +4625,8 @@ private:
   nsWeakFrame mFrame;
 };
 
-PRBool
-nsTreeBodyFrame::FullScrollbarsUpdate(PRBool aNeedsFullInvalidation)
+bool
+nsTreeBodyFrame::FullScrollbarsUpdate(bool aNeedsFullInvalidation)
 {
   ScrollParts parts = GetScrollParts();
   nsWeakFrame weakFrame(this);

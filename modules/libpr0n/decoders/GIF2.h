@@ -122,9 +122,9 @@ typedef struct gif_struct {
     int loop_count;             
 
 
-    PRPackedBool progressive_display;    
-    PRPackedBool interlaced;             
-    PRPackedBool is_transparent;         
+    bool progressive_display;    
+    bool interlaced;             
+    bool is_transparent;         
 
     PRUint16  prefix[MAX_BITS];          
     PRUint8   hold[MAX_HOLD_SIZE];       

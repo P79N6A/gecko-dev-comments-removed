@@ -112,7 +112,7 @@ private:
     PRUint32                    mBufPos;        
     PRUint32                    mBufEnd;        
     PRUint32                    mBufSize;       
-    PRBool                      mBufDirty;
+    bool                        mBufDirty;
     char *                      mBuffer;
     
 };

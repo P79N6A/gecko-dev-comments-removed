@@ -101,10 +101,10 @@ public:
   
   
   
-  PRBool IsExplicitlySet() const
+  bool IsExplicitlySet() const
     { return !!mAnimVal || mIsBaseSet; }
   
-  PRBool IsAnimating() const {
+  bool IsAnimating() const {
     return !!mAnimVal;
   }
 
@@ -122,7 +122,7 @@ private:
 
   SVGNumberList mBaseVal;
   nsAutoPtr<SVGNumberList> mAnimVal;
-  PRPackedBool mIsBaseSet;
+  bool mIsBaseSet;
 
 #ifdef MOZ_SMIL
   struct SMILAnimatedNumberList : public nsISMILAttr
@@ -147,7 +147,7 @@ private:
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement* aSrcElement,
                                      nsSMILValue& aValue,
-                                     PRBool& aPreventCachingOfSandwich) const;
+                                     bool& aPreventCachingOfSandwich) const;
     virtual nsSMILValue GetBaseValue() const;
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);

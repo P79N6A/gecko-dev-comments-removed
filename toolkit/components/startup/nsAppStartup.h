@@ -80,11 +80,11 @@ private:
   nsCOMPtr<nsIAppShell> mAppShell;
 
   PRInt32      mConsiderQuitStopper; 
-  PRPackedBool mRunning;        
-  PRPackedBool mShuttingDown;   
-  PRPackedBool mAttemptingQuit; 
-  PRPackedBool mRestart;        
-  PRPackedBool mInterrupted;    
+  bool mRunning;        
+  bool mShuttingDown;   
+  bool mAttemptingQuit; 
+  bool mRestart;        
+  bool mInterrupted;    
 };
 
 #endif 

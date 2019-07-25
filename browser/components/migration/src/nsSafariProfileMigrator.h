@@ -69,10 +69,10 @@ public:
     PrefType      type;
     const char*   targetPrefName;
     prefConverter prefSetterFunc;
-    PRBool        prefHasValue;
+    bool          prefHasValue;
     union {
       PRInt32     intValue;
-      PRBool      boolValue;
+      bool        boolValue;
       char*       stringValue;
     };
   };
@@ -91,8 +91,8 @@ public:
   static void CleanResource(nsIRDFDataSource* aDataSource, nsIRDFResource* aResource);
 
 protected:
-  nsresult CopyPreferences(PRBool aReplace);
-  nsresult CopyCookies(PRBool aReplace);
+  nsresult CopyPreferences(bool aReplace);
+  nsresult CopyCookies(bool aReplace);
   
 
 
@@ -101,8 +101,8 @@ protected:
 
 
 
-  nsresult CopyHistory(PRBool aReplace);
-  nsresult CopyHistoryBatched(PRBool aReplace);
+  nsresult CopyHistory(bool aReplace);
+  nsresult CopyHistoryBatched(bool aReplace);
   
 
 
@@ -112,20 +112,20 @@ protected:
 
 
 
-  nsresult CopyBookmarks(PRBool aReplace);
-  nsresult CopyBookmarksBatched(PRBool aReplace);
+  nsresult CopyBookmarks(bool aReplace);
+  nsresult CopyBookmarksBatched(bool aReplace);
   nsresult ParseBookmarksFolder(CFArrayRef aChildren, 
                                 PRInt64 aParentFolder,
                                 nsINavBookmarksService * aBookmarksService,
-                                PRBool aIsAtRootLevel);
-  nsresult CopyFormData(PRBool aReplace);
-  nsresult CopyOtherData(PRBool aReplace);
+                                bool aIsAtRootLevel);
+  nsresult CopyFormData(bool aReplace);
+  nsresult CopyOtherData(bool aReplace);
 
-  nsresult ProfileHasContentStyleSheet(PRBool *outExists);
+  nsresult ProfileHasContentStyleSheet(bool *outExists);
   nsresult GetSafariUserStyleSheet(nsILocalFile** aResult);
 
 private:
-  PRBool HasFormDataToImport();
+  bool HasFormDataToImport();
   nsCOMPtr<nsIObserverService> mObserverService;
 };
  

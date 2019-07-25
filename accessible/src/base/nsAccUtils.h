@@ -148,7 +148,7 @@ public:
 
 
 
-  static PRBool HasDefinedARIAToken(nsIContent *aContent, nsIAtom *aAtom);
+  static bool HasDefinedARIAToken(nsIContent *aContent, nsIAtom *aAtom);
 
   
 
@@ -216,7 +216,7 @@ public:
 
 
 
-  static PRBool IsARIASelected(nsAccessible *aAccessible);
+  static bool IsARIASelected(nsAccessible *aAccessible);
 
   
 
@@ -313,20 +313,20 @@ public:
 
 
 
-  static PRBool GetLiveAttrValue(PRUint32 aRule, nsAString& aValue);
+  static bool GetLiveAttrValue(PRUint32 aRule, nsAString& aValue);
 
 #ifdef DEBUG_A11Y
   
 
 
 
-  static PRBool IsTextInterfaceSupportCorrect(nsAccessible *aAccessible);
+  static bool IsTextInterfaceSupportCorrect(nsAccessible *aAccessible);
 #endif
 
   
 
 
-  static PRBool IsText(nsIAccessible *aAcc)
+  static bool IsText(nsIAccessible *aAcc)
   {
     PRUint32 role = Role(aAcc);
     return role == nsIAccessibleRole::ROLE_TEXT_LEAF ||
@@ -341,7 +341,7 @@ public:
   
 
 
-  static PRBool IsEmbeddedObject(nsIAccessible *aAcc)
+  static bool IsEmbeddedObject(nsIAccessible *aAcc)
   {
     PRUint32 role = Role(aAcc);
     return role != nsIAccessibleRole::ROLE_TEXT_LEAF &&
@@ -373,7 +373,7 @@ public:
 
 
 
-  static PRBool MustPrune(nsIAccessible *aAccessible);
+  static bool MustPrune(nsIAccessible *aAccessible);
 
   
 

@@ -602,7 +602,7 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject     * aDataObject,
       
       void* data = nsnull;
       PRUint32 dataLen = 0;
-      PRBool dataFound = PR_FALSE;
+      bool dataFound = false;
       if (nsnull != aDataObject) {
         if ( NS_SUCCEEDED(GetNativeDataOffClipboard(aDataObject, anIndex, format, flavorStr, &data, &dataLen)) )
           dataFound = PR_TRUE;
@@ -690,7 +690,7 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject     * aDataObject,
 
 
 
-PRBool
+bool
 nsClipboard :: FindPlatformHTML ( IDataObject* inDataObject, UINT inIndex, void** outData, PRUint32* outDataLen )
 {
   
@@ -743,10 +743,10 @@ nsClipboard :: FindPlatformHTML ( IDataObject* inDataObject, UINT inIndex, void*
 
 
 
-PRBool
+bool
 nsClipboard :: FindUnicodeFromPlainText ( IDataObject* inDataObject, UINT inIndex, void** outData, PRUint32* outDataLen )
 {
-  PRBool dataFound = PR_FALSE;
+  bool dataFound = false;
 
   
   
@@ -779,10 +779,10 @@ nsClipboard :: FindUnicodeFromPlainText ( IDataObject* inDataObject, UINT inInde
 
 
 
-PRBool
+bool
 nsClipboard :: FindURLFromLocalFile ( IDataObject* inDataObject, UINT inIndex, void** outData, PRUint32* outDataLen )
 {
-  PRBool dataFound = PR_FALSE;
+  bool dataFound = false;
 
   nsresult loadResult = GetNativeDataOffClipboard(inDataObject, inIndex, GetFormat(kFileMime), nsnull, outData, outDataLen);
   if ( NS_SUCCEEDED(loadResult) && *outData ) {
@@ -839,10 +839,10 @@ nsClipboard :: FindURLFromLocalFile ( IDataObject* inDataObject, UINT inIndex, v
 
 
 
-PRBool
+bool
 nsClipboard :: FindURLFromNativeURL ( IDataObject* inDataObject, UINT inIndex, void** outData, PRUint32* outDataLen )
 {
-  PRBool dataFound = PR_FALSE;
+  bool dataFound = false;
 
   void* tempOutData = nsnull;
   PRUint32 tempDataLen = 0;
@@ -864,7 +864,7 @@ nsClipboard :: FindURLFromNativeURL ( IDataObject* inDataObject, UINT inIndex, v
       
       
       nsCString urlUnescapedA;
-      PRBool unescaped = NS_UnescapeURL(static_cast<char*>(tempOutData), tempDataLen, esc_OnlyNonASCII | esc_SkipControl, urlUnescapedA);
+      bool unescaped = NS_UnescapeURL(static_cast<char*>(tempOutData), tempDataLen, esc_OnlyNonASCII | esc_SkipControl, urlUnescapedA);
 
       nsString urlString;
       if (unescaped)
@@ -910,7 +910,7 @@ nsClipboard :: ResolveShortcut ( nsILocalFile* aFile, nsACString& outURL )
 
 
 
-PRBool
+bool
 nsClipboard :: IsInternetShortcut ( const nsAString& inFileName ) 
 {
   return StringEndsWith(inFileName, NS_LITERAL_STRING(".url"), nsCaseInsensitiveStringComparator());
@@ -947,7 +947,7 @@ nsClipboard::GetNativeClipboardData ( nsITransferable * aTransferable, PRInt32 a
 NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(const char** aFlavorList,
                                                   PRUint32 aLength,
                                                   PRInt32 aWhichClipboard,
-                                                  PRBool *_retval)
+                                                  bool *_retval)
 {
   *_retval = PR_FALSE;
   if (aWhichClipboard != kGlobalClipboard || !aFlavorList)

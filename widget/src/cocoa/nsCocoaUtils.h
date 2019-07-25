@@ -144,7 +144,7 @@ class nsCocoaUtils
   static BOOL IsMomentumScrollEvent(NSEvent* aEvent);
 
   
-  static void HideOSChromeOnScreen(PRBool aShouldHide, NSScreen* aScreen);
+  static void HideOSChromeOnScreen(bool aShouldHide, NSScreen* aScreen);
 
   static nsIWidget* GetHiddenWindowWidget();
 

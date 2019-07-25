@@ -125,7 +125,7 @@ public:
   
   
   
-  static PRBool
+  static bool
   LookupOperator(const nsString&       aOperator,
                  const nsOperatorFlags aForm,
                  nsOperatorFlags*      aFlags,
@@ -146,7 +146,7 @@ public:
 
   
   
-  static PRBool
+  static bool
   IsMutableOperator(const nsString& aOperator);
 
   

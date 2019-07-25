@@ -112,33 +112,33 @@ private:
 
 
 
-PRBool AddOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult);
+bool AddOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult);
  
 
 
 
-PRBool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult);
+bool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult);
 
 
 
-PRBool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
-
-
-
-
-PRBool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
+bool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
 
 
 
 
-
-PRBool FramesToUsecs(PRInt64 aFrames, PRUint32 aRate, PRInt64& aOutUsecs);
+bool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
 
 
 
 
 
-PRBool UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutFrames);
+bool FramesToUsecs(PRInt64 aFrames, PRUint32 aRate, PRInt64& aOutUsecs);
+
+
+
+
+
+bool UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutFrames);
 
 
 static const PRInt64 USECS_PER_S = 1000000;

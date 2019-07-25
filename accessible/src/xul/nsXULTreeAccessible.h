@@ -192,7 +192,7 @@ public:
   NS_IMETHOD GetBounds(PRInt32 *aX, PRInt32 *aY,
                        PRInt32 *aWidth, PRInt32 *aHeight);
 
-  NS_IMETHOD SetSelected(PRBool aSelect); 
+  NS_IMETHOD SetSelected(bool aSelect); 
   NS_IMETHOD TakeFocus();
 
   NS_IMETHOD GroupPosition(PRInt32 *aGroupLevel,
@@ -252,7 +252,7 @@ protected:
   
 
 
-  PRBool IsExpandable();
+  bool IsExpandable();
 
   
 
@@ -287,7 +287,7 @@ public:
 
   
   virtual bool IsDefunct() const;
-  virtual PRBool Init();
+  virtual bool Init();
   virtual void Shutdown();
 
   

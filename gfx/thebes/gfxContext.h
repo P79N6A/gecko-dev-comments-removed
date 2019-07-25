@@ -102,7 +102,7 @@ public:
     
 
 
-    PRBool HasError();
+    bool HasError();
 
     
 
@@ -224,7 +224,7 @@ public:
 
 
 
-    void Rectangle(const gfxRect& rect, PRBool snapToPixels = PR_FALSE);
+    void Rectangle(const gfxRect& rect, bool snapToPixels = false);
 
     
 
@@ -249,7 +249,7 @@ public:
 
     void RoundedRectangle(const gfxRect& rect,
                           const gfxCornerSizes& corners,
-                          PRBool draw_clockwise = PR_TRUE);
+                          bool draw_clockwise = true);
 
     
 
@@ -353,7 +353,7 @@ public:
 
 
 
-    PRBool UserToDevicePixelSnapped(gfxRect& rect, PRBool ignoreScale = PR_FALSE) const;
+    bool UserToDevicePixelSnapped(gfxRect& rect, bool ignoreScale = false) const;
 
     
 
@@ -366,7 +366,7 @@ public:
 
 
 
-    PRBool UserToDevicePixelSnapped(gfxPoint& pt, PRBool ignoreScale = PR_FALSE) const;
+    bool UserToDevicePixelSnapped(gfxPoint& pt, bool ignoreScale = false) const;
 
     
 
@@ -392,7 +392,7 @@ public:
 
 
 
-    PRBool GetDeviceColor(gfxRGBA& c);
+    bool GetDeviceColor(gfxRGBA& c);
 
     
 
@@ -610,7 +610,7 @@ public:
 
 
 
-    PRBool ClipContainsRect(const gfxRect& aRect);
+    bool ClipContainsRect(const gfxRect& aRect);
 
     
 
@@ -634,8 +634,8 @@ public:
     
 
 
-    PRBool PointInFill(const gfxPoint& pt);
-    PRBool PointInStroke(const gfxPoint& pt);
+    bool PointInFill(const gfxPoint& pt);
+    bool PointInStroke(const gfxPoint& pt);
 
     
 
@@ -740,7 +740,7 @@ class THEBES_API gfxContextPathAutoSaveRestore
 public:
     gfxContextPathAutoSaveRestore() : mContext(nsnull) {}
 
-    gfxContextPathAutoSaveRestore(gfxContext *aContext, PRBool aSave = PR_TRUE) : mContext(aContext)
+    gfxContextPathAutoSaveRestore(gfxContext *aContext, bool aSave = true) : mContext(aContext)
     {
         if (aSave)
             Save();       
@@ -751,7 +751,7 @@ public:
         Restore();
     }
 
-    void SetContext(gfxContext *aContext, PRBool aSave = PR_TRUE)
+    void SetContext(gfxContext *aContext, bool aSave = true)
     {
         mContext = aContext;
         if (aSave)
@@ -819,7 +819,7 @@ private:
 
 class THEBES_API gfxContextAutoDisableSubpixelAntialiasing {
 public:
-    gfxContextAutoDisableSubpixelAntialiasing(gfxContext *aContext, PRBool aDisable)
+    gfxContextAutoDisableSubpixelAntialiasing(gfxContext *aContext, bool aDisable)
     {
         if (aDisable) {
             mSurface = aContext->CurrentSurface();
@@ -836,7 +836,7 @@ public:
 
 private:
     nsRefPtr<gfxASurface> mSurface;
-    PRPackedBool mSubpixelAntialiasingEnabled;
+    bool mSubpixelAntialiasingEnabled;
 };
 
 #endif 

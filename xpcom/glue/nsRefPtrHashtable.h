@@ -65,7 +65,7 @@ public:
 
 
 
-  PRBool Get(KeyType aKey, UserDataType* pData) const;
+  bool Get(KeyType aKey, UserDataType* pData) const;
 
   
 
@@ -73,7 +73,7 @@ public:
 
 
 
-  RefPtr* GetWeak(KeyType aKey, PRBool* aFound = nsnull) const;
+  RefPtr* GetWeak(KeyType aKey, bool* aFound = nsnull) const;
 };
 
 
@@ -96,7 +96,7 @@ public:
 
 
 
-  PRBool Get(KeyType aKey, UserDataType* pData) const;
+  bool Get(KeyType aKey, UserDataType* pData) const;
 
   
   
@@ -109,7 +109,7 @@ public:
 
 
 template<class KeyClass, class RefPtr>
-PRBool
+bool
 nsRefPtrHashtable<KeyClass,RefPtr>::Get
   (KeyType aKey, UserDataType* pRefPtr) const
 {
@@ -138,7 +138,7 @@ nsRefPtrHashtable<KeyClass,RefPtr>::Get
 template<class KeyClass, class RefPtr>
 RefPtr*
 nsRefPtrHashtable<KeyClass,RefPtr>::GetWeak
-  (KeyType aKey, PRBool* aFound) const
+  (KeyType aKey, bool* aFound) const
 {
   typename base_type::EntryType* ent = this->GetEntry(aKey);
 
@@ -161,7 +161,7 @@ nsRefPtrHashtable<KeyClass,RefPtr>::GetWeak
 
 
 template<class KeyClass, class RefPtr>
-PRBool
+bool
 nsRefPtrHashtableMT<KeyClass,RefPtr>::Get
   (KeyType aKey, UserDataType* pRefPtr) const
 {

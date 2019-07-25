@@ -69,7 +69,7 @@ class nsLDAPSyncQuery : public nsILDAPSyncQuery,
     nsCOMPtr<nsILDAPConnection> mConnection; 
     nsCOMPtr<nsILDAPOperation> mOperation;   
     nsCOMPtr<nsILDAPURL> mServerURL;         
-    PRBool mFinished;                        
+    bool mFinished;                        
     PRUint32 mAttrCount;                     
     char **mAttrs;                           
     nsString mResults;                       

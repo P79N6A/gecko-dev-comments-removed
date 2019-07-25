@@ -79,21 +79,21 @@ protected:
                              nsIWebBrowserFind **aWebBrowserFind);
 
   void RangeStartsInsideLink(nsIDOMRange *aRange, nsIPresShell *aPresShell, 
-                             PRBool *aIsInsideLink, PRBool *aIsStartingLink);
+                             bool *aIsInsideLink, bool *aIsStartingLink);
 
   void GetSelection(nsIPresShell *aPresShell, nsISelectionController **aSelCon, 
                     nsISelection **aDomSel);
-  PRBool IsRangeVisible(nsIPresShell *aPresShell, nsPresContext *aPresContext,
-                        nsIDOMRange *aRange, PRBool aMustBeVisible, 
-                        PRBool aGetTopVisibleLeaf, nsIDOMRange **aNewRange,
-                        PRBool *aUsesIndependentSelection);
-  nsresult FindItNow(nsIPresShell *aPresShell, PRBool aIsLinksOnly,
-                     PRBool aIsFirstVisiblePreferred, PRBool aFindPrev,
+  bool IsRangeVisible(nsIPresShell *aPresShell, nsPresContext *aPresContext,
+                        nsIDOMRange *aRange, bool aMustBeVisible, 
+                        bool aGetTopVisibleLeaf, nsIDOMRange **aNewRange,
+                        bool *aUsesIndependentSelection);
+  nsresult FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
+                     bool aIsFirstVisiblePreferred, bool aFindPrev,
                      PRUint16* aResult);
   nsresult GetSearchContainers(nsISupports *aContainer,
                                nsISelectionController *aSelectionController,
-                               PRBool aIsFirstVisiblePreferred,
-                               PRBool aFindPrev, nsIPresShell **aPresShell,
+                               bool aIsFirstVisiblePreferred,
+                               bool aFindPrev, nsIPresShell **aPresShell,
                                nsPresContext **aPresContext);
 
   
@@ -106,8 +106,8 @@ protected:
 
   
   
-  PRBool mStartLinksOnlyPref;
-  PRBool mCaretBrowsingOn;
+  bool mStartLinksOnlyPref;
+  bool mCaretBrowsingOn;
   nsCOMPtr<nsIDOMElement> mFoundLink;     
   nsCOMPtr<nsIDOMElement> mFoundEditable; 
   nsCOMPtr<nsIDOMWindow> mCurrentWindow;
@@ -118,7 +118,7 @@ protected:
   
   
   nsCOMPtr<nsISound> mSoundInterface;
-  PRBool mIsSoundInitialized;
+  bool mIsSoundInitialized;
   
   
   nsCOMPtr<nsIDOMRange> mStartFindRange;

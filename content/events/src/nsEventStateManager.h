@@ -138,9 +138,9 @@ public:
 
 
 
-  PRBool SetContentState(nsIContent *aContent, nsEventStates aState);
+  bool SetContentState(nsIContent *aContent, nsEventStates aState);
   void ContentRemoved(nsIDocument* aDocument, nsIContent* aContent);
-  PRBool EventStatusOK(nsGUIEvent* aEvent);
+  bool EventStatusOK(nsGUIEvent* aEvent);
 
   
 
@@ -167,11 +167,11 @@ public:
 
   PRUint32 GetRegisteredAccessKey(nsIContent* aContent);
 
-  PRBool GetAccessKeyLabelPrefix(nsAString& aPrefix);
+  bool GetAccessKeyLabelPrefix(nsAString& aPrefix);
 
   nsresult SetCursor(PRInt32 aCursor, imgIContainer* aContainer,
-                     PRBool aHaveHotspot, float aHotspotX, float aHotspotY,
-                     nsIWidget* aWidget, PRBool aLockCursor); 
+                     bool aHaveHotspot, float aHotspotX, float aHotspotY,
+                     nsIWidget* aWidget, bool aLockCursor); 
 
   static void StartHandlingUserInput()
   {
@@ -189,7 +189,7 @@ public:
     }
   }
 
-  static PRBool IsHandlingUserInput()
+  static bool IsHandlingUserInput()
   {
     if (sUserInputEventDepth <= 0) {
       return PR_FALSE;
@@ -209,7 +209,7 @@ public:
 
 
 
-  NS_IMETHOD_(PRBool) IsHandlingUserInputExternal() { return IsHandlingUserInput(); }
+  NS_IMETHOD_(bool) IsHandlingUserInputExternal() { return IsHandlingUserInput(); }
   
   nsPresContext* GetPresContext() { return mPresContext; }
 
@@ -226,7 +226,7 @@ public:
                                nsIContent* aContent);
 
   
-  static void SetFullScreenState(mozilla::dom::Element* aElement, PRBool aIsFullScreen);
+  static void SetFullScreenState(mozilla::dom::Element* aElement, bool aIsFullScreen);
 
 protected:
   friend class MouseEnterLeaveDispatcher;
@@ -321,15 +321,15 @@ protected:
                        ProcessingAccessKeyState aAccessKeyState,
                        PRInt32 aModifierMask);
 
-  PRBool ExecuteAccessKey(nsTArray<PRUint32>& aAccessCharCodes,
-                          PRBool aIsTrustedEvent);
+  bool ExecuteAccessKey(nsTArray<PRUint32>& aAccessCharCodes,
+                          bool aIsTrustedEvent);
 
   
   
   
 
   nsIContent* GetFocusedContent();
-  PRBool IsShellVisible(nsIDocShell* aShell);
+  bool IsShellVisible(nsIDocShell* aShell);
 
   
   void SendLineScrollEvent(nsIFrame* aTargetFrame,
@@ -352,7 +352,7 @@ protected:
   nsresult DoScrollText(nsIFrame* aTargetFrame,
                         nsMouseScrollEvent* aMouseEvent,
                         nsIScrollableFrame::ScrollUnit aScrollQuantity,
-                        PRBool aAllowScrollSpeedOverride,
+                        bool aAllowScrollSpeedOverride,
                         nsQueryContentEvent* aQueryEvent = nsnull);
   void DoScrollHistory(PRInt32 direction);
   void DoScrollZoom(nsIFrame *aTargetFrame, PRInt32 adjustment);
@@ -374,7 +374,7 @@ protected:
 
 
   PRInt32 ComputeWheelActionFor(nsMouseScrollEvent* aMouseEvent,
-                                PRBool aUseSystemSettings);
+                                bool aUseSystemSettings);
   
 
 
@@ -391,7 +391,7 @@ protected:
 
 
 
-  PRBool UseSystemScrollSettingFor(nsMouseScrollEvent* aMouseEvent);
+  bool UseSystemScrollSettingFor(nsMouseScrollEvent* aMouseEvent);
   
 
   
@@ -424,8 +424,8 @@ protected:
   void DetermineDragTarget(nsPresContext* aPresContext,
                            nsIContent* aSelectionTarget,
                            nsDOMDataTransfer* aDataTransfer,
-                           PRBool* aIsSelection,
-                           PRBool* aIsInEditor,
+                           bool* aIsSelection,
+                           bool* aIsInEditor,
                            nsIContent** aTargetNode);
 
   
@@ -438,13 +438,13 @@ protected:
 
 
 
-  PRBool DoDefaultDragStart(nsPresContext* aPresContext,
+  bool DoDefaultDragStart(nsPresContext* aPresContext,
                             nsDragEvent* aDragEvent,
                             nsDOMDataTransfer* aDataTransfer,
                             nsIContent* aDragTarget,
-                            PRBool aIsSelection);
+                            bool aIsSelection);
 
-  PRBool IsTrackingDragGesture ( ) const { return mGestureDownContent != nsnull; }
+  bool IsTrackingDragGesture ( ) const { return mGestureDownContent != nsnull; }
   
 
 
@@ -460,25 +460,25 @@ protected:
                                nsIFrame* aTargetFrame);
   void DoQuerySelectedText(nsQueryContentEvent* aEvent);
 
-  PRBool RemoteQueryContentEvent(nsEvent *aEvent);
+  bool RemoteQueryContentEvent(nsEvent *aEvent);
   mozilla::dom::TabParent *GetCrossProcessTarget();
-  PRBool IsTargetCrossProcess(nsGUIEvent *aEvent);
+  bool IsTargetCrossProcess(nsGUIEvent *aEvent);
 
   void DispatchCrossProcessEvent(nsEvent* aEvent, nsIFrameLoader* remote);
-  PRBool IsRemoteTarget(nsIContent* target);
-  PRBool HandleCrossProcessEvent(nsEvent *aEvent,
+  bool IsRemoteTarget(nsIContent* target);
+  bool HandleCrossProcessEvent(nsEvent *aEvent,
                                  nsIFrame* aTargetFrame,
                                  nsEventStatus *aStatus);
 
 private:
   static inline void DoStateChange(mozilla::dom::Element* aElement,
-                                   nsEventStates aState, PRBool aAddState);
+                                   nsEventStates aState, bool aAddState);
   static inline void DoStateChange(nsIContent* aContent, nsEventStates aState,
-                                   PRBool aAddState);
+                                   bool aAddState);
   static void UpdateAncestorState(nsIContent* aStartNode,
                                   nsIContent* aStopBefore,
                                   nsEventStates aState,
-                                  PRBool aAddState);
+                                  bool aAddState);
 
   PRInt32     mLockCursor;
 
@@ -497,10 +497,10 @@ private:
   
   nsCOMPtr<nsIContent> mGestureDownFrameOwner;
   
-  PRPackedBool mGestureDownShift;
-  PRPackedBool mGestureDownControl;
-  PRPackedBool mGestureDownAlt;
-  PRPackedBool mGestureDownMeta;
+  bool mGestureDownShift;
+  bool mGestureDownControl;
+  bool mGestureDownAlt;
+  bool mGestureDownMeta;
 
   nsCOMPtr<nsIContent> mLastLeftMouseDownContent;
   nsCOMPtr<nsIContent> mLastLeftMouseDownContentParent;
@@ -529,7 +529,7 @@ private:
   PRUint32 mMClickCount;
   PRUint32 mRClickCount;
 
-  PRPackedBool m_haveShutdown;
+  bool m_haveShutdown;
 
   
   static TimeStamp sHandlingInputStart;
@@ -540,19 +540,19 @@ public:
   nsCOMArray<nsIContent> mAccessKeys;
 
   
-  PRPackedBool mLastLineScrollConsumedX;
-  PRPackedBool mLastLineScrollConsumedY;
+  bool mLastLineScrollConsumedX;
+  bool mLastLineScrollConsumedY;
 
   static PRInt32 sUserInputEventDepth;
   
-  static PRBool sNormalLMouseEventInProcess;
+  static bool sNormalLMouseEventInProcess;
 
   static nsEventStateManager* sActiveESM;
   
   static void ClearGlobalActiveContent(nsEventStateManager* aClearer);
 
   
-  PRBool mClickHoldContextMenu;
+  bool mClickHoldContextMenu;
   nsCOMPtr<nsITimer> mClickHoldTimer;
   void CreateClickHoldTimer ( nsPresContext* aPresContext, nsIFrame* inDownFrame,
                               nsGUIEvent* inMouseDownEvent ) ;
@@ -568,7 +568,7 @@ public:
 class nsAutoHandlingUserInputStatePusher
 {
 public:
-  nsAutoHandlingUserInputStatePusher(PRBool aIsHandlingUserInput,
+  nsAutoHandlingUserInputStatePusher(bool aIsHandlingUserInput,
                                      nsEvent* aEvent,
                                      nsIDocument* aDocument)
     : mIsHandlingUserInput(aIsHandlingUserInput),
@@ -608,9 +608,9 @@ public:
   }
 
 protected:
-  PRBool mIsHandlingUserInput;
-  PRBool mIsMouseDown;
-  PRBool mResetFMMouseDownState;
+  bool mIsHandlingUserInput;
+  bool mIsMouseDown;
+  bool mResetFMMouseDownState;
 
 private:
   

@@ -100,22 +100,22 @@ NS_IMETHODIMP nsDecodeAppleFile::Close(void)
   
   if (m_headerOk)
   {
-    PRBool dataOk = PR_TRUE; 
+    bool dataOk = true; 
     if (m_headers.magic == APPLESINGLE_MAGIC)
     {
       for (i = 0; i < m_headers.entriesCount; i ++)
         if (ENT_DFORK == m_entries[i].id)
         {
-          dataOk = (PRBool)(m_totalDataForkWritten == m_entries[i].length);
+          dataOk = (bool)(m_totalDataForkWritten == m_entries[i].length);
           break;
         }
     }
 
-    PRBool resourceOk = FALSE;
+    bool resourceOk = FALSE;
     for (i = 0; i < m_headers.entriesCount; i ++)
       if (ENT_RFORK == m_entries[i].id)
       {
-        resourceOk = (PRBool)(m_totalResourceForkWritten == m_entries[i].length);
+        resourceOk = (bool)(m_totalResourceForkWritten == m_entries[i].length);
         break;
       }
       
@@ -189,7 +189,7 @@ NS_IMETHODIMP nsDecodeAppleFile::WriteSegments(nsReadSegmentFun reader, void * c
   return m_output->WriteSegments(reader, closure, count, _retval);
 }
 
-NS_IMETHODIMP nsDecodeAppleFile::IsNonBlocking(PRBool *aNonBlocking)
+NS_IMETHODIMP nsDecodeAppleFile::IsNonBlocking(bool *aNonBlocking)
 {
   return m_output->IsNonBlocking(aNonBlocking);
 }

@@ -132,7 +132,7 @@ public:
 
 
 
-    nsresult AwaitLoadDone(nsXULDocument* aDocument, PRBool* aResult);
+    nsresult AwaitLoadDone(nsXULDocument* aDocument, bool* aResult);
 
     
 
@@ -158,7 +158,7 @@ protected:
 
     nsRefPtr<nsXULPDGlobalObject> mGlobalObject;
 
-    PRPackedBool mLoaded;
+    bool mLoaded;
     nsTArray< nsRefPtr<nsXULDocument> > mPrototypeWaiters;
 
     nsRefPtr<nsNodeInfoManager> mNodeInfoManager;

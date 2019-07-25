@@ -196,7 +196,7 @@ nsAboutCacheEntry::OpenCacheEntry(nsIURI *uri, nsICacheEntryDescriptor **result)
 {
     nsresult rv;
     nsCAutoString clientID, key;
-    PRBool streamBased = PR_TRUE;
+    bool streamBased = true;
 
     rv = ParseURI(uri, clientID, streamBased, key);
     if (NS_FAILED(rv)) return rv;
@@ -273,8 +273,8 @@ nsAboutCacheEntry::WriteCacheEntryDescription(nsIOutputStream *outputStream,
 
     
     nsCOMPtr<nsIURI> uri;
-    PRBool isJS = PR_FALSE;
-    PRBool isData = PR_FALSE;
+    bool isJS = false;
+    bool isData = false;
 
     rv = NS_NewURI(getter_AddRefs(uri), str);
     
@@ -432,7 +432,7 @@ nsAboutCacheEntry::WriteCacheEntryUnavailable(nsIOutputStream *outputStream)
 
 nsresult
 nsAboutCacheEntry::ParseURI(nsIURI *uri, nsCString &clientID,
-                            PRBool &streamBased, nsCString &key)
+                            bool &streamBased, nsCString &key)
 {
     
     
@@ -482,7 +482,7 @@ nsAboutCacheEntry::ParseURI(nsIURI *uri, nsCString &clientID,
 NS_IMETHODIMP
 nsAboutCacheEntry::VisitMetaDataElement(const char * key,
                                         const char * value,
-                                        PRBool *     keepGoing)
+                                        bool *     keepGoing)
 {
     mBuffer->AppendLiteral("  <tr>\n"
                            "    <th>");

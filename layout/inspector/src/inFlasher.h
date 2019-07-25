@@ -62,15 +62,15 @@ public:
 protected:
   void DrawOutline(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight,
                    nsRenderingContext* aRenderContext,
-                   PRBool aDrawBegin, PRBool aDrawEnd);
+                   bool aDrawBegin, bool aDrawEnd);
   void DrawLine(nscoord aX, nscoord aY, nscoord aLength,
-                PRBool aDir, PRBool aBounds,
+                bool aDir, bool aBounds,
                 nsRenderingContext* aRenderContext);
 
   nscolor mColor;
 
   PRUint16 mThickness;
-  PRPackedBool mInvert;
+  bool mInvert;
 };
 
 

@@ -415,7 +415,7 @@ xpc_qsDefineQuickStubs(JSContext *cx, JSObject *proto, uintN flags,
 
 
 
-    PRBool definedProperty = PR_FALSE;
+    bool definedProperty = false;
     for(uint32 i = ifacec; i-- != 0;)
     {
         const nsID &iid = *interfaces[i];

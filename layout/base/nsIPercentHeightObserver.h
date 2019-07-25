@@ -56,7 +56,7 @@ public:
   virtual void NotifyPercentHeight(const nsHTMLReflowState& aReflowState) = 0;
 
   
-  virtual PRBool NeedsToObserve(const nsHTMLReflowState& aReflowState) = 0;
+  virtual bool NeedsToObserve(const nsHTMLReflowState& aReflowState) = 0;
 };
 
 #endif 

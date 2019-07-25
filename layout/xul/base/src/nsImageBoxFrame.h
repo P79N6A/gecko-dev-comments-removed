@@ -147,8 +147,8 @@ private:
 
   PRInt32 mLoadFlags;
 
-  PRPackedBool mUseSrcAttr; 
-  PRPackedBool mSuppressStyleCheck;
+  bool mUseSrcAttr; 
+  bool mSuppressStyleCheck;
 }; 
 
 #endif 

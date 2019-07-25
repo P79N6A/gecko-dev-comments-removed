@@ -107,12 +107,12 @@ enum ELiveAttrRule
 
 
 
-const PRBool kUseMapRole = PR_TRUE;
+const bool kUseMapRole = true;
 
 
 
 
-const PRBool kUseNativeRole = PR_FALSE;
+const bool kUseNativeRole = false;
 
 
 
@@ -203,7 +203,7 @@ public:
                   PRUint64 aPermanentState,
                   PRUint64 aTrueState,
                   PRUint64 aFalseState = 0,
-                  PRBool aDefinedIfAbsent = PR_FALSE);
+                  bool aDefinedIfAbsent = false);
 
   
 
@@ -230,7 +230,7 @@ public:
 
 
 
-  static PRBool MapToStates(nsIContent* aContent, PRUint64* aState,
+  static bool MapToStates(nsIContent* aContent, PRUint64* aState,
                             eStateMapEntryID aStateMapEntryID);
 
 private:
@@ -238,7 +238,7 @@ private:
   nsIAtom** mAttributeName;
 
   
-  PRBool mIsToken;
+  bool mIsToken;
 
   
   PRUint64 mPermanentState;
@@ -257,7 +257,7 @@ private:
   PRUint64 mDefaultState;
 
   
-  PRBool mDefinedIfAbsent;
+  bool mDefinedIfAbsent;
 };
 
 
@@ -276,7 +276,7 @@ struct nsRoleMapEntry
   PRUint32 role;
   
   
-  PRBool roleRule;
+  bool roleRule;
   
   
   EValueRule valueRule;

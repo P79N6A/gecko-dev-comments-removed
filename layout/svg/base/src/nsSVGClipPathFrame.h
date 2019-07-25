@@ -59,16 +59,16 @@ public:
                      nsIFrame* aParent,
                      const gfxMatrix &aMatrix);
 
-  PRBool ClipHitTest(nsIFrame* aParent,
+  bool ClipHitTest(nsIFrame* aParent,
                      const gfxMatrix &aMatrix,
                      const nsPoint &aPoint);
 
   
   
   
-  PRBool IsTrivial();
+  bool IsTrivial();
 
-  PRBool IsValid();
+  bool IsValid();
 
   
   NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
@@ -116,7 +116,7 @@ public:
   nsIFrame *mClipParent;
   nsAutoPtr<gfxMatrix> mClipParentMatrix;
   
-  PRPackedBool mInUse;
+  bool mInUse;
 
   
   virtual gfxMatrix GetCanvasTM();

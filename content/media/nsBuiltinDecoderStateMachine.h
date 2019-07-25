@@ -137,7 +137,7 @@ public:
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
 
-  nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDecoder, nsBuiltinDecoderReader* aReader, PRPackedBool aRealTime = PR_FALSE);
+  nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDecoder, nsBuiltinDecoderReader* aReader, bool aRealTime = false);
   ~nsBuiltinDecoderStateMachine();
 
   
@@ -152,7 +152,7 @@ public:
   virtual PRInt64 GetDuration();
   virtual void SetDuration(PRInt64 aDuration);
   void SetEndTime(PRInt64 aEndTime);
-  virtual PRBool OnDecodeThread() const {
+  virtual bool OnDecodeThread() const {
     return IsCurrentThread(mDecodeThread);
   }
 
@@ -161,7 +161,7 @@ public:
   virtual void Seek(double aTime);
   virtual double GetCurrentTime() const;
   virtual void ClearPositionChangeFlag();
-  virtual void SetSeekable(PRBool aSeekable);
+  virtual void SetSeekable(bool aSeekable);
   virtual void UpdatePlaybackPosition(PRInt64 aTime);
   virtual void StartBuffering();
 
@@ -170,30 +170,30 @@ public:
 
   
   
-  PRBool HasAudio() const {
+  bool HasAudio() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mInfo.mHasAudio;
   }
 
   
   
-  PRBool HasVideo() const {
+  bool HasVideo() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mInfo.mHasVideo;
   }
 
   
-  PRBool HaveNextFrameData() const;
+  bool HaveNextFrameData() const;
 
   
-  PRBool IsBuffering() const {
+  bool IsBuffering() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
     return mState == nsBuiltinDecoderStateMachine::DECODER_STATE_BUFFERING;
   }
 
   
-  PRBool IsSeeking() const {
+  bool IsSeeking() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
     return mState == nsBuiltinDecoderStateMachine::DECODER_STATE_SEEKING;
@@ -201,11 +201,11 @@ public:
 
   
   
-  PRBool OnAudioThread() const {
+  bool OnAudioThread() const {
     return IsCurrentThread(mAudioThread);
   }
 
-  PRBool OnStateMachineThread() const {
+  bool OnStateMachineThread() const {
     return IsCurrentThread(GetStateMachineThread());
   }
  
@@ -235,7 +235,7 @@ public:
     return mEndTime;
   }
 
-  PRBool IsSeekable() {
+  bool IsSeekable() {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mSeekable;
   }
@@ -271,11 +271,11 @@ protected:
 
   
   
-  PRBool HasLowDecodedData(PRInt64 aAudioUsecs) const;
+  bool HasLowDecodedData(PRInt64 aAudioUsecs) const;
 
   
   
-  PRBool HasLowUndecodedData() const;
+  bool HasLowUndecodedData() const;
 
   
   
@@ -289,10 +289,10 @@ protected:
 
   
   
-  PRBool HasFutureAudio() const;
+  bool HasFutureAudio() const;
 
   
-  PRBool JustExitedQuickBuffering();
+  bool JustExitedQuickBuffering();
 
   
   
@@ -390,7 +390,7 @@ protected:
 
   
   
-  PRBool IsPlaying();
+  bool IsPlaying();
 
   
   
@@ -435,7 +435,7 @@ protected:
   
   nsresult RunStateMachine();
 
-  PRBool IsStateMachineScheduled() const {
+  bool IsStateMachineScheduled() const {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return !mTimeout.IsNull() || mRunAgain;
   }
@@ -443,7 +443,7 @@ protected:
   
   
   
-  PRBool IsPausedAndDecoderWaiting();
+  bool IsPausedAndDecoderWaiting();
 
   
   
@@ -562,70 +562,70 @@ protected:
 
   
   
-  PRPackedBool mSeekable;
+  bool mSeekable;
 
   
   
   
   
   
-  PRPackedBool mPositionChangeQueued;
+  bool mPositionChangeQueued;
 
   
   
   
   
   
-  PRPackedBool mAudioCompleted;
+  bool mAudioCompleted;
 
   
   
-  PRPackedBool mGotDurationFromMetaData;
+  bool mGotDurationFromMetaData;
     
   
   
-  PRPackedBool mStopDecodeThread;
+  bool mStopDecodeThread;
 
   
   
   
   
   
-  PRPackedBool mDecodeThreadIdle;
+  bool mDecodeThreadIdle;
 
   
   
-  PRPackedBool mStopAudioThread;
-
-  
-  
-  
-  
-  
-  PRPackedBool mQuickBuffering;
-
-  
-  
-  PRPackedBool mIsRunning;
-
-  
-  
-  PRPackedBool mRunAgain;
+  bool mStopAudioThread;
 
   
   
   
   
   
-  PRPackedBool mDispatchedRunEvent;
+  bool mQuickBuffering;
+
+  
+  
+  bool mIsRunning;
+
+  
+  
+  bool mRunAgain;
 
   
   
   
-  PRPackedBool mDecodeThreadWaiting;
+  
+  
+  bool mDispatchedRunEvent;
 
   
-  PRPackedBool mRealTime;
+  
+  
+  bool mDecodeThreadWaiting;
+
+  
+  bool mRealTime;
   
   PRUint32 mBufferingWait;
   PRInt64  mLowDataThresholdUsecs;

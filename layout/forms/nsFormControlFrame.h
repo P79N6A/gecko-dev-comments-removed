@@ -57,7 +57,7 @@ public:
 
   nsFormControlFrame(nsStyleContext*);
 
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsLeafFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
@@ -89,7 +89,7 @@ public:
 
   
 
-  virtual void SetFocus(PRBool aOn = PR_TRUE, PRBool aRepaint = PR_FALSE);
+  virtual void SetFocus(bool aOn = true, bool aRepaint = false);
 
   
   virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue);
@@ -97,7 +97,7 @@ public:
   virtual nsresult GetFormProperty(nsIAtom* aName, nsAString& aValue) const; 
   
   
-  static nsresult RegUnRegAccessKey(nsIFrame * aFrame, PRBool aDoReg);
+  static nsresult RegUnRegAccessKey(nsIFrame * aFrame, bool aDoReg);
 
   
 
@@ -123,7 +123,7 @@ protected:
 
 
 
-  void GetCurrentCheckState(PRBool* aState);
+  void GetCurrentCheckState(bool* aState);
 };
 
 #endif

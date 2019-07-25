@@ -136,7 +136,7 @@ public:
 
   nsresult Destroy();  
   
-  void PrepareToStop(PRBool aDelayedStop);
+  void PrepareToStop(bool aDelayedStop);
   
 #ifdef XP_WIN
   void Paint(const RECT& aDirty, HDC aDC);
@@ -154,7 +154,7 @@ public:
   
 #ifdef MAC_CARBON_PLUGINS
   void CancelTimer();
-  void StartTimer(PRBool isVisible);
+  void StartTimer(bool isVisible);
 #endif
   void SendIdleEvent();
   
@@ -178,7 +178,7 @@ public:
   enum { ePluginPaintEnable, ePluginPaintDisable };
   
   NPDrawingModel GetDrawingModel();
-  PRBool IsRemoteDrawingCoreAnimation();
+  bool IsRemoteDrawingCoreAnimation();
   NPEventModel GetEventModel();
   static void CARefresh(nsITimer *aTimer, void *aClosure);
   static void AddToCARefreshTimer(nsPluginInstanceOwner *aPluginInstance);
@@ -188,7 +188,7 @@ public:
   void HidePluginWindow();
   
   
-  void SetPluginPortChanged(PRBool aState) { mPluginPortChanged = aState; }
+  void SetPluginPortChanged(bool aState) { mPluginPortChanged = aState; }
   
   
   void* GetPluginPortCopy();
@@ -205,9 +205,9 @@ public:
   void BeginCGPaint();
   void EndCGPaint();
 #else 
-  void UpdateWindowPositionAndClipRect(PRBool aSetWindow);
-  void UpdateWindowVisibility(PRBool aVisible);
-  void UpdateDocumentActiveState(PRBool aIsActive);
+  void UpdateWindowPositionAndClipRect(bool aSetWindow);
+  void UpdateWindowVisibility(bool aVisible);
+  void UpdateDocumentActiveState(bool aIsActive);
 #endif 
   void CallSetWindow();
   
@@ -259,7 +259,7 @@ public:
   }
 #endif
   
-  PRBool SendNativeEvents()
+  bool SendNativeEvents()
   {
 #ifdef XP_WIN
     
@@ -273,14 +273,14 @@ public:
 #endif
   }
   
-  PRBool MatchPluginName(const char *aPluginName)
+  bool MatchPluginName(const char *aPluginName)
   {
     return strncmp(GetPluginName(), aPluginName, strlen(aPluginName)) == 0;
   }
   
   void NotifyPaintWaiter(nsDisplayListBuilder* aBuilder);
   
-  PRBool SetCurrentImage(ImageContainer* aContainer);
+  bool SetCurrentImage(ImageContainer* aContainer);
   
 
 
@@ -295,12 +295,12 @@ public:
   already_AddRefed<gfxContext> BeginUpdateBackground(const nsIntRect& aRect);
   void EndUpdateBackground(gfxContext* aContext, const nsIntRect& aRect);
   
-  PRBool UseAsyncRendering();
+  bool UseAsyncRendering();
   
 private:
   
   
-  PRBool IsUpToDate()
+  bool IsUpToDate()
   {
     nsIntSize size;
     return NS_SUCCEEDED(mInstance->GetImageSize(&size)) &&
@@ -332,31 +332,31 @@ private:
   CGColorSpaceRef                           mColorProfile;
   static nsCOMPtr<nsITimer>                *sCATimer;
   static nsTArray<nsPluginInstanceOwner*>  *sCARefreshListeners;
-  PRBool                                    mSentInitialTopLevelWindowEvent;
+  bool                                      mSentInitialTopLevelWindowEvent;
 #endif
   
   
-  PRBool                                    mAsyncHidePluginWindow;
+  bool                                      mAsyncHidePluginWindow;
   
   
   
   
   PRUint32                    mLastEventloopNestingLevel;
-  PRPackedBool                mContentFocused;
-  PRPackedBool                mWidgetVisible;    
+  bool                        mContentFocused;
+  bool                        mWidgetVisible;    
 #ifdef XP_MACOSX
-  PRPackedBool                mPluginPortChanged;
+  bool                        mPluginPortChanged;
 #endif
 #ifdef MOZ_X11
   
-  PRPackedBool                mFlash10Quirks;
+  bool                        mFlash10Quirks;
 #endif
-  PRPackedBool                mPluginWindowVisible;
-  PRPackedBool                mPluginDocumentActiveState;
+  bool                        mPluginWindowVisible;
+  bool                        mPluginDocumentActiveState;
   
   
   
-  PRPackedBool                mDestroyWidget;
+  bool                        mDestroyWidget;
   PRUint16          mNumCachedAttrs;
   PRUint16          mNumCachedParams;
   char              **mCachedAttrParamNames;
@@ -399,7 +399,7 @@ private:
   };
 #endif
 
-  PRPackedBool mWaitingForPaint;
+  bool mWaitingForPaint;
 };
 
 #endif 

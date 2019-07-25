@@ -68,7 +68,7 @@ typedef struct OS2prdata {
         int copies;                
         char printer[ PATH_MAX ];  
         char path[ PATH_MAX ];     
-        PRBool cancel;		     
+        bool cancel;		     
 } OS2PrData;
 
 PR_END_EXTERN_C

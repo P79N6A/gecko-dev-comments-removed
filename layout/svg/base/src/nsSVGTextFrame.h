@@ -119,7 +119,7 @@ private:
 
 
 
-  void UpdateGlyphPositioning(PRBool aForceGlobalTransform);
+  void UpdateGlyphPositioning(bool aForceGlobalTransform);
 
   void SetWhitespaceHandling(nsSVGGlyphFrame *aFrame);
 
@@ -128,7 +128,7 @@ private:
   enum UpdateState { unsuspended, suspended };
   UpdateState mMetricsState;
 
-  PRPackedBool mPositioningDirty;
+  bool mPositioningDirty;
 };
 
 #endif

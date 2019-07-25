@@ -146,8 +146,8 @@ public:
     nsRefPtr<nsDocShell>  mDocShell;
     nsCOMPtr<nsIURI>      mURI;
     PRInt32               mDelay;
-    PRPackedBool          mRepeat;
-    PRPackedBool          mMetaRefresh;
+    bool                  mRepeat;
+    bool                  mMetaRefresh;
     
 protected:
     virtual ~nsRefreshTimer();
@@ -236,7 +236,7 @@ public:
         const PRUnichar* aTargetSpec,
         nsIInputStream* aPostDataStream,
         nsIInputStream* aHeadersDataStream,
-        PRBool aIsTrusted);
+        bool aIsTrusted);
     NS_IMETHOD OnLinkClickSync(nsIContent* aContent,
         nsIURI* aURI,
         const PRUnichar* aTargetSpec,
@@ -265,7 +265,7 @@ public:
     
     
     nsresult ForceRefreshURIFromTimer(nsIURI * aURI, PRInt32 aDelay,
-                                      PRBool aMetaRefresh, nsITimer* aTimer);
+                                      bool aMetaRefresh, nsITimer* aTimer);
 
     friend class OnLinkClickEvent;
 
@@ -287,7 +287,7 @@ protected:
     
     nsresult CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
                                            nsIURI* aBaseURI,
-                                           PRBool aTryToSaveOldPresentation = PR_TRUE);
+                                           bool aTryToSaveOldPresentation = true);
     NS_IMETHOD CreateContentViewer(const char * aContentType, 
         nsIRequest * request, nsIStreamListener ** aContentHandler);
     NS_IMETHOD NewContentViewerObj(const char * aContentType, 
@@ -305,33 +305,33 @@ protected:
     
     
     
-    nsIPrincipal* GetInheritedPrincipal(PRBool aConsiderCurrentDocument);
+    nsIPrincipal* GetInheritedPrincipal(bool aConsiderCurrentDocument);
 
     
     
-    PRBool ShouldCheckAppCache(nsIURI * aURI);
+    bool ShouldCheckAppCache(nsIURI * aURI);
 
     
     
     
     virtual nsresult DoURILoad(nsIURI * aURI,
                                nsIURI * aReferrer,
-                               PRBool aSendReferrer,
+                               bool aSendReferrer,
                                nsISupports * aOwner,
                                const char * aTypeHint,
                                nsIInputStream * aPostData,
                                nsIInputStream * aHeadersData,
-                               PRBool firstParty,
+                               bool firstParty,
                                nsIDocShell ** aDocShell,
                                nsIRequest ** aRequest,
-                               PRBool aIsNewWindowTarget,
-                               PRBool aBypassClassifier,
-                               PRBool aForceAllowCookies);
+                               bool aIsNewWindowTarget,
+                               bool aBypassClassifier,
+                               bool aForceAllowCookies);
     NS_IMETHOD AddHeadersToChannel(nsIInputStream * aHeadersData, 
                                   nsIChannel * aChannel);
     virtual nsresult DoChannelLoad(nsIChannel * aChannel,
                                    nsIURILoader * aURILoader,
-                                   PRBool aBypassClassifier);
+                                   bool aBypassClassifier);
 
     nsresult ScrollToAnchor(nsACString & curHash, nsACString & newHash,
                             PRUint32 aLoadType);
@@ -346,9 +346,9 @@ protected:
     
     
     
-    PRBool OnLoadingSite(nsIChannel * aChannel,
-                         PRBool aFireOnLocationChange,
-                         PRBool aAddToGlobalHistory = PR_TRUE);
+    bool OnLoadingSite(nsIChannel * aChannel,
+                         bool aFireOnLocationChange,
+                         bool aAddToGlobalHistory = true);
 
     
     
@@ -359,16 +359,16 @@ protected:
     
     
     
-    PRBool OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
+    bool OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
                     PRUint32 aLoadType,
-                    PRBool aFireOnLocationChange,
-                    PRBool aAddToGlobalHistory,
-                    PRBool aCloneSHChildren);
+                    bool aFireOnLocationChange,
+                    bool aAddToGlobalHistory,
+                    bool aCloneSHChildren);
 
     virtual void SetReferrerURI(nsIURI * aURI);
 
     
-    virtual PRBool ShouldAddToSessionHistory(nsIURI * aURI);
+    virtual bool ShouldAddToSessionHistory(nsIURI * aURI);
     
     
     
@@ -377,10 +377,10 @@ protected:
     
     virtual nsresult AddToSessionHistory(nsIURI * aURI, nsIChannel * aChannel,
                                          nsISupports* aOwner,
-                                         PRBool aCloneChildren,
+                                         bool aCloneChildren,
                                          nsISHEntry ** aNewEntry);
     nsresult DoAddChildSHEntry(nsISHEntry* aNewEntry, PRInt32 aChildOffset,
-                               PRBool aCloneChildren);
+                               bool aCloneChildren);
 
     NS_IMETHOD LoadHistoryEntry(nsISHEntry * aEntry, PRUint32 aLoadType);
     NS_IMETHOD PersistLayoutHistoryState();
@@ -397,7 +397,7 @@ protected:
                                     nsDocShell *aSrcShell,
                                     PRUint32 aCloneID,
                                     nsISHEntry *aReplaceEntry,
-                                    PRBool aCloneChildren,
+                                    bool aCloneChildren,
                                     nsISHEntry **aDestEntry);
 
     
@@ -407,11 +407,11 @@ protected:
 
     nsresult GetRootSessionHistory(nsISHistory ** aReturn);
     nsresult GetHttpChannel(nsIChannel * aChannel, nsIHttpChannel ** aReturn);
-    PRBool ShouldDiscardLayoutState(nsIHttpChannel * aChannel);
+    bool ShouldDiscardLayoutState(nsIHttpChannel * aChannel);
 
     
     
-    PRBool HasHistoryEntry(nsISHEntry *aEntry) const
+    bool HasHistoryEntry(nsISHEntry *aEntry) const
     {
         return aEntry && (aEntry == mOSHE || aEntry == mLSHE);
     }
@@ -526,7 +526,7 @@ protected:
                      PRUint32 aChannelRedirectFlags);
 
     
-    nsresult   ConfirmRepost(PRBool * aRepost);
+    nsresult   ConfirmRepost(bool * aRepost);
     NS_IMETHOD GetPromptAndStringBundle(nsIPrompt ** aPrompt,
         nsIStringBundle ** aStringBundle);
     NS_IMETHOD GetChildOffset(nsIDOMNode * aChild, nsIDOMNode * aParent,
@@ -546,8 +546,8 @@ protected:
                              const PRUnichar *aDescription,
                              const char *aCSSClass,
                              nsIChannel* aFailedChannel);
-    PRBool IsNavigationAllowed(PRBool aDisplayPrintErrorDialog = PR_TRUE);
-    PRBool IsPrintingOrPP(PRBool aDisplayErrorDialog = PR_TRUE);
+    bool IsNavigationAllowed(bool aDisplayPrintErrorDialog = true);
+    bool IsPrintingOrPP(bool aDisplayErrorDialog = true);
 
     nsresult SetBaseUrlForWyciwyg(nsIContentViewer * aContentViewer);
 
@@ -562,7 +562,7 @@ protected:
       return t_sec;
     }
 
-    PRBool IsFrame();
+    bool IsFrame();
 
     
     
@@ -581,10 +581,10 @@ protected:
 
     
     
-    static PRBool CanAccessItem(nsIDocShellTreeItem* aTargetItem,
+    static bool CanAccessItem(nsIDocShellTreeItem* aTargetItem,
                                 nsIDocShellTreeItem* aAccessingItem,
-                                PRBool aConsiderOpener = PR_TRUE);
-    static PRBool ValidateOrigin(nsIDocShellTreeItem* aOriginTreeItem,
+                                bool aConsiderOpener = true);
+    static bool ValidateOrigin(nsIDocShellTreeItem* aOriginTreeItem,
                                  nsIDocShellTreeItem* aTargetTreeItem);
 
     
@@ -592,8 +592,8 @@ protected:
     
     
     
-    PRBool SetCurrentURI(nsIURI *aURI, nsIRequest *aRequest,
-                         PRBool aFireOnLocationChange);
+    bool SetCurrentURI(nsIURI *aURI, nsIRequest *aRequest,
+                         bool aFireOnLocationChange);
 
     
     
@@ -629,7 +629,7 @@ protected:
     
     
     
-    PRBool CanSavePresentation(PRUint32 aLoadType,
+    bool CanSavePresentation(PRUint32 aLoadType,
                                nsIRequest *aNewRequest,
                                nsIDocument *aNewDocument);
 
@@ -641,7 +641,7 @@ protected:
     
     
     
-    nsresult RestorePresentation(nsISHEntry *aSHEntry, PRBool *aRestoring);
+    nsresult RestorePresentation(nsISHEntry *aSHEntry, bool *aRestoring);
 
     
     nsresult BeginRestoreChildren();
@@ -653,19 +653,19 @@ protected:
     
     
     
-    PRBool IsOKToLoadURI(nsIURI* aURI);
+    bool IsOKToLoadURI(nsIURI* aURI);
     
     void ReattachEditorToWindow(nsISHEntry *aSHEntry);
 
     nsresult GetSessionStorageForURI(nsIURI* aURI,
                                      const nsSubstring& aDocumentURI,
-                                     PRBool create,
+                                     bool create,
                                      nsIDOMStorage** aStorage);
 
     
     nsresult GetControllerForCommand(const char *inCommand,
                                      nsIController** outController);
-    nsresult IsCommandEnabled(const char * inCommand, PRBool* outEnabled);
+    nsresult IsCommandEnabled(const char * inCommand, bool* outEnabled);
     nsresult DoCommand(const char * inCommand);
     nsresult EnsureCommandHandler();
 
@@ -785,52 +785,52 @@ protected:
     PRInt32                    mPreviousTransIndex;
     PRInt32                    mLoadedTransIndex;
 
-    PRPackedBool               mCreated;
-    PRPackedBool               mAllowSubframes;
-    PRPackedBool               mAllowPlugins;
-    PRPackedBool               mAllowJavascript;
-    PRPackedBool               mAllowMetaRedirects;
-    PRPackedBool               mAllowImages;
-    PRPackedBool               mAllowDNSPrefetch;
-    PRPackedBool               mAllowWindowControl;
-    PRPackedBool               mCreatingDocument; 
-    PRPackedBool               mUseErrorPages;
-    PRPackedBool               mObserveErrorPages;
-    PRPackedBool               mAllowAuth;
-    PRPackedBool               mAllowKeywordFixup;
-    PRPackedBool               mIsOffScreenBrowser;
-    PRPackedBool               mIsActive;
-    PRPackedBool               mIsAppTab;
-    PRPackedBool               mUseGlobalHistory;
+    bool                       mCreated;
+    bool                       mAllowSubframes;
+    bool                       mAllowPlugins;
+    bool                       mAllowJavascript;
+    bool                       mAllowMetaRedirects;
+    bool                       mAllowImages;
+    bool                       mAllowDNSPrefetch;
+    bool                       mAllowWindowControl;
+    bool                       mCreatingDocument; 
+    bool                       mUseErrorPages;
+    bool                       mObserveErrorPages;
+    bool                       mAllowAuth;
+    bool                       mAllowKeywordFixup;
+    bool                       mIsOffScreenBrowser;
+    bool                       mIsActive;
+    bool                       mIsAppTab;
+    bool                       mUseGlobalHistory;
 
     
     
     
-    PRPackedBool               mFiredUnloadEvent;
+    bool                       mFiredUnloadEvent;
 
     
     
     
     
-    PRPackedBool               mEODForCurrentDocument;
-    PRPackedBool               mURIResultedInDocument;
+    bool                       mEODForCurrentDocument;
+    bool                       mURIResultedInDocument;
 
-    PRPackedBool               mIsBeingDestroyed;
+    bool                       mIsBeingDestroyed;
 
-    PRPackedBool               mIsExecutingOnLoadHandler;
-
-    
-    PRPackedBool               mIsPrintingOrPP;
+    bool                       mIsExecutingOnLoadHandler;
 
     
-    
-    
-    PRPackedBool               mSavingOldViewer;
+    bool                       mIsPrintingOrPP;
 
     
-    PRPackedBool               mDynamicallyCreated;
+    
+    
+    bool                       mSavingOldViewer;
+
+    
+    bool                       mDynamicallyCreated;
 #ifdef DEBUG
-    PRPackedBool               mInEnsureScriptEnv;
+    bool                       mInEnsureScriptEnv;
 #endif
     PRUint64                   mHistoryID;
 

@@ -156,7 +156,7 @@ private:
 
 
 
-  static PRBool AppendString(nsAString *aString,
+  static bool AppendString(nsAString *aString,
                              const nsAString& aTextEquivalent);
 
   
@@ -164,12 +164,12 @@ private:
 
 
 
-  static PRBool IsWhitespaceString(const nsSubstring& aString);
+  static bool IsWhitespaceString(const nsSubstring& aString);
 
   
 
 
-  static PRBool IsWhitespace(PRUnichar aChar);
+  static bool IsWhitespace(PRUnichar aChar);
 
   
 

@@ -327,7 +327,7 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
     
     
 
-    PRBool canScript;
+    bool canScript;
     if(NS_FAILED(aInfo->IsScriptable(&canScript)) || !canScript)
         return nsnull;
 

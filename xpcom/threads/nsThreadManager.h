@@ -95,7 +95,7 @@ private:
   
   
   nsAutoPtr<mozilla::Mutex> mLock;  
-  PRBool              mInitialized;
+  bool                mInitialized;
 };
 
 #define NS_THREADMANAGER_CLASSNAME "nsThreadManager"

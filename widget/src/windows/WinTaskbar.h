@@ -61,11 +61,11 @@ public:
 
   
   
-  static PRBool RegisterAppUserModelID();
-  static PRBool GetAppUserModelID(nsAString & aDefaultGroupId);
+  static bool RegisterAppUserModelID();
+  static bool GetAppUserModelID(nsAString & aDefaultGroupId);
 
 private:
-  PRBool Initialize();
+  bool Initialize();
 
   typedef HRESULT (WINAPI * SetCurrentProcessExplicitAppUserModelIDPtr)(PCWSTR AppID);
   ITaskbarList4 *mTaskbar;

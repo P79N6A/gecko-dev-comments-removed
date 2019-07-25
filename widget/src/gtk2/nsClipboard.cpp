@@ -98,8 +98,8 @@ checkEventProc(Display *display, XEvent *event, XPointer arg);
 
 struct retrieval_context
 {
-    PRPackedBool completed;
-    PRPackedBool timed_out;
+    bool completed;
+    bool timed_out;
     void    *data;
 
     retrieval_context()
@@ -109,7 +109,7 @@ struct retrieval_context
     { }
 };
 
-static PRBool
+static bool
 wait_for_retrieval(GtkClipboard *clipboard, retrieval_context *transferData);
 
 static void
@@ -209,7 +209,7 @@ nsClipboard::SetData(nsITransferable *aTransferable,
         return NS_ERROR_FAILURE;
 
     
-    PRBool imagesAdded = PR_FALSE;
+    bool imagesAdded = false;
     PRUint32 count;
     flavors->Count(&count);
     for (PRUint32 i=0; i < count; i++) {
@@ -296,7 +296,7 @@ nsClipboard::GetData(nsITransferable *aTransferable, PRInt32 aWhichClipboard)
 
     guchar        *data = NULL;
     gint           length = 0;
-    PRBool         foundData = PR_FALSE;
+    bool           foundData = false;
     nsCAutoString  foundFlavor;
 
     
@@ -430,7 +430,7 @@ nsClipboard::EmptyClipboard(PRInt32 aWhichClipboard)
 
 NS_IMETHODIMP
 nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, PRUint32 aLength,
-                                    PRInt32 aWhichClipboard, PRBool *_retval)
+                                    PRInt32 aWhichClipboard, bool *_retval)
 {
     if (!aFlavorList || !_retval)
         return NS_ERROR_NULL_POINTER;
@@ -485,7 +485,7 @@ nsClipboard::HasDataMatchingFlavors(const char** aFlavorList, PRUint32 aLength,
 }
 
 NS_IMETHODIMP
-nsClipboard::SupportsSelectionClipboard(PRBool *_retval)
+nsClipboard::SupportsSelectionClipboard(bool *_retval)
 {
     *_retval = PR_TRUE; 
     return NS_OK;
@@ -893,7 +893,7 @@ checkEventProc(Display *display, XEvent *event, XPointer arg)
 
 static const int kClipboardTimeout = 500000;
 
-static PRBool
+static bool
 wait_for_retrieval(GtkClipboard *clipboard, retrieval_context *r_context)
 {
     if (r_context->completed)  

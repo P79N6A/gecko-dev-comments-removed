@@ -83,7 +83,7 @@ public:
 
 protected:
   nsresult ParseOptions(const nsAString& aOptions, PRUint32* bpp, 
-                        PRBool *usePNG);
+                        bool *usePNG);
   void NotifyListener();
 
   
@@ -119,9 +119,9 @@ protected:
   
   PRUint32 mImageBufferReadPoint;
   
-  PRPackedBool mFinished;
+  bool mFinished;
   
-  PRPackedBool mUsePNG;
+  bool mUsePNG;
 
   nsCOMPtr<nsIInputStreamCallback> mCallback;
   nsCOMPtr<nsIEventTarget> mCallbackTarget;

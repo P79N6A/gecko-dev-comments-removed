@@ -88,17 +88,17 @@ public:
 #endif
   virtual nsIAtom* GetType() const;
 
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsInlineFrameSuper::IsFrameOfType(aFlags &
       ~(nsIFrame::eBidiInlineContainer | nsIFrame::eLineParticipant));
   }
 
-  virtual PRBool IsEmpty();
-  virtual PRBool IsSelfEmpty();
+  virtual bool IsEmpty();
+  virtual bool IsSelfEmpty();
 
-  virtual PRBool PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset,
-                                     PRBool aRespectClusters = PR_TRUE);
+  virtual bool PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
+                                     bool aRespectClusters = true);
   
   
   virtual void AddInlineMinWidth(nsRenderingContext *aRenderingContext,
@@ -108,14 +108,14 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             PRBool aShrinkWrap);
+                             bool aShrinkWrap);
   virtual nsRect ComputeTightBounds(gfxContext* aContext) const;
   NS_IMETHOD Reflow(nsPresContext* aPresContext,
                     nsHTMLReflowMetrics& aDesiredSize,
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus& aStatus);
 
-  virtual PRBool CanContinueTextRun() const;
+  virtual bool CanContinueTextRun() const;
 
   virtual void PullOverflowsFromPrevInFlow();
   virtual nscoord GetBaseline() const;
@@ -123,7 +123,7 @@ public:
   
 
 
-  PRBool IsLeftMost() const {
+  bool IsLeftMost() const {
     
     
     return (GetStateBits() & NS_INLINE_FRAME_BIDI_VISUAL_STATE_IS_SET)
@@ -134,7 +134,7 @@ public:
   
 
 
-  PRBool IsRightMost() const {
+  bool IsRightMost() const {
     
     
     return (GetStateBits() & NS_INLINE_FRAME_BIDI_VISUAL_STATE_IS_SET)
@@ -149,7 +149,7 @@ protected:
     nsInlineFrame* mNextInFlow;
     nsIFrame*      mLineContainer;
     nsLineLayout*  mLineLayout;
-    PRPackedBool mSetParentPointer;  
+    bool mSetParentPointer;  
                                      
 
     InlineReflowState()  {
@@ -184,11 +184,11 @@ protected:
 
 
   void ReparentFloatsForInlineChild(nsIFrame* aOurBlock, nsIFrame* aFrame,
-                                    PRBool aReparentSiblings);
+                                    bool aReparentSiblings);
 
   virtual nsIFrame* PullOneFrame(nsPresContext* aPresContext,
                                  InlineReflowState& rs,
-                                 PRBool* aIsComplete);
+                                 bool* aIsComplete);
 
   virtual void PushFrames(nsPresContext* aPresContext,
                           nsIFrame* aFromChild,
@@ -226,7 +226,7 @@ protected:
 
   virtual nsIFrame* PullOneFrame(nsPresContext* aPresContext,
                                  InlineReflowState& rs,
-                                 PRBool* aIsComplete);
+                                 bool* aIsComplete);
 };
 
 

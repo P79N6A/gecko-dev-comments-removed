@@ -146,18 +146,18 @@ public:
 
   
   
-  inline PRBool IsEmptyString() const;
+  inline bool IsEmptyString() const;
   const nsCheapString GetStringValue() const;
   inline nsIAtom* GetAtomValue() const;
   inline PRInt32 GetIntegerValue() const;
-  PRBool GetColorValue(nscolor& aColor) const;
+  bool GetColorValue(nscolor& aColor) const;
   inline PRInt16 GetEnumValue() const;
   inline float GetPercentValue() const;
   inline AtomArray* GetAtomArrayValue() const;
   inline mozilla::css::StyleRule* GetCSSStyleRuleValue() const;
   inline nsISVGValue* GetSVGValue() const;
   inline double GetDoubleValue() const;
-  PRBool GetIntMarginValue(nsIntMargin& aMargin) const;
+  bool GetIntMarginValue(nsIntMargin& aMargin) const;
 
   
 
@@ -165,7 +165,7 @@ public:
 
 
 
-  void GetEnumString(nsAString& aResult, PRBool aRealTag) const;
+  void GetEnumString(nsAString& aResult, bool aRealTag) const;
 
   
   
@@ -176,15 +176,15 @@ public:
   nsIAtom* AtomAt(PRInt32 aIndex) const;
 
   PRUint32 HashValue() const;
-  PRBool Equals(const nsAttrValue& aOther) const;
-  PRBool Equals(const nsAString& aValue, nsCaseTreatment aCaseSensitive) const;
-  PRBool Equals(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const;
+  bool Equals(const nsAttrValue& aOther) const;
+  bool Equals(const nsAString& aValue, nsCaseTreatment aCaseSensitive) const;
+  bool Equals(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const;
 
   
 
 
 
-  PRBool Contains(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const;
+  bool Contains(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const;
 
   void ParseAtom(const nsAString& aValue);
   void ParseAtomArray(const nsAString& aValue);
@@ -218,9 +218,9 @@ public:
 
 
 
-  PRBool ParseEnumValue(const nsAString& aValue,
+  bool ParseEnumValue(const nsAString& aValue,
                         const EnumTable* aTable,
-                        PRBool aCaseSensitive,
+                        bool aCaseSensitive,
                         const EnumTable* aDefaultValue = nsnull);
 
   
@@ -233,7 +233,7 @@ public:
 
 
 
-  PRBool ParseSpecialIntValue(const nsAString& aString);
+  bool ParseSpecialIntValue(const nsAString& aString);
 
 
   
@@ -242,7 +242,7 @@ public:
 
 
 
-  PRBool ParseIntValue(const nsAString& aString) {
+  bool ParseIntValue(const nsAString& aString) {
     return ParseIntWithBounds(aString, PR_INT32_MIN, PR_INT32_MAX);
   }
 
@@ -254,7 +254,7 @@ public:
 
 
 
-  PRBool ParseIntWithBounds(const nsAString& aString, PRInt32 aMin,
+  bool ParseIntWithBounds(const nsAString& aString, PRInt32 aMin,
                             PRInt32 aMax = PR_INT32_MAX);
 
   
@@ -265,7 +265,7 @@ public:
 
 
 
-  PRBool ParseNonNegativeIntValue(const nsAString& aString);
+  bool ParseNonNegativeIntValue(const nsAString& aString);
 
   
 
@@ -280,7 +280,7 @@ public:
 
 
 
-  PRBool ParsePositiveIntValue(const nsAString& aString);
+  bool ParsePositiveIntValue(const nsAString& aString);
 
   
 
@@ -289,7 +289,7 @@ public:
 
 
 
-  PRBool ParseColor(const nsAString& aString);
+  bool ParseColor(const nsAString& aString);
 
   
 
@@ -297,13 +297,13 @@ public:
 
 
 
-  PRBool ParseDoubleValue(const nsAString& aString);
+  bool ParseDoubleValue(const nsAString& aString);
 
   
 
 
 
-  PRBool ParseLazyURIValue(const nsAString& aString);
+  bool ParseLazyURIValue(const nsAString& aString);
 
   
 
@@ -312,7 +312,7 @@ public:
 
 
 
-  PRBool ParseIntMarginValue(const nsAString& aString);
+  bool ParseIntMarginValue(const nsAString& aString);
 
   PRInt64 SizeOf() const;
 
@@ -369,16 +369,16 @@ private:
   inline MiscContainer* GetMiscContainer() const;
   inline PRInt32 GetIntInternal() const;
 
-  PRBool EnsureEmptyMiscContainer();
-  PRBool EnsureEmptyAtomArray();
+  bool EnsureEmptyMiscContainer();
+  bool EnsureEmptyAtomArray();
   nsStringBuffer* GetStringBuffer(const nsAString& aValue) const;
   
   
   PRInt32 StringToInteger(const nsAString& aValue,
-                          PRBool* aStrict,
+                          bool* aStrict,
                           PRInt32* aErrorCode,
-                          PRBool aCanBePercent = PR_FALSE,
-                          PRBool* aIsPercent = nsnull) const;
+                          bool aCanBePercent = false,
+                          bool* aIsPercent = nsnull) const;
   
   
   PRInt32 EnumTableEntryToValue(const EnumTable* aEnumTable,
@@ -460,7 +460,7 @@ nsAttrValue::GetDoubleValue() const
   return GetMiscContainer()->mDoubleValue;
 }
 
-inline PRBool
+inline bool
 nsAttrValue::GetIntMarginValue(nsIntMargin& aMargin) const
 {
   NS_PRECONDITION(Type() == eIntMarginValue, "wrong type");
@@ -520,7 +520,7 @@ nsAttrValue::GetIntInternal() const
          NS_ATTRVALUE_INTEGERTYPE_MULTIPLIER;
 }
 
-inline PRBool
+inline bool
 nsAttrValue::IsEmptyString() const
 {
   return !mBits;

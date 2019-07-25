@@ -71,7 +71,7 @@ public:
 
 
 
-  static void SetActivityIsLegal(PRBool aLegal);
+  static void SetActivityIsLegal(bool aLegal);
 
   static NS_METHOD Create(nsISupports* outer, const nsIID& aIID, void* *aInstancePtr);
 };

@@ -208,7 +208,7 @@ public:
                                      nsILoadGroup* aLoadGroup,
                                      nsISupports* aContainer,
                                      nsIStreamListener **aDocListener,
-                                     PRBool aReset,
+                                     bool aReset,
                                      nsIContentSink* aSink = nsnull) = 0;
   virtual void StopDocumentLoad() = 0;
 
@@ -218,7 +218,7 @@ public:
 
 
 
-  virtual void NotifyPossibleTitleChange(PRBool aBoundTitleElement) = 0;
+  virtual void NotifyPossibleTitleChange(bool aBoundTitleElement) = 0;
 
   
 
@@ -338,7 +338,7 @@ public:
 
 
 
-  typedef PRBool (* IDTargetObserver)(Element* aOldElement,
+  typedef bool (* IDTargetObserver)(Element* aOldElement,
                                       Element* aNewelement, void* aData);
 
   
@@ -353,13 +353,13 @@ public:
 
 
   virtual Element* AddIDTargetObserver(nsIAtom* aID, IDTargetObserver aObserver,
-                                       void* aData, PRBool aForImage) = 0;
+                                       void* aData, bool aForImage) = 0;
   
 
 
 
   virtual void RemoveIDTargetObserver(nsIAtom* aID, IDTargetObserver aObserver,
-                                      void* aData, PRBool aForImage) = 0;
+                                      void* aData, bool aForImage) = 0;
 
   
 
@@ -388,7 +388,7 @@ public:
 
 
 
-  PRBool GetBidiEnabled() const
+  bool GetBidiEnabled() const
   {
     return mBidiEnabled;
   }
@@ -407,7 +407,7 @@ public:
   
 
 
-  PRBool GetMathMLEnabled() const
+  bool GetMathMLEnabled() const
   {
     return mMathMLEnabled;
   }
@@ -420,7 +420,7 @@ public:
   
 
 
-  PRBool IsInitialDocument() const
+  bool IsInitialDocument() const
   {
     return mIsInitialDocumentInWindow;
   }
@@ -429,7 +429,7 @@ public:
 
 
 
-  void SetIsInitialDocument(PRBool aIsInitialDocument)
+  void SetIsInitialDocument(bool aIsInitialDocument)
   {
     mIsInitialDocumentInWindow = aIsInitialDocument;
   }
@@ -619,7 +619,7 @@ public:
 
 
   virtual void SetStyleSheetApplicableState(nsIStyleSheet* aSheet,
-                                            PRBool aApplicable) = 0;  
+                                            bool aApplicable) = 0;  
 
   
 
@@ -675,7 +675,7 @@ public:
 
 
   nsIScriptGlobalObject*
-    GetScriptHandlingObject(PRBool& aHasHadScriptHandlingObject) const
+    GetScriptHandlingObject(bool& aHasHadScriptHandlingObject) const
   {
     aHasHadScriptHandlingObject = mHasHadScriptHandlingObject;
     return mScriptGlobalObject ? mScriptGlobalObject.get() :
@@ -771,12 +771,12 @@ public:
 
 
 
-  virtual void UpdateFullScreenStatus(PRBool aIsFullScreen) = 0;
+  virtual void UpdateFullScreenStatus(bool aIsFullScreen) = 0;
 
   
 
 
-  virtual PRBool IsFullScreenDoc() = 0;
+  virtual bool IsFullScreenDoc() = 0;
 
   
 
@@ -794,7 +794,7 @@ public:
 
 
 
-  virtual PRBool RemoveObserver(nsIDocumentObserver* aObserver) = 0;
+  virtual bool RemoveObserver(nsIDocumentObserver* aObserver) = 0;
 
   
   
@@ -903,16 +903,16 @@ public:
                                  nsAString& aEncoding,
                                  nsAString& Standalone) = 0;
 
-  PRBool IsHTML() const
+  bool IsHTML() const
   {
     return mIsRegularHTML;
   }
-  PRBool IsXUL() const
+  bool IsXUL() const
   {
     return mIsXUL;
   }
 
-  virtual PRBool IsScriptEnabled() = 0;
+  virtual bool IsScriptEnabled() = 0;
 
   virtual void AddXMLEventsContent(nsIContent * aXMLEventsElement) = 0;
 
@@ -924,7 +924,7 @@ public:
 
   virtual nsresult CreateElem(const nsAString& aName, nsIAtom *aPrefix,
                               PRInt32 aNamespaceID,
-                              PRBool aDocumentDefaultType,
+                              bool aDocumentDefaultType,
                               nsIContent** aResult) = 0;
 
   
@@ -981,7 +981,7 @@ public:
 
 
 
-  typedef PRBool (*nsSubDocEnumFunc)(nsIDocument *aDocument, void *aData);
+  typedef bool (*nsSubDocEnumFunc)(nsIDocument *aDocument, void *aData);
   virtual void EnumerateSubDocuments(nsSubDocEnumFunc aCallback,
                                      void *aData) = 0;
 
@@ -1002,7 +1002,7 @@ public:
 
 
 
-  virtual PRBool CanSavePresentation(nsIRequest *aNewRequest) = 0;
+  virtual bool CanSavePresentation(nsIRequest *aNewRequest) = 0;
 
   
 
@@ -1040,7 +1040,7 @@ public:
 
 
 
-  virtual void UnblockOnload(PRBool aFireSync) = 0;
+  virtual void UnblockOnload(bool aFireSync) = 0;
 
   
 
@@ -1054,7 +1054,7 @@ public:
 
 
 
-  virtual void OnPageShow(PRBool aPersisted,
+  virtual void OnPageShow(bool aPersisted,
                           nsIDOMEventTarget* aDispatchStartTarget) = 0;
 
   
@@ -1069,7 +1069,7 @@ public:
 
 
 
-  virtual void OnPageHide(PRBool aPersisted,
+  virtual void OnPageHide(bool aPersisted,
                           nsIDOMEventTarget* aDispatchStartTarget) = 0;
   
   
@@ -1112,7 +1112,7 @@ public:
 
 
 
-  PRBool HaveFiredDOMTitleChange() const {
+  bool HaveFiredDOMTitleChange() const {
     return mHaveFiredTitleChange;
   }
 
@@ -1135,15 +1135,15 @@ public:
 
 
   virtual nsresult ElementFromPointHelper(float aX, float aY,
-                                          PRBool aIgnoreRootScrollFrame,
-                                          PRBool aFlushLayout,
+                                          bool aIgnoreRootScrollFrame,
+                                          bool aFlushLayout,
                                           nsIDOMElement** aReturn) = 0;
 
   virtual nsresult NodesFromRectHelper(float aX, float aY,
                                        float aTopSize, float aRightSize,
                                        float aBottomSize, float aLeftSize,
-                                       PRBool aIgnoreRootScrollFrame,
-                                       PRBool aFlushLayout,
+                                       bool aIgnoreRootScrollFrame,
+                                       bool aFlushLayout,
                                        nsIDOMNodeList** aReturn) = 0;
 
   
@@ -1182,17 +1182,17 @@ public:
     return mMarkedCCGeneration;
   }
 
-  PRBool IsLoadedAsData()
+  bool IsLoadedAsData()
   {
     return mLoadedAsData;
   }
 
-  PRBool MayStartLayout()
+  bool MayStartLayout()
   {
     return mMayStartLayout;
   }
 
-  void SetMayStartLayout(PRBool aMayStartLayout)
+  void SetMayStartLayout(bool aMayStartLayout)
   {
     mMayStartLayout = aMayStartLayout;
   }
@@ -1215,18 +1215,18 @@ public:
   
   virtual void TryCancelFrameLoaderInitialization(nsIDocShell* aShell) = 0;
   
-  virtual PRBool FrameLoaderScheduledToBeFinalized(nsIDocShell* aShell) = 0;
+  virtual bool FrameLoaderScheduledToBeFinalized(nsIDocShell* aShell) = 0;
 
   
 
 
 
-  PRBool IsRootDisplayDocument() const
+  bool IsRootDisplayDocument() const
   {
     return !mParentDocument && !mDisplayDocument;
   }
 
-  PRBool IsBeingUsedAsImage() const {
+  bool IsBeingUsedAsImage() const {
     return mIsBeingUsedAsImage;
   }
 
@@ -1234,7 +1234,7 @@ public:
     mIsBeingUsedAsImage = PR_TRUE;
   }
 
-  PRBool IsResourceDoc() const {
+  bool IsResourceDoc() const {
     return IsBeingUsedAsImage() || 
       !!mDisplayDocument;          
   }
@@ -1326,20 +1326,20 @@ public:
 
 
 
-  PRBool IsShowing() { return mIsShowing; }
+  bool IsShowing() { return mIsShowing; }
   
 
 
 
-  PRBool IsVisible() { return mVisible; }
+  bool IsVisible() { return mVisible; }
   
 
 
 
-  PRBool IsActive() { return mDocumentContainer && !mRemovedFromDocShell; }
+  bool IsActive() { return mDocumentContainer && !mRemovedFromDocShell; }
 
   void RegisterFreezableElement(nsIContent* aContent);
-  PRBool UnregisterFreezableElement(nsIContent* aContent);
+  bool UnregisterFreezableElement(nsIContent* aContent);
   typedef void (* FreezableElementEnumerator)(nsIContent*, void*);
   void EnumerateFreezableElements(FreezableElementEnumerator aEnumerator,
                                   void* aData);
@@ -1348,7 +1348,7 @@ public:
   
   
   
-  PRBool HasAnimationController()  { return !!mAnimationController; }
+  bool HasAnimationController()  { return !!mAnimationController; }
 
   
   
@@ -1359,7 +1359,7 @@ public:
   
   
   
-  virtual void SetImagesNeedAnimating(PRBool aAnimating) = 0;
+  virtual void SetImagesNeedAnimating(bool aAnimating) = 0;
 
   
 
@@ -1372,7 +1372,7 @@ public:
 
 
 
-  virtual void UnsuppressEventHandlingAndFireEvents(PRBool aFireEvents) = 0;
+  virtual void UnsuppressEventHandlingAndFireEvents(bool aFireEvents) = 0;
 
   PRUint32 EventHandlingSuppressed() const { return mEventsSuppressed; }
 
@@ -1390,13 +1390,13 @@ public:
 
   void EndEvaluatingExternalScript() { --mExternalScriptsBeingEvaluated; }
 
-  PRBool IsDNSPrefetchAllowed() const { return mAllowDNSPrefetch; }
+  bool IsDNSPrefetchAllowed() const { return mAllowDNSPrefetch; }
 
   
 
 
 
-  PRBool AllowXULXBL() {
+  bool AllowXULXBL() {
     return mAllowXULXBL == eTriTrue ? PR_TRUE :
            mAllowXULXBL == eTriFalse ? PR_FALSE :
            InternalAllowXULXBL();
@@ -1410,7 +1410,7 @@ public:
 
 
 
-  PRBool IsStaticDocument() { return mIsStaticDocument; }
+  bool IsStaticDocument() { return mIsStaticDocument; }
 
   
 
@@ -1447,7 +1447,7 @@ public:
 
 
 
-  virtual nsresult LoadChromeSheetSync(nsIURI* aURI, PRBool aIsAgentSheet,
+  virtual nsresult LoadChromeSheetSync(nsIURI* aURI, bool aIsAgentSheet,
                                        nsCSSStyleSheet** aSheet) = 0;
 
   
@@ -1457,7 +1457,7 @@ public:
 
 
 
-  virtual PRBool IsDocumentRightToLeft() { return PR_FALSE; }
+  virtual bool IsDocumentRightToLeft() { return false; }
 
   enum DocumentTheme {
     Doc_Theme_Uninitialized, 
@@ -1506,7 +1506,7 @@ public:
   virtual void SetScrollToRef(nsIURI *aDocumentURI) = 0;
   virtual void ScrollToRef() = 0;
   virtual void ResetScrolledToRefAlready() = 0;
-  virtual void SetChangeScrollPosWhenScrollingToRef(PRBool aValue) = 0;
+  virtual void SetChangeScrollPosWhenScrollingToRef(bool aValue) = 0;
 
   
 
@@ -1539,7 +1539,7 @@ public:
   void TakeAnimationFrameListeners(AnimationListenerList& aListeners);
 
   
-  PRBool InUnlinkOrDeletion() { return mInUnlinkOrDeletion; }
+  bool InUnlinkOrDeletion() { return mInUnlinkOrDeletion; }
 
   
 
@@ -1560,7 +1560,7 @@ public:
 
   
   
-  virtual nsresult SetImageLockingState(PRBool aLocked) = 0;
+  virtual nsresult SetImageLockingState(bool aLocked) = 0;
 
   virtual nsresult GetStateObject(nsIVariant** aResult) = 0;
 
@@ -1602,7 +1602,7 @@ protected:
   virtual nsIScriptGlobalObject* GetScriptHandlingObjectInternal() const = 0;
 
   
-  virtual PRBool InternalAllowXULXBL() = 0;
+  virtual bool InternalAllowXULXBL() = 0;
 
   
 
@@ -1673,18 +1673,18 @@ protected:
   nsCompatibility mCompatMode;
 
   
-  PRPackedBool mBidiEnabled;
+  bool mBidiEnabled;
   
-  PRPackedBool mMathMLEnabled;
+  bool mMathMLEnabled;
 
   
   
   
   
-  PRPackedBool mIsInitialDocumentInWindow;
+  bool mIsInitialDocumentInWindow;
 
-  PRPackedBool mIsRegularHTML;
-  PRPackedBool mIsXUL;
+  bool mIsRegularHTML;
+  bool mIsXUL;
 
   enum {
     eTriUnset = 0,
@@ -1694,52 +1694,52 @@ protected:
 
   
   
-  PRPackedBool mLoadedAsData;
+  bool mLoadedAsData;
 
   
   
-  PRPackedBool mMayStartLayout;
+  bool mMayStartLayout;
   
   
-  PRPackedBool mHaveFiredTitleChange;
+  bool mHaveFiredTitleChange;
 
   
-  PRPackedBool mIsShowing;
-
-  
-  
-  PRPackedBool mVisible;
+  bool mIsShowing;
 
   
   
-  
-  PRPackedBool mRemovedFromDocShell;
+  bool mVisible;
 
   
   
-  PRPackedBool mAllowDNSPrefetch;
   
-  
-  PRPackedBool mIsStaticDocument;
-
-  
-  PRPackedBool mCreatingStaticClone;
-
-  
-  PRPackedBool mInUnlinkOrDeletion;
-
-  
-  PRPackedBool mHasHadScriptHandlingObject;
-
-  
-  PRPackedBool mHavePendingPaint;
-
-  
-  PRPackedBool mIsBeingUsedAsImage;
+  bool mRemovedFromDocShell;
 
   
   
-  PRPackedBool mIsSyntheticDocument;
+  bool mAllowDNSPrefetch;
+  
+  
+  bool mIsStaticDocument;
+
+  
+  bool mCreatingStaticClone;
+
+  
+  bool mInUnlinkOrDeletion;
+
+  
+  bool mHasHadScriptHandlingObject;
+
+  
+  bool mHavePendingPaint;
+
+  
+  bool mIsBeingUsedAsImage;
+
+  
+  
+  bool mIsSyntheticDocument;
 
   
   
@@ -1884,7 +1884,7 @@ NS_NewDOMDocument(nsIDOMDocument** aInstancePtrResult,
                   nsIURI* aDocumentURI,
                   nsIURI* aBaseURI,
                   nsIPrincipal* aPrincipal,
-                  PRBool aLoadedAsData,
+                  bool aLoadedAsData,
                   nsIScriptGlobalObject* aEventObject);
 nsresult
 NS_NewPluginDocument(nsIDocument** aInstancePtrResult);

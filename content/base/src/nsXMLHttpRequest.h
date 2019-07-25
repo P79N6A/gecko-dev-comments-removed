@@ -106,7 +106,7 @@ public:
   NS_FORWARD_NSIDOMEVENTTARGET(nsXHREventTarget::)
   NS_DECL_NSIXMLHTTPREQUESTUPLOAD
 
-  PRBool HasListeners()
+  bool HasListeners()
   {
     return mListenerManager && mListenerManager->HasListeners();
   }
@@ -173,15 +173,15 @@ public:
                              const nsAString& aType,
                              
                              
-                             PRBool aUseLSEventWrapper,
-                             PRBool aLengthComputable,
+                             bool aUseLSEventWrapper,
+                             bool aLengthComputable,
                              
                              PRUint64 aLoaded, PRUint64 aTotal,
                              
                              PRUint64 aPosition, PRUint64 aTotalSize);
   void DispatchProgressEvent(nsDOMEventTargetHelper* aTarget,
                              const nsAString& aType,
-                             PRBool aLengthComputable,
+                             bool aLengthComputable,
                              PRUint64 aLoaded, PRUint64 aTotal)
   {
     DispatchProgressEvent(aTarget, aType, PR_FALSE,
@@ -192,7 +192,7 @@ public:
   
   
   
-  void MaybeDispatchProgressEvents(PRBool aFinalProgress);
+  void MaybeDispatchProgressEvents(bool aFinalProgress);
 
   
   nsresult Init();
@@ -201,7 +201,7 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(nsXMLHttpRequest,
                                            nsXHREventTarget)
-  PRBool AllowUploadProgress();
+  bool AllowUploadProgress();
   void RootResultArrayBuffer();
   
 protected:
@@ -220,7 +220,7 @@ protected:
   void CreateResponseBlob(nsIRequest *request);
   
   
-  nsresult ChangeState(PRUint32 aState, PRBool aBroadcast = PR_TRUE);
+  nsresult ChangeState(PRUint32 aState, bool aBroadcast = true);
   already_AddRefed<nsILoadGroup> GetLoadGroup() const;
   nsIURI *GetBaseURI();
 
@@ -336,23 +336,23 @@ protected:
   nsRefPtr<nsXMLHttpRequestUpload> mUpload;
   PRUint64 mUploadTransferred;
   PRUint64 mUploadTotal;
-  PRPackedBool mUploadLengthComputable;
-  PRPackedBool mUploadComplete;
-  PRPackedBool mProgressSinceLastProgressEvent;
+  bool mUploadLengthComputable;
+  bool mUploadComplete;
+  bool mProgressSinceLastProgressEvent;
   PRUint64 mUploadProgress; 
   PRUint64 mUploadProgressMax; 
 
-  PRPackedBool mErrorLoad;
+  bool mErrorLoad;
 
-  PRPackedBool mTimerIsActive;
-  PRPackedBool mProgressEventWasDelayed;
-  PRPackedBool mLoadLengthComputable;
+  bool mTimerIsActive;
+  bool mProgressEventWasDelayed;
+  bool mLoadLengthComputable;
   PRUint64 mLoadTotal; 
   PRUint64 mLoadTransferred;
   nsCOMPtr<nsITimer> mProgressNotifier;
 
-  PRPackedBool mFirstStartRequestSeen;
-  PRPackedBool mInLoadProgressEvent;
+  bool mFirstStartRequestSeen;
+  bool mInLoadProgressEvent;
   
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;
   nsCOMPtr<nsIChannel> mNewRedirectChannel;
@@ -398,7 +398,7 @@ public:
   {
     return mInner->SetTarget(aTarget);
   }
-  NS_IMETHOD_(PRBool) IsDispatchStopped()
+  NS_IMETHOD_(bool) IsDispatchStopped()
   {
     return mInner->IsDispatchStopped();
   }
@@ -406,16 +406,16 @@ public:
   {
     return mInner->GetInternalNSEvent();
   }
-  NS_IMETHOD SetTrusted(PRBool aTrusted)
+  NS_IMETHOD SetTrusted(bool aTrusted)
   {
     return mInner->SetTrusted(aTrusted);
   }
   virtual void Serialize(IPC::Message* aMsg,
-                         PRBool aSerializeInterfaceType)
+                         bool aSerializeInterfaceType)
   {
     mInner->Serialize(aMsg, aSerializeInterfaceType);
   }
-  virtual PRBool Deserialize(const IPC::Message* aMsg, void** aIter)
+  virtual bool Deserialize(const IPC::Message* aMsg, void** aIter)
   {
     return mInner->Deserialize(aMsg, aIter);
   }

@@ -173,9 +173,9 @@ struct nsHttp
 
     
     
-    static PRBool IsValidToken(const char *start, const char *end);
+    static bool IsValidToken(const char *start, const char *end);
 
-    static inline PRBool IsValidToken(const nsCString &s) {
+    static inline bool IsValidToken(const nsCString &s) {
         const char *start = s.get();
         return IsValidToken(start, start + s.Length());
     }
@@ -196,12 +196,12 @@ struct nsHttp
     
     
     
-    static PRBool ParseInt64(const char *input, const char **next,
+    static bool ParseInt64(const char *input, const char **next,
                              PRInt64 *result);
 
     
     
-    static inline PRBool ParseInt64(const char *input, PRInt64 *result) {
+    static inline bool ParseInt64(const char *input, PRInt64 *result) {
         const char *next;
         return ParseInt64(input, &next, result) && *next == '\0';
     }

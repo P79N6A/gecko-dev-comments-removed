@@ -46,8 +46,8 @@
 class THEBES_API gfxAlphaRecovery {
 public:
     struct Analysis {
-        PRBool uniformColor;
-        PRBool uniformAlpha;
+        bool uniformColor;
+        bool uniformAlpha;
         gfxFloat alpha;
         gfxFloat r, g, b;
     };
@@ -68,7 +68,7 @@ public:
 
 
 
-    static PRBool RecoverAlpha (gfxImageSurface *blackSurface,
+    static bool RecoverAlpha (gfxImageSurface *blackSurface,
                                 const gfxImageSurface *whiteSurface,
                                 Analysis *analysis = nsnull);
 
@@ -77,7 +77,7 @@ public:
 
 
 
-    static PRBool RecoverAlphaSSE2 (gfxImageSurface *blackSurface,
+    static bool RecoverAlphaSSE2 (gfxImageSurface *blackSurface,
                                     const gfxImageSurface *whiteSurface);
 
     

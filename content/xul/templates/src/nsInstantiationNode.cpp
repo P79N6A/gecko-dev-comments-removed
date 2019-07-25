@@ -67,7 +67,7 @@ nsInstantiationNode::~nsInstantiationNode()
 
 nsresult
 nsInstantiationNode::Propagate(InstantiationSet& aInstantiations,
-                               PRBool aIsUpdate, PRBool& aTakenInstantiations)
+                               bool aIsUpdate, bool& aTakenInstantiations)
 {
     
     

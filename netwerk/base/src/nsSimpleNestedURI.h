@@ -76,7 +76,7 @@ public:
     
     virtual nsresult EqualsInternal(nsIURI* other,
                                     RefHandlingEnum refHandlingMode,
-                                    PRBool* result);
+                                    bool* result);
     virtual nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode);
 
     

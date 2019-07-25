@@ -136,7 +136,7 @@ public:
 
   virtual nsIAtom* GetType() const;
   
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     
     
@@ -162,20 +162,20 @@ public:
 
 
 
-  virtual void SetSelected(PRBool        aSelected,
+  virtual void SetSelected(bool          aSelected,
                            SelectionType aType);
   void SetSelectedRange(PRUint32 aStart,
                         PRUint32 aEnd,
-                        PRBool aSelected,
+                        bool aSelected,
                         SelectionType aType);
 
-  virtual PRBool PeekOffsetNoAmount(PRBool aForward, PRInt32* aOffset);
-  virtual PRBool PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset,
-                                     PRBool aRespectClusters = PR_TRUE);
-  virtual PRBool PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool aIsKeyboardSelect,
+  virtual bool PeekOffsetNoAmount(bool aForward, PRInt32* aOffset);
+  virtual bool PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
+                                     bool aRespectClusters = true);
+  virtual bool PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,
                                 PRInt32* aOffset, PeekWordState* aState);
 
-  NS_IMETHOD CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex, PRInt32 aEndIndex, PRBool aRecurse, PRBool *aFinished, PRBool *_retval);
+  NS_IMETHOD CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex, PRInt32 aEndIndex, bool aRecurse, bool *aFinished, bool *_retval);
   
   
   enum { ALLOW_FRAME_CREATION_AND_DESTRUCTION = 0x01 };
@@ -192,33 +192,33 @@ public:
                                 nsPoint*                outPoint);
   
   NS_IMETHOD  GetChildFrameContainingOffset(PRInt32     inContentOffset,
-                                            PRBool                  inHint,
+                                            bool                    inHint,
                                             PRInt32*                outFrameContentOffset,
                                             nsIFrame*               *outChildFrame);
   
-  virtual PRBool IsVisibleInSelection(nsISelection* aSelection);
+  virtual bool IsVisibleInSelection(nsISelection* aSelection);
   
-  virtual PRBool IsEmpty();
-  virtual PRBool IsSelfEmpty() { return IsEmpty(); }
+  virtual bool IsEmpty();
+  virtual bool IsSelfEmpty() { return IsEmpty(); }
   virtual nscoord GetBaseline() const;
   
   
 
 
 
-  virtual PRBool HasTerminalNewline() const;
+  virtual bool HasTerminalNewline() const;
 
   
 
 
 
-  PRBool IsAtEndOfLine() const;
+  bool IsAtEndOfLine() const;
   
   
 
 
 
-  PRBool HasNoncollapsedCharacters() const {
+  bool HasNoncollapsedCharacters() const {
     return (GetStateBits() & TEXT_HAS_NONCOLLAPSED_CHARACTERS) != 0;
   }
   
@@ -236,24 +236,24 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             PRBool aShrinkWrap);
+                             bool aShrinkWrap);
   virtual nsRect ComputeTightBounds(gfxContext* aContext) const;
   NS_IMETHOD Reflow(nsPresContext* aPresContext,
                     nsHTMLReflowMetrics& aMetrics,
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus& aStatus);
-  virtual PRBool CanContinueTextRun() const;
+  virtual bool CanContinueTextRun() const;
   
   
   
   struct TrimOutput {
     
     
-    PRPackedBool mChanged;
+    bool mChanged;
     
     
     
-    PRPackedBool mLastCharIsJustifiable;
+    bool mLastCharIsJustifiable;
     
     nscoord      mDeltaWidth;
   };
@@ -400,11 +400,11 @@ public:
     PRInt32 GetEnd() { return mStart + mLength; }
   };
   TrimmedOffsets GetTrimmedOffsets(const nsTextFragment* aFrag,
-                                   PRBool aTrimAfter);
+                                   bool aTrimAfter);
 
   
   void ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
-                  nsRenderingContext* aRenderingContext, PRBool aShouldBlink,
+                  nsRenderingContext* aRenderingContext, bool aShouldBlink,
                   nsHTMLReflowMetrics& aMetrics, nsReflowStatus& aStatus);
 
 protected:
@@ -489,16 +489,16 @@ protected:
 
     TextDecorations() { }
 
-    PRBool HasDecorationLines() const {
+    bool HasDecorationLines() const {
       return HasUnderline() || HasOverline() || HasStrikeout();
     }
-    PRBool HasUnderline() const {
+    bool HasUnderline() const {
       return !mUnderlines.IsEmpty();
     }
-    PRBool HasOverline() const {
+    bool HasOverline() const {
       return !mOverlines.IsEmpty();
     }
-    PRBool HasStrikeout() const {
+    bool HasStrikeout() const {
       return !mStrikes.IsEmpty();
     }
   };
@@ -511,7 +511,7 @@ protected:
                    PRUint32 aLength,
                    PropertyProvider& aProvider,
                    gfxFloat& aAdvanceWidth,
-                   PRBool aDrawSoftHyphen);
+                   bool aDrawSoftHyphen);
 
   void DrawTextRunAndDecorations(gfxContext* const aCtx,
                                  const gfxRect& aDirtyRect,
@@ -523,7 +523,7 @@ protected:
                                  const nsTextPaintStyle& aTextStyle,
                              const nsCharClipDisplayItem::ClipEdges& aClipEdges,
                                  gfxFloat& aAdvanceWidth,
-                                 PRBool aDrawSoftHyphen,
+                                 bool aDrawSoftHyphen,
                                  const TextDecorations& aDecorations,
                                  const nscolor* const aDecorationOverrideColor);
 
@@ -537,22 +537,22 @@ protected:
                 const nsTextPaintStyle& aTextStyle,
                 const nsCharClipDisplayItem::ClipEdges& aClipEdges,
                 gfxFloat& aAdvanceWidth,
-                PRBool aDrawSoftHyphen,
+                bool aDrawSoftHyphen,
                 const nscolor* const aDecorationOverrideColor = nsnull);
 
   
   
-  PRBool CombineSelectionUnderlineRect(nsPresContext* aPresContext,
+  bool CombineSelectionUnderlineRect(nsPresContext* aPresContext,
                                        nsRect& aRect);
 
-  PRBool IsFloatingFirstLetterChild();
+  bool IsFloatingFirstLetterChild();
 
   ContentOffsets GetCharacterOffsetAtFramePointInternal(const nsPoint &aPoint,
-                   PRBool aForInsertionPoint);
+                   bool aForInsertionPoint);
 
   void ClearFrameOffsetCache();
 
-  virtual PRBool HasAnyNoncollapsedCharacters();
+  virtual bool HasAnyNoncollapsedCharacters();
 
   void ClearMetrics(nsHTMLReflowMetrics& aMetrics);
 };

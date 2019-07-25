@@ -841,7 +841,7 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
     
     
     
-    PRBool writeToCache = PR_FALSE;
+    bool writeToCache = false;
     StartupCache* cache = StartupCache::GetSingleton();
 
     nsCAutoString cachePath(kJSCachePrefix);

@@ -64,35 +64,35 @@ public:
   
   
   
-  NS_IMETHOD ChangeMenuItem(nsMenuFrame* aMenuItem, PRBool aSelectFirstItem) = 0;
+  NS_IMETHOD ChangeMenuItem(nsMenuFrame* aMenuItem, bool aSelectFirstItem) = 0;
 
   
-  virtual PRBool IsOpen() = 0;
+  virtual bool IsOpen() = 0;
   
-  virtual PRBool IsActive() = 0;
+  virtual bool IsActive() = 0;
   
-  virtual PRBool IsMenuBar() = 0;
+  virtual bool IsMenuBar() = 0;
   
   
-  virtual PRBool IsMenu() = 0;
+  virtual bool IsMenu() = 0;
   
-  virtual PRBool IsContextMenu() = 0;
+  virtual bool IsContextMenu() = 0;
 
   
-  NS_IMETHOD SetActive(PRBool aActiveFlag) = 0;
-
-  
-  
-  
-  virtual PRBool MenuClosed() = 0;
+  NS_IMETHOD SetActive(bool aActiveFlag) = 0;
 
   
   
   
+  virtual bool MenuClosed() = 0;
+
   
   
-  virtual void LockMenuUntilClosed(PRBool aLock) = 0;
-  virtual PRBool IsMenuLocked() = 0;
+  
+  
+  
+  virtual void LockMenuUntilClosed(bool aLock) = 0;
+  virtual bool IsMenuLocked() = 0;
 };
 
 #endif

@@ -63,7 +63,7 @@ public:
                                      nsILoadGroup* aLoadGroup,
                                      nsISupports* aContainer,
                                      nsIStreamListener **aDocListener,
-                                     PRBool aReset = PR_TRUE,
+                                     bool aReset = true,
                                      nsIContentSink* aSink = nsnull);
 
   virtual void EndLoad();
@@ -83,9 +83,9 @@ protected:
   
   
   
-  PRPackedBool mChannelIsPending;
-  PRPackedBool mAsync;
-  PRPackedBool mLoopingForSyncLoad;
+  bool mChannelIsPending;
+  bool mAsync;
+  bool mLoopingForSyncLoad;
 };
 
 

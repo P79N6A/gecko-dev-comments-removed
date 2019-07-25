@@ -90,7 +90,7 @@ public:
   
   
   
-  PRPackedBool      mSyncBegin;
+  bool              mSyncBegin;
 
   
   

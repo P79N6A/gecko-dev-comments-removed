@@ -224,8 +224,8 @@ class nsIParser : public nsISupports {
     
     NS_IMETHOD_(void) UnblockParser() = 0;
 
-    NS_IMETHOD_(PRBool) IsParserEnabled() = 0;
-    NS_IMETHOD_(PRBool) IsComplete() = 0;
+    NS_IMETHOD_(bool) IsParserEnabled() = 0;
+    NS_IMETHOD_(bool) IsComplete() = 0;
     
     NS_IMETHOD Parse(nsIURI* aURL,
                      nsIRequestObserver* aListener = nsnull,
@@ -234,7 +234,7 @@ class nsIParser : public nsISupports {
     NS_IMETHOD Parse(const nsAString& aSourceBuffer,
                      void* aKey,
                      const nsACString& aMimeType,
-                     PRBool aLastCall,
+                     bool aLastCall,
                      nsDTDMode aMode = eDTDMode_autodetect) = 0;
 
     
@@ -281,12 +281,12 @@ class nsIParser : public nsISupports {
 
 
 
-    virtual PRBool CanInterrupt() = 0;
+    virtual bool CanInterrupt() = 0;
 
     
 
 
-    virtual PRBool IsInsertionPointDefined() = 0;
+    virtual bool IsInsertionPointDefined() = 0;
 
     
 
@@ -306,7 +306,7 @@ class nsIParser : public nsISupports {
     
 
 
-    virtual PRBool IsScriptCreated() = 0;
+    virtual bool IsScriptCreated() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIParser, NS_IPARSER_IID)

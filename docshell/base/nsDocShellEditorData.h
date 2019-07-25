@@ -64,8 +64,8 @@ public:
   nsDocShellEditorData(nsIDocShell* inOwningDocShell);
   ~nsDocShellEditorData();
 
-  nsresult MakeEditable(PRBool inWaitForUriLoad);
-  PRBool GetEditable();
+  nsresult MakeEditable(bool inWaitForUriLoad);
+  bool GetEditable();
   nsresult CreateEditor();
   nsresult GetEditingSession(nsIEditingSession **outEditingSession);
   nsresult GetEditor(nsIEditor **outEditor);
@@ -73,7 +73,7 @@ public:
   void TearDownEditor();
   nsresult DetachFromWindow();
   nsresult ReattachToWindow(nsIDocShell *aDocShell);
-  PRBool WaitingForLoad() const { return mMakeEditable; }
+  bool WaitingForLoad() const { return mMakeEditable; }
 
 protected:
 
@@ -86,17 +86,17 @@ protected:
   nsCOMPtr<nsIEditingSession> mEditingSession;
 
   
-  PRBool mMakeEditable;
+  bool mMakeEditable;
   
   
   nsCOMPtr<nsIEditor> mEditor;
 
   
   
-  PRBool mIsDetached;
+  bool mIsDetached;
 
   
-  PRBool mDetachedMakeEditable;
+  bool mDetachedMakeEditable;
 
   
   

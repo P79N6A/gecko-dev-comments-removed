@@ -72,7 +72,7 @@ public:
   virtual nsresult ValueFromString(const nsAString& aStr,
                                    const nsISMILAnimationElement* aSrcElement,
                                    nsSMILValue& aValue,
-                                   PRBool& aPreventCachingOfSandwich) const;
+                                   bool& aPreventCachingOfSandwich) const;
   virtual nsSMILValue GetBaseValue() const;
   virtual nsresult    SetAnimValue(const nsSMILValue& aValue);
   virtual void        ClearAnimValue();
@@ -85,7 +85,7 @@ public:
 
 
 
-  static PRBool IsPropertyAnimatable(nsCSSProperty aPropID);
+  static bool IsPropertyAnimatable(nsCSSProperty aPropID);
 
 protected:
   nsCSSProperty mPropID;

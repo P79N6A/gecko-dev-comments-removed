@@ -259,24 +259,24 @@ public:
   virtual nsIContent * const * GetChildArray(PRUint32* aChildCount) const;
   virtual PRInt32 IndexOf(nsINode* aPossibleChild) const;
   virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
-                                 PRBool aNotify);
-  virtual nsresult RemoveChildAt(PRUint32 aIndex, PRBool aNotify);
+                                 bool aNotify);
+  virtual nsresult RemoveChildAt(PRUint32 aIndex, bool aNotify);
   NS_IMETHOD GetTextContent(nsAString &aTextContent);
   NS_IMETHOD SetTextContent(const nsAString& aTextContent);
 
   
-  virtual void UpdateEditableState(PRBool aNotify);
+  virtual void UpdateEditableState(bool aNotify);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              PRBool aCompileEventHandlers);
-  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
-                              PRBool aNullParent = PR_TRUE);
+                              bool aCompileEventHandlers);
+  virtual void UnbindFromTree(bool aDeep = true,
+                              bool aNullParent = true);
   virtual already_AddRefed<nsINodeList> GetChildren(PRUint32 aFilter);
   virtual nsIAtom *GetClassAttributeName() const;
   virtual already_AddRefed<nsINodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const;
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, PRBool aNotify)
+                   const nsAString& aValue, bool aNotify)
   {
     return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
@@ -295,22 +295,22 @@ public:
 
 
 
-  PRBool MaybeCheckSameAttrVal(PRInt32 aNamespaceID, nsIAtom* aName,
+  bool MaybeCheckSameAttrVal(PRInt32 aNamespaceID, nsIAtom* aName,
                                nsIAtom* aPrefix, const nsAString& aValue,
-                               PRBool aNotify, nsAutoString* aOldValue,
-                               PRUint8* aModType, PRBool* aHasListeners);
+                               bool aNotify, nsAutoString* aOldValue,
+                               PRUint8* aModType, bool* aHasListeners);
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, nsIAtom* aPrefix,
-                           const nsAString& aValue, PRBool aNotify);
+                           const nsAString& aValue, bool aNotify);
   virtual nsresult SetParsedAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  nsIAtom* aPrefix, nsAttrValue& aParsedValue,
-                                 PRBool aNotify);
-  virtual PRBool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                                 bool aNotify);
+  virtual bool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                          nsAString& aResult) const;
-  virtual PRBool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const;
-  virtual PRBool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
+  virtual bool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const;
+  virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
                              const nsAString& aValue,
                              nsCaseTreatment aCaseSensitive) const;
-  virtual PRBool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
+  virtual bool AttrValueIs(PRInt32 aNameSpaceID, nsIAtom* aName,
                              nsIAtom* aValue,
                              nsCaseTreatment aCaseSensitive) const;
   virtual PRInt32 FindAttrValueIn(PRInt32 aNameSpaceID,
@@ -318,25 +318,25 @@ public:
                                   AttrValuesArray* aValues,
                                   nsCaseTreatment aCaseSensitive) const;
   virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
-                             PRBool aNotify);
+                             bool aNotify);
   virtual const nsAttrName* GetAttrNameAt(PRUint32 aIndex) const;
   virtual PRUint32 GetAttrCount() const;
   virtual const nsTextFragment *GetText();
   virtual PRUint32 TextLength();
   virtual nsresult SetText(const PRUnichar* aBuffer, PRUint32 aLength,
-                           PRBool aNotify);
+                           bool aNotify);
   
-  nsresult SetText(const nsAString& aStr, PRBool aNotify)
+  nsresult SetText(const nsAString& aStr, bool aNotify)
   {
     return SetText(aStr.BeginReading(), aStr.Length(), aNotify);
   }
   virtual nsresult AppendText(const PRUnichar* aBuffer, PRUint32 aLength,
-                              PRBool aNotify);
-  virtual PRBool TextIsOnlyWhitespace();
+                              bool aNotify);
+  virtual bool TextIsOnlyWhitespace();
   virtual void AppendTextTo(nsAString& aResult);
   virtual nsIContent *GetBindingParent() const;
-  virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
-  virtual PRBool IsLink(nsIURI** aURI) const;
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
+  virtual bool IsLink(nsIURI** aURI) const;
 
   virtual PRUint32 GetScriptTypeID() const;
   NS_IMETHOD SetScriptTypeID(PRUint32 aLang);
@@ -352,7 +352,7 @@ public:
   virtual nsIDOMCSSStyleDeclaration* GetSMILOverrideStyle();
   virtual mozilla::css::StyleRule* GetSMILOverrideStyleRule();
   virtual nsresult SetSMILOverrideStyleRule(mozilla::css::StyleRule* aStyleRule,
-                                            PRBool aNotify);
+                                            bool aNotify);
 #endif 
 
 #ifdef DEBUG
@@ -360,7 +360,7 @@ public:
   {
     List(out, aIndent, EmptyCString());
   }
-  virtual void DumpContent(FILE* out, PRInt32 aIndent, PRBool aDumpAll) const;
+  virtual void DumpContent(FILE* out, PRInt32 aIndent, bool aDumpAll) const;
   void List(FILE* out, PRInt32 aIndent, const nsCString& aPrefix) const;
   void ListAttributes(FILE* out) const;
 #endif
@@ -368,8 +368,8 @@ public:
   virtual const nsAttrValue* DoGetClasses() const;
   NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker);
   virtual mozilla::css::StyleRule* GetInlineStyleRule();
-  NS_IMETHOD SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule, PRBool aNotify);
-  NS_IMETHOD_(PRBool)
+  NS_IMETHOD SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule, bool aNotify);
+  NS_IMETHOD_(bool)
     IsAttributeMapped(const nsIAtom* aAttribute) const;
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
                                               PRInt32 aModType) const;
@@ -386,7 +386,7 @@ public:
 
 
 
-  static PRBool
+  static bool
   FindAttributeDependence(const nsIAtom* aAttribute,
                           const MappedAttributeEntry* const aMaps[],
                           PRUint32 aMapCount);
@@ -401,9 +401,9 @@ public:
   NS_IMETHOD GetNamespaceURI(nsAString& aNamespaceURI);
   NS_IMETHOD GetPrefix(nsAString& aPrefix);
   NS_IMETHOD IsSupported(const nsAString& aFeature,
-                         const nsAString& aVersion, PRBool* aReturn);
-  NS_IMETHOD HasAttributes(PRBool* aHasAttributes);
-  NS_IMETHOD HasChildNodes(PRBool* aHasChildNodes);
+                         const nsAString& aVersion, bool* aReturn);
+  NS_IMETHOD HasAttributes(bool* aHasAttributes);
+  NS_IMETHOD HasChildNodes(bool* aHasChildNodes);
   nsresult InsertBefore(nsIDOMNode* aNewChild, nsIDOMNode* aRefChild,
                         nsIDOMNode** aReturn)
   {
@@ -451,11 +451,11 @@ public:
   NS_IMETHOD GetElementsByTagNameNS(const nsAString& aNamespaceURI,
                                     const nsAString& aLocalName,
                                     nsIDOMNodeList** aReturn);
-  NS_IMETHOD HasAttribute(const nsAString& aName, PRBool* aReturn);
+  NS_IMETHOD HasAttribute(const nsAString& aName, bool* aReturn);
   NS_IMETHOD HasAttributeNS(const nsAString& aNamespaceURI,
                             const nsAString& aLocalName,
-                            PRBool* aReturn);
-  nsresult CloneNode(PRBool aDeep, nsIDOMNode **aResult)
+                            bool* aReturn);
+  nsresult CloneNode(bool aDeep, nsIDOMNode **aResult)
   {
     return nsNodeUtils::CloneNodeImpl(this, aDeep, PR_TRUE, aResult);
   }
@@ -471,7 +471,7 @@ public:
 
   nsresult AddScriptEventListener(nsIAtom* aEventName,
                                   const nsAString& aValue,
-                                  PRBool aDefer = PR_TRUE);
+                                  bool aDefer = true);
 
   
 
@@ -489,9 +489,9 @@ public:
   static nsresult InternalIsSupported(nsISupports* aObject,
                                       const nsAString& aFeature,
                                       const nsAString& aVersion,
-                                      PRBool* aReturn);
+                                      bool* aReturn);
 
-  static PRBool ShouldBlur(nsIContent *aContent);
+  static bool ShouldBlur(nsIContent *aContent);
 
   
 
@@ -520,7 +520,7 @@ public:
   static nsresult DispatchClickEvent(nsPresContext* aPresContext,
                                      nsInputEvent* aSourceEvent,
                                      nsIContent* aTarget,
-                                     PRBool aFullDispatch,
+                                     bool aFullDispatch,
                                      PRUint32 aFlags,
                                      nsEventStatus* aStatus);
 
@@ -535,7 +535,7 @@ public:
   static nsresult DispatchEvent(nsPresContext* aPresContext,
                                 nsEvent* aEvent,
                                 nsIContent* aTarget,
-                                PRBool aFullDispatch,
+                                bool aFullDispatch,
                                 nsEventStatus* aStatus);
 
   
@@ -644,9 +644,9 @@ public:
     return NS_OK;
   }
   nsIDOMDOMTokenList* GetClassList(nsresult *aResult);
-  void SetCapture(PRBool aRetargetToElement);
+  void SetCapture(bool aRetargetToElement);
   void ReleaseCapture();
-  PRBool MozMatchesSelector(const nsAString& aSelector, nsresult* aResult);
+  bool MozMatchesSelector(const nsAString& aSelector, nsresult* aResult);
 
   
 
@@ -696,8 +696,8 @@ protected:
                             const nsAString& aOldValue,
                             nsAttrValue& aParsedValue,
                             PRUint8 aModType,
-                            PRBool aFireMutation,
-                            PRBool aNotify,
+                            bool aFireMutation,
+                            bool aNotify,
                             const nsAString* aValueForAfterSetAttr);
 
   
@@ -711,7 +711,7 @@ protected:
 
 
 
-  virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -729,7 +729,7 @@ protected:
 
 
 
-  virtual PRBool SetMappedAttribute(nsIDocument* aDocument,
+  virtual bool SetMappedAttribute(nsIDocument* aDocument,
                                     nsIAtom* aName,
                                     nsAttrValue& aValue,
                                     nsresult* aRetval);
@@ -750,7 +750,7 @@ protected:
   
   
   virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
-                                 const nsAString* aValue, PRBool aNotify)
+                                 const nsAString* aValue, bool aNotify)
   {
     return NS_OK;
   }
@@ -770,7 +770,7 @@ protected:
   
   
   virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
-                                const nsAString* aValue, PRBool aNotify)
+                                const nsAString* aValue, bool aNotify)
   {
     return NS_OK;
   }
@@ -780,7 +780,7 @@ protected:
 
 
   virtual nsEventListenerManager*
-    GetEventListenerManagerForAttr(nsIAtom* aAttrName, PRBool* aDefer);
+    GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer);
 
   
 
@@ -948,7 +948,7 @@ protected:
 
 
 
-  PRBool CheckHandleEventForLinksPrecondition(nsEventChainVisitor& aVisitor,
+  bool CheckHandleEventForLinksPrecondition(nsEventChainVisitor& aVisitor,
                                               nsIURI** aURI) const;
 
   

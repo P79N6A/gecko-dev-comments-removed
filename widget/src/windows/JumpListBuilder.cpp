@@ -69,7 +69,7 @@ static NS_DEFINE_CID(kJumpListShortcutCID, NS_WIN_JUMPLISTSHORTCUT_CID);
 
 extern const wchar_t *gMozillaJumpListIDGeneric;
 
-PRPackedBool JumpListBuilder::sBuildingList = PR_FALSE;
+bool JumpListBuilder::sBuildingList = false;
 const char kPrefTaskbarEnabled[] = "browser.taskbar.lists.enabled";
 
 NS_IMPL_ISUPPORTS2(JumpListBuilder, nsIJumpListBuilder, nsIObserver)
@@ -111,7 +111,7 @@ NS_IMETHODIMP JumpListBuilder::GetAvailable(PRInt16 *aAvailable)
 }
 
 
-NS_IMETHODIMP JumpListBuilder::GetIsListCommitted(PRBool *aCommit)
+NS_IMETHODIMP JumpListBuilder::GetIsListCommitted(bool *aCommit)
 {
   *aCommit = mHasCommit;
 
@@ -145,7 +145,7 @@ NS_IMETHODIMP JumpListBuilder::GetMaxListItems(PRInt16 *aMaxItems)
 }
 
 
-NS_IMETHODIMP JumpListBuilder::InitListBuild(nsIMutableArray *removedItems, PRBool *_retval)
+NS_IMETHODIMP JumpListBuilder::InitListBuild(nsIMutableArray *removedItems, bool *_retval)
 {
   NS_ENSURE_ARG_POINTER(removedItems);
 
@@ -244,7 +244,7 @@ nsresult JumpListBuilder::RemoveIconCacheForAllItems()
   
   
   do {
-    PRBool hasMore = PR_FALSE;
+    bool hasMore = false;
     if (NS_FAILED(entries->HasMoreElements(&hasMore)) || !hasMore)
       break;
 
@@ -260,7 +260,7 @@ nsresult JumpListBuilder::RemoveIconCacheForAllItems()
     PRInt32 len = path.Length();
     if (StringTail(path, 4).LowerCaseEqualsASCII(".ico")) {
       
-      PRBool exists;
+      bool exists;
       if (NS_FAILED(currFile->Exists(&exists)) || !exists)
         continue;
 
@@ -273,7 +273,7 @@ nsresult JumpListBuilder::RemoveIconCacheForAllItems()
 }
 
 
-NS_IMETHODIMP JumpListBuilder::AddListToBuild(PRInt16 aCatType, nsIArray *items, const nsAString &catName, PRBool *_retval)
+NS_IMETHODIMP JumpListBuilder::AddListToBuild(PRInt16 aCatType, nsIArray *items, const nsAString &catName, bool *_retval)
 {
   nsresult rv;
 
@@ -429,7 +429,7 @@ NS_IMETHODIMP JumpListBuilder::AbortListBuild()
 }
 
 
-NS_IMETHODIMP JumpListBuilder::CommitListBuild(PRBool *_retval)
+NS_IMETHODIMP JumpListBuilder::CommitListBuild(bool *_retval)
 {
   *_retval = PR_FALSE;
 
@@ -449,7 +449,7 @@ NS_IMETHODIMP JumpListBuilder::CommitListBuild(PRBool *_retval)
 }
 
 
-NS_IMETHODIMP JumpListBuilder::DeleteActiveList(PRBool *_retval)
+NS_IMETHODIMP JumpListBuilder::DeleteActiveList(bool *_retval)
 {
   *_retval = PR_FALSE;
 
@@ -471,7 +471,7 @@ NS_IMETHODIMP JumpListBuilder::DeleteActiveList(PRBool *_retval)
 
 
 
-PRBool JumpListBuilder::IsSeparator(nsCOMPtr<nsIJumpListItem>& item)
+bool JumpListBuilder::IsSeparator(nsCOMPtr<nsIJumpListItem>& item)
 {
   PRInt16 type;
   item->GetType(&type);
@@ -535,7 +535,7 @@ NS_IMETHODIMP JumpListBuilder::Observe(nsISupports* aSubject,
                                         const PRUnichar* aData)
 {
   if (nsDependentString(aData).EqualsASCII(kPrefTaskbarEnabled)) {
-    PRBool enabled = Preferences::GetBool(kPrefTaskbarEnabled, true);
+    bool enabled = Preferences::GetBool(kPrefTaskbarEnabled, true);
     if (!enabled) {
       
       nsCOMPtr<nsIRunnable> event = new AsyncDeleteAllFaviconsFromDisk();
@@ -691,14 +691,14 @@ NS_IMETHODIMP AsyncDeleteIconFromDisk::Run()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  PRBool exists;
+  bool exists;
   rv = icoFile->Exists(&exists);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   if (StringTail(mIconPath, 4).LowerCaseEqualsASCII(".ico")) {
     
-    PRBool exists;
+    bool exists;
     if (NS_FAILED(icoFile->Exists(&exists)) || !exists)
       return NS_ERROR_FAILURE;
 
@@ -732,7 +732,7 @@ NS_IMETHODIMP AsyncDeleteAllFaviconsFromDisk::Run()
 
   
   do {
-    PRBool hasMore = PR_FALSE;
+    bool hasMore = false;
     if (NS_FAILED(entries->HasMoreElements(&hasMore)) || !hasMore)
       break;
 
@@ -748,7 +748,7 @@ NS_IMETHODIMP AsyncDeleteAllFaviconsFromDisk::Run()
     PRInt32 len = path.Length();
     if (StringTail(path, 4).LowerCaseEqualsASCII(".ico")) {
       
-      PRBool exists;
+      bool exists;
       if (NS_FAILED(currFile->Exists(&exists)) || !exists)
         continue;
 

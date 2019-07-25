@@ -125,35 +125,35 @@ public:
   already_AddRefed<nsStyleContext>
   FindChildWithRules(const nsIAtom* aPseudoTag, nsRuleNode* aRules,
                      nsRuleNode* aRulesIfVisited,
-                     PRBool aRelevantLinkVisited);
+                     bool aRelevantLinkVisited);
 
   
   
-  PRBool HasTextDecorationLines() const
+  bool HasTextDecorationLines() const
     { return !!(mBits & NS_STYLE_HAS_TEXT_DECORATION_LINES); }
 
   
   
   
   
-  PRBool HasPseudoElementData() const
+  bool HasPseudoElementData() const
     { return !!(mBits & NS_STYLE_HAS_PSEUDO_ELEMENT_DATA); }
 
   
   
   
-  PRBool RelevantLinkVisited() const
+  bool RelevantLinkVisited() const
     { return !!(mBits & NS_STYLE_RELEVANT_LINK_VISITED); }
 
   
-  PRBool IsLinkContext() const {
+  bool IsLinkContext() const {
     return
       GetStyleIfVisited() && GetStyleIfVisited()->GetParent() == GetParent();
   }
 
   
   
-  PRBool IsStyleIfVisited() const
+  bool IsStyleIfVisited() const
     { return !!(mBits & NS_STYLE_IS_STYLE_IF_VISITED); }
 
   
@@ -301,7 +301,7 @@ public:
 
 
   static nscolor CombineVisitedColors(nscolor *aColors,
-                                      PRBool aLinkIsVisited);
+                                      bool aLinkIsVisited);
 
   
 
@@ -350,7 +350,7 @@ protected:
 
   
   #define STYLE_STRUCT_INHERITED(name_, checkdata_cb_, ctor_args_)      \
-    const nsStyle##name_ * DoGetStyle##name_(PRBool aComputeData) {     \
+    const nsStyle##name_ * DoGetStyle##name_(bool aComputeData) {     \
       const nsStyle##name_ * cachedData =                               \
         static_cast<nsStyle##name_*>(                                   \
           mCachedInheritedData.mStyleStructs[eStyleStruct_##name_]);    \
@@ -360,7 +360,7 @@ protected:
       return mRuleNode->GetStyle##name_(this, aComputeData);            \
     }
   #define STYLE_STRUCT_RESET(name_, checkdata_cb_, ctor_args_)          \
-    const nsStyle##name_ * DoGetStyle##name_(PRBool aComputeData) {     \
+    const nsStyle##name_ * DoGetStyle##name_(bool aComputeData) {     \
       const nsStyle##name_ * cachedData = mCachedResetData              \
         ? static_cast<nsStyle##name_*>(                                 \
             mCachedResetData->mStyleStructs[eStyleStruct_##name_])      \

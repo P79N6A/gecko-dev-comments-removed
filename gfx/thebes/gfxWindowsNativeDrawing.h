@@ -109,10 +109,10 @@ public:
     void EndNativeDrawing();
 
     
-    PRBool ShouldRenderAgain();
+    bool ShouldRenderAgain();
 
     
-    PRBool IsDoublePass();
+    bool IsDoublePass();
 
     
     void PaintToContext();

@@ -57,7 +57,7 @@
 typedef struct convToken {
     nsString token;     
     nsString modText;   
-    PRBool   prepend;   
+    bool     prepend;   
 } convToken;
     
 
@@ -135,7 +135,7 @@ protected:
     nsTArray<nsAutoPtr<convToken> > mTokens;   
     convToken                       *mToken;   
     nsString                        mPageTitle; 
-    PRBool                          mPreFormatHTML; 
+    bool                            mPreFormatHTML; 
 };
 
 #endif 

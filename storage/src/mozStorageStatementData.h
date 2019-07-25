@@ -120,7 +120,7 @@ public:
       
       
       if (asyncThread) {
-        PRBool onAsyncThread;
+        bool onAsyncThread;
         NS_ASSERTION(NS_SUCCEEDED(asyncThread->IsOnCurrentThread(&onAsyncThread)) && onAsyncThread,
                      "This should only be running on the async thread!");
       }

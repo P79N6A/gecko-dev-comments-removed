@@ -49,10 +49,10 @@ class nsTextEditUtils
 {
 public:
   
-  static PRBool IsBody(nsIDOMNode *aNode);
-  static PRBool IsBreak(nsIDOMNode *aNode);
-  static PRBool IsMozBR(nsIDOMNode *aNode);
-  static PRBool HasMozAttr(nsIDOMNode *aNode);
+  static bool IsBody(nsIDOMNode *aNode);
+  static bool IsBreak(nsIDOMNode *aNode);
+  static bool IsMozBR(nsIDOMNode *aNode);
+  static bool HasMozAttr(nsIDOMNode *aNode);
 };
 
 

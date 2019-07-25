@@ -106,8 +106,8 @@ public:
 
 
 
-  PRBool Is2D(gfxMatrix* aMatrix) const;
-  PRBool Is2D() const;
+  bool Is2D(gfxMatrix* aMatrix) const;
+  bool Is2D() const;
 
   
 
@@ -118,13 +118,13 @@ public:
 
 
 
-  PRBool CanDraw2D(gfxMatrix* aMatrix = nsnull) const;
+  bool CanDraw2D(gfxMatrix* aMatrix = nsnull) const;
 
   
 
 
 
-  PRBool IsIdentity() const;
+  bool IsIdentity() const;
 
   
 
@@ -299,7 +299,7 @@ public:
   
 
 
-  PRBool IsSingular() const;
+  bool IsSingular() const;
 
   
 

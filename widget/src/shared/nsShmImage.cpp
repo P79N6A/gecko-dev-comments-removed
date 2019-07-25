@@ -55,8 +55,8 @@ using namespace mozilla::ipc;
 
 
 
-static PRBool gShmAvailable = PR_TRUE;
-PRBool nsShmImage::UseShm()
+static bool gShmAvailable = true;
+bool nsShmImage::UseShm()
 {
     return gfxPlatform::GetPlatform()->
         ScreenReferenceSurface()->GetType() == gfxASurface::SurfaceTypeImage

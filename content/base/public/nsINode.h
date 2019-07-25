@@ -241,7 +241,7 @@ public:
 
 
 
-  PRBool Mutated(PRUint8 aIgnoreCount)
+  bool Mutated(PRUint8 aIgnoreCount)
   {
     return sMutationCount < static_cast<PRUint32>(eMaxMutations - aIgnoreCount);
   }
@@ -360,7 +360,7 @@ public:
 
 
 
-  virtual PRBool IsNodeOfType(PRUint32 aFlags) const = 0;
+  virtual bool IsNodeOfType(PRUint32 aFlags) const = 0;
 
   
 
@@ -496,7 +496,7 @@ public:
 
 
   virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
-                                 PRBool aNotify) = 0;
+                                 bool aNotify) = 0;
 
   
 
@@ -516,7 +516,7 @@ public:
 
 
 
-  nsresult AppendChildTo(nsIContent* aKid, PRBool aNotify)
+  nsresult AppendChildTo(nsIContent* aKid, bool aNotify)
   {
     return InsertChildAt(aKid, GetChildCount(), aNotify);
   }
@@ -534,7 +534,7 @@ public:
 
 
   virtual nsresult RemoveChildAt(PRUint32 aIndex, 
-                                 PRBool aNotify) = 0;
+                                 bool aNotify) = 0;
 
   
 
@@ -589,7 +589,7 @@ public:
   nsresult SetProperty(nsIAtom *aPropertyName,
                        void *aValue,
                        NSPropertyDtorFunc aDtor = nsnull,
-                       PRBool aTransfer = PR_FALSE)
+                       bool aTransfer = false)
   {
     return SetProperty(0, aPropertyName, aValue, aDtor, aTransfer);
   }
@@ -617,7 +617,7 @@ public:
                                nsIAtom *aPropertyName,
                                void *aValue,
                                NSPropertyDtorFunc aDtor = nsnull,
-                               PRBool aTransfer = PR_FALSE,
+                               bool aTransfer = false,
                                void **aOldValue = nsnull);
 
   
@@ -677,7 +677,7 @@ public:
                               nsIAtom *aPropertyName,
                               nsresult *aStatus = nsnull);
   
-  PRBool HasProperties() const
+  bool HasProperties() const
   {
     return HasFlag(NODE_HAS_PROPERTIES);
   }
@@ -789,7 +789,7 @@ public:
 
 
 
-  PRBool HasSameOwnerDoc(nsINode *aOther)
+  bool HasSameOwnerDoc(nsINode *aOther)
   {
     
     
@@ -844,7 +844,7 @@ public:
   }
 #endif
 
-  PRBool HasFlag(PtrBits aFlag) const
+  bool HasFlag(PtrBits aFlag) const
   {
     return !!(GetFlags() & aFlag);
   }
@@ -877,7 +877,7 @@ public:
     mFlags &= ~aFlagsToUnset;
   }
 
-  void SetEditableFlag(PRBool aEditable)
+  void SetEditableFlag(bool aEditable)
   {
     if (aEditable) {
       SetFlags(NODE_IS_EDITABLE);
@@ -887,7 +887,7 @@ public:
     }
   }
 
-  PRBool IsEditable() const
+  bool IsEditable() const
   {
 #ifdef _IMPL_NS_LAYOUT
     return IsEditableInternal();
@@ -899,7 +899,7 @@ public:
   
 
 
-  PRBool IsInNativeAnonymousSubtree() const
+  bool IsInNativeAnonymousSubtree() const
   {
 #ifdef DEBUG
     if (HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE)) {
@@ -1052,10 +1052,10 @@ public:
                                    PRUint16* aReturn);
 
   nsresult IsSameNode(nsIDOMNode* aOther,
-                      PRBool* aReturn);
+                      bool* aReturn);
 
   nsresult LookupPrefix(const nsAString& aNamespaceURI, nsAString& aPrefix);
-  nsresult IsDefaultNamespace(const nsAString& aNamespaceURI, PRBool* aResult)
+  nsresult IsDefaultNamespace(const nsAString& aNamespaceURI, bool* aResult)
   {
     nsAutoString defaultNamespace;
     LookupNamespaceURI(EmptyString(), defaultNamespace);
@@ -1065,8 +1065,8 @@ public:
   nsresult LookupNamespaceURI(const nsAString& aNamespacePrefix,
                               nsAString& aNamespaceURI);
 
-  nsresult IsEqualNode(nsIDOMNode* aOther, PRBool* aReturn);
-  PRBool IsEqualTo(nsINode* aOther);
+  nsresult IsEqualNode(nsIDOMNode* aOther, bool* aReturn);
+  bool IsEqualTo(nsINode* aOther);
 
   nsIContent* GetNextSibling() const { return mNextSibling; }
   nsIContent* GetPreviousSibling() const { return mPreviousSibling; }
@@ -1100,13 +1100,13 @@ public:
 
 
 
-  PRBool Contains(const nsINode* aOther) const;
-  nsresult Contains(nsIDOMNode* aOther, PRBool* aReturn);
+  bool Contains(const nsINode* aOther) const;
+  nsresult Contains(nsIDOMNode* aOther, bool* aReturn);
 
 private:
 
   nsIContent* GetNextNodeImpl(const nsINode* aRoot,
-                              const PRBool aSkipChildren) const
+                              const bool aSkipChildren) const
   {
     
     
@@ -1257,7 +1257,7 @@ protected:
   
   virtual nsINode::nsSlots* CreateSlots();
 
-  PRBool HasSlots() const
+  bool HasSlots() const
   {
     return mSlots != nsnull;
   }
@@ -1280,8 +1280,8 @@ protected:
     return HasSlots() ? &GetExistingSlots()->mMutationObservers : nsnull;
   }
 
-  PRBool IsEditableInternal() const;
-  virtual PRBool IsEditableExternal() const
+  bool IsEditableInternal() const;
+  virtual bool IsEditableExternal() const
   {
     return IsEditableInternal();
   }
@@ -1301,9 +1301,9 @@ protected:
   nsresult GetNextSibling(nsIDOMNode** aNextSibling);
   nsresult GetOwnerDocument(nsIDOMDocument** aOwnerDocument);
 
-  nsresult ReplaceOrInsertBefore(PRBool aReplace, nsIDOMNode *aNewChild,
+  nsresult ReplaceOrInsertBefore(bool aReplace, nsIDOMNode *aNewChild,
                                  nsIDOMNode *aRefChild, nsIDOMNode **aReturn);
-  nsINode* ReplaceOrInsertBefore(PRBool aReplace, nsINode *aNewChild,
+  nsINode* ReplaceOrInsertBefore(bool aReplace, nsINode *aNewChild,
                                  nsINode *aRefChild, nsresult *aReturn)
   {
     *aReturn = ReplaceOrInsertBefore(aReplace, aNewChild, aRefChild);
@@ -1313,7 +1313,7 @@ protected:
 
     return aReplace ? aRefChild : aNewChild;
   }
-  virtual nsresult ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
+  virtual nsresult ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
                                          nsINode* aRefChild);
   nsresult RemoveChild(nsIDOMNode* aOldChild, nsIDOMNode** aReturn);
 
@@ -1336,7 +1336,7 @@ protected:
 
 
 
-  nsresult doRemoveChildAt(PRUint32 aIndex, PRBool aNotify, nsIContent* aKid,
+  nsresult doRemoveChildAt(PRUint32 aIndex, bool aNotify, nsIContent* aKid,
                            nsAttrAndChildArray& aChildArray);
 
   
@@ -1350,7 +1350,7 @@ protected:
 
 
   nsresult doInsertChildAt(nsIContent* aKid, PRUint32 aIndex,
-                           PRBool aNotify, nsAttrAndChildArray& aChildArray);
+                           bool aNotify, nsAttrAndChildArray& aChildArray);
 
   
 

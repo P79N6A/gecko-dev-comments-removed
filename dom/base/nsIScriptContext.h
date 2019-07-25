@@ -119,7 +119,7 @@ public:
                                   PRUint32 aLineNo,
                                   PRUint32 aVersion,
                                   nsAString *aRetValue,
-                                  PRBool* aIsUndefined) = 0;
+                                  bool* aIsUndefined) = 0;
 
   
   
@@ -130,7 +130,7 @@ public:
                                            PRUint32 aLineNo,
                                            PRUint32 aVersion,
                                            void* aRetValue,
-                                           PRBool* aIsUndefined) = 0;
+                                           bool* aIsUndefined) = 0;
 
   
 
@@ -175,7 +175,7 @@ public:
   virtual nsresult ExecuteScript(void* aScriptObject,
                                  void* aScopeObject,
                                  nsAString* aRetValue,
-                                 PRBool* aIsUndefined) = 0;
+                                 bool* aIsUndefined) = 0;
 
   
 
@@ -270,7 +270,7 @@ public:
                                    const char* aURL,
                                    PRUint32 aLineNo,
                                    PRUint32 aVersion,
-                                   PRBool aShared,
+                                   bool aShared,
                                    void **aFunctionObject) = 0;
 
   
@@ -305,7 +305,7 @@ public:
 
   virtual nsresult CreateNativeGlobalForInner(
                                       nsIScriptGlobalObject *aNewInner,
-                                      PRBool aIsChrome,
+                                      bool aIsChrome,
                                       nsIPrincipal *aPrincipal,
                                       void **aNativeGlobal,
                                       nsISupports **aHolder) = 0;
@@ -350,7 +350,7 @@ public:
 
 
 
-  virtual PRBool IsContextInitialized() = 0;
+  virtual bool IsContextInitialized() = 0;
 
   
 
@@ -377,7 +377,7 @@ public:
 
 
 
-  virtual void ScriptEvaluated(PRBool aTerminated) = 0;
+  virtual void ScriptEvaluated(bool aTerminated) = 0;
 
   virtual nsresult Serialize(nsIObjectOutputStream* aStream,
                              void *aScriptObject) = 0;
@@ -403,8 +403,8 @@ public:
   
 
 
-  virtual PRBool GetScriptsEnabled() = 0;
-  virtual void SetScriptsEnabled(PRBool aEnabled, PRBool aFireTimeouts) = 0;
+  virtual bool GetScriptsEnabled() = 0;
+  virtual void SetScriptsEnabled(bool aEnabled, bool aFireTimeouts) = 0;
 
   
   
@@ -413,19 +413,19 @@ public:
 
 
 
-  virtual PRBool GetProcessingScriptTag() = 0;
-  virtual void SetProcessingScriptTag(PRBool aResult) = 0;
+  virtual bool GetProcessingScriptTag() = 0;
+  virtual void SetProcessingScriptTag(bool aResult) = 0;
 
   
 
 
-  virtual PRBool GetExecutingScript() = 0;
+  virtual bool GetExecutingScript() = 0;
 
   
 
 
 
-  virtual void SetGCOnDestruction(PRBool aGCOnDestruction) = 0;
+  virtual void SetGCOnDestruction(bool aGCOnDestruction) = 0;
 
   
 
@@ -447,7 +447,7 @@ public:
 
 
 
-  virtual void ClearScope(void* aGlobalObj, PRBool aClearFromProtoChain) = 0;
+  virtual void ClearScope(void* aGlobalObj, bool aClearFromProtoChain) = 0;
 
   
 

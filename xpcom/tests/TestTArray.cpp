@@ -59,7 +59,7 @@ inline bool operator<(const nsCOMPtr<T>& lhs, const nsCOMPtr<T>& rhs) {
 
 
 template <class ElementType>
-static PRBool test_basic_array(ElementType *data,
+static bool test_basic_array(ElementType *data,
                                PRUint32 dataLen,
                                const ElementType& extra) {
   nsTArray<ElementType> ary;
@@ -189,22 +189,22 @@ static PRBool test_basic_array(ElementType *data,
   return PR_TRUE;
 }
 
-static PRBool test_int_array() {
+static bool test_int_array() {
   int data[] = {4,6,8,2,4,1,5,7,3};
   return test_basic_array(data, NS_ARRAY_LENGTH(data), int(14));
 }
 
-static PRBool test_int64_array() {
+static bool test_int64_array() {
   PRInt64 data[] = {4,6,8,2,4,1,5,7,3};
   return test_basic_array(data, NS_ARRAY_LENGTH(data), PRInt64(14));
 }
 
-static PRBool test_char_array() {
+static bool test_char_array() {
   char data[] = {4,6,8,2,4,1,5,7,3};
   return test_basic_array(data, NS_ARRAY_LENGTH(data), char(14));
 }
 
-static PRBool test_uint32_array() {
+static bool test_uint32_array() {
   PRUint32 data[] = {4,6,8,2,4,1,5,7,3};
   return test_basic_array(data, NS_ARRAY_LENGTH(data), PRUint32(14));
 }
@@ -227,11 +227,11 @@ class Object {
       return *this;
     }
 
-    PRBool operator==(const Object& other) const {
+    bool operator==(const Object& other) const {
       return mStr == other.mStr && mNum == other.mNum;
     }
 
-    PRBool operator<(const Object& other) const {
+    bool operator<(const Object& other) const {
       
       return mStr.Compare(other.mStr) < 0;
     }
@@ -244,7 +244,7 @@ class Object {
     PRUint32  mNum;
 };
 
-static PRBool test_object_array() {
+static bool test_object_array() {
   nsTArray<Object> objArray;
   const char kdata[] = "hello world";
   PRUint32 i;
@@ -270,7 +270,7 @@ static PRBool test_object_array() {
 
 
 #if 0
-static PRBool test_autoptr_array() {
+static bool test_autoptr_array() {
   nsTArray< nsAutoPtr<Object> > objArray;
   const char kdata[] = "hello world";
   for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(kdata); ++i) {
@@ -294,11 +294,11 @@ static PRBool test_autoptr_array() {
 
 
 
-static PRBool operator==(const nsCString &a, const char *b) {
+static bool operator==(const nsCString &a, const char *b) {
   return a.Equals(b);
 }
 
-static PRBool test_string_array() {
+static bool test_string_array() {
   nsTArray<nsCString> strArray;
   const char kdata[] = "hello world";
   PRUint32 i;
@@ -352,14 +352,14 @@ typedef nsCOMPtr<nsIFile> FilePointer;
 
 class nsFileNameComparator {
   public:
-    PRBool Equals(const FilePointer &a, const char *b) const {
+    bool Equals(const FilePointer &a, const char *b) const {
       nsCAutoString name;
       a->GetNativeLeafName(name);
       return name.Equals(b);
     }
 };
 
-static PRBool test_comptr_array() {
+static bool test_comptr_array() {
   FilePointer tmpDir;
   NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(tmpDir));
   if (!tmpDir)
@@ -404,8 +404,8 @@ class RefcountedObject {
     PRInt32 rc;
 };
 
-static PRBool test_refptr_array() {
-  PRBool rv = PR_TRUE;
+static bool test_refptr_array() {
+  bool rv = true;
 
   nsTArray< nsRefPtr<RefcountedObject> > objArray;
 
@@ -428,7 +428,7 @@ static PRBool test_refptr_array() {
 
 
 
-static PRBool test_ptrarray() {
+static bool test_ptrarray() {
   nsTArray<PRUint32*> ary;
   if (ary.SafeElementAt(0) != nsnull)
     return PR_FALSE;
@@ -462,7 +462,7 @@ static PRBool test_ptrarray() {
 
 
 #ifdef DEBUG
-static PRBool test_autoarray() {
+static bool test_autoarray() {
   PRUint32 data[] = {4,6,8,2,4,1,5,7,3};
   nsAutoTArray<PRUint32, NS_ARRAY_LENGTH(data)> array;
 
@@ -532,7 +532,7 @@ static PRBool test_autoarray() {
 
 
 
-static PRBool test_indexof() {
+static bool test_indexof() {
   nsTArray<int> array;
   array.AppendElement(0);
   
@@ -545,7 +545,7 @@ static PRBool test_indexof() {
 
 
 template <class Array>
-static PRBool is_heap(const Array& ary, PRUint32 len) {
+static bool is_heap(const Array& ary, PRUint32 len) {
   PRUint32 index = 1;
   while (index < len) {
     if (ary[index] > ary[(index - 1) >> 1])
@@ -555,7 +555,7 @@ static PRBool is_heap(const Array& ary, PRUint32 len) {
   return PR_TRUE;
 } 
 
-static PRBool test_heap() {
+static bool test_heap() {
   const int data[] = {4,6,8,2,4,1,5,7,3};
   nsTArray<int> ary;
   ary.AppendElements(data, NS_ARRAY_LENGTH(data));
@@ -635,7 +635,7 @@ static PRBool test_heap() {
     }                                                           \
   } while(0)
 
-static PRBool test_swap() {
+static bool test_swap() {
   
   int data1[] = {8, 6, 7, 5};
   int data2[] = {3, 0, 9};
@@ -863,7 +863,7 @@ static PRBool test_swap() {
 
 
 
-typedef PRBool (*TestFunc)();
+typedef bool (*TestFunc)();
 #define DECL_TEST(name) { #name, name }
 
 static const struct Test {

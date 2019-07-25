@@ -134,7 +134,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     nsEventStates ObjectState() const;
 
-    void SetIsNetworkCreated(PRBool aNetworkCreated)
+    void SetIsNetworkCreated(bool aNetworkCreated)
     {
       mNetworkCreated = aNetworkCreated;
     }
@@ -154,9 +154,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
     nsresult LoadObject(const nsAString& aURI,
-                        PRBool aNotify,
+                        bool aNotify,
                         const nsCString& aTypeHint = EmptyCString(),
-                        PRBool aForceLoad = PR_FALSE);
+                        bool aForceLoad = false);
     
 
 
@@ -185,9 +185,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
     nsresult LoadObject(nsIURI* aURI,
-                        PRBool aNotify,
+                        bool aNotify,
                         const nsCString& aTypeHint = EmptyCString(),
-                        PRBool aForceLoad = PR_FALSE);
+                        bool aForceLoad = false);
 
     enum Capabilities {
       eSupportImages    = PR_BIT(0), 
@@ -212,7 +212,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
 
 
-    void Fallback(PRBool aNotify);
+    void Fallback(bool aNotify);
 
     
 
@@ -230,17 +230,17 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
 
 
-    static PRBool IsSuccessfulRequest(nsIRequest* aRequest);
+    static bool IsSuccessfulRequest(nsIRequest* aRequest);
 
     
 
 
-    static PRBool CanHandleURI(nsIURI* aURI);
+    static bool CanHandleURI(nsIURI* aURI);
 
     
 
 
-    PRBool IsSupportedDocument(const nsCString& aType);
+    bool IsSupportedDocument(const nsCString& aType);
 
     
 
@@ -260,7 +260,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
     void NotifyStateChanged(ObjectType aOldType, nsEventStates aOldState,
-                            PRBool aSync, PRBool aNotify);
+                            bool aSync, bool aNotify);
 
     
 
@@ -399,15 +399,15 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    PRPackedBool                mInstantiating : 1;
+    bool                        mInstantiating : 1;
     
-    PRPackedBool                mUserDisabled  : 1;
-    PRPackedBool                mSuppressed    : 1;
+    bool                        mUserDisabled  : 1;
+    bool                        mSuppressed    : 1;
 
     
     
     
-    PRPackedBool                mNetworkCreated : 1;
+    bool                        mNetworkCreated : 1;
 
     
     PluginSupportState          mFallbackReason;

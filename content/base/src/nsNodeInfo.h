@@ -60,7 +60,7 @@ public:
 
   
   virtual nsresult GetNamespaceURI(nsAString& aNameSpaceURI) const;
-  virtual PRBool NamespaceEquals(const nsAString& aNamespaceURI) const;
+  virtual bool NamespaceEquals(const nsAString& aNamespaceURI) const;
 
   
   

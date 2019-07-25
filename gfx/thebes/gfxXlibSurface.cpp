@@ -206,9 +206,9 @@ gfxXlibSurface::Create(Screen *screen, XRenderPictFormat *format,
     return result.forget();
 }
 
-static PRBool GetForce24bppPref()
+static bool GetForce24bppPref()
 {
-    return Preferences::GetBool("mozilla.widget.force-24bpp", PR_FALSE);
+    return Preferences::GetBool("mozilla.widget.force-24bpp", false);
 }
 
 already_AddRefed<gfxASurface>
@@ -223,7 +223,7 @@ gfxXlibSurface::CreateSimilarSurface(gfxContentType aContent,
         
         
         
-        static PRBool force24bpp = GetForce24bppPref();
+        static bool force24bpp = GetForce24bppPref();
         if (force24bpp
             && cairo_xlib_surface_get_depth(CairoSurface()) != 24) {
             XRenderPictFormat* format =
@@ -268,7 +268,7 @@ gfxXlibSurface::DoSizeQuery()
 
 class DisplayTable {
 public:
-    static PRBool GetColormapAndVisual(Screen* screen,
+    static bool GetColormapAndVisual(Screen* screen,
                                        XRenderPictFormat* format,
                                        Visual* visual, Colormap* colormap,
                                        Visual** visualForColormap);
@@ -294,7 +294,7 @@ private:
     
     class FindDisplay {
     public:
-        PRBool Equals(const DisplayInfo& info, const Display *display) const
+        bool Equals(const DisplayInfo& info, const Display *display) const
         {
             return info.mDisplay == display;
         }
@@ -331,7 +331,7 @@ DisplayTable* DisplayTable::sDisplayTable;
 
 
 
- PRBool
+ bool
 DisplayTable::GetColormapAndVisual(Screen* aScreen, XRenderPictFormat* aFormat,
                                    Visual* aVisual, Colormap* aColormap,
                                    Visual** aVisualForColormap)
@@ -419,7 +419,7 @@ DisplayTable::DisplayClosing(Display *display, XExtCodes* codes)
     return 0;
 }
 
-PRBool
+bool
 gfxXlibSurface::GetColormapAndVisual(Colormap* aColormap, Visual** aVisual)
 {
     if (!mSurfaceValid)

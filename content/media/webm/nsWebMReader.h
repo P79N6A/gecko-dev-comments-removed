@@ -133,21 +133,21 @@ public:
 
   virtual nsresult Init(nsBuiltinDecoderReader* aCloneDonor);
   virtual nsresult ResetDecode();
-  virtual PRBool DecodeAudioData();
+  virtual bool DecodeAudioData();
 
   
   
   
-  virtual PRBool DecodeVideoFrame(PRBool &aKeyframeSkip,
+  virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
                                   PRInt64 aTimeThreshold);
 
-  virtual PRBool HasAudio()
+  virtual bool HasAudio()
   {
     NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
     return mHasAudio;
   }
 
-  virtual PRBool HasVideo()
+  virtual bool HasVideo()
   {
     NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
     return mHasVideo;
@@ -174,8 +174,8 @@ private:
   
   ogg_packet InitOggPacket(unsigned char* aData,
                            size_t aLength,
-                           PRBool aBOS,
-                           PRBool aEOS,
+                           bool aBOS,
+                           bool aEOS,
                            PRInt64 aGranulepos);
 
   
@@ -184,7 +184,7 @@ private:
   
   
   
-  PRBool DecodeAudioPacket(nestegg_packet* aPacket, PRInt64 aOffset);
+  bool DecodeAudioPacket(nestegg_packet* aPacket, PRInt64 aOffset);
 
   
   
@@ -233,8 +233,8 @@ private:
   nsIntRect mPicture;
 
   
-  PRPackedBool mHasVideo;
-  PRPackedBool mHasAudio;
+  bool mHasVideo;
+  bool mHasAudio;
 };
 
 #endif

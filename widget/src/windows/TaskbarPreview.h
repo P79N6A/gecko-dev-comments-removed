@@ -77,10 +77,10 @@ protected:
   virtual void DetachFromNSWindow();
 
   
-  PRBool IsWindowAvailable() const;
+  bool IsWindowAvailable() const;
 
   
-  virtual nsresult ShowActive(PRBool active) = 0;
+  virtual nsresult ShowActive(bool active) = 0;
   
   virtual HWND& PreviewWindow() = 0;
 
@@ -90,13 +90,13 @@ protected:
   
   
   
-  PRBool CanMakeTaskbarCalls();
+  bool CanMakeTaskbarCalls();
 
   
   WindowHook &GetWindowHook();
 
   
-  static void EnableCustomDrawing(HWND aHWND, PRBool aEnable);
+  static void EnableCustomDrawing(HWND aHWND, bool aEnable);
 
   
   nsRefPtr<ITaskbarList4> mTaskbar;
@@ -105,7 +105,7 @@ protected:
   
   HWND                    mWnd;
   
-  PRBool                  mVisible;
+  bool                    mVisible;
 
 private:
   
@@ -113,10 +113,10 @@ private:
 
   
   
-  void DrawBitmap(PRUint32 width, PRUint32 height, PRBool isPreview);
+  void DrawBitmap(PRUint32 width, PRUint32 height, bool isPreview);
 
   
-  static PRBool MainWindowHook(void *aContext,
+  static bool MainWindowHook(void *aContext,
                                HWND hWnd, UINT nMsg,
                                WPARAM wParam, LPARAM lParam,
                                LRESULT *aResult);

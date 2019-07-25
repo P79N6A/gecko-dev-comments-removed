@@ -79,7 +79,7 @@ public:
 
 
 
-  virtual void CaptureMouseEvents(PRBool aGrabMouseEvents) = 0;
+  virtual void CaptureMouseEvents(bool aGrabMouseEvents) = 0;
 
   
 

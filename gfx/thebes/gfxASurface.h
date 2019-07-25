@@ -127,7 +127,7 @@ public:
     void SetDeviceOffset(const gfxPoint& offset);
     gfxPoint GetDeviceOffset() const;
 
-    virtual PRBool GetRotateForLandscape() { return PR_FALSE; }
+    virtual bool GetRotateForLandscape() { return false; }
 
     void Flush() const;
     void MarkDirty();
@@ -171,7 +171,7 @@ public:
 
 
 
-    static PRBool CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit = 0);
+    static bool CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit = 0);
 
     
 
@@ -187,8 +187,8 @@ public:
     static gfxContentType ContentFromFormat(gfxImageFormat format);
     static gfxImageFormat FormatFromContent(gfxContentType format);
 
-    void SetSubpixelAntialiasingEnabled(PRBool aEnabled);
-    PRBool GetSubpixelAntialiasingEnabled();
+    void SetSubpixelAntialiasingEnabled(bool aEnabled);
+    bool GetSubpixelAntialiasingEnabled();
 
     
 
@@ -263,8 +263,8 @@ public:
     
 
 
-    void SetAllowUseAsSource(PRBool aAllow) { mAllowUseAsSource = aAllow; }
-    PRBool GetAllowUseAsSource() { return mAllowUseAsSource; }
+    void SetAllowUseAsSource(bool aAllow) { mAllowUseAsSource = aAllow; }
+    bool GetAllowUseAsSource() { return mAllowUseAsSource; }
 
 protected:
     gfxASurface() : mSurface(nsnull), mFloatingRefs(0), mBytesRecorded(0),
@@ -287,7 +287,7 @@ protected:
     
     
     
-    void Init(cairo_surface_t *surface, PRBool existingSurface = PR_FALSE);
+    void Init(cairo_surface_t *surface, bool existingSurface = false);
 
     virtual ~gfxASurface()
     {
@@ -306,8 +306,8 @@ private:
     PRInt32 mBytesRecorded;
 
 protected:
-    PRPackedBool mSurfaceValid;
-    PRPackedBool mAllowUseAsSource;
+    bool mSurfaceValid;
+    bool mAllowUseAsSource;
 };
 
 

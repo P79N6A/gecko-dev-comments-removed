@@ -130,7 +130,7 @@ public:
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              PRBool aCompileEventHandlers) = 0;
+                              bool aCompileEventHandlers) = 0;
 
   
 
@@ -146,8 +146,8 @@ public:
 
 
 
-  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
-                              PRBool aNullParent = PR_TRUE) = 0;
+  virtual void UnbindFromTree(bool aDeep = true,
+                              bool aNullParent = true) = 0;
   
   
 
@@ -209,7 +209,7 @@ public:
 
 
 
-  PRBool IsRootOfNativeAnonymousSubtree() const
+  bool IsRootOfNativeAnonymousSubtree() const
   {
     NS_ASSERTION(!HasFlag(NODE_IS_NATIVE_ANONYMOUS_ROOT) ||
                  (HasFlag(NODE_IS_ANONYMOUS) &&
@@ -238,7 +238,7 @@ public:
 
 
 
-  PRBool IsRootOfAnonymousSubtree() const
+  bool IsRootOfAnonymousSubtree() const
   {
     NS_ASSERTION(!IsRootOfNativeAnonymousSubtree() ||
                  (GetParent() && GetBindingParent() == GetParent()),
@@ -265,7 +265,7 @@ public:
 
 
 
-  PRBool IsInAnonymousSubtree() const
+  bool IsInAnonymousSubtree() const
   {
     NS_ASSERTION(!IsInNativeAnonymousSubtree() || GetBindingParent() || !GetParent(),
                  "must have binding parent when in native anonymous subtree with a parent node");
@@ -276,7 +276,7 @@ public:
 
 
 
-  inline PRBool IsInHTMLDocument() const
+  inline bool IsInHTMLDocument() const
   {
     nsIDocument* doc = GetOwnerDoc();
     return doc && 
@@ -310,28 +310,28 @@ public:
     return mNodeInfo;
   }
 
-  inline PRBool IsInNamespace(PRInt32 aNamespace) const {
+  inline bool IsInNamespace(PRInt32 aNamespace) const {
     return mNodeInfo->NamespaceID() == aNamespace;
   }
 
-  inline PRBool IsHTML() const {
+  inline bool IsHTML() const {
     return IsInNamespace(kNameSpaceID_XHTML);
   }
 
-  inline PRBool IsHTML(nsIAtom* aTag) const {
+  inline bool IsHTML(nsIAtom* aTag) const {
     return mNodeInfo->Equals(aTag, kNameSpaceID_XHTML);
   }
 
-  inline PRBool IsSVG() const {
+  inline bool IsSVG() const {
     
     return IsNodeOfType(eSVG);
   }
 
-  inline PRBool IsXUL() const {
+  inline bool IsXUL() const {
     return IsInNamespace(kNameSpaceID_XUL);
   }
 
-  inline PRBool IsMathML() const {
+  inline bool IsMathML() const {
     return IsInNamespace(kNameSpaceID_MathML);
   }
 
@@ -368,7 +368,7 @@ public:
 
 
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, PRBool aNotify)
+                   const nsAString& aValue, bool aNotify)
   {
     return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
@@ -389,7 +389,7 @@ public:
 
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
-                           PRBool aNotify) = 0;
+                           bool aNotify) = 0;
 
   
 
@@ -401,7 +401,7 @@ public:
 
 
 
-  virtual PRBool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, 
+  virtual bool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, 
                          nsAString& aResult) const = 0;
 
   
@@ -411,7 +411,7 @@ public:
 
 
 
-  virtual PRBool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const = 0;
+  virtual bool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const = 0;
 
   
 
@@ -423,7 +423,7 @@ public:
 
 
 
-  virtual PRBool AttrValueIs(PRInt32 aNameSpaceID,
+  virtual bool AttrValueIs(PRInt32 aNameSpaceID,
                              nsIAtom* aName,
                              const nsAString& aValue,
                              nsCaseTreatment aCaseSensitive) const
@@ -441,7 +441,7 @@ public:
 
 
 
-  virtual PRBool AttrValueIs(PRInt32 aNameSpaceID,
+  virtual bool AttrValueIs(PRInt32 aNameSpaceID,
                              nsIAtom* aName,
                              nsIAtom* aValue,
                              nsCaseTreatment aCaseSensitive) const
@@ -488,7 +488,7 @@ public:
 
 
   virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr, 
-                             PRBool aNotify) = 0;
+                             bool aNotify) = 0;
 
 
   
@@ -530,7 +530,7 @@ public:
 
 
   virtual nsresult SetText(const PRUnichar* aBuffer, PRUint32 aLength,
-                           PRBool aNotify) = 0;
+                           bool aNotify) = 0;
 
   
 
@@ -538,14 +538,14 @@ public:
 
 
   virtual nsresult AppendText(const PRUnichar* aBuffer, PRUint32 aLength,
-                              PRBool aNotify) = 0;
+                              bool aNotify) = 0;
 
   
 
 
 
 
-  nsresult SetText(const nsAString& aStr, PRBool aNotify)
+  nsresult SetText(const nsAString& aStr, bool aNotify)
   {
     return SetText(aStr.BeginReading(), aStr.Length(), aNotify);
   }
@@ -554,7 +554,7 @@ public:
 
 
 
-  virtual PRBool TextIsOnlyWhitespace() = 0;
+  virtual bool TextIsOnlyWhitespace() = 0;
 
   
 
@@ -584,7 +584,7 @@ public:
 
 
 
-  virtual PRBool IsFocusable(PRInt32 *aTabIndex = nsnull, PRBool aWithMouse = PR_FALSE)
+  virtual bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false)
   {
     if (aTabIndex) 
       *aTabIndex = -1; 
@@ -599,8 +599,8 @@ public:
 
 
 
-  virtual void PerformAccesskey(PRBool aKeyCausesActivation,
-                                PRBool aIsTrustedEvent)
+  virtual void PerformAccesskey(bool aKeyCausesActivation,
+                                bool aIsTrustedEvent)
   {
   }
 
@@ -676,7 +676,7 @@ public:
 
 
 
-  virtual PRBool IsLink(nsIURI** aURI) const = 0;
+  virtual bool IsLink(nsIURI** aURI) const = 0;
 
   
 
@@ -770,7 +770,7 @@ public:
 
 
 
-  virtual nsresult DoneAddingChildren(PRBool aHaveNotified)
+  virtual nsresult DoneAddingChildren(bool aHaveNotified)
   {
     return NS_OK;
   }
@@ -784,7 +784,7 @@ public:
 
 
 
-  virtual PRBool IsDoneAddingChildren()
+  virtual bool IsDoneAddingChildren()
   {
     return PR_TRUE;
   }
@@ -829,7 +829,7 @@ public:
 
 
 
-  NS_IMETHOD SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule, PRBool aNotify) = 0;
+  NS_IMETHOD SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule, bool aNotify) = 0;
 
   
 
@@ -838,7 +838,7 @@ public:
 
 
 
-  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const = 0;
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const = 0;
 
   
 
@@ -862,7 +862,7 @@ public:
 
 
 
-  virtual void UpdateEditableState(PRBool aNotify);
+  virtual void UpdateEditableState(bool aNotify);
 
   
 
@@ -925,7 +925,7 @@ public:
 
 
   virtual nsresult SetSMILOverrideStyleRule(mozilla::css::StyleRule* aStyleRule,
-                                            PRBool aNotify) = 0;
+                                            bool aNotify) = 0;
 #endif 
 
   nsresult LookupNamespaceURI(const nsAString& aNamespacePrefix,
@@ -935,7 +935,7 @@ public:
 
 
 
-  PRBool HasIndependentSelection();
+  bool HasIndependentSelection();
 
   
 
@@ -954,7 +954,7 @@ public:
       if (content->GetAttrCount() > 0) {
         
         
-        PRBool hasAttr = content->GetAttr(kNameSpaceID_XML, nsGkAtoms::lang,
+        bool hasAttr = content->GetAttr(kNameSpaceID_XML, nsGkAtoms::lang,
                                           aResult);
         if (!hasAttr && content->IsHTML()) {
           hasAttr = content->GetAttr(kNameSpaceID_None, nsGkAtoms::lang,
@@ -1006,7 +1006,7 @@ public:
 
 
   virtual void DumpContent(FILE* out = stdout, PRInt32 aIndent = 0,
-                           PRBool aDumpAll = PR_TRUE) const = 0;
+                           bool aDumpAll = true) const = 0;
 #endif
 
   enum ETabFocusType {
@@ -1021,7 +1021,7 @@ public:
 
   
   
-  static PRBool sTabFocusModelAppliesToXUL;
+  static bool sTabFocusModelAppliesToXUL;
 
 };
 

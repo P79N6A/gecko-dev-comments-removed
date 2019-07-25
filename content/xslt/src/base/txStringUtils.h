@@ -51,7 +51,7 @@ typedef nsCaseInsensitiveStringComparator txCaseInsensitiveStringComparator;
 
 
 
-inline PRBool
+inline bool
 TX_StringEqualsAtom(const nsASingleFragmentString& aString, nsIAtom* aAtom)
 {
   return aAtom->Equals(aString);

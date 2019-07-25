@@ -102,7 +102,7 @@ public:
     
     
     
-    PRBool CanAttachSocket() {
+    bool CanAttachSocket() {
         return mActiveCount + mIdleCount < gMaxCount;
     }
 
@@ -125,7 +125,7 @@ private:
                             
                             
                             
-    PRBool      mAutodialEnabled;
+    bool        mAutodialEnabled;
                             
 
     
@@ -136,8 +136,8 @@ private:
     
 
     Mutex         mLock;
-    PRPackedBool  mInitialized;
-    PRPackedBool  mShuttingDown;
+    bool          mInitialized;
+    bool          mShuttingDown;
                             
                             
 
@@ -175,8 +175,8 @@ private:
     void MoveToIdleList(SocketContext *sock);
     void MoveToPollList(SocketContext *sock);
 
-    PRBool GrowActiveList();
-    PRBool GrowIdleList();
+    bool GrowActiveList();
+    bool GrowIdleList();
     void   InitMaxCount();
     
     
@@ -189,9 +189,9 @@ private:
     PRPollDesc *mPollList;                        
 
     PRIntervalTime PollTimeout();            
-    nsresult       DoPollIteration(PRBool wait);
+    nsresult       DoPollIteration(bool wait);
                                              
-    PRInt32        Poll(PRBool wait, PRUint32 *interval);
+    PRInt32        Poll(bool wait, PRUint32 *interval);
                                              
                                              
                                              

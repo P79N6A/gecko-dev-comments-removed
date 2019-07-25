@@ -84,7 +84,7 @@ public:
   virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
-                                 nsSize aPadding, PRBool aShrinkWrap);
+                                 nsSize aPadding, bool aShrinkWrap);
 
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
@@ -95,11 +95,11 @@ public:
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState);
   virtual nsSize GetMaxSize(nsBoxLayoutState& aBoxLayoutState);
   virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState);
-  virtual PRBool IsCollapsed(nsBoxLayoutState& aBoxLayoutState);
+  virtual bool IsCollapsed(nsBoxLayoutState& aBoxLayoutState);
 
   DECL_DO_GLOBAL_REFLOW_COUNT_DSP(nsTextControlFrame, nsStackFrame)
 
-  virtual PRBool IsLeaf() const;
+  virtual bool IsLeaf() const;
   
 #ifdef ACCESSIBILITY
   virtual already_AddRefed<nsAccessible> CreateAccessible();
@@ -113,7 +113,7 @@ public:
   }
 #endif
 
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     
     
@@ -132,7 +132,7 @@ public:
                                  nsFrameList&    aChildList);
 
 
-  virtual void SetFocus(PRBool aOn , PRBool aRepaint); 
+  virtual void SetFocus(bool aOn , bool aRepaint); 
   virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue);
   virtual nsresult GetFormProperty(nsIAtom* aName, nsAString& aValue) const; 
 
@@ -191,17 +191,17 @@ public:
 
 
 public: 
-  void FireOnInput(PRBool aTrusted);
-  void SetValueChanged(PRBool aValueChanged);
+  void FireOnInput(bool aTrusted);
+  void SetValueChanged(bool aValueChanged);
   
   nsresult InitFocusedValue();
 
-  void SetFireChangeEventState(PRBool aNewState)
+  void SetFireChangeEventState(bool aNewState)
   {
     mFireChangeEventState = aNewState;
   }
 
-  PRBool GetFireChangeEventState() const
+  bool GetFireChangeEventState() const
   {
     return mFireChangeEventState;
   }    
@@ -213,7 +213,7 @@ public:
   class ValueSetter {
   public:
     ValueSetter(nsTextControlFrame* aFrame,
-                PRBool aHasFocusValue)
+                bool aHasFocusValue)
       : mFrame(aFrame)
       
       
@@ -258,9 +258,9 @@ public:
 
   private:
     nsTextControlFrame* mFrame;
-    PRPackedBool mFocusValueInit;
-    PRPackedBool mOuterTransaction;
-    PRPackedBool mInited;
+    bool mFocusValueInit;
+    bool mOuterTransaction;
+    bool mInited;
   };
   friend class ValueSetter;
 
@@ -277,10 +277,10 @@ public:
     return txtCtrl->name();                                                    \
   }
 
-  DEFINE_TEXTCTRL_CONST_FORWARDER(PRBool, IsSingleLineTextControl)
-  DEFINE_TEXTCTRL_CONST_FORWARDER(PRBool, IsTextArea)
-  DEFINE_TEXTCTRL_CONST_FORWARDER(PRBool, IsPlainTextControl)
-  DEFINE_TEXTCTRL_CONST_FORWARDER(PRBool, IsPasswordTextControl)
+  DEFINE_TEXTCTRL_CONST_FORWARDER(bool, IsSingleLineTextControl)
+  DEFINE_TEXTCTRL_CONST_FORWARDER(bool, IsTextArea)
+  DEFINE_TEXTCTRL_CONST_FORWARDER(bool, IsPlainTextControl)
+  DEFINE_TEXTCTRL_CONST_FORWARDER(bool, IsPasswordTextControl)
   DEFINE_TEXTCTRL_FORWARDER(PRInt32, GetCols)
   DEFINE_TEXTCTRL_FORWARDER(PRInt32, GetWrapCols)
   DEFINE_TEXTCTRL_FORWARDER(PRInt32, GetRows)
@@ -305,7 +305,7 @@ protected:
 
         nsCOMPtr<nsIPresShell> shell =
           mFrame->PresContext()->GetPresShell();
-        PRBool observes = shell->ObservesNativeAnonMutationsForPrint();
+        bool observes = shell->ObservesNativeAnonMutationsForPrint();
         shell->ObserveNativeAnonMutationsForPrint(PR_TRUE);
         
         mFrame->EnsureEditorInitialized();
@@ -356,15 +356,15 @@ protected:
 
 
 
-  PRBool IsScrollable() const;
+  bool IsScrollable() const;
 
   
 
 
 
 
-  nsresult UpdateValueDisplay(PRBool aNotify,
-                              PRBool aBeforeEditorInit = PR_FALSE,
+  nsresult UpdateValueDisplay(bool aNotify,
+                              bool aBeforeEditorInit = false,
                               const nsAString *aValue = nsnull);
 
   
@@ -372,14 +372,14 @@ protected:
 
 
 
-  PRBool GetMaxLength(PRInt32* aMaxLength);
+  bool GetMaxLength(PRInt32* aMaxLength);
 
   
 
 
 
 
-  PRBool AttributeExists(nsIAtom *aAtt) const
+  bool AttributeExists(nsIAtom *aAtt) const
   { return mContent && mContent->HasAttr(kNameSpaceID_None, aAtt); }
 
   
@@ -401,13 +401,13 @@ private:
   nsresult SetSelectionInternal(nsIDOMNode *aStartNode, PRInt32 aStartOffset,
                                 nsIDOMNode *aEndNode, PRInt32 aEndOffset,
                                 SelectionDirection aDirection = eNone);
-  nsresult SelectAllOrCollapseToEndOfText(PRBool aSelect);
+  nsresult SelectAllOrCollapseToEndOfText(bool aSelect);
   nsresult SetSelectionEndPoints(PRInt32 aSelStart, PRInt32 aSelEnd,
                                  SelectionDirection aDirection = eNone);
 
   
-  PRBool GetNotifyOnInput() const { return mNotifyOnInput; }
-  void SetNotifyOnInput(PRBool val) { mNotifyOnInput = val; }
+  bool GetNotifyOnInput() const { return mNotifyOnInput; }
+  void SetNotifyOnInput(bool val) { mNotifyOnInput = val; }
 
   
 
@@ -420,17 +420,17 @@ private:
 
 private:
   
-  PRPackedBool mUseEditor;
-  PRPackedBool mIsProcessing;
-  PRPackedBool mNotifyOnInput;
+  bool mUseEditor;
+  bool mIsProcessing;
+  bool mNotifyOnInput;
   
   
-  PRPackedBool mFireChangeEventState;
+  bool mFireChangeEventState;
   
-  PRPackedBool mUsePlaceholder;
+  bool mUsePlaceholder;
 
 #ifdef DEBUG
-  PRPackedBool mInEditorInitialization;
+  bool mInEditorInitialization;
   friend class EditorInitializerEntryTracker;
 #endif
 

@@ -108,12 +108,12 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsObjectFrameSuper::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
   }
 
-  virtual PRBool NeedsView() { return PR_TRUE; }
+  virtual bool NeedsView() { return true; }
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
@@ -128,7 +128,7 @@ public:
   virtual nsresult Instantiate(const char* aMimeType, nsIURI* aURI);
   virtual void TryNotifyContentObjectWrapper();
   virtual void StopPlugin();
-  virtual void SetIsDocumentActive(PRBool aIsActive);
+  virtual void SetIsDocumentActive(bool aIsActive);
 
   
 
@@ -136,7 +136,7 @@ public:
 
 
 
-  void StopPluginInternal(PRBool aDelayedStop);
+  void StopPluginInternal(bool aDelayedStop);
 
   NS_IMETHOD GetCursor(const nsPoint& aPoint, nsIFrame::Cursor& aCursor);
 
@@ -163,14 +163,14 @@ public:
 #endif
 
   
-  nsresult CreateWidget(nscoord aWidth, nscoord aHeight, PRBool aViewOnly);
+  nsresult CreateWidget(nscoord aWidth, nscoord aHeight, bool aViewOnly);
 
   
   static nsIObjectFrame* GetNextObjectFrame(nsPresContext* aPresContext,
                                             nsIFrame* aRoot);
 
   
-  virtual PRBool ReflowFinished();
+  virtual bool ReflowFinished();
   virtual void ReflowCallbackCanceled();
 
   void UpdateImageLayer(ImageContainer* aContainer, const gfxRect& aRect);
@@ -232,19 +232,19 @@ protected:
   
 
 
-  nsresult CallSetWindow(PRBool aCheckIsHidden = PR_TRUE);
+  nsresult CallSetWindow(bool aCheckIsHidden = true);
 
-  PRBool IsFocusable(PRInt32 *aTabIndex = nsnull, PRBool aWithMouse = PR_FALSE);
+  bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false);
 
   
-  PRBool IsHidden(PRBool aCheckVisibilityStyle = PR_TRUE) const;
+  bool IsHidden(bool aCheckVisibilityStyle = true) const;
 
-  PRBool IsOpaque() const;
-  PRBool IsTransparentMode() const;
+  bool IsOpaque() const;
+  bool IsTransparentMode() const;
 
   void NotifyContentObjectWrapper();
 
-  nsIntPoint GetWindowOriginInPixels(PRBool aWindowless);
+  nsIntPoint GetWindowOriginInPixels(bool aWindowless);
 
   static void PaintPrintPlugin(nsIFrame* aFrame,
                                nsRenderingContext* aRenderingContext,
@@ -305,9 +305,9 @@ private:
   
   
   
-  PRBool mPreventInstantiation;
+  bool mPreventInstantiation;
 
-  PRPackedBool mReflowCallbackPosted;
+  bool mReflowCallbackPosted;
 
   
   
@@ -329,10 +329,10 @@ public:
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
-                                   PRBool* aForceTransparentSurface = nsnull);
+                                   bool* aForceTransparentSurface = nsnull);
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      nsRenderingContext* aCtx);
-  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+  virtual bool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
                                    const nsRect& aAllowVisibleRegionExpansion);
 

@@ -134,7 +134,7 @@ nsICODecoder::FinishInternal()
 
 
 
-PRBool nsICODecoder::FillBitmapFileHeaderBuffer(PRInt8 *bfh) 
+bool nsICODecoder::FillBitmapFileHeaderBuffer(PRInt8 *bfh) 
 {
   memset(bfh, 0, 14);
   bfh[0] = 'B';

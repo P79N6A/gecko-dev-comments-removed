@@ -59,7 +59,7 @@ nsXPCTestParams::~nsXPCTestParams()
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestBoolean(PRBool a, PRBool *b NS_INOUTPARAM, PRBool *_retval NS_OUTPARAM)
+NS_IMETHODIMP nsXPCTestParams::TestBoolean(bool a, bool *b NS_INOUTPARAM, bool *_retval NS_OUTPARAM)
 {
     GENERIC_METHOD_IMPL;
 }

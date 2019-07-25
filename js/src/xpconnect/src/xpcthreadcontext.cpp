@@ -155,7 +155,7 @@ XPCJSContextStack::Push(JSContext * cx)
                     if(nsIPrincipal* globalObjectPrincipal = GetPrincipalFromCx(cx))
                     {
                         nsIPrincipal* subjectPrincipal = ssm->GetCxSubjectPrincipal(cx);
-                        PRBool equals = PR_FALSE;
+                        bool equals = false;
                         globalObjectPrincipal->Equals(subjectPrincipal, &equals);
                         if(equals)
                         {
@@ -359,7 +359,7 @@ XPCPerThreadData::~XPCPerThreadData()
     
 
 
-    PRBool doDestroyLock = PR_FALSE;
+    bool doDestroyLock = false;
 
     MOZ_COUNT_DTOR(xpcPerThreadData);
 
@@ -557,7 +557,7 @@ nsXPCJSContextStackIterator::Reset(nsIJSContextStack *aStack)
 }
 
 NS_IMETHODIMP
-nsXPCJSContextStackIterator::Done(PRBool *aDone)
+nsXPCJSContextStackIterator::Done(bool *aDone)
 {
     *aDone = !mStack;
     return NS_OK;

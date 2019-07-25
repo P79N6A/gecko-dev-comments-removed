@@ -70,17 +70,17 @@ public:
   virtual nsMenuFrame* GetCurrentMenuItem();
   NS_IMETHOD SetCurrentMenuItem(nsMenuFrame* aMenuItem);
   virtual void CurrentMenuIsBeingDestroyed();
-  NS_IMETHOD ChangeMenuItem(nsMenuFrame* aMenuItem, PRBool aSelectFirstItem);
+  NS_IMETHOD ChangeMenuItem(nsMenuFrame* aMenuItem, bool aSelectFirstItem);
 
-  NS_IMETHOD SetActive(PRBool aActiveFlag); 
+  NS_IMETHOD SetActive(bool aActiveFlag); 
 
-  virtual PRBool IsMenuBar() { return PR_TRUE; }
-  virtual PRBool IsContextMenu() { return PR_FALSE; }
-  virtual PRBool IsActive() { return mIsActive; }
-  virtual PRBool IsMenu() { return PR_FALSE; }
-  virtual PRBool IsOpen() { return PR_TRUE; } 
+  virtual bool IsMenuBar() { return true; }
+  virtual bool IsContextMenu() { return false; }
+  virtual bool IsActive() { return mIsActive; }
+  virtual bool IsMenu() { return false; }
+  virtual bool IsOpen() { return true; } 
 
-  PRBool IsMenuOpen() { return mCurrentMenu && mCurrentMenu->IsOpen(); }
+  bool IsMenuOpen() { return mCurrentMenu && mCurrentMenu->IsOpen(); }
 
   void InstallKeyboardNavigator();
   void RemoveKeyboardNavigator();
@@ -93,24 +93,24 @@ public:
 
   virtual nsIAtom* GetType() const { return nsGkAtoms::menuBarFrame; }
 
-  virtual void LockMenuUntilClosed(PRBool aLock) {}
-  virtual PRBool IsMenuLocked() { return PR_FALSE; }
+  virtual void LockMenuUntilClosed(bool aLock) {}
+  virtual bool IsMenuLocked() { return false; }
 
 
 
   void
-  SetStayActive(PRBool aStayActive) { mStayActive = aStayActive; }
+  SetStayActive(bool aStayActive) { mStayActive = aStayActive; }
 
   
   
   nsMenuFrame* ToggleMenuActiveState();
 
-  PRBool IsActiveByKeyboard() { return mActiveByKeyboard; }
+  bool IsActiveByKeyboard() { return mActiveByKeyboard; }
   void SetActiveByKeyboard() { mActiveByKeyboard = PR_TRUE; }
 
   
   
-  virtual PRBool MenuClosed();
+  virtual bool MenuClosed();
 
   
   
@@ -119,7 +119,7 @@ public:
   
   nsMenuFrame* FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent);
 
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     
     if (aFlags & (nsIFrame::eReplacedContainsBlock | nsIFrame::eReplaced))
@@ -139,12 +139,12 @@ protected:
 
   
   
-  PRPackedBool mStayActive;
+  bool mStayActive;
 
-  PRPackedBool mIsActive; 
+  bool mIsActive; 
 
   
-  PRPackedBool mActiveByKeyboard;
+  bool mActiveByKeyboard;
 
   
   

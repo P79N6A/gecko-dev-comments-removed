@@ -139,18 +139,18 @@ using namespace mozilla::dom;
 
 static NS_DEFINE_CID(kParserCID,                 NS_PARSER_CID);
 
-static PRBool IsChromeURI(nsIURI* aURI)
+static bool IsChromeURI(nsIURI* aURI)
 {
     
-    PRBool isChrome = PR_FALSE;
+    bool isChrome = false;
     if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &isChrome)) && isChrome)
         return PR_TRUE;
     return PR_FALSE;
 }
 
-static PRBool IsOverlayAllowed(nsIURI* aURI)
+static bool IsOverlayAllowed(nsIURI* aURI)
 {
-    PRBool canOverlay = PR_FALSE;
+    bool canOverlay = false;
     if (NS_SUCCEEDED(aURI->SchemeIs("about", &canOverlay)) && canOverlay)
         return PR_TRUE;
     if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &canOverlay)) && canOverlay)
@@ -212,7 +212,7 @@ nsRefMapEntry::AppendAll(nsCOMArray<nsIContent>* aElements)
     }
 }
 
-PRBool
+bool
 nsRefMapEntry::AddElement(Element* aElement)
 {
     if (mRefContentList.IndexOf(aElement) >= 0)
@@ -220,7 +220,7 @@ nsRefMapEntry::AddElement(Element* aElement)
     return mRefContentList.AppendElement(aElement);
 }
 
-PRBool
+bool
 nsRefMapEntry::RemoveElement(Element* aElement)
 {
     mRefContentList.RemoveElement(aElement);
@@ -458,7 +458,7 @@ nsXULDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
                                  nsILoadGroup* aLoadGroup,
                                  nsISupports* aContainer,
                                  nsIStreamListener **aDocListener,
-                                 PRBool aReset, nsIContentSink* aSink)
+                                 bool aReset, nsIContentSink* aSink)
 {
     
     
@@ -508,7 +508,7 @@ nsXULDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
         
         
         
-        PRBool loaded;
+        bool loaded;
         rv = proto->AwaitLoadDone(this, &loaded);
         if (NS_FAILED(rv)) return rv;
 
@@ -526,8 +526,8 @@ nsXULDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
             return NS_ERROR_OUT_OF_MEMORY;
     }
     else {
-        PRBool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
-        PRBool fillXULCache = (useXULCache && IsChromeURI(mDocumentURI));
+        bool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
+        bool fillXULCache = (useXULCache && IsChromeURI(mDocumentURI));
 
 
         
@@ -579,10 +579,10 @@ nsXULDocument::EndLoad()
     
 
     nsCOMPtr<nsIURI> uri = mCurrentPrototype->GetURI();
-    PRBool isChrome = IsChromeURI(uri);
+    bool isChrome = IsChromeURI(uri);
 
     
-    PRBool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
+    bool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
 
     
     
@@ -602,7 +602,7 @@ nsXULDocument::EndLoad()
             rv = reg->GetStyleOverlays(uri, getter_AddRefs(overlays));
             if (NS_FAILED(rv)) return;
 
-            PRBool moreSheets;
+            bool moreSheets;
             nsCOMPtr<nsISupports> next;
             nsCOMPtr<nsIURI> sheetURI;
 
@@ -635,7 +635,7 @@ nsXULDocument::EndLoad()
 }
 
 NS_IMETHODIMP
-nsXULDocument::OnPrototypeLoadDone(PRBool aResumeWalk)
+nsXULDocument::OnPrototypeLoadDone(bool aResumeWalk)
 {
     nsresult rv;
 
@@ -654,7 +654,7 @@ nsXULDocument::OnPrototypeLoadDone(PRBool aResumeWalk)
 }
 
 
-PRBool
+bool
 nsXULDocument::OnDocumentParserError()
 {
   
@@ -688,7 +688,7 @@ ClearBroadcasterMapEntry(PLDHashTable* aTable, PLDHashEntryHdr* aEntry)
     entry->mListeners.~nsSmallVoidArray();
 }
 
-static PRBool
+static bool
 CanBroadcast(PRInt32 aNameSpaceID, nsIAtom* aAttribute)
 {
     
@@ -731,7 +731,7 @@ nsXULDocument::SynchronizeBroadcastListener(nsIDOMElement   *aBroadcaster,
     }
     nsCOMPtr<nsIContent> broadcaster = do_QueryInterface(aBroadcaster);
     nsCOMPtr<nsIContent> listener = do_QueryInterface(aListener);
-    PRBool notify = mDocumentLoaded || mHandlingDelayedBroadcasters;
+    bool notify = mDocumentLoaded || mHandlingDelayedBroadcasters;
 
     
     
@@ -1029,7 +1029,7 @@ nsXULDocument::AttributeChanged(nsIDocument* aDocument,
         if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
             
             nsAutoString value;
-            PRBool attrSet = aElement->GetAttr(kNameSpaceID_None, aAttribute, value);
+            bool attrSet = aElement->GetAttr(kNameSpaceID_None, aAttribute, value);
 
             PRInt32 i;
             for (i = entry->mListeners.Count() - 1; i >= 0; --i) {
@@ -1043,14 +1043,14 @@ nsXULDocument::AttributeChanged(nsIDocument* aDocument,
                     nsCOMPtr<nsIContent> l = do_QueryInterface(listenerEl);
                     if (l) {
                         nsAutoString currentValue;
-                        PRBool hasAttr = l->GetAttr(kNameSpaceID_None,
+                        bool hasAttr = l->GetAttr(kNameSpaceID_None,
                                                     aAttribute,
                                                     currentValue);
                         
                         
                         
                         
-                        PRBool needsAttrChange =
+                        bool needsAttrChange =
                             attrSet != hasAttr || !value.Equals(currentValue);
                         nsDelayedBroadcastUpdate delayedUpdate(domele,
                                                                listenerEl,
@@ -1078,7 +1078,7 @@ nsXULDocument::AttributeChanged(nsIDocument* aDocument,
     }
 
     
-    PRBool listener, resolved;
+    bool listener, resolved;
     CheckBroadcasterHookup(aElement, &listener, &resolved);
 
     
@@ -1359,13 +1359,13 @@ nsXULDocument::Persist(const nsAString& aID,
 }
 
 
-PRBool
+bool
 nsXULDocument::IsCapabilityEnabled(const char* aCapabilityLabel)
 {
     nsresult rv;
 
     
-    PRBool enabled = PR_FALSE;
+    bool enabled = false;
     rv = NodePrincipal()->IsCapabilityEnabled(aCapabilityLabel, nsnull, &enabled);
     if (NS_FAILED(rv))
         return PR_FALSE;
@@ -1467,7 +1467,7 @@ nsXULDocument::Persist(nsIContent* aElement, PRInt32 aNameSpaceID,
         rv = gRDFService->GetResource(docurl, getter_AddRefs(doc));
         if (NS_FAILED(rv)) return rv;
 
-        PRBool hasAssertion;
+        bool hasAssertion;
         rv = mLocalStore->HasAssertion(doc, kNC_persist, element, PR_TRUE, &hasAssertion);
         if (NS_FAILED(rv)) return rv;
 
@@ -1692,7 +1692,7 @@ nsXULDocument::AddElementToDocumentPre(Element* aElement)
 
     
     
-    PRBool listener, resolved;
+    bool listener, resolved;
     rv = CheckBroadcasterHookup(aElement, &listener, &resolved);
     if (NS_FAILED(rv)) return rv;
 
@@ -1723,7 +1723,7 @@ nsXULDocument::AddElementToDocumentPost(Element* aElement)
     }
 
     
-    PRBool needsHookup;
+    bool needsHookup;
     nsresult rv = CheckTemplateBuilderHookup(aElement, &needsHookup);
     if (NS_FAILED(rv))
         return rv;
@@ -1931,7 +1931,7 @@ nsXULDocument::RemoveElementFromRefMap(Element* aElement)
 
 
 NS_IMETHODIMP
-nsXULDocument::CloneNode(PRBool aDeep, nsIDOMNode** aReturn)
+nsXULDocument::CloneNode(bool aDeep, nsIDOMNode** aReturn)
 {
     
     *aReturn = nsnull;
@@ -2029,7 +2029,7 @@ nsXULDocument::StartLayout(void)
 }
 
 
-PRBool
+bool
 nsXULDocument::MatchAttribute(nsIContent* aContent,
                               PRInt32 aNamespaceID,
                               nsIAtom* aAttrName,
@@ -2050,7 +2050,7 @@ nsXULDocument::MatchAttribute(nsIContent* aContent,
     PRUint32 count = aContent->GetAttrCount();
     for (PRUint32 i = 0; i < count; ++i) {
         const nsAttrName* name = aContent->GetAttrNameAt(i);
-        PRBool nameMatch;
+        bool nameMatch;
         if (name->IsAtom()) {
             nameMatch = name->Atom() == aAttrName;
         } else if (aNamespaceID == kNameSpaceID_Wildcard) {
@@ -2169,7 +2169,7 @@ nsXULDocument::ApplyPersistentAttributesInternal()
     mLocalStore->GetTargets(doc, kNC_persist, PR_TRUE, getter_AddRefs(persisted));
 
     while (1) {
-        PRBool hasmore = PR_FALSE;
+        bool hasmore = false;
         persisted->HasMoreElements(&hasmore);
         if (! hasmore)
             break;
@@ -2218,7 +2218,7 @@ nsXULDocument::ApplyPersistentAttributesToElements(nsIRDFResource* aResource,
     if (NS_FAILED(rv)) return rv;
 
     while (1) {
-        PRBool hasmore;
+        bool hasmore;
         rv = attrs->HasMoreElements(&hasmore);
         if (NS_FAILED(rv)) return rv;
 
@@ -2362,7 +2362,7 @@ nsXULDocument::ContextStack::SetTopIndex(PRInt32 aIndex)
 }
 
 
-PRBool
+bool
 nsXULDocument::ContextStack::IsInsideXULTemplate()
 {
     if (mDepth) {
@@ -2526,8 +2526,8 @@ nsXULDocument::InsertXMLStylesheetPI(const nsXULPrototypePI* aProtoPI,
 
     
     
-    PRBool willNotify;
-    PRBool isAlternate;
+    bool willNotify;
+    bool isAlternate;
     rv = ssle->UpdateStyleSheet(this, &willNotify, &isAlternate);
     if (NS_SUCCEEDED(rv) && willNotify && !isAlternate) {
         ++mPendingSheets;
@@ -2611,7 +2611,7 @@ nsXULDocument::AddChromeOverlays()
     rv = chromeReg->GetXULOverlays(docUri, getter_AddRefs(overlays));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    PRBool moreOverlays;
+    bool moreOverlays;
     nsCOMPtr<nsISupports> next;
     nsCOMPtr<nsIURI> uri;
 
@@ -2658,7 +2658,7 @@ nsXULDocument::LoadOverlay(const nsAString& aURL, nsIObserver* aObserver)
         }
         mOverlayLoadObservers.Put(uri, aObserver);
     }
-    PRBool shouldReturn, failureFromContent;
+    bool shouldReturn, failureFromContent;
     rv = LoadOverlayInternal(uri, PR_TRUE, &shouldReturn, &failureFromContent);
     if (NS_FAILED(rv) && mOverlayLoadObservers.IsInitialized())
         mOverlayLoadObservers.Remove(uri); 
@@ -2666,9 +2666,9 @@ nsXULDocument::LoadOverlay(const nsAString& aURL, nsIObserver* aObserver)
 }
 
 nsresult
-nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
-                                   PRBool* aShouldReturn,
-                                   PRBool* aFailureFromContent)
+nsXULDocument::LoadOverlayInternal(nsIURI* aURI, bool aIsDynamic,
+                                   bool* aShouldReturn,
+                                   bool* aFailureFromContent)
 {
     nsresult rv;
 
@@ -2692,7 +2692,7 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
     
     
 
-    PRBool documentIsChrome = IsChromeURI(mDocumentURI);
+    bool documentIsChrome = IsChromeURI(mDocumentURI);
     if (!documentIsChrome) {
         
         rv = NodePrincipal()->CheckMayLoad(aURI, PR_TRUE);
@@ -2706,7 +2706,7 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
     
     
     
-    PRBool overlayIsChrome = IsChromeURI(aURI);
+    bool overlayIsChrome = IsChromeURI(aURI);
     mCurrentPrototype = overlayIsChrome && documentIsChrome ?
         nsXULPrototypeCache::GetInstance()->GetPrototype(aURI) : nsnull;
 
@@ -2726,9 +2726,9 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
     
     
 
-    PRBool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
+    bool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
     if (useXULCache && mCurrentPrototype) {
-        PRBool loaded;
+        bool loaded;
         rv = mCurrentPrototype->AwaitLoadDone(this, &loaded);
         if (NS_FAILED(rv)) return rv;
 
@@ -2897,8 +2897,8 @@ nsXULDocument::ResumeWalk()
                                 do_QueryInterface(element);
                             NS_ASSERTION(ssle, "<html:style> doesn't implement "
                                                "nsIStyleSheetLinkingElement?");
-                            PRBool willNotify;
-                            PRBool isAlternate;
+                            bool willNotify;
+                            bool isAlternate;
                             ssle->UpdateStyleSheet(nsnull, &willNotify,
                                                    &isAlternate);
                         }
@@ -2926,7 +2926,7 @@ nsXULDocument::ResumeWalk()
             
             
             
-            PRBool processingOverlayHookupNodes = (mState == eState_Overlay) && 
+            bool processingOverlayHookupNodes = (mState == eState_Overlay) && 
                                                   (mContextStack.Depth() == 1);
 
             NS_ASSERTION(element || processingOverlayHookupNodes,
@@ -3000,7 +3000,7 @@ nsXULDocument::ResumeWalk()
                     
                     
                     
-                    PRBool blocked;
+                    bool blocked;
                     rv = LoadScript(scriptproto, &blocked);
                     
 
@@ -3093,7 +3093,7 @@ nsXULDocument::ResumeWalk()
         nsCOMPtr<nsIURI> uri = mUnloadedOverlays[count-1];
         mUnloadedOverlays.RemoveObjectAt(count-1);
 
-        PRBool shouldReturn, failureFromContent;
+        bool shouldReturn, failureFromContent;
         rv = LoadOverlayInternal(uri, PR_FALSE, &shouldReturn,
                                  &failureFromContent);
         if (failureFromContent)
@@ -3254,7 +3254,7 @@ nsXULDocument::DoneWalking()
 
 NS_IMETHODIMP
 nsXULDocument::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
-                                PRBool aWasAlternate,
+                                bool aWasAlternate,
                                 nsresult aStatus)
 {
     if (!aWasAlternate) {
@@ -3315,7 +3315,7 @@ nsXULDocument::MaybeBroadcast()
 
         PRUint32 length = mDelayedBroadcasters.Length();
         if (length) {
-            PRBool oldValue = mHandlingDelayedBroadcasters;
+            bool oldValue = mHandlingDelayedBroadcasters;
             mHandlingDelayedBroadcasters = PR_TRUE;
             nsTArray<nsDelayedBroadcastUpdate> delayedBroadcasters;
             mDelayedBroadcasters.SwapElements(delayedBroadcasters);
@@ -3359,12 +3359,12 @@ nsXULDocument::ReportMissingOverlay(nsIURI* aURI)
 }
 
 nsresult
-nsXULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, PRBool* aBlock)
+nsXULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, bool* aBlock)
 {
     
     nsresult rv;
 
-    PRBool isChromeDoc = IsChromeURI(mDocumentURI);
+    bool isChromeDoc = IsChromeURI(mDocumentURI);
 
     if (isChromeDoc && aScriptProto->mScriptObject.mObject) {
         rv = ExecuteScript(aScriptProto);
@@ -3377,7 +3377,7 @@ nsXULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, PRBool* aBlock)
     
     
     
-    PRBool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
+    bool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
 
     if (isChromeDoc && useXULCache) {
         PRUint32 fetchedLang = nsIProgrammingLanguage::UNKNOWN;
@@ -3550,7 +3550,7 @@ nsXULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
             
             
             
-            PRBool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
+            bool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
   
             if (useXULCache && IsChromeURI(mDocumentURI)) {
                 nsXULPrototypeCache::GetInstance()->PutScript(
@@ -3777,7 +3777,7 @@ nsXULDocument::AddAttributes(nsXULPrototypeElement* aPrototype,
 
 nsresult
 nsXULDocument::CheckTemplateBuilderHookup(nsIContent* aElement,
-                                          PRBool* aNeedsHookup)
+                                          bool* aNeedsHookup)
 {
     
     
@@ -3807,7 +3807,7 @@ nsXULDocument::CheckTemplateBuilderHookup(nsIContent* aElement,
 nsXULDocument::CreateTemplateBuilder(nsIContent* aElement)
 {
     
-    PRBool isTreeBuilder = PR_FALSE;
+    bool isTreeBuilder = false;
 
     
     
@@ -3920,7 +3920,7 @@ nsXULDocument::OverlayForwardReference::Resolve()
     nsCOMPtr<nsIContent> target;
 
     nsIPresShell *shell = mDocument->GetShell();
-    PRBool notify = shell && shell->DidInitialReflow();
+    bool notify = shell && shell->DidInitialReflow();
 
     nsAutoString id;
     mOverlay->GetAttr(kNameSpaceID_None, nsGkAtoms::id, id);
@@ -3986,7 +3986,7 @@ nsXULDocument::OverlayForwardReference::Resolve()
 nsresult
 nsXULDocument::OverlayForwardReference::Merge(nsIContent* aTargetNode,
                                               nsIContent* aOverlayNode, 
-                                              PRBool aNotify)
+                                              bool aNotify)
 {
     
     
@@ -4162,7 +4162,7 @@ nsXULDocument::BroadcasterHookup::Resolve()
 {
     nsresult rv;
 
-    PRBool listener;
+    bool listener;
     rv = mDocument->CheckBroadcasterHookup(mObservesElement, &listener, &mResolved);
     if (NS_FAILED(rv)) return eResolve_Error;
 
@@ -4210,7 +4210,7 @@ nsXULDocument::BroadcasterHookup::~BroadcasterHookup()
 nsForwardReference::Result
 nsXULDocument::TemplateBuilderHookup::Resolve()
 {
-    PRBool needsHookup;
+    bool needsHookup;
     nsresult rv = CheckTemplateBuilderHookup(mElement, &needsHookup);
     if (NS_FAILED(rv))
         return eResolve_Error;
@@ -4359,8 +4359,8 @@ nsXULDocument::FindBroadcaster(Element* aElement,
 
 nsresult
 nsXULDocument::CheckBroadcasterHookup(Element* aElement,
-                                      PRBool* aNeedsHookup,
-                                      PRBool* aDidResolve)
+                                      bool* aNeedsHookup,
+                                      bool* aDidResolve)
 {
     
     
@@ -4420,17 +4420,17 @@ nsXULDocument::CheckBroadcasterHookup(Element* aElement,
 
 nsresult
 nsXULDocument::InsertElement(nsIContent* aParent, nsIContent* aChild,
-                             PRBool aNotify)
+                             bool aNotify)
 {
     
     
 
     nsAutoString posStr;
-    PRBool wasInserted = PR_FALSE;
+    bool wasInserted = false;
 
     
     aChild->GetAttr(kNameSpaceID_None, nsGkAtoms::insertafter, posStr);
-    PRBool isInsertAfter = PR_TRUE;
+    bool isInsertAfter = true;
 
     if (posStr.IsEmpty()) {
         aChild->GetAttr(kNameSpaceID_None, nsGkAtoms::insertbefore, posStr);
@@ -4513,7 +4513,7 @@ nsXULDocument::RemoveElement(nsIContent* aParent, nsIContent* aChild)
 
 
 
-nsXULDocument::CachedChromeStreamListener::CachedChromeStreamListener(nsXULDocument* aDocument, PRBool aProtoLoaded)
+nsXULDocument::CachedChromeStreamListener::CachedChromeStreamListener(nsXULDocument* aDocument, bool aProtoLoaded)
     : mDocument(aDocument),
       mProtoLoaded(aProtoLoaded)
 {
@@ -4640,7 +4640,7 @@ nsXULDocument::GetWindowRoot()
     return piWin ? piWin->GetTopWindowRoot() : nsnull;
 }
 
-PRBool
+bool
 nsXULDocument::IsDocumentRightToLeft()
 {
     
@@ -4665,7 +4665,7 @@ nsXULDocument::IsDocumentRightToLeft()
         return PR_FALSE;
 
     nsCAutoString package;
-    PRBool isChrome;
+    bool isChrome;
     if (NS_SUCCEEDED(mDocumentURI->SchemeIs("chrome", &isChrome)) &&
         isChrome) {
         mDocumentURI->GetHostPort(package);
@@ -4673,7 +4673,7 @@ nsXULDocument::IsDocumentRightToLeft()
     else {
         
         
-        PRBool isAbout, isResource;
+        bool isAbout, isResource;
         if (NS_SUCCEEDED(mDocumentURI->SchemeIs("about", &isAbout)) &&
             isAbout) {
             package.AssignLiteral("global");
@@ -4687,7 +4687,7 @@ nsXULDocument::IsDocumentRightToLeft()
         }
     }
 
-    PRBool isRTL = PR_FALSE;
+    bool isRTL = false;
     reg->IsLocaleRTL(package, &isRTL);
     return isRTL;
 }

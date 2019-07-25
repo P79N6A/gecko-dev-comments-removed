@@ -56,12 +56,12 @@ public:
 
 private:
     
-    PRBool TestBoolPref(const char *pref);
+    bool TestBoolPref(const char *pref);
 
     
-    PRBool TestPref(nsIURI *, const char *pref);
+    bool TestPref(nsIURI *, const char *pref);
 
-    PRBool MatchesBaseURI(const nsCSubstring &scheme,
+    bool MatchesBaseURI(const nsCSubstring &scheme,
                           const nsCSubstring &host,
                           PRInt32             port,
                           const char         *baseStart,

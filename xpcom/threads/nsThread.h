@@ -71,7 +71,7 @@ public:
 
   
   
-  PRBool ShutdownRequired() { return mShutdownRequired; }
+  bool ShutdownRequired() { return mShutdownRequired; }
 
   
   static nsIThreadObserver* sGlobalObserver;
@@ -81,7 +81,7 @@ private:
 
   ~nsThread();
 
-  PRBool ShuttingDown() { return mShutdownContext != nsnull; }
+  bool ShuttingDown() { return mShutdownContext != nsnull; }
 
   static void ThreadFunc(void *arg);
 
@@ -93,7 +93,7 @@ private:
   }
 
   
-  PRBool GetEvent(PRBool mayWait, nsIRunnable **event) {
+  bool GetEvent(bool mayWait, nsIRunnable **event) {
     return mEvents->GetEvent(mayWait, event);
   }
   nsresult PutEvent(nsIRunnable *event);
@@ -105,13 +105,13 @@ private:
       : mNext(nsnull), mFilter(filter) {
     }
 
-    PRBool GetEvent(PRBool mayWait, nsIRunnable **event) {
+    bool GetEvent(bool mayWait, nsIRunnable **event) {
       return mQueue.GetEvent(mayWait, event);
     }
 
-    PRBool PutEvent(nsIRunnable *event);
+    bool PutEvent(nsIRunnable *event);
     
-    PRBool HasPendingEvent() {
+    bool HasPendingEvent() {
       return mQueue.HasPendingEvent();
     }
 
@@ -143,10 +143,10 @@ private:
 
   struct nsThreadShutdownContext *mShutdownContext;
 
-  PRPackedBool mShutdownRequired;
-  PRPackedBool mShutdownPending;
+  bool mShutdownRequired;
+  bool mShutdownPending;
   
-  PRPackedBool mEventsAreDoomed;
+  bool mEventsAreDoomed;
 };
 
 
@@ -157,7 +157,7 @@ public:
     : mOrigin(origin), mSyncTask(task), mResult(NS_ERROR_NOT_INITIALIZED) {
   }
 
-  PRBool IsPending() {
+  bool IsPending() {
     return mSyncTask != nsnull;
   }
 

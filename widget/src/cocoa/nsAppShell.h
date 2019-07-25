@@ -73,7 +73,7 @@ public:
   
   NSModalSession CurrentSession();
   
-  PRBool GeckoModalAboveCocoaModal();
+  bool GeckoModalAboveCocoaModal();
 private:
   nsTArray<nsCocoaAppModalWindowListItem> mList;
 };
@@ -91,7 +91,7 @@ public:
 
   NS_IMETHOD Run(void);
   NS_IMETHOD Exit(void);
-  NS_IMETHOD OnProcessNextEvent(nsIThreadInternal *aThread, PRBool aMayWait,
+  NS_IMETHOD OnProcessNextEvent(nsIThreadInternal *aThread, bool aMayWait,
                                 PRUint32 aRecursionDepth);
   NS_IMETHOD AfterProcessNextEvent(nsIThreadInternal *aThread,
                                    PRUint32 aRecursionDepth);
@@ -103,9 +103,9 @@ protected:
   virtual ~nsAppShell();
 
   virtual void ScheduleNativeEventCallback();
-  virtual PRBool ProcessNextNativeEvent(PRBool aMayWait);
+  virtual bool ProcessNextNativeEvent(bool aMayWait);
 
-  PRBool InGeckoMainEventLoop();
+  bool InGeckoMainEventLoop();
 
   static void ProcessGeckoEvents(void* aInfo);
 
@@ -116,11 +116,11 @@ protected:
   CFRunLoopRef       mCFRunLoop;
   CFRunLoopSourceRef mCFRunLoopSource;
 
-  PRPackedBool       mRunningEventLoop;
-  PRPackedBool       mStarted;
-  PRPackedBool       mTerminated;
-  PRPackedBool       mSkippedNativeCallback;
-  PRPackedBool       mRunningCocoaEmbedded;
+  bool               mRunningEventLoop;
+  bool               mStarted;
+  bool               mTerminated;
+  bool               mSkippedNativeCallback;
+  bool               mRunningCocoaEmbedded;
 
   
   

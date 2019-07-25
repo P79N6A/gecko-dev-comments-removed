@@ -280,9 +280,9 @@ public:
   
 
 
-  virtual PRBool AppendChild(nsAccessible* aChild);
-  virtual PRBool InsertChildAt(PRUint32 aIndex, nsAccessible* aChild);
-  virtual PRBool RemoveChild(nsAccessible* aChild);
+  virtual bool AppendChild(nsAccessible* aChild);
+  virtual bool InsertChildAt(PRUint32 aIndex, nsAccessible* aChild);
+  virtual bool RemoveChild(nsAccessible* aChild);
 
   
   
@@ -315,7 +315,7 @@ public:
   
 
 
-  PRBool HasChildren() { return !!GetChildAt(0); }
+  bool HasChildren() { return !!GetChildAt(0); }
 
   
 
@@ -380,7 +380,7 @@ public:
   
 
 
-  virtual PRBool GetAllowsAnonChildAccessibles();
+  virtual bool GetAllowsAnonChildAccessibles();
 
   
 
@@ -657,7 +657,7 @@ protected:
 
   virtual nsIFrame* GetBoundsFrame();
   virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
-  PRBool IsVisible(PRBool *aIsOffscreen); 
+  bool IsVisible(bool *aIsOffscreen); 
 
   
   

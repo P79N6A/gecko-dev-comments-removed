@@ -106,7 +106,7 @@ public:
                   nsHttpConnectionInfo  *connInfo,
                   nsHttpRequestHead     *reqHeaders,
                   nsIInputStream        *reqBody,
-                  PRBool                 reqBodyIncludesHeaders,
+                  bool                   reqBodyIncludesHeaders,
                   nsIEventTarget        *consumerTarget,
                   nsIInterfaceRequestor *callbacks,
                   nsITransportEventSink *eventsink,
@@ -127,9 +127,9 @@ public:
     nsHttpResponseHead *TakeResponseHead();
 
     
-    PRBool ResponseIsComplete() { return mResponseIsComplete; }
+    bool ResponseIsComplete() { return mResponseIsComplete; }
 
-    PRBool    SSLConnectFailed() { return mSSLConnectFailed; }
+    bool      SSLConnectFailed() { return mSSLConnectFailed; }
 
     
     void    SetPriority(PRInt32 priority) { mPriority = priority; }
@@ -140,7 +140,7 @@ public:
 private:
     nsresult Restart();
     char    *LocateHttpStart(char *buf, PRUint32 len,
-                             PRBool aAllowPartialMatch);
+                             bool aAllowPartialMatch);
     nsresult ParseLine(char *line);
     nsresult ParseLineSegment(char *seg, PRUint32 len);
     nsresult ParseHead(char *, PRUint32 count, PRUint32 *countRead);
@@ -154,7 +154,7 @@ private:
     static NS_METHOD WritePipeSegment(nsIOutputStream *, void *, char *,
                                       PRUint32, PRUint32, PRUint32 *);
 
-    PRBool TimingEnabled() const { return mCaps & NS_HTTP_TIMING_ENABLED; }
+    bool TimingEnabled() const { return mCaps & NS_HTTP_TIMING_ENABLED; }
 
 private:
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
@@ -204,21 +204,21 @@ private:
 
     
     
-    PRPackedBool                    mClosed;
-    PRPackedBool                    mConnected;
-    PRPackedBool                    mHaveStatusLine;
-    PRPackedBool                    mHaveAllHeaders;
-    PRPackedBool                    mTransactionDone;
-    PRPackedBool                    mResponseIsComplete;
-    PRPackedBool                    mDidContentStart;
-    PRPackedBool                    mNoContent; 
-    PRPackedBool                    mSentData;
-    PRPackedBool                    mReceivedData;
-    PRPackedBool                    mStatusEventPending;
-    PRPackedBool                    mHasRequestBody;
-    PRPackedBool                    mSSLConnectFailed;
-    PRPackedBool                    mHttpResponseMatched;
-    PRPackedBool                    mPreserveStream;
+    bool                            mClosed;
+    bool                            mConnected;
+    bool                            mHaveStatusLine;
+    bool                            mHaveAllHeaders;
+    bool                            mTransactionDone;
+    bool                            mResponseIsComplete;
+    bool                            mDidContentStart;
+    bool                            mNoContent; 
+    bool                            mSentData;
+    bool                            mReceivedData;
+    bool                            mStatusEventPending;
+    bool                            mHasRequestBody;
+    bool                            mSSLConnectFailed;
+    bool                            mHttpResponseMatched;
+    bool                            mPreserveStream;
 
     
     

@@ -78,10 +78,10 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS(nsXBLResourceLoader)
 
   
-  NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet, PRBool aWasAlternate,
+  NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet, bool aWasAlternate,
                               nsresult aStatus);
 
-  void LoadResources(PRBool* aResult);
+  void LoadResources(bool* aResult);
   void AddResource(nsIAtom* aResourceType, const nsAString& aSrc);
   void AddResourceListener(nsIContent* aElement);
 
@@ -101,10 +101,10 @@ public:
   nsXBLResource* mResourceList; 
   nsXBLResource* mLastResource;
 
-  PRPackedBool mLoadingResources;
+  bool mLoadingResources;
   
   
-  PRPackedBool mInLoadResourcesFunc;
+  bool mInLoadResourcesFunc;
   PRInt16 mPendingSheets; 
 
   

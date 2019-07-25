@@ -192,14 +192,14 @@ private:
 
 
 
-  PRBool ComputeMargin(nscoord aContainingBlockWidth);
+  bool ComputeMargin(nscoord aContainingBlockWidth);
   
   
 
 
 
 
-   PRBool ComputePadding(nscoord aContainingBlockWidth);
+   bool ComputePadding(nscoord aContainingBlockWidth);
 
 protected:
 
@@ -390,7 +390,7 @@ public:
                     
                     nscoord                  aContainingBlockWidth = -1,
                     nscoord                  aContainingBlockHeight = -1,
-                    PRBool                   aInit = PR_TRUE);
+                    bool                     aInit = true);
 
   
   
@@ -442,7 +442,7 @@ public:
 
   void ApplyMinMaxConstraints(nscoord* aContentWidth, nscoord* aContentHeight) const;
 
-  PRBool ShouldReflowAllKids() const {
+  bool ShouldReflowAllKids() const {
     
     
     
@@ -473,7 +473,7 @@ public:
 
   void SetTruncated(const nsHTMLReflowMetrics& aMetrics, nsReflowStatus* aStatus) const;
 
-  PRBool WillReflowAgainForClearance() const {
+  bool WillReflowAgainForClearance() const {
     return mDiscoveredClearance && *mDiscoveredClearance;
   }
 

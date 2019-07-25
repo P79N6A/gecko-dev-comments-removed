@@ -154,7 +154,7 @@ nsHttpTransaction::Init(PRUint8 caps,
                         nsHttpConnectionInfo *cinfo,
                         nsHttpRequestHead *requestHead,
                         nsIInputStream *requestBody,
-                        PRBool requestBodyHasHeaders,
+                        bool requestBodyHasHeaders,
                         nsIEventTarget *target,
                         nsIInterfaceRequestor *callbacks,
                         nsITransportEventSink *eventsink,
@@ -173,7 +173,7 @@ nsHttpTransaction::Init(PRUint8 caps,
     mActivityDistributor = do_GetService(NS_HTTPACTIVITYDISTRIBUTOR_CONTRACTID, &rv);
     if (NS_FAILED(rv)) return rv;
 
-    PRBool activityDistributorActive;
+    bool activityDistributorActive;
     rv = mActivityDistributor->GetIsActive(&activityDistributorActive);
     if (NS_SUCCEEDED(rv) && activityDistributorActive) {
         
@@ -227,7 +227,7 @@ nsHttpTransaction::Init(PRUint8 caps,
 
     
     
-    PRBool pruneProxyHeaders = 
+    bool pruneProxyHeaders = 
         cinfo->ShouldForceConnectMethod() ||
         (cinfo->UsingSSL() && cinfo->UsingHttpProxy());
     
@@ -426,7 +426,7 @@ nsHttpTransaction::OnTransportStatus(nsITransport* transport,
     mTransportSink->OnTransportStatus(transport, status, progress, progressMax);
 }
 
-PRBool
+bool
 nsHttpTransaction::IsDone()
 {
     return mTransactionDone;
@@ -613,7 +613,7 @@ nsHttpTransaction::Close(nsresult reason)
 
     
     
-    PRBool connReused = PR_FALSE;
+    bool connReused = false;
     if (mConnection)
         connReused = mConnection->IsReused();
     mConnected = PR_FALSE;
@@ -644,7 +644,7 @@ nsHttpTransaction::Close(nsresult reason)
         }
     }
 
-    PRBool relConn = PR_TRUE;
+    bool relConn = true;
     if (NS_SUCCEEDED(reason)) {
         
         
@@ -722,7 +722,7 @@ nsHttpTransaction::Restart()
 
 char *
 nsHttpTransaction::LocateHttpStart(char *buf, PRUint32 len,
-                                   PRBool aAllowPartialMatch)
+                                   bool aAllowPartialMatch)
 {
     NS_ASSERTION(!aAllowPartialMatch || mLineBuf.IsEmpty(), "ouch");
 
@@ -754,7 +754,7 @@ nsHttpTransaction::LocateHttpStart(char *buf, PRUint32 len,
         mLineBuf.Truncate();
     }
 
-    PRBool firstByte = PR_TRUE;
+    bool firstByte = true;
     while (len > 0) {
         if (PL_strncasecmp(buf, HTTPHeader, NS_MIN<PRUint32>(len, HTTPHeaderLen)) == 0) {
             if (len < HTTPHeaderLen) {
@@ -987,7 +987,7 @@ nsHttpTransaction::HandleContentStart()
         }
 #endif
         
-        PRBool reset = PR_FALSE;
+        bool reset = false;
         mConnection->OnHeadersAvailable(this, mRequestHead, mResponseHead, &reset);
 
         
@@ -1239,7 +1239,7 @@ nsHttpTransaction::DeleteSelfOnConsumerThread()
 {
     LOG(("nsHttpTransaction::DeleteSelfOnConsumerThread [this=%x]\n", this));
     
-    PRBool val;
+    bool val;
     if (!mConsumerTarget ||
         (NS_SUCCEEDED(mConsumerTarget->IsOnCurrentThread(&val)) && val)) {
         delete this;

@@ -246,8 +246,8 @@ public:
 
     nsCanvasPattern(gfxPattern* pat,
                     nsIPrincipal* principalForSecurityCheck,
-                    PRBool forceWriteOnly,
-                    PRBool CORSUsed)
+                    bool forceWriteOnly,
+                    bool CORSUsed)
         : mPattern(pat),
           mPrincipal(principalForSecurityCheck),
           mForceWriteOnly(forceWriteOnly),
@@ -260,16 +260,16 @@ public:
     }
 
     nsIPrincipal* Principal() const { return mPrincipal; }
-    PRBool GetForceWriteOnly() const { return mForceWriteOnly; }
-    PRBool GetCORSUsed() const { return mCORSUsed; }
+    bool GetForceWriteOnly() const { return mForceWriteOnly; }
+    bool GetCORSUsed() const { return mCORSUsed; }
 
     NS_DECL_ISUPPORTS
 
 protected:
     nsRefPtr<gfxPattern> mPattern;
     nsCOMPtr<nsIPrincipal> mPrincipal;
-    const PRPackedBool mForceWriteOnly;
-    const PRPackedBool mCORSUsed;
+    const bool mForceWriteOnly;
+    const bool mCORSUsed;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsCanvasPattern, NS_CANVASPATTERN_PRIVATE_IID)
@@ -345,7 +345,7 @@ public:
     NS_IMETHOD SetDimensions(PRInt32 width, PRInt32 height);
     void Initialize(nsIDocShell *shell, PRInt32 width, PRInt32 height);
     NS_IMETHOD InitializeWithSurface(nsIDocShell *shell, gfxASurface *surface, PRInt32 width, PRInt32 height);
-    PRBool EnsureSurface();
+    bool EnsureSurface();
     NS_IMETHOD Render(gfxContext *ctx, gfxPattern::GraphicsFilter aFilter);
     NS_IMETHOD GetInputStream(const char* aMimeType,
                               const PRUnichar* aEncoderOptions,
@@ -354,14 +354,14 @@ public:
     mozilla::TemporaryRef<mozilla::gfx::SourceSurface> GetSurfaceSnapshot()
         { return nsnull; }
 
-    NS_IMETHOD SetIsOpaque(PRBool isOpaque);
+    NS_IMETHOD SetIsOpaque(bool isOpaque);
     NS_IMETHOD Reset();
     virtual already_AddRefed<CanvasLayer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                                          CanvasLayer *aOldLayer,
                                                          LayerManager *aManager);
-    virtual PRBool ShouldForceInactiveLayer(LayerManager *aManager);
+    virtual bool ShouldForceInactiveLayer(LayerManager *aManager);
     virtual void MarkContextClean();
-    NS_IMETHOD SetIsIPC(PRBool isIPC);
+    NS_IMETHOD SetIsIPC(bool isIPC);
     
     NS_IMETHOD Redraw(const gfxRect &r);
     
@@ -434,7 +434,7 @@ protected:
 
 
 
-    void ApplyStyle(Style aWhichStyle, PRBool aUseGlobalAlpha = PR_TRUE);
+    void ApplyStyle(Style aWhichStyle, bool aUseGlobalAlpha = true);
 
     
 
@@ -454,11 +454,11 @@ protected:
 
     
     PRInt32 mWidth, mHeight;
-    PRPackedBool mValid;
-    PRPackedBool mZero;
-    PRPackedBool mOpaque;
-    PRPackedBool mResetLayer;
-    PRPackedBool mIPC;
+    bool mValid;
+    bool mZero;
+    bool mOpaque;
+    bool mResetLayer;
+    bool mIPC;
 
     
     nsCOMPtr<nsIDOMHTMLCanvasElement> mCanvasElement;
@@ -475,7 +475,7 @@ protected:
     
     nsRefPtr<gfxContext> mThebes;
     nsRefPtr<gfxASurface> mSurface;
-    PRPackedBool mSurfaceCreated;
+    bool mSurfaceCreated;
 
     PRUint32 mSaveCount;
 
@@ -483,17 +483,17 @@ protected:
 
 
 
-    PRPackedBool mIsEntireFrameInvalid;
+    bool mIsEntireFrameInvalid;
     
 
 
 
 
-    PRPackedBool mPredictManyRedrawCalls;
+    bool mPredictManyRedrawCalls;
     
 
 
-    PRPackedBool mHasPath;
+    bool mHasPath;
 
     
 
@@ -506,7 +506,7 @@ protected:
 
 
 
-    PRBool OperatorAffectsUncoveredAreas(gfxContext::GraphicsOperator op) const
+    bool OperatorAffectsUncoveredAreas(gfxContext::GraphicsOperator op) const
     {
         return op == gfxContext::OPERATOR_IN ||
                op == gfxContext::OPERATOR_OUT ||
@@ -518,7 +518,7 @@ protected:
 
 
 
-    PRBool NeedToDrawShadow()
+    bool NeedToDrawShadow()
     {
         ContextState& state = CurrentState();
 
@@ -535,7 +535,7 @@ protected:
 
 
 
-    PRBool NeedToUseIntermediateSurface()
+    bool NeedToUseIntermediateSurface()
     {
         if (!mThebes) {
             
@@ -576,7 +576,7 @@ protected:
 
 
 
-    PRBool NeedIntermediateSurfaceToHandleGlobalAlpha(Style aWhichStyle)
+    bool NeedIntermediateSurfaceToHandleGlobalAlpha(Style aWhichStyle)
     {
         return CurrentState().globalAlpha != 1.0 && !CurrentState().StyleIsColor(aWhichStyle);
     }
@@ -677,7 +677,7 @@ protected:
 
 
     Style mLastStyle;
-    PRPackedBool mDirtyStyle[STYLE_MAX];
+    bool mDirtyStyle[STYLE_MAX];
 
     
     class ContextState {
@@ -726,7 +726,7 @@ protected:
         
 
 
-        inline PRBool StyleIsColor(Style whichStyle) const
+        inline bool StyleIsColor(Style whichStyle) const
         {
             return !(patternStyles[whichStyle] ||
                      gradientStyles[whichStyle]);
@@ -745,7 +745,7 @@ protected:
         nsCOMPtr<nsCanvasGradient> gradientStyles[STYLE_MAX];
         nsCOMPtr<nsCanvasPattern> patternStyles[STYLE_MAX];
 
-        PRPackedBool imageSmoothingEnabled;
+        bool imageSmoothingEnabled;
     };
 
     nsTArray<ContextState> mStyleStack;
@@ -974,7 +974,7 @@ nsCanvasRenderingContext2D::DirtyAllStyles()
 
 void
 nsCanvasRenderingContext2D::ApplyStyle(Style aWhichStyle,
-                                       PRBool aUseGlobalAlpha)
+                                       bool aUseGlobalAlpha)
 {
     if (mLastStyle == aWhichStyle &&
         !mDirtyStyle[aWhichStyle] &&
@@ -1154,7 +1154,7 @@ nsCanvasRenderingContext2D::InitializeWithSurface(nsIDocShell *docShell,
     return mValid ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
-PRBool
+bool
 nsCanvasRenderingContext2D::EnsureSurface()
 {
     if (!mValid) {
@@ -1237,7 +1237,7 @@ nsCanvasRenderingContext2D::EnsureSurface()
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2D::SetIsOpaque(PRBool isOpaque)
+nsCanvasRenderingContext2D::SetIsOpaque(bool isOpaque)
 {
     if (isOpaque == mOpaque)
         return NS_OK;
@@ -1255,7 +1255,7 @@ nsCanvasRenderingContext2D::SetIsOpaque(PRBool isOpaque)
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2D::SetIsIPC(PRBool isIPC)
+nsCanvasRenderingContext2D::SetIsIPC(bool isIPC)
 {
     if (isIPC == mIPC)
         return NS_OK;
@@ -1999,7 +1999,7 @@ nsCanvasRenderingContext2D::DrawPath(Style style, gfxRect *dirtyRect)
     if (!EnsureSurface())
         return NS_ERROR_FAILURE;
 
-    PRBool doUseIntermediateSurface = PR_FALSE;
+    bool doUseIntermediateSurface = false;
     
     if (mSurface->GetType() == gfxASurface::SurfaceTypeD2D) {
       if (style != STYLE_FILL) {
@@ -2019,7 +2019,7 @@ nsCanvasRenderingContext2D::DrawPath(Style style, gfxRect *dirtyRect)
                                  NeedIntermediateSurfaceToHandleGlobalAlpha(style);
     }
 
-    PRBool doDrawShadow = NeedToDrawShadow();
+    bool doDrawShadow = NeedToDrawShadow();
 
     
     ClearSurfaceForUnboundedSource();
@@ -2366,7 +2366,7 @@ nsCanvasRenderingContext2D::ArcTo(float x1, float y1, float x2, float y2, float 
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2D::Arc(float x, float y, float r, float startAngle, float endAngle, PRBool ccw)
+nsCanvasRenderingContext2D::Arc(float x, float y, float r, float startAngle, float endAngle, bool ccw)
 {
     if (!EnsureSurface())
         return NS_ERROR_FAILURE;
@@ -2418,7 +2418,7 @@ CreateFontStyleRule(const nsAString& aFont,
                     css::StyleRule** aResult)
 {
     nsRefPtr<css::StyleRule> rule;
-    PRBool changed;
+    bool changed;
 
     nsIPrincipal* principal = aNode->NodePrincipal();
     nsIDocument* document = aNode->GetOwnerDoc();
@@ -2549,7 +2549,7 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
     
     const nscoord fontSize = nsStyleFont::UnZoomText(parentContext->PresContext(), fontStyle->mFont.size);
 
-    PRBool printerFont = (presShell->GetPresContext()->Type() == nsPresContext::eContext_PrintPreview ||
+    bool printerFont = (presShell->GetPresContext()->Type() == nsPresContext::eContext_PrintPreview ||
                           presShell->GetPresContext()->Type() == nsPresContext::eContext_Print);
 
     gfxFontStyle style(fontStyle->mFont.style,
@@ -2837,7 +2837,7 @@ struct NS_STACK_CLASS nsCanvasBidiProcessor : public nsBidiPresUtils::BidiProces
     gfxRect mBoundingBox;
 
     
-    PRBool mDoMeasureBoundingBox;
+    bool mDoMeasureBoundingBox;
 };
 
 nsresult
@@ -2877,7 +2877,7 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     TextReplaceWhitespaceCharacters(textToDraw);
 
     
-    PRBool isRTL = PR_FALSE;
+    bool isRTL = false;
 
     if (content && content->IsInDoc()) {
         
@@ -2894,8 +2894,8 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     }
 
     
-    PRBool doDrawShadow = aOp == TEXT_DRAW_OPERATION_FILL && NeedToDrawShadow();
-    PRBool doUseIntermediateSurface = aOp == TEXT_DRAW_OPERATION_FILL &&
+    bool doDrawShadow = aOp == TEXT_DRAW_OPERATION_FILL && NeedToDrawShadow();
+    bool doUseIntermediateSurface = aOp == TEXT_DRAW_OPERATION_FILL &&
         (NeedToUseIntermediateSurface() || NeedIntermediateSurfaceToHandleGlobalAlpha(STYLE_FILL));
 
     
@@ -3365,7 +3365,7 @@ nsCanvasRenderingContext2D::GetMozDashOffset(float* offset)
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2D::IsPointInPath(float x, float y, PRBool *retVal)
+nsCanvasRenderingContext2D::IsPointInPath(float x, float y, bool *retVal)
 {
     if (!EnsureSurface())
         return NS_ERROR_FAILURE;
@@ -3549,7 +3549,7 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
         mThebes->SetPattern(pattern);
         DirtyAllStyles();
 
-        PRBool doUseIntermediateSurface = NeedToUseIntermediateSurface();
+        bool doUseIntermediateSurface = NeedToUseIntermediateSurface();
         if (doUseIntermediateSurface) {
             gfxContextAutoSaveRestore autoSR(mThebes);
 
@@ -3784,7 +3784,7 @@ nsCanvasRenderingContext2D::AsyncDrawXULElement(nsIDOMXULElement* aElem, float a
     if (!gfxASurface::CheckSurfaceSize(gfxIntSize(aW, aH), 0xffff))
         return NS_ERROR_FAILURE;
 
-    PRBool flush =
+    bool flush =
         (flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH) == 0;
 
     PRUint32 renderDocFlags = nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING;
@@ -3989,7 +3989,7 @@ nsCanvasRenderingContext2D::PutImageData()
 NS_IMETHODIMP
 nsCanvasRenderingContext2D::PutImageData_explicit(PRInt32 x, PRInt32 y, PRUint32 w, PRUint32 h,
                                                   unsigned char *aData, PRUint32 aDataLen,
-                                                  PRBool hasDirtyRect, PRInt32 dirtyX, PRInt32 dirtyY,
+                                                  bool hasDirtyRect, PRInt32 dirtyX, PRInt32 dirtyY,
                                                   PRInt32 dirtyWidth, PRInt32 dirtyHeight)
 {
     if (!EnsureSurface())
@@ -4117,14 +4117,14 @@ nsCanvasRenderingContext2D::CreateImageData()
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2D::GetMozImageSmoothingEnabled(PRBool *retVal)
+nsCanvasRenderingContext2D::GetMozImageSmoothingEnabled(bool *retVal)
 {
     *retVal = CurrentState().imageSmoothingEnabled;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2D::SetMozImageSmoothingEnabled(PRBool val)
+nsCanvasRenderingContext2D::SetMozImageSmoothingEnabled(bool val)
 {
     if (val != CurrentState().imageSmoothingEnabled) {
         CurrentState().imageSmoothingEnabled = val;
@@ -4203,7 +4203,7 @@ nsCanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
     return canvasLayer.forget();
 }
 
-PRBool
+bool
 nsCanvasRenderingContext2D::ShouldForceInactiveLayer(LayerManager *aManager)
 {
     return !aManager->CanUseCanvasLayerForSize(gfxIntSize(mWidth, mHeight));

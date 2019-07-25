@@ -67,7 +67,7 @@ public:
 
 
 
-  virtual PRBool Visit(nsIFormControl* aRadio) = 0;
+  virtual bool Visit(nsIFormControl* aRadio) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIRadioVisitor, NS_IRADIOVISITOR_IID)

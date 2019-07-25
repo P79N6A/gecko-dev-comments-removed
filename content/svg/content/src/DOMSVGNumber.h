@@ -110,7 +110,7 @@ public:
     return clone;
   }
 
-  PRBool IsInList() const {
+  bool IsInList() const {
     return !!mList;
   }
 
@@ -118,7 +118,7 @@ public:
 
 
 
-  PRBool HasOwner() const {
+  bool HasOwner() const {
     return !!mList;
   }
 
@@ -177,7 +177,7 @@ private:
   float& InternalItem();
 
 #ifdef DEBUG
-  PRBool IndexIsValid();
+  bool IndexIsValid();
 #endif
 
   nsRefPtr<DOMSVGNumberList> mList;

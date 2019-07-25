@@ -72,9 +72,9 @@ public:
   virtual ~nsIEProfileMigrator();
 
 protected:
-  nsresult CopyPreferences(PRBool aReplace);
-  nsresult CopyStyleSheet(PRBool aReplace);
-  nsresult CopyCookies(PRBool aReplace);
+  nsresult CopyPreferences(bool aReplace);
+  nsresult CopyStyleSheet(bool aReplace);
+  nsresult CopyCookies(bool aReplace);
   nsresult CopyProxyPreferences(nsIPrefBranch* aPrefs);
   nsresult CopySecurityPrefs(nsIPrefBranch* aPrefs);
   
@@ -85,19 +85,19 @@ protected:
 
 
 
-  nsresult CopyHistory(PRBool aReplace);
-  nsresult CopyHistoryBatched(PRBool aReplace);
+  nsresult CopyHistory(bool aReplace);
+  nsresult CopyHistoryBatched(bool aReplace);
 
-  PRBool   KeyIsURI(const nsAString& aKey, char** aRealm);
+  bool     KeyIsURI(const nsAString& aKey, char** aRealm);
 
-  nsresult CopyPasswords(PRBool aReplace);
+  nsresult CopyPasswords(bool aReplace);
   nsresult MigrateSiteAuthSignons(IPStore* aPStore);
   nsresult GetSignonsListFromPStore(IPStore* aPStore, nsTArray<SignonData>* aSignonsFound);
   nsresult ResolveAndMigrateSignons(IPStore* aPStore, nsTArray<SignonData>* aSignonsFound);
   void     EnumerateUsernames(const nsAString& aKey, PRUnichar* aData, unsigned long aCount, nsTArray<SignonData>* aSignonsFound);
   void     GetUserNameAndPass(unsigned char* data, unsigned long len, unsigned char** username, unsigned char** pass);
 
-  nsresult CopyFormData(PRBool aReplace);
+  nsresult CopyFormData(bool aReplace);
   nsresult AddDataToFormHistory(const nsAString& aKey, PRUnichar* data, unsigned long len);
   
 
@@ -108,14 +108,14 @@ protected:
 
 
 
-  nsresult CopyFavorites(PRBool aReplace);
-  nsresult CopyFavoritesBatched(PRBool aReplace);
+  nsresult CopyFavorites(bool aReplace);
+  nsresult CopyFavoritesBatched(bool aReplace);
   void     ResolveShortcut(const nsString &aFileName, char** aOutURL);
   nsresult ParseFavoritesFolder(nsIFile* aDirectory, 
                                 PRInt64 aParentFolder,
                                 nsINavBookmarksService* aBookmarksService,
                                 const nsAString& aPersonalToolbarFolderName,
-                                PRBool aIsAtRootLevel);
+                                bool aIsAtRootLevel);
   nsresult CopySmartKeywords(nsINavBookmarksService* aBMS,
                              PRInt64 aParentFolder);
 
@@ -125,7 +125,7 @@ protected:
   time_t   FileTimeToTimeT(const char *aLowDateIntString,
                            const char *aHighDateIntString);
   void     GetUserStyleSheetFile(nsIFile **aUserFile);
-  PRBool   TestForIE7();
+  bool     TestForIE7();
 
 private:
   nsCOMPtr<nsIObserverService> mObserverService;

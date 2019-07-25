@@ -95,8 +95,8 @@ public:
   nsresult GetColumns(nsITreeColumns **aColumns);
   nsresult GetView(nsITreeView **aView);
   nsresult SetView(nsITreeView *aView);
-  nsresult GetFocused(PRBool *aFocused);
-  nsresult SetFocused(PRBool aFocused);
+  nsresult GetFocused(bool *aFocused);
+  nsresult SetFocused(bool aFocused);
   nsresult GetTreeBody(nsIDOMElement **aElement);
   nsresult GetRowHeight(PRInt32 *aValue);
   nsresult GetRowWidth(PRInt32 *aValue);
@@ -127,7 +127,7 @@ public:
                                 const nsACString &aElt,
                                 PRInt32 *aX, PRInt32 *aY,
                                 PRInt32 *aWidth, PRInt32 *aHeight);
-  nsresult IsCellCropped(PRInt32 aRow, nsITreeColumn *aCol, PRBool *aResult);
+  nsresult IsCellCropped(PRInt32 aRow, nsITreeColumn *aCol, bool *aResult);
   nsresult RowCountChanged(PRInt32 aIndex, PRInt32 aCount);
   nsresult BeginUpdateBatch();
   nsresult EndUpdateBatch();
@@ -136,19 +136,19 @@ public:
   
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState);
   virtual void SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
-                         PRBool aRemoveOverflowArea = PR_FALSE);
+                         bool aRemoveOverflowArea = false);
 
   
-  virtual PRBool ReflowFinished();
+  virtual bool ReflowFinished();
   virtual void ReflowCallbackCanceled();
 
   
-  virtual PRBool PseudoMatches(nsCSSSelector* aSelector);
+  virtual bool PseudoMatches(nsCSSSelector* aSelector);
 
   
   NS_IMETHOD PositionChanged(nsScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32& aNewIndex);
   NS_IMETHOD ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32 aNewIndex);
-  NS_IMETHOD VisibilityChanged(PRBool aVisible) { Invalidate(); return NS_OK; }
+  NS_IMETHOD VisibilityChanged(bool aVisible) { Invalidate(); return NS_OK; }
 
   
   NS_IMETHOD Init(nsIContent*     aContent,
@@ -186,8 +186,8 @@ public:
 
   nsITreeBoxObject* GetTreeBoxObject() const { return mTreeBoxObject; }
 
-  PRBool GetVerticalOverflow() const { return mVerticalOverflow; }
-  PRBool GetHorizontalOverflow() const {return mHorizontalOverflow; }
+  bool GetVerticalOverflow() const { return mVerticalOverflow; }
+  bool GetHorizontalOverflow() const {return mHorizontalOverflow; }
 
 protected:
   friend class nsOverflowChecker;
@@ -252,7 +252,7 @@ protected:
                  nsRenderingContext& aRenderingContext,
                  const nsRect&        aDirtyRect,
                  nscoord&             aCurrX,
-                 PRBool               aTextRTL);
+                 bool                 aTextRTL);
 
   
   void PaintCheckbox(PRInt32              aRowIndex, 
@@ -322,18 +322,18 @@ protected:
                           nsStyleContext* aTwistyContext);
 
   
-  nsresult GetImage(PRInt32 aRowIndex, nsTreeColumn* aCol, PRBool aUseContext,
-                    nsStyleContext* aStyleContext, PRBool& aAllowImageRegions, imgIContainer** aResult);
+  nsresult GetImage(PRInt32 aRowIndex, nsTreeColumn* aCol, bool aUseContext,
+                    nsStyleContext* aStyleContext, bool& aAllowImageRegions, imgIContainer** aResult);
 
   
   
-  nsRect GetImageSize(PRInt32 aRowIndex, nsTreeColumn* aCol, PRBool aUseContext, nsStyleContext* aStyleContext);
+  nsRect GetImageSize(PRInt32 aRowIndex, nsTreeColumn* aCol, bool aUseContext, nsStyleContext* aStyleContext);
 
   
-  nsSize GetImageDestSize(nsStyleContext* aStyleContext, PRBool useImageRegion, imgIContainer* image);
+  nsSize GetImageDestSize(nsStyleContext* aStyleContext, bool useImageRegion, imgIContainer* image);
 
   
-  nsRect GetImageSourceRect(nsStyleContext* aStyleContext, PRBool useImageRegion, imgIContainer* image);
+  nsRect GetImageSourceRect(nsStyleContext* aStyleContext, bool useImageRegion, imgIContainer* image);
 
   
   PRInt32 GetRowHeight();
@@ -370,7 +370,7 @@ protected:
   
   
   
-  PRBool FullScrollbarsUpdate(PRBool aNeedsFullInvalidation);
+  bool FullScrollbarsUpdate(bool aNeedsFullInvalidation);
 
   
   
@@ -404,9 +404,9 @@ protected:
   
   
   
-  PRBool OffsetForHorzScroll(nsRect& rect, PRBool clip);
+  bool OffsetForHorzScroll(nsRect& rect, bool clip);
 
-  PRBool CanAutoScroll(PRInt32 aRowIndex);
+  bool CanAutoScroll(PRInt32 aRowIndex);
 
   
   
@@ -511,7 +511,7 @@ protected:
 
     protected:
       
-      PRBool                   mDropAllowed;
+      bool                     mDropAllowed;
 
       
       PRInt32                  mDropRow;
@@ -593,15 +593,15 @@ protected:
   PRInt32 mMouseOverRow;
 
   
-  PRPackedBool mFocused;
+  bool mFocused;
 
   
-  PRPackedBool mHasFixedRowCount;
+  bool mHasFixedRowCount;
 
-  PRPackedBool mVerticalOverflow;
-  PRPackedBool mHorizontalOverflow;
+  bool mVerticalOverflow;
+  bool mHorizontalOverflow;
 
-  PRPackedBool mReflowCallbackPosted;
+  bool mReflowCallbackPosted;
 }; 
 
 #endif

@@ -91,8 +91,8 @@ public:
 
 
 
-  void Reset(nsIContent* aFrom, nsIURI* aURI, PRBool aWatch = PR_TRUE,
-             PRBool aReferenceImage = PR_FALSE);
+  void Reset(nsIContent* aFrom, nsIURI* aURI, bool aWatch = true,
+             bool aReferenceImage = false);
 
   
 
@@ -104,7 +104,7 @@ public:
 
 
   void ResetWithID(nsIContent* aFrom, const nsString& aID,
-                   PRBool aWatch = PR_TRUE);
+                   bool aWatch = true);
 
   
 
@@ -128,17 +128,17 @@ protected:
 
 
 
-  virtual PRBool IsPersistent() { return PR_FALSE; }
+  virtual bool IsPersistent() { return false; }
 
   
 
 
 
-  void HaveNewDocument(nsIDocument* aDocument, PRBool aWatch,
+  void HaveNewDocument(nsIDocument* aDocument, bool aWatch,
                        const nsString& aRef);
   
 private:
-  static PRBool Observe(Element* aOldElement,
+  static bool Observe(Element* aOldElement,
                         Element* aNewElement, void* aData);
 
   class Notification : public nsISupports {
@@ -211,7 +211,7 @@ private:
   nsCOMPtr<nsIDocument>  mWatchDocument;
   nsRefPtr<Element> mElement;
   nsRefPtr<Notification> mPendingNotification;
-  PRPackedBool           mReferencingImage;
+  bool                   mReferencingImage;
 };
 
 #endif 

@@ -64,36 +64,36 @@ public:
   
 
 
-  PRBool IsOrig() const;
+  bool IsOrig() const;
 
   
 
 
 
 
-  PRBool IsDead() const;
+  bool IsDead() const;
 
   
 
 
-  PRBool IsSpan() const;
+  bool IsSpan() const;
 
   
 
 
-  PRBool IsRowSpan() const;
+  bool IsRowSpan() const;
 
   
 
 
 
 
-  PRBool IsZeroRowSpan() const;
+  bool IsZeroRowSpan() const;
 
   
 
 
-  void SetZeroRowSpan(PRBool aIsZero);
+  void SetZeroRowSpan(bool aIsZero);
 
   
 
@@ -108,7 +108,7 @@ public:
   
 
 
-  PRBool IsColSpan() const;
+  bool IsColSpan() const;
 
   
 
@@ -116,12 +116,12 @@ public:
 
 
 
-  PRBool IsZeroColSpan() const;
+  bool IsZeroColSpan() const;
 
   
 
 
-  void SetZeroColSpan(PRBool aIsZero);
+  void SetZeroColSpan(bool aIsZero);
 
   
 
@@ -136,12 +136,12 @@ public:
   
 
 
-  PRBool IsOverlap() const;
+  bool IsOverlap() const;
 
   
 
 
-  void SetOverlap(PRBool aOverlap);
+  void SetOverlap(bool aOverlap);
 
   
 
@@ -220,33 +220,33 @@ public:
   ~BCData();
 
   nscoord GetLeftEdge(BCBorderOwner& aOwner,
-                      PRBool&        aStart) const;
+                      bool&        aStart) const;
 
   void SetLeftEdge(BCBorderOwner aOwner,
                    nscoord       aSize,
-                   PRBool        aStart);
+                   bool          aStart);
 
   nscoord GetTopEdge(BCBorderOwner& aOwner,
-                     PRBool&        aStart) const;
+                     bool&        aStart) const;
 
   void SetTopEdge(BCBorderOwner aOwner,
                   nscoord       aSize,
-                  PRBool        aStart);
+                  bool          aStart);
 
   BCPixelSize GetCorner(mozilla::css::Side&       aCornerOwner,
-                        PRPackedBool&  aBevel) const;
+                        bool&  aBevel) const;
 
   void SetCorner(BCPixelSize aSubSize,
                  mozilla::css::Side aOwner,
-                 PRBool  aBevel);
+                 bool    aBevel);
 
-  PRBool IsLeftStart() const;
+  bool IsLeftStart() const;
 
-  void SetLeftStart(PRBool aValue);
+  void SetLeftStart(bool aValue);
 
-  PRBool IsTopStart() const;
+  bool IsTopStart() const;
 
-  void SetTopStart(PRBool aValue);
+  void SetTopStart(bool aValue);
 
 
 protected:
@@ -317,35 +317,35 @@ inline void CellData::Init(nsTableCellFrame* aCellFrame)
   mOrigCell = aCellFrame;
 }
 
-inline PRBool CellData::IsOrig() const
+inline bool CellData::IsOrig() const
 {
   return ((nsnull != mOrigCell) && (SPAN != (SPAN & mBits)));
 }
 
-inline PRBool CellData::IsDead() const
+inline bool CellData::IsDead() const
 {
   return (0 == mBits);
 }
 
-inline PRBool CellData::IsSpan() const
+inline bool CellData::IsSpan() const
 {
   return (SPAN == (SPAN & mBits));
 }
 
-inline PRBool CellData::IsRowSpan() const
+inline bool CellData::IsRowSpan() const
 {
   return (SPAN     == (SPAN & mBits)) &&
          (ROW_SPAN == (ROW_SPAN & mBits));
 }
 
-inline PRBool CellData::IsZeroRowSpan() const
+inline bool CellData::IsZeroRowSpan() const
 {
   return (SPAN       == (SPAN & mBits))     &&
          (ROW_SPAN   == (ROW_SPAN & mBits)) &&
          (ROW_SPAN_0 == (ROW_SPAN_0 & mBits));
 }
 
-inline void CellData::SetZeroRowSpan(PRBool aIsZeroSpan)
+inline void CellData::SetZeroRowSpan(bool aIsZeroSpan)
 {
   if (SPAN == (SPAN & mBits)) {
     if (aIsZeroSpan) {
@@ -373,20 +373,20 @@ inline void CellData::SetRowSpanOffset(PRUint32 aSpan)
   mBits |= ROW_SPAN;
 }
 
-inline PRBool CellData::IsColSpan() const
+inline bool CellData::IsColSpan() const
 {
   return (SPAN     == (SPAN & mBits)) &&
          (COL_SPAN == (COL_SPAN & mBits));
 }
 
-inline PRBool CellData::IsZeroColSpan() const
+inline bool CellData::IsZeroColSpan() const
 {
   return (SPAN       == (SPAN & mBits))     &&
          (COL_SPAN   == (COL_SPAN & mBits)) &&
          (COL_SPAN_0 == (COL_SPAN_0 & mBits));
 }
 
-inline void CellData::SetZeroColSpan(PRBool aIsZeroSpan)
+inline void CellData::SetZeroColSpan(bool aIsZeroSpan)
 {
   if (SPAN == (SPAN & mBits)) {
     if (aIsZeroSpan) {
@@ -415,12 +415,12 @@ inline void CellData::SetColSpanOffset(PRUint32 aSpan)
   mBits |= COL_SPAN;
 }
 
-inline PRBool CellData::IsOverlap() const
+inline bool CellData::IsOverlap() const
 {
   return (SPAN == (SPAN & mBits)) && (OVERLAP == (OVERLAP & mBits));
 }
 
-inline void CellData::SetOverlap(PRBool aOverlap)
+inline void CellData::SetOverlap(bool aOverlap)
 {
   if (SPAN == (SPAN & mBits)) {
     if (aOverlap) {
@@ -446,17 +446,17 @@ inline BCData::~BCData()
 }
 
 inline nscoord BCData::GetLeftEdge(BCBorderOwner& aOwner,
-                                   PRBool&        aStart) const
+                                   bool&        aStart) const
 {
   aOwner = (BCBorderOwner)mLeftOwner;
-  aStart = (PRBool)mLeftStart;
+  aStart = (bool)mLeftStart;
 
   return (nscoord)mLeftSize;
 }
 
 inline void BCData::SetLeftEdge(BCBorderOwner  aOwner,
                                 nscoord        aSize,
-                                PRBool         aStart)
+                                bool           aStart)
 {
   mLeftOwner = aOwner;
   mLeftSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
@@ -464,17 +464,17 @@ inline void BCData::SetLeftEdge(BCBorderOwner  aOwner,
 }
 
 inline nscoord BCData::GetTopEdge(BCBorderOwner& aOwner,
-                                  PRBool&        aStart) const
+                                  bool&        aStart) const
 {
   aOwner = (BCBorderOwner)mTopOwner;
-  aStart = (PRBool)mTopStart;
+  aStart = (bool)mTopStart;
 
   return (nscoord)mTopSize;
 }
 
 inline void BCData::SetTopEdge(BCBorderOwner  aOwner,
                                nscoord        aSize,
-                               PRBool         aStart)
+                               bool           aStart)
 {
   mTopOwner = aOwner;
   mTopSize  = (aSize > MAX_BORDER_WIDTH) ? MAX_BORDER_WIDTH : aSize;
@@ -482,38 +482,38 @@ inline void BCData::SetTopEdge(BCBorderOwner  aOwner,
 }
 
 inline BCPixelSize BCData::GetCorner(mozilla::css::Side& aOwnerSide,
-                                     PRPackedBool&       aBevel) const
+                                     bool&       aBevel) const
 {
   aOwnerSide = mozilla::css::Side(mCornerSide);
-  aBevel     = (PRBool)mCornerBevel;
+  aBevel     = (bool)mCornerBevel;
   return mCornerSubSize;
 }
 
 inline void BCData::SetCorner(BCPixelSize aSubSize,
                               mozilla::css::Side aOwnerSide,
-                              PRBool  aBevel)
+                              bool    aBevel)
 {
   mCornerSubSize = aSubSize;
   mCornerSide    = aOwnerSide;
   mCornerBevel   = aBevel;
 }
 
-inline PRBool BCData::IsLeftStart() const
+inline bool BCData::IsLeftStart() const
 {
-  return (PRBool)mLeftStart;
+  return (bool)mLeftStart;
 }
 
-inline void BCData::SetLeftStart(PRBool aValue)
+inline void BCData::SetLeftStart(bool aValue)
 {
   mLeftStart = aValue;
 }
 
-inline PRBool BCData::IsTopStart() const
+inline bool BCData::IsTopStart() const
 {
-  return (PRBool)mTopStart;
+  return (bool)mTopStart;
 }
 
-inline void BCData::SetTopStart(PRBool aValue)
+inline void BCData::SetTopStart(bool aValue)
 {
   mTopStart = aValue;
 }

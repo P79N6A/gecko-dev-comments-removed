@@ -70,7 +70,7 @@ public:
 
 
     static nsresult LoadDocument(nsIURI *aURI, nsIPrincipal *aLoaderPrincipal,
-                                 nsILoadGroup *aLoadGroup, PRBool aForceToXML,
+                                 nsILoadGroup *aLoadGroup, bool aForceToXML,
                                  nsIDOMDocument** aResult);
 
     

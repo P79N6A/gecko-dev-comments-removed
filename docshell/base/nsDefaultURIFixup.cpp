@@ -78,7 +78,7 @@ nsDefaultURIFixup::CreateExposableURI(nsIURI *aURI, nsIURI **aReturn)
     NS_ENSURE_ARG_POINTER(aURI);
     NS_ENSURE_ARG_POINTER(aReturn);
 
-    PRBool isWyciwyg = PR_FALSE;
+    bool isWyciwyg = false;
     aURI->SchemeIs("wyciwyg", &isWyciwyg);
 
     nsCAutoString userPass;
@@ -132,7 +132,7 @@ nsDefaultURIFixup::CreateExposableURI(nsIURI *aURI, nsIURI **aReturn)
     }
 
     
-    if (Preferences::GetBool("browser.fixup.hide_user_pass", PR_TRUE))
+    if (Preferences::GetBool("browser.fixup.hide_user_pass", true))
     {
         uri->SetUserPass(EmptyCString());
     }
@@ -233,8 +233,8 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
 
     
     
-    PRBool bAsciiURI = IsASCII(uriString);
-    PRBool bUseNonDefaultCharsetForURI =
+    bool bAsciiURI = IsASCII(uriString);
+    bool bUseNonDefaultCharsetForURI =
                         !bAsciiURI &&
                         (scheme.IsEmpty() ||
                          scheme.LowerCaseEqualsLiteral("http") ||
@@ -267,7 +267,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
 
     
     
-    PRBool fixupKeywords = PR_FALSE;
+    bool fixupKeywords = false;
     if (aFixupFlags & FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP) {
         nsresult rv = Preferences::GetBool("keyword.enabled", &fixupKeywords);
         NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
@@ -423,19 +423,19 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
     return NS_ERROR_NOT_AVAILABLE;
 }
 
-PRBool nsDefaultURIFixup::MakeAlternateURI(nsIURI *aURI)
+bool nsDefaultURIFixup::MakeAlternateURI(nsIURI *aURI)
 {
     if (!Preferences::GetRootBranch())
     {
         return PR_FALSE;
     }
-    if (!Preferences::GetBool("browser.fixup.alternate.enabled", PR_TRUE))
+    if (!Preferences::GetBool("browser.fixup.alternate.enabled", true))
     {
         return PR_FALSE;
     }
 
     
-    PRBool isHttp = PR_FALSE;
+    bool isHttp = false;
     aURI->SchemeIs("http", &isHttp);
     if (!isHttp) {
         return PR_FALSE;
@@ -526,9 +526,9 @@ PRBool nsDefaultURIFixup::MakeAlternateURI(nsIURI *aURI)
 
 
 
-PRBool nsDefaultURIFixup::IsLikelyFTP(const nsCString &aHostSpec)
+bool nsDefaultURIFixup::IsLikelyFTP(const nsCString &aHostSpec)
 {
-    PRBool likelyFTP = PR_FALSE;
+    bool likelyFTP = false;
     if (aHostSpec.EqualsIgnoreCase("ftp", 3)) {
         nsACString::const_iterator iter;
         nsACString::const_iterator end;
@@ -578,7 +578,7 @@ nsresult nsDefaultURIFixup::FileURIFixup(const nsACString& aStringURI,
 nsresult nsDefaultURIFixup::ConvertFileToStringURI(const nsACString& aIn,
                                                    nsCString& aOut)
 {
-    PRBool attemptFixup = PR_FALSE;
+    bool attemptFixup = false;
 
 #if defined(XP_WIN) || defined(XP_OS2)
     
@@ -654,7 +654,7 @@ nsresult nsDefaultURIFixup::ConvertFileToStringURI(const nsACString& aIn,
     return NS_ERROR_FAILURE;
 }
 
-PRBool nsDefaultURIFixup::PossiblyHostPortUrl(const nsACString &aUrl)
+bool nsDefaultURIFixup::PossiblyHostPortUrl(const nsACString &aUrl)
 {
     
     
@@ -754,7 +754,7 @@ PRBool nsDefaultURIFixup::PossiblyHostPortUrl(const nsACString &aUrl)
     return PR_TRUE;
 }
 
-PRBool nsDefaultURIFixup::PossiblyByteExpandedFileName(const nsAString& aIn)
+bool nsDefaultURIFixup::PossiblyByteExpandedFileName(const nsAString& aIn)
 {
     
     

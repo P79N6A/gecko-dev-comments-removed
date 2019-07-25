@@ -54,7 +54,7 @@ nsAndroidNetworkLinkService::~nsAndroidNetworkLinkService()
 }
 
 NS_IMETHODIMP
-nsAndroidNetworkLinkService::GetIsLinkUp(PRBool *aIsUp)
+nsAndroidNetworkLinkService::GetIsLinkUp(bool *aIsUp)
 {
   if (!mozilla::AndroidBridge::Bridge()) {
     
@@ -68,7 +68,7 @@ nsAndroidNetworkLinkService::GetIsLinkUp(PRBool *aIsUp)
 }
 
 NS_IMETHODIMP
-nsAndroidNetworkLinkService::GetLinkStatusKnown(PRBool *aIsKnown)
+nsAndroidNetworkLinkService::GetLinkStatusKnown(bool *aIsKnown)
 {
   NS_ENSURE_TRUE(mozilla::AndroidBridge::Bridge(), NS_ERROR_NOT_IMPLEMENTED);
 

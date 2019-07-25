@@ -352,7 +352,7 @@ LayoutShutdownObserver::Observe(nsISupports *aSubject,
 
 
 
-static PRBool gInitialized = PR_FALSE;
+static bool gInitialized = false;
 
 
 

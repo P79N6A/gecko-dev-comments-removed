@@ -83,7 +83,7 @@ public:
   
 
 
-  virtual PRBool IsTransformed() const
+  virtual bool IsTransformed() const
   {
     return PR_TRUE;
   }
@@ -100,7 +100,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsSVGForeignObjectFrameBase::IsFrameOfType(aFlags &
       ~(nsIFrame::eSVG | nsIFrame::eSVGForeignObject));
@@ -128,8 +128,8 @@ public:
   NS_IMETHOD NotifyRedrawSuspended();
   NS_IMETHOD NotifyRedrawUnsuspended();
   virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace);
-  NS_IMETHOD_(PRBool) IsDisplayContainer() { return PR_TRUE; }
-  NS_IMETHOD_(PRBool) HasValidCoveredRect() { return PR_TRUE; }
+  NS_IMETHOD_(bool) IsDisplayContainer() { return true; }
+  NS_IMETHOD_(bool) HasValidCoveredRect() { return true; }
 
   gfxMatrix GetCanvasTM();
 
@@ -150,7 +150,7 @@ protected:
   void FlushDirtyRegion(PRUint32 aFlags);
 
   
-  PRBool IsDisabled() const { return mRect.width <= 0 || mRect.height <= 0; }
+  bool IsDisabled() const { return mRect.width <= 0 || mRect.height <= 0; }
 
   nsAutoPtr<gfxMatrix> mCanvasTM;
 
@@ -160,7 +160,7 @@ protected:
   
   nsRegion mSubDocDirtyRegion;
 
-  PRPackedBool mInReflow;
+  bool mInReflow;
 };
 
 #endif

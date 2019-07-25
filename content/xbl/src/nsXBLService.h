@@ -67,11 +67,11 @@ class nsXBLService : public nsIXBLService,
   
   
   NS_IMETHOD LoadBindings(nsIContent* aContent, nsIURI* aURL,
-                          nsIPrincipal* aOriginPrincipal, PRBool aAugmentFlag,
-                          nsXBLBinding** aBinding, PRBool* aResolveStyle);
+                          nsIPrincipal* aOriginPrincipal, bool aAugmentFlag,
+                          nsXBLBinding** aBinding, bool* aResolveStyle);
 
   
-  NS_IMETHOD BindingReady(nsIContent* aBoundElement, nsIURI* aURI, PRBool* aIsReady);
+  NS_IMETHOD BindingReady(nsIContent* aBoundElement, nsIURI* aURI, bool* aIsReady);
 
   
   NS_IMETHOD ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID, nsIAtom** aResult);
@@ -83,7 +83,7 @@ class nsXBLService : public nsIXBLService,
                                      nsIDocument* aBoundDocument,
                                      nsIURI* aBindingURI,
                                      nsIPrincipal* aOriginPrincipal,
-                                     PRBool aForceSyncLoad,
+                                     bool aForceSyncLoad,
                                      nsXBLDocumentInfo** aResult);
 
   
@@ -106,14 +106,14 @@ protected:
   
   nsresult FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoundDocument,
                                 nsIURI* aDocumentURI, nsIURI* aBindingURI, 
-                                PRBool aForceSyncLoad, nsIDocument** aResult);
+                                bool aForceSyncLoad, nsIDocument** aResult);
 
   
 
 
   nsresult GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
-                      PRBool aPeekFlag, nsIPrincipal* aOriginPrincipal,
-                      PRBool* aIsReady, nsXBLBinding** aResult);
+                      bool aPeekFlag, nsIPrincipal* aOriginPrincipal,
+                      bool* aIsReady, nsXBLBinding** aResult);
 
   
 
@@ -133,22 +133,22 @@ protected:
 
 
   nsresult GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
-                      PRBool aPeekFlag, nsIPrincipal* aOriginPrincipal,
-                      PRBool* aIsReady, nsXBLBinding** aResult,
+                      bool aPeekFlag, nsIPrincipal* aOriginPrincipal,
+                      bool* aIsReady, nsXBLBinding** aResult,
                       nsTArray<nsIURI*>& aDontExtendURIs);
 
 
 public:
   static PRUint32 gRefCnt;                   
 
-  static PRBool gDisableChromeCache;
+  static bool gDisableChromeCache;
 
   static nsHashtable* gClassTable;           
 
   static JSCList  gClassLRUList;             
   static PRUint32 gClassLRUListLength;       
   static PRUint32 gClassLRUListQuota;        
-  static PRBool   gAllowDataURIs;            
+  static bool     gAllowDataURIs;            
                                              
                                              
 

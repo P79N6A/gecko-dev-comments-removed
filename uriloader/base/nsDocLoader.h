@@ -134,7 +134,7 @@ protected:
 
     virtual nsresult SetDocLoaderParent(nsDocLoader * aLoader);
 
-    PRBool IsBusy();
+    bool IsBusy();
 
     void Destroy();
     virtual void DestroyChildren();
@@ -187,10 +187,10 @@ protected:
                               nsIRequest* aRequest,
                               nsIURI *aUri);
 
-    PRBool RefreshAttempted(nsIWebProgress* aWebProgress,
+    bool RefreshAttempted(nsIWebProgress* aWebProgress,
                             nsIURI *aURI,
                             PRInt32 aDelay,
-                            PRBool aSameURI);
+                            bool aSameURI);
 
     
     
@@ -210,7 +210,7 @@ protected:
 
     
     
-    PRBool ChildEnteringOnload(nsIDocumentLoader* aChild) {
+    bool ChildEnteringOnload(nsIDocumentLoader* aChild) {
         
         
         
@@ -261,20 +261,20 @@ protected:
 
 
 
-    PRPackedBool mIsLoadingDocument;
+    bool mIsLoadingDocument;
 
     
-    PRPackedBool mIsRestoringDocument;
-
-    
-
-    PRPackedBool mDontFlushLayout;
+    bool mIsRestoringDocument;
 
     
 
+    bool mDontFlushLayout;
+
+    
 
 
-    PRPackedBool mIsFlushingLayout;
+
+    bool mIsFlushingLayout;
 
 private:
     
@@ -288,7 +288,7 @@ private:
     
     
     
-    void DocLoaderIsEmpty(PRBool aFlushLayout);
+    void DocLoaderIsEmpty(bool aFlushLayout);
 
     nsListenerInfo *GetListenerInfo(nsIWebProgressListener* aListener);
 

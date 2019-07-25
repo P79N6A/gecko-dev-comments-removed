@@ -112,7 +112,7 @@ public:
   
 
 
-  PRBool GetScriptDeferred()
+  bool GetScriptDeferred()
   {
     NS_PRECONDITION(mFrozen, "Not ready for this call yet!");
     return mDefer;
@@ -121,7 +121,7 @@ public:
   
 
 
-  PRBool GetScriptAsync()
+  bool GetScriptAsync()
   {
     NS_PRECONDITION(mFrozen, "Not ready for this call yet!");
     return mAsync;  
@@ -130,7 +130,7 @@ public:
   
 
 
-  PRBool GetScriptExternal()
+  bool GetScriptExternal()
   {
     NS_PRECONDITION(mFrozen, "Not ready for this call yet!");
     return mExternal;
@@ -157,7 +157,7 @@ public:
   {
     mMalformed = PR_TRUE;
   }
-  PRBool IsMalformed()
+  bool IsMalformed()
   {
     return mMalformed;
   }
@@ -173,7 +173,7 @@ public:
     mUri = nsnull;
     mCreatorParser = nsnull;
     mParserCreated = mozilla::dom::NOT_FROM_PARSER;
-    PRBool async = PR_FALSE;
+    bool async = false;
     nsCOMPtr<nsIDOMHTMLScriptElement> htmlScript = do_QueryInterface(this);
     if (htmlScript) {
       htmlScript->GetAsync(&async);
@@ -226,44 +226,44 @@ protected:
   
 
 
-  PRPackedBool mAlreadyStarted;
+  bool mAlreadyStarted;
   
   
 
 
-  PRPackedBool mMalformed;
+  bool mMalformed;
   
   
 
 
-  PRPackedBool mDoneAddingChildren;
+  bool mDoneAddingChildren;
 
   
 
 
 
-  PRPackedBool mForceAsync;
+  bool mForceAsync;
 
   
 
 
-  PRPackedBool mFrozen;
+  bool mFrozen;
   
   
 
 
-  PRPackedBool mDefer;
+  bool mDefer;
   
   
 
 
-  PRPackedBool mAsync;
+  bool mAsync;
   
   
 
 
 
-  PRPackedBool mExternal;
+  bool mExternal;
 
   
 

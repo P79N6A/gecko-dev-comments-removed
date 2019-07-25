@@ -68,19 +68,19 @@
 #define UNALIGNEDBPR(cx,bits) (( ((cx)*(bits)) + 7) / 8)
 
 
-static  HPOINTER GetIcon(nsCString& file, PRBool fExists,
-                         PRBool fMini, PRBool *fWpsIcon);
-static  void DestroyIcon(HPOINTER hIcon, PRBool fWpsIcon);
+static  HPOINTER GetIcon(nsCString& file, bool fExists,
+                         bool fMini, bool *fWpsIcon);
+static  void DestroyIcon(HPOINTER hIcon, bool fWpsIcon);
 
 void    ConvertColorBitMap(PRUint8 *inBuf, PBITMAPINFO2 pBMInfo,
-                           PRUint8 *outBuf, PRBool fShrink);
+                           PRUint8 *outBuf, bool fShrink);
 void    ConvertMaskBitMap(PRUint8 *inBuf, PBITMAPINFO2 pBMInfo,
-                          PRUint8 *outBuf, PRBool fShrink);
+                          PRUint8 *outBuf, bool fShrink);
 
 
 
 
-static PRBool sUseRws = PR_TRUE;
+static bool sUseRws = true;
 
 
 
@@ -116,7 +116,7 @@ NS_IMETHODIMP nsIconChannel::GetName(nsACString &result)
   return mUrl->GetSpec(result);
 }
 
-NS_IMETHODIMP nsIconChannel::IsPending(PRBool *result)
+NS_IMETHODIMP nsIconChannel::IsPending(bool *result)
 {
   return mPump->IsPending(result);
 }
@@ -251,7 +251,7 @@ nsresult nsIconChannel::ExtractIconInfoFromUrl(nsIFile ** aLocalFile, PRUint32 *
 
 
 nsresult nsIconChannel::MakeInputStream(nsIInputStream **_retval,
-                                        PRBool nonBlocking)
+                                        bool nonBlocking)
 {
 
   
@@ -265,14 +265,14 @@ nsresult nsIconChannel::MakeInputStream(nsIInputStream **_retval,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  PRBool fileExists = PR_FALSE;
+  bool fileExists = false;
   if (localFile) {
     localFile->GetNativePath(filePath);
     localFile->Exists(&fileExists);
   }
 
   
-  PRBool fWpsIcon = PR_FALSE;
+  bool fWpsIcon = false;
   HPOINTER hIcon = GetIcon(filePath, fileExists,
                            desiredImageSize <= 16, &fWpsIcon);
   if (hIcon == NULLHANDLE)
@@ -287,7 +287,7 @@ nsresult nsIconChannel::MakeInputStream(nsIInputStream **_retval,
 
   
   
-  PRBool fShrink = FALSE;
+  bool fShrink = FALSE;
   if (desiredImageSize <= 16) {
     if (IconInfo.hbmMiniPointer) {
       IconInfo.hbmColor = IconInfo.hbmMiniColor;
@@ -444,8 +444,8 @@ nsresult nsIconChannel::MakeInputStream(nsIInputStream **_retval,
 
 
 
-static HPOINTER GetIcon(nsCString& file, PRBool fExists,
-                        PRBool fMini, PRBool *fWpsIcon)
+static HPOINTER GetIcon(nsCString& file, bool fExists,
+                        bool fMini, bool *fWpsIcon)
 {
   HPOINTER hRtn = 0;
   *fWpsIcon = PR_FALSE;
@@ -506,7 +506,7 @@ static HPOINTER GetIcon(nsCString& file, PRBool fExists,
 
 
 
-static void DestroyIcon(HPOINTER hIcon, PRBool fWpsIcon)
+static void DestroyIcon(HPOINTER hIcon, bool fWpsIcon)
 {
   if (fWpsIcon)
     WinDestroyPointer(hIcon);
@@ -525,7 +525,7 @@ static void DestroyIcon(HPOINTER hIcon, PRBool fWpsIcon)
 
 
 void ConvertColorBitMap(PRUint8 *inBuf, PBITMAPINFO2 pBMInfo,
-                        PRUint8 *outBuf, PRBool fShrink)
+                        PRUint8 *outBuf, bool fShrink)
 {
   PRUint32 next  = fShrink ? 2 : 1;
   PRUint32 bprIn = ALIGNEDBPR(pBMInfo->cx, pBMInfo->cBitCount);
@@ -575,7 +575,7 @@ void ConvertColorBitMap(PRUint8 *inBuf, PBITMAPINFO2 pBMInfo,
 
 
 void ConvertMaskBitMap(PRUint8 *inBuf, PBITMAPINFO2 pBMInfo,
-                       PRUint8 *outBuf, PRBool fShrink)
+                       PRUint8 *outBuf, bool fShrink)
 {
   PRUint32 next   = (fShrink ? 2 : 1);
   PRUint32 bprIn  = ALIGNEDBPR(pBMInfo->cx, pBMInfo->cBitCount);

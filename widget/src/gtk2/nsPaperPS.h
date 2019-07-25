@@ -47,7 +47,7 @@ struct nsPaperSizePS_ {
     const char *name;
     float width_mm;
     float height_mm;
-    PRBool isMetric;        
+    bool isMetric;        
 };
 
 class nsPaperSizePS {
@@ -60,7 +60,7 @@ class nsPaperSizePS {
         
 
 
-        PRBool AtEnd() { return mCurrent >= mCount; }
+        bool AtEnd() { return mCurrent >= mCount; }
 
         
 
@@ -81,7 +81,7 @@ class nsPaperSizePS {
 
 
 
-        PRBool Find(const char *aName);
+        bool Find(const char *aName);
 
         
 
@@ -111,7 +111,7 @@ class nsPaperSizePS {
 
 
 
-        PRBool IsMetric() {
+        bool IsMetric() {
             NS_PRECONDITION(!AtEnd(), "Invalid current item");
             return mList[mCurrent].isMetric;
         }

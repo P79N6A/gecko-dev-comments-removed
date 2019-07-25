@@ -117,7 +117,7 @@ public:
   
   void GetValueAsString(nsAString& aValue) const;
 
-  PRBool IsEmpty() const {
+  bool IsEmpty() const {
     return mData.IsEmpty();
   }
 
@@ -142,7 +142,7 @@ public:
   }
 
   
-  PRBool operator==(const SVGPathData& rhs) const {
+  bool operator==(const SVGPathData& rhs) const {
     
     
     return mData.Length() == rhs.mData.Length() &&
@@ -150,7 +150,7 @@ public:
                   mData.Length() * sizeof(float)) == 0;
   }
 
-  PRBool SetCapacity(PRUint32 aSize) {
+  bool SetCapacity(PRUint32 aSize) {
     return mData.SetCapacity(aSize);
   }
 
@@ -168,12 +168,12 @@ public:
   
 
 
-  PRBool GetSegmentLengths(nsTArray<double> *aLengths) const;
+  bool GetSegmentLengths(nsTArray<double> *aLengths) const;
 
   
 
 
-  PRBool GetDistancesFromOriginToEndsOfVisibleSegments(nsTArray<double> *aArray) const;
+  bool GetDistancesFromOriginToEndsOfVisibleSegments(nsTArray<double> *aArray) const;
 
   already_AddRefed<gfxFlattenedPath>
   ToFlattenedPath(const gfxMatrix& aMatrix) const;
@@ -207,7 +207,7 @@ protected:
 
 
 
-  PRBool SetLength(PRUint32 aLength) {
+  bool SetLength(PRUint32 aLength) {
     return mData.SetLength(aLength);
   }
 
@@ -263,7 +263,7 @@ public:
     return SVGPathData::CopyFrom(rhs);
   }
 
-  PRBool IsIdentity() const {
+  bool IsIdentity() const {
     if (!mElement) {
       NS_ABORT_IF_FALSE(IsEmpty(), "target element propagation failure");
       return PR_TRUE;

@@ -153,7 +153,7 @@ public:
 
 
 
-  void AddInstanceTime(nsSMILInstanceTime* aInstanceTime, PRBool aIsBegin);
+  void AddInstanceTime(nsSMILInstanceTime* aInstanceTime, bool aIsBegin);
 
   
 
@@ -170,7 +170,7 @@ public:
 
   void UpdateInstanceTime(nsSMILInstanceTime* aInstanceTime,
                           nsSMILTimeValue& aUpdatedTime,
-                          PRBool aIsBegin);
+                          bool aIsBegin);
 
   
 
@@ -181,7 +181,7 @@ public:
 
 
 
-  void RemoveInstanceTime(nsSMILInstanceTime* aInstanceTime, PRBool aIsBegin);
+  void RemoveInstanceTime(nsSMILInstanceTime* aInstanceTime, bool aIsBegin);
 
   
 
@@ -194,7 +194,7 @@ public:
 
 
   void RemoveInstanceTimesForCreator(const nsSMILTimeValueSpec* aSpec,
-                                     PRBool aIsBegin);
+                                     bool aIsBegin);
 
   
 
@@ -270,7 +270,7 @@ public:
 
 
 
-  PRBool SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
+  bool SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
                  nsAttrValue& aResult, Element* aContextNode,
                  nsresult* aParseResult = nsnull);
 
@@ -284,7 +284,7 @@ public:
 
 
 
-  PRBool UnsetAttr(nsIAtom* aAttribute);
+  bool UnsetAttr(nsIAtom* aAttribute);
 
   
 
@@ -317,7 +317,7 @@ public:
 
 
 
-  PRBool IsTimeDependent(const nsSMILTimedElement& aOther) const;
+  bool IsTimeDependent(const nsSMILTimedElement& aOther) const;
 
   
 
@@ -346,7 +346,7 @@ public:
   void Traverse(nsCycleCollectionTraversalCallback* aCallback);
   void Unlink();
 
-  typedef PRBool (*RemovalTestFunction)(nsSMILInstanceTime* aInstance);
+  typedef bool (*RemovalTestFunction)(nsSMILInstanceTime* aInstance);
 
 protected:
   
@@ -359,9 +359,9 @@ protected:
   
   class InstanceTimeComparator {
     public:
-      PRBool Equals(const nsSMILInstanceTime* aElem1,
+      bool Equals(const nsSMILInstanceTime* aElem1,
                     const nsSMILInstanceTime* aElem2) const;
-      PRBool LessThan(const nsSMILInstanceTime* aElem1,
+      bool LessThan(const nsSMILInstanceTime* aElem1,
                       const nsSMILInstanceTime* aElem2) const;
   };
 
@@ -404,13 +404,13 @@ protected:
 
   nsresult          SetBeginOrEndSpec(const nsAString& aSpec,
                                       Element* aContextNode,
-                                      PRBool aIsBegin,
+                                      bool aIsBegin,
                                       RemovalTestFunction aRemove);
   void              ClearSpecs(TimeValueSpecList& aSpecs,
                                InstanceTimeList& aInstances,
                                RemovalTestFunction aRemove);
   void              ClearIntervals();
-  void              DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly);
+  void              DoSampleAt(nsSMILTime aContainerTime, bool aEndOnly);
 
   
 
@@ -426,7 +426,7 @@ protected:
 
 
 
-  PRBool ApplyEarlyEnd(const nsSMILTimeValue& aSampleTime);
+  bool ApplyEarlyEnd(const nsSMILTimeValue& aSampleTime);
 
   
 
@@ -484,7 +484,7 @@ protected:
 
 
 
-  PRBool            GetNextInterval(const nsSMILInterval* aPrevInterval,
+  bool              GetNextInterval(const nsSMILInterval* aPrevInterval,
                                     const nsSMILInterval* aReplacedInterval,
                                     const nsSMILInstanceTime* aFixedBeginTime,
                                     nsSMILInterval& aResult) const;
@@ -502,13 +502,13 @@ protected:
                                            PRUint32& aRepeatIteration);
   nsSMILInstanceTime* CheckForEarlyEnd(
                         const nsSMILTimeValue& aContainerTime) const;
-  void              UpdateCurrentInterval(PRBool aForceChangeNotice = PR_FALSE);
+  void              UpdateCurrentInterval(bool aForceChangeNotice = false);
   void              SampleSimpleTime(nsSMILTime aActiveTime);
   void              SampleFillValue();
   nsresult          AddInstanceTimeFromCurrentTime(nsSMILTime aCurrentTime,
-                        double aOffsetSeconds, PRBool aIsBegin);
+                        double aOffsetSeconds, bool aIsBegin);
   void              RegisterMilestone();
-  PRBool            GetNextMilestone(nsSMILMilestone& aNextMilestone) const;
+  bool              GetNextMilestone(nsSMILMilestone& aNextMilestone) const;
 
   
   
@@ -518,15 +518,15 @@ protected:
   
   void              NotifyNewInterval();
   void              NotifyChangedInterval(nsSMILInterval* aInterval,
-                                          PRBool aBeginObjectChanged,
-                                          PRBool aEndObjectChanged);
+                                          bool aBeginObjectChanged,
+                                          bool aEndObjectChanged);
 
   void              FireTimeEventAsync(PRUint32 aMsg, PRInt32 aDetail);
   const nsSMILInstanceTime* GetEffectiveBeginInstance() const;
   const nsSMILInterval* GetPreviousInterval() const;
-  PRBool            HasPlayed() const { return !mOldIntervals.IsEmpty(); }
-  PRBool            HaveDefiniteEndTimes() const;
-  PRBool            EndHasEventConditions() const;
+  bool              HasPlayed() const { return !mOldIntervals.IsEmpty(); }
+  bool              HaveDefiniteEndTimes() const;
+  bool              EndHasEventConditions() const;
 
   
   
@@ -623,8 +623,8 @@ protected:
 
   
   class AutoIntervalUpdateBatcher;
-  PRPackedBool mDeferIntervalUpdates;
-  PRPackedBool mDoDeferredUpdate; 
+  bool mDeferIntervalUpdates;
+  bool mDoDeferredUpdate; 
                                   
                                   
 

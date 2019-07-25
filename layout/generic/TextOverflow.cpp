@@ -597,7 +597,7 @@ TextOverflow::CanHaveTextOverflow(nsDisplayListBuilder* aBuilder,
 
   
   nsRefPtr<nsCaret> caret = aBlockFrame->PresContext()->PresShell()->GetCaret();
-  PRBool visible = PR_FALSE;
+  bool visible = false;
   if (caret && NS_SUCCEEDED(caret->GetCaretVisible(&visible)) && visible) {
     nsCOMPtr<nsISelection> domSelection = caret->GetCaretDOMSelection();
     if (domSelection) {

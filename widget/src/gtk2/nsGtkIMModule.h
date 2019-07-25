@@ -91,7 +91,7 @@ public:
 
     
     
-    PRBool IsEnabled();
+    bool IsEnabled();
 
     
     void OnFocusWindow(nsWindow* aWindow);
@@ -100,15 +100,15 @@ public:
     
     void OnDestroyWindow(nsWindow* aWindow);
     
-    void OnFocusChangeInGecko(PRBool aFocus);
+    void OnFocusChangeInGecko(bool aFocus);
 
     
     
     
     
     
-    PRBool OnKeyEvent(nsWindow* aWindow, GdkEventKey* aEvent,
-                      PRBool aKeyDownEventWasSent = PR_FALSE);
+    bool OnKeyEvent(nsWindow* aWindow, GdkEventKey* aEvent,
+                      bool aKeyDownEventWasSent = false);
 
     
     nsresult ResetInputState(nsWindow* aCaller);
@@ -118,7 +118,7 @@ public:
 
     
     
-    static PRBool IsVirtualKeyboardOpened();
+    static bool IsVirtualKeyboardOpened();
 
 protected:
     
@@ -171,25 +171,25 @@ protected:
     
     
     
-    PRPackedBool mIsComposing;
+    bool mIsComposing;
     
     
-    PRPackedBool mIsIMFocused;
-    
-    
-    
-    PRPackedBool mFilterKeyEvent;
+    bool mIsIMFocused;
     
     
     
-    
-    PRPackedBool mIgnoreNativeCompositionEvent;
+    bool mFilterKeyEvent;
     
     
     
     
+    bool mIgnoreNativeCompositionEvent;
     
-    PRPackedBool mKeyDownEventWasSent;
+    
+    
+    
+    
+    bool mKeyDownEventWasSent;
 
     
     
@@ -234,10 +234,10 @@ protected:
     
     
     
-    PRBool IsEditable();
+    bool IsEditable();
 
     
-    PRBool IsDestroyed() { return !mOwnerWindow; }
+    bool IsDestroyed() { return !mOwnerWindow; }
 
     
     void Focus();
@@ -276,7 +276,7 @@ protected:
     
     void PrepareToDestroyContext(GtkIMContext *aContext);
 
-    PRBool ShouldIgnoreNativeCompositionEvent();
+    bool ShouldIgnoreNativeCompositionEvent();
 
     
 
@@ -290,16 +290,16 @@ protected:
 
 
     
-    PRBool CommitCompositionBy(const nsAString& aString);
+    bool CommitCompositionBy(const nsAString& aString);
 
     
-    PRBool DispatchCompositionStart();
-    PRBool DispatchCompositionEnd();
+    bool DispatchCompositionStart();
+    bool DispatchCompositionEnd();
 
     
     
-    PRBool DispatchTextEvent(const nsAString& aCompositionString,
-                             PRBool aCheckAttr);
+    bool DispatchTextEvent(const nsAString& aCompositionString,
+                             bool aCheckAttr);
 
 };
 

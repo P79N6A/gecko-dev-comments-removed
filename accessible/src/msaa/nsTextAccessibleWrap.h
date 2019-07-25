@@ -91,7 +91,7 @@ public:
 
     
     nsIFrame* GetPointFromOffset(nsIFrame *aContainingFrame,
-                                 PRInt32 aOffset, PRBool aPreferNext, nsPoint& aOutPoint);
+                                 PRInt32 aOffset, bool aPreferNext, nsPoint& aOutPoint);
 };
 
 #endif

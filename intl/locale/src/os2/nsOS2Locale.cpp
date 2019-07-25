@@ -156,7 +156,7 @@ nsOS2Locale::GetXPLocale(const char* os2Locale, nsAString& locale)
 
 
 
-PRBool
+bool
 nsOS2Locale::ParseLocaleString(const char* locale_string, char* language, char* country, char* extra, char separator)
 {
   const char *src = locale_string;

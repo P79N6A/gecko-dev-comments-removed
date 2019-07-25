@@ -76,7 +76,7 @@ public:
                     "Shouldn't have both root flags");
   }
 
-  PRBool Init() {
+  bool Init() {
     return mPendingRestyles.Init();
   }
 
@@ -88,7 +88,7 @@ public:
 
 
 
-  PRBool AddPendingRestyle(Element* aElement, nsRestyleHint aRestyleHint,
+  bool AddPendingRestyle(Element* aElement, nsRestyleHint aRestyleHint,
                            nsChangeHint aMinChangeHint);
 
   
@@ -122,7 +122,7 @@ public:
 
 
 
-  PRBool GetRestyleData(Element* aElement, RestyleData* aData);
+  bool GetRestyleData(Element* aElement, RestyleData* aData);
 
   
 
@@ -166,10 +166,10 @@ private:
   
   
   
-  PRBool mHaveLaterSiblingRestyles;
+  bool mHaveLaterSiblingRestyles;
 };
 
-inline PRBool RestyleTracker::AddPendingRestyle(Element* aElement,
+inline bool RestyleTracker::AddPendingRestyle(Element* aElement,
                                                 nsRestyleHint aRestyleHint,
                                                 nsChangeHint aMinChangeHint)
 {
@@ -186,7 +186,7 @@ inline PRBool RestyleTracker::AddPendingRestyle(Element* aElement,
     aElement->SetFlags(RestyleBit());
   }
 
-  PRBool hadRestyleLaterSiblings =
+  bool hadRestyleLaterSiblings =
     (existingData.mRestyleHint & eRestyle_LaterSiblings) != 0;
   existingData.mRestyleHint =
     nsRestyleHint(existingData.mRestyleHint | aRestyleHint);

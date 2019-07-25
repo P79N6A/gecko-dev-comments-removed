@@ -257,13 +257,13 @@ GeckoProcessType sChildProcessType = GeckoProcessType_Default;
 
 
 
-PRBool
+bool
 XRE_TakeMinidumpForChild(PRUint32 aChildPid, nsILocalFile** aDump)
 {
   return CrashReporter::TakeMinidumpForChild(aChildPid, aDump);
 }
 
-PRBool
+bool
 XRE_SetRemoteExceptionHandler(const char* aPipe)
 {
 #if defined(XP_WIN) || defined(XP_MACOSX)

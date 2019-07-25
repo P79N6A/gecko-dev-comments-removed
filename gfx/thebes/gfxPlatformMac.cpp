@@ -160,7 +160,7 @@ gfxPlatformMac::OptimizeImage(gfxImageSurface *aSurface,
 nsresult
 gfxPlatformMac::ResolveFontName(const nsAString& aFontName,
                                 FontResolverCallback aCallback,
-                                void *aClosure, PRBool& aAborted)
+                                void *aClosure, bool& aAborted)
 {
     nsAutoString resolvedName;
     if (!gfxPlatformFontList::PlatformFontList()->
@@ -208,7 +208,7 @@ gfxPlatformMac::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
                                                                      aLength);
 }
 
-PRBool
+bool
 gfxPlatformMac::IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags)
 {
     
@@ -270,7 +270,7 @@ gfxPlatformMac::ReadAntiAliasingThreshold()
     PRUint32 threshold = 0;  
     
     
-    PRBool useAntiAliasingThreshold = Preferences::GetBool("gfx.use_text_smoothing_setting", PR_FALSE);
+    bool useAntiAliasingThreshold = Preferences::GetBool("gfx.use_text_smoothing_setting", false);
 
     
     if (!useAntiAliasingThreshold)

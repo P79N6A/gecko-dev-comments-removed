@@ -100,7 +100,7 @@ public:
 
 
 
-  virtual void SetIsDocumentActive(PRBool aIsActive) = 0;
+  virtual void SetIsDocumentActive(bool aIsActive) = 0;
 };
 
 #endif 

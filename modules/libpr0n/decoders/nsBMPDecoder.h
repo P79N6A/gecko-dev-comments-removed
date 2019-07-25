@@ -65,7 +65,7 @@ public:
     
     
     
-    void SetUseAlphaData(PRBool useAlphaData);
+    void SetUseAlphaData(bool useAlphaData);
     
     PRInt32 GetBitsPerPixel() const;
     
@@ -78,7 +78,7 @@ public:
     PRInt32 GetCompressedImageSize() const;
     
     
-    PRBool HasAlphaData() const;
+    bool HasAlphaData() const;
 
     virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
     virtual void FinishInternal();
@@ -127,9 +127,9 @@ private:
     
     
     
-    PRPackedBool mUseAlphaData;
+    bool mUseAlphaData;
     
-    PRPackedBool mHaveAlphaData;
+    bool mHaveAlphaData;
 };
 
 

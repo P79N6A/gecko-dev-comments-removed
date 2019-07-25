@@ -90,9 +90,9 @@ protected:
   friend class nsSHistoryObserver;
 
    
-   NS_IMETHOD GetEntryAtIndex(PRInt32 aIndex, PRBool aModifyIndex, nsISHEntry** aResult);
+   NS_IMETHOD GetEntryAtIndex(PRInt32 aIndex, bool aModifyIndex, nsISHEntry** aResult);
    NS_IMETHOD GetTransactionAtIndex(PRInt32 aIndex, nsISHTransaction ** aResult);
-   nsresult CompareFrames(nsISHEntry * prevEntry, nsISHEntry * nextEntry, nsIDocShell * rootDocShell, long aLoadType, PRBool * aIsFrameFound);
+   nsresult CompareFrames(nsISHEntry * prevEntry, nsISHEntry * nextEntry, nsIDocShell * rootDocShell, long aLoadType, bool * aIsFrameFound);
    nsresult InitiateLoad(nsISHEntry * aFrameEntry, nsIDocShell * aFrameDS, long aLoadType);
 
    NS_IMETHOD LoadEntry(PRInt32 aIndex, long aLoadType, PRUint32 histCmd);
@@ -118,7 +118,7 @@ protected:
   
   
   
-  PRBool RemoveDuplicate(PRInt32 aIndex, PRBool aKeepNext);
+  bool RemoveDuplicate(PRInt32 aIndex, bool aKeepNext);
 
   nsCOMPtr<nsISHTransaction> mListRoot;
   PRInt32 mIndex;

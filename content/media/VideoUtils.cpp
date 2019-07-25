@@ -41,7 +41,7 @@
 
 
 
-PRBool AddOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult) {
+bool AddOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult) {
   PRUint64 rl = static_cast<PRUint64>(a) + static_cast<PRUint64>(b);
   if (rl > PR_UINT32_MAX) {
     return PR_FALSE;
@@ -50,7 +50,7 @@ PRBool AddOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult) {
   return true;
 }
 
-PRBool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult)
+bool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult)
 {
   
   
@@ -66,7 +66,7 @@ PRBool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult)
 
 
 
-PRBool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
+bool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
   if (b < 1) {
     if (PR_INT64_MIN - b <= a) {
       aResult = a + b;
@@ -82,7 +82,7 @@ PRBool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
 
 
 
-PRBool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
+bool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
   
   
   
@@ -178,7 +178,7 @@ PRBool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
 
 
 
-PRBool FramesToUsecs(PRInt64 aFrames, PRUint32 aRate, PRInt64& aOutUsecs)
+bool FramesToUsecs(PRInt64 aFrames, PRUint32 aRate, PRInt64& aOutUsecs)
 {
   PRInt64 x;
   if (!MulOverflow(aFrames, USECS_PER_S, x))
@@ -189,7 +189,7 @@ PRBool FramesToUsecs(PRInt64 aFrames, PRUint32 aRate, PRInt64& aOutUsecs)
 
 
 
-PRBool UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutFrames)
+bool UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutFrames)
 {
   PRInt64 x;
   if (!MulOverflow(aUsecs, aRate, x))

@@ -56,7 +56,7 @@ protected:
 
   
   
-  virtual PRBool   IsEqual(const nsSMILValue& aLeft,
+  virtual bool     IsEqual(const nsSMILValue& aLeft,
                            const nsSMILValue& aRight) const;
   virtual nsresult Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
                        PRUint32 aCount) const;

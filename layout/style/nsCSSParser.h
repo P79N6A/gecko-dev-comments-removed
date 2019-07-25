@@ -84,10 +84,10 @@ public:
   nsresult SetStyleSheet(nsCSSStyleSheet* aSheet);
 
   
-  nsresult SetQuirkMode(PRBool aQuirkMode);
+  nsresult SetQuirkMode(bool aQuirkMode);
 
   
-  nsresult SetSVGMode(PRBool aSVGMode);
+  nsresult SetSVGMode(bool aSVGMode);
 
   
   nsresult SetChildLoader(mozilla::css::Loader* aChildLoader);
@@ -113,7 +113,7 @@ public:
                       nsIURI*          aBaseURI,
                       nsIPrincipal*    aSheetPrincipal,
                       PRUint32         aLineNumber,
-                      PRBool           aAllowUnsafeRules);
+                      bool             aAllowUnsafeRules);
 
   
   
@@ -134,7 +134,7 @@ public:
                              nsIURI*           aBaseURL,
                              nsIPrincipal*     aSheetPrincipal,
                              mozilla::css::Declaration* aDeclaration,
-                             PRBool*           aChanged);
+                             bool*           aChanged);
 
   nsresult ParseRule(const nsAString&        aRule,
                      nsIURI*                 aSheetURL,
@@ -148,8 +148,8 @@ public:
                          nsIURI*             aBaseURL,
                          nsIPrincipal*       aSheetPrincipal,
                          mozilla::css::Declaration* aDeclaration,
-                         PRBool*             aChanged,
-                         PRBool              aIsImportant);
+                         bool*             aChanged,
+                         bool                aIsImportant);
 
   
 
@@ -163,7 +163,7 @@ public:
                           nsIURI*            aURL,
                           PRUint32           aLineNumber,
                           nsMediaList*       aMediaList,
-                          PRBool             aHTMLMode);
+                          bool               aHTMLMode);
 
   
 

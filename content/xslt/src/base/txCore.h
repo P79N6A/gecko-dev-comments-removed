@@ -81,17 +81,17 @@ public:
 
 
 
-    static PRBool isInfinite(double aDbl);
+    static bool isInfinite(double aDbl);
 
     
 
 
-    static PRBool isNaN(double aDbl);
+    static bool isNaN(double aDbl);
 
     
 
 
-    static PRBool isNeg(double aDbl);
+    static bool isNeg(double aDbl);
 
     
 
@@ -109,7 +109,7 @@ public:
 
 #define TxObject txObject
 typedef txDouble Double;
-typedef PRBool MBool;
+typedef bool MBool;
 
 #define MB_TRUE  PR_TRUE
 #define MB_FALSE PR_FALSE

@@ -358,7 +358,7 @@ ClearContainer(ContainerLayer* aContainer)
 
 
 
-static PRBool
+static bool
 IsTempLayerManager(LayerManager* aManager)
 {
   return (LayerManager::LAYERS_BASIC == aManager->GetBackendType() &&

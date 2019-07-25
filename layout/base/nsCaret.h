@@ -80,24 +80,24 @@ class nsCaret : public nsISelectionListener
 
 
 
-    virtual nsresult    GetCaretVisible(PRBool *outMakeVisible);
+    virtual nsresult    GetCaretVisible(bool *outMakeVisible);
 
     
 
 
-    void    SetCaretVisible(PRBool intMakeVisible);
-
-    
-
-
-
-    void    SetCaretReadOnly(PRBool inMakeReadonly);
+    void    SetCaretVisible(bool intMakeVisible);
 
     
 
 
 
-    PRBool GetCaretReadOnly()
+    void    SetCaretReadOnly(bool inMakeReadonly);
+
+    
+
+
+
+    bool GetCaretReadOnly()
     {
       return mReadOnly;
     }
@@ -119,7 +119,7 @@ class nsCaret : public nsISelectionListener
 
     void    EraseCaret();
 
-    void    SetVisibilityDuringSelection(PRBool aVisibility);
+    void    SetVisibilityDuringSelection(bool aVisibility);
 
     
 
@@ -181,7 +181,7 @@ class nsCaret : public nsISelectionListener
 
 
 
-    void SetIgnoreUserModify(PRBool aIgnoreUserModify);
+    void SetIgnoreUserModify(bool aIgnoreUserModify);
 
     
     NS_DECL_NSISELECTIONLISTENER
@@ -209,11 +209,11 @@ protected:
     
     void          InvalidateTextOverflowBlock();
     
-    PRBool        DrawAtPositionWithHint(nsIDOMNode* aNode,
+    bool          DrawAtPositionWithHint(nsIDOMNode* aNode,
                                          PRInt32 aOffset,
                                          nsFrameSelection::HINT aFrameHint,
                                          PRUint8 aBidiLevel,
-                                         PRBool aInvalidate);
+                                         bool aInvalidate);
 
     struct Metrics {
       nscoord mBidiIndicatorSize; 
@@ -230,11 +230,11 @@ protected:
     
     
     
-    PRBool        MustDrawCaret(PRBool aIgnoreDrawnState);
+    bool          MustDrawCaret(bool aIgnoreDrawnState);
 
-    void          DrawCaret(PRBool aInvalidate);
+    void          DrawCaret(bool aInvalidate);
     void          DrawCaretAfterBriefDelay();
-    PRBool        UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset);
+    bool          UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset);
     static void   InvalidateRects(const nsRect &aRect, const nsRect &aHook,
                                   nsIFrame *aFrame);
     nsRect        GetHookRect()
@@ -257,7 +257,7 @@ protected:
     
     
     
-    PRBool IsMenuPopupHidingCaret();
+    bool IsMenuPopupHidingCaret();
 
 protected:
 
@@ -272,19 +272,19 @@ protected:
     nscoord               mCaretWidthCSSPx;   
     float                 mCaretAspectRatio;  
     
-    PRPackedBool          mVisible;           
+    bool                  mVisible;           
 
-    PRPackedBool          mDrawn;             
-    PRPackedBool          mPendingDraw;       
+    bool                  mDrawn;             
+    bool                  mPendingDraw;       
 
-    PRPackedBool          mReadOnly;          
-    PRPackedBool          mShowDuringSelection; 
+    bool                  mReadOnly;          
+    bool                  mShowDuringSelection; 
 
-    PRPackedBool          mIgnoreUserModify;
+    bool                  mIgnoreUserModify;
 
 #ifdef IBMBIDI
-    PRPackedBool          mKeyboardRTL;       
-    PRPackedBool          mBidiUI;            
+    bool                  mKeyboardRTL;       
+    bool                  mBidiUI;            
     nsRect                mHookRect;          
     PRUint8               mLastBidiLevel;     
 #endif
@@ -326,7 +326,7 @@ public:
 
 protected:
 
-    PRBool                  mWasVisible;
+    bool                    mWasVisible;
     nsCOMPtr<nsCaret>  mCaret;
 };
 

@@ -56,7 +56,7 @@ public:
   
   NS_FORWARD_TO_NSDOMEVENT
 protected:
-  PRBool mPersisted;
+  bool mPersisted;
 };
 
 #endif 

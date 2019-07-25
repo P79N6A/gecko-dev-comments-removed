@@ -72,7 +72,7 @@ public:
   NS_DECL_ISUPPORTS
   
   NS_IMETHOD OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
-  NS_IMETHOD OnDataAvailable(imgIRequest *aRequest, PRBool aCurrentFrame,
+  NS_IMETHOD OnDataAvailable(imgIRequest *aRequest, bool aCurrentFrame,
                              const nsIntRect *aRect);
   
   NS_IMETHOD FrameChanged(imgIContainer *aContainer,
@@ -90,7 +90,7 @@ private:
   nsITreeBoxObject* mTree;
 
   
-  PRBool mInvalidationSuppressed;
+  bool mInvalidationSuppressed;
 
   class InvalidationArea {
     public:

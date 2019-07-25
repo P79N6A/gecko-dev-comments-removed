@@ -89,8 +89,8 @@ protected:
   nsCOMPtr<imgIRequest> mIconRequest;
   nsMenuObjectX*        mMenuObject; 
   nsIntRect             mImageRegionRect;
-  PRPackedBool          mLoadedIcon;
-  PRPackedBool          mSetIcon;
+  bool                  mLoadedIcon;
+  bool                  mSetIcon;
   NSMenuItem*           mNativeMenuItem; 
 };
 

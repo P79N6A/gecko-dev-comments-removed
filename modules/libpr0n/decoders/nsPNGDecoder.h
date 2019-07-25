@@ -105,12 +105,12 @@ public:
   PRUint32 mHeaderBytesRead;
 
   PRUint8 mChannels;
-  PRPackedBool mFrameHasNoAlpha;
-  PRPackedBool mFrameIsHidden;
+  bool mFrameHasNoAlpha;
+  bool mFrameIsHidden;
 
   
   PRUint32 mCMSMode;
-  PRPackedBool mDisablePremultipliedAlpha;
+  bool mDisablePremultipliedAlpha;
   
   
 

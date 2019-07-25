@@ -125,7 +125,7 @@ public:
 
     nsIAtom* GetMemberVariable() { return mMemberVariable; }
 
-    PRBool IsSimple() { return mSimple; }
+    bool IsSimple() { return mSimple; }
 
     void SetSimple() { mSimple = PR_TRUE; }
 
@@ -138,7 +138,7 @@ protected:
     nsXULTemplateQueryProcessorRDF* mProcessor;
 
     
-    PRBool mSimple;
+    bool mSimple;
 
     
 

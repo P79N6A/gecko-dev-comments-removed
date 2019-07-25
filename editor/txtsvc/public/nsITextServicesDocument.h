@@ -173,7 +173,7 @@ public:
 
 
 
-  NS_IMETHOD IsDone(PRBool *aIsDone) = 0;
+  NS_IMETHOD IsDone(bool *aIsDone) = 0;
 
   
 

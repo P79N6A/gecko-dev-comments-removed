@@ -100,8 +100,8 @@ nsSMILInstanceTime::Unlink()
 void
 nsSMILInstanceTime::HandleChangedInterval(
     const nsSMILTimeContainer* aSrcContainer,
-    PRBool aBeginObjectChanged,
-    PRBool aEndObjectChanged)
+    bool aBeginObjectChanged,
+    bool aEndObjectChanged)
 {
   
   
@@ -118,10 +118,10 @@ nsSMILInstanceTime::HandleChangedInterval(
     return;
   }
 
-  PRBool objectChanged = mCreator->DependsOnBegin() ? aBeginObjectChanged :
+  bool objectChanged = mCreator->DependsOnBegin() ? aBeginObjectChanged :
                                                       aEndObjectChanged;
 
-  mozilla::AutoRestore<PRPackedBool> setVisited(mVisited);
+  mozilla::AutoRestore<bool> setVisited(mVisited);
   mVisited = PR_TRUE;
 
   nsRefPtr<nsSMILInstanceTime> deathGrip(this);
@@ -155,7 +155,7 @@ nsSMILInstanceTime::HandleFilteredInterval()
   mCreator = nsnull;
 }
 
-PRBool
+bool
 nsSMILInstanceTime::ShouldPreserve() const
 {
   return mFixedEndpointRefCnt > 0 || (mFlags & kWasDynamicEndpoint);
@@ -186,7 +186,7 @@ nsSMILInstanceTime::ReleaseFixedEndpoint()
   }
 }
 
-PRBool
+bool
 nsSMILInstanceTime::IsDependentOn(const nsSMILInstanceTime& aOther) const
 {
   if (mVisited)
@@ -200,7 +200,7 @@ nsSMILInstanceTime::IsDependentOn(const nsSMILInstanceTime& aOther) const
     return PR_TRUE;
 
   
-  mozilla::AutoRestore<PRPackedBool> setVisited(const_cast<nsSMILInstanceTime*>(this)->mVisited);
+  mozilla::AutoRestore<bool> setVisited(const_cast<nsSMILInstanceTime*>(this)->mVisited);
   const_cast<nsSMILInstanceTime*>(this)->mVisited = PR_TRUE;
   return myBaseTime->IsDependentOn(aOther);
 }

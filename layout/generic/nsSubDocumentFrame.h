@@ -62,7 +62,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     
     return nsLeafFrame::IsFrameOfType(aFlags &
@@ -84,12 +84,12 @@ public:
   virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
-                                 nsSize aPadding, PRBool aShrinkWrap);
+                                 nsSize aPadding, bool aShrinkWrap);
 
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             PRBool aShrinkWrap);
+                             bool aShrinkWrap);
 
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
@@ -108,7 +108,7 @@ public:
   
   
   
-  virtual PRBool SupportsVisibilityHidden() { return PR_FALSE; }
+  virtual bool SupportsVisibilityHidden() { return false; }
 
 #ifdef ACCESSIBILITY
   virtual already_AddRefed<nsAccessible> CreateAccessible();
@@ -121,7 +121,7 @@ public:
   nsIFrame* GetSubdocumentRootFrame();
 
   
-  virtual PRBool ReflowFinished();
+  virtual bool ReflowFinished();
   virtual void ReflowCallbackCanceled();
 
 protected:
@@ -132,7 +132,7 @@ protected:
 
   nsFrameLoader* FrameLoader();
 
-  PRBool IsInline() { return mIsInline; }
+  bool IsInline() { return mIsInline; }
 
   virtual nscoord GetIntrinsicWidth();
   virtual nscoord GetIntrinsicHeight();
@@ -155,10 +155,10 @@ protected:
 
   nsRefPtr<nsFrameLoader> mFrameLoader;
   nsIView* mInnerView;
-  PRPackedBool mIsInline;
-  PRPackedBool mPostedReflowCallback;
-  PRPackedBool mDidCreateDoc;
-  PRPackedBool mCallingShow;
+  bool mIsInline;
+  bool mPostedReflowCallback;
+  bool mDidCreateDoc;
+  bool mCallingShow;
 };
 
 #endif 

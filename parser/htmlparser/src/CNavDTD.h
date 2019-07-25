@@ -170,7 +170,7 @@ private:
 
 
 
-    PRBool CanPropagate(eHTMLTags aParent,
+    bool CanPropagate(eHTMLTags aParent,
                         eHTMLTags aChild,
                         PRInt32 aParentContains);
 
@@ -184,7 +184,7 @@ private:
 
 
 
-    PRBool CanOmit(eHTMLTags aParent, 
+    bool CanOmit(eHTMLTags aParent, 
                    eHTMLTags aChild,
                    PRInt32& aParentContains);
 
@@ -197,7 +197,7 @@ private:
 
 
 
-    PRBool ForwardPropagate(nsString& aSequence,
+    bool ForwardPropagate(nsString& aSequence,
                             eHTMLTags aParent,
                             eHTMLTags aChild);
 
@@ -211,7 +211,7 @@ private:
 
 
 
-    PRBool BackwardPropagate(nsString& aSequence,
+    bool BackwardPropagate(nsString& aSequence,
                              eHTMLTags aParent,
                              eHTMLTags aChild) const;
 
@@ -230,7 +230,7 @@ private:
 
 
 
-    PRBool HasOpenContainer(eHTMLTags aContainer) const;
+    bool HasOpenContainer(eHTMLTags aContainer) const;
 
     
 
@@ -239,7 +239,7 @@ private:
 
 
 
-    PRBool HasOpenContainer(const eHTMLTags aTagSet[], PRInt32 aCount) const;
+    bool HasOpenContainer(const eHTMLTags aTagSet[], PRInt32 aCount) const;
 
     
 
@@ -305,12 +305,12 @@ private:
 
 
 
-    nsresult CloseContainer(const eHTMLTags aTag, PRBool aMalformed);
-    nsresult CloseContainersTo(eHTMLTags aTag, PRBool aClosedByStartTag);
+    nsresult CloseContainer(const eHTMLTags aTag, bool aMalformed);
+    nsresult CloseContainersTo(eHTMLTags aTag, bool aClosedByStartTag);
     nsresult CloseContainersTo(PRInt32 anIndex, eHTMLTags aTag,
-                               PRBool aClosedByStartTag);
+                               bool aClosedByStartTag);
     nsresult CloseResidualStyleTags(const eHTMLTags aTag,
-                                    PRBool aClosedByStartTag);
+                                    bool aClosedByStartTag);
 
     
 
@@ -329,7 +329,7 @@ private:
 
 
     nsresult  OpenTransientStyles(eHTMLTags aChildTag,
-                                  PRBool aCloseInvalid = PR_TRUE);
+                                  bool aCloseInvalid = true);
     void      PopStyle(eHTMLTags aTag);
 
     nsresult  PushIntoMisplacedStack(CToken* aToken)
@@ -371,9 +371,9 @@ protected:
                                      eHTMLTags aParent, nsIParserNode *aNode);
     nsresult        HandleSavedTokens(PRInt32 anIndex);
     nsresult        HandleKeyGen(nsIParserNode *aNode);
-    PRBool          IsAlternateTag(eHTMLTags aTag);
-    PRBool          IsBlockElement(PRInt32 aTagID, PRInt32 aParentID) const;
-    PRBool          IsInlineElement(PRInt32 aTagID, PRInt32 aParentID) const;
+    bool            IsAlternateTag(eHTMLTags aTag);
+    bool            IsBlockElement(PRInt32 aTagID, PRInt32 aParentID) const;
+    bool            IsInlineElement(PRInt32 aTagID, PRInt32 aParentID) const;
 
     nsDeque             mMisplacedContent;
     
@@ -381,7 +381,7 @@ protected:
     nsTokenAllocator*   mTokenAllocator;
     nsDTDContext*       mBodyContext;
     nsDTDContext*       mTempContext;
-    PRBool              mCountLines;
+    bool                mCountLines;
     nsITokenizer*       mTokenizer; 
    
     nsString            mFilename; 

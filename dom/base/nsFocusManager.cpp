@@ -159,7 +159,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFocusManager)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 nsFocusManager* nsFocusManager::sInstance = nsnull;
-PRBool nsFocusManager::sMouseFocusesFormControl = PR_FALSE;
+bool nsFocusManager::sMouseFocusesFormControl = false;
 
 static const char* kObservedPrefs[] = {
   "accessibility.browsewithcaret",
@@ -195,7 +195,7 @@ nsFocusManager::Init()
                          nsIContent::sTabFocusModelAppliesToXUL);
 
   sMouseFocusesFormControl =
-    Preferences::GetBool("accessibility.mouse_focuses_formcontrol", PR_FALSE);
+    Preferences::GetBool("accessibility.mouse_focuses_formcontrol", false);
 
   Preferences::AddWeakObservers(fm, kObservedPrefs);
 
@@ -232,7 +232,7 @@ nsFocusManager::Observe(nsISupports *aSubject,
     else if (data.EqualsLiteral("accessibility.mouse_focuses_formcontrol")) {
       sMouseFocusesFormControl =
         Preferences::GetBool("accessibility.mouse_focuses_formcontrol",
-                             PR_FALSE);
+                             false);
     }
   } else if (!nsCRT::strcmp(aTopic, "xpcom-shutdown")) {
     mActiveWindow = nsnull;
@@ -272,7 +272,7 @@ GetCurrentWindow(nsIContent* aContent)
 
 
 nsIContent*
-nsFocusManager::GetFocusedDescendant(nsPIDOMWindow* aWindow, PRBool aDeep,
+nsFocusManager::GetFocusedDescendant(nsPIDOMWindow* aWindow, bool aDeep,
                                      nsPIDOMWindow** aFocusedWindow)
 {
   NS_ENSURE_TRUE(aWindow, nsnull);
@@ -556,7 +556,7 @@ nsFocusManager::ClearFocus(nsIDOMWindow* aWindow)
   NS_ENSURE_TRUE(window, NS_ERROR_INVALID_ARG);
 
   if (IsSameOrAncestor(window, mFocusedWindow)) {
-    PRBool isAncestor = (window != mFocusedWindow);
+    bool isAncestor = (window != mFocusedWindow);
     if (Blur(window, nsnull, isAncestor, PR_TRUE)) {
       
       
@@ -577,7 +577,7 @@ nsFocusManager::ClearFocus(nsIDOMWindow* aWindow)
 
 NS_IMETHODIMP
 nsFocusManager::GetFocusedElementForWindow(nsIDOMWindow* aWindow,
-                                           PRBool aDeep,
+                                           bool aDeep,
                                            nsIDOMWindow** aFocusedWindow,
                                            nsIDOMElement** aElement)
 {
@@ -616,7 +616,7 @@ nsFocusManager::MoveCaretToFocus(nsIDOMWindow* aWindow)
       
       nsCOMPtr<nsIEditorDocShell> editorDocShell(do_QueryInterface(dsti));
       if (editorDocShell) {
-        PRBool isEditable;
+        bool isEditable;
         editorDocShell->GetEditable(&isEditable);
         if (isEditable)
           return NS_OK;
@@ -693,7 +693,7 @@ nsFocusManager::WindowRaised(nsIDOMWindow* aWindow)
   docShellAsItem->GetTreeOwner(getter_AddRefs(treeOwner));
   nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(treeOwner);
   if (baseWindow) {
-    PRBool isEnabled = PR_TRUE;
+    bool isEnabled = true;
     if (NS_SUCCEEDED(baseWindow->GetEnabled(&isEnabled)) && !isEnabled) {
       return NS_ERROR_FAILURE;
     }
@@ -806,7 +806,7 @@ nsFocusManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
   
   nsIContent* content = window->GetFocusedNode();
   if (content && nsContentUtils::ContentIsDescendantOf(content, aContent)) {
-    PRBool shouldShowFocusRing = window->ShouldShowFocusRing();
+    bool shouldShowFocusRing = window->ShouldShowFocusRing();
     window->SetFocusedNode(nsnull);
 
     nsCOMPtr<nsIDocShell> docShell = window->GetDocShell();
@@ -844,7 +844,7 @@ nsFocusManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
 }
 
 NS_IMETHODIMP
-nsFocusManager::WindowShown(nsIDOMWindow* aWindow, PRBool aNeedsFocus)
+nsFocusManager::WindowShown(nsIDOMWindow* aWindow, bool aNeedsFocus)
 {
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aWindow);
   NS_ENSURE_TRUE(window, NS_ERROR_INVALID_ARG);
@@ -961,7 +961,7 @@ nsFocusManager::WindowHidden(nsIDOMWindow* aWindow)
   
   
   
-  PRBool beingDestroyed;
+  bool beingDestroyed;
   nsCOMPtr<nsIDocShell> docShellBeingHidden = window->GetDocShell();
   docShellBeingHidden->IsBeingDestroyed(&beingDestroyed);
   if (beingDestroyed) {
@@ -1032,8 +1032,8 @@ nsFocusManager::FocusPlugin(nsIContent* aContent)
 
 void
 nsFocusManager::NotifyFocusStateChange(nsIContent* aContent,
-                                       PRBool aWindowShouldShowFocusRing,
-                                       PRBool aGettingFocus)
+                                       bool aWindowShouldShowFocusRing,
+                                       bool aGettingFocus)
 {
   if (!aContent->IsElement()) {
     return;
@@ -1076,7 +1076,7 @@ nsFocusManager::EnsureCurrentWidgetFocused()
 
 void
 nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
-                              PRBool aFocusChanged, PRBool aAdjustWidget)
+                              bool aFocusChanged, bool aAdjustWidget)
 {
   
   nsCOMPtr<nsIContent> contentToFocus = CheckIfFocusable(aNewContent, aFlags);
@@ -1112,12 +1112,12 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
   nsCOMPtr<nsIDocShell> newDocShell = newWindow->GetDocShell();
   nsCOMPtr<nsIDocShell> docShell = newDocShell;
   while (docShell) {
-    PRBool inUnload;
+    bool inUnload;
     docShell->GetIsInUnload(&inUnload);
     if (inUnload)
       return;
 
-    PRBool beingDestroyed;
+    bool beingDestroyed;
     docShell->IsBeingDestroyed(&beingDestroyed);
     if (beingDestroyed)
       return;
@@ -1129,7 +1129,7 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
   }
 
   
-  PRBool isElementInFocusedWindow = (mFocusedWindow == newWindow);
+  bool isElementInFocusedWindow = (mFocusedWindow == newWindow);
 
   if (!isElementInFocusedWindow && mFocusedWindow && newWindow &&
       nsContentUtils::IsHandlingKeyBoardEvent()) {
@@ -1142,7 +1142,7 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
     if (!focusedPrincipal || !newPrincipal) {
       return;
     }
-    PRBool subsumes = PR_FALSE;
+    bool subsumes = false;
     focusedPrincipal->Subsumes(newPrincipal, &subsumes);
     if (!subsumes && !nsContentUtils::IsCallerTrustedForWrite()) {
       NS_WARNING("Not allowed to focus the new window!");
@@ -1152,7 +1152,7 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
 
   
   
-  PRBool isElementInActiveWindow = PR_FALSE;
+  bool isElementInActiveWindow = false;
 
   nsCOMPtr<nsIWebNavigation> webnav = do_GetInterface(newWindow);
   nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(webnav);
@@ -1176,12 +1176,12 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
   
   
   
-  PRBool allowFrameSwitch = !(aFlags & FLAG_NOSWITCHFRAME) ||
+  bool allowFrameSwitch = !(aFlags & FLAG_NOSWITCHFRAME) ||
                             IsSameOrAncestor(newWindow, mFocusedWindow);
 
   
   
-  PRBool sendFocusEvent =
+  bool sendFocusEvent =
     isElementInActiveWindow && allowFrameSwitch && IsWindowVisible(newWindow);
 
   
@@ -1212,7 +1212,7 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
       
       
       
-      PRBool currentIsSameOrAncestor = IsSameOrAncestor(mFocusedWindow, newWindow);
+      bool currentIsSameOrAncestor = IsSameOrAncestor(mFocusedWindow, newWindow);
       
       
       
@@ -1266,7 +1266,7 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
   }
 }
 
-PRBool
+bool
 nsFocusManager::IsSameOrAncestor(nsPIDOMWindow* aPossibleAncestor,
                                  nsPIDOMWindow* aWindow)
 {
@@ -1331,9 +1331,9 @@ nsFocusManager::GetCommonAncestor(nsPIDOMWindow* aWindow1,
 
 void
 nsFocusManager::AdjustWindowFocus(nsPIDOMWindow* aWindow,
-                                  PRBool aCheckPermission)
+                                  bool aCheckPermission)
 {
-  PRBool isVisible = IsWindowVisible(aWindow);
+  bool isVisible = IsWindowVisible(aWindow);
 
   nsCOMPtr<nsPIDOMWindow> window(aWindow);
   while (window) {
@@ -1368,7 +1368,7 @@ nsFocusManager::AdjustWindowFocus(nsPIDOMWindow* aWindow,
   }
 }
 
-PRBool
+bool
 nsFocusManager::IsWindowVisible(nsPIDOMWindow* aWindow)
 {
   if (!aWindow)
@@ -1379,12 +1379,12 @@ nsFocusManager::IsWindowVisible(nsPIDOMWindow* aWindow)
   if (!baseWin)
     return PR_FALSE;
 
-  PRBool visible = PR_FALSE;
+  bool visible = false;
   baseWin->GetVisibility(&visible);
   return visible;
 }
 
-PRBool
+bool
 nsFocusManager::IsNonFocusableRoot(nsIContent* aContent)
 {
   NS_PRECONDITION(aContent, "aContent must not be NULL");
@@ -1462,11 +1462,11 @@ nsFocusManager::CheckIfFocusable(nsIContent* aContent, PRUint32 aFlags)
   return frame->IsFocusable(nsnull, aFlags & FLAG_BYMOUSE) ? aContent : nsnull;
 }
 
-PRBool
+bool
 nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
                      nsPIDOMWindow* aAncestorWindowToFocus,
-                     PRBool aIsLeavingDocument,
-                     PRBool aAdjustWidgets)
+                     bool aIsLeavingDocument,
+                     bool aAdjustWidgets)
 {
   
   nsCOMPtr<nsIContent> content = mFocusedContent;
@@ -1501,7 +1501,7 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
     return PR_TRUE;
   }
 
-  PRBool clearFirstBlurEvent = PR_FALSE;
+  bool clearFirstBlurEvent = false;
   if (!mFirstBlurEvent) {
     mFirstBlurEvent = content;
     clearFirstBlurEvent = PR_TRUE;
@@ -1517,7 +1517,7 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
   
   
   mFocusedContent = nsnull;
-  PRBool shouldShowFocusRing = window->ShouldShowFocusRing();
+  bool shouldShowFocusRing = window->ShouldShowFocusRing();
   if (aWindowToClear)
     aWindowToClear->SetFocusedNode(nsnull);
 
@@ -1526,7 +1526,7 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
 #endif
 
   
-  PRBool sendBlurEvent =
+  bool sendBlurEvent =
     content && content->IsInDoc() && !IsNonFocusableRoot(content);
   if (content) {
     if (sendBlurEvent) {
@@ -1563,7 +1563,7 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
     }
   }
 
-  PRBool result = PR_TRUE;
+  bool result = true;
   if (sendBlurEvent) {
     
     
@@ -1633,10 +1633,10 @@ void
 nsFocusManager::Focus(nsPIDOMWindow* aWindow,
                       nsIContent* aContent,
                       PRUint32 aFlags,
-                      PRBool aIsNewDocument,
-                      PRBool aFocusChanged,
-                      PRBool aWindowRaised,
-                      PRBool aAdjustWidgets)
+                      bool aIsNewDocument,
+                      bool aFocusChanged,
+                      bool aWindowRaised,
+                      bool aAdjustWidgets)
 {
   if (!aWindow)
     return;
@@ -1672,7 +1672,7 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
     return;
   }
 
-  PRBool clearFirstFocusEvent = PR_FALSE;
+  bool clearFirstFocusEvent = false;
   if (!mFirstFocusEvent) {
     mFirstFocusEvent = aContent;
     clearFirstFocusEvent = PR_TRUE;
@@ -1743,11 +1743,11 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
     mFocusedContent = aContent;
 
     nsIContent* focusedNode = aWindow->GetFocusedNode();
-    PRBool isRefocus = focusedNode && focusedNode->IsEqualTo(aContent);
+    bool isRefocus = focusedNode && focusedNode->IsEqualTo(aContent);
 
     aWindow->SetFocusedNode(aContent, focusMethod);
 
-    PRBool sendFocusEvent =
+    bool sendFocusEvent =
       aContent && aContent->IsInDoc() && !IsNonFocusableRoot(aContent);
     nsPresContext* presContext = presShell->GetPresContext();
     if (sendFocusEvent) {
@@ -1838,8 +1838,8 @@ class FocusBlurEvent : public nsRunnable
 {
 public:
   FocusBlurEvent(nsISupports* aTarget, PRUint32 aType,
-                 nsPresContext* aContext, PRBool aWindowRaised,
-                 PRBool aIsRefocus)
+                 nsPresContext* aContext, bool aWindowRaised,
+                 bool aIsRefocus)
   : mTarget(aTarget), mType(aType), mContext(aContext),
     mWindowRaised(aWindowRaised), mIsRefocus(aIsRefocus) {}
 
@@ -1855,8 +1855,8 @@ public:
   nsCOMPtr<nsISupports>   mTarget;
   PRUint32                mType;
   nsRefPtr<nsPresContext> mContext;
-  PRBool                  mWindowRaised;
-  PRBool                  mIsRefocus;
+  bool                    mWindowRaised;
+  bool                    mIsRefocus;
 };
 
 void
@@ -1865,8 +1865,8 @@ nsFocusManager::SendFocusOrBlurEvent(PRUint32 aType,
                                      nsIDocument* aDocument,
                                      nsISupports* aTarget,
                                      PRUint32 aFocusMethod,
-                                     PRBool aWindowRaised,
-                                     PRBool aIsRefocus)
+                                     bool aWindowRaised,
+                                     bool aIsRefocus)
 {
   NS_ASSERTION(aType == NS_FOCUS_CONTENT || aType == NS_BLUR_CONTENT,
                "Wrong event type for SendFocusOrBlurEvent");
@@ -1973,8 +1973,8 @@ nsFocusManager::RaiseWindow(nsPIDOMWindow* aWindow)
 }
 
 void
-nsFocusManager::UpdateCaret(PRBool aMoveCaretToFocus,
-                            PRBool aUpdateVisibility,
+nsFocusManager::UpdateCaret(bool aMoveCaretToFocus,
+                            bool aUpdateVisibility,
                             nsIContent* aContent)
 {
 #ifdef DEBUG_FOCUS
@@ -1996,7 +1996,7 @@ nsFocusManager::UpdateCaret(PRBool aMoveCaretToFocus,
   if (itemType == nsIDocShellTreeItem::typeChrome)
     return;  
 
-  PRPackedBool browseWithCaret =
+  bool browseWithCaret =
     Preferences::GetBool("accessibility.browsewithcaret");
 
   nsCOMPtr<nsIPresShell> presShell;
@@ -2007,7 +2007,7 @@ nsFocusManager::UpdateCaret(PRBool aMoveCaretToFocus,
   
   
   
-  PRBool isEditable = PR_FALSE;
+  bool isEditable = false;
   nsCOMPtr<nsIEditorDocShell> editorDocShell(do_QueryInterface(dsti));
   if (editorDocShell) {
     editorDocShell->GetEditable(&isEditable);
@@ -2016,10 +2016,10 @@ nsFocusManager::UpdateCaret(PRBool aMoveCaretToFocus,
       nsCOMPtr<nsIHTMLDocument> doc =
         do_QueryInterface(presShell->GetDocument());
 
-      PRBool isContentEditableDoc =
+      bool isContentEditableDoc =
         doc && doc->GetEditingState() == nsIHTMLDocument::eContentEditable;
 
-      PRBool isFocusEditable =
+      bool isFocusEditable =
         aContent && aContent->HasFlag(NODE_IS_EDITABLE);
       if (!isContentEditableDoc || isFocusEditable)
         return;
@@ -2089,7 +2089,7 @@ nsFocusManager::MoveCaretToFocus(nsIPresShell* aPresShell, nsIContent* aContent)
 
 nsresult
 nsFocusManager::SetCaretVisible(nsIPresShell* aPresShell,
-                                PRBool aVisible,
+                                bool aVisible,
                                 nsIContent* aContent)
 {
   
@@ -2099,7 +2099,7 @@ nsFocusManager::SetCaretVisible(nsIPresShell* aPresShell,
   if (!caret)
     return NS_OK;
 
-  PRBool caretVisible = PR_FALSE;
+  bool caretVisible = false;
   caret->GetCaretVisible(&caretVisible);
   if (!aVisible && !caretVisible)
     return NS_OK;
@@ -2163,7 +2163,7 @@ nsFocusManager::GetSelectionLocation(nsIDocument* aDocument,
   }
 
   nsCOMPtr<nsIDOMNode> startNode, endNode;
-  PRBool isCollapsed = PR_FALSE;
+  bool isCollapsed = false;
   nsCOMPtr<nsIContent> startContent, endContent;
   PRInt32 startOffset = 0;
   if (domSelection) {
@@ -2215,7 +2215,7 @@ nsFocusManager::GetSelectionLocation(nsIDocument* aDocument,
         nsAutoString nodeValue;
         startContent->AppendTextTo(nodeValue);
 
-        PRBool isFormControl =
+        bool isFormControl =
           startContent->IsNodeOfType(nsINode::eHTML_FORM_CONTROL);
 
         if (nodeValue.Length() == (PRUint32)startOffset && !isFormControl &&
@@ -2233,7 +2233,7 @@ nsFocusManager::GetSelectionLocation(nsIDocument* aDocument,
 
           nsIFrame *newCaretFrame = nsnull;
           nsCOMPtr<nsIContent> newCaretContent = startContent;
-          PRBool endOfSelectionInStartNode(startContent == endContent);
+          bool endOfSelectionInStartNode(startContent == endContent);
           do {
             
             
@@ -2341,9 +2341,9 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
                                   PR_FALSE, 0, PR_FALSE, aNextContent);
   }
 
-  PRBool forward = (aType == MOVEFOCUS_FORWARD || aType == MOVEFOCUS_CARET);
-  PRBool doNavigation = PR_TRUE;
-  PRBool ignoreTabIndex = PR_FALSE;
+  bool forward = (aType == MOVEFOCUS_FORWARD || aType == MOVEFOCUS_CARET);
+  bool doNavigation = true;
+  bool ignoreTabIndex = false;
   
   
   
@@ -2474,7 +2474,7 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
   
   
   
-  PRBool skipOriginalContentCheck = PR_TRUE;
+  bool skipOriginalContentCheck = true;
   nsIContent* originalStartContent = startContent;
 
 #ifdef DEBUG_FOCUS_NAVIGATION
@@ -2578,7 +2578,7 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
     else {
       
       
-      PRBool tookFocus;
+      bool tookFocus;
       docShell->TabToTreeOwner(forward, &tookFocus);
       
       if (tookFocus) {
@@ -2609,9 +2609,9 @@ nsFocusManager::GetNextTabbableContent(nsIPresShell* aPresShell,
                                        nsIContent* aRootContent,
                                        nsIContent* aOriginalStartContent,
                                        nsIContent* aStartContent,
-                                       PRBool aForward,
+                                       bool aForward,
                                        PRInt32 aCurrentTabIndex,
-                                       PRBool aIgnoreTabIndex,
+                                       bool aIgnoreTabIndex,
                                        nsIContent** aResultContent)
 {
   *aResultContent = nsnull;
@@ -2627,7 +2627,7 @@ nsFocusManager::GetNextTabbableContent(nsIPresShell* aPresShell,
 
   nsPresContext* presContext = aPresShell->GetPresContext();
 
-  PRBool getNextFrame = PR_TRUE;
+  bool getNextFrame = true;
   nsCOMPtr<nsIContent> iterStartContent = aStartContent;
   while (1) {
     nsIFrame* startFrame = iterStartContent->GetPrimaryFrame();
@@ -2830,7 +2830,7 @@ nsFocusManager::GetNextTabbableContent(nsIPresShell* aPresShell,
 }
 
 nsIContent*
-nsFocusManager::GetNextTabbableMapArea(PRBool aForward,
+nsFocusManager::GetNextTabbableMapArea(bool aForward,
                                        PRInt32 aCurrentTabIndex,
                                        nsIContent* aImageContent,
                                        nsIContent* aStartContent)
@@ -2872,7 +2872,7 @@ nsFocusManager::GetNextTabbableMapArea(PRBool aForward,
 PRInt32
 nsFocusManager::GetNextTabIndex(nsIContent* aParent,
                                 PRInt32 aCurrentTabIndex,
-                                PRBool aForward)
+                                bool aForward)
 {
   PRInt32 tabIndex, childTabIndex;
   nsIContent *child;
@@ -2924,8 +2924,8 @@ nsFocusManager::GetNextTabIndex(nsIContent* aParent,
 nsIContent*
 nsFocusManager::GetRootForFocus(nsPIDOMWindow* aWindow,
                                 nsIDocument* aDocument,
-                                PRBool aIsForDocNavigation,
-                                PRBool aCheckVisibility)
+                                bool aIsForDocNavigation,
+                                bool aCheckVisibility)
 {
   
   
@@ -3093,7 +3093,7 @@ nsFocusManager::GetPreviousDocShell(nsIDocShellTreeItem* aItem,
 }
 
 nsIContent*
-nsFocusManager::GetNextTabbableDocument(PRBool aForward)
+nsFocusManager::GetNextTabbableDocument(bool aForward)
 {
   nsCOMPtr<nsIDocShellTreeItem> startItem;
   if (mFocusedWindow) {

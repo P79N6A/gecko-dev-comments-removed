@@ -63,19 +63,19 @@ public:
 
   virtual nsresult Init(nsBuiltinDecoderReader* aCloneDonor);
   virtual nsresult ResetDecode();
-  virtual PRBool DecodeAudioData();
+  virtual bool DecodeAudioData();
 
   
   
   
-  virtual PRBool DecodeVideoFrame(PRBool &aKeyframeSkip,
+  virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
                                   PRInt64 aTimeThreshold);
 
-  virtual PRBool HasAudio() {
+  virtual bool HasAudio() {
     return mVorbisState != 0 && mVorbisState->mActive;
   }
 
-  virtual PRBool HasVideo() {
+  virtual bool HasVideo() {
     return mTheoraState != 0 && mTheoraState->mActive;
   }
 
@@ -85,7 +85,7 @@ public:
 
 private:
 
-  PRBool HasSkeleton() {
+  bool HasSkeleton() {
     return mSkeletonState != 0 && mSkeletonState->mActive;
   }
 
@@ -124,7 +124,7 @@ private:
         mTimeEnd(aTimeEnd)
     {}
 
-    PRBool IsNull() const {
+    bool IsNull() const {
       return mOffsetStart == 0 &&
              mOffsetEnd == 0 &&
              mTimeStart == 0 &&
@@ -170,7 +170,7 @@ private:
   
   PRInt64 RangeEndTime(PRInt64 aStartOffset,
                        PRInt64 aEndOffset,
-                       PRBool aCachedDataOnly);
+                       bool aCachedDataOnly);
 
   
   
@@ -189,7 +189,7 @@ private:
 
   
   
-  PRBool IsKnownStream(PRUint32 aSerial);
+  bool IsKnownStream(PRUint32 aSerial);
 
   
   
@@ -209,7 +209,7 @@ private:
                             PRInt64 aTarget,
                             PRInt64 aStartTime,
                             PRInt64 aEndTime,
-                            PRBool aExact);
+                            bool aExact);
 private:
 
   
@@ -231,7 +231,7 @@ private:
   
   
   
-  PRBool ReadHeaders(nsOggCodecState* aState);
+  bool ReadHeaders(nsOggCodecState* aState);
 
   
   

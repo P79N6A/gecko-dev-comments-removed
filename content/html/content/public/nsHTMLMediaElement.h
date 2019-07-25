@@ -96,28 +96,28 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLMediaElement,
                                            nsGenericHTMLElement)
 
-  virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
+  virtual bool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
   
   
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, PRBool aNotify)
+                   const nsAString& aValue, bool aNotify)
   {
     return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
-                           PRBool aNotify);
+                           bool aNotify);
   virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr,
-                             PRBool aNotify);
+                             bool aNotify);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              PRBool aCompileEventHandlers);
-  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
-                              PRBool aNullParent = PR_TRUE);
+                              bool aCompileEventHandlers);
+  virtual void UnbindFromTree(bool aDeep = true,
+                              bool aNullParent = true);
 
   
 
@@ -134,7 +134,7 @@ public:
   
   
   
-  void FirstFrameLoaded(PRBool aResourceFullyLoaded);
+  void FirstFrameLoaded(bool aResourceFullyLoaded);
 
   
   
@@ -218,7 +218,7 @@ public:
   void ChangeReadyState(nsMediaReadyState aState);
 
   
-  PRBool CanActivateAutoplay();
+  bool CanActivateAutoplay();
 
   
   
@@ -227,15 +227,15 @@ public:
 
   
   
-  PRBool ShouldCheckAllowOrigin();
+  bool ShouldCheckAllowOrigin();
 
   
   
-  PRBool IsPotentiallyPlaying() const;
+  bool IsPotentiallyPlaying() const;
 
   
   
-  PRBool IsPlaybackEnded() const;
+  bool IsPlaybackEnded() const;
 
   
   already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
@@ -260,7 +260,7 @@ public:
   
   
   
-  static PRBool ShouldHandleMediaType(const char* aMIMEType);
+  static bool ShouldHandleMediaType(const char* aMIMEType);
 
 #ifdef MOZ_OGG
   static bool IsOggEnabled();
@@ -305,9 +305,9 @@ public:
 
 
 
-  PRBool MayHaveAudioAvailableEventListener();
+  bool MayHaveAudioAvailableEventListener();
 
-  virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
+  virtual bool IsNodeOfType(PRUint32 aFlags) const;
 
   
 
@@ -326,7 +326,7 @@ public:
 
 
 
-  PRBool GetPlayedOrSeeked() const { return mHasPlayedOrSeeked; }
+  bool GetPlayedOrSeeked() const { return mHasPlayedOrSeeked; }
 
   nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
@@ -348,7 +348,7 @@ public:
 
 
 
-  void FireTimeUpdate(PRBool aPeriodic);
+  void FireTimeUpdate(bool aPeriodic);
 
 protected:
   class MediaLoadListener;
@@ -358,7 +358,7 @@ protected:
 
 
 
-  void SetPlayedOrSeeked(PRBool aValue);
+  void SetPlayedOrSeeked(bool aValue);
 
   
 
@@ -443,7 +443,7 @@ protected:
 
 
 
-  void ChangeDelayLoadStatus(PRBool aDelay);
+  void ChangeDelayLoadStatus(bool aDelay);
 
   
 
@@ -641,96 +641,96 @@ protected:
 
   
   
-  PRBool mAllowAudioData;
+  bool mAllowAudioData;
 
   
   
-  PRPackedBool mBegun;
+  bool mBegun;
 
   
   
-  PRPackedBool mLoadedFirstFrame;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PRPackedBool mAutoplaying;
-
-  
-  
-  PRPackedBool mAutoplayEnabled;
-
-  
-  
-  PRPackedBool mPaused;
-
-  
-  PRPackedBool mMuted;
+  bool mLoadedFirstFrame;
 
   
   
   
   
-  PRPackedBool mPlayingBeforeSeek;
-
-  
-  PRPackedBool mPausedForInactiveDocument;
-
   
   
-  PRPackedBool mWaitingFired;
-
   
-  PRPackedBool mIsRunningLoadMethod;
-
   
-  PRPackedBool mIsLoadingFromSourceChildren;
+  
+  bool mAutoplaying;
 
   
   
-  PRPackedBool mDelayingLoadEvent;
+  bool mAutoplayEnabled;
 
   
   
-  PRPackedBool mIsRunningSelectResource;
+  bool mPaused;
 
   
-  
-  
-  PRPackedBool mSuspendedAfterFirstFrame;
-
-  
-  
-  
-  PRPackedBool mAllowSuspendAfterFirstFrame;
-
-  
-  
-  PRPackedBool mHasPlayedOrSeeked;
-
-  
-  
-  
-  PRPackedBool mHasSelfReference;
-
-  
-  
-  PRPackedBool mShuttingDown;
+  bool mMuted;
 
   
   
   
   
-  PRPackedBool mLoadIsSuspended;
+  bool mPlayingBeforeSeek;
 
   
-  PRPackedBool mMediaSecurityVerified;
+  bool mPausedForInactiveDocument;
+
+  
+  
+  bool mWaitingFired;
+
+  
+  bool mIsRunningLoadMethod;
+
+  
+  bool mIsLoadingFromSourceChildren;
+
+  
+  
+  bool mDelayingLoadEvent;
+
+  
+  
+  bool mIsRunningSelectResource;
+
+  
+  
+  
+  bool mSuspendedAfterFirstFrame;
+
+  
+  
+  
+  bool mAllowSuspendAfterFirstFrame;
+
+  
+  
+  bool mHasPlayedOrSeeked;
+
+  
+  
+  
+  bool mHasSelfReference;
+
+  
+  
+  bool mShuttingDown;
+
+  
+  
+  
+  
+  bool mLoadIsSuspended;
+
+  
+  bool mMediaSecurityVerified;
 };
 
 #endif

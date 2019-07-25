@@ -83,7 +83,7 @@ nsClipboardHelper::CopyStringToClipboard(const nsAString& aString,
   
   
   if (nsIClipboard::kSelectionClipboard == aClipboardID) {
-    PRBool clipboardSupported;
+    bool clipboardSupported;
     rv = clipboard->SupportsSelectionClipboard(&clipboardSupported);
     NS_ENSURE_SUCCESS(rv, rv);
     if (!clipboardSupported)

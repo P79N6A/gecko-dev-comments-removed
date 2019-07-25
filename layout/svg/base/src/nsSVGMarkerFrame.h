@@ -122,10 +122,10 @@ private:
   void SetParentCoordCtxProvider(nsSVGSVGElement *aContext);
 
   
-  PRPackedBool mInUse;
+  bool mInUse;
 
   
-  PRPackedBool mInUse2;
+  bool mInUse2;
 };
 
 #endif

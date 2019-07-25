@@ -86,15 +86,15 @@ private:
   
   
   
-  PRBool ParseNPT(nsDependentSubstring& aString, double& aStart, double& aEnd);
-  PRBool ParseNPTTime(nsDependentSubstring& aString, double& aTime);
-  PRBool ParseNPTSec(nsDependentSubstring& aString, double& aSec);
-  PRBool ParseNPTFraction(nsDependentSubstring& aString, double& aFraction);
-  PRBool ParseNPTMMSS(nsDependentSubstring& aString, double& aTime);
-  PRBool ParseNPTHHMMSS(nsDependentSubstring& aString, double& aTime);
-  PRBool ParseNPTHH(nsDependentSubstring& aString, PRUint32& aHour);
-  PRBool ParseNPTMM(nsDependentSubstring& aString, PRUint32& aMinute);
-  PRBool ParseNPTSS(nsDependentSubstring& aString, PRUint32& aSecond);
+  bool ParseNPT(nsDependentSubstring& aString, double& aStart, double& aEnd);
+  bool ParseNPTTime(nsDependentSubstring& aString, double& aTime);
+  bool ParseNPTSec(nsDependentSubstring& aString, double& aSec);
+  bool ParseNPTFraction(nsDependentSubstring& aString, double& aFraction);
+  bool ParseNPTMMSS(nsDependentSubstring& aString, double& aTime);
+  bool ParseNPTHHMMSS(nsDependentSubstring& aString, double& aTime);
+  bool ParseNPTHH(nsDependentSubstring& aString, PRUint32& aHour);
+  bool ParseNPTMM(nsDependentSubstring& aString, PRUint32& aMinute);
+  bool ParseNPTSS(nsDependentSubstring& aString, PRUint32& aSecond);
 
   
   nsCAutoString mHash;

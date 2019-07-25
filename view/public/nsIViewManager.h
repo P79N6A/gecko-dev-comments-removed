@@ -115,7 +115,7 @@ public:
   
 
 
-  NS_IMETHOD  FlushDelayedResize(PRBool aDoReflow) = 0;
+  NS_IMETHOD  FlushDelayedResize(bool aDoReflow) = 0;
 
   
 
@@ -180,7 +180,7 @@ public:
 
 
   NS_IMETHOD  InsertChild(nsIView *aParent, nsIView *aChild, nsIView *aSibling,
-                          PRBool aAfter) = 0;
+                          bool aAfter) = 0;
 
   
 
@@ -215,7 +215,7 @@ public:
 
 
   NS_IMETHOD  ResizeView(nsIView *aView, const nsRect &aRect,
-                         PRBool aRepaintExposedAreaOnly = PR_FALSE) = 0;
+                         bool aRepaintExposedAreaOnly = false) = 0;
 
   
 
@@ -246,7 +246,7 @@ public:
 
 
 
-  NS_IMETHOD  SetViewZIndex(nsIView *aView, PRBool aAutoZIndex, PRInt32 aZindex, PRBool aTopMost = PR_FALSE) = 0;
+  NS_IMETHOD  SetViewZIndex(nsIView *aView, bool aAutoZIndex, PRInt32 aZindex, bool aTopMost = false) = 0;
 
   
 
@@ -255,7 +255,7 @@ public:
 
 
 
-  NS_IMETHOD  SetViewFloating(nsIView *aView, PRBool aFloatingView) = 0;
+  NS_IMETHOD  SetViewFloating(nsIView *aView, bool aFloatingView) = 0;
 
   
 
@@ -368,7 +368,7 @@ public:
 
 
 
-  NS_IMETHOD IsPainting(PRBool& aIsPainting)=0;
+  NS_IMETHOD IsPainting(bool& aIsPainting)=0;
 
   
 

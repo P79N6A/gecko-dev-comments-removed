@@ -78,13 +78,13 @@ class nsILayoutHistoryState : public nsISupports {
   
 
 
-  NS_IMETHOD_(PRBool) HasStates() const = 0;
+  NS_IMETHOD_(bool) HasStates() const = 0;
 
   
 
 
 
-   NS_IMETHOD SetScrollPositionOnly(const PRBool aFlag) = 0;
+   NS_IMETHOD SetScrollPositionOnly(const bool aFlag) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsILayoutHistoryState,

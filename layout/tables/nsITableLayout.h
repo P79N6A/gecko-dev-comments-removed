@@ -75,7 +75,7 @@ public:
                            PRInt32& aStartRowIndex, PRInt32& aStartColIndex, 
                            PRInt32& aRowSpan, PRInt32& aColSpan,
                            PRInt32& aActualRowSpan, PRInt32& aActualColSpan,
-                           PRBool& aIsSelected)=0;
+                           bool& aIsSelected)=0;
 
   
 

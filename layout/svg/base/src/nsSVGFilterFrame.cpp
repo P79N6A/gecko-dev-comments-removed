@@ -167,7 +167,7 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
     filterRegion.Scale(1.0 / filterResX, 1.0 / filterResY);
     
     
-    PRBool overflow;
+    bool overflow;
     filterRes =
       nsSVGUtils::ConvertToSurfaceSize(gfxSize(filterResX, filterResY),
                                        &overflow);
@@ -182,7 +182,7 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
     filterRegion.RoundOut();
     
     
-    PRBool overflow;
+    bool overflow;
     filterRes = nsSVGUtils::ConvertToSurfaceSize(filterRegion.Size(),
                                                  &overflow);
     filterRegion.Scale(1.0 / scale);

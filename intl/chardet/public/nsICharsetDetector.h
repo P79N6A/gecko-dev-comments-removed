@@ -68,7 +68,7 @@ public:
 
 
 
-  NS_IMETHOD DoIt(const char* aBytesArray, PRUint32 aLen, PRBool* oDontFeedMe) = 0;
+  NS_IMETHOD DoIt(const char* aBytesArray, PRUint32 aLen, bool* oDontFeedMe) = 0;
 
   
 

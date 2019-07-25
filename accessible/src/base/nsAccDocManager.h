@@ -97,7 +97,7 @@ protected:
   
 
 
-  PRBool Init();
+  bool Init();
 
   
 
@@ -123,7 +123,7 @@ private:
   
 
 
-  void AddListeners(nsIDocument *aDocument, PRBool aAddPageShowListener);
+  void AddListeners(nsIDocument *aDocument, bool aAddPageShowListener);
 
   
 
@@ -184,7 +184,7 @@ private:
 
 #define NS_LOG_ACCDOC_TYPE(aDocument)                                          \
   if (aDocument->IsActive()) {                                                 \
-    PRBool isContent = nsCoreUtils::IsContentDocument(aDocument);              \
+    bool isContent = nsCoreUtils::IsContentDocument(aDocument);              \
     printf("%s document", (isContent ? "content" : "chrome"));                 \
   } else {                                                                     \
     printf("document type: [failed]");                                         \
@@ -464,7 +464,7 @@ private:
         NS_LOG_ACCDOCLOAD_REQUEST(aRequest)                                    \
         printf("\n");                                                          \
         printf("    state flags: %x", aStateFlags);                            \
-        PRBool isDocLoading;                                                   \
+        bool isDocLoading;                                                   \
         aWebProgress->GetIsLoadingDocument(&isDocLoading);                     \
         printf(", document is %sloading\n", (isDocLoading ? "" : "not "));     \
         printf("  }\n");                                                       \

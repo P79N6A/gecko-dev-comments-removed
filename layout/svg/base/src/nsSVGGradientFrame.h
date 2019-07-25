@@ -134,10 +134,10 @@ private:
   
   
   
-  PRPackedBool                           mLoopFlag;
+  bool                                   mLoopFlag;
   
   
-  PRPackedBool                           mNoHRefURI;
+  bool                                   mNoHRefURI;
 };
 
 

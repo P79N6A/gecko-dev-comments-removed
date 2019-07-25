@@ -289,7 +289,7 @@ nsHistory::PushState(nsIVariant *aData, const nsAString& aTitle,
                      const nsAString& aURL, JSContext* aCx)
 {
   
-  if (!Preferences::GetBool(sAllowPushStatePrefStr, PR_FALSE)) {
+  if (!Preferences::GetBool(sAllowPushStatePrefStr, false)) {
     return NS_OK;
   }
 
@@ -319,7 +319,7 @@ nsHistory::ReplaceState(nsIVariant *aData, const nsAString& aTitle,
                         const nsAString& aURL, JSContext* aCx)
 {
   
-  if (!Preferences::GetBool(sAllowReplaceStatePrefStr, PR_FALSE)) {
+  if (!Preferences::GetBool(sAllowReplaceStatePrefStr, false)) {
     return NS_OK;
   }
 

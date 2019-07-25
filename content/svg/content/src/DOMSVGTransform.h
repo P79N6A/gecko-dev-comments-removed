@@ -78,7 +78,7 @@ public:
 
   DOMSVGTransform(DOMSVGTransformList *aList,
                   PRUint32 aListIndex,
-                  PRBool aIsAnimValItem);
+                  bool aIsAnimValItem);
 
   
 
@@ -118,7 +118,7 @@ public:
     return new DOMSVGTransform(InternalItem());
   }
 
-  PRBool IsInList() const {
+  bool IsInList() const {
     return !!mList;
   }
 
@@ -126,7 +126,7 @@ public:
 
 
 
-  PRBool HasOwner() const {
+  bool HasOwner() const {
     return !!mList;
   }
 
@@ -142,7 +142,7 @@ public:
 
   void InsertingIntoList(DOMSVGTransformList *aList,
                          PRUint32 aListIndex,
-                         PRBool aIsAnimValItem);
+                         bool aIsAnimValItem);
 
   static PRUint32 MaxListIndex() {
     return (1U << MOZ_SVG_LIST_INDEX_BIT_COUNT) - 1;
@@ -168,7 +168,7 @@ public:
 protected:
   
   friend class DOMSVGMatrix;
-  const PRBool IsAnimVal() const {
+  const bool IsAnimVal() const {
     return mIsAnimValItem;
   }
   const gfxMatrix& Matrix() const {
@@ -190,7 +190,7 @@ private:
   const SVGTransform& InternalItem() const;
 
 #ifdef DEBUG
-  PRBool IndexIsValid();
+  bool IndexIsValid();
 #endif
 
   const SVGTransform& Transform() const {
@@ -207,7 +207,7 @@ private:
   
 
   PRUint32 mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
-  PRPackedBool mIsAnimValItem:1;
+  bool mIsAnimValItem:1;
 
   
   

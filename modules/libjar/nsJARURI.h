@@ -87,7 +87,7 @@ public:
    
     nsresult Init(const char *charsetHint);
     nsresult FormatSpec(const nsACString &entryPath, nsACString &result,
-                        PRBool aIncludeScheme = PR_TRUE);
+                        bool aIncludeScheme = true);
     nsresult CreateEntryURL(const nsACString& entryFilename,
                             const char* charset,
                             nsIURL** url);
@@ -103,7 +103,7 @@ protected:
     
     virtual nsresult EqualsInternal(nsIURI* other,
                                     RefHandlingEnum refHandlingMode,
-                                    PRBool* result);
+                                    bool* result);
 
     
     nsresult CloneWithJARFileInternal(nsIURI *jarFile,

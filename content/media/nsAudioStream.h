@@ -115,7 +115,7 @@ public:
   virtual PRInt64 GetPositionInFrames() = 0;
 
   
-  virtual PRBool IsPaused() = 0;
+  virtual bool IsPaused() = 0;
 
   
   

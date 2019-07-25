@@ -67,12 +67,12 @@ public:
 
 
 
-  NS_IMETHOD DoneAddingChildren(PRBool aIsDone) = 0;
+  NS_IMETHOD DoneAddingChildren(bool aIsDone) = 0;
 
   
 
 
-  NS_IMETHOD OnOptionSelected(PRInt32 aIndex, PRBool aSelected) = 0;
+  NS_IMETHOD OnOptionSelected(PRInt32 aIndex, bool aSelected) = 0;
 
   
 

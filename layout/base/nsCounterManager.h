@@ -112,11 +112,11 @@ struct nsCounterUseNode : public nsCounterNode {
     nsRefPtr<nsCSSValue::Array> mCounterStyle;
 
     
-    PRBool mAllCounters;
+    bool mAllCounters;
 
     
     nsCounterUseNode(nsCSSValue::Array* aCounterStyle,
-                     PRUint32 aContentIndex, PRBool aAllCounters)
+                     PRUint32 aContentIndex, bool aAllCounters)
         : nsCounterNode(aContentIndex, USE)
         , mCounterStyle(aCounterStyle)
         , mAllCounters(aAllCounters)
@@ -124,7 +124,7 @@ struct nsCounterUseNode : public nsCounterNode {
         NS_ASSERTION(aContentIndex <= PR_INT32_MAX, "out of range");
     }
     
-    virtual PRBool InitTextFrame(nsGenConList* aList,
+    virtual bool InitTextFrame(nsGenConList* aList,
             nsIFrame* aPseudoFrame, nsIFrame* aTextFrame);
 
     
@@ -225,11 +225,11 @@ public:
     
     void RecalcAll();
 
-    PRBool IsDirty() { return mDirty; }
+    bool IsDirty() { return mDirty; }
     void SetDirty() { mDirty = PR_TRUE; }
 
 private:
-    PRBool mDirty;
+    bool mDirty;
 };
 
 
@@ -240,7 +240,7 @@ class nsCounterManager {
 public:
     nsCounterManager();
     
-    PRBool AddCounterResetsAndIncrements(nsIFrame *aFrame);
+    bool AddCounterResetsAndIncrements(nsIFrame *aFrame);
 
     
     
@@ -251,7 +251,7 @@ public:
 
     
     
-    PRBool DestroyNodesFor(nsIFrame *aFrame);
+    bool DestroyNodesFor(nsIFrame *aFrame);
 
     
     void Clear() { mNames.Clear(); }
@@ -262,7 +262,7 @@ public:
 
 private:
     
-    PRBool AddResetOrIncrement(nsIFrame *aFrame, PRInt32 aIndex,
+    bool AddResetOrIncrement(nsIFrame *aFrame, PRInt32 aIndex,
                                const nsStyleCounterData *aCounterData,
                                nsCounterNode::Type aType);
 

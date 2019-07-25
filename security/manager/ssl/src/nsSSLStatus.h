@@ -69,12 +69,12 @@ public:
   PRUint32 mSecretKeyLength;
   nsXPIDLCString mCipherName;
 
-  PRBool mIsDomainMismatch;
-  PRBool mIsNotValidAtThisTime;
-  PRBool mIsUntrusted;
+  bool mIsDomainMismatch;
+  bool mIsNotValidAtThisTime;
+  bool mIsUntrusted;
 
-  PRBool mHaveKeyLengthAndCipher;
-  PRBool mHaveCertErrorBits;
+  bool mHaveKeyLengthAndCipher;
+  bool mHaveCertErrorBits;
 };
 
 

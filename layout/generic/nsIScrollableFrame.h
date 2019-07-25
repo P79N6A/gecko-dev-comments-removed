@@ -190,7 +190,7 @@ public:
 
 
 
-  virtual nsIBox* GetScrollbarBox(PRBool aVertical) = 0;
+  virtual nsIBox* GetScrollbarBox(bool aVertical) = 0;
 
   
 
@@ -209,7 +209,7 @@ public:
 
 
 
-  virtual PRBool IsScrollingActive() = 0;
+  virtual bool IsScrollingActive() = 0;
 };
 
 #endif

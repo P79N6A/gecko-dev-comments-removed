@@ -51,7 +51,7 @@ class nsMIMEInfoWin : public nsMIMEInfoBase, public nsIPropertyBag {
     virtual ~nsMIMEInfoWin();
 
     NS_IMETHOD LaunchWithFile(nsIFile* aFile);
-    NS_IMETHOD GetHasDefaultHandler(PRBool * _retval);
+    NS_IMETHOD GetHasDefaultHandler(bool * _retval);
     NS_IMETHOD GetPossibleLocalHandlers(nsIArray **_retval); 
 
     NS_DECL_ISUPPORTS_INHERITED
@@ -71,26 +71,26 @@ class nsMIMEInfoWin : public nsMIMEInfoBase, public nsIPropertyBag {
     
     
     
-    PRBool GetLocalHandlerApp(const nsAString& aCommandHandler,
+    bool GetLocalHandlerApp(const nsAString& aCommandHandler,
                               nsCOMPtr<nsILocalHandlerApp>& aApp);
 
     
     
-    PRBool GetAppsVerbCommandHandler(const nsAString& appExeName,
+    bool GetAppsVerbCommandHandler(const nsAString& appExeName,
                                      nsAString& applicationPath,
-                                     PRBool bEdit);
+                                     bool bEdit);
 
     
     
-    PRBool GetProgIDVerbCommandHandler(const nsAString& appProgIDName,
+    bool GetProgIDVerbCommandHandler(const nsAString& appProgIDName,
                                        nsAString& applicationPath,
-                                       PRBool bEdit);
+                                       bool bEdit);
 
     
     
-    PRBool GetDllLaunchInfo(nsIFile * aDll,
+    bool GetDllLaunchInfo(nsIFile * aDll,
                             nsILocalFile * aFile,
-                            nsAString& args, PRBool bEdit);
+                            nsAString& args, bool bEdit);
 
     
     void ProcessPath(nsCOMPtr<nsIMutableArray>& appList,

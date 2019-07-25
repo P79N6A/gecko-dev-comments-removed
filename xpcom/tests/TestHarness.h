@@ -119,7 +119,7 @@ static const char* gCurrentProfile;
 
 
 
-inline PRBool
+inline bool
 StartProfiling(const char* profileName)
 {
     NS_ASSERTION(profileName, "need a name for this profile");
@@ -141,7 +141,7 @@ StartProfiling(const char* profileName)
 
 
 
-inline PRBool
+inline bool
 StopProfiling()
 {
     NS_PRECONDITION(gCurrentProfile, "tried to stop profile before starting one");
@@ -212,7 +212,7 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
       printf("Finished running %s tests.\n", mTestName);
     }
 
-    PRBool failed()
+    bool failed()
     {
       return mServMgr == NULL;
     }
@@ -243,7 +243,7 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
     
     
 
-    NS_IMETHODIMP GetFile(const char *aProperty, PRBool *_persistent,
+    NS_IMETHODIMP GetFile(const char *aProperty, bool *_persistent,
                           nsIFile **_result)
     {
       

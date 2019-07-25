@@ -89,7 +89,7 @@ public:
 
   virtual nsresult StealFrame(nsPresContext* aPresContext,
                               nsIFrame*      aChild,
-                              PRBool         aForceNormal)
+                              bool           aForceNormal)
   { 
     return nsContainerFrame::StealFrame(aPresContext, aChild, PR_TRUE);
   }
@@ -165,11 +165,11 @@ protected:
 
 
 
-  PRBool ReflowChildren(nsHTMLReflowMetrics& aDesiredSize,
+  bool ReflowChildren(nsHTMLReflowMetrics& aDesiredSize,
                         const nsHTMLReflowState& aReflowState,
                         nsReflowStatus& aStatus,
                         const ReflowConfig& aConfig,
-                        PRBool aLastColumnUnbounded,
+                        bool aLastColumnUnbounded,
                         nsCollapsingMargin* aCarriedOutBottomMargin,
                         ColumnBalanceData& aColData);
 };
@@ -228,7 +228,7 @@ nsColumnSetFrame::PaintColumnRule(nsRenderingContext* aCtx,
   if (!nextSibling)
     return;  
 
-  PRBool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  bool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
   const nsStyleColumn* colStyle = GetStyleColumn();
 
   PRUint8 ruleStyle;
@@ -518,19 +518,19 @@ nsColumnSetFrame::GetPrefWidth(nsRenderingContext *aRenderingContext) {
   return result;
 }
 
-PRBool
+bool
 nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
                                  const nsHTMLReflowState& aReflowState,
                                  nsReflowStatus&          aStatus,
                                  const ReflowConfig&      aConfig,
-                                 PRBool                   aUnboundedLastColumn,
+                                 bool                     aUnboundedLastColumn,
                                  nsCollapsingMargin*      aBottomMarginCarriedOut,
                                  ColumnBalanceData&       aColData)
 {
   aColData.Reset();
-  PRBool allFit = PR_TRUE;
-  PRBool RTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
-  PRBool shrinkingHeightOnly = !NS_SUBTREE_DIRTY(this) &&
+  bool allFit = true;
+  bool RTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  bool shrinkingHeightOnly = !NS_SUBTREE_DIRTY(this) &&
     mLastBalanceHeight > aConfig.mColMaxHeight;
   
 #ifdef DEBUG_roc
@@ -580,7 +580,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
   }
   int columnCount = 0;
   int contentBottom = 0;
-  PRBool reflowNext = PR_FALSE;
+  bool reflowNext = false;
 
   while (child) {
     
@@ -593,7 +593,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     
     
-    PRBool skipIncremental = !aReflowState.ShouldReflowAllKids()
+    bool skipIncremental = !aReflowState.ShouldReflowAllKids()
       && !NS_SUBTREE_DIRTY(child)
       && child->GetNextSibling()
       && !(aUnboundedLastColumn && columnCount == aConfig.mBalanceColCount - 1)
@@ -606,7 +606,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     
     
-    PRBool skipResizeHeightShrink = shrinkingHeightOnly
+    bool skipResizeHeightShrink = shrinkingHeightOnly
       && child->GetScrollableOverflowRect().YMost() <= aConfig.mColMaxHeight;
 
     nscoord childContentBottom = 0;
@@ -915,7 +915,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   
 
   ReflowConfig config = ChooseColumnStrategy(aReflowState);
-  PRBool isBalancing = config.mBalanceColCount < PR_INT32_MAX;
+  bool isBalancing = config.mBalanceColCount < PR_INT32_MAX;
   
   
   
@@ -924,10 +924,10 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   
   
   nsIFrame* nextInFlow = GetNextInFlow();
-  PRBool unboundedLastColumn = isBalancing && !nextInFlow;
+  bool unboundedLastColumn = isBalancing && !nextInFlow;
   nsCollapsingMargin carriedOutBottomMargin;
   ColumnBalanceData colData;
-  PRBool feasible = ReflowChildren(aDesiredSize, aReflowState,
+  bool feasible = ReflowChildren(aDesiredSize, aReflowState,
     aStatus, config, unboundedLastColumn, &carriedOutBottomMargin, colData);
 
   if (isBalancing && !aPresContext->HasPendingInterrupt()) {
@@ -941,7 +941,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
-    PRBool maybeContinuousBreakingDetected = PR_FALSE;
+    bool maybeContinuousBreakingDetected = false;
 
     while (!aPresContext->HasPendingInterrupt()) {
       nscoord lastKnownFeasibleHeight = knownFeasibleHeight;
@@ -1038,7 +1038,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
     if (!feasible && !aPresContext->HasPendingInterrupt()) {
       
       
-      PRBool skip = PR_FALSE;
+      bool skip = false;
       if (knownInfeasibleHeight >= availableContentHeight) {
         config.mColMaxHeight = availableContentHeight;
         if (mLastBalanceHeight == availableContentHeight) {

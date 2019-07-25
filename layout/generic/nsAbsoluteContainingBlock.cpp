@@ -135,19 +135,19 @@ nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
                                   nsReflowStatus&          aReflowStatus,
                                   nscoord                  aContainingBlockWidth,
                                   nscoord                  aContainingBlockHeight,
-                                  PRBool                   aConstrainHeight,
-                                  PRBool                   aCBWidthChanged,
-                                  PRBool                   aCBHeightChanged,
+                                  bool                     aConstrainHeight,
+                                  bool                     aCBWidthChanged,
+                                  bool                     aCBHeightChanged,
                                   nsOverflowAreas*         aOverflowAreas)
 {
   nsReflowStatus reflowStatus = NS_FRAME_COMPLETE;
 
-  PRBool reflowAll = aReflowState.ShouldReflowAllKids();
+  bool reflowAll = aReflowState.ShouldReflowAllKids();
 
   nsIFrame* kidFrame;
   nsOverflowContinuationTracker tracker(aPresContext, aDelegatingFrame, PR_TRUE);
   for (kidFrame = mAbsoluteFrames.FirstChild(); kidFrame; kidFrame = kidFrame->GetNextSibling()) {
-    PRBool kidNeedsReflow = reflowAll || NS_SUBTREE_DIRTY(kidFrame) ||
+    bool kidNeedsReflow = reflowAll || NS_SUBTREE_DIRTY(kidFrame) ||
       FrameDependsOnContainer(kidFrame, aCBWidthChanged, aCBHeightChanged);
     if (kidNeedsReflow && !aPresContext->HasPendingInterrupt()) {
       
@@ -224,10 +224,10 @@ static inline bool IsFixedMarginSize(const nsStyleCoord& aCoord)
 static inline bool IsFixedOffset(const nsStyleCoord& aCoord)
   { return aCoord.ConvertsToLength(); }
 
-PRBool
+bool
 nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
-                                                   PRBool aCBWidthChanged,
-                                                   PRBool aCBHeightChanged)
+                                                   bool aCBWidthChanged,
+                                                   bool aCBHeightChanged)
 {
   const nsStylePosition* pos = f->GetStylePosition();
   
@@ -342,7 +342,7 @@ nsAbsoluteContainingBlock::MarkAllFramesDirty()
 }
 
 void
-nsAbsoluteContainingBlock::DoMarkFramesDirty(PRBool aMarkAllDirty)
+nsAbsoluteContainingBlock::DoMarkFramesDirty(bool aMarkAllDirty)
 {
   for (nsIFrame* kidFrame = mAbsoluteFrames.FirstChild();
        kidFrame;
@@ -370,7 +370,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
                                                const nsHTMLReflowState& aReflowState,
                                                nscoord                  aContainingBlockWidth,
                                                nscoord                  aContainingBlockHeight,
-                                               PRBool                   aConstrainHeight,
+                                               bool                     aConstrainHeight,
                                                nsIFrame*                aKidFrame,
                                                nsReflowStatus&          aStatus,
                                                nsOverflowAreas*         aOverflowAreas)
@@ -424,7 +424,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
   
   aKidFrame->WillReflow(aPresContext);
 
-  PRBool constrainHeight = (aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE)
+  bool constrainHeight = (aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE)
     && aConstrainHeight
        
     && (aDelegatingFrame->GetType() != nsGkAtoms::positionedInlineFrame)

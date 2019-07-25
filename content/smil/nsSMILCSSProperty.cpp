@@ -48,7 +48,7 @@
 using namespace mozilla::dom;
 
 
-static PRBool
+static bool
 GetCSSComputedValue(nsIContent* aElem,
                     nsCSSProperty aPropID,
                     nsAString& aResult)
@@ -136,7 +136,7 @@ nsSMILCSSProperty::GetBaseValue() const
 
   
   nsAutoString computedStyleVal;
-  PRBool didGetComputedVal = GetCSSComputedValue(mElement, mPropID,
+  bool didGetComputedVal = GetCSSComputedValue(mElement, mPropID,
                                                  computedStyleVal);
 
   
@@ -162,7 +162,7 @@ nsresult
 nsSMILCSSProperty::ValueFromString(const nsAString& aStr,
                                    const nsISMILAnimationElement* aSrcElement,
                                    nsSMILValue& aValue,
-                                   PRBool& aPreventCachingOfSandwich) const
+                                   bool& aPreventCachingOfSandwich) const
 {
   NS_ENSURE_TRUE(IsPropertyAnimatable(mPropID), NS_ERROR_FAILURE);
 
@@ -213,7 +213,7 @@ nsSMILCSSProperty::ClearAnimValue()
 
 
 
-PRBool
+bool
 nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
 {
   

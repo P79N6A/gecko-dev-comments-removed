@@ -75,7 +75,7 @@ protected:
   ~nsXULTooltipListener();
 
   
-  static PRBool sShowTooltips;
+  static bool sShowTooltips;
   static PRUint32 sTooltipListenerCount;
 
   void KillTooltipTimer();
@@ -119,12 +119,12 @@ protected:
   
   
   
-  PRBool mTooltipShownOnce;
+  bool mTooltipShownOnce;
 
 #ifdef MOZ_XUL
   
-  PRBool mIsSourceTree;
-  PRBool mNeedTitletip;
+  bool mIsSourceTree;
+  bool mNeedTitletip;
   PRInt32 mLastTreeRow;
   nsCOMPtr<nsITreeColumn> mLastTreeCol;
 #endif

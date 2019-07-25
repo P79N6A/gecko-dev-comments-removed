@@ -223,7 +223,7 @@ public:
 
 
 
-  PRBool EndTransaction(InfallibleTArray<EditReply>* aReplies);
+  bool EndTransaction(InfallibleTArray<EditReply>* aReplies);
 
   
 
@@ -241,7 +241,7 @@ public:
   
 
 
-  PRBool HasShadowManager() const { return !!mShadowManager; }
+  bool HasShadowManager() const { return !!mShadowManager; }
   PLayersChild* GetShadowManager() const { return mShadowManager; }
 
   
@@ -284,13 +284,13 @@ public:
 
 
 
-  PRBool AllocDoubleBuffer(const gfxIntSize& aSize,
+  bool AllocDoubleBuffer(const gfxIntSize& aSize,
                            gfxASurface::gfxContentType aContent,
                            gfxSharedImageSurface** aFrontBuffer,
                            gfxSharedImageSurface** aBackBuffer);
   void DestroySharedSurface(gfxSharedImageSurface* aSurface);
 
-  PRBool AllocBuffer(const gfxIntSize& aSize,
+  bool AllocBuffer(const gfxIntSize& aSize,
                      gfxASurface::gfxContentType aContent,
                      gfxSharedImageSurface** aBuffer);
 
@@ -298,12 +298,12 @@ public:
 
 
 
-  PRBool AllocDoubleBuffer(const gfxIntSize& aSize,
+  bool AllocDoubleBuffer(const gfxIntSize& aSize,
                            gfxASurface::gfxContentType aContent,
                            SurfaceDescriptor* aFrontBuffer,
                            SurfaceDescriptor* aBackBuffer);
 
-  PRBool AllocBuffer(const gfxIntSize& aSize,
+  bool AllocBuffer(const gfxIntSize& aSize,
                      gfxASurface::gfxContentType aContent,
                      SurfaceDescriptor* aBuffer);
 
@@ -335,19 +335,19 @@ protected:
   PLayersChild* mShadowManager;
 
 private:
-  PRBool PlatformAllocDoubleBuffer(const gfxIntSize& aSize,
+  bool PlatformAllocDoubleBuffer(const gfxIntSize& aSize,
                                    gfxASurface::gfxContentType aContent,
                                    SurfaceDescriptor* aFrontBuffer,
                                    SurfaceDescriptor* aBackBuffer);
 
-  PRBool PlatformAllocBuffer(const gfxIntSize& aSize,
+  bool PlatformAllocBuffer(const gfxIntSize& aSize,
                              gfxASurface::gfxContentType aContent,
                              SurfaceDescriptor* aBuffer);
 
   static already_AddRefed<gfxASurface>
   PlatformOpenDescriptor(const SurfaceDescriptor& aDescriptor);
 
-  PRBool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
+  bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
 
   static void PlatformSyncBeforeUpdate();
 
@@ -385,7 +385,7 @@ public:
 protected:
   ShadowLayerManager() {}
 
-  PRBool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
+  bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
 };
 
 
@@ -406,7 +406,7 @@ public:
   
 
 
-  PRBool HasShadow() { return !!mShadow; }
+  bool HasShadow() { return !!mShadow; }
 
   
 
@@ -498,7 +498,7 @@ protected:
   nsIntRegion mShadowVisibleRegion;
   gfx3DMatrix mShadowTransform;
   nsIntRect mShadowClipRect;
-  PRPackedBool mUseShadowClipRect;
+  bool mUseShadowClipRect;
 };
 
 
@@ -635,7 +635,7 @@ protected:
   {}
 };
 
-PRBool IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface);
+bool IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface);
 
 } 
 } 

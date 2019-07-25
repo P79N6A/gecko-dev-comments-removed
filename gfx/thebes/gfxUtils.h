@@ -117,7 +117,7 @@ public:
 
 
 
-    static PRBool GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
+    static bool GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
 
     
 

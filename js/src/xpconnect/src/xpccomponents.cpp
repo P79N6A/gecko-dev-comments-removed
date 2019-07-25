@@ -60,7 +60,7 @@
 
 
 
-static nsresult ThrowAndFail(uintN errNum, JSContext* cx, PRBool* retval)
+static nsresult ThrowAndFail(uintN errNum, JSContext* cx, bool* retval)
 {
     XPCThrower::Throw(errNum, cx);
     *retval = JS_FALSE;
@@ -262,7 +262,7 @@ NS_IMETHODIMP
 nsXPCComponents_Interfaces::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
                                          JSContext * cx, JSObject * obj,
                                          PRUint32 enum_op, jsval * statep,
-                                         jsid * idp, PRBool *_retval)
+                                         jsid * idp, bool *_retval)
 {
     nsIEnumerator* e;
 
@@ -302,7 +302,7 @@ nsXPCComponents_Interfaces::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
                     {
                         JSString* idstr;
                         const char* name;
-                        PRBool scriptable;
+                        bool scriptable;
 
                         if(NS_SUCCEEDED(iface->IsScriptable(&scriptable)) &&
                            !scriptable)
@@ -338,7 +338,7 @@ NS_IMETHODIMP
 nsXPCComponents_Interfaces::NewResolve(nsIXPConnectWrappedNative *wrapper,
                                        JSContext * cx, JSObject * obj,
                                        jsid id, PRUint32 flags,
-                                       JSObject * *objp, PRBool *_retval)
+                                       JSObject * *objp, bool *_retval)
 {
     JSAutoByteString name;
     if(mManager &&
@@ -575,7 +575,7 @@ NS_IMETHODIMP
 nsXPCComponents_InterfacesByID::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
                                              JSContext * cx, JSObject * obj,
                                              PRUint32 enum_op, jsval * statep,
-                                             jsid * idp, PRBool *_retval)
+                                             jsid * idp, bool *_retval)
 {
     nsIEnumerator* e;
 
@@ -616,7 +616,7 @@ nsXPCComponents_InterfacesByID::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
                         nsIID const *iid;
                         char idstr[NSID_LENGTH];
                         JSString* jsstr;
-                        PRBool scriptable;
+                        bool scriptable;
 
                         if(NS_SUCCEEDED(iface->IsScriptable(&scriptable)) &&
                            !scriptable)
@@ -656,7 +656,7 @@ NS_IMETHODIMP
 nsXPCComponents_InterfacesByID::NewResolve(nsIXPConnectWrappedNative *wrapper,
                                            JSContext * cx, JSObject * obj,
                                            jsid id, PRUint32 flags,
-                                           JSObject * *objp, PRBool *_retval)
+                                           JSObject * *objp, bool *_retval)
 {
     const jschar* name = nsnull;
 
@@ -894,7 +894,7 @@ NS_IMETHODIMP
 nsXPCComponents_Classes::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
                                       JSContext * cx, JSObject * obj,
                                       PRUint32 enum_op, jsval * statep,
-                                      jsid * idp, PRBool *_retval)
+                                      jsid * idp, bool *_retval)
 {
     nsISimpleEnumerator* e;
 
@@ -919,7 +919,7 @@ nsXPCComponents_Classes::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
         case JSENUMERATE_NEXT:
         {
             nsCOMPtr<nsISupports> isup;
-            PRBool hasMore;
+            bool hasMore;
             e = (nsISimpleEnumerator*) JSVAL_TO_PRIVATE(*statep);
 
             if(NS_SUCCEEDED(e->HasMoreElements(&hasMore)) && hasMore &&
@@ -957,7 +957,7 @@ NS_IMETHODIMP
 nsXPCComponents_Classes::NewResolve(nsIXPConnectWrappedNative *wrapper,
                                     JSContext * cx, JSObject * obj,
                                     jsid id, PRUint32 flags,
-                                    JSObject * *objp, PRBool *_retval)
+                                    JSObject * *objp, bool *_retval)
 
 {
     JSAutoByteString name;
@@ -1145,7 +1145,7 @@ NS_IMETHODIMP
 nsXPCComponents_ClassesByID::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
                                           JSContext * cx, JSObject * obj,
                                           PRUint32 enum_op, jsval * statep,
-                                          jsid * idp, PRBool *_retval)
+                                          jsid * idp, bool *_retval)
 {
     nsISimpleEnumerator* e;
 
@@ -1170,7 +1170,7 @@ nsXPCComponents_ClassesByID::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
         case JSENUMERATE_NEXT:
         {
             nsCOMPtr<nsISupports> isup;
-            PRBool hasMore;
+            bool hasMore;
             e = (nsISimpleEnumerator*) JSVAL_TO_PRIVATE(*statep);
 
             if(NS_SUCCEEDED(e->HasMoreElements(&hasMore)) && hasMore &&
@@ -1204,10 +1204,10 @@ nsXPCComponents_ClassesByID::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
     }
 }
 
-static PRBool
+static bool
 IsRegisteredCLSID(const char* str)
 {
-    PRBool registered;
+    bool registered;
     nsID id;
 
     if(!id.Parse(str))
@@ -1226,7 +1226,7 @@ NS_IMETHODIMP
 nsXPCComponents_ClassesByID::NewResolve(nsIXPConnectWrappedNative *wrapper,
                                         JSContext * cx, JSObject * obj,
                                         jsid id, PRUint32 flags,
-                                        JSObject * *objp, PRBool *_retval)
+                                        JSObject * *objp, bool *_retval)
 {
     JSAutoByteString name;
 
@@ -1416,7 +1416,7 @@ NS_IMETHODIMP
 nsXPCComponents_Results::NewEnumerate(nsIXPConnectWrappedNative *wrapper,
                                       JSContext * cx, JSObject * obj,
                                       PRUint32 enum_op, jsval * statep,
-                                      jsid * idp, PRBool *_retval)
+                                      jsid * idp, bool *_retval)
 {
     void** iter;
 
@@ -1461,7 +1461,7 @@ NS_IMETHODIMP
 nsXPCComponents_Results::NewResolve(nsIXPConnectWrappedNative *wrapper,
                                     JSContext * cx, JSObject * obj,
                                     jsid id, PRUint32 flags,
-                                    JSObject * *objp, PRBool *_retval)
+                                    JSObject * *objp, bool *_retval)
 {
     JSAutoByteString name;
 
@@ -1516,7 +1516,7 @@ private:
     static nsresult CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
                                     JSContext * cx, JSObject * obj,
                                     PRUint32 argc, jsval * argv,
-                                    jsval * vp, PRBool *_retval);
+                                    jsval * vp, bool *_retval);
 };
 
 
@@ -1643,7 +1643,7 @@ NS_IMPL_THREADSAFE_RELEASE(nsXPCComponents_ID)
 
 
 NS_IMETHODIMP
-nsXPCComponents_ID::Call(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, PRBool *_retval)
+nsXPCComponents_ID::Call(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, bool *_retval)
 {
     return CallOrConstruct(wrapper, cx, obj, argc, argv, vp, _retval);
 
@@ -1651,7 +1651,7 @@ nsXPCComponents_ID::Call(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSO
 
 
 NS_IMETHODIMP
-nsXPCComponents_ID::Construct(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, PRBool *_retval)
+nsXPCComponents_ID::Construct(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, bool *_retval)
 {
     return CallOrConstruct(wrapper, cx, obj, argc, argv, vp, _retval);
 }
@@ -1661,7 +1661,7 @@ nsresult
 nsXPCComponents_ID::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
                                     JSContext * cx, JSObject * obj,
                                     PRUint32 argc, jsval * argv,
-                                    jsval * vp, PRBool *_retval)
+                                    jsval * vp, bool *_retval)
 {
     
 
@@ -1713,7 +1713,7 @@ nsXPCComponents_ID::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
 NS_IMETHODIMP
 nsXPCComponents_ID::HasInstance(nsIXPConnectWrappedNative *wrapper,
                                 JSContext * cx, JSObject * obj,
-                                const jsval &val, PRBool *bp, PRBool *_retval)
+                                const jsval &val, bool *bp, bool *_retval)
 {
     if(bp)
         *bp = JSValIsInterfaceOfType(cx, val, NS_GET_IID(nsIJSID));
@@ -1744,7 +1744,7 @@ private:
     static nsresult CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
                                     JSContext * cx, JSObject * obj,
                                     PRUint32 argc, jsval * argv,
-                                    jsval * vp, PRBool *_retval);
+                                    jsval * vp, bool *_retval);
 };
 
 
@@ -1871,7 +1871,7 @@ NS_IMPL_THREADSAFE_RELEASE(nsXPCComponents_Exception)
 
 
 NS_IMETHODIMP
-nsXPCComponents_Exception::Call(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, PRBool *_retval)
+nsXPCComponents_Exception::Call(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, bool *_retval)
 {
     return CallOrConstruct(wrapper, cx, obj, argc, argv, vp, _retval);
 
@@ -1879,7 +1879,7 @@ nsXPCComponents_Exception::Call(nsIXPConnectWrappedNative *wrapper, JSContext * 
 
 
 NS_IMETHODIMP
-nsXPCComponents_Exception::Construct(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, PRBool *_retval)
+nsXPCComponents_Exception::Construct(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, bool *_retval)
 {
     return CallOrConstruct(wrapper, cx, obj, argc, argv, vp, _retval);
 }
@@ -1889,7 +1889,7 @@ nsresult
 nsXPCComponents_Exception::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
                                            JSContext * cx, JSObject * obj,
                                            PRUint32 argc, jsval * argv,
-                                           jsval * vp, PRBool *_retval)
+                                           jsval * vp, bool *_retval)
 {
     XPCCallContext ccx(JS_CALLER, cx);
     if(!ccx.IsValid())
@@ -1990,8 +1990,8 @@ nsXPCComponents_Exception::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
 NS_IMETHODIMP
 nsXPCComponents_Exception::HasInstance(nsIXPConnectWrappedNative *wrapper,
                                        JSContext * cx, JSObject * obj,
-                                       const jsval &val, PRBool *bp,
-                                       PRBool *_retval)
+                                       const jsval &val, bool *bp,
+                                       bool *_retval)
 {
     if(bp)
         *bp = JSValIsInterfaceOfType(cx, val, NS_GET_IID(nsIException));
@@ -2035,7 +2035,7 @@ private:
     nsresult CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
                              JSContext * cx, JSObject * obj,
                              PRUint32 argc, jsval * argv,
-                             jsval * vp, PRBool *_retval);
+                             jsval * vp, bool *_retval);
 private:
     nsIJSCID* mClassID;
     nsIJSIID* mInterfaceID;
@@ -2198,7 +2198,7 @@ NS_IMPL_THREADSAFE_RELEASE(nsXPCConstructor)
 
 
 NS_IMETHODIMP
-nsXPCConstructor::Call(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, PRBool *_retval)
+nsXPCConstructor::Call(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, bool *_retval)
 {
     return CallOrConstruct(wrapper, cx, obj, argc, argv, vp, _retval);
 
@@ -2206,7 +2206,7 @@ nsXPCConstructor::Call(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObj
 
 
 NS_IMETHODIMP
-nsXPCConstructor::Construct(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, PRBool *_retval)
+nsXPCConstructor::Construct(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, bool *_retval)
 {
     return CallOrConstruct(wrapper, cx, obj, argc, argv, vp, _retval);
 }
@@ -2216,7 +2216,7 @@ nsresult
 nsXPCConstructor::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
                                   JSContext * cx, JSObject * obj,
                                   PRUint32 argc, jsval * argv,
-                                  jsval * vp, PRBool *_retval)
+                                  jsval * vp, bool *_retval)
 {
     XPCCallContext ccx(JS_CALLER, cx);
     if(!ccx.IsValid())
@@ -2305,7 +2305,7 @@ private:
     static nsresult CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
                                     JSContext * cx, JSObject * obj,
                                     PRUint32 argc, jsval * argv,
-                                    jsval * vp, PRBool *_retval);
+                                    jsval * vp, bool *_retval);
 };
 
 
@@ -2432,14 +2432,14 @@ NS_IMPL_THREADSAFE_RELEASE(nsXPCComponents_Constructor)
 
 
 NS_IMETHODIMP
-nsXPCComponents_Constructor::Call(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, PRBool *_retval)
+nsXPCComponents_Constructor::Call(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, bool *_retval)
 {
     return CallOrConstruct(wrapper, cx, obj, argc, argv, vp, _retval);
 }
 
 
 NS_IMETHODIMP
-nsXPCComponents_Constructor::Construct(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, PRBool *_retval)
+nsXPCComponents_Constructor::Construct(nsIXPConnectWrappedNative *wrapper, JSContext * cx, JSObject * obj, PRUint32 argc, jsval * argv, jsval * vp, bool *_retval)
 {
     return CallOrConstruct(wrapper, cx, obj, argc, argv, vp, _retval);
 }
@@ -2449,7 +2449,7 @@ nsresult
 nsXPCComponents_Constructor::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
                                              JSContext * cx, JSObject * obj,
                                              PRUint32 argc, jsval * argv,
-                                             jsval * vp, PRBool *_retval)
+                                             jsval * vp, bool *_retval)
 {
     
 
@@ -2617,8 +2617,8 @@ nsXPCComponents_Constructor::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
 NS_IMETHODIMP
 nsXPCComponents_Constructor::HasInstance(nsIXPConnectWrappedNative *wrapper,
                                          JSContext * cx, JSObject * obj,
-                                         const jsval &val, PRBool *bp,
-                                         PRBool *_retval)
+                                         const jsval &val, bool *bp,
+                                         bool *_retval)
 {
     if(bp)
         *bp = JSValIsInterfaceOfType(cx, val, NS_GET_IID(nsIXPCConstructor));
@@ -2644,7 +2644,7 @@ private:
     static nsresult CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
                                     JSContext * cx, JSObject * obj,
                                     PRUint32 argc, jsval * argv,
-                                    jsval * vp, PRBool *_retval);
+                                    jsval * vp, bool *_retval);
 };
 
 class nsXPCComponents_Utils :
@@ -3269,7 +3269,7 @@ nsXPCComponents_utils_Sandbox::Call(nsIXPConnectWrappedNative *wrapper,
                                     PRUint32 argc,
                                     jsval * argv,
                                     jsval * vp,
-                                    PRBool *_retval)
+                                    bool *_retval)
 {
     return CallOrConstruct(wrapper, cx, obj, argc, argv, vp, _retval);
 }
@@ -3288,7 +3288,7 @@ nsXPCComponents_utils_Sandbox::Construct(nsIXPConnectWrappedNative *wrapper,
                                          PRUint32 argc,
                                          jsval * argv,
                                          jsval * vp,
-                                         PRBool *_retval)
+                                         bool *_retval)
 {
     return CallOrConstruct(wrapper, cx, obj, argc, argv, vp, _retval);
 }
@@ -3298,7 +3298,7 @@ nsresult
 nsXPCComponents_utils_Sandbox::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
                                                JSContext * cx, JSObject * obj,
                                                PRUint32 argc, jsval * argv,
-                                               jsval * vp, PRBool *_retval)
+                                               jsval * vp, bool *_retval)
 {
     if (argc < 1)
         return ThrowAndFail(NS_ERROR_XPC_NOT_ENOUGH_ARGS, cx, _retval);
@@ -3586,7 +3586,7 @@ nsXPCComponents_Utils::EvalInSandbox(const nsAString &source)
 nsresult
 xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
                   const char *filename, PRInt32 lineNo,
-                  JSVersion jsVersion, PRBool returnStringOnly, jsval *rval)
+                  JSVersion jsVersion, bool returnStringOnly, jsval *rval)
 {
 #ifdef DEBUG
     
@@ -3596,7 +3596,7 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
             JSStackFrame *fp;
             nsIPrincipal *subjectPrincipal =
                 ssm->GetCxSubjectPrincipalAndFrame(cx, &fp);
-            PRBool system;
+            bool system;
             ssm->IsSystemPrincipal(subjectPrincipal, &system);
             if (fp && !system) {
                 ssm->IsCapabilityEnabled("UniversalXPConnect", &system);
@@ -4227,7 +4227,7 @@ XPC_IMPL_GET_OBJ_METHOD(Utils)
 
 
 NS_IMETHODIMP
-nsXPCComponents::IsSuccessCode(nsresult result, PRBool *out)
+nsXPCComponents::IsSuccessCode(nsresult result, bool *out)
 {
     *out = NS_SUCCEEDED(result);
     return NS_OK;
@@ -4267,7 +4267,7 @@ NS_IMETHODIMP
 nsXPCComponents::NewResolve(nsIXPConnectWrappedNative *wrapper,
                             JSContext * cx, JSObject * obj,
                             jsid id, PRUint32 flags,
-                            JSObject * *objp, PRBool *_retval)
+                            JSObject * *objp, bool *_retval)
 {
     XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
     if(!rt)
@@ -4291,13 +4291,13 @@ nsXPCComponents::NewResolve(nsIXPConnectWrappedNative *wrapper,
 NS_IMETHODIMP
 nsXPCComponents::GetProperty(nsIXPConnectWrappedNative *wrapper,
                              JSContext * cx, JSObject * obj,
-                             jsid id, jsval * vp, PRBool *_retval)
+                             jsid id, jsval * vp, bool *_retval)
 {
     XPCContext* xpcc = XPCContext::GetXPCContext(cx);
     if(!xpcc)
         return NS_ERROR_FAILURE;
 
-    PRBool doResult = JS_FALSE;
+    bool doResult = JS_FALSE;
     nsresult res;
     XPCJSRuntime* rt = xpcc->GetRuntime();
     if(id == rt->GetStringID(XPCJSRuntime::IDX_LAST_RESULT))
@@ -4326,7 +4326,7 @@ nsXPCComponents::GetProperty(nsIXPConnectWrappedNative *wrapper,
 NS_IMETHODIMP
 nsXPCComponents::SetProperty(nsIXPConnectWrappedNative *wrapper,
                              JSContext * cx, JSObject * obj, jsid id,
-                             jsval * vp, PRBool *_retval)
+                             jsval * vp, bool *_retval)
 {
     XPCContext* xpcc = XPCContext::GetXPCContext(cx);
     if(!xpcc)

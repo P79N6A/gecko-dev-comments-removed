@@ -44,7 +44,7 @@
 
 class nsEUCKRProber: public nsCharSetProber {
 public:
-  nsEUCKRProber(PRBool aIsPreferredLanguage)
+  nsEUCKRProber(bool aIsPreferredLanguage)
     :mIsPreferredLanguage(aIsPreferredLanguage)
   {mCodingSM = new nsCodingStateMachine(&EUCKRSMModel);
     Reset();
@@ -66,7 +66,7 @@ protected:
   
   EUCKRDistributionAnalysis mDistributionAnalyser;
   char mLastChar[2];
-  PRBool mIsPreferredLanguage;
+  bool mIsPreferredLanguage;
 
 };
 

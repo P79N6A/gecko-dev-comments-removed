@@ -43,7 +43,7 @@
 #endif
 
 template <class RectType>
-static PRBool
+static bool
 TestConstructors()
 {
   
@@ -71,7 +71,7 @@ TestConstructors()
 }
 
 template <class RectType>
-static PRBool
+static bool
 TestEqualityOperator()
 {
   RectType  rect1(10, 20, 30, 40);
@@ -102,7 +102,7 @@ TestEqualityOperator()
 }
 
 template <class RectType>
-static PRBool
+static bool
 TestContainment()
 {
   RectType  rect1(10, 10, 50, 50);
@@ -177,7 +177,7 @@ TestContainment()
 
 
 template <class RectType>
-static PRBool
+static bool
 TestIntersects()
 {
   RectType  rect1(10, 10, 50, 50);
@@ -273,7 +273,7 @@ TestIntersects()
 
 
 template <class RectType>
-static PRBool
+static bool
 TestIntersection()
 {
   RectType  rect1(10, 10, 50, 50);
@@ -423,7 +423,7 @@ TestIntersection()
 }
 
 template <class RectType>
-static PRBool
+static bool
 TestUnion()
 {
   RectType  rect1;

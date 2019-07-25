@@ -87,7 +87,7 @@ public:
 
 
 
-  static PRBool Add(nsCSSProperty aProperty, Value& aDest,
+  static bool Add(nsCSSProperty aProperty, Value& aDest,
                     const Value& aValueToAdd, PRUint32 aCount) {
     return AddWeighted(aProperty, 1.0, aDest, aCount, aValueToAdd, aDest);
   }
@@ -110,7 +110,7 @@ public:
 
 
 
-  static PRBool ComputeDistance(nsCSSProperty aProperty,
+  static bool ComputeDistance(nsCSSProperty aProperty,
                                 const Value& aStartValue,
                                 const Value& aEndValue,
                                 double& aDistance);
@@ -131,7 +131,7 @@ public:
 
 
 
-  static PRBool Interpolate(nsCSSProperty aProperty,
+  static bool Interpolate(nsCSSProperty aProperty,
                             const Value& aStartValue,
                             const Value& aEndValue,
                             double aPortion,
@@ -154,7 +154,7 @@ public:
 
 
 
-  static PRBool AddWeighted(nsCSSProperty aProperty,
+  static bool AddWeighted(nsCSSProperty aProperty,
                             double aCoeff1, const Value& aValue1,
                             double aCoeff2, const Value& aValue2,
                             Value& aResultValue);
@@ -185,12 +185,12 @@ public:
 
 
 
-  static PRBool ComputeValue(nsCSSProperty aProperty,
+  static bool ComputeValue(nsCSSProperty aProperty,
                              mozilla::dom::Element* aTargetElement,
                              const nsAString& aSpecifiedValue,
-                             PRBool aUseSVGMode,
+                             bool aUseSVGMode,
                              Value& aComputedValue,
-                             PRBool* aIsContextSensitive = nsnull);
+                             bool* aIsContextSensitive = nsnull);
 
   
 
@@ -207,11 +207,11 @@ public:
 
 
 
-  static PRBool UncomputeValue(nsCSSProperty aProperty,
+  static bool UncomputeValue(nsCSSProperty aProperty,
                                nsPresContext* aPresContext,
                                const Value& aComputedValue,
                                nsCSSValue& aSpecifiedValue);
-  static PRBool UncomputeValue(nsCSSProperty aProperty,
+  static bool UncomputeValue(nsCSSProperty aProperty,
                                nsPresContext* aPresContext,
                                const Value& aComputedValue,
                                nsAString& aSpecifiedValue);
@@ -225,7 +225,7 @@ public:
 
 
 
-  static PRBool ExtractComputedValue(nsCSSProperty aProperty,
+  static bool ExtractComputedValue(nsCSSProperty aProperty,
                                      nsStyleContext* aStyleContext,
                                      Value& aComputedValue);
 
@@ -292,7 +292,7 @@ public:
 
     
     
-    PRBool IsNull() const {
+    bool IsNull() const {
       return mUnit == eUnit_Null;
     }
 
@@ -392,8 +392,8 @@ public:
 
     Value& operator=(const Value& aOther);
 
-    PRBool operator==(const Value& aOther) const;
-    PRBool operator!=(const Value& aOther) const
+    bool operator==(const Value& aOther) const;
+    bool operator!=(const Value& aOther) const
       { return !(*this == aOther); }
 
   private:
@@ -403,30 +403,30 @@ public:
       return static_cast<PRUnichar*>(aBuffer->Data());
     }
 
-    static PRBool IsIntUnit(Unit aUnit) {
+    static bool IsIntUnit(Unit aUnit) {
       return aUnit == eUnit_Enumerated || aUnit == eUnit_Visibility ||
              aUnit == eUnit_Integer;
     }
-    static PRBool IsCSSValueUnit(Unit aUnit) {
+    static bool IsCSSValueUnit(Unit aUnit) {
       return aUnit == eUnit_Calc;
     }
-    static PRBool IsCSSValuePairUnit(Unit aUnit) {
+    static bool IsCSSValuePairUnit(Unit aUnit) {
       return aUnit == eUnit_CSSValuePair;
     }
-    static PRBool IsCSSValueTripletUnit(Unit aUnit) {
+    static bool IsCSSValueTripletUnit(Unit aUnit) {
       return aUnit == eUnit_CSSValueTriplet;
     }
-    static PRBool IsCSSRectUnit(Unit aUnit) {
+    static bool IsCSSRectUnit(Unit aUnit) {
       return aUnit == eUnit_CSSRect;
     }
-    static PRBool IsCSSValueListUnit(Unit aUnit) {
+    static bool IsCSSValueListUnit(Unit aUnit) {
       return aUnit == eUnit_Dasharray || aUnit == eUnit_Shadow ||
              aUnit == eUnit_Transform;
     }
-    static PRBool IsCSSValuePairListUnit(Unit aUnit) {
+    static bool IsCSSValuePairListUnit(Unit aUnit) {
       return aUnit == eUnit_CSSValuePairList;
     }
-    static PRBool IsStringUnit(Unit aUnit) {
+    static bool IsStringUnit(Unit aUnit) {
       return aUnit == eUnit_UnparsedString;
     }
   };

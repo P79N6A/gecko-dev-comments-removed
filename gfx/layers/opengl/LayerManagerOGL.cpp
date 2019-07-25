@@ -169,7 +169,7 @@ LayerManagerOGL::CreateContext()
   return context.forget();
 }
 
-PRBool
+bool
 LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext)
 {
   ScopedGfxFeatureReporter reporter("GL Layers");
@@ -541,7 +541,7 @@ LayerManagerOGL::RootLayer() const
   return static_cast<LayerOGL*>(mRoot->ImplData());
 }
 
-PRBool LayerManagerOGL::sDrawFPS = PR_FALSE;
+bool LayerManagerOGL::sDrawFPS = false;
 
 
 

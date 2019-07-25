@@ -115,7 +115,7 @@ public:
 
 
 
-  static nsIContent* GetFocusedDescendant(nsPIDOMWindow* aWindow, PRBool aDeep,
+  static nsIContent* GetFocusedDescendant(nsPIDOMWindow* aWindow, bool aDeep,
                                           nsPIDOMWindow** aFocusedWindow);
 
   
@@ -137,7 +137,7 @@ public:
 
   static PRUint32 GetFocusMoveReason(PRUint32 aFlags);
 
-  static PRBool sMouseFocusesFormControl;
+  static bool sMouseFocusesFormControl;
 
 protected:
 
@@ -162,13 +162,13 @@ protected:
 
 
   void SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
-                     PRBool aFocusChanged, PRBool aAdjustWidget);
+                     bool aFocusChanged, bool aAdjustWidget);
 
   
 
 
 
-  PRBool IsSameOrAncestor(nsPIDOMWindow* aPossibleAncestor,
+  bool IsSameOrAncestor(nsPIDOMWindow* aPossibleAncestor,
                           nsPIDOMWindow* aWindow);
 
   
@@ -184,12 +184,12 @@ protected:
 
 
 
-  void AdjustWindowFocus(nsPIDOMWindow* aNewWindow, PRBool aCheckPermission);
+  void AdjustWindowFocus(nsPIDOMWindow* aNewWindow, bool aCheckPermission);
 
   
 
 
-  PRBool IsWindowVisible(nsPIDOMWindow* aWindow);
+  bool IsWindowVisible(nsPIDOMWindow* aWindow);
 
   
 
@@ -198,7 +198,7 @@ protected:
 
 
 
-  PRBool IsNonFocusableRoot(nsIContent* aContent);
+  bool IsNonFocusableRoot(nsIContent* aContent);
 
   
 
@@ -235,10 +235,10 @@ protected:
 
 
 
-  PRBool Blur(nsPIDOMWindow* aWindowToClear,
+  bool Blur(nsPIDOMWindow* aWindowToClear,
               nsPIDOMWindow* aAncestorWindowToFocus,
-              PRBool aIsLeavingDocument,
-              PRBool aAdjustWidget);
+              bool aIsLeavingDocument,
+              bool aAdjustWidget);
 
   
 
@@ -269,10 +269,10 @@ protected:
   void Focus(nsPIDOMWindow* aWindow,
              nsIContent* aContent,
              PRUint32 aFlags,
-             PRBool aIsNewDocument,
-             PRBool aFocusChanged,
-             PRBool aWindowRaised,
-             PRBool aAdjustWidget);
+             bool aIsNewDocument,
+             bool aFocusChanged,
+             bool aWindowRaised,
+             bool aAdjustWidget);
 
   
 
@@ -287,8 +287,8 @@ protected:
                             nsIDocument* aDocument,
                             nsISupports* aTarget,
                             PRUint32 aFocusMethod,
-                            PRBool aWindowRaised,
-                            PRBool aIsRefocus = PR_FALSE);
+                            bool aWindowRaised,
+                            bool aIsRefocus = false);
 
   
 
@@ -310,8 +310,8 @@ protected:
 
 
 
-  void UpdateCaret(PRBool aMoveCaretToFocus,
-                   PRBool aUpdateVisibility,
+  void UpdateCaret(bool aMoveCaretToFocus,
+                   bool aUpdateVisibility,
                    nsIContent* aContent);
 
   
@@ -323,7 +323,7 @@ protected:
 
 
   nsresult SetCaretVisible(nsIPresShell* aPresShell,
-                           PRBool aVisible,
+                           bool aVisible,
                            nsIContent* aContent);
 
 
@@ -385,9 +385,9 @@ protected:
                                   nsIContent* aRootContent,
                                   nsIContent* aOriginalStartContent,
                                   nsIContent* aStartContent,
-                                  PRBool aForward,
+                                  bool aForward,
                                   PRInt32 aCurrentTabIndex,
-                                  PRBool aIgnoreTabIndex,
+                                  bool aIgnoreTabIndex,
                                   nsIContent** aResultContent);
 
   
@@ -402,7 +402,7 @@ protected:
 
 
 
-  nsIContent* GetNextTabbableMapArea(PRBool aForward,
+  nsIContent* GetNextTabbableMapArea(bool aForward,
                                      PRInt32 aCurrentTabIndex,
                                      nsIContent* aImageContent,
                                      nsIContent* aStartContent);
@@ -414,7 +414,7 @@ protected:
 
   PRInt32 GetNextTabIndex(nsIContent* aParent,
                           PRInt32 aCurrentTabIndex,
-                          PRBool aForward);
+                          bool aForward);
 
   
 
@@ -428,8 +428,8 @@ protected:
 
   nsIContent* GetRootForFocus(nsPIDOMWindow* aWindow,
                               nsIDocument* aDocument,
-                              PRBool aIsForDocNavigation,
-                              PRBool aCheckVisibility);
+                              bool aIsForDocNavigation,
+                              bool aCheckVisibility);
 
   
 
@@ -465,7 +465,7 @@ protected:
 
 
 
-  nsIContent* GetNextTabbableDocument(PRBool aForward);
+  nsIContent* GetNextTabbableDocument(bool aForward);
 
   
 
@@ -490,8 +490,8 @@ private:
   
   
   static void NotifyFocusStateChange(nsIContent* aContent,
-                                     PRBool aWindowShouldShowFocusRing,
-                                     PRBool aGettingFocus);
+                                     bool aWindowShouldShowFocusRing,
+                                     bool aGettingFocus);
 
   
   nsCOMPtr<nsPIDOMWindow> mActiveWindow;

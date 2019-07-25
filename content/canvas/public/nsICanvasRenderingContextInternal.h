@@ -110,7 +110,7 @@ public:
   
   
   
-  NS_IMETHOD SetIsOpaque(PRBool isOpaque) = 0;
+  NS_IMETHOD SetIsOpaque(bool isOpaque) = 0;
 
   
   
@@ -125,7 +125,7 @@ public:
   
   
   
-  virtual PRBool ShouldForceInactiveLayer(LayerManager *aManager) { return PR_FALSE; }
+  virtual bool ShouldForceInactiveLayer(LayerManager *aManager) { return false; }
 
   virtual void MarkContextClean() = 0;
 
@@ -144,7 +144,7 @@ public:
   
   
   
-  NS_IMETHOD SetIsIPC(PRBool isIPC) = 0;
+  NS_IMETHOD SetIsIPC(bool isIPC) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICanvasRenderingContextInternal,

@@ -70,7 +70,7 @@ public:
     virtual nsresult OnHeadersAvailable(nsAHttpTransaction *,
                                         nsHttpRequestHead *,
                                         nsHttpResponseHead *,
-                                        PRBool *reset) = 0;
+                                        bool *reset) = 0;
 
     
     
@@ -107,10 +107,10 @@ public:
 
     
     
-    virtual PRBool IsPersistent() = 0;
+    virtual bool IsPersistent() = 0;
 
     
-    virtual PRBool IsReused() = 0;
+    virtual bool IsReused() = 0;
     
     
     
@@ -118,8 +118,8 @@ public:
 
     
     
-    virtual PRBool LastTransactionExpectedNoContent() = 0;
-    virtual void   SetLastTransactionExpectedNoContent(PRBool) = 0;
+    virtual bool LastTransactionExpectedNoContent() = 0;
+    virtual void   SetLastTransactionExpectedNoContent(bool) = 0;
 
     
     
@@ -127,7 +127,7 @@ public:
 };
 
 #define NS_DECL_NSAHTTPCONNECTION \
-    nsresult OnHeadersAvailable(nsAHttpTransaction *, nsHttpRequestHead *, nsHttpResponseHead *, PRBool *reset); \
+    nsresult OnHeadersAvailable(nsAHttpTransaction *, nsHttpRequestHead *, nsHttpResponseHead *, bool *reset); \
     nsresult ResumeSend(); \
     nsresult ResumeRecv(); \
     void CloseTransaction(nsAHttpTransaction *, nsresult); \
@@ -136,11 +136,11 @@ public:
                            nsIAsyncInputStream **,   \
                            nsIAsyncOutputStream **); \
     void GetSecurityInfo(nsISupports **); \
-    PRBool IsPersistent(); \
-    PRBool IsReused(); \
+    bool IsPersistent(); \
+    bool IsReused(); \
     nsresult PushBack(const char *, PRUint32); \
-    PRBool LastTransactionExpectedNoContent(); \
-    void   SetLastTransactionExpectedNoContent(PRBool); \
+    bool LastTransactionExpectedNoContent(); \
+    void   SetLastTransactionExpectedNoContent(bool); \
     nsHttpConnection *TakeHttpConnection();
 
 #endif 

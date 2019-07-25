@@ -61,7 +61,7 @@ public:
   virtual void Description(nsString& aDescription);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
-  virtual PRBool GetAllowsAnonChildAccessibles();
+  virtual bool GetAllowsAnonChildAccessibles();
 
   
   virtual PRUint8 ActionCount();

@@ -113,7 +113,7 @@ public:
   
   NS_IMETHOD DoAction(PRUint8 index);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
-  NS_IMETHOD SetSelected(PRBool aSelect);
+  NS_IMETHOD SetSelected(bool aSelect);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);

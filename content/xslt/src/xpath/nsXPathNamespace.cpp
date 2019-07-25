@@ -147,13 +147,13 @@ NS_IMETHODIMP nsXPathNamespace::AppendChild(nsIDOMNode *newChild, nsIDOMNode **a
 }
 
 
-NS_IMETHODIMP nsXPathNamespace::HasChildNodes(PRBool *aResult)
+NS_IMETHODIMP nsXPathNamespace::HasChildNodes(bool *aResult)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-NS_IMETHODIMP nsXPathNamespace::CloneNode(PRBool deep, nsIDOMNode **aResult)
+NS_IMETHODIMP nsXPathNamespace::CloneNode(bool deep, nsIDOMNode **aResult)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -165,7 +165,7 @@ NS_IMETHODIMP nsXPathNamespace::Normalize()
 }
 
 
-NS_IMETHODIMP nsXPathNamespace::IsSupported(const nsAString & feature, const nsAString & version, PRBool *aResult)
+NS_IMETHODIMP nsXPathNamespace::IsSupported(const nsAString & feature, const nsAString & version, bool *aResult)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -193,7 +193,7 @@ NS_IMETHODIMP nsXPathNamespace::GetLocalName(nsAString & aLocalName)
 }
 
 
-NS_IMETHODIMP nsXPathNamespace::HasAttributes(PRBool *aResult)
+NS_IMETHODIMP nsXPathNamespace::HasAttributes(bool *aResult)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

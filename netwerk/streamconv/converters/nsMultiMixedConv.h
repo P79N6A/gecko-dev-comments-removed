@@ -105,13 +105,13 @@ protected:
   nsCString               mContentDispositionHeader;
   PRUint64                mContentLength;
 
-  PRBool                  mIsByteRangeRequest;
+  bool                    mIsByteRangeRequest;
   PRInt64                 mByteRangeStart;
   PRInt64                 mByteRangeEnd;
 
   PRUint32                mPartID; 
                                    
-  PRBool                  mIsLastPart;
+  bool                    mIsLastPart;
 };
 
 
@@ -166,14 +166,14 @@ protected:
     nsresult SendStop(nsresult aStatus);
     nsresult SendData(char *aBuffer, PRUint32 aLen);
     nsresult ParseHeaders(nsIChannel *aChannel, char *&aPtr,
-                          PRUint32 &aLen, PRBool *_retval);
+                          PRUint32 &aLen, bool *_retval);
     PRInt32  PushOverLine(char *&aPtr, PRUint32 &aLen);
     char *FindToken(char *aCursor, PRUint32 aLen);
     nsresult BufferData(char *aData, PRUint32 aLen);
 
     
-    PRBool              mNewPart;        
-    PRBool              mProcessingHeaders;
+    bool                mNewPart;        
+    bool                mProcessingHeaders;
     nsCOMPtr<nsIStreamListener> mFinalListener; 
 
     nsCString           mToken;
@@ -189,14 +189,14 @@ protected:
     char                *mBuffer;
     PRUint32            mBufLen;
     PRUint64            mTotalSent;
-    PRBool              mFirstOnData;   
+    bool                mFirstOnData;   
 
     
     
     
     PRInt64             mByteRangeStart;
     PRInt64             mByteRangeEnd;
-    PRBool              mIsByteRangeRequest;
+    bool                mIsByteRangeRequest;
 
     PRUint32            mCurrentPartID;
 };

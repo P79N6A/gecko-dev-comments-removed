@@ -268,7 +268,7 @@ protected:
                             nsMediaCacheStream* aForStream,
                             PRInt32 aForStreamBlock,
                             PRInt32 aMaxSearchBlockIndex);
-  PRBool BlockIsReusable(PRInt32 aBlockIndex);
+  bool BlockIsReusable(PRInt32 aBlockIndex);
   
   
   
@@ -317,7 +317,7 @@ protected:
   
   BlockOwner* GetBlockOwner(PRInt32 aBlockIndex, nsMediaCacheStream* aStream);
   
-  PRBool IsBlockFree(PRInt32 aBlockIndex)
+  bool IsBlockFree(PRInt32 aBlockIndex)
   { return mIndex[aBlockIndex].mOwners.IsEmpty(); }
   
   
@@ -361,9 +361,9 @@ protected:
   
   BlockList       mFreeBlocks;
   
-  PRPackedBool    mUpdateQueued;
+  bool            mUpdateQueued;
 #ifdef DEBUG
-  PRPackedBool    mInUpdate;
+  bool            mInUpdate;
 #endif
 };
 
@@ -773,7 +773,7 @@ nsMediaCache::FindBlockForIncomingData(TimeStamp aNow,
   return blockIndex;
 }
 
-PRBool
+bool
 nsMediaCache::BlockIsReusable(PRInt32 aBlockIndex)
 {
   Block* block = &mIndex[aBlockIndex];
@@ -1246,7 +1246,7 @@ nsMediaCache::Update()
 
       
       
-      PRBool enableReading;
+      bool enableReading;
       if (stream->mStreamLength >= 0 && dataOffset >= stream->mStreamLength) {
         
         
@@ -1741,7 +1741,7 @@ nsMediaCacheStream::UpdatePrincipal(nsIPrincipal* aPrincipal)
     return;
   }
 
-  PRBool equal;
+  bool equal;
   nsresult rv = mPrincipal->Equals(aPrincipal, &equal);
   if (NS_SUCCEEDED(rv) && equal)
     return;
@@ -1862,7 +1862,7 @@ nsMediaCacheStream::~nsMediaCacheStream()
 }
 
 void
-nsMediaCacheStream::SetSeekable(PRBool aIsSeekable)
+nsMediaCacheStream::SetSeekable(bool aIsSeekable)
 {
   ReentrantMonitorAutoEnter mon(gMediaCache->GetReentrantMonitor());
   NS_ASSERTION(mIsSeekable || aIsSeekable ||
@@ -1873,7 +1873,7 @@ nsMediaCacheStream::SetSeekable(PRBool aIsSeekable)
   gMediaCache->QueueUpdate();
 }
 
-PRBool
+bool
 nsMediaCacheStream::IsSeekable()
 {
   ReentrantMonitorAutoEnter mon(gMediaCache->GetReentrantMonitor());
@@ -1948,7 +1948,7 @@ nsMediaCacheStream::GetCachedDataEnd(PRInt64 aOffset)
   return GetCachedDataEndInternal(aOffset);
 }
 
-PRBool
+bool
 nsMediaCacheStream::IsDataCachedToEndOfStream(PRInt64 aOffset)
 {
   ReentrantMonitorAutoEnter mon(gMediaCache->GetReentrantMonitor());
@@ -2006,7 +2006,7 @@ nsMediaCacheStream::GetNextCachedDataInternal(PRInt64 aOffset)
     return aOffset;
 
   
-  PRBool hasPartialBlock = (mChannelOffset % BLOCK_SIZE) != 0;
+  bool hasPartialBlock = (mChannelOffset % BLOCK_SIZE) != 0;
   PRUint32 blockIndex = startBlockIndex + 1;
   while (PR_TRUE) {
     if ((hasPartialBlock && blockIndex == channelBlockIndex) ||

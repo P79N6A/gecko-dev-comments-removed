@@ -221,12 +221,12 @@ public:
 
 
 
-    typedef PRBool (*FontResolverCallback) (const nsAString& aName,
+    typedef bool (*FontResolverCallback) (const nsAString& aName,
                                             void *aClosure);
     virtual nsresult ResolveFontName(const nsAString& aFontName,
                                      FontResolverCallback aCallback,
                                      void *aClosure,
-                                     PRBool& aAborted) = 0;
+                                     bool& aAborted) = 0;
 
     
 
@@ -267,24 +267,24 @@ public:
     
 
 
-    PRBool DownloadableFontsEnabled();
+    bool DownloadableFontsEnabled();
 
     
 
 
-    PRBool SanitizeDownloadedFonts();
+    bool SanitizeDownloadedFonts();
 
     
 
 
 
 
-    PRBool UseHarfBuzzForScript(PRInt32 aScriptCode);
+    bool UseHarfBuzzForScript(PRInt32 aScriptCode);
 
     
-    virtual PRBool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags) { return PR_FALSE; }
+    virtual bool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags) { return false; }
 
-    void GetPrefFonts(nsIAtom *aLanguage, nsString& array, PRBool aAppendUnicode = PR_TRUE);
+    void GetPrefFonts(nsIAtom *aLanguage, nsString& array, bool aAppendUnicode = true);
 
     
     void GetLangPrefs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang);
@@ -294,9 +294,9 @@ public:
 
 
 
-    typedef PRBool (*PrefFontCallback) (eFontPrefLang aLang, const nsAString& aName,
+    typedef bool (*PrefFontCallback) (eFontPrefLang aLang, const nsAString& aName,
                                         void *aClosure);
-    static PRBool ForEachPrefFont(eFontPrefLang aLangArray[], PRUint32 aLangArrayLen,
+    static bool ForEachPrefFont(eFontPrefLang aLangArray[], PRUint32 aLangArrayLen,
                                   PrefFontCallback aCallback,
                                   void *aClosure);
 
@@ -313,7 +313,7 @@ public:
     static eFontPrefLang GetFontPrefLangFor(PRUint8 aUnicodeRange);
 
     
-    static PRBool IsLangCJK(eFontPrefLang aLang);
+    static bool IsLangCJK(eFontPrefLang aLang);
     
     
     static void AppendPrefLang(eFontPrefLang aPrefLangs[], PRUint32& aLen, eFontPrefLang aAddLang);
@@ -390,8 +390,8 @@ protected:
     void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, 
                             eFontPrefLang aCharLang, eFontPrefLang aPageLang);
                                                
-    PRBool  mAllowDownloadableFonts;
-    PRBool  mDownloadableFontsSanitize;
+    bool    mAllowDownloadableFonts;
+    bool    mDownloadableFontsSanitize;
 
     
     PRInt32 mUseHarfBuzzScripts;

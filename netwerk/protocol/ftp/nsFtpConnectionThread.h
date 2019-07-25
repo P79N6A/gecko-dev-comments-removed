@@ -203,13 +203,13 @@ private:
 
 
 
-    PRBool CheckCache();
+    bool CheckCache();
 
     
 
 
 
-    PRBool CanReadCacheEntry();
+    bool CanReadCacheEntry();
 
     
 
@@ -217,7 +217,7 @@ private:
 
 
 
-    PRBool ReadCacheEntry();
+    bool ReadCacheEntry();
 
     
 
@@ -240,15 +240,15 @@ private:
         
     FTP_STATE           mState;             
     FTP_STATE           mNextState;         
-    PRPackedBool        mKeepRunning;       
+    bool                mKeepRunning;       
     PRInt32             mResponseCode;      
     nsCString           mResponseMsg;       
 
         
     nsRefPtr<nsFtpControlConnection> mControlConnection;       
-    PRPackedBool                    mReceivedControlData;  
-    PRPackedBool                    mTryingCachedControl;     
-    PRPackedBool                    mRETRFailed;              
+    bool                            mReceivedControlData;  
+    bool                            mTryingCachedControl;     
+    bool                            mRETRFailed;              
     PRUint64                        mFileSize;
     nsCString                       mModTime;
 
@@ -263,12 +263,12 @@ private:
     nsString            mUsername;      
     nsString            mPassword;      
     FTP_ACTION          mAction;        
-    PRPackedBool        mAnonymous;     
-    PRPackedBool        mRetryPass;     
-    PRPackedBool        mStorReplyReceived; 
+    bool                mAnonymous;     
+    bool                mRetryPass;     
+    bool                mStorReplyReceived; 
                                             
     nsresult            mInternalError; 
-    PRPackedBool        mReconnectAndLoginAgain;
+    bool                mReconnectAndLoginAgain;
 
         
     PRInt32                mPort;       
@@ -280,8 +280,8 @@ private:
     nsCOMPtr<nsITransport>        mDataTransport;
     nsCOMPtr<nsIAsyncInputStream> mDataStream;
     nsCOMPtr<nsIRequest>    mUploadRequest;
-    PRPackedBool            mAddressChecked;
-    PRPackedBool            mServerIsIPv6;
+    bool                    mAddressChecked;
+    bool                    mServerIsIPv6;
     
     static PRUint32         mSessionStartTime;
 
@@ -292,7 +292,7 @@ private:
     nsCString               mControlReadCarryOverBuf;
 
     nsCOMPtr<nsICacheEntryDescriptor> mCacheEntry;
-    PRPackedBool            mDoomCache;
+    bool                    mDoomCache;
     
     nsCString mSuppliedEntityID;
 };

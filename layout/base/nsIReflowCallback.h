@@ -54,7 +54,7 @@ public:
 
 
 
-  virtual PRBool ReflowFinished() = 0;
+  virtual bool ReflowFinished() = 0;
   
 
 

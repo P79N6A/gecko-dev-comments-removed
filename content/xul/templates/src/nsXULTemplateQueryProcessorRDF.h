@@ -133,20 +133,20 @@ public:
 
     nsresult
     CheckContainer(nsIRDFResource* aTargetResource,
-                   PRBool* aIsContainer);
+                   bool* aIsContainer);
 
     
 
 
     nsresult
     CheckEmpty(nsIRDFResource* aTargetResource,
-               PRBool* aIsEmpty);
+               bool* aIsEmpty);
 
     
 
 
     nsresult
-    CheckIsSeparator(nsIRDFResource* aResource, PRBool* aIsSeparator);
+    CheckIsSeparator(nsIRDFResource* aResource, bool* aIsSeparator);
 
     
 
@@ -320,12 +320,12 @@ protected:
     nsIXULTemplateBuilder* mBuilder;
 
     
-    PRBool mQueryProcessorRDFInited;
+    bool mQueryProcessorRDFInited;
 
     
     
     
-    PRBool mGenerationStarted;
+    bool mGenerationStarted;
 
     
     PRInt32 mUpdateBatchNest;
