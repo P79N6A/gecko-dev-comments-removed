@@ -489,6 +489,8 @@ WeaveSvc.prototype = {
           return this.serverURL;
         case 0:
         case 200:
+          if (node == "null")
+            node = null;
           return node;
         default:
           this._log.debug("Unexpected response code: " + node.status);
@@ -505,6 +507,7 @@ WeaveSvc.prototype = {
   _setCluster: function _setCluster() {
     
     let cluster = this._findCluster();
+    this._log.debug("cluster value = " + cluster);
     if (cluster == null)
       return false;
 
@@ -532,8 +535,13 @@ WeaveSvc.prototype = {
   _verifyLogin: function _verifyLogin()
     this._notify("verify-login", "", function() {
       
-      if (this.clusterURL == "")
-        this._setCluster();
+      
+      
+      if (this.clusterURL == "" && !this._setCluster()) {
+        this.status.setSyncStatus(NO_SYNC_NODE_FOUND);
+        Svc.Observer.notifyObservers(null, "weave:service:sync:delayed", "");
+        return true;
+      }
 
       try {
         let test = new Resource(this.infoURL).get();
@@ -1074,6 +1082,14 @@ WeaveSvc.prototype = {
   sync: function sync()
     this._catch(this._lock(this._notify("sync", "", function() {
     this.status.resetEngineStatus();
+    
+    
+    if (this.clusterURL == "" && !this._setCluster()) {
+      this._scheduleNextSync(10 * 60 * 1000);
+      return;
+    }
+
+    fullSync = true; 
 
     
     let reason = this._checkSync();
