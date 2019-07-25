@@ -522,16 +522,6 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIDOMEventTarget> target;
-  aMouseEvent->GetTarget(getter_AddRefs(target));
-  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(target);
-  NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
-
-  if (!mEditor->IsModifiableNode(node)) {
-    
-    return NS_OK;
-  }
-
   bool preventDefault;
   nsresult rv = nsevent->GetPreventDefault(&preventDefault);
   if (NS_FAILED(rv) || preventDefault) {
