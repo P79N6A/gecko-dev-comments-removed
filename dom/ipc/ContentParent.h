@@ -72,7 +72,8 @@ public:
 
 
 
-    TabParent* CreateTab(PRUint32 aChromeFlags, bool aIsBrowserFrame);
+
+    TabParent* CreateTab(PRUint32 aChromeFlags, bool aIsBrowserElement, PRUint32 aAppId);
     
     void NotifyTabDestroyed(PBrowserParent* aTab);
 
@@ -132,7 +133,7 @@ private:
     PCompositorParent* AllocPCompositor(ipc::Transport* aTransport,
                                         base::ProcessId aOtherProcess) MOZ_OVERRIDE;
 
-    virtual PBrowserParent* AllocPBrowser(const PRUint32& aChromeFlags, const bool& aIsBrowserFrame);
+    virtual PBrowserParent* AllocPBrowser(const PRUint32& aChromeFlags, const bool& aIsBrowserElement, const PRUint32& aAppId);
     virtual bool DeallocPBrowser(PBrowserParent* frame);
 
     virtual PDeviceStorageRequestParent* AllocPDeviceStorageRequest(const DeviceStorageParams&);
