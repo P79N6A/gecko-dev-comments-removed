@@ -171,6 +171,10 @@ protected:
 
     
     
+    nsString mSelectedString;
+
+    
+    
     GdkEventKey* mProcessingKeyEvent;
 
     

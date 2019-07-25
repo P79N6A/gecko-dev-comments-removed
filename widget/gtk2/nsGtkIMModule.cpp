@@ -454,6 +454,10 @@ nsGtkIMModule::OnFocusChangeInGecko(bool aFocus)
          this, aFocus ? "YES" : "NO", GetCompositionStateName(),
          mIsIMFocused ? "YES" : "NO",
          mIgnoreNativeCompositionEvent ? "YES" : "NO"));
+
+    
+    mSelectedString.Truncate();
+
     if (aFocus) {
         
         
@@ -1093,6 +1097,10 @@ nsGtkIMModule::DispatchCompositionStart()
         return false;
     }
 
+    
+    
+    
+    
     mCompositionStart = selection.mReply.mOffset;
     mDispatchedCompositionString.Truncate();
 
@@ -1218,6 +1226,20 @@ nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
               ("    NOTE, the focused widget was destroyed/changed by compositionupdate"));
           return false;
       }
+    }
+
+    
+    if (mCompositionState == eCompositionState_CompositionStartDispatched) {
+        
+        
+        nsQueryContentEvent querySelectedTextEvent(true,
+                                                   NS_QUERY_SELECTED_TEXT,
+                                                   mLastFocusedWindow);
+        mLastFocusedWindow->DispatchEvent(&querySelectedTextEvent, status);
+        if (querySelectedTextEvent.mSucceeded) {
+            mSelectedString = querySelectedTextEvent.mReply.mString;
+            mCompositionStart = querySelectedTextEvent.mReply.mOffset;
+        }
     }
 
     nsTextEvent textEvent(true, NS_TEXT_TEXT, mLastFocusedWindow);
