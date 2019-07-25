@@ -1171,6 +1171,9 @@ nsFrameLoader::DestroyChild()
 {
 #ifdef MOZ_IPC
   if (mRemoteBrowser) {
+#ifdef ANDROID
+    nsContentUtils::ClearActiveFrameLoader(this);
+#endif
     mRemoteBrowser->SetOwnerElement(nsnull);
     
     
@@ -1723,6 +1726,9 @@ nsFrameLoader::ActivateRemoteFrame() {
 #ifdef MOZ_IPC
   if (mRemoteBrowser) {
     mRemoteBrowser->Activate();
+#ifdef ANDROID
+    nsContentUtils::SetActiveFrameLoader(this);
+#endif
     return NS_OK;
   }
 #endif
