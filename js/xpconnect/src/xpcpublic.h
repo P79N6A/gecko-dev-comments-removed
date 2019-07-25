@@ -209,6 +209,8 @@ xpc_UnmarkSkippableJSHolders();
 NS_EXPORT_(void)
 xpc_ActivateDebugMode();
 
+class nsIMemoryMultiReporterCallback;
+
 namespace xpc {
 
 
@@ -250,14 +252,6 @@ bool
 DOM_DefineQuickStubs(JSContext *cx, JSObject *proto, PRUint32 flags,
                      PRUint32 interfaceCount, const nsIID **interfaceArray);
 
-} 
-
-class nsIMemoryMultiReporterCallback;
-
-namespace mozilla {
-namespace xpconnect {
-namespace memory {
-
 
 
 nsresult
@@ -267,8 +261,8 @@ ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
                                  nsISupports *closure);
 
 } 
-} 
 
+namespace mozilla {
 namespace dom {
 namespace binding {
 
