@@ -449,7 +449,7 @@ PermitIfUniversalXPConnect(JSContext *cx, jsid id, Wrapper::Action act,
     
     
     
-    MOZ_ASSERT(!AccessCheck::callerIsChrome());
+    NS_ASSERTION(!AccessCheck::callerIsChrome(), "About to do a meaningless security check!");
 
     bool privileged;
     if (NS_SUCCEEDED(ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged)) &&
