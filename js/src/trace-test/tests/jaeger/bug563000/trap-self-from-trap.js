@@ -13,7 +13,7 @@ function myparent(nested) {
   }
 }
 
-trap(myparent, 35, "myparent(true)");
+trap(myparent, 36, "myparent(true)");
 
 function success() {
   x = "success";
