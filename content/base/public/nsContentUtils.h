@@ -769,7 +769,7 @@ public:
                                   PRUint32 aColumnNumber,
                                   PRUint32 aErrorFlags,
                                   const char *aCategory,
-                                  PRUint64 aWindowId = 0);
+                                  PRUint64 aInnerWindowId = 0);
 
   
 
