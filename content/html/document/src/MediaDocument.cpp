@@ -49,7 +49,6 @@
 #include "nsIMarkupDocumentViewer.h"
 #include "nsIDocShell.h"
 #include "nsIParser.h" 
-#include "nsIDocumentCharsetInfo.h" 
 #include "nsNodeInfoManager.h"
 #include "nsContentUtils.h"
 
@@ -197,16 +196,12 @@ MediaDocument::StartDocumentLoad(const char*         aCommand,
   
   NS_ENSURE_TRUE(docShell, NS_OK); 
 
-  nsCOMPtr<nsIDocumentCharsetInfo> dcInfo;
   nsCAutoString charset;
 
-  docShell->GetDocumentCharsetInfo(getter_AddRefs(dcInfo));
-  if (dcInfo) {
-    nsCOMPtr<nsIAtom> csAtom;
-    dcInfo->GetParentCharset(getter_AddRefs(csAtom));
-    if (csAtom) {   
-      csAtom->ToUTF8String(charset);
-    }
+  nsCOMPtr<nsIAtom> csAtom;
+  docShell->GetParentCharset(getter_AddRefs(csAtom));
+  if (csAtom) {   
+    csAtom->ToUTF8String(charset);
   }
 
   if (charset.IsEmpty() || charset.Equals("UTF-8")) {

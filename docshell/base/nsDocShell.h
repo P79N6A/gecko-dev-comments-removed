@@ -78,7 +78,6 @@
 #define REFRESH_REDIRECT_TIMER 15000
 
 
-#include "nsIDocumentCharsetInfo.h"
 #include "nsIDocCharset.h"
 #include "nsIGlobalHistory2.h"
 #include "nsIInterfaceRequestor.h"
@@ -710,7 +709,6 @@ protected:
     nsCOMPtr<nsISupportsArray> mSavedRefreshURIList;
     nsRefPtr<nsDSURIContentListener> mContentListener;
     nsCOMPtr<nsIContentViewer> mContentViewer;
-    nsCOMPtr<nsIDocumentCharsetInfo> mDocumentCharsetInfo;
     nsCOMPtr<nsIWidget>        mParentWidget;
 
     
@@ -841,8 +839,12 @@ protected:
 
     nsRefPtr<nsDOMNavigationTiming> mTiming;
 
-#ifdef DEBUG
 private:
+    nsCOMPtr<nsIAtom> mForcedCharset;
+    nsCOMPtr<nsIAtom> mParentCharset;
+    PRInt32          mParentCharsetSource;
+
+#ifdef DEBUG
     
     static unsigned long gNumberOfDocShells;
 #endif 
