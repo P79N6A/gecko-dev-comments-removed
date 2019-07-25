@@ -946,7 +946,7 @@ AddonInstallListener.prototype = {
     
     if (element.hasAttribute("updating")) {
       let strings = Services.strings.createBundle("chrome://browser/locale/browser.properties");
-      element.setAttribute("updateStatus", strings.getFormattedString("addonUpdate.updated", [aAddon.version]));
+      element.setAttribute("updateStatus", strings.formatStringFromName("addonUpdate.updated", [aAddon.version], 1));
       element.removeAttribute("updating");
     }
   },
