@@ -417,6 +417,7 @@ InputHandler.EventInfo.prototype = {
 
 
 
+
 function MouseModule(owner, browserViewContainer) {
   this._owner = owner;
   this._browserViewContainer = browserViewContainer;
@@ -689,7 +690,14 @@ MouseModule.prototype = {
 
     let ev = this._downUpEvents[1].event;
     this._cleanClickBuffer(2);
-    this._clicker.singleClick(ev.clientX, ev.clientY);
+
+    
+    let modifiers =
+      (ev.altKey   ? Ci.nsIDOMNSEvent.ALT_MASK     : 0) |
+      (ev.ctrlKey  ? Ci.nsIDOMNSEvent.CONTROL_MASK : 0) |
+      (ev.shiftKey ? Ci.nsIDOMNSEvent.SHIFT_MASK   : 0) |
+      (ev.metaKey  ? Ci.nsIDOMNSEvent.META_MASK    : 0);
+    this._clicker.singleClick(ev.clientX, ev.clientY, modifiers);
   },
 
   
