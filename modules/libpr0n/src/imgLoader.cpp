@@ -1174,6 +1174,9 @@ PRBool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
     return NS_SUCCEEDED(rv);
 
   } else {
+    
+    
+    
     nsCOMPtr<nsIChannel> newChannel;
     rv = NewImageChannel(getter_AddRefs(newChannel),
                          aURI,
@@ -1185,16 +1188,6 @@ PRBool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
                          aPolicy);
     if (NS_FAILED(rv)) {
       return PR_FALSE;
-    }
-
-    nsCOMPtr<nsICachingChannel> cacheChan(do_QueryInterface(newChannel));
-
-    if (cacheChan) {
-      
-      
-      PRUint32 loadFlags;
-      if (NS_SUCCEEDED(newChannel->GetLoadFlags(&loadFlags)))
-        newChannel->SetLoadFlags(loadFlags | nsICachingChannel::LOAD_ONLY_IF_MODIFIED);
     }
 
     nsCOMPtr<imgIRequest> req;
@@ -2045,10 +2038,18 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   
   
   nsCOMPtr<nsICachingChannel> cacheChan(do_QueryInterface(aRequest));
-  if (cacheChan) {
-    PRBool isFromCache;
-    if (NS_SUCCEEDED(cacheChan->IsFromCache(&isFromCache)) && isFromCache) {
+  nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
+  if (cacheChan && channel) {
+    PRBool isFromCache = PR_FALSE;
+    cacheChan->IsFromCache(&isFromCache);
 
+    nsCOMPtr<nsIURI> channelURI;
+    PRBool sameURI = PR_FALSE;
+    channel->GetURI(getter_AddRefs(channelURI));
+    if (channelURI)
+      channelURI->Equals(mRequest->mCurrentURI, &sameURI);
+
+    if (isFromCache && sameURI) {
       PRUint32 count = mProxies.Count();
       for (PRInt32 i = count-1; i>=0; i--) {
         imgRequestProxy *proxy = static_cast<imgRequestProxy *>(mProxies[i]);
@@ -2065,6 +2066,9 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
         proxy->SyncNotifyListener();
       }
 
+      
+      aRequest->Cancel(NS_BINDING_ABORTED);
+
       mRequest->SetLoadId(mContext);
       mRequest->mValidator = nsnull;
 
@@ -2079,9 +2083,7 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
 
   
   
-  nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
   nsCOMPtr<nsIURI> uri;
-
   mRequest->GetURI(getter_AddRefs(uri));
 
 #if defined(PR_LOGGING)
@@ -2148,15 +2150,6 @@ NS_IMETHODIMP imgCacheValidator::OnStopRequest(nsIRequest *aRequest, nsISupports
 
 NS_IMETHODIMP imgCacheValidator::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt, nsIInputStream *inStr, PRUint32 sourceOffset, PRUint32 count)
 {
-#ifdef DEBUG
-  nsCOMPtr<nsICachingChannel> cacheChan(do_QueryInterface(aRequest));
-  if (cacheChan) {
-    PRBool isFromCache;
-    if (NS_SUCCEEDED(cacheChan->IsFromCache(&isFromCache)) && isFromCache)
-      NS_ERROR("OnDataAvailable not suppressed by LOAD_ONLY_IF_MODIFIED load flag");
-  }
-#endif
-
   if (!mDestListener) {
     
     PRUint32 _retval;
