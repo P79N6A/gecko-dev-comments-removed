@@ -1,5 +1,5 @@
 url-prefix ../../jsreftest.html?test=js1_8_1/trace/
-script math-trace-tests.js
+script math-jit-tests.js
 skip script regress-451673.js # bogus perf test (bug 540512)
 skip script regress-451974-01.js # bogus perf test (bug 540512)
 skip script regress-451974-02.js # bogus perf test (bug 540512)
