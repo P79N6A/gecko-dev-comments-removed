@@ -240,6 +240,11 @@ class FrameState
     
 
 
+    void takeReg(RegisterID reg);
+
+    
+
+
     inline FrameEntry *peek(int32 depth);
 
     
@@ -305,6 +310,7 @@ class FrameState
     inline RegisterID alloc(FrameEntry *fe, RematInfo::RematType type, bool weak);
     inline void forgetReg(RegisterID reg);
     RegisterID evictSomething();
+    void evictReg(RegisterID reg);
     inline FrameEntry *rawPush();
     inline FrameEntry *addToTracker(uint32 index);
     inline void syncType(const FrameEntry *fe, Assembler &masm) const;
