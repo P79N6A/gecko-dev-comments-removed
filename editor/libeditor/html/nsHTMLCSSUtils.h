@@ -258,7 +258,7 @@ public:
 
 
 
-  nsresult    SetCSSEnabled(bool aIsCSSPrefChecked);
+  void        SetCSSEnabled(bool aIsCSSPrefChecked);
 
   
 
