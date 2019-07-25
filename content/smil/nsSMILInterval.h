@@ -119,6 +119,8 @@ private:
   nsRefPtr<nsSMILInstanceTime> mEnd;
 
   typedef nsTArray<nsRefPtr<nsSMILInstanceTime> > InstanceTimeList;
+
+  
   InstanceTimeList mDependentTimes;
 
   

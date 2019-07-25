@@ -98,7 +98,6 @@
 
 
 
-
 class nsSMILTimeValue
 {
 public:

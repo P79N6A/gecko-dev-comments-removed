@@ -65,8 +65,6 @@ class nsSMILTimeValueSpec;
 
 
 
-
-
 class nsSMILInstanceTime
 {
 public:

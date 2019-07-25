@@ -149,12 +149,6 @@ nsSMILTimeValueSpec::HandleNewInterval(nsSMILInterval& aInterval,
   if (!newInstance)
     return;
 
-  
-  
-  
-  if (mIsBegin && !newTime.IsResolved())
-    return;
-
   mOwner->AddInstanceTime(newInstance, mIsBegin);
 }
 
@@ -181,34 +175,6 @@ nsSMILTimeValueSpec::HandleChangedInstanceTime(
 
   
   
-  
-  if (mIsBegin) {
-    
-    if (!aInstanceTimeToUpdate.Time().IsResolved() &&
-        updatedTime.IsResolved()) {
-      aInstanceTimeToUpdate.DependentUpdate(updatedTime);
-      mOwner->AddInstanceTime(&aInstanceTimeToUpdate, mIsBegin);
-      return;
-    }
-    
-    if (aInstanceTimeToUpdate.Time().IsResolved() &&
-        !updatedTime.IsResolved()) {
-      aInstanceTimeToUpdate.DependentUpdate(updatedTime);
-      mOwner->RemoveInstanceTime(&aInstanceTimeToUpdate, mIsBegin);
-      return;
-    }
-    
-    
-    
-    if (!aInstanceTimeToUpdate.Time().IsResolved() &&
-        !updatedTime.IsResolved()) {
-      aInstanceTimeToUpdate.DependentUpdate(updatedTime);
-      return;
-    }
-  }
-
-  
-  
   if (aInstanceTimeToUpdate.Time() != updatedTime || aObjectChanged) {
     mOwner->UpdateInstanceTime(&aInstanceTimeToUpdate, updatedTime, mIsBegin);
   }
@@ -218,10 +184,6 @@ void
 nsSMILTimeValueSpec::HandleDeletedInstanceTime(
     nsSMILInstanceTime &aInstanceTime)
 {
-  
-  if (mIsBegin && !aInstanceTime.Time().IsResolved())
-    return;
-
   mOwner->RemoveInstanceTime(&aInstanceTime, mIsBegin);
 }
 
