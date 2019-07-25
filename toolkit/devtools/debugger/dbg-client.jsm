@@ -149,7 +149,9 @@ function eventSource(aProto) {
         listener.apply(null, arguments);
       } catch (e) {
         
-        Cu.reportError(e);
+        let msg = e + ": " + e.stack;
+        Cu.reportError(msg);
+        dumpn(msg);
       }
     }
   }
