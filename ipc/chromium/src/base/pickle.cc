@@ -133,35 +133,45 @@ bool Pickle::ReadInt(void** iter, int* result) const {
   return true;
 }
 
+
+
 bool Pickle::ReadLong(void** iter, long* result) const {
   DCHECK(iter);
   if (!*iter)
     *iter = const_cast<char*>(payload());
 
-  if (!IteratorHasRoomFor(*iter, sizeof(*result)))
+  int64 bigResult = 0;
+  if (!IteratorHasRoomFor(*iter, sizeof(bigResult)))
     return false;
 
   
   
-  memcpy(result, *iter, sizeof(*result));
+  memcpy(&bigResult, *iter, sizeof(bigResult));
+  DCHECK(bigResult <= LONG_MAX && bigResult >= LONG_MIN);
+  *result = static_cast<long>(bigResult);
 
-  UpdateIter(iter, sizeof(*result));
+  UpdateIter(iter, sizeof(bigResult));
   return true;
 }
+
+
 
 bool Pickle::ReadULong(void** iter, unsigned long* result) const {
   DCHECK(iter);
   if (!*iter)
     *iter = const_cast<char*>(payload());
 
-  if (!IteratorHasRoomFor(*iter, sizeof(*result)))
+  uint64 bigResult = 0;
+  if (!IteratorHasRoomFor(*iter, sizeof(bigResult)))
     return false;
 
   
   
-  memcpy(result, *iter, sizeof(*result));
+  memcpy(&bigResult, *iter, sizeof(bigResult));
+  DCHECK(bigResult <= ULONG_MAX);
+  *result = static_cast<unsigned long>(bigResult);
 
-  UpdateIter(iter, sizeof(*result));
+  UpdateIter(iter, sizeof(bigResult));
   return true;
 }
 
@@ -171,20 +181,24 @@ bool Pickle::ReadLength(void** iter, int* result) const {
   return ((*result) >= 0);
 }
 
+
+
 bool Pickle::ReadSize(void** iter, size_t* result) const {
   DCHECK(iter);
   if (!*iter)
     *iter = const_cast<char*>(payload());
 
-  if (!IteratorHasRoomFor(*iter, sizeof(*result)))
+  uint64 bigResult = 0;
+  if (!IteratorHasRoomFor(*iter, sizeof(bigResult)))
     return false;
 
   
   
-  
-  *result = *reinterpret_cast<size_t*>(*iter);
+  memcpy(&bigResult, *iter, sizeof(bigResult));
+  DCHECK(bigResult <= std::numeric_limits<size_t>::max());
+  *result = static_cast<size_t>(bigResult);
 
-  UpdateIter(iter, sizeof(*result));
+  UpdateIter(iter, sizeof(bigResult));
   return true;
 }
 
@@ -230,6 +244,20 @@ bool Pickle::ReadInt64(void** iter, int64* result) const {
   return true;
 }
 
+bool Pickle::ReadUInt64(void** iter, uint64* result) const {
+  DCHECK(iter);
+  if (!*iter)
+    *iter = const_cast<char*>(payload());
+
+  if (!IteratorHasRoomFor(*iter, sizeof(*result)))
+    return false;
+
+  memcpy(result, *iter, sizeof(*result));
+
+  UpdateIter(iter, sizeof(*result));
+  return true;
+}
+
 bool Pickle::ReadDouble(void** iter, double* result) const {
   DCHECK(iter);
   if (!*iter)
@@ -244,17 +272,22 @@ bool Pickle::ReadDouble(void** iter, double* result) const {
   return true;
 }
 
+
+
 bool Pickle::ReadIntPtr(void** iter, intptr_t* result) const {
   DCHECK(iter);
   if (!*iter)
     *iter = const_cast<char*>(payload());
 
-  if (!IteratorHasRoomFor(*iter, sizeof(*result)))
+  int64 bigResult = 0;
+  if (!IteratorHasRoomFor(*iter, sizeof(bigResult)))
     return false;
 
-  memcpy(result, *iter, sizeof(*result));
+  memcpy(&bigResult, *iter, sizeof(bigResult));
+  DCHECK(bigResult <= std::numeric_limits<intptr_t>::max() && bigResult >= std::numeric_limits<intptr_t>::min());
+  *result = static_cast<intptr_t>(bigResult);
 
-  UpdateIter(iter, sizeof(*result));
+  UpdateIter(iter, sizeof(bigResult));
   return true;
 }
 
