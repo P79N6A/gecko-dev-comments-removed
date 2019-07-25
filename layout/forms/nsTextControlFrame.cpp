@@ -1416,7 +1416,9 @@ nsTextControlFrame::SetInitialChildList(nsIAtom*        aListName,
   
   
   
-  first->AddStateBits(NS_FRAME_REFLOW_ROOT);
+  if (first) {
+    first->AddStateBits(NS_FRAME_REFLOW_ROOT);
+  }
 
   nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent());
   NS_ASSERTION(txtCtrl, "Content not a text control element");
