@@ -454,6 +454,14 @@ HISTOGRAM(NEWTAB_PAGE_BLOCKED_SITES_COUNT, 1, 100, 10, EXPONENTIAL, "Number of s
 
 
 
+HISTOGRAM(PANORAMA_INITIALIZATION_TIME_MS, 1, 10000, 15, EXPONENTIAL, "Time it takes to initialize Panorama (ms)")
+HISTOGRAM(PANORAMA_GROUPS_COUNT, 1, 25, 15, EXPONENTIAL, "Number of groups in Panorama")
+HISTOGRAM(PANORAMA_STACKED_GROUPS_COUNT, 1, 25, 15, EXPONENTIAL, "Number of stacked groups in Panorama")
+HISTOGRAM(PANORAMA_MEDIAN_TABS_IN_GROUPS_COUNT, 1, 100, 15, EXPONENTIAL, "Median of tabs in groups in Panorama")
+
+
+
+
 #if defined(ANDROID)
 HISTOGRAM(BROWSERPROVIDER_XUL_IMPORT_TIME, 20, 600000, 20, EXPONENTIAL, "Time for the initial conversion of a XUL places database (ms)")
 HISTOGRAM(BROWSERPROVIDER_XUL_IMPORT_BOOKMARKS, 1, 50000, 20, EXPONENTIAL, "Number of bookmarks in the original XUL places database")
