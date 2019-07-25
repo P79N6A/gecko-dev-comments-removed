@@ -2619,8 +2619,8 @@ nsFrame::ExpandSelectionByMouseMove(nsFrameSelection* aFrameSelection,
 
   if (!handleTableSelection) {
     nsIScrollableFrame* selectionRootScrollableFrame =
-      FindNearestScrollableFrameForSelection(selectionRoot->GetPrimaryFrame());
-    NS_ENSURE_TRUE(selectionRootScrollableFrame, NS_OK);
+      FindNearestScrollableFrameForSelection(selectionRoot->GetPrimaryFrame(),
+                                             selectionRoot);
     while (scrollableFrame) {
       
       
