@@ -4385,6 +4385,14 @@ static nsIContent* FindCommonAncestor(nsIContent *aNode1, nsIContent *aNode2)
 }
 
 
+void
+nsEventStateManager::SetFullScreenState(Element* aElement,
+                                        PRBool aIsFullScreen)
+{
+  DoStateChange(aElement, NS_EVENT_STATE_FULL_SCREEN, aIsFullScreen);
+}
+
+
 inline void
 nsEventStateManager::DoStateChange(Element* aElement, nsEventStates aState,
                                    PRBool aAddState)

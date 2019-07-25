@@ -715,6 +715,11 @@ area {
   display: none ! important;
 }
 
+iframe:-moz-full-screen {
+  
+  border: none;
+}
+
 
 video > xul|videocontrols, audio > xul|videocontrols {
   display: -moz-box;

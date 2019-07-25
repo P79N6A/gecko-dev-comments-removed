@@ -203,6 +203,10 @@ public:
   
   static void SetActiveManager(nsEventStateManager* aNewESM,
                                nsIContent* aContent);
+
+  
+  static void SetFullScreenState(mozilla::dom::Element* aElement, PRBool aIsFullScreen);
+
 protected:
   void UpdateCursor(nsPresContext* aPresContext, nsEvent* aEvent, nsIFrame* aTargetFrame, nsEventStatus* aStatus);
   
