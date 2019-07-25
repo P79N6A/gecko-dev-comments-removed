@@ -675,9 +675,24 @@ BookmarksTracker.prototype = {
     this._score += 10;
   },
 
+  
+
+
+
+
+
+
+  _ignore: function BMT__ignore(folder) {
+    
+    if (this.ignoreAll)
+      return true;
+
+    
+    return this._ls.isLivemark(folder);
+  },
+
   onItemAdded: function BMT_onEndUpdateBatch(itemId, folder, index) {
-    if (this.ignoreAll ||
-	this._ls.isLivemark(folder))
+    if (this._ignore(folder))
       return;
 
     this._log.trace("onItemAdded: " + itemId);
@@ -688,8 +703,7 @@ BookmarksTracker.prototype = {
   },
 
   onItemRemoved: function BMT_onItemRemoved(itemId, folder, index) {
-    if (this.ignoreAll ||
-	this._ls.isLivemark(folder))
+    if (this._ignore(folder))
       return;
 
     this._log.trace("onItemRemoved: " + itemId);
@@ -700,7 +714,8 @@ BookmarksTracker.prototype = {
   },
 
   onItemChanged: function BMT_onItemChanged(itemId, property, isAnno, value) {
-    if (this.ignoreAll)
+    let folder = this._bms.getFolderIdForItem(itemId);
+    if (this._ignore(folder))
       return;
 
     
@@ -708,10 +723,6 @@ BookmarksTracker.prototype = {
 		   property != "livemark/siteURI" ||
 		   property != "microsummary/generatorURI"))
 	return;
-
-    
-    if (this._ls.isLivemark(this._bms.getFolderIdForItem(itemId)))
-      return;
 
     this._log.trace("onItemChanged: " + itemId +
                     (", " + property + (isAnno? " (anno)" : "")) +
@@ -726,7 +737,8 @@ BookmarksTracker.prototype = {
   },
 
   onItemMoved: function BMT_onItemMoved(itemId, oldParent, oldIndex, newParent, newIndex) {
-    if (this.ignoreAll)
+    let folder = this._bms.getFolderIdForItem(itemId);
+    if (this._ignore(folder))
       return;
 
     this._log.trace("onItemMoved: " + itemId);
