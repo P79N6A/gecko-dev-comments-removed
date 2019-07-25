@@ -371,33 +371,63 @@ public class SyncAccounts {
 
 
 
+
+
+
+
+
+
+
+
+
+
+  protected static Intent openVendorSyncSettings(Context context, final String vendorPackage, final String vendorClass) {
+    try {
+      final int contextFlags = Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY;
+      Context foreignContext = context.createPackageContext(vendorPackage, contextFlags);
+      Class<?> klass = foreignContext.getClassLoader().loadClass(vendorClass);
+
+      final Intent intent = new Intent(foreignContext, klass);
+      context.startActivity(intent);
+      Logger.info(LOG_TAG, "Vendor package " + vendorPackage + " and class " +
+          vendorClass + " found, and activity launched.");
+      return intent;
+    } catch (NameNotFoundException e) {
+      Logger.debug(LOG_TAG, "Vendor package " + vendorPackage + " not found. Skipping.");
+    } catch (ClassNotFoundException e) {
+      Logger.debug(LOG_TAG, "Vendor package " + vendorPackage + " found but class " +
+          vendorClass + " not found. Skipping.", e);
+    } catch (ActivityNotFoundException e) {
+      
+      Logger.warn(LOG_TAG, "Vendor package " + vendorPackage + " and class " +
+          vendorClass + " found, but activity not launched. Skipping.", e);
+    } catch (Exception e) {
+      
+      Logger.warn(LOG_TAG, "Caught exception launching activity from vendor package " + vendorPackage +
+          " and class " + vendorClass + ". Ignoring.", e);
+    }
+    return null;
+  }
+
+  
+
+
+
+
+
+
   public static Intent openSyncSettings(Context context) {
     
     
     
-    try {
-      
-      final int contextFlags = Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY;
-      Context foreignContext = context.createPackageContext(MOTO_BLUR_PACKAGE, contextFlags);
-      Class<?> motorolaAccounts = foreignContext.getClassLoader().loadClass(MOTO_BLUR_SETTINGS_ACTIVITY);
-      Logger.info(LOG_TAG, "Blur package found. Launching Moto activity.");
-
-      final Intent intent = new Intent(foreignContext, motorolaAccounts);
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      context.startActivity(intent);
+    Intent intent = openVendorSyncSettings(context, MOTO_BLUR_PACKAGE, MOTO_BLUR_SETTINGS_ACTIVITY);
+    if (intent != null) {
       return intent;
-    } catch (NameNotFoundException e) {
-      Logger.debug(LOG_TAG, "Blur package not found. Launching Sync Settings normally.");
-    } catch (ClassNotFoundException e) {
-      Logger.warn(LOG_TAG, "Blur package found but class not found. Launching Sync Settings normally.", e);
-    } catch (ActivityNotFoundException e) {
-      
-      Logger.warn(LOG_TAG, "Blur package and class found, but activity not found. Launching Sync Settings normally.", e);
     }
 
     
-    final Intent intent = new Intent(Settings.ACTION_SYNC_SETTINGS);
-    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    intent = new Intent(Settings.ACTION_SYNC_SETTINGS);
+    
     context.startActivity(intent); 
     return intent;
   }
