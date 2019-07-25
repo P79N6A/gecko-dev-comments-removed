@@ -98,9 +98,12 @@ gfxImageSurface::gfxImageSurface(const gfxIntSize& size, gfxImageFormat format) 
 
     
     if (mSize.height * mStride > 0) {
-        mData = (unsigned char *) calloc(mSize.height, mStride);
+
+        
+        mData = (unsigned char *) moz_malloc(mSize.height * mStride);
         if (!mData)
             return;
+        memset(mData, 0, mSize.height * mStride);
     }
 
     mOwnsData = PR_TRUE;
