@@ -65,6 +65,7 @@ CryptoWrapper.prototype = {
     this.IV = Svc.Crypto.generateRandomIV();
     this.ciphertext = Svc.Crypto.encrypt(JSON.stringify(this.cleartext),
                                          symkey, this.IV);
+    this.hmac = Utils.sha256HMAC(this.ciphertext, symkey.hmacKey);
     this.cleartext = null;
   },
 
@@ -74,6 +75,10 @@ CryptoWrapper.prototype = {
 
     let meta = CryptoMetas.get(this.encryption);
     let symkey = meta.getKey(privkey, passphrase);
+
+    
+    if (Utils.sha256HMAC(this.ciphertext, symkey.hmacKey) != this.hmac)
+      throw "Server attack?! SHA256 HMAC mismatch: " + this.hmac;
 
     this.cleartext = JSON.parse(Svc.Crypto.decrypt(this.ciphertext, symkey,
                                                    this.IV));
@@ -103,7 +108,8 @@ CryptoWrapper.prototype = {
   },
 };
 
-Utils.deferGetSet(CryptoWrapper, "payload", ["ciphertext", "encryption", "IV"]);
+Utils.deferGetSet(CryptoWrapper, "payload", ["ciphertext", "encryption", "IV",
+                                             "hmac"]);
 Utils.deferGetSet(CryptoWrapper, "cleartext", "deleted");
 
 function CryptoMeta(uri) {
@@ -116,10 +122,6 @@ CryptoMeta.prototype = {
 
   getKey: function CryptoMeta_getKey(privkey, passphrase) {
     
-    if (this._unwrappedKey)
-      return this._unwrappedKey;
-
-    
     let pubkeyUri = privkey.publicKeyUri.spec;
 
     
@@ -131,8 +133,14 @@ CryptoMeta.prototype = {
     if (!wrapped_key)
       throw "keyring doesn't contain a key for " + pubkeyUri;
 
-    return this._unwrappedKey = Svc.Crypto.unwrapSymmetricKey(wrapped_key,
-      privkey.keyData, passphrase.password, privkey.salt, privkey.iv);
+    let unwrappedKey = new String(Svc.Crypto.unwrapSymmetricKey(wrapped_key,
+      privkey.keyData, passphrase.password, privkey.salt, privkey.iv));
+
+    unwrappedKey.hmacKey = Svc.KeyFactory.keyFromString(Ci.nsIKeyObject.HMAC,
+      unwrappedKey);
+
+    
+    return (this.getKey = function() unwrappedKey)();
   },
 
   addKey: function CryptoMeta_addKey(new_pubkey, privkey, passphrase) {
