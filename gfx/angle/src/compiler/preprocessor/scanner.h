@@ -48,12 +48,7 @@
 #if !defined(__SCANNER_H)
 #define __SCANNER_H 1
 
-
-
-
-#define MAX_SYMBOL_NAME_LEN 250
-#define MAX_STRING_LEN 511
-
+#include "compiler/preprocessor/length_limits.h"
 #include "compiler/preprocessor/parser.h"
 
 

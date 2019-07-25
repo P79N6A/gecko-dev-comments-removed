@@ -13,7 +13,7 @@
 #include "compiler/VariableInfo.h"
 
 
-#define MAX_IDENTIFIER_NAME_SIZE 32
+#define MAX_SHORTENED_IDENTIFIER_SIZE 32
 
 
 

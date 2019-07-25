@@ -1425,6 +1425,53 @@ TIntermTyped* TParseContext::addConstStruct(TString& identifier, TIntermTyped* n
     return typedNode;
 }
 
+bool TParseContext::enterStructDeclaration(int line, const TString& identifier)
+{
+    ++structNestingLevel;
+
+    
+    
+    
+    if (structNestingLevel > 1) {
+        error(line, "", "Embedded struct definitions are not allowed", "");
+        return true;
+    }
+
+    return false;
+}
+
+void TParseContext::exitStructDeclaration()
+{
+    --structNestingLevel;
+}
+
+namespace {
+
+const int kWebGLMaxStructNesting = 4;
+
+}  
+
+bool TParseContext::structNestingErrorCheck(TSourceLoc line, const TType& fieldType)
+{
+    if (shaderSpec != SH_WEBGL_SPEC) {
+        return false;
+    }
+
+    if (fieldType.getBasicType() != EbtStruct) {
+        return false;
+    }
+
+    
+    
+    if (1 + fieldType.getDeepestStructNesting() >= kWebGLMaxStructNesting) {
+        error(line, "", "", "Reference of struct type %s exceeds maximum struct nesting of %d",
+              fieldType.getTypeName().c_str(), kWebGLMaxStructNesting);
+        return true;
+    }
+
+    return false;
+}
+
 
 
 

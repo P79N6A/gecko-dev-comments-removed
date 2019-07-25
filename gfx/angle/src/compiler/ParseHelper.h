@@ -31,9 +31,25 @@ struct TPragma {
 
 struct TParseContext {
     TParseContext(TSymbolTable& symt, TExtensionBehavior& ext, TIntermediate& interm, ShShaderType type, ShShaderSpec spec, int options, bool checksPrecErrors, const char* sourcePath, TInfoSink& is) :
-            intermediate(interm), symbolTable(symt), extensionBehavior(ext), infoSink(is), shaderType(type), shaderSpec(spec), compileOptions(options), checksPrecisionErrors(checksPrecErrors), sourcePath(sourcePath), treeRoot(0),
-            numErrors(0), lexAfterType(false), loopNestingLevel(0),
-            inTypeParen(false), contextPragma(true, false), scanner(NULL) {  }
+            intermediate(interm),
+            symbolTable(symt),
+            extensionBehavior(ext),
+            infoSink(is),
+            shaderType(type),
+            shaderSpec(spec),
+            compileOptions(options),
+            sourcePath(sourcePath),
+            treeRoot(0),
+            numErrors(0),
+            lexAfterType(false),
+            loopNestingLevel(0),
+            structNestingLevel(0),
+            inTypeParen(false),
+            currentFunctionType(NULL),
+            functionReturnsValue(false),
+            checksPrecisionErrors(checksPrecErrors),
+            contextPragma(true, false),
+            scanner(NULL) {  }
     TIntermediate& intermediate; 
     TSymbolTable& symbolTable;   
     TExtensionBehavior& extensionBehavior;  
@@ -46,6 +62,7 @@ struct TParseContext {
     int numErrors;
     bool lexAfterType;           
     int loopNestingLevel;        
+    int structNestingLevel;      
     bool inTypeParen;            
     const TType* currentFunctionType;  
     bool functionReturnsValue;   
@@ -105,6 +122,14 @@ struct TParseContext {
     TIntermTyped* addConstMatrixNode(int , TIntermTyped*, TSourceLoc);
     TIntermTyped* addConstArrayNode(int index, TIntermTyped* node, TSourceLoc line);
     TIntermTyped* addConstStruct(TString& , TIntermTyped*, TSourceLoc);
+
+    
+    
+    
+    bool enterStructDeclaration(TSourceLoc line, const TString& identifier);
+    void exitStructDeclaration();
+
+    bool structNestingErrorCheck(TSourceLoc line, const TType& fieldType);
 };
 
 int PaParseStrings(int count, const char* const string[], const int length[],
