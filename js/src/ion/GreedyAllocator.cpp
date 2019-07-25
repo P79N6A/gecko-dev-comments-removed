@@ -654,6 +654,7 @@ GreedyAllocator::allocateRegistersInBlock(LBlock *block)
         if (!prepareBackedge(block))
             return false;
     }
+    blockInfo(block)->out = state;
 
     for (; ri != block->instructions().rend(); ri++) {
         LInstruction *ins = *ri;
@@ -765,6 +766,37 @@ GreedyAllocator::mergeBackedgeState(LBlock *header, LBlock *backedge)
 {
     BlockInfo *info = blockInfo(backedge);
 
+    
+    
+    Mover carried;
+    for (AnyRegisterIterator iter; iter.more(); iter++) {
+        AnyRegister reg = *iter;
+        VirtualRegister *inVr = state[reg];
+        if (!inVr)
+            continue;
+
+        VirtualRegister *outVr = info->out[reg];
+        if (inVr == outVr)
+            continue;
+
+        
+        
+        
+        
+        
+        
+        
+        if (!allocateStack(inVr))
+            return false;
+        if (!carried.move(inVr->backingStack(), reg))
+            return false;
+    }
+    if (carried.moves) {
+        LInstruction *ins = *header->instructions().begin();
+        header->insertBefore(ins, carried.moves);
+    }
+
+    
     for (size_t i = 0; i < header->numPhis(); i++) {
         LPhi *phi = header->getPhi(i);
         LDefinition *def = phi->getDef(0);
