@@ -342,16 +342,17 @@ enum TraceType_
 : int8_t
 #endif
 {
-    TT_OBJECT         = 0, 
-    TT_INT32          = 1, 
-    TT_DOUBLE         = 2, 
-    TT_JSVAL          = 3, 
-    TT_STRING         = 4, 
-    TT_NULL           = 5, 
-    TT_SPECIAL        = 6, 
-    TT_VOID           = 7, 
-    TT_FUNCTION       = 8, 
-    TT_IGNORE         = 9
+    TT_OBJECT        =  0, 
+    TT_INT32         =  1, 
+    TT_DOUBLE        =  2, 
+    TT_JSVAL         =  3, 
+    TT_STRING        =  4, 
+    TT_NULL          =  5, 
+    TT_SPECIAL       =  6, 
+    TT_VOID          =  7, 
+    TT_FUNCTION      =  8, 
+    TT_MAGIC         =  9, 
+    TT_IGNORE        = 10
 }
 #if defined(__GNUC__) && defined(USE_TRACE_TYPE_ENUM)
 __attribute__((packed))
