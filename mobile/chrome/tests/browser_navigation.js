@@ -8,6 +8,9 @@ var pngURL = "data:image/gif;base64,R0lGODlhCwALAIAAAAAA3pn/ZiH5BAEAAAEALAAAAAAL
 var gTests = [];
 var gCurrentTest = null;
 
+var back = document.getElementById("tool-back");
+var forward = document.getElementById("tool-forward");
+
 function pageLoaded(url) {
   return function() {
     let tab = gCurrentTest._currentTab;
@@ -65,11 +68,9 @@ gTests.push({
     is(urlIcons.getAttribute("mode"), "view", "URL Mode is set to 'view'");
 
     
-    let back = document.getElementById("tool-back");
     is(back.disabled, !gCurrentTest._currentTab.browser.canGoBack, "Back button check");
 
     
-    let forward = document.getElementById("tool-forward");
     is(forward.disabled, !gCurrentTest._currentTab.browser.canGoForward, "Forward button check");
 
     
@@ -88,11 +89,9 @@ gTests.push({
     is(urlIcons.getAttribute("mode"), "edit", "URL Mode is set to 'edit'");
 
     
-    let back = document.getElementById("tool-back");
     is(back.disabled, !gCurrentTest._currentTab.browser.canGoBack, "Back button check");
 
     
-    let forward = document.getElementById("tool-forward");
     is(forward.disabled, !gCurrentTest._currentTab.browser.canGoForward, "Forward button check");
 
     
@@ -145,11 +144,9 @@ gTests.push({
 
   onPageBack: function() {
     
-    let back = document.getElementById("tool-back");
     is(back.disabled, !gCurrentTest._currentTab.browser.canGoBack, "Back button check");
 
     
-    let forward = document.getElementById("tool-forward");
     is(forward.disabled, !gCurrentTest._currentTab.browser.canGoForward, "Forward button check");
 
     Browser.closeTab(gCurrentTest._currentTab);
@@ -267,3 +264,59 @@ gTests.push({
   }
 });
 
+
+
+
+
+
+gTests.push({
+  desc: "Navigating within a page via URI fragments",
+  _currentTab: null,
+
+  run: function() {
+    gCurrentTest._currentTab = Browser.addTab(testURL_01, true);
+    waitFor(gCurrentTest.onPageReady, pageLoaded(testURL_01));
+  },
+
+  onPageReady: function() {
+    ok(back.disabled, "Can't go back");
+    ok(forward.disabled, "Can't go forward");
+
+    messageManager.addMessageListener("WebProgress:LocationChange", gCurrentTest.onFragmentLoaded);
+    Browser.loadURI(testURL_01 + "#fragment");
+  },
+
+  onFragmentLoaded: function() {
+    messageManager.removeMessageListener("WebProgress:LocationChange", arguments.callee);
+
+    ok(!back.disabled, "Can go back");
+    ok(forward.disabled, "Can't go forward");
+
+    messageManager.addMessageListener("WebProgress:LocationChange", gCurrentTest.onBack);
+    CommandUpdater.doCommand("cmd_back");
+  },
+
+  onBack: function() {
+    messageManager.removeMessageListener("WebProgress:LocationChange", arguments.callee);
+
+    ok(back.disabled, "Can't go back");
+    ok(!forward.disabled, "Can go forward");
+
+    messageManager.addMessageListener("WebProgress:LocationChange", gCurrentTest.onForward);
+    CommandUpdater.doCommand("cmd_forward");
+  },
+
+  onForward: function() {
+    messageManager.removeMessageListener("WebProgress:LocationChange", arguments.callee);
+
+    ok(!back.disabled, "Can go back");
+    ok(forward.disabled, "Can't go forward");
+
+    gCurrentTest.finish();
+  },
+
+  finish: function() {
+    Browser.closeTab(gCurrentTest._currentTab);
+    runNextTest();
+  }
+});
