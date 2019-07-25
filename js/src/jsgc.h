@@ -1233,10 +1233,6 @@ js_FinalizeStringRT(JSRuntime *rt, JSString *str);
 extern void
 js_MarkTraps(JSTracer *trc);
 
-namespace js {
-namespace gc {
-
-
 
 
 
@@ -1248,15 +1244,8 @@ namespace gc {
 # define JS_IS_VALID_TRACE_KIND(kind) ((uint32)(kind) <= JSTRACE_SHAPE)
 #endif
 
-
-
-
-
-
-
-
-extern bool
-SetProtoCheckingForCycles(JSContext *cx, JSObject *obj, JSObject *proto);
+namespace js {
+namespace gc {
 
 JSCompartment *
 NewCompartment(JSContext *cx, JSPrincipals *principals);

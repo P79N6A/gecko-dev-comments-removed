@@ -2761,43 +2761,6 @@ js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
 namespace js {
 namespace gc {
 
-bool
-SetProtoCheckingForCycles(JSContext *cx, JSObject *obj, JSObject *proto)
-{
-    
-
-
-
-#ifdef JS_THREADSAFE
-    JS_ASSERT(cx->thread()->data.requestDepth);
-
-    
-
-
-
-
-    RecordNativeStackTopForGC(cx);
-#endif
-
-    JSRuntime *rt = cx->runtime;
-    AutoLockGC lock(rt);
-    AutoGCSession gcsession(cx);
-    AutoUnlockGC unlock(rt);
-
-    bool cycle = false;
-    for (JSObject *obj2 = proto; obj2;) {
-        if (obj2 == obj) {
-            cycle = true;
-            break;
-        }
-        obj2 = obj2->getProto();
-    }
-    if (!cycle)
-        obj->setProto(proto);
-
-    return !cycle;
-}
-
 JSCompartment *
 NewCompartment(JSContext *cx, JSPrincipals *principals)
 {
