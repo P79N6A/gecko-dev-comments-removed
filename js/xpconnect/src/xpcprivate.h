@@ -795,9 +795,9 @@ public:
         return gNewDOMBindingsEnabled;
     }
 
-    bool ExperimentalBindingsEnabled()
+    bool ParisBindingsEnabled()
     {
-        return gExperimentalBindingsEnabled;
+        return gParisBindingsEnabled;
     }
 
     size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
@@ -812,7 +812,7 @@ private:
     static void WatchdogMain(void *arg);
 
     static bool gNewDOMBindingsEnabled;
-    static bool gExperimentalBindingsEnabled;
+    static bool gParisBindingsEnabled;
 
     static const char* mStrings[IDX_TOTAL_COUNT];
     jsid mStrIDs[IDX_TOTAL_COUNT];
@@ -1289,7 +1289,7 @@ public:
         if (mCcx)
             return mCcx->GetScopeForNewJSObjects();
 
-        return mObj;
+        return xpc_UnmarkGrayObject(mObj);
     }
     void SetScopeForNewJSObjects(JSObject *obj)
     {
@@ -1305,7 +1305,7 @@ public:
         if (mCcx)
             return mCcx->GetFlattenedJSObject();
 
-        return mFlattenedJSObject;
+        return xpc_UnmarkGrayObject(mFlattenedJSObject);
     }
     XPCCallContext &GetXPCCallContext()
     {
@@ -1313,8 +1313,9 @@ public:
             mCcxToDestroy = mCcx =
                 new (mData) XPCCallContext(mCallerLanguage, mCx,
                                            mCallBeginRequest == CALL_BEGINREQUEST,
-                                           mObj,
-                                           mFlattenedJSObject, mWrapper,
+                                           xpc_UnmarkGrayObject(mObj),
+                                           xpc_UnmarkGrayObject(mFlattenedJSObject),
+                                           mWrapper,
                                            mTearOff);
             if (!mCcx->IsValid()) {
                 NS_ERROR("This is not supposed to fail!");
@@ -1523,10 +1524,18 @@ public:
     GetComponents() const {return mComponents;}
 
     JSObject*
-    GetGlobalJSObject() const {return mGlobalJSObject;}
+    GetGlobalJSObject() const
+        {return xpc_UnmarkGrayObject(mGlobalJSObject);}
 
     JSObject*
-    GetPrototypeJSObject() const {return mPrototypeJSObject;}
+    GetGlobalJSObjectPreserveColor() const {return mGlobalJSObject;}
+
+    JSObject*
+    GetPrototypeJSObject() const
+        {return xpc_UnmarkGrayObject(mPrototypeJSObject);}
+
+    JSObject*
+    GetPrototypeJSObjectPreserveColor() const {return mPrototypeJSObject;}
 
     
     
@@ -1629,9 +1638,9 @@ public:
         return mNewDOMBindingsEnabled;
     }
 
-    JSBool ExperimentalBindingsEnabled()
+    JSBool ParisBindingsEnabled()
     {
-        return mExperimentalBindingsEnabled;
+        return mParisBindingsEnabled;
     }
 
 protected:
@@ -1675,7 +1684,7 @@ private:
     nsDataHashtable<nsDepCharHashKey, JSObject*> mCachedDOMPrototypes;
 
     JSBool mNewDOMBindingsEnabled;
-    JSBool mExperimentalBindingsEnabled;
+    JSBool mParisBindingsEnabled;
 };
 
 
@@ -2238,7 +2247,7 @@ public:
     GetRuntime() const {return mScope->GetRuntime();}
 
     JSObject*
-    GetJSProtoObject() const {return mJSProtoObject;}
+    GetJSProtoObject() const {return xpc_UnmarkGrayObject(mJSProtoObject);}
 
     nsIClassInfo*
     GetClassInfo()     const {return mClassInfo;}
@@ -3026,8 +3035,7 @@ public:
 
 
 
-    JSObject* GetJSObject() const {xpc_UnmarkGrayObject(mJSObj);
-                                   return mJSObj;}
+    JSObject* GetJSObject() const {return xpc_UnmarkGrayObject(mJSObj);}
 
     
 
@@ -4487,8 +4495,7 @@ struct CompartmentPrivate
 
     JSObject *LookupExpandoObject(XPCWrappedNative *wn) {
         JSObject *obj = LookupExpandoObjectPreserveColor(wn);
-        xpc_UnmarkGrayObject(obj);
-        return obj;
+        return xpc_UnmarkGrayObject(obj);
     }
 
     bool RegisterDOMExpandoObject(JSObject *expando) {
