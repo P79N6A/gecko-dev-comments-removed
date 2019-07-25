@@ -43,7 +43,6 @@
 
 
 #include "xpcprivate.h"
-#include "XPCNativeWrapper.h"
 #include "XPCWrapper.h"
 #include "nsBaseHashtable.h"
 #include "nsHashKeys.h"
@@ -57,6 +56,7 @@
 #include "jstypedarray.h"
 
 #include "XrayWrapper.h"
+#include "WrapperFactory.h"
 
 NS_IMPL_THREADSAFE_ISUPPORTS6(nsXPConnect,
                               nsIXPConnect,
@@ -674,100 +674,52 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
         {
             JSObject *obj = static_cast<JSObject*>(p);
             js::Class *clazz = obj->getClass();
-            if(XPCNativeWrapper::IsNativeWrapperClass(clazz))
+            XPCNativeScriptableInfo* si = nsnull;
+            if(IS_PROTO_CLASS(clazz))
             {
-                XPCWrappedNative* wn;
-                if(XPCNativeWrapper::GetWrappedNative(cx, obj, &wn) && wn)
+                XPCWrappedNativeProto* p =
+                    (XPCWrappedNativeProto*) xpc_GetJSPrivate(obj);
+                si = p->GetScriptableInfo();
+            }
+            if(si)
+            {
+                JS_snprintf(name, sizeof(name), "JS Object (%s - %s)",
+                            clazz->name, si->GetJSClass()->name);
+            }
+            else if(clazz == &js_ScriptClass)
+            {
+                JSScript* script = (JSScript*) xpc_GetJSPrivate(obj);
+                if(script->filename)
                 {
-                    XPCNativeScriptableInfo* si = wn->GetScriptableInfo();
-                    if(si)
-                    {
-                        JS_snprintf(name, sizeof(name), "XPCNativeWrapper (%s)",
-                                    si->GetJSClass()->name);
-                    }
-                    else
-                    {
-                        nsIClassInfo* ci = wn->GetClassInfo();
-                        char* className = nsnull;
-                        if(ci)
-                            ci->GetClassDescription(&className);
-                        if(className)
-                        {
-                            JS_snprintf(name, sizeof(name),
-                                        "XPCNativeWrapper (%s)", className);
-                            PR_Free(className);
-                        }
-                        else
-                        {
-                            XPCNativeSet* set = wn->GetSet();
-                            XPCNativeInterface** array =
-                                set->GetInterfaceArray();
-                            PRUint16 count = set->GetInterfaceCount();
-
-                            if(count > 0)
-                                JS_snprintf(name, sizeof(name),
-                                            "XPCNativeWrapper (%s)",
-                                            array[0]->GetNameString());
-                            else
-                                JS_snprintf(name, sizeof(name),
-                                            "XPCNativeWrapper");
-                        }
-                    }
+                    JS_snprintf(name, sizeof(name),
+                                "JS Object (Script - %s)",
+                                script->filename);
                 }
                 else
                 {
-                    JS_snprintf(name, sizeof(name), "XPCNativeWrapper");
+                    JS_snprintf(name, sizeof(name), "JS Object (Script)");
+                }
+            }
+            else if(clazz == &js_FunctionClass)
+            {
+                JSFunction* fun = (JSFunction*) xpc_GetJSPrivate(obj);
+                JSString* str = JS_GetFunctionId(fun);
+                if(str)
+                {
+                    NS_ConvertUTF16toUTF8
+                        fname(reinterpret_cast<const PRUnichar*>(JS_GetStringChars(str)));
+                    JS_snprintf(name, sizeof(name),
+                                "JS Object (Function - %s)", fname.get());
+                }
+                else
+                {
+                    JS_snprintf(name, sizeof(name), "JS Object (Function)");
                 }
             }
             else
             {
-                XPCNativeScriptableInfo* si = nsnull;
-                if(IS_PROTO_CLASS(clazz))
-                {
-                    XPCWrappedNativeProto* p =
-                        (XPCWrappedNativeProto*) xpc_GetJSPrivate(obj);
-                    si = p->GetScriptableInfo();
-                }
-                if(si)
-                {
-                    JS_snprintf(name, sizeof(name), "JS Object (%s - %s)",
-                                clazz->name, si->GetJSClass()->name);
-                }
-                else if(clazz == &js_ScriptClass)
-                {
-                    JSScript* script = (JSScript*) xpc_GetJSPrivate(obj);
-                    if(script->filename)
-                    {
-                        JS_snprintf(name, sizeof(name),
-                                    "JS Object (Script - %s)",
-                                    script->filename);
-                    }
-                    else
-                    {
-                        JS_snprintf(name, sizeof(name), "JS Object (Script)");
-                    }
-                }
-                else if(clazz == &js_FunctionClass)
-                {
-                    JSFunction* fun = (JSFunction*) xpc_GetJSPrivate(obj);
-                    JSString* str = JS_GetFunctionId(fun);
-                    if(str)
-                    {
-                        NS_ConvertUTF16toUTF8
-                            fname(reinterpret_cast<const PRUnichar*>(JS_GetStringChars(str)));
-                        JS_snprintf(name, sizeof(name),
-                                    "JS Object (Function - %s)", fname.get());
-                    }
-                    else
-                    {
-                        JS_snprintf(name, sizeof(name), "JS Object (Function)");
-                    }
-                }
-                else
-                {
-                    JS_snprintf(name, sizeof(name), "JS Object (%s)",
-                                clazz->name);
-                }
+                JS_snprintf(name, sizeof(name), "JS Object (%s)",
+                            clazz->name);
             }
         }
         else
@@ -822,11 +774,8 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
     }
     
     
-    
-    
     else if(clazz->flags & JSCLASS_HAS_PRIVATE &&
-            clazz->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS &&
-            !XPCNativeWrapper::IsNativeWrapperClass(clazz))
+            clazz->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS)
     {
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "xpc_GetJSPrivate(obj)");
         cb.NoteXPCOMChild(static_cast<nsISupports*>(xpc_GetJSPrivate(obj)));
@@ -967,9 +916,6 @@ nsXPConnect::InitClasses(JSContext * aJSContext, JSObject * aGlobalJSObj)
     if(XPCPerThreadData::IsMainThread(ccx))
     {
         if (!XPCNativeWrapper::AttachNewConstructorObject(ccx, aGlobalJSObj))
-            return UnexpectedFailure(NS_ERROR_FAILURE);
-
-        if (!XPCSafeJSObjectWrapper::AttachNewConstructorObject(ccx, aGlobalJSObj))
             return UnexpectedFailure(NS_ERROR_FAILURE);
     }
 
@@ -1176,8 +1122,9 @@ NativeInterface2JSObject(XPCLazyCallContext & lccx,
         return rv;
 
 #ifdef DEBUG
-    NS_ASSERTION(!XPCNativeWrapper::IsNativeWrapper(JSVAL_TO_OBJECT(*aVal)),
-                 "Shouldn't be returning a native wrapper here");
+    NS_ASSERTION(aAllowWrapping ||
+                 !xpc::WrapperFactory::IsXrayWrapper(JSVAL_TO_OBJECT(*aVal)),
+                 "Shouldn't be returning a xray wrapper here");
 #endif
     
     return NS_OK;
@@ -2009,87 +1956,6 @@ nsXPConnect::GetWrappedNativePrototype(JSContext * aJSContext,
 }
 
 
-NS_IMETHODIMP
-nsXPConnect::GetXOWForObject(JSContext * aJSContext,
-                             JSObject * aParent,
-                             JSObject * aWrappedObj,
-                             jsval * rval)
-{
-    *rval = OBJECT_TO_JSVAL(aWrappedObj);
-    return XPCCrossOriginWrapper::WrapObject(aJSContext, aParent, rval)
-           ? NS_OK : NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-nsXPConnect::GetCOWForObject(JSContext * aJSContext,
-                             JSObject * aParent,
-                             JSObject * aWrappedObj,
-                             jsval * rval)
-{
-    *rval = OBJECT_TO_JSVAL(aWrappedObj);
-    return ChromeObjectWrapper::WrapObject(aJSContext, aParent, *rval, rval)
-           ? NS_OK : NS_ERROR_FAILURE;
-}
-
-static inline PRBool
-PerformOp(JSContext *cx, PRUint32 aWay, JSObject *obj)
-{
-    NS_ASSERTION(aWay == nsIXPConnect::XPC_XOW_CLEARSCOPE,
-                 "Nothing else is implemented yet");
-
-    JS_ClearScope(cx, obj);
-    return PR_TRUE;
-}
-
-
-
-
-NS_IMETHODIMP
-nsXPConnect::UpdateXOWs(JSContext* aJSContext,
-                        nsIXPConnectWrappedNative* aObject,
-                        PRUint32 aWay)
-{
-    typedef WrappedNative2WrapperMap::Link Link;
-    XPCWrappedNative* wn = static_cast<XPCWrappedNative *>(aObject);
-    XPCWrappedNativeScope* scope = wn->GetScope();
-    WrappedNative2WrapperMap* map = scope->GetWrapperMap();
-    Link* list;
-
-    {
-        XPCAutoLock al(GetRuntime()->GetMapLock());
-
-        list = map->FindLink(wn->GetFlatJSObject());
-    }
-
-    if(!list)
-        return NS_OK; 
-
-    if(aWay == nsIXPConnect::XPC_XOW_NAVIGATED)
-    {
-        XPCWrappedNative *wn = static_cast<XPCWrappedNative *>(aObject);
-        NS_ASSERTION(wn->NeedsXOW(), "Window isn't a window");
-
-        XPCCrossOriginWrapper::WindowNavigated(aJSContext, wn);
-        return NS_OK;
-    }
-
-    JSAutoRequest req(aJSContext);
-
-    Link* cur = list;
-    if(cur->obj && !PerformOp(aJSContext, aWay, cur->obj))
-        return NS_ERROR_FAILURE;
-
-    for(cur = (Link *)PR_NEXT_LINK(list); cur != list;
-        cur = (Link *)PR_NEXT_LINK(cur))
-    {
-        if(!PerformOp(aJSContext, aWay, cur->obj))
-            return NS_ERROR_FAILURE;
-    }
-
-    return NS_OK;
-}
-
-
 NS_IMETHODIMP 
 nsXPConnect::ReleaseJSContext(JSContext * aJSContext, PRBool noGC)
 {
@@ -2381,134 +2247,6 @@ nsXPConnect::DefineDOMQuickStubs(JSContext * cx,
                                 interfaceCount, interfaceArray);
 }
 
-NS_IMETHODIMP
-nsXPConnect::GetWrapperForObject(JSContext* aJSContext,
-                                 JSObject* aObject,
-                                 JSObject* aScope,
-                                 nsIPrincipal* aPrincipal,
-                                 PRUint32 aFilenameFlags,
-                                 jsval* _retval)
-{
-    NS_ASSERTION(aFilenameFlags != JSFILENAME_NULL, "Null filename!");
-    NS_ASSERTION(XPCPerThreadData::IsMainThread(aJSContext),
-                 "Must only be called from the main thread as these wrappers "
-                 "are not threadsafe!");
-
-    JSAutoRequest ar(aJSContext);
-
-    XPCWrappedNativeScope *objectscope;
-    JSObject* obj2;
-    XPCWrappedNative *wrapper =
-         XPCWrappedNative::GetWrappedNativeOfJSObject(aJSContext, aObject,
-                                                      nsnull, &obj2);
-    if(wrapper)
-    {
-        objectscope = wrapper->GetScope();
-    }
-    else if(obj2)
-    {
-        objectscope = GetSlimWrapperProto(obj2)->GetScope();
-    }
-    else
-    {
-        
-        
-        *_retval = OBJECT_TO_JSVAL(aObject);
-        return NS_OK;
-    }
-
-    XPCWrappedNativeScope *xpcscope =
-            XPCWrappedNativeScope::FindInJSObjectScope(aJSContext, aScope);
-    if(!xpcscope)
-        return NS_ERROR_FAILURE;
-
-#ifdef DEBUG_mrbkap
-    {
-        JSObject *scopeobj = xpcscope->GetGlobalJSObject();
-        JSObject *toInnerize = scopeobj;
-        OBJ_TO_INNER_OBJECT(aJSContext, toInnerize);
-        NS_ASSERTION(toInnerize == scopeobj, "Scope chain ending in outer object?");
-    }
-#endif
-
-    {
-        JSObject *possibleOuter = objectscope->GetGlobalJSObject();
-        OBJ_TO_INNER_OBJECT(aJSContext, possibleOuter);
-        if(!possibleOuter)
-            return NS_ERROR_FAILURE;
-
-        if(objectscope->GetGlobalJSObject() != possibleOuter)
-        {
-            objectscope =
-                XPCWrappedNativeScope::FindInJSObjectScope(aJSContext,
-                                                           possibleOuter);
-            NS_ASSERTION(objectscope, "Unable to find a scope from an object");
-        }
-    }
-
-    *_retval = OBJECT_TO_JSVAL(aObject);
-
-    JSBool sameOrigin;
-    JSBool sameScope = xpc_SameScope(objectscope, xpcscope, &sameOrigin);
-    JSBool forceXOW =
-        XPCCrossOriginWrapper::ClassNeedsXOW(aObject->getClass()->name);
-
-    
-    
-    
-    
-    
-    
-    
-    if(aObject->isSystem() ||
-       (sameScope &&
-        (!forceXOW || (aFilenameFlags & JSFILENAME_SYSTEM))))
-        return NS_OK;
-
-    JSObject* wrappedObj = nsnull;
-
-    if(aFilenameFlags & JSFILENAME_PROTECTED)
-    {
-        if(!wrapper)
-        {
-            SLIM_LOG_WILL_MORPH(aJSContext, aObject);
-            if(!MorphSlimWrapper(aJSContext, aObject))
-                return NS_ERROR_FAILURE;
-
-            wrapper = static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(aObject));
-        }
-
-        wrappedObj = XPCNativeWrapper::GetNewOrUsed(aJSContext, wrapper,
-                                                    aScope, aPrincipal);
-    }
-    else if(aFilenameFlags & JSFILENAME_SYSTEM)
-    {
-        jsval val = OBJECT_TO_JSVAL(aObject);
-        if(XPCSafeJSObjectWrapper::WrapObject(aJSContext, aScope, val, &val))
-            wrappedObj = JSVAL_TO_OBJECT(val);
-    }
-    else
-    {
-        
-        
-        if(sameOrigin && !forceXOW)
-            return NS_OK;
-
-        jsval val = OBJECT_TO_JSVAL(aObject);
-        if(XPCCrossOriginWrapper::WrapObject(aJSContext, aScope, &val, wrapper))
-            wrappedObj = JSVAL_TO_OBJECT(val);
-    }
-
-    if(!wrappedObj)
-        return NS_ERROR_FAILURE;
-
-    *_retval = OBJECT_TO_JSVAL(wrappedObj);
-    if(wrapper && wrapper->NeedsSOW() &&
-       !SystemOnlyWrapper::WrapObject(aJSContext, aScope, *_retval, _retval))
-        return NS_ERROR_FAILURE;
-    return NS_OK;
-}
-
 
 NS_IMETHODIMP
 nsXPConnect::GetRuntime(JSRuntime **runtime)
@@ -2704,22 +2442,6 @@ nsXPConnect::GetPrincipal(JSObject* obj, PRBool allowShortCircuit) const
     }
 
     return nsnull;
-}
-
-NS_IMETHODIMP_(void)
-nsXPConnect::GetXrayWrapperPropertyHolderGetPropertyOp(JSPropertyOp *getPropertyPtr)
-{
-    *getPropertyPtr = xpc::XrayUtils::HolderClass.getProperty;
-}
-
-NS_IMETHODIMP_(void)
-nsXPConnect::GetNativeWrapperGetPropertyOp(JSPropertyOp *getPropertyPtr)
-{
-    NS_ASSERTION(XPCNativeWrapper::GetJSClass(true)->getProperty ==
-                 XPCNativeWrapper::GetJSClass(false)->getProperty,
-                 "Call and NoCall XPCNativeWrapper Class must use the same "
-                 "getProperty hook.");
-    *getPropertyPtr = XPCNativeWrapper::GetJSClass(true)->getProperty;
 }
 
 NS_IMETHODIMP

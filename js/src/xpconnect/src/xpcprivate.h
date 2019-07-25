@@ -1521,14 +1521,6 @@ public:
     JSBool
     IsValid() const {return mRuntime != nsnull;}
 
-    
-
-
-
-    XPCWrapper::WrapperType
-    GetWrapperFor(JSContext *cx, JSObject *obj, XPCWrapper::WrapperType hint,
-                  XPCWrappedNative **wn);
-
     static JSBool
     IsDyingScope(XPCWrappedNativeScope *scope);
 
