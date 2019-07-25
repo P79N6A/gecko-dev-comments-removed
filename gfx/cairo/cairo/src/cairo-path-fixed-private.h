@@ -61,10 +61,9 @@ typedef char cairo_path_op_t;
 
 typedef struct _cairo_path_buf {
     cairo_list_t link;
+    unsigned int buf_size;
     unsigned int num_ops;
-    unsigned int size_ops;
     unsigned int num_points;
-    unsigned int size_points;
 
     cairo_path_op_t *op;
     cairo_point_t *points;
@@ -81,16 +80,14 @@ struct _cairo_path_fixed {
     cairo_point_t last_move_point;
     cairo_point_t current_point;
     unsigned int has_current_point	: 1;
-    unsigned int has_last_move_point	: 1;
     unsigned int has_curve_to		: 1;
     unsigned int is_rectilinear		: 1;
     unsigned int maybe_fill_region	: 1;
     unsigned int is_empty_fill		: 1;
 
-    cairo_box_t extents;
-
     cairo_path_buf_fixed_t  buf;
 };
+
 
 cairo_private void
 _cairo_path_fixed_translate (cairo_path_fixed_t *path,

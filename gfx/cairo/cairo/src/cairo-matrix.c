@@ -34,37 +34,15 @@
 
 
 
+#define _GNU_SOURCE
+
 #include "cairoint.h"
-#include "cairo-error-private.h"
 
 #if _XOPEN_SOURCE >= 600 || defined (_ISOC99_SOURCE)
 #define ISFINITE(x) isfinite (x)
 #else
 #define ISFINITE(x) ((x) * (x) >= 0.) /* check for NaNs */
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static void
 _cairo_matrix_scalar_multiply (cairo_matrix_t *matrix, double scalar);
@@ -601,15 +579,6 @@ _cairo_matrix_is_invertible (const cairo_matrix_t *matrix)
     return ISFINITE (det) && det != 0.;
 }
 
-cairo_bool_t
-_cairo_matrix_is_scale_0 (const cairo_matrix_t *matrix)
-{
-    return matrix->xx == 0. &&
-           matrix->xy == 0. &&
-           matrix->yx == 0. &&
-           matrix->yy == 0.;
-}
-
 double
 _cairo_matrix_compute_determinant (const cairo_matrix_t *matrix)
 {
@@ -947,7 +916,7 @@ _cairo_matrix_to_pixman_matrix (const cairo_matrix_t	*matrix,
 
 
 
-	if (_cairo_matrix_has_unity_scale (matrix))
+	if (_cairo_matrix_is_translation (matrix))
 	    return;
 
         

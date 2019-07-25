@@ -95,7 +95,6 @@
 
 #include "cairoint.h"
 #include "cairo-spans-private.h"
-#include "cairo-error-private.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -1218,108 +1217,43 @@ active_list_init(struct active_list *active)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static struct edge *
-merge_sorted_edges (struct edge *head_a, struct edge *head_b)
+merge_unsorted_edges(struct edge *sorted_head, struct edge *unsorted_head)
 {
-    struct edge *head, **next;
+    struct edge **cursor = &sorted_head;
+    int x;
 
-    head = head_a;
-    next = &head;
+    if (sorted_head == NULL) {
+	sorted_head = unsorted_head;
+	unsorted_head = unsorted_head->next;
+	sorted_head->next = NULL;
+	if (unsorted_head == NULL)
+	    return sorted_head;
+    }
 
-    while (1) {
-	while (head_a != NULL && head_a->x.quo <= head_b->x.quo) {
-	    next = &head_a->next;
-	    head_a = head_a->next;
+    do {
+	struct edge *next = unsorted_head->next;
+	struct edge *prev = *cursor;
+
+	x = unsorted_head->x.quo;
+	if (x < prev->x.quo)
+	    cursor = &sorted_head;
+
+	while (1) {
+	    UNROLL3({
+		prev = *cursor;
+		if (NULL == prev || prev->x.quo >= x)
+		    break;
+		cursor = &prev->next;
+	    });
 	}
 
-	*next = head_b;
-	if (head_a == NULL)
-	    return head;
+	unsorted_head->next = *cursor;
+	*cursor = unsorted_head;
+	unsorted_head = next;
+    } while (unsorted_head != NULL);
 
-	while (head_b != NULL && head_b->x.quo <= head_a->x.quo) {
-	    next = &head_b->next;
-	    head_b = head_b->next;
-	}
-
-	*next = head_a;
-	if (head_b == NULL)
-	    return head;
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static struct edge *
-sort_edges (struct edge  *list,
-	    unsigned int  level,
-	    struct edge **head_out)
-{
-    struct edge *head_other, *remaining;
-    unsigned int i;
-
-    head_other = list->next;
-
-    
-    if (head_other == NULL) {
-	*head_out = list;
-	return NULL;
-    }
-
-    
-
-
-
-    remaining = head_other->next;
-    if (list->x.quo <= head_other->x.quo) {
-	*head_out = list;
-	 
-	head_other->next = NULL;
-    } else {
-	*head_out = head_other;
-	head_other->next = list;
-	list->next = NULL;
-    }
-
-    for (i = 0; i < level && remaining; i++) {
-	
-
-	remaining = sort_edges (remaining, i, &head_other);
-	*head_out = merge_sorted_edges (*head_out, head_other);
-    }
-
-    
-
-    return remaining;
+    return sorted_head;
 }
 
 
@@ -1410,8 +1344,7 @@ active_list_merge_edges_from_polygon(
 	}
     }
     if (subrow_edges) {
-	sort_edges (subrow_edges, UINT_MAX, &subrow_edges);
-	active->head = merge_sorted_edges (active->head, subrow_edges);
+	active->head = merge_unsorted_edges(active->head, subrow_edges);
 	active->min_height = min_height;
     }
 }
@@ -1457,10 +1390,8 @@ active_list_substep_edges(
 	});
     }
 
-    if (unsorted) {
-	sort_edges (unsorted, UINT_MAX, &unsorted);
-	active->head = merge_sorted_edges (active->head, unsorted);
-    }
+    if (unsorted)
+	active->head = merge_unsorted_edges(active->head, unsorted);
 }
 
 inline static glitter_status_t
@@ -1632,11 +1563,11 @@ apply_evenodd_fill_rule_and_step_edges (struct active_list *active,
 
 	    winding += right_edge->dir;
 	    if ((winding & 1) == 0) {
-		if (right_edge->next == NULL ||
-		    right_edge->next->x.quo != right_edge->x.quo)
-		{
-		    break;
-		}
+	    if (right_edge->next == NULL ||
+		right_edge->next->x.quo != right_edge->x.quo)
+	    {
+		break;
+	    }
 	    }
 
 	    if (! right_edge->vertical) {

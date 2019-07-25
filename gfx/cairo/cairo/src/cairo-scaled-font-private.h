@@ -41,7 +41,6 @@
 #include "cairo.h"
 
 #include "cairo-types-private.h"
-#include "cairo-list-private.h"
 #include "cairo-mutex-type-private.h"
 #include "cairo-reference-count-private.h"
 
@@ -108,7 +107,7 @@ struct _cairo_scaled_font {
     cairo_mutex_t mutex;
 
     cairo_hash_table_t *glyphs;
-    cairo_list_t glyph_pages;
+    cairo_scaled_glyph_page_t *glyph_pages;
     cairo_bool_t cache_frozen;
     cairo_bool_t global_cache_frozen;
 
@@ -122,7 +121,6 @@ struct _cairo_scaled_font {
 
     
     const cairo_scaled_font_backend_t *backend;
-    cairo_list_t link;
 };
 
 cairo_private void

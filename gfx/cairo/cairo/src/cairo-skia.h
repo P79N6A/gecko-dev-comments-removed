@@ -39,7 +39,7 @@
 
 #include "cairo.h"
 
-#if CAIRO_HAS_SKIA_SURFACE
+#ifdef CAIRO_HAS_SKIA_SURFACE
 
 CAIRO_BEGIN_DECLS
 

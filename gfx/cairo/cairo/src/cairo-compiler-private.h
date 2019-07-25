@@ -44,45 +44,6 @@
 #include "config.h"
 #endif
 
-
-
-
-#ifndef CAIRO_STACK_BUFFER_SIZE
-#define CAIRO_STACK_BUFFER_SIZE (512 * sizeof (int))
-#endif
-
-#define CAIRO_STACK_ARRAY_LENGTH(T) (CAIRO_STACK_BUFFER_SIZE / sizeof(T))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if __GNUC__ >= 3 && defined(__ELF__) && !defined(__sun)
 # define slim_hidden_proto(name)		slim_hidden_proto1(name, slim_hidden_int_name(name)) cairo_private
 # define slim_hidden_proto_no_warn(name)	slim_hidden_proto1(name, slim_hidden_int_name(name)) cairo_private_no_warn
@@ -173,11 +134,9 @@
 #if __GNUC__ >= 3
 #define cairo_pure __attribute__((pure))
 #define cairo_const __attribute__((const))
-#define cairo_always_inline inline __attribute__((always_inline))
 #else
 #define cairo_pure
 #define cairo_const
-#define cairo_always_inline inline
 #endif
 
 #if defined(__GNUC__) && (__GNUC__ > 2) && defined(__OPTIMIZE__)
@@ -212,26 +171,6 @@
 #ifdef _MSC_VER
 #undef inline
 #define inline __inline
-
-
-
-
-#ifndef  __cplusplus
-
-#include <intrin.h>
-#pragma intrinsic(_BitScanForward)
-static __forceinline int
-ffs (int x)
-{
-    unsigned long i;
-
-    if (_BitScanForward(&i, x) != 0)
-	return i + 1;
-
-    return 0;
-}
-#endif
-
 #endif
 
 #if defined(_MSC_VER) && defined(_M_IX86)

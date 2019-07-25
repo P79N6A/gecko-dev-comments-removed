@@ -44,6 +44,8 @@ typedef struct _cairo_xlib_surface cairo_xlib_surface_t;
 struct _cairo_xlib_surface {
     cairo_surface_t base;
 
+    Display *dpy;
+    cairo_xlib_display_t *display;
     cairo_xlib_screen_t *screen;
     cairo_xlib_hook_t close_display_hook;
 
@@ -94,7 +96,6 @@ struct _cairo_xlib_surface {
     cairo_filter_t filter;
     cairo_extend_t extend;
     cairo_bool_t has_component_alpha;
-    int precision;
     XTransform xtransform;
 
     uint32_t a_mask;

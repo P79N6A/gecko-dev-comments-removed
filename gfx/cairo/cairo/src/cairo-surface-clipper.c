@@ -75,11 +75,8 @@ _cairo_surface_clipper_set_clip (cairo_surface_clipper_t *clipper,
     if (clip == NULL && clipper->clip.path == NULL)
 	return CAIRO_STATUS_SUCCESS;
 
-    if (clip != NULL && clipper->clip.path != NULL &&
-	_cairo_clip_equal (clip, &clipper->clip))
-    {
+    if (clip != NULL && clip->path == clipper->clip.path)
 	return CAIRO_STATUS_SUCCESS;
-    }
 
     
     assert (clip == NULL || clip->path != NULL);

@@ -35,7 +35,6 @@
 
 
 #include "cairoint.h"
-#include "cairo-error-private.h"
 
 #include <math.h>
 

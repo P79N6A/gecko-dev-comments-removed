@@ -38,6 +38,13 @@
 
 #include <X11/Xlib.h>
 
+#if CAIRO_HAS_XLIB_XRENDER_SURFACE
+
+#include "cairo-xlib-xrender.h"
+
+#include <X11/extensions/Xrender.h>
+#include <X11/extensions/renderproto.h>
+
 
 
 
@@ -47,13 +54,6 @@ __attribute__((__unused__)) static void * _voidp_consume       (void *p, ...)   
 __attribute__((__unused__)) static int    _int_consume         (void *p, ...)   { return 0; }
 __attribute__((__unused__)) static void   _void_consume_free   (Display *p, XID n) { }
 
-
-#if CAIRO_HAS_XLIB_XRENDER_SURFACE
-
-#include "cairo-xlib-xrender.h"
-
-#include <X11/extensions/Xrender.h>
-#include <X11/extensions/renderproto.h>
 
 
 

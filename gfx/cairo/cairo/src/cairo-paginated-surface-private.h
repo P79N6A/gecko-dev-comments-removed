@@ -57,6 +57,7 @@ typedef struct _cairo_paginated_surface {
     cairo_surface_t *recording_surface;
 
     int page_num;
+    cairo_bool_t page_is_blank;
 } cairo_paginated_surface_t;
 
 #endif 

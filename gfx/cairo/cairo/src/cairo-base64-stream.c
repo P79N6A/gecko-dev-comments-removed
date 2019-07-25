@@ -37,7 +37,6 @@
 
 
 #include "cairoint.h"
-#include "cairo-error-private.h"
 #include "cairo-output-stream-private.h"
 
 typedef struct _cairo_base64_stream {

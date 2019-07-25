@@ -37,18 +37,8 @@
 #include "cairoint.h"
 
 #include "cairo-private.h"
-#include "cairo-error-private.h"
 #include "cairo-path-private.h"
 #include "cairo-path-fixed-private.h"
-
-
-
-
-
-
-
-
-
 
 static const cairo_path_t _cairo_path_nil = { CAIRO_STATUS_NO_MEMORY, NULL, 0 };
 

@@ -39,7 +39,6 @@
 #include "cairo-directfb.h"
 
 #include "cairo-clip-private.h"
-#include "cairo-error-private.h"
 
 #include <pixman.h>
 
@@ -565,7 +564,6 @@ _cairo_directfb_surface_create_internal (IDirectFB *dfb,
 
     _cairo_surface_init (&surface->base,
 			 &_cairo_directfb_surface_backend,
-			 NULL, 
 			 content);
     surface->pixman_format = _directfb_to_pixman_format (format);
     surface->supported_destination = pixman_format_supported_destination (surface->pixman_format);
@@ -764,14 +762,14 @@ _cairo_directfb_surface_clone_similar (void             *abstract_surface,
 	    return _cairo_error (CAIRO_STATUS_NO_MEMORY);
 	}
 
-	pixman_image_composite32 (PIXMAN_OP_SRC,
-                                  image_src->pixman_image,
-                                  NULL,
-                                  pixman_image,
-                                  src_x, src_y,
-                                  0, 0,
-                                  0, 0,
-                                  width, height);
+	pixman_image_composite (PIXMAN_OP_SRC,
+				image_src->pixman_image,
+				NULL,
+				pixman_image,
+				src_x, src_y,
+				0, 0,
+				0, 0,
+				width, height);
 
 	pixman_image_unref (pixman_image);
 
@@ -1816,7 +1814,7 @@ _cairo_directfb_surface_show_glyphs (void		    *abstract_dst,
 
 
 static cairo_bool_t
-_cairo_directfb_surface_is_similar (void *surface_a, void *surface_b)
+_cairo_directfb_surface_is_similar (void *surface_a, void *surface_b, cairo_content_t content)
 {
     cairo_directfb_surface_t *a = (cairo_directfb_surface_t *) surface_a;
     cairo_directfb_surface_t *b = (cairo_directfb_surface_t *) surface_b;
@@ -1957,7 +1955,6 @@ cairo_directfb_surface_create (IDirectFB *dfb, IDirectFBSurface *dfbsurface)
 
     _cairo_surface_init (&surface->base,
                          &_cairo_directfb_surface_backend,
-			 NULL, 
 			 _directfb_format_to_content (format));
 
     return &surface->base;
