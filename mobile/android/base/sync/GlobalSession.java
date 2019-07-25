@@ -393,13 +393,39 @@ public class GlobalSession implements CredentialsSource, PrefsSource, HttpRespon
       callback.requestBackoff(responseBackoff);
     }
 
-    if (response.getStatusLine() != null && response.getStatusLine().getStatusCode() == 401) {
-      
+    if (response.getStatusLine() != null) {
+      final int statusCode = response.getStatusLine().getStatusCode();
+      switch(statusCode) {
+
+      case 400:
+        SyncStorageResponse storageResponse = new SyncStorageResponse(response);
+        this.interpretHTTPBadRequestBody(storageResponse);
+        break;
+
+      case 401:
+        
 
 
 
 
-      callback.informUnauthorizedResponse(this, config.getClusterURL());
+        callback.informUnauthorizedResponse(this, config.getClusterURL());
+        break;
+      }
+    }
+  }
+
+  protected void interpretHTTPBadRequestBody(final SyncStorageResponse storageResponse) {
+    try {
+      final String body = storageResponse.body();
+      if (body == null) {
+        return;
+      }
+      if (SyncStorageResponse.RESPONSE_CLIENT_UPGRADE_REQUIRED.equals(body)) {
+        callback.informUpgradeRequiredResponse(this);
+        return;
+      }
+    } catch (Exception e) {
+      Logger.warn(LOG_TAG, "Exception parsing HTTP 400 body.", e);
     }
   }
 
