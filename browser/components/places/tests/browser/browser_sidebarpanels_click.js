@@ -45,8 +45,8 @@ function test() {
   const HISTORY_SIDEBAR_TREE_ID = "historyTree";
 
   
-  let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-           getService(Ci.nsIWindowWatcher);
+  let os = Cc["@mozilla.org/observer-service;1"].
+           getService(Ci.nsIObserverService);
   let bs = PlacesUtils.bookmarks;
   let hs = PlacesUtils.history;
   let sidebarBox = document.getElementById("sidebar-box");
@@ -125,22 +125,20 @@ function test() {
           preFunc();
 
         function observer(aSubject, aTopic, aData) {
-          if (aTopic != "domwindowopened")
-            return;
-          ww.unregisterNotification(observer);
-          let alertDialog = aSubject.QueryInterface(Ci.nsIDOMWindow);
-          alertDialog.addEventListener("load", function () {
-            alertDialog.removeEventListener("load", arguments.callee, false);
-            info("alert dialog observed as expected");
-            executeSoon(function () {
-              alertDialog.close();
+          info("alert dialog observed as expected");
+          os.removeObserver(observer, "common-dialog-loaded");
+          os.removeObserver(observer, "tabmodal-dialog-loaded");
+
+          aSubject.Dialog.ui.button0.click();
+
+          executeSoon(function () {
               toggleSidebar(currentTest.sidebarName);
               currentTest.cleanup();
               postFunc();
             });
-          }, false);
         }
-        ww.registerNotification(observer);
+        os.addObserver(observer, "common-dialog-loaded", false);
+        os.addObserver(observer, "tabmodal-dialog-loaded", false);
 
         
         currentTest.selectNode(tree);
