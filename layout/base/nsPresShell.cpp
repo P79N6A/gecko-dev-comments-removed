@@ -4996,18 +4996,7 @@ PresShell::DocumentStatesChanged(nsIDocument* aDocument,
   if (aStateMask.HasState(NS_DOCUMENT_STATE_WINDOW_INACTIVE)) {
     nsIFrame* root = FrameManager()->GetRootFrame();
     if (root) {
-      
-      
-      
-      
-      
-      nsIWidget* widget = root->GetNearestWidget();
-      if (widget) {
-        LayerManager* layerManager = widget->GetLayerManager();
-        if (layerManager) {
-          FrameLayerBuilder::InvalidateAllThebesLayerContents(layerManager);
-        }
-      }
+      root->InvalidateFrameSubtree();
     }
   }
 }
