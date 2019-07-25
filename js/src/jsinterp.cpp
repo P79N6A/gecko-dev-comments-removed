@@ -763,6 +763,10 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
 
     do {
         
+        if (cx->compartment->debugMode)
+            break;
+
+        
         if (!calleev.isObject())
             break;
         JSObject &callee = calleev.toObject();
