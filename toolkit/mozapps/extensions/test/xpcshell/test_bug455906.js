@@ -257,6 +257,10 @@ function run_test() {
 
   
   
+  var blocklistFile = gProfD.clone();
+  blocklistFile.append("blocklist.xml");
+  if (blocklistFile.exists())
+    blocklistFile.remove(false);
   var blocklist = do_get_file("data/bug455906_start.xml")
   blocklist.copyTo(gProfD, "blocklist.xml");
 

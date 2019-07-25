@@ -152,6 +152,10 @@ function run_test() {
 
 
   
+  var blocklistFile = gProfD.clone();
+  blocklistFile.append("blocklist.xml");
+  if (blocklistFile.exists())
+    blocklistFile.remove(false);
   var source = do_get_file("data/test_bug514327_3_empty.xml");
   source.copyTo(gProfD, "blocklist.xml");
   

@@ -40,6 +40,10 @@ function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9");
 
   
+  var blocklistFile = gProfD.clone();
+  blocklistFile.append("blocklist.xml");
+  if (blocklistFile.exists())
+    blocklistFile.remove(false);
   var source = do_get_file("data/test_bug393285.xml");
   source.copyTo(gProfD, "blocklist.xml");
 
