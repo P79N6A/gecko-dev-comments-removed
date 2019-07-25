@@ -319,15 +319,15 @@ RadioInterfaceLayer.prototype = {
   },
 
   handleSmsSent: function handleSmsSent(message) {
-    let message = gSmsService.createSmsMessage(-1,
-                                               DOM_SMS_DELIVERY_SENT,
-                                               message.SMSC,
-                                               message.number,
-                                               message.body,
-                                               Date.now());
+    let sms = gSmsService.createSmsMessage(-1,
+                                           DOM_SMS_DELIVERY_SENT,
+                                           null,
+                                           message.number,
+                                           message.body,
+                                           Date.now());
     
     
-    gSmsRequestManager.notifySmsSent(message.requestId, message);
+    gSmsRequestManager.notifySmsSent(message.requestId, sms);
   },
 
   
