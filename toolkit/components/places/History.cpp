@@ -56,6 +56,7 @@
 #include "nsNetUtil.h"
 #include "nsIXPConnect.h"
 #include "mozilla/Util.h"
+#include "nsContentUtils.h"
 
 
 #define VISIT_OBSERVERS_INITIAL_CACHE_SIZE 128
@@ -1278,6 +1279,8 @@ History::NotifyVisited(nsIURI* aURI)
 {
   NS_ASSERTION(aURI, "Ruh-roh!  A NULL URI was passed to us!");
 
+  nsAutoScriptBlocker scriptBlocker;
+
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
     mozilla::dom::ContentParent* cpp = 
       mozilla::dom::ContentParent::GetSingleton(PR_FALSE);
@@ -1299,13 +1302,17 @@ History::NotifyVisited(nsIURI* aURI)
   }
 
   
-  const ObserverArray& observers = key->array;
-  ObserverArray::index_type len = observers.Length();
-  for (ObserverArray::index_type i = 0; i < len; i++) {
-    Link* link = observers[i];
-    link->SetLinkState(eLinkState_Visited);
-    NS_ASSERTION(len == observers.Length(),
-                 "Calling SetLinkState added or removed an observer!");
+  {
+    
+    ObserverArray::ForwardIterator iter(key->array);
+    while (iter.HasMore()) {
+      Link* link = iter.GetNext();
+      link->SetLinkState(eLinkState_Visited);
+      
+      
+      NS_ABORT_IF_FALSE(key == mObservers.GetEntry(aURI),
+                        "The URIs hash mutated!");
+    }
   }
 
   
