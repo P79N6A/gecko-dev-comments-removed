@@ -416,6 +416,12 @@ struct JSRuntime {
 
 
 
+    JSCompartment       *gcCheckCompartment;
+
+    
+
+
+
 
 
     bool                gcPoke;
