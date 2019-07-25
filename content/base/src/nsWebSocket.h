@@ -86,6 +86,21 @@ public:
   NS_IMETHOD Initialize(nsISupports* aOwner, JSContext* aContext,
                         JSObject* aObject, PRUint32 aArgc, jsval* aArgv);
 
+  
+  NS_IMETHOD AddEventListener(const nsAString& aType,
+                              nsIDOMEventListener* aListener,
+                              PRBool aUseCapture);
+  NS_IMETHOD RemoveEventListener(const nsAString& aType,
+                                 nsIDOMEventListener* aListener,
+                                 PRBool aUseCapture);
+
+  
+  NS_IMETHOD AddEventListener(const nsAString& aType,
+                              nsIDOMEventListener *aListener,
+                              PRBool aUseCapture,
+                              PRBool aWantsUntrusted,
+                              PRUint8 optional_argc);
+
   static void ReleaseGlobals();
 
 protected:
@@ -100,6 +115,14 @@ protected:
   
   void SetReadyState(PRUint16 aNewReadyState);
 
+  
+  
+  
+  void UpdateMustKeepAlive();
+  
+  
+  void DontKeepAliveAnyMore();
+
   nsRefPtr<nsDOMEventListenerWrapper> mOnOpenListener;
   nsRefPtr<nsDOMEventListenerWrapper> mOnErrorListener;
   nsRefPtr<nsDOMEventListenerWrapper> mOnMessageListener;
@@ -109,6 +132,10 @@ protected:
   nsString mOriginalURL;
   PRPackedBool mSecure; 
                         
+
+  PRPackedBool mHasStrongEventListeners;
+  PRPackedBool mCheckThereAreStrongEventListeners;
+
   nsCString mAsciiHost;  
   PRUint32  mPort;
   nsCString mResource; 

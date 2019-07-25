@@ -41,6 +41,7 @@ import Queue
 import threading
 
 from mod_pywebsocket import util
+from time import time,sleep
 
 
 class MsgUtilException(Exception):
@@ -71,7 +72,7 @@ def _write(request, bytes):
         raise
 
 
-def close_connection(request):
+def close_connection(request, abort=False):
     """Close connection.
 
     Args:
@@ -83,10 +84,25 @@ def close_connection(request):
     
     
     
-    _write(request, '\xff\x00')
+    got_exception = False
+    if not abort:
+        _write(request, '\xff\x00')
+        
+        initial_time = time()
+        end_time = initial_time + 20
+        while time() < end_time:
+            try:
+                receive_message(request)
+            except ConnectionTerminatedException, e:
+                got_exception = True
+                sleep(1)
     request.server_terminated = True
-    
-    
+    if got_exception:
+        util.prepend_message_to_exception(
+            'client initiated closing handshake for %s: ' % (
+            request.ws_resource),
+            e)
+        raise ConnectionTerminatedException
     
     
 
