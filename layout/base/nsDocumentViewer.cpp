@@ -3299,17 +3299,8 @@ NS_IMETHODIMP DocumentViewerImpl::SizeToContent()
    docShellAsItem->GetTreeOwner(getter_AddRefs(treeOwner));
    NS_ENSURE_TRUE(treeOwner, NS_ERROR_FAILURE);
 
-   
-
-
-
-
-
-
-
-
-   NS_ENSURE_SUCCESS(treeOwner->SizeShellTo(docShellAsItem, width+1, height),
-      NS_ERROR_FAILURE);
+   NS_ENSURE_SUCCESS(treeOwner->SizeShellTo(docShellAsItem, width, height),
+                     NS_ERROR_FAILURE);
 
    return NS_OK;
 }
