@@ -165,7 +165,7 @@ public:
 
 
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
-                        nsIntPoint* aOverflow = nsnull) = 0;
+                        nsIntPoint* aOverflow = nsnull, nsIAtom *aOrigin = nsnull) = 0;
   
 
 
