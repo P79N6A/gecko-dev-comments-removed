@@ -563,6 +563,13 @@ nsSMILAnimationFunction::ComputePacedPosition(const nsSMILValueArray& aValues,
 
   
   
+  
+  if (totalDistance == 0.0) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  
   double remainingDist = aSimpleProgress * totalDistance;
 
   
