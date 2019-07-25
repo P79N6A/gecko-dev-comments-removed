@@ -297,12 +297,8 @@ public:
 
 
 
-  void CreateOrDestroyAudioStream(GraphTime aAudioOutputStartTime,
-                                  MediaStream* aStream);
-  
-
-
-  void UpdateFirstActiveTracks(MediaStream* aStream);
+  void CreateOrDestroyAudioStreams(GraphTime aAudioOutputStartTime,
+                                   MediaStream* aStream);
   
 
 
@@ -745,15 +741,15 @@ MediaStreamGraphImpl::StreamTimeToGraphTime(MediaStream* aStream,
 GraphTime
 MediaStreamGraphImpl::GetAudioPosition(MediaStream* aStream)
 {
-  if (!aStream->mAudioOutput) {
+  if (aStream->mAudioOutputStreams.IsEmpty()) {
     return mCurrentTime;
   }
-  PRInt64 positionInFrames = aStream->mAudioOutput->GetPositionInFrames();
+  PRInt64 positionInFrames = aStream->mAudioOutputStreams[0].mStream->GetPositionInFrames();
   if (positionInFrames < 0) {
     return mCurrentTime;
   }
-  return aStream->mAudioPlaybackStartTime +
-      TicksToTimeRoundDown(aStream->mAudioOutput->GetRate(),
+  return aStream->mAudioOutputStreams[0].mAudioPlaybackStartTime +
+      TicksToTimeRoundDown(aStream->mAudioOutputStreams[0].mStream->GetRate(),
                            positionInFrames);
 }
 
@@ -1112,77 +1108,69 @@ MediaStreamGraphImpl::RecomputeBlockingAt(const nsTArray<MediaStream*>& aStreams
 }
 
 void
-MediaStreamGraphImpl::UpdateFirstActiveTracks(MediaStream* aStream)
+MediaStreamGraphImpl::CreateOrDestroyAudioStreams(GraphTime aAudioOutputStartTime,
+                                                  MediaStream* aStream)
 {
-  StreamBuffer::Track* newTracksByType[MediaSegment::TYPE_COUNT];
-  for (PRUint32 i = 0; i < ArrayLength(newTracksByType); ++i) {
-    newTracksByType[i] = nullptr;
+  nsAutoTArray<bool,2> audioOutputStreamsFound;
+  for (PRUint32 i = 0; i < aStream->mAudioOutputStreams.Length(); ++i) {
+    audioOutputStreamsFound.AppendElement(false);
   }
 
-  for (StreamBuffer::TrackIter iter(aStream->mBuffer);
-       !iter.IsEnded(); iter.Next()) {
-    MediaSegment::Type type = iter->GetType();
-    if ((newTracksByType[type] &&
-         iter->GetStartTimeRoundDown() < newTracksByType[type]->GetStartTimeRoundDown()) ||
-         aStream->mFirstActiveTracks[type] == TRACK_NONE) {
-      newTracksByType[type] = &(*iter);
-      aStream->mFirstActiveTracks[type] = iter->GetID();
+  if (!aStream->mAudioOutputs.IsEmpty()) {
+    for (StreamBuffer::TrackIter tracks(aStream->GetStreamBuffer(), MediaSegment::AUDIO);
+         !tracks.IsEnded(); tracks.Next()) {
+      PRUint32 i;
+      for (i = 0; i < audioOutputStreamsFound.Length(); ++i) {
+        if (aStream->mAudioOutputStreams[i].mTrackID == tracks->GetID()) {
+          break;
+        }
+      }
+      if (i < audioOutputStreamsFound.Length()) {
+        audioOutputStreamsFound[i] = true;
+      } else {
+        
+        
+        GraphTime startTime =
+          StreamTimeToGraphTime(aStream, tracks->GetStartTimeRoundDown(),
+                                INCLUDE_TRAILING_BLOCKED_INTERVAL);
+        if (startTime >= mStateComputedTime) {
+          
+          
+          continue;
+        }
+
+        
+        
+        
+        AudioSegment* audio = tracks->Get<AudioSegment>();
+        MediaStream::AudioOutputStream* audioOutputStream =
+          aStream->mAudioOutputStreams.AppendElement();
+        audioOutputStream->mAudioPlaybackStartTime = aAudioOutputStartTime;
+        audioOutputStream->mBlockedAudioTime = 0;
+        audioOutputStream->mStream = nsAudioStream::AllocateStream();
+        audioOutputStream->mStream->Init(audio->GetChannels(),
+                                         tracks->GetRate(),
+                                         audio->GetFirstFrameFormat());
+        audioOutputStream->mTrackID = tracks->GetID();
+      }
     }
   }
-}
 
-void
-MediaStreamGraphImpl::CreateOrDestroyAudioStream(GraphTime aAudioOutputStartTime,
-                                                 MediaStream* aStream)
-{
-  StreamBuffer::Track* track;
-
-  if (aStream->mAudioOutputs.IsEmpty() ||
-      !(track = aStream->mBuffer.FindTrack(aStream->mFirstActiveTracks[MediaSegment::AUDIO]))) {
-    if (aStream->mAudioOutput) {
-      aStream->mAudioOutput->Shutdown();
-      aStream->mAudioOutput = nullptr;
+  for (PRInt32 i = audioOutputStreamsFound.Length() - 1; i >= 0; --i) {
+    if (!audioOutputStreamsFound[i]) {
+      aStream->mAudioOutputStreams[i].mStream->Shutdown();
+      aStream->mAudioOutputStreams.RemoveElementAt(i);
     }
-    return;
   }
-
-  if (aStream->mAudioOutput)
-    return;
-
-  
-  GraphTime startTime =
-    StreamTimeToGraphTime(aStream, track->GetStartTimeRoundDown(),
-                          INCLUDE_TRAILING_BLOCKED_INTERVAL);
-  if (startTime >= mStateComputedTime) {
-    
-    
-    return;
-  }
-
-  
-
-  
-  
-  
-
-  AudioSegment* audio = track->Get<AudioSegment>();
-  aStream->mAudioPlaybackStartTime = aAudioOutputStartTime;
-  aStream->mAudioOutput = nsAudioStream::AllocateStream();
-  aStream->mAudioOutput->Init(audio->GetChannels(),
-                              track->GetRate(),
-                              audio->GetFirstFrameFormat());
 }
 
 void
 MediaStreamGraphImpl::PlayAudio(MediaStream* aStream,
                                 GraphTime aFrom, GraphTime aTo)
 {
-  if (!aStream->mAudioOutput)
+  if (aStream->mAudioOutputStreams.IsEmpty()) {
     return;
-
-  StreamBuffer::Track* track =
-    aStream->mBuffer.FindTrack(aStream->mFirstActiveTracks[MediaSegment::AUDIO]);
-  AudioSegment* audio = track->Get<AudioSegment>();
+  }
 
   
   
@@ -1191,46 +1179,63 @@ MediaStreamGraphImpl::PlayAudio(MediaStream* aStream,
     volume += aStream->mAudioOutputs[i].mVolume;
   }
 
-  
-  
-  
-  
-  
-  GraphTime t = aFrom;
-  while (t < aTo) {
-    GraphTime end;
-    bool blocked = aStream->mBlocked.GetAt(t, &end);
-    end = NS_MIN(end, aTo);
+  for (PRUint32 i = 0; i < aStream->mAudioOutputStreams.Length(); ++i) {
+    MediaStream::AudioOutputStream& audioOutput = aStream->mAudioOutputStreams[i];
+    StreamBuffer::Track* track = aStream->mBuffer.FindTrack(audioOutput.mTrackID);
+    AudioSegment* audio = track->Get<AudioSegment>();
 
-    AudioSegment output;
-    if (blocked) {
-      
-      
-      
-      TrackTicks startTicks =
-          TimeToTicksRoundDown(track->GetRate(), aStream->mBlockedAudioTime);
-      aStream->mBlockedAudioTime += end - t;
-      TrackTicks endTicks =
-          TimeToTicksRoundDown(track->GetRate(), aStream->mBlockedAudioTime);
+    
+    
+    
+    
+    
+    GraphTime t = aFrom;
+    while (t < aTo) {
+      GraphTime end;
+      bool blocked = aStream->mBlocked.GetAt(t, &end);
+      end = NS_MIN(end, aTo);
 
+      AudioSegment output;
       output.InitFrom(*audio);
-      output.InsertNullDataAtStart(endTicks - startTicks);
-      LOG(PR_LOG_DEBUG, ("MediaStream %p writing blocking-silence samples for %f to %f",
-                         aStream, MediaTimeToSeconds(t), MediaTimeToSeconds(end)));
-    } else {
-      TrackTicks startTicks =
-          track->TimeToTicksRoundDown(GraphTimeToStreamTime(aStream, t));
-      TrackTicks endTicks =
-          track->TimeToTicksRoundDown(GraphTimeToStreamTime(aStream, end));
+      if (blocked) {
+        
+        
+        
+        TrackTicks startTicks =
+            TimeToTicksRoundDown(track->GetRate(), audioOutput.mBlockedAudioTime);
+        audioOutput.mBlockedAudioTime += end - t;
+        TrackTicks endTicks =
+            TimeToTicksRoundDown(track->GetRate(), audioOutput.mBlockedAudioTime);
 
-      output.AppendSlice(*audio, startTicks, endTicks);
-      output.ApplyVolume(volume);
-      LOG(PR_LOG_DEBUG, ("MediaStream %p writing samples for %f to %f (samples %lld to %lld)",
-                         aStream, MediaTimeToSeconds(t), MediaTimeToSeconds(end),
-                         startTicks, endTicks));
+        output.InsertNullDataAtStart(endTicks - startTicks);
+        LOG(PR_LOG_DEBUG, ("MediaStream %p writing blocking-silence samples for %f to %f",
+                         aStream, MediaTimeToSeconds(t), MediaTimeToSeconds(end)));
+      } else {
+        TrackTicks startTicks =
+            track->TimeToTicksRoundDown(GraphTimeToStreamTime(aStream, t));
+        TrackTicks endTicks =
+            track->TimeToTicksRoundDown(GraphTimeToStreamTime(aStream, end));
+
+        
+        
+        
+        
+        TrackTicks sliceEnd = NS_MIN(endTicks, audio->GetDuration());
+        if (sliceEnd > startTicks) {
+          output.AppendSlice(*audio, startTicks, sliceEnd);
+        }
+        
+        output.AppendNullData(endTicks - sliceEnd);
+        NS_ASSERTION(endTicks == sliceEnd || track->IsEnded(),
+                     "Ran out of data but track not ended?");
+        output.ApplyVolume(volume);
+        LOG(PR_LOG_DEBUG, ("MediaStream %p writing samples for %f to %f (samples %lld to %lld)",
+                           aStream, MediaTimeToSeconds(t), MediaTimeToSeconds(end),
+                           startTicks, endTicks));
+      }
+      output.WriteTo(audioOutput.mStream);
+      t = end;
     }
-    output.WriteTo(aStream->mAudioOutput);
-    t = end;
   }
 }
 
@@ -1240,44 +1245,46 @@ MediaStreamGraphImpl::PlayVideo(MediaStream* aStream)
   if (aStream->mVideoOutputs.IsEmpty())
     return;
 
-  StreamBuffer::Track* track =
-    aStream->mBuffer.FindTrack(aStream->mFirstActiveTracks[MediaSegment::VIDEO]);
-  if (!track)
-    return;
-  VideoSegment* video = track->Get<VideoSegment>();
-
   
   
   GraphTime framePosition = mCurrentTime + MEDIA_GRAPH_TARGET_PERIOD_MS;
   NS_ASSERTION(framePosition >= aStream->mBufferStartTime, "frame position before buffer?");
   StreamTime frameBufferTime = GraphTimeToStreamTime(aStream, framePosition);
-  TrackTicks start;
-  const VideoFrame* frame =
-    video->GetFrameAt(track->TimeToTicksRoundDown(frameBufferTime), &start);
-  if (!frame) {
-    frame = video->GetLastFrame(&start);
-    if (!frame)
-      return;
-  }
 
-  if (*frame != aStream->mLastPlayedVideoFrame) {
-    LOG(PR_LOG_DEBUG, ("MediaStream %p writing video frame %p (%dx%d)",
-                       aStream, frame->GetImage(), frame->GetIntrinsicSize().width,
-                       frame->GetIntrinsicSize().height));
-    GraphTime startTime = StreamTimeToGraphTime(aStream,
-        track->TicksToTimeRoundDown(start), INCLUDE_TRAILING_BLOCKED_INTERVAL);
-    TimeStamp targetTime = mCurrentTimeStamp +
-        TimeDuration::FromMilliseconds(double(startTime - mCurrentTime));
-    for (PRUint32 i = 0; i < aStream->mVideoOutputs.Length(); ++i) {
-      VideoFrameContainer* output = aStream->mVideoOutputs[i];
-      output->SetCurrentFrame(frame->GetIntrinsicSize(), frame->GetImage(),
-                              targetTime);
-      nsCOMPtr<nsIRunnable> event =
-        NS_NewRunnableMethod(output, &VideoFrameContainer::Invalidate);
-      NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  TrackTicks start;
+  const VideoFrame* frame = nullptr;
+  StreamBuffer::Track* track;
+  for (StreamBuffer::TrackIter tracks(aStream->GetStreamBuffer(), MediaSegment::VIDEO);
+       !tracks.IsEnded(); tracks.Next()) {
+    VideoSegment* segment = tracks->Get<VideoSegment>();
+    TrackTicks thisStart;
+    const VideoFrame* thisFrame =
+      segment->GetFrameAt(tracks->TimeToTicksRoundDown(frameBufferTime), &thisStart);
+    if (thisFrame && thisFrame->GetImage()) {
+      start = thisStart;
+      frame = thisFrame;
+      track = tracks.get();
     }
-    aStream->mLastPlayedVideoFrame = *frame;
   }
+  if (!frame || *frame == aStream->mLastPlayedVideoFrame)
+    return;
+
+  LOG(PR_LOG_DEBUG, ("MediaStream %p writing video frame %p (%dx%d)",
+                     aStream, frame->GetImage(), frame->GetIntrinsicSize().width,
+                     frame->GetIntrinsicSize().height));
+  GraphTime startTime = StreamTimeToGraphTime(aStream,
+      track->TicksToTimeRoundDown(start), INCLUDE_TRAILING_BLOCKED_INTERVAL);
+  TimeStamp targetTime = mCurrentTimeStamp +
+      TimeDuration::FromMilliseconds(double(startTime - mCurrentTime));
+  for (PRUint32 i = 0; i < aStream->mVideoOutputs.Length(); ++i) {
+    VideoFrameContainer* output = aStream->mVideoOutputs[i];
+    output->SetCurrentFrame(frame->GetIntrinsicSize(), frame->GetImage(),
+                            targetTime);
+    nsCOMPtr<nsIRunnable> event =
+      NS_NewRunnableMethod(output, &VideoFrameContainer::Invalidate);
+    NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  }
+  aStream->mLastPlayedVideoFrame = *frame;
 }
 
 void
@@ -1385,7 +1392,6 @@ MediaStreamGraphImpl::RunThread()
     
     for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
       MediaStream* stream = mStreams[i];
-      UpdateFirstActiveTracks(stream);
       ProcessedMediaStream* ps = stream->AsProcessedStream();
       if (ps && !ps->mFinished) {
         ps->ProduceOutput(prevComputedTime, mStateComputedTime);
@@ -1393,11 +1399,9 @@ MediaStreamGraphImpl::RunThread()
                      GraphTimeToStreamTime(stream, mStateComputedTime),
                      "Stream did not produce enough data");
       }
-      CreateOrDestroyAudioStream(prevComputedTime, stream);
+      CreateOrDestroyAudioStreams(prevComputedTime, stream);
       PlayAudio(stream, prevComputedTime, mStateComputedTime);
-      if (stream->mAudioOutput) {
-        ++audioStreamsActive;
-      }
+      audioStreamsActive += stream->mAudioOutputStreams.Length();
       PlayVideo(stream);
       SourceMediaStream* is = stream->AsSourceStream();
       if (is) {
@@ -1761,10 +1765,10 @@ MediaStream::DestroyImpl()
   for (PRInt32 i = mConsumers.Length() - 1; i >= 0; --i) {
     mConsumers[i]->Disconnect();
   }
-  if (mAudioOutput) {
-    mAudioOutput->Shutdown();
-    mAudioOutput = nullptr;
+  for (PRUint32 i = 0; i < mAudioOutputStreams.Length(); ++i) {
+    mAudioOutputStreams[i].mStream->Shutdown();
   }
+  mAudioOutputStreams.Clear();
 }
 
 void

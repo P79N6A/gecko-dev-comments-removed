@@ -254,16 +254,11 @@ public:
     , mGraphUpdateIndices(0)
     , mFinished(false)
     , mNotifiedFinished(false)
-    , mAudioPlaybackStartTime(0)
-    , mBlockedAudioTime(0)
     , mWrapper(aWrapper)
     , mMainThreadCurrentTime(0)
     , mMainThreadFinished(false)
     , mMainThreadDestroyed(false)
   {
-    for (PRUint32 i = 0; i < ArrayLength(mFirstActiveTracks); ++i) {
-      mFirstActiveTracks[i] = TRACK_NONE;
-    }
   }
   virtual ~MediaStream() {}
 
@@ -432,6 +427,20 @@ protected:
   nsTArray<MediaInputPort*> mConsumers;
 
   
+  
+  struct AudioOutputStream {
+    
+    
+    GraphTime mAudioPlaybackStartTime;
+    
+    
+    MediaTime mBlockedAudioTime;
+    nsRefPtr<nsAudioStream> mStream;
+    TrackID mTrackID;
+  };
+  nsTArray<AudioOutputStream> mAudioOutputStreams;
+
+  
 
 
 
@@ -441,20 +450,6 @@ protected:
 
 
   bool mNotifiedFinished;
-
-  
-  nsRefPtr<nsAudioStream> mAudioOutput;
-  
-  
-  GraphTime mAudioPlaybackStartTime;
-  
-  
-  MediaTime mBlockedAudioTime;
-
-  
-  
-  
-  TrackID mFirstActiveTracks[MediaSegment::TYPE_COUNT];
 
   
   bool mHasBeenOrdered;
