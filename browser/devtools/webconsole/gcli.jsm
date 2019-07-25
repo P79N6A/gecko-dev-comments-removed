@@ -3475,6 +3475,14 @@ exports.unsetDocument = function() {
 
 
 
+exports.getDocument = function() {
+  return doc;
+};
+
+
+
+
+
 function NodeType(typeSpec) {
   if (typeSpec != null) {
     throw new Error('NodeType can not be customized');
@@ -4051,7 +4059,15 @@ UnassignedAssignment.prototype.setUnassigned = function(args) {
 
 function Requisition(environment, doc) {
   this.environment = environment;
-  this.document = doc || document;
+  this.document = doc;
+  if (this.document == null) {
+    try {
+      this.document = document;
+    }
+    catch (ex) {
+      
+    }
+  }
 
   
   
@@ -4517,7 +4533,8 @@ Requisition.prototype.exec = function(input) {
   var outputObject = {
     command: command,
     args: args,
-    typed: this.toCanonicalString(),
+    typed: this.toString(),
+    canonical: this.toCanonicalString(),
     completed: false,
     start: new Date()
   };
