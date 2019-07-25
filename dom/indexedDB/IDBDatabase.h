@@ -153,7 +153,6 @@ private:
   
   nsRefPtr<nsDOMEventListenerWrapper> mOnErrorListener;
   nsRefPtr<nsDOMEventListenerWrapper> mOnVersionChangeListener;
-  nsRefPtr<nsDOMEventListenerWrapper> mOnBlockedListener;
 };
 
 END_INDEXEDDB_NAMESPACE
