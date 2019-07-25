@@ -138,6 +138,8 @@ public:
   
   nsTArray<nsPluginStreamListenerPeer*> *BStreamListeners();
 
+  nsresult AsyncSetWindow(NPWindow& window);
+
 protected:
   nsresult InitializePlugin();
 

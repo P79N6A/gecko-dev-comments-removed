@@ -250,6 +250,10 @@ public:
     void Invalidate();
 #endif 
 
+    nsresult AsyncSetWindow(NPWindow* window);
+    nsresult NotifyPainted(void);
+    nsresult GetSurface(gfxASurface** aSurface);
+
 private:
     
     enum PluginQuirks {
