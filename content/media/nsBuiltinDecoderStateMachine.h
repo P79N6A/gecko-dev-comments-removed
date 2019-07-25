@@ -346,11 +346,19 @@ protected:
 
   
   
-  void StopDecodeThreads();
+  void StopDecodeThread();
 
   
   
-  nsresult StartDecodeThreads();
+  void StopAudioThread();
+
+  
+  
+  nsresult StartDecodeThread();
+
+  
+  
+  nsresult StartAudioThread();
 
   
   
@@ -518,7 +526,11 @@ protected:
     
   
   
-  PRPackedBool mStopDecodeThreads;
+  PRPackedBool mStopDecodeThread;
+
+  
+  
+  PRPackedBool mStopAudioThread;
 
   
   
