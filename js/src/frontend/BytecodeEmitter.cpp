@@ -6584,6 +6584,57 @@ EmitIncOrDec(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     return true;
 }
 
+static bool
+EmitLabel(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
+{
+    
+
+
+
+
+    JSAtom *atom = pn->pn_atom;
+
+    jsatomid index;
+    if (!bce->makeAtomIndex(atom, &index))
+        return JS_FALSE;
+
+    ParseNode *pn2 = pn->expr();
+    SrcNoteType noteType = (pn2->isKind(PNK_STATEMENTLIST) ||
+                            (pn2->isKind(PNK_LEXICALSCOPE) &&
+                             pn2->expr()->isKind(PNK_STATEMENTLIST)))
+                           ? SRC_LABELBRACE
+                           : SRC_LABEL;
+    ptrdiff_t noteIndex = NewSrcNote2(cx, bce, noteType, ptrdiff_t(index));
+    if (noteIndex < 0)
+        return JS_FALSE;
+
+    ptrdiff_t top = EmitJump(cx, bce, JSOP_LABEL, 0);
+    if (top < 0)
+        return JS_FALSE;
+
+    
+    StmtInfo stmtInfo;
+    PushStatement(bce, &stmtInfo, STMT_LABEL, bce->offset());
+    stmtInfo.label = atom;
+    if (!EmitTree(cx, bce, pn2))
+        return JS_FALSE;
+    if (!PopStatementBCE(cx, bce))
+        return JS_FALSE;
+
+    
+    CHECK_AND_SET_JUMP_OFFSET_AT(cx, bce, top);
+
+    
+    if (noteType == SRC_LABELBRACE) {
+        if (NewSrcNote(cx, bce, SRC_ENDBRACE) < 0 ||
+            Emit1(cx, bce, JSOP_NOP) < 0) {
+            return JS_FALSE;
+        }
+    }
+
+    return true;
+}
+
 JSBool
 frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
@@ -6593,7 +6644,6 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     JSAtom *atom;
     jsatomid atomIndex;
     ptrdiff_t noteIndex;
-    SrcNoteType noteType;
     jsbytecode *pc;
     JSOp op;
     EmitLevelManager elm(bce);
@@ -6735,49 +6785,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         break;
 
       case PNK_COLON:
-        
-
-
-
-
-        atom = pn->pn_atom;
-
-        jsatomid index;
-        if (!bce->makeAtomIndex(atom, &index))
-            return JS_FALSE;
-
-        pn2 = pn->expr();
-        noteType = (pn2->isKind(PNK_STATEMENTLIST) ||
-                    (pn2->isKind(PNK_LEXICALSCOPE) &&
-                     pn2->expr()->isKind(PNK_STATEMENTLIST)))
-                   ? SRC_LABELBRACE
-                   : SRC_LABEL;
-        noteIndex = NewSrcNote2(cx, bce, noteType, ptrdiff_t(index));
-        if (noteIndex < 0)
-            return JS_FALSE;
-
-        top = EmitJump(cx, bce, JSOP_LABEL, 0);
-        if (top < 0)
-            return JS_FALSE;
-
-        
-        PushStatement(bce, &stmtInfo, STMT_LABEL, bce->offset());
-        stmtInfo.label = atom;
-        if (!EmitTree(cx, bce, pn2))
-            return JS_FALSE;
-        if (!PopStatementBCE(cx, bce))
-            return JS_FALSE;
-
-        
-        CHECK_AND_SET_JUMP_OFFSET_AT(cx, bce, top);
-
-        
-        if (noteType == SRC_LABELBRACE) {
-            if (NewSrcNote(cx, bce, SRC_ENDBRACE) < 0 ||
-                Emit1(cx, bce, JSOP_NOP) < 0) {
-                return JS_FALSE;
-            }
-        }
+        ok = EmitLabel(cx, bce, pn);
         break;
 
       case PNK_COMMA:
