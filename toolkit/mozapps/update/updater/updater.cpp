@@ -267,6 +267,7 @@ static ArchiveReader gArchiveReader;
 static bool gSucceeded = false;
 static bool sBackgroundUpdate = false;
 static bool sReplaceRequest = false;
+static bool sUsingService = false;
 
 #ifdef XP_WIN
 
@@ -1589,7 +1590,7 @@ LaunchCallbackApp(const NS_tchar *workingDir,
 }
 
 static void
-WriteStatusFile(int status)
+WriteStatusText(const char* text)
 {
   
 
@@ -1601,6 +1602,12 @@ WriteStatusFile(int status)
   if (file == NULL)
     return;
 
+  fwrite(text, strlen(text), 1, file);
+}
+
+static void
+WriteStatusFile(int status)
+{
   const char *text;
 
   char buf[32];
@@ -1614,7 +1621,8 @@ WriteStatusFile(int status)
     snprintf(buf, sizeof(buf)/sizeof(buf[0]), "failed: %d\n", status);
     text = buf;
   }
-  fwrite(text, strlen(text), 1, file);
+
+  WriteStatusText(text);
 }
 
 static bool
@@ -2033,31 +2041,63 @@ UpdateThreadFunc(void *param)
     }
   }
 
-  if (rv) {
-    LOG(("failed: %d\n", rv));
-  }
-  else {
+  bool reportRealResults = true;
+  if (sReplaceRequest && rv && !getenv("MOZ_NO_REPLACE_FALLBACK")) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    NS_tchar installDir[MAXPATHLEN];
+    if (GetInstallationDir(installDir)) {
+      NS_tchar stageDir[MAXPATHLEN];
+      NS_tsnprintf(stageDir, sizeof(stageDir)/sizeof(stageDir[0]),
 #ifdef XP_MACOSX
-    
-    
-    
-    
-    char* cwd = getcwd(NULL, 0);
-    if (cwd) {
-      if (utimes(cwd, NULL) != 0) {
-        LOG(("Couldn't set access/modification time on application bundle.\n"));
-      }
-      free(cwd);
+                   NS_T("%s/Updated.app"),
+#else
+                   NS_T("%s/updated"),
+#endif
+                   installDir);
+
+      ensure_remove_recursive(stageDir);
+      WriteStatusText(sUsingService ? "pending-service" : "pending");
+      reportRealResults = false; 
+    }
+  }
+
+  if (reportRealResults) {
+    if (rv) {
+      LOG(("failed: %d\n", rv));
     }
     else {
-      LOG(("Couldn't get current working directory for setting "
-           "access/modification time on application bundle.\n"));
-    }
+#ifdef XP_MACOSX
+      
+      
+      
+      
+      char* cwd = getcwd(NULL, 0);
+      if (cwd) {
+        if (utimes(cwd, NULL) != 0) {
+          LOG(("Couldn't set access/modification time on application bundle.\n"));
+        }
+        free(cwd);
+      }
+      else {
+        LOG(("Couldn't get current working directory for setting "
+             "access/modification time on application bundle.\n"));
+      }
 #endif
 
-    LOG(("succeeded\n"));
+      LOG(("succeeded\n"));
+    }
+    WriteStatusFile(rv);
   }
-  WriteStatusFile(rv);
 
   LOG(("calling QuitProgressUI\n"));
   QuitProgressUI();
@@ -2227,9 +2267,8 @@ int NS_main(int argc, NS_tchar **argv)
   
   const int callbackIndex = 5;
 
-  bool usingService = false;
 #if defined(XP_WIN)
-  usingService = getenv("MOZ_USING_SERVICE") != NULL;
+  sUsingService = getenv("MOZ_USING_SERVICE") != NULL;
   putenv(const_cast<char*>("MOZ_USING_SERVICE="));
   
   
@@ -2242,7 +2281,7 @@ int NS_main(int argc, NS_tchar **argv)
   
   HANDLE updateLockFileHandle = INVALID_HANDLE_VALUE;
   NS_tchar elevatedLockFilePath[MAXPATHLEN] = {NS_T('\0')};
-  if (!usingService &&
+  if (!sUsingService &&
       (argc > callbackIndex || sBackgroundUpdate || sReplaceRequest)) {
     NS_tchar updateLockFilePath[MAXPATHLEN];
     if (sBackgroundUpdate) {
@@ -2492,7 +2531,7 @@ int NS_main(int argc, NS_tchar **argv)
 
       if (argc > callbackIndex) {
         LaunchCallbackApp(argv[4], argc - callbackIndex,
-                          argv + callbackIndex, usingService);
+                          argv + callbackIndex, sUsingService);
       }
 
       CloseHandle(elevatedFileHandle);
@@ -2583,7 +2622,7 @@ int NS_main(int argc, NS_tchar **argv)
     EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 1);
     if (argc > callbackIndex) {
       LaunchCallbackApp(argv[4], argc - callbackIndex,
-                        argv + callbackIndex, usingService);
+                        argv + callbackIndex, sUsingService);
     }
     return 1;
   }
@@ -2628,7 +2667,7 @@ int NS_main(int argc, NS_tchar **argv)
         LaunchCallbackApp(argv[4], 
                           argc - callbackIndex, 
                           argv + callbackIndex, 
-                          usingService);
+                          sUsingService);
       }
       return 1;
     }
@@ -2701,7 +2740,7 @@ int NS_main(int argc, NS_tchar **argv)
         LaunchCallbackApp(argv[4],
                           argc - callbackIndex,
                           argv + callbackIndex,
-                          usingService);
+                          sUsingService);
         return 1;
       }
     }
@@ -2770,7 +2809,7 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
-      if (!usingService) {
+      if (!sUsingService) {
         NS_tchar installDir[MAXPATHLEN];
         if (GetInstallationDir(installDir)) {
           if (!LaunchWinPostProcess(installDir, gSourcePath, false, NULL)) {
@@ -2791,7 +2830,7 @@ int NS_main(int argc, NS_tchar **argv)
     LaunchCallbackApp(argv[4], 
                       argc - callbackIndex, 
                       argv + callbackIndex, 
-                      usingService);
+                      sUsingService);
   }
 
   return gSucceeded ? 0 : 1;
