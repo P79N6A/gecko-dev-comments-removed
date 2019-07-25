@@ -544,7 +544,11 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
     
     
 
-    chan->SetContentType(mContentType);
+    nsCAutoString typeHint, dummy;
+    NS_ParseContentType(mContentType, typeHint, dummy);
+    if (!typeHint.IsEmpty()) {
+      chan->SetContentType(typeHint);
+    }
   } else {
     mContentType = channelType;
   }
@@ -1437,7 +1441,11 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
 
   
   if (!aTypeHint.IsEmpty()) {
-    chan->SetContentType(aTypeHint);
+    nsCAutoString typeHint, dummy;
+    NS_ParseContentType(aTypeHint, typeHint, dummy);
+    if (!typeHint.IsEmpty()) {
+      chan->SetContentType(typeHint);
+    }
   }
 
   
