@@ -3646,15 +3646,17 @@ AnalyzeScriptNew(JSContext *cx, JSScript *script)
 
 
 
-    TypeFunction *funType = script->fun->getType()->asFunction();
-    if (funType->unknownProperties || script->fun->isFunctionPrototype()) {
+
+    if (script->fun->getType()->unknownProperties || script->fun->isFunctionPrototype()) {
         script->thisTypes()->addType(cx, TYPE_UNKNOWN);
-    } else {
-        TypeSet *prototypeTypes = funType->getProperty(cx, id_prototype(cx), false);
-        if (!prototypeTypes)
-            return;
-        prototypeTypes->addNewObject(cx, script, funType, script->thisTypes());
+        return;
     }
+
+    TypeFunction *funType = script->fun->getType()->asFunction();
+    TypeSet *prototypeTypes = funType->getProperty(cx, id_prototype(cx), false);
+    if (!prototypeTypes)
+        return;
+    prototypeTypes->addNewObject(cx, script, funType, script->thisTypes());
 }
 
 
