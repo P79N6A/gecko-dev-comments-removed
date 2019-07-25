@@ -720,8 +720,15 @@ nsComboboxControlFrame::AbsolutelyPositionDropDown()
     
     dropdownPosition.x = GetRect().width - dropdownSize.width;
   }
-  mDropdownFrame->SetPosition(dropdownPosition + translation);
-  nsContainerFrame::PositionFrameView(mDropdownFrame);
+
+  
+  
+  const nsPoint currentPos = mDropdownFrame->GetPosition();
+  const nsPoint newPos = dropdownPosition + translation;
+  if (currentPos != newPos) {
+    mDropdownFrame->SetPosition(newPos);
+    nsContainerFrame::PositionFrameView(mDropdownFrame);
+  }
   return eDropDownPositionFinal;
 }
 
