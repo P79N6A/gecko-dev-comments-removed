@@ -39,7 +39,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsIAtom.h"
-#include "nsIXBLDocumentInfo.h"
+#include "nsXBLDocumentInfo.h"
 #include "nsIInputStream.h"
 #include "nsINameSpaceManager.h"
 #include "nsHashtable.h"
@@ -114,8 +114,8 @@
 static void
 XBLFinalize(JSContext *cx, JSObject *obj)
 {
-  nsIXBLDocumentInfo* docInfo =
-    static_cast<nsIXBLDocumentInfo*>(::JS_GetPrivate(cx, obj));
+  nsXBLDocumentInfo* docInfo =
+    static_cast<nsXBLDocumentInfo*>(::JS_GetPrivate(cx, obj));
   NS_RELEASE(docInfo);
   
   nsXBLJSClass* c = static_cast<nsXBLJSClass*>(::JS_GET_CLASS(cx, obj));
@@ -285,7 +285,7 @@ nsXBLBinding::~nsXBLBinding(void)
     nsXBLBinding::UninstallAnonymousContent(mContent->GetOwnerDoc(), mContent);
   }
   delete mInsertionPointTable;
-  nsIXBLDocumentInfo* info = mPrototypeBinding->XBLDocumentInfo();
+  nsXBLDocumentInfo* info = mPrototypeBinding->XBLDocumentInfo();
   NS_RELEASE(info);
 }
 
@@ -316,7 +316,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_NATIVE(nsXBLBinding)
   
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_BEGIN(nsXBLBinding)
-  cb.NoteXPCOMChild(tmp->mPrototypeBinding->XBLDocumentInfo());
+  nsCOMPtr<nsISupports> iface = do_QueryObject(tmp->mPrototypeBinding->XBLDocumentInfo());
+  cb.NoteXPCOMChild(iface);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mContent)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_MEMBER(mNextBinding, nsXBLBinding)
   if (tmp->mInsertionPointTable)
@@ -1123,14 +1124,15 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
               if (!clazz ||
                   (~clazz->flags &
                    (JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS)) ||
-                  JSCLASS_RESERVED_SLOTS(clazz) != 1) {
+                  JSCLASS_RESERVED_SLOTS(clazz) != 1 ||
+                  clazz->resolve != (JSResolveOp)XBLResolve ||
+                  clazz->finalize != XBLFinalize) {
                 
                 continue;
               }
 
-              nsCOMPtr<nsIXBLDocumentInfo> docInfo =
-                do_QueryInterface(static_cast<nsISupports*>
-                                             (::JS_GetPrivate(cx, proto)));
+              nsRefPtr<nsXBLDocumentInfo> docInfo =
+                static_cast<nsXBLDocumentInfo*>(::JS_GetPrivate(cx, proto));
               if (!docInfo) {
                 
                 continue;
@@ -1342,7 +1344,11 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
 
     
     
-    nsIXBLDocumentInfo* docInfo = aProtoBinding->XBLDocumentInfo();
+    
+    
+    
+    
+    nsXBLDocumentInfo* docInfo = aProtoBinding->XBLDocumentInfo();
     ::JS_SetPrivate(cx, proto, docInfo);
     NS_ADDREF(docInfo);
 
@@ -1373,11 +1379,8 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
 PRBool
 nsXBLBinding::AllowScripts()
 {
-  PRBool result;
-  mPrototypeBinding->GetAllowScripts(&result);
-  if (!result) {
-    return result;
-  }
+  if (!mPrototypeBinding->GetAllowScripts())
+    return PR_FALSE;
 
   
   
@@ -1404,8 +1407,8 @@ nsXBLBinding::AllowScripts()
   
   JSContext* cx = (JSContext*) context->GetNativeContext();
 
-  nsCOMPtr<nsIDocument> ourDocument;
-  mPrototypeBinding->XBLDocumentInfo()->GetDocument(getter_AddRefs(ourDocument));
+  nsCOMPtr<nsIDocument> ourDocument =
+    mPrototypeBinding->XBLDocumentInfo()->GetDocument();
   PRBool canExecute;
   nsresult rv =
     mgr->CanExecuteScripts(cx, ourDocument->NodePrincipal(), &canExecute);
