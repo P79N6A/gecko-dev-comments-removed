@@ -174,14 +174,6 @@ struct ViewportInfo
 
     
     bool allowZoom;
-
-    
-    
-    
-    
-    
-    
-    bool autoScale;
 };
 
 struct EventNameMapping

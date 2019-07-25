@@ -5055,7 +5055,6 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument)
   ret.defaultZoom = 1.0;
   ret.autoSize = true;
   ret.allowZoom = true;
-  ret.autoScale = true;
 
   
   
@@ -5075,11 +5074,6 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument)
         return ret;
       }
     }
-  }
-
-  if (aDocument->IsXUL()) {
-    ret.autoScale = false;
-    return ret;
   }
 
   nsAutoString handheldFriendly;
