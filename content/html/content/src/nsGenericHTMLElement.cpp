@@ -383,20 +383,6 @@ nsGenericHTMLElement::GetNodeName(nsAString& aNodeName)
   return NS_OK;
 }
 
-nsresult
-nsGenericHTMLElement::GetElementsByTagName(const nsAString& aTagname,
-                                           nsIDOMNodeList** aReturn)
-{
-  
-  if (IsInHTMLDocument()) {
-    nsAutoString lower;
-    nsContentUtils::ASCIIToLower(aTagname, lower);
-    return nsGenericHTMLElementBase::GetElementsByTagName(lower, aReturn);
-  }
-
-  return nsGenericHTMLElementBase::GetElementsByTagName(aTagname, aReturn);
-}
-
 
 nsresult
 nsGenericHTMLElement::GetId(nsAString& aId)
