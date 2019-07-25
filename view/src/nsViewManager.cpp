@@ -314,6 +314,16 @@ NS_IMETHODIMP nsViewManager::SetWindowDimensions(nscoord aWidth, nscoord aHeight
 {
   if (mRootView) {
     if (mRootView->IsEffectivelyVisible()) {
+      if (mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
+          mDelayedResize != nsSize(aWidth, aHeight)) {
+        
+        
+        
+        
+        
+        mDelayedResize = nsSize(aWidth, aHeight);
+        FlushDelayedResize(PR_FALSE);
+      }
       mDelayedResize.SizeTo(NSCOORD_NONE, NSCOORD_NONE);
       DoSetWindowDimensions(aWidth, aHeight);
     } else {
