@@ -77,13 +77,11 @@ nsIconDecoder::InitInternal()
 }
 
 nsresult
-nsIconDecoder::ShutdownInternal(PRUint32 aFlags)
+nsIconDecoder::FinishInternal()
 {
   
   
-  if (!(aFlags & CLOSE_FLAG_DONTNOTIFY) &&
-      !IsSizeDecode() &&
-      !mNotifiedDone)
+  if (!IsSizeDecode() && !mNotifiedDone)
     NotifyDone( PR_FALSE);
 
   return NS_OK;

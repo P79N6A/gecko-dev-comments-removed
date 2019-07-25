@@ -93,6 +93,8 @@ nsPNGDecoder::nsPNGDecoder() :
 
 nsPNGDecoder::~nsPNGDecoder()
 {
+  if (mPNG)
+    png_destroy_read_struct(&mPNG, mInfo ? &mInfo : NULL, NULL);
   if (mCMSLine)
     nsMemory::Free(mCMSLine);
   if (interlacebuf)
@@ -294,16 +296,12 @@ nsPNGDecoder::InitInternal()
 }
 
 nsresult
-nsPNGDecoder::ShutdownInternal(PRUint32 aFlags)
+nsPNGDecoder::FinishInternal()
 {
-  if (mPNG)
-    png_destroy_read_struct(&mPNG, mInfo ? &mInfo : NULL, NULL);
 
   
   
-  if (!(aFlags & CLOSE_FLAG_DONTNOTIFY) &&
-      !IsSizeDecode() &&
-      !mNotifiedDone)
+  if (!IsSizeDecode() && !mNotifiedDone)
     NotifyDone( PR_FALSE);
 
   return NS_OK;
