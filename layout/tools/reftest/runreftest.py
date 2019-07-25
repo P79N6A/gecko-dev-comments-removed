@@ -69,7 +69,7 @@ class RefTest(object):
     "Sets up a profile for reftest."
 
     self.automation.setupPermissionsDatabase(profileDir,
-      {'allowXULXBL': ['localhost', '<file>']})
+      {'allowXULXBL': [('localhost', True), ('<file>', True)]})
 
     
     prefsFile = open(os.path.join(profileDir, "user.js"), "w")
