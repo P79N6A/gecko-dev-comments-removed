@@ -60,7 +60,6 @@ public:
   void InvalidateRegion(const nsIntRegion& aRegion);
 
   
-  LayerType GetType();
   Layer* GetLayer();
   virtual PRBool IsEmpty();
   virtual void RenderLayer();

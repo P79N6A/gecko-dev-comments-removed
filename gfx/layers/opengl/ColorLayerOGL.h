@@ -55,8 +55,6 @@ public:
   }
 
   
-  virtual LayerType GetType();
-
   virtual Layer* GetLayer();
 
   virtual void RenderLayer(int aPreviousFrameBuffer,

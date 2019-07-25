@@ -68,7 +68,6 @@ public:
   virtual void Updated(const nsIntRect& aRect);
 
   
-  virtual LayerType GetType();
   virtual Layer* GetLayer();
   virtual void RenderLayer();
 
