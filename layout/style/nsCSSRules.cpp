@@ -368,12 +368,15 @@ ImportRule::ImportRule(const ImportRule& aCopy)
   : nsCSSRule(aCopy),
     mURLSpec(aCopy.mURLSpec)
 {
-  nsRefPtr<nsCSSStyleSheet> sheet;
-  if (aCopy.mChildSheet) {
-    sheet = aCopy.mChildSheet->Clone(nsnull, this, nsnull, nsnull);
-  }
-  SetSheet(sheet);
   
+  
+  
+  if (aCopy.mChildSheet) {
+    nsRefPtr<nsCSSStyleSheet> sheet =
+      aCopy.mChildSheet->Clone(nsnull, this, nsnull, nsnull);
+    SetSheet(sheet);
+    
+  }
 }
 
 ImportRule::~ImportRule()
