@@ -303,8 +303,10 @@ BookmarksSyncService.prototype = {
       item.keyword = this._bms.getKeywordForBookmark(node.itemId);
     } else if (node.type == node.RESULT_TYPE_SEPARATOR) {
       item.type = "separator";
+    } else if (node.type == node.RESULT_TYPE_QUERY) {
+      item.type = "query";
     } else {
-      this._log.logWarn("Warning: unknown item type, cannot serialize: " + node.type);
+      this._log.warn("Warning: unknown item type, cannot serialize: " + node.type);
       return;
     }
 
@@ -545,16 +547,39 @@ BookmarksSyncService.prototype = {
         }
       }
     }
+
     for (let i = 0; i < listA.length; i++) {
-      
-      if (!conflicts[0].some(
-        function(elt) { return elt.GUID == listA[i].GUID }))
+
+      this._timer.initWithCallback(listener, 0, this._timer.TYPE_ONE_SHOT);
+      yield; 
+
+      let alsoConflictsA = function(elt) {
+        return listA[i].parents.indexOf(elt.GUID) >= 0;
+      };
+      if (conflicts[0].some(alsoConflictsA))
+        conflicts[0].push(listA[i]);
+
+      let conflictsA = function(elt) {
+        return elt.GUID == listA[i].GUID;
+      };
+      if (!conflicts[0].some(conflictsA))
         propagations[1].push(listA[i]);
     }
     for (let j = 0; j < listB.length; j++) {
-      
-      if (!conflicts[1].some(
-        function(elt) { return elt.GUID == listB[j].GUID }))
+
+      this._timer.initWithCallback(listener, 0, this._timer.TYPE_ONE_SHOT);
+      yield; 
+
+      let alsoConflictsB = function(elt) {
+        return listB[j].parents.indexOf(elt.GUID) >= 0;
+      };
+      if (conflicts[1].some(alsoConflictsB))
+        conflicts[1].push(listB[j]);
+
+      let conflictsB = function(elt) {
+        return elt.GUID == listB[j].GUID;
+      };
+      if (!conflicts[1].some(conflictsB))
         propagations[0].push(listB[j]);
     }
 
@@ -801,13 +826,29 @@ BookmarksSyncService.prototype = {
   
   
   
+  
+  
+
+  
+  
+
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   _doSync: function BSS__doSync() {
     let cont = yield;
-
-    this._os.notifyObservers(null, "bookmarks-sync:start", "");
-    this._log.info("Beginning sync");
-
     try {
       if (!this._dav.lock.async(this._dav, cont))
         return;
@@ -821,21 +862,19 @@ BookmarksSyncService.prototype = {
       }
 
       var localJson = this._getBookmarks();
-      
+      this._log.debug("local json:\n" + this._mungeNodes(localJson));
 
       
-      if (this._getServerData.async(this, cont, localJson))
-        let server = yield;
-      else
+      if (!this._getServerData.async(this, cont, localJson))
         return
+      let server = yield;
 
       this._log.info("Local snapshot version: " + this._snapshotVersion);
       this._log.info("Server status: " + server.status);
 
-      if (server['status'] != 0) {
-        this._os.notifyObservers(null, "bookmarks-sync:end", "");
-        this._log.error("Sync error: could not get server status, " +
-                        "or initial upload failed.");
+      if (server.status != 0) {
+        this._log.fatal("Sync error: could not get server status, " +
+                        "or initial upload failed.  Aborting sync.");
         return;
       }
 
@@ -850,7 +889,6 @@ BookmarksSyncService.prototype = {
 
       if (server.updates.length == 0 && localUpdates.length == 0) {
         this._snapshotVersion = server.maxVersion;
-        this._os.notifyObservers(null, "bookmarks-sync:end", "");
         this._log.info("Sync complete (1): no changes needed on client or server");
         return;
       }
@@ -858,11 +896,10 @@ BookmarksSyncService.prototype = {
       
 
       this._log.info("Reconciling client/server updates");
-      if (this._reconcile.async(this, cont,
-                                localUpdates, server.updates))
-        let ret = yield;
-      else
+      if (!this._reconcile.async(this, cont, localUpdates, server.updates))
         return
+      let ret = yield;
+
       
       
 
@@ -892,7 +929,6 @@ BookmarksSyncService.prototype = {
 
       if (!(clientChanges.length || serverChanges.length ||
             clientConflicts.length || serverConflicts.length)) {
-        this._os.notifyObservers(null, "bookmarks-sync:end", "");
         this._log.info("Sync complete (2): no changes needed on client or server");
         this._snapshot = localJson;
         this._snapshotVersion = server.maxVersion;
@@ -927,11 +963,24 @@ BookmarksSyncService.prototype = {
       }
 
       
-      if (serverChanges.length) {
+
+      
+      
+      
+
+      let serverDelta = this._detectUpdates(this._snapshot, server.snapshot);
+
+      
+      if (!(serverConflicts.length ||
+            this.deepEquals(serverChanges, serverDelta)))
+        this._log.error("Predicted server changes differ from " +
+                        "actual server->client diff");
+
+      if (serverDelta.length) {
         this._log.info("Uploading changes to server");
         this._snapshot = this._getBookmarks();
         this._snapshotVersion = ++server.maxVersion;
-        server.deltas.push(serverChanges);
+        server.deltas.push(serverDelta);
 
         this._dav.PUT("bookmarks-deltas.json", uneval(server.deltas), cont);
         let deltasPut = yield;
@@ -955,9 +1004,9 @@ BookmarksSyncService.prototype = {
           this._log.error("Could not update deltas on server");
         }
       }
-      this._os.notifyObservers(null, "bookmarks-sync:end", "");
       this._log.info("Sync complete");
     } finally {
+      this._os.notifyObservers(null, "bookmarks-sync:end", "");
       if (!this._dav.unlock.async(this._dav, cont))
         return;
       let unlocked = yield;
@@ -965,7 +1014,6 @@ BookmarksSyncService.prototype = {
         this._log.info("Lock released");
       else
         this._log.error("Could not unlock DAV collection");
-      this._os.notifyObservers(null, "bookmarks-sync:end", "");
     }
   },
 
@@ -1179,7 +1227,8 @@ BookmarksSyncService.prototype = {
   
 
   sync: function BSS_sync() {
-    this._log.info("Syncing");
+    this._log.info("Beginning sync");
+    this._os.notifyObservers(null, "bookmarks-sync:start", "");
     this._doSync.async(this);
   },
 
