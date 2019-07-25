@@ -71,6 +71,7 @@
 
 
 
+
 NS_COM_GLUE PRUint32 HashString(const nsAString& aStr);
 NS_COM_GLUE PRUint32 HashString(const nsACString& aStr);
 NS_COM_GLUE PRUint32 HashString(const char* aKey);
@@ -162,6 +163,32 @@ public:
 
 private:
   const PRUint32 mValue;
+};
+
+
+
+
+
+
+class nsUint64HashKey : public PLDHashEntryHdr
+{
+public:
+  typedef const PRUint64& KeyType;
+  typedef const PRUint64* KeyTypePointer;
+  
+  nsUint64HashKey(KeyTypePointer aKey) : mValue(*aKey) { }
+  nsUint64HashKey(const nsUint64HashKey& toCopy) : mValue(toCopy.mValue) { }
+  ~nsUint64HashKey() { }
+
+  KeyType GetKey() const { return mValue; }
+  PRBool KeyEquals(KeyTypePointer aKey) const { return *aKey == mValue; }
+
+  static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
+  static PLDHashNumber HashKey(KeyTypePointer aKey) { return *aKey; }
+  enum { ALLOW_MEMMOVE = PR_TRUE };
+
+private:
+  const PRUint64 mValue;
 };
 
 
