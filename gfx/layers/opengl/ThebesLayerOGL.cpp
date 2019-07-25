@@ -116,7 +116,6 @@ public:
 
 protected:
   virtual nsIntPoint GetOriginOffset() = 0;
-  virtual nsIntRect GetBufferRect() = 0;
 
   GLContext* gl() const { return mOGLLayer->gl(); }
 
@@ -198,13 +197,14 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
       NS_ASSERTION(mTexImageOnWhite->GetTileRect() == mTexImage->GetTileRect(), "component alpha textures should be the same size.");
     }
     nsIntRegion region(*renderRegion);
-
     nsIntPoint origin = GetOriginOffset();
+    region.MoveBy(-origin);           
+
     do {
       nsIntRect textureRect = mTexImage->GetTileRect();
+      textureRect.MoveBy(region.GetBounds().x, region.GetBounds().y);
       nsIntRegion subregion(region);
-      textureRect.MoveBy(GetBufferRect().TopLeft());
-      subregion.And(subregion, textureRect); 
+      subregion.And(region, textureRect); 
       if (subregion.IsEmpty()) {
         continue;
       }
@@ -214,19 +214,18 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
 
       nsIntRegionRectIterator iter(subregion);
       while (const nsIntRect *iterRect = iter.Next()) {
-        nsIntRect screenRect = *iterRect;
+        nsIntRect regionRect = *iterRect;  
+        
+        nsIntRect screenRect = regionRect;
+        screenRect.MoveBy(origin);
         program->SetLayerQuadRect(screenRect);
 
-        nsIntRect textureCoord = *iterRect;  
-        textureCoord.MoveBy(-mTexImage->GetTileRect().TopLeft()); 
-        textureCoord.MoveBy(-origin); 
-
-        aManager->BindAndDrawQuadWithTextureRect(program, textureCoord,
+        regionRect.MoveBy(-mTexImage->GetTileRect().TopLeft()); 
+        aManager->BindAndDrawQuadWithTextureRect(program, regionRect,
                                                  textureRect.Size(),
                                                  mTexImage->GetWrapMode());
       }
     } while (mTexImage->NextTile());
-
   }
 
   if (mTexImageOnWhite) {
@@ -274,10 +273,6 @@ public:
   }
 
 protected:
-  virtual nsIntRect GetBufferRect() {
-    return BufferRect();
-  }
-
   virtual nsIntPoint GetOriginOffset() {
     return BufferRect().TopLeft() - BufferRotation();
   }
@@ -309,10 +304,6 @@ protected:
     TOP, BOTTOM
   };
   nsIntRect GetQuadrantRectangle(XSide aXSide, YSide aYSide);
-
-  virtual nsIntRect GetBufferRect() {
-    return mBufferRect;
-  }
 
   virtual nsIntPoint GetOriginOffset() {
     return mBufferRect.TopLeft() - mBufferRotation;
@@ -773,10 +764,6 @@ public:
               const nsIntRect& aRect, const nsIntPoint& aRotation);
 
 protected:
-  virtual nsIntRect GetBufferRect() {
-    return mBufferRect;
-  }
-
   virtual nsIntPoint GetOriginOffset() {
     return mBufferRect.TopLeft() - mBufferRotation;
   }
