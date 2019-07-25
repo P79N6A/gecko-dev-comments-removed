@@ -1,0 +1,38 @@
+
+
+
+
+
+
+"""
+Verifies build of an executable in three different configurations.
+"""
+
+import TestGyp
+
+
+invalid_configuration_keys = [
+  'actions',
+  'all_dependent_settings',
+  'configurations',
+  'dependencies',
+  'direct_dependent_settings',
+  'libraries',
+  'link_settings',
+  'sources',
+  'target_name',
+  'type',
+]
+
+test = TestGyp.TestGyp()
+
+if test.format == 'scons':
+  test.skip_test('TODO: http://code.google.com/p/gyp/issues/detail?id=176\n')
+
+for test_key in invalid_configuration_keys:
+  test.run_gyp('%s.gyp' % test_key, status=1, stderr=None)
+  expect = ['%s not allowed in the Debug configuration, found in target '
+            '%s.gyp:configurations#target' % (test_key, test_key)]
+  test.must_contain_all_lines(test.stderr(), expect)
+
+test.pass_test()

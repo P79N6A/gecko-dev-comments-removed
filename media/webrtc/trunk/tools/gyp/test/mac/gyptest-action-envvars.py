@@ -1,0 +1,30 @@
+
+
+
+
+
+
+"""
+Verifies that env vars work with actions, with relative directory paths.
+"""
+
+import TestGyp
+
+import sys
+
+if sys.platform == 'darwin':
+  test = TestGyp.TestGyp(formats=['ninja', 'make', 'xcode'])
+
+  CHDIR = 'action-envvars'
+  test.run_gyp('action/action.gyp', chdir=CHDIR)
+  test.build('action/action.gyp', 'action', chdir=CHDIR, SYMROOT='../build')
+
+  result_file = test.built_file_path('result', chdir=CHDIR)
+  test.must_exist(result_file)
+  test.must_contain(result_file, 'Test output')
+
+  other_result_file = test.built_file_path('other_result', chdir=CHDIR)
+  test.must_exist(other_result_file)
+  test.must_contain(other_result_file, 'Other output')
+
+  test.pass_test()
