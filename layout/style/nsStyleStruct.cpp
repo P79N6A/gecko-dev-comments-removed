@@ -1126,6 +1126,7 @@ nsStylePosition::nsStylePosition(void)
   mMaxHeight.SetNoneValue();
   mBoxSizing = NS_STYLE_BOX_SIZING_CONTENT;
 #ifdef MOZ_FLEXBOX
+  mFlexDirection = NS_STYLE_FLEX_DIRECTION_ROW;
   mJustifyContent = NS_STYLE_JUSTIFY_CONTENT_FLEX_START;
   mOrder = NS_STYLE_ORDER_INITIAL;
 #endif 
@@ -1163,6 +1164,12 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
   }
 
   
+
+  
+  if (mFlexDirection != aOther.mFlexDirection) {
+    return NS_CombineHint(hint, nsChangeHint_ReflowFrame);
+  }
+
   
   
   if (mJustifyContent != aOther.mJustifyContent) {

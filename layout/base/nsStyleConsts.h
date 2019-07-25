@@ -399,6 +399,12 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 
 #ifdef MOZ_FLEXBOX
 
+#define NS_STYLE_FLEX_DIRECTION_ROW             0
+#define NS_STYLE_FLEX_DIRECTION_ROW_REVERSE     1
+#define NS_STYLE_FLEX_DIRECTION_COLUMN          2
+#define NS_STYLE_FLEX_DIRECTION_COLUMN_REVERSE  3
+
+
 
 
 #define NS_STYLE_ORDER_INITIAL                  0

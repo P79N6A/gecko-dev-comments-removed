@@ -1094,6 +1094,7 @@ struct nsStylePosition {
   nsStyleCoord  mMaxHeight;             
   PRUint8       mBoxSizing;             
 #ifdef MOZ_FLEXBOX
+  PRUint8       mFlexDirection;         
   PRUint8       mJustifyContent;        
   PRInt32       mOrder;                 
 #endif 

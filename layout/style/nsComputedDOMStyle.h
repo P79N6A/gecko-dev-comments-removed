@@ -359,6 +359,7 @@ private:
 
 #ifdef MOZ_FLEXBOX
   
+  nsIDOMCSSValue* DoGetFlexDirection();
   nsIDOMCSSValue* DoGetOrder();
   nsIDOMCSSValue* DoGetJustifyContent();
 #endif 
