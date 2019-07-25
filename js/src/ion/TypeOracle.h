@@ -1,0 +1,94 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef js_ion_type_oracle_h__
+#define js_ion_type_oracle_h__
+
+namespace js {
+namespace ion {
+
+
+
+
+enum MIRType
+{
+    MIRType_Undefined,
+    MIRType_Null,
+    MIRType_Boolean,
+    MIRType_Int32,
+    MIRType_Double,
+    MIRType_String,
+    MIRType_Object,
+    MIRType_Value,
+    MIRType_Any,        
+    MIRType_None        
+};
+
+class TypeOracle
+{
+  public:
+    struct Binary {
+        MIRType lhs;
+        MIRType rhs;
+        MIRType rval;
+    };
+
+  public:
+    virtual Binary binaryOp(JSScript *script, jsbytecode *pc) = 0;
+};
+
+class DummyOracle : public TypeOracle
+{
+  public:
+    Binary binaryOp(JSScript *script, jsbytecode *pc) {
+        Binary b;
+        b.lhs = MIRType_Int32;
+        b.rhs = MIRType_Int32;
+        b.rval = MIRType_Int32;
+        return b;
+    }
+};
+
+}
+}
+
+#endif 
+

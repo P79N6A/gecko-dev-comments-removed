@@ -43,6 +43,7 @@
 #define jsion_mir_h__
 
 #include "jscntxt.h"
+#include "TypeOracle.h"
 #include "IonAllocPolicy.h"
 #include "InlineList.h"
 
@@ -59,22 +60,7 @@ namespace ion {
     _(Return)                                                               \
     _(Copy)                                                                 \
     _(Box)                                                                  \
-    _(Convert)                                                              \
     _(Snapshot)
-
-enum MIRType
-{
-    MIRType_Undefined,
-    MIRType_Null,
-    MIRType_Boolean,
-    MIRType_Int32,
-    MIRType_String,
-    MIRType_Object,
-    MIRType_Double,
-    MIRType_Value,
-    MIRType_Any,        
-    MIRType_None        
-};
 
 static const inline
 MIRType MIRTypeFromValue(const js::Value &vp)
@@ -297,7 +283,6 @@ class MInstruction
     MBasicBlock *block_;    
     MUse *uses_;            
     uint32 id_;             
-    MIRType assumedType_;   
     MIRType resultType_;    
     uint32 usedTypes_;      
     MSnapshot *snapshot_;   
@@ -313,7 +298,6 @@ class MInstruction
       : block_(NULL),
         uses_(NULL),
         id_(0),
-        assumedType_(MIRType_None),
         resultType_(MIRType_None),
         usedTypes_(0),
         snapshot_(NULL),
@@ -342,9 +326,6 @@ class MInstruction
         JS_ASSERT(inWorklist());
         inWorklist_ = false;
     }
-    void assumeType(MIRType type) {
-        assumedType_ = type;
-    }
 
     
     
@@ -355,9 +336,6 @@ class MInstruction
     MBasicBlock *block() const {
         JS_ASSERT(block_);
         return block_;
-    }
-    MIRType assumedType() const {
-        return assumedType_;
     }
     MIRType type() const {
         return resultType_;
@@ -644,7 +622,7 @@ class MReturn : public MAryControlInstruction<1>
 class MUnaryInstruction : public MAryInstruction<1>
 {
   protected:
-    inline void init(MInstruction *ins)
+    MUnaryInstruction(MInstruction *ins)
     {
         initOperand(0, ins);
     }
@@ -652,20 +630,47 @@ class MUnaryInstruction : public MAryInstruction<1>
 
 class MBinaryInstruction : public MAryInstruction<2>
 {
+    
+    
+    
+    
+    MIRType specialization_;
+
   protected:
-    inline void init(MInstruction *left, MInstruction *right)
+    MBinaryInstruction(MInstruction *left, MInstruction *right)
+      : specialization_(MIRType_None)
     {
         initOperand(0, left);
         initOperand(1, right);
+    }
+
+    MIRType specialization() const {
+        return specialization_;
+    }
+
+  public:
+    void infer(const TypeOracle::Binary &b) {
+        if (b.lhs == MIRType_Int32 && b.rhs == MIRType_Int32) {
+            specialization_ = MIRType_Int32;
+            setResultType(specialization_);
+        } else if (b.lhs == MIRType_Double && b.rhs == MIRType_Double) {
+            specialization_ = MIRType_Double;
+            setResultType(specialization_);
+        } else if (b.lhs < MIRType_String && b.rhs < MIRType_String) {
+            specialization_ = MIRType_Any;
+            setResultType(b.rval);
+        } else {
+            specialization_ = MIRType_Value;
+        }
     }
 };
 
 class MCopy : public MUnaryInstruction
 {
     MCopy(MInstruction *ins)
+      : MUnaryInstruction(ins)
     {
         setResultType(ins->type());
-        init(ins);
     }
 
   public:
@@ -680,8 +685,8 @@ class MCopy : public MUnaryInstruction
 class MBox : public MUnaryInstruction
 {
     MBox(MInstruction *ins)
+      : MUnaryInstruction(ins)
     {
-        init(ins);
     }
 
   public:
@@ -699,33 +704,12 @@ class MBox : public MUnaryInstruction
     }
 };
 
-class MConvert : public MUnaryInstruction
-{
-    MConvert(MInstruction *ins, MIRType type)
-    {
-        setResultType(type);
-        init(ins);
-    }
-
-  public:
-    INSTRUCTION_HEADER(Convert);
-    static MConvert *New(MInstruction *ins, MIRType type)
-    {
-        
-        
-        
-        
-        JS_ASSERT(ins->type() != MIRType_Object);
-        return new MConvert(ins, type);
-    }
-};
-
 class MBitAnd : public MBinaryInstruction
 {
     MBitAnd(MInstruction *left, MInstruction *right)
+      : MBinaryInstruction(left, right)
     {
         setResultType(MIRType_Int32);
-        init(left, right);
     }
 
   public:
@@ -733,7 +717,7 @@ class MBitAnd : public MBinaryInstruction
     static MBitAnd *New(MInstruction *left, MInstruction *right);
 
     MIRType requiredInputType(size_t index) const {
-        return assumedType();
+        return specialization();
     }
 };
 
