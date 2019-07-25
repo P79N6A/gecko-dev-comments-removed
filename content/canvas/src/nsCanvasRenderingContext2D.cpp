@@ -852,7 +852,7 @@ nsCanvasRenderingContext2D::Reset()
 
     
     
-    if (mValid && !mDocShell)
+    if (mValid && !mDocShell && mSurface)
         gCanvasMemoryUsed -= mWidth * mHeight * 4;
 
     mSurface = nsnull;
