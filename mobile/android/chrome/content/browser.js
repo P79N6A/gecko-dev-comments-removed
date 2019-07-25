@@ -834,44 +834,6 @@ var BrowserApp = {
       tab.userScrollPos.y = win.scrollY;
 
       
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      let visibleContentWidth = tab._viewport.width / tab._viewport.zoom;
-      let visibleContentHeight = tab._viewport.height / tab._viewport.zoom;
-      
-      
-      let focusedRect = focused.getBoundingClientRect();
-      focusedRect = {
-        left: focusedRect.left - tab.viewportExcess.x,
-        right: focusedRect.right - tab.viewportExcess.x,
-        top: focusedRect.top - tab.viewportExcess.y,
-        bottom: focusedRect.bottom - tab.viewportExcess.y
-      };
-      if (focusedRect.right >= visibleContentWidth && focusedRect.left > 0) {
-        
-        tab.viewportExcess.x += Math.min(focusedRect.left, focusedRect.right - visibleContentWidth);
-      } else if (focusedRect.left < 0) {
-        
-        tab.viewportExcess.x += focusedRect.left;
-      }
-      if (focusedRect.bottom >= visibleContentHeight && focusedRect.top > 0) {
-        
-        tab.viewportExcess.y += Math.min(focusedRect.top, focusedRect.bottom - visibleContentHeight);
-      } else if (focusedRect.top < 0) {
-        
-        tab.viewportExcess.y += focusedRect.top;
-      }
-      
       tab.sendViewportUpdate();
     }
   },
@@ -1456,7 +1418,6 @@ function Tab(aURL, aParams) {
   this.create(aURL, aParams);
   this._viewport = { x: 0, y: 0, width: gScreenWidth, height: gScreenHeight,
                      pageWidth: gScreenWidth, pageHeight: gScreenHeight, zoom: 1.0 };
-  this.viewportExcess = { x: 0, y: 0 };
   this.documentIdForCurrentViewport = null;
   this.userScrollPos = { x: 0, y: 0 };
   this._pluginCount = 0;
@@ -1618,10 +1579,8 @@ Tab.prototype = {
 
   get viewport() {
     
-    this._viewport.x = (this.browser.contentWindow.scrollX +
-                        this.viewportExcess.x) || 0;
-    this._viewport.y = (this.browser.contentWindow.scrollY +
-                        this.viewportExcess.y) || 0;
+    this._viewport.x = this.browser.contentWindow.scrollX || 0;
+    this._viewport.y = this.browser.contentWindow.scrollY || 0;
 
     
     this._viewport.x = Math.round(this._viewport.x * this._viewport.zoom);
@@ -1674,7 +1633,6 @@ Tab.prototype = {
     let xpos = ((aReset && win) ? win.scrollX * zoom : this._viewport.x);
     let ypos = ((aReset && win) ? win.scrollY * zoom : this._viewport.y);
 
-    this.viewportExcess = { x: 0, y: 0 };
     this.viewport = { x: xpos, y: ypos,
                       width: this._viewport.width, height: this._viewport.height,
                       pageWidth: gScreenWidth, pageHeight: gScreenHeight,
@@ -2476,8 +2434,8 @@ const ElementTouchHelper = {
 
     let viewport = tab.viewport;
     return [
-        ((aX - tab.viewportExcess.x) * viewport.zoom),
-        ((aY - tab.viewportExcess.y) * viewport.zoom)
+        (aX * viewport.zoom),
+        (aY * viewport.zoom)
     ];
   },
 
@@ -2495,8 +2453,8 @@ const ElementTouchHelper = {
 
     let viewport = tab.viewport;
     return [
-        aX/viewport.zoom + tab.viewportExcess.x,
-        aY/viewport.zoom + tab.viewportExcess.y
+        aX/viewport.zoom,
+        aY/viewport.zoom
     ];
   },
 
