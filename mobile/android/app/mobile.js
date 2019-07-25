@@ -728,7 +728,7 @@ pref("direct-texture.force.enabled", false);
 pref("direct-texture.force.disabled", false);
 
 
-pref("gfx.show_checkerboard_pattern", false);
+pref("gfx.show_checkerboard_pattern", true);
 
 pref("remote-debugger.enabled", false);
 pref("remote-debugger.port", 6000);
