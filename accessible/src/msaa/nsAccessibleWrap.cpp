@@ -1737,7 +1737,8 @@ nsAccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
   if (nsAccUtils::MustPrune(this))
     return nsnull;
 
-  return GetChildAt(aVarChild.lVal);
+  
+  return GetChildAt(aVarChild.lVal - 1);
 }
 
 void nsAccessibleWrap::UpdateSystemCaret()
