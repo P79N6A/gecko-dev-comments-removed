@@ -806,12 +806,6 @@ nsNavHistory::InitDB()
 
   
   
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "PRAGMA locking_mode = EXCLUSIVE"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
   if (NS_FAILED(SetJournalMode(JOURNAL_WAL))) {
     
     
