@@ -11004,7 +11004,7 @@ TraceRecorder::newArray(JSObject* ctor, uint32 argc, Value* argv, Value* rval)
     } else if (argc == 1 && argv[0].isNumber()) {
         
         LIns *args[] = { d2i(get(argv)), proto_ins, cx_ins }; 
-        arr_ins = lir->insCall(&js_NewEmptyArrayWithLength_ci, args);
+        arr_ins = lir->insCall(&js_NewArrayWithSlots_ci, args);
         guard(false, lir->insEqP_0(arr_ins), OOM_EXIT);
     } else {
         
@@ -13641,17 +13641,14 @@ TraceRecorder::denseArrayElement(Value& oval, Value& ival, Value*& vp, LIns*& v_
 
     LIns* dslots_ins =
         addName(lir->insLoad(LIR_ldp, obj_ins, offsetof(JSObject, dslots), ACC_OTHER), "dslots");
+    LIns* capacity_ins =
+        addName(lir->insLoad(LIR_ldi, dslots_ins, -int(sizeof(jsval)), ACC_OTHER), "capacity");
+
     jsuint capacity = obj->getDenseArrayCapacity();
     bool within = (jsuint(idx) < capacity);
     if (!within) {
         
-        LIns *br = lir->insBranch(LIR_jt, lir->insEqP_0(dslots_ins), NULL);
-
-        
-        LIns* capacity_ins = addName(lir->insLoad(LIR_ldi, dslots_ins, -int(sizeof(jsval)), ACC_OTHER), "capacity");
         guard(true, lir->ins2(LIR_geui, idx_ins, capacity_ins), exit);
-
-        br->setTarget(lir->ins0(LIR_label));
 
         CHECK_STATUS(guardPrototypeHasNoIndexedProperties(obj, obj_ins, MISMATCH_EXIT));
 
@@ -13662,8 +13659,6 @@ TraceRecorder::denseArrayElement(Value& oval, Value& ival, Value*& vp, LIns*& v_
     }
 
     
-    guard(false, lir->insEqP_0(dslots_ins), exit);
-    LIns* capacity_ins = addName(lir->insLoad(LIR_ldi, dslots_ins, -int(sizeof(jsval)), ACC_OTHER), "capacity");
     guard(true, lir->ins2(LIR_ltui, idx_ins, capacity_ins), exit);
 
     

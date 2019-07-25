@@ -494,10 +494,9 @@ struct JSObject {
     inline void setDenseArrayElement(uint32 i, const js::Value &v);
 
     inline js::Value *getDenseArrayElements() const;   
-    bool resizeDenseArrayElements(JSContext *cx, uint32 oldcap, uint32 newcap,
-                               bool initializeAllSlots = true);
-    bool ensureDenseArrayElements(JSContext *cx, uint32 newcap,
-                               bool initializeAllSlots = true);
+    bool growDenseArrayElements(JSContext *cx, uint32 oldcap, uint32 newcap);
+    bool ensureDenseArrayElements(JSContext *cx, uint32 newcap);
+    bool shrinkDenseArrayElements(JSContext *cx, uint32 newcap);
     inline void freeDenseArrayElements(JSContext *cx);
 
     inline void voidDenseOnlyArraySlots();  
