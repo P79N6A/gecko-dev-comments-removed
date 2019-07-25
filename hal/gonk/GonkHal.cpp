@@ -4,6 +4,7 @@
 
 
 
+#include "base/message_loop.h"
 #include "hardware_legacy/uevent.h"
 #include "Hal.h"
 #include "HalImpl.h"
@@ -19,9 +20,11 @@
 #include "nsIThread.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
+#include "nsXULAppAPI.h"
 #include "hardware/lights.h"
 #include "hardware/hardware.h"
 #include "hardware_legacy/vibrator.h"
+#include "UeventPoller.h"
 #include <stdio.h>
 #include <math.h>
 #include <fcntl.h>
@@ -196,70 +199,74 @@ public:
   }
 };
 
-class UEventWatcher : public nsRunnable {
+} 
+
+class BatteryObserver : public IUeventObserver,
+                        public RefCounted<BatteryObserver>
+{
 public:
-  UEventWatcher()
-    : mUpdater(new BatteryUpdater())
-    , mRunning(false)
+  BatteryObserver()
+    :mUpdater(new BatteryUpdater())
   {
   }
 
-  NS_IMETHOD Run()
+  virtual void Notify(const NetlinkEvent &aEvent)
   {
-    while (mRunning) {
-      char buf[1024];
-      int count = uevent_next_event(buf, sizeof(buf) - 1);
-      if (!count) {
-        NS_WARNING("uevent_next_event() returned 0!");
-        continue;
-      }
-
-      buf[sizeof(buf) - 1] = 0;
-      if (strstr(buf, "battery"))
-        NS_DispatchToMainThread(mUpdater);
+    
+    NetlinkEvent *event = const_cast<NetlinkEvent*>(&aEvent);
+    const char *subsystem = event->getSubsystem();
+    
+    const char *devpath = event->findParam("DEVPATH");
+    if (strcmp(subsystem, "power_supply") == 0 &&
+        strstr(devpath, "battery")) {
+      
+      NS_DispatchToMainThread(mUpdater);
     }
-    return NS_OK;
   }
-
-  bool mRunning;
 
 private:
   nsRefPtr<BatteryUpdater> mUpdater;
 };
 
-} 
 
-static bool sUEventInitialized = false;
-static UEventWatcher *sWatcher = NULL;
-static nsIThread *sWatcherThread = NULL;
+
+static BatteryObserver *sBatteryObserver = NULL;
+
+static void
+RegisterBatteryObserverIOThread()
+{
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+  MOZ_ASSERT(!sBatteryObserver);
+
+  sBatteryObserver = new BatteryObserver();
+  RegisterUeventListener(sBatteryObserver);
+}
 
 void
 EnableBatteryNotifications()
 {
-  if (!sUEventInitialized)
-    sUEventInitialized = uevent_init();
-  if (!sUEventInitialized) {
-    NS_WARNING("uevent_init() failed!");
-    return;
-  }
+  XRE_GetIOMessageLoop()->PostTask(
+      FROM_HERE,
+      NewRunnableFunction(RegisterBatteryObserverIOThread));
+}
 
-  if (!sWatcher)
-    sWatcher = new UEventWatcher();
-  NS_ADDREF(sWatcher);
+static void
+UnregisterBatteryObserverIOThread()
+{
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+  MOZ_ASSERT(sBatteryObserver);
 
-  sWatcher->mRunning = true;
-  nsresult rv = NS_NewThread(&sWatcherThread, sWatcher);
-  if (NS_FAILED(rv))
-    NS_WARNING("Failed to get new thread for uevent watching");
+  UnregisterUeventListener(sBatteryObserver);
+  delete sBatteryObserver;
+  sBatteryObserver = NULL;
 }
 
 void
 DisableBatteryNotifications()
 {
-  sWatcher->mRunning = false;
-  sWatcherThread->Shutdown();
-  NS_IF_RELEASE(sWatcherThread);
-  delete sWatcher;
+  XRE_GetIOMessageLoop()->PostTask(
+      FROM_HERE,
+      NewRunnableFunction(UnregisterBatteryObserverIOThread));
 }
 
 void
