@@ -648,7 +648,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
         if (item.tab == gBrowser.selectedTab) {
           GroupItems.setActiveGroupItem(this);
-          GroupItems.updateTabBarForActiveGroupItem();
+          GroupItems.updateTabBar();
         }
       }
 
@@ -988,7 +988,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
 
     GroupItems.setActiveGroupItem(self);
-    GroupItems.updateTabBarForActiveGroupItem();
+    GroupItems.updateTabBar();
     return { shouldZoom: true };
 
     
@@ -999,7 +999,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     var self = this;
     
     GroupItems.setActiveGroupItem(self);
-    GroupItems.updateTabBarForActiveGroupItem();
+    GroupItems.updateTabBar();
     var startBounds = this.getChild(0).getBounds();
     var $tray = iQ("<div>").css({
       top: startBounds.top,
@@ -1200,7 +1200,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   newTab: function(url) {
     GroupItems.setActiveGroupItem(this);
-    GroupItems.updateTabBarForActiveGroupItem();
+    GroupItems.updateTabBar();
     let newTab = gBrowser.loadOneTab(url || "about:blank", {inBackground: true});
 
     
@@ -1258,7 +1258,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
                 
                 Utils.timeout(function() {
                   self._sendToSubscribers("tabAdded", { groupItemId: self.id });
-                  GroupItems.updateTabBarForActiveGroupItem();
+                  GroupItems.updateTabBar();
                 }, 1);
               }
             });
@@ -1596,7 +1596,7 @@ window.GroupItems = {
       let newGroupItem = new GroupItem([orphanTab, tabItem], {bounds: newGroupItemBounds});
       newGroupItem.snap();
       this.setActiveGroupItem(newGroupItem);
-      this.updateTabBarForActiveGroupItem();
+      this.updateTabBar();
     } else {
       this.positionNewTabAtBottom(tabItem);
     }
@@ -1672,7 +1672,8 @@ window.GroupItems = {
   
   
   
-  updateTabBarForActiveGroupItem: function() {
+  
+  updateTabBar: function() {
     if (!window.UI)
       return; 
 
@@ -1808,7 +1809,7 @@ window.GroupItems = {
     }
 
     if (shouldUpdateTabBar)
-      this.updateTabBarForActiveGroupItem();
+      this.updateTabBar();
     else {
       tab.tabItem.setZoomPrep(false);
       UI.showTabView();
