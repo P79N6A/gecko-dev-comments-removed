@@ -119,7 +119,7 @@ Drag.prototype = {
     
 
     
-    if (!Keys.meta) {
+    if (!Keys.meta && !Trenches.disabled) {
       
       
       let snappable = !(this.item.isATabItem &&

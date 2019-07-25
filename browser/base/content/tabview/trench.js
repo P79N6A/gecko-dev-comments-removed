@@ -466,9 +466,11 @@ var Trenches = {
   
   
   
+  
   nextId: 0,
   showDebug: false,
   defaultRadius: 10,
+  disabled: false,
 
   
   
