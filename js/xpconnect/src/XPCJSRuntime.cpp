@@ -2085,7 +2085,7 @@ XPCJSRuntime::newXPCJSRuntime(nsXPConnect* aXPConnect)
 }
 
 
-bool DefineStaticDictionaryJSVals(JSContext* aCx);
+bool InternStaticDictionaryJSVals(JSContext* aCx);
 
 JSBool
 XPCJSRuntime::OnJSContextNew(JSContext *cx)
@@ -2115,7 +2115,7 @@ XPCJSRuntime::OnJSContextNew(JSContext *cx)
         if (!ok)
             return false;
 
-        ok = DefineStaticDictionaryJSVals(cx);
+        ok = InternStaticDictionaryJSVals(cx);
     }
     if (!ok)
         return false;
