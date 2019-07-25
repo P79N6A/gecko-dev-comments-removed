@@ -1018,7 +1018,7 @@ mjit::CanMethodJIT(JSContext *cx, JSScript *script, jsbytecode *pc,
 CompileStatus
 mjit::Compiler::generatePrologue()
 {
-    invokeLabel = masm.label();
+    fastEntryLabel = masm.label();
 
     
 
@@ -1031,9 +1031,7 @@ mjit::Compiler::generatePrologue()
 
 
 
-        invokeLabel = masm.label();
-
-        Label fastPath = masm.label();
+        fastEntryLabel = masm.label();
 
         
         masm.storePtr(ImmPtr(script->function()),
@@ -1078,7 +1076,7 @@ mjit::Compiler::generatePrologue()
 #endif
             }
 
-            stubcc.crossJump(stubcc.masm.jump(), fastPath);
+            stubcc.crossJump(stubcc.masm.jump(), fastEntryLabel);
         }
 
         
@@ -1113,7 +1111,7 @@ mjit::Compiler::generatePrologue()
 
 
         JS_ASSERT_IF(nesting && nesting->children, script->function()->isHeavyweight());
-        if (script->function()->isHeavyweight() || script->needsArgsObj()) {
+        if (script->function()->isHeavyweight()) {
             prepareStubCall(Uses(0));
             INLINE_STUBCALL(stubs::FunctionFramePrologue, REJOIN_FUNCTION_PROLOGUE);
         } else {
@@ -1383,7 +1381,7 @@ mjit::Compiler::finishThisUp()
         if (script->function()) {
             jit->arityCheckEntry = stubCode.locationOf(arityLabel).executableAddress();
             jit->argsCheckEntry = stubCode.locationOf(argsCheckLabel).executableAddress();
-            jit->fastEntry = fullCode.locationOf(invokeLabel).executableAddress();
+            jit->fastEntry = fullCode.locationOf(fastEntryLabel).executableAddress();
         }
     }
 
