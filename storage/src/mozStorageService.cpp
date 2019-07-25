@@ -46,6 +46,7 @@
 #include "nsAutoPtr.h"
 #include "nsCollationCID.h"
 #include "nsEmbedCID.h"
+#include "nsThreadUtils.h"
 #include "mozStoragePrivateHelpers.h"
 #include "nsILocale.h"
 #include "nsILocaleService.h"
@@ -99,6 +100,54 @@ NS_MEMORY_REPORTER_IMPLEMENT(StorageSQLiteOtherMemoryUsed,
 
 
 
+class ServiceMainThreadInitializer : public nsRunnable
+{
+public:
+  ServiceMainThreadInitializer(nsIObserver *aObserver,
+                               nsIXPConnect **aXPConnectPtr)
+  : mObserver(aObserver)
+  , mXPConnectPtr(aXPConnectPtr)
+  {
+  }
+
+  NS_IMETHOD Run()
+  {
+    NS_PRECONDITION(NS_IsMainThread(), "Must be running on the main thread!");
+
+    
+    
+    
+    
+    
+
+    
+    
+    nsCOMPtr<nsIObserverService> os =
+      mozilla::services::GetObserverService();
+    NS_ENSURE_TRUE(os, NS_ERROR_FAILURE);
+    nsresult rv = os->AddObserver(mObserver, "xpcom-shutdown", PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    (void)CallGetService(nsIXPConnect::GetCID(), mXPConnectPtr);
+
+    
+    
+    NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(StorageSQLitePageCacheMemoryUsed));
+    NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(StorageSQLiteOtherMemoryUsed));
+
+    return NS_OK;
+  }
+
+private:
+  nsIObserver *mObserver;
+  nsIXPConnect **mXPConnectPtr;
+};
+
+
+
+
 NS_IMPL_THREADSAFE_ISUPPORTS2(
   Service,
   mozIStorageService,
@@ -138,9 +187,6 @@ Service::getSingleton()
       NS_RELEASE(gService);
   }
 
-  NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(StorageSQLitePageCacheMemoryUsed));
-  NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(StorageSQLiteOtherMemoryUsed));
-
   return gService;
 }
 
@@ -149,8 +195,10 @@ nsIXPConnect *Service::sXPConnect = nsnull;
 already_AddRefed<nsIXPConnect>
 Service::getXPConnect()
 {
-  NS_ASSERTION(gService,
-               "Can not get XPConnect without an instance of our service!");
+  NS_PRECONDITION(NS_IsMainThread(),
+                  "Must only get XPConnect on the main thread!");
+  NS_PRECONDITION(gService,
+                  "Can not get XPConnect without an instance of our service!");
 
   
   
@@ -173,6 +221,9 @@ Service::~Service()
   int rc = ::sqlite3_shutdown();
   if (rc != SQLITE_OK)
     NS_WARNING("sqlite3 did not shutdown cleanly.");
+
+  bool shutdownObserved = !sXPConnect;
+  NS_ASSERTION(shutdownObserved, "Shutdown was not observed!");
 
   gService = nsnull;
 }
@@ -206,15 +257,16 @@ Service::initialize()
   if (rc != SQLITE_OK)
     return convertResultCode(rc);
 
-  nsCOMPtr<nsIObserverService> os =
-    mozilla::services::GetObserverService();
-  NS_ENSURE_TRUE(os, NS_ERROR_FAILURE);
-
-  nsresult rv = os->AddObserver(this, "xpcom-shutdown", PR_FALSE);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
-  (void)CallGetService(nsIXPConnect::GetCID(), &sXPConnect);
+  nsCOMPtr<nsIRunnable> event =
+    new ServiceMainThreadInitializer(this, &sXPConnect);
+  if (event && ::NS_IsMainThread()) {
+    (void)event->Run();
+  }
+  else {
+    (void)::NS_DispatchToMainThread(event);
+  }
+
   return NS_OK;
 }
 
