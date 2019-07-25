@@ -20,21 +20,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsHtml5Macros_h_
 #define nsHtml5Macros_h_
 

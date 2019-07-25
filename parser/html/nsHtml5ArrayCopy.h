@@ -20,21 +20,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsHtml5ArrayCopy_h__
 #define nsHtml5ArrayCopy_h__
 

@@ -20,21 +20,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef jArray_h__
 #define jArray_h__
 
