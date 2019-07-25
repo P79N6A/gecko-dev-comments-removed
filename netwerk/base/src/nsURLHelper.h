@@ -248,4 +248,14 @@ inline char *net_RFindCharNotInSet(const char *str, const char *set)
 
 NS_HIDDEN_(PRBool) net_IsValidHostName(const nsCSubstring &host);
 
+
+
+
+NS_HIDDEN_(PRBool) net_IsValidIPv4Addr(const char *addr, PRInt32 addrLen);
+
+
+
+
+NS_HIDDEN_(PRBool) net_IsValidIPv6Addr(const char *addr, PRInt32 addrLen);
+
 #endif 

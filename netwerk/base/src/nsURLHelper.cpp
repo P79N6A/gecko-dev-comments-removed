@@ -37,6 +37,8 @@
 
 
 
+#include "mozilla/RangedPtr.h"
+
 #include "nsURLHelper.h"
 #include "nsReadableUtils.h"
 #include "nsIServiceManager.h"
@@ -52,6 +54,8 @@
 #include "netCore.h"
 #include "prprf.h"
 #include "prnetdb.h"
+
+using namespace mozilla;
 
 
 
@@ -989,4 +993,95 @@ net_IsValidHostName(const nsCSubstring &host)
     nsCAutoString strhost(host);
     PRNetAddr addr;
     return PR_StringToNetAddr(strhost.get(), &addr) == PR_SUCCESS;
+}
+
+PRBool
+net_IsValidIPv4Addr(const char *addr, PRInt32 addrLen)
+{
+    RangedPtr<const char> p(addr, addrLen);
+
+    PRInt32 octet = -1;   
+    PRInt32 dotCount = 0; 
+
+    for (; addrLen; ++p, --addrLen) {
+        if (*p == '.') {
+            dotCount++;
+            if (octet == -1) {
+                
+                return PR_FALSE;
+            }
+            octet = -1;
+        } else if (*p >= '0' && *p <='9') {
+            if (octet == 0) {
+                
+                return PR_FALSE;
+            } else if (octet == -1) {
+                octet = *p - '0';
+            } else {
+                octet *= 10;
+                octet += *p - '0';
+                if (octet > 255)
+                    return PR_FALSE;
+            }
+        } else {
+            
+            return PR_FALSE;
+        }
+    }
+
+    return (dotCount == 3 && octet != -1);
+}
+
+PRBool
+net_IsValidIPv6Addr(const char *addr, PRInt32 addrLen)
+{
+    RangedPtr<const char> p(addr, addrLen);
+
+    PRInt32 digits = 0; 
+    PRInt32 colons = 0; 
+    PRInt32 blocks = 0; 
+    PRBool haveZeros = PR_FALSE; 
+
+    for (; addrLen; ++p, --addrLen) {
+        if (*p == ':') {
+            if (colons == 0) {
+                if (digits != 0) {
+                    digits = 0;
+                    blocks++;
+                }
+            } else if (colons == 1) {
+                if (haveZeros)
+                    return PR_FALSE; 
+                haveZeros = PR_TRUE;
+            } else {
+                
+                return PR_FALSE;
+            }
+            colons++;
+        } else if ((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f') ||
+                   (*p >= 'A' && *p <= 'F')) {
+            if (colons == 1 && blocks == 0) 
+                return PR_FALSE;
+            if (digits == 4) 
+                return PR_FALSE;
+            colons = 0;
+            digits++;
+        } else if (*p == '.') {
+            
+            if (!net_IsValidIPv4Addr(p.get() - digits, addrLen + digits))
+                return PR_FALSE;
+            return (haveZeros && blocks < 6) || (!haveZeros && blocks == 6);
+        } else {
+            
+            return PR_FALSE;
+        }
+    }
+
+    if (colons == 1) 
+        return PR_FALSE;
+
+    if (digits) 
+        blocks++;
+
+    return (haveZeros && blocks < 8) || (!haveZeros && blocks == 8);
 }
