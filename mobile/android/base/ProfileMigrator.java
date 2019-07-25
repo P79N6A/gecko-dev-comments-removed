@@ -518,7 +518,12 @@ public class ProfileMigrator {
                     
                     
                     JSONArray jsonPrefs = message.getJSONArray("preferences");
-                    parsePrefs(jsonPrefs);
+
+                    
+                    
+                    if (!parsePrefs(jsonPrefs))
+                        return;
+
                     GeckoAppShell.unregisterGeckoEventListener("Preferences:Data",
                                                                (GeckoEventListener)this);
 
@@ -576,12 +581,18 @@ public class ProfileMigrator {
             return result;
         }
 
-        protected void parsePrefs(JSONArray jsonPrefs) {
+        
+        protected boolean parsePrefs(JSONArray jsonPrefs) {
             try {
                 final int length = jsonPrefs.length();
                 for (int i = 0; i < length; i++) {
                     JSONObject jPref = jsonPrefs.getJSONObject(i);
                     final String prefName = jPref.getString("name");
+
+                    
+                    if (!mSyncSettingsList.contains(prefName))
+                        return false;
+
                     final String prefType = jPref.getString("type");
                     if ("bool".equals(prefType)) {
                         final boolean value = jPref.getBoolean("value");
@@ -599,7 +610,10 @@ public class ProfileMigrator {
             } catch (JSONException e) {
                 Log.e(LOGTAG, "Exception handling preferences answer: "
                       + e.getMessage());
+                return false;
             }
+
+            return true;
         }
 
         protected void configureSync() {
