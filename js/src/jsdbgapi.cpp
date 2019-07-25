@@ -630,90 +630,12 @@ js_watch_set(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 
 
 
-
-
-
-
-
-
-
-            JSObject *closure = wp->closure;
-            Class *clasp = closure->getClass();
-            JSFunction *fun;
-            JSScript *script;
-            if (clasp == &js_FunctionClass) {
-                fun = GET_FUNCTION_PRIVATE(cx, closure);
-                script = FUN_SCRIPT(fun);
-            } else if (clasp == &js_ScriptClass) {
-                fun = NULL;
-                script = (JSScript *) closure->getPrivate();
-            } else {
-                fun = NULL;
-                script = NULL;
-            }
-
-            uintN vplen = 2;
-            if (fun)
-                vplen += fun->minArgs() + (fun->isInterpreted() ? 0 : fun->u.n.extra);
-            uintN nfixed = script ? script->nfixed : 0;
-
-            
-            JSFrameRegs regs;
-            ExecuteFrameGuard frame;
-
-            if (fun && !fun->isFastNative()) {
-                
-
-
-
-
-                JSStackFrame *down = js_GetTopStackFrame(cx);
-                if (!cx->stack().getExecuteFrame(cx, down, vplen, nfixed, frame)) {
-                    DBG_LOCK(rt);
-                    DropWatchPointAndUnlock(cx, wp, JSWP_HELD);
-                    return JS_FALSE;
-                }
-
-                
-                Value *vp = frame.getvp();
-                MakeValueRangeGCSafe(vp, vplen);
-                vp[0].setObject(*closure);
-                vp[1].setNull();  
-                JSStackFrame *fp = frame.getFrame();
-                PodZero(fp);
-                MakeValueRangeGCSafe(fp->slots(), nfixed);
-                fp->setScript(script);
-                fp->setFunction(fun);
-                fp->argv = vp + 2;
-                fp->setScopeChain(closure->getParent());
-                fp->setArgsObj(NULL);
-
-                
-                regs.pc = script ? script->code : NULL;
-                regs.sp = fp->slots() + nfixed;
-
-                
-                cx->stack().pushExecuteFrame(cx, frame, regs, NULL);
-
-                
-                if (script && fun && fun->isHeavyweight() &&
-                    !js_GetCallObject(cx, fp)) {
-                    DBG_LOCK(rt);
-                    DropWatchPointAndUnlock(cx, wp, JSWP_HELD);
-                    return JS_FALSE;
-                }
-            }
-
             JSBool ok = !wp->setter ||
                         (sprop->hasSetterValue()
                          ? InternalCall(cx, obj,
                                         ObjectValue(*CastAsObject(wp->setter)),
                                         1, vp, vp)
                          : callJSPropertyOpSetter(cx, wp->setter, obj, userid, vp));
-
-            
-            if (frame.getFrame())
-                frame.getFrame()->putActivationObjects(cx);
 
             DBG_LOCK(rt);
             return DropWatchPointAndUnlock(cx, wp, JSWP_HELD) && ok;
@@ -780,7 +702,7 @@ js_WrapWatchedSetter(JSContext *cx, jsid id, uintN attrs, PropertyOp setter)
 
 JS_PUBLIC_API(JSBool)
 JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
-                 JSWatchPointHandler handler, void *closure)
+                 JSWatchPointHandler handler, JSObject *closure)
 {
     JSObject *origobj;
     Value v;
@@ -934,7 +856,7 @@ out:
 
 JS_PUBLIC_API(JSBool)
 JS_ClearWatchPoint(JSContext *cx, JSObject *obj, jsid id,
-                   JSWatchPointHandler *handlerp, void **closurep)
+                   JSWatchPointHandler *handlerp, JSObject **closurep)
 {
     JSRuntime *rt;
     JSWatchPoint *wp;
