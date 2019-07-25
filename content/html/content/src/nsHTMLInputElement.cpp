@@ -4118,15 +4118,10 @@ nsHTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
   }
 
   
-  
-  PRBool dotFound = PR_FALSE;
-
-  
   for (; i < length; ++i) {
     PRUnichar c = aValue[i];
 
     if (c == '.') {
-      dotFound = PR_TRUE;
       
       if (aValue[i-1] == '.') {
         return PR_FALSE;
@@ -4138,7 +4133,7 @@ nsHTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
     }
   }
 
-  return dotFound;
+  return PR_TRUE;
 }
 
 
