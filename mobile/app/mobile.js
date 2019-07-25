@@ -67,8 +67,7 @@ pref("browser.dom.window.dump.enabled", false);
 pref("browser.cache.disk.enable", true);
 pref("browser.cache.disk.capacity", 10240); 
 pref("browser.cache.disk.parent_directory", "/media/mmc2/.mozilla/@APP_NAME@");
-#endif
-#ifdef WINCE
+#elifdef WINCE
 pref("browser.cache.disk.enable", false);
 pref("browser.cache.disk.capacity", 0); 
 #endif
@@ -76,8 +75,13 @@ pref("browser.cache.memory.enable", true);
 pref("browser.cache.memory.capacity", 1024); 
 
 
+
+
+
 #ifdef WINCE
 pref("tile.cache.size", 15); 
+#elifdef MOZ_PLATFORM_HILDON
+pref("tile.cache.size", -1); 
 #else
 pref("tile.cache.size", 30); 
 #endif
