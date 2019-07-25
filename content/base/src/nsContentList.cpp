@@ -313,7 +313,7 @@ already_AddRefed<nsContentList>
 NS_GetFuncStringContentList(nsINode* aRootNode,
                             nsContentListMatchFunc aFunc,
                             nsContentListDestroyFunc aDestroyFunc,
-                            void* aData,
+                            nsFuncStringContentListDataAllocator aDataAllocator,
                             const nsAString& aString)
 {
   NS_ASSERTION(aRootNode, "content list has to have a root");
@@ -361,7 +361,14 @@ NS_GetFuncStringContentList(nsINode* aRootNode,
   if (!list) {
     
     
-    list = new nsCacheableFuncStringContentList(aRootNode, aFunc, aDestroyFunc, aData, aString);
+    list = new nsCacheableFuncStringContentList(aRootNode, aFunc, aDestroyFunc,
+                                                aDataAllocator, aString);
+    if (list && !list->AllocatedData()) {
+      
+      delete list;
+      list = nsnull;
+    }
+
     if (entry) {
       if (list)
         entry->mContentList = list;
@@ -370,11 +377,6 @@ NS_GetFuncStringContentList(nsINode* aRootNode,
     }
 
     NS_ENSURE_TRUE(list, nsnull);
-  } else {
-    
-    if (aDestroyFunc) {
-      (*aDestroyFunc)(aData);
-    }
   }
 
   NS_ADDREF(list);
