@@ -2039,8 +2039,6 @@ public:
 
 
 
-
-
   enum {
     INVALIDATE_IMMEDIATE = 0x01,
     INVALIDATE_CROSS_DOC = 0x02,
@@ -2050,8 +2048,7 @@ public:
                              INVALIDATE_REASON_SCROLL_REPAINT,
     INVALIDATE_NO_THEBES_LAYERS = 0x10,
     INVALIDATE_ONLY_THEBES_LAYERS = 0x20,
-    INVALIDATE_EXCLUDE_CURRENT_PAINT = 0x40,
-    INVALIDATE_NO_UPDATE_LAYER_TREE = 0x80
+    INVALIDATE_EXCLUDE_CURRENT_PAINT = 0x40
   };
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aOffsetX, nscoord aOffsetY,
