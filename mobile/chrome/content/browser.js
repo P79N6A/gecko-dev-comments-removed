@@ -476,14 +476,24 @@ var Browser = {
     return this._tabs.map(function(tab) { return tab.browser; });
   },
 
-  scrollContentToTop: function scrollContentToTop() {
-    this.contentScrollboxScroller.scrollTo(0, 0);
+  scrollContentToTop: function scrollContentToTop(aOptions) {
+    let x = {}, y = {};
+    this.contentScrollboxScroller.getPosition(x, y);
+    if (aOptions)
+      x.value = ("x" in aOptions ? aOptions.x : x.value);
+
+    this.contentScrollboxScroller.scrollTo(x.value, 0);
     this.pageScrollboxScroller.scrollTo(0, 0);
   },
   
   
-  scrollContentToBottom: function scrollContentToBottom() {
-    this.contentScrollboxScroller.scrollTo(0, Number.MAX_VALUE);
+  scrollContentToBottom: function scrollContentToBottom(aOptions) {
+    let x = {}, y = {};
+    this.contentScrollboxScroller.getPosition(x, y);
+    if (aOptions)
+      x.value = ("x" in aOptions ? aOptions.x : x.value);
+
+    this.contentScrollboxScroller.scrollTo(x.value, Number.MAX_VALUE);
     this.pageScrollboxScroller.scrollTo(0, Number.MAX_VALUE);
   },
 
@@ -2318,7 +2328,7 @@ ProgressController.prototype = {
         
         
         
-        Browser.scrollContentToTop();
+        Browser.scrollContentToTop({ x: 0 });
       }
     }
   },
