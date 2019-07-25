@@ -219,11 +219,13 @@ struct Header {
   
   
   uint32 mSize;
+  uint32 mUnsafe;
   char mMagic[sizeof(sMagic)];
 };
 
 static void
 GetSections(Shmem::SharedMemory* aSegment,
+            Header** aHeader,
             char** aFrontSentinel,
             char** aData,
             char** aBackSentinel)
@@ -234,10 +236,21 @@ GetSections(Shmem::SharedMemory* aSegment,
   *aFrontSentinel = reinterpret_cast<char*>(aSegment->memory());
   NS_ABORT_IF_FALSE(*aFrontSentinel, "NULL memory()");
 
+  *aHeader = reinterpret_cast<Header*>(*aFrontSentinel);
+
   size_t pageSize = Shmem::SharedMemory::SystemPageSize();
   *aData = *aFrontSentinel + pageSize;
 
   *aBackSentinel = *aFrontSentinel + aSegment->Size() - pageSize;
+}
+
+static Header*
+GetHeader(Shmem::SharedMemory* aSegment)
+{
+  Header* header;
+  char* dontcare;
+  GetSections(aSegment, &header, &dontcare, &dontcare, &dontcare);
+  return header;
 }
 
 static void
@@ -318,16 +331,16 @@ Shmem::Shmem(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
 
   Unprotect(mSegment);
 
+  Header* header;
   char* frontSentinel;
   char* data;
   char* backSentinel;
-  GetSections(aSegment, &frontSentinel, &data, &backSentinel);
+  GetSections(aSegment, &header, &frontSentinel, &data, &backSentinel);
 
   
   char check = *frontSentinel;
   (void)check;
 
-  Header* header = reinterpret_cast<Header*>(frontSentinel);
   NS_ABORT_IF_FALSE(!strncmp(header->mMagic, sMagic, sizeof(sMagic)),
                       "invalid segment");
   mSize = static_cast<size_t>(header->mSize);
@@ -360,7 +373,18 @@ void
 Shmem::RevokeRights(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead)
 {
   AssertInvariants();
-  Protect(mSegment);
+
+  size_t pageSize = SharedMemory::SystemPageSize();
+  Header* header = GetHeader(mSegment);
+
+  
+  mSegment->Protect(reinterpret_cast<char*>(header), pageSize, RightsRead);
+
+  if (!header->mUnsafe) {
+    Protect(mSegment);
+  } else {
+    mSegment->Protect(reinterpret_cast<char*>(header), pageSize, RightsNone);
+  }
 }
 
 
@@ -368,9 +392,11 @@ Shmem::SharedMemory*
 Shmem::Alloc(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
              size_t aNBytes,
              SharedMemoryType aType,
+             bool aUnsafe,
              bool aProtect)
 {
   NS_ASSERTION(aNBytes <= PR_UINT32_MAX, "Will truncate shmem segment size!");
+  NS_ABORT_IF_FALSE(!aProtect || !aUnsafe, "protect => !unsafe");
 
   size_t pageSize = SharedMemory::SystemPageSize();
   SharedMemory* segment = nsnull;
@@ -389,15 +415,22 @@ Shmem::Alloc(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
   if (!segment)
     return 0;
 
+  Header* header;
   char *frontSentinel;
   char *data;
   char *backSentinel;
-  GetSections(segment, &frontSentinel, &data, &backSentinel);
+  GetSections(segment, &header, &frontSentinel, &data, &backSentinel);
 
   
-  Header* header = reinterpret_cast<Header*>(frontSentinel);
+
+  
+  
+  
+  NS_ABORT_IF_FALSE(sizeof(Header) <= pageSize,
+                    "Shmem::Header has gotten too big");
   memcpy(header->mMagic, sMagic, sizeof(sMagic));
   header->mSize = static_cast<uint32>(aNBytes);
+  header->mUnsafe = aUnsafe;
 
   if (aProtect)
     Protect(segment);
@@ -453,7 +486,10 @@ Shmem::OpenExisting(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
   if (!segment)
     return 0;
 
-  if (aProtect)
+  
+  
+  Header* header = GetHeader(segment);
+  if (!header->mUnsafe && aProtect)
     Protect(segment);
 
   return segment;
@@ -468,15 +504,16 @@ Shmem::Dealloc(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
     return;
 
   size_t pageSize = SharedMemory::SystemPageSize();
+  Header* header;
   char *frontSentinel;
   char *data;
   char *backSentinel;
-  GetSections(aSegment, &frontSentinel, &data, &backSentinel);
+  GetSections(aSegment, &header, &frontSentinel, &data, &backSentinel);
 
   aSegment->Protect(frontSentinel, pageSize, RightsWrite | RightsRead);
-  Header* header = reinterpret_cast<Header*>(frontSentinel);
   memset(header->mMagic, 0, sizeof(sMagic));
   header->mSize = 0;
+  header->mUnsafe = false;          
 
   DestroySegment(aSegment);
 }
@@ -489,6 +526,7 @@ Shmem::SharedMemory*
 Shmem::Alloc(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
              size_t aNBytes, 
              SharedMemoryType aType,
+             bool ,
              bool )
 {
   SharedMemory *segment = nsnull;
