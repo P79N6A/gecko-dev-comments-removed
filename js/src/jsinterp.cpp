@@ -2558,10 +2558,8 @@ Interpret(JSContext *cx)
 
 
 
-                {
-                    jsint len = 0;
-                    DO_NEXT_OP(len);
-                }
+                len = 0;
+                DO_NEXT_OP(len);
 
               case JSTRY_FINALLY:
                 
@@ -2571,10 +2569,8 @@ Interpret(JSContext *cx)
                 PUSH_BOOLEAN(true);
                 PUSH_COPY(cx->exception);
                 cx->throwing = JS_FALSE;
-                {
-                    jsint len = 0;
-                    DO_NEXT_OP(len);
-                }
+                len = 0;
+                DO_NEXT_OP(len);
 
               case JSTRY_ITER: {
                 
