@@ -68,6 +68,7 @@
 #include "nsReadableUtils.h"
 #include "nsIPrefBranch2.h"
 #include "mozilla/AutoRestore.h"
+#include "nsINode.h"
 
 #include "jsapi.h"
 
@@ -75,7 +76,6 @@ struct nsNativeKeyEvent;
 
 class nsIDOMScriptObjectFactory;
 class nsIXPConnect;
-class nsINode;
 class nsIContent;
 class nsIDOMNode;
 class nsIDOMKeyEvent;
@@ -137,7 +137,11 @@ typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
 
 namespace mozilla {
   class IHistory;
-}
+
+namespace dom {
+class Element;
+} 
+} 
 
 extern const char kLoadAsData[];
 
@@ -219,8 +223,8 @@ public:
 
 
 
-  static PRBool ContentIsDescendantOf(nsINode* aPossibleDescendant,
-                                      nsINode* aPossibleAncestor);
+  static PRBool ContentIsDescendantOf(const nsINode* aPossibleDescendant,
+                                      const nsINode* aPossibleAncestor);
 
   
 
@@ -232,8 +236,8 @@ public:
 
 
 
-  static nsresult GetAncestors(nsIDOMNode* aNode,
-                               nsTArray<nsIDOMNode*>* aArray);
+  static nsresult GetAncestors(nsINode* aNode,
+                               nsTArray<nsINode*>& aArray);
 
   
 
@@ -269,27 +273,10 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-  static PRUint16 ComparePosition(nsINode* aNode1,
-                                  nsINode* aNode2);
-
-  
-
-
-
   static PRBool PositionIsBefore(nsINode* aNode1,
                                  nsINode* aNode2)
   {
-    return (ComparePosition(aNode1, aNode2) &
+    return (aNode2->CompareDocumentPosition(aNode1) &
       (nsIDOM3Node::DOCUMENT_POSITION_PRECEDING |
        nsIDOM3Node::DOCUMENT_POSITION_DISCONNECTED)) ==
       nsIDOM3Node::DOCUMENT_POSITION_PRECEDING;
@@ -1362,7 +1349,7 @@ public:
 
 
 
-  static nsIAtom* IsNamedItem(nsIContent* aContent);
+  static nsIAtom* IsNamedItem(mozilla::dom::Element* aElement);
 
   
 
@@ -1607,6 +1594,15 @@ public:
   {
     sIsHandlingKeyBoardEvent = aHandling;
   }
+
+  
+
+
+
+  static nsresult GetElementsByClassName(nsINode* aRootNode,
+                                         const nsAString& aClasses,
+                                         nsIDOMNodeList** aReturn);
+
 private:
 
   static PRBool InitializeEventTable();

@@ -48,6 +48,7 @@
 #include "nsICharsetConverterManager.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsIContent.h"
+#include "mozilla/dom/Element.h"
 #include "nsGkAtoms.h"
 #include "nsNetUtil.h"
 #include "nsIScriptGlobalObject.h"
@@ -79,6 +80,7 @@
 static PRLogModuleInfo* gCspPRLog;
 #endif
 
+using namespace mozilla::dom;
 
 
 
@@ -387,8 +389,8 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
   
   
   
-  nsCOMPtr<nsIContent> rootContent = mDocument->GetRootContent();
-  PRUint32 typeID = rootContent ? rootContent->GetScriptTypeID() :
+  Element* rootElement = mDocument->GetRootElement();
+  PRUint32 typeID = rootElement ? rootElement->GetScriptTypeID() :
                                   context->GetScriptTypeID();
   PRUint32 version = 0;
   nsAutoString language, type, src;

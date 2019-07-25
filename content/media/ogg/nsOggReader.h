@@ -62,8 +62,6 @@ public:
   
   virtual PRBool DecodeVideoFrame(PRBool &aKeyframeSkip,
                                   PRInt64 aTimeThreshold);
-  virtual VideoData* FindStartTime(PRInt64 aOffset,
-                                   PRInt64& aOutStartTime);
   virtual PRInt64 FindEndTime(PRInt64 aEndOffset);
 
   virtual PRBool HasAudio()
@@ -78,7 +76,7 @@ public:
     return mTheoraState != 0 && mTheoraState->mActive;
   }
 
-  virtual nsresult ReadMetadata();
+  virtual nsresult ReadMetadata(nsVideoInfo& aInfo);
   virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime);
 
 private:
@@ -125,6 +123,9 @@ private:
   
   
   PRInt64 mPageOffset;
+
+  
+  PRUint32 mCallbackPeriod;
 
   
   PRInt64 mTheoraGranulepos;

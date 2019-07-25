@@ -470,6 +470,9 @@
 
 #include "nsIEventListenerService.h"
 #include "nsIFrameMessageManager.h"
+#include "mozilla/dom/Element.h"
+
+using namespace mozilla::dom;
 
 static NS_DEFINE_CID(kDOMSOF_CID, NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
 
@@ -6364,7 +6367,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
         
 
         *_retval = ::JS_DefineElement(cx, obj, JSVAL_TO_INT(id), JSVAL_VOID,
-                                      nsnull, nsnull, 0);
+                                      nsnull, nsnull, JSPROP_SHARED);
 
         if (*_retval) {
           *objp = obj;
@@ -6867,9 +6870,9 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       
       
       
-
       JSString *str = JSVAL_TO_STRING(id);
-      if (!::js_CheckUndeclaredVarAssignment(cx) ||
+      if ((!(flags & JSRESOLVE_QUALIFIED) &&
+           !js_CheckUndeclaredVarAssignment(cx, id)) ||
           !::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
                                  ::JS_GetStringLength(str), JSVAL_VOID,
                                  JS_PropertyStub, JS_PropertyStub,
@@ -7236,8 +7239,8 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
   nsISupports *native_parent;
 
   PRBool slimWrappers = PR_TRUE;
-  PRBool nodeIsElement = node->IsNodeOfType(nsINode::eELEMENT);
-  if (nodeIsElement && static_cast<nsIContent*>(node)->IsXUL()) {
+  PRBool nodeIsElement = node->IsElement();
+  if (nodeIsElement && node->AsElement()->IsXUL()) {
     
     native_parent = node->GetParent();
 
@@ -7656,14 +7659,14 @@ nsEventTargetSH::PreserveWrapper(nsISupports *aNative)
 
 
 static PRBool
-GetBindingURL(nsIContent *aContent, nsIDocument *aDocument,
+GetBindingURL(Element *aElement, nsIDocument *aDocument,
               nsCSSValue::URL **aResult)
 {
   
   
   
   nsIPresShell *shell = aDocument->GetPrimaryShell();
-  if (!shell || aContent->GetPrimaryFrame() || !aContent->IsXUL()) {
+  if (!shell || aElement->GetPrimaryFrame() || !aElement->IsXUL()) {
     *aResult = nsnull;
 
     return PR_TRUE;
@@ -7673,7 +7676,7 @@ GetBindingURL(nsIContent *aContent, nsIDocument *aDocument,
   nsPresContext *pctx = shell->GetPresContext();
   NS_ENSURE_TRUE(pctx, PR_FALSE);
 
-  nsRefPtr<nsStyleContext> sc = pctx->StyleSet()->ResolveStyleFor(aContent,
+  nsRefPtr<nsStyleContext> sc = pctx->StyleSet()->ResolveStyleFor(aElement,
                                                                   nsnull);
   NS_ENSURE_TRUE(sc, PR_FALSE);
 
@@ -7689,7 +7692,7 @@ nsElementSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
   nsresult rv = nsNodeSH::PreCreate(nativeObj, cx, globalObj, parentObj);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsIContent *content = static_cast<nsIContent*>(nativeObj);
+  Element *element = static_cast<Element*>(nativeObj);
 
 #ifdef DEBUG
   {
@@ -7698,26 +7701,26 @@ nsElementSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
     
     
     
-    NS_ASSERTION(content_qi == content, "Uh, fix QI!");
+    NS_ASSERTION(content_qi == element, "Uh, fix QI!");
   }
 #endif
 
-  nsIDocument *doc = content->HasFlag(NODE_FORCE_XBL_BINDINGS) ?
-                     content->GetOwnerDoc() :
-                     content->GetCurrentDoc();
+  nsIDocument *doc = element->HasFlag(NODE_FORCE_XBL_BINDINGS) ?
+                     element->GetOwnerDoc() :
+                     element->GetCurrentDoc();
 
   if (!doc) {
     return rv;
   }
 
-  if (content->HasFlag(NODE_MAY_BE_IN_BINDING_MNGR) &&
-      doc->BindingManager()->GetBinding(content)) {
+  if (element->HasFlag(NODE_MAY_BE_IN_BINDING_MNGR) &&
+      doc->BindingManager()->GetBinding(element)) {
     
     return rv == NS_SUCCESS_ALLOW_SLIM_WRAPPERS ? NS_OK : rv;
   }
 
   nsCSSValue::URL *bindingURL;
-  PRBool ok = GetBindingURL(content, doc, &bindingURL);
+  PRBool ok = GetBindingURL(element, doc, &bindingURL);
   NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
 
   
@@ -7725,7 +7728,7 @@ nsElementSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
     return rv;
   }
 
-  content->SetFlags(NODE_ATTACH_BINDING_ON_POSTCREATE);
+  element->SetFlags(NODE_ATTACH_BINDING_ON_POSTCREATE);
 
   return rv == NS_SUCCESS_ALLOW_SLIM_WRAPPERS ? NS_OK : rv;
 }
@@ -7734,7 +7737,7 @@ NS_IMETHODIMP
 nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                         JSObject *obj)
 {
-  nsIContent *content = static_cast<nsIContent*>(wrapper->Native());
+  Element *element = static_cast<Element*>(wrapper->Native());
 
 #ifdef DEBUG
   {
@@ -7743,16 +7746,16 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     
     
     
-    NS_ASSERTION(content_qi == content, "Uh, fix QI!");
+    NS_ASSERTION(content_qi == element, "Uh, fix QI!");
   }
 #endif
 
   nsIDocument* doc;
-  if (content->HasFlag(NODE_FORCE_XBL_BINDINGS)) {
-    doc = content->GetOwnerDoc();
+  if (element->HasFlag(NODE_FORCE_XBL_BINDINGS)) {
+    doc = element->GetOwnerDoc();
   }
   else {
-    doc = content->GetCurrentDoc();
+    doc = element->GetCurrentDoc();
   }
 
   if (!doc) {
@@ -7765,7 +7768,7 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
 
-  if (!content->HasFlag(NODE_ATTACH_BINDING_ON_POSTCREATE)) {
+  if (!element->HasFlag(NODE_ATTACH_BINDING_ON_POSTCREATE)) {
     
     
 
@@ -7777,12 +7780,12 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
-  content->UnsetFlags(NODE_ATTACH_BINDING_ON_POSTCREATE);
+  element->UnsetFlags(NODE_ATTACH_BINDING_ON_POSTCREATE);
 
   
   
   nsCSSValue::URL *bindingURL;
-  PRBool ok = GetBindingURL(content, doc, &bindingURL);
+  PRBool ok = GetBindingURL(element, doc, &bindingURL);
   NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
 
   if (!bindingURL) {
@@ -7800,7 +7803,7 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   NS_ENSURE_TRUE(xblService, NS_ERROR_NOT_AVAILABLE);
 
   nsRefPtr<nsXBLBinding> binding;
-  xblService->LoadBindings(content, uri, principal, PR_FALSE,
+  xblService->LoadBindings(element, uri, principal, PR_FALSE,
                            getter_AddRefs(binding), &dummy);
   
   if (binding) {

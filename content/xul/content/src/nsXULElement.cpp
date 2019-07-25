@@ -303,7 +303,7 @@ nsresult
 nsXULElement::Create(nsXULPrototypeElement* aPrototype,
                      nsIDocument* aDocument,
                      PRBool aIsScriptable,
-                     nsIContent** aResult)
+                     Element** aResult)
 {
     
     NS_PRECONDITION(aPrototype != nsnull, "null ptr");
@@ -499,7 +499,7 @@ nsXULElement::GetEventListenerManagerForAttr(nsIEventListenerManager** aManager,
         return NS_ERROR_UNEXPECTED; 
 
     nsPIDOMWindow *window;
-    nsIContent *root = doc->GetRootContent();
+    Element *root = doc->GetRootElement();
     if ((!root || root == this) && !mNodeInfo->Equals(nsGkAtoms::overlay) &&
         (window = doc->GetInnerWindow()) && window->IsInnerWindow()) {
 
@@ -1115,7 +1115,7 @@ nsXULElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
         
         
         nsIDocument *document = GetCurrentDoc();
-        if (document && document->GetRootContent() == this) {
+        if (document && document->GetRootElement() == this) {
             if (aName == nsGkAtoms::title) {
                 document->NotifyPossibleTitleChange(PR_FALSE);
             }
@@ -1365,7 +1365,7 @@ nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
             HideWindowChrome(PR_FALSE);
         }
 
-        if (doc && doc->GetRootContent() == this) {
+        if (doc && doc->GetRootElement() == this) {
             if ((aName == nsGkAtoms::activetitlebarcolor ||
                  aName == nsGkAtoms::inactivetitlebarcolor)) {
                 
@@ -1957,8 +1957,8 @@ nsXULElement::LoadSrc()
         return NS_OK;
     }
     if (!IsInDoc() ||
-        !GetOwnerDoc()->GetRootContent() ||
-        GetOwnerDoc()->GetRootContent()->
+        !GetOwnerDoc()->GetRootElement() ||
+        GetOwnerDoc()->GetRootElement()->
             NodeInfo()->Equals(nsGkAtoms::overlay, kNameSpaceID_XUL)) {
         return NS_OK;
     }
@@ -2141,7 +2141,7 @@ nsXULElement::GetBindingParent() const
 PRBool
 nsXULElement::IsNodeOfType(PRUint32 aFlags) const
 {
-    return !(aFlags & ~(eCONTENT | eELEMENT));
+    return !(aFlags & ~eCONTENT);
 }
 
 static void
@@ -2333,7 +2333,7 @@ nsresult
 nsXULElement::HideWindowChrome(PRBool aShouldHide)
 {
     nsIDocument* doc = GetCurrentDoc();
-    if (!doc || doc->GetRootContent() != this)
+    if (!doc || doc->GetRootElement() != this)
       return NS_ERROR_UNEXPECTED;
 
     

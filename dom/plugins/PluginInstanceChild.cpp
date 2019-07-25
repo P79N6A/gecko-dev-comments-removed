@@ -84,9 +84,6 @@ const int kFlashWMUSERMessageThrottleDelayMs = 5;
 
 #define NS_OOPP_DOUBLEPASS_MSGID TEXT("MozDoublePassMsg")
 
-#ifndef WM_MOUSEHWHEEL
-#define WM_MOUSEHWHEEL                    0x020E
-#endif
 #elif defined(XP_MACOSX)
 #include <ApplicationServices/ApplicationServices.h>
 #endif 
@@ -101,11 +98,10 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
     , mPluginWindowHWND(0)
     , mPluginWndProc(0)
     , mPluginParentHWND(0)
-    , mNestedEventHook(0)
-    , mNestedEventLevelDepth(0)
     , mCachedWinlessPluginHWND(0)
     , mWinlessPopupSurrogateHWND(0)
     , mWinlessThrottleOldWndProc(0)
+    , mWinlessHiddenMsgHWND(0)
 #endif 
     , mAsyncCallMutex("PluginInstanceChild::mAsyncCallMutex")
 #if defined(OS_MACOSX)  
@@ -799,9 +795,11 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
                          &mWsInfo.visual, &mWsInfo.depth))
         return false;
 
-    if (aWindow.type == NPWindowTypeWindow) {
 #ifdef MOZ_WIDGET_GTK2
-        if (GdkWindow* socket_window = gdk_window_lookup(aWindow.window)) {
+    if (aWindow.type == NPWindowTypeWindow
+        && gtk_check_version(2,18,7) != NULL) { 
+        GdkWindow* socket_window = gdk_window_lookup(aWindow.window);
+        if (socket_window) {
             
             
             
@@ -809,8 +807,8 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
                               "moz-existed-before-set-window",
                               GUINT_TO_POINTER(1));
         }
-#endif
     }
+#endif
 
     if (mPluginIface->setwindow)
         (void) mPluginIface->setwindow(&mData, &mWindow);
@@ -1059,21 +1057,6 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
     if (message == WM_MOUSEACTIVATE)
         self->CallPluginGotFocus();
 
-    
-    
-    
-    if ((InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
-        switch(message) {
-            case WM_KILLFOCUS:
-            case WM_MOUSEHWHEEL:
-            case WM_MOUSEWHEEL:
-            case WM_HSCROLL:
-            case WM_VSCROLL:
-            ReplyMessage(0);
-            break;
-        }
-    }
-
     if (message == WM_USER+1 &&
         (self->mQuirks & PluginInstanceChild::QUIRK_FLASH_THROTTLE_WMUSER_EVENTS)) {
         self->FlashThrottleMessage(hWnd, message, wParam, lParam, true);
@@ -1090,61 +1073,6 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
         RemoveProp(hWnd, kPluginInstanceChildProperty);
 
     return res;
-}
-
-
-
-
-
-
-
-
-static PluginInstanceChild* gTempChildPointer;
-
-LRESULT CALLBACK
-PluginInstanceChild::NestedInputEventHook(int nCode,
-                                          WPARAM wParam,
-                                          LPARAM lParam)
-{
-    if (!gTempChildPointer) {
-        return CallNextHookEx(NULL, nCode, wParam, lParam);
-    }
-
-    if (nCode >= 0) {
-        NS_ASSERTION(gTempChildPointer, "Never should be null here!");
-        gTempChildPointer->ResetNestedEventHook();
-        gTempChildPointer->SendProcessNativeEventsInRPCCall();
-
-        gTempChildPointer = NULL;
-    }
-    return CallNextHookEx(NULL, nCode, wParam, lParam);
-}
-
-void
-PluginInstanceChild::SetNestedInputEventHook()
-{
-    NS_ASSERTION(!mNestedEventHook,
-        "mNestedEventHook already setup in call to SetNestedInputEventHook?");
-
-    PLUGIN_LOG_DEBUG(("%s", FULLFUNCTION));
-
-    
-    
-    
-    
-    mNestedEventHook = SetWindowsHookEx(WH_MSGFILTER,
-                                        NestedInputEventHook,
-                                        NULL,
-                                        GetCurrentThreadId());
-}
-
-void
-PluginInstanceChild::ResetNestedEventHook()
-{
-    PLUGIN_LOG_DEBUG(("%s", FULLFUNCTION));
-    if (mNestedEventHook)
-        UnhookWindowsHookEx(mNestedEventHook);
-    mNestedEventHook = NULL;
 }
 
 
@@ -1329,16 +1257,6 @@ PluginInstanceChild::WinlessHandleEvent(NPEvent& event)
     
     int16_t handled;
 
-    mNestedEventLevelDepth++;
-    PLUGIN_LOG_DEBUG(("WinlessHandleEvent start depth: %i", mNestedEventLevelDepth));
-
-    
-    if (mNestedEventLevelDepth == 1) {
-        NS_ASSERTION(!gTempChildPointer, "valid gTempChildPointer here?");
-        gTempChildPointer = this;
-        SetNestedInputEventHook();
-    }
-
     
     
     
@@ -1348,21 +1266,10 @@ PluginInstanceChild::WinlessHandleEvent(NPEvent& event)
       sWinlessPopupSurrogateHWND = mWinlessPopupSurrogateHWND;
     }
 
-    bool old_state = MessageLoop::current()->NestableTasksAllowed();
-    MessageLoop::current()->SetNestableTasksAllowed(true);
     handled = mPluginIface->event(&mData, reinterpret_cast<void*>(&event));
-    MessageLoop::current()->SetNestableTasksAllowed(old_state);
 
-    gTempChildPointer = NULL;
     sWinlessPopupSurrogateHWND = NULL;
 
-    mNestedEventLevelDepth--;
-    PLUGIN_LOG_DEBUG(("WinlessHandleEvent end depth: %i", mNestedEventLevelDepth));
-
-    NS_ASSERTION(!(mNestedEventLevelDepth < 0), "mNestedEventLevelDepth < 0?");
-    if (mNestedEventLevelDepth <= 0) {
-        ResetNestedEventHook();
-    }
     return handled;
 }
 
@@ -1553,6 +1460,30 @@ PluginInstanceChild::SharedSurfacePaint(NPEvent& evcopy)
 
 
 
+
+void
+PluginInstanceChild::UnhookWinlessFlashThrottle()
+{
+  
+  if (!mWinlessThrottleOldWndProc)
+      return;
+
+  WNDPROC tmpProc = mWinlessThrottleOldWndProc;
+  mWinlessThrottleOldWndProc = nsnull;
+
+  NS_ASSERTION(mWinlessHiddenMsgHWND,
+               "Missing mWinlessHiddenMsgHWND w/subclass set??");
+
+  
+  SetWindowLongPtr(mWinlessHiddenMsgHWND, GWLP_WNDPROC,
+                   reinterpret_cast<LONG>(tmpProc));
+
+  
+  RemoveProp(mWinlessHiddenMsgHWND, kPluginInstanceChildProperty);
+  mWinlessHiddenMsgHWND = nsnull;
+}
+
+
 LRESULT CALLBACK
 PluginInstanceChild::WinlessHiddenFlashWndProc(HWND hWnd,
                                                UINT message,
@@ -1576,13 +1507,10 @@ PluginInstanceChild::WinlessHiddenFlashWndProc(HWND hWnd,
      }
 
     
-    if (message == WM_NCDESTROY) {
+    if (message == WM_CLOSE || message == WM_NCDESTROY) {
         WNDPROC tmpProc = self->mWinlessThrottleOldWndProc;
-        self->mWinlessThrottleOldWndProc = nsnull;
-        SetWindowLongPtr(hWnd, GWLP_WNDPROC,
-                         reinterpret_cast<LONG>(tmpProc));
+        self->UnhookWinlessFlashThrottle();
         LRESULT res = CallWindowProc(tmpProc, hWnd, message, wParam, lParam);
-        RemoveProp(hWnd, kPluginInstanceChildProperty);
         return res;
     }
 
@@ -1617,6 +1545,7 @@ PluginInstanceChild::EnumThreadWindowsCallback(HWND hWnd,
                 return FALSE;
             }
             
+            self->mWinlessHiddenMsgHWND = hWnd;
             self->mWinlessThrottleOldWndProc =
                 reinterpret_cast<WNDPROC>(SetWindowLongPtr(hWnd, GWLP_WNDPROC,
                 reinterpret_cast<LONG>(WinlessHiddenFlashWndProc)));
@@ -2082,8 +2011,8 @@ PluginInstanceChild::AnswerNPP_Destroy(NPError* aResult)
 
 #if defined(OS_WIN)
     SharedSurfaceRelease();
-    ResetNestedEventHook();
     DestroyWinlessPopupSurrogate();
+    UnhookWinlessFlashThrottle();
 #endif
 
     return true;

@@ -154,6 +154,7 @@
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
 #include "nsString.h"
+#include "mozilla/Services.h"
 
 #if defined(WINCE)
 #include "nsWindowCE.h"
@@ -4083,7 +4084,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         
         
         nsCOMPtr<nsIObserverService> obsServ =
-          do_GetService("@mozilla.org/observer-service;1");
+          mozilla::services::GetObserverService();
         nsCOMPtr<nsISupportsPRBool> cancelQuit =
           do_CreateInstance(NS_SUPPORTS_PRBOOL_CONTRACTID);
         cancelQuit->SetData(PR_FALSE);
@@ -4109,7 +4110,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         
         
         nsCOMPtr<nsIObserverService> obsServ =
-          do_GetService("@mozilla.org/observer-service;1");
+          mozilla::services::GetObserverService();
         NS_NAMED_LITERAL_STRING(context, "shutdown-persist");
         obsServ->NotifyObservers(nsnull, "quit-application-granted", nsnull);
         obsServ->NotifyObservers(nsnull, "quit-application-forced", nsnull);
@@ -4998,11 +4999,10 @@ void nsWindow::GlobalMsgWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 #ifndef WINCE
 void nsWindow::PostSleepWakeNotification(const char* aNotification)
 {
-  nsCOMPtr<nsIObserverService> observerService = do_GetService("@mozilla.org/observer-service;1");
+  nsCOMPtr<nsIObserverService> observerService =
+    mozilla::services::GetObserverService();
   if (observerService)
-  {
     observerService->NotifyObservers(nsnull, aNotification, nsnull);
-  }
 }
 #endif
 

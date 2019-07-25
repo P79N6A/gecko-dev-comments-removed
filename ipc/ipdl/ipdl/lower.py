@@ -1408,6 +1408,14 @@ class Protocol(ipdl.ast.Protocol):
         assert self.decl.type.isToplevel()
         return ExprVar('ExitedCxxStack')
 
+    def enteredCallVar(self):
+        assert self.decl.type.isToplevel()
+        return ExprVar('EnteredCall')
+
+    def exitedCallVar(self):
+        assert self.decl.type.isToplevel()
+        return ExprVar('ExitedCall')
+
     def onCxxStackVar(self):
         assert self.decl.type.isToplevel()
         return ExprVar('IsOnCxxStack')
@@ -2714,8 +2722,14 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 MethodDecl(p.enteredCxxStackVar().name, virtual=1))
             exited = MethodDefn(
                 MethodDecl(p.exitedCxxStackVar().name, virtual=1))
+            enteredcall = MethodDefn(
+                MethodDecl(p.enteredCallVar().name, virtual=1))
+            exitedcall = MethodDefn(
+                MethodDecl(p.exitedCallVar().name, virtual=1))
 
-            self.cls.addstmts([ shouldcontinue, entered, exited,
+            self.cls.addstmts([ shouldcontinue,
+                                entered, exited,
+                                enteredcall, exitedcall,
                                 Whitespace.NL ])
 
         self.cls.addstmts((
@@ -2951,12 +2965,22 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             onexited.addstmt(StmtReturn(ExprCall(p.exitedCxxStackVar())))
 
             
+            onenteredcall = MethodDefn(MethodDecl('OnEnteredCall'))
+            onenteredcall.addstmt(StmtReturn(ExprCall(p.enteredCallVar())))
+
+            
+            onexitedcall = MethodDefn(MethodDecl('OnExitedCall'))
+            onexitedcall.addstmt(StmtReturn(ExprCall(p.exitedCallVar())))
+
+            
             onstack = MethodDefn(
                 MethodDecl(p.onCxxStackVar().name, ret=Type.BOOL, const=1))
             onstack.addstmt(StmtReturn(ExprCall(
                 ExprSelect(p.channelVar(), '.', p.onCxxStackVar().name))))
 
-            self.cls.addstmts([ onentered, onexited, onstack, Whitespace.NL ])
+            self.cls.addstmts([ onentered, onexited,
+                                onenteredcall, onexitedcall,
+                                onstack, Whitespace.NL ])
 
         
         onclose = MethodDefn(MethodDecl('OnChannelClose'))
