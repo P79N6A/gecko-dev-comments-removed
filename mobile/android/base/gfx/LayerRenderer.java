@@ -93,7 +93,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     private final CheckerboardImage mCheckerboardImage;
     private final SingleTileLayer mCheckerboardLayer;
     private final NinePatchTileLayer mShadowLayer;
-    private final TextLayer mFrameRateLayer;
+    private TextLayer mFrameRateLayer;
     private final ScrollbarLayer mHorizScrollLayer;
     private final ScrollbarLayer mVertScrollLayer;
     private final FadeRunnable mFadeRunnable;
@@ -106,7 +106,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     
     private int[] mFrameTimings;
     private int mCurrentFrame, mFrameTimingsSum, mDroppedFrames;
-    private boolean mShowFrameRate;
 
     
     private int mFramesRendered;
@@ -173,16 +172,12 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         CairoImage shadowImage = new BufferedCairoImage(controller.getShadowPattern());
         mShadowLayer = new NinePatchTileLayer(shadowImage);
 
-        IntSize frameRateLayerSize = new IntSize(FRAME_RATE_METER_WIDTH, FRAME_RATE_METER_HEIGHT);
-        mFrameRateLayer = TextLayer.create(frameRateLayerSize, "-- ms/--");
-
         mHorizScrollLayer = ScrollbarLayer.create(false);
         mVertScrollLayer = ScrollbarLayer.create(true);
         mFadeRunnable = new FadeRunnable();
 
         mFrameTimings = new int[60];
         mCurrentFrame = mFrameTimingsSum = mDroppedFrames = 0;
-        mShowFrameRate = false;
 
         
         
@@ -359,7 +354,10 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
     public void onSurfaceChanged(GL10 gl, final int width, final int height) {
         GLES20.glViewport(0, 0, width, height);
-        moveFrameRateLayer(width, height);
+
+        if (mFrameRateLayer != null) {
+            moveFrameRateLayer(width, height);
+        }
 
         
         
@@ -414,7 +412,11 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             public void run() {
                 Context context = mView.getContext();
                 SharedPreferences preferences = context.getSharedPreferences("GeckoApp", 0);
-                mShowFrameRate = preferences.getBoolean("showFrameRate", false);
+                if (preferences.getBoolean("showFrameRate", false)) {
+                    IntSize frameRateLayerSize = new IntSize(FRAME_RATE_METER_WIDTH, FRAME_RATE_METER_HEIGHT);
+                    mFrameRateLayer = TextLayer.create(frameRateLayerSize, "-- ms/--");
+                    moveFrameRateLayer(mView.getWidth(), mView.getHeight());
+                }
                 mProfileRender = Log.isLoggable(PROFTAG, Log.DEBUG);
             }
         }).start();
@@ -541,7 +543,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             mUpdated &= mBackgroundLayer.update(mScreenContext);    
             mUpdated &= mShadowLayer.update(mPageContext);  
             updateCheckerboardLayer(mScreenContext);
-            mUpdated &= mFrameRateLayer.update(mScreenContext); 
+            if (mFrameRateLayer != null) mUpdated &= mFrameRateLayer.update(mScreenContext); 
             mUpdated &= mVertScrollLayer.update(mPageContext);  
             mUpdated &= mHorizScrollLayer.update(mPageContext); 
 
@@ -657,7 +659,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             }
 
             
-            if (mShowFrameRate) {
+            if (mFrameRateLayer != null) {
                 updateDroppedFrames(mFrameStartTime);
 
                 GLES20.glEnable(GLES20.GL_BLEND);
