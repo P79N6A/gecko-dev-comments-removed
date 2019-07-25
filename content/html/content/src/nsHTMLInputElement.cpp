@@ -2532,6 +2532,10 @@ nsHTMLInputElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 void
 nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
 {
+  ValueModeType aOldValueMode = GetValueMode();
+  nsAutoString aOldValue;
+  GetValue(aOldValue);
+
   
   PRBool isNewTypeSingleLine =
     IsSingleLineTextControlInternal(PR_FALSE, aNewType);
@@ -2548,14 +2552,39 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
   mType = aNewType;
 
   
-  
-  
-  
-  if (IsSingleLineTextControlInternal(PR_FALSE, mType)) {
-    nsAutoString value;
-    GetValue(value);
-    
-    SetValueInternal(value, PR_FALSE, PR_FALSE);
+
+
+
+  switch (GetValueMode()) {
+    case VALUE_MODE_DEFAULT:
+    case VALUE_MODE_DEFAULT_ON:
+      
+      
+      
+      if (aOldValueMode == VALUE_MODE_VALUE && !aOldValue.IsEmpty()) {
+        SetAttr(kNameSpaceID_None, nsGkAtoms::value, aOldValue, PR_TRUE);
+      }
+      break;
+    case VALUE_MODE_VALUE:
+      
+      
+      
+      {
+        nsAutoString value;
+        if (aOldValueMode != VALUE_MODE_VALUE) {
+          GetAttr(kNameSpaceID_None, nsGkAtoms::value, value);
+        } else {
+          
+          GetValue(value);
+        }
+        SetValueInternal(value, PR_FALSE, PR_FALSE);
+      }
+      break;
+    case VALUE_MODE_FILENAME:
+    default:
+      
+      
+      break;
   }
 
   
