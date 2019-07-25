@@ -603,6 +603,7 @@ var Browser = {
 
   scrollContentToTop: function scrollContentToTop() {
     this.contentScrollboxScroller.scrollTo(0, 0);
+    this.pageScrollboxScroller.scrollTo(0, 0);
     this._browserView.onAfterVisibleMove();
   },
 
@@ -610,6 +611,14 @@ var Browser = {
     let container = this.contentScrollbox;
     let rect = container.getBoundingClientRect();
     this.controlsScrollboxScroller.scrollBy(Math.round(rect.left), 0);
+    this._browserView.onAfterVisibleMove();
+  },
+
+  hideTitlebar: function hideTitlebar() {
+    let container = this.contentScrollbox;
+    let rect = container.getBoundingClientRect();
+    this.pageScrollboxScroller.scrollBy(0, Math.round(rect.top));
+    this.tryUnfloatToolbar();
     this._browserView.onAfterVisibleMove();
   },
 
@@ -954,7 +963,7 @@ var Browser = {
       return true;
 
     let [leftvis, ritevis, leftw, ritew] = Browser.computeSidebarVisibility(dx, dy);
-    if (leftvis <= 0.002 && ritevis <= 0.002) {
+    if (leftvis == 0 && ritevis == 0) {
       BrowserUI.unlockToolbar();
       this.floatedWhileDragging = false;
       return true;
@@ -973,78 +982,101 @@ var Browser = {
                                     
   },
 
+  
+
+
+
+
+
+  _getZoomRectForElement: function _getZoomRectForElement(element, y) {
+    if (element == null)
+      return null;
+
+    const margin = 15;
+    let bv = Browser._browserView;
+    let vis = bv.getVisibleRect();
+    let elRect = bv.browserToViewportRect(Browser.getBoundingContentRect(element));
+    y = bv.browserToViewport(y);
+
+    let zoomLevel = BrowserView.Util.clampZoomLevel(bv.getZoomLevel() * vis.width / (elRect.width + margin * 2));
+    let zoomRatio = bv.getZoomLevel() / zoomLevel;
+
+    
+    
+    if (zoomRatio >= .6666)
+       return null;
+
+    let newVisW = vis.width * zoomRatio, newVisH = vis.height * zoomRatio;
+    let result = new Rect(elRect.center().x - newVisW / 2, y - newVisH / 2, newVisW, newVisH).expandToIntegers();
+
+    
+    return result.translateInside(bv._browserViewportState.viewportRect);
+  },
+
+  
+
+
+
+  _getZoomRectForPoint: function _getZoomRectForPoint(x, y, zoomLevel) {
+    let bv = Browser._browserView;
+    let vis = bv.getVisibleRect();
+    x = bv.browserToViewport(x);
+    y = bv.browserToViewport(y);
+
+    if (zoomLevel >= 4)
+      return null;
+
+    let zoomRatio = zoomLevel / bv.getZoomLevel();
+    let newVisW = vis.width / zoomRatio, newVisH = vis.height / zoomRatio;
+    let result = new Rect(x - newVisW / 2, y - newVisH / 2, newVisW, newVisH);
+
+    
+    return result.translateInside(bv._browserViewportState.viewportRect);
+  },
+
+  setVisibleRect: function setVisibleRect(rect) {
+    let bv = Browser._browserView;
+    let vis = bv.getVisibleRect();
+    let zoomRatio = vis.width / rect.width;
+    let zoomLevel = bv.getZoomLevel() * zoomRatio;
+    let scrollX = rect.left * zoomRatio;
+    let scrollY = rect.top * zoomRatio;
+
+    bv.beginOffscreenOperation();
+
+    Browser.hideSidebars();
+    Browser.hideTitlebar();
+    bv.setZoomLevel(zoomLevel);
+    Browser.contentScrollboxScroller.scrollTo(scrollX, scrollY);
+    bv.onAfterVisibleMove();
+    bv.renderNow();
+
+    bv.commitOffscreenOperation();
+  },
+
   zoomToPoint: function zoomToPoint(cX, cY) {
     const margin = 15;
 
     let [elementX, elementY] = Browser.transformClientToBrowser(cX, cY);
-    let aElement = Browser.elementFromPoint(elementX, elementY);
+    let element = Browser.elementFromPoint(elementX, elementY);
+    let zoomRect = this._getZoomRectForElement(element, elementY);
 
-    let bv = Browser._browserView;
-    let scroller = Browser.contentScrollboxScroller;
-
-    let elRect = Browser.getBoundingContentRect(aElement);
-    let elWidth = elRect.width;
-
-    let vis = bv.getVisibleRect();
-    let vrWidth = vis.width;
-
-    
-
-    let zoomLevel = BrowserView.Util.clampZoomLevel((vrWidth - (2 * margin)) / elWidth);
-    let oldZoomLevel = bv.getZoomLevel();
-
-    
-    
-    
-
-    
-
-
-
-    if (oldZoomLevel >= zoomLevel)
+    if (zoomRect == null)
       return false;
 
-    bv.beginBatchOperation();
-
-    
-
-
-    this.hideSidebars();
-
-    bv.setZoomLevel(zoomLevel);
-
-    bv.forceContainerResize();
-    
-
-    let dx = Math.round(bv.browserToViewport(elRect.left) - margin - vis.left);
-    let dy = Math.round(bv.browserToViewport(elementY) - (window.innerHeight / 2) - vis.top);
-
-    Browser.contentScrollbox.customDragger.dragMove(dx, dy, scroller);
-    bv.commitBatchOperation();
-
+    this.setVisibleRect(zoomRect);
     return true;
   },
 
   zoomFromPoint: function zoomFromPoint(cX, cY) {
-    let [elementX, elementY] = this.transformClientToBrowser(cX, cY);
-
-    let bv = Browser._browserView;
-
-    bv.beginBatchOperation();
-
-    bv.zoomToPage();
-
-    bv.forceContainerResize();
-
-    let dy = Math.round(bv.browserToViewport(elementY) - (window.innerHeight / 2) - bv.getVisibleRect().top);
-
-    this.contentScrollbox.customDragger.dragMove(0, dy, this.contentScrollboxScroller);
-
-    Browser.forceChromeReflow();
-
-    this.hideSidebars();
-
-    bv.commitBatchOperation();
+    let bv = this._browserView;
+    
+    let zoomLevel = bv.getZoomForPage();
+    if (bv.getZoomLevel() != zoomLevel) {
+      let [elementX, elementY] = this.transformClientToBrowser(cX, cY);
+      let zoomRect = this._getZoomRectForPoint(elementX, elementY, zoomLevel);
+      this.setVisibleRect(zoomRect);
+    }
   },
 
   getBoundingContentRect: function getBoundingContentRect(contentElem) {
@@ -1053,18 +1085,18 @@ var Browser = {
     if (!browser)
       return null;
 
-    let scrollX = { value: 0 };
-    let scrollY = { value: 0 };
-    let cwu = BrowserView.Util.getBrowserDOMWindowUtils(browser);
-    cwu.getScrollXY(false, scrollX, scrollY);
+    let offset = BrowserView.Util.getContentScrollOffset(browser);
 
     let r = contentElem.getBoundingClientRect();
 
     
+    for (let frame = contentElem.ownerDocument.defaultView; frame != browser.contentWindow; frame = frame.parent) {
+      
+      let rect = frame.frameElement.getBoundingClientRect();
+      offset.add(rect.left, rect.top);
+    }
 
-    return new Rect(r.left + scrollX.value,
-                      r.top + scrollY.value,
-                      r.width, r.height);
+    return new Rect(r.left + offset.x, r.top + offset.y, r.width, r.height);
   },
 
   
@@ -2446,6 +2478,18 @@ Tab.prototype = {
   },
 
   endLoading: function() {
+    
+    let browser = this._browser;
+    let windowUtils = browser.contentWindow
+                             .QueryInterface(Ci.nsIInterfaceRequestor)
+                             .getInterface(Ci.nsIDOMWindowUtils);
+    let handheldFriendly = windowUtils.getDocumentMetadata("HandheldFriendly");
+    if (handheldFriendly == "true") {
+      browser.className = "browser-handheld";
+    } else {
+      browser.className = "browser";
+    }
+
     
     
     this.setIcon(this._browser.mIconURL);
