@@ -1419,8 +1419,7 @@ urlInlineComplete.prototype = {
 
       if (hasDomainResult) {
         
-        let appendResult = domain.slice(this._currentSearchString.length);
-        result.appendMatch(aSearchString + appendResult, "");
+        result.appendMatch(domain, "");
 
         this._finishSearch();
         return;
@@ -1493,17 +1492,18 @@ urlInlineComplete.prototype = {
     let url = fixupSearchText(row.getResultByIndex(0));
 
     
-    let appendText = url.slice(this._currentSearchString.length);
-    let separatorIndex = appendText.search(/[\/\?\#]/);
+    let separatorIndex = url.slice(this._currentSearchString.length)
+                            .search(/[\/\?\#]/);
     if (separatorIndex != -1) {
-      if (appendText[separatorIndex] == "/") {
+      separatorIndex += this._currentSearchString.length;
+      if (url[separatorIndex] == "/") {
         separatorIndex++; 
       }
-      appendText = appendText.slice(0, separatorIndex);
+      url = url.slice(0, separatorIndex);
     }
 
     
-    this._result.appendMatch(this._originalSearchString + appendText, "");
+    this._result.appendMatch(url, "");
 
     
     
