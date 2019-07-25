@@ -6691,10 +6691,18 @@ void nsBlockFrame::CollectFloats(nsIFrame* aFrame, nsFrameList& aList,
           if (outOfFlowFrame->GetParent() == this) {
             nsFrameList* list = GetPushedFloats();
             if (!list || !list->RemoveFrameIfPresent(outOfFlowFrame)) {
-              mFloats.RemoveFrame(outOfFlowFrame);
+              if (aFromOverflow) {
+                nsAutoOOFFrameList oofs(this);
+                oofs.mList.RemoveFrame(outOfFlowFrame);
+              } else {
+                mFloats.RemoveFrame(outOfFlowFrame);
+              }
             }
             aList.AppendFrame(nsnull, outOfFlowFrame);
           }
+          
+          
+          
         } else {
           
           
