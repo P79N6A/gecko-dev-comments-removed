@@ -280,12 +280,6 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  loadThumbnail: function TabItem_loadThumbnail() {
-  },
-
-  
-  
-  
   
   
   
