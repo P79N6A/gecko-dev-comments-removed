@@ -1077,13 +1077,15 @@ gfxFont::Measure(gfxTextRun *aTextRun,
     
     if (aBoundingBoxType == TIGHT_HINTED_OUTLINE_EXTENTS &&
         mAntialiasOption != kAntialiasNone) {
-        nsAutoPtr<gfxFont> tempFont(CopyWithAntialiasOption(kAntialiasNone));
+        if (!mNonAAFont) {
+            mNonAAFont = CopyWithAntialiasOption(kAntialiasNone);
+        }
         
         
-        if (tempFont) {
-            return tempFont->Measure(aTextRun, aStart, aEnd,
-                                     TIGHT_HINTED_OUTLINE_EXTENTS,
-                                     aRefContext, aSpacing);
+        if (mNonAAFont) {
+            return mNonAAFont->Measure(aTextRun, aStart, aEnd,
+                                       TIGHT_HINTED_OUTLINE_EXTENTS,
+                                       aRefContext, aSpacing);
         }
     }
 

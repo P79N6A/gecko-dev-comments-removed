@@ -948,6 +948,10 @@ protected:
     
     AntialiasOption            mAntialiasOption;
 
+    
+    
+    nsAutoPtr<gfxFont>         mNonAAFont;
+
     nsAutoPtr<gfxFontShaper>   mShaper;
 
     
