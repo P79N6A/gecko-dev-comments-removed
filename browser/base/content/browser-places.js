@@ -713,7 +713,9 @@ var BookmarksEventHandler = {
 
 
 
-  onClick: function BEH_onClick(aEvent) {
+
+
+  onClick: function BEH_onClick(aEvent, aView) {
     
 #ifdef XP_MACOSX
     var modifKey = aEvent.metaKey || aEvent.shiftKey;
@@ -743,11 +745,11 @@ var BookmarksEventHandler = {
       
       
       if (target.localName == "menu" || target.localName == "toolbarbutton")
-        PlacesUIUtils.openContainerNodeInTabs(target._placesNode, aEvent);
+        PlacesUIUtils.openContainerNodeInTabs(target._placesNode, aEvent, aView);
     }
     else if (aEvent.button == 1) {
       
-      this.onCommand(aEvent);
+      this.onCommand(aEvent, aView);
     }
   },
 
@@ -758,10 +760,12 @@ var BookmarksEventHandler = {
 
 
 
-  onCommand: function BEH_onCommand(aEvent) {
+
+
+  onCommand: function BEH_onCommand(aEvent, aView) {
     var target = aEvent.originalTarget;
     if (target._placesNode)
-      PlacesUIUtils.openNodeWithEvent(target._placesNode, aEvent);
+      PlacesUIUtils.openNodeWithEvent(target._placesNode, aEvent, aView);
   },
 
   fillInBHTooltip: function BEH_fillInBHTooltip(aDocument, aEvent) {
