@@ -359,7 +359,6 @@ appUpdater.prototype =
       
       gAppUpdater.isChecking = false;
       gAppUpdater.selectPanel("noUpdatesFound");
-      return;
     },
 
     
@@ -613,6 +612,8 @@ var gChannelSelector = {
     
     Services.prefs.setCharPref("app.update.desiredChannel", this.channelValue);
 
+    
+    gAppUpdater.aus.pauseDownload();
     
     
     gAppUpdater.isChecking = true;
