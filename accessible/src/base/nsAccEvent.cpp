@@ -384,12 +384,20 @@ nsAccStateChangeEvent::IsEnabled(PRBool *aIsEnabled)
 NS_IMPL_ISUPPORTS_INHERITED1(nsAccTextChangeEvent, nsAccEvent,
                              nsIAccessibleTextChangeEvent)
 
+
+
+
+
+
+
+
+
 nsAccTextChangeEvent::
   nsAccTextChangeEvent(nsIAccessible *aAccessible,
                        PRInt32 aStart, PRUint32 aLength, PRBool aIsInserted,
                        PRBool aIsAsynch, EIsFromUserInput aIsFromUserInput) :
   nsAccEvent(aIsInserted ? nsIAccessibleEvent::EVENT_TEXT_INSERTED : nsIAccessibleEvent::EVENT_TEXT_REMOVED,
-             aAccessible, aIsAsynch, aIsFromUserInput),
+             aAccessible, aIsAsynch, aIsFromUserInput, eAllowDupes),
   mStart(aStart), mLength(aLength), mIsInserted(aIsInserted)
 {
 #ifdef XP_WIN

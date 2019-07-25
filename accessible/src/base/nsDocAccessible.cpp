@@ -1492,11 +1492,14 @@ nsDocAccessible::FireTextChangeEventForText(nsIContent *aContent,
     if (NS_FAILED(rv))
       return;
 
+    
+    
+    
     nsRefPtr<nsAccEvent> event =
       new nsAccTextChangeEvent(accessible, offset,
                                renderedEndOffset - renderedStartOffset,
                                aIsInserted, PR_FALSE);
-    nsEventShell::FireEvent(event);
+    FireDelayedAccessibleEvent(event);
 
     FireValueChangeForTextFields(accessible);
   }
@@ -1994,11 +1997,14 @@ nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
       
       
       
+      
+      
+      
       nsRefPtr<nsAccEvent> textChangeEvent =
         CreateTextChangeEventForNode(containerAccessible, childNode, childAccessible,
                                      PR_FALSE, isAsynch);
       if (textChangeEvent) {
-        nsEventShell::FireEvent(textChangeEvent);
+        FireDelayedAccessibleEvent(textChangeEvent);
       }
     }
   }
