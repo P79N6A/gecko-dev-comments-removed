@@ -39,6 +39,7 @@
 
 
 
+
 #include <string.h>
 #include <stdio.h>
 
@@ -556,6 +557,7 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
     else {
         
         mSymbols.Zero();
+        NS_WARNING("InitWithPrefix failed!");
     }
 
     return mInitialized;
@@ -1167,8 +1169,8 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
             !mIsGLES2 || IsExtensionSupported(OES_packed_depth_stencil);
 
     
-    curBoundFramebufferDraw = GetBoundDrawFBO();
-    curBoundFramebufferRead = GetBoundReadFBO();
+    curBoundFramebufferDraw = GetUserBoundDrawFBO();
+    curBoundFramebufferRead = GetUserBoundReadFBO();
     fGetIntegerv(LOCAL_GL_RENDERBUFFER_BINDING, (GLint*) &curBoundRenderbuffer);
     fGetIntegerv(LOCAL_GL_TEXTURE_BINDING_2D, (GLint*) &curBoundTexture);
     fGetIntegerv(LOCAL_GL_VIEWPORT, viewport);
@@ -1336,7 +1338,7 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
     }
 
     
-    fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, newOffscreenDrawFBO);    
+    BindInternalFBO(newOffscreenDrawFBO);    
     if (useDrawMSFBO) {
         fFramebufferRenderbuffer(LOCAL_GL_FRAMEBUFFER,
                                  LOCAL_GL_COLOR_ATTACHMENT0,
@@ -1370,7 +1372,7 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
     }
 
     if (aUseReadFBO) {
-        fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, newOffscreenReadFBO);
+        BindInternalFBO(newOffscreenReadFBO);
         fFramebufferTexture2D(LOCAL_GL_FRAMEBUFFER,
                               LOCAL_GL_COLOR_ATTACHMENT0,
                               LOCAL_GL_TEXTURE_2D,
@@ -1382,7 +1384,7 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
     GLenum status;
     bool framebuffersComplete = true;
 
-    fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, newOffscreenDrawFBO);
+    BindInternalFBO(newOffscreenDrawFBO);
     status = fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
     if (status != LOCAL_GL_FRAMEBUFFER_COMPLETE) {
         NS_WARNING("DrawFBO: Incomplete");
@@ -1392,7 +1394,7 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
         framebuffersComplete = false;
     }
 
-    fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, newOffscreenReadFBO);
+    BindInternalFBO(newOffscreenReadFBO);
     status = fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
     if (status != LOCAL_GL_FRAMEBUFFER_COMPLETE) {
         NS_WARNING("ReadFBO: Incomplete");
@@ -1413,8 +1415,8 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
         fDeleteRenderbuffers(1, &newOffscreenDepthRB);
         fDeleteRenderbuffers(1, &newOffscreenStencilRB);
 
-        BindReadFBO(curBoundFramebufferRead);
-        BindDrawFBO(curBoundFramebufferDraw);
+        BindUserDrawFBO(curBoundFramebufferDraw);
+        BindUserReadFBO(curBoundFramebufferRead);
         fBindTexture(LOCAL_GL_TEXTURE_2D, curBoundTexture);
         fBindRenderbuffer(LOCAL_GL_RENDERBUFFER, curBoundRenderbuffer);
         fViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
@@ -1468,17 +1470,17 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
 #endif
 
     
-    ForceDirtyFBOs();
-
     
     
     
-    
-    BindDrawFBO(curBoundFramebufferDraw);
-    BindReadFBO(curBoundFramebufferRead);
+    BindUserDrawFBO(curBoundFramebufferDraw);
+    BindUserReadFBO(curBoundFramebufferRead);
     fBindTexture(LOCAL_GL_TEXTURE_2D, curBoundTexture);
     fBindRenderbuffer(LOCAL_GL_RENDERBUFFER, curBoundRenderbuffer);
     fViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+
+    
+    ForceDirtyFBOs();
 
     return true;
 }
