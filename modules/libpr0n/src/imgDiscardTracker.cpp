@@ -58,6 +58,7 @@ nsresult
 imgDiscardTracker::Reset(imgDiscardTrackerNode *node)
 {
   nsresult rv;
+#ifdef DEBUG
   PRBool isSentinel = (node == &sSentinel);
 
   
@@ -70,7 +71,7 @@ imgDiscardTracker::Reset(imgDiscardTrackerNode *node)
   
   NS_ABORT_IF_FALSE(isSentinel || !node->curr->mAnim,
                     "Trying to reset discarding on animated image!");
-
+#endif
 
   
   if (NS_UNLIKELY(!sInitialized)) {
