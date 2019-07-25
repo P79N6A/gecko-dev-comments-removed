@@ -41,7 +41,7 @@
 #include "jsnativestack.h"
 
 #ifdef XP_WIN
-# include <windows.h>
+# include "jswin.h"
 
 #elif defined(XP_OS2)
 # define INCL_DOSPROCESS
@@ -134,7 +134,7 @@ GetNativeStackBaseImpl()
     }
     return static_cast<void*>(pTib->StackBase);
 
-# elif defined(_M_X64)
+# elif defined(_M_X64) && defined(_MSC_VER)
     PNT_TIB64 pTib = reinterpret_cast<PNT_TIB64>(NtCurrentTeb());
     return reinterpret_cast<void*>(pTib->StackBase);
 
@@ -144,20 +144,6 @@ GetNativeStackBaseImpl()
     return static_cast<void*>(pTib->StackBase);
 
 # endif
-}
-
-#elif defined(SOLARIS)
-
-#include <ucontext.h>
-
-JS_STATIC_ASSERT(JS_STACK_GROWTH_DIRECTION < 0);
-
-void *
-GetNativeStackBaseImpl()
-{
-    stack_t st;
-    stack_getbounds(&st);
-    return static_cast<char*>(st.ss_sp) + st.ss_size;
 }
 
 #elif defined(XP_OS2)
