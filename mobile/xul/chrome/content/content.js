@@ -1,9 +1,5 @@
 
 
-
-
-
-
 dump("###################################### content loaded\n");
 
 let Cc = Components.classes;
@@ -310,7 +306,7 @@ let Content = {
             metaKey: aEvent.metaKey,
             keyCode: aEvent.keyCode,
             charCode: aEvent.charCode,
-            preventDefault: aEvent.defaultPrevented
+            preventDefault: aEvent.getPreventDefault()
           };
           sendAsyncMessage("Browser:KeyPress", eventData);
         });
@@ -494,7 +490,7 @@ let Content = {
       case "Browser:MouseClick": {
         this.formAssistant.focusSync = true;
         let element = elementFromPoint(x, y);
-        if (modifiers == Ci.nsIDOMEvent.CONTROL_MASK) {
+        if (modifiers == Ci.nsIDOMNSEvent.CONTROL_MASK) {
           let uri = Util.getHrefForElement(element);
           if (uri)
             sendAsyncMessage("Browser:OpenURI", { uri: uri,
@@ -543,8 +539,7 @@ let Content = {
 
         let listener = {
           onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
-            if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
-                aStateFlage & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT) {
+            if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
               sendAsyncMessage("Browser:SaveAs:Return", { type: json.type, id: json.id, referrer: json.referrer });
             }
           },
@@ -600,7 +595,8 @@ let Content = {
       }
 
       case "Browser:SetCharset": {
-        docShell.charset = json.charset;
+        let docCharset = docShell.QueryInterface(Ci.nsIDocCharset);
+        docCharset.charset = json.charset;
 
         let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
         webNav.reload(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
@@ -858,7 +854,7 @@ var ContextHandler = {
   },
 
   onContextMenu: function ch_onContextMenu(aEvent) {
-    if (aEvent.defaultPrevented)
+    if (aEvent.getPreventDefault())
       return;
 
     let state = {
@@ -1458,7 +1454,7 @@ var SelectionHandler = {
         if (selection.rangeCount == 0)
           return;
 
-        let range = selection.getRangeAt(0);
+        let range = selection.getRangeAt(0).QueryInterface(Ci.nsIDOMNSRange);
         if (!range)
           return;
 
@@ -1493,7 +1489,7 @@ var SelectionHandler = {
 
         if (pointInSelection && this.selectedText.length) {
           let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
-          clipboard.copyString(this.selectedText, this.contentWindow.document);
+          clipboard.copyString(this.selectedText);
           sendAsyncMessage("Browser:SelectionCopied", { succeeded: true });
         } else {
           sendAsyncMessage("Browser:SelectionCopied", { succeeded: false });
@@ -1518,8 +1514,8 @@ var SelectionHandler = {
           
           this.cache.end = { x: json.x, y: json.y };
           let end = { x: this.cache.end.x - scrollOffset.x, y: this.cache.end.y - scrollOffset.y };
-          utils.sendMouseEventToWindow("mousedown", end.x, end.y, 0, 1, Ci.nsIDOMEvent.SHIFT_MASK, true);
-          utils.sendMouseEventToWindow("mouseup", end.x, end.y, 0, 1, Ci.nsIDOMEvent.SHIFT_MASK, true);
+          utils.sendMouseEventToWindow("mousedown", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+          utils.sendMouseEventToWindow("mouseup", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
         } else {
           
           this.cache.start = { x: json.x, y: json.y };
@@ -1529,8 +1525,8 @@ var SelectionHandler = {
           utils.sendMouseEventToWindow("mousedown", start.x, start.y, 0, 0, 0, true);
           utils.sendMouseEventToWindow("mouseup", start.x, start.y, 0, 0, 0, true);
         
-          utils.sendMouseEventToWindow("mousedown", end.x, end.y, 0, 1, Ci.nsIDOMEvent.SHIFT_MASK, true);
-          utils.sendMouseEventToWindow("mouseup", end.x, end.y, 0, 1, Ci.nsIDOMEvent.SHIFT_MASK, true);
+          utils.sendMouseEventToWindow("mousedown", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+          utils.sendMouseEventToWindow("mouseup", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
         }
 
         
@@ -1538,7 +1534,7 @@ var SelectionHandler = {
         this.selectedText = selection.toString().trim();
 
         
-        let range = selection.getRangeAt(0)
+        let range = selection.getRangeAt(0).QueryInterface(Ci.nsIDOMNSRange);
         this.cache.rect = this._extractFromRange(range, this.cache.offset).rect;
         break;
       }

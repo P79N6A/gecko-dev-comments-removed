@@ -1,10 +1,45 @@
-
-
-
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bookmarks sync code.
+ *
+ * The Initial Developer of the Original Code is Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2007
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *  Mark Finkle <mfinkle@mozila.com>
+ *  Matt Brubeck <mbrubeck@mozila.com>
+ *  Jono DiCarlo <jdicarlo@mozilla.com>
+ *  Allison Naaktgeboren <ally@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 let WeaveGlue = {
   setupData: null,
-  _boundOnEngineSync: null,     
+  _boundOnEngineSync: null,     // Needed to unhook the observers in close().
   _boundOnServiceSync: null,
   jpake: null,
   _bundle: null,
@@ -25,7 +60,7 @@ let WeaveGlue = {
     this.setupData = { account: "", password: "" , synckey: "", serverURL: "" };
 
     if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
-      
+      // Put the settings UI into a state of "connecting..." if we are going to auto-connect
       this._elements.connect.firstChild.disabled = true;
       this._elements.connect.setAttribute("title", this._bundle.GetStringFromName("connecting.label"));
 
@@ -66,7 +101,7 @@ let WeaveGlue = {
     if (!container.hidden)
       return;
 
-    
+    // Services.io.offline is lying to us, so we use the NetworkLinkService instead
     let nls = Cc["@mozilla.org/network/network-link-service;1"].getService(Ci.nsINetworkLinkService);
     if (!nls.isLinkUp) {
       Services.obs.notifyObservers(null, "browser:sync:setup:networkerror", "");
@@ -76,10 +111,10 @@ let WeaveGlue = {
       return;
     }
 
-    
+    // Clear up any previous JPAKE codes
     this.abortEasySetup();
 
-    
+    // Show the connect UI
     container.hidden = false;
     document.getElementById("syncsetup-simple").hidden = false;
     document.getElementById("syncsetup-waiting").hidden = true;
@@ -124,7 +159,7 @@ let WeaveGlue = {
           return;
         }
 
-        
+        // Automatically go to manual setup if we couldn't acquire a channel.
         let brandShortName = Strings.brand.GetStringFromName("brandShortName");
         let tryAgain = self._bundle.GetStringFromName("sync.setup.tryagain");
         let manualSetup = self._bundle.GetStringFromName("sync.setup.manual");
@@ -139,7 +174,7 @@ let WeaveGlue = {
                                buttonFlags, tryAgain, manualSetup, null, "", {});
         switch (button) {
           case 0:
-            
+            // we have to build a new JPAKEClient here rather than reuse the old one
             container.hidden = true;
             self.open();
             break;
@@ -159,14 +194,14 @@ let WeaveGlue = {
   openManual: function openManual() {
     this.abortEasySetup();
 
-    
+    // Reset the scroll since the previous page might have been scrolled
     this._resetScrollPosition();
 
     document.getElementById("syncsetup-simple").hidden = true;
     document.getElementById("syncsetup-waiting").hidden = true;
     document.getElementById("syncsetup-fallback").hidden = false;
 
-    
+    // Push the current setup data into the UI
     if (this.setupData && "account" in this.setupData) {
       this._elements.account.value = this.setupData.account;
       this._elements.password.value = this.setupData.password;
@@ -189,10 +224,10 @@ let WeaveGlue = {
   },
 
   onEngineSync: function onEngineSync(subject, topic, data) {
-    
-    
-    
-    
+    // The Clients engine syncs first. At this point we don't necessarily know
+    // yet how many engines will be enabled, so we'll ignore the Clients engine
+    // and evaluate how many engines are enabled when the first "real" engine
+    // syncs.
     if (data == 'clients') {
       return;
     }
@@ -216,16 +251,16 @@ let WeaveGlue = {
       Services.obs.removeObserver(this._boundOnServiceSync, "weave:service:sync:error");
     }
     catch(e) {
-      
+      // Observers weren't registered because we never got as far as onComplete.
     }
 
     if (this.jpake)
       this.abortEasySetup();
 
-    
+    // Reset the scroll since the previous page might have been scrolled
     this._resetScrollPosition();
 
-    
+    // Save current setup data
     this.setupData = {
       account: this._elements.account.value.trim(),
       password: this._elements.password.value.trim(),
@@ -233,7 +268,7 @@ let WeaveGlue = {
       serverURL: this._validateServer(this._elements.customserver.value.trim())
     };
 
-    
+    // Clear the UI so it's ready for next time
     this._elements.account.value = "";
     this._elements.password.value = "";
     this._elements.synckey.value = "";
@@ -250,7 +285,7 @@ let WeaveGlue = {
     this._progressBar.value = 0;
     this._progressBar.mode = "undetermined";
 
-    
+    // Close the connect UI
     document.getElementById("syncsetup-container").hidden = true;
     BrowserUI.popDialog();
   },
@@ -272,7 +307,7 @@ let WeaveGlue = {
   },
 
   showDetails: function showDetails() {
-    
+    // Show the connect UI detail settings
     let show = this._elements.sync.collapsed;
     this._elements.details.checked = show;
     this._elements.sync.collapsed = !show;
@@ -281,58 +316,58 @@ let WeaveGlue = {
   },
 
   tryConnect: function login() {
-    
+    // If Sync is not configured, simply show the setup dialog
     if (this._loginError || Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED) {
       this.open();
       return;
     }
 
-    
+    // No setup data, do nothing
     if (!this.setupData)
       return;
 
     if (this.setupData.serverURL && this.setupData.serverURL.length)
       Weave.Service.serverURL = this.setupData.serverURL;
 
-    
-    
+    // We might still be in the middle of a sync from before Sync was disabled, so
+    // let's force the UI into a state that the Sync code feels comfortable
     this.observe(null, "", "");
 
-    
-    
-    Weave.Service.login(Weave.Identity.username, this.setupData.password, this.setupData.synckey);
+    // Now try to re-connect. If successful, this will reset the UI into the
+    // correct state automatically.
+    Weave.Service.login(Weave.Service.username, this.setupData.password, this.setupData.synckey);
   },
 
   connect: function connect(aSetupData) {
-    
+    // Use setup data to pre-configure manual fields
     if (aSetupData)
       this.setupData = aSetupData;
 
-    
-    if (this.setupData.account != Weave.Identity.account)
+    // Cause the Sync system to reset internals if we seem to be switching accounts
+    if (this.setupData.account != Weave.Service.account)
       Weave.Service.startOver();
 
-    
+    // Remove any leftover connection error string
     this._elements.connect.removeAttribute("desc");
 
-    
+    // Reset the custom server URL, if we have one
     if (this.setupData.serverURL && this.setupData.serverURL.length)
       Weave.Service.serverURL = this.setupData.serverURL;
 
-    
-    Weave.Identity.account = this.setupData.account;
-    Weave.Identity.basicPassword = this.setupData.password;
-    Weave.Identity.syncKey = this.setupData.synckey;
+    // Sync will use the account value and munge it into a username, as needed
+    Weave.Service.account = this.setupData.account;
+    Weave.Service.password = this.setupData.password;
+    Weave.Service.passphrase = this.setupData.synckey;
     Weave.Service.persistLogin();
     Weave.Svc.Obs.notify("weave:service:setup-complete");
     setTimeout(function () { Weave.Service.sync(); }, 0);
   },
 
   disconnect: function disconnect() {
-    
+    // Save credentials for undo
     let undoData = this.setupData;
 
-    
+    // Remove all credentials
     this.setupData = null;
     Weave.Service.startOver();
 
@@ -345,7 +380,7 @@ let WeaveGlue = {
     } ];
     this.showMessage(message, "undo-disconnect", buttons);
 
-    
+    // Hide the notification when the panel is changed or closed.
     let panel = document.getElementById("prefs-container");
     panel.addEventListener("ToolPanelHidden", function onHide(aEvent) {
       panel.removeEventListener(aEvent.type, onHide, false);
@@ -369,12 +404,12 @@ let WeaveGlue = {
       "weave:ui:login:error",
       "weave:service:logout:finish"];
 
-    
+    // For each topic, add WeaveGlue the observer
     topics.forEach(function(topic) {
       Services.obs.addObserver(WeaveGlue, topic, false);
     });
 
-    
+    // Remove them on unload
     addEventListener("unload", function() {
       topics.forEach(function(topic) {
         Services.obs.removeObserver(WeaveGlue, topic, false);
@@ -383,12 +418,12 @@ let WeaveGlue = {
   },
 
   get _elements() {
-    
+    // Do a quick test to see if the options exist yet
     let syncButton = document.getElementById("sync-syncButton");
     if (syncButton == null)
       return null;
 
-    
+    // Get all the setting nodes from the add-ons display
     let elements = {};
     let setupids = ["account", "password", "synckey", "usecustomserver", "customserver"];
     setupids.forEach(function(id) {
@@ -400,20 +435,20 @@ let WeaveGlue = {
       elements[id] = document.getElementById("sync-" + id);
     });
 
-    
+    // Replace the getter with the collection of settings
     delete this._elements;
     return this._elements = elements;
   },
 
   observe: function observe(aSubject, aTopic, aData) {
-    
+    // Make sure we're online when connecting/syncing
     Util.forceOnline();
 
-    
+    // Can't do anything before settings are loaded
     if (this._elements == null)
       return;
 
-    
+    // Make some aliases
     let connect = this._elements.connect;
     let connected = this._elements.connected;
     let details = this._elements.details;
@@ -422,7 +457,7 @@ let WeaveGlue = {
     let sync = this._elements.sync;
     let pairdevice = this._elements.pairdevice;
 
-    
+    // Show what went wrong with login if necessary
     if (aTopic == "weave:ui:login:error") {
       this._loginError = true;
       connect.setAttribute("desc", Weave.Utils.getErrorString(Weave.Status.login));
@@ -432,7 +467,7 @@ let WeaveGlue = {
 
     if (aTopic == "weave:service:login:finish") {
       this._loginError = false;
-      
+      // Init the setup data if we just logged in
       if (!this.setupData)
         this.loadSetupData();
     }
@@ -451,9 +486,9 @@ let WeaveGlue = {
       disconnect.collapsed = true;
     }
 
-    
+    // Check the lock on a timeout because it's set just after notifying
     setTimeout(function(self) {
-      
+      // Prevent certain actions when the service is locked
       if (Weave.Service.locked) {
         connect.firstChild.disabled = true;
         sync.firstChild.disabled = true;
@@ -469,11 +504,11 @@ let WeaveGlue = {
       }
     }, 0, this);
 
-    
-    let accountStr = this._bundle.formatStringFromName("account.label", [Weave.Identity.account], 1);
+    // Dynamically generate some strings
+    let accountStr = this._bundle.formatStringFromName("account.label", [Weave.Service.account], 1);
     disconnect.setAttribute("title", accountStr);
 
-    
+    // Show the day-of-week and time (HH:MM) of last sync
     let lastSync = Weave.Svc.Prefs.get("lastSync");
     if (lastSync != null) {
       let syncDate = new Date(lastSync).toLocaleFormat("%a %R");
@@ -481,7 +516,7 @@ let WeaveGlue = {
       sync.setAttribute("title", dateStr);
     }
 
-    
+    // Check for a storage format update, update the user and load the Sync update page
     if (aTopic =="weave:service:sync:error") {
       let clientOutdated = false, remoteOutdated = false;
       if (Weave.Status.sync == Weave.VERSION_OUT_OF_DATE) {
@@ -489,7 +524,7 @@ let WeaveGlue = {
       } else if (Weave.Status.sync == Weave.DESKTOP_VERSION_OUT_OF_DATE) {
         remoteOutdated = true;
       } else if (Weave.Status.service == Weave.SYNC_FAILED_PARTIAL) {
-        
+        // Some engines failed, check for per-engine compat
         for (let [engine, reason] in Iterator(Weave.Status.engines)) {
            clientOutdated = clientOutdated || reason == Weave.VERSION_OUT_OF_DATE;
            remoteOutdated = remoteOutdated || reason == Weave.DESKTOP_VERSION_OUT_OF_DATE;
@@ -520,7 +555,7 @@ let WeaveGlue = {
   },
 
   changeName: function changeName(aInput) {
-    
+    // Make sure to update to a modified name, e.g., empty-string -> default
     Weave.Clients.localName = aInput.value;
     aInput.value = Weave.Clients.localName;
   },
@@ -554,9 +589,9 @@ let WeaveGlue = {
 
   loadSetupData: function _loadSetupData() {
     this.setupData = {};
-    this.setupData.account = Weave.Identity.account || "";
-    this.setupData.password = Weave.Identity.basicPassword || "";
-    this.setupData.synckey = Weave.Identity.syncKey || "";
+    this.setupData.account = Weave.Service.account || "";
+    this.setupData.password = Weave.Service.password || "";
+    this.setupData.synckey = Weave.Service.passphrase || "";
 
     let serverURL = Weave.Service.serverURL;
     let defaultPrefs = Services.prefs.getDefaultBranch(null);
@@ -584,8 +619,8 @@ let SyncPairDevice = {
     BrowserUI.pushDialog(this);
     this.code1.focus();
 
-    
-    
+    // Kick off a sync. That way the server will have the most recent data from
+    // this computer and it will show up immediately on the new device.
     Weave.SyncScheduler.scheduleNextSync(0);
   },
 
@@ -617,9 +652,9 @@ let SyncPairDevice = {
     let self = this;
     let jpake = this.jpake = new Weave.JPAKEClient({
       onPaired: function onPaired() {
-        let credentials = {account:   Weave.Identity.account,
-                           password:  Weave.Identity.basicPassword,
-                           synckey:   Weave.Identity.syncKey,
+        let credentials = {account:   Weave.Service.account,
+                           password:  Weave.Service.password,
+                           synckey:   Weave.Service.passphrase,
                            serverURL: Weave.Service.serverURL};
         jpake.sendAndComplete(credentials);
       },
@@ -627,14 +662,14 @@ let SyncPairDevice = {
         self.jpake = null;
         self.close();
 
-        
-        
+        // Schedule a Sync for soonish to fetch the data uploaded by the
+        // device with which we just paired.
         Weave.SyncScheduler.scheduleNextSync(Weave.SyncScheduler.activeInterval);
       },
       onAbort: function onAbort(error) {
         self.jpake = null;
 
-        
+        // Aborted by user, ignore.
         if (error == Weave.JPAKE_ERROR_USERABORT) {
           return;
         }

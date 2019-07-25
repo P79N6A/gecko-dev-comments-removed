@@ -1,7 +1,43 @@
-
-
-
-
+// -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; js2-basic-offset: 2; js2-skip-preprocessor-directives: t; -*-
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Mobile Browser.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Mark Finkle <mfinkle@mozilla.com>
+ *   Matt Brubeck <mbrubeck@mozilla.com>
+ *   Vivien Nicolas <vnicolas@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 let Ci = Components.interfaces;
 let Cc = Components.classes;
@@ -21,9 +57,9 @@ let HTMLOptGroupElement = Ci.nsIDOMHTMLOptGroupElement;
 let HTMLOptionElement = Ci.nsIDOMHTMLOptionElement;
 let XULMenuListElement = Ci.nsIDOMXULMenuListElement;
 
-
-
-
+/**
+ * Responsible of navigation between forms fields and of the opening of the assistant
+ */
 function FormAssistant() {
   addMessageListener("FormAssist:Closed", this);
   addMessageListener("FormAssist:Previous", this);
@@ -33,9 +69,9 @@ function FormAssistant() {
   addMessageListener("FormAssist:AutoComplete", this);
   addMessageListener("Content:SetWindowSize", this);
 
-  
-
-
+  /* Listen text events in order to update the autocomplete suggestions as soon
+   * a key is entered on device
+   */
   addEventListener("text", this, false);
 
   addEventListener("keypress", this, true);
@@ -74,19 +110,19 @@ FormAssistant.prototype = {
       this._currentIndex = aIndex;
       gFocusManager.setFocus(element, Ci.nsIFocusManager.FLAG_NOSCROLL);
 
-      
-      
+      // To ensure we get the current caret positionning of the focused
+      // element we need to delayed a bit the event
       this._executeDelayed(function(self) {
-        
-        
-        
-        
+        // Bug 640870
+        // Sometimes the element inner frame get destroyed while the element
+        // receive the focus because the display is turned to 'none' for
+        // example, in this "fun" case just do nothing if the element is hidden
         if (self._isVisibleElement(gFocusManager.focusedElement))
           sendAsyncMessage("FormAssist:Show", self._getJSON());
       });
     } else {
-      
-      
+      // Repopulate the list of elements in the page, some could have gone
+      // because of AJAX changes for example
       this._elements = [];
       let currentIndex = this._getAllElements(gFocusManager.focusedElement)
 
@@ -102,22 +138,22 @@ FormAssistant.prototype = {
 
   _open: false,
   open: function formHelperOpen(aElement, aX, aY) {
-    
+    // if the click is on an option element we want to check if the parent is a valid target
     if (aElement instanceof HTMLOptionElement && aElement.parentNode instanceof HTMLSelectElement && !aElement.disabled) {
       aElement = aElement.parentNode;
     }
 
-    
-    
-    
-    
+    // bug 526045 - the form assistant will close if a click happen:
+    // * outside of the scope of the form helper
+    // * hover a button of type=[image|submit]
+    // * hover a disabled element
     if (!this._isValidElement(aElement)) {
       let passiveButtons = { button: true, checkbox: true, file: true, radio: true, reset: true };
       if ((aElement instanceof HTMLInputElement || aElement instanceof HTMLButtonElement) &&
           passiveButtons[aElement.type] && !aElement.disabled)
         return false;
 
-      
+      // Check for plugins element
       if (aElement instanceof Ci.nsIDOMHTMLEmbedElement) {
         aX = aX || 0;
         aY = aY || 0;
@@ -152,24 +188,24 @@ FormAssistant.prototype = {
       return this.close();
     }
 
-    
+    // Look for a top editable element
     if (this._isEditable(aElement))
       aElement = this._getTopLevelEditable(aElement);
 
-    
-    
+    // Checking if the element is the current focused one while the form assistant is open
+    // allow the user to reposition the caret into an input element
     if (this._open && aElement == this.currentElement) {
-      
-      
+      //hack bug 604351
+      // if the element is the same editable element and the VKB is closed, reopen it
       let utils = Util.getWindowUtils(content);
       if (utils.IMEStatus == utils.IME_STATUS_DISABLED && aElement instanceof HTMLInputElement && aElement.mozIsTextField(false)) {
         aElement.blur();
         aElement.focus();
       }
 
-      
-      
-      
+      // If the element is a <select/> element and the user has manually click
+      // it we need to inform the UI of such a change to keep in sync with the
+      // new selected options once the event is finished
       if (aElement instanceof HTMLSelectElement) {
         this._executeDelayed(function(self) {
           sendAsyncMessage("FormAssist:Show", self._getJSON());
@@ -179,10 +215,10 @@ FormAssistant.prototype = {
       return false;
     }
 
-    
-    
-    
-    
+    // There is some case where we still want some data to be send to the
+    // parent process even if form assistant is disabled:
+    //  - the element is a choice list
+    //  - the element has autocomplete suggestions
     this._enabled = Services.prefs.getBoolPref("formhelper.enabled");
     if (!this._enabled && !this._isSelectElement(aElement) && !this._isAutocomplete(aElement))
       return this.close();
@@ -226,8 +262,8 @@ FormAssistant.prototype = {
         break;
 
       case "Content:SetWindowSize":
-        
-        
+        // If the CSS viewport change just show the current element to the new
+        // position
         sendAsyncMessage("FormAssist:Resize", this._getJSON());
         break;
 
@@ -238,14 +274,14 @@ FormAssistant.prototype = {
       }
 
       case "FormAssist:ChoiceChange": {
-        
-        
+        // ChoiceChange could happened once we have move to an other element or
+        // to nothing, so we should keep the used wrapper in mind
         this._selectWrapper.fireOnChange();
 
-        
-        
-        
-        
+        // New elements can be shown when a select is updated so we need to
+        // reconstruct the inner elements array and to take care of possible
+        // focus change, this is why we use "self.currentElement" instead of 
+        // using directly "currentElement".
         this._executeDelayed(function(self) {
           let currentElement = self.currentElement;
           if (!currentElement)
@@ -298,8 +334,8 @@ FormAssistant.prototype = {
 
   focusSync: false,
   handleEvent: function formHelperHandleEvent(aEvent) {
-    
-    
+    // focus changes should be taken into account only if the user has done a
+    // manual operation like manually clicking
     let shouldIgnoreFocus = (aEvent.type == "focus" && !this._open && !this.focusSync);
     if ((!this._open && aEvent.type != "focus") || shouldIgnoreFocus)
       return;
@@ -307,15 +343,15 @@ FormAssistant.prototype = {
     let currentElement = this.currentElement;
     switch (aEvent.type) {
       case "submit":
-        
+        // submit is a final action and the form assistant should be closed
         this.close();
         break;
 
       case "pagehide":
       case "pageshow":
-        
-        
-        
+        // When reacting to a page show/hide, if the focus is different this
+        // could mean the web page has dramatically changed because of
+        // an Ajax change based on fragment identifier
         if (gFocusManager.focusedElement != currentElement)
           this.close();
         break;
@@ -323,9 +359,9 @@ FormAssistant.prototype = {
       case "focus":
         let focusedElement = gFocusManager.getFocusedElementForWindow(content, true, {}) || aEvent.target;
 
-        
-        
-        
+        // If a body element is editable and the body is the child of an
+        // iframe we can assume this is an advanced HTML editor, so let's
+        // redirect the form helper selection to the iframe element
         if (focusedElement && this._isEditable(focusedElement)) {
           let editableElement = this._getTopLevelEditable(focusedElement);
           if (this._isValidElement(editableElement)) {
@@ -336,8 +372,8 @@ FormAssistant.prototype = {
           return;
         }
 
-        
-        
+        // if an element is focused while we're closed but the element can be handle
+        // by the assistant, try to activate it (only during mouseup)
         if (!currentElement) {
           if (focusedElement && this._isValidElement(focusedElement)) {
             this._executeDelayed(function(self) {
@@ -357,8 +393,8 @@ FormAssistant.prototype = {
           if (!self._open)
             return;
 
-          
-          
+          // If the blurring causes focus be in no other element,
+          // we should close the form assistant.
           let focusedElement = gFocusManager.getFocusedElementForWindow(content, true, {});
           if (!focusedElement)
             self.close();
@@ -373,11 +409,11 @@ FormAssistant.prototype = {
           sendAsyncMessage("FormAssist:AutoComplete", this._getJSON());
         break;
 
-      
-      
+      // key processing inside a select element are done during the keypress
+      // handler, preventing this one to be fired cancel the selection change
       case "keypress":
-        
-        
+        // There is no need to handle keys if there is not element currently
+        // used by the form assistant
         if (!currentElement)
           return;
 
@@ -405,8 +441,8 @@ FormAssistant.prototype = {
         break;
 
       case "keyup":
-        
-        
+        // There is no need to handle keys if there is not element currently
+        // used by the form assistant
         if (!currentElement)
           return;
 
@@ -484,7 +520,7 @@ FormAssistant.prototype = {
     for (let i = 0; i < aNodes.length; i++) {
       let node = aNodes[i];
 
-      
+      // Avoid checking the top level editable element of each node
       if (this._isEditable(node)) {
         let editableElement = this._getTopLevelEditable(node);
         if (result.indexOf(editableElement) == -1)
@@ -515,7 +551,7 @@ FormAssistant.prototype = {
     if (!(aElement instanceof HTMLIFrameElement)) {
       let element = aElement;
 
-      
+      // Retrieve the top element that is editable
       if (element instanceof HTMLHtmlElement)
         element = element.ownerDocument.body;
       else if (element instanceof HTMLDocument)
@@ -524,7 +560,7 @@ FormAssistant.prototype = {
       while (element && !this._isEditable(element))
         element = element.parentNode;
 
-      
+      // Return the container frame if we are into a nested editable frame
       if (element && element instanceof HTMLBodyElement && element.ownerDocument.defaultView != content.document.defaultView)
         return element.ownerDocument.defaultView.frameElement;
     }
@@ -554,11 +590,11 @@ FormAssistant.prototype = {
     return false;
   },
 
-  
-
-
-
-
+  /*
+   * This function is similar to getListSuggestions from
+   * components/satchel/src/nsInputListAutoComplete.js but sadly this one is
+   * used by the autocomplete.xml binding which is not in used in fennec
+   */
   _getListSuggestions: function formHelperGetListSuggestions(aElement) {
     if (!(aElement instanceof HTMLInputElement) || !aElement.list)
       return [];
@@ -627,12 +663,12 @@ FormAssistant.prototype = {
 
     let rect = aElement.getBoundingClientRect();
 
-    
-    
-    
-    
-    
-    
+    // Since the only way to show a drop-down menu for a select when the form
+    // assistant is enabled is to return true here, a select is allowed to have
+    // an opacity to 0 in order to let web developpers add a custom design on
+    // top of it. This is less important to use the form assistant for the
+    // other types of fields because even if the form assistant won't fired,
+    // the focus will be in and a VKB will popup if needed
     return isVisible && (isOpaque || this._isSelectElement(aElement)) && (rect.height != 0 || rect.width != 0);
   },
 
@@ -640,7 +676,7 @@ FormAssistant.prototype = {
     return (aElement instanceof HTMLSelectElement || aElement instanceof XULMenuListElement);
   },
 
-  
+  /** Caret is used to input text for this element. */
   _getCaretRect: function _formHelperGetCaretRect() {
     let element = this.currentElement;
     let focusedElement = gFocusManager.getFocusedElementForWindow(content, true, {});
@@ -657,7 +693,7 @@ FormAssistant.prototype = {
     return new Rect(0, 0, 0, 0);
   },
 
-  
+  /** Gets a rect bounding important parts of the element that must be seen when assisting. */
   _getRect: function _formHelperGetRect() {
     const kDistanceMax = 100;
     let element = this.currentElement;
@@ -697,8 +733,8 @@ FormAssistant.prototype = {
   },
 
   _getAllElements: function getAllElements(aElement) {
-    
-    
+    // XXX good candidate for tracing if possible.
+    // The tough ones are lenght and isVisibleElement.
     let document = aElement.ownerDocument;
     if (!document)
       return;
@@ -722,9 +758,9 @@ FormAssistant.prototype = {
     this._elements = this._filterEditables(elements);
 
     function orderByTabIndex(a, b) {
-      
-      
-      
+      // for an explanation on tabbing navigation see
+      // http://www.w3.org/TR/html401/interact/forms.html#h-17.11.1
+      // In resume tab index navigation order is 1, 2, 3, ..., 32767, 0
       if (a.tabIndex == 0 || b.tabIndex == 0)
         return b.tabIndex;
 
@@ -732,7 +768,7 @@ FormAssistant.prototype = {
     }
     this._elements = this._elements.sort(orderByTabIndex);
 
-    
+    // retrieve the correct index
     let currentIndex = this._getIndexForElement(aElement);
     return currentIndex;
   },
@@ -774,12 +810,12 @@ FormAssistant.prototype = {
     };
   },
 
-  
-
-
-
+  /**
+   * For each radio button group, remove all but the checked button
+   * if there is one, or the first button otherwise.
+   */
   _filterRadioButtons: function(aNodes) {
-    
+    // First pass: Find the checked or first element in each group.
     let chosenRadios = {};
     for (let i=0; i < aNodes.length; i++) {
       let node = aNodes[i];
@@ -787,7 +823,7 @@ FormAssistant.prototype = {
         chosenRadios[node.name] = node;
     }
 
-    
+    // Second pass: Exclude all other radio buttons from the list.
     let result = [];
     for (let i=0; i < aNodes.length; i++) {
       let node = aNodes[i];
@@ -800,12 +836,12 @@ FormAssistant.prototype = {
 };
 
 
-
-
-
-
-
-
+/******************************************************************************
+ * The next classes wraps some forms elements such as different type of list to
+ * abstract the difference between html and xul element while manipulating them
+ *  - SelectWrapper   : <html:select>
+ *  - MenulistWrapper : <xul:menulist>
+ *****************************************************************************/
 
 function getWrapperForElement(aElement) {
   let wrapper = null;
@@ -830,16 +866,16 @@ function getListForElement(aElement) {
     choices: []
   };
 
-  
-  
-  
-  
+  // Build up a flat JSON array of the choices. In HTML, it's possible for select element choices
+  // to be under a group header (but not recursively). We distinguish between headers and entries
+  // using the boolean "list.group".
+  // XXX If possible, this would be a great candidate for tracing.
   let children = wrapper.getChildren();
   for (let i = 0; i < children.length; i++) {
     let child = children[i];
     if (wrapper.isGroup(child)) {
-      
-      
+      // This is the group element. Add an entry in the choices that says that the following
+      // elements are a member of this group.
       result.choices.push({ group: true,
                             text: child.label || child.firstChild.data,
                             disabled: child.disabled
@@ -858,7 +894,7 @@ function getListForElement(aElement) {
       }
     }
     else if (wrapper.isOption(child)) {
-      
+      // This is a regular choice under no group.
       result.choices.push({
         group: false,
         inGroup: false,
@@ -932,8 +968,8 @@ SelectWrapper.prototype = {
 };
 
 
-
-
+// bug 559792
+// Use wrappedJSObject when control is in content for extra protection
 function MenulistWrapper(aControl) {
   this._control = aControl;
 }

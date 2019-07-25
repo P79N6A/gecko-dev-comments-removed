@@ -39,6 +39,7 @@
 @import url(chrome://global/content/xul.css);
 
 @namespace parsererror url(http://www.mozilla.org/newlayout/xml/parsererror.xml);
+@namespace xul url(http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul);
 
 
 
@@ -254,7 +255,8 @@
 
 
 
-*|*:root:-moz-full-screen-ancestor {
+
+:not(xul|*):root:-moz-full-screen-ancestor {
   overflow: hidden !important;
 }
 

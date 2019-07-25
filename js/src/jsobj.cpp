@@ -4317,7 +4317,7 @@ DefineConstructorAndPrototype(JSContext *cx, JSObject *obj, JSProtoKey key, JSAt
 
 
 
-        if (key != JSProto_Null && !(clasp->flags & JSCLASS_CONSTRUCT_PROTOTYPE)) {
+        if (key != JSProto_Null) {
             if (!SetClassObject(cx, obj, key, fun, proto))
                 goto bad;
             cached = true;
@@ -4334,16 +4334,6 @@ DefineConstructorAndPrototype(JSContext *cx, JSObject *obj, JSProtoKey key, JSAt
 
 
         ctor = fun;
-        if (clasp->flags & JSCLASS_CONSTRUCT_PROTOTYPE) {
-            Value rval;
-            if (!InvokeConstructorWithGivenThis(cx, proto, ObjectOrNullValue(ctor),
-                                                0, NULL, &rval)) {
-                goto bad;
-            }
-            if (rval.isObject() && &rval.toObject() != proto)
-                proto = &rval.toObject();
-        }
-
         if (!LinkConstructorAndPrototype(cx, ctor, proto))
             goto bad;
 
@@ -4946,14 +4936,8 @@ js_ConstructObject(JSContext *cx, Class *clasp, JSObject *proto, JSObject *paren
 
 
 
-
-
-
     obj = &rval.toObject();
-    if (obj->getClass() != clasp ||
-        (!(~clasp->flags & (JSCLASS_HAS_PRIVATE |
-                            JSCLASS_CONSTRUCT_PROTOTYPE)) &&
-         !obj->getPrivate())) {
+    if (obj->getClass() != clasp) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                              JSMSG_WRONG_CONSTRUCTOR, clasp->name);
         return NULL;

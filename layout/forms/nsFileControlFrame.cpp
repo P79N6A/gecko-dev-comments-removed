@@ -90,6 +90,7 @@
 #include "nsIFileURL.h"
 #include "nsDOMFile.h"
 #include "nsEventStates.h"
+#include "nsTextControlFrame.h"
 
 #include "nsIDOMDOMStringList.h"
 #include "nsIDOMDragEvent.h"
@@ -108,8 +109,7 @@ NS_NewFileControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsFileControlFrame)
 
 nsFileControlFrame::nsFileControlFrame(nsStyleContext* aContext):
-  nsBlockFrame(aContext),
-  mTextFrame(nsnull)
+  nsBlockFrame(aContext)
 {
   AddStateBits(NS_BLOCK_FLOAT_MGR);
 }
@@ -134,7 +134,6 @@ nsFileControlFrame::Init(nsIContent* aContent,
 void
 nsFileControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  mTextFrame = nsnull;
   ENSURE_TRUE(mContent);
 
   
@@ -454,7 +453,8 @@ nsFileControlFrame::CaptureMouseListener::HandleEvent(nsIDOMEvent* aMouseEvent)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  mFrame->mTextFrame->InitFocusedValue();
+  nsTextControlFrame* textControlFrame = mFrame->GetTextControlFrame();
+  textControlFrame->InitFocusedValue();
 
   
   PRUint32 result;
@@ -489,13 +489,13 @@ nsFileControlFrame::CaptureMouseListener::HandleEvent(nsIDOMEvent* aMouseEvent)
     
     
     
-    bool oldState = mFrame->mTextFrame->GetFireChangeEventState();
-    mFrame->mTextFrame->SetFireChangeEventState(true);
+    bool oldState = textControlFrame->GetFireChangeEventState();
+    textControlFrame->SetFireChangeEventState(true);
     inputElement->SetFiles(newFiles, true);
+    textControlFrame->SetFireChangeEventState(oldState);
 
-    mFrame->mTextFrame->SetFireChangeEventState(oldState);
     
-    mFrame->mTextFrame->CheckFireOnChange();
+    textControlFrame->CheckFireOnChange();
   }
 
   return NS_OK;
@@ -556,11 +556,12 @@ nsFileControlFrame::BrowseMouseListener::HandleEvent(nsIDOMEvent* aEvent)
     nsCOMPtr<nsIDOMFileList> fileList;
     dataTransfer->GetFiles(getter_AddRefs(fileList));
 
-    bool oldState = mFrame->mTextFrame->GetFireChangeEventState();
-    mFrame->mTextFrame->SetFireChangeEventState(true);
+    nsTextControlFrame* textControlFrame = mFrame->GetTextControlFrame();
+    bool oldState = textControlFrame->GetFireChangeEventState();
+    textControlFrame->SetFireChangeEventState(true);
     inputElement->SetFiles(fileList, true);
-    mFrame->mTextFrame->SetFireChangeEventState(oldState);
-    mFrame->mTextFrame->CheckFireOnChange();
+    textControlFrame->SetFireChangeEventState(oldState);
+    textControlFrame->CheckFireOnChange();
   }
 
   return NS_OK;
@@ -594,55 +595,11 @@ nsFileControlFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
   return result;
 }
 
-NS_IMETHODIMP nsFileControlFrame::Reflow(nsPresContext*          aPresContext, 
-                                         nsHTMLReflowMetrics&     aDesiredSize,
-                                         const nsHTMLReflowState& aReflowState, 
-                                         nsReflowStatus&          aStatus)
+nsTextControlFrame*
+nsFileControlFrame::GetTextControlFrame()
 {
-  DO_GLOBAL_REFLOW_COUNT("nsFileControlFrame");
-  DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
-
-  aStatus = NS_FRAME_COMPLETE;
-
-  if (mState & NS_FRAME_FIRST_REFLOW) {
-    mTextFrame = GetTextControlFrame(aPresContext, this);
-    NS_ENSURE_TRUE(mTextFrame, NS_ERROR_UNEXPECTED);
-  }
-
-  
-  return nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowState,
-                             aStatus);
-}
-
-nsNewFrame*
-nsFileControlFrame::GetTextControlFrame(nsPresContext* aPresContext, nsIFrame* aStart)
-{
-  nsNewFrame* result = nsnull;
-#ifndef DEBUG_NEWFRAME
-  
-  nsIFrame* childFrame = aStart->GetFirstPrincipalChild();
-
-  while (childFrame) {
-    
-    nsCOMPtr<nsIFormControl> formCtrl =
-      do_QueryInterface(childFrame->GetContent());
-
-    if (formCtrl && formCtrl->GetType() == NS_FORM_INPUT_TEXT) {
-      result = (nsNewFrame*)childFrame;
-    }
-
-    
-    nsNewFrame* frame = GetTextControlFrame(aPresContext, childFrame);
-    if (frame)
-       result = frame;
-     
-    childFrame = childFrame->GetNextSibling();
-  }
-
-  return result;
-#else
-  return nsnull;
-#endif
+  nsITextControlFrame* tc = do_QueryFrame(mTextContent->GetPrimaryFrame());
+  return static_cast<nsTextControlFrame*>(tc);
 }
 
 PRIntn

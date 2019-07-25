@@ -73,6 +73,35 @@ DoomCachedStatements(const nsACString& aQuery,
   return PL_DHASH_REMOVE;
 }
 
+
+
+class StartTransactionRunnable : public nsIRunnable
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  NS_IMETHOD Run()
+  {
+    
+    return NS_OK;
+  }
+};
+
+
+NS_IMETHODIMP_(nsrefcnt) StartTransactionRunnable::AddRef()
+{
+  return 2;
+}
+
+NS_IMETHODIMP_(nsrefcnt) StartTransactionRunnable::Release()
+{
+  return 1;
+}
+
+NS_IMPL_QUERY_INTERFACE1(StartTransactionRunnable, nsIRunnable)
+
+StartTransactionRunnable gStartTransactionRunnable;
+
 } 
 
 
@@ -119,6 +148,11 @@ IDBTransaction::Create(IDBDatabase* aDatabase,
     NS_ENSURE_SUCCESS(rv, nsnull);
 
     transaction->mCreating = true;
+  }
+
+  if (aMode != nsIIDBTransaction::VERSION_CHANGE) {
+    TransactionThreadPool* pool = TransactionThreadPool::GetOrCreate();
+    pool->Dispatch(transaction, &gStartTransactionRunnable, false, nsnull);
   }
 
   return transaction.forget();

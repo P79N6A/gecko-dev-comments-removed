@@ -45,9 +45,7 @@
 #include "nsICapturePicker.h"
 #include "nsCOMPtr.h"
 
-#include "nsTextControlFrame.h"
-typedef   nsTextControlFrame nsNewFrame;
-
+class nsTextControlFrame;
 class nsIDOMDragEvent;
 
 class nsFileControlFrame : public nsBlockFrame,
@@ -75,11 +73,6 @@ public:
 
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   
-  NS_IMETHOD Reflow(nsPresContext*          aCX,
-                    nsHTMLReflowMetrics&     aDesiredSize,
-                    const nsHTMLReflowState& aReflowState,
-                    nsReflowStatus&          aStatus);
-
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
 #ifdef NS_DEBUG
@@ -105,8 +98,6 @@ public:
 
   typedef bool (*AcceptAttrCallback)(const nsAString&, void*);
   void ParseAcceptAttribute(AcceptAttrCallback aCallback, void* aClosure) const;
-
-  nsIFrame* GetTextFrame() { return mTextFrame; }
 
 protected:
 
@@ -177,11 +168,6 @@ protected:
 
 
 
-  nsNewFrame* mTextFrame;
-  
-
-
-
   nsCOMPtr<nsIContent> mTextContent;
   
 
@@ -201,19 +187,11 @@ protected:
   nsRefPtr<BrowseMouseListener> mMouseListener;
   nsRefPtr<CaptureMouseListener> mCaptureMouseListener;
 
-private:
+protected:
   
 
 
-
-
-
-
-
-
-
-  nsNewFrame* GetTextControlFrame(nsPresContext* aPresContext,
-                                  nsIFrame* aStart);
+  nsTextControlFrame* GetTextControlFrame();
 
   
 

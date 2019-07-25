@@ -1,7 +1,7 @@
-
-
-
-
+/*
+ * Bug 436069 - Fennec browser-chrome tests to verify correct navigation into the
+ *              differents part of the awesome panel
+ */
 
 let testURL_01 = chromeRoot + "browser_blank_01.html";
 
@@ -10,29 +10,29 @@ let gCurrentTest = null;
 let Panels = [AllPagesList, HistoryList, BookmarkList];
 
 function test() {
-  
-  
+  // The "runNextTest" approach is async, so we need to call "waitForExplicitFinish()"
+  // We call "finish()" when the tests are finished
   waitForExplicitFinish();
 
-  
+  // Start the tests
   setTimeout(runNextTest, 200);
 }
 
-
-
+//------------------------------------------------------------------------------
+// Iterating tests by shifting test out one by one as runNextTest is called.
 function runNextTest() {
-  
+  // Run the next test until all tests completed
   if (gTests.length > 0) {
     gCurrentTest = gTests.shift();
     info(gCurrentTest.desc);
 
-    
+    // Ensure all tests start with hidden awesome screen
     AwesomeScreen.activePanel = null;
 
     gCurrentTest.run();
   }
   else {
-    
+    // Close the awesome panel just in case
     AwesomeScreen.activePanel = null;
     finish();
   }
@@ -48,8 +48,8 @@ function waitForNavigationPanel(aCallback, aWaitForHide) {
   }, false);
 }
 
-
-
+//------------------------------------------------------------------------------
+// Case: Test awesome bar collapsed state
 gTests.push({
   desc: "Test awesome bar collapsed state",
 
@@ -78,8 +78,8 @@ gTests.push({
 });
 
 
-
-
+//------------------------------------------------------------------------------
+// Case: Test typing a character should dismiss the awesome header
 gTests.push({
   desc: "Test typing a character should dismiss the awesome header",
 
@@ -117,8 +117,8 @@ gTests.push({
   }
 });
 
-
-
+//------------------------------------------------------------------------------
+// Case: Test typing a character should open the awesome bar
 gTests.push({
   desc: "Test typing a character should open the All Pages List",
 
@@ -151,8 +151,8 @@ gTests.push({
   }
 });
 
-
-
+//------------------------------------------------------------------------------
+// Case: Test opening the awesome panel and checking the urlbar readonly state
 gTests.push({
   desc: "Test opening the awesome panel and checking the urlbar readonly state",
 
@@ -178,7 +178,7 @@ gTests.push({
       aPanel.doCommand();
       is(AwesomeScreen.activePanel, aPanel, "The panel " + aPanel.panel.id + " should be selected");
       if (firstPanel) {
-        
+        // First panel will have selected text, if we are in portrait
         is(edit.readOnly, BrowserUI._isKeyboardFullscreen(), "urlbar input textbox is readonly if keyboard is fullscreen, editable otherwise");
       } else {
         is(edit.readOnly, true, "urlbar input textbox be readonly if not the first panel");
@@ -196,8 +196,8 @@ gTests.push({
   }
 });
 
-
-
+//------------------------------------------------------------------------------
+// Case: Test opening the awesome panel and checking the urlbar selection
 gTests.push({
   desc: "Test opening the awesome panel and checking the urlbar selection",
 
@@ -205,7 +205,7 @@ gTests.push({
     BrowserUI.closeAutoComplete(true);
     this.currentTab = BrowserUI.newTab(testURL_01);
 
-    
+    // Need to wait until the page is loaded
     messageManager.addMessageListener("pageshow",
     function(aMessage) {
       if (gCurrentTest.currentTab.browser.currentURI.spec != "about:blank") {
@@ -228,10 +228,10 @@ gTests.push({
     Panels.forEach(function(aPanel) {
       aPanel.doCommand();
       if (firstPanel && !BrowserUI._isKeyboardFullscreen()) {
-        
+        // First panel will have selected text, if we are in portrait
         ok(edit.selectionStart == 0 && edit.selectionEnd == edit.textLength, "[case 1] urlbar text should be selected on a simple show");
         edit.click();
-        
+        // The click is not sync enough for this to work
         todo(edit.selectionStart == edit.selectionEnd, "[case 1] urlbar text should not be selected on a click");
       } else {
         ok(edit.selectionStart == edit.selectionEnd, "[case 2] urlbar text should not be selected on a simple show");
@@ -241,7 +241,7 @@ gTests.push({
       firstPanel = false;
     });
 
-    
+    // We are disabling it early, otherwise calling edit.click(); quickly made input.js though this is a double click (sigh)
     let oldDoubleClickSelectsAll = Services.prefs.getBoolPref("browser.urlbar.doubleClickSelectsAll");
     Services.prefs.setBoolPref("browser.urlbar.doubleClickSelectsAll", false);
 
@@ -251,10 +251,10 @@ gTests.push({
     Panels.forEach(function(aPanel) {
       aPanel.doCommand();
       if (firstPanel && !BrowserUI._isKeyboardFullscreen()) {
-        
+        // First panel will have selected text, if we are in portrait
         ok(edit.selectionStart == 0 && edit.selectionEnd == edit.textLength, "[case 1] urlbar text should be selected on a simple show");
         edit.click();
-        
+        // The click is not sync enough for this to work
         todo(edit.selectionStart == edit.selectionEnd, "[case 1] urlbar text should not be selected on a click");
       } else {
         ok(edit.selectionStart == edit.selectionEnd, "[case 2] urlbar text should not be selected on a simple show");
@@ -285,15 +285,15 @@ gTests.push({
 
     edit.clickSelectsAll = oldClickSelectsAll;
 
-    
-    
+    // Ensure the tab is well closed before doing the rest of the code, otherwise
+    // this cause some bugs with the composition events
     let tabCount = Browser.tabs.length;
     Browser.closeTab(gCurrentTest.currentTab, { forceClose: true });
     waitFor(runNextTest, function() Browser.tabs.length == tabCount - 1);
   }
 });
 
-
+// Case: Test context clicks on awesome panel
 gTests.push({
   desc: "Test context clicks on awesome panel",
 
@@ -315,7 +315,7 @@ gTests.push({
     for (let i=0; i<commandlist.childNodes.length; i++) {
       let command = commandlist.childNodes[i];
       if (aTypes.indexOf(command.getAttribute("type")) > -1) {
-        
+        // command should be visible
         if(command.hidden == true)
           return false;
       } else {
@@ -355,7 +355,7 @@ gTests.push({
 });
 
 
-
+// Case: Test compositionevent
 gTests.push({
   desc: "Test sending composition events",
   _textValue: null,
@@ -375,7 +375,7 @@ gTests.push({
   },
 
   run: function() {
-    
+    // Saving value to compare the result before and after the composition event
     gCurrentTest._textValue = gCurrentTest.inputField.value;
 
     window.addEventListener("popupshown", function() {
@@ -414,28 +414,28 @@ gTests.push({
   },
 
   onCompositionEnd: function() {
-    
+    /* TODO: This is currently failing (bug 642771)
+    gCurrentTest._checkState();
 
+    let isHiddenHeader = function() {
+      return gCurrentTest.popupHeader.hidden;
+    }
 
+    // Wait to be sure there the header won't dissapear
+    // XXX this sucks because it means we'll be stuck 500ms if the test succeed
+    // but I don't have a better idea about how to do it for now since we don't
+    // that to happen!
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    waitForAndContinue(function() {
+      gCurrentTest._checkState();
+      runNextTest();
+    }, isHiddenHeader, Date.now() + 500);
+    */
     runNextTest();
   }
 });
 
-
+// Case: Test context popup dismiss on top of awesome panel
 gTests.push({
   desc: "Case: Test context popup dismiss on top of awesome panel",
 
@@ -448,7 +448,7 @@ gTests.push({
     EventUtils.synthesizeMouse(AllPagesList.panel, AllPagesList.panel.width / 2,
                                AllPagesList.panel.height / 2, { type: "mousedown" });
 
-    
+    // Simulate a long tap
     setTimeout(function(self) {
       EventUtils.synthesizeMouse(AllPagesList.panel, AllPagesList.panel.width / 2,
                                  AllPagesList.panel.height / 2, { type: "mouseup" });

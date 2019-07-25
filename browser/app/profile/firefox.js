@@ -55,8 +55,7 @@ pref("browser.hiddenWindowChromeURL", "chrome://browser/content/hiddenWindow.xul
 pref("extensions.logging.enabled", false);
 
 
-
-pref("extensions.strictCompatibility", true);
+pref("extensions.strictCompatibility", false);
 
 
 
@@ -1018,6 +1017,9 @@ pref("devtools.ruleview.enabled", true);
 
 
 pref("devtools.scratchpad.enabled", true);
+
+
+pref("devtools.styleeditor.enabled", true);
 
 
 pref("devtools.chrome.enabled", false);

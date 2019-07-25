@@ -1,7 +1,3 @@
-
-
-
-
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cu = Components.utils;
@@ -77,7 +73,7 @@ let LocaleUI = {
     return this._availableLocales;
   },
 
-  pendingInstall: null, 
+  pendingInstall: null, // used to cancel an install
 
   get selectedPanel() {
     return this.deck.selectedPanel;
@@ -211,7 +207,7 @@ let LocaleUI = {
   goBack: function goBack() {
     switch (this.selectedPanel) {
       case this.mainPage:
-        
+        // Do nothing on the "Loading..." screen.
         break;
       case this.pickerpage:
         this.cancelPicker();
@@ -227,7 +223,7 @@ let LocaleUI = {
     if (this.pendingInstall)
       this.pendingInstall = null;
 
-    
+    // restore the last known "good" locale
     this.locale = this.defaultLocale;
     this.closePicker();
   },
@@ -236,9 +232,9 @@ let LocaleUI = {
     var buildID =  Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo).platformBuildID;
     Services.prefs.setCharPref("extensions.compatability.locales.buildid", buildID);
 
-    
+    // Trying to close this window and open a new one results in a corrupt UI.
     if (!window.opener && LocaleUI.pendingInstall) {
-      
+      // a new locale was installed, restart the browser
       let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
       Services.obs.notifyObservers(cancelQuit, "quit-application-requested", "restart");
     
@@ -249,7 +245,7 @@ let LocaleUI = {
       }
     }
 
-    
+    // just open the window
     let argString = null;
     if (window.arguments) {
       argString = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
@@ -285,17 +281,17 @@ let LocaleUI = {
   }
 }
 
-
-
-
+// Gets the target locale for an addon
+// For now this returns the targetLocale, although if and addon doesn't
+// specify a targetLocale we could attempt to guess the locale from the addon's name
 function getTargetLocale(aAddon) {
   return aAddon.targetLocale;
 }
 
-
-
-
-
+// Gets a particular string for the passed in locale
+// Parameters: aStringName - The name of the string property to get
+//             aDataset - an array of properties to use in a formatted string
+//             aAddon - An addon to attempt to get dataset properties from
 function getString(aStringName, aDataSet, aAddon) {
   if (aDataSet) {
     let databundle = aDataSet.map(function(aData) {
@@ -350,8 +346,8 @@ let installListener = {
 const PERFECT_MATCH = 2;
 const GOOD_MATCH = 1;
 const NO_MATCH = 0;
-
-
+//Compares two locales of the form AB or AB-CD
+//returns GOOD_MATCH if AB == AB in both locales, PERFECT_MATCH if AB-CD == AB-CD
 function localesMatch(aLocale1, aLocale2) {
   if (aLocale1 == aLocale2)
     return PERFECT_MATCH;
@@ -364,27 +360,27 @@ function localesMatch(aLocale1, aLocale2) {
 function start() {
   let mouseModule = new MouseModule();
 
-  
-  
+  // if we have gotten this far, we can assume that we don't have anything matching the system
+  // locale and we should show the locale picker
   LocaleUI.mainPage.setAttribute("mode", "loading");
   let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry);
   chrome.QueryInterface(Ci.nsIToolkitChromeRegistry);
   LocaleUI._locale = chrome.getSelectedLocale("browser");
   LocaleUI.updateStrings();
 
-  
-  
+  // if we haven't gotten the list of available locales from AMO within 5 seconds, we give up
+  // users can try downloading the list again by selecting "Choose another locale"
   let timeout = setTimeout(function() {
     LocaleUI.mainPage.removeAttribute("mode");
     timeout = null;
   }, 5000);
 
-  
+  // update the page strings and show the correct page
   LocaleUI.defaultLocale = LocaleUI._locale;
   window.addEventListener("resize", resizeHandler, false);
 
-  
-  
+  // if we have an opener, we are probably coming from the prefs pane
+  // and can jump straight to the list of languages
   if (window.opener) {
     LocaleUI.updateStrings();
     LocaleUI.showPicker();
@@ -392,7 +388,7 @@ function start() {
     return;
   }
 
-  
+  // Look on AMO for something that matches the system locale
   LocaleRepository.getLocales(function lp_initalDownload(aLocales) {
     if (!LocaleUI.mainPage.hasAttribute("mode")) return;
 
@@ -418,16 +414,16 @@ function start() {
     }
 
     if (matchingLocale) {
-      
+      // if we found something, try to install it automatically
       AddonManager.getAddonByID(matchingLocale.addon.id, function (aAddon) {
-        
-        
+        // if this locale is already installed, but is user disabled,
+        // bail out of here.
         if (aAddon && aAddon.userDisabled) {
           Services.prefs.clearUserPref("general.useragent.locale");
           LocaleUI.closeWindow();
           return;
         }
-        
+        // if we found something, try to install it automatically
         LocaleUI.strings = new FakeStringBundle(matchingLocale.addon);
         LocaleUI.updateStrings();
         LocaleUI.pendingInstall = matchingLocale.addon;

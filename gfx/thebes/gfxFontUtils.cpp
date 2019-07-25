@@ -361,8 +361,10 @@ gfxFontUtils::ReadCMAPTableFormat4(const PRUint8 *aBuf, PRUint32 aLength,
         const PRUint16 idRangeOffset = ReadShortAt16(idRangeOffsets, i);
 
         
-        NS_ENSURE_TRUE((startCount > prevEndCount || i == 0 || startCount == 0xFFFF) &&
-                       startCount <= endCount,
+        
+        
+        
+        NS_ENSURE_TRUE(startCount >= prevEndCount && startCount <= endCount,
                        NS_ERROR_GFX_CMAP_MALFORMED);
         prevEndCount = endCount;
 

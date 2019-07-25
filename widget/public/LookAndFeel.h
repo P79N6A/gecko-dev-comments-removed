@@ -370,7 +370,12 @@ public:
     
 
 
-    eIntID_WindowsThemeIdentifier
+    eIntID_WindowsThemeIdentifier,
+    
+
+
+
+    eIntID_ScrollbarButtonAutoRepeatBehavior
   };
 
   

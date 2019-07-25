@@ -3,9 +3,41 @@
 
 
 
-#include "nsXULAppAPI.h"
-#include "application.ini.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXPCOMGlue.h"
+#include "nsXULAppAPI.h"
 #if defined(XP_WIN)
 #include <windows.h>
 #include <stdlib.h>
@@ -16,9 +48,14 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
+
+#include "plstr.h"
+#include "prprf.h"
+#include "prenv.h"
 
 #include "nsCOMPtr.h"
-#include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsStringGlue.h"
 
 #ifdef XP_WIN
@@ -104,13 +141,26 @@ static const nsDynamicFunctionLoad kXULFuncs[] = {
 #endif
     { "XRE_TelemetryAccumulate", (NSFuncPtr*) &XRE_TelemetryAccumulate },
     { "XRE_main", (NSFuncPtr*) &XRE_main },
-    { nullptr, nullptr }
+    { nsnull, nsnull }
 };
 
-static int do_main(int argc, char* argv[])
+static int do_main(const char *exePath, int argc, char* argv[])
 {
-  nsCOMPtr<nsIFile> appini;
-  nsresult rv;
+  nsCOMPtr<nsILocalFile> appini;
+#ifdef XP_WIN
+  
+  
+  nsresult rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(exePath), false,
+                                getter_AddRefs(appini));
+#else
+  nsresult rv = NS_NewNativeLocalFile(nsDependentCString(exePath), false,
+                                      getter_AddRefs(appini));
+#endif
+  if (NS_FAILED(rv)) {
+    return 255;
+  }
+
+  appini->SetNativeLeafName(NS_LITERAL_CSTRING("application.ini"));
 
   
   
@@ -145,19 +195,16 @@ static int do_main(int argc, char* argv[])
     argc -= 2;
   }
 
-  if (appini) {
-    nsXREAppData *appData;
-    rv = XRE_CreateAppData(appini, &appData);
-    if (NS_FAILED(rv)) {
-      Output("Couldn't read application.ini");
-      return 255;
-    }
-    int result = XRE_main(argc, argv, appData, 0);
-    XRE_FreeAppData(appData);
-    return result;
+  nsXREAppData *appData;
+  rv = XRE_CreateAppData(appini, &appData);
+  if (NS_FAILED(rv)) {
+    Output("Couldn't read application.ini");
+    return 255;
   }
 
-  return XRE_main(argc, argv, &sAppData, 0);
+  int result = XRE_main(argc, argv, appData);
+  XRE_FreeAppData(appData);
+  return result;
 }
 
 #if MOZ_PLATFORM_MAEMO == 6
@@ -200,12 +247,18 @@ int main(int argc, char* argv[])
   struct rusage initialRUsage;
   gotCounters = !getrusage(RUSAGE_SELF, &initialRUsage);
 #elif defined(XP_WIN)
+  
+  
+  
+  
+  
   IO_COUNTERS ioCounters;
   gotCounters = GetProcessIoCounters(GetCurrentProcess(), &ioCounters);
+  if (gotCounters && !ioCounters.ReadOperationCount)
 #endif
-
-  
-  XPCOMGlueEnablePreload();
+  {
+      XPCOMGlueEnablePreload();
+  }
 
 #if MOZ_PLATFORM_MAEMO == 6
   nsFastStartup startup;
@@ -216,8 +269,6 @@ int main(int argc, char* argv[])
     Output("Couldn't load XPCOM.\n");
     return 255;
   }
-  
-  *lastSlash = 0;
 
   rv = XPCOMGlueLoadXULFunctions(kXULFuncs);
   if (NS_FAILED(rv)) {
@@ -257,7 +308,7 @@ int main(int argc, char* argv[])
   int result;
   {
     ScopedLogging log;
-    result = do_main(argc, argv);
+    result = do_main(exePath, argc, argv);
   }
 
   XPCOMGlueShutdown();

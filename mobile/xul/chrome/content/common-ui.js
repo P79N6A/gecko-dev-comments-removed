@@ -1,7 +1,40 @@
-
-
-
-
+// -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; js2-basic-offset: 2; js2-skip-preprocessor-directives: t; -*-
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Mobile Browser.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2011
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 const kBrowserFormZoomLevelMin = 0.8;
 const kBrowserFormZoomLevelMax = 2.0;
@@ -78,22 +111,22 @@ var BrowserSearch = {
     switch (aData) {
       case "engine-added":
       case "engine-removed":
-        
-        
+        // force a rebuild of the prefs list, if needed
+        // XXX this is inefficient, shouldn't have to rebuild the entire list
         if (ExtensionsView._list)
           ExtensionsView.getAddonsFromLocal();
 
-        
+        // fall through
       case "engine-changed":
-        
-        
-        
+        // XXX we should probably also update the ExtensionsView list here once
+        // that's efficient, since the icon can change (happen during an async
+        // installs from the web)
 
-        
+        // blow away our cache
         this._engines = null;
         break;
       case "engine-current":
-        
+        // Not relevant
         break;
     }
   },
@@ -111,13 +144,13 @@ var BrowserSearch = {
     if (!items.length)
       return false;
 
-    
+    // XXX limit to the first search engine for now
     let engine = items[0];
     aNode.setAttribute("description", engine.title);
     aNode.onclick = function(aEvent) {
       BrowserSearch.addPermanentSearchEngine(engine);
       PageActions.hideItem(aNode);
-      aEvent.stopPropagation(); 
+      aEvent.stopPropagation(); // Don't hide the site menu.
     };
     return true;
   },
@@ -180,15 +213,15 @@ var NewTabPopup = {
     let tabRect = aTab.getBoundingClientRect();
     this.box.top = tabRect.top + (tabRect.height / 2);
 
-    
+    // wait for layout to resolve the real size of the box
     setTimeout((function() {
       let boxRect = this.box.getBoundingClientRect();
       this.box.top = tabRect.top + (tabRect.height / 2) - (boxRect.height / 2);
 
-      
-      
-      
-      
+      // We don't use anchorTo() here because the tab
+      // being anchored to might be overflowing the tabs
+      // scrollbox which confuses the dynamic arrow direction
+      // calculation (see bug 662520).
       if (Util.isTablet()) {
         let toolbarbutton = document.getElementById("tool-tabs");
         this.box.anchorTo(toolbarbutton, "after_start");
@@ -212,7 +245,7 @@ var NewTabPopup = {
   },
 
   handleEvent: function nt_handleEvent(aEvent) {
-    
+    // Bail early and fast
     if (!aEvent.detail)
       return;
 
@@ -255,15 +288,15 @@ var FindHelperUI = {
     this._cmdPrevious = document.getElementById(this.commands.previous);
     this._cmdNext = document.getElementById(this.commands.next);
 
-    
+    // Listen for find assistant messages from content
     messageManager.addMessageListener("FindAssist:Show", this);
     messageManager.addMessageListener("FindAssist:Hide", this);
 
-    
+    // Listen for pan events happening on the browsers
     Elements.browsers.addEventListener("PanBegin", this, false);
     Elements.browsers.addEventListener("PanFinished", this, false);
 
-    
+    // Listen for events where form assistant should be closed
     Elements.tabList.addEventListener("TabSelect", this, true);
     Elements.browsers.addEventListener("URLChanged", this, true);
   },
@@ -314,7 +347,7 @@ var FindHelperUI = {
     this._textbox.focus();
     this._open = true;
 
-    
+    // Prevent the view to scroll automatically while searching
     Browser.selectedBrowser.scrollSync = false;
   },
 
@@ -328,7 +361,7 @@ var FindHelperUI = {
     this._container.hide(this);
     this._open = false;
 
-    
+    // Restore the scroll synchronisation
     Browser.selectedBrowser.scrollSync = true;
   },
 
@@ -343,7 +376,7 @@ var FindHelperUI = {
   search: function findHelperSearch(aValue) {
     this.updateCommands(aValue);
 
-    
+    // Don't bother searching if the value is empty
     if (aValue == "") {
       this.status = null;
       return;
@@ -366,7 +399,7 @@ var FindHelperUI = {
     if (Browser.selectedTab.allowZoom) {
       let zoomLevel = Browser._getZoomLevelForRect(aElementRect);
 
-      
+      // Clamp the zoom level relatively to the default zoom level of the page
       let defaultZoomLevel = Browser.selectedTab.getDefaultZoomLevel();
       zoomLevel = Util.clamp(zoomLevel, (defaultZoomLevel * kBrowserFormZoomLevelMin),
                                         (defaultZoomLevel * kBrowserFormZoomLevelMax));
@@ -375,22 +408,22 @@ var FindHelperUI = {
       let zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, zoomLevel);
       AnimatedZoom.animateTo(zoomRect);
     } else {
-      
-      
+      // Even if zooming is disabled we could need to reposition the view in
+      // order to keep the element on-screen
       let zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, getBrowser().scale);
       AnimatedZoom.animateTo(zoomRect);
     }
   }
 };
 
-
-
-
-
-
-
-
-
+/**
+ * Responsible for navigating forms and filling in information.
+ *  - Navigating forms is handled by next and previous commands.
+ *  - When an element is focused, the browser view zooms in to the control.
+ *  - The caret positionning and the view are sync to keep the type
+ *    in text into view for input fields (text/textarea).
+ *  - Provides autocomplete box for input fields.
+ */
 var FormHelperUI = {
   type: "form",
   commands: {
@@ -408,7 +441,7 @@ var FormHelperUI = {
     this._cmdPrevious = document.getElementById(this.commands.previous);
     this._cmdNext = document.getElementById(this.commands.next);
 
-    
+    // Listen for form assistant messages from content
     messageManager.addMessageListener("FormAssist:Show", this);
     messageManager.addMessageListener("FormAssist:Hide", this);
     messageManager.addMessageListener("FormAssist:Update", this);
@@ -416,28 +449,28 @@ var FormHelperUI = {
     messageManager.addMessageListener("FormAssist:AutoComplete", this);
     messageManager.addMessageListener("FormAssist:ValidationMessage", this);
 
-    
+    // Listen for events where form assistant should be closed or updated
     let tabs = Elements.tabList;
     tabs.addEventListener("TabSelect", this, true);
     tabs.addEventListener("TabClose", this, true);
     Elements.browsers.addEventListener("URLChanged", this, true);
     Elements.browsers.addEventListener("SizeChanged", this, true);
 
-    
+    // Listen for modal dialog to show/hide the UI
     messageManager.addMessageListener("DOMWillOpenModalDialog", this);
     messageManager.addMessageListener("DOMModalDialogClosed", this);
 
-    
+    // Listen key events for fields that are non-editable
     window.addEventListener("keydown", this, true);
     window.addEventListener("keyup", this, true);
     window.addEventListener("keypress", this, true);
 
-    
+    // Listen some events to show/hide arrows
     Elements.browsers.addEventListener("PanBegin", this, false);
     Elements.browsers.addEventListener("PanFinished", this, false);
 
-    
-    
+    // Dynamically enabled/disabled the form helper if needed depending on
+    // the size of the screen
     let mode = Services.prefs.getIntPref("formhelper.mode");
     let state = (mode == 2) ? !Util.isTablet() : !!mode;
     Services.prefs.setBoolPref("formhelper.enabled", state);
@@ -445,9 +478,9 @@ var FormHelperUI = {
 
   _currentBrowser: null,
   show: function formHelperShow(aElement, aHasPrevious, aHasNext) {
-    
-    
-    
+    // Delay the operation until all resize operations generated by the
+    // keyboard apparition are done. This avoid doing unuseful zooming
+    // operations.
     if (aElement.editable && !ViewableAreaObserver.isKeyboardOpened) {
       this._waitForKeyboard(aElement, aHasPrevious, aHasNext);
       return;
@@ -457,17 +490,17 @@ var FormHelperUI = {
     this._currentCaretRect = null;
 
 #ifndef ANDROID
-    
+    // Update the next/previous commands
     this._cmdPrevious.setAttribute("disabled", !aHasPrevious);
     this._cmdNext.setAttribute("disabled", !aHasNext);
 
-    
+    // If both next and previous are disabled don't bother showing arrows
     if (aHasNext || aHasPrevious)
       this._container.removeAttribute("disabled");
     else
       this._container.setAttribute("disabled", "true");
 #else
-    
+    // Always hide the arrows on Android
     this._container.setAttribute("disabled", "true");
 #endif
 
@@ -491,7 +524,7 @@ var FormHelperUI = {
     this._zoom(Rect.fromRect(aElement.rect), Rect.fromRect(aElement.caretRect));
     this._updatePopupsFor(this._currentElement);
 
-    
+    // Prevent the view to scroll automatically while typing
     this._currentBrowser.scrollSync = false;
   },
 
@@ -499,10 +532,10 @@ var FormHelperUI = {
     if (!this._open)
       return;
 
-    
+    // Restore the scroll synchonisation
     this._currentBrowser.scrollSync = true;
 
-    
+    // reset current Element and Caret Rect
     this._currentElementRect = null;
     this._currentCaretRect = null;
 
@@ -512,7 +545,7 @@ var FormHelperUI = {
     this._open = false;
   },
 
-  
+  // for VKB that does not resize the window
   _currentCaretRect: null,
   _currentElementRect: null,
   handleEvent: function formHelperHandleEvent(aEvent) {
@@ -526,10 +559,10 @@ var FormHelperUI = {
         break;
 
       case "PanBegin":
-        
-        
-        
-        
+        // The previous/next buttons should be hidden during a manual panning
+        // operation but not doing a zoom operation since this happen on both
+        // manual dblClick and navigation between the fields by clicking the
+        // buttons
         this._container.style.visibility = "hidden";
         break;
 
@@ -546,16 +579,16 @@ var FormHelperUI = {
       case "keydown":
       case "keypress":
       case "keyup":
-        
-        
+        // Ignore event that doesn't have a view, like generated keypress event
+        // from browser.js
         if (!aEvent.view) {
           aEvent.preventDefault();
           aEvent.stopPropagation();
           return;
         }
 
-        
-        
+        // If the focus is not on the browser element, the key will not be sent
+        // to the content so do it ourself
         let focusedElement = gFocusManager.getFocusedElementForWindow(window, true, {});
         if (focusedElement && focusedElement.localName == "browser")
           return;
@@ -581,9 +614,9 @@ var FormHelperUI = {
     let json = aMessage.json;
     switch (aMessage.name) {
       case "FormAssist:Show":
-        
-        
-        
+        // if the user has manually disabled the Form Assistant UI we still
+        // want to show a UI for <select /> element and still want to show
+        // autocomplete suggestions but not managed by FormHelperUI
         if (this.enabled) {
           this.show(json.current, json.hasPrevious, json.hasNext)
         } else if (json.current.choices) {
@@ -650,7 +683,7 @@ var FormHelperUI = {
   },
 
   doAutoComplete: function formHelperDoAutoComplete(aElement) {
-    
+    // Suggestions are only in <label>s. Ignore the rest.
     if (!(aElement instanceof Ci.nsIDOMXULLabelElement))
       return;
 
@@ -678,8 +711,8 @@ var FormHelperUI = {
       ContentPopupHelper.popup = null;
       this._container.removeAttribute("disabled");
 
-      
-      
+      // Since the style is overrided when a popup is shown, it needs to be
+      // resetted here to let the default CSS works
       this._container.style.display = "";
     }
 
@@ -693,14 +726,14 @@ var FormHelperUI = {
 
     let fromInput = 'fromInput' in options && options.fromInput;
 
-    
-    
-    
-    
-    
-    
-    
-    
+    // The order of the updates matters here. If the popup update was
+    // triggered from user input (e.g. key press in an input element),
+    // we first check if there are input suggestions then check for
+    // a validation message. The idea here is that the validation message
+    // will be shown straight away once the invalid element is focused
+    // and suggestions will be shown as user inputs data. Only one popup
+    // is shown at a time. If both are not shown, then we ensure any
+    // previous popups are hidden.
     let noPopupsShown = fromInput ?
                         (!this._updateSuggestionsFor(aElement) &&
                          !this._updateFormValidationFor(aElement)) :
@@ -716,8 +749,8 @@ var FormHelperUI = {
     if (!suggestions.length)
       return false;
 
-    
-    
+    // the scrollX/scrollY position can change because of the animated zoom so
+    // delay the suggestions positioning
     if (AnimatedZoom.isZooming()) {
       let self = this;
       this._waitForZoom(function() {
@@ -726,7 +759,7 @@ var FormHelperUI = {
       return true;
     }
 
-    
+    // Declare which box is going to be the inside container of the content popup helper
     let suggestionsContainer = document.getElementById("form-helper-suggestions-container");
     let container = suggestionsContainer.firstChild;
     while (container.hasChildNodes())
@@ -753,8 +786,8 @@ var FormHelperUI = {
     if (!aElement.validationMessage)
       return false;
 
-    
-    
+    // the scrollX/scrollY position can change because of the animated zoom so
+    // delay the suggestions positioning
     if (AnimatedZoom.isZooming()) {
       let self = this;
       this._waitForZoom(function() {
@@ -765,7 +798,7 @@ var FormHelperUI = {
 
     let validationContainer = document.getElementById("form-helper-validation-container");
 
-    
+    // Update label with form validation message
     validationContainer.firstChild.value = aElement.validationMessage;
 
     ContentPopupHelper.popup = validationContainer;
@@ -774,7 +807,7 @@ var FormHelperUI = {
     return true;
   },
 
-  
+  /** Retrieve the autocomplete list from the autocomplete service for an element */
   _getAutocompleteSuggestions: function _formHelperGetAutocompleteSuggestions(aElement) {
     if (!aElement.isAutocomplete)
       return [];
@@ -787,7 +820,7 @@ var FormHelperUI = {
       for (let i = 0; i < results.matchCount; i++) {
         let value = results.getValueAt(i);
 
-        
+        // Do not show the value if it is the current one in the input field
         if (value == aElement.value)
           continue;
 
@@ -795,8 +828,8 @@ var FormHelperUI = {
       }
     }
 
-    
-    
+    // Add the datalist elements provided by the website, note that the
+    // displayed value can differ from the real value of the element.
     let options = aElement.list;
     for (let i = 0; i < options.length; i++)
       suggestions.push(options[i]);
@@ -804,7 +837,7 @@ var FormHelperUI = {
     return suggestions;
   },
 
-  
+  /** Helper for _updateContainer that handles the case where the new element is a select. */
   _updateContainerForSelect: function _formHelperUpdateContainerForSelect(aLastElement, aCurrentElement) {
     let lastHasChoices = aLastElement && (aLastElement.choices != null);
     let currentHasChoices = aCurrentElement && (aCurrentElement.choices != null);
@@ -815,17 +848,17 @@ var FormHelperUI = {
       SelectHelperUI.hide();
   },
 
-  
+  /** Zoom and move viewport so that element is legible and touchable. */
   _zoom: function _formHelperZoom(aElementRect, aCaretRect) {
     let browser = getBrowser();
     let zoomRect = Rect.fromRect(browser.getBoundingClientRect());
 
-    
+    // Zoom to a specified Rect
     let autozoomEnabled = Services.prefs.getBoolPref("formhelper.autozoom");
     if (aElementRect && Browser.selectedTab.allowZoom && autozoomEnabled) {
       this._currentElementRect = aElementRect;
 
-      
+      // Zoom to an element by keeping the caret into view
       let zoomLevel = Browser.selectedTab.clampZoomLevel(this._getZoomLevelForRect(aElementRect));
 
       zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, zoomLevel);
@@ -833,8 +866,8 @@ var FormHelperUI = {
     } else if (aElementRect && !Browser.selectedTab.allowZoom && autozoomEnabled) {
       this._currentElementRect = aElementRect;
 
-      
-      
+      // Even if zooming is disabled we could need to reposition the view in
+      // order to keep the element on-screen
       zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, browser.scale);
       AnimatedZoom.animateTo(zoomRect);
     }
@@ -846,8 +879,8 @@ var FormHelperUI = {
     if (!aCaretRect || !Services.prefs.getBoolPref("formhelper.autozoom.caret"))
       return;
 
-    
-    
+    // the scrollX/scrollY position can change because of the animated zoom so
+    // delay the caret adjustment
     if (AnimatedZoom.isZooming()) {
       let self = this;
       this._waitForZoom(function() {
@@ -874,7 +907,7 @@ var FormHelperUI = {
     }
   },
 
-  
+  /* Store the current zoom level, and scroll positions to restore them if needed */
   _zoomStart: function _formHelperZoomStart() {
     if (!Services.prefs.getBoolPref("formhelper.restore"))
       return;
@@ -886,7 +919,7 @@ var FormHelperUI = {
     };
   },
 
-  
+  /** Element is no longer selected. Restore zoom level if setting is enabled. */
   _zoomFinish: function _formHelperZoomFinish() {
     if(!Services.prefs.getBoolPref("formhelper.restore"))
       return;
@@ -902,7 +935,7 @@ var FormHelperUI = {
     let self = this;
     window.addEventListener("AnimatedZoomEnd", function() {
       window.removeEventListener("AnimatedZoomEnd", arguments.callee, true);
-      
+      // Ensure the current element has not changed during this interval
       if (self._currentElement != currentElement)
         return;
 
@@ -914,21 +947,21 @@ var FormHelperUI = {
     const margin = 30;
     let zoomLevel = getBrowser().getBoundingClientRect().width / (aRect.width + margin);
 
-    
+    // Clamp the zoom level relatively to the default zoom level of the page
     let defaultZoomLevel = Browser.selectedTab.getDefaultZoomLevel();
     return Util.clamp(zoomLevel, (defaultZoomLevel * kBrowserFormZoomLevelMin),
                                  (defaultZoomLevel * kBrowserFormZoomLevelMax));
   },
 
   _getOffsetForCaret: function _formHelperGetOffsetForCaret(aCaretRect, aRect) {
-    
+    // Determine if we need to move left or right to bring the caret into view
     let deltaX = 0;
     if (aCaretRect.right > aRect.right)
       deltaX = aCaretRect.right - aRect.right;
     if (aCaretRect.left < aRect.left)
       deltaX = aCaretRect.left - aRect.left;
 
-    
+    // Determine if we need to move up or down to bring the caret into view
     let deltaY = 0;
     if (aCaretRect.bottom > aRect.bottom)
       deltaY = aCaretRect.bottom - aRect.bottom;
@@ -996,7 +1029,7 @@ var ContextHelper = {
       return false;
     }
 
-    
+    // Allow the first and last *non-hidden* elements to be selected in CSS.
     first.setAttribute("selector", "first-child");
     last.setAttribute("selector", "last-child");
 
@@ -1039,7 +1072,7 @@ var ContextHelper = {
         this.sizeToContent();
         break;
       case "keypress":
-        
+        // Hide the context menu so you can't type behind it.
         aEvent.stopPropagation();
         aEvent.preventDefault();
         if (aEvent.keyCode != aEvent.DOM_VK_ESCAPE)
@@ -1056,7 +1089,7 @@ var BadgeHandlers = {
       _lastCount: 0,
       url: "https://mail.google.com/mail",
       updateBadge: function(aBadge) {
-        
+        // Use the cache if possible
         let now = Date.now();
         if (this._lastCount && this._lastUpdate > now - 1000) {
           aBadge.set(this._lastCount);
@@ -1065,12 +1098,12 @@ var BadgeHandlers = {
 
         this._lastUpdate = now;
 
-        
-        
+        // Use any saved username and password. If we don't have any login and we are not
+        // currently logged into Gmail, we won't get any count.
         let login = BadgeHandlers.getLogin("https://www.google.com");
 
-        
-        
+        // Get the feed and read the count, passing any saved username and password
+        // but do not show any security dialogs if we fail
         let req = new XMLHttpRequest();
         req.mozBackgroundRequest = true;
         req.open("GET", "https://mail.google.com/mail/feed/atom", true, login.username, login.password);
@@ -1139,13 +1172,14 @@ var FullScreenVideo = {
     messageManager.addMessageListener("Browser:FullScreenVideo:Play", this.play.bind(this));
     messageManager.addMessageListener("Browser:FullScreenVideo:Pause", this.pause.bind(this));
 
-    
+    // If the screen supports brightness locks, we will utilize that, see checkBrightnessLocking()
     try {
       this.screen = null;
       let screenManager = Cc["@mozilla.org/gfx/screenmanager;1"].getService(Ci.nsIScreenManager);
-      this.screen = screenManager.primaryScreen;
+      let screen = screenManager.primaryScreen.QueryInterface(Ci.nsIScreen_MOZILLA_2_0_BRANCH);
+      this.screen = screen;
     }
-    catch (e) {} 
+    catch (e) {} // The screen does not support brightness locks
   },
 
   play: function() {
@@ -1158,8 +1192,8 @@ var FullScreenVideo = {
     this.checkBrightnessLocking();
   },
 
-  
-  
+  // We lock the screen brightness - prevent it from dimming or turning off - when
+  // we are fullscreen, and are playing (and the screen supports that feature).
   checkBrightnessLocking: function() {
     var shouldLock = !!this.screen && !!window.fullScreen && !!this.playing;
     var locking = !!this.brightnessLocked;
