@@ -94,10 +94,10 @@ public:
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams) = 0;
+  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams) = 0;
   
   
-  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName) = 0;
+  virtual nsresult  ToggleState(nsIEditor* aEditor) = 0;
 
 protected:
 
@@ -116,11 +116,10 @@ public:
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
+  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
   
   
-  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
-  
+  virtual nsresult  ToggleState(nsIEditor* aEditor);
 };
 
 
@@ -150,10 +149,10 @@ public:
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
+  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
   
   
-  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
+  virtual nsresult  ToggleState(nsIEditor* aEditor);
 };
 
 class nsListItemCommand : public nsBaseStateUpdatingCommand
@@ -165,10 +164,10 @@ public:
 protected:
 
   
-  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
+  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
   
   
-  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
+  virtual nsresult  ToggleState(nsIEditor* aEditor);
 };
 
 
@@ -278,8 +277,8 @@ public:
 protected:
 
   NS_IMETHOD IsCommandEnabled(const char *aCommandName, nsISupports *aCommandRefCon, bool *_retval);
-  virtual nsresult  GetCurrentState(nsIEditor *aEditor, const char* aTagName, nsICommandParams *aParams);
-  virtual nsresult  ToggleState(nsIEditor *aEditor, const char* aTagName);
+  virtual nsresult  GetCurrentState(nsIEditor* aEditor, nsICommandParams* aParams);
+  virtual nsresult  ToggleState(nsIEditor* aEditor);
 };
 
 
