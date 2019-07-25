@@ -190,6 +190,12 @@ IonBuilder::build()
         current->initSlot(localSlot(i), undef);
     }
 
+    
+    
+    
+    
+    current->makeStart(new MStart);
+
     if (!traverseBytecode())
         return false;
 

@@ -418,6 +418,17 @@ class MAryInstruction : public MInstruction
     }
 };
 
+
+class MStart : public MAryInstruction<0>
+{
+  public:
+    INSTRUCTION_HEADER(Start);
+    static MStart *New() {
+        return new MStart;
+    }
+};
+
+
 class MConstant : public MAryInstruction<0>
 {
     js::Value value_;
@@ -436,6 +447,7 @@ class MConstant : public MAryInstruction<0>
     }
     void printOpcode(FILE *fp);
 };
+
 
 class MParameter : public MAryInstruction<0>
 {
@@ -504,6 +516,7 @@ class MAryControlInstruction : public MControlInstruction
     }
 };
 
+
 class MGoto : public MAryControlInstruction<0>
 {
     MGoto(MBasicBlock *target) { 
@@ -518,6 +531,8 @@ class MGoto : public MAryControlInstruction<0>
         return successors[0];
     }
 };
+
+
 
 class MTest : public MAryControlInstruction<1>
 {
@@ -537,6 +552,7 @@ class MTest : public MAryControlInstruction<1>
         return MIRType_Any;
     }
 };
+
 
 class MReturn : public MAryControlInstruction<1>
 {
@@ -588,6 +604,8 @@ class MBinaryInstruction : public MAryInstruction<2>
     bool adjustForInputs();
 };
 
+
+
 class MCopy : public MUnaryInstruction
 {
     MCopy(MInstruction *ins)
@@ -604,6 +622,7 @@ class MCopy : public MUnaryInstruction
         return MIRType_Any;
     }
 };
+
 
 class MBox : public MUnaryInstruction
 {
@@ -627,6 +646,9 @@ class MBox : public MUnaryInstruction
         return MIRType_Any;
     }
 };
+
+
+
 
 class MUnbox : public MUnaryInstruction
 {
@@ -723,6 +745,7 @@ class MPhi : public MInstruction
         return MIRType_Value;
     }
 };
+
 
 
 
