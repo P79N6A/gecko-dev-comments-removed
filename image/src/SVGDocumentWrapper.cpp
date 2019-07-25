@@ -68,8 +68,6 @@ using namespace mozilla::dom;
 namespace mozilla {
 namespace imagelib {
 
-nsIAtom* SVGDocumentWrapper::kSVGAtom = nsnull; 
-
 NS_IMPL_ISUPPORTS4(SVGDocumentWrapper,
                    nsIStreamListener,
                    nsIRequestObserver,
@@ -80,12 +78,6 @@ SVGDocumentWrapper::SVGDocumentWrapper()
   : mIgnoreInvalidation(false),
     mRegisteredForXPCOMShutdown(false)
 {
-  
-  
-  if (!SVGDocumentWrapper::kSVGAtom) {
-    SVGDocumentWrapper::kSVGAtom =
-      NS_NewPermanentAtom(NS_LITERAL_STRING("svg"));
-  }
 }
 
 SVGDocumentWrapper::~SVGDocumentWrapper()
@@ -467,7 +459,7 @@ SVGDocumentWrapper::GetRootSVGElem()
   Element* rootElem = mViewer->GetDocument()->GetRootElement();
   if (!rootElem ||
       rootElem->GetNameSpaceID() != kNameSpaceID_SVG ||
-      rootElem->Tag() != SVGDocumentWrapper::kSVGAtom) {
+      rootElem->Tag() != nsGkAtoms::svg) {
     return nsnull;
   }
 
