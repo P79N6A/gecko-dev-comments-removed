@@ -525,8 +525,16 @@ gfxFontUtils::FindPreferredSubtable(const PRUint8 *aBuf, PRUint32 aBufLength,
         *aUVSTableOffset = nsnull;
     }
 
+    if (!aBuf || aBufLength < SizeOfHeader) {
+        
+        return 0;
+    }
+
     
     PRUint16 numTables = ReadShortAt(aBuf, OffsetNumTables);
+    if (aBufLength < SizeOfHeader + numTables * SizeOfTable) {
+        return 0;
+    }
 
     
     PRUint32 keepFormat = 0;
@@ -539,8 +547,10 @@ gfxFontUtils::FindPreferredSubtable(const PRUint8 *aBuf, PRUint32 aBufLength,
 
         const PRUint16 encodingID = ReadShortAt(table, TableOffsetEncodingID);
         const PRUint32 offset = ReadLongAt(table, TableOffsetOffset);
-
-        NS_ENSURE_TRUE(offset < aBufLength, NS_ERROR_GFX_CMAP_MALFORMED);
+        if (aBufLength - 2 < offset) {
+            
+            return 0;
+        }
 
         const PRUint8 *subtable = aBuf + offset;
         const PRUint16 format = ReadShortAt(subtable, SubtableOffsetFormat);
