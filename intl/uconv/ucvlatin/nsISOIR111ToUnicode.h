@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsISOIR111ToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                void **aResult);
 

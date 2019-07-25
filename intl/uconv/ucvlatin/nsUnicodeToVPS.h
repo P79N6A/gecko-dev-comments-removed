@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToVPSConstructor(nsISupports *aOuter, REFNSIID aIID,
                           void **aResult);
 

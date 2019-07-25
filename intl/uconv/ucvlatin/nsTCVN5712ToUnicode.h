@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsTCVN5712ToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                void **aResult);
 

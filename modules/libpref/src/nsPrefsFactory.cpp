@@ -36,7 +36,7 @@
 
 
 
-#include "nsIGenericFactory.h"
+#include "mozilla/ModuleUtils.h"
 #include "nsPrefService.h"
 #include "nsPrefBranch.h"
 #include "prefapi.h"
@@ -45,43 +45,41 @@
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsPrefService, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsPrefLocalizedString, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsRelativeFilePref)
+
+static NS_DEFINE_CID(kPrefServiceCID, NS_PREFSERVICE_CID);
+static NS_DEFINE_CID(kPrefLocalizedStringCID, NS_PREFLOCALIZEDSTRING_CID);
+static NS_DEFINE_CID(kRelativeFilePrefCID, NS_RELATIVEFILEPREF_CID);
  
+static mozilla::Module::CIDEntry kPrefCIDs[] = {
+  { &kPrefServiceCID, true, NULL, nsPrefServiceConstructor },
+  { &kPrefLocalizedStringCID, false, NULL, nsPrefLocalizedStringConstructor },
+  { &kRelativeFilePrefCID, false, NULL, nsRelativeFilePrefConstructor },
+  { NULL }
+};
 
-static const nsModuleComponentInfo components[] = 
-{
-  {
-    NS_PREFSERVICE_CLASSNAME, 
-    NS_PREFSERVICE_CID,
-    NS_PREFSERVICE_CONTRACTID, 
-    nsPrefServiceConstructor
-  },
-
-  {
-    NS_PREFLOCALIZEDSTRING_CLASSNAME, 
-    NS_PREFLOCALIZEDSTRING_CID,
-    NS_PREFLOCALIZEDSTRING_CONTRACTID, 
-    nsPrefLocalizedStringConstructor
-  },
-
-  {
-    NS_RELATIVEFILEPREF_CLASSNAME, 
-    NS_RELATIVEFILEPREF_CID,
-    NS_RELATIVEFILEPREF_CONTRACTID, 
-    nsRelativeFilePrefConstructor
-  },
-
-  { 
-    NS_PREFSERVICE_CLASSNAME,
-    NS_PREFSERVICE_CID,
-    "@mozilla.org/preferences;1",
-    nsPrefServiceConstructor
-  }
+static mozilla::Module::ContractIDEntry kPrefContracts[] = {
+  { NS_PREFSERVICE_CONTRACTID, &kPrefServiceCID },
+  { NS_PREFLOCALIZEDSTRING_CONTRACTID, &kPrefLocalizedStringCID },
+  { NS_RELATIVEFILEPREF_CONTRACTID, &kRelativeFilePrefCID },
+  
+  { "@mozilla.org/preferences;1", &kPrefServiceCID },
+  { NULL }
 };
 
 static void
-UnloadPrefsModule(nsIModule* unused)
+UnloadPrefsModule()
 {
   PREF_Cleanup();
 }
 
-NS_IMPL_NSGETMODULE_WITH_DTOR(nsPrefModule, components, UnloadPrefsModule)
+static const mozilla::Module kPrefModule = {
+  mozilla::Module::kVersion,
+  kPrefCIDs,
+  kPrefContracts,
+  NULL,
+  NULL,
+  NULL,
+  UnloadPrefsModule
+};
+
+NSMODULE_DEFN(nsPrefModule) = &kPrefModule;

@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToEUCJPConstructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult);
 

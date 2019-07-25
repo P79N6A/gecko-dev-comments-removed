@@ -43,7 +43,7 @@
 #include "jsd_xpc.h"
 
 #include "nsIXPConnect.h"
-#include "nsIGenericFactory.h"
+#include "mozilla/ModuleUtils.h"
 #include "nsIServiceManager.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIObserver.h"
@@ -2363,121 +2363,6 @@ jsdService::GetJSDContext(JSDContext **_rval)
 }
 
 NS_IMETHODIMP
-jsdService::GetInitAtStartup (PRBool *_rval)
-{
-    nsresult rv;
-    nsCOMPtr<nsICategoryManager>
-        categoryManager(do_GetService(NS_CATMAN_CTRID, &rv));
-    
-    if (NS_FAILED(rv))
-    {
-        NS_WARNING("couldn't get category manager");
-        return rv;
-    }
-
-    if (mInitAtStartup == triUnknown) {
-        nsXPIDLCString notused;
-        nsresult autoreg_rv, appstart_rv;
-        
-        autoreg_rv = categoryManager->GetCategoryEntry(AUTOREG_CATEGORY, 
-                                                       JSD_AUTOREG_ENTRY,
-                                                       getter_Copies(notused));
-        appstart_rv = categoryManager->GetCategoryEntry(APPSTART_CATEGORY,
-                                                        JSD_STARTUP_ENTRY,
-                                                        getter_Copies(notused));
-        if (autoreg_rv != appstart_rv) {
-            
-
-
-
-            mInitAtStartup = triYes;
-            rv = SetInitAtStartup (PR_FALSE);
-            if (NS_FAILED(rv))
-            {
-                NS_WARNING("SetInitAtStartup failed");
-                return rv;
-            }
-        } else if (autoreg_rv == NS_ERROR_NOT_AVAILABLE) {
-            mInitAtStartup = triNo;
-        } else if (NS_SUCCEEDED(autoreg_rv)) {
-            mInitAtStartup = triYes;
-        } else {
-            NS_WARN_IF_FALSE(NS_SUCCEEDED(autoreg_rv),
-                             "couldn't get autoreg category");
-            NS_WARN_IF_FALSE(NS_SUCCEEDED(appstart_rv),
-                             "couldn't get appstart category");
-            return rv;
-        }
-    }
-    
-    if (_rval)
-        *_rval = (mInitAtStartup == triYes);
-
-    return NS_OK;
-}
-
-
-
-
-
-
-
-
-
-
-NS_IMETHODIMP
-jsdService::SetInitAtStartup (PRBool state)
-{ 
-    nsresult rv;
-
-    if (mInitAtStartup == triUnknown) {
-        
-        rv = GetInitAtStartup(nsnull);
-        if (NS_FAILED(rv))
-            return rv;
-    }
-
-    if (state && mInitAtStartup == triYes ||
-        !state && mInitAtStartup == triNo) {
-        
-        return NS_OK;
-    }
-    
-    nsCOMPtr<nsICategoryManager>
-        categoryManager(do_GetService(NS_CATMAN_CTRID, &rv));
-    if (NS_FAILED(rv))
-        return rv;
-
-    if (state) {
-        rv = categoryManager->AddCategoryEntry(AUTOREG_CATEGORY,
-                                               JSD_AUTOREG_ENTRY,
-                                               jsdARObserverCtrID,
-                                               PR_TRUE, PR_TRUE, nsnull);
-        if (NS_FAILED(rv))
-            return rv;
-        rv = categoryManager->AddCategoryEntry(APPSTART_CATEGORY,
-                                               JSD_STARTUP_ENTRY,
-                                               jsdASObserverCtrID,
-                                               PR_TRUE, PR_TRUE, nsnull);
-        if (NS_FAILED(rv))
-            return rv;
-        mInitAtStartup = triYes;
-    } else {
-        rv = categoryManager->DeleteCategoryEntry(AUTOREG_CATEGORY,
-                                                  JSD_AUTOREG_ENTRY, PR_TRUE);
-        if (NS_FAILED(rv))
-            return rv;
-        rv = categoryManager->DeleteCategoryEntry(APPSTART_CATEGORY,
-                                                  JSD_STARTUP_ENTRY, PR_TRUE);
-        if (NS_FAILED(rv))
-            return rv;
-        mInitAtStartup = triNo;
-    }
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
 jsdService::GetFlags (PRUint32 *_rval)
 {
     ASSERT_VALID_CONTEXT;
@@ -3409,13 +3294,28 @@ jsdASObserver::Observe (nsISupports *aSubject, const char *aTopic,
 }
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(jsdASObserver)
+NS_DEFINE_NAMED_CID(JSDSERVICE_CID);
+NS_DEFINE_NAMED_CID(JSDASO_CID);
 
-static const nsModuleComponentInfo components[] = {
-    {"JSDService", JSDSERVICE_CID,    jsdServiceCtrID, jsdServiceConstructor},
-    {"JSDASObserver",  JSDASO_CID, jsdARObserverCtrID, jsdASObserverConstructor}
+static const mozilla::Module::CIDEntry kJSDCIDs[] = {
+    { &kJSDSERVICE_CID, false, NULL, jsdServiceConstructor },
+    { &kJSDASO_CID, false, NULL, jsdASObserverConstructor },
+    { NULL }
 };
 
-NS_IMPL_NSGETMODULE(JavaScript_Debugger, components)
+static const mozilla::Module::ContractIDEntry kJSDContracts[] = {
+    { jsdServiceCtrID, &kJSDSERVICE_CID },
+    { jsdARObserverCtrID, &kJSDASO_CID },
+    { NULL }
+};
+
+static const mozilla::Module kJSDModule = {
+    mozilla::Module::kVersion,
+    kJSDCIDs,
+    kJSDContracts
+};
+
+NSMODULE_DEFN(JavaScript_Debugger) = &kJSDModule;
 
 
 

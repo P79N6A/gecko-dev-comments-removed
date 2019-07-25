@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsARMSCII8ToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                void **aResult);
 

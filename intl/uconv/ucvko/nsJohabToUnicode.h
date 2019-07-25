@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsJohabToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult);
 

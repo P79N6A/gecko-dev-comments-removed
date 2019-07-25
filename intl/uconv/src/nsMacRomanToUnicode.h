@@ -56,7 +56,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsMacRomanToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                void **aResult);
 

@@ -43,7 +43,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToISO88596EConstructor(nsISupports *aOuter, REFNSIID aIID,
                                 void **aResult) 
 {

@@ -141,6 +141,13 @@ using namespace mozilla::places;
 #define DATABASE_SCHEMA_VERSION 10
 
 
+
+
+
+
+#define DATABASE_PAGE_SIZE 4096
+
+
 #define DATABASE_FILENAME NS_LITERAL_STRING("places.sqlite")
 
 
@@ -203,6 +210,7 @@ static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
 NS_IMPL_THREADSAFE_ADDREF(nsNavHistory)
 NS_IMPL_THREADSAFE_RELEASE(nsNavHistory)
 
+NS_IMPL_CLASSINFO(nsNavHistory, NULL, nsIClassInfo::SINGLETON)
 NS_INTERFACE_MAP_BEGIN(nsNavHistory)
   NS_INTERFACE_MAP_ENTRY(nsINavHistoryService)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIGlobalHistory2, nsIGlobalHistory3)
@@ -627,23 +635,37 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
 nsresult
 nsNavHistory::InitDB()
 {
+  PRInt32 pageSize = DATABASE_PAGE_SIZE;
+
   
   PRInt32 currentSchemaVersion = 0;
   nsresult rv = mDBConn->GetSchemaVersion(&currentSchemaVersion);
   NS_ENSURE_SUCCESS(rv, rv);
+  bool databaseInitialized = (currentSchemaVersion > 0);
 
-  
-  
-  nsCOMPtr<mozIStorageStatement> statement;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
-                                getter_AddRefs(statement));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (!databaseInitialized) {
+    
+    
+    
+    
+    nsCAutoString pageSizePragma("PRAGMA page_size = ");
+    pageSizePragma.AppendInt(pageSize);
+    rv = mDBConn->ExecuteSimpleSQL(pageSizePragma);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  else {
+    
+    
+    nsCOMPtr<mozIStorageStatement> statement;
+    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
+                                  getter_AddRefs(statement));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool hasResult;
-  mozStorageStatementScoper scoper(statement);
-  rv = statement->ExecuteStep(&hasResult);
-  NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
-  PRInt32 pageSize = statement->AsInt32(0);
+    PRBool hasResult;
+    rv = statement->ExecuteStep(&hasResult);
+    NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
+    pageSize = statement->AsInt32(0);
+  }
 
   
   
@@ -705,7 +727,6 @@ nsNavHistory::InitDB()
   rv = nsAnnotationService::InitTables(mDBConn);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  bool databaseInitialized = (currentSchemaVersion > 0);
   if (!databaseInitialized) {
     
     
@@ -2285,7 +2306,6 @@ nsNavHistory::GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQuerie
 
   PRBool nonTimeBasedItems = PR_FALSE;
   PRBool domainBasedItems = PR_FALSE;
-  PRBool queryContainsTransitions = PR_FALSE;
 
   for (i = 0; i < aQueries.Count(); i ++) {
     nsNavHistoryQuery* query = aQueries[i];
@@ -2295,10 +2315,6 @@ nsNavHistory::GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQuerie
         query->Tags().Length() > 0) {
       return QUERYUPDATE_COMPLEX_WITH_BOOKMARKS;
     }
-
-    if (query->Transitions().Length() > 0)
-      queryContainsTransitions = PR_TRUE;
-
     
     
     if (! query->SearchTerms().IsEmpty() ||
@@ -2313,9 +2329,6 @@ nsNavHistory::GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQuerie
   if (aOptions->ResultType() ==
       nsINavHistoryQueryOptions::RESULTS_AS_TAG_QUERY)
     return QUERYUPDATE_COMPLEX_WITH_BOOKMARKS;
-
-  if (queryContainsTransitions)
-    return QUERYUPDATE_COMPLEX;
 
   
   
@@ -2847,7 +2860,9 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
   
   
   PRUint32 added = 0;
-  if (!hidden) {
+  if (!hidden && aTransitionType != TRANSITION_EMBED &&
+                 aTransitionType != TRANSITION_FRAMED_LINK &&
+                 aTransitionType != TRANSITION_DOWNLOAD) {
     NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                      nsINavHistoryObserver,
                      OnVisit(aURI, *aVisitID, aTime, aSessionID,
@@ -3048,9 +3063,6 @@ PRBool IsOptimizableHistoryQuery(const nsCOMArray<nsNavHistoryQuery>& aQueries,
     return PR_FALSE;
 
   if (aQuery->Tags().Length() > 0)
-    return PR_FALSE;
-
-  if (aQuery->Transitions().Length() > 0)
     return PR_FALSE;
 
   return PR_TRUE;
@@ -5713,18 +5725,19 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
 
   if (strcmp(aTopic, TOPIC_GLOBAL_SHUTDOWN) == 0) {
-    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-    if (!os) {
-      NS_WARNING("Unable to shutdown Places: Observer Service unavailable.");
-      return NS_OK;
-    }
-
-    (void)os->RemoveObserver(this, TOPIC_GLOBAL_SHUTDOWN);
-    (void)os->RemoveObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC);
-    (void)os->RemoveObserver(this, TOPIC_IDLE_DAILY);
+    nsCOMPtr<nsIObserverService> os =
+      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
+    if (os) {
+      os->RemoveObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC);
+      os->RemoveObserver(this, TOPIC_IDLE_DAILY);
+      os->RemoveObserver(this, TOPIC_GLOBAL_SHUTDOWN);
 #ifdef MOZ_XUL
-    (void)os->RemoveObserver(this, TOPIC_AUTOCOMPLETE_FEEDBACK_INCOMING);
+      os->RemoveObserver(this, TOPIC_AUTOCOMPLETE_FEEDBACK_INCOMING);
 #endif
+
+      
+      os->NotifyObservers(nsnull, TOPIC_PLACES_SHUTDOWN, nsnull);
+    }
 
     
     
@@ -5741,37 +5754,14 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
 
       nsCOMPtr<nsIObserver> observer;
       PRBool loop = PR_TRUE;
-      while(NS_SUCCEEDED(e->HasMoreElements(&loop)) && loop) {
+      while(NS_SUCCEEDED(e->HasMoreElements(&loop)) && loop)
+      {
         e->GetNext(getter_AddRefs(observer));
-        (void)observer->Observe(observer, TOPIC_PLACES_INIT_COMPLETE, nsnull);
+        rv = observer->Observe(observer,
+                               TOPIC_PLACES_INIT_COMPLETE,
+                               nsnull);
       }
     }
-
-    
-    
-    
-    nsRefPtr<PlacesEvent> shutdownEvent =
-      new PlacesEvent(TOPIC_PLACES_SHUTDOWN);
-    rv = NS_DispatchToMainThread(shutdownEvent);
-    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                     "Unable to shutdown Places: message dispatch failed.");
-
-    
-    (void)os->AddObserver(this, TOPIC_PLACES_TEARDOWN, PR_FALSE);
-    nsRefPtr<PlacesEvent> teardownEvent =
-      new PlacesEvent(TOPIC_PLACES_TEARDOWN);
-    rv = NS_DispatchToMainThread(teardownEvent);
-    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                     "Unable to shutdown Places: message dispatch failed.");
-  }
-
-  else if (strcmp(aTopic, TOPIC_PLACES_TEARDOWN) == 0) {
-    
-    
-    
-    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-    if (os)
-      (void)os->RemoveObserver(this, TOPIC_PLACES_TEARDOWN);
 
     
     if (mPrefBranch)
@@ -5795,13 +5785,12 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
 #endif
 
     
-    nsresult rv = FinalizeInternalStatements();
+    rv = FinalizeInternalStatements();
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     
   }
-
 #ifdef MOZ_XUL
   else if (strcmp(aTopic, TOPIC_AUTOCOMPLETE_FEEDBACK_INCOMING) == 0) {
     nsCOMPtr<nsIAutoCompleteInput> input = do_QueryInterface(aSubject);
@@ -5835,12 +5824,10 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     rv = AutoCompleteFeedback(selectedIndex, controller);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-
 #endif
   else if (strcmp(aTopic, TOPIC_PREF_CHANGED) == 0) {
     LoadPrefs();
   }
-
   else if (strcmp(aTopic, TOPIC_IDLE_DAILY) == 0) {
     
     
@@ -5850,7 +5837,6 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     (void)DecayFrecency();
     (void)VacuumDatabase();
   }
-
   else if (strcmp(aTopic, NS_PRIVATE_BROWSING_SWITCH_TOPIC) == 0) {
     if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_ENTER).Equals(aData)) {
 #ifdef LAZY_ADD
@@ -5875,7 +5861,6 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
       mInPrivateBrowsing = PR_FALSE;
     }
   }
-
   else if (strcmp(aTopic, TOPIC_PLACES_INIT_COMPLETE) == 0) {
     nsCOMPtr<nsIObserverService> os =
       do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
@@ -6330,26 +6315,6 @@ nsNavHistory::QueryToSelectClause(nsNavHistoryQuery* aQuery,
   }
 
   
-  const nsTArray<PRUint32>& transitions = aQuery->Transitions();
-  
-  if (transitions.Length() == 1) {
-    clause.Condition("v.visit_type =").Param(":transition0_");
-  }
-  else if (transitions.Length() > 1) {
-    for (PRUint32 i = 0; i < transitions.Length(); ++i) {
-      nsPrintfCString param(":transition%d_", i);
-      clause.Str("EXISTS (SELECT 1 FROM moz_historyvisits "
-                         "WHERE place_id = h.id AND visit_type = "
-                ).Param(param.get()).Str(" UNION ALL "
-                         "SELECT 1 FROM moz_historyvisits_temp "
-                         "WHERE place_id = h.id AND visit_type = "
-                ).Param(param.get()).Str(" LIMIT 1)");
-      if (i < transitions.Length() - 1)
-        clause.Str("AND");
-    }
-  }
-
-  
   
   if (aOptions->ResultType() == nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS &&
       aQuery->Folders().Length() == 1) {
@@ -6490,16 +6455,6 @@ nsNavHistory::BindQueryClauseParameters(mozIStorageStatement* statement,
       rv = statement->BindInt32ByName(
         NS_LITERAL_CSTRING("tag_count") + qIndex, tags.Length()
       );
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
-
-  
-  const nsTArray<PRUint32>& transitions = aQuery->Transitions();
-  if (transitions.Length() > 0) {
-    for (PRUint32 i = 0; i < transitions.Length(); ++i) {
-      nsPrintfCString paramName("transition%d_", i);
-      rv = statement->BindInt64ByName(paramName + qIndex, transitions[i]);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }

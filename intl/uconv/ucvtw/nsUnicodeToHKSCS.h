@@ -44,7 +44,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToHKSCSConstructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult);
 

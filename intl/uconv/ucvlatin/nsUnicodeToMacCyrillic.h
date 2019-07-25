@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToMacCyrillicConstructor(nsISupports *aOuter, REFNSIID aIID,
                                   void **aResult);
 

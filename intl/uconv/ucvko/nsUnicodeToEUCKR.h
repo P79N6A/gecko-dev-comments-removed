@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToEUCKRConstructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult);
 

@@ -43,7 +43,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsMacGujaratiToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                   void **aResult);
 

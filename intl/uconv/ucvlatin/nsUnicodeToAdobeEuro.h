@@ -45,7 +45,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToAdobeEuroConstructor(nsISupports *aOuter, REFNSIID aIID,
                                 void **aResult);
 

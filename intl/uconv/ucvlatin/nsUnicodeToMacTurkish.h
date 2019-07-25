@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToMacTurkishConstructor(nsISupports *aOuter, REFNSIID aIID,
                                  void **aResult);
 

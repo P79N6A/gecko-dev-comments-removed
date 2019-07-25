@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToBIG5Constructor(nsISupports *aOuter, REFNSIID aIID,
                                 void **aResult);
 

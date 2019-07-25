@@ -53,7 +53,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsISO88591ToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                void **aResult);
 

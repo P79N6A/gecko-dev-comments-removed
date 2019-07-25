@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToCP949Constructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult);
 

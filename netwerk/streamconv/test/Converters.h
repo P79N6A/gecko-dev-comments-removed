@@ -42,28 +42,4 @@ public:
     nsCString toType;
 };
 
-
-
-class TestConverterFactory : public nsIFactory
-{
-public:
-    TestConverterFactory(const nsCID &aClass, const char* className, const char* contractID);
-
-    
-    NS_DECL_ISUPPORTS
-
-    
-    NS_IMETHOD CreateInstance(nsISupports *aOuter,
-                              const nsIID &aIID,
-                              void **aResult);
-
-    NS_IMETHOD LockFactory(PRBool aLock);
-
-protected:
-    virtual ~TestConverterFactory();
-
-protected:
-    nsCID       mClassID;
-    const char* mClassName;
-    const char* mContractID;
-};
+nsresult CreateTestConverter(nsISupports* aOuter, REFNSIID aIID, void** aResult);

@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsMacCEToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult);
 

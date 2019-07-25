@@ -44,7 +44,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToZapfDingbatConstructor(nsISupports *aOuter, REFNSIID aIID,
                                   void **aResult);
 

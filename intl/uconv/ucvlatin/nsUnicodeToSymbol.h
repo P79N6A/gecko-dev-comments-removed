@@ -44,7 +44,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToSymbolConstructor(nsISupports *aOuter, REFNSIID aIID,
                              void **aResult);
 

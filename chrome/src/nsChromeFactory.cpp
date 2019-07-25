@@ -36,8 +36,7 @@
 
 
 #include "nsCOMPtr.h"
-#include "nsIModule.h"
-#include "nsIGenericFactory.h"
+#include "mozilla/ModuleUtils.h"
 
 #include "nsIServiceManager.h"
 #include "nsIComponentManager.h"
@@ -45,54 +44,30 @@
 #include "nscore.h"
 #include "nsChromeProtocolHandler.h"
 #include "nsChromeRegistry.h"
-#include "nsChromeRegistryChrome.h"
 
-#ifdef MOZ_IPC
-#include "nsXULAppAPI.h"
-#include "nsChromeRegistryContent.h"
-#endif
-
-static nsChromeRegistry* GetSingleton()
-{
-    nsChromeRegistry* chromeRegistry = nsChromeRegistry::gChromeRegistry;
-    if (chromeRegistry) {
-        NS_ADDREF(chromeRegistry);
-        return chromeRegistry;
-    }
-    
-#ifdef MOZ_IPC
-    if (XRE_GetProcessType() == GeckoProcessType_Content)
-        chromeRegistry = new nsChromeRegistryContent;
-#endif
-    if (!chromeRegistry)
-        chromeRegistry = new nsChromeRegistryChrome;
-
-    if (chromeRegistry) {
-        NS_ADDREF(chromeRegistry);
-        if (NS_FAILED(chromeRegistry->Init()))
-            NS_RELEASE(chromeRegistry);
-    }
-    return chromeRegistry;
-}
-
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsChromeRegistry, GetSingleton)
+NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsChromeRegistry, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsChromeProtocolHandler)
 
+NS_DEFINE_NAMED_CID(NS_CHROMEREGISTRY_CID);
+NS_DEFINE_NAMED_CID(NS_CHROMEPROTOCOLHANDLER_CID);
 
-static const nsModuleComponentInfo components[] = 
-{
-    { "Chrome Registry", 
-      NS_CHROMEREGISTRY_CID,
-      NS_CHROMEREGISTRY_CONTRACTID, 
-      nsChromeRegistryConstructor
-    },
-
-    { "Chrome Protocol Handler", 
-      NS_CHROMEPROTOCOLHANDLER_CID,
-      NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "chrome", 
-      nsChromeProtocolHandlerConstructor
-    }
+static const mozilla::Module::CIDEntry kChromeCIDs[] = {
+    { &kNS_CHROMEREGISTRY_CID, false, NULL, nsChromeRegistryConstructor },
+    { &kNS_CHROMEPROTOCOLHANDLER_CID, false, NULL, nsChromeProtocolHandlerConstructor },
+    { NULL }
 };
 
-NS_IMPL_NSGETMODULE(nsChromeModule, components)
+static const mozilla::Module::ContractIDEntry kChromeContracts[] = {
+    { NS_CHROMEREGISTRY_CONTRACTID, &kNS_CHROMEREGISTRY_CID },
+    { NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "chrome", &kNS_CHROMEPROTOCOLHANDLER_CID },
+    { NULL }
+};
+
+static const mozilla::Module kChromeModule = {
+    mozilla::Module::kVersion,
+    kChromeCIDs,
+    kChromeContracts
+};
+
+NSMODULE_DEFN(nsChromeModule) = &kChromeModule;
 

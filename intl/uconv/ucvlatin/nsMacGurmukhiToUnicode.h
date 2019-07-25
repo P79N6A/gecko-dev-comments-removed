@@ -43,7 +43,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsMacGurmukhiToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                   void **aResult);
 

@@ -42,7 +42,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsISO88598EToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                 void **aResult) 
 {

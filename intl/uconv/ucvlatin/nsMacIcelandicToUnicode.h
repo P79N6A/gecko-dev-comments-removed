@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsMacIcelandicToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                    void **aResult);
 

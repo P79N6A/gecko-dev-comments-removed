@@ -45,7 +45,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsGEOSTD8ToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult);
 

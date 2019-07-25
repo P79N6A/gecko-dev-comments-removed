@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsVISCIIToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                              void **aResult);
 

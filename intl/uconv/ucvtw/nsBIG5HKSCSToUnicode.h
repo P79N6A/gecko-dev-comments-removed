@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsBIG5HKSCSToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                 void **aResult);
 

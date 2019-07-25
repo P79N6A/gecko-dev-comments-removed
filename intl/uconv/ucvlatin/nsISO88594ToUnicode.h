@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsISO88594ToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                void **aResult);
 

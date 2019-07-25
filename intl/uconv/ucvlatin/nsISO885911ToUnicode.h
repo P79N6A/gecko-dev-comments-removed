@@ -42,7 +42,7 @@
 #include "nsCP874ToUnicode.h"
 
 
-NS_METHOD
+nsresult
 nsISO885911ToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                 void **aResult);
 

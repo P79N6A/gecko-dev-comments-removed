@@ -49,7 +49,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsISO885910ToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                 void **aResult);
 

@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToCP1253Constructor(nsISupports *aOuter, REFNSIID aIID,
                              void **aResult);
 

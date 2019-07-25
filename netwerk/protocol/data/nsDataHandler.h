@@ -53,7 +53,7 @@ public:
     virtual ~nsDataHandler();
 
     
-    static NS_METHOD
+    static nsresult
     Create(nsISupports* aOuter, const nsIID& aIID, void* *aResult);
 
     

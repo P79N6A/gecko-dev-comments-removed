@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToKOI8RConstructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult);
 

@@ -43,7 +43,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToMacArabicConstructor(nsISupports *aOuter, REFNSIID aIID,
                                 void **aResult);
 

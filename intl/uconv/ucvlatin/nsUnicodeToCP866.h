@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToCP866Constructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult);
 

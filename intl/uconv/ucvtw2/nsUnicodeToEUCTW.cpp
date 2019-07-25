@@ -67,7 +67,7 @@ static const PRUint16 *g_EUCTWMappingTableSet [] ={
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToEUCTWConstructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult)
 {

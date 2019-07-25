@@ -42,7 +42,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToCP869Constructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult);
 

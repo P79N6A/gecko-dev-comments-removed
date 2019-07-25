@@ -43,7 +43,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsMacDevanagariToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                     void **aResult);
 

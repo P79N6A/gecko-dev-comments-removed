@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToVISCIIConstructor(nsISupports *aOuter, REFNSIID aIID,
                              void **aResult);
 

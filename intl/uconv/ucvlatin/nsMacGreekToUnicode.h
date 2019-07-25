@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsMacGreekToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                                void **aResult);
 

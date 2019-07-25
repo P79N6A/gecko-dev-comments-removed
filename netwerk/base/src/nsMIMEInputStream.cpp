@@ -280,7 +280,7 @@ NS_IMETHODIMP nsMIMEInputStream::SetEOF(void) {
 
 
 
-NS_METHOD
+nsresult
 nsMIMEInputStreamConstructor(nsISupports *outer, REFNSIID iid, void **result)
 {
     *result = nsnull;

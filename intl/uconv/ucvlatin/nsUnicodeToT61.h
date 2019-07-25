@@ -46,7 +46,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsUnicodeToT61Constructor(nsISupports *aOuter, REFNSIID aIID,
                           void **aResult);
 

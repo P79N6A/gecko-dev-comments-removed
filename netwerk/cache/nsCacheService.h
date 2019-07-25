@@ -79,7 +79,7 @@ public:
     virtual ~nsCacheService();
 
     
-    static NS_METHOD
+    static nsresult
     Create(nsISupports* outer, const nsIID& iid, void* *result);
 
 

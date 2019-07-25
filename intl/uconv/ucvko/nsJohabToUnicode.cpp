@@ -75,7 +75,7 @@ static const PRUint16 *g_JOHABMappingTableSet [] ={
 
 
 
-NS_METHOD
+nsresult
 nsJohabToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult)
 {

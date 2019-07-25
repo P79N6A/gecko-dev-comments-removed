@@ -59,7 +59,7 @@
 
 
 
-NS_METHOD
+nsresult
 nsCP857ToUnicodeConstructor(nsISupports *aOuter, REFNSIID aIID,
                             void **aResult);
 
