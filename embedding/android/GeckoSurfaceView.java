@@ -235,11 +235,6 @@ class GeckoSurfaceView
 
 
     public void draw2D(ByteBuffer buffer, int stride) {
-        if (GeckoApp.mAppContext.mProgressDialog != null) {
-            GeckoApp.mAppContext.mProgressDialog.dismiss();
-            GeckoApp.mAppContext.mProgressDialog = null;
-        }
-
         
         
         mSurfaceLock.lock();

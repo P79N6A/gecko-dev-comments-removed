@@ -256,11 +256,13 @@ abstract public class GeckoApp
                 Log.i("GeckoApp", "exception: " + ex);
             }
 
-            if (!useLaunchButton)
+            if (!useLaunchButton) {
                 mProgressDialog = 
                     ProgressDialog.show(GeckoApp.this, "",
                                         getString(R.string.splash_screen_label),
                                         true);
+            }
+
             
             
             
