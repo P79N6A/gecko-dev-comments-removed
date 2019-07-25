@@ -84,7 +84,6 @@ struct nsFramesetDrag {
   PRInt32              mIndex;     
   PRInt32              mChange;    
   PRPackedBool         mVertical;  
-  PRPackedBool         mActive;
 
   nsFramesetDrag();
   void Reset(PRBool               aVertical, 
