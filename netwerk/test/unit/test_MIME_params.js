@@ -333,6 +333,38 @@ var tests = [
   
   
 
+  
+  ["attachment; filename*=ISO-8859-1''%c3%a4", 
+   "attachment", "\u00c3\u00a4"],
+
+  
+  
+  ["attachment; filename*=ISO-8859-1''%e2%82%ac", 
+   "attachment", "\u00e2\u201a\u00ac"],
+
+  
+  ["attachment; filename*=UTF-8''A%e4B", 
+   "attachment", Cr.NS_ERROR_INVALID_ARG],
+
+  
+  ["attachment; filename*=UTF-8''A%e4B; filename=fallback", 
+   "attachment", "fallback"],
+
+  
+  ["attachment; filename*0*=UTF-8''A%e4B; filename=fallback", 
+   "attachment", "fallback"],
+
+  
+  ["attachment; filename*0*=ISO-8859-15''euro-sign%3d%a4; filename*=ISO-8859-1''currency-sign%3d%a4", 
+   "attachment", "currency-sign=\u00a4"],
+
+  
+  ["attachment; filename*=ISO-8859-1''currency-sign%3d%a4; filename*0*=ISO-8859-15''euro-sign%3d%a4", 
+   "attachment", "currency-sign=\u00a4"],
+
+  
+  
+
   ["attachment; filename*=\"a%20b\"", 
    "attachment", "a b"],
 

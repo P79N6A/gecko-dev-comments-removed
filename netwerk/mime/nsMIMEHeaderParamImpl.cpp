@@ -300,6 +300,35 @@ PRInt32 parseSegmentNumber(const char *aValue, PRInt32 aLen)
 
 
 
+bool IsValidOctetSequenceForCharset(nsACString& aCharset, const char *aOctets)
+{
+  nsCOMPtr<nsIUTF8ConverterService> cvtUTF8(do_GetService
+    (NS_UTF8CONVERTERSERVICE_CONTRACTID));
+  if (!cvtUTF8) {
+    NS_WARNING("Can't get UTF8ConverterService\n");
+    return false;
+  }
+
+  nsCAutoString tmpRaw;
+  tmpRaw.Assign(aOctets);
+  nsCAutoString tmpDecoded;
+
+  nsresult rv = cvtUTF8->ConvertStringToUTF8(tmpRaw,
+                                             PromiseFlatCString(aCharset).get(),
+                                             true, tmpDecoded);
+
+  if (rv != NS_OK) {
+    
+    
+    NS_WARNING("RFC2231/5987 parameter value does not decode according to specified charset\n");
+    return false;
+  }
+
+  return true;
+}
+
+
+
 
 
 
@@ -617,6 +646,20 @@ increment_str:
 
   caseCDResult = combineContinuations(segments);
 
+  if (caseBResult && !charsetB.IsEmpty()) {
+    
+    
+    if (!IsValidOctetSequenceForCharset(charsetB, caseBResult))
+      caseBResult = NULL;
+  }
+
+  if (caseCDResult && !charsetCD.IsEmpty()) {
+    
+    
+    if (!IsValidOctetSequenceForCharset(charsetCD, caseCDResult))
+      caseCDResult = NULL;
+  }
+
   if (caseBResult) {
     
     *aResult = caseBResult;
@@ -716,9 +759,8 @@ nsMIMEHeaderParamImpl::DecodeParameter(const nsACString& aParamValue,
   {
     nsCOMPtr<nsIUTF8ConverterService> cvtUTF8(do_GetService(NS_UTF8CONVERTERSERVICE_CONTRACTID));
     if (cvtUTF8)
-      
       return cvtUTF8->ConvertStringToUTF8(aParamValue, aCharset,
-          IS_7BIT_NON_ASCII_CHARSET(aCharset), aResult);
+          true, aResult);
   }
 
   const nsAFlatCString& param = PromiseFlatCString(aParamValue);
