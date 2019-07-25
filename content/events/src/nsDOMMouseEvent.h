@@ -60,6 +60,9 @@ public:
   
   NS_FORWARD_TO_NSDOMUIEVENT
 
+  virtual const nsIID& EventInitIID() { return NS_GET_IID(nsIMouseEventInit); }
+  virtual nsresult InitFromCtor(const nsAString& aType, nsISupports* aDict,
+                                JSContext* aCx, JSObject* aObj);
 protected:
   
   virtual nsresult Which(PRUint32* aWhich);
