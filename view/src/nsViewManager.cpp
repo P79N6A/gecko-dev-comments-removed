@@ -514,20 +514,6 @@ NS_IMETHODIMP nsViewManager::UpdateView(nsIView *aView, PRUint32 aUpdateFlags)
   return UpdateView(view, dims, aUpdateFlags);
 }
 
-static PRBool
-IsWidgetDrawnByPlugin(nsIWidget* aWidget, nsIView* aView)
-{
-  if (aView->GetWidget() == aWidget)
-    return PR_FALSE;
-  nsCOMPtr<nsIPluginWidget> pw = do_QueryInterface(aWidget);
-  if (pw) {
-    
-    
-    return PR_FALSE;
-  }
-  return PR_TRUE;
-}
-
 
 
 
@@ -611,33 +597,29 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
       childWidget->IsVisible(visible);
       nsWindowType type;
       childWidget->GetWindowType(type);
-      if (view && visible && !IsWidgetDrawnByPlugin(childWidget, view) &&
-          type != eWindowType_popup) {
-        
-        
+      if (view && visible && type != eWindowType_popup) {
+        NS_ASSERTION(type == eWindowType_plugin,
+                     "Only plugin or popup widgets can be children!");
         nsViewManager* viewManager = view->GetViewManager();
-        if (viewManager->RootViewManager() == RootViewManager()) {
-          
-          nsRegion damage =
-            ConvertRegionBetweenViews(intersection, aWidgetView, view);
 
-          
-          viewManager->
-            UpdateWidgetArea(view, childWidget, damage, aIgnoreWidgetView);
+        
+        
+        
+        
+#ifndef XP_MACOSX
+        
+        nsIntRect bounds;
+        childWidget->GetBounds(bounds);
 
-          
-          nsIntRect bounds;
-          childWidget->GetBounds(bounds);
-
-          nsTArray<nsIntRect> clipRects;
-          childWidget->GetWindowClipRegion(&clipRects);
-          for (PRUint32 i = 0; i < clipRects.Length(); ++i) {
-            nsRect rr = (clipRects[i] + bounds.TopLeft()).
-              ToAppUnits(AppUnitsPerDevPixel());
-            children.Or(children, rr - aWidgetView->ViewToWidgetOffset()); 
-            children.SimplifyInward(20);
-          }
+        nsTArray<nsIntRect> clipRects;
+        childWidget->GetWindowClipRegion(&clipRects);
+        for (PRUint32 i = 0; i < clipRects.Length(); ++i) {
+          nsRect rr = (clipRects[i] + bounds.TopLeft()).
+            ToAppUnits(AppUnitsPerDevPixel());
+          children.Or(children, rr - aWidgetView->ViewToWidgetOffset()); 
+          children.SimplifyInward(20);
         }
+#endif
       }
     }
   }
