@@ -14311,13 +14311,17 @@ TraceRecorder::typedArrayElement(Value& oval, Value& ival, Value*& vp, LIns*& v_
         break;
       case js::TypedArray::TYPE_UINT8:
       case js::TypedArray::TYPE_UINT8_CLAMPED:
-        v_ins = w.ui2d(w.lduc2uiTypedArrayElement(data_ins, pidx_ins));
+        
+        
+        v_ins = w.i2d(w.lduc2uiTypedArrayElement(data_ins, pidx_ins));
         break;
       case js::TypedArray::TYPE_INT16:
         v_ins = w.i2d(w.lds2iTypedArrayElement(data_ins, pidx_ins));
         break;
       case js::TypedArray::TYPE_UINT16:
-        v_ins = w.ui2d(w.ldus2uiTypedArrayElement(data_ins, pidx_ins));
+        
+        
+        v_ins = w.i2d(w.ldus2uiTypedArrayElement(data_ins, pidx_ins));
         break;
       case js::TypedArray::TYPE_INT32:
         v_ins = w.i2d(w.ldiTypedArrayElement(data_ins, pidx_ins));
