@@ -950,10 +950,11 @@ nsDocAccessible::AttributeWillChange(nsIDocument *aDocument,
   
 
   
+  
+  
   if (aModType == nsIDOMMutationEvent::MODIFICATION ||
       aModType == nsIDOMMutationEvent::REMOVAL) {
-    nsAccessible* accessible =
-      GetAccService()->GetAccessibleInWeakShell(aElement, mWeakShell);
+    nsAccessible* accessible = GetCachedAccessible(aElement);
     if (accessible)
       RemoveDependentIDsFor(accessible, aAttribute);
   }
@@ -967,22 +968,23 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument,
 {
   AttributeChangedImpl(aElement, aNameSpaceID, aAttribute);
 
+  nsAccessible* accessible = GetCachedAccessible(aElement);
+  if (!accessible)
+    return;
+
+  
+  
+  
+  
   
   if (aModType == nsIDOMMutationEvent::MODIFICATION ||
       aModType == nsIDOMMutationEvent::ADDITION) {
-    nsAccessible* accessible =
-      GetAccService()->GetAccessibleInWeakShell(aElement, mWeakShell);
-
-    if (accessible)
-      AddDependentIDsFor(accessible, aAttribute);
+    AddDependentIDsFor(accessible, aAttribute);
   }
 
   
-  if (aElement == gLastFocusedNode) {
-    nsAccessible *focusedAccessible = GetAccService()->GetAccessible(aElement);
-    if (focusedAccessible)
-      gLastFocusedAccessiblesState = nsAccUtils::State(focusedAccessible);
-  }
+  if (aElement == gLastFocusedNode)
+    gLastFocusedAccessiblesState = nsAccUtils::State(accessible);
 }
 
 
@@ -1004,7 +1006,7 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
   
   
   
-  
+
   nsCOMPtr<nsISupports> container = mDocument->GetContainer();
   nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(container);
   if (!docShell) {
