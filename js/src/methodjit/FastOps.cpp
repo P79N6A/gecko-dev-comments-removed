@@ -1095,8 +1095,12 @@ IsCacheableSetElem(FrameEntry *obj, FrameEntry *id, FrameEntry *value)
         return false;
     if (id->isNotType(JSVAL_TYPE_INT32))
         return false;
-    if (id->isConstant() && id->getValue().toInt32() < 0)
-        return false;
+    if (id->isConstant()) {
+        if (id->getValue().toInt32() < 0)
+            return false;
+        if (id->getValue().toInt32() + 1 < 0)  
+            return false;
+    }
 
     
     
