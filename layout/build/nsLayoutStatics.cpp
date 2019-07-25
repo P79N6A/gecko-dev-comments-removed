@@ -2,7 +2,38 @@
 
 
 
-#include "base/basictypes.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsLayoutStatics.h"
 #include "nscore.h"
@@ -14,6 +45,7 @@
 #include "nsContentDLF.h"
 #include "nsContentUtils.h"
 #include "nsCSSAnonBoxes.h"
+#include "nsCSSFrameConstructor.h"
 #include "nsCSSKeywords.h"
 #include "nsCSSParser.h"
 #include "nsCSSProps.h"
@@ -39,10 +71,8 @@
 #include "nsStyleSet.h"
 #include "nsTextControlFrame.h"
 #include "nsXBLWindowKeyHandler.h"
-#include "nsXBLService.h"
 #include "txMozillaXSLTProcessor.h"
 #include "nsDOMStorage.h"
-#include "nsTreeSanitizer.h"
 #include "nsCellMap.h"
 #include "nsTextFrameTextRunCache.h"
 #include "nsCCUncollectableMarker.h"
@@ -51,6 +81,7 @@
 #include "nsCrossSiteListenerProxy.h"
 #include "nsHTMLDNSPrefetch.h"
 #include "nsHtml5Module.h"
+#include "nsCrossSiteListenerProxy.h"
 #include "nsFocusManager.h"
 #include "nsFrameList.h"
 #include "nsListControlFrame.h"
@@ -58,11 +89,11 @@
 #include "nsSVGUtils.h"
 #include "nsMathMLAtoms.h"
 #include "nsMathMLOperators.h"
-#include "Navigator.h"
 
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
 #include "nsXULContentUtils.h"
+#include "nsXULElement.h"
 #include "nsXULPrototypeCache.h"
 #include "nsXULTooltipListener.h"
 
@@ -77,10 +108,6 @@
 #include "nsHTMLMediaElement.h"
 #endif
 
-#ifdef MOZ_MEDIA_PLUGINS
-#include "nsMediaPluginHost.h"
-#endif
-
 #ifdef MOZ_SYDNEYAUDIO
 #include "nsAudioStream.h"
 #endif
@@ -92,19 +119,13 @@
 #include "nsContentSink.h"
 #include "nsFrameMessageManager.h"
 #include "nsRefreshDriver.h"
-#include "nsDOMMutationObserver.h"
+
 #include "nsHyphenationManager.h"
-#include "nsEditorSpellCheck.h"
-#include "nsWindowMemoryReporter.h"
-#include "mozilla/dom/ContentParent.h"
-#include "mozilla/dom/ipc/ProcessPriorityManager.h"
-#include "nsPermissionManager.h"
+#include "nsDOMMemoryReporter.h"
 
 extern void NS_ShutdownChainItemPool();
 
 using namespace mozilla;
-using namespace mozilla::dom;
-using namespace mozilla::dom::ipc;
 
 nsrefcnt nsLayoutStatics::sLayoutStaticRefcnt = 0;
 
@@ -119,8 +140,6 @@ nsLayoutStatics::Initialize()
                 "nsLayoutStatics", 1);
 
   nsresult rv;
-
-  ContentParent::StartUp();
 
   
   nsCSSAnonBoxes::AddRefAtoms();
@@ -137,10 +156,6 @@ nsLayoutStatics::Initialize()
     NS_ERROR("Could not initialize nsRegion");
     return rv;
   }
-
-  nsGlobalWindow::Init();
-  Navigator::Init();
-  nsXBLService::Init();
 
   rv = nsContentUtils::Init();
   if (NS_FAILED(rv)) {
@@ -237,7 +252,6 @@ nsLayoutStatics::Initialize()
 
   nsContentSink::InitializeStatics();
   nsHtml5Module::InitializeStatics();
-  nsLayoutUtils::Initialize();
   nsIPresShell::InitializeStatics();
   nsRefreshDriver::InitializeStatics();
 
@@ -247,13 +261,12 @@ nsLayoutStatics::Initialize()
 
   NS_SealStaticAtomTable();
 
-  nsWindowMemoryReporter::Init();
 
-  nsSVGUtils::Init();
 
-  InitProcessPriorityManager();
 
-  nsPermissionManager::AppUninstallObserverInit();
+#ifdef DOM_MEMORY_REPORTER
+  nsDOMMemoryReporter::Init();
+#endif
 
   return NS_OK;
 }
@@ -295,12 +308,14 @@ nsLayoutStatics::Shutdown()
 
 #ifdef MOZ_XUL
   nsXULContentUtils::Finish();
+  nsXULElement::ReleaseGlobals();
   nsXULPrototypeCache::ReleaseGlobals();
   nsSprocketLayout::Shutdown();
 #endif
 
   nsMathMLOperators::ReleaseTable();
 
+  nsCSSFrameConstructor::ReleaseGlobals();
   nsFloatManager::Shutdown();
   nsImageFrame::ReleaseGlobals();
 
@@ -319,13 +334,10 @@ nsLayoutStatics::Shutdown()
   nsDOMClassInfo::ShutDown();
   nsListControlFrame::Shutdown();
   nsXBLWindowKeyHandler::ShutDown();
-  nsXBLService::Shutdown();
   nsAutoCopyListener::Shutdown();
-  FrameLayerBuilder::Shutdown();
 
-#ifdef MOZ_MEDIA_PLUGINS
-  nsMediaPluginHost::Shutdown();  
-#endif
+  nsHTMLEditor::Shutdown();
+  nsTextServicesDocument::Shutdown();
 
 #ifdef MOZ_SYDNEYAUDIO
   nsAudioStream::ShutdownLibrary();
@@ -334,8 +346,6 @@ nsLayoutStatics::Shutdown()
   nsCORSListenerProxy::Shutdown();
   
   nsIPresShell::ReleaseStatics();
-
-  nsTreeSanitizer::ReleaseStatics();
 
   nsHtml5Module::ReleaseStatics();
 
@@ -350,8 +360,4 @@ nsLayoutStatics::Shutdown()
   nsLayoutUtils::Shutdown();
 
   nsHyphenationManager::Shutdown();
-  nsEditorSpellCheck::ShutDown();
-  nsDOMMutationObserver::Shutdown();
-
-  ContentParent::ShutDown();
 }

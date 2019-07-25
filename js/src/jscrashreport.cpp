@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "jsapi.h"
 #include "jscntxt.h"
 #include "jscrashreport.h"
@@ -22,7 +55,7 @@ const static int stack_snapshot_max_size = 32768;
 #include <windows.h>
 
 static bool
-GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffer, size_t size)
+GetStack(uint64 *stack, uint64 *stack_len, CrashRegisters *regs, char *buffer, size_t size)
 {
     
     char dummy;
@@ -33,11 +66,11 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
         return false;
 
     
-    uint64_t p = uint64_t(&dummy) - 256;
-    uint64_t len = stack_snapshot_max_size;
+    uint64 p = uint64(&dummy) - 256;
+    uint64 len = stack_snapshot_max_size;
 
-    if (p + len > uint64_t(info.BaseAddress) + info.RegionSize)
-        len = uint64_t(info.BaseAddress) + info.RegionSize - p;
+    if (p + len > uint64(info.BaseAddress) + info.RegionSize)
+        len = uint64(info.BaseAddress) + info.RegionSize - p;
 
     if (len > size)
         len = size;
@@ -48,7 +81,7 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
     
 #if defined(_MSC_VER) && JS_BITS_PER_WORD == 32
     
-    uint32_t vip, vsp, vbp;
+    uint32 vip, vsp, vbp;
     __asm {
     Label:
         mov [vbp], ebp;
@@ -73,7 +106,7 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
 #endif
 #endif
 
-    js_memcpy(buffer, (void *)p, len);
+    memcpy(buffer, (void *)p, len);
 
     return true;
 }
@@ -85,13 +118,13 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
 #include <sys/mman.h>
 
 static bool
-GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffer, size_t size)
+GetStack(uint64 *stack, uint64 *stack_len, CrashRegisters *regs, char *buffer, size_t size)
 {
     
     char dummy;
-    uint64_t p = uint64_t(&dummy) - 256;
-    uint64_t pgsz = getpagesize();
-    uint64_t len = stack_snapshot_max_size;
+    uint64 p = uint64(&dummy) - 256;
+    uint64 pgsz = getpagesize();
+    uint64 len = stack_snapshot_max_size;
     p &= ~(pgsz - 1);
 
     
@@ -115,16 +148,16 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
 	return false;
 
 #if JS_BITS_PER_WORD == 64
-    regs->sp = (uint64_t)context.uc_mcontext.gregs[REG_RSP];
-    regs->bp = (uint64_t)context.uc_mcontext.gregs[REG_RBP];
-    regs->ip = (uint64_t)context.uc_mcontext.gregs[REG_RIP];
+    regs->sp = (uint64)context.uc_mcontext.gregs[REG_RSP];
+    regs->bp = (uint64)context.uc_mcontext.gregs[REG_RBP];
+    regs->ip = (uint64)context.uc_mcontext.gregs[REG_RIP];
 #elif JS_BITS_PER_WORD == 32
-    regs->sp = (uint64_t)context.uc_mcontext.gregs[REG_ESP];
-    regs->bp = (uint64_t)context.uc_mcontext.gregs[REG_EBP];
-    regs->ip = (uint64_t)context.uc_mcontext.gregs[REG_EIP];
+    regs->sp = (uint64)context.uc_mcontext.gregs[REG_ESP];
+    regs->bp = (uint64)context.uc_mcontext.gregs[REG_EBP];
+    regs->ip = (uint64)context.uc_mcontext.gregs[REG_EIP];
 #endif
 
-    js_memcpy(buffer, (void *)p, len);
+    memcpy(buffer, (void *)p, len);
 
     return true;
 }
@@ -132,7 +165,7 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
 #else
 
 static bool
-GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffer, size_t size)
+GetStack(uint64 *stack, uint64 *stack_len, CrashRegisters *regs, char *buffer, size_t size)
 {
     return false;
 }
@@ -142,12 +175,12 @@ GetStack(uint64_t *stack, uint64_t *stack_len, CrashRegisters *regs, char *buffe
 class Stack : private CrashStack
 {
 public:
-    Stack(uint64_t id);
+    Stack(uint64 id);
 
     bool snapshot();
 };
 
-Stack::Stack(uint64_t id)
+Stack::Stack(uint64 id)
   : CrashStack(id)
 {
 }
@@ -162,30 +195,30 @@ Stack::snapshot()
 class Ring : private CrashRing
 {
 public:
-    Ring(uint64_t id);
+    Ring(uint64 id);
 
-    void push(uint64_t tag, void *data, size_t size);
+    void push(uint64 tag, void *data, size_t size);
 
 private:
     size_t bufferSize() { return crash_buffer_size; }
     void copyBytes(void *data, size_t size);
 };
 
-Ring::Ring(uint64_t id)
+Ring::Ring(uint64 id)
   : CrashRing(id)
 {
 }
 
 void
-Ring::push(uint64_t tag, void *data, size_t size)
+Ring::push(uint64 tag, void *data, size_t size)
 {
-    uint64_t t = time(NULL);
+    uint64 t = time(NULL);
 
-    copyBytes(&tag, sizeof(uint64_t));
-    copyBytes(&t, sizeof(uint64_t));
+    copyBytes(&tag, sizeof(uint64));
+    copyBytes(&t, sizeof(uint64));
     copyBytes(data, size);
-    uint64_t mysize = size;
-    copyBytes(&mysize, sizeof(uint64_t));
+    uint64 mysize = size;
+    copyBytes(&mysize, sizeof(uint64));
 }
 
 void
@@ -197,11 +230,11 @@ Ring::copyBytes(void *data, size_t size)
     if (offset + size > bufferSize()) {
         size_t first = bufferSize() - offset;
         size_t second = size - first;
-        js_memcpy(&buffer[offset], data, first);
-        js_memcpy(buffer, (char *)data + first, second);
+        memcpy(&buffer[offset], data, first);
+        memcpy(buffer, (char *)data + first, second);
         offset = second;
     } else {
-        js_memcpy(&buffer[offset], data, size);
+        memcpy(&buffer[offset], data, size);
         offset += size;
     }
 }
@@ -212,37 +245,37 @@ static Stack gGCStack(JS_CRASH_STACK_GC);
 static Stack gErrorStack(JS_CRASH_STACK_ERROR);
 static Ring gRingBuffer(JS_CRASH_RING);
 
-void
-SnapshotGCStack()
-{
-    if (gInitialized)
-        gGCStack.snapshot();
-}
-
-void
-SnapshotErrorStack()
-{
-    if (gInitialized)
-        gErrorStack.snapshot();
-}
-
-void
-SaveCrashData(uint64_t tag, void *ptr, size_t size)
-{
-    if (gInitialized)
-        gRingBuffer.push(tag, ptr, size);
-}
-
 } 
 } 
 
 using namespace js;
 using namespace js::crash;
 
+JS_FRIEND_API(void)
+js_SnapshotGCStack()
+{
+    if (gInitialized)
+        gGCStack.snapshot();
+}
+
+JS_FRIEND_API(void)
+js_SnapshotErrorStack()
+{
+    if (gInitialized)
+        gErrorStack.snapshot();
+}
+
+JS_FRIEND_API(void)
+js_SaveCrashData(uint64 tag, void *ptr, size_t size)
+{
+    if (gInitialized)
+        gRingBuffer.push(tag, ptr, size);
+}
+
 JS_PUBLIC_API(void)
 JS_EnumerateDiagnosticMemoryRegions(JSEnumerateDiagnosticMemoryCallback callback)
 {
-#ifdef JS_CRASH_DIAGNOSTICS
+#if 1
     if (!gInitialized) {
         gInitialized = true;
         (*callback)(&gGCStack, sizeof(gGCStack));
