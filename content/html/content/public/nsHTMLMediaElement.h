@@ -192,6 +192,9 @@ public:
                                        PRUint64 aTime);
 
   
+  nsresult DispatchPendingMediaEvents();
+
+  
   
   
   
@@ -531,6 +534,10 @@ protected:
   
   
   nsCOMPtr<nsIDocument> mLoadBlockedDoc;
+
+  
+  
+  nsTArray<nsString> mPendingEvents;
 
   
   
