@@ -376,14 +376,6 @@ function test()
     check(function() a.length == 121);
     for (var i = 0; i < a.length; i++)
         check(function() a[i] == 0)
-
-    
-    a = new Uint8Array(100);
-    a[99] = 5;
-    b = new Uint8Array(a.buffer, 9); 
-    
-    for (var i = 0; i < b.length; i++)
-        check(function() b[90] == 5)
     print ("done");
 
     reportCompare(0, TestFailCount, "typed array tests");
