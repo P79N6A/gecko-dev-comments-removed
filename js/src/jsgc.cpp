@@ -82,6 +82,7 @@
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsstaticcheck.h"
+#include "jswatchpoint.h"
 #include "jsweakmap.h"
 #if JS_HAS_XML_SUPPORT
 #include "jsxml.h"
@@ -2276,7 +2277,7 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
 
 
     while (true) {
-        if (!js_TraceWatchPoints(&gcmarker) && !WeakMapBase::markAllIteratively(&gcmarker))
+        if (!WatchpointMap::markAllIteratively(&gcmarker) && !WeakMapBase::markAllIteratively(&gcmarker))
             break;
         gcmarker.drainMarkStack();
     }
@@ -2316,7 +2317,7 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
     js_SweepAtomState(cx);
 
     
-    js_SweepWatchPoints(cx);
+    WatchpointMap::sweepAll(rt);
 
     
 

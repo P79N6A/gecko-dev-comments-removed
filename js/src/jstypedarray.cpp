@@ -326,7 +326,7 @@ ArrayBuffer::obj_setProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp, J
     if (!delegate)
         return false;
 
-    return js_SetProperty(cx, delegate, id, vp, strict);
+    return js_SetPropertyHelper(cx, delegate, id, 0, vp, strict);
 }
 
 JSBool

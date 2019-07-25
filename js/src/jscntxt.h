@@ -521,7 +521,6 @@ struct JSRuntime {
 
     
     JSCList             trapList;
-    JSCList             watchPointList;
 
     
     void                *data;
@@ -546,7 +545,6 @@ struct JSRuntime {
     PRCondVar           *stateChange;
 
     
-
 
 
 

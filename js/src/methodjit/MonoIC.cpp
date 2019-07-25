@@ -269,7 +269,8 @@ UpdateSetGlobalName(VMFrame &f, ic::SetGlobalNameIC *ic, JSObject *obj, const Sh
     if (shape->isMethod() ||
         !shape->hasDefaultSetter() ||
         !shape->writable() ||
-        !shape->hasSlot())
+        !shape->hasSlot() ||
+        obj->watched())
     {
         
         PatchSetFallback(f, ic);

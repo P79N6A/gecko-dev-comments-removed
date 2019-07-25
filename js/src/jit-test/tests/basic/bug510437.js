@@ -1,5 +1,6 @@
 
 
+var d;
 this.watch("d", eval);
 (function () {
     (eval("\

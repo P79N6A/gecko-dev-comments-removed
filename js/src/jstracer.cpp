@@ -12193,12 +12193,8 @@ TraceRecorder::record_AddProperty(JSObject *obj)
     LIns* v_ins = get(&v);
     const Shape* shape = obj->lastProperty();
 
-    if (!shape->hasDefaultSetter()) {
-        JS_ASSERT(IsWatchedProperty(cx, shape));
-        RETURN_STOP_A("assignment adds property with watchpoint");
-    }
-
 #ifdef DEBUG
+    JS_ASSERT(shape->hasDefaultSetter());
     JS_ASSERT(addPropShapeBefore);
     if (obj->inDictionaryMode())
         JS_ASSERT(shape->previous()->matches(addPropShapeBefore));
@@ -12348,6 +12344,8 @@ TraceRecorder::setProperty(JSObject* obj, LIns* obj_ins, const Value &v, LIns* v
 
     if (obj->getOps()->setProperty)
         RETURN_STOP("non-native object");  
+    if (obj->watched())
+        RETURN_STOP("watchpoint");
 
     bool safe;
     JSObject* pobj;

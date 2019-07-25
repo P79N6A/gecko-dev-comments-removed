@@ -55,6 +55,7 @@ function test()
 
 
 
+  this.x = undefined;
   this.watch("x", Function);
   NaN = uneval({ get \u3056 (){ return undefined } });
   x+=NaN;
