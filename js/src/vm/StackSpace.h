@@ -150,19 +150,6 @@ class StackSpace
 
     StackSegment &containingSegment(const StackFrame *target) const;
 
-#ifdef JS_TRACER
-    
-
-
-
-
-
-
-
-
-    inline bool ensureEnoughSpaceToEnterTrace(JSContext *cx);
-#endif
-
     
 
 

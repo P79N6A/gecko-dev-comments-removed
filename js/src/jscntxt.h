@@ -167,25 +167,6 @@ struct ThreadData {
     unsigned            requestDepth;
 #endif
 
-#ifdef JS_TRACER
-    
-
-
-
-
-
-
-
-    JSCompartment       *onTraceCompartment;
-    JSCompartment       *recordingCompartment;
-    JSCompartment       *profilingCompartment;
-
-    
-    uint32              maxCodeCacheBytes;
-
-    static const uint32 DEFAULT_JIT_CACHE_SIZE = 16 * 1024 * 1024;
-#endif
-
     
     StackSpace          stackSpace;
 
@@ -614,14 +595,6 @@ struct JSRuntime
 
     
     JSBool              hadOutOfMemory;
-
-#ifdef JS_TRACER
-    
-    bool debuggerInhibitsJIT() const {
-        return (globalDebugHooks.interruptHook ||
-                globalDebugHooks.callHook);
-    }
-#endif
 
     
 
@@ -1187,20 +1160,6 @@ struct JSContext
 
     
     js::Value           iterValue;
-
-#ifdef JS_TRACER
-    
-
-
-
-
-
-
-
-
-
-    bool                 traceJitEnabled;
-#endif
 
 #ifdef JS_METHODJIT
     bool                 methodJitEnabled;

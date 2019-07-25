@@ -47,12 +47,6 @@
 class GetPropCompiler;
 #endif
 
-#ifdef JS_TRACER
-namespace nanojit {
-class ValidateWriter;
-}
-#endif
-
 namespace js {
 
 #ifdef JS_POLYIC
@@ -68,12 +62,6 @@ struct GetElementIC;
 #endif
 void JS_FASTCALL GetProp(VMFrame &f, ic::PICInfo *pic);
 }
-}
-#endif
-
-#ifdef JS_TRACER
-namespace tjit {
-class Writer;
 }
 #endif
 
@@ -157,27 +145,10 @@ class ArgumentsObject : public ::JSObject
     static const uint32 LENGTH_OVERRIDDEN_BIT = 0x1;
     static const uint32 PACKED_BITS_COUNT = 1;
 
-#ifdef JS_TRACER
     
 
 
 
-    friend class tjit::Writer;
-
-    
-
-
-
-    friend class ::nanojit::ValidateWriter;
-#endif
-
-    
-
-
-
-#ifdef JS_TRACER
-    friend class TraceRecorder;
-#endif
 #ifdef JS_POLYIC
     friend class ::GetPropCompiler;
     friend struct mjit::ic::GetElementIC;

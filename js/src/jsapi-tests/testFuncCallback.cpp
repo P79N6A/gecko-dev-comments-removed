@@ -102,15 +102,6 @@ BEGIN_TEST(testFuncCallback_bug507012)
     CHECK_EQUAL(depth, 0);
 
     
-    
-    
-    
-#ifdef JS_TRACER
-    if (TRACING_ENABLED(cx))
-        CHECK(interpreted < enters);
-#endif
-
-    
     JS_SetFunctionCallback(cx, funcTransition);
     innerCallback = JS_GetFunctionCallback(cx);
     JS_SetFunctionCallback(cx, funcTransitionOverlay);
