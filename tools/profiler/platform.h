@@ -18,6 +18,7 @@
 #ifdef ANDROID
 #if defined(__arm__) || defined(__thumb__)
 #define ENABLE_SPS_LEAF_DATA
+#define ENABLE_ARM_LR_SAVING
 #endif
 #define LOG(text) __android_log_print(ANDROID_LOG_ERROR, "profiler", "%s", text);
 #else
@@ -167,12 +168,18 @@ class TickSample {
         pc(NULL),
         sp(NULL),
         fp(NULL),
+#ifdef ENABLE_ARM_LR_SAVING
+        lr(NULL),
+#endif
         function(NULL),
         context(NULL),
         frames_count(0) {}
   Address pc;  
   Address sp;  
   Address fp;  
+#ifdef ENABLE_ARM_LR_SAVING
+  Address lr;  
+#endif
   Address function;  
   void*   context;   
   static const int kMaxFramesCount = 64;
