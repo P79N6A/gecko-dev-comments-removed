@@ -320,7 +320,8 @@ nsXULPopupManager::PopupMoved(nsIView* aView, nsIntPoint aPnt)
     
     
     
-    if (menuPopupFrame->IsAnchored()) {
+    if (menuPopupFrame->IsAnchored() &&
+        menuPopupFrame->PopupLevel() == ePopupLevelParent) {
       menuPopupFrame->SetPopupPosition(nsnull, PR_TRUE);
     }
     else {

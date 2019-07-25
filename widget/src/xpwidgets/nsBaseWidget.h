@@ -156,6 +156,8 @@ public:
   NS_IMETHOD              GetNonClientMargins(nsIntMargin &margins);
   NS_IMETHOD              SetNonClientMargins(nsIntMargin &margins);
 
+  nsPopupLevel PopupLevel() { return mPopupLevel; }
+
   
 
 
@@ -228,6 +230,7 @@ protected:
   PRUint32          mClipRectCount;
   PRInt32           mZIndex;
   nsSizeMode        mSizeMode;
+  nsPopupLevel      mPopupLevel;
 
   
   

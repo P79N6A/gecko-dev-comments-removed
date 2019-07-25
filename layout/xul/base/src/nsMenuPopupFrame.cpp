@@ -88,7 +88,7 @@
 #include "nsIServiceManager.h"
 #include "nsThemeConstants.h"
 
-PRInt8 nsMenuPopupFrame::sDefaultLevelParent = -1;
+PRInt8 nsMenuPopupFrame::sDefaultLevelIsTop = -1;
 
 
 
@@ -125,9 +125,11 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
   mHFlip(PR_FALSE),
   mVFlip(PR_FALSE)
 {
-  if (sDefaultLevelParent >= 0)
+  
+  
+  if (sDefaultLevelIsTop >= 0)
     return;
-  sDefaultLevelParent =
+  sDefaultLevelIsTop =
     nsContentUtils::GetBoolPref("ui.panel.default_level_parent", PR_FALSE);
 } 
 
@@ -200,7 +202,7 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
 }
 
 PRBool
-nsMenuPopupFrame::IsNoAutoHide()
+nsMenuPopupFrame::IsNoAutoHide() const
 {
   
   
@@ -210,29 +212,38 @@ nsMenuPopupFrame::IsNoAutoHide()
                                  nsGkAtoms::_true, eIgnoreCase));
 }
 
-PRBool
-nsMenuPopupFrame::IsTopMost()
+nsPopupLevel
+nsMenuPopupFrame::PopupLevel(PRBool aIsNoAutoHide) const
 {
   
+  
+  
+  
+  
+
+  
   if (mPopupType != ePopupTypePanel)
-    return PR_TRUE;
+    return ePopupLevelTop;
 
   
-  
-  if (IsNoAutoHide())
-    return PR_FALSE;
+  static nsIContent::AttrValuesArray strings[] =
+    {&nsGkAtoms::top, &nsGkAtoms::parent, &nsGkAtoms::floating, nsnull};
+  switch (mContent->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::level,
+                                    strings, eCaseMatters)) {
+    case 0:
+      return ePopupLevelTop;
+    case 1:
+      return ePopupLevelParent;
+    case 2:
+      return ePopupLevelFloating;
+  }
 
   
-  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::level,
-                            nsGkAtoms::top, eIgnoreCase))
-    return PR_TRUE;
-
-  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::level,
-                            nsGkAtoms::parent, eIgnoreCase))
-    return PR_FALSE;
+  if (aIsNoAutoHide)
+    return ePopupLevelParent;
 
   
-  return sDefaultLevelParent ? PR_TRUE : PR_FALSE;
+  return sDefaultLevelIsTop ? ePopupLevelTop : ePopupLevelParent;
 }
 
 void
@@ -255,6 +266,7 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
   widgetData.mBorderStyle = eBorderStyle_default;
   widgetData.clipSiblings = PR_TRUE;
   widgetData.mPopupHint = mPopupType;
+  widgetData.mNoAutoHide = IsNoAutoHide();
 
   nsTransparencyMode mode = nsLayoutUtils::GetFrameTransparency(this, this);
   PRBool viewHasTransparentContent = !mInContentShell &&
@@ -265,12 +277,13 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
   if (parentContent)
     tag = parentContent->Tag();
   widgetData.mDropShadow = !(viewHasTransparentContent || tag == nsGkAtoms::menulist);
+  widgetData.mPopupLevel = PopupLevel(widgetData.mNoAutoHide);
 
   
   
   
   nsCOMPtr<nsIWidget> parentWidget;
-  if (!IsTopMost()) {
+  if (widgetData.mPopupLevel != ePopupLevelTop) {
     nsCOMPtr<nsISupports> cont = PresContext()->GetContainer();
     nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(cont);
     if (!dsti)
@@ -1051,6 +1064,18 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
     else
       screenPoint.x += presContext->CSSPixelsToAppUnits(mXPos);
     screenPoint.y += presContext->CSSPixelsToAppUnits(mYPos);
+
+    
+    
+    
+    
+    
+    if (IsNoAutoHide() && PopupLevel(PR_TRUE) != ePopupLevelParent) {
+      
+      
+      mScreenXPos = presContext->AppUnitsToIntCSSPixels(screenPoint.x - margin.left);
+      mScreenYPos = presContext->AppUnitsToIntCSSPixels(screenPoint.y - margin.top);
+    }
   }
   else {
     
@@ -1650,8 +1675,12 @@ nsMenuPopupFrame::MoveTo(PRInt32 aLeft, PRInt32 aTop, PRBool aUpdateAttrs)
   
   
   
-  mScreenXPos = aLeft;
-  mScreenYPos = aTop;
+  
+  nsMargin margin(0, 0, 0, 0);
+  GetStyleMargin()->GetMargin(margin);
+  nsPresContext* presContext = PresContext();
+  mScreenXPos = aLeft - presContext->AppUnitsToIntCSSPixels(margin.left);
+  mScreenYPos = aTop - presContext->AppUnitsToIntCSSPixels(margin.top);
 
   SetPopupPosition(nsnull, PR_TRUE);
 

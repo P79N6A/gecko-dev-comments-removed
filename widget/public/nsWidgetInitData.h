@@ -74,6 +74,22 @@ enum nsPopupType {
 
 
 
+enum nsPopupLevel {
+  
+  
+  ePopupLevelParent,
+  
+  
+  
+  
+  ePopupLevelFloating,
+  
+  ePopupLevelTop
+};
+
+
+
+
 enum nsBorderStyle {
   eBorderStyle_none     = 0,      
                                   
@@ -122,12 +138,14 @@ struct nsWidgetInitData {
       mBorderStyle(eBorderStyle_default),
       mContentType(eContentTypeInherit),
       mPopupHint(ePopupTypePanel),
+      mPopupLevel(ePopupLevelTop),
       clipChildren(PR_FALSE), 
       clipSiblings(PR_FALSE), 
       mDropShadow(PR_FALSE),
       mListenForResizes(PR_FALSE),
       mUnicode(PR_TRUE),
-      mRTL(PR_FALSE)
+      mRTL(PR_FALSE),
+      mNoAutoHide(PR_FALSE)
   {
   }
 
@@ -135,11 +153,13 @@ struct nsWidgetInitData {
   nsBorderStyle mBorderStyle;
   nsContentType mContentType;  
   nsPopupType   mPopupHint;
+  nsPopupLevel  mPopupLevel;
   
   PRPackedBool  clipChildren, clipSiblings, mDropShadow;
   PRPackedBool  mListenForResizes;
   PRPackedBool  mUnicode;
   PRPackedBool  mRTL;
+  PRPackedBool  mNoAutoHide; 
 };
 
 #endif 

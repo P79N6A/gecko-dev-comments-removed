@@ -183,11 +183,12 @@ public:
 
   
   
-  PRBool IsNoAutoHide();
+  PRBool IsNoAutoHide() const;
 
-  
-  
-  PRBool IsTopMost();
+  nsPopupLevel PopupLevel() const
+  {
+    return PopupLevel(IsNoAutoHide()); 
+  }
 
   void EnsureWidget();
 
@@ -320,6 +321,9 @@ public:
 protected:
 
   
+  nsPopupLevel PopupLevel(PRBool aIsNoAutoHide) const;
+
+  
   virtual void GetLayoutFlags(PRUint32& aFlags);
 
   void InitPositionFromAnchorAlign(const nsAString& aAnchor,
@@ -400,7 +404,7 @@ protected:
   PRPackedBool mHFlip;
   PRPackedBool mVFlip;
 
-  static PRInt8 sDefaultLevelParent;
+  static PRInt8 sDefaultLevelIsTop;
 }; 
 
 #endif

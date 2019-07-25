@@ -4039,8 +4039,7 @@ nsWindow::Create(nsIWidget        *aParent,
         else if (mWindowType == eWindowType_popup) {
             
             
-            
-            if (!aParent) {
+            if (!aInitData->mNoAutoHide) {
                 
                 
                 
