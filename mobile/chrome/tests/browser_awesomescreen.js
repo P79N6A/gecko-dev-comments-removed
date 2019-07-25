@@ -162,7 +162,7 @@ gTests.push({
     is(Elements.urlbarState.getAttribute("mode"), "edit", "bcast_urlbarState mode attribute should be equal to 'edit'");
 
     let edit = BrowserUI._edit;
-    is(edit.readOnly, !Util.isPortrait(), "urlbar input textbox be readonly once it is open in landscape, editable if portrait");
+    is(edit.readOnly, BrowserUI._isKeyboardFullscreen(), "urlbar input textbox is readonly if keyboard is fullscreen, editable otherwise");
 
     let urlString = BrowserUI.getDisplayURI(Browser.selectedBrowser);
     if (Util.isURLEmpty(urlString))
@@ -174,7 +174,7 @@ gTests.push({
       is(BrowserUI.activePanel, aPanel, "The panel " + aPanel.panel.id + " should be selected");
       if (firstPanel) {
         
-        is(edit.readOnly, !Util.isPortrait(), "urlbar input textbox be readonly once it is open in landscape, editable if portrait");
+        is(edit.readOnly, BrowserUI._isKeyboardFullscreen(), "urlbar input textbox is readonly if keyboard is fullscreen, editable otherwise");
       } else {
         is(edit.readOnly, true, "urlbar input textbox be readonly if not the first panel");
       }
@@ -223,7 +223,7 @@ gTests.push({
     let firstPanel = true;
     Panels.forEach(function(aPanel) {
       aPanel.doCommand();
-      if (firstPanel && Util.isPortrait()) {
+      if (firstPanel && !BrowserUI._isKeyboardFullscreen()) {
         
         ok(edit.selectionStart == 0 && edit.selectionEnd == edit.textLength, "[case 1] urlbar text should be selected on a simple show");
         edit.click();
@@ -246,7 +246,7 @@ gTests.push({
     firstPanel = true;
     Panels.forEach(function(aPanel) {
       aPanel.doCommand();
-      if (firstPanel && Util.isPortrait()) {
+      if (firstPanel && !BrowserUI._isKeyboardFullscreen()) {
         
         ok(edit.selectionStart == 0 && edit.selectionEnd == edit.textLength, "[case 1] urlbar text should be selected on a simple show");
         edit.click();
@@ -282,11 +282,12 @@ gTests.push({
     edit.clickSelectsAll = oldClickSelectsAll;
 
     BrowserUI.activePanel = null;
-    Browser.closeTab(gCurrentTest.currentTab, { forceClose: true });
 
     
     
-    waitFor(runNextTest, function() { return Browser.tabs.length == 1 });
+    let tabCount = Browser.tabs.length;
+    Browser.closeTab(gCurrentTest.currentTab, { forceClose: true });
+    waitFor(runNextTest, function() Browser.tabs.length == tabCount - 1);
   }
 });
 
@@ -378,7 +379,7 @@ gTests.push({
 
     window.addEventListener("popupshown", function() {
       window.removeEventListener("popupshown", arguments.callee, false);
-      if (!Util.isPortrait())
+      if (BrowserUI._isKeyboardFullscreen())
         gCurrentTest.inputField.readOnly = false;
       setTimeout(gCurrentTest.onPopupReady, 0);
     }, false);
@@ -422,10 +423,14 @@ gTests.push({
     
     
     
-    waitForAndContinue(function() {
-      gCurrentTest._checkState();
-      runNextTest();
-    }, isHiddenHeader, Date.now() + 500);
+
+    
+
+
+
+
+
+    runNextTest();
   }
 });
 
