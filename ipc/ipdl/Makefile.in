@@ -55,6 +55,7 @@ EXPORT_LIBRARY = 1
 ##
 IPDLDIRS =  \
   uriloader/exthandler \
+  dom/src/geolocation \
   dom/plugins  \
   dom/ipc  \
   gfx/layers/ipc \
@@ -62,6 +63,7 @@ IPDLDIRS =  \
   ipc/testshell  \
   js/ipc  \
   js/jetpack \
+  layout/ipc \
   netwerk/ipc  \
   netwerk/protocol/http  \
   netwerk/cookie  \
