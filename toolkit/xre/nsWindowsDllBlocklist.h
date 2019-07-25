@@ -110,6 +110,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   
   {"psicon.dll", ALL_VERSIONS},
+
+  
+  {"accelerator.dll", MAKE_VERSION(3,2,1,6)},
   
   
   { "mozdllblockingtest.dll", ALL_VERSIONS },
