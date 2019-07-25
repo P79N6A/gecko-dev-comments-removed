@@ -722,13 +722,28 @@ ScriptEpilogue(JSContext *cx, JSStackFrame *fp, JSBool ok)
     if (JS_UNLIKELY(hook != NULL) && (hookData = fp->maybeHookData()))
         hook(cx, fp, JS_FALSE, &ok, hookData);
 
-    
+    if (fp->isEvalFrame()) {
+        
 
 
 
 
-    if (fp->isFunctionFrame() && !fp->isEvalFrame() && !fp->isYielding())
-        PutActivationObjects(cx, fp);
+
+        if (fp->script()->strictModeCode) {
+            JS_ASSERT(!fp->isYielding());
+            JS_ASSERT(fp->hasCallObj());
+            JS_ASSERT(!fp->hasArgsObj());
+            js_PutCallObject(cx, fp);
+        }
+    } else {
+        
+
+
+
+
+        if (fp->isFunctionFrame() && !fp->isYielding())
+            PutActivationObjects(cx, fp);
+    }
 
     
 
