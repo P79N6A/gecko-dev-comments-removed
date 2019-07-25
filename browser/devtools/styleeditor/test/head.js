@@ -1,0 +1,46 @@
+
+
+
+
+const TEST_BASE = "chrome://mochitests/content/browser/browser/devtools/styleeditor/test/";
+const TEST_BASE_HTTP = "http://example.com/browser/browser/devtools/styleeditor/test/";
+const TEST_BASE_HTTPS = "https://example.com/browser/browser/devtools/styleeditor/test/";
+
+let gChromeWindow;               
+
+function cleanup()
+{
+  if (gChromeWindow) {
+    gChromeWindow.close();
+    gChromeWindow = null;
+  }
+  while (gBrowser.tabs.length > 1) {
+    gBrowser.removeCurrentTab();
+  }
+}
+
+function launchStyleEditorChrome(aCallback)
+{
+  gChromeWindow = StyleEditor.openChrome();
+  if (gChromeWindow.document.readyState != "complete") {
+    gChromeWindow.addEventListener("load", function onChromeLoad() {
+      gChromeWindow.removeEventListener("load", onChromeLoad, true);
+      gChromeWindow.styleEditorChrome._alwaysDisableAnimations = true;
+      aCallback(gChromeWindow.styleEditorChrome);
+    }, true);
+  } else {
+    gChromeWindow.styleEditorChrome._alwaysDisableAnimations = true;
+    aCallback(gChromeWindow.styleEditorChrome);
+  }
+}
+
+function addTabAndLaunchStyleEditorChromeWhenLoaded(aCallback)
+{
+  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
+    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
+    launchStyleEditorChrome(aCallback);
+  }, true);
+}
+
+registerCleanupFunction(cleanup);
