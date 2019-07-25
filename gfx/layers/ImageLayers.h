@@ -20,6 +20,13 @@
 #ifdef XP_MACOSX
 #include "nsIOSurface.h"
 #endif
+#ifdef XP_WIN
+struct ID3D10Texture2D;
+struct ID3D10Device;
+struct ID3D10ShaderResourceView;
+
+typedef void* HANDLE;
+#endif
 
 namespace mozilla {
 
@@ -99,7 +106,12 @@ public:
     
 
 
-    REMOTE_IMAGE_BITMAP
+    REMOTE_IMAGE_BITMAP,
+
+    
+
+
+    REMOTE_IMAGE_DXGI_TEXTURE
   };
 
   Format GetFormat() { return mFormat; }
@@ -223,7 +235,17 @@ struct RemoteImageData {
     
 
 
-    RAW_BITMAP
+    RAW_BITMAP,
+
+    
+
+
+
+
+
+
+
+    DXGI_TEXTURE_HANDLE
   };
   
   enum Format {
@@ -248,6 +270,9 @@ struct RemoteImageData {
       unsigned char *mData;
       int mStride;
     } mBitmap;
+#ifdef XP_WIN
+    HANDLE mTextureHandle;
+#endif
   };
 };
 
