@@ -327,7 +327,9 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
         const char *rendererMatchStrings[RendererOther] = {
                 "Adreno 200",
                 "Adreno 205",
-                "PowerVR SGX 540"
+                "PowerVR SGX 530",
+                "PowerVR SGX 540",
+
         };
         mRenderer = RendererOther;
         for (int i = 0; i < RendererOther; ++i) {
@@ -570,8 +572,15 @@ GLContext::CanUploadSubTextures()
 {
     
     
-    return (Renderer() != RendererAdreno200 &&
-            Renderer() != RendererAdreno205);
+    if (Renderer() == RendererAdreno200 || Renderer() == RendererAdreno205)
+        return false;
+
+    
+    
+    if (Renderer() == RendererSGX540 || Renderer() == RendererSGX530)
+        return false;
+
+    return true;
 }
 
 bool
