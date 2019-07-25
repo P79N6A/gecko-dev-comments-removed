@@ -423,6 +423,9 @@ typedef enum {
 
 
 
+
+
+
 static void
 MaybeMoveToMidPoint(gfxPoint& aP0, gfxPoint& aP1, const gfxPoint& aMidPoint)
 {
@@ -439,7 +442,7 @@ MaybeMoveToMidPoint(gfxPoint& aP0, gfxPoint& aP1, const gfxPoint& aMidPoint)
       aP1.x = aMidPoint.x;
     } else {
       gfxFloat k = NS_MIN((aMidPoint.x - aP0.x) / ps.x,
-                          (aMidPoint.y - aP1.y) / ps.y);
+                          (aMidPoint.y - aP0.y) / ps.y);
       aP1 = aP0 + ps * k;
     }
   }
