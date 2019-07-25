@@ -1428,9 +1428,9 @@ gfxWindowsPlatform::SetupClearTypeParams()
 
         
         
-        gamma =
-            gamma >= 1.0 && gamma <= 2.2 ?
-                gamma : defaultRenderingParams->GetGamma();
+        if (gamma < 1.0 || gamma > 2.2) {
+            gamma = defaultRenderingParams->GetGamma();
+        }
 
         if (level < 0.0 || level > 1.0) {
             level = defaultRenderingParams->GetClearTypeLevel();
