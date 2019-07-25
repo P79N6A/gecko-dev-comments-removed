@@ -490,7 +490,7 @@ class JSFlatString : public JSLinearString
 
 
 
-    bool isElement(uint32 *indexp) const;
+    bool isIndex(uint32 *indexp) const;
 
     
 
@@ -794,7 +794,7 @@ JSAtom::asPropertyName()
 {
 #ifdef DEBUG
     uint32 dummy;
-    JS_ASSERT(!isElement(&dummy));
+    JS_ASSERT(!isIndex(&dummy));
 #endif
     return static_cast<js::PropertyName *>(this);
 }
