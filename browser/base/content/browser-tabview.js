@@ -52,7 +52,6 @@ let TabView = {
   PREF_RESTORE_ENABLED_ONCE: "browser.panorama.session_restore_enabled_once",
   GROUPS_IDENTIFIER: "tabview-groups",
   VISIBILITY_IDENTIFIER: "tabview-visibility",
-  LAST_SESSION_GROUP_NAME_IDENTIFIER: "tabview-last-session-group-name",
 
   
   get windowTitle() {
@@ -143,10 +142,6 @@ let TabView = {
           "TabShow", this._tabShowEventListener, false);
         gBrowser.tabContainer.addEventListener(
           "TabClose", this._tabCloseEventListener, false);
-
-       
-       this._lastSessionGroupName = sessionstore.getWindowValue(window,
-         this.LAST_SESSION_GROUP_NAME_IDENTIFIER);
       }
     }
 
@@ -278,30 +273,6 @@ let TabView = {
       this.hide();
     else 
       this.show();
-  },
-  
-  getActiveGroupName: function TabView_getActiveGroupName() {
-    if (!this._window)
-      return this._lastSessionGroupName;
-
-    
-    
-    
-    
-    let groupItem = null;
-    let activeTab = window.gBrowser.selectedTab;
-    let activeTabItem = activeTab._tabViewTabItem;
-
-    if (activeTab.pinned) {
-      
-      
-      groupItem = this._window.GroupItems.getActiveGroupItem();
-    } else if (activeTabItem) {
-      groupItem = activeTabItem.parent;
-    }
-
-    
-    return groupItem ? groupItem.getTitle() : "";
   },
 
   
