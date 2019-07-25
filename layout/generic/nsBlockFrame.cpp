@@ -3087,6 +3087,14 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     availSpace.y -= topMargin;
     if (NS_UNCONSTRAINEDSIZE != availSpace.height) {
       availSpace.height += topMargin;
+
+      
+      
+      
+      
+      if (NS_UNCONSTRAINEDSIZE == availSpace.height) {
+        --availSpace.height;
+      }
     }
     
     
