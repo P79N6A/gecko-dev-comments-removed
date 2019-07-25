@@ -82,6 +82,11 @@ public:
 
   nsresult FinishInitOnEvent(mozInlineSpellWordUtil& aWordUtil);
 
+  
+  bool IsFullSpellCheck() const {
+    return mOp == eOpChange && !mRange;
+  }
+
   nsRefPtr<mozInlineSpellChecker> mSpellChecker;
 
   
@@ -180,6 +185,10 @@ private:
   
   
   bool mNeedsCheckAfterNavigation;
+
+  
+  
+  bool mFullSpellCheckScheduled;
 
   
   
