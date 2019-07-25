@@ -169,6 +169,12 @@ nsXPConnect::~nsXPConnect()
 nsXPConnect*
 nsXPConnect::GetXPConnect()
 {
+    
+    
+    
+    if (!NS_LIKELY(NS_IsMainThread() || NS_IsCycleCollectorThread()))
+        JS_Assert("NS_IsMainThread()", __FILE__, __LINE__);
+
     if (!gSelf) {
         if (gOnceAliveNowDead)
             return nsnull;
