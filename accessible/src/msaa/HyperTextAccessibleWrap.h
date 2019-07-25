@@ -5,21 +5,21 @@
 
 
 
-#ifndef _NSHYPERTEXTACCESSIBLEWRAP_H
-#define _NSHYPERTEXTACCESSIBLEWRAP_H
+#ifndef mozilla_a11y_HyperTextAccessibleWrap_h__
+#define mozilla_a11y_HyperTextAccessibleWrap_h__
 
-#include "nsHyperTextAccessible.h"
+#include "HyperTextAccessible.h"
 #include "CAccessibleText.h"
 #include "CAccessibleEditableText.h"
 #include "ia2AccessibleHyperText.h"
 
-class nsHyperTextAccessibleWrap : public nsHyperTextAccessible,
-                                  public ia2AccessibleHypertext,
-                                  public CAccessibleEditableText
+class HyperTextAccessibleWrap : public HyperTextAccessible,
+                                public ia2AccessibleHypertext,
+                                public CAccessibleEditableText
 {
 public:
-  nsHyperTextAccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
-    nsHyperTextAccessible(aContent, aDoc) {}
+  HyperTextAccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
+    HyperTextAccessible(aContent, aDoc) {}
 
   
   DECL_IUNKNOWN_INHERITED

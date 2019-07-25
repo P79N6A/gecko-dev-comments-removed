@@ -4,13 +4,13 @@
 
 #import "mozAccessible.h"
 
-#import "nsHyperTextAccessible.h"
+#import "HyperTextAccessible.h"
 
 @interface mozTextAccessible : mozAccessible
 {
   
   
-  nsHyperTextAccessible     *mGeckoTextAccessible;         
+  HyperTextAccessible *mGeckoTextAccessible; 
   nsIAccessibleEditableText *mGeckoEditableTextAccessible; 
 }
 @end

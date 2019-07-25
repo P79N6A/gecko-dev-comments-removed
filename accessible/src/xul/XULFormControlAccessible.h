@@ -9,7 +9,7 @@
 
 #include "AccessibleWrap.h"
 #include "FormControlAccessible.h"
-#include "nsHyperTextAccessibleWrap.h"
+#include "HyperTextAccessibleWrap.h"
 #include "XULSelectControlAccessible.h"
 
 namespace mozilla {
@@ -213,7 +213,7 @@ public:
 
 
 
-class XULTextFieldAccessible : public nsHyperTextAccessibleWrap
+class XULTextFieldAccessible : public HyperTextAccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };

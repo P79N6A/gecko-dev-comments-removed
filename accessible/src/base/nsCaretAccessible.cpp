@@ -243,7 +243,7 @@ nsCaretAccessible::NormalSelectionChanged(nsISelection* aSelection)
     return; 
   }
 
-  nsHyperTextAccessible* textAcc =
+  HyperTextAccessible* textAcc =
     nsAccUtils::GetTextAccessibleFromSelection(aSelection);
   if (!textAcc)
     return;
@@ -278,7 +278,7 @@ nsCaretAccessible::SpellcheckSelectionChanged(nsISelection* aSelection)
   
   
 
-  nsHyperTextAccessible* textAcc =
+  HyperTextAccessible* textAcc =
     nsAccUtils::GetTextAccessibleFromSelection(aSelection);
   if (!textAcc)
     return;

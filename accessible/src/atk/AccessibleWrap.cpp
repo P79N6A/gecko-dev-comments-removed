@@ -376,7 +376,7 @@ AccessibleWrap::CreateMaiInterfaces(void)
     interfacesBits |= 1 << MAI_INTERFACE_ACTION;
 
   
-  nsHyperTextAccessible* hyperText = AsHyperText();
+  HyperTextAccessible* hyperText = AsHyperText();
   if (hyperText && hyperText->IsTextRole()) {
     interfacesBits |= 1 << MAI_INTERFACE_TEXT;
     interfacesBits |= 1 << MAI_INTERFACE_EDITABLE_TEXT;

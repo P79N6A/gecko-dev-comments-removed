@@ -11,7 +11,7 @@
 #include "nsIPersistentProperties2.h"
 #include "nsStyleConsts.h"
 
-class nsHyperTextAccessible;
+class HyperTextAccessible;
 
 namespace mozilla {
 namespace a11y {
@@ -29,7 +29,7 @@ public:
   
 
 
-  TextAttrsMgr(nsHyperTextAccessible* aHyperTextAcc) :
+  TextAttrsMgr(HyperTextAccessible* aHyperTextAcc) :
     mOffsetAcc(nsnull),  mHyperTextAcc(aHyperTextAcc),
     mOffsetAccIdx(-1), mIncludeDefAttrs(true) { }
 
@@ -45,7 +45,7 @@ public:
 
 
 
-  TextAttrsMgr(nsHyperTextAccessible* aHyperTextAcc,
+  TextAttrsMgr(HyperTextAccessible* aHyperTextAcc,
                bool aIncludeDefAttrs,
                Accessible* aOffsetAcc,
                PRInt32 aOffsetAccIdx) :
@@ -84,7 +84,7 @@ protected:
 
 private:
   Accessible* mOffsetAcc;
-  nsHyperTextAccessible* mHyperTextAcc;
+  HyperTextAccessible* mHyperTextAcc;
   PRInt32 mOffsetAccIdx;
   bool mIncludeDefAttrs;
 
@@ -191,7 +191,7 @@ protected:
   class LangTextAttr : public TTextAttr<nsString>
   {
   public:
-    LangTextAttr(nsHyperTextAccessible* aRoot, nsIContent* aRootElm,
+    LangTextAttr(HyperTextAccessible* aRoot, nsIContent* aRootElm,
                  nsIContent* aElm);
     virtual ~LangTextAttr() { }
 

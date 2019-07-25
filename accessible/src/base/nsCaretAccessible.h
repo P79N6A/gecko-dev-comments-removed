@@ -6,8 +6,8 @@
 #ifndef __nsCaretAccessible_h__
 #define __nsCaretAccessible_h__
 
+#include "HyperTextAccessible.h"
 #include "NotificationController.h"
-#include "nsHyperTextAccessible.h"
 
 #include "nsISelectionListener.h"
 
@@ -118,7 +118,7 @@ private:
   
   
   nsCOMPtr<nsIWeakReference> mLastUsedSelection; 
-  nsRefPtr<nsHyperTextAccessible> mLastTextAccessible;
+  nsRefPtr<HyperTextAccessible> mLastTextAccessible;
   PRInt32 mLastCaretOffset;
 
   mozilla::a11y::RootAccessible* mRootAccessible;

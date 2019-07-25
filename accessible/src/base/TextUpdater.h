@@ -7,7 +7,7 @@
 #define TextUpdater_h_
 
 #include "AccEvent.h"
-#include "nsHyperTextAccessible.h"
+#include "HyperTextAccessible.h"
 
 
 
@@ -85,7 +85,7 @@ private:
 private:
   DocAccessible* mDocument;
   mozilla::a11y::TextLeafAccessible* mTextLeaf;
-  nsHyperTextAccessible* mHyperText;
+  HyperTextAccessible* mHyperText;
   PRInt32 mTextOffset;
 };
 

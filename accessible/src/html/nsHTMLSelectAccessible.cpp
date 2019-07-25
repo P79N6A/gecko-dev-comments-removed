@@ -174,7 +174,7 @@ nsHTMLSelectListAccessible::CacheOptSiblings(nsIContent *aParentContent)
 
 nsHTMLSelectOptionAccessible::
   nsHTMLSelectOptionAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  nsHyperTextAccessibleWrap(aContent, aDoc)
+  HyperTextAccessibleWrap(aContent, aDoc)
 {
 }
 
@@ -307,7 +307,7 @@ nsHTMLSelectOptionAccessible::GetBoundsRect(nsRect& aTotalBounds,
   if (combobox && (combobox->State() & states::COLLAPSED))
     combobox->GetBoundsRect(aTotalBounds, aBoundingFrame);
   else
-    nsHyperTextAccessibleWrap::GetBoundsRect(aTotalBounds, aBoundingFrame);
+    HyperTextAccessibleWrap::GetBoundsRect(aTotalBounds, aBoundingFrame);
 }
 
 

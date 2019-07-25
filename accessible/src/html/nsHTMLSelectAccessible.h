@@ -69,7 +69,7 @@ protected:
 
 
 
-class nsHTMLSelectOptionAccessible : public nsHyperTextAccessibleWrap
+class nsHTMLSelectOptionAccessible : public HyperTextAccessibleWrap
 {
 public:
   enum { eAction_Select = 0 };  

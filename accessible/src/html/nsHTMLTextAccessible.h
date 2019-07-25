@@ -38,7 +38,7 @@ public:
 
 
 
-class nsHTMLLabelAccessible : public nsHyperTextAccessibleWrap
+class nsHTMLLabelAccessible : public HyperTextAccessibleWrap
 {
 public:
   nsHTMLLabelAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -53,7 +53,7 @@ public:
 
 
 
-class nsHTMLOutputAccessible : public nsHyperTextAccessibleWrap
+class nsHTMLOutputAccessible : public HyperTextAccessibleWrap
 {
 public:
   nsHTMLOutputAccessible(nsIContent* aContent, DocAccessible* aDoc);

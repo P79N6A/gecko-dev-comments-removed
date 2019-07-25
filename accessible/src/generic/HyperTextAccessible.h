@@ -3,8 +3,8 @@
 
 
 
-#ifndef _nsHyperTextAccessible_H_
-#define _nsHyperTextAccessible_H_
+#ifndef mozilla_a11y_HyperTextAccessible_h__
+#define mozilla_a11y_HyperTextAccessible_h__
 
 #include "nsIAccessibleText.h"
 #include "nsIAccessibleHyperText.h"
@@ -35,14 +35,14 @@ const PRUnichar kForcedNewLineChar = '\n';
 
 
 
-class nsHyperTextAccessible : public AccessibleWrap,
-                              public nsIAccessibleText,
-                              public nsIAccessibleHyperText,
-                              public nsIAccessibleEditableText
+class HyperTextAccessible : public AccessibleWrap,
+                            public nsIAccessibleText,
+                            public nsIAccessibleHyperText,
+                            public nsIAccessibleEditableText
 {
 public:
-  nsHyperTextAccessible(nsIContent* aContent, DocAccessible* aDoc);
-  virtual ~nsHyperTextAccessible() { }
+  HyperTextAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  virtual ~HyperTextAccessible() { }
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIACCESSIBLETEXT
@@ -410,19 +410,19 @@ private:
   nsTArray<PRUint32> mOffsets;
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsHyperTextAccessible,
+NS_DEFINE_STATIC_IID_ACCESSOR(HyperTextAccessible,
                               NS_HYPERTEXTACCESSIBLE_IMPL_CID)
 
 
 
 
 
-inline nsHyperTextAccessible*
+inline HyperTextAccessible*
 Accessible::AsHyperText()
 {
   return mFlags & eHyperTextAccessible ?
-    static_cast<nsHyperTextAccessible*>(this) : nsnull;
+    static_cast<HyperTextAccessible*>(this) : nsnull;
 }
 
-#endif  
+#endif
 
