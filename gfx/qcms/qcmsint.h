@@ -7,7 +7,14 @@
 struct precache_output
 {
 	int ref_count;
-	uint8_t data[65535];
+	
+
+
+
+
+#define PRECACHE_OUTPUT_SIZE 8192
+#define PRECACHE_OUTPUT_MAX (PRECACHE_OUTPUT_SIZE-1)
+	uint8_t data[PRECACHE_OUTPUT_SIZE];
 };
 
 #ifdef _MSC_VER
