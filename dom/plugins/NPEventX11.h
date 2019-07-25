@@ -40,18 +40,9 @@
 #ifndef mozilla_dom_plugins_NPEventX11_h
 #define mozilla_dom_plugins_NPEventX11_h 1
 
-#if defined(MOZ_WIDGET_GTK2)
-#  include <gdk/gdkx.h>
-#elif defined(MOZ_WIDGET_QT)
-
-
-#  undef CursorShape
-#  include <QX11Info>
-#else
-#  error Implement me for your toolkit
-#endif
-
 #include "npapi.h"
+
+#include "mozilla/X11Util.h"
 
 namespace mozilla {
 
@@ -115,39 +106,16 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
     }
 
 private:
-    static Display* GetXDisplay(const XAnyEvent& ev)
-    {
-        
-
-        
-#if defined(MOZ_WIDGET_GTK2)
-        return GDK_DISPLAY();
-#elif defined(MOZ_WIDGET_QT)
-        return QX11Info::display();
-#endif
-    }
-
-    static Display* GetXDisplay(const XErrorEvent& ev)
-    {
-        
-
-        
-#if defined(MOZ_WIDGET_GTK2)
-        return GDK_DISPLAY();
-#elif defined(MOZ_WIDGET_QT)
-        return QX11Info::display();
-#endif
-    }
-
     static void SetXDisplay(XEvent& ev)
     {
+        Display* display = mozilla::DefaultXDisplay();
         if (ev.type >= KeyPress) {
-            ev.xany.display = GetXDisplay(ev.xany);
+            ev.xany.display = display;
         }
         else {
             
             
-            ev.xerror.display = GetXDisplay(ev.xerror);
+            ev.xerror.display = display;
         }
     }
 };

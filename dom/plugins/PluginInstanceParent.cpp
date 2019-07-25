@@ -213,16 +213,6 @@ PluginInstanceParent::DeallocPPluginStream(PPluginStreamParent* stream)
     return true;
 }
 
-#ifdef MOZ_X11
-static Display* GetXDisplay() {
-#  ifdef MOZ_WIDGET_GTK2
-        return GDK_DISPLAY();
-#  elif defined(MOZ_WIDGET_QT)
-        return QX11Info::display();
-#  endif
-}
-#endif
-
 bool
 PluginInstanceParent::AnswerNPN_GetValue_NPNVjavascriptEnabledBool(
                                                        bool* value,
@@ -700,14 +690,14 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
         
         
         
-        XSync(GetXDisplay(), False);
+        XSync(DefaultXDisplay(), False);
 
         return CallPaint(npremoteevent, &handled) ? handled : 0;
 
     case ButtonPress:
         
         
-        Display *dpy = GetXDisplay();
+        Display *dpy = DefaultXDisplay();
 #  ifdef MOZ_WIDGET_GTK2
         
         
