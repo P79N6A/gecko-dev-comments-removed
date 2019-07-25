@@ -372,11 +372,11 @@ EmitBackPatchOp(JSContext *cx, BytecodeEmitter *bce, JSOp op, ptrdiff_t *lastp)
             bce->current->currentLine = line_;                                \
             if (delta_ >= (unsigned)(2 + ((line_ > SN_3BYTE_OFFSET_MASK)<<1))) { \
                 if (NewSrcNote2(cx, bce, SRC_SETLINE, (ptrdiff_t)line_) < 0)  \
-                    return JS_FALSE;                                          \
+                    return false;                                             \
             } else {                                                          \
                 do {                                                          \
                     if (NewSrcNote(cx, bce, SRC_NEWLINE) < 0)                 \
-                        return JS_FALSE;                                      \
+                        return false;                                         \
                 } while (--delta_ != 0);                                      \
             }                                                                 \
         }                                                                     \
@@ -387,7 +387,7 @@ static JSBool
 UpdateLineNumberNotes(JSContext *cx, BytecodeEmitter *bce, unsigned line)
 {
     UPDATE_LINE_NUMBER_NOTES(cx, bce, line);
-    return JS_TRUE;
+    return true;
 }
 
 static ptrdiff_t
@@ -446,7 +446,7 @@ CheckTypeSet(JSContext *cx, BytecodeEmitter *bce, JSOp op)
 #define EMIT_UINT16_IMM_OP(op, i)                                             \
     JS_BEGIN_MACRO                                                            \
         if (Emit3(cx, bce, op, UINT16_HI(i), UINT16_LO(i)) < 0)               \
-            return JS_FALSE;                                                  \
+            return false;                                                     \
         CheckTypeSet(cx, bce, op);                                            \
     JS_END_MACRO
 
@@ -454,7 +454,7 @@ CheckTypeSet(JSContext *cx, BytecodeEmitter *bce, JSOp op)
     JS_BEGIN_MACRO                                                            \
         ptrdiff_t off_ = EmitN(cx, bce, op, 2 * UINT16_LEN);                  \
         if (off_ < 0)                                                         \
-            return JS_FALSE;                                                  \
+            return false;                                                     \
         jsbytecode *pc_ = bce->code(off_);                                    \
         SET_UINT16(pc_, i);                                                   \
         pc_ += UINT16_LEN;                                                    \
@@ -482,10 +482,10 @@ FlushPops(JSContext *cx, BytecodeEmitter *bce, int *npops)
 {
     JS_ASSERT(*npops != 0);
     if (NewSrcNote(cx, bce, SRC_HIDDEN) < 0)
-        return JS_FALSE;
+        return false;
     EMIT_UINT16_IMM_OP(JSOP_POPN, *npops);
     *npops = 0;
-    return JS_TRUE;
+    return true;
 }
 
 static bool
@@ -513,31 +513,31 @@ EmitNonLocalJumpFixup(JSContext *cx, BytecodeEmitter *bce, StmtInfoBCE *toStmt)
     int depth = bce->stackDepth;
     int npops = 0;
 
-#define FLUSH_POPS() if (npops && !FlushPops(cx, bce, &npops)) return JS_FALSE
+#define FLUSH_POPS() if (npops && !FlushPops(cx, bce, &npops)) return false
 
     for (StmtInfoBCE *stmt = bce->topStmt; stmt != toStmt; stmt = stmt->down) {
         switch (stmt->type) {
           case STMT_FINALLY:
             FLUSH_POPS();
             if (NewSrcNote(cx, bce, SRC_HIDDEN) < 0)
-                return JS_FALSE;
+                return false;
             if (EmitBackPatchOp(cx, bce, JSOP_BACKPATCH, &GOSUBS(*stmt)) < 0)
-                return JS_FALSE;
+                return false;
             break;
 
           case STMT_WITH:
             
             FLUSH_POPS();
             if (NewSrcNote(cx, bce, SRC_HIDDEN) < 0)
-                return JS_FALSE;
+                return false;
             if (Emit1(cx, bce, JSOP_LEAVEWITH) < 0)
-                return JS_FALSE;
+                return false;
             break;
 
           case STMT_FOR_IN_LOOP:
             FLUSH_POPS();
             if (!PopIterator(cx, bce))
-                return JS_FALSE;
+                return false;
             break;
 
           case STMT_SUBROUTINE:
@@ -565,16 +565,16 @@ EmitNonLocalJumpFixup(JSContext *cx, BytecodeEmitter *bce, StmtInfoBCE *toStmt)
                 if (stmt == toStmt)
                     break;
                 if (Emit1(cx, bce, JSOP_LEAVEFORLETIN) < 0)
-                    return JS_FALSE;
+                    return false;
                 if (!PopIterator(cx, bce))
-                    return JS_FALSE;
+                    return false;
                 if (NewSrcNote(cx, bce, SRC_HIDDEN) < 0)
-                    return JS_FALSE;
+                    return false;
                 EMIT_UINT16_IMM_OP(JSOP_POPN, blockObjCount);
             } else {
                 
                 if (NewSrcNote(cx, bce, SRC_HIDDEN) < 0)
-                    return JS_FALSE;
+                    return false;
                 EMIT_UINT16_IMM_OP(JSOP_LEAVEBLOCK, blockObjCount);
             }
         }
@@ -582,7 +582,7 @@ EmitNonLocalJumpFixup(JSContext *cx, BytecodeEmitter *bce, StmtInfoBCE *toStmt)
 
     FLUSH_POPS();
     bce->stackDepth = depth;
-    return JS_TRUE;
+    return true;
 
 #undef FLUSH_POPS
 }
@@ -625,7 +625,7 @@ BackPatch(JSContext *cx, BytecodeEmitter *bce, ptrdiff_t last, jsbytecode *targe
         *pc = op;
         pc -= delta;
     }
-    return JS_TRUE;
+    return true;
 }
 
 #define SET_STATEMENT_TOP(stmt, top)                                          \
@@ -669,9 +669,9 @@ frontend::DefineCompileTimeConstant(JSContext *cx, BytecodeEmitter *bce, JSAtom 
     
     if (pn->isKind(PNK_NUMBER)) {
         if (!bce->constMap.put(atom, NumberValue(pn->pn_dval)))
-            return JS_FALSE;
+            return false;
     }
-    return JS_TRUE;
+    return true;
 }
 
 static bool
@@ -1379,7 +1379,7 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool *ans
     JSBool ok;
     ParseNode *pn2;
 
-    ok = JS_TRUE;
+    ok = true;
     if (!pn || *answer)
         return ok;
 
@@ -1392,7 +1392,7 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool *ans
 
 
 
-        *answer = JS_FALSE;
+        *answer = false;
         break;
 
       case PN_LIST:
@@ -1419,7 +1419,7 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool *ans
 
 
 
-            *answer = JS_TRUE;
+            *answer = true;
         }
         break;
 
@@ -1442,14 +1442,14 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool *ans
 
             pn2 = pn->pn_left;
             if (!pn2->isKind(PNK_NAME)) {
-                *answer = JS_TRUE;
+                *answer = true;
             } else {
                 if (!BindNameToSlot(cx, bce, pn2))
-                    return JS_FALSE;
+                    return false;
                 if (!CheckSideEffects(cx, bce, pn->pn_right, answer))
-                    return JS_FALSE;
+                    return false;
                 if (!*answer && (!pn->isOp(JSOP_NOP) || !pn2->isConst()))
-                    *answer = JS_TRUE;
+                    *answer = true;
             }
         } else {
             if (pn->isOp(JSOP_OR) || pn->isOp(JSOP_AND) || pn->isOp(JSOP_STRICTEQ) ||
@@ -1465,7 +1465,7 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool *ans
 
 
 
-                *answer = JS_TRUE;
+                *answer = true;
             }
         }
         break;
@@ -1477,9 +1477,9 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool *ans
             switch (pn2->getKind()) {
               case PNK_NAME:
                 if (!BindNameToSlot(cx, bce, pn2))
-                    return JS_FALSE;
+                    return false;
                 if (pn2->isConst()) {
-                    *answer = JS_FALSE;
+                    *answer = false;
                     break;
                 }
                 
@@ -1493,7 +1493,7 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool *ans
               case PNK_LP:
               case PNK_LB:
                 
-                *answer = JS_TRUE;
+                *answer = true;
                 break;
               default:
                 ok = CheckSideEffects(cx, bce, pn2, answer);
@@ -1519,7 +1519,7 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool *ans
 
 
 
-            *answer = JS_TRUE;
+            *answer = true;
             break;
         }
         break;
@@ -1532,19 +1532,19 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool *ans
 
         if (pn->isKind(PNK_NAME) && !pn->isOp(JSOP_NOP)) {
             if (!BindNameToSlot(cx, bce, pn))
-                return JS_FALSE;
+                return false;
             if (!pn->isOp(JSOP_CALLEE) && pn->pn_cookie.isFree()) {
                 
 
 
 
 
-                *answer = JS_TRUE;
+                *answer = true;
             }
         }
         if (pn->isKind(PNK_DOT)) {
             
-            *answer = JS_TRUE;
+            *answer = true;
         }
         ok = CheckSideEffects(cx, bce, pn->maybeExpr(), answer);
         break;
@@ -1555,7 +1555,7 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool *ans
 
       case PN_NULLARY:
         if (pn->isKind(PNK_DEBUGGER))
-            *answer = JS_TRUE;
+            *answer = true;
         break;
     }
     return ok;
@@ -1640,7 +1640,7 @@ EmitNameOp(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool callContex
     JSOp op;
 
     if (!BindNameToSlot(cx, bce, pn))
-        return JS_FALSE;
+        return false;
     op = pn->getOp();
 
     if (callContext) {
@@ -1688,7 +1688,7 @@ EmitNameOp(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool callContex
         }
     }
 
-    return JS_TRUE;
+    return true;
 }
 
 #if JS_HAS_XML_SUPPORT
@@ -2049,21 +2049,21 @@ EmitNumberOp(JSContext *cx, double dval, BytecodeEmitter *bce)
         } else if (u < JS_BIT(24)) {
             off = EmitN(cx, bce, JSOP_UINT24, 3);
             if (off < 0)
-                return JS_FALSE;
+                return false;
             pc = bce->code(off);
             SET_UINT24(pc, u);
         } else {
             off = EmitN(cx, bce, JSOP_INT32, 4);
             if (off < 0)
-                return JS_FALSE;
+                return false;
             pc = bce->code(off);
             SET_INT32(pc, ival);
         }
-        return JS_TRUE;
+        return true;
     }
 
     if (!bce->constList.append(DoubleValue(dval)))
-        return JS_FALSE;
+        return false;
 
     return EmitIndex32(cx, JSOP_DOUBLE, bce->constList.length() - 1, bce);
 }
@@ -2110,8 +2110,8 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
     
     switchOp = JSOP_TABLESWITCH;
-    ok = JS_TRUE;
-    hasDefault = JS_FALSE;
+    ok = true;
+    hasDefault = false;
     defaultOffset = -1;
 
     pn2 = pn->pn_right;
@@ -2125,21 +2125,21 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         blockObjCount = pn2->pn_objbox->object->asStaticBlock().slotCount();
         for (uint32_t i = 0; i < blockObjCount; ++i) {
             if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
-                return JS_FALSE;
+                return false;
         }
     }
 #endif
 
     
     if (!EmitTree(cx, bce, pn->pn_left))
-        return JS_FALSE;
+        return false;
 
 #if JS_HAS_BLOCK_SCOPE
     if (pn2->isKind(PNK_LEXICALSCOPE)) {
         PushBlockScopeBCE(bce, &stmtInfo, pn2->pn_objbox->object->asStaticBlock(), -1);
         stmtInfo.type = STMT_SWITCH;
         if (!EmitEnterBlock(cx, bce, pn2, JSOP_ENTERLET1))
-            return JS_FALSE;
+            return false;
     }
 #endif
 
@@ -2183,7 +2183,7 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
         for (pn3 = pn2->pn_head; pn3; pn3 = pn3->pn_next) {
             if (pn3->isKind(PNK_DEFAULT)) {
-                hasDefault = JS_TRUE;
+                hasDefault = true;
                 caseCount--;    
                 continue;
             }
@@ -2222,7 +2222,7 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
             pn3->pn_pval = AllocateSwitchConstant(cx);
             if (!pn3->pn_pval) {
-                ok = JS_FALSE;
+                ok = false;
                 goto release;
             }
 
@@ -2264,7 +2264,7 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                                    * sizeof(jsbitmap));
                     if (!intmap) {
                         JS_ReportOutOfMemory(cx);
-                        return JS_FALSE;
+                        return false;
                     }
                 }
                 memset(intmap, 0, intmap_bitlen >> JS_BITS_PER_BYTE_LOG2);
@@ -2280,7 +2280,7 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         if (intmap && intmap != intmap_space)
             cx->free_(intmap);
         if (!ok)
-            return JS_FALSE;
+            return false;
 
         
 
@@ -2308,7 +2308,7 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
     noteIndex = NewSrcNote3(cx, bce, SRC_SWITCH, 0, 0);
     if (noteIndex < 0)
-        return JS_FALSE;
+        return false;
 
     if (switchOp == JSOP_CONDSWITCH) {
         
@@ -2332,22 +2332,22 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
     
     if (EmitN(cx, bce, switchOp, switchSize) < 0)
-        return JS_FALSE;
+        return false;
 
     off = -1;
     if (switchOp == JSOP_CONDSWITCH) {
         int caseNoteIndex = -1;
-        JSBool beforeCases = JS_TRUE;
+        JSBool beforeCases = true;
 
         
         for (pn3 = pn2->pn_head; pn3; pn3 = pn3->pn_next) {
             pn4 = pn3->pn_left;
             if (pn4 && !EmitTree(cx, bce, pn4))
-                return JS_FALSE;
+                return false;
             if (caseNoteIndex >= 0) {
                 
                 if (!SetSrcNoteOffset(cx, bce, (unsigned)caseNoteIndex, 0, bce->offset() - off))
-                    return JS_FALSE;
+                    return false;
             }
             if (!pn4) {
                 JS_ASSERT(pn3->isKind(PNK_DEFAULT));
@@ -2355,10 +2355,10 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             }
             caseNoteIndex = NewSrcNote2(cx, bce, SRC_PCDELTA, 0);
             if (caseNoteIndex < 0)
-                return JS_FALSE;
+                return false;
             off = EmitJump(cx, bce, JSOP_CASE, 0);
             if (off < 0)
-                return JS_FALSE;
+                return false;
             pn3->pn_offset = off;
             if (beforeCases) {
                 unsigned noteCount, noteCountDelta;
@@ -2366,11 +2366,11 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                 
                 noteCount = bce->noteCount();
                 if (!SetSrcNoteOffset(cx, bce, (unsigned)noteIndex, 1, off - top))
-                    return JS_FALSE;
+                    return false;
                 noteCountDelta = bce->noteCount() - noteCount;
                 if (noteCountDelta != 0)
                     caseNoteIndex += noteCountDelta;
-                beforeCases = JS_FALSE;
+                beforeCases = false;
             }
         }
 
@@ -2384,13 +2384,13 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             caseNoteIndex >= 0 &&
             !SetSrcNoteOffset(cx, bce, (unsigned)caseNoteIndex, 0, bce->offset() - off))
         {
-            return JS_FALSE;
+            return false;
         }
 
         
         defaultOffset = EmitJump(cx, bce, JSOP_DEFAULT, 0);
         if (defaultOffset < 0)
-            return JS_FALSE;
+            return false;
     } else {
         pc = bce->code(top + JUMP_OFFSET_LEN);
 
@@ -2410,7 +2410,7 @@ EmitSwitch(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                 tableSize = (size_t)tableLength * sizeof *table;
                 table = (ParseNode **) cx->malloc_(tableSize);
                 if (!table)
-                    return JS_FALSE;
+                    return false;
                 memset(table, 0, tableSize);
                 for (pn3 = pn2->pn_head; pn3; pn3 = pn3->pn_next) {
                     if (pn3->isKind(PNK_DEFAULT))
@@ -2518,7 +2518,7 @@ out:
     return ok;
 
 bad:
-    ok = JS_FALSE;
+    ok = false;
     goto out;
 }
 
@@ -2654,7 +2654,7 @@ EmitDestructuringDecl(JSContext *cx, BytecodeEmitter *bce, JSOp prologOp, ParseN
 {
     JS_ASSERT(pn->isKind(PNK_NAME));
     if (!BindNameToSlot(cx, bce, pn))
-        return JS_FALSE;
+        return false;
 
     JS_ASSERT(!pn->isOp(JSOP_CALLEE));
     return MaybeEmitVarDecl(cx, bce, prologOp, pn, NULL);
@@ -2674,7 +2674,7 @@ EmitDestructuringDecls(JSContext *cx, BytecodeEmitter *bce, JSOp prologOp, Parse
                       ? EmitDestructuringDecl
                       : EmitDestructuringDecls;
             if (!emitter(cx, bce, prologOp, pn2))
-                return JS_FALSE;
+                return false;
         }
     } else {
         JS_ASSERT(pn->isKind(PNK_RC));
@@ -2682,10 +2682,10 @@ EmitDestructuringDecls(JSContext *cx, BytecodeEmitter *bce, JSOp prologOp, Parse
             pn3 = pn2->pn_right;
             emitter = pn3->isKind(PNK_NAME) ? EmitDestructuringDecl : EmitDestructuringDecls;
             if (!emitter(cx, bce, prologOp, pn3))
-                return JS_FALSE;
+                return false;
         }
     }
-    return JS_TRUE;
+    return true;
 }
 
 static JSBool
@@ -2717,14 +2717,14 @@ EmitDestructuringLHS(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmit
 
     if (pn->isKind(PNK_RB) || pn->isKind(PNK_RC)) {
         if (!EmitDestructuringOpsHelper(cx, bce, pn, emitOption))
-            return JS_FALSE;
+            return false;
         if (emitOption == InitializeVars) {
             
 
 
 
             if (Emit1(cx, bce, JSOP_POP) < 0)
-                return JS_FALSE;
+                return false;
         }
     } else {
         if (emitOption == PushInitialValues) {
@@ -2734,14 +2734,14 @@ EmitDestructuringLHS(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmit
 
             JS_ASSERT(pn->getOp() == JSOP_SETLOCAL);
             JS_ASSERT(pn->pn_dflags & PND_BOUND);
-            return JS_TRUE;
+            return true;
         }
 
         
 
         if (pn->isKind(PNK_NAME)) {
             if (!BindNameToSlot(cx, bce, pn))
-                return JS_FALSE;
+                return false;
             if (pn->isConst() && !pn->isInitialized())
                 return Emit1(cx, bce, JSOP_POP) >= 0;
         }
@@ -2755,20 +2755,20 @@ EmitDestructuringLHS(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmit
 
 
             if (!EmitElemOp(cx, pn, JSOP_ENUMELEM, bce))
-                return JS_FALSE;
+                return false;
             break;
 
           case JSOP_SETCONST:
             if (!EmitElemOp(cx, pn, JSOP_ENUMCONSTELEM, bce))
-                return JS_FALSE;
+                return false;
             break;
 
           case JSOP_SETLOCAL:
           case JSOP_SETARG:
             if (!EmitVarOp(cx, pn, pn->getOp(), bce))
-                return JS_FALSE;
+                return false;
             if (Emit1(cx, bce, JSOP_POP) < 0)
-                return JS_FALSE;
+                return false;
             break;
 
           default:
@@ -2777,11 +2777,11 @@ EmitDestructuringLHS(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmit
 
             top = bce->offset();
             if (!EmitTree(cx, bce, pn))
-                return JS_FALSE;
+                return false;
             if (NewSrcNote2(cx, bce, SRC_PCBASE, bce->offset() - top) < 0)
-                return JS_FALSE;
+                return false;
             if (!EmitElemOpBase(cx, bce, JSOP_ENUMELEM))
-                return JS_FALSE;
+                return false;
             break;
           }
 
@@ -2790,7 +2790,7 @@ EmitDestructuringLHS(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmit
         }
     }
 
-    return JS_TRUE;
+    return true;
 }
 
 
@@ -2826,7 +2826,7 @@ EmitDestructuringOpsHelper(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
     if (pn->pn_count == 0) {
         
         if (Emit1(cx, bce, JSOP_DUP) < 0 || Emit1(cx, bce, JSOP_POP) < 0)
-            return JS_FALSE;
+            return false;
     }
 
     index = 0;
@@ -2836,9 +2836,9 @@ EmitDestructuringOpsHelper(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
 
 
         if (pn2 != pn->pn_head && NewSrcNote(cx, bce, SRC_CONTINUE) < 0)
-            return JS_FALSE;
+            return false;
         if (Emit1(cx, bce, JSOP_DUP) < 0)
-            return JS_FALSE;
+            return false;
 
         
 
@@ -2846,10 +2846,10 @@ EmitDestructuringOpsHelper(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
 
 
 
-        doElemOp = JS_TRUE;
+        doElemOp = true;
         if (pn->isKind(PNK_RB)) {
             if (!EmitNumberOp(cx, index, bce))
-                return JS_FALSE;
+                return false;
             pn3 = pn2;
         } else {
             JS_ASSERT(pn->isKind(PNK_RC));
@@ -2862,14 +2862,14 @@ EmitDestructuringOpsHelper(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
 
 
                 if (NewSrcNote(cx, bce, SRC_INITPROP) < 0)
-                    return JS_FALSE;
+                    return false;
                 if (!EmitNumberOp(cx, pn3->pn_dval, bce))
-                    return JS_FALSE;
+                    return false;
             } else {
                 JS_ASSERT(pn3->isKind(PNK_STRING) || pn3->isKind(PNK_NAME));
                 if (!EmitAtomOp(cx, pn3, JSOP_GETPROP, bce))
-                    return JS_FALSE;
-                doElemOp = JS_FALSE;
+                    return false;
+                doElemOp = false;
             }
             pn3 = pn2->pn_right;
         }
@@ -2881,7 +2881,7 @@ EmitDestructuringOpsHelper(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
 
 
             if (!EmitElemOpBase(cx, bce, JSOP_GETELEM))
-                return JS_FALSE;
+                return false;
             JS_ASSERT(bce->stackDepth >= stackDepth + 1);
         }
 
@@ -2890,11 +2890,11 @@ EmitDestructuringOpsHelper(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
             JS_ASSERT(pn->isKind(PNK_RB));
             JS_ASSERT(pn2 == pn3);
             if (Emit1(cx, bce, JSOP_POP) < 0)
-                return JS_FALSE;
+                return false;
         } else {
             int depthBefore = bce->stackDepth;
             if (!EmitDestructuringLHS(cx, bce, pn3, emitOption))
-                return JS_FALSE;
+                return false;
 
             if (emitOption == PushInitialValues) {
                 
@@ -2912,7 +2912,7 @@ EmitDestructuringOpsHelper(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
                 if (pickDistance > 0) {
                     if (pickDistance > UINT8_MAX) {
                         bce->reportError(pn3, JSMSG_TOO_MANY_LOCALS);
-                        return JS_FALSE;
+                        return false;
                     }
                     if (Emit2(cx, bce, JSOP_PICK, (jsbytecode)pickDistance) < 0)
                         return false;
@@ -2929,10 +2929,10 @@ EmitDestructuringOpsHelper(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn,
 
 
         if (Emit1(cx, bce, JSOP_POP) < 0)
-            return JS_FALSE;
+            return false;
     }
 
-    return JS_TRUE;
+    return true;
 }
 
 static ptrdiff_t
@@ -3028,10 +3028,10 @@ EmitDestructuringOps(JSContext *cx, BytecodeEmitter *bce, ptrdiff_t declType, Pa
     if (letNotes) {
         ptrdiff_t index = NewSrcNote2(cx, bce, SRC_DESTRUCTLET, 0);
         if (index < 0 || !letNotes->append(cx, bce, bce->offset(), (unsigned)index))
-            return JS_FALSE;
+            return false;
     } else {
         if (NewSrcNote2(cx, bce, SRC_DESTRUCT, declType) < 0)
-            return JS_FALSE;
+            return false;
     }
 
     
@@ -3053,18 +3053,18 @@ EmitGroupAssignment(JSContext *cx, BytecodeEmitter *bce, JSOp prologOp,
     for (pn = rhs->pn_head; pn; pn = pn->pn_next) {
         if (limit == JS_BIT(16)) {
             bce->reportError(rhs, JSMSG_ARRAY_INIT_TOO_BIG);
-            return JS_FALSE;
+            return false;
         }
 
         
         JS_ASSERT(!(pn->isKind(PNK_COMMA) && pn->isArity(PN_NULLARY)));
         if (!EmitTree(cx, bce, pn))
-            return JS_FALSE;
+            return false;
         ++limit;
     }
 
     if (NewSrcNote2(cx, bce, SRC_GROUPASSIGN, OpToDeclType(prologOp)) < 0)
-        return JS_FALSE;
+        return false;
 
     i = depth;
     for (pn = lhs->pn_head; pn; pn = pn->pn_next, ++i) {
@@ -3072,24 +3072,24 @@ EmitGroupAssignment(JSContext *cx, BytecodeEmitter *bce, JSOp prologOp,
         JS_ASSERT(i < limit);
         int slot = AdjustBlockSlot(cx, bce, i);
         if (slot < 0)
-            return JS_FALSE;
+            return false;
 
         if (!EmitUnaliasedVarOp(cx, JSOP_GETLOCAL, slot, bce))
-            return JS_FALSE;
+            return false;
 
         if (pn->isKind(PNK_COMMA) && pn->isArity(PN_NULLARY)) {
             if (Emit1(cx, bce, JSOP_POP) < 0)
-                return JS_FALSE;
+                return false;
         } else {
             if (!EmitDestructuringLHS(cx, bce, pn, InitializeVars))
-                return JS_FALSE;
+                return false;
         }
     }
 
     nslots = limit - depth;
     EMIT_UINT16_IMM_OP(JSOP_POPN, nslots);
     bce->stackDepth = (unsigned) depth;
-    return JS_TRUE;
+    return true;
 }
 
 enum GroupOption { GroupIsDecl, GroupIsNotDecl };
@@ -3119,7 +3119,7 @@ MaybeEmitGroupAssignment(JSContext *cx, BytecodeEmitter *bce, JSOp prologOp, Par
             return false;
         *pop = JSOP_NOP;
     }
-    return JS_TRUE;
+    return true;
 }
 
 
@@ -3193,7 +3193,7 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
                 JS_ASSERT(emitOption == DefineVars);
                 JS_ASSERT(pn->pn_count == 1);
                 if (!EmitDestructuringDecls(cx, bce, pn->getOp(), pn2))
-                    return JS_FALSE;
+                    return false;
                 break;
             }
 #endif
@@ -3237,10 +3237,10 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
                 JS_ASSERT(noteIndex < 0 && !pn2->pn_next);
                 if (letNotes) {
                     if (!MaybeEmitLetGroupDecl(cx, bce, pn2, letNotes, &op))
-                        return JS_FALSE;
+                        return false;
                 } else {
                     if (!MaybeEmitGroupAssignment(cx, bce, pn->getOp(), pn2, GroupIsDecl, &op))
-                        return JS_FALSE;
+                        return false;
                 }
             }
             if (op == JSOP_NOP) {
@@ -3248,10 +3248,10 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
             } else {
                 pn3 = pn2->pn_left;
                 if (!EmitDestructuringDecls(cx, bce, pn->getOp(), pn3))
-                    return JS_FALSE;
+                    return false;
 
                 if (!EmitTree(cx, bce, pn2->pn_right))
-                    return JS_FALSE;
+                    return false;
 
                 
                 ptrdiff_t declType = pn2 == pn->pn_head
@@ -3259,7 +3259,7 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
                                      : SRC_DECL_NONE;
 
                 if (!EmitDestructuringOps(cx, bce, declType, pn3, letNotes))
-                    return JS_FALSE;
+                    return false;
             }
             ptrdiff_t stackDepthAfter = bce->stackDepth;
 
@@ -3267,7 +3267,7 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
             JS_ASSERT(stackDepthBefore <= stackDepthAfter);
             if (letNotes && stackDepthBefore == stackDepthAfter) {
                 if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
-                    return JS_FALSE;
+                    return false;
             }
 
             
@@ -3290,7 +3290,7 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
 
      do_name:
         if (!BindNameToSlot(cx, bce, pn2))
-            return JS_FALSE;
+            return false;
 
 
         JSOp op;
@@ -3300,7 +3300,7 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
 
         jsatomid atomIndex;
         if (!MaybeEmitVarDecl(cx, bce, pn->getOp(), pn2, &atomIndex))
-            return JS_FALSE;
+            return false;
 
         if (pn3) {
             JS_ASSERT(emitOption != DefineVars);
@@ -3313,18 +3313,18 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
             if (pn->isOp(JSOP_DEFCONST) &&
                 !DefineCompileTimeConstant(cx, bce, pn2->pn_atom, pn3))
             {
-                return JS_FALSE;
+                return false;
             }
 
             bool oldInForInit = bce->inForInit;
             bce->inForInit = false;
             if (!EmitTree(cx, bce, pn3))
-                return JS_FALSE;
+                return false;
             bce->inForInit = oldInForInit;
         } else if (letNotes) {
             
             if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
-                return JS_FALSE;
+                return false;
         }
 
         
@@ -3341,7 +3341,7 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
                                  : (pn->isOp(JSOP_DEFVAR))
                                  ? SRC_DECL_VAR
                                  : SRC_DECL_LET) < 0) {
-            return JS_FALSE;
+            return false;
         }
         if (!pn2->pn_cookie.isFree()) {
             if (!EmitVarOp(cx, pn2, op, bce))
@@ -3357,22 +3357,22 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
         ptrdiff_t tmp = bce->offset();
         if (noteIndex >= 0) {
             if (!SetSrcNoteOffset(cx, bce, (unsigned)noteIndex, 0, tmp-off))
-                return JS_FALSE;
+                return false;
         }
         if (!next)
             break;
         off = tmp;
         noteIndex = NewSrcNote2(cx, bce, SRC_PCDELTA, 0);
         if (noteIndex < 0 || Emit1(cx, bce, JSOP_POP) < 0)
-            return JS_FALSE;
+            return false;
     }
 
     if (pn->pn_xflags & PNX_POPVAR) {
         if (Emit1(cx, bce, JSOP_POP) < 0)
-            return JS_FALSE;
+            return false;
     }
 
-    return JS_TRUE;
+    return true;
 }
 
 static bool
@@ -3594,10 +3594,10 @@ GettableNoteForNextOp(BytecodeEmitter *bce)
     for (sn = bce->notes(), end = sn + bce->noteCount(); sn < end;
          sn = SN_NEXT(sn)) {
         if (offset == target && SN_IS_GETTABLE(sn))
-            return JS_TRUE;
+            return true;
         offset += SN_DELTA(sn);
     }
-    return JS_FALSE;
+    return false;
 }
 #endif
 
@@ -4079,7 +4079,7 @@ EmitIf(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
   if_again:
     
     if (!EmitTree(cx, bce, pn->pn_kid1))
-        return JS_FALSE;
+        return false;
     ptrdiff_t top = bce->offset();
     if (stmtInfo.type == STMT_IF) {
         PushStatementBCE(bce, &stmtInfo, STMT_IF, top);
@@ -4097,23 +4097,23 @@ EmitIf(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         stmtInfo.type = STMT_IF;
         stmtInfo.update = top;
         if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, jmp - beq))
-            return JS_FALSE;
+            return false;
         if (!SetSrcNoteOffset(cx, bce, noteIndex, 1, top - beq))
-            return JS_FALSE;
+            return false;
     }
 
     
     ParseNode *pn3 = pn->pn_kid3;
     noteIndex = NewSrcNote(cx, bce, pn3 ? SRC_IF_ELSE : SRC_IF);
     if (noteIndex < 0)
-        return JS_FALSE;
+        return false;
     beq = EmitJump(cx, bce, JSOP_IFEQ, 0);
     if (beq < 0)
-        return JS_FALSE;
+        return false;
 
     
     if (!EmitTree(cx, bce, pn->pn_kid2))
-        return JS_FALSE;
+        return false;
     if (pn3) {
         
         stmtInfo.type = STMT_ELSE;
@@ -4126,7 +4126,7 @@ EmitIf(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
         jmp = EmitGoto(cx, bce, &stmtInfo, &stmtInfo.breaks);
         if (jmp < 0)
-            return JS_FALSE;
+            return false;
 
         
         SetJumpOffsetAt(bce, beq);
@@ -4136,7 +4136,7 @@ EmitIf(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         }
 
         if (!EmitTree(cx, bce, pn3))
-            return JS_FALSE;
+            return false;
 
         
 
@@ -4146,7 +4146,7 @@ EmitIf(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
         if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, jmp - beq))
-            return JS_FALSE;
+            return false;
     } else {
         
         SetJumpOffsetAt(bce, beq);
@@ -4472,7 +4472,7 @@ EmitForIn(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 
     
     if (!EmitTree(cx, bce, forHead->pn_kid3))
-        return JS_FALSE;
+        return false;
 
     
 
@@ -5106,7 +5106,7 @@ EmitStatement(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
     bool wantval = false;
-    JSBool useful = JS_FALSE;
+    JSBool useful = false;
     if (bce->sc->inFunction()) {
         JS_ASSERT(!bce->script->noScriptRval);
     } else {
@@ -5886,7 +5886,7 @@ EmitDefaults(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 JSBool
 frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
-    JS_CHECK_RECURSION(cx, return JS_FALSE);
+    JS_CHECK_RECURSION(cx, return false);
 
     EmitLevelManager elm(bce);
 
@@ -5965,7 +5965,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                 if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
                     return false;
                 if (!BindNameToSlot(cx, bce, rest))
-                    return JS_FALSE;
+                    return false;
                 if (!EmitVarOp(cx, rest, JSOP_SETARG, bce))
                     return false;
                 if (Emit1(cx, bce, JSOP_POP) < 0)
@@ -5984,10 +5984,10 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             if (!pn2->isDefn())
                 continue;
             if (!BindNameToSlot(cx, bce, pn2))
-                return JS_FALSE;
+                return false;
             if (JOF_OPTYPE(pn2->getOp()) == JOF_QARG && bce->shouldNoteClosedName(pn2)) {
                 if (!bce->noteClosedArg(pn2))
-                    return JS_FALSE;
+                    return false;
             }
             if (pn2->pn_next == pnlast && fun->hasRest() && !fun->hasDefaults()) {
                 
@@ -6058,7 +6058,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
       case PNK_VAR:
       case PNK_CONST:
         if (!EmitVariables(cx, bce, pn, InitializeVars))
-            return JS_FALSE;
+            return false;
         break;
 
       case PNK_RETURN:
@@ -6070,15 +6070,15 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         JS_ASSERT(bce->sc->inFunction());
         if (pn->pn_kid) {
             if (!EmitTree(cx, bce, pn->pn_kid))
-                return JS_FALSE;
+                return false;
         } else {
             if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
-                return JS_FALSE;
+                return false;
         }
         if (pn->pn_hidden && NewSrcNote(cx, bce, SRC_HIDDEN) < 0)
-            return JS_FALSE;
+            return false;
         if (Emit1(cx, bce, JSOP_YIELD) < 0)
-            return JS_FALSE;
+            return false;
         break;
 #endif
 
@@ -6086,9 +6086,9 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
       case PNK_XMLCURLYEXPR:
         JS_ASSERT(pn->isArity(PN_UNARY));
         if (!EmitTree(cx, bce, pn->pn_kid))
-            return JS_FALSE;
+            return false;
         if (Emit1(cx, bce, pn->getOp()) < 0)
-            return JS_FALSE;
+            return false;
         break;
 #endif
 
@@ -6118,11 +6118,11 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         ptrdiff_t off = -1, noteIndex = -1;
         for (ParseNode *pn2 = pn->pn_head; ; pn2 = pn2->pn_next) {
             if (!EmitTree(cx, bce, pn2))
-                return JS_FALSE;
+                return false;
             ptrdiff_t tmp = bce->offset();
             if (noteIndex >= 0) {
                 if (!SetSrcNoteOffset(cx, bce, (unsigned)noteIndex, 0, tmp-off))
-                    return JS_FALSE;
+                    return false;
             }
             if (!pn2->pn_next)
                 break;
@@ -6130,7 +6130,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             noteIndex = NewSrcNote2(cx, bce, SRC_PCDELTA, 0);
             if (noteIndex < 0 ||
                 Emit1(cx, bce, JSOP_POP) < 0) {
-                return JS_FALSE;
+                return false;
             }
         }
         break;
@@ -6186,13 +6186,13 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             
             ParseNode *pn2 = pn->pn_head;
             if (!EmitTree(cx, bce, pn2))
-                return JS_FALSE;
+                return false;
             JSOp op = pn->getOp();
             while ((pn2 = pn2->pn_next) != NULL) {
                 if (!EmitTree(cx, bce, pn2))
-                    return JS_FALSE;
+                    return false;
                 if (Emit1(cx, bce, op) < 0)
-                    return JS_FALSE;
+                    return false;
             }
         } else {
 #if JS_HAS_XML_SUPPORT
@@ -6201,9 +6201,9 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             JS_ASSERT(pn->getOp() != JSOP_XMLNAME);
             if (pn->isArity(PN_NAME)) {
                 if (!EmitTree(cx, bce, pn->expr()))
-                    return JS_FALSE;
+                    return false;
                 if (!EmitAtomOp(cx, pn, pn->getOp(), bce))
-                    return JS_FALSE;
+                    return false;
                 break;
             }
 
@@ -6218,14 +6218,14 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
             
             if (!EmitTree(cx, bce, pn->pn_left))
-                return JS_FALSE;
+                return false;
             if (!EmitTree(cx, bce, pn->pn_right))
-                return JS_FALSE;
+                return false;
 #if JS_HAS_XML_SUPPORT
             bce->inForInit = oldInForInit;
 #endif
             if (Emit1(cx, bce, pn->getOp()) < 0)
-                return JS_FALSE;
+                return false;
         }
         break;
 
@@ -6281,20 +6281,20 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         JS_ASSERT(!bce->sc->inStrictMode());
 
         if (!EmitTree(cx, bce, pn->pn_left))
-            return JS_FALSE;
+            return false;
         ptrdiff_t jmp = EmitJump(cx, bce, JSOP_FILTER, 0);
         if (jmp < 0)
-            return JS_FALSE;
+            return false;
         top = EmitLoopHead(cx, bce, pn->pn_right);
         if (top < 0)
-            return JS_FALSE;
+            return false;
         if (!EmitTree(cx, bce, pn->pn_right))
-            return JS_FALSE;
+            return false;
         SetJumpOffsetAt(bce, jmp);
         if (!EmitLoopEntry(cx, bce, NULL))
             return false;
         if (EmitJump(cx, bce, JSOP_ENDFILTER, top - bce->offset()) < 0)
-            return JS_FALSE;
+            return false;
         break;
       }
 #endif
@@ -6305,7 +6305,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-        ok = EmitPropOp(cx, pn, pn->getOp(), bce, JS_FALSE);
+        ok = EmitPropOp(cx, pn, pn->getOp(), bce, false);
         break;
 
 #if JS_HAS_XML_SUPPORT
@@ -6350,10 +6350,10 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
         if (!EmitTree(cx, bce, pn->pn_kid))
-            return JS_FALSE;
+            return false;
         slot = AdjustBlockSlot(cx, bce, bce->arrayCompDepth);
         if (slot < 0)
-            return JS_FALSE;
+            return false;
         if (!EmitUnaliasedVarOp(cx, pn->getOp(), slot, bce))
             return false;
         break;
@@ -6379,8 +6379,8 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
         if (pn->isOp(JSOP_NOP))
             break;
-        if (!EmitNameOp(cx, bce, pn, JS_FALSE))
-            return JS_FALSE;
+        if (!EmitNameOp(cx, bce, pn, false))
+            return false;
         break;
 
 #if JS_HAS_XML_SUPPORT
@@ -6413,12 +6413,12 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
       case PNK_THIS:
       case PNK_NULL:
         if (Emit1(cx, bce, pn->getOp()) < 0)
-            return JS_FALSE;
+            return false;
         break;
 
       case PNK_DEBUGGER:
         if (Emit1(cx, bce, JSOP_DEBUGGER) < 0)
-            return JS_FALSE;
+            return false;
         break;
 
 #if JS_HAS_XML_SUPPORT
@@ -6436,16 +6436,16 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             break;
           default:
             if (Emit1(cx, bce, JSOP_STARTXML) < 0)
-                return JS_FALSE;
+                return false;
         }
 
         for (ParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
             if (pn2->isKind(PNK_XMLCURLYEXPR) && Emit1(cx, bce, JSOP_STARTXMLEXPR) < 0)
-                return JS_FALSE;
+                return false;
             if (!EmitTree(cx, bce, pn2))
-                return JS_FALSE;
+                return false;
             if (pn2 != pn->pn_head && Emit1(cx, bce, JSOP_ADD) < 0)
-                return JS_FALSE;
+                return false;
         }
 
         if (pn->pn_xflags & PNX_XMLROOT) {
@@ -6454,12 +6454,12 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                 JSAtom *atom = cx->runtime->atomState.emptyAtom;
                 jsatomid index;
                 if (!bce->makeAtomIndex(atom, &index))
-                    return JS_FALSE;
+                    return false;
                 if (!EmitIndex32(cx, JSOP_STRING, index, bce))
                     return false;
             }
             if (Emit1(cx, bce, pn->getOp()) < 0)
-                return JS_FALSE;
+                return false;
         }
 #ifdef DEBUG
         else
@@ -6481,11 +6481,11 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             JS_ASSERT(pn->pn_count != 0);
             for (ParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
                 if (pn2->isKind(PNK_XMLCURLYEXPR) && Emit1(cx, bce, JSOP_STARTXMLEXPR) < 0)
-                    return JS_FALSE;
+                    return false;
                 if (!EmitTree(cx, bce, pn2))
-                    return JS_FALSE;
+                    return false;
                 if (pn2 != pn->pn_head && Emit1(cx, bce, JSOP_ADD) < 0)
-                    return JS_FALSE;
+                    return false;
             }
         } else {
             JS_ASSERT(pn->isArity(PN_NULLARY));
@@ -6508,7 +6508,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     
     if (ok && bce->emitLevel == 1) {
         if (!UpdateLineNumberNotes(cx, bce, pn->pn_pos.end.lineno))
-            return JS_FALSE;
+            return false;
     }
 
     return ok;
@@ -6629,11 +6629,11 @@ GrowSrcNotes(JSContext *cx, BytecodeEmitter *bce)
     jssrcnote *newnotes = (jssrcnote *) cx->realloc_(bce->notes(), newlength);
     if (!newnotes) {
         js_ReportOutOfMemory(cx);
-        return JS_FALSE;
+        return false;
     }
     bce->current->notes = newnotes;
     bce->current->noteLimit = newlength;
-    return JS_TRUE;
+    return true;
 }
 
 jssrcnote *
@@ -6678,7 +6678,7 @@ SetSrcNoteOffset(JSContext *cx, BytecodeEmitter *bce, unsigned index, unsigned w
 
     if (size_t(offset) > SN_MAX_OFFSET) {
         ReportStatementTooLarge(cx, bce->topStmt);
-        return JS_FALSE;
+        return false;
     }
 
     
@@ -6708,7 +6708,7 @@ SetSrcNoteOffset(JSContext *cx, BytecodeEmitter *bce, unsigned index, unsigned w
 
             if (bce->noteCount() + 1 >= bce->noteLimit()) {
                 if (!GrowSrcNotes(cx, bce))
-                    return JS_FALSE;
+                    return false;
                 sn = bce->notes() + index;
             }
             bce->current->noteCount += 2;
@@ -6722,7 +6722,7 @@ SetSrcNoteOffset(JSContext *cx, BytecodeEmitter *bce, unsigned index, unsigned w
         *sn++ = (jssrcnote)(offset >> 8);
     }
     *sn = (jssrcnote)offset;
-    return JS_TRUE;
+    return true;
 }
 
 #ifdef DEBUG_notme
@@ -6831,7 +6831,7 @@ NewTryNote(JSContext *cx, BytecodeEmitter *bce, JSTryNoteKind kind, unsigned sta
     TryNode *tryNode = cx->tempLifoAlloc().new_<TryNode>();
     if (!tryNode) {
         js_ReportOutOfMemory(cx);
-        return JS_FALSE;
+        return false;
     }
 
     tryNode->note.kind = kind;
@@ -6841,7 +6841,7 @@ NewTryNote(JSContext *cx, BytecodeEmitter *bce, JSTryNoteKind kind, unsigned sta
     tryNode->prev = bce->lastTryNode;
     bce->lastTryNode = tryNode;
     bce->ntrynotes++;
-    return JS_TRUE;
+    return true;
 }
 
 void
