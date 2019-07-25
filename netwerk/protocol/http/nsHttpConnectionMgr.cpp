@@ -1368,7 +1368,7 @@ nsHalfOpenSocket::SetupStreams(nsISocketTransport **transport,
     
     
     
-    if (isBackup)
+    if (isBackup && gHttpHandler->FastFallbackToIPv4())
         tmpFlags |= nsISocketTransport::DISABLE_IPV6;
 
     socketTransport->SetConnectionFlags(tmpFlags);
