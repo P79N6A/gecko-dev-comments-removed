@@ -594,25 +594,22 @@ mjit::NativeStubEpilogue(VMFrame &f, Assembler &masm, NativeStubLinker::FinalJum
     Address resultAddress(JSFrameReg, vpOffset);
 
     Vector<Jump> mismatches(f.cx);
-    if (f.cx->typeInferenceEnabled()) {
-        if (!typeReg.isSet()) {
-            
-
-
-
-
-
-            types::TypeSet *types = f.script()->analysis()->bytecodeTypes(f.pc());
-            if (!masm.generateTypeCheck(f.cx, resultAddress, types, &mismatches))
-                THROWV(false);
-        }
-
+    if (f.cx->typeInferenceEnabled() && !typeReg.isSet()) {
         
 
 
 
-        masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, stubRejoin)));
+
+        types::TypeSet *types = f.script()->analysis()->bytecodeTypes(f.pc());
+        if (!masm.generateTypeCheck(f.cx, resultAddress, types, &mismatches))
+            THROWV(false);
     }
+
+    
+
+
+
+    masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, stubRejoin)));
 
     if (typeReg.isSet())
         masm.loadValueAsComponents(resultAddress, typeReg.reg(), dataReg.reg());
@@ -642,8 +639,7 @@ mjit::NativeStubEpilogue(VMFrame &f, Assembler &masm, NativeStubLinker::FinalJum
 
     
     hasException.linkTo(masm.label(), &masm);
-    if (f.cx->typeInferenceEnabled())
-        masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, stubRejoin)));
+    masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, stubRejoin)));
     masm.throwInJIT();
 
     *result = done;
@@ -752,15 +748,13 @@ class CallCompiler : public BaseCompiler
         masm.loadPtr(Address(t0, offset), t0);
         Jump hasCode = masm.branchPtr(Assembler::Above, t0, ImmPtr(JS_UNJITTABLE_SCRIPT));
 
-        if (cx->typeInferenceEnabled()) {
-            
+        
 
 
 
 
-            masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.pc(), false)),
-                          FrameAddress(offsetof(VMFrame, stubRejoin)));
-        }
+        masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.pc(), false)),
+                      FrameAddress(offsetof(VMFrame, stubRejoin)));
 
         masm.bumpStubCounter(f.script(), f.pc(), Registers::tempCallReg());
 
@@ -969,16 +963,14 @@ class CallCompiler : public BaseCompiler
         
         Jump funGuard = masm.branchPtr(Assembler::NotEqual, ic.funObjReg, ImmPtr(obj));
 
-        if (cx->typeInferenceEnabled()) {
-            
+        
 
 
 
 
 
-            masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.pc(), true)),
-                          FrameAddress(offsetof(VMFrame, stubRejoin)));
-        }
+        masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.pc(), true)),
+                      FrameAddress(offsetof(VMFrame, stubRejoin)));
 
         
         if (ic.frameSize.isDynamic()) {
@@ -1465,8 +1457,7 @@ JITScript::sweepCallICs(JSContext *cx, bool purgeAll)
 
         bool fastFunDead = ic.fastGuardedObject &&
             (purgeAll || IsAboutToBeFinalized(cx, ic.fastGuardedObject));
-        bool nativeDead = ic.fastGuardedNative &&
-            (purgeAll || IsAboutToBeFinalized(cx, ic.fastGuardedNative));
+        bool hasNative = ic.fastGuardedNative != NULL;
 
         
 
@@ -1477,7 +1468,8 @@ JITScript::sweepCallICs(JSContext *cx, bool purgeAll)
 
 
 
-        if (purgeAll || nativeDead || (fastFunDead && ic.hasJsFunCheck)) {
+
+        if (purgeAll || hasNative || (fastFunDead && ic.hasJsFunCheck)) {
             repatcher.relink(ic.funJump, ic.slowPathStart);
             ic.hit = false;
         }
@@ -1487,7 +1479,7 @@ JITScript::sweepCallICs(JSContext *cx, bool purgeAll)
             ic.purgeGuardedObject();
         }
 
-        if (nativeDead)
+        if (hasNative)
             ic.fastGuardedNative = NULL;
 
         if (purgeAll) {

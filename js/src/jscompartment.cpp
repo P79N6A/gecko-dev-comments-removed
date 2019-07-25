@@ -541,17 +541,34 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
         traceMonitor()->sweep(cx);
 #endif
 
-# if defined JS_METHODJIT && defined JS_POLYIC
+#ifdef JS_METHODJIT
     
 
 
 
+
+
+    bool canPurgeNativeCalls = true;
+    VMFrame *f = hasJaegerCompartment() ? jaegerCompartment()->activeFrame() : NULL;
+    for (; f; f = f->previous) {
+        if (f->stubRejoin)
+            canPurgeNativeCalls = false;
+    }
     for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
-        if (script->hasJITCode())
+        if (script->hasJITCode()) {
+#ifdef JS_POLYIC
             mjit::ic::PurgePICs(cx, script);
+#endif
+            if (canPurgeNativeCalls) {
+                if (script->jitNormal)
+                    script->jitNormal->purgeNativeCallStubs();
+                if (script->jitCtor)
+                    script->jitCtor->purgeNativeCallStubs();
+            }
+        }
     }
-# endif
+#endif
 
     bool discardScripts = !active && (releaseInterval != 0 || hasDebugModeCodeToDrop);
 
