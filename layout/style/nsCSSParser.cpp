@@ -1926,18 +1926,13 @@ CSSParserImpl::ProcessImport(const nsString& aURLSpec,
                              RuleAppendFunc aAppendFunc,
                              void* aData)
 {
-  nsRefPtr<css::ImportRule> rule;
-  nsresult rv = NS_NewCSSImportRule(getter_AddRefs(rule), aURLSpec, aMedia);
-  if (NS_FAILED(rv)) { 
-    mScanner.SetLowLevelError(rv);
-    return;
-  }
+  nsRefPtr<css::ImportRule> rule = new css::ImportRule(aMedia, aURLSpec);
   (*aAppendFunc)(rule, aData);
 
   
   nsCOMPtr<nsIURI> url;
   
-  rv = NS_NewURI(getter_AddRefs(url), aURLSpec, nsnull, mBaseURI);
+  nsresult rv = NS_NewURI(getter_AddRefs(url), aURLSpec, nsnull, mBaseURI);
 
   if (NS_FAILED(rv)) {
     if (rv == NS_ERROR_MALFORMED_URI) {
