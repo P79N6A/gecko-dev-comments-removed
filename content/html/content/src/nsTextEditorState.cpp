@@ -969,6 +969,36 @@ nsTextEditorState::GetSelectionController() const
   return mSelCon;
 }
 
+
+class PrepareEditorEvent : public nsRunnable {
+public:
+  PrepareEditorEvent(nsTextEditorState &aState,
+                     nsIContent *aOwnerContent,
+                     const nsAString &aCurrentValue)
+    : mState(aState)
+    , mOwnerContent(aOwnerContent)
+    , mCurrentValue(aCurrentValue)
+  {
+  }
+
+  NS_IMETHOD Run() {
+    
+    const nsAString *value = nsnull;
+    if (!mCurrentValue.IsEmpty()) {
+      value = &mCurrentValue;
+    }
+
+    mState.PrepareEditor(value);
+
+    return NS_OK;
+  }
+
+private:
+  nsTextEditorState &mState;
+  nsCOMPtr<nsIContent> mOwnerContent; 
+  nsAutoString mCurrentValue;
+};
+
 nsresult
 nsTextEditorState::BindToFrame(nsTextControlFrame* aFrame)
 {
@@ -1029,35 +1059,6 @@ nsTextEditorState::BindToFrame(nsTextControlFrame* aFrame)
 
   
   if (mEditor) {
-    class PrepareEditorEvent : public nsRunnable {
-    public:
-      PrepareEditorEvent(nsTextEditorState &aState,
-                         nsIContent *aOwnerContent,
-                         const nsAString &aCurrentValue)
-        : mState(aState)
-        , mOwnerContent(aOwnerContent)
-        , mCurrentValue(aCurrentValue)
-      {
-      }
-
-      NS_IMETHOD Run() {
-        
-        const nsAString *value = nsnull;
-        if (!mCurrentValue.IsEmpty()) {
-          value = &mCurrentValue;
-        }
-
-        mState.PrepareEditor(value);
-
-        return NS_OK;
-      }
-
-    private:
-      nsTextEditorState &mState;
-      nsCOMPtr<nsIContent> mOwnerContent; 
-      nsAutoString mCurrentValue;
-    };
-
     nsCOMPtr<nsIContent> content = do_QueryInterface(mTextCtrlElement);
     NS_ENSURE_TRUE(content, NS_ERROR_FAILURE);
 
