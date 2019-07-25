@@ -43,6 +43,8 @@
 
 
 
+class gfxSubimageSurface;
+
 
 
 
@@ -99,6 +101,11 @@ public:
     
     PRBool CopyFrom (gfxImageSurface *other);
 
+    
+
+
+    already_AddRefed<gfxSubimageSurface> GetSubimage(const gfxRect& aRect);
+
 protected:
     gfxImageSurface();
     void InitFromSurface(cairo_surface_t *csurf);
@@ -109,6 +116,16 @@ protected:
     unsigned char *mData;
     gfxImageFormat mFormat;
     long mStride;
+};
+
+class THEBES_API gfxSubimageSurface : public gfxImageSurface {
+protected:
+    friend class gfxImageSurface;
+    gfxSubimageSurface(gfxImageSurface* aParent,
+                       unsigned char* aData,
+                       const gfxIntSize& aSize);
+private:
+    nsRefPtr<gfxImageSurface> mParent;
 };
 
 #endif 
