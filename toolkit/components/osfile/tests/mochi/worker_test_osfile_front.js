@@ -195,15 +195,6 @@ function test_move_file()
   
   compare_files("test_move_file", src_file_name, tmp2_file_name);
 
-  
-  let exn;
-  try {
-    OS.File.open(tmp_file_name);
-  } catch (x) {
-    exn = x;
-  }
-  ok(!!exn, "test_move_file: Original file has been removed");
-
   ok(true, "test_move_file: Cleaning up");
   OS.File.remove(tmp2_file_name);
 }

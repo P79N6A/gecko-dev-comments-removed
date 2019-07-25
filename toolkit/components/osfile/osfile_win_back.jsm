@@ -81,7 +81,16 @@
 
 
        Types.maybe_HANDLE =
-         Types.maybe_HANDLE.withName("maybe_find_HANDLE");
+         new Type("maybe_HANDLE",
+           Types.HANDLE.implementation,
+           function (maybe) {
+             if (ctypes.cast(maybe, ctypes.int).value == invalid_handle) {
+               
+               
+               
+               return invalid_handle;
+             }
+             return ctypes.CDataFinalizer(maybe, _CloseHandle);
            });
 
        

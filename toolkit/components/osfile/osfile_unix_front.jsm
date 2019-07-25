@@ -335,6 +335,22 @@
            UnixFile.copyfile(sourcePath, destPath, null, flags)
          );
        };
+
+       
+       
+       
+       File.move = function movefile(sourcePath, destPath, options) {
+         
+         
+         options = options || noOptions;
+         let flags = Const.COPYFILE_DATA | Const.COPYFILE_MOVE;
+         if (options.noOverwrite) {
+           flags |= Const.COPYFILE_EXCL;
+         }
+         throw_on_negative("move",
+           UnixFile.copyfile(sourcePath, destPath, null, flags)
+         );
+       };
      } else {
        
        
@@ -458,37 +474,36 @@
              pipe_write.dispose();
            }
          };
-       } else {
-         
-         pump = pump_userland;
-       }
+     } else {
+       
+       pump = pump_userland;
+     }
 
-       
-       
-       
-       File.copy = function copy(sourcePath, destPath, options) {
-         options = options || noOptions;
-         let source, dest;
-         let result;
-         try {
-           source = File.open(sourcePath);
-           if (options.noOverwrite) {
-             dest = File.open(destPath, {create:true});
-           } else {
-             dest = File.open(destPath, {write:true});
-           }
-           result = pump(source, dest, options);
-         } catch (x) {
-           if (dest) {
-             dest.close();
-           }
-           if (source) {
-             source.close();
-           }
-           throw x;
+     
+     
+     
+     File.copy = function copy(sourcePath, destPath, options) {
+       options = options || noOptions;
+       let source, dest;
+       let result;
+       try {
+         source = File.open(sourcePath);
+         if (options.noOverwrite) {
+           dest = File.open(destPath, {create:true});
+         } else {
+           dest = File.open(destPath, {write:true});
          }
-       };
-     } 
+         result = pump(source, dest, options);
+       } catch (x) {
+         if (dest) {
+           dest.close();
+         }
+         if (source) {
+           source.close();
+         }
+         throw x;
+       }
+     };
 
      
      
@@ -524,11 +539,13 @@
          throw new File.Error();
        }
 
-       
-       File.copy(sourcePath, destPath, options);
-       
-       File.remove(sourcePath);
-     };
+         
+         File.copy(sourcePath, destPath, options);
+         
+         File.remove(sourcePath);
+       };
+
+     } 
 
      
 
