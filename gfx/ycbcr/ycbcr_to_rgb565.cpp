@@ -40,7 +40,7 @@
 
 
 
-#if !defined (__arm__)
+#if !defined (HAVE_ARM_NEON)
 
 int have_ycbcr_to_rgb565 ()
 {
