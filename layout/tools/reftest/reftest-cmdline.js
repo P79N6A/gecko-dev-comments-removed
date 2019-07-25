@@ -101,6 +101,12 @@ RefTestCmdLineHandler.prototype =
 
 
 
+
+
+
+
+
+
     var prefs = Components.classes["@mozilla.org/preferences-service;1"].
                 getService(Components.interfaces.nsIPrefService);
     var branch = prefs.getDefaultBranch("");
