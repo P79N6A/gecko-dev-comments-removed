@@ -194,9 +194,11 @@ LIRGenerator::visitCall(MCall *call)
             return false;
         ins = (LInstruction *)lcall;
     } else {
-        LCallGeneric *lcall = new LCallGeneric(useFixed(call->getFunction(), CallTempReg0),
+        LCallGeneric *lcall = new LCallGeneric(target, useFixed(call->getFunction(), CallTempReg0),
             argslot, tempFixed(ArgumentsRectifierReg), tempFixed(CallTempReg2));
-        if (!assignSnapshot(lcall))
+
+        
+        if (!target && !assignSnapshot(lcall))
             return false;
         if (!defineReturn(lcall, call))
             return false;

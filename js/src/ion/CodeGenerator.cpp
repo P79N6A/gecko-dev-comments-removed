@@ -539,10 +539,12 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     masm.checkStackAlignment();
 
     
-    masm.loadObjClass(calleereg, nargsreg);
-    masm.cmpPtr(nargsreg, ImmWord(&js::FunctionClass));
-    if (!bailoutIf(Assembler::NotEqual, call->snapshot()))
-        return false;
+    if (!call->hasSingleTarget()) {
+        masm.loadObjClass(calleereg, nargsreg);
+        masm.cmpPtr(nargsreg, ImmWord(&js::FunctionClass));
+        if (!bailoutIf(Assembler::NotEqual, call->snapshot()))
+            return false;
+    }
 
     
     
@@ -574,8 +576,14 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     
     
     
-    masm.branchTest32(Assembler::Zero, Address(calleereg, offsetof(JSFunction, flags)),
-                      Imm32(JSFUN_INTERPRETED), &invoke);
+    if (!call->hasSingleTarget()) {
+        masm.branchTest32(Assembler::Zero, Address(calleereg, offsetof(JSFunction, flags)),
+                          Imm32(JSFUN_INTERPRETED), &invoke);
+    } else {
+        
+        JS_ASSERT(!call->getSingleTarget()->isNative());
+    }
+
 
     
     masm.movePtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
@@ -594,33 +602,34 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
 
     Label thunk, rejoin;
 
-    
-    
-#ifdef JS_CPU_ARM
-    masm.ma_ldrh(EDtrAddr(calleereg, EDtrOffImm(offsetof(JSFunction, nargs))),
-                 nargsreg);
-#else
-    masm.load16(Address(calleereg, offsetof(JSFunction, nargs)), nargsreg);
-#endif
-    masm.cmp32(nargsreg, Imm32(call->nargs()));
-    masm.j(Assembler::Above, &thunk);
+    if (call->hasSingleTarget()) {
+        
+        JS_ASSERT(call->getSingleTarget()->nargs <= call->nargs());
+    } else {
+        
+        masm.load16(Address(calleereg, offsetof(JSFunction, nargs)), nargsreg);
+        masm.cmp32(nargsreg, Imm32(call->nargs()));
+        masm.j(Assembler::Above, &thunk);
+    }
 
     
     {
         masm.movePtr(Address(objreg, offsetof(IonScript, method_)), objreg);
         masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
-        masm.jump(&rejoin);
     }
 
     
-    {
+    if (!call->hasSingleTarget()) {
+        
+        masm.jump(&rejoin);
+        masm.bind(&thunk);
+
         
         IonCompartment *ion = gen->ionCompartment();
         IonCode *argumentsRectifier = ion->getArgumentsRectifier(gen->cx);
         if (!argumentsRectifier)
             return false;
 
-        masm.bind(&thunk);
         JS_ASSERT(ArgumentsRectifierReg != objreg);
         masm.move32(Imm32(call->nargs()), ArgumentsRectifierReg);
         masm.movePtr(ImmWord(argumentsRectifier->raw()), objreg);
