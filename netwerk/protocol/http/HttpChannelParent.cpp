@@ -281,6 +281,14 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
 NS_IMETHODIMP 
 HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
 {
+  if (aIID.Equals(NS_GET_IID(nsIAuthPromptProvider))) {
+    if (!mTabParent)
+      return NS_NOINTERFACE;
+    return mTabParent->QueryInterface(aIID, result);
+  }
+
+  
+  
   if (
 
       
@@ -307,22 +315,16 @@ HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
       aIID.Equals(NS_GET_IID(nsIBadCertListener2))) 
   {
     return QueryInterface(aIID, result);
-  } 
-
-  if (aIID.Equals(NS_GET_IID(nsIAuthPromptProvider))) {
-    if (!mTabParent)
-      return NS_NOINTERFACE;
-    return mTabParent->QueryInterface(aIID, result);
+  } else {
+    nsPrintfCString msg(2000, 
+       "HttpChannelParent::GetInterface: interface UUID=%s not yet supported! "
+       "Use 'grep -ri UUID <mozilla_src>' to find the name of the interface, "
+       "check http://tinyurl.com/255ojvu to see if a bug has already been "
+       "filed, and if not, add one and make it block bug 516730. Thanks!",
+       aIID.ToString());
+    NECKO_MAYBE_ABORT(msg);
+    return NS_NOINTERFACE;
   }
-
-  
-  
-  
-  
-  printf("*&*&*& HttpChannelParent::GetInterface: uuid=%s not impl'd yet! "
-         "File a bug!\n", 
-         aIID.ToString());
-  DROP_DEAD();
 }
 
 
