@@ -384,10 +384,12 @@ private:
 
 
 
-  nsresult    GetCSSInlinePropertyBase(nsIDOMNode * aNode, nsIAtom * aProperty,
-                                       nsAString & aValue,
-                                       nsIDOMWindow* aWindow,
-                                       PRUint8 aStyleType);
+  nsresult GetCSSInlinePropertyBase(nsINode* aNode, nsIAtom* aProperty,
+                                    nsAString& aValue, nsIDOMWindow* aWindow,
+                                    PRUint8 aStyleType);
+  nsresult GetCSSInlinePropertyBase(nsIDOMNode* aNode, nsIAtom* aProperty,
+                                    nsAString& aValue, nsIDOMWindow* aWindow,
+                                    PRUint8 aStyleType);
 
 
 private:
