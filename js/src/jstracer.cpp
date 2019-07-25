@@ -2881,15 +2881,8 @@ TraceMonitor::flush()
 }
 
 static bool
-HasUnreachableGCThingsImpl(JSContext *cx, TreeFragment *f)
+HasUnreachableGCThings(JSContext *cx, TreeFragment *f)
 {
-    if (f->visiting)
-        return false;
-    f->visiting = true;
-    
-    if (!f->code())
-        return false;
-
     
 
 
@@ -2911,17 +2904,33 @@ HasUnreachableGCThingsImpl(JSContext *cx, TreeFragment *f)
             return true;
     }
 
+    return false;
+}
+
+static bool
+ContainsUnrechableGCThingImpl(JSContext *cx, TreeFragment *f)
+{
+    if (f->visiting)
+        return false;
+    f->visiting = true;
+    
+    if (!f->code())
+        return false;
+
+    if (HasUnreachableGCThings(cx, f))
+        return true;
+
     TreeFragment** data = f->dependentTrees.data();
     unsigned length = f->dependentTrees.length();
     for (unsigned n = 0; n < length; ++n) {
-        if (HasUnreachableGCThingsImpl(cx, data[n]))
+        if (ContainsUnrechableGCThingImpl(cx, data[n]))
             return true;
     }
 
     data = f->linkedTrees.data();
     length = f->linkedTrees.length();
     for (unsigned n = 0; n < length; ++n) {
-        if (HasUnreachableGCThingsImpl(cx, data[n]))
+        if (ContainsUnrechableGCThingImpl(cx, data[n]))
             return true;
     }
 
@@ -2948,10 +2957,16 @@ ClearVisitingFlag(TreeFragment *f)
         ClearVisitingFlag(data[n]);
 }
 
+
+
+
+
+
+
 static bool
-HasUnreachableGCThings(JSContext *cx, TreeFragment *f)
+ContainsUnrechableGCThing(JSContext *cx, TreeFragment *f)
 {
-    bool hasUnrechable = HasUnreachableGCThingsImpl(cx, f);
+    bool hasUnrechable = ContainsUnrechableGCThingImpl(cx, f);
     ClearVisitingFlag(f);
     return hasUnrechable;
 }
@@ -2974,7 +2989,7 @@ TraceMonitor::sweep(JSContext *cx)
         while (TreeFragment* frag = *fragp) {
             TreeFragment* peer = frag;
             do {
-                if (peer->code() && HasUnreachableGCThings(cx, peer))
+                if (peer->code() && ContainsUnrechableGCThing(cx, peer))
                     break;
                 peer = peer->peer;
             } while (peer);
