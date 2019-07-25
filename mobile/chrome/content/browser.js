@@ -411,6 +411,15 @@ var Browser = {
       
       BrowserUI.sizeControls(w, h);
 
+      
+      
+      
+      let bvs = bv._browserViewportState;
+      if (bvs.viewportRect.width == 1 && bvs.viewportRect.height == 1) {
+        bvs.viewportRect.width = window.innerWidth;
+        bvs.viewportRect.height = window.innerHeight;
+      }
+
       bv.updateDefaultZoom();
       if (bv.isDefaultZoom())
         
@@ -3175,7 +3184,9 @@ Tab.prototype = {
     if (!this._browser)
       return;
 
-    let browserView = (Browser.selectedBrowser == this._browser) ? Browser._browserView : null;
+    let bv = Browser._browserView;
+    let browserView = (Browser.selectedBrowser == this._browser && bv.isDefaultZoom()) ? Browser._browserView 
+                                                                                       : null;
     this._chromeTab.updateThumbnail(this._browser, browserView);
   },
 
