@@ -368,10 +368,22 @@ let AboutPermissions = {
   
 
 
+  LIST_BUILD_CHUNK: 5, 
+  LIST_BUILD_DELAY: 100, 
+
+  
+
+
   _sites: {},
 
   sitesList: null,
   _selectedSite: null,
+
+  
+
+
+  _initPlacesDone: false,
+  _initServicesDone: false,
 
   
 
@@ -397,7 +409,9 @@ let AboutPermissions = {
     this.sitesList = document.getElementById("sites-list");
 
     this.getSitesFromPlaces();
-    this.enumerateServices();
+
+    this.enumerateServicesGenerator = this.getEnumerateServicesGenerator();
+    setTimeout(this.enumerateServicesDriver.bind(this), this.LIST_BUILD_DELAY);
 
     
     Services.prefs.addObserver("signon.rememberSignons", this, false);
@@ -412,6 +426,7 @@ let AboutPermissions = {
     Services.obs.addObserver(this, "browser:purge-domain-data", false);
     
     this._observersInitialized = true;
+    Services.obs.notifyObservers(null, "browser-permissions-preinit", null);
   },
 
   
@@ -501,7 +516,10 @@ let AboutPermissions = {
       },
       handleCompletion: function(aReason) {
         
-        Services.obs.notifyObservers(null, "browser-permissions-initialized", null);
+        AboutPermissions._initPlacesDone = true;
+        if (AboutPermissions._initServicesDone) {
+          Services.obs.notifyObservers(null, "browser-permissions-initialized", null);
+        }
       }
     });
   },
@@ -509,12 +527,32 @@ let AboutPermissions = {
   
 
 
+  enumerateServicesDriver: function() {
+    if (this.enumerateServicesGenerator.next()) {
+      
+      let delay = Math.min(this.sitesList.itemCount * 5, this.LIST_BUILD_DELAY);
+      setTimeout(this.enumerateServicesDriver.bind(this), delay);
+    } else {
+      this.enumerateServicesGenerator.close();
+      this._initServicesDone = true;
+      if (this._initPlacesDone) {
+        Services.obs.notifyObservers(null, "browser-permissions-initialized", null);
+      }
+    }
+  },
 
-  enumerateServices: function() {
-    this.startSitesListBatch();
+  
+
+
+
+  getEnumerateServicesGenerator: function() {
+    let itemCnt = 1;
 
     let logins = Services.logins.getAllLogins();
     logins.forEach(function(aLogin) {
+      if (itemCnt % this.LIST_BUILD_CHUNK == 0) {
+        yield true;
+      }
       try {
         
         let uri = NetUtil.newURI(aLogin.hostname);
@@ -522,10 +560,14 @@ let AboutPermissions = {
       } catch (e) {
         
       }
+      itemCnt++;
     }, this);
 
     let disabledHosts = Services.logins.getAllDisabledHosts();
     disabledHosts.forEach(function(aHostname) {
+      if (itemCnt % this.LIST_BUILD_CHUNK == 0) {
+        yield true;
+      }
       try {
         
         let uri = NetUtil.newURI(aHostname);
@@ -533,19 +575,24 @@ let AboutPermissions = {
       } catch (e) {
         
       }
+      itemCnt++;
     }, this);
 
     let (enumerator = Services.perms.enumerator) {
       while (enumerator.hasMoreElements()) {
+        if (itemCnt % this.LIST_BUILD_CHUNK == 0) {
+          yield true;
+        }
         let permission = enumerator.getNext().QueryInterface(Ci.nsIPermission);
         
         if (this._supportedPermissions.indexOf(permission.type) != -1) {
           this.addHost(permission.host);
         }
+        itemCnt++;
       }
     }
 
-    this.endSitesListBatch();
+    yield false;
   },
 
   
@@ -579,7 +626,11 @@ let AboutPermissions = {
     });
     aSite.listitem = item;
 
-    (this._listFragment || this.sitesList).appendChild(item);
+    
+    let filterValue = document.getElementById("sites-filter").value.toLowerCase();
+    item.collapsed = aSite.host.toLowerCase().indexOf(filterValue) == -1;
+
+    this.sitesList.appendChild(item);
   },
 
   startSitesListBatch: function () {
@@ -640,7 +691,7 @@ let AboutPermissions = {
         this.sitesList.removeChild(site.listitem);
         delete this._sites[site.host];
       }
-    }    
+    }
   },
 
   

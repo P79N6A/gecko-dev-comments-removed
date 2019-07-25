@@ -1770,22 +1770,6 @@ nsDocAccessible::ProcessPendingEvent(AccEvent* aEvent)
 }
 
 void
-nsDocAccessible::ProcessAnchorJump(nsIContent* aTargetNode)
-{
-  
-  
-  nsAccessible* target = GetAccessibleOrContainer(aTargetNode);
-  if (!target)
-    return;
-
-  
-  
-  
-  FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_SCROLLING_START,
-                             target->GetNode());
-}
-
-void
 nsDocAccessible::ProcessContentInserted(nsAccessible* aContainer,
                                         const nsTArray<nsCOMPtr<nsIContent> >* aInsertedContent)
 {

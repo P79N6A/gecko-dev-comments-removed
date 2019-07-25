@@ -100,15 +100,20 @@ public:
   nsChildContentList(nsINode* aNode)
     : mNode(aNode)
   {
+    SetIsProxy();
   }
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsChildContentList)
+
+  
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
+                               bool *triedToWrap);
 
   
   NS_DECL_NSIDOMNODELIST
 
   
-  virtual nsIContent* GetNodeAt(PRUint32 aIndex);
   virtual PRInt32 IndexOf(nsIContent* aContent);
 
   void DropReference()

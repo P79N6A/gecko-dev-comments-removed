@@ -57,8 +57,6 @@ using namespace mozilla::layers;
 
 namespace mozilla {
 
-namespace {
-
 
 
 
@@ -82,11 +80,13 @@ public:
   
 
 
-  nsTHashtable<nsPtrHashKey<nsIFrame> > mFramesWithLayers;
+  nsTHashtable<FrameLayerBuilder::DisplayItemDataEntry> mFramesWithLayers;
   bool mInvalidateAllLayers;
   
   nsRefPtr<LayerManager> mLayerManager;
 };
+
+namespace {
 
 static void DestroyRegion(void* aPropertyValue)
 {
@@ -470,39 +470,32 @@ FrameLayerBuilder::DisplayItemDataEntry::HasNonEmptyContainerLayer()
   return PR_FALSE;
 }
 
- void
-FrameLayerBuilder::InternalDestroyDisplayItemData(nsIFrame* aFrame,
-                                                  void* aPropertyValue,
-                                                  bool aRemoveFromFramesWithLayers)
+ nsTArray<FrameLayerBuilder::DisplayItemData>*
+FrameLayerBuilder::GetDisplayItemDataArrayForFrame(nsIFrame* aFrame)
 {
-  nsRefPtr<LayerManager> managerRef;
-  nsTArray<DisplayItemData>* array =
-    reinterpret_cast<nsTArray<DisplayItemData>*>(&aPropertyValue);
-  NS_ASSERTION(!array->IsEmpty(), "Empty arrays should not be stored");
+  FrameProperties props = aFrame->Properties();
+  LayerManagerData *data =
+    reinterpret_cast<LayerManagerData*>(props.Get(LayerManagerDataProperty()));
+  if (!data)
+    return nsnull;
 
-  if (aRemoveFromFramesWithLayers) {
-    LayerManager* manager = array->ElementAt(0).mLayer->Manager();
-    LayerManagerData* data = static_cast<LayerManagerData*>
-      (manager->GetUserData(&gLayerManagerUserData));
-    NS_ASSERTION(data, "Frame with layer should have been recorded");
-    data->mFramesWithLayers.RemoveEntry(aFrame);
-    if (data->mFramesWithLayers.Count() == 0) {
-      
-      
-      
-      managerRef = manager;
-      manager->RemoveUserData(&gLayerManagerUserData);
-    }
-  }
+  DisplayItemDataEntry *entry = data->mFramesWithLayers.GetEntry(aFrame);
+  NS_ASSERTION(entry, "out of sync?");
+  if (!entry)
+    return nsnull;
 
-  array->~nsTArray<DisplayItemData>();
+  return &entry->mData;
 }
 
  void
-FrameLayerBuilder::DestroyDisplayItemData(nsIFrame* aFrame,
-                                          void* aPropertyValue)
+FrameLayerBuilder::RemoveFrameFromLayerManager(nsIFrame* aFrame,
+                                               void* aPropertyValue)
 {
-  InternalDestroyDisplayItemData(aFrame, aPropertyValue, PR_TRUE);
+  LayerManagerData *data = reinterpret_cast<LayerManagerData*>(aPropertyValue);
+  data->mFramesWithLayers.RemoveEntry(aFrame);
+  if (data->mFramesWithLayers.Count() == 0) {
+    data->mLayerManager->RemoveUserData(&gLayerManagerUserData);
+  }
 }
 
 void
@@ -606,7 +599,7 @@ SetNoContainerLayer(nsIFrame* aFrame)
 }
 
  PLDHashOperator
-FrameLayerBuilder::UpdateDisplayItemDataForFrame(nsPtrHashKey<nsIFrame>* aEntry,
+FrameLayerBuilder::UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
                                                  void* aUserArg)
 {
   FrameLayerBuilder* builder = static_cast<FrameLayerBuilder*>(aUserArg);
@@ -617,16 +610,8 @@ FrameLayerBuilder::UpdateDisplayItemDataForFrame(nsPtrHashKey<nsIFrame>* aEntry,
   if (!newDisplayItems) {
     
     bool found;
-    void* prop = props.Remove(DisplayItemDataProperty(), &found);
+    props.Remove(LayerManagerDataProperty(), &found);
     NS_ASSERTION(found, "How can the frame property be missing?");
-    
-    
-    
-    
-    
-    
-    
-    InternalDestroyDisplayItemData(f, prop, PR_FALSE);
     SetNoContainerLayer(f);
     return PL_DHASH_REMOVE;
   }
@@ -648,15 +633,7 @@ FrameLayerBuilder::UpdateDisplayItemDataForFrame(nsPtrHashKey<nsIFrame>* aEntry,
   }
 
   
-  
-  void* propValue = props.Remove(DisplayItemDataProperty());
-  NS_ASSERTION(propValue, "mFramesWithLayers out of sync");
-  PR_STATIC_ASSERT(sizeof(nsTArray<DisplayItemData>) == sizeof(void*));
-  nsTArray<DisplayItemData>* array =
-    reinterpret_cast<nsTArray<DisplayItemData>*>(&propValue);
-  
-  array->SwapElements(newDisplayItems->mData);
-  props.Set(DisplayItemDataProperty(), propValue);
+  aEntry->mData.SwapElements(newDisplayItems->mData);
   
   builder->mNewDisplayItemData.RawRemoveEntry(newDisplayItems);
   return PL_DHASH_NEXT;
@@ -672,17 +649,12 @@ FrameLayerBuilder::StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
   
   NS_ASSERTION(!data->mFramesWithLayers.GetEntry(f),
                "We shouldn't get here if we're already in mFramesWithLayers");
-  data->mFramesWithLayers.PutEntry(f);
-  NS_ASSERTION(!props.Get(DisplayItemDataProperty()),
+  DisplayItemDataEntry *newEntry = data->mFramesWithLayers.PutEntry(f);
+  NS_ASSERTION(!props.Get(LayerManagerDataProperty()),
                "mFramesWithLayers out of sync");
 
-  void* propValue;
-  nsTArray<DisplayItemData>* array =
-    new (&propValue) nsTArray<DisplayItemData>();
-  
-  array->SwapElements(aEntry->mData);
-  
-  props.Set(DisplayItemDataProperty(), propValue);
+  newEntry->mData.SwapElements(aEntry->mData);
+  props.Set(LayerManagerDataProperty(), data);
 
   if (f->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER) {
     props.Set(ThebesLayerInvalidRegionProperty(), new nsRegion());
@@ -693,12 +665,10 @@ FrameLayerBuilder::StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
 bool
 FrameLayerBuilder::HasRetainedLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey)
 {
-  void* propValue = aFrame->Properties().Get(DisplayItemDataProperty());
-  if (!propValue)
+  nsTArray<DisplayItemData> *array = GetDisplayItemDataArrayForFrame(aFrame);
+  if (!array)
     return PR_FALSE;
 
-  nsTArray<DisplayItemData>* array =
-    (reinterpret_cast<nsTArray<DisplayItemData>*>(&propValue));
   for (PRUint32 i = 0; i < array->Length(); ++i) {
     if (array->ElementAt(i).mDisplayItemKey == aDisplayItemKey) {
       Layer* layer = array->ElementAt(i).mLayer;
@@ -719,12 +689,10 @@ FrameLayerBuilder::GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey)
   if (!mRetainingManager || mInvalidateAllLayers)
     return nsnull;
 
-  void* propValue = aFrame->Properties().Get(DisplayItemDataProperty());
-  if (!propValue)
+  nsTArray<DisplayItemData> *array = GetDisplayItemDataArrayForFrame(aFrame);
+  if (!array)
     return nsnull;
 
-  nsTArray<DisplayItemData>* array =
-    (reinterpret_cast<nsTArray<DisplayItemData>*>(&propValue));
   for (PRUint32 i = 0; i < array->Length(); ++i) {
     if (array->ElementAt(i).mDisplayItemKey == aDisplayItemKey) {
       Layer* layer = array->ElementAt(i).mLayer;
@@ -1954,12 +1922,10 @@ FrameLayerBuilder::InvalidateAllLayers(LayerManager* aManager)
 Layer*
 FrameLayerBuilder::GetDedicatedLayer(nsIFrame* aFrame, PRUint32 aDisplayItemKey)
 {
-  void* propValue = aFrame->Properties().Get(DisplayItemDataProperty());
-  if (!propValue)
+  nsTArray<DisplayItemData>* array = GetDisplayItemDataArrayForFrame(aFrame);
+  if (!array)
     return nsnull;
 
-  nsTArray<DisplayItemData>* array =
-    (reinterpret_cast<nsTArray<DisplayItemData>*>(&propValue));
   for (PRUint32 i = 0; i < array->Length(); ++i) {
     if (array->ElementAt(i).mDisplayItemKey == aDisplayItemKey) {
       Layer* layer = array->ElementAt(i).mLayer;

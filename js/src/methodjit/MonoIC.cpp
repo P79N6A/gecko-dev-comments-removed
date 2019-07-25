@@ -52,6 +52,8 @@
 #include "InlineFrameAssembler.h"
 #include "jsobj.h"
 
+#include "builtin/RegExp.h"
+
 #include "jsinterpinlines.h"
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
@@ -734,7 +736,7 @@ class CallCompiler : public BaseCompiler
 
         
         Address scriptAddr(ic.funPtrReg, offsetof(JSFunction, u) +
-                           offsetof(JSFunction::U::Scripted, script));
+                           offsetof(JSFunction::U::Scripted, script_));
         masm.loadPtr(scriptAddr, t0);
 
         
@@ -1039,8 +1041,8 @@ class CallCompiler : public BaseCompiler
 
 
 
-        if (native == js_regexp_exec && !CallResultEscapes(f.pc()))
-            native = js_regexp_test;
+        if (native == regexp_exec && !CallResultEscapes(f.pc()))
+            native = regexp_test;
 
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, native), false);
 

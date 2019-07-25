@@ -63,6 +63,10 @@ const MEM_HISTOGRAMS = {
   "page-faults-hard": "PAGE_FAULTS_HARD"
 };
 
+
+
+const IDLE_TIMEOUT_SECONDS = 5 * 60;
+
 var gLastMemoryPoll = null;
 
 function getLocale() {
@@ -156,7 +160,10 @@ function getMetadata(reason) {
 
   
   let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
-  let fields = ["cpucount", "memsize", "arch", "version", "device", "manufacturer", "hardware"];
+  let fields = ["cpucount", "memsize", "arch", "version", "device", "manufacturer", "hardware",
+                "hasMMX", "hasSSE", "hasSSE2", "hasSSE3",
+                "hasSSSE3", "hasSSE4A", "hasSSE4_1", "hasSSE4_2",
+                "hasEDSP", "hasARMv6", "hasNEON"];
   for each (let field in fields) {
     let value;
     try {
@@ -338,6 +345,10 @@ TelemetryPing.prototype = {
       return;
     Services.obs.removeObserver(this, "idle-daily");
     Services.obs.removeObserver(this, "cycle-collector-begin");
+    if (this._isIdleObserver) {
+      idle.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
+      this._isIdleObserver = false;
+    }
   },
 
   
@@ -413,11 +424,26 @@ TelemetryPing.prototype = {
         this.attachObservers()
       }
       break;
+    case "idle-daily":
+      
+      
+      Services.tm.mainThread.dispatch((function() {
+        
+        Services.obs.notifyObservers(null, "gather-telemetry", null);
+        
+        idle.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
+        this._isIdleObserver = true;
+      }).bind(this), Ci.nsIThread.DISPATCH_NORMAL);
+      break;
     case "test-ping":
       server = aData;
       
-    case "idle-daily":
-      this.send(aTopic, server);
+    case "idle":
+      if (this._isIdleObserver) {
+        idle.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
+        this._isIdleObserver = false;
+      }
+      this.send(aTopic == "idle" ? "idle-daily" : aTopic, server);
       break;
     }
   },

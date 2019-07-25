@@ -84,6 +84,11 @@ class Element;
 class nsBaseContentList : public nsINodeList
 {
 public:
+  nsBaseContentList()
+  {
+    
+    SetIsProxy();
+  }
   virtual ~nsBaseContentList();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -92,14 +97,13 @@ public:
   NS_DECL_NSIDOMNODELIST
 
   
-  virtual nsIContent* GetNodeAt(PRUint32 aIndex);
   virtual PRInt32 IndexOf(nsIContent* aContent);
   
   PRUint32 Length() const { 
     return mElements.Count();
   }
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsBaseContentList, nsINodeList)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsBaseContentList)
 
   void AppendElement(nsIContent *aContent);
   void MaybeAppendElement(nsIContent* aContent)
@@ -122,8 +126,10 @@ public:
     mElements.Clear();
   }
 
-
   virtual PRInt32 IndexOf(nsIContent *aContent, bool aDoFlush);
+
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
+                               bool *triedToWrap) = 0;
 
 protected:
   nsCOMArray<nsIContent> mElements;
@@ -146,6 +152,8 @@ public:
   {
     return mRoot;
   }
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
+                               bool *triedToWrap);
 
 private:
   
@@ -277,21 +285,19 @@ public:
   virtual ~nsContentList();
 
   
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
+                               bool *triedToWrap);
+
+  
   NS_DECL_NSIDOMHTMLCOLLECTION
 
   
   virtual PRInt32 IndexOf(nsIContent *aContent, bool aDoFlush);
-  virtual nsIContent* GetNodeAt(PRUint32 aIndex);
   virtual PRInt32 IndexOf(nsIContent* aContent);
   virtual nsINode* GetParentObject()
   {
     return mRootNode;
   }
-
-  
-  
-  virtual nsISupports* GetNamedItem(const nsAString& aName,
-                                    nsWrapperCache** aCache);
 
   
   NS_HIDDEN_(PRUint32) Length(bool aDoFlush);

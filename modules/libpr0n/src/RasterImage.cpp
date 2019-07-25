@@ -173,10 +173,10 @@ namespace mozilla {
 namespace imagelib {
 
 #ifndef DEBUG
-NS_IMPL_ISUPPORTS3(RasterImage, imgIContainer, nsIProperties,
+NS_IMPL_ISUPPORTS4(RasterImage, imgIContainer, nsITimerCallback, nsIProperties,
                    nsISupportsWeakReference)
 #else
-NS_IMPL_ISUPPORTS4(RasterImage, imgIContainer, nsIProperties,
+NS_IMPL_ISUPPORTS5(RasterImage, imgIContainer, nsITimerCallback, nsIProperties,
                    imgIContainerDebug, nsISupportsWeakReference)
 #endif
 
@@ -311,159 +311,6 @@ RasterImage::Init(imgIDecoderObserver *aObserver,
   mInitialized = PR_TRUE;
 
   return NS_OK;
-}
-
-bool
-RasterImage::AdvanceFrame(TimeStamp aTime, nsIntRect* aDirtyRect)
-{
-  NS_ASSERTION(aTime <= TimeStamp::Now(),
-               "Given time appears to be in the future");
-
-  imgFrame* nextFrame = nsnull;
-  PRUint32 currentFrameIndex = mAnim->currentAnimationFrameIndex;
-  PRUint32 nextFrameIndex = mAnim->currentAnimationFrameIndex + 1;
-  PRUint32 timeout = 0;
-
-  
-  
-  
-  NS_ABORT_IF_FALSE(mDecoder || nextFrameIndex <= mFrames.Length(),
-                    "How did we get 2 indices too far by incrementing?");
-
-  
-  
-  
-  bool haveFullNextFrame = !mDecoder ||
-                           nextFrameIndex < mDecoder->GetCompleteFrameCount();
-
-  
-  
-  if (haveFullNextFrame) {
-    if (mFrames.Length() == nextFrameIndex) {
-      
-
-      
-      if (mAnimationMode == kLoopOnceAnimMode || mLoopCount == 0) {
-        mAnimationFinished = PR_TRUE;
-        EvaluateAnimation();
-      }
-
-      
-      
-      if (mAnim->compositingFrame && mAnim->lastCompositedFrameIndex == -1) {
-        mAnim->compositingFrame = nsnull;
-      }
-
-      nextFrameIndex = 0;
-
-      if (mLoopCount > 0) {
-        mLoopCount--;
-      }
-
-      if (!mAnimating) {
-        
-        return false;
-      }
-    }
-
-    if (!(nextFrame = mFrames[nextFrameIndex])) {
-      
-      mAnim->currentAnimationFrameIndex = nextFrameIndex;
-      return false;
-    }
-
-    timeout = nextFrame->GetTimeout();
-
-  } else {
-    
-    
-    return false;
-  }
-
-  if (!(timeout > 0)) {
-    mAnimationFinished = PR_TRUE;
-    EvaluateAnimation();
-  }
-
-  imgFrame *frameToUse = nsnull;
-
-  if (nextFrameIndex == 0) {
-    frameToUse = nextFrame;
-    aDirtyRect = &(mAnim->firstFrameRefreshArea);
-  } else {
-    imgFrame *curFrame = mFrames[currentFrameIndex];
-    if (!curFrame) {
-      return false;
-    }
-
-    
-    if (NS_FAILED(DoComposite(&frameToUse, aDirtyRect, curFrame,
-                              nextFrame, nextFrameIndex))) {
-      
-      NS_WARNING("RasterImage::AdvanceFrame(): Compositing of frame failed");
-      nextFrame->SetCompositingFailed(PR_TRUE);
-      mAnim->currentAnimationFrameIndex = nextFrameIndex;
-      mAnim->currentAnimationFrameTime = aTime;
-      return false;
-    }
-
-    nextFrame->SetCompositingFailed(PR_FALSE);
-  }
-
-  
-  mAnim->currentAnimationFrameIndex = nextFrameIndex;
-  mAnim->currentAnimationFrameTime = aTime;
-
-  return true;
-}
-
-
-
-NS_IMETHODIMP_(void)
-RasterImage::RequestRefresh(const mozilla::TimeStamp& aTime)
-{
-  if (!mAnimating || !ShouldAnimate()) {
-    return;
-  }
-
-  EnsureAnimExists();
-
-  
-  
-  TimeStamp currentFrameEndTime = GetCurrentImgFrameEndTime();
-  bool frameAdvanced = false;
-  nsIntRect dirtyRect;
-
-  while (currentFrameEndTime <= aTime) {
-    TimeStamp oldFrameEndTime = currentFrameEndTime;
-    bool didAdvance = AdvanceFrame(aTime, &dirtyRect);
-    frameAdvanced = frameAdvanced || didAdvance;
-    currentFrameEndTime = GetCurrentImgFrameEndTime();
-
-    
-    
-    
-    if (!frameAdvanced && (currentFrameEndTime == oldFrameEndTime)) {
-      break;
-    }
-  }
-
-  if (frameAdvanced) {
-    nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(mObserver));
-
-    if (!observer) {
-      NS_ERROR("Refreshing image after its imgRequest is gone");
-      StopAnimation();
-      return;
-    }
-
-    
-#ifdef DEBUG
-  mFramesNotified++;
-#endif
-
-    observer->FrameChanged(this, &dirtyRect);
-  }
 }
 
 
@@ -646,27 +493,6 @@ RasterImage::GetCurrentImgFrameIndex() const
     return mAnim->currentAnimationFrameIndex;
 
   return 0;
-}
-
-TimeStamp
-RasterImage::GetCurrentImgFrameEndTime() const
-{
-  imgFrame* currentFrame = mFrames[mAnim->currentAnimationFrameIndex];
-  TimeStamp currentFrameTime = mAnim->currentAnimationFrameTime;
-  PRInt64 timeout = currentFrame->GetTimeout();
-
-  if (timeout < 0) {
-    
-    
-    
-    
-    return TimeStamp() + TimeDuration::FromMilliseconds(UINT64_MAX_VAL);
-  }
-
-  TimeDuration durationOfTimeout = TimeDuration::FromMilliseconds(timeout);
-  TimeStamp currentFrameEndTime = currentFrameTime + durationOfTimeout;
-
-  return currentFrameEndTime;
 }
 
 imgFrame*
@@ -1314,18 +1140,24 @@ RasterImage::StartAnimation()
 
   EnsureAnimExists();
 
-  imgFrame* currentFrame = GetCurrentImgFrame();
-
+  NS_ABORT_IF_FALSE(mAnim && !mAnim->timer, "Anim must exist and not have a timer yet");
+  
+  
+  
+  PRInt32 timeout = 100;
+  imgFrame *currentFrame = GetCurrentImgFrame();
   if (currentFrame) {
-    if (currentFrame->GetTimeout() < 0) { 
+    timeout = currentFrame->GetTimeout();
+    if (timeout < 0) { 
       mAnimationFinished = PR_TRUE;
       return NS_ERROR_ABORT;
     }
-
-    
-    
-    mAnim->currentAnimationFrameTime = TimeStamp::Now();
   }
+  
+  mAnim->timer = do_CreateInstance("@mozilla.org/timer;1");
+  NS_ENSURE_TRUE(mAnim->timer, NS_ERROR_OUT_OF_MEMORY);
+  mAnim->timer->InitWithCallback(static_cast<nsITimerCallback*>(this),
+                                 timeout, nsITimer::TYPE_REPEATING_SLACK);
   
   return NS_OK;
 }
@@ -1339,6 +1171,11 @@ RasterImage::StopAnimation()
 
   if (mError)
     return NS_ERROR_FAILURE;
+
+  if (mAnim->timer) {
+    mAnim->timer->Cancel();
+    mAnim->timer = nsnull;
+  }
 
   return NS_OK;
 }
@@ -1597,10 +1434,130 @@ RasterImage::SetSourceSizeHint(PRUint32 sizeHint)
 
 
 
+NS_IMETHODIMP
+RasterImage::Notify(nsITimer *timer)
+{
+#ifdef DEBUG
+  mFramesNotified++;
+#endif
+
+  
+  
+  NS_ABORT_IF_FALSE(mAnim, "Need anim for Notify()");
+  NS_ABORT_IF_FALSE(timer, "Need timer for Notify()");
+  NS_ABORT_IF_FALSE(mAnim->timer == timer,
+                    "RasterImage::Notify() called with incorrect timer");
+
+  if (!mAnimating || !ShouldAnimate())
+    return NS_OK;
+
+  nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(mObserver));
+  if (!observer) {
+    
+    NS_ABORT_IF_FALSE(mAnimationConsumers == 0,
+                      "If no observer, should have no consumers");
+    if (mAnimating)
+      StopAnimation();
+    return NS_OK;
+  }
+
+  if (mFrames.Length() == 0)
+    return NS_OK;
+  
+  imgFrame *nextFrame = nsnull;
+  PRInt32 previousFrameIndex = mAnim->currentAnimationFrameIndex;
+  PRUint32 nextFrameIndex = mAnim->currentAnimationFrameIndex + 1;
+  PRInt32 timeout = 0;
+
+  
+  
+  
+  NS_ABORT_IF_FALSE(mDecoder || nextFrameIndex <= mFrames.Length(),
+                    "How did we get 2 indicies too far by incrementing?");
+
+  
+  
+  bool haveFullNextFrame = !mDecoder || nextFrameIndex < mDecoder->GetCompleteFrameCount();
+
+  
+  
+  if (haveFullNextFrame) {
+    if (mFrames.Length() == nextFrameIndex) {
+      
+
+      
+      if (mAnimationMode == kLoopOnceAnimMode || mLoopCount == 0) {
+        mAnimationFinished = PR_TRUE;
+        EvaluateAnimation();
+        return NS_OK;
+      } else {
+        
+        
+        if (mAnim->compositingFrame && mAnim->lastCompositedFrameIndex == -1)
+          mAnim->compositingFrame = nsnull;
+      }
+
+      nextFrameIndex = 0;
+      if (mLoopCount > 0)
+        mLoopCount--;
+    }
+
+    if (!(nextFrame = mFrames[nextFrameIndex])) {
+      
+      mAnim->currentAnimationFrameIndex = nextFrameIndex;
+      mAnim->timer->SetDelay(100);
+      return NS_OK;
+    }
+    timeout = nextFrame->GetTimeout();
+
+  } else {
+    
+    
+    mAnim->timer->SetDelay(100);
+    return NS_OK;
+  }
+
+  if (timeout > 0)
+    mAnim->timer->SetDelay(timeout);
+  else {
+    mAnimationFinished = PR_TRUE;
+    EvaluateAnimation();
+  }
+
+  nsIntRect dirtyRect;
+
+  if (nextFrameIndex == 0) {
+    dirtyRect = mAnim->firstFrameRefreshArea;
+  } else {
+    imgFrame *prevFrame = mFrames[previousFrameIndex];
+    if (!prevFrame)
+      return NS_OK;
+
+    
+    if (NS_FAILED(DoComposite(&dirtyRect, prevFrame,
+                              nextFrame, nextFrameIndex))) {
+      
+      NS_WARNING("RasterImage::Notify(): Composing Frame Failed\n");
+      nextFrame->SetCompositingFailed(PR_TRUE);
+      mAnim->currentAnimationFrameIndex = nextFrameIndex;
+      return NS_OK;
+    } else {
+      nextFrame->SetCompositingFailed(PR_FALSE);
+    }
+  }
+  
+  mAnim->currentAnimationFrameIndex = nextFrameIndex;
+  
+  observer->FrameChanged(this, &dirtyRect);
+  
+  return NS_OK;
+}
+
+
+
 
 nsresult
-RasterImage::DoComposite(imgFrame** aFrameToUse,
-                         nsIntRect* aDirtyRect,
+RasterImage::DoComposite(nsIntRect* aDirtyRect,
                          imgFrame* aPrevFrame,
                          imgFrame* aNextFrame,
                          PRInt32 aNextFrameIndex)
@@ -1608,7 +1565,6 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
   NS_ENSURE_ARG_POINTER(aDirtyRect);
   NS_ENSURE_ARG_POINTER(aPrevFrame);
   NS_ENSURE_ARG_POINTER(aNextFrame);
-  NS_ENSURE_ARG_POINTER(aFrameToUse);
 
   PRInt32 prevFrameDisposalMethod = aPrevFrame->GetFrameDisposalMethod();
   if (prevFrameDisposalMethod == kDisposeRestorePrevious &&
@@ -1637,7 +1593,6 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
     
     if (prevFrameDisposalMethod == kDisposeClearAll) {
       aDirtyRect->SetRect(0, 0, mSize.width, mSize.height);
-      *aFrameToUse = aNextFrame;
       return NS_OK;
     }
   
@@ -1647,7 +1602,6 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
         (nextFrameDisposalMethod != kDisposeRestorePrevious) &&
         !aNextFrame->GetHasAlpha()) {
       aDirtyRect->SetRect(0, 0, mSize.width, mSize.height);
-      *aFrameToUse = aNextFrame;
       return NS_OK;
     }
   }
@@ -1688,7 +1642,6 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
   
   
   if (mAnim->lastCompositedFrameIndex == aNextFrameIndex) {
-    *aFrameToUse = mAnim->compositingFrame;
     return NS_OK;
   }
 
@@ -1857,13 +1810,11 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
     if (CopyFrameImage(mAnim->compositingFrame, aNextFrame)) {
       aPrevFrame->SetFrameDisposalMethod(kDisposeClearAll);
       mAnim->lastCompositedFrameIndex = -1;
-      *aFrameToUse = aNextFrame;
       return NS_OK;
     }
   }
 
   mAnim->lastCompositedFrameIndex = aNextFrameIndex;
-  *aFrameToUse = mAnim->compositingFrame;
 
   return NS_OK;
 }

@@ -524,8 +524,9 @@ struct Lifetime
 };
 
 
-struct LoopAnalysis
+class LoopAnalysis
 {
+  public:
     
     LoopAnalysis *parent;
 
@@ -847,10 +848,12 @@ SSAValue::phiTypes() const
     return &u.phi.node->types;
 }
 
-struct SSAUseChain
+class SSAUseChain
 {
+  public:
     bool popped : 1;
     uint32 offset : 31;
+    
     union {
         uint32 which;
         SSAPhiNode *phi;
@@ -860,8 +863,9 @@ struct SSAUseChain
     SSAUseChain() { PodZero(this); }
 };
 
-struct SlotValue
+class SlotValue
 {
+  public:
     uint32 slot;
     SSAValue value;
     SlotValue(uint32 slot, const SSAValue &value) : slot(slot), value(value) {}

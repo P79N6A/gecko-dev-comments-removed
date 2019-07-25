@@ -43,6 +43,7 @@
 #include <gfxPoint3D.h>
 #include <gfxPointH3D.h>
 #include <gfxMatrix.h>
+#include <gfxQuad.h>
 
 
 
@@ -119,6 +120,12 @@ public:
 
 
   bool CanDraw2D(gfxMatrix* aMatrix = nsnull) const;
+
+  
+
+
+
+  gfx3DMatrix& ProjectTo2D();
 
   
 
@@ -246,6 +253,9 @@ public:
 
 
   gfxRect TransformBounds(const gfxRect& rect) const;
+
+
+  gfxQuad TransformRect(const gfxRect& aRect) const;
 
   
 

@@ -59,14 +59,12 @@ public:
   }
 
   nsresult SetBaseValueString(const nsAString& aValue,
-                              nsSVGElement *aSVGElement,
-                              bool aDoSetAttr);
+                              nsSVGElement *aSVGElement);
   void GetBaseValueString(nsAString& aValue,
                           nsSVGElement *aSVGElement);
 
   nsresult SetBaseValue(PRUint16 aValue,
-                        nsSVGElement *aSVGElement,
-                        bool aDoSetAttr);
+                        nsSVGElement *aSVGElement);
   PRUint16 GetBaseValue() const
     { return mBaseVal; }
 
@@ -107,7 +105,7 @@ public:
     NS_IMETHOD GetBaseVal(PRUint16* aResult)
       { *aResult = mVal->GetBaseValue(); return NS_OK; }
     NS_IMETHOD SetBaseVal(PRUint16 aValue)
-      { return mVal->SetBaseValue(aValue, mSVGElement, PR_TRUE); }
+      { return mVal->SetBaseValue(aValue, mSVGElement); }
 
     
     

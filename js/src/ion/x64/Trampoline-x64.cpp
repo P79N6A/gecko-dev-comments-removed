@@ -261,7 +261,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 
     
     
-    masm.movq(Operand(rax, offsetof(JSFunction, u.i.script)), rax);
+    masm.movq(Operand(rax, offsetof(JSFunction, u.i.script_)), rax);
     masm.movq(Operand(rax, offsetof(JSScript, ion)), rax);
     masm.movq(Operand(rax, offsetof(IonScript, method_)), rax);
     masm.movq(Operand(rax, IonCode::OffsetOfCode()), rax);

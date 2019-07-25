@@ -179,6 +179,8 @@ CanvasLayerD3D10::UpdateSurface()
       destination = (PRUint8*)map.pData;
     }
 
+    mGLContext->MakeCurrent();
+
     
     
     mGLContext->fFlush();

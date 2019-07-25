@@ -178,6 +178,17 @@ Enumerate(JSContext *cx, JSObject *obj, JSObject *pobj, jsid id,
 {
     JS_ASSERT_IF(flags & JSITER_OWNONLY, obj == pobj);
 
+    
+
+
+
+
+
+
+
+    if (JS_UNLIKELY(!pobj->getProto() && JSID_IS_ATOM(id, cx->runtime->atomState.protoAtom)))
+        return true;
+
     if (!(flags & JSITER_OWNONLY) || pobj->isProxy() || pobj->getOps()->enumerate) {
         
         IdSet::AddPtr p = ht.lookupForAdd(id);
@@ -927,18 +938,31 @@ js_SuppressDeletedElement(JSContext *cx, JSObject *obj, uint32 index)
 }
 
 class IndexRangePredicate {
-    jsint begin, end;
-public:
-    IndexRangePredicate(jsint begin, jsint end) : begin(begin), end(end) {}
+    uint32 begin, end;
+
+  public:
+    IndexRangePredicate(uint32 begin, uint32 end) : begin(begin), end(end) {}
 
     bool operator()(jsid id) {
-        return JSID_IS_INT(id) && begin <= JSID_TO_INT(id) && JSID_TO_INT(id) < end;
+        if (JSID_IS_INT(id)) {
+            jsint i = JSID_TO_INT(id);
+            return i > 0 && begin <= uint32(i) && uint32(i) < end;
+        }
+
+        if (JS_LIKELY(JSID_IS_ATOM(id))) {
+            JSAtom *atom = JSID_TO_ATOM(id);
+            uint32 index;
+            return atom->isIndex(&index) && begin <= index && index < end;
+        }
+
+        return false;
     }
+
     bool matchesAtMostOne() { return false; }
 };
 
 bool
-js_SuppressDeletedIndexProperties(JSContext *cx, JSObject *obj, jsint begin, jsint end)
+js_SuppressDeletedElements(JSContext *cx, JSObject *obj, uint32 begin, uint32 end)
 {
     return SuppressDeletedPropertyHelper(cx, obj, IndexRangePredicate(begin, end));
 }

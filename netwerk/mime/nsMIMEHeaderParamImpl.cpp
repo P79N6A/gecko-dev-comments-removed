@@ -75,13 +75,36 @@ static nsresult DecodeRFC2047Str(const char *, const char *, bool, nsACString&);
 
 NS_IMPL_ISUPPORTS1(nsMIMEHeaderParamImpl, nsIMIMEHeaderParam)
 
-
 NS_IMETHODIMP 
 nsMIMEHeaderParamImpl::GetParameter(const nsACString& aHeaderVal, 
                                     const char *aParamName,
                                     const nsACString& aFallbackCharset, 
                                     bool aTryLocaleCharset, 
                                     char **aLang, nsAString& aResult)
+{
+  return DoGetParameter(aHeaderVal, aParamName, RFC_2231_DECODING,
+                        aFallbackCharset, aTryLocaleCharset, aLang, aResult);
+}
+
+NS_IMETHODIMP 
+nsMIMEHeaderParamImpl::GetParameter5987(const nsACString& aHeaderVal, 
+                                        const char *aParamName,
+                                        const nsACString& aFallbackCharset, 
+                                        bool aTryLocaleCharset, 
+                                        char **aLang, nsAString& aResult)
+{
+  return DoGetParameter(aHeaderVal, aParamName, RFC_5987_DECODING,
+                        aFallbackCharset, aTryLocaleCharset, aLang, aResult);
+}
+
+
+nsresult 
+nsMIMEHeaderParamImpl::DoGetParameter(const nsACString& aHeaderVal, 
+                                      const char *aParamName,
+                                      ParamDecoding aDecoding,
+                                      const nsACString& aFallbackCharset, 
+                                      bool aTryLocaleCharset, 
+                                      char **aLang, nsAString& aResult)
 {
     aResult.Truncate();
     nsresult rv;
@@ -90,8 +113,9 @@ nsMIMEHeaderParamImpl::GetParameter(const nsACString& aHeaderVal,
     
     nsXPIDLCString med;
     nsXPIDLCString charset;
-    rv = GetParameterInternal(PromiseFlatCString(aHeaderVal).get(), aParamName, 
-                              getter_Copies(charset), aLang, getter_Copies(med));
+    rv = DoParameterInternal(PromiseFlatCString(aHeaderVal).get(), aParamName, 
+                             aDecoding, getter_Copies(charset), aLang, 
+                             getter_Copies(med));
     if (NS_FAILED(rv))
         return rv; 
 
@@ -159,6 +183,20 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
                                             char **aLang,
                                             char **aResult)
 {
+  return DoParameterInternal(aHeaderValue, aParamName, RFC_2231_DECODING,
+                             aCharset, aLang, aResult);
+}
+
+
+nsresult 
+nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue, 
+                                           const char *aParamName,
+                                           ParamDecoding aDecoding,
+                                           char **aCharset,
+                                           char **aLang,
+                                           char **aResult)
+{
+
   if (!aHeaderValue ||  !*aHeaderValue || !aResult)
     return NS_ERROR_INVALID_ARG;
 
@@ -215,8 +253,12 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
   
   
   
-
+  
+  
   PRInt32 paramLen = strlen(aParamName);
+
+  bool haveCaseAValue = false;
+  PRInt32 nextContinuation = 0; 
 
   while (*str) {
     const char *tokenStart = str;
@@ -276,6 +318,12 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
         seenEquals &&
         !nsCRT::strncasecmp(tokenStart, aParamName, paramLen))
     {
+      if (*aResult)
+      {
+        
+        
+        goto increment_str;
+      }
       
       
       nsCAutoString tempStr(valueStart, valueEnd - valueStart);
@@ -288,6 +336,7 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
             
       *aResult = res;
       
+      haveCaseAValue = true;
       
     }
     
@@ -298,12 +347,24 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
     {
       const char *cp = tokenStart + paramLen + 1; 
       bool needUnescape = *(tokenEnd - 1) == '*';
+
+      bool caseB = (tokenEnd - tokenStart) == paramLen + 1;
+      bool caseCorDStart = (*cp == '0') && needUnescape;
+      bool acceptContinuations = (aDecoding != RFC_5987_DECODING);
+ 
       
       
-      
-      if (!needUnquote &&
-          ((*cp == '0' && needUnescape) || (tokenEnd - tokenStart == paramLen + 1)))
+      if (!needUnquote && (caseB || (caseCorDStart && acceptContinuations)))
       {
+        if (caseCorDStart) {
+          if (nextContinuation++ != 0)
+          {
+            
+            
+            nextContinuation = -1;
+            goto increment_str;
+          }
+        }
         
         const char *sQuote1 = PL_strchr(valueStart, 0x27);
         const char *sQuote2 = (char *) (sQuote1 ? PL_strchr(sQuote1 + 1, 0x27) : nsnull);
@@ -343,6 +404,7 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
             
             
             nsMemory::Free(*aResult);
+            haveCaseAValue = false;
           }
           *aResult = (char *) nsMemory::Alloc(valueEnd - (sQuote2 + 1) + 1);
           if (*aResult)
@@ -352,8 +414,7 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
             if (needUnescape)
             {
               nsUnescape(*aResult);
-              if (tokenEnd - tokenStart == paramLen + 1)
-                
+              if (caseB)
                 return NS_OK; 
             }
           }
@@ -361,8 +422,27 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
       }  
       
       
-      else if (nsCRT::IsAsciiDigit(PRUnichar(*cp)))
+      else if (acceptContinuations && nsCRT::IsAsciiDigit(PRUnichar(*cp)))
       {
+        PRInt32 nextSegment = atoi(cp);
+        
+        bool broken = nextSegment > 0 && *cp == '0';
+          
+        if (broken || nextSegment != nextContinuation++)
+        {
+          
+          
+          
+          nextContinuation = -1;
+          goto increment_str;
+        }
+        if (haveCaseAValue && *aResult) 
+        {
+          
+          nsMemory::Free(*aResult);
+          *aResult = 0;
+          haveCaseAValue = false;
+        }
         PRInt32 len = 0;
         if (*aResult) 
         {
@@ -374,11 +454,11 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
           }
           *aResult = ns;
         }
-        else if (*cp == '0') 
+        else 
         {
+          NS_ASSERTION(*cp == '0', "Not first value in continuation"); 
           *aResult = (char *) nsMemory::Alloc(valueEnd - valueStart + 1);
         }
-        
         if (*aResult)
         {
           
@@ -394,7 +474,7 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
 
     
     
-      
+increment_str:      
     while (nsCRT::IsAsciiSpace(*str)) ++str;
     if (*str == ';') ++str;
     while (nsCRT::IsAsciiSpace(*str)) ++str;
@@ -425,8 +505,8 @@ nsMIMEHeaderParamImpl::DecodeRFC2047Header(const char* aHeaderVal,
   
   
   if (PL_strstr(aHeaderVal, "=?") || 
-      aDefaultCharset && (!IsUTF8(nsDependentCString(aHeaderVal)) || 
-      Is7bitNonAsciiString(aHeaderVal, PL_strlen(aHeaderVal)))) {
+      (aDefaultCharset && (!IsUTF8(nsDependentCString(aHeaderVal)) || 
+      Is7bitNonAsciiString(aHeaderVal, PL_strlen(aHeaderVal))))) {
     DecodeRFC2047Str(aHeaderVal, aDefaultCharset, aOverrideCharset, aResult);
   } else if (aEatContinuations && 
              (PL_strchr(aHeaderVal, '\n') || PL_strchr(aHeaderVal, '\r'))) {
@@ -501,9 +581,9 @@ nsMIMEHeaderParamImpl::DecodeParameter(const nsACString& aParamValue,
 }
 
 #define ISHEXCHAR(c) \
-        (0x30 <= PRUint8(c) && PRUint8(c) <= 0x39  ||  \
-         0x41 <= PRUint8(c) && PRUint8(c) <= 0x46  ||  \
-         0x61 <= PRUint8(c) && PRUint8(c) <= 0x66)
+        ((0x30 <= PRUint8(c) && PRUint8(c) <= 0x39)  ||  \
+         (0x41 <= PRUint8(c) && PRUint8(c) <= 0x46)  ||  \
+         (0x61 <= PRUint8(c) && PRUint8(c) <= 0x66))
 
 
 

@@ -42,13 +42,42 @@
 #include "nsCycleCollectionParticipant.h"
 
 struct JSObject;
+struct JSContext;
 class nsContentUtils;
+class XPCWrappedNativeScope;
 
 typedef PRUptrdiff PtrBits;
 
 #define NS_WRAPPERCACHE_IID \
-{ 0x3a51ca81, 0xddab, 0x422c, \
-  { 0x95, 0x3a, 0x13, 0x06, 0x28, 0x0e, 0xee, 0x14 } }
+{ 0x6f3179a1, 0x36f7, 0x4a5c, \
+  { 0x8c, 0xf1, 0xad, 0xc8, 0x7c, 0xde, 0x3e, 0x87 } }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -71,7 +100,16 @@ public:
   {
     NS_ASSERTION(!PreservingWrapper(),
                  "Destroying cache with a preserved wrapper!");
+    RemoveExpandoObject();
   }
+
+  
+
+
+
+
+
+  JSObject* GetWrapper() const;
 
   
 
@@ -81,7 +119,9 @@ public:
 
 
 
-  inline JSObject* GetWrapper() const;
+
+
+  JSObject* GetWrapperPreserveColor() const;
 
   
 
@@ -91,23 +131,25 @@ public:
 
 
 
-  JSObject* GetWrapperPreserveColor() const
-  {
-    return reinterpret_cast<JSObject*>(mWrapperPtrBits & ~kWrapperBitMask);
-  }
 
-  void SetWrapper(JSObject* aWrapper)
-  {
-    NS_ASSERTION(!PreservingWrapper(), "Clearing a preserved wrapper!");
-    mWrapperPtrBits = reinterpret_cast<PtrBits>(aWrapper) |
-                      (mWrapperPtrBits & WRAPPER_IS_PROXY);
-  }
 
-  void ClearWrapper()
-  {
-    NS_ASSERTION(!PreservingWrapper(), "Clearing a preserved wrapper!");
-    mWrapperPtrBits = 0;
-  }
+
+
+  JSObject* GetExpandoObjectPreserveColor() const;
+
+  void SetWrapper(JSObject* aWrapper);
+
+  
+
+
+
+  void ClearWrapper();
+
+  
+
+
+
+  void ClearWrapperIfProxy();
 
   bool PreservingWrapper()
   {
@@ -119,9 +161,25 @@ public:
     mWrapperPtrBits |= WRAPPER_IS_PROXY;
   }
 
-  bool IsProxy()
+  bool IsProxy() const
   {
     return (mWrapperPtrBits & WRAPPER_IS_PROXY) != 0;
+  }
+
+
+  
+
+
+
+
+
+
+
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
+                               bool *triedToWrap)
+  {
+    *triedToWrap = false;
+    return nsnull;
   }
 
 private:
@@ -135,9 +193,40 @@ private:
       mWrapperPtrBits &= ~WRAPPER_BIT_PRESERVED;
     }
   }
+  JSObject *GetJSObjectFromBits() const
+  {
+    return reinterpret_cast<JSObject*>(mWrapperPtrBits & ~kWrapperBitMask);
+  }
+  void SetWrapperBits(void *aWrapper)
+  {
+    mWrapperPtrBits = reinterpret_cast<PtrBits>(aWrapper) |
+                      (mWrapperPtrBits & WRAPPER_IS_PROXY);
+  }
+  void RemoveExpandoObject();
+
+  static JSObject *GetExpandoFromSlot(JSObject *obj);
+
+  
+
+
+
+
+
+
+
+
+
 
   enum { WRAPPER_BIT_PRESERVED = 1 << 0 };
+
+  
+
+
+
+
+
   enum { WRAPPER_IS_PROXY = 1 << 1 };
+
   enum { kWrapperBitMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_PROXY) };
 
   PtrBits mWrapperPtrBits;

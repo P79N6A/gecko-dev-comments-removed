@@ -363,6 +363,11 @@ pref("browser.link.open_newwindow", 3);
 
 
 
+pref("browser.link.open_newwindow.override.external", -1);
+
+
+
+
 pref("browser.link.open_newwindow.restriction", 2);
 
 

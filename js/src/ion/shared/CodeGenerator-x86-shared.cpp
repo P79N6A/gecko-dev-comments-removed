@@ -721,7 +721,7 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
     masm.mov(objreg, tokreg);
 
     
-    masm.movePtr(Operand(objreg, offsetof(JSFunction, u.i.script)), objreg);
+    masm.movePtr(Operand(objreg, offsetof(JSFunction, u.i.script_)), objreg);
     masm.movePtr(Operand(objreg, offsetof(JSScript, ion)), objreg);
 
     

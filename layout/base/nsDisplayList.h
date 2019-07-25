@@ -1012,8 +1012,6 @@ public:
 
   void SortByContentOrder(nsDisplayListBuilder* aBuilder, nsIContent* aCommonAncestor);
 
-  void SortByZPosition(nsDisplayListBuilder* aBuilder, nsIContent* aCommonAncestor);
-
   
 
 
@@ -2135,6 +2133,8 @@ public:
   };
 
   const gfx3DMatrix& GetTransform(float aFactor);
+
+  float GetHitDepthAtPoint(const nsPoint& aPoint);
 
   
 

@@ -512,6 +512,10 @@ nsHTMLTextFieldAccessible::NativeState()
   }
 
   
+  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::list))
+    return state | states::SUPPORTS_AUTOCOMPLETION;
+
+  
   
   if (mParent && gIsFormFillEnabled) {
     

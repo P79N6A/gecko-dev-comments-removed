@@ -1587,6 +1587,8 @@ mjit::Compiler::generateMethod()
                 
                 opinfo->safePoint = true;
             }
+        } else if (opinfo->safePoint && !cx->typeInferenceEnabled()) {
+            frame.syncAndForgetEverything();
         }
         frame.assertValidRegisterState();
         a->jumpMap[uint32(PC - script->code)] = masm.label();

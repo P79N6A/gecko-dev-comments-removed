@@ -138,14 +138,24 @@ nsSVGUseFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                 nsIAtom*        aAttribute,
                                 PRInt32         aModType)
 {
-  if (aNameSpaceID == kNameSpaceID_None &&
-      (aAttribute == nsGkAtoms::x ||
-       aAttribute == nsGkAtoms::y)) {
+  if (aNameSpaceID == kNameSpaceID_None) {
+    if (aAttribute == nsGkAtoms::x ||
+        aAttribute == nsGkAtoms::y) {
+      
+      mCanvasTM = nsnull;
     
-    mCanvasTM = nsnull;
+      nsSVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
+    } else if (aAttribute == nsGkAtoms::width ||
+               aAttribute == nsGkAtoms::height) {
+      static_cast<nsSVGUseElement*>(mContent)->SyncWidthHeight(aAttribute);
+    }
+  } else if (aNameSpaceID == kNameSpaceID_XLink &&
+             aAttribute == nsGkAtoms::href) {
     
-    nsSVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
-    return NS_OK;
+    nsSVGUseElement *use = static_cast<nsSVGUseElement*>(mContent);
+    use->mOriginal = nsnull;
+    use->UnlinkSource();
+    use->TriggerReclone();
   }
 
   return nsSVGUseFrameBase::AttributeChanged(aNameSpaceID,

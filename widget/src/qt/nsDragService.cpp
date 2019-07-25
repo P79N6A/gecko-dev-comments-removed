@@ -48,12 +48,8 @@ NS_IMPL_ADDREF_INHERITED(nsDragService, nsBaseDragService)
 NS_IMPL_RELEASE_INHERITED(nsDragService, nsBaseDragService)
 NS_IMPL_QUERY_INTERFACE2(nsDragService, nsIDragService, nsIDragSession )
 
-nsDragService::nsDragService() : mDrag(NULL)
+nsDragService::nsDragService() : mDrag(NULL), mHiddenWidget(NULL)
 {
-    
-    
-    
-    mHiddenWidget = new QWidget();
 }
 
 nsDragService::~nsDragService()
@@ -162,6 +158,9 @@ nsDragService::SetupDragSession(
         }
     }
 
+    if (!mHiddenWidget) {
+      mHiddenWidget = new QWidget();
+    }
     mDrag = new QDrag( mHiddenWidget ); 
     mDrag->setMimeData(mimeData);
 

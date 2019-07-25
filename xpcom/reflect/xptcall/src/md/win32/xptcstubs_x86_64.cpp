@@ -176,7 +176,9 @@ PrepareAndDispatch(nsXPTCStubBase* self, PRUint32 methodIndex, PRUint64* args,
 
         case nsXPTType::T_BOOL:
            if (iCount < PARAM_GPR_COUNT)
-              dp->val.b  = (bool)gprData[iCount++];
+              
+              
+              dp->val.b  = (bool)(PRUint8)gprData[iCount++];
            else
               dp->val.b  = *((bool*)ap++);
            break;

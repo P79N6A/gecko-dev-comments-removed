@@ -379,8 +379,8 @@ nsMemoryCacheDevice::EvictEntry(nsCacheEntry * entry, bool deleteEntry)
 void
 nsMemoryCacheDevice::EvictEntriesIfNecessary(void)
 {
-    nsCacheEntry * entry, * next;
-
+    nsCacheEntry * entry;
+    nsCacheEntry * maxEntry;
     CACHE_LOG_DEBUG(("EvictEntriesIfNecessary.  mTotalSize: %d, mHardLimit: %d,"
                      "mInactiveSize: %d, mSoftLimit: %d\n",
                      mTotalSize, mHardLimit, mInactiveSize, mSoftLimit));
@@ -388,22 +388,40 @@ nsMemoryCacheDevice::EvictEntriesIfNecessary(void)
     if ((mTotalSize < mHardLimit) && (mInactiveSize < mSoftLimit))
         return;
 
-    for (int i = kQueueCount - 1; i >= 0; --i) {
-        entry = (nsCacheEntry *)PR_LIST_HEAD(&mEvictionList[i]);
-        while (entry != &mEvictionList[i]) {
-            if (entry->IsInUse()) {
+    PRUint32 now = SecondsFromPRTime(PR_Now());
+    PRUint64 entryCost = 0;
+    PRUint64 maxCost = 0;
+    do {
+        
+        
+        
+        maxEntry = 0;
+        for (int i = kQueueCount - 1; i >= 0; --i) {
+            entry = (nsCacheEntry *)PR_LIST_HEAD(&mEvictionList[i]);
+
+            
+            while ((entry != &mEvictionList[i]) &&
+                   (entry->IsInUse())) {
                 entry = (nsCacheEntry *)PR_NEXT_LINK(entry);
-                continue;
             }
 
-            next = (nsCacheEntry *)PR_NEXT_LINK(entry);
-            EvictEntry(entry, DELETE_ENTRY);
-            entry = next;
-
-            if ((mTotalSize < mHardLimit) && (mInactiveSize < mSoftLimit))
-                return;
+            if (entry != &mEvictionList[i]) {
+                entryCost = (PRUint64)
+                    (now - entry->LastFetched()) * entry->Size() / 
+                    PR_MAX(1, entry->FetchCount());
+                if (!maxEntry || (entryCost > maxCost)) {
+                    maxEntry = entry;
+                    maxCost = entryCost;
+                }
+            }
+        }
+        if (maxEntry) {
+            EvictEntry(maxEntry, DELETE_ENTRY);
+        } else {
+            break;
         }
     }
+    while ((mTotalSize >= mHardLimit) || (mInactiveSize >= mSoftLimit));
 }
 
 
