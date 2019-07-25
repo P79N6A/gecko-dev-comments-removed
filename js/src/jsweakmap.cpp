@@ -127,7 +127,7 @@ WeakMapBase::restoreWeakMapList(JSRuntime *rt, WeakMapVector &vector)
 
 } 
 
-typedef WeakMap<HeapPtr<JSObject>, HeapValue> ObjectValueMap;
+typedef WeakMap<HeapPtrObject, HeapValue> ObjectValueMap;
 
 static ObjectValueMap *
 GetObjectMap(JSObject *obj)
