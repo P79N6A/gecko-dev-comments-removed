@@ -152,11 +152,11 @@ private:
 
   
   
-  nsresult DecodeVorbis(nsTArray<SoundData*>& aChunks,
+  nsresult DecodeVorbis(nsTArray<nsAutoPtr<SoundData> >& aChunks,
                         ogg_packet* aPacket);
 
   
-  nsresult DecodeTheora(nsTArray<VideoData*>& aFrames,
+  nsresult DecodeTheora(nsTArray<nsAutoPtr<VideoData> >& aFrames,
                         ogg_packet* aPacket);
 
   
