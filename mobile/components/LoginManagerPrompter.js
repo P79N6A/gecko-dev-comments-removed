@@ -62,7 +62,7 @@ LoginManagerPrompter.prototype = {
     QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerPrompter]),
 
     _factory       : null,
-    _browser       : null,
+    _window       : null,
     _debug         : false, 
 
     __pwmgr : null, 
@@ -147,8 +147,8 @@ LoginManagerPrompter.prototype = {
 
 
 
-    init : function (aBrowser, aFactory) {
-        this._browser = aBrowser;
+    init : function (aWindow, aFactory) {
+        this._window = aWindow;
         this._factory = aFactory || null;
 
         var prefBranch = Services.prefs.getBranch("signon.");
@@ -162,10 +162,10 @@ LoginManagerPrompter.prototype = {
 
 
     promptToSavePassword : function (aLogin) {
-        var notifyBox = this._getNotifyBox();
+        var nativeWindow = this._getNativeWindow();
 
-        if (notifyBox)
-            this._showSaveLoginNotification(notifyBox, aLogin);
+        if (nativeWindow)
+            this._showSaveLoginNotification(nativeWindow, aLogin);
         else
             this._showSaveLoginDialog(aLogin);
     },
@@ -177,30 +177,27 @@ LoginManagerPrompter.prototype = {
 
 
 
-    _showLoginNotification : function (aNotifyBox, aName, aText, aButtons) {
-        var oldBar = aNotifyBox.getNotificationWithValue(aName);
-        const priority = aNotifyBox.PRIORITY_INFO_MEDIUM;
-
+    _showLoginNotification : function (aNativeWindow, aName, aText, aButtons) {
         this.log("Adding new " + aName + " notification bar");
-        var newBar = aNotifyBox.appendNotification(
-                                aText, aName,
-                                "chrome://mozapps/skin/passwordmgr/key.png",
-                                priority, aButtons);
+        let notifyWin = this._window.top;
+        let chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
+        let browser = chromeWin.BrowserApp.getBrowserForWindow(notifyWin);
+        let tabID = chromeWin.BrowserApp.getTabForBrowser(browser).id;
 
         
         
-        newBar.persistence++;
 
         
         
         
         
-        newBar.timeout = Date.now() + 20000; 
 
-        if (oldBar) {
-            this.log("(...and removing old " + aName + " notification bar)");
-            aNotifyBox.removeNotification(oldBar);
+        let options = {
+            persistence: 1,
+            timeout: Date.now() + 20000
         }
+
+        aNativeWindow.doorhanger.show(aText, aName, aButtons, tabID, options);
     },
 
 
@@ -212,7 +209,7 @@ LoginManagerPrompter.prototype = {
 
 
 
-    _showSaveLoginNotification : function (aNotifyBox, aLogin) {
+    _showSaveLoginNotification : function (aNativeWindow, aLogin) {
 
         
         
@@ -282,7 +279,7 @@ LoginManagerPrompter.prototype = {
             }
         ];
 
-        this._showLoginNotification(aNotifyBox, "password-save",
+        this._showLoginNotification(aNativeWindow, "password-save",
              notificationText, buttons);
     },
 
@@ -355,10 +352,10 @@ LoginManagerPrompter.prototype = {
 
 
     promptToChangePassword : function (aOldLogin, aNewLogin) {
-        var notifyBox = this._getNotifyBox();
+        var nativeWindow = this._getNativeWindow();
 
-        if (notifyBox)
-            this._showChangeLoginNotification(notifyBox, aOldLogin, aNewLogin.password);
+        if (nativeWindow)
+            this._showChangeLoginNotification(nativeWindow, aOldLogin, aNewLogin.password);
         else
             this._showChangeLoginDialog(aOldLogin, aNewLogin.password);
     },
@@ -369,7 +366,7 @@ LoginManagerPrompter.prototype = {
 
 
 
-    _showChangeLoginNotification : function (aNotifyBox, aOldLogin, aNewPassword) {
+    _showChangeLoginNotification : function (aNativeWindow, aOldLogin, aNewPassword) {
         var notificationText;
         if (aOldLogin.username)
             notificationText  = this._getLocalizedString(
@@ -415,7 +412,7 @@ LoginManagerPrompter.prototype = {
             }
         ];
 
-        this._showLoginNotification(aNotifyBox, "password-change",
+        this._showLoginNotification(aNativeWindow, "password-change",
              notificationText, buttons);
     },
 
@@ -519,22 +516,36 @@ LoginManagerPrompter.prototype = {
 
 
 
+    _getChromeWindow: function (aWindow) {
+        var chromeWin = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIWebNavigation)
+                               .QueryInterface(Ci.nsIDocShell)
+                               .chromeEventHandler.ownerDocument.defaultView;
+        return chromeWin;
+    },
 
-    _getNotifyBox : function () {
-        let notifyBox = null;
+    
+
+
+
+
+
+    _getNativeWindow : function () {
+        let nativeWindow = null;
         try {
-            let chromeWin = this._browser.ownerDocument.defaultView;
-            if (chromeWin.getNotificationBox) {
-                notifyBox = chromeWin.getNotificationBox(this._browser);
+            let notifyWin = this._window.top;
+            let chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
+            if (chromeWin.NativeWindow) {
+                nativeWindow = chromeWin.NativeWindow;
             } else {
-                this.log("getNotificationBox() not available on window");
+                this.log("NativeWindow not available on window");
             }
 
         } catch (e) {
             
-            this.log("No notification box available: " + e)
+            this.log("No NativeWindow available: " + e)
         }
-        return notifyBox;
+        return nativeWindow;
     },
 
     
