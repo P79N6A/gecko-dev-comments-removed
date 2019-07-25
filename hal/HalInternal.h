@@ -67,6 +67,16 @@ void EnableBatteryNotifications();
 
 void DisableBatteryNotifications();
 
+
+
+
+void EnableNetworkNotifications();
+
+
+
+
+void DisableNetworkNotifications();
+
 } 
 } 
 

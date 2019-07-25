@@ -46,6 +46,7 @@
 #include "nsTArray.h"
 #include "prlog.h"
 #include "mozilla/dom/battery/Types.h"
+#include "mozilla/dom/network/Types.h"
 
 
 
@@ -167,6 +168,29 @@ double GetScreenBrightness();
 
 
 void SetScreenBrightness(double brightness);
+
+
+
+
+
+void RegisterNetworkObserver(NetworkObserver* aNetworkObserver);
+
+
+
+
+
+void UnregisterNetworkObserver(NetworkObserver* aNetworkObserver);
+
+
+
+
+void GetCurrentNetworkInformation(hal::NetworkInformation* aNetworkInfo);
+
+
+
+
+
+void NotifyNetworkChange(const hal::NetworkInformation& aNetworkInfo);
 
 } 
 } 
