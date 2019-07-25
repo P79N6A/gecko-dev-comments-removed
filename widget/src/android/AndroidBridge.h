@@ -62,6 +62,10 @@ class nsWindow;
 
 namespace mozilla {
 
+namespace hal {
+class BatteryInformation;
+} 
+
 
 
 typedef struct AndroidSystemColors {
@@ -213,6 +217,8 @@ public:
 
     bool GetShowPasswordSetting();
 
+    void FireAndWaitForTracerEvent();
+
     struct AutoLocalJNIFrame {
         AutoLocalJNIFrame(int nEntries = 128) : mEntries(nEntries) {
             
@@ -290,6 +296,10 @@ public:
 
     void CloseCamera();
 
+    void EnableBatteryNotifications();
+    void DisableBatteryNotifications();
+    void GetCurrentBatteryInformation(hal::BatteryInformation* aBatteryInfo);
+
 protected:
     static AndroidBridge *sBridge;
 
@@ -354,6 +364,7 @@ protected:
     jmethodID jScanMedia;
     jmethodID jGetSystemColors;
     jmethodID jGetIconForExtension;
+    jmethodID jFireAndWaitForTracerEvent;
     jmethodID jCreateShortcut;
     jmethodID jGetShowPasswordSetting;
     jmethodID jPostToJavaThread;
@@ -362,6 +373,9 @@ protected:
     jmethodID jHandleGeckoMessage;
     jmethodID jCheckUriVisited;
     jmethodID jMarkUriVisited;
+    jmethodID jEnableBatteryNotifications;
+    jmethodID jDisableBatteryNotifications;
+    jmethodID jGetCurrentBatteryInformation;
 
     
     jclass jEGLSurfaceImplClass;
