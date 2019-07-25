@@ -117,6 +117,8 @@ for (testnum = 1; testnum <= 15; testnum++) {
     
     parser = parserForFile(newfilename);
     checkParserOutput(parser, testdata[testnum - 1].reference);
+    
+    newfile.remove(false);
 }
 
 
@@ -143,6 +145,8 @@ checkParserOutput(parser, {section: {key: "value"} });
 
 parser = parserForFile("data/nonexistent-file.ini");
 checkParserOutput(parser, {section: {key: "value"} });
+
+newfile.remove(false);
 
 
 
