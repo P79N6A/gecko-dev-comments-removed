@@ -857,7 +857,9 @@ let TabItems = {
       if (tab.ownerDocument.defaultView != gWindow || tab.pinned)
         return;
 
-      self.unlink(tab);
+      
+      if (!UI.isDOMWindowClosing)
+        self.unlink(tab);
     }
     for (let name in this._eventListeners) {
       AllTabs.register(name, this._eventListeners[name]);
