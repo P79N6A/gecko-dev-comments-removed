@@ -138,6 +138,7 @@ public:
 
 private:
     nsresult Restart();
+    nsresult RestartInProgress();
     char    *LocateHttpStart(char *buf, PRUint32 len,
                              bool aAllowPartialMatch);
     nsresult ParseLine(char *line);
@@ -228,6 +229,66 @@ private:
     
     
     
+
+    
+    PRInt64                         mToReadBeforeRestart;
+    bool                            mReportedStart;
+    bool                            mReportedResponseHeader;
+
+    
+    nsHttpResponseHead             *mForTakeResponseHead;
+    bool                            mTakenResponseHeader;
+
+    class RestartVerifier 
+    {
+
+        
+        
+        
+        
+        
+        
+        
+
+    public:
+        RestartVerifier()
+            : mContentLength(-1)
+            , mAlreadyProcessed(0)
+            , mActive(false)
+            , mSetup(false)
+        {}
+        ~RestartVerifier() {}
+        
+        void Set(PRInt64 contentLength, nsHttpResponseHead *head);
+        bool Verify(PRInt64 contentLength, nsHttpResponseHead *head);
+        bool Active() { return mActive; }
+        void SetActive(bool val) { mActive = val; }
+        bool IsSetup() { return mSetup; }
+        PRInt64 AlreadyProcessed() { return mAlreadyProcessed; }
+        void SetAlreadyProcessed(PRInt64 val) { mAlreadyProcessed = val; }
+
+    private:
+        
+        
+
+        PRInt64                         mContentLength;
+        nsCString                       mETag;
+        nsCString                       mLastModified;
+        nsCString                       mContentRange;
+        nsCString                       mContentEncoding;
+        nsCString                       mTransferEncoding;
+
+        
+        
+        
+        PRInt64                         mAlreadyProcessed;
+
+        
+        bool                            mActive;
+
+        
+        bool                            mSetup;
+    } mRestartInProgressVerifier;
 };
 
 #endif 
