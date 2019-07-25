@@ -189,7 +189,8 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         return true;
     }
 
-    public boolean beginDrawing(int width, int height, int tileWidth, int tileHeight, String metadata, boolean hasDirectTexture) {
+    public Rect beginDrawing(int width, int height, int tileWidth, int tileHeight,
+                             String metadata, boolean hasDirectTexture) {
         setHasDirectTexture(hasDirectTexture);
 
         
@@ -197,14 +198,16 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         if (mHasDirectTexture) {
             if (tileWidth != 0 || tileHeight != 0) {
                 Log.e(LOGTAG, "Aborting draw, incorrect tile size of " + tileWidth + "x" + tileHeight);
-                return false;
+                return null;
             }
         } else {
             if (tileWidth != TILE_SIZE.width || tileHeight != TILE_SIZE.height) {
                 Log.e(LOGTAG, "Aborting draw, incorrect tile size of " + tileWidth + "x" + tileHeight);
-                return false;
+                return null;
             }
         }
+
+        LayerController controller = getLayerController();
 
         try {
             JSONObject viewportObject = new JSONObject(metadata);
@@ -213,12 +216,49 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
             
             String backgroundColorString = viewportObject.optString("backgroundColor");
             if (backgroundColorString != null) {
-                LayerController controller = getLayerController();
                 controller.setCheckerboardColor(parseColorFromGecko(backgroundColorString));
             }
         } catch (JSONException e) {
             Log.e(LOGTAG, "Aborting draw, bad viewport description: " + metadata);
-            return false;
+            return null;
+        }
+
+        
+        
+        Rect bufferRect = new Rect(0, 0, width, height);
+
+        if (!mUpdateViewportOnEndDraw) {
+            
+            
+            
+            
+            ViewportMetrics currentMetrics = controller.getViewportMetrics();
+            PointF currentBestOrigin = RectUtils.getOrigin(currentMetrics.getClampedViewport());
+            PointF viewportOffset = currentMetrics.getOptimumViewportOffset(new IntSize(width, height));
+            currentBestOrigin.offset(-viewportOffset.x, -viewportOffset.y);
+
+            Rect currentRect = RectUtils.round(new RectF(currentBestOrigin.x, currentBestOrigin.y,
+                                                         currentBestOrigin.x + width, currentBestOrigin.y + height));
+
+            
+            PointF currentOrigin = mNewGeckoViewport.getDisplayportOrigin();
+            bufferRect = RectUtils.round(new RectF(currentOrigin.x, currentOrigin.y,
+                                                   currentOrigin.x + width, currentOrigin.y + height));
+
+
+            
+            if (!bufferRect.intersect(currentRect)) {
+                
+                
+                beginTransaction(mTileLayer);
+                try {
+                    updateViewport(true);
+                } finally {
+                    endTransaction(mTileLayer);
+                }
+                return null;
+            }
+            bufferRect.offset(Math.round(-currentOrigin.x), Math.round(-currentOrigin.y));
         }
 
         beginTransaction(mTileLayer);
@@ -228,25 +268,22 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
             mBufferSize = new IntSize(width, height);
 
             
-            if (!(mTileLayer instanceof MultiTileLayer)) {
-                return true;
-            }
+            if (mTileLayer instanceof MultiTileLayer) {
+                int bpp = CairoUtils.bitsPerPixelForCairoFormat(mFormat) / 8;
+                int size = mBufferSize.getArea() * bpp;
+                if (mBuffer == null || mBuffer.capacity() != size) {
+                    
+                    if (mBuffer != null) {
+                        GeckoAppShell.freeDirectBuffer(mBuffer);
+                        mBuffer = null;
+                    }
 
-            
-            int bpp = CairoUtils.bitsPerPixelForCairoFormat(mFormat) / 8;
-            int size = mBufferSize.getArea() * bpp;
-            if (mBuffer == null || mBuffer.capacity() != size) {
-                
-                if (mBuffer != null) {
-                    GeckoAppShell.freeDirectBuffer(mBuffer);
-                    mBuffer = null;
+                    mBuffer = GeckoAppShell.allocateDirectBuffer(size);
                 }
-
-                mBuffer = GeckoAppShell.allocateDirectBuffer(size);
             }
         }
 
-        return true;
+        return bufferRect;
     }
 
     private void updateViewport(final boolean onlyUpdatePageSize) {
