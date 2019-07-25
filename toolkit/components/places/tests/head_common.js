@@ -126,6 +126,7 @@ function uri(aSpec) NetUtil.newURI(aSpec);
 
 
 
+let gDBConn;
 function DBConn() {
   let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
                               .DBConnection;
@@ -133,9 +134,19 @@ function DBConn() {
     return db;
 
   
-  let file = Services.dirsvc.get('ProfD', Ci.nsIFile);
-  file.append("places.sqlite");
-  return Services.storage.openDatabase(file);
+  if (!gDBConn) {
+    let file = Services.dirsvc.get('ProfD', Ci.nsIFile);
+    file.append("places.sqlite");
+    gDBConn = Services.storage.openDatabase(file);
+
+    
+    Services.obs.addObserver(function (aSubject, aTopic, aData) {
+      Services.obs.removeObserver(arguments.callee, aTopic);
+      gDBConn.asyncClose();
+    }, "profile-before-change", false);
+  }
+
+  return gDBConn.connectionReady ? gDBConn : null;
 };
 
 
