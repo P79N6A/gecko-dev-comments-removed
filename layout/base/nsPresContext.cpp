@@ -143,7 +143,8 @@ nsPresContext::IsDOMPaintEventPending()
   if (!mInvalidateRequests.mRequests.IsEmpty()) {
     return true;    
   }
-  if (GetRootPresContext()->mRefreshDriver->ViewManagerFlushIsPending()) {
+  nsRootPresContext* rpc = GetDisplayRootPresContext();
+  if (rpc && rpc->mRefreshDriver->ViewManagerFlushIsPending()) {
     
     
     
@@ -1197,18 +1198,6 @@ nsPresContext::GetParentPresContext()
         return f->PresContext();
     }
   }
-  
-  
-  nsIDocument *doc = Document();
-  if (doc) {
-    doc = doc->GetParentDocument();
-    if (doc) {
-      shell = doc->GetShell();
-      if (shell) {
-        return shell->GetPresContext();
-      }
-    }
-  }
   return nsnull;
 }
 
@@ -1233,6 +1222,33 @@ nsPresContext::GetRootPresContext()
   nsPresContext* pc = this;
   for (;;) {
     nsPresContext* parent = pc->GetParentPresContext();
+    if (!parent)
+      break;
+    pc = parent;
+  }
+  return pc->IsRoot() ? static_cast<nsRootPresContext*>(pc) : nsnull;
+}
+
+nsRootPresContext*
+nsPresContext::GetDisplayRootPresContext()
+{
+  nsPresContext* pc = this;
+  for (;;) {
+    nsPresContext* parent = pc->GetParentPresContext();
+    if (!parent) {
+      
+      
+      nsIDocument *doc = pc->Document();
+      if (doc) {
+        doc = doc->GetParentDocument();
+        if (doc) {
+          nsIPresShell* shell = doc->GetShell();
+          if (shell) {
+            parent = shell->GetPresContext();
+          }
+        }
+      }
+    }
     if (!parent || parent == pc)
       break;
     pc = parent;
