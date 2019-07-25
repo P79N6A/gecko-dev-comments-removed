@@ -349,7 +349,7 @@ namespace {
 bool
 ParseIntStringHelper(JSContext *cx, const jschar *ws, const jschar *end, int maybeRadix, bool stripPrefix, jsdouble *dp)
 {
-    JS_ASSERT(2 <= maybeRadix && maybeRadix <= 36);
+    JS_ASSERT(maybeRadix == 0 || (2 <= maybeRadix && maybeRadix <= 36));
     JS_ASSERT(ws <= end);
 
     const jschar *s = js_SkipWhiteSpace(ws, end);
@@ -365,26 +365,30 @@ ParseIntStringHelper(JSContext *cx, const jschar *ws, const jschar *end, int may
 
     
     int radix = maybeRadix;
+    if (radix == 0) {
+        if (end - s >= 2 && s[0] == '0' && (s[1] != 'x' && s[1] != 'X')) {
+            
+
+
+
+
+
+
+
+
+
+            JSStackFrame *fp = js_GetScriptedCaller(cx, NULL);
+            radix = (fp && !fp->script->strictModeCode) ? 8 : 10;
+        } else {
+            radix = 10;
+        }
+    }
+
+    
     if (stripPrefix) {
-        if (end - s >= 2 && s[0] == '0') {
-            if (s[1] == 'x' || s[1] == 'X') {
-                s += 2;
-                radix = 16;
-            } else {
-                
-
-
-
-
-
-
-
-
-
-                JSStackFrame *fp = js_GetScriptedCaller(cx, NULL);
-                if (fp && !fp->script->strictModeCode)
-                    radix = 8;
-            }
+        if (end - s >= 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) {
+            s += 2;
+            radix = 16;
         }
     }
 
@@ -430,7 +434,7 @@ num_parseInt(JSContext *cx, uintN argc, Value *vp)
 
     
     bool stripPrefix = true;
-    int32_t radix = 10;
+    int32_t radix = 0;
     if (argc > 1) {
         if (!ValueToECMAInt32(cx, vp[3], &radix))
             return false;
@@ -441,8 +445,6 @@ num_parseInt(JSContext *cx, uintN argc, Value *vp)
             }
             if (radix != 16)
                 stripPrefix = false;
-        } else {
-            radix = 10;
         }
     }
 
@@ -467,7 +469,7 @@ ParseInt(JSContext* cx, JSString* str)
     str->getCharsAndEnd(start, end);
 
     jsdouble d;
-    if (!ParseIntStringHelper(cx, start, end, 10, true, &d))
+    if (!ParseIntStringHelper(cx, start, end, 0, true, &d))
         return js_NaN; 
     return d;
 }
@@ -495,7 +497,7 @@ const char js_parseInt_str[]   = "parseInt";
 #ifdef JS_TRACER
 
 JS_DEFINE_TRCINFO_2(num_parseInt,
-    (2, (static, DOUBLE, ParseInt, CONTEXT, STRING,     1, nanojit::ACCSET_NONE)),
+    (2, (static, DOUBLE_FAIL, ParseInt, CONTEXT, STRING,1, nanojit::ACCSET_NONE)),
     (1, (static, DOUBLE, ParseIntDouble, DOUBLE,        1, nanojit::ACCSET_NONE)))
 
 JS_DEFINE_TRCINFO_1(num_parseFloat,
