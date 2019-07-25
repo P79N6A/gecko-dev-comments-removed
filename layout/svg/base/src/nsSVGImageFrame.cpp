@@ -242,6 +242,10 @@ nsSVGImageFrame::TransformContextForPainting(gfxContext* aGfxContext)
     imageTransform = GetRasterImageTransform(nativeWidth, nativeHeight);
   }
 
+  if (imageTransform.IsSingular()) {
+    return PR_FALSE;
+  }
+
   
   
   nscoord appUnitsPerDevPx = PresContext()->AppUnitsPerDevPixel();
