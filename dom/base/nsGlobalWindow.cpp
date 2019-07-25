@@ -283,6 +283,9 @@ static bool                 gDragServiceDisabled       = false;
 static FILE                *gDumpFile                  = nsnull;
 static PRUint64             gNextWindowID              = 0;
 static PRUint32             gSerialCounter             = 0;
+static PRUint32             gTimeoutsRecentlySet       = 0;
+static TimeStamp            gLastRecordedRecentTimeouts;
+#define STATISTICS_INTERVAL (30 * PR_MSEC_PER_SEC)
 
 #ifdef DEBUG_jst
 PRInt32 gTimeoutCnt                                    = 0;
@@ -1405,32 +1408,11 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsGlobalWindow)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsGlobalWindow)
 
-static PLDHashOperator
-MarkXBLHandlers(const void* aKey, JSObject* aData, void* aClosure)
-{
-  xpc_UnmarkGrayObject(aData);
-  return PL_DHASH_NEXT;
-}
-
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsGlobalWindow)
-  if (tmp->IsBlackForCC()) {
-    if (tmp->mCachedXBLPrototypeHandlers.IsInitialized()) {
-      tmp->mCachedXBLPrototypeHandlers.EnumerateRead(MarkXBLHandlers, nsnull);
-    }
-    return true;
-  }
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
-
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsGlobalWindow)
-  return tmp->IsBlackForCC();
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
-
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsGlobalWindow)
-  return tmp->IsBlackForCC();
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsGlobalWindow)
-  if (!cb.WantAllTraces() && tmp->IsBlackForCC()) {
+  if ((tmp->mDoc && nsCCUncollectableMarker::InGeneration(
+                      cb, tmp->mDoc->GetMarkedCCGeneration())) ||
+      (nsCCUncollectableMarker::sGeneration && tmp->IsBlack())) {
     return NS_SUCCESS_INTERRUPTED_TRAVERSE;
   }
 
@@ -1538,28 +1520,6 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsGlobalWindow)
     tmp->mCachedXBLPrototypeHandlers.EnumerateRead(TraceXBLHandlers, &data);
   }
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-bool
-nsGlobalWindow::IsBlackForCC()
-{
-  return
-    (mDoc &&
-     nsCCUncollectableMarker::InGeneration(mDoc->GetMarkedCCGeneration())) ||
-    (nsCCUncollectableMarker::sGeneration && IsBlack());
-}
-
-void
-nsGlobalWindow::UnmarkGrayTimers()
-{
-  for (nsTimeout* timeout = FirstTimeout();
-       timeout && IsTimeout(timeout);
-       timeout = timeout->Next()) {
-    if (timeout->mScriptHandler) {
-      JSObject* o = timeout->mScriptHandler->GetScriptObject();
-      xpc_UnmarkGrayObject(o);
-    }
-  }
-}
 
 
 
@@ -9054,6 +9014,7 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     timeout->mPrincipal = ourPrincipal;
   }
 
+  ++gTimeoutsRecentlySet;
   TimeDuration delta = TimeDuration::FromMilliseconds(realInterval);
 
   if (!IsFrozen() && !mTimeoutsSuspendDepth) {
@@ -9226,6 +9187,15 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   
   if (!last_expired_timeout) {
     return;
+  }
+
+  
+  TimeDuration recordingInterval = TimeDuration::FromMilliseconds(STATISTICS_INTERVAL);
+  if (now - gLastRecordedRecentTimeouts > recordingInterval) {
+    PRUint32 count = gTimeoutsRecentlySet;
+    gTimeoutsRecentlySet = 0;
+    Telemetry::Accumulate(Telemetry::DOM_TIMERS_RECENTLY_SET, count);
+    gLastRecordedRecentTimeouts = now;
   }
 
   
