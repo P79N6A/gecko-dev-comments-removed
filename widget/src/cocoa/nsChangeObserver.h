@@ -48,7 +48,7 @@ class nsIAtom;
 #define NS_DECL_CHANGEOBSERVER \
 void ObserveAttributeChanged(nsIDocument *aDocument, nsIContent *aContent, nsIAtom *aAttribute); \
 void ObserveContentRemoved(nsIDocument *aDocument, nsIContent *aChild, PRInt32 aIndexInContainer); \
-void ObserveContentInserted(nsIDocument *aDocument, nsIContent *aChild, PRInt32 aIndexInContainer);
+void ObserveContentInserted(nsIDocument *aDocument, nsIContent* aContainer, nsIContent *aChild);
 
 
 
@@ -71,8 +71,8 @@ public:
                                      PRInt32 aIndexInContainer)=0;
 
   virtual void ObserveContentInserted(nsIDocument* aDocument,
-                                      nsIContent* aChild, 
-                                      PRInt32 aIndexInContainer)=0;
+                                      nsIContent* aContainer,
+                                      nsIContent* aChild)=0;
 };
 
 #endif 
