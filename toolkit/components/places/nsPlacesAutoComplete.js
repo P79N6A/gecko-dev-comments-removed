@@ -1041,7 +1041,7 @@ nsPlacesAutoComplete.prototype = {
                         ["moz-action:switchtab," + escapedEntryURL, "action "] :
                         [escapedEntryURL, ""];
 
-    if (this._inResults(entryId || url)) {
+    if (this._inResults(entryId, url)) {
       return false;
     }
 
@@ -1108,9 +1108,21 @@ nsPlacesAutoComplete.prototype = {
 
 
 
-  _inResults: function PAC_inResults(aPlaceIdOrUrl)
+
+
+
+
+
+
+
+
+
+  _inResults: function PAC_inResults(aPlaceId, aUrl)
   {
-    return aPlaceIdOrUrl in this._usedPlaces;
+    if (aPlaceId && aPlaceId in this._usedPlaces) {
+      return true;
+    }
+    return aUrl in this._usedPlaces;
   },
 
   
