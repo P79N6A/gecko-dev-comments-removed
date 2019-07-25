@@ -860,6 +860,14 @@ const gFormSubmitObserver = {
     function inputHandler(e) {
       if (e.originalTarget.validity.valid) {
         gFormSubmitObserver.panel.hidePopup();
+      } else {
+        
+        
+        if (gFormSubmitObserver.panel.firstChild.textContent !=
+            e.originalTarget.validationMessage) {
+          gFormSubmitObserver.panel.firstChild.textContent =
+            e.originalTarget.validationMessage;
+        }
       }
     };
     element.addEventListener("input", inputHandler, false);
