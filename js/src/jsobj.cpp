@@ -2163,6 +2163,8 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
         }
     }
 
+    bool callDelProperty = false;
+
     if (desc.isGenericDescriptor()) {
         
     } else if (desc.isDataDescriptor() != shape->isDataDescriptor()) {
@@ -2179,6 +2181,8 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
                               rval);
             }
         }
+
+        callDelProperty = !shape->hasDefaultGetter() || !shape->hasDefaultSetter();
     } else {
         
         JS_ASSERT(desc.isAccessorDescriptor() && shape->isAccessorDescriptor());
@@ -2269,6 +2273,22 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
 
     *rval = true;
     obj2->dropProperty(cx, current);
+
+    
+
+
+
+
+
+
+
+
+    if (callDelProperty) {
+        Value dummy;
+        if (!CallJSPropertyOp(cx, obj2->getClass()->delProperty, obj2, desc.id, &dummy))
+            return false;
+    }
+
     return js_DefineProperty(cx, obj, desc.id, &v, getter, setter, attrs);
 }
 
