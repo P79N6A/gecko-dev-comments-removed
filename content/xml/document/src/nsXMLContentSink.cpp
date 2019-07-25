@@ -332,15 +332,6 @@ nsXMLContentSink::DidBuildModel(PRBool aTerminated)
     
     mDocument->ScriptLoader()->RemoveObserver(this);
 
-    if (mDocElement) {
-      
-      
-      
-      
-      NS_ASSERTION(mDocument->IndexOf(mDocElement) != -1,
-                   "mDocElement not in doc?");
-    }
-
     
     MaybePrettyPrint();
 
