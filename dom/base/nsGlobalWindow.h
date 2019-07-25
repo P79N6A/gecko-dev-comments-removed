@@ -668,6 +668,13 @@ protected:
 
   virtual PRUint32 GetFocusMethod();
 
+  virtual PRBool ShouldShowFocusRing();
+
+  virtual void SetKeyboardIndicators(UIStateChangeType aShowAccelerators,
+                                     UIStateChangeType aShowFocusRings);
+  virtual void GetKeyboardIndicators(PRBool* aShowAccelerators,
+                                     PRBool* aShowFocusRings);
+
   void UpdateCanvasFocus(PRBool aFocusChanged, nsIContent* aNewContent);
 
   already_AddRefed<nsPIWindowRoot> GetTopWindowRoot();
@@ -722,6 +729,20 @@ protected:
   
   PRPackedBool           mNeedsFocus : 1;
   PRPackedBool           mHasFocus : 1;
+
+  
+  PRPackedBool           mShowAccelerators : 1;
+
+  
+  PRPackedBool           mShowFocusRings : 1;
+
+  
+  
+  PRPackedBool           mShowFocusRingForContent : 1;
+
+  
+  
+  PRPackedBool           mFocusByKeyOccured : 1;
 
   
   PRPackedBool           mHasAcceleration  : 1;

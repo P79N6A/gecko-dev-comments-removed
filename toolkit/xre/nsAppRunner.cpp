@@ -59,6 +59,7 @@
 #ifdef XP_MACOSX
 #include "MacLaunchHelper.h"
 #include "MacApplicationDelegate.h"
+#include "MacAutoreleasePool.h"
 #endif
 
 #ifdef XP_OS2
@@ -1054,6 +1055,12 @@ private:
 ScopedXPCOMStartup::~ScopedXPCOMStartup()
 {
   if (mServiceManager) {
+#ifdef XP_MACOSX
+    
+    
+    mozilla::MacAutoreleasePool pool;
+#endif
+
     nsCOMPtr<nsIAppStartup> appStartup (do_GetService(NS_APPSTARTUP_CONTRACTID));
     if (appStartup)
       appStartup->DestroyHiddenWindow();

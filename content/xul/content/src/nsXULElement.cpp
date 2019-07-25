@@ -520,8 +520,16 @@ nsXULElement::GetEventListenerManagerForAttr(nsIEventListenerManager** aManager,
                                                            aDefer);
 }
 
+
+static PRBool IsNonList(nsINodeInfo* aNodeInfo)
+{
+  return !aNodeInfo->Equals(nsGkAtoms::tree) &&
+         !aNodeInfo->Equals(nsGkAtoms::listbox) &&
+         !aNodeInfo->Equals(nsGkAtoms::richlistbox);
+}
+
 PRBool
-nsXULElement::IsFocusable(PRInt32 *aTabIndex)
+nsXULElement::IsFocusable(PRInt32 *aTabIndex, PRBool aWithMouse)
 {
   
 
@@ -553,6 +561,12 @@ nsXULElement::IsFocusable(PRInt32 *aTabIndex)
 
   
   PRBool shouldFocus = PR_FALSE;
+
+#ifdef XP_MACOSX
+  
+  if (aWithMouse && IsNonList(mNodeInfo))
+    return PR_FALSE;
+#endif
 
   nsCOMPtr<nsIDOMXULControlElement> xulControl = 
     do_QueryInterface(static_cast<nsIContent*>(this));
@@ -595,7 +609,7 @@ nsXULElement::IsFocusable(PRInt32 *aTabIndex)
         
         
         
-        if (!mNodeInfo->Equals(nsGkAtoms::tree) && !mNodeInfo->Equals(nsGkAtoms::listbox))
+        if (IsNonList(mNodeInfo))
           *aTabIndex = -1;
       }
     }
