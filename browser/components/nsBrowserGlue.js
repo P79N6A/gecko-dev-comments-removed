@@ -62,9 +62,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "BookmarkHTMLUtils",
-                                  "resource://gre/modules/BookmarkHTMLUtils.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "KeywordURLResetPrompter",
                                   "resource:///modules/KeywordURLResetPrompter.jsm");
 
@@ -231,6 +228,10 @@ BrowserGlue.prototype = {
         
         Services.obs.removeObserver(this, "places-database-locked");
         this._isPlacesLockedObserver = false;
+
+        
+        
+        this._distributionCustomizer.applyBookmarks();
         break;
       case "places-database-locked":
         this._isPlacesDatabaseLocked = true;
@@ -256,6 +257,13 @@ BrowserGlue.prototype = {
         
         delete this._distributionCustomizer;
         break;
+      case "bookmarks-restore-success":
+      case "bookmarks-restore-failed":
+        Services.obs.removeObserver(this, "bookmarks-restore-success");
+        Services.obs.removeObserver(this, "bookmarks-restore-failed");
+        if (topic == "bookmarks-restore-success" && data == "html-initial")
+          this.ensurePlacesDefaultQueriesInitialized();
+        break;
       case "browser-glue-test": 
         if (data == "post-update-notification") {
           if (Services.prefs.prefHasUserValue("app.update.postupdate"))
@@ -279,9 +287,6 @@ BrowserGlue.prototype = {
           KeywordURLResetPrompter.prompt(this.getMostRecentBrowserWindow(),
                                          keywordURI);
         }
-        break;
-      case "initial-migration":
-        this._initialMigrationPerformed = true;
         break;
     }
   }, 
@@ -985,9 +990,18 @@ BrowserGlue.prototype = {
     
     
     var dbStatus = PlacesUtils.history.databaseStatus;
-    var importBookmarks = !this._initialMigrationPerformed &&
-                          (dbStatus == PlacesUtils.history.DATABASE_STATUS_CREATE ||
-                           dbStatus == PlacesUtils.history.DATABASE_STATUS_CORRUPT);
+    var importBookmarks = dbStatus == PlacesUtils.history.DATABASE_STATUS_CREATE ||
+                          dbStatus == PlacesUtils.history.DATABASE_STATUS_CORRUPT;
+
+    if (dbStatus == PlacesUtils.history.DATABASE_STATUS_CREATE) {
+      
+      
+      
+      
+      if (PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.bookmarksMenuFolderId, 0) != -1 ||
+          PlacesUtils.bookmarks.getIdForItemAt(PlacesUtils.toolbarFolderId, 0) != -1)
+        importBookmarks = false;
+    }
 
     
     var importBookmarksHTML = false;
@@ -1044,9 +1058,6 @@ BrowserGlue.prototype = {
     
     
     if (!importBookmarks) {
-      
-      
-      this._distributionCustomizer.applyBookmarks();
       this.ensurePlacesDefaultQueriesInitialized();
     }
     else {
@@ -1081,27 +1092,24 @@ BrowserGlue.prototype = {
 
       if (bookmarksURI) {
         
+        
+        Services.obs.addObserver(this, "bookmarks-restore-success", false);
+        Services.obs.addObserver(this, "bookmarks-restore-failed", false);
+
+        
         try {
-          BookmarkHTMLUtils.importFromURL(bookmarksURI.spec, true, (function (success) {
-            if (success) {
-              
-              
-              this._distributionCustomizer.applyBookmarks();
-              
-              
-              this.ensurePlacesDefaultQueriesInitialized();
-            }
-            else {
-              Cu.reportError("Bookmarks.html file could be corrupt.");
-            }
-          }).bind(this));
+          var importer = Cc["@mozilla.org/browser/places/import-export-service;1"].
+                         getService(Ci.nsIPlacesImportExportService);
+          importer.importHTMLFromURI(bookmarksURI, true );
         } catch (err) {
+          
           Cu.reportError("Bookmarks.html file could be corrupt. " + err);
+          Services.obs.removeObserver(this, "bookmarks-restore-success");
+          Services.obs.removeObserver(this, "bookmarks-restore-failed");
         }
       }
-      else {
+      else
         Cu.reportError("Unable to find bookmarks.html file.");
-      }
 
       
       if (importBookmarksHTML)

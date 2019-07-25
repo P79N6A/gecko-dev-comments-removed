@@ -36,8 +36,7 @@ function run_test() {
 
   
   let bg = Cc["@mozilla.org/browser/browserglue;1"].
-           getService(Ci.nsIObserver);
-  bg.observe(null, "initial-migration", null)
+           getService(Ci.nsIBrowserGlue);
 
   let bookmarksObserver = {
     onBeginUpdateBatch: function() {},

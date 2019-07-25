@@ -99,10 +99,8 @@ let gBookmarksFileOld;
 
 let gBookmarksFileNew;
 
-let exporter = Cc["@mozilla.org/browser/places/import-export-service;1"].
+let importer = Cc["@mozilla.org/browser/places/import-export-service;1"].
                getService(Ci.nsIPlacesImportExportService);
-
-Cu.import("resource://gre/modules/BookmarkHTMLUtils.jsm");
 
 function run_test()
 {
@@ -133,26 +131,22 @@ add_test(function setup() {
   
   
   try {
-    BookmarkHTMLUtils.importFromFile(gBookmarksFileOld, true, function(success) {
-      if (success) {
-        waitForAsyncUpdates(function () {
-          testImportedBookmarks();
-
-          
-          try {
-            exporter.exportHTMLToFile(gBookmarksFileNew);
-          } catch(ex) { do_throw("couldn't export to file: " + ex); }
-
-          waitForAsyncUpdates(function () {
-            remove_all_bookmarks();
-            run_next_test();
-          });
-        });
-      } else {
-        do_throw("couldn't import legacy bookmarks file.");
-      }
-    });
+    importer.importHTMLFromFile(gBookmarksFileOld, true);
   } catch(ex) { do_throw("couldn't import legacy bookmarks file: " + ex); }
+
+  waitForAsyncUpdates(function () {
+    testImportedBookmarks();
+
+    
+    try {
+      importer.exportHTMLToFile(gBookmarksFileNew);
+    } catch(ex) { do_throw("couldn't export to file: " + ex); }
+
+    waitForAsyncUpdates(function () {
+      remove_all_bookmarks();
+      run_next_test();
+    });
+  });
 });
 
 add_test(function test_import_new()
@@ -162,21 +156,17 @@ add_test(function test_import_new()
   
 
   try {
-    BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true, function(success) {
-      if (success) {
-        waitForAsyncUpdates(function () {
-          testImportedBookmarks();
-
-          waitForAsyncUpdates(function () {
-            remove_all_bookmarks();
-            run_next_test();
-          });
-        });
-      } else {
-        do_throw("couldn't import the exported file.");
-      }
-    });
+    importer.importHTMLFromFile(gBookmarksFileNew, true);
   } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
+
+  waitForAsyncUpdates(function () {
+    testImportedBookmarks();
+
+    waitForAsyncUpdates(function () {
+      remove_all_bookmarks();
+      run_next_test();
+    });
+  });
 });
 
 add_test(function test_emptytitle_export()
@@ -190,50 +180,42 @@ add_test(function test_emptytitle_export()
   
 
   try {
-    BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true, function(success) {
-      if (success) {
-        const NOTITLE_URL = "http://notitle.mozilla.org/";
-        let id = PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
-                                                      NetUtil.newURI(NOTITLE_URL),
-                                                      PlacesUtils.bookmarks.DEFAULT_INDEX,
-                                                      "");
-        test_bookmarks.unfiled.push({ title: "", url: NOTITLE_URL });
-
-        try {
-          exporter.exportHTMLToFile(gBookmarksFileNew);
-        } catch(ex) { do_throw("couldn't export to file: " + ex); }
-
-        remove_all_bookmarks();
-
-        try {
-          BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true, function(success) {
-           if (success) {
-              waitForAsyncUpdates(function () {
-                testImportedBookmarks();
-
-                
-                test_bookmarks.unfiled.pop();
-                PlacesUtils.bookmarks.removeItem(id);
-
-                try {
-                  exporter.exportHTMLToFile(gBookmarksFileNew);
-                } catch(ex) { do_throw("couldn't export to file: " + ex); }
-
-                waitForAsyncUpdates(function () {
-                  remove_all_bookmarks();
-                  run_next_test();
-                });
-              });
-            } else {
-              do_throw("couldn't import the exported file.");
-            }
-          });
-        } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
-      } else {
-        do_throw("couldn't import the exported file.");
-      }
-    });
+    importer.importHTMLFromFile(gBookmarksFileNew, true);
   } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
+
+  const NOTITLE_URL = "http://notitle.mozilla.org/";
+  let id = PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                                NetUtil.newURI(NOTITLE_URL),
+                                                PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                                "");
+  test_bookmarks.unfiled.push({ title: "", url: NOTITLE_URL });
+
+  try {
+    importer.exportHTMLToFile(gBookmarksFileNew);
+  } catch(ex) { do_throw("couldn't export to file: " + ex); }
+
+  remove_all_bookmarks();
+
+  try {
+    importer.importHTMLFromFile(gBookmarksFileNew, true);
+  } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
+
+  waitForAsyncUpdates(function () {
+    testImportedBookmarks();
+
+    
+    test_bookmarks.unfiled.pop();
+    PlacesUtils.bookmarks.removeItem(id);
+
+    try {
+      importer.exportHTMLToFile(gBookmarksFileNew);
+    } catch(ex) { do_throw("couldn't export to file: " + ex); }
+
+    waitForAsyncUpdates(function () {
+      remove_all_bookmarks();
+      run_next_test();
+    });
+  });
 });
 
 add_test(function test_import_ontop()
@@ -247,33 +229,23 @@ add_test(function test_import_ontop()
   
 
   try {
-    BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true, function(success) {
-      if (success) {
-        try {
-          exporter.exportHTMLToFile(gBookmarksFileNew);
-        } catch(ex) { do_throw("couldn't export to file: " + ex); }
-        try {
-          BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true, function(success) {
-            if (success) {
-              waitForAsyncUpdates(function () {
-                testImportedBookmarks();
-
-                waitForAsyncUpdates(function () {
-                  remove_all_bookmarks();
-                  run_next_test();
-                });
-              });
-            } else {
-              do_throw("couldn't import the exported file.");
-            }
-          });
-        } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
-
-      } else {
-        do_throw("couldn't import the exported file.");
-      }
-    });
+    importer.importHTMLFromFile(gBookmarksFileNew, true);
   } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
+  try {
+    importer.exportHTMLToFile(gBookmarksFileNew);
+  } catch(ex) { do_throw("couldn't export to file: " + ex); }
+  try {
+    importer.importHTMLFromFile(gBookmarksFileNew, true);
+  } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
+
+  waitForAsyncUpdates(function () {
+    testImportedBookmarks();
+
+    waitForAsyncUpdates(function () {
+      remove_all_bookmarks();
+      run_next_test();
+    });
+  });
 });
 
 function testImportedBookmarks()
