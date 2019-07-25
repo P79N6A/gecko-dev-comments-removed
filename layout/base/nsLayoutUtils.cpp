@@ -3441,6 +3441,14 @@ nsLayoutUtils::SurfaceFromElement(nsIDOMElement *aElement,
   if (node && ve) {
     nsHTMLVideoElement *video = static_cast<nsHTMLVideoElement*>(ve.get());
 
+    unsigned short readyState;
+    if (NS_SUCCEEDED(ve->GetReadyState(&readyState)) &&
+        (readyState == nsIDOMHTMLMediaElement::HAVE_NOTHING ||
+         readyState == nsIDOMHTMLMediaElement::HAVE_METADATA)) {
+      result.mIsStillLoading = PR_TRUE;
+      return result;
+    }
+
     
     nsCOMPtr<nsIPrincipal> principal = video->GetCurrentPrincipal();
     if (!principal)
@@ -3492,8 +3500,13 @@ nsLayoutUtils::SurfaceFromElement(nsIDOMElement *aElement,
 
   PRUint32 status;
   imgRequest->GetImageStatus(&status);
-  if ((status & imgIRequest::STATUS_LOAD_COMPLETE) == 0)
+  if ((status & imgIRequest::STATUS_LOAD_COMPLETE) == 0) {
+    
+    
+    
+    result.mIsStillLoading = (status & imgIRequest::STATUS_ERROR) == 0;
     return result;
+  }
 
   
   
