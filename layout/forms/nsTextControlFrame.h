@@ -311,7 +311,11 @@ protected:
         mFrame->EnsureEditorInitialized();
         shell->ObserveNativeAnonMutationsForPrint(observes);
 
-        NS_ASSERTION(mFrame,"Frame destroyed even though we had a scriptblocker");
+        
+        
+        if (!mFrame)
+          return NS_ERROR_FAILURE;
+
         mFrame->FinishedInitializer();
       }
       return NS_OK;
