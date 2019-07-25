@@ -4,14 +4,8 @@
 
 
 
-
-
-
-
-
-
 #ifndef mozilla_Hal_h
-#define mozilla_Hal_h 1
+#define mozilla_Hal_h
 
 #include "mozilla/hal_sandbox/PHal.h"
 #include "base/basictypes.h"

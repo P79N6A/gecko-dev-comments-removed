@@ -3,12 +3,6 @@
 
 
 
-
-
-
-
-
-
 #ifndef mozilla_hal_Types_h
 #define mozilla_hal_Types_h
 

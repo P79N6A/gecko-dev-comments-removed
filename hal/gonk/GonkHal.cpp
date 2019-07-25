@@ -4,14 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
 #include "hardware_legacy/uevent.h"
 #include "Hal.h"
 #include "HalImpl.h"
