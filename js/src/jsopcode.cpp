@@ -4095,8 +4095,13 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
                         if (!pc)
                             return NULL;
 
-                        lval = POP_STR();  
-                        rval = POP_STR();  
+                        
+                        JS_ASSERT(js_CodeSpec[JSOP_POP].prec <= 3);
+                        lval = PopStr(ss, JSOP_POP);
+
+                        
+                        JS_ASSERT(js_CodeSpec[JSOP_SETNAME].prec > js_CodeSpec[JSOP_POP].prec);
+                        rval = PopStr(ss, JSOP_SETNAME);
 
                         if (strcmp(rval, forelem_cookie) == 0) {
                             todo = Sprint(&ss->sprinter, ss_format,
