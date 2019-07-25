@@ -720,7 +720,7 @@ nsDOMWorkerXHR::SetRequestHeader(const nsACString& aHeader,
 }
 
 NS_IMETHODIMP
-nsDOMWorkerXHR::GetReadyState(PRInt32* aReadyState)
+nsDOMWorkerXHR::GetReadyState(PRUint16* aReadyState)
 {
   NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
 
@@ -902,9 +902,21 @@ nsDOMWorkerXHR::SetWithCredentials(PRBool aWithCredentials)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsDOMWorkerXHR::GetMozResponseType(nsAString& aResponseText)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
 
 NS_IMETHODIMP
-nsDOMWorkerXHR::GetMozResponseArrayBuffer(jsval *aResult)
+nsDOMWorkerXHR::SetMozResponseType(const nsAString& aResponseText)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+NS_IMETHODIMP
+nsDOMWorkerXHR::GetMozResponse(JSContext *aCx, jsval *aResult)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

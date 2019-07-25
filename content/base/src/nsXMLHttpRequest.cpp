@@ -67,7 +67,7 @@
 #include "nsIMIMEService.h"
 #include "nsCExternalHandlerService.h"
 #include "nsIVariant.h"
-#include "nsVariant.h"
+#include "xpcprivate.h"
 #include "nsIParser.h"
 #include "nsLoadListenerProxy.h"
 #include "nsStringStream.h"
@@ -100,6 +100,8 @@
 #include "nsAsyncRedirectVerifyHelper.h"
 #include "jstypedarray.h"
 #include "nsStringBuffer.h"
+#include "nsDOMFile.h"
+#include "nsIFileChannel.h"
 
 #define LOAD_STR "load"
 #define ERROR_STR "error"
@@ -113,13 +115,13 @@
 
 
 
-#define XML_HTTP_REQUEST_UNINITIALIZED  (1 << 0)  // 0
-#define XML_HTTP_REQUEST_OPENED         (1 << 1)  // 1 aka LOADING
-#define XML_HTTP_REQUEST_LOADED         (1 << 2)  // 2
-#define XML_HTTP_REQUEST_INTERACTIVE    (1 << 3)  // 3
-#define XML_HTTP_REQUEST_COMPLETED      (1 << 4)  // 4
-#define XML_HTTP_REQUEST_SENT           (1 << 5)  // Internal, LOADING in IE and external view
-#define XML_HTTP_REQUEST_STOPPED        (1 << 6)  // Internal, INTERACTIVE in IE and external view
+#define XML_HTTP_REQUEST_UNSENT           (1 << 0) // 0 UNSENT
+#define XML_HTTP_REQUEST_OPENED           (1 << 1) // 1 OPENED
+#define XML_HTTP_REQUEST_HEADERS_RECEIVED (1 << 2) // 2 HEADERS_RECEIVED
+#define XML_HTTP_REQUEST_LOADING          (1 << 3) // 3 LOADING
+#define XML_HTTP_REQUEST_DONE             (1 << 4) // 4 DONE
+#define XML_HTTP_REQUEST_SENT             (1 << 5) // Internal, OPENED in IE and external view
+#define XML_HTTP_REQUEST_STOPPED          (1 << 6) // Internal, LOADING in IE and external view
 
 
 #define XML_HTTP_REQUEST_ABORTED        (1 << 7)  // Internal
@@ -137,11 +139,11 @@
 #define XML_HTTP_REQUEST_AC_WITH_CREDENTIALS (1 << 17) // Internal
 
 #define XML_HTTP_REQUEST_LOADSTATES         \
-  (XML_HTTP_REQUEST_UNINITIALIZED |         \
+  (XML_HTTP_REQUEST_UNSENT |                \
    XML_HTTP_REQUEST_OPENED |                \
-   XML_HTTP_REQUEST_LOADED |                \
-   XML_HTTP_REQUEST_INTERACTIVE |           \
-   XML_HTTP_REQUEST_COMPLETED |             \
+   XML_HTTP_REQUEST_HEADERS_RECEIVED |      \
+   XML_HTTP_REQUEST_LOADING |               \
+   XML_HTTP_REQUEST_DONE |                  \
    XML_HTTP_REQUEST_SENT |                  \
    XML_HTTP_REQUEST_STOPPED)
 
@@ -417,7 +419,8 @@ NS_IMPL_RELEASE_INHERITED(nsXMLHttpRequestUpload, nsXHREventTarget)
 
 
 nsXMLHttpRequest::nsXMLHttpRequest()
-  : mRequestObserver(nsnull), mState(XML_HTTP_REQUEST_UNINITIALIZED),
+  : mResponseType(XML_HTTP_RESPONSE_TYPE_DEFAULT),
+    mRequestObserver(nsnull), mState(XML_HTTP_REQUEST_UNSENT),
     mUploadTransferred(0), mUploadTotal(0), mUploadComplete(PR_TRUE),
     mUploadProgress(0), mUploadProgressMax(0),
     mErrorLoad(PR_FALSE), mTimerIsActive(PR_FALSE),
@@ -437,7 +440,7 @@ nsXMLHttpRequest::~nsXMLHttpRequest()
 
   if (mState & (XML_HTTP_REQUEST_STOPPED |
                 XML_HTTP_REQUEST_SENT |
-                XML_HTTP_REQUEST_INTERACTIVE)) {
+                XML_HTTP_REQUEST_LOADING)) {
     Abort();
   }
 
@@ -661,7 +664,11 @@ nsXMLHttpRequest::GetResponseXML(nsIDOMDocument **aResponseXML)
 {
   NS_ENSURE_ARG_POINTER(aResponseXML);
   *aResponseXML = nsnull;
-  if ((XML_HTTP_REQUEST_COMPLETED & mState) && mResponseXML) {
+  if (mResponseType != XML_HTTP_RESPONSE_TYPE_DEFAULT &&
+      mResponseType != XML_HTTP_RESPONSE_TYPE_DOCUMENT) {
+    return NS_ERROR_DOM_INVALID_STATE_ERR;
+  }
+  if ((XML_HTTP_REQUEST_DONE & mState) && mResponseXML) {
     *aResponseXML = mResponseXML;
     NS_ADDREF(*aResponseXML);
   }
@@ -819,23 +826,27 @@ NS_IMETHODIMP nsXMLHttpRequest::GetResponseText(nsAString& aResponseText)
 
   aResponseText.Truncate();
 
-  if (mState & (XML_HTTP_REQUEST_COMPLETED |
-                XML_HTTP_REQUEST_INTERACTIVE)) {
+  if (mResponseType != XML_HTTP_RESPONSE_TYPE_DEFAULT &&
+      mResponseType != XML_HTTP_RESPONSE_TYPE_TEXT) {
+    return NS_ERROR_DOM_INVALID_STATE_ERR;
+  }
+
+  if (mState & (XML_HTTP_REQUEST_DONE |
+                XML_HTTP_REQUEST_LOADING)) {
     rv = ConvertBodyToText(aResponseText);
   }
 
   return rv;
 }
 
-
-NS_IMETHODIMP nsXMLHttpRequest::GetMozResponseArrayBuffer(jsval *aResult)
+nsresult nsXMLHttpRequest::GetResponseArrayBuffer(jsval *aResult)
 {
   JSContext *cx = nsContentUtils::GetCurrentJSContext();
   if (!cx)
     return NS_ERROR_FAILURE;
 
-  if (!(mState & (XML_HTTP_REQUEST_COMPLETED |
-                  XML_HTTP_REQUEST_INTERACTIVE))) {
+  if (!(mState & (XML_HTTP_REQUEST_DONE |
+                  XML_HTTP_REQUEST_LOADING))) {
     *aResult = JSVAL_NULL;
     return NS_OK;
   }
@@ -854,6 +865,126 @@ NS_IMETHODIMP nsXMLHttpRequest::GetMozResponseArrayBuffer(jsval *aResult)
   }
 
   return NS_OK;
+}
+
+
+NS_IMETHODIMP nsXMLHttpRequest::GetMozResponseType(nsAString& aResponseType)
+{
+  switch (mResponseType) {
+  case XML_HTTP_RESPONSE_TYPE_DEFAULT:
+    aResponseType.Truncate();
+    break;
+  case XML_HTTP_RESPONSE_TYPE_ARRAYBUFFER:
+    aResponseType.AssignLiteral("arraybuffer");
+    break;
+  case XML_HTTP_RESPONSE_TYPE_BLOB:
+    aResponseType.AssignLiteral("blob");
+    break;
+  case XML_HTTP_RESPONSE_TYPE_DOCUMENT:
+    aResponseType.AssignLiteral("document");
+    break;
+  case XML_HTTP_RESPONSE_TYPE_TEXT:
+    aResponseType.AssignLiteral("text");
+    break;
+  default:
+    NS_ERROR("Should not happen");
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP nsXMLHttpRequest::SetMozResponseType(const nsAString& aResponseType)
+{
+  
+  
+  if (!(mState & (XML_HTTP_REQUEST_OPENED | XML_HTTP_REQUEST_SENT |
+                  XML_HTTP_REQUEST_HEADERS_RECEIVED)))
+    return NS_ERROR_DOM_INVALID_STATE_ERR;
+
+  
+  if (aResponseType.IsEmpty()) {
+    mResponseType = XML_HTTP_RESPONSE_TYPE_DEFAULT;
+  } else if (aResponseType.EqualsLiteral("arraybuffer")) {
+    mResponseType = XML_HTTP_RESPONSE_TYPE_ARRAYBUFFER;
+  } else if (aResponseType.EqualsLiteral("blob")) {
+    mResponseType = XML_HTTP_RESPONSE_TYPE_BLOB;
+  } else if (aResponseType.EqualsLiteral("document")) {
+    mResponseType = XML_HTTP_RESPONSE_TYPE_DOCUMENT;
+  } else if (aResponseType.EqualsLiteral("text")) {
+    mResponseType = XML_HTTP_RESPONSE_TYPE_TEXT;
+  }
+  
+  
+
+  
+  
+  
+  
+  
+  if (mState & XML_HTTP_REQUEST_HEADERS_RECEIVED) {
+    nsCOMPtr<nsICachingChannel> cc(do_QueryInterface(mChannel));
+    if (cc) {
+      cc->SetCacheAsFile(mResponseType == XML_HTTP_RESPONSE_TYPE_BLOB);
+    }
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP nsXMLHttpRequest::GetMozResponse(JSContext *aCx, jsval *aResult)
+{
+  nsresult rv = NS_OK;
+
+  switch (mResponseType) {
+  case XML_HTTP_RESPONSE_TYPE_DEFAULT:
+  case XML_HTTP_RESPONSE_TYPE_TEXT:
+    {
+      nsString str;
+      rv = GetResponseText(str);
+      if (NS_FAILED(rv)) return rv;
+      nsStringBuffer* buf;
+      *aResult = XPCStringConvert::ReadableToJSVal(aCx, str, &buf);
+      if (buf) {
+        str.ForgetSharedBuffer();
+      }
+    }
+    break;
+
+  case XML_HTTP_RESPONSE_TYPE_ARRAYBUFFER:
+    if (mState & XML_HTTP_REQUEST_DONE) {
+      rv = GetResponseArrayBuffer(aResult);
+    } else {
+      *aResult = JSVAL_NULL;
+    }
+    break;
+
+  case XML_HTTP_RESPONSE_TYPE_BLOB:
+    if (mState & XML_HTTP_REQUEST_DONE && mResponseBlob) {
+      JSObject* scope = JS_GetScopeChain(aCx);
+      rv = nsContentUtils::WrapNative(aCx, scope, mResponseBlob, aResult,
+                                      nsnull, PR_TRUE);
+    } else {
+      *aResult = JSVAL_NULL;
+    }
+    break;
+
+  case XML_HTTP_RESPONSE_TYPE_DOCUMENT:
+    if (mState & XML_HTTP_REQUEST_DONE && mResponseXML) {
+      JSObject* scope = JS_GetScopeChain(aCx);
+      rv = nsContentUtils::WrapNative(aCx, scope, mResponseXML, aResult,
+                                      nsnull, PR_TRUE);
+    } else {
+      *aResult = JSVAL_NULL;
+    }
+    break;
+
+  default:
+    NS_ERROR("Should not happen");
+  }
+
+  return rv;
 }
 
 
@@ -882,9 +1013,9 @@ nsXMLHttpRequest::GetStatus(PRUint32 *aStatus)
       
       
       
-      PRInt32 readyState;
+      PRUint16 readyState;
       GetReadyState(&readyState);
-      if (readyState >= 3) {
+      if (readyState >= LOADING) {
         *aStatus = 0;
         return NS_OK;
       }
@@ -940,12 +1071,13 @@ nsXMLHttpRequest::Abort()
   PRUint32 responseLength = mResponseBody.Length();
   mResponseBody.Truncate();
   mResponseBodyUnicode.SetIsVoid(PR_TRUE);
+  mResponseBlob = nsnull;
   mState |= XML_HTTP_REQUEST_ABORTED;
 
-  if (!(mState & (XML_HTTP_REQUEST_UNINITIALIZED |
+  if (!(mState & (XML_HTTP_REQUEST_UNSENT |
                   XML_HTTP_REQUEST_OPENED |
-                  XML_HTTP_REQUEST_COMPLETED))) {
-    ChangeState(XML_HTTP_REQUEST_COMPLETED, PR_TRUE);
+                  XML_HTTP_REQUEST_DONE))) {
+    ChangeState(XML_HTTP_REQUEST_DONE, PR_TRUE);
   }
 
   if (!(mState & XML_HTTP_REQUEST_SYNCLOOPING)) {
@@ -963,7 +1095,7 @@ nsXMLHttpRequest::Abort()
   
   
   if (mState & XML_HTTP_REQUEST_ABORTED) {
-    ChangeState(XML_HTTP_REQUEST_UNINITIALIZED, PR_FALSE);  
+    ChangeState(XML_HTTP_REQUEST_UNSENT, PR_FALSE);  
   }
 
   mState &= ~XML_HTTP_REQUEST_SYNCLOOPING;
@@ -1263,8 +1395,8 @@ nsXMLHttpRequest::Open(const nsACString& method, const nsACString& url,
   PRBool authp = PR_FALSE;
 
   if (mState & (XML_HTTP_REQUEST_OPENED |
-                XML_HTTP_REQUEST_LOADED |
-                XML_HTTP_REQUEST_INTERACTIVE |
+                XML_HTTP_REQUEST_HEADERS_RECEIVED |
+                XML_HTTP_REQUEST_LOADING |
                 XML_HTTP_REQUEST_SENT |
                 XML_HTTP_REQUEST_STOPPED)) {
     
@@ -1395,9 +1527,22 @@ nsXMLHttpRequest::StreamReaderFunc(nsIInputStream* in,
     return NS_ERROR_FAILURE;
   }
 
-  
-  xmlHttpRequest->mResponseBody.Append(fromRawSegment,count);
-  xmlHttpRequest->mResponseBodyUnicode.SetIsVoid(PR_TRUE);
+  if (xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_BLOB &&
+      xmlHttpRequest->mResponseBlob) {
+    xmlHttpRequest->ChangeState(XML_HTTP_REQUEST_LOADING);
+    *writeCount = count;
+    return NS_OK;
+  }
+
+  if (xmlHttpRequest->mResponseType != XML_HTTP_RESPONSE_TYPE_DOCUMENT) {
+    
+    PRUint32 previousLength = xmlHttpRequest->mResponseBody.Length();
+    xmlHttpRequest->mResponseBody.Append(fromRawSegment,count);
+    if (count > 0 && xmlHttpRequest->mResponseBody.Length() == previousLength) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    xmlHttpRequest->mResponseBodyUnicode.SetIsVoid(PR_TRUE);
+  }
 
   nsresult rv = NS_OK;
 
@@ -1425,7 +1570,7 @@ nsXMLHttpRequest::StreamReaderFunc(nsIInputStream* in,
     }
   }
 
-  xmlHttpRequest->ChangeState(XML_HTTP_REQUEST_INTERACTIVE);
+  xmlHttpRequest->ChangeState(XML_HTTP_REQUEST_LOADING);
 
   if (NS_SUCCEEDED(rv)) {
     *writeCount = count;
@@ -1436,6 +1581,35 @@ nsXMLHttpRequest::StreamReaderFunc(nsIInputStream* in,
   return rv;
 }
 
+void nsXMLHttpRequest::CreateResponseBlob(nsIRequest *request)
+{
+  nsCOMPtr<nsIFile> file;
+  nsCOMPtr<nsICachingChannel> cc(do_QueryInterface(request));
+  if (cc) {
+    cc->GetCacheFile(getter_AddRefs(file));
+    if (!file) {
+      
+      PRBool cacheAsFile = PR_FALSE;
+      if (NS_SUCCEEDED(cc->GetCacheAsFile(&cacheAsFile)) && cacheAsFile) {
+        
+      }
+    }
+  } else {
+    nsCOMPtr<nsIFileChannel> fc = do_QueryInterface(request);
+    if (fc) {
+      fc->GetFile(getter_AddRefs(file));
+    }
+  }
+  if (file) {
+    nsCAutoString contentType;
+    mChannel->GetContentType(contentType);
+    mResponseBlob = new nsDOMFile(file,
+                                  NS_ConvertASCIItoUTF16(contentType));
+    mResponseBody.Truncate();
+    mResponseBodyUnicode.SetIsVoid(PR_TRUE);
+  }
+}
+
 
 NS_IMETHODIMP
 nsXMLHttpRequest::OnDataAvailable(nsIRequest *request, nsISupports *ctxt, nsIInputStream *inStr, PRUint32 sourceOffset, PRUint32 count)
@@ -1443,6 +1617,10 @@ nsXMLHttpRequest::OnDataAvailable(nsIRequest *request, nsISupports *ctxt, nsIInp
   NS_ENSURE_ARG_POINTER(inStr);
 
   NS_ABORT_IF_FALSE(mContext.get() == ctxt,"start context different from OnDataAvailable context");
+
+  if (mResponseType == XML_HTTP_RESPONSE_TYPE_BLOB && !mResponseBlob) {
+    CreateResponseBlob(request);
+  }
 
   PRUint32 totalRead;
   return inStr->ReadSegments(nsXMLHttpRequest::StreamReaderFunc, (void*)this, count, &totalRead);
@@ -1478,7 +1656,7 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
   }
 
   
-  if (mState & XML_HTTP_REQUEST_UNINITIALIZED)
+  if (mState & XML_HTTP_REQUEST_UNSENT)
     return NS_OK;
 
   if (mState & XML_HTTP_REQUEST_ABORTED) {
@@ -1509,7 +1687,14 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
   mContext = ctxt;
   mState |= XML_HTTP_REQUEST_PARSEBODY;
   mState &= ~XML_HTTP_REQUEST_MPART_HEADERS;
-  ChangeState(XML_HTTP_REQUEST_LOADED);
+  ChangeState(XML_HTTP_REQUEST_HEADERS_RECEIVED);
+
+  if (mResponseType == XML_HTTP_RESPONSE_TYPE_BLOB) {
+    nsCOMPtr<nsICachingChannel> cc(do_QueryInterface(mChannel));
+    if (cc) {
+      cc->SetCacheAsFile(PR_TRUE);
+    }
+  }
 
   nsresult status;
   request->GetStatus(&status);
@@ -1525,11 +1710,13 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
   
   mResponseBody.Truncate();
   mResponseBodyUnicode.SetIsVoid(PR_TRUE);
+  mResponseBlob = nsnull;
 
   
-  PRBool parseBody = PR_TRUE;
+  PRBool parseBody = mResponseType == XML_HTTP_RESPONSE_TYPE_DEFAULT ||
+                     mResponseType == XML_HTTP_RESPONSE_TYPE_DOCUMENT;
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel));
-  if (httpChannel) {
+  if (parseBody && httpChannel) {
     nsCAutoString method;
     httpChannel->GetRequestMethod(method);
     parseBody = !method.EqualsLiteral("HEAD");
@@ -1668,7 +1855,7 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
 
   
   
-  if (mState & XML_HTTP_REQUEST_UNINITIALIZED) {
+  if (mState & XML_HTTP_REQUEST_UNSENT) {
     if (mXMLParserStreamListener)
       (void) mXMLParserStreamListener->OnStopRequest(request, ctxt, status);
     return NS_OK;
@@ -1689,6 +1876,31 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
 
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(request));
   NS_ENSURE_TRUE(channel, NS_ERROR_UNEXPECTED);
+
+  if (NS_SUCCEEDED(status) && mResponseType == XML_HTTP_RESPONSE_TYPE_BLOB) {
+    if (!mResponseBlob) {
+      CreateResponseBlob(request);
+    }
+    if (!mResponseBlob) {
+      
+      
+      nsCAutoString contentType;
+      mChannel->GetContentType(contentType);
+      
+      
+      PRUint32 blobLen = mResponseBody.Length();
+      void *blobData = PR_Malloc(blobLen);
+      if (blobData) {
+        memcpy(blobData, mResponseBody.BeginReading(), blobLen);
+        mResponseBlob =
+          new nsDOMMemoryFile(blobData, blobLen, EmptyString(),
+                              NS_ConvertASCIItoUTF16(contentType));
+        mResponseBody.Truncate();
+      }
+      NS_ASSERTION(mResponseBodyUnicode.IsVoid(),
+                   "mResponseBodyUnicode should be empty");
+    }
+  }
 
   channel->SetNotificationCallbacks(nsnull);
   mNotificationCallbacks = nsnull;
@@ -1736,8 +1948,8 @@ nsXMLHttpRequest::RequestCompleted()
   
   
   
-  if (mState & (XML_HTTP_REQUEST_UNINITIALIZED |
-                XML_HTTP_REQUEST_COMPLETED)) {
+  if (mState & (XML_HTTP_REQUEST_UNSENT |
+                XML_HTTP_REQUEST_DONE)) {
     return NS_OK;
   }
 
@@ -1753,7 +1965,7 @@ nsXMLHttpRequest::RequestCompleted()
     }
   }
 
-  ChangeState(XML_HTTP_REQUEST_COMPLETED, PR_TRUE);
+  ChangeState(XML_HTTP_REQUEST_DONE, PR_TRUE);
 
   PRUint32 responseLength = mResponseBody.Length();
   NS_NAMED_LITERAL_STRING(errorStr, ERROR_STR);
@@ -2134,6 +2346,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   
   mResponseBody.Truncate();
   mResponseBodyUnicode.SetIsVoid(PR_TRUE);
+  mResponseBlob = nsnull;
 
   
   mResponseXML = nsnull;
@@ -2369,20 +2582,20 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
 
 
 NS_IMETHODIMP
-nsXMLHttpRequest::GetReadyState(PRInt32 *aState)
+nsXMLHttpRequest::GetReadyState(PRUint16 *aState)
 {
   NS_ENSURE_ARG_POINTER(aState);
   
-  if (mState & XML_HTTP_REQUEST_UNINITIALIZED) {
-    *aState = 0; 
+  if (mState & XML_HTTP_REQUEST_UNSENT) {
+    *aState = UNSENT;
   } else  if (mState & (XML_HTTP_REQUEST_OPENED | XML_HTTP_REQUEST_SENT)) {
-    *aState = 1; 
-  } else if (mState & XML_HTTP_REQUEST_LOADED) {
-    *aState = 2; 
-  } else if (mState & (XML_HTTP_REQUEST_INTERACTIVE | XML_HTTP_REQUEST_STOPPED)) {
-    *aState = 3; 
-  } else if (mState & XML_HTTP_REQUEST_COMPLETED) {
-    *aState = 4; 
+    *aState = OPENED;
+  } else if (mState & XML_HTTP_REQUEST_HEADERS_RECEIVED) {
+    *aState = HEADERS_RECEIVED;
+  } else if (mState & (XML_HTTP_REQUEST_LOADING | XML_HTTP_REQUEST_STOPPED)) {
+    *aState = LOADING;
+  } else if (mState & XML_HTTP_REQUEST_DONE) {
+    *aState = DONE;
   } else {
     NS_ERROR("Should not happen");
   }
@@ -2413,7 +2626,7 @@ nsXMLHttpRequest::GetMultipart(PRBool *_retval)
 NS_IMETHODIMP
 nsXMLHttpRequest::SetMultipart(PRBool aMultipart)
 {
-  if (!(mState & XML_HTTP_REQUEST_UNINITIALIZED)) {
+  if (!(mState & XML_HTTP_REQUEST_UNSENT)) {
     
     return NS_ERROR_IN_PROGRESS;
   }
@@ -2448,7 +2661,7 @@ nsXMLHttpRequest::SetMozBackgroundRequest(PRBool aMozBackgroundRequest)
   if (!privileged)
     return NS_ERROR_DOM_SECURITY_ERR;
 
-  if (!(mState & XML_HTTP_REQUEST_UNINITIALIZED)) {
+  if (!(mState & XML_HTTP_REQUEST_UNSENT)) {
     
     return NS_ERROR_IN_PROGRESS;
   }
@@ -2545,7 +2758,7 @@ nsresult
 nsXMLHttpRequest::Error(nsIDOMEvent* aEvent)
 {
   mResponseXML = nsnull;
-  ChangeState(XML_HTTP_REQUEST_COMPLETED);
+  ChangeState(XML_HTTP_REQUEST_DONE);
 
   mState &= ~XML_HTTP_REQUEST_SYNCLOOPING;
 
@@ -2572,7 +2785,7 @@ nsXMLHttpRequest::ChangeState(PRUint32 aState, PRBool aBroadcast)
   nsresult rv = NS_OK;
 
   if (mProgressNotifier &&
-      !(aState & (XML_HTTP_REQUEST_LOADED | XML_HTTP_REQUEST_INTERACTIVE))) {
+      !(aState & (XML_HTTP_REQUEST_HEADERS_RECEIVED | XML_HTTP_REQUEST_LOADING))) {
     mTimerIsActive = PR_FALSE;
     mProgressNotifier->Cancel();
   }
@@ -2581,7 +2794,7 @@ nsXMLHttpRequest::ChangeState(PRUint32 aState, PRBool aBroadcast)
       aBroadcast &&
       (mState & XML_HTTP_REQUEST_ASYNC ||
        aState & XML_HTTP_REQUEST_OPENED ||
-       aState & XML_HTTP_REQUEST_COMPLETED)) {
+       aState & XML_HTTP_REQUEST_DONE)) {
     nsCOMPtr<nsIDOMEvent> event;
     rv = CreateReadystatechangeEvent(getter_AddRefs(event));
     NS_ENSURE_SUCCESS(rv, rv);

@@ -224,6 +224,8 @@ protected:
                 PRUint32 toOffset,
                 PRUint32 count,
                 PRUint32 *writeCount);
+  nsresult GetResponseArrayBuffer(jsval *aResult);
+  void CreateResponseBlob(nsIRequest *request);
   
   
   nsresult ChangeState(PRUint32 aState, PRBool aBroadcast = PR_TRUE);
@@ -292,6 +294,16 @@ protected:
   
   
   nsString mResponseBodyUnicode;
+
+  enum {
+    XML_HTTP_RESPONSE_TYPE_DEFAULT,
+    XML_HTTP_RESPONSE_TYPE_ARRAYBUFFER,
+    XML_HTTP_RESPONSE_TYPE_BLOB,
+    XML_HTTP_RESPONSE_TYPE_DOCUMENT,
+    XML_HTTP_RESPONSE_TYPE_TEXT
+  } mResponseType;
+
+  nsCOMPtr<nsIDOMBlob> mResponseBlob;
 
   nsCString mOverrideMimeType;
 
