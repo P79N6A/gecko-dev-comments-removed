@@ -811,6 +811,16 @@ nsNavHistory::InitDB()
   }
 
   
+  
+  
+  
+  
+  
+  nsCAutoString journalSizePragma("PRAGMA journal_size_limit = ");
+  journalSizePragma.AppendInt(DATABASE_MAX_WAL_SIZE_IN_KIBIBYTES * 3);
+  (void)mDBConn->ExecuteSimpleSQL(journalSizePragma);
+
+  
   (void)mDBConn->SetGrowthIncrement(10 * BYTES_PER_MEBIBYTE, EmptyCString());
 
   
