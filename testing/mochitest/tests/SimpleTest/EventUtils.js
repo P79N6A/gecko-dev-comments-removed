@@ -15,7 +15,6 @@
 
 
 
-
 function sendMouseEvent(aEvent, aTarget, aWindow) {
   if (['click', 'mousedown', 'mouseup', 'mouseover', 'mouseout'].indexOf(aEvent.type) == -1) {
     throw new Error("sendMouseEvent doesn't know about event type '"+aEvent.type+"'");
@@ -23,10 +22,6 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
 
   if (!aWindow) {
     aWindow = window;
-  }
-
-  if (aTarget instanceof String) {
-    aTarget = aWindow.document.getElementById(aTarget);
   }
 
   
@@ -57,7 +52,7 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
                        ctrlKeyArg, altKeyArg, shiftKeyArg, metaKeyArg,
                        buttonArg, relatedTargetArg);
 
-  aTarget.dispatchEvent(event);
+  aWindow.document.getElementById(aTarget).dispatchEvent(event);
 }
 
 

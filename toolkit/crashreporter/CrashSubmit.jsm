@@ -187,13 +187,12 @@ function writeSubmittedReport(crashID, viewURL) {
 }
 
 
-function Submitter(id, element, submitSuccess, submitError, noThrottle) {
+function Submitter(id, element, submitSuccess, submitError) {
   this.id = id;
   this.element = element;
   this.document = element.ownerDocument;
   this.successCallback = submitSuccess;
   this.errorCallback = submitError;
-  this.noThrottle = noThrottle;
 }
 
 Submitter.prototype = {
@@ -251,10 +250,8 @@ Submitter.prototype = {
     for (let [name, value] in Iterator(reportData)) {
       addFormEntry(this.iframe.contentDocument, form, name, value);
     }
-    if (this.noThrottle) {
-      
-      addFormEntry(this.iframe.contentDocument, form, "Throttleable", "0");
-    }
+    
+    addFormEntry(this.iframe.contentDocument, form, "Throttleable", "0");
     
     this.iframe.contentDocument.getElementById('minidump').value
       = this.dump.path;
@@ -313,9 +310,6 @@ Submitter.prototype = {
     let propBag = Cc["@mozilla.org/hash-property-bag;1"].
                   createInstance(Ci.nsIWritablePropertyBag2);
     propBag.setPropertyAsAString("minidumpID", this.id);
-    if (status == SUCCESS) {
-      propBag.setPropertyAsAString("serverCrashID", ret.CrashID);
-    }
 
     Services.obs.notifyObservers(propBag, "crash-report-status", status);
 
@@ -395,20 +389,9 @@ let CrashSubmit = {
 
 
 
-
-
-
-
-
-
-  submit: function CrashSubmit_submit(id, element, submitSuccess, submitError,
-                                      noThrottle)
+  submit: function CrashSubmit_submit(id, element, submitSuccess, submitError)
   {
-    let submitter = new Submitter(id,
-                                  element,
-                                  submitSuccess,
-                                  submitError,
-                                  noThrottle);
+    let submitter = new Submitter(id, element, submitSuccess, submitError);
     CrashSubmit._activeSubmissions.push(submitter);
     return submitter.submit();
   },
