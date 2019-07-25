@@ -27,7 +27,7 @@ function onTabViewShown() {
   
   
   let $container = contentWindow.iQ(currentActiveGroup.container);
-  $container.css("-moz-transition-property", "none");
+  $container.css("transition-property", "none");
 
   currentActiveGroup.setPosition(40, 40, true);
   currentActiveGroup.arrange({animate: false});
