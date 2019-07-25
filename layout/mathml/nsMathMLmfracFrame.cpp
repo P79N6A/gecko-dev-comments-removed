@@ -40,6 +40,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -60,11 +61,8 @@
 #define THIN_FRACTION_LINE                   0.5f
 #define THIN_FRACTION_LINE_MINIMUM_PIXELS    1  // minimum of 1 pixel
 
-#define MEDIUM_FRACTION_LINE                 1.5f
-#define MEDIUM_FRACTION_LINE_MINIMUM_PIXELS  2  // minimum of 2 pixels
-
 #define THICK_FRACTION_LINE                  2.0f
-#define THICK_FRACTION_LINE_MINIMUM_PIXELS   4  // minimum of 4 pixels
+#define THICK_FRACTION_LINE_MINIMUM_PIXELS   2  // minimum of 2 pixels
 
 nsIFrame*
 NS_NewMathMLmfracFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -135,18 +133,14 @@ nsMathMLmfracFrame::CalcLineThickness(nsPresContext*  aPresContext,
         lineThickness = defaultThickness - onePixel;
     }
     else if (aThicknessAttribute.EqualsLiteral("medium")) {
-      lineThickness = NSToCoordRound(defaultThickness * MEDIUM_FRACTION_LINE);
-      minimumThickness = onePixel * MEDIUM_FRACTION_LINE_MINIMUM_PIXELS;
       
-      if (lineThickness < defaultThickness + onePixel)
-        lineThickness = defaultThickness + onePixel;
     }
     else if (aThicknessAttribute.EqualsLiteral("thick")) {
       lineThickness = NSToCoordCeil(defaultThickness * THICK_FRACTION_LINE);
       minimumThickness = onePixel * THICK_FRACTION_LINE_MINIMUM_PIXELS;
       
-      if (lineThickness < defaultThickness + 2*onePixel)
-        lineThickness = defaultThickness + 2*onePixel;
+      if (lineThickness < defaultThickness + onePixel)
+        lineThickness = defaultThickness + onePixel;
     }
     else { 
       nsCSSValue cssValue;
