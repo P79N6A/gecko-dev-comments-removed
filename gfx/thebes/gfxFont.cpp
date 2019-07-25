@@ -2484,6 +2484,17 @@ gfxFontGroup::InitTextRun(gfxContext *aContext,
                       runStart, runLimit, runScript);
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    aTextRun->SanitizeGlyphRuns();
+
     aTextRun->SortGlyphRuns();
 }
 
@@ -2565,13 +2576,6 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
 
         runStart += matchedLength;
     }
-
-    
-    
-    
-    
-    aTextRun->SanitizeGlyphRuns();
-
 }
 
 
@@ -4044,6 +4048,9 @@ gfxTextRun::SortGlyphRuns()
         }
     }
 }
+
+
+
 
 void
 gfxTextRun::SanitizeGlyphRuns()
