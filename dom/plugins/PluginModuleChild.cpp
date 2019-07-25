@@ -265,16 +265,6 @@ PluginModuleChild::AnswerNP_Shutdown(NPError *rv)
 {
     AssertPluginThread();
 
-
-
-
-#ifdef OS_LINUX
-    printf("TEST-UNEXPECTED-FAIL | plugin process %d | got NP_Shutdown() %d\n", getpid());
-#endif
-
-
-
-
     
     
 
