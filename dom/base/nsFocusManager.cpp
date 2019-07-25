@@ -1592,11 +1592,16 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
          aIsNewDocument, aFocusChanged, aWindowRaised, aFlags);
 #endif
 
-  
-  
-  
-  if (aIsNewDocument)
+  if (aIsNewDocument) {
+    
+    
+    
     AdjustWindowFocus(aWindow, PR_FALSE);
+
+    
+    
+    aWindow->UpdateTouchState();
+  }
 
   
   if (aWindow->TakeFocus(PR_TRUE, focusMethod))
