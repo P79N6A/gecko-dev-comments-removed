@@ -2519,6 +2519,21 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
     Address         icRvalAddr;   
 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     Jump            uncachedCallSlowRejoin;
     CallPatchInfo   uncachedCallPatch;
 
@@ -2595,12 +2610,18 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
     RegisterID funPtrReg = tempRegs.takeRegInMask(Registers::SavedRegs);
 
     
+    RESERVE_IC_SPACE(masm);
+
+    
 
 
 
 
     Jump j = masm.branchPtrWithPatch(Assembler::NotEqual, icCalleeData, callIC.funGuard);
     callIC.funJump = j;
+
+    
+    RESERVE_OOL_SPACE(stubcc.masm);
 
     Jump rejoin1, rejoin2;
     {
@@ -2710,6 +2731,12 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
         uncachedCallPatch.joinPoint = callIC.joinPoint;
     masm.loadPtr(Address(JSFrameReg, JSStackFrame::offsetOfPrev()), JSFrameReg);
 
+    
+
+
+
+    CHECK_IC_SPACE();
+
     frame.popn(speculatedArgc + 2);
     frame.takeReg(JSReturnReg_Type);
     frame.takeReg(JSReturnReg_Data);
@@ -2728,6 +2755,8 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
     stubcc.masm.loadValueAsComponents(icRvalAddr, JSReturnReg_Type, JSReturnReg_Data);
     stubcc.crossJump(stubcc.masm.jump(), masm.label());
     JaegerSpew(JSpew_Insns, " ---- END SLOW RESTORE CODE ---- \n");
+
+    CHECK_OOL_SPACE();
 
     if (lowerFunCallOrApply)
         stubcc.crossJump(uncachedCallSlowRejoin, masm.label());

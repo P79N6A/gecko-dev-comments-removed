@@ -266,7 +266,8 @@ class AutoReserveICSpace {
     }
 };
 
-# define RESERVE_IC_SPACE(__masm)       AutoReserveICSpace<96> arics(__masm)
+# define RESERVE_IC_SPACE(__masm)       AutoReserveICSpace<128> arics(__masm)
+# define CHECK_IC_SPACE()               arics.check()
 
 
 
@@ -278,6 +279,7 @@ class AutoReserveICSpace {
 # define CHECK_OOL_SPACE()              arics_ool.check()
 #else
 # define RESERVE_IC_SPACE(__masm)
+# define CHECK_IC_SPACE()
 # define RESERVE_OOL_SPACE(__masm)
 # define CHECK_OOL_SPACE()
 #endif
