@@ -186,18 +186,16 @@ struct ConservativeGCData
 class FreeOp : public JSFreeOp {
     bool        shouldFreeLater_;
     bool        onBackgroundThread_;
-  public:
-    JSContext   *context;
 
+  public:
     static FreeOp *get(JSFreeOp *fop) {
         return static_cast<FreeOp *>(fop);
     }
 
-    FreeOp(JSRuntime *rt, bool shouldFreeLater, bool onBackgroundThread, JSContext *cx)
+    FreeOp(JSRuntime *rt, bool shouldFreeLater, bool onBackgroundThread)
       : JSFreeOp(rt),
         shouldFreeLater_(shouldFreeLater),
-        onBackgroundThread_(onBackgroundThread),
-        context(cx)
+        onBackgroundThread_(onBackgroundThread)
     {
     }
 
@@ -291,7 +289,7 @@ struct JSRuntime : js::RuntimeFriendFields
     JSContextCallback   cxCallback;
 
     
-    JSCompartmentCallback compartmentCallback;
+    JSDestroyCompartmentCallback destroyCompartmentCallback;
 
     js::ActivityCallback  activityCallback;
     void                 *activityCallbackArg;

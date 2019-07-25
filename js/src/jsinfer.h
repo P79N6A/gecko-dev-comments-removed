@@ -366,7 +366,7 @@ class TypeSet
 
     void print(JSContext *cx);
 
-    inline void sweep(JSContext *cx, JSCompartment *compartment);
+    inline void sweep(JSCompartment *compartment);
     inline size_t computedSizeOfExcludingThis();
 
     
@@ -864,7 +864,7 @@ struct TypeObject : gc::Cell
     void print(JSContext *cx);
 
     inline void clearProperties();
-    inline void sweep(JSContext *cx);
+    inline void sweep(FreeOp *fop);
 
     inline size_t computedSizeOfExcludingThis();
 
@@ -1121,7 +1121,7 @@ class TypeScript
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, Type type);
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, const js::Value &value);
 
-    static void Sweep(JSContext *cx, JSScript *script);
+    static void Sweep(FreeOp *fop, JSScript *script);
     inline void trace(JSTracer *trc);
     void destroy();
 };
@@ -1244,11 +1244,12 @@ struct TypeCompartment
     
     TypeObject *newAllocationSiteTypeObject(JSContext *cx, const AllocationSiteKey &key);
 
-    void nukeTypes(JSContext *cx);
-    void processPendingRecompiles(JSContext *cx);
+    void nukeTypes(FreeOp *fop);
+    void processPendingRecompiles(FreeOp *fop);
 
     
     void setPendingNukeTypes(JSContext *cx);
+    void setPendingNukeTypesNoReport();
 
     
     void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
@@ -1261,7 +1262,7 @@ struct TypeCompartment
     
     void markSetsUnknown(JSContext *cx, TypeObject *obj);
 
-    void sweep(JSContext *cx);
+    void sweep(FreeOp *fop);
     void finalizeObjects();
 };
 

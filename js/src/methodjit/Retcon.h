@@ -68,12 +68,12 @@ public:
     
     
     static void
-    clearStackReferences(JSContext *cx, JSScript *script);
+    clearStackReferences(FreeOp *fop, JSScript *script);
 
     
     
     static void
-    clearStackReferencesAndChunk(JSContext *cx, JSScript *script,
+    clearStackReferencesAndChunk(FreeOp *fop, JSScript *script,
                                  JITScript *jit, size_t chunkIndex,
                                  bool resetUses = true);
 

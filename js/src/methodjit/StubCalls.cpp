@@ -818,8 +818,8 @@ void JS_FASTCALL
 stubs::RecompileForInline(VMFrame &f)
 {
     ExpandInlineFrames(f.cx->compartment);
-    Recompiler::clearStackReferencesAndChunk(f.cx, f.script(), f.jit(), f.chunkIndex(),
-                                              false);
+    Recompiler::clearStackReferencesAndChunk(f.cx->runtime->defaultFreeOp(), f.script(), f.jit(),
+                                             f.chunkIndex(),  false);
 }
 
 void JS_FASTCALL
@@ -1670,8 +1670,8 @@ stubs::InvariantFailure(VMFrame &f, void *rval)
 
     ExpandInlineFrames(f.cx->compartment);
 
-    mjit::Recompiler::clearStackReferences(f.cx, script);
-    mjit::ReleaseScriptCode(f.cx, script);
+    mjit::Recompiler::clearStackReferences(f.cx->runtime->defaultFreeOp(), script);
+    mjit::ReleaseScriptCode(f.cx->runtime->defaultFreeOp(), script);
 
     
     return rval;
