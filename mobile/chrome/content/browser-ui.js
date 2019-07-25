@@ -2290,10 +2290,10 @@ var MenuListHelperUI = {
 
   sizeToContent: function sizeToContent() {
     
-    let popup = this._popup;
+    let popup = this._popup.lastChild;
     let preferredHeight = 0;
     for (let i=0; i<popup.childElementCount; i++) {
-      preferredHeight += popup.children[i].getBoundingClientRect().height;
+      preferredHeight += popup.childNodes[i].getBoundingClientRect().height;
     }
 
     
@@ -2301,7 +2301,7 @@ var MenuListHelperUI = {
     popup.width = popup.height = "";
 
     let rect = popup.getBoundingClientRect();
-    let height = Math.min(preferredHeight, 0.75 * window.innerWidth);
+    let height = Math.min(preferredHeight, 0.75 * window.innerHeight);
     let width = Math.min(rect.width, 0.75 * window.innerWidth);
 
     popup.height = height;
@@ -2393,7 +2393,7 @@ var ContextHelper = {
     popup.width = popup.height = "";
 
     let rect = popup.getBoundingClientRect();
-    let height = Math.min(preferredHeight, 0.75 * window.innerWidth);
+    let height = Math.min(preferredHeight, 0.75 * window.innerHeight);
     let width = Math.min(rect.width, 0.75 * window.innerWidth);
 
     popup.height = height;
