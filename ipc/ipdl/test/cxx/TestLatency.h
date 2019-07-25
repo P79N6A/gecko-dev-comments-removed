@@ -61,9 +61,6 @@ private:
 
     int mPPTrialsToGo;
     int mPP5TrialsToGo;
-
-    
-    int mPongsToGo;
 };
 
 
