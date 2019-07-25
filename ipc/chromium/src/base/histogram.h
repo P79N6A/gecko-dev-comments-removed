@@ -395,6 +395,8 @@ class Histogram {
 
   virtual void AddSampleSet(const SampleSet& sample);
 
+  void Clear();
+
   
   virtual void SetRangeDescriptions(const DescriptionPair descriptions[]);
 
