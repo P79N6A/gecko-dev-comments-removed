@@ -3880,6 +3880,14 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script, JS
 
 
 
+    if (initializerList->length() > 50) {
+        
+
+
+
+        return false;
+    }
+
     ScriptAnalysis *analysis = script->analysis(cx);
     if (analysis && !analysis->ranInference())
         analysis->analyzeTypes(cx);
