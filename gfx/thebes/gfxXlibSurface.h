@@ -89,6 +89,9 @@ public:
         mPixmapTaken = PR_TRUE;
     }
 
+    
+    PRBool GetColormapAndVisual(Colormap* colormap, Visual **visual);
+
 protected:
     
     PRBool mPixmapTaken;

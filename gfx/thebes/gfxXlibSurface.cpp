@@ -41,6 +41,8 @@
 #include "cairo.h"
 #include "cairo-xlib.h"
 #include "cairo-xlib-xrender.h"
+#include <X11/Xlibint.h>	
+#include "nsTArray.h"
 
 
 
@@ -173,6 +175,174 @@ gfxXlibSurface::DoSizeQuery()
 
     mSize.width = width;
     mSize.height = height;
+}
+
+class DisplayTable {
+public:
+    static PRBool GetColormapAndVisual(Screen* screen,
+                                       XRenderPictFormat* format,
+                                       Visual* visual, Colormap* colormap,
+                                       Visual** visualForColormap);
+
+private:
+    struct ColormapEntry {
+        XRenderPictFormat* mFormat;
+        
+        
+        
+        Screen* mScreen;
+        Visual* mVisual;
+        Colormap mColormap;
+    };
+
+    class DisplayInfo {
+    public:
+        DisplayInfo(Display* display) : mDisplay(display) { }
+        Display* mDisplay;
+        nsTArray<ColormapEntry> mColormapEntries;
+    };
+
+    
+    class FindDisplay {
+    public:
+        PRBool Equals(const DisplayInfo& info, const Display *display) const
+        {
+            return info.mDisplay == display;
+        }
+    };
+
+    static int DisplayClosing(Display *display, XExtCodes* codes);
+
+    nsTArray<DisplayInfo> mDisplays;
+    static DisplayTable* sDisplayTable;
+};
+
+DisplayTable* DisplayTable::sDisplayTable;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ PRBool
+DisplayTable::GetColormapAndVisual(Screen* aScreen, XRenderPictFormat* aFormat,
+                                   Visual* aVisual, Colormap* aColormap,
+                                   Visual** aVisualForColormap)
+
+{
+    Display* display = DisplayOfScreen(aScreen);
+
+    
+    Visual *defaultVisual = DefaultVisualOfScreen(aScreen);
+    if (aVisual == defaultVisual
+        || (aFormat
+            && aFormat == XRenderFindVisualFormat(display, defaultVisual)))
+    {
+        *aColormap = DefaultColormapOfScreen(aScreen);
+        *aVisualForColormap = defaultVisual;
+        return PR_TRUE;
+    }
+
+    
+    if (!aVisual || aVisual->c_class != TrueColor)
+        return PR_FALSE;
+
+    if (!sDisplayTable) {
+        sDisplayTable = new DisplayTable();
+    }
+
+    nsTArray<DisplayInfo>* displays = &sDisplayTable->mDisplays;
+    PRUint32 d = displays->IndexOf(display, 0, FindDisplay());
+
+    if (d == displays->NoIndex) {
+        d = displays->Length();
+        
+        
+        XExtCodes *codes = XAddExtension(display);
+        if (!codes)
+            return PR_FALSE;
+
+        XESetCloseDisplay(display, codes->extension, DisplayClosing);
+        
+        displays->AppendElement(display);
+    }
+
+    nsTArray<ColormapEntry>* entries =
+        &displays->ElementAt(d).mColormapEntries;
+
+    
+    
+    for (PRUint32 i = 0; i < entries->Length(); ++i) {
+        const ColormapEntry& entry = entries->ElementAt(i);
+        
+        
+        
+        if ((aFormat && entry.mFormat == aFormat && entry.mScreen == aScreen)
+            || aVisual == entry.mVisual) {
+            *aColormap = entry.mColormap;
+            *aVisualForColormap = entry.mVisual;
+            return PR_TRUE;
+        }
+    }
+
+    
+    Colormap colormap = XCreateColormap(display, RootWindowOfScreen(aScreen),
+                                        aVisual, AllocNone);
+    ColormapEntry* newEntry = entries->AppendElement();
+    newEntry->mFormat = aFormat;
+    newEntry->mScreen = aScreen;
+    newEntry->mVisual = aVisual;
+    newEntry->mColormap = colormap;
+
+    *aColormap = colormap;
+    *aVisualForColormap = aVisual;
+    return PR_TRUE;
+}
+
+ int
+DisplayTable::DisplayClosing(Display *display, XExtCodes* codes)
+{
+    
+    
+    sDisplayTable->mDisplays.RemoveElement(display, FindDisplay());
+    if (sDisplayTable->mDisplays.Length() == 0) {
+        delete sDisplayTable;
+        sDisplayTable = nsnull;
+    }
+    return 0;
+}
+
+PRBool
+gfxXlibSurface::GetColormapAndVisual(Colormap* aColormap, Visual** aVisual)
+{
+    if (!mSurfaceValid)
+        return PR_FALSE;
+
+    XRenderPictFormat* format =
+        cairo_xlib_surface_get_xrender_format(CairoSurface());
+    Screen* screen = cairo_xlib_surface_get_screen(CairoSurface());
+    Visual* visual = cairo_xlib_surface_get_visual(CairoSurface());
+
+    return DisplayTable::GetColormapAndVisual(screen, format, visual,
+                                              aColormap, aVisual);
 }
 
 
