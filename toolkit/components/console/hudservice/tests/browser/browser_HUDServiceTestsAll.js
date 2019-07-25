@@ -747,75 +747,13 @@ function testDuplicateError() {
           "found test-duplicate-error.html");
 
         text = null;
-        testCopyOutputMenuItem();
+        testWebConsoleClose();
       });
     }
   };
 
   Services.console.registerListener(consoleObserver);
   content.location = TEST_DUPLICATE_ERROR_URI;
-}
-
-function testCopyOutputMenuItem()
-{
-  
-  
-
-  var HUD = HUDService.hudWeakReferences[hudId].get();
-  var selection = getSelection();
-  var console = content.wrappedJSObject.console;
-
-  if (selection.rangeCount > 0) {
-    selection.removeAllRanges();
-  }
-
-  
-  HUD.contextMenu.addEventListener("popupshown", function () {
-    HUD.contextMenu.removeEventListener("popupshown", arguments.callee, false);
-
-    
-    
-    if (navigator.platform.indexOf("Linux") == -1) {
-      ok(HUD.copyOutputMenuItem.disabled, "HUD.copyOutputMenuItem is disabled");
-    }
-
-    console.log("Hello world!");
-
-    var range = HUD.chromeDocument.createRange();
-    range.selectNode(HUD.outputNode.firstChild);
-    selection.addRange(range);
-
-    
-    
-    HUD.contextMenu.addEventListener("popupshown", function () {
-      HUD.contextMenu.removeEventListener("popupshown", arguments.callee,
-        false);
-
-      ok(!HUD.copyOutputMenuItem.disabled, "HUD.copyOutputMenuItem is enabled");
-
-      selection.removeAllRanges();
-
-      
-      EventUtils.synthesizeKey("VK_ESCAPE", {});
-
-      testWebConsoleClose();
-    }, false);
-
-    HUD.contextMenu.addEventListener("popuphidden", function () {
-      HUD.contextMenu.removeEventListener("popuphidden", arguments.callee,
-        false);
-
-      
-      EventUtils.synthesizeMouse(HUD.outputNode, 2, 2, {type: "contextmenu",
-        button: 2});
-    }, false);
-
-    
-    EventUtils.synthesizeKey("VK_ESCAPE", {});
-  }, false);
-
-  EventUtils.synthesizeMouse(HUD.outputNode, 1, 1, {type: "contextmenu",
-    button: 2});
 }
 
 
