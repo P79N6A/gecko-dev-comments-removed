@@ -937,33 +937,6 @@ MakeDefIntoUse(Definition *dn, ParseNode *pn, JSAtom *atom, Parser *parser)
     return true;
 }
 
-bool
-frontend::DefineArg(ParseNode *pn, JSAtom *atom, unsigned i, Parser *parser)
-{
-    
-
-
-
-
-    ParseNode *argpn = NameNode::create(PNK_NAME, atom, parser, parser->tc);
-    if (!argpn)
-        return false;
-    JS_ASSERT(argpn->isKind(PNK_NAME) && argpn->isOp(JSOP_NOP));
-
-    
-    if (!Define(argpn, atom, parser->tc))
-        return false;
-
-    ParseNode *argsbody = pn->pn_body;
-    argsbody->append(argpn);
-
-    argpn->setOp(JSOP_GETARG);
-    if (!argpn->pn_cookie.set(parser->context, parser->tc->staticLevel, i))
-        return false;
-    argpn->pn_dflags |= PND_BOUND;
-    return true;
-}
-
 
 
 
@@ -1009,51 +982,6 @@ struct frontend::BindData {
         this->binder = BindVarOrConst;
     }
 };
-
-#if JS_HAS_DESTRUCTURING
-static bool
-BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom, Parser *parser)
-{
-    TreeContext *tc = parser->tc;
-    JS_ASSERT(tc->sc->inFunction());
-
-    
-
-
-
-
-    if (tc->decls.lookupFirst(atom)) {
-        parser->reportError(NULL, JSMSG_DESTRUCT_DUP_ARG);
-        return false;
-    }
-
-    ParseNode *pn = data->pn;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    pn->setOp(JSOP_SETLOCAL);
-    pn->pn_dflags |= PND_BOUND;
-
-    return Define(pn, atom, tc);
-}
-#endif 
 
 JSFunction *
 Parser::newFunction(TreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind)
@@ -1272,6 +1200,82 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
 
     return true;
 }
+
+
+
+
+
+bool
+frontend::DefineArg(ParseNode *pn, JSAtom *atom, unsigned i, Parser *parser)
+{
+    
+
+
+
+
+    ParseNode *argpn = NameNode::create(PNK_NAME, atom, parser, parser->tc);
+    if (!argpn)
+        return false;
+    JS_ASSERT(argpn->isKind(PNK_NAME) && argpn->isOp(JSOP_NOP));
+
+    
+    if (!Define(argpn, atom, parser->tc))
+        return false;
+
+    ParseNode *argsbody = pn->pn_body;
+    argsbody->append(argpn);
+
+    argpn->setOp(JSOP_GETARG);
+    if (!argpn->pn_cookie.set(parser->context, parser->tc->staticLevel, i))
+        return false;
+    argpn->pn_dflags |= PND_BOUND;
+    return true;
+}
+
+#if JS_HAS_DESTRUCTURING
+static bool
+BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom, Parser *parser)
+{
+    TreeContext *tc = parser->tc;
+    JS_ASSERT(tc->sc->inFunction());
+
+    
+
+
+
+
+    if (tc->decls.lookupFirst(atom)) {
+        parser->reportError(NULL, JSMSG_DESTRUCT_DUP_ARG);
+        return false;
+    }
+
+    ParseNode *pn = data->pn;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    pn->setOp(JSOP_SETLOCAL);
+    pn->pn_dflags |= PND_BOUND;
+
+    return Define(pn, atom, tc);
+}
+#endif 
 
 bool
 Parser::functionArguments(ParseNode **listp, bool &hasRest)
