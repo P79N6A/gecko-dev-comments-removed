@@ -54,6 +54,39 @@
 
 
 
+#if defined(__cplusplus)
+#  define MOZ_INLINE            inline
+#elif defined(_MSC_VER)
+#  define MOZ_INLINE            __inline
+#elif defined(__GNUC__)
+#  define MOZ_INLINE            __inline__
+#else
+#  define MOZ_INLINE            inline
+#endif
+
+
+
+
+
+
+
+
+#if defined(DEBUG)
+#  define MOZ_ALWAYS_INLINE     MOZ_INLINE
+#elif defined(_MSC_VER)
+#  define MOZ_ALWAYS_INLINE     __forceinline
+#elif defined(__GNUC__)
+#  define MOZ_ALWAYS_INLINE     __attribute__((always_inline)) MOZ_INLINE
+#else
+#  define MOZ_ALWAYS_INLINE     MOZ_INLINE
+#endif
+
+
+
+
+
+
+
 
 
 #if defined(__clang__)
@@ -71,6 +104,9 @@
 #  if __has_extension(cxx_override_control)
 #    define MOZ_HAVE_CXX11_OVERRIDE
 #    define MOZ_HAVE_CXX11_FINAL         final
+#  endif
+#  if __has_attribute(noinline)
+#    define MOZ_HAVE_NEVER_INLINE        __attribute__((noinline))
 #  endif
 #  if __has_attribute(noreturn)
 #    define MOZ_HAVE_NORETURN            __attribute__((noreturn))
@@ -100,6 +136,7 @@
 #      endif
 #    endif
 #  endif
+#  define MOZ_HAVE_NEVER_INLINE          __attribute__((noinline))
 #  define MOZ_HAVE_NORETURN              __attribute__((noreturn))
 #elif defined(_MSC_VER)
 #  if _MSC_VER >= 1400
@@ -107,7 +144,20 @@
 
 #    define MOZ_HAVE_CXX11_FINAL         sealed
 #  endif
+#  define MOZ_HAVE_NEVER_INLINE          __declspec(noinline)
 #  define MOZ_HAVE_NORETURN              __declspec(noreturn)
+#endif
+
+
+
+
+
+
+
+#if defined(MOZ_HAVE_NEVER_INLINE)
+#  define MOZ_NEVER_INLINE      MOZ_HAVE_NEVER_INLINE
+#else
+#  define MOZ_NEVER_INLINE
 #endif
 
 
