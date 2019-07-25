@@ -246,7 +246,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
           (drawBounds.y < yBoundary && yBoundary < drawBounds.YMost())) {
         
         
-        if (mBufferRotation == nsIntPoint(0,0)) {
+        if (mBuffer->SupportsSelfCopy() && mBufferRotation == nsIntPoint(0,0)) {
           destBuffer = mBuffer;
         } else {
           
