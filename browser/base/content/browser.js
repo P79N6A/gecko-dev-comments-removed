@@ -3072,13 +3072,14 @@ const DOMLinkHandler = {
             
             
             
-            const aboutNeterr = /^about:neterror\?/;
-            const aboutBlocked = /^about:blocked\?/;
-            const aboutCert = /^about:certerror\?/;
-            if (!(aboutNeterr.test(targetDoc.documentURI) ||
-                  aboutBlocked.test(targetDoc.documentURI) ||
-                  aboutCert.test(targetDoc.documentURI)) ||
-                !uri.schemeIs("chrome")) {
+            var isAllowedPage = [
+              /^about:neterror\?/,
+              /^about:blocked\?/,
+              /^about:certerror\?/,
+              /^about:home$/,
+            ].some(function (re) re.test(targetDoc.documentURI));
+
+            if (!isAllowedPage || !uri.schemeIs("chrome")) {
               var ssm = Cc["@mozilla.org/scriptsecuritymanager;1"].
                         getService(Ci.nsIScriptSecurityManager);
               try {

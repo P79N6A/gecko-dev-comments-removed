@@ -1,0 +1,109 @@
+%if 0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%endif
+
+html {
+  font: message-box;
+  background: -moz-Field;
+  color: -moz-FieldText;
+}
+
+#topSection,
+#bottomSection {
+  position: relative;
+  margin: 1em auto;
+  padding: 25px;
+  width: 560px;
+}
+
+#brandStart {
+  background: -moz-linear-gradient(top, #42607C, #1E4262 30%, #1E4262 80%, #143552 98%, #244665);
+  -moz-border-radius: 1%;
+  padding-bottom: 0.2em;
+  -moz-padding-start: 0.5em;
+  font-size: 250%;
+  font-weight: bold;
+  color: #688196;
+  margin-top: 18px;
+  margin-bottom: 6px;
+}
+#brandStart > span {
+  color: white;
+}
+
+#brandLogo {
+  position: absolute;
+  top: 0;
+}
+body[dir="ltr"] #brandLogo {
+  right: 0;
+}
+body[dir="rtl"] #brandLogo {
+  left: -15px;
+}
+
+#searchContainer {
+  border: 1px solid ThreeDShadow;
+  -moz-border-radius: 1%;
+  padding: 3em;
+}
+#searchEngineLinks {
+  font-size: 80%;
+}
+#searchEngineLinks > a {
+  -moz-margin-start: 1em;
+}
+body[dir="ltr"] #searchEngineLinks {
+  float: right;
+}
+body[dir="rtl"] #searchEngineLinks {
+  float: left;
+}
+
+#searchEngineLogo {
+  margin: 5px;
+}
+
+#searchText {
+  width: 100%;
+}
+
+#aboutMozilla {
+  text-align: center;
+}
