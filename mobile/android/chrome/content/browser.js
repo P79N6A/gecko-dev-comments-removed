@@ -396,7 +396,7 @@ var BrowserApp = {
       return;
 
     aTab.setActive(true);
-    aTab.updateViewport(false);
+    aTab.sendViewportUpdate();
     this.deck.selectedPanel = aTab.browser;
   },
 
@@ -1723,18 +1723,6 @@ Tab.prototype = {
     return viewport;
   },
 
-  updateViewport: function(aReset, aZoomLevel) {
-    dump("### JS side updateViewport " + aReset + " zoom " + aZoomLevel + "\n");
-
-    if (aReset) {
-      if (!aZoomLevel)
-        aZoomLevel = this.getDefaultZoomLevel();
-      this._zoom = aZoomLevel;
-    }
-
-    this.sendViewportUpdate();
-  },
-
   sendViewportUpdate: function() {
     if (BrowserApp.selectedTab != this)
       return;
@@ -2000,7 +1988,8 @@ Tab.prototype = {
     sendMessageToJava(message);
 
     if ((aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) == 0) {
-      this.updateViewport(true);
+      this._zoom = this.getDefaultZoomLevel();
+      this.sendViewportUpdate();
     } else {
       this.sendViewportUpdate();
     }
@@ -2165,8 +2154,8 @@ Tab.prototype = {
     this.userScrollPos.x = win.scrollX;
     this.userScrollPos.y = win.scrollY;
 
-    let newZoom = oldBrowserWidth * this._zoom / viewportW;
-    this.updateViewport(true, newZoom);
+    this._zoom = oldBrowserWidth * this._zoom / viewportW;
+    this.sendViewportUpdate();
   },
 
   getDefaultZoomLevel: function getDefaultZoomLevel() {
