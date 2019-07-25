@@ -36,9 +36,9 @@
 #
 # ***** END LICENSE BLOCK *****
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+let Cc = Components.classes;
+let Ci = Components.interfaces;
+let Cu = Components.utils;
 
 
 
