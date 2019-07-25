@@ -251,6 +251,16 @@ ScriptsView.prototype = {
 
 
 
+  selectIndex: function DVS_selectIndex(aIndex) {
+    this._scripts.selectedIndex = aIndex;
+  },
+
+  
+
+
+
+
+
   selectScript: function DVS_selectScript(aUrl) {
     for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
       if (this._scripts.getItemAtIndex(i).value == aUrl) {
@@ -282,6 +292,13 @@ ScriptsView.prototype = {
     return this._scripts.selectedItem ?
            this._scripts.selectedItem.value : null;
   },
+
+  
+
+
+
+  get preferredScriptUrl()
+    this._preferredScriptUrl ? this._preferredScriptUrl : null,
 
   
 
@@ -351,7 +368,7 @@ ScriptsView.prototype = {
       }
     }
     
-    this._createScriptElement(aLabel, aScript, -1, true);
+    this._createScriptElement(aLabel, aScript, -1);
   },
 
   
@@ -371,7 +388,7 @@ ScriptsView.prototype = {
 
     for (let i = 0, l = newScripts.length; i < l; i++) {
       let item = newScripts[i];
-      this._createScriptElement(item.label, item.script, -1, true);
+      this._createScriptElement(item.label, item.script, -1);
     }
   },
 
@@ -387,11 +404,7 @@ ScriptsView.prototype = {
 
 
 
-
-
-
-  _createScriptElement: function DVS__createScriptElement(
-    aLabel, aScript, aIndex, aSelectIfEmptyFlag)
+  _createScriptElement: function DVS__createScriptElement(aLabel, aScript, aIndex)
   {
     
     if (aLabel == "null" || this.containsLabel(aLabel) || this.contains(aScript.url)) {
@@ -404,10 +417,6 @@ ScriptsView.prototype = {
 
     scriptItem.setAttribute("tooltiptext", aScript.url);
     scriptItem.setUserData("sourceScript", aScript, null);
-
-    if (this._scripts.itemCount == 1 && aSelectIfEmptyFlag) {
-      this._scripts.selectedItem = scriptItem;
-    }
   },
 
   
@@ -443,6 +452,7 @@ ScriptsView.prototype = {
     }
 
     this._preferredScript = selectedItem;
+    this._preferredScriptUrl = selectedItem.value;
     this._scripts.setAttribute("tooltiptext", selectedItem.value);
     DebuggerController.SourceScripts.showScript(selectedItem.getUserData("sourceScript"));
   },

@@ -910,6 +910,11 @@ SourceScripts.prototype = {
     this._addScript({ url: aPacket.url, startLine: aPacket.startLine }, true);
 
     
+    if (aPacket.url === DebuggerView.Scripts.preferredScriptUrl) {
+      DebuggerView.Scripts.selectScript(aPacket.url);
+    }
+
+    
     
     for each (let breakpoint in DebuggerController.Breakpoints.store) {
       if (breakpoint.location.url == aPacket.url) {
@@ -927,6 +932,14 @@ SourceScripts.prototype = {
     }
     DebuggerView.Scripts.commitScripts();
     DebuggerController.Breakpoints.updatePaneBreakpoints();
+
+    
+    let preferredScriptUrl = DebuggerView.Scripts.preferredScriptUrl;
+    if (preferredScriptUrl && DebuggerView.Scripts.contains(preferredScriptUrl)) {
+      DebuggerView.Scripts.selectScript(preferredScriptUrl);
+    } else {
+      DebuggerView.Scripts.selectIndex(0);
+    }
   },
 
   
