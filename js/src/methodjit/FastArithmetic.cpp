@@ -687,8 +687,6 @@ mjit::Compiler::jsop_neg()
     JS_ASSERT(!fe->isConstant());
 
     
-
-
     MaybeRegisterID feTypeReg;
     if (!fe->isTypeKnown() && !frame.shouldAvoidTypeRemat(fe)) {
         
@@ -697,15 +695,6 @@ mjit::Compiler::jsop_neg()
         
         frame.pinReg(feTypeReg.reg());
     }
-
-    
-
-
-
-
-
-
-
 
     RegisterID reg = frame.copyDataIntoReg(masm, fe);
     Label feSyncTarget = stubcc.syncExitAndJump(Uses(1));

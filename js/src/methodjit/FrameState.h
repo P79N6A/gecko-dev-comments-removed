@@ -513,11 +513,6 @@ class FrameState
     
 
 
-    void syncAllRegs(uint32 mask);
-
-    
-
-
     void resetRegState();
 
     
