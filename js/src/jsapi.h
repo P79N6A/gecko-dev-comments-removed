@@ -864,19 +864,14 @@ JS_InitCTypesClass(JSContext *cx, JSObject *global);
 
 #define JS_CALLEE(cx,vp)        ((vp)[0])
 #define JS_ARGV_CALLEE(argv)    ((argv)[-2])
-#define JS_THIS_OBJECT(cx,vp)   JSVAL_TO_OBJECT(JS_THIS(cx,vp))
+#define JS_THIS(cx,vp)          JS_ComputeThis(cx, vp)
+#define JS_THIS_OBJECT(cx,vp)   ((JSObject *) JS_THIS(cx,vp))
 #define JS_ARGV(cx,vp)          ((vp) + 2)
 #define JS_RVAL(cx,vp)          (*(vp))
 #define JS_SET_RVAL(cx,vp,v)    (*(vp) = (v))
 
 extern JS_PUBLIC_API(jsval)
 JS_ComputeThis(JSContext *cx, jsval *vp);
-
-static JS_ALWAYS_INLINE jsval
-JS_THIS(JSContext *cx, jsval *vp)
-{
-    return JSVAL_IS_PRIMITIVE(vp[1]) ? JS_ComputeThis(cx, vp) : vp[1];
-}
 
 extern JS_PUBLIC_API(void *)
 JS_malloc(JSContext *cx, size_t nbytes);
@@ -918,86 +913,26 @@ JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
 
 
 
-
-
-
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSBool)
-JS_AddValueRoot(JSContext *cx, jsval *vp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_AddStringRoot(JSContext *cx, JSString **rp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_AddObjectRoot(JSContext *cx, JSObject **rp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_AddDoubleRoot(JSContext *cx, jsdouble **rp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_AddGCThingRoot(JSContext *cx, void **rp);
+JS_AddRoot(JSContext *cx, void *rp);
 
 #ifdef NAME_ALL_GC_ROOTS
 #define JS_DEFINE_TO_TOKEN(def) #def
 #define JS_DEFINE_TO_STRING(def) JS_DEFINE_TO_TOKEN(def)
-#define JS_AddValueRoot(cx,vp) JS_AddNamedValueRoot((cx), (vp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
-#define JS_AddStringRoot(cx,rp) JS_AddNamedStringRoot((cx), (rp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
-#define JS_AddObjectRoot(cx,rp) JS_AddNamedObjectRoot((cx), (rp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
-#define JS_AddDoubleRoot(cx,rp) JS_AddNamedDoubleRoot((cx), (rp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
-#define JS_AddGCThingRoot(cx,rp) JS_AddNamedGCThingRoot((cx), (rp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
+#define JS_AddRoot(cx,rp) JS_AddNamedRoot((cx), (rp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
 #endif
 
 extern JS_PUBLIC_API(JSBool)
-JS_AddNamedValueRoot(JSContext *cx, jsval *vp, const char *name);
+JS_AddNamedRoot(JSContext *cx, void *rp, const char *name);
 
 extern JS_PUBLIC_API(JSBool)
-JS_AddNamedStringRoot(JSContext *cx, JSString **rp, const char *name);
+JS_AddNamedRootRT(JSRuntime *rt, void *rp, const char *name);
 
 extern JS_PUBLIC_API(JSBool)
-JS_AddNamedObjectRoot(JSContext *cx, JSObject **rp, const char *name);
+JS_RemoveRoot(JSContext *cx, void *rp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_AddNamedDoubleRoot(JSContext *cx, jsdouble **rp, const char *name);
-
-extern JS_PUBLIC_API(JSBool)
-JS_AddNamedGCThingRoot(JSContext *cx, void **rp, const char *name);
-
-extern JS_PUBLIC_API(JSBool)
-JS_RemoveValueRoot(JSContext *cx, jsval *vp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_RemoveStringRoot(JSContext *cx, JSString **rp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_RemoveObjectRoot(JSContext *cx, JSObject **rp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_RemoveDoubleRoot(JSContext *cx, jsdouble **rp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_RemoveGCThingRoot(JSContext *cx, void **rp);
-
-
-
-extern JS_FRIEND_API(JSBool)
-js_AddRootRT(JSRuntime *rt, jsval *vp, const char *name);
-
-extern JS_FRIEND_API(JSBool)
-js_AddGCThingRootRT(JSRuntime *rt, void **rp, const char *name);
-
-extern JS_FRIEND_API(JSBool)
-js_RemoveRoot(JSRuntime *rt, void *rp);
-
-
-
-
-
-#define JS_TYPED_ROOTING_API
+JS_RemoveRootRT(JSRuntime *rt, void *rp);
 
 
 

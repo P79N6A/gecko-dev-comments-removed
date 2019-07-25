@@ -59,7 +59,8 @@ typedef struct JSFrameRegs {
 
 enum JSFrameFlags {
     JSFRAME_CONSTRUCTING       =  0x01, 
-    JSFRAME_OVERRIDE_ARGS      =  0x02, 
+    JSFRAME_COMPUTED_THIS      =  0x02, 
+
     JSFRAME_ASSIGNING          =  0x04, 
 
     JSFRAME_DEBUGGER           =  0x08, 
@@ -67,6 +68,7 @@ enum JSFrameFlags {
     JSFRAME_FLOATING_GENERATOR =  0x20, 
     JSFRAME_YIELDING           =  0x40, 
     JSFRAME_GENERATOR          =  0x80, 
+    JSFRAME_OVERRIDE_ARGS      = 0x100, 
 
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
 };
@@ -87,22 +89,7 @@ struct JSStackFrame
 
     JSScript            *script;        
     JSFunction          *fun;           
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    jsval               thisv;
-
+    jsval               thisv;          
     uintN               argc;           
     jsval               *argv;          
     jsval               rval;           
@@ -224,9 +211,6 @@ struct JSStackFrame
         }
         return false;
     }
-
-private:
-    JSObject *computeThisObject(JSContext *cx);
 };
 
 namespace js {
@@ -270,6 +254,7 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp);
 
 extern JSBool
 js_GetPrimitiveThis(JSContext *cx, jsval *vp, JSClass *clasp, jsval *thisvp);
+
 
 
 
@@ -464,7 +449,14 @@ JS_END_EXTERN_C
 inline JSObject *
 JSStackFrame::getThisObject(JSContext *cx)
 {
-    return JSVAL_IS_PRIMITIVE(thisv) ? computeThisObject(cx) : JSVAL_TO_OBJECT(thisv);
+    if (flags & JSFRAME_COMPUTED_THIS)
+        return JSVAL_TO_OBJECT(thisv);  
+    JSObject* obj = js_ComputeThis(cx, argv);
+    if (!obj)
+        return NULL;
+    thisv = OBJECT_TO_JSVAL(obj);
+    flags |= JSFRAME_COMPUTED_THIS;
+    return obj;
 }
 
 #endif 

@@ -3343,6 +3343,8 @@ FlushNativeStackFrame(JSContext* cx, unsigned callDepth, const TraceType* mp, do
                         fp->scopeChain->setPrivate(fp);
                 }
                 fp->thisv = fp->argv[-1];
+                if (fp->flags & JSFRAME_CONSTRUCTING) 
+                    fp->flags |= JSFRAME_COMPUTED_THIS;
             }
         }
     }
@@ -9485,53 +9487,77 @@ TraceRecorder::unbox_jsval(jsval v, LIns* v_ins, VMSideExit* exit)
 JS_REQUIRES_STACK RecordingStatus
 TraceRecorder::getThis(LIns*& this_ins)
 {
-    JSStackFrame *fp = cx->fp;
-    JS_ASSERT_IF(fp->argv, fp->argv[-1] == fp->thisv);
+    
 
-    if (!fp->fun) {
-        
-        
-        
+
+    jsval original = JSVAL_NULL;
+    if (cx->fp->argv) {
+        original = cx->fp->argv[-1];
+        if (!JSVAL_IS_PRIMITIVE(original)) {
+            if (JSVAL_TO_OBJECT(original)->hasClass(&js_WithClass))
+                RETURN_STOP("can't trace getThis on With object");
+            guardNotClass(get(&cx->fp->argv[-1]), &js_WithClass, snapshot(MISMATCH_EXIT),
+                          ACC_OTHER);
+        }
+    }
+
+    JSObject* thisObj = cx->fp->getThisObject(cx);
+    if (!thisObj)
+        RETURN_ERROR("fp->getThisObject failed");
+
+    
+    if (!cx->fp->callee()) {
+        JS_ASSERT(callDepth == 0);
+        this_ins = INS_CONSTOBJ(thisObj);
+
         
 
-        JS_ASSERT(!fp->argv);
-        JS_ASSERT(!JSVAL_IS_PRIMITIVE(fp->thisv));
 
-#ifdef DEBUG
-        JSObject *obj = globalObj->thisObject(cx);
-        if (!obj)
-            RETURN_ERROR("thisObject hook failed");
-        JS_ASSERT(JSVAL_TO_OBJECT(fp->thisv) == obj);
-#endif
 
-        this_ins = INS_CONSTOBJ(JSVAL_TO_OBJECT(fp->thisv));
         return RECORD_CONTINUE;
     }
 
-    jsval thisv = fp->argv[-1];
-    JS_ASSERT(thisv == fp->thisv || JSVAL_IS_NULL(fp->thisv));
+    jsval& thisv = cx->fp->argv[-1];
     JS_ASSERT(JSVAL_IS_OBJECT(thisv));
-    JS_ASSERT(fp->callee()->getGlobal() == globalObj);
 
-    if (!JSVAL_IS_NULL(thisv)) {
-        
-        
-        
-        this_ins = get(&fp->argv[-1]);
+    
+
+
+
+
+
+
+
+    JSClass* clasp = NULL;
+    if (JSVAL_IS_NULL(original) ||
+        (((clasp = JSVAL_TO_OBJECT(original)->getClass()) == &js_CallClass) ||
+         (clasp == &js_BlockClass))) {
+        if (clasp)
+            guardClass(get(&thisv), clasp, snapshot(BRANCH_EXIT), ACC_OTHER);
+        JS_ASSERT(!JSVAL_IS_PRIMITIVE(thisv));
+        if (thisObj != globalObj)
+            RETURN_STOP("global object was wrapped while recording");
+        this_ins = INS_CONSTOBJ(thisObj);
+        set(&thisv, this_ins);
         return RECORD_CONTINUE;
     }
 
+    this_ins = get(&thisv);
+
+    JSObject* wrappedGlobal = globalObj->thisObject(cx);
+    if (!wrappedGlobal)
+        RETURN_ERROR("globalObj->thisObject hook threw in getThis");
+
     
-    
-    
-    JSObject *obj = fp->getThisObject(cx);
-    if (!obj)
-        RETURN_ERROR("getThisObject failed");
-    JS_ASSERT(fp->argv[-1] == OBJECT_TO_JSVAL(obj));
-    this_ins = INS_CONSTOBJ(obj);
-    set(&fp->argv[-1], this_ins);
+
+
+
+    this_ins = lir->insChoose(lir->insEqP_0(stobj_get_parent(this_ins)),
+                               INS_CONSTOBJ(wrappedGlobal),
+                               this_ins, avmplus::AvmCore::use_cmov());
     return RECORD_CONTINUE;
 }
+
 
 JS_REQUIRES_STACK void
 TraceRecorder::guardClassHelper(bool cond, LIns* obj_ins, JSClass* clasp, VMSideExit* exit,
@@ -12390,7 +12416,7 @@ TraceRecorder::record_JSOP_CALLNAME()
         NameResult nr;
         CHECK_STATUS_A(scopeChainProp(obj, vp, ins, nr));
         stack(0, ins);
-        stack(1, INS_NULL());
+        stack(1, INS_CONSTOBJ(globalObj));
         return ARECORD_CONTINUE;
     }
 
@@ -12406,7 +12432,7 @@ TraceRecorder::record_JSOP_CALLNAME()
     JS_ASSERT(pcval.toObject()->isFunction());
 
     stack(0, INS_CONSTOBJ(pcval.toObject()));
-    stack(1, INS_NULL());
+    stack(1, obj_ins);
     return ARECORD_CONTINUE;
 }
 
@@ -15137,6 +15163,7 @@ TraceRecorder::record_JSOP_GETTHISPROP()
 
 
 
+    JS_ASSERT(cx->fp->flags & JSFRAME_COMPUTED_THIS);
     CHECK_STATUS_A(getProp(JSVAL_TO_OBJECT(cx->fp->thisv), this_ins));
     return ARECORD_CONTINUE;
 }
