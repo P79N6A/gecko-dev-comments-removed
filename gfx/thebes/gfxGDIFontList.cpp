@@ -215,6 +215,7 @@ GDIFontEntry::GDIFontEntry(const nsAString& aFaceName, gfxWindowsFontType aFontT
     mWindowsFamily(0), mWindowsPitch(0),
     mFontType(aFontType),
     mForceGDI(PR_FALSE), mUnknownCMAP(PR_FALSE),
+    mUnicodeFont(PR_FALSE),
     mCharset(), mUnicodeRanges()
 {
     mUserFontData = aUserFontData;
@@ -253,6 +254,7 @@ GDIFontEntry::ReadCMAP()
     nsresult rv = gfxFontUtils::ReadCMAP(cmap, buffer.Length(),
                                          mCharacterMap, mUVSOffset,
                                          unicodeFont, symbolFont);
+    mUnicodeFont = unicodeFont;
     mSymbolFont = symbolFont;
     mHasCmapTable = NS_SUCCEEDED(rv);
 
@@ -261,14 +263,6 @@ GDIFontEntry::ReadCMAP()
                   NS_ConvertUTF16toUTF8(mName).get(), mCharacterMap.GetSize()));
 #endif
     return rv;
-}
-
-PRBool
-GDIFontEntry::IsSymbolFont()
-{
-    
-    HasCmapTable();
-    return mSymbolFont;  
 }
 
 gfxFont *
@@ -340,6 +334,10 @@ PRBool
 GDIFontEntry::TestCharacterMap(PRUint32 aCh)
 {
     if (ReadCMAP() != NS_OK) {
+        
+        
+        mUnicodeFont = IsType1();
+
         
         
         mUnknownCMAP = PR_TRUE;
@@ -448,6 +446,20 @@ GDIFontEntry::CreateFontEntry(const nsAString& aName, gfxWindowsFontType aFontTy
 
     GDIFontEntry *fe = new GDIFontEntry(aName, aFontType, aItalic, aWeight,
                                         aUserFontData);
+
+    
+    if (NS_FAILED(fe->ReadCMAP())) {
+        
+        
+        if (fe->IsType1())
+            fe->mUnicodeFont = PR_TRUE;
+        else
+            fe->mUnicodeFont = PR_FALSE;
+
+        
+        
+        fe->mUnknownCMAP = PR_TRUE;
+    } 
 
     return fe;
 }
