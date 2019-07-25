@@ -46,6 +46,8 @@
 #include "nsCacheEntry.h"
 #include "nsIInputStream.h"
 #include "nsIOutputStream.h"
+#include "nsCacheService.h"
+#include "nsIDiskCacheStreamInternal.h"
 
 
 
@@ -72,6 +74,19 @@ public:
 
     nsCacheEntry * CacheEntry(void)      { return mCacheEntry; }
     void           ClearCacheEntry(void) { mCacheEntry = nsnull; }
+
+    void           CloseOutput(void)
+    {
+      if (mOutput) {
+        nsCOMPtr<nsIDiskCacheStreamInternal> tmp (do_QueryInterface(mOutput));
+        if (tmp)
+          tmp->CloseInternal();
+        else
+          mOutput->Close();
+
+        mOutput = nsnull;
+      }
+    }
 
 private:
 
@@ -138,6 +153,10 @@ private:
          { 
              
              Close();
+             {
+             nsCacheServiceAutoLock lock;
+             mDescriptor->mOutput = nsnull;
+             }
              NS_RELEASE(mDescriptor);
          }
 
@@ -154,6 +173,7 @@ private:
 
      nsCacheEntry          * mCacheEntry; 
      nsCacheAccessMode       mAccessGranted;
+     nsIOutputStream       * mOutput;
 };
 
 
