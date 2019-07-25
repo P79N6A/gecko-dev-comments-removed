@@ -85,11 +85,11 @@ static bool gStaticAtomTableSealed = false;
 
 class AtomImpl : public nsIAtom {
 public:
-  AtomImpl(const nsAString& aString);
+  AtomImpl(const nsAString& aString, PLDHashNumber aKeyHash);
 
   
   
-  AtomImpl(nsStringBuffer* aData, PRUint32 aLength);
+  AtomImpl(nsStringBuffer* aData, PRUint32 aLength, PLDHashNumber aKeyHash);
 
 protected:
   
@@ -132,11 +132,12 @@ public:
 
 class PermanentAtomImpl : public AtomImpl {
 public:
-  PermanentAtomImpl(const nsAString& aString)
-    : AtomImpl(aString)
+  PermanentAtomImpl(const nsAString& aString, PLDHashNumber aKeyHash)
+    : AtomImpl(aString, aKeyHash)
   {}
-  PermanentAtomImpl(nsStringBuffer* aData, PRUint32 aLength)
-    : AtomImpl(aData, aLength)
+  PermanentAtomImpl(nsStringBuffer* aData, PRUint32 aLength,
+                    PLDHashNumber aKeyHash)
+    : AtomImpl(aData, aLength, aKeyHash)
   {}
   PermanentAtomImpl()
   {}
@@ -322,7 +323,7 @@ NS_PurgeAtomTable()
   }
 }
 
-AtomImpl::AtomImpl(const nsAString& aString)
+AtomImpl::AtomImpl(const nsAString& aString, PLDHashNumber aKeyHash)
 {
   mLength = aString.Length();
   nsStringBuffer* buf = nsStringBuffer::FromString(aString);
@@ -337,19 +338,28 @@ AtomImpl::AtomImpl(const nsAString& aString)
     mString[mLength] = PRUnichar(0);
   }
 
+  
+  MOZ_ASSERT(sizeof(mHash) == sizeof(PLDHashNumber));
+  mHash = aKeyHash >> 1;
+
   NS_ASSERTION(mString[mLength] == PRUnichar(0), "null terminated");
   NS_ASSERTION(buf && buf->StorageSize() >= (mLength+1) * sizeof(PRUnichar),
                "enough storage");
   NS_ASSERTION(Equals(aString), "correct data");
 }
 
-AtomImpl::AtomImpl(nsStringBuffer* aStringBuffer, PRUint32 aLength)
+AtomImpl::AtomImpl(nsStringBuffer* aStringBuffer, PRUint32 aLength,
+                   PLDHashNumber aKeyHash)
 {
   mLength = aLength;
   mString = static_cast<PRUnichar*>(aStringBuffer->Data());
   
   
   aStringBuffer->AddRef();
+
+  
+  MOZ_ASSERT(sizeof(mHash) == sizeof(PLDHashNumber));
+  mHash = aKeyHash >> 1;
 
   NS_ASSERTION(mString[mLength] == PRUnichar(0), "null terminated");
   NS_ASSERTION(aStringBuffer &&
@@ -579,7 +589,8 @@ NS_RegisterStaticAtoms(const nsStaticAtom* aAtoms, PRUint32 aAtomCount)
     }
     else {
       AtomImpl* atom = new PermanentAtomImpl(aAtoms[i].mStringBuffer,
-                                             stringLen);
+                                             stringLen,
+                                             he->keyHash);
       he->mAtom = atom;
       *aAtoms[i].mAtom = atom;
 
@@ -628,9 +639,10 @@ NS_NewAtom(const nsACString& aUTF8String)
 
   
   
+  
   nsString str;
   CopyUTF8toUTF16(aUTF8String, str);
-  AtomImpl* atom = new AtomImpl(str);
+  AtomImpl* atom = new AtomImpl(str, he->keyHash);
 
   he->mAtom = atom;
   NS_ADDREF(atom);
@@ -657,7 +669,7 @@ NS_NewAtom(const nsAString& aUTF16String)
     return atom;
   }
 
-  AtomImpl* atom = new AtomImpl(aUTF16String);
+  AtomImpl* atom = new AtomImpl(aUTF16String, he->keyHash);
   he->mAtom = atom;
   NS_ADDREF(atom);
 
@@ -677,7 +689,7 @@ NS_NewPermanentAtom(const nsAString& aUTF16String)
     }
   }
   else {
-    atom = new PermanentAtomImpl(aUTF16String);
+    atom = new PermanentAtomImpl(aUTF16String, he->keyHash);
     he->mAtom = atom;
   }
 
