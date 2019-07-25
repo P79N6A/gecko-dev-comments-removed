@@ -2250,6 +2250,13 @@ class ScreenshotHandler {
         }
 
         void addRectToRepaint(float top, float left, float bottom, float right) {
+            if (sDisableScreenshot || sCheckerboardPageRect == null) {
+                
+                
+                
+                
+                return;
+            }
             synchronized(this) {
                 ImmutableViewportMetrics viewport = GeckoApp.mAppContext.getLayerController().getViewportMetrics();
                 mDirtyTop = Math.max(sCheckerboardPageRect.top, Math.min(top, mDirtyTop));
