@@ -168,8 +168,24 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
         NS_ASSERTION(IS_WN_WRAPPER(obj), "bad object");
 
         XPCWrappedNative *newwn = static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
-        if (newwn->GetSet()->GetInterfaceCount() < wn->GetSet()->GetInterfaceCount())
+        if (newwn->GetSet()->GetInterfaceCount() == 1) {
+            
+            
+            
+            
+            
+
+#ifdef DEBUG
+            {
+                XPCNativeInterface *iface = newwn->GetSet()->GetInterfaceAt(0);
+                JSString *name = JSID_TO_STRING(iface->GetName());
+                NS_ASSERTION(JS_MatchStringAndAscii(name, "nsISupports"), "weird interface");
+            }
+#endif
+
             newwn->SetSet(wn->GetSet());
+        }
+
     }
 
     return DoubleWrap(cx, obj, flags);
