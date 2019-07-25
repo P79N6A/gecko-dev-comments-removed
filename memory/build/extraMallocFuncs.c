@@ -7,6 +7,32 @@
 
 #ifdef ANDROID
 #define wrap(a) __wrap_ ## a
+
+
+static void *
+new(unsigned int size)
+{
+  return malloc(size);
+}
+
+MOZ_EXPORT_API(void *)
+wrap(_Znwj)(unsigned int) __attribute__((alias("new")));
+
+MOZ_EXPORT_API(void *)
+wrap(_Znaj)(unsigned int) __attribute__((alias("new")));
+
+
+static void
+delete(void *ptr)
+{
+  free(ptr);
+}
+
+MOZ_EXPORT_API(void)
+wrap(_ZdlPv)(void *ptr) __attribute__((alias("delete")));
+
+MOZ_EXPORT_API(void)
+wrap(_ZdaPv)(void *ptr) __attribute__((alias("delete")));
 #endif
 
 #if defined(XP_WIN) || defined(XP_MACOSX)
