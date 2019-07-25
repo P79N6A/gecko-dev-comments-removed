@@ -1197,7 +1197,7 @@ XPCJSRuntime::~XPCJSRuntime()
 }
 
 static void
-GetCompartmentName(JSCompartment *c, bool getAddress, nsCString &name)
+GetCompartmentName(JSCompartment *c, nsCString &name)
 {
     if (js::IsAtomsCompartment(c)) {
         name.AssignLiteral("atoms");
@@ -1205,21 +1205,12 @@ GetCompartmentName(JSCompartment *c, bool getAddress, nsCString &name)
         nsJSPrincipals::get(principals)->GetScriptLocation(name);
 
         
-        
-        
-        
         if (js::IsSystemCompartment(c)) {
             xpc::CompartmentPrivate *compartmentPrivate =
                 static_cast<xpc::CompartmentPrivate*>(JS_GetCompartmentPrivate(c));
             if (compartmentPrivate && !compartmentPrivate->location.IsEmpty()) {
                 name.AppendLiteral(", ");
                 name.Append(compartmentPrivate->location);
-            }
-            
-            if (getAddress) {
-                
-                nsPrintfCString address(", 0x%llx", PRUint64(c));
-                name.Append(address);
             }
         }
         
@@ -1641,7 +1632,7 @@ class JSCompartmentsMultiReporter : public nsIMemoryMultiReporter
         
         Paths *paths = static_cast<Paths *>(data);
         nsCString path;
-        GetCompartmentName(c,  false, path);
+        GetCompartmentName(c, path);
         path.Insert(js::IsSystemCompartment(c)
                     ? NS_LITERAL_CSTRING("compartments/system/")
                     : NS_LITERAL_CSTRING("compartments/user/"),
@@ -1698,7 +1689,7 @@ struct XPCJSRuntimeStats : public JS::RuntimeStats {
     virtual void initExtraCompartmentStats(JSCompartment *c,
                                            JS::CompartmentStats *cstats) MOZ_OVERRIDE {
         nsCAutoString name;
-        GetCompartmentName(c,  true, name);
+        GetCompartmentName(c, name);
         cstats->extra = strdup(name.get());
     }
 };
