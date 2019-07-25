@@ -418,10 +418,6 @@ struct JITScript {
     void purgePICs();
 
     size_t scriptDataSize();
-#ifdef DEBUG
-    
-    int             *pcProfile;
-#endif
     jsbytecode *nativeToPC(void *returnAddress) const;
 
   private:

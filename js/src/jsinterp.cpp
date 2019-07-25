@@ -2127,7 +2127,7 @@ Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 #endif
     JSAutoResolveFlags rf(cx, RESOLVE_INFER);
 
-# ifdef DEBUG
+#ifdef DEBUG
     
 
 
@@ -2142,14 +2142,19 @@ Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
 
 
-#  define LOG_OPCODE(OP)    JS_BEGIN_MACRO                                    \
+# define LOG_OPCODE(OP)    JS_BEGIN_MACRO                                     \
                                 if (JS_UNLIKELY(cx->logfp != NULL) &&         \
                                     (OP) == *regs.pc)                         \
                                     js_LogOpcode(cx);                         \
                             JS_END_MACRO
-# else
-#  define LOG_OPCODE(OP)    ((void) 0)
-# endif
+#else
+# define LOG_OPCODE(OP)    ((void) 0)
+#endif
+
+#define COUNT_OP()         JS_BEGIN_MACRO                                     \
+                               if (pcCounts && !regs.fp()->hasImacropc())     \
+                                   ++pcCounts[regs.pc - script->code];        \
+                           JS_END_MACRO
 
     
 
@@ -2184,6 +2189,7 @@ Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
 # define DO_OP()            JS_BEGIN_MACRO                                    \
                                 CHECK_RECORDER();                             \
+                                COUNT_OP();                                   \
                                 JS_EXTENSION_(goto *jumpTable[op]);           \
                             JS_END_MACRO
 # define DO_NEXT_OP(n)      JS_BEGIN_MACRO                                    \
@@ -2443,6 +2449,7 @@ Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
     
     JSRuntime *const rt = cx->runtime;
     JSScript *script = regs.fp()->script();
+    int *pcCounts = script->pcCounters.get(JSRUNMODE_INTERP);
     Value *argv = regs.fp()->maybeFormalArgs();
     CHECK_INTERRUPT_HANDLER();
 
@@ -2827,6 +2834,7 @@ BEGIN_CASE(JSOP_STOP)
 
         
         script = regs.fp()->script();
+        pcCounts = script->pcCounters.get(JSRUNMODE_INTERP);
         argv = regs.fp()->maybeFormalArgs();
         atoms = FrameAtomBase(cx, regs.fp());
 
@@ -4593,6 +4601,7 @@ BEGIN_CASE(JSOP_FUNCALL)
 
             
             script = newscript;
+            pcCounts = script->pcCounters.get(JSRUNMODE_INTERP);
             argv = regs.fp()->formalArgsEnd() - newfun->nargs;
             atoms = script->atomMap.vector;
 
