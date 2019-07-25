@@ -1910,13 +1910,7 @@ PluginModuleChild::AnswerPPluginInstanceConstructor(PPluginInstanceChild* aActor
         return false;
     }
 
-#if defined(XP_MACOSX)
-    if (getenv("NPAPI_MODEL_DEBUG")) {
-        printf("OOP plugin negotiated NPAPI event model: %d\n", childInstance->EventModel());
-        printf("OOP plugin negotiated NPAPI drawing model: %d\n", childInstance->DrawingModel());
-    }
-
-#if defined(__i386__)
+#if defined(XP_MACOSX) && defined(__i386__)
     
     
     
@@ -1931,7 +1925,6 @@ PluginModuleChild::AnswerPPluginInstanceConstructor(PPluginInstanceChild* aActor
       
       *rv = NPERR_MODULE_LOAD_FAILED_ERROR;
     }
-#endif
 #endif
 
     return true;
