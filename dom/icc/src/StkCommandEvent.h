@@ -1,0 +1,64 @@
+
+
+
+
+#ifndef mozilla_dom_icc_stkcommandevent_h
+#define mozilla_dom_icc_stkcommandevent_h
+
+#include "nsDOMEvent.h"
+#include "SimToolKit.h"
+
+namespace mozilla {
+namespace dom {
+namespace icc {
+
+class StkCommandEvent : public nsDOMEvent,
+                        public nsIDOMMozStkCommandEvent
+{
+  nsString mCommand;
+
+public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_FORWARD_TO_NSDOMEVENT
+  NS_DECL_NSIDOMMOZSTKCOMMANDEVENT
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(StkCommandEvent, nsDOMEvent)
+
+  static already_AddRefed<StkCommandEvent>
+  Create(nsAString& aMessage);
+
+  nsresult
+  Dispatch(nsIDOMEventTarget* aTarget, const nsAString& aEventType)
+  {
+    NS_ASSERTION(aTarget, "Null pointer!");
+    NS_ASSERTION(!aEventType.IsEmpty(), "Empty event type!");
+
+    nsresult rv = InitEvent(aEventType, false, false);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = SetTrusted(true);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsIDOMEvent* thisEvent =
+      static_cast<nsDOMEvent*>(const_cast<StkCommandEvent*>(this));
+
+    bool dummy;
+    rv = aTarget->DispatchEvent(thisEvent, &dummy);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+private:
+  StkCommandEvent()
+  : nsDOMEvent(nullptr, nullptr)
+  { }
+
+  ~StkCommandEvent()
+  { }
+};
+
+}
+}
+}
+
+#endif 
