@@ -62,11 +62,43 @@ Assembler::writeRelocation(JmpSrc src)
 void
 Assembler::addPendingJump(JmpSrc src, void *target, Relocation::Kind reloc)
 {
+    JS_ASSERT(target);
+
     
     
     if (reloc == Relocation::CODE)
         writeRelocation(src);
     enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), target, reloc));
+}
+
+size_t
+Assembler::addPatchableJump(JmpSrc src)
+{
+    writeRelocation(src);
+    size_t index = jumps_.length();
+    enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), NULL, Relocation::CODE));
+    return index;
+}
+
+
+uint8 *
+Assembler::PatchableJumpAddress(IonCode *code, size_t index)
+{
+    
+    
+    uint32 jumpOffset = * (uint32 *) code->jumpRelocTable();
+    jumpOffset += index * SizeOfJumpTableEntry;
+
+    JS_ASSERT(jumpOffset + SizeOfExtendedJump <= code->instructionsSize());
+    return code->raw() + jumpOffset;
+}
+
+
+void
+Assembler::PatchJumpEntry(uint8 *entry, uint8 *target)
+{
+    uint8 **index = (uint8 **) (entry + SizeOfExtendedJump - sizeof(void*));
+    *index = target;
 }
 
 void
@@ -103,6 +135,12 @@ Assembler::executableCopy(uint8 *buffer)
     for (size_t i = 0; i < jumps_.length(); i++) {
         RelativePatch &rp = jumps_[i];
         uint8 *src = buffer + rp.offset;
+        if (!rp.target) {
+            
+            
+            
+            continue;
+        }
         if (JSC::X86Assembler::canRelinkJump(src, rp.target)) {
             JSC::X86Assembler::setRel32(src, rp.target);
         } else {

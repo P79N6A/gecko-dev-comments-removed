@@ -973,6 +973,37 @@ class LStoreElementT : public LInstructionHelper<0, 3, 0>
 };
 
 
+
+class LGetPropertyCacheV : public LInstructionHelper<BOX_PIECES, 1, 0>
+{
+  public:
+    LIR_HEADER(GetPropertyCacheV);
+    BOX_OUTPUT_ACCESSORS();
+
+    LGetPropertyCacheV(const LAllocation &object) {
+        setOperand(0, object);
+    }
+    const MGetPropertyCache *mir() const {
+        return mir_->toGetPropertyCache();
+    }
+};
+
+
+
+class LGetPropertyCacheT : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(GetPropertyCacheT);
+
+    LGetPropertyCacheT(const LAllocation &object) {
+        setOperand(0, object);
+    }
+    const MGetPropertyCache *mir() const {
+        return mir_->toGetPropertyCache();
+    }
+};
+
+
 class LLoadSlotV : public LInstructionHelper<BOX_PIECES, 1, 0>
 {
   public:

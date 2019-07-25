@@ -361,24 +361,6 @@ bool condsAreSafe(ALUOp op);
 
 ALUOp getDestVariant(ALUOp op);
 
-class ValueOperand
-{
-    Register type_;
-    Register payload_;
-
-  public:
-    ValueOperand(Register type, Register payload)
-        : type_(type), payload_(payload)
-    { }
-
-    Register typeReg() const {
-        return type_;
-    }
-    Register payloadReg() const {
-        return payload_;
-    }
-};
-
 static const ValueOperand JSReturnOperand = ValueOperand(JSReturnReg_Type, JSReturnReg_Data);
 
 
@@ -858,6 +840,12 @@ class Operand
         return VFPAddr(baseReg(), VFPOffImm(offset));
     }
 };
+
+static inline void
+PatchJump(CodeLocationJump jump, CodeLocationLabel label)
+{
+    JS_NOT_REACHED("NYI");
+}
 
 class Assembler
 {

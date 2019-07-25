@@ -116,6 +116,62 @@ class MacroAssembler : public MacroAssemblerSpecific
         loadBaseShape(objReg, dest);
         loadBaseShapeClass(dest, dest);
     }
+
+    void storeCallResult(AnyRegister dest)
+    {
+#if defined(JS_NUNBOX32)
+        unboxValue(ValueOperand(JSReturnReg_Type, JSReturnReg_Data), dest);
+#elif defined(JS_PUNBOX64)
+        unboxValue(ValueOperand(JSReturnReg), dest);
+#else
+#error "Bad architecture"
+#endif
+    }
+
+    void storeCallResult(ValueOperand dest)
+    {
+#if defined(JS_NUNBOX32)
+        
+        
+        
+        
+        
+        if (dest.typeReg() == JSReturnReg_Data) {
+            if (dest.payloadReg() == JSReturnReg_Type) {
+                
+                mov(JSReturnReg_Type, ReturnReg);
+                mov(JSReturnReg_Data, JSReturnReg_Type);
+                mov(ReturnReg, JSReturnReg_Data);
+            } else {
+                mov(JSReturnReg_Data, dest.payloadReg());
+                mov(JSReturnReg_Type, dest.typeReg());
+            }
+        } else {
+            mov(JSReturnReg_Type, dest.typeReg());
+            mov(JSReturnReg_Data, dest.payloadReg());
+        }
+#elif defined(JS_PUNBOX64)
+        if (dest.valueReg() != JSReturnReg)
+            movq(JSReturnReg, dest.valueReg());
+#else
+#error "Bad architecture"
+#endif
+    }
+
+    void storeCallResult(TypedOrValueRegister dest)
+    {
+        if (dest.hasValue())
+            storeCallResult(dest.valueReg());
+        else
+            storeCallResult(dest.typedReg());
+    }
+
+    CodeOffsetLabel labelForPatch() {
+        return CodeOffsetLabel(size());
+    }
+
+    void PushVolatileRegsInMask(RegisterSet set);
+    void PopVolatileRegsInMask(RegisterSet set);
 };
 
 } 

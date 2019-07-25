@@ -45,6 +45,7 @@
 #include "ion/MIR.h"
 #include "ion/MIRGraph.h"
 #include "ion/LIR.h"
+#include "ion/IonCaches.h"
 #include "ion/IonMacroAssembler.h"
 #include "ion/IonFrames.h"
 #include "ion/IonMacroAssembler.h"
@@ -75,6 +76,9 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     
     js::Vector<IonFrameInfo, 0, SystemAllocPolicy> frameInfoTable_;
+
+    
+    js::Vector<IonCache, 0, SystemAllocPolicy> cacheList_;
 
     static inline int32 ToInt32(const LAllocation *a) {
         if (a->isConstantValue()) {
@@ -148,6 +152,14 @@ class CodeGeneratorShared : public LInstructionVisitor
 
     uint32 frameSize() const {
         return frameClass_ == FrameSizeClass::None() ? frameDepth_ : frameClass_.frameSize();
+    }
+
+  protected:
+
+    size_t allocateCache(const IonCache &cache) {
+        size_t index = cacheList_.length();
+        cacheList_.append(cache);
+        return index;
     }
 
   protected:
