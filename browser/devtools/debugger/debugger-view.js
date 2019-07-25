@@ -149,6 +149,8 @@ ScriptsView.prototype = {
 
   empty: function DVS_empty() {
     this._scripts.selectedIndex = -1;
+    this._scripts.setAttribute("label", L10N.getStr("noScriptsText"));
+    this._scripts.removeAttribute("tooltiptext");
 
     while (this._scripts.firstChild) {
       this._scripts.removeChild(this._scripts.firstChild);
@@ -425,9 +427,8 @@ ScriptsView.prototype = {
       return;
     }
 
-    let script = selectedItem.getUserData("sourceScript");
-    this._preferredScript = script;
-    DebuggerController.SourceScripts.showScript(script);
+    this._preferredScript = selectedItem;
+    DebuggerController.SourceScripts.showScript(selectedItem.getUserData("sourceScript"));
   },
 
   
@@ -439,7 +440,14 @@ ScriptsView.prototype = {
     let [file, line, token] = this._getSearchboxInfo();
 
     
+    if (!scripts.itemCount) {
+      return;
+    }
+
+    
     scripts.selectedItem = this._preferredScript;
+    scripts.setAttribute("label", this._preferredScript.label);
+    scripts.setAttribute("tooltiptext", this._preferredScript.value);
 
     
     if (!file) {
@@ -447,7 +455,9 @@ ScriptsView.prototype = {
         scripts.getItemAtIndex(i).hidden = false;
       }
     } else {
-      for (let i = 0, l = scripts.itemCount, found = false; i < l; i++) {
+      let found = false;
+
+      for (let i = 0, l = scripts.itemCount; i < l; i++) {
         let item = scripts.getItemAtIndex(i);
         let target = item.label.toLowerCase();
 
@@ -458,12 +468,18 @@ ScriptsView.prototype = {
           if (!found) {
             found = true;
             scripts.selectedItem = item;
+            scripts.setAttribute("label", item.label);
+            scripts.setAttribute("tooltiptext", item.value);
           }
         }
         
         else {
           item.hidden = true;
         }
+      }
+      if (!found) {
+        scripts.setAttribute("label", L10N.getStr("noMatchingScriptsText"));
+        scripts.removeAttribute("tooltiptext");
       }
     }
     if (line > -1) {
