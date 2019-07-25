@@ -433,9 +433,7 @@ RecycleTree(JSParseNode *pn, JSTreeContext *tc)
         pn->pn_next = NULL;
         RecycleFuncNameKids(pn, tc);
     } else {
-        
-        pn->pn_funbox = NULL;
-
+        UnlinkFunctionBoxes(pn, tc);
         head = &tc->parser->nodeList;
         pn->pn_next = *head;
         *head = pn;
