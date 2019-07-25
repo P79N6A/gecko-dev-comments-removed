@@ -2025,6 +2025,7 @@ namespace nanojit
             next = patch+6;
         } else if ((patch[0] == 0xFF) && (patch[1] == 0x25)) {
             
+            
             next = patch+6;
             ((int64_t*)next)[0] = int64_t(target);
             return;
