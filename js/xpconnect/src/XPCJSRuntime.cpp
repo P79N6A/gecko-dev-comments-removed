@@ -714,7 +714,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
                         
                         thread->MarkAutoRootsAfterJSFinalize();
 
-                        XPCCallContext* ccxp = thread->GetCallContext();
+                        XPCCallContext* ccxp = XPCJSRuntime::Get()->GetCallContext();
                         while (ccxp) {
                             
                             
@@ -814,7 +814,7 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
 
                         while (nsnull != (thread =
                                           XPCPerThreadData::IterateThreads(&iterp))) {
-                            XPCCallContext* ccxp = thread->GetCallContext();
+                            XPCCallContext* ccxp = XPCJSRuntime::Get()->GetCallContext();
                             while (ccxp) {
                                 
                                 

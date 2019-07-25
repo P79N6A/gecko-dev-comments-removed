@@ -124,7 +124,7 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
     mPrevCallerLanguage = mXPCContext->SetCallingLangType(mCallerLanguage);
 
     
-    mPrevCallContext = mThreadData->SetCallContext(this);
+    mPrevCallContext = XPCJSRuntime::Get()->SetCallContext(this);
 
     
     
@@ -301,12 +301,8 @@ XPCCallContext::~XPCCallContext()
     if (mXPCContext) {
         mXPCContext->SetCallingLangType(mPrevCallerLanguage);
 
-#ifdef DEBUG
-        XPCCallContext* old = mThreadData->SetCallContext(mPrevCallContext);
+        DebugOnly<XPCCallContext*> old = XPCJSRuntime::Get()->SetCallContext(mPrevCallContext);
         NS_ASSERTION(old == this, "bad pop from per thread data");
-#else
-        (void) mThreadData->SetCallContext(mPrevCallContext);
-#endif
 
         shouldReleaseXPC = mPrevCallContext == nsnull;
     }
