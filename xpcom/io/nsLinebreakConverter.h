@@ -58,7 +58,9 @@ public:
   
     eLinebreakMac,          
     eLinebreakUnix,         
-    eLinebreakWindows       
+    eLinebreakWindows,      
+
+    eLinebreakSpace         
   
   } ELinebreakType;
 

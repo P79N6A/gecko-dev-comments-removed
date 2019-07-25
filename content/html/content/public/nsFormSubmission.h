@@ -164,7 +164,10 @@ public:
 
 
 
-  nsresult EncodeVal(const nsAString& aStr, nsACString& aResult);
+
+
+  nsresult EncodeVal(const nsAString& aStr, nsCString& aResult,
+                     bool aHeaderEncode);
 
 private:
   
