@@ -1013,29 +1013,13 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
 }
 
 bool
-CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
-                   JSObject **objp, JSProperty **propp)
+CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs)
 {
     JSObject *obj2;
     JSProperty *prop;
-    uintN oldAttrs, report;
+    uintN oldAttrs;
     bool isFunction;
     const char *type, *name;
-
-    
-
-
-
-
-    JS_ASSERT(!objp == !propp);
-    JS_ASSERT_IF(propp, !*propp);
-
-    
-
-
-
-    JS_ASSERT_IF(attrs & JSPROP_INITIALIZER, attrs == JSPROP_INITIALIZER);
-    JS_ASSERT_IF(attrs == JSPROP_INITIALIZER, !propp);
 
     if (!obj->lookupProperty(cx, id, &obj2, &prop))
         return false;
@@ -1048,64 +1032,40 @@ CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
             return false;
     }
 
-    if (!propp) {
-        prop = NULL;
-    } else {
-        *objp = obj2;
-        *propp = prop;
+    
+    if (((oldAttrs | attrs) & JSPROP_READONLY) == 0) {
+        
+        if (!(attrs & (JSPROP_GETTER | JSPROP_SETTER)))
+            return true;
+        
+        
+
+
+
+
+
+
+
+        if ((~(oldAttrs ^ attrs) & (JSPROP_GETTER | JSPROP_SETTER)) == 0)
+            return true;
+
+        
+
+
+
+        if (!(oldAttrs & JSPROP_PERMANENT))
+            return true;
     }
 
-    if (attrs == JSPROP_INITIALIZER) {
-        
-        if (obj2 != obj)
-            return JS_TRUE;
-
-        
-        JS_ASSERT(!prop);
-        report = JSREPORT_WARNING | JSREPORT_STRICT;
-
-#ifdef __GNUC__
-        isFunction = false;     
-#endif
-    } else {
-        
-        if (((oldAttrs | attrs) & JSPROP_READONLY) == 0) {
-            
-            if (!(attrs & (JSPROP_GETTER | JSPROP_SETTER)))
-                return JS_TRUE;
-
-            
-
-
-
-
-
-
-
-            if ((~(oldAttrs ^ attrs) & (JSPROP_GETTER | JSPROP_SETTER)) == 0)
-                return JS_TRUE;
-
-            
-
-
-
-            if (!(oldAttrs & JSPROP_PERMANENT))
-                return JS_TRUE;
-        }
-
-        report = JSREPORT_ERROR;
-        isFunction = (oldAttrs & (JSPROP_GETTER | JSPROP_SETTER)) != 0;
-        if (!isFunction) {
-            Value value;
-            if (!obj->getProperty(cx, id, &value))
-                return JS_FALSE;
-            isFunction = IsFunctionObject(value);
-        }
+    isFunction = (oldAttrs & (JSPROP_GETTER | JSPROP_SETTER)) != 0;
+    if (!isFunction) {
+        Value value;
+        if (!obj->getProperty(cx, id, &value))
+            return JS_FALSE;
+        isFunction = IsFunctionObject(value);
     }
 
-    type = (attrs == JSPROP_INITIALIZER)
-           ? "property"
-           : (oldAttrs & attrs & JSPROP_GETTER)
+    type = (oldAttrs & attrs & JSPROP_GETTER)
            ? js_getter_str
            : (oldAttrs & attrs & JSPROP_SETTER)
            ? js_setter_str
@@ -1117,11 +1077,10 @@ CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
     JSAutoByteString bytes;
     name = js_ValueToPrintable(cx, IdToValue(id), &bytes);
     if (!name)
-        return JS_FALSE;
-    return !!JS_ReportErrorFlagsAndNumber(cx, report,
-                                          js_GetErrorMessage, NULL,
-                                          JSMSG_REDECLARED_VAR,
-                                          type, name);
+        return false;
+    JS_ALWAYS_FALSE(JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage, NULL,
+                                                 JSMSG_REDECLARED_VAR, type, name));
+    return false;
 }
 
 JSBool
@@ -5324,33 +5283,38 @@ BEGIN_CASE(JSOP_DEFVAR)
     uintN attrs = JSPROP_ENUMERATE;
     if (!regs.fp->isEvalFrame())
         attrs |= JSPROP_PERMANENT;
-    if (op == JSOP_DEFCONST)
-        attrs |= JSPROP_READONLY;
 
     
     jsid id = ATOM_TO_JSID(atom);
-    JSProperty *prop = NULL;
-    JSObject *obj2;
+    bool shouldDefine;
     if (op == JSOP_DEFVAR) {
         
 
 
 
+        JSProperty *prop;
+        JSObject *obj2;
         if (!obj->lookupProperty(cx, id, &obj2, &prop))
             goto error;
+        shouldDefine = (!prop || obj2 != obj);
     } else {
-        if (!CheckRedeclaration(cx, obj, id, attrs, &obj2, &prop))
+        JS_ASSERT(op == JSOP_DEFCONST);
+        attrs |= JSPROP_READONLY;
+        if (!CheckRedeclaration(cx, obj, id, attrs))
             goto error;
+
+        
+
+
+
+        shouldDefine = true;
     }
 
     
-    if (!prop) {
-        if (!js_DefineNativeProperty(cx, obj, id, UndefinedValue(),
-                                     PropertyStub, StrictPropertyStub, attrs, 0, 0, &prop)) {
-            goto error;
-        }
-        JS_ASSERT(prop);
-        obj2 = obj;
+    if (shouldDefine &&
+        !js_DefineNativeProperty(cx, obj, id, UndefinedValue(),
+                                 PropertyStub, StrictPropertyStub, attrs, 0, 0, NULL)) {
+        goto error;
     }
 }
 END_CASE(JSOP_DEFVAR)
@@ -5397,7 +5361,6 @@ BEGIN_CASE(JSOP_DEFFUN)
         if (!obj)
             goto error;
     }
-
 
     
 
@@ -5486,7 +5449,7 @@ BEGIN_CASE(JSOP_DEFFUN_DBGFC)
     JSObject &parent = regs.fp->varobj(cx);
 
     jsid id = ATOM_TO_JSID(fun->atom);
-    if (!CheckRedeclaration(cx, &parent, id, attrs, NULL, NULL))
+    if (!CheckRedeclaration(cx, &parent, id, attrs))
         goto error;
 
     if ((attrs == JSPROP_ENUMERATE)
@@ -5826,7 +5789,7 @@ BEGIN_CASE(JSOP_SETTER)
     attrs |= JSPROP_ENUMERATE | JSPROP_SHARED;
 
     
-    if (!CheckRedeclaration(cx, obj, id, attrs, NULL, NULL))
+    if (!CheckRedeclaration(cx, obj, id, attrs))
         goto error;
 
     if (!obj->defineProperty(cx, id, UndefinedValue(), getter, setter, attrs))
@@ -5960,8 +5923,6 @@ BEGIN_CASE(JSOP_INITMETHOD)
         LOAD_ATOM(0, atom);
         jsid id = ATOM_TO_JSID(atom);
 
-        
-
         uintN defineHow = (op == JSOP_INITMETHOD)
                           ? JSDNP_CACHE_RESULT | JSDNP_SET_METHOD
                           : JSDNP_CACHE_RESULT;
@@ -5993,8 +5954,6 @@ BEGIN_CASE(JSOP_INITELEM)
     
     jsid id;
     FETCH_ELEMENT_ID(obj, -2, id);
-
-    
 
     
 

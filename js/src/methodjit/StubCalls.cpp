@@ -1343,13 +1343,6 @@ stubs::InitElem(VMFrame &f, uint32 last)
 
 
 
-    if (!CheckRedeclaration(cx, obj, id, JSPROP_INITIALIZER, NULL, NULL))
-        THROW();
-
-    
-
-
-
 
     if (rref.isMagic(JS_ARRAY_HOLE)) {
         JS_ASSERT(obj->isArray());
@@ -2128,8 +2121,6 @@ InitPropOrMethod(VMFrame &f, JSAtom *atom, JSOp op)
         
         jsid id = ATOM_TO_JSID(atom);
 
-        
-
         uintN defineHow = (op == JSOP_INITMETHOD)
                           ? JSDNP_CACHE_RESULT | JSDNP_SET_METHOD
                           : JSDNP_CACHE_RESULT;
@@ -2589,34 +2580,38 @@ stubs::DefVarOrConst(VMFrame &f, JSAtom *atom)
     uintN attrs = JSPROP_ENUMERATE;
     if (!fp->isEvalFrame())
         attrs |= JSPROP_PERMANENT;
-    if (JSOp(*f.regs.pc) == JSOP_DEFCONST)
-        attrs |= JSPROP_READONLY;
 
     
     jsid id = ATOM_TO_JSID(atom);
-    JSProperty *prop = NULL;
-    JSObject *obj2;
-
+    bool shouldDefine;
     if (JSOp(*f.regs.pc) == JSOP_DEFVAR) {
         
 
 
 
+        JSProperty *prop;
+        JSObject *obj2;
         if (!obj->lookupProperty(cx, id, &obj2, &prop))
             THROW();
+        shouldDefine = (!prop || obj2 != obj);
     } else {
-        if (!CheckRedeclaration(cx, obj, id, attrs, &obj2, &prop))
+        JS_ASSERT(JSOp(*f.regs.pc) == JSOP_DEFCONST);
+        attrs |= JSPROP_READONLY;
+        if (!CheckRedeclaration(cx, obj, id, attrs))
             THROW();
+
+        
+
+
+
+        shouldDefine = true;
     }
 
     
-    if (!prop) {
-        if (!js_DefineNativeProperty(cx, obj, id, UndefinedValue(),
-                                     PropertyStub, StrictPropertyStub, attrs, 0, 0, &prop)) {
-            THROW();
-        }
-        JS_ASSERT(prop);
-        obj2 = obj;
+    if (shouldDefine && 
+        !js_DefineNativeProperty(cx, obj, id, UndefinedValue(), PropertyStub, StrictPropertyStub,
+                                     attrs, 0, 0, NULL)) {
+        THROW();
     }
 }
 
