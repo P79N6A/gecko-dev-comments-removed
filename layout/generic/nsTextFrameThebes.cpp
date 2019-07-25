@@ -1333,9 +1333,16 @@ BuildTextRunsScanner::ContinueTextRunAcrossFrames(nsTextFrame* aFrame1, nsTextFr
   if (textStyle1->NewlineIsSignificant() && HasTerminalNewline(aFrame1))
     return PR_FALSE;
 
-  NS_ASSERTION(aFrame1->GetContent() != aFrame2->GetContent() ||
-               aFrame1->GetNextInFlow() == aFrame2,
-               "can't continue text run across non-fluid continuations");
+  if (aFrame1->GetContent() == aFrame2->GetContent() &&
+      aFrame1->GetNextInFlow() != aFrame2) {
+    
+    
+    
+    
+    
+    
+    return PR_FALSE;
+  }
 
   nsStyleContext* sc2 = aFrame2->GetStyleContext();
   if (sc1 == sc2)
