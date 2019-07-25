@@ -137,6 +137,7 @@
 #if defined(ACCESSIBILITY)
 #include "oleidl.h"
 #include <winuser.h>
+#include "nsAccessibilityService.h"
 #include "nsIAccessibleDocument.h"
 #if !defined(WINABLEAPI)
 #include <winable.h>
@@ -7338,26 +7339,8 @@ Accessible*
 nsWindow::GetRootAccessible()
 {
   
-  
-  
-  
-  
-  
-  
-  static int accForceDisable = -1;
-
-  if (accForceDisable == -1) {
-    const char* kPrefName = "accessibility.win32.force_disabled";
-    if (Preferences::GetBool(kPrefName, false)) {
-      accForceDisable = 1;
-    } else {
-      accForceDisable = 0;
-    }
-  }
-
-  
-  if (accForceDisable)
-      return nsnull;
+  if (a11y::PlatformDisabledState() == a11y::ePlatformIsDisabled)
+    return nsnull;
 
   if (mInDtor || mOnDestroyCalled || mWindowType == eWindowType_invisible) {
     return nsnull;

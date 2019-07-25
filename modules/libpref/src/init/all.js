@@ -255,16 +255,25 @@ pref("accessibility.tabfocus_applies_to_xul", false);
 
 
 
-pref("accessibility.win32.force_disabled", false);
-
-
-
 pref("ui.scrollToClick", 0);
 
 #else
 
 pref("accessibility.tabfocus_applies_to_xul", true);
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+pref("accessibility.force_disabled", 0);
 
 pref("focusmanager.testmode", false);
 
