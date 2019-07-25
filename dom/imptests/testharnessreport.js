@@ -101,27 +101,51 @@ var W3CTest = {
         this.expectedFailures[url] === "error"
     });
     this.runner.testFinished(this.tests);
+  },
+
+  
+
+
+
+  "logFailure": function(message) {
+    this.report({
+      "message": message,
+      "result": false,
+      "todo": false
+    });
+  },
+
+  
+
+
+
+  "timeout": function() {
+    timeout();
   }
 };
 (function() {
-  if (!W3CTest.runner) {
-    return;
-  }
-  
-  
-  var request = new XMLHttpRequest();
-  request.open("GET", "/tests/dom/imptests/failures/" + W3CTest.getURL() + ".json", false);
-  request.send();
-  if (request.status === 200) {
-    W3CTest.expectedFailures = JSON.parse(request.responseText);
-  } else if (request.status !== 404) {
-    is(request.status, 404, "Request status neither 200 nor 404");
-  }
+  try {
+    if (!W3CTest.runner) {
+      return;
+    }
+    
+    
+    var request = new XMLHttpRequest();
+    request.open("GET", "/tests/dom/imptests/failures/" + W3CTest.getURL() + ".json", false);
+    request.send();
+    if (request.status === 200) {
+      W3CTest.expectedFailures = JSON.parse(request.responseText);
+    } else if (request.status !== 404) {
+      W3CTest.logFailure("Request status was " + request.status);
+    }
 
-  add_result_callback(W3CTest.result.bind(W3CTest));
-  add_completion_callback(W3CTest.finish.bind(W3CTest));
-  setup({
-    "output": false,
-    "timeout": 1000000,
-  });
+    add_result_callback(W3CTest.result.bind(W3CTest));
+    add_completion_callback(W3CTest.finish.bind(W3CTest));
+    setup({
+      "output": false,
+      "timeout": 1000000
+    });
+  } catch (e) {
+    W3CTest.logFailure("Unexpected exception: " + e);
+  }
 })();
