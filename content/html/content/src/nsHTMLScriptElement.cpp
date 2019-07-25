@@ -333,7 +333,7 @@ nsHTMLScriptElement::MaybeProcessScript()
   nsresult rv = nsScriptElement::MaybeProcessScript();
   if (rv == NS_CONTENT_SCRIPT_IS_EVENTHANDLER)
     
-    rv = NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+    rv = NS_OK;
 
   return rv;
 }
