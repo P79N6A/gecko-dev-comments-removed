@@ -95,6 +95,7 @@ public:
   
   
   
+  
   void Resample() { DoSample(false); }
 
   void SetResampleNeeded()
@@ -106,6 +107,8 @@ public:
       mResampleNeeded = true;
     }
   }
+
+  
   void FlushResampleRequests()
   {
     if (!mResampleNeeded)

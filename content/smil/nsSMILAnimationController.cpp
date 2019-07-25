@@ -399,8 +399,14 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
   
   
   mRunningSample = true;
+  nsCOMPtr<nsIDocument> kungFuDeathGrip(mDocument);  
   mDocument->FlushPendingNotifications(Flush_Style);
 
+  
+  
+  
+  
+  
   
   
   
