@@ -653,9 +653,22 @@ TiltUtils.getWindowId = function TU_getWindowId(aWindow)
 
 
 
+
+
+TiltUtils.getDocumentZoom = function TU_getDocumentZoom() {
+  let browserWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
+    .getService(Ci.nsIWindowMediator)
+    .getMostRecentWindow("navigator:browser");
+
+  return browserWindow.gBrowser.selectedBrowser.markupDocumentViewer.fullZoom;
+};
+
+
+
+
 TiltUtils.gc = function TU_gc()
 {
-  var browserWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
+  let browserWindow = Cc["@mozilla.org/appshell/window-mediator;1"]
     .getService(Ci.nsIWindowMediator)
     .getMostRecentWindow("navigator:browser");
 

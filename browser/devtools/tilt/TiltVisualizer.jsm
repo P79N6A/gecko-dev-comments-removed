@@ -221,6 +221,7 @@ TiltVisualizer.Presenter = function TV_Presenter(
 
 
   this.transforms = {
+    zoom: TiltUtils.getDocumentZoom(),
     offset: vec3.create(),      
     translation: vec3.create(), 
     rotation: quat4.create()    
@@ -337,6 +338,8 @@ TiltVisualizer.Presenter.prototype = {
     
     renderer.translate(transforms.offset[0],
                        transforms.offset[1] + transforms.translation[1], 0);
+
+    renderer.scale(transforms.zoom, transforms.zoom);
 
     
     renderer.strokeWeight(2);
@@ -492,12 +495,13 @@ TiltVisualizer.Presenter.prototype = {
       this.highlightNode(this.inspectorUI.selection);
     }
 
-    let width = renderer.width;
-    let height = renderer.height;
+    let zoom = TiltUtils.getDocumentZoom();
+    let width = Math.min(aData.meshWidth * zoom, renderer.width);
+    let height = Math.min(aData.meshHeight * zoom, renderer.height);
 
     
-    this.transforms.offset[0] = -Math.min(aData.meshWidth, width) * 0.5;
-    this.transforms.offset[1] = -Math.min(aData.meshHeight, height) * 0.5;
+    this.transforms.offset[0] = -width * 0.5;
+    this.transforms.offset[1] = -height * 0.5;
 
     
     this.canvas.style.background = TiltVisualizerStyle.canvas.background;
@@ -559,8 +563,9 @@ TiltVisualizer.Presenter.prototype = {
 
   onResize: function TVP_onResize(e)
   {
-    let width = e.target.innerWidth;
-    let height = e.target.innerHeight;
+    let zoom = TiltUtils.getDocumentZoom();
+    let width = e.target.innerWidth * zoom;
+    let height = e.target.innerHeight * zoom;
 
     
     this.renderer.width = width;
@@ -703,9 +708,12 @@ TiltVisualizer.Presenter.prototype = {
       }
     }, false);
 
-    let width = this.renderer.width;
-    let height = this.renderer.height;
+    let zoom = TiltUtils.getDocumentZoom();
+    let width = this.renderer.width * zoom;
+    let height = this.renderer.height * zoom;
     let mesh = this.meshStacks;
+    x *= zoom;
+    y *= zoom;
 
     
     
@@ -988,7 +996,11 @@ TiltVisualizer.Controller.prototype = {
       e.preventDefault();
       e.stopPropagation();
     }
-    this.arcball.keyDown(code);
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) {
+      this.arcball.cancelKeyEvents();
+    } else {
+      this.arcball.keyDown(code);
+    }
   },
 
   
@@ -1013,7 +1025,7 @@ TiltVisualizer.Controller.prototype = {
 
 
   onBlur: function TVC_onBlur(e) {
-    this.arcball._keyCode = {};
+    this.arcball.cancelKeyEvents();
   },
 
   
@@ -1021,8 +1033,9 @@ TiltVisualizer.Controller.prototype = {
 
   onResize: function TVC_onResize(e)
   {
-    let width = e.target.innerWidth;
-    let height = e.target.innerHeight;
+    let zoom = TiltUtils.getDocumentZoom();
+    let width = e.target.innerWidth * zoom;
+    let height = e.target.innerHeight * zoom;
 
     this.arcball.resize(width, height);
   },
@@ -1466,6 +1479,13 @@ TiltVisualizer.Arcball.prototype = {
       aSphereVec[1] = y;
       aSphereVec[2] = Math.sqrt(1 - sqlength);
     }
+  },
+
+  
+
+
+  cancelKeyEvents: function TVA_cancelKeyEvents() {
+    this._keyCode = {};
   },
 
   
