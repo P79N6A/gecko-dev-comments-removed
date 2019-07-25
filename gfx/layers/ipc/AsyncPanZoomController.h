@@ -309,6 +309,9 @@ protected:
 
 
 
+
+
+
   void RequestContentRepaint();
 
   
@@ -334,6 +337,25 @@ private:
     PINCHING,       
   };
 
+  enum ContentPainterStatus {
+    
+    
+    
+    CONTENT_IDLE,
+    
+    
+    
+    CONTENT_PAINTING,
+    
+    
+    
+    
+    
+    
+    
+   CONTENT_PAINTING_AND_PAINT_PENDING
+  };
+
   nsRefPtr<CompositorParent> mCompositorParent;
   nsRefPtr<GeckoContentController> mGeckoContentController;
   nsRefPtr<GestureEventListener> mGestureEventListener;
@@ -344,6 +366,10 @@ private:
   
   
   FrameMetrics mLastContentPaintMetrics;
+  
+  
+  
+  FrameMetrics mLastPaintRequestMetrics;
 
   AxisX mX;
   AxisY mY;
@@ -363,6 +389,12 @@ private:
   nsIntPoint mLastZoomFocus;
   PanZoomState mState;
   int mDPI;
+
+  
+  
+  
+  
+  ContentPainterStatus mContentPainterStatus;
 
   friend class Axis;
 };
