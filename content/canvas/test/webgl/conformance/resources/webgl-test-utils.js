@@ -86,26 +86,26 @@ var startsWith = function(haystack, needle) {
 
 
 
-var simpleTextureVertexShader = '' +
-  'attribute vec4 vPosition;\n' +
-  'attribute vec2 texCoord0;\n' +
-  'varying vec2 texCoord;\n' +
-  'void main() {\n' +
-  '    gl_Position = vPosition;\n' +
-  '    texCoord = texCoord0;\n' +
-  '}\n';
+var simpleTextureVertexShader = [
+  'attribute vec4 vPosition;',
+  'attribute vec2 texCoord0;',
+  'varying vec2 texCoord;',
+  'void main() {',
+  '    gl_Position = vPosition;',
+  '    texCoord = texCoord0;',
+  '}'].join('\n');
 
 
 
 
 
-var simpleTextureFragmentShader = '' +
-  'precision mediump float;\n' +
-  'uniform sampler2D tex;\n' +
-  'varying vec2 texCoord;\n' +
-  'void main() {\n' +
-  '    gl_FragData[0] = texture2D(tex, texCoord);\n' +
-  '}\n';
+var simpleTextureFragmentShader = [
+  'precision mediump float;',
+  'uniform sampler2D tex;',
+  'varying vec2 texCoord;',
+  'void main() {',
+  '    gl_FragData[0] = texture2D(tex, texCoord);',
+  '}'].join('\n');
 
 
 
@@ -246,6 +246,70 @@ var setupTexturedQuad = function(
       gl, opt_positionLocation, opt_texcoordLocation);
   setupUnitQuad(gl, opt_positionLocation, opt_texcoordLocation);
   return program;
+};
+
+
+
+
+
+
+
+var setupQuad = function (
+    gl, gridRes, opt_positionLocation, opt_flipOddTriangles) {
+  var positionLocation = opt_positionLocation || 0;
+  var objects = [];
+
+  var vertsAcross = gridRes + 1;
+  var numVerts = vertsAcross * vertsAcross;
+  var positions = new Float32Array(numVerts * 3);
+  var indices = new Uint16Array(6 * gridRes * gridRes);
+
+  var poffset = 0;
+
+  for (var yy = 0; yy <= gridRes; ++yy) {
+    for (var xx = 0; xx <= gridRes; ++xx) {
+      positions[poffset + 0] = -1 + 2 * xx / gridRes;
+      positions[poffset + 1] = -1 + 2 * yy / gridRes;
+      positions[poffset + 2] = 0;
+
+      poffset += 3;
+    }
+  }
+
+  var tbase = 0;
+  for (var yy = 0; yy < gridRes; ++yy) {
+    var index = yy * vertsAcross;
+    for (var xx = 0; xx < gridRes; ++xx) {
+      indices[tbase + 0] = index + 0;
+      indices[tbase + 1] = index + 1;
+      indices[tbase + 2] = index + vertsAcross;
+      indices[tbase + 3] = index + vertsAcross;
+      indices[tbase + 4] = index + 1;
+      indices[tbase + 5] = index + vertsAcross + 1;
+
+      if (opt_flipOddTriangles) {
+        indices[tbase + 4] = index + vertsAcross + 1;
+        indices[tbase + 5] = index + 1;
+      }
+
+      index += 1;
+      tbase += 6;
+    }
+  }
+
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(positionLocation);
+  gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
+  objects.push(buf);
+
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+  objects.push(buf);
+
+  return objects;
 };
 
 
@@ -512,7 +576,8 @@ var glErrorShouldBe = function(gl, glError, opt_msg) {
 
 
 
-var linkProgram = function(gl, program) {
+
+var linkProgram = function(gl, program, opt_errorCallback) {
   
   gl.linkProgram(program);
 
@@ -525,8 +590,8 @@ var linkProgram = function(gl, program) {
     testFailed("Error in program linking:" + error);
 
     gl.deleteProgram(program);
-    gl.deleteProgram(fragmentShader);
-    gl.deleteProgram(vertexShader);
+    
+    
   }
 };
 
@@ -594,16 +659,154 @@ var setupWebGLWithShaders = function(
 
 
 
+
+var loadTextFileAsync = function(url, callback) {
+  log ("loading: " + url);
+  var error = 'loadTextFileSynchronous failed to load url "' + url + '"';
+  var request;
+  if (window.XMLHttpRequest) {
+    request = new XMLHttpRequest();
+    if (request.overrideMimeType) {
+      request.overrideMimeType('text/plain');
+    }
+  } else {
+    throw 'XMLHttpRequest is disabled';
+  }
+  try {
+    request.open('GET', url, true);
+    request.onreadystatechange = function() {
+      if (request.readyState == 4) {
+        var text = '';
+        
+        
+        
+        
+        var success = request.status == 200 || request.status == 0;
+        if (success) {
+          text = request.responseText;
+        }
+        log("loaded: " + url);
+        callback(success, text);
+      }
+    };
+    request.send(null);
+  } catch (e) {
+    log("failed to load: " + url);
+    callback(false, '');
+  }
+};
+
+
+
+
+
+
+
+
+
+
+var getFileListAsync = function(url, callback) {
+  var files = [];
+
+  var getFileListImpl = function(url, callback) {
+    var files = [];
+    if (url.substr(url.length - 4) == '.txt') {
+      loadTextFileAsync(url, function() {
+        return function(success, text) {
+          if (!success) {
+            callback(false, '');
+            return;
+          }
+          var lines = text.split('\n');
+          var prefix = '';
+          var lastSlash = url.lastIndexOf('/');
+          if (lastSlash >= 0) {
+            prefix = url.substr(0, lastSlash + 1);
+          }
+          var fail = false;
+          var count = 1;
+          var index = 0;
+          for (var ii = 0; ii < lines.length; ++ii) {
+            var str = lines[ii].replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+            if (str.length > 4 &&
+                str[0] != '#' &&
+                str[0] != ";" &&
+                str.substr(0, 2) != "//") {
+              var names = str.split(/ +/);
+              new_url = prefix + str;
+              if (names.length == 1) {
+                new_url = prefix + str;
+                ++count;
+                getFileListImpl(new_url, function(index) {
+                  return function(success, new_files) {
+                    log("got files: " + new_files.length);
+                    if (success) {
+                      files[index] = new_files;
+                    }
+                    finish(success);
+                  };
+                }(index++));
+              } else {
+                var s = "";
+                var p = "";
+                for (var jj = 0; jj < names.length; ++jj) {
+                  s += p + prefix + names[jj];
+                  p = " ";
+                }
+                files[index++] = s;
+              }
+            }
+          }
+          finish(true);
+
+          function finish(success) {
+            if (!success) {
+              fail = true;
+            }
+            --count;
+            log("count: " + count);
+            if (!count) {
+              callback(!fail, files);
+            }
+          }
+        }
+      }());
+
+    } else {
+      files.push(url);
+      callback(true, files);
+    }
+  };
+
+  getFileListImpl(url, function(success, files) {
+    
+    var flat = [];
+    flatten(files);
+    function flatten(files) {
+      for (var ii = 0; ii < files.length; ++ii) {
+        var value = files[ii];
+        if (typeof(value) == "string") {
+          flat.push(value);
+        } else {
+          flatten(value);
+        }
+      }
+    }
+    callback(success, flat);
+  });
+};
+
+
+
+
+
+
 var readFile = function(file) {
   var xhr = new XMLHttpRequest();
   xhr.open("GET", file, false);
   xhr.send();
   return xhr.responseText.replace(/\r/g, "");
 };
-
-
-
-
 
 var readFileList = function(url) {
   var files = [];
@@ -648,11 +851,13 @@ var readFileList = function(url) {
 
 
 
-var loadShader = function(gl, shaderSource, shaderType) {
+
+var loadShader = function(gl, shaderSource, shaderType, opt_errorCallback) {
+  var errFn = opt_errorCallback || error;
   
   var shader = gl.createShader(shaderType);
   if (shader == null) {
-    error("*** Error: unable to create shader '"+shaderSource+"'");
+    errFn("*** Error: unable to create shader '"+shaderSource+"'");
     return null;
   }
 
@@ -660,7 +865,7 @@ var loadShader = function(gl, shaderSource, shaderType) {
   gl.shaderSource(shader, shaderSource);
   var err = gl.getError();
   if (err != gl.NO_ERROR) {
-    error("*** Error loading shader '" + shader + "':" + glEnumToString(gl, err));
+    errFn("*** Error loading shader '" + shader + "':" + glEnumToString(gl, err));
     return null;
   }
 
@@ -672,7 +877,7 @@ var loadShader = function(gl, shaderSource, shaderType) {
   if (!compiled) {
     
     lastError = gl.getShaderInfoLog(shader);
-    error("*** Error compiling shader '" + shader + "':" + lastError);
+    errFn("*** Error compiling shader '" + shader + "':" + lastError);
     gl.deleteShader(shader);
     return null;
   }
@@ -687,9 +892,10 @@ var loadShader = function(gl, shaderSource, shaderType) {
 
 
 
-var loadShaderFromFile = function(gl, file, type) {
+
+var loadShaderFromFile = function(gl, file, type, opt_errorCallback) {
   var shaderSource = readFile(file);
-  return loadShader(gl, shaderSource, type);
+  return loadShader(gl, shaderSource, type, opt_errorCallback);
 };
 
 
@@ -700,7 +906,9 @@ var loadShaderFromFile = function(gl, file, type) {
 
 
 
-var loadShaderFromScript = function(gl, scriptId, opt_shaderType) {
+
+var loadShaderFromScript = function(
+    gl, scriptId, opt_shaderType, opt_errorCallback) {
   var shaderSource = "";
   var shaderType;
   var shaderScript = document.getElementById(scriptId);
@@ -721,7 +929,8 @@ var loadShaderFromScript = function(gl, scriptId, opt_shaderType) {
   }
 
   return loadShader(
-      gl, shaderSource, opt_shaderType ? opt_shaderType : shaderType);
+      gl, shaderSource, opt_shaderType ? opt_shaderType : shaderType,
+      opt_errorCallback);
 };
 
 var loadStandardProgram = function(gl) {
@@ -739,17 +948,22 @@ var loadStandardProgram = function(gl) {
 
 
 
-var loadProgramFromFile = function(gl, vertexShaderPath, fragmentShaderPath) {
+
+var loadProgramFromFile = function(
+    gl, vertexShaderPath, fragmentShaderPath, opt_errorCallback) {
   var program = gl.createProgram();
   gl.attachShader(
       program,
-      loadShaderFromFile(gl, vertexShaderPath, gl.VERTEX_SHADER));
+      loadShaderFromFile(
+          gl, vertexShaderPath, gl.VERTEX_SHADER, opt_errorCallback));
   gl.attachShader(
       program,
-      loadShaderFromFile(gl, fragmentShaderPath, gl.FRAGMENT_SHADER));
-  linkProgram(gl, program);
+      loadShaderFromFile(
+          gl, fragmentShaderPath, gl.FRAGMENT_SHADER, opt_errorCallback));
+  linkProgram(gl, program, opt_errorCallback);
   return program;
 };
+
 
 
 
@@ -762,15 +976,17 @@ var loadProgramFromFile = function(gl, vertexShaderPath, fragmentShaderPath) {
 
 
 var loadProgramFromScript = function loadProgramFromScript(
-  gl, vertexScriptId, fragmentScriptId) {
+    gl, vertexScriptId, fragmentScriptId, opt_errorCallback) {
   var program = gl.createProgram();
   gl.attachShader(
       program,
-      loadShaderFromScript(gl, vertexScriptId, gl.VERTEX_SHADER));
+      loadShaderFromScript(
+          gl, vertexScriptId, gl.VERTEX_SHADER, opt_errorCallback));
   gl.attachShader(
       program,
-      loadShaderFromScript(gl, fragmentScriptId,  gl.FRAGMENT_SHADER));
-  linkProgram(gl, program);
+      loadShaderFromScript(
+          gl, fragmentScriptId,  gl.FRAGMENT_SHADER, opt_errorCallback));
+  linkProgram(gl, program, opt_errorCallback);
   return program;
 };
 
@@ -782,26 +998,46 @@ var loadProgramFromScript = function loadProgramFromScript(
 
 
 
-var loadProgram = function(gl, vertexShader, fragmentShader) {
+
+var loadProgram = function(
+    gl, vertexShader, fragmentShader, opt_errorCallback) {
   var program = gl.createProgram();
   gl.attachShader(
       program,
-      loadShader(gl, vertexShader, gl.VERTEX_SHADER));
+      loadShader(
+          gl, vertexShader, gl.VERTEX_SHADER, opt_errorCallback));
   gl.attachShader(
       program,
-      loadShader(gl, fragmentShader,  gl.FRAGMENT_SHADER));
-  linkProgram(gl, program);
+      loadShader(
+          gl, fragmentShader, gl.FRAGMENT_SHADER, opt_errorCallback));
+  linkProgram(gl, program, opt_errorCallback);
   return program;
+};
+
+var basePath;
+var getBasePath = function() {
+  if (!basePath) {
+    var expectedBase = "webgl-test-utils.js";
+    var scripts = document.getElementsByTagName('script');
+    for (var script, i = 0; script = scripts[i]; i++) {
+      var src = script.src;
+      var l = src.length;
+      if (src.substr(l - expectedBase.length) == expectedBase) {
+        basePath = src.substr(0, l - expectedBase.length);
+      }
+    }
+  }
+  return basePath;
 };
 
 var loadStandardVertexShader = function(gl) {
   return loadShaderFromFile(
-      gl, "resources/vertexShader.vert", gl.VERTEX_SHADER);
+      gl, getBasePath() + "vertexShader.vert", gl.VERTEX_SHADER);
 };
 
 var loadStandardFragmentShader = function(gl) {
   return loadShaderFromFile(
-      gl, "resources/fragmentShader.frag", gl.FRAGMENT_SHADER);
+      gl, getBasePath() + "fragmentShader.frag", gl.FRAGMENT_SHADER);
 };
 
 
@@ -878,6 +1114,7 @@ return {
   createColoredTexture: createColoredTexture,
   drawQuad: drawQuad,
   endsWith: endsWith,
+  getFileListAsync: getFileListAsync,
   getLastError: getLastError,
   getUrlArguments: getUrlArguments,
   glEnumToString: glEnumToString,
@@ -894,11 +1131,13 @@ return {
   loadStandardProgram: loadStandardProgram,
   loadStandardVertexShader: loadStandardVertexShader,
   loadStandardFragmentShader: loadStandardFragmentShader,
+  loadTextFileAsync: loadTextFileAsync,
   loadTexture: loadTexture,
   log: log,
   loggingOff: loggingOff,
   error: error,
   setupProgram: setupProgram,
+  setupQuad: setupQuad,
   setupSimpleTextureFragmentShader: setupSimpleTextureFragmentShader,
   setupSimpleTextureProgram: setupSimpleTextureProgram,
   setupSimpleTextureVertexShader: setupSimpleTextureVertexShader,
