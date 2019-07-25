@@ -116,17 +116,11 @@ static void glxtest()
   typedef XVisualInfo* (* PFNGLXGETVISUALFROMFBCONFIG) (Display *, GLXFBConfig);
   PFNGLXGETVISUALFROMFBCONFIG glXGetVisualFromFBConfig = cast<PFNGLXGETVISUALFROMFBCONFIG>(glXGetProcAddress("glXGetVisualFromFBConfig"));
 
-  typedef GLXPixmap (* PFNGLXCREATEPIXMAP) (Display *, GLXFBConfig, Pixmap, const int *);
-  PFNGLXCREATEPIXMAP glXCreatePixmap = cast<PFNGLXCREATEPIXMAP>(glXGetProcAddress("glXCreatePixmap"));
-
   typedef GLXContext (* PFNGLXCREATENEWCONTEXT) (Display *, GLXFBConfig, int, GLXContext, Bool);
   PFNGLXCREATENEWCONTEXT glXCreateNewContext = cast<PFNGLXCREATENEWCONTEXT>(glXGetProcAddress("glXCreateNewContext"));
 
   typedef Bool (* PFNGLXMAKECURRENT) (Display*, GLXDrawable, GLXContext);
   PFNGLXMAKECURRENT glXMakeCurrent = cast<PFNGLXMAKECURRENT>(glXGetProcAddress("glXMakeCurrent"));
-
-  typedef void (* PFNGLXDESTROYPIXMAP) (Display *, GLXPixmap);
-  PFNGLXDESTROYPIXMAP glXDestroyPixmap = cast<PFNGLXDESTROYPIXMAP>(glXGetProcAddress("glXDestroyPixmap"));
 
   typedef void (* PFNGLXDESTROYCONTEXT) (Display*, GLXContext);
   PFNGLXDESTROYCONTEXT glXDestroyContext = cast<PFNGLXDESTROYCONTEXT>(glXGetProcAddress("glXDestroyContext"));
@@ -138,10 +132,8 @@ static void glxtest()
       !glXQueryVersion ||
       !glXChooseFBConfig ||
       !glXGetVisualFromFBConfig ||
-      !glXCreatePixmap ||
       !glXCreateNewContext ||
       !glXMakeCurrent ||
-      !glXDestroyPixmap ||
       !glXDestroyContext ||
       !glGetString)
   {
@@ -155,25 +147,12 @@ static void glxtest()
   
   if (!glXQueryExtension(dpy, NULL, NULL))
     fatal_error("GLX extension missing");
-  
-  
-  int majorVersion, minorVersion;
-  if (!glXQueryVersion(dpy, &majorVersion, &minorVersion))
-    fatal_error("Unable to query GLX version");
-
-  if (majorVersion < 1 || (majorVersion == 1 && minorVersion < 3))
-    fatal_error("GLX version older than the required 1.3");
 
   XSetErrorHandler(x_error_handler);
 
   
-  int attribs[] = {
-    GLX_DRAWABLE_TYPE, GLX_PIXMAP_BIT,
-    GLX_X_RENDERABLE, True,
-    0
-  };
   int numReturned;
-  GLXFBConfig *fbConfigs = glXChooseFBConfig(dpy, DefaultScreen(dpy), attribs, &numReturned );
+  GLXFBConfig *fbConfigs = glXChooseFBConfig(dpy, DefaultScreen(dpy), NULL, &numReturned );
   if (!fbConfigs)
     fatal_error("No FBConfigs found");
   XVisualInfo *vInfo = glXGetVisualFromFBConfig(dpy, fbConfigs[0]);
@@ -181,12 +160,21 @@ static void glxtest()
     fatal_error("No visual found for first FBConfig");
 
   
-  Pixmap pixmap = XCreatePixmap(dpy, RootWindow(dpy, vInfo->screen), 4, 4, vInfo->depth);
-  GLXPixmap glxpixmap = glXCreatePixmap(dpy, fbConfigs[0], pixmap, NULL);
+  
+  Window win1;
+  XSetWindowAttributes swa;
+  swa.colormap = XCreateColormap(dpy, RootWindow(dpy, vInfo->screen),
+                                 vInfo->visual, AllocNone);
+  swa.border_pixel = 0;
+  win1 = XCreateWindow(dpy, RootWindow(dpy, vInfo->screen),
+                       10, 10, 16, 16,
+                       0, vInfo->depth, InputOutput, vInfo->visual,
+                       CWBorderPixel | CWColormap, &swa);
+
 
   
   GLXContext context = glXCreateNewContext(dpy, fbConfigs[0], GLX_RGBA_TYPE, NULL, True);
-  glXMakeCurrent(dpy, glxpixmap, context);
+  glXMakeCurrent(dpy, win1, context);
 
   
   void* glXBindTexImageEXT = glXGetProcAddress("glXBindTexImageEXT"); 
@@ -215,8 +203,7 @@ static void glxtest()
   
   glXMakeCurrent(dpy, None, NULL); 
   glXDestroyContext(dpy, context);
-  glXDestroyPixmap(dpy, glxpixmap);
-  XFreePixmap(dpy, pixmap);
+  XDestroyWindow(dpy,win1);
   XCloseDisplay(dpy);
   dlclose(libgl);
 
