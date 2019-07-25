@@ -51,6 +51,20 @@ namespace ion {
 
 
 
+class LLabel : public LInstructionHelper<0, 0, 0>
+{
+    Label label_;
+
+  public:
+    LIR_HEADER(Label);
+
+    Label *label() {
+        return &label_;
+    }
+};
+
+
+
 class LCaptureAllocations : public LInstructionHelper<0, 0, 0>
 {
   public:
