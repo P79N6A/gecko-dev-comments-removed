@@ -2498,14 +2498,16 @@ GLContext::SetBlitFramebufferForDestTexture(GLuint aTexture)
                           aTexture,
                           0);
 
-    if (aTexture && (fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) !=
-                     LOCAL_GL_FRAMEBUFFER_COMPLETE)) {
-
+    GLenum result = fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
+    if (aTexture && (result != LOCAL_GL_FRAMEBUFFER_COMPLETE)) {
+        nsCAutoString msg;
+        msg.Append("Framebuffer not complete -- error 0x");
+        msg.AppendInt(result, 16);
         
         
         
         
-        NS_RUNTIMEABORT("Error setting up framebuffer --- framebuffer not complete!");
+        NS_RUNTIMEABORT(msg.get());
     }
 }
 
