@@ -863,6 +863,25 @@ public:
   Sequence() : AutoFallibleTArray<T, 16>() {}
 };
 
+
+
+template<class T>
+class UnionMember {
+    AlignedStorage2<T> storage;
+
+public:
+    T& SetValue() {
+      new (storage.addr()) T();
+      return *storage.addr();
+    }
+    const T& Value() const {
+      return *storage.addr();
+    }
+    void Destroy() {
+      storage.addr()->~T();
+    }
+};
+
 } 
 } 
 

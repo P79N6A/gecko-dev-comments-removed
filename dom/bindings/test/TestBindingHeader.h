@@ -14,6 +14,7 @@
 #include "nsCOMPtr.h"
 
 #include "../TestCodeGenBinding.h"
+#include "mozilla/dom/UnionTypes.h"
 
 namespace mozilla {
 namespace dom {
@@ -300,6 +301,7 @@ public:
   void PassOptionalAny(JSContext*, const Optional<JS::Value>&, ErrorResult&);
   JS::Value ReceiveAny(JSContext*, ErrorResult&);
 
+  
   void PassObject(JSContext*, JSObject&, ErrorResult&);
   void PassNullableObject(JSContext*, JSObject*, ErrorResult&);
   void PassOptionalObject(JSContext*, const Optional<NonNull<JSObject> >&, ErrorResult&);
@@ -307,6 +309,33 @@ public:
   void PassOptionalNullableObjectWithDefaultValue(JSContext*, JSObject*, ErrorResult&);
   JSObject* ReceiveObject(JSContext*, ErrorResult&);
   JSObject* ReceiveNullableObject(JSContext*, ErrorResult&);
+
+  
+  void PassUnion(JSContext*, const ObjectOrLong& arg, ErrorResult&);
+  void PassUnionWithNullable(JSContext*, const ObjectOrNullOrLong& arg, ErrorResult&)
+  {
+    ObjectOrLong returnValue;
+    if (arg.IsNull()) {
+    } else if (arg.IsObject()) {
+      JSObject& obj = (JSObject&)arg.GetAsObject();
+      JS_GetClass(&obj);
+      
+    } else {
+      int32_t i = arg.GetAsLong();
+      i += 1;
+    }
+  }
+  void PassNullableUnion(JSContext*, const Nullable<ObjectOrLong>&, ErrorResult&);
+  void PassOptionalUnion(JSContext*, const Optional<ObjectOrLong>&, ErrorResult&);
+  void PassOptionalNullableUnion(JSContext*, const Optional<Nullable<ObjectOrLong> >&, ErrorResult&);
+  void PassOptionalNullableUnionWithDefaultValue(JSContext*, const Nullable<ObjectOrLong>&, ErrorResult&);
+  
+  
+  void PassUnionWithArrayBuffer(const ArrayBufferOrLong&, ErrorResult&);
+  void PassUnionWithString(JSContext*, const StringOrObject&, ErrorResult&);
+  
+  void PassUnionWithCallback(JSContext*, const TestCallbackOrLong&, ErrorResult&);
+  void PassUnionWithObject(JSContext*, const ObjectOrLong&, ErrorResult&);
 
   
   void MethodRenamedTo(ErrorResult&);
