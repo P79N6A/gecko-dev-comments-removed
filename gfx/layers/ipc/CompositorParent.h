@@ -41,6 +41,14 @@
 #ifndef mozilla_layers_CompositorParent_h
 #define mozilla_layers_CompositorParent_h
 
+
+
+
+
+
+
+#define COMPOSITOR_PERFORMANCE_WARNING
+
 #include "mozilla/layers/PCompositorParent.h"
 #include "mozilla/layers/PLayersParent.h"
 #include "base/thread.h"
@@ -129,6 +137,9 @@ private:
   nsIWidget* mWidget;
   CancelableTask *mCurrentCompositeTask;
   TimeStamp mLastCompose;
+#ifdef COMPOSITOR_PERFORMANCE_WARNING
+  TimeStamp mExpectedComposeTime;
+#endif
 
   bool mPaused;
   float mXScale;
