@@ -2319,6 +2319,11 @@ var MemoryObserver = {
     window.QueryInterface(Ci.nsIInterfaceRequestor)
           .getInterface(Ci.nsIDOMWindowUtils).garbageCollect();
     Cu.forceGC();
+    
+    
+    let sTab = Browser.selectedTab;
+    Browser._selectedTab = null;
+    Browser.selectedTab = sTab;
   }
 };
 
