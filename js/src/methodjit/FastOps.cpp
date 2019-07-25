@@ -936,7 +936,7 @@ mjit::Compiler::jsop_localinc(JSOp op, uint32 slot)
 
         
         
-        frame.storeLocal(slot, analysis->popGuaranteed(PC), true);
+        frame.storeLocal(slot, analysis->popGuaranteed(PC));
     } else {
         
         
@@ -961,7 +961,7 @@ mjit::Compiler::jsop_localinc(JSOp op, uint32 slot)
 
         
         
-        frame.storeLocal(slot, true, true);
+        frame.storeLocal(slot, true);
 
         
         

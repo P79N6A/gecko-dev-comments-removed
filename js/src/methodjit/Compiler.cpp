@@ -767,6 +767,9 @@ mjit::Compiler::generatePrologue()
 
     recompileCheckHelper();
 
+    
+    restoreAnalysisTypes();
+
     return Compile_Okay;
 }
 
@@ -1583,7 +1586,7 @@ mjit::Compiler::generateMethod()
             updateVarType();
             uint32 slot = GET_SLOTNO(PC);
             iterNext();
-            frame.storeLocal(slot, true, true);
+            frame.storeLocal(slot, true);
             frame.pop();
           }
           END_CASE(JSOP_FORLOCAL)
@@ -2224,7 +2227,7 @@ mjit::Compiler::generateMethod()
             updateVarType();
             jsbytecode *next = &PC[JSOP_SETLOCAL_LENGTH];
             bool pop = JSOp(*next) == JSOP_POP && !analysis->jumpTarget(next);
-            frame.storeLocal(GET_SLOTNO(PC), pop, true);
+            frame.storeLocal(GET_SLOTNO(PC), pop);
 
             if (cx->typeInferenceEnabled()) {
                 uint32 slot = LocalSlot(script, GET_SLOTNO(PC));
@@ -2244,7 +2247,7 @@ mjit::Compiler::generateMethod()
           {
             updateVarType();
             uint32 slot = GET_SLOTNO(PC);
-            frame.storeLocal(slot, true, true);
+            frame.storeLocal(slot, true);
             frame.pop();
           }
           END_CASE(JSOP_SETLOCALPOP)
@@ -2459,7 +2462,7 @@ mjit::Compiler::generateMethod()
             INLINE_STUBCALL(stubs::DefLocalFun_FC, REJOIN_DEFLOCALFUN);
             frame.takeReg(Registers::ReturnReg);
             frame.pushTypedPayload(JSVAL_TYPE_OBJECT, Registers::ReturnReg);
-            frame.storeLocal(slot, true, true);
+            frame.storeLocal(slot, true);
             frame.pop();
           }
           END_CASE(JSOP_DEFLOCALFUN_FC)
@@ -2557,7 +2560,7 @@ mjit::Compiler::generateMethod()
             INLINE_STUBCALL(stubs::DefLocalFun, REJOIN_DEFLOCALFUN);
             frame.takeReg(Registers::ReturnReg);
             frame.pushTypedPayload(JSVAL_TYPE_OBJECT, Registers::ReturnReg);
-            frame.storeLocal(slot, true, true);
+            frame.storeLocal(slot, true);
             frame.pop();
           }
           END_CASE(JSOP_DEFLOCALFUN)
@@ -3458,6 +3461,8 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew, FrameSize 
     }
 
     callFrameSize = callIC.frameSize;
+
+    callIC.typeMonitored = monitored(PC);
 
     
     MaybeJump notObjectJump;
@@ -6781,10 +6786,14 @@ mjit::Compiler::restoreAnalysisTypes()
     }
 
     
+
+
+
     for (uint32 slot = ArgSlot(0); slot < TotalSlots(script); slot++) {
         JSValueType type = a->varTypes[slot].type;
         if (type != JSVAL_TYPE_UNKNOWN &&
-            (type != JSVAL_TYPE_DOUBLE || analysis->trackSlot(slot))) {
+            (type != JSVAL_TYPE_DOUBLE || analysis->trackSlot(slot)) &&
+            (!analysis->trackSlot(slot) || analysis->liveness(slot).live(PC - script->code))) {
             FrameEntry *fe = frame.getSlotEntry(slot);
             JS_ASSERT_IF(fe->isTypeKnown(), fe->isType(type));
             if (!fe->isTypeKnown())

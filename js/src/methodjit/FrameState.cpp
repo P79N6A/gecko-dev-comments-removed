@@ -259,7 +259,7 @@ FrameState::variableLive(FrameEntry *fe, jsbytecode *pc) const
 }
 
 AnyRegisterID
-FrameState::bestEvictReg(uint32 mask, bool includePinned) const
+FrameState::bestEvictReg(uint32 mask, bool includePinned)
 {
     JS_ASSERT(cx->typeInferenceEnabled());
 
@@ -341,10 +341,7 @@ FrameState::bestEvictReg(uint32 mask, bool includePinned) const
 
 
 
-            if (!fe->data.synced())
-                fe->data.sync();
-            if (!fe->type.synced())
-                fe->type.sync();
+            fakeSync(fe);
             JaegerSpew(JSpew_Regalloc, "result: %s (%s) is dead\n", entryName(fe), reg.name());
             return reg;
         }
@@ -686,12 +683,8 @@ FrameState::syncForAllocation(RegisterAllocation *alloc, bool inlineReturn, Uses
         
         if (isLocal(fe) && !a->analysis->slotEscapes(entrySlot(fe))) {
             Lifetime *lifetime = variableLive(fe, a->PC);
-            if (!lifetime) {
-                if (!fe->data.synced())
-                    fe->data.sync();
-                if (!fe->type.synced())
-                    fe->type.sync();
-            }
+            if (!lifetime)
+                fakeSync(fe);
         }
 
         if (!fe->isCopy() && alloc->hasAnyReg(fe - entries)) {
@@ -2080,7 +2073,7 @@ FrameState::separateBinaryEntries(FrameEntry *lhs, FrameEntry *rhs)
 }
 
 void
-FrameState::storeLocal(uint32 n, bool popGuaranteed, bool fixedType)
+FrameState::storeLocal(uint32 n, bool popGuaranteed)
 {
     FrameEntry *local = getLocal(n);
 
@@ -2150,15 +2143,9 @@ FrameState::storeTop(FrameEntry *target)
 
 
 
-
-
-
     bool wasSynced = target->type.synced();
     JSValueType oldType = target->isTypeKnown() ? target->getKnownType() : JSVAL_TYPE_UNKNOWN;
-    bool trySyncType = wasSynced &&
-        oldType != JSVAL_TYPE_UNKNOWN &&
-        oldType != JSVAL_TYPE_DOUBLE &&
-        oldType != JSVAL_TYPE_UNDEFINED;
+    bool trySyncType = wasSynced && oldType != JSVAL_TYPE_UNKNOWN && oldType != JSVAL_TYPE_DOUBLE;
 
     
     forgetEntry(target);
