@@ -962,6 +962,31 @@ FlagHistogram::Accumulate(Sample value, Count count, size_t index)
   Histogram::Accumulate(1, -1, zero_index);
 }
 
+void
+FlagHistogram::AddSampleSet(const SampleSet& sample) {
+  DCHECK_EQ(bucket_count(), sample.size());
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (mSwitched) {
+    return;
+  }
+
+  if (sample.sum() != 1) {
+    return;
+  }
+
+  size_t one_index = BucketIndex(1);
+  if (sample.counts(one_index) == 1) {
+    Accumulate(1, 1, one_index);
+  }
+}
 
 
 

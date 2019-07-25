@@ -336,6 +336,7 @@ class Histogram {
     Count TotalCount() const;
     int64 sum() const { return sum_; }
     int64 redundant_count() const { return redundant_count_; }
+    size_t size() const { return counts_.size(); }
 
     
     void Add(const SampleSet& other);
@@ -392,7 +393,7 @@ class Histogram {
     Add(static_cast<int>(time.InMilliseconds()));
   }
 
-  void AddSampleSet(const SampleSet& sample);
+  virtual void AddSampleSet(const SampleSet& sample);
 
   
   virtual void SetRangeDescriptions(const DescriptionPair descriptions[]);
@@ -660,6 +661,8 @@ public:
   virtual ClassType histogram_type() const;
 
   virtual void Accumulate(Sample value, Count count, size_t index);
+
+  virtual void AddSampleSet(const SampleSet& sample);
 
 private:
   explicit FlagHistogram(const std::string &name);

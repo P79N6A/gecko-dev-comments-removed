@@ -132,15 +132,11 @@ function compareHistograms(h1, h2) {
   do_check_eq(s1.histogram_type, s2.histogram_type);
   do_check_eq(s1.min, s2.min);
   do_check_eq(s1.max, s2.max);
+  do_check_eq(s1.sum, s2.sum);
 
-  
-  if (s1.histogram_type != Telemetry.HISTOGRAM_FLAG) {
-    do_check_eq(s1.sum, s2.sum);
-
-    do_check_eq(s1.counts.length, s2.counts.length);
-    for (let i = 0; i < s1.counts.length; i++)
-      do_check_eq(s1.counts[i], s2.counts[i]);
-  }
+  do_check_eq(s1.counts.length, s2.counts.length);
+  for (let i = 0; i < s1.counts.length; i++)
+    do_check_eq(s1.counts[i], s2.counts[i]);
 
   do_check_eq(s1.ranges.length, s2.ranges.length);
   for (let i = 0; i < s1.ranges.length; i++)
@@ -157,6 +153,12 @@ function test_histogramFrom() {
     let clone = Telemetry.histogramFrom("clone" + name, name);
     compareHistograms(original, clone);
   }
+
+  
+  let testFlag = Telemetry.getHistogramById("TELEMETRY_TEST_FLAG");
+  testFlag.add(1);
+  let clone = Telemetry.histogramFrom("FlagClone", "TELEMETRY_TEST_FLAG");
+  compareHistograms(testFlag, clone);
 }
 
 function test_getSlowSQL() {
