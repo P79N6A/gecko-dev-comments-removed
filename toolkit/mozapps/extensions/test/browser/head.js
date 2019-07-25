@@ -627,6 +627,10 @@ MockProvider.prototype = {
       }
       if (!addon.optionsType && !!addon.optionsURL)
         addon.optionsType = AddonManager.OPTIONS_TYPE_DIALOG;
+
+      
+      addon.isActive = addon.shouldBeActive;
+
       this.addAddon(addon);
       newAddons.push(addon);
     }, this);

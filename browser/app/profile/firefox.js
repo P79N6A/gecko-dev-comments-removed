@@ -75,6 +75,11 @@ pref("extensions.blocklist.itemURL", "https://addons.mozilla.org/%LOCALE%/%APP%/
 pref("extensions.update.autoUpdateDefault", true);
 
 
+
+
+pref("extensions.autoDisableScopes", 10);
+
+
 pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/firefox/dictionaries/");
 
 
