@@ -41,6 +41,7 @@
 
 
 
+
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 function ShortcutEditor()
@@ -50,6 +51,7 @@ function ShortcutEditor()
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                           .getService(Components.interfaces.nsIPrefBranch2);
     var keyPrefs = prefsvc.getBranch("shortcut.");
+    var keyCache;
 
     
     function getCommandNames()
@@ -57,18 +59,20 @@ function ShortcutEditor()
         return Array.map(document.getElementsByTagNameNS(XUL_NS, "command"), function(c) { return c.getAttribute("id"); });
     }
 
+    function getKeys()
+    {
+        if (keys)
+            return keys;
+
+        keyCache = { };
+        Array.map(document.getElementsByTagNameNS(XUL_NS, "key"), function(k) { keyCache[k.getAttribute("command")] = k; });
+        return keyCache;
+    }
+
     function findKeyForCommand(command)
     {
         
-        
-        
-        
-        
-        var keys = document.getElementsByTagNameNS(XUL_NS, "key");
-        var l = keys.length;
-        for (var i = 0; i < l; i++)
-            if (keys[i].getAttribute("command") == command)
-                return keys[i];
+        return getKeys()[command];
     }
 
     function findCommandForKey(keySpec)
@@ -113,9 +117,10 @@ function ShortcutEditor()
             key.setAttribute("keycode") = keySpec.keycode;
             key.setAttribute("command") = command;
             document.getElementById("mainKeyset").appendChild(k);
+            keys[command] = key;
         }
 
-        return k;
+        return key;
     }
 
     function makeKeySpec(modifiers, key, keycode)
