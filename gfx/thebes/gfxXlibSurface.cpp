@@ -42,7 +42,10 @@
 #include "cairo-xlib.h"
 #include "cairo-xlib-xrender.h"
 #include <X11/Xlibint.h>	
+
 #include "nsTArray.h"
+#include "nsServiceManagerUtils.h"
+#include "nsIPrefService.h"
 
 
 
@@ -157,6 +160,60 @@ gfxXlibSurface::Create(Screen *screen, XRenderPictFormat *format,
         return nsnull;
 
     return result.forget();
+}
+
+static PRBool GetForce24bppPref()
+{
+    PRBool val = PR_FALSE; 
+
+    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    if (!prefs)
+        return val;
+
+    prefs->GetBoolPref("mozilla.widget.force-24bpp", &val);
+    return val;
+}
+
+already_AddRefed<gfxASurface>
+gfxXlibSurface::CreateSimilarSurface(gfxContentType aContent,
+                                     const gfxIntSize& aSize)
+{
+    if (aContent == CONTENT_COLOR) {
+        
+        
+        
+        
+        
+        XRenderPictFormat* format =
+            cairo_xlib_surface_get_xrender_format(CairoSurface());
+        if (format) {
+            
+            
+            
+            
+            
+            
+            static PRBool force24bpp = GetForce24bppPref();
+
+            if (force24bpp || (format->type == PictTypeDirect
+                               && format->direct.alphaMask != 0)) {
+                format = XRenderFindStandardFormat(mDisplay,
+                                                   PictStandardRGB24);
+            }
+
+            if (format) {
+                Screen* screen = cairo_xlib_surface_get_screen(CairoSurface());
+                nsRefPtr<gfxASurface> result =
+                    gfxXlibSurface::Create(screen, format, aSize, mDrawable);
+            
+                if (result)
+                    return result.forget();
+            }
+        }
+    }
+
+    
+    return gfxASurface::CreateSimilarSurface(aContent, aSize);
 }
 
 void
