@@ -151,6 +151,29 @@ nsIndexedToHTML::AsyncConvertData(const char *aFromType,
 
 NS_IMETHODIMP
 nsIndexedToHTML::OnStartRequest(nsIRequest* request, nsISupports *aContext) {
+    nsString buffer;
+    nsresult rv = DoOnStartRequest(request, aContext, buffer);
+    if (NS_FAILED(rv)) {
+        request->Cancel(rv);
+    }
+    
+    rv = mListener->OnStartRequest(request, aContext);
+    if (NS_FAILED(rv)) return rv;
+
+    
+    
+    request->GetStatus(&rv);
+    if (NS_FAILED(rv)) return rv;
+
+    
+
+    rv = FormatInputStream(request, aContext, buffer);
+    return rv;
+}
+
+nsresult
+nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
+                                  nsString& aBuffer) {
     nsresult rv;
 
     nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
@@ -670,18 +693,7 @@ nsIndexedToHTML::OnStartRequest(nsIRequest* request, nsISupports *aContext) {
                          " </thead>\n");
     buffer.AppendLiteral(" <tbody>\n");
 
-    
-    
-
-    rv = mListener->OnStartRequest(request, aContext);
-    if (NS_FAILED(rv)) return rv;
-
-    
-    
-    request->GetStatus(&rv);
-    if (NS_FAILED(rv)) return rv;
-
-    rv = FormatInputStream(request, aContext, buffer);
+    aBuffer = buffer;
     return rv;
 }
 
