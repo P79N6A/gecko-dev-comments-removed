@@ -293,9 +293,7 @@ nsHTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
         option->GetSelected(&selected);
         if (selected) {
           
-          PRBool isMultiple;
-          GetMultiple(&isMultiple);
-          if (!isMultiple) {
+          if (!HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)) {
             SetOptionsSelectedByIndex(i, i, PR_TRUE, PR_TRUE, PR_TRUE, PR_TRUE, nsnull);
           }
 
@@ -701,9 +699,7 @@ nsHTMLSelectElement::GetOptions(nsIDOMHTMLOptionsCollection** aValue)
 NS_IMETHODIMP
 nsHTMLSelectElement::GetType(nsAString& aType)
 {
-  PRBool isMultiple;
-  GetMultiple(&isMultiple);
-  if (isMultiple) {
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)) {
     aType.AssignLiteral("select-multiple");
   }
   else {
@@ -933,11 +929,7 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
   }
 
   
-  PRBool isMultiple;
-  rv = GetMultiple(&isMultiple);
-  if (NS_FAILED(rv)) {
-    isMultiple = PR_FALSE;
-  }
+  PRBool isMultiple = HasAttr(kNameSpaceID_None, nsGkAtoms::multiple);
 
   
   

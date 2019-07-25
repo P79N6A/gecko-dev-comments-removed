@@ -299,8 +299,10 @@ protected:
   
 
 
+  PRBool     GetMultiple() const {
+    return mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::multiple);
+  }
 
-  PRBool     GetMultiple(nsIDOMHTMLSelectElement* aSelect = nsnull) const;
 
   
 
