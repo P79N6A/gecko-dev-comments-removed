@@ -644,9 +644,9 @@ class OrderedHashSet
 bool
 HashableValue::setValue(JSContext *cx, const Value &v)
 {
-    if (v.isString()) {
+    if (v.isString() && v.toString()->isRope()) {
         
-        JSString *str = js_AtomizeString(cx, v.toString(), DoNotInternAtom);
+        JSString *str = v.toString()->ensureLinear(cx);
         if (!str)
             return false;
         value = StringValue(str);
@@ -677,14 +677,25 @@ HashableValue::hash() const
     
     
     
-    return value.asRawBits();
+    if (value.isString()) {
+        JSLinearString &s = value.toString()->asLinear();
+        return HashChars(s.chars(), s.length());
+    }
+
+    
+    uint64_t u = value.asRawBits();
+    return HashNumber((u >> 3) ^ (u >> (32 + 3)) ^ (u << (32 - 3)));
 }
 
 bool
 HashableValue::equals(const HashableValue &other) const
 {
     
-    bool b = (value.asRawBits() == other.value.asRawBits());
+    bool b = (value.asRawBits() == other.value.asRawBits()) ||
+              (value.isString() &&
+               other.value.isString() &&
+               EqualStrings(&value.toString()->asLinear(),
+                            &other.value.toString()->asLinear()));
 
 #ifdef DEBUG
     bool same;
