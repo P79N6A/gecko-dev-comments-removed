@@ -235,11 +235,38 @@ BytecodeAnalyzer::traverseBytecode()
     for (;;) {
         JS_ASSERT(pc < script->code + script->length);
 
-        
-        
-        
-        while (!cfgStack_.empty() && cfgStack_.back().stopAt == pc) {
-            ControlStatus status = processCfgStack();
+        for (;;) {
+            
+            
+            
+            if (!cfgStack_.empty() && cfgStack_.back().stopAt == pc) {
+                ControlStatus status = processCfgStack();
+                if (status == ControlStatus_Error)
+                    return false;
+                if (!current)
+                    return true;
+                continue;
+            }
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            ControlStatus status;
+            if ((status = snoopControlFlow(JSOp(*pc))) == ControlStatus_None)
+                break;
             if (status == ControlStatus_Error)
                 return false;
             if (!current)
@@ -247,29 +274,6 @@ BytecodeAnalyzer::traverseBytecode()
         }
 
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        ControlStatus status;
-        while ((status = snoopControlFlow(JSOp(*pc))) != ControlStatus_None) {
-            if (status == ControlStatus_Error)
-                return false;
-            if (!current)
-                return true;
-        }
-
         JSOp op = JSOp(*pc);
         if (!inspectOpcode(op))
             return false;
@@ -284,6 +288,12 @@ BytecodeAnalyzer::ControlStatus
 BytecodeAnalyzer::snoopControlFlow(JSOp op)
 {
     switch (op) {
+      case JSOP_NOP:
+        return maybeLoop(op, js_GetSrcNote(script, pc));
+
+      case JSOP_POP:
+        return maybeLoop(op, js_GetSrcNote(script, pc));
+
       case JSOP_RETURN:
       case JSOP_STOP:
         return processReturn(op);
@@ -304,12 +314,6 @@ BytecodeAnalyzer::snoopControlFlow(JSOp op)
           case SRC_WHILE:
             
             if (!whileLoop(op, sn))
-              return ControlStatus_Error;
-            return ControlStatus_Jumped;
-
-          case SRC_FOR:
-            
-            if (!forLoop(op, sn))
               return ControlStatus_Error;
             return ControlStatus_Jumped;
 
@@ -344,9 +348,6 @@ bool
 BytecodeAnalyzer::inspectOpcode(JSOp op)
 {
     switch (op) {
-      case JSOP_NOP:
-        return maybeLoop(op, js_GetSrcNote(script, pc));
-
       case JSOP_PUSH:
         return pushConstant(UndefinedValue());
 
@@ -377,10 +378,6 @@ BytecodeAnalyzer::inspectOpcode(JSOp op)
       case JSOP_TRUE:
         return pushConstant(BooleanValue(true));
 
-      case JSOP_POP:
-        current->pop();
-        return maybeLoop(op, js_GetSrcNote(script, pc));
-
       case JSOP_GETARG:
         current->pushArg(GET_SLOTNO(pc));
         return true;
@@ -391,6 +388,10 @@ BytecodeAnalyzer::inspectOpcode(JSOp op)
 
       case JSOP_SETLOCAL:
         return current->setLocal(GET_SLOTNO(pc));
+
+      case JSOP_POP:
+        current->pop();
+        return true;
 
       case JSOP_IFEQX:
         return jsop_ifeq(JSOP_IFEQX);
@@ -490,6 +491,15 @@ BytecodeAnalyzer::processCfgEntry(CFGState &state)
       case CFGState::WHILE_LOOP_BODY:
         return processWhileBodyEnd(state);
 
+      case CFGState::FOR_LOOP_COND:
+        return processForCondEnd(state);
+
+      case CFGState::FOR_LOOP_BODY:
+        return processForBodyEnd(state);
+
+      case CFGState::FOR_LOOP_UPDATE:
+        return processForUpdateEnd(state);
+
       default:
         JS_NOT_REACHED("unknown cfgstate");
     }
@@ -570,34 +580,36 @@ BytecodeAnalyzer::processIfElseFalseEnd(CFGState &state)
 bool
 BytecodeAnalyzer::finalizeLoop(CFGState &state, MInstruction *last)
 {
-    if (state.loop.continues) {
-        MBasicBlock *repeat = newBlock(pc);
+    JS_ASSERT(!state.loop.continues);
 
-        DeferredEdge *edge = state.loop.continues;
+    
+    MBasicBlock *breaks = NULL;
+    if (state.loop.breaks) {
+        breaks = newBlock(state.loop.exitpc);
+
+        DeferredEdge *edge = state.loop.breaks;
         while (edge) {
-            MGoto *ins = MGoto::New(this, repeat);
+            MGoto *ins = MGoto::New(this, breaks);
             if (!edge->block->end(ins))
                 return false;
-            if (!repeat->addPredecessor(edge->block))
+            if (!breaks->addPredecessor(edge->block))
                 return false;
             edge = edge->next;
         }
-
-        if (current) {
-            MGoto *ins = MGoto::New(this, repeat);
-            if (!current->end(ins))
-                return false;
-            if (!repeat->addPredecessor(current))
-                return false;
-        }
-
-        current = repeat;
     }
+
+    
+    
+    MBasicBlock *successor = state.loop.successor
+                             ? state.loop.successor
+                             : breaks;
 
     
     
     
     if (current) {
+        JS_ASSERT_IF(last, state.loop.successor);
+
         MControlInstruction *ins;
         if (last)
             ins = MTest::New(this, last, state.loop.entry, state.loop.successor);
@@ -606,27 +618,21 @@ BytecodeAnalyzer::finalizeLoop(CFGState &state, MInstruction *last)
         if (!current->end(ins))
             return false;
 
-        if (!state.loop.entry->setBackedge(current))
+        if (!state.loop.entry->setBackedge(current, successor))
             return false;
-
-        if (state.loop.successor)
-            state.loop.successor->inheritPhis(state.loop.entry);
     }
 
-    if (state.loop.breaks) {
-        
-        
-        DeferredEdge *edge = state.loop.breaks;
-        while (edge) {
-            MGoto *ins = MGoto::New(this, state.loop.successor);
-            if (!edge->block->end(ins))
-                return false;
-            if (!state.loop.successor->addPredecessor(edge->block))
-                return false;
-            edge = edge->next;
-        }
+    
+    
+    if (successor && breaks && (successor != breaks)) {
+        MGoto *ins = MGoto::New(this, successor);
+        if (!breaks->end(ins))
+            return false;
+        if (!successor->addPredecessor(breaks))
+            return false;
     }
 
+    state.loop.successor = successor;
     return true;
 }
 
@@ -639,6 +645,8 @@ BytecodeAnalyzer::processDoWhileEnd(CFGState &state)
             return ControlStatus_Error;
     }
 
+    if (!processDeferredContinues(state))
+        return ControlStatus_Error;
     if (!finalizeLoop(state, current->pop()))
         return ControlStatus_Error;
 
@@ -672,6 +680,92 @@ BytecodeAnalyzer::processWhileCondEnd(CFGState &state)
 
 BytecodeAnalyzer::ControlStatus
 BytecodeAnalyzer::processWhileBodyEnd(CFGState &state)
+{
+    if (!processDeferredContinues(state))
+        return ControlStatus_Error;
+    if (!finalizeLoop(state, NULL))
+        return ControlStatus_Error;
+
+    current = state.loop.successor;
+    if (!current)
+        return ControlStatus_Ended;
+
+    pc = current->pc();
+    return ControlStatus_Joined;
+}
+
+BytecodeAnalyzer::ControlStatus
+BytecodeAnalyzer::processForCondEnd(CFGState &state)
+{
+    JS_ASSERT(JSOp(*pc) == JSOP_IFNE || JSOp(*pc) == JSOP_IFNEX);
+
+    
+    MInstruction *ins = current->pop();
+
+    
+    MBasicBlock *body = newBlock(current, state.loop.bodyStart);
+    state.loop.successor = newBlock(current, state.loop.exitpc);
+    MTest *test = MTest::New(this, ins, body, state.loop.successor);
+    if (!current->end(test))
+        return ControlStatus_Error;
+
+    state.state = CFGState::FOR_LOOP_BODY;
+    state.stopAt = state.loop.bodyEnd;
+    pc = state.loop.bodyStart;
+    current = body;
+    return ControlStatus_Jumped;
+}
+
+bool
+BytecodeAnalyzer::processDeferredContinues(CFGState &state)
+{
+    
+    
+    if (state.loop.continues) {
+        MBasicBlock *update = newBlock(pc);
+        if (current) {
+            MGoto *ins = MGoto::New(this, update);
+            if (!current->end(ins))
+                return ControlStatus_Error;
+            if (!update->addPredecessor(current))
+                return ControlStatus_Error;
+        }
+
+        DeferredEdge *edge = state.loop.continues;
+        while (edge) {
+            MGoto *ins = MGoto::New(this, update);
+            if (!edge->block->end(ins))
+                return ControlStatus_Error;
+            if (!update->addPredecessor(edge->block))
+                return ControlStatus_Error;
+            edge = edge->next;
+        }
+        state.loop.continues = NULL;
+
+        current = update;
+    }
+
+    return true;
+}
+
+BytecodeAnalyzer::ControlStatus
+BytecodeAnalyzer::processForBodyEnd(CFGState &state)
+{
+    if (!processDeferredContinues(state))
+        return ControlStatus_Error;
+
+    if (!state.loop.updatepc)
+        return processForUpdateEnd(state);
+
+    pc = state.loop.updatepc;
+
+    state.state = CFGState::FOR_LOOP_UPDATE;
+    state.stopAt = state.loop.updateEnd;
+    return ControlStatus_Jumped;
+}
+
+BytecodeAnalyzer::ControlStatus
+BytecodeAnalyzer::processForUpdateEnd(CFGState &state)
 {
     if (!finalizeLoop(state, NULL))
         return ControlStatus_Error;
@@ -746,7 +840,7 @@ BytecodeAnalyzer::processContinue(JSOp op, jssrcnote *sn)
     return processControlEnd();
 }
 
-bool
+BytecodeAnalyzer::ControlStatus
 BytecodeAnalyzer::maybeLoop(JSOp op, jssrcnote *sn)
 {
     
@@ -757,8 +851,10 @@ BytecodeAnalyzer::maybeLoop(JSOp op, jssrcnote *sn)
     switch (op) {
       case JSOP_POP:
         
-        if (sn && SN_TYPE(sn) == SRC_FOR)
+        if (sn && SN_TYPE(sn) == SRC_FOR) {
+            current->pop();
             return forLoop(op, sn);
+        }
         break;
 
       case JSOP_NOP:
@@ -775,10 +871,10 @@ BytecodeAnalyzer::maybeLoop(JSOp op, jssrcnote *sn)
 
       default:
         JS_NOT_REACHED("unexpected opcode");
-        return false;
+        return ControlStatus_Error;
     }
 
-    return true;
+    return ControlStatus_None;
 }
 
 void
@@ -809,7 +905,7 @@ BytecodeAnalyzer::assertValidTraceOp(JSOp op)
 #endif
 }
 
-bool
+BytecodeAnalyzer::ControlStatus
 BytecodeAnalyzer::doWhileLoop(JSOp op, jssrcnote *sn)
 {
     int offset = js_GetSrcNoteOffset(sn, 0);
@@ -828,18 +924,18 @@ BytecodeAnalyzer::doWhileLoop(JSOp op, jssrcnote *sn)
     MBasicBlock *header = newLoopHeader(current, pc);
     MGoto *ins = MGoto::New(this, header);
     if (!current->end(ins))
-        return false;
+        return ControlStatus_Error;
 
     current = header;
     jsbytecode *bodyStart = GetNextPc(GetNextPc(pc));
     jsbytecode *exitpc = GetNextPc(ifne);
     if (!pushLoop(CFGState::DO_WHILE_LOOP, ifne, header, bodyStart, ifne, exitpc))
-        return false;
+        return ControlStatus_Error;
 
-    return true;
+    return ControlStatus_Jumped;
 }
 
-bool
+BytecodeAnalyzer::ControlStatus
 BytecodeAnalyzer::whileLoop(JSOp op, jssrcnote *sn)
 {
     
@@ -860,19 +956,88 @@ BytecodeAnalyzer::whileLoop(JSOp op, jssrcnote *sn)
     MBasicBlock *header = newLoopHeader(current, pc);
     MGoto *ins = MGoto::New(this, header);
     if (!current->end(ins))
-        return false;
+        return ControlStatus_Error;
 
     
     jsbytecode *bodyStart = GetNextPc(GetNextPc(pc));
     jsbytecode *bodyEnd = pc + GetJumpOffset(pc);
     jsbytecode *exitpc = GetNextPc(ifne);
     if (!pushLoop(CFGState::WHILE_LOOP_COND, ifne, header, bodyStart, bodyEnd, exitpc))
-        return false;
+        return ControlStatus_Error;
 
     
     pc = bodyEnd;
     current = header;
-    return true;
+    return ControlStatus_Jumped;
+}
+
+BytecodeAnalyzer::ControlStatus
+BytecodeAnalyzer::forLoop(JSOp op, jssrcnote *sn)
+{
+    
+    JS_ASSERT(op == JSOP_POP || op == JSOP_NOP);
+    pc = GetNextPc(pc);
+
+    jsbytecode *condpc = pc + js_GetSrcNoteOffset(sn, 0);
+    jsbytecode *updatepc = pc + js_GetSrcNoteOffset(sn, 1);
+    jsbytecode *ifne = pc + js_GetSrcNoteOffset(sn, 2);
+    jsbytecode *exitpc = GetNextPc(ifne);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    jsbytecode *bodyStart = pc;
+    jsbytecode *bodyEnd = updatepc;
+    if (condpc != ifne) {
+        JS_ASSERT(JSOp(*bodyStart) == JSOP_GOTO || JSOp(*bodyStart) == JSOP_GOTOX);
+        JS_ASSERT(bodyStart + GetJumpOffset(bodyStart) == condpc);
+        bodyStart = GetNextPc(bodyStart);
+    }
+    JS_ASSERT(JSOp(*bodyStart) == JSOP_TRACE);
+    JS_ASSERT(ifne + GetJumpOffset(ifne) == bodyStart);
+    bodyStart = GetNextPc(bodyStart);
+
+    MBasicBlock *header = newLoopHeader(current, pc);
+    MGoto *ins = MGoto::New(this, header);
+    if (!current->end(ins))
+        return ControlStatus_Error;
+
+    
+    
+    jsbytecode *stopAt;
+    CFGState::State initial;
+    if (condpc != ifne) {
+        pc = condpc;
+        stopAt = ifne;
+        initial = CFGState::FOR_LOOP_COND;
+    } else {
+        pc = bodyStart;
+        stopAt = bodyEnd;
+        initial = CFGState::FOR_LOOP_BODY;
+    }
+
+    if (!pushLoop(initial, ifne, header, bodyStart, bodyEnd, exitpc))
+        return ControlStatus_Error;
+
+    CFGState &state = cfgStack_.back();
+    state.loop.condpc = (condpc != ifne) ? condpc : NULL;
+    state.loop.updatepc = (updatepc != condpc) ? updatepc : NULL;
+    if (state.loop.updatepc)
+        state.loop.updateEnd = condpc;
+
+    current = header;
+    return ControlStatus_Jumped;
 }
 
 bool
@@ -966,6 +1131,8 @@ BytecodeAnalyzer::processReturn(JSOp op)
 
       case JSOP_STOP:
         ins = MConstant::New(this, UndefinedValue());
+        if (!current->add(ins))
+            return ControlStatus_Error;
         break;
 
       default:

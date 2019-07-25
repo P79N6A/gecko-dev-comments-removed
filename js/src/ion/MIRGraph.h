@@ -99,6 +99,7 @@ class MBasicBlock : public TempObject
   private:
     MBasicBlock(MIRGenerator *gen, jsbytecode *pc);
     bool init();
+    void copySlots(MBasicBlock *from);
     bool inherit(MBasicBlock *pred);
     void assertUsesAreNotWithin(MOperand *use);
 
@@ -119,8 +120,6 @@ class MBasicBlock : public TempObject
     
     
     MInstruction *getSlot(uint32 index);
-
-    void inheritPhi(MPhi *phi);
 
   public:
     
@@ -176,11 +175,7 @@ class MBasicBlock : public TempObject
     
     
     
-    bool setBackedge(MBasicBlock *block);
-
-    
-    
-    void inheritPhis(MBasicBlock *loopHeader);
+    bool setBackedge(MBasicBlock *block, MBasicBlock *successor);
 
     jsbytecode *pc() const {
         return pc_;
