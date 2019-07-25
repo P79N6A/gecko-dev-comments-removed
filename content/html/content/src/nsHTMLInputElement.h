@@ -572,14 +572,8 @@ protected:
 
 
 
-
-    if (mForm) {
-      if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
-        return false;
-      }
-      if (mForm->HasEverTriedInvalidSubmit()) {
-        return true;
-      }
+    if (mForm && mForm->HasEverTriedInvalidSubmit()) {
+      return true;
     }
 
     switch (GetValueMode()) {

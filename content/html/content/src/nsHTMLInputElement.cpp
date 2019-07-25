@@ -3314,9 +3314,10 @@ nsHTMLInputElement::IntrinsicState() const
     } else {
       state |= NS_EVENT_STATE_INVALID;
 
-      if (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR) ||
-          (GET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI) &&
-           ShouldShowValidityUI())) {
+      if ((!mForm || !mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) &&
+          (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR) ||
+           (GET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI) &&
+            ShouldShowValidityUI()))) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
     }
@@ -3328,9 +3329,12 @@ nsHTMLInputElement::IntrinsicState() const
     
     
     
-    if (GET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI) && ShouldShowValidityUI() &&
-        (IsValid() || (!state.HasState(NS_EVENT_STATE_MOZ_UI_INVALID) &&
-                       !GET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI)))) {
+    
+    
+    if ((!mForm || !mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) &&
+        (GET_BOOLBIT(mBitField, BF_CAN_SHOW_VALID_UI) && ShouldShowValidityUI() &&
+         (IsValid() || (!state.HasState(NS_EVENT_STATE_MOZ_UI_INVALID) &&
+                        !GET_BOOLBIT(mBitField, BF_CAN_SHOW_INVALID_UI))))) {
       state |= NS_EVENT_STATE_MOZ_UI_VALID;
     }
   }

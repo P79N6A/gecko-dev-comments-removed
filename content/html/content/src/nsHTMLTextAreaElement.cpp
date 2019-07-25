@@ -289,14 +289,8 @@ protected:
 
 
 
-
-    if (mForm) {
-      if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
-        return false;
-      }
-      if (mForm->HasEverTriedInvalidSubmit()) {
-        return true;
-      }
+    if (mForm && mForm->HasEverTriedInvalidSubmit()) {
+      return true;
     }
 
     return mValueChanged;
@@ -1076,8 +1070,9 @@ nsHTMLTextAreaElement::IntrinsicState() const
       state |= NS_EVENT_STATE_INVALID;
       
       
-      if (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR) ||
-          mCanShowInvalidUI && ShouldShowValidityUI()) {
+      if ((!mForm || !mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) &&
+          (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR) ||
+           mCanShowInvalidUI && ShouldShowValidityUI())) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
     }
@@ -1089,9 +1084,12 @@ nsHTMLTextAreaElement::IntrinsicState() const
     
     
     
-    if (mCanShowValidUI && ShouldShowValidityUI() &&
-        (IsValid() || (state.HasState(NS_EVENT_STATE_MOZ_UI_INVALID) &&
-                       !mCanShowInvalidUI))) {
+    
+    
+    if ((!mForm || !mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) &&
+        (mCanShowValidUI && ShouldShowValidityUI() &&
+         (IsValid() || (state.HasState(NS_EVENT_STATE_MOZ_UI_INVALID) &&
+                        !mCanShowInvalidUI)))) {
       state |= NS_EVENT_STATE_MOZ_UI_VALID;
     }
   }
