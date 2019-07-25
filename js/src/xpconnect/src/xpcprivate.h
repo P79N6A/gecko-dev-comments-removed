@@ -4557,10 +4557,24 @@ struct CompartmentPrivate
         return expandoMap->Put(wn, expando);
     }
 
+    
+
+
+
+
+
+
+
+    JSObject *LookupExpandoObjectPreserveColor(XPCWrappedNative *wn) {
+        return expandoMap ? expandoMap->Get(wn) : nsnull;
+    }
+
+    
+
+
+
     JSObject *LookupExpandoObject(XPCWrappedNative *wn) {
-        if (!expandoMap)
-            return nsnull;
-        JSObject *obj = expandoMap->Get(wn);
+        JSObject *obj = LookupExpandoObjectPreserveColor(wn);
         xpc_UnmarkGrayObject(obj);
         return obj;
     }
