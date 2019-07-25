@@ -1625,9 +1625,9 @@ VersionIsKnown(JSVersion version)
     return VersionNumber(version) != JSVERSION_UNKNOWN;
 }
 
-typedef js::HashSet<JSObject *,
-                    js::DefaultHasher<JSObject *>,
-                    js::SystemAllocPolicy> BusyArraysMap;
+typedef HashSet<JSObject *,
+                DefaultHasher<JSObject *>,
+                SystemAllocPolicy> BusyArraysSet;
 
 } 
 
@@ -1723,7 +1723,7 @@ struct JSContext
 
     
     JSSharpObjectMap    sharpObjectMap;
-    js::BusyArraysMap   busyArrays;
+    js::BusyArraysSet   busyArrays;
 
     
     JSArgumentFormatMap *argumentFormatMap;

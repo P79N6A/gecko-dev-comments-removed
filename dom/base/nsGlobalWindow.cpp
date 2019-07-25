@@ -46,9 +46,7 @@
 
 
 
-#ifdef MOZ_IPC
 #include "base/basictypes.h"
-#endif
 
 
 #include "nsGlobalWindow.h"
@@ -516,6 +514,12 @@ nsDummyJavaPluginOwner::GetWindow(NPWindow *&aWindow)
   aWindow = nsnull;
 
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDummyJavaPluginOwner::SetWindow()
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
@@ -1342,9 +1346,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsGlobalWindow)
 NS_INTERFACE_MAP_END
 
 
-NS_IMPL_CYCLE_COLLECTING_ADDREF_AMBIGUOUS(nsGlobalWindow, nsIScriptGlobalObject)
-NS_IMPL_CYCLE_COLLECTING_RELEASE_AMBIGUOUS(nsGlobalWindow,
-                                           nsIScriptGlobalObject)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(nsGlobalWindow)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsGlobalWindow)
 
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsGlobalWindow)
@@ -1392,6 +1395,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsGlobalWindow)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindow)
+  nsGlobalWindow::CleanupCachedXBLHandlers(tmp);
+
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mContext)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mControllers)
@@ -1448,10 +1453,6 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsGlobalWindow)
     tmp->mCachedXBLPrototypeHandlers.EnumerateRead(TraceXBLHandlers, &data);
   }
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
-NS_IMPL_CYCLE_COLLECTION_ROOT_BEGIN(nsGlobalWindow)
-  nsGlobalWindow::CleanupCachedXBLHandlers(tmp);
-NS_IMPL_CYCLE_COLLECTION_ROOT_END
 
 
 
@@ -8734,24 +8735,14 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     return NS_OK;
   }
 
-  PRUint32 nestingLevel = sNestingLevel + 1;
-  if (aIsInterval || nestingLevel >= DOM_CLAMP_TIMEOUT_NESTING_LEVEL) {
-    
-    
-    interval = NS_MAX(interval, DOMMinTimeoutValue());
-  }
-  else if (interval < 0) {
-    
-    interval = 0;
-  }
-
-  NS_ASSERTION(interval >= 0, "DOMMinTimeoutValue() lies");
-  PRUint32 realInterval = interval;
+  
+  
+  interval = NS_MAX(aIsInterval ? 1 : 0, interval);
 
   
   
-  if (realInterval > PR_IntervalToMilliseconds(DOM_MAX_TIMEOUT_VALUE)) {
-    realInterval = PR_IntervalToMilliseconds(DOM_MAX_TIMEOUT_VALUE);
+  if (interval > PR_IntervalToMilliseconds(DOM_MAX_TIMEOUT_VALUE)) {
+    interval = PR_IntervalToMilliseconds(DOM_MAX_TIMEOUT_VALUE);
   }
 
   nsTimeout *timeout = new nsTimeout();
@@ -8763,9 +8754,18 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
   timeout->AddRef();
 
   if (aIsInterval) {
-    timeout->mInterval = realInterval;
+    timeout->mInterval = interval;
   }
   timeout->mScriptHandler = aHandler;
+
+  
+  PRUint32 nestingLevel = sNestingLevel + 1;
+  PRInt32 realInterval = interval;
+  if (aIsInterval || nestingLevel >= DOM_CLAMP_TIMEOUT_NESTING_LEVEL) {
+    
+    
+    realInterval = NS_MAX(realInterval, DOMMinTimeoutValue());
+  }
 
   
   
@@ -8857,6 +8857,9 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     PRInt32 delay =
       nsContentUtils::GetIntPref("dom.disable_open_click_delay");
 
+    
+    
+    
     if (interval <= delay) {
       timeout->mPopupState = gPopupControlState;
     }

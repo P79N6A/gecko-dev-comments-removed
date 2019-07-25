@@ -449,6 +449,7 @@ struct JS_FRIEND_API(JSCompartment) {
 
 
     const js::Shape              *initialRegExpShape;
+    const js::Shape              *initialStringShape;
 
     bool                         debugMode;  
     JSCList                      scripts;    

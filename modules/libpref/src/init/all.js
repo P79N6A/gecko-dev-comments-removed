@@ -200,7 +200,14 @@ pref("gfx.downloadable_fonts.sanitize.preserve_otl_tables", false);
 pref("gfx.downloadable_fonts.sanitize.preserve_otl_tables", true);
 #endif
 
-pref("gfx.font_rendering.harfbuzz.level", 2);
+
+#ifdef XP_MACOSX
+
+pref("gfx.font_rendering.harfbuzz.scripts", 7);
+#else
+
+pref("gfx.font_rendering.harfbuzz.scripts", 3);
+#endif
 
 #ifdef XP_WIN
 #ifndef WINCE

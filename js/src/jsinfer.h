@@ -58,7 +58,7 @@ namespace js {
 namespace types {
 
 
-struct TypeSet;
+class TypeSet;
 struct TypeCallsite;
 struct TypeObject;
 struct TypeFunction;

@@ -1120,16 +1120,14 @@ nsJSContext::DestroyJSContext()
 
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsJSContext)
-NS_IMPL_CYCLE_COLLECTION_ROOT_BEGIN(nsJSContext)
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsJSContext)
+NS_IMPL_CYCLE_COLLECTION_TRACE_END
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsJSContext)
   NS_ASSERTION(!tmp->mContext || tmp->mContext->outstandingRequests == 0,
                "Trying to unlink a context with outstanding requests.");
   tmp->mIsInitialized = PR_FALSE;
   tmp->mGCOnDestruction = PR_FALSE;
   tmp->DestroyJSContext();
-NS_IMPL_CYCLE_COLLECTION_ROOT_END
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsJSContext)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsJSContext)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mGlobalObjectRef)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsJSContext)
@@ -1147,8 +1145,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsJSContext)
 NS_INTERFACE_MAP_END
 
 
-NS_IMPL_CYCLE_COLLECTING_ADDREF_AMBIGUOUS(nsJSContext, nsIScriptContext)
-NS_IMPL_CYCLE_COLLECTING_RELEASE_AMBIGUOUS(nsJSContext, nsIScriptContext)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(nsJSContext)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsJSContext)
 
 nsrefcnt
 nsJSContext::GetCCRefcnt()
@@ -1915,31 +1913,28 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
 
     if (!ok) {
       
-      
-      
-
-      ReportPendingException();
-
-      
       rval = JSVAL_VOID;
 
       
       rv = NS_ERROR_FAILURE;
+    } else if (rval == JSVAL_NULL) {
+      *arv = nsnull;
+    } else if (!JS_WrapValue(mContext, &rval)) {
+      rv = NS_ERROR_FAILURE;
+    } else {
+      rv = nsContentUtils::XPConnect()->JSToVariant(mContext, rval, arv);
     }
+
+    
+    
+    
+    if (NS_FAILED(rv))
+      ReportPendingException();
 
     sSecurityManager->PopContextPrincipal(mContext);
   }
 
   pusher.Pop();
-
-  
-  
-  if (NS_SUCCEEDED(rv)) {
-    if (rval == JSVAL_NULL)
-      *arv = nsnull;
-    else
-      rv = nsContentUtils::XPConnect()->JSToVariant(mContext, rval, arv);
-  }
 
   
   ScriptEvaluated(PR_TRUE);
@@ -2266,7 +2261,9 @@ nsresult
 nsJSContext::ConnectToInner(nsIScriptGlobalObject *aNewInner, void *aOuterGlobal)
 {
   NS_ENSURE_ARG(aNewInner);
+#ifdef DEBUG
   JSObject *newInnerJSObject = (JSObject *)aNewInner->GetScriptGlobal(JAVASCRIPT);
+#endif
   JSObject *outerGlobal = (JSObject *)aOuterGlobal;
 
   
@@ -3992,10 +3989,9 @@ nsJSArgArray::ReleaseJSObjects()
 
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsJSArgArray)
-NS_IMPL_CYCLE_COLLECTION_ROOT_BEGIN(nsJSArgArray)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsJSArgArray)
   tmp->ReleaseJSObjects();
-NS_IMPL_CYCLE_COLLECTION_ROOT_END
-NS_IMPL_CYCLE_COLLECTION_UNLINK_0(nsJSArgArray)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsJSArgArray)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
@@ -4018,8 +4014,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsJSArgArray)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIJSArgArray)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTING_ADDREF_AMBIGUOUS(nsJSArgArray, nsIJSArgArray)
-NS_IMPL_CYCLE_COLLECTING_RELEASE_AMBIGUOUS(nsJSArgArray, nsIJSArgArray)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(nsJSArgArray)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsJSArgArray)
 
 nsresult
 nsJSArgArray::GetArgs(PRUint32 *argc, void **argv)
