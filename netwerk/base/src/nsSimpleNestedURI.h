@@ -77,7 +77,7 @@ public:
     virtual nsresult EqualsInternal(nsIURI* other,
                                     RefHandlingEnum refHandlingMode,
                                     PRBool* result);
-    virtual nsSimpleURI* StartClone();
+    virtual nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode);
 
     
     NS_IMETHOD Read(nsIObjectInputStream* aStream);

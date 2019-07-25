@@ -105,6 +105,10 @@ protected:
                                     RefHandlingEnum refHandlingMode,
                                     PRBool* result);
 
+    
+    nsresult CloneWithJARFileInternal(nsIURI *jarFile,
+                                      RefHandlingEnum refHandlingMode,
+                                      nsIJARURI **result);
     nsCOMPtr<nsIURI> mJARFile;
     
     

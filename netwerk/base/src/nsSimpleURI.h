@@ -81,13 +81,19 @@ protected:
     };
 
     
-    
     virtual nsresult EqualsInternal(nsIURI* other,
                                     RefHandlingEnum refHandlingMode,
                                     PRBool* result);
 
-    virtual nsSimpleURI* StartClone();
+    
+    
+    
+    virtual nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode);
 
+    
+    virtual nsresult CloneInternal(RefHandlingEnum refHandlingMode,
+                                   nsIURI** clone);
+    
     nsCString mScheme;
     nsCString mPath;
     PRBool mMutable;

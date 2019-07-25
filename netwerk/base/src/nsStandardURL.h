@@ -168,6 +168,10 @@ protected:
     virtual nsStandardURL* StartClone();
 
     
+    nsresult CloneInternal(RefHandlingEnum aRefHandlingMode,
+                           nsIURI** aClone);
+
+    
     
     
     

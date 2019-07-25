@@ -395,15 +395,30 @@ nsSimpleURI::SchemeIs(const char *i_Scheme, PRBool *o_Equals)
 }
 
  nsSimpleURI*
-nsSimpleURI::StartClone()
+nsSimpleURI::StartClone(nsSimpleURI::RefHandlingEnum )
 {
     return new nsSimpleURI();
 }
 
 NS_IMETHODIMP
-nsSimpleURI::Clone(nsIURI* *result)
+nsSimpleURI::Clone(nsIURI** result)
 {
-    nsSimpleURI* url = StartClone();
+    return CloneInternal(eHonorRef, result);
+}
+
+NS_IMETHODIMP
+nsSimpleURI::CloneIgnoringRef(nsIURI** result)
+{
+    return CloneInternal(eIgnoreRef, result);
+}
+
+nsresult
+nsSimpleURI::CloneInternal(nsSimpleURI::RefHandlingEnum refHandlingMode,
+                           nsIURI** result)
+{
+    
+    
+    nsSimpleURI* url = StartClone(refHandlingMode);
     if (url == nsnull)
         return NS_ERROR_OUT_OF_MEMORY;
 
