@@ -567,7 +567,7 @@ window.Page = {
 
 
 
-function UIClass(){ 
+function UIClass() { 
   try {
     Utils.log('TabCandy init --------------------');
 
@@ -596,6 +596,8 @@ function UIClass(){
 
 UIClass.prototype = {
   
+  
+  
   init: function() {
     try {
       if (window.Tabs)
@@ -610,6 +612,9 @@ UIClass.prototype = {
       Utils.log(e);
     }
   },
+  
+  
+  
   
   
   _secondaryInit: function() {
@@ -658,7 +663,7 @@ UIClass.prototype = {
           
       
       Storage.onReady(function() {
-        self.delayInit();
+        self._delayInit();
       });
     } catch(e) {
       Utils.log(e);
@@ -666,7 +671,9 @@ UIClass.prototype = {
   },
 
   
-  delayInit : function() {
+  
+  
+  _delayInit : function() {
     try {
       
       let currentWindow = Utils.getCurrentWindow();
@@ -980,11 +987,12 @@ UIClass.prototype = {
       var $select = iQ('<select>')
         .css({
           position: 'absolute',
-          top: 5,
+          bottom: 5,
           right: 5,
+          zIndex: 99999, 
           opacity: .2
         })
-        .appendTo('body')
+        .appendTo('#content')
         .change(function () {
           var index = iQ(this).val();
           try {
