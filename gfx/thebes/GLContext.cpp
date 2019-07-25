@@ -691,6 +691,9 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize)
     fViewport(0, 0, aSize.width, aSize.height);
 
     
+    ClearSafely();
+
+    
     fBindTexture(LOCAL_GL_TEXTURE_2D, curBoundTexture);
     fBindRenderbuffer(LOCAL_GL_RENDERBUFFER, curBoundRenderbuffer);
     fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, curBoundFramebuffer);
@@ -699,8 +702,6 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize)
     
     if (!firstTime)
         fViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-
-    ClearSafely();
 
     return PR_TRUE;
 }
