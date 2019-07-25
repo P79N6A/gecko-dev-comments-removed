@@ -543,24 +543,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 mUpdated &= layer.update(mPageContext); 
 
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
-
-            
-            if (!mUpdated)
-                mView.requestRender();
-
-            PanningPerfAPI.recordFrameTime();
-
-            
-            IntBuffer pixelBuffer = mPixelBuffer;
-            if (mUpdated && pixelBuffer != null) {
-                synchronized (pixelBuffer) {
-                    pixelBuffer.position(0);
-                    GLES20.glReadPixels(0, 0, (int)mScreenContext.viewport.width(),
-                                        (int)mScreenContext.viewport.height(), GLES20.GL_RGBA,
-                                        GLES20.GL_UNSIGNED_BYTE, pixelBuffer);
-                    pixelBuffer.notify();
-                }
-            }
         }
 
         
