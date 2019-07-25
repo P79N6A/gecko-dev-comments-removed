@@ -14,13 +14,13 @@ import java.util.Collection;
 
 final class InputMethods {
 
+    public static final String METHOD_GOOGLE_JAPANESE_INPUT = "com.google.android.inputmethod.japanese/.MozcService";
+    public static final String METHOD_OPENWNN_PLUS = "com.owplus.ime.openwnnplus/.OpenWnnJAJP";
+    public static final String METHOD_SIMEJI = "com.adamrocker.android.input.simeji/.OpenWnnSimeji";
     public static final String METHOD_SWYPE = "com.swype.android.inputmethod/.SwypeInputMethod";
     public static final String METHOD_SWYPE_BETA = "com.nuance.swype.input/.IME";
 
     
-
-
-
 
 
 

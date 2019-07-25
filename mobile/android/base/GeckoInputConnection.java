@@ -41,8 +41,6 @@ import android.view.inputmethod.InputMethodManager;
 import org.mozilla.gecko.gfx.InputConnectionHandler;
 import org.mozilla.gecko.gfx.LayerController;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -91,15 +89,6 @@ public class GeckoInputConnection
     private static int mIMEState;
     private static String mIMETypeHint;
     private static String mIMEActionHint;
-
-    
-    private final Collection<String> sFormAutoCompleteBlocklist = Arrays.asList(new String[] {
-        "com.adamrocker.android.input.simeji/.OpenWnnSimeji",   
-        "com.google.android.inputmethod.japanese/.MozcService", 
-        "com.nuance.swype.input/.IME",                          
-        "com.owplus.ime.openwnnplus/.OpenWnnJAJP",              
-        "com.swype.android.inputmethod/.SwypeInputMethod"       
-        });
 
     private String mCurrentInputMethod;
 
@@ -448,7 +437,7 @@ public class GeckoInputConnection
 
     private static InputMethodManager getInputMethodManager() {
         Context context = getView().getContext();
-        return (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
+        return InputMethods.getInputMethodManager(context);
     }
 
     protected void notifyTextChange(InputMethodManager imm, String text,
@@ -847,7 +836,8 @@ public class GeckoInputConnection
         else if (mIMEActionHint != null && mIMEActionHint.length() != 0)
             outAttrs.actionLabel = mIMEActionHint;
 
-        DisplayMetrics metrics = GeckoApp.mAppContext.getDisplayMetrics();
+        GeckoApp app = GeckoApp.mAppContext;
+        DisplayMetrics metrics = app.getDisplayMetrics();
         if (Math.min(metrics.widthPixels, metrics.heightPixels) > INLINE_IME_MIN_DISPLAY_SIZE) {
             
             
@@ -863,18 +853,13 @@ public class GeckoInputConnection
         }
 
         String prevInputMethod = mCurrentInputMethod;
-        mCurrentInputMethod = getCurrentInputMethod();
+        mCurrentInputMethod = InputMethods.getCurrentInputMethod(app);
 
         
         if (mCurrentInputMethod != prevInputMethod) {
-            FormAssistPopup popup = GeckoApp.mAppContext.mFormAssistPopup;
+            FormAssistPopup popup = app.mFormAssistPopup;
             if (popup != null) {
-                boolean blocklisted = mCurrentInputMethod != null &&
-                                      sFormAutoCompleteBlocklist.contains(mCurrentInputMethod);
-                if (DEBUG && blocklisted) {
-                    Log.d(LOGTAG, "FormAssist: Blocklisting \"" + mCurrentInputMethod + "\" IME");
-                }
-                popup.block(blocklisted);
+                popup.onInputMethodChanged(mCurrentInputMethod);
             }
         }
 
@@ -1187,12 +1172,6 @@ public class GeckoInputConnection
 
         return new Span(start, end, content);
     }
-
-    private String getCurrentInputMethod() {
-        return Secure.getString(GeckoApp.mAppContext.getContentResolver(),
-                                Secure.DEFAULT_INPUT_METHOD);
-    }
-
 
     private static String prettyPrintString(CharSequence s) {
         
