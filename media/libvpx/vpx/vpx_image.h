@@ -55,7 +55,7 @@ extern "C" {
         VPX_IMG_FMT_YV12    = VPX_IMG_FMT_PLANAR | VPX_IMG_FMT_UV_FLIP | 1, 
         VPX_IMG_FMT_I420    = VPX_IMG_FMT_PLANAR | 2,
         VPX_IMG_FMT_VPXYV12 = VPX_IMG_FMT_PLANAR | VPX_IMG_FMT_UV_FLIP | 3, 
-        VPX_IMG_FMT_VPXI420 = VPX_IMG_FMT_PLANAR | 4  
+        VPX_IMG_FMT_VPXI420 = VPX_IMG_FMT_PLANAR | 4   
     }
     vpx_img_fmt_t; 
 

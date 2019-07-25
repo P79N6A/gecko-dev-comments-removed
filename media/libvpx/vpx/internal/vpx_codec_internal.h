@@ -394,6 +394,20 @@ struct vpx_codec_priv
 
 
 
+
+
+
+
+#define CODEC_INTERFACE(id)\
+vpx_codec_iface_t* id(void) { return &id##_algo; }\
+vpx_codec_iface_t  id##_algo
+
+
+
+
+
+
+
 struct vpx_codec_pkt_list
 {
     unsigned int            cnt;

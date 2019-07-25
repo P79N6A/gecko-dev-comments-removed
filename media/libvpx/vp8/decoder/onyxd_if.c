@@ -30,6 +30,9 @@
 #include "systemdependent.h"
 #include "vpx_ports/vpx_timer.h"
 #include "detokenize.h"
+#if ARCH_ARM
+#include "vpx_ports/arm.h"
+#endif
 
 extern void vp8_init_loop_filter(VP8_COMMON *cm);
 extern void vp8cx_init_de_quantizer(VP8D_COMP *pbi);
@@ -115,7 +118,8 @@ VP8D_PTR vp8dx_create_decompressor(VP8D_CONFIG *oxcf)
     vp8_decoder_create_threads(pbi);
 
     
-    
+
+
     vp8cx_init_de_quantizer(pbi);
 
     {
@@ -142,6 +146,10 @@ void vp8dx_remove_decompressor(VP8D_PTR ptr)
     if (!pbi)
         return;
 
+#if CONFIG_MULTITHREAD
+    if (pbi->b_multithreaded_rd)
+        vp8mt_de_alloc_temp_buffers(pbi, pbi->common.mb_rows);
+#endif
     vp8_decoder_remove_threads(pbi);
     vp8_remove_common(&pbi->common);
     vpx_free(pbi);
@@ -220,7 +228,6 @@ int vp8dx_set_reference(VP8D_PTR ptr, VP8_REFFRAME ref_frame_flag, YV12_BUFFER_C
 #if HAVE_ARMV7
 extern void vp8_push_neon(INT64 *store);
 extern void vp8_pop_neon(INT64 *store);
-static INT64 dx_store_reg[8];
 #endif
 
 static int get_free_fb (VP8_COMMON *cm)
@@ -255,9 +262,10 @@ static int swap_frame_buffers (VP8_COMMON *cm)
         fb_to_update_with = cm->new_fb_idx;
 
     
-    
-    
-    
+
+
+
+
     if (cm->copy_buffer_to_arf)
     {
         int new_fb = 0;
@@ -308,12 +316,15 @@ static int swap_frame_buffers (VP8_COMMON *cm)
 
 int vp8dx_receive_compressed_data(VP8D_PTR ptr, unsigned long size, const unsigned char *source, INT64 time_stamp)
 {
+#if HAVE_ARMV7
+    INT64 dx_store_reg[8];
+#endif
     VP8D_COMP *pbi = (VP8D_COMP *) ptr;
     VP8_COMMON *cm = &pbi->common;
     int retcode = 0;
     struct vpx_usec_timer timer;
 
-
+    
 
 
     if (ptr == 0)
@@ -323,10 +334,27 @@ int vp8dx_receive_compressed_data(VP8D_PTR ptr, unsigned long size, const unsign
 
     pbi->common.error.error_code = VPX_CODEC_OK;
 
+#if HAVE_ARMV7
+#if CONFIG_RUNTIME_CPU_DETECT
+    if (cm->rtcd.flags & HAS_NEON)
+#endif
+    {
+        vp8_push_neon(dx_store_reg);
+    }
+#endif
+
     cm->new_fb_idx = get_free_fb (cm);
 
     if (setjmp(pbi->common.error.jmp))
     {
+#if HAVE_ARMV7
+#if CONFIG_RUNTIME_CPU_DETECT
+        if (cm->rtcd.flags & HAS_NEON)
+#endif
+        {
+            vp8_pop_neon(dx_store_reg);
+        }
+#endif
         pbi->common.error.setjmp = 0;
         if (cm->fb_idx_ref_cnt[cm->new_fb_idx] > 0)
           cm->fb_idx_ref_cnt[cm->new_fb_idx]--;
@@ -334,10 +362,6 @@ int vp8dx_receive_compressed_data(VP8D_PTR ptr, unsigned long size, const unsign
     }
 
     pbi->common.error.setjmp = 1;
-
-#if HAVE_ARMV7
-    vp8_push_neon(dx_store_reg);
-#endif
 
     vpx_usec_timer_start(&timer);
 
@@ -350,7 +374,12 @@ int vp8dx_receive_compressed_data(VP8D_PTR ptr, unsigned long size, const unsign
     if (retcode < 0)
     {
 #if HAVE_ARMV7
-        vp8_pop_neon(dx_store_reg);
+#if CONFIG_RUNTIME_CPU_DETECT
+        if (cm->rtcd.flags & HAS_NEON)
+#endif
+        {
+            vp8_pop_neon(dx_store_reg);
+        }
 #endif
         pbi->common.error.error_code = VPX_CODEC_ERROR;
         pbi->common.error.setjmp = 0;
@@ -359,66 +388,56 @@ int vp8dx_receive_compressed_data(VP8D_PTR ptr, unsigned long size, const unsign
         return retcode;
     }
 
-    if (pbi->b_multithreaded_lf && pbi->common.filter_level != 0)
-        vp8_stop_lfthread(pbi);
-
-    if (swap_frame_buffers (cm))
+    if (pbi->b_multithreaded_rd && cm->multi_token_partition != ONE_PARTITION)
     {
-        pbi->common.error.error_code = VPX_CODEC_ERROR;
-        pbi->common.error.setjmp = 0;
-        return -1;
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if(pbi->common.filter_level)
+        if (swap_frame_buffers (cm))
+        {
+#if HAVE_ARMV7
+#if CONFIG_RUNTIME_CPU_DETECT
+            if (cm->rtcd.flags & HAS_NEON)
+#endif
+            {
+                vp8_pop_neon(dx_store_reg);
+            }
+#endif
+            pbi->common.error.error_code = VPX_CODEC_ERROR;
+            pbi->common.error.setjmp = 0;
+            return -1;
+        }
+    } else
     {
-        struct vpx_usec_timer lpftimer;
-        vpx_usec_timer_start(&lpftimer);
-        
+        if (swap_frame_buffers (cm))
+        {
+#if HAVE_ARMV7
+#if CONFIG_RUNTIME_CPU_DETECT
+            if (cm->rtcd.flags & HAS_NEON)
+#endif
+            {
+                vp8_pop_neon(dx_store_reg);
+            }
+#endif
+            pbi->common.error.error_code = VPX_CODEC_ERROR;
+            pbi->common.error.setjmp = 0;
+            return -1;
+        }
 
-        if (pbi->b_multithreaded_lf && cm->multi_token_partition != ONE_PARTITION)
-            vp8_mt_loop_filter_frame(pbi);   
-        else
+        if(pbi->common.filter_level)
+        {
+            struct vpx_usec_timer lpftimer;
+            vpx_usec_timer_start(&lpftimer);
+            
+
             vp8_loop_filter_frame(cm, &pbi->mb, cm->filter_level);
 
-        vpx_usec_timer_mark(&lpftimer);
-        pbi->time_loop_filtering += vpx_usec_timer_elapsed(&lpftimer);
+            vpx_usec_timer_mark(&lpftimer);
+            pbi->time_loop_filtering += vpx_usec_timer_elapsed(&lpftimer);
 
-        cm->last_frame_type = cm->frame_type;
-        cm->last_filter_type = cm->filter_type;
-        cm->last_sharpness_level = cm->sharpness_level;
+            cm->last_frame_type = cm->frame_type;
+            cm->last_filter_type = cm->filter_type;
+            cm->last_sharpness_level = cm->sharpness_level;
+        }
+        vp8_yv12_extend_frame_borders_ptr(cm->frame_to_show);
     }
-
-    vp8_yv12_extend_frame_borders_ptr(cm->frame_to_show);
 
 #if 0
     
@@ -434,7 +453,7 @@ int vp8dx_receive_compressed_data(VP8D_PTR ptr, unsigned long size, const unsign
 
     pbi->time_decoding += pbi->decode_microseconds;
 
-
+    
 
     if (cm->show_frame)
         cm->current_video_frame++;
@@ -477,7 +496,12 @@ int vp8dx_receive_compressed_data(VP8D_PTR ptr, unsigned long size, const unsign
 #endif
 
 #if HAVE_ARMV7
-    vp8_pop_neon(dx_store_reg);
+#if CONFIG_RUNTIME_CPU_DETECT
+    if (cm->rtcd.flags & HAS_NEON)
+#endif
+    {
+        vp8_pop_neon(dx_store_reg);
+    }
 #endif
     pbi->common.error.setjmp = 0;
     return retcode;

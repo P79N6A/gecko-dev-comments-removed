@@ -88,30 +88,33 @@ typedef struct VP8Decompressor
     unsigned int time_loop_filtering;
 
     volatile int b_multithreaded_rd;
-    volatile int b_multithreaded_lf;
     int max_threads;
-    int last_mb_row_decoded;
     int current_mb_col_main;
     int decoding_thread_count;
     int allocated_decoding_thread_count;
-    int *current_mb_col;                  
-    int mt_baseline_filter_level[MAX_MB_SEGMENTS];
 
     
-    DECLARE_ALIGNED(16, MACROBLOCKD, lpfmb);
 #if CONFIG_MULTITHREAD
-    
-    sem_t               h_event_end_lpf;          
-    sem_t               *h_event_start_lpf;
-#endif
+    int mt_baseline_filter_level[MAX_MB_SEGMENTS];
+    int sync_range;
+    int *mt_current_mb_col;                  
+
+    unsigned char **mt_yabove_row;           
+    unsigned char **mt_uabove_row;
+    unsigned char **mt_vabove_row;
+    unsigned char **mt_yleft_col;            
+    unsigned char **mt_uleft_col;            
+    unsigned char **mt_vleft_col;            
+
     MB_ROW_DEC           *mb_row_di;
-    DECODETHREAD_DATA   *de_thread_data;
-#if CONFIG_MULTITHREAD
+    DECODETHREAD_DATA    *de_thread_data;
+
     pthread_t           *h_decoding_thread;
     sem_t               *h_event_start_decoding;
-    sem_t               h_event_end_decoding;
+    sem_t                h_event_end_decoding;
     
 #endif
+
     vp8_reader *mbc;
     INT64 last_time_stamp;
     int   ready_for_new_data;
@@ -124,6 +127,12 @@ typedef struct VP8Decompressor
     vp8_dequant_rtcd_vtable_t        dequant;
     struct vp8_dboolhuff_rtcd_vtable dboolhuff;
 #endif
+
+
+    vp8_prob prob_intra;
+    vp8_prob prob_last;
+    vp8_prob prob_gf;
+    vp8_prob prob_skip_false;
 
 } VP8D_COMP;
 

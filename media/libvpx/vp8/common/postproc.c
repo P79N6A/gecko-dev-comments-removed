@@ -20,6 +20,34 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define RGB_TO_YUV(t)                                                                       \
+    ( (0.257*(float)(t>>16)) + (0.504*(float)(t>>8&0xff)) + (0.098*(float)(t&0xff)) + 16),  \
+    (-(0.148*(float)(t>>16)) - (0.291*(float)(t>>8&0xff)) + (0.439*(float)(t&0xff)) + 128), \
+    ( (0.439*(float)(t>>16)) - (0.368*(float)(t>>8&0xff)) - (0.071*(float)(t&0xff)) + 128)
+
+
+
+static const unsigned char MB_PREDICTION_MODE_colors[MB_MODE_COUNT][3] =
+{
+    { RGB_TO_YUV(0x98FB98) },   
+    { RGB_TO_YUV(0x00FF00) },   
+    { RGB_TO_YUV(0xADFF2F) },   
+    { RGB_TO_YUV(0x228B22) },   
+    { RGB_TO_YUV(0x006400) },   
+    { RGB_TO_YUV(0x98F5FF) },   
+    { RGB_TO_YUV(0x6CA6CD) },   
+    { RGB_TO_YUV(0x00008B) },   
+    { RGB_TO_YUV(0x551A8B) },   
+    { RGB_TO_YUV(0xFF0000) }    
+};
+
+static const unsigned char MV_REFERENCE_FRAME_colors[MB_MODE_COUNT][3] =
+{
+    { RGB_TO_YUV(0x00ff00) },   
+    { RGB_TO_YUV(0x0000ff) },   
+    { RGB_TO_YUV(0xffff00) },   
+    { RGB_TO_YUV(0xff0000) },   
+};
 
 static const short kernel5[] =
 {
@@ -76,7 +104,7 @@ const short vp8_rv[] =
 
 
 extern void vp8_blit_text(const char *msg, unsigned char *address, const int pitch);
-
+extern void vp8_blit_line(int x0, int x1, int y0, int y1, unsigned char *image, const int pitch);
 
 
 void vp8_post_proc_down_and_across_c
@@ -352,8 +380,8 @@ static void fillrd(struct postproc_state *state, int q, int a)
     sigma = ai + .5 + .6 * (63 - qi) / 63.0;
 
     
-    
-    
+
+
     {
         double i;
         int next, j;
@@ -444,6 +472,89 @@ void vp8_plane_add_noise_c(unsigned char *Start, char *noise,
     }
 }
 
+
+
+
+
+void vp8_blend_mb_c (unsigned char *y, unsigned char *u, unsigned char *v,
+                        int y1, int u1, int v1, int alpha, int stride)
+{
+    int i, j;
+    int y1_const = y1*((1<<16)-alpha);
+    int u1_const = u1*((1<<16)-alpha);
+    int v1_const = v1*((1<<16)-alpha);
+
+    y += stride + 2;
+    for (i = 0; i < 14; i++)
+    {
+        for (j = 0; j < 14; j++)
+        {
+            y[j] = (y[j]*alpha + y1_const)>>16;
+        }
+        y += stride;
+    }
+
+    stride >>= 1;
+
+    u += stride + 1;
+    v += stride + 1;
+
+    for (i = 0; i < 6; i++)
+    {
+        for (j = 0; j < 6; j++)
+        {
+            u[j] = (u[j]*alpha + u1_const)>>16;
+            v[j] = (v[j]*alpha + v1_const)>>16;
+        }
+        u += stride;
+        v += stride;
+    }
+}
+
+static void constrain_line (int x0, int *x1, int y0, int *y1, int width, int height)
+{
+    int dx;
+    int dy;
+
+    if (*x1 > width)
+    {
+        dx = *x1 - x0;
+        dy = *y1 - y0;
+
+        *x1 = width;
+        if (dy)
+            *y1 = ((width-x0)*dy)/dx + y0;
+    }
+    if (*x1 < 0)
+    {
+        dx = *x1 - x0;
+        dy = *y1 - y0;
+
+        *x1 = 0;
+        if (dy)
+            *y1 = ((0-x0)*dy)/dx + y0;
+    }
+    if (*y1 > height)
+    {
+        dx = *x1 - x0;
+        dy = *y1 - y0;
+
+        *y1 = height;
+        if (dx)
+            *x1 = ((height-y0)*dx)/dy + x0;
+    }
+    if (*y1 < 0)
+    {
+        dx = *x1 - x0;
+        dy = *y1 - y0;
+
+        *y1 = 0;
+        if (dx)
+            *x1 = ((0-y0)*dx)/dy + x0;
+    }
+}
+
+
 #if CONFIG_RUNTIME_CPU_DETECT
 #define RTCD_VTABLE(oci) (&(oci)->rtcd.postproc)
 #else
@@ -521,7 +632,8 @@ int vp8_post_proc_frame(VP8_COMMON *oci, YV12_BUFFER_CONFIG *dest, int deblock_l
                 oci->mb_cols, oci->mb_rows);
         vp8_blit_text(message, oci->post_proc_buffer.y_buffer, oci->post_proc_buffer.y_stride);
     }
-    else if (flags & VP8D_DEBUG_LEVEL2)
+
+    if (flags & VP8D_DEBUG_LEVEL2)
     {
         int i, j;
         unsigned char *y_ptr;
@@ -552,7 +664,8 @@ int vp8_post_proc_frame(VP8_COMMON *oci, YV12_BUFFER_CONFIG *dest, int deblock_l
 
         }
     }
-    else if (flags & VP8D_DEBUG_LEVEL3)
+
+    if (flags & VP8D_DEBUG_LEVEL3)
     {
         int i, j;
         unsigned char *y_ptr;
@@ -586,7 +699,8 @@ int vp8_post_proc_frame(VP8_COMMON *oci, YV12_BUFFER_CONFIG *dest, int deblock_l
 
         }
     }
-    else if (flags & VP8D_DEBUG_LEVEL4)
+
+    if (flags & VP8D_DEBUG_LEVEL4)
     {
         sprintf(message, "Bitrate: %10.2f frame_rate: %10.2f ", oci->bitrate, oci->framerate);
         vp8_blit_text(message, oci->post_proc_buffer.y_buffer, oci->post_proc_buffer.y_stride);
@@ -623,7 +737,118 @@ int vp8_post_proc_frame(VP8_COMMON *oci, YV12_BUFFER_CONFIG *dest, int deblock_l
 
     }
 
+    
+    if (flags & VP8D_DEBUG_LEVEL5)
+    {
+        YV12_BUFFER_CONFIG *post = &oci->post_proc_buffer;
+        int width  = post->y_width;
+        int height = post->y_height;
+        int mb_cols = width  >> 4;
+        unsigned char *y_buffer = oci->post_proc_buffer.y_buffer;
+        int y_stride = oci->post_proc_buffer.y_stride;
+        MODE_INFO *mi = oci->mi;
+        int x0, y0;
 
+        for (y0 = 8; y0 < (height + 8); y0 += 16)
+        {
+            for (x0 = 8; x0 < (width + 8); x0 += 16)
+            {
+               int x1, y1;
+               if (mi->mbmi.mode >= NEARESTMV)
+                {
+                    MV *mv = &mi->mbmi.mv.as_mv;
+
+                    x1 = x0 + (mv->col >> 3);
+                    y1 = y0 + (mv->row >> 3);
+
+                    if (x1 != x0 && y1 != y0)
+                    {
+                        constrain_line (x0, &x1, y0-1, &y1, width, height);
+                        vp8_blit_line  (x0,  x1, y0-1,  y1, y_buffer, y_stride);
+
+                        constrain_line (x0, &x1, y0+1, &y1, width, height);
+                        vp8_blit_line  (x0,  x1, y0+1,  y1, y_buffer, y_stride);
+                    }
+                    else
+                        vp8_blit_line  (x0,  x1, y0,  y1, y_buffer, y_stride);
+                }
+                mi++;
+            }
+            mi++;
+        }
+    }
+
+    
+    if (flags & VP8D_DEBUG_LEVEL6)
+    {
+        int i, j;
+        YV12_BUFFER_CONFIG *post = &oci->post_proc_buffer;
+        int width  = post->y_width;
+        int height = post->y_height;
+        unsigned char *y_ptr = oci->post_proc_buffer.y_buffer;
+        unsigned char *u_ptr = oci->post_proc_buffer.u_buffer;
+        unsigned char *v_ptr = oci->post_proc_buffer.v_buffer;
+        int y_stride = oci->post_proc_buffer.y_stride;
+        MODE_INFO *mi = oci->mi;
+
+        for (i = 0; i < height; i += 16)
+        {
+            for (j = 0; j < width; j += 16)
+            {
+                int Y = 0, U = 0, V = 0;
+
+                Y = MB_PREDICTION_MODE_colors[mi->mbmi.mode][0];
+                U = MB_PREDICTION_MODE_colors[mi->mbmi.mode][1];
+                V = MB_PREDICTION_MODE_colors[mi->mbmi.mode][2];
+
+                POSTPROC_INVOKE(RTCD_VTABLE(oci), blend_mb)
+                    (&y_ptr[j], &u_ptr[j>>1], &v_ptr[j>>1], Y, U, V, 0xc000, y_stride);
+
+                mi++;
+            }
+            y_ptr += y_stride*16;
+            u_ptr += y_stride*4;
+            v_ptr += y_stride*4;
+
+            mi++;
+        }
+    }
+
+    
+    if (flags & VP8D_DEBUG_LEVEL7)
+    {
+        int i, j;
+        YV12_BUFFER_CONFIG *post = &oci->post_proc_buffer;
+        int width  = post->y_width;
+        int height = post->y_height;
+        unsigned char *y_ptr = oci->post_proc_buffer.y_buffer;
+        unsigned char *u_ptr = oci->post_proc_buffer.u_buffer;
+        unsigned char *v_ptr = oci->post_proc_buffer.v_buffer;
+        int y_stride = oci->post_proc_buffer.y_stride;
+        MODE_INFO *mi = oci->mi;
+
+        for (i = 0; i < height; i += 16)
+        {
+            for (j = 0; j < width; j +=16)
+            {
+                int Y = 0, U = 0, V = 0;
+
+                Y = MV_REFERENCE_FRAME_colors[mi->mbmi.ref_frame][0];
+                U = MV_REFERENCE_FRAME_colors[mi->mbmi.ref_frame][1];
+                V = MV_REFERENCE_FRAME_colors[mi->mbmi.ref_frame][2];
+
+                POSTPROC_INVOKE(RTCD_VTABLE(oci), blend_mb)
+                    (&y_ptr[j], &u_ptr[j>>1], &v_ptr[j>>1], Y, U, V, 0xc000, y_stride);
+
+                mi++;
+            }
+            y_ptr += y_stride*16;
+            u_ptr += y_stride*4;
+            v_ptr += y_stride*4;
+
+            mi++;
+        }
+    }
 
     *dest = oci->post_proc_buffer;
 

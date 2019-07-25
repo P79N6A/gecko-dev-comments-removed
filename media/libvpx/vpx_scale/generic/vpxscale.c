@@ -1040,8 +1040,8 @@ vp8_yv12_scale_or_center
     int VRatio
 )
 {
-
     
+
 
 
     switch (scaling_mode)
@@ -1054,7 +1054,7 @@ vp8_yv12_scale_or_center
 #if 1
         int row = (dst_yuv_config->y_height - expanded_frame_height) / 2;
         int col = (dst_yuv_config->y_width  - expanded_frame_width) / 2;
-
+        
 
         int YOffset  = row * dst_yuv_config->y_stride + col;
         int UVOffset = (row >> 1) * dst_yuv_config->uv_stride + (col >> 1);

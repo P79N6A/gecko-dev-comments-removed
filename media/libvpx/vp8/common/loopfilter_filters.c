@@ -17,8 +17,6 @@
 #define __inline inline
 #endif
 
-#define NEW_LOOPFILTER_MASK
-
 typedef unsigned char uc;
 
 static __inline signed char vp8_signed_char_clamp(int t)
@@ -40,11 +38,7 @@ static __inline signed char vp8_filter_mask(signed char limit, signed char flimi
     mask |= (abs(q1 - q0) > limit) * -1;
     mask |= (abs(q2 - q1) > limit) * -1;
     mask |= (abs(q3 - q2) > limit) * -1;
-#ifndef NEW_LOOPFILTER_MASK
-    mask |= (abs(p0 - q0) > flimit) * -1;
-#else
     mask |= (abs(p0 - q0) * 2 + abs(p1 - q1) / 2  > flimit * 2 + limit) * -1;
-#endif
     mask = ~mask;
     return mask;
 }
@@ -80,8 +74,9 @@ static __inline void vp8_filter(signed char mask, signed char hev, uc *op1, uc *
     vp8_filter &= mask;
 
     
-    
-    
+
+
+
     Filter1 = vp8_signed_char_clamp(vp8_filter + 4);
     Filter2 = vp8_signed_char_clamp(vp8_filter + 3);
     Filter1 >>= 3;
@@ -118,7 +113,8 @@ void vp8_loop_filter_horizontal_edge_c
     int i = 0;
 
     
-    
+
+
     do
     {
         mask = vp8_filter_mask(limit[i], flimit[i],
@@ -149,7 +145,8 @@ void vp8_loop_filter_vertical_edge_c
     int i = 0;
 
     
-    
+
+
     do
     {
         mask = vp8_filter_mask(limit[i], flimit[i],
@@ -234,7 +231,8 @@ void vp8_mbloop_filter_horizontal_edge_c
     int i = 0;
 
     
-    
+
+
     do
     {
 
@@ -289,11 +287,8 @@ static __inline signed char vp8_simple_filter_mask(signed char limit, signed cha
 
 
 
-#ifndef NEW_LOOPFILTER_MASK
-    signed char mask = (abs(p0 - q0) <= flimit) * -1;
-#else
+
     signed char mask = (abs(p0 - q0) * 2 + abs(p1 - q1) / 2  <= flimit * 2 + limit) * -1;
-#endif
     return mask;
 }
 

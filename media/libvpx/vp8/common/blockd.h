@@ -95,7 +95,7 @@ typedef enum
 {
     MB_LVL_ALT_Q = 0,               
     MB_LVL_ALT_LF = 1,              
-    MB_LVL_MAX = 2                 
+    MB_LVL_MAX = 2                  
 
 } MB_LVL_FEATURES;
 
@@ -168,14 +168,15 @@ typedef struct
         int as_int;
         MV  as_mv;
     } mv;
-    int partitioning;
-    int partition_count;
-    int mb_skip_coeff;                                
-    int dc_diff;
-    unsigned char   segment_id;                  
-    int force_no_skip;
-    int need_to_clamp_mvs;
-    B_MODE_INFO partition_bmi[16];
+
+    unsigned char partitioning;
+    unsigned char mb_skip_coeff;                                
+    unsigned char dc_diff;
+    unsigned char need_to_clamp_mvs;
+
+    unsigned char segment_id;                  
+
+    unsigned char force_no_skip; 
 } MB_MODE_INFO;
 
 
@@ -194,7 +195,7 @@ typedef struct
     short *diff;
     short *reference;
 
-    short(*dequant)[4];
+    short *dequant;
 
     
     unsigned char **base_pre;
@@ -227,8 +228,6 @@ typedef struct
     YV12_BUFFER_CONFIG dst;
 
     MODE_INFO *mode_info_context;
-    MODE_INFO *mode_info;
-
     int mode_info_stride;
 
     FRAME_TYPE frame_type;
@@ -263,9 +262,9 @@ typedef struct
     unsigned char mode_ref_lf_delta_update;
 
     
-    
-    
+    signed char last_ref_lf_deltas[MAX_REF_LF_DELTAS];                
     signed char ref_lf_deltas[MAX_REF_LF_DELTAS];                     
+    signed char last_mode_lf_deltas[MAX_MODE_LF_DELTAS];                      
     signed char mode_lf_deltas[MAX_MODE_LF_DELTAS];                           
 
     

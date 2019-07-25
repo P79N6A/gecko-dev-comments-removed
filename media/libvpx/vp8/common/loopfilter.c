@@ -214,6 +214,7 @@ void vp8_init_loop_filter(VP8_COMMON *cm)
 
 
 
+
 void vp8_frame_init_loop_filter(loop_filter_info *lfi, int frame_type)
 {
     int HEVThresh;
@@ -248,12 +249,12 @@ void vp8_frame_init_loop_filter(loop_filter_info *lfi, int frame_type)
         for (j = 0; j < 16; j++)
         {
             
-            
+
             lfi[i].mbthr[j] = HEVThresh;
             
             lfi[i].thr[j] = HEVThresh;
             
-            
+
             lfi[i].uvmbthr[j] = HEVThresh;
             
             lfi[i].uvthr[j] = HEVThresh;
@@ -311,7 +312,7 @@ void vp8_loop_filter_frame
 {
     YV12_BUFFER_CONFIG *post = cm->frame_to_show;
     loop_filter_info *lfi = cm->lf_info;
-    int frame_type = cm->frame_type;
+    FRAME_TYPE frame_type = cm->frame_type;
 
     int mb_row;
     int mb_col;
@@ -369,8 +370,9 @@ void vp8_loop_filter_frame
             filter_level = baseline_filter_level[Segment];
 
             
-            
-            
+
+
+
             vp8_adjust_mb_lf_value(mbd, &filter_level);
 
             if (filter_level)
@@ -424,11 +426,11 @@ void vp8_loop_filter_frame_yonly
     int baseline_filter_level[MAX_MB_SEGMENTS];
     int filter_level;
     int alt_flt_enabled = mbd->segmentation_enabled;
-    int frame_type = cm->frame_type;
+    FRAME_TYPE frame_type = cm->frame_type;
 
     (void) sharpness_lvl;
 
-    
+     
     mbd->mode_info_context = cm->mi;          
 
     
@@ -525,11 +527,11 @@ void vp8_loop_filter_partial_frame
     int baseline_filter_level[MAX_MB_SEGMENTS];
     int filter_level;
     int alt_flt_enabled = mbd->segmentation_enabled;
-    int frame_type = cm->frame_type;
+    FRAME_TYPE frame_type = cm->frame_type;
 
     (void) sharpness_lvl;
 
-    
+     
     mbd->mode_info_context = cm->mi + (post->y_height >> 5) * (mb_cols + 1);        
 
     linestocopy = (post->y_height >> (4 + Fraction));

@@ -41,7 +41,7 @@ typedef enum
     VP8_SEG_ALG_PRIV     = 256,
     VP8_SEG_MAX
 } mem_seg_id_t;
-#define NELEMENTS(x) (sizeof(x)/sizeof(x[0]))
+#define NELEMENTS(x) ((int)(sizeof(x)/sizeof(x[0])))
 
 static unsigned long vp8_priv_sz(const vpx_codec_dec_cfg_t *si, vpx_codec_flags_t);
 
@@ -170,7 +170,7 @@ static void vp8_init_ctx(vpx_codec_ctx_t *ctx, const vpx_codec_mmap_t *mmap)
     }
 }
 
-static void *mmap_lkup(vpx_codec_alg_priv_t *ctx, int id)
+static void *mmap_lkup(vpx_codec_alg_priv_t *ctx, unsigned int id)
 {
     int i;
 
@@ -653,7 +653,7 @@ vpx_codec_ctrl_fn_map_t vp8_ctf_maps[] =
 #ifndef VERSION_STRING
 #define VERSION_STRING
 #endif
-vpx_codec_iface_t vpx_codec_vp8_dx_algo =
+CODEC_INTERFACE(vpx_codec_vp8_dx) =
 {
     "WebM Project VP8 Decoder" VERSION_STRING,
     VPX_CODEC_INTERNAL_ABI_VERSION,
@@ -670,7 +670,14 @@ vpx_codec_iface_t vpx_codec_vp8_dx_algo =
         vp8_decode,       
         vp8_get_frame,    
     },
-    {NOT_IMPLEMENTED} 
+    { 
+        NOT_IMPLEMENTED,
+        NOT_IMPLEMENTED,
+        NOT_IMPLEMENTED,
+        NOT_IMPLEMENTED,
+        NOT_IMPLEMENTED,
+        NOT_IMPLEMENTED
+    }
 };
 
 
@@ -693,5 +700,12 @@ vpx_codec_iface_t vpx_codec_vp8_algo =
         vp8_decode,       
         vp8_get_frame,    
     },
-    {NOT_IMPLEMENTED} 
+    { 
+        NOT_IMPLEMENTED,
+        NOT_IMPLEMENTED,
+        NOT_IMPLEMENTED,
+        NOT_IMPLEMENTED,
+        NOT_IMPLEMENTED,
+        NOT_IMPLEMENTED
+    }
 };

@@ -23,6 +23,7 @@
 
 
 
+
 static const int bbb[4] = {0, 2, 8, 10};
 
 
@@ -494,6 +495,7 @@ void vp8_build_uvmvs(MACROBLOCKD *x, int fullpixel)
 
 
 
+
 static void vp8_build_inter_predictors_b_s(BLOCKD *d, unsigned char *dst_ptr, vp8_subpix_fn_t sppf)
 {
     int r;
@@ -536,7 +538,7 @@ static void vp8_build_inter_predictors_b_s(BLOCKD *d, unsigned char *dst_ptr, vp
 void vp8_build_inter_predictors_mb_s(MACROBLOCKD *x)
 {
     
-    
+
     unsigned char *pred_ptr = x->predictor;
     unsigned char *dst_ptr = x->dst.y_buffer;
 
@@ -547,8 +549,8 @@ void vp8_build_inter_predictors_mb_s(MACROBLOCKD *x)
         unsigned char *ptr;
         unsigned char *uptr, *vptr;
         
-        
-        
+
+
         unsigned char *udst_ptr = x->dst.u_buffer;
         unsigned char *vdst_ptr = x->dst.v_buffer;
 
@@ -589,7 +591,8 @@ void vp8_build_inter_predictors_mb_s(MACROBLOCKD *x)
     else
     {
         
-        
+
+
         int i;
 
         if (x->mode_info_context->mbmi.partitioning < 3)
@@ -669,11 +672,15 @@ void vp8_build_inter_predictors_mb_s(MACROBLOCKD *x)
 
                 if (d0->bmi.mv.as_mv.row & 7 || d0->bmi.mv.as_mv.col & 7)
                 {
-                    x->subpixel_predict8x4(ptr, d0->pre_stride, d0->bmi.mv.as_mv.col & 7, d0->bmi.mv.as_mv.row & 7, dst_ptr, x->dst.y_stride);
+                    x->subpixel_predict8x4(ptr, d0->pre_stride,
+                        d0->bmi.mv.as_mv.col & 7,
+                        d0->bmi.mv.as_mv.row & 7,
+                        dst_ptr, x->dst.uv_stride);
                 }
                 else
                 {
-                    RECON_INVOKE(&x->rtcd->recon, copy8x4)(ptr, d0->pre_stride, dst_ptr, x->dst.y_stride);
+                    RECON_INVOKE(&x->rtcd->recon, copy8x4)(ptr,
+                        d0->pre_stride, dst_ptr, x->dst.uv_stride);
                 }
             }
             else

@@ -31,7 +31,7 @@ static unsigned long g_alloc_count = 0;
 # include "hmm_intrnl.h"
 
 # define SHIFT_HMM_ADDR_ALIGN_UNIT 5
-# define TOTAL_MEMORY_TO_ALLOCATE  20971520 // 20 * 1024 * 1024
+# define TOTAL_MEMORY_TO_ALLOCATE  20971520 /* 20 * 1024 * 1024 */
 
 # define MM_DYNAMIC_MEMORY 1
 # if MM_DYNAMIC_MEMORY
@@ -333,8 +333,9 @@ void *xvpx_realloc(void *memblk, size_t size, char *file, int line)
 #endif
 
     
-    
-    
+
+
+
     vpx_memory_tracker_remove((size_t)memblk);
 
 #if TRY_BOUNDS_CHECK
@@ -395,7 +396,8 @@ void xvpx_free(void *p_address, char *file, int line)
 #endif
 
         
-        
+
+
         if (vpx_memory_tracker_remove((size_t)p_address) == -2)
         {
             p_bounds_address = p_address;

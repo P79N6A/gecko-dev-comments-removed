@@ -12,7 +12,7 @@
 #ifndef _PTHREAD_EMULATION
 #define _PTHREAD_EMULATION
 
-#define VPXINFINITE 10000       //10second.
+#define VPXINFINITE 10000       /* 10second. */
 
 
 #ifdef _WIN32
@@ -76,7 +76,7 @@
 #else
 #include <unistd.h>
 #include <sched.h>
-#define thread_sleep(nms) sched_yield();// {struct timespec ts;ts.tv_sec=0; ts.tv_nsec = 1000*nms;nanosleep(&ts, NULL);}
+#define thread_sleep(nms) sched_yield();/* {struct timespec ts;ts.tv_sec=0; ts.tv_nsec = 1000*nms;nanosleep(&ts, NULL);} */
 #endif
 
 

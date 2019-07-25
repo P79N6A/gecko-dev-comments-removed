@@ -66,8 +66,9 @@ vp8_yv12_alloc_frame_buffer(YV12_BUFFER_CONFIG *ybf, int width, int height, int 
         ybf->frame_size = yplane_size + 2 * uvplane_size;
 
         
-        
-        
+
+
+
         ybf->buffer_alloc = (unsigned char *) duck_memalign(32,  ybf->frame_size + (ybf->y_stride * 2) + 32, 0);
 
         if (ybf->buffer_alloc == NULL)

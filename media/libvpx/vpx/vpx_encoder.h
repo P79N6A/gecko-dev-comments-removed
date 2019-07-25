@@ -171,7 +171,7 @@ extern "C" {
     {
         VPX_RC_ONE_PASS,   
         VPX_RC_FIRST_PASS, 
-        VPX_RC_LAST_PASS  
+        VPX_RC_LAST_PASS   
     };
 
 

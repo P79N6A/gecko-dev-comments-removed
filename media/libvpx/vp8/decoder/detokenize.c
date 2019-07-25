@@ -77,6 +77,7 @@ void vp8_reset_mb_tokens_context(MACROBLOCKD *x)
 #if CONFIG_ARM_ASM_DETOK
 
 
+
 DECLARE_ALIGNED(16, const UINT8, vp8_block2leftabove[25*2]) =
 {
     
@@ -297,7 +298,7 @@ BLOCK_LOOP:
 
     c = (INT16)(!type);
 
-
+    
     VP8_COMBINEENTROPYCONTEXTS(v, *a, *l);
     Prob = coef_probs;
     Prob += v * ENTROPY_NODES;

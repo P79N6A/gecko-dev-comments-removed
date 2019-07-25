@@ -45,7 +45,7 @@ typedef struct
     const unsigned char *source, unsigned int source_sz)
 #define prototype_dbool_fill(sym) void sym(BOOL_DECODER *br)
 #define prototype_dbool_debool(sym) int sym(BOOL_DECODER *br, int probability)
-#define prototype_dbool_devalue(sym) int sym(BOOL_DECODER *br, int bits);
+#define prototype_dbool_devalue(sym) int sym(BOOL_DECODER *br, int bits)
 
 #if ARCH_ARM
 #include "arm/dboolhuff_arm.h"
@@ -83,6 +83,7 @@ typedef struct vp8_dboolhuff_rtcd_vtable {
     vp8_dbool_debool_fn_t  debool;
     vp8_dbool_devalue_fn_t devalue;
 } vp8_dboolhuff_rtcd_vtable_t;
+
 
 
 

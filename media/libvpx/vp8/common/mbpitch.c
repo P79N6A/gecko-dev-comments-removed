@@ -14,7 +14,7 @@
 typedef enum
 {
     PRED = 0,
-    DEST = 1,
+    DEST = 1
 } BLOCKSET;
 
 void vp8_setup_block
