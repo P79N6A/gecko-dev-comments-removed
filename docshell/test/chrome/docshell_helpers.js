@@ -317,10 +317,7 @@ function finish() {
   
   
   if (typeof(gOrigMaxTotalViewers) != "undefined") {
-    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefBranch);
-    prefs.setIntPref("browser.sessionhistory.max_total_viewers",
+    SpecialPowers.setIntPref("browser.sessionhistory.max_total_viewers",
       gOrigMaxTotalViewers);
   }
 
@@ -387,26 +384,21 @@ function waitForTrue(fn, onWaitComplete, timeout) {
 
 
 function enableBFCache(enable) {
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-  var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-              .getService(Components.interfaces.nsIPrefBranch);
-  
   
   
   
   if (typeof(gOrigMaxTotalViewers) == "undefined") {
-    gOrigMaxTotalViewers =
-      prefs.getIntPref("browser.sessionhistory.max_total_viewers");
+    gOrigMaxTotalViewers = SpecialPowers.getIntPref("browser.sessionhistory.max_total_viewers");
   }
   
   if (typeof(enable) == "boolean") {
     if (enable)
-      prefs.setIntPref("browser.sessionhistory.max_total_viewers", -1);
+      SpecialPowers.setIntPref("browser.sessionhistory.max_total_viewers", -1);
     else
-      prefs.setIntPref("browser.sessionhistory.max_total_viewers", 0);    
+      SpecialPowers.setIntPref("browser.sessionhistory.max_total_viewers", 0);    
   }
   else if (typeof(enable) == "number") {
-    prefs.setIntPref("browser.sessionhistory.max_total_viewers", enable);    
+    SpecialPowers.setIntPref("browser.sessionhistory.max_total_viewers", enable);    
   }
 }
 
