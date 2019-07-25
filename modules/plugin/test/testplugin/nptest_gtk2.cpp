@@ -35,12 +35,15 @@
 
 #include "nptest_platform.h"
 #include "npapi.h"
+#include <pthread.h>
 #include <gdk/gdk.h>
 #ifdef MOZ_X11
 #include <gdk/gdkx.h>
 #include <X11/extensions/shape.h>
 #endif
+#include <glib.h>
 #include <gtk/gtk.h>
+#include <unistd.h>
 
  using namespace std;
 
@@ -635,7 +638,6 @@ pluginGetClipboardText(InstanceData* instanceData)
 
   return retText;
 }
-<<<<<<< local
 
 
 
@@ -665,7 +667,7 @@ bool
 pluginCrashInNestedLoop(InstanceData* instanceData)
 {
   
-  while(sleep(1)) {}
+  sleep(1);
 
   
   bool found_event = false;
@@ -679,7 +681,7 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
 
   
   
-  while(sleep(1)) {}
+  sleep(1);
 
   
   
@@ -708,5 +710,3 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
   
   return true;
 }
-=======
->>>>>>> other
