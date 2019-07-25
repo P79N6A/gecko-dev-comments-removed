@@ -175,22 +175,103 @@ class FrameState
         uint32 nentries;
     };
 
+    
+
+
+
+
+
+
+
+
+
+
     struct RegisterState {
-        RegisterState()
+        RegisterState() : fe_(NULL), save_(NULL)
         { }
 
         RegisterState(FrameEntry *fe, RematInfo::RematType type)
-          : fe(fe), type(type)
-        { }
+          : fe_(fe), save_(NULL), type_(type)
+        {
+            JS_ASSERT(!save_);
+        }
+
+        bool isPinned() const {
+            assertConsistency();
+            return !!save_;
+        }
+
+        void assertConsistency() const {
+            JS_ASSERT_IF(fe_, !save_);
+            JS_ASSERT_IF(save_, !fe_);
+        }
+
+        FrameEntry *fe() const {
+            assertConsistency();
+            return fe_;
+        }
+
+        RematInfo::RematType type() const {
+            assertConsistency();
+            return type_;
+        }
+
+        FrameEntry *usedBy() const {
+            if (fe_)
+                return fe_;
+            return save_;
+        }
+
+        void associate(FrameEntry *fe, RematInfo::RematType type) {
+            JS_ASSERT(!fe_);
+            JS_ASSERT(!save_);
+
+            fe_ = fe;
+            type_ = type;
+            JS_ASSERT(!save_);
+        }
 
         
-        FrameEntry *fe;
+        void reassociate(FrameEntry *fe) {
+            assertConsistency();
+            JS_ASSERT(fe);
+
+            fe_ = fe;
+        }
 
         
-        FrameEntry *save;
+        void forget() {
+            JS_ASSERT(fe_);
+            fe_ = NULL;
+            JS_ASSERT(!save_);
+        }
+
+        void pin() {
+            assertConsistency();
+            save_ = fe_;
+            fe_ = NULL;
+        }
+
+        void unpin() {
+            assertConsistency();
+            fe_ = save_;
+            save_ = NULL;
+        }
+
+        void unpinUnsafe() {
+            assertConsistency();
+            save_ = NULL;
+        }
+
+      private:
+        
+        FrameEntry *fe_;
+
+        
+        FrameEntry *save_;
         
         
-        RematInfo::RematType type;
+        RematInfo::RematType type_;
     };
 
   public:
@@ -508,6 +589,7 @@ class FrameState
 
 
     void storeLocal(uint32 n, bool popGuaranteed = false, bool typeChange = true);
+    void storeTop(FrameEntry *target, bool popGuaranteed = false, bool typeChange = true);
 
     
 
@@ -527,16 +609,22 @@ class FrameState
     void syncAndKill(Registers kill, Uses uses) { syncAndKill(kill, uses, Uses(0)); }
 
     
-
-
-    void resetRegState();
+    void syncAndKillEverything() {
+        syncAndKill(Registers(Registers::AvailRegs), Uses(frameDepth()));
+    }
 
     
 
 
 
 
-    inline void forgetEverything(uint32 newStackDepth);
+    inline void syncAndForgetEverything(uint32 newStackDepth);
+
+    
+
+
+
+    void syncAndForgetEverything();
 
     
 
@@ -547,7 +635,7 @@ class FrameState
     
 
 
-    void throwaway();
+    void discardFrame();
 
     
 
@@ -606,12 +694,18 @@ class FrameState
 
 
 
+
     inline void pinReg(RegisterID reg);
 
     
 
 
     inline void unpinReg(RegisterID reg);
+
+    
+
+
+    inline void unpinKilledReg(RegisterID reg);
 
     
 
@@ -639,7 +733,6 @@ class FrameState
 
     uint32 stackDepth() const { return sp - spBase; }
     uint32 frameDepth() const { return stackDepth() + script->nfixed; }
-    inline FrameEntry *tosFe() const;
 
 #ifdef DEBUG
     void assertValidRegisterState() const;
@@ -687,7 +780,7 @@ class FrameState
     RegisterID evictSomeReg(uint32 mask);
     void evictReg(RegisterID reg);
     inline FrameEntry *rawPush();
-    inline FrameEntry *addToTracker(uint32 index);
+    inline void addToTracker(FrameEntry *fe);
     inline void syncType(const FrameEntry *fe, Address to, Assembler &masm) const;
     inline void syncData(const FrameEntry *fe, Address to, Assembler &masm) const;
     inline FrameEntry *getLocal(uint32 slot);
@@ -695,9 +788,10 @@ class FrameState
     inline void swapInTracker(FrameEntry *lhs, FrameEntry *rhs);
     inline uint32 localIndex(uint32 n);
     void pushCopyOf(uint32 index);
-    void syncFancy(Assembler &masm, Registers avail, uint32 resumeAt,
+    void syncFancy(Assembler &masm, Registers avail, FrameEntry *resumeAt,
                    FrameEntry *bottom) const;
     inline bool tryFastDoubleLoad(FrameEntry *fe, FPRegisterID fpReg, Assembler &masm) const;
+    void resetInternalState();
 
     
 
@@ -708,14 +802,18 @@ class FrameState
 
 
     FrameEntry *uncopy(FrameEntry *original);
+    FrameEntry *walkTrackerForUncopy(FrameEntry *original);
+    FrameEntry *walkFrameForUncopy(FrameEntry *original);
+
+    
+
+
+
+    void forgetEntry(FrameEntry *fe);
 
     FrameEntry *entryFor(uint32 index) const {
-        JS_ASSERT(base[index]);
+        JS_ASSERT(entries[index].isTracked());
         return &entries[index];
-    }
-
-    void moveOwnership(RegisterID reg, FrameEntry *newFe) {
-        regstate[reg].fe = newFe;
     }
 
     RegisterID evictSomeReg() {
@@ -723,10 +821,10 @@ class FrameState
     }
 
     uint32 indexOf(int32 depth) {
-        return uint32((sp + depth) - base);
+        return uint32((sp + depth) - entries);
     }
 
-    uint32 indexOfFe(FrameEntry *fe) {
+    uint32 indexOfFe(FrameEntry *fe) const {
         return uint32(fe - entries);
     }
 
@@ -743,19 +841,16 @@ class FrameState
     FrameEntry *entries;
 
     
-    FrameEntry **base;
+    FrameEntry *args;
 
     
-    FrameEntry **args;
+    FrameEntry *locals;
 
     
-    FrameEntry **locals;
+    FrameEntry *spBase;
 
     
-    FrameEntry **spBase;
-
-    
-    FrameEntry **sp;
+    FrameEntry *sp;
 
     
     Tracker tracker;
