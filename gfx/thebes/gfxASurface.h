@@ -153,7 +153,40 @@ public:
 
     virtual PRBool AreSimilarSurfacesSensitiveToContentType()
     {
-      return PR_TRUE;
+        return PR_TRUE;
+    }
+
+    enum TextQuality {
+        
+
+
+
+
+
+
+        TEXT_QUALITY_OK,
+        
+
+
+
+
+
+        TEXT_QUALITY_OK_OVER_OPAQUE_PIXELS,
+        
+
+
+
+
+
+        TEXT_QUALITY_BAD
+    };
+    
+
+
+
+    virtual TextQuality GetTextQualityInTransparentSurfaces()
+    {
+        return TEXT_QUALITY_BAD;
     }
 
     int CairoStatus();
