@@ -52,8 +52,6 @@
 
 
 
-
-
 namespace js { namespace analyze {
     struct Bytecode;
     class Script;
@@ -131,29 +129,32 @@ TypeIsObject(jstype type)
 inline jstype GetValueType(JSContext *cx, const Value &val);
 
 
-void PrintType(JSContext *cx, jstype type, bool newline = true);
-
-
 
 
 
 class TypeConstraint
 {
 public:
-#ifdef JS_TYPES_DEBUG_SPEW
+#ifdef DEBUG
     static unsigned constraintCount;
-    unsigned id;
-    const char *kind;
+    unsigned id_;
+    const char *kind_;
+
+    unsigned id() const { return id_; }
+    const char *kind() const { return kind_; }
+#else
+    unsigned id() const { return 0; }
+    const char *kind() const { return NULL; }
 #endif
 
     
     TypeConstraint *next;
 
-    TypeConstraint(const char *_kind) : next(NULL)
+    TypeConstraint(const char *kind) : next(NULL)
     {
-#ifdef JS_TYPES_DEBUG_SPEW
-        id = ++constraintCount;
-        kind = _kind;
+#ifdef DEBUG
+        this->id_ = ++constraintCount;
+        this->kind_ = kind;
 #endif
     }
 
@@ -192,9 +193,16 @@ enum ObjectKind {
 
 struct TypeSet
 {
-#ifdef JS_TYPES_DEBUG_SPEW
+#ifdef DEBUG
     static unsigned typesetCount;
-    unsigned id;
+    unsigned id_;
+
+    
+    JSArenaPool *pool;
+
+    unsigned id() const { return id_; }
+#else
+    unsigned id() const { return 0; }
 #endif
 
     
@@ -207,11 +215,6 @@ struct TypeSet
     
     TypeConstraint *constraintList;
 
-#ifdef DEBUG
-    
-    JSArenaPool *pool;
-#endif
-
     TypeSet(JSArenaPool *pool)
         : typeFlags(0), objectSet(NULL), objectCount(0), constraintList(NULL)
     {
@@ -221,14 +224,12 @@ struct TypeSet
     void setPool(JSArenaPool *pool)
     {
 #ifdef DEBUG
+        this->id_ = ++typesetCount;
         this->pool = pool;
-#ifdef JS_TYPES_DEBUG_SPEW
-        this->id = ++typesetCount;
-#endif
 #endif
     }
 
-    void print(JSContext *cx, FILE *out);
+    void print(JSContext *cx);
 
     
     inline bool hasType(jstype type);
@@ -398,8 +399,12 @@ struct Variable
 
 struct VariableSet
 {
-#ifdef JS_TYPES_DEBUG_SPEW
-    jsid name;
+#ifdef DEBUG
+    jsid name_;
+
+    jsid name() const { return name_; }
+#else
+    jsid name() const { return JSID_VOID; }
 #endif
 
     
@@ -431,7 +436,7 @@ struct VariableSet
 
     bool addPropagate(JSContext *cx, VariableSet *target, bool excludePrototype);
 
-    void print(JSContext *cx, FILE *out);
+    void print(JSContext *cx);
 };
 
 
@@ -505,7 +510,7 @@ struct TypeObject
     
     inline TypeSet* indexTypes(JSContext *cx);
 
-    void print(JSContext *cx, FILE *out);
+    void print(JSContext *cx);
 };
 
 
@@ -682,11 +687,6 @@ struct TypeCompartment
     bool interpreting;
 
     
-    static const unsigned GETID_COUNT = 2;
-    char *scratchBuf[GETID_COUNT];
-    unsigned scratchLen[GETID_COUNT];
-
-    
     TypeObject *globalObject;
 
     struct IdHasher
@@ -746,9 +746,6 @@ struct TypeCompartment
     
 
     
-    FILE *out;
-
-    
 
 
 
@@ -795,7 +792,8 @@ struct TypeCompartment
     
     inline void resolvePending(JSContext *cx);
 
-    void print(JSContext *cx, JSCompartment *compartment);
+    
+    void finish(JSContext *cx, JSCompartment *compartment);
 
     
     TypeObject *getTypeObject(JSContext *cx, js::analyze::Script *script,
@@ -805,8 +803,7 @@ struct TypeCompartment
 
 
 
-    void addDynamicType(JSContext *cx, TypeSet *types, jstype type,
-                        const char *format, ...);
+    void addDynamicType(JSContext *cx, TypeSet *types, jstype type);
     void addDynamicPush(JSContext *cx, analyze::Bytecode &code, unsigned index, jstype type);
     void dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval);
 
@@ -819,6 +816,26 @@ struct TypeCompartment
 
     void trace(JSTracer *trc);
 };
+
+enum SpewChannel {
+    ISpewDynamic,  
+    ISpewOps,      
+    ISpewResult,   
+    SPEW_COUNT
+};
+
+#ifdef DEBUG
+
+
+void InferSpew(SpewChannel which, const char *fmt, ...);
+void InferSpewType(SpewChannel which, JSContext *cx, jstype type, const char *fmt, ...);
+
+#else
+
+inline void InferSpew(SpewChannel which, const char *fmt, ...) {}
+inline void InferSpewType(SpewChannel which, JSContext *cx, jstype type, const char *fmt, ...) {}
+
+#endif
 
 } 
 } 

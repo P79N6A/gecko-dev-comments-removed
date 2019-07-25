@@ -2332,9 +2332,6 @@ public:
     inline js::types::TypeObject *
     getFixedTypeObject(js::types::FixedTypeObjectName which);
 
-    inline FILE *typeOut();
-    inline const char *getTypeId(jsid id);
-
     
 
 
