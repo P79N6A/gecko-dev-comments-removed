@@ -4393,8 +4393,8 @@ JSObject::allocSlot(JSContext *cx, uint32 *slotp)
 
 
 
-    if (inDictionaryMode() && lastProp->table) {
-        uint32 &last = lastProp->table->freelist;
+    if (inDictionaryMode() && lastProp->hasTable()) {
+        uint32 &last = lastProp->getTable()->freelist;
         if (last != SHAPE_INVALID_SLOT) {
 #ifdef DEBUG
             JS_ASSERT(last < slot);
@@ -4427,8 +4427,8 @@ JSObject::freeSlot(JSContext *cx, uint32 slot)
     JS_ASSERT(slot < limit);
 
     Value &vref = getSlotRef(slot);
-    if (inDictionaryMode() && lastProp->table) {
-        uint32 &last = lastProp->table->freelist;
+    if (inDictionaryMode() && lastProp->hasTable()) {
+        uint32 &last = lastProp->getTable()->freelist;
 
         
         JS_ASSERT_IF(last != SHAPE_INVALID_SLOT, last < limit && last != slot);
@@ -4481,7 +4481,7 @@ js_UnbrandAndClearSlots(JSContext *cx, JSObject *obj)
 
 
     if (obj->hasPropertyTable())
-        obj->lastProperty()->table->freelist = SHAPE_INVALID_SLOT;
+        obj->lastProperty()->getTable()->freelist = SHAPE_INVALID_SLOT;
 }
 
 
