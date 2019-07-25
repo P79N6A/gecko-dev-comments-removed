@@ -21,8 +21,6 @@ browser.jar:
 *       skin/classic/browser/engineManager.css                       (engineManager.css)
         skin/classic/browser/Geolocation-16.png
         skin/classic/browser/Geolocation-64.png
-        skin/classic/browser/webapps-16.png
-        skin/classic/browser/webapps-64.png
         skin/classic/browser/Info.png                                (Info.png)
         skin/classic/browser/identity.png                            (identity.png)
         skin/classic/browser/keyhole-forward-mask.svg
@@ -59,8 +57,8 @@ browser.jar:
         skin/classic/browser/feeds/subscribe.css                     (feeds/subscribe.css)
         skin/classic/browser/feeds/subscribe-ui.css                  (feeds/subscribe-ui.css)
         skin/classic/browser/newtab/newTab.css                       (newtab/newTab.css)
-        skin/classic/browser/newtab/strip.png                        (newtab/strip.png)
-        skin/classic/browser/newtab/toolbar.png                      (newtab/toolbar.png)
+        skin/classic/browser/newtab/controls.png                     (newtab/controls.png)
+        skin/classic/browser/newtab/noise.png                        (newtab/noise.png)
         skin/classic/browser/places/places.css                       (places/places.css)
 *       skin/classic/browser/places/organizer.css                    (places/organizer.css)
         skin/classic/browser/places/bookmark.png                     (places/bookmark.png)
@@ -193,8 +191,6 @@ browser.jar:
 *       skin/classic/aero/browser/engineManager.css                  (engineManager.css)
         skin/classic/aero/browser/Geolocation-16.png
         skin/classic/aero/browser/Geolocation-64.png
-        skin/classic/aero/browser/webapps-16.png
-        skin/classic/aero/browser/webapps-64.png
         skin/classic/aero/browser/Info.png                           (Info-aero.png)
         skin/classic/aero/browser/identity.png                       (identity-aero.png)
         skin/classic/aero/browser/keyhole-forward-mask.svg
@@ -231,8 +227,8 @@ browser.jar:
         skin/classic/aero/browser/feeds/subscribe.css                (feeds/subscribe.css)
         skin/classic/aero/browser/feeds/subscribe-ui.css             (feeds/subscribe-ui.css)
         skin/classic/aero/browser/newtab/newTab.css                  (newtab/newTab.css)
-        skin/classic/aero/browser/newtab/strip.png                   (newtab/strip.png)
-        skin/classic/aero/browser/newtab/toolbar.png                 (newtab/toolbar.png)
+        skin/classic/aero/browser/newtab/controls.png                (newtab/controls.png)
+        skin/classic/aero/browser/newtab/noise.png                   (newtab/noise.png)
 *       skin/classic/aero/browser/places/places.css                  (places/places-aero.css)
 *       skin/classic/aero/browser/places/organizer.css               (places/organizer-aero.css)
         skin/classic/aero/browser/places/bookmark.png                (places/bookmark.png)
