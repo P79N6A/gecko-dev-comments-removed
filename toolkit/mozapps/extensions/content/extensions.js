@@ -98,16 +98,14 @@ XPCOMUtils.defineLazyGetter(gStrings, "appVersion", function() {
   return Services.appinfo.version;
 });
 
-window.addEventListener("load",  initialize, false);
-window.addEventListener("unload",  shutdown, false);
-window.addEventListener("popstate", function(event) {
-  gViewController.statePopped(event);
-}, false);
+document.addEventListener("load", initialize, true);
+window.addEventListener("unload", shutdown, false);
 
 var gPendingInitializations = 1;
 __defineGetter__("gIsInitializing", function() gPendingInitializations > 0);
 
 function initialize() {
+  document.removeEventListener("load", initialize, true);
   gCategories.initialize();
   gHeader.initialize();
   gViewController.initialize();
@@ -142,6 +140,58 @@ function loadView(aViewId) {
   } else {
     gViewController.loadView(aViewId);
   }
+}
+
+
+
+
+
+
+
+var gHistory = {
+  states: [],
+
+  pushState: function(aState) {
+    try {
+      window.history.pushState(aState, document.title);
+    }
+    catch(e) {
+      while (this.states.length > 1)
+        this.states.shift();
+      this.states.push(aState);
+    }
+  },
+
+  replaceState: function(aState) {
+    try {
+      window.history.replaceState(aState, document.title);
+    }
+    catch (e) {
+      this.states.pop();
+      this.states.push(aState);
+    }
+  },
+
+  popState: function() {
+    
+    if (this.states.length == 0) {
+      window.addEventListener("popstate", function(event) {
+        window.removeEventListener("popstate", arguments.callee, true);
+        
+        
+        
+        window.history.pushState(event.state, document.title);
+      }, true);
+      window.history.back();
+    } else {
+      if (this.states.length < 2)
+        throw new Error("Cannot popState from this view");
+
+      this.states.pop();
+      let state = this.states[this.states.length - 1];
+      gViewController.statePopped({ state: state });
+    }
+  },
 }
 
 var gEventManager = {
@@ -348,6 +398,10 @@ var gViewController = {
       view.initialize();
 
     window.controllers.appendController(this);
+
+    window.addEventListener("popstate",
+                            gViewController.statePopped.bind(gViewController),
+                            false);
   },
 
   shutdown: function() {
@@ -407,7 +461,7 @@ var gViewController = {
     if (aViewId == this.currentViewId)
       return;
 
-    window.history.pushState({
+    gHistory.pushState({
       view: aViewId,
       previousView: this.currentViewId
     }, document.title);
@@ -415,7 +469,7 @@ var gViewController = {
   },
 
   loadInitialView: function(aViewId) {
-    window.history.replaceState({
+    gHistory.replaceState({
       view: aViewId,
       previousView: null
     }, document.title);
@@ -459,20 +513,8 @@ var gViewController = {
 
   
   popState: function(aCallback) {
-    this.viewChangeCallback = function() {
-      
-      
-      
-      window.history.pushState({
-        view: gViewController.currentViewId,
-        previousView: gViewController.currentViewId
-      }, document.title);
-      this.updateCommands();
-
-      if (aCallback)
-        aCallback();
-    };
-    window.history.back();
+    this.viewChangeCallback = aCallback;
+    gHistory.popState();
   },
 
   notifyViewChanged: function() {
