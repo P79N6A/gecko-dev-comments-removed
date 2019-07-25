@@ -2944,17 +2944,14 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         }
 
         if (aEvent->message == NS_MOUSE_PIXEL_SCROLL) {
-          if (action == MOUSE_SCROLL_N_LINES ||
-              (msEvent->scrollFlags & nsMouseScrollEvent::kIsMomentum)) {
+          if (action == MOUSE_SCROLL_N_LINES) {
              action = MOUSE_SCROLL_PIXELS;
           } else {
             
             action = -1;
           }
         } else if (msEvent->scrollFlags & nsMouseScrollEvent::kHasPixels) {
-          if (action == MOUSE_SCROLL_N_LINES ||
-              (msEvent->scrollFlags & nsMouseScrollEvent::kIsMomentum)) {
-            
+          if (action == MOUSE_SCROLL_N_LINES) {
             
             action = -1;
           }

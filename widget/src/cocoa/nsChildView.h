@@ -110,12 +110,6 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
   - (CGFloat)deviceDeltaY;
 @end
 
-
-
-@interface NSEvent (ScrollPhase)
-- (long long)_scrollPhase;
-@end
-
 @interface ChildView : NSView<
 #ifdef ACCESSIBILITY
                               mozAccessible,
