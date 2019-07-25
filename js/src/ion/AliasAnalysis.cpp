@@ -193,7 +193,7 @@ AliasAnalysis::analyze()
                     
                     MControlInstruction *controlIns = loop_->loopHeader()->lastIns();
                     IonSpew(IonSpew_Alias, "Load %d depends on %d (due to stores in loop body)",
-                            ins->id(), controlIns);
+                            ins->id(), controlIns->id());
                     ins->setDependency(controlIns);
                 }
             }

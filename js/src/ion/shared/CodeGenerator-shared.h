@@ -86,17 +86,6 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     js::Vector<IonCache, 0, SystemAllocPolicy> cacheList_;
 
-    static inline int32 ToInt32(const LAllocation *a) {
-        if (a->isConstantValue()) {
-            return a->toConstant()->toInt32();
-        }
-        if (a->isConstantIndex()) {
-            return a->toConstantIndex()->index();
-        }
-        JS_NOT_REACHED("this is not a constant!");
-        return -1;
-    }
-
   protected:
     
     

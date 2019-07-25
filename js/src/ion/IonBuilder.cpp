@@ -3200,31 +3200,45 @@ IonBuilder::jsop_setelem_dense()
     current->add(elements);
 
     
-
-    MInitializedLength *initLength = MInitializedLength::New(elements);
-    current->add(initLength);
-
-    MBoundsCheck *check = MBoundsCheck::New(id, initLength);
-    current->add(check);
-
     
-    MStoreElement *store = MStoreElement::New(elements, id, value);
-    current->add(store);
-    current->push(value);
+    
+    MStoreElementCommon *store;
+    if (oracle->setElementHasWrittenHoles(script, pc)) {
+        MStoreElementHole *ins = MStoreElementHole::New(obj, elements, id, value);
+        store = ins;
+
+        current->add(ins);
+        current->push(value);
+
+        if (!resumeAfter(ins))
+            return false;
+    } else {
+        MInitializedLength *initLength = MInitializedLength::New(elements);
+        current->add(initLength);
+
+        MBoundsCheck *check = MBoundsCheck::New(id, initLength);
+        current->add(check);
+
+        MStoreElement *ins = MStoreElement::New(elements, id, value);
+        store = ins;
+
+        current->add(ins);
+        current->push(value);
+
+        if (!resumeAfter(ins))
+            return false;
+    }
 
 #ifdef JSGC_INCREMENTAL
     
-    if (cx->compartment->needsBarrier() &&
-        oracle->propertyWriteNeedsBarrier(script, pc, JSID_VOID))
-    {
+    if (cx->compartment->needsBarrier() && oracle->propertyWriteNeedsBarrier(script, pc, JSID_VOID))
         store->setNeedsBarrier(true);
-    }
 #endif
 
     if (elementType != MIRType_None && packed)
         store->setElementType(elementType);
 
-    return resumeAfter(store);
+    return true;
 }
 
 bool
