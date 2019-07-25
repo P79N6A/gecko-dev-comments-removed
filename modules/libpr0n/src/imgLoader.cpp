@@ -39,8 +39,16 @@
 
 
 #include "imgLoader.h"
+#include "imgRequestProxy.h"
+
 #include "imgContainer.h"
 
+
+
+
+
+
+#undef LoadImage
 
 #include "nsCOMPtr.h"
 
@@ -61,9 +69,6 @@
 #include "nsCRT.h"
 
 #include "netCore.h"
-
-#include "imgRequest.h"
-#include "imgRequestProxy.h"
 
 #include "nsURILoader.h"
 #include "ImageLogging.h"

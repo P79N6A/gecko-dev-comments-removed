@@ -41,7 +41,6 @@
 #ifndef imgRequest_h__
 #define imgRequest_h__
 
-#include "imgContainer.h"
 #include "imgIDecoder.h"
 #include "imgIDecoderObserver.h"
 
@@ -61,7 +60,6 @@
 #include "nsWeakReference.h"
 #include "ImageErrors.h"
 #include "imgIRequest.h"
-#include "imgContainer.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 
 class imgCacheValidator;
@@ -70,6 +68,12 @@ class imgRequestProxy;
 class imgCacheEntry;
 class imgMemoryReporter;
 class imgRequestNotifyRunnable;
+
+namespace mozilla {
+namespace imagelib {
+class Image;
+} 
+} 
 
 class imgRequest : public imgIDecoderObserver,
                    public nsIStreamListener,
@@ -103,10 +107,7 @@ public:
   
   
   
-  PRBool IsReusable(void *aCacheId) {
-    return (mImage && mImage->GetStatusTracker().IsLoading()) ||
-           (aCacheId == mCacheId);
-  }
+  PRBool IsReusable(void *aCacheId);
 
   
   
@@ -195,7 +196,7 @@ private:
   
   nsCOMPtr<nsIURI> mKeyURI;
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  nsRefPtr<imgContainer> mImage;
+  nsRefPtr<mozilla::imagelib::Image> mImage;
   nsCOMPtr<nsIProperties> mProperties;
   nsCOMPtr<nsISupports> mSecurityInfo;
   nsCOMPtr<nsIChannel> mChannel;

@@ -44,7 +44,6 @@
 #include "imgIDecoderObserver.h"
 #include "nsISecurityInfoProvider.h"
 
-#include "imgIContainer.h"
 #include "imgIDecoder.h"
 #include "nsIRequestObserver.h"
 #include "nsIChannel.h"
@@ -67,6 +66,12 @@
 class imgRequestNotifyRunnable;
 class imgStatusNotifyRunnable;
 
+namespace mozilla {
+namespace imagelib {
+class Image;
+} 
+} 
+
 class imgRequestProxy : public imgIRequest, public nsISupportsPriority, public nsISecurityInfoProvider
 {
 public:
@@ -81,7 +86,8 @@ public:
 
   
   
-  nsresult Init(imgRequest *request, nsILoadGroup *aLoadGroup, imgContainer* aImage,
+  nsresult Init(imgRequest *request, nsILoadGroup *aLoadGroup,
+                mozilla::imagelib::Image* aImage,
                 nsIURI* aURI, imgIDecoderObserver *aObserver);
 
   nsresult ChangeOwner(imgRequest *aNewOwner); 
@@ -191,7 +197,7 @@ private:
 
   
   
-  nsRefPtr<imgContainer> mImage;
+  nsRefPtr<mozilla::imagelib::Image> mImage;
 
   
   
