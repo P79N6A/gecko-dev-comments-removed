@@ -117,7 +117,7 @@ body {
   
 
 
-  width: -moz-calc(100% - 16px - 6px - 6px);
+  width: calc(100% - 16px - 6px - 6px);
 }
 
 input.name {

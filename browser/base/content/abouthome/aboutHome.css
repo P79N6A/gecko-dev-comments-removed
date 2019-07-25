@@ -171,7 +171,7 @@ body[dir=rtl] #defaultSnippet2 {
 
 
 
-  min-height: -moz-calc(15/12 * 3em);
+  min-height: calc(15/12 * 3em);
 }
 
 #launcher {
