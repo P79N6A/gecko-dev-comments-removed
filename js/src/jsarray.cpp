@@ -1205,12 +1205,6 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
     clearSlotRange(next, capacity - next);
 
-    
-
-
-
-
-
     return true;
 }
 

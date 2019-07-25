@@ -11049,6 +11049,10 @@ RecordingStatus
 TraceRecorder::getClassPrototype(JSObject* ctor, LIns*& proto_ins)
 {
     
+
+
+
+
 #ifdef DEBUG
     Class *clasp = ctor->getFunctionPrivate()->getConstructorClass();
     JS_ASSERT(clasp);
@@ -11061,7 +11065,9 @@ TraceRecorder::getClassPrototype(JSObject* ctor, LIns*& proto_ins)
         RETURN_ERROR("error getting prototype from constructor");
 
     
-    
+
+
+
     JS_ASSERT(localtm.recorder);
 
 #ifdef DEBUG
@@ -11074,7 +11080,9 @@ TraceRecorder::getClassPrototype(JSObject* ctor, LIns*& proto_ins)
 #endif
 
     
-    
+
+
+
     JS_ASSERT(!pval.isPrimitive());
     JSObject *proto = &pval.toObject();
     JS_ASSERT(!proto->isDenseArray());
