@@ -75,7 +75,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
         
         LayerController controller = view.getController();
-        mBackgroundLayer = new SingleTileLayer();
+        mBackgroundLayer = new SingleTileLayer(true);
         mBackgroundLayer.paintImage(new BufferedCairoImage(controller.getBackgroundPattern()));
         mCheckerboardLayer = new SingleTileLayer(true);
         mCheckerboardLayer.paintImage(new BufferedCairoImage(controller.getCheckerboardPattern()));
