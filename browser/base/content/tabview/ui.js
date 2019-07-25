@@ -85,6 +85,10 @@ let UI = {
 
   
   
+  _cleanupFunctions: [],
+
+  
+  
   
   init: function UI_init() {
     try {
@@ -233,6 +237,14 @@ let UI = {
   },
 
   uninit: function UI_uninit() {
+    
+    this._cleanupFunctions.forEach(function(func) {
+      func();
+    });
+
+    this._cleanupFunctions = [];
+
+    
     TabItems.uninit();
     GroupItems.uninit();
     Storage.uninit();
@@ -459,6 +471,28 @@ let UI = {
 
     for (let name in this._eventListeners)
       AllTabs.register(name, this._eventListeners[name]);
+
+    
+    function handleTabPin(event) {
+      TabItems.handleTabPin(event.originalTarget);
+      GroupItems.handleTabPin(event.originalTarget);
+    }
+
+    gBrowser.tabContainer.addEventListener("TabPinned", handleTabPin, false);
+    this._cleanupFunctions.push(function() {
+      gBrowser.tabContainer.removeEventListener("TabPinned", handleTabPin, false);
+    });
+
+    
+    function handleTabUnpin(event) {
+      TabItems.handleTabUnpin(event.originalTarget);
+      GroupItems.handleTabUnpin(event.originalTarget);
+    }
+
+    gBrowser.tabContainer.addEventListener("TabUnpinned", handleTabUnpin, false);
+    this._cleanupFunctions.push(function() {
+      gBrowser.tabContainer.removeEventListener("TabUnpinned", handleTabUnpin, false);
+    });
   },
 
   
@@ -582,7 +616,7 @@ let UI = {
 
       function getClosestTabBy(norm) {
         var centers =
-          [[item.bounds.center(), item] 
+          [[item.bounds.center(), item]
              for each(item in TabItems.getItems()) if (!item.parent || !item.parent.hidden)];
         var myCenter = self.getActiveTab().bounds.center();
         var matches = centers

@@ -831,8 +831,8 @@ let TabItems = {
   unlink: function TabItems_unlink(tab) {
     try {
       Utils.assertThrow(tab, "tab");
-      Utils.assertThrow(!tab.pinned, "shouldn't be an app tab");
       Utils.assertThrow(tab.tabItem, "should already be linked");
+      
 
       this.unregister(tab.tabItem);
       tab.tabItem._sendToSubscribers("close");
@@ -849,6 +849,19 @@ let TabItems = {
     } catch(e) {
       Utils.log(e);
     }
+  },
+
+  
+  
+  handleTabPin: function TabItems_handleTabPin(xulTab) {
+    this.unlink(xulTab);
+  },
+
+  
+  
+  handleTabUnpin: function TabItems_handleTabUnpin(xulTab) {
+    this.link(xulTab);
+    this.update(xulTab);
   },
 
   

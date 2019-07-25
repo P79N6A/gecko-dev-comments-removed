@@ -882,6 +882,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   addAppTab: function GroupItem_addAppTab(xulTab) {
     let self = this;
 
+    
     let icon = xulTab.image || Utils.defaultFaviconURL;
     let $appTab = iQ("<img>")
       .addClass("appTabIcon")
@@ -897,9 +898,29 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         UI.goToTab(iQ(this).data("xulTab"));
       });
 
+    
     let columnWidth = $appTab.width();
     if (parseInt(this.$appTabTray.css("width")) != columnWidth) {
       this.$appTabTray.css({width: columnWidth});
+      this.arrange();
+    }
+  },
+
+  
+  
+  removeAppTab: function GroupItem_removeAppTab(xulTab) {
+    
+    iQ(".appTabIcon", this.$appTabTray).each(function(icon) {
+      let $icon = iQ(icon);
+      if ($icon.data("xulTab") != xulTab)
+        return;
+        
+      $icon.remove();
+    });
+    
+    
+    if (!iQ(".appTabIcon", this.$appTabTray).length) {
+      this.$appTabTray.css({width: 0});
       this.arrange();
     }
   },
@@ -1502,12 +1523,14 @@ let GroupItems = {
   
   
   uninit : function GroupItems_uninit () {
+    
     this._cleanupFunctions.forEach(function(func) {
       func();
     });
 
     this._cleanupFunctions = [];
 
+    
     this.groupItems = null;
   },
 
@@ -1527,6 +1550,22 @@ let GroupItems = {
         if (iconUrl != $icon.attr("src"))
           $icon.attr("src", iconUrl);
       });
+    });
+  },
+
+  
+  
+  handleTabPin: function GroupItems_handleTabPin(xulTab) {
+    this.groupItems.forEach(function(groupItem) {
+      groupItem.addAppTab(xulTab);
+    });
+  },
+
+  
+  
+  handleTabUnpin: function GroupItems_handleTabUnpin(xulTab) {
+    this.groupItems.forEach(function(groupItem) {
+      groupItem.removeAppTab(xulTab);
     });
   },
 
