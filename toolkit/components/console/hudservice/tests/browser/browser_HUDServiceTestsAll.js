@@ -225,6 +225,15 @@ function testConsoleLoggingAPI(aMethod)
   setStringFilter("");
 
   
+  setStringFilter("FOO");
+  browser.contentWindow.wrappedJSObject.console[aMethod]("foo-bar-baz");
+  browser.contentWindow.wrappedJSObject.console[aMethod]("bar-baz");
+  count = outputNode.querySelectorAll(".hud-filtered-by-string").length;
+  is(count, 1, "1 hidden " + aMethod + " node found");
+  HUDService.clearDisplay(hudId);
+  setStringFilter("");
+
+  
   HUDService.clearDisplay(hudId);
   HUDService.setFilterState(hudId, aMethod, true);
   browser.contentWindow.wrappedJSObject.console[aMethod]("foo", "bar");
