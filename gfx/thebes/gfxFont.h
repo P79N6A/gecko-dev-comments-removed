@@ -48,7 +48,6 @@
 #include "gfxFontUtils.h"
 #include "nsTArray.h"
 #include "nsTHashtable.h"
-#include "nsClassHashtable.h"
 #include "nsHashKeys.h"
 #include "gfxSkipChars.h"
 #include "gfxRect.h"
@@ -356,6 +355,8 @@ protected:
 
     gfxFontFamily *mFamily;
 
+private:
+
     
 
 
@@ -378,40 +379,76 @@ protected:
 
 
 
-    class FontTableCacheEntry {
+
+
+    class FontTableBlobData;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    class FontTableHashEntry : public nsUint32HashKey
+    {
     public:
         
-        FontTableCacheEntry(nsTArray<PRUint8>& aBuffer,
-                            PRUint32 aTag,
-            nsClassHashtable<nsUint32HashKey,FontTableCacheEntry>& aCache);
 
-        ~FontTableCacheEntry() {
-            MOZ_COUNT_DTOR(FontTableCacheEntry);
+        typedef nsUint32HashKey KeyClass;
+        typedef KeyClass::KeyType KeyType;
+        typedef KeyClass::KeyTypePointer KeyTypePointer;
+
+        FontTableHashEntry(KeyTypePointer aTag)
+            : KeyClass(aTag), mBlob() { };
+        
+        FontTableHashEntry(FontTableHashEntry& toCopy)
+            : KeyClass(toCopy), mBlob(toCopy.mBlob)
+        {
+            toCopy.mBlob = nsnull;
         }
 
-        hb_blob_t *GetBlob() const { return mBlob; }
+        ~FontTableHashEntry() { Clear(); }
 
-    protected:
         
-        nsTArray<PRUint8>  mData;
-        
-        hb_blob_t         *mBlob;
+
         
         
-        PRUint32           mTag;
-        nsClassHashtable<nsUint32HashKey,FontTableCacheEntry>&
-                           mCache;
+        
+        
+        hb_blob_t *
+        ShareTableAndGetBlob(nsTArray<PRUint8>& aTable,
+                             nsTHashtable<FontTableHashEntry> *aHashtable);
+
+        
+        
+        void SaveTable(nsTArray<PRUint8>& aTable);
+
+        
+        
+        hb_blob_t *GetBlob() const;
+
+        void Clear();
 
     private:
+        static void DeleteFontTableBlobData(void *aBlobData);
         
-        FontTableCacheEntry(const FontTableCacheEntry&);
+        FontTableHashEntry& operator=(FontTableHashEntry& toCopy);
 
-        static void Destroy(void *aUserData);
+        FontTableBlobData *mSharedBlobData;
+        hb_blob_t *mBlob;
     };
 
-    nsClassHashtable<nsUint32HashKey,FontTableCacheEntry> mFontTableCache;
+    nsTHashtable<FontTableHashEntry> mFontTableCache;
 
-private:
     gfxFontEntry(const gfxFontEntry&);
     gfxFontEntry& operator=(const gfxFontEntry&);
 };

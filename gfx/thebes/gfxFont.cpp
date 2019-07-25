@@ -189,26 +189,132 @@ gfxFontEntry::FindOrMakeFont(const gfxFontStyle *aStyle, PRBool aNeedsBold)
     return f;
 }
 
-gfxFontEntry::FontTableCacheEntry::FontTableCacheEntry
-        (nsTArray<PRUint8>& aBuffer,
-         PRUint32 aTag,
-         nsClassHashtable<nsUint32HashKey,FontTableCacheEntry>& aCache)
-    : mTag(aTag), mCache(aCache)
+
+
+
+
+
+
+class gfxFontEntry::FontTableBlobData {
+public:
+    
+    
+    
+    FontTableBlobData(nsTArray<PRUint8>& aBuffer,
+                      FontTableHashEntry *aHashEntry)
+        : mHashEntry(aHashEntry), mHashtable()
+    {
+        MOZ_COUNT_CTOR(FontTableBlobData);
+        mTableData.SwapElements(aBuffer);
+    }
+
+    ~FontTableBlobData() {
+        MOZ_COUNT_DTOR(FontTableBlobData);
+        if (mHashEntry) {
+            if (mHashtable) {
+                mHashtable->RemoveEntry(mHashEntry->GetKey());
+            } else {
+                mHashEntry->Clear();
+            }
+        }
+    }
+
+    
+    const char *GetTable() const
+    {
+        return reinterpret_cast<const char*>(mTableData.Elements());
+    }
+    PRUint32 GetTableLength() const { return mTableData.Length(); }
+
+    
+    
+    void ManageHashEntry(nsTHashtable<FontTableHashEntry> *aHashtable)
+    {
+        mHashtable = aHashtable;
+    }
+
+    
+    
+    void ForgetHashEntry()
+    {
+        mHashEntry = nsnull;
+    }
+
+private:
+    
+    nsTArray<PRUint8> mTableData;
+    
+    FontTableHashEntry *mHashEntry;
+    
+    nsTHashtable<FontTableHashEntry> *mHashtable;
+
+    
+    FontTableBlobData(const FontTableBlobData&);
+};
+
+void
+gfxFontEntry::FontTableHashEntry::SaveTable(nsTArray<PRUint8>& aTable)
 {
-    MOZ_COUNT_CTOR(FontTableCacheEntry);
-    mData.SwapElements(aBuffer);
-    mBlob = hb_blob_create((const char*)mData.Elements(), mData.Length(),
+    Clear();
+    
+    FontTableBlobData *data = new FontTableBlobData(aTable, nsnull);
+    mBlob = hb_blob_create(data->GetTable(), data->GetTableLength(),
                            HB_MEMORY_MODE_READONLY,
-                           gfxFontEntry::FontTableCacheEntry::Destroy,
-                           this);
+                           DeleteFontTableBlobData, data);    
 }
 
- void
-gfxFontEntry::FontTableCacheEntry::Destroy(void *aUserData)
+hb_blob_t *
+gfxFontEntry::FontTableHashEntry::
+ShareTableAndGetBlob(nsTArray<PRUint8>& aTable,
+                     nsTHashtable<FontTableHashEntry> *aHashtable)
 {
-    gfxFontEntry::FontTableCacheEntry *ftce =
-        static_cast<gfxFontEntry::FontTableCacheEntry*>(aUserData);
-    ftce->mCache.Remove(ftce->mTag);
+    Clear();
+    
+    mSharedBlobData = new FontTableBlobData(aTable, this);
+    mBlob = hb_blob_create(mSharedBlobData->GetTable(),
+                           mSharedBlobData->GetTableLength(),
+                           HB_MEMORY_MODE_READONLY,
+                           DeleteFontTableBlobData, mSharedBlobData);
+    if (!mSharedBlobData) {
+        
+        
+        
+        return hb_blob_reference(mBlob);
+    }
+
+    
+    
+    mSharedBlobData->ManageHashEntry(aHashtable);
+    return mBlob;
+}
+
+void
+gfxFontEntry::FontTableHashEntry::Clear()
+{
+    
+    
+    
+    if (mSharedBlobData) {
+        mSharedBlobData->ForgetHashEntry();
+        mSharedBlobData = nsnull;
+    } else if (mBlob) {
+        hb_blob_destroy(mBlob);
+    }
+    mBlob = nsnull;
+}
+
+
+
+ void
+gfxFontEntry::FontTableHashEntry::DeleteFontTableBlobData(void *aBlobData)
+{
+    delete static_cast<FontTableBlobData*>(aBlobData);
+}
+
+hb_blob_t *
+gfxFontEntry::FontTableHashEntry::GetBlob() const
+{
+    return hb_blob_reference(mBlob);
 }
 
 hb_blob_t *
@@ -220,26 +326,22 @@ gfxFontEntry::GetFontTable(PRUint32 aTag)
         mFontTableCache.Init(10);
     }
 
-    FontTableCacheEntry *entry = nsnull;
-    if (!mFontTableCache.Get(aTag, &entry)) {
-        nsTArray<PRUint8> buffer;
-        if (NS_SUCCEEDED(GetFontTable(aTag, buffer))) {
-            entry = new FontTableCacheEntry(buffer, 
-                                            aTag, mFontTableCache);
-            if (mFontTableCache.Put(aTag, entry)) {
-                return entry->GetBlob();
-            }
-            hb_blob_destroy(entry->GetBlob());
-            delete entry; 
-            return nsnull;
-        }
-    }
-
+    FontTableHashEntry *entry = mFontTableCache.GetEntry(aTag);
     if (entry) {
-        return hb_blob_reference(entry->GetBlob());
+        return entry->GetBlob();
     }
 
-    return nsnull;
+    entry = mFontTableCache.PutEntry(aTag);
+    if (NS_UNLIKELY(!entry)) { 
+        return nsnull;
+    }
+
+    nsTArray<PRUint8> buffer;
+    if (NS_FAILED(GetFontTable(aTag, buffer))) {
+        return nsnull; 
+    }
+
+    return entry->ShareTableAndGetBlob(buffer, &mFontTableCache);
 }
 
 void
@@ -252,19 +354,13 @@ gfxFontEntry::PreloadFontTable(PRUint32 aTag, nsTArray<PRUint8>& aTable)
         mFontTableCache.Init(3);
     }
 
-    FontTableCacheEntry *entry = nsnull;
-    if (mFontTableCache.Get(aTag, &entry)) {
-        
-        
-        NS_NOTREACHED("can't preload table, already present in cache!");
+    FontTableHashEntry *entry = mFontTableCache.PutEntry(aTag);
+    if (NS_UNLIKELY(!entry)) { 
         return;
     }
 
     
-    entry = new FontTableCacheEntry(aTable, aTag, mFontTableCache);
-    if (!mFontTableCache.Put(aTag, entry)) {
-        NS_WARNING("failed to cache font table!");
-    }
+    entry->SaveTable(aTable);
 }
 
 
