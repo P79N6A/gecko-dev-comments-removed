@@ -236,6 +236,11 @@ public:
   
 
 
+  static bool IsTabDocument(nsIDocument* aDocumentNode);
+
+  
+
+
   static PRBool IsErrorPage(nsIDocument *aDocument);
 
   

@@ -480,6 +480,26 @@ nsCoreUtils::IsContentDocument(nsIDocument *aDocument)
   return (contentType == nsIDocShellTreeItem::typeContent);
 }
 
+bool
+nsCoreUtils::IsTabDocument(nsIDocument* aDocumentNode)
+{
+  nsCOMPtr<nsISupports> container = aDocumentNode->GetContainer();
+  nsCOMPtr<nsIDocShellTreeItem> treeItem(do_QueryInterface(container));
+
+  nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
+  treeItem->GetParent(getter_AddRefs(parentTreeItem));
+
+  
+  if (XRE_GetProcessType() == GeckoProcessType_Content)
+    return !parentTreeItem;
+
+  
+  nsCOMPtr<nsIDocShellTreeItem> rootTreeItem;
+  treeItem->GetRootTreeItem(getter_AddRefs(rootTreeItem));
+
+  return parentTreeItem == rootTreeItem;
+}
+
 PRBool
 nsCoreUtils::IsErrorPage(nsIDocument *aDocument)
 {

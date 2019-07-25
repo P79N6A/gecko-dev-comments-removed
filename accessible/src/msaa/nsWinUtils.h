@@ -104,11 +104,6 @@ public:
 
 
   static bool IsWindowEmulationFor(LPCWSTR kModuleHandle);
-
-  
-
-
-  static bool IsTabDocument(nsIDocument* aDocumentNode);
 };
 
 #endif
