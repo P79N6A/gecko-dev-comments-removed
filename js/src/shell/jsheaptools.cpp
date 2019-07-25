@@ -78,6 +78,15 @@ using namespace js;
 
 
 
+
+
+
+
+
+
+
+
+
 class HeapReverser : public JSTracer {
   public:
     struct Edge;
@@ -161,9 +170,8 @@ class HeapReverser : public JSTracer {
     Map map;
 
     
-    HeapReverser(JSContext *cx) : map(cx), work(cx), parent(NULL) {
-        context = cx;
-        callback = traverseEdgeWithThis;
+    HeapReverser(JSContext *cx) : map(cx), roots(cx), rooter(cx, 0, NULL), work(cx), parent(NULL) {
+        JS_TRACER_INIT(this, cx, traverseEdgeWithThis);
     }
 
     bool init() { return map.init(); }
@@ -172,6 +180,22 @@ class HeapReverser : public JSTracer {
     bool reverseHeap();
 
   private:    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    Vector<jsval> roots;
+    AutoArrayRooter rooter;
+
     
 
 
@@ -229,10 +253,27 @@ class HeapReverser : public JSTracer {
         HeapReverser *reverser = static_cast<HeapReverser *>(tracer);
         reverser->traversalStatus = reverser->traverseEdge(cell, kind);
     }
+
+    
+    jsval nodeToValue(void *cell, int kind) {
+        if (kind == JSTRACE_OBJECT) {
+            JSObject *object = static_cast<JSObject *>(cell);
+            return OBJECT_TO_JSVAL(object);
+        } else {
+            return JSVAL_VOID;
+        }
+    }
 };
 
 bool
 HeapReverser::traverseEdge(void *cell, JSGCTraceKind kind) {
+    
+    if (!parent) {
+        if (!roots.append(nodeToValue(cell, kind)))
+            return false;
+        rooter.changeArray(roots.begin(), roots.length());
+    }
+
     
     char *edgeDescription = getEdgeDescription();
     if (!edgeDescription)

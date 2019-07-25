@@ -207,4 +207,24 @@ JSScript::clearNesting()
     }
 }
 
+inline void
+JSScript::writeBarrierPre(JSScript *script)
+{
+#ifdef JSGC_INCREMENTAL
+    if (!script)
+        return;
+
+    JSCompartment *comp = script->compartment();
+    if (comp->needsBarrier()) {
+        JS_ASSERT(!comp->rt->gcRunning);
+        MarkScriptUnbarriered(comp->barrierTracer(), script, "write barrier");
+    }
+#endif
+}
+
+inline void
+JSScript::writeBarrierPost(JSScript *script, void *addr)
+{
+}
+
 #endif 

@@ -50,6 +50,8 @@
 #include "jsstr.h"
 #include "jsopcode.h"
 
+#include "gc/Barrier.h"
+
 
 
 
@@ -107,7 +109,7 @@ struct JSFunction : public JSObject
 
     uint16          flags;        
     union U {
-        struct {
+        struct Native {
             js::Native  native;   
             js::Class   *clasp;   
 
@@ -170,18 +172,16 @@ struct JSFunction : public JSObject
 
     inline void setJoinable();
 
-    JSScript *script() const {
+    js::HeapPtrScript &script() const {
         JS_ASSERT(isInterpreted());
-        return u.i.script_;
+        return *(js::HeapPtrScript *)&u.i.script_;
     }
 
-    void setScript(JSScript *script) {
-        JS_ASSERT(isInterpreted());
-        u.i.script_ = script;
-    }
+    inline void setScript(JSScript *script_);
+    inline void initScript(JSScript *script_);
 
     JSScript *maybeScript() const {
-        return isInterpreted() ? script() : NULL;
+        return isInterpreted() ? script().get() : NULL;
     }
 
     JSNative native() const {
@@ -219,6 +219,16 @@ struct JSFunction : public JSObject
 
     inline void trace(JSTracer *trc);
 
+    
+
+    inline bool initBoundFunction(JSContext *cx, const js::Value &thisArg,
+                                  const js::Value *args, uintN argslen);
+
+    inline JSObject *getBoundFunctionTarget() const;
+    inline const js::Value &getBoundFunctionThis() const;
+    inline const js::Value &getBoundFunctionArgument(uintN which) const;
+    inline size_t getBoundFunctionArgumentCount() const;
+
   private:
     inline js::FunctionExtended *toExtended();
     inline const js::FunctionExtended *toExtended() const;
@@ -232,29 +242,37 @@ struct JSFunction : public JSObject
   public:
     
 
-    inline void clearExtended();
+    inline void initializeExtended();
 
-    inline void setNativeReserved(size_t which, const js::Value &val);
-    inline const js::Value &getNativeReserved(size_t which);
+    inline void setExtendedSlot(size_t which, const js::Value &val);
+    inline const js::Value &getExtendedSlot(size_t which) const;
+
+    
+
+
+
+
+    static const uint32 FLAT_CLOSURE_UPVARS_SLOT = 0;
 
     static inline size_t getFlatClosureUpvarsOffset();
 
-    inline js::Value *getFlatClosureUpvars() const;
     inline js::Value getFlatClosureUpvar(uint32 i) const;
-    inline const js::Value &getFlatClosureUpvar(uint32 i);
     inline void setFlatClosureUpvar(uint32 i, const js::Value &v);
-    inline void setFlatClosureUpvars(js::Value *upvars);
+    inline void initFlatClosureUpvar(uint32 i, const js::Value &v);
+
+  private:
+    inline bool hasFlatClosureUpvars() const;
+    inline js::HeapValue *getFlatClosureUpvars() const;
+  public:
 
     
     inline void finalizeUpvars();
 
-    inline bool initBoundFunction(JSContext *cx, const js::Value &thisArg,
-                                  const js::Value *args, uintN argslen);
+    
+    static const uint32 METHOD_PROPERTY_SLOT = 0;
 
-    inline JSObject *getBoundFunctionTarget() const;
-    inline const js::Value &getBoundFunctionThis() const;
-    inline const js::Value &getBoundFunctionArgument(uintN which) const;
-    inline size_t getBoundFunctionArgumentCount() const;
+    
+    static const uint32 METHOD_OBJECT_SLOT = 0;
 
     
     inline bool isClonedMethod() const;
@@ -387,27 +405,8 @@ class FunctionExtended : public JSFunction
 {
     friend struct JSFunction;
 
-    union {
-
-        
-        Value nativeReserved[2];
-
-        
-
-
-
-        Value *flatClosureUpvars;
-
-        
-        struct {
-            
-            JSAtom *property;
-
-            
-            JSObject *obj;
-        } methodFunction;
-
-    } extu;
+    
+    HeapValue extendedSlots[2];
 };
 
 } 
@@ -427,19 +426,13 @@ JSFunction::toExtended() const
 }
 
 inline void
-JSFunction::clearExtended()
+JSFunction::initializeExtended()
 {
     JS_ASSERT(isExtended());
 
-    if (isNative()) {
-        
-        JS_STATIC_ASSERT(JS_ARRAY_LENGTH(toExtended()->extu.nativeReserved) == 2);
-        toExtended()->extu.nativeReserved[0].setUndefined();
-        toExtended()->extu.nativeReserved[1].setUndefined();
-    } else {
-        memset((char *)&this[1], 0,
-               sizeof(js::FunctionExtended) - sizeof(JSFunction));
-    }
+    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(toExtended()->extendedSlots) == 2);
+    toExtended()->extendedSlots[0].init(js::UndefinedValue());
+    toExtended()->extendedSlots[1].init(js::UndefinedValue());
 }
 
 extern JSBool

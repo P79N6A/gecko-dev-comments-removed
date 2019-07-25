@@ -246,9 +246,13 @@ ArrayBuffer::~ArrayBuffer()
 void
 ArrayBuffer::obj_trace(JSTracer *trc, JSObject *obj)
 {
+    
+
+
+
     JSObject *delegate = static_cast<JSObject*>(obj->getPrivate());
     if (delegate)
-        MarkObject(trc, *delegate, "arraybuffer.delegate");
+        MarkObjectUnbarriered(trc, delegate, "arraybuffer.delegate");
 }
 
 static JSProperty * const PROPERTY_FOUND = reinterpret_cast<JSProperty *>(1);
@@ -1009,9 +1013,7 @@ class TypedArrayTemplate
     static void
     obj_trace(JSTracer *trc, JSObject *obj)
     {
-        JSObject *buffer = static_cast<JSObject*>(getBuffer(obj));
-        if (buffer)
-            MarkObject(trc, *buffer, "typedarray.buffer");
+        MarkValue(trc, obj->getFixedSlotRef(FIELD_BUFFER), "typedarray.buffer");
     }
 
     static JSBool

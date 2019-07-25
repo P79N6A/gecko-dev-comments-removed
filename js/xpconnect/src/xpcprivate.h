@@ -1663,12 +1663,12 @@ private:
     
     
     
-    JSObject*                        mGlobalJSObject;
+    JS::HeapPtrObject                mGlobalJSObject;
 
     
-    JSObject*                        mPrototypeJSObject;
+    JS::HeapPtrObject                mPrototypeJSObject;
     
-    JSObject*                        mPrototypeJSFunction;
+    JS::HeapPtrObject                mPrototypeJSFunction;
     
     JSObject*                        mPrototypeNoHelper;
 
@@ -2366,7 +2366,7 @@ private:
     }
 
     XPCWrappedNativeScope*   mScope;
-    JSObject*                mJSProtoObject;
+    JS::HeapPtrObject        mJSProtoObject;
     nsCOMPtr<nsIClassInfo>   mClassInfo;
     PRUint32                 mClassInfoFlags;
     XPCNativeSet*            mSet;
@@ -2525,10 +2525,7 @@ public:
          (XPCWrappedNativeProto*)
          (XPC_SCOPE_WORD(mMaybeProto) & ~XPC_SCOPE_MASK) : nsnull;}
 
-    void
-    SetProto(XPCWrappedNativeProto* p)
-        {NS_ASSERTION(!IsWrapperExpired(), "bad ptr!");
-         mMaybeProto = p;}
+    void SetProto(XPCWrappedNativeProto* p);
 
     XPCWrappedNativeScope*
     GetScope() const
@@ -2762,7 +2759,8 @@ public:
     }
     void SetWrapper(JSObject *obj)
     {
-        mWrapperWord = PRWord(obj) | (mWrapperWord & FLAG_MASK);
+        PRWord newval = PRWord(obj) | (mWrapperWord & FLAG_MASK);
+        JS_ModifyReference((void **)&mWrapperWord, (void *)newval);
     }
 
     void NoteTearoffs(nsCycleCollectionTraversalCallback& cb);
@@ -2796,6 +2794,8 @@ protected:
 
     virtual ~XPCWrappedNative();
     void Destroy();
+
+    void UpdateScriptableInfo(XPCNativeScriptableInfo *si);
 
 private:
     enum {

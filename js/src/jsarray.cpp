@@ -649,11 +649,11 @@ array_length_setter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value 
 
 
         jsuint oldcap = obj->getDenseArrayCapacity();
-        if (oldcap > newlen)
-            obj->shrinkElements(cx, newlen);
         jsuint oldinit = obj->getDenseArrayInitializedLength();
         if (oldinit > newlen)
             obj->setDenseArrayInitializedLength(newlen);
+        if (oldcap > newlen)
+            obj->shrinkElements(cx, newlen);
     } else if (oldlen - newlen < (1 << 24)) {
         do {
             --oldlen;
@@ -1379,11 +1379,11 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     setLastPropertyInfallible(shape);
 
     
-    Value *elems = elements;
+    HeapValue *elems = elements;
     elements = emptyObjectElements;
 
     
-    AutoValueArray autoArray(cx, elems, arrayInitialized);
+    AutoValueArray autoArray(cx, (Value *) elems, arrayInitialized);
 
     
 
@@ -2506,7 +2506,7 @@ NewbornArrayPushImpl(JSContext *cx, JSObject *obj, const Value &v)
 
     obj->setDenseArrayInitializedLength(length + 1);
     obj->setDenseArrayLength(length + 1);
-    obj->setDenseArrayElementWithType(cx, length, v);
+    obj->initDenseArrayElementWithType(cx, length, v);
     return true;
 }
 
@@ -2900,14 +2900,14 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
             obj->moveDenseArrayElements(targetIndex, sourceIndex, len - sourceIndex);
 
             
-            obj->shrinkElements(cx, finalLength);
-
-            
 
 
 
             if (cx->typeInferenceEnabled())
                 obj->setDenseArrayInitializedLength(finalLength);
+
+            
+            obj->shrinkElements(cx, finalLength);
 
             
             if (!js_SuppressDeletedElements(cx, obj, finalLength, len))
@@ -3025,10 +3025,12 @@ mjit::stubs::ArrayConcatTwoArrays(VMFrame &f)
     if (!result->ensureElements(f.cx, len))
         THROW();
 
-    result->copyDenseArrayElements(0, obj1->getDenseArrayElements(), initlen1);
-    result->copyDenseArrayElements(initlen1, obj2->getDenseArrayElements(), initlen2);
-
+    JS_ASSERT(!result->getDenseArrayInitializedLength());
     result->setDenseArrayInitializedLength(len);
+
+    result->initDenseArrayElements(0, obj1->getDenseArrayElements(), initlen1);
+    result->initDenseArrayElements(initlen1, obj2->getDenseArrayElements(), initlen2);
+
     result->setDenseArrayLength(len);
 }
 #endif 
@@ -3962,7 +3964,7 @@ NewDenseCopiedArray(JSContext *cx, uint32 length, const Value *vp, JSObject *pro
     obj->setDenseArrayInitializedLength(vp ? length : 0);
 
     if (vp)
-        obj->copyDenseArrayElements(0, vp, length);
+        obj->initDenseArrayElements(0, vp, length);
 
     return obj;
 }

@@ -78,14 +78,6 @@ WeakMapBase::sweepAll(JSTracer *tracer)
         m->sweep(tracer);
 }
 
-void
-WeakMapBase::traceAllMappings(WeakMapTracer *tracer)
-{
-    JSRuntime *rt = tracer->context->runtime;
-    for (WeakMapBase *m = rt->gcWeakMapList; m; m = m->next)
-        m->traceMappings(tracer);
-}
-
 } 
 
 typedef WeakMap<HeapPtr<JSObject>, HeapValue> ObjectValueMap;
@@ -223,7 +215,7 @@ WeakMap_set(JSContext *cx, uintN argc, Value *vp)
 
     ObjectValueMap *map = GetObjectMap(obj);
     if (!map) {
-        map = cx->new_<ObjectValueMap>(cx, obj);
+        map = cx->new_<ObjectValueMap>(cx);
         if (!map->init()) {
             cx->delete_(map);
             goto out_of_memory;
@@ -283,8 +275,6 @@ WeakMap_construct(JSContext *cx, uintN argc, Value *vp)
     if (!obj)
         return false;
 
-    obj->initPrivate(NULL);
-
     vp->setObject(*obj);
     return true;
 }
@@ -328,7 +318,6 @@ js_InitWeakMapClass(JSContext *cx, JSObject *obj)
     JSObject *weakMapProto = global->createBlankPrototype(cx, &WeakMapClass);
     if (!weakMapProto)
         return NULL;
-    weakMapProto->initPrivate(NULL);
 
     JSFunction *ctor = global->createConstructor(cx, WeakMap_construct, &WeakMapClass,
                                                  CLASS_ATOM(cx, WeakMap), 0);

@@ -82,6 +82,9 @@ void
 MarkShape(JSTracer *trc, const MarkablePtr<const Shape> &shape, const char *name);
 
 void
+MarkBaseShapeUnbarriered(JSTracer *trc, const BaseShape *shape, const char *name);
+
+void
 MarkTypeObjectUnbarriered(JSTracer *trc, types::TypeObject *type, const char *name);
 
 void
@@ -208,12 +211,6 @@ inline void
 Mark(JSTracer *trc, const MarkablePtr<JSObject> &o, const char *name)
 {
     MarkObject(trc, o, name);
-}
-
-inline void
-Mark(JSTracer *trc, const MarkablePtr<JSXML> &xml, const char *name)
-{
-    MarkXML(trc, xml, name);
 }
 
 inline bool

@@ -59,6 +59,7 @@
 #include "jslock.h"
 #include "jscell.h"
 
+#include "gc/Barrier.h"
 #include "vm/String.h"
 
 namespace nanojit { class ValidateWriter; }
@@ -388,8 +389,8 @@ class ObjectElements
         : capacity(capacity), initializedLength(0), length(length)
     {}
 
-    Value * elements() { return (Value *)(jsuword(this) + sizeof(ObjectElements)); }
-    static ObjectElements * fromElements(Value *elems) {
+    HeapValue * elements() { return (HeapValue *)(jsuword(this) + sizeof(ObjectElements)); }
+    static ObjectElements * fromElements(HeapValue *elems) {
         return (ObjectElements *)(jsuword(elems) - sizeof(ObjectElements));
     }
 
@@ -407,7 +408,7 @@ class ObjectElements
 };
 
 
-extern Value *emptyObjectElements;
+extern HeapValue *emptyObjectElements;
 
 }  
 
@@ -472,7 +473,7 @@ struct JSObject : js::gc::Cell
 
 
 
-    js::Shape *shape_;
+    js::HeapPtrShape shape_;
 
 #ifdef DEBUG
     void checkShapeConsistency();
@@ -483,7 +484,7 @@ struct JSObject : js::gc::Cell
 
 
 
-    js::types::TypeObject *type_;
+    js::HeapPtr<js::types::TypeObject> type_;
 
     
     void makeLazyType(JSContext *cx);
@@ -504,7 +505,7 @@ struct JSObject : js::gc::Cell
     inline void setLastPropertyInfallible(const js::Shape *shape);
 
     
-    inline void initialize(js::Shape *shape, js::types::TypeObject *type, JS::Value *slots);
+    inline void initialize(js::Shape *shape, js::types::TypeObject *type, js::HeapValue *slots);
 
     
     inline void initializeDenseArray(js::Shape *shape, js::types::TypeObject *type, uint32 length);
@@ -524,7 +525,7 @@ struct JSObject : js::gc::Cell
     bool setSlotSpan(JSContext *cx, uint32 span);
 
     static inline size_t offsetOfShape() { return offsetof(JSObject, shape_); }
-    inline js::Shape **addressOfShape() { return &shape_; }
+    inline js::HeapPtrShape *addressOfShape() { return &shape_; }
 
     inline js::Shape **nativeSearch(JSContext *cx, jsid id, bool adding = false);
     const js::Shape *nativeLookup(JSContext *cx, jsid id);
@@ -536,8 +537,8 @@ struct JSObject : js::gc::Cell
     static const uint32 NELEMENTS_LIMIT = JS_BIT(29);
 
   private:
-    js::Value   *slots;                     
-    js::Value   *elements;                  
+    js::HeapValue   *slots;     
+    js::HeapValue   *elements;  
 
   public:
 
@@ -548,7 +549,6 @@ struct JSObject : js::gc::Cell
     inline bool hasClass(const js::Class *c) const;
     inline const js::ObjectOps *getOps() const;
 
-    inline void trace(JSTracer *trc);
     inline void scanSlots(js::GCMarker *gcmarker);
 
     
@@ -632,7 +632,7 @@ struct JSObject : js::gc::Cell
     static const uint32 MAX_FIXED_SLOTS = 16;
 
   private:
-    inline js::Value* fixedSlots() const;
+    inline js::HeapValue* fixedSlots() const;
   public:
 
     
@@ -644,7 +644,7 @@ struct JSObject : js::gc::Cell
     inline size_t dynamicSlotIndex(size_t slot);
 
     
-    inline const js::Value *getRawSlots();
+    inline const js::HeapValue *getRawSlots();
 
     
     static inline size_t getFixedSlotOffset(size_t slot);
@@ -685,7 +685,7 @@ struct JSObject : js::gc::Cell
   protected:
     inline bool hasContiguousSlots(size_t start, size_t count) const;
 
-    inline void clearSlotRange(size_t start, size_t count);
+    inline void initializeSlotRange(size_t start, size_t count);
     inline void invalidateSlotRange(size_t start, size_t count);
     inline void updateSlotsForSpan(size_t oldSpan, size_t newSpan);
 
@@ -695,7 +695,16 @@ struct JSObject : js::gc::Cell
 
 
 
-    void copySlotRange(size_t start, const js::Value *vector, size_t length);
+    inline void prepareSlotRangeForOverwrite(size_t start, size_t end);
+    inline void prepareElementRangeForOverwrite(size_t start, size_t end);
+
+    
+
+
+
+
+
+    void copySlotRange(size_t start, const js::Value *vector, size_t length, bool valid);
 
     inline uint32 slotSpan() const;
 
@@ -716,7 +725,7 @@ struct JSObject : js::gc::Cell
     bool slotInRange(uintN slot, SentinelAllowed sentinel = SENTINEL_NOT_ALLOWED) const;
 #endif
 
-    js::Value *getSlotAddress(uintN slot) {
+    js::HeapValue *getSlotAddress(uintN slot) {
         
 
 
@@ -729,12 +738,12 @@ struct JSObject : js::gc::Cell
         return slots + (slot - fixed);
     }
 
-    js::Value &getSlotRef(uintN slot) {
+    js::HeapValue &getSlotRef(uintN slot) {
         JS_ASSERT(slotInRange(slot));
         return *getSlotAddress(slot);
     }
 
-    inline js::Value &nativeGetSlotRef(uintN slot);
+    inline js::HeapValue &nativeGetSlotRef(uintN slot);
 
     const js::Value &getSlot(uintN slot) const {
         JS_ASSERT(slotInRange(slot));
@@ -747,22 +756,22 @@ struct JSObject : js::gc::Cell
     inline const js::Value &nativeGetSlot(uintN slot) const;
     inline JSFunction *nativeGetMethod(const js::Shape *shape) const;
 
-    void setSlot(uintN slot, const js::Value &value) {
-        JS_ASSERT(slotInRange(slot));
-        getSlotRef(slot) = value;
-    }
+    inline void setSlot(uintN slot, const js::Value &value);
+    inline void initSlot(uintN slot, const js::Value &value);
+    inline void initSlotUnchecked(uintN slot, const js::Value &value);
 
     inline void nativeSetSlot(uintN slot, const js::Value &value);
     inline void nativeSetSlotWithType(JSContext *cx, const js::Shape *shape, const js::Value &value);
 
     inline js::Value getReservedSlot(uintN index) const;
+    inline js::HeapValue &getReservedSlotRef(uintN index);
 
     
     inline void setReservedSlot(uintN index, const js::Value &v);
 
     
 
-    js::Value &getFixedSlotRef(uintN slot) {
+    js::HeapValue &getFixedSlotRef(uintN slot) {
         JS_ASSERT(slot < numFixedSlots());
         return fixedSlots()[slot];
     }
@@ -772,10 +781,8 @@ struct JSObject : js::gc::Cell
         return fixedSlots()[slot];
     }
 
-    void setFixedSlot(uintN slot, const js::Value &value) {
-        JS_ASSERT(slot < numFixedSlots());
-        fixedSlots()[slot] = value;
-    }
+    inline void setFixedSlot(uintN slot, const js::Value &value);
+    inline void initFixedSlot(uintN slot, const js::Value &value);
 
     
     inline bool updateFlags(JSContext *cx, jsid id, bool isDefinitelyAtom = false);
@@ -808,7 +815,7 @@ struct JSObject : js::gc::Cell
         return type_;
     }
 
-    js::types::TypeObject *typeFromGC() const {
+    const js::HeapPtr<js::types::TypeObject> &typeFromGC() const {
         
         return type_;
     }
@@ -985,7 +992,7 @@ struct JSObject : js::gc::Cell
     bool growElements(JSContext *cx, uintN cap);
     void shrinkElements(JSContext *cx, uintN cap);
 
-    inline js::Value* fixedElements() const {
+    inline js::HeapValue* fixedElements() const {
         JS_STATIC_ASSERT(2 * sizeof(js::Value) == sizeof(js::ObjectElements));
         return &fixedSlots()[2];
     }
@@ -1023,11 +1030,14 @@ struct JSObject : js::gc::Cell
     inline void setDenseArrayLength(uint32 length);
     inline void setDenseArrayInitializedLength(uint32 length);
     inline void ensureDenseArrayInitializedLength(JSContext *cx, uintN index, uintN extra);
-    inline const js::Value* getDenseArrayElements();
+    inline js::HeapValueArray getDenseArrayElements();
     inline const js::Value &getDenseArrayElement(uintN idx);
     inline void setDenseArrayElement(uintN idx, const js::Value &val);
+    inline void initDenseArrayElement(uintN idx, const js::Value &val);
     inline void setDenseArrayElementWithType(JSContext *cx, uintN idx, const js::Value &val);
+    inline void initDenseArrayElementWithType(JSContext *cx, uintN idx, const js::Value &val);
     inline void copyDenseArrayElements(uintN dstStart, const js::Value *src, uintN count);
+    inline void initDenseArrayElements(uintN dstStart, const js::Value *src, uintN count);
     inline void moveDenseArrayElements(uintN dstStart, uintN srcStart, uintN count);
     inline bool denseArrayHasInlineSlots() const;
 
@@ -1370,6 +1380,11 @@ struct JSObject : js::gc::Cell
 
     inline void initArrayClass();
 
+    static inline void writeBarrierPre(JSObject *obj);
+    static inline void writeBarrierPost(JSObject *obj, void *addr);
+    inline void privateWriteBarrierPre(void **oldval);
+    inline void privateWriteBarrierPost(void **oldval);
+
   private:
     static void staticAsserts() {
         
@@ -1399,9 +1414,10 @@ operator!=(const JSObject &lhs, const JSObject &rhs)
     return &lhs != &rhs;
 }
 
-inline js::Value*
-JSObject::fixedSlots() const {
-    return (js::Value*) (jsuword(this) + sizeof(JSObject));
+inline js::HeapValue*
+JSObject::fixedSlots() const
+{
+    return (js::HeapValue *) (jsuword(this) + sizeof(JSObject));
 }
 
 inline size_t

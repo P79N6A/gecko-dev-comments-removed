@@ -424,6 +424,9 @@ class FrameState
 
     inline RegisterID tempRegForType(FrameEntry *fe, RegisterID fallback);
 
+    inline void loadTypeIntoReg(const FrameEntry *fe, RegisterID reg);
+    inline void loadDataIntoReg(const FrameEntry *fe, RegisterID reg);
+
     
 
 
@@ -732,7 +735,7 @@ class FrameState
         void reset() { PodZero(this); }
     };
     StackEntryExtra& extra(const FrameEntry *fe) {
-        JS_ASSERT(fe >= a->spBase && fe < a->sp);
+        JS_ASSERT(fe >= a->args && fe < a->sp);
         return extraArray[fe - entries];
     }
     StackEntryExtra& extra(uint32 slot) { return extra(entries + slot); }
@@ -778,6 +781,8 @@ class FrameState
 
 
     inline Jump testObject(Assembler::Condition cond, FrameEntry *fe);
+
+    inline Jump testGCThing(FrameEntry *fe);
 
     
 
@@ -961,6 +966,8 @@ class FrameState
 
 
     inline Address loadNameAddress(const analyze::ScriptAnalysis::NameAccess &access);
+    inline Address loadNameAddress(const analyze::ScriptAnalysis::NameAccess &access,
+                                   RegisterID reg);
 
   private:
     inline AnyRegisterID allocAndLoadReg(FrameEntry *fe, bool fp, RematInfo::RematType type);

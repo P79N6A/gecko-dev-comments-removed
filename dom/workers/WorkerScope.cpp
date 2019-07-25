@@ -824,6 +824,11 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
     return NULL;
   }
 
+  JSAutoEnterCompartment ac;
+  if (!ac.enter(aCx, global)) {
+    return NULL;
+  }
+
   
   if (!DedicatedWorkerGlobalScope::InitPrivate(aCx, global, worker)) {
     return NULL;
