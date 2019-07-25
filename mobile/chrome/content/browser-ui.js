@@ -426,6 +426,9 @@ var BrowserUI = {
     window.addEventListener("keypress", this, true);
 
     
+    window.addEventListener("AppCommand", this, true);
+
+    
     
     browsers.addEventListener("load", function() {
       
@@ -707,6 +710,19 @@ var BrowserUI = {
             dialog.close();
         }
         break;
+      case "AppCommand":
+        aEvent.stopPropagation();
+        switch (aEvent.command) {
+          case "Menu":
+            this.doCommand("cmd_menu");
+            break;
+          case "Search":
+            this.doCommand("cmd_openLocation");
+            break;
+          default:
+            break;
+        }
+        break;
       
       case "mouseup":
         if (!this._isEventInsidePopup(aEvent))
@@ -829,6 +845,7 @@ var BrowserUI = {
         this._closeOrQuit();
         break;
       case "cmd_menu":
+        getIdentityHandler().toggle();
         break;
       case "cmd_newTab":
         this.newTab();
