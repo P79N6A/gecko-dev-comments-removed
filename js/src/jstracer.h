@@ -671,7 +671,10 @@ public:
     };
 
     
-    JSScript *script;
+    JSScript *entryScript;
+
+    
+    JSStackFrame *entryfp;
 
     
     jsbytecode *top, *bottom;
@@ -728,13 +731,13 @@ public:
 
 
     struct InnerLoop {
-        JSScript *script;
+        JSStackFrame *entryfp;
         jsbytecode *top, *bottom;
         uintN iters;
 
         InnerLoop() {}
-        InnerLoop(JSScript *script, jsbytecode *top, jsbytecode *bottom)
-            : script(script), top(top), bottom(bottom), iters(0) {}
+        InnerLoop(JSStackFrame *entryfp, jsbytecode *top, jsbytecode *bottom)
+            : entryfp(entryfp), top(top), bottom(bottom), iters(0) {}
     };
 
     
@@ -784,7 +787,7 @@ public:
             return StackValue(false);
     }
     
-    LoopProfile(JSScript *script, jsbytecode *top, jsbytecode *bottom);
+    LoopProfile(JSStackFrame *entryfp, jsbytecode *top, jsbytecode *bottom);
 
     void reset();
 
