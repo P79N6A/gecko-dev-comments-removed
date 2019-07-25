@@ -55,6 +55,25 @@ using namespace mozilla::a11y;
 
 const PRUnichar* kPropNameTabContent = L"AccessibleTabWindow";
 
+already_AddRefed<nsIDOMCSSStyleDeclaration>
+nsWinUtils::GetComputedStyleDeclaration(nsIContent* aContent)
+{
+  nsIContent* elm = nsCoreUtils::GetDOMElementFor(aContent);
+  if (!elm)
+    return nsnull;
+
+  
+  nsCOMPtr<nsIDOMWindow> window =
+    do_QueryInterface(elm->OwnerDoc()->GetWindow());
+  if (!window)
+    return nsnull;
+
+  nsCOMPtr<nsIDOMCSSStyleDeclaration> cssDecl;
+  nsCOMPtr<nsIDOMElement> domElement(do_QueryInterface(elm));
+  window->GetComputedStyle(domElement, EmptyString(), getter_AddRefs(cssDecl));
+  return cssDecl.forget();
+}
+
 HRESULT
 nsWinUtils::ConvertToIA2Array(nsIArray *aGeckoArray, IUnknown ***aIA2Array,
                               long *aIA2ArrayLen)

@@ -56,6 +56,15 @@ public:
 
 
 
+
+
+  static already_AddRefed<nsIDOMCSSStyleDeclaration>
+    GetComputedStyleDeclaration(nsIContent* aContent);
+
+  
+
+
+
   static HRESULT ConvertToIA2Array(nsIArray *aCollection,
                                    IUnknown ***aAccessibles, long *aCount);
 

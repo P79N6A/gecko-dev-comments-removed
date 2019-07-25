@@ -291,13 +291,6 @@ public:
   
 
 
-  static already_AddRefed<nsIDOMCSSStyleDeclaration>
-    GetComputedStyleDeclaration(const nsAString& aPseudoElt,
-                                nsIContent *aContent);
-
-  
-
-
   static already_AddRefed<nsIBoxObject>
     GetTreeBodyBoxObject(nsITreeBoxObject *aTreeBoxObj);
 
