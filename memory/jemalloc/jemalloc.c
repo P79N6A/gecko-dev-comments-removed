@@ -110,6 +110,29 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef MOZ_MEMORY_DARWIN
+#define MALLOC_DOUBLE_PURGE
+#endif
+
+
+
+
+
+
 #ifndef MOZ_MEMORY_DEBUG
 #  define	MALLOC_PRODUCTION
 #endif
@@ -354,6 +377,7 @@ __FBSDID("$FreeBSD: head/lib/libc/stdlib/malloc.c 180599 2008-07-18 19:35:44Z ja
 #endif
 
 #include "jemalloc.h"
+#include "linkedlist.h"
 
 
 
@@ -606,6 +630,11 @@ static const bool __isthreaded = true;
 
 
 
+#if defined(MALLOC_DECOMMIT) && defined(MALLOC_DOUBLE_PURGE)
+#error MALLOC_DECOMMIT and MALLOC_DOUBLE_PURGE are mutually exclusive.
+#endif
+
+
 
 
 
@@ -844,9 +873,29 @@ struct arena_chunk_map_s {
 
 
 
+
 	size_t				bits;
-#if defined(MALLOC_DECOMMIT) || defined(MALLOC_STATS)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(MALLOC_DECOMMIT) || defined(MALLOC_STATS) || defined(MALLOC_DOUBLE_PURGE)
+#define	CHUNK_MAP_MADVISED	((size_t)0x40U)
 #define	CHUNK_MAP_DECOMMITTED	((size_t)0x20U)
+#define	CHUNK_MAP_MADVISED_OR_DECOMMITTED (CHUNK_MAP_MADVISED | CHUNK_MAP_DECOMMITTED)
 #endif
 #define	CHUNK_MAP_KEY		((size_t)0x10U)
 #define	CHUNK_MAP_DIRTY		((size_t)0x08U)
@@ -865,6 +914,16 @@ struct arena_chunk_s {
 
 	
 	rb_node(arena_chunk_t) link_dirty;
+
+#ifdef MALLOC_DOUBLE_PURGE
+	
+
+
+
+
+
+	LinkedList	chunks_madvised_elem;
+#endif
 
 	
 	size_t		ndirty;
@@ -950,6 +1009,12 @@ struct arena_s {
 
 	
 	arena_chunk_tree_t	chunks_dirty;
+
+#ifdef MALLOC_DOUBLE_PURGE
+	
+
+	LinkedList		chunks_madvised;
+#endif
 
 	
 
@@ -1808,7 +1873,6 @@ malloc_printf(const char *format, ...)
 
 
 
-#ifdef MALLOC_DECOMMIT
 static inline void
 pages_decommit(void *addr, size_t size)
 {
@@ -1834,7 +1898,6 @@ pages_commit(void *addr, size_t size)
 		abort();
 #  endif
 }
-#endif
 
 static bool
 base_pages_alloc_mmap(size_t minsize)
@@ -3069,14 +3132,14 @@ arena_run_split(arena_t *arena, arena_run_t *run, size_t size, bool large,
 	}
 
 	for (i = 0; i < need_pages; i++) {
-#if defined(MALLOC_DECOMMIT) || defined(MALLOC_STATS)
+#if defined(MALLOC_DECOMMIT) || defined(MALLOC_STATS) || defined(MALLOC_DOUBLE_PURGE)
 		
 
 
 
 
 
-		if (chunk->map[run_ind + i].bits & CHUNK_MAP_DECOMMITTED) {
+		if (chunk->map[run_ind + i].bits & CHUNK_MAP_MADVISED_OR_DECOMMITTED) {
 			size_t j;
 
 			
@@ -3085,9 +3148,13 @@ arena_run_split(arena_t *arena, arena_run_t *run, size_t size, bool large,
 
 
 			for (j = 0; i + j < need_pages && (chunk->map[run_ind +
-			    i + j].bits & CHUNK_MAP_DECOMMITTED); j++) {
-				chunk->map[run_ind + i + j].bits ^=
-				    CHUNK_MAP_DECOMMITTED;
+			    i + j].bits & CHUNK_MAP_MADVISED_OR_DECOMMITTED); j++) {
+				
+				assert(!(chunk->map[run_ind + i + j].bits & CHUNK_MAP_DECOMMITTED &&
+					 chunk->map[run_ind + i + j].bits & CHUNK_MAP_MADVISED));
+
+				chunk->map[run_ind + i + j].bits &=
+				    ~CHUNK_MAP_MADVISED_OR_DECOMMITTED;
 			}
 
 #  ifdef MALLOC_DECOMMIT
@@ -3204,6 +3271,8 @@ arena_chunk_init(arena_t *arena, arena_chunk_t *chunk)
 	
 	arena_avail_tree_insert(&arena->runs_avail,
 	    &chunk->map[arena_chunk_header_npages]);
+
+	LinkedList_Init(&chunk->chunks_madvised_elem);
 }
 
 static void
@@ -3219,6 +3288,12 @@ arena_chunk_dealloc(arena_t *arena, arena_chunk_t *chunk)
 			arena->stats.committed -= arena->spare->ndirty;
 #endif
 		}
+
+#ifdef MALLOC_DOUBLE_PURGE
+		
+		LinkedList_Remove(&arena->spare->chunks_madvised_elem);
+#endif
+
 		VALGRIND_FREELIKE_BLOCK(arena->spare, 0);
 		chunk_dealloc((void *)arena->spare, chunksize);
 #ifdef MALLOC_STATS
@@ -3322,6 +3397,9 @@ arena_purge(arena_t *arena)
 
 
 	while (arena->ndirty > (opt_dirty_max >> 1)) {
+#ifdef MALLOC_DOUBLE_PURGE
+		bool madvised = false;
+#endif
 		chunk = arena_chunk_tree_dirty_last(&arena->chunks_dirty);
 		assert(chunk != NULL);
 
@@ -3329,17 +3407,23 @@ arena_purge(arena_t *arena)
 			assert(i >= arena_chunk_header_npages);
 
 			if (chunk->map[i].bits & CHUNK_MAP_DIRTY) {
+#ifdef MALLOC_DECOMMIT
+				const size_t free_operation = CHUNK_MAP_DECOMMITTED;
+#else
+				const size_t free_operation = CHUNK_MAP_MADVISED;
+#endif
 				assert((chunk->map[i].bits &
-				    CHUNK_MAP_DECOMMITTED) == 0);
-				chunk->map[i].bits ^= CHUNK_MAP_DECOMMITTED | CHUNK_MAP_DIRTY;
+				        CHUNK_MAP_MADVISED_OR_DECOMMITTED) == 0);
+				chunk->map[i].bits ^= free_operation | CHUNK_MAP_DIRTY;
 				
-				for (npages = 1; i > arena_chunk_header_npages
-				    && (chunk->map[i - 1].bits &
-				    CHUNK_MAP_DIRTY); npages++) {
+				for (npages = 1;
+				     i > arena_chunk_header_npages &&
+				       (chunk->map[i - 1].bits & CHUNK_MAP_DIRTY);
+				     npages++) {
 					i--;
 					assert((chunk->map[i].bits &
-					    CHUNK_MAP_DECOMMITTED) == 0);
-					chunk->map[i].bits ^= CHUNK_MAP_DECOMMITTED | CHUNK_MAP_DIRTY;
+					        CHUNK_MAP_MADVISED_OR_DECOMMITTED) == 0);
+					chunk->map[i].bits ^= free_operation | CHUNK_MAP_DIRTY;
 				}
 				chunk->ndirty -= npages;
 				arena->ndirty -= npages;
@@ -3361,6 +3445,9 @@ arena_purge(arena_t *arena)
 				madvise((void *)((uintptr_t)chunk + (i <<
 				    pagesize_2pow)), (npages << pagesize_2pow),
 				    MADV_FREE);
+#  ifdef MALLOC_DOUBLE_PURGE
+				madvised = true;
+#  endif
 #endif
 #ifdef MALLOC_STATS
 				arena->stats.nmadvise++;
@@ -3375,6 +3462,14 @@ arena_purge(arena_t *arena)
 			arena_chunk_tree_dirty_remove(&arena->chunks_dirty,
 			    chunk);
 		}
+#ifdef MALLOC_DOUBLE_PURGE
+		if (madvised) {
+			
+
+			LinkedList_Remove(&chunk->chunks_madvised_elem);
+			LinkedList_InsertHead(&arena->chunks_madvised, &chunk->chunks_madvised_elem);
+		}
+#endif
 	}
 }
 
@@ -4562,6 +4657,9 @@ arena_new(arena_t *arena)
 
 	
 	arena_chunk_tree_dirty_new(&arena->chunks_dirty);
+#ifdef MALLOC_DOUBLE_PURGE
+	LinkedList_Init(&arena->chunks_madvised);
+#endif
 	arena->spare = NULL;
 
 	arena->ndirty = 0;
@@ -6380,6 +6478,78 @@ jemalloc_stats(jemalloc_stats_t *stats)
 	assert(stats->mapped >= stats->committed);
 	assert(stats->committed >= stats->allocated);
 }
+
+#ifdef MALLOC_DOUBLE_PURGE
+
+
+static void
+hard_purge_chunk(arena_chunk_t *chunk)
+{
+	
+
+	size_t i;
+	for (i = arena_chunk_header_npages; i < chunk_npages; i++) {
+		
+		size_t npages;
+		for (npages = 0;
+		     chunk->map[i + npages].bits & CHUNK_MAP_MADVISED && i + npages < chunk_npages;
+		     npages++) {
+			
+
+			assert(!(chunk->map[i + npages].bits & CHUNK_MAP_DECOMMITTED));
+			chunk->map[i + npages].bits ^= CHUNK_MAP_MADVISED_OR_DECOMMITTED;
+		}
+
+		
+
+		if (npages > 0) {
+			pages_decommit(((char*)chunk) + (i << pagesize_2pow), npages << pagesize_2pow);
+			pages_commit(((char*)chunk) + (i << pagesize_2pow), npages << pagesize_2pow);
+		}
+		i += npages;
+	}
+}
+
+
+static void
+hard_purge_arena(arena_t *arena)
+{
+	malloc_spin_lock(&arena->lock);
+
+	while (!LinkedList_IsEmpty(&arena->chunks_madvised)) {
+		LinkedList* next = arena->chunks_madvised.next;
+		arena_chunk_t *chunk =
+			LinkedList_Get(arena->chunks_madvised.next,
+				       arena_chunk_t, chunks_madvised_elem);
+		hard_purge_chunk(chunk);
+		LinkedList_Remove(&chunk->chunks_madvised_elem);
+	}
+
+	malloc_spin_unlock(&arena->lock);
+}
+
+void
+jemalloc_purge_freed_pages()
+{
+	size_t i;
+	for (i = 0; i < narenas; i++) {
+		arena_t *arena = arenas[i];
+		if (arena != NULL)
+			hard_purge_arena(arena);
+	}
+}
+
+#else 
+
+void
+jemalloc_purge_freed_pages()
+{
+	
+}
+
+#endif 
+
+
 
 #ifdef MOZ_MEMORY_WINDOWS
 void*
