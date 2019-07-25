@@ -34,6 +34,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ['HistoryEngine'];
 
 const Cc = Components.classes;
@@ -43,6 +44,7 @@ const Cu = Components.utils;
 const GUID_ANNO = "sync/guid";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/stores.js");
 Cu.import("resource://services-sync/trackers.js");
@@ -52,6 +54,7 @@ Cu.import("resource://services-sync/log4moz.js");
 
 function HistoryEngine() {
   SyncEngine.call(this, "History");
+  this.downloadLimit = MAX_HISTORY_DOWNLOAD;
 }
 HistoryEngine.prototype = {
   __proto__: SyncEngine.prototype,
@@ -322,7 +325,7 @@ HistoryStore.prototype = {
   getAllIDs: function HistStore_getAllIDs() {
     
     this._allUrlStm.params.cutoff_date = (Date.now() - 2592000000) * 1000;
-    this._allUrlStm.params.max_results = 5000;
+    this._allUrlStm.params.max_results = MAX_HISTORY_UPLOAD;
 
     let urls = Utils.queryAsync(this._allUrlStm, "url");
     let self = this;

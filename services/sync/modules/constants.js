@@ -101,6 +101,8 @@ PERMS_DIRECTORY:                       0755,
 
 
 MAX_UPLOAD_RECORDS:                    100,
+MAX_HISTORY_UPLOAD:                    5000,
+MAX_HISTORY_DOWNLOAD:                  5000,
 
 
 STATUS_OK:                             "success.status_ok",
