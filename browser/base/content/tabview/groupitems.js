@@ -151,7 +151,7 @@ window.GroupItem = function GroupItem(listOfEls, options) {
   
   var html =
     "<div class='title-container'>" +
-      "<input class='name' value='" + (options.title || "") + "'/>" +
+      "<input class='name'/>" +
       "<div class='title-shield' />" +
     "</div>";
 
@@ -175,6 +175,7 @@ window.GroupItem = function GroupItem(listOfEls, options) {
   this.$titleContainer = iQ('.title-container', this.$titlebar);
   this.$title = iQ('.name', this.$titlebar);
   this.$titleShield = iQ('.title-shield', this.$titlebar);
+  this.setTitle(options.title || "");
 
   var titleUnfocus = function() {
     self.$titleShield.show();
