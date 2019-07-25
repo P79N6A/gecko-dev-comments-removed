@@ -443,12 +443,8 @@ nsIMM32Handler::OnIMEStartComposition(nsWindow* aWindow)
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMEStartComposition, hWnd=%08x, mIsComposing=%s\n",
      aWindow->GetWindowHandle(), mIsComposing ? "TRUE" : "FALSE"));
-  
-  
-  
-  
-  
   if (mIsComposing) {
+    NS_WARNING("Composition has been already started");
     return ShouldDrawCompositionStringOurselves();
   }
 
@@ -753,6 +749,29 @@ nsIMM32Handler::HandleComposition(nsWindow* aWindow,
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!mIsComposing) {
+    MSG msg1, msg2;
+    HWND wnd = aWindow->GetWindowHandle();
+    if (::PeekMessageW(&msg1, wnd, WM_IME_STARTCOMPOSITION, WM_IME_COMPOSITION,
+                       PM_NOREMOVE) &&
+        msg1.message == WM_IME_STARTCOMPOSITION &&
+        ::PeekMessageW(&msg2, wnd, WM_IME_ENDCOMPOSITION, WM_IME_COMPOSITION,
+                       PM_NOREMOVE) &&
+        msg2.message == WM_IME_COMPOSITION) {
+      PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
+        ("IMM32: HandleComposition, Ignores due to find a WM_IME_STARTCOMPOSITION\n"));
+      return ShouldDrawCompositionStringOurselves();
+    }
+  }
 
   if (!IS_COMMITTING_LPARAM(lParam) && !IS_COMPOSING_LPARAM(lParam)) {
     PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
