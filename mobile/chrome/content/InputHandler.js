@@ -392,6 +392,14 @@ InputHandler.EventInfo.prototype = {
 
 
 
+
+
+
+
+
+
+
+
 function MouseModule(owner) {
   this._owner = owner;
   this._dragData = new DragData(this, 50, 200);
@@ -473,8 +481,10 @@ MouseModule.prototype = {
                                             : null;
     this._clicker = (targetClicker) ? targetClicker.customClicker : null;
 
-    evInfo.event.stopPropagation();
-    evInfo.event.preventDefault();
+    if (this._dragger && !this._dragger.allowRealtimeDownUp) {
+      evInfo.event.stopPropagation();
+      evInfo.event.preventDefault();
+    }
 
     this._owner.grab(this);
 
@@ -497,19 +507,21 @@ MouseModule.prototype = {
   _onMouseUp: function _onMouseUp(evInfo) {
     let dragData = this._dragData;
 
-    evInfo.event.stopPropagation();
-    evInfo.event.preventDefault();
+    if (this._dragger && !this._dragger.allowRealtimeDownUp) {
+      evInfo.event.stopPropagation();
+      evInfo.event.preventDefault();
 
-    
-    
-    this._owner.suppressNextClick();
+      
+      
+      this._owner.suppressNextClick();
+    }
 
     let [sX, sY] = [evInfo.event.screenX, evInfo.event.screenY];
 
     let movedOutOfRadius = dragData.isPointOutsideRadius(sX, sY);
 
-    if (dragData.dragging)
-      this._doDragStop(sX, sY);
+    if (dragData.dragging)       
+      this._doDragStop(sX, sY);  
 
     this._recordEvent(evInfo);
 
@@ -556,6 +568,10 @@ MouseModule.prototype = {
     this._downUpDispatchedIndex = len;
 
     this._owner.startListening();
+  },
+
+  _skipAllDownUpEvents: function _skipAllDownUpEvents() {
+    this._downUpDispatchedIndex = this._downUpEvents.length;
   },
 
   
@@ -662,12 +678,17 @@ MouseModule.prototype = {
 
   _doClick: function _doClick(movedOutOfRadius) {
     let commitToClicker = this._clicker && !movedOutOfRadius;
+    let needToRedispatch = this._dragger && !this._dragger.allowRealtimeDownUp && !movedOutOfRadius;
 
     if (commitToClicker) {
       this._commitAnotherClick();  
     }
 
-    this._redispatchDownUpEvents();
+    if (needToRedispatch) {
+      this._redispatchDownUpEvents();
+    } else {
+      this._skipAllDownUpEvents();
+    }
 
     if (!commitToClicker) {
       this._cleanClickBuffer();    
