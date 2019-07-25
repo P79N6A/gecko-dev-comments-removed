@@ -2090,13 +2090,6 @@ pref("plugin.allow.asyncdrawing", false);
 pref("network.autodial-helper.enabled", true);
 
 
-
-
-
-
-pref("advanced.system.supportDDEExec", true);
-
-
 pref("intl.keyboard.per_window_layout", false);
 
 #ifdef NS_ENABLE_TSF
