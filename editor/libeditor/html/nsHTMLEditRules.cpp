@@ -4724,6 +4724,10 @@ nsHTMLEditRules::WillAlign(nsISelection *aSelection,
   {
     
     nsCOMPtr<nsIDOMNode> curNode = arrayOfNodes[i];
+
+    
+    if (!mHTMLEditor->IsEditable(curNode)) continue;
+
     PRInt32 offset;
     res = nsEditor::GetNodeLocation(curNode, address_of(curParent), &offset);
     NS_ENSURE_SUCCESS(res, res);
@@ -8704,7 +8708,23 @@ nsHTMLEditRules::RemoveAlignment(nsIDOMNode * aNode, const nsAString & aAlignTyp
     res = mHTMLEditor->NodeIsBlockStatic(child, &isBlock);
     NS_ENSURE_SUCCESS(res, res);
 
-    if ((isBlock && !nsHTMLEditUtils::IsDiv(child)) || nsHTMLEditUtils::IsHR(child))
+    if (nsEditor::NodeIsType(child, nsEditProperty::center))
+    {
+      
+      
+      res = RemoveAlignment(child, aAlignType, PR_TRUE);
+      NS_ENSURE_SUCCESS(res, res);
+
+      
+      
+      res = MakeSureElemStartsOrEndsOnCR(child);
+      NS_ENSURE_SUCCESS(res, res);
+
+      
+      res = mHTMLEditor->RemoveContainer(child);
+      NS_ENSURE_SUCCESS(res, res);
+    }
+    else if (isBlock || nsHTMLEditUtils::IsHR(child))
     {
       
       nsCOMPtr<nsIDOMElement> curElem = do_QueryInterface(child);
@@ -8731,47 +8751,6 @@ nsHTMLEditRules::RemoveAlignment(nsIDOMNode * aNode, const nsAString & aAlignTyp
       {
         
         res = RemoveAlignment(child, aAlignType, PR_TRUE);
-        NS_ENSURE_SUCCESS(res, res);
-      }
-    }
-    else if (nsEditor::NodeIsType(child, nsEditProperty::center)
-             || nsHTMLEditUtils::IsDiv(child))
-    {
-      
-      
-      res = RemoveAlignment(child, aAlignType, PR_TRUE);
-      NS_ENSURE_SUCCESS(res, res);
-
-      if (useCSS && nsHTMLEditUtils::IsDiv(child))
-      {
-        
-        
-        nsAutoString dummyCssValue;
-        res = mHTMLEditor->mHTMLCSSUtils->RemoveCSSInlineStyle(child, nsEditProperty::cssTextAlign, dummyCssValue);
-        NS_ENSURE_SUCCESS(res, res);
-        nsCOMPtr<nsIDOMElement> childElt = do_QueryInterface(child);
-        PRBool hasStyleOrIdOrClass;
-        res = mHTMLEditor->HasStyleOrIdOrClass(childElt, &hasStyleOrIdOrClass);
-        NS_ENSURE_SUCCESS(res, res);
-        if (!hasStyleOrIdOrClass)
-        {
-          
-          
-          res = MakeSureElemStartsOrEndsOnCR(child);
-          NS_ENSURE_SUCCESS(res, res);
-          res = mHTMLEditor->RemoveContainer(child);
-          NS_ENSURE_SUCCESS(res, res);
-        }
-      }
-      else
-      {
-        
-        
-        res = MakeSureElemStartsOrEndsOnCR(child);
-        NS_ENSURE_SUCCESS(res, res);
-
-        
-        res = mHTMLEditor->RemoveContainer(child);
         NS_ENSURE_SUCCESS(res, res);
       }
     }
