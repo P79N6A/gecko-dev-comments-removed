@@ -61,7 +61,7 @@ FrameState::~FrameState()
 {
     while (a) {
         ActiveFrame *parent = a->parent;
-        a->script->analysis(cx)->clearAllocations();
+        a->script->analysis()->clearAllocations();
         cx->free_(a);
         a = parent;
     }
@@ -118,7 +118,7 @@ FrameState::pushActiveFrame(JSScript *script, uint32 argc)
     }
 
     
-    JS_ASSERT_IF(a, argc == script->fun->nargs);
+    JS_ASSERT_IF(a, argc == script->function()->nargs);
 
     ActiveFrame *newa = cx->new_<ActiveFrame>();
     if (!newa)
@@ -129,7 +129,7 @@ FrameState::pushActiveFrame(JSScript *script, uint32 argc)
 
     newa->script = script;
     newa->PC = script->code;
-    newa->analysis = script->analysis(cx);
+    newa->analysis = script->analysis();
 
     
 

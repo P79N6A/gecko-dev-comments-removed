@@ -51,6 +51,9 @@
 
 namespace js {
     class CallArgs;
+    namespace analyze {
+        class ScriptAnalysis;
+    }
 }
 
 namespace js {
@@ -880,77 +883,69 @@ struct TypeCallsite
 
 struct TypeScript
 {
-    inline JSScript *script();
+    
+    analyze::ScriptAnalysis *analysis;
 
     
-    TypeSet *typeArray;
-    inline unsigned numTypeSets();
+    TypeSet *typeArray() { return (TypeSet *) (jsuword(this) + sizeof(TypeScript)); }
 
-    
-    TypeObject *typeObjects;
+    static inline unsigned NumTypeSets(JSScript *script);
 
     
     TypeResult *dynamicList;
 
-    
-    inline bool ensureTypeArray(JSContext *cx);
-
-    inline TypeSet *bytecodeTypes(const jsbytecode *pc);
-    inline TypeSet *returnTypes();
-    inline TypeSet *thisTypes();
-    inline TypeSet *argTypes(unsigned i);
-    inline TypeSet *localTypes(unsigned i);
-    inline TypeSet *upvarTypes(unsigned i);
+    static inline TypeSet *ReturnTypes(JSScript *script);
+    static inline TypeSet *ThisTypes(JSScript *script);
+    static inline TypeSet *ArgTypes(JSScript *script, unsigned i);
+    static inline TypeSet *LocalTypes(JSScript *script, unsigned i);
+    static inline TypeSet *UpvarTypes(JSScript *script, unsigned i);
 
     
-    inline TypeSet *slotTypes(unsigned slot);
-
-  private:
-    bool makeTypeArray(JSContext *cx);
-  public:
+    static inline TypeSet *SlotTypes(JSScript *script, unsigned slot);
 
 #ifdef DEBUG
     
-    void checkBytecode(JSContext *cx, jsbytecode *pc, const js::Value *sp);
+    static void CheckBytecode(JSContext *cx, JSScript *script, jsbytecode *pc, const js::Value *sp);
 #endif
 
     
-    inline TypeObject *standardType(JSContext *cx, JSProtoKey kind);
+    static inline TypeObject *StandardType(JSContext *cx, JSScript *script, JSProtoKey kind);
 
     
-    inline TypeObject *initObject(JSContext *cx, const jsbytecode *pc, JSProtoKey kind);
-
-    
-
-
-
-    inline void monitorOverflow(JSContext *cx, jsbytecode *pc);
-    inline void monitorString(JSContext *cx, jsbytecode *pc);
-    inline void monitorUnknown(JSContext *cx, jsbytecode *pc);
+    static inline TypeObject *InitObject(JSContext *cx, JSScript *script, const jsbytecode *pc, JSProtoKey kind);
 
     
 
 
 
-
-
-
-    inline void monitor(JSContext *cx, jsbytecode *pc, const js::Value &val);
-
-    
-    inline void monitorAssign(JSContext *cx, jsbytecode *pc,
-                              JSObject *obj, jsid id, const js::Value &val);
+    static inline void MonitorOverflow(JSContext *cx, JSScript *script, jsbytecode *pc);
+    static inline void MonitorString(JSContext *cx, JSScript *script, jsbytecode *pc);
+    static inline void MonitorUnknown(JSContext *cx, JSScript *script, jsbytecode *pc);
 
     
-    inline void setThis(JSContext *cx, Type type);
-    inline void setThis(JSContext *cx, const js::Value &value);
-    inline void setLocal(JSContext *cx, unsigned local, Type type);
-    inline void setLocal(JSContext *cx, unsigned local, const js::Value &value);
-    inline void setArgument(JSContext *cx, unsigned arg, Type type);
-    inline void setArgument(JSContext *cx, unsigned arg, const js::Value &value);
-    inline void setUpvar(JSContext *cx, unsigned upvar, const js::Value &value);
 
-    void sweep(JSContext *cx);
+
+
+
+
+
+    static inline void Monitor(JSContext *cx, JSScript *script, jsbytecode *pc,
+                               const js::Value &val);
+
+    
+    static inline void MonitorAssign(JSContext *cx, JSScript *script, jsbytecode *pc,
+                                     JSObject *obj, jsid id, const js::Value &val);
+
+    
+    static inline void SetThis(JSContext *cx, JSScript *script, Type type);
+    static inline void SetThis(JSContext *cx, JSScript *script, const js::Value &value);
+    static inline void SetLocal(JSContext *cx, JSScript *script, unsigned local, Type type);
+    static inline void SetLocal(JSContext *cx, JSScript *script, unsigned local, const js::Value &value);
+    static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, Type type);
+    static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, const js::Value &value);
+    static inline void SetUpvar(JSContext *cx, JSScript *script, unsigned upvar, const js::Value &value);
+
+    static void Sweep(JSContext *cx, JSScript *script);
     void destroy();
 };
 

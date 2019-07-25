@@ -844,7 +844,7 @@ class CallCompiler : public BaseCompiler
         if (!CallJSNative(cx, fun->u.n.native, args))
             THROWV(true);
 
-        f.script()->types.monitor(f.cx, f.pc(), args.rval());
+        types::TypeScript::Monitor(f.cx, f.script(), f.pc(), args.rval());
 
         
         if (monitor.recompiled())
@@ -979,6 +979,8 @@ class CallCompiler : public BaseCompiler
 
         Vector<Jump> mismatches(f.cx);
         if (cx->typeInferenceEnabled()) {
+            types::AutoEnterTypeInference enter(f.cx);
+
             
 
 
@@ -988,7 +990,7 @@ class CallCompiler : public BaseCompiler
 
 
             Address address(JSFrameReg, vpOffset);
-            types::TypeSet *types = f.script()->types.bytecodeTypes(f.pc());
+            types::TypeSet *types = f.script()->analysis()->bytecodeTypes(f.pc());
             if (!masm.generateTypeCheck(f.cx, address, types, &mismatches))
                 THROWV(true);
 
@@ -1304,14 +1306,16 @@ ic::GenerateArgumentCheckStub(VMFrame &f)
     Vector<Jump> mismatches(f.cx);
 
     if (!f.fp()->isConstructing()) {
+        types::TypeSet *types = types::TypeScript::ThisTypes(script);
         Address address(JSFrameReg, StackFrame::offsetOfThis(fun));
-        if (!masm.generateTypeCheck(f.cx, address, script->types.thisTypes(), &mismatches))
+        if (!masm.generateTypeCheck(f.cx, address, types, &mismatches))
             return;
     }
 
     for (unsigned i = 0; i < fun->nargs; i++) {
+        types::TypeSet *types = types::TypeScript::ArgTypes(script, i);
         Address address(JSFrameReg, StackFrame::offsetOfFormalArg(fun, i));
-        if (!masm.generateTypeCheck(f.cx, address, script->types.argTypes(i), &mismatches))
+        if (!masm.generateTypeCheck(f.cx, address, types, &mismatches))
             return;
     }
 
