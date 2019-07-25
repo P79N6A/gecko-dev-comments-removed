@@ -54,6 +54,11 @@ using namespace JSC;
 IonCode *
 IonCompartment::generateEnterJIT(JSContext *cx)
 {
+    const Register reg_code = ArgReg1;
+    const Register reg_argc = ArgReg2;
+    const Register reg_argv = ArgReg3;
+    const Register reg_vp   = ArgReg4;
+
     MacroAssembler masm;
 
     
@@ -72,61 +77,63 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 #endif
 
     
-    masm.push(ArgReg4); 
+    masm.push(reg_vp);
+
+    
+    masm.mov(rsp, r14);
+
+    
+    masm.mov(reg_argc, r13);
+    masm.shll(Imm32(3), r13);
 
     
     
     
-    
-    
-    
-    masm.mov(ArgReg2, r12); 
-    masm.andl(Imm32(1), r12); 
-    masm.xorl(Imm32(1), r12); 
-    masm.shll(Imm32(3), r12); 
-
-    masm.subq(r12, rsp); 
+    masm.mov(rsp, r12);
+    masm.subq(r13, r12);
+    masm.andl(Imm32(0xf), r12);
+    masm.subq(r12, rsp);
 
     
 
 
-    masm.mov(ArgReg2, r13); 
-    masm.subq(Imm32(1), r13);
-    masm.shll(Imm32(3), r13); 
-    masm.addq(ArgReg3, r13); 
-
-    Label loopHeader, loopEnd;
 
     
-    masm.bind(&loopHeader);
+    masm.addq(reg_argv, r13); 
 
-    masm.cmpq(r13, ArgReg3);
-    masm.j(AssemblerX86Shared::LessThan, &loopEnd);
+    
+    {
+        Label header, footer;
+        masm.bind(&header);
 
-    masm.push(Operand(r13, 0)); 
+        masm.cmpq(r13, reg_argv);
+        masm.j(AssemblerX86Shared::BelowOrEqual, &footer);
 
-    masm.subq(Imm32(8), r13); 
+        masm.subq(Imm32(8), r13);
+        masm.push(Operand(r13, 0));
+        masm.jmp(&header);
 
-    masm.jmp(&loopHeader); 
-    masm.bind(&loopEnd);
+        masm.bind(&footer);
+    }
 
     
 
 
-    masm.shll(Imm32(3), ArgReg2);
-    masm.addq(ArgReg2, r12); 
-    masm.push(r12); 
+    masm.subq(rsp, r14);
+    masm.push(r14);
 
-    masm.call(ArgReg1); 
+    
+    masm.call(reg_code);
+
+    
+    masm.pop(r14);
+    masm.addq(r14, rsp);
+
+    
+
 
     masm.pop(r12); 
-    masm.addq(r12, rsp); 
-
-    
-
-
-    masm.pop(r12); 
-    masm.movq(JSReturnReg, Operand(r12, 0)); 
+    masm.movq(JSReturnReg, Operand(r12, 0));
 
     
 #if defined(_WIN64)

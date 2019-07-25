@@ -89,31 +89,29 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
 
     
-    masm.subl(Imm32(8), eax);
-
-    
     masm.movl(Operand(ebp, 16), ebx);
 
     
     masm.addl(ebx, eax);
 
     
-    Label header, done;
-    masm.bind(&header);
+    {
+        Label header, footer;
+        masm.bind(&header);
 
-    masm.cmpl(eax, ebx);
-    masm.j(Assembler::LessThan, &done);
+        masm.cmpl(eax, ebx);
+        masm.j(Assembler::BelowOrEqual, &footer);
 
-    
-    masm.push(Operand(eax, 4));
-    masm.push(Operand(eax, 0));
+        
+        masm.subl(Imm32(8), eax);
 
-    
-    masm.subl(Imm32(8), eax);
+        
+        masm.push(Operand(eax, 4));
+        masm.push(Operand(eax, 0));
 
-    
-    masm.jmp(&header);
-    masm.bind(&done);
+        masm.jmp(&header);
+        masm.bind(&footer);
+    }
 
     
     
