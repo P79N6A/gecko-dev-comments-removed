@@ -324,6 +324,15 @@ function test()
     check(function() (new Int32Array(0)).BYTES_PER_ELEMENT == 4);
     check(function() Int16Array.BYTES_PER_ELEMENT == Uint16Array.BYTES_PER_ELEMENT);
 
+    
+    
+    check(function() (new Float32Array(Math.sqrt(4))).length == 2);
+    check(function() (new Float32Array({ length: 10 })).length == 10);
+    check(function() (new Float32Array({})).length == 0);
+    checkThrows(function() new Float32Array("3"));
+    checkThrows(function() new Float32Array(null));
+    checkThrows(function() new Float32Array(undefined));
+
     print ("done");
 
     reportCompare(0, TestFailCount, "typed array tests");
