@@ -472,7 +472,12 @@ ProcessRotate3D(gfx3DMatrix& aMatrix, const nsCSSValue::Array* aData)
 
 
 
-  double theta = aData->Item(4).GetAngleValueInRadians();
+
+  
+
+
+
+  double theta = -aData->Item(4).GetAngleValueInRadians();
   float cosTheta = FlushToZero(cos(theta));
   float sinTheta = FlushToZero(sin(theta));
 
