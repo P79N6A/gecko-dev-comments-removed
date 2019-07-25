@@ -1922,9 +1922,6 @@ struct JSContext
     JSObject            *globalObject;
 
     
-    JSWeakRoots         weakRoots;
-
-    
     js::RegExpStatics   regExpStatics;
 
     
@@ -2411,48 +2408,25 @@ class AutoGCRooter {
     enum {
         JSVAL =        -1, 
         SPROP =        -2, 
-        WEAKROOTS =    -3, 
-        PARSER =       -4, 
-        SCRIPT =       -5, 
-        ENUMERATOR =   -6, 
-        IDARRAY =      -7, 
-        DESCRIPTORS =  -8, 
-        NAMESPACES =   -9, 
-        XML =         -10, 
-        OBJECT =      -11, 
-        ID =          -12, 
-        VALVECTOR =   -13, 
-        DESCRIPTOR =  -14, 
-        STRING =      -15, 
-        IDVECTOR =    -16  
+        PARSER =       -3, 
+        SCRIPT =       -4, 
+        ENUMERATOR =   -5, 
+        IDARRAY =      -6, 
+        DESCRIPTORS =  -7, 
+        NAMESPACES =   -8, 
+        XML =          -9, 
+        OBJECT =      -10, 
+        ID =          -11, 
+        VALVECTOR =   -12, 
+        DESCRIPTOR =  -13, 
+        STRING =      -14, 
+        IDVECTOR =    -15  
     };
 
     private:
     
     AutoGCRooter(AutoGCRooter &ida);
     void operator=(AutoGCRooter &ida);
-};
-
-class AutoPreserveWeakRoots : private AutoGCRooter
-{
-  public:
-    explicit AutoPreserveWeakRoots(JSContext *cx
-                                   JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, WEAKROOTS), savedRoots(cx->weakRoots)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    ~AutoPreserveWeakRoots()
-    {
-        context->weakRoots = savedRoots;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
-  private:
-    JSWeakRoots savedRoots;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 
