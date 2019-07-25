@@ -272,7 +272,6 @@ TableSwitchPolicy::adjustInputs(MInstruction *ins)
 
     
     
-    
     switch (in->type()) {
       case MIRType_Value:
         replace = MUnbox::New(in, MIRType_Int32);
