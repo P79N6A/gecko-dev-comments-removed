@@ -156,8 +156,6 @@ struct SharedContext {
 
     Bindings::AutoRooter bindingsRoot; 
 
-    bool            inForInit:1;    
-
     ContextFlags    cxFlags;
 
     
@@ -255,6 +253,8 @@ struct TreeContext {
 
     bool            hasReturnExpr:1; 
     bool            hasReturnVoid:1; 
+
+    bool            inForInit:1;    
 
     
     

@@ -127,6 +127,8 @@ struct BytecodeEmitter
 
     bool            hasSingletons:1;    
 
+    bool            inForInit:1;        
+
     BytecodeEmitter(Parser *parser, SharedContext *sc, unsigned lineno,
                     bool noScriptRval, bool needScriptGlobal);
     bool init();
