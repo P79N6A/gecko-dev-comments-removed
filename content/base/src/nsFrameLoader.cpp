@@ -754,11 +754,18 @@ nsFrameLoader::ShowRemoteFrame(const nsIntSize& size)
     return false;
   }
 
-  mRemoteBrowser->Show(size);
-  mRemoteBrowserShown = PR_TRUE;
+  
+  
+  
+  if (!mRemoteBrowserShown) {
+    mRemoteBrowser->Show(size);
+    mRemoteBrowserShown = PR_TRUE;
 
-  nsCOMPtr<nsIChromeFrameMessageManager> dummy;
-  GetMessageManager(getter_AddRefs(dummy)); 
+    nsCOMPtr<nsIChromeFrameMessageManager> dummy;
+    GetMessageManager(getter_AddRefs(dummy)); 
+  } else {
+    mRemoteBrowser->Move(size);
+  }
 
   return true;
 }
