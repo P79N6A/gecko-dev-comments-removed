@@ -78,8 +78,8 @@ public:
 
   virtual void BeginTransaction();
   virtual void BeginTransactionWithTarget(gfxContext* aTarget);
-  virtual void EndTransaction(DrawThebesLayerCallback aCallback,
-                              void* aCallbackData);
+  virtual void EndConstruction();
+  virtual void EndTransaction();
 
   virtual void SetRoot(Layer* aLayer);
 
@@ -94,20 +94,36 @@ public:
 #ifdef DEBUG
   PRBool InConstruction() { return mPhase == PHASE_CONSTRUCTION; }
   PRBool InDrawing() { return mPhase == PHASE_DRAWING; }
+  PRBool IsBeforeInTree(Layer* aBefore, Layer* aLayer);
 #endif
+  
+  
+  
+  
+  
+  void AdvancePaintingTo(BasicThebesLayer* aLayer);
+  Layer* GetLastPainted() { return mLastPainted; }
   gfxContext* GetTarget() { return mTarget; }
 
 private:
   
-  void PaintLayer(Layer* aLayer,
-                  DrawThebesLayerCallback aCallback,
-                  void* aCallbackData);
+  
+  
+  void BeginPaintingLayer(Layer* aLayer);
+  
+  
+  void EndPaintingLayer();
 
   nsRefPtr<Layer> mRoot;
   
   nsRefPtr<gfxContext> mDefaultTarget;
   
+  
   nsRefPtr<gfxContext> mTarget;
+  
+  
+  
+  Layer* mLastPainted;
 
 #ifdef DEBUG
   enum TransactionPhase { PHASE_NONE, PHASE_CONSTRUCTION, PHASE_DRAWING };
