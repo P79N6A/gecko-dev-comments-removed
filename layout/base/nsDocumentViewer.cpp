@@ -3649,6 +3649,7 @@ DocumentViewerImpl::Print(nsIPrintSettings*       aPrintSettings,
   }
 
   nsPrintEventDispatcher beforeAndAfterPrint(mDocument);
+  NS_ENSURE_STATE(!GetIsPrinting());
   
   
   nsCOMPtr<nsIPluginDocument> pDoc(do_QueryInterface(mDocument));
@@ -3722,6 +3723,7 @@ DocumentViewerImpl::PrintPreview(nsIPrintSettings* aPrintSettings,
   NS_ENSURE_STATE(doc);
 
   nsPrintEventDispatcher beforeAndAfterPrint(doc);
+  NS_ENSURE_STATE(!GetIsPrinting());
   if (!mPrintEngine) {
     mPrintEngine = new nsPrintEngine();
 
