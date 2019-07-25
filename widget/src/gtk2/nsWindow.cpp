@@ -220,6 +220,9 @@ static nsWindow* GetFirstNSWindowForGDKWindow (GdkWindow *aGdkWindow);
 extern "C" {
 #endif
 #ifdef MOZ_X11
+static GdkFilterReturn popup_take_focus_filter (GdkXEvent *gdk_xevent,
+                                                GdkEvent *event,
+                                                gpointer data);
 static GdkFilterReturn plugin_window_filter_func (GdkXEvent *gdk_xevent,
                                                   GdkEvent *event,
                                                   gpointer data);
@@ -3103,6 +3106,9 @@ nsWindow::OnButtonReleaseEvent(GtkWidget *aWidget, GdkEventButton *aEvent)
 void
 nsWindow::OnContainerFocusInEvent(GtkWidget *aWidget, GdkEventFocus *aEvent)
 {
+    NS_ASSERTION(mWindowType != eWindowType_popup,
+                 "Unexpected focus on a popup window");
+
     LOGFOCUS(("OnContainerFocusInEvent [%p]\n", (void *)this));
     if (!mEnabled) {
         LOGFOCUS(("Container focus is blocked [%p]\n", (void *)this));
@@ -4095,15 +4101,36 @@ nsWindow::Create(nsIWidget        *aParent,
         }
         else if (mWindowType == eWindowType_popup) {
             
-            if (mParent) {
-                mShell = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-                gtk_window_set_wmclass(GTK_WINDOW(mShell), "Toplevel", cBrand.get());
-                gtk_window_set_decorated(GTK_WINDOW(mShell), FALSE);
-            }
-            else {
+            
+            
+            if (!aParent) {
+                
+                
+                
                 mShell = gtk_window_new(GTK_WINDOW_POPUP);
-                gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup", cBrand.get());
+            } else {
+                
+                
+                mShell = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+                GtkWindow* gtkWin = GTK_WINDOW(mShell);
+                
+                
+                gtk_window_set_decorated(gtkWin, FALSE);
+                gtk_window_set_skip_taskbar_hint(gtkWin, TRUE);
+                
+                
+                
+                gtk_window_set_accept_focus(gtkWin, FALSE);
+#ifdef MOZ_X11
+                
+                
+                gtk_widget_realize(mShell);
+                gdk_window_add_filter(mShell->window,
+                                      popup_take_focus_filter, NULL); 
+#endif
             }
+
+            gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup", cBrand.get());
 
             GdkWindowTypeHint gtkTypeHint;
             switch (aInitData->mPopupHint) {
@@ -5852,6 +5879,68 @@ focus_out_event_cb(GtkWidget *widget, GdkEventFocus *event)
 }
 
 #ifdef MOZ_X11
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GdkFilterReturn
+popup_take_focus_filter(GdkXEvent *gdk_xevent,
+                        GdkEvent *event,
+                        gpointer data)
+{
+    XEvent* xevent = static_cast<XEvent*>(gdk_xevent);
+    if (xevent->type != ClientMessage)
+        return GDK_FILTER_CONTINUE;
+
+    XClientMessageEvent& xclient = xevent->xclient;
+    if (xclient.message_type != gdk_x11_get_xatom_by_name("WM_PROTOCOLS"))
+        return GDK_FILTER_CONTINUE;
+
+    Atom atom = xclient.data.l[0];
+    if (atom != gdk_x11_get_xatom_by_name("WM_TAKE_FOCUS"))
+        return GDK_FILTER_CONTINUE;
+
+    guint32 timestamp = xclient.data.l[1];
+
+    GtkWidget* widget = get_gtk_widget_for_gdk_window(event->any.window);
+    if (!widget)
+        return GDK_FILTER_CONTINUE;
+
+    GtkWindow* parent = gtk_window_get_transient_for(GTK_WINDOW(widget));
+    if (!parent)
+        return GDK_FILTER_CONTINUE;
+
+    if (gtk_window_is_active(parent))
+        return GDK_FILTER_REMOVE; 
+
+    GdkWindow* parent_window = GTK_WIDGET(parent)->window;
+    if (!parent_window)
+        return GDK_FILTER_CONTINUE;
+
+    
+    gdk_window_show_unraised(parent_window);
+
+    
+    
+    
+    gdk_window_focus(parent_window, timestamp);
+    return GDK_FILTER_REMOVE;
+}
+
 
 GdkFilterReturn
 plugin_window_filter_func(GdkXEvent *gdk_xevent, GdkEvent *event, gpointer data)
