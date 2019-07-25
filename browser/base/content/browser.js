@@ -4459,7 +4459,7 @@ XPCOMUtils.defineLazyGetter(FullScreen, "useLionFullScreen", function() {
   
   
 #ifdef XP_MACOSX
-  return /^11\./.test(Services.sysinfo.getProperty("version")) &&
+  return parseFloat(Services.sysinfo.getProperty("version")) >= 11 &&
          document.documentElement.getAttribute("fullscreenbutton") == "true";
 #else
   return false;
