@@ -161,7 +161,7 @@ FTPChannelChild::AsyncOpen(::nsIStreamListener* listener, nsISupports* aContext)
     mLoadGroup->AddRequest(this, nsnull);
 
   SendAsyncOpen(nsBaseChannel::URI(), mStartPos, mEntityID,
-                IPC::InputStream(mUploadStream), UsingPrivateBrowsing());
+                IPC::InputStream(mUploadStream), UsePrivateBrowsing());
 
   
   
