@@ -72,9 +72,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.mozilla.gecko.db.BrowserDB;
-import org.mozilla.gecko.db.BrowserDB.URLColumns;
-
 public class AwesomeBarTabs extends TabHost {
     private static final String LOGTAG = "GeckoAwesomeBarTabs";
 
@@ -121,7 +118,7 @@ public class AwesomeBarTabs extends TabHost {
             Map<String,Object> historyItem =
                     (Map<String,Object>) mHistoryAdapter.getChild(groupPosition, childPosition);
 
-            byte[] b = (byte[]) historyItem.get(URLColumns.FAVICON);
+            byte[] b = (byte[]) historyItem.get(Browser.BookmarkColumns.FAVICON);
             ImageView favicon = (ImageView) childView.findViewById(R.id.favicon);
 
             if (b == null) {
@@ -156,7 +153,7 @@ public class AwesomeBarTabs extends TabHost {
             
             
             if (title == null || title.length() == 0) {
-                int urlIndex = cursor.getColumnIndexOrThrow(URLColumns.URL);
+                int urlIndex = cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.URL);
                 title = cursor.getString(urlIndex);
             }
 
@@ -165,12 +162,12 @@ public class AwesomeBarTabs extends TabHost {
         }
 
         public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
-            int faviconIndex = cursor.getColumnIndexOrThrow(URLColumns.FAVICON);
+            int faviconIndex = cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.FAVICON);
             if (columnIndex == faviconIndex) {
                 return updateFavicon(view, cursor, faviconIndex);
             }
 
-            int titleIndex = cursor.getColumnIndexOrThrow(URLColumns.TITLE);
+            int titleIndex = cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.TITLE);
             if (columnIndex == titleIndex) {
                 return updateTitle(view, cursor, titleIndex);
             }
@@ -183,7 +180,16 @@ public class AwesomeBarTabs extends TabHost {
     private class BookmarksQueryTask extends AsyncTask<Void, Void, Cursor> {
         protected Cursor doInBackground(Void... arg0) {
             ContentResolver resolver = mContext.getContentResolver();
-            return BrowserDB.getAllBookmarks(resolver);
+
+            return resolver.query(Browser.BOOKMARKS_URI,
+                                  null,
+                                  
+                                  
+                                  
+                                  
+                                  Browser.BookmarkColumns.BOOKMARK + " = 1 AND LENGTH(" + Browser.BookmarkColumns.URL + ") > 0",
+                                  null,
+                                  Browser.BookmarkColumns.TITLE);
         }
 
         protected void onPostExecute(Cursor cursor) {
@@ -192,9 +198,9 @@ public class AwesomeBarTabs extends TabHost {
                 mContext,
                 R.layout.awesomebar_row,
                 cursor,
-                new String[] { URLColumns.TITLE,
-                               URLColumns.URL,
-                               URLColumns.FAVICON },
+                new String[] { AwesomeBar.TITLE_KEY,
+                               AwesomeBar.URL_KEY,
+                               Browser.BookmarkColumns.FAVICON },
                 new int[] { R.id.title, R.id.url, R.id.favicon }
             );
 
@@ -219,7 +225,15 @@ public class AwesomeBarTabs extends TabHost {
         protected Pair<List,List> doInBackground(Void... arg0) {
             Pair<List,List> result = null;
             ContentResolver resolver = mContext.getContentResolver();
-            Cursor cursor = BrowserDB.getRecentHistory(resolver, MAX_RESULTS);
+
+            Cursor cursor =
+                    resolver.query(Browser.BOOKMARKS_URI,
+                                   null,
+                                   
+                                   
+                                   Browser.BookmarkColumns.DATE + " > 0",
+                                   null,
+                                   Browser.BookmarkColumns.DATE + " DESC LIMIT " + MAX_RESULTS);
 
             Date now = new Date();
             now.setHours(0);
@@ -244,7 +258,7 @@ public class AwesomeBarTabs extends TabHost {
             
             
             while (cursor.moveToNext()) {
-                long time = cursor.getLong(cursor.getColumnIndexOrThrow(URLColumns.DATE_LAST_VISITED));
+                long time = cursor.getLong(cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.DATE));
                 HistorySection itemSection = getSectionForTime(time, today);
 
                 if (groups == null)
@@ -286,20 +300,20 @@ public class AwesomeBarTabs extends TabHost {
         public Map<String,?> createHistoryItem(Cursor cursor) {
             Map<String,Object> historyItem = new HashMap<String,Object>();
 
-            String url = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL));
-            String title = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.TITLE));
-            byte[] favicon = cursor.getBlob(cursor.getColumnIndexOrThrow(URLColumns.FAVICON));
+            String url = cursor.getString(cursor.getColumnIndexOrThrow(AwesomeBar.URL_KEY));
+            String title = cursor.getString(cursor.getColumnIndexOrThrow(AwesomeBar.TITLE_KEY));
+            byte[] favicon = cursor.getBlob(cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.FAVICON));
 
             
             
             if (title == null || title.length() == 0)
                 title = url;
 
-            historyItem.put(URLColumns.URL, url);
-            historyItem.put(URLColumns.TITLE, title);
+            historyItem.put(AwesomeBar.URL_KEY, url);
+            historyItem.put(AwesomeBar.TITLE_KEY, title);
 
             if (favicon != null)
-                historyItem.put(URLColumns.FAVICON, favicon);
+                historyItem.put(Browser.BookmarkColumns.FAVICON, favicon);
 
             return historyItem;
         }
@@ -307,7 +321,7 @@ public class AwesomeBarTabs extends TabHost {
         public Map<String,?> createGroupItem(HistorySection section) {
             Map<String,String> groupItem = new HashMap<String,String>();
 
-            groupItem.put(URLColumns.TITLE, getSectionName(section));
+            groupItem.put(AwesomeBar.TITLE_KEY, getSectionName(section));
 
             return groupItem;
         }
@@ -361,11 +375,11 @@ public class AwesomeBarTabs extends TabHost {
                 mContext,
                 result.first,
                 R.layout.awesomebar_header_row,
-                new String[] { URLColumns.TITLE },
+                new String[] { AwesomeBar.TITLE_KEY },
                 new int[] { R.id.title },
                 result.second,
                 R.layout.awesomebar_row,
-                new String[] { URLColumns.TITLE, URLColumns.URL },
+                new String[] { AwesomeBar.TITLE_KEY, AwesomeBar.URL_KEY },
                 new int[] { R.id.title, R.id.url }
             );
 
@@ -486,9 +500,9 @@ public class AwesomeBarTabs extends TabHost {
             mContext,
             R.layout.awesomebar_row,
             null,
-            new String[] { URLColumns.TITLE,
-                           URLColumns.URL,
-                           URLColumns.FAVICON },
+            new String[] { AwesomeBar.TITLE_KEY,
+                           AwesomeBar.URL_KEY,
+                           Browser.BookmarkColumns.FAVICON },
             new int[] { R.id.title, R.id.url, R.id.favicon }
         );
 
@@ -497,7 +511,19 @@ public class AwesomeBarTabs extends TabHost {
         mAllPagesAdapter.setFilterQueryProvider(new FilterQueryProvider() {
             public Cursor runQuery(CharSequence constraint) {
                 ContentResolver resolver = mContext.getContentResolver();
-                return BrowserDB.filter(resolver, constraint, MAX_RESULTS);
+
+                return resolver.query(Browser.BOOKMARKS_URI,
+                                      null,
+                                      
+                                      
+                                      "(" + Browser.BookmarkColumns.URL + " LIKE ? OR " + Browser.BookmarkColumns.TITLE + " LIKE ?)"
+                                        + " AND LENGTH(" + Browser.BookmarkColumns.URL + ") > 0", 
+                                      new String[] {"%" + constraint.toString() + "%", "%" + constraint.toString() + "%",},
+                                      
+                                      
+                                      
+                                      Browser.BookmarkColumns.VISITS + " * MAX(1, (" +
+                                      Browser.BookmarkColumns.DATE + " - " + new Date().getTime() + ") / 86400000 + 120) DESC LIMIT " + MAX_RESULTS);
             }
         });
 
@@ -553,7 +579,7 @@ public class AwesomeBarTabs extends TabHost {
         Map<String,Object> historyItem =
                 (Map<String,Object>) mHistoryAdapter.getChild(groupPosition, childPosition);
 
-        String url = (String) historyItem.get(URLColumns.URL);
+        String url = (String) historyItem.get(AwesomeBar.URL_KEY);
 
         if (mUrlOpenListener != null)
             mUrlOpenListener.onUrlOpen(this, url);
@@ -561,7 +587,7 @@ public class AwesomeBarTabs extends TabHost {
 
     private void handleItemClick(ListView list, int position) {
         Cursor cursor = (Cursor) list.getItemAtPosition(position);
-        String url = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL));
+        String url = cursor.getString(cursor.getColumnIndexOrThrow(AwesomeBar.URL_KEY));
 
         if (mUrlOpenListener != null)
             mUrlOpenListener.onUrlOpen(this, url);
