@@ -2379,6 +2379,15 @@ nsWindow::OnConfigureEvent(GtkWidget *aWidget, GdkEventConfigure *aEvent)
     LOG(("configure event [%p] %d %d %d %d\n", (void *)this,
          aEvent->x, aEvent->y, aEvent->width, aEvent->height));
 
+    
+    
+    
+    
+    
+    if (mBounds.x == aEvent->x &&
+        mBounds.y == aEvent->y)
+        return FALSE;
+
     if (mWindowType == eWindowType_toplevel || mWindowType == eWindowType_dialog) {
         check_for_rollup(aEvent->window, 0, 0, PR_FALSE, PR_TRUE);
     }
