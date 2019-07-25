@@ -1216,11 +1216,6 @@ public:
   
 
 
-  static void SetFontFromStyle(nsRenderingContext* aRC, nsStyleContext* aSC);
-
-  
-
-
 
 
 

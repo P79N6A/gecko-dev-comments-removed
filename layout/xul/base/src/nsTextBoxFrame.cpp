@@ -634,7 +634,9 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
     if (mTitle.IsEmpty())
         return 0;
 
-    nsLayoutUtils::SetFontFromStyle(&aRenderingContext, GetStyleContext());
+    nsRefPtr<nsFontMetrics> fm;
+    nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
+    aRenderingContext.SetFont(fm);
 
     
     nscoord titleWidth = nsLayoutUtils::GetStringWidth(this, &aRenderingContext,
