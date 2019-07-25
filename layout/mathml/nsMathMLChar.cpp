@@ -65,9 +65,6 @@
 #include "nsCSSRendering.h"
 #include "prprf.h"         
 
-#if ALERT_MISSING_FONTS
-#include "nsIStringBundle.h"
-#endif
 #include "nsDisplayList.h"
 
 #include "nsMathMLOperators.h"
@@ -131,47 +128,6 @@ typedef enum {eExtension_base, eExtension_variants, eExtension_parts}
 #define NS_TABLE_STATE_ERROR       -1
 #define NS_TABLE_STATE_EMPTY        0
 #define NS_TABLE_STATE_READY        1
-
-
-static PRBool
-CheckFontExistence(nsPresContext* aPresContext, const nsString& aFontName)
-{
-  PRBool aliased;
-  nsAutoString localName;
-  nsIDeviceContext *deviceContext = aPresContext->DeviceContext();
-  deviceContext->GetLocalFontName(aFontName, localName, aliased);
-  
-  PRBool rv = (aliased || (NS_OK == deviceContext->CheckFontExistence(localName)));
-  
-  return rv;
-}
-
-#if ALERT_MISSING_FONTS
-
-
-static void
-AlertMissingFonts(nsString& aMissingFonts)
-{
-  nsCOMPtr<nsIStringBundleService> sbs =
-    mozilla::services::GetStringBundleService();
-  if (!sbs)
-    return;
-
-  nsCOMPtr<nsIStringBundle> sb;
-  sbs->CreateBundle("resource://gre/res/fonts/mathfont.properties", getter_AddRefs(sb));
-  if (!sb)
-    return;
-
-  nsXPIDLString title, message;
-  const PRUnichar* strings[] = { aMissingFonts.get() };
-  sb->GetStringFromName(NS_LITERAL_STRING("mathfont_missing_dialog_title").get(), getter_Copies(title));
-  sb->FormatStringFromName(NS_LITERAL_STRING("mathfont_missing_dialog_message").get(),
-                           strings, 1, getter_Copies(message));
-
-  
-  
-}
-#endif
 
 
 static void
@@ -403,7 +359,7 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
           return kNullGlyph;
         }
         
-        if (!mFontName[font].Length() || !CheckFontExistence(aPresContext, mFontName[font])) {
+        if (!mFontName[font].Length()) {
           return kNullGlyph;
         }
       }
@@ -716,36 +672,10 @@ GetFontExtensionPref(nsIPrefBranch* aPrefBranch, PRUnichar aChar,
     GetPrefValue(aPrefBranch, alternateKey.get(), aValue);
 }
 
-#if ALERT_MISSING_FONTS
-struct MathFontEnumContext {
-  nsPresContext* mPresContext;
-  nsString*       mMissingFamilyList;
-};
-#endif
 
 static PRBool
 MathFontEnumCallback(const nsString& aFamily, PRBool aGeneric, void *aData)
 {
-#if ALERT_MISSING_FONTS
-  
-  MathFontEnumContext* context = (MathFontEnumContext*)aData;
-  nsPresContext* presContext = context->mPresContext;
-  nsString* missingFamilyList = context->mMissingFamilyList;
-  if (!CheckFontExistence(presContext, aFamily)) {
-
-   
-   
-   
-   if (aFamily.LowerCaseEqualsLiteral("mt extra"))
-     return PR_TRUE; 
-
-    if (!missingFamilyList->IsEmpty()) {
-      missingFamilyList->AppendLiteral(", ");
-    }
-    missingFamilyList->Append(aFamily);
-  }
-#endif
-
   if (!gGlyphTableList->AddGlyphTable(aFamily))
     return PR_FALSE; 
   return PR_TRUE; 
@@ -800,21 +730,7 @@ InitGlobals(nsPresContext* aPresContext)
   
   nsAutoString missingFamilyList;
 
-#if ALERT_MISSING_FONTS
-  
-  
-  
-  
-  
-  MathFontEnumContext context = {aPresContext, &missingFamilyList};
-  font.EnumerateFamilies(MathFontEnumCallback, &context);
-  
-  if (!missingFamilyList.IsEmpty()) {
-    AlertMissingFonts(missingFamilyList);
-  }
-#else
   font.EnumerateFamilies(MathFontEnumCallback, nsnull);
-#endif
   return rv;
 }
 
