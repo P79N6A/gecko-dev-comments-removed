@@ -376,8 +376,27 @@ struct nsStyleBackground {
   struct Size;
   friend struct Size;
   struct Size {
-    typedef nsStyleCoord::Calc Dimension;
+    struct Dimension : public nsStyleCoord::Calc {
+      nscoord ResolveLengthPercentage(nscoord aAvailable) const {
+        double d = double(mPercent) * double(aAvailable) + double(mLength);
+        if (d < 0.0)
+          return 0;
+        return NSToCoordRoundWithClamp(float(d));
+      }
+    };
     Dimension mWidth, mHeight;
+
+    nscoord ResolveWidthLengthPercentage(const nsSize& aBgPositioningArea) const {
+      NS_ABORT_IF_FALSE(mWidthType == eLengthPercentage,
+                        "resolving non-length/percent dimension!");
+      return mWidth.ResolveLengthPercentage(aBgPositioningArea.width);
+    }
+
+    nscoord ResolveHeightLengthPercentage(const nsSize& aBgPositioningArea) const {
+      NS_ABORT_IF_FALSE(mHeightType == eLengthPercentage,
+                        "resolving non-length/percent dimension!");
+      return mHeight.ResolveLengthPercentage(aBgPositioningArea.height);
+    }
 
     
     
@@ -398,25 +417,7 @@ struct nsStyleBackground {
     
     
     
-    
-    
-    
-    
-    
-    bool DependsOnFrameSize(nsStyleImageType aType) const {
-      if ((mWidthType == eLengthPercentage && mWidth.mPercent != 0.0f) ||
-          (mHeightType == eLengthPercentage && mHeight.mPercent != 0.0f)) {
-        return true;
-      }
-      if (aType == eStyleImageType_Image) {
-        return mWidthType <= eCover || mHeightType <= eCover;
-      } else {
-        NS_ABORT_IF_FALSE(aType == eStyleImageType_Gradient ||
-                          aType == eStyleImageType_Element,
-                          "unrecognized image type");
-        return mWidthType <= eAuto || mHeightType <= eAuto;
-      }
-    }
+    bool DependsOnFrameSize(const nsStyleImage& aImage) const;
 
     
     Size() {}

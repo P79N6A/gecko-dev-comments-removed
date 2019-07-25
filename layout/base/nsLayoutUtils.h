@@ -1063,6 +1063,38 @@ public:
 
 
 
+
+
+
+
+
+
+
+  static nsresult DrawBackgroundImage(nsRenderingContext* aRenderingContext,
+                                      imgIContainer*      aImage,
+                                      const nsIntSize&    aImageSize,
+                                      GraphicsFilter      aGraphicsFilter,
+                                      const nsRect&       aDest,
+                                      const nsRect&       aFill,
+                                      const nsPoint&      aAnchor,
+                                      const nsRect&       aDirty,
+                                      PRUint32            aImageFlags);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   static nsresult DrawImage(nsRenderingContext* aRenderingContext,
                             imgIContainer*       aImage,
                             GraphicsFilter       aGraphicsFilter,
@@ -1162,10 +1194,13 @@ public:
 
 
 
+
+
   static void ComputeSizeForDrawing(imgIContainer* aImage,
                                     nsIntSize&     aImageSize,
-                                    PRBool&        aGotWidth,
-                                    PRBool&        aGotHeight);
+                                    nsSize&        aIntrinsicRatio,
+                                    bool&          aGotWidth,
+                                    bool&          aGotHeight);
 
   
 

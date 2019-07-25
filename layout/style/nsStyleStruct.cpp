@@ -63,6 +63,7 @@
 
 #include "nsSVGUtils.h"
 #include "nsBidiUtils.h"
+#include "nsLayoutUtils.h"
 
 #include "imgIRequest.h"
 #include "imgIContainer.h"
@@ -1834,6 +1835,85 @@ nsStyleBackground::Position::SetInitialValues()
   mYPosition.mHasPercent = PR_TRUE;
 }
 
+bool
+nsStyleBackground::Size::DependsOnFrameSize(const nsStyleImage& aImage) const
+{
+  NS_ABORT_IF_FALSE(aImage.GetType() != eStyleImageType_Null,
+                    "caller should have handled this");
+
+  
+  
+  if ((mWidthType == eLengthPercentage && mWidth.mPercent != 0.0f) ||
+      (mHeightType == eLengthPercentage && mHeight.mPercent != 0.0f)) {
+    return true;
+  }
+
+  
+  if (mWidthType == eContain || mWidthType == eCover) {
+    return true;
+  }
+
+  
+  if (mWidthType == eLengthPercentage && mHeightType == eLengthPercentage) {
+    return false;
+  }
+
+  NS_ABORT_IF_FALSE((mWidthType == eLengthPercentage && mHeightType == eAuto) ||
+                    (mWidthType == eAuto && mHeightType == eLengthPercentage) ||
+                    (mWidthType == eAuto && mHeightType == eAuto),
+                    "logic error");
+
+  nsStyleImageType type = aImage.GetType();
+
+  
+  
+  
+  if (type == eStyleImageType_Gradient) {
+    return true;
+  }
+
+  
+  
+  
+  if (type == eStyleImageType_Element) {
+    return true;
+  }
+
+  if (type == eStyleImageType_Image) {
+    nsCOMPtr<imgIContainer> imgContainer;
+    aImage.GetImageData()->GetImage(getter_AddRefs(imgContainer));
+    if (imgContainer) {
+      nsIntSize imageSize;
+      nsSize imageRatio;
+      bool hasWidth, hasHeight;
+      nsLayoutUtils::ComputeSizeForDrawing(imgContainer, imageSize, imageRatio,
+                                           hasWidth, hasHeight);
+
+      
+      
+      if (hasWidth && hasHeight) {
+        return false;
+      }
+
+      
+      
+      if (imageRatio != nsSize(0, 0)) {
+        return mWidthType == mHeightType;
+      }
+
+      
+      
+      return !(hasWidth && mHeightType == eLengthPercentage) &&
+             !(hasHeight && mWidthType == eLengthPercentage);
+    }
+  } else {
+    NS_NOTREACHED("missed an enum value");
+  }
+
+  
+  return false;
+}
+
 void
 nsStyleBackground::Size::SetInitialValues()
 {
@@ -1886,27 +1966,7 @@ nsStyleBackground::Layer::RenderingMightDependOnFrameSize() const
     return PR_FALSE;
   }
 
-  
-  if (mPosition.DependsOnFrameSize() ||
-      mSize.DependsOnFrameSize(mImage.GetType())) {
-    return PR_TRUE;
-  }
-
-  
-  if (mImage.GetType() == eStyleImageType_Image) {
-    nsCOMPtr<imgIContainer> imageContainer;
-    mImage.GetImageData()->GetImage(getter_AddRefs(imageContainer));
-    if (imageContainer &&
-        imageContainer->GetType() == imgIContainer::TYPE_VECTOR) {
-      nsIFrame* rootFrame = imageContainer->GetRootLayoutFrame();
-      if (rootFrame &&
-          nsSVGUtils::RootSVGElementHasViewbox(rootFrame->GetContent())) {
-        return PR_TRUE;
-      }
-    }
-  }
-
-  return PR_FALSE;
+  return mPosition.DependsOnFrameSize() || mSize.DependsOnFrameSize(mImage);
 }
 
 PRBool
