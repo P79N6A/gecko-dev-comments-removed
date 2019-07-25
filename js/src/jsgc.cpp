@@ -2856,7 +2856,7 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind)
     rt->gcTriggerCompartment = NULL;
 
     
-    rt->gcWeakMapList = NULL;
+    WeakMapBase::resetWeakMapList(rt);
 
     
     rt->resetGCMallocBytes();

@@ -107,10 +107,13 @@ template <class Type> class DefaultMarkPolicy;
 template <class Key, class Value> class DefaultTracePolicy;
 
 
+static WeakMapBase * const WeakMapNotInList = reinterpret_cast<WeakMapBase *>(1);
+
+
 
 class WeakMapBase {
   public:
-    WeakMapBase(JSObject *memOf) : memberOf(memOf), next(NULL) { }
+    WeakMapBase(JSObject *memOf) : memberOf(memOf), next(WeakMapNotInList) { }
     virtual ~WeakMapBase() { }
 
     void trace(JSTracer *tracer) {
@@ -120,9 +123,14 @@ class WeakMapBase {
             
             
             JS_ASSERT(!tracer->eagerlyTraceWeakMaps);
-            JSRuntime *rt = tracer->context->runtime;
-            next = rt->gcWeakMapList;
-            rt->gcWeakMapList = this;
+
+            
+            
+            if (next == WeakMapNotInList) {
+                JSRuntime *rt = tracer->context->runtime;
+                next = rt->gcWeakMapList;
+                rt->gcWeakMapList = this;
+            }
         } else {
             
             
@@ -148,6 +156,9 @@ class WeakMapBase {
     
     static void traceAllMappings(WeakMapTracer *tracer);
 
+    
+    static void resetWeakMapList(JSRuntime *rt);
+
   protected:
     
     
@@ -160,6 +171,9 @@ class WeakMapBase {
     JSObject *memberOf;
 
   private:
+    
+    
+    
     
     
     WeakMapBase *next;
