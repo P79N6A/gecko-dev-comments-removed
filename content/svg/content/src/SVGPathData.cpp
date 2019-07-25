@@ -237,12 +237,60 @@ SVGPathData::GetPathSegAtLength(float aDistance) const
   return NS_MAX(0U, segIndex - 1); 
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void
+ApproximateZeroLengthSubpathSquareCaps(const gfxPoint &aPoint, gfxContext *aCtx)
+{
+  
+  
+  
+  
+
+  const gfxSize tinyAdvance = aCtx->DeviceToUser(gfxSize(2.0/256.0, 0.0));
+
+  aCtx->MoveTo(aPoint);
+  aCtx->LineTo(aPoint + gfxPoint(tinyAdvance.width, tinyAdvance.height));
+  aCtx->MoveTo(aPoint);
+}
+
+#define MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS                     \
+  do {                                                                        \
+    if (capsAreSquare && !subpathHasLength && subpathContainsNonArc &&        \
+        SVGPathSegUtils::IsValidType(prevSegType) &&                          \
+        (!IsMoveto(prevSegType) ||                                            \
+         segType == nsIDOMSVGPathSeg::PATHSEG_CLOSEPATH)) {                   \
+      ApproximateZeroLengthSubpathSquareCaps(segStart, aCtx);                 \
+    }                                                                         \
+  } while(0)
+
 void
 SVGPathData::ConstructPath(gfxContext *aCtx) const
 {
   if (!mData.Length() || !IsMoveto(SVGPathSegUtils::DecodeType(mData[0]))) {
     return; 
   }
+
+  PRBool capsAreSquare = aCtx->CurrentLineCap() == gfxContext::LINE_CAP_SQUARE;
+  PRBool subpathHasLength = PR_FALSE;  
+  PRBool subpathContainsNonArc = PR_FALSE;
 
   PRUint32 segType, prevSegType = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
   gfxPoint pathStart(0.0, 0.0); 
@@ -263,28 +311,45 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
     switch (segType)
     {
     case nsIDOMSVGPathSeg::PATHSEG_CLOSEPATH:
+      
+      subpathContainsNonArc = PR_TRUE;
+      MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS;
       segEnd = pathStart;
       aCtx->ClosePath();
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_MOVETO_ABS:
+      MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS;
       pathStart = segEnd = gfxPoint(mData[i], mData[i+1]);
       aCtx->MoveTo(segEnd);
+      subpathHasLength = PR_FALSE;
+      subpathContainsNonArc = PR_FALSE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_MOVETO_REL:
+      MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS;
       pathStart = segEnd = segStart + gfxPoint(mData[i], mData[i+1]);
       aCtx->MoveTo(segEnd);
+      subpathHasLength = PR_FALSE;
+      subpathContainsNonArc = PR_FALSE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_ABS:
       segEnd = gfxPoint(mData[i], mData[i+1]);
       aCtx->LineTo(segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_REL:
       segEnd = segStart + gfxPoint(mData[i], mData[i+1]);
       aCtx->LineTo(segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_ABS:
@@ -292,6 +357,10 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       cp2 = gfxPoint(mData[i+2], mData[i+3]);
       segEnd = gfxPoint(mData[i+4], mData[i+5]);
       aCtx->CurveTo(cp1, cp2, segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart || segEnd != cp1 || segEnd != cp2);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_REL:
@@ -299,6 +368,10 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       cp2 = segStart + gfxPoint(mData[i+2], mData[i+3]);
       segEnd = segStart + gfxPoint(mData[i+4], mData[i+5]);
       aCtx->CurveTo(cp1, cp2, segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart || segEnd != cp1 || segEnd != cp2);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_ABS:
@@ -308,6 +381,10 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       segEnd = gfxPoint(mData[i+2], mData[i+3]); 
       tcp2 = cp1 + (segEnd - cp1) / 3;
       aCtx->CurveTo(tcp1, tcp2, segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart || segEnd != cp1);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_REL:
@@ -317,6 +394,10 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       segEnd = segStart + gfxPoint(mData[i+2], mData[i+3]); 
       tcp2 = cp1 + (segEnd - cp1) / 3;
       aCtx->CurveTo(tcp1, tcp2, segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart || segEnd != cp1);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_ARC_ABS:
@@ -338,27 +419,46 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
           }
         }
       }
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart);
+      }
       break;
     }
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_HORIZONTAL_ABS:
       segEnd = gfxPoint(mData[i], segStart.y);
       aCtx->LineTo(segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_HORIZONTAL_REL:
       segEnd = segStart + gfxPoint(mData[i], 0.0f);
       aCtx->LineTo(segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_VERTICAL_ABS:
       segEnd = gfxPoint(segStart.x, mData[i]);
       aCtx->LineTo(segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_LINETO_VERTICAL_REL:
       segEnd = segStart + gfxPoint(0.0f, mData[i]);
       aCtx->LineTo(segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_ABS:
@@ -366,6 +466,10 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       cp2 = gfxPoint(mData[i],   mData[i+1]);
       segEnd = gfxPoint(mData[i+2], mData[i+3]);
       aCtx->CurveTo(cp1, cp2, segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart || segEnd != cp1 || segEnd != cp2);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_REL:
@@ -373,6 +477,10 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       cp2 = segStart + gfxPoint(mData[i], mData[i+1]);
       segEnd = segStart + gfxPoint(mData[i+2], mData[i+3]);
       aCtx->CurveTo(cp1, cp2, segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart || segEnd != cp1 || segEnd != cp2);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS:
@@ -382,6 +490,10 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       segEnd = gfxPoint(mData[i], mData[i+1]); 
       tcp2 = cp1 + (segEnd - cp1) / 3;
       aCtx->CurveTo(tcp1, tcp2, segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart || segEnd != cp1);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL:
@@ -391,6 +503,10 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
       segEnd = segStart + gfxPoint(mData[i], mData[i+1]); 
       tcp2 = cp1 + (segEnd - cp1) / 3;
       aCtx->CurveTo(tcp1, tcp2, segEnd);
+      if (!subpathHasLength) {
+        subpathHasLength = (segEnd != segStart || segEnd != cp1);
+      }
+      subpathContainsNonArc = PR_TRUE;
       break;
 
     default:
@@ -401,7 +517,10 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
     prevSegType = segType;
     segStart = segEnd;
   }
+
   NS_ABORT_IF_FALSE(i == mData.Length(), "Very, very bad - mData corrupt");
+
+  MAYBE_APPROXIMATE_ZERO_LENGTH_SUBPATH_SQUARE_CAPS;
 }
 
 already_AddRefed<gfxFlattenedPath>
