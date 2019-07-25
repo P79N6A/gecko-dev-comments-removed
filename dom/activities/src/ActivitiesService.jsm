@@ -193,9 +193,9 @@ let Activities = {
       debug(JSON.stringify(aResults));
 
       
-      if (aResults.length === 0) {
+      if (aResults.options.length === 0) {
         ppmm.sendAsyncMessage("Activity:FireError", {
-          "id": aMsg.id, 
+          "id": aMsg.id,
           "error": "NO_PROVIDER"
         });
         return;
@@ -207,7 +207,7 @@ let Activities = {
         
         if (aChoice === -1) {
           ppmm.sendAsyncMessage("Activity:FireError", {
-            "id": aMsg.id, 
+            "id": aMsg.id,
             "error": "USER_ABORT"
           });
           return;
