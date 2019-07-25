@@ -58,6 +58,8 @@ public:
   NS_IMETHOD OnStopContainer(imgIRequest *request, imgIContainer *image);
   NS_IMETHOD OnStopDecode(imgIRequest *request, nsresult status,
                           const PRUnichar *statusArg);
+  NS_IMETHOD OnImageIsAnimated(imgIRequest* aRequest);
+
   
   NS_IMETHOD FrameChanged(imgIContainer *aContainer,
                           const nsIntRect *aDirtyRect);
@@ -122,6 +124,8 @@ public:
   NS_IMETHOD OnStopDecode(imgIRequest *request,
                           nsresult status,
                           const PRUnichar *statusArg);
+  NS_IMETHOD OnImageIsAnimated(imgIRequest* aRequest);
+
   NS_IMETHOD FrameChanged(imgIContainer *aContainer,
                           const nsIntRect *aDirtyRect);
 
@@ -141,6 +145,10 @@ private:
   nsRect mSubRect; 
   nsSize mIntrinsicSize;
   nsSize mImageSize;
+
+  
+  
+  bool mRequestRegistered;
 
   nsCOMPtr<imgIRequest> mImageRequest;
   nsCOMPtr<imgIDecoderObserver> mListener;
