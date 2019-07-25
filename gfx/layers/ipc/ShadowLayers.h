@@ -165,7 +165,11 @@ public:
 
 
 
-  void DestroyedThebesBuffer(ShadowableLayer* aThebes);
+
+
+
+  void DestroyedThebesBuffer(ShadowableLayer* aThebes,
+                             gfxSharedImageSurface* aBackBufferToDestroy);
   void DestroyedImageBuffer(ShadowableLayer* aImage);
   void DestroyedCanvasBuffer(ShadowableLayer* aCanvas);
 

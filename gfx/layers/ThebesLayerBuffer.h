@@ -155,6 +155,18 @@ protected:
   void DrawBufferWithRotation(gfxContext* aTarget, float aOpacity,
                               float aXRes, float aYRes);
 
+  
+
+
+
+
+
+
+
+
+
+
+  const nsIntSize& BufferDims() const { return mBufferDims; }
   const nsIntRect& BufferRect() const { return mBufferRect; }
   const nsIntPoint& BufferRotation() const { return mBufferRotation; }
 
