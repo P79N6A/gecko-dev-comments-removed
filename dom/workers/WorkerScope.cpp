@@ -958,7 +958,8 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
   
   
 
-  JSObject* eventTargetProto = EventTarget_workers::GetProtoObject(aCx, global);
+  JSObject* eventTargetProto =
+    EventTarget_workers::GetProtoObject(aCx, global, global);
   if (!eventTargetProto) {
     return NULL;
   }
@@ -1003,8 +1004,9 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
   }
 
   
-  if (!XMLHttpRequest_workers::CreateInterfaceObjects(aCx, global) ||
-      !XMLHttpRequestUpload_workers::CreateInterfaceObjects(aCx, global)) {
+  if (!XMLHttpRequest_workers::CreateInterfaceObjects(aCx, global, global) ||
+      !XMLHttpRequestUpload_workers::CreateInterfaceObjects(aCx, global,
+                                                            global)) {
     return NULL;
   }
 

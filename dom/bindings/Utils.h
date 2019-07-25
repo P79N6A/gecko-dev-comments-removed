@@ -241,12 +241,16 @@ struct ConstantSpec
 
 
 
+
+
+
+
 JSObject*
-CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* parentProto,
-                       JSClass* protoClass, JSClass* constructorClass,
-                       JSFunctionSpec* methods, JSPropertySpec* properties,
-                       ConstantSpec* constants, JSFunctionSpec* staticMethods,
-                       const char* name);
+CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* receiver,
+                       JSObject* protoProto, JSClass* protoClass,
+                       JSClass* constructorClass, JSFunctionSpec* methods,
+                       JSPropertySpec* properties, ConstantSpec* constants,
+                       JSFunctionSpec* staticMethods, const char* name);
 
 template <class T>
 inline bool
