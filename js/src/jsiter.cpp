@@ -231,7 +231,7 @@ EnumerateDenseArrayProperties(JSContext *cx, JSObject *obj, JSObject *pobj, uint
 
     if (pobj->getArrayLength() > 0) {
         size_t initlen = pobj->getDenseArrayInitializedLength();
-        Value *vp = pobj->getDenseArrayElements();
+        const Value *vp = pobj->getDenseArrayElements();
         for (size_t i = 0; i < initlen; ++i, ++vp) {
             if (!vp->isMagic(JS_ARRAY_HOLE)) {
                 

@@ -65,10 +65,10 @@
 #include "jsscript.h"
 #include "jsstaticcheck.h"
 #include "jsstr.h"
+#include "jswatchpoint.h"
 #include "jswrapper.h"
 
 #include "jsatominlines.h"
-#include "jsdbgapiinlines.h"
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
 #include "jsinterpinlines.h"
@@ -610,454 +610,12 @@ JS_ClearInterrupt(JSRuntime *rt, JSInterruptHook *hoop, void **closurep)
 
 
 
-struct JSWatchPoint {
-    JSCList             links;
-    JSObject            *object;        
-    const Shape         *shape;
-    StrictPropertyOp    setter;
-    JSWatchPointHandler handler;
-    JSObject            *closure;
-    uintN               flags;
-};
-
-#define JSWP_LIVE       0x1             /* live because set and not cleared */
-#define JSWP_HELD       0x2             /* held while running handler/setter */
-
-
-
-
-
-
-static JSBool
-DropWatchPointAndUnlock(JSContext *cx, JSWatchPoint *wp, uintN flag, bool sweeping)
-{
-    bool ok = true;
-    JSRuntime *rt = cx->runtime;
-
-    wp->flags &= ~flag;
-    if (wp->flags != 0) {
-        DBG_UNLOCK(rt);
-        return ok;
-    }
-
-    
-    ++rt->debuggerMutations;
-    JS_REMOVE_LINK(&wp->links);
-    DBG_UNLOCK(rt);
-
-    
-
-
-
-    if (!sweeping) {
-        const Shape *shape = wp->shape;
-        const Shape *wprop = wp->object->nativeLookup(shape->propid);
-        if (wprop &&
-            wprop->hasSetterValue() == shape->hasSetterValue() &&
-            IsWatchedProperty(cx, wprop)) {
-            shape = wp->object->changeProperty(cx, wprop, 0, wprop->attributes(),
-                                               wprop->getter(), wp->setter);
-            if (!shape)
-                ok = false;
-        }
-    }
-
-    cx->free_(wp);
-    return ok;
-}
-
-
-
-
-
-
-
-
-
-JSBool
-js_TraceWatchPoints(JSTracer *trc)
-{
-    JSRuntime *rt;
-    JSWatchPoint *wp;
-
-    rt = trc->context->runtime;
-
-    bool modified = false;
-
-    for (wp = (JSWatchPoint *)rt->watchPointList.next;
-         &wp->links != &rt->watchPointList;
-         wp = (JSWatchPoint *)wp->links.next) {
-        if (wp->object->isMarked()) {
-            if (!wp->shape->isMarked()) {
-                modified = true;
-                MarkShape(trc, wp->shape, "shape");
-            }
-            if (wp->shape->hasSetterValue() && wp->setter) {
-                if (!CastAsObject(wp->setter)->isMarked()) {
-                    modified = true;
-                    MarkObject(trc, *CastAsObject(wp->setter), "wp->setter");
-                }
-            }
-            if (!wp->closure->isMarked()) {
-                modified = true;
-                MarkObject(trc, *wp->closure, "wp->closure");
-            }
-        }
-    }
-
-    return modified;
-}
-
-void
-js_SweepWatchPoints(JSContext *cx)
-{
-    JSRuntime *rt;
-    JSWatchPoint *wp, *next;
-    uint32 sample;
-
-    rt = cx->runtime;
-    DBG_LOCK(rt);
-    for (wp = (JSWatchPoint *)rt->watchPointList.next;
-         &wp->links != &rt->watchPointList;
-         wp = next) {
-        next = (JSWatchPoint *)wp->links.next;
-        if (IsAboutToBeFinalized(cx, wp->object)) {
-            sample = rt->debuggerMutations;
-
-            
-            DropWatchPointAndUnlock(cx, wp, JSWP_LIVE, true);
-            DBG_LOCK(rt);
-            if (rt->debuggerMutations != sample + 1)
-                next = (JSWatchPoint *)rt->watchPointList.next;
-        }
-    }
-    DBG_UNLOCK(rt);
-}
-
-
-
-
-
-
-static JSWatchPoint *
-LockedFindWatchPoint(JSRuntime *rt, JSObject *obj, jsid propid)
-{
-    JSWatchPoint *wp;
-
-    for (wp = (JSWatchPoint *)rt->watchPointList.next;
-         &wp->links != &rt->watchPointList;
-         wp = (JSWatchPoint *)wp->links.next) {
-        if (wp->object == obj && wp->shape->propid == propid)
-            return wp;
-    }
-    return NULL;
-}
-
-static JSWatchPoint *
-FindWatchPoint(JSRuntime *rt, JSObject *obj, jsid id)
-{
-    JSWatchPoint *wp;
-
-    DBG_LOCK(rt);
-    wp = LockedFindWatchPoint(rt, obj, id);
-    DBG_UNLOCK(rt);
-    return wp;
-}
-
-JSBool
-js_watch_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
-{
-    
-    types::AddTypePropertyId(cx, obj, id, types::Type::UnknownType());
-
-    assertSameCompartment(cx, obj);
-    JSRuntime *rt = cx->runtime;
-    DBG_LOCK(rt);
-    for (JSWatchPoint *wp = (JSWatchPoint *)rt->watchPointList.next;
-         &wp->links != &rt->watchPointList;
-         wp = (JSWatchPoint *)wp->links.next) {
-        const Shape *shape = wp->shape;
-        if (wp->object == obj && SHAPE_USERID(shape) == id && !(wp->flags & JSWP_HELD)) {
-            bool ok;
-            Value old;
-            uint32 slot;
-            const Shape *needMethodSlotWrite = NULL;
-
-            wp->flags |= JSWP_HELD;
-            DBG_UNLOCK(rt);
-
-            jsid propid = shape->propid;
-            shape = obj->nativeLookup(propid);
-            if (!shape) {
-                
-
-
-
-
-                ok = true;
-                goto out;
-            }
-            JS_ASSERT(IsWatchedProperty(cx, shape));
-
-            
-            slot = shape->slot;
-            old = obj->containsSlot(slot) ? obj->nativeGetSlot(slot) : UndefinedValue();
-            if (shape->isMethod()) {
-                
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                JS_ASSERT(!wp->setter);
-                Value method = ObjectValue(shape->methodObject());
-                if (old.isUndefined())
-                    obj->nativeSetSlot(slot, method);
-                ok = obj->methodReadBarrier(cx, *shape, &method);
-                if (!ok)
-                    goto out;
-                wp->shape = shape = needMethodSlotWrite = obj->nativeLookup(propid);
-                JS_ASSERT(shape->isDataDescriptor());
-                JS_ASSERT(!shape->isMethod());
-                if (old.isUndefined())
-                    obj->nativeSetSlot(shape->slot, old);
-                else
-                    old = method;
-            }
-
-            {
-                Maybe<AutoShapeRooter> tvr;
-                if (needMethodSlotWrite)
-                    tvr.construct(cx, needMethodSlotWrite);
-
-                
-
-
-
-                ok = wp->handler(cx, obj, propid, Jsvalify(old), Jsvalify(vp), wp->closure);
-                if (!ok)
-                    goto out;
-                shape = obj->nativeLookup(propid);
-
-                if (!shape) {
-                    ok = true;
-                } else if (wp->setter) {
-                    
-
-
-
-                    ok = shape->hasSetterValue()
-                         ? ExternalInvoke(cx, ObjectValue(*obj),
-                                          ObjectValue(*CastAsObject(wp->setter)),
-                                          1, vp, vp)
-                         : CallJSPropertyOpSetter(cx, wp->setter, obj, SHAPE_USERID(shape),
-                                                  strict, vp);
-                } else if (shape == needMethodSlotWrite) {
-                    
-                    obj->nativeSetSlot(shape->slot, *vp);
-                    ok = true;
-                } else {
-                    
-
-
-
-
-
-
-
-
-
-                    ok = obj->methodWriteBarrier(cx, *shape, *vp) != NULL;
-                }
-            }
-
-        out:
-            DBG_LOCK(rt);
-            return DropWatchPointAndUnlock(cx, wp, JSWP_HELD, false) && ok;
-        }
-    }
-    DBG_UNLOCK(rt);
-    return true;
-}
-
-static JSBool
-js_watch_set_wrapper(JSContext *cx, uintN argc, Value *vp)
-{
-    JSObject *obj = ToObject(cx, &vp[1]);
-    if (!obj)
-        return false;
-
-    JSObject &funobj = JS_CALLEE(cx, vp).toObject();
-    JSFunction *wrapper = funobj.getFunctionPrivate();
-    jsid userid = ATOM_TO_JSID(wrapper->atom);
-
-    JS_SET_RVAL(cx, vp, argc ? JS_ARGV(cx, vp)[0] : UndefinedValue());
-    
-
-
-
-    return js_watch_set(cx, obj, userid, false, vp);
-}
-
-namespace js {
-
-bool
-IsWatchedProperty(JSContext *cx, const Shape *shape)
-{
-    if (shape->hasSetterValue()) {
-        JSObject *funobj = shape->setterObject();
-        if (!funobj || !funobj->isFunction())
-            return false;
-
-        JSFunction *fun = funobj->getFunctionPrivate();
-        return fun->maybeNative() == js_watch_set_wrapper;
-    }
-    return shape->setterOp() == js_watch_set;
-}
-
-}
-
-
-
-
-
-
-static StrictPropertyOp
-WrapWatchedSetter(JSContext *cx, jsid id, uintN attrs, StrictPropertyOp setter)
-{
-    JSAtom *atom;
-    JSFunction *wrapper;
-
-    
-    if (!(attrs & JSPROP_SETTER))
-        return &js_watch_set;   
-
-    
-
-
-
-    if (JSID_IS_ATOM(id)) {
-        atom = JSID_TO_ATOM(id);
-    } else if (JSID_IS_INT(id)) {
-        if (!js_ValueToStringId(cx, IdToValue(id), &id))
-            return NULL;
-        atom = JSID_TO_ATOM(id);
-    } else {
-        atom = NULL;
-    }
-
-    wrapper = js_NewFunction(cx, NULL, js_watch_set_wrapper, 1, 0,
-                             setter ? CastAsObject(setter)->getParent() : NULL, atom);
-    if (!wrapper)
-        return NULL;
-    return CastAsStrictPropertyOp(FUN_OBJECT(wrapper));
-}
-
-static const Shape *
-UpdateWatchpointShape(JSContext *cx, JSWatchPoint *wp, const Shape *newShape)
-{
-    JS_ASSERT_IF(wp->shape, wp->shape->propid == newShape->propid);
-    JS_ASSERT(!IsWatchedProperty(cx, newShape));
-
-    
-    StrictPropertyOp watchingSetter =
-        WrapWatchedSetter(cx, newShape->propid, newShape->attributes(), newShape->setter());
-    if (!watchingSetter)
-        return NULL;
-
-    
-
-
-
-    StrictPropertyOp originalSetter = newShape->setter();
-
-    
-
-
-
-
-
-    const Shape *watchingShape = 
-        js_ChangeNativePropertyAttrs(cx, wp->object, newShape, 0, newShape->attributes(),
-                                     newShape->getter(), watchingSetter);
-    if (!watchingShape)
-        return NULL;
-
-    
-    wp->setter = originalSetter;
-    wp->shape = watchingShape;
-
-    return watchingShape;
-}
-
-const Shape *
-js_SlowPathUpdateWatchpointsForShape(JSContext *cx, JSObject *obj, const Shape *newShape)
-{
-    assertSameCompartment(cx, obj);
-
-    
-
-
-
-
-
-
-    if (IsWatchedProperty(cx, newShape))
-        return newShape;
-
-    JSWatchPoint *wp = FindWatchPoint(cx->runtime, obj, newShape->propid);
-    if (!wp)
-        return newShape;
-
-    return UpdateWatchpointShape(cx, wp, newShape);
-}
-
-
-
-
-
-
-
-static StrictPropertyOp
-UnwrapSetter(JSContext *cx, JSObject *obj, const Shape *shape)
-{
-    
-    if (!IsWatchedProperty(cx, shape))
-        return shape->setter();
-
-    
-    JSWatchPoint *wp = FindWatchPoint(cx->runtime, obj, shape->propid);
-
-    
-
-
-
-    JS_ASSERT(wp);
-
-    return wp->setter;
-}
-
 JS_PUBLIC_API(JSBool)
 JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
                  JSWatchPointHandler handler, JSObject *closure)
 {
     assertSameCompartment(cx, obj);
+    id = js_CheckForStringIndex(id);
 
     JSObject *origobj;
     Value v;
@@ -1094,141 +652,28 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
 
     types::MarkTypePropertyConfigured(cx, obj, propid);
 
-    JSObject *pobj;
-    JSProperty *prop;
-    if (!js_LookupProperty(cx, obj, propid, &pobj, &prop))
-        return false;
-    const Shape *shape = (Shape *) prop;
-    JSRuntime *rt = cx->runtime;
-    if (!shape) {
-        
-        JSWatchPoint *wp = FindWatchPoint(rt, obj, propid);
-        if (!wp) {
-            
-            shape = DefineNativeProperty(cx, obj, propid, UndefinedValue(), NULL, NULL,
-                                         JSPROP_ENUMERATE, 0, 0);
-            if (!shape)
-                return false;
-        }
-    } else if (pobj != obj) {
-        
-        AutoValueRooter valroot(cx);
-        PropertyOp getter;
-        StrictPropertyOp setter;
-        uintN attrs, flags;
-        intN shortid;
-
-        if (pobj->isNative()) {
-            if (shape->isMethod()) {
-                Value method = ObjectValue(shape->methodObject());
-                shape = pobj->methodReadBarrier(cx, *shape, &method);
-                if (!shape)
-                    return false;
-            }
-
-            valroot.set(pobj->containsSlot(shape->slot)
-                        ? pobj->nativeGetSlot(shape->slot)
-                        : UndefinedValue());
-            getter = shape->getter();
-            setter = UnwrapSetter(cx, pobj, shape);
-            attrs = shape->attributes();
-            flags = shape->getFlags();
-            shortid = shape->shortid;
-        } else {
-            if (!pobj->getProperty(cx, propid, valroot.addr()) ||
-                !pobj->getAttributes(cx, propid, &attrs)) {
-                return false;
-            }
-            getter = NULL;
-            setter = NULL;
-            flags = 0;
-            shortid = 0;
-        }
-
-        
-        shape = DefineNativeProperty(cx, obj, propid, valroot.value(), getter, setter,
-                                     attrs, flags, shortid);
-        if (!shape)
+    WatchpointMap *wpmap = cx->compartment->watchpointMap;
+    if (!wpmap) {
+        wpmap = cx->runtime->new_<WatchpointMap>();
+        if (!wpmap || !wpmap->init()) {
+            js_ReportOutOfMemory(cx);
             return false;
+        }
+        cx->compartment->watchpointMap = wpmap;
     }
-
-    
-
-
-
-    DBG_LOCK(rt);
-    JSWatchPoint *wp = LockedFindWatchPoint(rt, obj, propid);
-    if (!wp) {
-        DBG_UNLOCK(rt);
-        wp = (JSWatchPoint *) cx->malloc_(sizeof *wp);
-        if (!wp)
-            return false;
-        wp->handler = NULL;
-        wp->closure = NULL;
-        wp->object = obj;
-        wp->shape = NULL;
-        wp->flags = JSWP_LIVE;
-
-        
-        if (!UpdateWatchpointShape(cx, wp, shape)) {
-            
-            JS_INIT_CLIST(&wp->links);
-            DBG_LOCK(rt);
-            DropWatchPointAndUnlock(cx, wp, JSWP_LIVE, false);
-            return false;
-        }
-
-        
-
-
-
-
-        DBG_LOCK(rt);
-        JS_ASSERT(!LockedFindWatchPoint(rt, obj, propid));
-        JS_APPEND_LINK(&wp->links, &rt->watchPointList);
-        ++rt->debuggerMutations;
-    }
-
-    
-
-
-
-    obj->watchpointOwnShapeChange(cx);
-
-    wp->handler = handler;
-    wp->closure = reinterpret_cast<JSObject*>(closure);
-    DBG_UNLOCK(rt);
-    return true;
+    return wpmap->watch(cx, obj, id, handler, closure);
 }
 
 JS_PUBLIC_API(JSBool)
 JS_ClearWatchPoint(JSContext *cx, JSObject *obj, jsid id,
                    JSWatchPointHandler *handlerp, JSObject **closurep)
 {
-    assertSameCompartment(cx, obj);
+    assertSameCompartment(cx, obj, id);
 
-    JSRuntime *rt;
-    JSWatchPoint *wp;
-
-    rt = cx->runtime;
-    DBG_LOCK(rt);
-    for (wp = (JSWatchPoint *)rt->watchPointList.next;
-         &wp->links != &rt->watchPointList;
-         wp = (JSWatchPoint *)wp->links.next) {
-        if (wp->object == obj && SHAPE_USERID(wp->shape) == id) {
-            if (handlerp)
-                *handlerp = wp->handler;
-            if (closurep)
-                *closurep = wp->closure;
-            return DropWatchPointAndUnlock(cx, wp, JSWP_LIVE, false);
-        }
-    }
-    DBG_UNLOCK(rt);
-    if (handlerp)
-        *handlerp = NULL;
-    if (closurep)
-        *closurep = NULL;
-    return JS_TRUE;
+    id = js_CheckForStringIndex(id);
+    if (WatchpointMap *wpmap = cx->compartment->watchpointMap)
+        wpmap->unwatch(obj, id, handlerp, closurep);
+    return true;
 }
 
 JS_PUBLIC_API(JSBool)
@@ -1236,53 +681,19 @@ JS_ClearWatchPointsForObject(JSContext *cx, JSObject *obj)
 {
     assertSameCompartment(cx, obj);
 
-    JSRuntime *rt;
-    JSWatchPoint *wp, *next;
-    uint32 sample;
-
-    rt = cx->runtime;
-    DBG_LOCK(rt);
-    for (wp = (JSWatchPoint *)rt->watchPointList.next;
-         &wp->links != &rt->watchPointList;
-         wp = next) {
-        next = (JSWatchPoint *)wp->links.next;
-        if (wp->object == obj) {
-            sample = rt->debuggerMutations;
-            if (!DropWatchPointAndUnlock(cx, wp, JSWP_LIVE, false))
-                return JS_FALSE;
-            DBG_LOCK(rt);
-            if (rt->debuggerMutations != sample + 1)
-                next = (JSWatchPoint *)rt->watchPointList.next;
-        }
-    }
-    DBG_UNLOCK(rt);
-    return JS_TRUE;
+    if (WatchpointMap *wpmap = cx->compartment->watchpointMap)
+        wpmap->unwatchObject(obj);
+    return true;
 }
 
 JS_PUBLIC_API(JSBool)
 JS_ClearAllWatchPoints(JSContext *cx)
 {
-    JSRuntime *rt;
-    JSWatchPoint *wp, *next;
-    uint32 sample;
-
-    rt = cx->runtime;
-    DBG_LOCK(rt);
-    for (wp = (JSWatchPoint *)rt->watchPointList.next;
-         &wp->links != &rt->watchPointList;
-         wp = next) {
-        SwitchToCompartment sc(cx, wp->object);
-
-        next = (JSWatchPoint *)wp->links.next;
-        sample = rt->debuggerMutations;
-        if (!DropWatchPointAndUnlock(cx, wp, JSWP_LIVE, false))
-            return JS_FALSE;
-        DBG_LOCK(rt);
-        if (rt->debuggerMutations != sample + 1)
-            next = (JSWatchPoint *)rt->watchPointList.next;
+    if (JSCompartment *comp = cx->compartment) {
+        if (WatchpointMap *wpmap = comp->watchpointMap)
+            wpmap->clear();
     }
-    DBG_UNLOCK(rt);
-    return JS_TRUE;
+    return true;
 }
 
 

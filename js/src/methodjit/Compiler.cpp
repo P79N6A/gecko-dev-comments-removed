@@ -717,6 +717,12 @@ mjit::Compiler::generatePrologue()
                                          FrameAddress(offsetof(VMFrame, stackLimit)));
 
         
+
+
+
+
+
+
         {
             stubcc.linkExitDirect(stackCheck, stubcc.masm.label());
             OOL_STUBCALL(stubs::HitStackQuota, REJOIN_NONE);
