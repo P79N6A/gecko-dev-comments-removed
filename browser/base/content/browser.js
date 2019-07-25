@@ -4439,7 +4439,10 @@ var XULBrowserWindow = {
       });
 
       if (gFindBarInitialized) {
-        gFindBar.close();
+        if (gFindBar.findMode != gFindBar.FIND_NORMAL) {
+          
+          gFindBar.close();
+        }
 
         
         gFindBar.getElement("highlight").checked = false;

@@ -8,32 +8,6 @@ let newTab, iframe;
 function test() {
   waitForExplicitFinish();
   newTab = gBrowser.addTab("about:blank");
-  gBrowser.addEventListener("DOMContentLoaded", testFindBarCloseOnTabSwitch,
-                            false);
-}
-
-function testFindBarCloseOnTabSwitch() {
-  gBrowser.removeEventListener("DOMContentLoaded", testFindBarCloseOnTabSwitch,
-                               false);
-
-  gFindBar.open();
-  gBrowser.selectedTab = newTab;
-  ok(gFindBar.hidden, "the Find bar is hidden after switching tabs");
-
-  gFindBar.open();
-  newTab.linkedBrowser.addEventListener("DOMContentLoaded",
-                                        testFindBarCloseOnLocationChange,
-                                        false);
-  newTab.linkedBrowser.contentWindow.location = "http://example.com/";
-}
-
-function testFindBarCloseOnLocationChange() {
-  newTab.linkedBrowser.removeEventListener("DOMContentLoaded",
-                                           testFindBarCloseOnLocationChange,
-                                           false);
-
-  ok(gFindBar.hidden, "the Find bar is hidden after the location changes");
-
   newTab.linkedBrowser.addEventListener("DOMContentLoaded",
     prepareTestFindBarStaysOpenOnSubdocumentLocationChange, false);
   newTab.linkedBrowser.contentWindow.location = "http://example.com/browser/" +
