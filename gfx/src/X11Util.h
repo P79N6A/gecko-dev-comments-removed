@@ -52,6 +52,8 @@
 #  error Unknown toolkit
 #endif 
 
+#include "mozilla/Scoped.h"
+
 #include "gfxCore.h"
 #include "nsDebug.h"
 
@@ -85,38 +87,14 @@ XVisualIDToInfo(Display* aDisplay, VisualID aVisualID,
 
 
 
-template<typename T>
-struct ScopedXFree
+template <typename T>
+struct ScopedXFreePtrTraits
 {
-  ScopedXFree() : mPtr(NULL) {}
-  ScopedXFree(T* aPtr) : mPtr(aPtr) {}
-
-  ~ScopedXFree() { Assign(NULL); }
-
-  ScopedXFree& operator=(T* aPtr) { Assign(aPtr); return *this; }
-
-  operator T*() const { return get(); }
-  T* operator->() const { return get(); }
-  T* get() const { return mPtr; }
-
-private:
-  void Assign(T* aPtr)
-  {
-    NS_ASSERTION(!mPtr || mPtr != aPtr, "double-XFree() imminent");
-
-    if (mPtr)
-      XFree(mPtr);
-    mPtr = aPtr;
-  }
-
-  T* mPtr;
-
-  
-  ScopedXFree(const ScopedXFree&);
-  ScopedXFree& operator=(const ScopedXFree&);
-  static void* operator new (size_t);
-  static void operator delete (void*);
+  typedef T *type;
+  static T *empty() { return NULL; }
+  static void release(T *ptr) { if (ptr!=NULL) XFree(ptr); }
 };
+SCOPED_TEMPLATE(ScopedXFree, ScopedXFreePtrTraits);
 
 
 
