@@ -56,8 +56,10 @@ let Observers = {
 
   remove: function(callback, topic) {
     let observer = Observers._observers[topic][callback];
-    Observers._service.removeObserver(observer, topic);
-    delete this._observers[topic][callback];
+    if (observer) {
+      Observers._service.removeObserver(observer, topic);
+      delete this._observers[topic][callback];
+    }
   },
 
   notify: function(subject, topic, data) {
@@ -67,6 +69,8 @@ let Observers = {
   _service: Cc["@mozilla.org/observer-service;1"].
             getService(Ci.nsIObserverService),
 
+  
+  
   _observers: {}
 };
 
@@ -81,10 +85,12 @@ Observer.prototype = {
     
     
     
-    if (subject && subject.wrappedJSObject)
-      this._callback(subject.wrappedJSObject, topic, data);
+    let unwrappedSubject = subject.wrappedJSObject || subject;
+
+    if (typeof this._callback == "function")
+      this._callback(unwrappedSubject, topic, data);
     else
-      this._callback(subject, topic, data);
+      this._callback.observe(unwrappedSubject, topic, data);
   }
 }
 
