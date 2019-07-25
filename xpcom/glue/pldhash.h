@@ -578,14 +578,27 @@ typedef PLDHashOperator
 NS_COM_GLUE PRUint32
 PL_DHashTableEnumerate(PLDHashTable *table, PLDHashEnumerator etor, void *arg);
 
+typedef size_t
+(* PLDHashSizeOfEntryFun)(PLDHashEntryHdr *hdr, nsMallocSizeOfFun mallocSizeOf);
+
+
 
 
 
 
 
 NS_COM_GLUE size_t
-PL_DHashTableShallowSizeOfExcludingThis(PLDHashTable *table,
-                                        nsMallocSizeOfFun mallocSizeOf);
+PL_DHashTableSizeOfExcludingThis(PLDHashTable *table,
+                                 PLDHashSizeOfEntryFun sizeOfEntry,
+                                 nsMallocSizeOfFun mallocSizeOf);
+
+
+
+
+NS_COM_GLUE size_t
+PL_DHashTableSizeOfIncludingThis(PLDHashTable *table,
+                                 PLDHashSizeOfEntryFun sizeOfEntry,
+                                 nsMallocSizeOfFun mallocSizeOf);
 
 #ifdef DEBUG
 

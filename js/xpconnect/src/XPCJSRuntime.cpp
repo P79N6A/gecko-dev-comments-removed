@@ -991,6 +991,26 @@ XPCJSRuntime::ActivityCallback(void *arg, JSBool active)
     }
 }
 
+size_t
+XPCJSRuntime::SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf)
+{
+    size_t n = 0;
+    n += mallocSizeOf(this, sizeof(XPCJSRuntime));
+    n += mWrappedJSMap->SizeOfIncludingThis(mallocSizeOf);
+    n += mIID2NativeInterfaceMap->SizeOfIncludingThis(mallocSizeOf);
+    n += mClassInfo2NativeSetMap->ShallowSizeOfIncludingThis(mallocSizeOf);
+    n += mNativeSetMap->SizeOfIncludingThis(mallocSizeOf);
+
+    
+    
+    n += JS_DHashTableSizeOfExcludingThis(&mJSHolders, NULL, mallocSizeOf);
+
+    
+    
+    
+
+    return n;
+}
 
 
 
@@ -1575,6 +1595,12 @@ CollectCompartmentStatsForRuntime(JSRuntime *rt, IterateData *data)
                 data->runtimeThreadsStackCommitted += stackCommitted;
             }
         }
+
+        XPCJSRuntime *xpcrt = nsXPConnect::GetRuntimeInstance();
+        data->xpconnect +=
+            xpcrt->SizeOfIncludingThis(MemoryReporterMallocSizeOf);
+        data->xpconnect +=
+            XPCWrappedNativeScope::SizeOfAllScopesIncludingThis(MemoryReporterMallocSizeOf);
     }
 
     JS_DestroyContextNoGC(cx);
@@ -1902,6 +1928,11 @@ ReportJSRuntimeStats(const IterateData &data, const nsACString &pathPrefix,
                       "Memory used for the thread stacks.  This is the committed portions "
                       "of the stacks; any uncommitted portions are not measured because they "
                       "hardly cost anything.",
+                      callback, closure);
+
+    ReportMemoryBytes(pathPrefix + NS_LITERAL_CSTRING("xpconnect"),
+                      nsIMemoryReporter::KIND_HEAP, data.xpconnect,
+                      "Memory used by XPConnect." SLOP_BYTES_STRING,
                       callback, closure);
 
     ReportMemoryBytes(pathPrefix +

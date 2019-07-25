@@ -41,7 +41,10 @@
 
 
 
+
+
 #include "jstypes.h"
+#include "jsutil.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -575,6 +578,28 @@ typedef JSDHashOperator
 
 extern JS_PUBLIC_API(uint32)
 JS_DHashTableEnumerate(JSDHashTable *table, JSDHashEnumerator etor, void *arg);
+
+typedef size_t
+(* JSDHashSizeOfEntryFun)(JSDHashEntryHdr *hdr, JSMallocSizeOfFun mallocSizeOf);
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(size_t)
+JS_DHashTableSizeOfExcludingThis(JSDHashTable *table,
+                                 JSDHashSizeOfEntryFun sizeOfEntry,
+                                 JSMallocSizeOfFun mallocSizeOf);
+
+
+
+
+extern JS_PUBLIC_API(size_t)
+JS_DHashTableSizeOfIncludingThis(JSDHashTable *table,
+                                 JSDHashSizeOfEntryFun sizeOfEntry,
+                                 JSMallocSizeOfFun mallocSizeOf);
 
 #ifdef DEBUG
 
