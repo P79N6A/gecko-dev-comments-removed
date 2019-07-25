@@ -479,8 +479,7 @@ protected:
 
 
 
-
-  nsresult          GetNextInterval(const nsSMILInterval* aPrevInterval,
+  PRBool            GetNextInterval(const nsSMILInterval* aPrevInterval,
                                     const nsSMILInstanceTime* aFixedBeginTime,
                                     nsSMILInterval& aResult) const;
   nsSMILInstanceTime* GetNextGreater(const InstanceTimeList& aList,
