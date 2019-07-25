@@ -181,7 +181,9 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
       (!NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) &&
        aVisitor.mEvent->message != NS_MOUSE_BUTTON_DOWN) ||
       aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault ||
-      !aVisitor.mPresContext) {
+      !aVisitor.mPresContext ||
+      
+      (aVisitor.mEvent->flags & NS_EVENT_FLAG_PREVENT_MULTIPLE_ACTIONS)) {
     return NS_OK;
   }
 
@@ -256,8 +258,11 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           
           DispatchClickEvent(aVisitor.mPresContext,
                              static_cast<nsInputEvent*>(aVisitor.mEvent),
-                             content, PR_FALSE, &status);
+                             content, PR_FALSE,
+                             NS_EVENT_FLAG_PREVENT_MULTIPLE_ACTIONS, &status);
           
+          
+          aVisitor.mEvent->flags |= NS_EVENT_FLAG_PREVENT_MULTIPLE_ACTIONS;
         }
         break;
     }
