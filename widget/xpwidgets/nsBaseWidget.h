@@ -5,6 +5,7 @@
 #ifndef nsBaseWidget_h__
 #define nsBaseWidget_h__
 
+#include "mozilla/WidgetUtils.h"
 #include "nsRect.h"
 #include "nsIWidget.h"
 #include "nsWidgetsCID.h"
@@ -46,10 +47,11 @@ class nsBaseWidget : public nsIWidget
   friend class nsAutoRollup;
 
 protected:
+  typedef base::Thread Thread;
   typedef mozilla::layers::BasicLayerManager BasicLayerManager;
   typedef mozilla::layers::CompositorChild CompositorChild;
   typedef mozilla::layers::CompositorParent CompositorParent;
-  typedef base::Thread Thread;
+  typedef mozilla::ScreenRotation ScreenRotation;
 
 public:
   nsBaseWidget();
@@ -183,10 +185,16 @@ public:
 
 
 
+
+
+
+
+
   class AutoLayerManagerSetup {
   public:
     AutoLayerManagerSetup(nsBaseWidget* aWidget, gfxContext* aTarget,
-                          BasicLayerManager::BufferMode aDoubleBuffering);
+                          BasicLayerManager::BufferMode aDoubleBuffering,
+                          ScreenRotation aRotation = mozilla::ROTATION_0);
     ~AutoLayerManagerSetup();
   private:
     nsBaseWidget* mWidget;

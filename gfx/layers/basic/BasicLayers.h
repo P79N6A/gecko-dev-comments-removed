@@ -10,10 +10,10 @@
 
 #include "gfxContext.h"
 #include "gfxCachedTempSurface.h"
+#include "mozilla/layers/ShadowLayers.h"
+#include "mozilla/WidgetUtils.h"
 #include "nsAutoRef.h"
 #include "nsThreadUtils.h"
-
-#include "mozilla/layers/ShadowLayers.h"
 
 class nsIWidget;
 
@@ -80,7 +80,8 @@ public:
     BUFFER_NONE,
     BUFFER_BUFFERED
   };
-  void SetDefaultTarget(gfxContext* aContext, BufferMode aDoubleBuffering);
+  virtual void SetDefaultTarget(gfxContext* aContext, BufferMode aDoubleBuffering,
+                                ScreenRotation aRotation);
   gfxContext* GetDefaultTarget() { return mDefaultTarget; }
 
   nsIWidget* GetRetainerWidget() { return mWidget; }
@@ -221,6 +222,8 @@ public:
 
   virtual PRInt32 GetMaxTextureSize() const;
 
+  virtual void SetDefaultTarget(gfxContext* aContext, BufferMode aDoubleBuffering,
+                                ScreenRotation aRotation) MOZ_OVERRIDE;
   virtual void BeginTransactionWithTarget(gfxContext* aTarget);
   virtual bool EndEmptyTransaction();
   virtual void EndTransaction(DrawThebesLayerCallback aCallback,
@@ -262,10 +265,19 @@ private:
   void ForwardTransaction();
 
   
-  
-  bool mRepeatTransaction;
+  nsIntRect mTargetBounds;
 
   LayerRefArray mKeepAlive;
+
+  
+  
+  
+  
+  ScreenRotation mTargetRotation;
+
+  
+  
+  bool mRepeatTransaction;
 };
 
 class BasicShadowableThebesLayer;

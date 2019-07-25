@@ -14,6 +14,7 @@
 #include "ImageLayers.h"
 #include "LayersBackend.h"
 #include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/WidgetUtils.h"
 
 class gfxSharedImageSurface;
 
@@ -116,7 +117,8 @@ public:
 
 
 
-  void BeginTransaction();
+  void BeginTransaction(const nsIntRect& aTargetBounds,
+                        ScreenRotation aRotation);
 
   
 
