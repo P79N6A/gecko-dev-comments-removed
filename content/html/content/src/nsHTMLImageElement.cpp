@@ -70,7 +70,6 @@
 #include "nsRuleData.h"
 
 #include "nsIJSContextStack.h"
-#include "nsImageMapUtils.h"
 #include "nsIDOMHTMLMapElement.h"
 #include "nsEventDispatcher.h"
 
@@ -421,9 +420,7 @@ nsHTMLImageElement::IsHTMLFocusable(PRBool aWithMouse,
     
     
     
-    nsCOMPtr<nsIDOMHTMLMapElement> imageMap =
-      nsImageMapUtils::FindImageMap(GetOwnerDoc(), usemap);
-    if (imageMap) {
+    if (GetOwnerDoc() && GetOwnerDoc()->FindImageMap(usemap)) {
       if (aTabIndex) {
         
         *aTabIndex = (sTabFocusModel & eTabFocus_linksMask)? 0 : -1;
