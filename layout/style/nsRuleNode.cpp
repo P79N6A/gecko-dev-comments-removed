@@ -3435,6 +3435,11 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
               NS_STYLE_WHITESPACE_NORMAL, 0, 0, 0, 0);
 
   
+  SetDiscrete(*aRuleData->ValueForWordBreak(), text->mWordBreak, canStoreInRuleTree,
+              SETDSC_ENUMERATED, parentText->mWordBreak,
+              NS_STYLE_WORDBREAK_NORMAL, 0, 0, 0, 0);
+
+  
   nsStyleCoord tempCoord;
   const nsCSSValue* wordSpacingValue = aRuleData->ValueForWordSpacing();
   if (SetCoord(*wordSpacingValue, tempCoord,
