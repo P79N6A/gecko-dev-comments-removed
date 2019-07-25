@@ -32,10 +32,16 @@ function assertEquals(descr, expected, actual) {
 }
 
   function assertSize(descr, expected, actual) {
-    var actualSize;
     ok(actual !== null, descr);
-    actualSize = actual.length;
-    is(actualSize, expected, descr);
+
+
+
+
+
+
+
+
+    is(actual.length, expected, descr);
   }
 
   function assertEqualsAutoCase(context, descr, expected, actual) {
@@ -186,7 +192,13 @@ function assertEquals(descr, expected, actual) {
   function assertURIEquals(assertID, scheme, path, host, file, name, query, fragment, isAbsolute, actual) {
     
     
-    ok(assertID && actual);
+    ok(assertID, "[assertURIEquals()] 'assertID' has a value");
+    ok(actual, "[assertURIEquals()] 'actual' has a value");
+
+
+
+
+
 
     var uri = actual;
 
@@ -315,6 +327,11 @@ function catchInitializationError(blder, ex) {
 
 function checkInitialization(blder, testname) {
     if (blder.initializationError != null) {
+        
+        function warn(msg) {
+          info("[checkInitialization() warning] " + msg);
+        }
+
         if (blder.skipIncompatibleTests) {
         	warn(testname + " not run:" + blder.initializationError);
         	return blder.initializationError;
@@ -325,7 +342,6 @@ function checkInitialization(blder, testname) {
             if (blder.initializationFatalError != null) {
         		throw blder.initializationFatalError;
         	} else {
-        		
         		
         		
         		warn(testname + ": " +  blder.initializationError);
@@ -649,55 +665,36 @@ function getImplementation() {
 }
 
 
-SimpleTest._logResult = function(test, passString, failString) {
-  var msg = test.result ? passString : failString;
-  msg += " | " + test.name;
-  if (test.result) {
-      if (test.todo)
-          parentRunner.logger.error(msg)
-      else
-          parentRunner.logger.log(msg);
-  } else {
-      msg += " | " + test.diag;
-      if (test.todo) {
-        parentRunner.logger.log(msg)
-      } else {
-	
-        
-        
-          parentRunner.logger.error(msg);
-	  
-      } 
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 window.doc = window;  
 SimpleTest.waitForExplicitFinish();
 addLoadEvent(function(){ setUpPage(); });
-function testFails (test) {
-  if (!test.result) {
-    test.todo = true;
-    return true;
-  }
-  return false;
-}
 
-function markTodos() {
-  if (todoTests[docName]) {
-    
-    var tests = SimpleTest._tests;
-    var failures = [];
-    var o;
-    for (var i = 0; i < tests.length; i++) {
-      o = tests[i];
-      if (testFails(o)) {
-        failures.push(o);
-      } 
-    }
-    
-    todo(SimpleTest._tests != 0 && failures == 0, "test marked todo should fail somewhere");
-  }
-}
+
+
+
+
+
+
+
+
 
 function runJSUnitTests() {
   builder = createConfiguredBuilder();
@@ -705,12 +702,17 @@ function runJSUnitTests() {
     var tests = exposeTestFunctionNames(); 
     for (var i = 0; i < tests.length; i++) {
       window[tests[i]](); 
-   }   
+    }
   } catch (ex) {
-    
-    
-    
+
+
+
+
+
+
       ok(false, "Test threw exception: " + ex);
-    
+
+
+
   }
 }
