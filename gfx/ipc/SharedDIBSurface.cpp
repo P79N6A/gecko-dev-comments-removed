@@ -1,0 +1,95 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "SharedDIBSurface.h"
+
+#include "cairo.h"
+
+namespace mozilla {
+namespace gfx {
+
+static const cairo_user_data_key_t SHAREDDIB_KEY;
+
+static const long kBytesPerPixel = 4;
+
+bool
+SharedDIBSurface::Create(HDC adc, PRUint32 aWidth, PRUint32 aHeight)
+{
+  nsresult rv = mSharedDIB.Create(adc, aWidth, aHeight);
+  if (NS_FAILED(rv) || !mSharedDIB.IsValid())
+    return false;
+
+  InitSurface(aWidth, aHeight);
+  return true;
+}
+
+bool
+SharedDIBSurface::Attach(Handle aHandle, PRUint32 aWidth, PRUint32 aHeight)
+{
+  nsresult rv = mSharedDIB.Attach(aHandle, aWidth, aHeight);
+  if (NS_FAILED(rv) || !mSharedDIB.IsValid())
+    return false;
+
+  InitSurface(aWidth, aHeight);
+  return true;
+}
+
+void
+SharedDIBSurface::InitSurface(PRUint32 aWidth, PRUint32 aHeight)
+{
+  
+  
+  long stride = -long(aWidth * kBytesPerPixel);
+  unsigned char* data = reinterpret_cast<unsigned char*>(mSharedDIB.GetBits());
+  data -= (aHeight - 1) * stride;
+
+  gfxImageSurface::InitWithData(data, gfxIntSize(aWidth, aHeight),
+                                stride, ImageFormatRGB24);
+
+  cairo_surface_set_user_data(mSurface, &SHAREDDIB_KEY, this, NULL);
+}
+
+bool
+SharedDIBSurface::IsSharedDIBSurface(gfxASurface* aSurface)
+{
+  return aSurface &&
+    aSurface->GetType() == gfxASurface::SurfaceTypeImage &&
+    aSurface->GetData(&SHAREDDIB_KEY);
+}
+
+} 
+} 

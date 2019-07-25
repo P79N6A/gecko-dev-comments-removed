@@ -54,12 +54,12 @@ public:
 
   
   
-  nsresult Create(HDC aHdc, PRUint32 aWidth, PRUint32 aHeight, PRUint32 aDepth);
+  nsresult Create(HDC aHdc, PRUint32 aWidth, PRUint32 aHeight);
 
   
   
   
-  nsresult Attach(Handle aHandle, PRUint32 aWidth, PRUint32 aHeight, PRUint32 aDepth);
+  nsresult Attach(Handle aHandle, PRUint32 aWidth, PRUint32 aHeight);
 
   
   nsresult Close();
@@ -67,12 +67,16 @@ public:
   
   HDC GetHDC() { return mSharedHdc; }
 
+  
+  void* GetBits() { return mBitmapBits; }
+
 private:
   HDC                 mSharedHdc;
   HBITMAP             mSharedBmp;
   HGDIOBJ             mOldObj;
+  void*               mBitmapBits;
 
-  PRUint32 SetupBitmapHeader(PRUint32 aWidth, PRUint32 aHeight, PRUint32 aDepth, BITMAPINFOHEADER *aHeader);
+  PRUint32 SetupBitmapHeader(PRUint32 aWidth, PRUint32 aHeight, BITMAPINFOHEADER *aHeader);
   nsresult SetupSurface(HDC aHdc, BITMAPINFOHEADER *aHdr);
 };
 
