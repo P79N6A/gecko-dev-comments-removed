@@ -580,6 +580,12 @@ html|*#gcli-output-frame,
 
 
 
+#developer-toolbar-styleeditor {
+  display: none;
+}
+
+
+
 vbox[anonid=browserContainer][responsivemode] {
   overflow: auto;
 }
