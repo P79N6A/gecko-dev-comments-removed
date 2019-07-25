@@ -1375,6 +1375,30 @@ nsAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
     nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::textIndent, value);
 
   
+  rv = GetComputedStyleValue(EmptyString(), NS_LITERAL_STRING("margin-left"),
+                             value);
+  if (NS_SUCCEEDED(rv))
+    nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::marginLeft, value);
+
+  
+  rv = GetComputedStyleValue(EmptyString(), NS_LITERAL_STRING("margin-right"),
+                             value);
+  if (NS_SUCCEEDED(rv))
+    nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::marginRight, value);
+
+  
+  rv = GetComputedStyleValue(EmptyString(), NS_LITERAL_STRING("margin-top"),
+                             value);
+  if (NS_SUCCEEDED(rv))
+    nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::marginTop, value);
+
+  
+  rv = GetComputedStyleValue(EmptyString(), NS_LITERAL_STRING("margin-bottom"),
+                             value);
+  if (NS_SUCCEEDED(rv))
+    nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::marginBottom, value);
+
+  
   nsCOMPtr<nsIDOMHTMLElement> htmlElement = do_QueryInterface(mContent);
   if (htmlElement) {
     bool draggable = false;
