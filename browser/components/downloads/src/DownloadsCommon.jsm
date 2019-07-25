@@ -52,6 +52,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "gBrowserGlue",
                                    "nsIBrowserGlue");
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
+                                  "resource://gre/modules/PluralForm.jsm");
 
 const nsIDM = Ci.nsIDownloadManager;
 
@@ -67,6 +69,10 @@ const kDownloadsStringsRequiringFormatting = {
   statusSeparator: true,
   statusSeparatorBeforeNumber: true,
   fileExecutableSecurityWarning: true
+};
+
+const kDownloadsStringsRequiringPluralForm = {
+  showMoreDownloads: true
 };
 
 XPCOMUtils.defineLazyGetter(this, "DownloadsLocalFileCtor", function () {
@@ -101,6 +107,14 @@ const DownloadsCommon = {
           return sb.formatStringFromName(stringName,
                                          Array.slice(arguments, 0),
                                          arguments.length);
+        };
+      } else if (stringName in kDownloadsStringsRequiringPluralForm) {
+        strings[stringName] = function (aCount) {
+          
+          let formattedString = sb.formatStringFromName(stringName,
+                                         Array.slice(arguments, 0),
+                                         arguments.length);
+          return PluralForm.get(aCount, formattedString);
         };
       } else {
         strings[stringName] = string.value;
@@ -436,6 +450,7 @@ const DownloadsData = {
         );
 
         
+        
         let downloads = Services.downloads.activeDownloads;
         while (downloads.hasMoreElements()) {
           let download = downloads.getNext().QueryInterface(Ci.nsIDownload);
@@ -450,6 +465,8 @@ const DownloadsData = {
       }
     } else {
       if (this._loadState != this.kLoadAll) {
+        
+        
         
         
         let statement = Services.downloads.DBConnection.createAsyncStatement(

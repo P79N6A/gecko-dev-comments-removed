@@ -24,6 +24,13 @@ function gen_test()
     { endTime: 1180493839859229, state: nsIDM.DOWNLOAD_BLOCKED_POLICY },
   ];
 
+  
+  var originalCountLimit = DownloadsView.kItemCountLimit;
+  DownloadsView.kItemCountLimit = DownloadData.length;
+  registerCleanupFunction(function () {
+    DownloadsView.kItemCountLimit = originalCountLimit;
+  });
+
   try {
     
     for (let yy in gen_resetState()) yield;
