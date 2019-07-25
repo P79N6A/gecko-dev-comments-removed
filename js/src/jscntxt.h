@@ -594,12 +594,6 @@ struct JSRuntime : js::RuntimeFriendFields
     js::Vector<SavedGCRoot, 0, js::SystemAllocPolicy> gcSavedRoots;
 #endif
 
-
-
-
-
-
-
     bool                gcPoke;
     bool                gcRunning;
 

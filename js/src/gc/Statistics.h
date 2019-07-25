@@ -116,6 +116,12 @@ struct Statistics {
     FILE *fp;
     bool fullFormat;
 
+    
+
+
+
+    int gcDepth;
+
     int collectedCount;
     int compartmentCount;
     const char *nonincrementalReason;
