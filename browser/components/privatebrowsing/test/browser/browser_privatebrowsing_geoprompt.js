@@ -51,42 +51,33 @@ function test() {
   gBrowser.selectedBrowser.addEventListener("load", function () {
     gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
 
-    setTimeout(function() {
+    let notification = PopupNotifications.getNotification("geolocation");
+    ok(notification, "Notification should exist");
+    ok(notification.secondaryActions.length > 1, "Secondary actions should exist (always/never remember)");
+    notification.remove();
+
+    gBrowser.removeCurrentTab();
+
+    
+    pb.privateBrowsingEnabled = true;
+
+    gBrowser.selectedTab = gBrowser.addTab();
+    gBrowser.selectedBrowser.addEventListener("load", function () {
+      gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
+
       
-      let notificationBox = gBrowser.getNotificationBox();
-      let notification = notificationBox.getNotificationWithValue("geolocation");
-      ok(notification, "Notification box should be displaying outside of private browsing mode");
-      is(notification.getElementsByClassName("rememberChoice").length, 1,
-         "The remember control must be displayed outside of private browsing mode");
-      notificationBox.currentNotification.close();
+      let notification = PopupNotifications.getNotification("geolocation");
+      ok(notification, "Notification should exist");
+      is(notification.secondaryActions.length, 0, "Secondary actions shouldn't exist (always/never remember)");
+      notification.remove();
 
       gBrowser.removeCurrentTab();
 
       
-      pb.privateBrowsingEnabled = true;
-
-      gBrowser.selectedTab = gBrowser.addTab();
-      gBrowser.selectedBrowser.addEventListener("load", function () {
-        gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
-
-        setTimeout(function () {
-          
-          let notificationBox = gBrowser.getNotificationBox();
-          let notification = notificationBox.getNotificationWithValue("geolocation");
-          ok(notification, "Notification box should be displaying outside of private browsing mode");
-          is(notification.getElementsByClassName("rememberChoice").length, 0,
-             "The remember control must not be displayed inside of private browsing mode");
-          notificationBox.currentNotification.close();
-
-          gBrowser.removeCurrentTab();
-
-          
-          pb.privateBrowsingEnabled = false;
-          finish();
-        }, 100); 
-      }, true);
-      content.location = testPageURL;
-    }, 100); 
+      pb.privateBrowsingEnabled = false;
+      finish();
+    }, true);
+    content.location = testPageURL;
   }, true);
   content.location = testPageURL;
 }
