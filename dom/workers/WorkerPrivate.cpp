@@ -832,14 +832,12 @@ public:
 
 class NotifyRunnable : public WorkerControlRunnable
 {
-  bool mFromJSObjectFinalizer;
   Status mStatus;
 
 public:
-  NotifyRunnable(WorkerPrivate* aWorkerPrivate, bool aFromJSObjectFinalizer,
-                 Status aStatus)
+  NotifyRunnable(WorkerPrivate* aWorkerPrivate, Status aStatus)
   : WorkerControlRunnable(aWorkerPrivate, WorkerThread, UnchangedBusyCount),
-    mFromJSObjectFinalizer(aFromJSObjectFinalizer), mStatus(aStatus)
+    mStatus(aStatus)
   {
     NS_ASSERTION(aStatus == Terminating || aStatus == Canceling ||
                  aStatus == Killing, "Bad status!");
@@ -850,11 +848,7 @@ public:
   {
     
     
-    
-    
-    return mFromJSObjectFinalizer ?
-           true :
-           aWorkerPrivate->ModifyBusyCount(aCx, true);
+    return aWorkerPrivate->ModifyBusyCount(aCx, true);
   }
 
   bool
@@ -2019,7 +2013,7 @@ WorkerPrivateParent<Derived>::NotifyPrivate(JSContext* aCx, Status aStatus)
   mQueuedRunnables.Clear();
 
   nsRefPtr<NotifyRunnable> runnable =
-    new NotifyRunnable(ParentAsWorkerPrivate(), !aCx, aStatus);
+    new NotifyRunnable(ParentAsWorkerPrivate(), aStatus);
   return runnable->Dispatch(aCx);
 }
 
@@ -2163,7 +2157,7 @@ WorkerPrivateParent<Derived>::ModifyBusyCount(JSContext* aCx, bool aIncrease)
   NS_ASSERTION(aIncrease || mBusyCount, "Mismatched busy count mods!");
 
   if (aIncrease) {
-    if (mBusyCount++ == 0) {
+    if (mBusyCount++ == 0 && mJSObject) {
       if (!RootJSObject(aCx, true)) {
         return false;
       }
@@ -2171,7 +2165,7 @@ WorkerPrivateParent<Derived>::ModifyBusyCount(JSContext* aCx, bool aIncrease)
     return true;
   }
 
-  if (--mBusyCount == 0) {
+  if (--mBusyCount == 0 && mJSObject) {
     if (!RootJSObject(aCx, false)) {
       return false;
     }
@@ -2198,6 +2192,7 @@ WorkerPrivateParent<Derived>::RootJSObject(JSContext* aCx, bool aRoot)
 
   if (aRoot != mJSObjectRooted) {
     if (aRoot) {
+      NS_ASSERTION(mJSObject, "Nothing to root?");
       if (!JS_AddNamedObjectRoot(aCx, &mJSObject, "Worker root")) {
         NS_WARNING("JS_AddNamedObjectRoot failed!");
         return false;
