@@ -197,6 +197,13 @@ public:
 
   virtual void GC(js::gcreason::Reason aReason);
 
+  nsIScriptGlobalObject* GetCachedGlobalObject()
+  {
+    
+    
+    JSObject* global = JS_GetGlobalObject(mContext);
+    return global ? mGlobalObjectRef.get() : nsnull;
+  }
 protected:
   nsresult InitializeExternalClasses();
 
