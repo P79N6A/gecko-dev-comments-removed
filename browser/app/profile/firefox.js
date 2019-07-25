@@ -877,7 +877,7 @@ pref("browser.ssl_override_behavior", 2);
 
 
 
-pref("browser.identity.ssl_domain_display", 1);
+pref("browser.identity.ssl_domain_display", 0);
 
 
 
@@ -1051,10 +1051,6 @@ pref("devtools.inspector.htmlHeight", 112);
 pref("devtools.inspector.htmlPanelOpen", false);
 pref("devtools.inspector.sidebarOpen", false);
 pref("devtools.inspector.activeSidebar", "ruleview");
-
-
-pref("devtools.layoutview.enabled", false);
-pref("devtools.layoutview.open", false);
 
 
 pref("devtools.debugger.enabled", false);
