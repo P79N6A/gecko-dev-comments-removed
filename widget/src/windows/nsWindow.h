@@ -502,7 +502,7 @@ protected:
   
 #ifdef MOZ_XUL
   
-  nsRefPtr<gfxWindowsSurface> mTransparentSurface;
+  nsRefPtr<gfxASurface> mTransparentSurface;
   HDC                   mMemoryDC;
   nsTransparencyMode    mTransparencyMode;
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
