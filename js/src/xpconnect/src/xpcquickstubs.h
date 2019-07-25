@@ -348,8 +348,11 @@ xpc_qsJsvalToWcharStr(JSContext *cx, jsval v, jsval *pval, PRUnichar **pstr);
 
 
 
+
+
+
 JSBool
-xpc_qsStringToJsval(JSContext *cx, const nsAString &str, jsval *rval);
+xpc_qsStringToJsval(JSContext *cx, nsString &str, jsval *rval);
 
 nsresult
 getWrapper(JSContext *cx,

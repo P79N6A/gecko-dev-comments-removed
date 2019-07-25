@@ -528,6 +528,19 @@ class nsTSubstring_CharT
          
       NS_COM void StripChar( char_type aChar, PRInt32 aOffset=0 );
 
+        
+
+
+
+      void ForgetSharedBuffer()
+      {
+        if (mFlags & nsSubstring::F_SHARED)
+          {
+            mData = char_traits::sEmptyBuffer;
+            mLength = 0;
+            mFlags = F_TERMINATED;
+          }
+      }
 
     public:
 
