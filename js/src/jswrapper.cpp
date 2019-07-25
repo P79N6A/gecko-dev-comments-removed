@@ -1095,6 +1095,7 @@ bool
 js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
 {
     JS_ASSERT(IsCrossCompartmentWrapper(wobj));
+    JS_ASSERT(!IsCrossCompartmentWrapper(newTarget));
     JSObject *origTarget = Wrapper::wrappedObject(wobj);
     JS_ASSERT(origTarget);
     Value origv = ObjectValue(*origTarget);
@@ -1103,8 +1104,16 @@ js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
 
     
     
-    JS_ASSERT(pmap.lookup(origv));
+    
+    JS_ASSERT_IF(origTarget != newTarget, !pmap.has(ObjectValue(*newTarget)));
+
+    
+    
+    JS_ASSERT(&pmap.lookup(origv)->value.toObject() == wobj);
     pmap.remove(origv);
+
+    
+    
     NukeCrossCompartmentWrapper(wobj);
 
     
@@ -1121,8 +1130,12 @@ js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
     JS_ASSERT(tobj != wobj);
     if (!wobj->swap(cx, tobj))
         return false;
-    pmap.put(ObjectValue(*newTarget), ObjectValue(*wobj));
 
+    
+    
+    JS_ASSERT(Wrapper::wrappedObject(wobj) == newTarget);
+
+    pmap.put(ObjectValue(*newTarget), ObjectValue(*wobj));
     return true;
 }
 
