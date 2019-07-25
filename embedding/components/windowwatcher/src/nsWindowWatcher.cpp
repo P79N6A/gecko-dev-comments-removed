@@ -527,9 +527,6 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
   nameSpecified = PR_FALSE;
   if (aName) {
     CopyUTF8toUTF16(aName, name);
-#ifdef DEBUG
-    CheckWindowName(name);
-#endif
     nameSpecified = PR_TRUE;
   }
 
@@ -1405,31 +1402,6 @@ nsWindowWatcher::URIfromURL(const char *aURL,
   
   return NS_NewURI(aURI, aURL, baseURI);
 }
-
-#ifdef DEBUG
-
-
-
-void nsWindowWatcher::CheckWindowName(nsString& aName)
-{
-  nsReadingIterator<PRUnichar> scan;
-  nsReadingIterator<PRUnichar> endScan;
-
-  aName.EndReading(endScan);
-  for (aName.BeginReading(scan); scan != endScan; ++scan)
-    if (!nsCRT::IsAsciiAlpha(*scan) && !nsCRT::IsAsciiDigit(*scan) &&
-        *scan != '_') {
-
-      
-      
-      nsCAutoString warn;
-      warn.AssignLiteral("Illegal character in window name ");
-      AppendUTF16toUTF8(aName, warn);
-      NS_WARNING(warn.get());
-      break;
-    }
-}
-#endif 
 
 #define NS_CALCULATE_CHROME_FLAG_FOR(feature, flag)               \
     prefBranch->GetBoolPref(feature, &forceEnable);               \
