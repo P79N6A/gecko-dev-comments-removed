@@ -624,11 +624,9 @@ public:
 
 
 
-
-
-  nsresult DeleteProperty(nsIAtom *aPropertyName)
+  void DeleteProperty(nsIAtom *aPropertyName)
   {
-    return DeleteProperty(0, aPropertyName);
+    DeleteProperty(0, aPropertyName);
   }
 
   
@@ -638,9 +636,7 @@ public:
 
 
 
-
-
-  virtual nsresult DeleteProperty(PRUint16 aCategory, nsIAtom *aPropertyName);
+  virtual void DeleteProperty(PRUint16 aCategory, nsIAtom *aPropertyName);
 
   
 
