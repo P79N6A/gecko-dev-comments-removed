@@ -1166,38 +1166,12 @@ public class AwesomeBarTabs extends TabHost {
         public Drawable icon;
         public ArrayList<String> suggestions;
 
-        public SearchEngine(String name) {
-            this(name, null);
-        }
-
         public SearchEngine(String name, Drawable icon) {
             this.name = name;
             this.icon = icon;
             this.suggestions = new ArrayList<String>();
         }
     };
-
-    
-
-
-
-
-    public void setSuggestEngine(String name, Drawable icon) {
-        
-        
-        
-        
-        final SearchEngine suggestEngine = new SearchEngine(name, icon);
-        if (mSuggestEngine != null)
-            suggestEngine.suggestions = mSuggestEngine.suggestions;
-
-        GeckoAppShell.getMainHandler().post(new Runnable() {
-            public void run() {
-                mSuggestEngine = suggestEngine;
-                mAllPagesCursorAdapter.notifyDataSetChanged();
-            }
-        });
-    }
 
     
 
@@ -1217,16 +1191,17 @@ public class AwesomeBarTabs extends TabHost {
     
 
 
-    public void setSearchEngines(String suggestEngine, JSONArray engines) {
+    public void setSearchEngines(String suggestEngineName, JSONArray engines) {
         final ArrayList<SearchEngine> searchEngines = new ArrayList<SearchEngine>();
+        SearchEngine suggestEngine = null;
         for (int i = 0; i < engines.length(); i++) {
             try {
                 JSONObject engineJSON = engines.getJSONObject(i);
                 String name = engineJSON.getString("name");
                 String iconURI = engineJSON.getString("iconURI");
                 Drawable icon = getDrawableFromDataURI(iconURI);
-                if (name.equals(suggestEngine)) {
-                    setSuggestEngine(name, icon);
+                if (name.equals(suggestEngineName)) {
+                    suggestEngine = new SearchEngine(name, icon);
                 } else {
                     searchEngines.add(new SearchEngine(name, icon));
                 }
@@ -1236,8 +1211,10 @@ public class AwesomeBarTabs extends TabHost {
             }
         }
 
+        final SearchEngine suggestEngineArg = suggestEngine;
         GeckoAppShell.getMainHandler().post(new Runnable() {
             public void run() {
+                mSuggestEngine = suggestEngineArg;
                 mSearchEngines = searchEngines;
                 mAllPagesCursorAdapter.notifyDataSetChanged();
             }
