@@ -1690,7 +1690,7 @@ SessionStoreService.prototype = {
     aTabData._formDataSaved = true;
     if (aBrowser.currentURI.spec == "about:config")
       aTabData.entries[tabIndex].formdata = {
-        "#textbox": aBrowser.contentDocument.getElementById("textbox").wrappedJSObject.value
+        "#textbox": aBrowser.contentDocument.getElementById("textbox").value
       };
   },
 
@@ -2836,11 +2836,6 @@ SessionStoreService.prototype = {
     
     if (hasExpectedURL(aEvent.originalTarget, aBrowser.__SS_restore_data.url)) {
       var content = aEvent.originalTarget.defaultView;
-      if (aBrowser.currentURI.spec == "about:config") {
-        
-        
-        content = content.wrappedJSObject;
-      }
       restoreTextDataAndScrolling(content, aBrowser.__SS_restore_data, "");
       aBrowser.markupDocumentViewer.authorStyleDisabled = selectedPageStyle == "_nostyle";
 
@@ -3507,7 +3502,7 @@ SessionStoreService.prototype = {
 
 
   _replaceLoadingTitle : function sss_replaceLoadingTitle(aString, aTabbrowser, aTab) {
-    if (aString == aTabbrowser.mStringBundle.getString("tabs.connecting")) {
+    if (aString == aTabbrowser.mStringBundle.getString("tabs.loading")) {
       aTabbrowser.setTabTitle(aTab);
       [aString, aTab.label] = [aTab.label, aString];
     }
