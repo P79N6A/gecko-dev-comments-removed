@@ -475,8 +475,49 @@ PutHelper::GetSuccessResult(nsIWritableVariant* aResult)
 PRUint16
 GetHelper::DoDatabaseWork()
 {
+  nsresult rv = mDatabase->EnsureConnection();
+  NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseError::UNKNOWN_ERR);
+
+  nsCOMPtr<mozIStorageConnection> connection = mDatabase->Connection();
+
   
-  mValue.AssignLiteral("\"foo\"");
+  nsCOMPtr<mozIStorageStatement> stmt;
+  if (mAutoIncrement) {
+    rv = connection->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT data "
+      "FROM ai_object_data "
+      "WERE id = :id "
+      "AND object_store_id = :osid"
+    ), getter_AddRefs(stmt));
+  }
+  else {
+    rv = connection->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT data "
+      "FROM object_data "
+      "WERE key_value = :id "
+      "AND object_store_id = :osid"
+    ), getter_AddRefs(stmt));
+    NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseError::UNKNOWN_ERR);
+  }
+
+  rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("osid"), mOSID);
+  NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseError::UNKNOWN_ERR);
+
+  
+  nsString id;
+  VariantToString(mKey, id);
+  rv = stmt->BindStringByName(NS_LITERAL_CSTRING("id"), id);
+  NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseError::UNKNOWN_ERR);
+
+  
+  PRBool hasResult;
+  rv = stmt->ExecuteStep(&hasResult);
+  NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseError::UNKNOWN_ERR);
+  NS_ENSURE_TRUE(hasResult, nsIIDBDatabaseError::NOT_FOUND_ERR);
+
+  
+  (void)stmt->GetString(0, mValue);
+
   return OK;
 }
 
