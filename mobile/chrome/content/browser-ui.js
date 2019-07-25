@@ -1098,12 +1098,18 @@ var BrowserUI = {
         break;
       case "cmd_sanitize":
       {
-        
-        let button = document.getElementById("prefs-clear-data");
-        button.disabled = true;
-        setTimeout(function() { button.disabled = false; }, 5000);
+        let strings = Elements.browserBundle;
+        let title = strings.getString("clearPrivateData.title");
+        let message = strings.getString("clearPrivateData.message");
+        let clear = Services.prompt.confirm(window, title, message);
+        if (clear) {
+          
+          let button = document.getElementById("prefs-clear-data");
+          button.disabled = true;
+          setTimeout(function() { button.disabled = false; }, 5000);
 
-        Sanitizer.sanitize();
+          Sanitizer.sanitize();
+        }
         break;
       }
       case "cmd_panel":
