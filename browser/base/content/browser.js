@@ -2296,9 +2296,15 @@ function getShortcutOrURI(aURL, aPostDataRef) {
       } catch (e) {}
     }
 
+    
+    
+    
+    
+    
     var encodedParam = "";
-    if (charset)
-      encodedParam = escape(convertFromUnicode(charset, param));
+    if (charset && charset != "UTF-8")
+      encodedParam = escape(convertFromUnicode(charset, param)).
+                     replace(/[+@\/]+/g, encodeURIComponent);
     else 
       encodedParam = encodeURIComponent(param);
 
