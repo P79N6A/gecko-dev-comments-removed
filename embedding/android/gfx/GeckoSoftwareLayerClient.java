@@ -161,6 +161,13 @@ public class GeckoSoftwareLayerClient extends LayerClient {
         repaint(new Rect(x, y, x + width, y + height));
     }
 
+    
+
+
+    public void endDrawing(int x, int y, int width, int height, String metadata) {
+        endDrawing(x, y, width, height);
+    }
+
     private void repaint(Rect rect) {
         mTileLayer.paintSubimage(mCairoImage, rect);
     }
