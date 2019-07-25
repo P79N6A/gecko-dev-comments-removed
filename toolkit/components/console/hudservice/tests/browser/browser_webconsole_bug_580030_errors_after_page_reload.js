@@ -40,50 +40,49 @@
 
 
 
-const TEST_ERROR_URI = "http://example.com/browser/toolkit/components/console/hudservice/tests/browser/test-error.html";
+const TEST_URI = "http://example.com/browser/toolkit/components/console/hudservice/tests/browser/test-error.html";
 
 function test() {
-  return;
-  
-
-  addTab(TEST_ERROR_URI);
-  browser.addEventListener("DOMContentLoaded", onLoad, false);
+  addTab(TEST_URI);
+  browser.addEventListener("load", onLoad, true);
 }
 
 
 
-function onLoad() {
-  browser.removeEventListener("DOMContentLoaded", onLoad, false);
+function onLoad(aEvent) {
+  browser.removeEventListener(aEvent.type, arguments.callee, true);
 
   openConsole();
 
-  browser.addEventListener("DOMContentLoaded", testErrorsAfterPageReload,
-                           false);
-  browser.contentWindow.wrappedJSObject.location.reload();
+  browser.addEventListener("load", testErrorsAfterPageReload, true);
+  executeSoon(function() {
+    content.location.reload();
+  });
 }
 
-function testErrorsAfterPageReload() {
-  browser.removeEventListener("DOMContentLoaded", testErrorsAfterPageReload,
-                              false);
+function testErrorsAfterPageReload(aEvent) {
+  browser.removeEventListener(aEvent.type, arguments.callee, true);
 
   
   
-
-  var contentDocument = browser.contentDocument.wrappedJSObject;
-  var button = contentDocument.getElementsByTagName("button")[0];
-  var clickEvent = contentDocument.createEvent("MouseEvents");
-  clickEvent.initMouseEvent("click", true, true,
-    browser.contentWindow.wrappedJSObject, 0, 0, 0, 0, 0, false, false,
-    false, false, 0, null);
 
   Services.console.registerListener(consoleObserver);
-  button.dispatchEvent(clickEvent);
+
+  var button = content.document.querySelector("button").wrappedJSObject;
+  var clickEvent = content.wrappedJSObject.document.createEvent("MouseEvents").wrappedJSObject;
+  clickEvent.initMouseEvent("click", true, true,
+    content.wrappedJSObject, 0, 0, 0, 0, 0, false, false,
+    false, false, 0, null);
+
+  executeSoon(function() {
+    button.dispatchEvent(clickEvent);
+  });
 }
 
 var consoleObserver = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
 
-  observe: function (aMessage)
+  observe: function test_observe(aMessage)
   {
     
     if (!(aMessage instanceof Ci.nsIScriptError) ||
@@ -96,24 +95,14 @@ var consoleObserver = {
     const successMsg = "Found the error message after page reload";
     const errMsg = "Could not get the error message after page reload";
 
-    const successMsgErrorLine = "Error line is correct";
-    const errMsgErrorLine = "Error line is incorrect";
-
     var display = HUDService.getDisplayByURISpec(content.location.href);
-    var outputNodes = display.querySelectorAll(".hud-msg-node");
+    var outputNode = display.querySelector(".hud-output-node");
 
-    executeSoon(function () {
-      executeSoon(function (){
-        testLogEntry(outputNodes[1], "fooBazBaz",
-                     { success: successMsg, err: errMsg });
+    executeSoon(function() {
+      testLogEntry(outputNode, "fooBazBaz",
+                   { success: successMsg, err: errMsg });
 
-        testLogEntry(outputNodes[1], "Line:",
-                     { success: successMsgErrorLine, err: errMsgErrorLine });
-
-        outputNodes = display = null;
-
-        finishTest();
-      });
+      finishTest();
     });
   }
 };
