@@ -70,66 +70,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
 
 const endl = '\n';
 
-function debug() {
-  let bv = Browser._browserView;
-  let tc = bv._tileManager._tileCache;
-  let scrollbox = document.getElementById("content-scrollbox")
-                .boxObject.QueryInterface(Ci.nsIScrollBoxObject);
-
-  let x = {};
-  let y = {};
-  let w = {};
-  let h = {};
-  scrollbox.getPosition(x, y);
-  scrollbox.getScrolledSize(w, h);
-  let container = document.getElementById("tile-container");
-  let [x, y] = [x.value, y.value];
-  let [w, h] = [w.value, h.value];
-  if (bv) {
-    dump('----------------------DEBUG!-------------------------\n');
-    dump(bv._browserViewportState.toString() + endl);
-
-    dump(endl);
-
-    dump('location from Browser: ' + Browser.selectedBrowser.currentURI.spec + endl);
-    dump('location from BV     : ' + bv.getBrowser().currentURI.spec + endl);
-
-    dump(endl + endl);
-
-    let cr = bv._tileManager._criticalRect;
-    dump('criticalRect from BV: ' + (cr ? cr.toString() : null) + endl);
-    dump('visibleRect from BV : ' + bv.getVisibleRect().toString() + endl);
-    dump('visibleRect from foo: ' + Browser.getVisibleRect().toString() + endl);
-
-    dump('bv batchops depth:    ' + bv._batchOps.length + endl);
-    dump('renderpause depth:    ' + bv._renderMode + endl);
-
-    dump(endl);
-
-    dump('window.innerWidth : ' + window.innerWidth  + endl);
-    dump('window.innerHeight: ' + window.innerHeight + endl);
-
-    dump(endl);
-
-    dump('container width,height from BV: ' + bv._container.style.width + ', '
-                                            + bv._container.style.height + endl);
-    dump('container width,height via DOM: ' + container.style.width + ', '
-                                            + container.style.height + endl);
-
-    dump(endl);
-
-    dump('scrollbox position    : ' + x + ', ' + y + endl);
-    dump('scrollbox scrolledsize: ' + w + ', ' + h + endl);
-
-
-    let sb = document.getElementById("content-scrollbox");
-    dump('container location:     ' + Math.round(container.getBoundingClientRect().left) + " " +
-                                      Math.round(container.getBoundingClientRect().top) + endl);
-
-    dump(endl);
-  }
-}
-
 function onDebugKeyPress(ev) {
   let bv = Browser._browserView;
 
@@ -138,8 +78,8 @@ function onDebugKeyPress(ev) {
 
   
 
-  const a = 65;   
-  const b = 66;   
+  const a = 65;
+  const b = 66;
   const c = 67;
   const d = 68;  
   const e = 69;
@@ -153,12 +93,12 @@ function onDebugKeyPress(ev) {
   const m = 77;  
   const n = 78;
   const o = 79;
-  const p = 80;  
+  const p = 80;
   const q = 81;  
   const r = 82;  
   const s = 83;
   const t = 84;
-  const u = 85;  
+  const u = 85;
   const v = 86;
   const w = 87;
   const x = 88;
@@ -169,25 +109,6 @@ function onDebugKeyPress(ev) {
   case f:
     MemoryObserver.observe();
     dump("Forced a GC\n");
-    break;
-  case d:
-    debug();
-    break;
-  case a:
-    let cr = bv._tileManager._criticalRect;
-    dump('>>>>>> critical rect is ' + (cr ? cr.toString() : cr) + '\n');
-    if (cr) {
-      let starti = cr.left  >> kTileExponentWidth;
-      let endi   = cr.right >> kTileExponentWidth;
-
-      let startj = cr.top    >> kTileExponentHeight;
-      let endj   = cr.bottom >> kTileExponentHeight;
-
-      for (var jj = startj; jj <= endj; ++jj)
-        for (var ii = starti; ii <= endi; ++ii)
-          debugTile(ii, jj);
-    }
-
     break;
   case i:
     window.infoMode = !window.infoMode;
@@ -245,6 +166,9 @@ var Browser = {
     container.customKeySender = new ContentCustomKeySender(bv);
     container.customDragger = new Browser.MainDragger(bv);
 
+    
+    
+    
     this.contentScrollbox = container;
     this.contentScrollboxScroller = {
       position: new Point(0, 0),
@@ -1065,10 +989,6 @@ var Browser = {
     let scrollX = rect.left * zoomRatio;
     let scrollY = rect.top * zoomRatio;
 
-    
-    
-
-    
     this.hideSidebars();
     this.hideTitlebar();
 
@@ -1465,40 +1385,39 @@ ContentCustomClicker.prototype = {
   },
 
   mouseDown: function mouseDown(aX, aY) {
-
-
-
-
-
-
-
-
+    
+    let browser = this._browserView.getBrowser();
+    let fl = browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
+    browser.focus();
+    try {
+      fl.activateRemoteFrame();
+    } catch (e) {
+    }
+    this._dispatchMouseEvent("Browser:MouseDown", aX, aY);
   },
 
   mouseUp: function mouseUp(aX, aY) {
   },
 
   panBegin: function panBegin() {
+    TapHighlightHelper.hide();
 
-
-
-
+    this._dispatchMouseEvent("Browser:MouseCancel");
   },
 
   singleClick: function singleClick(aX, aY, aModifiers) {
+    TapHighlightHelper.hide();
 
-
-
-
-
-
-
+    
+    if (!ContextHelper.popupState)
+      this._dispatchMouseEvent("Browser:MouseUp", aX, aY, aModifiers);
+    this._dispatchMouseEvent("Browser:MouseCancel");
   },
 
   doubleClick: function doubleClick(aX1, aY1, aX2, aY2) {
+    TapHighlightHelper.hide();
 
-
-
+    this._dispatchMouseEvent("Browser:MouseCancel");
 
 
 

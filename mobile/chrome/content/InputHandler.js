@@ -561,7 +561,7 @@ MouseModule.prototype = {
 
 
   _targetIsContent: function _targetIsContent(aEvent) {
-    return aEvent.view !== window;
+    return aEvent.view !== window || aEvent.target.tagName == "browser";
   },
 
   
@@ -1296,7 +1296,7 @@ GestureModule.prototype = {
     this._owner.grab(this);
 
     
-    document.getElementById("tile-container").customClicker.panBegin();
+    
 
     
     this._pinchZoom = new AnimatedZoom(bv);

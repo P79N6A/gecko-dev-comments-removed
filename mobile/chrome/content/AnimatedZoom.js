@@ -49,11 +49,8 @@ let Cu = Components.utils;
 
 
 function AnimatedZoom(aBrowserView) {
+  return;
   this.bv = aBrowserView;
-
-  this.snapshot = AnimatedZoom.createCanvas();
-  if (this.snapshot.pending_render)
-    return;
 
   
   let [w, h] = this.bv.getViewportDimensions();
@@ -65,6 +62,8 @@ function AnimatedZoom(aBrowserView) {
 
   
   this.snapshotRect.translateInside(viewportRect).restrictTo(viewportRect).expandToIntegers();
+
+  this.snapshot = AnimatedZoom.createCanvas();
   this.snapshotRect.width = Math.min(this.snapshotRect.width, this.snapshot.width);
   this.snapshotRect.height = Math.min(this.snapshotRect.height, this.snapshot.height);
 
@@ -74,22 +73,20 @@ function AnimatedZoom(aBrowserView) {
 
   let remote = !this.bv.getBrowser().contentWindow;
   if (remote) {
+    this.canvasReady = false;
     this.snapshot.addEventListener("MozAsyncCanvasRender", this, false);
-    this.snapshot.pending_render = true;
   } else {
-    this.setupCanvas();
+    this.canvasReady = true;
+    this.startAnimation();
   }
 }
 
 AnimatedZoom.prototype.handleEvent = function(aEvent) {
   if (aEvent.type == "MozAsyncCanvasRender") {
-    let snapshot = aEvent.originalTarget;
-    snapshot.pending_render = false;
-    snapshot.removeEventListener("MozAsyncCanvasRender", this, false);
-
-    if (this.snapshot == snapshot) {
-      this.setupCanvas();
-      this.startTimer();
+    this.snapshot.removeEventListener("MozAsyncCanvasRender", this, false);
+    if (aEvent.originalTarget == this.snapshot) {
+      this.canvasReady = true;
+      this.startAnimation();
     }
   }
 };
@@ -106,7 +103,9 @@ AnimatedZoom.createCanvas = function(aRemote) {
   return this._canvas;
 };
 
-AnimatedZoom.prototype.setupCanvas = function() {
+AnimatedZoom.prototype.startAnimation = function()
+{
+  return;
   
   this.bv.pauseRendering();
 
@@ -127,18 +126,14 @@ AnimatedZoom.prototype.setupCanvas = function() {
 
   
   ctx.mozImageSmoothingEnabled = false;
-  ctx.globalCompositeOperation = "copy";
+  ctx.globalCompositeOperation = 'copy';
 
   
   let backgroundImage = new Image();
   backgroundImage.src = "chrome://browser/content/checkerboard.png";
-  ctx.fillStyle = ctx.createPattern(backgroundImage, "repeat");
+  ctx.fillStyle = ctx.createPattern(backgroundImage, 'repeat');
 
-  this.canvasReady = true;
-};
-
-AnimatedZoom.prototype.startTimer = function() {
-  if (this.zoomTo && this.canvasReady && !this.timer) {
+  if (this.zoomTo) {
     this.updateTo(this.zoomFrom);
 
     
@@ -146,7 +141,7 @@ AnimatedZoom.prototype.startTimer = function() {
     this.inc = 1.0 / Services.prefs.getIntPref("browser.ui.zoom.animationDuration");
     this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     this.interval = 1000 / Services.prefs.getIntPref("browser.ui.zoom.animationFps");
-    this.timer.initWithCallback(this._callback.bind(this), this.interval, this.timer.TYPE_REPEATING_PRECISE);
+    this.timer.initWithCallback(Util.bind(this._callback, this), this.interval, this.timer.TYPE_REPEATING_PRECISE);
 
     
     this.lastTime = 0;
@@ -156,9 +151,6 @@ AnimatedZoom.prototype.startTimer = function() {
 
 AnimatedZoom.prototype.updateTo = function(nextRect) {
   this.zoomRect = nextRect;
-
-  if (this.snapshot.pending_render)
-    return;
 
   
   let canvasRect = new Rect(0, 0, Elements.viewBuffer.width, Elements.viewBuffer.height);
@@ -202,7 +194,13 @@ AnimatedZoom.prototype.updateTo = function(nextRect) {
 
 AnimatedZoom.prototype.animateTo = function(aZoomRect) {
   this.zoomTo = aZoomRect;
-  this.startTimer();
+
+  if (this.timer || !this.canvasReady)
+    return false;
+
+  this.startAnimation();
+
+  return true;
 };
 
 
@@ -234,9 +232,8 @@ AnimatedZoom.prototype._callback = function() {
 
 
 AnimatedZoom.prototype.finish = function() {
+  return;
   try {
-    Elements.viewBuffer.style.display = "none";
-
     
     this.bv.resumeRendering(true);
 
@@ -250,7 +247,6 @@ AnimatedZoom.prototype.finish = function() {
       this.timer = null;
     }
     this.snapshot = null;
-    this.zoomTo = null;
   }
 };
 
