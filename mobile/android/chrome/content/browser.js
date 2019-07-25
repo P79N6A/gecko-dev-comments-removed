@@ -1839,7 +1839,9 @@ Tab.prototype = {
     this.userScrollPos.x = win.scrollX;
     this.userScrollPos.y = win.scrollY;
     this.setResolution(aViewport.zoom, false);
-    this.setDisplayPort(aViewport.displayPort);
+
+    if (aViewport.displayPort)
+      this.setDisplayPort(aViewport.displayPort);
   },
 
   setResolution: function(aZoom, aForce) {
@@ -3225,7 +3227,7 @@ var FindHelper = {
       this._targetTab = BrowserApp.selectedTab;
       this._find = Cc["@mozilla.org/typeaheadfind;1"].createInstance(Ci.nsITypeAheadFind);
       this._find.init(this._targetTab.browser.docShell);
-      this._initialViewport = JSON.stringify(this._targetTab.viewport);
+      this._initialViewport = JSON.stringify(this._targetTab.getViewport());
       this._viewportChanged = false;
     }
 
@@ -3260,7 +3262,7 @@ var FindHelper = {
           Cu.reportError("Warning: selected tab changed during find!");
           
         }
-        this._targetTab.viewport = JSON.parse(this._initialViewport);
+        this._targetTab.setViewport(JSON.parse(this._initialViewport));
         this._targetTab.sendViewportUpdate();
       }
     } else {
@@ -5249,30 +5251,6 @@ var RemoteDebugger = {
     return Services.prefs.getBoolPref("remote-debugger.enabled");
   },
 
-  
-
-
-
-
-  _allowConnection: function rd_allowConnection() {
-    let title = Strings.browser.GetStringFromName("remoteIncomingPromptTitle");
-    let msg = Strings.browser.GetStringFromName("remoteIncomingPromptMessage");
-    let btn = Strings.browser.GetStringFromName("remoteIncomingPromptDisable");
-    let prompt = Services.prompt;
-    let flags = prompt.BUTTON_POS_0 * prompt.BUTTON_TITLE_OK +
-                prompt.BUTTON_POS_1 * prompt.BUTTON_TITLE_CANCEL +
-                prompt.BUTTON_POS_2 * prompt.BUTTON_TITLE_IS_STRING +
-                prompt.BUTTON_POS_1_DEFAULT;
-    let result = prompt.confirmEx(null, title, msg, flags, null, null, btn, null, { value: false });
-    if (result == 0)
-      return true;
-    if (result == 2) {
-      this._stop();
-      Services.prefs.setBoolPref("remote-debugger.enabled", false);
-    }
-    return false;
-  },
-
   _restart: function rd_restart() {
     this._stop();
     this._start();
@@ -5281,7 +5259,7 @@ var RemoteDebugger = {
   _start: function rd_start() {
     try {
       if (!DebuggerServer.initialized) {
-        DebuggerServer.init(this._allowConnection);
+        DebuggerServer.init();
         DebuggerServer.addActors("chrome://browser/content/dbg-browser-actors.js");
       }
 
