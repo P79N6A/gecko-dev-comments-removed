@@ -765,6 +765,12 @@ struct TraversalTracer : public JSTracer
 static void
 NoteJSChild(JSTracer *trc, void *thing, JSGCTraceKind kind)
 {
+    TraversalTracer *tracer = static_cast<TraversalTracer*>(trc);
+
+    
+    if (!xpc_IsGrayGCThing(thing) && !tracer->cb.WantAllTraces())
+        return;
+
     
 
 
@@ -774,13 +780,6 @@ NoteJSChild(JSTracer *trc, void *thing, JSGCTraceKind kind)
 
 
     if (AddToCCKind(kind)) {
-        TraversalTracer *tracer = static_cast<TraversalTracer*>(trc);
-
-        
-        
-        if (!xpc_IsGrayGCThing(thing) && !tracer->cb.WantAllTraces())
-            return;
-
 #if defined(DEBUG)
         if (NS_UNLIKELY(tracer->cb.WantDebugInfo())) {
             
