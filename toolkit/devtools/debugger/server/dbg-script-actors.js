@@ -25,9 +25,14 @@ function ThreadActor(aHooks)
   this._frameActors = [];
   this._environmentActors = [];
   this._hooks = aHooks ? aHooks : {};
-  this._breakpointStore = {};
   this._scripts = {};
 }
+
+
+
+
+
+ThreadActor._breakpointStore = {};
 
 ThreadActor.prototype = {
   actorPrefix: "context",
@@ -35,6 +40,8 @@ ThreadActor.prototype = {
   get state() { return this._state; },
 
   get dbg() { return this._dbg; },
+
+  get _breakpointStore() { return ThreadActor._breakpointStore; },
 
   get threadLifetimePool() {
     if (!this._threadLifetimePool) {
