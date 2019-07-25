@@ -500,41 +500,88 @@ JS_SetContextDebugHooks(JSContext *cx, const JSDebugHooks *hooks);
 extern JS_PUBLIC_API(JSDebugHooks *)
 JS_ClearContextDebugHooks(JSContext *cx);
 
-extern JS_PUBLIC_API(JSBool)
-JS_StartProfiling();
 
-extern JS_PUBLIC_API(void)
-JS_StopProfiling();
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_StartProfiling(const char *profileName);
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_StopProfiling(const char *profileName);
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_DumpProfile(const char *outfile, const char *profileName);
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_PauseProfilers(const char *profileName);
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_ResumeProfilers(const char *profileName);
+
+
+
 
 extern JS_PUBLIC_API(JSBool)
 JS_DefineProfilingFunctions(JSContext *cx, JSObject *obj);
 
+
+
+
+
+
+JS_PUBLIC_API(const char *)
+JS_UnsafeGetLastProfilingError();
+
 #ifdef MOZ_CALLGRIND
 
 extern JS_FRIEND_API(JSBool)
-js_StopCallgrind(JSContext *cx, uintN argc, jsval *vp);
+js_StopCallgrind();
 
 extern JS_FRIEND_API(JSBool)
-js_StartCallgrind(JSContext *cx, uintN argc, jsval *vp);
+js_StartCallgrind();
 
 extern JS_FRIEND_API(JSBool)
-js_DumpCallgrind(JSContext *cx, uintN argc, jsval *vp);
+js_DumpCallgrind(const char *outfile);
 
 #endif 
 
 #ifdef MOZ_VTUNE
 
-extern JS_FRIEND_API(JSBool)
-js_StartVtune(JSContext *cx, uintN argc, jsval *vp);
+extern JS_FRIEND_API(bool)
+js_StartVtune(const char *profileName);
 
-extern JS_FRIEND_API(JSBool)
-js_StopVtune(JSContext *cx, uintN argc, jsval *vp);
+extern JS_FRIEND_API(bool)
+js_StopVtune();
 
-extern JS_FRIEND_API(JSBool)
-js_PauseVtune(JSContext *cx, uintN argc, jsval *vp);
+extern JS_FRIEND_API(bool)
+js_PauseVtune();
 
-extern JS_FRIEND_API(JSBool)
-js_ResumeVtune(JSContext *cx, uintN argc, jsval *vp);
+extern JS_FRIEND_API(bool)
+js_ResumeVtune();
 
 #endif 
 
@@ -568,10 +615,10 @@ JS_GetFunctionCallback(JSContext *cx);
 #endif 
 
 extern JS_PUBLIC_API(void)
-JS_DumpProfile(JSContext *cx, JSScript *script);
+JS_DumpBytecode(JSContext *cx, JSScript *script);
 
 extern JS_PUBLIC_API(void)
-JS_DumpAllProfiles(JSContext *cx);
+JS_DumpCompartmentBytecode(JSContext *cx);
 
 JS_END_EXTERN_C
 
