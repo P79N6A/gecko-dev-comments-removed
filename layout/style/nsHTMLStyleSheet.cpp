@@ -311,8 +311,14 @@ nsHTMLStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
   return false;
 }
 
- PRInt64
-nsHTMLStyleSheet::SizeOf() const
+ size_t
+nsHTMLStyleSheet::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return 0; 
+}
+
+ size_t
+nsHTMLStyleSheet::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
   return 0; 
 }

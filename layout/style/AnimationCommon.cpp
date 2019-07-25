@@ -126,10 +126,18 @@ CommonAnimationManager::MediumFeaturesChanged(nsPresContext* aPresContext)
   return false;
 }
 
- PRInt64
-CommonAnimationManager::SizeOf() const
+ size_t
+CommonAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
-  return sizeof(*this);
+  
+  return 0;
+}
+
+ size_t
+CommonAnimationManager::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return aMallocSizeOf(this, sizeof(CommonAnimationManager)) +
+         SizeOfExcludingThis(aMallocSizeOf);
 }
 
  bool
