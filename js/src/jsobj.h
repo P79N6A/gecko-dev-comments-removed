@@ -170,72 +170,61 @@ namespace js {
 
 typedef Vector<PropDesc, 1> PropDescArray;
 
-
-
-
-const uint32 CLASS_CALL_IS_FAST = uint32(1) << (JSCLASS_LAST_API_FLAG_SHIFT + 1);
-
-inline Native CastCallOpAsNative(CallOp op)
-{
-    return reinterpret_cast<Native>(op);
-}
-
 } 
 
-
-struct JSObjectOps {
-    
-
-
-
-
-    const JSObjectMap   *objectMap;
-
-    
-    JSLookupPropOp      lookupProperty;
-    js::DefinePropOp    defineProperty;
-    js::PropertyIdOp    getProperty;
-    js::PropertyIdOp    setProperty;
-    JSAttributesOp      getAttributes;
-    JSAttributesOp      setAttributes;
-    js::PropertyIdOp    deleteProperty;
-    js::NewEnumerateOp  enumerate;
-    JSTypeOfOp          typeOf;
-    JSTraceOp           trace;
-
-    
-    JSObjectOp          thisObject;
-    JSFinalizeOp        clear;
-
-    bool inline isNative() const;
-};
-
-extern JS_FRIEND_DATA(JSObjectOps) js_ObjectOps;
-extern JS_FRIEND_DATA(JSObjectOps) js_WithObjectOps;
-
-
-
-
-
-inline bool
-JSObjectOps::isNative() const
-{
-    return JS_LIKELY(this == &js_ObjectOps) || !objectMap;
-}
-
 struct JSObjectMap {
-    const JSObjectOps * const   ops;    
+    static JS_FRIEND_DATA(const JSObjectMap) sharedNonNative;
+
     uint32                      shape;  
 
-    explicit JSObjectMap(const JSObjectOps *ops, uint32 shape) : ops(ops), shape(shape) {}
+    explicit JSObjectMap(uint32 shape) : shape(shape) {}
 
     enum { SHAPELESS = 0xffffffff };
 
-private:
+    bool isNative() const { return this != &sharedNonNative; }
+
+  private:
     
     JSObjectMap(JSObjectMap &);
     void operator=(JSObjectMap &);
 };
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(JSBool)
+js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
+                  JSProperty **propp);
+
+extern JSBool
+js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value *value,
+                  js::PropertyOp getter, js::PropertyOp setter, uintN attrs);
+
+extern JSBool
+js_GetProperty(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+
+extern JSBool
+js_SetProperty(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+
+extern JSBool
+js_GetAttributes(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
+
+extern JSBool
+js_SetAttributes(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
+
+extern JSBool
+js_DeleteProperty(JSContext *cx, JSObject *obj, jsid id, js::Value *rval);
+
+extern JS_FRIEND_API(JSBool)
+js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
+             js::Value *statep, jsid *idp);
+
+extern JSType
+js_TypeOf(JSContext *cx, JSObject *obj);
 
 struct NativeIterator;
 
@@ -302,7 +291,9 @@ struct JSObject {
 #endif
     js::Value   fslots[JS_INITIAL_NSLOTS];  
 
-    bool isNative() const { return map->ops->isNative(); }
+    bool isNative() const {
+        return map->isNative();
+    }
 
     js::Class *getClass() const {
         return clasp;
@@ -314,6 +305,10 @@ struct JSObject {
 
     bool hasClass(const js::Class *c) const {
         return c == clasp;
+    }
+
+    const js::ObjectOps *getOps() const {
+        return &getClass()->ops;
     }
 
     inline JSScope *scope() const;
@@ -687,53 +682,62 @@ struct JSObject {
     
     inline void freeSlotsArray(JSContext *cx);
 
-    JSBool lookupProperty(JSContext *cx, jsid id,
-                          JSObject **objp, JSProperty **propp) {
-        return map->ops->lookupProperty(cx, this, id, objp, propp);
+    JSBool lookupProperty(JSContext *cx, jsid id, JSObject **objp, JSProperty **propp) {
+        JSLookupPropOp op = getOps()->lookupProperty;
+        return (op ? op : js_LookupProperty)(cx, this, id, objp, propp);
     }
 
     JSBool defineProperty(JSContext *cx, jsid id, const js::Value &value,
                           js::PropertyOp getter = js::PropertyStub,
                           js::PropertyOp setter = js::PropertyStub,
                           uintN attrs = JSPROP_ENUMERATE) {
-        return map->ops->defineProperty(cx, this, id, &value, getter, setter, attrs);
+        js::DefinePropOp op = getOps()->defineProperty;
+        return (op ? op : js_DefineProperty)(cx, this, id, &value, getter, setter, attrs);
     }
 
     JSBool getProperty(JSContext *cx, jsid id, js::Value *vp) {
-        return map->ops->getProperty(cx, this, id, vp);
+        js::PropertyIdOp op = getOps()->getProperty;
+        return (op ? op : js_GetProperty)(cx, this, id, vp);
     }
 
     JSBool setProperty(JSContext *cx, jsid id, js::Value *vp) {
-        return map->ops->setProperty(cx, this, id, vp);
+        js::PropertyIdOp op = getOps()->setProperty;
+        return (op ? op : js_SetProperty)(cx, this, id, vp);
     }
 
     JSBool getAttributes(JSContext *cx, jsid id, uintN *attrsp) {
-        return map->ops->getAttributes(cx, this, id, attrsp);
+        JSAttributesOp op = getOps()->getAttributes;
+        return (op ? op : js_GetAttributes)(cx, this, id, attrsp);
     }
 
     JSBool setAttributes(JSContext *cx, jsid id, uintN *attrsp) {
-        return map->ops->setAttributes(cx, this, id, attrsp);
+        JSAttributesOp op = getOps()->setAttributes;
+        return (op ? op : js_SetAttributes)(cx, this, id, attrsp);
     }
 
     JSBool deleteProperty(JSContext *cx, jsid id, js::Value *rval) {
-        return map->ops->deleteProperty(cx, this, id, rval);
+        js::PropertyIdOp op = getOps()->deleteProperty;
+        return (op ? op : js_DeleteProperty)(cx, this, id, rval);
     }
 
-    JSBool enumerate(JSContext *cx, JSIterateOp op, js::Value *statep,
-                     jsid *idp) {
-        return map->ops->enumerate(cx, this, op, statep, idp);
+    JSBool enumerate(JSContext *cx, JSIterateOp iterop, js::Value *statep, jsid *idp) {
+        js::NewEnumerateOp op = getOps()->enumerate;
+        return (op ? op : js_Enumerate)(cx, this, iterop, statep, idp);
     }
 
     JSType typeOf(JSContext *cx) {
-        return map->ops->typeOf(cx, this);
+        JSTypeOfOp op = getOps()->typeOf;
+        return (op ? op : js_TypeOf)(cx, this);
     }
 
     JSObject *wrappedObject(JSContext *cx) const;
 
     
     JSObject *thisObject(JSContext *cx) {
-        return map->ops->thisObject ? map->ops->thisObject(cx, this) : this;
+        JSObjectOp op = getOps()->thisObject;
+        return op ? op(cx, this) : this;
     }
+
     static bool thisObject(JSContext *cx, const js::Value &v, js::Value *vp);
 
     inline void dropProperty(JSContext *cx, JSProperty *prop);
@@ -814,12 +818,8 @@ JS_STATIC_ASSERT(sizeof(JSObject) % JS_GCTHING_ALIGN == 0);
 inline void
 OBJ_TO_INNER_OBJECT(JSContext *cx, JSObject *&obj)
 {
-    js::Class *clasp = obj->getClass();
-    if (clasp->flags & JSCLASS_IS_EXTENDED) {
-        js::ExtendedClass *xclasp = (js::ExtendedClass *) clasp;
-        if (xclasp->innerObject)
-            obj = xclasp->innerObject(cx, obj);
-    }
+    if (JSObjectOp op = obj->getClass()->ext.innerObject)
+        obj = op(cx, obj);
 }
 
 
@@ -829,12 +829,8 @@ OBJ_TO_INNER_OBJECT(JSContext *cx, JSObject *&obj)
 inline void
 OBJ_TO_OUTER_OBJECT(JSContext *cx, JSObject *&obj)
 {
-    js::Class *clasp = obj->getClass();
-    if (clasp->flags & JSCLASS_IS_EXTENDED) {
-        js::ExtendedClass *xclasp = (js::ExtendedClass *) clasp;
-        if (xclasp->outerObject)
-            obj = xclasp->outerObject(cx, obj);
-    }
+    if (JSObjectOp op = obj->getClass()->ext.outerObject)
+        obj = op(cx, obj);
 }
 
 class JSValueArray {
@@ -1076,14 +1072,12 @@ js_CheckForStringIndex(jsid id);
 extern void
 js_PurgeScopeChainHelper(JSContext *cx, JSObject *obj, jsid id);
 
-#ifdef __cplusplus 
-static JS_INLINE void
+inline void
 js_PurgeScopeChain(JSContext *cx, JSObject *obj, jsid id)
 {
     if (obj->isDelegate())
         js_PurgeScopeChainHelper(cx, obj, id);
 }
-#endif
 
 
 
@@ -1103,10 +1097,6 @@ extern JSScopeProperty *
 js_ChangeNativePropertyAttrs(JSContext *cx, JSObject *obj,
                              JSScopeProperty *sprop, uintN attrs, uintN mask,
                              js::PropertyOp getter, js::PropertyOp setter);
-
-extern JSBool
-js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value *value,
-                  js::PropertyOp getter, js::PropertyOp setter, uintN attrs);
 
 extern JSBool
 js_DefineOwnProperty(JSContext *cx, JSObject *obj, jsid id,
@@ -1142,17 +1132,6 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value &
 
 
 
-
-
-extern JS_FRIEND_API(JSBool)
-js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
-                  JSProperty **propp);
-
-
-
-
-
-
 extern int
 js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                            JSObject **objp, JSProperty **propp);
@@ -1163,7 +1142,7 @@ js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
 
 
-static inline bool
+inline bool
 js_IsCacheableNonGlobalScope(JSObject *obj)
 {
     extern JS_FRIEND_DATA(js::Class) js_CallClass;
@@ -1175,7 +1154,7 @@ js_IsCacheableNonGlobalScope(JSObject *obj)
                       clasp == &js_BlockClass ||
                       clasp == &js_DeclEnvClass);
 
-    JS_ASSERT_IF(cacheable, obj->map->ops->lookupProperty == js_LookupProperty);
+    JS_ASSERT_IF(cacheable, !obj->getOps()->lookupProperty);
     return cacheable;
 }
 
@@ -1236,9 +1215,6 @@ js_GetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN getHow,
                      js::Value *vp);
 
 extern JSBool
-js_GetProperty(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
-
-extern JSBool
 js_GetOwnPropertyDescriptor(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
@@ -1257,15 +1233,6 @@ extern JSBool
 js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
                      js::Value *vp);
 
-extern JSBool
-js_SetProperty(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
-
-extern JSBool
-js_GetAttributes(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
-
-extern JSBool
-js_SetAttributes(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
-
 
 
 
@@ -1274,30 +1241,16 @@ extern JSBool
 js_SetNativeAttributes(JSContext *cx, JSObject *obj, JSScopeProperty *sprop,
                        uintN attrs);
 
-extern JSBool
-js_DeleteProperty(JSContext *cx, JSObject *obj, jsid id, js::Value *rval);
-
 namespace js {
 
 extern JSBool
 DefaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp);
 
-}
-
-extern JSBool
-js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
-             js::Value *statep, jsid *idp);
-
-namespace js {
-
 extern JSBool
 CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
             js::Value *vp, uintN *attrsp);
 
-}
-
-extern JSType
-js_TypeOf(JSContext *cx, JSObject *obj);
+} 
 
 extern bool
 js_IsDelegate(JSContext *cx, JSObject *obj, const js::Value &v);
@@ -1352,7 +1305,7 @@ extern void
 js_PrintObjectSlotName(JSTracer *trc, char *buf, size_t bufsize);
 
 extern void
-js_Clear(JSContext *cx, JSObject *obj);
+js_ClearNative(JSContext *cx, JSObject *obj);
 
 extern bool
 js_GetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, js::Value *vp);
