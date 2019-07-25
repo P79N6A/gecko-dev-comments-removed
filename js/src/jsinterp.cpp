@@ -1789,7 +1789,6 @@ ADD_EMPTY_CASE(JSOP_STARTXML)
 ADD_EMPTY_CASE(JSOP_STARTXMLEXPR)
 #endif
 ADD_EMPTY_CASE(JSOP_LOOPHEAD)
-ADD_EMPTY_CASE(JSOP_LOOPENTRY)
 END_EMPTY_CASES
 
 BEGIN_CASE(JSOP_LABEL)
@@ -1801,25 +1800,13 @@ check_backedge:
     if (op != JSOP_LOOPHEAD)
         DO_OP();
 
-#ifdef JS_ION
-    
-    if (ion::IsEnabled()) {
-        JS_ASSERT(op == JSOP_LOOPHEAD);
-        ion::MethodStatus status =
-            ion::CanEnterAtBranch(cx, script, regs.fp(), regs.pc);
-        if (status == ion::Method_Compiled) {
-            interpReturnOK = ion::SideCannon(cx, regs.fp(), regs.pc);
-            if (entryFrame != regs.fp())
-                goto jit_return;
-            regs.fp()->setFinishedInInterpreter();
-            goto leave_on_safe_point;
-        }
-    }
-#endif 
-
 #ifdef JS_METHODJIT
     if (!useMethodJIT)
         DO_OP();
+    
+    
+    
+    
     mjit::CompileStatus status =
         mjit::CanMethodJIT(cx, script, regs.pc, regs.fp()->isConstructing(),
                            mjit::CompileRequest_Interpreter);
@@ -1844,6 +1831,27 @@ check_backedge:
 
     DO_OP();
 }
+
+BEGIN_CASE(JSOP_LOOPENTRY)
+
+#ifdef JS_ION
+    
+    
+    
+    if (ion::IsEnabled()) {
+        ion::MethodStatus status =
+            ion::CanEnterAtBranch(cx, script, regs.fp(), regs.pc);
+        if (status == ion::Method_Compiled) {
+            interpReturnOK = ion::SideCannon(cx, regs.fp(), regs.pc);
+            if (entryFrame != regs.fp())
+                goto jit_return;
+            regs.fp()->setFinishedInInterpreter();
+            goto leave_on_safe_point;
+        }
+    }
+#endif 
+
+END_CASE(JSOP_LOOPENTRY)
 
 BEGIN_CASE(JSOP_NOTEARG)
 END_CASE(JSOP_NOTEARG)

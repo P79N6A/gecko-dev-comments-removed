@@ -1518,6 +1518,7 @@ IonBuilder::doWhileLoop(JSOp op, jssrcnote *sn)
     
     
     
+    
     int condition_offset = js_GetSrcNoteOffset(sn, 0);
     jsbytecode *conditionpc = pc + condition_offset;
 
@@ -1530,8 +1531,9 @@ IonBuilder::doWhileLoop(JSOp op, jssrcnote *sn)
     JS_ASSERT(JSOp(*GetNextPc(pc)) == JSOP_LOOPHEAD);
     JS_ASSERT(GetNextPc(pc) == ifne + GetJumpOffset(ifne));
 
-    if (GetNextPc(pc) == info().osrPc()) {
-        MBasicBlock *preheader = newOsrPreheader(current, GetNextPc(pc));
+    jsbytecode *loopEntry = GetNextPc(GetNextPc(pc));
+    if (info().hasOsrAt(loopEntry)) {
+        MBasicBlock *preheader = newOsrPreheader(current, loopEntry);
         if (!preheader)
             return ControlStatus_Error;
         current->end(MGoto::New(preheader));
@@ -1571,6 +1573,7 @@ IonBuilder::whileLoop(JSOp op, jssrcnote *sn)
     
     
     
+    
     int ifneOffset = js_GetSrcNoteOffset(sn, 0);
     jsbytecode *ifne = pc + ifneOffset;
     JS_ASSERT(ifne > pc);
@@ -1579,8 +1582,9 @@ IonBuilder::whileLoop(JSOp op, jssrcnote *sn)
     JS_ASSERT(JSOp(*GetNextPc(pc)) == JSOP_LOOPHEAD);
     JS_ASSERT(GetNextPc(pc) == ifne + GetJumpOffset(ifne));
 
-    if (GetNextPc(pc) == info().osrPc()) {
-        MBasicBlock *preheader = newOsrPreheader(current, GetNextPc(pc));
+    jsbytecode *loopEntry = pc + GetJumpOffset(pc);
+    if (info().hasOsrAt(loopEntry)) {
+        MBasicBlock *preheader = newOsrPreheader(current, loopEntry);
         if (!preheader)
             return ControlStatus_Error;
         current->end(MGoto::New(preheader));
@@ -1634,20 +1638,24 @@ IonBuilder::forLoop(JSOp op, jssrcnote *sn)
     
     
     
+    
     jsbytecode *bodyStart = pc;
     jsbytecode *bodyEnd = updatepc;
+    jsbytecode *loopEntry = condpc;
     if (condpc != ifne) {
         JS_ASSERT(JSOp(*bodyStart) == JSOP_GOTO);
         JS_ASSERT(bodyStart + GetJumpOffset(bodyStart) == condpc);
         bodyStart = GetNextPc(bodyStart);
+    } else {
+        loopEntry = GetNextPc(bodyStart);
     }
     jsbytecode *loopHead = bodyStart;
     JS_ASSERT(JSOp(*bodyStart) == JSOP_LOOPHEAD);
     JS_ASSERT(ifne + GetJumpOffset(ifne) == bodyStart);
     bodyStart = GetNextPc(bodyStart);
 
-    if (GetNextPc(pc) == info().osrPc()) {
-        MBasicBlock *preheader = newOsrPreheader(current, GetNextPc(pc));
+    if (info().hasOsrAt(loopEntry)) {
+        MBasicBlock *preheader = newOsrPreheader(current, loopEntry);
         if (!preheader)
             return ControlStatus_Error;
         current->end(MGoto::New(preheader));
@@ -2475,7 +2483,7 @@ IonBuilder::newBlock(MBasicBlock *predecessor, jsbytecode *pc)
 MBasicBlock *
 IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *pc)
 {
-    JS_ASSERT((JSOp)*pc == JSOP_LOOPHEAD);
+    JS_ASSERT((JSOp)*pc == JSOP_LOOPENTRY);
     JS_ASSERT(pc == info().osrPc());
 
     
