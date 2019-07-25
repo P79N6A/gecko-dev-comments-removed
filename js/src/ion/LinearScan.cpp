@@ -457,14 +457,15 @@ LinearScanAllocator::buildLivenessInfo()
         
         
         
-        for (unsigned int i = 0; i < block->numPhis();) {
-            if (live->contains(block->getPhi(i)->getDef(0)->virtualRegister())) {
-                live->remove(block->getPhi(i)->getDef(0)->virtualRegister());
-                i++;
+        for (unsigned int i = 0; i < block->numPhis(); i++) {
+            LDefinition *def = block->getPhi(i)->getDef(0);
+            if (live->contains(def->virtualRegister())) {
+                live->remove(def->virtualRegister());
             } else {
                 
                 
-                block->removePhi(i);
+                vregs[def].getInterval(0)->addRange(inputOf(block->firstId()),
+                                                    inputOf(*block->begin()).previous());
             }
         }
 
@@ -478,6 +479,7 @@ LinearScanAllocator::buildLivenessInfo()
             while (true) {
                 
                 for (BitSet::Iterator i(live->begin()); i != live->end(); i++) {
+                    IonSpew(IonSpew_LSRA, " Marking %d live for all of block %d", *i, loopBlock->id());
                     vregs[*i].getInterval(0)->addRange(inputOf(loopBlock->lir()->firstId()),
                                                        outputOf(loopBlock->lir()->lastId()));
                 }
