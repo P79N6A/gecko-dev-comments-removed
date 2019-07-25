@@ -140,53 +140,35 @@ public:
 
 
 
-class nsContentListKey
+struct nsContentListKey
 {
-public:
   nsContentListKey(nsINode* aRootNode,
-                   nsIAtom* aHTMLMatchAtom,
-                   nsIAtom* aXMLMatchAtom,
-                   PRInt32 aMatchNameSpaceId)
-    : mHTMLMatchAtom(aHTMLMatchAtom),
-      mXMLMatchAtom(aXMLMatchAtom),
+                   PRInt32 aMatchNameSpaceId,
+                   const nsAString& aTagname)
+    : mRootNode(aRootNode),
       mMatchNameSpaceId(aMatchNameSpaceId),
-      mRootNode(aRootNode)
+      mTagname(aTagname)
   {
-    NS_ASSERTION(!aXMLMatchAtom == !aHTMLMatchAtom, "Either neither or both atoms should be null");
   }
-  
+
   nsContentListKey(const nsContentListKey& aContentListKey)
-    : mHTMLMatchAtom(aContentListKey.mHTMLMatchAtom),
-      mXMLMatchAtom(aContentListKey.mXMLMatchAtom),
+    : mRootNode(aContentListKey.mRootNode),
       mMatchNameSpaceId(aContentListKey.mMatchNameSpaceId),
-      mRootNode(aContentListKey.mRootNode)
+      mTagname(aContentListKey.mTagname)
   {
-  }
-
-  PRBool Equals(const nsContentListKey& aContentListKey) const
-  {
-    NS_ASSERTION(mHTMLMatchAtom == aContentListKey.mHTMLMatchAtom 
-                 || mXMLMatchAtom != aContentListKey.mXMLMatchAtom, "HTML atoms should match if XML atoms match");
-
-    return
-      mXMLMatchAtom == aContentListKey.mXMLMatchAtom &&
-      mMatchNameSpaceId == aContentListKey.mMatchNameSpaceId &&
-      mRootNode == aContentListKey.mRootNode;
   }
 
   inline PRUint32 GetHash(void) const
   {
     return
-      NS_PTR_TO_INT32(mXMLMatchAtom.get()) ^
+      HashString(mTagname) ^
       (NS_PTR_TO_INT32(mRootNode) << 12) ^
       (mMatchNameSpaceId << 24);
   }
   
-protected:
-  nsCOMPtr<nsIAtom> mHTMLMatchAtom;
-  nsCOMPtr<nsIAtom> mXMLMatchAtom;
-  PRInt32 mMatchNameSpaceId;
-  nsINode* mRootNode; 
+  nsINode* const mRootNode; 
+  const PRInt32 mMatchNameSpaceId;
+  const nsAString& mTagname;
 };
 
 
@@ -214,7 +196,6 @@ protected:
 
 
 class nsContentList : public nsBaseContentList,
-                      protected nsContentListKey,
                       public nsIHTMLCollection,
                       public nsStubMutationObserver,
                       public nsWrapperCache
@@ -290,11 +271,6 @@ public:
   NS_HIDDEN_(nsIContent*) Item(PRUint32 aIndex, PRBool aDoFlush);
   NS_HIDDEN_(nsIContent*) NamedItem(const nsAString& aName, PRBool aDoFlush);
 
-  nsContentListKey* GetKey() {
-    return static_cast<nsContentListKey*>(this);
-  }
-  
-
   
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
@@ -316,6 +292,19 @@ public:
     }
 #endif
     return static_cast<nsContentList*>(list);
+  }
+
+  PRBool MatchesKey(const nsContentListKey& aKey) const
+  {
+    
+    
+    
+    NS_PRECONDITION(mXMLMatchAtom,
+                    "How did we get here with a null match atom on our list?");
+    return
+      mXMLMatchAtom->Equals(aKey.mTagname) &&
+      mRootNode == aKey.mRootNode &&
+      mMatchNameSpaceId == aKey.mMatchNameSpaceId;
   }
 
 protected:
@@ -387,6 +376,11 @@ protected:
   virtual void RemoveFromCaches() {
     RemoveFromHashtable();
   }
+
+  nsINode* mRootNode; 
+  PRInt32 mMatchNameSpaceId;
+  nsCOMPtr<nsIAtom> mHTMLMatchAtom;
+  nsCOMPtr<nsIAtom> mXMLMatchAtom;
 
   
 
@@ -494,11 +488,15 @@ protected:
   nsString mString;
 };
 
+
+
+
+
+
 already_AddRefed<nsContentList>
 NS_GetContentList(nsINode* aRootNode,
                   PRInt32 aMatchNameSpaceId,
-                  nsIAtom* aHTMLMatchAtom,
-                  nsIAtom* aXMLMatchAtom = nsnull);
+                  const nsAString& aTagname);
 
 already_AddRefed<nsContentList>
 NS_GetFuncStringContentList(nsINode* aRootNode,
