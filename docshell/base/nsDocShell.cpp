@@ -9233,6 +9233,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     
     
     
+    
 
     nsresult rv;
 
@@ -9420,10 +9421,6 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     else {
         FireOnLocationChange(this, nsnull, mCurrentURI);
     }
-
-    
-    if (mOSHE)
-        mOSHE->SetTitle(aTitle);
 
     return NS_OK;
 }
