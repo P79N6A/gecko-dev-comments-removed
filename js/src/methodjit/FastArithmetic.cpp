@@ -806,6 +806,26 @@ mjit::Compiler::jsop_neg()
     }
 
     
+    if (fe->isType(JSVAL_TYPE_INT32) && type == JSVAL_TYPE_INT32) {
+        RegisterID reg = frame.copyDataIntoReg(fe);
+
+        
+        Jump zeroOrMinInt = masm.branchTest32(Assembler::Zero, reg, Imm32(0x7fffffff));
+        stubcc.linkExit(zeroOrMinInt, Uses(1));
+
+        masm.neg32(reg);
+
+        stubcc.leave();
+        OOL_STUBCALL(stubs::Neg);
+
+        frame.pop();
+        frame.pushTypedPayload(JSVAL_TYPE_INT32, reg);
+
+        stubcc.rejoin(Changes(1));
+        return;
+    }
+
+    
     MaybeRegisterID feTypeReg;
     if (!fe->isTypeKnown() && !frame.shouldAvoidTypeRemat(fe)) {
         
@@ -834,17 +854,14 @@ mjit::Compiler::jsop_neg()
 
     
     MaybeJump jmpNotInt;
-    MaybeJump jmpIntZero;
-    MaybeJump jmpMinInt;
+    MaybeJump jmpMinIntOrIntZero;
     MaybeJump jmpIntRejoin;
     Label lblIntPath = stubcc.masm.label();
     {
         maybeJumpIfNotInt32(stubcc.masm, jmpNotInt, fe, feTypeReg);
 
         
-        jmpIntZero.setJump(stubcc.masm.branch32(Assembler::Equal, reg, Imm32(0)));
-        
-        jmpMinInt.setJump(stubcc.masm.branch32(Assembler::Equal, reg, Imm32(1 << 31)));
+        jmpMinIntOrIntZero = stubcc.masm.branchTest32(Assembler::Zero, reg, Imm32(0x7fffffff));
 
         stubcc.masm.neg32(reg);
 
@@ -871,10 +888,8 @@ mjit::Compiler::jsop_neg()
 
     if (jmpNotInt.isSet())
         jmpNotInt.getJump().linkTo(feSyncTarget, &stubcc.masm);
-    if (jmpIntZero.isSet())
-        jmpIntZero.getJump().linkTo(feSyncTarget, &stubcc.masm);
-    if (jmpMinInt.isSet())
-        jmpMinInt.getJump().linkTo(feSyncTarget, &stubcc.masm);
+    if (jmpMinIntOrIntZero.isSet())
+        jmpMinIntOrIntZero.getJump().linkTo(feSyncTarget, &stubcc.masm);
     if (jmpIntRejoin.isSet())
         stubcc.crossJump(jmpIntRejoin.getJump(), masm.label());
 
