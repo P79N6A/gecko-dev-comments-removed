@@ -906,6 +906,17 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                 NS_EVENT_STATE_MOZ_SUBMITINVALID;
     }
 
+    if (mType == NS_FORM_INPUT_RADIO && aName == nsGkAtoms::required) {
+      nsCOMPtr<nsIRadioGroupContainer> c = GetRadioGroupContainer();
+      nsCOMPtr<nsIRadioGroupContainer_MOZILLA_2_0_BRANCH> container =
+        do_QueryInterface(c);
+      nsAutoString name;
+
+      if (container && GetNameIfExists(name)) {
+        container->RadioRequiredChanged(name, this);
+      }
+    }
+
     if (aName == nsGkAtoms::required || aName == nsGkAtoms::disabled ||
         aName == nsGkAtoms::readonly) {
       UpdateValueMissingValidityState();
@@ -3903,6 +3914,7 @@ nsHTMLInputElement::UpdateValueMissingValidityStateForRadio(bool aIgnoreSelf)
 {
   PRBool notify = !GET_BOOLBIT(mBitField, BF_PARSER_CREATING);
   nsCOMPtr<nsIDOMHTMLInputElement> selection = GetSelectedRadioButton();
+
   
   
   bool selected = selection ? true
@@ -3911,11 +3923,17 @@ nsHTMLInputElement::UpdateValueMissingValidityStateForRadio(bool aIgnoreSelf)
                               : HasAttr(kNameSpaceID_None, nsGkAtoms::required);
   bool valueMissing = false;
 
+  nsCOMPtr<nsIRadioGroupContainer> c = GetRadioGroupContainer();
+  nsCOMPtr<nsIRadioGroupContainer_MOZILLA_2_0_BRANCH> container =
+    do_QueryInterface(c);
+  nsAutoString name;
+
   
-  if (!required) {
-    nsCOMPtr<nsIRadioVisitor> visitor =
-      NS_GetRadioGroupRequiredVisitor(this, &required);
-    VisitGroup(visitor, notify);
+  
+  if (!required && container && GetNameIfExists(name)) {
+    required = (aIgnoreSelf && HasAttr(kNameSpaceID_None, nsGkAtoms::required))
+                 ? container->GetRequiredRadioCount(name) - 1
+                 : container->GetRequiredRadioCount(name);
   }
 
   valueMissing = required && !selected;
