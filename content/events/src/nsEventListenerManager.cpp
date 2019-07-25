@@ -792,6 +792,7 @@ nsEventListenerManager::HandleEventSubType(nsListenerStruct* aListenerStruct,
   }
 
   if (NS_SUCCEEDED(result)) {
+    nsAutoMicroTask mt;
     
     result = aListener->HandleEvent(aDOMEvent);
   }

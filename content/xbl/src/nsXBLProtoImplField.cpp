@@ -125,6 +125,8 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
     return NS_OK;
   }
 
+  nsAutoMicroTask mt;
+
   
   
   nsresult rv;

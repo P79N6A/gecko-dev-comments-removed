@@ -66,6 +66,7 @@ txParseDocumentFromURI(const nsAString& aHref, const txXPathNode& aLoader,
     
     
     nsIDOMDocument* theDocument = nsnull;
+    nsAutoSyncOperation sync(loaderDocument);
     rv = nsSyncLoadService::LoadDocument(documentURI,
                                          loaderDocument->NodePrincipal(),
                                          loadGroup, true, &theDocument);

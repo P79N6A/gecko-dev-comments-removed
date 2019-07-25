@@ -1328,6 +1328,8 @@ private:
     
     ElementHasLockedStyleStates,
     
+    NodeMayHaveDOMMutationObserver,
+    
     BooleanFlagCount
   };
 
@@ -1383,7 +1385,10 @@ public:
   void SetIsPurpleRoot(bool aValue)
     { SetBoolFlag(NodeIsPurpleRoot, aValue); }
   bool IsPurpleRoot() const { return GetBoolFlag(NodeIsPurpleRoot); }
-
+  bool MayHaveDOMMutationObserver()
+    { return GetBoolFlag(NodeMayHaveDOMMutationObserver); }
+  void SetMayHaveDOMMutationObserver()
+    { SetBoolFlag(NodeMayHaveDOMMutationObserver, true); }
   bool HasListenerManager() { return HasFlag(NODE_HAS_LISTENERMANAGER); }
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
@@ -1420,6 +1425,12 @@ protected:
 public:
   
   virtual nsXPCClassInfo* GetClassInfo() = 0;
+
+  
+  void BindObject(nsISupports* aObject);
+  
+  
+  void UnbindObject(nsISupports* aObject);
 
   
 

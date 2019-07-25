@@ -685,6 +685,12 @@ txSyncCompileObserver::loadURI(const nsAString& aUri,
 
     
     
+    nsCOMPtr<nsINode> source;
+    if (mProcessor) {
+      source =
+        do_QueryInterface(mProcessor->GetSourceContentModel());
+    }
+    nsAutoSyncOperation sync(source ? source->OwnerDoc() : nsnull);
     nsCOMPtr<nsIDOMDocument> document;
     rv = nsSyncLoadService::LoadDocument(uri, referrerPrincipal, nsnull,
                                          false, getter_AddRefs(document));
