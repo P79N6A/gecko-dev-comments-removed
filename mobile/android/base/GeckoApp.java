@@ -1677,10 +1677,9 @@ abstract public class GeckoApp
         if (uri != null && uri.length() > 0)
             passedUri = mLastTitle = uri;
 
-        mRestoreSession |= getProfile().shouldRestoreSession();
         if (passedUri == null || passedUri.equals("about:home")) {
             
-            if (!mRestoreSession) {
+            if (! getProfile().hasSession()) {
                 mBrowserToolbar.updateTabCount(1);
                 showAboutHome();
             }
