@@ -42,11 +42,11 @@ const Cu = Components.utils;
 
 
 
-__defineGetter__("webNavigation", function() {
+__defineGetter__("webNavigation", function () {
   return docShell.QueryInterface(Ci.nsIWebNavigation);
 });
 
-addMessageListener("WebNavigation:LoadURI", function(message) {
+addMessageListener("WebNavigation:LoadURI", function (message) {
   let flags = message.json.flags || webNavigation.LOAD_FLAGS_NONE;
 
   webNavigation.loadURI(message.json.uri, flags, null, null, null);
