@@ -1077,6 +1077,12 @@ struct JSThread {
     bool                gcWaiting;
 
     
+
+
+
+    uint32              contextsInRequests;
+
+    
     JSThreadData        data;
 };
 
@@ -2704,29 +2710,6 @@ js_ContextIterator(JSRuntime *rt, JSBool unlocked, JSContext **iterp);
 
 extern JS_FRIEND_API(JSContext *)
 js_NextActiveContext(JSRuntime *, JSContext *);
-
-#ifdef JS_THREADSAFE
-
-
-
-
-extern uint32
-js_CountThreadRequests(JSContext *cx);
-
-
-
-
-
-
-
-extern void
-js_WaitForGC(JSRuntime *rt);
-
-#else 
-
-# define js_WaitForGC(rt)    ((void) 0)
-
-#endif
 
 
 

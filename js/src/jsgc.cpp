@@ -2945,6 +2945,27 @@ GC(JSContext *cx  GCTIMER_PARAM)
 
 
 
+
+
+
+
+
+
+
+void
+js_WaitForGC(JSRuntime *rt)
+{
+    if (rt->gcRunning && rt->gcThread->id != js_CurrentThreadId()) {
+        do {
+            JS_AWAIT_GC_DONE(rt);
+        } while (rt->gcRunning);
+    }
+}
+
+
+
+
+
 static void
 LetOtherGCFinish(JSContext *cx)
 {
@@ -2952,7 +2973,7 @@ LetOtherGCFinish(JSContext *cx)
     JS_ASSERT(rt->gcThread);
     JS_ASSERT(cx->thread != rt->gcThread);
 
-    size_t requestDebit = js_CountThreadRequests(cx);
+    size_t requestDebit = cx->thread->contextsInRequests;
     JS_ASSERT(requestDebit <= rt->requestCount);
 #ifdef JS_TRACER
     JS_ASSERT_IF(requestDebit == 0, !JS_ON_TRACE(cx));
@@ -3034,7 +3055,7 @@ BeginGCSession(JSContext *cx)
 
 
 
-    size_t requestDebit = js_CountThreadRequests(cx);
+    size_t requestDebit = cx->thread->contextsInRequests;
     JS_ASSERT_IF(cx->requestDepth != 0, requestDebit >= 1);
     JS_ASSERT(requestDebit <= rt->requestCount);
     if (requestDebit != rt->requestCount) {

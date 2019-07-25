@@ -1247,48 +1247,6 @@ js_NextActiveContext(JSRuntime *rt, JSContext *cx)
 #endif
 }
 
-#ifdef JS_THREADSAFE
-
-uint32
-js_CountThreadRequests(JSContext *cx)
-{
-    JSCList *head, *link;
-    uint32 nrequests;
-
-    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
-    head = &cx->thread->contextList;
-    nrequests = 0;
-    for (link = head->next; link != head; link = link->next) {
-        JSContext *acx = CX_FROM_THREAD_LINKS(link);
-        JS_ASSERT(acx->thread == cx->thread);
-        if (acx->requestDepth)
-            nrequests++;
-    }
-    return nrequests;
-}
-
-
-
-
-
-
-
-
-
-
-
-void
-js_WaitForGC(JSRuntime *rt)
-{
-    if (rt->gcRunning && rt->gcThread->id != js_CurrentThreadId()) {
-        do {
-            JS_AWAIT_GC_DONE(rt);
-        } while (rt->gcRunning);
-    }
-}
-
-#endif
-
 static JSDHashNumber
 resolving_HashKey(JSDHashTable *table, const void *ptr)
 {
