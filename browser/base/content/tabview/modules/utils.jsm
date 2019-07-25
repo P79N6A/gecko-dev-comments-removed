@@ -309,6 +309,8 @@ window.Subscribable.prototype = {
 };
 
 
+
+
 var Utils = {
   
   get activeWindow(){
@@ -527,8 +529,21 @@ var Utils = {
   },
  
   
+  
+  
   isNumber: function(n) {
     return (typeof(n) == 'number' && !isNaN(n));
+  },
+  
+  
+  
+  
+  
+  copy: function(value) {
+    if(value && typeof(value) == 'object') 
+      return $.extend({}, value);
+      
+    return value;
   }
 };
 
