@@ -678,7 +678,7 @@ public class GeckoAppShell
         Log.w("GeckoAppJava", "installWebApplication for " + aURI + " [" + aTitle + "]");
 
         
-        Intent shortcutIntent = new Intent("org.mozilla.gecko.WEBAPP");
+        Intent shortcutIntent = new Intent("org.mozilla.fennec.WEBAPP");
         shortcutIntent.setClassName(GeckoApp.mAppContext,
                                     GeckoApp.mAppContext.getPackageName() + ".App");
         shortcutIntent.putExtra("args", "--webapp=" + aURI);
