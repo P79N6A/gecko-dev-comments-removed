@@ -673,7 +673,10 @@ public class PanZoomController
 
     
     private ViewportMetrics getValidViewportMetrics() {
-        ViewportMetrics viewportMetrics = new ViewportMetrics(mController.getViewportMetrics());
+        return getValidViewportMetrics(new ViewportMetrics(mController.getViewportMetrics()));
+    }
+
+    private ViewportMetrics getValidViewportMetrics(ViewportMetrics viewportMetrics) {
         Log.d(LOGTAG, "generating valid viewport using " + viewportMetrics);
 
         
@@ -872,23 +875,37 @@ public class PanZoomController
 
         mState = PanZoomState.ANIMATED_ZOOM;
         final float startZoom = mController.getZoomFactor();
-        final PointF startPoint = mController.getOrigin();
 
         RectF viewport = mController.getViewport();
-
-        float newHeight = zoomToRect.width() * viewport.height() / viewport.width();
         
-        if (zoomToRect.height() < newHeight) {
-            zoomToRect.top -= (newHeight - zoomToRect.height())/2;
+        
+        
+        
+        float targetRatio = viewport.width() / viewport.height();
+        float rectRatio = zoomToRect.width() / zoomToRect.height();
+        if (FloatUtils.fuzzyEquals(targetRatio, rectRatio)) {
+            
+        } else if (targetRatio < rectRatio) {
+            
+            float newHeight = zoomToRect.width() / targetRatio;
+            zoomToRect.top -= (newHeight - zoomToRect.height()) / 2;
             zoomToRect.bottom = zoomToRect.top + newHeight;
+        } else { 
+            
+            float newWidth = targetRatio * zoomToRect.height();
+            zoomToRect.left -= (newWidth - zoomToRect.width()) / 2;
+            zoomToRect.right = zoomToRect.left + newWidth;
         }
 
-        zoomToRect = mController.restrictToPageSize(zoomToRect);
         float finalZoom = viewport.width() * startZoom / zoomToRect.width();
 
         ViewportMetrics finalMetrics = new ViewportMetrics(mController.getViewportMetrics());
         finalMetrics.setOrigin(new PointF(zoomToRect.left, zoomToRect.top));
         finalMetrics.scaleTo(finalZoom, new PointF(0.0f, 0.0f));
+
+        
+        
+        finalMetrics = getValidViewportMetrics(finalMetrics);
 
         bounce(finalMetrics);
         return true;
