@@ -48,7 +48,9 @@
 #ifndef mozilla_widget_PuppetWidget_h__
 #define mozilla_widget_PuppetWidget_h__
 
+#include "nsBaseScreen.h"
 #include "nsBaseWidget.h"
+#include "nsIScreenManager.h"
 #include "nsThreadUtils.h"
 #include "nsWeakReference.h"
 
@@ -176,6 +178,11 @@ public:
   NS_IMETHOD OnIMESelectionChange(void);
 
   NS_IMETHOD SetCursor(nsCursor aCursor);
+  NS_IMETHOD SetCursor(imgIContainer* aCursor,
+                       PRUint32 aHotspotX, PRUint32 aHotspotY)
+  {
+    return nsBaseWidget::SetCursor(aCursor, aHotspotX, aHotspotY);
+  }
 
   
   
@@ -230,6 +237,33 @@ private:
 
   
   float mDPI;
+};
+
+class PuppetScreen : public nsBaseScreen
+{
+public:
+    PuppetScreen(void* nativeScreen);
+    ~PuppetScreen();
+
+    NS_IMETHOD GetRect(PRInt32* aLeft, PRInt32* aTop, PRInt32* aWidth, PRInt32* aHeight) MOZ_OVERRIDE;
+    NS_IMETHOD GetAvailRect(PRInt32* aLeft, PRInt32* aTop, PRInt32* aWidth, PRInt32* aHeight) MOZ_OVERRIDE;
+    NS_IMETHOD GetPixelDepth(PRInt32* aPixelDepth) MOZ_OVERRIDE;
+    NS_IMETHOD GetColorDepth(PRInt32* aColorDepth) MOZ_OVERRIDE;
+    NS_IMETHOD GetRotation(PRUint32* aRotation) MOZ_OVERRIDE;
+    NS_IMETHOD SetRotation(PRUint32  aRotation) MOZ_OVERRIDE;
+};
+
+class PuppetScreenManager : public nsIScreenManager
+{
+public:
+    PuppetScreenManager();
+    ~PuppetScreenManager();
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSISCREENMANAGER
+
+protected:
+    nsCOMPtr<nsIScreen> mOneScreen;
 };
 
 }  
