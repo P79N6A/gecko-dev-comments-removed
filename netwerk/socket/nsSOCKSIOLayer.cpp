@@ -934,7 +934,7 @@ nsSOCKSSocketInfo::ReadUint32()
 void
 nsSOCKSSocketInfo::ReadNetAddr(PRNetAddr *addr, uint16_t fam)
 {
-    uint32_t amt;
+    uint32_t amt = 0;
     const uint8_t *ip = mData + mReadOffset;
 
     addr->raw.family = fam;

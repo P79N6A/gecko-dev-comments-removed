@@ -65,7 +65,10 @@
 
 struct list_state
 {
-  void           *magic;        
+  list_state() {
+    memset(this, 0, sizeof(*this));
+  }
+
   PRTime         now_time;      
   PRExplodedTime now_tm;        
   int32_t        lstyle;        
