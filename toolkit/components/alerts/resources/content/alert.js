@@ -92,11 +92,6 @@ function onAlertLoad()
   sizeToContent();
 
   
-  var contentDim = document.getElementById("alertBox").boxObject;
-  if (window.innerWidth == contentDim.width + 1)
-    --window.innerWidth;
-
-  
   gCurrentSize = 1;
 
   
