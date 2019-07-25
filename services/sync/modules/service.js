@@ -1861,6 +1861,10 @@ WeaveSvc.prototype = {
 
     let enabled = [eng.name for each (eng in Engines.getEnabled())];
     for (let engineName in meta.payload.engines) {
+      if (engineName == "clients") {
+        
+        continue;
+      }
       let index = enabled.indexOf(engineName);
       if (index != -1) {
         
