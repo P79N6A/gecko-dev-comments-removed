@@ -59,11 +59,6 @@ protected:
   
 
 
-  bool IsValidRowNColumn(PRInt32 aRow, PRInt32 aColumn);
-
-  
-
-
   Accessible* GetRowAt(PRInt32 aRow);
 
   

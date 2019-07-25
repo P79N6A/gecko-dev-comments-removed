@@ -39,7 +39,7 @@ protected:
 
 
   already_AddRefed<nsIAccessibleTable> GetTableAccessible();
-  
+
   
 
 
@@ -49,7 +49,7 @@ protected:
 
 
   nsresult GetCellIndexes(PRInt32& aRowIdx, PRInt32& aColIdx);
-  
+
   
 
 
@@ -101,6 +101,8 @@ public:
   virtual PRUint32 RowCount();
   virtual Accessible* CellAt(PRUint32 aRowIndex, PRUint32 aColumnIndex);
   virtual PRInt32 CellIndexAt(PRUint32 aRowIdx, PRUint32 aColIdx);
+  virtual PRUint32 ColExtentAt(PRUint32 aRowIdx, PRUint32 aColIdx);
+  virtual PRUint32 RowExtentAt(PRUint32 aRowIdx, PRUint32 aColIdx);
   virtual void UnselectCol(PRUint32 aColIdx);
   virtual void UnselectRow(PRUint32 aRowIdx);
   virtual bool IsProbablyLayoutTable();
