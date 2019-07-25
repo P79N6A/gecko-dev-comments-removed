@@ -2786,8 +2786,6 @@ nsAccessible::GetParent()
   
   
   
-  
-  
   NS_WARNING("Bad accessible tree!");
 
 #ifdef DEBUG
