@@ -4224,8 +4224,10 @@ JSObject::growSlots(JSContext *cx, size_t newcap)
     slots = tmpslots;
     capacity = actualCapacity;
 
-    
-    ClearValueRange(slots + oldcap, actualCapacity - oldcap, isDenseArray());
+    if (!isDenseArray()) {
+        
+        ClearValueRange(slots + oldcap, actualCapacity - oldcap, false);
+    }
     return true;
 }
 
