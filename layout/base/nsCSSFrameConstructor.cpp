@@ -3267,7 +3267,7 @@ nsCSSFrameConstructor::InitializeSelectFrame(nsFrameConstructorState& aState,
   }
 
   ProcessChildren(aState, aContent, aStyleContext, scrolledFrame, PR_FALSE,
-                  childItems, PR_TRUE, aPendingBinding);
+                  childItems, PR_FALSE, aPendingBinding);
 
   
   scrolledFrame->SetInitialChildList(nsnull, childItems);
