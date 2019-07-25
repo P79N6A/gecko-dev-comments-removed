@@ -461,6 +461,10 @@ GLContext::IsExtensionSupported(const char *extension)
 PRBool
 GLContext::ListHasExtension(const GLubyte *extensions, const char *extension)
 {
+    
+    if (extensions == nsnull || extension == nsnull)
+        return PR_FALSE;
+
     const GLubyte *start;
     GLubyte *where, *terminator;
 
