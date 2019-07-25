@@ -1839,7 +1839,8 @@ nsXULElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
         
         
         if (nsGkAtoms::left == aAttribute || nsGkAtoms::top == aAttribute ||
-            nsGkAtoms::right == aAttribute || nsGkAtoms::bottom == aAttribute)
+            nsGkAtoms::right == aAttribute || nsGkAtoms::bottom == aAttribute ||
+            nsGkAtoms::start == aAttribute || nsGkAtoms::end == aAttribute)
             retval = NS_STYLE_HINT_REFLOW;
     }
 
