@@ -168,7 +168,7 @@ BookmarksEngine.prototype = {
 
   },
 
-  _sync: function BmkEngine_sync() {
+  _sync: function BmkEngine__sync() {
     
 
     let self = yield;
@@ -179,8 +179,21 @@ BookmarksEngine.prototype = {
     self.done();
   },
 
+  _share: function BmkEngine__share( guid, username ) {
+    
+    
+    
+
+    
+
+    
+    
+    dump( "In bookmarkEngine._share.  Sharing " + guid + " with " + username );
+    return true;
+  },
+
   updateAllIncomingShares: function BmkEngine_updateAllIncoming(onComplete) {
-    this._syncMounts.async(this, onComplete);
+    this._updateAllIncomingShares.async(this, onComplete);
   },
   _updateAllIncomingShares: function BmkEngine__updateAllIncoming() {
     
@@ -204,13 +217,11 @@ BookmarksEngine.prototype = {
     }
   },
 
-  
-  
   _createOutgoingShare: function BmkEngine__createOutgoing(guid, username) {
     let self = yield;
     let prefix = DAV.defaultPrefix;
 
-    this._log.debug("Sharing bookmarks with " + username);
+    this._log.debug("Sharing bookmarks from " + guid + " with " + username);
 
     this._getSymKey.async(this, self.cb);
     yield;
@@ -243,8 +254,6 @@ BookmarksEngine.prototype = {
     if (!enckey)
       throw "Could not encrypt symmetric encryption key";
 
-    
-
     keys.ring[username] = enckey;
     DAV.PUT(this.keysFile, this._json.encode(keys), self.cb);
     ret = yield;
@@ -256,6 +265,11 @@ BookmarksEngine.prototype = {
     this._log.debug("All done sharing!");
 
     self.done(true);
+  },
+
+  _updateOutgoingShare: function BmkEngine__updateOutgoing(guid, username) {
+    
+
   },
 
   _createIncomingShare: function BookmarkEngine__createShare(guid, id, title) {
