@@ -45,8 +45,8 @@ class nsIDocument;
 
 
 #define NS_IRADIOVISITOR_IID \
-{ 0xd3494bd2, 0x1dd1, 0x11b2, \
-  { 0xbe, 0x86, 0xb5, 0x08, 0xc8, 0x71, 0xd7, 0xc5 } }
+{ 0xc6bed232, 0x1181, 0x4ab2, \
+  { 0xa1, 0xda, 0x55, 0xc2, 0x13, 0x6d, 0xea, 0x3d } }
 
 
 
@@ -68,8 +68,7 @@ public:
 
 
 
-
-  NS_IMETHOD Visit(nsIFormControl* aRadio, PRBool* aStop) = 0;
+  virtual PRBool Visit(nsIFormControl* aRadio) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIRadioVisitor, NS_IRADIOVISITOR_IID)
@@ -81,7 +80,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIRadioVisitor, NS_IRADIOVISITOR_IID)
 
 
 nsresult
-NS_GetRadioSetCheckedChangedVisitor(PRBool aCheckedChanged,
+NS_GetRadioSetCheckedChangedVisitor(bool aCheckedChanged,
                                     nsIRadioVisitor** aVisitor);
 
 
@@ -94,7 +93,7 @@ NS_GetRadioSetCheckedChangedVisitor(PRBool aCheckedChanged,
 
 
 nsresult
-NS_GetRadioGetCheckedChangedVisitor(PRBool* aCheckedChanged,
+NS_GetRadioGetCheckedChangedVisitor(bool* aCheckedChanged,
                                     nsIFormControl* aExcludeElement,
                                     nsIRadioVisitor** aVisitor);
 
