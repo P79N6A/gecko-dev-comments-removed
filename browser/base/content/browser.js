@@ -787,7 +787,6 @@ const gFormSubmitObserver = {
   init: function()
   {
     this.panel = document.getElementById('invalid-form-popup');
-    this.panel.appendChild(document.createTextNode(""));
   },
 
   panelIsOpen: function()
@@ -821,7 +820,7 @@ const gFormSubmitObserver = {
     }
 
     
-    this.panel.firstChild.nodeValue = element.validationMessage.substring(0, 256);
+    this.panel.firstChild.textContent = element.validationMessage.substring(0, 256);
 
     element.focus();
 
@@ -1476,7 +1475,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   let NP = {};
-  Cu.import("resource:
+  Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
   NP.trackBrowserWindow(window);
 
   
@@ -1526,7 +1525,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
     if (Win7Features) {
       let tempScope = {};
-      Cu.import("resource:
+      Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm",
                 tempScope);
       tempScope.DownloadTaskbarProgress.onBrowserWindowLoad(window);
     }
@@ -2791,11 +2790,11 @@ function FillInHTMLTooltip(tipElement)
 {
   var retVal = false;
   
-  if (tipElement.namespaceURI == "http:
+  if (tipElement.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" ||
       !tipElement.ownerDocument)
     return retVal;
 
-  const XLinkNS = "http:
+  const XLinkNS = "http://www.w3.org/1999/xlink";
 
 
   var titleText = null;
