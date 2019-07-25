@@ -179,9 +179,6 @@ Item.prototype = {
       start: function(e, ui) {
         if (this.isAGroupItem)
           GroupItems.setActiveGroupItem(this);
-        
-        else if (this.parent != null)
-          this.parent._dropSpaceActive = true;
         drag.info = new Drag(this, e);
       },
       drag: function(e) {
@@ -203,6 +200,7 @@ Item.prototype = {
         var groupItem = drag.info.item.parent;
         if (groupItem)
           groupItem.remove(drag.info.$el, {dontClose: true});
+
         iQ(this.container).removeClass("acceptsDrop");
       },
       drop: function(event) {
@@ -619,6 +617,7 @@ Item.prototype = {
           var box = self.getBounds();
           box.left = startPos.x + (mouse.x - startMouse.x);
           box.top = startPos.y + (mouse.y - startMouse.y);
+
           self.setBounds(box, true);
 
           if (typeof self.dragOptions.drag == "function")
@@ -663,11 +662,6 @@ Item.prototype = {
               if (dropOptions && typeof dropOptions.over == "function")
                 dropOptions.over.apply(dropTarget, [e]);
             }
-          }
-          if (dropTarget) {
-            dropOptions = dropTarget.dropOptions;
-            if (dropOptions && typeof dropOptions.move == "function")
-              dropOptions.move.apply(dropTarget, [e]);
           }
         }
 
@@ -929,12 +923,6 @@ let Items = {
   
   
   
-  
-  
-  
-  
-  
-  
   arrange: function Items_arrange(items, bounds, options) {
     if (typeof options == 'undefined')
       options = {};
@@ -948,12 +936,8 @@ let Items = {
 
     var tabAspect = TabItems.tabHeight / TabItems.tabWidth;
     var count = options.count || (items ? items.length : 0);
-    if (options.addTab)
-      count++;
-    if (!count) {
-      let dropIndex = (Utils.isPoint(options.dropPos)) ? 0 : null;
-      return {rects: rects, dropIndex: dropIndex};
-    }
+    if (!count)
+      return rects;
 
     var columns = options.columns || 1;
     
@@ -997,23 +981,17 @@ let Items = {
 
     var column = 0;
 
-    var dropIndex = false;
-    var dropRect = false;
-    if (Utils.isPoint(options.dropPos))
-      dropRect = new Rect(options.dropPos.x, options.dropPos.y, 1, 1);
     for (let a = 0; a < count; a++) {
-      
-      if (dropRect) {
-        let activeBox = new Rect(box);
-        activeBox.inset(-itemMargin - 1, -itemMargin - 1);
-        
-        
-        if (activeBox.contains(dropRect))
-          dropIndex = a;
-      }
-      
-      
       rects.push(new Rect(box));
+      if (items && a < items.length) {
+        let item = items[a];
+        if (!item.locked.bounds) {
+          item.setBounds(box, immediately);
+          item.setRotation(0);
+          if (options.z)
+            item.setZ(options.z);
+        }
+      }
 
       box.left += (UI.rtl ? -1 : 1) * (box.width + padding);
       column++;
@@ -1024,7 +1002,7 @@ let Items = {
       }
     }
 
-    return {rects: rects, dropIndex: dropIndex};
+    return rects;
   },
 
   
