@@ -3421,6 +3421,13 @@ PluginInstanceChild::AnswerNPP_Destroy(NPError* aResult)
         static_cast<BrowserStreamChild*>(streams[i])->FinishDelivery();
 
     mTimers.Clear();
+
+    
+    
+    
+    PluginModuleChild::current()->NPP_Destroy(this);
+    mData.ndata = 0;
+
     if (mCurrentInvalidateTask) {
         mCurrentInvalidateTask->Cancel();
         mCurrentInvalidateTask = nsnull;
@@ -3429,12 +3436,6 @@ PluginInstanceChild::AnswerNPP_Destroy(NPError* aResult)
         mCurrentAsyncSetWindowTask->Cancel();
         mCurrentAsyncSetWindowTask = nsnull;
     }
-
-    
-    
-    
-    PluginModuleChild::current()->NPP_Destroy(this);
-    mData.ndata = 0;
 
     ClearAllSurfaces();
 
