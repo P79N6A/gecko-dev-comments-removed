@@ -4,17 +4,16 @@
 
 
 
+#include "jsgcmark.h"
 #include "jsprf.h"
 #include "jsscope.h"
 #include "jsstr.h"
-
-#include "gc/Marking.h"
-#include "methodjit/MethodJIT.h"
 
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 
 #include "vm/String-inl.h"
+#include "methodjit/MethodJIT.h"
 
 
 

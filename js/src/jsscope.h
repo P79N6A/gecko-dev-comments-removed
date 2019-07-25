@@ -138,7 +138,7 @@ static const uint32_t SHAPE_MAXIMUM_SLOT = JS_BIT(24) - 2;
 
 
 
-struct ShapeTable {
+struct PropertyTable {
     static const uint32_t HASH_BITS     = tl::BitSize<HashNumber>::result;
     static const uint32_t MIN_ENTRIES   = 7;
     static const uint32_t MIN_SIZE_LOG2 = 4;
@@ -153,7 +153,7 @@ struct ShapeTable {
 
     js::Shape       **entries;          
 
-    ShapeTable(uint32_t nentries)
+    PropertyTable(uint32_t nentries)
       : hashShift(HASH_BITS - MIN_SIZE_LOG2),
         entryCount(nentries),
         removedCount(0),
@@ -162,7 +162,7 @@ struct ShapeTable {
         
     }
 
-    ~ShapeTable() {
+    ~PropertyTable() {
         js::UnwantedForeground::free_(entries);
     }
 
@@ -325,7 +325,7 @@ class BaseShape : public js::gc::Cell
     HeapPtr<UnownedBaseShape> unowned_;
 
     
-    ShapeTable       *table_;
+    PropertyTable       *table_;
 
   public:
     void finalize(FreeOp *fop);
@@ -358,8 +358,8 @@ class BaseShape : public js::gc::Cell
     JSObject *setterObject() const { JS_ASSERT(hasSetterObject()); return setterObj; }
 
     bool hasTable() const { JS_ASSERT_IF(table_, isOwned()); return table_ != NULL; }
-    ShapeTable &table() const { JS_ASSERT(table_ && isOwned()); return *table_; }
-    void setTable(ShapeTable *table) { JS_ASSERT(isOwned()); table_ = table; }
+    PropertyTable &table() const { JS_ASSERT(table_ && isOwned()); return *table_; }
+    void setTable(PropertyTable *table) { JS_ASSERT(isOwned()); table_ = table; }
 
     uint32_t slotSpan() const { JS_ASSERT(isOwned()); return slotSpan_; }
     void setSlotSpan(uint32_t slotSpan) { JS_ASSERT(isOwned()); slotSpan_ = slotSpan; }
@@ -550,7 +550,7 @@ struct Shape : public js::gc::Cell
 
   public:
     bool hasTable() const { return base()->hasTable(); }
-    js::ShapeTable &table() const { return base()->table(); }
+    js::PropertyTable &table() const { return base()->table(); }
 
     void sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf,
                              size_t *propTableSize, size_t *kidsSize) const {
@@ -852,13 +852,13 @@ struct Shape : public js::gc::Cell
         return count;
     }
 
-    bool isBigEnoughForAShapeTable() const {
+    bool isBigEnoughForAPropertyTable() const {
         JS_ASSERT(!hasTable());
         const js::Shape *shape = this;
         uint32_t count = 0;
         for (js::Shape::Range r = shape->all(); !r.empty(); r.popFront()) {
             ++count;
-            if (count >= ShapeTable::MIN_ENTRIES)
+            if (count >= PropertyTable::MIN_ENTRIES)
                 return true;
         }
         return false;
@@ -1073,7 +1073,7 @@ Shape::search(JSContext *cx, Shape *start, jsid id, Shape ***pspp, bool adding)
     }
 
     if (start->numLinearSearches() == LINEAR_SEARCHES_MAX) {
-        if (start->isBigEnoughForAShapeTable()) {
+        if (start->isBigEnoughForAPropertyTable()) {
             RootShape startRoot(cx, &start);
             RootId idRoot(cx, &id);
             if (start->hashify(cx)) {
