@@ -160,7 +160,7 @@ PropertyTable::init(JSRuntime *rt, Shape *lastProp)
 
 
 
-    entries = (Shape **) rt->calloc(JS_BIT(sizeLog2) * sizeof(Shape *));
+    entries = (Shape **) rt->calloc_(JS_BIT(sizeLog2) * sizeof(Shape *));
     if (!entries) {
         METER(tableAllocFails);
         return false;
@@ -330,7 +330,7 @@ PropertyTable::change(int log2Delta, JSContext *cx)
     oldsize = JS_BIT(oldlog2);
     newsize = JS_BIT(newlog2);
     nbytes = PROPERTY_TABLE_NBYTES(newsize);
-    newTable = (Shape **) cx->calloc(nbytes);
+    newTable = (Shape **) cx->calloc_(nbytes);
     if (!newTable) {
         METER(tableAllocFails);
         return false;
@@ -356,7 +356,7 @@ PropertyTable::change(int log2Delta, JSContext *cx)
     }
 
     
-    cx->free(oldTable);
+    cx->free_(oldTable);
     return true;
 }
 

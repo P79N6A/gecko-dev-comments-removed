@@ -242,7 +242,7 @@ struct PropertyTable {
     }
 
     ~PropertyTable() {
-        js::UnwantedForeground::free(entries);
+        js::UnwantedForeground::free_(entries);
     }
 
     

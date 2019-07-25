@@ -180,7 +180,7 @@ ArrayBuffer::allocateStorage(JSContext *cx, uint32 nbytes)
     JS_ASSERT(data == 0);
 
     if (nbytes) {
-        data = cx->calloc(nbytes);
+        data = cx->calloc_(nbytes);
         if (!data)
             return false;
     }
@@ -193,7 +193,7 @@ void
 ArrayBuffer::freeStorage(JSContext *cx)
 {
     if (data) {
-        cx->free(data);
+        cx->free_(data);
 #ifdef DEBUG
         
         data = NULL;
@@ -1264,7 +1264,7 @@ class TypedArrayTemplate
 
         
         
-        void *srcbuf = cx->malloc(tarray->byteLength);
+        void *srcbuf = cx->malloc_(tarray->byteLength);
         if (!srcbuf)
             return false;
         memcpy(srcbuf, tarray->data, tarray->byteLength);
@@ -1324,7 +1324,7 @@ class TypedArrayTemplate
             break;
         }
 
-        UnwantedForeground::free(srcbuf);
+        UnwantedForeground::free_(srcbuf);
         return true;
     }
 

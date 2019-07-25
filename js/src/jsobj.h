@@ -42,13 +42,6 @@
 #define jsobj_h___
 
 
-#ifdef mozilla_mozalloc_macro_wrappers_h
-#  define JS_OBJ_UNDEFD_MOZALLOC_WRAPPERS
-
-#  include "mozilla/mozalloc_undef_macro_wrappers.h"
-#endif
-
-
 
 
 
@@ -1983,9 +1976,5 @@ extern bool
 IsAnyBuiltinEval(JSFunction *fun);
 
 }
-
-#ifdef JS_OBJ_UNDEFD_MOZALLOC_WRAPPERS
-#  include "mozilla/mozalloc_macro_wrappers.h"
-#endif
 
 #endif 

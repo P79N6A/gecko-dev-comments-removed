@@ -467,21 +467,15 @@ class OffTheBooks {
 public:
     JS_DECLARE_NEW_METHODS(::js_malloc, JS_ALWAYS_INLINE static)
 
-    
-
-
-
-
-
-    static JS_INLINE void* (malloc)(size_t bytes) {
+    static JS_INLINE void* malloc_(size_t bytes) {
         return ::js_malloc(bytes);
     }
 
-    static JS_INLINE void* (calloc)(size_t bytes) {
+    static JS_INLINE void* calloc_(size_t bytes) {
         return ::js_calloc(bytes);
     }
 
-    static JS_INLINE void* (realloc)(void* p, size_t bytes) {
+    static JS_INLINE void* realloc_(void* p, size_t bytes) {
         return ::js_realloc(p, bytes);
     }
 };
@@ -493,7 +487,7 @@ public:
 class Foreground {
 public:
     
-    static JS_ALWAYS_INLINE void (free)(void* p) {
+    static JS_ALWAYS_INLINE void free_(void* p) {
         ::js_free(p);
     }
 

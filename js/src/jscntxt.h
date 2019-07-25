@@ -45,13 +45,6 @@
 
 #include <string.h>
 
-
-#ifdef mozilla_mozalloc_macro_wrappers_h
-#  define JS_CNTXT_UNDEFD_MOZALLOC_WRAPPERS
-
-#  include "mozilla/mozalloc_undef_macro_wrappers.h"
-#endif
-
 #include "jsprvtd.h"
 #include "jsarena.h"
 #include "jsclist.h"
@@ -169,9 +162,9 @@ class ContextAllocPolicy
     JSContext *context() const { return cx; }
 
     
-    void *malloc(size_t bytes);
-    void free(void *p);
-    void *realloc(void *p, size_t bytes);
+    void *malloc_(size_t bytes);
+    void free_(void *p);
+    void *realloc_(void *p, size_t bytes);
     void reportAllocOverflow() const;
 };
 
@@ -1349,7 +1342,7 @@ struct JSRuntime {
 
 
 
-    void* malloc(size_t bytes, JSContext *cx = NULL) {
+    void* malloc_(size_t bytes, JSContext *cx = NULL) {
         updateMallocCounter(bytes);
         void *p = ::js_malloc(bytes);
         return JS_LIKELY(!!p) ? p : onOutOfMemory(NULL, bytes, cx);
@@ -1359,20 +1352,20 @@ struct JSRuntime {
 
 
 
-    void* calloc(size_t bytes, JSContext *cx = NULL) {
+    void* calloc_(size_t bytes, JSContext *cx = NULL) {
         updateMallocCounter(bytes);
         void *p = ::js_calloc(bytes);
         return JS_LIKELY(!!p) ? p : onOutOfMemory(reinterpret_cast<void *>(1), bytes, cx);
     }
 
-    void* realloc(void* p, size_t oldBytes, size_t newBytes, JSContext *cx = NULL) {
+    void* realloc_(void* p, size_t oldBytes, size_t newBytes, JSContext *cx = NULL) {
         JS_ASSERT(oldBytes < newBytes);
         updateMallocCounter(newBytes - oldBytes);
         void *p2 = ::js_realloc(p, newBytes);
         return JS_LIKELY(!!p2) ? p2 : onOutOfMemory(p, newBytes, cx);
     }
 
-    void* realloc(void* p, size_t bytes, JSContext *cx = NULL) {
+    void* realloc_(void* p, size_t bytes, JSContext *cx = NULL) {
         
 
 
@@ -1383,13 +1376,13 @@ struct JSRuntime {
         return JS_LIKELY(!!p2) ? p2 : onOutOfMemory(p, bytes, cx);
     }
 
-    inline void free(void* p) {
+    inline void free_(void* p) {
         
-        js::Foreground::free(p);
+        js::Foreground::free_(p);
     }
 
-    JS_DECLARE_NEW_METHODS(malloc, JS_ALWAYS_INLINE)
-    JS_DECLARE_DELETE_METHODS(free, JS_ALWAYS_INLINE)
+    JS_DECLARE_NEW_METHODS(malloc_, JS_ALWAYS_INLINE)
+    JS_DECLARE_DELETE_METHODS(free_, JS_ALWAYS_INLINE)
 
     bool isGCMallocLimitReached() const { return gcMallocBytes <= 0; }
 
@@ -1995,40 +1988,40 @@ struct JSContext
     js::GCHelperThread *gcBackgroundFree;
 #endif
 
-    inline void* malloc(size_t bytes) {
-        return runtime->malloc(bytes, this);
+    inline void* malloc_(size_t bytes) {
+        return runtime->malloc_(bytes, this);
     }
 
     inline void* mallocNoReport(size_t bytes) {
         JS_ASSERT(bytes != 0);
-        return runtime->malloc(bytes, NULL);
+        return runtime->malloc_(bytes, NULL);
     }
 
-    inline void* calloc(size_t bytes) {
+    inline void* calloc_(size_t bytes) {
         JS_ASSERT(bytes != 0);
-        return runtime->calloc(bytes, this);
+        return runtime->calloc_(bytes, this);
     }
 
-    inline void* realloc(void* p, size_t bytes) {
-        return runtime->realloc(p, bytes, this);
+    inline void* realloc_(void* p, size_t bytes) {
+        return runtime->realloc_(p, bytes, this);
     }
 
-    inline void* realloc(void* p, size_t oldBytes, size_t newBytes) {
-        return runtime->realloc(p, oldBytes, newBytes, this);
+    inline void* realloc_(void* p, size_t oldBytes, size_t newBytes) {
+        return runtime->realloc_(p, oldBytes, newBytes, this);
     }
 
-    inline void free(void* p) {
+    inline void free_(void* p) {
 #ifdef JS_THREADSAFE
         if (gcBackgroundFree) {
             gcBackgroundFree->freeLater(p);
             return;
         }
 #endif
-        runtime->free(p);
+        runtime->free_(p);
     }
 
-    JS_DECLARE_NEW_METHODS(malloc, inline)
-    JS_DECLARE_DELETE_METHODS(free, inline)
+    JS_DECLARE_NEW_METHODS(malloc_, inline)
+    JS_DECLARE_DELETE_METHODS(free_, inline)
 
     void purge();
 
@@ -2694,7 +2687,7 @@ class AutoReleasePtr {
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
-    ~AutoReleasePtr() { cx->free(ptr); }
+    ~AutoReleasePtr() { cx->free_(ptr); }
 };
 
 
@@ -2716,10 +2709,10 @@ class AutoReleaseNullablePtr {
     }
     void reset(void *ptr2) {
         if (ptr)
-            cx->free(ptr);
+            cx->free_(ptr);
         ptr = ptr2;
     }
-    ~AutoReleaseNullablePtr() { if (ptr) cx->free(ptr); }
+    ~AutoReleaseNullablePtr() { if (ptr) cx->free_(ptr); }
 };
 
 class AutoLocalNameArray {
@@ -3166,21 +3159,21 @@ js_RegenerateShapeForGC(JSRuntime *rt)
 namespace js {
 
 inline void *
-ContextAllocPolicy::malloc(size_t bytes)
+ContextAllocPolicy::malloc_(size_t bytes)
 {
-    return cx->malloc(bytes);
+    return cx->malloc_(bytes);
 }
 
 inline void
-ContextAllocPolicy::free(void *p)
+ContextAllocPolicy::free_(void *p)
 {
-    cx->free(p);
+    cx->free_(p);
 }
 
 inline void *
-ContextAllocPolicy::realloc(void *p, size_t bytes)
+ContextAllocPolicy::realloc_(void *p, size_t bytes)
 {
-    return cx->realloc(p, bytes);
+    return cx->realloc_(p, bytes);
 }
 
 inline void
@@ -3304,10 +3297,6 @@ NewIdArray(JSContext *cx, jsint length);
 #ifdef _MSC_VER
 #pragma warning(pop)
 #pragma warning(pop)
-#endif
-
-#ifdef JS_CNTXT_UNDEFD_MOZALLOC_WRAPPERS
-#  include "mozilla/mozalloc_macro_wrappers.h"
 #endif
 
 #endif
