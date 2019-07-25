@@ -4562,6 +4562,25 @@ AddonInstall.prototype = {
 
 
   loadManifest: function AI_loadManifest(aCallback) {
+    function addRepositoryData(aAddon) {
+      
+      AddonRepository.getCachedAddonByID(aAddon.id, function(aRepoAddon) {
+        if (aRepoAddon) {
+          aAddon._repositoryAddon = aRepoAddon;
+          aCallback();
+          return;
+        }
+
+        
+        AddonRepository.cacheAddons([aAddon.id], function() {
+          AddonRepository.getCachedAddonByID(aAddon.id, function(aRepoAddon) {
+            aAddon._repositoryAddon = aRepoAddon;
+            aCallback();
+          });
+        });
+      });
+    }
+
     let zipreader = Cc["@mozilla.org/libjar/zip-reader;1"].
                     createInstance(Ci.nsIZipReader);
     try {
@@ -4599,7 +4618,10 @@ AddonInstall.prototype = {
     }
 
     if (this.addon.type == "multipackage") {
-      this.loadMultipackageManifests(zipreader, aCallback);
+      let self = this;
+      this.loadMultipackageManifests(zipreader, function() {
+        addRepositoryData(self.addon);
+      });
       return;
     }
 
@@ -4618,7 +4640,7 @@ AddonInstall.prototype = {
     
     
 
-    aCallback();
+    addRepositoryData(this.addon);
   },
 
   observe: function AI_observe(aSubject, aTopic, aData) {
