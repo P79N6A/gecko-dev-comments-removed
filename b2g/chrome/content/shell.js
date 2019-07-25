@@ -544,6 +544,7 @@ function startDebugger() {
   if (!DebuggerServer.initialized) {
     
     DebuggerServer.init(function () { return true; });
+    DebuggerServer.addBrowserActors();
     DebuggerServer.addActors('chrome://browser/content/dbg-browser-actors.js');
   }
 
