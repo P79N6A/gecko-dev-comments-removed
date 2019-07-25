@@ -969,18 +969,6 @@ public class GeckoInputConnection
         mEditable.setSpan(this, 0, contents.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
         Selection.setSelection(mEditable, contents.length());
     }
-
-    public void resetSelection() {
-        
-        
-        
-        Editable content = getEditable();
-        if (content != null) {
-            Log.d(LOGTAG, "IME: resetSelection");
-            int length = content.length();
-            setSelection(length, length);
-        }
-    }
 }
 
 class DebugGeckoInputConnection extends GeckoInputConnection {

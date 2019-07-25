@@ -2072,10 +2072,6 @@ abstract public class GeckoApp
             mMainHandler.sendMessage(message);
         }
 
-        
-        
-        GeckoAppShell.resetIMESelection();
-
         int newOrientation = getResources().getConfiguration().orientation;
 
         if (mOrientation != newOrientation) {

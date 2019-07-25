@@ -621,12 +621,6 @@ public class GeckoAppShell
         mInputConnection.returnIMEQueryResult(result, selectionStart, selectionLength);
     }
 
-    public static void resetIMESelection() {
-        if (mInputConnection != null) {
-            mInputConnection.resetSelection();
-        }
-    }
-
     static void onXreExit() {
         
         GeckoApp.setLaunchState(GeckoApp.LaunchState.GeckoExiting);
