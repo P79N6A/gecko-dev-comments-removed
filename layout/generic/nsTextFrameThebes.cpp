@@ -6066,8 +6066,25 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
   
   const nsStyleText* textStyle = GetStyleText();
   const nsTextFragment* frag = mContent->GetText();
+
+  
+  
+  PRInt32 len = PR_INT32_MAX;
+  PRBool hyphenating = frag->GetLength() > 0 &&
+    (mTextRun->GetFlags() & gfxTextRunFactory::TEXT_ENABLE_HYPHEN_BREAKS) != 0;
+  if (hyphenating) {
+    len = frag->GetLength() - iter.GetOriginalOffset();
+#ifdef DEBUG
+    
+    
+    gfxSkipCharsIterator tmpIter(iter);
+    tmpIter.AdvanceOriginal(len);
+    NS_ASSERTION(tmpIter.GetSkippedOffset() == flowEndInTextRun,
+                 "nsTextFragment length mismatch?");
+#endif
+  }
   PropertyProvider provider(mTextRun, textStyle, frag, this,
-                            iter, PR_INT32_MAX, nsnull, 0);
+                            iter, len, nsnull, 0);
 
   PRBool collapseWhitespace = !textStyle->WhiteSpaceIsSignificant();
   PRBool preformatNewlines = textStyle->NewlineIsSignificant();
@@ -6076,7 +6093,16 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
   PRUint32 start =
     FindStartAfterSkippingWhitespace(&provider, aData, textStyle, &iter, flowEndInTextRun);
 
-  
+  nsAutoTArray<PRPackedBool,BIG_TEXT_NODE_SIZE> hyphBuffer;
+  PRPackedBool *hyphBreakBefore = nsnull;
+  if (hyphenating) {
+    hyphBreakBefore = hyphBuffer.AppendElements(flowEndInTextRun - start);
+    if (hyphBreakBefore) {
+      provider.GetHyphenationBreaks(start, flowEndInTextRun - start,
+                                    hyphBreakBefore);
+    }
+  }
+
   for (PRUint32 i = start, wordStart = start; i <= flowEndInTextRun; ++i) {
     PRBool preformattedNewline = PR_FALSE;
     PRBool preformattedTab = PR_FALSE;
@@ -6086,8 +6112,11 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
       
       preformattedNewline = preformatNewlines && mTextRun->GetChar(i) == '\n';
       preformattedTab = preformatTabs && mTextRun->GetChar(i) == '\t';
-      if (!mTextRun->CanBreakLineBefore(i) && !preformattedNewline &&
-          !preformattedTab) {
+      if (!mTextRun->CanBreakLineBefore(i) &&
+          !preformattedNewline &&
+          !preformattedTab &&
+          (!hyphBreakBefore || !hyphBreakBefore[i - start]))
+      {
         
         continue;
       }
@@ -6129,6 +6158,8 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
          (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TRAILING_BREAK))) {
       if (preformattedNewline) {
         aData->ForceBreak(aRenderingContext);
+      } else if (hyphBreakBefore && hyphBreakBefore[i - start]) {
+        aData->OptionallyBreak(aRenderingContext, provider.GetHyphenWidth());
       } else {
         aData->OptionallyBreak(aRenderingContext);
       }

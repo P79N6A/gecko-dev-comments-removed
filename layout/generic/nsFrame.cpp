@@ -3184,7 +3184,8 @@ nsIFrame::InlineMinWidthData::ForceBreak(nsIRenderingContext *aRenderingContext)
 }
 
 void
-nsIFrame::InlineMinWidthData::OptionallyBreak(nsIRenderingContext *aRenderingContext)
+nsIFrame::InlineMinWidthData::OptionallyBreak(nsIRenderingContext *aRenderingContext,
+                                              nscoord aHyphenWidth)
 {
   trailingTextFrame = nsnull;
 
@@ -3193,8 +3194,9 @@ nsIFrame::InlineMinWidthData::OptionallyBreak(nsIRenderingContext *aRenderingCon
   
   
   
-  if (currentLine < 0 || atStartOfLine)
+  if (currentLine + aHyphenWidth < 0 || atStartOfLine)
     return;
+  currentLine += aHyphenWidth;
   ForceBreak(aRenderingContext);
 }
 
