@@ -59,6 +59,12 @@ let Storage = {
 
   
   
+  uninit : function() {
+    this._sessionStore = null;
+  },
+
+  
+  
   
   wipe: function() {
     try {

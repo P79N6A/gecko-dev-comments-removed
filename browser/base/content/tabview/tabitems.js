@@ -670,6 +670,7 @@ window.TabItems = {
   _heartbeatOn: false,
   _heartbeatTiming: 100, 
   _lastUpdateTime: Date.now(),
+  _eventListeners: [],
 
   
   
@@ -679,35 +680,36 @@ window.TabItems = {
     var self = this;
 
     
-    AllTabs.register("open", function(tab) {
+    this._eventListeners["open"] = function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
       setTimeout(function() { 
         self.link(tab);
       }, 1);
-    });
-
+    }
     
     
-    AllTabs.register("attrModified", function(tab) {
+    this._eventListeners["attrModified"] = function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
       setTimeout(function() { 
         self.update(tab);
       }, 1);
-    });
-
+    }
     
-    AllTabs.register("close", function(tab) {
+    this._eventListeners["close"] = function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
       setTimeout(function() { 
         self.unlink(tab);
       }, 1);
-    });
+    }
+    for (let name in this._eventListeners) {
+      AllTabs.register(name, this._eventListeners[name]);
+    }
 
     
     AllTabs.tabs.forEach(function(tab) {
@@ -717,6 +719,18 @@ window.TabItems = {
       self.link(tab);
       self.update(tab);
     });
+  },
+
+  
+  
+  uninit: function() {
+    for (let name in this._eventListeners) {
+      AllTabs.unregister(name, this._eventListeners[name]);
+    }
+    this.items = null;
+    this._eventListeners = null;
+    this._lastUpdateTime = null;
+    this._tabsWaitingForUpdate = null;
   },
 
   
@@ -779,7 +793,7 @@ window.TabItems = {
 
         if (!tabItem.reconnected && (oldURL == 'about:blank' || !oldURL))
           this.reconnect(tabItem);
-    
+
         tabItem.save();
       }
 

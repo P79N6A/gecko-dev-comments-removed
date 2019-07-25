@@ -570,7 +570,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         $el = iQ(a);
         item = Items.item($el);
       }
-      Utils.assertThrow(!item.parent || item.parent == this, 
+      Utils.assertThrow(!item.parent || item.parent == this,
           "shouldn't already be in another groupItem");
 
       item.removeTrenches();
@@ -1355,6 +1355,12 @@ window.GroupItems = {
 
   
   
+  uninit : function() {
+    this.groupItems = null;
+  },
+
+  
+  
   
   getNextID: function() {
     var result = this.nextID;
@@ -1486,7 +1492,6 @@ window.GroupItems = {
 
     if (groupItem == this._activeGroupItem)
       this._activeGroupItem = null;
-
   },
 
   
