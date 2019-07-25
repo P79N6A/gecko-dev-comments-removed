@@ -6588,7 +6588,11 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-                if (js_Emit1(cx, cg, (JSOp)0) < 0)
+
+                JS_ASSERT(js_CodeSpec[op].format & JOF_ELEM);
+                if (js_Emit1(cx, cg, (JSOp)1) < 0)
+                    return JS_FALSE;
+                if (js_Emit1(cx, cg, JSOP_POP) < 0)
                     return JS_FALSE;
             }
             break;
