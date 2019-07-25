@@ -209,13 +209,15 @@ var gLanguagesDialog = {
       if (arrayOfPrefs[i] == selectedID)
         return;
     }
-      
+
     this._selectedItemID = selectedID;
-    
+
     if (preference.value == "") 
       preference.value = selectedID;
-    else
-      preference.value += "," + selectedID;
+    else {
+      arrayOfPrefs.unshift(selectedID);
+      preference.value = arrayOfPrefs.join(",");
+    }
   
     this._acceptLanguages[selectedID] = true;
     this._availableLanguages.selectedItem = null;
