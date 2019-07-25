@@ -152,6 +152,20 @@ public:
     RebuildAll() = 0; 
 
     void RunnableRebuild() { Rebuild(); }
+    void RunnableLoadAndRebuild() {
+      Uninit(PR_FALSE);  
+
+      nsCOMPtr<nsIDocument> doc = mRoot ? mRoot->GetDocument() : nsnull;
+      if (doc) {
+        PRBool shouldDelay;
+        LoadDataSources(doc, &shouldDelay);
+        if (!shouldDelay) {
+          Rebuild();
+        }
+      }
+    }
+    void UninitFalse() { Uninit(PR_FALSE); }
+    void UninitTrue() { Uninit(PR_TRUE); }
 
     
 

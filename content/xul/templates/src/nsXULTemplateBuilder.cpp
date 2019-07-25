@@ -1139,13 +1139,8 @@ nsXULTemplateBuilder::AttributeChanged(nsIDocument* aDocument,
         
         
         else if (aAttribute == nsGkAtoms::datasources) {
-            Uninit(PR_FALSE);  
-            
-            PRBool shouldDelay;
-            LoadDataSources(aDocument, &shouldDelay);
-            if (!shouldDelay)
-                nsContentUtils::AddScriptRunner(
-                    NS_NewRunnableMethod(this, &nsXULTemplateBuilder::RunnableRebuild));
+            nsContentUtils::AddScriptRunner(
+                NS_NewRunnableMethod(this, &nsXULTemplateBuilder::RunnableLoadAndRebuild));
         }
     }
 }
@@ -1164,7 +1159,8 @@ nsXULTemplateBuilder::ContentRemoved(nsIDocument* aDocument,
             mQueryProcessor->Done();
 
         
-        Uninit(PR_FALSE);
+        nsContentUtils::AddScriptRunner(
+            NS_NewRunnableMethod(this, &nsXULTemplateBuilder::UninitFalse));
 
         aDocument->RemoveObserver(this);
 
@@ -1201,7 +1197,8 @@ nsXULTemplateBuilder::NodeWillBeDestroyed(const nsINode* aNode)
     mCompDB = nsnull;
     mRoot = nsnull;
 
-    Uninit(PR_TRUE);
+    nsContentUtils::AddScriptRunner(
+        NS_NewRunnableMethod(this, &nsXULTemplateBuilder::UninitTrue));
 }
 
 
