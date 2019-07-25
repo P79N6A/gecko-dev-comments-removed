@@ -555,6 +555,7 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
 }
 
 static const uint64 DoubleNegMask = 0x8000000000000000LLU;
+
 void
 mjit::Compiler::jsop_neg()
 {
@@ -571,11 +572,14 @@ mjit::Compiler::jsop_neg()
     JS_ASSERT(!fe->isConstant());
 
     
+
+
+
     MaybeRegisterID feTypeReg;
-    
     if (!frame.shouldAvoidTypeRemat(fe)) {
         
         feTypeReg.setReg(frame.tempRegForType(fe));
+
         
         frame.pinReg(feTypeReg.getReg());
     }
@@ -625,35 +629,9 @@ mjit::Compiler::jsop_neg()
         jmpIntRejoin.setJump(stubcc.masm.jump());
     }
 
+    frame.freeReg(reg);
     if (feTypeReg.isSet())
         frame.unpinReg(feTypeReg.getReg());
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    frame.forgetReg(reg);
 
     stubcc.leave();
     stubcc.call(stubs::Neg);

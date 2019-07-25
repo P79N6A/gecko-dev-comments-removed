@@ -410,7 +410,6 @@ class FrameState
 
     void forgetEverything();
 
-
     
 
 
@@ -527,10 +526,9 @@ class FrameState
 
     inline void addEscaping(uint32 local);
 
-    
-    inline void forgetReg(RegisterID reg);
   private:
     inline RegisterID allocReg(FrameEntry *fe, RematInfo::RematType type, bool weak);
+    inline void forgetReg(RegisterID reg);
     RegisterID evictSomeReg(uint32 mask);
     void evictReg(RegisterID reg);
     inline FrameEntry *rawPush();
