@@ -105,6 +105,10 @@ function onTabViewShown(win) {
      "$appTabTray container does not have .appTabTrayContainerTruncated");
 
   
+  
+  contentWindow.UI.setActive(groupItem);
+
+  
   gBrowser.unpinTab(xulTabs[0]);
 
   is(parseInt(trayContainer.css("width")), 0,

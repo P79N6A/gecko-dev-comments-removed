@@ -50,6 +50,10 @@ function onTabViewWindowLoaded() {
       "there's an app tab icon in the second group");
 
   
+  
+  contentWindow.UI.setActive(groupItemOne);
+
+  
   gBrowser.unpinTab(xulTab);
   is(groupItemOne._children.length, 1, "the app tab's TabItem is back");
   is(appTabCount(groupItemOne), 0, "the icon is gone from group one");
