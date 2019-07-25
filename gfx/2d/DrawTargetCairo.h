@@ -169,7 +169,12 @@ private:
   cairo_surface_t* mSurface;
   IntSize mSize;
   std::vector<SourceSurfaceCairo*> mSnapshots;
-  mutable RefPtr<CairoPathContext> mPathObserver;
+
+  
+  
+  
+  
+  mutable CairoPathContext* mPathObserver;
 };
 
 }

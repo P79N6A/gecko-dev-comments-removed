@@ -39,14 +39,18 @@ class CairoPathContext : public RefCounted<CairoPathContext>
 public:
   
   
-  CairoPathContext(cairo_t* aCtx, DrawTargetCairo* aDrawTarget,
-                   FillRule aFillRule,
-                   const Matrix& aMatrix = Matrix());
+  
+  CairoPathContext(cairo_t* aCtx, DrawTargetCairo* aDrawTarget);
+
+  
+  CairoPathContext(CairoPathContext& aPathContext);
+
   ~CairoPathContext();
 
   
   
-  void CopyPathTo(cairo_t* aToContext);
+  
+  void CopyPathTo(cairo_t* aToContext, Matrix& aTransform);
 
   
   
@@ -54,40 +58,23 @@ public:
 
   
   
-  void MatrixWillChange(const Matrix& aMatrix);
-
-  
-  
   
   void ForgetDrawTarget();
 
   
-  
-  void DuplicateContextAndPath(const Matrix& aMatrix = Matrix());
+  void DuplicateContextAndPath();
 
   
   bool ContainsPath(const Path* path);
 
-  
-  
-  void ObserveTarget(DrawTargetCairo* aDrawTarget);
-
   cairo_t* GetContext() const { return mContext; }
   DrawTargetCairo* GetDrawTarget() const { return mDrawTarget; }
-  Matrix GetTransform() const { return mTransform; }
-  FillRule GetFillRule() const { return mFillRule; }
-
   operator cairo_t* () const { return mContext; }
 
 private: 
-  CairoPathContext(const CairoPathContext&) MOZ_DELETE;
-
-private: 
-  Matrix mTransform;
   cairo_t* mContext;
   
   DrawTargetCairo* mDrawTarget;
-  FillRule mFillRule;
 };
 
 class PathBuilderCairo : public PathBuilder
@@ -96,15 +83,11 @@ public:
   
   
   
-  
   PathBuilderCairo(cairo_t* aCtx, DrawTargetCairo* aDrawTarget, FillRule aFillRule);
 
   
   
-  
-  
-  explicit PathBuilderCairo(CairoPathContext* aPathContext,
-                            const Matrix& aTransform = Matrix());
+  PathBuilderCairo(CairoPathContext* aContext, FillRule aFillRule, const Matrix& aTransform = Matrix());
 
   virtual void MoveTo(const Point &aPoint);
   virtual void LineTo(const Point &aPoint);
@@ -122,17 +105,17 @@ public:
   TemporaryRef<CairoPathContext> GetPathContext();
 
 private: 
-  void SetFillRule(FillRule aFillRule);
+  void PrepareForWrite();
 
-private: 
   RefPtr<CairoPathContext> mPathContext;
+  Matrix mTransform;
   FillRule mFillRule;
 };
 
 class PathCairo : public Path
 {
 public:
-  PathCairo(cairo_t* aCtx, DrawTargetCairo* aDrawTarget, FillRule aFillRule, const Matrix& aTransform);
+  PathCairo(CairoPathContext* aPathContex, Matrix& aTransform, FillRule aFillRule);
 
   virtual BackendType GetBackendType() const { return BACKEND_CAIRO; }
 
@@ -158,6 +141,7 @@ public:
 
 private:
   RefPtr<CairoPathContext> mPathContext;
+  Matrix mTransform;
   FillRule mFillRule;
 };
 

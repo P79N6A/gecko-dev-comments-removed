@@ -281,6 +281,7 @@ NeedIntermediateSurface(const Pattern& aPattern, const DrawOptions& aOptions)
 
 DrawTargetCairo::DrawTargetCairo()
   : mContext(nullptr)
+  , mPathObserver(nullptr)
 {
 }
 
@@ -687,11 +688,6 @@ DrawTargetCairo::CreatePathBuilder(FillRule aFillRule ) const
                                                           const_cast<DrawTargetCairo*>(this),
                                                           aFillRule);
 
-  
-  
-  
-  cairo_new_path(mContext);
-
   return builder;
 }
 
@@ -921,12 +917,6 @@ DrawTargetCairo::SetPathObserver(CairoPathContext* aPathObserver)
 void
 DrawTargetCairo::SetTransform(const Matrix& aTransform)
 {
-  
-  
-  if (mPathObserver) {
-    mPathObserver->MatrixWillChange(aTransform);
-  }
-
   mTransform = aTransform;
 
   cairo_matrix_t mat;
