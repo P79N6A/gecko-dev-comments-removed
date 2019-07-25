@@ -48,6 +48,7 @@ class nsIInterfaceRequestor;
 class nsIEventTarget;
 class nsITransport;
 class nsHttpRequestHead;
+class nsHttpPipeline;
 
 
 
@@ -133,6 +134,11 @@ public:
     virtual nsresult SetPipelinePosition(PRInt32) = 0;
     virtual PRInt32  PipelinePosition() = 0;
 
+    
+    
+    
+    virtual nsHttpPipeline *QueryPipeline() { return nsnull; }
+    
     
     
     

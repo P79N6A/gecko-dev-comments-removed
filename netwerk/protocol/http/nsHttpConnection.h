@@ -176,6 +176,9 @@ public:
         mClassification = newclass;
     }
 
+    
+    void  ReadTimeoutTick();
+
 private:
     
     nsresult ProxyStartSSL();
