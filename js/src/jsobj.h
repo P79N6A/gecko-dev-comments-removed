@@ -213,7 +213,6 @@ enum {
 
 
 
-
 extern JS_FRIEND_API(JSBool)
 js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
                   JSProperty **propp);
@@ -261,7 +260,11 @@ namespace js {
 
 struct NativeIterator;
 class RegExp;
+
 class GlobalObject;
+class ArgumentsObject;
+class NormalArgumentsObject;
+class StrictArgumentsObject;
 class StringObject;
 
 }
@@ -797,93 +800,10 @@ struct JSObject : js::gc::Cell {
 
     JSBool makeDenseArraySlow(JSContext *cx);
 
-    
-
-
-
-  private:
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static const uint32 JSSLOT_ARGS_DATA = 1;
-
   public:
-    
-    static const uint32 JSSLOT_ARGS_LENGTH = 0;
-    static const uint32 ARGS_CLASS_RESERVED_SLOTS = 2;
-    static const uint32 ARGS_FIRST_FREE_SLOT = ARGS_CLASS_RESERVED_SLOTS + 1;
-
-    
-    static const uint32 ARGS_LENGTH_OVERRIDDEN_BIT = 0x1;
-    static const uint32 ARGS_PACKED_BITS_COUNT = 1;
-
-    
-
-
-    inline void setArgsLength(uint32 argc);
-
-    
-
-
-
-    inline uint32 getArgsInitialLength() const;
-
-    inline void setArgsLengthOverridden();
-    inline bool isArgsLengthOverridden() const;
-
-    inline js::ArgumentsData *getArgsData() const;
-    inline void setArgsData(js::ArgumentsData *data);
-
-    inline const js::Value &getArgsCallee() const;
-    inline void setArgsCallee(const js::Value &callee);
-
-    inline const js::Value &getArgsElement(uint32 i) const;
-    inline js::Value *getArgsElements() const;
-    inline js::Value *addressOfArgsElement(uint32 i);
-    inline void setArgsElement(uint32 i, const js::Value &v);
+    inline js::ArgumentsObject *asArguments();
+    inline js::NormalArgumentsObject *asNormalArguments();
+    inline js::StrictArgumentsObject *asStrictArguments();
 
   private:
     
@@ -1654,48 +1574,43 @@ extern JSBool
 js_DefineOwnProperty(JSContext *cx, JSObject *obj, jsid id,
                      const js::Value &descriptor, JSBool *bp);
 
-
-
-
-const uintN JSDNP_CACHE_RESULT = 1; 
-const uintN JSDNP_DONT_PURGE   = 2; 
-const uintN JSDNP_SET_METHOD   = 4; 
-
-
-const uintN JSDNP_UNQUALIFIED  = 8; 
-
-
-
-
-
-
-
-
-extern JSBool
-js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value &value,
-                        js::PropertyOp getter, js::StrictPropertyOp setter, uintN attrs,
-                        uintN flags, intN shortid, JSProperty **propp,
-                        uintN defineHow = 0);
-
-
-
-
-
-
-extern int
-js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
-                           JSObject **objp, JSProperty **propp);
-
-
-
-
-
-static const uintN JSRESOLVE_INFER = 0xffff;
-
 extern JS_FRIEND_DATA(js::Class) js_CallClass;
 extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;
 
 namespace js {
+
+
+
+
+const uintN DNP_CACHE_RESULT = 1;   
+const uintN DNP_DONT_PURGE   = 2;   
+const uintN DNP_SET_METHOD   = 4;   
+
+
+const uintN DNP_UNQUALIFIED  = 8;   
+
+
+
+
+
+
+extern const Shape *
+DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value &value,
+                     PropertyOp getter, StrictPropertyOp setter, uintN attrs,
+                     uintN flags, intN shortid, uintN defineHow = 0);
+
+
+
+
+extern bool
+LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
+                        JSObject **objp, JSProperty **propp);
+
+
+
+
+
+static const uintN RESOLVE_INFER = 0xffff;
 
 
 
