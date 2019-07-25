@@ -92,6 +92,9 @@ public:
 
   NS_IMETHOD Run() {
     if (mWeakFrame.IsAlive()) {
+      
+      
+      nsAutoScriptBlocker scriptBlocker;
       mFrame->SetSelectionRange(mStart, mEnd);
     }
     return NS_OK;
