@@ -413,15 +413,15 @@ function run_test() {
 
   }, function (next) {
 
-    _("X-Weave-Timestamp header updates Resource.serverTime");
+    _("X-Weave-Timestamp header updates AsyncResource.serverTime");
     do_test_pending();
     
     
-    do_check_eq(Resource.serverTime, null);
+    do_check_eq(AsyncResource.serverTime, null);
     let res8 = new AsyncResource("http://localhost:8080/timestamp");
     res8.get(ensureThrows(function (error, content) {
       do_check_eq(error, null);
-      do_check_eq(Resource.serverTime, TIMESTAMP);
+      do_check_eq(AsyncResource.serverTime, TIMESTAMP);
       do_test_finished();
       next();
     }));

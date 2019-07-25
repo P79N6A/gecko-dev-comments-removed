@@ -148,6 +148,11 @@ AsyncResource.prototype = {
   
   
   
+  serverTime: null,
+
+  
+  
+  
   
   
   
@@ -445,11 +450,6 @@ Resource.prototype = {
   
   
   
-  serverTime: null,
-
-  
-  
-  
   
   
   _request: function Res__request(action, data) {
@@ -531,7 +531,7 @@ ChannelListener.prototype = {
 
     
     try {
-      Resource.serverTime = channel.getResponseHeader("X-Weave-Timestamp") - 0;
+      AsyncResource.serverTime = channel.getResponseHeader("X-Weave-Timestamp") - 0;
     }
     catch(ex) {}
 

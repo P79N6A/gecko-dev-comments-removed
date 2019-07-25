@@ -916,7 +916,7 @@ SyncEngine.prototype = {
       }
 
       
-      let recordAge = Resource.serverTime - item.modified;
+      let recordAge = AsyncResource.serverTime - item.modified;
       let localAge = Date.now() / 1000 - this._modified[item.id];
       this._log.trace("Record age vs local age: " + [recordAge, localAge]);
 

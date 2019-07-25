@@ -301,14 +301,13 @@ function run_test() {
   do_check_eq(content.status, 200);
   do_check_eq(JSON.stringify(content.obj), JSON.stringify(sample_data));
 
-  _("X-Weave-Timestamp header updates Resource.serverTime");
+  _("X-Weave-Timestamp header updates AsyncResource.serverTime");
   
   
-  do_check_eq(Resource.serverTime, null);
+  do_check_eq(AsyncResource.serverTime, null);
   let res8 = new Resource("http://localhost:8080/timestamp");
   content = res8.get();
-  do_check_eq(Resource.serverTime, TIMESTAMP);
-
+  do_check_eq(AsyncResource.serverTime, TIMESTAMP);
 
   _("GET: no special request headers");
   let res9 = new Resource("http://localhost:8080/headers");
