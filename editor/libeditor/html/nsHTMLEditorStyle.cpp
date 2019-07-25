@@ -354,12 +354,12 @@ nsHTMLEditor::SetInlinePropertyOnTextNode( nsIDOMCharacterData *aTextNode,
 
 
 nsresult
-nsHTMLEditor::SetInlinePropertyOnNode(nsIDOMNode *aNode,
-                                      nsIAtom *aProperty,
-                                      const nsAString *aAttribute,
-                                      const nsAString *aValue)
+nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIDOMNode *aNode,
+                                          nsIAtom *aProperty,
+                                          const nsAString *aAttribute,
+                                          const nsAString *aValue)
 {
-  NS_ENSURE_TRUE(aNode && aProperty, NS_ERROR_NULL_POINTER);
+  MOZ_ASSERT(aNode && aProperty);
 
   nsresult res;
   nsCOMPtr<nsIDOMNode> tmp;
@@ -415,16 +415,6 @@ nsHTMLEditor::SetInlinePropertyOnNode(nsIDOMNode *aNode,
                            nsnull, nsnull);
     }
     
-    
-    
-    res = RemoveStyleInside(tmp, aProperty, aAttribute, true);
-    NS_ENSURE_SUCCESS(res, res);
-    if (NodeIsType(aNode, aProperty)) {
-      nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
-      res = RemoveAttribute(elem, *aAttribute);
-      NS_ENSURE_SUCCESS(res, res);
-    }
-    
     nsCOMPtr<nsIDOMElement> element;
     element = do_QueryInterface(tmp);
     PRInt32 count;
@@ -457,24 +447,8 @@ nsHTMLEditor::SetInlinePropertyOnNode(nsIDOMNode *aNode,
   }
 
   
-  bool bHasProp;
-  nsCOMPtr<nsIDOMNode> styleNode;
-  IsTextPropertySetByContent(aNode, aProperty, aAttribute, aValue,
-                             bHasProp, getter_AddRefs(styleNode));
-  if (bHasProp) {
-    return NS_OK;
-  }
-
-  
   if (NodeIsType(aNode, aProperty)) {
     
-    
-    res = RemoveStyleInside(aNode, aProperty, aAttribute, true);
-    NS_ENSURE_SUCCESS(res, res);
-    res = mHTMLCSSUtils->RemoveCSSEquivalentToHTMLStyle(aNode, aProperty,
-                                                        aAttribute, nsnull,
-                                                        false);
-    NS_ENSURE_SUCCESS(res, res);
     nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
     return SetAttribute(elem, *aAttribute, *aValue);
   }
@@ -489,18 +463,76 @@ nsHTMLEditor::SetInlinePropertyOnNode(nsIDOMNode *aNode,
       HasAttrVal(priorNode, aAttribute, aValue) &&
       IsOnlyAttribute(priorNode, aAttribute)) {
     
-    res = MoveNode(aNode, priorNode, -1);
-  } else if (nextNode && NodeIsType(nextNode, aProperty) &&
-             HasAttrVal(nextNode, aAttribute, aValue) &&
-             IsOnlyAttribute(priorNode, aAttribute)) {
-    
-    res = MoveNode(aNode, nextNode, 0);
-  } else {
-    
-    res = InsertContainerAbove(aNode, address_of(tmp), tag, aAttribute, aValue);
+    return MoveNode(aNode, priorNode, -1);
   }
+
+  if (nextNode && NodeIsType(nextNode, aProperty) &&
+      HasAttrVal(nextNode, aAttribute, aValue) &&
+      IsOnlyAttribute(priorNode, aAttribute)) {
+    
+    return MoveNode(aNode, nextNode, 0);
+  }
+
+  
+  return InsertContainerAbove(aNode, address_of(tmp), tag, aAttribute, aValue);
+}
+
+
+nsresult
+nsHTMLEditor::SetInlinePropertyOnNode(nsIDOMNode *aNode,
+                                      nsIAtom *aProperty,
+                                      const nsAString *aAttribute,
+                                      const nsAString *aValue)
+{
+  
+  
+  
+  
+  
+  NS_ENSURE_TRUE(aNode && aProperty, NS_ERROR_NULL_POINTER);
+
+  nsCOMPtr<nsIContent> node = do_QueryInterface(aNode);
+  NS_ENSURE_STATE(node);
+  nsCOMPtr<nsIContent> previousSibling = node->GetPreviousSibling(),
+                       nextSibling = node->GetNextSibling();
+  nsCOMPtr<nsINode> parent = node->GetNodeParent();
+  NS_ENSURE_STATE(parent);
+
+  nsresult res = RemoveStyleInside(aNode, aProperty, aAttribute);
   NS_ENSURE_SUCCESS(res, res);
-  return RemoveStyleInside(aNode, aProperty, aAttribute);
+
+  if (node->GetNodeParent()) {
+    
+    return SetInlinePropertyOnNodeImpl(aNode, aProperty,
+                                       aAttribute, aValue);
+  }
+
+  
+  
+  
+  if ((previousSibling && previousSibling->GetNodeParent() != parent) ||
+      (nextSibling && nextSibling->GetNodeParent() != parent)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  nsCOMArray<nsIContent> nodesToSet;
+  nsCOMPtr<nsIContent> cur = previousSibling
+    ? previousSibling->GetNextSibling() : parent->GetFirstChild();
+  while (cur && cur != nextSibling) {
+    if (IsEditable(cur)) {
+      nodesToSet.AppendObject(cur);
+    }
+    cur = cur->GetNextSibling();
+  }
+
+  PRInt32 nodesToSetCount = nodesToSet.Count();
+  for (PRInt32 k = 0; k < nodesToSetCount; k++) {
+    nsCOMPtr<nsIDOMNode> nodeToSet = do_QueryInterface(nodesToSet[k]);
+    res = SetInlinePropertyOnNodeImpl(nodeToSet, aProperty,
+                                      aAttribute, aValue);
+    NS_ENSURE_SUCCESS(res, res);
+  }
+
+  return NS_OK;
 }
 
 

@@ -972,6 +972,13 @@ friend class nsTextEditRules;
 friend class nsWSRunObject;
 friend class nsHTMLEditorEventListener;
 
+private:
+  
+  nsresult SetInlinePropertyOnNodeImpl(nsIDOMNode *aNode,
+                                       nsIAtom *aProperty,
+                                       const nsAString *aAttribute,
+                                       const nsAString *aValue);
+
 };
 #endif
 
