@@ -2219,6 +2219,11 @@ DocumentViewerImpl::CreateStyleSet(nsIDocument* aDocument,
     styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
   }
 
+  sheet = nsLayoutStylesheetCache::FullScreenOverrideSheet();
+  if (sheet) {
+    styleSet->PrependStyleSheet(nsStyleSet::eOverrideSheet, sheet);
+  }
+
   
   
   nsRefPtr<nsCSSStyleSheet> quirkClone;
