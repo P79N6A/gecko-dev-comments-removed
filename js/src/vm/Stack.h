@@ -472,7 +472,7 @@ class StackFrame
 
 
 
-    jsbytecode *pcQuadratic(JSContext *cx, StackFrame *next = NULL,
+    jsbytecode *pcQuadratic(const ContextStack &stack, StackFrame *next = NULL,
                             JSInlinedSite **pinlined = NULL);
 
     jsbytecode *prevpc(JSInlinedSite **pinlined) {

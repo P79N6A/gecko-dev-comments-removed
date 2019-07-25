@@ -1642,7 +1642,7 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 
 
         JSInlinedSite *inlined;
-        fp->prev()->pcQuadratic(cx, fp, &inlined);
+        fp->prev()->pcQuadratic(cx->stack, fp, &inlined);
         if (inlined) {
             JSFunction *fun = fp->prev()->jit()->inlineFrames()[inlined->inlineIndex].fun;
             MarkTypeObjectFlags(cx, fun->getType(), OBJECT_FLAG_UNINLINEABLE);
