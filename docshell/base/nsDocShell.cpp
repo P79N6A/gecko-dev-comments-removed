@@ -4844,6 +4844,12 @@ nsDocShell::SetIsActive(PRBool aIsActive)
     pshell->SetIsActive(aIsActive);
 
   
+  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(mScriptGlobal);
+  if (win) {
+      win->SetIsBackground(!aIsActive);
+  }
+
+  
   PRInt32 n = mChildList.Count();
   for (PRInt32 i = 0; i < n; ++i) {
       nsCOMPtr<nsIDocShell> docshell = do_QueryInterface(ChildAt(i));

@@ -822,6 +822,8 @@ protected:
 
   PRBool GetIsTabModalPromptAllowed();
 
+  inline PRInt32 DOMMinTimeoutValue() const;
+
   
   
   

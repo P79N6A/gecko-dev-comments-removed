@@ -102,6 +102,16 @@ public:
     return mIsActive;
   }
 
+  void SetIsBackground(PRBool aIsBackground)
+  {
+    mIsBackground = aIsBackground;
+  }
+
+  PRBool IsBackground()
+  {
+    return mIsBackground;
+  }
+
   nsPIDOMEventTarget* GetChromeEventHandler() const
   {
     return mChromeEventHandler;
@@ -608,7 +618,13 @@ protected:
   PRPackedBool           mIsModalContentWindow;
 
   
+  
   PRPackedBool           mIsActive;
+
+  
+  
+  
+  PRPackedBool           mIsBackground;
 
   
   nsPIDOMWindow         *mInnerWindow;
