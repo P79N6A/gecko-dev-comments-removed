@@ -170,7 +170,7 @@ class NunboxAssembler : public JSC::MacroAssembler
 
 
     Label loadValueWithAddressOffsetPatch(Address address, RegisterID treg, RegisterID dreg) {
-        JS_ASSERT(address.base != dreg); 
+        JS_ASSERT(address.base != treg); 
 
         Label start = label();
 #if defined JS_CPU_X86
@@ -178,12 +178,12 @@ class NunboxAssembler : public JSC::MacroAssembler
 
 
 
-        loadPayload(address, dreg);
-        DBGLABEL_NOMASM(endPayload);
         loadTypeTag(address, treg);
         DBGLABEL_NOMASM(endType);
-        JS_ASSERT(differenceBetween(start, endPayload) == 6);
-        JS_ASSERT(differenceBetween(endPayload, endType) == 6);
+        loadPayload(address, dreg);
+        DBGLABEL_NOMASM(endPayload);
+        JS_ASSERT(differenceBetween(start, endType) == 6);
+        JS_ASSERT(differenceBetween(endType, endPayload) == 6);
         return start;
 #elif defined JS_CPU_ARM
         

@@ -1539,14 +1539,6 @@ if test -z "$OS_TARGET"; then
 fi
 OS_CONFIG="${OS_TARGET}${OS_RELEASE}"
 
-dnl Set INTEL_ARCHITECTURE if we're compiling for x86-32 or x86-64.
-dnl ===============================================================
-INTEL_ARCHITECTURE=
-case "$OS_TEST" in
-    x86_64|i?86)
-      INTEL_ARCHITECTURE=1
-esac
-
 dnl ========================================================
 dnl GNU specific defaults
 dnl ========================================================
@@ -2921,6 +2913,7 @@ i?86-*)
     ENABLE_METHODJIT=1
     ENABLE_MONOIC=1
     ENABLE_POLYIC=1
+    ENABLE_POLYIC_GETPROP=1
     AC_DEFINE(JS_CPU_X86)
     AC_DEFINE(JS_NUNBOX32)
     ;;
@@ -2930,6 +2923,7 @@ x86_64*-*)
     ENABLE_METHODJIT=1
     ENABLE_MONOIC=1
     ENABLE_POLYIC=1
+    ENABLE_POLYIC_GETPROP=1
     AC_DEFINE(JS_CPU_X64)
     AC_DEFINE(JS_PUNBOX64)
     ;;
@@ -2938,6 +2932,8 @@ arm*-*)
     NANOJIT_ARCH=ARM
     ENABLE_METHODJIT=1
     ENABLE_MONOIC=1
+    ENABLE_POLYIC=1
+    ENABLE_POLYIC_GETPROP=1
     AC_DEFINE(JS_CPU_ARM)
     AC_DEFINE(JS_NUNBOX32)
     ;;
@@ -2981,6 +2977,26 @@ fi
 
 if test "$ENABLE_POLYIC"; then
     AC_DEFINE(JS_POLYIC)
+fi
+
+if test "$ENABLE_POLYIC_GETPROP"; then
+    AC_DEFINE(JS_POLYIC_GETPROP)
+fi
+
+if test "$ENABLE_POLYIC_SETPROP"; then
+    AC_DEFINE(JS_POLYIC_SETPROP)
+fi
+
+if test "$ENABLE_POLYIC_NAME"; then
+    AC_DEFINE(JS_POLYIC_SETPROP)
+fi
+
+if test "$ENABLE_POLYIC_BIND"; then
+    AC_DEFINE(JS_POLYIC_SETPROP)
+fi
+
+if test "$ENABLE_POLYIC_ELEM"; then
+    AC_DEFINE(JS_POLYIC_ELEM)
 fi
 
 if test "$ENABLE_METHODJIT_SPEW"; then
@@ -5753,8 +5769,6 @@ AC_SUBST(OS_TARGET)
 AC_SUBST(OS_ARCH)
 AC_SUBST(OS_RELEASE)
 AC_SUBST(OS_TEST)
-AC_SUBST(CPU_ARCH)
-AC_SUBST(INTEL_ARCHITECTURE)
 
 AC_SUBST(WRAP_MALLOC_CFLAGS)
 AC_SUBST(WRAP_MALLOC_LIB)

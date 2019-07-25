@@ -69,10 +69,16 @@ struct MacroAssemblerTypedefs {
     typedef JSC::FunctionPtr FunctionPtr;
     typedef JSC::RepatchBuffer RepatchBuffer;
     typedef JSC::CodeLocationLabel CodeLocationLabel;
+    typedef JSC::CodeLocationDataLabel32 CodeLocationDataLabel32;
+    typedef JSC::CodeLocationJump CodeLocationJump;
     typedef JSC::CodeLocationCall CodeLocationCall;
+    typedef JSC::CodeLocationInstruction CodeLocationInstruction;
     typedef JSC::ReturnAddressPtr ReturnAddressPtr;
     typedef JSC::MacroAssemblerCodePtr MacroAssemblerCodePtr;
     typedef JSC::JITCode JITCode;
+#if defined JS_CPU_ARM
+    typedef JSC::ARMWord ARMWord;
+#endif
 };
 
 class BaseCompiler : public MacroAssemblerTypedefs
@@ -195,19 +201,22 @@ class LinkerHelper : public JSC::LinkBuffer
 
 
 #ifdef JS_CPU_ARM
+template <size_t reservedSpace>
 class AutoReserveICSpace {
     typedef Assembler::Label Label;
-    static const size_t reservedSpace = 68;
 
     Assembler           &masm;
 #ifdef DEBUG
     Label               startLabel;
+    bool                didCheck;
 #endif
 
   public:
     AutoReserveICSpace(Assembler &masm) : masm(masm) {
         masm.ensureSpace(reservedSpace);
 #ifdef DEBUG
+        didCheck = false;
+
         startLabel = masm.label();
 
         
@@ -217,8 +226,13 @@ class AutoReserveICSpace {
 #endif
     }
 
-    ~AutoReserveICSpace() {
+    
+
+    void check() {
 #ifdef DEBUG
+        JS_ASSERT(!didCheck);
+        didCheck = true;
+
         Label endLabel = masm.label();
         int spaceUsed = masm.differenceBetween(startLabel, endLabel);
 
@@ -235,10 +249,31 @@ class AutoReserveICSpace {
         masm.allowPoolFlush(true);
 #endif
     }
+
+    ~AutoReserveICSpace() {
+#ifdef DEBUG
+        
+        if (!didCheck) {
+            check();
+        }
+#endif
+    }
 };
-# define RESERVE_IC_SPACE(__masm) AutoReserveICSpace arics(__masm)
+
+# define RESERVE_IC_SPACE(__masm)       AutoReserveICSpace<80> arics(__masm)
+
+
+
+
+# define RESERVE_OOL_SPACE(__masm)      AutoReserveICSpace<256> arics_ool(__masm)
+
+
+
+# define CHECK_OOL_SPACE()              arics_ool.check()
 #else
 # define RESERVE_IC_SPACE(__masm)
+# define RESERVE_OOL_SPACE(__masm)
+# define CHECK_OOL_SPACE()
 #endif
 
 } 

@@ -80,15 +80,6 @@ static const int32 SETPROP_INLINE_SHAPE_JUMP       =   6;
 
 
 #if defined JS_CPU_X86
-static const int32 GETPROP_INLINE_TYPE_GUARD   =  12; 
-static const int32 GETPROP_INLINE_SHAPE_JUMP   =  12; 
-#elif defined JS_CPU_X64
-static const int32 GETPROP_INLINE_TYPE_GUARD   =  19; 
-static const int32 GETPROP_INLINE_SHAPE_JUMP   =   6; 
-#endif
-
-
-#if defined JS_CPU_X86
 static const int32 SCOPENAME_JUMP_OFFSET = 5; 
 #elif defined JS_CPU_X64
 static const int32 SCOPENAME_JUMP_OFFSET = 5; 
@@ -448,6 +439,15 @@ struct PICInfo : public BasePolyIC {
         if (!stubsGenerated)
             return fastPathStart;
         return CodeLocationLabel(lastStubStart.start());
+    }
+
+    CodeLocationLabel getFastShapeGuard() {
+        return fastPathStart.labelAtOffset(shapeGuard);
+    }
+
+    CodeLocationLabel getSlowTypeCheck() {
+        JS_ASSERT(isGet());
+        return slowPathStart.labelAtOffset(u.get.typeCheckOffset);
     }
 
     
