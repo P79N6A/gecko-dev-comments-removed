@@ -48,7 +48,6 @@
 #include "nsIPhonetic.h"
 
 #include "nsIControllers.h"
-#include "nsIStringBundle.h"
 #include "nsFocusManager.h"
 #include "nsPIDOMWindow.h"
 #include "nsContentCID.h"
@@ -107,7 +106,6 @@
 #include "nsIFilePicker.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIContentPrefService.h"
-#include "nsIMIMEService.h"
 #include "nsIObserverService.h"
 #include "nsIPopupWindowManager.h"
 #include "nsGlobalWindow.h"
@@ -306,7 +304,19 @@ AsyncClickHandler::Run()
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mInput->HasAttr(kNameSpaceID_None, nsGkAtoms::accept)) {
-    mInput->SetFilePickerFiltersFromAccept(filePicker);
+    PRInt32 filters = mInput->GetFilterFromAccept();
+
+    if (filters) {
+      
+      filePicker->AppendFilters(filters | nsIFilePicker::filterAll);
+
+      
+      
+      
+      filePicker->SetFilterIndex(1);
+    } else {
+      filePicker->AppendFilters(nsIFilePicker::filterAll);
+    }
   } else {
     filePicker->AppendFilters(nsIFilePicker::filterAll);
   }
@@ -4132,122 +4142,6 @@ nsHTMLInputElement::FieldSetDisabledChanged(bool aNotify)
   UpdateBarredFromConstraintValidation();
 
   nsGenericHTMLFormElement::FieldSetDisabledChanged(aNotify);
-}
-
-void
-nsHTMLInputElement::SetFilePickerFiltersFromAccept(nsIFilePicker* filePicker)
-{
-  
-  filePicker->AppendFilters(nsIFilePicker::filterAll);
-
-  NS_ASSERTION(HasAttr(kNameSpaceID_None, nsGkAtoms::accept),
-               "You should not call SetFilePickerFiltersFromAccept if the"
-               " element has no accept attribute!");
-  nsAutoString accept;
-  nsTArray<nsFilePickerFilter> filters;
-  nsString allExtensionsList;
-
-  
-  nsCOMPtr<nsIStringBundleService> stringService =
-    mozilla::services::GetStringBundleService();
-  if (!stringService)
-    return;
-  nsCOMPtr<nsIStringBundle> titleBundle, filterBundle;
-  nsresult rv = stringService->CreateBundle("chrome://global/locale/filepicker.properties",
-                                            getter_AddRefs(titleBundle));
-  if (NS_FAILED(rv))
-    return;
-  rv = stringService->CreateBundle("chrome://global/content/filepicker.properties",
-                                   getter_AddRefs(filterBundle));
-  if (NS_FAILED(rv))
-    return;
-
-  
-  nsCOMPtr<nsIMIMEService> mimeService = do_GetService("@mozilla.org/mime;1");
-  if (!mimeService)
-    return;
-
-  GetAttr(kNameSpaceID_None, nsGkAtoms::accept, accept);
-
-  HTMLSplitOnSpacesTokenizer tokenizer(accept, ',');
-
-  
-  while (tokenizer.hasMoreTokens()) {
-    const nsDependentSubstring& token = tokenizer.nextToken();
-
-    nsString filterName;
-    nsString extensionListStr;
-    bool isTrustedFilter = false;
-
-    
-    if (token.EqualsLiteral("image/*")) {
-      titleBundle->GetStringFromName(NS_LITERAL_STRING("imageTitle").get(), getter_Copies(filterName));
-      filterBundle->GetStringFromName(NS_LITERAL_STRING("imageFilter").get(), getter_Copies(extensionListStr));
-      isTrustedFilter = true;
-    } else if (token.EqualsLiteral("audio/*")) {
-      titleBundle->GetStringFromName(NS_LITERAL_STRING("audioTitle").get(), getter_Copies(filterName));
-      filterBundle->GetStringFromName(NS_LITERAL_STRING("audioFilter").get(), getter_Copies(extensionListStr));
-      isTrustedFilter = true;
-    } else if (token.EqualsLiteral("video/*")) {
-      titleBundle->GetStringFromName(NS_LITERAL_STRING("videoTitle").get(), getter_Copies(filterName));
-      filterBundle->GetStringFromName(NS_LITERAL_STRING("videoFilter").get(), getter_Copies(extensionListStr));
-      isTrustedFilter = true;
-    } else {
-      
-      nsCOMPtr<nsIMIMEInfo> mimeInfo;
-      if (!token.IsEmpty() &&
-          NS_SUCCEEDED(mimeService->GetFromTypeAndExtension(NS_ConvertUTF16toUTF8(token),
-                                                            EmptyCString(), 
-                                                            getter_AddRefs(mimeInfo)))) {
-        if (mimeInfo) {
-          
-          nsCString mimeTypeName;
-          mimeInfo->GetType(mimeTypeName);
-          CopyUTF8toUTF16(mimeTypeName, filterName);
-          
-          nsCOMPtr<nsIUTF8StringEnumerator> extensions;
-          mimeInfo->GetFileExtensions(getter_AddRefs(extensions));
-          bool hasMore;
-          while (NS_SUCCEEDED(extensions->HasMore(&hasMore)) && hasMore) {
-            nsCString extension;
-            if (NS_FAILED(extensions->GetNext(extension)))
-              continue;
-            if (!extensionListStr.IsEmpty())
-              extensionListStr += NS_ConvertUTF8toUTF16("; ");
-            extensionListStr += NS_ConvertUTF8toUTF16("*.") +
-                                NS_ConvertUTF8toUTF16(extension);
-          }
-        }
-      }
-    }
-    nsFilePickerFilter filter(filterName, extensionListStr, isTrustedFilter);
-    if (!extensionListStr.IsEmpty() && !filters.Contains(filter)) {
-      if (!allExtensionsList.IsEmpty())
-        allExtensionsList += NS_ConvertUTF8toUTF16("; ");
-      allExtensionsList += extensionListStr;
-      filters.AppendElement(filter);
-    }
-  }
-
-  
-  if (filters.Length() > 1) {
-    nsXPIDLString title;
-    nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
-                                       "AllSupportedTypes", title);
-    filePicker->AppendFilter(title, allExtensionsList);
-  }
-
-  
-  for (unsigned int i = 0; i < filters.Length(); ++i) {
-    const nsFilePickerFilter& filter = filters[i];
-    filePicker->AppendFilter(filter.mTitle, filter.mFilter);
-  }
-
-  if (filters.Length() == 1 && filters[0].mIsTrusted) {
-    
-    
-    filePicker->SetFilterIndex(1);
-  }
 }
 
 PRInt32
