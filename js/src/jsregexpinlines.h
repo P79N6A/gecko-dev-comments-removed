@@ -73,20 +73,45 @@ regexp_statics_construct(JSContext *cx, JSObject *parent)
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class RegExp
 {
-    jsrefcount                  refCount;
-    JSLinearString              *source;
 #if ENABLE_YARR_JIT
     JSC::Yarr::RegexCodeBlock   compiled;
 #else
     JSRegExp                    *compiled;
 #endif
-    unsigned                    parenCount;
+    JSLinearString              *source;
+    size_t                      refCount;
+    unsigned                    parenCount; 
     uint32                      flags;
+#ifdef DEBUG
+  public:
+    JSCompartment               *compartment;
 
-    RegExp(JSLinearString *source, uint32 flags)
-      : refCount(1), source(source), compiled(), parenCount(0), flags(flags) {}
+  private:
+#endif
+
+    RegExp(JSLinearString *source, uint32 flags, JSCompartment *compartment)
+      : compiled(), source(source), refCount(1), parenCount(0), flags(flags)
+#ifdef DEBUG
+        , compartment(compartment)
+#endif
+    { }
+
     bool compileHelper(JSContext *cx, JSLinearString &pattern);
     bool compile(JSContext *cx);
     static const uint32 allFlags = JSREG_FOLD | JSREG_GLOB | JSREG_MULTILINE | JSREG_STICKY;
@@ -106,8 +131,8 @@ class RegExp
 #endif
     }
 
-    static bool isMetaChar(jschar c);
-    static bool hasMetaChars(const jschar *chars, size_t length);
+    static inline bool isMetaChar(jschar c);
+    static inline bool hasMetaChars(const jschar *chars, size_t length);
 
     
 
@@ -134,8 +159,12 @@ class RegExp
     }
 
     
+
     static RegExp *create(JSContext *cx, JSString *source, uint32 flags);
+
+    
     static RegExp *createFlagged(JSContext *cx, JSString *source, JSString *flags);
+
     
 
 
@@ -150,10 +179,12 @@ class RegExp
     static RegExp *clone(JSContext *cx, const RegExp &other);
 
     
-    void incref(JSContext *cx) { JS_ATOMIC_INCREMENT(&refCount); }
+
+    void incref(JSContext *cx);
     void decref(JSContext *cx);
 
     
+
     JSLinearString *getSource() const { return source; }
     size_t getParenCount() const { return parenCount; }
     bool ignoreCase() const { return flags & JSREG_FOLD; }
@@ -375,7 +406,7 @@ RegExp::create(JSContext *cx, JSString *source, uint32 flags)
     void *mem = cx->malloc(sizeof(*self));
     if (!mem)
         return NULL;
-    self = new (mem) RegExp(flatSource, flags);
+    self = new (mem) RegExp(flatSource, flags, cx->compartment);
     if (!self->compile(cx)) {
         cx->destroy<RegExp>(self);
         return NULL;
@@ -524,9 +555,21 @@ RegExp::flagCount() const
 }
 
 inline void
+RegExp::incref(JSContext *cx)
+{
+#ifdef DEBUG
+    assertSameCompartment(cx, compartment);
+#endif
+    ++refCount;
+}
+
+inline void
 RegExp::decref(JSContext *cx)
 {
-    if (JS_ATOMIC_DECREMENT(&refCount) == 0)
+#ifdef DEBUG
+    assertSameCompartment(cx, compartment);
+#endif
+    if (--refCount == 0)
         cx->destroy<RegExp>(this);
 }
 
@@ -534,7 +577,12 @@ inline RegExp *
 RegExp::extractFrom(JSObject *obj)
 {
     JS_ASSERT_IF(obj, obj->isRegExp());
-    return static_cast<RegExp *>(obj->getPrivate());
+    RegExp *re = static_cast<RegExp *>(obj->getPrivate());
+#ifdef DEBUG
+    if (re)
+        CompartmentChecker::check(obj->getCompartment(), re->compartment);
+#endif
+    return re;
 }
 
 inline RegExp *
@@ -691,4 +739,4 @@ RegExpStatics::getRightContext(JSSubString *out) const
 
 }
 
-#endif 
+#endif

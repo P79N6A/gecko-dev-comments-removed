@@ -48,7 +48,6 @@
 #include "jsxml.h"
 #include "jsregexp.h"
 #include "jsgc.h"
-#include "jscompartment.h"
 
 namespace js {
 
@@ -540,6 +539,14 @@ class CompartmentChecker
     static void fail(JSCompartment *c1, JSCompartment *c2) {
         printf("*** Compartment mismatch %p vs. %p\n", (void *) c1, (void *) c2);
         JS_NOT_REACHED("compartment mismatched");
+    }
+
+    
+    static void check(JSCompartment *c1, JSCompartment *c2) {
+        JS_ASSERT(c1 != c1->rt->defaultCompartment);
+        JS_ASSERT(c2 != c2->rt->defaultCompartment);
+        if (c1 != c2)
+            fail(c1, c2);
     }
 
     void check(JSCompartment *c) {
