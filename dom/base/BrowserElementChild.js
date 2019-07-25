@@ -9,15 +9,6 @@ let Ci = Components.interfaces;
 let Cc = Components.classes;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-
-let whitelistedEvents = [
-  Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE,   
-  Ci.nsIDOMKeyEvent.DOM_VK_CONTEXT_MENU,
-  Ci.nsIDOMKeyEvent.DOM_VK_F5,       
-  Ci.nsIDOMKeyEvent.DOM_VK_PAGE_UP,  
-  Ci.nsIDOMKeyEvent.DOM_VK_PAGE_DOWN 
-];
-
 function debug(msg) {
   
 }
@@ -40,8 +31,6 @@ function sendSyncMsg(msg, data) {
 
 
 
-
-var global = this;
 
 function BrowserElementChild() {
   this._init();
@@ -68,7 +57,7 @@ BrowserElementChild.prototype = {
     
     let appManifestURL = sendSyncMsg('get-mozapp-manifest-url')[0];
     let windowUtils = content.QueryInterface(Ci.nsIInterfaceRequestor)
-                             .getInterface(Ci.nsIDOMWindowUtils);
+                             .getInterface(Components.interfaces.nsIDOMWindowUtils);
 
     if (!!appManifestURL) {
       windowUtils.setIsApp(true);
@@ -89,21 +78,6 @@ BrowserElementChild.prototype = {
 
     addMessageListener("browser-element-api:get-screenshot",
                        this._recvGetScreenshot.bind(this));
-
-    let els = Cc["@mozilla.org/eventlistenerservice;1"]
-                .getService(Ci.nsIEventListenerService);
-
-    
-    
-    els.addSystemEventListener(global, 'keydown',
-                               this._keyEventHandler.bind(this),
-                                true);
-    els.addSystemEventListener(global, 'keypress',
-                               this._keyEventHandler.bind(this),
-                                true);
-    els.addSystemEventListener(global, 'keyup',
-                               this._keyEventHandler.bind(this),
-                                true);
   },
 
   _titleChangedHandler: function(e) {
@@ -153,16 +127,6 @@ BrowserElementChild.prototype = {
       id: data.json.id,
       screenshot: canvas.toDataURL("image/png")
     });
-  },
-
-  _keyEventHandler: function(e) {
-    if (whitelistedEvents.indexOf(e.keyCode) != -1 && !e.defaultPrevented) {
-      sendAsyncMsg('keyevent', {
-        type: e.type,
-        code: e.keyCode,
-        charCode: e.charCode,
-      });
-    }
   },
 
   
