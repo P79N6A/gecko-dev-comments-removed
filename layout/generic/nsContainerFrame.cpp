@@ -245,7 +245,7 @@ nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
   if (HasView()) {
-    GetView()->SetClientData(nsnull);
+    GetView()->SetFrame(nsnull);
   }
 
   

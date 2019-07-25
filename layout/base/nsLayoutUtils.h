@@ -342,8 +342,7 @@ public:
 
 
 
-  static nsIFrame* GetFrameFor(nsIView *aView)
-  { return static_cast<nsIFrame*>(aView->GetClientData()); }
+  static nsIFrame* GetFrameFor(nsIView *aView) { return aView->GetFrame(); }
 
   
 

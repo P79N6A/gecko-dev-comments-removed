@@ -72,7 +72,8 @@
 #include "nsINameSpaceManager.h"  
 #include "nsIServiceManager.h"
 #include "nsFrame.h"
-#include "nsIViewManager.h"
+#include "nsViewManager.h"
+#include "nsView.h"
 #include "nsCRTGlue.h"
 #include "prlog.h"
 #include "prmem.h"
@@ -5262,7 +5263,7 @@ static nsIView* FindFloatingViewContaining(nsIView* aView, nsPoint aPt)
     
     return nsnull;
 
-  nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
+  nsIFrame* frame = aView->GetFrame();
   if (frame) {
     if (!frame->IsVisibleConsideringAncestors(nsIFrame::VISIBILITY_CROSS_CHROME_CONTENT_BOUNDARY) ||
         !frame->PresContext()->PresShell()->IsActive()) {
@@ -5299,7 +5300,7 @@ static nsIView* FindViewContaining(nsIView* aView, nsPoint aPt)
     return nsnull;
   }
 
-  nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
+  nsIFrame* frame = aView->GetFrame();
   if (frame) {
     if (!frame->IsVisibleConsideringAncestors(nsIFrame::VISIBILITY_CROSS_CHROME_CONTENT_BOUNDARY) ||
         !frame->PresContext()->PresShell()->IsActive()) {
@@ -5374,7 +5375,7 @@ PresShell::ProcessSynthMouseMoveEvent(bool aFromScroll)
     viewAPD = APD;
   } else {
     pointVM = view->GetViewManager();
-    nsIFrame* frame = static_cast<nsIFrame*>(view->GetClientData());
+    nsIFrame* frame = view->GetFrame();
     NS_ASSERTION(frame, "floating views can't be anonymous");
     viewAPD = frame->PresContext()->AppUnitsPerDevPixel();
     refpoint = mMouseLocation.ConvertAppUnits(APD, viewAPD);
@@ -5424,8 +5425,7 @@ PresShell::Paint(nsIView*           aViewToPaint,
   nsPresContext* presContext = GetPresContext();
   AUTO_LAYOUT_PHASE_ENTRY_POINT(presContext, Paint);
 
-  nsIFrame* frame = aPaintDefaultBackground
-      ? nsnull : static_cast<nsIFrame*>(aViewToPaint->GetClientData());
+  nsIFrame* frame = aPaintDefaultBackground ? nsnull : aViewToPaint->GetFrame();
 
   bool isRetainingManager;
   LayerManager* layerManager =
@@ -5652,9 +5652,7 @@ PresShell::RetargetEventToParent(nsGUIEvent*     aEvent,
   }
 
   
-  nsIView *parentRootView = parentPresShell->GetViewManager()->GetRootView();
-  
-  return parentViewObserver->HandleEvent(parentRootView, aEvent, true, aEventStatus);
+  return parentViewObserver->HandleEvent(parentPresShell->GetRootFrame(), aEvent, true, aEventStatus);
 }
 
 void
@@ -5727,12 +5725,12 @@ PresShell::RecordMouseLocation(nsGUIEvent* aEvent)
 }
 
 NS_IMETHODIMP
-PresShell::HandleEvent(nsIView         *aView,
+PresShell::HandleEvent(nsIFrame        *aFrame,
                        nsGUIEvent*     aEvent,
                        bool            aDontRetargetEvents,
                        nsEventStatus*  aEventStatus)
 {
-  NS_ASSERTION(aView, "null view");
+  NS_ASSERTION(aFrame, "null frame");
 
   if (mIsDestroying ||
       (sDisableNonTestMouseEvents && NS_IS_MOUSE_EVENT(aEvent) &&
@@ -5748,7 +5746,7 @@ PresShell::HandleEvent(nsIView         *aView,
 
     
     
-    return HandleEventInternal(aEvent, aView, aEventStatus);
+    return HandleEventInternal(aEvent, aEventStatus);
   }
 #endif
 
@@ -5798,8 +5796,7 @@ PresShell::HandleEvent(nsIView         *aView,
         if (!viewObserver)
           return NS_ERROR_FAILURE;
 
-        nsIView* view = presShell->GetViewManager()->GetRootView();
-        return viewObserver->HandleEvent(view, aEvent, true, aEventStatus);
+        return viewObserver->HandleEvent(presShell->GetRootFrame(), aEvent, true, aEventStatus);
       }
     }
   }
@@ -5821,20 +5818,10 @@ PresShell::HandleEvent(nsIView         *aView,
 
   
   
-  if ((aEvent->message == NS_SYSCOLORCHANGED) && mPresContext) {
-    nsIViewManager* vm = GetViewManager();
-    if (vm) {
-      
-      
-      
-      
-      nsIView* view = vm->GetRootView();
-      if (view == aView) {
-        *aEventStatus = nsEventStatus_eConsumeDoDefault;
-        mPresContext->SysColorChanged();
-        return NS_OK;
-      }
-    }
+  if ((aEvent->message == NS_SYSCOLORCHANGED) && mPresContext &&
+      aFrame == FrameManager()->GetRootFrame()) {
+    *aEventStatus = nsEventStatus_eConsumeDoDefault;
+    mPresContext->SysColorChanged();
     return NS_OK;
   }
 
@@ -5852,28 +5839,8 @@ PresShell::HandleEvent(nsIView         *aView,
     return NS_OK;
   }
 
-  nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
+  nsIFrame* frame = aFrame;
   bool dispatchUsingCoordinates = NS_IsEventUsingCoordinates(aEvent);
-
-  
-  
-  if (!frame &&
-      (dispatchUsingCoordinates || NS_IS_KEY_EVENT(aEvent) ||
-       NS_IS_IME_RELATED_EVENT(aEvent) ||
-       NS_IS_NON_RETARGETED_PLUGIN_EVENT(aEvent) ||
-       aEvent->message == NS_PLUGIN_ACTIVATE ||
-       aEvent->message == NS_PLUGIN_FOCUS)) {
-    nsIView* targetView = aView;
-    while (targetView && !targetView->GetClientData()) {
-      targetView = targetView->GetParent();
-    }
-    
-    if (targetView) {
-      aView = targetView;
-      frame = static_cast<nsIFrame*>(aView->GetClientData());
-    }
-  }
-
   if (dispatchUsingCoordinates) {
     NS_WARN_IF_FALSE(frame, "Nothing to handle this event!");
     if (!frame)
@@ -5982,7 +5949,6 @@ PresShell::HandleEvent(nsIView         *aView,
       nsIFrame* capturingFrame = capturingContent->GetPrimaryFrame();
       if (capturingFrame) {
         frame = capturingFrame;
-        aView = frame->GetClosestView();
       }
     }
 
@@ -6026,8 +5992,7 @@ PresShell::HandleEvent(nsIView         *aView,
           nsContentUtils::ContentIsCrossDocDescendantOf(activeShell->GetDocument(),
                                                         shell->GetDocument())) {
         shell = static_cast<PresShell*>(activeShell);
-        nsIView* activeShellRootView = shell->GetViewManager()->GetRootView();
-        frame = static_cast<nsIFrame*>(activeShellRootView->GetClientData());
+        frame = shell->GetRootFrame();
       }
     }
 
@@ -6035,16 +6000,14 @@ PresShell::HandleEvent(nsIView         *aView,
       
       
       nsCOMPtr<nsIPresShell> kungFuDeathGrip(shell);
-      nsIView* subshellRootView = shell->GetViewManager()->GetRootView();
       
       
       
       
-      return shell->HandlePositionedEvent(subshellRootView, frame,
-                                          aEvent, aEventStatus);
+      return shell->HandlePositionedEvent(frame, aEvent, aEventStatus);
     }
 
-    return HandlePositionedEvent(aView, frame, aEvent, aEventStatus);
+    return HandlePositionedEvent(frame, aEvent, aEventStatus);
   }
   
   nsresult rv = NS_OK;
@@ -6111,9 +6074,7 @@ PresShell::HandleEvent(nsIView         *aView,
         nsIPresShell* shell = targetDoc->GetShell();
         nsCOMPtr<nsIViewObserver> vo = do_QueryInterface(shell);
         if (vo) {
-          nsIView* root = shell->GetViewManager()->GetRootView();
           rv = static_cast<PresShell*>(shell)->HandleRetargetedEvent(aEvent,
-                                                                     root,
                                                                      aEventStatus,
                                                                      eventTarget);
         }
@@ -6132,7 +6093,7 @@ PresShell::HandleEvent(nsIView         *aView,
       mCurrentEventFrame = frame;
     }
     if (GetCurrentEventFrame()) {
-      rv = HandleEventInternal(aEvent, aView, aEventStatus);
+      rv = HandleEventInternal(aEvent, aEventStatus);
     }
   
 #ifdef NS_DEBUG
@@ -6145,7 +6106,7 @@ PresShell::HandleEvent(nsIView         *aView,
 
     if (!NS_EVENT_NEEDS_FRAME(aEvent)) {
       mCurrentEventFrame = nsnull;
-      return HandleEventInternal(aEvent, aView, aEventStatus);
+      return HandleEventInternal(aEvent, aEventStatus);
     }
     else if (NS_IS_KEY_EVENT(aEvent)) {
       
@@ -6176,8 +6137,7 @@ PresShell::ShowEventTargetDebug()
 #endif
 
 nsresult
-PresShell::HandlePositionedEvent(nsIView*       aView,
-                                 nsIFrame*      aTargetFrame,
+PresShell::HandlePositionedEvent(nsIFrame*      aTargetFrame,
                                  nsGUIEvent*    aEvent,
                                  nsEventStatus* aEventStatus)
 {
@@ -6219,7 +6179,7 @@ PresShell::HandlePositionedEvent(nsIView*       aView,
   }
 
   if (GetCurrentEventFrame()) {
-    rv = HandleEventInternal(aEvent, aView, aEventStatus);
+    rv = HandleEventInternal(aEvent, aEventStatus);
   }
 
 #ifdef NS_DEBUG
@@ -6234,7 +6194,7 @@ PresShell::HandleEventWithTarget(nsEvent* aEvent, nsIFrame* aFrame,
                                  nsIContent* aContent, nsEventStatus* aStatus)
 {
   PushCurrentEventInfo(aFrame, aContent);
-  nsresult rv = HandleEventInternal(aEvent, nsnull, aStatus);
+  nsresult rv = HandleEventInternal(aEvent, aStatus);
   PopCurrentEventInfo();
   return rv;
 }
@@ -6323,8 +6283,7 @@ IsFullScreenAndRestrictedKeyEvent(nsIContent* aTarget, const nsEvent* aEvent)
 }
 
 nsresult
-PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
-                               nsEventStatus* aStatus)
+PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
 {
   NS_TIME_FUNCTION_MIN(1.0);
 
@@ -6443,11 +6402,9 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
     
     aEvent->target = nsnull;
 
-    nsWeakView weakView(aView);
     
     
-    rv = manager->PreHandleEvent(mPresContext, aEvent, mCurrentEventFrame,
-                                 aStatus, aView);
+    rv = manager->PreHandleEvent(mPresContext, aEvent, mCurrentEventFrame, aStatus);
 
     
     if (GetCurrentEventFrame() && NS_SUCCEEDED(rv)) {
@@ -6486,8 +6443,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
       
       if (!mIsDestroying && NS_SUCCEEDED(rv)) {
         rv = manager->PostHandleEvent(mPresContext, aEvent,
-                                      GetCurrentEventFrame(), aStatus,
-                                      weakView.GetView());
+                                      GetCurrentEventFrame(), aStatus);
       }
     }
 
@@ -6972,7 +6928,7 @@ PresShell::IsVisible()
   if (!view)
     return true;
 
-  nsIFrame* frame = static_cast<nsIFrame*>(view->GetClientData());
+  nsIFrame* frame = view->GetFrame();
   if (!frame)
     return true;
 

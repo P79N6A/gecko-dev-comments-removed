@@ -510,9 +510,7 @@ nsLayoutUtils::GetCrossDocParentFrame(const nsIFrame* aFrame,
     *aExtraOffset += v->GetPosition();
   }
   v = v->GetParent(); 
-  if (!v)
-    return nsnull;
-  return static_cast<nsIFrame*>(v->GetClientData());
+  return v ? v->GetFrame() : nsnull;
 }
 
 
@@ -753,16 +751,16 @@ nsIFrame* nsLayoutUtils::GetLastSibling(nsIFrame* aFrame) {
 
 nsIView*
 nsLayoutUtils::FindSiblingViewFor(nsIView* aParentView, nsIFrame* aFrame) {
-  nsIFrame* parentViewFrame = static_cast<nsIFrame*>(aParentView->GetClientData());
+  nsIFrame* parentViewFrame = aParentView->GetFrame();
   nsIContent* parentViewContent = parentViewFrame ? parentViewFrame->GetContent() : nsnull;
   for (nsIView* insertBefore = aParentView->GetFirstChild(); insertBefore;
        insertBefore = insertBefore->GetNextSibling()) {
-    nsIFrame* f = static_cast<nsIFrame*>(insertBefore->GetClientData());
+    nsIFrame* f = insertBefore->GetFrame();
     if (!f) {
       
       for (nsIView* searchView = insertBefore->GetParent(); searchView;
            searchView = searchView->GetParent()) {
-        f = static_cast<nsIFrame*>(searchView->GetClientData());
+        f = searchView->GetFrame();
         if (f) {
           break;
         }

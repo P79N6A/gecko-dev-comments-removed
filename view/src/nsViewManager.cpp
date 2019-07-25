@@ -955,7 +955,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
         
         nsCOMPtr<nsIViewObserver> obs = GetViewObserver();
         if (obs) {
-          obs->HandleEvent(aView, aEvent, false, aStatus);
+          obs->HandleEvent(aView->GetFrame(), aEvent, false, aStatus);
         }
       }
       break; 
@@ -987,17 +987,39 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
         }
 
         
-        nsView* baseView = static_cast<nsView*>(aView);
-        nsView* view = baseView;
+        nsIView* view = aView;
+        bool dispatchUsingCoordinates = NS_IsEventUsingCoordinates(aEvent);
+        if (dispatchUsingCoordinates) {
+          
+          
+          view = GetDisplayRootFor(view);
+        }
+  
+        
+        nsIFrame* frame = view->GetFrame();
+        if (!frame &&
+            (dispatchUsingCoordinates || NS_IS_KEY_EVENT(aEvent) ||
+             NS_IS_IME_RELATED_EVENT(aEvent) ||
+             NS_IS_NON_RETARGETED_PLUGIN_EVENT(aEvent) ||
+             aEvent->message == NS_PLUGIN_ACTIVATE ||
+             aEvent->message == NS_PLUGIN_FOCUS)) {
+          while (view && !view->GetFrame()) {
+            view = view->GetParent();
+          }
 
-        if (NS_IsEventUsingCoordinates(aEvent)) {
-          
-          
-          view = static_cast<nsView*>(GetDisplayRootFor(baseView));
+          if (view) {
+            frame = view->GetFrame();
+          }
         }
 
-        if (nsnull != view) {
-          *aStatus = HandleEvent(view, aEvent);
+        if (nsnull != frame) {
+          
+          
+          
+          nsCOMPtr<nsIViewObserver> obs = view->GetViewManager()->GetViewObserver();
+          if (obs) {
+            obs->HandleEvent(frame, aEvent, false, aStatus);
+          }
         }
     
         break;
@@ -1005,24 +1027,6 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
     }
 
   return NS_OK;
-}
-
-nsEventStatus nsViewManager::HandleEvent(nsView* aView, nsGUIEvent* aEvent)
-{
-#if 0
-  printf(" %d %d %d %d (%d,%d) \n", this, event->widget, event->widgetSupports, 
-         event->message, event->point.x, event->point.y);
-#endif
-  
-  
-  
-  nsCOMPtr<nsIViewObserver> obs = aView->GetViewManager()->GetViewObserver();
-  nsEventStatus status = nsEventStatus_eIgnore;
-  if (obs) {
-     obs->HandleEvent(aView, aEvent, false, &status);
-  }
-
-  return status;
 }
 
 

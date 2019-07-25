@@ -106,8 +106,7 @@ public:
   nsresult PreHandleEvent(nsPresContext* aPresContext,
                           nsEvent *aEvent,
                           nsIFrame* aTargetFrame,
-                          nsEventStatus* aStatus,
-                          nsIView* aView);
+                          nsEventStatus* aStatus);
 
   
 
@@ -117,8 +116,7 @@ public:
   nsresult PostHandleEvent(nsPresContext* aPresContext,
                            nsEvent *aEvent,
                            nsIFrame* aTargetFrame,
-                           nsEventStatus* aStatus,
-                           nsIView* aView);
+                           nsEventStatus* aStatus);
 
   void NotifyDestroyPresContext(nsPresContext* aPresContext);
   void SetPresContext(nsPresContext* aPresContext);

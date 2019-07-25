@@ -50,8 +50,8 @@ class nsRegion;
 class nsIntRegion;
 
 #define NS_IVIEWOBSERVER_IID  \
-  { 0xac6eec35, 0x65d2, 0x4fe8, \
-    { 0xa1, 0x37, 0x1a, 0xc3, 0xf6, 0x51, 0x52, 0x56 } }
+  { 0x0d7ea18f, 0xc154, 0x4e25, \
+    { 0x81, 0x0c, 0x5d, 0x60, 0x31, 0xd0, 0xac, 0xc3 } }
 
 class nsIViewObserver : public nsISupports
 {
@@ -96,8 +96,7 @@ public:
 
 
 
-
-  NS_IMETHOD HandleEvent(nsIView*       aView,
+  NS_IMETHOD HandleEvent(nsIFrame*      aFrame,
                          nsGUIEvent*    aEvent,
                          bool           aDontRetargetEvents,
                          nsEventStatus* aEventStatus) = 0;
