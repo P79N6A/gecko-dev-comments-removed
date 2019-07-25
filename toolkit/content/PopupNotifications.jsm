@@ -438,7 +438,10 @@ PopupNotifications.prototype = {
     if (this._currentNotifications.length == 0)
       return;
 
-    let anchor = event.originalTarget;
+    
+    let anchor = event.target;
+    while (anchor && anchor.parentNode != this.iconBox)
+      anchor = anchor.parentNode;
 
     
     this._currentNotifications.forEach(function (n) {

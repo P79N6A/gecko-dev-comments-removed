@@ -418,6 +418,34 @@ var tests = [
       gBrowser.selectedTab = this.oldSelectedTab;
     }
   },
+  
+  { 
+    run: function() {
+      
+      this.box = document.createElement("box");
+      PopupNotifications.iconBox.appendChild(this.box);
+
+      let button = document.createElement("button");
+      button.setAttribute("label", "Please click me!");
+      this.box.appendChild(button);
+
+      
+      this.notifyObj = new basicNotification();
+      this.notifyObj.anchorID = this.box.id = "nested-box";
+      this.notifyObj.options = {dismissed: true};
+      this.notification = showNotification(this.notifyObj);
+
+      EventUtils.synthesizeMouse(button, 1, 1, {});
+    },
+    onShown: function(popup) {
+      checkPopup(popup, this.notifyObj);
+      dismissNotification(popup);
+    },
+    onHidden: function(popup) {
+      this.notification.remove();
+      this.box.parentNode.removeChild(this.box);
+    }
+  },
 ];
 
 function showNotification(notifyObj) {
