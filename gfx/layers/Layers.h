@@ -306,8 +306,20 @@ public:
 
 
 
-  virtual void EndTransaction(DrawThebesLayerCallback aCallback,
+
+
+
+
+
+
+
+  virtual bool EndTransaction(DrawThebesLayerCallback aCallback,
                               void* aCallbackData) = 0;
+
+  
+
+
+  virtual bool IsNullTransactionSupported() { return false; }
 
   PRBool IsSnappingEffectiveTransforms() { return mSnapEffectiveTransforms; } 
 

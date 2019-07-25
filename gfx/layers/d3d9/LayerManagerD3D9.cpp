@@ -149,7 +149,7 @@ LayerManagerD3D9::EndConstruction()
 {
 }
 
-void
+bool
 LayerManagerD3D9::EndTransaction(DrawThebesLayerCallback aCallback,
                                  void* aCallbackData)
 {
@@ -166,6 +166,7 @@ LayerManagerD3D9::EndTransaction(DrawThebesLayerCallback aCallback,
   mCurrentCallbackInfo.CallbackData = NULL;
   
   mTarget = NULL;
+  return true;
 }
 
 void
