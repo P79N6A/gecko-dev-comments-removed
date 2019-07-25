@@ -694,9 +694,11 @@ private:
   
   PRInt32 mBatching;
     
-  nsIContent *mLimiter;     
-  nsIContent *mAncestorLimiter; 
-                                
+  
+  nsCOMPtr<nsIContent> mLimiter;
+  
+  nsCOMPtr<nsIContent> mAncestorLimiter;
+
   nsIPresShell *mShell;
 
   PRInt16 mSelectionChangeReason; 
