@@ -1943,7 +1943,23 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       mJSObject = outerObject;
       SetWrapper(mJSObject);
 
+      {
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, mJSObject)) {
+          NS_ERROR("unable to enter a compartment");
+          return NS_ERROR_FAILURE;
+        }
+
+        JS_SetParent(cx, mJSObject, newInnerWindow->mJSObject);
+      }
+
       mContext->SetOuterObject(mJSObject);
+    }
+
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, mJSObject)) {
+      NS_ERROR("unable to enter a compartment");
+      return NS_ERROR_FAILURE;
     }
 
     
@@ -1973,16 +1989,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   if (!aState && !reUseInnerWindow) {
     
     
-
-    
-    
-    
-    
-    
-    
-    
-    
-    mContext->InitOuterWindow();
 
     
     
@@ -2042,7 +2048,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       NS_ENSURE_SUCCESS(rv, rv);
 
       
-      rv = mContext->InitClasses(mJSObject);
+      rv = mContext->InitClasses(newInnerWindow->mJSObject);
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (navigatorHolder) {

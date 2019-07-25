@@ -45,6 +45,7 @@
 #include "nsArrayEnumerator.h"
 #include "nsWrapperCache.h"
 #include "XPCWrapper.h"
+#include "AccessCheck.h"
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsXPCWrappedJSClass, nsIXPCWrappedJSClass)
 
@@ -257,22 +258,9 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
     
     
     if(XPCPerThreadData::IsMainThread(ccx) &&
-       !JS_GetGlobalForObject(ccx, jsobj)->isSystem())
+       !xpc::AccessCheck::isChrome(jsobj->getCompartment(ccx)))
     {
-        nsCOMPtr<nsIPrincipal> objprin;
-        nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
-        if(ssm)
-        {
-            nsresult rv = ssm->GetObjectPrincipal(ccx, jsobj, getter_AddRefs(objprin));
-            NS_ENSURE_SUCCESS(rv, nsnull);
-
-            PRBool isSystem;
-            rv = ssm->IsSystemPrincipal(objprin, &isSystem);
-            NS_ENSURE_SUCCESS(rv, nsnull);
-
-            if(!isSystem)
-                return nsnull;
-        }
+        return nsnull;
     }
 
     
@@ -1335,11 +1323,12 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
 
     if(XPCPerThreadData::IsMainThread(ccx))
     {
+        
         nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
         if(ssm)
         {
-            nsCOMPtr<nsIPrincipal> objPrincipal;
-            ssm->GetObjectPrincipal(ccx, obj, getter_AddRefs(objPrincipal));
+            nsIPrincipal *objPrincipal =
+                xpc::AccessCheck::getPrincipal(obj->getCompartment(ccx));
             if(objPrincipal)
             {
                 JSStackFrame* fp = nsnull;
@@ -1515,6 +1504,13 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
     }
 
     
+    
+    
+    
+    
+    
+    JSObject *scopeobj;
+    scopeobj = JS_GetGlobalForScopeChain(ccx);
     for(i = 0; i < argc; i++)
     {
         const nsXPTParamInfo& param = info->params[i];
@@ -1575,7 +1571,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
                 if(!XPCConvert::NativeArray2JS(lccx, &val,
                                                (const void**)&pv->val,
                                                datum_type, &param_iid,
-                                               array_count, obj, nsnull))
+                                               array_count, scopeobj, nsnull))
                     goto pre_call_clean_up;
             }
             else if(isSizedString)
@@ -1589,7 +1585,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
             else
             {
                 if(!XPCConvert::NativeData2JS(ccx, &val, &pv->val, type,
-                                              &param_iid, obj, nsnull))
+                                              &param_iid, scopeobj, nsnull))
                     goto pre_call_clean_up;
             }
         }
@@ -1597,7 +1593,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
         if(param.IsOut() || param.IsDipper())
         {
             
-            JSObject* out_obj = NewOutObject(cx, obj);
+            JSObject* out_obj = NewOutObject(cx, scopeobj);
             if(!out_obj)
             {
                 retval = NS_ERROR_OUT_OF_MEMORY;

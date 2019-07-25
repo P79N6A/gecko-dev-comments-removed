@@ -2529,6 +2529,12 @@ nsJSContext::ConnectToInner(nsIScriptGlobalObject *aNewInner, void *aOuterGlobal
   
   
   
+  JS_SetGlobalObject(mContext, outerGlobal);
+
+  
+  
+  
+  
   
   
   
@@ -2539,11 +2545,6 @@ nsJSContext::ConnectToInner(nsIScriptGlobalObject *aNewInner, void *aOuterGlobal
   JS_SetPrototype(mContext, newInnerJSObject, proto);
   JS_SetPrototype(mContext, proto, innerProtoProto);
 
-  
-  
-  
-  
-  JS_SetGlobalObject(mContext, outerGlobal);
   return NS_OK;
 }
 
@@ -2639,6 +2640,7 @@ nsresult
 nsJSContext::InitOuterWindow()
 {
   JSObject *global = JS_GetGlobalObject(mContext);
+  OBJ_TO_INNER_OBJECT(mContext, global);
 
   nsresult rv = InitClasses(global); 
   NS_ENSURE_SUCCESS(rv, rv);
