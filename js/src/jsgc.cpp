@@ -726,6 +726,17 @@ Chunk::allocateArena(JSCompartment *comp, AllocKind thingKind)
     return aheader;
 }
 
+inline void
+Chunk::addArenaToFreeList(JSRuntime *rt, ArenaHeader *aheader)
+{
+    JS_ASSERT(!aheader->allocated());
+    aheader->next = info.freeArenasHead;
+    info.freeArenasHead = aheader;
+    ++info.numArenasFreeCommitted;
+    ++info.numArenasFree;
+    ++rt->gcNumArenasFreeCommitted;
+}
+
 void
 Chunk::releaseArena(ArenaHeader *aheader)
 {
@@ -752,11 +763,7 @@ Chunk::releaseArena(ArenaHeader *aheader)
     JS_ATOMIC_ADD(&comp->gcBytes, -int32_t(ArenaSize));
 
     aheader->setAsNotAllocated();
-    aheader->next = info.freeArenasHead;
-    info.freeArenasHead = aheader;
-    ++info.numArenasFreeCommitted;
-    ++info.numArenasFree;
-    ++rt->gcNumArenasFreeCommitted;
+    addArenaToFreeList(rt, aheader);
 
     if (info.numArenasFree == 1) {
         JS_ASSERT(!info.prevp);
@@ -2198,6 +2205,97 @@ MaybeGC(JSContext *cx)
     }
 }
 
+static void
+DecommitArenasFromAvailableList(JSRuntime *rt, Chunk **availableListHeadp)
+{
+    Chunk *chunk = *availableListHeadp;
+    if (!chunk)
+        return;
+
+    
+
+
+
+
+
+    JS_ASSERT(chunk->info.prevp == availableListHeadp);
+    while (Chunk *next = chunk->info.next) {
+        JS_ASSERT(next->info.prevp == &chunk->info.next);
+        chunk = next;
+    }
+
+    for (;;) {
+        while (chunk->info.numArenasFreeCommitted != 0) {
+            
+
+
+
+
+
+
+
+
+
+            ArenaHeader *aheader = chunk->fetchNextFreeArena(rt);
+            size_t arenaIndex = Chunk::arenaIndex(aheader->arenaAddress());
+            bool ok;
+            {
+                AutoUnlockGC unlock(rt);
+                ok = DecommitMemory(aheader->getArena(), ArenaSize);
+            }
+
+            if (ok) {
+                ++chunk->info.numArenasFree;
+                chunk->decommittedArenas.set(arenaIndex);
+            } else {
+                chunk->addArenaToFreeList(rt, aheader);
+            }
+
+            if (rt->gcChunkAllocationSinceLastGC) {
+                
+
+
+
+                return;
+            }
+        }
+
+        
+
+
+
+        JS_ASSERT_IF(chunk->info.prevp, *chunk->info.prevp == chunk);
+        if (chunk->info.prevp == availableListHeadp || !chunk->info.prevp)
+            break;
+
+        
+
+
+
+        chunk = chunk->getPrevious();
+    }
+}
+
+static void
+DecommitArenas(JSRuntime *rt)
+{
+    DecommitArenasFromAvailableList(rt, &rt->gcSystemAvailableChunkListHead);
+    DecommitArenasFromAvailableList(rt, &rt->gcUserAvailableChunkListHead);
+}
+
+
+static void
+ExpireChunksAndArenas(JSRuntime *rt, bool shouldShrink)
+{
+    if (Chunk *toFree = rt->gcChunkPool.expire(rt, shouldShrink)) {
+        AutoUnlockGC unlock(rt);
+        FreeChunkList(toFree);
+    }
+
+    if (shouldShrink)
+        DecommitArenas(rt);
+}
+
 #ifdef JS_THREADSAFE
 
 bool
@@ -2401,10 +2499,7 @@ GCHelperThread::doSweep()
         freeVector.resize(0);
     }
 
-    if (Chunk *toFree = rt->gcChunkPool.expire(rt, shouldShrink())) {
-        AutoUnlockGC unlock(rt);
-        FreeChunkList(toFree);
-    }
+    ExpireChunksAndArenas(rt, shouldShrink());
 }
 
 #endif 
@@ -2424,43 +2519,6 @@ ReleaseObservedTypes(JSContext *cx)
     }
 
     return releaseTypes;
-}
-
-static void
-DecommitFreePages(JSContext *cx)
-{
-    JSRuntime *rt = cx->runtime;
-
-    for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront()) {
-        Chunk *chunk = r.front();
-        ArenaHeader *aheader = chunk->info.freeArenasHead;
-
-        
-
-
-
-
-        chunk->info.freeArenasHead = NULL;
-
-        while (aheader) {
-            
-            ArenaHeader *next = aheader->next;
-
-            bool success = DecommitMemory(aheader, ArenaSize);
-            if (!success) {
-                aheader->next = chunk->info.freeArenasHead;
-                chunk->info.freeArenasHead = aheader;
-                continue;
-            }
-
-            size_t arenaIndex = Chunk::arenaIndex(aheader->arenaAddress());
-            chunk->decommittedArenas.set(arenaIndex);
-            --chunk->info.numArenasFreeCommitted;
-            --rt->gcNumArenasFreeCommitted;
-
-            aheader = next;
-        }
-    }
 }
 
 static void
@@ -2656,11 +2714,8 @@ SweepPhase(JSContext *cx, GCMarker *gcmarker, JSGCInvocationKind gckind)
 
 
 
-        FreeChunkList(rt->gcChunkPool.expire(rt, gckind == GC_SHRINK));
+        ExpireChunksAndArenas(rt, gckind == GC_SHRINK);
 #endif
-
-        if (gckind == GC_SHRINK)
-            DecommitFreePages(cx);
     }
 
     {
