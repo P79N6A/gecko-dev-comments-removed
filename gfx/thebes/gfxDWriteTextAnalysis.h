@@ -106,8 +106,7 @@ public:
     ~TextAnalysis();
 
     STDMETHODIMP GenerateResults(IDWriteTextAnalyzer* textAnalyzer,
-                                 Run **runHead,
-                                 DWRITE_LINE_BREAKPOINT **breakpoints);
+                                 Run **runHead);
 
     
 
@@ -173,10 +172,7 @@ protected:
     Run *mCurrentRun;
 
     
-    Run *mRunHead;
-
-    
-    DWRITE_LINE_BREAKPOINT *mBreakpoints;
+    Run  mRunHead;
 };
 
 #endif 

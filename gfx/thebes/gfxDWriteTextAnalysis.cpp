@@ -45,16 +45,14 @@ TextAnalysis::TextAnalysis(const wchar_t* text,
   , mTextLength(textLength)
   , mLocaleName(localeName)
   , mReadingDirection(readingDirection)
-  , mBreakpoints(NULL)
-  , mRunHead(NULL)
   , mCurrentRun(NULL)
 {
 }
 
 TextAnalysis::~TextAnalysis()
 {
-    delete [] mBreakpoints;
-    for (Run *run = mRunHead; run;) {
+    
+    for (Run *run = mRunHead.nextRun; run;) {
         Run *origRun = run;
         run = run->nextRun;
         delete origRun;
@@ -63,8 +61,7 @@ TextAnalysis::~TextAnalysis()
 
 STDMETHODIMP 
 TextAnalysis::GenerateResults(IDWriteTextAnalyzer* textAnalyzer,
-                              OUT Run **runHead,
-                              OUT DWRITE_LINE_BREAKPOINT **breakpoints)
+                              OUT Run **runHead)
 {
     
     
@@ -73,42 +70,19 @@ TextAnalysis::GenerateResults(IDWriteTextAnalyzer* textAnalyzer,
 
     
     
-    mRunHead = new Run;
-    
-    mRunHead->mTextStart = 0;
-    mRunHead->mTextLength = mTextLength;
-    mRunHead->mBidiLevel = 
+    mRunHead.mTextStart = 0;
+    mRunHead.mTextLength = mTextLength;
+    mRunHead.mBidiLevel = 
         (mReadingDirection == DWRITE_READING_DIRECTION_RIGHT_TO_LEFT);
-    mRunHead->nextRun = NULL;
-    mCurrentRun = mRunHead;
-#ifdef USE_DWRITE_BREAKPOINTS
-    delete [] mBreakpoints;
-    mBreakpoints = new DWRITE_LINE_BREAKPOINT[mTextLength];
-#endif
+    mRunHead.nextRun = NULL;
+    mCurrentRun = &mRunHead;
 
     
-    if (
-#ifdef USE_DWRITE_BREAKPOINTS
-        SUCCEEDED(hr = textAnalyzer->AnalyzeLineBreakpoints(this,
-                                                            0,
-                                                            mTextLength,
-                                                            this)) && 
-#endif
-        SUCCEEDED(hr = textAnalyzer->AnalyzeBidi(this,
-                                                 0,
-                                                 mTextLength,
-                                                 this)) &&
-        SUCCEEDED(hr = textAnalyzer->AnalyzeScript(this,
+    if (SUCCEEDED(hr = textAnalyzer->AnalyzeScript(this,
                                                    0,
                                                    mTextLength,
-                                                   this)) &&
-        SUCCEEDED(hr = textAnalyzer->AnalyzeNumberSubstitution(this,
-                                                               0,
-                                                               mTextLength,
-                                                               this))) {
-        *breakpoints = mBreakpoints;
-
-        *runHead = mRunHead;
+                                                   this))) {
+        *runHead = &mRunHead;
     }
 
     return hr;
@@ -195,11 +169,7 @@ TextAnalysis::SetLineBreakpoints(UINT32 textPosition,
                                  UINT32 textLength,
                                  DWRITE_LINE_BREAKPOINT const* lineBreakpoints)
 {
-    if (textLength > 0) {
-        memcpy(mBreakpoints + textPosition,
-               lineBreakpoints,
-               textLength * sizeof(DWRITE_LINE_BREAKPOINT));
-    }
+    
     return S_OK;
 }
 
@@ -226,13 +196,7 @@ TextAnalysis::SetBidiLevel(UINT32 textPosition,
                            UINT8 explicitLevel,
                            UINT8 resolvedLevel)
 {
-    SetCurrentRun(textPosition);
-    SplitCurrentRun(textPosition);
-    while (textLength > 0) {
-        Run *run = FetchNextRun(&textLength);
-        run->mBidiLevel = resolvedLevel;
-    }
-
+    
     return S_OK;
 }
 
@@ -284,7 +248,7 @@ void TextAnalysis::SetCurrentRun(UINT32 textPosition)
         return;
     }
 
-    for (Run *run = mRunHead; run; run = run->nextRun) {
+    for (Run *run = &mRunHead; run; run = run->nextRun) {
         if (run->ContainsTextPosition(textPosition)) {
             mCurrentRun = run;
             return;
