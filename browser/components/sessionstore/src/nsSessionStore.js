@@ -129,6 +129,8 @@ const TAB_EVENTS = ["TabOpen", "TabClose", "TabSelect", "TabShow", "TabHide",
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
+Cu.import("resource://gre/modules/debug.js");
+
 XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
   Cu.import("resource://gre/modules/NetUtil.jsm");
   return NetUtil;
@@ -1669,10 +1671,31 @@ SessionStoreService.prototype = {
       tabData.index = history.index + 1;
     }
     else if (history && history.count > 0) {
-      for (var j = 0; j < history.count; j++) {
-        let entry = this._serializeHistoryEntry(history.getEntryAtIndex(j, false),
-                                                aFullData, aTab.pinned);
-        tabData.entries.push(entry);
+      try {
+        for (var j = 0; j < history.count; j++) {
+          let entry = this._serializeHistoryEntry(history.getEntryAtIndex(j, false),
+                                                  aFullData, aTab.pinned);
+          tabData.entries.push(entry);
+        }
+        
+        
+        delete aTab.__SS_broken_history;
+      }
+      catch (ex) {
+        
+        
+        
+        
+        
+        
+        if (!aTab.__SS_broken_history) {
+          
+          aTab.ownerDocument.defaultView.focus();
+          aTab.ownerDocument.defaultView.gBrowser.selectedTab = aTab;
+          NS_ASSERT(false, "SessionStore failed gathering complete history " +
+                           "for the focused window/tab. See bug 669196.");
+          aTab.__SS_broken_history = true;
+        }
       }
       tabData.index = history.index + 1;
 
