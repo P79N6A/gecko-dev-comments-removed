@@ -162,15 +162,11 @@ xpc_FastGetCachedWrapper(nsWrapperCache *cache, JSObject *scope)
 
 
 
-
-
 inline JSBool
 xpc_IsGrayGCThing(void *thing)
 {
-    return js_GCThingIsMarked(thing, js::gc::GRAY);
+    return js::GCThingIsMarkedGray(thing);
 }
-
-
 
 
 
