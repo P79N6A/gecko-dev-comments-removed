@@ -188,9 +188,8 @@ public:
     }
 
     
-    gfxFontEntry *FindFontEntry(const nsAString& aName,
-                                const gfxFontStyle& aFontStyle,
-                                PRBool& aFoundFamily,
+    gfxFontEntry *FindFontEntry(const nsAString& aName, 
+                                const gfxFontStyle& aFontStyle, 
                                 PRBool& aNeedsBold,
                                 PRBool& aWaitForUserFont);
                                 
@@ -257,9 +256,8 @@ public:
         LOADING_STARTED,     
         LOADING_ALMOST_DONE, 
                              
-        LOADING_SLOWLY,      
+        LOADING_SLOWLY       
                              
-        LOADING_FAILED       
     };
     LoadingState             mLoadingState;
 
