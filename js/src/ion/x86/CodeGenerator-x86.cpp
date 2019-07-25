@@ -269,7 +269,7 @@ CodeGeneratorX86::visitStoreSlotT(LStoreSlotT *store)
 
     
     if (valueType != store->mir()->slotType())
-        masm.storeTypeTag(ImmTag(MIRTypeToTag(valueType)), Operand(base, offset));
+        masm.storeTypeTag(ImmType(ValueTypeFromMIRType(valueType)), Operand(base, offset));
 
     
     if (value->isConstant())
