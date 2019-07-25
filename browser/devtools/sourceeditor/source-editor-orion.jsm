@@ -815,6 +815,20 @@ SourceEditor.prototype = {
 
 
 
+  getIndentationString: function SE_getIndentationString()
+  {
+    if (this._expandTab) {
+      return (new Array(this._tabSize + 1)).join(" ");
+    }
+    return "\t";
+  },
+
+  
+
+
+
+
+
   setMode: function SE_setMode(aMode)
   {
     if (this._styler) {
