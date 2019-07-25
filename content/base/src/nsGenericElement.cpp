@@ -159,6 +159,8 @@
 
 #include "mozilla/CORSMode.h"
 
+#include "nsStyledElement.h"
+
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -3214,6 +3216,28 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   nsNodeUtils::ParentChainChanged(this);
 
+  if (aDocument && HasID() && !aBindingParent) {
+    aDocument->AddToIdTable(this, DoGetID());
+  }
+
+  if (MayHaveStyle() && !IsXUL()) {
+    
+    
+    
+    static_cast<nsStyledElement*>(this)->ReparseStyleAttribute(false);
+  }
+
+  if (aDocument) {
+    
+    
+    
+    
+    nsHTMLStyleSheet* sheet = aDocument->GetAttributeStyleSheet();
+    if (sheet) {
+      mAttrsAndChildren.SetMappedAttrStyleSheet(sheet);
+    }
+  }
+
   
   
   
@@ -3231,6 +3255,9 @@ nsGenericElement::UnbindFromTree(bool aDeep, bool aNullParent)
   NS_PRECONDITION(aDeep || (!GetCurrentDoc() && !GetBindingParent()),
                   "Shallow unbind won't clear document and binding parent on "
                   "kids!");
+
+  RemoveFromIdTable();
+
   
   nsIDocument *document =
     HasFlag(NODE_FORCE_XBL_BINDINGS) ? OwnerDoc() : GetCurrentDoc();
