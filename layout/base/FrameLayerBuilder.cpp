@@ -379,6 +379,7 @@ static void BuildLayers(nsDisplayListBuilder* aBuilder,
                        "initial group is empty");
           
           areaAboveFirstThebesLayer.Or(areaAboveFirstThebesLayer, bounds);
+          layerItems = &aLayers->ElementAt(aLayers->Length() - 1);
         }
       }
     }
