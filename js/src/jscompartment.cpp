@@ -523,33 +523,6 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
     }
 # endif
 
-    if (!types.inferenceDepth && types.inferenceEnabled) {
-        for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
-            JSScript *script = reinterpret_cast<JSScript *>(cursor);
-            script->condenseTypes(cx);
-        }
-
-        types.condense(cx);
-    }
-
-    types.sweep(cx);
-
-    for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
-        JSScript *script = reinterpret_cast<JSScript *>(cursor);
-        script->sweepTypes(cx);
-    }
-
-    if (!types.inferenceDepth) {
-        
-        JS_FinishArenaPool(&types.pool);
-
-        
-
-
-
-        js_DestroyScriptsToGC(cx, this);
-    }
-
 #if defined JS_METHODJIT && defined JS_MONOIC
 
     
@@ -582,6 +555,33 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
     }
 
 #endif
+
+    if (!types.inferenceDepth && types.inferenceEnabled) {
+        for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
+            JSScript *script = reinterpret_cast<JSScript *>(cursor);
+            script->condenseTypes(cx);
+        }
+
+        types.condense(cx);
+    }
+
+    types.sweep(cx);
+
+    for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
+        JSScript *script = reinterpret_cast<JSScript *>(cursor);
+        script->sweepTypes(cx);
+    }
+
+    if (!types.inferenceDepth) {
+        
+        JS_FinishArenaPool(&types.pool);
+
+        
+
+
+
+        js_DestroyScriptsToGC(cx, this);
+    }
 
     active = false;
 }
