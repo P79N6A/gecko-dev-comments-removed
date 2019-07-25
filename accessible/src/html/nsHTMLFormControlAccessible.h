@@ -68,6 +68,9 @@ public:
 
   
   virtual PRUint8 ActionCount();
+
+  
+  virtual bool IsWidget() const;
 };
 
 
@@ -110,6 +113,9 @@ public:
 
   
   virtual PRUint8 ActionCount();
+
+  
+  virtual bool IsWidget() const;
 };
 
 
@@ -134,6 +140,9 @@ public:
 
   
   virtual PRUint8 ActionCount();
+
+  
+  virtual bool IsWidget() const;
 };
 
 

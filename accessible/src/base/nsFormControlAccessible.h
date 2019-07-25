@@ -63,6 +63,9 @@ public:
 
   
   virtual PRUint32 NativeRole();
+
+  
+  virtual bool IsWidget() const;
 };
 
 
@@ -85,6 +88,9 @@ public:
   virtual PRUint8 ActionCount();
 
   enum { eAction_Click = 0 };
+
+  
+  virtual bool IsWidget() const;
 };
 
 

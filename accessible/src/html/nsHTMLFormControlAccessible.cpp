@@ -142,6 +142,16 @@ nsHTMLCheckboxAccessible::NativeState()
 
 
 
+bool
+nsHTMLCheckboxAccessible::IsWidget() const
+{
+  return true;
+}
+
+
+
+
+
 
 nsHTMLRadioButtonAccessible::
   nsHTMLRadioButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
@@ -317,6 +327,15 @@ nsHTMLButtonAccessible::GetNameInternal(nsAString& aName)
 
 
 
+bool
+nsHTMLButtonAccessible::IsWidget() const
+{
+  return true;
+}
+
+
+
+
 
 
 nsHTML4ButtonAccessible::
@@ -368,6 +387,15 @@ nsHTML4ButtonAccessible::NativeState()
     state |= states::DEFAULT;
 
   return state;
+}
+
+
+
+
+bool
+nsHTML4ButtonAccessible::IsWidget() const
+{
+  return true;
 }
 
 

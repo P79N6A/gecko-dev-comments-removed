@@ -165,7 +165,7 @@ public:
     eSkipAncestorLabel
   };
 
-  HTMLLabelIterator(nsDocAccessible* aDocument, nsIContent* aElement,
+  HTMLLabelIterator(nsDocAccessible* aDocument, const nsAccessible* aAccessible,
                     LabelFilter aFilter = eAllLabels);
 
   virtual ~HTMLLabelIterator() { }
@@ -181,7 +181,9 @@ private:
   HTMLLabelIterator& operator = (const HTMLLabelIterator&);
 
   RelatedAccIterator mRelIter;
-  nsIContent* mElement;
+  
+  
+  const nsAccessible* mAcc;
   LabelFilter mLabelFilter;
 };
 
