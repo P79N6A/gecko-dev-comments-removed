@@ -676,6 +676,17 @@ function createAndAppendElement(aParent, aTag, aAttributes)
 
 
 
+function unwrap(aObject)
+{
+  return XPCNativeWrapper.unwrap(aObject);
+}
+
+
+
+
+
+
+
 
 
 
@@ -2929,7 +2940,7 @@ HUD_SERVICE.prototype =
                       .QueryInterface(Ci.nsIDocShell)
                       .chromeEventHandler.ownerDocument.defaultView;
 
-    let xulWindow = XPCNativeWrapper.unwrap(xulWindow);
+    let xulWindow = unwrap(xulWindow);
 
     let docElem = xulWindow.document.documentElement;
     if (!docElem || docElem.getAttribute("windowtype") != "navigator:browser" ||
@@ -3813,7 +3824,7 @@ function findCompletionBeginning(aStr)
 
 function JSPropertyProvider(aScope, aInputValue)
 {
-  let obj = XPCNativeWrapper.unwrap(aScope);
+  let obj = unwrap(aScope);
 
   
   
@@ -3981,7 +3992,7 @@ function JSTermHelper(aJSTerm)
   aJSTerm.sandbox.keys = function JSTH_keys(aObject)
   {
     try {
-      return Object.keys(aObject);
+      return Object.keys(unwrap(aObject));
     }
     catch (ex) {
       aJSTerm.console.error(ex.message);
@@ -3998,10 +4009,11 @@ function JSTermHelper(aJSTerm)
   aJSTerm.sandbox.values = function JSTH_values(aObject)
   {
     let arrValues = [];
+    let obj = unwrap(aObject);
 
     try {
-      for (let prop in aObject) {
-        arrValues.push(aObject[prop]);
+      for (let prop in obj) {
+        arrValues.push(obj[prop]);
       }
     }
     catch (ex) {
@@ -4019,7 +4031,7 @@ function JSTermHelper(aJSTerm)
 
   aJSTerm.sandbox.inspect = function JSTH_inspect(aObject)
   {
-    aJSTerm.openPropertyPanel(null, aObject);
+    aJSTerm.openPropertyPanel(null, unwrap(aObject));
   };
 
   
@@ -4036,7 +4048,7 @@ function JSTermHelper(aJSTerm)
       return;
     }
     let output = [];
-    let pairs = namesAndValuesOf(aObject);
+    let pairs = namesAndValuesOf(unwrap(aObject));
 
     pairs.forEach(function(pair) {
       output.push("  " + pair.display);
