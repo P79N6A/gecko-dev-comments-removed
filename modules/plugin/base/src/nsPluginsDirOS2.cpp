@@ -199,7 +199,7 @@ nsPluginFile::~nsPluginFile()
 {}
 
 
-nsresult nsPluginFile::LoadPlugin( PRLibrary *&outLibrary)
+nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
 {
     if (!mPlugin)
       return NS_ERROR_NULL_POINTER;
@@ -207,13 +207,15 @@ nsresult nsPluginFile::LoadPlugin( PRLibrary *&outLibrary)
     nsCAutoString temp;
     mPlugin->GetNativePath(temp);
 
-    outLibrary = PR_LoadLibrary(temp.get());
-    return outLibrary == nsnull ? NS_ERROR_FAILURE : NS_OK;
+    *outLibrary = PR_LoadLibrary(temp.get());
+    return *outLibrary == nsnull ? NS_ERROR_FAILURE : NS_OK;
 }
 
 
-nsresult nsPluginFile::GetPluginInfo( nsPluginInfo &info)
+nsresult nsPluginFile::GetPluginInfo(nsPluginInfo &info, PRLibrary **outLibrary)
 {
+   *outLibrary = nsnull;
+
    nsresult   rv = NS_ERROR_FAILURE;
    HMODULE    hPlug = 0; 
    char       failure[ CCHMAXPATH] = "";
