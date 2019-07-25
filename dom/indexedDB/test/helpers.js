@@ -70,8 +70,7 @@ function finishTest()
 
   SimpleTest.executeSoon(function() {
     testGenerator.close();
-    
-    SimpleTest.finish();
+    clearAllDatabases(function() { SimpleTest.finish(); });
   });
 }
 
