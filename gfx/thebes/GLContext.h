@@ -498,6 +498,11 @@ public:
     
 
 
+    virtual void *GetD3DShareHandle() { return nsnull; }
+
+    
+
+
     virtual PRBool IsDoubleBuffered() { return PR_FALSE; }
 
     
