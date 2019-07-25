@@ -52,7 +52,12 @@
 
 
 
+
+
+
+
 const LAST_DIR_PREF = "browser.download.lastDir";
+const SAVE_PER_SITE_PREF = LAST_DIR_PREF + ".savePerSite";
 const PBSVC_CID = "@mozilla.org/privatebrowsing;1";
 const nsILocalFile = Components.interfaces.nsILocalFile;
 
@@ -109,13 +114,22 @@ function readLastDirPref() {
   }
 }
 
+function isContentPrefEnabled() {
+  try {
+    return Services.prefs.getBoolPref(SAVE_PER_SITE_PREF);
+  } 
+  catch (e) {
+    return true;
+  }
+}
+
 let gDownloadLastDirFile = readLastDirPref();
 let gDownloadLastDir = {
   
   get file() { return this.getFile(); },
   set file(val) { this.setFile(null, val); },
   getFile: function (aURI) {
-    if (aURI) {
+    if (aURI && isContentPrefEnabled()) {
       let lastDir = Services.contentPrefs.getPref(aURI, LAST_DIR_PREF);
       if (lastDir) {
         var lastDirFile = Components.classes["@mozilla.org/file/local;1"]
@@ -133,8 +147,11 @@ let gDownloadLastDir = {
       return readLastDirPref();
   },
   setFile: function (aURI, aFile) {
-    if (aURI) {
-      Services.contentPrefs.setPref(aURI, LAST_DIR_PREF, aFile.path);
+    if (aURI && isContentPrefEnabled()) {
+      if (aFile instanceof Components.interfaces.nsIFile)
+        Services.contentPrefs.setPref(aURI, LAST_DIR_PREF, aFile.path);
+      else
+        Services.contentPrefs.removePref(aURI, LAST_DIR_PREF);
     }
     if (pbSvc && pbSvc.privateBrowsingEnabled) {
       if (aFile instanceof Components.interfaces.nsIFile)
