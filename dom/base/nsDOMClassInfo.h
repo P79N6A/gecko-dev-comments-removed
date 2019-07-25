@@ -161,7 +161,18 @@ public:
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull)
   {
-    return WrapNative(cx, scope, native, nsnull, aAllowWrapping, vp, aHolder);
+    return nsContentUtils::WrapNative(cx, scope, native, vp, aHolder,
+                                      aAllowWrapping);
+  }
+  static nsresult WrapNative(JSContext *cx, JSObject *scope,
+                             nsISupports *native, nsWrapperCache *cache,
+                             PRBool aAllowWrapping, jsval *vp,
+                             
+                             
+                             nsIXPConnectJSObjectHolder** aHolder = nsnull)
+  {
+    return nsContentUtils::WrapNative(cx, scope, native, cache, vp, aHolder,
+                                      aAllowWrapping);
   }
 
   static nsresult ThrowJSException(JSContext *cx, nsresult aResult);
