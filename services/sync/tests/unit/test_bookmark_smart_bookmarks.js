@@ -131,7 +131,6 @@ add_test(function test_annotation_uploaded() {
     
     
     
-    PlacesUtils.bookmarks.setItemGUID(mostVisitedID, "abcdefabcdef");
     PlacesUtils.bookmarks.setItemTitle(mostVisitedID, "Not Most Visited");
     PlacesUtils.bookmarks.changeBookmarkURI(
       mostVisitedID, Utils.makeURI("http://something/else"));
