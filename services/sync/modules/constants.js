@@ -42,7 +42,6 @@ let EXPORTED_SYMBOLS = [((this[key] = val), key) for ([key, val] in Iterator({
 
 WEAVE_CHANNEL:                         "@weave_channel@",
 WEAVE_VERSION:                         "@weave_version@",
-WEAVE_ID:                              "@weave_id@",
 
 
 SYNC_API_VERSION:                      "1.1",
@@ -123,18 +122,6 @@ SCORE_INCREMENT_XLARGE:                300 + 1,
 
 
 SCORE_UPDATE_DELAY:                    100,
-
-
-MODE_RDONLY:                           0x01,
-MODE_WRONLY:                           0x02,
-MODE_CREATE:                           0x08,
-MODE_APPEND:                           0x10,
-MODE_TRUNCATE:                         0x20,
-
-
-PERMS_FILE:                            0644,
-PERMS_PASSFILE:                        0600,
-PERMS_DIRECTORY:                       0755,
 
 
 
