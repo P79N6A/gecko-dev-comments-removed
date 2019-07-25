@@ -77,6 +77,8 @@ nsHTTPDownloadEvent::Run()
   
   
 
+  chan->SetLoadFlags(nsIRequest::LOAD_ANONYMOUS);
+
   
   
   nsCOMPtr<nsILoadGroup> lg = do_CreateInstance(NS_LOADGROUP_CONTRACTID);
