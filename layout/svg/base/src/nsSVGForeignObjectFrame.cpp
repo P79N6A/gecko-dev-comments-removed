@@ -393,10 +393,10 @@ nsSVGForeignObjectFrame::UpdateBounds()
   if (w < 0.0f) w = 0.0f;
   if (h < 0.0f) h = 0.0f;
 
-  
   mRect = nsLayoutUtils::RoundGfxRectToAppRect(
-                           gfxRect(0.0, 0.0, w, h),
+                           gfxRect(x, y, w, h),
                            PresContext()->AppUnitsPerCSSPixel());
+  
   mCoveredRegion = ToCanvasBounds(gfxRect(0.0, 0.0, w, h), GetCanvasTM(), PresContext());
 
   
@@ -628,7 +628,7 @@ nsSVGForeignObjectFrame::InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
     return;
 
   
-  nsRect rect = aRect.Intersect(mRect);
+  nsRect rect = aRect.Intersect(nsRect(nsPoint(0,0), mRect.Size()));
   if (rect.IsEmpty())
     return;
 
