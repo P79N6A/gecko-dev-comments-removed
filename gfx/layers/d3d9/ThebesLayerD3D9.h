@@ -73,6 +73,8 @@ private:
   
   nsRefPtr<gfxASurface> mD2DSurface;
 
+  bool mD2DSurfaceInitialized;
+
   
   void DrawRegion(const nsIntRegion &aRegion);
 
