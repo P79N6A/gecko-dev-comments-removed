@@ -2726,125 +2726,16 @@ nsScriptSecurityManager::FormatCapabilityString(nsAString& aCapability)
     aCapability = newcaps;
 }
 
-bool
-nsScriptSecurityManager::CheckConfirmDialog(JSContext* cx, nsIPrincipal* aPrincipal,
-                                            const char* aCapability, bool *checkValue)
-{
-    nsresult rv;
-    *checkValue = false;
-
-    
-    nsCOMPtr<nsIPrompt> prompter;
-    if (cx)
-    {
-        nsIScriptContext *scriptContext = GetScriptContext(cx);
-        if (scriptContext)
-        {
-            nsCOMPtr<nsIDOMWindow> domWin =
-                do_QueryInterface(scriptContext->GetGlobalObject());
-            if (domWin)
-                domWin->GetPrompter(getter_AddRefs(prompter));
-        }
-    }
-
-    if (!prompter)
-    {
-        
-        nsCOMPtr<nsIWindowWatcher> wwatch(do_GetService(NS_WINDOWWATCHER_CONTRACTID));
-        if (wwatch)
-          wwatch->GetNewPrompter(0, getter_AddRefs(prompter));
-        if (!prompter)
-            return false;
-    }
-
-    
-    nsXPIDLString check;
-    rv = sStrBundle->GetStringFromName(NS_LITERAL_STRING("CheckMessage").get(),
-                                       getter_Copies(check));
-    if (NS_FAILED(rv))
-        return false;
-
-    nsXPIDLString title;
-    rv = sStrBundle->GetStringFromName(NS_LITERAL_STRING("Titleline").get(),
-                                       getter_Copies(title));
-    if (NS_FAILED(rv))
-        return false;
-
-    nsXPIDLString yesStr;
-    rv = sStrBundle->GetStringFromName(NS_LITERAL_STRING("Yes").get(),
-                                       getter_Copies(yesStr));
-    if (NS_FAILED(rv))
-        return false;
-
-    nsXPIDLString noStr;
-    rv = sStrBundle->GetStringFromName(NS_LITERAL_STRING("No").get(),
-                                       getter_Copies(noStr));
-    if (NS_FAILED(rv))
-        return false;
-
-    nsCAutoString val;
-    bool hasCert;
-    aPrincipal->GetHasCertificate(&hasCert);
-    if (hasCert)
-        rv = aPrincipal->GetPrettyName(val);
-    else
-        rv = GetPrincipalDomainOrigin(aPrincipal, val);
-
-    if (NS_FAILED(rv))
-        return false;
-
-    NS_ConvertUTF8toUTF16 location(val);
-    NS_ConvertASCIItoUTF16 capability(aCapability);
-    FormatCapabilityString(capability);
-    const PRUnichar *formatStrings[] = { location.get(), capability.get() };
-
-    nsXPIDLString message;
-    rv = sStrBundle->FormatStringFromName(NS_LITERAL_STRING("EnableCapabilityQuery").get(),
-                                          formatStrings,
-                                          ArrayLength(formatStrings),
-                                          getter_Copies(message));
-    if (NS_FAILED(rv))
-        return false;
-
-    PRInt32 buttonPressed = 1; 
-    rv = prompter->ConfirmEx(title.get(), message.get(),
-                             (nsIPrompt::BUTTON_DELAY_ENABLE) +
-                             (nsIPrompt::BUTTON_POS_1_DEFAULT) +
-                             (nsIPrompt::BUTTON_TITLE_IS_STRING * nsIPrompt::BUTTON_POS_0) +
-                             (nsIPrompt::BUTTON_TITLE_IS_STRING * nsIPrompt::BUTTON_POS_1),
-                             yesStr.get(), noStr.get(), nsnull, check.get(), checkValue, &buttonPressed);
-
-    if (NS_FAILED(rv))
-        *checkValue = false;
-    return (buttonPressed == 0);
-}
-
 NS_IMETHODIMP
 nsScriptSecurityManager::RequestCapability(nsIPrincipal* aPrincipal,
                                            const char *capability, PRInt16* canEnable)
 {
     if (NS_FAILED(aPrincipal->CanEnableCapability(capability, canEnable)))
         return NS_ERROR_FAILURE;
+    
+    
     if (*canEnable == nsIPrincipal::ENABLE_WITH_USER_PERMISSION)
-    {
-        
-        JSContext* cx = GetCurrentJSContext();
-        
-        
-        bool remember = false;
-        if (CheckConfirmDialog(cx, aPrincipal, capability, &remember))
-            *canEnable = nsIPrincipal::ENABLE_GRANTED;
-        else
-            *canEnable = nsIPrincipal::ENABLE_DENIED;
-        if (remember)
-        {
-            
-            if (NS_FAILED(aPrincipal->SetCanEnableCapability(capability, *canEnable)))
-                return NS_ERROR_FAILURE;
-            if (NS_FAILED(SavePrincipal(aPrincipal)))
-                return NS_ERROR_FAILURE;
-        }
-    }
+        *canEnable = nsIPrincipal::ENABLE_DENIED;
     return NS_OK;
 }
 
