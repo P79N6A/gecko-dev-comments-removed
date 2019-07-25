@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim: set sw=4 ts=8 et tw=80 : */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Content App.
+ *
+ * The Initial Developer of the Original Code is
+ *   The Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Frederic Plourde <frederic.plourde@collabora.co.uk>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "ContentParent.h"
 
@@ -186,9 +186,16 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
             TakeMinidump(getter_AddRefs(crashDump)) &&
                 CrashReporter::GetIDFromMinidump(crashDump, dumpID);
 
-            if (!dumpID.IsEmpty())
+            if (!dumpID.IsEmpty()) {
                 props->SetPropertyAsAString(NS_LITERAL_STRING("dumpID"),
                                             dumpID);
+
+                CrashReporter::AnnotationTable notes;
+                notes.Init();
+                notes.Put(NS_LITERAL_CSTRING("ProcessType"), NS_LITERAL_CSTRING("content"));
+                // TODO: Additional per-process annotations.
+                CrashReporter::AppendExtraData(dumpID, notes);
+            }
 #endif
 
             obs->NotifyObservers((nsIPropertyBag2*) props, "ipc:content-shutdown", nsnull);
@@ -243,8 +250,8 @@ ContentParent::~ContentParent()
         base::CloseProcessHandle(OtherProcess());
 
     NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-    
-    
+    //If the previous content process has died, a new one could have
+    //been started since.
     if (gSingleton == this)
         gSingleton = nsnull;
 }
@@ -311,7 +318,7 @@ ContentParent::RecvReadPermissions(InfallibleTArray<IPC::Permission>* aPermissio
                                                     expireType, expireTime));
     }
 
-    
+    // Ask for future changes
     permissionManager->ChildRequestPermissions();
 #endif
 
@@ -329,7 +336,7 @@ ContentParent::Observe(nsISupports* aSubject,
                        const PRUnichar* aData)
 {
     if (!strcmp(aTopic, "xpcom-shutdown") && mSubprocess) {
-        
+        // remove the global remote preferences observers
         nsCOMPtr<nsIPrefBranch2> prefs 
             (do_GetService(NS_PREFSERVICE_CONTRACTID));
         if (prefs) { 
@@ -347,9 +354,9 @@ ContentParent::Observe(nsISupports* aSubject,
     if (!mIsAlive || !mSubprocess)
         return NS_OK;
 
-    
+    // listening for remotePrefs...
     if (!strcmp(aTopic, "nsPref:changed")) {
-        
+        // We know prefs are ASCII here.
         NS_LossyConvertUTF16toASCII strData(aData);
 
         PrefTuple pref;
@@ -367,7 +374,7 @@ ContentParent::Observe(nsISupports* aSubject,
       if (!SendSetOffline(!strcmp(offline, "true") ? true : false))
           return NS_ERROR_NOT_AVAILABLE;
     }
-    
+    // listening for alert notifications
     else if (!strcmp(aTopic, "alertfinished") ||
              !strcmp(aTopic, "alertclickcallback") ) {
         if (!SendNotifyAlertsObserver(nsDependentCString(aTopic),
@@ -573,13 +580,13 @@ ContentParent::RecvShowFilePicker(const PRInt16& mode,
         return true;
     }
 
-    
-    
+    // as the parent given to the content process would be meaningless in this
+    // process, always use active window as the parent
     nsCOMPtr<nsIWindowWatcher> ww = do_GetService(NS_WINDOWWATCHER_CONTRACTID);
     nsCOMPtr<nsIDOMWindow> window;
     ww->GetActiveWindow(getter_AddRefs(window));
 
-    
+    // initialize the "real" picker with all data given
     *result = filePicker->Init(window, title, mode);
     if (NS_FAILED(*result))
         return true;
@@ -593,7 +600,7 @@ ContentParent::RecvShowFilePicker(const PRInt16& mode,
     filePicker->SetDefaultExtension(defaultExtension);
     filePicker->SetFilterIndex(selectedType);
 
-    
+    // and finally open the dialog
     *result = filePicker->Show(retValue);
     if (NS_FAILED(*result))
         return true;
@@ -617,7 +624,7 @@ ContentParent::RecvShowFilePicker(const PRInt16& mode,
     nsCOMPtr<nsILocalFile> file;
     filePicker->GetFile(getter_AddRefs(file));
 
-    
+    // even with NS_OK file can be null if nothing was selected 
     if (file) {                                 
         nsAutoString filePath;
         file->GetPath(filePath);
@@ -638,7 +645,7 @@ ContentParent::RecvLoadURIExternal(const IPC::URI& uri)
     return true;
 }
 
-
+/* void onDispatchedEvent (in nsIThreadInternal thread); */
 NS_IMETHODIMP
 ContentParent::OnDispatchedEvent(nsIThreadInternal *thread)
 {
@@ -648,7 +655,7 @@ ContentParent::OnDispatchedEvent(nsIThreadInternal *thread)
     return NS_OK;
 }
 
-
+/* void onProcessNextEvent (in nsIThreadInternal thread, in boolean mayWait, in unsigned long recursionDepth); */
 NS_IMETHODIMP
 ContentParent::OnProcessNextEvent(nsIThreadInternal *thread,
                                   PRBool mayWait,
@@ -663,7 +670,7 @@ ContentParent::OnProcessNextEvent(nsIThreadInternal *thread,
     return NS_OK;
 }
 
-
+/* void afterProcessNextEvent (in nsIThreadInternal thread, in unsigned long recursionDepth); */
 NS_IMETHODIMP
 ContentParent::AfterProcessNextEvent(nsIThreadInternal *thread,
                                      PRUint32 recursionDepth)
@@ -825,5 +832,5 @@ ContentParent::OnAccelerationChange(nsIAcceleration *aAcceleration)
 }
 
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla

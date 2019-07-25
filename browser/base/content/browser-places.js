@@ -230,7 +230,7 @@ var StarUI = {
     
     this.panel.popupBoxObject
         .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
-    this.panel.openPopup(aAnchorElement, aPosition, -1, -1);
+    this.panel.openPopup(aAnchorElement, aPosition);
 
     gEditItemOverlay.initPanel(this._itemId,
                                { hiddenRows: ["description", "location",
@@ -348,7 +348,8 @@ var PlacesCommandHook = {
       if (starIcon && isElementVisible(starIcon)) {
         
         
-        var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ? 'after_start' : 'after_end';
+        var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ?
+          'bottomcenter topleft' : 'bottomcenter topright';
         if (aShowEditUI)
           StarUI.showEditBookmarkPopup(itemId, starIcon, position);
         return;
@@ -849,7 +850,7 @@ var PlacesMenuDNDHandler = {
 
 
 
-  onDragLeave: function PMDH_onDragLeave(event) {
+  onDragExit: function PMDH_onDragExit(event) {
     
     if (!this._isStaticContainer(event.target))
       return;
