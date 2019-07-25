@@ -144,6 +144,7 @@ nsSVGPatternFrame::GetCanvasTM(PRUint32 aFor)
 nsresult
 nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
                                 gfxMatrix* patternMatrix,
+                                const gfxMatrix &aContextMatrix,
                                 nsIFrame *aSource,
                                 nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                                 float aGraphicOpacity,
@@ -189,16 +190,15 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   
   
   gfxRect callerBBox;
-  gfxMatrix callerCTM;
-  if (NS_FAILED(GetTargetGeometry(&callerCTM,
-                                  &callerBBox,
+  if (NS_FAILED(GetTargetGeometry(&callerBBox,
                                   aSource,
+                                  aContextMatrix,
                                   aOverrideBounds)))
     return NS_ERROR_FAILURE;
 
   
   
-  gfxMatrix ctm = ConstructCTM(callerBBox, callerCTM, aSource);
+  gfxMatrix ctm = ConstructCTM(callerBBox, aContextMatrix, aSource);
   if (ctm.IsSingular()) {
     return NS_ERROR_FAILURE;
   }
@@ -215,7 +215,7 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   
   
   
-  gfxRect bbox = GetPatternRect(callerBBox, callerCTM, aSource);
+  gfxRect bbox = GetPatternRect(callerBBox, aContextMatrix, aSource);
 
   
   gfxMatrix patternTransform = GetPatternTransform();
@@ -228,7 +228,7 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   
   
   *patternMatrix = GetPatternMatrix(patternTransform,
-                                    bbox, callerBBox, callerCTM);
+                                    bbox, callerBBox, aContextMatrix);
 
   
   
@@ -621,9 +621,9 @@ nsSVGPatternFrame::GetPatternMatrix(const gfxMatrix &patternTransform,
 }
 
 nsresult
-nsSVGPatternFrame::GetTargetGeometry(gfxMatrix *aCTM,
-                                     gfxRect *aBBox,
+nsSVGPatternFrame::GetTargetGeometry(gfxRect *aBBox,
                                      nsIFrame *aTarget,
+                                     const gfxMatrix &aContextMatrix,
                                      const gfxRect *aOverrideBounds)
 {
   *aBBox = aOverrideBounds ? *aOverrideBounds : nsSVGUtils::GetBBox(aTarget);
@@ -635,14 +635,10 @@ nsSVGPatternFrame::GetTargetGeometry(gfxMatrix *aCTM,
       return NS_ERROR_FAILURE;
     }
   }
-
-  
-  *aCTM = nsSVGUtils::GetCanvasTM(aTarget, nsISVGChildFrame::FOR_PAINTING);
-
   
   
   {
-    float scale = nsSVGUtils::MaxExpansion(*aCTM);
+    float scale = nsSVGUtils::MaxExpansion(aContextMatrix);
     if (scale <= 0) {
       return NS_ERROR_FAILURE;
     }
@@ -656,6 +652,7 @@ nsSVGPatternFrame::GetTargetGeometry(gfxMatrix *aCTM,
 
 already_AddRefed<gfxPattern>
 nsSVGPatternFrame::GetPaintServerPattern(nsIFrame *aSource,
+                                         const gfxMatrix& aContextMatrix,
                                          nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                                          float aGraphicOpacity,
                                          const gfxRect *aOverrideBounds)
@@ -668,7 +665,7 @@ nsSVGPatternFrame::GetPaintServerPattern(nsIFrame *aSource,
   
   nsRefPtr<gfxASurface> surface;
   gfxMatrix pMatrix;
-  nsresult rv = PaintPattern(getter_AddRefs(surface), &pMatrix,
+  nsresult rv = PaintPattern(getter_AddRefs(surface), &pMatrix, aContextMatrix,
                              aSource, aFillOrStroke, aGraphicOpacity, aOverrideBounds);
 
   if (NS_FAILED(rv)) {
