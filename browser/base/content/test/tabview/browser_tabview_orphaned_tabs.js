@@ -44,7 +44,7 @@ function onTabViewWindowLoaded() {
     
     let checkAndFinish = function() {
       
-      let tabData = contentWindow.Storage.getTabData(tabItem.tab);
+      let tabData = contentWindow.Storage.getTabData(tabItem.tab, function () {});
       ok(tabData && contentWindow.TabItems.storageSanity(tabData) && tabData.groupID, 
          "Tab two has stored group data");
 
