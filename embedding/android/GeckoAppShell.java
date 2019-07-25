@@ -428,8 +428,24 @@ public class GeckoAppShell
 
         switch (type) {
         case NOTIFY_IME_RESETINPUTSTATE:
-            GeckoApp.surfaceView.inputConnection.finishComposingText();
-            IMEStateUpdater.resetIME();
+            
+            
+            GeckoApp.surfaceView.inputConnection.reset();
+            
+            
+            
+            
+            
+            InputMethodManager imm = (InputMethodManager) 
+                GeckoApp.surfaceView.getContext().getSystemService(
+                    Context.INPUT_METHOD_SERVICE);
+            if (imm == null) {
+                
+                IMEStateUpdater.resetIME();
+            } else {
+                imm.restartInput(GeckoApp.surfaceView);
+            }
+
             
             IMEStateUpdater.enableIME();
             break;
@@ -439,7 +455,6 @@ public class GeckoAppShell
             break;
 
         case NOTIFY_IME_FOCUSCHANGE:
-            GeckoApp.surfaceView.mIMEFocus = state != 0;
             IMEStateUpdater.resetIME();
             break;
         }
