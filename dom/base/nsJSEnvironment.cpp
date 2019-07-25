@@ -961,79 +961,6 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   ctx->mOperationCallbackTime = callbackTime;
   ctx->mModalStateTime = modalStateTime;
 
-  
-  nsCOMPtr<nsIMemory> mem;
-  NS_GetMemoryManager(getter_AddRefs(mem));
-  if (!mem) {
-    JS_ClearPendingException(cx);
-    return JS_FALSE;
-  }
-
-  PRBool lowMemory;
-  mem->IsLowMemory(&lowMemory);
-  if (lowMemory) {
-    
-    nsJSContext::CC();
-
-    
-    if (!::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx))) {
-
-      
-      mem->IsLowMemory(&lowMemory);
-      if (lowMemory) {
-
-        if (nsContentUtils::GetBoolPref("dom.prevent_oom_dialog", PR_FALSE)) {
-          JS_ClearPendingException(cx);
-          return JS_FALSE;
-        }
-
-        nsCOMPtr<nsIScriptError> errorObject =
-          do_CreateInstance("@mozilla.org/scripterror;1");
-
-        if (errorObject) {
-          nsXPIDLString msg;
-          nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                             "LowMemoryMessage",
-                                             msg);
-
-          JSStackFrame *fp, *iterator = nsnull;
-          fp = ::JS_FrameIterator(cx, &iterator);
-          PRUint32 lineno = 0;
-          nsAutoString sourcefile;
-          if (fp) {
-            JSScript* script = ::JS_GetFrameScript(cx, fp);
-            if (script) {
-              const char* filename = ::JS_GetScriptFilename(cx, script);
-              if (filename) {
-                CopyUTF8toUTF16(nsDependentCString(filename), sourcefile);
-              }
-              jsbytecode* pc = ::JS_GetFramePC(cx, fp);
-              if (pc) {
-                lineno = ::JS_PCToLineNumber(cx, script, pc);
-              }
-            }
-          }
-
-          rv = errorObject->Init(msg.get(),
-                                 sourcefile.get(),
-                                 EmptyString().get(),
-                                 lineno, 0, nsIScriptError::errorFlag,
-                                 "content javascript");
-          if (NS_SUCCEEDED(rv)) {
-            nsCOMPtr<nsIConsoleService> consoleService =
-              do_GetService(NS_CONSOLESERVICE_CONTRACTID, &rv);
-            if (NS_SUCCEEDED(rv)) {
-              consoleService->LogMessage(errorObject);
-            }
-          }
-        }
-
-        JS_ClearPendingException(cx);
-        return JS_FALSE;
-      }
-    }
-  }
-
   PRTime now = PR_Now();
 
   if (callbackTime == 0) {
@@ -1045,7 +972,6 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
 
   if (ctx->mModalStateDepth) {
     
-
     return JS_TRUE;
   }
 
