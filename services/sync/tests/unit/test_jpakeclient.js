@@ -1,5 +1,5 @@
 Cu.import("resource://services-sync/log4moz.js");
-Cu.import("resource://services-sync/resource.js");
+Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/jpakeclient.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/util.js");
@@ -129,8 +129,9 @@ function run_test() {
 
   
   
-  Auth.defaultAuthenticator = new BasicAuthenticator(
-    new Identity("Some Realm", "johndoe"));
+  let id = new Identity(PWDMGR_PASSWORD_REALM, "johndoe");
+  id.password = "ilovejane";
+  ID.set("WeaveID", id);
 
   server = httpd_setup({"/new_channel": server_new_channel,
                         "/report":      server_report});
