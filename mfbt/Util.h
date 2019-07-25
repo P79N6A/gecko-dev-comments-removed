@@ -66,12 +66,6 @@ MOZ_END_EXTERN_C
 
 
 
-#define MOZ_STATIC_ASSERT(condition) \
-  extern void moz_static_assert(int arg[(condition) ? 1 : -1])
-
-
-
-
 
 
 #ifdef DEBUG
