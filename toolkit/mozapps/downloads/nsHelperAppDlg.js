@@ -55,6 +55,7 @@
 
 
 
+
 function isUsableDirectory(aDirectory)
 {
   return aDirectory.exists() && aDirectory.isDirectory() &&
@@ -139,6 +140,7 @@ const nsITimer = Components.interfaces.nsITimer;
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/DownloadLastDir.jsm");
 Components.utils.import("resource://gre/modules/DownloadPaths.jsm");
+Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
 
 
 
@@ -609,8 +611,16 @@ nsUnknownContentTypeDialog.prototype = {
       else
         typeString = mimeInfo.MIMEType;
     }
-
-    type.value = typeString;
+    if (this.mLauncher.contentLength) {
+      let [size, unit] = DownloadUtils.
+                         convertByteUnits(this.mLauncher.contentLength);
+      type.value = this.dialogElement("strings")
+                       .getFormattedString("fileSizeWithType", 
+                                           [typeString, size, unit]);
+    }
+    else {
+      type.value = typeString;
+    }
   },
 
   _blurred: false,
