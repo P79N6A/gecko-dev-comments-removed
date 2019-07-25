@@ -1632,11 +1632,6 @@ public:
   static nsresult ASCIIToUpper(const nsAString& aSource, nsAString& aDest);
 
   
-
-
-  static bool StringContainsASCIIUpper(const nsAString& aStr);
-
-  
   static nsresult CheckSameOrigin(nsIChannel *aOldChannel, nsIChannel *aNewChannel);
   static nsIInterfaceRequestor* GetSameOriginChecker();
 

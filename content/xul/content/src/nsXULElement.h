@@ -488,8 +488,6 @@ public:
       mBindingParent = aBindingParent;
     }
 
-    const nsAttrValue* GetAttrValue(const nsAString& aName);
-
     
 
 
