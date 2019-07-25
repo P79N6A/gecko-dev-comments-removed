@@ -778,10 +778,6 @@ function test_processIncoming_failed_records() {
   Svc.Prefs.set("username", "foo");
 
   
-  
-  Svc.Prefs.set("client.type", "mobile");
-
-  
   let collection = new ServerCollection();
   const NUMBER_OF_RECORDS = MOBILE_BATCH_SIZE * 3 + 5;
   for (var i = 0; i < NUMBER_OF_RECORDS; i++) {
