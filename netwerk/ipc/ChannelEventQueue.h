@@ -38,8 +38,14 @@
 
 
 
+
 #ifndef mozilla_net_ChannelEventQueue_h
 #define mozilla_net_ChannelEventQueue_h
+
+#include <nsTArray.h>
+#include <nsAutoPtr.h>
+
+class nsIChannel;
 
 namespace mozilla {
 namespace net {
@@ -58,123 +64,135 @@ class ChannelEvent
 
 
 
-template<class T> class AutoEventEnqueuerBase;
 
-template<class T>
+class AutoEventEnqueuerBase;
+
 class ChannelEventQueue
 {
  public:
-  ChannelEventQueue(T* self) : mQueuePhase(PHASE_UNQUEUED)
-                             , mSelf(self) {}
+  ChannelEventQueue(nsIChannel *owner)
+    : mForced(false)
+    , mSuspended(false)
+    , mFlushing(false)
+    , mOwner(owner) {}
+
   ~ChannelEventQueue() {}
+
   
- protected:
-  void BeginEventQueueing();
-  void EndEventQueueing();
-  void EnqueueEvent(ChannelEvent* callback);
-  bool ShouldEnqueue();
-  void FlushEventQueue();
+  
+  inline bool ShouldEnqueue();
 
-  nsTArray<nsAutoPtr<ChannelEvent> > mEventQueue;
-  enum {
-    PHASE_UNQUEUED,
-    PHASE_QUEUEING,
-    PHASE_FINISHED_QUEUEING,
-    PHASE_FLUSHING
-  } mQueuePhase;
+  
+  
+  inline void Enqueue(ChannelEvent* callback);
 
-  typedef AutoEventEnqueuerBase<T> AutoEventEnqueuer;
+  
+  
+  
+  
+  
+  inline void StartForcedQueueing();
+  inline void EndForcedQueueing();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  inline void Suspend();
+  inline void Resume();
 
  private:
-  T* mSelf;
+  inline void MaybeFlushQueue();
+  void FlushQueue();
 
-  friend class AutoEventEnqueuerBase<T>;
+  nsTArray<nsAutoPtr<ChannelEvent> > mEventQueue;
+
+  bool mForced;
+  bool mSuspended;
+  bool mFlushing;
+
+  
+  nsIChannel *mOwner;
+
+  friend class AutoEventEnqueuer;
 };
 
-template<class T> inline void
-ChannelEventQueue<T>::BeginEventQueueing()
+inline bool
+ChannelEventQueue::ShouldEnqueue()
 {
-  if (mQueuePhase != PHASE_UNQUEUED)
-    return;
-  
-  mQueuePhase = PHASE_QUEUEING;
+  bool answer =  mForced || mSuspended || mFlushing;
+
+  NS_ABORT_IF_FALSE(answer == true || mEventQueue.IsEmpty(),
+                    "Should always enqueue if ChannelEventQueue not empty");
+
+  return answer;
 }
 
-template<class T> inline void
-ChannelEventQueue<T>::EndEventQueueing()
-{
-  if (mQueuePhase != PHASE_QUEUEING)
-    return;
-
-  mQueuePhase = PHASE_FINISHED_QUEUEING;
-}
-
-template<class T> inline bool
-ChannelEventQueue<T>::ShouldEnqueue()
-{
-  return mQueuePhase != PHASE_UNQUEUED || mSelf->IsSuspended();
-}
-
-template<class T> inline void
-ChannelEventQueue<T>::EnqueueEvent(ChannelEvent* callback)
+inline void
+ChannelEventQueue::Enqueue(ChannelEvent* callback)
 {
   mEventQueue.AppendElement(callback);
 }
 
-template<class T> void
-ChannelEventQueue<T>::FlushEventQueue()
+inline void
+ChannelEventQueue::StartForcedQueueing()
 {
-  NS_ABORT_IF_FALSE(mQueuePhase != PHASE_UNQUEUED,
-                    "Queue flushing should not occur if PHASE_UNQUEUED");
+  mForced = true;
+}
+
+inline void
+ChannelEventQueue::EndForcedQueueing()
+{
+  mForced = false;
+  MaybeFlushQueue();
+}
+
+inline void
+ChannelEventQueue::Suspend()
+{
+  NS_ABORT_IF_FALSE(!mSuspended,
+                    "ChannelEventQueue::Suspend called recursively");
+
+  mSuspended = true;
+}
+
+inline void
+ChannelEventQueue::Resume()
+{
+  NS_ABORT_IF_FALSE(mSuspended,
+                    "ChannelEventQueue::Resume called when not suspended!");
+
+  mSuspended = false;
+  MaybeFlushQueue();
+}
+
+inline void
+ChannelEventQueue::MaybeFlushQueue()
+{
   
   
-  if (mQueuePhase != PHASE_FINISHED_QUEUEING || mSelf->IsSuspended())
-    return;
-  
-  nsRefPtr<T> kungFuDeathGrip(mSelf);
-  if (mEventQueue.Length() > 0) {
-    
-    
-    
-    mQueuePhase = PHASE_FLUSHING;
-    
-    PRUint32 i;
-    for (i = 0; i < mEventQueue.Length(); i++) {
-      mEventQueue[i]->Run();
-      if (mSelf->IsSuspended())
-        break;
-    }
-
-    
-    if (i < mEventQueue.Length())
-      i++;
-
-    mEventQueue.RemoveElementsAt(0, i);
-  }
-
-  if (mSelf->IsSuspended())
-    mQueuePhase = PHASE_QUEUEING;
-  else
-    mQueuePhase = PHASE_UNQUEUED;
+  if (!mForced && !mFlushing && !mSuspended && !mEventQueue.IsEmpty())
+    FlushQueue();
 }
 
 
 
-template<class T>
-class AutoEventEnqueuerBase
+
+class AutoEventEnqueuer
 {
  public:
-  AutoEventEnqueuerBase(ChannelEventQueue<T>* queue) : mEventQueue(queue) 
-  {
-    mEventQueue->BeginEventQueueing();
+  AutoEventEnqueuer(ChannelEventQueue &queue) : mEventQueue(queue) {
+    mEventQueue.StartForcedQueueing();
   }
-  ~AutoEventEnqueuerBase() 
-  { 
-    mEventQueue->EndEventQueueing();
-    mEventQueue->FlushEventQueue(); 
+  ~AutoEventEnqueuer() {
+    mEventQueue.EndForcedQueueing();
   }
  private:
-  ChannelEventQueue<T> *mEventQueue;
+  ChannelEventQueue &mEventQueue;
 };
 
 }
