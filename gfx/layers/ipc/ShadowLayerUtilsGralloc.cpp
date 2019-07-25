@@ -170,6 +170,24 @@ GrallocBufferActor::Create(const gfxIntSize& aSize,
   return actor;
 }
 
+ already_AddRefed<TextureImage>
+ShadowLayerManager::OpenDescriptorForDirectTexturing(GLContext* aGL,
+                                                     const SurfaceDescriptor& aDescriptor,
+                                                     GLenum aWrapMode)
+{
+  if (SurfaceDescriptor::TSurfaceDescriptorGralloc != aDescriptor.type()) {
+    return nsnull;
+  }
+  sp<GraphicBuffer> buffer = GrallocBufferActor::GetFrom(aDescriptor);
+  return aGL->CreateDirectTextureImage(buffer.get(), aWrapMode);
+}
+
+ void
+ShadowLayerManager::PlatformSyncBeforeReplyUpdate()
+{
+  
+}
+
 bool
 ShadowLayerManager::PlatformDestroySharedSurface(SurfaceDescriptor* aSurface)
 {
@@ -323,8 +341,7 @@ ShadowLayerForwarder::PlatformCloseDescriptor(const SurfaceDescriptor& aDescript
     return false;
   }
 
-  sp<GraphicBuffer> buffer =
-    GrallocBufferActor::GetFrom(aDescriptor);
+  sp<GraphicBuffer> buffer = GrallocBufferActor::GetFrom(aDescriptor);
   
   
   
@@ -334,12 +351,6 @@ ShadowLayerForwarder::PlatformCloseDescriptor(const SurfaceDescriptor& aDescript
 
  void
 ShadowLayerForwarder::PlatformSyncBeforeUpdate()
-{
-  
-}
-
- void
-ShadowLayerManager::PlatformSyncBeforeReplyUpdate()
 {
   
 }
