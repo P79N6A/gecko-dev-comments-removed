@@ -189,7 +189,7 @@ class NativeIterCache
     static const size_t SIZE = size_t(1) << 8;
 
     
-    PropertyIteratorObject *data[SIZE];
+    JSObject            *data[SIZE];
 
     static size_t getIndex(uint32_t key) {
         return size_t(key) % SIZE;
@@ -197,7 +197,7 @@ class NativeIterCache
 
   public:
     
-    PropertyIteratorObject *last;
+    JSObject            *last;
 
     NativeIterCache()
       : last(NULL) {
@@ -209,11 +209,11 @@ class NativeIterCache
         PodArrayZero(data);
     }
 
-    PropertyIteratorObject *get(uint32_t key) const {
+    JSObject *get(uint32_t key) const {
         return data[getIndex(key)];
     }
 
-    void set(uint32_t key, PropertyIteratorObject *iterobj) {
+    void set(uint32_t key, JSObject *iterobj) {
         data[getIndex(key)] = iterobj;
     }
 };
@@ -1256,7 +1256,7 @@ struct JSContext : js::ContextFriendFields
     DSTOffsetCache dstOffsetCache;
 
     
-    js::PropertyIteratorObject *enumerators;
+    JSObject *enumerators;
 
   private:
     

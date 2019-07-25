@@ -6090,8 +6090,7 @@ mjit::Compiler::iterNext(ptrdiff_t offset)
     frame.unpinReg(reg);
 
     
-    Jump notFast = masm.testObjClass(Assembler::NotEqual, reg, T1,
-                                     &PropertyIteratorObject::class_);
+    Jump notFast = masm.testObjClass(Assembler::NotEqual, reg, T1, &IteratorClass);
     stubcc.linkExit(notFast, Uses(1));
 
     
@@ -6142,8 +6141,7 @@ mjit::Compiler::iterMore(jsbytecode *target)
     RegisterID tempreg = frame.allocReg();
 
     
-    Jump notFast = masm.testObjClass(Assembler::NotEqual, reg, tempreg,
-                                     &PropertyIteratorObject::class_);
+    Jump notFast = masm.testObjClass(Assembler::NotEqual, reg, tempreg, &IteratorClass);
     stubcc.linkExitForBranch(notFast);
 
     
@@ -6182,8 +6180,7 @@ mjit::Compiler::iterEnd()
     frame.unpinReg(reg);
 
     
-    Jump notIterator = masm.testObjClass(Assembler::NotEqual, reg, T1,
-                                         &PropertyIteratorObject::class_);
+    Jump notIterator = masm.testObjClass(Assembler::NotEqual, reg, T1, &IteratorClass);
     stubcc.linkExit(notIterator, Uses(1));
 
     
