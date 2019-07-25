@@ -256,10 +256,10 @@ var FullZoom = {
     var self = this;
     Services.contentPrefs.getPref(aURI, this.name, function (aResult) {
       
-      let isSaneURI = (aBrowser && aBrowser.currentURI) ?
-        aURI.equals(aBrowser.currentURI) : false;
-      if (!aBrowser || isSaneURI)
-        self._applyPrefToSetting(aResult, aBrowser);
+      let browser = aBrowser || gBrowser.selectedBrowser;
+      if (aURI.equals(browser.currentURI)) {
+        self._applyPrefToSetting(aResult, browser);
+      }
     });
   },
 
