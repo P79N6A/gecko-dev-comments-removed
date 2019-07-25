@@ -337,17 +337,13 @@ struct StmtInfoBase {
     bool isBlockScope:1;
 
     
-    bool isFunctionBodyBlock:1;
-
-    
     bool isForLetBlock:1;
 
     RootedAtom      label;          
     Rooted<StaticBlockObject *> blockObj; 
 
     StmtInfoBase(JSContext *cx)
-        : isBlockScope(false), isFunctionBodyBlock(false), isForLetBlock(false), label(cx),
-          blockObj(cx)
+        : isBlockScope(false), isForLetBlock(false), label(cx), blockObj(cx)
     {}
 
     bool maybeScope() const {
@@ -373,7 +369,10 @@ struct StmtInfoTC : public StmtInfoBase {
 
     uint32_t        blockid;        
 
-    StmtInfoTC(JSContext *cx) : StmtInfoBase(cx) {}
+    
+    bool            isFunctionBodyBlock;
+
+    StmtInfoTC(JSContext *cx) : StmtInfoBase(cx), isFunctionBodyBlock(false) {}
 };
 
 struct StmtInfoBCE : public StmtInfoBase {

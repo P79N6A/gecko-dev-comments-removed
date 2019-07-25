@@ -87,6 +87,7 @@ PushStatementTC(TreeContext *tc, StmtInfoTC *stmt, StmtType type)
 {
     stmt->blockid = tc->blockid();
     PushStatement(tc, stmt, type);
+    stmt->isFunctionBodyBlock = false;
 }
 
 
