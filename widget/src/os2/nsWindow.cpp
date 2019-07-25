@@ -2074,7 +2074,6 @@ do {
   nsPaintEvent event(PR_TRUE, NS_PAINT, this);
   InitEvent(event);
   nsRefPtr<gfxContext> thebesContext = new gfxContext(mThebesSurface);
-  thebesContext->SetFlag(gfxContext::FLAG_DESTINED_FOR_SCREEN);
 
   
   

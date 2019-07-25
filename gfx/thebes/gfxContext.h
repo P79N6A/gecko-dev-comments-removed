@@ -637,15 +637,7 @@ public:
 
 
 
-        FLAG_DISABLE_SNAPPING = (1 << 1),
-        
-
-
-
-
-
-
-        FLAG_DESTINED_FOR_SCREEN = (1 << 2)
+        FLAG_DISABLE_SNAPPING = (1 << 1)
     };
 
     void SetFlag(PRInt32 aFlag) { mFlags |= aFlag; }
