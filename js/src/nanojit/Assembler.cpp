@@ -1057,7 +1057,7 @@ namespace nanojit
                 if (target->isop(LIR_jtbl)) {
                     
                     LIns *jtbl = target;
-                    NIns** native_table = (NIns**) where;
+                    NIns** native_table = (NIns**) (void *) where;
                     for (uint32_t i = 0, n = jtbl->getTableSize(); i < n; i++) {
                         LabelState* lstate = _labels.get(jtbl->getTarget(i));
                         NIns* ntarget = lstate->addr;
