@@ -450,6 +450,19 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   }
 
   nsHttpChannel *httpChan = static_cast<nsHttpChannel *>(mChannel.get());
+
+  
+  
+  PRNetAddr selfAddr = httpChan->GetSelfAddr();
+  PRNetAddr peerAddr = httpChan->GetPeerAddr();
+  if (selfAddr.raw.family != peerAddr.raw.family) {
+    
+    fprintf(stdout, "ERROR: Parent: socket has multiple address families!\n");
+    fflush(stdout);
+  }
+fprintf(stdout, "Parent: I always warned you!");
+fflush(stdout);
+
   if (mIPCClosed || 
       !SendOnStartRequest(responseHead ? *responseHead : nsHttpResponseHead(), 
                           !!responseHead,

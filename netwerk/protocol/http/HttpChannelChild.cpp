@@ -287,10 +287,21 @@ HttpChannelChild::OnStartRequest(const nsHttpResponseHead& responseHead,
                          getter_AddRefs(mSecurityInfo));
   }
 
+  
+  
+  if (selfAddr.raw.family != peerAddr.raw.family) {
+    fprintf(stdout, "ERROR: Child: socket has multiple address families!\n");
+    fflush(stdout);
+  }
+fprintf(stdout, "Child: I always warned you!");
+fflush(stdout);
+
   mIsFromCache = isFromCache;
   mCacheEntryAvailable = cacheEntryAvailable;
   mCacheExpirationTime = cacheExpirationTime;
   mCachedCharset = cachedCharset;
+  mSelfAddr = selfAddr;
+  mPeerAddr = peerAddr;
 
   AutoEventEnqueuer ensureSerialDispatch(mEventQ);
 
@@ -313,9 +324,6 @@ HttpChannelChild::OnStartRequest(const nsHttpResponseHead& responseHead,
   rv = ApplyContentConversions();
   if (NS_FAILED(rv))
     Cancel(rv);
-
-  mSelfAddr = selfAddr;
-  mPeerAddr = peerAddr;
 }
 
 class TransportAndDataEvent : public ChannelEvent
@@ -1112,36 +1120,6 @@ HttpChannelChild::SetupFallbackChannel(const char *aFallbackKey)
 {
   DROP_DEAD();
 }
-
-
-
-
-NS_IMETHODIMP
-HttpChannelChild::GetRemoteAddress(nsACString & _result)
-{
-  return NS_ERROR_NOT_AVAILABLE;
-}
-
-NS_IMETHODIMP
-HttpChannelChild::GetRemotePort(PRInt32 * _result)
-{
-  NS_ENSURE_ARG_POINTER(_result);
-  return NS_ERROR_NOT_AVAILABLE;
-}
-
-NS_IMETHODIMP
-HttpChannelChild::GetLocalAddress(nsACString & _result)
-{
-  return NS_ERROR_NOT_AVAILABLE;
-}
-
-NS_IMETHODIMP
-HttpChannelChild::GetLocalPort(PRInt32 * _result)
-{
-  NS_ENSURE_ARG_POINTER(_result);
-  return NS_ERROR_NOT_AVAILABLE;
-}
-
 
 
 
