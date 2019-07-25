@@ -94,6 +94,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
 
 
 
+
   protected void processException(final GlobalSession globalSession, final Exception e) {
     try {
       
@@ -165,9 +166,17 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
       }
 
       
+      
+      
+      if (e instanceof SecurityException) {
+        Logger.error(LOG_TAG, "SecurityException, multiple Fennecs. Disabling this instance.", e);
+        SyncAccounts.backgroundSetSyncAutomatically(localAccount, false);
+        return;
+      }
+      
       Logger.error(LOG_TAG, "Unknown exception. Aborting sync.", e);
-    } catch (Exception ex) {
-      Logger.error(LOG_TAG, "Unknown exception. Aborting sync.", e);
+    } finally {
+      notifyMonitor();
     }
   }
 
@@ -345,7 +354,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
               username, password, prefsPath, serverURL, syncKey);
         } catch (Exception e) {
           self.processException(null, e);
-          notifyMonitor();
           return;
         }
       }
@@ -479,7 +487,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
   public void handleError(GlobalSession globalSession, Exception ex) {
     Logger.info(LOG_TAG, "GlobalSession indicated error.");
     this.processException(globalSession, ex);
-    notifyMonitor();
   }
 
   @Override
