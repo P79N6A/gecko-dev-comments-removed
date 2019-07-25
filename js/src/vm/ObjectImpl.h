@@ -11,6 +11,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/StdInt.h"
 
+#include "jsfriendapi.h"
 #include "jsinfer.h"
 #include "jsval.h"
 
@@ -176,6 +177,10 @@ class ObjectImpl : public gc::Cell
     
     static const uint32_t SLOT_CAPACITY_MIN = 8;
 
+    HeapValue * fixedSlots() const {
+        return reinterpret_cast<HeapValue *>(uintptr_t(this) + sizeof(ObjectImpl));
+    }
+
     
 
 
@@ -192,6 +197,10 @@ class ObjectImpl : public gc::Cell
         return type_;
     }
 
+    size_t numFixedSlots() const {
+        return reinterpret_cast<const shadow::Object *>(this)->numFixedSlots();
+    }
+
     
 
 
@@ -205,6 +214,8 @@ class ObjectImpl : public gc::Cell
     bool hasLazyType() const { return type_->lazy(); }
 
     inline bool isNative() const;
+
+    const Shape * nativeLookup(JSContext *cx, jsid id);
 
     inline Class *getClass() const;
     inline JSClass *getJSClass() const;
@@ -241,10 +252,28 @@ class ObjectImpl : public gc::Cell
     inline size_t sizeOfThis() const;
 
     
-    static inline size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }
-    inline HeapPtrShape *addressOfShape() { return &shape_; }
-    static inline size_t offsetOfType() { return offsetof(ObjectImpl, type_); }
+
+    ObjectElements * getElementsHeader() const {
+        return ObjectElements::fromElements(elements);
+    }
+
+    
+    static size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }
+    HeapPtrShape *addressOfShape() { return &shape_; }
+
+    static size_t offsetOfType() { return offsetof(ObjectImpl, type_); }
     HeapPtrTypeObject *addressOfType() { return &type_; }
+
+    static size_t offsetOfElements() { return offsetof(ObjectImpl, elements); }
+    static size_t offsetOfFixedElements() {
+        return sizeof(ObjectImpl) + sizeof(ObjectElements);
+    }
+
+    static size_t getFixedSlotOffset(size_t slot) {
+        return sizeof(ObjectImpl) + slot * sizeof(Value);
+    }
+    static size_t getPrivateDataOffset(size_t nfixed) { return getFixedSlotOffset(nfixed); }
+    static size_t offsetOfSlots() { return offsetof(ObjectImpl, slots); }
 
     
 
@@ -252,6 +281,8 @@ class ObjectImpl : public gc::Cell
     JSObject * getProto() const {
         return type_->proto;
     }
+
+    inline bool isExtensible() const;
 };
 
 } 

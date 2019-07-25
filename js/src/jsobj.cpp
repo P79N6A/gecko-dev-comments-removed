@@ -3959,20 +3959,6 @@ JSObject::setSlotSpan(JSContext *cx, uint32_t span)
     return true;
 }
 
-#if defined(_MSC_VER) && _MSC_VER >= 1500
-
-
-
-MOZ_NEVER_INLINE
-#endif
-const js::Shape *
-JSObject::nativeLookup(JSContext *cx, jsid id)
-{
-    JS_ASSERT(isNative());
-    js::Shape **spp;
-    return js::Shape::search(cx, lastProperty(), id, &spp);
-}
-
 bool
 JSObject::growSlots(JSContext *cx, uint32_t oldCount, uint32_t newCount)
 {
