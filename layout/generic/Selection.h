@@ -222,4 +222,31 @@ private:
 
 } 
 
+class nsSelectionIterator : public nsIBidirectionalEnumerator
+{
+public:
+
+
+
+  NS_DECL_ISUPPORTS
+
+  NS_DECL_NSIENUMERATOR
+
+  NS_DECL_NSIBIDIRECTIONALENUMERATOR
+
+
+
+  nsRange* CurrentItem();
+
+
+  nsSelectionIterator(mozilla::Selection*);
+  virtual ~nsSelectionIterator();
+
+private:
+  PRInt32             mIndex;
+  mozilla::Selection* mDomSelection;
+  SelectionType       mType;
+};
+
+
 #endif 
