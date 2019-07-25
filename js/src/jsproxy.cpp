@@ -1467,6 +1467,28 @@ proxy_DeleteSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid, Value 
 static void
 proxy_TraceObject(JSTracer *trc, JSObject *obj)
 {
+#ifdef DEBUG
+    if (obj->isWrapper()) {
+        JSObject *referent = &GetProxyPrivate(obj).toObject();
+        if (referent->compartment() != obj->compartment()) {
+            
+
+
+
+
+
+            Value key = ObjectValue(*referent);
+            WrapperMap::Ptr p = obj->compartment()->crossCompartmentWrappers.lookup(key);
+            if (!p) {
+                key = ObjectValue(*UnwrapObject(referent));
+                p = obj->compartment()->crossCompartmentWrappers.lookup(key);
+                JS_ASSERT(p.found());
+            }
+            JS_ASSERT(p->value.get() == ObjectValue(*obj));
+        }
+    }
+#endif
+
     
     
     GetProxyHandler(obj)->trace(trc, obj);
