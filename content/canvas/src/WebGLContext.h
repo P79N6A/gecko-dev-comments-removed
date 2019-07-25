@@ -95,6 +95,7 @@ class WebGLFramebuffer;
 class WebGLRenderbuffer;
 class WebGLUniformLocation;
 class WebGLExtension;
+class WebGLVertexAttribData;
 
 template<int PreallocatedOwnersCapacity> class WebGLZeroingObject;
 class WebGLContextBoundObject;
@@ -500,8 +501,6 @@ private:
     }
 };
 
-class WebGLBuffer;
-
 struct WebGLVertexAttribData {
     
     WebGLVertexAttribData()
@@ -509,7 +508,7 @@ struct WebGLVertexAttribData {
           type(LOCAL_GL_FLOAT), enabled(false), normalized(false)
     { }
 
-    WebGLObjectRefPtr<WebGLBuffer> buf;
+    WebGLRefPtr<WebGLBuffer> buf;
     WebGLuint stride;
     WebGLuint size;
     GLuint byteOffset;
@@ -546,6 +545,7 @@ struct WebGLVertexAttribData {
         return size * componentSize();
     }
 };
+
 
 struct WebGLContextOptions {
     
@@ -920,22 +920,18 @@ protected:
     
     nsTArray<WebGLVertexAttribData> mAttribBuffers;
 
+    nsTArray<WebGLRefPtr<WebGLTexture> > mBound2DTextures;
+    nsTArray<WebGLRefPtr<WebGLTexture> > mBoundCubeMapTextures;
 
-    
-    nsTArray<WebGLObjectRefPtr<WebGLTexture> > mBound2DTextures;
-    nsTArray<WebGLObjectRefPtr<WebGLTexture> > mBoundCubeMapTextures;
+    WebGLRefPtr<WebGLBuffer> mBoundArrayBuffer;
+    WebGLRefPtr<WebGLBuffer> mBoundElementArrayBuffer;
 
-    WebGLObjectRefPtr<WebGLBuffer> mBoundArrayBuffer;
-    WebGLObjectRefPtr<WebGLBuffer> mBoundElementArrayBuffer;
-    
-    
-    
-    nsRefPtr<WebGLProgram> mCurrentProgram;
+    WebGLRefPtr<WebGLProgram> mCurrentProgram;
 
     PRUint32 mMaxFramebufferColorAttachments;
 
-    nsRefPtr<WebGLFramebuffer> mBoundFramebuffer;
-    nsRefPtr<WebGLRenderbuffer> mBoundRenderbuffer;
+    WebGLRefPtr<WebGLFramebuffer> mBoundFramebuffer;
+    WebGLRefPtr<WebGLRenderbuffer> mBoundRenderbuffer;
 
     
     nsRefPtrHashtable<nsUint32HashKey, WebGLTexture> mMapTextures;
@@ -988,7 +984,10 @@ public:
 
     friend class WebGLTexture;
     friend class WebGLFramebuffer;
+    friend class WebGLRenderbuffer;
     friend class WebGLProgram;
+    friend class WebGLBuffer;
+    friend class WebGLShader;
 };
 
 
@@ -1027,6 +1026,8 @@ public:
 
 protected:
     nsAutoTArray<WebGLObjectBaseRefPtr *, PreallocatedOwnersCapacity> mRefOwners;
+    friend class WebGLShader;
+    friend class WebGLBuffer;
 };
 
 
@@ -1089,35 +1090,35 @@ protected:
     PRUint32 mContextGeneration;
 };
 
-class WebGLBuffer :
-    public nsIWebGLBuffer,
-    public WebGLZeroingObject<8>, 
-    public WebGLContextBoundObject
+class WebGLBuffer
+    : public nsIWebGLBuffer
+    , public WebGLRefCountedObject<WebGLBuffer>
+    , public WebGLContextBoundObject
 {
 public:
-    WebGLBuffer(WebGLContext *context, WebGLuint name) :
-        WebGLContextBoundObject(context),
-        mGLName(name), mDeleted(false), mHasEverBeenBound(false),
-        mByteLength(0), mTarget(LOCAL_GL_NONE), mData(nsnull)
-    {}
+    WebGLBuffer(WebGLContext *context)
+        : WebGLContextBoundObject(context)
+        , mHasEverBeenBound(false)
+        , mByteLength(0)
+        , mTarget(LOCAL_GL_NONE)
+        , mData(nsnull)
+    {
+        mContext->MakeContextCurrent();
+        mContext->gl->fGenBuffers(1, &mGLName);
+    }
 
     ~WebGLBuffer() {
-        Delete();
+        DeleteOnce();
     }
 
     void Delete() {
-        if (mDeleted)
-            return;
-        ZeroOwners();
-
+        mContext->MakeContextCurrent();
+        mContext->gl->fDeleteBuffers(1, &mGLName);
         free(mData);
         mData = nsnull;
-
-        mDeleted = true;
         mByteLength = 0;
     }
 
-    bool Deleted() const { return mDeleted; }
     bool HasEverBeenBound() { return mHasEverBeenBound; }
     void SetHasEverBeenBound(bool x) { mHasEverBeenBound = x; }
     GLuint GLName() const { return mGLName; }
@@ -1204,9 +1205,10 @@ public:
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBGLBUFFER
+
 protected:
+
     WebGLuint mGLName;
-    bool mDeleted;
     bool mHasEverBeenBound;
     GLuint mByteLength;
     GLenum mTarget;
@@ -1219,49 +1221,52 @@ protected:
     void* mData; 
 };
 
-
-class WebGLTexture :
-    public nsIWebGLTexture,
-    public WebGLZeroingObject<8>, 
-    public WebGLContextBoundObject
+class WebGLTexture
+    : public nsIWebGLTexture
+    , public WebGLRefCountedObject<WebGLTexture>
+    , public WebGLContextBoundObject
 {
 public:
-
-    WebGLTexture(WebGLContext *context, WebGLuint name) :
-        WebGLContextBoundObject(context),
-        mDeleted(false), mHasEverBeenBound(false), mGLName(name),
-        mTarget(0),
-        mMinFilter(LOCAL_GL_NEAREST_MIPMAP_LINEAR),
-        mMagFilter(LOCAL_GL_LINEAR),
-        mWrapS(LOCAL_GL_REPEAT),
-        mWrapT(LOCAL_GL_REPEAT),
-        mFacesCount(0),
-        mMaxLevelWithCustomImages(0),
-        mHaveGeneratedMipmap(false),
-        mFakeBlackStatus(DoNotNeedFakeBlack)
+    WebGLTexture(WebGLContext *context)
+        : WebGLContextBoundObject(context)
+        , mHasEverBeenBound(false)
+        , mTarget(0)
+        , mMinFilter(LOCAL_GL_NEAREST_MIPMAP_LINEAR)
+        , mMagFilter(LOCAL_GL_LINEAR)
+        , mWrapS(LOCAL_GL_REPEAT)
+        , mWrapT(LOCAL_GL_REPEAT)
+        , mFacesCount(0)
+        , mMaxLevelWithCustomImages(0)
+        , mHaveGeneratedMipmap(false)
+        , mFakeBlackStatus(DoNotNeedFakeBlack)
     {
+        mContext->MakeContextCurrent();
+        mContext->gl->fGenTextures(1, &mGLName);
+    }
+
+    ~WebGLTexture() {
+        DeleteOnce();
     }
 
     void Delete() {
-        if (mDeleted)
-            return;
-        ZeroOwners();
-        mDeleted = true;
+        mImageInfos.Clear();
+        mContext->MakeContextCurrent();
+        mContext->gl->fDeleteTextures(1, &mGLName);
     }
 
-    bool Deleted() { return mDeleted; }
     bool HasEverBeenBound() { return mHasEverBeenBound; }
     void SetHasEverBeenBound(bool x) { mHasEverBeenBound = x; }
     WebGLuint GLName() { return mGLName; }
+    GLenum Target() const { return mTarget; }
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBGLTEXTURE
 
 protected:
+
     friend class WebGLContext;
     friend class WebGLFramebuffer;
 
-    bool mDeleted;
     bool mHasEverBeenBound;
     WebGLuint mGLName;
 
@@ -1655,54 +1660,34 @@ public:
     }
 };
 
-class WebGLShader :
-    public nsIWebGLShader,
-    public WebGLZeroingObject<8>, 
-    public WebGLContextBoundObject
+class WebGLShader
+    : public nsIWebGLShader
+    , public WebGLRefCountedObject<WebGLShader>
+    , public WebGLContextBoundObject
 {
 public:
-    WebGLShader(WebGLContext *context, WebGLuint name, WebGLenum stype) :
-        WebGLContextBoundObject(context),
-        mGLName(name), mDeleted(false), mType(stype),
-        mNeedsTranslation(true), mAttachCount(0),
-        mDeletePending(false)
-    { }
-
-    void DetachedFromProgram() {
-        DecrementAttachCount();
-        if (mDeletePending && AttachCount() <= 0) {
-            DeleteWhenNotAttached();
-        }
+    WebGLShader(WebGLContext *context, WebGLenum stype)
+        : WebGLContextBoundObject(context)
+        , mType(stype)
+        , mNeedsTranslation(true)
+    {
+        mContext->MakeContextCurrent();
+        mGLName = mContext->gl->fCreateShader(mType);
     }
 
-    void DeleteWhenNotAttached() {
-        if (mDeleted)
-            return;
-
-        if (AttachCount() > 0) {
-            mDeletePending = true;
-            return;
-        }
-
-        Delete();
+    ~WebGLShader() {
+        DeleteOnce();
     }
 
     void Delete() {
-        if (mDeleted)
-            return;
-
-        ZeroOwners();
-        mDeleted = true;
-        mDeletePending = false;
+        mSource.Truncate();
+        mTranslationLog.Truncate();
+        mContext->MakeContextCurrent();
+        mContext->gl->fDeleteShader(mGLName);
     }
 
-    bool Deleted() { return mDeleted; }
     WebGLuint GLName() { return mGLName; }
     WebGLenum ShaderType() { return mType; }
-
-    PRInt32 AttachCount() { return mAttachCount; }
-    void IncrementAttachCount() { mAttachCount++; }
-    void DecrementAttachCount() { mAttachCount--; }
 
     void SetSource(const nsAString& src) {
         
@@ -1727,81 +1712,54 @@ public:
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBGLSHADER
+
 protected:
+
     WebGLuint mGLName;
-    bool mDeleted;
     WebGLenum mType;
     nsString mSource;
     nsCString mTranslationLog;
     bool mNeedsTranslation;
-    PRInt32 mAttachCount;
-    bool mDeletePending;
 };
 
-class WebGLProgram :
-    public nsIWebGLProgram,
-    public WebGLZeroingObject<8>, 
-                                  
-                                  
-    public WebGLContextBoundObject
+class WebGLProgram
+    : public nsIWebGLProgram
+    , public WebGLRefCountedObject<WebGLProgram>
+    , public WebGLContextBoundObject
 {
 public:
-
-    WebGLProgram(WebGLContext *context, WebGLuint name) :
-        WebGLContextBoundObject(context),
-        mGLName(name), mDeleted(false), mDeletePending(false),
-        mLinkStatus(false), mGeneration(0),
-        mUniformMaxNameLength(0), mAttribMaxNameLength(0),
-        mUniformCount(0), mAttribCount(0)
+    WebGLProgram(WebGLContext *context)
+        : WebGLContextBoundObject(context)
+        , mLinkStatus(false)
+        , mGeneration(0)
+        , mUniformMaxNameLength(0)
+        , mAttribMaxNameLength(0)
+        , mUniformCount(0)
+        , mAttribCount(0)
     {
+
         mMapUniformLocations.Init();
+        mContext->MakeContextCurrent();
+        mGLName = mContext->gl->fCreateProgram();
     }
 
-    void DeleteWhenNotCurrent() {
-        if (mDeleted)
-            return;
-
-        if (mContext->mCurrentProgram == this) {
-            mDeletePending = true;
-            return;
-        }
-
-        Delete();
+    ~WebGLProgram() {
+        DeleteOnce();
     }
 
     void Delete() {
-        if (mDeleted)
-            return;
-
         DetachShaders();
-        ZeroOwners();
-        mDeleted = true;
-        mDeletePending = false;
+        mContext->MakeContextCurrent();
+        mContext->gl->fDeleteProgram(mGLName);
+        mMapUniformLocations.EnumerateRead(NotifyUniformLocationOfProgramDeletion, nsnull);
     }
 
     void DetachShaders() {
-        for (PRUint32 i = 0; i < mAttachedShaders.Length(); ++i) {
-            WebGLShader* shader = mAttachedShaders[i];
-            if (shader)
-                shader->DetachedFromProgram();
-        }
         mAttachedShaders.Clear();
     }
 
-    void NoLongerCurrent() {
-        if (mDeletePending) {
-            DetachShaders();
-            DeleteWhenNotCurrent();
-        }
-    }
-
-    bool Deleted() { return mDeleted; }
-    void SetDeletePending() { mDeletePending = true; }
-    void ClearDeletePending() { mDeletePending = false; }
-    bool HasDeletePending() { return mDeletePending; }
-
     WebGLuint GLName() { return mGLName; }
-    const nsTArray<nsRefPtr<WebGLShader> >& AttachedShaders() const { return mAttachedShaders; }
+    const nsTArray<WebGLRefPtr<WebGLShader> >& AttachedShaders() const { return mAttachedShaders; }
     bool LinkStatus() { return mLinkStatus; }
     PRUint32 Generation() const { return mGeneration.value(); }
     void SetLinkStatus(bool val) { mLinkStatus = val; }
@@ -1815,17 +1773,22 @@ public:
         if (ContainsShader(shader))
             return false;
         mAttachedShaders.AppendElement(shader);
-        shader->IncrementAttachCount();
+
+        mContext->MakeContextCurrent();
+        mContext->gl->fAttachShader(GLName(), shader->GLName());
+
         return true;
     }
 
     
     bool DetachShader(WebGLShader *shader) {
-        if (mAttachedShaders.RemoveElement(shader)) {
-            shader->DetachedFromProgram();
-            return true;
-        }
-        return false;
+        if (!mAttachedShaders.RemoveElement(shader))
+            return false;
+
+        mContext->MakeContextCurrent();
+        mContext->gl->fDetachShader(GLName(), shader->GLName());
+
+        return true;
     }
 
     bool HasAttachedShaderOfType(GLenum shaderType) {
@@ -1851,7 +1814,6 @@ public:
         mMapUniformLocations.Clear();
         return true;
     }
-    
 
     already_AddRefed<WebGLUniformLocation> GetUniformLocationObject(GLint glLocation);
 
@@ -1867,47 +1829,60 @@ public:
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBGLPROGRAM
+
 protected:
+
     WebGLuint mGLName;
-    bool mDeleted;
-    bool mDeletePending;
     bool mLinkStatus;
     
-    nsTArray<nsRefPtr<WebGLShader> > mAttachedShaders;
+    nsTArray<WebGLRefPtr<WebGLShader> > mAttachedShaders;
     CheckedUint32 mGeneration;
 
     
+
+    
+    
     nsRefPtrHashtable<nsUint32HashKey, WebGLUniformLocation> mMapUniformLocations;
+
     GLint mUniformMaxNameLength;
     GLint mAttribMaxNameLength;
     GLint mUniformCount;
     GLint mAttribCount;
     std::vector<bool> mAttribsInUse;
+
+private:
+    static PLDHashOperator
+    NotifyUniformLocationOfProgramDeletion(const PRUint32& aKey, WebGLUniformLocation *aValue, void *);
 };
 
-class WebGLRenderbuffer :
-    public nsIWebGLRenderbuffer,
-    public WebGLZeroingObject<8>, 
-    public WebGLRectangleObject,
-    public WebGLContextBoundObject
+class WebGLRenderbuffer
+    : public nsIWebGLRenderbuffer
+    , public WebGLRefCountedObject<WebGLRenderbuffer>
+    , public WebGLRectangleObject
+    , public WebGLContextBoundObject
 {
 public:
+    WebGLRenderbuffer(WebGLContext *context)
+        : WebGLContextBoundObject(context)
+        , mInternalFormat(0)
+        , mInternalFormatForGL(0)
+        , mHasEverBeenBound(false)
+        , mInitialized(false)
+    {
 
-    WebGLRenderbuffer(WebGLContext *context, WebGLuint name, WebGLuint secondBufferName = 0) :
-        WebGLContextBoundObject(context),
-        mGLName(name),
-        mInternalFormat(0),
-        mInternalFormatForGL(0),
-        mDeleted(false), mHasEverBeenBound(false), mInitialized(false)
-    { }
+        mContext->MakeContextCurrent();
+        mContext->gl->fGenRenderbuffers(1, &mGLName);
+    }
+
+    ~WebGLRenderbuffer() {
+        DeleteOnce();
+    }
 
     void Delete() {
-        if (mDeleted)
-            return;
-        ZeroOwners();
-        mDeleted = true;
+        mContext->MakeContextCurrent();
+        mContext->gl->fDeleteRenderbuffers(1, &mGLName);
     }
-    bool Deleted() const { return mDeleted; }
+
     bool HasEverBeenBound() { return mHasEverBeenBound; }
     void SetHasEverBeenBound(bool x) { mHasEverBeenBound = x; }
     WebGLuint GLName() const { return mGLName; }
@@ -1948,11 +1923,11 @@ public:
     NS_DECL_NSIWEBGLRENDERBUFFER
 
 protected:
+
     WebGLuint mGLName;
     WebGLenum mInternalFormat;
     WebGLenum mInternalFormatForGL;
 
-    bool mDeleted;
     bool mHasEverBeenBound;
     bool mInitialized;
 
@@ -1963,8 +1938,8 @@ class WebGLFramebufferAttachment
     : public WebGLRectangleObject
 {
     
-    WebGLObjectRefPtr<WebGLTexture> mTexturePtr;
-    WebGLObjectRefPtr<WebGLRenderbuffer> mRenderbufferPtr;
+    WebGLRefPtr<WebGLTexture> mTexturePtr;
+    WebGLRefPtr<WebGLRenderbuffer> mRenderbufferPtr;
     WebGLenum mAttachmentPoint;
     WebGLint mTextureLevel;
     WebGLenum mTextureCubeMapFace;
@@ -2051,33 +2026,42 @@ public:
     }
 };
 
-class WebGLFramebuffer :
-    public nsIWebGLFramebuffer,
-    public WebGLZeroingObject<8>, 
-    public WebGLContextBoundObject
+class WebGLFramebuffer
+    : public nsIWebGLFramebuffer
+    , public WebGLRefCountedObject<WebGLFramebuffer>
+    , public WebGLContextBoundObject
 {
 public:
+    WebGLFramebuffer(WebGLContext *context)
+        : WebGLContextBoundObject(context)
+        , mHasEverBeenBound(false)
+        , mColorAttachment(LOCAL_GL_COLOR_ATTACHMENT0)
+        , mDepthAttachment(LOCAL_GL_DEPTH_ATTACHMENT)
+        , mStencilAttachment(LOCAL_GL_STENCIL_ATTACHMENT)
+        , mDepthStencilAttachment(LOCAL_GL_DEPTH_STENCIL_ATTACHMENT)
+    {
+        mContext->MakeContextCurrent();
+        mContext->gl->fGenFramebuffers(1, &mGLName);
+    }
 
-    WebGLFramebuffer(WebGLContext *context, WebGLuint name) :
-        WebGLContextBoundObject(context),
-        mGLName(name), mDeleted(false), mHasEverBeenBound(false),
-        mColorAttachment(LOCAL_GL_COLOR_ATTACHMENT0),
-        mDepthAttachment(LOCAL_GL_DEPTH_ATTACHMENT),
-        mStencilAttachment(LOCAL_GL_STENCIL_ATTACHMENT),
-        mDepthStencilAttachment(LOCAL_GL_DEPTH_STENCIL_ATTACHMENT)
-    { }
+    ~WebGLFramebuffer() {
+        DeleteOnce();
+    }
 
     void Delete() {
-        if (mDeleted)
-            return;
-        ZeroOwners();
-        mDeleted = true;
+        mColorAttachment.Reset();
+        mDepthAttachment.Reset();
+        mStencilAttachment.Reset();
+        mDepthStencilAttachment.Reset();
+
+        mContext->MakeContextCurrent();
+        mContext->gl->fDeleteFramebuffers(1, &mGLName);
     }
-    bool Deleted() { return mDeleted; }
+
     bool HasEverBeenBound() { return mHasEverBeenBound; }
     void SetHasEverBeenBound(bool x) { mHasEverBeenBound = x; }
     WebGLuint GLName() { return mGLName; }
-    
+
     WebGLsizei width() { return mColorAttachment.width(); }
     WebGLsizei height() { return mColorAttachment.height(); }
 
@@ -2310,7 +2294,6 @@ protected:
     }
 
     WebGLuint mGLName;
-    bool mDeleted;
     bool mHasEverBeenBound;
 
     
@@ -2321,70 +2304,65 @@ protected:
                                mDepthStencilAttachment;
 };
 
-class WebGLUniformLocation :
-    public nsIWebGLUniformLocation,
-    public WebGLZeroingObject<2>, 
-                                  
-                                  
-    public WebGLContextBoundObject
+class WebGLUniformLocation
+    : public nsIWebGLUniformLocation
+    , public WebGLContextBoundObject
 {
 public:
+    WebGLUniformLocation(WebGLContext *context, WebGLProgram *program, GLint location)
+        : WebGLContextBoundObject(context)
+        , mProgram(program)
+        , mProgramGeneration(program->Generation())
+        , mLocation(location)
+    { }
 
-    WebGLUniformLocation(WebGLContext *context, WebGLProgram *program, GLint location) :
-        WebGLContextBoundObject(context), mProgram(program), mProgramGeneration(program->Generation()),
-        mLocation(location) { }
+    
+    bool IsDeleted() { return false; }
 
     WebGLProgram *Program() const { return mProgram; }
     GLint Location() const { return mLocation; }
     PRUint32 ProgramGeneration() const { return mProgramGeneration; }
 
-    
-    bool Deleted() { return false; }
-
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBGLUNIFORMLOCATION
 protected:
-    WebGLObjectRefPtr<WebGLProgram> mProgram;
+    WebGLProgram *mProgram;
     PRUint32 mProgramGeneration;
     GLint mLocation;
+
+    friend class WebGLProgram;
 };
 
-class WebGLActiveInfo :
-    public nsIWebGLActiveInfo
+class WebGLActiveInfo
+    : public nsIWebGLActiveInfo
 {
 public:
     WebGLActiveInfo(WebGLint size, WebGLenum type, const char *nameptr, PRUint32 namelength) :
-        mDeleted(false),
         mSize(size),
         mType(type)
     {
         mName.AssignASCII(nameptr, namelength);
     }
 
-    void Delete() {
-        if (mDeleted)
-            return;
-        mDeleted = true;
-    }
-
-    bool Deleted() { return mDeleted; }
-
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBGLACTIVEINFO
 protected:
-    bool mDeleted;
     WebGLint mSize;
     WebGLenum mType;
     nsString mName;
 };
 
+inline PLDHashOperator
+WebGLProgram::NotifyUniformLocationOfProgramDeletion(const PRUint32& aKey, WebGLUniformLocation *aValue, void *)
+{
+    aValue->mProgram = nsnull;
+    return PL_DHASH_NEXT;
+}
 
-class WebGLExtension :
-    public nsIWebGLExtension,
-    public WebGLContextBoundObject,
-    public WebGLZeroingObject<2> 
-                                 
-                                 
+
+class WebGLExtension
+    : public nsIWebGLExtension
+    , public WebGLContextBoundObject
 {
 public:
     WebGLExtension(WebGLContext *baseContext)
@@ -2440,9 +2418,10 @@ WebGLContext::GetConcreteObject(const char *info,
 
     
     
-    *aConcreteObject = static_cast<ConcreteObjectType*>(aInterface);
+    ConcreteObjectType *concrete = static_cast<ConcreteObjectType*>(aInterface);
+    *aConcreteObject = concrete;
 
-    if (!(*aConcreteObject)->IsCompatibleWithContext(this)) {
+    if (!concrete->IsCompatibleWithContext(this)) {
         
         if (generateErrors)
             ErrorInvalidOperation("%s: object from different WebGL context (or older generation of this one) "
@@ -2450,7 +2429,7 @@ WebGLContext::GetConcreteObject(const char *info,
         return false;
     }
 
-    if ((*aConcreteObject)->Deleted()) {
+    if (concrete->IsDeleted()) {
         if (NS_LIKELY(isDeleted)) {
             
             *isDeleted = true;
