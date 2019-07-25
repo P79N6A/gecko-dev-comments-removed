@@ -107,6 +107,8 @@ public:
   
 
 
+  virtual void Destroy();
+
   void BeginTransaction();
 
   void BeginTransactionWithTarget(gfxContext* aTarget);
@@ -239,6 +241,9 @@ public:
   virtual void CleanResources() {}
 
   IDirect3DDevice9 *device() const { return mD3DManager->device(); }
+
+  
+  virtual void LayerManagerDestroyed() {}
 protected:
   LayerManagerD3D9 *mD3DManager;
 };
