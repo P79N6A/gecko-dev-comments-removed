@@ -240,6 +240,8 @@
 #include "nsRefreshDriver.h"
 #include "mozAutoDocUpdate.h"
 
+#include "mozilla/Telemetry.h"
+
 #ifdef PR_LOGGING
 static PRLogModuleInfo* gDOMLeakPRLog;
 #endif
@@ -10991,6 +10993,7 @@ nsNavigator::GetBuildID(nsAString& aBuildID)
 NS_IMETHODIMP
 nsNavigator::JavaEnabled(PRBool *aReturn)
 {
+  Telemetry::Timer<Telemetry::CHECK_JAVA_ENABLED> telemetryTimer;
   
   
   *aReturn = PR_FALSE;
