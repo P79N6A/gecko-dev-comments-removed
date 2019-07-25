@@ -957,7 +957,11 @@ public class GeckoAppShell
     }
 
     public static void performHapticFeedback(boolean aIsLongPress) {
-        
+        LayerController layerController = GeckoApp.mAppContext.getLayerController();
+        LayerView layerView = layerController.getView();
+        layerView.performHapticFeedback(aIsLongPress ?
+                                        HapticFeedbackConstants.LONG_PRESS :
+                                        HapticFeedbackConstants.VIRTUAL_KEY);
     }
 
     private static Vibrator vibrator() {
