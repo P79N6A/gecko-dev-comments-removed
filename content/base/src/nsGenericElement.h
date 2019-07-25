@@ -34,6 +34,7 @@
 #include "nsIDOMTouchEvent.h"
 #include "nsIInlineEventHandlers.h"
 #include "mozilla/CORSMode.h"
+#include "mozilla/Attributes.h"
 
 #include "nsISMILAttr.h"
 
@@ -62,7 +63,7 @@ typedef PRUptrdiff PtrBits;
 
 
 
-class nsChildContentList : public nsINodeList
+class nsChildContentList MOZ_FINAL : public nsINodeList
 {
 public:
   nsChildContentList(nsINode* aNode)
@@ -126,7 +127,7 @@ private:
 
 
 
-class nsNodeWeakReference : public nsIWeakReference
+class nsNodeWeakReference MOZ_FINAL : public nsIWeakReference
 {
 public:
   nsNodeWeakReference(nsINode* aNode)
@@ -154,7 +155,7 @@ private:
 
 
 
-class nsNodeSupportsWeakRefTearoff : public nsISupportsWeakReference
+class nsNodeSupportsWeakRefTearoff MOZ_FINAL : public nsISupportsWeakReference
 {
 public:
   nsNodeSupportsWeakRefTearoff(nsINode* aNode)
@@ -177,7 +178,7 @@ private:
 
 
 
-class nsNodeSelectorTearoff : public nsIDOMNodeSelector
+class nsNodeSelectorTearoff MOZ_FINAL : public nsIDOMNodeSelector
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -1038,7 +1039,7 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
 
 
 
-class nsTouchEventReceiverTearoff : public nsITouchEventReceiver
+class nsTouchEventReceiverTearoff MOZ_FINAL : public nsITouchEventReceiver
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -1058,7 +1059,7 @@ private:
 
 
 
-class nsInlineEventHandlersTearoff : public nsIInlineEventHandlers
+class nsInlineEventHandlersTearoff MOZ_FINAL : public nsIInlineEventHandlers
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

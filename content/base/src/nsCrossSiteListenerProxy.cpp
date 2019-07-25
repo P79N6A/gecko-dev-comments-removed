@@ -809,9 +809,9 @@ nsCORSListenerProxy::UpdateChannel(nsIChannel* aChannel, bool aAllowDataURI)
 
 
 
-class nsCORSPreflightListener : public nsIStreamListener,
-                                public nsIInterfaceRequestor,
-                                public nsIChannelEventSink
+class nsCORSPreflightListener MOZ_FINAL : public nsIStreamListener,
+                                          public nsIInterfaceRequestor,
+                                          public nsIChannelEventSink
 {
 public:
   nsCORSPreflightListener(nsIChannel* aOuterChannel,

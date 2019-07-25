@@ -9,6 +9,7 @@
 #include "nsAutoPtr.h"
 #include "nsIAtom.h"
 #include "nsCycleCollectionParticipant.h"
+#include "mozilla/Attributes.h"
 
 class nsXULTemplateResultXML;
 class nsXMLBindingValues;
@@ -42,7 +43,7 @@ struct nsXMLBinding {
 
 
 
-class nsXMLBindingSet
+class nsXMLBindingSet MOZ_FINAL
 {
 public:
 

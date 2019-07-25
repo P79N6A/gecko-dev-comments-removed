@@ -12,11 +12,12 @@
 #include "nsInterfaceHashtable.h"
 #include "nsString.h"
 #include "nsXTFElementWrapper.h"
+#include "mozilla/Attributes.h"
 
 
 
 
-class nsXTFService : public nsIXTFService
+class nsXTFService MOZ_FINAL : public nsIXTFService
 {
 protected:
   friend nsresult NS_NewXTFService(nsIXTFService** aResult);

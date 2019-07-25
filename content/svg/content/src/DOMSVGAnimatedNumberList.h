@@ -11,6 +11,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDOMSVGAnimatedNumberList.h"
 #include "nsSVGElement.h"
+#include "mozilla/Attributes.h"
 
 namespace mozilla {
 
@@ -33,7 +34,7 @@ class SVGNumberList;
 
 
 
-class DOMSVGAnimatedNumberList : public nsIDOMSVGAnimatedNumberList
+class DOMSVGAnimatedNumberList MOZ_FINAL : public nsIDOMSVGAnimatedNumberList
 {
   friend class DOMSVGNumberList;
 

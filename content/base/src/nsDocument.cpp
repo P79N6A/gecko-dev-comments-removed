@@ -1169,8 +1169,7 @@ nsExternalResourceMap::ExternalResource::~ExternalResource()
 
 
 
-class nsDOMStyleSheetSetList : public nsIDOMDOMStringList
-                          
+class nsDOMStyleSheetSetList MOZ_FINAL : public nsIDOMDOMStringList
 {
 public:
   NS_DECL_ISUPPORTS
@@ -7687,7 +7686,7 @@ namespace {
 
 
 
-class StubCSSLoaderObserver : public nsICSSLoaderObserver {
+class StubCSSLoaderObserver MOZ_FINAL : public nsICSSLoaderObserver {
 public:
   NS_IMETHOD
   StyleSheetLoaded(nsCSSStyleSheet*, bool, nsresult)

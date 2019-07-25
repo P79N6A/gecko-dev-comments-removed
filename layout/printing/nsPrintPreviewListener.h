@@ -12,6 +12,7 @@
 #include "nsIDOMEventTarget.h"
 
 #include "nsCOMPtr.h"
+#include "mozilla/Attributes.h"
 
 
 
@@ -21,7 +22,7 @@
 
 
 
-class nsPrintPreviewListener : public nsIDOMEventListener
+class nsPrintPreviewListener MOZ_FINAL : public nsIDOMEventListener
 
 {
 public:

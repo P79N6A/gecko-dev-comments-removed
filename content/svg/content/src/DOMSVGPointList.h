@@ -14,6 +14,7 @@
 #include "nsSVGElement.h"
 #include "nsTArray.h"
 #include "SVGPointList.h" 
+#include "mozilla/Attributes.h"
 
 class nsIDOMSVGPoint;
 
@@ -47,8 +48,8 @@ class SVGAnimatedPointList;
 
 
 
-class DOMSVGPointList : public nsIDOMSVGPointList,
-                        public nsWrapperCache
+class DOMSVGPointList MOZ_FINAL : public nsIDOMSVGPointList,
+                                  public nsWrapperCache
 {
   friend class DOMSVGPoint;
 

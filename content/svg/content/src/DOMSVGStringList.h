@@ -11,6 +11,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDOMSVGStringList.h"
 #include "nsSVGElement.h"
+#include "mozilla/Attributes.h"
 
 namespace mozilla {
 
@@ -42,7 +43,7 @@ class SVGStringList;
 
 
 
-class DOMSVGStringList : public nsIDOMSVGStringList
+class DOMSVGStringList MOZ_FINAL : public nsIDOMSVGStringList
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

@@ -12,6 +12,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDOMSVGAnimTransformList.h"
 #include "nsSVGElement.h"
+#include "mozilla/Attributes.h"
 
 namespace mozilla {
 
@@ -34,7 +35,7 @@ class SVGAnimatedTransformList;
 
 
 
-class DOMSVGAnimatedTransformList : public nsIDOMSVGAnimatedTransformList
+class DOMSVGAnimatedTransformList MOZ_FINAL : public nsIDOMSVGAnimatedTransformList
 {
   friend class DOMSVGTransformList;
 

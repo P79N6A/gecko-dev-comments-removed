@@ -15,6 +15,7 @@
 #include "nsIChannelEventSink.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsMediaCache.h"
+#include "mozilla/Attributes.h"
 
 
 
@@ -390,9 +391,9 @@ public:
   virtual bool    IsSuspendedByCache(MediaResource** aActiveResource);
   virtual bool    IsSuspended();
 
-  class Listener : public nsIStreamListener,
-                   public nsIInterfaceRequestor,
-                   public nsIChannelEventSink
+  class Listener MOZ_FINAL : public nsIStreamListener,
+                             public nsIInterfaceRequestor,
+                             public nsIChannelEventSink
   {
   public:
     Listener(ChannelMediaResource* aResource) : mResource(aResource) {}

@@ -13,11 +13,12 @@
 #include "nsRuleNetwork.h"
 #include "nsIXULTemplateResult.h"
 #include "nsRDFBinding.h"
+#include "mozilla/Attributes.h"
 
 
 
 
-class nsXULTemplateResultRDF : public nsIXULTemplateResult
+class nsXULTemplateResultRDF MOZ_FINAL : public nsIXULTemplateResult
 {
 public:
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS

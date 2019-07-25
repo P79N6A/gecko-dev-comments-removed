@@ -42,6 +42,7 @@
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIDOMSVGMatrix.h"
+#include "mozilla/Attributes.h"
 
 
 
@@ -57,7 +58,7 @@ namespace mozilla {
 
 
 
-class DOMSVGMatrix : public nsIDOMSVGMatrix
+class DOMSVGMatrix MOZ_FINAL : public nsIDOMSVGMatrix
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGMATRIX_IID)
