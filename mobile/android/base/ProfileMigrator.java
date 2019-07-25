@@ -760,7 +760,7 @@ public class ProfileMigrator {
                 Log.d(LOGTAG, "Not Migrating Favicon GUIDs.");
                 mHasFaviconGUID = false;
                 return true;
-            } else if (schemaVersion <= 20) {
+            } else if (schemaVersion <= 21) {
                 Log.d(LOGTAG, "Migrating Favicon GUIDs.");
                 mHasFaviconGUID = true;
                 return true;
