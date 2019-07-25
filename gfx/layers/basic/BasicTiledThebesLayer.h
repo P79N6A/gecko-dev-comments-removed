@@ -176,9 +176,6 @@ public:
   }
 
   
-  virtual bool MustRetainContent() { return HasShadow(); }
-
-  
   virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs);
   virtual ShadowableLayer* AsShadowableLayer() { return this; }
 
