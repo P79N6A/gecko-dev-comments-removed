@@ -1306,11 +1306,17 @@ MediaStreamGraphImpl::RunThread()
       if (mForceShutDown || (IsEmpty() && mMessageQueue.IsEmpty())) {
         
         
-        for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
-          mStreams[i]->DestroyImpl();
-        }
         LOG(PR_LOG_DEBUG, ("MediaStreamGraph %p waiting for main thread cleanup", this));
         mLifecycleState = LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP;
+        {
+          MonitorAutoUnlock unlock(mMonitor);
+          
+          
+          
+          for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
+            mStreams[i]->DestroyImpl();
+          }
+        }
         return;
       }
 
