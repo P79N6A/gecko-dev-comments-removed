@@ -384,7 +384,7 @@ public:
 
 
 
-  nsISelection* GetSelection(SelectionType aType) const;
+  nsTypedSelection* GetSelection(SelectionType aType) const;
 
   
 
