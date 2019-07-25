@@ -236,10 +236,6 @@ nsPNGDecoder::InitInternal()
 #endif
 
   
-  if (!IsSizeDecode() && mObserver)
-    mObserver->OnStartDecode(nsnull);
-
-  
   if (IsSizeDecode()) {
     mHeaderBuf = (PRUint8 *)nsMemory::Alloc(BYTES_NEEDED_FOR_DIMENSIONS);
     if (!mHeaderBuf) {

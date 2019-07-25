@@ -75,6 +75,10 @@ Decoder::Init(RasterImage* aImage, imgIDecoderObserver* aObserver)
   mObserver = aObserver;
 
   
+  if (!IsSizeDecode() && mObserver)
+      mObserver->OnStartDecode(nsnull);
+
+  
   InitInternal();
   mInitialized = true;
   return IsError() ? NS_ERROR_FAILURE : NS_OK;

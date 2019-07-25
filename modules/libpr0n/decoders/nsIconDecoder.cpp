@@ -65,15 +65,6 @@ nsIconDecoder::nsIconDecoder() :
 nsIconDecoder::~nsIconDecoder()
 { }
 
-
-void
-nsIconDecoder::InitInternal()
-{
-  
-  if (!IsSizeDecode() && mObserver)
-    mObserver->OnStartDecode(nsnull);
-}
-
 void
 nsIconDecoder::FinishInternal()
 {

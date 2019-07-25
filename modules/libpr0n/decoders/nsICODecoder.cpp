@@ -101,14 +101,6 @@ nsICODecoder::~nsICODecoder()
 }
 
 void
-nsICODecoder::InitInternal()
-{
-  
-  if (!IsSizeDecode() && mObserver)
-    mObserver->OnStartDecode(nsnull);
-}
-
-void
 nsICODecoder::FinishInternal()
 {
   

@@ -121,23 +121,15 @@ nsGIFDecoder2::nsGIFDecoder2()
 {
   
   memset(&mGIFStruct, 0, sizeof(mGIFStruct));
+
+  
+  mGIFStruct.state = gif_type;
+  mGIFStruct.bytes_to_consume = 6;
 }
 
 nsGIFDecoder2::~nsGIFDecoder2()
 {
   PR_FREEIF(mGIFStruct.local_colormap);
-}
-
-void
-nsGIFDecoder2::InitInternal()
-{
-  
-  if (!IsSizeDecode() && mObserver)
-    mObserver->OnStartDecode(nsnull);
-
-  
-  mGIFStruct.state = gif_type;
-  mGIFStruct.bytes_to_consume = 6;
 }
 
 void

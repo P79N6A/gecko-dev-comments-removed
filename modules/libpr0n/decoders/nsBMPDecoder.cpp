@@ -81,16 +81,6 @@ nsBMPDecoder::~nsBMPDecoder()
 }
 
 void
-nsBMPDecoder::InitInternal()
-{
-    PR_LOG(gBMPLog, PR_LOG_DEBUG, ("nsBMPDecoder::Init(%p)\n", mImage.get()));
-
-    
-    if (!IsSizeDecode() && mObserver)
-        mObserver->OnStartDecode(nsnull);
-}
-
-void
 nsBMPDecoder::FinishInternal()
 {
     

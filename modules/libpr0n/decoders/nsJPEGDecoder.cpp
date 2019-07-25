@@ -143,10 +143,6 @@ void
 nsJPEGDecoder::InitInternal()
 {
   
-  if (!IsSizeDecode() && mObserver)
-    mObserver->OnStartDecode(nsnull);
-
-  
   mInfo.err = jpeg_std_error(&mErr.pub);
   
   mErr.pub.error_exit = my_error_exit;
