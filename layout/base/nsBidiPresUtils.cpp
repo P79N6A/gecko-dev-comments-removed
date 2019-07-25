@@ -775,7 +775,7 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
 
 
 
-              while (end < endLine) {
+              while (end < endLine && nextSibling) {
                 mBuffer.Append(Substring(text, start, end - start));
                 frame = frame->GetNextContinuation();
                 NS_ASSERTION(frame, "Premature end of continuation chain");
