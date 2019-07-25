@@ -2187,21 +2187,22 @@ nsCSSOffsetState::ComputePadding(nscoord aContainingBlockWidth)
   const nsStylePadding *stylePadding = frame->GetStylePadding();
   if (!stylePadding->GetPadding(mComputedPadding)) {
     
-    mComputedPadding.left = nsLayoutUtils::
+    
+    mComputedPadding.left = NS_MAX(0, nsLayoutUtils::
       ComputeWidthDependentValue(aContainingBlockWidth,
-                                 stylePadding->mPadding.GetLeft());
-    mComputedPadding.right = nsLayoutUtils::
+                                 stylePadding->mPadding.GetLeft()));
+    mComputedPadding.right = NS_MAX(0, nsLayoutUtils::
       ComputeWidthDependentValue(aContainingBlockWidth,
-                                 stylePadding->mPadding.GetRight());
+                                 stylePadding->mPadding.GetRight()));
 
     
     
-    mComputedPadding.top = nsLayoutUtils::
+    mComputedPadding.top = NS_MAX(0, nsLayoutUtils::
       ComputeWidthDependentValue(aContainingBlockWidth,
-                                 stylePadding->mPadding.GetTop());
-    mComputedPadding.bottom = nsLayoutUtils::
+                                 stylePadding->mPadding.GetTop()));
+    mComputedPadding.bottom = NS_MAX(0, nsLayoutUtils::
       ComputeWidthDependentValue(aContainingBlockWidth,
-                                 stylePadding->mPadding.GetBottom());
+                                 stylePadding->mPadding.GetBottom()));
 
     frame->Properties().Set(nsIFrame::UsedPaddingProperty(),
                             new nsMargin(mComputedPadding));
