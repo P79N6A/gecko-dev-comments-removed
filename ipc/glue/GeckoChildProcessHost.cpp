@@ -56,6 +56,11 @@
 
 #include "mozilla/ipc/BrowserProcessSubThread.h"
 
+#ifdef XP_WIN
+#include "nsIWinTaskbar.h"
+#define NS_TASKBAR_CONTRACTID "@mozilla.org/windows-taskbar;1"
+#endif
+
 using mozilla::MonitorAutoEnter;
 using mozilla::ipc::GeckoChildProcessHost;
 
@@ -263,6 +268,31 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
        it != aExtraOpts.end();
        ++it) {
       cmdLine.AppendLooseValue(UTF8ToWide(*it));
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIWinTaskbar> taskbarInfo =
+    do_GetService(NS_TASKBAR_CONTRACTID);
+  PRBool set = PR_FALSE;
+  if (taskbarInfo) {
+    PRBool isSupported = PR_FALSE;
+    taskbarInfo->GetAvailable(&isSupported);
+    if (isSupported) {
+      
+      nsAutoString appId, param;
+      param.Append(PRUnichar('\"'));
+      if (NS_SUCCEEDED(taskbarInfo->GetDefaultGroupId(appId))) {
+        param.Append(appId);
+        param.Append(PRUnichar('\"'));
+        cmdLine.AppendLooseValue(std::wstring(param.get()));
+        set = PR_TRUE;
+      }
+    }
+  }
+  if (!set) {
+    cmdLine.AppendLooseValue(std::wstring(L"-"));
   }
 
   cmdLine.AppendLooseValue(UTF8ToWide(pidstring));
