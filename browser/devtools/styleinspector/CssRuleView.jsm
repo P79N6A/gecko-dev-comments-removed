@@ -103,6 +103,13 @@ function ElementStyle(aElement, aStore)
 {
   this.element = aElement;
   this.store = aStore || {};
+
+  
+  
+  if (!("userProperties" in this.store)) {
+    this.store.userProperties = new UserProperties();
+  }
+
   if (this.store.disabled) {
     this.store.disabled = aStore.disabled;
   } else {
@@ -422,6 +429,7 @@ Rule.prototype = {
   applyProperties: function Rule_applyProperties()
   {
     let disabledProps = [];
+    let store = this.elementStyle.store;
 
     for each (let prop in this.textProps) {
       if (!prop.enabled) {
@@ -433,10 +441,11 @@ Rule.prototype = {
         continue;
       }
 
+      store.userProperties.setProperty(this.style, prop.name, prop.value);
+
       this.style.setProperty(prop.name, prop.value, prop.priority);
       
       
-      prop.value = this.style.getPropertyValue(prop.name);
       prop.priority = this.style.getPropertyPriority(prop.name);
       prop.updateComputed();
     }
@@ -519,6 +528,7 @@ Rule.prototype = {
   _getTextProperties: function Rule_getTextProperties()
   {
     this.textProps = [];
+    let store = this.elementStyle.store;
     let lines = this.style.cssText.match(CSS_LINE_RE);
     for each (let line in lines) {
       let matches = CSS_PROP_RE.exec(line);
@@ -530,8 +540,8 @@ Rule.prototype = {
           !this.elementStyle.domUtils.isInheritedProperty(name)) {
         continue;
       }
-
-      let prop = new TextProperty(this, name, matches[2], matches[3] || "");
+      let value = store.userProperties.getProperty(this.style, name, matches[2]);
+      let prop = new TextProperty(this, name, value, matches[3] || "");
       this.textProps.push(prop);
     }
 
@@ -542,8 +552,8 @@ Rule.prototype = {
     }
 
     for each (let prop in disabledProps) {
-      let textProp = new TextProperty(this, prop.name,
-                                      prop.value, prop.priority);
+      let value = store.userProperties.getProperty(this.style, prop.name, prop.value);
+      let textProp = new TextProperty(this, prop.name, value, prop.priority);
       textProp.enabled = false;
       this.textProps.push(textProp);
     }
@@ -1379,6 +1389,61 @@ InplaceEditor.prototype = {
       this.change(this.input.value.trim());
     }
   }
+};
+
+
+
+
+
+function UserProperties()
+{
+  this.weakMap = new WeakMap();
+}
+
+UserProperties.prototype = {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  getProperty: function UP_getProperty(aStyle, aName, aDefault) {
+    let entry = this.weakMap.get(aStyle, null);
+
+    if (entry && aName in entry) {
+      return entry[aName];
+    }
+    return typeof aDefault != "undefined" ? aDefault : null;
+
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  setProperty: function UP_setProperty(aStyle, aName, aValue) {
+    let entry = this.weakMap.get(aStyle, null);
+    if (entry) {
+      entry[aName] = aValue;
+    } else {
+      let props = {};
+      props[aName] = aValue;
+      this.weakMap.set(aStyle, props);
+    }
+  },
 };
 
 
