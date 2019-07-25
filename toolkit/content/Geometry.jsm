@@ -42,6 +42,14 @@
 let Ci = Components.interfaces;
 
 
+const kViewportMinScale  = 0;
+const kViewportMaxScale  = 10;
+const kViewportMinWidth  = 200;
+const kViewportMaxWidth  = 10000;
+const kViewportMinHeight = 223;
+const kViewportMaxHeight = 10000;
+
+
 
 
 
@@ -133,11 +141,17 @@ let Util = {
     
     
     
+    
+    
     let viewportScale = parseFloat(windowUtils.getDocumentMetadata("viewport-initial-scale"));
     let viewportMinScale = parseFloat(windowUtils.getDocumentMetadata("viewport-minimum-scale"));
     let viewportMaxScale = parseFloat(windowUtils.getDocumentMetadata("viewport-maximum-scale"));
     let viewportWidthStr = windowUtils.getDocumentMetadata("viewport-width");
     let viewportHeightStr = windowUtils.getDocumentMetadata("viewport-height");
+
+    viewportScale    = Util.clamp(viewportScale,    kViewportMinScale, kViewportMaxScale);
+    viewportMinScale = Util.clamp(viewportMinScale, kViewportMinScale, kViewportMaxScale);
+    viewportMaxScale = Util.clamp(viewportMaxScale, kViewportMinScale, kViewportMaxScale);
 
     
     if (viewportScale == 1.0 && !viewportWidthStr)
@@ -145,6 +159,9 @@ let Util = {
 
     let viewportWidth = viewportWidthStr == "device-width" ? window.innerWidth : parseInt(viewportWidthStr);
     let viewportHeight = viewportHeightStr == "device-height" ? window.innerHeight : parseInt(viewportHeightStr);
+
+    viewportWidth  = Util.clamp(viewportWidth,  kViewportMinWidth,  kViewportMaxWidth);
+    viewportHeight = Util.clamp(viewportHeight, kViewportMinHeight, kViewportMaxHeight);
  
     
     let maxInitialScale = viewportScale || viewportMaxScale;
@@ -166,6 +183,10 @@ let Util = {
     }
 
     return { reason: "", result: false, allowZoom: true };
+  },
+
+  clamp: function(num, min, max) {
+    return Math.max(min, Math.min(max, num));
   },
 
   
