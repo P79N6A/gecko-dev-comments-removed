@@ -437,16 +437,11 @@ public class GeckoAppShell
         if (url != null)
             combinedArgs += " -remote " + url;
 
-        
-        new Timer("Gecko Setup").schedule(new TimerTask() {
-            public void run() {
-                GeckoApp.mAppContext.runOnUiThread(new Runnable() {
-                    public void run() {
-                        geckoLoaded();
-                    }
-                });
-            }
-        }, 0);
+        GeckoApp.mAppContext.runOnUiThread(new Runnable() {
+                public void run() {
+                    geckoLoaded();
+                }
+            });
 
         
         GeckoAppShell.nativeRun(combinedArgs);
