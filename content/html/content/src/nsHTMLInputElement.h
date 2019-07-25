@@ -583,6 +583,18 @@ protected:
 
 
 
+  double GetMinAsDouble() const;
+
+  
+
+
+
+  double GetMaxAsDouble() const;
+
+  
+
+
+
 
 
   double GetStep() const;

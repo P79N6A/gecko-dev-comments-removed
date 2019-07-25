@@ -1096,19 +1096,48 @@ nsHTMLInputElement::SetValueAsNumber(double aValueAsNumber)
 }
 
 double
-nsHTMLInputElement::GetStepBase() const
+nsHTMLInputElement::GetMinAsDouble() const
 {
+  
+  MOZ_ASSERT(mType == NS_FORM_INPUT_NUMBER);
+
   if (!HasAttr(kNameSpaceID_None, nsGkAtoms::min)) {
-    return kDefaultStepBase;
+    return std::numeric_limits<double>::quiet_NaN();;
   }
 
   nsAutoString minStr;
   GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
 
   PRInt32 ec;
-  double stepBase = minStr.ToDouble(&ec);
+  double min = minStr.ToDouble(&ec);
+  return NS_SUCCEEDED(ec) ? min : std::numeric_limits<double>::quiet_NaN();
+}
 
-  return NS_FAILED(ec) ? kDefaultStepBase : stepBase;
+double
+nsHTMLInputElement::GetMaxAsDouble() const
+{
+  
+  MOZ_ASSERT(mType == NS_FORM_INPUT_NUMBER);
+
+  if (!HasAttr(kNameSpaceID_None, nsGkAtoms::max)) {
+    return std::numeric_limits<double>::quiet_NaN();;
+  }
+
+  nsAutoString maxStr;
+  GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxStr);
+
+  PRInt32 ec;
+  double max = maxStr.ToDouble(&ec);
+  return NS_SUCCEEDED(ec) ? max : std::numeric_limits<double>::quiet_NaN();
+}
+
+double
+nsHTMLInputElement::GetStepBase() const
+{
+  double stepBase = GetMinAsDouble();
+
+  
+  return stepBase == stepBase ? stepBase : kDefaultStepBase;
 }
 
 nsresult
@@ -1128,29 +1157,13 @@ nsHTMLInputElement::ApplyStep(PRInt32 aStep)
     return NS_OK;
   }
 
-  
-  double min = std::numeric_limits<double>::quiet_NaN();
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::min)) {
-    nsAutoString minStr;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
-    PRInt32 ec;
-    double minTmp = minStr.ToDouble(&ec);
-    if (!NS_FAILED(ec)) {
-      min = minTmp;
-    }
-  }
+  double min = GetMinAsDouble();
 
+  double max = GetMaxAsDouble();
   
-  double max = std::numeric_limits<double>::quiet_NaN();
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::max)) {
-    nsAutoString maxStr;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxStr);
-    PRInt32 ec;
-    double maxTmp = maxStr.ToDouble(&ec);
-    if (!NS_FAILED(ec)) {
-      
-      max = maxTmp - NS_floorModulo(maxTmp - GetStepBase(), step);
-    }
+  if (max == max) {
+    
+    max = max - NS_floorModulo(max - GetStepBase(), step);
   }
 
   
@@ -3997,15 +4010,13 @@ nsHTMLInputElement::HasPatternMismatch() const
 bool
 nsHTMLInputElement::IsRangeOverflow() const
 {
-  nsAutoString maxStr;
-  if (!DoesMinMaxApply() ||
-      !GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxStr)) {
+  if (!DoesMinMaxApply()) {
     return false;
   }
 
-  PRInt32 ec;
-  double max = maxStr.ToDouble(&ec);
-  if (NS_FAILED(ec)) {
+  double max = GetMaxAsDouble();
+  
+  if (max != max) {
     return false;
   }
 
@@ -4021,15 +4032,13 @@ nsHTMLInputElement::IsRangeOverflow() const
 bool
 nsHTMLInputElement::IsRangeUnderflow() const
 {
-  nsAutoString minStr;
-  if (!DoesMinMaxApply() ||
-      !GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr)) {
+  if (!DoesMinMaxApply()) {
     return false;
   }
 
-  PRInt32 ec;
-  double min = minStr.ToDouble(&ec);
-  if (NS_FAILED(ec)) {
+  double min = GetMinAsDouble();
+  
+  if (min != min) {
     return false;
   }
 
@@ -4281,14 +4290,11 @@ nsHTMLInputElement::GetValidationMessage(nsAString& aValidationMessage,
     case VALIDITY_STATE_RANGE_OVERFLOW:
     {
       nsXPIDLString message;
-      nsAutoString maxStr;
-      GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxStr);
 
-      
-      PRInt32 ec;
-      double max = maxStr.ToDouble(&ec);
-      NS_ASSERTION(NS_SUCCEEDED(ec), "max must be a number at this point!");
-      maxStr.Truncate();
+      double max = GetMaxAsDouble();
+      NS_ASSERTION(max == max, "max can't be NaN at this point!");
+
+      nsAutoString maxStr;
       maxStr.AppendFloat(max);
 
       const PRUnichar* params[] = { maxStr.get() };
@@ -4301,14 +4307,11 @@ nsHTMLInputElement::GetValidationMessage(nsAString& aValidationMessage,
     case VALIDITY_STATE_RANGE_UNDERFLOW:
     {
       nsXPIDLString message;
-      nsAutoString minStr;
-      GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
 
-      
-      PRInt32 ec;
-      double min = minStr.ToDouble(&ec);
-      NS_ASSERTION(NS_SUCCEEDED(ec), "min must be a number at this point!");
-      minStr.Truncate();
+      double min = GetMinAsDouble();
+      NS_ASSERTION(min == min, "min can't be NaN at this point!");
+
+      nsAutoString minStr;
       minStr.AppendFloat(min);
 
       const PRUnichar* params[] = { minStr.get() };
@@ -4330,22 +4333,19 @@ nsHTMLInputElement::GetValidationMessage(nsAString& aValidationMessage,
       NS_ASSERTION(step != kStepAny, "The element can't suffer from a step "
                                      "mismatch if @step is 'any'");
 
-      PRInt32 ec;
-      nsAutoString minStr;
-      GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
-      double min = minStr.ToDouble(&ec);
-      if (NS_FAILED(ec)) {
+      double min = GetMinAsDouble();
+      
+      if (min != min) {
         min = 0.f;
       }
 
       double valueLow = value - fmod(value - min, step);
       double valueHigh = value + step - fmod(value - min, step);
 
-      nsAutoString maxStr;
-      GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxStr);
-      double max = maxStr.ToDouble(&ec);
+      double max = GetMaxAsDouble();
 
-      if (NS_FAILED(ec) || valueHigh <= max) {
+      
+      if (max != max || valueHigh <= max) {
         nsAutoString valueLowStr, valueHighStr;
         valueLowStr.AppendFloat(valueLow);
         valueHighStr.AppendFloat(valueHigh);
@@ -4803,23 +4803,18 @@ nsHTMLInputElement::UpdateHasRange()
   }
 
   
-  nsAutoString tmpStr;
 
-  if (GetAttr(kNameSpaceID_None, nsGkAtoms::min, tmpStr)) {
-    PRInt32 ec;
-    tmpStr.ToDouble(&ec);
-    if (NS_SUCCEEDED(ec)) {
-      mHasRange = true;
-      return;
-    }
+  double min = GetMinAsDouble();
+  
+  if (min == min) {
+    mHasRange = true;
+    return;
   }
 
-  if (GetAttr(kNameSpaceID_None, nsGkAtoms::max, tmpStr)) {
-    PRInt32 ec;
-    tmpStr.ToDouble(&ec);
-    if (NS_SUCCEEDED(ec)) {
-      mHasRange = true;
-      return;
-    }
+  double max = GetMaxAsDouble();
+  
+  if (max == max) {
+    mHasRange = true;
+    return;
   }
 }
