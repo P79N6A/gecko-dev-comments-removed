@@ -147,11 +147,18 @@ public abstract class RepositorySession {
   public abstract void store(Record record) throws NoStoreDelegateException;
 
   public void storeDone() {
+    
+    
+    
+    storeDone(now());
+  }
+
+  public void storeDone(final long end) {
     Log.d(LOG_TAG, "Scheduling onStoreCompleted for after storing is done.");
     Runnable command = new Runnable() {
       @Override
       public void run() {
-        delegate.onStoreCompleted();
+        delegate.onStoreCompleted(end);
       }
     };
     storeWorkQueue.execute(command);

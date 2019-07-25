@@ -55,11 +55,11 @@ public interface RepositorySessionFetchRecordsDelegate {
 
 
 
-  public void onFetchCompleted(long end);
+  public void onFetchCompleted(final long fetchEnd);
 
   
   
-  public void onFetchSucceeded(Record[] records, long end);
+  public void onFetchSucceeded(Record[] records, final long fetchEnd);
 
   public RepositorySessionFetchRecordsDelegate deferredFetchDelegate(ExecutorService executor);
 }
