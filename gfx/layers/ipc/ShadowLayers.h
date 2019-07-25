@@ -60,6 +60,7 @@ class ShadowableLayer;
 class ShadowThebesLayer;
 class ShadowImageLayer;
 class ShadowCanvasLayer;
+class SurfaceDescriptor;
 class Transaction;
 
 
@@ -230,12 +231,65 @@ public:
 
   PRBool HasShadowManager() const { return !!mShadowManager; }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
   PRBool AllocDoubleBuffer(const gfxIntSize& aSize,
                            gfxASurface::gfxImageFormat aFormat,
                            gfxSharedImageSurface** aFrontBuffer,
                            gfxSharedImageSurface** aBackBuffer);
-
   void DestroySharedSurface(gfxSharedImageSurface* aSurface);
+
+  
+
+
+
+  PRBool AllocDoubleBuffer(const gfxIntSize& aSize,
+                           gfxASurface::gfxContentType aContent,
+                           SurfaceDescriptor* aFrontBuffer,
+                           SurfaceDescriptor* aBackBuffer);
+
+  static already_AddRefed<gfxASurface>
+  OpenDescriptor(const SurfaceDescriptor& aSurface);
+
+  void DestroySharedSurface(SurfaceDescriptor* aSurface);
 
   
 
@@ -249,6 +303,18 @@ protected:
   PLayersChild* mShadowManager;
 
 private:
+  PRBool PlatformAllocDoubleBuffer(const gfxIntSize& aSize,
+                                   gfxASurface::gfxContentType aContent,
+                                   SurfaceDescriptor* aFrontBuffer,
+                                   SurfaceDescriptor* aBackBuffer);
+
+  static already_AddRefed<gfxASurface>
+  PlatformOpenDescriptor(const SurfaceDescriptor& aDescriptor);
+
+  PRBool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
+
+  static void PlatformSyncBeforeUpdate();
+
   Transaction* mTxn;
 };
 
@@ -270,6 +336,8 @@ public:
 
   void DestroySharedSurface(gfxSharedImageSurface* aSurface);
 
+  void DestroySharedSurface(SurfaceDescriptor* aSurface);
+
   
   virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer() = 0;
   
@@ -277,8 +345,12 @@ public:
   
   virtual already_AddRefed<ShadowCanvasLayer> CreateShadowCanvasLayer() = 0;
 
+  static void PlatformSyncBeforeReplyUpdate();
+
 protected:
   ShadowLayerManager() : mForwarder(NULL) {}
+
+  PRBool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
 
   PLayersParent* mForwarder;
 };

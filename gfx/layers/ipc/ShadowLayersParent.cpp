@@ -424,6 +424,11 @@ ShadowLayersParent::RecvUpdate(const nsTArray<Edit>& cset,
     reply->AppendElements(&replyv.front(), replyv.size());
   }
 
+  
+  
+  
+  ShadowLayerManager::PlatformSyncBeforeReplyUpdate();
+
   Frame()->ShadowLayersUpdated();
 
   return true;
