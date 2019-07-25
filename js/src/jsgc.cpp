@@ -750,20 +750,21 @@ GetFinalizableThingSize(unsigned thingKind)
     JS_STATIC_ASSERT(JS_EXTERNAL_STRING_LIMIT == 8);
 
     static const uint8 map[FINALIZE_LIMIT] = {
-        sizeof(JSObject),   
-        sizeof(JSFunction), 
+        sizeof(JSObject),      
+        sizeof(JSFunction),    
 #if JS_HAS_XML_SUPPORT
-        sizeof(JSXML),      
+        sizeof(JSXML),         
 #endif
-        sizeof(JSString),   
-        sizeof(JSString),   
-        sizeof(JSString),   
-        sizeof(JSString),   
-        sizeof(JSString),   
-        sizeof(JSString),   
-        sizeof(JSString),   
-        sizeof(JSString),   
-        sizeof(JSString),   
+        sizeof(JSShortString), 
+        sizeof(JSString),      
+        sizeof(JSString),      
+        sizeof(JSString),      
+        sizeof(JSString),      
+        sizeof(JSString),      
+        sizeof(JSString),      
+        sizeof(JSString),      
+        sizeof(JSString),      
+        sizeof(JSString),      
     };
 
     JS_ASSERT(thingKind < FINALIZE_LIMIT);
@@ -781,7 +782,8 @@ GetFinalizableTraceKind(size_t thingKind)
 #if JS_HAS_XML_SUPPORT      
         JSTRACE_XML,
 #endif                      
-        JSTRACE_STRING,
+        JSTRACE_STRING,     
+        JSTRACE_STRING,     
         JSTRACE_STRING,     
         JSTRACE_STRING,     
         JSTRACE_STRING,     
@@ -1375,6 +1377,7 @@ js_DumpGCStats(JSRuntime *rt, FILE *fp)
 #if JS_HAS_XML_SUPPORT
         "xml",
 #endif
+        "short string",
         "string",
         "external_string_0",
         "external_string_1",
@@ -2268,6 +2271,7 @@ JSWeakRoots::mark(JSTracer *trc)
 #if JS_HAS_XML_SUPPORT
         "newborn_xml",                
 #endif
+        "newborn_short_string",       
         "newborn_string",             
         "newborn_external_string0",   
         "newborn_external_string1",   
@@ -2541,6 +2545,15 @@ js_ChangeExternalStringFinalizer(JSStringFinalizeOp oldop,
 }
 
 inline void
+FinalizeShortString(JSContext *cx, JSShortString *str, unsigned thingKind)
+{
+    JS_ASSERT(FINALIZE_SHORT_STRING == thingKind);
+    JS_ASSERT(!JSString::isStatic(str->header()));
+    JS_ASSERT(str->header()->isFlat());
+    JS_RUNTIME_UNMETER(cx->runtime, liveStrings);
+}
+
+inline void
 FinalizeString(JSContext *cx, JSString *str, unsigned thingKind)
 {
     JS_ASSERT(FINALIZE_STRING == thingKind);
@@ -2606,7 +2619,7 @@ js_FinalizeStringRT(JSRuntime *rt, JSString *str)
             return;
         if (thingKind == FINALIZE_STRING) {
             rt->free(chars);
-        } else {
+        } else if (thingKind != FINALIZE_SHORT_STRING) {
             unsigned type = thingKind - FINALIZE_EXTERNAL_STRING0;
             JS_ASSERT(type < JS_ARRAY_LENGTH(str_finalizers));
             JSStringFinalizeOp finalizer = str_finalizers[type];
@@ -3027,6 +3040,7 @@ GC(JSContext *cx  GCTIMER_PARAM)
 
     rt->deflatedStringCache->sweep(cx);
 
+    FinalizeArenaList<JSShortString, FinalizeShortString>(cx, FINALIZE_SHORT_STRING);
     FinalizeArenaList<JSString, FinalizeString>(cx, FINALIZE_STRING);
     for (unsigned i = FINALIZE_EXTERNAL_STRING0;
          i <= FINALIZE_EXTERNAL_STRING_LAST;
