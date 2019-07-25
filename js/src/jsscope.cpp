@@ -139,24 +139,29 @@ JS_FRIEND_DATA(JSScopeStats) js_scope_stats = {0};
 #endif
 
 bool
-PropertyTable::init(JSRuntime *rt, Shape *lastProp)
+PropertyTable::init(Shape *lastProp, JSContext *cx)
 {
-    
+    int sizeLog2;
+
+    if (entryCount > HASH_THRESHOLD) {
+        
 
 
 
 
 
 
-    uintN sizeLog2 = JS_CeilingLog2(2 * entryCount);
-    if (sizeLog2 < MIN_SIZE_LOG2)
+        sizeLog2 = JS_CeilingLog2(2 * entryCount);
+    } else {
+        JS_ASSERT(hashShift == JS_DHASH_BITS - MIN_SIZE_LOG2);
         sizeLog2 = MIN_SIZE_LOG2;
+    }
 
     
 
 
 
-    entries = (Shape **) rt->calloc(JS_BIT(sizeLog2) * sizeof(Shape *));
+    entries = (Shape **) cx->runtime->calloc(JS_BIT(sizeLog2) * sizeof(Shape *));
     if (!entries) {
         METER(tableAllocFails);
         return false;
@@ -180,14 +185,15 @@ PropertyTable::init(JSRuntime *rt, Shape *lastProp)
 }
 
 bool
-Shape::hashify(JSRuntime *rt)
+Shape::maybeHash(JSContext *cx)
 {
     JS_ASSERT(!table);
-    void* mem = rt->malloc(sizeof(PropertyTable));
-    if (!mem)
-        return false;
-    table = new(mem) PropertyTable(entryCount());
-    return table->init(rt, this);
+    uint32 nentries = entryCount();
+    if (nentries >= PropertyTable::HASH_THRESHOLD) {
+        table = cx->create<PropertyTable>(nentries);
+        return table && table->init(this, cx);
+    }
+    return true;
 }
 
 #ifdef DEBUG
@@ -499,7 +505,7 @@ Shape::getChild(JSContext *cx, const js::Shape &child, Shape **listp)
                 newShape->setTable(table);
             } else {
                 if (!newShape->table)
-                    newShape->hashify(cx->runtime);
+                    newShape->maybeHash(cx);
             }
             return newShape;
         }
@@ -518,6 +524,8 @@ Shape::getChild(JSContext *cx, const js::Shape &child, Shape **listp)
     if (shape) {
         JS_ASSERT(shape->parent == this);
         JS_ASSERT(this == *listp);
+        if (!shape->table)
+            shape->maybeHash(cx);
         *listp = shape;
     }
     return shape;
@@ -626,7 +634,7 @@ Shape::newDictionaryList(JSContext *cx, Shape **listp)
 
     list = *listp;
     JS_ASSERT(list->inDictionary());
-    list->hashify(cx->runtime);
+    list->maybeHash(cx);
     return list;
 }
 
@@ -838,6 +846,18 @@ JSObject::addPropertyInternal(JSContext *cx, jsid id,
         LIVE_SCOPE_METER(cx, ++cx->runtime->liveObjectProps);
         JS_RUNTIME_METER(cx->runtime, totalObjectProps);
 #endif
+
+        
+
+
+
+
+
+
+
+        if (!lastProp->table)
+            lastProp->maybeHash(cx);
+
         CHECK_SHAPE_CONSISTENCY(this);
         METER(adds);
         return shape;
@@ -999,6 +1019,11 @@ JSObject::putProperty(JSContext *cx, jsid id,
         }
 
         shape = newShape;
+
+        if (!shape->table) {
+            
+            shape->maybeHash(cx);
+        }
     }
 
     
