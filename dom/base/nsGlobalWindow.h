@@ -680,6 +680,8 @@ protected:
 
   static void NotifyDOMWindowDestroyed(nsGlobalWindow* aWindow);
   void NotifyWindowIDDestroyed(const char* aTopic);
+  
+  void ClearStatus();
 
   
   

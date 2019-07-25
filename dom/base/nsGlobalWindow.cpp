@@ -1719,9 +1719,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
 
 
-
-  SetStatus(EmptyString());
-  SetDefaultStatus(EmptyString());
+  nsContentUtils::AddScriptRunner(
+    NS_NewRunnableMethod(this, &nsGlobalWindow::ClearStatus));
 
   PRBool reUseInnerWindow = WouldReuseInnerWindow(aDocument);
 
@@ -2153,6 +2152,13 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   }
 
   return NS_OK;
+}
+
+void
+nsGlobalWindow::ClearStatus()
+{
+  SetStatus(EmptyString());
+  SetDefaultStatus(EmptyString());
 }
 
 nsresult
