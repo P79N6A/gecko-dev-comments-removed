@@ -212,6 +212,10 @@ PrefStore.prototype = {
   },
 
   update: function PrefStore_update(record) {
+    
+    if (record.id != PREFS_GUID)
+      return;
+
     this._log.trace("Received pref updates, applying...");
     this._setAllPrefs(record.value);
   },
