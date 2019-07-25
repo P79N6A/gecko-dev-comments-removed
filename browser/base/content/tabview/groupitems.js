@@ -782,7 +782,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         return (groupItem != self && !groupItem.getChildren().length);
       });
       let group = (emptyGroups.length ? emptyGroups[0] : GroupItems.newGroup());
-      group.newTab();
+      group.newTab(null, { closedLastTab: true });
     }
 
     this.destroy();
@@ -1765,14 +1765,16 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  newTab: function GroupItem_newTab(url) {
-    UI.setActive(this, { dontSetActiveTabInGroup: true });
-    let newTab = gBrowser.loadOneTab(url || "about:blank", {inBackground: true});
+  
+  
+  
+  
+  newTab: function GroupItem_newTab(url, options) {
+    if (options && options.closedLastTab)
+      UI.closedLastTabInTabView = true;
 
-    
-    
-    
-    newTab._tabViewTabItem.zoomIn(!url);
+    UI.setActive(this, { dontSetActiveTabInGroup: true });
+    gBrowser.loadOneTab(url || "about:blank", { inBackground: false });
   },
 
   
