@@ -164,6 +164,7 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
                                        gfxASurface::gfxContentType contentType)
 {
     nsRefPtr<gfxASurface> newSurface = nsnull;
+    PRBool needsClear = PR_TRUE;
     gfxASurface::gfxImageFormat imageFormat = gfxASurface::FormatFromContent(contentType);
 #ifdef MOZ_X11
     
@@ -171,19 +172,27 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
     
     GdkScreen *gdkScreen = gdk_screen_get_default();
     if (gdkScreen) {
-
         
         if (gfxASurface::CONTENT_COLOR == contentType
             && 16 == gdk_visual_get_system()->depth)
             imageFormat = gfxASurface::ImageFormatRGB16_565;
 
-        Screen *screen = gdk_x11_screen_get_xscreen(gdkScreen);
-        XRenderPictFormat* xrenderFormat =
-            gfxXlibSurface::FindRenderFormat(DisplayOfScreen(screen),
-                                             imageFormat);
+        if (UseClientSideRendering()) {
+            
+            
+            newSurface = new gfxImageSurface(size, imageFormat);
+            
+            
+            needsClear = PR_FALSE;
+        } else {
+            Screen *screen = gdk_x11_screen_get_xscreen(gdkScreen);
+            XRenderPictFormat* xrenderFormat =
+                gfxXlibSurface::FindRenderFormat(DisplayOfScreen(screen),
+                                                 imageFormat);
 
-        if (xrenderFormat) {
-            newSurface = gfxXlibSurface::Create(screen, xrenderFormat, size);
+            if (xrenderFormat) {
+                newSurface = gfxXlibSurface::Create(screen, xrenderFormat, size);
+            }
         }
     }
 #endif
@@ -199,10 +208,10 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
         
         
         
-        newSurface = new gfxImageSurface(gfxIntSize(size.width, size.height), imageFormat);
+        newSurface = new gfxImageSurface(size, imageFormat);
     }
 
-    if (newSurface) {
+    if (newSurface && needsClear) {
         gfxContext tmpCtx(newSurface);
         tmpCtx.SetOperator(gfxContext::OPERATOR_CLEAR);
         tmpCtx.Paint();
