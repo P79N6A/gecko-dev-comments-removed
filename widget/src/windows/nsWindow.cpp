@@ -4252,6 +4252,11 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
       }
     break;
     
+    case WM_MOUSEWHEEL:
+    case WM_MOUSEHWHEEL:
+    case WM_HSCROLL:
+    case WM_VSCROLL:
+    
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
     
@@ -5118,13 +5123,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       result = OnScroll(msg, wParam, lParam);
       break;
 
-    case MOZ_WM_HSCROLL:
-    case MOZ_WM_VSCROLL:
-      *aRetValue = 0;
-      OnScrollInternal(GetNativeMessage(msg), wParam, lParam);
-      
-      return PR_TRUE;
-
     
     
     
@@ -5287,26 +5285,18 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
   case WM_MOUSEWHEEL:
   case WM_MOUSEHWHEEL:
-    OnMouseWheel(msg, wParam, lParam, aRetValue);
-    
-    
-    
-    return PR_TRUE;
-
-  case MOZ_WM_MOUSEVWHEEL:
-  case MOZ_WM_MOUSEHWHEEL:
     {
-      UINT nativeMessage = GetNativeMessage(msg);
       
       
       
       
       
       
-      OnMouseWheelInternal(nativeMessage, wParam, lParam, aRetValue);
-      
-      return PR_TRUE;
+      if (OnMouseWheel(msg, wParam, lParam, result, aRetValue)) {
+        return result;
+      }
     }
+    break;
 
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   case WM_DWMCOMPOSITIONCHANGED:
@@ -6381,9 +6371,9 @@ static PRInt32 RoundDelta(double aDelta)
 
 
 
-void
-nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
-                               LRESULT *aRetValue)
+PRBool
+nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
+                       PRBool& aHandled, LRESULT *aRetValue)
 {
   InitMouseWheelScrollData();
 
@@ -6395,15 +6385,30 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
     
     ResetRemainingWheelDelta();
     *aRetValue = isVertical ? TRUE : FALSE; 
-    return;
+    aHandled = PR_FALSE;
+    return PR_FALSE;
   }
+
+  
+  
+  PRBool quit;
+  if (!HandleScrollingPlugins(aMessage, aWParam, aLParam,
+                              aHandled, aRetValue, quit)) {
+    ResetRemainingWheelDelta();
+    return quit; 
+ }
 
   PRInt32 nativeDelta = (short)HIWORD(aWParam);
   if (!nativeDelta) {
     *aRetValue = isVertical ? TRUE : FALSE; 
+    aHandled = PR_FALSE;
     ResetRemainingWheelDelta();
-    return; 
+    return PR_FALSE; 
   }
+
+  
+  
+  ::ReplyMessage(isVertical ? 0 : TRUE);
 
   PRBool isPageScroll =
     ((isVertical && sMouseWheelScrollLines == WHEEL_PAGESCROLL) ||
@@ -6551,17 +6556,17 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   }
 
   if (scrollEvent.delta) {
-    DispatchWindowEvent(&scrollEvent);
+    aHandled = DispatchWindowEvent(&scrollEvent);
     if (mOnDestroyCalled) {
       ResetRemainingWheelDelta();
-      return;
+      return PR_FALSE;
     }
   }
 
   
   if (!dispatchPixelScrollEvent) {
     sRemainingDeltaForPixel = 0;
-    return;
+    return PR_FALSE;
   }
 
   nsMouseScrollEvent pixelEvent(PR_TRUE, NS_MOUSE_PIXEL_SCROLL, this);
@@ -6591,9 +6596,9 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
     (PRInt32)(pixelEvent.delta * orienterForPixel * deltaPerPixel);
   sRemainingDeltaForPixel = nativeDeltaForPixel - recomputedNativeDelta;
   if (pixelEvent.delta != 0) {
-    DispatchWindowEvent(&pixelEvent);
+    aHandled = DispatchWindowEvent(&pixelEvent);
   }
-  return;
+  return PR_FALSE;
 }
 
 static PRBool
@@ -7578,57 +7583,26 @@ static PRBool IsElantechHelperWindow(HWND aHWND)
 }
 
 
-UINT
-nsWindow::GetInternalMessage(UINT aNativeMessage)
+
+
+
+PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
+                                        LPARAM aLParam, PRBool& aHandled,
+                                        LRESULT* aRetValue,
+                                        PRBool& aQuitProcessing)
 {
-  switch (aNativeMessage) {
-    case WM_MOUSEWHEEL:
-      return MOZ_WM_MOUSEVWHEEL;
-    case WM_MOUSEHWHEEL:
-      return MOZ_WM_MOUSEHWHEEL;
-    case WM_VSCROLL:
-      return MOZ_WM_VSCROLL;
-    case WM_HSCROLL:
-      return MOZ_WM_HSCROLL;
-    default:
-      return aNativeMessage;
-  }
-}
-
-
-UINT
-nsWindow::GetNativeMessage(UINT aInternalMessage)
-{
-  switch (aInternalMessage) {
-    case MOZ_WM_MOUSEVWHEEL:
-      return WM_MOUSEWHEEL;
-    case MOZ_WM_MOUSEHWHEEL:
-      return WM_MOUSEHWHEEL;
-    case MOZ_WM_VSCROLL:
-      return WM_VSCROLL;
-    case MOZ_WM_HSCROLL:
-      return WM_HSCROLL;
-    default:
-      return aInternalMessage;
-  }
-}
-
-
-
-
-
-
-
-void
-nsWindow::OnMouseWheel(UINT aMsg, WPARAM aWParam, LPARAM aLParam,
-                       LRESULT *aRetValue)
-{
-  *aRetValue = (aMsg != WM_MOUSEHWHEEL) ? TRUE : FALSE;
-
+  
+  
+  aQuitProcessing = PR_FALSE; 
   POINT point;
   DWORD dwPoints = ::GetMessagePos();
   point.x = GET_X_LPARAM(dwPoints);
   point.y = GET_Y_LPARAM(dwPoints);
+
+  static PRBool sIsProcessing = PR_FALSE;
+  if (sIsProcessing) {
+    return PR_TRUE;  
+  }
 
   static PRBool sMayBeUsingLogitechMouse = PR_FALSE;
   if (aMsg == WM_MOUSEHWHEEL) {
@@ -7656,86 +7630,109 @@ nsWindow::OnMouseWheel(UINT aMsg, WPARAM aWParam, LPARAM aLParam,
     }
   }
 
-  HWND underCursorWnd = ::WindowFromPoint(point);
-  if (!underCursorWnd) {
-    return;
+  HWND destWnd = ::WindowFromPoint(point);
+  
+  
+  
+  
+
+  if (sUseElantechPinchHack && IsElantechHelperWindow(destWnd)) {
+    
+    
+    
+    
+    destWnd = FindOurWindowAtPoint(point);
   }
 
-  if (sUseElantechPinchHack && IsElantechHelperWindow(underCursorWnd)) {
+  if (!destWnd) {
     
-    
-    
-    
-    underCursorWnd = FindOurWindowAtPoint(point);
-    if (!underCursorWnd) {
-      return;
+    return PR_FALSE; 
+  }
+
+  nsWindow* destWindow;
+
+  
+  
+  
+  if (!IsOurProcessWindow(destWnd)) {
+    HWND ourPluginWnd = FindOurProcessWindow(destWnd);
+    if (!ourPluginWnd) {
+      
+      return PR_FALSE; 
     }
+    destWindow = GetNSWindowPtr(ourPluginWnd);
+  } else {
+    destWindow = GetNSWindowPtr(destWnd);
   }
 
-  
-  
-  
-  if (IsOurProcessWindow(underCursorWnd)) {
-    nsWindow* destWindow = GetNSWindowPtr(underCursorWnd);
-    if (!destWindow) {
-      NS_WARNING("We're not sure what cause this is.");
-      HWND wnd = ::GetParent(underCursorWnd);
-      for (; wnd; wnd = ::GetParent(wnd)) {
-        destWindow = GetNSWindowPtr(wnd);
-        if (destWindow) {
-          break;
-        }
+  if (destWindow == this && mWindowType == eWindowType_plugin) {
+    
+    
+    destWindow = static_cast<nsWindow*>(GetParent());
+    NS_ENSURE_TRUE(destWindow, PR_FALSE); 
+    destWnd = destWindow->mWnd;
+    NS_ENSURE_TRUE(destWnd, PR_FALSE); 
+  }
+
+  if (!destWindow || destWindow->mWindowType == eWindowType_plugin) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    HWND parentWnd = ::GetParent(destWnd);
+    while (parentWnd) {
+      nsWindow* parentWindow = GetNSWindowPtr(parentWnd);
+      if (parentWindow) {
+        
+        
+        
+        
+        
+
+        
+        
+        
+        
+        ::ReplyMessage(aMsg == WM_MOUSEHWHEEL ? TRUE : 0);
+
+        
+        
+        
+        
+        sIsProcessing = PR_TRUE;
+        ::SendMessageW(destWnd, aMsg, aWParam, aLParam);
+        sIsProcessing = PR_FALSE;
+        aHandled = PR_TRUE;
+        aQuitProcessing = PR_TRUE;
+        return PR_FALSE; 
       }
-      if (!wnd) {
-        return;
-      }
+      parentWnd = ::GetParent(parentWnd);
+    } 
+  }
+  if (destWnd == nsnull)
+    return PR_FALSE;
+  if (destWnd != mWnd) {
+    if (destWindow) {
+      sIsProcessing = PR_TRUE;
+      aHandled = destWindow->ProcessMessage(aMsg, aWParam, aLParam, aRetValue);
+      sIsProcessing = PR_FALSE;
+      aQuitProcessing = PR_TRUE;
+      return PR_FALSE; 
     }
-
-    NS_ASSERTION(destWindow, "destWindow must not be NULL");
-    
-    
-    
-    if (destWindow->mWindowType == eWindowType_plugin) {
-      destWindow = destWindow->GetParentWindow(PR_FALSE);
-      NS_ENSURE_TRUE(destWindow, );
-    }
-    UINT internalMessage = GetInternalMessage(aMsg);
-    destWindow->ProcessMessage(internalMessage, aWParam, aLParam, aRetValue);
-    return;
+  #ifdef DEBUG
+    else
+      printf("WARNING: couldn't get child window for SCROLL event\n");
+  #endif
   }
-
-  
-  
-  
-  HWND pluginWnd = FindOurProcessWindow(underCursorWnd);
-  if (!pluginWnd) {
-    
-    
-    
-    return;
-  }
-
-  
-  
-  
-  if (mWindowType == eWindowType_plugin && pluginWnd == mWnd) {
-    nsWindow* destWindow = GetParentWindow(PR_FALSE);
-    NS_ENSURE_TRUE(destWindow, );
-    UINT internalMessage = GetInternalMessage(aMsg);
-    destWindow->ProcessMessage(internalMessage, aWParam, aLParam, aRetValue);
-    return;
-  }
-
-  
-  ::PostMessage(underCursorWnd, aMsg, aWParam, aLParam);
+  return PR_TRUE;  
 }
 
-
-
-
-
-PRBool
-nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
+PRBool nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
 {
   static PRInt8 sMouseWheelEmulation = -1;
   if (sMouseWheelEmulation < 0) {
@@ -7747,10 +7744,43 @@ nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
   if (aLParam || sMouseWheelEmulation) {
     
     
+    PRBool quit, result;
     LRESULT retVal;
-    OnMouseWheel(aMsg, aWParam, aLParam, &retVal);
+
+    if (!HandleScrollingPlugins(aMsg, aWParam, aLParam, result, &retVal, quit))
+      return quit;  
+
+    nsMouseScrollEvent scrollevent(PR_TRUE, NS_MOUSE_SCROLL, this);
+    scrollevent.scrollFlags = (aMsg == WM_VSCROLL) 
+                              ? nsMouseScrollEvent::kIsVertical
+                              : nsMouseScrollEvent::kIsHorizontal;
+    switch (LOWORD(aWParam))
+    {
+      case SB_PAGEDOWN:
+        scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
+      case SB_LINEDOWN:
+        scrollevent.delta = 1;
+        break;
+      case SB_PAGEUP:
+        scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
+      case SB_LINEUP:
+        scrollevent.delta = -1;
+        break;
+      default:
+        return PR_FALSE;
+    }
     
     
+    ::ReplyMessage(0);
+    scrollevent.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
+    scrollevent.isControl = IS_VK_DOWN(NS_VK_CONTROL);
+    scrollevent.isMeta    = PR_FALSE;
+    scrollevent.isAlt     = IS_VK_DOWN(NS_VK_ALT);
+    InitEvent(scrollevent);
+    if (nsnull != mEventCallback)
+    {
+      DispatchWindowEvent(&scrollevent);
+    }
     return PR_TRUE;
   }
 
@@ -7788,47 +7818,8 @@ nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
     default:
       return PR_FALSE;
   }
-  
-  
   DispatchWindowEvent(&command);
   return PR_TRUE;
-}
-
-
-
-
-
-
-
-void
-nsWindow::OnScrollInternal(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
-{
-  nsMouseScrollEvent scrollevent(PR_TRUE, NS_MOUSE_SCROLL, this);
-  scrollevent.scrollFlags = (aMsg == WM_VSCROLL) 
-                            ? nsMouseScrollEvent::kIsVertical
-                            : nsMouseScrollEvent::kIsHorizontal;
-  switch (LOWORD(aWParam)) {
-    case SB_PAGEDOWN:
-      scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-    case SB_LINEDOWN:
-      scrollevent.delta = 1;
-      break;
-    case SB_PAGEUP:
-      scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-    case SB_LINEUP:
-      scrollevent.delta = -1;
-      break;
-    default:
-      return;
-  }
-  scrollevent.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
-  scrollevent.isControl = IS_VK_DOWN(NS_VK_CONTROL);
-  scrollevent.isMeta    = PR_FALSE;
-  scrollevent.isAlt     = IS_VK_DOWN(NS_VK_ALT);
-  InitEvent(scrollevent);
-  if (mEventCallback) {
-    DispatchWindowEvent(&scrollevent);
-  }
 }
 
 
@@ -8398,7 +8389,7 @@ LRESULT CALLBACK nsWindow::MozSpecialMsgFilter(int code, WPARAM wParam, LPARAM l
 LRESULT CALLBACK nsWindow::MozSpecialMouseProc(int code, WPARAM wParam, LPARAM lParam)
 {
   if (sProcessHook) {
-    switch (GetNativeMessage(wParam)) {
+    switch (wParam) {
       case WM_LBUTTONDOWN:
       case WM_RBUTTONDOWN:
       case WM_MBUTTONDOWN:
@@ -8599,7 +8590,6 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
 {
   if (sRollupListener && sRollupWidget && ::IsWindowVisible(inWnd)) {
 
-    inMsg = GetNativeMessage(inMsg);
     if (inMsg == WM_LBUTTONDOWN || inMsg == WM_RBUTTONDOWN || inMsg == WM_MBUTTONDOWN ||
         inMsg == WM_MOUSEWHEEL || inMsg == WM_MOUSEHWHEEL || inMsg == WM_ACTIVATE ||
         (inMsg == WM_KILLFOCUS && IsDifferentThreadWindow((HWND)inWParam)) ||
@@ -8995,7 +8985,7 @@ void nsWindow::InitInputWorkaroundPrefDefaults()
     sDefaultTrackPointHack = PR_TRUE;
   } else if ((HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Synaptics\\SynTPEnh\\UltraNavUSB") ||
               HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Synaptics\\SynTPEnh\\UltraNavPS2")) &&
-              elantechDriverVersion != 0 && elantechDriverVersion <= 8) {
+              IsObsoleteSynapticsDriver()) {
     sDefaultTrackPointHack = PR_TRUE;
   }
 
