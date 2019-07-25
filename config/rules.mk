@@ -55,6 +55,8 @@ ifndef INCLUDED_VERSION_MK
 include $(topsrcdir)/config/version.mk
 endif
 
+include $(topsrcdir)/toolkit/mozapps/installer/package-name.mk
+
 ifdef SDK_XPIDLSRCS
 XPIDLSRCS += $(SDK_XPIDLSRCS)
 endif
@@ -153,6 +155,21 @@ xpcshell-tests:
 	  $(LIBXUL_DIST)/bin/xpcshell \
 	  $(foreach dir,$(XPCSHELL_TESTS),$(testxpcobjdir)/$(relativesrcdir)/$(dir))
 
+xpcshell-tests-remote: DM_TRANS?=adb
+xpcshell-tests-remote:
+	$(PYTHON) -u $(topsrcdir)/config/pythonpath.py \
+	  -I$(topsrcdir)/build \
+	  -I$(topsrcdir)/build/mobile \
+	  $(topsrcdir)/testing/xpcshell/remotexpcshelltests.py \
+	  --symbols-path=$(DIST)/crashreporter-symbols \
+	  --build-info-json=$(DEPTH)/mozinfo.json \
+	  $(EXTRA_TEST_ARGS) \
+	  --dm_trans=$(DM_TRANS) \
+	  --deviceIP=${TEST_DEVICE} \
+	  --objdir=$(DEPTH) \
+	  --apk=$(DIST)/$(PKG_BASENAME).apk \
+	  $(foreach dir,$(XPCSHELL_TESTS),$(testxpcobjdir)/$(relativesrcdir)/$(dir))
+
 # Execute a single test, specified in $(SOLO_FILE), but don't automatically
 # start the test. Instead, present the xpcshell prompt so the user can
 # attach a debugger and then start the test.
@@ -182,6 +199,24 @@ check-one:
 	  $(LIBXUL_DIST)/bin/xpcshell \
 	  $(foreach dir,$(XPCSHELL_TESTS),$(testxpcobjdir)/$(relativesrcdir)/$(dir))
 
+check-one-remote: DM_TRANS?=adb
+check-one-remote:
+	$(PYTHON) -u $(topsrcdir)/config/pythonpath.py \
+	  -I$(topsrcdir)/build \
+	  -I$(topsrcdir)/build/mobile \
+	  $(testxpcsrcdir)/remotexpcshelltests.py \
+	  --symbols-path=$(DIST)/crashreporter-symbols \
+	  --build-info-json=$(DEPTH)/mozinfo.json \
+	  --test-path=$(SOLO_FILE) \
+	  --profile-name=$(MOZ_APP_NAME) \
+	  --verbose \
+	  $(EXTRA_TEST_ARGS) \
+	  --dm_trans=$(DM_TRANS) \
+	  --deviceIP=${TEST_DEVICE} \
+	  --objdir=$(DEPTH) \
+	  --apk=$(DIST)/$(PKG_BASENAME).apk \
+          --noSetup \
+	  $(foreach dir,$(XPCSHELL_TESTS),$(testxpcobjdir)/$(relativesrcdir)/$(dir))
 endif # XPCSHELL_TESTS
 
 ifdef CPP_UNIT_TESTS
@@ -1532,7 +1567,6 @@ $(XPIDL_GEN_DIR)/.done:
 
 XPIDL_DEPS = \
   $(topsrcdir)/xpcom/idl-parser/header.py \
-  $(topsrcdir)/xpcom/idl-parser/typelib.py \
   $(topsrcdir)/xpcom/idl-parser/xpidl.py \
   $(NULL)
 
@@ -1548,13 +1582,9 @@ $(XPIDL_GEN_DIR)/%.h: %.idl $(XPIDL_DEPS) $(XPIDL_GEN_DIR)/.done
 ifndef NO_GEN_XPT
 # generate intermediate .xpt files into $(XPIDL_GEN_DIR), then link
 # into $(XPIDL_MODULE).xpt and export it to $(FINAL_TARGET)/components.
-$(XPIDL_GEN_DIR)/%.xpt: %.idl $(XPIDL_DEPS) $(XPIDL_GEN_DIR)/.done
+$(XPIDL_GEN_DIR)/%.xpt: %.idl $(XPIDL_COMPILE) $(XPIDL_GEN_DIR)/.done
 	$(REPORT_BUILD)
-	$(PYTHON_PATH) \
-	  -I$(topsrcdir)/other-licenses/ply \
-	  -I$(topsrcdir)/xpcom/idl-parser \
-	  -I$(topsrcdir)/xpcom/typelib/xpt/tools \
-	  $(topsrcdir)/xpcom/idl-parser/typelib.py --cachedir=$(topsrcdir)/xpcom/idl-parser $(XPIDL_FLAGS) $(_VPATH_SRCS) -d $(MDDEPDIR)/$(@F).pp -o $@
+	$(ELOG) $(XPIDL_COMPILE) -m typelib -w $(XPIDL_FLAGS) -e $@ -d $(MDDEPDIR)/$(@F).pp $(_VPATH_SRCS)
 
 # no need to link together if XPIDLSRCS contains only XPIDL_MODULE
 ifneq ($(XPIDL_MODULE).idl,$(strip $(XPIDLSRCS)))
