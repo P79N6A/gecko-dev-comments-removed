@@ -53,87 +53,98 @@ function onTabViewShown(win) {
      "$appTabTray container is not visible");
 
   
-  gBrowser.pinTab(xulTabs[0]);
-  is(groupItem._children.length, 0,
-     "the app tab's TabItem was removed from the group");
-  is(appTabCount(groupItem), 1, "there's now one app tab icon");
+  whenAppTabIconAdded(function() {
+    is(groupItem._children.length, 0,
+       "the app tab's TabItem was removed from the group");
+    is(appTabCount(groupItem), 1, "there's now one app tab icon");
 
-  is(tray.css("-moz-column-count"), 1,
-     "$appTabTray column count is 1");
-  isnot(parseInt(trayContainer.css("width")), 0,
-     "$appTabTray container is visible");
+    is(tray.css("-moz-column-count"), 1,
+       "$appTabTray column count is 1");
+    isnot(parseInt(trayContainer.css("width")), 0,
+       "$appTabTray container is visible");
 
-  let iconHeight = iQ(iQ(".appTabIcon", tray)[0]).height();
-  let trayHeight = parseInt(trayContainer.css("height"));
-  let rows = Math.floor(trayHeight / iconHeight);
-  let icons = rows * 2;
 
-  
-  for (let i = 1; i < icons; i++) {
-    xulTabs.push(gBrowser.loadOneTab("about:blank"));
-    gBrowser.pinTab(xulTabs[i]);
-  }
+    let iconHeight = iQ(iQ(".appTabIcon", tray)[0]).height();
+    let trayHeight = parseInt(trayContainer.css("height"));
+    let rows = Math.floor(trayHeight / iconHeight);
+    let icons = rows * 2;
 
-  is(appTabCount(groupItem), icons, "number of app tab icons is correct");
+    function pinnedSomeTabs() {
+      is(appTabCount(groupItem), icons, "number of app tab icons is correct");
 
-  is(tray.css("-moz-column-count"), 2,
-     "$appTabTray column count is 2");
+      is(tray.css("-moz-column-count"), 2,
+         "$appTabTray column count is 2");
 
-  ok(!trayContainer.hasClass("appTabTrayContainerTruncated"),
-     "$appTabTray container does not have .appTabTrayContainerTruncated");
+      ok(!trayContainer.hasClass("appTabTrayContainerTruncated"),
+         "$appTabTray container does not have .appTabTrayContainerTruncated");
 
-  
-  xulTabs.push(gBrowser.loadOneTab("about:blank"));
-  gBrowser.pinTab(xulTabs[xulTabs.length-1]);
+      
+      xulTabs.push(gBrowser.loadOneTab("about:blank"));
+      whenAppTabIconAdded(function() {
+        is(tray.css("-moz-column-count"), 3,
+           "$appTabTray column count is 3");
 
-  is(tray.css("-moz-column-count"), 3,
-     "$appTabTray column count is 3");
+        ok(trayContainer.hasClass("appTabTrayContainerTruncated"),
+           "$appTabTray container hasClass .appTabTrayContainerTruncated");
 
-  ok(trayContainer.hasClass("appTabTrayContainerTruncated"),
-     "$appTabTray container hasClass .appTabTrayContainerTruncated");
+        
+        for (let i = 1; i < xulTabs.length; i++)
+          gBrowser.removeTab(xulTabs[i]);
 
-  
-  for (let i = 1; i < xulTabs.length; i++)
-    gBrowser.removeTab(xulTabs[i]);
+        is(tray.css("-moz-column-count"), 1,
+           "$appTabTray column count is 1");
 
-  is(tray.css("-moz-column-count"), 1,
-     "$appTabTray column count is 1");
+        is(appTabCount(groupItem), 1, "there's now one app tab icon");
 
-  is(appTabCount(groupItem), 1, "there's now one app tab icon");
+        ok(!trayContainer.hasClass("appTabTrayContainerTruncated"),
+           "$appTabTray container does not have .appTabTrayContainerTruncated");
 
-  ok(!trayContainer.hasClass("appTabTrayContainerTruncated"),
-     "$appTabTray container does not have .appTabTrayContainerTruncated");
+        
+        gBrowser.unpinTab(xulTabs[0]);
 
-  
-  
-  contentWindow.UI.setActive(groupItem);
+        is(parseInt(trayContainer.css("width")), 0,
+           "$appTabTray container is not visible");
 
-  
-  gBrowser.unpinTab(xulTabs[0]);
+        
+        
+        contentWindow.UI.setActive(groupItem);
 
-  is(parseInt(trayContainer.css("width")), 0,
-     "$appTabTray container is not visible");
+        is(appTabCount(groupItem), 0, "there are no app tab icons");
 
-  is(appTabCount(groupItem), 0, "there are no app tab icons");
+        is(groupItem._children.length, 1, "the normal tab shows in the group");
 
-  is(groupItem._children.length, 1, "the normal tab shows in the group");
+        gBrowser.removeTab(xulTabs[0]);
 
-  gBrowser.removeTab(xulTabs[0]);
+        
+        groupItem.close();
 
-  
-  groupItem.close();
+        hideTabView(function() {
+          ok(!TabView.isVisible(), "Tab View is hidden");
 
-  hideTabView(function() {
-    ok(!TabView.isVisible(), "Tab View is hidden");
+          is(contentWindow.GroupItems.groupItems.length, 1,
+             "we finish with one group");
+          is(gBrowser.tabs.length, 1, "we finish with one tab");
 
-    is(contentWindow.GroupItems.groupItems.length, 1,
-       "we finish with one group");
-    is(gBrowser.tabs.length, 1, "we finish with one tab");
+          win.close();
 
-    win.close();
+          executeSoon(finish);
+        }, win);
+      }, win);
+      win.gBrowser.pinTab(xulTabs[xulTabs.length-1]);
+    };
 
-    executeSoon(finish);
+    
+    let returnCount = 0;
+    for (let i = 1; i < icons; i++) {
+      xulTabs.push(gBrowser.loadOneTab("about:blank"));
+      whenAppTabIconAdded(function() {
+        if (++returnCount == (icons - 1))
+          executeSoon(pinnedSomeTabs);
+      }, win);
+      win.gBrowser.pinTab(xulTabs[i]);
+    }
   }, win);
+  win.gBrowser.pinTab(xulTabs[0]);
 }
 
 function appTabCount(groupItem) {

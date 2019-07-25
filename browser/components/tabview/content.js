@@ -94,11 +94,21 @@ let WindowMessageHandler = {
                     !webProgress.isLoadingDocument);
 
     sendAsyncMessage(cx.name, {isLoaded: isLoaded});
+  },
+
+  
+  
+  
+  isImageDocument: function WMH_isImageDocument(cx) {
+    let isImageDocument = (content.document instanceof Ci.nsIImageDocument);
+
+    sendAsyncMessage(cx.name, {isImageDocument: isImageDocument});
   }
 };
 
 
 addMessageListener("Panorama:isDocumentLoaded", WindowMessageHandler.isDocumentLoaded);
+addMessageListener("Panorama:isImageDocument", WindowMessageHandler.isImageDocument);
 
 
 
