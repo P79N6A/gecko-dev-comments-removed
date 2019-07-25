@@ -43,6 +43,7 @@
 #include "gfxImageSurface.h"
 
 class gfxDrawable;
+class nsIntRegion;
 
 class THEBES_API gfxUtils {
 public:
@@ -83,6 +84,16 @@ public:
                                  const gfxRect&   aFill,
                                  const gfxImageSurface::gfxImageFormat aFormat,
                                  const gfxPattern::GraphicsFilter& aFilter);
+
+    
+
+
+    static void ClipToRegion(gfxContext* aContext, const nsIntRegion& aRegion);
+
+    
+
+
+    static void ClipToRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion);
 };
 
 #endif
