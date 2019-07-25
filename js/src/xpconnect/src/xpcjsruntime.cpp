@@ -46,6 +46,7 @@
 
 #include "jsgcchunk.h"
 #include "nsIMemoryReporter.h"
+#include "nsPrintfCString.h"
 #include "mozilla/FunctionTimer.h"
 #include "prsystem.h"
 
@@ -1320,6 +1321,14 @@ private:
                         if ('/' == *cur) {
                             *cur = '\\';
                         }
+                    }
+                    
+                    
+                    
+                    if (c->isSystemCompartment) {
+                        static const int maxLength = 31;   
+                        nsPrintfCString address(maxLength, ", 0x%llx", PRUint64(c));
+                        name.Append(address);
                     }
                 } else {
                     name = NS_LITERAL_CSTRING("null-codebase");
