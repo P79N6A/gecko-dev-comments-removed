@@ -174,13 +174,20 @@ ContainerRender(Container* aContainer,
 
     if (needsFramebuffer) {
       scissorRect.MoveBy(- visibleRect.TopLeft());
-    }
+    } else {
+      if (!aPreviousFrameBuffer) {
+        
 
-    if (!needsFramebuffer && aPreviousFrameBuffer) {
-      scissorRect.IntersectRect(scissorRect, cachedScissor);
-    } else if (!needsFramebuffer) {
-      aContainer->gl()->FixWindowCoordinateRect(scissorRect, 
-                                                aManager->GetWigetSize().height);
+
+
+
+
+
+
+        aContainer->gl()->FixWindowCoordinateRect(scissorRect,
+                                                  aManager->GetWigetSize().height);
+      }
+
       scissorRect.IntersectRect(scissorRect, cachedScissor);
     }
 
@@ -242,7 +249,7 @@ ContainerRender(Container* aContainer,
 
     DEBUG_GL_ERROR_CHECK(aContainer->gl());
 
-    aManager->BindAndDrawQuad(rgb);
+    aManager->BindAndDrawQuad(rgb, aPreviousFrameBuffer == 0);
 
     DEBUG_GL_ERROR_CHECK(aContainer->gl());
 
