@@ -1361,19 +1361,17 @@ var NativeWindow = {
       if (!rootElement)
         rootElement = ElementTouchHelper.anyElementFromPoint(BrowserApp.selectedBrowser.contentWindow, aX, aY)
 
-      this.menuitems = null;
+      this.menuitems = {};
+      let menuitemsSet = false;
       let element = rootElement;
       if (!element)
         return;
 
       while (element) {
         for each (let item in this.items) {
-          
-          
-          if ((!this.menuitems || !this.menuitems[item.id]) && item.matches(element, aX, aY)) {
-            if (!this.menuitems)
-              this.menuitems = {};
+          if (!this.menuitems[item.id] && item.matches(element)) {
             this.menuitems[item.id] = item;
+            menuitemsSet = true;
           }
         }
 
@@ -1383,7 +1381,7 @@ var NativeWindow = {
       }
 
       
-      if (this.menuitems) {
+      if (menuitemsSet) {
         let event = rootElement.ownerDocument.createEvent("MouseEvent");
         event.initMouseEvent("contextmenu", true, true, content,
                              0, aX, aY, aX, aY, false, false, false, false,
@@ -2188,7 +2186,7 @@ Tab.prototype = {
           }
         };
         sendMessageToJava(message);
-        dump("Handled load error: " + e)
+        dump("Handled load error: " + e);
       }
     }
   },
