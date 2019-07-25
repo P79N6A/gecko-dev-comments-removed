@@ -57,6 +57,11 @@ public:
                const Rect* aDirtyRect,
                const Rect* aSkipRect);
 
+  AlphaBoxBlur(uint8_t* aData,
+               const Rect& aRect,
+               int32_t aStride,
+               float aSigma);
+
   ~AlphaBoxBlur();
 
   
@@ -135,7 +140,12 @@ private:
   
 
 
-  unsigned char* mData;
+  uint8_t* mData;
+
+  
+
+
+  bool mFreeData;
 
   
 
