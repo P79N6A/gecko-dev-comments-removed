@@ -223,11 +223,6 @@ pref("general.autoScroll", true);
 #endif
 
 
-
-
-pref("general.useragent.override.aol.com", "Gecko/[^ ]*#Gecko/20100101");
-
-
 pref("browser.shell.checkDefaultBrowser", true);
 
 

@@ -24,10 +24,6 @@ pref("keyword.enabled", false);
 pref("general.useragent.locale", "chrome://global/locale/intl.properties");
 pref("general.useragent.compatMode.firefox", false);
 
-
-
-pref("general.useragent.site_specific_overrides", true);
-
 pref("general.config.obscure_value", 13); 
 
 pref("general.warnOnAboutConfig", true);
