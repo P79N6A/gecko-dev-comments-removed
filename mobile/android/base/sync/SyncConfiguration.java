@@ -176,7 +176,7 @@ public class SyncConfiguration implements CredentialsSource {
   
   public String          userAPI;
   public URI             serverURL;
-  protected URI          clusterURL;
+  public URI             clusterURL;
   public String          username;
   public KeyBundle       syncKeyBundle;
 
@@ -433,6 +433,11 @@ public class SyncConfiguration implements CredentialsSource {
       collectionKeys.clear();
     }
     persistedCryptoKeys().purge();
+  }
+
+  public void purgeMetaGlobal() {
+    metaGlobal = null;
+    persistedMetaGlobal().purge();
   }
 
   public PersistedCrypto5Keys persistedCryptoKeys() {

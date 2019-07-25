@@ -78,4 +78,11 @@ public interface GlobalSyncStage {
   public void execute() throws NoSuchStageException;
   public void resetLocal();
   public void wipeLocal() throws Exception;
+  
+
+
+
+
+
+  public Integer getStorageVersion();
 }

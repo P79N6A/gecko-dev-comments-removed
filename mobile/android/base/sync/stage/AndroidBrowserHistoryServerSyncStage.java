@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.stage;
 
 import java.net.URISyntaxException;
@@ -48,6 +15,7 @@ import org.mozilla.gecko.sync.repositories.Repository;
 import org.mozilla.gecko.sync.repositories.android.AndroidBrowserHistoryRepository;
 import org.mozilla.gecko.sync.repositories.android.FennecControlHelper;
 import org.mozilla.gecko.sync.repositories.domain.HistoryRecordFactory;
+import org.mozilla.gecko.sync.repositories.domain.VersionConstants;
 
 public class AndroidBrowserHistoryServerSyncStage extends ServerSyncStage {
   protected static final String LOG_TAG = "HistoryStage";
@@ -65,9 +33,15 @@ public class AndroidBrowserHistoryServerSyncStage extends ServerSyncStage {
   protected String getCollection() {
     return "history";
   }
+
   @Override
   protected String getEngineName() {
     return "history";
+  }
+
+  @Override
+  public Integer getStorageVersion() {
+    return VersionConstants.HISTORY_ENGINE_VERSION;
   }
 
   @Override

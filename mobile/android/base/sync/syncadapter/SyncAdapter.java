@@ -177,6 +177,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
   private SyncResult syncResult;
 
   public Account localAccount;
+  protected boolean thisSyncIsForced = false;
 
   
 
@@ -193,6 +194,15 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
 
   @Override
   public boolean shouldBackOff() {
+    if (thisSyncIsForced) {
+      
+
+
+
+
+      return false;
+    }
+
     if (wantNodeAssignment()) {
       
 
@@ -220,10 +230,10 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
     this.syncResult   = syncResult;
     this.localAccount = account;
 
-    boolean force = (extras != null) && (extras.getBoolean("force", false));
+    thisSyncIsForced = (extras != null) && (extras.getBoolean("force", false));
     long delay = delayMilliseconds();
     if (delay > 0) {
-      if (force) {
+      if (thisSyncIsForced) {
         Log.i(LOG_TAG, "Forced sync: overruling remaining backoff of " + delay + "ms.");
       } else {
         Log.i(LOG_TAG, "Not syncing: must wait another " + delay + "ms.");

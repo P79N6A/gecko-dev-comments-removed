@@ -19,7 +19,7 @@ import org.mozilla.gecko.sync.crypto.KeyBundle;
 
 public class CollectionKeys {
   private KeyBundle                  defaultKeyBundle     = null;
-  private HashMap<String, KeyBundle> collectionKeyBundles = new HashMap<String, KeyBundle>();
+  private final HashMap<String, KeyBundle> collectionKeyBundles = new HashMap<String, KeyBundle>();
 
   
 
@@ -123,7 +123,8 @@ public class CollectionKeys {
       collectionKeys.put(pair.getKey(), bundle);
     }
 
-    this.collectionKeyBundles = collectionKeys;
+    this.collectionKeyBundles.clear();
+    this.collectionKeyBundles.putAll(collectionKeys);
     this.defaultKeyBundle     = defaultKey;
   }
 
@@ -137,7 +138,7 @@ public class CollectionKeys {
 
   public void clear() {
     this.defaultKeyBundle = null;
-    this.collectionKeyBundles = new HashMap<String, KeyBundle>();
+    this.collectionKeyBundles.clear();
   }
 
   
@@ -148,26 +149,44 @@ public class CollectionKeys {
 
   public static Set<String> differences(CollectionKeys a, CollectionKeys b) {
     Set<String> differences = new HashSet<String>();
+    Set<String> collections = new HashSet<String>(a.collectionKeyBundles.keySet());
+    collections.addAll(b.collectionKeyBundles.keySet());
 
     
-    for (String collection : a.collectionKeyBundles.keySet()) {
-      KeyBundle key = b.collectionKeyBundles.get(collection);
-      if (key == null) {
+    for (String collection : collections) {
+      KeyBundle keyA;
+      KeyBundle keyB;
+      try {
+        keyA = a.keyBundleForCollection(collection); 
+        keyB = b.keyBundleForCollection(collection); 
+      } catch (NoCollectionKeysSetException e) {
         differences.add(collection);
         continue;
       }
-      if (!key.equals(a.collectionKeyBundles.get(collection))) {
-        differences.add(collection);
-      }
-    }
-
-    
-    for (String collection : b.collectionKeyBundles.keySet()) {
-      if (!a.collectionKeyBundles.containsKey(collection)) {
+      
+      if (!keyA.equals(keyB)) {
         differences.add(collection);
       }
     }
 
     return differences;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof CollectionKeys)) {
+      return false;
+    }
+    CollectionKeys other = (CollectionKeys) o;
+    try {
+      
+      
+      
+      return defaultKeyBundle().equals(other.defaultKeyBundle()) &&
+             CollectionKeys.differences(this, other).isEmpty();
+    } catch (NoCollectionKeysSetException e) {
+      
+      return false;
+    }
   }
 }
