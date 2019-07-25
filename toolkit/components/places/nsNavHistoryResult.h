@@ -310,8 +310,7 @@ public:
   
   
   bool IsTypeContainer(PRUint32 type) {
-    return (type == nsINavHistoryResultNode::RESULT_TYPE_DYNAMIC_CONTAINER ||
-            type == nsINavHistoryResultNode::RESULT_TYPE_QUERY ||
+    return (type == nsINavHistoryResultNode::RESULT_TYPE_QUERY ||
             type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER ||
             type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER_SHORTCUT);
   }
@@ -319,11 +318,6 @@ public:
     PRUint32 type;
     GetType(&type);
     return IsTypeContainer(type);
-  }
-  bool IsDynamicContainer() {
-    PRUint32 type;
-    GetType(&type);
-    return (type == nsINavHistoryResultNode::RESULT_TYPE_DYNAMIC_CONTAINER);
   }
   static bool IsTypeURI(PRUint32 type) {
     return (type == nsINavHistoryResultNode::RESULT_TYPE_URI ||
@@ -492,25 +486,7 @@ public:
                                PRInt64 aItemId, bool aRecursive, \
                                nsINavHistoryResultNode** _retval) \
     { return nsNavHistoryContainerResultNode::FindNodeByDetails(aURIString, aTime, aItemId, \
-                                                                aRecursive, _retval); } \
-  NS_IMETHOD GetDynamicContainerType(nsACString& aDynamicContainerType) \
-    { return nsNavHistoryContainerResultNode::GetDynamicContainerType(aDynamicContainerType); } \
-  NS_IMETHOD AppendURINode(const nsACString& aURI, const nsACString& aTitle, PRUint32 aAccessCount, PRTime aTime, const nsACString& aIconURI, nsINavHistoryResultNode **_retval) \
-    { return nsNavHistoryContainerResultNode::AppendURINode(aURI, aTitle, aAccessCount, aTime, aIconURI, _retval); } \
-  NS_IMETHOD AppendFolderNode(PRInt64 aFolderId, nsINavHistoryContainerResultNode **_retval) \
-    { return nsNavHistoryContainerResultNode::AppendFolderNode(aFolderId, _retval); }
-
-
-
-
-
-
-
-
-
-
-
-
+                                                                aRecursive, _retval); }
 
 #define NS_NAVHISTORYCONTAINERRESULTNODE_IID \
   { 0x6e3bf8d3, 0x22aa, 0x4065, { 0x86, 0xbc, 0x37, 0x46, 0xb5, 0xb3, 0x2c, 0xe8 } }
@@ -522,14 +498,12 @@ public:
   nsNavHistoryContainerResultNode(
     const nsACString& aURI, const nsACString& aTitle,
     const nsACString& aIconURI, PRUint32 aContainerType,
-    bool aReadOnly, const nsACString& aDynamicContainerType,
-    nsNavHistoryQueryOptions* aOptions);
+    bool aReadOnly, nsNavHistoryQueryOptions* aOptions);
   nsNavHistoryContainerResultNode(
     const nsACString& aURI, const nsACString& aTitle,
     PRTime aTime,
     const nsACString& aIconURI, PRUint32 aContainerType,
-    bool aReadOnly, const nsACString& aDynamicContainerType,
-    nsNavHistoryQueryOptions* aOptions);
+    bool aReadOnly, nsNavHistoryQueryOptions* aOptions);
 
   virtual nsresult Refresh();
   virtual ~nsNavHistoryContainerResultNode();
@@ -577,9 +551,6 @@ public:
   bool mChildrenReadOnly;
 
   nsCOMPtr<nsNavHistoryQueryOptions> mOptions;
-
-  
-  nsCString mDynamicContainerType;
 
   void FillStats();
   nsresult ReverseUpdateStats(PRInt32 aAccessCountChange);
@@ -807,8 +778,7 @@ class nsNavHistoryFolderResultNode : public nsNavHistoryContainerResultNode,
 public:
   nsNavHistoryFolderResultNode(const nsACString& aTitle,
                                nsNavHistoryQueryOptions* options,
-                               PRInt64 aFolderId,
-                               const nsACString& aDynamicContainerType);
+                               PRInt64 aFolderId);
 
   virtual ~nsNavHistoryFolderResultNode();
 

@@ -632,6 +632,12 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
       
 
+      if (currentSchemaVersion < 13) {
+        rv = MigrateV13Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+      
+
       
     }
   }
@@ -1252,6 +1258,30 @@ Database::MigrateV11Up()
 
   
   rv = CheckAndUpdateGUIDs();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+Database::MigrateV13Up()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+
+  
+  nsCOMPtr<mozIStorageAsyncStatement> deleteDynContainersStmt;
+  nsresult rv = mMainConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
+      "DELETE FROM moz_bookmarks WHERE type = :item_type"),
+    getter_AddRefs(deleteDynContainersStmt));
+  rv = deleteDynContainersStmt->BindInt32ByName(
+    NS_LITERAL_CSTRING("item_type"),
+    nsINavBookmarksService::TYPE_DYNAMIC_CONTAINER
+  );
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<mozIStoragePendingStatement> ps;
+  rv = deleteDynContainersStmt->ExecuteAsync(nsnull, getter_AddRefs(ps));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

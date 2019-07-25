@@ -495,13 +495,12 @@ let PlacesDBUtils = {
         "SELECT folder_id FROM moz_bookmarks_roots " + 
       ") AND id IN ( " +
         "SELECT id FROM moz_bookmarks b " +
-        "WHERE type IN (:folder_type, :separator_type, :dynamic_type) " +
+        "WHERE type IN (:folder_type, :separator_type) " +
           "AND fk NOTNULL " +
       ")");
     fixBookmarksAsFolders.params["bookmark_type"] = PlacesUtils.bookmarks.TYPE_BOOKMARK;
     fixBookmarksAsFolders.params["folder_type"] = PlacesUtils.bookmarks.TYPE_FOLDER;
     fixBookmarksAsFolders.params["separator_type"] = PlacesUtils.bookmarks.TYPE_SEPARATOR;
-    fixBookmarksAsFolders.params["dynamic_type"] = PlacesUtils.bookmarks.TYPE_DYNAMIC_CONTAINER;
     cleanupStatements.push(fixBookmarksAsFolders);
 
     
@@ -522,21 +521,6 @@ let PlacesDBUtils = {
     
     
     
-    let fixFoldersAsDynamic = DBConn.createAsyncStatement(
-      "UPDATE moz_bookmarks SET type = :folder_type WHERE id NOT IN ( " +
-        "SELECT folder_id FROM moz_bookmarks_roots " + 
-      ") AND id IN ( " +
-        "SELECT id FROM moz_bookmarks b " +
-        "WHERE type = :dynamic_type " +
-          "AND folder_type IS NULL " +
-      ")");
-    fixFoldersAsDynamic.params["dynamic_type"] = PlacesUtils.bookmarks.TYPE_DYNAMIC_CONTAINER;
-    fixFoldersAsDynamic.params["folder_type"] = PlacesUtils.bookmarks.TYPE_FOLDER;
-    cleanupStatements.push(fixFoldersAsDynamic);
-
-    
-    
-    
     let fixInvalidParents = DBConn.createAsyncStatement(
       "UPDATE moz_bookmarks SET parent = :unsorted_folder WHERE id NOT IN ( " +
         "SELECT folder_id FROM moz_bookmarks_roots " +  
@@ -544,13 +528,12 @@ let PlacesDBUtils = {
         "SELECT id FROM moz_bookmarks b " +
         "WHERE EXISTS " +
           "(SELECT id FROM moz_bookmarks WHERE id = b.parent " +
-            "AND type IN (:bookmark_type, :separator_type, :dynamic_type) " +
+            "AND type IN (:bookmark_type, :separator_type) " +
             "LIMIT 1) " +
       ")");
     fixInvalidParents.params["unsorted_folder"] = PlacesUtils.unfiledBookmarksFolderId;
     fixInvalidParents.params["bookmark_type"] = PlacesUtils.bookmarks.TYPE_BOOKMARK;
     fixInvalidParents.params["separator_type"] = PlacesUtils.bookmarks.TYPE_SEPARATOR;
-    fixInvalidParents.params["dynamic_type"] = PlacesUtils.bookmarks.TYPE_DYNAMIC_CONTAINER;
     cleanupStatements.push(fixInvalidParents);
 
     

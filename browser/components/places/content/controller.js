@@ -459,7 +459,6 @@ PlacesController.prototype = {
 
 
 
-
   _buildSelectionMetadata: function PC__buildSelectionMetadata() {
     var metadata = [];
     var root = this._view.result.root;
@@ -489,9 +488,6 @@ PlacesController.prototype = {
                 break;
             }
           }
-          break;
-        case Ci.nsINavHistoryResultNode.RESULT_TYPE_DYNAMIC_CONTAINER:
-          nodeData["dynamiccontainer"] = true;
           break;
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER:
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT:
