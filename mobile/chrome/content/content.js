@@ -382,6 +382,16 @@ let Content = {
         if (!element)
           return;
 
+#ifdef MOZ_PLATFORM_MAEMO
+        if (element instanceof Ci.nsIDOMHTMLEmbedElement) {
+          
+          
+          this._sendMouseEvent("mousedown", element, x, y, 2);
+          this._sendMouseEvent("mouseup", element, x, y, 2);
+          break;
+        }
+#endif
+
         ContextHandler.messageId = json.messageId;
 
         let event = content.document.createEvent("PopupEvents");
@@ -499,7 +509,7 @@ let Content = {
     gDOMUtils.setContentState(content.document.documentElement, kStateActive);
   },
 
-  _sendMouseEvent: function _sendMouseEvent(aName, aElement, aX, aY) {
+  _sendMouseEvent: function _sendMouseEvent(aName, aElement, aX, aY, aButton) {
     
     if (!(aElement instanceof HTMLHtmlElement)) {
       let isTouchClick = true;
@@ -523,7 +533,8 @@ let Content = {
 
     let scrollOffset = Util.getScrollOffset(content);
     let windowUtils = Util.getWindowUtils(content);
-    windowUtils.sendMouseEventToWindow(aName, aX - scrollOffset.x, aY - scrollOffset.y, 0, 1, 0, true);
+    aButton = aButton || 0;
+    windowUtils.sendMouseEventToWindow(aName, aX - scrollOffset.x, aY - scrollOffset.y, aButton, 1, 0, true);
   },
 
   _setTextZoom: function _setTextZoom(aZoom) {
