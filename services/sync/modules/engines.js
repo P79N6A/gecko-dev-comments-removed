@@ -324,11 +324,6 @@ SyncEngine.prototype = {
     }
   },
 
-  _changeItemID: function SyncEngine__changeItemID(oldID, newID) {
-    let self = yield;
-    throw "_changeRecordID must be overridden in a subclass";
-  },
-
   _recDepth: function SyncEngine__recDepth(rec) {
     
     if (rec.depth)
@@ -508,9 +503,8 @@ SyncEngine.prototype = {
                                              this.outgoing[o].id,
                                              this.incoming[i].id);
           
-          yield this._changeItemID.async(this, self.cb,
-                                         this.outgoing[o].id,
-                                         this.incoming[i].id);
+          this._store.changeItemID(this.outgoing[o].id,
+                                   this.incoming[i].id);
           delete this.incoming[i];
           delete this.outgoing[o];
           break;
