@@ -58,9 +58,10 @@ function next() {
 
 
 
-function addTab(aURI) {
+
+function addTab(aURI, aCallback) {
   let tab = gBrowser.selectedTab = gBrowser.addTab(aURI);
-  whenLoaded(tab.linkedBrowser);
+  whenLoaded(tab.linkedBrowser, aCallback);
 }
 
 

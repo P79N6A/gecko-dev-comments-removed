@@ -19,19 +19,7 @@ XPCOMUtils.defineLazyGetter(this, "Sanitizer", function () {
 
 function runTests() {
   yield clearHistory();
-
-  
-  yield addTab(URL);
-  yield whenFileExists();
-  gBrowser.removeTab(gBrowser.selectedTab);
-
-  
-  yield clearHistory();
-
-  
-  yield addTab(URL);
-  yield whenFileExists();
-  gBrowser.removeTab(gBrowser.selectedTab);
+  yield createThumbnail();
 
   
   PageThumbsStorage.copy(URL, URL_COPY);
@@ -42,9 +30,31 @@ function runTests() {
   isnot(PageThumbsStorage.getFileForURL(URL_COPY).lastModifiedTime, mtime,
         "thumbnail file was updated");
 
+  let file = PageThumbsStorage.getFileForURL(URL);
+  let fileCopy = PageThumbsStorage.getFileForURL(URL_COPY);
+
+  
+  
+  while (file.exists() || fileCopy.exists()) {
+    yield clearHistory();
+  }
+
+  yield createThumbnail();
+
   
   yield clearHistory(true);
-  ok(!copy.exists(), "copy of thumbnail has been removed");
+
+  
+  while (file.exists()) {
+    
+    
+    let time = Date.now() * 1000;
+    let trans = Ci.nsINavHistoryService.TRANSITION_LINK;
+    PlacesUtils.history.addVisit(makeURI(URL), time, null, trans, false, 0);
+
+    
+    yield clearHistory(true);
+  }
 }
 
 function clearHistory(aUseRange) {
@@ -65,25 +75,33 @@ function clearHistory(aUseRange) {
   if (aUseRange) {
     let usec = Date.now() * 1000;
     s.range = [usec - 10 * 60 * 1000 * 1000, usec];
+    s.ignoreTimespan = false;
   }
 
   s.sanitize();
   s.range = null;
+  s.ignoreTimespan = true;
 
-  executeSoon(function () {
-    if (PageThumbsStorage.getFileForURL(URL).exists())
-      clearHistory(aUseRange);
-    else
+  executeSoon(next);
+}
+
+function createThumbnail() {
+  addTab(URL, function () {
+    whenFileExists(function () {
+      gBrowser.removeTab(gBrowser.selectedTab);
       next();
+    });
   });
 }
 
-function whenFileExists() {
-  let callback = whenFileExists;
-
+function whenFileExists(aCallback) {
+  let callback;
   let file = PageThumbsStorage.getFileForURL(URL);
-  if (file.exists() && file.fileSize)
-    callback = next;
+  if (file.exists() && file.fileSize) {
+    callback = aCallback;
+  } else {
+    callback = function () whenFileExists(aCallback);
+  }
 
   executeSoon(callback);
 }
