@@ -1008,7 +1008,7 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
   
   
   
-  if (NS_SUCCEEDED(status)) {
+  if (mImage && NS_SUCCEEDED(status)) {
 
     
     mImageStatus |= imgIRequest::STATUS_LOAD_COMPLETE;
