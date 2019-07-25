@@ -69,6 +69,21 @@ public:
   static nsIScriptGlobalObject *GetDynamicScriptGlobal(JSContext *aContext);
 
   static nsIScriptContext *GetDynamicScriptContext(JSContext *aContext);
+};
+
+
+class nsDependentJSString : public nsDependentString
+{
+public:
+  
+
+
+
+  explicit nsDependentJSString(jsid id)
+    : nsDependentString(JS_GetInternedStringChars(JSID_TO_STRING(id)),
+                        JS_GetStringLength(JSID_TO_STRING(id)))
+  {
+  }
 
   
 
@@ -76,30 +91,26 @@ public:
 
 
 
-
-
-  static PRUint64 GetCurrentlyRunningCodeWindowID(JSContext *aContext);
-};
-
-
-class nsDependentJSString : public nsDependentString
-{
-public:
-  explicit nsDependentJSString(jsval v)
-    : nsDependentString((PRUnichar *)::JS_GetStringChars(JSVAL_TO_STRING(v)),
-                        ::JS_GetStringLength(JSVAL_TO_STRING(v)))
+  nsDependentJSString()
   {
   }
 
-  explicit nsDependentJSString(jsid id)
-    : nsDependentString((PRUnichar *)::JS_GetStringChars(JSID_TO_STRING(id)),
-                        ::JS_GetStringLength(JSID_TO_STRING(id)))
+  JSBool init(JSContext* aContext, JSString* str)
   {
+      size_t length;
+      const jschar* chars = JS_GetStringCharsZAndLength(aContext, str, &length);
+      if (!chars)
+          return JS_FALSE;
+
+      NS_ASSERTION(IsEmpty(), "init() on initialized string");
+      nsDependentString* base = this;
+      new(base) nsDependentString(chars, length);
+      return JS_TRUE;
   }
 
-  explicit nsDependentJSString(JSString *str)
-    : nsDependentString((PRUnichar *)::JS_GetStringChars(str), ::JS_GetStringLength(str))
+  JSBool init(JSContext* aContext, const jsval &v)
   {
+      return init(aContext, JSVAL_TO_STRING(v));
   }
 
   ~nsDependentJSString()

@@ -327,11 +327,17 @@ JSBool XPCVariant::InitializeData(XPCCallContext& ccx)
         NS_ASSERTION(mData.mType == nsIDataType::VTYPE_EMPTY,
                      "Why do we already have data?");
 
-        mData.u.wstr.mWStringValue = 
-            reinterpret_cast<PRUnichar*>(JS_GetStringChars(str));
         
         
-        mData.u.wstr.mWStringLength = (PRUint32)JS_GetStringLength(str);
+        size_t length;
+        const jschar *chars = JS_GetStringCharsZAndLength(ccx, str, &length);
+        if (!chars)
+            return JS_FALSE;
+
+        mData.u.wstr.mWStringValue = const_cast<jschar *>(chars);
+        
+        
+        mData.u.wstr.mWStringLength = (PRUint32)length;
         mData.mType = nsIDataType::VTYPE_WSTRING_SIZE_IS;
         
         return JS_TRUE;

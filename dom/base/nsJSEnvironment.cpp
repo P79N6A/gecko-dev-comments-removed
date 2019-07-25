@@ -724,8 +724,13 @@ static JSBool
 ChangeCase(JSContext *cx, JSString *src, jsval *rval,
            void(* changeCaseFnc)(const nsAString&, nsAString&))
 {
+  nsDependentJSString depStr;
+  if (!depStr.init(cx, src)) {
+    return JS_FALSE;
+  }
+
   nsAutoString result;
-  changeCaseFnc(nsDependentJSString(src), result);
+  changeCaseFnc(depStr, result);
 
   JSString *ucstr = JS_NewUCStringCopyN(cx, (jschar*)result.get(), result.Length());
   if (!ucstr) {
@@ -779,11 +784,14 @@ LocaleCompare(JSContext *cx, JSString *src1, JSString *src2, jsval *rval)
     }
   }
 
+  nsDependentJSString depStr1, depStr2;
+  if (!depStr1.init(cx, src1) || !depStr2.init(cx, src2)) {
+    return JS_FALSE;
+  }
+
   PRInt32 result;
   rv = gCollation->CompareString(nsICollation::kCollationStrengthDefault,
-                                 nsDependentJSString(src1),
-                                 nsDependentJSString(src2),
-                                 &result);
+                                 depStr1, depStr2, &result);
 
   if (NS_FAILED(rv)) {
     nsDOMClassInfo::ThrowJSException(cx, rv);
@@ -1591,27 +1599,36 @@ JSValueToAString(JSContext *cx, jsval val, nsAString *result,
   }
 
   JSString* jsstring = ::JS_ValueToString(cx, val);
-  if (jsstring) {
-    result->Assign(reinterpret_cast<const PRUnichar*>
-                                   (::JS_GetStringChars(jsstring)),
-                   ::JS_GetStringLength(jsstring));
-  } else {
-    result->Truncate();
+  if (!jsstring) {
+    goto error;
+  }
 
+  size_t length;
+  const jschar *chars;
+  chars = ::JS_GetStringCharsAndLength(cx, jsstring, &length);
+  if (!chars) {
+    goto error;
+  }
+
+  result->Assign(chars, length);
+  return NS_OK;
+
+error:
+  
+  
+  
+
+  result->Truncate();
+
+  if (isUndefined) {
+    *isUndefined = PR_TRUE;
+  }
+
+  if (!::JS_IsExceptionPending(cx)) {
     
     
-    
 
-    if (isUndefined) {
-      *isUndefined = PR_TRUE;
-    }
-
-    if (!::JS_IsExceptionPending(cx)) {
-      
-      
-
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+    return NS_ERROR_OUT_OF_MEMORY;
   }
 
   return NS_OK;
