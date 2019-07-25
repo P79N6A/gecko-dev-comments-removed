@@ -97,6 +97,10 @@ h2 {
   -moz-user-select: none;  
 }
 
+.debug {
+  font-size: 80%;
+}
+
 .hidden {
   display: none;
 }
