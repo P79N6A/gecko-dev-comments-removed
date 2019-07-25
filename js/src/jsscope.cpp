@@ -400,7 +400,7 @@ JSObject::getChildProperty(JSContext *cx, Shape *parent, Shape &child)
             
             JS_ASSERT(inDictionaryMode() ||
                       parent->hasMissingSlot() ||
-                      child.slot() == parent->slot() + 1);
+                      child.slot() == parent->maybeSlot() + 1);
         }
     }
 
