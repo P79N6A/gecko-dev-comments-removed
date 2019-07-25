@@ -289,27 +289,12 @@ nsMathMLFrame::GetRuleThickness(nsRenderingContext& aRenderingContext,
   nscoord xHeight;
   aFontMetrics->GetXHeight(xHeight);
   PRUnichar overBar = 0x00AF;
-  nsBoundingMetrics bm;
-  nsresult rv = aRenderingContext.GetBoundingMetrics(&overBar, PRUint32(1), bm);
-  if (NS_SUCCEEDED(rv)) {
-    aRuleThickness = bm.ascent + bm.descent;
-  }
-  if (NS_FAILED(rv) || aRuleThickness <= 0 || aRuleThickness >= xHeight) {
+  nsBoundingMetrics bm = aRenderingContext.GetBoundingMetrics(&overBar, 1);
+  aRuleThickness = bm.ascent + bm.descent;
+  if (aRuleThickness <= 0 || aRuleThickness >= xHeight) {
     
     GetRuleThickness(aFontMetrics, aRuleThickness);
   }
-
-#if 0
-  nscoord oldRuleThickness;
-  GetRuleThickness(aFontMetrics, oldRuleThickness);
-
-  PRUnichar sqrt = 0xE063; 
-  rv = aRenderingContext.GetBoundingMetrics(&sqrt, PRUint32(1), bm);
-  nscoord sqrtrule = bm.ascent; 
-
-  printf("xheight:%4d rule:%4d oldrule:%4d  sqrtrule:%4d\n",
-          xHeight, aRuleThickness, oldRuleThickness, sqrtrule);
-#endif
 }
 
  void
@@ -327,12 +312,9 @@ nsMathMLFrame::GetAxisHeight(nsRenderingContext& aRenderingContext,
   nscoord xHeight;
   aFontMetrics->GetXHeight(xHeight);
   PRUnichar minus = 0x2212; 
-  nsBoundingMetrics bm;
-  nsresult rv = aRenderingContext.GetBoundingMetrics(&minus, PRUint32(1), bm);
-  if (NS_SUCCEEDED(rv)) {
-    aAxisHeight = bm.ascent - (bm.ascent + bm.descent)/2;
-  }
-  if (NS_FAILED(rv) || aAxisHeight <= 0 || aAxisHeight >= xHeight) {
+  nsBoundingMetrics bm = aRenderingContext.GetBoundingMetrics(&minus, 1);
+  aAxisHeight = bm.ascent - (bm.ascent + bm.descent)/2;
+  if (aAxisHeight <= 0 || aAxisHeight >= xHeight) {
     
     GetAxisHeight(aFontMetrics, aAxisHeight);
   }

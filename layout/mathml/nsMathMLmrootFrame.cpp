@@ -270,8 +270,8 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   nscoord ruleThickness, leading, em;
   GetRuleThickness(renderingContext, fm, ruleThickness);
 
-  nsBoundingMetrics bmOne;
-  renderingContext.GetBoundingMetrics(NS_LITERAL_STRING("1").get(), 1, bmOne);
+  PRUnichar one = '1';
+  nsBoundingMetrics bmOne = renderingContext.GetBoundingMetrics(&one, 1);
 
   
   
