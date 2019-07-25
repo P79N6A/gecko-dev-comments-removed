@@ -1667,7 +1667,7 @@ nsNSSComponent::InitializeNSS(bool showWarningBox)
     cfmSecurityPath->AppendNative(NS_LITERAL_CSTRING("Security"));
   #endif
 
-  #ifdef defined(XP_MACOSX)
+  #if defined(XP_MACOSX)
     
     
     
