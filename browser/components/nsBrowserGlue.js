@@ -1466,6 +1466,11 @@ ContentPermissionPrompt.prototype = {
       },
     };
 
+    
+    
+    
+    
+
     var message;
     var secondaryActions = [];
 

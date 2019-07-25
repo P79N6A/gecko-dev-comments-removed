@@ -44,6 +44,7 @@
 #include "nsAHttpTransaction.h"
 #include "nsAHttpConnection.h"
 #include "nsCOMPtr.h"
+#include "nsInt64.h"
 
 #include "nsIPipe.h"
 #include "nsIInputStream.h"
@@ -178,8 +179,8 @@ private:
 
     nsCString                       mLineBuf;         
 
-    PRInt64                         mContentLength;   
-    PRInt64                         mContentRead;     
+    nsInt64                         mContentLength;   
+    nsInt64                         mContentRead;     
 
     
     
@@ -198,21 +199,20 @@ private:
     PRUint8                         mCaps;
 
     
-    
-    PRPackedBool                    mClosed;
-    PRPackedBool                    mConnected;
-    PRPackedBool                    mHaveStatusLine;
-    PRPackedBool                    mHaveAllHeaders;
-    PRPackedBool                    mTransactionDone;
-    PRPackedBool                    mResponseIsComplete;
-    PRPackedBool                    mDidContentStart;
-    PRPackedBool                    mNoContent; 
-    PRPackedBool                    mSentData;
-    PRPackedBool                    mReceivedData;
-    PRPackedBool                    mStatusEventPending;
-    PRPackedBool                    mHasRequestBody;
-    PRPackedBool                    mSSLConnectFailed;
-    PRPackedBool                    mHttpResponseMatched;
+    PRUint32                        mClosed             : 1;
+    PRUint32                        mConnected          : 1;
+    PRUint32                        mHaveStatusLine     : 1;
+    PRUint32                        mHaveAllHeaders     : 1;
+    PRUint32                        mTransactionDone    : 1;
+    PRUint32                        mResponseIsComplete : 1;
+    PRUint32                        mDidContentStart    : 1;
+    PRUint32                        mNoContent          : 1; 
+    PRUint32                        mSentData           : 1;
+    PRUint32                        mReceivedData       : 1;
+    PRUint32                        mStatusEventPending : 1;
+    PRUint32                        mHasRequestBody     : 1;
+    PRUint32                        mSSLConnectFailed   : 1;
+    PRUint32                        mHttpResponseMatched: 1;
 
     
     

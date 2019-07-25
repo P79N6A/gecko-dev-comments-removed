@@ -756,11 +756,6 @@ pref("network.http.qos", 0);
 
 
 
-pref("network.http.connection-retry-timeout", 250);
-
-
-
-
 
 pref("network.ftp.data.qos", 0);
 pref("network.ftp.control.qos", 0);

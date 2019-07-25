@@ -45,6 +45,7 @@
 #include "nsCOMPtr.h"
 #include "nsCRT.h"
 #include "prlog.h"
+#include "nsInt64.h"
 #include "nsIClassInfoImpl.h"
 #include "nsAtomicRefcnt.h"
 
@@ -153,7 +154,7 @@ private:
 
     
     nsrefcnt                       mReaderRefCnt;
-    PRInt64                        mLogicalOffset;
+    nsInt64                        mLogicalOffset;
     PRPackedBool                   mBlocking;
 
     
@@ -207,7 +208,7 @@ private:
 
     
     nsrefcnt                        mWriterRefCnt;
-    PRInt64                         mLogicalOffset;
+    nsInt64                         mLogicalOffset;
     PRPackedBool                    mBlocking;
 
     
