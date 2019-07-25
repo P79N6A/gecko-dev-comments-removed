@@ -460,14 +460,14 @@ nsSVGUtils::GetCTM(nsSVGElement *aElement, bool aScreenCTM)
     currentDoc->FlushPendingNotifications(Flush_Layout);
   }
 
-  gfxMatrix matrix = aElement->PrependLocalTransformTo(gfxMatrix());
+  gfxMatrix matrix = aElement->PrependLocalTransformsTo(gfxMatrix());
   nsSVGElement *element = aElement;
   nsIContent *ancestor = aElement->GetFlattenedTreeParent();
 
   while (ancestor && ancestor->IsSVG() &&
                      ancestor->Tag() != nsGkAtoms::foreignObject) {
     element = static_cast<nsSVGElement*>(ancestor);
-    matrix *= element->PrependLocalTransformTo(gfxMatrix()); 
+    matrix *= element->PrependLocalTransformsTo(gfxMatrix()); 
     if (!aScreenCTM && EstablishesViewport(element)) {
       if (!element->NodeInfo()->Equals(nsGkAtoms::svg, kNameSpaceID_SVG) &&
           !element->NodeInfo()->Equals(nsGkAtoms::symbol, kNameSpaceID_SVG)) {

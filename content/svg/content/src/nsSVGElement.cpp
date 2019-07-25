@@ -1486,7 +1486,7 @@ nsSVGElement::GetCtx() const
 }
 
  gfxMatrix
-nsSVGElement::PrependLocalTransformTo(const gfxMatrix &aMatrix) const
+nsSVGElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix) const
 {
   return aMatrix;
 }

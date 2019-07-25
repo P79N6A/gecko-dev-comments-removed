@@ -488,10 +488,10 @@ nsSVGUseElement::UnlinkSource()
 
 
  gfxMatrix
-nsSVGUseElement::PrependLocalTransformTo(const gfxMatrix &aMatrix) const
+nsSVGUseElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix) const
 {
   
-  gfxMatrix matrix = nsSVGUseElementBase::PrependLocalTransformTo(aMatrix);
+  gfxMatrix matrix = nsSVGUseElementBase::PrependLocalTransformsTo(aMatrix);
 
   
   float x, y;
