@@ -161,6 +161,11 @@ ClientEngine.prototype = {
     }
   },
 
+  
+  _reconcile: function _reconcile() {
+    return true;
+  },
+
   _resetClient: function ClientEngine__resetClient() {
     SyncEngine.prototype._resetClient.call(this);
     this._store.wipe();
