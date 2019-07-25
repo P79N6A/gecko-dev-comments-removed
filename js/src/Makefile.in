@@ -226,6 +226,7 @@ INSTALLED_HEADERS = \
 		jsscript.h \
 		jsscriptinlines.h \
 		jsstaticcheck.h \
+		jsstdint.h \
 		jsstr.h \
 		jstask.h \
 		jstracer.h \
@@ -239,6 +240,8 @@ INSTALLED_HEADERS = \
 		jswrapper.h \
 		jsxdrapi.h \
 		jsxml.h \
+		jsval.h \
+		jsvalue.h \
 		prmjtime.h \
 		$(NULL)
 
@@ -456,7 +459,6 @@ endif
 
 ifdef JS_HAS_CTYPES
 DEFINES		+= -DJS_HAS_CTYPES
-DEFINES         += -DDLL_PREFIX=\"$(DLL_PREFIX)\" -DDLL_SUFFIX=\"$(DLL_SUFFIX)\"
 endif
 
 ifdef JS_NO_THIN_LOCKS

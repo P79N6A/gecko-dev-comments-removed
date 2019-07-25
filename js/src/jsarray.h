@@ -46,14 +46,49 @@
 #include "jspubtd.h"
 #include "jsobj.h"
 
-JS_BEGIN_EXTERN_C
-
 #define ARRAY_CAPACITY_MIN      7
 
 extern JSBool
-js_IdIsIndex(jsval id, jsuint *indexp);
+js_StringIsIndex(JSString *str, jsuint *indexp);
 
-extern JSClass js_ArrayClass, js_SlowArrayClass;
+inline JSBool
+js_IdIsIndex(jsid id, jsuint *indexp)
+{
+    if (JSID_IS_INT(id)) {
+        jsint i;
+        i = JSID_TO_INT(id);
+        if (i < 0)
+            return JS_FALSE;
+        *indexp = (jsuint)i;
+        return JS_TRUE;
+    }
+
+    if (JS_UNLIKELY(!JSID_IS_STRING(id)))
+        return JS_FALSE;
+
+    return js_StringIsIndex(JSID_TO_STRING(id), indexp);
+}
+
+
+inline JSBool
+js_IdValIsIndex(jsval id, jsuint *indexp)
+{
+    if (JSVAL_IS_INT(id)) {
+        jsint i;
+        i = JSVAL_TO_INT(id);
+        if (i < 0)
+            return JS_FALSE;
+        *indexp = (jsuint)i;
+        return JS_TRUE;
+    }
+
+    if (!JSVAL_IS_STRING(id))
+        return JS_FALSE;
+
+    return js_StringIsIndex(JSVAL_TO_STRING(id), indexp);
+}
+
+extern js::Class js_ArrayClass, js_SlowArrayClass;
 
 inline bool
 JSObject::isDenseArray() const
@@ -112,7 +147,7 @@ extern JSObject * JS_FASTCALL
 js_NewArrayWithSlots(JSContext* cx, JSObject* proto, uint32 len);
 
 extern JSObject *
-js_NewArrayObject(JSContext *cx, jsuint length, const jsval *vector, bool holey = false);
+js_NewArrayObject(JSContext *cx, jsuint length, const js::Value *vector, bool holey = false);
 
 
 extern JSObject *
@@ -146,6 +181,10 @@ js_IsArrayLike(JSContext *cx, JSObject *obj, JSBool *answerp, jsuint *lengthp);
 typedef JSBool (*JSComparator)(void *arg, const void *a, const void *b,
                                int *result);
 
+enum JSMergeSortElemType {
+    JS_SORTING_VALUES,
+    JS_SORTING_GENERIC
+};
 
 
 
@@ -153,17 +192,21 @@ typedef JSBool (*JSComparator)(void *arg, const void *a, const void *b,
 
 
 
-extern JSBool
+
+
+
+
+extern bool
 js_MergeSort(void *vec, size_t nel, size_t elsize, JSComparator cmp,
-             void *arg, void *tmp);
+             void *arg, void *tmp, JSMergeSortElemType elemType);
 
 #ifdef DEBUG_ARRAYS
 extern JSBool
-js_ArrayInfo(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
+js_ArrayInfo(JSContext *cx, JSObject *obj, uintN argc, js::Value *argv, js::Value *rval);
 #endif
 
-extern JSBool JS_FASTCALL
-js_ArrayCompPush(JSContext *cx, JSObject *obj, jsval v);
+extern JSBool
+js_ArrayCompPush(JSContext *cx, JSObject *obj, const js::Value &vp);
 
 
 
@@ -192,12 +235,17 @@ js_PrototypeHasIndexedProperties(JSContext *cx, JSObject *obj);
 
 
 JSBool
-js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, JSProperty *prop,
-                             jsval *vp);
+js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, jsid id,
+                             js::Value *vp);
 
 
 JSBool
-js_Array(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
+js_Array(JSContext* cx, JSObject* obj, uintN argc, js::Value* argv, js::Value* rval);
+
+
+
+
+
 
 
 
@@ -211,7 +259,7 @@ js_Array(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
 
 
 JS_FRIEND_API(JSObject *)
-js_NewArrayObjectWithCapacity(JSContext *cx, jsuint capacity, jsval **vector);
+js_NewArrayObjectWithCapacity(JSContext *cx, uint32_t capacity, jsval **vector);
 
 
 
@@ -232,7 +280,5 @@ js_CloneDensePrimitiveArray(JSContext *cx, JSObject *obj, JSObject **clone);
 
 JS_FRIEND_API(JSBool)
 js_IsDensePrimitiveArray(JSObject *obj);
-
-JS_END_EXTERN_C
 
 #endif 

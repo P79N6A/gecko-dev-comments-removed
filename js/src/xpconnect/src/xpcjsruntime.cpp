@@ -1121,7 +1121,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     DOM_InitInterfaces();
 
     
-    mStrIDs[0] = 0;
+    mStrIDs[0] = JSID_VOID;
 
     mJSRuntime = JS_NewRuntime(32L * 1024L * 1024L); 
     if(mJSRuntime)
@@ -1197,7 +1197,7 @@ XPCJSRuntime::OnJSContextNew(JSContext *cx)
 
     
     JSBool ok = JS_TRUE;
-    if(!mStrIDs[0])
+    if(JSID_IS_VOID(mStrIDs[0]))
     {
         JS_SetGCParameterForThread(cx, JSGC_MAX_CODE_CACHE_BYTES, 16 * 1024 * 1024);
         JSAutoRequest ar(cx);
@@ -1206,7 +1206,7 @@ XPCJSRuntime::OnJSContextNew(JSContext *cx)
             JSString* str = JS_InternString(cx, mStrings[i]);
             if(!str || !JS_ValueToId(cx, STRING_TO_JSVAL(str), &mStrIDs[i]))
             {
-                mStrIDs[0] = 0;
+                mStrIDs[0] = JSID_VOID;
                 ok = JS_FALSE;
                 break;
             }
@@ -1224,8 +1224,8 @@ XPCJSRuntime::OnJSContextNew(JSContext *cx)
     if (!xpc)
         return JS_FALSE;
 
-    JS_SetNativeStackQuota(cx, 128 * sizeof(size_t) * 1024);
-    JS_SetScriptStackQuota(cx, 25 * sizeof(size_t) * 1024 * 1024);
+    JS_SetNativeStackQuota(cx, 512 * 1024);
+    JS_SetScriptStackQuota(cx, 100 * 1024 * 1024);
     return JS_TRUE;
 }
 

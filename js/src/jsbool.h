@@ -46,27 +46,7 @@
 #include "jsapi.h"
 #include "jsobj.h"
 
-JS_BEGIN_EXTERN_C
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define JSVAL_HOLE_FLAG jsval(4 << JSVAL_TAGBITS)
-#define JSVAL_HOLE      (JSVAL_VOID | JSVAL_HOLE_FLAG)
-#define JSVAL_ARETURN   SPECIAL_TO_JSVAL(8)
-
-extern JSClass js_BooleanClass;
+extern js::Class js_BooleanClass;
 
 inline bool
 JSObject::isBoolean() const
@@ -84,8 +64,6 @@ extern JSBool
 js_BooleanToCharBuffer(JSContext *cx, JSBool b, JSCharBuffer &cb);
 
 extern JSBool
-js_ValueToBoolean(jsval v);
-
-JS_END_EXTERN_C
+js_ValueToBoolean(const js::Value &v);
 
 #endif 

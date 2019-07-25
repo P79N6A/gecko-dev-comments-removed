@@ -1,43 +1,43 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Indexed Database.
- *
- * The Initial Developer of the Original Code is
- * The Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Ben Turner <bent.mozilla@gmail.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-// XXX remove once we can get jsvals out of XPIDL
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "jscntxt.h"
 #include "jsapi.h"
 
@@ -87,7 +87,7 @@ public:
   PRUint16 GetSuccessResult(nsIWritableVariant* aResult);
 
 private:
-  // In-params.
+  
   const PRInt64 mOSID;
   const nsString mValue;
   const Key mKey;
@@ -111,14 +111,14 @@ public:
   PRUint16 GetSuccessResult(nsIWritableVariant* aResult);
 
 private:
-  // In-params.
+  
   const PRInt64 mOSID;
   const nsString mValue;
   const Key mKey;
   const bool mAutoIncrement;
 };
 
-} // anonymous namespace
+} 
 
 BEGIN_INDEXEDDB_NAMESPACE
 
@@ -139,7 +139,7 @@ private:
 
 END_INDEXEDDB_NAMESPACE
 
-// static
+
 already_AddRefed<IDBCursor>
 IDBCursor::Create(IDBRequest* aRequest,
                   IDBTransaction* aTransaction,
@@ -166,7 +166,7 @@ IDBCursor::Create(IDBRequest* aRequest,
   return cursor.forget();
 }
 
-// static
+
 already_AddRefed<IDBCursor>
 IDBCursor::Create(IDBRequest* aRequest,
                   IDBTransaction* aTransaction,
@@ -194,7 +194,7 @@ IDBCursor::Create(IDBRequest* aRequest,
   return cursor.forget();
 }
 
-// static
+
 already_AddRefed<IDBCursor>
 IDBCursor::Create(IDBRequest* aRequest,
                   IDBTransaction* aTransaction,
@@ -222,7 +222,7 @@ IDBCursor::Create(IDBRequest* aRequest,
   return cursor.forget();
 }
 
-// static
+
 already_AddRefed<IDBCursor>
 IDBCursor::CreateCommon(IDBRequest* aRequest,
                         IDBTransaction* aTransaction,
@@ -365,7 +365,7 @@ IDBCursor::GetValue(JSContext* aCx,
 }
 
 NS_IMETHODIMP
-IDBCursor::Continue(jsval aKey,
+IDBCursor::Continue(const jsval &aKey,
                     JSContext* aCx,
                     PRUint8 aOptionalArgCount,
                     PRBool* _retval)
@@ -410,7 +410,7 @@ IDBCursor::Continue(jsval aKey,
 }
 
 NS_IMETHODIMP
-IDBCursor::Update(jsval aValue,
+IDBCursor::Update(const jsval &aValue,
                   JSContext* aCx,
                   nsIIDBRequest** _retval)
 {
@@ -436,35 +436,35 @@ IDBCursor::Update(jsval aValue,
 
   js::AutoValueRooter clone(aCx);
   nsresult rv = nsContentUtils::CreateStructuredClone(aCx, aValue,
-                                                      clone.addr());
+                                                      clone.jsval_addr());
   if (NS_FAILED(rv)) {
     return rv;
   }
 
   if (!mObjectStore->KeyPath().IsEmpty()) {
-    // Make sure the object given has the correct keyPath value set on it or
-    // we will add it.
+    
+    
     const nsString& keyPath = mObjectStore->KeyPath();
     const jschar* keyPathChars = reinterpret_cast<const jschar*>(keyPath.get());
     const size_t keyPathLen = keyPath.Length();
 
     js::AutoValueRooter prop(aCx);
-    JSBool ok = JS_GetUCProperty(aCx, JSVAL_TO_OBJECT(clone.value()),
-                                 keyPathChars, keyPathLen, prop.addr());
+    JSBool ok = JS_GetUCProperty(aCx, JSVAL_TO_OBJECT(clone.jsval_value()),
+                                 keyPathChars, keyPathLen, prop.jsval_addr());
     NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
 
-    if (JSVAL_IS_VOID(prop.value())) {
-      rv = IDBObjectStore::GetJSValFromKey(key, aCx, prop.addr());
+    if (JSVAL_IS_VOID(prop.jsval_value())) {
+      rv = IDBObjectStore::GetJSValFromKey(key, aCx, prop.jsval_addr());
       NS_ENSURE_SUCCESS(rv, rv);
 
-      ok = JS_DefineUCProperty(aCx, JSVAL_TO_OBJECT(clone.value()),
-                               keyPathChars, keyPathLen, prop.value(), nsnull,
+      ok = JS_DefineUCProperty(aCx, JSVAL_TO_OBJECT(clone.jsval_value()),
+                               keyPathChars, keyPathLen, prop.jsval_value(), nsnull,
                                nsnull, JSPROP_ENUMERATE);
       NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
     }
     else {
       Key newKey;
-      rv = IDBObjectStore::GetKeyFromJSVal(prop.value(), newKey);
+      rv = IDBObjectStore::GetKeyFromJSVal(prop.jsval_value(), newKey);
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (newKey.IsUnset() || newKey.IsNull() || newKey != key) {
@@ -475,13 +475,13 @@ IDBCursor::Update(jsval aValue,
 
   nsTArray<IndexUpdateInfo> indexUpdateInfo;
   rv = IDBObjectStore::GetIndexUpdateInfo(mObjectStore->GetObjectStoreInfo(),
-                                          aCx, clone.value(), indexUpdateInfo);
+                                          aCx, clone.jsval_value(), indexUpdateInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIJSON> json(new nsJSON());
 
   nsString jsonValue;
-  rv = json->EncodeFromJSVal(clone.addr(), aCx, jsonValue);
+  rv = json->EncodeFromJSVal(clone.jsval_addr(), aCx, jsonValue);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsRefPtr<IDBRequest> request = GenerateWriteRequest();
@@ -570,7 +570,7 @@ UpdateHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
     return nsIIDBDatabaseException::CONSTRAINT_ERR;
   }
 
-  // Update our indexes if needed.
+  
   if (!mIndexUpdateInfo.IsEmpty()) {
     PRInt64 objectDataId = mAutoIncrement ? mKey.IntValue() : LL_MININT;
     rv = IDBObjectStore::UpdateIndexes(mTransaction, mOSID, mKey,
@@ -631,7 +631,7 @@ RemoveHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
   }
   NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseException::UNKNOWN_ERR);
 
-  // Search for it!
+  
   rv = stmt->Execute();
   NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseException::UNKNOWN_ERR);
 
@@ -667,7 +667,7 @@ ContinueRunnable::Run()
     return NS_OK;
   }
 
-  // Remove cached stuff from last time.
+  
   mCursor->mCachedKey = nsnull;
   mCursor->mCachedValue = JSVAL_VOID;
   mCursor->mHaveCachedValue = false;
@@ -705,7 +705,7 @@ ContinueRunnable::Run()
       NS_WARNING("Using a slow O(n) search for continue(key), do something "
                  "smarter!");
 
-      // Skip ahead to our next key match.
+      
       PRInt32 index = PRInt32(mCursor->mDataIndex);
 
       if (mCursor->mType == IDBCursor::INDEX) {

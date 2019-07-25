@@ -1222,7 +1222,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
                                            cx->debugHooks->
                                            debuggerHandlerData)) {
       case JSTRAP_RETURN:
-        fp->rval = rval;
+        fp->rval = js::Valueify(rval);
         return JS_TRUE;
       case JSTRAP_ERROR:
         cx->throwing = JS_FALSE;
@@ -1577,9 +1577,6 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
 
   jsval val;
 
-  rv = sSecurityManager->PushContextPrincipal(mContext, nsnull, principal);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsJSContext::TerminationFuncHolder holder(this);
 
   
@@ -1631,8 +1628,6 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
       *aIsUndefined = PR_TRUE;
     }
   }
-
-  sSecurityManager->PopContextPrincipal(mContext);
 
   
   if (NS_FAILED(stack->Pop(nsnull)))
@@ -1770,9 +1765,6 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   jsval val = JSVAL_VOID;
   jsval* vp = aRetValue ? &val : NULL;
 
-  rv = sSecurityManager->PushContextPrincipal(mContext, nsnull, principal);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsJSContext::TerminationFuncHolder holder(this);
 
   ++mExecuteDepth;
@@ -1821,8 +1813,6 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   }
 
   --mExecuteDepth;
-
-  sSecurityManager->PopContextPrincipal(mContext);
 
   
   if (NS_FAILED(stack->Pop(nsnull)))
@@ -1940,21 +1930,13 @@ nsJSContext::ExecuteScript(void *aScriptObject,
   jsval val;
   JSBool ok;
 
-  JSObject *scriptObj = (JSObject*)aScriptObject;
-  nsCOMPtr<nsIPrincipal> principal;
-
-  rv = sSecurityManager->GetObjectPrincipal(mContext, scriptObj, getter_AddRefs(principal));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = sSecurityManager->PushContextPrincipal(mContext, nsnull, principal);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsJSContext::TerminationFuncHolder holder(this);
   JSAutoRequest ar(mContext);
   ++mExecuteDepth;
   ok = ::JS_ExecuteScript(mContext,
                           (JSObject *)aScopeObject,
-                          (JSScript*)::JS_GetPrivate(mContext, scriptObj),
+                          (JSScript*)::JS_GetPrivate(mContext,
+                          (JSObject*)aScriptObject),
                           &val);
 
   if (ok) {
@@ -1971,8 +1953,6 @@ nsJSContext::ExecuteScript(void *aScriptObject,
   }
 
   --mExecuteDepth;
-
-  sSecurityManager->PopContextPrincipal(mContext);
 
   
   if (NS_FAILED(stack->Pop(nsnull)))
@@ -3073,10 +3053,10 @@ static JSPropertySpec OptionsProperties[] = {
 };
 
 static JSBool
-GetOptionsProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+GetOptionsProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
-  if (JSVAL_IS_INT(id)) {
-    uint32 optbit = (uint32) JSVAL_TO_INT(id);
+  if (JSID_IS_INT(id)) {
+    uint32 optbit = (uint32) JSID_TO_INT(id);
     if (((optbit & (optbit - 1)) == 0 && optbit <= JSOPTION_WERROR) ||
           optbit == JSOPTION_RELIMIT)
       *vp = (JS_GetOptions(cx) & optbit) ? JSVAL_TRUE : JSVAL_FALSE;
@@ -3085,10 +3065,10 @@ GetOptionsProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 }
 
 static JSBool
-SetOptionsProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
+SetOptionsProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
-  if (JSVAL_IS_INT(id)) {
-    uint32 optbit = (uint32) JSVAL_TO_INT(id);
+  if (JSID_IS_INT(id)) {
+    uint32 optbit = (uint32) JSID_TO_INT(id);
 
     
     
@@ -3966,7 +3946,7 @@ SetMemoryHighWaterMarkPrefChangedCallback(const char* aPrefName, void* aClosure)
     
     
     JS_SetGCParameter(nsJSRuntime::sRuntime, JSGC_MAX_MALLOC_BYTES,
-                      32L * 1024L * 1024L);
+                      64L * 1024L * 1024L);
     JS_SetGCParameter(nsJSRuntime::sRuntime, JSGC_MAX_BYTES,
                       0xffffffff);
   } else {

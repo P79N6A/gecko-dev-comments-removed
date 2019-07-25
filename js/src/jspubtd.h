@@ -44,6 +44,7 @@
 
 #include "jstypes.h"
 #include "jscompat.h"
+#include "jsval.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -52,8 +53,6 @@ typedef uint16    jschar;
 typedef int32     jsint;
 typedef uint32    jsuint;
 typedef float64   jsdouble;
-typedef jsword    jsval;
-typedef jsword    jsid;
 typedef int32     jsrefcount;   
 
 
@@ -150,13 +149,11 @@ typedef struct JSTracer          JSTracer;
 typedef struct JSIdArray         JSIdArray;
 typedef struct JSPropertyDescriptor JSPropertyDescriptor;
 typedef struct JSPropertySpec    JSPropertySpec;
-typedef struct JSObject          JSObject;
 typedef struct JSObjectMap       JSObjectMap;
 typedef struct JSObjectOps       JSObjectOps;
 typedef struct JSRuntime         JSRuntime;
 typedef struct JSScript          JSScript;
 typedef struct JSStackFrame      JSStackFrame;
-typedef struct JSString          JSString;
 typedef struct JSXDRState        JSXDRState;
 typedef struct JSExceptionState  JSExceptionState;
 typedef struct JSLocaleCallbacks JSLocaleCallbacks;
@@ -179,7 +176,7 @@ typedef class JSCrossCompartmentWrapper JSCrossCompartmentWrapper;
 
 
 typedef JSBool
-(* JSPropertyOp)(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+(* JSPropertyOp)(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 
 
@@ -237,7 +234,7 @@ typedef JSBool
 
 
 typedef JSBool
-(* JSResolveOp)(JSContext *cx, JSObject *obj, jsval id);
+(* JSResolveOp)(JSContext *cx, JSObject *obj, jsid id);
 
 
 
@@ -269,7 +266,7 @@ typedef JSBool
 
 
 typedef JSBool
-(* JSNewResolveOp)(JSContext *cx, JSObject *obj, jsval id, uintN flags,
+(* JSNewResolveOp)(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                    JSObject **objp);
 
 
@@ -330,7 +327,7 @@ typedef JSObjectOps *
 
 
 typedef JSBool
-(* JSCheckAccessOp)(JSContext *cx, JSObject *obj, jsval id, JSAccessMode mode,
+(* JSCheckAccessOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
                     jsval *vp);
 
 
@@ -346,7 +343,7 @@ typedef JSBool
 
 
 typedef JSBool
-(* JSHasInstanceOp)(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
+(* JSHasInstanceOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
 
 
 
@@ -418,7 +415,7 @@ typedef void
 
 
 typedef JSBool
-(* JSEqualityOp)(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
+(* JSEqualityOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
 
 
 

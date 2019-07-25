@@ -311,7 +311,7 @@ void
 nsEventListenerManager::Shutdown()
 {
   NS_IF_RELEASE(gSystemEventGroup);
-  sAddListenerID = JSVAL_VOID;
+  sAddListenerID = JSID_VOID;
   nsDOMEvent::Shutdown();
 }
 
@@ -841,8 +841,8 @@ nsEventListenerManager::RemoveScriptEventListener(nsIAtom* aName)
   return NS_OK;
 }
 
-jsval
-nsEventListenerManager::sAddListenerID = JSVAL_VOID;
+jsid
+nsEventListenerManager::sAddListenerID = JSID_VOID;
 
 NS_IMETHODIMP
 nsEventListenerManager::RegisterScriptEventListener(nsIScriptContext *aContext,
@@ -866,10 +866,10 @@ nsEventListenerManager::RegisterScriptEventListener(nsIScriptContext *aContext,
     return rv;
 
   if (cx) {
-    if (sAddListenerID == JSVAL_VOID) {
+    if (sAddListenerID == JSID_VOID) {
       JSAutoRequest ar(cx);
       sAddListenerID =
-        STRING_TO_JSVAL(::JS_InternString(cx, "addEventListener"));
+        INTERNED_STRING_TO_JSID(::JS_InternString(cx, "addEventListener"));
     }
 
     if (aContext->GetScriptTypeID() == nsIProgrammingLanguage::JAVASCRIPT) {
@@ -982,14 +982,6 @@ nsEventListenerManager::CompileEventHandlerInternal(nsIScriptContext *aContext,
         attrName = nsGkAtoms::onscroll;
       else if (aName == nsGkAtoms::onSVGZoom)
         attrName = nsGkAtoms::onzoom;
-#endif 
-#ifdef MOZ_SMIL
-      else if (aName == nsGkAtoms::onbeginEvent)
-        attrName = nsGkAtoms::onbegin;
-      else if (aName == nsGkAtoms::onrepeatEvent)
-        attrName = nsGkAtoms::onrepeat;
-      else if (aName == nsGkAtoms::onendEvent)
-        attrName = nsGkAtoms::onend;
 #endif 
 
       content->GetAttr(kNameSpaceID_None, attrName, handlerBody);

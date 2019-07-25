@@ -111,6 +111,7 @@ class nsIRunnable;
 class nsIInterfaceRequestor;
 template<class E> class nsCOMArray;
 struct JSRuntime;
+class nsICaseConversion;
 class nsIUGenCategory;
 class nsIWidget;
 class nsIDragSession;
@@ -157,7 +158,6 @@ enum EventNameType {
   EventNameType_XUL = 0x0002,
   EventNameType_SVGGraphic = 0x0004, 
   EventNameType_SVGSVG = 0x0008, 
-  EventNameType_SMIL = 0x0016, 
 
   EventNameType_HTMLXUL = 0x0003,
   EventNameType_All = 0xFFFF
@@ -221,11 +221,6 @@ public:
 
 
   static PRBool   IsCallerTrustedForCapability(const char* aCapability);
-
-  
-
-
-  static nsINode* GetCrossDocParentNode(nsINode* aChild);
 
   
 
@@ -614,6 +609,11 @@ public:
   static nsIWordBreaker* WordBreaker()
   {
     return sWordBreaker;
+  }
+  
+  static nsICaseConversion* GetCaseConv()
+  {
+    return sCaseConv;
   }
 
   static nsIUGenCategory* GetGenCat()
@@ -1568,33 +1568,17 @@ public:
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull,
-                             PRBool aAllowWrapping = PR_FALSE)
-  {
-    return WrapNative(cx, scope, native, nsnull, aIID, vp, aHolder,
-                      aAllowWrapping);
-  }
+                             PRBool aAllowWrapping = PR_FALSE);
 
   
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, jsval *vp,
+                             nsISupports *native,  jsval *vp,
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull,
                              PRBool aAllowWrapping = PR_FALSE)
   {
-    return WrapNative(cx, scope, native, nsnull, nsnull, vp, aHolder,
-                      aAllowWrapping);
-  }
-  static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, nsWrapperCache *cache,
-                             jsval *vp,
-                             
-                             
-                             nsIXPConnectJSObjectHolder** aHolder = nsnull,
-                             PRBool aAllowWrapping = PR_FALSE)
-  {
-    return WrapNative(cx, scope, native, cache, nsnull, vp, aHolder,
-                      aAllowWrapping);
+    return WrapNative(cx, scope, native, nsnull, vp, aHolder, aAllowWrapping);
   }
 
   static void StripNullChars(const nsAString& aInStr, nsAString& aOutStr);
@@ -1685,12 +1669,6 @@ private:
   static PRBool CanCallerAccess(nsIPrincipal* aSubjectPrincipal,
                                 nsIPrincipal* aPrincipal);
 
-  static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, nsWrapperCache *cache,
-                             const nsIID* aIID, jsval *vp,
-                             nsIXPConnectJSObjectHolder** aHolder,
-                             PRBool aAllowWrapping);
-
   static nsIDOMScriptObjectFactory *sDOMScriptObjectFactory;
 
   static nsIXPConnect *sXPConnect;
@@ -1736,6 +1714,7 @@ private:
 
   static nsILineBreaker* sLineBreaker;
   static nsIWordBreaker* sWordBreaker;
+  static nsICaseConversion* sCaseConv;
   static nsIUGenCategory* sGenCat;
 
   
@@ -1824,7 +1803,7 @@ public:
 
   ~nsAutoGCRoot() {
     if (NS_SUCCEEDED(mResult)) {
-      RemoveJSGCRoot(mPtr, mRootType);
+      RemoveJSGCRoot((jsval *)mPtr, mRootType);
     }
   }
 

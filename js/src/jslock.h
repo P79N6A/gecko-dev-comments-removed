@@ -40,8 +40,8 @@
 #define jslock_h__
 
 #include "jstypes.h"
-#include "jsprvtd.h"    
-#include "jspubtd.h"    
+#include "jsapi.h"
+#include "jsprvtd.h"
 
 #ifdef JS_THREADSAFE
 # include "pratom.h"

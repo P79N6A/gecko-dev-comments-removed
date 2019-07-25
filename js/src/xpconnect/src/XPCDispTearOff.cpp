@@ -1,53 +1,53 @@
-/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the IDispatch implementation for XPConnect.
- *
- * The Initial Developer of the Original Code is
- * David Bradley.
- * Portions created by the Initial Developer are Copyright (C) 2002
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/**
- * \file XPCDispTearOff.cpp
- * Contains the implementation of the XPCDispTearoff class
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "xpcprivate.h"
 
-/**
- * Sets the COM error from a result code and text message. This is the base
- * implementation for subsequent string based overrides
- * @param hResult the COM error code to be used
- * @param message the message to put in the error
- * @return the error code passed in via hResult
- */
+
+
+
+
+
+
+
 static HRESULT Error(HRESULT hResult, const CComBSTR & message)
 {
     CComPtr<ICreateErrorInfo> pCreateError;
@@ -75,12 +75,12 @@ static HRESULT Error(HRESULT hResult, const CComBSTR & message)
 }
 
 
-/**
- * Sets the COM error from a result code and text message
- * @param hResult the COM error code to be used
- * @param message the message to put in the error
- * @return the error code passed in via hResult
- */
+
+
+
+
+
+
 inline
 HRESULT Error(HRESULT hResult, const char * message)
 {
@@ -88,11 +88,11 @@ HRESULT Error(HRESULT hResult, const char * message)
     return Error(hResult, someText);
 }
 
-/**
- * Helper function that converts an exception to a string
- * @param exception
- * @return the description of the exception
- */
+
+
+
+
+
 static void BuildMessage(nsIException * exception, nsCString & result)
 {
     nsXPIDLCString msg;
@@ -111,10 +111,10 @@ static void BuildMessage(nsIException * exception, nsCString & result)
     result += msg;
 }
 
-/**
- * Sets the COM error given an nsIException
- * @param exception the exception being set
- */
+
+
+
+
 inline
 static void SetCOMError(nsIException * exception)
 {
@@ -138,11 +138,11 @@ XPCDispatchTearOff::~XPCDispatchTearOff()
 NS_COM_IMPL_ADDREF(XPCDispatchTearOff)
 NS_COM_IMPL_RELEASE(XPCDispatchTearOff)
 
-// See bug 127982:
-//
-// Microsoft's InlineIsEqualGUID global function is multiply defined
-// in ATL and/or SDKs with varying namespace requirements. To save the control
-// from future grief, this method is used instead. 
+
+
+
+
+
 static inline BOOL _IsEqualGUID(REFGUID rguid1, REFGUID rguid2)
 {
    return (
@@ -195,10 +195,10 @@ STDMETHODIMP XPCDispatchTearOff::GetTypeInfoCount(unsigned int FAR * pctinfo)
 
 XPCDispTypeInfo * XPCDispatchTearOff::GetCOMTypeInfo()
 {
-    // If one was already created return it
+    
     if(mCOMTypeInfo)
         return mCOMTypeInfo;
-    // Build a new one, save the pointer and return it
+    
     XPCCallContext ccx(NATIVE_CALLER);
     if(!ccx.IsValid())
         return nsnull;
@@ -260,15 +260,15 @@ STDMETHODIMP XPCDispatchTearOff::Invoke(DISPID dispIdMember, REFIID riid,
         xpcc = nsnull;
         cx = nsnull;
     }
-    // Get the name as a flat string
-    // This isn't that efficient, but we have to make the conversion somewhere
+    
+    
     NS_LossyConvertUTF16toASCII name(pTypeInfo->GetNameForDispID(dispIdMember));
     if(name.IsEmpty())
         return E_FAIL;
-    // Decide if this is a getter or setter
+    
     PRBool getter = (wFlags & DISPATCH_PROPERTYGET) != 0;
     PRBool setter = (wFlags & DISPATCH_PROPERTYPUT) != 0;
-    // It's a property
+    
     if(getter || setter)
     {
         jsval val;
@@ -276,7 +276,7 @@ STDMETHODIMP XPCDispatchTearOff::Invoke(DISPID dispIdMember, REFIID riid,
         JSObject* obj;
         if(getter)
         {
-            // Get the property and convert the value
+            
             obj = GetJSObject();
             if(!obj)
                 return E_FAIL;
@@ -295,7 +295,7 @@ STDMETHODIMP XPCDispatchTearOff::Invoke(DISPID dispIdMember, REFIID riid,
         }
         else if(pDispParams->cArgs > 0)
         {
-            // Convert the property and then set it
+            
             if(!XPCDispConvert::COMToJS(ccx, pDispParams->rgvarg[0], val, err))
             {
                 nsCString msg("Failed to convert value for JS property ");
@@ -314,7 +314,7 @@ STDMETHODIMP XPCDispatchTearOff::Invoke(DISPID dispIdMember, REFIID riid,
             }
         }
     }
-    else // We're invoking a function
+    else 
     {
         jsval* stackbase = nsnull;
         jsval* sp = nsnull;
@@ -351,32 +351,32 @@ STDMETHODIMP XPCDispatchTearOff::Invoke(DISPID dispIdMember, REFIID riid,
         xpcc->SetException(nsnull);
         ccx.GetThreadData()->SetException(nsnull);
 
-        // We use js_Invoke so that the gcthings we use as args will be rooted
-        // by the engine as we do conversions and prepare to do the function
-        // call. This adds a fair amount of complexity, but it's a good
-        // optimization compared to calling JS_AddRoot for each item.
+        
+        
+        
+        
 
         js::LeaveTrace(cx);
 
-        // In the xpidl [function] case we are making sure now that the 
-        // JSObject is callable. If it is *not* callable then we silently 
-        // fallback to looking up the named property...
-        // (because jst says he thinks this fallback is 'The Right Thing'.)
-        //
-        // In the normal (non-function) case we just lookup the property by 
-        // name and as long as the object has such a named property we go ahead
-        // and try to make the call. If it turns out the named property is not
-        // a callable object then the JS engine will throw an error and we'll
-        // pass this along to the caller as an exception/result code.
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         fval = OBJECT_TO_JSVAL(obj);
         if(JS_TypeOfValue(ccx, fval) != JSTYPE_FUNCTION && 
             !JS_GetProperty(cx, obj, name.get(), &fval))
         {
-            // XXX We really want to factor out the error reporting better and
-            // specifically report the failure to find a function with this name.
-            // This is what we do below if the property is found but is not a
-            // function. We just need to factor better so we can get to that
-            // reporting path from here.
+            
+            
+            
+            
+            
             goto pre_call_clean_up;
         }
 
@@ -386,21 +386,21 @@ STDMETHODIMP XPCDispatchTearOff::Invoke(DISPID dispIdMember, REFIID riid,
             goto pre_call_clean_up;
         }
 
-        sp = stackbase = args.getvp();
+        sp = stackbase = Jsvalify(args.getvp());
 
-        // this is a function call, so push function and 'this'
+        
         *sp++ = fval;
         *sp++ = OBJECT_TO_JSVAL(thisObj);
 
-        // make certain we leave no garbage in the stack
+        
         for(i = 0; i < argc; i++)
         {
             sp[i] = JSVAL_VOID;
         }
 
         uintN err;
-        // build the args
-        // NOTE: COM expects args in DISPPARAMS to be in reverse order
+        
+        
         for (j = argc - 1; j >= 0; --j )
         {
             jsval val;
@@ -412,15 +412,15 @@ STDMETHODIMP XPCDispatchTearOff::Invoke(DISPID dispIdMember, REFIID riid,
             }
             else
             {
-                // create an 'out' object
+                
                 JSObject* out_obj = JS_NewObject(cx, nsnull, nsnull, nsnull);
                 if(!out_obj)
                 {
                     retval = NS_ERROR_OUT_OF_MEMORY;
                     goto pre_call_clean_up;
                 }
-                // We'll assume in/out
-                // TODO: I'm not sure we tell out vs in/out
+                
+                
                 JS_SetPropertyById(cx, out_obj,
                         rt->GetStringID(XPCJSRuntime::IDX_VALUE),
                         &val);
@@ -435,19 +435,19 @@ pre_call_clean_up:
         if(!readyToDoTheCall)
             goto done;
 
-        // do the deed - note exceptions
+        
 
         JS_ClearPendingException(cx);
 
         if(!JSVAL_IS_PRIMITIVE(fval))
         {
-            success = js_Invoke(cx, args, 0);
+            success = js::InvokeFriendAPI(cx, args, 0);
             result = stackbase[0];
         }
         else
         {
-            // The property was not an object so can't be a function.
-            // Let's build and 'throw' an exception.
+            
+            
 
             static const nsresult code =
                     NS_ERROR_XPC_JSOBJECT_HAS_NO_FUNCTION_NAMED;
@@ -475,14 +475,14 @@ pre_call_clean_up:
             goto done;
         }
 
-        ccx.GetThreadData()->SetException(nsnull); // XXX necessary?
+        ccx.GetThreadData()->SetException(nsnull); 
 
-        // convert out args and result
-        // NOTE: this is the total number of native params, not just the args
-        // Convert independent params only.
-        // When we later convert the dependent params (if any) we will know that
-        // the params upon which they depend will have already been converted -
-        // regardless of ordering.
+        
+        
+        
+        
+        
+        
 
         outConversionFailedIndex = paramCount;
         foundDependentParam = JS_FALSE;
@@ -505,8 +505,8 @@ pre_call_clean_up:
 
         if(outConversionFailedIndex != paramCount)
         {
-            // We didn't manage all the result conversions!
-            // We have to cleanup any junk that *did* get converted.
+            
+            
 
             for(PRUint32 index = 0; index < outConversionFailedIndex; index++)
             {
@@ -518,13 +518,13 @@ pre_call_clean_up:
         }
         else
         {
-            // set to whatever the JS code might have set as the result
+            
             retval = pending_result;
         }
 
 done:
-        // TODO: I think we may need to translate this error, 
-        // for now we'll pass through
+        
+        
         return retval;
     }
     return S_OK;

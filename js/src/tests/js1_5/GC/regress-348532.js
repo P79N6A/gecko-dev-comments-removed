@@ -63,14 +63,18 @@ function test()
 
   var recursionDepth = 0;
   function err() {
-    if (++recursionDepth == 128)
-      return new Error();
-    return err.apply(this, arguments);
+    try {
+        return err.apply(this, arguments);
+    } catch (e) {
+        if (!(e instanceof InternalError))
+            throw e;
+    }
+    return new Error();
   }
 
   
   
-  var error = err(s,s);
+  var error = err(s,s,s,s);
 
   print(error.stack.length);
 

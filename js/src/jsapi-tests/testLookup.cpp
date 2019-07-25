@@ -33,7 +33,7 @@ BEGIN_TEST(testLookup_bug522590)
 END_TEST(testLookup_bug522590)
 
 JSBool
-document_resolve(JSContext *cx, JSObject *obj, jsval id, uintN flags, JSObject **objp)
+document_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags, JSObject **objp)
 {
     
     jsvalRoot v(cx);

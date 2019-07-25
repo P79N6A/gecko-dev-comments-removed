@@ -560,7 +560,7 @@ def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
             f.write("    if (NS_FAILED(rv)) {\n")
             if isSetter:
                 f.write("        xpc_qsThrowBadSetterValue("
-                        "cx, rv, JSVAL_TO_OBJECT(*tvr.addr()), id);\n")
+                        "cx, rv, JSVAL_TO_OBJECT(*tvr.jsval_addr()), id);\n")
             elif haveCcx:
                 f.write("        xpc_qsThrowBadArgWithCcx(ccx, rv, %d);\n" % i)
             else:
@@ -695,13 +695,9 @@ def writeResultConv(f, type, jsvalPtr, jsvalRef):
                     % jsvalPtr)
             return
         else:
-            f.write("    nsWrapperCache* cache = xpc_qsGetWrapperCache(result);\n"
-                    "    qsObjectHelper helper(ToSupports(result));\n"
-                    "    helper.SetNode(result);\n"
-                    "    helper.SetCanonical(ToCanonicalSupports(result));\n"
-                    "    // After this point do not use 'result'!\n"
-                    "    return xpc_qsXPCOMObjectToJsval(lccx, "
-                    "&helper, cache, &NS_GET_IID(%s), &interfaces[k_%s], %s);\n"
+            f.write("    return xpc_qsXPCOMObjectToJsval(lccx, "
+                    "ToSupports(result), xpc_qsGetWrapperCache(result), "
+                    "&NS_GET_IID(%s), &interfaces[k_%s], %s);\n"
                     % (type.name, type.name, jsvalPtr))
             return
 
@@ -751,7 +747,7 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
     signature = "static JSBool\n"
     if isAttr:
         
-        signature += "%s(JSContext *cx, JSObject *obj, jsval id,%s jsval *vp)\n"
+        signature += "%s(JSContext *cx, JSObject *obj, jsid id,%s jsval *vp)\n"
     else:
         
         signature += "%s(JSContext *cx, uintN argc,%s jsval *vp)\n"
@@ -861,7 +857,7 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
             pthisval = 'vp'
         elif isSetter:
             f.write("    js::AutoValueRooter tvr(cx);\n")
-            pthisval = 'tvr.addr()'
+            pthisval = 'tvr.jsval_addr()'
         else:
             pthisval = '&vp[1]' 
 
@@ -990,7 +986,7 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
             if isGetter:
                 thisval = '*vp'
             else:
-                thisval = '*tvr.addr()'
+                thisval = '*tvr.jsval_addr()'
             f.write("        return xpc_qsThrowGetterSetterFailed(cx, rv, " +
                     "JSVAL_TO_OBJECT(%s), id);\n" % thisval)
 
@@ -1010,7 +1006,7 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
 
 
 traceReturnTypeMap = {
-    'void':             ("jsval ", "JSVAL", "JSVAL_VOID"),
+    'void':             ("uint32 ", "UINT32", "0"),
     'boolean':          ("JSBool ", "BOOL", "JS_FALSE"),
     'short':            ("int32 ", "INT32", "0"),
     'unsigned short':   ("uint32 ", "UINT32", "0"),
@@ -1019,41 +1015,60 @@ traceReturnTypeMap = {
     'float':            ("jsdouble ", "DOUBLE", "0"),
     'double':           ("jsdouble ", "DOUBLE", "0"),
     'octet':            ("uint32 ", "UINT32", "0"),
-    'jsval':            ("jsval ", "JSVAL", "JSVAL_VOID")
+    '[astring]':        ("JSString *", "STRING_OR_NULL", "nsnull"),
+    '[domstring]':      ("JSString *", "STRING_OR_NULL", "nsnull"),
+    '[cstring]':        ("JSString *", "STRING_OR_NULL", "nsnull"),
+    'string':           ("JSString *", "STRING_OR_NULL", "nsnull"),
+    'wstring':          ("JSString *", "STRING_OR_NULL", "nsnull")
     }
 
 
 
-traceTypeMap = traceReturnTypeMap.copy()
-traceTypeMap.update({
-    '[astring]':        ("JSString *", "STRING", "nsnull"),
-    '[domstring]':      ("JSString *", "STRING", "nsnull"),
-    '[cstring]':        ("JSString *", "STRING", "nsnull"),
-    'string':           ("JSString *", "STRING", "nsnull"),
-    'wstring':          ("JSString *", "STRING", "nsnull"),
+traceParamTypeMap = traceReturnTypeMap.copy()
+traceParamTypeMap.update({
+    'void':             ("uint32 ", "UINT32"),
+    'boolean':          ("JSBool ", "BOOL"),
+    'short':            ("int32 ", "INT32"),
+    'unsigned short':   ("uint32 ", "UINT32"),
+    'long':             ("int32 ", "INT32"),
+    'unsigned long':    ("uint32 ", "UINT32"),
+    'float':            ("jsdouble ", "DOUBLE"),
+    'double':           ("jsdouble ", "DOUBLE"),
+    'octet':            ("uint32 ", "UINT32"),
+    '[astring]':        ("JSString *", "STRING"),
+    '[domstring]':      ("JSString *", "STRING"),
+    '[cstring]':        ("JSString *", "STRING"),
+    'string':           ("JSString *", "STRING"),
+    'wstring':          ("JSString *", "STRING"),
     })
 
-defaultTraceType = ("jsval ", "JSVAL", "JSVAL_VOID")
+defaultReturnTraceType = ("JSObject *", "OBJECT_OR_NULL", "nsnull")
+defaultParamTraceType = ("js::ValueArgType ", "VALUE")
 
-def getTraceType(type):
+def getTraceParamType(type):
+    assert type is not '[jsval]'
     type = getBuiltinOrNativeTypeName(type)
-    return traceTypeMap.get(type, defaultTraceType)[0]
+    return traceParamTypeMap.get(type, defaultParamTraceType)[0]
 
 def getTraceReturnType(type):
+    assert type is not '[jsval]'
     type = getBuiltinOrNativeTypeName(type)
-    return traceReturnTypeMap.get(type, defaultTraceType)[0]
+    return traceReturnTypeMap.get(type, defaultReturnTraceType)[0]
 
-def getTraceInfoType(type):
+def getTraceInfoParamType(type):
+    assert type is not '[jsval]'
     type = getBuiltinOrNativeTypeName(type)
-    return traceTypeMap.get(type, defaultTraceType)[1]
+    return traceParamTypeMap.get(type, defaultParamTraceType)[1]
 
 def getTraceInfoReturnType(type):
+    assert type is not '[jsval]'
     type = getBuiltinOrNativeTypeName(type)
-    return traceReturnTypeMap.get(type, defaultTraceType)[1]
+    return traceReturnTypeMap.get(type, defaultReturnTraceType)[1]
 
 def getTraceInfoDefaultReturn(type):
+    assert type is not '[jsval]'
     type = getBuiltinOrNativeTypeName(type)
-    return traceTypeMap.get(type, defaultTraceType)[2]
+    return traceReturnTypeMap.get(type, defaultReturnTraceType)[2]
 
 def getFailureString(retval, indent):
     assert indent > 0
@@ -1124,7 +1139,7 @@ def writeTraceableArgumentConversion(f, member, i, name, type, haveCcx,
             assert haveCcx
             template = (
                 "    nsCOMPtr<nsIVariant> ${name}(already_AddRefed<nsIVariant>("
-                "XPCVariant::newVariant(ccx, ${argVal})));\n"
+                "XPCVariant::newVariant(ccx, js::Jsvalify(js::ValueArgToConstRef(${argVal})))));\n"
                 "    if (!${name}) {\n")
             f.write(substitute(template, params))
             writeFailure(f, getTraceInfoDefaultReturn(member.realtype), 2)
@@ -1138,7 +1153,7 @@ def writeTraceableArgumentConversion(f, member, i, name, type, haveCcx,
             f.write("    %s *%s;\n" % (type.name, name))
             f.write("    xpc_qsSelfRef %sref;\n" % name)
             f.write("    rv = xpc_qsUnwrapArg<%s>("
-                    "cx, %s, &%s, &%sref.ptr, &vp.array[%d]);\n"
+                    "cx, js::Jsvalify(js::ValueArgToConstRef(%s)), &%s, &%sref.ptr, &vp.array[%d]);\n"
                     % (type.name, argVal, name, name, 2 + i))
             f.write("    if (NS_FAILED(rv)) {\n")
             if haveCcx:
@@ -1158,7 +1173,7 @@ def writeTraceableArgumentConversion(f, member, i, name, type, haveCcx,
 
 traceableResultConvTemplates = {
     'void':
-        "    return JSVAL_VOID;\n",
+        "    return 0;\n",
     'octet':
         "    return uint32(result);\n",
     'short':
@@ -1176,21 +1191,20 @@ traceableResultConvTemplates = {
     'double':
         "    return jsdouble(result);\n",
     '[domstring]':
-        "    jsval rval;\n"
-        "    if (!xpc_qsStringToJsval(cx, result, &rval)) {\n"
+        "    JSString *rval;\n"
+        "    if (!xpc_qsStringToJsstring(cx, result, &rval)) {\n"
         "        JS_ReportOutOfMemory(cx);\n${errorStr}"
         "    return rval;\n",
     '[astring]':
-        "    jsval rval;\n"
-        "    if (!xpc_qsStringToJsval(cx, result, &rval)) {\n"
+        "    JSString *rval;\n"
+        "    if (!xpc_qsStringToJsstring(cx, result, &rval)) {\n"
         "        JS_ReportOutOfMemory(cx);\n${errorStr}"
-        "    return rval;\n",
-    '[jsval]':
-        "    return vp.array[0];\n"
+        "    return rval;\n"
     }
 
 def writeTraceableResultConv(f, type):
     typeName = getBuiltinOrNativeTypeName(type)
+    assert typeName is not '[jsval]'
     if typeName is not None:
         template = traceableResultConvTemplates.get(typeName)
         if template is not None:
@@ -1204,18 +1218,13 @@ def writeTraceableResultConv(f, type):
             f.write("    JSBool ok = xpc_qsVariantToJsval(lccx, result, "
                     "&vp.array[0]);\n")
         else:
-            f.write("    nsWrapperCache* cache = xpc_qsGetWrapperCache(result);\n"
-                    "    qsObjectHelper helper(ToSupports(result));\n"
-                    "    helper.SetNode(result);\n"
-                    "    helper.SetCanonical(ToCanonicalSupports(result));\n"
-                    "    // After this point do not use 'result'!\n"
-                    "    JSBool ok = xpc_qsXPCOMObjectToJsval(lccx, "
-                    "&helper, cache, &NS_GET_IID(%s), &interfaces[k_%s], "
-                    "&vp.array[0]);\n"
+            f.write("    JSBool ok = xpc_qsXPCOMObjectToJsval(lccx, "
+                    "ToSupports(result), xpc_qsGetWrapperCache(result), "
+                    "&NS_GET_IID(%s), &interfaces[k_%s], &vp.array[0]);\n"
                     % (type.name, type.name))
         f.write("    if (!ok) {\n");
         writeFailure(f, getTraceInfoDefaultReturn(type), 2)
-        f.write("    return vp.array[0];\n")
+        f.write("    return JSVAL_TO_OBJECT(vp.array[0]);\n")
         return
 
     warn("Unable to convert result of type %s" % typeName)
@@ -1251,8 +1260,8 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
         f.write(", JSObject *callee")
         traceInfo["params"].append("CALLEE")
     for i, param in enumerate(member.params):
-        f.write(", %s_arg%d" % (getTraceType(param.realtype), i))
-        traceInfo["params"].append(getTraceInfoType(param.realtype))
+        f.write(", %s_arg%d" % (getTraceParamType(param.realtype), i))
+        traceInfo["params"].append(getTraceInfoParamType(param.realtype))
     f.write(")\n{\n");
     f.write("    XPC_QS_ASSERT_CONTEXT_OK(cx);\n")
 

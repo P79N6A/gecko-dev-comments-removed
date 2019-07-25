@@ -147,8 +147,6 @@ static FARPROC GetProcAddressA(HMODULE hMod, wchar_t *procName);
 #undef GetClassName
 #endif
 
-class qsObjectHelper;
-
 
 
 
@@ -261,6 +259,8 @@ extern const char XPC_XPCONNECT_CONTRACTID[];
 
 
 #define WRAPPER_SLOTS (JSCLASS_HAS_PRIVATE | JSCLASS_HAS_RESERVED_SLOTS(1))
+
+#define INVALID_OBJECT ((JSObject *)1)
 
 
 
@@ -943,7 +943,7 @@ public:
                    JSContext* cx    = nsnull,
                    JSObject* obj    = nsnull,
                    JSObject* funobj = nsnull,
-                   jsval id         = 0,
+                   jsid id          = JSID_VOID,
                    uintN argc       = NO_ARGS,
                    jsval *argv      = nsnull,
                    jsval *rval      = nsnull);
@@ -981,7 +981,7 @@ public:
     inline XPCNativeInterface*          GetInterface() const ;
     inline XPCNativeMember*             GetMember() const ;
     inline JSBool                       HasInterfaceAndMember() const ;
-    inline jsval                        GetName() const ;
+    inline jsid                         GetName() const ;
     inline JSBool                       GetStaticMemberIsLocal() const ;
     inline uintN                        GetArgc() const ;
     inline jsval*                       GetArgv() const ;
@@ -994,8 +994,8 @@ public:
     inline JSBool   GetDestroyJSContextInDestructor() const;
     inline void     SetDestroyJSContextInDestructor(JSBool b);
 
-    inline jsval GetResolveName() const;
-    inline jsval SetResolveName(jsval name);
+    inline jsid GetResolveName() const;
+    inline jsid SetResolveName(jsid name);
 
     inline XPCWrappedNative* GetResolvingWrapper() const;
     inline XPCWrappedNative* SetResolvingWrapper(XPCWrappedNative* w);
@@ -1005,7 +1005,7 @@ public:
     inline JSObject* GetCallee() const;
     inline void SetCallee(JSObject* callee);
 
-    void SetName(jsval name);
+    void SetName(jsid name);
     void SetArgsAndResultPtr(uintN argc, jsval *argv, jsval *rval);
     void SetCallInfo(XPCNativeInterface* iface, XPCNativeMember* member,
                      JSBool isSetter);
@@ -1048,7 +1048,7 @@ private:
               JSObject* obj,
               JSObject* funobj,
               JSBool getWrappedNative,
-              jsval name,
+              jsid name,
               uintN argc,
               jsval *argv,
               jsval *rval);
@@ -1103,7 +1103,7 @@ private:
     XPCNativeInterface*             mInterface;
     XPCNativeMember*                mMember;
 
-    jsval                           mName;
+    jsid                            mName;
     JSBool                          mStaticMemberIsLocal;
 
     uintN                           mArgc;
@@ -1277,7 +1277,7 @@ extern JSClass XPC_WN_Tearoff_JSClass;
 extern JSClass XPC_WN_NoHelper_Proto_JSClass;
 
 extern JSBool
-XPC_WN_Equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
+XPC_WN_Equality(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
 
 extern JSObjectOps *
 XPC_WN_Proto_GetObjectOps(JSContext *cx, JSClass *clazz);
@@ -1330,10 +1330,10 @@ DebugCheckWrapperClass(JSObject* obj)
 
 #define IS_WN_WRAPPER_OBJECT(obj)                                             \
     (DebugCheckWrapperClass(obj) &&                                           \
-     JSVAL_IS_VOID(obj->getSlot(JSSLOT_START(obj->getClass()))))
+     obj->getSlot(JSSLOT_START(obj->getClass())).isUndefined())
 #define IS_SLIM_WRAPPER_OBJECT(obj)                                           \
     (DebugCheckWrapperClass(obj) &&                                           \
-     !JSVAL_IS_VOID(obj->getSlot(JSSLOT_START(obj->getClass()))))
+     !obj->getSlot(JSSLOT_START(obj->getClass())).isUndefined())
 
 
 
@@ -1550,7 +1550,7 @@ public:
                               XPCNativeInterface** pInterface,
                               XPCNativeMember**    pMember);
 
-    jsval   GetName() const {return mName;}
+    jsid   GetName() const {return mName;}
 
     PRUint16 GetIndex() const {return mIndex;}
 
@@ -1580,7 +1580,7 @@ public:
         {return IsAttribute() && !IsWritableAttribute();}
 
 
-    void SetName(jsval a) {mName = a;}
+    void SetName(jsid a) {mName = a;}
 
     void SetMethod(PRUint16 index)
         {mVal = JSVAL_NULL; mFlags = METHOD; mIndex = index;}
@@ -1617,7 +1617,7 @@ private:
 
 private:
     
-    jsval    mName;
+    jsid     mName;
     jsval    mVal;
     PRUint16 mIndex;
     PRUint16 mFlags;
@@ -1641,11 +1641,11 @@ public:
     static XPCNativeInterface* GetISupports(XPCCallContext& ccx);
 
     inline nsIInterfaceInfo* GetInterfaceInfo() const {return mInfo.get();}
-    inline jsval             GetName()          const {return mName;}
+    inline jsid              GetName()          const {return mName;}
 
     inline const nsIID* GetIID() const;
     inline const char*  GetNameString() const;
-    inline XPCNativeMember* FindMember(jsval name) const;
+    inline XPCNativeMember* FindMember(jsid name) const;
 
     inline JSBool HasAncestor(const nsIID* iid) const;
 
@@ -1679,7 +1679,7 @@ protected:
                                            nsIInterfaceInfo* aInfo);
 
     XPCNativeInterface();   
-    XPCNativeInterface(nsIInterfaceInfo* aInfo, jsval aName)
+    XPCNativeInterface(nsIInterfaceInfo* aInfo, jsid aName)
         : mInfo(aInfo), mName(aName), mMemberCount(0)
                           {MOZ_COUNT_CTOR(XPCNativeInterface);}
     ~XPCNativeInterface() {MOZ_COUNT_DTOR(XPCNativeInterface);}
@@ -1691,7 +1691,7 @@ protected:
 
 private:
     nsCOMPtr<nsIInterfaceInfo> mInfo;
-    jsval                      mName;
+    jsid                       mName;
     PRUint16          mMemberCount;
     XPCNativeMember   mMembers[1]; 
 };
@@ -1762,13 +1762,13 @@ public:
 
     static void ClearCacheEntryForClassInfo(nsIClassInfo* classInfo);
 
-    inline JSBool FindMember(jsval name, XPCNativeMember** pMember,
+    inline JSBool FindMember(jsid name, XPCNativeMember** pMember,
                              PRUint16* pInterfaceIndex) const;
 
-    inline JSBool FindMember(jsval name, XPCNativeMember** pMember,
+    inline JSBool FindMember(jsid name, XPCNativeMember** pMember,
                              XPCNativeInterface** pInterface) const;
 
-    inline JSBool FindMember(jsval name,
+    inline JSBool FindMember(jsid name,
                              XPCNativeMember** pMember,
                              XPCNativeInterface** pInterface,
                              XPCNativeSet* protoSet,
@@ -1780,7 +1780,7 @@ public:
 
     inline XPCNativeInterface* FindInterfaceWithIID(const nsIID& iid) const;
 
-    inline XPCNativeInterface* FindNamedInterface(jsval name) const;
+    inline XPCNativeInterface* FindNamedInterface(jsid name) const;
 
     PRUint16 GetMemberCount() const {return mMemberCount;}
     PRUint16 GetInterfaceCount() const
@@ -2240,10 +2240,8 @@ private:
 };
 
 
-extern JSBool ConstructSlimWrapper(XPCCallContext &ccx,
-                                   nsISupports *p,
-                                   qsObjectHelper* aHelper,
-                                   nsWrapperCache* aCache,
+extern JSBool ConstructSlimWrapper(XPCCallContext &ccx, nsISupports *p,
+                                   nsWrapperCache *cache,
                                    XPCWrappedNativeScope* xpcScope,
                                    jsval *rval);
 extern JSBool MorphSlimWrapper(JSContext *cx, JSObject *obj);
@@ -2251,8 +2249,8 @@ extern JSBool MorphSlimWrapper(JSContext *cx, JSObject *obj);
 static inline XPCWrappedNativeProto*
 GetSlimWrapperProto(JSObject *obj)
 {
-  jsval v = obj->getSlot(JSSLOT_START(obj->getClass()));
-  return static_cast<XPCWrappedNativeProto*>(JSVAL_TO_PRIVATE(v));
+  const js::Value &v = obj->getSlot(JSSLOT_START(obj->getClass()));
+  return static_cast<XPCWrappedNativeProto*>(v.toPrivate());
 }
 
 
@@ -2539,12 +2537,12 @@ public:
     HandlePossibleNameCaseError(XPCCallContext& ccx,
                                 XPCNativeSet* set,
                                 XPCNativeInterface* iface,
-                                jsval name);
+                                jsid name);
     static void
     HandlePossibleNameCaseError(JSContext* cx,
                                 XPCNativeSet* set,
                                 XPCNativeInterface* iface,
-                                jsval name);
+                                jsid name);
 
 #define  HANDLE_POSSIBLE_NAME_CASE_ERROR(context, set, iface, name) \
     XPCWrappedNative::HandlePossibleNameCaseError(context, set, iface, name)
@@ -2597,7 +2595,7 @@ public:
         
         
         
-        if(mFlatJSObject && mFlatJSObject != (JSObject*)JSVAL_ONE)
+        if(mFlatJSObject && mFlatJSObject != INVALID_OBJECT)
         {
             JS_CALL_OBJECT_TRACER(trc, mFlatJSObject,
                                   "XPCWrappedNative::mFlatJSObject");
@@ -2634,7 +2632,7 @@ public:
 
     JSObject* GetWrapper()
     {
-        return (JSObject *) JSVAL_CLRTAG(mWrapperWord);
+        return (JSObject *) (mWrapperWord & (size_t)~(size_t)FLAG_MASK);
     }
     void SetWrapper(JSObject *obj)
     {
@@ -2685,7 +2683,9 @@ private:
         NEEDS_COW = JS_BIT(1),
         NEEDS_XOW = JS_BIT(2),
 
-        LAST_FLAG = NEEDS_XOW
+        LAST_FLAG = NEEDS_XOW,
+
+        FLAG_MASK = 0x7
     };
 
 protected:
@@ -3088,8 +3088,6 @@ public:
 
 
 
-
-
     static JSBool NativeInterface2JSObject(XPCCallContext& ccx,
                                            jsval* d,
                                            nsIXPConnectJSObjectHolder** dest,
@@ -3100,13 +3098,12 @@ public:
                                            JSObject* scope,
                                            PRBool allowNativeWrapper,
                                            PRBool isGlobal,
-                                           nsresult* pErr,
-                                           qsObjectHelper* aHelper = nsnull)
+                                           nsresult* pErr)
     {
         XPCLazyCallContext lccx(ccx);
         return NativeInterface2JSObject(lccx, d, dest, src, iid, Interface,
                                         cache, scope, allowNativeWrapper,
-                                        isGlobal, pErr, aHelper);
+                                        isGlobal, pErr);
     }
     static JSBool NativeInterface2JSObject(XPCLazyCallContext& lccx,
                                            jsval* d,
@@ -3118,8 +3115,7 @@ public:
                                            JSObject* scope,
                                            PRBool allowNativeWrapper,
                                            PRBool isGlobal,
-                                           nsresult* pErr,
-                                           qsObjectHelper* aHelper = nsnull);
+                                           nsresult* pErr);
 
     static JSBool GetNativeInterfaceFromJSObject(XPCCallContext& ccx,
                                                  void** dest, JSObject* src,
@@ -3203,9 +3199,7 @@ class XPCStringConvert
 {
 public:
 
-    static jsval ReadableToJSVal(JSContext *cx, const nsAString &readable,
-                                 PRBool dontAddrefShared = PR_FALSE,
-                                 PRBool* sharedBuffer = nsnull);
+    static jsval ReadableToJSVal(JSContext *cx, const nsAString &readable);
 
     static XPCReadableJSStringWrapper *JSStringToReadable(XPCCallContext& ccx,
                                                           JSString *str);
@@ -3568,9 +3562,9 @@ public:
     XPCCallContext*  SetCallContext(XPCCallContext* ccx)
         {XPCCallContext* old = mCallContext; mCallContext = ccx; return old;}
 
-    jsval GetResolveName() const {return mResolveName;}
-    jsval SetResolveName(jsval name)
-        {jsval old = mResolveName; mResolveName = name; return old;}
+    jsid GetResolveName() const {return mResolveName;}
+    jsid SetResolveName(jsid name)
+        {jsid old = mResolveName; mResolveName = name; return old;}
 
     XPCWrappedNative* GetResolvingWrapper() const {return mResolvingWrapper;}
     XPCWrappedNative* SetResolvingWrapper(XPCWrappedNative* w)
@@ -3615,7 +3609,7 @@ private:
     XPCJSContextStack*   mJSContextStack;
     XPCPerThreadData*    mNextThread;
     XPCCallContext*      mCallContext;
-    jsval                mResolveName;
+    jsid                 mResolveName;
     XPCWrappedNative*    mResolvingWrapper;
 
     nsIExceptionManager* mExceptionManager;
@@ -3907,7 +3901,7 @@ private:
 class NS_STACK_CLASS AutoResolveName
 {
 public:
-    AutoResolveName(XPCCallContext& ccx, jsval name
+    AutoResolveName(XPCCallContext& ccx, jsid name
                     MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM)
         : mTLS(ccx.GetThreadData()),
           mOld(mTLS->SetResolveName(name)),
@@ -3917,7 +3911,7 @@ public:
     ~AutoResolveName()
         {
 #ifdef DEBUG
-            jsval old = 
+            jsid old = 
 #endif
             mTLS->SetResolveName(mOld);
             NS_ASSERTION(old == mCheck, "Bad Nesting!");
@@ -3925,8 +3919,8 @@ public:
 
 private:
     XPCPerThreadData* mTLS;
-    jsval mOld;
-    jsval mCheck;
+    jsid mOld;
+    jsid mCheck;
     MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
@@ -3935,7 +3929,7 @@ class XPCMarkableJSVal
 {
 public:
     XPCMarkableJSVal(jsval val) : mVal(val), mValPtr(&mVal) {}
-    XPCMarkableJSVal(jsval *pval) : mVal(0), mValPtr(pval) {}
+    XPCMarkableJSVal(jsval *pval) : mVal(JSVAL_VOID), mValPtr(pval) {}
     ~XPCMarkableJSVal() {}
     void Mark() {}
     void TraceJS(JSTracer* trc)
@@ -4284,7 +4278,7 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
 
 
 inline JSBool
-xpc_ForcePropertyResolve(JSContext* cx, JSObject* obj, jsval idval);
+xpc_ForcePropertyResolve(JSContext* cx, JSObject* obj, jsid id);
 
 inline jsid
 GetRTIdByIndex(JSContext *cx, uintN index);

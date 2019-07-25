@@ -51,19 +51,76 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jslock.h"
-
-JS_BEGIN_EXTERN_C
+#include "jsvalue.h"
 
 #define ATOM_PINNED     0x1       /* atom is pinned against GC */
 #define ATOM_INTERNED   0x2       /* pinned variant for JS_Intern* API */
 #define ATOM_NOCOPY     0x4       /* don't copy atom string bytes */
 #define ATOM_TMPSTR     0x8       /* internal, to avoid extra string */
 
-#define ATOM_KEY(atom)            ((jsval)(atom))
-#define ATOM_IS_DOUBLE(atom)      JSVAL_IS_DOUBLE(ATOM_KEY(atom))
-#define ATOM_TO_DOUBLE(atom)      JSVAL_TO_DOUBLE(ATOM_KEY(atom))
-#define ATOM_IS_STRING(atom)      JSVAL_IS_STRING(ATOM_KEY(atom))
-#define ATOM_TO_STRING(atom)      JSVAL_TO_STRING(ATOM_KEY(atom))
+#define STRING_TO_ATOM(str)       (JS_ASSERT(str->isAtomized()),             \
+                                   (JSAtom *)str)
+#define ATOM_TO_STRING(atom)      ((JSString *)atom)
+#define ATOM_TO_JSVAL(atom)       STRING_TO_JSVAL(ATOM_TO_STRING(atom))
+
+
+
+static JS_ALWAYS_INLINE jsid
+JSID_FROM_BITS(size_t bits)
+{
+    jsid id;
+    JSID_BITS(id) = bits;
+    return id;
+}
+
+static JS_ALWAYS_INLINE jsid
+ATOM_TO_JSID(JSAtom *atom)
+{
+    JS_ASSERT(((size_t)atom & 0x7) == 0);
+    return JSID_FROM_BITS((size_t)atom);
+}
+
+
+static JS_ALWAYS_INLINE JSBool
+JSID_IS_ATOM(jsid id)
+{
+    return JSID_IS_STRING(id);
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSID_IS_ATOM(jsid id, JSAtom *atom)
+{
+    return JSID_BITS(id) == JSID_BITS(ATOM_TO_JSID(atom));
+}
+
+static JS_ALWAYS_INLINE JSAtom *
+JSID_TO_ATOM(jsid id)
+{
+    return (JSAtom *)JSID_TO_STRING(id);
+}
+
+namespace js {
+
+static JS_ALWAYS_INLINE Value
+IdToValue(jsid id)
+{
+    if (JSID_IS_STRING(id))
+        return StringValue(JSID_TO_STRING(id));
+    if (JS_LIKELY(JSID_IS_INT(id)))
+        return Int32Value(JSID_TO_INT(id));
+    if (JS_LIKELY(JSID_IS_OBJECT(id)))
+        return ObjectValue(*JSID_TO_OBJECT(id));
+    JS_ASSERT(JSID_IS_DEFAULT_XML_NAMESPACE(id) || JSID_IS_VOID(id));
+    return UndefinedValue();
+}
+
+static JS_ALWAYS_INLINE jsval
+IdToJsval(jsid id)
+{
+    return Jsvalify(IdToValue(id));
+}
+
+}
 
 #if JS_BYTES_PER_WORD == 4
 # define ATOM_HASH(atom)          ((JSHashNumber)(atom) >> 2)
@@ -88,7 +145,7 @@ struct JSAtomListElement {
 
 #define ALE_ATOM(ale)   ((JSAtom *) (ale)->entry.key)
 #define ALE_INDEX(ale)  (jsatomid(uintptr_t((ale)->entry.value)))
-#define ALE_VALUE(ale)  ((jsval) (ale)->entry.value)
+#define ALE_VALUE(ale)  ((jsboxedword) (ale)->entry.value)
 #define ALE_NEXT(ale)   ((JSAtomListElement *) (ale)->entry.next)
 
 
@@ -118,8 +175,6 @@ struct JSAtomSet {
     JSHashTable         *table;         
     jsuint              count;          
 };
-
-#ifdef __cplusplus
 
 struct JSAtomList : public JSAtomSet
 {
@@ -198,8 +253,6 @@ class JSAtomListIterator {
     JSAtomListElement* operator ()();
 };
 
-#endif 
-
 struct JSAtomMap {
     JSAtom              **vector;       
     jsatomid            length;         
@@ -207,7 +260,6 @@ struct JSAtomMap {
 
 struct JSAtomState {
     JSDHashTable        stringAtoms;    
-    JSDHashTable        doubleAtoms;    
 #ifdef JS_THREADSAFE
     JSThinLock          lock;
 #endif
@@ -488,13 +540,6 @@ js_FinishCommonAtoms(JSContext *cx);
 
 
 extern JSAtom *
-js_AtomizeDouble(JSContext *cx, jsdouble d);
-
-
-
-
-
-extern JSAtom *
 js_AtomizeString(JSContext *cx, JSString *str, uintN flags);
 
 extern JSAtom *
@@ -510,12 +555,6 @@ js_AtomizeChars(JSContext *cx, const jschar *chars, size_t length, uintN flags);
 extern JSAtom *
 js_GetExistingStringAtom(JSContext *cx, const jschar *chars, size_t length);
 
-
-
-
-JSBool
-js_AtomizePrimitiveValue(JSContext *cx, jsval v, JSAtom **atomp);
-
 #ifdef DEBUG
 
 extern JS_FRIEND_API(void)
@@ -523,6 +562,18 @@ js_DumpAtoms(JSContext *cx, FILE *fp);
 
 #endif
 
+inline bool
+js_ValueToAtom(JSContext *cx, const js::Value &v, JSAtom **atomp);
+
+inline bool
+js_ValueToStringId(JSContext *cx, const js::Value &v, jsid *idp);
+
+inline bool
+js_InternNonIntElementId(JSContext *cx, JSObject *obj, const js::Value &idval,
+                         jsid *idp);
+inline bool
+js_InternNonIntElementId(JSContext *cx, JSObject *obj, const js::Value &idval,
+                         jsid *idp, js::Value *vp);
 
 
 
@@ -530,7 +581,5 @@ js_DumpAtoms(JSContext *cx, FILE *fp);
 
 extern void
 js_InitAtomMap(JSContext *cx, JSAtomMap *map, JSAtomList *al);
-
-JS_END_EXTERN_C
 
 #endif 

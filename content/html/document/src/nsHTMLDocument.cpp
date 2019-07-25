@@ -99,7 +99,7 @@
 #include "nsIDOMHTMLHeadElement.h"
 #include "nsINameSpaceManager.h"
 #include "nsGenericHTMLElement.h"
-#include "mozilla/css/Loader.h"
+#include "nsCSSLoader.h"
 #include "nsIHttpChannel.h"
 #include "nsIFile.h"
 #include "nsIEventListenerManager.h"
@@ -275,7 +275,7 @@ NS_IMPL_ADDREF_INHERITED(nsHTMLDocument, nsDocument)
 NS_IMPL_RELEASE_INHERITED(nsHTMLDocument, nsDocument)
 
 
-DOMCI_NODE_DATA(HTMLDocument, nsHTMLDocument)
+DOMCI_DATA(HTMLDocument, nsHTMLDocument)
 
 
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLDocument)
@@ -1253,7 +1253,24 @@ NS_IMETHODIMP
 nsHTMLDocument::CreateElement(const nsAString& aTagName,
                               nsIDOMElement** aReturn)
 {
-  return nsDocument::CreateElement(aTagName, aReturn);
+  *aReturn = nsnull;
+  nsresult rv = nsContentUtils::CheckQName(aTagName, PR_FALSE);
+  if (NS_FAILED(rv))
+    return rv;
+
+  nsAutoString tagName(aTagName);
+  if (IsHTML()) {
+    ToLowerCase(tagName);
+  }
+
+  nsCOMPtr<nsIAtom> name = do_GetAtom(tagName);
+
+  nsCOMPtr<nsIContent> content;
+  rv = CreateElem(name, nsnull, kNameSpaceID_XHTML, PR_TRUE,
+                  getter_AddRefs(content));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return CallQueryInterface(content, aReturn);
 }
 
 NS_IMETHODIMP
@@ -2152,34 +2169,12 @@ nsHTMLDocument::WriteCommon(const nsAString& aText,
       (mWriteState == ePendingClose &&
        !mPendingScripts.Contains(key)) ||
       (mParser && !mParser->IsInsertionPointDefined())) {
-    if (mExternalScriptsBeingEvaluated) {
-      
-      nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
-                                      "DocumentWriteIgnored",
-                                      nsnull, 0,
-                                      mDocumentURI,
-                                      EmptyString(), 0, 0,
-                                      nsIScriptError::warningFlag,
-                                      "DOM Events");
-      return NS_OK;
-    }
     mWriteState = eDocumentClosed;
     mParser->Terminate();
     NS_ASSERTION(!mParser, "mParser should have been null'd out");
   }
 
   if (!mParser) {
-    if (mExternalScriptsBeingEvaluated) {
-      
-      nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
-                                      "DocumentWriteIgnored",
-                                      nsnull, 0,
-                                      mDocumentURI,
-                                      EmptyString(), 0, 0,
-                                      nsIScriptError::warningFlag,
-                                      "DOM Events");
-      return NS_OK;
-    }
     rv = Open();
 
     
@@ -2650,11 +2645,9 @@ FindNamedItems(nsIAtom* aName, nsIContent *aContent,
 nsresult
 nsHTMLDocument::ResolveName(const nsAString& aName,
                             nsIDOMHTMLFormElement *aForm,
-                            nsISupports **aResult,
-                            nsWrapperCache **aCache)
+                            nsISupports **aResult)
 {
   *aResult = nsnull;
-  *aCache = nsnull;
 
   
   
@@ -2703,11 +2696,19 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
       
       
 
-      nsIContent *node = list->GetNodeAt(0);
-      if (!aForm || nsContentUtils::BelongsInForm(aForm, node)) {
-        NS_ADDREF(*aResult = node);
-        *aCache = node;
+      nsCOMPtr<nsIDOMNode> node;
+
+      list->Item(0, getter_AddRefs(node));
+
+      nsCOMPtr<nsIContent> ourContent(do_QueryInterface(node));
+      if (aForm && ourContent &&
+          !nsContentUtils::BelongsInForm(aForm, ourContent)) {
+        
+        node = nsnull;
       }
+
+      *aResult = node;
+      NS_IF_ADDREF(*aResult);
 
       return NS_OK;
     }
@@ -2731,10 +2732,11 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
         
         
 
-        nsIContent *node = fc_list->GetNodeAt(0);
+        nsCOMPtr<nsIDOMNode> node;
+
+        fc_list->Item(0, getter_AddRefs(node));
 
         NS_IF_ADDREF(*aResult = node);
-        *aCache = node;
 
         delete fc_list;
 
@@ -2763,7 +2765,6 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
          tag == nsGkAtoms::applet) &&
         (!aForm || nsContentUtils::BelongsInForm(aForm, e))) {
       NS_ADDREF(*aResult = e);
-      *aCache = e;
     }
   }
 
@@ -2982,30 +2983,6 @@ nsHTMLDocument::EndUpdate(nsUpdateType aUpdateType)
   MaybeEditingStateChanged();
 }
 
-
-
-class DeferredContentEditableCountChangeEvent : public nsRunnable
-{
-public:
-  DeferredContentEditableCountChangeEvent(nsHTMLDocument *aDoc,
-                                          nsIContent *aElement)
-    : mDoc(aDoc)
-    , mElement(aElement)
-  {
-  }
-
-  NS_IMETHOD Run() {
-    if (mElement->GetOwnerDoc() == mDoc) {
-      mDoc->DeferredContentEditableCountChange(mElement);
-    }
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<nsHTMLDocument> mDoc;
-  nsCOMPtr<nsIContent> mElement;
-};
-
 nsresult
 nsHTMLDocument::ChangeContentEditableCount(nsIContent *aElement,
                                            PRInt32 aChange)
@@ -3014,6 +2991,27 @@ nsHTMLDocument::ChangeContentEditableCount(nsIContent *aElement,
                "Trying to decrement too much.");
 
   mContentEditableCount += aChange;
+
+  class DeferredContentEditableCountChangeEvent : public nsRunnable
+  {
+  public:
+    DeferredContentEditableCountChangeEvent(nsHTMLDocument *aDoc, nsIContent *aElement)
+      : mDoc(aDoc)
+      , mElement(aElement)
+    {
+    }
+
+    NS_IMETHOD Run() {
+      if (mElement->GetOwnerDoc() == mDoc) {
+        mDoc->DeferredContentEditableCountChange(mElement);
+      }
+      return NS_OK;
+    }
+
+  private:
+    nsRefPtr<nsHTMLDocument> mDoc;
+    nsCOMPtr<nsIContent> mElement;
+  };
 
   nsContentUtils::AddScriptRunner(
     new DeferredContentEditableCountChangeEvent(this, aElement));
@@ -3110,24 +3108,17 @@ DocAllResultMatch(nsIContent* aContent, PRInt32 aNamespaceID, nsIAtom* aAtom,
 }
 
 
-nsISupports*
-nsHTMLDocument::GetDocumentAllResult(const nsAString& aID,
-                                     nsWrapperCache** aCache,
-                                     nsresult *aResult)
+nsresult
+nsHTMLDocument::GetDocumentAllResult(const nsAString& aID, nsISupports** aResult)
 {
-  *aCache = nsnull;
-  *aResult = NS_OK;
+  *aResult = nsnull;
 
   nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aID);
-  if (!entry) {
-    *aResult = NS_ERROR_OUT_OF_MEMORY;
-
-    return nsnull;
-  }
+  NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
   Element* root = GetRootElement();
   if (!root) {
-    return nsnull;
+    return NS_OK;
   }
 
   nsRefPtr<nsContentList> docAllList = entry->GetDocAllList();
@@ -3136,6 +3127,7 @@ nsHTMLDocument::GetDocumentAllResult(const nsAString& aID,
 
     docAllList = new nsContentList(root, DocAllResultMatch,
                                    nsnull, nsnull, PR_TRUE, id);
+    NS_ENSURE_TRUE(docAllList, NS_ERROR_OUT_OF_MEMORY);
     entry->SetDocAllList(docAllList);
   }
 
@@ -3145,14 +3137,14 @@ nsHTMLDocument::GetDocumentAllResult(const nsAString& aID,
 
   nsIContent* cont = docAllList->Item(1, PR_TRUE);
   if (cont) {
-    *aCache = docAllList;
-    return static_cast<nsINodeList*>(docAllList);
+    NS_ADDREF(*aResult = static_cast<nsIDOMNodeList*>(docAllList));
+    return NS_OK;
   }
 
   
-  *aCache = cont = docAllList->Item(0, PR_TRUE);
+  NS_IF_ADDREF(*aResult = docAllList->Item(0, PR_TRUE));
 
-  return cont;
+  return NS_OK;
 }
 
 static void
@@ -3313,10 +3305,6 @@ nsHTMLDocument::EditingStateChanged()
     if (designMode) {
       
       editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
-
-      
-      
-      FlushPendingNotifications(Flush_Style);
 
       
       rv = editSession->DisableJSAndPlugins(window);
@@ -3647,10 +3635,10 @@ ConvertToMidasInternalCommand(const nsAString & inCommandID,
                                             dummyBool, dummyBool, PR_TRUE);
 }
 
-jsval
-nsHTMLDocument::sCutCopyInternal_id = JSVAL_VOID;
-jsval
-nsHTMLDocument::sPasteInternal_id = JSVAL_VOID;
+jsid
+nsHTMLDocument::sCutCopyInternal_id = JSID_VOID;
+jsid
+nsHTMLDocument::sPasteInternal_id = JSID_VOID;
 
 
 
@@ -3676,17 +3664,17 @@ nsHTMLDocument::DoClipboardSecurityCheck(PRBool aPaste)
     nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
 
     if (aPaste) {
-      if (nsHTMLDocument::sPasteInternal_id == JSVAL_VOID) {
+      if (nsHTMLDocument::sPasteInternal_id == JSID_VOID) {
         nsHTMLDocument::sPasteInternal_id =
-          STRING_TO_JSVAL(::JS_InternString(cx, "paste"));
+          INTERNED_STRING_TO_JSID(::JS_InternString(cx, "paste"));
       }
       rv = secMan->CheckPropertyAccess(cx, nsnull, classNameStr.get(),
                                        nsHTMLDocument::sPasteInternal_id,
                                        nsIXPCSecurityManager::ACCESS_GET_PROPERTY);
     } else {
-      if (nsHTMLDocument::sCutCopyInternal_id == JSVAL_VOID) {
+      if (nsHTMLDocument::sCutCopyInternal_id == JSID_VOID) {
         nsHTMLDocument::sCutCopyInternal_id =
-          STRING_TO_JSVAL(::JS_InternString(cx, "cutcopy"));
+          INTERNED_STRING_TO_JSID(::JS_InternString(cx, "cutcopy"));
       }
       rv = secMan->CheckPropertyAccess(cx, nsnull, classNameStr.get(),
                                        nsHTMLDocument::sCutCopyInternal_id,

@@ -789,7 +789,7 @@ public:
 
 
 
-        jsval GetName() const;
+        jsid GetName() const;
         
 
 
@@ -822,7 +822,7 @@ public:
 
 
 
-        void SetName(jsval name);
+        void SetName(jsid name);
         
 
 
@@ -881,7 +881,7 @@ public:
         };
         PRUint16 mType;
         jsval mVal;     
-        jsval mName;    
+        jsid mName;    
         CComPtr<ITypeInfo> mTypeInfo;
         FUNCDESC* mFuncDesc; 
         FUNCDESC* mGetterFuncDesc; 
@@ -915,7 +915,7 @@ public:
 
 
 
-    const Member * FindMember(jsval name) const;
+    const Member * FindMember(jsid name) const;
     
 
 
@@ -923,7 +923,7 @@ public:
 
 
 
-    const Member* FindMemberCI(XPCCallContext& ccx, jsval name) const;
+    const Member* FindMemberCI(XPCCallContext& ccx, jsid name) const;
     
 
 
@@ -1150,7 +1150,7 @@ public:
 
 
     static JSBool DefineProperty(XPCCallContext & ccx, 
-                                 JSObject *obj, jsval idval,
+                                 JSObject *obj, jsid id,
                                  XPCWrappedNative* wrapperToReflectInterfaceNames,
                                  uintN propFlags, JSBool* resolved);
     

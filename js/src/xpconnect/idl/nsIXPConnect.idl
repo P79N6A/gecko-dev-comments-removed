@@ -55,25 +55,23 @@
 #include "jspubtd.h"
 #include "xptinfo.h"
 #include "nsAXPCNativeCallContext.h"
-#include "nsWrapperCache.h"
 %}
 
 /***************************************************************************/
 
-// NB: jsval is declared in nsIVariant.idl
+// NB: jsval and jsid are declared in nsIVariant.idl
 
 [ptr] native JSContextPtr(JSContext);
 [ptr] native JSClassPtr(JSClass);
 [ptr] native JSObjectPtr(JSObject);
 [ptr] native JSValPtr(jsval);
+[ptr] native JSValConstPtr(const jsval);
       native JSPropertyOp(JSPropertyOp);
       native JSEqualityOp(JSEqualityOp);
-      native JSID(jsid);
 [ptr] native voidPtrPtr(void*);
 [ptr] native nsScriptObjectTracerPtr(nsScriptObjectTracer);
 [ref] native nsCCTraversalCallbackRef(nsCycleCollectionTraversalCallback);
 [ptr] native nsAXPCNativeCallContextPtr(nsAXPCNativeCallContext);
-[ptr] native nsWrapperCachePtr(nsWrapperCache);
 
 /***************************************************************************/
 
@@ -182,8 +180,8 @@ interface nsIXPConnectWrappedNative : nsIXPConnectJSObjectHolder
      */
 
     readonly attribute nsIXPConnect XPConnect;
-    nsIInterfaceInfo FindInterfaceWithMember(in jsval nameID);
-    nsIInterfaceInfo FindInterfaceWithName(in jsval nameID);
+    nsIInterfaceInfo FindInterfaceWithMember(in jsid nameID);
+    nsIInterfaceInfo FindInterfaceWithName(in jsid nameID);
 
     void debugDump(in short depth);
 
@@ -399,7 +397,7 @@ interface nsIXPCFunctionThisTranslator : nsISupports
     { 0xbd, 0xd6, 0x0, 0x0, 0x64, 0x65, 0x73, 0x74 } }
 %}
 
-[uuid(7a30abb6-349c-4bb5-b395-78f8a860d6e3)]
+[uuid(c53c54ac-afc1-458a-98f5-cadb52574e40)]
 interface nsIXPConnect : nsISupports
 {
 %{ C++
@@ -500,7 +498,6 @@ interface nsIXPConnect : nsISupports
     wrapNativeToJSVal(in JSContextPtr aJSContext,
                       in JSObjectPtr  aScope,
                       in nsISupports  aCOMObj,
-                      in nsWrapperCachePtr aCache,
                       in nsIIDPtr     aIID,
                       in boolean      aAllowWrapper,
                       out jsval       aVal,
