@@ -212,7 +212,9 @@ var ViewConfig = {
     }
 
     
-    let item = this._container.childNodes[aIndex + 1];
+    
+    let item = shouldUpdateEditor ? this._editor.nextSibling
+                                  : this._container.childNodes[aIndex + 1]
     if (!item) 
       return;
 
