@@ -101,7 +101,7 @@ SessionStartup.prototype = {
     
     let pbs = Cc["@mozilla.org/privatebrowsing;1"].
               getService(Ci.nsIPrivateBrowsingService);
-    if (pbs.autoStarted || pbs.lastChangedByCommandLine)
+    if (pbs.autoStarted)
       return;
 
     let prefBranch = Cc["@mozilla.org/preferences-service;1"].
@@ -237,12 +237,7 @@ SessionStartup.prototype = {
         aWindow.arguments[0] == defaultArgs)
       aWindow.arguments[0] = null;
 
-    try {
-      Services.obs.removeObserver(this, "domwindowopened");
-    } catch (e) {
-      
-      
-    }
+    Services.obs.removeObserver(this, "domwindowopened");
   },
 
 

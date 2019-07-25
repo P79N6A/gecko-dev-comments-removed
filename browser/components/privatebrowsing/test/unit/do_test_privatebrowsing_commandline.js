@@ -118,6 +118,4 @@ function do_test() {
   do_check_true(pb.privateBrowsingEnabled);
   
   do_check_true(pb.autoStarted);
-  
-  do_check_eq(pb.lastChangedByCommandLine, true);
 }

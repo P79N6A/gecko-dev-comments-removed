@@ -31,8 +31,6 @@ function run_test() {
 
   
   if (pb) {
-    prefs.setBoolPref("browser.privatebrowsing.keep_current_session", true);
-
     
     pb.privateBrowsingEnabled = true;
 
@@ -46,8 +44,6 @@ function run_test() {
     
     cs.setCookieString(uri, null, "foobaz=bar", null);
     do_check_eq(cs.countCookiesFromHost("foo.bar"), 2);
-
-    prefs.clearUserPref("browser.privatebrowsing.keep_current_session");
   }
 }
 

@@ -214,9 +214,6 @@ SessionStoreService.prototype = {
   
   _lastSessionState: null,
 
-  
-  _initialized: false,
-
 
 
   get canRestoreLastSession() {
@@ -236,7 +233,15 @@ SessionStoreService.prototype = {
   
 
 
-  initService: function() {
+  init: function sss_init(aWindow) {
+    if (!aWindow || this._loadState == STATE_RUNNING) {
+      
+      
+      if (aWindow && (!aWindow.__SSi || !this._windows[aWindow.__SSi]))
+        this.onLoad(aWindow);
+      return;
+    }
+
     this._prefBranch = Services.prefs.getBranch("browser.");
     this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
 
@@ -348,35 +353,7 @@ SessionStoreService.prototype = {
     if (this._loadState != STATE_QUITTING &&
         this._prefBranch.getBoolPref("sessionstore.resume_session_once"))
       this._prefBranch.setBoolPref("sessionstore.resume_session_once", false);
-
-    this._initialized = true;
-  },
-
-  
-
-
-
-
-  init: function sss_init(aWindow) {
-    if (!aWindow || this._loadState == STATE_RUNNING) {
-      
-      
-      if (aWindow && (!aWindow.__SSi || !this._windows[aWindow.__SSi]))
-        this.onLoad(aWindow);
-      
-      
-      
-      
-      
-      if (!aWindow && this._loadState == STATE_STOPPED)
-        this._loadState = STATE_RUNNING;
-      return;
-    }
-
     
-    if (!this._initialized)
-      this.initService();
-
     
     this.onLoad(aWindow);
   },

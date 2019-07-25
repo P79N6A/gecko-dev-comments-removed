@@ -165,10 +165,6 @@ BrowserGlue.prototype = {
       case "final-ui-startup":
         this._onProfileStartup();
         break;
-      case "browser-delayed-startup-finished":
-        this._onFirstWindowLoaded();
-        Services.obs.removeObserver(this, "browser-delayed-startup-finished");
-        break;
       case "sessionstore-windows-restored":
         this._onBrowserStartup();
         break;
@@ -264,7 +260,6 @@ BrowserGlue.prototype = {
     os.addObserver(this, "xpcom-shutdown", false);
     os.addObserver(this, "prefservice:after-app-defaults", false);
     os.addObserver(this, "final-ui-startup", false);
-    os.addObserver(this, "browser-delayed-startup-finished", false);
     os.addObserver(this, "sessionstore-windows-restored", false);
     os.addObserver(this, "browser:purge-session-history", false);
     os.addObserver(this, "quit-application-requested", false);
@@ -353,22 +348,6 @@ BrowserGlue.prototype = {
   },
 
   
-  _onFirstWindowLoaded: function BG__onFirstWindowLoaded() {
-#ifdef XP_WIN
-#ifndef WINCE
-    
-    const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
-    if (WINTASKBAR_CONTRACTID in Cc &&
-        Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar).available) {
-      let temp = {};
-      Cu.import("resource://gre/modules/WindowsJumpLists.jsm", temp);
-      temp.WinTaskbarJumpList.startup();
-    }
-#endif
-#endif
-  },
-
-  
   _onProfileShutdown: function BG__onProfileShutdown() {
 #ifdef MOZ_UPDATER
 #ifdef WINCE
@@ -429,6 +408,19 @@ BrowserGlue.prototype = {
     
     if (Services.prefs.getBoolPref(PREF_PLUGINS_NOTIFYUSER))
       this._showPluginUpdatePage();
+
+#ifdef XP_WIN
+#ifndef WINCE
+    
+    const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
+    if (WINTASKBAR_CONTRACTID in Cc &&
+        Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar).available) {
+      let temp = {};
+      Cu.import("resource://gre/modules/WindowsJumpLists.jsm", temp);
+      temp.WinTaskbarJumpList.startup();
+    }
+#endif
+#endif
   },
 
   _onQuitRequest: function BG__onQuitRequest(aCancelQuit, aQuitType) {
