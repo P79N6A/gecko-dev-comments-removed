@@ -253,9 +253,8 @@ nsSVGFilterProperty::DoUpdate()
     nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_UpdateEffects);
 
   
-  if (!mFrame->IsFrameOfType(nsIFrame::eSVG) &&
-      !(mFrame->GetStateBits() & NS_FRAME_IN_REFLOW)) {
-    NS_UpdateHint(changeHint, nsChangeHint_ReflowFrame);
+  if (!(mFrame->GetStateBits() & NS_FRAME_IN_REFLOW)) {
+    NS_UpdateHint(changeHint, nsChangeHint_UpdateOverflow);
   }
   mFramePresShell->FrameConstructor()->PostRestyleEvent(
     mFrame->GetContent()->AsElement(), nsRestyleHint(0), changeHint);
@@ -273,7 +272,13 @@ nsSVGMarkerProperty::DoUpdate()
   
   nsChangeHint changeHint =
     nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_UpdateEffects);
-
+  
+  
+  if (!(mFrame->GetStateBits() & NS_FRAME_IN_REFLOW)) {
+    
+    
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(mFrame);
+  }
   mFramePresShell->FrameConstructor()->PostRestyleEvent(
     mFrame->GetContent()->AsElement(), nsRestyleHint(0), changeHint);
 }
