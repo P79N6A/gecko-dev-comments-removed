@@ -266,7 +266,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
 #endif
 
     
-    void *getCallTarget(void *fun) {
+    void *getFallibleCallTarget(void *fun) {
 #ifdef JS_CPU_ARM
         
 
@@ -279,23 +279,19 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
 
 
 
-        void *pfun = JS_FUNC_TO_DATA_PTR(void *, JaegerStubVeneer);
-
-        
 
 
+        moveWithPatch(Imm32(intptr_t(fun)), JSC::ARMRegisters::ip);
 
-
-        move(Imm32(intptr_t(fun)), JSC::ARMRegisters::ip);
+        return JS_FUNC_TO_DATA_PTR(void *, JaegerStubVeneer);
 #else
         
 
 
 
 
-        void *pfun = fun;
+        return fun;
 #endif
-        return pfun;
     }
 
     static inline uint32 align(uint32 bytes, uint32 alignment) {
@@ -519,7 +515,17 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
     
     
     
-    Call callWithABI(void *fun) {
+    Call callWithABI(void *fun, bool canThrow) {
+        
+        
+        
+        
+            
+            
+            
+            fun = getFallibleCallTarget(fun);
+        
+
         JS_ASSERT(callIsAligned);
 
         Call cl = call();
@@ -621,7 +627,12 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         storeArg(0, Registers::ArgReg0);
         storeArg(1, Registers::ArgReg1);
 
-        return callWithABI(getCallTarget(ptr));
+        
+        
+        
+        
+        
+        return callWithABI(ptr, true);
     }
 
     void finalize(JSC::LinkBuffer &linker) {
