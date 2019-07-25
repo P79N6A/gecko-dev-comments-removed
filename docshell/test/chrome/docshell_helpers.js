@@ -18,6 +18,8 @@ const NAV_RELOAD = 4;
 
 var gExpectedEvents;          
                               
+var gUnexpectedEvents;        
+                              
 var gFinalEvent;              
 var gUrisNotInBFCache = [];   
                               
@@ -95,6 +97,8 @@ function doPageNavigation(params) {
     params.eventsToListenFor : ["pageshow"];
   gExpectedEvents = typeof(params.eventsToListenFor) == "undefined" || 
     eventsToListenFor.length == 0 ? undefined : params.expectedEvents; 
+  gUnexpectedEvents = typeof(params.eventsToListenFor) == "undefined" || 
+    eventsToListenFor.length == 0 ? undefined : params.unexpectedEvents; 
   let preventBFCache = (typeof[params.preventBFCache] == "undefined") ? 
     false : params.preventBFCache;
   let waitOnly = (typeof(params.waitForEventsOnly) == "boolean" 
@@ -127,6 +131,10 @@ function doPageNavigation(params) {
       eventFound = true;
     for each (let anExpectedEvent in gExpectedEvents) {
       if (anExpectedEvent.type == anEventType)
+        eventFound = true;
+    }
+    for each (let anExpectedEventType in gUnexpectedEvents) {
+      if (anExpectedEventType == anEventType)
         eventFound = true;
     }
     if (!eventFound)
@@ -260,7 +268,12 @@ function pageEventListener(event) {
        "though it was loaded with .preventBFCache previously\n");
     }
   }
-  
+
+  if (typeof(gUnexpectedEvents) != "undefined") {
+    is(gUnexpectedEvents.indexOf(event.type), -1,
+       "Should not get unexpected event " + event.type);
+  }  
+
   
   
   
@@ -299,6 +312,18 @@ function pageEventListener(event) {
     is(event.persisted, expected.persisted, 
       "The persisted property of the " + event.type + " event on page " +
       event.originalTarget.location + " had an unexpected value"); 
+  }
+
+  if ("visibilityState" in expected) {
+    is(event.originalTarget.mozVisibilityState, expected.visibilityState,
+       "The visibilityState property of the document on page " +
+       event.originalTarget.location + " had an unexpected value");
+  }
+
+  if ("hidden" in expected) {
+    is(event.originalTarget.mozHidden, expected.hidden,
+       "The hidden property of the document on page " +
+       event.originalTarget.location + " had an unexpected value");
   }
 
   

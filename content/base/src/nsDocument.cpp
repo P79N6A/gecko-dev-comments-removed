@@ -1526,6 +1526,7 @@ nsDocument::nsDocument(const char* aContentType)
   : nsIDocument()
   , mAnimatingImages(PR_TRUE)
   , mIsFullScreen(PR_FALSE)
+  , mVisibilityState(eHidden)
 {
   SetContentTypeInternal(nsDependentCString(aContentType));
   
@@ -3837,6 +3838,13 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
   
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mScriptGlobalObject);
   mWindow = window;
+
+  
+  
+  
+  
+  
+  mVisibilityState = GetVisibilityState();
 }
 
 nsIScriptGlobalObject*
@@ -7322,6 +7330,8 @@ nsDocument::OnPageShow(bool aPersisted,
     SetImagesNeedAnimating(PR_TRUE);
   }
 
+  UpdateVisibilityState();
+
   nsCOMPtr<nsIDOMEventTarget> target = aDispatchStartTarget;
   if (!target) {
     target = do_QueryInterface(GetWindow());
@@ -7383,6 +7393,9 @@ nsDocument::OnPageHide(bool aPersisted,
   DispatchPageTransition(target, NS_LITERAL_STRING("pagehide"), aPersisted);
 
   mVisible = PR_FALSE;
+
+  UpdateVisibilityState();
+  
   EnumerateExternalResources(NotifyPageHide, &aPersisted);
   EnumerateFreezableElements(NotifyActivityChanged, nsnull);
 }
@@ -8658,3 +8671,61 @@ nsDocument::SizeOf() const
 #undef DOCUMENT_ONLY_EVENT
 #undef TOUCH_EVENT
 #undef EVENT
+
+void
+nsDocument::UpdateVisibilityState()
+{
+  VisibilityState oldState = mVisibilityState;
+  mVisibilityState = GetVisibilityState();
+  if (oldState != mVisibilityState) {
+    nsContentUtils::DispatchTrustedEvent(this, static_cast<nsIDocument*>(this),
+                                         NS_LITERAL_STRING("mozvisibilitychange"),
+                                         false, false);
+  }
+}
+
+nsDocument::VisibilityState
+nsDocument::GetVisibilityState() const
+{
+  
+  
+  
+  
+  
+  
+  
+  if (!IsVisible() || !mWindow || !mWindow->GetOuterWindow() ||
+      mWindow->GetOuterWindow()->IsBackground()) {
+    return eHidden;
+  }
+
+  return eVisible;
+}
+
+ void
+nsDocument::PostVisibilityUpdateEvent()
+{
+  nsCOMPtr<nsIRunnable> event =
+    NS_NewRunnableMethod(this, &nsDocument::UpdateVisibilityState);
+  NS_DispatchToMainThread(event);
+}
+
+NS_IMETHODIMP
+nsDocument::GetMozHidden(bool* aHidden)
+{
+  *aHidden = mVisibilityState != eVisible;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocument::GetMozVisibilityState(nsAString& aState)
+{
+  
+  static const char states[][8] = {
+    "hidden",
+    "visible"
+  };
+  PR_STATIC_ASSERT(NS_ARRAY_LENGTH(states) == eVisibilityStateCount);
+  aState.AssignASCII(states[mVisibilityState]);
+  return NS_OK;
+}

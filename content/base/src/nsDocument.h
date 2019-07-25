@@ -948,6 +948,12 @@ public:
   virtual void UpdateFullScreenStatus(bool aIsFullScreen);
   virtual bool IsFullScreenDoc();
 
+  
+  
+  void UpdateVisibilityState();
+  
+  virtual void PostVisibilityUpdateEvent();
+
 protected:
   friend class nsNodeUtils;
 
@@ -1150,6 +1156,14 @@ protected:
   nsRefPtr<nsDOMNavigationTiming> mTiming;
 private:
   friend class nsUnblockOnloadEvent;
+  
+  enum VisibilityState {
+    eHidden = 0,
+    eVisible,
+    eVisibilityStateCount
+  };
+  
+  VisibilityState GetVisibilityState() const;
 
   void PostUnblockOnloadEvent();
   void DoUnblockOnload();
@@ -1229,6 +1243,8 @@ private:
 
   
   nsDataHashtable< nsPtrHashKey<imgIRequest>, PRUint32> mImageTracker;
+
+  VisibilityState mVisibilityState;
 
 #ifdef DEBUG
 protected:
