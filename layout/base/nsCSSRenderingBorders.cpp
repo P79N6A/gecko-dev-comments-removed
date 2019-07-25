@@ -428,10 +428,20 @@ MaybeMoveToMidPoint(gfxPoint& aP0, gfxPoint& aP1, const gfxPoint& aMidPoint)
 {
   gfxPoint ps = aP1 - aP0;
 
-  if (ps.x != 0.0 && ps.y != 0.0) {
-    gfxFloat k = NS_MIN((aMidPoint.x - aP0.x) / ps.x,
-                        (aMidPoint.y - aP1.y) / ps.y);
-    aP1 = aP0 + ps * k;
+  if (ps.x == 0.0) {
+    if (ps.y == 0.0) {
+      NS_NOTREACHED("points should be different");
+    } else {
+      aP1.y = aMidPoint.y;
+    }
+  } else {
+    if (ps.y == 0.0) {
+      aP1.x = aMidPoint.x;
+    } else {
+      gfxFloat k = NS_MIN((aMidPoint.x - aP0.x) / ps.x,
+                          (aMidPoint.y - aP1.y) / ps.y);
+      aP1 = aP0 + ps * k;
+    }
   }
 }
 
