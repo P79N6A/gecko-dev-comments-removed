@@ -304,34 +304,43 @@ struct JITScript {
 
     size_t          nNmapPairs; 
 
+    void            *invokeEntry;       
+    void            *fastEntry;         
+    void            *arityCheckEntry;   
+
+    
     js::mjit::CallSite *callSites;
-    uint32          nCallSites;
 #ifdef JS_MONOIC
     ic::MICInfo     *mics;      
-    uint32          nMICs;      
     ic::CallICInfo  *callICs;   
-    uint32          nCallICs;   
     ic::EqualityICInfo *equalityICs;
-    uint32          nEqualityICs;
     ic::TraceICInfo *traceICs;
-    uint32          nTraceICs;
+#endif
+#ifdef JS_POLYIC
+    ic::PICInfo     *pics;      
+    ic::GetElementIC *getElems;
+    ic::SetElementIC *setElems;
+#endif
 
+    uint32          nCallSites:31;
+    bool            singleStepMode:1;   
+#ifdef JS_MONOIC
+    uint32          nMICs;      
+    uint32          nCallICs;   
+    uint32          nEqualityICs;
+    uint32          nTraceICs;
+#endif
+#ifdef JS_POLYIC
+    uint32          nPICs;      
+    uint32          nGetElems;
+    uint32          nSetElems;
+#endif
+
+#ifdef JS_MONOIC
     
     typedef Vector<JSC::ExecutablePool *, 0, SystemAllocPolicy> ExecPoolVector;
     ExecPoolVector execPools;
 #endif
-#ifdef JS_POLYIC
-    ic::PICInfo     *pics;      
-    uint32          nPICs;      
-    ic::GetElementIC *getElems;
-    uint32           nGetElems;
-    ic::SetElementIC *setElems;
-    uint32           nSetElems;
-#endif
-    void            *invokeEntry;       
-    void            *fastEntry;         
-    void            *arityCheckEntry;   
-    bool            singleStepMode;     
 
     ~JITScript();
 
