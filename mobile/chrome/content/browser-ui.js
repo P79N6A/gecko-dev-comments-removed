@@ -550,7 +550,6 @@ var BrowserUI = {
       FullScreenVideo.init();
       NewTabPopup.init();
       CharsetMenu.init();
-      WebappsUI.init();
 
       
       let addonIDs = AddonManager.getStartupChanges("disabled");
