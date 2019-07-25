@@ -149,7 +149,17 @@ void
 TypeInferenceOracle::getNewTypesAtJoinPoint(JSScript *script, jsbytecode *pc, Vector<MIRType> &slotTypes)
 {
     ScriptAnalysis *analysis = script->analysis();
-    JS_ASSERT(analysis->jumpTarget(pc));
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!analysis->jumpTarget(pc))
+        return;
 
     if (const SlotValue *newv = analysis->newValues(pc)) {
         while (newv->slot) {
