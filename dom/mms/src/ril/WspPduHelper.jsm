@@ -289,6 +289,18 @@ let Octet = {
       data.array[data.offset++] = octet;
     }
   },
+
+  
+
+
+
+
+
+  encodeMultiple: function encodeMultiple(data, array) {
+    for (let i = 0; i < array.length; i++) {
+      this.encode(data, array[i]);
+    }
+  },
 };
 
 
@@ -659,6 +671,17 @@ let QuotedString = {
 
     return NullTerminatedTexts.decode(data);
   },
+
+  
+
+
+
+
+
+  encode: function encode(data, str) {
+    Octet.encode(data, 34);
+    NullTerminatedTexts.encode(data, str);
+  },
 };
 
 
@@ -757,6 +780,42 @@ let LongInteger = {
 
     return this.decodeMultiOctetInteger(data, length);
   },
+
+  
+
+
+
+
+
+
+  encode: function encode(data, numOrArray) {
+    if (typeof numOrArray === "number") {
+      let num = numOrArray;
+      if (num >= 0x1000000000000) {
+        throw new CodeError("Long-integer: number too large " + num);
+      }
+
+      let stack = [];
+      do {
+        stack.push(Math.floor(num % 256));
+        num = Math.floor(num / 256);
+      } while (num);
+
+      Octet.encode(data, stack.length);
+      while (stack.length) {
+        Octet.encode(data, stack.pop());
+      }
+      return;
+    }
+
+    let array = numOrArray;
+    if ((array.length < 1) || (array.length > 30)) {
+      throw new CodeError("Long-integer: invalid length " + array.length);
+    }
+
+    Octet.encode(data, array.length);
+    Octet.encodeMultiple(data, array);
+  },
 };
 
 
@@ -779,6 +838,30 @@ let UintVar = {
 
     return result;
   },
+
+  
+
+
+
+
+
+  encode: function encode(data, value) {
+    if (value < 0) {
+      throw new CodeError("UintVar: invalid value " + value);
+    }
+
+    let stack = [];
+    while (value >= 128) {
+      stack.push(Math.floor(value % 128));
+      value = Math.floor(value / 128);
+    }
+
+    while (stack.length) {
+      Octet.encode(data, value | 0x80);
+      value = stack.pop();
+    }
+    Octet.encode(data, value);
+  },
 };
 
 
@@ -800,6 +883,20 @@ let ConstrainedEncoding = {
 
   decode: function decode(data) {
     return decodeAlternatives(data, null, NullTerminatedTexts, ShortInteger);
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, value) {
+    if (typeof value == "number") {
+      ShortInteger.encode(data, value);
+    } else {
+      NullTerminatedTexts.encode(data, value);
+    }
   },
 };
 
@@ -832,6 +929,20 @@ let ValueLength = {
 
     throw new CodeError("Value-length: invalid value " + value);
   },
+
+  
+
+
+
+
+  encode: function encode(data, value) {
+    if (value <= 30) {
+      Octet.encode(data, value);
+    } else {
+      Octet.encode(data, 31);
+      UintVar.encode(data, value);
+    }
+  },
 };
 
 
@@ -850,6 +961,19 @@ let NoValue = {
     Octet.decodeEqualTo(data, 0);
     return null;
   },
+
+  
+
+
+
+
+
+  encode: function encode(data, value) {
+    if (value != null) {
+      throw new CodeError("No-value: invalid value " + value);
+    }
+    Octet.encode(data, 0);
+  },
 };
 
 
@@ -867,6 +991,16 @@ let TextValue = {
   decode: function decode(data) {
     return decodeAlternatives(data, null, NoValue, TokenText, QuotedString);
   },
+
+  
+
+
+
+
+
+  encode: function encode(data, text) {
+    encodeAlternatives(data, text, null, NoValue, TokenText, QuotedString);
+  },
 };
 
 
@@ -883,6 +1017,22 @@ let IntegerValue = {
 
   decode: function decode(data) {
     return decodeAlternatives(data, null, ShortInteger, LongInteger);
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, value) {
+    if (typeof value === "number") {
+      encodeAlternatives(data, value, null, ShortInteger, LongInteger);
+    } else if (Array.isArray(value) || (value instanceof Uint8Array)) {
+      LongInteger.encode(data, value);
+    } else {
+      throw new CodeError("Integer-Value: invalid value type");
+    }
   },
 };
 
@@ -914,6 +1064,21 @@ let DateValue = {
     }
 
     return new Date(seconds * 1000);
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, date) {
+    let seconds = date.getTime() / 1000;
+    if (seconds < 0) {
+      throw new CodeError("Date-value: negative seconds " + seconds);
+    }
+
+    LongInteger.encode(data, seconds);
   },
 };
 
@@ -953,6 +1118,27 @@ let QValue = {
     }
 
     throw new CodeError("Q-value: invalid value " + value);
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, value) {
+    if ((value < 0) || (value >= 1)) {
+      throw new CodeError("Q-value: invalid value " + value);
+    }
+
+    value *= 1000;
+    if ((value % 10) == 0) {
+      
+      UintVar.encode(data, Math.floor(value / 10 + 1));
+    } else {
+      
+      UintVar.encode(data, Math.floor(value + 100));
+    }
   },
 };
 
@@ -1006,6 +1192,20 @@ let VersionValue = {
     }
 
     return major << 4 | minor;
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, version) {
+    if ((version < 0x10) || (version >= 0x80)) {
+      throw new CodeError("Version-value: invalid version " + version);
+    }
+
+    ShortInteger.encode(data, version);
   },
 };
 
@@ -1066,6 +1266,21 @@ let TypeValue = {
     }
 
     return entry.type;
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, type) {
+    let entry = WSP_WELL_KNOWN_CONTENT_TYPES[type.toLowerCase()];
+    if (entry) {
+      ShortInteger.encode(data, entry.number);
+    } else {
+      NullTerminatedTexts.encode(data, type);
+    }
   },
 };
 
@@ -1220,6 +1435,63 @@ let Parameter = {
 
     return params;
   },
+
+  
+
+
+
+
+
+  encodeTypedParameter: function decodeTypedParameter(data, param) {
+    let entry = WSP_WELL_KNOWN_PARAMS[param.name.toLowerCase()];
+    if (!entry) {
+      throw new NotWellKnownEncodingError(
+        "Typed-parameter: not well known parameter " + param.name);
+    }
+
+    IntegerValue.encode(data, entry.number);
+    encodeAlternatives(data, param.value, null,
+                       entry.coder, TextValue, TextString);
+  },
+
+  
+
+
+
+
+
+  encodeUntypedParameter: function encodeUntypedParameter(data, param) {
+    TokenText.encode(data, param.name);
+    encodeAlternatives(data, param.value, null, IntegerValue, TextValue);
+  },
+
+  
+
+
+
+
+
+  encodeMultiple: function encodeMultiple(data, params) {
+    for (let name in params) {
+      this.encode(data, {name: name, value: params[name]});
+    }
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, param) {
+    let begin = data.offset;
+    try {
+      this.encodeTypedParameter(data, param);
+    } catch (e) {
+      data.offset = begin;
+      this.encodeUntypedParameter(data, param);
+    }
+  },
 };
 
 
@@ -1254,6 +1526,22 @@ let Header = {
   decode: function decode(data) {
     
     return this.decodeMessageHeader(data);
+  },
+
+  encodeMessageHeader: function encodeMessageHeader(data, header) {
+    encodeAlternatives(data, header, null, WellKnownHeader, ApplicationHeader);
+  },
+
+  
+
+
+
+
+
+
+  encode: function encode(data, header) {
+    
+    this.encodeMessageHeader(data, header);
   },
 };
 
@@ -1302,6 +1590,24 @@ let WellKnownHeader = {
       name: entry.name,
       value: value,
     };
+  },
+
+  
+
+
+
+
+
+
+  encode: function encode(data, header) {
+    let entry = WSP_HEADER_FIELDS[header.name.toLowerCase()];
+    if (!entry) {
+      throw new NotWellKnownEncodingError(
+        "Well-known-header: not well known header " + header.name);
+    }
+
+    ShortInteger.encode(data, entry.number);
+    encodeAlternatives(data, header.value, null, entry.coder, TextValue);
   },
 };
 
@@ -1394,6 +1700,21 @@ let FieldName = {
     }
 
     return entry.name;
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, name) {
+    let entry = WSP_HEADER_FIELDS[name.toLowerCase()];
+    if (entry) {
+      ShortInteger.encode(data, entry.number);
+    } else {
+      TokenText.encode(data, name);
+    }
   },
 };
 
@@ -1498,6 +1819,21 @@ let AcceptCharsetValue = {
       return this.decodeAcceptCharsetGeneralForm(data);
     }
   },
+
+  
+
+
+
+
+
+  encodeAnyCharset: function encodeAnyCharset(data, value) {
+    if (!value || !value.charset || (value.charset === "*")) {
+      Octet.encode(data, 128);
+      return;
+    }
+
+    throw new CodeError("Any-charset: invalid value " + value);
+  },
 };
 
 
@@ -1539,6 +1875,28 @@ let WellKnownCharset = {
     }
 
     return {charset: entry.name};
+  },
+
+  
+
+
+
+
+  encode: function encode(data, value) {
+    let begin = data.offset;
+    try {
+      AcceptCharsetValue.encodeAnyCharset(data, value);
+      return;
+    } catch (e) {}
+
+    data.offset = begin;
+    let entry = WSP_WELL_KNOWN_CHARSETS[value.charset.toLowerCase()];
+    if (!entry) {
+      throw new NotWellKnownEncodingError(
+        "Well-known-charset: not well known charset " + value.charset);
+    }
+
+    IntegerValue.encode(data, entry.number);
   },
 };
 
@@ -1668,6 +2026,73 @@ let ContentTypeValue = {
     } catch (e) {
       data.offset = begin;
       return this.decodeContentGeneralForm(data);
+    }
+  },
+
+  
+
+
+
+
+
+  encodeConstrainedMedia: function encodeConstrainedMedia(data, value) {
+    if (value.params) {
+      throw new CodeError("Constrained-media: should use general form instread");
+    }
+
+    TypeValue.encode(data, value.media);
+  },
+
+  
+
+
+
+
+
+  encodeMediaType: function encodeMediaType(data, value) {
+    let entry = WSP_WELL_KNOWN_CONTENT_TYPES[value.media.toLowerCase()];
+    if (entry) {
+      IntegerValue.encode(data, entry.number);
+    } else {
+      NullTerminatedTexts.encode(data, value.media);
+    }
+
+    Parameter.encodeMultiple(data, value.params);
+  },
+
+  
+
+
+
+
+
+  encodeContentGeneralForm: function encodeContentGeneralForm(data, value) {
+    let begin = data.offset;
+    this.encodeMediaType(data, value);
+
+    
+    
+    let len = data.offset - begin;
+    data.offset = begin;
+
+    ValueLength.encode(data, len);
+    this.encodeMediaType(data, value);
+  },
+
+  
+
+
+
+
+
+  encode: function encode(data, value) {
+    let begin = data.offset;
+
+    try {
+      this.encodeConstrainedMedia(data, value);
+    } catch (e) {
+      data.offset = begin;
+      this.encodeContentGeneralForm(data, value);
     }
   },
 };
@@ -1868,6 +2293,85 @@ let PduHelper = {
     }
 
     return msg;
+  },
+
+  
+
+
+
+
+
+
+
+  appendArrayToMultiStream: function appendArrayToMultiStream(multiStream, array, length) {
+    let storageStream = Cc["@mozilla.org/storagestream;1"]
+                        .createInstance(Ci.nsIStorageStream);
+    storageStream.init(4096, length, null);
+
+    let boStream = Cc["@mozilla.org/binaryoutputstream;1"]
+                   .createInstance(Ci.nsIBinaryOutputStream);
+    boStream.setOutputStream(storageStream.getOutputStream(0));
+    boStream.writeByteArray(array, length);
+    boStream.close();
+
+    multiStream.appendStream(storageStream.newInputStream(0));
+  },
+
+  
+
+
+
+
+
+
+
+  composeMultiPart: function composeMultiPart(multiStream, parts) {
+    
+    {
+      let data = {array: [], offset: 0};
+      UintVar.encode(data, parts.length);
+      debug("Encoded multipart header: " + JSON.stringify(data.array));
+      this.appendArrayToMultiStream(multiStream, data.array, data.offset);
+    }
+
+    
+    for (let i = 0; i < parts.length; i++) {
+      let part = parts[i];
+      let data = {array: [], offset: 0};
+
+      
+      let contentType = part.headers["content-type"];
+      ContentTypeValue.encode(data, contentType);
+
+      
+      if (Object.keys(part).length > 1) {
+        
+        delete part.headers["content-type"];
+
+        for (let name in part.headers) {
+          Header.encode(data, {name: name, value: part.headers[name]});
+        }
+
+        
+        part.headers["content-type"] = contentType;
+      }
+
+      
+      let headersLen = data.offset;
+      UintVar.encode(data, headersLen);
+      UintVar.encode(data, part.content.length);
+
+      
+      let slice1 = data.array.slice(headersLen);
+      let slice2 = data.array.slice(0, headersLen);
+      data.array = slice1.concat(slice2);
+      debug("Encoded per-part header: " + JSON.stringify(data.array));
+
+      
+      this.appendArrayToMultiStream(multiStream, data.array, data.offset);
+      
+      this.appendArrayToMultiStream(multiStream, part.content, part.content.length);
+    }
   },
 };
 
