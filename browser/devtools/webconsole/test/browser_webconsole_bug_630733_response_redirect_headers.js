@@ -7,7 +7,7 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test//test-bug-630733-response-redirect-headers.sjs";
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-bug-630733-response-redirect-headers.sjs";
 
 let lastFinishedRequests = {};
 

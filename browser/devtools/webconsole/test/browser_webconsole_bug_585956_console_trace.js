@@ -36,7 +36,7 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test//test-bug-585956-console-trace.html";
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-bug-585956-console-trace.html";
 
 function test() {
   addTab(TEST_URI);

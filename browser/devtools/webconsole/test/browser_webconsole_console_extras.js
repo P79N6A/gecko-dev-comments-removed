@@ -37,7 +37,7 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test//test-console-extras.html";
+const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console-extras.html";
 
 function test() {
   addTab(TEST_URI);
