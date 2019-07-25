@@ -533,43 +533,6 @@ FinishSharingTitle(JSContext *cx, JSTitle *title)
 
 
 
-void
-js_NudgeOtherContexts(JSContext *cx)
-{
-    JSRuntime *rt = cx->runtime;
-    JSContext *acx = NULL;
-
-    while ((acx = js_NextActiveContext(rt, acx)) != NULL) {
-        if (cx != acx)
-            JS_TriggerOperationCallback(acx);
-    }
-}
-
-
-
-
-
-static void
-NudgeThread(JSRuntime *rt, JSThread *thread)
-{
-    JS_ASSERT(thread);
-
-    
-
-
-
-
-    JSContext *acx = NULL;
-    while ((acx = js_NextActiveContext(rt, acx)) != NULL) {
-        if (acx->thread == thread)
-            JS_TriggerOperationCallback(acx);
-    }
-}
-
-
-
-
-
 
 
 
@@ -658,7 +621,7 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
 
-        NudgeThread(rt, ownercx->thread);
+        JS_THREAD_DATA(ownercx)->triggerOperationCallback();
 
         JS_ASSERT(!cx->thread->titleToShare);
         cx->thread->titleToShare = title;

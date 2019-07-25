@@ -121,6 +121,10 @@ JS_PUBLIC_DATA(jsval) JSVAL_TRUE  = { BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_TRUE) 
 JS_PUBLIC_DATA(jsval) JSVAL_VOID  = { BUILD_JSVAL(JSVAL_TAG_UNDEFINED, 0) };
 #endif
 
+
+JS_STATIC_ASSERT((jschar)-1 > 0);
+JS_STATIC_ASSERT(sizeof(jschar) == 2);
+
 JS_PUBLIC_API(int64)
 JS_Now()
 {
@@ -1845,7 +1849,7 @@ JS_free(JSContext *cx, void *p)
 JS_PUBLIC_API(void)
 JS_updateMallocCounter(JSContext *cx, size_t nbytes)
 {
-    return cx->updateMallocCounter(nbytes);
+    cx->runtime->updateMallocCounter(nbytes);
 }
 
 JS_PUBLIC_API(char *)
@@ -2441,65 +2445,16 @@ JS_MaybeGC(JSContext *cx)
 
     rt = cx->runtime;
 
-#ifdef JS_GC_ZEAL
-    if (rt->gcZeal > 0) {
-        JS_GC(cx);
-        return;
-    }
-#endif
-
     bytes = rt->gcBytes;
     lastBytes = rt->gcLastBytes;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if ((bytes > 8192 && bytes > lastBytes + lastBytes / 3) ||
-        rt->isGCMallocLimitReached()) {
+    if (rt->gcIsNeeded ||
+#ifdef JS_GC_ZEAL
+        rt->gcZeal > 0 ||
+#endif
+        (bytes > 8192 && bytes > lastBytes * 16) ||
+        bytes >= rt->gcTriggerBytes ||
+        rt->overQuota()) {
         JS_GC(cx);
     }
 }
@@ -2620,7 +2575,7 @@ JS_NewExternalString(JSContext *cx, jschar *chars, size_t length, intN type)
     if (!str)
         return NULL;
     str->initFlat(chars, length);
-    cx->updateMallocCounter((length + 1) * sizeof(jschar));
+    cx->runtime->updateMallocCounter((length + 1) * sizeof(jschar));
     return str;
 }
 
@@ -2773,7 +2728,7 @@ JS_PUBLIC_API(JSBool)
 JS_HasInstance(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
 {
     assertSameCompartment(cx, obj, v);
-    return js_HasInstance(cx, obj, Valueify(&v), bp);
+    return HasInstance(cx, obj, Valueify(&v), bp);
 }
 
 JS_PUBLIC_API(void *)
@@ -4859,8 +4814,16 @@ JS_TriggerOperationCallback(JSContext *cx)
 
 
 
-    JS_ATOMIC_SET_MASK(const_cast<jsword*>(&cx->interruptFlags),
-                       JSContext::INTERRUPT_OPERATION_CALLBACK);
+    JSThreadData *td;
+#ifdef JS_THREADSAFE
+    JSThread *thread = cx->thread;
+    if (!thread)
+        return;
+    td = &thread->data;
+#else
+    td = JS_THREAD_DATA(cx);
+#endif
+    td->triggerOperationCallback();
 }
 
 JS_PUBLIC_API(void)
