@@ -107,6 +107,7 @@
 #include "nsIDOMPerformanceNavigation.h"
 #include "nsIDOMPerformance.h"
 #include "nsClientRect.h"
+#include "nsIDOMHTMLPropertiesCollection.h"
 
 
 #include "nsDOMError.h"

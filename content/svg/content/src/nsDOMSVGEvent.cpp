@@ -3,8 +3,8 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMSVGEvent.h"
-#include "nsContentUtils.h"
 
 
 

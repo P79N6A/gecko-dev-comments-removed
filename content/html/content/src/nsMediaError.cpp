@@ -4,7 +4,7 @@
 
 
 #include "nsMediaError.h"
-#include "nsContentUtils.h"
+#include "nsDOMClassInfoID.h"
 
 NS_IMPL_ADDREF(nsMediaError)
 NS_IMPL_RELEASE(nsMediaError)

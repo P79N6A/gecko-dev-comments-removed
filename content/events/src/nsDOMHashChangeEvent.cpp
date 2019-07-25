@@ -3,8 +3,8 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMHashChangeEvent.h"
-#include "nsContentUtils.h"
 #include "DictionaryHelpers.h"
 
 NS_IMPL_ADDREF_INHERITED(nsDOMHashChangeEvent, nsDOMEvent)

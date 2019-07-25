@@ -5,7 +5,6 @@
 
 
 #include "nsDOMTextEvent.h"
-#include "nsContentUtils.h"
 #include "nsPrivateTextRange.h"
 
 nsDOMTextEvent::nsDOMTextEvent(nsPresContext* aPresContext,

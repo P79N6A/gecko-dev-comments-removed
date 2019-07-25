@@ -3,8 +3,8 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMCommandEvent.h"
-#include "nsContentUtils.h"
 
 nsDOMCommandEvent::nsDOMCommandEvent(nsPresContext* aPresContext,
                                      nsCommandEvent* aEvent)

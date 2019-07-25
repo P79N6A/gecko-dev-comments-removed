@@ -6,15 +6,8 @@
 
 
 #include "nsGenericHTMLFrameElement.h"
-#include "nsIWebProgress.h"
-#include "nsIDOMCustomEvent.h"
-#include "nsIVariant.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsWeakPtr.h"
-#include "nsVariant.h"
 #include "nsContentUtils.h"
-#include "nsEventDispatcher.h"
-#include "nsAsyncDOMEvent.h"
 #include "mozilla/Preferences.h"
 
 using namespace mozilla;

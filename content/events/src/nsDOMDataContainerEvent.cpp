@@ -4,8 +4,7 @@
 
 
 #include "nsDOMDataContainerEvent.h"
-
-#include "nsContentUtils.h"
+#include "nsDOMClassInfoID.h"
 
 nsDOMDataContainerEvent::nsDOMDataContainerEvent(nsPresContext *aPresContext,
                                                  nsEvent *aEvent)

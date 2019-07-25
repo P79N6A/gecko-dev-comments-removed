@@ -3,8 +3,8 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMCustomEvent.h"
-#include "nsContentUtils.h"
 #include "DictionaryHelpers.h"
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDOMCustomEvent)

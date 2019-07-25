@@ -4,7 +4,6 @@
 
 
 #include "nscore.h"
-#include "nsIDOMDocument.h"
 #include "nsEditor.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMNode.h"

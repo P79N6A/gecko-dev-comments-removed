@@ -2,8 +2,8 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMUserProximityEvent.h"
-#include "nsContentUtils.h"
 #include "DictionaryHelpers.h"
 
 NS_IMPL_ADDREF_INHERITED(nsDOMUserProximityEvent, nsDOMEvent)

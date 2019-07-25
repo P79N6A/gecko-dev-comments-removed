@@ -71,7 +71,6 @@
 #include "nsISelectionDisplay.h"
 #include "nsIInlineSpellChecker.h"
 #include "nsINameSpaceManager.h"
-#include "nsIHTMLDocument.h"
 #include "nsIParserService.h"
 
 #include "nsITransferable.h"
@@ -3535,15 +3534,18 @@ nsEditor::GetLeftmostChild(nsIDOMNode *aCurrentNode,
   return resultNode.forget();
 }
 
-bool
-nsEditor::IsBlockNode(nsIDOMNode* aNode)
+bool 
+nsEditor::IsBlockNode(nsIDOMNode *aNode)
 {
-  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
-  return IsBlockNode(node);
+  
+  
+  
+  
+  return false;
 }
 
-bool
-nsEditor::IsBlockNode(nsINode* aNode)
+bool 
+nsEditor::IsBlockNode(nsINode *aNode)
 {
   
   

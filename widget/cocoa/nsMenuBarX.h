@@ -19,7 +19,6 @@ class nsMenuX;
 class nsMenuItemX;
 class nsIWidget;
 class nsIContent;
-class nsIDocument;
 
 
 class nsNativeMenuServiceX : public nsINativeMenuService

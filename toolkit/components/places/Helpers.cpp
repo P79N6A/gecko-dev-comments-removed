@@ -13,7 +13,6 @@
 #if defined(XP_OS2)
 #include "nsIRandomGenerator.h"
 #endif
-#include "nsContentUtils.h"
 
 
 #define GUID_LENGTH 12

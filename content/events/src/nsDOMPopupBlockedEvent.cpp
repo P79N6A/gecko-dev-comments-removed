@@ -3,9 +3,9 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMPopupBlockedEvent.h"
 #include "nsIURI.h"
-#include "nsContentUtils.h"
 
 NS_IMPL_ADDREF_INHERITED(nsDOMPopupBlockedEvent, nsDOMEvent)
 NS_IMPL_RELEASE_INHERITED(nsDOMPopupBlockedEvent, nsDOMEvent)

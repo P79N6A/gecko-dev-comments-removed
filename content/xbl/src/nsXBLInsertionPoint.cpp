@@ -4,7 +4,6 @@
 
 
 #include "nsXBLInsertionPoint.h"
-#include "nsContentUtils.h"
 #include "nsXBLBinding.h"
 
 nsXBLInsertionPoint::nsXBLInsertionPoint(nsIContent* aParentElement,

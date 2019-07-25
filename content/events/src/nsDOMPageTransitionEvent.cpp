@@ -3,8 +3,8 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMPageTransitionEvent.h"
-#include "nsContentUtils.h"
 #include "DictionaryHelpers.h"
 
 DOMCI_DATA(PageTransitionEvent, nsDOMPageTransitionEvent)

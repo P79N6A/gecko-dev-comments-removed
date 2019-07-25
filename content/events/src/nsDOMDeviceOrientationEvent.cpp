@@ -2,8 +2,8 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMDeviceOrientationEvent.h"
-#include "nsContentUtils.h"
 
 NS_IMPL_ADDREF_INHERITED(nsDOMDeviceOrientationEvent, nsDOMEvent)
 NS_IMPL_RELEASE_INHERITED(nsDOMDeviceOrientationEvent, nsDOMEvent)

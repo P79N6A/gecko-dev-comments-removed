@@ -4,7 +4,6 @@
 
 
 #include "nsSVGDocument.h"
-#include "nsContentUtils.h"
 #include "nsString.h"
 #include "nsLiteralString.h"
 #include "nsIDOMSVGSVGElement.h"

@@ -4,8 +4,8 @@
 
 
 
+#include "nsDOMClassInfoID.h"
 #include "nsDOMXULCommandEvent.h"
-#include "nsContentUtils.h"
 
 nsDOMXULCommandEvent::nsDOMXULCommandEvent(nsPresContext* aPresContext,
                                            nsInputEvent* aEvent)
