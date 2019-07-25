@@ -860,9 +860,10 @@ SecurityWrapper<Base>::nativeCall(JSContext *cx, JSObject *wrapper, Class *clasp
                                   CallArgs args)
 {
     
-    DebugOnly<bool> ret = ProxyHandler::nativeCall(cx, wrapper, clasp, native, args);
-    JS_ASSERT(!ret);
-    return false;
+
+
+
+    return Base::nativeCall(cx, wrapper, clasp, native, args);
 }
 
 template <class Base>
@@ -870,9 +871,10 @@ bool
 SecurityWrapper<Base>::objectClassIs(JSObject *obj, ESClassValue classValue, JSContext *cx)
 {
     
-    bool ret = ProxyHandler::objectClassIs(obj, classValue, cx);
-    JS_ASSERT(!ret && !cx->isExceptionPending());
-    return ret;
+
+
+
+    return Base::objectClassIs(obj, classValue, cx);
 }
 
 template class js::SecurityWrapper<Wrapper>;
