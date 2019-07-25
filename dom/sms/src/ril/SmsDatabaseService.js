@@ -14,7 +14,7 @@ const RIL_SMSDATABASESERVICE_CID = Components.ID("{a1fa610c-eb6c-4ac2-878f-b005d
 
 const DEBUG = false;
 const DB_NAME = "sms";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "sms";
 
 const DELIVERY_SENT = "sent";
@@ -23,6 +23,12 @@ const DELIVERY_RECEIVED = "received";
 const FILTER_TIMESTAMP = "timestamp";
 const FILTER_NUMBERS = "numbers";
 const FILTER_DELIVERY = "delivery";
+const FILTER_READ = "read";
+
+
+
+const FILTER_READ_UNREAD = 0;
+const FILTER_READ_READ = 1;
 
 const READ_ONLY = "readonly";
 const READ_WRITE = "readwrite";
@@ -156,6 +162,12 @@ SmsDatabaseService.prototype = {
           self.createSchema(db);
           break;
 
+        case 1:
+          if (DEBUG) debug("Upgrade to version 2. Including `read` index");
+          let objectStore = event.target.transaction.objectStore(STORE_NAME); 
+          self.upgradeSchema(objectStore);
+          break;
+
         default:
           event.target.transaction.abort();
           callback("Old database version: " + event.oldVersion, null);
@@ -211,15 +223,23 @@ SmsDatabaseService.prototype = {
 
 
 
-
   createSchema: function createSchema(db) {
     let objectStore = db.createObjectStore(STORE_NAME, { keyPath: "id" });
     objectStore.createIndex("id", "id", { unique: true });
     objectStore.createIndex("delivery", "delivery", { unique: false });
     objectStore.createIndex("sender", "sender", { unique: false });
     objectStore.createIndex("receiver", "receiver", { unique: false });
-    objectStore.createIndex("timestamp", "timestamp", { unique:false });
+    objectStore.createIndex("timestamp", "timestamp", { unique: false });
+    objectStore.createIndex("read", "read", { unique: false });
     if (DEBUG) debug("Created object stores and indexes");
+  },
+
+  
+
+
+  upgradeSchema: function upgradeSchema(objectStore) {
+    
+    objectStore.createIndex("read", "read", { unique: false });  
   },
 
   
@@ -243,6 +263,11 @@ SmsDatabaseService.prototype = {
     }
     if (keys[FILTER_DELIVERY].length || filter.delivery) {
       result = keys[FILTER_DELIVERY].filter(function(i) {
+        return result.indexOf(i) != -1;
+      });
+    }
+    if (keys[FILTER_READ].length || filter.read) {
+      result = keys[FILTER_READ].filter(function(i) {
         return result.indexOf(i) != -1;
       });
     }
@@ -293,7 +318,8 @@ SmsDatabaseService.prototype = {
                                                message.sender,
                                                message.receiver,
                                                message.body,
-                                               message.timestamp);
+                                               message.timestamp,
+                                               message.read);
         gSmsRequestManager.notifyCreateMessageList(requestId,
                                                    self.lastMessageListId,
                                                    sms);
@@ -325,7 +351,8 @@ SmsDatabaseService.prototype = {
                    sender:    sender,
                    receiver:  this.mRIL.radioState.msisdn, 
                    body:      body,
-                   timestamp: date};
+                   timestamp: date,
+                   read:      FILTER_READ_UNREAD};
     return this.saveMessage(message);
   },
 
@@ -334,7 +361,8 @@ SmsDatabaseService.prototype = {
                    sender:    this.mRIL.radioState.msisdn,
                    receiver:  receiver,
                    body:      body,
-                   timestamp: date};
+                   timestamp: date,
+                   read:      FILTER_READ_READ};
     return this.saveMessage(message);
   },
 
@@ -378,7 +406,8 @@ SmsDatabaseService.prototype = {
                                                    data.sender,
                                                    data.receiver,
                                                    data.body,
-                                                   data.timestamp);
+                                                   data.timestamp,
+                                                   data.read);
         gSmsRequestManager.notifyGotSms(requestId, message);
       };
 
@@ -432,6 +461,7 @@ SmsDatabaseService.prototype = {
             " endDate: " + filter.endDate +
             " delivery: " + filter.delivery +
             " numbers: " + filter.numbers +
+            " read: " + filter.read +
             " reverse: " + reverse);
     }
     
@@ -442,6 +472,7 @@ SmsDatabaseService.prototype = {
     filteredKeys[FILTER_TIMESTAMP] = [];
     filteredKeys[FILTER_NUMBERS] = [];
     filteredKeys[FILTER_DELIVERY] = [];
+    filteredKeys[FILTER_READ] = [];
 
     
     let successCb = function onsuccess(result, filter) {
@@ -525,6 +556,20 @@ SmsDatabaseService.prototype = {
         }
       }
 
+      
+      
+      if (filter.read != undefined) {
+        let read = filter.read ? FILTER_READ_READ : FILTER_READ_UNREAD;
+        if (DEBUG) debug("filter.read " + read);
+        let readKeyRange = IDBKeyRange.only(read);
+        let readRequest = store.index("read")
+                               .openKeyCursor(readKeyRange);
+        readRequest.onsuccess = function onsuccess(event) {
+          successCb(event.target.result, FILTER_READ);
+        };
+        readRequest.onerror = errorCb;
+      }
+
       txn.oncomplete = function oncomplete(event) {
         if (DEBUG) debug("Transaction " + txn + " completed.");
         
@@ -585,7 +630,8 @@ SmsDatabaseService.prototype = {
                                                message.sender,
                                                message.receiver,
                                                message.body,
-                                               message.timestamp);
+                                               message.timestamp,
+                                               message.read);
         gSmsRequestManager.notifyGotNextMessage(requestId, sms);
       };
 
@@ -604,6 +650,65 @@ SmsDatabaseService.prototype = {
   clearMessageList: function clearMessageList(listId) {
     if (DEBUG) debug("Clearing message list: " + listId);
     delete this.messageLists[listId];
+  },
+
+  markMessageRead: function markMessageRead(messageId, value, requestId) {
+    if (DEBUG) debug("Setting message " + messageId + " read to " + value);
+    this.newTxn(READ_WRITE, function (error, txn, store) {
+      if (error) {
+        if (DEBUG) debug(error);
+        gSmsRequestManager.notifyMarkMessageReadFailed(
+          requestId, Ci.nsISmsRequestManager.INTERNAL_ERROR);
+        return;
+      }
+      let getRequest = store.get(messageId);
+
+      getRequest.onsuccess = function onsuccess(event) {
+        let message = event.target.result;
+        if (DEBUG) debug("Message ID " + messageId + " not found");
+        if (!message) {
+          gSmsRequestManager.notifyMarkMessageReadFailed(
+            requestId, Ci.nsISmsRequestManager.NOT_FOUND_ERROR);
+          return;
+        }
+        if (message.id != messageId) {
+          if (DEBUG) {
+            debug("Retrieve message ID (" + messageId + ") is " +
+                  "different from the one we got");
+          }
+          gSmsRequestManager.notifyMarkMessageReadFailed(
+            requestId, Ci.nsISmsRequestManager.UNKNOWN_ERROR);
+          return;
+        }
+        
+        
+        if (message.read == value) {
+          if (DEBUG) debug("The value of message.read is already " + value);
+          gSmsRequestManager.notifyMarkedMessageRead(requestId, message.read);
+          return;
+        }
+        message.read = value ? FILTER_READ_READ : FILTER_READ_UNREAD;
+        if (DEBUG) debug("Message.read set to: " + value);
+        let putRequest = store.put(message);
+        putRequest.onsuccess = function onsuccess(event) {
+          if (DEBUG) {
+            debug("Update successfully completed. Message: " +
+                  JSON.stringify(event.target.result));
+          }
+          let checkRequest = store.get(message.id);
+          checkRequest.onsuccess = function onsuccess(event) {
+            gSmsRequestManager.notifyMarkedMessageRead(
+              requestId, event.target.result.read);
+          };
+        }
+      };
+
+      txn.onerror = function onerror(event) {
+        if (DEBUG) debug("Caught error on transaction ", event.target.errorCode);
+        gSmsRequestManager.notifyMarkMessageReadFailed(
+          requestId, Ci.nsISmsRequestManager.INTERNAL_ERROR);
+      };
+    });
   }
 
 };
