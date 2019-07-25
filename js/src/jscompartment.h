@@ -63,10 +63,6 @@ typedef HashMap<JSFunction *,
                 DefaultHasher<JSFunction *>,
                 SystemAllocPolicy> ToSourceCache;
 
-namespace mjit {
-class JaegerCompartment;
-}
-
 
 extern Class dummy_class;
 
@@ -113,8 +109,6 @@ class NativeIterCache {
         data[getIndex(key)] = iterobj;
     }
 };
-
-class MathCache;
 
 
 
@@ -259,31 +253,6 @@ struct JSCompartment
     bool                         active;  
     js::WrapperMap               crossCompartmentWrappers;
 
-#ifdef JS_METHODJIT
-  private:
-    
-    js::mjit::JaegerCompartment  *jaegerCompartment_;
-    
-
-
-
-
-
-  public:
-    bool hasJaegerCompartment() {
-        return !!jaegerCompartment_;
-    }
-
-    js::mjit::JaegerCompartment *jaegerCompartment() const {
-        JS_ASSERT(jaegerCompartment_);
-        return jaegerCompartment_;
-    }
-
-    bool ensureJaegerCompartmentExists(JSContext *cx);
-
-    size_t sizeOfMjitCode() const;
-#endif
-
     js::RegExpCompartment        regExps;
 
     size_t sizeOfShapeTable(JSMallocSizeOfFun mallocSizeOf);
@@ -394,10 +363,6 @@ struct JSCompartment
     js::DtoaCache dtoaCache;
 
   private:
-    js::MathCache                *mathCache;
-
-    js::MathCache *allocMathCache(JSContext *cx);
-
     
 
 
@@ -408,10 +373,6 @@ struct JSCompartment
     JSCompartment *thisForCtor() { return this; }
 
   public:
-    js::MathCache *getMathCache(JSContext *cx) {
-        return mathCache ? mathCache : allocMathCache(cx);
-    }
-
     
 
 
@@ -452,14 +413,6 @@ struct JSCompartment
 };
 
 #define JS_PROPERTY_TREE(cx)    ((cx)->compartment->propertyTree)
-
-namespace js {
-static inline MathCache *
-GetMathCache(JSContext *cx)
-{
-    return cx->compartment->getMathCache(cx);
-}
-}
 
 inline void
 JSContext::setCompartment(JSCompartment *compartment)
