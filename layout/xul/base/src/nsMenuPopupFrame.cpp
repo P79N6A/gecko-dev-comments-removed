@@ -997,11 +997,9 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
   
   
   
-  
-  
-  float adj = float(presContext->AppUnitsPerDevPixel()) /
-              aAnchorFrame->PresContext()->AppUnitsPerDevPixel();
-  parentRect.ScaleRoundOut(adj);
+  parentRect = parentRect.ConvertAppUnitsRoundOut(
+    aAnchorFrame->PresContext()->AppUnitsPerDevPixel(),
+    presContext->AppUnitsPerDevPixel());
 
   
   
