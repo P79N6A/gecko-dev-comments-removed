@@ -180,6 +180,13 @@ public:
   
 
 
+
+  nsresult
+  RemoveTimeRange(PRInt64 aSince);
+
+  
+
+
   nsresult
   RemoveAll();
 
