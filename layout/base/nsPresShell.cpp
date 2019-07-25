@@ -7377,7 +7377,7 @@ PresShell::DoVerifyReflow()
     
     
     nsIView* rootView = mViewManager->GetRootView();
-    mViewManager->UpdateView(rootView);
+    mViewManager->InvalidateView(rootView);
 
     FlushPendingNotifications(Flush_Layout);
     mInVerifyReflow = true;

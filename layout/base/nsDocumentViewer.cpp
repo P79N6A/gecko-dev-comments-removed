@@ -1568,7 +1568,7 @@ DocumentViewerImpl::Destroy()
           
           
           
-          vm->UpdateViewNoSuppression(rootView,
+          vm->InvalidateViewNoSuppression(rootView,
             rootView->GetBounds() - rootView->GetPosition());
 
           nsIView *rootViewParent = rootView->GetParent();
