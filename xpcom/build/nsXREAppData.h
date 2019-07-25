@@ -148,6 +148,11 @@ struct nsXREAppData
 
 
   const char *profile;
+
+  
+
+
+  const char *UAName;
 };
 
 
