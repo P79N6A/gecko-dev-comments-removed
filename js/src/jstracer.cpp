@@ -1072,8 +1072,12 @@ asInt32(const Value &v)
 }
 
 
+
+
+
+
 static inline JSValueType
-GetPromotedType(const Value &v)
+getPromotedType(const Value &v)
 {
     if (v.isNumber())
         return JSVAL_TYPE_DOUBLE;
@@ -1081,6 +1085,10 @@ GetPromotedType(const Value &v)
         return v.toObject().isFunction() ? JSVAL_TYPE_FUNOBJ : JSVAL_TYPE_NONFUNOBJ;
     return v.extractNonDoubleObjectTraceType();
 }
+
+
+
+
 
 
 static inline JSValueType
@@ -8871,8 +8879,8 @@ TraceRecorder::strictEquality(bool equal, bool cmpCase)
     LIns* x;
     bool cond;
 
-    JSValueType ltag = GetPromotedType(l);
-    if (ltag != GetPromotedType(r)) {
+    JSValueType ltag = getPromotedType(l);
+    if (ltag != getPromotedType(r)) {
         cond = !equal;
         x = lir->insImmI(cond);
     } else if (ltag == JSVAL_TYPE_STRING) {
@@ -8937,7 +8945,7 @@ TraceRecorder::equalityHelper(Value& l, Value& r, LIns* l_ins, LIns* r_ins,
 
 
 
-    if (GetPromotedType(l) == GetPromotedType(r)) {
+    if (getPromotedType(l) == getPromotedType(r)) {
         if (l.isUndefined() || l.isNull()) {
             cond = true;
             if (l.isNull())
