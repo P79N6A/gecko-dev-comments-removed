@@ -218,6 +218,7 @@ NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLButtonElement, FormEnctype, formenctype,
                                 kFormDefaultEnctype->tag)
 NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLButtonElement, FormMethod, formmethod,
                                 kFormDefaultMethod->tag)
+NS_IMPL_BOOL_ATTR(nsHTMLButtonElement, FormNoValidate, formnovalidate)
 NS_IMPL_STRING_ATTR(nsHTMLButtonElement, FormTarget, formtarget)
 NS_IMPL_STRING_ATTR(nsHTMLButtonElement, Name, name)
 NS_IMPL_INT_ATTR_DEFAULT_VALUE(nsHTMLButtonElement, TabIndex, tabindex, 0)
@@ -508,6 +509,9 @@ nsHTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
         
         if (presShell && (event.message != NS_FORM_SUBMIT ||
                           mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate) ||
+                          
+                          
+                          HasAttr(kNameSpaceID_None, nsGkAtoms::formnovalidate) ||
                           mForm->CheckValidFormSubmission())) {
           
           
