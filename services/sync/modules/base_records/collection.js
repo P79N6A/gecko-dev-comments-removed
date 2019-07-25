@@ -151,8 +151,7 @@ Collection.prototype = {
         
         let record = new coll._recordObj();
         record.deserialize(json);
-        record.baseURI = coll.uri;
-        record.id = record.data.id;
+        record.baseUri = coll.uri;
         onRecord(record);
       }
     };
