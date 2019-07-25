@@ -75,7 +75,6 @@ extern "C" {
 
 
 
-
 typedef struct cubeb cubeb;               
 typedef struct cubeb_stream cubeb_stream; 
 
@@ -142,11 +141,9 @@ typedef long (* cubeb_data_callback)(cubeb_stream * stream,
 
 
 
-
-
-typedef int (* cubeb_state_callback)(cubeb_stream * stream,
-                                     void * user_ptr,
-                                     cubeb_state state);
+typedef void (* cubeb_state_callback)(cubeb_stream * stream,
+                                      void * user_ptr,
+                                      cubeb_state state);
 
 
 
@@ -155,6 +152,11 @@ typedef int (* cubeb_state_callback)(cubeb_stream * stream,
 
 
 int cubeb_init(cubeb ** context, char const * context_name);
+
+
+
+
+char const * cubeb_get_backend_id(cubeb * context);
 
 
 

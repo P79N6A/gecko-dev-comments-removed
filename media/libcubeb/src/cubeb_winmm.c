@@ -1,9 +1,9 @@
-/*
- * Copyright Å¬Å© 2011 Mozilla Foundation
- *
- * This program is made available under an ISC-style license.  See the
- * accompanying file LICENSE for details.
- */
+
+
+
+
+
+
 #undef NDEBUG
 #include <assert.h>
 #include <windows.h>
@@ -117,13 +117,14 @@ cubeb_refill_stream(cubeb_stream * stm)
 
   wanted = (DWORD) stm->buffer_size / bytes_per_frame(stm->params);
 
-  /* It is assumed that the caller is holding this lock.  It must be dropped
-     during the callback to avoid deadlocks. */
+  
+
   LeaveCriticalSection(&stm->lock);
   got = stm->data_callback(stm, stm->user_ptr, hdr->lpData, wanted);
   EnterCriticalSection(&stm->lock);
   if (got < 0) {
-    /* XXX handle this case */
+    LeaveCriticalSection(&stm->lock);
+    
     assert(0);
     return;
   } else if (got < wanted) {
@@ -226,6 +227,12 @@ cubeb_init(cubeb ** context, char const * context_name)
   return CUBEB_OK;
 }
 
+char const *
+cubeb_get_backend_id(cubeb * ctx)
+{
+  return "winmm";
+}
+
 void
 cubeb_destroy(cubeb * ctx)
 {
@@ -291,7 +298,7 @@ cubeb_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_n
   wfx.Format.nChannels = stream_params.channels;
   wfx.Format.nSamplesPerSec = stream_params.rate;
 
-  /* XXX fix channel mappings */
+  
   wfx.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
 
   switch (stream_params.format) {
@@ -314,9 +321,9 @@ cubeb_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_n
   wfx.Samples.wReserved = 0;
 
   EnterCriticalSection(&context->lock);
-  /* CUBEB_STREAM_MAX is a horrible hack to avoid a situation where, when
-     many streams are active at once, a subset of them will not consume (via
-     playback) or release (via waveOutReset) their buffers. */
+  
+
+
   if (context->active_streams >= CUBEB_STREAM_MAX) {
     LeaveCriticalSection(&context->lock);
     return CUBEB_ERROR;
@@ -351,8 +358,8 @@ cubeb_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_n
     return CUBEB_ERROR;
   }
 
-  /* cubeb_buffer_callback will be called during waveOutOpen, so all
-     other initialization must be complete before calling it. */
+  
+
   r = waveOutOpen(&stm->waveout, WAVE_MAPPER, &wfx.Format,
                   (DWORD_PTR) cubeb_buffer_callback, (DWORD_PTR) stm,
                   CALLBACK_FUNCTION);
@@ -405,7 +412,7 @@ cubeb_stream_destroy(cubeb_stream * stm)
     enqueued = NBUFS - stm->free_buffers;
     LeaveCriticalSection(&stm->lock);
 
-    /* Wait for all blocks to complete. */
+    
     while (enqueued > 0) {
       rv = WaitForSingleObject(stm->event, INFINITE);
       assert(rv == WAIT_OBJECT_0);
