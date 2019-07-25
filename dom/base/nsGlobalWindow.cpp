@@ -8734,24 +8734,14 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     return NS_OK;
   }
 
-  PRUint32 nestingLevel = sNestingLevel + 1;
-  if (aIsInterval || nestingLevel >= DOM_CLAMP_TIMEOUT_NESTING_LEVEL) {
-    
-    
-    interval = NS_MAX(interval, DOMMinTimeoutValue());
-  }
-  else if (interval < 0) {
-    
-    interval = 0;
-  }
-
-  NS_ASSERTION(interval >= 0, "DOMMinTimeoutValue() lies");
-  PRUint32 realInterval = interval;
+  
+  
+  interval = NS_MAX(aIsInterval ? 1 : 0, interval);
 
   
   
-  if (realInterval > PR_IntervalToMilliseconds(DOM_MAX_TIMEOUT_VALUE)) {
-    realInterval = PR_IntervalToMilliseconds(DOM_MAX_TIMEOUT_VALUE);
+  if (interval > PR_IntervalToMilliseconds(DOM_MAX_TIMEOUT_VALUE)) {
+    interval = PR_IntervalToMilliseconds(DOM_MAX_TIMEOUT_VALUE);
   }
 
   nsTimeout *timeout = new nsTimeout();
@@ -8763,9 +8753,18 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
   timeout->AddRef();
 
   if (aIsInterval) {
-    timeout->mInterval = realInterval;
+    timeout->mInterval = interval;
   }
   timeout->mScriptHandler = aHandler;
+
+  
+  PRUint32 nestingLevel = sNestingLevel + 1;
+  PRInt32 realInterval = interval;
+  if (aIsInterval || nestingLevel >= DOM_CLAMP_TIMEOUT_NESTING_LEVEL) {
+    
+    
+    realInterval = NS_MAX(realInterval, DOMMinTimeoutValue());
+  }
 
   
   
@@ -8857,6 +8856,9 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     PRInt32 delay =
       nsContentUtils::GetIntPref("dom.disable_open_click_delay");
 
+    
+    
+    
     if (interval <= delay) {
       timeout->mPopupState = gPopupControlState;
     }
