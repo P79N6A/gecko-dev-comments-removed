@@ -1892,6 +1892,7 @@ const WSP_HEADER_FIELDS = (function () {
   
   
   
+  
   add("age",                    0x05, DeltaSecondsValue);
   
   
@@ -1934,6 +1935,8 @@ const WSP_HEADER_FIELDS = (function () {
   
   
   
+
+  
   add("x-wap-application-id",   0x2F, ApplicationIdValue);
   add("x-wap-content-uri",      0x30, UriValue);
   add("x-wap-initiator-uri",    0x31, UriValue);
@@ -1942,6 +1945,8 @@ const WSP_HEADER_FIELDS = (function () {
   add("push-flag",              0x34, ShortInteger);
   add("profile",                0x35, UriValue);
   
+  
+
   
   
   
@@ -1954,6 +1959,8 @@ const WSP_HEADER_FIELDS = (function () {
   add("content-id",             0x40, QuotedString);
   
   
+  
+
   
   
   
@@ -1977,7 +1984,10 @@ const WSP_WELL_KNOWN_CONTENT_TYPES = (function () {
   }
 
   
+  
   add("application/vnd.wap.multipart.related", 0x33);
+
+  
   add("application/vnd.wap.mms-message", 0x3E);
 
   return types;
@@ -1999,6 +2009,7 @@ const WSP_WELL_KNOWN_PARAMS = (function () {
     params[name] = params[number] = entry;
   }
 
+  
   add("q",                 0x00, QValue);
   add("charset",           0x01, WellKnownCharset);
   add("level",             0x02, VersionValue);
@@ -2007,23 +2018,29 @@ const WSP_WELL_KNOWN_PARAMS = (function () {
   
   add("differences",       0x07, FieldName);
   add("padding",           0x08, ShortInteger);
+
+  
   add("type",              0x09, TypeValue);
   add("start",             0x0A, TextValue); 
+  
+
   
   
   
   add("max-age",           0x0E, DeltaSecondsValue);
   
   add("secure",            0x10, NoValue);
+
+  
   add("sec",               0x11, ShortInteger);
   add("mac",               0x12, TextValue);
   add("creation-date",     0x13, DateValue);
   add("modification-date", 0x14, DateValue);
   add("read-date",         0x15, DateValue);
   add("size",              0x16, IntegerValue);
-  add("name",              0x17, TextValue);
+  
   add("filename",          0x18, TextValue);
-  add("start",             0x19, TextValue);
+  
   add("start-info",        0x1A, TextValue);
   add("comment",           0x1B, TextValue);
   add("domain",            0x1C, TextValue);
