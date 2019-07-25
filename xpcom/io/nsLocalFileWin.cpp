@@ -255,6 +255,10 @@ static nsresult ConvertWinError(DWORD winErr)
         case ERROR_NOT_SAME_DEVICE:
             rv = NS_ERROR_FILE_ACCESS_DENIED;
             break;
+        case ERROR_SHARING_VIOLATION: 
+        case ERROR_LOCK_VIOLATION: 
+            rv = NS_ERROR_FILE_IS_LOCKED;
+            break;
         case ERROR_NOT_ENOUGH_MEMORY:
         case ERROR_INVALID_BLOCK:
         case ERROR_INVALID_HANDLE:
@@ -802,8 +806,9 @@ nsLocalFile::ResolveAndStat()
 
     
     
-    if (NS_FAILED(GetFileInfo(nsprPath, &mFileInfo64)))
-        return NS_ERROR_FILE_NOT_FOUND;
+    nsresult rv = GetFileInfo(nsprPath, &mFileInfo64);
+    if (NS_FAILED(rv))
+        return rv;
 
     
     if (!mFollowSymlinks 
@@ -818,7 +823,7 @@ nsLocalFile::ResolveAndStat()
     
     
     
-    nsresult rv = ResolveShortcut();
+    rv = ResolveShortcut();
     if (NS_FAILED(rv))
     {
         mResolvedPath.Assign(mWorkingPath);
@@ -826,8 +831,9 @@ nsLocalFile::ResolveAndStat()
     }
 
     
-    if (NS_FAILED(GetFileInfo(mResolvedPath, &mFileInfo64)))
-        return NS_ERROR_FILE_NOT_FOUND;
+    rv = GetFileInfo(mResolvedPath, &mFileInfo64);
+    if (NS_FAILED(rv))
+        return rv;
 
     mDirty = PR_FALSE;
     return NS_OK;
@@ -2217,7 +2223,7 @@ nsLocalFile::Exists(PRBool *_retval)
 
     MakeDirty();
     nsresult rv = ResolveAndStat();
-    *_retval = NS_SUCCEEDED(rv);
+    *_retval = NS_SUCCEEDED(rv) || rv == NS_ERROR_FILE_IS_LOCKED;
 
     return NS_OK;
 }
