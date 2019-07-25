@@ -929,6 +929,8 @@ private:
     else {
       
       
+      
+      aPlace.referrerSpec.Truncate();
       aReferrer.visitId = 0;
     }
   }
