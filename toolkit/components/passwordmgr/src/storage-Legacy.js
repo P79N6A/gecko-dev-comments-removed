@@ -124,7 +124,7 @@ LoginManagerStorage_legacy.prototype = {
 
 
 
-    _logins        : null, 
+    _logins        : null,
     _disabledHosts : null,
 
 
@@ -472,7 +472,7 @@ LoginManagerStorage_legacy.prototype = {
         return logins;
     },
 
-    
+
     
 
 
@@ -484,7 +484,7 @@ LoginManagerStorage_legacy.prototype = {
         if (aHostname) {
             logins = this._searchLogins(aHostname, aFormSubmitURL, aHttpRealm);
             return logins.length
-        } 
+        }
 
         
         if (aHostname == null)
@@ -733,14 +733,14 @@ LoginManagerStorage_legacy.prototype = {
                                 aLogin.username, aLogin.password, "", "");
                 
                 
-                extraLogin.wrappedJSObject.encryptedPassword = 
+                extraLogin.wrappedJSObject.encryptedPassword =
                     aLogin.wrappedJSObject.encryptedPassword;
-                extraLogin.wrappedJSObject.encryptedUsername = 
+                extraLogin.wrappedJSObject.encryptedUsername =
                     aLogin.wrappedJSObject.encryptedUsername;
 
                 if (extraLogin.httpRealm == "")
                     extraLogin.httpRealm = extraLogin.hostname;
-                
+
                 upgradedLogins.push(extraLogin);
             }
 
@@ -830,7 +830,15 @@ LoginManagerStorage_legacy.prototype = {
         
         if (username && !isFormLogin) {
             if (isMailNews.test(aLogin.hostname))
-                username = decodeURIComponent(username);
+                try {
+                    username = decodeURIComponent(username);
+                } catch (ex) {
+                    
+                    
+                    
+                    this.log("Error decoding \"" + username + "\": " + ex);
+                    throw(ex);
+                }
 
             var [encUsername, userCanceled] = this._encrypt(username);
             if (!userCanceled)
@@ -1074,9 +1082,17 @@ LoginManagerStorage_legacy.prototype = {
                 
                 
                 var entries = [entry];
-                if (formatVersion < 0x2e)
-                    entries = this._upgrade_entry_to_2E(entry);
-
+                if (formatVersion < 0x2e) {
+                    try {
+                      entries = this._upgrade_entry_to_2E(entry);
+                    }
+                    catch (ex) {
+                      
+                      
+                      
+                      entries = [];
+                    }
+                }
 
                 for each (var e in entries) {
                     if (!this._logins[e.hostname])

@@ -135,6 +135,8 @@ testnum++;
 var testdesc = "checking reading of mailnews-like old logins";
 storage = LoginTest.initStorage(INDIR, "signons-403790.txt",
                       OUTDIR, "output-403790.sqlite");
+
+
 LoginTest.checkStorageData(storage, [], [dummyuser1, dummyuser2, dummyuser3,
                                          dummyuser5, dummyuser6]);
 
