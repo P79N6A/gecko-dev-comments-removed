@@ -307,13 +307,6 @@ public:
 
 
 
-
-  virtual bool IsValid() const { return true; }
-
-  
-
-
-
   virtual TemporaryRef<DataSourceSurface> GetDataSurface() = 0;
 };
 
