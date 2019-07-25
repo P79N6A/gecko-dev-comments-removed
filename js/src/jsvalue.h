@@ -48,6 +48,7 @@
 
 
 #include "jsprvtd.h"
+#include "jsstdint.h"
 
 
 
