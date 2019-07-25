@@ -139,6 +139,31 @@ nsSVGAnimatedTransformList::DidModifySVGObservable (nsISVGValue* observable,
 
 
 
+PRBool
+nsSVGAnimatedTransformList::IsExplicitlySet() const
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mAnimVal)
+    return PR_TRUE;
+
+  if (!mBaseVal)
+    return PR_FALSE;
+
+  PRUint32 numItems = 0;
+  nsIDOMSVGTransformList *list = mBaseVal.get();
+  list->GetNumberOfItems(&numItems);
+  return numItems > 0;
+}
+
+
+
 
 nsresult
 NS_NewSVGAnimatedTransformList(nsIDOMSVGAnimatedTransformList** result,

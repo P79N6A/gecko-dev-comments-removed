@@ -97,7 +97,7 @@ public:
   
   
   
-  PRBool IsAnimValSet() const
+  PRBool IsExplicitlySet() const
     { return mIsAnimated || mIsBaseSet; }
   
   nsresult ToDOMAnimatedLength(nsIDOMSVGAnimatedLength **aResult,

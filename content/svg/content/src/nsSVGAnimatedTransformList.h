@@ -80,6 +80,8 @@ public:
   
   
 
+  PRBool IsExplicitlySet() const;
+
 protected:
   friend class nsSVGTransformSMILAttr;
 
