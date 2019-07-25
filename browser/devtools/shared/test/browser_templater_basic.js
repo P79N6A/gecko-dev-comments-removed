@@ -3,15 +3,8 @@
 
 
 
-
-
-
-
-
-
-var imports = {};
-Cu.import("resource:///modules/devtools/Templater.jsm", imports);
-Cu.import("resource:///modules/devtools/Promise.jsm", imports);
+Cu.import("resource:///modules/devtools/Templater.jsm");
+Cu.import("resource:///modules/devtools/Promise.jsm");
 
 function test() {
   addTab("http://example.com/browser/browser/devtools/shared/test/browser_templater_basic.html", function() {
@@ -29,7 +22,7 @@ function runTest(index) {
   holder.innerHTML = options.template;
 
   info('Running ' + options.name);
-  imports.template(holder, options.data, options.options);
+  template(holder, options.data, options.options);
 
   if (typeof options.result == 'string') {
     is(holder.innerHTML, options.result, options.name);
@@ -242,43 +235,11 @@ var tests = [
     name: 'propertyFail',
     template: '<p>${Math.max(1, 2)}</p>',
     result: '<p>${Math.max(1, 2)}</p>'
-  };},
-
-  
-  
-  function() { return {
-    name: 'propertyUndefAttrFull',
-    template: '<p>${nullvar}|${undefinedvar1}|${undefinedvar2}</p>',
-    data: { nullvar: null, undefinedvar1: undefined },
-    result: '<p>null|undefined|undefined</p>'
-  };},
-
-  function() { return {
-    name: 'propertyUndefAttrBlank',
-    template: '<p>${nullvar}|${undefinedvar1}|${undefinedvar2}</p>',
-    data: { nullvar: null, undefinedvar1: undefined },
-    options: { blankNullUndefined: true },
-    result: '<p>||</p>'
-  };},
-
-  function() { return {
-    name: 'propertyUndefAttrFull',
-    template: '<div><p value="${nullvar}"></p><p value="${undefinedvar1}"></p><p value="${undefinedvar2}"></p></div>',
-    data: { nullvar: null, undefinedvar1: undefined },
-    result: '<div><p value="null"></p><p value="undefined"></p><p value="undefined"></p></div>'
-  };},
-
-  function() { return {
-    name: 'propertyUndefAttrBlank',
-    template: '<div><p value="${nullvar}"></p><p value="${undefinedvar1}"></p><p value="${undefinedvar2}"></p></div>',
-    data: { nullvar: null, undefinedvar1: undefined },
-    options: { blankNullUndefined: true },
-    result: '<div><p value=""></p><p value=""></p><p value=""></p></div>'
   };}
 ];
 
 function delayReply(data) {
-  var p = new imports.Promise();
+  var p = new Promise();
   executeSoon(function() {
     p.resolve(data);
   });

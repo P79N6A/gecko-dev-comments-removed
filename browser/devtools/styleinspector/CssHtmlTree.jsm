@@ -214,7 +214,10 @@ CssHtmlTree.processTemplate = function CssHtmlTree_processTemplate(aTemplate,
   
   
   let duplicated = aTemplate.cloneNode(true);
-  new Templater().processNode(duplicated, aData);
+
+  
+  
+  template(duplicated, aData, { allowEval: true });
   while (duplicated.firstChild) {
     aDestination.appendChild(duplicated.firstChild);
   }
