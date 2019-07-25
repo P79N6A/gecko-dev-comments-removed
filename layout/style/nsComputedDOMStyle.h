@@ -222,7 +222,6 @@ private:
   nsIDOMCSSValue* DoGetMozBackgroundSize();
 
   
-  nsIDOMCSSValue* DoGetPadding();
   nsIDOMCSSValue* DoGetPaddingTop();
   nsIDOMCSSValue* DoGetPaddingBottom();
   nsIDOMCSSValue* DoGetPaddingLeft();
@@ -237,8 +236,6 @@ private:
   nsIDOMCSSValue* DoGetVerticalAlign();
 
   
-  nsIDOMCSSValue* DoGetBorderStyle();
-  nsIDOMCSSValue* DoGetBorderWidth();
   nsIDOMCSSValue* DoGetBorderTopStyle();
   nsIDOMCSSValue* DoGetBorderBottomStyle();
   nsIDOMCSSValue* DoGetBorderLeftStyle();
@@ -275,14 +272,12 @@ private:
   nsIDOMCSSValue* DoGetWindowShadow();
 
   
-  nsIDOMCSSValue* DoGetMarginWidth();
   nsIDOMCSSValue* DoGetMarginTopWidth();
   nsIDOMCSSValue* DoGetMarginBottomWidth();
   nsIDOMCSSValue* DoGetMarginLeftWidth();
   nsIDOMCSSValue* DoGetMarginRightWidth();
 
   
-  nsIDOMCSSValue* DoGetOutline();
   nsIDOMCSSValue* DoGetOutlineWidth();
   nsIDOMCSSValue* DoGetOutlineStyle();
   nsIDOMCSSValue* DoGetOutlineColor();
