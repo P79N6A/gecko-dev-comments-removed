@@ -512,6 +512,22 @@ function DT__updateErrorsCount(aChangedTabId)
 
 
 
+DeveloperToolbar.prototype.resetErrorsCount =
+function DT_resetErrorsCount(aTab)
+{
+  let tabId = aTab.linkedPanel;
+  if (tabId in this._errorsCount) {
+    this._errorsCount[tabId] = 0;
+    this._updateErrorsCount(tabId);
+  }
+};
+
+
+
+
+
+
+
 function OutputPanel(aChromeDoc, aInput, aLoadCallback)
 {
   this._input = aInput;

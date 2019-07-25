@@ -1012,7 +1012,7 @@ HUD_SERVICE.prototype =
         strings.push("[" + timestampString + "] " + item.clipboardText);
       }
     }
-    clipboardHelper.copyString(strings.join("\n"), aOutputNode.ownerDocument);
+    clipboardHelper.copyString(strings.join("\n"));
   }
 };
 
@@ -1841,6 +1841,7 @@ HeadsUpDisplay.prototype = {
     function HUD_clearButton_onCommand() {
       let hud = HUDService.getHudReferenceById(hudId);
       hud.jsterm.clearOutput(true);
+      hud.chromeWindow.DeveloperToolbar.resetErrorsCount(hud.tab);
     }
 
     let clearButton = this.makeXULNode("toolbarbutton");
