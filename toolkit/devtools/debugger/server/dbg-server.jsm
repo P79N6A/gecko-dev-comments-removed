@@ -63,7 +63,7 @@ function loadSubScript(aURL)
   }
 }
 
-Cu.import("resource:///modules/devtools/dbg-client.jsm");
+Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 
 
 var systemPrincipal = Cc["@mozilla.org/systemprincipal;1"]
