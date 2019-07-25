@@ -327,6 +327,8 @@ nsRootAccessible::FireAccessibleFocusEvent(nsAccessible *aAccessible,
                                            PRBool aIsAsynch,
                                            EIsFromUserInput aIsFromUserInput)
 {
+  
+
   if (mCaretAccessible) {
     nsCOMPtr<nsIDOMNSEvent> nsevent(do_QueryInterface(aFocusEvent));
     if (nsevent) {
@@ -400,9 +402,13 @@ nsRootAccessible::FireAccessibleFocusEvent(nsAccessible *aAccessible,
         if (menuBarAccessible) {
           mCurrentARIAMenubar = menuBarAccessible->GetNode();
           if (mCurrentARIAMenubar) {
-            nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENU_START,
-                                    menuBarAccessible, PR_FALSE,
-                                    aIsFromUserInput);
+            nsRefPtr<nsAccEvent> menuStartEvent =
+              new nsAccEvent(nsIAccessibleEvent::EVENT_MENU_START,
+                             menuBarAccessible, PR_FALSE, aIsFromUserInput,
+                             nsAccEvent::eAllowDupes);
+            if (menuStartEvent) {
+              FireDelayedAccessibleEvent(menuStartEvent);
+            }
           }
         }
       }
