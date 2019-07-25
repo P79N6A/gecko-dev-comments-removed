@@ -391,6 +391,9 @@ MouseModule.prototype = {
     if (!dragData.dragging) {
       this._dragger.dragStop(0, 0, this._targetScrollInterface);
       this._dragger = null;
+
+      
+      
       let event = document.createEvent("Events");
       event.initEvent("PanFinished", true, false);
       document.dispatchEvent(event);
