@@ -958,6 +958,12 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
 });
 
 
+
+
+
+
+
+
 var DragInfo = function(element, event) {
   this.el = element;
   this.$el = $(this.el);
@@ -968,6 +974,16 @@ var DragInfo = function(element, event) {
   
   this.$el.data('isDragging', true);
   this.item.setZ(99999);
+  
+  
+  if(this.item.isAGroup) {
+    var tab = Page.getActiveTab();
+    if(!tab || tab.parent != this.item) {
+      if(this.item._children.length)
+        Page.setActiveTab(this.item._children[0]);
+    }
+  } else
+    Page.setActiveTab(this.item);
 };
 
 DragInfo.prototype = {
@@ -978,15 +994,13 @@ DragInfo.prototype = {
     
     
     
-  },
-  
-  
-  start: function() {
     
-    if( !this.item.isAGroup ){
-      Page.setActiveTab(this.item);
-    }    
+    
+    
+    
   },
+  
+  
   
   
   drag: function(event, ui) {
@@ -1008,6 +1022,8 @@ DragInfo.prototype = {
     }
   },
 
+  
+  
   
   stop: function() {
     this.$el.data('isDragging', false);    
@@ -1035,6 +1051,9 @@ DragInfo.prototype = {
   }
 };
 
+
+
+
 var drag = {
   info: null,
   zIndex: 100
@@ -1050,11 +1069,9 @@ window.Groups = {
     cancel: '.close',
     start: function(e, ui) {
       drag.info = new DragInfo(this, e);
-      drag.info.start();
     },
     drag: function(e, ui) {
       drag.info.drag(e, ui);
-
     },
     stop: function() {
       drag.info.stop();
