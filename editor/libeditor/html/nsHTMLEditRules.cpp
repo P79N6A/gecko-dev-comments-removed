@@ -2171,6 +2171,7 @@ nsHTMLEditRules::WillDeleteSelection(Selection* aSelection,
 
       
       if (InDifferentTableElements(leftNode, rightNode)) {
+        *aCancel = true;
         return NS_OK;
       }
 
