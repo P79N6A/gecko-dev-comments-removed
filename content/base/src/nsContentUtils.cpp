@@ -4946,11 +4946,8 @@ nsContentUtils::SetDataTransferInEvent(nsDragEvent* aDragEvent)
     
     
     
-    
-    PRUint32 action = 0;
-    dragSession->GetDragAction(&action);
     initialDataTransfer =
-      new nsDOMDataTransfer(aDragEvent->message, action);
+      new nsDOMDataTransfer(aDragEvent->message);
     NS_ENSURE_TRUE(initialDataTransfer, NS_ERROR_OUT_OF_MEMORY);
 
     
