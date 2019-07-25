@@ -8,10 +8,10 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/MozSocialAPI.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "getFrameWorkerHandle", "resource://gre/modules/FrameWorker.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "WorkerAPI", "resource://gre/modules/WorkerAPI.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "MozSocialAPI", "resource://gre/modules/MozSocialAPI.jsm");
 
 
 
@@ -27,7 +27,7 @@ let SocialServiceInternal = {
   }
 };
 
-XPCOMUtils.defineLazyGetter(SocialServiceInternal, "providers", function () {
+function initService() {
   
   function prefObserver(subject, topic, data) {
     SocialService._setEnabled(Services.prefs.getBoolPref("social.enabled"));
@@ -39,7 +39,12 @@ XPCOMUtils.defineLazyGetter(SocialServiceInternal, "providers", function () {
   }, "xpcom-shutdown", false);
 
   
-  MozSocialAPI.enabled = SocialServiceInternal.enabled;
+  if (SocialServiceInternal.enabled)
+    MozSocialAPI.enabled = true;
+}
+
+XPCOMUtils.defineLazyGetter(SocialServiceInternal, "providers", function () {
+  initService();
 
   
   let skipLoading = false;
