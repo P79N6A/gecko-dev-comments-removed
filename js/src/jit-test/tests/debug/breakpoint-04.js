@@ -1,0 +1,32 @@
+
+
+var g = newGlobal('new-compartment');
+g.s = '';
+g.eval("var line0 = Error().lineNumber;\n" +
+       "function f() {\n" +   
+       "    debugger;\n" +  
+       "    s += 'x';\n" +  
+       "}\n")
+var dbg = Debug(g);
+var bp = [];
+dbg.hooks = {
+    debuggerHandler: function (frame) {
+        g.s += 'D';
+        var arr = frame.script.getLineOffsets(g.line0 + 3);
+        for (var i = 0; i < arr.length; i++) {
+            var obj = {};
+            bp[i] = obj;
+            frame.script.setBreakpoint(arr[i], obj);
+        }
+    }
+};
+
+g.f();
+assertEq(g.s, "Dx");
+
+delete dbg.hooks.debuggerHandler;
+
+for (var i = 0; i < bp.length; i++)
+    bp[i].hit = function () { g.s += 'B'; };
+g.f();
+assertEq(g.s, "DxBx");

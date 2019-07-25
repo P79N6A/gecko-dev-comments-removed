@@ -5,8 +5,8 @@ function main() { x = "success"; }
 function failure() { x = "failure"; }
 
 
-trap(main, 8, "failure()");
-untrap(main, 8);
+trap(main, 10, "failure()");
+untrap(main, 10);
 main();
 
 assertEq(x, "success");

@@ -544,7 +544,6 @@ struct JSRuntime {
 #endif
 
     
-    JSCList             trapList;
     JSCList             watchPointList;
 
     

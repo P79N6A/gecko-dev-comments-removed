@@ -49,6 +49,7 @@
 #include "jsinterpinlines.h"
 #include "jsobjinlines.h"
 #include "jsopcodeinlines.h"
+#include "methodjit/Retcon.h"
 #include "vm/Stack-inl.h"
 
 using namespace js;
@@ -150,6 +151,189 @@ CheckThisClass(JSContext *cx, Value *vp, Class *clasp, const char *fnname)
 
 
 
+BreakpointSite::BreakpointSite(JSScript *script, jsbytecode *pc)
+    : script(script), pc(pc), realOpcode(JSOp(*pc)), scriptObject(NULL), enabledCount(0),
+      trapHandler(NULL), trapClosure(UndefinedValue())
+{
+    JS_ASSERT(realOpcode != JSOP_TRAP);
+    JS_INIT_CLIST(&breakpoints);
+}
+
+
+
+static JSObject *
+ScriptScope(JSContext *cx, JSScript *script, JSObject *holder)
+{
+    if (holder)
+        return holder;
+
+    
+    
+    for (AllFramesIter i(cx->stack.space()); ; ++i) {
+        JS_ASSERT(!i.done());
+        if (i.fp()->maybeScript() == script)
+            return &i.fp()->scopeChain();
+    }
+    JS_NOT_REACHED("ScriptScope: live eval script not on stack");
+}
+
+bool
+BreakpointSite::recompile(JSContext *cx, bool forTrap)
+{
+#ifdef JS_METHODJIT
+    if (script->hasJITCode()) {
+        Maybe<AutoCompartment> ac;
+        if (!forTrap) {
+            ac.construct(cx, ScriptScope(cx, script, scriptObject));
+            if (!ac.ref().enter())
+                return false;
+        }
+        js::mjit::Recompiler recompiler(cx, script);
+        if (!recompiler.recompile())
+            return false;
+    }
+#endif
+    return true;
+}
+
+bool
+BreakpointSite::inc(JSContext *cx)
+{
+    if (enabledCount == 0 && !trapHandler) {
+        JS_ASSERT(*pc == realOpcode);
+        *pc = JSOP_TRAP;
+        if (!recompile(cx, false)) {
+            *pc = realOpcode;
+            return false;
+        }
+    }
+    enabledCount++;
+    return true;
+}
+
+void
+BreakpointSite::dec(JSContext *cx)
+{
+    JS_ASSERT(enabledCount > 0);
+    JS_ASSERT(*pc == JSOP_TRAP);
+    enabledCount--;
+    if (enabledCount == 0 && !trapHandler) {
+        *pc = realOpcode;
+        recompile(cx, false);  
+    }
+}
+
+bool
+BreakpointSite::setTrap(JSContext *cx, JSTrapHandler handler, const Value &closure)
+{
+    if (enabledCount == 0) {
+        *pc = JSOP_TRAP;
+        if (!recompile(cx, true)) {
+            *pc = realOpcode;
+            return false;
+        }
+    }
+    trapHandler = handler;
+    trapClosure = closure;
+    return true;
+}
+
+void
+BreakpointSite::clearTrap(JSContext *cx, BreakpointSiteMap::Enum *e,
+                          JSTrapHandler *handlerp, Value *closurep)
+{
+    if (handlerp)
+        *handlerp = trapHandler;
+    if (closurep)
+        *closurep = trapClosure;
+
+    trapHandler = NULL;
+    trapClosure.setUndefined();
+    if (enabledCount == 0) {
+        *pc = realOpcode;
+        recompile(cx, true);  
+        destroyIfEmpty(cx->runtime, e);
+    }
+}
+
+void
+BreakpointSite::destroyIfEmpty(JSRuntime *rt, BreakpointSiteMap::Enum *e)
+{
+    if (JS_CLIST_IS_EMPTY(&breakpoints) && !trapHandler) {
+        if (e)
+            e->removeFront();
+        else
+            script->compartment->breakpointSites.remove(pc);
+        rt->delete_(this);
+    }
+}
+
+Breakpoint *
+BreakpointSite::firstBreakpoint() const
+{
+    if (JS_CLIST_IS_EMPTY(&breakpoints))
+        return NULL;
+    return Breakpoint::fromSiteLinks(JS_NEXT_LINK(&breakpoints));
+}
+
+bool
+BreakpointSite::hasBreakpoint(Breakpoint *bp)
+{
+    for (Breakpoint *p = firstBreakpoint(); p; p = p->nextInSite())
+        if (p == bp)
+            return true;
+    return false;
+}
+
+
+Breakpoint::Breakpoint(Debug *debugger, BreakpointSite *site, JSObject *handler)
+    : debugger(debugger), site(site), handler(handler)
+{
+    JS_APPEND_LINK(&debuggerLinks, &debugger->breakpoints);
+    JS_APPEND_LINK(&siteLinks, &site->breakpoints);
+}
+
+Breakpoint *
+Breakpoint::fromDebuggerLinks(JSCList *links)
+{
+    return (Breakpoint *) ((unsigned char *) links - offsetof(Breakpoint, debuggerLinks));
+}
+
+Breakpoint *
+Breakpoint::fromSiteLinks(JSCList *links)
+{
+    return (Breakpoint *) ((unsigned char *) links - offsetof(Breakpoint, siteLinks));
+}
+
+void
+Breakpoint::destroy(JSContext *cx, BreakpointSiteMap::Enum *e)
+{
+    if (debugger->enabled)
+        site->dec(cx);
+    JS_REMOVE_LINK(&debuggerLinks);
+    JS_REMOVE_LINK(&siteLinks);
+    JSRuntime *rt = cx->runtime;
+    site->destroyIfEmpty(rt, e);
+    rt->delete_(this);
+}
+
+Breakpoint *
+Breakpoint::nextInDebugger()
+{
+    JSCList *link = JS_NEXT_LINK(&debuggerLinks);
+    return (link == &debugger->breakpoints) ? NULL : fromDebuggerLinks(link);
+}
+
+Breakpoint *
+Breakpoint::nextInSite()
+{
+    JSCList *link = JS_NEXT_LINK(&siteLinks);
+    return (link == &site->breakpoints) ? NULL : fromSiteLinks(link);
+}
+
+
+
+
 enum {
     JSSLOT_DEBUG_FRAME_PROTO,
     JSSLOT_DEBUG_OBJECT_PROTO,
@@ -166,6 +350,7 @@ Debug::Debug(JSObject *dbg, JSObject *hooks)
     JSRuntime *rt = dbg->compartment()->rt;
     AutoLockGC lock(rt);
     JS_APPEND_LINK(&link, &rt->debuggerList);
+    JS_INIT_CLIST(&breakpoints);
 }
 
 Debug::~Debug()
@@ -244,6 +429,13 @@ Debug::slowPathLeaveStackFrame(JSContext *cx)
                 dbg->frames.remove(p);
             }
         }
+    }
+
+    
+    
+    if (fp->isEvalFrame()) {
+        JSScript *script = fp->script();
+        script->compartment->clearBreakpointsIn(cx, NULL, script, NULL);
     }
 }
 
@@ -460,7 +652,6 @@ Debug::observesThrow() const
 JSTrapStatus
 Debug::handleThrow(JSContext *cx, Value *vp)
 {
-    
     StackFrame *fp = cx->fp();
     Value exc = cx->getPendingException();
 
@@ -517,6 +708,62 @@ Debug::dispatchHook(JSContext *cx, js::Value *vp, DebugObservesMethod observesEv
     return JSTRAP_CONTINUE;
 }
 
+JSTrapStatus
+Debug::onTrap(JSContext *cx, Value *vp)
+{
+    StackFrame *fp = cx->fp();
+    GlobalObject *scriptGlobal = fp->scopeChain().getGlobal();
+    jsbytecode *pc = cx->regs().pc;
+    BreakpointSite *site = cx->compartment->getBreakpointSite(pc);
+    JSOp op = site->realOpcode;
+
+    
+    Vector<Breakpoint *> triggered(cx);
+    for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = bp->nextInSite()) {
+        if (!triggered.append(bp))
+            return JSTRAP_ERROR;
+    }
+
+    Value frame = UndefinedValue();
+    for (Breakpoint **p = triggered.begin(); p != triggered.end(); p++) {
+        Breakpoint *bp = *p;
+
+        
+        if (!site || !site->hasBreakpoint(bp))
+            continue;
+
+        Debug *dbg = bp->debugger;
+        if (dbg->enabled && dbg->debuggees.lookup(scriptGlobal)) {
+            AutoCompartment ac(cx, dbg->object);
+            if (!ac.enter())
+                return JSTRAP_ERROR;
+
+            Value argv[1];
+            if (!dbg->getScriptFrame(cx, fp, &argv[0]))
+                return dbg->handleUncaughtException(ac, vp, false);
+            Value rv;
+            bool ok = CallMethodIfPresent(cx, bp->handler, "hit", 1, argv, &rv);
+            JSTrapStatus st = dbg->parseResumptionValue(ac, ok, rv, vp, true);
+            if (st != JSTRAP_CONTINUE)
+                return st;
+
+            
+            site = cx->compartment->getBreakpointSite(pc);
+        }
+    }
+
+    if (site && site->trapHandler) {
+        JSTrapStatus st = site->trapHandler(cx, fp->script(), pc, Jsvalify(vp),
+                                            Jsvalify(site->trapClosure));
+        if (st != JSTRAP_CONTINUE)
+            return st;
+    }
+
+    
+    vp->setInt32(op);
+    return JSTRAP_CONTINUE;
+}
+
 
 
 
@@ -550,6 +797,8 @@ Debug::markCrossCompartmentDebugObjectReferents(JSTracer *tracer)
 
 
 
+
+
 bool
 Debug::mark(GCMarker *trc, JSCompartment *comp, JSGCInvocationKind gckind)
 {
@@ -560,6 +809,10 @@ Debug::mark(GCMarker *trc, JSCompartment *comp, JSGCInvocationKind gckind)
     JSRuntime *rt = trc->context->runtime;
     for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++) {
         JSCompartment *dc = *c;
+
+        
+        if (!comp || dc == comp)
+            markedAny = markedAny | dc->markBreakpointsIteratively(trc);
 
         
         
@@ -750,7 +1003,25 @@ Debug::setEnabled(JSContext *cx, uintN argc, Value *vp)
 {
     REQUIRE_ARGC("Debug.set enabled", 1);
     THISOBJ(cx, vp, Debug, "set enabled", thisobj, dbg);
-    dbg->enabled = js_ValueToBoolean(vp[2]);
+    bool enabled = js_ValueToBoolean(vp[2]);
+
+    if (enabled != dbg->enabled) {
+        for (Breakpoint *bp = dbg->firstBreakpoint(); bp; bp = bp->nextInDebugger()) {
+            if (enabled) {
+                if (!bp->site->inc(cx)) {
+                    
+                    
+                    for (Breakpoint *bp2 = dbg->firstBreakpoint(); bp2 != bp; bp2 = bp2->nextInDebugger())
+                        bp->site->dec(cx);
+                    return false;
+                }
+            } else {
+                bp->site->dec(cx);
+            }
+        }
+    }
+
+    dbg->enabled = enabled;
     vp->setUndefined();
     return true;
 }
@@ -878,6 +1149,15 @@ Debug::getYoungestFrame(JSContext *cx, uintN argc, Value *vp)
             return dbg->getScriptFrame(cx, i.fp(), vp);
     }
     vp->setNull();
+    return true;
+}
+
+JSBool
+Debug::clearAllBreakpoints(JSContext *cx, uintN argc, Value *vp)
+{
+    THISOBJ(cx, vp, Debug, "clearAllBreakpoints", thisobj, dbg);
+    for (GlobalObjectSet::Range r = dbg->debuggees.all(); !r.empty(); r.popFront())
+        r.front()->compartment()->clearBreakpointsIn(cx, dbg, NULL, NULL);
     return true;
 }
 
@@ -1064,6 +1344,7 @@ JSFunctionSpec Debug::methods[] = {
     JS_FN("hasDebuggee", Debug::hasDebuggee, 1, 0),
     JS_FN("getDebuggees", Debug::getDebuggees, 0, 0),
     JS_FN("getYoungestFrame", Debug::getYoungestFrame, 0, 0),
+    JS_FN("clearAllBreakpoints", Debug::clearAllBreakpoints, 1, 0),
     JS_FS_END
 };
 
@@ -1107,14 +1388,26 @@ JSFunctionSpec Debug::methods[] = {
 
 
 
-static inline JSScript *GetScriptReferent(JSObject *obj) {
+static inline JSScript *
+GetScriptReferent(JSObject *obj)
+{
     JS_ASSERT(obj->getClass() == &DebugScript_class);
     return (JSScript *) obj->getPrivate();
 }
 
-static inline void ClearScriptReferent(JSObject *obj) {
+static inline void
+ClearScriptReferent(JSObject *obj)
+{
     JS_ASSERT(obj->getClass() == &DebugScript_class);
     obj->setPrivate(NULL);
+}
+
+static inline JSObject *
+GetScriptHolder(JSObject *obj)
+{
+    JS_ASSERT(obj->getClass() == &DebugScript_class);
+    Value v = obj->getReservedSlot(JSSLOT_DEBUGSCRIPT_HOLDER);
+    return (JSObject *) v.toPrivate();
 }
 
 static void
@@ -1227,16 +1520,16 @@ Debug::destroyEvalScript(JSScript *script)
 }
 
 static JSObject *
-DebugScript_checkThis(JSContext *cx, Value *vp, const char *fnname, bool checkLive)
+DebugScript_check(JSContext *cx, const Value &v, const char *clsname, const char *fnname, bool checkLive)
 {
-    if (!vp[1].isObject()) {
+    if (!v.isObject()) {
         ReportObjectRequired(cx);
         return NULL;
     }
-    JSObject *thisobj = &vp[1].toObject();
+    JSObject *thisobj = &v.toObject();
     if (thisobj->clasp != &DebugScript_class) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INCOMPATIBLE_PROTO,
-                             "Debug.Script", fnname, thisobj->getClass()->name);
+                             clsname, fnname, thisobj->getClass()->name);
         return NULL;
     }
 
@@ -1244,17 +1537,23 @@ DebugScript_checkThis(JSContext *cx, Value *vp, const char *fnname, bool checkLi
     
     if (thisobj->getReservedSlot(JSSLOT_DEBUGSCRIPT_HOLDER).isUndefined()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INCOMPATIBLE_PROTO,
-                             "Debug.Script", fnname, "prototype object");
+                             clsname, fnname, "prototype object");
         return NULL;
     }
 
     if (checkLive && !GetScriptReferent(thisobj)) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_LIVE,
-                             "Debug.Script", fnname, "script");
+                             clsname, fnname, "script");
         return NULL;
     }
 
     return thisobj;
+}
+
+static JSObject *
+DebugScript_checkThis(JSContext *cx, Value *vp, const char *fnname, bool checkLive)
+{
+    return DebugScript_check(cx, vp[1], "Debug.Script", fnname, checkLive);
 }
 
 #define THIS_DEBUGSCRIPT_SCRIPT_NEEDLIVE(cx, vp, fnname, obj, script, checkLive)    \
@@ -1555,6 +1854,106 @@ DebugScript_getLineOffsets(JSContext *cx, uintN argc, Value *vp)
     return true;
 }
 
+JSBool
+DebugScript_setBreakpoint(JSContext *cx, uintN argc, Value *vp)
+{
+    REQUIRE_ARGC("Debug.Script.setBreakpoint", 2);
+    THIS_DEBUGSCRIPT_LIVE_SCRIPT(cx, vp, "setBreakpoint", obj, script);
+    Debug *dbg = Debug::fromChildJSObject(obj);
+
+    JSObject *holder = GetScriptHolder(obj);
+    if (!dbg->observesScope(ScriptScope(cx, script, holder))) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_DEBUGGING);
+        return false;
+    }
+
+    size_t offset;
+    if (!ScriptOffset(cx, script, vp[2], &offset))
+        return false;
+
+    JSObject *handler = NonNullObject(cx, vp[3]);
+    if (!handler)
+        return false;
+
+    JSCompartment *comp = script->compartment;
+    jsbytecode *pc = script->code + offset;
+    BreakpointSite *site = comp->getOrCreateBreakpointSite(cx, script, pc, holder);
+    if (!site->inc(cx))
+        goto fail1;
+    if (!cx->runtime->new_<Breakpoint>(dbg, site, handler))
+        goto fail2;
+    vp->setUndefined();
+    return true;
+
+fail2:
+    site->dec(cx);
+fail1:
+    site->destroyIfEmpty(cx->runtime, NULL);
+    return false;
+}
+
+JSBool
+DebugScript_getBreakpoints(JSContext *cx, uintN argc, Value *vp)
+{
+    THIS_DEBUGSCRIPT_LIVE_SCRIPT(cx, vp, "getBreakpoints", obj, script);
+    Debug *dbg = Debug::fromChildJSObject(obj);
+
+    jsbytecode *pc;
+    if (argc > 0) {
+        size_t offset;
+        if (!ScriptOffset(cx, script, vp[2], &offset))
+            return false;
+        pc = script->code + offset;
+    } else {
+        pc = NULL;
+    }
+
+    JSObject *arr = NewDenseEmptyArray(cx);
+    if (!arr)
+        return false;
+    JSCompartment *comp = script->compartment;
+    for (BreakpointSiteMap::Range r = comp->breakpointSites.all(); !r.empty(); r.popFront()) {
+        BreakpointSite *site = r.front().value;
+        if (site->script == script && (!pc || site->pc == pc)) {
+            for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = bp->nextInSite()) {
+                if (bp->debugger == dbg &&
+                    !js_ArrayCompPush(cx, arr, ObjectValue(*bp->getHandler())))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    vp->setObject(*arr);
+    return true;
+}
+
+JSBool
+DebugScript_clearBreakpoint(JSContext *cx, uintN argc, Value *vp)
+{
+    REQUIRE_ARGC("Debug.Script.clearBreakpoint", 1);
+    THIS_DEBUGSCRIPT_LIVE_SCRIPT(cx, vp, "clearBreakpoint", obj, script);
+    Debug *dbg = Debug::fromChildJSObject(obj);
+
+    JSObject *handler = NonNullObject(cx, vp[2]);
+    if (!handler)
+        return false;
+
+    script->compartment->clearBreakpointsIn(cx, dbg, script, handler);
+    vp->setUndefined();
+    return true;
+}
+
+JSBool
+DebugScript_clearAllBreakpoints(JSContext *cx, uintN argc, Value *vp)
+{
+    THIS_DEBUGSCRIPT_LIVE_SCRIPT(cx, vp, "clearBreakpoint", obj, script);
+    Debug *dbg = Debug::fromChildJSObject(obj);
+    script->compartment->clearBreakpointsIn(cx, dbg, script, NULL);
+    vp->setUndefined();
+    return true;
+}
+
 static JSBool
 DebugScript_construct(JSContext *cx, uintN argc, Value *vp)
 {
@@ -1571,6 +1970,10 @@ static JSFunctionSpec DebugScript_methods[] = {
     JS_FN("getAllOffsets", DebugScript_getAllOffsets, 0, 0),
     JS_FN("getLineOffsets", DebugScript_getLineOffsets, 1, 0),
     JS_FN("getOffsetLine", DebugScript_getOffsetLine, 0, 0),
+    JS_FN("setBreakpoint", DebugScript_setBreakpoint, 2, 0),
+    JS_FN("getBreakpoints", DebugScript_getBreakpoints, 1, 0),
+    JS_FN("clearBreakpoint", DebugScript_clearBreakpoint, 1, 0),
+    JS_FN("clearAllBreakpoints", DebugScript_clearAllBreakpoints, 0, 0),
     JS_FS_END
 };
 

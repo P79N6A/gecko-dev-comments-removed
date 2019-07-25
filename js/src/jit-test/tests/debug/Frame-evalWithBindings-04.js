@@ -5,11 +5,11 @@ var f1;
 var hits = 0;
 dbg.hooks = {
     debuggerHandler: function (frame) {
-	assertEq(frame.older.evalWithBindings("q + r", {r: 3}).return, 5);
+        assertEq(frame.older.evalWithBindings("q + r", {r: 3}).return, 5);
 
-	
-	assertEq(frame.older.older.evalWithBindings("q + r", {r: 3}).return, 6);
-	hits++;
+        
+        assertEq(frame.older.older.evalWithBindings("q + r", {r: 3}).return, 6);
+        hits++;
     }
 };
 
