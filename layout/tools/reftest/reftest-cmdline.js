@@ -88,6 +88,9 @@ RefTestCmdLineHandler.prototype =
     branch.setBoolPref("media.autoplay.enabled", true);
     
     branch.setBoolPref("app.update.enabled", false);
+    
+    branch.setBoolPref("extensions.update.enabled", false);
+    branch.setBoolPref("extensions.getAddons.cache.enabled", false);
 
     var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                            .getService(nsIWindowWatcher);
