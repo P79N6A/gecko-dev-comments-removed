@@ -992,7 +992,7 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 void
 nsHTMLDocument::StopDocumentLoad()
 {
-  if (nsHtml5Module::sEnabled && !mForceOldParserForHotmail) {
+  if (nsHtml5Module::sEnabled) {
     BlockOnload();
     if (mWriteState == eDocumentOpened) {
       NS_ASSERTION(IsHTML(), "document.open()ed doc is not HTML?");
@@ -1961,20 +1961,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   
   
   mSecurityInfo = securityInfo;
-
-  mForceOldParserForHotmail = PR_FALSE;
-  if (nsHtml5Module::sHotmailWorkaround) {
-    
-    nsCOMPtr<nsIURI> thisURI = nsIDocument::GetDocumentURI();
-    if (thisURI) {
-      nsCAutoString host;
-      thisURI->GetHost(host);
-      if (StringEndsWith(host, NS_LITERAL_CSTRING(".mail.live.com"))) {
-        loadAsHtml5 = PR_FALSE;
-        mForceOldParserForHotmail = PR_TRUE;
-      }
-    }
-  }
 
   if (loadAsHtml5) {
     mParser = nsHtml5Module::NewHtml5Parser();
