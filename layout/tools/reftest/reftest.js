@@ -949,8 +949,7 @@ function shouldWaitForPendingPaints() {
     return gCurrentCanvas && gWindowUtils.isMozAfterPaintPending;
 }
 
-function shouldWaitForReftestWaitRemoval() {
-    var contentRootElement = gBrowser.contentDocument.documentElement;
+function shouldWaitForReftestWaitRemoval(contentRootElement) {
     
     return contentRootElement &&
            contentRootElement.hasAttribute('class') &&
@@ -971,10 +970,9 @@ const STATE_WAITING_TO_FINISH = 2;
 const STATE_COMPLETED = 3;
 
 function WaitForTestEnd() {
-    var contentRootElement = gBrowser.contentDocument.documentElement;
-
-    var stopAfterPaintReceived = false;
     var currentDoc = gBrowser.contentDocument;
+    var contentRootElement = currentDoc ? currentDoc.documentElement : null;
+    var stopAfterPaintReceived = false;
     var state = STATE_WAITING_TO_FIRE_INVALIDATE_EVENT;
 
     function FlushRendering() {
@@ -1043,7 +1041,9 @@ function WaitForTestEnd() {
     function RemoveListeners() {
         
         window.removeEventListener("MozAfterPaint", AfterPaintListener, false);
-        contentRootElement.removeEventListener("DOMAttrModified", AttrModifiedListener, false);
+        if (contentRootElement) {
+          contentRootElement.removeEventListener("DOMAttrModified", AttrModifiedListener, false);
+        }
         gExplicitPendingPaintsCompleteHook = null;
         gTimeoutHook = null;
         
@@ -1079,12 +1079,12 @@ function WaitForTestEnd() {
             }
 
             state = STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL;
-            var hasReftestWait = shouldWaitForReftestWaitRemoval();            
+            var hasReftestWait = shouldWaitForReftestWaitRemoval(contentRootElement);            
             
             var notification = document.createEvent("Events");
             notification.initEvent("MozReftestInvalidate", true, false);
             contentRootElement.dispatchEvent(notification);
-            if (hasReftestWait && !shouldWaitForReftestWaitRemoval()) {
+            if (hasReftestWait && !shouldWaitForReftestWaitRemoval(contentRootElement)) {
                 
                 
                 FlushRendering();
@@ -1099,7 +1099,7 @@ function WaitForTestEnd() {
 
         case STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL:
             LogInfo("MakeProgress: STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL");
-            if (shouldWaitForReftestWaitRemoval()) {
+            if (shouldWaitForReftestWaitRemoval(contentRootElement)) {
                 gFailureReason = "timed out waiting for reftest-wait to be removed";
                 LogInfo("MakeProgress: waiting for reftest-wait to be removed");
                 return;
@@ -1138,8 +1138,13 @@ function WaitForTestEnd() {
         }
     }
 
+    LogInfo("WaitForTestEnd: Adding listeners");
     window.addEventListener("MozAfterPaint", AfterPaintListener, false);
-    contentRootElement.addEventListener("DOMAttrModified", AttrModifiedListener, false);
+    
+    
+    if (contentRootElement) {
+      contentRootElement.addEventListener("DOMAttrModified", AttrModifiedListener, false);
+    }
     gExplicitPendingPaintsCompleteHook = ExplicitPaintsCompleteListener;
     gTimeoutHook = RemoveListeners;
 
@@ -1152,24 +1157,24 @@ function WaitForTestEnd() {
 
 function OnDocumentLoad(event)
 {
-    if (event.target != gBrowser.contentDocument)
+    var currentDoc = gBrowser.contentDocument;
+    if (event.target != currentDoc)
         
         return;
 
     if (gClearingForAssertionCheck &&
-        gBrowser.contentDocument.location.href == BLANK_URL_FOR_CLEARING) {
+        currentDoc.location.href == BLANK_URL_FOR_CLEARING) {
         DoAssertionCheck();
         return;
     }
 
-    if (gBrowser.contentDocument.location.href != gCurrentURL) {
+    if (currentDoc.location.href != gCurrentURL) {
         LogInfo("OnDocumentLoad fired for previous document");
         
         return;
     }
 
-    var contentRootElement = gBrowser.contentDocument.documentElement;
-
+    var contentRootElement = currentDoc ? currentDoc.documentElement : null;
     setupZoom(contentRootElement);
 
     function AfterOnLoadScripts() {
@@ -1193,7 +1198,8 @@ function OnDocumentLoad(event)
         }
     }
 
-    if (shouldWaitForReftestWaitRemoval() || shouldWaitForExplicitPaintWaiters()) {
+    if (shouldWaitForReftestWaitRemoval(contentRootElement) ||
+        shouldWaitForExplicitPaintWaiters()) {
         
         
         gFailureReason = "timed out waiting for test to complete (trying to get into WaitForTestEnd)";
