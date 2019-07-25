@@ -756,83 +756,20 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
 
     
     nsAutoTxnsConserveSelection dontSpazMySelection(mEditor);
-    nsString tString(*outString);
-    const PRUnichar *unicodeBuf = tString.get();
-    nsCOMPtr<nsIDOMNode> unused;
-    PRInt32 pos = 0;
 
-    
-    
-    
     if (isPRE)
     {
-      while (unicodeBuf && (pos != -1) && ((PRUint32)pos < tString.Length()))
-      {
-        PRInt32 oldPos = pos;
-        PRInt32 subStrLen;
-        pos = tString.FindChar(nsCRT::LF, oldPos);
-        
-        if (pos != -1) 
-        {
-          subStrLen = pos - oldPos;
-          
-          if (subStrLen == 0)
-            subStrLen = 1;
-        }
-        else
-        {
-          subStrLen = tString.Length() - oldPos;
-          pos = tString.Length();
-        }
-
-        nsDependentSubstring subStr(tString, oldPos, subStrLen);
-        
-        
-        if (subStr.EqualsLiteral(LFSTR))
-        {
-          if (IsSingleLineEditor())
-          {
-            NS_ASSERTION((mEditor->mNewlineHandling == nsIPlaintextEditor::eNewlinesPasteIntact),
-                  "Newline improperly getting into single-line edit field!");
-            res = mEditor->InsertTextImpl(subStr, address_of(curNode), &curOffset, doc);
-          }
-          else
-          {
-            res = mEditor->CreateBRImpl(address_of(curNode), &curOffset, address_of(unused), nsIEditor::eNone);
-
-            
-            
-            
-
-            if (NS_SUCCEEDED(res) && curNode && pos == (PRInt32)(tString.Length() - 1))
-            {
-              nsCOMPtr<nsIDOMNode> nextChild = mEditor->GetChildAt(curNode, curOffset);
-
-              if (!nextChild)
-              {
-                
-                
-                
-                
-                
-                
-                
-
-                res = CreateMozBR(curNode, curOffset, address_of(unused));
-              }
-            }
-          }
-          pos++;
-        }
-        else
-        {
-          res = mEditor->InsertTextImpl(subStr, address_of(curNode), &curOffset, doc);
-        }
-        NS_ENSURE_SUCCESS(res, res);
-      }
+      res = mEditor->InsertTextImpl(*outString, address_of(curNode),
+                                    &curOffset, doc);
+      NS_ENSURE_SUCCESS(res, res);
     }
     else
     {
+      const nsString& tString = PromiseFlatString(*outString);
+      const PRUnichar *unicodeBuf = tString.get();
+      nsCOMPtr<nsIDOMNode> unused;
+      PRInt32 pos = 0;
+
       char specialChars[] = {TAB, nsCRT::LF, 0};
       while (unicodeBuf && (pos != -1) && ((PRUint32)pos < tString.Length()))
       {
@@ -873,18 +810,28 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
         }
         NS_ENSURE_SUCCESS(res, res);
       }
+      outString->Assign(tString);
     }
-    outString->Assign(tString);
 
     if (curNode) 
     {
-      aSelection->Collapse(curNode, curOffset);
       
       
-      
-      PRBool endsWithLF = !tString.IsEmpty() && tString.get()[tString.Length() - 1] == nsCRT::LF;
+      PRBool endsWithLF =
+        !outString->IsEmpty() && outString->Last() == nsCRT::LF;
       nsCOMPtr<nsISelectionPrivate>selPrivate(do_QueryInterface(aSelection));
       selPrivate->SetInterlinePosition(endsWithLF);
+
+      
+      
+      if (endsWithLF) {
+        nsCOMPtr<nsIDOMNode> mozBR;
+        res = CreateMozBR(curNode, curOffset, address_of(mozBR));
+        NS_ENSURE_SUCCESS(res, res);
+        curNode = mozBR;
+        curOffset = 0;
+      }
+      aSelection->Collapse(curNode, curOffset);
     }
   }
   ASSERT_PASSWORD_LENGTHS_EQUAL()
