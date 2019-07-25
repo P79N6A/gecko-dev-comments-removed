@@ -65,6 +65,22 @@ TraceDataRelocations(JSTracer *trc, uint8 *buffer, CompactBufferReader &reader)
     while (reader.more()) {
         size_t offset = reader.readUnsigned();
         void *ptr = JSC::X86Assembler::getPointer(buffer + offset);
+
+#ifdef JS_PUNBOX64
+        
+        
+        {
+            uintptr_t bits = uintptr_t(ptr);
+            if (bits >> JSVAL_TAG_SHIFT) {
+                jsval_layout layout;
+                layout.asBits = bits;
+                Value v = IMPL_TO_JSVAL(layout);
+                gc::MarkValue(trc, v, "immvalue");
+                continue;
+            }
+        }
+#endif
+
         gc::MarkGCThing(trc, ptr, "immgcptr");
     }
 }
