@@ -769,18 +769,15 @@ AtomSelector_GetKey(PLDHashTable *table, const PLDHashEntryHdr *hdr)
 }
 
 
-static const RuleHashTableOps AtomSelector_CSOps = {
-  {
+static const PLDHashTableOps AtomSelector_CSOps = {
   PL_DHashAllocTable,
   PL_DHashFreeTable,
   PL_DHashVoidPtrKeyStub,
-  RuleHash_CSMatchEntry,
+  PL_DHashMatchEntryStub,
   PL_DHashMoveEntryStub,
   AtomSelector_ClearEntry,
   PL_DHashFinalizeStub,
   AtomSelector_InitEntry
-  },
-  AtomSelector_GetKey
 };
 
 
@@ -811,17 +808,17 @@ struct RuleCascadeData {
   {
     
     
-    PL_DHashTableInit(&mAttributeSelectors, &AtomSelector_CSOps.ops, nsnull,
+    PL_DHashTableInit(&mAttributeSelectors, &AtomSelector_CSOps, nsnull,
                       sizeof(AtomSelectorEntry), 16);
     PL_DHashTableInit(&mAnonBoxRules, &RuleHash_TagTable_Ops, nsnull,
                       sizeof(RuleHashTagTableEntry), 16);
     PL_DHashTableInit(&mIdSelectors,
                       aQuirksMode ? &AtomSelector_CIOps.ops :
-                                    &AtomSelector_CSOps.ops,
+                                    &AtomSelector_CSOps,
                       nsnull, sizeof(AtomSelectorEntry), 16);
     PL_DHashTableInit(&mClassSelectors,
                       aQuirksMode ? &AtomSelector_CIOps.ops :
-                                    &AtomSelector_CSOps.ops,
+                                    &AtomSelector_CSOps,
                       nsnull, sizeof(AtomSelectorEntry), 16);
     memset(mPseudoElementRuleHashes, 0, sizeof(mPseudoElementRuleHashes));
 #ifdef MOZ_XUL
