@@ -1075,6 +1075,11 @@ nsMediaCache::Update()
               blockIndex));
           FreeBlock(blockIndex);
         }
+      } else {
+        LOG(PR_LOG_DEBUG, ("Could not trim cache block %d (destination %d, predicted next use %f, latest predicted use for overflow %f",
+                           blockIndex, destinationBlockIndex,
+                           PredictNextUse(now, destinationBlockIndex).ToSeconds(),
+                           latestPredictedUseForOverflow.ToSeconds()));
       }
     }
     
