@@ -355,22 +355,17 @@ let PromptUtils = {
     getTabModalPrompt : function (domWin) {
         var promptBox = null;
 
-        
-        function getChromeWindow(aWindow) {
-            var chromeWin = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                                   .getInterface(Ci.nsIWebNavigation)
-                                   .QueryInterface(Ci.nsIDocShell)
-                                   .chromeEventHandler.ownerDocument.defaultView;
-            return chromeWin;
-        }
-
         try {
             
             var promptWin = domWin.top;
 
             
             
-            var chromeWin = getChromeWindow(promptWin).wrappedJSObject;
+            var chromeWin = promptWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                                     .getInterface(Ci.nsIWebNavigation)
+                                     .QueryInterface(Ci.nsIDocShell)
+                                     .chromeEventHandler.ownerDocument
+                                     .defaultView.wrappedJSObject;
 
             if (chromeWin.getTabModalPromptBox)
                 promptBox = chromeWin.getTabModalPromptBox(promptWin);
