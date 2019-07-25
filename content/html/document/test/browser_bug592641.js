@@ -11,13 +11,7 @@ function test() {
 
   ctx.tab1 = gBrowser.addTab(testPath + "bug592641_img.jpg");
   ctx.tab1Browser = gBrowser.getBrowserForTab(ctx.tab1);
-  ctx.tab1Browser.addEventListener("load",
-                                   
-                                   
-                                   
-                                   
-                                   function() {executeSoon(load1Done);},
-                                   true);
+  ctx.tab1Browser.addEventListener("load", load1Soon, true);
 }
 
 function checkTitle(title) {
@@ -27,9 +21,14 @@ function checkTitle(title) {
      "Title should be correct on load #" + ctx.loadsDone);
 }
 
+function load1Soon() {
+  ctx.tab1Browser.removeEventListener("load", load1Soon, true);
+  
+  
+  executeSoon(load1Done);
+}
 
 function load1Done() {
-
   
   var title = ctx.tab1Browser.contentWindow.document.title;
   checkTitle(title);
@@ -38,19 +37,17 @@ function load1Done() {
   
   ctx.tab2 = gBrowser.addTab(testPath + "bug592641_img.jpg");
   ctx.tab2Browser = gBrowser.getBrowserForTab(ctx.tab2);
-  ctx.tab2Browser.addEventListener("load",
-                                   
-                                   
-                                   
-                                   
-                                   function() {executeSoon(load2Done);},
-                                   true);
+  ctx.tab2Browser.addEventListener("load", load2Soon, true);
+}
 
-
+function load2Soon() {
+  ctx.tab2Browser.removeEventListener("load", load2Soon, true);
+  
+  
+  executeSoon(load2Done);
 }
 
 function load2Done() {
-
   
   var title = ctx.tab2Browser.contentWindow.document.title;
   checkTitle(title);
