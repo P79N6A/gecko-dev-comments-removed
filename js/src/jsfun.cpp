@@ -215,7 +215,7 @@ js_GetArgsObject(JSContext *cx, JSStackFrame *fp)
         return fp->getArgsObj();
 
     
-    JSObject *global = fp->getScopeChain()->getGlobal();
+    JSObject *global = fp->scopeChain->getGlobal();
     JSObject *argsobj = NewArguments(cx, global, fp->argc, &fp->argv[-2].toObject());
     if (!argsobj)
         return argsobj;
@@ -763,7 +763,7 @@ NewDeclEnvObject(JSContext *cx, JSStackFrame *fp)
         return NULL;
 
     
-    envobj->init(&js_DeclEnvClass, NULL, fp->maybeScopeChain(), PrivateValue(fp));
+    envobj->init(&js_DeclEnvClass, NULL, fp->scopeChain, PrivateValue(fp));
     envobj->map = cx->runtime->emptyDeclEnvScope->hold();
     return envobj;
 }
@@ -778,11 +778,11 @@ js_GetCallObject(JSContext *cx, JSStackFrame *fp)
 
 #ifdef DEBUG
     
-    Class *classp = fp->getScopeChain()->getClass();
+    Class *classp = fp->scopeChain->getClass();
     if (classp == &js_WithClass || classp == &js_BlockClass)
-        JS_ASSERT(fp->getScopeChain()->getPrivate() != js_FloatingFrameIfGenerator(cx, fp));
+        JS_ASSERT(fp->scopeChain->getPrivate() != js_FloatingFrameIfGenerator(cx, fp));
     else if (classp == &js_CallClass)
-        JS_ASSERT(fp->getScopeChain()->getPrivate() != fp);
+        JS_ASSERT(fp->scopeChain->getPrivate() != fp);
 #endif
 
     
@@ -798,9 +798,9 @@ js_GetCallObject(JSContext *cx, JSStackFrame *fp)
             return NULL;
 
         
-        fp->setScopeChain(envobj);
+        fp->scopeChain = envobj;
         JS_ASSERT(fp->argv);
-        if (!js_DefineNativeProperty(cx, fp->getScopeChain(), ATOM_TO_JSID(lambdaName),
+        if (!js_DefineNativeProperty(cx, fp->scopeChain, ATOM_TO_JSID(lambdaName),
                                      fp->calleeValue(),
                                      CalleeGetter, NULL,
                                      JSPROP_PERMANENT | JSPROP_READONLY,
@@ -809,7 +809,7 @@ js_GetCallObject(JSContext *cx, JSStackFrame *fp)
         }
     }
 
-    JSObject *callobj = NewCallObject(cx, fp->fun, fp->getScopeChain());
+    JSObject *callobj = NewCallObject(cx, fp->fun, fp->scopeChain);
     if (!callobj)
         return NULL;
 
@@ -823,7 +823,7 @@ js_GetCallObject(JSContext *cx, JSStackFrame *fp)
 
 
 
-    fp->setScopeChain(callobj);
+    fp->scopeChain = callobj;
     return callobj;
 }
 
