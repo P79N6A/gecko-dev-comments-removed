@@ -6,7 +6,7 @@
 
 
 
-const FILE_WIN_TEST_EXE = "updatetest.exe";
+const FILE_WIN_TEST_EXE = "aus_test_app.exe";
 
 
 
@@ -69,6 +69,38 @@ XPCOMUtils.defineLazyGetter(this, "gIsLessThanMacOSX_10_6", function test_gMacVe
   return (Services.vc.compare(version, "10.6") < 0)
 });
 
+
+
+
+
+
+
+
+
+XPCOMUtils.defineLazyGetter(this, "gAppBinPath", function test_gAppBinPath() {
+  let processDir = getCurrentProcessDir();
+  let appBin = processDir.clone();
+  appBin.append(APP_BIN_NAME + APP_BIN_SUFFIX);
+  if (appBin.exists()) {
+    if (IS_WIN) {
+      let appBinCopy = processDir.clone();
+      appBinCopy.append(FILE_WIN_TEST_EXE);
+      if (appBinCopy.exists()) {
+        appBinCopy.remove(false);
+      }
+      appBin.copyTo(processDir, FILE_WIN_TEST_EXE);
+      appBin = processDir.clone();
+      appBin.append(FILE_WIN_TEST_EXE);
+    }
+    let appBinPath = appBin.path;
+    if (/ /.test(appBinPath)) {
+      appBinPath = '"' + appBinPath + '"';
+    }
+    return appBinPath;
+  }
+  return null;
+});
+
 function run_test() {
   if (IS_ANDROID) {
     logTestInfo("this test is not applicable to Android... returning early");
@@ -85,7 +117,7 @@ function run_test() {
 
   removeUpdateDirsAndFiles();
 
-  if (!getAppBinPath()) {
+  if (!gAppBinPath) {
     do_throw("Main application binary not found... expected: " +
              APP_BIN_NAME + APP_BIN_SUFFIX);
     return;
@@ -416,42 +448,6 @@ function resetEnvironment() {
 
 
 
-
-
-
-
-
-
-function getAppBinPath() {
-  let processDir = getCurrentProcessDir();
-  let appBin = processDir.clone();
-  appBin.append(APP_BIN_NAME + APP_BIN_SUFFIX);
-  if (appBin.exists()) {
-    if (IS_WIN) {
-      let appBinCopy = processDir.clone();
-      appBinCopy.append(FILE_WIN_TEST_EXE);
-      if (appBinCopy.exists()) {
-        appBinCopy.remove(false);
-      }
-      appBin.copyTo(processDir, appBinCopy.leafName);
-      appBin = processDir.clone();
-      appBin.append(appBinCopy.leafName);
-    }
-    let appBinPath = appBin.path;
-    if (/ /.test(appBinPath)) {
-      appBinPath = '"' + appBinPath + '"';
-    }
-    return appBinPath;
-  }
-  return null;
-}
-
-
-
-
-
-
-
 function getLaunchBin() {
   let launchBin;
   if (IS_WIN) {
@@ -490,8 +486,6 @@ function getLaunchBin() {
 
 
 function getProcessArgs() {
-  let appBinPath = getAppBinPath();
-
   
   
   let appConsoleLogPath = getAppConsoleLogPath();
@@ -507,7 +501,7 @@ function getProcessArgs() {
     if (gIsLessThanMacOSX_10_6) {
       scriptContents += "arch -arch i386 ";
     }
-    scriptContents += appBinPath + " -no-remote -process-updates 1> " +
+    scriptContents += gAppBinPath + " -no-remote -process-updates 1> " +
                       appConsoleLogPath + " 2>&1";
     writeFile(launchScript, scriptContents);
     logTestInfo("created " + launchScript.path + " containing:\n" +
@@ -515,7 +509,7 @@ function getProcessArgs() {
     args = [launchScript.path];
   }
   else {
-    args = ["/D", "/Q", "/C", appBinPath, "-no-remote", "-process-updates",
+    args = ["/D", "/Q", "/C", gAppBinPath, "-no-remote", "-process-updates",
             "1>", appConsoleLogPath, "2>&1"];
   }
   return args;
