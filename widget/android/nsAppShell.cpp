@@ -587,7 +587,7 @@ nsAppShell::PostEvent(AndroidGeckoEvent *ae)
                 delete mQueuedDrawEvent;
             }
 
-            if (mAllowCoalescingNextDraw) {
+            if (!mAllowCoalescingNextDraw) {
                 
                 
                 
