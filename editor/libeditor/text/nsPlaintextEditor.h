@@ -197,7 +197,7 @@ protected:
                         PRInt32* aInOutOffset,
                         nsCOMPtr<nsIDOMNode>* outBRNode,
                         EDirection aSelect);
-  NS_IMETHOD InsertBR(nsCOMPtr<nsIDOMNode> *outBRNode);
+  nsresult InsertBR(nsCOMPtr<nsIDOMNode>* outBRNode);
 
   
   NS_IMETHOD PrepareTransferable(nsITransferable **transferable);
