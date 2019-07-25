@@ -987,6 +987,8 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
     }
     
     $(container).click(function(){
+      
+      if( self.isNewTabsGroup() ) return;
       var activeTab = self.getActiveTab();
       if( activeTab ) TabItems.zoomTo(activeTab)
       
