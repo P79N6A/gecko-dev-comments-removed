@@ -5,6 +5,11 @@
 #include <QtGui/QGraphicsView>
 #include <QtGui/QGraphicsWidget>
 
+#ifdef MOZ_ENABLE_MEEGOTOUCH
+#include <QtGui/QGraphicsSceneResizeEvent>
+#include <MSceneWindow>
+#endif
+
 #include "nsIWidget.h"
 #include "prenv.h"
 
@@ -174,5 +179,74 @@ private:
     MozQGraphicsViewEvents mEventHandler;
     MozQWidget* mTopLevelWidget;
 };
+
+#ifdef MOZ_ENABLE_MEEGOTOUCH
+class MozMSceneWindow : public MSceneWindow
+{
+public:
+    MozMSceneWindow(MozQWidget* aTopLevel)
+     : MSceneWindow(aTopLevel->parentItem())
+     , mTopLevelWidget(aTopLevel)
+    {
+        mTopLevelWidget->setParentItem(this);
+    }
+
+protected:
+    virtual void resizeEvent(QGraphicsSceneResizeEvent* aEvent) {
+        if (mTopLevelWidget) {
+            
+            mTopLevelWidget->setGeometry(0.0, 0.0,
+                static_cast<qreal>(aEvent->newSize().width()),
+                static_cast<qreal>(aEvent->newSize().height()));
+        }
+        MSceneWindow::resizeEvent(aEvent);
+    }
+private:
+    MozQWidget* mTopLevelWidget;
+};
+
+
+
+
+
+
+class MozMGraphicsView : public MWindow
+{
+
+public:
+    MozMGraphicsView(MozQWidget* aTopLevel, QWidget* aParent = nsnull)
+     : MWindow(aParent)
+     , mEventHandler(this)
+     , mTopLevelWidget(aTopLevel)
+    {
+        MozMSceneWindow *page = new MozMSceneWindow(aTopLevel);
+        if (page)
+            page->appear(this);
+    }
+
+protected:
+    virtual bool event(QEvent* aEvent) {
+        mEventHandler.handleEvent(aEvent, mTopLevelWidget);
+        return MWindow::event(aEvent);
+    }
+
+    virtual void resizeEvent(QResizeEvent* aEvent)
+    {
+        setSceneRect(viewport()->rect());
+        MWindow::resizeEvent(aEvent);
+    }
+
+    virtual void closeEvent (QCloseEvent* aEvent)
+    {
+        if (!mEventHandler.handleCloseEvent(aEvent, mTopLevelWidget))
+            MWindow::closeEvent(aEvent);
+    }
+
+private:
+    MozQGraphicsViewEvents mEventHandler;
+    MozQWidget* mTopLevelWidget;
+};
+
+#endif 
 
 #endif
