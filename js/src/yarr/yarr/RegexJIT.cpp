@@ -1523,6 +1523,11 @@ public:
     {
         generate();
 
+        if (oom()) {
+            m_shouldFallBack = true;
+            return;
+        }
+
         ExecutablePool *executablePool = allocator.poolForSize(size());
         if (!executablePool) {
             m_shouldFallBack = true;
@@ -1548,15 +1553,8 @@ private:
     js::Vector<AlternativeBacktrackRecord, 0, js::SystemAllocPolicy> m_backtrackRecords;
 };
 
-void jitCompileRegex(ExecutableAllocator& allocator, RegexCodeBlock& jitObject, const UString&patternString, unsigned& numSubpatterns, int &error, bool &fellBack, bool ignoreCase, bool multiline
-#ifdef ANDROID
-                     , bool forceFallback
-#endif
-)
+void jitCompileRegex(ExecutableAllocator& allocator, RegexCodeBlock& jitObject, const UString&patternString, unsigned& numSubpatterns, int &error, bool &fellBack, bool ignoreCase, bool multiline)
 {
-#ifdef ANDROID
-    if (!forceFallback) {
-#endif
     fellBack = false;
     RegexPattern pattern(ignoreCase, multiline);
     if ((error = compileRegex(patternString, pattern)))
@@ -1569,9 +1567,6 @@ void jitCompileRegex(ExecutableAllocator& allocator, RegexCodeBlock& jitObject, 
         if (!generator.shouldFallBack())
             return;
     }
-#ifdef ANDROID
-    } 
-#endif
 
     fellBack = true;
     JSRegExpIgnoreCaseOption ignoreCaseOption = ignoreCase ? JSRegExpIgnoreCase : JSRegExpDoNotIgnoreCase;

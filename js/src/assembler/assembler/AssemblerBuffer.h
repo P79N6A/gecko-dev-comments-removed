@@ -48,6 +48,7 @@ namespace JSC {
             : m_buffer(m_inlineBuffer)
             , m_capacity(inlineCapacity)
             , m_size(0)
+            , m_oom(false)
         {
         }
 
@@ -127,8 +128,20 @@ namespace JSC {
             return m_size;
         }
 
+        bool oom() const
+        {
+            return m_oom;
+        }
+
+        
+
+
+
         void* executableCopy(ExecutablePool* allocator)
         {
+            if (m_oom)
+                return 0;
+
             if (!m_size)
                 return 0;
 
@@ -143,6 +156,7 @@ namespace JSC {
         }
 
         unsigned char *buffer() const {
+            ASSERT(!m_oom);
             return reinterpret_cast<unsigned char *>(m_buffer);
         }
 
@@ -152,25 +166,59 @@ namespace JSC {
             if (m_size > m_capacity - size)
                 grow(size);
 
+            
+            if (m_oom)
+                return;
             memcpy(m_buffer + m_size, data, size);
             m_size += size;
         }
 
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         void grow(int extraCapacity = 0)
         {
-            m_capacity += m_capacity / 2 + extraCapacity;
+            int newCapacity = m_capacity + m_capacity / 2 + extraCapacity;
+            char* newBuffer;
 
             if (m_buffer == m_inlineBuffer) {
-                char* newBuffer = static_cast<char*>(malloc(m_capacity));
-                m_buffer = static_cast<char*>(memcpy(newBuffer, m_buffer, m_size));
-            } else
-                m_buffer = static_cast<char*>(realloc(m_buffer, m_capacity));
+                newBuffer = static_cast<char*>(malloc(newCapacity));
+                if (!newBuffer) {
+                    m_size = 0;
+                    m_oom = true;
+                    return;
+                }
+                memcpy(newBuffer, m_buffer, m_size);
+            } else {
+                newBuffer = static_cast<char*>(realloc(m_buffer, newCapacity));
+                if (!newBuffer) {
+                    m_size = 0;
+                    m_oom = true;
+                    return;
+                }
+            }
+
+            m_buffer = newBuffer;
+            m_capacity = newCapacity;
         }
 
         char m_inlineBuffer[inlineCapacity];
         char* m_buffer;
         int m_capacity;
         int m_size;
+        bool m_oom;
     };
 
 } 
