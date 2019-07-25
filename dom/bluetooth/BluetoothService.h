@@ -7,31 +7,20 @@
 #ifndef mozilla_dom_bluetooth_bluetootheventservice_h__
 #define mozilla_dom_bluetooth_bluetootheventservice_h__
 
-#include "BluetoothCommon.h"
-#include "nsAutoPtr.h"
+#include "nsThreadUtils.h"
 #include "nsClassHashtable.h"
 #include "nsIObserver.h"
-#include "nsIThread.h"
-#include "nsTObserverArray.h"
+#include "nsIRunnable.h"
+#include "BluetoothCommon.h"
 
 BEGIN_BLUETOOTH_NAMESPACE
 
-class BluetoothManager;
-class BluetoothNamedValue;
-class BluetoothReplyRunnable;
 class BluetoothSignal;
+class BluetoothReplyRunnable;
+class BluetoothNamedValue;
 
 class BluetoothService : public nsIObserver
 {
-  class ToggleBtAck;
-  friend class ToggleBtAck;
-
-  class ToggleBtTask;
-  friend class ToggleBtTask;
-
-  class StartupTask;
-  friend class StartupTask;
-
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -79,7 +68,12 @@ public:
 
 
 
-  nsresult Start();
+
+
+
+
+
+  nsresult Start(nsIRunnable* aResultRunnable);
 
   
 
@@ -90,32 +84,11 @@ public:
 
 
 
-  nsresult Stop();
-
-  
 
 
-  nsresult HandleStartup();
-
-  
 
 
-  nsresult HandleSettingsChanged(const nsAString& aData);
-
-  
-
-
-  nsresult HandleShutdown();
-
-  
-
-
-  void RegisterManager(BluetoothManager* aManager);
-
-  
-
-
-  void UnregisterManager(BluetoothManager* aManager);
+  nsresult Stop(nsIRunnable* aResultRunnable);
 
   
 
@@ -126,13 +99,7 @@ public:
 
 
   static BluetoothService* Get();
-
-  static already_AddRefed<BluetoothService> FactoryCreate()
-  {
-    nsRefPtr<BluetoothService> service = Get();
-    return service.forget();
-  }
-
+  
   
 
 
@@ -264,33 +231,7 @@ public:
   virtual bool SetPasskeyInternal(const nsAString& aDeviceAddress, uint32_t aPasskey) = 0;
   virtual bool SetPairingConfirmationInternal(const nsAString& aDeviceAddress, bool aConfirm) = 0;
   virtual bool SetAuthorizationInternal(const nsAString& aDeviceAddress, bool aAllow) = 0;
-
-  virtual bool IsEnabled()
-  {
-    return mEnabled;
-  }
-
-protected:
-  BluetoothService()
-  : mEnabled(false)
-#ifdef DEBUG
-    , mLastRequestedEnable(false)
-#endif
-  {
-    mBluetoothSignalObserverTable.Init();
-  }
-
-  virtual ~BluetoothService()
-  { }
-
-  nsresult StartStopBluetooth(bool aStart);
-
-  
-  void SetEnabled(bool aEnabled);
-
-  
-  
-  static BluetoothService* Create();
+  virtual int IsEnabledInternal() = 0;
 
   
 
@@ -306,19 +247,26 @@ protected:
 
   nsCOMPtr<nsIThread> mBluetoothCommandThread;
 
+protected:
+  BluetoothService()
+  {
+    mBluetoothSignalObserverTable.Init();
+  }
+
+  virtual ~BluetoothService()
+  {
+  }
+
+  nsresult StartStopBluetooth(nsIRunnable* aResultRunnable, bool aStart);
+  
+  
+  static BluetoothService* Create();
+
   typedef mozilla::ObserverList<BluetoothSignal> BluetoothSignalObserverList;
   typedef nsClassHashtable<nsStringHashKey, BluetoothSignalObserverList >
   BluetoothSignalObserverTable;
 
   BluetoothSignalObserverTable mBluetoothSignalObserverTable;
-
-  typedef nsTObserverArray<BluetoothManager*> BluetoothManagerList;
-  BluetoothManagerList mLiveManagers;
-
-  bool mEnabled;
-#ifdef DEBUG
-  bool mLastRequestedEnable;
-#endif
 };
 
 END_BLUETOOTH_NAMESPACE
