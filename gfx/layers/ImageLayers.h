@@ -205,6 +205,12 @@ FormatInList(const Image::Format* aFormats, PRUint32 aNumFormats,
   return false;
 }
 
+class CompositionNotifySink
+{
+public:
+  virtual void DidComposite() = 0;
+};
+
 
 
 
@@ -295,7 +301,8 @@ public:
     mImageFactory(new ImageFactory()),
     mRecycleBin(new BufferRecycleBin()),
     mRemoteData(nsnull),
-    mRemoteDataMutex(nsnull)
+    mRemoteDataMutex(nsnull),
+    mCompositionNotifySink(nsnull)
   {}
 
   ~ImageContainer();
@@ -448,6 +455,14 @@ public:
       mPaintCount++;
       mPreviousImagePainted = true;
     }
+
+    if (mCompositionNotifySink) {
+      mCompositionNotifySink->DidComposite();
+    }
+  }
+
+  void SetCompositionNotifySink(CompositionNotifySink *aSink) {
+    mCompositionNotifySink = aSink;
   }
 
   
@@ -519,6 +534,8 @@ protected:
   
   
   CrossProcessMutex *mRemoteDataMutex;
+
+  CompositionNotifySink *mCompositionNotifySink;
 };
  
 class AutoLockImage
