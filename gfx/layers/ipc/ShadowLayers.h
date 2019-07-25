@@ -67,6 +67,7 @@ class SurfaceDescriptor;
 class ThebesBuffer;
 class Transaction;
 class SharedImage;
+class CanvasSurface;
 
 
 
@@ -159,14 +160,6 @@ public:
                            const nsIntRegion& aFrontValidRegion,
                            const nsIntRect& aBufferRect,
                            const SurfaceDescriptor& aInitialFrontBuffer);
-  
-
-
-
-  void CreatedCanvasBuffer(ShadowableLayer* aCanvas,
-                           nsIntSize aSize,
-                           const SurfaceDescriptor& aInitialFrontSurface,
-                           bool aNeedYFlip);
 
   
 
@@ -178,8 +171,6 @@ public:
 
   void DestroyedThebesBuffer(ShadowableLayer* aThebes,
                              const SurfaceDescriptor& aBackBufferToDestroy);
-  void DestroyedCanvasBuffer(ShadowableLayer* aCanvas);
-
 
   
 
@@ -224,6 +215,7 @@ public:
   void PaintedImage(ShadowableLayer* aImage,
                     const SharedImage& aNewFrontImage);
   void PaintedCanvas(ShadowableLayer* aCanvas,
+                     bool aNeedYFlip,
                      const SurfaceDescriptor& aNewFrontSurface);
 
   
@@ -586,7 +578,6 @@ class ShadowCanvasLayer : public ShadowLayer,
                           public CanvasLayer
 {
 public:
-
   
 
 
@@ -594,24 +585,8 @@ public:
 
 
 
-
-  virtual void Init(const SurfaceDescriptor& front, const nsIntSize& aSize, bool needYFlip) = 0;
-
-  
-
-
-
-
-
-
-  virtual void Swap(const SurfaceDescriptor& aNewFront, SurfaceDescriptor* aNewBack) = 0;
-
-  
-
-
-
-
-  virtual void DestroyFrontBuffer() = 0;
+  virtual void Swap(const CanvasSurface& aNewFront, bool needYFlip,
+                    CanvasSurface* aNewBack) = 0;
 
   virtual ShadowLayer* AsShadowLayer() { return this; }
 
