@@ -112,7 +112,9 @@ void
 JSCompartment::setNeedsBarrier(bool needs)
 {
 #ifdef JS_METHODJIT
-    if (needsBarrier_ != needs)
+    
+    bool old = compileBarriers();
+    if (compileBarriers(needs) != old)
         mjit::ClearAllFrames(this);
 #endif
     needsBarrier_ = needs;

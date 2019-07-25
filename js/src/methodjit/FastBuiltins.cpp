@@ -473,7 +473,7 @@ mjit::Compiler::compileArrayPopShift(FrameEntry *thisValue, bool isPacked, bool 
 
 #ifdef JSGC_INCREMENTAL_MJ
     
-    if (cx->compartment->needsBarrier())
+    if (cx->compartment->compileBarriers())
         return Compile_InlineAbort;
 #endif
 

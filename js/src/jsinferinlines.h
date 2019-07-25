@@ -299,7 +299,7 @@ struct AutoEnterCompilation
         CompilerOutput co;
         co.script = script;
         co.constructing = constructing;
-        co.barriers = cx->compartment->needsBarrier();
+        co.barriers = cx->compartment->compileBarriers();
         co.chunkIndex = chunkIndex;
 
         
