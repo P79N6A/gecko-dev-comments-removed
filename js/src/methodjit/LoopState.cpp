@@ -39,6 +39,7 @@
 #include "methodjit/Compiler.h"
 #include "methodjit/LoopState.h"
 #include "methodjit/FrameState-inl.h"
+#include "methodjit/StubCalls.h"
 
 using namespace js;
 using namespace js::mjit;
@@ -146,12 +147,14 @@ LoopState::addJoin(unsigned index, bool script)
 }
 
 void
-LoopState::addInvariantCall(Jump jump, Label label, bool ool)
+LoopState::addInvariantCall(Jump jump, Label label, bool ool, unsigned patchIndex, bool patchCall)
 {
     RestoreInvariantCall call;
     call.jump = jump;
     call.label = label;
     call.ool = ool;
+    call.patchIndex = patchIndex;
+    call.patchCall = patchCall;
     restoreInvariantCalls.append(call);
 }
 
@@ -175,14 +178,35 @@ LoopState::flushLoop(StubCompiler &stubcc)
         for (unsigned i = 0; i < restoreInvariantCalls.length(); i++) {
             RestoreInvariantCall &call = restoreInvariantCalls[i];
             Assembler &masm = cc.getAssembler(true);
+            Vector<Jump> failureJumps(cx);
+
             if (call.ool) {
                 call.jump.linkTo(masm.label(), &masm);
-                restoreInvariants(masm);
+                restoreInvariants(masm, &failureJumps);
                 masm.jump().linkTo(call.label, &masm);
             } else {
                 stubcc.linkExitDirect(call.jump, masm.label());
-                restoreInvariants(masm);
+                restoreInvariants(masm, &failureJumps);
                 stubcc.crossJump(masm.jump(), call.label);
+            }
+
+            if (!failureJumps.empty()) {
+                for (unsigned i = 0; i < failureJumps.length(); i++)
+                    failureJumps[i].linkTo(masm.label(), &masm);
+
+                
+
+
+
+                InvariantCodePatch *patch = cc.getInvariantPatch(call.patchIndex, call.patchCall);
+                patch->hasPatch = true;
+                patch->codePatch = masm.storePtrWithPatch(ImmPtr(NULL),
+                                                          FrameAddress(offsetof(VMFrame, scratch)));
+                JS_STATIC_ASSERT(Registers::ReturnReg != Registers::ArgReg1);
+                masm.move(Registers::ReturnReg, Registers::ArgReg1);
+                jsbytecode *pc = cc.getInvariantPC(call.patchIndex, call.patchCall);
+                masm.fallibleVMCall(true, JS_FUNC_TO_DATA_PTR(void *, stubs::InvariantFailure),
+                                    pc, NULL, 0);
             }
         }
     } else {
@@ -433,48 +457,6 @@ LoopState::hoistArrayLengthCheck(const FrameEntry *obj, const FrameEntry *index)
     return false;
 }
 
-bool
-LoopState::checkHoistedBounds(jsbytecode *PC, Assembler &masm, Vector<Jump> *jumps)
-{
-    restoreInvariants(masm);
-
-    
-
-
-
-
-
-
-    for (unsigned i = 0; i < hoistedBoundsChecks.length(); i++) {
-        
-        const HoistedBoundsCheck &check = hoistedBoundsChecks[i];
-
-        RegisterID initlen = Registers::ArgReg0;
-        masm.loadPayload(frame.addressOf(check.arraySlot), initlen);
-        masm.load32(Address(initlen, offsetof(JSObject, initializedLength)), initlen);
-
-        if (check.valueSlot != uint32(-1)) {
-            RegisterID value = Registers::ArgReg1;
-            masm.loadPayload(frame.addressOf(check.valueSlot), value);
-            if (check.constant != 0) {
-                Jump overflow = masm.branchAdd32(Assembler::Overflow,
-                                                 Imm32(check.constant), value);
-                if (!jumps->append(overflow))
-                    return false;
-            }
-            Jump j = masm.branch32(Assembler::BelowOrEqual, initlen, value);
-            if (!jumps->append(j))
-                return false;
-        } else {
-            Jump j = masm.branch32(Assembler::BelowOrEqual, initlen, Imm32(check.constant));
-            if (!jumps->append(j))
-                return false;
-        }
-    }
-
-    return true;
-}
-
 FrameEntry *
 LoopState::invariantSlots(const FrameEntry *obj)
 {
@@ -492,7 +474,7 @@ LoopState::invariantSlots(const FrameEntry *obj)
 }
 
 void
-LoopState::restoreInvariants(Assembler &masm)
+LoopState::restoreInvariants(Assembler &masm, Vector<Jump> *jumps)
 {
     
 
@@ -500,7 +482,8 @@ LoopState::restoreInvariants(Assembler &masm)
 
 
 
-    Registers regs(Registers::AvailRegs);
+
+    Registers regs(Registers::TempRegs);
     regs.takeReg(Registers::ReturnReg);
 
     for (unsigned i = 0; i < invariantArraySlots.length(); i++) {
@@ -515,5 +498,32 @@ LoopState::restoreInvariants(Assembler &masm)
         masm.loadPtr(Address(reg, JSObject::offsetOfSlots()), reg);
         masm.storePtr(reg, address);
         regs.putReg(reg);
+    }
+
+    for (unsigned i = 0; i < hoistedBoundsChecks.length(); i++) {
+        
+        const HoistedBoundsCheck &check = hoistedBoundsChecks[i];
+
+        RegisterID initlen = regs.takeAnyReg().reg();
+        masm.loadPayload(frame.addressOf(check.arraySlot), initlen);
+        masm.load32(Address(initlen, offsetof(JSObject, initializedLength)), initlen);
+
+        if (check.valueSlot != uint32(-1)) {
+            RegisterID value = regs.takeAnyReg().reg();
+            masm.loadPayload(frame.addressOf(check.valueSlot), value);
+            if (check.constant != 0) {
+                Jump overflow = masm.branchAdd32(Assembler::Overflow,
+                                                 Imm32(check.constant), value);
+                jumps->append(overflow);
+            }
+            Jump j = masm.branch32(Assembler::BelowOrEqual, initlen, value);
+            jumps->append(j);
+            regs.putReg(value);
+        } else {
+            Jump j = masm.branch32(Assembler::BelowOrEqual, initlen, Imm32(check.constant));
+            jumps->append(j);
+        }
+
+        regs.putReg(initlen);
     }
 }

@@ -2156,9 +2156,6 @@ struct JSContext
     inline bool markTypeArrayNotPacked(js::types::TypeObject *obj, bool notDense);
 
     
-    inline bool markTypeArrayShrank(js::types::TypeObject *obj);
-
-    
     inline bool markTypeFunctionUninlineable(js::types::TypeObject *obj);
 
     

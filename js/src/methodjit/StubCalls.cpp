@@ -2886,27 +2886,39 @@ stubs::AssertArgumentTypes(VMFrame &f)
 }
 #endif
 
-void JS_FASTCALL
-stubs::MissedBoundsCheckEntry(VMFrame &f)
+
+
+
+
+void JS_FASTCALL stubs::MissedBoundsCheckEntry(VMFrame &f) {}
+void JS_FASTCALL stubs::MissedBoundsCheckHead(VMFrame &f) {}
+
+void * JS_FASTCALL
+stubs::InvariantFailure(VMFrame &f, void *rval)
 {
+    
+
+
+
+
+
+
+
+    void *repatchCode = f.scratch;
+    JS_ASSERT(repatchCode);
+    void **frameAddr = f.returnAddressLocation();
+    *frameAddr = repatchCode;
+
     
     JS_ASSERT(!f.script()->failedBoundsCheck);
     f.script()->failedBoundsCheck = true;
 
     Recompiler recompiler(f.cx, f.script());
     if (!recompiler.recompile())
-        THROW();
-}
+        THROWV(NULL);
 
-void JS_FASTCALL
-stubs::MissedBoundsCheckHead(VMFrame &f)
-{
     
-
-
-
-
-    stubs::MissedBoundsCheckEntry(f);
+    return rval;
 }
 
 void JS_FASTCALL

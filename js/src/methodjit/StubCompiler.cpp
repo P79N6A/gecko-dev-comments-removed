@@ -185,17 +185,19 @@ StubCompiler::emitStubCall(void *ptr, bool needsRejoin, int32 slots)
     JaegerSpew(JSpew_Insns, " ---- END SLOW CALL CODE ---- \n");
 
     
-    if (cc.loop && cc.loop->generatingInvariants()) {
-        Jump j = masm.jump();
-        Label l = masm.label();
-        cc.loop->addInvariantCall(j, l, true);
-    }
-
-    
     Compiler::InternalCallSite site(masm.callReturnOffset(cl),
                                     cc.inlineIndex(), cc.inlinePC(),
                                     (size_t)ptr, true, needsRejoin);
     site.inlinePatch = inlinePatch;
+
+    
+    if (cc.loop && cc.loop->generatingInvariants()) {
+        site.loopJumpLabel = masm.label();
+        Jump j = masm.jump();
+        Label l = masm.label();
+        cc.loop->addInvariantCall(j, l, true, cc.callSites.length(), true);
+    }
+
     cc.addCallSite(site);
     return cl;
 }

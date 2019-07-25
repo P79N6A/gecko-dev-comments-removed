@@ -40,14 +40,10 @@
 #define jsjaeger_loopstate_h__
 
 #include "jsanalyze.h"
-#include "methodjit/BaseCompiler.h"
+#include "methodjit/Compiler.h"
 
 namespace js {
 namespace mjit {
-
-
-
-
 
 
 
@@ -140,6 +136,10 @@ class LoopState : public MacroAssemblerTypedefs
         Jump jump;
         Label label;
         bool ool;
+
+        
+        unsigned patchIndex;
+        bool patchCall;
     };
     Vector<RestoreInvariantCall> restoreInvariantCalls;
 
@@ -170,8 +170,8 @@ class LoopState : public MacroAssemblerTypedefs
     };
     Vector<InvariantArraySlots, 4, CompilerAllocPolicy> invariantArraySlots;
 
-    bool hasInvariants() { return !invariantArraySlots.empty(); }
-    void restoreInvariants(Assembler &masm);
+    bool hasInvariants() { return !hoistedBoundsChecks.empty() || !invariantArraySlots.empty(); }
+    void restoreInvariants(Assembler &masm, Vector<Jump> *jumps);
 
   public:
 
@@ -189,7 +189,7 @@ class LoopState : public MacroAssemblerTypedefs
     bool generatingInvariants() { return !skipAnalysis; }
 
     
-    void addInvariantCall(Jump jump, Label label, bool ool);
+    void addInvariantCall(Jump jump, Label label, bool ool, unsigned patchIndex, bool patchCall);
 
     uint32 headOffset() { return lifetime->head; }
     uint32 getLoopRegs() { return loopRegs.freeMask; }
@@ -224,8 +224,6 @@ class LoopState : public MacroAssemblerTypedefs
 
     bool hoistArrayLengthCheck(const FrameEntry *obj, const FrameEntry *id);
     FrameEntry *invariantSlots(const FrameEntry *obj);
-
-    bool checkHoistedBounds(jsbytecode *PC, Assembler &masm, Vector<Jump> *jumps);
 };
 
 } 

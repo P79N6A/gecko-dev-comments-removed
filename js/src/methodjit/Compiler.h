@@ -59,6 +59,16 @@ struct PatchableFrame {
     bool scriptedCall;
 };
 
+
+
+
+
+struct InvariantCodePatch {
+    bool hasPatch;
+    JSC::MacroAssembler::DataLabelPtr codePatch;
+    InvariantCodePatch() : hasPatch(false) {}
+};
+
 class Compiler : public BaseCompiler
 {
     friend class StubCompiler;
@@ -166,7 +176,7 @@ class Compiler : public BaseCompiler
   private:
 #endif
 
-    
+
 
 
 
@@ -325,6 +335,8 @@ class Compiler : public BaseCompiler
         jsbytecode *inlinepc;
         size_t id;
         bool ool;
+        Label loopJumpLabel;
+        InvariantCodePatch loopPatch;
 
         
         bool needsRejoin;
@@ -332,7 +344,7 @@ class Compiler : public BaseCompiler
         InternalCallSite(uint32 returnOffset,
                          uint32 inlineIndex, jsbytecode *inlinepc, size_t id,
                          bool ool, bool needsRejoin)
-          : returnOffset(returnOffset),
+          : returnOffset(returnOffset), inlinePatch(inlinePatch),
             inlineIndex(inlineIndex), inlinepc(inlinepc), id(id),
             ool(ool), needsRejoin(needsRejoin)
         { }
@@ -342,6 +354,7 @@ class Compiler : public BaseCompiler
         Label label;
         jsbytecode *pc;
         size_t id;
+        InvariantCodePatch loopPatch;
 
         InternalRejoinSite(Label label, jsbytecode *pc, size_t id)
             : label(label), pc(pc), id(id)
@@ -584,6 +597,13 @@ class Compiler : public BaseCompiler
     types::TypeSet *getTypeSet(const FrameEntry *fe) { return getTypeSet(frame.indexOfFe(fe)); }
 
     Assembler &getAssembler(bool ool) { return ool ? stubcc.masm : masm; }
+
+    InvariantCodePatch *getInvariantPatch(unsigned index, bool call) {
+        return call ? &callSites[index].loopPatch : &rejoinSites[index].loopPatch;
+    }
+    jsbytecode *getInvariantPC(unsigned index, bool call) {
+        return call ? callSites[index].inlinepc : rejoinSites[index].pc;
+    }
 
   private:
     CompileStatus performCompilation(JITScript **jitp);
