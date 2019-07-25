@@ -177,6 +177,17 @@ class IntPolicy : public BoxInputsPolicy
 };
 
 
+template <unsigned Op>
+class DoublePolicy : public BoxInputsPolicy
+{
+  public:
+    static bool staticAdjustInputs(MInstruction *def);
+    bool adjustInputs(MInstruction *def) {
+        return staticAdjustInputs(def);
+    }
+};
+
+
 template <class Lhs, class Rhs>
 class MixPolicy
   : public BoxInputsPolicy
