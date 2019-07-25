@@ -19,50 +19,49 @@ function run_test()
                                     "test-stack",
                                     function (aResponse, aThreadClient) {
       gThreadClient = aThreadClient;
-      test_skip_breakpoint();
+      test_simple_stepping();
     });
   });
   do_test_pending();
 }
 
-function test_skip_breakpoint()
+function test_simple_stepping()
 {
   gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-    let path = getFilePath('test_breakpoint-03.js');
-    let location = { url: path, line: gDebuggee.line0 + 3};
-    gThreadClient.setBreakpoint(location, function (aResponse, bpClient) {
+    gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
       
-      do_check_eq(aResponse.actualLocation.url, location.url);
-      do_check_eq(aResponse.actualLocation.line, location.line + 1);
+      do_check_eq(aPacket.type, "paused");
+      do_check_eq(aPacket.frame.where.line, gDebuggee.line0 + 5);
+      do_check_eq(aPacket.why.type, "resumeLimit");
+      
+      do_check_eq(gDebuggee.a, undefined);
+      do_check_eq(gDebuggee.b, undefined);
+
       gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
         
         do_check_eq(aPacket.type, "paused");
-        do_check_eq(aPacket.frame.where.url, path);
-        do_check_eq(aPacket.frame.where.line, location.line + 1);
-        do_check_eq(aPacket.why.type, "breakpoint");
-        do_check_eq(aPacket.why.actors[0], bpClient.actor);
+        do_check_eq(aPacket.frame.where.line, gDebuggee.line0 + 6);
+        do_check_eq(aPacket.why.type, "resumeLimit");
         
         do_check_eq(gDebuggee.a, 1);
         do_check_eq(gDebuggee.b, undefined);
 
-        
-        bpClient.remove(function (aResponse) {
-          gThreadClient.resume(function () {
-            finishClient(gClient);
-          });
+        gThreadClient.resume(function () {
+          finishClient(gClient);
         });
-
       });
-      
-      gThreadClient.resume();
+      gThreadClient.stepOver();
 
     });
+    gThreadClient.stepOver();
 
   });
 
   gDebuggee.eval("var line0 = Error().lineNumber;\n" +
+                 "function f() {\n" + 
+                 "  this.a = 1;\n" +  
+                 "}\n" +              
                  "debugger;\n" +      
-                 "var a = 1;\n" +     
-                 "// A comment.\n" +  
-                 "var b = 2;\n");     
+                 "f();\n" +           
+                 "let b = 2;\n");     
 }

@@ -32,9 +32,14 @@ function test_remove_breakpoint()
     let path = getFilePath('test_breakpoint-09.js');
     let location = { url: path, line: gDebuggee.line0 + 1};
     gThreadClient.setBreakpoint(location, function (aResponse, bpClient) {
+      
+      do_check_eq(aResponse.actualLocation.url, location.url);
+      do_check_eq(aResponse.actualLocation.line, location.line + 1);
       gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
         
         do_check_eq(aPacket.type, "paused");
+        do_check_eq(aPacket.frame.where.url, path);
+        do_check_eq(aPacket.frame.where.line, location.line + 1);
         do_check_eq(aPacket.why.type, "breakpoint");
         do_check_eq(aPacket.why.actors[0], bpClient.actor);
         
@@ -43,7 +48,8 @@ function test_remove_breakpoint()
         
         bpClient.remove(function (aResponse) {
           done = true;
-          gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
+          gThreadClient.addOneTimeListener("paused",
+                                           function (aEvent, aPacket) {
             
             gThreadClient.resume(function () {
               do_check_true(false);

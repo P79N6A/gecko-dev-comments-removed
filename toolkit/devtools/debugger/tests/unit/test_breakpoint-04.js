@@ -36,6 +36,8 @@ function test_child_breakpoint()
       gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
         
         do_check_eq(aPacket.type, "paused");
+        do_check_eq(aPacket.frame.where.url, path);
+        do_check_eq(aPacket.frame.where.line, location.line);
         do_check_eq(aPacket.why.type, "breakpoint");
         do_check_eq(aPacket.why.actors[0], bpClient.actor);
         

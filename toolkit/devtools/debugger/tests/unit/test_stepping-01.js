@@ -19,41 +19,53 @@ function run_test()
                                     "test-stack",
                                     function (aResponse, aThreadClient) {
       gThreadClient = aThreadClient;
-      test_simple_breakpoint();
+      test_simple_stepping();
     });
   });
   do_test_pending();
 }
 
-function test_simple_breakpoint()
+function test_simple_stepping()
 {
   gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-    let path = getFilePath('test_breakpoint-01.js');
-    let location = { url: path, line: gDebuggee.line0 + 3};
-    gThreadClient.setBreakpoint(location, function (aResponse, bpClient) {
+    gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
+      
+      do_check_eq(aPacket.type, "paused");
+      do_check_eq(aPacket.frame.where.line, gDebuggee.line0 + 2);
+      do_check_eq(aPacket.why.type, "resumeLimit");
+      
+      do_check_eq(gDebuggee.a, undefined);
+      do_check_eq(gDebuggee.b, undefined);
+
       gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
         
         do_check_eq(aPacket.type, "paused");
-        do_check_eq(aPacket.frame.where.url, path);
-        do_check_eq(aPacket.frame.where.line, location.line);
-        do_check_eq(aPacket.why.type, "breakpoint");
-        do_check_eq(aPacket.why.actors[0], bpClient.actor);
+        do_check_eq(aPacket.frame.where.line, gDebuggee.line0 + 3);
+        do_check_eq(aPacket.why.type, "resumeLimit");
         
         do_check_eq(gDebuggee.a, 1);
         do_check_eq(gDebuggee.b, undefined);
 
-        
-        bpClient.remove(function (aResponse) {
+        gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
+          
+          do_check_eq(aPacket.type, "paused");
+          
+          do_check_eq(aPacket.frame.where.line, gDebuggee.line0 + 3);
+          do_check_eq(aPacket.why.type, "resumeLimit");
+          
+          do_check_eq(gDebuggee.a, 1);
+          do_check_eq(gDebuggee.b, 2);
+
           gThreadClient.resume(function () {
             finishClient(gClient);
           });
         });
-
+        gThreadClient.stepOver();
       });
-      
-      gThreadClient.resume();
+      gThreadClient.stepOver();
 
     });
+    gThreadClient.stepOver();
 
   });
 

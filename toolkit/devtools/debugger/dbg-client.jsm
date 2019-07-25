@@ -546,7 +546,11 @@ ThreadClient.prototype = {
 
 
 
-  resume: function TC_resume(aOnResponse) {
+
+
+
+
+  resume: function TC_resume(aOnResponse, aLimit) {
     this._assertPaused("resume");
 
     
@@ -554,7 +558,8 @@ ThreadClient.prototype = {
     this._state = "resuming";
 
     let self = this;
-    let packet = { to: this._actor, type: DebugProtocolTypes.resume };
+    let packet = { to: this._actor, type: DebugProtocolTypes.resume,
+                   resumeLimit: aLimit };
     this._client.request(packet, function(aResponse) {
       if (aResponse.error) {
         
@@ -564,6 +569,36 @@ ThreadClient.prototype = {
         aOnResponse(aResponse);
       }
     });
+  },
+
+  
+
+
+
+
+
+  stepOver: function TC_stepOver(aOnResponse) {
+    this.resume(aOnResponse, { type: "next" });
+  },
+
+  
+
+
+
+
+
+  stepIn: function TC_stepIn(aOnResponse) {
+    this.resume(aOnResponse, { type: "step" });
+  },
+
+  
+
+
+
+
+
+  stepOut: function TC_stepOut(aOnResponse) {
+    this.resume(aOnResponse, { type: "finish" });
   },
 
   
