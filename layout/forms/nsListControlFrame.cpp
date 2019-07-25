@@ -2586,13 +2586,13 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
     case nsIDOMKeyEvent::DOM_VK_PAGE_UP: {
       AdjustIndexForDisabledOpt(mEndSelectionIndex, newIndex,
                                 (PRInt32)numOptions,
-                                -(mNumDisplayRows-1), -1);
+                                -NS_MAX(1, mNumDisplayRows-1), -1);
       } break;
 
     case nsIDOMKeyEvent::DOM_VK_PAGE_DOWN: {
       AdjustIndexForDisabledOpt(mEndSelectionIndex, newIndex,
                                 (PRInt32)numOptions,
-                                (mNumDisplayRows-1), 1);
+                                NS_MAX(1, mNumDisplayRows-1), 1);
       } break;
 
     case nsIDOMKeyEvent::DOM_VK_HOME: {
