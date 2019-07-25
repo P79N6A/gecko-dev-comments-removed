@@ -297,15 +297,14 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins)
     if (!wrapper)
         return false;
 
-#if defined(JS_CPU_ARM)
-    
-    
-    
-    uint32 argumentPadding = (fun.explicitArgs % (StackAlignment / sizeof(void *))) * sizeof(void *);
-    masm.reserveStack(argumentPadding);
-#else
     uint32 argumentPadding = 0;
-#endif
+    if (StackKeptAligned) {
+        
+        
+        
+        uint32 argumentPadding = (fun.explicitStackSlots() * sizeof(void *)) % StackAlignment;
+        masm.reserveStack(argumentPadding);
+    }
 
     
     
@@ -315,18 +314,12 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins)
     if (!createSafepoint(ins))
         return false;
 
-#if defined(JS_CPU_ARM)
     
     
-    
-    
-    int framePop = (sizeof(IonExitFrameLayout) - sizeof(void*)) / sizeof(void*);
-#else
-    int framePop = 0;
-#endif
+    int framePop = sizeof(IonExitFrameLayout) - sizeof(void*);
 
     
-    masm.implicitPop(fun.explicitStackSlots() + argumentPadding / sizeof(void *) + framePop);
+    masm.implicitPop(fun.explicitStackSlots() * sizeof(void *) + argumentPadding + framePop);
 
     
     

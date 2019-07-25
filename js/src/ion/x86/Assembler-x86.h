@@ -72,6 +72,11 @@ static const Register ArgumentsRectifierReg = { JSC::X86Registers::esi };
 
 static const Register OsrFrameReg = { JSC::X86Registers::edx };
 
+
+
+static const uint32 StackAlignment = 16;
+static const bool StackKeptAligned = false;
+
 struct ImmTag : public Imm32
 {
     ImmTag(JSValueTag mask)

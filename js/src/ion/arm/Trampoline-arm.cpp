@@ -563,7 +563,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     Register argsBase = InvalidReg;
-    uint32 argumentPadding = (f.explicitArgs % (StackAlignment / sizeof(void *))) * sizeof(void *);
+    uint32 argumentPadding = (f.explicitStackSlots() * sizeof(void *)) % StackAlignment;
     if (f.explicitArgs) {
         argsBase = regs.takeAny();
         masm.ma_add(sp, Imm32(sizeof(IonExitFrameLayout) + argumentPadding), argsBase);

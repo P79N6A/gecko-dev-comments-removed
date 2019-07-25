@@ -113,6 +113,7 @@ static const FloatRegister d15 = {FloatRegisters::d15};
 
 
 static const uint32 StackAlignment = 8;
+static const bool StackKeptAligned = true;
 
 class Instruction;
 class InstBranchImm;

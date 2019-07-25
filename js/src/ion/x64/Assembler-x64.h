@@ -113,6 +113,11 @@ static const Register OsrFrameReg = r10;
 static const Register OsrFrameReg = ArgReg5;
 #endif
 
+
+
+static const uint32 StackAlignment = 16;
+static const bool StackKeptAligned = false;
+
 enum Scale {
     TimesOne,
     TimesTwo,
