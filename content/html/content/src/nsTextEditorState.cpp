@@ -84,6 +84,10 @@ public:
   }
 
   NS_IMETHOD Run() {
+    if (!mTextEditorState) {
+      return NS_OK;
+    }
+
     if (mFrame) {
       
       
@@ -105,6 +109,7 @@ public:
   
   void Revoke() {
     mFrame = nsnull;
+    mTextEditorState = nsnull;
   }
 
 private:
