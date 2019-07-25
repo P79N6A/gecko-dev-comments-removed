@@ -116,7 +116,7 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
 
         
         argc = (intN) info->GetParamCount();
-        if (argc && info->GetParam((uint8)(argc-1)).IsRetval())
+        if (argc && info->GetParam((uint8_t)(argc-1)).IsRetval())
             argc-- ;
 
         callback = XPC_WN_CallMethod;
