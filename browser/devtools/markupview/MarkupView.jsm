@@ -317,6 +317,11 @@ MarkupView.prototype = {
   {
     for (let mutation of aMutations) {
       let container = this._containers.get(mutation.target);
+      if (!container) {
+        
+        
+        continue;
+      }
       if (mutation.type === "attributes" || mutation.type === "characterData") {
         container.update();
       } else if (mutation.type === "childList") {
@@ -717,6 +722,7 @@ function ElementEditor(aContainer, aNode)
   this.doc = aContainer.doc;
   this.undo = aContainer.undo;
   this.template = aContainer.markup.template.bind(aContainer.markup);
+  this.container = aContainer;
   this.node = aNode;
 
   this.attrs = [];
@@ -962,7 +968,14 @@ ElementEditor.prototype = {
     
     
     
-    let newElt = nodeDocument(this.node).createElement(aVal);
+    try {
+      var newElt = nodeDocument(this.node).createElement(aVal);
+    } catch(x) {
+      
+      
+      return;
+    }
+
     let attrs = this.node.attributes;
 
     for (let i = 0 ; i < attrs.length; i++) {
@@ -977,11 +990,27 @@ ElementEditor.prototype = {
       aOld.parentNode.removeChild(aOld);
     }
 
+    let markup = this.container.markup;
+
     
     this.undo.do(function() {
       swapNodes(this.node, newElt);
+
+      
+      
+      let newContainer = markup.importNode(newElt, this.container.expanded);
+      newContainer.expanded = this.container.expanded;
+      if (this.container.selected) {
+        markup.navigate(newContainer);
+      }
     }.bind(this), function() {
       swapNodes(newElt, this.node);
+
+      let newContainer = markup._containers.get(newElt);
+      this.container.expanded = newContainer.expanded;
+      if (newContainer.selected) {
+        markup.navigate(this.container);
+      }
     }.bind(this));
   },
 }
