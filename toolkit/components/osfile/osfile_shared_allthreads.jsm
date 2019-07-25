@@ -346,6 +346,14 @@
        new Type("jschar",
                 ctypes.jschar);
 
+      
+
+
+     Types.cstring = Types.char.in_ptr.withName("[in] C string");
+     Types.wstring = Types.jschar.in_ptr.withName("[in] wide string");
+     Types.out_cstring = Types.char.out_ptr.withName("[out] C string");
+     Types.out_wstring = Types.jschar.out_ptr.withName("[out] wide string");
+
      
 
 
@@ -464,6 +472,13 @@
      Types.ssize_t =
        new IntType("ssize_t", ctypes.ssize_t, true);
 
+     
+
+
+     Types.uencoder =
+       new Type("uencoder", ctypes.StructType("uencoder"));
+     Types.udecoder =
+       new Type("udecoder", ctypes.StructType("udecoder"));
 
      
 
@@ -672,6 +687,75 @@
      };
      exports.OS.Shared.declareFFI = declareFFI;
 
+
+     
+
+
+
+     let libxul = ctypes.open(OS.Constants.Path.libxul);
+     exports.OS.Shared.libxul = libxul;
+
+     exports.OS.Shared.Utils = {};
+
+     let Strings = exports.OS.Shared.Utils.Strings = {};
+     let Pointers = exports.OS.Shared.Utils.Pointers = {};
+
+     
+
+
+
+
+
+
+     Strings.importWString = function importWString(wstring) {
+       return wstring.readString();
+     };
+
+
+     let NS_Free = libxul.declare("osfile_ns_free", ctypes.default_abi,
+        Types.void_t.implementation,
+        Types.voidptr_t.implementation);
+
+     let wstrdup = declareFFI(libxul, "osfile_wstrdup", ctypes.default_abi,
+        Types.out_wstring.releaseWith(NS_Free),
+        Types.wstring);
+
+
+      
+
+
+
+
+
+
+
+      Strings.exportWString = function exportWString(string) {
+        return wstrdup(string);
+      };
+
+
+
+     Strings.encodeAll = declareFFI(libxul, "osfile_EncodeAll",
+        ctypes.default_abi,
+              Types.void_t.out_ptr.releaseWith(NS_Free),
+            Types.cstring,
+              Types.wstring,
+               Types.uint32_t.out_ptr);
+
+     let _decodeAll = declareFFI(libxul, "osfile_DecodeAll",
+        ctypes.default_abi,
+              Types.out_wstring.releaseWith(NS_Free),
+            Types.cstring,
+              Types.void_t.in_ptr,
+               Types.uint32_t);
+
+     Strings.decodeAll = function decodeAll(encoding, source, bytes) {
+       let decoded = _decodeAll(encoding, source, bytes);
+       if (!decoded) {
+         return null;
+       }
+       return Strings.importWString(decoded);
+     };
 
      
 
