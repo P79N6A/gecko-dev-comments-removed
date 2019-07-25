@@ -101,6 +101,21 @@ function reloadButton()
 
 
 
+function zoomDocument(aDocument, aZoom)
+{
+  var docShell = aDocument.defaultView.
+    QueryInterface(Components.interfaces.nsIInterfaceRequestor).
+    getInterface(Components.interfaces.nsIWebNavigation).
+    QueryInterface(Components.interfaces.nsIDocShell);
+  var docViewer = docShell.contentViewer.
+    QueryInterface(Components.interfaces.nsIMarkupDocumentViewer);
+
+  docViewer.fullZoom = aZoom;
+}
+
+
+
+
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 var gBrowserContext =

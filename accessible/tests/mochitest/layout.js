@@ -26,6 +26,29 @@ function testChildAtPoint(aIdentifier, aX, aY, aFindDeepestChild,
 
 
 
+function hitTest(aContainerID, aChildID, aGrandChildID)
+{
+  var container = getAccessible(aContainerID);
+  var child = getAccessible(aChildID);
+  var grandChild = getAccessible(aGrandChildID);
+
+  var [x, y] = getBoundsForDOMElm(child);
+
+  var actualChild = container.getChildAtPoint(x + 1, y + 1);
+  is(actualChild, child,
+     "Wrong child, expected: " + prettyName(child) +
+     ", got: " + prettyName(actualChild));
+
+  var actualGrandChild = container.getDeepestChildAtPoint(x + 1, y + 1);
+  is(actualGrandChild, grandChild,
+     "Wrong deepest child, expected: " + prettyName(grandChild) +
+     ", got: " + prettyName(actualGrandChild));
+}
+
+
+
+
+
 
 
 
