@@ -355,10 +355,55 @@ window.Range.prototype = {
   contains: function(value) {
     return Utils.isNumber(value) ?
       value >= this.min && value <= this.max :
-      Utils.isRange(value) ? 
+      Utils.isRange(value) ?
         ( value.min <= this.max && this.min <= value.max ) :
         false;
   },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  proportion: function(value, smooth) {
+    if (value <= this.min)
+      return 0;
+    if (this.max <= value)
+      return 1;
+
+    var proportion = (value - this.min) / this.extent;
+
+    if (smooth) {
+      
+      
+      
+      
+      function tanh(x){
+        var e = Math.exp(x);
+        return (e - 1/e) / (e + 1/e);
+      }
+      return .5 - .5 * tanh(2 - 4 * proportion);
+    }
+
+    return proportion;
+  },
+
+  
+  
+  
+  
+  
+  
+  scale: function(value) {
+    if (value > 1)
+      value = 1;
+    if (value < 0)
+      value = 0;
+    return this.min + this.extent * value;
+  }
 };
 
 
@@ -600,7 +645,7 @@ var Utils = {
   isNumber: function(n) {
     return (typeof(n) == 'number' && !isNaN(n));
   },
-  
+
   
   
   
@@ -611,7 +656,7 @@ var Utils = {
         && this.isNumber(r.width)
         && this.isNumber(r.height));
   },
-  
+
   
   
   
@@ -645,10 +690,5 @@ var Utils = {
 };
 
 window.Utils = Utils;
-
-window.Math.tanh = function tanh(x){
-  var e = Math.exp(x);
-  return (e - 1/e) / (e + 1/e);
-}
 
 })();
