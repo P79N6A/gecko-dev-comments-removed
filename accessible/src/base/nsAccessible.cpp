@@ -1536,11 +1536,16 @@ nsAccessible::State()
   
   ApplyARIAState(&state);
 
-  if (mRoleMapEntry && mRoleMapEntry->role == nsIAccessibleRole::ROLE_PAGETAB) {
+  if (mRoleMapEntry && mRoleMapEntry->role == nsIAccessibleRole::ROLE_PAGETAB &&
+      !(state & states::SELECTED) &&
+      !mContent->AttrValueIs(kNameSpaceID_None,
+                             nsAccessibilityAtoms::aria_selected,
+                             nsAccessibilityAtoms::_false, eCaseMatters)) {
+    
+    
     if (state & states::FOCUSED) {
       state |= states::SELECTED;
     } else {
-      
       
       nsCOMPtr<nsIAccessible> tabPanel = nsRelUtils::
         GetRelatedAccessible(this, nsIAccessibleRelation::RELATION_LABEL_FOR);
