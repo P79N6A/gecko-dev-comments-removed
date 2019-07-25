@@ -67,12 +67,7 @@ struct XYZNumber {
 
 struct curveType {
 	uint32_t count;
-
-#if defined (__IBMC__) || defined (__IBMCPP__)
 	uInt16Number data[];
-#else
-	uInt16Number data[0];
-#endif
 };
 
 struct lutType {
