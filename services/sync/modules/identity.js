@@ -85,7 +85,7 @@ Identity.prototype = {
     
     if (this._password == null)
       for each (let login in this._logins)
-        if (login.username == this.username)
+        if (login.username.toLowerCase() == this.username)
           this._password = login.password;
     return this._password;
   },
