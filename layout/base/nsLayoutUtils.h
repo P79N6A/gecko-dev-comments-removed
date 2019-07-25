@@ -1571,6 +1571,22 @@ public:
 
 
 
+  static PRUint32 FontSizeInflationEmPerLine() {
+    return sFontSizeInflationEmPerLine;
+  }
+
+  
+
+
+
+  static PRUint32 FontSizeInflationMinTwips() {
+    return sFontSizeInflationMinTwips;
+  }
+
+  
+
+
+
   static PRUint32 FontSizeInflationLineThreshold() {
     return sFontSizeInflationLineThreshold;
   }
@@ -1655,6 +1671,8 @@ public:
 #endif
 
 private:
+  static PRUint32 sFontSizeInflationEmPerLine;
+  static PRUint32 sFontSizeInflationMinTwips;
   static PRUint32 sFontSizeInflationLineThreshold;
 };
 
