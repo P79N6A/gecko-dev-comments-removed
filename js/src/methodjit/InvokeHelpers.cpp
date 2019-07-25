@@ -280,8 +280,14 @@ stubs::FixupArity(VMFrame &f, uint32 nactual)
     return newfp;
 }
 
+struct ResetStubRejoin {
+    VMFrame &f;
+    ResetStubRejoin(VMFrame &f) : f(f) {}
+    ~ResetStubRejoin() { f.stubRejoin = 0; }
+};
+
 void * JS_FASTCALL
-stubs::CompileFunction(VMFrame &f, uint32 nactual)
+stubs::CompileFunction(VMFrame &f, uint32 argc)
 {
     
 
@@ -289,73 +295,12 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
 
 
     JS_ASSERT_IF(f.cx->typeInferenceEnabled(), f.stubRejoin);
+    ResetStubRejoin reset(f);
 
-    
+    bool isConstructing = f.fp()->isConstructing();
+    f.regs.popPartialFrame((Value *)f.fp());
 
-
-
-    JSContext *cx = f.cx;
-    StackFrame *fp = f.fp();
-
-    
-
-
-
-    JSObject &callee = fp->formalArgsEnd()[-(int(nactual) + 2)].toObject();
-    JSFunction *fun = callee.getFunctionPrivate();
-    JSScript *script = fun->script();
-
-    
-
-
-
-    fp->initCallFrameEarlyPrologue(fun, nactual);
-
-    if (nactual != fp->numFormalArgs()) {
-        fp = (StackFrame *)FixupArity(f, nactual);
-        if (!fp) {
-            f.stubRejoin = 0;
-            return NULL;
-        }
-    }
-
-    CallArgs args = CallArgsFromArgv(fp->numFormalArgs(), fp->formalArgs());
-    cx->typeMonitorCall(args, fp->isConstructing());
-
-    
-    fp->initCallFrameLatePrologue();
-
-    
-    f.regs.prepareToRun(fp, script);
-
-    if (fun->isHeavyweight() && !js::CreateFunCallObject(cx, fp)) {
-        f.stubRejoin = 0;
-        THROWV(NULL);
-    }
-
-    CompileStatus status = CanMethodJIT(cx, script, fp, CompileRequest_JIT);
-    if (status == Compile_Okay) {
-        void *entry = script->getJIT(fp->isConstructing())->invokeEntry;
-
-        
-        f.regs.popFrame((Value *) f.regs.fp());
-        f.stubRejoin = 0;
-        return entry;
-    }
-
-    
-    fp->prev()->pc(cx, fp);
-
-    
-    JSBool ok = Interpret(cx, fp);
-    InlineReturn(f);
-
-    f.stubRejoin = 0;
-
-    if (!ok)
-        THROWV(NULL);
-
-    return NULL;
+    return isConstructing ? UncachedNew(f, argc) : UncachedCall(f, argc);
 }
 
 static inline bool
