@@ -758,6 +758,19 @@ public:
                             nsPresContext* aPresContext,
                             PRBool& aCanStoreInRuleTree);
 
+  struct ComputedCalc {
+    nscoord mLength;
+    float mPercent;
+
+    ComputedCalc(nscoord aLength, float aPercent)
+      : mLength(aLength), mPercent(aPercent) {}
+  };
+  static ComputedCalc
+  SpecifiedCalcToComputedCalc(const nsCSSValue& aValue,
+                              nsStyleContext* aStyleContext,
+                              nsPresContext* aPresContext,
+                              PRBool& aCanStoreInRuleTree);
+
   
   
   
@@ -767,11 +780,7 @@ public:
   
   
   static nscoord ComputeCoordPercentCalc(const nsStyleCoord& aCoord,
-                                         nscoord aPercentageBasis)
-  {
-    
-    return ComputeComputedCalc(aCoord, aPercentageBasis);
-  }
+                                         nscoord aPercentageBasis);
 
   
   

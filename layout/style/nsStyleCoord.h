@@ -60,17 +60,11 @@ enum nsStyleUnit {
   eStyleUnit_Coord        = 20,     
   eStyleUnit_Integer      = 30,     
   eStyleUnit_Enumerated   = 32,     
+
   
   
-  
-  
-  eStyleUnit_Calc         = 39,     
+  eStyleUnit_Calc         = 40      
                                     
-  eStyleUnit_Calc_Plus    = 40,     
-  eStyleUnit_Calc_Minus   = 41,     
-  eStyleUnit_Calc_Times_L = 42,     
-  eStyleUnit_Calc_Times_R = 43,     
-  eStyleUnit_Calc_Divided = 44      
 };
 
 typedef union {
@@ -94,8 +88,19 @@ typedef union {
 
 class nsStyleCoord {
 public:
-  struct Array;
-  friend struct Array;
+  struct Calc {
+    
+    nscoord mLength;
+    float mPercent;
+    PRPackedBool mHasPercent; 
+
+    bool operator==(const Calc& aOther) const {
+      return mLength == aOther.mLength &&
+             mPercent == aOther.mPercent &&
+             mHasPercent == aOther.mHasPercent;
+    }
+    bool operator!=(const Calc& aOther) const { return !(*this == aOther); }
+  };
 
   nsStyleCoord(nsStyleUnit aUnit = eStyleUnit_Null);
   enum CoordConstructorType { CoordConstructor };
@@ -119,7 +124,11 @@ public:
   }
 
   PRBool IsCalcUnit() const {
-    return eStyleUnit_Calc <= mUnit && mUnit <= eStyleUnit_Calc_Divided;
+    return eStyleUnit_Calc == mUnit;
+  }
+
+  PRBool IsPointerValue() const {
+    return IsCalcUnit();
   }
 
   PRBool IsCoordPercentCalcUnit() const {
@@ -130,10 +139,8 @@ public:
 
   
   
-  PRBool CalcHasPercent() const;
-
-  PRBool IsArrayValue() const {
-    return IsCalcUnit();
+  PRBool CalcHasPercent() const {
+    return GetCalcValue()->mHasPercent;
   }
 
   PRBool HasPercent() const {
@@ -152,7 +159,7 @@ public:
   float       GetFactorValue() const;
   float       GetAngleValue() const;
   double      GetAngleValueInRadians() const;
-  Array*      GetArrayValue() const;
+  Calc*       GetCalcValue() const;
   void        GetUnionValue(nsStyleUnion& aValue) const;
 
   void  Reset();  
@@ -164,63 +171,11 @@ public:
   void  SetNormalValue();
   void  SetAutoValue();
   void  SetNoneValue();
-  void  SetArrayValue(Array* aValue, nsStyleUnit aUnit);
+  void  SetCalcValue(Calc* aValue);
 
 public: 
   nsStyleUnit   mUnit;
   nsStyleUnion  mValue;
-};
-
-
-
-struct nsStyleCoord::Array {
-  static Array* Create(nsStyleContext *aAllocationContext,
-                       PRBool& aCanStoreInRuleTree,
-                       size_t aCount);
-
-  size_t Count() const { return mCount; }
-
-  nsStyleCoord& operator[](size_t aIndex) {
-    NS_ABORT_IF_FALSE(aIndex < mCount, "out of range");
-    return mArray[aIndex];
-  }
-
-  const nsStyleCoord& operator[](size_t aIndex) const {
-    NS_ABORT_IF_FALSE(aIndex < mCount, "out of range");
-    return mArray[aIndex];
-  }
-
-  
-  nsStyleCoord& Item(size_t aIndex) { return (*this)[aIndex]; }
-  const nsStyleCoord& Item(size_t aIndex) const { return (*this)[aIndex]; }
-
-  bool operator==(const Array& aOther) const;
-
-  bool operator!=(const Array& aOther) const {
-    return !(*this == aOther);
-  }
-
-private:
-  inline void* operator new(size_t aSelfSize,
-                            nsStyleContext *aAllocationContext,
-                            size_t aItemCount) CPP_THROW_NEW;
-
-  Array(size_t aCount)
-    : mCount(aCount)
-  {
-    
-    for (size_t i = 1; i < aCount; ++i) {
-      new (mArray + i) nsStyleCoord();
-    }
-  }
-
-  size_t mCount;
-  nsStyleCoord mArray[1]; 
-
-  
-  Array(const Array& aOther);
-  Array& operator=(const Array& aOther);
-  ~Array();
 };
 
 
@@ -308,7 +263,7 @@ inline nsStyleCoord::nsStyleCoord(const nsStyleCoord& aCopy)
   if ((eStyleUnit_Percent <= mUnit) && (mUnit < eStyleUnit_Coord)) {
     mValue.mFloat = aCopy.mValue.mFloat;
   }
-  else if (IsArrayValue()) {
+  else if (IsPointerValue()) {
     mValue.mPointer = aCopy.mValue.mPointer;
   }
   else {
@@ -375,11 +330,11 @@ inline float nsStyleCoord::GetAngleValue() const
   return 0.0f;
 }
 
-inline nsStyleCoord::Array* nsStyleCoord::GetArrayValue() const
+inline nsStyleCoord::Calc* nsStyleCoord::GetCalcValue() const
 {
-  NS_ASSERTION(IsArrayValue(), "not a pointer value");
-  if (IsArrayValue()) {
-    return static_cast<Array*>(mValue.mPointer);
+  NS_ASSERTION(IsCalcUnit(), "not a pointer value");
+  if (IsCalcUnit()) {
+    return static_cast<Calc*>(mValue.mPointer);
   }
   return nsnull;
 }
