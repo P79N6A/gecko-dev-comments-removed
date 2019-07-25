@@ -2749,6 +2749,13 @@ JS_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key,
 
 
 extern JS_PUBLIC_API(JSObject *)
+JS_GetFunctionPrototype(JSContext *cx, JSObject *forObj);
+
+
+
+
+
+extern JS_PUBLIC_API(JSObject *)
 JS_GetObjectPrototype(JSContext *cx, JSObject *forObj);
 
 extern JS_PUBLIC_API(JSObject *)
