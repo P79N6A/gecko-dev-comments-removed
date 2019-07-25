@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.*;
 import android.os.*;
 import android.app.*;
 import android.text.*;
+import android.text.style.*;
 import android.view.*;
 import android.view.inputmethod.*;
 import android.content.*;
@@ -57,118 +58,423 @@ public class GeckoInputConnection
     public GeckoInputConnection (View targetView) {
         super(targetView, true);
         mQueryResult = new SynchronousQueue<String>();
-        mExtractedText.partialStartOffset = -1;
-        mExtractedText.partialEndOffset = -1;
-    }
-
-    @Override
-    public Editable getEditable() {
-        Log.i("GeckoAppJava", "getEditable");
-        return null;
     }
 
     @Override
     public boolean beginBatchEdit() {
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(true, null));
+        Log.d("GeckoAppJava", "IME: beginBatchEdit");
+
         return true;
     }
+
     @Override
     public boolean commitCompletion(CompletionInfo text) {
-        Log.i("GeckoAppJava", "Stub: commitCompletion");
-        return true;
+        Log.d("GeckoAppJava", "IME: commitCompletion");
+
+        return commitText(text.getText(), 1);
     }
+
     @Override
     public boolean commitText(CharSequence text, int newCursorPosition) {
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(true, text.toString()));
-        endBatchEdit();
+        
+
+        setComposingText(text, newCursorPosition);
+        finishComposingText();
+
         return true;
     }
+
     @Override
     public boolean deleteSurroundingText(int leftLength, int rightLength) {
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(leftLength, rightLength));
-        updateExtractedText();
+        Log.d("GeckoAppJava", "IME: deleteSurroundingText");
+
+        
+
+
+
+        if (mComposing) {
+            
+            GeckoAppShell.sendEventToGecko(
+                new GeckoEvent(0, 0, 0, 0, 0, 0, null));
+            GeckoAppShell.sendEventToGecko(
+                new GeckoEvent(GeckoEvent.IME_COMPOSITION_END, 0, 0));
+        }
+
+        
+        int delStart, delLen;
+        GeckoAppShell.sendEventToGecko(
+            new GeckoEvent(GeckoEvent.IME_GET_SELECTION, 0, 0));
+        try {
+            mQueryResult.take();
+        } catch (InterruptedException e) {
+            Log.e("GeckoAppJava", "IME: deleteSurroundingText interrupted");
+            return false;
+        }
+        delStart = mSelectionStart > leftLength ?
+                    mSelectionStart - leftLength : 0;
+        delLen = mSelectionStart + rightLength - delStart;
+        GeckoAppShell.sendEventToGecko(
+            new GeckoEvent(GeckoEvent.IME_SET_SELECTION, delStart, delLen));
+
+        
+        if (mComposing) {
+            GeckoAppShell.sendEventToGecko(
+                new GeckoEvent(GeckoEvent.IME_COMPOSITION_BEGIN, 0, 0));
+            if (mComposingText.length() > 0) {
+                
+                GeckoAppShell.sendEventToGecko(
+                    new GeckoEvent(0, mComposingText.length(),
+                                   GeckoEvent.IME_RANGE_RAWINPUT,
+                                   GeckoEvent.IME_RANGE_UNDERLINE, 0, 0,
+                                   mComposingText.toString()));
+            }
+        } else {
+            GeckoAppShell.sendEventToGecko(
+                new GeckoEvent(GeckoEvent.IME_DELETE_TEXT, 0, 0));
+        }
         return true;
     }
+
     @Override
     public boolean endBatchEdit() {
-        updateExtractedText();
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(false, null));
+        Log.d("GeckoAppJava", "IME: endBatchEdit");
+
         return true;
     }
+
     @Override
     public boolean finishComposingText() {
-        endBatchEdit();
+        
+
+        if (mComposing) {
+            
+            GeckoAppShell.sendEventToGecko(
+                new GeckoEvent(0, mComposingText.length(),
+                               GeckoEvent.IME_RANGE_RAWINPUT, 0, 0, 0,
+                               mComposingText));
+            GeckoAppShell.sendEventToGecko(
+                new GeckoEvent(GeckoEvent.IME_COMPOSITION_END, 0, 0));
+            mComposing = false;
+            mComposingText = null;
+
+            
+            GeckoAppShell.sendEventToGecko(
+                new GeckoEvent(GeckoEvent.IME_SET_SELECTION,
+                               mCompositionStart + mCompositionSelStart, 0));
+        }
         return true;
     }
+
     @Override
     public int getCursorCapsMode(int reqModes) {
+        
+
         return 0;
     }
+
+    @Override
+    public Editable getEditable() {
+        Log.w("GeckoAppJava", "IME: getEditable called from " +
+            Thread.currentThread().getStackTrace()[0].toString());
+
+        return null;
+    }
+
     @Override
     public ExtractedText getExtractedText(ExtractedTextRequest req, int flags) {
-        mExtractToken = req.token;
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(false, 0));
+        if (req == null)
+            return null;
+
+        
+
+        ExtractedText extract = new ExtractedText();
+        extract.flags = 0;
+        extract.partialStartOffset = -1;
+        extract.partialEndOffset = -1;
+
+        GeckoAppShell.sendEventToGecko(
+            new GeckoEvent(GeckoEvent.IME_GET_SELECTION, 0, 0));
         try {
-            mExtractedText.text = mQueryResult.take();
-            mExtractedText.selectionStart = mSelectionStart;
-            mExtractedText.selectionEnd = mSelectionEnd;
+            mQueryResult.take();
         } catch (InterruptedException e) {
-            Log.i("GeckoAppJava", "getExtractedText: Interrupted!");
+            Log.e("GeckoAppJava", "IME: getExtractedText interrupted");
+            return null;
         }
-        return mExtractedText;
+        extract.selectionStart = mSelectionStart;
+        extract.selectionEnd = mSelectionStart + mSelectionLength;
+
+        GeckoAppShell.sendEventToGecko(
+            new GeckoEvent(GeckoEvent.IME_GET_TEXT, 0, Integer.MAX_VALUE));
+        try {
+            extract.startOffset = 0;
+            extract.text = mQueryResult.take();
+
+            if ((flags & GET_EXTRACTED_TEXT_MONITOR) != 0)
+                mUpdateRequest = req;
+            return extract;
+
+        } catch (InterruptedException e) {
+            Log.e("GeckoAppJava", "IME: getExtractedText interrupted");
+            return null;
+        }
     }
+
     @Override
     public CharSequence getTextAfterCursor(int length, int flags) {
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(true, length));
+        
+
+        GeckoAppShell.sendEventToGecko(
+            new GeckoEvent(GeckoEvent.IME_GET_SELECTION, 0, 0));
         try {
-            String result = mQueryResult.take();
-            return result;
+            mQueryResult.take();
         } catch (InterruptedException e) {
-            Log.i("GeckoAppJava", "getTextAfterCursor: Interrupted!");
+            Log.e("GeckoAppJava", "IME: getTextBefore/AfterCursor interrupted");
+            return null;
         }
-        return null;
+
+        
+
+        int textStart = length > 0 ? mSelectionStart :
+            mSelectionStart + length > 0 ? mSelectionStart + length : 0;
+        int textLength = length > 0 ? length:
+            textStart == 0 ? mSelectionStart : length;
+
+        GeckoAppShell.sendEventToGecko(
+            new GeckoEvent(GeckoEvent.IME_GET_TEXT, textStart, textLength));
+        try {
+            return mQueryResult.take();
+        } catch (InterruptedException e) {
+            Log.e("GeckoAppJava", "IME: getTextBefore/AfterCursor: Interrupted!");
+            return null;
+        }
     }
+
     @Override
     public CharSequence getTextBeforeCursor(int length, int flags) {
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(false, length));
-        try {
-            String result = mQueryResult.take();
-            return result;
-        } catch (InterruptedException e) {
-            Log.i("GeckoAppJava", "getTextBeforeCursor: Interrupted!");
-        }
-        return null;
+        
+
+        return getTextAfterCursor(-length, flags);
     }
+
     @Override
     public boolean setComposingText(CharSequence text, int newCursorPosition) {
-        beginBatchEdit();
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(true, text.toString()));
-        return true;
-    }
-    @Override
-    public boolean setSelection(int start, int end) {
-        Log.i("GeckoAppJava", "Stub: setSelection " + start + " " + end);
-        return true;
-    }
+        
 
-    private void updateExtractedText() {
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(false, 0));
-        try {
-            mExtractedText.text = mQueryResult.take();
-            mExtractedText.selectionStart = mSelectionStart;
-            mExtractedText.selectionEnd = mSelectionEnd;
-        } catch (InterruptedException e) {
-            Log.i("GeckoAppJava", "getExtractedText: Interrupted!");
+        
+        mComposingText = text != null ? text.toString() : "";
+
+        if (!mComposing) {
+            
+            GeckoAppShell.sendEventToGecko(
+                new GeckoEvent(GeckoEvent.IME_GET_SELECTION, 0, 0));
+            try {
+                mQueryResult.take();
+            } catch (InterruptedException e) {
+                Log.e("GeckoAppJava", "IME: setComposingText interrupted");
+                return false;
+            }
+            
+            GeckoAppShell.sendEventToGecko(
+                new GeckoEvent(GeckoEvent.IME_COMPOSITION_BEGIN, 0, 0));
+            mComposing = true;
+            mCompositionStart = mSelectionLength >= 0 ?
+                mSelectionStart : mSelectionStart + mSelectionLength;
         }
 
-        InputMethodManager imm = (InputMethodManager)
-            GeckoApp.surfaceView.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.updateExtractedText(GeckoApp.surfaceView, mExtractToken, mExtractedText);
+        
+        
+        mCompositionSelStart = newCursorPosition > 0 ? mComposingText.length() : 0;
+        mCompositionSelLen = 0;
+
+        
+        if (text != null && text instanceof Spanned) {
+            Spanned span = (Spanned) text;
+            int spanStart = 0, spanEnd = 0;
+            boolean pastSelStart = false, pastSelEnd = false;
+
+            do {
+                int rangeType = GeckoEvent.IME_RANGE_CONVERTEDTEXT;
+                int rangeStyles = 0, rangeForeColor = 0, rangeBackColor = 0;
+
+                
+                spanEnd = span.nextSpanTransition(spanStart + 1, text.length(),
+                    CharacterStyle.class);
+
+                
+                if (mCompositionSelLen >= 0) {
+                    if (!pastSelStart && spanEnd >= mCompositionSelStart) {
+                        spanEnd = mCompositionSelStart;
+                        pastSelStart = true;
+                    } else if (!pastSelEnd && spanEnd >=
+                            mCompositionSelStart + mCompositionSelLen) {
+                        spanEnd = mCompositionSelStart + mCompositionSelLen;
+                        pastSelEnd = true;
+                        rangeType = GeckoEvent.IME_RANGE_SELECTEDRAWTEXT;
+                    }
+                } else {
+                    if (!pastSelEnd && spanEnd >=
+                            mCompositionSelStart + mCompositionSelLen) {
+                        spanEnd = mCompositionSelStart + mCompositionSelLen;
+                        pastSelEnd = true;
+                    } else if (!pastSelStart &&
+                            spanEnd >= mCompositionSelStart) {
+                        spanEnd = mCompositionSelStart;
+                        pastSelStart = true;
+                        rangeType = GeckoEvent.IME_RANGE_SELECTEDRAWTEXT;
+                    }
+                }
+                
+                if (spanEnd <= spanStart)
+                    continue;
+
+                
+                CharacterStyle styles[] = span.getSpans(
+                    spanStart, spanEnd, CharacterStyle.class);
+
+                for (CharacterStyle style : styles) {
+                    if (style instanceof UnderlineSpan) {
+                        
+                        rangeStyles |= GeckoEvent.IME_RANGE_UNDERLINE;
+
+                    } else if (style instanceof ForegroundColorSpan) {
+                        
+                        rangeStyles |= GeckoEvent.IME_RANGE_FORECOLOR;
+                        rangeForeColor =
+                            ((ForegroundColorSpan)style).getForegroundColor();
+
+                    } else if (style instanceof BackgroundColorSpan) {
+                        
+                        rangeStyles |= GeckoEvent.IME_RANGE_BACKCOLOR;
+                        rangeBackColor =
+                            ((BackgroundColorSpan)style).getBackgroundColor();
+                    }
+                }
+
+                
+                
+                GeckoAppShell.sendEventToGecko(
+                    new GeckoEvent(spanStart, spanEnd - spanStart,
+                                   rangeType, rangeStyles,
+                                   rangeForeColor, rangeBackColor));
+
+                spanStart = spanEnd;
+            } while (spanStart < text.length());
+        } else {
+            GeckoAppShell.sendEventToGecko(
+                new GeckoEvent(0, text == null ? 0 : text.length(),
+                               GeckoEvent.IME_RANGE_RAWINPUT,
+                               GeckoEvent.IME_RANGE_UNDERLINE, 0, 0));
+        }
+
+        
+        GeckoAppShell.sendEventToGecko(
+            new GeckoEvent(mCompositionSelStart + mCompositionSelLen, 0,
+                           GeckoEvent.IME_RANGE_CARETPOSITION, 0, 0, 0,
+                           mComposingText));
+        return true;
     }
 
-    int mExtractToken;
-    final ExtractedText mExtractedText = new ExtractedText();
+    @Override
+    public boolean setSelection(int start, int end) {
+        
 
-    int mSelectionStart, mSelectionEnd;
+        if (mComposing) {
+            
+            start -= mCompositionStart;
+            end -= mCompositionStart;
+
+            if (start < 0)
+                start = 0;
+            else if (start > mComposingText.length())
+                start = mComposingText.length();
+
+            if (end < 0)
+                end = 0;
+            else if (end > mComposingText.length())
+                end = mComposingText.length();
+
+            mCompositionSelStart = start;
+            mCompositionSelLen = end - start;
+        } else {
+            GeckoAppShell.sendEventToGecko(
+                new GeckoEvent(GeckoEvent.IME_SET_SELECTION,
+                               start, end - start));
+        }
+        return true;
+    }
+
+    public boolean onKeyDel() {
+        
+        
+        
+
+        if (!mComposing)
+            return false;
+
+        if (mComposingText.length() > 0) {
+            mComposingText = mComposingText.substring(0,
+                mComposingText.length() - 1);
+            if (mComposingText.length() > 0)
+                return false;
+        }
+
+        commitText(null, 1);
+        return true;
+    }
+
+    public void notifyTextChange(InputMethodManager imm, String text,
+                                 int start, int oldEnd, int newEnd) {
+        
+
+        if (mUpdateRequest == null)
+            return;
+
+        mUpdateExtract.flags = 0;
+        mUpdateExtract.partialStartOffset = 0;
+        mUpdateExtract.partialEndOffset = oldEnd;
+
+        
+        mUpdateExtract.selectionStart = newEnd;
+        mUpdateExtract.selectionEnd = newEnd;
+
+        mUpdateExtract.text = text;
+        mUpdateExtract.startOffset = 0;
+
+        imm.updateExtractedText(GeckoApp.surfaceView,
+            mUpdateRequest.token, mUpdateExtract);
+    }
+
+    public void notifySelectionChange(InputMethodManager imm,
+                                      int start, int end) {
+        
+
+        if (mComposing)
+            imm.updateSelection(GeckoApp.surfaceView,
+                mCompositionStart + mCompositionSelStart,
+                mCompositionStart + mCompositionSelStart + mCompositionSelLen,
+                mCompositionStart,
+                mCompositionStart + mComposingText.length());
+        else
+            imm.updateSelection(GeckoApp.surfaceView, start, end, -1, -1);
+    }
+
+    
+    boolean mComposing;
+    
+    String mComposingText;
+    
+    int mCompositionStart;
+    
+
+    
+    int mCompositionSelStart;
+    
+    int mCompositionSelLen;
+
+    ExtractedTextRequest mUpdateRequest;
+    final ExtractedText mUpdateExtract = new ExtractedText();
+
+    int mSelectionStart, mSelectionLength;
     SynchronousQueue<String> mQueryResult;
 }
+
