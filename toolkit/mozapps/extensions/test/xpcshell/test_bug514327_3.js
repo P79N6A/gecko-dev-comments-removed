@@ -120,6 +120,7 @@ function run_test() {
   gTestserver.registerDirectory("/data/", do_get_file("data"));
   gTestserver.start(4444);
 
+  startupManager();
 
   
   var blocklistFile = gProfD.clone();
