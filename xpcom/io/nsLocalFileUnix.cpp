@@ -1234,7 +1234,12 @@ nsLocalFile::GetDiskSpaceAvailable(PRInt64 *aDiskSpaceAvailable)
 
 
 
+#ifdef SOLARIS
+    
+    *aDiskSpaceAvailable = (PRInt64)fs_buf.f_frsize * (fs_buf.f_bavail - 1);
+#else
     *aDiskSpaceAvailable = (PRInt64)fs_buf.f_bsize * (fs_buf.f_bavail - 1);
+#endif 
 
 #if defined(USE_LINUX_QUOTACTL)
 
