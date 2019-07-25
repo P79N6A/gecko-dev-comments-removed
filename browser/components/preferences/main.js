@@ -74,6 +74,35 @@ var gMainPane = {
 
 
 
+  syncFromHomePref: function ()
+  {
+    let homePref = document.getElementById("browser.startup.homepage");
+
+    
+    
+    if (homePref.value.toLowerCase() == "about:home")
+      return "";
+
+    
+    
+    
+    if (homePref.value == "")
+      return "about:blank";
+
+    
+    return undefined;
+  },
+
+  syncToHomePref: function (value)
+  {
+    
+    if (value == "")
+      return "about:home";
+
+    
+    return undefined;
+  },
+
   
 
 
