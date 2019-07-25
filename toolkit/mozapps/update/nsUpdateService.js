@@ -769,15 +769,19 @@ function cleanUpUpdatesDir(aBackgroundUpdate) {
           }
         }
         f.moveTo(dir, FILE_LAST_LOG);
-        continue;
+        if (aBackgroundUpdate) {
+          
+          
+          break;
+        } else {
+          continue;
+        }
       }
       catch (e) {
         LOG("cleanUpUpdatesDir - failed to move file " + f.path + " to " +
             dir.path + " and rename it to " + FILE_LAST_LOG);
       }
-    } else if (f.leafName == FILE_UPDATE_STATUS && aBackgroundUpdate) {
-      
-      
+    } else if (aBackgroundUpdate) {
       
       
       
