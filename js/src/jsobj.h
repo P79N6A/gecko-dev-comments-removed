@@ -1370,32 +1370,6 @@ SetProto(JSContext *cx, HandleObject obj, HandleObject proto, bool checkForCycle
 extern JSString *
 obj_toStringHelper(JSContext *cx, JSObject *obj);
 
-extern JSBool
-eval(JSContext *cx, unsigned argc, Value *vp);
-
-
-
-
-
-
-extern bool
-DirectEval(JSContext *cx, const CallArgs &args);
-
-
-
-
-
-extern bool
-IsBuiltinEvalForScope(JSObject *scopeChain, const js::Value &v);
-
-
-extern bool
-IsAnyBuiltinEval(JSFunction *fun);
-
-
-extern JSPrincipals *
-PrincipalsForCompiledCode(const CallReceiver &call, JSContext *cx);
-
 extern JSObject *
 NonNullObject(JSContext *cx, const Value &v);
 
