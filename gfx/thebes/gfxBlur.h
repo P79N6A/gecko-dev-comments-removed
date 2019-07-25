@@ -41,7 +41,8 @@
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
 #include "gfxTypes.h"
-#include "gfxThebesUtils.h"
+#include "gfxUtils.h"
+#include "nsRect.h"
 
 
 
