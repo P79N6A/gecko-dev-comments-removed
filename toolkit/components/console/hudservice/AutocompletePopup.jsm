@@ -223,7 +223,15 @@ AutocompletePopup.prototype = {
     while (this._list.hasChildNodes()) {
       this._list.removeChild(this._list.firstChild);
     }
+
+    
+    
     this._list.width = "";
+    this._list.height = "";
+    this._panel.width = "";
+    this._panel.height = "";
+    this._panel.top = "";
+    this._panel.left = "";
   },
 
   
