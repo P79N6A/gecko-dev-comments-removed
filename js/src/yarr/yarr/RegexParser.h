@@ -39,27 +39,28 @@ enum BuiltInCharacterClassID {
     NewlineClassID
 };
 
+enum ErrorCode {
+    NoError,
+    PatternTooLarge,
+    QuantifierOutOfOrder,
+    QuantifierWithoutAtom,
+    MissingParentheses,
+    ParenthesesUnmatched,
+    ParenthesesTypeInvalid,
+    CharacterClassUnmatched,
+    CharacterClassOutOfOrder,
+    CharacterClassRangeSingleChar,
+    EscapeUnterminated,
+    QuantifierTooLarge,
+    NumberOfErrorCodes
+};
+
 
 template<class Delegate>
 class Parser {
 private:
     template<class FriendDelegate>
     friend int parse(FriendDelegate& delegate, const UString& pattern, unsigned backReferenceLimit);
-
-    enum ErrorCode {
-        NoError,
-        PatternTooLarge,
-        QuantifierOutOfOrder,
-        QuantifierWithoutAtom,
-        MissingParentheses,
-        ParenthesesUnmatched,
-        ParenthesesTypeInvalid,
-        CharacterClassUnmatched,
-        CharacterClassOutOfOrder,
-        EscapeUnterminated,
-        QuantifierTooLarge,
-        NumberOfErrorCodes
-    };
 
     
 
@@ -147,6 +148,15 @@ private:
 
         void atomBuiltInCharacterClass(BuiltInCharacterClassID classID, bool invert)
         {
+            if (m_state == cachedCharacterHyphen) {
+                
+                
+                
+                
+                m_err = CharacterClassRangeSingleChar;
+                m_state = empty;
+                return;
+            }
             flush();
             m_delegate.atomCharacterClassBuiltIn(classID, invert);
         }
