@@ -2436,36 +2436,27 @@ Function(JSContext *cx, uintN argc, Value *vp)
 {
     CallArgs call = CallArgsFromVp(argc, vp);
 
-    JS::Anchor<JSObject *> obj(NewFunction(cx, NULL));
+    
+    GlobalObject *global = call.callee().getGlobal();
+    if (!global->isEvalAllowed(cx)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CSP_BLOCKED_FUNCTION);
+        return false;
+    }
+
+    JS::Anchor<JSObject *> obj(NewFunction(cx, *global));
     if (!obj.get())
         return false;
 
-    JSObject &calleeParent = *call.callee().getParent();
-
     
-
-
-
-
 
 
 
 
 
     JSFunction *fun = js_NewFunction(cx, obj.get(), NULL, 0, JSFUN_LAMBDA | JSFUN_INTERPRETED,
-                                     &calleeParent, cx->runtime->atomState.anonymousAtom);
+                                     global, cx->runtime->atomState.anonymousAtom);
     if (!fun)
         return false;
-
-    
-
-
-
-
-    if (!js_CheckContentSecurityPolicy(cx, &calleeParent)) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CSP_BLOCKED_FUNCTION);
-        return false;
-    }
 
     EmptyShape *emptyCallShape = EmptyShape::getEmptyCallShape(cx);
     if (!emptyCallShape)
