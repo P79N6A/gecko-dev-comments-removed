@@ -1094,9 +1094,12 @@ nsSVGElement::DidModifySVGObservable(nsISVGValue* aObservable,
 
 
 
+
+namespace {
+
 class MappedAttrParser {
 public:
-  MappedAttrParser(mozilla::css::Loader* aLoader,
+  MappedAttrParser(css::Loader* aLoader,
                    nsIURI* aDocURI,
                    already_AddRefed<nsIURI> aBaseURI,
                    nsIPrincipal* aNodePrincipal);
@@ -1122,10 +1125,10 @@ private:
   nsIPrincipal*     mNodePrincipal;
 
   
-  nsCSSDeclaration* mDecl;
+  css::Declaration* mDecl;
 };
 
-MappedAttrParser::MappedAttrParser(mozilla::css::Loader* aLoader,
+MappedAttrParser::MappedAttrParser(css::Loader* aLoader,
                                    nsIURI* aDocURI,
                                    already_AddRefed<nsIURI> aBaseURI,
                                    nsIPrincipal* aNodePrincipal)
@@ -1158,8 +1161,7 @@ MappedAttrParser::ParseMappedAttrValue(nsIAtom* aMappedAttrName,
                                        nsAString& aMappedAttrValue)
 {
   if (!mDecl) {
-    
-    mDecl = new nsCSSDeclaration();
+    mDecl = new css::Declaration();
     mDecl->InitializeEmpty();
   }
 
@@ -1186,6 +1188,8 @@ MappedAttrParser::CreateStyleRule()
   mDecl = nsnull; 
   return rule.forget();
 }
+
+} 
 
 
 

@@ -48,9 +48,13 @@
 #include "nsAutoPtr.h"
 
 struct nsRuleData;
-
 class nsCSSExpandedDataBlock;
-class nsCSSDeclaration;
+
+namespace mozilla {
+namespace css {
+class Declaration;
+}
+}
 
 
 
@@ -66,7 +70,7 @@ class nsCSSDeclaration;
 class nsCSSCompressedDataBlock {
 public:
     friend class nsCSSExpandedDataBlock;
-    friend class nsCSSDeclaration;
+    friend class mozilla::css::Declaration;
 
     
 

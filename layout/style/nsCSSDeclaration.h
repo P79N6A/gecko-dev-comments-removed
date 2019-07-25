@@ -55,16 +55,22 @@
 #include "nsCSSDataBlock.h"
 #include "nsCSSStruct.h"
 
-class nsCSSDeclaration {
+
+class CSSStyleRuleImpl;
+
+namespace mozilla {
+namespace css {
+
+class Declaration {
 public:
   
 
 
 
 
-  nsCSSDeclaration();
+  Declaration();
 
-  nsCSSDeclaration(const nsCSSDeclaration& aCopy);
+  Declaration(const Declaration& aCopy);
 
   
 
@@ -82,13 +88,13 @@ public:
   PRBool GetValueIsImportant(const nsAString& aProperty) const;
 
   PRUint32 Count() const {
-    return mOrder.Length(); 
+    return mOrder.Length();
   }
   nsresult GetNthProperty(PRUint32 aIndex, nsAString& aReturn) const;
 
   nsresult ToString(nsAString& aString) const;
 
-  nsCSSDeclaration* Clone() const;
+  Declaration* Clone() const;
 
   nsCSSCompressedDataBlock* GetNormalBlock() const { return mData; }
   nsCSSCompressedDataBlock* GetImportantBlock() const { return mImportantData; }
@@ -174,7 +180,7 @@ public:
 #ifdef DEBUG
   void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
-  
+
   
   static PRBool AppendCSSValueToString(nsCSSProperty aProperty,
                                        const nsCSSValue& aValue,
@@ -187,8 +193,8 @@ public:
 
 private:
   
-  nsCSSDeclaration& operator=(const nsCSSDeclaration& aCopy);
-  PRBool operator==(const nsCSSDeclaration& aCopy) const;
+  Declaration& operator=(const Declaration& aCopy);
+  PRBool operator==(const Declaration& aCopy) const;
 
   static void AppendImportanceToString(PRBool aIsImportant, nsAString& aString);
   
@@ -208,7 +214,7 @@ private:
     
     
     
-    friend class CSSStyleRuleImpl;
+    friend class ::CSSStyleRuleImpl;
     void AddRef(void) {
       if (mRefCnt == PR_UINT32_MAX) {
         NS_WARNING("refcount overflow, leaking object");
@@ -233,8 +239,8 @@ public:
     }
 private:
   
-  ~nsCSSDeclaration(void);
-    
+  ~Declaration();
+
   nsCSSProperty OrderValueAt(PRUint32 aValue) const {
     return nsCSSProperty(mOrder.ElementAt(aValue));
   }
@@ -249,5 +255,8 @@ private:
     
     nsRefPtr<nsCSSCompressedDataBlock> mImportantData;
 };
+
+} 
+} 
 
 #endif 
