@@ -45,7 +45,7 @@
 
 
 
-#if defined(XP_BEOS) || defined(XP_MACOSX)
+#if defined(XP_BEOS) || defined(XP_MACOSX) || defined(ANDROID)
 
 #include "nsAString.h"
 #include "nsReadableUtils.h"

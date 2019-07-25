@@ -76,7 +76,7 @@ nsUUIDGenerator::Init()
     
     
     
-#if !defined(XP_WIN) && !defined(XP_MACOSX)
+#if !defined(XP_WIN) && !defined(XP_MACOSX) && !defined(ANDROID)
     
     unsigned int seed;
 
@@ -171,11 +171,19 @@ nsUUIDGenerator::GenerateUUIDInPlace(nsID* id)
 
 
 
+#ifndef ANDROID
     setstate(mState);
+#endif
 
     PRSize bytesLeft = sizeof(nsID);
     while (bytesLeft > 0) {
+#ifdef ANDROID
+        long rval = arc4random();
+        const int mRBytes = 4;
+#else
         long rval = random();
+#endif
+
 
         PRUint8 *src = (PRUint8*)&rval;
         
@@ -199,8 +207,10 @@ nsUUIDGenerator::GenerateUUIDInPlace(nsID* id)
     id->m3[0] &= 0x3f;
     id->m3[0] |= 0x80;
 
+#ifndef ANDROID
     
     setstate(mSavedState);
+#endif
 #endif
 
     return NS_OK;

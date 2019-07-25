@@ -70,12 +70,12 @@ NS_COM nsresult NS_CopyUnicodeToNative(const nsAString  &input, nsACString &outp
 
 
 
-#if defined(XP_UNIX) && !defined(XP_MACOSX)
+#if defined(XP_UNIX) && !defined(XP_MACOSX) && !defined(ANDROID)
 NS_COM PRBool NS_IsNativeUTF8();
 #else
 inline PRBool NS_IsNativeUTF8()
 {
-#if defined(XP_MACOSX) || defined(XP_BEOS)
+#if defined(XP_MACOSX) || defined(XP_BEOS) || defined(ANDROID)
     return PR_TRUE;
 #else
     return PR_FALSE;

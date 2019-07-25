@@ -291,6 +291,9 @@ GetUnixHomeDir(nsILocalFile** aFile)
                                      PR_TRUE,
                                      aFile);
     }
+#elif defined(ANDROID)
+    
+    return NS_ERROR_FAILURE;
 #else
     return NS_NewNativeLocalFile(nsDependentCString(PR_GetEnv("HOME")),
                                  PR_TRUE, aFile);
