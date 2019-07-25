@@ -42,6 +42,7 @@
 #include <string.h>
 #include "nsTraceRefcnt.h"
 #include "VideoUtils.h"
+#include "nsBuiltinDecoderReader.h"
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gBuiltinDecoderLog;
@@ -49,15 +50,6 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 #else
 #define LOG(type, msg)
 #endif
-
-
-
-
-
-
-
-#define MAX_VIDEO_WIDTH  4000
-#define MAX_VIDEO_HEIGHT 3000
 
 nsOggCodecState*
 nsOggCodecState::Create(ogg_page* aPage)
@@ -171,19 +163,10 @@ PRBool nsTheoraState::Init() {
     1.0f : static_cast<float>(n) / static_cast<float>(d);
 
   
-  PRUint32 pixels;
-  if (!MulOverflow32(mInfo.frame_width, mInfo.frame_height, pixels) ||
-      pixels > MAX_VIDEO_WIDTH * MAX_VIDEO_HEIGHT ||
-      pixels == 0)
-  {
-    return mActive = PR_FALSE;
-  }
-
   
-  if (!MulOverflow32(mInfo.pic_width, mInfo.pic_height, pixels) ||
-      pixels > MAX_VIDEO_WIDTH * MAX_VIDEO_HEIGHT ||
-      pixels == 0)
-  {
+  nsIntSize frame(mInfo.frame_width, mInfo.frame_height);
+  nsIntRect picture(mInfo.pic_x, mInfo.pic_y, mInfo.pic_width, mInfo.pic_height);
+  if (!nsVideoInfo::ValidateVideoRegion(frame, picture, frame)) {
     return mActive = PR_FALSE;
   }
 

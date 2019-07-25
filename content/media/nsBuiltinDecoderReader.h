@@ -59,10 +59,20 @@ public:
       mAudioRate(0),
       mAudioChannels(0),
       mFrame(0,0),
+      mDisplay(0,0),
       mStereoMode(mozilla::layers::STEREO_MODE_MONO),
       mHasAudio(PR_FALSE),
       mHasVideo(PR_FALSE)
   {}
+
+  
+  
+  
+  
+  
+  static PRBool ValidateVideoRegion(const nsIntSize& aFrame,
+                                    const nsIntRect& aPicture,
+                                    const nsIntSize& aDisplay);
 
   
   float mPixelAspectRatio;
@@ -78,6 +88,10 @@ public:
 
   
   nsIntRect mPicture;
+
+  
+  
+  nsIntSize mDisplay;
 
   
   
