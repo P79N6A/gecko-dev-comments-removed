@@ -54,6 +54,19 @@ class SmsRequest : public nsIDOMMozSmsRequest
 public:
   friend class SmsRequestManager;
 
+  
+
+
+
+
+  enum ErrorType {
+    eNoError = 0,
+    eNoSignalError,
+    eNotFoundError,
+    eUnknownError,
+    eInternalError,
+  };
+
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMMOZSMSREQUEST
 
@@ -98,7 +111,7 @@ private:
   
 
 
-  void SetError(PRInt32 aError);
+  void SetError(ErrorType aError);
 
   
 
@@ -116,7 +129,7 @@ private:
 
   jsval     mResult;
   bool      mResultRooted;
-  PRInt32   mError;
+  ErrorType mError;
   bool      mDone;
   nsCOMPtr<nsIDOMMozSmsCursor> mCursor;
 
