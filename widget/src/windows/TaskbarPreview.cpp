@@ -38,6 +38,7 @@
 
 
 
+
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
 
 #include "TaskbarPreview.h"
@@ -73,22 +74,60 @@ namespace {
 
 
 
+nsIDOMCanvasRenderingContext2D* gCtx = NULL;
+
+
+PRUint32 gInstCount = 0;
+
+
+
+
+
 
 
 
 
 
 nsresult
-CreateRenderingContext(nsIDocShell *shell, gfxASurface *surface, PRUint32 width, PRUint32 height, nsICanvasRenderingContextInternal **aCtx) {
+GetRenderingContext(nsIDocShell *shell, gfxASurface *surface,
+                    PRUint32 width, PRUint32 height) {
   nsresult rv;
-  nsCOMPtr<nsICanvasRenderingContextInternal> ctx(do_CreateInstance(
-    "@mozilla.org/content/canvas-rendering-context;1?id=2d", &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = ctx->InitializeWithSurface(shell, surface, width, height);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIDOMCanvasRenderingContext2D> ctx = gCtx;
 
-  NS_ADDREF(*aCtx = ctx);
-  return NS_OK;
+  if (!ctx) {
+    
+    ctx = do_CreateInstance("@mozilla.org/content/canvas-rendering-context;1?id=2d", &rv);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("Could not create nsICanvasRenderingContextInternal for tab previews!");
+      return rv;
+    }
+    NS_ADDREF(ctx);
+    gCtx = ctx;
+  }
+
+  nsCOMPtr<nsICanvasRenderingContextInternal> ctxI = do_QueryInterface(ctx, &rv);
+  if (NS_FAILED(rv))
+    return rv;
+
+  
+  return ctxI->InitializeWithSurface(shell, surface, width, height);
+}
+
+
+
+void
+ResetRenderingContext() {
+  if (!gCtx)
+    return;
+
+  nsresult rv;
+  nsCOMPtr<nsICanvasRenderingContextInternal> ctxI = do_QueryInterface(gCtx, &rv);
+  if (NS_FAILED(rv))
+    return;
+  if (NS_FAILED(ctxI->Reset())) {
+    NS_RELEASE(gCtx);
+    gCtx = nsnull;
+  }
 }
 
 }
@@ -102,6 +141,8 @@ TaskbarPreview::TaskbarPreview(ITaskbarList4 *aTaskbar, nsITaskbarPreviewControl
 {
   
   ::CoInitialize(NULL);
+
+  gInstCount++;
 
   WindowHook &hook = GetWindowHook();
   hook.AddMonitor(WM_DESTROY, MainWindowHook, this);
@@ -117,6 +158,9 @@ TaskbarPreview::~TaskbarPreview() {
 
   
   mTaskbar = NULL;
+
+  if (--gInstCount == 0)
+    NS_IF_RELEASE(gCtx);
 
   ::CoUninitialize();
 }
@@ -351,19 +395,15 @@ TaskbarPreview::DrawBitmap(PRUint32 width, PRUint32 height, PRBool isPreview) {
   if (!shell)
     return;
 
-  nsCOMPtr<nsICanvasRenderingContextInternal> ctxI;
-  rv = CreateRenderingContext(shell, surface, width, height, getter_AddRefs(ctxI));
-
-  nsCOMPtr<nsIDOMCanvasRenderingContext2D> ctx = do_QueryInterface(ctxI);
+  rv = GetRenderingContext(shell, surface, width, height);
+  if (NS_FAILED(rv))
+    return;
 
   PRBool drawFrame = PR_FALSE;
-  if (NS_SUCCEEDED(rv) && ctx) {
-    if (isPreview)
-      rv = mController->DrawPreview(ctx, &drawFrame);
-    else
-      rv = mController->DrawThumbnail(ctx, width, height, &drawFrame);
-
-  }
+  if (isPreview)
+    rv = mController->DrawPreview(gCtx, &drawFrame);
+  else
+    rv = mController->DrawThumbnail(gCtx, width, height, &drawFrame);
 
   if (NS_FAILED(rv))
     return;
@@ -377,6 +417,8 @@ TaskbarPreview::DrawBitmap(PRUint32 width, PRUint32 height, PRBool isPreview) {
     nsUXThemeData::dwmSetIconicLivePreviewBitmapPtr(PreviewWindow(), hBitmap, &pptClient, flags);
   else
     nsUXThemeData::dwmSetIconicThumbnailPtr(PreviewWindow(), hBitmap, flags);
+
+  ResetRenderingContext();
 }
 
 
