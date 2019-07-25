@@ -137,9 +137,12 @@ class FontSizePreference extends DialogPreference {
             mCurrentOrientation = newConfig.orientation;
 
             
-            setPreviewFontViewWidth();
-            mPreviewFontViewHeightSet = false;
-            setFontSizeToMaximum(); 
+            if (mPreviewFontView != null) {
+                
+                setPreviewFontViewWidth();
+                mPreviewFontViewHeightSet = false;
+                setFontSizeToMaximum(); 
+            }
         }
     }
 
