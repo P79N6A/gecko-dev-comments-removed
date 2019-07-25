@@ -143,12 +143,14 @@ public class LayerRenderer {
     public LayerRenderer(LayerView view) {
         mView = view;
 
-        CairoImage backgroundImage = new BufferedCairoImage(view.getBackgroundPattern());
+        LayerController controller = view.getController();
+
+        CairoImage backgroundImage = new BufferedCairoImage(controller.getBackgroundPattern());
         mBackgroundLayer = new SingleTileLayer(true, backgroundImage);
 
         mCheckerboardLayer = ScreenshotLayer.create();
 
-        CairoImage shadowImage = new BufferedCairoImage(view.getShadowPattern());
+        CairoImage shadowImage = new BufferedCairoImage(controller.getShadowPattern());
         mShadowLayer = new NinePatchTileLayer(shadowImage);
 
         mHorizScrollLayer = ScrollbarLayer.create(this, false);
@@ -445,7 +447,7 @@ public class LayerRenderer {
 
             mUpdated = true;
 
-            Layer rootLayer = mView.getLayerClient().getRoot();
+            Layer rootLayer = mView.getController().getRoot();
 
             if (!mPageContext.fuzzyEquals(mLastPageContext)) {
                 
@@ -518,7 +520,7 @@ public class LayerRenderer {
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
 
             
-            mBackgroundColor = mView.getLayerClient().getCheckerboardColor();
+            mBackgroundColor = mView.getController().getCheckerboardColor();
 
             
 
@@ -537,15 +539,15 @@ public class LayerRenderer {
             
             RectF untransformedPageRect = new RectF(0.0f, 0.0f, mPageRect.width(),
                                                     mPageRect.height());
-            if (!untransformedPageRect.contains(mFrameMetrics.getViewport()))
+            if (!untransformedPageRect.contains(mView.getController().getViewport()))
                 mShadowLayer.draw(mPageContext);
 
             
 
 
-            if (mView.getLayerClient().checkerboardShouldShowChecks()) {
+            if (mView.getController().checkerboardShouldShowChecks()) {
                 
-                Rect rootMask = getMaskForLayer(mView.getLayerClient().getRoot());
+                Rect rootMask = getMaskForLayer(mView.getController().getRoot());
                 mCheckerboardLayer.setMask(rootMask);
 
                 
@@ -558,7 +560,7 @@ public class LayerRenderer {
 
         
         void drawRootLayer() {
-            Layer rootLayer = mView.getLayerClient().getRoot();
+            Layer rootLayer = mView.getController().getRoot();
             if (rootLayer == null) {
                 return;
             }
@@ -590,7 +592,7 @@ public class LayerRenderer {
                 mHorizScrollLayer.draw(mPageContext);
 
             
-            Layer rootLayer = mView.getLayerClient().getRoot();
+            Layer rootLayer = mView.getController().getRoot();
             if ((rootLayer != null) &&
                 (mProfileRender || PanningPerfAPI.isRecordingCheckerboard())) {
                 

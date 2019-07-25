@@ -9,7 +9,6 @@ import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoInputConnection;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.inputmethod.EditorInfo;
@@ -19,8 +18,6 @@ import android.view.TextureView;
 import android.widget.FrameLayout;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -34,10 +31,13 @@ import java.nio.IntBuffer;
 
 
 
+
+
+
 public class LayerView extends FrameLayout {
     private static String LOGTAG = "GeckoLayerView";
 
-    private GeckoLayerClient mLayerClient;
+    private LayerController mController;
     private TouchEventHandler mTouchEventHandler;
     private GLController mGLController;
     private InputConnectionHandler mInputConnectionHandler;
@@ -76,9 +76,9 @@ public class LayerView extends FrameLayout {
         mGLController = new GLController(this);
     }
 
-    void connect(GeckoLayerClient layerClient) {
-        mLayerClient = layerClient;
-        mTouchEventHandler = new TouchEventHandler(getContext(), this, layerClient);
+    void connect(LayerController controller) {
+        mController = controller;
+        mTouchEventHandler = new TouchEventHandler(getContext(), this, mController);
         mRenderer = new LayerRenderer(this);
         mInputConnectionHandler = null;
 
@@ -103,12 +103,12 @@ public class LayerView extends FrameLayout {
         return mTouchEventHandler.handleEvent(event);
     }
 
-    public GeckoLayerClient getLayerClient() { return mLayerClient; }
+    public LayerController getController() { return mController; }
     public TouchEventHandler getTouchEventHandler() { return mTouchEventHandler; }
 
     
     public void setViewportSize(IntSize size) {
-        mLayerClient.setViewportSize(new FloatSize(size));
+        mController.setViewportSize(new FloatSize(size));
     }
 
     public GeckoInputConnection setInputConnectionHandler() {
@@ -220,23 +220,6 @@ public class LayerView extends FrameLayout {
         return mGLController;
     }
 
-    private Bitmap getDrawable(String name) {
-        Context context = getContext();
-        Resources resources = context.getResources();
-        int resourceID = resources.getIdentifier(name, "drawable", context.getPackageName());
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inScaled = false;
-        return BitmapFactory.decodeResource(context.getResources(), resourceID, options);
-    }
-
-    Bitmap getBackgroundPattern() {
-        return getDrawable("tabs_tray_selected_bg");
-    }
-
-    Bitmap getShadowPattern() {
-        return getDrawable("shadow");
-    }
-
     private void onSizeChanged(int width, int height) {
         mGLController.surfaceChanged(width, height);
 
@@ -263,7 +246,7 @@ public class LayerView extends FrameLayout {
     
     public static GLController registerCxxCompositor() {
         try {
-            LayerView layerView = GeckoApp.mAppContext.getLayerClient().getView();
+            LayerView layerView = GeckoApp.mAppContext.getLayerController().getView();
             layerView.mListener.compositorCreated();
             return layerView.getGLController();
         } catch (Exception e) {

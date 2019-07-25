@@ -10,6 +10,7 @@ import org.mozilla.gecko.gfx.IntSize;
 import org.mozilla.gecko.gfx.GeckoLayerClient;
 import org.mozilla.gecko.gfx.GfxInfoThread;
 import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
+import org.mozilla.gecko.gfx.LayerController;
 import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.gfx.ScreenshotLayer;
 import org.mozilla.gecko.gfx.RectUtils;
@@ -539,10 +540,10 @@ public class GeckoAppShell
 
     
     private static void geckoLoaded() {
-        final GeckoLayerClient layerClient = GeckoApp.mAppContext.getLayerClient();
-        LayerView v = layerClient.getView();
+        final LayerController layerController = GeckoApp.mAppContext.getLayerController();
+        LayerView v = layerController.getView();
         mInputConnection = v.setInputConnectionHandler();
-        layerClient.setForceRedraw();
+        layerController.notifyLayerClientOfGeometryChange();
     }
 
     static void sendPendingEventsToGecko() {
@@ -1417,8 +1418,8 @@ public class GeckoAppShell
         
         
         if (!sVibrationMaybePlaying || System.nanoTime() >= sVibrationEndTime) {
-            GeckoLayerClient layerClient = GeckoApp.mAppContext.getLayerClient();
-            LayerView layerView = layerClient.getView();
+            LayerController layerController = GeckoApp.mAppContext.getLayerController();
+            LayerView layerView = layerController.getView();
             layerView.performHapticFeedback(aIsLongPress ?
                                             HapticFeedbackConstants.LONG_PRESS :
                                             HapticFeedbackConstants.VIRTUAL_KEY);
@@ -1426,8 +1427,8 @@ public class GeckoAppShell
     }
 
     private static Vibrator vibrator() {
-        GeckoLayerClient layerClient = GeckoApp.mAppContext.getLayerClient();
-        LayerView layerView = layerClient.getView();
+        LayerController layerController = GeckoApp.mAppContext.getLayerController();
+        LayerView layerView = layerController.getView();
 
         return (Vibrator) layerView.getContext().getSystemService(Context.VIBRATOR_SERVICE);
     }
@@ -1475,7 +1476,7 @@ public class GeckoAppShell
     public static void notifyDefaultPrevented(final boolean defaultPrevented) {
         getMainHandler().post(new Runnable() {
             public void run() {
-                LayerView view = GeckoApp.mAppContext.getLayerClient().getView();
+                LayerView view = GeckoApp.mAppContext.getLayerController().getView();
                 view.getTouchEventHandler().handleEventListenerAction(!defaultPrevented);
             }
         });
@@ -2393,11 +2394,11 @@ class ScreenshotHandler implements Runnable {
     }
 
     private void screenshotWholePage(int tabId) {
-        GeckoLayerClient layerClient = GeckoApp.mAppContext.getLayerClient();
-        if (layerClient == null) {
+        LayerController layerController = GeckoApp.mAppContext.getLayerController();
+        if (layerController == null) {
             return;
         }
-        ImmutableViewportMetrics viewport = layerClient.getViewportMetrics();
+        ImmutableViewportMetrics viewport = layerController.getViewportMetrics();
         RectF pageRect = viewport.getCssPageRect();
 
         if (FloatUtils.fuzzyEquals(pageRect.width(), 0) || FloatUtils.fuzzyEquals(pageRect.height(), 0)) {
@@ -2497,14 +2498,14 @@ class ScreenshotHandler implements Runnable {
             return;
         }
 
-        GeckoLayerClient layerClient = GeckoApp.mAppContext.getLayerClient();
-        if (layerClient == null) {
+        LayerController layerController = GeckoApp.mAppContext.getLayerController();
+        if (layerController == null) {
             
             
             return;
         }
 
-        ImmutableViewportMetrics viewport = layerClient.getViewportMetrics();
+        ImmutableViewportMetrics viewport = layerController.getViewportMetrics();
         if (RectUtils.fuzzyEquals(mPageRect, viewport.getCssPageRect())) {
             
             
@@ -2584,9 +2585,9 @@ class ScreenshotHandler implements Runnable {
                                 
                                 
                             }
-                            GeckoLayerClient layerClient = GeckoApp.mAppContext.getLayerClient();
-                            if (layerClient != null) {
-                                layerClient.getView().getRenderer().setCheckerboardBitmap(
+                            LayerController layerController = GeckoApp.mAppContext.getLayerController();
+                            if (layerController != null) {
+                                layerController.getView().getRenderer().setCheckerboardBitmap(
                                     data, bufferWidth, bufferHeight, handler.mPageRect,
                                     current.getPaintedRegion());
                             }
