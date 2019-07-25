@@ -249,6 +249,7 @@ namespace nanojit
         X64_movlrm  = 0x00000000808B4007LL, 
         X64_movqmr  = 0x0000000080894807LL, 
         X64_movqspr = 0x0024448948000005LL, 
+        X64_movqspx = 0x002444110F40F207LL, 
         X64_movqr   = 0xC08B480000000003LL, 
         X64_movqi   = 0xB848000000000002LL, 
         X64_movi    = 0xB840000000000002LL, 
@@ -608,6 +609,7 @@ namespace nanojit
         void CALLRAX();\
         void RET();\
         void MOVQSPR(int d, Register r);\
+        void MOVQSPX(int d, Register r);\
         void XORPSA(Register r, int32_t i32);\
         void XORPSM(Register r, NIns* a64);\
         void X86_AND8R(Register r);\
