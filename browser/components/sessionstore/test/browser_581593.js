@@ -40,6 +40,7 @@ let stateBackup = ss.getBrowserState();
 function test() {
   
   waitForExplicitFinish();
+  ignoreAllUncaughtExceptions();
 
   let oldState = { windows: [{ tabs: [{ entries: [{ url: "example.com" }] }] }]};
   let pageData = {
