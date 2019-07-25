@@ -131,6 +131,7 @@ TiledThebesLayerOGL::~TiledThebesLayerOGL()
 void
 TiledThebesLayerOGL::PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* mTiledBuffer)
 {
+  mMainMemoryTiledBuffer.ReadUnlock();
   mMainMemoryTiledBuffer = *mTiledBuffer;
   
   delete mTiledBuffer;
