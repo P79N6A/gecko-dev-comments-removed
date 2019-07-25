@@ -211,7 +211,7 @@ nsHttpChannel::Connect(bool firstTime)
         }
 
         
-        if (gHttpHandler->IsSpdyEnabled()) {
+        if (gHttpHandler->IsSpdyEnabled() && mAllowSpdy) {
             nsCAutoString hostPort;
 
             if (NS_SUCCEEDED(mURI->GetHostPort(hostPort)) &&
@@ -518,6 +518,9 @@ nsHttpChannel::SetupTransaction()
             mCaps &= ~NS_HTTP_ALLOW_PIPELINING;
         }
     }
+
+    if (!mAllowSpdy)
+        mCaps |= NS_HTTP_DISALLOW_SPDY;
 
     
     
@@ -4104,7 +4107,7 @@ nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     }
 
     if (gHttpHandler->IsSpdyEnabled() && !mCachePump && NS_FAILED(mStatus) &&
-        (mLoadFlags & LOAD_REPLACE) && mOriginalURI) {
+        (mLoadFlags & LOAD_REPLACE) && mOriginalURI && mAllowSpdy) {
         
         
 
