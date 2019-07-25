@@ -233,7 +233,7 @@ FindObjectPrincipals(JSContext *cx, JSObject *safeObj, JSObject *innerObj)
 static inline JSObject *
 FindSafeObject(JSObject *obj)
 {
-  while (obj->getClass() != &SJOWClass) {
+  while (obj->getJSClass() != &SJOWClass.base) {
     obj = obj->getProto();
 
     if (!obj) {
@@ -253,34 +253,27 @@ namespace XPCSafeJSObjectWrapper {
 
 
 
-js::Class SJOWClass = {
-    "XPCSafeJSObjectWrapper",
-    JSCLASS_NEW_RESOLVE |
+JSExtendedClass SJOWClass = {
+  
+  { "XPCSafeJSObjectWrapper",
+    JSCLASS_NEW_RESOLVE | JSCLASS_IS_EXTENDED |
     JSCLASS_HAS_RESERVED_SLOTS(sSJOWSlots),
-    js::Valueify(XPC_SJOW_AddProperty),
-    js::Valueify(XPC_SJOW_DelProperty),
-    js::Valueify(XPC_SJOW_GetProperty),
-    js::Valueify(XPC_SJOW_SetProperty),
-    XPC_SJOW_Enumerate,
-    (JSResolveOp)XPC_SJOW_NewResolve,
-    js::Valueify(XPC_SJOW_Convert),
-    XPC_SJOW_Finalize,
-    nsnull,   
-    js::Valueify(XPC_SJOW_CheckAccess),
-    js::Valueify(XPC_SJOW_Call),
-    js::Valueify(XPC_SJOW_Create),
-    nsnull,   
-    nsnull,   
-    nsnull,   
-
-    
-    {
-      js::Valueify(XPC_SJOW_Equality),
-      nsnull, 
-      nsnull, 
-      XPC_SJOW_Iterator,
-      XPC_SJOW_WrappedObject
-    }
+    XPC_SJOW_AddProperty, XPC_SJOW_DelProperty,
+    XPC_SJOW_GetProperty, XPC_SJOW_SetProperty,
+    XPC_SJOW_Enumerate,   (JSResolveOp)XPC_SJOW_NewResolve,
+    XPC_SJOW_Convert,     XPC_SJOW_Finalize,
+    nsnull,               XPC_SJOW_CheckAccess,
+    XPC_SJOW_Call,        XPC_SJOW_Create,
+    nsnull,               nsnull,
+    nsnull,               nsnull
+  },
+  
+  XPC_SJOW_Equality,
+  nsnull, 
+  nsnull, 
+  XPC_SJOW_Iterator,
+  XPC_SJOW_WrappedObject,
+  JSCLASS_NO_RESERVED_MEMBERS
 };
 
 JSBool
@@ -325,7 +318,7 @@ WrapObject(JSContext *cx, JSObject *scope, jsval v, jsval *vp)
   }
 
   JSObject *wrapperObj =
-    JS_NewObjectWithGivenProto(cx, js::Jsvalify(&SJOWClass), nsnull, scope);
+    JS_NewObjectWithGivenProto(cx, &SJOWClass.base, nsnull, scope);
 
   if (!wrapperObj) {
     
@@ -353,7 +346,7 @@ AttachNewConstructorObject(XPCCallContext &ccx, JSObject *aGlobalObject)
   }
 
   JSObject *class_obj =
-    ::JS_InitClass(ccx, aGlobalObject, nsnull, js::Jsvalify(&SJOWClass),
+    ::JS_InitClass(ccx, aGlobalObject, nsnull, &SJOWClass.base,
                    XPC_SJOW_Construct, 0, nsnull, nsnull, nsnull, nsnull);
   if (!class_obj) {
     NS_WARNING("can't initialize the XPCSafeJSObjectWrapper class");
@@ -375,7 +368,7 @@ AttachNewConstructorObject(XPCCallContext &ccx, JSObject *aGlobalObject)
 
   JSBool found;
   return ::JS_SetPropertyAttributes(ccx, aGlobalObject,
-                                    SJOWClass.name,
+                                    SJOWClass.base.name,
                                     JSPROP_READONLY | JSPROP_PERMANENT,
                                     &found);
 }
@@ -453,7 +446,7 @@ WrapJSValue(JSContext *cx, JSObject *obj, jsval val, jsval *rval)
     
     
     JSObject *safeObj = JSVAL_TO_OBJECT(*rval);
-    if (safeObj->getClass() == &SJOWClass &&
+    if (safeObj->getJSClass() == &SJOWClass.base &&
         JS_GetGlobalForObject(cx, obj) != JS_GetGlobalForObject(cx, safeObj)) {
       
       
@@ -1037,7 +1030,7 @@ XPC_SJOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
 
   
   JSObject *wrapperIter =
-    JS_NewObjectWithGivenProto(cx, js::Jsvalify(&SJOWClass), nsnull,
+    JS_NewObjectWithGivenProto(cx, &SJOWClass.base, nsnull,
                                JS_GetGlobalForObject(cx, obj));
   if (!wrapperIter) {
     return nsnull;

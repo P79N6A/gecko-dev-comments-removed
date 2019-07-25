@@ -493,9 +493,9 @@ class AutoPropertyDescriptorRooter : private AutoGCRooter, public PropertyDescri
 };
 
 static inline bool
-InitScopeForObject(JSContext* cx, JSObject* obj, js::Class *clasp, JSObject* proto)
+InitScopeForObject(JSContext* cx, JSObject* obj, js::Class *clasp, JSObject* proto, JSObjectOps* ops)
 {
-    JS_ASSERT(clasp->isNative());
+    JS_ASSERT(ops->isNative());
     JS_ASSERT(proto == obj->getProto());
 
     
@@ -504,7 +504,7 @@ InitScopeForObject(JSContext* cx, JSObject* obj, js::Class *clasp, JSObject* pro
     if (proto && proto->isNative()) {
         JS_LOCK_OBJ(cx, proto);
         scope = proto->scope();
-        if (scope->canProvideEmptyScope(clasp)) {
+        if (scope->canProvideEmptyScope(ops, clasp)) {
             JSScope *emptyScope = scope->getEmptyScope(cx, clasp);
             JS_UNLOCK_SCOPE(cx, scope);
             if (!emptyScope)
@@ -517,7 +517,7 @@ InitScopeForObject(JSContext* cx, JSObject* obj, js::Class *clasp, JSObject* pro
     }
 
     if (!scope) {
-        scope = JSScope::create(cx, clasp, obj, js_GenerateShape(cx, false));
+        scope = JSScope::create(cx, ops, clasp, obj, js_GenerateShape(cx, false));
         if (!scope)
             goto bad;
         uint32 freeslot = JSSLOT_FREE(clasp);
@@ -570,7 +570,7 @@ NewNativeClassInstance(JSContext *cx, Class *clasp, JSObject *proto, JSObject *p
 
         JS_LOCK_OBJ(cx, proto);
         JSScope *scope = proto->scope();
-        JS_ASSERT(scope->canProvideEmptyScope(clasp));
+        JS_ASSERT(scope->canProvideEmptyScope(&js_ObjectOps, clasp));
         scope = scope->getEmptyScope(cx, clasp);
         JS_UNLOCK_OBJ(cx, proto);
 
@@ -639,6 +639,11 @@ NewObjectWithGivenProto(JSContext *cx, Class *clasp, JSObject *proto, JSObject *
     DTrace::ObjectCreationScope objectCreationScope(cx, cx->fp, clasp);
 
     
+    JSObjectOps *ops = clasp->getObjectOps
+                       ? clasp->getObjectOps(cx, clasp)
+                       : &js_ObjectOps;
+
+    
 
 
 
@@ -667,13 +672,14 @@ NewObjectWithGivenProto(JSContext *cx, Class *clasp, JSObject *proto, JSObject *
               (!parent && proto) ? proto->getParent() : parent,
               JSObject::defaultPrivate(clasp));
 
-    if (clasp->isNative()) {
-        if (!InitScopeForObject(cx, obj, clasp, proto)) {
+    if (ops->isNative()) {
+        if (!InitScopeForObject(cx, obj, clasp, proto, ops)) {
             obj = NULL;
             goto out;
         }
     } else {
-        obj->map = const_cast<JSObjectMap *>(&JSObjectMap::sharedNonNative);
+        JS_ASSERT(ops->objectMap->ops == ops);
+        obj->map = const_cast<JSObjectMap *>(ops->objectMap);
     }
 
 out:

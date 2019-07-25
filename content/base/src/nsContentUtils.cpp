@@ -5703,8 +5703,11 @@ CloneSimpleValues(JSContext* cx,
   }
 
   
-  if (obj->getClass()->ext.wrappedObject)
+  JSClass* clasp = JS_GET_CLASS(cx, obj);
+  if ((clasp->flags & JSCLASS_IS_EXTENDED) &&
+      ((JSExtendedClass*)clasp)->wrappedObject) {
     return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+  }
 
   
   

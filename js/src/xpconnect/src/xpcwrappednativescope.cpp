@@ -204,31 +204,29 @@ XPCWrappedNativeScope::SetComponents(nsXPCComponents* aComponents)
 
 
 
-js::Class XPC_WN_NoHelper_Proto_JSClass = {
+JSClass XPC_WN_NoHelper_Proto_JSClass = {
     "XPC_WN_NoHelper_Proto_JSClass",
     WRAPPER_SLOTS,                  
 
     
-    js::PropertyStub,               
-    js::PropertyStub,               
-    js::PropertyStub,               
-    js::PropertyStub,               
-    js::EnumerateStub,              
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_EnumerateStub,               
     JS_ResolveStub,                 
-    js::ConvertStub,                
+    JS_ConvertStub,                 
     nsnull,                         
 
     
+    XPC_WN_Proto_GetObjectOps,      
     nsnull,                         
     nsnull,                         
     nsnull,                         
     nsnull,                         
     nsnull,                         
     nsnull,                         
-    nsnull,                         
-
-    JS_NULL_CLASS_EXT,
-    XPC_WN_NoCall_ObjectOps
+    nsnull                          
 };
 
 
@@ -352,8 +350,7 @@ XPCWrappedNativeScope::GetPrototypeNoHelper(XPCCallContext& ccx)
     if(!mPrototypeNoHelper)
     {
         mPrototypeNoHelper =
-            xpc_NewSystemInheritingJSObject(ccx,
-                                            js::Jsvalify(&XPC_WN_NoHelper_Proto_JSClass),
+            xpc_NewSystemInheritingJSObject(ccx, &XPC_WN_NoHelper_Proto_JSClass,
                                             mPrototypeJSObject,
                                             mGlobalJSObject);
 
@@ -728,7 +725,7 @@ XPCWrappedNativeScope*
 GetScopeOfObject(JSObject* obj)
 {
     nsISupports* supports;
-    js::Class* clazz = obj->getClass();
+    JSClass* clazz = obj->getJSClass();
     JSBool isWrapper = IS_WRAPPER_CLASS(clazz);
 
     if(isWrapper && IS_SLIM_WRAPPER_OBJECT(obj))

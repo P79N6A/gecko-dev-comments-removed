@@ -145,6 +145,7 @@ typedef enum JSIterateOp {
 
 
 typedef struct JSClass           JSClass;
+typedef struct JSExtendedClass   JSExtendedClass;
 typedef struct JSConstDoubleSpec JSConstDoubleSpec;
 typedef struct JSContext         JSContext;
 typedef struct JSErrorReport     JSErrorReport;
@@ -155,6 +156,7 @@ typedef struct JSIdArray         JSIdArray;
 typedef struct JSPropertyDescriptor JSPropertyDescriptor;
 typedef struct JSPropertySpec    JSPropertySpec;
 typedef struct JSObjectMap       JSObjectMap;
+typedef struct JSObjectOps       JSObjectOps;
 typedef struct JSRuntime         JSRuntime;
 typedef struct JSScript          JSScript;
 typedef struct JSStackFrame      JSStackFrame;
@@ -307,6 +309,29 @@ typedef void
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef JSObjectOps *
+(* JSGetObjectOps)(JSContext *cx, JSClass *clasp);
+
+
+
+
+
+
+
 typedef JSBool
 (* JSCheckAccessOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
                     jsval *vp);
@@ -393,8 +418,25 @@ typedef void
 typedef void
 (* JSTraceNamePrinter)(JSTracer *trc, char *buf, size_t bufsize);
 
+
+
 typedef JSBool
 (* JSEqualityOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
+
+
+
+
+
+
+typedef JSObject *
+(* JSObjectOp)(JSContext *cx, JSObject *obj);
+
+
+
+
+
+typedef JSObject *
+(* JSIteratorOp)(JSContext *cx, JSObject *obj, JSBool keysonly);
 
 
 

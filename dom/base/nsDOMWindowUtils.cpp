@@ -72,8 +72,6 @@
 #include <gdk/gdkx.h>
 #endif
 
-#include "jsobj.h"
-
 static PRBool IsUniversalXPConnectCapable()
 {
   PRBool hasCap = PR_FALSE;
@@ -1351,8 +1349,12 @@ nsDOMWindowUtils::GetParent()
 
   
   if (parent) {
-    if (JSObjectOp outerize = parent->getClass()->ext.outerObject)
-      *rval = OBJECT_TO_JSVAL(outerize(cx, parent));
+    JSClass* clasp = JS_GET_CLASS(cx, parent);
+    if (clasp->flags & JSCLASS_IS_EXTENDED) {
+      JSExtendedClass* xclasp = reinterpret_cast<JSExtendedClass*>(clasp);
+      if (JSObjectOp outerize = xclasp->outerObject)
+        *rval = OBJECT_TO_JSVAL(outerize(cx, parent));
+    }
   }
 
   cc->SetReturnValueWasSet(PR_TRUE);
