@@ -8809,13 +8809,13 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
 
   
   
-  if (interval > PR_IntervalToMilliseconds(DOM_MAX_TIMEOUT_VALUE)) {
-    interval = PR_IntervalToMilliseconds(DOM_MAX_TIMEOUT_VALUE);
+  
+  PRUint32 maxTimeoutMs = PR_IntervalToMilliseconds(DOM_MAX_TIMEOUT_VALUE);
+  if (static_cast<PRUint32>(interval) > maxTimeoutMs) {
+    interval = maxTimeoutMs;
   }
 
   nsTimeout *timeout = new nsTimeout();
-  if (!timeout)
-    return NS_ERROR_OUT_OF_MEMORY;
 
   
   
