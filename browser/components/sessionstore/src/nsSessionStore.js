@@ -114,6 +114,9 @@ const CAPABILITIES = [
 
 const INTERNAL_KEYS = ["_tabStillLoading", "_hosts", "_formDataSaved"];
 
+
+const TAB_EVENTS = ["TabOpen", "TabClose", "TabSelect", "TabShow", "TabHide"];
+
 #ifndef XP_WIN
 #define BROKEN_WM_Z_ORDER
 #endif
@@ -202,6 +205,13 @@ SessionStoreService.prototype = {
   _restoreLastWindow: false,
 
   
+  _tabsToRestore: { visible: [], hidden: [] },
+  _tabsRestoringCount: 0,
+
+  
+  _maxConcurrentTabRestores: null,
+
+  
   _lastSessionState: null,
 
 
@@ -258,6 +268,14 @@ SessionStoreService.prototype = {
     
     this._sessionhistory_max_entries =
       this._prefBranch.getIntPref("sessionhistory.max_entries");
+
+    this._maxConcurrentTabRestores =
+      this._prefBranch.getIntPref("sessionstore.max_concurrent_tabs");
+    this._prefBranch.addObserver("sessionstore.max_concurrent_tabs", this, true);
+
+    
+    
+    gRestoreTabsProgressListener.ss = this;
 
     
     this._sessionFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
@@ -349,6 +367,13 @@ SessionStoreService.prototype = {
     this.saveState(true);
 
     
+    this._tabsToRestore.visible = null;
+    this._tabsToRestore.hidden = null;
+
+    
+    gRestoreTabsProgressListener.ss = null;
+
+    
     if (this._saveTimer) {
       this._saveTimer.cancel();
       this._saveTimer = null;
@@ -403,6 +428,7 @@ SessionStoreService.prototype = {
       this._forEachBrowserWindow(function(aWindow) {
         Array.forEach(aWindow.gBrowser.browsers, function(aBrowser) {
           delete aBrowser.__SS_data;
+          delete aBrowser.__SS_needsRestore;
         });
         openWindows[aWindow.__SSi] = true;
       });
@@ -507,6 +533,10 @@ SessionStoreService.prototype = {
           this._clearDisk();
         this.saveState(true);
         break;
+      case "sessionstore.max_concurrent_tabs":
+        this._maxConcurrentTabRestores =
+          this._prefBranch.getIntPref("sessionstore.max_concurrent_tabs");
+        break;
       }
       break;
     case "timer-callback": 
@@ -547,6 +577,9 @@ SessionStoreService.prototype = {
         
         this._stateBackup = JSON.parse(this._toJSONString(this._getCurrentState(true)));
       }
+      
+      
+      this._resetRestoringState();
       break;
     }
   },
@@ -585,6 +618,12 @@ SessionStoreService.prototype = {
         break;
       case "TabSelect":
         this.onTabSelect(win);
+        break;
+      case "TabShow":
+        this.onTabShow(aEvent.originalTarget);
+        break;
+      case "TabHide":
+        this.onTabHide(aEvent.originalTarget);
         break;
     }
   },
@@ -692,9 +731,9 @@ SessionStoreService.prototype = {
       this.onTabAdd(aWindow, tabbrowser.tabs[i], true);
     }
     
-    tabbrowser.tabContainer.addEventListener("TabOpen", this, true);
-    tabbrowser.tabContainer.addEventListener("TabClose", this, true);
-    tabbrowser.tabContainer.addEventListener("TabSelect", this, true);
+    TAB_EVENTS.forEach(function(aEvent) {
+      tabbrowser.tabContainer.addEventListener(aEvent, this, true);
+    }, this);
   },
 
   
@@ -726,10 +765,13 @@ SessionStoreService.prototype = {
     
     var tabbrowser = aWindow.gBrowser;
 
-    tabbrowser.tabContainer.removeEventListener("TabOpen", this, true);
-    tabbrowser.tabContainer.removeEventListener("TabClose", this, true);
-    tabbrowser.tabContainer.removeEventListener("TabSelect", this, true);
+    TAB_EVENTS.forEach(function(aEvent) {
+      tabbrowser.tabContainer.removeEventListener(aEvent, this, true);
+    }, this);
+
     
+    tabbrowser.removeTabsProgressListener(gRestoreTabsProgressListener);
+
     let winData = this._windows[aWindow.__SSi];
     if (this._loadState == STATE_RUNNING) { 
       
@@ -808,6 +850,18 @@ SessionStoreService.prototype = {
     browser.removeEventListener("DOMAutoComplete", this, true);
 
     delete browser.__SS_data;
+
+    
+    
+    if (browser.__SS_restoring) {
+      this.restoreNextTab(true);
+    }
+    else if (browser.__SS_needsRestore) {
+      if (aTab.hidden)
+        this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab));
+      else
+        this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(aTab));
+    }
 
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
@@ -902,8 +956,34 @@ SessionStoreService.prototype = {
     if (this._loadState == STATE_RUNNING) {
       this._windows[aWindow.__SSi].selected = aWindow.gBrowser.tabContainer.selectedIndex;
 
+      let tab = aWindow.gBrowser.selectedTab;
+      
+      
+      if (tab.linkedBrowser.__SS_needsRestore) {
+        this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(tab));
+        this.restoreTab(tab);
+      }
+
       
       this._updateCrashReportURL(aWindow);
+    }
+  },
+
+  onTabShow: function sss_onTabShow(aTab) {
+    
+    if (aTab.linkedBrowser.__SS_needsRestore) {
+      this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab));
+      
+      this._tabsToRestore.visible.push(aTab);
+    }
+  },
+
+  onTabHide: function sss_onTabHide(aTab) {
+    
+    if (aTab.linkedBrowser.__SS_needsRestore) {
+      this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(aTab));
+      
+      this._tabsToRestore.hidden.push(aTab);
     }
   },
 
@@ -924,6 +1004,9 @@ SessionStoreService.prototype = {
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
 
     this._browserSetState = true;
+
+    
+    this._resetRestoringState();
 
     var window = this._getMostRecentBrowserWindow();
     if (!window) {
@@ -2173,7 +2256,14 @@ SessionStoreService.prototype = {
   restoreHistoryPrecursor:
     function sss_restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab, aIx, aCount) {
     var tabbrowser = aWindow.gBrowser;
+
     
+    
+    
+    if (aCount == 0 &&
+        tabbrowser.mTabsProgressListeners.indexOf(gRestoreTabsProgressListener) == -1)
+      tabbrowser.addTabsProgressListener(gRestoreTabsProgressListener);
+
     
     
     for (var t = aIx; t < aTabs.length; t++) {
@@ -2206,6 +2296,12 @@ SessionStoreService.prototype = {
       tab.hidden = tabData.hidden;
 
       tabData._tabStillLoading = true;
+
+      
+      
+      browser.__SS_data = tabData;
+      browser.__SS_needsRestore = true;
+
       if (!tabData.entries || tabData.entries.length == 0) {
         
         
@@ -2217,17 +2313,16 @@ SessionStoreService.prototype = {
       
       tab.setAttribute("busy", "true");
       tabbrowser.updateIcon(tab);
-      tabbrowser.setTabTitleLoading(tab);
       
       
       
       let activeIndex = (tabData.index || tabData.entries.length) - 1;
       let activePageData = tabData.entries[activeIndex] || null;
       browser.userTypedValue = activePageData ? activePageData.url || null : null;
+
       
-      
-      
-      browser.__SS_data = tabData;
+      if (activePageData && activePageData.title)
+        tab.label = activePageData.title;
     }
     
     if (aTabs.length > 0) {
@@ -2356,39 +2451,124 @@ SessionStoreService.prototype = {
     var event = aWindow.document.createEvent("Events");
     event.initEvent("SSTabRestoring", true, false);
     tab.dispatchEvent(event);
+
     
+    aWindow.setTimeout(function(){
+      _this.restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap);
+    }, 0);
+
+    
+    
+    if (aWindow.gBrowser.selectedBrowser == browser) {
+      this.restoreTab(tab);
+    }
+    else {
+      
+      if (tabData.hidden)
+        this._tabsToRestore.hidden.push(tab);
+      else
+        this._tabsToRestore.visible.push(tab);
+      this.restoreNextTab();
+    }
+  },
+
+  restoreTab: function(aTab) {
+    let browser = aTab.linkedBrowser;
+    let tabData = browser.__SS_data;
+
+    
+    
+    
+    let shouldRestoreNextTab = false;
+
+    
+    this._tabsRestoringCount++;
+
+    delete browser.__SS_needsRestore;
+
     let activeIndex = (tabData.index || tabData.entries.length) - 1;
     if (activeIndex >= tabData.entries.length)
       activeIndex = tabData.entries.length - 1;
-    try {
-      if (activeIndex >= 0)
-        browser.webNavigation.gotoIndex(activeIndex);
-    }
-    catch (ex) {
-      
-      tab.removeAttribute("busy");
-    }
+
     
-    if (tabData.entries.length > 0) {
-      
+    if (activeIndex > -1) {
       
       
       browser.__SS_restore_data = tabData.entries[activeIndex] || {};
       browser.__SS_restore_pageStyle = tabData.pageStyle || "";
-      browser.__SS_restore_tab = tab;
+      browser.__SS_restore_tab = aTab;
+
+      try {
+        
+        let label = aTab.label;
+        browser.__SS_restoring = true;
+        browser.webNavigation.gotoIndex(activeIndex);
+        
+        aTab.label = label;
+      }
+      catch (ex) {
+        
+        aTab.removeAttribute("busy");
+        shouldRestoreNextTab = true;
+      }
+    }
+    else {
+      
+      
+      
+      shouldRestoreNextTab = true;
     }
 
     
     
     if (tabData.userTypedValue) {
       browser.userTypedValue = tabData.userTypedValue;
-      if (tabData.userTypedClear)
+      if (tabData.userTypedClear) {
+        browser.__SS_restoring = true;
         browser.loadURI(tabData.userTypedValue, null, null, true);
+      }
+      else {
+        shouldRestoreNextTab = true;
+      }
     }
 
-    aWindow.setTimeout(function(){
-      _this.restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap);
-    }, 0);
+    if (shouldRestoreNextTab)
+      this.restoreNextTab(true);
+  },
+
+  restoreNextTab: function sss_restoreNextTab(aFromTabFinished) {
+    
+    if (this._loadState == STATE_QUITTING)
+      return;
+    if (aFromTabFinished)
+      this._tabsRestoringCount--;
+
+    
+    if (this._maxConcurrentTabRestores >= 0 &&
+        this._tabsRestoringCount >= this._maxConcurrentTabRestores)
+      return;
+
+    
+    let nextTabArray;
+    if (this._tabsToRestore.visible.length) {
+      nextTabArray = this._tabsToRestore.visible;
+    }
+    else if (this._tabsToRestore.hidden.length) {
+      nextTabArray = this._tabsToRestore.hidden;
+    }
+
+    if (nextTabArray) {
+      let tab = nextTabArray.shift();
+      this.restoreTab(tab);
+    }
+    else {
+      
+      this._forEachBrowserWindow(function(aWindow) {
+        
+        
+        aWindow.gBrowser.removeTabsProgressListener(gRestoreTabsProgressListener)
+      });
+    }
   },
 
   
@@ -3302,6 +3482,15 @@ SessionStoreService.prototype = {
     this._closedWindows.splice(spliceTo);
   },
 
+  
+
+
+  _resetRestoringState: function sss__initRestoringState() {
+    
+    this._tasToRestore = { visible: [], hidden: [] };
+    this._tabsRestoringCount = 0;
+  },
+
 
 
   
@@ -3426,6 +3615,25 @@ let XPathHelper = {
     return (this.restorableFormNodes = formNodesXPath);
   }
 };
+
+
+
+
+let gRestoreTabsProgressListener = {
+  ss: null,
+  onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
+    
+    if (!aBrowser.__SS_restoring)
+      return;
+
+    if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
+        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
+      delete aBrowser.__SS_restoring;
+      this.ss.restoreNextTab(true);
+    }
+  }
+}
 
 
 String.prototype.hasRootDomain = function hasRootDomain(aDomain)

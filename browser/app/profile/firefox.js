@@ -801,6 +801,8 @@ pref("browser.sessionstore.max_windows_undo", 3);
 
 pref("browser.sessionstore.max_resumed_crashes", 1);
 
+pref("browser.sessionstore.max_concurrent_tabs", 3);
+
 
 pref("accessibility.blockautorefresh", false);
 
