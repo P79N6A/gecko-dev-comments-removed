@@ -158,8 +158,7 @@ function test_component(contractid) {
   doTest("testChar", "a", "2");
   doTest("testString", "someString", "another string");
   doTest("testWstring", "Why wasnt this", "turned on before? ಠ_ಠ");
-  
-  doTest("testWchar", "z", "q");
+  doTest("testWchar", "z", "ア");
   doTestWorkaround("testDOMString", "Beware: ☠ s");
   doTestWorkaround("testAString", "Frosty the ☃ ;-)");
   doTestWorkaround("testAUTF8String", "We deliver 〠!");
