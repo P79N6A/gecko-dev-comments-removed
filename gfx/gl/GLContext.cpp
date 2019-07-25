@@ -511,8 +511,14 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
         fGetIntegerv(LOCAL_GL_MAX_RENDERBUFFER_SIZE, &mMaxRenderbufferSize);
         mMaxTextureImageSize = mMaxTextureSize;
 
+        
+        
+        
+        
+        
+        
         mSupport_ES_ReadPixels_BGRA_UByte = false;
-        if (mIsGLES2) {
+        if (false) {
             if (IsExtensionSupported(gl::GLContext::EXT_bgra)) {
                 mSupport_ES_ReadPixels_BGRA_UByte = true;
             } else if (IsExtensionSupported(gl::GLContext::EXT_read_format_bgra) ||
