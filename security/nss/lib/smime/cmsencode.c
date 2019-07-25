@@ -425,6 +425,11 @@ nss_cms_encoder_work_data(NSSCMSEncoderContext *p7ecx, SECItem *dest,
 
     
     cinfo = NSS_CMSContent_GetContentInfo(p7ecx->content.pointer, p7ecx->type);
+    if (!cinfo) {
+	
+	p7ecx->error = SEC_ERROR_LIBRARY_FAILURE;
+	return SECFailure;
+    }
 
     
     if (len && cinfo->digcx != NULL)
@@ -628,6 +633,12 @@ NSS_CMSEncoder_Update(NSSCMSEncoderContext *p7ecx, const char *data, unsigned lo
 	
 	
 	cinfo = NSS_CMSContent_GetContentInfo(p7ecx->content.pointer, p7ecx->type);
+	if (!cinfo) {
+	    
+	    p7ecx->error = SEC_ERROR_LIBRARY_FAILURE;
+	    return SECFailure;
+	}
+
 	childtype = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
 	if (childtype != SEC_OID_PKCS7_DATA)
 	    return SECFailure;
@@ -728,6 +739,12 @@ NSS_CMSEncoder_Finish(NSSCMSEncoderContext *p7ecx)
 
     
     cinfo = NSS_CMSContent_GetContentInfo(p7ecx->content.pointer, p7ecx->type);
+    if (!cinfo) {
+	
+	p7ecx->error = SEC_ERROR_LIBRARY_FAILURE;
+	rv = SECFailure;
+	goto loser;
+    }
     childtype = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
     if (childtype == SEC_OID_PKCS7_DATA && cinfo->content.data == NULL) {
 	SEC_ASN1EncoderClearTakeFromBuf(p7ecx->ecx);

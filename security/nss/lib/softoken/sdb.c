@@ -51,6 +51,7 @@
 
 
 
+
 #include "sdb.h"
 #include "pkcs11t.h"
 #include "seccomon.h"
@@ -1910,8 +1911,10 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     sdb_p->sqlXactDB = NULL;
     sdb_p->sqlXactThread = NULL;
     sdb->private = sdb_p;
+    sdb->version = 0;
     sdb->sdb_type = SDB_SQL;
     sdb->sdb_flags = flags | SDB_HAS_META;
+    sdb->app_private = NULL;
     sdb->sdb_FindObjectsInit = sdb_FindObjectsInit;
     sdb->sdb_FindObjects = sdb_FindObjects;
     sdb->sdb_FindObjectsFinal = sdb_FindObjectsFinal;
@@ -1924,6 +1927,7 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     sdb->sdb_Begin = sdb_Begin;
     sdb->sdb_Commit = sdb_Commit;
     sdb->sdb_Abort = sdb_Abort;
+    sdb->sdb_Reset = sdb_Reset;
     sdb->sdb_Close = sdb_Close;
     sdb->sdb_SetForkState = sdb_SetForkState;
 
