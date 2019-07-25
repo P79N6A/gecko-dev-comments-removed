@@ -38,6 +38,14 @@
 
 function run_test()
 {
+  
+  try {
+    var nullWeak = Components.utils.getWeakReference(null);
+    do_check_true(nullWeak.get() === null);
+  } catch (e) {
+    do_check_true(false);
+  }
+
   var obj = { num: 5, str: 'foo' };
   var weak = Components.utils.getWeakReference(obj);
 
