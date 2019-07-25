@@ -453,7 +453,7 @@ ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
       
       
       nsRefPtr<gfxWindowsSurface> dest = new gfxWindowsSurface(
-          gfxIntSize(bounds.width, bounds.height), gfxASurface::ImageFormatARGB32);
+          gfxIntSize(scaledSize.width, scaledSize.height), gfxASurface::ImageFormatARGB32);
       
       
       
