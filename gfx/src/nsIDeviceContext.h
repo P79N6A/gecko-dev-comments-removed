@@ -46,7 +46,7 @@
 #include "nsStringFwd.h"
 
 class nsIView;
-class nsIFontMetrics;
+class nsFontMetrics;
 class nsIWidget;
 class nsIDeviceContextSpec;
 class nsIAtom;
@@ -319,7 +319,7 @@ public:
 
   NS_IMETHOD  GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
                             gfxUserFontSet* aUserFontSet,
-                            nsIFontMetrics*& aMetrics) = 0;
+                            nsFontMetrics*& aMetrics) = 0;
 
   
 
@@ -330,7 +330,7 @@ public:
 
 
   NS_IMETHOD  GetMetricsFor(const nsFont& aFont, gfxUserFontSet* aUserFontSet,
-                            nsIFontMetrics*& aMetrics) = 0;
+                            nsFontMetrics*& aMetrics) = 0;
 
   
 
@@ -347,7 +347,7 @@ public:
 
 
 
-  NS_IMETHOD FontMetricsDeleted(const nsIFontMetrics* aFontMetrics) = 0;
+  NS_IMETHOD FontMetricsDeleted(const nsFontMetrics* aFontMetrics) = 0;
 
   
 
