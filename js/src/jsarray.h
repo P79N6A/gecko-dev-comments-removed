@@ -147,7 +147,7 @@ extern JSObject * JS_FASTCALL
 js_NewArrayWithSlots(JSContext* cx, JSObject* proto, uint32 len);
 
 extern JSObject *
-js_NewArrayObject(JSContext *cx, jsuint length, const js::Value *vector, bool holey = false);
+js_NewArrayObject(JSContext *cx, jsuint length, const js::Value *vector);
 
 
 extern JSObject *

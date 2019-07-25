@@ -3164,6 +3164,16 @@ GC(JSContext *cx  GCTIMER_PARAM)
     
 
 
+    while (!trc.arraysToSlowify.empty()) {
+        JSObject *obj = trc.arraysToSlowify.back();
+        trc.arraysToSlowify.popBack();
+        if (IsMarkedGCThing(obj))
+            obj->makeDenseArraySlow(cx);
+    }
+
+    
+
+
 
     FreeGCChunks(rt);
     TIMESTAMP(sweepDestroyEnd);

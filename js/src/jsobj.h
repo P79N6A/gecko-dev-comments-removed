@@ -476,33 +476,18 @@ struct JSObject {
     static const uint32 JSSLOT_ARRAY_LENGTH = JSSLOT_PRIVATE;
 
     
-    static const uint32 JSSLOT_DENSE_ARRAY_COUNT     = JSSLOT_PRIVATE + 1;
-    static const uint32 JSSLOT_DENSE_ARRAY_MINLENCAP = JSSLOT_PRIVATE + 2;
-
-    
     
     
     inline void staticAssertArrayLengthIsInPrivateSlot();
-
-    inline uint32 uncheckedGetArrayLength() const;
-    inline uint32 uncheckedGetDenseArrayCapacity() const;
 
   public:
     static const uint32 DENSE_ARRAY_FIXED_RESERVED_SLOTS = 3;
 
     inline uint32 getArrayLength() const;
-    inline void setDenseArrayLength(uint32 length);
-    inline void setSlowArrayLength(uint32 length);
-
-    inline uint32 getDenseArrayCount() const;
-    inline void setDenseArrayCount(uint32 count);
-    inline void incDenseArrayCountBy(uint32 posDelta);
-    inline void decDenseArrayCountBy(uint32 negDelta);
+    inline void setArrayLength(uint32 length);
 
     inline uint32 getDenseArrayCapacity() const;
     inline void setDenseArrayCapacity(uint32 capacity); 
-
-    inline bool isDenseArrayMinLenCapOk(bool strictAboutLength = true) const;
 
     inline const js::Value &getDenseArrayElement(uint32 i) const;
     inline js::Value *addressOfDenseArrayElement(uint32 i);
