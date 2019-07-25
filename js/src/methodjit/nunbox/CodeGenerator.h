@@ -42,11 +42,9 @@
 
 #include "jscntxt.h"
 #include "jstl.h"
-#include "BytecodeAnalyzer.h"
-#include "MethodJIT.h"
-#include "FrameState.h"
+#include "methodjit/MethodJIT.h"
+#include "methodjit/nunbox/FrameState.h"
 #include "assembler/assembler/MacroAssembler.h"
-#include "CodeGenerator.h"
 
 namespace js {
 namespace mjit {
