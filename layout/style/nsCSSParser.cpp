@@ -2105,22 +2105,19 @@ CSSParserImpl::ProcessNameSpace(const nsString& aPrefix,
                                 RuleAppendFunc aAppendFunc,
                                 void* aData)
 {
-  nsRefPtr<css::NameSpaceRule> rule;
   nsCOMPtr<nsIAtom> prefix;
 
   if (!aPrefix.IsEmpty()) {
     prefix = do_GetAtom(aPrefix);
   }
 
-  NS_NewCSSNameSpaceRule(getter_AddRefs(rule), prefix, aURLSpec);
-  if (rule) {
-    (*aAppendFunc)(rule, aData);
+  nsRefPtr<css::NameSpaceRule> rule = new css::NameSpaceRule(prefix, aURLSpec);
+  (*aAppendFunc)(rule, aData);
 
-    
-    
-    if (!mNameSpaceMap) {
-      mNameSpaceMap = mSheet->GetNameSpaceMap();
-    }
+  
+  
+  if (!mNameSpaceMap) {
+    mNameSpaceMap = mSheet->GetNameSpaceMap();
   }
 }
 
