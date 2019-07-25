@@ -2608,91 +2608,43 @@ nsXPCComponents_Utils::GetSandbox(nsIXPCComponents_utils_Sandbox **aSandbox)
 
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::LookupMethod()
+nsXPCComponents_Utils::LookupMethod(const JS::Value& object,
+                                    const JS::Value& name,
+                                    JSContext *cx,
+                                    JS::Value *retval)
 {
-    nsresult rv;
-
-    nsCOMPtr<nsIXPConnect> xpc(do_GetService(nsIXPConnect::GetCID(), &rv));
-    if (NS_FAILED(rv))
-        return NS_ERROR_FAILURE;
-
-    
-    nsAXPCNativeCallContext *cc = nsnull;
-    xpc->GetCurrentNativeCallContext(&cc);
-    if (!cc)
-        return NS_ERROR_FAILURE;
-
-
-#undef CHECK_FOR_INDIRECT_CALL
-#ifdef CHECK_FOR_INDIRECT_CALL
-    
-    
-    nsCOMPtr<nsISupports> callee;
-    cc->GetCallee(getter_AddRefs(callee));
-    if (!callee || callee.get() !=
-        static_cast<const nsISupports*>
-                   (static_cast<const nsIXPCComponents_Utils*>(this)))
-        return NS_ERROR_FAILURE;
-#endif
-
-    
-    JSContext* cx;
-    rv = cc->GetJSContext(&cx);
-    if (NS_FAILED(rv) || !cx)
-        return NS_ERROR_FAILURE;
-
     JSAutoRequest ar(cx);
 
     
-    jsval *retval = nsnull;
-    rv = cc->GetRetValPtr(&retval);
-    if (NS_FAILED(rv) || !retval)
-        return NS_ERROR_FAILURE;
-
-    
-    PRUint32 argc;
-    rv = cc->GetArgc(&argc);
-    if (NS_FAILED(rv))
-        return NS_ERROR_FAILURE;
-
-    if (argc < 2)
-        return NS_ERROR_XPC_NOT_ENOUGH_ARGS;
-
-    jsval* argv;
-    rv = cc->GetArgvPtr(&argv);
-    if (NS_FAILED(rv) || !argv)
-        return NS_ERROR_FAILURE;
-
-    
-    if (JSVAL_IS_PRIMITIVE(argv[0]))
+    if (JSVAL_IS_PRIMITIVE(object))
         return NS_ERROR_XPC_BAD_CONVERT_JS;
 
-    JSObject* obj = JSVAL_TO_OBJECT(argv[0]);
+    JSObject* obj = JSVAL_TO_OBJECT(object);
     while (obj && !js::IsWrapper(obj) && !IS_WRAPPER_CLASS(js::GetObjectClass(obj)))
         obj = JS_GetPrototype(cx, obj);
 
     if (!obj)
         return NS_ERROR_XPC_BAD_CONVERT_JS;
 
-    argv[0] = OBJECT_TO_JSVAL(obj);
-    rv = nsXPConnect::GetXPConnect()->GetJSObjectOfWrapper(cx, obj, &obj);
+    JSObject* unwrappedObject;
+    nsresult rv = nsXPConnect::GetXPConnect()->GetJSObjectOfWrapper(cx, obj, &unwrappedObject);
     if (NS_FAILED(rv))
         return rv;
 
-    obj = JS_ObjectToInnerObject(cx, obj);
-    if (!obj)
+    unwrappedObject = JS_ObjectToInnerObject(cx, unwrappedObject);
+    if (!unwrappedObject)
         return NS_ERROR_XPC_BAD_CONVERT_JS;
 
     
-    if (!JSVAL_IS_STRING(argv[1]))
+    if (!JSVAL_IS_STRING(name))
         return NS_ERROR_XPC_BAD_CONVERT_JS;
 
     
     
-
     jsid name_id;
-    if (!JS_ValueToId(cx, argv[1], &name_id) ||
-        !JS_IdToValue(cx, name_id, &argv[1]))
+    JS::Value dummy;
+    if (!JS_ValueToId(cx, name, &name_id) ||
+        !JS_IdToValue(cx, name_id, &dummy))
         return NS_ERROR_XPC_BAD_CONVERT_JS;
 
     
@@ -2701,7 +2653,7 @@ nsXPCComponents_Utils::LookupMethod()
     
     
     
-    XPCCallContext inner_cc(JS_CALLER, cx, obj, nsnull, name_id);
+    XPCCallContext inner_cc(JS_CALLER, cx, unwrappedObject, nsnull, name_id);
 
     
     XPCWrappedNative* wrapper = inner_cc.GetWrapper();
@@ -2721,9 +2673,7 @@ nsXPCComponents_Utils::LookupMethod()
     jsval funval;
 
     
-    if (!member->NewFunctionObject(inner_cc, iface,
-                                   JSVAL_TO_OBJECT(argv[0]),
-                                   &funval))
+    if (!member->NewFunctionObject(inner_cc, iface, obj, &funval))
         return NS_ERROR_XPC_BAD_CONVERT_JS;
 
     NS_ASSERTION(JS_ValueToFunction(inner_cc, funval),
@@ -2731,9 +2681,6 @@ nsXPCComponents_Utils::LookupMethod()
 
     
     *retval = funval;
-
-    
-    cc->SetReturnValueWasSet(true);
     return NS_OK;
 }
 
@@ -4347,17 +4294,20 @@ nsXPCComponents::AttachNewComponentsObject(XPCCallContext& ccx,
 }
 
 
-NS_IMETHODIMP nsXPCComponents::LookupMethod()
+NS_IMETHODIMP
+nsXPCComponents::LookupMethod(const JS::Value& object,
+                              const JS::Value& name,
+                              JSContext *cx,
+                              JS::Value *retval)
 {
-    nsresult rv;
-    nsCOMPtr<nsIXPCComponents_Utils> utils;
-
     NS_WARNING("Components.lookupMethod deprecated, use Components.utils.lookupMethod");
-    rv = GetUtils(getter_AddRefs(utils));
+
+    nsCOMPtr<nsIXPCComponents_Utils> utils;
+    nsresult rv = GetUtils(getter_AddRefs(utils));
     if (NS_FAILED(rv))
         return rv;
 
-    return utils->LookupMethod();
+    return utils->LookupMethod(object, name, cx, retval);
 }
 
 
