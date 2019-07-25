@@ -4,6 +4,7 @@
 
 
 
+from __future__ import with_statement
 import sys, os, unittest, tempfile, shutil
 from StringIO import StringIO
 
