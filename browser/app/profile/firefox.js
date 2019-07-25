@@ -282,7 +282,7 @@ pref("browser.urlbar.doubleClickSelectsAll", true);
 #else
 pref("browser.urlbar.doubleClickSelectsAll", false);
 #endif
-pref("browser.urlbar.autoFill", false);
+pref("browser.urlbar.autoFill", true);
 pref("browser.urlbar.autoFill.typed", true);
 
 
@@ -1041,9 +1041,6 @@ pref("devtools.debugger.enabled", false);
 
 
 pref("devtools.debugger.ui.height", 250);
-
-
-pref("devtools.debugger.log", false);
 
 
 pref("devtools.styleinspector.enabled", true);

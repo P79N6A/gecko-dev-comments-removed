@@ -43,6 +43,7 @@
 #include "nsAutoCompleteController.h"
 #include "nsAutoCompleteSimpleResult.h"
 
+#include "nsAutoPtr.h"
 #include "nsNetCID.h"
 #include "nsIIOService.h"
 #include "nsToolkitCompsCID.h"
@@ -80,8 +81,7 @@ nsAutoCompleteController::nsAutoCompleteController() :
   mDefaultIndexCompleted(false),
   mBackspaced(false),
   mPopupClosedByCompositionStart(false),
-  mIsIMEComposing(false),
-  mIgnoreHandleText(false),
+  mCompositionState(eCompositionState_None),
   mSearchStatus(nsAutoCompleteController::STATUS_NONE),
   mRowCount(0),
   mSearchesOngoing(0),
@@ -204,8 +204,21 @@ NS_IMETHODIMP
 nsAutoCompleteController::HandleText()
 {
   
-  if (mIsIMEComposing) {
+  
+  
+  
+  
+  
+  if (mCompositionState == eCompositionState_Composing) {
     return NS_OK;
+  }
+
+  bool handlingCompositionCommit =
+    (mCompositionState == eCompositionState_Committing);
+  bool popupClosedByCompositionStart = mPopupClosedByCompositionStart;
+  if (handlingCompositionCommit) {
+    mCompositionState = eCompositionState_None;
+    mPopupClosedByCompositionStart = false;
   }
 
   if (!mInput) {
@@ -223,22 +236,6 @@ nsAutoCompleteController::HandleText()
   input->GetTextValue(newValue);
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  if (mIgnoreHandleText) {
-    mIgnoreHandleText = false;
-    if (newValue.Equals(mSearchString))
-      return NS_OK;
-    NS_ERROR("Now is after composition end event. But the value was changed.");
-  }
-
-  
   StopSearch();
 
   if (!mInput) {
@@ -253,8 +250,13 @@ nsAutoCompleteController::HandleText()
   NS_ENSURE_TRUE(!disabled, NS_OK);
 
   
-  if (newValue.Length() > 0 && newValue.Equals(mSearchString))
+  
+  
+  
+  if (!handlingCompositionCommit && newValue.Length() > 0 &&
+      newValue.Equals(mSearchString)) {
     return NS_OK;
+  }
 
   
   if (newValue.Length() < mSearchString.Length() &&
@@ -270,6 +272,13 @@ nsAutoCompleteController::HandleText()
 
   
   if (newValue.Length() == 0) {
+    
+    
+    if (popupClosedByCompositionStart && handlingCompositionCommit) {
+      bool cancel;
+      HandleKeyNavigation(nsIDOMKeyEvent::DOM_VK_DOWN, &cancel);
+      return NS_OK;
+    }
     ClosePopup();
     return NS_OK;
   }
@@ -328,10 +337,10 @@ nsAutoCompleteController::HandleEscape(bool *_retval)
 NS_IMETHODIMP
 nsAutoCompleteController::HandleStartComposition()
 {
-  NS_ENSURE_TRUE(!mIsIMEComposing, NS_OK);
+  NS_ENSURE_TRUE(mCompositionState != eCompositionState_Composing, NS_OK);
 
   mPopupClosedByCompositionStart = false;
-  mIsIMEComposing = true;
+  mCompositionState = eCompositionState_Composing;
 
   if (!mInput)
     return NS_OK;
@@ -360,29 +369,14 @@ nsAutoCompleteController::HandleStartComposition()
 NS_IMETHODIMP
 nsAutoCompleteController::HandleEndComposition()
 {
-  NS_ENSURE_TRUE(mIsIMEComposing, NS_OK);
+  NS_ENSURE_TRUE(mCompositionState == eCompositionState_Composing, NS_OK);
 
-  mIsIMEComposing = false;
-  bool forceOpenPopup = mPopupClosedByCompositionStart;
-  mPopupClosedByCompositionStart = false;
-
-  if (!mInput)
-    return NS_OK;
-
-  nsAutoString value;
-  mInput->GetTextValue(value);
-  SetSearchString(EmptyString());
-  if (!value.IsEmpty()) {
-    
-    HandleText();
-  } else if (forceOpenPopup) {
-    bool cancel;
-    HandleKeyNavigation(nsIDOMKeyEvent::DOM_VK_DOWN, &cancel);
-  }
   
   
-  mIgnoreHandleText = true;
-
+  
+  
+  
+  mCompositionState = eCompositionState_Committing;
   return NS_OK;
 }
 
