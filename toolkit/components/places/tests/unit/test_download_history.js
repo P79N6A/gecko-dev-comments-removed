@@ -124,40 +124,36 @@ add_test(function test_dh_addDownload_referrer()
   });
 });
 
-add_test(function test_dh_addDownload_privateBrowsing()
-{
-  if (!("@mozilla.org/privatebrowsing;1" in Cc)) {
-    todo(false, "PB service is not available, bail out");
-    run_next_test();
-    return;
-  }
+if ("@mozilla.org/privatebrowsing;1" in Cc) {
+  add_test(function test_dh_addDownload_privateBrowsing()
+  {
+    waitForOnVisit(function DHAD_onVisit(aURI) {
+      
+      
+      
+      
+      do_check_true(aURI.equals(DOWNLOAD_URI));
 
-  waitForOnVisit(function DHAD_onVisit(aURI) {
-    
-    
-    
-    
-    do_check_true(aURI.equals(DOWNLOAD_URI));
+      uri_in_db(DOWNLOAD_URI, true);
+      uri_in_db(PRIVATE_URI, false);
 
-    uri_in_db(DOWNLOAD_URI, true);
-    uri_in_db(PRIVATE_URI, false);
+      waitForClearHistory(run_next_test);
+    });
 
-    waitForClearHistory(run_next_test);
+    let pb = Cc["@mozilla.org/privatebrowsing;1"]
+             .getService(Ci.nsIPrivateBrowsingService);
+    Services.prefs.setBoolPref("browser.privatebrowsing.keep_current_session",
+                               true);
+    pb.privateBrowsingEnabled = true;
+    gDownloadHistory.addDownload(PRIVATE_URI, REFERRER_URI, Date.now() * 1000);
+
+    
+    
+    pb.privateBrowsingEnabled = false;
+    Services.prefs.clearUserPref("browser.privatebrowsing.keep_current_session");
+    gDownloadHistory.addDownload(DOWNLOAD_URI, REFERRER_URI, Date.now() * 1000);
   });
-
-  let pb = Cc["@mozilla.org/privatebrowsing;1"]
-           .getService(Ci.nsIPrivateBrowsingService);
-  Services.prefs.setBoolPref("browser.privatebrowsing.keep_current_session",
-                             true);
-  pb.privateBrowsingEnabled = true;
-  gDownloadHistory.addDownload(PRIVATE_URI, REFERRER_URI, Date.now() * 1000);
-
-  
-  
-  pb.privateBrowsingEnabled = false;
-  Services.prefs.clearUserPref("browser.privatebrowsing.keep_current_session");
-  gDownloadHistory.addDownload(DOWNLOAD_URI, REFERRER_URI, Date.now() * 1000);
-});
+}
 
 add_test(function test_dh_addDownload_disabledHistory()
 {
@@ -179,7 +175,8 @@ add_test(function test_dh_addDownload_disabledHistory()
 
   
   
-  Services.prefs.clearUserPref("places.history.enabled");
+  
+  Services.prefs.setBoolPref("places.history.enabled", true);
   gDownloadHistory.addDownload(DOWNLOAD_URI, REFERRER_URI, Date.now() * 1000);
 });
 
