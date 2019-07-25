@@ -696,9 +696,9 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
   }
   
   if (mFragmentMode) {
-    
-    
-    sele->PreventExecution();
+    if (mPreventScriptExecution) {
+      sele->PreventExecution();
+    }
     return;
   }
 

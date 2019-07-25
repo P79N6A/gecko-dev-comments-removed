@@ -126,6 +126,8 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
     PRBool                        mFragmentMode;
 
+    PRBool                        mPreventScriptExecution;
+
   public:
   
     nsHtml5TreeOpExecutor();
@@ -230,10 +232,18 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
     PRBool IsScriptEnabled();
 
-    void EnableFragmentMode() {
+    
+
+
+
+
+
+
+    void EnableFragmentMode(PRBool aPreventScriptExecution) {
       mFragmentMode = PR_TRUE;
       mCanInterruptParser = PR_FALSE; 
                                       
+      mPreventScriptExecution = aPreventScriptExecution;
     }
     
     PRBool IsFragmentMode() {
