@@ -16,6 +16,10 @@
 
 #include "vpx_config_x86-linux-gcc.h"
 
+#elif defined(__linux__) && defined(__x86_64__)
+
+#include "vpx_config_x86_64-linux-gcc.h"
+
 #elif defined(_MSC_VER) && defined(_M_X64)
 
 #include "vpx_config_x86_64-win64-vs8.h"
