@@ -34,10 +34,10 @@ function dial() {
   is(outgoing.number, number);
   is(outgoing.state, "dialing");
 
+  is(outgoing, telephony.active);
   
-  
-  
-  
+  is(telephony.calls.length, 1);
+  is(telephony.calls[0], outgoing);
 
   runEmulatorCmd("gsm list", function(result) {
     log("Call list is now: " + result);
@@ -57,7 +57,7 @@ function reject() {
     is(outgoing, event.call);
     is(outgoing.state, "disconnected");
 
-    
+    is(telephony.active, null);
     is(telephony.calls.length, 0);
 
     runEmulatorCmd("gsm list", function(result) {
@@ -66,8 +66,21 @@ function reject() {
       cleanUp();
     });
   };
-  runEmulatorCmd("gsm cancel " + number);
+  runEmulatorCmd("gsm list", cmdCallback);
 };
+
+function cmdCallback(result) {
+  let state = "outbound to  " + number + " : unknown";
+  log("Call list is now: " + result);
+
+  
+  
+  if (result[0] == state) {
+    runEmulatorCmd("gsm list", cmdCallback);
+  } else {
+    runEmulatorCmd("gsm cancel " + number);
+  }
+}
 
 function cleanUp() {
   SpecialPowers.clearUserPref(WHITELIST_PREF);
