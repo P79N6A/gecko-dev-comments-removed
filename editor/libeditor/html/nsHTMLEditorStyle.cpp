@@ -430,8 +430,14 @@ nsHTMLEditor::SetInlinePropertyOnNode( nsIDOMNode *aNode,
     element = do_QueryInterface(tmp);
     
     
+    
     res = RemoveStyleInside(tmp, aProperty, aAttribute, true);
     NS_ENSURE_SUCCESS(res, res);
+    if (NodeIsType(aNode, aProperty)) {
+      nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
+      res = RemoveAttribute(elem, *aAttribute);
+      NS_ENSURE_SUCCESS(res, res);
+    }
     PRInt32 count;
     
     res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(element, aProperty, aAttribute, aValue, &count, false);
@@ -474,6 +480,10 @@ nsHTMLEditor::SetInlinePropertyOnNode( nsIDOMNode *aNode,
     
     
     res = RemoveStyleInside(aNode, aProperty, aAttribute, true);
+    NS_ENSURE_SUCCESS(res, res);
+    res = mHTMLCSSUtils->RemoveCSSEquivalentToHTMLStyle(aNode, aProperty,
+                                                        aAttribute, nsnull,
+                                                        false);
     NS_ENSURE_SUCCESS(res, res);
     nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
     return SetAttribute(elem, *aAttribute, *aValue);
@@ -677,18 +687,6 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
         NS_ENSURE_SUCCESS(res, res);
         res = CloneAttribute(classAttr, spanNode, aNode);
         NS_ENSURE_SUCCESS(res, res);
-        if (hasStyleAttr) {
-          
-          
-          nsAutoString propertyValue;
-          mHTMLCSSUtils->RemoveCSSEquivalentToHTMLStyle(spanNode,
-                                                        aProperty,
-                                                        aAttribute,
-                                                        &propertyValue,
-                                                        false);
-          
-          RemoveElementIfNoStyleOrIdOrClass(spanNode);
-        }
       }
       res = RemoveContainer(aNode);
       NS_ENSURE_SUCCESS(res, res);
@@ -707,8 +705,10 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
         NS_ENSURE_SUCCESS(res, res);
       }
     }
-  } else if (!aChildrenOnly && IsCSSEnabled() &&
-             mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) {
+  }
+
+  if (!aChildrenOnly &&
+      mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) {
     
     
     
