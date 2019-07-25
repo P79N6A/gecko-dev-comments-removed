@@ -229,41 +229,6 @@ static nscoord CalcLength(const nsCSSValue &aValue,
                                 aCanStoreInRuleTree);
 }
 
-
-static void ProcessMatrix(float aMain[4], nscoord aDelta[2],
-                          float aX[2], float aY[2],
-                          const nsCSSValue::Array* aData,
-                          nsStyleContext* aContext,
-                          nsPresContext* aPresContext,
-                          PRBool& aCanStoreInRuleTree)
-{
-  NS_PRECONDITION(aData->Count() == 7, "Invalid array!");
-
-  
-
-
-  for (PRUint16 index = 1; index <= 4; ++index)
-    aMain[index - 1] = aData->Item(index).GetFloatValue();
-
-  
-
-
-  if (aData->Item(5).GetUnit() == eCSSUnit_Percent)
-    aX[0] = aData->Item(5).GetPercentValue();
-  else
-    aDelta[0] = CalcLength(aData->Item(5), aContext, aPresContext,
-                           aCanStoreInRuleTree);
-
-  
-
-
-  if (aData->Item(6).GetUnit() == eCSSUnit_Percent)
-    aY[1] = aData->Item(6).GetPercentValue();
-  else
-    aDelta[1] = CalcLength(aData->Item(6), aContext, aPresContext,
-                           aCanStoreInRuleTree);
-}
-
 struct LengthPercentPairCalcOps : public css::NumbersAlreadyNormalizedOps
 {
   struct result_type {
@@ -357,6 +322,31 @@ static void ProcessTranslatePart(nscoord& aOffset, float& aPercent,
     aOffset = CalcLength(aValue, aContext, aPresContext,
                          aCanStoreInRuleTree);
   }
+}
+
+
+static void ProcessMatrix(float aMain[4], nscoord aDelta[2],
+                          float aX[2], float aY[2],
+                          const nsCSSValue::Array* aData,
+                          nsStyleContext* aContext,
+                          nsPresContext* aPresContext,
+                          PRBool& aCanStoreInRuleTree)
+{
+  NS_PRECONDITION(aData->Count() == 7, "Invalid array!");
+
+  
+
+
+  for (PRUint16 index = 1; index <= 4; ++index)
+    aMain[index - 1] = aData->Item(index).GetFloatValue();
+
+  
+
+
+  ProcessTranslatePart(aDelta[0], aX[0], aData->Item(5),
+                       aContext, aPresContext, aCanStoreInRuleTree);
+  ProcessTranslatePart(aDelta[1], aY[1], aData->Item(6),
+                       aContext, aPresContext, aCanStoreInRuleTree);
 }
 
 
