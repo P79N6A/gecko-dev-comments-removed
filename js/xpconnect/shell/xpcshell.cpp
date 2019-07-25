@@ -2032,18 +2032,27 @@ XPCShellDirProvider::GetFile(const char *prop, bool *persistent,
             FAILED(SHGetPathFromIDListA(pItemIDList, appData))) {
             return NS_ERROR_FAILURE;
         }
-#ifdef MOZ_APP_PROFILE
-        sprintf(path, "%s\\%s", appData, MOZ_APP_PROFILE);
-#else
-        sprintf(path, "%s\\%s\\%s\\%s", appData, MOZ_APP_VENDOR, MOZ_APP_BASENAME, MOZ_APP_NAME);
-#endif
         nsAutoString pathName;
-        pathName.AssignASCII(path);
+        pathName.AssignASCII(appData);
         nsCOMPtr<nsIFile> localFile;
         nsresult rv = NS_NewLocalFile(pathName, true, getter_AddRefs(localFile));
         if (NS_FAILED(rv)) {
             return rv;
         }
+
+#ifdef MOZ_APP_PROFILE
+        localFile->AppendNative(NS_LITERAL_CSTRING(MOZ_APP_PROFILE));
+#else
+        
+#ifdef MOZ_APP_VENDOR
+        localFile->AppendNative(NS_LITERAL_CSTRING(MOZ_APP_VENDOR));
+#endif
+#ifdef MOZ_APP_BASENAME
+        localFile->AppendNative(NS_LITERAL_CSTRING(MOZ_APP_BASENAME));
+#endif
+        
+        localFile->AppendNative(NS_LITERAL_CSTRING(MOZ_APP_NAME));
+#endif
         return localFile->Clone(result);
 #else
         
