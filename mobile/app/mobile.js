@@ -566,7 +566,9 @@ pref("services.sync.prefs.sync.signon.rememberSignons", true);
 #endif
 
 
-pref("ui.dragThreshold", 24);
+
+pref("ui.dragThresholdX", 25);
+pref("ui.dragThresholdY", 25);
 
 #if MOZ_PLATFORM_MAEMO == 6
 pref("layers.acceleration.disabled", false);
