@@ -109,7 +109,6 @@
 #include "nsIImageLoadingContent.h"
 #include "nsCopySupport.h"
 #include "nsIDOMHTMLFrameSetElement.h"
-#include "nsIXULWindow.h"
 #ifdef MOZ_XUL
 #include "nsIXULDocument.h"
 #include "nsXULPopupManager.h"
@@ -1898,28 +1897,6 @@ DocumentViewerImpl::Move(PRInt32 aX, PRInt32 aY)
   return NS_OK;
 }
 
-static PRBool
-SetVisibilityOnXULWindow(nsIDocShellTreeItem* aTreeItem)
-{
-  if (!aTreeItem)
-    return PR_FALSE;
-  nsCOMPtr<nsIDocShellTreeOwner> owner;
-  aTreeItem->GetTreeOwner(getter_AddRefs(owner));
-  if (owner) {
-    
-    
-    
-    nsCOMPtr<nsIXULWindow> xulWin = do_GetInterface(owner);
-    nsCOMPtr<nsIBaseWindow> baseWin = do_GetInterface(xulWin);
-    if (baseWin) {
-      baseWin->SetVisibility(PR_TRUE);
-      return PR_TRUE;
-    }
-  }
-  NS_WARNING("Doc viewer attached to a parent that isn't a xul window??");
-  return PR_FALSE;
-}
-
 NS_IMETHODIMP
 DocumentViewerImpl::Show(void)
 {
@@ -1963,10 +1940,7 @@ DocumentViewerImpl::Show(void)
     
     
     
-    
-    nsCOMPtr<nsIDocShellTreeItem> treeItem(do_QueryReferent(mContainer));
-    if (!mAttachedToParent ||
-        (mAttachedToParent && !SetVisibilityOnXULWindow(treeItem))) {
+    if (!mAttachedToParent) {
       mWindow->Show(PR_TRUE);
     }
   }
