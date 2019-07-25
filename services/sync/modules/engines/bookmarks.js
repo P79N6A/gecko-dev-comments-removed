@@ -187,6 +187,7 @@ BookmarksEngine.prototype = {
   _syncFinish: function _syncFinish() {
     SyncEngine.prototype._syncFinish.call(this);
     delete this._lazyMap;
+    this._tracker._ensureMobileQuery();
   },
 
   _findDupe: function _findDupe(item) {
@@ -1095,11 +1096,17 @@ BookmarksTracker.prototype = {
     
     this.ignoreAll = true;
 
-    
     let mobile = find("MobileBookmarks");
     let queryURI = Utils.makeURI("place:folder=" + kSpecialIds.mobile);
     let title = Str.sync.get("mobile.label");
-    if (mobile.length == 0) {
+
+    
+    if (Svc.Bookmark.getIdForItemAt(kSpecialIds.mobile, 0) == -1) {
+      if (mobile.length != 0)
+        Svc.Bookmark.removeItem(mobile[0]);
+    }
+    
+    else if (mobile.length == 0) {
       let query = Svc.Bookmark.insertBookmark(all[0], queryURI, -1, title);
       Utils.anno(query, anno, "MobileBookmarks");
       Utils.anno(query, "places/excludeFromBackup", 1);
