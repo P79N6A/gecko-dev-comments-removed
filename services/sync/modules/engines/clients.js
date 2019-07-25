@@ -75,13 +75,6 @@ ClientEngine.prototype = {
   },
 
   
-  _createRecord: function SyncEngine__createRecord(id) {
-    let record = this._store.createRecord(id);
-    record.uri = this.engineURL + id;
-    return record;
-  },
-
-  
 
   
   
@@ -225,5 +218,5 @@ ClientTracker.prototype = {
   __proto__: Tracker.prototype,
   _logName: "ClientTracker",
   file: "clients",
-  get score() "75" 
+  get score() 100 
 };
