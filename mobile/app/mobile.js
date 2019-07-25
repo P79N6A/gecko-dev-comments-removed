@@ -399,7 +399,7 @@ pref("browser.ui.touch.weight.visited", 120);
 
 
 pref("plugin.disable", true);
-pref("dom.ipc.plugins.enabled", false);
+pref("dom.ipc.plugins.enabled", true);
 
 
 
