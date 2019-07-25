@@ -1523,6 +1523,13 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
       appMenuInspect.setAttribute("hidden", false);
   }
 
+  
+  let consoleEnabled = gPrefService.getBoolPref("devtools.errorconsole.enabled");
+  if (consoleEnabled) {
+    document.getElementById("javascriptConsole").hidden = false;
+    document.getElementById("key_errorConsole").disabled = false;
+  }
+
   Services.obs.notifyObservers(window, "browser-delayed-startup-finished", "");
 }
 
