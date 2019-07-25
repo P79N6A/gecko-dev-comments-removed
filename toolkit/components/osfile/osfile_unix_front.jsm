@@ -160,6 +160,16 @@
          return throw_on_negative("setPosition",
            UnixFile.lseek(this.fd, pos, whence)
          );
+       },
+
+       
+
+
+
+
+       stat: function stat() {
+         throw_on_negative("stat", UnixFile.fstat(this.fd, gStatDataPtr));
+         return new File.Info(gStatData);
        }
      };
 
@@ -674,7 +684,7 @@
        
 
 
-       get isLink() {
+       get isSymLink() {
          return this._d_type == OS.Constants.libc.DT_LNK;
        },
 
@@ -697,6 +707,126 @@
        }
      };
 
+     let gStatData = new OS.Shared.Type.stat.implementation();
+     let gStatDataPtr = gStatData.address();
+     let MODE_MASK = 4095 ;
+     File.Info = function Info(stat) {
+       this._st_mode = stat.st_mode;
+       this._st_uid = stat.st_uid;
+       this._st_gid = stat.st_gid;
+       this._st_atime = stat.st_atime;
+       this._st_mtime = stat.st_mtime;
+       this._st_ctime = stat.st_ctime;
+       this._st_size = stat.st_size;
+     };
+     File.Info.prototype = {
+       
+
+
+       get isDir() {
+         return (this._st_mode & OS.Constants.libc.S_IFMT) == OS.Constants.libc.S_IFDIR;
+       },
+       
+
+
+       get isSymLink() {
+         return (this._st_mode & OS.Constants.libc.S_IFMT) == OS.Constants.libc.S_IFLNK;
+       },
+       
+
+
+
+
+
+
+
+       get size() {
+         delete this.size;
+         let size;
+         try {
+           size = OS.Shared.projectValue(this._st_size);
+         } catch(x) {
+           LOG("get size error", x);
+           size = NaN;
+         }
+         Object.defineProperty(this, "size", { value: size });
+         return size;
+       },
+       
+
+
+
+
+       get creationDate() {
+         delete this.creationDate;
+         let date = new Date(this._st_ctime * 1000);
+         Object.defineProperty(this, "creationDate", { value: date });
+         return date;
+       },
+       
+
+
+
+
+
+
+
+       get lastAccessDate() {
+         delete this.lastAccessDate;
+         let date = new Date(this._st_atime * 1000);
+         Object.defineProperty(this, "lastAccessDate", {value: date});
+         return date;
+       },
+       
+
+
+       get lastModificationDate() {
+         delete this.lastModificationDate;
+         let date = new Date(this._st_mtime * 1000);
+         Object.defineProperty(this, "lastModificationDate", {value: date});
+         return date;
+       },
+       
+
+
+       get unixOwner() {
+         return this._st_uid;
+       },
+       
+
+
+       get unixGroup() {
+         return this._st_gid;
+       },
+       
+
+
+       get unixMode() {
+         return this._st_mode & MODE_MASK;
+       }
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+     File.stat = function stat(path, options) {
+       options = options || noOptions;
+       if (options.unixNoFollowingLinks) {
+         throw_on_negative("stat", UnixFile.lstat(path, gStatDataPtr));
+       } else {
+         throw_on_negative("stat", UnixFile.stat(path, gStatDataPtr));
+       }
+       return new File.Info(gStatData);
+     };
 
      
 
