@@ -308,12 +308,7 @@ pref("browser.download.saveLinkAsFilenameTimeout", 1000);
 
 pref("browser.download.useDownloadDir", true);
 
-#ifdef WINCE
-pref("browser.download.folderList", 2);
-pref("browser.download.dir", "\\Storage Card");
-#else
 pref("browser.download.folderList", 1);
-#endif
 pref("browser.download.manager.showAlertOnComplete", true);
 pref("browser.download.manager.showAlertInterval", 2000);
 pref("browser.download.manager.retention", 2);
@@ -371,11 +366,7 @@ pref("browser.link.open_newwindow", 3);
 pref("browser.link.open_newwindow.restriction", 2);
 
 
-#ifndef WINCE
 pref("browser.tabs.autoHide", false);
-#else
-pref("browser.tabs.autoHide", true);
-#endif
 pref("browser.tabs.closeWindowWithLastTab", true);
 pref("browser.tabs.insertRelatedAfterCurrent", true);
 pref("browser.tabs.warnOnClose", true);
@@ -423,11 +414,6 @@ pref("dom.disable_open_during_load",              true);
 pref("javascript.options.showInConsole",          true);
 #ifdef DEBUG
 pref("general.warnOnAboutConfig",                 false);
-#endif
-
-#ifdef WINCE
-
-pref("dom.max_script_run_time",                   20);
 #endif
 
 
@@ -775,11 +761,7 @@ pref("browser.rights.3.shown", false);
 pref("browser.rights.override", true);
 #endif
 
-#ifdef WINCE
-pref("browser.sessionstore.resume_from_crash", false);
-#else
 pref("browser.sessionstore.resume_from_crash", true);
-#endif
 pref("browser.sessionstore.resume_session_once", false);
 
 
@@ -899,39 +881,6 @@ pref("browser.bookmarks.editDialog.firstEditField", "namePicker");
 pref("geo.wifi.uri", "https://www.google.com/loc/json");
 pref("geo.wifi.protocol", 0);
 
-#ifdef WINCE
-
-
-pref("browser.urlbar.delay", 250);
-
-
-pref("browser.safebrowsing.enabled", false);
-pref("browser.safebrowsing.malware.enabled", false);
-
-
-pref("browser.shell.checkDefaultBrowser", false);
-
-
-pref("browser.sessionhistory.max_total_viewers", 0);
-
-pref("browser.sessionhistory.optimize_eviction", false);
-
-
-pref("content.sink.interactive_deflect_count", 10); 
-pref("content.sink.perf_deflect_count", 50); 
-pref("content.sink.interactive_parse_time", 5000); 
-pref("content.sink.perf_parse_time", 150000); 
-pref("content.sink.pending_event_mode", 0); 
-pref("content.sink.event_probe_rate", 1); 
-pref("content.sink.interactive_time", 750000); 
-pref("content.sink.initial_perf_time", 500000); 
-pref("content.sink.enable_perf_mode", 0); 
-
-
-pref("browser.sessionstore.interval", 60000);
-
-#endif 
-
 
 #ifdef XP_MACOSX
 pref("toolbar.customization.usesheet", true);
@@ -954,7 +903,6 @@ pref("dom.ipc.plugins.enabled", true);
 #endif
 
 #ifdef XP_WIN
-#ifndef WINCE
 pref("browser.taskbar.previews.enable", false);
 pref("browser.taskbar.previews.max", 20);
 pref("browser.taskbar.previews.cachetime", 5);
@@ -964,7 +912,6 @@ pref("browser.taskbar.lists.recent.enabled", false);
 pref("browser.taskbar.lists.maxListItemCount", 7);
 pref("browser.taskbar.lists.tasks.enabled", true);
 pref("browser.taskbar.lists.refreshInSeconds", 120);
-#endif
 #endif
 
 #ifdef MOZ_SERVICES_SYNC
