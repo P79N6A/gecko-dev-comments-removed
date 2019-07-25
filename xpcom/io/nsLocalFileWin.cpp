@@ -1356,7 +1356,8 @@ nsLocalFile::GetVersionInfoField(const char* aField, nsAString& _retval)
 nsresult
 nsLocalFile::CopySingleFile(nsIFile *sourceFile, nsIFile *destParent,
                             const nsAString &newName, 
-                            PRBool followSymlinks, PRBool move)
+                            PRBool followSymlinks, PRBool move,
+                            PRBool skipNtfsAclReset)
 {
     nsresult rv;
     nsAutoString filePath;
@@ -1442,8 +1443,10 @@ nsLocalFile::CopySingleFile(nsIFile *sourceFile, nsIFile *destParent,
 
     if (!copyOK)  
         rv = ConvertWinError(GetLastError());
-    else if (move) 
+    else if (move && !skipNtfsAclReset)
     {
+        
+        
         PACL pOldDACL = NULL;
         PSECURITY_DESCRIPTOR pSD = NULL;
         ::GetNamedSecurityInfoW((LPWSTR)destPath.get(), SE_FILE_OBJECT,
@@ -1476,7 +1479,6 @@ nsLocalFile::CopyMove(nsIFile *aParentDir, const nsAString &newName, PRBool foll
     if (!newParentDir)
     {
         
-
         if (newName.IsEmpty())
             return NS_ERROR_INVALID_ARG;
 
@@ -1542,7 +1544,8 @@ nsLocalFile::CopyMove(nsIFile *aParentDir, const nsAString &newName, PRBool foll
     if (move || !isDir || (isSymlink && !followSymlinks))
     {
         
-        rv = CopySingleFile(this, newParentDir, newName, followSymlinks, move);
+        rv = CopySingleFile(this, newParentDir, newName, followSymlinks, move,
+                            !aParentDir);
         done = NS_SUCCEEDED(rv);
         
         
