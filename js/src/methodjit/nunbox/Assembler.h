@@ -37,7 +37,8 @@
 
 
 
-#if !defined jsjaeger_assembler_h__ && defined JS_METHODJIT
+
+#if !defined jsjaeger_assembler_h__ && defined JS_METHODJIT && defined JS_32BIT
 #define jsjaeger_assembler_h__
 
 #include "methodjit/BaseAssembler.h"
