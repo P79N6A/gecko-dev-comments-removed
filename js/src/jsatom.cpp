@@ -42,9 +42,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-
-#include "mozilla/RangedPtr.h"
-
 #include "jstypes.h"
 #include "jsstdint.h"
 #include "jsutil.h"
@@ -55,7 +52,6 @@
 #include "jsbit.h"
 #include "jscntxt.h"
 #include "jsgc.h"
-#include "jsgcmark.h"
 #include "jslock.h"
 #include "jsnum.h"
 #include "jsparse.h"
@@ -67,19 +63,30 @@
 #include "jsatominlines.h"
 #include "jsobjinlines.h"
 
-#include "vm/String-inl.h"
-
 using namespace js;
 using namespace js::gc;
-
-const size_t JSAtomState::commonAtomsOffset = offsetof(JSAtomState, emptyAtom);
-const size_t JSAtomState::lazyAtomsOffset = offsetof(JSAtomState, lazy);
 
 
 
 
 JS_STATIC_ASSERT(sizeof(JSHashNumber) == 4);
 JS_STATIC_ASSERT(sizeof(JSAtom *) == JS_BYTES_PER_WORD);
+
+
+
+
+
+JS_STATIC_ASSERT(ATOM_OFFSET_START % sizeof(JSAtom *) == 0);
+JS_STATIC_ASSERT(ATOM_OFFSET_LIMIT % sizeof(JSAtom *) == 0);
+
+
+
+
+
+JS_STATIC_ASSERT(1 * sizeof(JSAtom *) ==
+                 offsetof(JSAtomState, booleanAtoms) - ATOM_OFFSET_START);
+JS_STATIC_ASSERT((1 + 2) * sizeof(JSAtom *) ==
+                 offsetof(JSAtomState, typeAtoms) - ATOM_OFFSET_START);
 
 const char *
 js_AtomToPrintableString(JSContext *cx, JSAtom *atom, JSAutoByteString *bytes)
@@ -126,7 +133,6 @@ const char *const js_common_atom_names[] = {
     js_apply_str,               
     js_arguments_str,           
     js_arity_str,               
-    js_BYTES_PER_ELEMENT_str,   
     js_call_str,                
     js_callee_str,              
     js_caller_str,              
@@ -209,31 +215,12 @@ const char *const js_common_atom_names[] = {
 
     "WeakMap",                  
 
-    "byteLength"                
+    "return",                   
+    "throw"                     
 };
 
-void
-JSAtomState::checkStaticInvariants()
-{
-    
-
-
-
-    JS_STATIC_ASSERT(commonAtomsOffset % sizeof(JSAtom *) == 0);
-    JS_STATIC_ASSERT(sizeof(*this) % sizeof(JSAtom *) == 0);
-
-    
-
-
-
-    JS_STATIC_ASSERT(1 * sizeof(JSAtom *) ==
-                     offsetof(JSAtomState, booleanAtoms) - commonAtomsOffset);
-    JS_STATIC_ASSERT((1 + 2) * sizeof(JSAtom *) ==
-                     offsetof(JSAtomState, typeAtoms) - commonAtomsOffset);
-
-    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(js_common_atom_names) * sizeof(JSAtom *) ==
-                     lazyAtomsOffset - commonAtomsOffset);
-}
+JS_STATIC_ASSERT(JS_ARRAY_LENGTH(js_common_atom_names) * sizeof(JSAtom *) ==
+                 LAZY_ATOM_OFFSET_START - ATOM_OFFSET_START);
 
 
 
@@ -247,7 +234,6 @@ const char js_anonymous_str[]       = "anonymous";
 const char js_apply_str[]           = "apply";
 const char js_arguments_str[]       = "arguments";
 const char js_arity_str[]           = "arity";
-const char js_BYTES_PER_ELEMENT_str[] = "BYTES_PER_ELEMENT";
 const char js_call_str[]            = "call";
 const char js_callee_str[]          = "callee";
 const char js_caller_str[]          = "caller";
@@ -315,6 +301,40 @@ const char js_send_str[]            = "send";
 
 
 
+inline AtomEntryType
+StringToInitialAtomEntry(JSString *str)
+{
+    return (AtomEntryType) str;
+}
+
+inline uintN
+AtomEntryFlags(AtomEntryType entry)
+{
+    return (uintN) (entry & ATOM_ENTRY_FLAG_MASK);
+}
+
+
+
+
+
+
+
+inline void
+AddAtomEntryFlags(const AtomEntryType &entry, uintN flags)
+{
+    const_cast<AtomEntryType &>(entry) |= AtomEntryType(flags);
+}
+
+inline void
+ClearAtomEntryFlags(const AtomEntryType &entry, uintN flags)
+{
+    const_cast<AtomEntryType &>(entry) &= ~AtomEntryType(flags);
+}
+
+
+
+
+
 
 
 #define JS_STRING_HASH_COUNT   1024
@@ -349,35 +369,47 @@ js_FinishAtomState(JSRuntime *rt)
     }
 
     for (AtomSet::Range r = state->atoms.all(); !r.empty(); r.popFront())
-        r.front().asPtr()->finalize(rt);
+        AtomEntryToKey(r.front())->finalize(rt);
 
 #ifdef JS_THREADSAFE
     js_FinishLock(&state->lock);
 #endif
 }
 
-bool
+JSBool
 js_InitCommonAtoms(JSContext *cx)
 {
     JSAtomState *state = &cx->runtime->atomState;
-    JSAtom **atoms = state->commonAtomsStart();
-    for (size_t i = 0; i < JS_ARRAY_LENGTH(js_common_atom_names); i++, atoms++) {
-        *atoms = js_Atomize(cx, js_common_atom_names[i], strlen(js_common_atom_names[i]),
-                            InternAtom);
-        if (!*atoms)
-            return false;
-    }
+    uintN i;
+    JSAtom **atoms;
 
-    state->clearLazyAtoms();
+    atoms = COMMON_ATOMS_START(state);
+    for (i = 0; i < JS_ARRAY_LENGTH(js_common_atom_names); i++, atoms++) {
+        *atoms = js_Atomize(cx, js_common_atom_names[i],
+                            strlen(js_common_atom_names[i]), ATOM_PINNED);
+        if (!*atoms)
+            return JS_FALSE;
+    }
+    JS_ASSERT((uint8 *)atoms - (uint8 *)state == LAZY_ATOM_OFFSET_START);
+    memset(atoms, 0, ATOM_OFFSET_LIMIT - LAZY_ATOM_OFFSET_START);
+
     cx->runtime->emptyString = state->emptyAtom;
-    return true;
+    return JS_TRUE;
 }
 
 void
 js_FinishCommonAtoms(JSContext *cx)
 {
     cx->runtime->emptyString = NULL;
-    cx->runtime->atomState.junkAtoms();
+    JSAtomState *state = &cx->runtime->atomState;
+
+    for (AtomSet::Range r = state->atoms.all(); !r.empty(); r.popFront())
+        ClearAtomEntryFlags(r.front(), ATOM_PINNED);
+
+#ifdef DEBUG
+    memset(COMMON_ATOMS_START(state), JS_FREE_PATTERN,
+           ATOM_OFFSET_LIMIT - ATOM_OFFSET_START);
+#endif
 }
 
 void
@@ -393,16 +425,20 @@ js_TraceAtomState(JSTracer *trc)
     if (rt->gcKeepAtoms) {
         for (AtomSet::Range r = state->atoms.all(); !r.empty(); r.popFront()) {
             JS_SET_TRACING_INDEX(trc, "locked_atom", number++);
-            MarkString(trc, r.front().asPtr());
+            MarkString(trc, AtomEntryToKey(r.front()));
         }
     } else {
         for (AtomSet::Range r = state->atoms.all(); !r.empty(); r.popFront()) {
-            AtomStateEntry entry = r.front();
-            if (!entry.isTagged())
-                continue;
-
-            JS_SET_TRACING_INDEX(trc, "interned_atom", number++);
-            MarkString(trc, entry.asPtr());
+            AtomEntryType entry = r.front();
+            uintN flags = AtomEntryFlags(entry);
+            if (flags & (ATOM_PINNED | ATOM_INTERNED)) {
+                JS_SET_TRACING_INDEX(trc,
+                                     flags & ATOM_PINNED
+                                     ? "pinned_atom"
+                                     : "interned_atom",
+                                     number++);
+                MarkString(trc, AtomEntryToKey(entry));
+            }
         }
     }
 }
@@ -413,50 +449,23 @@ js_SweepAtomState(JSContext *cx)
     JSAtomState *state = &cx->runtime->atomState;
 
     for (AtomSet::Enum e(state->atoms); !e.empty(); e.popFront()) {
-        AtomStateEntry entry = e.front();
-
-        if (entry.isTagged()) {
+        AtomEntryType entry = e.front();
+        if (AtomEntryFlags(entry) & (ATOM_PINNED | ATOM_INTERNED)) {
             
-            JS_ASSERT(!IsAboutToBeFinalized(cx, entry.asPtr()));
-            continue;
-        }
-        
-        if (IsAboutToBeFinalized(cx, entry.asPtr()))
+            JS_ASSERT(!IsAboutToBeFinalized(cx, AtomEntryToKey(entry)));
+        } else if (IsAboutToBeFinalized(cx, AtomEntryToKey(entry))) {
             e.removeFront();
+        }
     }
 }
 
-bool
-AtomIsInterned(JSContext *cx, JSAtom *atom)
-{
-    if (atom->isStaticAtom())
-        return true;
-
-    AutoLockAtomsCompartment lock(cx);
-    AtomSet::Ptr p = cx->runtime->atomState.atoms.lookup(atom);
-    if (!p)
-        return false;
-
-    return p->isTagged();
-}
-
-enum OwnCharsBehavior
-{
-    CopyChars, 
-    TakeCharOwnership
-};
 
 
 
-
-
-
-JS_ALWAYS_INLINE
 static JSAtom *
-AtomizeInline(JSContext *cx, const jschar **pchars, size_t length,
-              InternBehavior ib, OwnCharsBehavior ocb = CopyChars)
+Atomize(JSContext *cx, const jschar *chars, size_t length, uintN flags)
 {
-    const jschar *chars = *pchars;
+    JS_ASSERT(!(flags & ~(ATOM_PINNED|ATOM_INTERNED|ATOM_NOCOPY)));
 
     if (JSAtom *s = JSAtom::lookupStatic(chars, length))
         return s;
@@ -466,72 +475,46 @@ AtomizeInline(JSContext *cx, const jschar **pchars, size_t length,
     AtomSet &atoms = cx->runtime->atomState.atoms;
     AtomSet::AddPtr p = atoms.lookupForAdd(AtomHasher::Lookup(chars, length));
 
+    JSAtom *atom;
     if (p) {
-        JSAtom *atom = p->asPtr();
-        p->setTagged(bool(ib));
-        return atom;
-    }
-
-    SwitchToCompartment sc(cx, cx->runtime->atomsCompartment);
-
-    JSFixedString *key;
-
-    if (ocb == TakeCharOwnership) {
-        key = js_NewString(cx, const_cast<jschar *>(chars), length);
-        if (!key)
-            return NULL;
-        *pchars = NULL; 
+        atom = AtomEntryToKey(*p);
     } else {
-        JS_ASSERT(ocb == CopyChars);
-        key = js_NewStringCopyN(cx, chars, length);
-        if (!key)
+        SwitchToCompartment sc(cx, cx->runtime->atomsCompartment);
+
+        JSFixedString *key;
+        if (flags & ATOM_NOCOPY) {
+            key = js_NewString(cx, const_cast<jschar *>(chars), length);
+            if (!key) {
+                cx->free_(const_cast<jschar *>(chars));
+                return NULL;
+            }
+        } else {
+            key = js_NewStringCopyN(cx, chars, length);
+            if (!key)
+                return NULL;
+        }
+
+        
+
+
+
+        AtomHasher::Lookup lookup(chars, length);
+        if (!atoms.relookupOrAdd(p, lookup, StringToInitialAtomEntry(key))) {
+            JS_ReportOutOfMemory(cx); 
             return NULL;
+        }
+
+        atom = key->morphInternedStringIntoAtom();
     }
 
-    
-
-
-
-
-
-
-
-    AtomHasher::Lookup lookup(chars, length);
-    if (!atoms.relookupOrAdd(p, lookup, AtomStateEntry((JSAtom *) key, bool(ib)))) {
-        JS_ReportOutOfMemory(cx); 
-        return NULL;
-    }
-
-    return key->morphAtomizedStringIntoAtom();
-}
-
-static JSAtom *
-Atomize(JSContext *cx, const jschar **pchars, size_t length,
-        InternBehavior ib, OwnCharsBehavior ocb = CopyChars)
-{
-    return AtomizeInline(cx, pchars, length, ib, ocb);
+    AddAtomEntryFlags(*p, flags & (ATOM_PINNED | ATOM_INTERNED));
+    return atom;
 }
 
 JSAtom *
-js_AtomizeString(JSContext *cx, JSString *str, InternBehavior ib)
+js_AtomizeString(JSContext *cx, JSString *str, uintN flags)
 {
-    if (str->isAtom()) {
-        JSAtom &atom = str->asAtom();
-        
-        if (ib != InternAtom || atom.isStaticAtom())
-            return &atom;
-
-        
-        AutoLockAtomsCompartment lock(cx);
-
-        AtomSet &atoms = cx->runtime->atomState.atoms;
-        AtomSet::Ptr p = atoms.lookup(AtomHasher::Lookup(&atom));
-        JS_ASSERT(p); 
-        JS_ASSERT(p->asPtr() == &atom);
-        JS_ASSERT(ib == InternAtom);
-        p->setTagged(bool(ib));
-        return &atom;
-    }
+    JS_ASSERT(!(flags & ATOM_NOCOPY));
 
     if (str->isAtom())
         return &str->asAtom();
@@ -542,12 +525,13 @@ js_AtomizeString(JSContext *cx, JSString *str, InternBehavior ib)
         return NULL;
 
     JS_ASSERT(length <= JSString::MAX_LENGTH);
-    return Atomize(cx, &chars, length, ib);
+    return Atomize(cx, chars, length, flags);
 }
 
 JSAtom *
-js_Atomize(JSContext *cx, const char *bytes, size_t length, InternBehavior ib, FlationCoding fc)
+js_Atomize(JSContext *cx, const char *bytes, size_t length, uintN flags, bool useCESU8)
 {
+    JS_ASSERT(!(flags & ATOM_NOCOPY));
     CHECK_REQUEST(cx);
 
     if (!CheckStringLength(cx, length))
@@ -565,37 +549,34 @@ js_Atomize(JSContext *cx, const char *bytes, size_t length, InternBehavior ib, F
     size_t inflatedLength = ATOMIZE_BUF_MAX - 1;
 
     const jschar *chars;
-    OwnCharsBehavior ocb = CopyChars;
     if (length < ATOMIZE_BUF_MAX) {
-        if (fc == CESU8Encoding)
-            InflateUTF8StringToBuffer(cx, bytes, length, inflated, &inflatedLength, fc);
+        if (useCESU8)
+            js_InflateUTF8StringToBuffer(cx, bytes, length, inflated, &inflatedLength, true);
         else
-            InflateStringToBuffer(cx, bytes, length, inflated, &inflatedLength);
+            js_InflateStringToBuffer(cx, bytes, length, inflated, &inflatedLength);
         inflated[inflatedLength] = 0;
         chars = inflated;
     } else {
         inflatedLength = length;
-        chars = InflateString(cx, bytes, &inflatedLength, fc);
+        chars = js_InflateString(cx, bytes, &inflatedLength, useCESU8);
         if (!chars)
             return NULL;
-        ocb = TakeCharOwnership;
+        flags |= ATOM_NOCOPY;
     }
 
-    JSAtom *atom = Atomize(cx, &chars, inflatedLength, ib, ocb);
-    if (ocb == TakeCharOwnership && chars)
-        cx->free_((void *)chars);
-    return atom;
+    return Atomize(cx, chars, inflatedLength, flags);
 }
 
 JSAtom *
-js_AtomizeChars(JSContext *cx, const jschar *chars, size_t length, InternBehavior ib)
+js_AtomizeChars(JSContext *cx, const jschar *chars, size_t length, uintN flags)
 {
+    JS_ASSERT(!(flags & ATOM_NOCOPY));
     CHECK_REQUEST(cx);
 
     if (!CheckStringLength(cx, length))
         return NULL;
 
-    return AtomizeInline(cx, &chars, length, ib);
+    return Atomize(cx, chars, length, flags);
 }
 
 JSAtom *
@@ -605,7 +586,7 @@ js_GetExistingStringAtom(JSContext *cx, const jschar *chars, size_t length)
         return atom;
     AutoLockAtomsCompartment lock(cx);
     AtomSet::Ptr p = cx->runtime->atomState.atoms.lookup(AtomHasher::Lookup(chars, length));
-    return p ? p->asPtr() : NULL;
+    return p ? AtomEntryToKey(*p) : NULL;
 }
 
 #ifdef DEBUG
@@ -617,17 +598,33 @@ js_DumpAtoms(JSContext *cx, FILE *fp)
     fprintf(fp, "atoms table contents:\n");
     unsigned number = 0;
     for (AtomSet::Range r = state->atoms.all(); !r.empty(); r.popFront()) {
-        AtomStateEntry entry = r.front();
+        AtomEntryType entry = r.front();
         fprintf(fp, "%3u ", number++);
-        JSAtom *key = entry.asPtr();
-        FileEscapedString(fp, key, '"');
-        if (entry.isTagged())
-            fputs(" interned", fp);
+        if (entry == 0) {
+            fputs("<uninitialized>", fp);
+        } else {
+            JSAtom *key = AtomEntryToKey(entry);
+            FileEscapedString(fp, key, '"');
+            uintN flags = AtomEntryFlags(entry);
+            if (flags != 0) {
+                fputs((flags & (ATOM_PINNED | ATOM_INTERNED))
+                      ? " pinned | interned"
+                      : (flags & ATOM_PINNED) ? " pinned" : " interned",
+                      fp);
+            }
+        }
         putc('\n', fp);
     }
     putc('\n', fp);
 }
 #endif
+
+static JSHashNumber
+js_hash_atom_ptr(const void *key)
+{
+    const JSAtom *atom = (const JSAtom *) key;
+    return ATOM_HASH(atom);
+}
 
 #if JS_BITS_PER_WORD == 32
 # define TEMP_SIZE_START_LOG2   5
@@ -641,123 +638,314 @@ js_DumpAtoms(JSContext *cx, FILE *fp)
 
 JS_STATIC_ASSERT(TEMP_SIZE_START >= sizeof(JSHashTable));
 
+static void *
+js_alloc_temp_space(void *priv, size_t size)
+{
+    Parser *parser = (Parser *) priv;
+
+    void *space;
+    if (size < TEMP_SIZE_LIMIT) {
+        int bin = JS_CeilingLog2(size) - TEMP_SIZE_START_LOG2;
+        JS_ASSERT(unsigned(bin) < NUM_TEMP_FREELISTS);
+
+        space = parser->tempFreeList[bin];
+        if (space) {
+            parser->tempFreeList[bin] = *(void **)space;
+            return space;
+        }
+    }
+
+    JS_ARENA_ALLOCATE(space, &parser->context->tempPool, size);
+    if (!space)
+        js_ReportOutOfScriptQuota(parser->context);
+    return space;
+}
+
+static void
+js_free_temp_space(void *priv, void *item, size_t size)
+{
+    if (size >= TEMP_SIZE_LIMIT)
+        return;
+
+    Parser *parser = (Parser *) priv;
+    int bin = JS_CeilingLog2(size) - TEMP_SIZE_START_LOG2;
+    JS_ASSERT(unsigned(bin) < NUM_TEMP_FREELISTS);
+
+    *(void **)item = parser->tempFreeList[bin];
+    parser->tempFreeList[bin] = item;
+}
+
+static JSHashEntry *
+js_alloc_temp_entry(void *priv, const void *key)
+{
+    Parser *parser = (Parser *) priv;
+    JSAtomListElement *ale;
+
+    ale = parser->aleFreeList;
+    if (ale) {
+        parser->aleFreeList = ALE_NEXT(ale);
+        return &ale->entry;
+    }
+
+    JS_ARENA_ALLOCATE_TYPE(ale, JSAtomListElement, &parser->context->tempPool);
+    if (!ale) {
+        js_ReportOutOfScriptQuota(parser->context);
+        return NULL;
+    }
+    return &ale->entry;
+}
+
+static void
+js_free_temp_entry(void *priv, JSHashEntry *he, uintN flag)
+{
+    Parser *parser = (Parser *) priv;
+    JSAtomListElement *ale = (JSAtomListElement *) he;
+
+    ALE_SET_NEXT(ale, parser->aleFreeList);
+    parser->aleFreeList = ale;
+}
+
+static JSHashAllocOps temp_alloc_ops = {
+    js_alloc_temp_space,    js_free_temp_space,
+    js_alloc_temp_entry,    js_free_temp_entry
+};
+
+JSAtomListElement *
+JSAtomList::rawLookup(JSAtom *atom, JSHashEntry **&hep)
+{
+    if (table) {
+        hep = JS_HashTableRawLookup(table, ATOM_HASH(atom), atom);
+        return (JSAtomListElement *) *hep;
+    }
+
+    JSHashEntry **alep = &list;
+    hep = NULL;
+    JSAtomListElement *ale;
+    while ((ale = (JSAtomListElement *)*alep) != NULL) {
+        if (ALE_ATOM(ale) == atom) {
+            
+            *alep = ale->entry.next;
+            ale->entry.next = list;
+            list = &ale->entry;
+            break;
+        }
+        alep = &ale->entry.next;
+    }
+    return ale;
+}
+
+#define ATOM_LIST_HASH_THRESHOLD        12
+
+JSAtomListElement *
+JSAtomList::add(Parser *parser, JSAtom *atom, AddHow how)
+{
+    JS_ASSERT(!set);
+
+    JSAtomListElement *ale, *ale2, *next;
+    JSHashEntry **hep;
+
+    ale = rawLookup(atom, hep);
+    if (!ale || how != UNIQUE) {
+        if (count < ATOM_LIST_HASH_THRESHOLD && !table) {
+            
+            ale = (JSAtomListElement *)js_alloc_temp_entry(parser, atom);
+            if (!ale)
+                return NULL;
+            ALE_SET_ATOM(ale, atom);
+
+            if (how == HOIST) {
+                ale->entry.next = NULL;
+                hep = (JSHashEntry **) &list;
+                while (*hep)
+                    hep = &(*hep)->next;
+                *hep = &ale->entry;
+            } else {
+                ale->entry.next = list;
+                list = &ale->entry;
+            }
+        } else {
+            
+
+
+
+
+            if (!table) {
+                
+                JS_ASSERT(!hep);
+                table = JS_NewHashTable(count + 1, js_hash_atom_ptr,
+                                        JS_CompareValues, JS_CompareValues,
+                                        &temp_alloc_ops, parser);
+                if (!table)
+                    return NULL;
+
+                
+
+
+
+                table->nentries = count;
+
+                
+
+
+
+
+                for (ale2 = (JSAtomListElement *)list; ale2; ale2 = next) {
+                    next = ALE_NEXT(ale2);
+                    ale2->entry.keyHash = ATOM_HASH(ALE_ATOM(ale2));
+                    hep = JS_HashTableRawLookup(table, ale2->entry.keyHash,
+                                                ale2->entry.key);
+                    while (*hep)
+                        hep = &(*hep)->next;
+                    *hep = &ale2->entry;
+                    ale2->entry.next = NULL;
+                }
+                list = NULL;
+
+                
+                hep = JS_HashTableRawLookup(table, ATOM_HASH(atom), atom);
+            }
+
+            
+            ale = (JSAtomListElement *)
+                  JS_HashTableRawAdd(table, hep, ATOM_HASH(atom), atom, NULL);
+            if (!ale)
+                return NULL;
+
+            
+
+
+
+
+
+            if (how == HOIST && ale->entry.next) {
+                JS_ASSERT(*hep == &ale->entry);
+                *hep = ale->entry.next;
+                ale->entry.next = NULL;
+                do {
+                    hep = &(*hep)->next;
+                } while (*hep);
+                *hep = &ale->entry;
+            }
+        }
+
+        ALE_SET_INDEX(ale, count++);
+    }
+    return ale;
+}
+
 void
-js_InitAtomMap(JSContext *cx, JSAtomMap *map, AtomIndexMap *indices)
+JSAtomList::rawRemove(Parser *parser, JSAtomListElement *ale, JSHashEntry **hep)
 {
-    
-    JS_ASSERT(indices->count() == map->length);
+    JS_ASSERT(!set);
+    JS_ASSERT(count != 0);
 
-    if (indices->isMap()) {
-        typedef AtomIndexMap::WordMap WordMap;
-        const WordMap &wm = indices->asMap();
-        for (WordMap::Range r = wm.all(); !r.empty(); r.popFront()) {
-            JSAtom *atom = r.front().key;
-            jsatomid index = r.front().value;
-            JS_ASSERT(index < map->length);
-            map->vector[index] = atom;
-        }
+    if (table) {
+        JS_ASSERT(hep);
+        JS_HashTableRawRemove(table, hep, &ale->entry);
     } else {
-        for (const AtomIndexMap::InlineElem *it = indices->asInline(), *end = indices->inlineEnd();
-             it != end; ++it) {
-            JSAtom *atom = it->key;
-            if (!atom)
-                continue;
-            JS_ASSERT(it->value < map->length);
-            map->vector[it->value] = atom;
+        JS_ASSERT(!hep);
+        hep = &list;
+        while (*hep != &ale->entry) {
+            JS_ASSERT(*hep);
+            hep = &(*hep)->next;
+        }
+        *hep = ale->entry.next;
+        js_free_temp_entry(parser, &ale->entry, HT_FREE_ENTRY);
+    }
+
+    --count;
+}
+
+JSAutoAtomList::~JSAutoAtomList()
+{
+    if (table) {
+        JS_HashTableDestroy(table);
+    } else {
+        JSHashEntry *hep = list;
+        while (hep) {
+            JSHashEntry *next = hep->next;
+            js_free_temp_entry(parser, hep, HT_FREE_ENTRY);
+            hep = next;
         }
     }
 }
 
-namespace js {
-
-bool
-IndexToIdSlow(JSContext *cx, uint32 index, jsid *idp)
+JSAtomListElement *
+JSAtomListIterator::operator ()()
 {
-    JS_ASSERT(index > JSID_INT_MAX);
+    JSAtomListElement *ale;
+    JSHashTable *ht;
 
-    jschar buf[UINT32_CHAR_BUFFER_LENGTH];
-    RangedPtr<jschar> end(buf + JS_ARRAY_LENGTH(buf), buf, buf + JS_ARRAY_LENGTH(buf));
-    RangedPtr<jschar> start = BackfillIndexInCharBuffer(index, end);
+    if (index == uint32(-1))
+        return NULL;
 
-    JSAtom *atom = js_AtomizeChars(cx, start.get(), end - start);
-    if (!atom)
-        return false;
+    ale = next;
+    if (!ale) {
+        ht = list->table;
+        if (!ht)
+            goto done;
+        do {
+            if (index == JS_BIT(JS_HASH_BITS - ht->shift))
+                goto done;
+            next = (JSAtomListElement *) ht->buckets[index++];
+        } while (!next);
+        ale = next;
+    }
 
-    *idp = ATOM_TO_JSID(atom);
-    JS_ASSERT(js_CheckForStringIndex(*idp) == *idp);
-    return true;
+    next = ALE_NEXT(ale);
+    return ale;
+
+  done:
+    index = uint32(-1);
+    return NULL;
 }
 
-} 
-
-
-#define JSBOXEDWORD_INT_MAX_STRING "1073741823"
-
-
-
-
-
-
-
-jsid
-js_CheckForStringIndex(jsid id)
+static intN
+js_map_atom(JSHashEntry *he, intN i, void *arg)
 {
-    if (!JSID_IS_ATOM(id))
-        return id;
+    JSAtomListElement *ale = (JSAtomListElement *)he;
+    JSAtom **vector = (JSAtom **) arg;
 
-    JSAtom *atom = JSID_TO_ATOM(id);
-    const jschar *s = atom->chars();
-    jschar ch = *s;
+    vector[ALE_INDEX(ale)] = ALE_ATOM(ale);
+    return HT_ENUMERATE_NEXT;
+}
 
-    JSBool negative = (ch == '-');
-    if (negative)
-        ch = *++s;
+#ifdef DEBUG
+static jsrefcount js_atom_map_count;
+static jsrefcount js_atom_map_hash_table_count;
+#endif
 
-    if (!JS7_ISDEC(ch))
-        return id;
-
-    size_t n = atom->length() - negative;
-    if (n > sizeof(JSBOXEDWORD_INT_MAX_STRING) - 1)
-        return id;
-
-    const jschar *cp = s;
-    const jschar *end = s + n;
-
-    jsuint index = JS7_UNDEC(*cp++);
-    jsuint oldIndex = 0;
-    jsuint c = 0;
-
-    if (index != 0) {
-        while (JS7_ISDEC(*cp)) {
-            oldIndex = index;
-            c = JS7_UNDEC(*cp);
-            index = 10 * index + c;
-            cp++;
-        }
-    }
+void
+js_InitAtomMap(JSContext *cx, JSAtomMap *map, JSAtomList *al)
+{
+    JSAtom **vector;
+    JSAtomListElement *ale;
+    uint32 count;
 
     
-
-
-
-    if (cp != end || (negative && index == 0))
-        return id;
-
-    if (negative) {
-        if (oldIndex < -(JSID_INT_MIN / 10) ||
-            (oldIndex == -(JSID_INT_MIN / 10) && c <= (-JSID_INT_MIN % 10)))
-        {
-            id = INT_TO_JSID(-jsint(index));
-        }
-    } else {
-        if (oldIndex < JSID_INT_MAX / 10 ||
-            (oldIndex == JSID_INT_MAX / 10 && c <= (JSID_INT_MAX % 10)))
-        {
-            id = INT_TO_JSID(jsint(index));
-        }
+    JS_ASSERT(al->count == map->length);
+#ifdef DEBUG
+    JS_ATOMIC_INCREMENT(&js_atom_map_count);
+#endif
+    ale = (JSAtomListElement *)al->list;
+    if (!ale && !al->table) {
+        JS_ASSERT(!map->vector);
+        return;
     }
 
-    return id;
+    count = al->count;
+    vector = map->vector;
+    if (al->table) {
+#ifdef DEBUG
+        JS_ATOMIC_INCREMENT(&js_atom_map_hash_table_count);
+#endif
+        JS_HashTableEnumerateEntries(al->table, js_map_atom, vector);
+    } else {
+        do {
+            vector[ALE_INDEX(ale)] = ALE_ATOM(ale);
+        } while ((ale = ALE_NEXT(ale)) != NULL);
+    }
+    al->clear();
 }
 
 #if JS_HAS_XML_SUPPORT

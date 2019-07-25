@@ -41,16 +41,12 @@
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsgc.h"
-#include "jsgcmark.h"
 #include "jsiter.h"
-#include "jsmath.h"
 #include "jsproxy.h"
 #include "jsscope.h"
 #include "jstracer.h"
-#include "jswatchpoint.h"
 #include "jswrapper.h"
 #include "assembler/wtf/Platform.h"
-#include "yarr/BumpPointerAllocator.h"
 #include "methodjit/MethodJIT.h"
 #include "methodjit/PolyIC.h"
 #include "methodjit/MonoIC.h"
@@ -72,16 +68,10 @@ JSCompartment::JSCompartment(JSRuntime *rt)
     gcTriggerBytes(0),
     gcLastBytes(0),
     hold(false),
-#ifdef JS_TRACER
-    traceMonitor_(NULL),
-#endif
     data(NULL),
     active(false),
 #ifdef JS_METHODJIT
-    jaegerCompartment_(NULL),
-#endif
-#if ENABLE_YARR_JIT
-    regExpAllocator(NULL),
+    jaegerCompartment(NULL),
 #endif
     propertyTree(thisForCtor()),
     emptyArgumentsShape(NULL),
@@ -93,10 +83,17 @@ JSCompartment::JSCompartment(JSRuntime *rt)
     initialRegExpShape(NULL),
     initialStringShape(NULL),
     debugMode(rt->debugMode),
-    mathCache(NULL),
-    watchpointMap(NULL)
+#if ENABLE_YARR_JIT
+    regExpAllocator(NULL),
+#endif
+    mathCache(NULL)
 {
     JS_INIT_CLIST(&scripts);
+
+#ifdef JS_TRACER
+    
+    PodZero(&traceMonitor);
+#endif
 
     PodArrayZero(scriptsToGC);
 }
@@ -107,16 +104,15 @@ JSCompartment::~JSCompartment()
     Foreground::delete_(regExpAllocator);
 #endif
 
-#ifdef JS_METHODJIT
-    Foreground::delete_(jaegerCompartment_);
+#if defined JS_TRACER
+    FinishJIT(&traceMonitor);
 #endif
 
-#ifdef JS_TRACER
-    Foreground::delete_(traceMonitor_);
+#ifdef JS_METHODJIT
+    Foreground::delete_(jaegerCompartment);
 #endif
 
     Foreground::delete_(mathCache);
-    Foreground::delete_(watchpointMap);
 
 #ifdef DEBUG
     for (size_t i = 0; i != JS_ARRAY_LENGTH(scriptsToGC); ++i)
@@ -127,55 +123,52 @@ JSCompartment::~JSCompartment()
 bool
 JSCompartment::init()
 {
+    chunk = NULL;
     for (unsigned i = 0; i < FINALIZE_LIMIT; i++)
         arenas[i].init();
-    freeLists.init();
+    for (unsigned i = 0; i < FINALIZE_LIMIT; i++)
+        freeLists.finalizables[i] = NULL;
+#ifdef JS_GCMETER
+    memset(&compartmentStats, 0, sizeof(JSGCArenaStats) * FINALIZE_LIMIT);
+#endif
     if (!crossCompartmentWrappers.init())
         return false;
 
-    if (!scriptFilenameTable.init())
-        return false;
+#ifdef DEBUG
+    if (rt->meterEmptyShapes()) {
+        if (!emptyShapes.init())
+            return false;
+    }
+#endif
 
-    regExpAllocator = rt->new_<WTF::BumpPointerAllocator>();
+#ifdef JS_TRACER
+    if (!InitJIT(&traceMonitor, rt))
+        return false;
+#endif
+
+#if ENABLE_YARR_JIT
+    regExpAllocator = rt->new_<JSC::ExecutableAllocator>();
     if (!regExpAllocator)
         return false;
+#endif
 
     if (!backEdgeTable.init())
         return false;
 
-    return true;
-}
-
 #ifdef JS_METHODJIT
-bool
-JSCompartment::ensureJaegerCompartmentExists(JSContext *cx)
-{
-    if (jaegerCompartment_)
-        return true;
-
-    mjit::JaegerCompartment *jc = cx->new_<mjit::JaegerCompartment>();
-    if (!jc)
+    if (!(jaegerCompartment = rt->new_<mjit::JaegerCompartment>()))
         return false;
-    if (!jc->Initialize()) {
-        cx->delete_(jc);
-        return false;
-    }
-    jaegerCompartment_ = jc;
+    return jaegerCompartment->Initialize();
+#else
     return true;
-}
-
-size_t
-JSCompartment::getMjitCodeSize() const
-{
-    return jaegerCompartment_ ? jaegerCompartment_->execAlloc()->getCodeSize() : 0;
-}
 #endif
+}
 
 bool
 JSCompartment::arenaListsAreEmpty()
 {
   for (unsigned i = 0; i < FINALIZE_LIMIT; i++) {
-       if (!arenas[i].isEmpty())
+       if (!arenas[i].isEmpty() || arenas[i].hasToBeFinalized)
            return false;
   }
   return true;
@@ -232,7 +225,8 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         global = cx->fp()->scopeChain().getGlobal();
     } else {
         global = cx->globalObject;
-        if (!NULLABLE_OBJ_TO_INNER_OBJECT(cx, global))
+        OBJ_TO_INNER_OBJECT(cx, global);
+        if (!global)
             return false;
     }
 
@@ -290,7 +284,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         if (vp->isObject()) {
             JSObject *obj = &vp->toObject();
             JS_ASSERT(IsCrossCompartmentWrapper(obj));
-            if (global->getJSClass() != &js_dummy_class && obj->getParent() != global) {
+            if (obj->getParent() != global) {
                 do {
                     obj->setParent(global);
                     obj = obj->getProto();
@@ -466,6 +460,8 @@ JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
 void
 JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 {
+    chunk = NULL;
+
     
     for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
         JS_ASSERT_IF(IsAboutToBeFinalized(cx, e.front().key.toGCThing()) &&
@@ -497,8 +493,7 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
         initialStringShape = NULL;
 
 #ifdef JS_TRACER
-    if (hasTraceMonitor())
-        traceMonitor()->sweep(cx);
+    traceMonitor.sweep(cx);
 #endif
 
 #if defined JS_METHODJIT && defined JS_MONOIC
@@ -554,8 +549,7 @@ JSCompartment::purge(JSContext *cx)
 
 
     if (cx->runtime->gcRegenShapes)
-        if (hasTraceMonitor())
-            traceMonitor()->needFlush = JS_TRUE;
+        traceMonitor.needFlush = JS_TRUE;
 #endif
 
 #ifdef JS_METHODJIT
@@ -589,22 +583,6 @@ JSCompartment::allocMathCache(JSContext *cx)
     return mathCache;
 }
 
-#ifdef JS_TRACER
-TraceMonitor *
-JSCompartment::allocAndInitTraceMonitor(JSContext *cx)
-{
-    JS_ASSERT(!traceMonitor_);
-    traceMonitor_ = cx->new_<TraceMonitor>();
-    if (!traceMonitor_)
-        return NULL;
-    if (!traceMonitor_->init(cx->runtime)) {
-        Foreground::delete_(traceMonitor_);
-        return NULL;
-    }
-    return traceMonitor_;
-}
-#endif
-
 size_t
 JSCompartment::backEdgeCount(jsbytecode *pc) const
 {
@@ -622,3 +600,7 @@ JSCompartment::incBackEdgeCount(jsbytecode *pc)
     return 1;  
 }
 
+bool
+JSCompartment::isAboutToBeCollected(JSGCInvocationKind gckind) {
+    return !hold && (arenaListsAreEmpty() || gckind == GC_LAST_CONTEXT);
+}

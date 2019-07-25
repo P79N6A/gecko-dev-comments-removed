@@ -40,20 +40,25 @@
 #ifndef jscompartment_h___
 #define jscompartment_h___
 
-#include "jsclist.h"
 #include "jscntxt.h"
-#include "jsfun.h"
 #include "jsgc.h"
-#include "jsgcstats.h"
+#include "jsmath.h"
 #include "jsobj.h"
+#include "jsfun.h"
+#include "jsgcstats.h"
+#include "jsclist.h"
+#include "jsxml.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4251) /* Silence warning about JS_FRIEND_API and data members. */
 #endif
 
-namespace JSC { class ExecutableAllocator; }
-namespace WTF { class BumpPointerAllocator; }
+namespace JSC {
+
+class ExecutableAllocator;
+
+}
 
 namespace js {
 
@@ -100,6 +105,7 @@ struct TracerState
     void*          rpAtLastTreeCall;    
     VMSideExit*    outermostTreeExitGuard; 
     TreeFragment*  outermostTree;       
+    uintN*         inlineCallCountp;    
     VMSideExit**   innermostNestedGuardp;
     VMSideExit*    innermost;
     uint64         startTime;
@@ -118,7 +124,7 @@ struct TracerState
     js::Value*     nativeVp;
 
     TracerState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
-                VMSideExit** innermostNestedGuardp);
+                uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
     ~TracerState();
 };
 
@@ -130,10 +136,6 @@ struct TracerState
 
 struct TraceNativeStorage
 {
-    
-    static const size_t MAX_NATIVE_STACK_SLOTS  = 4096;
-    static const size_t MAX_CALL_STACK_ENTRIES  = 500;
-
     double stack_global_buf[MAX_NATIVE_STACK_SLOTS + GLOBAL_SLOTS_BUFFER_SIZE];
     FrameInfo *callstack_buf[MAX_CALL_STACK_ENTRIES];
 
@@ -257,16 +259,13 @@ struct TraceMonitor {
     
     nanojit::Seq<nanojit::Fragment*>* branches;
     uint32                  lastFragID;
+    
+
+
+
     VMAllocator*            profAlloc;
     FragStatsMap*           profTab;
-
-    void logFragProfile();
 #endif
-
-    TraceMonitor();
-    ~TraceMonitor();
-
-    bool init(JSRuntime* rt);
 
     bool ontrace() const {
         return !!tracecx;
@@ -282,10 +281,6 @@ struct TraceMonitor {
     void mark(JSTracer *trc);
 
     bool outOfMemory() const;
-
-    JS_FRIEND_API(void) getCodeAllocStats(size_t &total, size_t &frag_size, size_t &free_size) const;
-    JS_FRIEND_API(size_t) getVMAllocatorsMainSize() const;
-    JS_FRIEND_API(size_t) getVMAllocatorsReserveSize() const;
 };
 
 namespace mjit {
@@ -294,13 +289,21 @@ class JaegerCompartment;
 }
 
 
-extern JSClass js_dummy_class;
-
-
 #ifndef JS_EVAL_CACHE_SHIFT
 # define JS_EVAL_CACHE_SHIFT        6
 #endif
 #define JS_EVAL_CACHE_SIZE          JS_BIT(JS_EVAL_CACHE_SHIFT)
+
+#ifdef DEBUG
+# define EVAL_CACHE_METER_LIST(_)   _(probe), _(hit), _(step), _(noscope)
+# define identity(x)                x
+
+struct JSEvalCacheMeter {
+    uint64 EVAL_CACHE_METER_LIST(identity);
+};
+
+# undef identity
+#endif
 
 namespace js {
 
@@ -337,8 +340,6 @@ class NativeIterCache {
     }
 };
 
-class MathCache;
-
 
 
 
@@ -366,30 +367,14 @@ class DtoaCache {
 
 };
 
-struct ScriptFilenameEntry
-{
-    bool marked;
-    char filename[1];
-};
-
-struct ScriptFilenameHasher
-{
-    typedef const char *Lookup;
-    static HashNumber hash(const char *l) { return JS_HashString(l); }
-    static bool match(const ScriptFilenameEntry *e, const char *l) {
-        return strcmp(e->filename, l) == 0;
-    }
-};
-
-typedef HashSet<ScriptFilenameEntry *,
-                ScriptFilenameHasher,
-                SystemAllocPolicy> ScriptFilenameTable;
-
 } 
 
 struct JS_FRIEND_API(JSCompartment) {
+    typedef js::Vector<js::Debug *, 0, js::SystemAllocPolicy> DebugVector;
+
     JSRuntime                    *rt;
     JSPrincipals                 *principals;
+    js::gc::Chunk                *chunk;
 
     js::gc::ArenaList            arenas[js::gc::FINALIZE_LIMIT];
     js::gc::FreeLists            freeLists;
@@ -399,50 +384,30 @@ struct JS_FRIEND_API(JSCompartment) {
     size_t                       gcLastBytes;
 
     bool                         hold;
-    bool                         isSystemCompartment;
 
-#ifdef JS_TRACER
-  private:
-    
-
-
-
-    js::TraceMonitor             *traceMonitor_;
+#ifdef JS_GCMETER
+    js::gc::JSGCArenaStats       compartmentStats[js::gc::FINALIZE_LIMIT];
 #endif
 
-  public:
+#ifdef JS_TRACER
+    
+    js::TraceMonitor             traceMonitor;
+#endif
+
     
     JSScript                     *scriptsToGC[JS_EVAL_CACHE_SIZE];
+
+#ifdef DEBUG
+    JSEvalCacheMeter             evalCacheMeter;
+#endif
 
     void                         *data;
     bool                         active;  
     js::WrapperMap               crossCompartmentWrappers;
 
 #ifdef JS_METHODJIT
-  private:
-    
-    js::mjit::JaegerCompartment  *jaegerCompartment_;
-    
-
-
-
-
-
-  public:
-    bool hasJaegerCompartment() {
-        return !!jaegerCompartment_;
-    }
-
-    js::mjit::JaegerCompartment *jaegerCompartment() const {
-        JS_ASSERT(jaegerCompartment_);
-        return jaegerCompartment_;
-    }
-
-    bool ensureJaegerCompartmentExists(JSContext *cx);
-
-    size_t getMjitCodeSize() const;
+    js::mjit::JaegerCompartment  *jaegerCompartment;
 #endif
-    WTF::BumpPointerAllocator    *regExpAllocator;
 
     
 
@@ -489,12 +454,12 @@ struct JS_FRIEND_API(JSCompartment) {
     bool                         debugMode;  
     JSCList                      scripts;    
 
+    JSC::ExecutableAllocator     *regExpAllocator;
+
     js::NativeIterCache          nativeIterCache;
 
-    typedef js::Maybe<js::ToSourceCache> LazyToSourceCache;
+    typedef js::LazilyConstructed<js::ToSourceCache> LazyToSourceCache;
     LazyToSourceCache            toSourceCache;
-
-    js::ScriptFilenameTable      scriptFilenameTable;
 
     JSCompartment(JSRuntime *rt);
     ~JSCompartment();
@@ -516,12 +481,13 @@ struct JS_FRIEND_API(JSCompartment) {
     void sweep(JSContext *cx, uint32 releaseInterval);
     void purge(JSContext *cx);
     void finishArenaLists();
-    void finalizeObjectArenaLists(JSContext *cx);
-    void finalizeStringArenaLists(JSContext *cx);
-    void finalizeShapeArenaLists(JSContext *cx);
+    void finalizeObjectArenaLists(JSContext *cx, JSGCInvocationKind gckind);
+    void finalizeStringArenaLists(JSContext *cx, JSGCInvocationKind gckind);
+    void finalizeShapeArenaLists(JSContext *cx, JSGCInvocationKind gckind);
     bool arenaListsAreEmpty();
+    bool isAboutToBeCollected(JSGCInvocationKind gckind);
 
-    void setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind);
+    void setGCLastBytes(size_t lastBytes);
     void reduceGCTriggerBytes(uint32 amount);
 
     js::DtoaCache dtoaCache;
@@ -538,33 +504,38 @@ struct JS_FRIEND_API(JSCompartment) {
 
     BackEdgeMap                  backEdgeTable;
 
+    DebugVector debuggers;
+
+    
+    JSTrapStatus dispatchDebuggerStatement(JSContext *cx, js::Value *vp);
+
     JSCompartment *thisForCtor() { return this; }
   public:
     js::MathCache *getMathCache(JSContext *cx) {
         return mathCache ? mathCache : allocMathCache(cx);
     }
 
-#ifdef JS_TRACER
-    bool hasTraceMonitor() {
-        return !!traceMonitor_;
-    }
-
-    js::TraceMonitor *allocAndInitTraceMonitor(JSContext *cx);
-
-    js::TraceMonitor *traceMonitor() const {
-        JS_ASSERT(traceMonitor_);
-        return traceMonitor_;
-    }
-#endif
-
     size_t backEdgeCount(jsbytecode *pc) const;
     size_t incBackEdgeCount(jsbytecode *pc);
 
-    js::WatchpointMap *watchpointMap;
+    const DebugVector &getDebuggers() const { return debuggers; }
+
+    JSTrapStatus onDebuggerStatement(JSContext *cx, js::Value *vp) {
+        return debuggers.empty() ? JSTRAP_CONTINUE : dispatchDebuggerStatement(cx, vp);
+    }
+
+    bool addDebug(js::Debug *dbg) { return debuggers.append(dbg); }
+    void removeDebug(js::Debug *dbg);
 };
 
 #define JS_SCRIPTS_TO_GC(cx)    ((cx)->compartment->scriptsToGC)
 #define JS_PROPERTY_TREE(cx)    ((cx)->compartment->propertyTree)
+
+#ifdef DEBUG
+#define JS_COMPARTMENT_METER(x) x
+#else
+#define JS_COMPARTMENT_METER(x)
+#endif
 
 
 
@@ -572,11 +543,11 @@ struct JS_FRIEND_API(JSCompartment) {
 
 
 static inline bool
-JS_ON_TRACE(const JSContext *cx)
+JS_ON_TRACE(JSContext *cx)
 {
 #ifdef JS_TRACER
     if (JS_THREAD_DATA(cx)->onTraceCompartment)
-        return JS_THREAD_DATA(cx)->onTraceCompartment->traceMonitor()->ontrace();
+        return JS_THREAD_DATA(cx)->onTraceCompartment->traceMonitor.ontrace();
 #endif
     return false;
 }
@@ -586,7 +557,7 @@ static inline js::TraceMonitor *
 JS_TRACE_MONITOR_ON_TRACE(JSContext *cx)
 {
     JS_ASSERT(JS_ON_TRACE(cx));
-    return JS_THREAD_DATA(cx)->onTraceCompartment->traceMonitor();
+    return &JS_THREAD_DATA(cx)->onTraceCompartment->traceMonitor;
 }
 
 
@@ -597,20 +568,7 @@ JS_TRACE_MONITOR_ON_TRACE(JSContext *cx)
 static inline js::TraceMonitor *
 JS_TRACE_MONITOR_FROM_CONTEXT(JSContext *cx)
 {
-    return cx->compartment->traceMonitor();
-}
-
-
-
-
-
-static inline js::TraceMonitor *
-JS_TRACE_MONITOR_FROM_CONTEXT_WITH_LAZY_INIT(JSContext *cx)
-{
-    if (!cx->compartment->hasTraceMonitor())
-        return cx->compartment->allocAndInitTraceMonitor(cx);
-        
-    return cx->compartment->traceMonitor();
+    return &cx->compartment->traceMonitor;
 }
 #endif
 
@@ -619,7 +577,7 @@ TRACE_RECORDER(JSContext *cx)
 {
 #ifdef JS_TRACER
     if (JS_THREAD_DATA(cx)->recordingCompartment)
-        return JS_THREAD_DATA(cx)->recordingCompartment->traceMonitor()->recorder;
+        return JS_THREAD_DATA(cx)->recordingCompartment->traceMonitor.recorder;
 #endif
     return NULL;
 }
@@ -629,7 +587,7 @@ TRACE_PROFILER(JSContext *cx)
 {
 #ifdef JS_TRACER
     if (JS_THREAD_DATA(cx)->profilingCompartment)
-        return JS_THREAD_DATA(cx)->profilingCompartment->traceMonitor()->profile;
+        return JS_THREAD_DATA(cx)->profilingCompartment->traceMonitor.profile;
 #endif
     return NULL;
 }
@@ -641,6 +599,12 @@ GetMathCache(JSContext *cx)
     return cx->compartment->getMathCache(cx);
 }
 }
+
+#ifdef DEBUG
+# define EVAL_CACHE_METER(x)    (cx->compartment->evalCacheMeter.x++)
+#else
+# define EVAL_CACHE_METER(x)    ((void) 0)
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(pop)

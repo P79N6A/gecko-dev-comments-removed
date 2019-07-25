@@ -90,15 +90,6 @@ extern JS_PUBLIC_DATA(jsval) JSVAL_VOID;
 
 
 
-
-
-#define JSRUNMODE_INTERP    0
-#define JSRUNMODE_TRACEJIT  1
-#define JSRUNMODE_METHODJIT 2
-#define JSRUNMODE_COUNT     3
-
-
-
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_NULL(jsval v)
 {
@@ -342,22 +333,16 @@ JSID_IS_ZERO(jsid id)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_StringHasBeenInterned(JSContext *cx, JSString *str);
-
-
-
-
-
-
+JS_StringHasBeenInterned(JSString *str);
 
 
 static JS_ALWAYS_INLINE jsid
-INTERNED_STRING_TO_JSID(JSContext *cx, JSString *str)
+INTERNED_STRING_TO_JSID(JSString *str)
 {
     jsid id;
     JS_ASSERT(str);
+    JS_ASSERT(JS_StringHasBeenInterned(str));
     JS_ASSERT(((size_t)str & JSID_TYPE_MASK) == 0);
-    JS_ASSERT(JS_StringHasBeenInterned(cx, str));
     JSID_BITS(id) = (size_t)str;
     return id;
 }
@@ -506,8 +491,10 @@ extern JS_PUBLIC_DATA(jsid) JSID_EMPTY;
                                            object that delegates to a prototype
                                            containing this property */
 #define JSPROP_INDEX            0x80    /* name is actually (jsint) index */
-#define JSPROP_SHORTID          0x100   /* set in JSPropertyDescriptor.attrs
+#define JSPROP_SHORTID          0x100   /* set in JS_DefineProperty attrs
                                            if getters/setters use a shortid */
+#define JSPROP_NATIVE_ACCESSORS 0x08    /* set in JSPropertyDescriptor.flags
+                                           if getters/setters are JSNatives */
 
 
 #define JSFUN_LAMBDA            0x08    /* expressed, not declared, function */
@@ -969,7 +956,9 @@ JS_StringToVersion(const char *string);
                                                    backtracks more than n^3
                                                    times, where n is length
                                                    of the input string */
-
+#define JSOPTION_ANONFUNFIX     JS_BIT(10)      /* Disallow function () {} in
+                                                   statement context per
+                                                   ECMA-262 Edition 3. */
 
 #define JSOPTION_JIT            JS_BIT(11)      /* Enable JIT compilation. */
 
@@ -988,12 +977,11 @@ JS_StringToVersion(const char *string);
 #define JSOPTION_METHODJIT_ALWAYS \
                                 JS_BIT(16)      /* Always whole-method JIT,
                                                    don't tune at run-time. */
-#define JSOPTION_PCCOUNT        JS_BIT(17)      
 
 
-#define JSCOMPILEOPTION_MASK    (JSOPTION_XML)
+#define JSCOMPILEOPTION_MASK    (JSOPTION_XML | JSOPTION_ANONFUNFIX)
 
-#define JSRUNOPTION_MASK        (JS_BITMASK(18) & ~JSCOMPILEOPTION_MASK)
+#define JSRUNOPTION_MASK        (JS_BITMASK(17) & ~JSCOMPILEOPTION_MASK)
 #define JSALLOPTION_MASK        (JSCOMPILEOPTION_MASK | JSRUNOPTION_MASK)
 
 extern JS_PUBLIC_API(uint32)
@@ -1140,12 +1128,6 @@ JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForScopeChain(JSContext *cx);
 
-
-
-
-extern JS_PUBLIC_API(JSObject *)
-JS_InitReflect(JSContext *cx, JSObject *global);
-
 #ifdef JS_HAS_CTYPES
 
 
@@ -1182,16 +1164,6 @@ typedef struct JSCTypesCallbacks JSCTypesCallbacks;
 extern JS_PUBLIC_API(JSBool)
 JS_SetCTypesCallbacks(JSContext *cx, JSObject *ctypesObj, JSCTypesCallbacks *callbacks);
 #endif
-
-typedef JSBool
-(* JSEnumerateDiagnosticMemoryCallback)(void *ptr, size_t length);
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_EnumerateDiagnosticMemoryRegions(JSEnumerateDiagnosticMemoryCallback callback);
 
 
 
@@ -1529,6 +1501,7 @@ JS_AnchorPtr(void *p);
 #define JS_TYPED_ROOTING_API
 
 
+#define JS_ClearNewbornRoots(cx) ((void) 0)
 #define JS_EnterLocalRootScope(cx) (JS_TRUE)
 #define JS_LeaveLocalRootScope(cx) ((void) 0)
 #define JS_LeaveLocalRootScopeWithResult(cx, rval) ((void) 0)
@@ -1791,9 +1764,6 @@ extern JS_PUBLIC_API(void)
 JS_GC(JSContext *cx);
 
 extern JS_PUBLIC_API(void)
-JS_CompartmentGC(JSContext *cx, JSCompartment *comp);
-
-extern JS_PUBLIC_API(void)
 JS_MaybeGC(JSContext *cx);
 
 extern JS_PUBLIC_API(JSGCCallback)
@@ -1819,22 +1789,29 @@ typedef enum JSGCParamKey {
     JSGC_STACKPOOL_LIFESPAN = 2,
 
     
-    JSGC_BYTES = 3,
+
+
+
+
+
+
+
+    JSGC_TRIGGER_FACTOR = 3,
 
     
-    JSGC_NUMBER = 4,
+    JSGC_BYTES = 4,
 
     
-    JSGC_MAX_CODE_CACHE_BYTES = 5,
+    JSGC_NUMBER = 5,
 
     
-    JSGC_MODE = 6,
+    JSGC_MAX_CODE_CACHE_BYTES = 6,
 
     
-    JSGC_UNUSED_CHUNKS = 7,
+    JSGC_MODE = 7,
 
     
-    JSGC_TOTAL_CHUNKS = 8
+    JSGC_UNUSED_CHUNKS = 8
 } JSGCParamKey;
 
 typedef enum JSGCMode {
@@ -1903,33 +1880,7 @@ JS_RemoveExternalStringFinalizer(JSStringFinalizeOp finalizer);
 
 
 extern JS_PUBLIC_API(JSString *)
-JS_NewExternalString(JSContext *cx, const jschar *chars, size_t length, intN type);
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSString *)
-JS_NewExternalStringWithClosure(JSContext *cx, const jschar *chars, size_t length,
-                                intN type, void *closure);
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_IsExternalString(JSContext *cx, JSString *str);
-
-
-
-
-
-extern JS_PUBLIC_API(void *)
-JS_GetExternalStringClosure(JSContext *cx, JSString *str);
+JS_NewExternalString(JSContext *cx, jschar *chars, size_t length, intN type);
 
 
 
@@ -1943,6 +1894,22 @@ JS_SetThreadStackLimit(JSContext *cx, jsuword limitAddr);
 
 extern JS_PUBLIC_API(void)
 JS_SetNativeStackQuota(JSContext *cx, size_t stackSize);
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_SetScriptStackQuota(JSContext *cx, size_t quota);
+
+#define JS_DEFAULT_SCRIPT_STACK_QUOTA   ((size_t) 0x8000000)
 
 
 
@@ -2020,6 +1987,16 @@ struct JSClass {
 #define JSCLASS_FREEZE_CTOR             (1<<(JSCLASS_HIGH_FLAGS_SHIFT+6))
 
 
+#define JSRESERVED_GLOBAL_SLOTS_COUNT     7
+#define JSRESERVED_GLOBAL_THIS            (JSProto_LIMIT * 3)
+#define JSRESERVED_GLOBAL_THROWTYPEERROR  (JSRESERVED_GLOBAL_THIS + 1)
+#define JSRESERVED_GLOBAL_REGEXP_STATICS  (JSRESERVED_GLOBAL_THROWTYPEERROR + 1)
+#define JSRESERVED_GLOBAL_FUNCTION_NS     (JSRESERVED_GLOBAL_REGEXP_STATICS + 1)
+#define JSRESERVED_GLOBAL_EVAL_ALLOWED    (JSRESERVED_GLOBAL_FUNCTION_NS + 1)
+#define JSRESERVED_GLOBAL_EVAL            (JSRESERVED_GLOBAL_EVAL_ALLOWED + 1)
+#define JSRESERVED_GLOBAL_FLAGS           (JSRESERVED_GLOBAL_EVAL + 1)
+
+
 #define JSGLOBAL_FLAGS_CLEARED          0x1
 
 
@@ -2033,9 +2010,9 @@ struct JSClass {
 
 
 
-#define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 6)
 #define JSCLASS_GLOBAL_FLAGS                                                  \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT))
+    (JSCLASS_IS_GLOBAL |                                                      \
+     JSCLASS_HAS_RESERVED_SLOTS(JSRESERVED_GLOBAL_THIS + JSRESERVED_GLOBAL_SLOTS_COUNT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -2206,9 +2183,6 @@ JS_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent);
 extern JS_PUBLIC_API(JSBool)
 JS_IsExtensible(JSObject *obj);
 
-extern JS_PUBLIC_API(JSBool)
-JS_IsNative(JSObject *obj);
-
 
 
 
@@ -2307,6 +2281,10 @@ JS_DefinePropertyWithTinyId(JSContext *cx, JSObject *obj, const char *name,
                             int8 tinyid, jsval value,
                             JSPropertyOp getter, JSStrictPropertyOp setter,
                             uintN attrs);
+
+extern JS_PUBLIC_API(JSBool)
+JS_AliasProperty(JSContext *cx, JSObject *obj, const char *name,
+                 const char *alias);
 
 extern JS_PUBLIC_API(JSBool)
 JS_AlreadyHasOwnProperty(JSContext *cx, JSObject *obj, const char *name,
@@ -2486,29 +2464,36 @@ extern JS_PUBLIC_API(JSBool)
 JS_SetArrayLength(JSContext *cx, JSObject *obj, jsuint length);
 
 extern JS_PUBLIC_API(JSBool)
-JS_DefineElement(JSContext *cx, JSObject *obj, uint32 index, jsval value,
+JS_HasArrayLength(JSContext *cx, JSObject *obj, jsuint *lengthp);
+
+extern JS_PUBLIC_API(JSBool)
+JS_DefineElement(JSContext *cx, JSObject *obj, jsint index, jsval value,
                  JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs);
 
 extern JS_PUBLIC_API(JSBool)
-JS_AlreadyHasOwnElement(JSContext *cx, JSObject *obj, uint32 index, JSBool *foundp);
+JS_AliasElement(JSContext *cx, JSObject *obj, const char *name, jsint alias);
 
 extern JS_PUBLIC_API(JSBool)
-JS_HasElement(JSContext *cx, JSObject *obj, uint32 index, JSBool *foundp);
+JS_AlreadyHasOwnElement(JSContext *cx, JSObject *obj, jsint index,
+                        JSBool *foundp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_LookupElement(JSContext *cx, JSObject *obj, uint32 index, jsval *vp);
+JS_HasElement(JSContext *cx, JSObject *obj, jsint index, JSBool *foundp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_GetElement(JSContext *cx, JSObject *obj, uint32 index, jsval *vp);
+JS_LookupElement(JSContext *cx, JSObject *obj, jsint index, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_SetElement(JSContext *cx, JSObject *obj, uint32 index, jsval *vp);
+JS_GetElement(JSContext *cx, JSObject *obj, jsint index, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_DeleteElement(JSContext *cx, JSObject *obj, uint32 index);
+JS_SetElement(JSContext *cx, JSObject *obj, jsint index, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_DeleteElement2(JSContext *cx, JSObject *obj, uint32 index, jsval *rval);
+JS_DeleteElement(JSContext *cx, JSObject *obj, jsint index);
+
+extern JS_PUBLIC_API(JSBool)
+JS_DeleteElement2(JSContext *cx, JSObject *obj, jsint index, jsval *rval);
 
 extern JS_PUBLIC_API(void)
 JS_ClearScope(JSContext *cx, JSObject *obj);
@@ -2598,21 +2583,6 @@ JS_SetContextSecurityCallbacks(JSContext *cx, JSSecurityCallbacks *callbacks);
 
 extern JS_PUBLIC_API(JSSecurityCallbacks *)
 JS_GetSecurityCallbacks(JSContext *cx);
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_SetTrustedPrincipals(JSRuntime *rt, JSPrincipals *prin);
 
 
 
@@ -2976,11 +2946,13 @@ JS_IsRunning(JSContext *cx);
 
 
 
-extern JS_PUBLIC_API(JSBool)
+
+
+extern JS_PUBLIC_API(JSStackFrame *)
 JS_SaveFrameChain(JSContext *cx);
 
 extern JS_PUBLIC_API(void)
-JS_RestoreFrameChain(JSContext *cx);
+JS_RestoreFrameChain(JSContext *cx, JSStackFrame *fp);
 
 
 
@@ -3333,6 +3305,12 @@ JS_Stringify(JSContext *cx, jsval *vp, JSObject *replacer, jsval space,
 
 
 JS_PUBLIC_API(JSBool)
+JS_TryJSON(JSContext *cx, jsval *vp);
+
+
+
+
+JS_PUBLIC_API(JSBool)
 JS_ParseJSON(JSContext *cx, const jschar *chars, uint32 len, jsval *vp);
 
 JS_PUBLIC_API(JSBool)
@@ -3369,62 +3347,119 @@ JS_StructuredClone(JSContext *cx, jsval v, jsval *vp,
                    void *closure);
 
 #ifdef __cplusplus
-JS_END_EXTERN_C
 
-
-class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
-    JSUint64 *data_;
+class JSAutoStructuredCloneBuffer {
+    JSContext *cx_;
+    uint64 *data_;
     size_t nbytes_;
-    JSUint32 version_;
+    uint32 version_;
 
   public:
     JSAutoStructuredCloneBuffer()
-        : data_(NULL), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION) {}
+        : cx_(NULL), data_(NULL), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION) {}
 
     ~JSAutoStructuredCloneBuffer() { clear(); }
 
-    JSUint64 *data() const { return data_; }
+    JSContext *cx() const { return cx_; }
+    uint64 *data() const { return data_; }
     size_t nbytes() const { return nbytes_; }
 
-    void clear();
+    void clear(JSContext *cx=NULL) {
+        if (data_) {
+            if (!cx)
+                cx = cx_;
+            JS_ASSERT(cx);
+            JS_free(cx, data_);
+            cx_ = NULL;
+            data_ = NULL;
+            nbytes_ = 0;
+            version_ = 0;
+        }
+    }
 
     
-    bool copy(const JSUint64 *data, size_t nbytes, JSUint32 version=JS_STRUCTURED_CLONE_VERSION);
+
+
+
+    void adopt(JSContext *cx, uint64 *data, size_t nbytes,
+               uint32 version=JS_STRUCTURED_CLONE_VERSION) {
+        clear(cx);
+        cx_ = cx;
+        data_ = data;
+        nbytes_ = nbytes;
+        version_ = version;
+    }
 
     
 
 
 
+    void steal(uint64 **datap, size_t *nbytesp, JSContext **cxp=NULL,
+               uint32 *versionp=NULL) {
+        *datap = data_;
+        *nbytesp = nbytes_;
+        if (cxp)
+            *cxp = cx_;
+        if (versionp)
+            *versionp = version_;
 
-    void adopt(JSUint64 *data, size_t nbytes, JSUint32 version=JS_STRUCTURED_CLONE_VERSION);
+        cx_ = NULL;
+        data_ = NULL;
+        nbytes_ = 0;
+        version_ = 0;
+    }
 
-    
-
-
-
-
-    void steal(JSUint64 **datap, size_t *nbytesp, JSUint32 *versionp=NULL);
-
-    bool read(JSContext *cx, jsval *vp,
+    bool read(jsval *vp, JSContext *cx=NULL,
               const JSStructuredCloneCallbacks *optionalCallbacks=NULL,
-              void *closure=NULL) const;
+              void *closure=NULL) const {
+        if (!cx)
+            cx = cx_;
+        JS_ASSERT(cx);
+        JS_ASSERT(data_);
+        return !!JS_ReadStructuredClone(cx, data_, nbytes_, version_, vp,
+                                        optionalCallbacks, closure);
+    }
 
     bool write(JSContext *cx, jsval v,
                const JSStructuredCloneCallbacks *optionalCallbacks=NULL,
-               void *closure=NULL);
+               void *closure=NULL) {
+        clear(cx);
+        cx_ = cx;
+        bool ok = !!JS_WriteStructuredClone(cx, v, &data_, &nbytes_,
+                                            optionalCallbacks, closure);
+        if (!ok) {
+            data_ = NULL;
+            nbytes_ = 0;
+            version_ = JS_STRUCTURED_CLONE_VERSION;
+        }
+        return ok;
+    }
 
     
 
 
-    void swap(JSAutoStructuredCloneBuffer &other);
+    void swap(JSAutoStructuredCloneBuffer &other) {
+        JSContext *cx = other.cx_;
+        uint64 *data = other.data_;
+        size_t nbytes = other.nbytes_;
+        uint32 version = other.version_;
+
+        other.cx_ = this->cx_;
+        other.data_ = this->data_;
+        other.nbytes_ = this->nbytes_;
+        other.version_ = this->version_;
+
+        this->cx_ = cx;
+        this->data_ = data;
+        this->nbytes_ = nbytes;
+        this->version_ = version;
+    }
 
   private:
     
     JSAutoStructuredCloneBuffer(const JSAutoStructuredCloneBuffer &other);
     JSAutoStructuredCloneBuffer &operator=(const JSAutoStructuredCloneBuffer &other);
 };
-
-JS_BEGIN_EXTERN_C
 #endif
 
 
@@ -3641,15 +3676,6 @@ extern JS_PUBLIC_API(JSBool)
 JS_ExecuteRegExpNoStatics(JSContext *cx, JSObject *reobj, jschar *chars, size_t length,
                           size_t *indexp, JSBool test, jsval *rval);
 
-extern JS_PUBLIC_API(JSBool)
-JS_ObjectIsRegExp(JSContext *cx, JSObject *obj);
-
-extern JS_PUBLIC_API(uintN)
-JS_GetRegExpFlags(JSContext *cx, JSObject *obj);
-
-extern JS_PUBLIC_API(JSString *)
-JS_GetRegExpSource(JSContext *cx, JSObject *obj);
-
 
 
 extern JS_PUBLIC_API(JSBool)
@@ -3728,51 +3754,6 @@ JS_SetContextThread(JSContext *cx);
 
 extern JS_PUBLIC_API(jsword)
 JS_ClearContextThread(JSContext *cx);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_AbortIfWrongThread(JSRuntime *rt);
-
-extern JS_PUBLIC_API(void)
-JS_ClearRuntimeThread(JSRuntime *rt);
-
-extern JS_PUBLIC_API(void)
-JS_SetRuntimeThread(JSRuntime *rt);
-
-#ifdef __cplusplus
-JS_END_EXTERN_C
-
-class JSAutoSetRuntimeThread
-{
-    JSRuntime *runtime;
-
-  public:
-    JSAutoSetRuntimeThread(JSRuntime *runtime) : runtime(runtime) {
-        JS_SetRuntimeThread(runtime);
-    }
-
-    ~JSAutoSetRuntimeThread() {
-        JS_ClearRuntimeThread(runtime);
-    }
-};
-
-JS_BEGIN_EXTERN_C
-#endif
 
 
 
@@ -3862,13 +3843,8 @@ JS_NewObjectForConstructor(JSContext *cx, const jsval *vp);
 #endif
 
 #ifdef JS_GC_ZEAL
-#define JS_DEFAULT_ZEAL_FREQ 100
-
 extern JS_PUBLIC_API(void)
-JS_SetGCZeal(JSContext *cx, uint8 zeal, uint32 frequency, JSBool compartment);
-
-extern JS_PUBLIC_API(void)
-JS_ScheduleGC(JSContext *cx, uint32 count, JSBool compartment);
+JS_SetGCZeal(JSContext *cx, uint8 zeal);
 #endif
 
 JS_END_EXTERN_C
