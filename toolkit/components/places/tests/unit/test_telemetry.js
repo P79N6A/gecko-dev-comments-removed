@@ -65,7 +65,9 @@ function run_test() {
   PlacesUtils.bookmarks.setKeywordForBookmark(itemId, "keyword");
 
   
-  PlacesDBUtils._telemetry();
+  Cc["@mozilla.org/places/categoriesStarter;1"]
+    .getService(Ci.nsIObserver)
+    .observe(null, "gather-telemetry", null);
 
   waitForAsyncUpdates(continue_test);
 }

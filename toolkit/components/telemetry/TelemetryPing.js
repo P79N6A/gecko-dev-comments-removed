@@ -63,6 +63,10 @@ const MEM_HISTOGRAMS = {
   "page-faults-hard": "PAGE_FAULTS_HARD"
 };
 
+
+
+const IDLE_TIMEOUT_SECONDS = 5 * 60;
+
 var gLastMemoryPoll = null;
 
 function getLocale() {
@@ -341,6 +345,10 @@ TelemetryPing.prototype = {
       return;
     Services.obs.removeObserver(this, "idle-daily");
     Services.obs.removeObserver(this, "cycle-collector-begin");
+    if (this._isIdleObserver) {
+      idle.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
+      this._isIdleObserver = false;
+    }
   },
 
   
@@ -416,11 +424,26 @@ TelemetryPing.prototype = {
         this.attachObservers()
       }
       break;
+    case "idle-daily":
+      
+      
+      Services.tm.mainThread.dispatch((function() {
+        
+        Services.obs.notifyObservers(null, "gather-telemetry", null);
+        
+        idle.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
+        this._isIdleObserver = true;
+      }).bind(this), Ci.nsIThread.DISPATCH_NORMAL);
+      break;
     case "test-ping":
       server = aData;
       
-    case "idle-daily":
-      this.send(aTopic, server);
+    case "idle":
+      if (this._isIdleObserver) {
+        idle.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
+        this._isIdleObserver = false;
+      }
+      this.send(aTopic == "idle" ? "idle-daily" : aTopic, server);
       break;
     }
   },
