@@ -153,9 +153,6 @@ function loaded() {
 
   
   runTests();
-
-  finish();
-  window.close();
 }
 
 
