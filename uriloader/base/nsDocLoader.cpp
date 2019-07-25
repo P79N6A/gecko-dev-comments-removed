@@ -1143,8 +1143,8 @@ NS_IMETHODIMP nsDocLoader::OnStatus(nsIRequest* aRequest, nsISupports* ctxt,
     nsRequestInfo *info;
     info = GetRequestInfo(aRequest);
     if (info) {
-      bool uploading = (aStatus == nsITransport::STATUS_WRITING ||
-                          aStatus == nsISocketTransport::STATUS_SENDING_TO);
+      bool uploading = (aStatus == NS_NET_STATUS_WRITING ||
+                        aStatus == NS_NET_STATUS_SENDING_TO);
       
       
       
