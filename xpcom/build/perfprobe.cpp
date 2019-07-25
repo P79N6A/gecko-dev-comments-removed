@@ -6,6 +6,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <windows.h>
 #include <wmistr.h>
 #include <evntrace.h>
@@ -99,10 +132,10 @@ ProbeManager::~ProbeManager()
 
 ProbeManager::ProbeManager(const nsCID &aApplicationUID,
                            const nsACString &aApplicationName)
-  : mApplicationUID(aApplicationUID)
+  : mSessionHandle(NULL)
+  , mRegistrationHandle(NULL)
+  , mApplicationUID(aApplicationUID)
   , mApplicationName(aApplicationName)
-  , mSessionHandle(0)
-  , mRegistrationHandle(0)
 {
 #if defined(MOZ_LOGGING)
   char cidStr[NSID_LENGTH];
@@ -120,10 +153,10 @@ ProbeManager::ProbeManager(const nsCID &aApplicationUID,
 
 
 ULONG WINAPI ControlCallback(
-                             WMIDPREQUESTCODE RequestCode,
-                             PVOID Context,
-                             ULONG *Reserved,
-                             PVOID Buffer
+                             __in  WMIDPREQUESTCODE RequestCode,
+                             __in  PVOID Context,
+                             __in  ULONG *Reserved,
+                             __in  PVOID Buffer
                              )
 {
   ProbeManager* context = (ProbeManager*)Context;
@@ -152,7 +185,7 @@ ULONG WINAPI ControlCallback(
 
   case WMI_DISABLE_EVENTS:
     context->mIsActive      = false;
-    context->mSessionHandle = 0;
+    context->mSessionHandle = NULL;
     LOG(("Probes: ControlCallback deactivated"));
     return ERROR_SUCCESS;
 
@@ -213,9 +246,9 @@ nsresult ProbeManager::StartSession(nsTArray<nsRefPtr<Probe>> &aProbes)
 nsresult ProbeManager::StopSession()
 {
   LOG(("Probes: Stopping measures"));
-  if (mSessionHandle != 0) {
+  if (mSessionHandle != NULL) {
     ULONG result = UnregisterTraceGuids(mSessionHandle);
-    mSessionHandle = 0;
+    mSessionHandle = NULL;
     if (result != ERROR_SUCCESS) {
       return NS_ERROR_INVALID_ARG;
     }
