@@ -110,15 +110,13 @@ public class GeckoPreferences
             if (mPreferenceScreen == null)
                 return;
 
-            final String[] homepageValues = sContext.getResources().getStringArray(R.array.pref_homepage_values);
-
             
-            Tab tab = Tabs.getInstance().getSelectedTab();
-            String currentUrl = tab.getURL();
+            final String[] homepageValues = sContext.getResources().getStringArray(R.array.pref_homepage_values);
             final Preference homepagePref = mPreferenceScreen.findPreference("browser.startup.homepage");
-            homepageValues[2] = currentUrl;
             GeckoAppShell.getMainHandler().post(new Runnable() {
                 public void run() {
+                    Tab tab = Tabs.getInstance().getSelectedTab();
+                    homepageValues[2] = tab.getURL();
                     ((ListPreference)homepagePref).setEntryValues(homepageValues);
                 }
             });
