@@ -1007,7 +1007,9 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 
 
 pref("devtools.errorconsole.enabled", false);
-pref("devtools.inspector.enabled", false);
+
+
+pref("devtools.inspector.enabled", true);
 
 
 pref("devtools.scratchpad.enabled", true);

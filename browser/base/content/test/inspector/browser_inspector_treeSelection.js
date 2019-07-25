@@ -59,7 +59,6 @@ function createDocument()
   div.appendChild(h1);
   div.appendChild(p1);
   div.appendChild(p2);
-  
   doc.body.appendChild(div);
   setupSelectionTests();
 }
@@ -68,31 +67,37 @@ function setupSelectionTests()
 {
   h1 = doc.querySelectorAll("h1")[0];
   ok(h1, "we have the header node");
-  Services.obs.addObserver(runSelectionTests, "inspector-opened", false);
+  Services.obs.addObserver(runSelectionTests,
+    INSPECTOR_NOTIFICATIONS.OPENED, false);
   InspectorUI.openInspectorUI();
 }
 
 function runSelectionTests()
 {
-  Services.obs.removeObserver(runSelectionTests, "inspector-opened", false);
-  InspectorUI.stopInspecting();
-  document.addEventListener("popupshown", performTestComparisons, false);
-  InspectorUI.inspectNode(h1);
+  Services.obs.removeObserver(runSelectionTests,
+    INSPECTOR_NOTIFICATIONS.OPENED, false);
+  Services.obs.addObserver(performTestComparisons,
+    INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
+  executeSoon(function() {
+    InspectorUI.inspectNode(h1);
+  });
 }
 
 function performTestComparisons(evt)
 {
-  if (evt.target.id != "highlighter-panel")
-    return true;
-  document.removeEventListener("popupshown", performTestComparisons, false);
+  Services.obs.removeObserver(performTestComparisons,
+    INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
+
   is(h1, InspectorUI.selection, "selection matches node");
-  ok(InspectorUI.highlighter.isHighlighting, "panel is highlighting");
-  is(h1, InspectorUI.highlighter.highlitNode, "highlighter highlighting correct node");
+  ok(InspectorUI.highlighter.isHighlighting, "highlighter is highlighting");
+  is(InspectorUI.highlighter.highlitNode, h1, "highlighter highlighting correct node");
+
   finishUp();
 }
 
 function finishUp() {
   InspectorUI.closeInspectorUI();
+  doc = h1 = null;
   gBrowser.removeCurrentTab();
   finish();
 }
@@ -106,7 +111,7 @@ function test()
     doc = content.document;
     waitForFocus(createDocument, content);
   }, true);
-  
+
   content.location = "data:text/html,basic tests for inspector";
 }
 

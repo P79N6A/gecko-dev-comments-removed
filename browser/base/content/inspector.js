@@ -39,6 +39,7 @@
 
 
 
+
 #endif
 
 #include insideOutBox.js
@@ -56,6 +57,23 @@ const INSPECTOR_INVISIBLE_ELEMENTS = {
 };
 
 
+const INSPECTOR_NOTIFICATIONS = {
+  
+  HIGHLIGHTER_READY: "highlighter-ready",
+
+  
+  HIGHLIGHTING: "inspector-highlighting",
+
+  
+  UNHIGHLIGHTING: "inspector-unhighlighting",
+
+  
+  
+  OPENED: "inspector-opened",
+
+  
+  CLOSED: "inspector-closed",
+};
 
 
 
@@ -64,15 +82,91 @@ const INSPECTOR_INVISIBLE_ELEMENTS = {
 
 
 
-function PanelHighlighter(aBrowser)
+
+
+function IFrameHighlighter(aBrowser)
 {
-  this.panel = document.getElementById("highlighter-panel");
-  this.panel.hidden = false;
-  this.browser = aBrowser;
-  this.win = this.browser.contentWindow;
+  this._init(aBrowser);
 }
 
-PanelHighlighter.prototype = {
+IFrameHighlighter.prototype = {
+
+  _init: function IFH__init(aBrowser)
+  {
+    this.browser = aBrowser;
+    let stack = this.browser.parentNode;
+    this.win = this.browser.contentWindow;
+    this._highlighting = false;
+
+    let div = document.createElement("div");
+    div.flex = 1;
+    div.setAttribute("style", "pointer-events: none; -moz-user-focus: ignore");
+
+    let iframe = document.createElement("iframe");
+    iframe.setAttribute("id", "highlighter-frame");
+    iframe.setAttribute("transparent", "true");
+    iframe.setAttribute("type", "content");
+    iframe.addEventListener("DOMTitleChanged", function(aEvent) {
+      aEvent.stopPropagation();
+    }, true);
+    iframe.flex = 1;
+    iframe.setAttribute("style", "-moz-user-focus: ignore");
+
+    this.listenOnce(iframe, "load", (function iframeLoaded() {
+      this.iframeDoc = iframe.contentDocument;
+
+      this.veilTopDiv = this.iframeDoc.getElementById("veil-topbox");
+      this.veilLeftDiv = this.iframeDoc.getElementById("veil-leftbox");
+      this.veilMiddleDiv = this.iframeDoc.getElementById("veil-middlebox");
+      this.veilTransparentDiv = this.iframeDoc.getElementById("veil-transparentbox");
+
+      let closeButton = this.iframeDoc.getElementById("close-button");
+      this.listenOnce(closeButton, "click",
+        InspectorUI.closeInspectorUI.bind(InspectorUI, false), false);
+
+      this.browser.addEventListener("click", this, true);
+      iframe.contentWindow.addEventListener("resize", this, false);
+      this.handleResize();
+      Services.obs.notifyObservers(null,
+        INSPECTOR_NOTIFICATIONS.HIGHLIGHTER_READY, null);
+    }).bind(this), true);
+
+    iframe.setAttribute("src", "chrome://browser/content/highlighter.xhtml");
+
+    div.appendChild(iframe);
+    stack.appendChild(div);
+    this.iframe = iframe;
+    this.iframeContainer = div;
+  },
+
+  
+
+
+  destroy: function IFH_destroy()
+  {
+    this.browser.removeEventListener("click", this, true);
+    this._highlightRect = null;
+    this._highlighting = false;
+    this.veilTopDiv = null;
+    this.veilLeftDiv = null;
+    this.veilMiddleDiv = null;
+    this.veilTransparentDiv = null;
+    this.node = null;
+    this.iframeDoc = null;
+    this.browser.parentNode.removeChild(this.iframeContainer);
+    this.iframeContainer = null;
+    this.iframe = null;
+    this.win = null
+    this.browser = null;
+  },
+
+  
+
+
+
+  get isHighlighting() {
+    return this._highlighting;
+  },
 
   
 
@@ -80,27 +174,69 @@ PanelHighlighter.prototype = {
 
 
 
-  highlight: function PanelHighlighter_highlight(scroll)
+  highlight: function IFH_highlight(aScroll)
   {
     
-    if (!this.isNodeHighlightable()) {
+    if (!this.node || !this.isNodeHighlightable()) {
       return;
     }
 
-    this.unhighlight();
+    let clientRect = this.node.getBoundingClientRect();
 
-    let rect = this.node.getBoundingClientRect();
+    
+    let rect = {top: clientRect.top,
+                left: clientRect.left,
+                width: clientRect.width,
+                height: clientRect.height};
+    let oldRect = this._highlightRect;
 
-    if (scroll) {
+    if (oldRect && rect.top == oldRect.top && rect.left == oldRect.left &&
+        rect.width == oldRect.width && rect.height == oldRect.height) {
+      return; 
+    }
+
+    if (aScroll) {
       this.node.scrollIntoView();
     }
 
-    if (this.viewContainsRect(rect)) {
-      
-      this.panel.openPopup(this.node, "overlap", 0, 0, false, false);
-      this.panel.sizeTo(rect.width, rect.height);
-    } else {
-      this.highlightVisibleRegion(rect);
+    
+    
+    let frameWin = this.node.ownerDocument.defaultView;
+    do {
+      let frameRect = frameWin.frameElement ?
+                      frameWin.frameElement.getBoundingClientRect() :
+                      {top: 0, left: 0};
+
+      if (rect.top < 0) {
+        rect.height += rect.top;
+        rect.top = 0;
+      }
+
+      if (rect.left < 0) {
+        rect.width += rect.left;
+        rect.left = 0;
+      }
+
+      let diffx = frameWin.innerWidth - rect.left - rect.width;
+      if (diffx < 0) {
+        rect.width += diffx;
+      }
+      let diffy = frameWin.innerHeight - rect.top - rect.height;
+      if (diffy < 0) {
+        rect.height += diffy;
+      }
+
+      rect.left += frameRect.left;
+      rect.top += frameRect.top;
+
+      frameWin = frameWin.parent;
+    } while (frameWin != this.win);
+
+    this.highlightRectangle(rect);
+
+    if (this._highlighting) {
+      Services.obs.notifyObservers(null,
+        INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, null);
     }
   },
 
@@ -112,7 +248,7 @@ PanelHighlighter.prototype = {
 
 
 
-  highlightNode: function PanelHighlighter_highlightNode(aNode, aParams)
+  highlightNode: function IFH_highlightNode(aNode, aParams)
   {
     this.node = aNode;
     this.highlight(aParams && aParams.scroll);
@@ -125,69 +261,38 @@ PanelHighlighter.prototype = {
 
 
 
-  highlightVisibleRegion: function PanelHighlighter_highlightVisibleRegion(aRect)
+
+  highlightRectangle: function IFH_highlightRectangle(aRect)
   {
-    let offsetX = 0;
-    let offsetY = 0;
-    let width = 0;
-    let height = 0;
-    let visibleWidth = this.win.innerWidth;
-    let visibleHeight = this.win.innerHeight;
+    if (aRect.left >= 0 && aRect.top >= 0 &&
+        aRect.width > 0 && aRect.height > 0) {
+      
+      
+      this.veilTopDiv.style.height = aRect.top + "px";
+      this.veilLeftDiv.style.width = aRect.left + "px";
+      this.veilMiddleDiv.style.height = aRect.height + "px";
+      this.veilTransparentDiv.style.width = aRect.width + "px";
 
-    
-    
-    if (aRect.top > visibleHeight || aRect.left > visibleWidth ||
-        aRect.bottom < 0 || aRect.right < 0) {
-      return false;
+      this._highlighting = true;
+    } else {
+      this.unhighlight();
     }
 
-    
-    
-    
-    offsetX = aRect.left < 0 ? Math.abs(aRect.left) : 0;
-    offsetY = aRect.top < 0 ? Math.abs(aRect.top) : 0;
+    this._highlightRect = aRect;
 
-    
-    
-    width = aRect.right > visibleWidth ? visibleWidth - aRect.left :
-      aRect.width;
-    width -= offsetX;
-
-    
-    height = aRect.bottom > visibleHeight ? visibleHeight - aRect.top :
-      aRect.height;
-    height -= offsetY;
-
-    
-    
-    if (width > 0 && height > 0) {
-      this.panel.openPopup(this.node, "overlap", offsetX, offsetY, false,
-        false);
-      this.panel.sizeTo(width, height);
-      return true;
-    }
-
-    return false;
+    return this._highlighting;
   },
 
   
 
 
-  unhighlight: function PanelHighlighter_unhighlight()
+  unhighlight: function IFH_unhighlight()
   {
-    if (this.isHighlighting) {
-      this.panel.hidePopup();
-    }
-  },
-
-  
-
-
-
-
-  get isHighlighting()
-  {
-    return this.panel.state == "open";
+    this._highlighting = false;
+    this.veilMiddleDiv.style.height = 0;
+    this.veilTransparentDiv.style.width = 0;
+    Services.obs.notifyObservers(null,
+      INSPECTOR_NOTIFICATIONS.UNHIGHLIGHTING, null);
   },
 
   
@@ -200,7 +305,7 @@ PanelHighlighter.prototype = {
 
 
 
-  midPoint: function PanelHighlighter_midPoint(aPointA, aPointB)
+  midPoint: function IFH_midPoint(aPointA, aPointB)
   {
     let pointC = { };
     pointC.x = (aPointB.x - aPointA.x) / 2 + aPointA.x;
@@ -215,26 +320,23 @@ PanelHighlighter.prototype = {
 
 
 
+
+
   get highlitNode()
   {
     
-    if (!this.isHighlighting) {
+    if (!this._highlighting || !this._highlightRect) {
       return null;
     }
 
-    let browserRect = this.browser.getBoundingClientRect();
-    let clientRect = this.panel.getBoundingClientRect();
-
-    
     let a = {
-      x: clientRect.left - browserRect.left,
-      y: clientRect.top - browserRect.top
+      x: this._highlightRect.left,
+      y: this._highlightRect.top
     };
 
-    
     let b = {
-      x: clientRect.right - browserRect.left,
-      y: clientRect.bottom - browserRect.top
+      x: a.x + this._highlightRect.width,
+      y: a.y + this._highlightRect.height
     };
 
     
@@ -249,37 +351,61 @@ PanelHighlighter.prototype = {
 
 
 
-  isNodeHighlightable: function PanelHighlighter_isNodeHighlightable()
+
+  isNodeHighlightable: function IFH_isNodeHighlightable()
   {
-    if (!this.node) {
+    if (!this.node || this.node.nodeType != Node.ELEMENT_NODE) {
       return false;
     }
     let nodeName = this.node.nodeName.toLowerCase();
-    if (nodeName[0] == '#') {
-      return false;
-    }
     return !INSPECTOR_INVISIBLE_ELEMENTS[nodeName];
   },
 
   
+  
 
-
-
-
-
-
-
-  viewContainsRect: function PanelHighlighter_viewContainsRect(aRect)
+  attachInspectListeners: function IFH_attachInspectListeners()
   {
-    let visibleWidth = this.win.innerWidth;
-    let visibleHeight = this.win.innerHeight;
+    this.browser.addEventListener("mousemove", this, true);
+    this.browser.addEventListener("dblclick", this, true);
+    this.browser.addEventListener("mousedown", this, true);
+    this.browser.addEventListener("mouseup", this, true);
+  },
 
-    return ((0 <= aRect.left) && (aRect.right <= visibleWidth) &&
-        (0 <= aRect.top) && (aRect.bottom <= visibleHeight))
+  detachInspectListeners: function IFH_detachInspectListeners()
+  {
+    this.browser.removeEventListener("mousemove", this, true);
+    this.browser.removeEventListener("dblclick", this, true);
+    this.browser.removeEventListener("mousedown", this, true);
+    this.browser.removeEventListener("mouseup", this, true);
   },
 
   
-  
+
+
+
+
+
+  handleEvent: function IFH_handleEvent(aEvent)
+  {
+    switch (aEvent.type) {
+      case "click":
+        this.handleClick(aEvent);
+        break;
+      case "mousemove":
+        this.handleMouseMove(aEvent);
+        break;
+      case "resize":
+        this.handleResize(aEvent);
+        break;
+      case "dblclick":
+      case "mousedown":
+      case "mouseup":
+        aEvent.stopPropagation();
+        aEvent.preventDefault();
+        break;
+    }
+  },
 
   
 
@@ -287,14 +413,61 @@ PanelHighlighter.prototype = {
 
 
 
-  handleMouseMove: function PanelHighlighter_handleMouseMove(aEvent)
+  handleClick: function IFH_handleClick(aEvent)
+  {
+    
+    let x = aEvent.clientX;
+    let y = aEvent.clientY;
+    let frameWin = aEvent.view;
+    while (frameWin != this.win) {
+      if (frameWin.frameElement) {
+        let frameRect = frameWin.frameElement.getBoundingClientRect();
+        x += frameRect.left;
+        y += frameRect.top;
+      }
+      frameWin = frameWin.parent;
+    }
+
+    let element = this.iframeDoc.elementFromPoint(x, y);
+    if (element && element.classList &&
+        element.classList.contains("clickable")) {
+      let newEvent = this.iframeDoc.createEvent("MouseEvents");
+      newEvent.initMouseEvent(aEvent.type, aEvent.bubbles, aEvent.cancelable,
+        this.iframeDoc.defaultView, aEvent.detail, aEvent.screenX,
+        aEvent.screenY, x, y, aEvent.ctrlKey, aEvent.altKey, aEvent.shiftKey,
+        aEvent.metaKey, aEvent.button, null);
+      element.dispatchEvent(newEvent);
+      aEvent.preventDefault();
+      aEvent.stopPropagation();
+      return;
+    }
+
+    
+    if (InspectorUI.inspecting) {
+      if (aEvent.button == 0) {
+        let win = aEvent.target.ownerDocument.defaultView;
+        InspectorUI.stopInspecting();
+        win.focus();
+      }
+      aEvent.preventDefault();
+      aEvent.stopPropagation();
+    }
+  },
+
+  
+
+
+
+
+
+  handleMouseMove: function IFH_handleMouseMove(aEvent)
   {
     if (!InspectorUI.inspecting) {
       return;
     }
-    let browserRect = this.browser.getBoundingClientRect();
-    let element = InspectorUI.elementFromPoint(this.win.document,
-      aEvent.clientX - browserRect.left, aEvent.clientY - browserRect.top);
+
+    let element = InspectorUI.elementFromPoint(aEvent.target.ownerDocument,
+      aEvent.clientX, aEvent.clientY);
     if (element && element != this.node) {
       InspectorUI.inspectNode(element);
     }
@@ -303,25 +476,69 @@ PanelHighlighter.prototype = {
   
 
 
-
-
-
-
-  handlePixelScroll: function PanelHighlighter_handlePixelScroll(aEvent) {
-    if (!InspectorUI.inspecting) {
-      return;
-    }
-    let browserRect = this.browser.getBoundingClientRect();
-    let element = InspectorUI.elementFromPoint(this.win.document,
-      aEvent.clientX - browserRect.left, aEvent.clientY - browserRect.top);
-    let win = element.ownerDocument.defaultView;
-
-    if (aEvent.axis == aEvent.HORIZONTAL_AXIS) {
-      win.scrollBy(aEvent.detail, 0);
+  handleResize: function IFH_handleResize()
+  {
+    let style = this.iframeContainer.style;
+    if (this.win.scrollMaxY && this.win.scrollbars.visible) {
+      style.paddingRight = this.getScrollbarWidth() + "px";
     } else {
-      win.scrollBy(0, aEvent.detail);
+      style.paddingRight = 0;
     }
-  }
+    if (this.win.scrollMaxX && this.win.scrollbars.visible) {
+      style.paddingBottom = this.getScrollbarWidth() + "px";
+    } else {
+      style.paddingBottom = 0;
+    }
+
+    this.highlight();
+  },
+
+  
+
+
+
+
+
+  getScrollbarWidth: function IFH_getScrollbarWidth()
+  {
+    if (this._scrollbarWidth) {
+      return this._scrollbarWidth;
+    }
+
+    let hbox = document.createElement("hbox");
+    hbox.setAttribute("style", "height: 0%; overflow: hidden");
+
+    let scrollbar = document.createElement("scrollbar");
+    scrollbar.setAttribute("orient", "vertical");
+    hbox.appendChild(scrollbar);
+
+    document.documentElement.appendChild(hbox);
+    this._scrollbarWidth = scrollbar.clientWidth;
+    document.documentElement.removeChild(hbox);
+
+    return this._scrollbarWidth;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  listenOnce: function IFH_listenOnce(aTarget, aName, aCallback, aCapturing)
+  {
+    aTarget.addEventListener(aName, function listenOnce_handler(aEvent) {
+      aTarget.removeEventListener(aName, listenOnce_handler, aCapturing);
+      aCallback.call(this, aEvent);
+    }, aCapturing);
+  },
 };
 
 
@@ -332,7 +549,6 @@ PanelHighlighter.prototype = {
 
 var InspectorUI = {
   browser: null,
-  selectEventsSuppressed: false,
   showTextNodesWithWhitespace: false,
   inspecting: false,
   treeLoaded: false,
@@ -397,14 +613,6 @@ var InspectorUI = {
 
     
     this.initializeHighlighter();
-
-    
-    this.initializeStore();
-
-    if (InspectorStore.getValue(this.winID, "inspecting"))
-      this.startInspecting();
-
-    this.notifyReady();
   },
 
   
@@ -584,11 +792,9 @@ var InspectorUI = {
       this.domplateUtils.setDOM(window);
     }
 
-    
     this.openTreePanel();
 
-    this.win.document.addEventListener("scroll", this, false);
-    this.win.addEventListener("resize", this, false);
+    this.browser.addEventListener("scroll", this, true);
     this.inspectCmd.setAttribute("checked", true);
   },
 
@@ -597,7 +803,9 @@ var InspectorUI = {
 
   initializeHighlighter: function IUI_initializeHighlighter()
   {
-    this.highlighter = new PanelHighlighter(this.browser);
+    Services.obs.addObserver(this.highlighterReady,
+      INSPECTOR_NOTIFICATIONS.HIGHLIGHTER_READY, false);
+    this.highlighter = new IFrameHighlighter(this.browser);
   },
 
   
@@ -658,11 +866,10 @@ var InspectorUI = {
       gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
     }
 
-    this.win.document.removeEventListener("scroll", this, false);
-    this.win.removeEventListener("resize", this, false);
+    this.browser.removeEventListener("scroll", this, true);
     this.stopInspecting();
     if (this.highlighter) {
-      this.highlighter.unhighlight();
+      this.highlighter.destroy();
       this.highlighter = null;
     }
 
@@ -693,7 +900,7 @@ var InspectorUI = {
 
     this.treePanel.addEventListener("popuphidden", function treePanelHidden() {
       InspectorUI.closing = false;
-      Services.obs.notifyObservers(null, "inspector-closed", null);
+      Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.CLOSED, null);
     }, false);
 
     this.treePanel.hidePopup();
@@ -716,12 +923,16 @@ var InspectorUI = {
 
   stopInspecting: function IUI_stopInspecting()
   {
-    if (!this.inspecting)
+    if (!this.inspecting) {
       return;
+    }
+
     this.detachPageListeners();
     this.inspecting = false;
     if (this.highlighter.node) {
       this.select(this.highlighter.node, true, true);
+    } else {
+      this.select(null, true, true);
     }
   },
 
@@ -741,11 +952,10 @@ var InspectorUI = {
 
     if (forceUpdate || aNode != this.selection) {
       this.selection = aNode;
-      let box = this.ioBox.createObjectBox(this.selection);
       if (!this.inspecting) {
         this.highlighter.highlightNode(this.selection);
       }
-      this.ioBox.select(aNode, true, true, aScroll);
+      this.ioBox.select(this.selection, true, true, aScroll);
     }
   },
 
@@ -754,7 +964,22 @@ var InspectorUI = {
 
   notifyReady: function IUI_notifyReady()
   {
-    Services.obs.notifyObservers(null, "inspector-opened", null);
+    
+    this.initializeStore();
+
+    if (InspectorStore.getValue(this.winID, "inspecting")) {
+      this.startInspecting();
+    }
+
+    this.win.focus();
+    Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.OPENED, null);
+  },
+
+  highlighterReady: function IUI_highlighterReady()
+  {
+    Services.obs.removeObserver(InspectorUI.highlighterReady,
+      INSPECTOR_NOTIFICATIONS.HIGHLIGHTER_READY, false);
+    InspectorUI.notifyReady();
   },
 
   
@@ -781,9 +1006,10 @@ var InspectorUI = {
           if (inspectorClosed && this.closing) {
             Services.obs.addObserver(function reopenInspectorForTab() {
               Services.obs.removeObserver(reopenInspectorForTab,
-                "inspector-closed", false);
+                INSPECTOR_NOTIFICATIONS.CLOSED, false);
+
               InspectorUI.openInspectorUI();
-            }, "inspector-closed", false);
+            }, INSPECTOR_NOTIFICATIONS.CLOSED, false);
           } else {
             this.openInspectorUI();
           }
@@ -815,22 +1041,15 @@ var InspectorUI = {
         switch (event.keyCode) {
           case KeyEvent.DOM_VK_RETURN:
           case KeyEvent.DOM_VK_ESCAPE:
-            this.stopInspecting();
+            if (this.inspecting) {
+              this.stopInspecting();
+              event.preventDefault();
+              event.stopPropagation();
+            }
             break;
         }
         break;
-      case "mousemove":
-        let element = this.elementFromPoint(event.target.ownerDocument,
-          event.clientX, event.clientY);
-        if (element && element != this.node) {
-          this.inspectNode(element);
-        }
-        break;
-      case "click":
-        this.stopInspecting();
-        break;
       case "scroll":
-      case "resize":
         this.highlighter.highlight();
         break;
     }
@@ -866,9 +1085,8 @@ var InspectorUI = {
 
   attachPageListeners: function IUI_attachPageListeners()
   {
-    this.win.addEventListener("keypress", this, true);
-    this.browser.addEventListener("mousemove", this, true);
-    this.browser.addEventListener("click", this, true);
+    this.browser.addEventListener("keypress", this, true);
+    this.highlighter.attachInspectListeners();
   },
 
   
@@ -877,9 +1095,8 @@ var InspectorUI = {
 
   detachPageListeners: function IUI_detachPageListeners()
   {
-    this.win.removeEventListener("keypress", this, true);
-    this.browser.removeEventListener("mousemove", this, true);
-    this.browser.removeEventListener("click", this, true);
+    this.browser.removeEventListener("keypress", this, true);
+    this.highlighter.detachInspectListeners();
   },
 
   
@@ -894,10 +1111,8 @@ var InspectorUI = {
 
   inspectNode: function IUI_inspectNode(aNode)
   {
-    this.highlighter.highlightNode(aNode);
-    this.selectEventsSuppressed = true;
     this.select(aNode, true, true);
-    this.selectEventsSuppressed = false;
+    this.highlighter.highlightNode(aNode);
   },
 
   
