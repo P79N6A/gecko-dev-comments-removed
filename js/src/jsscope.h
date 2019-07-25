@@ -327,6 +327,8 @@ class BaseShape : public js::gc::Cell
     
     ShapeTable       *table_;
 
+    BaseShape(const BaseShape &base) MOZ_DELETE;
+
   public:
     void finalize(FreeOp *fop);
 
