@@ -263,7 +263,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
     
     IntBuffer getPixels() {
-        IntBuffer pixelBuffer = IntBuffer.allocate(mView.getWidth() * mView.getHeight());
+        IntBuffer pixelBuffer = IntBuffer.allocate(mView.getAndroidView().getWidth() * mView.getAndroidView().getHeight());
         synchronized (pixelBuffer) {
             mPixelBuffer = pixelBuffer;
             mView.requestRender();
