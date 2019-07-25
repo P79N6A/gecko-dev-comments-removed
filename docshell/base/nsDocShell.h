@@ -796,6 +796,7 @@ protected:
     PRPackedBool               mAllowMetaRedirects;
     PRPackedBool               mAllowImages;
     PRPackedBool               mAllowDNSPrefetch;
+    PRPackedBool               mAllowWindowControl;
     PRPackedBool               mCreatingDocument; 
     PRPackedBool               mUseErrorPages;
     PRPackedBool               mObserveErrorPages;
