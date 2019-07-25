@@ -9755,6 +9755,14 @@ nsHTMLPluginObjElementSH::GetPluginJSObject(JSContext *cx, JSObject *obj,
 
   JSAutoRequest ar(cx);
 
+  
+  
+  
+  JSAutoEnterCompartment ac;
+  if (!ac.enter(cx, obj)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
   if (plugin_inst) {
     plugin_inst->GetJSObject(cx, plugin_obj);
     if (*plugin_obj) {
