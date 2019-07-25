@@ -702,8 +702,11 @@ WeaveSvc.prototype = {
         return true;
       }
 
-    } catch (e) {
+    } catch (ex) {
       
+      this._log.debug("Failed to fetch and verify keys: "
+                      + Utils.exceptionStr(ex));
+      ErrorHandler.checkServerError(ex);
       return false;
     }
   },
@@ -826,6 +829,7 @@ WeaveSvc.prototype = {
     let uploadRes = wbo.upload(this.cryptoKeysURL);
     if (uploadRes.status != 200) {
       this._log.warn("Got status " + uploadRes.status + " uploading new keys. What to do? Throw!");
+      ErrorHandler.checkServerError(uploadRes);
       throw new Error("Unable to upload symmetric keys.");
     }
     this._log.info("Got status " + uploadRes.status + " uploading keys.");
@@ -1678,7 +1682,6 @@ WeaveSvc.prototype = {
 
       
       this.syncID = "";
-      Svc.Prefs.reset("lastSync");
       Records.clearCache();
     }))(),
 
