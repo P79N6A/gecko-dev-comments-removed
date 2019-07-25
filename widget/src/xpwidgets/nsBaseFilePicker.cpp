@@ -55,8 +55,11 @@
 #include "nsILocalFile.h"
 #include "nsEnumeratorUtils.h"
 #include "mozilla/Services.h"
+#include "WidgetUtils.h"
 
 #include "nsBaseFilePicker.h"
+
+using namespace mozilla::widget;
 
 #define FILEPICKER_TITLES "chrome://global/locale/filepicker.properties"
 #define FILEPICKER_FILTERS "chrome://global/content/filepicker.properties"
@@ -72,48 +75,13 @@ nsBaseFilePicker::~nsBaseFilePicker()
 }
 
 
-
-nsIWidget *nsBaseFilePicker::DOMWindowToWidget(nsIDOMWindow *dw)
-{
-  nsCOMPtr<nsIWidget> widget;
-
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(dw);
-  if (window) {
-    nsCOMPtr<nsIBaseWindow> baseWin(do_QueryInterface(window->GetDocShell()));
-
-    while (!widget && baseWin) {
-      baseWin->GetParentWidget(getter_AddRefs(widget));
-      if (!widget) {
-        nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterface(baseWin));
-        if (!docShellAsItem)
-          return nsnull;
-
-        nsCOMPtr<nsIDocShellTreeItem> parent;
-        docShellAsItem->GetSameTypeParent(getter_AddRefs(parent));
-
-        window = do_GetInterface(parent);
-        if (!window)
-          return nsnull;
-
-        baseWin = do_QueryInterface(window->GetDocShell());
-      }
-    }
-  }
-
-  
-  
-  
-  return widget.get();
-}
-
-
 NS_IMETHODIMP nsBaseFilePicker::Init(nsIDOMWindow *aParent,
                                      const nsAString& aTitle,
                                      PRInt16 aMode)
 {
   NS_PRECONDITION(aParent, "Null parent passed to filepicker, no file "
                   "picker for you!");
-  nsIWidget *widget = DOMWindowToWidget(aParent);
+  nsCOMPtr<nsIWidget> widget = WidgetUtils::DOMWindowToWidget(aParent);
   NS_ENSURE_TRUE(widget, NS_ERROR_FAILURE);
 
   InitNative(widget, aTitle, aMode);
