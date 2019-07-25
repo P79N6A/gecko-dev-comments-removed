@@ -6233,9 +6233,15 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
 
   
   nsIContent* content = aContainer;
+#ifdef DEBUG
+  
+  
+  
+  PRBool bogusPrimaryFrame = PR_FALSE;
+#endif
   while (content &&
          !content->HasFlag(NODE_DESCENDANTS_NEED_FRAMES)) {
-    NS_ASSERTION(content->GetPrimaryFrame() ||
+    NS_ASSERTION(content->GetPrimaryFrame() || bogusPrimaryFrame ||
       (content->GetFlattenedTreeParent() &&
        content->GetFlattenedTreeParent()->GetPrimaryFrame() &&
        content->GetFlattenedTreeParent()->GetPrimaryFrame()->IsLeaf()),
@@ -6243,13 +6249,20 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
       
       "Ancestors of nodes with frames to be constructed lazily should have "
       "frames");
-    NS_ASSERTION(!content->HasFlag(NODE_NEEDS_FRAME) ||
-                 content->GetPrimaryFrame()->GetContent() != content,
+    NS_ASSERTION(!content->HasFlag(NODE_NEEDS_FRAME) || bogusPrimaryFrame ||
+                 (content->GetPrimaryFrame() &&
+                  content->GetPrimaryFrame()->GetContent() != content),
                  
                  
                  
                  "Ancestors of nodes with frames to be constructed lazily "
                  "should not have NEEDS_FRAME bit set");
+#ifdef DEBUG
+    if (!bogusPrimaryFrame && content->GetPrimaryFrame() &&
+        content->GetPrimaryFrame()->GetContent() != content) {
+      bogusPrimaryFrame = PR_TRUE;
+    }
+#endif
     content->SetFlags(NODE_DESCENDANTS_NEED_FRAMES);
     content = content->GetFlattenedTreeParent();
   }
