@@ -67,6 +67,8 @@ protected:
     
     void clearResults();
     
+    bool detectRecursion(TIntermNode* root);
+    
     
     bool validateLimitations(TIntermNode* root);
     
