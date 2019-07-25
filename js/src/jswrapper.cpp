@@ -488,7 +488,7 @@ SetupFakeFrame(JSContext *cx, ExecuteFrameGuard &frame, JSFrameRegs &regs, JSObj
 
     Value *vp = frame.getvp();
     vp[0] = UndefinedTag();
-    vp[1] = UndefinedTag();
+    vp[1] = NullTag();  
 
     JSStackFrame *fp = frame.getFrame();
     PodZero(fp);  
