@@ -1878,6 +1878,15 @@ NS_NewDOMDocument(nsIDOMDocument** aInstancePtrResult,
                   bool aLoadedAsData,
                   nsIScriptGlobalObject* aEventObject,
                   bool aSVGDocument);
+
+
+
+nsresult
+NS_NewXBLDocument(nsIDOMDocument** aInstancePtrResult,
+                  nsIURI* aDocumentURI,
+                  nsIURI* aBaseURI,
+                  nsIPrincipal* aPrincipal);
+
 nsresult
 NS_NewPluginDocument(nsIDocument** aInstancePtrResult);
 

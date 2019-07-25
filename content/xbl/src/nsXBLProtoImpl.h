@@ -105,7 +105,26 @@ public:
     return mClassObject != nsnull;
   }
 
+  nsresult Read(nsIScriptContext* aContext,
+                nsIObjectInputStream* aStream,
+                nsXBLPrototypeBinding* aBinding,
+                nsIScriptGlobalObject* aGlobal);
+  nsresult Write(nsIScriptContext* aContext,
+                 nsIObjectOutputStream* aStream,
+                 nsXBLPrototypeBinding* aBinding);
+
 protected:
+  
+  nsXBLProtoImplMember* AddMember(nsXBLProtoImplMember* aMember,
+                                  nsXBLProtoImplMember* aPreviousMember)
+  {
+    if (aPreviousMember)
+      aPreviousMember->SetNext(aMember);
+    else
+      mMembers = aMember;
+    return aMember;
+  }
+
   void DestroyMembers();
   
 public:

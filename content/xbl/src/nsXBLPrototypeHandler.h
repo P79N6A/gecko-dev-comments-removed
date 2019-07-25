@@ -88,6 +88,9 @@ public:
   
   nsXBLPrototypeHandler(nsIContent* aKeyElement);
 
+  
+  nsXBLPrototypeHandler(nsXBLPrototypeBinding* aBinding);
+
   ~nsXBLPrototypeHandler();
 
   
@@ -157,10 +160,20 @@ public:
     return (mType & NS_HANDLER_ALLOW_UNTRUSTED) != 0;
   }
 
+  nsresult Read(nsIScriptContext* aContext, nsIObjectInputStream* aStream);
+  nsresult Write(nsIScriptContext* aContext, nsIObjectOutputStream* aStream);
+
 public:
   static PRUint32 gRefCnt;
   
 protected:
+  void Init() {
+    ++gRefCnt;
+    if (gRefCnt == 1)
+      
+      InitAccessKeys();
+  }
+
   already_AddRefed<nsIController> GetController(nsIDOMEventTarget* aTarget);
   
   inline PRInt32 GetMatchingKeyCode(const nsAString& aKeyName);

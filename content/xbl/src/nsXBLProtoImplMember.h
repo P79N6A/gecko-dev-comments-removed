@@ -119,6 +119,12 @@ public:
 
   virtual void Trace(TraceCallback aCallback, void *aClosure) const = 0;
 
+  virtual nsresult Write(nsIScriptContext* aContext,
+                         nsIObjectOutputStream* aStream)
+  {
+    return NS_OK;
+  }
+
 protected:
   nsXBLProtoImplMember* mNext;  
   PRUnichar* mName;               
