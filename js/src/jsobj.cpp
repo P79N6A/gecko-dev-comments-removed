@@ -1119,14 +1119,6 @@ obj_eval(JSContext *cx, uintN argc, jsval *vp)
     }
 
     
-
-
-
-
-    if (caller->fun && !caller->callobj && !js_GetCallObject(cx, caller))
-        return JS_FALSE;
-
-    
     JSObject *scopeobj = NULL;
     if (argc >= 2) {
         if (!js_ValueToObject(cx, argv[1], &scopeobj))
@@ -1196,6 +1188,7 @@ obj_eval(JSContext *cx, uintN argc, jsval *vp)
 
 
 
+            JS_ASSERT_IF(caller->argv, caller->callobj);
             scopeobj = callerScopeChain;
         }
 #endif
