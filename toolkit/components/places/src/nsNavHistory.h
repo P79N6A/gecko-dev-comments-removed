@@ -95,6 +95,10 @@
 
 #define TOPIC_PLACES_SHUTDOWN "places-shutdown"
 
+
+
+#define TOPIC_PLACES_TEARDOWN "places-teardown"
+
 #define TOPIC_DATABASE_LOCKED "places-database-locked"
 
 #define TOPIC_PLACES_INIT_COMPLETE "places-init-complete"
