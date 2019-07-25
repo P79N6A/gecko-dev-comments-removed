@@ -5840,9 +5840,8 @@ function stylesheetFillPopup(menuPopup) {
 
     
     if (currentStyleSheet.media.length > 0) {
-      let media = currentStyleSheet.media.mediaText.split(", ");
-      if (media.indexOf("screen") == -1 &&
-          media.indexOf("all") == -1)
+      let mediaQueryList = currentStyleSheet.media.mediaText;
+      if (!window.content.matchMedia(mediaQueryList).matches)
         continue;
     }
 
