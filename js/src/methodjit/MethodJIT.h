@@ -138,7 +138,7 @@ struct VMFrame
 
     inline bool ensureSpace(uint32 nmissing, uint32 nslots) {
         
-        if (JS_LIKELY(regs.sp + nmissing + nslots < stackLimit))
+        if (JS_LIKELY(regs.sp + VALUES_PER_STACK_FRAME + nmissing + nslots < stackLimit))
             return true;
 
         
