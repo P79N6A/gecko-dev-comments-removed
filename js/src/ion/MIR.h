@@ -1011,6 +1011,42 @@ class MNewObject : public MNullaryInstruction
 };
 
 
+class MInitProp
+  : public MAryInstruction<2>,
+    public MixPolicy<ObjectPolicy<0>, BoxPolicy<1> >
+{
+  public:
+    PropertyName *name_;
+
+  protected:
+    MInitProp(MDefinition *obj, PropertyName *name, MDefinition *value)
+      : name_(name)
+    {
+        initOperand(0, obj);
+        initOperand(1, value);
+        setResultType(MIRType_None);
+    }
+
+  public:
+    INSTRUCTION_HEADER(InitProp);
+
+    static MInitProp *New(MDefinition *obj, PropertyName *name, MDefinition *value) {
+        return new MInitProp(obj, name, value);
+    }
+
+    MDefinition *getObject() const {
+        return getOperand(0);
+    }
+    MDefinition *getValue() const {
+        return getOperand(1);
+    }
+
+    PropertyName *propertyName() const {
+        return name_;
+    }
+};
+
+
 
 
 class MPrepareCall : public MNullaryInstruction
