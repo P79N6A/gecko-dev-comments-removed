@@ -39,8 +39,8 @@
 
 
 
-#ifndef nsDOMDocumentType_h___
-#define nsDOMDocumentType_h___
+#ifndef nsDOMDocumentType_h
+#define nsDOMDocumentType_h
 
 #include "nsCOMPtr.h"
 #include "nsIDOMDocumentType.h"
@@ -59,8 +59,6 @@ class nsDOMDocumentType : public nsGenericDOMDataNode,
 public:
   nsDOMDocumentType(already_AddRefed<nsINodeInfo> aNodeInfo,
                     nsIAtom *aName,
-                    nsIDOMNamedNodeMap *aEntities,
-                    nsIDOMNamedNodeMap *aNotations,
                     const nsAString& aPublicId,
                     const nsAString& aSystemId,
                     const nsAString& aInternalSubset);
@@ -86,8 +84,6 @@ public:
   virtual nsXPCClassInfo* GetClassInfo();
 protected:
   nsCOMPtr<nsIAtom> mName;
-  nsCOMPtr<nsIDOMNamedNodeMap> mEntities;
-  nsCOMPtr<nsIDOMNamedNodeMap> mNotations;
   nsString mPublicId;
   nsString mSystemId;
   nsString mInternalSubset;
