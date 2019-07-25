@@ -228,12 +228,9 @@ public:
 
       
       nsCOMPtr<nsIDocument> ownerDoc = database->GetOwnerDocument();
-      nsISHEntry* shEntry;
-      if (ownerDoc && (shEntry = ownerDoc->GetBFCacheEntry())) {
-        nsCOMPtr<nsISHEntryInternal> sheInternal = do_QueryInterface(shEntry);
-        if (sheInternal) {
-          sheInternal->RemoveFromBFCacheSync();
-        }
+      nsIBFCacheEntry* bfCacheEntry;
+      if (ownerDoc && (bfCacheEntry = ownerDoc->GetBFCacheEntry())) {
+        bfCacheEntry->RemoveFromBFCacheSync();
         NS_ASSERTION(database->IsClosed(),
                      "Kicking doc out of bfcache should have closed database");
         continue;

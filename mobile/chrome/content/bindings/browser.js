@@ -268,8 +268,13 @@ let WebNavigation =  {
     if (aEntry.docshellID)
       shEntry.docshellID = aEntry.docshellID;
 
-    if (aEntry.stateData)
-      shEntry.stateData = aEntry.stateData;
+    if (aEntry.structuredCloneState && aEntry.structuredCloneVersion) {
+      shEntry.stateData =
+        Cc["@mozilla.org/docshell/structured-clone-container;1"].
+        createInstance(Ci.nsIStructuredCloneContainer);
+
+      shEntry.stateData.initFromBase64(aEntry.structuredCloneState, aEntry.structuredCloneVersion);
+    }
 
     if (aEntry.scroll) {
       let scrollPos = aEntry.scroll.split(",");
@@ -282,19 +287,11 @@ let WebNavigation =  {
       
       
       
-      
-      
-      
-      
-      
-      
-      
-      let ident = aDocIdentMap[aEntry.docIdentifier];
-      if (!ident) {
-        shEntry.setUniqueDocIdentifier();
-        aDocIdentMap[aEntry.docIdentifier] = shEntry.docIdentifier;
+      let matchingEntry = aDocIdentMap[aEntry.docIdentifier];
+      if (!matchingEntry) {
+        aDocIdentMap[aEntry.docIdentifier] = shEntry;
       } else {
-        shEntry.docIdentifier = ident;
+        shEntry.adoptBFCacheEntry(matchingEntry);
       }
     }
 
@@ -379,11 +376,12 @@ let WebNavigation =  {
       } catch (e) { dump(e); }
     }
 
-    if (aEntry.docIdentifier)
-      entry.docIdentifier = aEntry.docIdentifier;
+    entry.docIdentifier = aEntry.BFCacheEntry.ID;
 
-    if (aEntry.stateData)
-      entry.stateData = aEntry.stateData;
+    if (aEntry.stateData != null) {
+      entry.structuredCloneState = aEntry.stateData.getDataAsBase64();
+      entry.structuredCloneVersion = aEntry.stateData.formatVersion;
+    }
 
     if (!(aEntry instanceof Ci.nsISHContainer))
       return entry;

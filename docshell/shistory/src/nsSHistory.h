@@ -103,10 +103,9 @@ protected:
 
   
   
-  void EvictContentViewersInRange(PRInt32 aStartIndex, PRInt32 aEndIndex);
-  void EvictWindowContentViewers(PRInt32 aFromIndex, PRInt32 aToIndex);
-  static void EvictGlobalContentViewer();
-  static void EvictAllContentViewersGlobally();
+  void EvictOutOfRangeWindowContentViewers(PRInt32 aIndex);
+  static void GloballyEvictContentViewers();
+  static void GloballyEvictAllContentViewers();
 
   
   
