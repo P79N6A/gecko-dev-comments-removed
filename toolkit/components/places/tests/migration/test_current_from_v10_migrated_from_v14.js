@@ -127,6 +127,6 @@ function test_final_state()
 
 function run_test()
 {
-  setPlacesDatabase("places_v10_from_v11.sqlite");
+  setPlacesDatabase("places_v10_from_v14.sqlite");
   run_next_test();
 }
