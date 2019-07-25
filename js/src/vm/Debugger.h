@@ -256,7 +256,7 @@ class Debugger {
 
 
     static void markCrossCompartmentDebuggerObjectReferents(JSTracer *tracer);
-    static bool mark(GCMarker *trc, JSGCInvocationKind gckind);
+    static bool markAllIteratively(GCMarker *trc, JSGCInvocationKind gckind);
     static void sweepAll(JSContext *cx);
     static void detachAllDebuggersFromGlobal(JSContext *cx, GlobalObject *global,
                                              GlobalObjectSet::Enum *compartmentEnum);
