@@ -57,13 +57,6 @@
 
 
 
-#ifdef WINCE
-#define USE_HTIFACE
-#endif
-
-#ifdef USE_HTIFACE
-#include <htiface.h>
-#endif
 #ifndef __ITargetFrame_INTERFACE_DEFINED__
 
 MIDL_INTERFACE("d5f78c80-5252-11cf-90fa-00AA0042106e")
@@ -943,27 +936,7 @@ public:
         mData(NULL),
         mUseTarget(NULL)
     {
-#ifdef MOZ_FLASH_ACTIVEX_PATCH
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-#else
         MozAxPlugin::AddRef();
-#endif
     }
 
     HRESULT Init(PluginInstanceData *pData)
@@ -1033,11 +1006,7 @@ public:
         {
             mWindow->Release();
         }
-#ifdef MOZ_FLASH_ACTIVEX_PATCH
-        
-#else
         MozAxPlugin::Release();
-#endif
     }
 
 BEGIN_COM_MAP(IEDocument)
