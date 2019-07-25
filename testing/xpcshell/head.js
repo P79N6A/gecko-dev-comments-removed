@@ -318,7 +318,7 @@ function _execute_test() {
       modulesFile.initWithPath(_TESTING_MODULES_DIR);
 
       let modulesURI = ios.newFileURI(modulesFile);
-      protocolHandler.setSubstitution("testing", modulesURI);
+      protocolHandler.setSubstitution("testing-common", modulesURI);
     }
   }
 
