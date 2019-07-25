@@ -297,7 +297,6 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
 
   
   
-  nsXPIDLString message;
   nsCAutoString newUriSpec;
   newUri->GetSpec(newUriSpec);
   const PRUnichar *formatParams[] = { NS_ConvertUTF8toUTF16(newUriSpec).get() };
