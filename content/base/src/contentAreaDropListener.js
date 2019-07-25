@@ -1,7 +1,3 @@
-
-
-
-
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const Cc = Components.classes;
@@ -66,12 +62,12 @@ ContentAreaDropListener.prototype =
     uriString = uriString.replace(/^\s*|\s*$/g, '');
 
     let uri;
-    let ioService = Cc["@mozilla.org/network/io-service;1"]
-                      .getService(Components.interfaces.nsIIOService);
     try {
       
       
-      uri = ioService.newURI(uriString, null, null);
+      uri = Cc["@mozilla.org/network/io-service;1"].
+              getService(Components.interfaces.nsIIOService).
+              newURI(uriString, null, null);
     } catch (ex) { }
     if (!uri)
       return uriString;
@@ -85,10 +81,10 @@ ContentAreaDropListener.prototype =
       flags |= secMan.DISALLOW_INHERIT_PRINCIPAL;
 
     
-    let principal = sourceNode ? sourceNode.nodePrincipal
-                               : secMan.getSimpleCodebasePrincipal(ioService.newURI("file:///", null, null));
-
-    secMan.checkLoadURIStrWithPrincipal(principal, uriString, flags);
+    if (sourceNode)
+      secMan.checkLoadURIStrWithPrincipal(sourceNode.nodePrincipal, uriString, flags);
+    else
+      secMan.checkLoadURIStr("file:///", uriString, flags);
 
     return uriString;
   },

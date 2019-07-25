@@ -41,8 +41,7 @@ VPATH		= @srcdir@
 relativesrcdir  = browser/base/content/test
 
 DIRS += \
-		tabview \
-		inspector \
+		newtab \
 		$(NULL)
 
 include $(DEPTH)/config/autoconf.mk
@@ -75,14 +74,12 @@ _TEST_FILES = \
 		gZipOfflineChild.cacheManifest^headers^ \
 		$(NULL)
 
-ifeq (,$(filter gtk2,$(MOZ_WIDGET_TOOLKIT)))
+# test_contextmenu.html is disabled on Linux due to bug 513558
+ifneq (gtk2,$(MOZ_WIDGET_TOOLKIT))
 _TEST_FILES += \
 		test_contextmenu.html \
 		subtst_contextmenu.html \
 		$(NULL)
-
-else
-$(warning test_contextmenu.html disabled because of intermittent failures; bug 513558)
 endif
 
 # The following tests are disabled because they are unreliable:
@@ -90,19 +87,21 @@ endif
 #   browser_sanitize-download-history.js is bug 432425
 #
 # browser_sanitizeDialog_treeView.js is disabled until the tree view is added
-# back to the clear recent history dialog (santize.xul), if it ever is (bug
+# back to the clear recent history dialog (sanitize.xul), if it ever is (bug
 # 480169)
 
 # browser_drag.js is disabled, as it needs to be updated for the new behavior from bug 320638.
 
+# browser_bug321000.js is disabled because newline handling is shaky (bug 592528)
+# browser_urlbarAutoFillTrimURLs.js is disabled till bug 720792 is fixed
+
 _BROWSER_FILES = \
+                 head.js \
                  browser_typeAheadFind.js \
                  browser_keywordSearch.js \
-                 browser_NetworkPrioritizer.js \
                  browser_allTabsPanel.js \
                  browser_alltabslistener.js \
                  browser_bug304198.js \
-                 browser_bug321000.js \
                  title_test.svg \
                  browser_bug329212.js \
                  browser_bug356571.js \
@@ -152,6 +151,7 @@ _BROWSER_FILES = \
                  browser_bug567306.js \
                  browser_zbug569342.js \
                  browser_bug575561.js \
+                 browser_bug575830.js \
                  browser_bug577121.js \
                  browser_bug578534.js \
                  browser_bug579872.js \
@@ -172,12 +172,17 @@ _BROWSER_FILES = \
                  browser_bug599325.js \
                  browser_bug609700.js \
                  browser_bug616836.js \
+                 browser_bug623155.js \
                  browser_bug623893.js \
                  browser_bug624734.js \
                  browser_bug647886.js \
                  browser_bug655584.js \
                  browser_bug664672.js \
+                 browser_bug710878.js \
+                 browser_bug719271.js \
+                 browser_canonizeURL.js \
                  browser_findbarClose.js \
+                 browser_homeDrop.js \
                  browser_keywordBookmarklets.js \
                  browser_contextSearchTabPosition.js \
                  browser_ctrlTab.js \
@@ -189,6 +194,7 @@ _BROWSER_FILES = \
                  browser_getshortcutoruri.js \
                  browser_hide_removing.js \
                  browser_overflowScroll.js \
+                 browser_locationBarCommand.js \
                  browser_locationBarExternalLoad.js \
                  browser_pageInfo.js \
                  browser_page_style_menu.js \
@@ -217,6 +223,7 @@ _BROWSER_FILES = \
                  browser_tabs_isActive.js \
                  browser_tabs_owner.js \
                  browser_urlbarCopying.js \
+                 browser_urlbarEnter.js \
                  browser_urlbarTrimURLs.js \
                  browser_urlHighlight.js \
                  browser_visibleFindSelection.js \
@@ -230,6 +237,7 @@ _BROWSER_FILES = \
                  discovery.html \
                  domplate_test.js \
                  moz.png \
+                 video.ogg \
                  test_bug435035.html \
                  test_bug462673.html \
                  page_style_sample.html \
@@ -256,6 +264,9 @@ _BROWSER_FILES = \
                  test_wyciwyg_copying.html \
                  authenticate.sjs \
                  browser_minimize.js \
+                 browser_aboutSyncProgress.js \
+                 browser_middleMouse_inherit.js \
+                 redirect_bug623155.sjs \
                  $(NULL)
 
 ifneq (cocoa,$(MOZ_WIDGET_TOOLKIT))
