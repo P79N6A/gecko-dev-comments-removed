@@ -49,6 +49,7 @@
 #include "BaseAssembler.h"
 #include "RematInfo.h"
 #include "BaseCompiler.h"
+#include "methodjit/ICLabels.h"
 #include "assembler/moco/MocoStubs.h"
 
 namespace js {
@@ -61,7 +62,6 @@ static const uint32 MAX_GETELEM_IC_STUBS = 17;
 
 
 #if defined JS_CPU_X86
-static const int32 SETPROP_INLINE_SHAPE_OFFSET     =   6; 
 static const int32 SETPROP_INLINE_SHAPE_JUMP       =  12; 
 static const int32 SETPROP_DSLOTS_BEFORE_CONSTANT  = -23; 
 static const int32 SETPROP_DSLOTS_BEFORE_KTYPE     = -19; 
@@ -72,7 +72,6 @@ static const int32 SETPROP_INLINE_STORE_KTYPE_TYPE = -10;
 static const int32 SETPROP_INLINE_STORE_KTYPE_DATA =   0; 
 static const int32 SETPROP_INLINE_STORE_CONST_TYPE = -14; 
 static const int32 SETPROP_INLINE_STORE_CONST_DATA =  -4; 
-static const int32 SETPROP_STUB_SHAPE_JUMP         =  12; 
 #elif defined JS_CPU_X64
 static const int32 SETPROP_INLINE_STORE_VALUE      =   0; 
 static const int32 SETPROP_INLINE_SHAPE_JUMP       =   6; 
@@ -80,13 +79,8 @@ static const int32 SETPROP_INLINE_SHAPE_JUMP       =   6;
 
 
 #if defined JS_CPU_X86
-static const int32 GETPROP_DSLOTS_LOAD         = -15; 
-static const int32 GETPROP_TYPE_LOAD           =  -6; 
-static const int32 GETPROP_DATA_LOAD           =   0; 
 static const int32 GETPROP_INLINE_TYPE_GUARD   =  12; 
-static const int32 GETPROP_INLINE_SHAPE_OFFSET =   6; 
 static const int32 GETPROP_INLINE_SHAPE_JUMP   =  12; 
-static const int32 GETPROP_STUB_SHAPE_JUMP     =  12; 
 #elif defined JS_CPU_X64
 static const int32 GETPROP_INLINE_TYPE_GUARD   =  19; 
 static const int32 GETPROP_INLINE_SHAPE_JUMP   =   6; 
@@ -94,23 +88,6 @@ static const int32 GETPROP_INLINE_SHAPE_JUMP   =   6;
 
 
 #if defined JS_CPU_X86
-static const int32 GETELEM_DSLOTS_LOAD         = -15; 
-static const int32 GETELEM_TYPE_LOAD           =  -6; 
-static const int32 GETELEM_DATA_LOAD           =   0; 
-static const int32 GETELEM_INLINE_SHAPE_OFFSET =   6; 
-static const int32 GETELEM_INLINE_SHAPE_JUMP   =  12; 
-static const int32 GETELEM_INLINE_ATOM_OFFSET  =  18; 
-static const int32 GETELEM_INLINE_ATOM_JUMP    =  24; 
-static const int32 GETELEM_STUB_ATOM_JUMP      =  12; 
-static const int32 GETELEM_STUB_SHAPE_JUMP     =  24; 
-#elif defined JS_CPU_X64
-static const int32 GETELEM_INLINE_SHAPE_JUMP   =   6; 
-static const int32 GETELEM_INLINE_ATOM_JUMP    =   9; 
-static const int32 GETELEM_STUB_ATOM_JUMP      =  19; 
-#endif
-
-
-#if defined JS_CPU_X86
 static const int32 SCOPENAME_JUMP_OFFSET = 5; 
 #elif defined JS_CPU_X64
 static const int32 SCOPENAME_JUMP_OFFSET = 5; 
@@ -118,58 +95,12 @@ static const int32 SCOPENAME_JUMP_OFFSET = 5;
 
 
 #if defined JS_CPU_X86
-static const int32 BINDNAME_INLINE_JUMP_OFFSET = 10; 
 static const int32 BINDNAME_STUB_JUMP_OFFSET   =  5; 
 #elif defined JS_CPU_X64
 static const int32 BINDNAME_STUB_JUMP_OFFSET   =  5; 
 #endif
 
 void PurgePICs(JSContext *cx);
-
-
-
-
-
-#if defined JS_CPU_X64
-union PICLabels {
-    
-    struct {
-        
-        int32 dslotsLoadOffset : 8;
-
-        
-        int32 inlineShapeOffset : 8;
-
-        
-        
-        
-        int32 stubShapeJump : 8;
-    } setprop;
-
-    
-    struct {
-        
-        int32 dslotsLoadOffset : 8;
-
-        
-        int32 inlineShapeOffset : 8;
-    
-        
-        int32 inlineValueOffset : 8;
-
-        
-        
-        
-        int32 stubShapeJump : 8;
-    } getprop;
-
-    
-    struct {
-        
-        int32 inlineJumpOffset : 8;
-    } bindname;
-};
-#endif
 
 enum LookupStatus {
     Lookup_Error = 0,
@@ -571,10 +502,42 @@ struct PICInfo : public BasePolyIC {
         return !hasTypeCheck();
     }
 
-#if defined JS_CPU_X64
-    
-    PICLabels labels;
+#if !defined JS_HAS_IC_LABELS
+    static GetPropLabels getPropLabels_;
+    static SetPropLabels setPropLabels_;
+    static BindNameLabels bindNameLabels_;
+#else
+    union {
+        GetPropLabels getPropLabels_;
+        SetPropLabels setPropLabels_;
+        BindNameLabels bindNameLabels_;
+    };
+    void setLabels(const ic::GetPropLabels &labels) {
+        JS_ASSERT(isGet());
+        getPropLabels_ = labels;
+    }
+    void setLabels(const ic::SetPropLabels &labels) {
+        JS_ASSERT(isSet());
+        setPropLabels_ = labels;
+    }
+    void setLabels(const ic::BindNameLabels &labels) {
+        JS_ASSERT(kind == BIND);
+        bindNameLabels_ = labels;
+    }
 #endif
+
+    GetPropLabels &getPropLabels() {
+        JS_ASSERT(isGet());
+        return getPropLabels_;
+    }
+    SetPropLabels &setPropLabels() {
+        JS_ASSERT(isSet());
+        return setPropLabels_;
+    }
+    BindNameLabels &bindNameLabels() {
+        JS_ASSERT(kind == BIND);
+        return bindNameLabels_;
+    }
 
     
     jsbytecode *pc;
