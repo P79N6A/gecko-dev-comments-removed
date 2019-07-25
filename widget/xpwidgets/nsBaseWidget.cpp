@@ -1329,9 +1329,18 @@ static void InitOnlyOnce()
   
   sUseOffMainThreadCompositing = (PR_GetEnv("MOZ_USE_OMTC") != NULL);
 #else
-  sUseOffMainThreadCompositing = mozilla::Preferences::GetBool(
+  sUseOffMainThreadCompositing = Preferences::GetBool(
         "layers.offmainthreadcomposition.enabled", 
         false);
+  
+  
+  
+  
+  
+  if (!Preferences::GetBool("dom.ipc.tabs.disabled", true)) {
+    
+    sUseOffMainThreadCompositing = false;
+  }
 #endif
 }
 
