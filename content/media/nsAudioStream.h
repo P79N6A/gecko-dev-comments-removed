@@ -11,14 +11,6 @@
 #include "nsIThread.h"
 #include "nsAutoPtr.h"
 
-#ifndef MOZ_FLOATING_POINT_AUDIO
-#define MOZ_AUDIO_DATA_FORMAT (nsAudioStream::FORMAT_S16_LE)
-typedef short SampleType;
-#else
-#define MOZ_AUDIO_DATA_FORMAT (nsAudioStream::FORMAT_FLOAT32)
-typedef float SampleType;
-#endif
-
 
 
 
@@ -36,7 +28,8 @@ public:
 
   nsAudioStream()
     : mRate(0),
-      mChannels(0)
+      mChannels(0),
+      mFormat(FORMAT_S16_LE)
   {}
 
   virtual ~nsAudioStream();
@@ -63,7 +56,7 @@ public:
   
   
   
-  virtual nsresult Init(PRInt32 aNumChannels, PRInt32 aRate) = 0;
+  virtual nsresult Init(PRInt32 aNumChannels, PRInt32 aRate, SampleFormat aFormat) = 0;
 
   
   
@@ -113,7 +106,7 @@ public:
 
   int GetRate() { return mRate; }
   int GetChannels() { return mChannels; }
-  SampleFormat GetFormat() { return MOZ_AUDIO_DATA_FORMAT; }
+  SampleFormat GetFormat() { return mFormat; }
 
 protected:
   nsCOMPtr<nsIThread> mAudioPlaybackThread;
