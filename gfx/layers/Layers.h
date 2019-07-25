@@ -294,8 +294,7 @@ public:
 
   enum EndTransactionFlags {
     END_DEFAULT = 0,
-    END_NO_IMMEDIATE_REDRAW = 1 << 0,  
-    END_NO_COMPOSITE = 1 << 1 
+    END_NO_IMMEDIATE_REDRAW = 1 << 0  
   };
 
   

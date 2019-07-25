@@ -396,12 +396,6 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
 
   mTransactionIncomplete = false;
 
-  if (aFlags & END_NO_COMPOSITE) {
-    
-    nsRefPtr<gfxASurface> surf = gfxPlatform::GetPlatform()->CreateOffscreenSurface(gfxIntSize(1, 1), gfxASurface::CONTENT_COLOR);
-    mTarget = new gfxContext(surf);
-  }
-
   if (mTarget && mRoot && !(aFlags & END_NO_IMMEDIATE_REDRAW)) {
     nsIntRect clipRect;
     if (HasShadowManager()) {
@@ -431,19 +425,9 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
       }
     }
 
-    if (aFlags & END_NO_COMPOSITE) {
-      if (IsRetained()) {
-        
-        
-        mTarget->Clip(gfxRect(0, 0, 0, 0));
-        PaintLayer(mTarget, mRoot, aCallback, aCallbackData, nsnull);
-      }
-      
-    } else {
-      PaintLayer(mTarget, mRoot, aCallback, aCallbackData, nsnull);
-      if (mWidget) {
-        FlashWidgetUpdateArea(mTarget);
-      }
+    PaintLayer(mTarget, mRoot, aCallback, aCallbackData, nsnull);
+    if (mWidget) {
+      FlashWidgetUpdateArea(mTarget);
     }
 
     if (!mTransactionIncomplete) {
