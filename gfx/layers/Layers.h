@@ -951,12 +951,19 @@ public:
 
   PRBool HasMultipleChildren();
 
+  
+
+
+
+  PRBool SupportsComponentAlphaChildren() { return mSupportsComponentAlphaChildren; }
+
 protected:
   ContainerLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData),
       mFirstChild(nsnull),
       mLastChild(nsnull),
-      mUseIntermediateSurface(PR_FALSE)
+      mUseIntermediateSurface(PR_FALSE),
+      mSupportsComponentAlphaChildren(PR_FALSE)
   {
     mContentFlags = 0; 
   }
@@ -978,6 +985,7 @@ protected:
   Layer* mLastChild;
   FrameMetrics mFrameMetrics;
   PRPackedBool mUseIntermediateSurface;
+  PRPackedBool mSupportsComponentAlphaChildren;
 };
 
 
