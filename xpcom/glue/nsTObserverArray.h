@@ -369,7 +369,7 @@ class nsTObserverArray : public nsAutoTObserverArray<T, 0> {
 
 
 
-#define NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(array_, obstype_, func_, params_) \
+#define NS_OBSERVER_ARRAY_NOTIFY_XPCOM_OBSERVERS(array_, obstype_, func_, params_) \
   PR_BEGIN_MACRO                                                             \
     nsTObserverArray<obstype_ *>::ForwardIterator iter_(array_);             \
     nsCOMPtr<obstype_> obs_;                                                 \
@@ -379,4 +379,14 @@ class nsTObserverArray : public nsAutoTObserverArray<T, 0> {
     }                                                                        \
   PR_END_MACRO
 
+
+#define NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(array_, obstype_, func_, params_) \
+  PR_BEGIN_MACRO                                                             \
+    nsTObserverArray<obstype_ *>::ForwardIterator iter_(array_);             \
+    obstype_* obs_;                                                          \
+    while (iter_.HasMore()) {                                                \
+      obs_ = iter_.GetNext();                                                \
+      obs_ -> func_ params_ ;                                                \
+    }                                                                        \
+  PR_END_MACRO
 #endif 
