@@ -307,7 +307,6 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, PRBool *persistant,
     
 #define JAVA_PATH_SIZE _MAX_PATH + 15
     WCHAR newestPath[JAVA_PATH_SIZE];
-    const WCHAR mozPath[_MAX_PATH] = L"Software\\mozilla.org\\Mozilla";
     WCHAR browserJavaVersion[_MAX_PATH];
 
     newestPath[0] = 0;
@@ -371,48 +370,31 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, PRBool *persistant,
 
     ::RegCloseKey(baseloc);
 
-    static const WCHAR kMozillaVersion[] = NS_L(MOZILLA_VERSION);
+    if (newestPath[0] == 0) {
+      return NS_ERROR_FAILURE;
+    }
 
     
-    
-    if (newestPath[0] != 0) {
+    wcscat(newestPath, L"\\bin\\new_plugin");
+
+    rv = NS_NewLocalFile(nsDependentString(newestPath),
+                         PR_TRUE, getter_AddRefs(localFile));
+
+    if (NS_SUCCEEDED(rv)) {
+      const WCHAR mozPath[_MAX_PATH] = L"Software\\mozilla.org\\Mozilla";
       if (ERROR_SUCCESS == ::RegCreateKeyExW(HKEY_LOCAL_MACHINE, mozPath, 0,
                                              NULL, REG_OPTION_NON_VOLATILE,
                                              KEY_SET_VALUE|KEY_QUERY_VALUE,
                                              NULL, &entryloc, NULL)) {
         if (ERROR_SUCCESS != ::RegQueryValueExW(entryloc, L"CurrentVersion", 0,
-                                               NULL, NULL, NULL)) {
+                                                NULL, NULL, NULL)) {
+          static const WCHAR kMozillaVersion[] = NS_L(MOZILLA_VERSION);
           ::RegSetValueExW(entryloc, L"CurrentVersion", 0, REG_SZ,
                            (const BYTE*) kMozillaVersion,
                            NS_ARRAY_LENGTH(kMozillaVersion));
         }
         ::RegCloseKey(entryloc);
       }
-
-      wcscat(newestPath, L"\\bin");
-
-      
-      WCHAR tmpPath[JAVA_PATH_SIZE];
-      nsCOMPtr<nsILocalFile> tmpFile;
-
-      wcscpy(tmpPath, newestPath);
-      wcscat(tmpPath, L"\\new_plugin");
-      rv = NS_NewLocalFile(nsDependentString(tmpPath),
-                           PR_TRUE, getter_AddRefs(tmpFile));
-      if (NS_SUCCEEDED(rv) && tmpFile) {
-        PRBool exists = PR_FALSE;
-        PRBool isDir = PR_FALSE;
-        if (NS_SUCCEEDED(tmpFile->Exists(&exists)) && exists &&
-            NS_SUCCEEDED(tmpFile->IsDirectory(&isDir)) && isDir) {
-          
-          
-          
-          wcscpy(newestPath, tmpPath);
-        }
-      }
-
-      rv = NS_NewLocalFile(nsDependentString(newestPath),
-                           PR_TRUE, getter_AddRefs(localFile));
     }
   } else if (nsCRT::strcmp(charProp, NS_WIN_QUICKTIME_SCAN_KEY) == 0) {
     nsXPIDLCString strVer;
