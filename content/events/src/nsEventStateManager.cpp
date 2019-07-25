@@ -153,14 +153,12 @@
 #include "nsICommandParams.h"
 #include "mozilla/Services.h"
 #include "mozAutoDocUpdate.h"
-
-#include "mozilla/Preferences.h"
+#include "nsHTMLLabelElement.h"
 
 #ifdef XP_MACOSX
 #import <ApplicationServices/ApplicationServices.h>
 #endif
 
-using namespace mozilla;
 using namespace mozilla::dom;
 
 
@@ -328,7 +326,7 @@ GetDocumentFromWindow(nsIDOMWindow *aWindow)
 static PRInt32
 GetAccessModifierMaskFromPref(PRInt32 aItemType)
 {
-  PRInt32 accessKey = Preferences::GetInt("ui.key.generalAccessKey", -1);
+  PRInt32 accessKey = nsContentUtils::GetIntPref("ui.key.generalAccessKey", -1);
   switch (accessKey) {
     case -1:                             break; 
     case nsIDOMKeyEvent::DOM_VK_SHIFT:   return NS_MODIFIER_SHIFT;
@@ -340,9 +338,9 @@ GetAccessModifierMaskFromPref(PRInt32 aItemType)
 
   switch (aItemType) {
   case nsIDocShellTreeItem::typeChrome:
-    return Preferences::GetInt("ui.key.chromeAccess", 0);
+    return nsContentUtils::GetIntPref("ui.key.chromeAccess", 0);
   case nsIDocShellTreeItem::typeContent:
-    return Preferences::GetInt("ui.key.contentAccess", 0);
+    return nsContentUtils::GetIntPref("ui.key.contentAccess", 0);
   default:
     return 0;
   }
@@ -587,7 +585,7 @@ nsMouseWheelTransaction::OnFailToScrollTarget()
 {
   NS_PRECONDITION(sTargetFrame, "We don't have mouse scrolling transaction");
 
-  if (Preferences::GetBool("test.mousescroll", PR_FALSE)) {
+  if (nsContentUtils::GetBoolPref("test.mousescroll", PR_FALSE)) {
     
     nsContentUtils::DispatchTrustedEvent(
                       sTargetFrame->GetContent()->GetOwnerDoc(),
@@ -615,7 +613,7 @@ nsMouseWheelTransaction::OnTimeout(nsITimer* aTimer, void* aClosure)
   
   EndTransaction();
 
-  if (Preferences::GetBool("test.mousescroll", PR_FALSE)) {
+  if (nsContentUtils::GetBoolPref("test.mousescroll", PR_FALSE)) {
     
     nsContentUtils::DispatchTrustedEvent(
                       frame->GetContent()->GetOwnerDoc(),
@@ -654,13 +652,15 @@ nsMouseWheelTransaction::GetScreenPoint(nsGUIEvent* aEvent)
 PRUint32
 nsMouseWheelTransaction::GetTimeoutTime()
 {
-  return Preferences::GetUint("mousewheel.transaction.timeout", 1500);
+  return (PRUint32)
+    nsContentUtils::GetIntPref("mousewheel.transaction.timeout", 1500);
 }
 
 PRUint32
 nsMouseWheelTransaction::GetIgnoreMoveDelayTime()
 {
-  return Preferences::GetUint("mousewheel.transaction.ignoremovedelay", 100);
+  return (PRUint32)
+    nsContentUtils::GetIntPref("mousewheel.transaction.ignoremovedelay", 100);
 }
 
 PRBool
@@ -709,13 +709,13 @@ nsMouseWheelTransaction::ComputeAcceleratedWheelDelta(PRInt32 aDelta,
 PRInt32
 nsMouseWheelTransaction::GetAccelerationStart()
 {
-  return Preferences::GetInt("mousewheel.acceleration.start", -1);
+  return nsContentUtils::GetIntPref("mousewheel.acceleration.start", -1);
 }
 
 PRInt32
 nsMouseWheelTransaction::GetAccelerationFactor()
 {
-  return Preferences::GetInt("mousewheel.acceleration.factor", -1);
+  return nsContentUtils::GetIntPref("mousewheel.acceleration.factor", -1);
 }
 
 PRInt32
@@ -844,8 +844,8 @@ nsEventStateManager::Init()
   if (prefBranch) {
     if (sESMInstanceCount == 1) {
       sLeftClickOnly =
-        Preferences::GetBool("nglayout.events.dispatchLeftClickOnly",
-                             sLeftClickOnly);
+        nsContentUtils::GetBoolPref("nglayout.events.dispatchLeftClickOnly",
+                                    sLeftClickOnly);
       sChromeAccessModifier =
         GetAccessModifierMaskFromPref(nsIDocShellTreeItem::typeChrome);
       sContentAccessModifier =
@@ -876,7 +876,7 @@ nsEventStateManager::Init()
   }
 
   mClickHoldContextMenu =
-    Preferences::GetBool("ui.click_hold_context_menus", PR_FALSE);
+    nsContentUtils::GetBoolPref("ui.click_hold_context_menus", PR_FALSE);
 
   return NS_OK;
 }
@@ -969,12 +969,12 @@ nsEventStateManager::Observe(nsISupports *aSubject,
     nsDependentString data(someData);
     if (data.EqualsLiteral("accessibility.accesskeycausesactivation")) {
       sKeyCausesActivation =
-        Preferences::GetBool("accessibility.accesskeycausesactivation",
-                             sKeyCausesActivation);
+        nsContentUtils::GetBoolPref("accessibility.accesskeycausesactivation",
+                                    sKeyCausesActivation);
     } else if (data.EqualsLiteral("nglayout.events.dispatchLeftClickOnly")) {
       sLeftClickOnly =
-        Preferences::GetBool("nglayout.events.dispatchLeftClickOnly",
-                             sLeftClickOnly);
+        nsContentUtils::GetBoolPref("nglayout.events.dispatchLeftClickOnly",
+                                    sLeftClickOnly);
     } else if (data.EqualsLiteral("ui.key.generalAccessKey")) {
       sChromeAccessModifier =
         GetAccessModifierMaskFromPref(nsIDocShellTreeItem::typeChrome);
@@ -988,7 +988,7 @@ nsEventStateManager::Observe(nsISupports *aSubject,
         GetAccessModifierMaskFromPref(nsIDocShellTreeItem::typeContent);
     } else if (data.EqualsLiteral("ui.click_hold_context_menus")) {
       mClickHoldContextMenu =
-        Preferences::GetBool("ui.click_hold_context_menus", PR_FALSE);
+        nsContentUtils::GetBoolPref("ui.click_hold_context_menus", PR_FALSE);
 #if 0
     } else if (data.EqualsLiteral("mousewheel.withaltkey.action")) {
     } else if (data.EqualsLiteral("mousewheel.withaltkey.numlines")) {
@@ -1721,7 +1721,7 @@ nsEventStateManager::CreateClickHoldTimer(nsPresContext* inPresContext,
   mClickHoldTimer = do_CreateInstance("@mozilla.org/timer;1");
   if (mClickHoldTimer) {
     PRInt32 clickHoldDelay =
-      Preferences::GetInt("ui.click_hold_context_menus.delay", 500);
+      nsContentUtils::GetIntPref("ui.click_hold_context_menus.delay", 500);
     mClickHoldTimer->InitWithFuncCallback(sClickHoldCallback, this,
                                           clickHoldDelay,
                                           nsITimer::TYPE_ONE_SHOT);
@@ -2402,8 +2402,8 @@ nsEventStateManager::ChangeTextSize(PRInt32 change)
   NS_ENSURE_SUCCESS(rv, rv);
 
   float textzoom;
-  float zoomMin = ((float)Preferences::GetInt("zoom.minPercent", 50)) / 100;
-  float zoomMax = ((float)Preferences::GetInt("zoom.maxPercent", 300)) / 100;
+  float zoomMin = ((float)nsContentUtils::GetIntPref("zoom.minPercent", 50)) / 100;
+  float zoomMax = ((float)nsContentUtils::GetIntPref("zoom.maxPercent", 300)) / 100;
   mv->GetTextZoom(&textzoom);
   textzoom += ((float)change) / 10;
   if (textzoom < zoomMin)
@@ -2423,8 +2423,8 @@ nsEventStateManager::ChangeFullZoom(PRInt32 change)
   NS_ENSURE_SUCCESS(rv, rv);
 
   float fullzoom;
-  float zoomMin = ((float)Preferences::GetInt("zoom.minPercent", 50)) / 100;
-  float zoomMax = ((float)Preferences::GetInt("zoom.maxPercent", 300)) / 100;
+  float zoomMin = ((float)nsContentUtils::GetIntPref("zoom.minPercent", 50)) / 100;
+  float zoomMax = ((float)nsContentUtils::GetIntPref("zoom.maxPercent", 300)) / 100;
   mv->GetFullZoom(&fullzoom);
   fullzoom += ((float)change) / 10;
   if (fullzoom < zoomMin)
@@ -2465,11 +2465,10 @@ nsEventStateManager::DoScrollZoom(nsIFrame *aTargetFrame,
       
       PRInt32 change = (adjustment > 0) ? -1 : 1;
 
-      if (Preferences::GetBool("browser.zoom.full")) {
+      if (nsContentUtils::GetBoolPref("browser.zoom.full"))
         ChangeFullZoom(change);
-      } else {
+      else
         ChangeTextSize(change);
-      }
     }
 }
 
@@ -2610,7 +2609,7 @@ nsEventStateManager::GetWheelActionFor(nsMouseScrollEvent* aMouseEvent)
   nsCAutoString prefName;
   GetBasePrefKeyForMouseWheel(aMouseEvent, prefName);
   prefName.Append(".action");
-  return Preferences::GetInt(prefName.get());
+  return nsContentUtils::GetIntPref(prefName.get());
 }
 
 PRInt32
@@ -2621,7 +2620,7 @@ nsEventStateManager::GetScrollLinesFor(nsMouseScrollEvent* aMouseEvent)
   nsCAutoString prefName;
   GetBasePrefKeyForMouseWheel(aMouseEvent, prefName);
   prefName.Append(".numlines");
-  return Preferences::GetInt(prefName.get());
+  return nsContentUtils::GetIntPref(prefName.get());
 }
 
 PRBool
@@ -2630,7 +2629,7 @@ nsEventStateManager::UseSystemScrollSettingFor(nsMouseScrollEvent* aMouseEvent)
   nsCAutoString prefName;
   GetBasePrefKeyForMouseWheel(aMouseEvent, prefName);
   prefName.Append(".sysnumlines");
-  return Preferences::GetBool(prefName.get());
+  return nsContentUtils::GetBoolPref(prefName.get());
 }
 
 nsresult
@@ -3469,7 +3468,7 @@ nsEventStateManager::UpdateCursor(nsPresContext* aPresContext,
       hotspotY = framecursor.mHotspotY;
   }
 
-  if (Preferences::GetBool("ui.use_activity_cursor", PR_FALSE)) {
+  if (nsContentUtils::GetBoolPref("ui.use_activity_cursor", PR_FALSE)) {
     
     nsCOMPtr<nsISupports> pcContainer = aPresContext->GetContainer();
     nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(pcContainer));
@@ -4229,35 +4228,26 @@ nsEventStateManager::GetEventTargetContent(nsEvent* aEvent)
   return content;
 }
 
-static already_AddRefed<nsIContent>
-GetLabelTarget(nsIContent* aLabel)
+static Element*
+GetLabelTarget(nsIContent* aPossibleLabel)
 {
-  nsCOMPtr<nsIDOMHTMLLabelElement> label = do_QueryInterface(aLabel);
+  nsHTMLLabelElement* label = nsHTMLLabelElement::FromContent(aPossibleLabel);
   if (!label)
     return nsnull;
 
-  nsCOMPtr<nsIDOMHTMLElement> target;
-  label->GetControl(getter_AddRefs(target));
-  nsIContent* targetContent = nsnull;
-  if (target) {
-    CallQueryInterface(target, &targetContent);
-  }
-  return targetContent;
+  return label->GetLabeledElement();
 }
 
 static bool
-IsAncestorOf(nsIContent* aPossibleAncestor, nsIContent* aPossibleDescendant,
-             PRBool aFollowLabels)
+IsAncestorOf(nsIContent* aPossibleAncestor, nsIContent* aPossibleDescendant)
 {
   for (; aPossibleDescendant; aPossibleDescendant = aPossibleDescendant->GetParent()) {
     if (aPossibleAncestor == aPossibleDescendant)
       return true;
 
-    if (aFollowLabels) {
-      nsCOMPtr<nsIContent> labelTarget = GetLabelTarget(aPossibleDescendant);
-      if (labelTarget == aPossibleAncestor)
-        return true;
-    }
+    Element* labelTarget = GetLabelTarget(aPossibleDescendant);
+    if (labelTarget == aPossibleAncestor)
+      return true;
   }
   return false;
 }
@@ -4275,14 +4265,14 @@ ShouldShowFocusRing(nsIContent* aContent)
 }
 
 nsEventStates
-nsEventStateManager::GetContentState(nsIContent *aContent, PRBool aFollowLabels)
+nsEventStateManager::GetContentState(nsIContent *aContent)
 {
   nsEventStates state = aContent->IntrinsicState();
 
-  if (IsAncestorOf(aContent, mActiveContent, aFollowLabels)) {
+  if (IsAncestorOf(aContent, mActiveContent)) {
     state |= NS_EVENT_STATE_ACTIVE;
   }
-  if (IsAncestorOf(aContent, mHoverContent, aFollowLabels)) {
+  if (IsAncestorOf(aContent, mHoverContent)) {
     state |= NS_EVENT_STATE_HOVER;
   }
 
@@ -4354,7 +4344,7 @@ NotifyAncestors(nsIDocument* aDocument, nsIContent* aStartNode,
 {
   while (aStartNode && aStartNode != aStopBefore) {
     aDocument->ContentStateChanged(aStartNode, aState);
-    nsCOMPtr<nsIContent> labelTarget = GetLabelTarget(aStartNode);
+    Element* labelTarget = GetLabelTarget(aStartNode);
     if (labelTarget) {
       aDocument->ContentStateChanged(labelTarget, aState);
     }

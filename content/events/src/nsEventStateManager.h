@@ -124,13 +124,7 @@ public:
 
 
 
-
-
-
-
-
-  virtual nsEventStates GetContentState(nsIContent *aContent,
-                                        PRBool aFollowLabels = PR_FALSE);
+  virtual nsEventStates GetContentState(nsIContent *aContent);
 
   
 
