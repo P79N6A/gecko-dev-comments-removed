@@ -224,6 +224,13 @@ class MBasicBlock : public TempObject
     MInstructionIterator end() {
         return instructions_.end();
     }
+    bool isLoopHeader() const {
+        return loopSuccessor_ != NULL;
+    }
+    MBasicBlock *getLoopSuccessor() const {
+        JS_ASSERT(isLoopHeader());
+        return loopSuccessor_;
+    }
 
   private:
     MIRGenerator *gen;
@@ -241,6 +248,10 @@ class MBasicBlock : public TempObject
     
     MInstruction **header_;
     uint32 headerSlots_;
+
+    
+    
+    MBasicBlock *loopSuccessor_;
 };
 
 } 
