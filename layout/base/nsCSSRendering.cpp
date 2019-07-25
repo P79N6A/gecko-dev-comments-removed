@@ -2446,6 +2446,17 @@ ScaleDimension(const nsStyleBackground::Size::Dimension& aDimension,
   }
 }
 
+static inline PRBool
+IsTransformed(nsIFrame* aForFrame, nsIFrame* aTopFrame)
+{
+  for (nsIFrame* f = aForFrame; f != aTopFrame; f = f->GetParent()) {
+    if (f->IsTransformed()) {
+      return PR_TRUE;
+    }
+  }
+  return PR_FALSE;
+}
+
 static BackgroundLayerState
 PrepareBackgroundLayer(nsPresContext* aPresContext,
                        nsIFrame* aForFrame,
@@ -2616,7 +2627,9 @@ PrepareBackgroundLayer(nsPresContext* aPresContext,
       }
     }
 
-    if (aFlags & nsCSSRendering::PAINTBG_TO_WINDOW) {
+    if (aFlags & nsCSSRendering::PAINTBG_TO_WINDOW &&
+        !IsTransformed(aForFrame, topFrame)) {
+      
       
       
       
