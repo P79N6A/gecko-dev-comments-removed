@@ -238,6 +238,24 @@ TestOpensOpenedChild::AnswerHiRpc()
     return true;
 }
 
+static void
+ShutdownTestOpensOpenedChild(TestOpensOpenedChild* child,
+                             Transport* transport)
+{
+    delete child;
+
+    
+    
+    XRE_GetIOMessageLoop()->PostTask(
+        FROM_HERE,
+        new DeleteTask<Transport>(transport));
+
+    
+    gMainThread->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(gOpensChild, &TestOpensChild::Close));
+}
+
 void
 TestOpensOpenedChild::ActorDestroy(ActorDestroyReason why)
 {
@@ -249,17 +267,11 @@ TestOpensOpenedChild::ActorDestroy(ActorDestroyReason why)
     
     
     
+    
     MessageLoop::current()->PostTask(
         FROM_HERE,
-        new DeleteTask<TestOpensOpenedChild>(this));
-    XRE_GetIOMessageLoop()->PostTask(
-        FROM_HERE,
-        new DeleteTask<Transport>(mTransport));
-
-    
-    gMainThread->PostTask(
-        FROM_HERE,
-        NewRunnableMethod(gOpensChild, &TestOpensChild::Close));
+        NewRunnableFunction(ShutdownTestOpensOpenedChild,
+                            this, mTransport));
 }
 
 } 
