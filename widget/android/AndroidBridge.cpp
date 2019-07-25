@@ -975,7 +975,11 @@ void *
 AndroidBridge::CallEglCreateWindowSurface(void *dpy, void *config, AndroidGeckoSurfaceView &sview)
 {
     ALOG_BRIDGE("AndroidBridge::CallEglCreateWindowSurface");
-    AutoLocalJNIFrame jniFrame(GetJNIForThread());
+
+    
+    JNIEnv *env = GetJNIForThread();
+    if (!env)
+        return NULL;
 
     
 

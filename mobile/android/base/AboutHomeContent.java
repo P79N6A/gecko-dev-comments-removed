@@ -47,7 +47,6 @@ import java.net.URL;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -60,7 +59,6 @@ import org.mozilla.gecko.sync.setup.activities.SetupSyncActivity;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.accounts.OnAccountsUpdateListener;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -71,7 +69,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.os.SystemClock;
 import android.text.SpannableString;
 import android.text.style.StyleSpan;
 import android.text.style.UnderlineSpan;
@@ -91,10 +88,8 @@ import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
-import android.text.TextUtils;
 
-public class AboutHomeContent extends ScrollView
-       implements TabsAccessor.OnQueryTabsCompleteListener {
+public class AboutHomeContent extends ScrollView {
     private static final String LOGTAG = "GeckoAboutHome";
 
     private static final int NUMBER_OF_TOP_SITES_PORTRAIT = 4;
@@ -103,13 +98,10 @@ public class AboutHomeContent extends ScrollView
     private static final int NUMBER_OF_COLS_PORTRAIT = 2;
     private static final int NUMBER_OF_COLS_LANDSCAPE = 3;
 
-    private static final int NUMBER_OF_REMOTE_TABS = 10;
-
     static enum UpdateFlags {
         TOP_SITES,
         PREVIOUS_TABS,
-        RECOMMENDED_ADDONS,
-        REMOTE_TABS;
+        RECOMMENDED_ADDONS;
 
         public static final EnumSet<UpdateFlags> ALL = EnumSet.allOf(UpdateFlags.class);
     }
@@ -118,17 +110,11 @@ public class AboutHomeContent extends ScrollView
     UriLoadCallback mUriLoadCallback = null;
     private LayoutInflater mInflater;
 
-    private AccountManager mAccountManager;
-    private OnAccountsUpdateListener mAccountListener = null;
-
     protected SimpleCursorAdapter mTopSitesAdapter;
     protected GridView mTopSitesGrid;
 
     protected LinearLayout mAddonsLayout;
     protected LinearLayout mLastTabsLayout;
-    protected LinearLayout mRemoteTabsLayout;
-
-    private View.OnClickListener mRemoteTabClickListener;
 
     public interface UriLoadCallback {
         public void callback(String uriSpec);
@@ -136,36 +122,8 @@ public class AboutHomeContent extends ScrollView
 
     public AboutHomeContent(Context context) {
         super(context);
-    }
-
-    public AboutHomeContent(Context context, AttributeSet attrs) {
-        super(context, attrs);
-    }
-
-    public void init() {
-        Context context = getContext();
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mInflater.inflate(R.layout.abouthome_content, this);
-
-        mAccountManager = AccountManager.get(context);
-
-        
-        mAccountManager.addOnAccountsUpdatedListener(mAccountListener = new OnAccountsUpdateListener() {
-            public void onAccountsUpdated(Account[] accounts) {
-                final GeckoApp.StartupMode startupMode = GeckoApp.mAppContext.getStartupMode();
-                final boolean syncIsSetup = isSyncSetup();
-
-                GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
-                    public void run() {
-                        
-                        
-                        
-                        if (mTopSitesAdapter != null)
-                            updateLayout(startupMode, syncIsSetup);
-                    }
-                });
-            }
-        }, GeckoAppShell.getHandler(), false);
 
         mTopSitesGrid = (GridView)findViewById(R.id.top_sites_grid);
         mTopSitesGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -182,7 +140,6 @@ public class AboutHomeContent extends ScrollView
 
         mAddonsLayout = (LinearLayout) findViewById(R.id.recommended_addons);
         mLastTabsLayout = (LinearLayout) findViewById(R.id.last_tabs);
-        mRemoteTabsLayout = (LinearLayout) findViewById(R.id.remote_tabs);
 
         TextView allTopSitesText = (TextView) findViewById(R.id.all_top_sites_text);
         allTopSitesText.setOnClickListener(new View.OnClickListener() {
@@ -195,15 +152,7 @@ public class AboutHomeContent extends ScrollView
         allAddonsText.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if (mUriLoadCallback != null)
-                    mUriLoadCallback.callback("https://addons.mozilla.org/android");
-            }
-        });
-
-        TextView allRemoteTabsText = (TextView) findViewById(R.id.all_remote_tabs_text);
-        allRemoteTabsText.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                Context context = v.getContext();
-                context.startActivity(new Intent(context, RemoteTabs.class));
+                    mUriLoadCallback.callback("about:addons");
             }
         });
 
@@ -228,45 +177,6 @@ public class AboutHomeContent extends ScrollView
                 context.startActivity(intent);
             }
         });
-
-        mRemoteTabClickListener = new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String url = ((String) v.getTag());
-                JSONObject args = new JSONObject();
-                try {
-                    args.put("url", url);
-                    args.put("engine", null);
-                    args.put("userEntered", false);
-                } catch (Exception e) {
-                    Log.e(LOGTAG, "error building JSON arguments");
-                }
-    
-                Log.d(LOGTAG, "Sending message to Gecko: " + SystemClock.uptimeMillis() + " - Tab:Add");
-                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Add", args.toString()));
-            }
-        };
-    }
-
-    public void onDestroy() {
-        if (mAccountListener != null) {
-            mAccountManager.removeOnAccountsUpdatedListener(mAccountListener);
-            mAccountListener = null;
-        }
-    }
-
-    void setLastTabsVisibility(boolean visible) {
-        int visibility = visible ? View.VISIBLE : View.GONE;
-        findViewById(R.id.last_tabs_title).setVisibility(visibility);
-        findViewById(R.id.last_tabs).setVisibility(visibility);
-        findViewById(R.id.last_tabs_open_all).setVisibility(visibility);
-    }
-
-    private void setAddonsVisibility(boolean visible) {
-        int visibility = visible ? View.VISIBLE : View.GONE;
-        findViewById(R.id.recommended_addons_title).setVisibility(visibility);
-        findViewById(R.id.recommended_addons).setVisibility(visibility);
-        findViewById(R.id.all_addons_text).setVisibility(visibility);
     }
 
     private void setTopSitesVisibility(boolean visible, boolean hasTopSites) {
@@ -278,14 +188,6 @@ public class AboutHomeContent extends ScrollView
         findViewById(R.id.top_sites_title).setVisibility(visibility);
         findViewById(R.id.all_top_sites_text).setVisibility(visibilityWithTopSites);
         findViewById(R.id.no_top_sites_text).setVisibility(visibilityWithoutTopSites);
-    }
-
-    private void setRemoteTabsVisibility(boolean visible) {
-        int visibility = visible ? View.VISIBLE : View.GONE;
-        findViewById(R.id.remote_tabs_title).setVisibility(visibility);
-        findViewById(R.id.remote_tabs_client).setVisibility(visibility);
-        findViewById(R.id.remote_tabs).setVisibility(visibility);
-        findViewById(R.id.all_remote_tabs_text).setVisibility(visibility);
     }
 
     private void setSyncVisibility(boolean visible) {
@@ -314,7 +216,8 @@ public class AboutHomeContent extends ScrollView
     }
 
     private boolean isSyncSetup() {
-        Account[] accounts = mAccountManager.getAccountsByType("org.mozilla.firefox_sync");
+        AccountManager accountManager = AccountManager.get(getContext());
+        Account[] accounts = accountManager.getAccountsByType("org.mozilla.firefox_sync");
         return accounts.length > 0;
     }
 
@@ -398,9 +301,6 @@ public class AboutHomeContent extends ScrollView
 
                 if (flags.contains(UpdateFlags.RECOMMENDED_ADDONS))
                     readRecommendedAddons(activity);
-
-                if (flags.contains(UpdateFlags.REMOTE_TABS))
-                    loadRemoteTabs(activity);
             }
         });
     }
@@ -421,6 +321,25 @@ public class AboutHomeContent extends ScrollView
             mTopSitesAdapter.notifyDataSetChanged();
 
         super.onConfigurationChanged(newConfig);
+    }
+
+    private String readJSONFile(Activity activity, String filename) {
+        InputStream fileStream = null;
+        File profileDir = GeckoApp.mAppContext.getProfileDir();
+
+        if (profileDir == null)
+            return null;
+
+        File recommendedAddonsFile = new File(profileDir, filename);
+        if (recommendedAddonsFile.exists()) {
+            try {
+                fileStream = new FileInputStream(recommendedAddonsFile);
+            } catch (FileNotFoundException fnfe) {}
+        }
+        if (fileStream == null)
+            return null;
+
+        return readStringFromStream(fileStream);
     }
 
     private String readFromZipFile(Activity activity, String filename) {
@@ -496,32 +415,25 @@ public class AboutHomeContent extends ScrollView
 
     private void readRecommendedAddons(final Activity activity) {
         final String addonsFilename = "recommended-addons.json";
-        String jsonString;
-        try {
-            jsonString = GeckoApp.mAppContext.getProfile().readFile(addonsFilename);
-        } catch (IOException ioe) {
-            Log.i(LOGTAG, "filestream is null");
+        String jsonString = readJSONFile(activity, addonsFilename);
+        if (jsonString == null) {
+            Log.i("Addons", "filestream is null");
             jsonString = readFromZipFile(activity, addonsFilename);
         }
+        if (jsonString == null)
+            return;
 
-        JSONArray addonsArray = null;
-        if (jsonString != null) {
-            try {
-                addonsArray = new JSONObject(jsonString).getJSONArray("addons");
-            } catch (JSONException e) {
-                Log.i(LOGTAG, "error reading json file", e);
-            }
+        final JSONArray array;
+        try {
+            array = new JSONObject(jsonString).getJSONArray("addons");
+        } catch (JSONException e) {
+            Log.i(LOGTAG, "error reading json file", e);
+            return;
         }
 
-        final JSONArray array = addonsArray;
         GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
             public void run() {
                 try {
-                    if (array == null || array.length() == 0) {
-                        setAddonsVisibility(false);
-                        return;
-                    }
-
                     for (int i = 0; i < array.length(); i++) {
                         JSONObject jsonobj = array.getJSONObject(i);
 
@@ -531,14 +443,6 @@ public class AboutHomeContent extends ScrollView
 
                         String iconUrl = jsonobj.getString("iconURL");
                         String pageUrl = getPageUrlFromIconUrl(iconUrl);
-
-                        final String homepageUrl = jsonobj.getString("homepageURL");
-                        row.setOnClickListener(new View.OnClickListener() {
-                            public void onClick(View v) {
-                                if (mUriLoadCallback != null)
-                                    mUriLoadCallback.callback(homepageUrl);
-                            }
-                        });
 
                         Favicons favicons = GeckoApp.mAppContext.mFavicons;
                         favicons.loadFavicon(pageUrl, iconUrl,
@@ -553,8 +457,6 @@ public class AboutHomeContent extends ScrollView
 
                         mAddonsLayout.addView(row);
                     }
-
-                    setAddonsVisibility(true);
                 } catch (JSONException e) {
                     Log.i(LOGTAG, "error reading json file", e);
                 }
@@ -563,13 +465,15 @@ public class AboutHomeContent extends ScrollView
     }
 
     private void readLastTabs(final Activity activity) {
-        String jsonString = GeckoApp.mAppContext.getProfile().readSessionFile(GeckoApp.sIsGeckoReady);
-        if (jsonString == null) {
-            
-            return;
-        }
-
+        
+        
+        
+        final String sessionFilename = "sessionstore." + (GeckoApp.sIsGeckoReady ? "bak" : "js");
         final JSONArray tabs;
+        String jsonString = readJSONFile(activity, sessionFilename);
+        if (jsonString == null)
+            return;
+
         try {
             tabs = new JSONObject(jsonString).getJSONArray("windows")
                                              .getJSONObject(0)
@@ -589,13 +493,8 @@ public class AboutHomeContent extends ScrollView
                 int index = tab.getInt("index");
                 JSONArray entries = tab.getJSONArray("entries");
                 JSONObject entry = entries.getJSONObject(index - 1);
+                title = entry.getString("title");
                 url = entry.getString("url");
-
-                String optTitle = entry.optString("title");
-                if (optTitle.length() == 0)
-                    title = url;
-                else
-                    title = optTitle;
             } catch (JSONException e) {
                 Log.e(LOGTAG, "error reading json file", e);
                 continue;
@@ -653,44 +552,6 @@ public class AboutHomeContent extends ScrollView
         }
     }
 
-    private void loadRemoteTabs(final Activity activity) {
-        if (!isSyncSetup()) {
-            setRemoteTabsVisibility(false);
-            return;
-        }
-
-        TabsAccessor.getTabs(getContext(), NUMBER_OF_REMOTE_TABS, this);
-    }
-
-    @Override
-    public void onQueryTabsComplete(List<TabsAccessor.RemoteTab> tabsList) {
-        ArrayList<TabsAccessor.RemoteTab> tabs = new ArrayList<TabsAccessor.RemoteTab> (tabsList);
-        if (tabs == null || tabs.size() == 0) {
-            setRemoteTabsVisibility(false);
-            return;
-        }
-        
-        mRemoteTabsLayout.removeAllViews();
-        
-        String client = null;
-        
-        for (TabsAccessor.RemoteTab tab : tabs) {
-            if (client == null)
-                client = tab.name;
-            else if (!TextUtils.equals(client, tab.name))
-                break;
-
-            final TextView row = (TextView) mInflater.inflate(R.layout.abouthome_remote_tab_row, mRemoteTabsLayout, false);
-            row.setText(tab.title);
-            row.setTag(tab.url);
-            mRemoteTabsLayout.addView(row);
-            row.setOnClickListener(mRemoteTabClickListener);
-        }
-        
-        ((TextView) findViewById(R.id.remote_tabs_client)).setText(client);
-        setRemoteTabsVisibility(true);
-    }
-
     public static class TopSitesGridView extends GridView {
         
 
@@ -714,24 +575,15 @@ public class AboutHomeContent extends ScrollView
 
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            int numCols;
             int numRows;
-
-            SimpleCursorAdapter adapter = (SimpleCursorAdapter) getAdapter();
-            int nSites = Integer.MAX_VALUE;
-
-            if (adapter != null) {
-                Cursor c = adapter.getCursor();
-                if (c != null)
-                    nSites = c.getCount();
-            }
-
             Configuration config = getContext().getResources().getConfiguration();
             if (config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                nSites = Math.min(nSites, NUMBER_OF_TOP_SITES_LANDSCAPE);
-                numRows = (int) Math.round((double) nSites / NUMBER_OF_COLS_LANDSCAPE);
+                numCols = NUMBER_OF_COLS_LANDSCAPE;
+                numRows = NUMBER_OF_TOP_SITES_LANDSCAPE / NUMBER_OF_COLS_LANDSCAPE;
             } else {
-                nSites = Math.min(nSites, NUMBER_OF_TOP_SITES_PORTRAIT);
-                numRows = (int) Math.round((double) nSites / NUMBER_OF_COLS_PORTRAIT);
+                numCols = NUMBER_OF_COLS_PORTRAIT;
+                numRows = NUMBER_OF_TOP_SITES_PORTRAIT / NUMBER_OF_COLS_PORTRAIT;
             }
             int expandedHeightSpec = 
                 MeasureSpec.makeMeasureSpec((int)(mDisplayDensity * numRows * kTopSiteItemHeight),
@@ -758,14 +610,14 @@ public class AboutHomeContent extends ScrollView
             ImageView thumbnail = (ImageView) view;
 
             if (b == null) {
-                thumbnail.setImageResource(R.drawable.tab_thumbnail_default);
+                thumbnail.setImageResource(R.drawable.abouthome_topsite_placeholder);
             } else {
                 try {
                     Bitmap bitmap = BitmapFactory.decodeByteArray(b, 0, b.length);
                     thumbnail.setImageBitmap(bitmap);
                 } catch (OutOfMemoryError oom) {
                     Log.e(LOGTAG, "Unable to load thumbnail bitmap", oom);
-                    thumbnail.setImageResource(R.drawable.tab_thumbnail_default);
+                    thumbnail.setImageResource(R.drawable.abouthome_topsite_placeholder);
                 }
             }
 
@@ -801,6 +653,20 @@ public class AboutHomeContent extends ScrollView
 
             
             return false;
+        }
+    }
+
+    public static class LinkTextView extends TextView {
+        public LinkTextView(Context context, AttributeSet attrs) {
+            super(context, attrs);
+        }
+
+        @Override
+        public void setText(CharSequence text, BufferType type) {
+            SpannableString content = new SpannableString(text + " \u00BB");
+            content.setSpan(new UnderlineSpan(), 0, text.length(), 0);
+
+            super.setText(content, BufferType.SPANNABLE);
         }
     }
 }
