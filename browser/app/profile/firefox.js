@@ -61,6 +61,7 @@ pref("extensions.hotfix.certs.1.sha1Fingerprint", "F1:DB:F9:6A:7B:B8:04:FA:48:3C
 
 
 
+
 pref("extensions.autoDisableScopes", 15);
 
 
@@ -1026,7 +1027,7 @@ pref("devtools.layoutview.enabled", false);
 pref("devtools.layoutview.open", false);
 
 
-pref("devtools.debugger.enabled", false);
+pref("devtools.debugger.enabled", true);
 pref("devtools.debugger.remote-enabled", false);
 pref("devtools.debugger.remote-host", "localhost");
 pref("devtools.debugger.remote-port", 6000);
