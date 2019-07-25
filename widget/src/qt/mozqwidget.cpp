@@ -9,6 +9,7 @@
 
 #include <QtCore/QEvent>
 #include <QtCore/QVariant>
+#include <QtCore/QTimer>
 
 #include "mozqwidget.h"
 #include "nsWindow.h"
@@ -27,6 +28,15 @@ static bool gKeyboardOpen = false;
 
 static bool gFailedOpenKeyboard = false;
  
+
+
+
+
+
+
+
+static bool gPendingVKBOpen = false;
+
 MozQWidget::MozQWidget(nsWindow* aReceiver, QGraphicsItem* aParent)
     : QGraphicsWidget(aParent),
       mReceiver(aReceiver)
@@ -100,8 +110,9 @@ void MozQWidget::focusInEvent(QFocusEvent* aEvent)
 
     
     
+    
     if (gFailedOpenKeyboard)
-        showVKB();
+        requestVKB(0);
 }
 
 void MozQWidget::focusOutEvent(QFocusEvent* aEvent)
@@ -309,8 +320,33 @@ QVariant MozQWidget::inputMethodQuery(Qt::InputMethodQuery aQuery) const
     return QGraphicsWidget::inputMethodQuery(aQuery);
 }
 
+
+
+
+
+
+void MozQWidget::requestVKB(int aTimeout)
+{
+    if (!gPendingVKBOpen) {
+        gPendingVKBOpen = true;
+
+        if (aTimeout == 0)
+            showVKB();
+        else
+            QTimer::singleShot(aTimeout, this, SLOT(showVKB()));
+    }
+}
+
+
+
 void MozQWidget::showVKB()
 {
+    
+    if (!gPendingVKBOpen)
+        return;
+
+    gPendingVKBOpen = false;
+
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
     QWidget* focusWidget = qApp->focusWidget();
 
@@ -340,6 +376,11 @@ void MozQWidget::showVKB()
 
 void MozQWidget::hideVKB()
 {
+    if (gPendingVKBOpen) {
+        
+        gPendingVKBOpen = false;
+    }
+
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
     QInputContext *inputContext = qApp->inputContext();
     if (!inputContext) {
