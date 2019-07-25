@@ -26,6 +26,16 @@ using namespace mozilla;
 using namespace mozilla::layers;
 using namespace android;
 
+
+
+
+
+
+
+
+
+#define FORCE_PREVIEW_FORMAT_YUV420SP   1
+
 #if GIHM_TIMING_RECEIVEFRAME
 #define INCLUDE_TIME_H                  1
 #endif
@@ -51,14 +61,18 @@ static __inline void timespecSubtract(struct timespec* a, struct timespec* b)
 GonkCameraHardware::GonkCameraHardware(GonkCamera* aTarget, PRUint32 aCamera)
   : mCamera(aCamera)
   , mFps(30)
+#if !FORCE_PREVIEW_FORMAT_YUV420SP
   , mPreviewFormat(PREVIEW_FORMAT_UNKNOWN)
+#else
+  , mPreviewFormat(PREVIEW_FORMAT_YUV420SP)
+#endif
   , mClosing(false)
   , mMonitor("GonkCameraHardware.Monitor")
   , mNumFrames(0)
   , mTarget(aTarget)
   , mInitialized(false)
 {
-  DOM_CAMERA_LOGI( "%s: this = %p (aTarget = %p)\n", __func__, (void* )this, (void* )aTarget );
+  DOM_CAMERA_LOGI( "%s: this = %p (aTarget = %p)\n", __func__, (void*)this, (void*)aTarget );
   init();
 }
 
@@ -384,6 +398,7 @@ GonkCameraHardware::StartPreview()
 {
   const char* format;
 
+#if !FORCE_PREVIEW_FORMAT_YUV420SP
   DOM_CAMERA_LOGI("Preview formats: %s\n", mParams.get(mParams.KEY_SUPPORTED_PREVIEW_FORMATS));
 
   
@@ -405,6 +420,11 @@ GonkCameraHardware::StartPreview()
     mPreviewFormat = PREVIEW_FORMAT_UNKNOWN;
     DOM_CAMERA_LOGE("Camera ignored our request for '%s' preview, returned UNSUPPORTED format '%s'\n", PREVIEW_FORMAT, format);
   }
+#else
+  mParams.setPreviewFormat("yuv420sp");
+  mParams.setPreviewFrameRate(mFps);
+  mHardware->setParameters(mParams);
+#endif
 
   
   PRUint32 fps = mParams.getPreviewFrameRate();
