@@ -51,8 +51,8 @@ class WrapperFactory {
            SOW_FLAG                = PARTIALLY_TRANSPARENT << 1 };
 
     
-    static bool HasWrapperFlag(JSObject *wrapper, uintN flag) {
-        uintN flags = 0;
+    static bool HasWrapperFlag(JSObject *wrapper, unsigned flag) {
+        unsigned flags = 0;
         js::UnwrapObject(wrapper, true, &flags);
         return !!(flags & flag);
     }
@@ -71,20 +71,20 @@ class WrapperFactory {
 
     static JSObject *WaiveXray(JSContext *cx, JSObject *obj);
 
-    static JSObject *DoubleWrap(JSContext *cx, JSObject *obj, uintN flags);
+    static JSObject *DoubleWrap(JSContext *cx, JSObject *obj, unsigned flags);
 
     
     static JSObject *PrepareForWrapping(JSContext *cx,
                                         JSObject *scope,
                                         JSObject *obj,
-                                        uintN flags);
+                                        unsigned flags);
 
     
     static JSObject *Rewrap(JSContext *cx,
                             JSObject *obj,
                             JSObject *wrappedProto,
                             JSObject *parent,
-                            uintN flags);
+                            unsigned flags);
 
     
     static bool IsLocationObject(JSObject *obj);

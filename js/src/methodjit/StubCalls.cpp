@@ -433,7 +433,7 @@ stubs::DefFun(VMFrame &f, JSFunction *fun)
 
 
 
-    uintN attrs = fp->isEvalFrame()
+    unsigned attrs = fp->isEvalFrame()
                   ? JSPROP_ENUMERATE
                   : JSPROP_ENUMERATE | JSPROP_PERMANENT;
 
@@ -1252,7 +1252,7 @@ InitPropOrMethod(VMFrame &f, PropertyName *name, JSOp op)
     
     jsid id = ATOM_TO_JSID(name);
 
-    uintN defineHow = (op == JSOP_INITMETHOD) ? DNP_SET_METHOD : 0;
+    unsigned defineHow = (op == JSOP_INITMETHOD) ? DNP_SET_METHOD : 0;
     if (JS_UNLIKELY(name == cx->runtime->atomState.protoAtom)
         ? !js_SetPropertyHelper(cx, obj, id, defineHow, &rval, false)
         : !DefineNativeProperty(cx, obj, id, rval, NULL, NULL,
@@ -1665,7 +1665,7 @@ stubs::DelElem(VMFrame &f)
 void JS_FASTCALL
 stubs::DefVarOrConst(VMFrame &f, PropertyName *dn)
 {
-    uintN attrs = JSPROP_ENUMERATE;
+    unsigned attrs = JSPROP_ENUMERATE;
     if (!f.fp()->isEvalFrame())
         attrs |= JSPROP_PERMANENT;
     if (JSOp(*f.regs.pc) == JSOP_DEFCONST)

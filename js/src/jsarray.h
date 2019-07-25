@@ -49,7 +49,7 @@
 #include "jsobj.h"
 
 
-const uintN MIN_SPARSE_INDEX = 256;
+const unsigned MIN_SPARSE_INDEX = 256;
 
 namespace js {
 
@@ -147,7 +147,7 @@ namespace js {
 
 extern JSBool
 array_defineElement(JSContext *cx, JSObject *obj, uint32_t index, const Value *value,
-                    PropertyOp getter, StrictPropertyOp setter, uintN attrs);
+                    PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
 
 extern JSBool
 array_deleteElement(JSContext *cx, JSObject *obj, uint32_t index, Value *rval, JSBool strict);
@@ -164,25 +164,25 @@ GetElements(JSContext *cx, JSObject *aobj, jsuint length, js::Value *vp);
 
 
 extern JSBool
-array_sort(JSContext *cx, uintN argc, js::Value *vp);
+array_sort(JSContext *cx, unsigned argc, js::Value *vp);
 
 extern JSBool
-array_push(JSContext *cx, uintN argc, js::Value *vp);
+array_push(JSContext *cx, unsigned argc, js::Value *vp);
 
 extern JSBool
-array_pop(JSContext *cx, uintN argc, js::Value *vp);
+array_pop(JSContext *cx, unsigned argc, js::Value *vp);
 
 extern JSBool
-array_concat(JSContext *cx, uintN argc, js::Value *vp);
+array_concat(JSContext *cx, unsigned argc, js::Value *vp);
 
 extern JSBool
-array_shift(JSContext *cx, uintN argc, js::Value *vp);
+array_shift(JSContext *cx, unsigned argc, js::Value *vp);
 
 } 
 
 #ifdef DEBUG
 extern JSBool
-js_ArrayInfo(JSContext *cx, uintN argc, jsval *vp);
+js_ArrayInfo(JSContext *cx, unsigned argc, jsval *vp);
 #endif
 
 
@@ -207,6 +207,6 @@ js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, jsid id,
 
 
 JSBool
-js_Array(JSContext *cx, uintN argc, js::Value *vp);
+js_Array(JSContext *cx, unsigned argc, js::Value *vp);
 
 #endif 

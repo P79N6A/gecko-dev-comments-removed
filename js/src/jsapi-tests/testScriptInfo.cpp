@@ -32,7 +32,7 @@ CharsMatch(const jschar *p, const char *q) {
 
 BEGIN_TEST(testScriptInfo)
 {
-    uintN startLine = 1000;
+    unsigned startLine = 1000;
 
     JSScript *script = JS_CompileScript(cx, global, code, strlen(code), __FILE__, startLine);
 

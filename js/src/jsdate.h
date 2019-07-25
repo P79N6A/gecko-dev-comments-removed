@@ -102,6 +102,6 @@ js_IntervalNow();
 
 
 JSBool
-js_Date(JSContext *cx, uintN argc, js::Value *vp);
+js_Date(JSContext *cx, unsigned argc, js::Value *vp);
 
 #endif 

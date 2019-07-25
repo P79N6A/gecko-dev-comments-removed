@@ -96,7 +96,7 @@ struct NativeIterator {
 
     static NativeIterator *allocateIterator(JSContext *cx, uint32_t slength,
                                             const js::AutoIdVector &props);
-    void init(JSObject *obj, uintN flags, uint32_t slength, uint32_t key);
+    void init(JSObject *obj, unsigned flags, uint32_t slength, uint32_t key);
 
     void mark(JSTracer *trc);
 };
@@ -166,20 +166,20 @@ bool
 VectorToIdArray(JSContext *cx, js::AutoIdVector &props, JSIdArray **idap);
 
 bool
-GetIterator(JSContext *cx, JSObject *obj, uintN flags, js::Value *vp);
+GetIterator(JSContext *cx, JSObject *obj, unsigned flags, js::Value *vp);
 
 bool
-VectorToKeyIterator(JSContext *cx, JSObject *obj, uintN flags, js::AutoIdVector &props, js::Value *vp);
+VectorToKeyIterator(JSContext *cx, JSObject *obj, unsigned flags, js::AutoIdVector &props, js::Value *vp);
 
 bool
-VectorToValueIterator(JSContext *cx, JSObject *obj, uintN flags, js::AutoIdVector &props, js::Value *vp);
+VectorToValueIterator(JSContext *cx, JSObject *obj, unsigned flags, js::AutoIdVector &props, js::Value *vp);
 
 
 
 
 
 bool
-EnumeratedIdVectorToIterator(JSContext *cx, JSObject *obj, uintN flags, js::AutoIdVector &props, js::Value *vp);
+EnumeratedIdVectorToIterator(JSContext *cx, JSObject *obj, unsigned flags, js::AutoIdVector &props, js::Value *vp);
 
 
 
@@ -188,7 +188,7 @@ EnumeratedIdVectorToIterator(JSContext *cx, JSObject *obj, uintN flags, js::Auto
 
 
 extern JSBool
-ValueToIterator(JSContext *cx, uintN flags, js::Value *vp);
+ValueToIterator(JSContext *cx, unsigned flags, js::Value *vp);
 
 extern bool
 CloseIterator(JSContext *cx, JSObject *iterObj);

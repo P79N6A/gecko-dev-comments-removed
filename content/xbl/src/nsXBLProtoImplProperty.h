@@ -97,7 +97,7 @@ protected:
     JSObject *               mJSSetterObject;
   };
   
-  uintN mJSAttributes;          
+  unsigned mJSAttributes;          
 
 #ifdef DEBUG
   bool mIsCompiled;

@@ -225,7 +225,7 @@ enum ErrorNum {
 };
 
 const JSErrorFormatString*
-GetErrorMessage(void* userRef, const char* locale, const uintN errorNumber);
+GetErrorMessage(void* userRef, const char* locale, const unsigned errorNumber);
 JSBool TypeError(JSContext* cx, const char* expected, jsval actual);
 
 
@@ -521,9 +521,9 @@ namespace CData {
   bool IsCDataProto(JSObject* obj);
 
   
-  JSBool Cast(JSContext* cx, uintN argc, jsval* vp);
+  JSBool Cast(JSContext* cx, unsigned argc, jsval* vp);
   
-  JSBool GetRuntime(JSContext* cx, uintN argc, jsval* vp);
+  JSBool GetRuntime(JSContext* cx, unsigned argc, jsval* vp);
 }
 
 namespace Int64 {

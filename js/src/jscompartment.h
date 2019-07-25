@@ -304,7 +304,7 @@ struct JSCompartment
   private:
     enum { DebugFromC = 1, DebugFromJS = 2 };
 
-    uintN                        debugModeBits;  
+    unsigned                        debugModeBits;  
     
     
 
