@@ -57,8 +57,6 @@ function pprint(aObj)
 
 let tab, browser, hudId, hud, hudBox, filterBox, outputNode, cs;
 
-let win = gBrowser.selectedBrowser;
-
 function addTab(aURL)
 {
   gBrowser.selectedTab = gBrowser.addTab();
@@ -184,7 +182,4 @@ function tearDown()
 registerCleanupFunction(tearDown);
 
 waitForExplicitFinish();
-
-
-
 

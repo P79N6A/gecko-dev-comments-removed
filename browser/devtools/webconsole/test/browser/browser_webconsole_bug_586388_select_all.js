@@ -36,7 +36,7 @@ function testSelectionWhenMovingBetweenBoxes() {
 
   
   
-  let commandController = window.commandController;
+  let commandController = window.webConsoleCommandController;
   ok(commandController != null, "the window has a command controller object");
 
   commandController.selectAll(outputNode);

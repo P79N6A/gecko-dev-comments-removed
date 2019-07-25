@@ -466,7 +466,6 @@ ResponseListener.prototype =
       }
     });
     this.httpActivity.response.isDone = true;
-    this.httpActivity.response.listener = null;
     this.httpActivity = null;
     this.receivedData = "";
     this.request = null;
@@ -1278,6 +1277,37 @@ function HUD_SERVICE()
   
   this.responsePipeSegmentSize =
     Services.prefs.getIntPref("network.buffer.cache.size");
+
+  
+
+
+
+  this.activatedContexts = [];
+
+  
+
+
+  this.windowIds = {};
+
+  
+
+
+  this.filterPrefs = {};
+
+  
+
+
+  this.hudReferences = {};
+
+  
+
+
+  this.openRequests = {};
+
+  
+
+
+  this.openResponseHeaders = {};
 };
 
 HUD_SERVICE.prototype =
@@ -1317,23 +1347,7 @@ HUD_SERVICE.prototype =
 
 
 
-  activatedContexts: [],
-
-  
-
-
-  windowIds: {},
-
-  
-
-
-
   sequencer: null,
-
-  
-
-
-  filterPrefs: {},
 
   
 
@@ -1684,11 +1698,6 @@ HUD_SERVICE.prototype =
   
 
 
-  hudReferences: {},
-
-  
-
-
   registerHUDReference:
   function HS_registerHUDReference(aHUD)
   {
@@ -1729,6 +1738,8 @@ HUD_SERVICE.prototype =
     
     
     hud.jsterm.clearOutput();
+
+    hud.destroy();
 
     
     
@@ -1825,6 +1836,8 @@ HUD_SERVICE.prototype =
     delete this.storage;
     delete this.defaultFilterPrefs;
     delete this.defaultGlobalConsolePrefs;
+
+    delete this.lastFinishedRequestCallback;
 
     HUDWindowObserver.uninit();
     HUDConsoleObserver.uninit();
@@ -2127,16 +2140,6 @@ HUD_SERVICE.prototype =
   
 
 
-  openRequests: {},
-
-  
-
-
-  openResponseHeaders: {},
-
-  
-
-
 
   lastFinishedRequestCallback: null,
 
@@ -2239,14 +2242,7 @@ HUD_SERVICE.prototype =
               return;
             }
 
-            
-            let newListener = new ResponseListener(httpActivity);
             aChannel.QueryInterface(Ci.nsITraceableChannel);
-
-            httpActivity.response.listener = newListener;
-
-            let tee = Cc["@mozilla.org/network/stream-listener-tee;1"].
-                      createInstance(Ci.nsIStreamListenerTee);
 
             
             
@@ -2260,10 +2256,16 @@ HUD_SERVICE.prototype =
                       PR_UINT32_MAX, null);
 
             
+            let newListener = new ResponseListener(httpActivity);
+
+            
             newListener.inputStream = sink.inputStream;
+            newListener.sink = sink;
+
+            let tee = Cc["@mozilla.org/network/stream-listener-tee;1"].
+                      createInstance(Ci.nsIStreamListenerTee);
 
             let originalListener = aChannel.setNewListener(tee);
-            newListener.sink = sink;
 
             tee.init(originalListener, sink.outputStream, newListener);
 
@@ -2307,7 +2309,7 @@ HUD_SERVICE.prototype =
             
             
             let httpActivity = null;
-            for each (var item in self.openRequests) {
+            for each (let item in self.openRequests) {
               if (item.channel !== aChannel) {
                 continue;
               }
@@ -2420,7 +2422,8 @@ HUD_SERVICE.prototype =
                 msgObject.messageNode.clipboardText =
                   clipboardTextPieces.join(" ");
 
-                delete self.openRequests[item.id];
+                delete httpActivity.messageObject;
+                delete self.openRequests[httpActivity.id];
                 updatePanel = true;
                 break;
               }
@@ -2657,13 +2660,24 @@ HUD_SERVICE.prototype =
 
   onWindowUnload: function HS_onWindowUnload(aEvent)
   {
-    let gBrowser = aEvent.target.defaultView.gBrowser;
+    let window = aEvent.target.defaultView;
+
+    window.removeEventListener("unload", this.onWindowUnload, false);
+
+    let gBrowser = window.gBrowser;
     let tabContainer = gBrowser.tabContainer;
+
+    tabContainer.removeEventListener("TabClose", this.onTabClose, false);
 
     let tab = tabContainer.firstChild;
     while (tab != null) {
       this.deactivateHUDForContext(tab, false);
       tab = tab.nextSibling;
+    }
+
+    if (window.webConsoleCommandController) {
+      window.controllers.removeController(window.webConsoleCommandController);
+      window.webConsoleCommandController = null;
     }
   },
 
@@ -2690,12 +2704,7 @@ HUD_SERVICE.prototype =
       return;
     }
 
-    xulWindow.addEventListener("unload", this.onWindowUnload, false);
-
     let gBrowser = xulWindow.gBrowser;
-
-    let container = gBrowser.tabContainer;
-    container.addEventListener("TabClose", this.onTabClose, false);
 
     let _browser = gBrowser.
       getBrowserForDocument(aContentWindow.top.document);
@@ -2715,6 +2724,9 @@ HUD_SERVICE.prototype =
     if (!this.canActivateContext(hudId)) {
       return;
     }
+
+    xulWindow.addEventListener("unload", this.onWindowUnload, false);
+    gBrowser.tabContainer.addEventListener("TabClose", this.onTabClose, false);
 
     this.registerDisplay(hudId);
 
@@ -2775,9 +2787,10 @@ HUD_SERVICE.prototype =
 
   createController: function HUD_createController(aWindow)
   {
-    if (aWindow.commandController == null) {
-      aWindow.commandController = new CommandController(aWindow);
-      aWindow.controllers.insertControllerAt(0, aWindow.commandController);
+    if (aWindow.webConsoleCommandController == null) {
+      aWindow.webConsoleCommandController = new CommandController(aWindow);
+      aWindow.controllers.insertControllerAt(0,
+        aWindow.webConsoleCommandController);
     }
   },
 
@@ -3611,7 +3624,16 @@ HeadsUpDisplay.prototype = {
 
   createPositionUI: function HUD_createPositionUI()
   {
-    let self = this;
+    this._positionConsoleAbove = (function HUD_positionAbove() {
+      this.positionConsole("above");
+    }).bind(this);
+
+    this._positionConsoleBelow = (function HUD_positionBelow() {
+      this.positionConsole("below");
+    }).bind(this);
+    this._positionConsoleWindow = (function HUD_positionWindow() {
+      this.positionConsole("window");
+    }).bind(this);
 
     let button = this.makeXULNode("toolbarbutton");
     button.setAttribute("type", "menu");
@@ -3625,27 +3647,21 @@ HeadsUpDisplay.prototype = {
     itemAbove.setAttribute("label", this.getStr("webConsolePositionAbove"));
     itemAbove.setAttribute("type", "checkbox");
     itemAbove.setAttribute("autocheck", "false");
-    itemAbove.addEventListener("command", function() {
-      self.positionConsole("above");
-    }, false);
+    itemAbove.addEventListener("command", this._positionConsoleAbove, false);
     menuPopup.appendChild(itemAbove);
 
     let itemBelow = this.makeXULNode("menuitem");
     itemBelow.setAttribute("label", this.getStr("webConsolePositionBelow"));
     itemBelow.setAttribute("type", "checkbox");
     itemBelow.setAttribute("autocheck", "false");
-    itemBelow.addEventListener("command", function() {
-      self.positionConsole("below");
-    }, false);
+    itemBelow.addEventListener("command", this._positionConsoleBelow, false);
     menuPopup.appendChild(itemBelow);
 
     let itemWindow = this.makeXULNode("menuitem");
     itemWindow.setAttribute("label", this.getStr("webConsolePositionWindow"));
     itemWindow.setAttribute("type", "checkbox");
     itemWindow.setAttribute("autocheck", "false");
-    itemWindow.addEventListener("command", function() {
-      self.positionConsole("window");
-    }, false);
+    itemWindow.addEventListener("command", this._positionConsoleWindow, false);
     menuPopup.appendChild(itemWindow);
 
     this.positionMenuitems = {
@@ -3771,16 +3787,17 @@ HeadsUpDisplay.prototype = {
 
   makeCloseButton: function HUD_makeCloseButton(aToolbar)
   {
-    let onCommand = (function HUD_closeButton_onCommand() {
+    this.closeButtonOnCommand = (function HUD_closeButton_onCommand() {
       HUDService.animate(this.hudId, ANIMATE_OUT, (function() {
         HUDService.deactivateHUDForContext(this.tab, true);
       }).bind(this));
     }).bind(this);
 
-    let closeButton = this.makeXULNode("toolbarbutton");
-    closeButton.classList.add("webconsole-close-button");
-    closeButton.addEventListener("command", onCommand, false);
-    aToolbar.appendChild(closeButton);
+    this.closeButton = this.makeXULNode("toolbarbutton");
+    this.closeButton.classList.add("webconsole-close-button");
+    this.closeButton.addEventListener("command",
+      this.closeButtonOnCommand, false);
+    aToolbar.appendChild(this.closeButton);
   },
 
   
@@ -3859,7 +3876,26 @@ HeadsUpDisplay.prototype = {
     HUD_BOX_DOES_NOT_EXIST: "Heads Up Display does not exist",
     TAB_ID_REQUIRED: "Tab DOM ID is required",
     PARENTNODE_NOT_FOUND: "parentNode element not found"
-  }
+  },
+
+  
+
+
+
+  destroy: function HUD_destroy()
+  {
+    this.jsterm.destroy();
+
+    this.positionMenuitems.above.removeEventListener("command",
+      this._positionConsoleAbove, false);
+    this.positionMenuitems.below.removeEventListener("command",
+      this._positionConsoleBelow, false);
+    this.positionMenuitems.window.removeEventListener("command",
+      this._positionConsoleWindow, false);
+
+    this.closeButton.removeEventListener("command",
+      this.closeButtonOnCommand, false);
+  },
 };
 
 
@@ -4459,12 +4495,15 @@ JSTerm.prototype = {
     this.outputNode = this.mixins.outputNode;
     this.completeNode = this.mixins.completeNode;
 
+    this._keyPress = this.keyPress.bind(this);
+    this._inputEventHandler = this.inputEventHandler.bind(this);
+
     this.inputNode.addEventListener("keypress",
-      this.keyPress.bind(this), false);
+      this._keyPress, false);
     this.inputNode.addEventListener("input",
-      this.inputEventHandler.bind(this), false);
+      this._inputEventHandler, false);
     this.inputNode.addEventListener("keyup",
-      this.inputEventHandler.bind(this), false);
+      this._inputEventHandler, false);
   },
 
   get codeInputString()
@@ -5244,6 +5283,16 @@ JSTerm.prototype = {
     
     let prefix = aSuffix ? this.inputNode.value.replace(/[\S]/g, " ") : "";
     this.completeNode.value = prefix + aSuffix;
+  },
+
+  
+
+
+  destroy: function JST_destroy()
+  {
+    this.inputNode.removeEventListener("keypress", this._keyPress, false);
+    this.inputNode.removeEventListener("input", this._inputEventHandler, false);
+    this.inputNode.removeEventListener("keyup", this._inputEventHandler, false);
   },
 };
 
@@ -6399,8 +6448,7 @@ CommandController.prototype = {
 
   supportsCommand: function CommandController_supportsCommand(aCommand)
   {
-    return this.isCommandEnabled(aCommand) &&
-           this._getFocusedOutputNode() != null;
+    return this.isCommandEnabled(aCommand);
   },
 
   isCommandEnabled: function CommandController_isCommandEnabled(aCommand)
