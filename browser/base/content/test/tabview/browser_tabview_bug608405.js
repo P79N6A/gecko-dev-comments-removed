@@ -36,14 +36,12 @@ function test() {
 
       
       is(tabItem.parent, targetGroup, 'tabItem changed groups');
-      is(sourceGroup.getChildren().length, 0, 'source group has no children');
+      is(cw.GroupItems.groupItems.length, 1, 'source group was closed automatically');
       is(targetGroup.getChildren().length, 2, 'target group has now two children');
 
       
-      closeGroupItem(sourceGroup, function () {
-        tabItem.close();
-        hideTabView(finishTest);
-      });
+      tabItem.close();
+      hideTabView(finishTest);
     });
   }
 

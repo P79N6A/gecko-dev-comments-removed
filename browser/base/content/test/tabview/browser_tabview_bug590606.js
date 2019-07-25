@@ -72,6 +72,8 @@ function testGroupSwitch(contentWindow, groupItemOne, groupItemTwo) {
     "The currently selected tab should be the second tab in the groupItemOne");
 
   
+  gBrowser.removeTab(groupItemTwo.getChild(0).tab);
   gBrowser.removeTab(newTabOne);
-  closeGroupItem(groupItemTwo, finish);
+
+  finish();
 }

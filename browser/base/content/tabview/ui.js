@@ -523,9 +523,16 @@ let UI = {
 
     Storage.saveVisibilityData(gWindow, "true");
 
+    
+    
+    
+    
     let activeGroupItem = null;
-    if (!UI.getActiveOrphanTab())
+    if (!UI.getActiveOrphanTab()) {
       activeGroupItem = GroupItems.getActiveGroupItem();
+      if (activeGroupItem && activeGroupItem.closeIfEmpty())
+        activeGroupItem = null;
+    }
 
     if (zoomOut && currentTab && currentTab._tabViewTabItem) {
       item = currentTab._tabViewTabItem;
@@ -631,8 +638,10 @@ let UI = {
   
   
   storageBusy: function UI_storageBusy() {
-    if (!this._storageBusyCount)
+    if (!this._storageBusyCount) {
       TabItems.pauseReconnecting();
+      GroupItems.pauseAutoclose();
+    }
     
     this._storageBusyCount++;
   },
@@ -650,6 +659,7 @@ let UI = {
   
       TabItems.resumeReconnecting();
       GroupItems._updateTabBar();
+      GroupItems.resumeAutoclose();
     }
   },
 

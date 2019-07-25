@@ -39,6 +39,10 @@ function test() {
     tests.push([tab2, tab1]);
     tests.push([tab1]);
 
+    
+    
+    tests.push([]);
+
     while (tests.length) {
       let test = tests.shift();
 
@@ -59,7 +63,7 @@ function test() {
       groupItem.reorderTabsBasedOnTabItemOrder();
     }
 
-    closeGroupItem(groupItem, testMoveBetweenGroups);
+    testMoveBetweenGroups();
   }
 
   let testMoveBetweenGroups = function () {
