@@ -111,14 +111,6 @@ function test_blocked_install() {
        "Should have seen the right message");
 
     
-    EventUtils.synthesizeMouse(notification.button, 20, 10, {});
-
-    
-    ok(PopupNotifications.isPanelOpen, "Notification should still be open");
-    notification = aPanel.childNodes[0];
-    is(notification.id, "addon-progress-notification", "Should have seen the progress notification");
-
-    
     wait_for_install_dialog(function(aWindow) {
       
       wait_for_notification(function(aPanel) {
@@ -140,6 +132,15 @@ function test_blocked_install() {
 
       aWindow.document.documentElement.acceptDialog();
     });
+
+    
+    EventUtils.synthesizeMouse(notification.button, 20, 10, {});
+
+    
+    ok(PopupNotifications.isPanelOpen, "Notification should still be open");
+    notification = aPanel.childNodes[0];
+    is(notification.id, "addon-progress-notification", "Should have seen the progress notification");
+
   });
 
   var triggers = encodeURIComponent(JSON.stringify({
@@ -706,15 +707,6 @@ function test_cancel_restart() {
       is(notification.id, "addon-install-cancelled-notification", "Should have seen the cancelled notification");
 
       
-      EventUtils.synthesizeMouse(notification.button, 20, 10, {});
-
-      
-      ok(PopupNotifications.isPanelOpen, "Notification should still be open");
-      is(PopupNotifications.panel.childNodes.length, 1, "Should be only one notification");
-      notification = aPanel.childNodes[0];
-      is(notification.id, "addon-progress-notification", "Should have seen the progress notification");
-
-      
       wait_for_install_dialog(function(aWindow) {
         
         wait_for_notification(function(aPanel) {
@@ -737,6 +729,16 @@ function test_cancel_restart() {
 
         aWindow.document.documentElement.acceptDialog();
       });
+
+      
+      EventUtils.synthesizeMouse(notification.button, 20, 10, {});
+
+      
+      ok(PopupNotifications.isPanelOpen, "Notification should still be open");
+      is(PopupNotifications.panel.childNodes.length, 1, "Should be only one notification");
+      notification = aPanel.childNodes[0];
+      is(notification.id, "addon-progress-notification", "Should have seen the progress notification");
+
     });
   });
 
