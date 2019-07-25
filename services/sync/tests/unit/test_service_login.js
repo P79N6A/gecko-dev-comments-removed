@@ -111,6 +111,68 @@ function run_test() {
     Service.logout();
     do_check_false(Service.isLoggedIn);
     do_check_false(Svc.Prefs.get("autoconnect"));
+    
+    
+
+
+    
+    _("Sync calls login.");
+    let oldLogin = Service.login;
+    let loginCalled = false;
+    Service.login = function() {
+      loginCalled = true;
+      Status.login = LOGIN_SUCCEEDED;
+      this._loggedIn = false;           
+      return true;
+    }
+    try {
+      Service.sync();
+    } catch (ex) {}
+    
+    do_check_true(loginCalled);
+    Service.login = oldLogin;
+    
+    
+    let mpLockedF = Utils.mpLocked;
+    let mpLocked = true;
+    Utils.mpLocked = function() mpLocked;
+    
+    
+    
+    let scheduleNextSyncF = Service._scheduleNextSync;
+    let scheduleCalled = false;
+    Service._scheduleNextSync = function(wait) {
+      scheduleCalled = true;
+      scheduleNextSyncF.call(this, wait);
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    _("We're ready to sync if locked.");
+    Service.enabled = true;
+    Svc.IO.offline = false;
+    Service._checkSyncStatus();
+    do_check_true(scheduleCalled);
+    
+    scheduleCalled = false;
+    mpLocked = false;
+    
+    _("... and not if not.");
+    Service._checkSyncStatus();
+    do_check_false(scheduleCalled);
+    Service._scheduleNextSync = scheduleNextSyncF;
+    
+    
 
   } finally {
     Svc.Prefs.resetBranch("");
