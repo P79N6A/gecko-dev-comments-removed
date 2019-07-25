@@ -820,15 +820,13 @@ nsAccUtils::IsTextInterfaceSupportCorrect(nsAccessible *aAccessible)
 }
 #endif
 
-PRInt32
-nsAccUtils::TextLength(nsIAccessible *aAccessible)
+PRUint32
+nsAccUtils::TextLength(nsAccessible *aAccessible)
 {
   if (!IsText(aAccessible))
     return 1;
-  
-  nsRefPtr<nsAccessNode> accNode = do_QueryObject(aAccessible);
-  
-  nsIFrame *frame = accNode->GetFrame();
+
+  nsIFrame *frame = aAccessible->GetFrame();
   if (frame && frame->GetType() == nsAccessibilityAtoms::textFrame) {
     
     
@@ -837,18 +835,21 @@ nsAccUtils::TextLength(nsIAccessible *aAccessible)
       PRUint32 length;
       nsresult rv = nsHyperTextAccessible::
         ContentToRenderedOffset(frame, content->TextLength(), &length);
-      return NS_SUCCEEDED(rv) ? static_cast<PRInt32>(length) : -1;
+      if (NS_FAILED(rv)) {
+        NS_NOTREACHED("Failed to get rendered offset!");
+        return 0;
+      }
+
+      return length;
     }
   }
-  
-  
-  
-  
-  
-  nsRefPtr<nsAccessible> acc(do_QueryObject(aAccessible));
 
+  
+  
+  
+  
   nsAutoString text;
-  acc->AppendTextTo(text, 0, PR_UINT32_MAX); 
+  aAccessible->AppendTextTo(text, 0, PR_UINT32_MAX); 
   return text.Length();
 }
 

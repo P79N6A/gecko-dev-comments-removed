@@ -340,7 +340,7 @@ public:
   
 
 
-  static PRInt32 TextLength(nsIAccessible *aAccessible);
+  static PRUint32 TextLength(nsAccessible *aAccessible);
 
   
 
