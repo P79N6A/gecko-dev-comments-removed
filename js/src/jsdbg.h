@@ -77,34 +77,12 @@ class Debug {
     FrameMap frames;
 
     
-    
-    
-    
-    class CCWReferentKeyMarkPolicy: public DefaultMarkPolicy<JSObject *, JSObject *> {
-        typedef DefaultMarkPolicy<JSObject *, JSObject *> Base;
-      public:
-        explicit CCWReferentKeyMarkPolicy(JSTracer *tracer) : Base(tracer) { }
-        
-        
-        
-        
-        
-        bool keyMarked(JSObject *k) { 
-            JS_ASSERT(k->isCrossCompartmentWrapper());
-            return k->unwrap()->isMarked(); 
-        }
-        void markKey(JSObject *k, const char *description) {
-            js::gc::MarkObject(tracer, *k->unwrap(), description);
-        }
-    };
-
-    
     typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CrossCompartmentMarkPolicy>
         ObjectWeakMap;
     ObjectWeakMap objects;
 
     
-    typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CCWReferentKeyMarkPolicy>
+    typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CrossCompartmentMarkPolicy>
         ScriptWeakMap;
 
     

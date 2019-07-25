@@ -81,7 +81,7 @@ extern Class DebugScript_class;
 
 enum {
     JSSLOT_DEBUGSCRIPT_OWNER,
-    JSSLOT_DEBUGSCRIPT_HOLDER, 
+    JSSLOT_DEBUGSCRIPT_HOLDER,  
     JSSLOT_DEBUGSCRIPT_COUNT
 };
 
@@ -531,8 +531,10 @@ Debug::markCrossCompartmentDebugObjectReferents(JSTracer *tracer)
         const GlobalObject::DebugVector *debuggers = r.front()->getDebuggers();
         for (Debug **p = debuggers->begin(); p != debuggers->end(); p++) {
             Debug *dbg = *p;
-            if (dbg->object->compartment() != comp)
+            if (dbg->object->compartment() != comp) {
                 dbg->objects.markKeysInCompartment(tracer);
+                dbg->heldScripts.markKeysInCompartment(tracer);
+            }
         }
     }
 }
@@ -1117,11 +1119,10 @@ JSFunctionSpec Debug::methods[] = {
 
 
 
-Class DebugScript_class = {
-    "Script", JSCLASS_HAS_PRIVATE | JSCLASS_HAS_RESERVED_SLOTS(JSSLOT_DEBUGSCRIPT_COUNT),
-    PropertyStub, PropertyStub, PropertyStub, StrictPropertyStub,
-    EnumerateStub, ResolveStub, ConvertStub
-};
+
+
+
+
 
 static inline JSScript *GetScriptReferent(JSObject *obj) {
     JS_ASSERT(obj->getClass() == &DebugScript_class);
@@ -1133,10 +1134,30 @@ static inline void ClearScriptReferent(JSObject *obj) {
     obj->setPrivate(NULL);
 }
 
-static inline JSObject *GetScriptHolder(JSObject *obj) {
-    JS_ASSERT(obj->getClass() == &DebugScript_class);
-    return obj->getReservedSlot(JSSLOT_DEBUGSCRIPT_HOLDER).toObjectOrNull();
+static void
+DebugScript_trace(JSTracer *trc, JSObject *obj)
+{
+    if (!trc->context->runtime->gcCurrentCompartment) {
+        Value v = obj->getReservedSlot(JSSLOT_DEBUGSCRIPT_HOLDER);
+        if (!v.isUndefined()) {
+            if (JSObject *obj = (JSObject *) v.toPrivate())
+                MarkObject(trc, *obj, "Debug.Script referent holder");
+        }
+    }
 }
+
+Class DebugScript_class = {
+    "Script", JSCLASS_HAS_PRIVATE | JSCLASS_HAS_RESERVED_SLOTS(JSSLOT_DEBUGSCRIPT_COUNT),
+    PropertyStub, PropertyStub, PropertyStub, StrictPropertyStub,
+    EnumerateStub, ResolveStub, ConvertStub, NULL,
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    DebugScript_trace
+};
 
 JSObject *
 Debug::newDebugScript(JSContext *cx, JSScript *script, JSObject *holder)
@@ -1148,7 +1169,7 @@ Debug::newDebugScript(JSContext *cx, JSScript *script, JSObject *holder)
         return false;
     scriptobj->setPrivate(script);
     scriptobj->setReservedSlot(JSSLOT_DEBUGSCRIPT_OWNER, ObjectValue(*object));
-    scriptobj->setReservedSlot(JSSLOT_DEBUGSCRIPT_HOLDER, ObjectOrNullValue(holder));
+    scriptobj->setReservedSlot(JSSLOT_DEBUGSCRIPT_HOLDER, PrivateValue(holder));
 
     return scriptobj;
 }
@@ -1157,12 +1178,6 @@ JSObject *
 Debug::wrapHeldScript(JSContext *cx, JSScript *script, JSObject *obj)
 {
     assertSameCompartment(cx, object);
-
-    
-    
-    JS_ASSERT(cx->compartment != obj->compartment());
-    if (!cx->compartment->wrap(cx, &obj))
-        return NULL;
 
     ScriptWeakMap::AddPtr p = heldScripts.lookupForAdd(obj);
     if (!p) {
@@ -1716,8 +1731,10 @@ static JSFunctionSpec DebugFrame_methods[] = {
 static void
 DebugObject_trace(JSTracer *trc, JSObject *obj)
 {
-    if (JSObject *obj = (JSObject *) obj->getPrivate())
-        MarkObject(trc, *obj, "Debug.Object referent");
+    if (!trc->context->runtime->gcCurrentCompartment) {
+        if (JSObject *obj = (JSObject *) obj->getPrivate())
+            MarkObject(trc, *obj, "Debug.Object referent");
+    }
 }
 
 Class DebugObject_class = {
