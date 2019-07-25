@@ -267,6 +267,9 @@ ContentSecurityPolicy.prototype = {
       }
       CSPdebug("Constructed violation report:\n" + JSON.stringify(report));
 
+      CSPWarning("Directive \"" + violatedDirective + "\" violated"
+               + (blockedUri['asciiSpec'] ? " by " + blockedUri.asciiSpec : ""));
+
       
       for (let i in uris) {
         if (uris[i] === "")
@@ -285,8 +288,7 @@ ContentSecurityPolicy.prototype = {
           req.setRequestHeader('Content-Type', 'application/json');
           req.upload.addEventListener("error", failure, false);
           req.upload.addEventListener("abort", failure, false);
-          
- 
+
           
           
           
@@ -382,7 +384,6 @@ ContentSecurityPolicy.prototype = {
     CSPdebug("shouldLoad location = " + aContentLocation.asciiSpec);
     CSPdebug("shouldLoad content type = " + aContentType);
     var cspContext = ContentSecurityPolicy._MAPPINGS[aContentType];
-    
 
     
     if (!cspContext) {
