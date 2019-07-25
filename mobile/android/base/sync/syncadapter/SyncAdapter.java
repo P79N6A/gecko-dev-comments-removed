@@ -232,6 +232,21 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
 
 
 
+  @Override
+  public void requestBackoff(long backoff) {
+    if (backoff > 0) {
+      
+      backoff = backoff + Math.round((double) backoff * 0.25d * Math.random());
+      this.extendEarliestNextSync(System.currentTimeMillis() + backoff);
+    }
+  }
+
+  
+
+
+
+
+
 
 
 
@@ -528,13 +543,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
   public void handleStageCompleted(Stage currentState,
                                    GlobalSession globalSession) {
     Logger.trace(LOG_TAG, "Stage completed: " + currentState);
-  }
-
-  @Override
-  public void requestBackoff(long backoff) {
-    if (backoff > 0) {
-      this.extendEarliestNextSync(System.currentTimeMillis() + backoff);
-    }
   }
 
   @Override
