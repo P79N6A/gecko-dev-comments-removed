@@ -486,6 +486,18 @@ FlowsIntoNext(JSOp op)
            op != JSOP_GOTO && op != JSOP_RETSUB;
 }
 
+inline bool
+IsArgOp(JSOp op)
+{
+    return JOF_OPTYPE(op) == JOF_QARG;
+}
+
+inline bool
+IsLocalOp(JSOp op)
+{
+    return JOF_OPTYPE(op) == JOF_LOCAL;
+}
+
 
 
 
