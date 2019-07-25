@@ -107,6 +107,7 @@ public:
   
   virtual PRUint32 ColCount();
   virtual PRUint32 RowCount();
+  virtual void UnselectRow(PRUint32 aRowIdx);
 
   
   virtual void Shutdown();
