@@ -65,12 +65,13 @@ class SnapshotReader
     uint32 slotCount_;          
     uint32 frameCount_;
     BailoutKind bailoutKind_;
+    uint32 framesRead_;         
+    uint32 slotsRead_;          
     bool resumeAfter_;
 
 #ifdef DEBUG
     
     JSScript *script_;
-    uint32 slotsRead_;
 #endif
 
 #ifdef TRACK_SNAPSHOTS
@@ -82,7 +83,7 @@ class SnapshotReader
 #endif
 
     void readSnapshotHeader();
-    void readSnapshotBody();
+    void readFrameHeader();
 
     template <typename T> inline T readVariableLength();
 
@@ -222,8 +223,6 @@ class SnapshotReader
             return unknown_type_.value;
         }
 #endif
-
-        bool liveInReg() const;
     };
 
   public:
@@ -239,66 +238,45 @@ class SnapshotReader
         return bailoutKind_;
     }
     bool resumeAfter() const {
+        if (moreFrames())
+            return false;
         return resumeAfter_;
     }
-
+    bool moreFrames() const {
+        return framesRead_ < frameCount_;
+    }
+    void nextFrame() {
+        readFrameHeader();
+    }
     Slot readSlot();
-    void finishReadingFrame();
-    uint32 remainingFrameCount() const { return frameCount_; }
+
+    Value skip() {
+        readSlot();
+        return UndefinedValue();
+    }
+
+    bool moreSlots() const {
+        return slotsRead_ < slotCount_;
+    }
 };
 
 class FrameRecovery;
 
-class SnapshotIterator
+class SnapshotIterator : public SnapshotReader
 {
   private:
     const FrameRecovery &in_;
-    Maybe<SnapshotReader> reader_;
-    uint32 unreadSlots_;
 
     uintptr_t fromLocation(const SnapshotReader::Location &loc);
-    void skipLocation(const SnapshotReader::Location &loc);
     static Value FromTypedPayload(JSValueType type, uintptr_t payload);
+
+    Value slotValue(const Slot &slot);
 
   public:
     SnapshotIterator(const FrameRecovery &in);
 
-    typedef SnapshotReader::Slot Slot;
-
-    
-    Slot readSlot();
-    Value slotValue(const Slot &);
-    void skip(const Slot &);
-
     Value read() {
         return slotValue(readSlot());
-    }
-
-    bool more() {
-        if (!unreadSlots_)
-            reader_.ref().finishReadingFrame();
-        return unreadSlots_;
-    }
-
-    
-    void readFrame() {
-        unreadSlots_ = slots();
-    }
-
-    bool moreFrames() const {
-        return reader_.ref().remainingFrameCount() > 1;
-    }
-
-    uint32 slots() const {
-        return reader_.ref().slots();
-    }
-
-    uint32 pcOffset() const {
-        return reader_.ref().pcOffset();
-    }
-
-    BailoutKind bailoutKind() const {
-        return reader_.ref().bailoutKind();
     }
 };
 

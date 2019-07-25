@@ -55,131 +55,8 @@
 using namespace js;
 using namespace js::ion;
 
-class IonBailoutIterator
-{
-    IonScript *ionScript_;
-    FrameRecovery &in_;
-    SnapshotReader reader_;
-
-    static Value FromTypedPayload(JSValueType type, uintptr_t payload)
-    {
-        switch (type) {
-          case JSVAL_TYPE_INT32:
-            return Int32Value(payload);
-          case JSVAL_TYPE_BOOLEAN:
-            return BooleanValue(!!payload);
-          case JSVAL_TYPE_STRING:
-            return StringValue(reinterpret_cast<JSString *>(payload));
-          case JSVAL_TYPE_OBJECT:
-            return ObjectValue(*reinterpret_cast<JSObject *>(payload));
-          default:
-            JS_NOT_REACHED("unexpected type - needs payload");
-            return UndefinedValue();
-        }
-    }
-
-    uintptr_t fromLocation(const SnapshotReader::Location &loc) {
-        if (loc.isStackSlot())
-            return in_.readSlot(loc.stackSlot());
-        return in_.machine().readReg(loc.reg());
-    }
-
-  public:
-    IonBailoutIterator(FrameRecovery &in, const uint8 *start, const uint8 *end)
-      : in_(in),
-        reader_(start, end)
-    { }
-
-    Value readBogus() {
-        reader_.readSlot();
-        return UndefinedValue();
-    }
-
-    Value read() {
-        SnapshotReader::Slot slot = reader_.readSlot();
-        switch (slot.mode()) {
-          case SnapshotReader::DOUBLE_REG:
-            return DoubleValue(in_.machine().readFloatReg(slot.floatReg()));
-
-          case SnapshotReader::TYPED_REG: {
-            uintptr_t reg = in_.machine().readReg(slot.reg());
-            JSValueType type = slot.knownType();
-#ifdef DEBUG
-            
-            
-            
-            
-            if (type == JSVAL_TYPE_OBJECT && bailoutKind() == Bailout_ArgumentCheck &&
-                (reg == 0 || reg >> 47))
-            {
-                reg = 1;
-            }
-#endif
-            return FromTypedPayload(type, reg);
-          }
-          case SnapshotReader::TYPED_STACK:
-          {
-            JSValueType type = slot.knownType();
-            if (type == JSVAL_TYPE_DOUBLE)
-                return DoubleValue(in_.readDoubleSlot(slot.stackSlot()));
-            return FromTypedPayload(type, in_.readSlot(slot.stackSlot()));
-          }
-
-          case SnapshotReader::UNTYPED:
-          {
-              jsval_layout layout;
-#if defined(JS_NUNBOX32)
-              layout.s.tag = (JSValueTag)fromLocation(slot.type());
-              layout.s.payload.word = fromLocation(slot.payload());
-#elif defined(JS_PUNBOX64)
-              layout.asBits = fromLocation(slot.value());
-#endif
-              return IMPL_TO_JSVAL(layout);
-          }
-
-          case SnapshotReader::JS_UNDEFINED:
-            return UndefinedValue();
-
-          case SnapshotReader::JS_NULL:
-            return NullValue();
-
-          case SnapshotReader::JS_INT32:
-            return Int32Value(slot.int32Value());
-
-          case SnapshotReader::CONSTANT:
-            return in_.ionScript()->getConstant(slot.constantIndex());
-
-          default:
-            JS_NOT_REACHED("huh?");
-            return UndefinedValue();
-        }
-    }
-
-    uint32 slots() const {
-        return reader_.slots();
-    }
-    uint32 pcOffset() const {
-        return reader_.pcOffset();
-    }
-    BailoutKind bailoutKind() const {
-        return reader_.bailoutKind();
-    }
-    bool resumeAfter() const {
-        if (hasNextFrame())
-            return false;
-        return reader_.resumeAfter();
-    }
-    bool hasNextFrame() const {
-        return reader_.remainingFrameCount() > 1;
-    }
-    bool nextFrame() {
-        reader_.finishReadingFrame();
-        return reader_.remainingFrameCount() > 0;
-    }
-};
-
 static void
-RestoreOneFrame(JSContext *cx, StackFrame *fp, IonBailoutIterator &iter)
+RestoreOneFrame(JSContext *cx, StackFrame *fp, SnapshotIterator &iter)
 {
     uint32 exprStackSlots = iter.slots() - fp->script()->nfixed;
 
@@ -190,18 +67,23 @@ RestoreOneFrame(JSContext *cx, StackFrame *fp, IonBailoutIterator &iter)
     
     
     
-    Value scopeChainv = iter.read();
-    if (scopeChainv.isObject()) {
-        
-        
-        
-        if (iter.bailoutKind() != Bailout_ArgumentCheck)
-            fp->setScopeChainNoCallObj(scopeChainv.toObject());
-        else
-            scopeChainv = ObjectValue(*fp->fun()->environment());
+    
+    
+    
+    
+    
+    Value scopeChainv;
+    if (iter.bailoutKind() == Bailout_ArgumentCheck) {
+        scopeChainv = ObjectValue(*fp->fun()->environment());
+        iter.skip();
     } else {
-        JS_ASSERT(scopeChainv.isUndefined());
+        scopeChainv = iter.read();
     }
+
+    if (scopeChainv.isObject())
+        fp->setScopeChainNoCallObj(scopeChainv.toObject());
+    else
+        JS_ASSERT(scopeChainv.isUndefined());
 
     if (fp->isFunctionFrame()) {
         Value thisv = iter.read();
@@ -236,10 +118,8 @@ RestoreOneFrame(JSContext *cx, StackFrame *fp, IonBailoutIterator &iter)
         
         
         
-        
-        
-        if (!iter.hasNextFrame() && i == exprStackSlots - 1 && cx->runtime->hasIonReturnOverride())
-            v = iter.readBogus();
+        if (!iter.moreFrames() && i == exprStackSlots - 1 && cx->runtime->hasIonReturnOverride())
+            v = iter.skip();
         else
             v = iter.read();
 
@@ -327,10 +207,7 @@ ConvertFrames(JSContext *cx, IonActivation *activation, FrameRecovery &in)
     
     StackFrame *entryFp = cx->fp();
 
-    JS_ASSERT(in.snapshotOffset() < in.ionScript()->snapshotsSize());
-    const uint8 *start = in.ionScript()->snapshots() + in.snapshotOffset();
-    const uint8 *end = in.ionScript()->snapshots() + in.ionScript()->snapshotsSize();
-    IonBailoutIterator iter(in, start, end);
+    SnapshotIterator iter(in);
 
     
     in.ionScript()->forbidOsr();
@@ -364,11 +241,13 @@ ConvertFrames(JSContext *cx, IonActivation *activation, FrameRecovery &in)
 
     DeriveConstructing(fp, entryFp, in.fp());
 
-    for (size_t i = 0;; ++i) {
-        IonSpew(IonSpew_Bailouts, " restoring frame %u (lower is older)", i);
+    while (true) {
+        IonSpew(IonSpew_Bailouts, " restoring frame");
         RestoreOneFrame(cx, fp, iter);
-        if (!iter.nextFrame())
-            break;
+
+        if (!iter.moreFrames())
+             break;
+        iter.nextFrame();
 
         fp = PushInlinedFrame(cx, fp);
         if (!fp)

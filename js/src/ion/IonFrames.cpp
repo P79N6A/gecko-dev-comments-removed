@@ -221,30 +221,28 @@ InlineFrameReverseIterator &
 InlineFrameReverseIterator::operator++()
 {
     JS_ASSERT(more());
-    JS_ASSERT(JSOp(*pc_) == JSOP_CALL);
+    JS_ASSERT(js_CodeSpec[*pc_].format & JOF_INVOKE);
 
     
     int callerArgc = GET_ARGC(pc_);
     uint32 funSlot = (si_.slots() - 1) - callerArgc - 1;
 
     
-    while (funSlot--) {
-        JS_ASSERT(si_.more());
-        si_.skip(si_.readSlot());
-    }
+    while (funSlot--)
+        si_.skip();
 
     
     
     
     Value funValue = si_.read();
-    while (si_.more())
-        si_.skip(si_.readSlot());
+    while (si_.moreSlots())
+        si_.skip();
 
     
     JSFunction *fun = funValue.toObject().toFunction();
     callee_ = fun;
     script_ = fun->script();
-    si_.readFrame();
+    si_.nextFrame();
     pc_ = script_->code + si_.pcOffset();
 
     return *this;
