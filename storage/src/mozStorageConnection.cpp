@@ -877,6 +877,16 @@ Connection::stepStatement(sqlite3_stmt *aStatement)
   bool checkedMainThread = false;
   TimeStamp startTime = TimeStamp::Now();
 
+  
+  
+  
+  
+  
+  
+  
+  if (!mDBConn)
+    return SQLITE_MISUSE;
+
   (void)::sqlite3_extended_result_codes(mDBConn, 1);
 
   int srv;

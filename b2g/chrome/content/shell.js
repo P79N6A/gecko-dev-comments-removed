@@ -33,11 +33,15 @@ XPCOMUtils.defineLazyGetter(Services, 'idle', function() {
            .getService(Ci.nsIIdleService);
 });
 
-XPCOMUtils.defineLazyServiceGetter(Services, 'fm', function(){
-  return Cc['@mozilla.org/focus-managr;1']
-           .getService(Ci.nsFocusManager);
+XPCOMUtils.defineLazyGetter(Services, 'audioManager', function() {
+  return Cc['@mozilla.org/telephony/audiomanager;1']
+           .getService(Ci.nsIAudioManager);
 });
 
+XPCOMUtils.defineLazyServiceGetter(Services, 'fm', function() {
+  return Cc['@mozilla.org/focus-manager;1']
+           .getService(Ci.nsFocusManager);
+});
 
 #ifndef MOZ_WIDGET_GONK
 
@@ -74,9 +78,6 @@ function addPermissions(urls) {
 }
 
 var shell = {
-  
-  preferredScreenBrightness: 1.0,
-  
   isDebug: false,
 
   get contentBrowser() {
@@ -111,12 +112,22 @@ var shell = {
       return alert(msg);
     }
 
-    window.controllers.appendController(this);
-    window.addEventListener('keypress', this);
+    ['keydown', 'keypress', 'keyup'].forEach((function listenKey(type) {
+      window.addEventListener(type, this, false, true);
+      window.addEventListener(type, this, true, true);
+    }).bind(this));
+
     window.addEventListener('MozApplicationManifest', this);
-    window.addEventListener("AppCommand", this);
     window.addEventListener('mozfullscreenchange', this);
     this.contentBrowser.addEventListener('load', this, true);
+
+    
+    
+    
+    
+    try {
+      Services.audioManager.masterVolume = 0.5;
+    } catch(e) {}
 
     try {
       Services.io.offline = false;
@@ -159,35 +170,8 @@ var shell = {
   },
 
   stop: function shell_stop() {
-    window.controllers.removeController(this);
-    window.removeEventListener('keypress', this);
     window.removeEventListener('MozApplicationManifest', this);
-    window.removeEventListener('AppCommand', this);
-  },
-
-  supportsCommand: function shell_supportsCommand(cmd) {
-    let isSupported = false;
-    switch (cmd) {
-      case 'cmd_close':
-        isSupported = true;
-        break;
-      default:
-        isSupported = false;
-        break;
-    }
-    return isSupported;
-  },
-
-  isCommandEnabled: function shell_isCommandEnabled(cmd) {
-    return true;
-  },
-
-  doCommand: function shell_doCommand(cmd) {
-    switch (cmd) {
-      case 'cmd_close':
-        content.postMessage('appclose', '*');
-        break;
-    }
+    window.removeEventListener('mozfullscreenchange', this);
   },
 
   toggleDebug: function shell_toggleDebug() {
@@ -202,9 +186,7 @@ var shell = {
     }
   },
  
-  changeVolume: function shell_changeVolume(aDelta) {
-    let audioManager = Cc["@mozilla.org/telephony/audiomanager;1"].getService(Ci.nsIAudioManager);
-
+  changeVolume: function shell_changeVolume(delta) {
     let steps = 10;
     try {
       steps = Services.prefs.getIntPref("media.volume.steps");
@@ -212,7 +194,11 @@ var shell = {
         steps = 1;
     } catch(e) {}
 
-    let volume = audioManager.masterVolume + aDelta / steps;
+    let audioManager = Services.audioManager;
+    if (!audioManager)
+      return;
+
+    let volume = audioManager.masterVolume + delta / steps;
     if (volume > 1)
       volume = 1;
     if (volume < 0)
@@ -220,44 +206,58 @@ var shell = {
     audioManager.masterVolume = volume;
   },
 
+  forwardKeyToHomescreen: function shell_forwardKeyToHomescreen(evt) {
+    let generatedEvent = content.document.createEvent('KeyboardEvent');
+    generatedEvent.initKeyEvent(evt.type, true, true, evt.view, evt.ctrlKey,
+                                evt.altKey, evt.shiftKey, evt.metaKey,
+                                evt.keyCode, evt.charCode);
+
+    content.dispatchEvent(generatedEvent);
+  },
+
   handleEvent: function shell_handleEvent(evt) {
     switch (evt.type) {
+      case 'keydown':
+      case 'keyup':
       case 'keypress':
-        switch (evt.keyCode) {
-          case evt.DOM_VK_HOME:
-            this.sendEvent(content, 'home');
-            break;
-          case evt.DOM_VK_SLEEP:
-            this.toggleScreen();
-
-            let details = {
-              'enabled': screen.mozEnabled
-            };
-            this.sendEvent(content, 'sleep', details);
-            break;
-          case evt.DOM_VK_ESCAPE:
-            if (evt.defaultPrevented)
-              return;
-            this.doCommand('cmd_close');
-            break;
+        
+        if (evt.eventPhase == evt.CAPTURING_PHASE) {
+          if (evt.keyCode == evt.VK_DOM_HOME) {
+            window.setTimeout(this.forwardKeyToHomescreen, 0, evt);
+            evt.preventDefault();
+            evt.stopPropagation();
+          } 
+          return;
         }
-        break;
-      case 'AppCommand':
-        switch (evt.command) {
-          case 'Menu':
-            if (Services.prefs.getBoolPref('b2g.keys.menu.enabled'))
-              this.sendEvent(content, 'menu');
-            break;
-          case 'Search':
-            if (Services.prefs.getBoolPref('b2g.keys.search.enabled'))
-              this.toggleDebug();
-            break;
-          case 'VolumeUp':
-            this.changeVolume(1);
-            break;
-          case 'VolumeDown':
-            this.changeVolume(-1);
-            break;
+
+        
+        
+        let homescreen = (evt.target.ownerDocument.defaultView == content);
+        if (!homescreen && evt.defaultPrevented)
+          return;
+
+        
+        
+        if (!homescreen)
+          window.setTimeout(this.forwardKeyToHomescreen, 0, evt);
+
+        
+        
+        if (evt.type == 'keyup') {
+          switch (evt.keyCode) {
+            case evt.DOM_VK_F5:
+              if (Services.prefs.getBoolPref('b2g.keys.search.enabled'))
+                this.toggleDebug();
+              break;
+  
+            case evt.DOM_VK_PAGE_DOWN:
+              this.changeVolume(-1);
+              break;
+  
+            case evt.DOM_VK_PAGE_UP:
+              this.changeVolume(1);
+              break;
+          }
         }
         break;
 
@@ -270,7 +270,6 @@ var shell = {
         break;
       case 'load':
         this.contentBrowser.removeEventListener('load', this, true);
-        this.turnScreenOn();
 
         let chromeWindow = window.QueryInterface(Ci.nsIDOMChromeWindow);
         chromeWindow.browserDOMWindow = new nsBrowserAccess();
@@ -317,20 +316,6 @@ var shell = {
     let event = content.document.createEvent('CustomEvent');
     event.initCustomEvent(type, true, true, details ? details : {});
     content.dispatchEvent(event);
-  },
-  toggleScreen: function shell_toggleScreen() {
-    if (screen.mozEnabled)
-      this.turnScreenOff();
-    else
-      this.turnScreenOn();
-  },
-  turnScreenOff: function shell_turnScreenOff() {
-    screen.mozEnabled = false;
-    screen.mozBrightness = 0.0;
-  },
-  turnScreenOn: function shell_turnScreenOn() {
-    screen.mozEnabled = true;
-    screen.mozBrightness = this.preferredScreenBrightness;
   }
 };
 
@@ -339,7 +324,7 @@ var shell = {
     observe: function(subject, topic, time) {
       if (topic === "idle") {
         
-        shell.turnScreenOff();
+        screen.mozEnabled = false;
       }
     },
   }

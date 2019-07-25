@@ -870,7 +870,8 @@ InspectorUI.prototype = {
     let parent = this.selection.parentNode;
 
     
-    this.treePanel.deleteChildBox(selection);
+    if (this.treePanel.isOpen())
+      this.treePanel.deleteChildBox(selection);
 
     
     parent.removeChild(selection);
@@ -1234,6 +1235,7 @@ InspectorUI.prototype = {
     let iframe = this.chromeDoc.createElement("iframe");
     iframe.id = "devtools-sidebar-iframe-" + aRegObj.id;
     iframe.setAttribute("flex", "1");
+    iframe.setAttribute("tooltip", "aHTMLTooltip");
     this.sidebarDeck.appendChild(iframe);
 
     

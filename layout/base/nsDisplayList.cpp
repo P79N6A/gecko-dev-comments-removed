@@ -2602,7 +2602,14 @@ nsDisplayTransform::ShouldPrerenderTransformedContent(nsDisplayListBuilder* aBui
     
     
     refSize += nsSize(refSize.width / 8, refSize.height / 8);
-    return aFrame->GetVisualOverflowRectRelativeToSelf().Size() <= refSize;
+    if (aFrame->GetVisualOverflowRectRelativeToSelf().Size() <= refSize) {
+      
+      nscoord max = aFrame->PresContext()->DevPixelsToAppUnits(4096);
+      nsRect visual = aFrame->GetVisualOverflowRect();
+      if (visual.width <= max && visual.height <= max) {
+        return true;
+      }
+    }
   }
   return false;
 }

@@ -99,8 +99,6 @@ public:
 
   
   
-  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsHTMLAnchorElement,
-                                              nsGenericHTMLElement)
 
   
   NS_IMETHOD LinkAdded() { return NS_OK; }

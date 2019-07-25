@@ -54,6 +54,12 @@
 #endif
 
 namespace mozilla {
+
+class CrossProcessMutex;
+namespace ipc {
+class Shmem;
+}
+
 namespace layers {
 
 enum StereoMode {
@@ -120,7 +126,12 @@ public:
 
 
 
-    MAC_IO_SURFACE
+    MAC_IO_SURFACE,
+
+    
+
+
+    REMOTE_IMAGE_BITMAP
   };
 
   Format GetFormat() { return mFormat; }
@@ -194,6 +205,12 @@ FormatInList(const Image::Format* aFormats, PRUint32 aNumFormats,
   return false;
 }
 
+class CompositionNotifySink
+{
+public:
+  virtual void DidComposite() = 0;
+};
+
 
 
 
@@ -225,6 +242,46 @@ protected:
                                               BufferRecycleBin *aRecycleBin);
 
 };
+ 
+
+
+
+
+
+
+
+struct RemoteImageData {
+  enum Type {
+    
+
+
+    RAW_BITMAP
+  };
+  
+  enum Format {
+    
+    BGRA32,
+    
+    BGRX32
+  };
+
+  
+  
+  bool mWasUpdated;
+  Type mType;
+  Format mFormat;
+  gfxIntSize mSize;
+  union {
+    struct {
+      
+
+
+
+      unsigned char *mData;
+      int mStride;
+    } mBitmap;
+  };
+};
 
 
 
@@ -242,7 +299,10 @@ public:
     mPaintCount(0),
     mPreviousImagePainted(false),
     mImageFactory(new ImageFactory()),
-    mRecycleBin(new BufferRecycleBin())
+    mRecycleBin(new BufferRecycleBin()),
+    mRemoteData(nsnull),
+    mRemoteDataMutex(nsnull),
+    mCompositionNotifySink(nsnull)
   {}
 
   ~ImageContainer();
@@ -267,6 +327,9 @@ public:
 
 
 
+
+
+
   void SetCurrentImage(Image* aImage);
 
   
@@ -274,20 +337,33 @@ public:
 
 
 
-
-
-
-
-
-  already_AddRefed<Image> GetCurrentImage()
-  {
-    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-
-    nsRefPtr<Image> retval = mActiveImage;
-    return retval.forget();
-  }
+  bool HasCurrentImage();
 
   
+
+
+
+
+
+
+
+
+
+
+  already_AddRefed<Image> LockCurrentImage();
+
+  
+
+
+
+  void UnlockCurrentImage();
+
+  
+
+
+
+
+
 
 
 
@@ -303,6 +379,17 @@ public:
 
 
   already_AddRefed<gfxASurface> GetCurrentAsSurface(gfxIntSize* aSizeResult);
+
+  
+
+
+
+
+
+
+
+  already_AddRefed<gfxASurface> LockCurrentAsSurface(gfxIntSize* aSizeResult,
+                                                     Image** aCurrentImage = nsnull);
 
   
 
@@ -354,7 +441,8 @@ public:
 
   void NotifyPaintedImage(Image* aPainted) {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    nsRefPtr<Image> current = GetCurrentImage();
+
+    nsRefPtr<Image> current = mActiveImage;
     if (aPainted == current) {
       if (mPaintTime.IsNull()) {
         mPaintTime = TimeStamp::Now();
@@ -367,10 +455,39 @@ public:
       mPaintCount++;
       mPreviousImagePainted = true;
     }
+
+    if (mCompositionNotifySink) {
+      mCompositionNotifySink->DidComposite();
+    }
   }
+
+  void SetCompositionNotifySink(CompositionNotifySink *aSink) {
+    mCompositionNotifySink = aSink;
+  }
+
+  
+
+
+
+
+
+
+
+  void SetRemoteImageData(RemoteImageData *aRemoteData,
+                          CrossProcessMutex *aRemoteDataMutex);
+  
+
+
+  RemoteImageData *GetRemoteImageData() { return mRemoteData; }
 
 protected:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
+
+  
+  
+  
+  
+  void EnsureActiveImage();
 
   
   
@@ -407,6 +524,56 @@ protected:
   gfxIntSize mScaleHint;
 
   nsRefPtr<BufferRecycleBin> mRecycleBin;
+
+  
+  
+  
+  RemoteImageData *mRemoteData;
+
+  
+  
+  
+  CrossProcessMutex *mRemoteDataMutex;
+
+  CompositionNotifySink *mCompositionNotifySink;
+};
+ 
+class AutoLockImage
+{
+public:
+  AutoLockImage(ImageContainer *aContainer) : mContainer(aContainer) { mImage = mContainer->LockCurrentImage(); }
+  AutoLockImage(ImageContainer *aContainer, gfxASurface **aSurface) : mContainer(aContainer) {
+    *aSurface = mContainer->LockCurrentAsSurface(&mSize, getter_AddRefs(mImage)).get();
+  }
+  ~AutoLockImage() { if (mContainer) { mContainer->UnlockCurrentImage(); } }
+
+  Image* GetImage() { return mImage; }
+  const gfxIntSize &GetSize() { return mSize; }
+
+  void Unlock() { 
+    if (mContainer) {
+      mImage = nsnull;
+      mContainer->UnlockCurrentImage();
+      mContainer = nsnull;
+    }
+  }
+
+  
+
+
+
+
+  void Refresh() {
+    if (mContainer) {
+      mContainer->UnlockCurrentImage();
+      mImage = mContainer->LockCurrentImage();
+    }
+  }
+
+private:
+  ImageContainer *mContainer;
+  nsRefPtr<Image> mImage;
+  gfxIntSize mSize;
 };
 
 
@@ -675,6 +842,20 @@ private:
   DestroyCallback mDestroyCallback;
 };
 #endif
+
+class RemoteBitmapImage : public Image {
+public:
+  RemoteBitmapImage() : Image(NULL, REMOTE_IMAGE_BITMAP) {}
+
+  already_AddRefed<gfxASurface> GetAsSurface();
+
+  gfxIntSize GetSize() { return mSize; }
+
+  unsigned char *mData;
+  int mStride;
+  gfxIntSize mSize;
+  RemoteImageData::Format mFormat;
+};
 
 }
 }

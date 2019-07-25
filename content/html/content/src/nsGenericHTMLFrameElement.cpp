@@ -269,16 +269,6 @@ nsGenericHTMLFrameElement::IsHTMLFocusable(bool aWithMouse,
   return false;
 }
 
-PRInt64
-nsGenericHTMLFrameElement::SizeOf() const
-{
-  PRInt64 size = MemoryReporter::GetBasicSize<nsGenericHTMLFrameElement,
-                                              nsGenericHTMLElement>(this);
-  
-  size += mFrameLoader ? sizeof(*mFrameLoader.get()) : 0;
-  return size;
-}
-
 NS_IMETHODIMP
 nsGenericHTMLFrameElement::GetMozbrowser(bool *aValue)
 {

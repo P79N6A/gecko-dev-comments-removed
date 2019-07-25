@@ -1149,21 +1149,17 @@ Navigator::GetMozBluetooth(nsIDOMBluetoothAdapter** aBluetooth)
 }
 #endif 
 
-PRInt64
-Navigator::SizeOf() const
+size_t
+Navigator::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
-  PRInt64 size = sizeof(*this);
+  size_t n = aMallocSizeOf(this);
 
   
-  size += mMimeTypes ? sizeof(*mMimeTypes.get()) : 0;
   
-  size += mPlugins ? sizeof(*mPlugins.get()) : 0;
   
-  size += mGeolocation ? sizeof(*mGeolocation.get()) : 0;
   
-  size += mNotification ? sizeof(*mNotification.get()) : 0;
 
-  return size;
+  return n;
 }
 
 void

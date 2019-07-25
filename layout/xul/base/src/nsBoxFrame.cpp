@@ -97,7 +97,6 @@
 #include "mozilla/Preferences.h"
 
 
-#include "nsIDocument.h"
 #include "nsIURI.h"
 
 using namespace mozilla;

@@ -44,36 +44,20 @@
 
 
 
-namespace mozilla {
-  namespace dom {
-    namespace MemoryReporter {
-      
+#define NS_DECL_SIZEOF_EXCLUDING_THIS \
+  virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
-
-
-
-
-
-      template <class TypeCurrent, class TypeParent>
-      inline PRInt64 GetBasicSize(const TypeCurrent* const obj) {
-        return obj->TypeParent::SizeOf() - sizeof(TypeParent)
-                                         + sizeof(TypeCurrent);
-      }
-    }
-  }
-}
-
-
-
-
-#define NS_DECL_DOM_MEMORY_REPORTER_SIZEOF  \
-  virtual PRInt64 SizeOf() const;
-
-#define NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(TypeCurrent, TypeParent) \
-  virtual PRInt64 SizeOf() const {                                           \
-    return mozilla::dom::MemoryReporter::GetBasicSize<TypeCurrent,           \
-                                                      TypeParent>(this);     \
-  }
+class nsWindowSizes {
+public:
+    nsWindowSizes(nsMallocSizeOfFun aMallocSizeOf)
+    : mMallocSizeOf(aMallocSizeOf),
+      mDOM(0),
+      mStyleSheets(0)
+    {}
+    nsMallocSizeOfFun mMallocSizeOf;
+    size_t mDOM;
+    size_t mStyleSheets;
+};
 
 class nsDOMMemoryMultiReporter: public nsIMemoryMultiReporter
 {

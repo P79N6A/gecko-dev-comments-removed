@@ -157,28 +157,28 @@ DebuggerView.Stackframes = {
 
 
 
-  addFrame: function DVF_addFrame(aDepth, aFrameIdText, aFrameNameText) {
+  addFrame: function DVF_addFrame(aDepth, aFrameNameText, aFrameDetailsText) {
     
     if (document.getElementById("stackframe-" + aDepth)) {
       return null;
     }
 
     let frame = document.createElement("div");
-    let frameId = document.createElement("span");
     let frameName = document.createElement("span");
+    let frameDetails = document.createElement("span");
 
     
     frame.id = "stackframe-" + aDepth;
     frame.className = "dbg-stackframe list-item";
 
     
-    frameId.className = "dbg-stackframe-id";
     frameName.className = "dbg-stackframe-name";
-    frameId.appendChild(document.createTextNode(aFrameIdText));
+    frameDetails.className = "dbg-stackframe-details";
     frameName.appendChild(document.createTextNode(aFrameNameText));
+    frameDetails.appendChild(document.createTextNode(aFrameDetailsText));
 
-    frame.appendChild(frameId);
     frame.appendChild(frameName);
+    frame.appendChild(frameDetails);
 
     this._frames.appendChild(frame);
 
@@ -1075,8 +1075,24 @@ DebuggerView.Scripts = {
 
 
 
+
   contains: function DVS_contains(aUrl) {
     if (this._scripts.getElementsByAttribute("value", aUrl).length > 0) {
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
+  containsLabel: function DVS_containsLabel(aLabel) {
+    if (this._scripts.getElementsByAttribute("label", aLabel).length > 0) {
       return true;
     }
     return false;
@@ -1109,7 +1125,7 @@ DebuggerView.Scripts = {
         break;
       }
     }
-   },
+  },
 
   
 
@@ -1123,16 +1139,16 @@ DebuggerView.Scripts = {
 
 
 
-
-
-  addScript: function DVS_addScript(aUrl, aSource, aScriptNameText) {
+  addScript: function DVS_addScript(aLabel, aScript) {
     
-    if (this.contains(aUrl)) {
+    if (this.containsLabel(aLabel)) {
       return null;
     }
 
-    let script = this._scripts.appendItem(aScriptNameText || aUrl, aUrl);
-    script.setUserData("sourceScript", aSource, null);
+    let script = this._scripts.appendItem(aLabel, aScript.url);
+    script.setAttribute("tooltiptext", aScript.url);
+    script.setUserData("sourceScript", aScript, null);
+
     this._scripts.selectedItem = script;
     return script;
   },

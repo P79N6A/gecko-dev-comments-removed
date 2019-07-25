@@ -123,7 +123,7 @@ protected:
 
     
     virtual bool AnswerNP_GetEntryPoints(NPError* rv);
-    virtual bool AnswerNP_Initialize(NPError* rv);
+    virtual bool AnswerNP_Initialize(const uint32_t& aFlags, NPError* rv);
 
     virtual PPluginIdentifierChild*
     AllocPPluginIdentifier(const nsCString& aString,
@@ -227,6 +227,8 @@ public:
 #ifdef DEBUG
     bool NPObjectIsRegistered(NPObject* aObject);
 #endif
+
+    bool AsyncDrawingAllowed() { return mAsyncDrawingAllowed; }
 
     
 
@@ -357,6 +359,7 @@ private:
     nsCString mPluginFilename; 
     nsCString mUserAgent;
     int mQuirks;
+    bool mAsyncDrawingAllowed;
 
     
     NP_PLUGINSHUTDOWN mShutdownFunc;

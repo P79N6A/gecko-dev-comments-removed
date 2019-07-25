@@ -1856,8 +1856,7 @@ Database::Shutdown()
   nsRefPtr<BlockingConnectionCloseCallback> closeListener =
     new BlockingConnectionCloseCallback();
   (void)mMainConn->AsyncClose(closeListener);
-  
-  
+  closeListener->Spin();
 
   
   
