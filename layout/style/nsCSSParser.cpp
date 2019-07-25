@@ -405,9 +405,7 @@ protected:
                           PRBool aCheckForBraces,
                           PRBool aMustCallValueAppended,
                           PRBool* aChanged);
-  
-  
-  void ClearTempData(nsCSSProperty aPropID);
+
   
   
   
@@ -1150,7 +1148,8 @@ CSSParserImpl::ParseProperty(const nsCSSProperty aPropID,
     REPORT_UNEXPECTED_P(PEValueParsingError, params);
     REPORT_UNEXPECTED(PEDeclDropped);
     OUTPUT_ERROR();
-    ClearTempData(aPropID);
+    mTempData.ClearProperty(aPropID);
+    mTempData.AssertInitialState();
   } else {
 
     
@@ -4020,7 +4019,8 @@ CSSParserImpl::ParseDeclaration(css::Declaration* aDeclaration,
     REPORT_UNEXPECTED_P(PEValueParsingError, params);
     REPORT_UNEXPECTED(PEDeclDropped);
     OUTPUT_ERROR();
-    ClearTempData(propID);
+    mTempData.ClearProperty(propID);
+    mTempData.AssertInitialState();
     return PR_FALSE;
   }
   CLEAR_ERROR();
@@ -4053,26 +4053,14 @@ CSSParserImpl::ParseDeclaration(css::Declaration* aDeclaration,
     }
     REPORT_UNEXPECTED(PEDeclDropped);
     OUTPUT_ERROR();
-    ClearTempData(propID);
+    mTempData.ClearProperty(propID);
+    mTempData.AssertInitialState();
     return PR_FALSE;
   }
 
   TransferTempData(aDeclaration, propID, status == ePriority_Important,
                    PR_FALSE, aMustCallValueAppended, aChanged);
   return PR_TRUE;
-}
-
-void
-CSSParserImpl::ClearTempData(nsCSSProperty aPropID)
-{
-  if (nsCSSProps::IsShorthand(aPropID)) {
-    CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aPropID) {
-      mTempData.ClearProperty(*p);
-    }
-  } else {
-    mTempData.ClearProperty(aPropID);
-  }
-  mTempData.AssertInitialState();
 }
 
 void
@@ -4119,7 +4107,7 @@ CSSParserImpl::DoTransferTempData(css::Declaration* aDeclaration,
       
       
       if (!aOverrideImportant) {
-        mTempData.ClearProperty(aPropID);
+        mTempData.ClearLonghandProperty(aPropID);
         return;
       }
       *aChanged = PR_TRUE;

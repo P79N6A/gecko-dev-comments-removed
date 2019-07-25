@@ -255,6 +255,11 @@ public:
 
     void ClearProperty(nsCSSProperty aPropID);
 
+    
+
+
+    void ClearLonghandProperty(nsCSSProperty aPropID);
+
     void AssertInitialState() {
 #ifdef DEBUG
         DoAssertInitialState();
@@ -273,7 +278,6 @@ private:
 
     void DoExpand(nsRefPtr<nsCSSCompressedDataBlock> *aBlock,
                   PRBool aImportant);
-
 #ifdef DEBUG
     void DoAssertInitialState();
 #endif
