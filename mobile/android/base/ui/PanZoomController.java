@@ -75,6 +75,7 @@ public class PanZoomController
     private LayerController mController;
 
     private static final float FRICTION = 0.85f;
+    private static final float FRICTION_FACTOR = 6.0f;
     
     private static final float STOPPED_THRESHOLD = 4.0f;
     
@@ -772,7 +773,11 @@ public class PanZoomController
             
             float excess = getExcess();
             if (disableSnap || FloatUtils.fuzzyEquals(excess, 0.0f)) {
-                velocity *= FRICTION;
+                float absvelocity = (float)
+                    Math.pow(Math.pow(velocity, FRICTION_FACTOR) * FRICTION,
+                             1 / FRICTION_FACTOR);
+                velocity = Math.copySign(absvelocity, velocity);
+
                 if (Math.abs(velocity) < 0.1f) {
                     velocity = 0.0f;
                     setFlingState(FlingStates.STOPPED);
