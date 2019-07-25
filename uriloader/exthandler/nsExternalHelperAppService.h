@@ -175,6 +175,11 @@ protected:
   
 
 
+  static nsresult DeleteTemporaryFileHelper(nsIFile* aTemporaryFile,
+                                            nsCOMArray<nsILocalFile> &aFileList);
+  
+
+
 
   void ExpungeTemporaryFiles();
   
