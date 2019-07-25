@@ -161,6 +161,11 @@ Tester.prototype = {
         let func = testScope.__cleanupFunctions.shift();
         func.apply(testScope);
       };
+
+      
+      let time = Date.now() - this.lastStartTime;
+      let msg = "Test took " + (time / 1000) + "s to complete\n";
+      this.currentTest.addResult(new testMessage(msg));
     }
 
     
@@ -170,12 +175,6 @@ Tester.prototype = {
   },
 
   realNextTest: function Test_realNextTest() {
-    if (this.lastStartTime) {
-      let time = Date.now() - this.lastStartTime;
-      this.dumper.dump("TEST-END | " + this.currentTest.path + " | Test took " +
-                       time + "ms to complete\n");
-    }
-
     if (this.done) {
       this.finish();
       return;
