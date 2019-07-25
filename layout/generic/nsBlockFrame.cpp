@@ -4824,7 +4824,9 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
   nsIPresShell *presShell = PresContext()->PresShell();
 
   
-  nsLineList::iterator prevSibLine = end_lines();
+  nsFrameList overflowFrames;
+  nsLineList* lineList = &mLines;
+  nsLineList::iterator prevSibLine = lineList->end();
   PRInt32 prevSiblingIndex = -1;
   if (aPrevSibling) {
     
@@ -4832,15 +4834,31 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
     
 
     
-    if (! nsLineBox::RFindLineContaining(aPrevSibling,
-                                         begin_lines(), prevSibLine,
-                                         mFrames.LastChild(),
-                                         &prevSiblingIndex)) {
+    if (!nsLineBox::RFindLineContaining(aPrevSibling, lineList->begin(),
+                                        prevSibLine, mFrames.LastChild(),
+                                        &prevSiblingIndex)) {
       
-      
-      NS_NOTREACHED("prev sibling not in line list");
-      aPrevSibling = nsnull;
-      prevSibLine = end_lines();
+      lineList = GetOverflowLines();
+      if (lineList) {
+        prevSibLine = lineList->end();
+        prevSiblingIndex = -1;
+        overflowFrames = nsFrameList(lineList->front()->mFirstChild,
+                                     lineList->back()->LastChild());
+        if (!nsLineBox::RFindLineContaining(aPrevSibling, lineList->begin(),
+                                            prevSibLine,
+                                            overflowFrames.LastChild(),
+                                            &prevSiblingIndex)) {
+          lineList = nsnull;
+        }
+      }
+      if (!lineList) {
+        
+        
+        NS_NOTREACHED("prev sibling not in line list");
+        lineList = &mLines;
+        aPrevSibling = nsnull;
+        prevSibLine = lineList->end();
+      }
     }
   }
 
@@ -4856,7 +4874,7 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
       if (!line) {
         return NS_ERROR_OUT_OF_MEMORY;
       }
-      mLines.after_insert(prevSibLine, line);
+      lineList->after_insert(prevSibLine, line);
       prevSibLine->SetChildCount(prevSibLine->GetChildCount() - rem);
       
       
@@ -4868,12 +4886,13 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
       line->SetInvalidateTextRuns(PR_TRUE);
     }
   }
-  else if (! mLines.empty()) {
-    mLines.front()->MarkDirty();
-    mLines.front()->SetInvalidateTextRuns(PR_TRUE);
+  else if (! lineList->empty()) {
+    lineList->front()->MarkDirty();
+    lineList->front()->SetInvalidateTextRuns(PR_TRUE);
   }
+  nsFrameList& frames = lineList == &mLines ? mFrames : overflowFrames;
   const nsFrameList::Slice& newFrames =
-    mFrames.InsertFrames(nsnull, aPrevSibling, aFrameList);
+    frames.InsertFrames(nsnull, aPrevSibling, aFrameList);
 
   
   
@@ -4893,7 +4912,7 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
     
     
     
-    if (isBlock || prevSibLine == end_lines() || prevSibLine->IsBlock() ||
+    if (isBlock || prevSibLine == lineList->end() || prevSibLine->IsBlock() ||
         (aPrevSibling && ShouldPutNextSiblingOnNewLine(aPrevSibling))) {
       
       
@@ -4901,15 +4920,15 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
       if (!line) {
         return NS_ERROR_OUT_OF_MEMORY;
       }
-      if (prevSibLine != end_lines()) {
+      if (prevSibLine != lineList->end()) {
         
-        mLines.after_insert(prevSibLine, line);
+        lineList->after_insert(prevSibLine, line);
         ++prevSibLine;
       }
       else {
         
-        mLines.push_front(line);
-        prevSibLine = begin_lines();
+        lineList->push_front(line);
+        prevSibLine = lineList->begin();
       }
     }
     else {
