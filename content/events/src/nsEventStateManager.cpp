@@ -3301,6 +3301,11 @@ nsEventStateManager::GetCrossProcessTarget()
 PRBool
 nsEventStateManager::IsTargetCrossProcess(nsGUIEvent *aEvent)
 {
+  
+  
+  nsIContent *focusedContent = GetFocusedContent();
+  if (focusedContent && focusedContent->IsEditable())
+    return PR_FALSE;
   return TabParent::GetIMETabParent() != nsnull;
 }
 #endif
