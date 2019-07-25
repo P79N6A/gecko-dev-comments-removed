@@ -7164,8 +7164,6 @@ let gPrivateBrowsingUI = {
   
 
 
-
-
   get privateWindow() {
     if (!gBrowser)
       return false;
