@@ -426,6 +426,40 @@ nsAppShell::RemoveObserver(const nsAString &aObserverKey)
 }
 
 
+
+class NotifyObserversCaller : public nsRunnable {
+public:
+    NotifyObserversCaller(nsISupports *aSupports,
+                          const char *aTopic, const PRUnichar *aData) :
+         mSupports(aSupports), mTopic(aTopic), mData(aData) {
+    }
+
+    NS_IMETHOD Run() {
+        nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+        if (os)
+            os->NotifyObservers(mSupports, mTopic.get(), mData.get());
+
+        return NS_OK;
+    }
+
+private:
+    nsCOMPtr<nsISupports> mSupports;
+    nsCString mTopic;
+    nsString mData;
+};
+
+void
+nsAppShell::NotifyObservers(nsISupports *aSupports,
+                            const char *aTopic,
+                            const PRUnichar *aData)
+{
+    
+    nsCOMPtr<nsIRunnable> caller =
+        new NotifyObserversCaller(aSupports, aTopic, aData);
+    NS_DispatchToMainThread(caller);
+}
+
+
 namespace mozilla {
 
 bool ProcessNextEvent()
