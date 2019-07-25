@@ -535,6 +535,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
     
   
+  
+  
   setZ: function(value) {
     iQ(this.container).css({zIndex: value});
 
@@ -558,6 +560,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
     
   
+  
+  
   close: function() {
     this.removeAll();
     this._sendOnClose();
@@ -570,6 +574,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
     Storage.deleteGroup(Utils.getCurrentWindow(), this.id);
   },
+  
+  
   
   
   closeAll: function() {
@@ -755,6 +761,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
   
   
+  
+  
   removeAll: function() {
     var self = this;
     var toRemove = iQ.merge([], this._children);
@@ -763,6 +771,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     });
   },
     
+  
+  
   
   setNewTabButtonBounds: function(box, immediately) {
     var css = {
@@ -783,6 +793,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
   
   
+  
+  
   shouldStack: function(count) {
     if(count <= 1)
       return false;
@@ -797,6 +809,11 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     return (rects[0].width < TabItems.minTabWidth * 1.35 );
   },
 
+  
+  
+  
+  
+  
   
   arrange: function(options) {
     if(this.expanded) {
@@ -857,6 +874,15 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         this._stackArrange(bb, options);
     }
   },
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   _stackArrange: function(bb, options) { 
@@ -927,6 +953,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
 
   
+  
+  
   _randRotate: function(spread, index){
     if( index >= this._stackAngles.length ){
       var randAngle = 5*index + parseInt( (Math.random()-.5)*1 );
@@ -939,6 +967,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     return this._stackAngles[index];
   },
 
+  
+  
   
   
   
@@ -1038,6 +1068,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
 
   
+  
+  
   collapse: function() {
     if(this.expanded) {
       var z = this.getZ();
@@ -1070,6 +1102,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       this.arrange({z: z + 2});
     }
   },
+  
+  
   
   
   _addHandlers: function(container) {
@@ -1129,6 +1163,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
 
   
+  
+  
   setResizable: function(value){
     var self = this;
     
@@ -1161,6 +1197,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       iQ(this.container).resizable('destroy');
     }
   },
+  
+  
   
   
   newTab: function() {
@@ -1292,11 +1330,15 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 window.Groups = {
   
   
+  
+  
   init: function() {
     this.groups = [];
     this.nextID = 1;
     this._inited = false;
   },
+  
+  
   
   
   getNextID: function() {
@@ -1306,6 +1348,8 @@ window.Groups = {
     return result;
   },
 
+  
+  
   
   getStorageData: function() {
     var data = {nextID: this.nextID, groups: []};
@@ -1317,12 +1361,16 @@ window.Groups = {
   },
   
   
+  
+  
   saveAll: function() {
     this.save();
     iQ.each(this.groups, function(index, group) {
       group.save();
     });
   },
+  
+  
   
   
   save: function() {
@@ -1332,6 +1380,9 @@ window.Groups = {
     Storage.saveGroupsData(Utils.getCurrentWindow(), {nextID:this.nextID});
   },
 
+  
+  
+  
   
   reconstitute: function(groupsData, groupData) {
     try {
@@ -1384,6 +1435,8 @@ window.Groups = {
   },
   
   
+  
+  
   groupStorageSanity: function(groupData) {
     
     var sane = true;
@@ -1394,6 +1447,8 @@ window.Groups = {
     
     return sane;
   },
+  
+  
   
   
   getGroupWithTitle: function(title) {
@@ -1409,6 +1464,8 @@ window.Groups = {
   }, 
  
   
+  
+  
   getNewTabGroup: function() {
     var groupTitle = 'New Tabs';
     var array = iQ.grep(this.groups, function(group) {
@@ -1422,6 +1479,8 @@ window.Groups = {
   },
 
   
+  
+  
   getBoundsForNewTabGroup: function() {
     var pad = 0;
     var sw = window.innerWidth;
@@ -1432,6 +1491,8 @@ window.Groups = {
   },
 
   
+  
+  
   repositionNewTabGroup: function() {
     var box = this.getBoundsForNewTabGroup();
     var group = this.getNewTabGroup();
@@ -1439,11 +1500,15 @@ window.Groups = {
   },
   
   
+  
+  
   register: function(group) {
     Utils.assert('group', group);
     Utils.assert('only register once per group', iQ.inArray(group, this.groups) == -1);
     this.groups.push(group);
   },
+  
+  
   
   
   unregister: function(group) {
@@ -1470,6 +1535,8 @@ window.Groups = {
     
     return result;
   },
+  
+  
   
   
   arrange: function() {
@@ -1503,12 +1570,16 @@ window.Groups = {
   },
   
   
+  
+  
   removeAll: function() {
     var toRemove = iQ.merge([], this.groups);
     iQ.each(toRemove, function(index, group) {
       group.removeAll();
     });
   },
+  
+  
   
   
   newTab: function(tabItem) {
