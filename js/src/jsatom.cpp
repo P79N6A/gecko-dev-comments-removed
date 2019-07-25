@@ -513,25 +513,33 @@ js_AtomizeString(JSContext *cx, JSString *str, uintN flags)
 
 
 
+        bool needNewString = !!(flags & ATOM_TMPSTR) ||
+                             str->asCell()->compartment() != cx->runtime->defaultCompartment;
+
+        
 
 
-        if (!(flags & ATOM_TMPSTR) && str->isFlat()) {
+
+
+
+        if (!needNewString && str->isFlat()) {
             str->flatClearMutable();
             key = str;
             atoms.add(p, StringToInitialAtomEntry(key));
         } else {
-            if (flags & ATOM_TMPSTR) {
+            if (needNewString) {
                 SwitchToCompartment sc(cx, cx->runtime->defaultCompartment);
-
+                jschar *chars = str->chars();
                 if (flags & ATOM_NOCOPY) {
-                    key = js_NewString(cx, str->flatChars(), str->flatLength());
+                    key = js_NewString(cx, chars, length);
                     if (!key)
                         return NULL;
 
                     
+                    JS_ASSERT(flags & ATOM_TMPSTR);
                     str->mChars = NULL;
                 } else {
-                    key = js_NewStringCopyN(cx, str->flatChars(), str->flatLength());
+                    key = js_NewStringCopyN(cx, chars, length);
                     if (!key)
                         return NULL;
                 }
@@ -901,7 +909,7 @@ JSAutoAtomList::~JSAutoAtomList()
     if (table) {
         JS_HashTableDestroy(table);
     } else {
-        JSHashEntry *hep = list; 
+        JSHashEntry *hep = list;
         while (hep) {
             JSHashEntry *next = hep->next;
             js_free_temp_entry(parser, hep, HT_FREE_ENTRY);
