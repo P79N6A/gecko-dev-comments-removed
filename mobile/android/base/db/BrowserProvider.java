@@ -480,7 +480,9 @@ public class BrowserProvider extends ContentProvider {
                 values.put(Bookmarks.DATE_MODIFIED, now);
 
                 
-                values.put(Bookmarks.GUID, UUID.randomUUID().toString());
+                if (!values.containsKey(Bookmarks.GUID)) {
+                  values.put(Bookmarks.GUID, UUID.randomUUID().toString());
+                }
 
                 if (!values.containsKey(Bookmarks.POSITION)) {
                     Log.d(LOGTAG, "Inserting bookmark with no position for URI");
@@ -510,7 +512,9 @@ public class BrowserProvider extends ContentProvider {
                 values.put(History.DATE_MODIFIED, now);
 
                 
-                values.put(History.GUID, UUID.randomUUID().toString());
+                if (!values.containsKey(History.GUID)) {
+                  values.put(History.GUID, UUID.randomUUID().toString());
+                }
 
                 String url = values.getAsString(History.URL);
 
@@ -885,7 +889,9 @@ public class BrowserProvider extends ContentProvider {
 
         if (updated == 0) {
             
-            values.put(Images.GUID, UUID.randomUUID().toString());
+            if (!values.containsKey(Images.GUID)) {
+              values.put(Images.GUID, UUID.randomUUID().toString());
+            }
             values.put(Images.DATE_CREATED, now);
             values.put(Images.DATE_MODIFIED, now);
 
