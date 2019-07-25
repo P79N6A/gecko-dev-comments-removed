@@ -140,6 +140,11 @@ XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
   return NetUtil;
 });
 
+XPCOMUtils.defineLazyGetter(this, "ScratchpadManager", function() {
+  Cu.import("resource:///modules/devtools/scratchpad-manager.jsm");
+  return ScratchpadManager;
+});
+
 XPCOMUtils.defineLazyServiceGetter(this, "CookieSvc",
   "@mozilla.org/cookiemanager;1", "nsICookieManager2");
 
@@ -1582,6 +1587,10 @@ SessionStoreService.prototype = {
       this._capClosedWindows();
     }
 
+    if (lastSessionState.scratchpads) {
+      ScratchpadManager.restoreSession(lastSessionState.scratchpads);
+    }
+
     
     this._recentCrashes = lastSessionState.session &&
                           lastSessionState.session.recentCrashes || 0;
@@ -2487,12 +2496,16 @@ SessionStoreService.prototype = {
       startTime: this._sessionStartTime,
       recentCrashes: this._recentCrashes
     };
+    
+    
+    var scratchpads = ScratchpadManager.getSessionState();
 
     return {
       windows: total,
       selectedWindow: ix + 1,
       _closedWindows: lastClosedWindowsCopy,
-      session: session
+      session: session,
+      scratchpads: scratchpads
     };
   },
 
@@ -2699,6 +2712,10 @@ SessionStoreService.prototype = {
     
     this.restoreHistoryPrecursor(aWindow, tabs, winData.tabs,
       (aOverwriteTabs ? (parseInt(winData.selected) || 1) : 0), 0, 0);
+
+    if (aState.scratchpads) {
+      ScratchpadManager.restoreSession(aState.scratchpads);
+    }
 
     
     
@@ -3192,7 +3209,6 @@ SessionStoreService.prototype = {
       shEntry.postData = stream;
     }
 
-    let childDocIdents = {};
     if (aEntry.docIdentifier) {
       
       
@@ -3200,12 +3216,10 @@ SessionStoreService.prototype = {
       
       let matchingEntry = aDocIdentMap[aEntry.docIdentifier];
       if (!matchingEntry) {
-        matchingEntry = {shEntry: shEntry, childDocIdents: childDocIdents};
-        aDocIdentMap[aEntry.docIdentifier] = matchingEntry;
+        aDocIdentMap[aEntry.docIdentifier] = shEntry;
       }
       else {
-        shEntry.adoptBFCacheEntry(matchingEntry.shEntry);
-        childDocIdents = matchingEntry.childDocIdents;
+        shEntry.adoptBFCacheEntry(matchingEntry);
       }
     }
 
@@ -3227,24 +3241,8 @@ SessionStoreService.prototype = {
         
         if (!aEntry.children[i].url)
           continue;
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
         shEntry.AddChild(this._deserializeHistoryEntry(aEntry.children[i], aIdMap,
-                                                       childDocIdents), i);
+                                                       aDocIdentMap), i);
       }
     }
     
