@@ -329,14 +329,6 @@
 
 
 
-
-#if defined(_WIN32_WCE)
-#define WTF_PLATFORM_WINCE 1
-#endif
-
-
-
-
 #ifdef __linux__
 #define WTF_PLATFORM_LINUX 1
 #endif
@@ -482,22 +474,6 @@
 #endif
 
 
-
-
-
-
-
-#if WTF_PLATFORM_WINCE && WTF_PLATFORM_QT
-#   include <QtGlobal>
-#   undef WTF_PLATFORM_BIG_ENDIAN
-#   undef WTF_PLATFORM_MIDDLE_ENDIAN
-#   if Q_BYTE_ORDER == Q_BIG_EDIAN
-#       define WTF_PLATFORM_BIG_ENDIAN 1
-#   endif
-
-#   include <ce_time.h>
-#endif
-
 #if (WTF_PLATFORM_IPHONE || WTF_PLATFORM_MAC || WTF_PLATFORM_WIN || WTF_PLATFORM_OS2 || (WTF_PLATFORM_QT && WTF_PLATFORM_DARWIN && !ENABLE_SINGLE_THREADED)) && !defined(ENABLE_JSC_MULTIPLE_THREADS)
 #define ENABLE_JSC_MULTIPLE_THREADS 1
 #endif
@@ -507,37 +483,8 @@
 #define WTF_USE_QUERY_PERFORMANCE_COUNTER  1
 #endif
 
-#if WTF_PLATFORM_WINCE && !WTF_PLATFORM_QT
-#undef ENABLE_JSC_MULTIPLE_THREADS
-#define ENABLE_JSC_MULTIPLE_THREADS        0
-#define USE_SYSTEM_MALLOC                  0
-#define ENABLE_ICONDATABASE                0
-#define ENABLE_JAVASCRIPT_DEBUGGER         0
-#define ENABLE_FTPDIR                      0
-#define ENABLE_PAN_SCROLLING               0
-#define ENABLE_WML                         1
-#define HAVE_ACCESSIBILITY                 0
-
-#define NOMINMAX
-#define NOSHLWAPI
-
-
-#define __usp10__
-
-#define _INC_ASSERT
-#define assert(x)
-
-
-#ifndef _countof
-#define _countof(x) (sizeof(x) / sizeof((x)[0]))
-#endif
-
-#endif  
-
 #if WTF_PLATFORM_QT
 #define WTF_USE_QT4_UNICODE 1
-#elif WTF_PLATFORM_WINCE
-#define WTF_USE_WINCE_UNICODE 1
 #elif WTF_PLATFORM_GTK
 
 #else
@@ -669,11 +616,7 @@
 
 #elif WTF_PLATFORM_WIN_OS
 
-#if WTF_PLATFORM_WINCE
-#define HAVE_ERRNO_H 0
-#else
 #define HAVE_SYS_TIMEB_H 1
-#endif
 #define HAVE_VIRTUALALLOC 1
 
 #elif WTF_PLATFORM_SYMBIAN
