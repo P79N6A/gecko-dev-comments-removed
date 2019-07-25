@@ -131,7 +131,12 @@ public:
 
 
 
-  void DispatchEvents();
+  void DispatchEvents() {
+    
+    if (!mPendingEvents.IsEmpty()) {
+      DoDispatchEvents();
+    }
+  }
 
 private:
   ElementAnimations* GetElementAnimations(mozilla::dom::Element *aElement,
@@ -148,6 +153,9 @@ private:
                                  nsCSSPseudoElements::Type aPseudoType);
 
   nsCSSKeyframesRule* KeyframesRuleFor(const nsSubstring& aName);
+
+  
+  void DoDispatchEvents();
 
   bool mKeyframesListIsDirty;
   nsDataHashtable<nsStringHashKey, nsCSSKeyframesRule*> mKeyframesRules;
