@@ -112,6 +112,13 @@ public:
     
     nsCOMPtr<nsDOMMediaStream> stream = nsDOMMediaStream::CreateInputStream();
 
+    nsPIDOMWindow *window = static_cast<nsPIDOMWindow*>
+      (nsGlobalWindow::GetOuterWindowWithId(mWindowID));
+
+    if (window && window->GetExtantDoc()) {
+      stream->CombineWithPrincipal(window->GetExtantDoc()->NodePrincipal());
+    }
+
     
     
     
@@ -350,7 +357,7 @@ MediaManager::GetUserMedia(nsPIDOMWindow* aWindow, nsIMediaStreamOptions* aParam
 
   nsresult rv = aParams->GetPicture(&picture);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   
 
 
