@@ -4789,6 +4789,7 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     
     
     if (!mIsDestroying) {
+      mViewManager->FlushDelayedResize(PR_FALSE);
       mPresContext->FlushPendingMediaFeatureValuesChanged();
 
       
@@ -4835,7 +4836,7 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     if (aType >= (mSuppressInterruptibleReflows ? Flush_Layout : Flush_InterruptibleLayout) &&
         !mIsDestroying) {
       mFrameConstructor->RecalcQuotesAndCounters();
-      mViewManager->FlushDelayedResize();
+      mViewManager->FlushDelayedResize(PR_TRUE);
       if (ProcessReflowCommands(aType < Flush_Layout) && mContentToScrollTo) {
         
         DoScrollContentIntoView(mContentToScrollTo, mContentScrollVPosition,
