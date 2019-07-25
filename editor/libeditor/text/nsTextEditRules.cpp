@@ -749,69 +749,11 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
     PRInt32 curOffset = selOffset;
 
     
-    
-    PRBool isPRE;
-    res = mEditor->IsPreformatted(selNode, &isPRE);
-    NS_ENSURE_SUCCESS(res, res);    
-
-    
     nsAutoTxnsConserveSelection dontSpazMySelection(mEditor);
 
-    if (isPRE)
-    {
-      res = mEditor->InsertTextImpl(*outString, address_of(curNode),
-                                    &curOffset, doc);
-      NS_ENSURE_SUCCESS(res, res);
-    }
-    else
-    {
-      const nsString& tString = PromiseFlatString(*outString);
-      const PRUnichar *unicodeBuf = tString.get();
-      nsCOMPtr<nsIDOMNode> unused;
-      PRInt32 pos = 0;
-
-      char specialChars[] = {TAB, nsCRT::LF, 0};
-      while (unicodeBuf && (pos != -1) && ((PRUint32)pos < tString.Length()))
-      {
-        PRInt32 oldPos = pos;
-        PRInt32 subStrLen;
-        pos = tString.FindCharInSet(specialChars, oldPos);
-        
-        if (pos != -1) 
-        {
-          subStrLen = pos - oldPos;
-          
-          if (subStrLen == 0)
-            subStrLen = 1;
-        }
-        else
-        {
-          subStrLen = tString.Length() - oldPos;
-          pos = tString.Length();
-        }
-
-        nsDependentSubstring subStr(tString, oldPos, subStrLen);
-        
-        
-        if (subStr.EqualsLiteral("\t"))
-        {
-          res = mEditor->InsertTextImpl(NS_LITERAL_STRING("    "), address_of(curNode), &curOffset, doc);
-          pos++;
-        }
-        
-        else if (subStr.EqualsLiteral(LFSTR))
-        {
-          res = mEditor->CreateBRImpl(address_of(curNode), &curOffset, address_of(unused), nsIEditor::eNone);
-          pos++;
-        }
-        else
-        {
-          res = mEditor->InsertTextImpl(subStr, address_of(curNode), &curOffset, doc);
-        }
-        NS_ENSURE_SUCCESS(res, res);
-      }
-      outString->Assign(tString);
-    }
+    res = mEditor->InsertTextImpl(*outString, address_of(curNode),
+                                  &curOffset, doc);
+    NS_ENSURE_SUCCESS(res, res);
 
     if (curNode) 
     {
