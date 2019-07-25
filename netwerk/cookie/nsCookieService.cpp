@@ -827,40 +827,85 @@ nsCookieService::TryInitDB(PRBool aDeleteExistingDB)
     case 3:
       {
         
+        
+        
+        
+        
+        
+        
+
+        
+        
+        
+        nsCOMPtr<mozIStorageStatement> select;
+        rv = mDBState->dbConn->CreateStatement(NS_LITERAL_CSTRING(
+          "SELECT id, name, host, path FROM moz_cookies "
+            "ORDER BY name ASC, host ASC, path ASC, expiry ASC"),
+          getter_AddRefs(select));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        nsCOMPtr<mozIStorageStatement> deleteExpired;
+        rv = mDBState->dbConn->CreateStatement(NS_LITERAL_CSTRING(
+          "DELETE FROM moz_cookies WHERE id = :id"),
+          getter_AddRefs(deleteExpired));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        
+        PRBool hasResult;
+        rv = select->ExecuteStep(&hasResult);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (hasResult) {
+          nsCString name1, host1, path1;
+          PRInt64 id1 = select->AsInt64(0);
+          select->GetUTF8String(1, name1);
+          select->GetUTF8String(2, host1);
+          select->GetUTF8String(3, path1);
+
+          nsCString name2, host2, path2;
+          while (1) {
+            
+            rv = select->ExecuteStep(&hasResult);
+            NS_ENSURE_SUCCESS(rv, rv);
+
+            if (!hasResult)
+              break;
+
+            PRInt64 id2 = select->AsInt64(0);
+            select->GetUTF8String(1, name2);
+            select->GetUTF8String(2, host2);
+            select->GetUTF8String(3, path2);
+
+            
+            
+            if (name1 == name2 && host1 == host2 && path1 == path2) {
+              mozStorageStatementScoper scoper(deleteExpired);
+
+              rv = deleteExpired->BindInt64ByName(NS_LITERAL_CSTRING("id"), id1);
+              NS_ASSERT_SUCCESS(rv);
+
+              rv = deleteExpired->ExecuteStep(&hasResult);
+              NS_ENSURE_SUCCESS(rv, rv);
+            }
+
+            
+            name1 = name2;
+            host1 = host2;
+            path1 = path2;
+            id1 = id2;
+          }
+        }
+
+        
         rv = mDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
           "ALTER TABLE moz_cookies ADD creationTime INTEGER"));
         NS_ENSURE_SUCCESS(rv, rv);
 
         
-        nsCOMPtr<mozIStorageStatement> select;
-        rv = mDBState->dbConn->CreateStatement(NS_LITERAL_CSTRING(
-          "SELECT id FROM moz_cookies"), getter_AddRefs(select));
+        rv = mDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+          "UPDATE moz_cookies SET creationTime = "
+            "(SELECT id WHERE id = moz_cookies.id)"));
         NS_ENSURE_SUCCESS(rv, rv);
-
-        
-        nsCOMPtr<mozIStorageStatement> update;
-        rv = mDBState->dbConn->CreateStatement(NS_LITERAL_CSTRING(
-          "UPDATE moz_cookies SET creationTime = :id WHERE id = :id"),
-          getter_AddRefs(update));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        PRBool hasResult;
-        while (1) {
-          rv = select->ExecuteStep(&hasResult);
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          if (!hasResult)
-            break;
-
-          mozStorageStatementScoper scoper(update);
-
-          PRInt64 id = select->AsInt64(0);
-          rv = update->BindInt64ByName(NS_LITERAL_CSTRING("id"), id);
-          NS_ASSERT_SUCCESS(rv);
-
-          rv = update->ExecuteStep(&hasResult);
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
 
         
         rv = mDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
