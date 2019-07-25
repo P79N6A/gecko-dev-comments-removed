@@ -456,6 +456,7 @@ struct JSScript {
 
 
     bool            hasSingletons:1;  
+    bool            isActiveEval:1;   
     bool            isCachedEval:1;   
     bool            isUncachedEval:1; 
     bool            calledWithNew:1;  
