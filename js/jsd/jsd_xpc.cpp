@@ -61,6 +61,9 @@
 #include "nsIJSContextStack.h"
 
 
+#include "jscompartment.h"
+
+
 
 
 
@@ -1319,10 +1322,14 @@ jsdScript::GetFunctionSource(nsAString & aFunctionSource)
     JSAutoRequest ar(cx);
 
     JSString *jsstr;
-    if (fun)
+    if (fun) {
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, JS_GetFunctionObject(fun)))
+            return NS_ERROR_FAILURE;
         jsstr = JS_DecompileFunction (cx, fun, 4);
-    else {
+    } else {
         JSScript *script = JSD_GetJSScript (mCx, mScript);
+        js::SwitchToCompartment sc(cx, script->compartment);
         jsstr = JS_DecompileScript (cx, script, "ppscript", 4);
     }
     if (!jsstr)
