@@ -7,6 +7,15 @@ function LOG(aMsg) {
   dump("Weave::Transport-HTTP-Poll: " + aMsg + "\n");
 }
 
+
+
+
+
+
+
+
+
+
 function InputStreamBuffer() {
 }
 InputStreamBuffer.prototype = {
@@ -149,15 +158,6 @@ SocketClient.prototype = {
 
 
 
-
-
-
-
-
-
-
-
-
 function HTTPPollingTransport( serverUrl, useKeys, interval ) {
   this._init( serverUrl, useKeys, interval );
 }
@@ -173,6 +173,8 @@ HTTPPollingTransport.prototype = {
     this._useKeys = useKeys;
     this._interval = interval;
     this._outgoingRetryBuffer = "";
+    this._retryCount = 0;
+    this._retryCap = 0;
   },
 
   __request: null,
@@ -294,19 +296,36 @@ HTTPPollingTransport.prototype = {
 
 
 
-            self._outgoingRetryBuffer = requestXml;
+            if (self._retryCount >= self._retryCap) {
+              self._onError("Maximum number of retries reached. Unable to communicate with the server.");
+            }
+            else {
+              self._outgoingRetryBuffer = requestXml;
+              self._retryCount++;
+            }
+          }
+          else if (request.status == 404) {
+            self._onError("Provided URL is not valid.");
+          }
+          else {
+            self._onError("Unable to communicate with the server.");
           }
         }
       }
     };
 
-    request.open( "POST", this._serverUrl, true ); 
-    request.setRequestHeader( "Content-type", "application/x-www-form-urlencoded;charset=UTF-8" );
-    request.setRequestHeader( "Content-length", contents.length );
-    request.setRequestHeader( "Connection", "close" );
-    request.onreadystatechange = _processReqChange;
-    LOG("Sending: " + contents);
-    request.send( contents );
+    try {
+      request.open( "POST", this._serverUrl, true ); 
+      request.setRequestHeader( "Content-type", "application/x-www-form-urlencoded;charset=UTF-8" );
+      request.setRequestHeader( "Content-length", contents.length );
+      request.setRequestHeader( "Connection", "close" );
+      request.onreadystatechange = _processReqChange;
+      LOG("Sending: " + contents);
+      request.send( contents );
+    } catch(ex) { 
+      this._onError("Unable to send message to server: " + this._serverUrl);
+      LOG("Connection failure: " + ex);
+    }
   },
 
   send: function( messageXml ) {

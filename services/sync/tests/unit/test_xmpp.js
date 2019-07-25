@@ -44,9 +44,6 @@ function run_test() {
   alice.disconnect();
 
   
-  
-
-  
   alice.connect( "bad domain" );
   alice.waitForConnection();
   do_check_eq( alice._connectionStatus, alice.FAILED );
