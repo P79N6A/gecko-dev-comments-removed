@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef jsinterp_h___
 #define jsinterp_h___
 
@@ -13,11 +46,41 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsopcode.h"
+#include "jsscript.h"
+#include "jsvalue.h"
 
 #include "vm/Stack.h"
 
 namespace js {
 
+extern JSObject *
+GetBlockChain(JSContext *cx, StackFrame *fp);
+
+extern JSObject *
+GetBlockChainFast(JSContext *cx, StackFrame *fp, JSOp op, size_t oplen);
+
+extern JSObject *
+GetScopeChain(JSContext *cx);
+
+
+
+
+
+
+
+
+extern JSObject *
+GetScopeChain(JSContext *cx, StackFrame *fp);
+
+extern JSObject *
+GetScopeChainFast(JSContext *cx, StackFrame *fp, JSOp op, size_t oplen);
+
+
+
+
+
+void
+ReportIncompatibleMethod(JSContext *cx, Value *vp, Class *clasp);
 
 
 
@@ -27,6 +90,20 @@ namespace js {
 
 
 
+template <typename T>
+bool GetPrimitiveThis(JSContext *cx, Value *vp, T *v);
+
+
+
+
+
+
+
+inline bool
+ScriptPrologue(JSContext *cx, StackFrame *fp, JSScript *script);
+
+inline bool
+ScriptEpilogue(JSContext *cx, StackFrame *fp, bool ok);
 
 
 
@@ -35,25 +112,16 @@ namespace js {
 
 
 
+inline bool
+ScriptPrologueOrGeneratorResume(JSContext *cx, StackFrame *fp);
+
+inline bool
+ScriptEpilogueOrGeneratorYield(JSContext *cx, StackFrame *fp, bool ok);
 
 
-extern JSTrapStatus
+
+extern void
 ScriptDebugPrologue(JSContext *cx, StackFrame *fp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 extern bool
 ScriptDebugEpilogue(JSContext *cx, StackFrame *fp, bool ok);
@@ -76,29 +144,8 @@ BoxNonStrictThis(JSContext *cx, const CallReceiver &call);
 inline bool
 ComputeThis(JSContext *cx, StackFrame *fp);
 
-enum MaybeConstruct {
-    NO_CONSTRUCT = INITIAL_NONE,
-    CONSTRUCT = INITIAL_CONSTRUCT
-};
 
-extern bool
-ReportIsNotFunction(JSContext *cx, const Value &v, MaybeConstruct construct = NO_CONSTRUCT);
 
-extern bool
-ReportIsNotFunction(JSContext *cx, const Value *vp, MaybeConstruct construct = NO_CONSTRUCT);
-
-extern JSObject *
-ValueToCallable(JSContext *cx, const Value *vp, MaybeConstruct construct = NO_CONSTRUCT);
-
-inline JSFunction *
-ReportIfNotFunction(JSContext *cx, const Value &v, MaybeConstruct construct = NO_CONSTRUCT)
-{
-    if (v.isObject() && v.toObject().isFunction())
-        return v.toObject().toFunction();
-
-    ReportIsNotFunction(cx, v, construct);
-    return NULL;
-}
 
 
 
@@ -106,7 +153,10 @@ ReportIfNotFunction(JSContext *cx, const Value &v, MaybeConstruct construct = NO
 
 
 extern bool
-InvokeKernel(JSContext *cx, CallArgs args, MaybeConstruct construct = NO_CONSTRUCT);
+Invoke(JSContext *cx, const CallArgs &args, MaybeConstruct construct = NO_CONSTRUCT);
+
+
+
 
 
 
@@ -116,7 +166,7 @@ inline bool
 Invoke(JSContext *cx, InvokeArgsGuard &args, MaybeConstruct construct = NO_CONSTRUCT)
 {
     args.setActive();
-    bool ok = InvokeKernel(cx, args, construct);
+    bool ok = Invoke(cx, ImplicitCast<CallArgs>(args), construct);
     args.setInactive();
     return ok;
 }
@@ -126,39 +176,26 @@ Invoke(JSContext *cx, InvokeArgsGuard &args, MaybeConstruct construct = NO_CONST
 
 
 
-extern bool
-Invoke(JSContext *cx, const Value &thisv, const Value &fval, unsigned argc, Value *argv,
-       Value *rval);
 
 
 
 
 
-extern bool
-InvokeGetterOrSetter(JSContext *cx, JSObject *obj, const Value &fval, unsigned argc, Value *argv,
-                     Value *rval);
 
 
 
 
 
-extern bool
-InvokeConstructorKernel(JSContext *cx, CallArgs args);
 
 
-inline bool
-InvokeConstructor(JSContext *cx, InvokeArgsGuard &args)
-{
-    args.setActive();
-    bool ok = InvokeConstructorKernel(cx, ImplicitCast<CallArgs>(args));
-    args.setInactive();
-    return ok;
-}
 
 
-extern bool
-InvokeConstructor(JSContext *cx, const Value &fval, unsigned argc, Value *argv, Value *rval);
 
+
+
+
+
+class InvokeSessionGuard;
 
 
 
@@ -166,122 +203,86 @@ InvokeConstructor(JSContext *cx, const Value &fval, unsigned argc, Value *argv, 
 
 
 extern bool
-ExecuteKernel(JSContext *cx, HandleScript script, JSObject &scopeChain, const Value &thisv,
-              ExecuteType type, StackFrame *evalInFrame, Value *result);
+ExternalInvoke(JSContext *cx, const Value &thisv, const Value &fval,
+               uintN argc, Value *argv, Value *rval);
+
+extern bool
+ExternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
+                 JSAccessMode mode, uintN argc, Value *argv, Value *rval);
+
+
+
+
+
+
+
+
+
+extern JS_REQUIRES_STACK bool
+InvokeConstructor(JSContext *cx, const CallArgs &args);
+
+extern JS_REQUIRES_STACK bool
+InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fval,
+                               uintN argc, Value *argv, Value *rval);
+
+extern bool
+ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv,
+                          Value *rval);
+
+extern bool
+ExternalExecute(JSContext *cx, JSScript *script, JSObject &scopeChain, Value *rval);
+
+
+
+
+
 
 
 extern bool
-Execute(JSContext *cx, HandleScript script, JSObject &scopeChain, Value *rval);
+Execute(JSContext *cx, JSScript *script, JSObject &scopeChain, const Value &thisv,
+        ExecuteType type, StackFrame *evalInFrame, Value *result);
 
 
 enum InterpMode
 {
     JSINTERP_NORMAL    = 0, 
-    JSINTERP_REJOIN    = 1, 
-    JSINTERP_SKIP_TRAP = 2  
+    JSINTERP_RECORD    = 1, 
+    JSINTERP_SAFEPOINT = 2, 
+    JSINTERP_PROFILE   = 3, 
+    JSINTERP_BAILOUT   = 4  
 };
 
 
 
 
 
-extern JS_NEVER_INLINE bool
+extern JS_REQUIRES_STACK JS_NEVER_INLINE bool
 Interpret(JSContext *cx, StackFrame *stopFp, InterpMode mode = JSINTERP_NORMAL);
 
-extern bool
+extern JS_REQUIRES_STACK bool
 RunScript(JSContext *cx, JSScript *script, StackFrame *fp);
 
 extern bool
-StrictlyEqual(JSContext *cx, const Value &lval, const Value &rval, bool *equal);
+CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs);
 
 extern bool
-LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, bool *equal);
+StrictlyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal);
+
+extern bool
+LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal);
 
 
 extern bool
-SameValue(JSContext *cx, const Value &v1, const Value &v2, bool *same);
+SameValue(JSContext *cx, const Value &v1, const Value &v2, JSBool *same);
 
 extern JSType
 TypeOfValue(JSContext *cx, const Value &v);
 
 extern JSBool
-HasInstance(JSContext *cx, HandleObject obj, MutableHandleValue v, JSBool *bp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class InterpreterFrames {
-  public:
-    class InterruptEnablerBase {
-      public:
-        virtual void enable() const = 0;
-    };
-
-    InterpreterFrames(JSContext *cx, FrameRegs *regs, const InterruptEnablerBase &enabler);
-    ~InterpreterFrames();
-
-    
-    inline void enableInterruptsIfRunning(JSScript *script);
-    inline void enableInterruptsUnconditionally() { enabler.enable(); }
-
-    InterpreterFrames *older;
-
-  private:
-    JSContext *context;
-    FrameRegs *regs;
-    const InterruptEnablerBase &enabler;
-};
-
-
-
-
-
-extern void
-UnwindScope(JSContext *cx, uint32_t stackDepth);
-
-
-
-
-
-extern void
-UnwindForUncatchableException(JSContext *cx, const FrameRegs &regs);
+HasInstance(JSContext *cx, JSObject *obj, const js::Value *v, JSBool *bp);
 
 extern bool
-OnUnknownMethod(JSContext *cx, HandleObject obj, Value idval, MutableHandleValue vp);
-
-class TryNoteIter
-{
-    const FrameRegs &regs;
-    JSScript *script;
-    uint32_t pcOffset;
-    JSTryNote *tn, *tnEnd;
-    void settle();
-  public:
-    TryNoteIter(const FrameRegs &regs);
-    bool done() const;
-    void operator++();
-    JSTryNote *operator*() const { return tn; }
-};
+ValueToId(JSContext *cx, const Value &v, jsid *idp);
 
 
 
@@ -290,32 +291,66 @@ class TryNoteIter
 
 
 
+extern const Value &
+GetUpvar(JSContext *cx, uintN level, UpvarCookie cookie);
 
-static JS_ALWAYS_INLINE void
-Debug_SetValueRangeToCrashOnTouch(Value *beg, Value *end)
-{
-#ifdef DEBUG
-    for (Value *v = beg; v != end; ++v)
-        v->setObject(*reinterpret_cast<JSObject *>(0x42));
+
+extern StackFrame *
+FindUpvarFrame(JSContext *cx, uintN targetLevel);
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef JS_LONE_INTERPRET
+# ifdef _MSC_VER
+#  define JS_LONE_INTERPRET 0
+# else
+#  define JS_LONE_INTERPRET 1
+# endif
 #endif
-}
 
-static JS_ALWAYS_INLINE void
-Debug_SetValueRangeToCrashOnTouch(Value *vec, size_t len)
-{
-#ifdef DEBUG
-    Debug_SetValueRangeToCrashOnTouch(vec, vec + len);
-#endif
-}
+#if !JS_LONE_INTERPRET
+# define JS_STATIC_INTERPRET    static
+#else
+# define JS_STATIC_INTERPRET
 
-static JS_ALWAYS_INLINE void
-Debug_SetValueRangeToCrashOnTouch(HeapValue *vec, size_t len)
-{
-#ifdef DEBUG
-    Debug_SetValueRangeToCrashOnTouch((Value *) vec, len);
-#endif
-}
+extern JS_REQUIRES_STACK JSBool
+js_EnterWith(JSContext *cx, jsint stackIndex, JSOp op, size_t oplen);
 
-}  
+extern JS_REQUIRES_STACK void
+js_LeaveWith(JSContext *cx);
+
+
+
+
+
+
+
+extern JSBool
+js_DoIncDec(JSContext *cx, const JSCodeSpec *cs, js::Value *vp, js::Value *vp2);
+
+#endif 
+
+
+
+
+extern JS_REQUIRES_STACK JSBool
+js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
+
+extern JSBool
+js_OnUnknownMethod(JSContext *cx, js::Value *vp);
+
+extern JS_REQUIRES_STACK js::Class *
+js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
 
 #endif 
