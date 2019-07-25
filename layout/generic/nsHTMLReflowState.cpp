@@ -2084,6 +2084,9 @@ nsCSSOffsetState::InitOffsets(nscoord aContainingBlockWidth,
     mComputedPadding.left = presContext->DevPixelsToAppUnits(widget.left);
     needPaddingProp = false;
   }
+  else if (frame->GetStateBits() & NS_FRAME_IS_SVG_TEXT) {
+    mComputedPadding.SizeTo(0, 0, 0, 0);
+  }
   else if (aPadding) { 
     mComputedPadding = *aPadding;
     needPaddingProp = frame->GetStylePadding()->IsWidthDependent();
@@ -2105,6 +2108,9 @@ nsCSSOffsetState::InitOffsets(nscoord aContainingBlockWidth,
       presContext->DevPixelsToAppUnits(widget.bottom);
     mComputedBorderPadding.left =
       presContext->DevPixelsToAppUnits(widget.left);
+  }
+  else if (frame->GetStateBits() & NS_FRAME_IS_SVG_TEXT) {
+    mComputedBorderPadding.SizeTo(0, 0, 0, 0);
   }
   else if (aBorder) {  
     mComputedBorderPadding = *aBorder;
@@ -2348,6 +2354,11 @@ nsHTMLReflowState::CalcLineHeight(nsStyleContext* aStyleContext,
 bool
 nsCSSOffsetState::ComputeMargin(nscoord aContainingBlockWidth)
 {
+  
+  if (frame->GetStateBits() & NS_FRAME_IS_SVG_TEXT) {
+    return false;
+  }
+
   
   const nsStyleMargin *styleMargin = frame->GetStyleMargin();
   bool isWidthDependent = !styleMargin->GetMargin(mComputedMargin);
