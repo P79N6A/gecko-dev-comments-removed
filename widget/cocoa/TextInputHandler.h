@@ -124,6 +124,7 @@ enum
   kPowerbookEnterKeyCode  = 0x34, 
 
   
+  kJapanese_Eisu          = 0x66,
   kJapanese_Kana          = 0x68,
 
   kInsertKeyCode          = 0x72, 
