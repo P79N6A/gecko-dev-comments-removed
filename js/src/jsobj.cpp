@@ -1890,6 +1890,9 @@ PropDesc::initialize(JSContext* cx, jsid id, const Value &origval)
     bool found;
 
     
+#ifdef __GNUC__ 
+    found = false;
+#endif
     if (!HasProperty(cx, desc, ATOM_TO_JSID(cx->runtime->atomState.enumerableAtom), &v, &found))
         return false;
     if (found) {
