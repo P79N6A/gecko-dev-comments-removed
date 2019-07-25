@@ -3826,30 +3826,6 @@ private:
 
 
 
-class nsXPCComponents_Interfaces :
-            public nsIScriptableInterfaces,
-            public nsIXPCScriptable,
-            public nsIClassInfo,
-            public nsISecurityCheckedComponent
-{
-public:
-    
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISCRIPTABLEINTERFACES
-    NS_DECL_NSIXPCSCRIPTABLE
-    NS_DECL_NSICLASSINFO
-    NS_DECL_NSISECURITYCHECKEDCOMPONENT
-
-public:
-    nsXPCComponents_Interfaces();
-    virtual ~nsXPCComponents_Interfaces();
-
-private:
-    nsCOMPtr<nsIInterfaceInfoManager> mManager;
-};
-
-
-
 
 extern JSObject*
 xpc_NewIDObject(JSContext *cx, JSObject* jsobj, const nsID& aID);
