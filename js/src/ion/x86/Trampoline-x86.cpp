@@ -76,9 +76,10 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     
     
     
+    
     masm.movl(esp, ecx);
     masm.subl(eax, ecx);
-    masm.subl(Imm32(8), ecx);
+    masm.subl(Imm32(12), ecx);
 
     
     masm.andl(Imm32(15), ecx);
@@ -114,10 +115,14 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     }
 
     
+    masm.push(Operand(ebp, 20));
+
+    
     
     masm.movl(Operand(ebp, 12), eax);
     masm.shll(Imm32(3), eax);
     masm.addl(eax, ecx);
+    masm.addl(Imm32(4), ecx);
     masm.push(ecx);
 
     

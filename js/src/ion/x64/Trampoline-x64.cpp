@@ -58,6 +58,11 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     const Register reg_argc = ArgReg1;
     const Register reg_argv = ArgReg2;
     const Register reg_vp   = ArgReg3;
+#if defined(_WIN64)
+    const Operand token = Operand(rbp, 8 + ShadowStackSpace);
+#else
+    const Register token = ArgReg4;
+#endif
 
     MacroAssembler masm(cx);
 
@@ -89,8 +94,10 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     
     
     
+    
     masm.mov(rsp, r12);
     masm.subq(r13, r12);
+    masm.subq(Imm32(8), r12);
     masm.andl(Imm32(0xf), r12);
     masm.subq(r12, rsp);
 
@@ -115,6 +122,10 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
         masm.bind(&footer);
     }
+
+    
+    
+    masm.push(token);
 
     
 

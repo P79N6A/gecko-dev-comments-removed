@@ -53,7 +53,8 @@ static const uint32 DOUBLE_STACK_ALIGNMENT   = 2;
 
 
 
-static const uint32 ION_FRAME_PREFIX_SIZE    = 8;
+
+static const uint32 ION_FRAME_PREFIX_SIZE    = 12;
 
 
 
