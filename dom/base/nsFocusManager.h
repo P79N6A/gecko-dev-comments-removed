@@ -349,9 +349,11 @@ protected:
 
 
 
+
+
   nsresult DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
                                        nsIContent* aStart,
-                                       PRInt32 aType,
+                                       PRInt32 aType, bool aNoParentTraversal,
                                        nsIContent** aNextContent);
 
   
