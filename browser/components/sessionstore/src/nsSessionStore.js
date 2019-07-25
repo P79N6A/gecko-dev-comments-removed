@@ -2443,7 +2443,7 @@ SessionStoreService.prototype = {
 
       
       let maxVisibleTabs = Math.ceil(tabbrowser.tabContainer.mTabstrip.scrollClientSize /
-                                     aTabs[unhiddenTabs - 1].clientWidth);
+                                     aTabs[unhiddenTabs - 1].getBoundingClientRect().width);
 
       
       if (maxVisibleTabs < unhiddenTabs && aSelectTab > 1) {
