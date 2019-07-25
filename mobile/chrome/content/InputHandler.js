@@ -117,23 +117,6 @@ function InputHandler(browserViewContainer) {
 
   
   this._grabber = null;
-  this._grabDepth = 0;
-
-  
-  this._ignoreEvents = false;
-
-  
-  this._suppressNextClick = false;
-
-  
-  window.addEventListener("mousedown", this, true);
-  window.addEventListener("mouseup", this, true);
-  window.addEventListener("mousemove", this, true);
-  window.addEventListener("click", this, true);
-  window.addEventListener("MozSwipeGesture", this, true);
-  window.addEventListener("MozMagnifyGestureStart", this, true);
-  window.addEventListener("MozMagnifyGestureUpdate", this, true);
-  window.addEventListener("MozMagnifyGesture", this, true);
 
   
   browserViewContainer.addEventListener("keypress", this, false);
@@ -142,9 +125,10 @@ function InputHandler(browserViewContainer) {
   browserViewContainer.addEventListener("DOMMouseScroll", this, true);
   browserViewContainer.addEventListener("MozMousePixelScroll", this, true);
 
-  this.addModule(new MouseModule(this, browserViewContainer));
+  new MouseModule();
+  new GestureModule();
+
   this.addModule(new KeyModule(this, browserViewContainer));
-  this.addModule(new GestureModule(this, browserViewContainer));
   this.addModule(new ScrollwheelModule(this, browserViewContainer));
 }
 
@@ -156,20 +140,6 @@ InputHandler.prototype = {
 
   addModule: function addModule(m) {
     this._modules.push(m);
-  },
-
-  
-
-
-  startListening: function startListening() {
-    this._ignoreEvents = false;
-  },
-
-  
-
-
-  stopListening: function stopListening() {
-    this._ignoreEvents = true;
   },
 
   
@@ -211,18 +181,6 @@ InputHandler.prototype = {
   },
 
   
-
-
-
-
-
-
-
-  suppressNextClick: function suppressNextClick() {
-    this._suppressNextClick = true;
-  },
-
-  
   cancelPending: function cancelPending() {
     let mods = this._modules;
     for (let i = 0, len = mods.length; i < len; ++i)
@@ -233,28 +191,9 @@ InputHandler.prototype = {
   
 
 
-
-  allowClicks: function allowClicks() {
-    this._suppressNextClick = false;
-  },
-
-  
-
-
   handleEvent: function handleEvent(aEvent) {
     if (this._ignoreEvents)
       return;
-
-    
-    if (aEvent.target.localName == "browser")
-      return;
-
-    if (this._suppressNextClick && aEvent.type == "click") {
-      this._suppressNextClick = false;
-      aEvent.stopPropagation();
-      aEvent.preventDefault();
-      return;
-    }
 
     aEvent.time = Date.now();
     this._passToModules(aEvent);
@@ -310,24 +249,6 @@ InputHandler.prototype = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function MouseModule(owner, browserViewContainer) {
   this._owner = owner;
   this._browserViewContainer = browserViewContainer;
@@ -338,39 +259,54 @@ function MouseModule(owner, browserViewContainer) {
   this._downUpEvents = [];
   this._targetScrollInterface = null;
 
-  var self = this;
   this._kinetic = new KineticController(this._dragBy.bind(this),
                                         this._kineticStop.bind(this));
 
   this._singleClickTimeout = new Util.Timeout(this._doSingleClick.bind(this));
   this._longClickTimeout = new Util.Timeout(this._doLongClick.bind(this));
+
+  window.addEventListener("mousedown", this, true);
+  window.addEventListener("mouseup", this, true);
+  window.addEventListener("mousemove", this, true);
+  window.addEventListener("CancelTouchSequence", this, true);
 }
 
 
 MouseModule.prototype = {
   handleEvent: function handleEvent(aEvent) {
-    if (aEvent.button !== 0 && aEvent.type != "MozMagnifyGestureStart" && aEvent.type != "MozBeforePaint")
-      return;
-
     switch (aEvent.type) {
-      case "mousedown":
-        this._onMouseDown(aEvent);
-        break;
-      case "mousemove":
-        aEvent.stopPropagation();
-        aEvent.preventDefault();
-        this._onMouseMove(aEvent);
-        break;
-      case "mouseup":
-        this._onMouseUp(aEvent);
-        break;
-      case "MozMagnifyGestureStart":
-        this.cancelPending();
-        break;
       case "MozBeforePaint":
         this._waitingForPaint = false;
         removeEventListener("MozBeforePaint", this, false);
         break;
+      case "CancelTouchSequence":
+        this.cancelPending();
+        break;
+
+      default: {
+        
+        if (aEvent.button !== 0)
+          break;
+
+        switch (aEvent.type) {
+          case "mousedown":
+            this._onMouseDown(aEvent);
+            break;
+          case "mousemove":
+            aEvent.stopPropagation();
+            aEvent.preventDefault();
+            this._onMouseMove(aEvent);
+            break;
+          case "mouseup":
+            this._onMouseUp(aEvent);
+            break;
+          case "click":
+            aEvent.stopPropagation();
+            aEvent.preventDefault();
+            aEvent.target.removeEventListener("click", this, true);
+            break;
+        }
+      }
     }
   },
 
@@ -393,8 +329,6 @@ MouseModule.prototype = {
 
   
   _onMouseDown: function _onMouseDown(aEvent) {
-    this._owner.allowClicks();
-
     let dragData = this._dragData;
     if (dragData.dragging) {
       
@@ -472,14 +406,10 @@ MouseModule.prototype = {
     
     if (dragData.isPan()) {
       
-      
-      
       let generatesClick = aEvent.detail;
       if (generatesClick)
-        this._owner.suppressNextClick();
+        aEvent.target.addEventListener("click", this, true);
     }
-
-    this._owner.ungrab(this);
   },
 
   
@@ -503,8 +433,6 @@ MouseModule.prototype = {
           let event = document.createEvent("Events");
           event.initEvent("PanBegin", true, false);
           aEvent.target.dispatchEvent(event);
-
-          this._owner.grab(this);
         }
       }
     }
@@ -1163,9 +1091,12 @@ ScrollwheelModule.prototype = {
 
 
 
-function GestureModule(owner, browserViewContainer) {
-  this._owner = owner;
-  this._browserViewContainer = browserViewContainer;
+function GestureModule() {
+  window.addEventListener("MozSwipeGesture", this, true);
+  window.addEventListener("MozMagnifyGestureStart", this, true);
+  window.addEventListener("MozMagnifyGestureUpdate", this, true);
+  window.addEventListener("MozMagnifyGesture", this, true);
+  window.addEventListener("CancelTouchSequence", this, true);
 }
 
 GestureModule.prototype = {
@@ -1215,6 +1146,10 @@ GestureModule.prototype = {
           consume = true;
           this._pinchEnd(aEvent);
           break;
+
+        case "CancelTouchSequence":
+          this.cancelPending();
+          break;
       }
       if (consume) {
         
@@ -1242,12 +1177,14 @@ GestureModule.prototype = {
       return;
 
     
-    this._owner.grab(this);
+    
+    let event = document.createEvent("Events");
+    event.initEvent("CancelTouchSequence", true, true);
+    let success = aEvent.target.dispatchEvent(event);
 
-    if ((aEvent.target instanceof XULElement) || !Browser.selectedTab.allowZoom) {
-      this._owner.ungrab(this);
+    if (!success || (aEvent.target instanceof XULElement) ||
+        !Browser.selectedTab.allowZoom)
       return;
-    }
 
     
     this._pinchZoom = AnimatedZoom;
@@ -1302,9 +1239,6 @@ GestureModule.prototype = {
   },
 
   _pinchEnd: function _pinchEnd(aEvent) {
-    
-    this._owner.ungrab(this);
-
     
     if (this._pinchZoom) {
       
