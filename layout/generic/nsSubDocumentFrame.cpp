@@ -54,10 +54,6 @@
 #include "nsIServiceManager.h"
 #include "nsContentUtils.h"
 
-#ifdef MOZ_XUL
-#include "nsXULPopupManager.h"
-#endif
-
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -702,76 +698,6 @@ nsSubDocumentFrame::AttributeChanged(int32_t aNameSpaceID,
     nsRefPtr<nsFrameLoader> frameloader = FrameLoader();
     if (frameloader)
       frameloader->MarginsChanged(margins.width, margins.height);
-  }
-  else if (aAttribute == nsGkAtoms::type) {
-    if (!mFrameLoader) 
-      return NS_OK;
-
-    if (!mContent->IsXUL()) {
-      return NS_OK;
-    }
-
-    if (mFrameLoader->GetRemoteBrowser()) {
-      
-      return NS_OK;
-    }
-
-    
-    
-
-    
-    
-    
-
-    nsCOMPtr<nsIDocShell> docShell;
-    mFrameLoader->GetDocShell(getter_AddRefs(docShell));
-    nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterface(docShell));
-    if (!docShellAsItem) {
-      return NS_OK;
-    }
-
-    nsCOMPtr<nsIDocShellTreeItem> parentItem;
-    docShellAsItem->GetParent(getter_AddRefs(parentItem));
-    if (!parentItem) {
-      return NS_OK;
-    }
-
-    int32_t parentType;
-    parentItem->GetItemType(&parentType);
-
-    if (parentType != nsIDocShellTreeItem::typeChrome) {
-      return NS_OK;
-    }
-
-    nsCOMPtr<nsIDocShellTreeOwner> parentTreeOwner;
-    parentItem->GetTreeOwner(getter_AddRefs(parentTreeOwner));
-    if (parentTreeOwner) {
-      nsAutoString value;
-      mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, value);
-
-      bool is_primary = value.LowerCaseEqualsLiteral("content-primary");
-
-#ifdef MOZ_XUL
-      
-      if (!is_primary) {
-        nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-        if (pm)
-          pm->HidePopupsInDocShell(docShellAsItem);
-      }
-#endif
-
-      parentTreeOwner->ContentShellRemoved(docShellAsItem);
-
-      if (value.LowerCaseEqualsLiteral("content") ||
-          StringBeginsWith(value, NS_LITERAL_STRING("content-"),
-                           nsCaseInsensitiveStringComparator())) {
-        bool is_targetable = is_primary ||
-          value.LowerCaseEqualsLiteral("content-targetable");
-
-        parentTreeOwner->ContentShellAdded(docShellAsItem, is_primary,
-                                           is_targetable, value);
-      }
-    }
   }
 
   return NS_OK;
