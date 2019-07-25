@@ -113,6 +113,8 @@ CanvasLayerD3D9::UpdateSurface()
       destination = (PRUint8*)r.pBits;
     }
 
+    mGLContext->MakeCurrent();
+
     
     
     mGLContext->fFlush();
