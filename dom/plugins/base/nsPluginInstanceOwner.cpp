@@ -1477,8 +1477,8 @@ void nsPluginInstanceOwner::RenderCoreAnimation(CGContextRef aCGContext,
     
     mIOSurface = nsIOSurface::CreateIOSurface(aWidth, aHeight);
     if (mIOSurface) {
-      nsIOSurface *attachSurface = nsIOSurface::LookupSurface(
-                                      mIOSurface->GetIOSurfaceID());
+      nsRefPtr<nsIOSurface> attachSurface = nsIOSurface::LookupSurface(
+                                              mIOSurface->GetIOSurfaceID());
       if (attachSurface) {
         mCARenderer.AttachIOSurface(attachSurface);
       } else {
