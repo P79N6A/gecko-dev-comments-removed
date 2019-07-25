@@ -50,7 +50,9 @@
 #include "jstl.h"
 #include "vm/String.h"
 #include "assembler/wtf/Platform.h"
+#if ENABLE_YARR_JIT
 #include "assembler/jit/ExecutableAllocator.h"
+#endif
 
 namespace JSC { namespace Yarr {
 
@@ -261,6 +263,8 @@ deleteAllValues(Vector<T, N> &v) {
     v.deleteAllValues();
 }
 
+#if ENABLE_YARR_JIT
+
 
 
 
@@ -271,6 +275,8 @@ class JSGlobalData {
     JSGlobalData(ExecutableAllocator *regexAllocator)
      : regexAllocator(regexAllocator) { }
 };
+
+#endif
 
 
 
