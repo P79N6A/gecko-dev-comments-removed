@@ -188,7 +188,7 @@ pref("browser.microsummary.enabled", false);
 pref("browser.microsummary.updateGenerators", false);
 
 
-pref("layout.spellcheckDefault", 1);
+pref("layout.spellcheckDefault", 0);
 
 
 pref("xpinstall.whitelist.add", "addons.mozilla.org");
