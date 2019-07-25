@@ -14,6 +14,12 @@
 #include "nsWindow.h"
 
 
+
+
+
+
+static bool gKeyboardOpen = false;
+
 MozQWidget::MozQWidget(nsWindow* aReceiver, QGraphicsItem* aParent)
     : QGraphicsWidget(aParent),
       mReceiver(aReceiver)
@@ -289,6 +295,7 @@ void MozQWidget::showVKB()
         inputContext->filterEvent(&request);
         focusWidget->setAttribute(Qt::WA_InputMethodEnabled, true);
         inputContext->setFocusWidget(focusWidget);
+        gKeyboardOpen = true;
     }
 #else
     LOG(("VKB not supported in Qt < 4.6\n"));
@@ -307,6 +314,7 @@ void MozQWidget::hideVKB()
     QEvent request(QEvent::CloseSoftwareInputPanel);
     inputContext->filterEvent(&request);
     inputContext->reset();
+    gKeyboardOpen = false;
 #else
     LOG(("VKB not supported in Qt < 4.6\n"));
 #endif
@@ -314,8 +322,5 @@ void MozQWidget::hideVKB()
 
 bool MozQWidget::isVKBOpen()
 {
-    
-    
-    return PR_FALSE;
+    return gKeyboardOpen;
 }
-
