@@ -5636,6 +5636,23 @@ nsContentUtils::EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
 }
 
 
+bool
+nsContentUtils::StringContainsASCIIUpper(const nsAString& aStr)
+{
+  const PRUnichar* iter = aStr.BeginReading();
+  const PRUnichar* end = aStr.EndReading();
+  while (iter != end) {
+    PRUnichar c = *iter;
+    if (c >= 'A' && c <= 'Z') {
+      return true;
+    }
+    ++iter;
+  }
+
+  return false;
+}
+
+
 nsIInterfaceRequestor*
 nsContentUtils::GetSameOriginChecker()
 {
