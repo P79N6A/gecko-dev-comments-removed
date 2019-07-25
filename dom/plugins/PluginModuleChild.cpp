@@ -1,41 +1,41 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: sw=4 ts=4 et :
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Plugin App.
- *
- * The Initial Developer of the Original Code is
- *   Ben Turner <bent.mozilla@gmail.com>.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Chris Jones <jones.chris.g@gmail.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef MOZ_WIDGET_QT
 #include <QApplication>
@@ -105,7 +105,7 @@ PluginModuleChild::~PluginModuleChild()
     gInstance = nsnull;
 }
 
-// static
+
 PluginModuleChild*
 PluginModuleChild::current()
 {
@@ -157,13 +157,13 @@ PluginModuleChild::Init(const std::string& aPluginFilename,
     memset((void*) &mFunctions, 0, sizeof(mFunctions));
     mFunctions.size = sizeof(mFunctions);
 
-    // TODO: use PluginPRLibrary here
+    
 
 #if defined(OS_LINUX)
     mShutdownFunc =
         (NP_PLUGINSHUTDOWN) PR_FindFunctionSymbol(mLibrary, "NP_Shutdown");
 
-    // create the new plugin handler
+    
 
     mInitializeFunc =
         (NP_PLUGINUNIXINIT) PR_FindFunctionSymbol(mLibrary, "NP_Initialize");
@@ -200,7 +200,7 @@ static GtkPlugEmbeddedFn real_gtk_plug_embedded;
 
 static void
 undo_bogus_unref(gpointer data, GObject* object, gboolean is_last_ref) {
-    if (!is_last_ref) // recursion in g_object_ref
+    if (!is_last_ref) 
         return;
 
     g_object_ref(object);
@@ -208,20 +208,20 @@ undo_bogus_unref(gpointer data, GObject* object, gboolean is_last_ref) {
 
 static void
 wrap_gtk_plug_dispose(GObject* object) {
-    // Work around Flash Player bug described in bug 538914.
-    //
-    // This function is called during gtk_widget_destroy and/or before
-    // the object's last reference is removed.  A reference to the
-    // object is held during the call so the ref count should not drop
-    // to zero.  However, Flash Player tries to destroy the GtkPlug
-    // using g_object_unref instead of gtk_widget_destroy.  The
-    // reference that Flash is removing actually belongs to the
-    // GtkPlug.  During real_gtk_plug_dispose, the GtkPlug removes its
-    // reference.
-    //
-    // A toggle ref is added to prevent premature deletion of the object
-    // caused by Flash Player's extra unref, and to detect when there are
-    // unexpectedly no other references.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     g_object_add_toggle_ref(object, undo_bogus_unref, NULL);
     (*real_gtk_plug_dispose)(object);
     g_object_remove_toggle_ref(object, undo_bogus_unref, NULL);
@@ -233,8 +233,8 @@ wrap_gtk_plug_embedded(GtkPlug* plug) {
     if (socket_window &&
         g_object_get_data(G_OBJECT(socket_window),
                           "moz-existed-before-set-window")) {
-        // Add missing reference for
-        // https://bugzilla.gnome.org/show_bug.cgi?id=607061
+        
+        
         g_object_ref(socket_window);
     }
 
@@ -243,19 +243,19 @@ wrap_gtk_plug_embedded(GtkPlug* plug) {
     }
 }
 
-//
-// The next four constants are knobs that can be tuned.  They trade
-// off potential UI lag from delayed event processing with CPU time.
-//
+
+
+
+
 static const gint kNestedLoopDetectorPriority = G_PRIORITY_HIGH_IDLE;
-// 90ms so that we can hopefully break livelocks before the user
-// notices UI lag (100ms)
+
+
 static const guint kNestedLoopDetectorIntervalMs = 90;
 
 static const gint kBrowserEventPriority = G_PRIORITY_HIGH_IDLE;
 static const guint kBrowserEventIntervalMs = 10;
 
-// static
+
 gboolean
 PluginModuleChild::DetectNestedEventLoop(gpointer data)
 {
@@ -268,20 +268,20 @@ PluginModuleChild::DetectNestedEventLoop(gpointer data)
 
     PLUGIN_LOG_DEBUG(("Detected nested glib event loop"));
 
-    // just detected a nested loop; start a timer that will
-    // periodically rpc-call back into the browser and process some
-    // events
+    
+    
+    
     pmc->mNestedLoopTimerId =
         g_timeout_add_full(kBrowserEventPriority,
                            kBrowserEventIntervalMs,
                            PluginModuleChild::ProcessBrowserEvents,
                            data,
                            NULL);
-    // cancel the nested-loop detection timer
+    
     return FALSE;
 }
 
-// static
+
 gboolean
 PluginModuleChild::ProcessBrowserEvents(gpointer data)
 {
@@ -325,19 +325,19 @@ bool
 PluginModuleChild::InitGraphics()
 {
 #if defined(MOZ_WIDGET_GTK2)
-    // Work around plugins that don't interact well with GDK
-    // client-side windows.
+    
+    
     PR_SetEnv("GDK_NATIVE_WINDOWS=1");
 
     gtk_init(0, 0);
 
-    // GtkPlug is a static class so will leak anyway but this ref makes sure.
+    
     gpointer gtk_plug_class = g_type_class_ref(GTK_TYPE_PLUG);
 
-    // The dispose method is a good place to hook into the destruction process
-    // because the reference count should be 1 the last time dispose is
-    // called.  (Toggle references wouldn't detect if the reference count
-    // might be higher.)
+    
+    
+    
+    
     GObjectDisposeFn* dispose = &G_OBJECT_CLASS(gtk_plug_class)->dispose;
     NS_ABORT_IF_FALSE(*dispose != wrap_gtk_plug_dispose,
                       "InitGraphics called twice");
@@ -351,7 +351,11 @@ PluginModuleChild::InitGraphics()
     if (!qApp)
         gQApp = new QApplication(0, NULL);
 #else
-    // may not be necessary on all platforms
+    
+#endif
+#ifdef MOZ_X11
+    
+    XRE_InstallX11ErrorHandler();
 #endif
 
     return true;
@@ -362,12 +366,12 @@ PluginModuleChild::AnswerNP_Shutdown(NPError *rv)
 {
     AssertPluginThread();
 
-    // the PluginModuleParent shuts down this process after this RPC
-    // call pops off its stack
+    
+    
 
     *rv = mShutdownFunc ? mShutdownFunc() : NPERR_NO_ERROR;
 
-    // weakly guard against re-entry after NP_Shutdown
+    
     memset(&mFunctions, 0, sizeof(mFunctions));
 
     return true;
@@ -376,8 +380,8 @@ PluginModuleChild::AnswerNP_Shutdown(NPError *rv)
 void
 PluginModuleChild::ActorDestroy(ActorDestroyReason why)
 {
-    // doesn't matter why we're being destroyed; it's up to us to
-    // initiate (clean) shutdown
+    
+    
     XRE_ShutdownChildProcess();
 }
 
@@ -447,8 +451,8 @@ PluginModuleChild::NPObjectIsRegistered(NPObject* aObject)
 }
 #endif
 
-//-----------------------------------------------------------------------------
-// FIXME/cjones: just getting this out of the way for the moment ...
+
+
 
 namespace mozilla {
 namespace plugins {
@@ -514,12 +518,12 @@ _useragent(NPP aNPP);
 static void* NP_CALLBACK
 _memalloc (uint32_t size);
 
-// Deprecated entry points for the old Java plugin.
-static void* NP_CALLBACK /* OJI type: JRIEnv* */
+
+static void* NP_CALLBACK 
 _getjavaenv(void);
 
-// Deprecated entry points for the old Java plugin.
-static void* NP_CALLBACK /* OJI type: jref */
+
+static void* NP_CALLBACK 
 _getjavapeer(NPP aNPP);
 
 static NPIdentifier NP_CALLBACK
@@ -623,9 +627,9 @@ _convertpoint(NPP instance,
               double sourceX, double sourceY, NPCoordinateSpace sourceSpace,
               double *destX, double *destY, NPCoordinateSpace destSpace);
 
-} /* namespace child */
-} /* namespace plugins */
-} /* namespace mozilla */
+} 
+} 
+} 
 
 const NPNetscapeFuncs PluginModuleChild::sBrowserFuncs = {
     sizeof(sBrowserFuncs),
@@ -725,8 +729,8 @@ _geturlnotify(NPP aNPP,
         sn, url, NullableString(aTarget), false, nsCString(), false, &err);
 
     if (NPERR_NO_ERROR == err) {
-        // If NPN_PostURLNotify fails, the parent will immediately send us
-        // a PStreamNotifyDestructor, which should not call NPP_URLNotify.
+        
+        
         sn->SetValid(aNotifyData);
     }
 
@@ -742,7 +746,7 @@ _getvalue(NPP aNPP,
     AssertPluginThread();
 
     switch (aVariable) {
-        // Copied from nsNPAPIPlugin.cpp
+        
         case NPNVToolkit:
 #ifdef MOZ_WIDGET_GTK2
             *static_cast<NPNToolkitType*>(aValue) = NPNVGtk2;
@@ -750,11 +754,11 @@ _getvalue(NPP aNPP,
 #endif
             return NPERR_GENERIC_ERROR;
 
-        case NPNVjavascriptEnabledBool: // Intentional fall-through
-        case NPNVasdEnabledBool: // Intentional fall-through
-        case NPNVisOfflineBool: // Intentional fall-through
-        case NPNVSupportsXEmbedBool: // Intentional fall-through
-        case NPNVSupportsWindowless: // Intentional fall-through
+        case NPNVjavascriptEnabledBool: 
+        case NPNVasdEnabledBool: 
+        case NPNVisOfflineBool: 
+        case NPNVSupportsXEmbedBool: 
+        case NPNVSupportsWindowless: 
         case NPNVprivateModeBool: {
             NPError result;
             bool value;
@@ -826,8 +830,8 @@ _posturlnotify(NPP aNPP,
         nsCString(aBuffer, aLength), aIsFile, &err);
 
     if (NPERR_NO_ERROR == err) {
-        // If NPN_PostURLNotify fails, the parent will immediately send us
-        // a PStreamNotifyDestructor, which should not call NPP_URLNotify.
+        
+        
         sn->SetValid(aNotifyData);
     }
 
@@ -846,7 +850,7 @@ _posturl(NPP aNPP,
     AssertPluginThread();
 
     NPError err;
-    // FIXME what should happen when |aBuffer| is null?
+    
     InstCast(aNPP)->CallNPN_PostURL(NullableString(aRelativeURL),
                                     NullableString(aTarget),
                                     nsDependentCString(aBuffer, aLength),
@@ -950,7 +954,7 @@ _invalidateregion(NPP aNPP,
 {
     PLUGIN_LOG_DEBUG_FUNCTION;
     AssertPluginThread();
-    // Not implemented in Mozilla.
+    
 }
 
 void NP_CALLBACK
@@ -977,8 +981,8 @@ _memalloc(uint32_t aSize)
     return NS_Alloc(aSize);
 }
 
-// Deprecated entry points for the old Java plugin.
-void* NP_CALLBACK /* OJI type: JRIEnv* */
+
+void* NP_CALLBACK 
 _getjavaenv(void)
 {
     PLUGIN_LOG_DEBUG_FUNCTION;
@@ -986,7 +990,7 @@ _getjavaenv(void)
     return 0;
 }
 
-void* NP_CALLBACK /* OJI type: jref */
+void* NP_CALLBACK 
 _getjavapeer(NPP aNPP)
 {
     PLUGIN_LOG_DEBUG_FUNCTION;
@@ -1044,7 +1048,7 @@ _getstringidentifiers(const NPUTF8** aNames,
         NS_WARNING("Failed to send message!");
     }
 
-    // Something must have failed above.
+    
     for (int32_t index = 0; index < aNameCount; index++) {
         aIdentifiers[index] = 0;
     }
@@ -1116,7 +1120,7 @@ _intfromidentifier(NPIdentifier aIdentifier)
         return -1;
     }
 
-    // -1 for consistency
+    
     return (NPERR_NO_ERROR == err) ? val : -1;
 }
 
@@ -1485,11 +1489,11 @@ _convertpoint(NPP instance,
     return 0;
 }
 
-} /* namespace child */
-} /* namespace plugins */
-} /* namespace mozilla */
+} 
+} 
+} 
 
-//-----------------------------------------------------------------------------
+
 
 bool
 PluginModuleChild::AnswerNP_Initialize(NPError* _retval)
@@ -1555,7 +1559,7 @@ PluginModuleChild::AnswerPPluginInstanceConstructor(PPluginInstanceChild* aActor
         reinterpret_cast<PluginInstanceChild*>(aActor);
     NS_ASSERTION(childInstance, "Null actor!");
 
-    // unpack the arguments into a C format
+    
     int argc = aNames.Length();
     NS_ASSERTION(argc == (int) aValues.Length(),
                  "argn.length != argv.length");
@@ -1572,7 +1576,7 @@ PluginModuleChild::AnswerPPluginInstanceConstructor(PPluginInstanceChild* aActor
 
     NPP npp = childInstance->GetNPP();
 
-    // FIXME/cjones: use SAFE_CALL stuff
+    
     *rv = mFunctions.newp((char*)NullableStringGet(aMimeType),
                           npp,
                           aMode,

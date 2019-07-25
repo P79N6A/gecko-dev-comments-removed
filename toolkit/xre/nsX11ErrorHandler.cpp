@@ -39,8 +39,8 @@
 #include "nsX11ErrorHandler.h"
 
 #ifdef MOZ_IPC
-#include "mozilla/plugins/PluginProcessChild.h"
-using mozilla::plugins::PluginProcessChild;
+#include "mozilla/plugins/PluginThreadChild.h"
+using mozilla::plugins::PluginThreadChild;
 #endif
 
 #include "prenv.h"
@@ -48,8 +48,10 @@ using mozilla::plugins::PluginProcessChild;
 #include "nsExceptionHandler.h"
 #include "nsDebug.h"
 
-#include "mozilla/X11Util.h"
 #include <X11/Xlib.h>
+#ifdef MOZ_WIDGET_GTK2
+#include <gdk/gdkx.h>
+#endif
 
 #define BUFSIZE 2048 // What Xlib uses with XGetErrorDatabaseText
 
@@ -137,7 +139,7 @@ X11Error(Display *display, XErrorEvent *event) {
       notes.Append("; sync");
     } else {
       notes.Append("; ");
-      notes.AppendInt(PRUint32(age));
+      notes.AppendInt(age);
       notes.Append(" requests ago");
     }
   }
@@ -153,7 +155,7 @@ X11Error(Display *display, XErrorEvent *event) {
       
       
       
-      PluginProcessChild::AppendNotesToCrashReport(notes);
+      PluginThreadChild::AppendNotesToCrashReport(notes);
     }
     break;
 #endif
@@ -166,8 +168,8 @@ X11Error(Display *display, XErrorEvent *event) {
   
   
   notes.Append("; id=0x");
-  notes.AppendInt(PRUint32(event->resourceid), 16);
-#ifdef MOZ_X11
+  notes.AppendInt(event->resourceid, 16);
+#ifdef MOZ_WIDGET_GTK2
   
   
   
@@ -175,16 +177,6 @@ X11Error(Display *display, XErrorEvent *event) {
     notes.Append("\nRe-running with MOZ_X_SYNC=1 in the environment may give a more helpful backtrace.");
   }
 #endif
-#endif
-
-#ifdef MOZ_WIDGET_QT
-  
-  
-  
-  if (!PR_GetEnv("MOZ_X_SYNC")) {
-    fprintf(stderr, "XError: %s\n", notes.get());
-    return 0; 
-  }
 #endif
 
   NS_RUNTIMEABORT(notes.get());
@@ -197,9 +189,10 @@ InstallX11ErrorHandler()
 {
   XSetErrorHandler(X11Error);
 
-  Display *display = mozilla::DefaultXDisplay();
-  NS_ASSERTION(display, "No X display");
+#ifdef MOZ_WIDGET_GTK2
+  NS_ASSERTION(GDK_DISPLAY(), "No GDK display");
   if (PR_GetEnv("MOZ_X_SYNC")) {
-    XSynchronize(display, True);
+    XSynchronize(GDK_DISPLAY(), True);
   }
+#endif
 }

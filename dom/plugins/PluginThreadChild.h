@@ -63,6 +63,9 @@ public:
         return gInstance;
     }
 
+    
+    static void AppendNotesToCrashReport(const nsCString& aNotes);
+
 private:
     static PluginThreadChild* gInstance;
 
