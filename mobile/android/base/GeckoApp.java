@@ -2283,13 +2283,16 @@ abstract public class GeckoApp
         if (profileDir != null) {
             Log.i(LOGTAG, "checking profile migration in: " + profileDir.getAbsolutePath());
             final GeckoApp app = GeckoApp.mAppContext;
-            final SetupScreen setupScreen = new SetupScreen(app);
-            
-            setupScreen.showDelayed(mMainHandler);
             ProfileMigrator profileMigrator =
                 new ProfileMigrator(app.getContentResolver(), profileDir);
-            profileMigrator.launch();
-            setupScreen.dismiss();
+            
+            if (!profileMigrator.hasMigrationRun()) {
+                final SetupScreen setupScreen = new SetupScreen(app);
+                
+                setupScreen.showDelayed(mMainHandler);
+                profileMigrator.launch();
+                setupScreen.dismiss();
+            }
         }
         long timeDiff = SystemClock.uptimeMillis() - currentTime;
         Log.i(LOGTAG, "Profile migration took " + timeDiff + " ms");

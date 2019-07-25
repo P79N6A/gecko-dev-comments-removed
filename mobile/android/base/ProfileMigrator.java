@@ -53,7 +53,9 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.ContentProviderResult;
 import android.content.ContentProviderOperation;
+import android.content.Context;
 import android.content.OperationApplicationException;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteConstraintException;
@@ -83,9 +85,22 @@ import java.util.Map;
 import java.util.Set;
 
 public class ProfileMigrator {
-    private static final String LOGTAG = "ProfMigr";
+    private static final String LOGTAG = "ProfileMigrator";
+    private static final String PREFS_NAME = "ProfileMigrator";
     private File mProfileDir;
     private ContentResolver mCr;
+
+    
+    private static final int DEFAULT_HISTORY_MIGRATE_COUNT = 2000;
+
+    
+    
+    private static final int HISTORY_MAX_BATCH = 5000;
+
+    private static final String PREFS_MIGRATE_BOOKMARKS_DONE = "bookmarks_done";
+    private static final String PREFS_MIGRATE_HISTORY_DONE = "history_done";
+    
+    private static final String PREFS_MIGRATE_HISTORY_COUNT = "history_count";
 
     
 
@@ -170,7 +185,7 @@ public class ProfileMigrator {
         "WHERE places.hidden <> 1 "                       +
         "GROUP BY p_url "                                 +
         "ORDER BY h_visits * a_recent "                   +
-        "DESC LIMIT ?";
+        "DESC LIMIT ? OFFSET ?";
 
     private final String kHistoryUrl    = "p_url";
     private final String kHistoryTitle  = "p_title";
@@ -184,12 +199,65 @@ public class ProfileMigrator {
     }
 
     public void launch() {
-        new PlacesRunnable().run();
+        launch(DEFAULT_HISTORY_MIGRATE_COUNT);
+    }
+
+    public void launch(int maxEntries) {
+        new PlacesRunnable(maxEntries).run();
+    }
+
+    
+    public boolean hasMigrationRun() {
+        return isBookmarksMigrated() && (getMigratedHistoryEntries() > 0);
+    }
+
+    
+    public boolean hasMigrationFinished() {
+        return isBookmarksMigrated() && isHistoryMigrated();
+    }
+
+    protected SharedPreferences getPreferences() {
+        return GeckoApp.mAppContext.getSharedPreferences(PREFS_NAME, 0);
+    }
+
+    protected boolean isBookmarksMigrated() {
+        return getPreferences().getBoolean(PREFS_MIGRATE_BOOKMARKS_DONE, false);
+    }
+
+    protected boolean isHistoryMigrated() {
+        return getPreferences().getBoolean(PREFS_MIGRATE_HISTORY_DONE, false);
+    }
+
+    protected int getMigratedHistoryEntries() {
+        return getPreferences().getInt(PREFS_MIGRATE_HISTORY_COUNT, 0);
+    }
+
+    protected void setMigratedHistoryEntries(int count) {
+        SharedPreferences.Editor editor = getPreferences().edit();
+        editor.putInt(PREFS_MIGRATE_HISTORY_COUNT, count);
+        editor.commit();
+    }
+
+    protected void setMigratedHistory() {
+        SharedPreferences.Editor editor = getPreferences().edit();
+        editor.putBoolean(PREFS_MIGRATE_HISTORY_DONE, true);
+        editor.commit();
+    }
+
+    protected void setMigratedBookmarks() {
+        SharedPreferences.Editor editor = getPreferences().edit();
+        editor.putBoolean(PREFS_MIGRATE_BOOKMARKS_DONE, true);
+        editor.commit();
     }
 
     private class PlacesRunnable implements Runnable {
         private Map<Long, Long> mRerootMap;
         private ArrayList<ContentProviderOperation> mOperations;
+        private int mMaxEntries;
+
+        public PlacesRunnable(int limit) {
+            mMaxEntries = limit;
+        }
 
         protected Uri getBookmarksUri() {
             Uri.Builder uriBuilder = Bookmarks.CONTENT_URI.buildUpon()
@@ -447,10 +515,12 @@ public class ProfileMigrator {
             }
         }
 
-        protected void migrateHistory(SQLiteBridge db) {
-            Map<String, Long> browserDBHistory = gatherBrowserDBHistory();
+        protected void doMigrateHistoryBatch(SQLiteBridge db,
+                                             Map<String, Long> browserDBHistory,
+                                             int maxEntries, int currentEntries) {
             final ArrayList<String> placesHistory = new ArrayList<String>();
             mOperations = new ArrayList<ContentProviderOperation>();
+            int queryResultEntries = 0;
 
             try {
                 final String currentTime = Long.toString(System.currentTimeMillis());
@@ -458,13 +528,12 @@ public class ProfileMigrator {
                     
                     currentTime,
                     currentTime,
-                    
-
-
-
-                    Integer.toString(BrowserDB.getMaxHistoryCount())
+                    Integer.toString(maxEntries),
+                    Integer.toString(currentEntries)
                 };
                 Cursor cursor = db.rawQuery(kHistoryQuery, queryParams);
+                queryResultEntries = cursor.getCount();
+
                 final int urlCol = cursor.getColumnIndex(kHistoryUrl);
                 final int titleCol = cursor.getColumnIndex(kHistoryTitle);
                 final int dateCol = cursor.getColumnIndex(kHistoryDate);
@@ -503,6 +572,15 @@ public class ProfileMigrator {
 
             flushBatchOperations();
 
+            int totalEntries = currentEntries + queryResultEntries;
+            setMigratedHistoryEntries(totalEntries);
+
+            
+            
+            if (queryResultEntries < mMaxEntries) {
+                setMigratedHistory();
+            }
+
             
             
             GeckoAppShell.getHandler().post(new Runnable() {
@@ -512,6 +590,21 @@ public class ProfileMigrator {
                         }
                     }
              });
+        }
+
+        protected void migrateHistory(SQLiteBridge db) {
+            Map<String, Long> browserDBHistory = gatherBrowserDBHistory();
+
+            for (int i = 0; i < mMaxEntries; i += HISTORY_MAX_BATCH) {
+                int currentEntries = getMigratedHistoryEntries();
+                int fetchEntries = Math.min(mMaxEntries, HISTORY_MAX_BATCH);
+
+                Log.i(LOGTAG, "Processed " + currentEntries + " history entries");
+                Log.i(LOGTAG, "Fetching " + fetchEntries + " more history entries");
+
+                doMigrateHistoryBatch(db, browserDBHistory,
+                                      fetchEntries, currentEntries);
+            }
         }
 
         protected void addBookmark(String url, String title, String guid,
@@ -592,6 +685,8 @@ public class ProfileMigrator {
             mOperations = new ArrayList<ContentProviderOperation>();
 
             try {
+                Log.i(LOGTAG, "Fetching bookmarks from places");
+
                 Cursor cursor = db.rawQuery(kBookmarkQuery, null);
                 final int urlCol = cursor.getColumnIndex(kBookmarkUrl);
                 final int titleCol = cursor.getColumnIndex(kBookmarkTitle);
@@ -739,6 +834,12 @@ public class ProfileMigrator {
         }
 
         protected void migratePlaces(File aFile) {
+            
+            if (hasMigrationFinished()) {
+                Log.i(LOGTAG, "Nothing to migrate, early exit.");
+                return;
+            }
+
             String dbPath = aFile.getPath() + "/places.sqlite";
             String dbPathWal = aFile.getPath() + "/places.sqlite-wal";
             String dbPathShm = aFile.getPath() + "/places.sqlite-shm";
@@ -757,16 +858,33 @@ public class ProfileMigrator {
             try {
                 db = new SQLiteBridge(dbPath);
                 calculateReroot(db);
-                migrateBookmarks(db);
-                migrateHistory(db);
+
+                if (!isBookmarksMigrated()) {
+                    migrateBookmarks(db);
+                    setMigratedBookmarks();
+                } else {
+                    Log.i(LOGTAG, "Bookmarks already migrated. Skipping...");
+                }
+
+                if (!isHistoryMigrated()) {
+                    migrateHistory(db);
+                } else {
+                    Log.i(LOGTAG, "History already migrated. Skipping...");
+                }
+
                 db.close();
 
                 
-                dbFile.delete();
-                dbFileWal.delete();
-                dbFileShm.delete();
+                
+                if (isHistoryMigrated()) {
+                    Log.i(LOGTAG, "Profile Migration has processed all entries. "
+                          +" Purging old DB.");
+                    dbFile.delete();
+                    dbFileWal.delete();
+                    dbFileShm.delete();
+                }
 
-                Log.i(LOGTAG, "Profile migration finished");
+                Log.i(LOGTAG, "Profile Migration run finished");
             } catch (SQLiteBridgeException e) {
                 if (db != null) {
                     db.close();
