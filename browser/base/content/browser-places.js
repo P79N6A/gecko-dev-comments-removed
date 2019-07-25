@@ -390,26 +390,17 @@ var PlacesCommandHook = {
 
 
 
-
-
-
-  _getUniqueTabInfo: function BATC__getUniqueTabInfo() {
-    var tabList = [];
-    var seenURIs = {};
-
-    let tabs = gBrowser.visibleTabs;
-    for (let i = 0; i < tabs.length; ++i) {
-      let uri = tabs[i].linkedBrowser.currentURI;
-
-      
-      if (uri.spec in seenURIs)
-        continue;
-
-      
-      seenURIs[uri.spec] = null;
-      tabList.push(uri);
-    }
-    return tabList;
+  get uniqueCurrentPages() {
+    let uniquePages = {};
+    let URIs = [];
+    gBrowser.visibleTabs.forEach(function (tab) {
+      let spec = tab.linkedBrowser.currentURI.spec;
+      if (!tab.pinned && !(spec in uniquePages)) {
+        uniquePages[spec] = null;
+        URIs.push(tab.linkedBrowser.currentURI);
+      }
+    });
+    return URIs;
   },
 
   
@@ -417,11 +408,23 @@ var PlacesCommandHook = {
 
 
   bookmarkCurrentPages: function PCH_bookmarkCurrentPages() {
-    var tabURIs = this._getUniqueTabInfo();
-    PlacesUIUtils.showMinimalAddMultiBookmarkUI(tabURIs);
+    let pages = this.uniqueCurrentPages;
+    if (pages.length > 1) {
+      PlacesUIUtils.showMinimalAddMultiBookmarkUI(pages);
+    }
   },
 
   
+
+
+  updateBookmarkAllTabsCommand:
+  function PCH_updateBookmarkAllTabsCommand() {
+    
+    
+    goSetCommandEnabled("Browser:BookmarkAllTabs",
+                        this.uniqueCurrentPages.length >= 2);
+  },
+
   
 
 
