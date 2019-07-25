@@ -5769,6 +5769,152 @@ EmitFor(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
            : EmitNormalFor(cx, bce, pn, top);
 }
 
+static bool
+EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
+{
+    JSFunction *fun;
+    uintN slot;
+
+#if JS_HAS_XML_SUPPORT
+    if (pn->isArity(PN_NULLARY)) {
+        if (Emit1(cx, bce, JSOP_GETFUNNS) < 0)
+            return false;
+        return true;
+    }
+#endif
+
+    fun = pn->pn_funbox->function();
+    JS_ASSERT(fun->isInterpreted());
+    if (fun->script()) {
+        
+
+
+
+
+        JS_ASSERT(pn->isOp(JSOP_NOP));
+        JS_ASSERT(bce->inFunction());
+        if (!EmitFunctionDefNop(cx, bce, pn->pn_index))
+            return false;
+        return true;
+    }
+
+    JS_ASSERT_IF(pn->pn_funbox->tcflags & TCF_FUN_HEAVYWEIGHT,
+                 fun->kind() == JSFUN_INTERPRETED);
+
+    
+
+
+
+
+    BytecodeEmitter *bce2 = cx->new_<BytecodeEmitter>(bce->parser, pn->pn_pos.begin.lineno);
+    if (!bce2) {
+        js_ReportOutOfMemory(cx);
+        return JS_FALSE;
+    }
+    if (!bce2->init(cx))
+        return JS_FALSE;
+
+    bce2->flags = pn->pn_funbox->tcflags | TCF_COMPILING | TCF_IN_FUNCTION |
+                 (bce->flags & TCF_FUN_MIGHT_ALIAS_LOCALS);
+    bce2->bindings.transfer(cx, &pn->pn_funbox->bindings);
+#if JS_HAS_SHARP_VARS
+    if (bce2->flags & TCF_HAS_SHARPS) {
+        bce2->sharpSlotBase = bce2->bindings.sharpSlotBase(cx);
+        if (bce2->sharpSlotBase < 0)
+            return JS_FALSE;
+    }
+#endif
+    bce2->setFunction(fun);
+    bce2->funbox = pn->pn_funbox;
+    bce2->parent = bce;
+    bce2->globalScope = bce->globalScope;
+
+    
+
+
+
+
+
+    JS_ASSERT(bce->staticLevel < JS_BITMASK(16) - 1);
+    bce2->staticLevel = bce->staticLevel + 1;
+
+    
+    if (!EmitFunctionScript(cx, bce2, pn->pn_body))
+        pn = NULL;
+
+    cx->delete_(bce2);
+    bce2 = NULL;
+    if (!pn)
+        return JS_FALSE;
+
+    
+    uintN index = bce->objectList.index(pn->pn_funbox);
+
+    
+    JSOp op = pn->getOp();
+    if (op != JSOP_NOP) {
+        if ((pn->pn_funbox->tcflags & TCF_GENEXP_LAMBDA) &&
+            NewSrcNote(cx, bce, SRC_GENEXP) < 0)
+        {
+            return JS_FALSE;
+        }
+        EMIT_INDEX_OP(op, index);
+
+        
+        if (EmitBlockChain(cx, bce) < 0)
+            return JS_FALSE;
+        return true;
+    }
+
+    
+
+
+
+
+
+
+
+
+    if (!bce->inFunction()) {
+        JS_ASSERT(!bce->topStmt);
+        if (!BindGlobal(cx, bce, pn, fun->atom))
+            return false;
+        if (pn->pn_cookie.isFree()) {
+            bce->switchToProlog();
+            op = fun->isFlatClosure() ? JSOP_DEFFUN_FC : JSOP_DEFFUN;
+            EMIT_INDEX_OP(op, index);
+
+            
+            if (EmitBlockChain(cx, bce) < 0)
+                return JS_FALSE;
+            bce->switchToMain();
+        }
+
+        
+        if (!EmitFunctionDefNop(cx, bce, index))
+            return JS_FALSE;
+    } else {
+        DebugOnly<BindingKind> kind = bce->bindings.lookup(cx, fun->atom, &slot);
+        JS_ASSERT(kind == VARIABLE || kind == CONSTANT);
+        JS_ASSERT(index < JS_BIT(20));
+        pn->pn_index = index;
+        op = fun->isFlatClosure() ? JSOP_DEFLOCALFUN_FC : JSOP_DEFLOCALFUN;
+        if (pn->isClosed() &&
+            !bce->callsEval() &&
+            !bce->closedVars.append(pn->pn_cookie.slot())) {
+            return JS_FALSE;
+        }
+        if (!EmitSlotIndexOp(cx, op, slot, index, bce))
+            return JS_FALSE;
+
+        
+        if (EmitBlockChain(cx, bce) < 0)
+            return JS_FALSE;
+    }
+
+    return true;
+}
+
 JSBool
 frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
@@ -5779,7 +5925,6 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     ParseNode *pn2, *pn3;
     JSAtom *atom;
     jsatomid atomIndex;
-    uintN index;
     ptrdiff_t noteIndex, noteIndex2;
     SrcNoteType noteType;
     jsbytecode *pc;
@@ -5798,148 +5943,8 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
     switch (pn->getKind()) {
       case PNK_FUNCTION:
-      {
-        JSFunction *fun;
-        uintN slot;
-
-#if JS_HAS_XML_SUPPORT
-        if (pn->isArity(PN_NULLARY)) {
-            if (Emit1(cx, bce, JSOP_GETFUNNS) < 0)
-                return JS_FALSE;
-            break;
-        }
-#endif
-
-        fun = pn->pn_funbox->function();
-        JS_ASSERT(fun->isInterpreted());
-        if (fun->script()) {
-            
-
-
-
-
-            JS_ASSERT(pn->isOp(JSOP_NOP));
-            JS_ASSERT(bce->inFunction());
-            if (!EmitFunctionDefNop(cx, bce, pn->pn_index))
-                return JS_FALSE;
-            break;
-        }
-
-        JS_ASSERT_IF(pn->pn_funbox->tcflags & TCF_FUN_HEAVYWEIGHT,
-                     fun->kind() == JSFUN_INTERPRETED);
-
-        
-
-
-
-
-        BytecodeEmitter *bce2 = cx->new_<BytecodeEmitter>(bce->parser, pn->pn_pos.begin.lineno);
-        if (!bce2) {
-            js_ReportOutOfMemory(cx);
-            return JS_FALSE;
-        }
-        if (!bce2->init(cx))
-            return JS_FALSE;
-
-        bce2->flags = pn->pn_funbox->tcflags | TCF_COMPILING | TCF_IN_FUNCTION |
-                     (bce->flags & TCF_FUN_MIGHT_ALIAS_LOCALS);
-        bce2->bindings.transfer(cx, &pn->pn_funbox->bindings);
-#if JS_HAS_SHARP_VARS
-        if (bce2->flags & TCF_HAS_SHARPS) {
-            bce2->sharpSlotBase = bce2->bindings.sharpSlotBase(cx);
-            if (bce2->sharpSlotBase < 0)
-                return JS_FALSE;
-        }
-#endif
-        bce2->setFunction(fun);
-        bce2->funbox = pn->pn_funbox;
-        bce2->parent = bce;
-        bce2->globalScope = bce->globalScope;
-
-        
-
-
-
-
-
-        JS_ASSERT(bce->staticLevel < JS_BITMASK(16) - 1);
-        bce2->staticLevel = bce->staticLevel + 1;
-
-        
-        if (!EmitFunctionScript(cx, bce2, pn->pn_body))
-            pn = NULL;
-
-        cx->delete_(bce2);
-        bce2 = NULL;
-        if (!pn)
-            return JS_FALSE;
-
-        
-        index = bce->objectList.index(pn->pn_funbox);
-
-        
-        op = pn->getOp();
-        if (op != JSOP_NOP) {
-            if ((pn->pn_funbox->tcflags & TCF_GENEXP_LAMBDA) &&
-                NewSrcNote(cx, bce, SRC_GENEXP) < 0)
-            {
-                return JS_FALSE;
-            }
-            EMIT_INDEX_OP(op, index);
-
-            
-            if (EmitBlockChain(cx, bce) < 0)
-                return JS_FALSE;
-            break;
-        }
-
-        
-
-
-
-
-
-
-
-
-        if (!bce->inFunction()) {
-            JS_ASSERT(!bce->topStmt);
-            if (!BindGlobal(cx, bce, pn, fun->atom))
-                return false;
-            if (pn->pn_cookie.isFree()) {
-                bce->switchToProlog();
-                op = fun->isFlatClosure() ? JSOP_DEFFUN_FC : JSOP_DEFFUN;
-                EMIT_INDEX_OP(op, index);
-
-                
-                if (EmitBlockChain(cx, bce) < 0)
-                    return JS_FALSE;
-                bce->switchToMain();
-            }
-
-            
-            if (!EmitFunctionDefNop(cx, bce, index))
-                return JS_FALSE;
-        } else {
-            DebugOnly<BindingKind> kind = bce->bindings.lookup(cx, fun->atom, &slot);
-            JS_ASSERT(kind == VARIABLE || kind == CONSTANT);
-            JS_ASSERT(index < JS_BIT(20));
-            pn->pn_index = index;
-            op = fun->isFlatClosure() ? JSOP_DEFLOCALFUN_FC : JSOP_DEFLOCALFUN;
-            if (pn->isClosed() &&
-                !bce->callsEval() &&
-                !bce->closedVars.append(pn->pn_cookie.slot())) {
-                return JS_FALSE;
-            }
-            if (!EmitSlotIndexOp(cx, op, slot, index, bce))
-                return JS_FALSE;
-
-            
-            if (EmitBlockChain(cx, bce) < 0)
-                return JS_FALSE;
-        }
+        ok = EmitFunc(cx, bce, pn);
         break;
-      }
 
       case PNK_ARGSBODY:
       {
