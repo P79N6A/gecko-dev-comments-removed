@@ -283,7 +283,7 @@ nsRefreshDriver::Notify(nsITimer * )
       
       
       
-      nsTArray<nsIDocument*> targets;
+      nsTArray< nsCOMPtr<nsIDocument> > targets;
       targets.SwapElements(mBeforePaintTargets);
       for (PRUint32 i = 0; i < targets.Length(); ++i) {
         targets[i]->BeforePaintEventFiring();

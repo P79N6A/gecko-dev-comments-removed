@@ -247,7 +247,7 @@ private:
   nsAutoTArray<nsIPresShell*, 16> mStyleFlushObservers;
   nsAutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
   
-  nsTArray<nsIDocument*> mBeforePaintTargets;
+  nsTArray< nsCOMPtr<nsIDocument> > mBeforePaintTargets;
   
   nsTArray<nsIDocument*> mAnimationFrameListenerDocs;
 
