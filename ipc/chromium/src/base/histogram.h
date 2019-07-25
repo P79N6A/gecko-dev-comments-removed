@@ -28,75 +28,105 @@
 
 
 
-#ifndef BASE_HISTOGRAM_H_
-#define BASE_HISTOGRAM_H_
+
+
+
+
+
+
+
+
+
+#ifndef BASE_METRICS_HISTOGRAM_H_
+#define BASE_METRICS_HISTOGRAM_H_
+#pragma once
 
 #include <map>
 #include <string>
 #include <vector>
 
-#include "base/lock.h"
+#include "base/base_api.h"
+#include "base/gtest_prod_util.h"
+#include "base/logging.h"
 #include "base/time.h"
 
+class Pickle;
+
+namespace base {
+
+class Lock;
 
 
 
 
-#define HISTOGRAM_TIMES(name, sample) do { \
-    static Histogram counter((name), base::TimeDelta::FromMilliseconds(1), \
-                             base::TimeDelta::FromSeconds(10), 50); \
-    counter.AddTime(sample); \
+
+#define HISTOGRAM_TIMES(name, sample) HISTOGRAM_CUSTOM_TIMES( \
+    name, sample, base::TimeDelta::FromMilliseconds(1), \
+    base::TimeDelta::FromSeconds(10), 50)
+
+#define HISTOGRAM_COUNTS(name, sample) HISTOGRAM_CUSTOM_COUNTS( \
+    name, sample, 1, 1000000, 50)
+
+#define HISTOGRAM_COUNTS_100(name, sample) HISTOGRAM_CUSTOM_COUNTS( \
+    name, sample, 1, 100, 50)
+
+#define HISTOGRAM_COUNTS_10000(name, sample) HISTOGRAM_CUSTOM_COUNTS( \
+    name, sample, 1, 10000, 50)
+
+#define HISTOGRAM_CUSTOM_COUNTS(name, sample, min, max, bucket_count) do { \
+    static base::Histogram* counter(NULL); \
+    if (!counter) \
+      counter = base::Histogram::FactoryGet(name, min, max, bucket_count, \
+                                            base::Histogram::kNoFlags); \
+    DCHECK_EQ(name, counter->histogram_name()); \
+    counter->Add(sample); \
   } while (0)
 
-#define HISTOGRAM_COUNTS(name, sample) do { \
-    static Histogram counter((name), 1, 1000000, 50); \
-    counter.Add(sample); \
-  } while (0)
+#define HISTOGRAM_PERCENTAGE(name, under_one_hundred) \
+    HISTOGRAM_ENUMERATION(name, under_one_hundred, 101)
 
-#define HISTOGRAM_COUNTS_100(name, sample) do { \
-    static Histogram counter((name), 1, 100, 50); \
-    counter.Add(sample); \
-  } while (0)
 
-#define HISTOGRAM_COUNTS_10000(name, sample) do { \
-    static Histogram counter((name), 1, 10000, 50); \
-    counter.Add(sample); \
-  } while (0)
 
-#define HISTOGRAM_PERCENTAGE(name, under_one_hundred) do { \
-    static LinearHistogram counter((name), 1, 100, 101); \
-    counter.Add(under_one_hundred); \
+#define HISTOGRAM_CUSTOM_TIMES(name, sample, min, max, bucket_count) do { \
+    static base::Histogram* counter(NULL); \
+    if (!counter) \
+      counter = base::Histogram::FactoryTimeGet(name, min, max, bucket_count, \
+                                                base::Histogram::kNoFlags); \
+    DCHECK_EQ(name, counter->histogram_name()); \
+    counter->AddTime(sample); \
   } while (0)
-
 
 
 #define HISTOGRAM_CLIPPED_TIMES(name, sample, min, max, bucket_count) do { \
-    static Histogram counter((name), min, max, bucket_count); \
-    if ((sample) < (max)) counter.AddTime(sample); \
+    static base::Histogram* counter(NULL); \
+    if (!counter) \
+      counter = base::Histogram::FactoryTimeGet(name, min, max, bucket_count, \
+                                                base::Histogram::kNoFlags); \
+    DCHECK_EQ(name, counter->histogram_name()); \
+    if ((sample) < (max)) counter->AddTime(sample); \
   } while (0)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-#define ASSET_HISTOGRAM_COUNTS(name, sample) do { \
-    static ThreadSafeHistogram counter((name), 1, 1000000, 50); \
-    if (0 == sample) break; \
-    if (sample >= 0) \
-      counter.Add(sample); \
-    else\
-      counter.Remove(-sample); \
+#define HISTOGRAM_ENUMERATION(name, sample, boundary_value) do { \
+    static base::Histogram* counter(NULL); \
+    if (!counter) \
+      counter = base::LinearHistogram::FactoryGet(name, 1, boundary_value, \
+          boundary_value + 1, base::Histogram::kNoFlags); \
+    DCHECK_EQ(name, counter->histogram_name()); \
+    counter->Add(sample); \
   } while (0)
+
+#define HISTOGRAM_CUSTOM_ENUMERATION(name, sample, custom_ranges) do { \
+    static base::Histogram* counter(NULL); \
+    if (!counter) \
+      counter = base::CustomHistogram::FactoryGet(name, custom_ranges, \
+                                                  base::Histogram::kNoFlags); \
+    DCHECK_EQ(name, counter->histogram_name()); \
+    counter->Add(sample); \
+  } while (0)
+
 
 
 
@@ -104,20 +134,32 @@
 
 #define DHISTOGRAM_TIMES(name, sample) HISTOGRAM_TIMES(name, sample)
 #define DHISTOGRAM_COUNTS(name, sample) HISTOGRAM_COUNTS(name, sample)
-#define DASSET_HISTOGRAM_COUNTS(name, sample) ASSET_HISTOGRAM_COUNTS(name, \
-                                                                     sample)
 #define DHISTOGRAM_PERCENTAGE(name, under_one_hundred) HISTOGRAM_PERCENTAGE(\
     name, under_one_hundred)
+#define DHISTOGRAM_CUSTOM_TIMES(name, sample, min, max, bucket_count) \
+    HISTOGRAM_CUSTOM_TIMES(name, sample, min, max, bucket_count)
 #define DHISTOGRAM_CLIPPED_TIMES(name, sample, min, max, bucket_count) \
     HISTOGRAM_CLIPPED_TIMES(name, sample, min, max, bucket_count)
+#define DHISTOGRAM_CUSTOM_COUNTS(name, sample, min, max, bucket_count) \
+    HISTOGRAM_CUSTOM_COUNTS(name, sample, min, max, bucket_count)
+#define DHISTOGRAM_ENUMERATION(name, sample, boundary_value) \
+    HISTOGRAM_ENUMERATION(name, sample, boundary_value)
+#define DHISTOGRAM_CUSTOM_ENUMERATION(name, sample, custom_ranges) \
+    HISTOGRAM_CUSTOM_ENUMERATION(name, sample, custom_ranges)
 
 #else  
 
 #define DHISTOGRAM_TIMES(name, sample) do {} while (0)
 #define DHISTOGRAM_COUNTS(name, sample) do {} while (0)
-#define DASSET_HISTOGRAM_COUNTS(name, sample) do {} while (0)
 #define DHISTOGRAM_PERCENTAGE(name, under_one_hundred) do {} while (0)
+#define DHISTOGRAM_CUSTOM_TIMES(name, sample, min, max, bucket_count) \
+    do {} while (0)
 #define DHISTOGRAM_CLIPPED_TIMES(name, sample, min, max, bucket_count) \
+    do {} while (0)
+#define DHISTOGRAM_CUSTOM_COUNTS(name, sample, min, max, bucket_count) \
+    do {} while (0)
+#define DHISTOGRAM_ENUMERATION(name, sample, boundary_value) do {} while (0)
+#define DHISTOGRAM_CUSTOM_ENUMERATION(name, sample, custom_ranges) \
     do {} while (0)
 
 #endif  
@@ -128,103 +170,163 @@
 
 
 
-static const int kUmaTargetedHistogramFlag = 0x1;
+#define UMA_HISTOGRAM_TIMES(name, sample) UMA_HISTOGRAM_CUSTOM_TIMES( \
+    name, sample, base::TimeDelta::FromMilliseconds(1), \
+    base::TimeDelta::FromSeconds(10), 50)
+
+#define UMA_HISTOGRAM_MEDIUM_TIMES(name, sample) UMA_HISTOGRAM_CUSTOM_TIMES( \
+    name, sample, base::TimeDelta::FromMilliseconds(10), \
+    base::TimeDelta::FromMinutes(3), 50)
 
 
+#define UMA_HISTOGRAM_LONG_TIMES(name, sample) UMA_HISTOGRAM_CUSTOM_TIMES( \
+    name, sample, base::TimeDelta::FromMilliseconds(1), \
+    base::TimeDelta::FromHours(1), 50)
 
-
-static const int kRendererHistogramFlag = 1 << 4;
-
-#define UMA_HISTOGRAM_TIMES(name, sample) do { \
-    static Histogram counter((name), base::TimeDelta::FromMilliseconds(1), \
-                             base::TimeDelta::FromSeconds(10), 50); \
-    counter.SetFlags(kUmaTargetedHistogramFlag); \
-    counter.AddTime(sample); \
+#define UMA_HISTOGRAM_CUSTOM_TIMES(name, sample, min, max, bucket_count) do { \
+    static base::Histogram* counter(NULL); \
+    if (!counter) \
+      counter = base::Histogram::FactoryTimeGet(name, min, max, bucket_count, \
+            base::Histogram::kUmaTargetedHistogramFlag); \
+    DCHECK_EQ(name, counter->histogram_name()); \
+    counter->AddTime(sample); \
   } while (0)
 
-#define UMA_HISTOGRAM_MEDIUM_TIMES(name, sample) do { \
-    static Histogram counter((name), base::TimeDelta::FromMilliseconds(10), \
-                             base::TimeDelta::FromMinutes(3), 50); \
-    counter.SetFlags(kUmaTargetedHistogramFlag); \
-    counter.AddTime(sample); \
-  } while (0)
-
-
-#define UMA_HISTOGRAM_LONG_TIMES(name, sample) do { \
-    static Histogram counter((name), base::TimeDelta::FromMilliseconds(1), \
-                             base::TimeDelta::FromHours(1), 50); \
-    counter.SetFlags(kUmaTargetedHistogramFlag); \
-    counter.AddTime(sample); \
-  } while (0)
 
 #define UMA_HISTOGRAM_CLIPPED_TIMES(name, sample, min, max, bucket_count) do { \
-    static Histogram counter((name), min, max, bucket_count); \
-    counter.SetFlags(kUmaTargetedHistogramFlag); \
-    if ((sample) < (max)) counter.AddTime(sample); \
+    static base::Histogram* counter(NULL); \
+    if (!counter) \
+      counter = base::Histogram::FactoryTimeGet(name, min, max, bucket_count, \
+           base::Histogram::kUmaTargetedHistogramFlag); \
+    DCHECK_EQ(name, counter->histogram_name()); \
+    if ((sample) < (max)) counter->AddTime(sample); \
   } while (0)
 
-#define UMA_HISTOGRAM_COUNTS(name, sample) do { \
-    static Histogram counter((name), 1, 1000000, 50); \
-    counter.SetFlags(kUmaTargetedHistogramFlag); \
-    counter.Add(sample); \
+#define UMA_HISTOGRAM_COUNTS(name, sample) UMA_HISTOGRAM_CUSTOM_COUNTS( \
+    name, sample, 1, 1000000, 50)
+
+#define UMA_HISTOGRAM_COUNTS_100(name, sample) UMA_HISTOGRAM_CUSTOM_COUNTS( \
+    name, sample, 1, 100, 50)
+
+#define UMA_HISTOGRAM_COUNTS_10000(name, sample) UMA_HISTOGRAM_CUSTOM_COUNTS( \
+    name, sample, 1, 10000, 50)
+
+#define UMA_HISTOGRAM_CUSTOM_COUNTS(name, sample, min, max, bucket_count) do { \
+    static base::Histogram* counter(NULL); \
+    if (!counter) \
+      counter = base::Histogram::FactoryGet(name, min, max, bucket_count, \
+          base::Histogram::kUmaTargetedHistogramFlag); \
+    DCHECK_EQ(name, counter->histogram_name()); \
+    counter->Add(sample); \
   } while (0)
 
-#define UMA_HISTOGRAM_COUNTS_100(name, sample) do { \
-    static Histogram counter((name), 1, 100, 50); \
-    counter.SetFlags(kUmaTargetedHistogramFlag); \
-    counter.Add(sample); \
+#define UMA_HISTOGRAM_MEMORY_KB(name, sample) UMA_HISTOGRAM_CUSTOM_COUNTS( \
+    name, sample, 1000, 500000, 50)
+
+#define UMA_HISTOGRAM_MEMORY_MB(name, sample) UMA_HISTOGRAM_CUSTOM_COUNTS( \
+    name, sample, 1, 1000, 50)
+
+#define UMA_HISTOGRAM_PERCENTAGE(name, under_one_hundred) \
+    UMA_HISTOGRAM_ENUMERATION(name, under_one_hundred, 101)
+
+#define UMA_HISTOGRAM_BOOLEAN(name, sample) do { \
+    static base::Histogram* counter(NULL); \
+    if (!counter) \
+      counter = base::BooleanHistogram::FactoryGet(name, \
+          base::Histogram::kUmaTargetedHistogramFlag); \
+    DCHECK_EQ(name, counter->histogram_name()); \
+    counter->AddBoolean(sample); \
   } while (0)
 
-#define UMA_HISTOGRAM_COUNTS_10000(name, sample) do { \
-    static Histogram counter((name), 1, 10000, 50); \
-    counter.SetFlags(kUmaTargetedHistogramFlag); \
-    counter.Add(sample); \
+#define UMA_HISTOGRAM_ENUMERATION(name, sample, boundary_value) do { \
+    static base::Histogram* counter(NULL); \
+    if (!counter) \
+      counter = base::LinearHistogram::FactoryGet(name, 1, boundary_value, \
+          boundary_value + 1, base::Histogram::kUmaTargetedHistogramFlag); \
+    DCHECK_EQ(name, counter->histogram_name()); \
+    counter->Add(sample); \
   } while (0)
 
-#define UMA_HISTOGRAM_MEMORY_KB(name, sample) do { \
-    static Histogram counter((name), 1000, 500000, 50); \
-    counter.SetFlags(kUmaTargetedHistogramFlag); \
-    counter.Add(sample); \
-  } while (0)
-
-#define UMA_HISTOGRAM_MEMORY_MB(name, sample) do { \
-    static Histogram counter((name), 1, 1000, 50); \
-    counter.SetFlags(kUmaTargetedHistogramFlag); \
-    counter.Add(sample); \
-  } while (0)
-
-#define UMA_HISTOGRAM_PERCENTAGE(name, under_one_hundred) do { \
-    static LinearHistogram counter((name), 1, 100, 101); \
-    counter.SetFlags(kUmaTargetedHistogramFlag); \
-    counter.Add(under_one_hundred); \
+#define UMA_HISTOGRAM_CUSTOM_ENUMERATION(name, sample, custom_ranges) do { \
+    static base::Histogram* counter(NULL); \
+    if (!counter) \
+      counter = base::CustomHistogram::FactoryGet(name, custom_ranges, \
+          base::Histogram::kUmaTargetedHistogramFlag); \
+    DCHECK_EQ(name, counter->histogram_name()); \
+    counter->Add(sample); \
   } while (0)
 
 
 
-class Pickle;
+class BooleanHistogram;
+class CustomHistogram;
+class Histogram;
+class LinearHistogram;
 
-class Histogram {
+class BASE_API Histogram {
  public:
   typedef int Sample;  
   typedef int Count;  
   static const Sample kSampleType_MAX = INT_MAX;
+  
+  static const size_t kBucketCount_MAX;
 
   typedef std::vector<Count> Counts;
   typedef std::vector<Sample> Ranges;
 
-  static const int kHexRangePrintingFlag;
+  
+  
+  enum ClassType {
+    HISTOGRAM,
+    LINEAR_HISTOGRAM,
+    BOOLEAN_HISTOGRAM,
+    CUSTOM_HISTOGRAM,
+    NOT_VALID_IN_RENDERER
+  };
 
   enum BucketLayout {
     EXPONENTIAL,
-    LINEAR
+    LINEAR,
+    CUSTOM
+  };
+
+  enum Flags {
+    kNoFlags = 0,
+    kUmaTargetedHistogramFlag = 0x1,  
+
+    
+    
+    
+    
+    
+    kIPCSerializationSourceFlag = 0x10,
+
+    kHexRangePrintingFlag = 0x8000,  
+  };
+
+  enum Inconsistencies {
+    NO_INCONSISTENCIES = 0x0,
+    RANGE_CHECKSUM_ERROR = 0x1,
+    BUCKET_ORDER_ERROR = 0x2,
+    COUNT_HIGH_ERROR = 0x4,
+    COUNT_LOW_ERROR = 0x8,
+
+    NEVER_EXCEEDED_VALUE = 0x10
+  };
+
+  struct DescriptionPair {
+    Sample sample;
+    const char* description;  
   };
 
   
   
 
-  class SampleSet {
+  class BASE_API SampleSet {
    public:
     explicit SampleSet();
+    ~SampleSet();
+
     
     void Resize(const Histogram& histogram);
     void CheckSize(const Histogram& histogram) const;
@@ -236,7 +338,7 @@ class Histogram {
     Count counts(size_t i) const { return counts_[i]; }
     Count TotalCount() const;
     int64 sum() const { return sum_; }
-    int64 square_sum() const { return square_sum_; }
+    int64 redundant_count() const { return redundant_count_; }
 
     
     void Add(const SampleSet& other);
@@ -253,23 +355,49 @@ class Histogram {
     
     
     int64 sum_;         
-    int64 square_sum_;  
-  };
-  
 
-  Histogram(const char* name, Sample minimum,
-            Sample maximum, size_t bucket_count);
-  Histogram(const char* name, base::TimeDelta minimum,
-            base::TimeDelta maximum, size_t bucket_count);
-  virtual ~Histogram();
+   private:
+    
+    FRIEND_TEST(HistogramTest, CorruptSampleCounts);
+
+    
+    
+    
+    
+    
+    
+    
+    int64 redundant_count_;
+  };
+
+  
+  
+  
+  static Histogram* FactoryGet(const std::string& name,
+                               Sample minimum,
+                               Sample maximum,
+                               size_t bucket_count,
+                               Flags flags);
+  static Histogram* FactoryTimeGet(const std::string& name,
+                                   base::TimeDelta minimum,
+                                   base::TimeDelta maximum,
+                                   size_t bucket_count,
+                                   Flags flags);
 
   void Add(int value);
+
   
-  void AddTime(base::TimeDelta time) {
+  virtual void AddBoolean(bool value);
+
+  
+  void AddTime(TimeDelta time) {
     Add(static_cast<int>(time.InMilliseconds()));
   }
 
   void AddSampleSet(const SampleSet& sample);
+
+  
+  virtual void SetRangeDescriptions(const DescriptionPair descriptions[]);
 
   
   void WriteHTMLGraph(std::string* output) const;
@@ -279,11 +407,9 @@ class Histogram {
   
   
   
-  void SetFlags(int flags) { flags_ |= flags; }
-  void ClearFlags(int flags) { flags_ &= ~flags; }
+  void SetFlags(Flags flags) { flags_ = static_cast<Flags> (flags_ | flags); }
+  void ClearFlags(Flags flags) { flags_ = static_cast<Flags>(flags_ & ~flags); }
   int flags() const { return flags_; }
-
-  virtual BucketLayout histogram_type() const { return EXPONENTIAL; }
 
   
   
@@ -298,36 +424,62 @@ class Histogram {
   
   
   
-  static void DeserializeHistogramList(
-      const std::vector<std::string>& histograms);
-  static bool DeserializeHistogramInfo(const std::string& state);
-
+  static bool DeserializeHistogramInfo(const std::string& histogram_info);
 
   
   
   
-  const std::string histogram_name() const { return histogram_name_; }
+  
+  
+  virtual Inconsistencies FindCorruption(const SampleSet& snapshot) const;
+
+  
+  
+  
+  virtual ClassType histogram_type() const;
+  const std::string& histogram_name() const { return histogram_name_; }
   Sample declared_min() const { return declared_min_; }
   Sample declared_max() const { return declared_max_; }
-  virtual Sample ranges(size_t i) const { return ranges_[i];}
-  virtual size_t bucket_count() const { return bucket_count_; }
+  virtual Sample ranges(size_t i) const;
+  uint32 range_checksum() const { return range_checksum_; }
+  virtual size_t bucket_count() const;
   
   
   virtual void SnapshotSample(SampleSet* sample) const;
 
- protected:
+  virtual bool HasConstructorArguments(Sample minimum, Sample maximum,
+                                       size_t bucket_count);
+
+  virtual bool HasConstructorTimeDeltaArguments(TimeDelta minimum,
+                                                TimeDelta maximum,
+                                                size_t bucket_count);
   
-  virtual bool PrintEmptyBucket(size_t index) const { return true; }
+  bool HasValidRangeChecksum() const;
+
+ protected:
+  Histogram(const std::string& name, Sample minimum,
+            Sample maximum, size_t bucket_count);
+  Histogram(const std::string& name, TimeDelta minimum,
+            TimeDelta maximum, size_t bucket_count);
+
+  virtual ~Histogram();
+
+  
+  void InitializeBucketRange();
+
+  
+  virtual bool PrintEmptyBucket(size_t index) const;
 
   
   
   
   
-  virtual void InitializeBucketRange();
-  
   virtual size_t BucketIndex(Sample value) const;
   
   virtual double GetBucketSize(Count current, size_t i) const;
+
+  
+  void ResetRangeChecksum();
 
   
   
@@ -349,9 +501,22 @@ class Histogram {
   
   bool ValidateBucketRanges() const;
 
+  virtual uint32 CalculateRangeChecksum() const;
+
  private:
   
+  FRIEND_TEST(HistogramTest, CorruptBucketBounds);
+  FRIEND_TEST(HistogramTest, CorruptSampleCounts);
+  FRIEND_TEST(HistogramTest, Crc32SampleHash);
+  FRIEND_TEST(HistogramTest, Crc32TableTest);
+
+  friend class StatisticsRecorder;  
+
+  
   void Initialize();
+
+  
+  static uint32 Crc32(uint32 sum, Sample range);
 
   
   
@@ -380,10 +545,10 @@ class Histogram {
 
   
   
+  static const uint32 kCrcTable[256];
+  
+  
 
-  
-  
-  
   
   
   const std::string histogram_name_;
@@ -392,7 +557,7 @@ class Histogram {
   size_t bucket_count_;  
 
   
-  int flags_;
+  Flags flags_;
 
   
   
@@ -402,10 +567,12 @@ class Histogram {
 
   
   
-  SampleSet sample_;
+  
+  uint32 range_checksum_;
 
   
-  bool registered_;
+  
+  SampleSet sample_;
 
   DISALLOW_COPY_AND_ASSIGN(Histogram);
 };
@@ -414,30 +581,39 @@ class Histogram {
 
 
 
-class LinearHistogram : public Histogram {
+class BASE_API LinearHistogram : public Histogram {
  public:
-  struct DescriptionPair {
-    Sample sample;
-    const char* description;  
-  };
-  LinearHistogram(const char* name, Sample minimum,
-                  Sample maximum, size_t bucket_count);
+  virtual ~LinearHistogram();
 
-  LinearHistogram(const char* name, base::TimeDelta minimum,
-                  base::TimeDelta maximum, size_t bucket_count);
-  ~LinearHistogram() {}
+  
+
+  static Histogram* FactoryGet(const std::string& name,
+                               Sample minimum,
+                               Sample maximum,
+                               size_t bucket_count,
+                               Flags flags);
+  static Histogram* FactoryTimeGet(const std::string& name,
+                                   TimeDelta minimum,
+                                   TimeDelta maximum,
+                                   size_t bucket_count,
+                                   Flags flags);
+
+  
+  virtual ClassType histogram_type() const;
 
   
   
-  void SetRangeDescriptions(const DescriptionPair descriptions[]);
-
-  virtual BucketLayout histogram_type() const { return LINEAR; }
+  virtual void SetRangeDescriptions(const DescriptionPair descriptions[]);
 
  protected:
+  LinearHistogram(const std::string& name, Sample minimum,
+                  Sample maximum, size_t bucket_count);
+
+  LinearHistogram(const std::string& name, TimeDelta minimum,
+                  TimeDelta maximum, size_t bucket_count);
+
   
-  virtual void InitializeBucketRange();
-  
-  virtual size_t BucketIndex(Sample value) const;
+  void InitializeBucketRange();
   virtual double GetBucketSize(Count current, size_t i) const;
 
   
@@ -461,40 +637,42 @@ class LinearHistogram : public Histogram {
 
 
 
-class BooleanHistogram : public LinearHistogram {
+class BASE_API BooleanHistogram : public LinearHistogram {
  public:
-  explicit BooleanHistogram(const char* name)
-    : LinearHistogram(name, 0, 2, 3) {
-  }
+  static Histogram* FactoryGet(const std::string& name, Flags flags);
 
-  void AddBoolean(bool value) { Add(value ? 1 : 0); }
+  virtual ClassType histogram_type() const;
+
+  virtual void AddBoolean(bool value);
 
  private:
+  explicit BooleanHistogram(const std::string& name);
+
   DISALLOW_COPY_AND_ASSIGN(BooleanHistogram);
 };
 
 
 
 
-
-class ThreadSafeHistogram : public Histogram {
+class BASE_API CustomHistogram : public Histogram {
  public:
-  ThreadSafeHistogram(const char* name, Sample minimum,
-                      Sample maximum, size_t bucket_count);
+
+  static Histogram* FactoryGet(const std::string& name,
+                               const std::vector<Sample>& custom_ranges,
+                               Flags flags);
 
   
-  void Remove(int value);
+  virtual ClassType histogram_type() const;
 
  protected:
+  CustomHistogram(const std::string& name,
+                  const std::vector<Sample>& custom_ranges);
+
   
-  virtual void Accumulate(Sample value, Count count, size_t index);
+  void InitializedCustomBucketRange(const std::vector<Sample>& custom_ranges);
+  virtual double GetBucketSize(Count current, size_t i) const;
 
-  virtual void SnapshotSample(SampleSet* sample) const;
-
- private:
-  mutable Lock lock_;
-
-  DISALLOW_COPY_AND_ASSIGN(ThreadSafeHistogram);
+  DISALLOW_COPY_AND_ASSIGN(CustomHistogram);
 };
 
 
@@ -502,7 +680,7 @@ class ThreadSafeHistogram : public Histogram {
 
 
 
-class StatisticsRecorder {
+class BASE_API StatisticsRecorder {
  public:
   typedef std::vector<Histogram*> Histograms;
 
@@ -511,13 +689,13 @@ class StatisticsRecorder {
   ~StatisticsRecorder();
 
   
-  static bool WasStarted();
+  static bool IsActive();
 
   
   
-  static bool Register(Histogram* histogram);
   
-  static void UnRegister(Histogram* histogram);
+  
+  static Histogram* RegisterOrDeleteDuplicate(Histogram* histogram);
 
   
   
@@ -529,7 +707,11 @@ class StatisticsRecorder {
   static void GetHistograms(Histograms* output);
 
   
-  static Histogram* GetHistogram(const std::string& query);
+  
+  
+  static bool FindHistogram(const std::string& query, Histogram** histogram);
+
+  static bool dump_on_exit() { return dump_on_exit_; }
 
   static void set_dump_on_exit(bool enable) { dump_on_exit_ = enable; }
 
@@ -547,12 +729,14 @@ class StatisticsRecorder {
   static HistogramMap* histograms_;
 
   
-  static Lock* lock_;
+  static base::Lock* lock_;
 
   
   static bool dump_on_exit_;
 
   DISALLOW_COPY_AND_ASSIGN(StatisticsRecorder);
 };
+
+}  
 
 #endif  
