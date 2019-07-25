@@ -51,6 +51,10 @@ namespace JSC {
 struct JSScript;
 
 namespace js {
+    struct VMFunction;
+}
+
+namespace js {
 namespace ion {
 
 
@@ -256,14 +260,12 @@ struct IonScript
     void copyFrameInfoTable(const IonFrameInfo *hf);
 };
 
-struct VMFunction;
-
 } 
 
 namespace gc {
 
 inline bool
-IsMarked(JSContext *, const ion::VMFunction *)
+IsMarked(JSContext *, const VMFunction *)
 {
     
     

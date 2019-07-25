@@ -357,6 +357,82 @@ Debug_SetValueRangeToCrashOnTouch(HeapValue *vec, size_t len)
 #endif
 }
 
+
+
+
+struct VMFunction
+{
+    
+
+
+
+    enum OutParam {
+        
+        OutParam_None,
+        
+
+
+
+        OutParam_Value
+    };
+
+    
+
+
+
+    enum FallibleType {
+        
+        FallibleNone,
+        
+        FallibleBool,
+        
+        FalliblePointer
+    };
+
+    
+    enum ReturnType {
+        ReturnNothing,
+        ReturnBool,
+        ReturnPointer,
+        ReturnValue
+    };
+
+    
+    void *wrapped;
+
+    
+
+
+
+    uint32 explicitArgs;
+    OutParam outParam;
+    FallibleType failCond;
+
+    
+
+
+
+
+
+    ReturnType returnType;
+
+    uint32 argc() const {
+        return 1 + explicitArgs +
+               ((outParam == OutParam_None) ? 0 : 1);
+    }
+};
+
+JSObject*
+NewInitArray(JSContext *cx, uint32 count, types::TypeObject *type);
+
+const VMFunction NewInitArrayVMFun = {
+    JS_FUNC_TO_DATA_PTR(void *, NewInitArray),
+    2, 
+    VMFunction::OutParam_None,
+    VMFunction::FalliblePointer,
+    VMFunction::ReturnPointer
+};
+
 }  
 
 #endif 
