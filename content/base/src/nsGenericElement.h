@@ -654,6 +654,12 @@ public:
 
   static mozilla::CORSMode StringToCORSMode(const nsAString& aValue);
   
+  
+
+
+
+  static mozilla::CORSMode AttrValueToCORSMode(const nsAttrValue* aValue);
+
 protected:
   
 

@@ -951,14 +951,7 @@ nsresult nsHTMLMediaElement::LoadResource()
   }
 
   
-  
-  mCORSMode = CORS_NONE;
-  const nsAttrValue* value = GetParsedAttr(nsGkAtoms::crossorigin);
-  if (value) {
-    NS_ASSERTION(value->Type() == nsAttrValue::eEnum,
-                 "Why is this not an enum value?");
-    mCORSMode = CORSMode(value->GetEnumValue());
-  }
+  mCORSMode = AttrValueToCORSMode(GetParsedAttr(nsGkAtoms::crossorigin));
 
   nsHTMLMediaElement* other = LookupMediaElementURITable(mLoadingSrc);
   if (other) {
