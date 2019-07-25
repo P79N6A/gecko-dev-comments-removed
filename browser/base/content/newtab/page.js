@@ -22,8 +22,8 @@ let gPage = {
     gAllPages.register(this);
 
     
-    function unload() gAllPages.unregister(self);
-    addEventListener("unload", unload, false);
+    function unload() { gAllPages.unregister(this); }
+    addEventListener("unload", unload.bind(this), false);
 
     
     if (gAllPages.enabled)
