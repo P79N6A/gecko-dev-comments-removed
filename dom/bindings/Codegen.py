@@ -4050,14 +4050,13 @@ class CGDictionary(CGThing):
     def __init__(self, dictionary, descriptorProvider):
         self.dictionary = dictionary;
         self.workers = descriptorProvider.workers
-        if dictionary.parent:
-            parentCGThing = CGDictionary(dictionary.parent, descriptorProvider)
-            self.generatable = parentCGThing.generatable
-            if not self.generatable:
-                
-                return
-        else:
+        if all(CGDictionary(d, descriptorProvider).generatable for
+               d in CGDictionary.getDictionaryDependencies(dictionary)):
             self.generatable = True
+        else:
+            self.generatable = False
+            
+            return
         
         
         
@@ -4248,6 +4247,17 @@ class CGDictionary(CGThing):
     def makeIdName(name):
         return name + "_id"
 
+    @staticmethod
+    def getDictionaryDependencies(dictionary):
+        deps = set();
+        if dictionary.parent:
+            deps.add(dictionary.parent)
+        for member in dictionary.members:
+            if member.type.isDictionary():
+                deps.add(member.type.unroll().inner)
+        return deps
+
+
 class CGRegisterProtos(CGAbstractMethod):
     def __init__(self, config):
         CGAbstractMethod.__init__(self, None, 'Register', 'void',
@@ -4357,10 +4367,18 @@ class CGBindingRoot(CGThing):
         
         
         
+        
         reSortedDictionaries = []
+        dictionaries = set(dictionaries)
         while len(dictionaries) != 0:
-            toMove = [d for d in dictionaries if d.parent not in dictionaries]
-            dictionaries = [d for d in dictionaries if d.parent in dictionaries]
+            
+            
+            toMove = [d for d in dictionaries if
+                      len(CGDictionary.getDictionaryDependencies(d) &
+                          dictionaries) == 0]
+            if len(toMove) == 0:
+                raise TypeError("Loop in dictionary dependency graph")
+            dictionaries = dictionaries - set(toMove)
             reSortedDictionaries.extend(toMove)
 
         dictionaries = reSortedDictionaries
