@@ -1079,70 +1079,58 @@ js_PutCallObject(JSContext *cx, JSStackFrame *fp)
 
     
     if (fp->hasArgsObj()) {
-        JS_ASSERT(!fp->isEvalFrame());
         if (!fp->hasOverriddenArgs())
             callobj.setCallObjArguments(ObjectValue(fp->argsObj()));
         js_PutArgsObject(cx, fp);
     }
 
-    JSScript *script = fp->script();
-    Bindings &bindings = script->bindings;
+    JSFunction *fun = fp->fun();
+    JS_ASSERT(fun == callobj.getCallObjCalleeFunction());
 
-    JSObject *callee = callobj.getCallObjCallee();
-    if (callee) {
-        JSFunction *fun = fp->fun();
-        JS_ASSERT(fun == callee->getFunctionPrivate());
-        JS_ASSERT(script == fun->script());
+    Bindings &bindings = fun->script()->bindings;
+    uintN n = bindings.countArgsAndVars();
 
-        if (uintN n = bindings.countArgsAndVars()) {
-            JS_ASSERT(JSObject::CALL_RESERVED_SLOTS + n <= callobj.numSlots());
+    if (n != 0) {
+        JS_ASSERT(JSFunction::CLASS_RESERVED_SLOTS + n <= callobj.numSlots());
 
-            uint32 nvars = bindings.countVars();
-            uint32 nargs = bindings.countArgs();
-            JS_ASSERT(fun->nargs == nargs);
-            JS_ASSERT(nvars + nargs == n);
+        uint32 nvars = bindings.countVars();
+        uint32 nargs = bindings.countArgs();
+        JS_ASSERT(fun->nargs == nargs);
+        JS_ASSERT(nvars + nargs == n);
 
-            JSScript *script = fun->script();
-            if (script->usesEval
-    #ifdef JS_METHODJIT
-                || script->debugMode
-    #endif
-                ) {
-                CopyValuesToCallObject(callobj, nargs, fp->formalArgs(), nvars, fp->slots());
-            } else {
-                
+        JSScript *script = fun->script();
+        if (script->usesEval
+#ifdef JS_METHODJIT
+            || script->debugMode
+#endif
+            ) {
+            CopyValuesToCallObject(callobj, nargs, fp->formalArgs(), nvars, fp->slots());
+        } else {
+            
 
 
 
-                uint32 nclosed = script->nClosedArgs;
-                for (uint32 i = 0; i < nclosed; i++) {
-                    uint32 e = script->getClosedArg(i);
-                    callobj.setSlot(JSObject::CALL_RESERVED_SLOTS + e, fp->formalArg(e));
-                }
+            uint32 nclosed = script->nClosedArgs;
+            for (uint32 i = 0; i < nclosed; i++) {
+                uint32 e = script->getClosedArg(i);
+                callobj.setSlot(JSObject::CALL_RESERVED_SLOTS + e, fp->formalArg(e));
+            }
 
-                nclosed = script->nClosedVars;
-                for (uint32 i = 0; i < nclosed; i++) {
-                    uint32 e = script->getClosedVar(i);
-                    callobj.setSlot(JSObject::CALL_RESERVED_SLOTS + nargs + e, fp->slots()[e]);
-                }
+            nclosed = script->nClosedVars;
+            for (uint32 i = 0; i < nclosed; i++) {
+                uint32 e = script->getClosedVar(i);
+                callobj.setSlot(JSObject::CALL_RESERVED_SLOTS + nargs + e, fp->slots()[e]);
             }
         }
+    }
 
-        
-        if (js_IsNamedLambda(fun)) {
-            JSObject *env = callobj.getParent();
+    
+    if (js_IsNamedLambda(fun)) {
+        JSObject *env = callobj.getParent();
 
-            JS_ASSERT(env->getClass() == &js_DeclEnvClass);
-            JS_ASSERT(env->getPrivate() == fp);
-            env->setPrivate(NULL);
-        }
-    } else {
-        JS_ASSERT(fp->isEvalFrame());
-        JS_ASSERT(script->strictModeCode);
-        JS_ASSERT(bindings.countArgs() == 0);
-
-        
-        CopyValuesToCallObject(callobj, 0, NULL, bindings.countVars(), fp->slots());
+        JS_ASSERT(env->getClass() == &js_DeclEnvClass);
+        JS_ASSERT(env->getPrivate() == fp);
+        env->setPrivate(NULL);
     }
 
     callobj.setPrivate(NULL);
@@ -1372,7 +1360,8 @@ static void
 call_trace(JSTracer *trc, JSObject *obj)
 {
     JS_ASSERT(obj->isCall());
-    if (JSStackFrame *fp = obj->maybeCallObjStackFrame()) {
+    JSStackFrame *fp = (JSStackFrame *) obj->getPrivate();
+    if (fp) {
         
 
 
@@ -1381,7 +1370,7 @@ call_trace(JSTracer *trc, JSObject *obj)
 
 
         uintN first = JSObject::CALL_RESERVED_SLOTS;
-        uintN count = fp->script()->bindings.countArgsAndVars();
+        uintN count = fp->fun()->script()->bindings.countArgsAndVars();
 
         JS_ASSERT(obj->numSlots() >= first + count);
         SetValueRangeToUndefined(obj->getSlots() + first, count);
