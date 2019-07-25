@@ -1006,7 +1006,8 @@ function Engine(aLocation, aSourceDataType, aIsReadOnly) {
 
 Engine.prototype = {
   
-  _alias: null,
+  
+  _alias: undefined,
   
   
   _data: null,
@@ -2201,7 +2202,7 @@ Engine.prototype = {
 
   
   get alias() {
-    if (this._alias === null)
+    if (this._alias === undefined)
       this._alias = engineMetadataService.getAttr(this, "alias");
 
     return this._alias;
