@@ -3,7 +3,6 @@
 
 function test() {
   waitForExplicitFinish();
-  ignoreAllUncaughtExceptions();
 
   var triggers = encodeURIComponent(JSON.stringify({
     "Unsigned XPI": {
@@ -16,6 +15,7 @@ function test() {
     
     executeSoon(page_loaded);
   }, true);
+  expectUncaughtException();
   gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
 }
 

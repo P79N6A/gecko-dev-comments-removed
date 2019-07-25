@@ -154,7 +154,8 @@ var Harness = {
       self.installsCompletedCallback = null;
       self.runningInstalls = null;
 
-      callback(count);
+      if (callback)
+        callback(count);
     });
   },
 
@@ -169,7 +170,6 @@ var Harness = {
       
       if (this.installConfirmCallback && !this.installConfirmCallback(window)) {
         window.document.documentElement.cancelDialog();
-        this.endTest();
       }
       else {
         

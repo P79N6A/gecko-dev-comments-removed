@@ -3,7 +3,6 @@
 
 function test() {
   waitForExplicitFinish();
-  ignoreAllUncaughtExceptions();
 
   var triggers = encodeURIComponent(JSON.stringify(TESTROOT + "unsigned.xpi"));
   gBrowser.selectedTab = gBrowser.addTab();
@@ -12,6 +11,7 @@ function test() {
     
     executeSoon(page_loaded);
   }, true);
+  expectUncaughtException();
   gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
 }
 
