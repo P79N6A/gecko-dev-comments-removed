@@ -327,7 +327,6 @@ nsFrameLoader::nsFrameLoader(nsIContent *aOwner, PRBool aNetworkCreated)
   , mCurrentRemoteFrame(nsnull)
   , mRemoteBrowser(nsnull)
   , mRenderMode(RENDER_MODE_DEFAULT)
-  , mEventMode(EVENT_MODE_NORMAL_DISPATCH)
 {
 }
 
@@ -538,7 +537,6 @@ NS_IMETHODIMP
 nsFrameLoader::GetDocShell(nsIDocShell **aDocShell)
 {
   *aDocShell = nsnull;
-  nsresult rv = NS_OK;
 
   
   
@@ -549,7 +547,7 @@ nsFrameLoader::GetDocShell(nsIDocShell **aDocShell)
       return rv;
     if (mRemoteFrame) {
       NS_WARNING("No docshells for remote frames!");
-      return rv;
+      return NS_ERROR_NOT_AVAILABLE;
     }
     NS_ASSERTION(mDocShell,
                  "MaybeCreateDocShell succeeded, but null mDocShell");
@@ -558,7 +556,7 @@ nsFrameLoader::GetDocShell(nsIDocShell **aDocShell)
   *aDocShell = mDocShell;
   NS_IF_ADDREF(*aDocShell);
 
-  return rv;
+  return NS_OK;
 }
 
 void
@@ -1346,15 +1344,32 @@ nsFrameLoader::ShouldUseRemoteProcess()
   
   
 
-  if (PR_GetEnv("MOZ_DISABLE_OOP_TABS") ||
-      Preferences::GetBool("dom.ipc.tabs.disabled", PR_FALSE)) {
+  if (PR_GetEnv("MOZ_DISABLE_OOP_TABS")) {
     return false;
   }
 
-  return (bool) mOwnerContent->AttrValueIs(kNameSpaceID_None,
-                                           nsGkAtoms::Remote,
-                                           nsGkAtoms::_true,
-                                           eCaseMatters);
+  PRBool remoteDisabled =
+    Preferences::GetBool("dom.ipc.tabs.disabled", PR_FALSE);
+  if (remoteDisabled) {
+    return false;
+  }
+
+  static nsIAtom* const *const remoteValues[] = {
+    &nsGkAtoms::_false,
+    &nsGkAtoms::_true,
+    nsnull
+  };
+
+  switch (mOwnerContent->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::Remote,
+                                         remoteValues, eCaseMatters)) {
+  case 0:
+    return false;
+  case 1:
+    return true;
+  }
+
+  PRBool remoteEnabled = Preferences::GetBool("dom.ipc.tabs.enabled", PR_FALSE);
+  return (bool) remoteEnabled;
 }
 
 nsresult
@@ -1661,20 +1676,6 @@ nsFrameLoader::SetRenderMode(PRUint32 aRenderMode)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsFrameLoader::GetEventMode(PRUint32* aEventMode)
-{
-  *aEventMode = mEventMode;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFrameLoader::SetEventMode(PRUint32 aEventMode)
-{
-  mEventMode = aEventMode;
-  return NS_OK;
-}
-
 nsIntSize
 nsFrameLoader::GetSubDocumentSize(const nsIFrame *aIFrame)
 {
@@ -1781,15 +1782,6 @@ NS_IMETHODIMP
 nsFrameLoader::ActivateRemoteFrame() {
   if (mRemoteBrowser) {
     mRemoteBrowser->Activate();
-    return NS_OK;
-  }
-  return NS_ERROR_UNEXPECTED;
-}
-
-NS_IMETHODIMP
-nsFrameLoader::DeactivateRemoteFrame() {
-  if (mRemoteBrowser) {
-    mRemoteBrowser->Deactivate();
     return NS_OK;
   }
   return NS_ERROR_UNEXPECTED;

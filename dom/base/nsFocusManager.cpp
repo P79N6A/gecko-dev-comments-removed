@@ -34,8 +34,6 @@
 
 
 
-#include "mozilla/dom/TabParent.h"
-
 #include "nsFocusManager.h"
 
 #include "nsIInterfaceRequestor.h"
@@ -1537,10 +1535,10 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
     
     
     
-    if (mActiveWindow) {
+    if (mActiveWindow && aAdjustWidgets) {
       nsIFrame* contentFrame = content->GetPrimaryFrame();
       nsIObjectFrame* objectFrame = do_QueryFrame(contentFrame);
-      if (aAdjustWidgets && objectFrame) {
+      if (objectFrame) {
         
         
         nsIViewManager* vm = presShell->GetViewManager();
@@ -1550,15 +1548,6 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
           if (widget)
             widget->SetFocus(PR_FALSE);
         }
-      }
-
-      
-      TabParent* remote = GetRemoteForContent(content);
-      if (remote) {
-        remote->Deactivate();
-  #ifdef DEBUG_FOCUS
-      printf("*Remote browser deactivated\n");
-  #endif
       }
     }
   }
@@ -1760,18 +1749,9 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
       
       
       
-      if (presShell->GetDocument() == aContent->GetDocument()) {
-        if (aAdjustWidgets && objectFrameWidget)
+      if (aAdjustWidgets && presShell->GetDocument() == aContent->GetDocument()) {
+        if (objectFrameWidget)
           objectFrameWidget->SetFocus(PR_FALSE);
-
-        
-        TabParent* remote = GetRemoteForContent(aContent);
-        if (remote) {
-          remote->Activate();
-#ifdef DEBUG_FOCUS
-          printf("*Remote browser activated\n");
-#endif
-        }
       }
 
       PRUint32 reason = GetFocusMoveReason(aFlags);
@@ -2966,28 +2946,6 @@ nsFocusManager::GetRootForFocus(nsPIDOMWindow* aWindow,
   }
 
   return rootElement;
-}
-
-TabParent*
-nsFocusManager::GetRemoteForContent(nsIContent* aContent) {
-  if (!aContent ||
-      aContent->Tag() != nsGkAtoms::browser ||
-      !aContent->IsXUL() ||
-      !aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::Remote,
-                             nsGkAtoms::_true, eIgnoreCase))
-    return nsnull;
-
-  nsCOMPtr<nsIFrameLoaderOwner> loaderOwner = do_QueryInterface(aContent);
-  if (!loaderOwner)
-    return nsnull;
-
-  nsRefPtr<nsFrameLoader> frameLoader = loaderOwner->GetFrameLoader();
-  if (!frameLoader)
-    return nsnull;
-
-  PBrowserParent* remoteBrowser = frameLoader->GetRemoteBrowser();
-  TabParent* remote = static_cast<TabParent*>(remoteBrowser);
-  return remote;
 }
 
 void

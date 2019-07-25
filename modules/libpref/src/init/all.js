@@ -3208,22 +3208,14 @@ pref("network.tcp.sendbuffer", 131072);
 #endif
 
 
-#ifdef MOZ_E10S_COMPAT
-pref("layers.acceleration.disabled", true);
-#else
 pref("layers.acceleration.disabled", false);
-#endif
 
 
 pref("layers.acceleration.force-enabled", false);
 
 #ifdef XP_WIN
 
-#ifdef MOZ_E10S_COMPAT
-pref("gfx.direct2d.disabled", true);
-#else
 pref("gfx.direct2d.disabled", false);
-#endif
 
 
 pref("gfx.direct2d.force-enabled", false);

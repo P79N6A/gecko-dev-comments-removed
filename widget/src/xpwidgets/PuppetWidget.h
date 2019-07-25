@@ -180,8 +180,6 @@ public:
                              PRUint32 aNewEnd);
   NS_IMETHOD OnIMESelectionChange(void);
 
-  NS_IMETHOD SetCursor(nsCursor aCursor);
-
   
   
   

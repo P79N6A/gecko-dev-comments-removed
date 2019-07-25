@@ -342,10 +342,6 @@ private:
   
   
   PRUint32 mRenderMode;
-
-  
-  
-  PRUint32 mEventMode;
 };
 
 #endif
