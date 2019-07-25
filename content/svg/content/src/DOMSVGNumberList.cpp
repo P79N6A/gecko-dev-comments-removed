@@ -76,6 +76,12 @@ DOMSVGNumberList::InternalListLengthWillChange(PRUint32 aNewLength)
 {
   PRUint32 oldLength = mItems.Length();
 
+  if (aNewLength > DOMSVGNumber::MaxListIndex()) {
+    
+    
+    aNewLength = DOMSVGNumber::MaxListIndex();
+  }
+
   
   for (PRUint32 i = aNewLength; i < oldLength; ++i) {
     if (mItems[i]) {
@@ -200,6 +206,11 @@ DOMSVGNumberList::InsertItemBefore(nsIDOMSVGNumber *newItem,
     return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR;
   }
 
+  index = NS_MIN(index, Length());
+  if (index >= DOMSVGNumber::MaxListIndex()) {
+    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+  }
+
   nsCOMPtr<DOMSVGNumber> domItem = do_QueryInterface(newItem);
   if (!domItem) {
     return NS_ERROR_DOM_SVG_WRONG_TYPE_ERR;
@@ -207,7 +218,6 @@ DOMSVGNumberList::InsertItemBefore(nsIDOMSVGNumber *newItem,
   if (domItem->HasOwner()) {
     domItem = domItem->Clone(); 
   }
-  index = NS_MIN(index, Length());
 
   
   if (!mItems.SetCapacity(mItems.Length() + 1) ||

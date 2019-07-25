@@ -102,7 +102,13 @@ DOMSVGPointList::InternalListWillChangeTo(const SVGPointList& aNewValue)
   
 
   PRUint32 oldLength = mItems.Length();
+
   PRUint32 newLength = aNewValue.Length();
+  if (newLength > DOMSVGPoint::MaxListIndex()) {
+    
+    
+    newLength = DOMSVGPoint::MaxListIndex();
+  }
 
   
   for (PRUint32 i = newLength; i < oldLength; ++i) {
@@ -250,6 +256,11 @@ DOMSVGPointList::InsertItemBefore(nsIDOMSVGPoint *aNewItem,
     return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR;
   }
 
+  aIndex = NS_MIN(aIndex, Length());
+  if (aIndex >= DOMSVGPoint::MaxListIndex()) {
+    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+  }
+
   nsCOMPtr<DOMSVGPoint> domItem = do_QueryInterface(aNewItem);
   if (!domItem) {
     return NS_ERROR_DOM_SVG_WRONG_TYPE_ERR;
@@ -257,7 +268,6 @@ DOMSVGPointList::InsertItemBefore(nsIDOMSVGPoint *aNewItem,
   if (domItem->HasOwner() || domItem->IsReadonly()) {
     domItem = domItem->Clone(); 
   }
-  aIndex = NS_MIN(aIndex, mItems.Length());
 
   
   if (!mItems.SetCapacity(mItems.Length() + 1) ||
