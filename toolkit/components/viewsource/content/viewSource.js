@@ -376,12 +376,6 @@ function ViewSourceReload()
 }
 
 
-function ViewSourceEditPage()
-{
-  editPage(window.content.location.href.substring(12), window, false);
-}
-
-
 function ViewSourceSavePage()
 {
   saveURL(window.content.location.href.substring(12), null, "SaveLinkTitle");
