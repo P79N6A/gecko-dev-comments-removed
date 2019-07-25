@@ -386,6 +386,22 @@ SyncEngine.prototype = {
       this._delete.ids.push(id);
   },
 
+  _handleDupe: function _handleDupe(item, dupeId) {
+    
+    if (dupeId < item.id) {
+      this._deleteId(item.id);
+      item.id = dupeId;
+      this._tracker.changedIDs[dupeId] = true;
+    }
+    
+    else {
+      this._store.changeItemID(dupeId, item.id);
+      this._deleteId(dupeId);
+    }
+
+    this._store.cache.clear(); 
+  },
+
   
   
   
@@ -425,20 +441,8 @@ SyncEngine.prototype = {
     
     this._log.trace("Reconcile step 3");
     let dupeId = this._findDupe(item);
-    if (dupeId) {
-      
-      if (item.id < dupeId) {
-        this._store.changeItemID(dupeId, item.id);
-        this._deleteId(dupeId);
-      }
-      
-      else {
-        this._deleteId(item.id);
-        item.id = dupeId;
-      }
-
-      this._store.cache.clear(); 
-    }
+    if (dupeId)
+      this._handleDupe(item, dupeId);
 
     
     return true;

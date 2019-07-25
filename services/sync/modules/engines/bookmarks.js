@@ -137,6 +137,17 @@ BookmarksEngine.prototype = {
     }
     
     
+  },
+
+  _handleDupe: function _handleDupe(item, dupeId) {
+    
+    if (dupeId < item.id)
+      [item.id, dupeId] = [dupeId, item.id];
+
+    
+    this._store.changeItemID(dupeId, item.id);
+    this._deleteId(dupeId);
+    this._tracker.changedIDs[item.id] = true;
   }
 };
 
@@ -199,12 +210,22 @@ BookmarksStore.prototype = {
     return idForGUID(id) > 0;
   },
 
+  
+  aliases: {},
+
   applyIncoming: function BStore_applyIncoming(record) {
     
     if (record.id in kSpecialIds) {
       this._log.debug("Skipping change to root node: " + record.id);
       return;
     }
+
+    
+    ["id", "parentid", "predecessorid"].forEach(function(field) {
+      let alias = this.aliases[record[field]];
+      if (alias != null)
+        record[field] = alias;
+    }, this);
 
     
     switch (record.type) {
@@ -281,6 +302,10 @@ BookmarksStore.prototype = {
     let itemId = idForGUID(record.id);
     if (itemId > 0) {
       
+      if (record.type == "folder")
+        this._reparentOrphans(itemId);
+
+      
       
       if (record._orphan)
         Utils.anno(itemId, PARENT_ANNO, "T" + parentGUID);
@@ -308,6 +333,30 @@ BookmarksStore.prototype = {
 
     return Svc.Annos.getItemsWithAnnotation(anno, {}).filter(function(id)
       Utils.anno(id, anno) == val);
+  },
+
+  
+
+
+  _reparentOrphans: function _reparentOrphans(parentId) {
+    
+    let parentGUID = GUIDForId(parentId);
+    let orphans = this._findAnnoItems(PARENT_ANNO, parentGUID);
+
+    this._log.debug("Reparenting orphans " + orphans + " to " + parentId);
+    orphans.forEach(function(orphan) {
+      
+      let insertPos = Svc.Bookmark.DEFAULT_INDEX;
+      if (!Svc.Annos.itemHasAnnotation(orphan, PREDECESSOR_ANNO))
+        insertPos = 0;
+
+      
+      Svc.Bookmark.moveItem(orphan, parentId, insertPos);
+      Svc.Annos.removeItemAnnotation(orphan, PARENT_ANNO);
+    });
+    
+    
+    orphans.forEach(this._attachFollowers, this);
   },
 
   
@@ -430,25 +479,6 @@ BookmarksStore.prototype = {
 
     this._log.trace("Setting GUID of new item " + newId + " to " + record.id);
     this._setGUID(newId, record.id);
-
-    
-    if (record.type == "folder") {
-      let orphans = this._findAnnoItems(PARENT_ANNO, record.id);
-      this._log.debug("Reparenting orphans " + orphans + " to " + record.title);
-      orphans.map(function(orphan) {
-        
-        let insertPos = Svc.Bookmark.DEFAULT_INDEX;
-        if (!Svc.Annos.itemHasAnnotation(orphan, PREDECESSOR_ANNO))
-          insertPos = 0;
-
-        
-        Svc.Bookmark.moveItem(orphan, newId, insertPos);
-        Svc.Annos.removeItemAnnotation(orphan, PARENT_ANNO);
-
-        
-        return orphan;
-      }).forEach(this._attachFollowers, this);
-    }
   },
 
   remove: function BStore_remove(record) {
@@ -551,14 +581,22 @@ BookmarksStore.prototype = {
   },
 
   changeItemID: function BStore_changeItemID(oldID, newID) {
+    
+    this.aliases[oldID] = newID;
+    this.cache.clear();
+
+    
+    this._findAnnoItems(PARENT_ANNO, oldID).forEach(function(itemId) {
+      Utils.anno(itemId, PARENT_ANNO, "T" + newID);
+    }, this);
+    this._findAnnoItems(PREDECESSOR_ANNO, oldID).forEach(function(itemId) {
+      Utils.anno(itemId, PREDECESSOR_ANNO, "R" + newID);
+    }, this);
+
+    
     let itemId = idForGUID(oldID);
-    if (itemId == null) 
+    if (itemId <= 0)
       return;
-    if (itemId <= 0) {
-      this._log.warn("Can't change GUID " + oldID + " to " +
-                      newID + ": Item does not exist");
-      return;
-    }
 
     this._log.debug("Changing GUID " + oldID + " to " + newID);
     this._setGUID(itemId, newID);
