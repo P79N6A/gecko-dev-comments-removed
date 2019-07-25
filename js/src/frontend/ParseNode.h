@@ -164,6 +164,7 @@ enum ParseNodeKind {
     PNK_FORHEAD,
     PNK_ARGSBODY,
     PNK_UPVARS,
+    PNK_SPREAD,
 
     
 
@@ -211,6 +212,7 @@ enum ParseNodeKind {
 
     PNK_LIMIT 
 };
+
 
 
 

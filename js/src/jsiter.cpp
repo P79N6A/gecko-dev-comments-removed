@@ -886,7 +886,7 @@ js::ValueToIterator(JSContext *cx, unsigned flags, Value *vp)
 
 
 
-        if ((flags & JSITER_ENUMERATE)) {
+        if (flags & JSITER_ENUMERATE) {
             if (!js_ValueToObjectOrNull(cx, *vp, obj.address()))
                 return false;
             
