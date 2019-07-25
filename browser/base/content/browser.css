@@ -64,6 +64,16 @@ tabbrowser {
   display: block; 
 }
 
+.tabbrowser-tabs[movingtab] > .tabbrowser-tab[selected] {
+  position: relative;
+  z-index: 2;
+  pointer-events: none; 
+}
+
+.tabbrowser-tabs[movingtab] > .tabbrowser-tab[fadein]:not([selected]) {
+  transition: transform 200ms ease-out;
+}
+
 #alltabs-popup {
   -moz-binding: url("chrome://browser/content/tabbrowser.xml#tabbrowser-alltabs-popup");
 }
