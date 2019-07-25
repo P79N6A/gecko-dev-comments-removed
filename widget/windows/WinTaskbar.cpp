@@ -39,8 +39,6 @@
 
 
 
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
-
 #include "WinTaskbar.h"
 #include "TaskbarPreview.h"
 #include <nsITaskbarPreviewController.h>
@@ -530,4 +528,3 @@ WinTaskbar::PrepareFullScreenHWND(void *aHWND, bool aFullScreen) {
 } 
 } 
 
-#endif 
