@@ -222,7 +222,13 @@ __try {
           
           
           
-          hwnd = ::GetParent(hwnd);
+          
+          
+          
+          HWND parenthwnd = ::GetParent(hwnd);
+          if (parenthwnd)
+            hwnd = parenthwnd;
+
           NS_ASSERTION(hwnd, "No window handle for window");
         }
       }
