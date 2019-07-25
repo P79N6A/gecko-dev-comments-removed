@@ -191,7 +191,7 @@ public:
   NS_IMETHOD DidBuildModel(bool aTerminated);
   NS_IMETHOD WillInterrupt(void);
   NS_IMETHOD WillResume(void);
-  NS_IMETHOD SetParser(nsIParser* aParser);
+  NS_IMETHOD SetParser(nsParserBase* aParser);
   virtual void FlushPendingNotifications(mozFlushType aType);
   NS_IMETHOD SetDocumentCharset(nsACString& aCharset);
   virtual nsISupports *GetTarget();
@@ -295,9 +295,6 @@ protected:
   void CloseHeadContext();
 
   
-  virtual void PreEvaluateScript();
-  virtual void PostEvaluateScript(nsIScriptElement *aElement);
-
   void UpdateChildCounts();
 
   void NotifyInsert(nsIContent* aContent,
@@ -805,11 +802,13 @@ SinkContext::OpenContainer(const nsIParserNode& aNode)
       break;
 
     case eHTMLTag_button:
+#ifdef MOZ_MEDIA
     case eHTMLTag_audio:
     case eHTMLTag_video:
+#endif
       content->DoneCreatingElement();
       break;
-      
+
     default:
       break;
   }
@@ -1702,8 +1701,6 @@ HTMLContentSink::DidBuildModel(bool aTerminated)
 
   ScrollToRef();
 
-  mDocument->ScriptLoader()->RemoveObserver(this);
-
   
   
 
@@ -1721,7 +1718,7 @@ HTMLContentSink::DidBuildModel(bool aTerminated)
 }
 
 NS_IMETHODIMP
-HTMLContentSink::SetParser(nsIParser* aParser)
+HTMLContentSink::SetParser(nsParserBase* aParser)
 {
   NS_PRECONDITION(aParser, "Should have a parser here!");
   mParser = aParser;
@@ -2560,78 +2557,8 @@ HTMLContentSink::CloseHeadContext()
 nsresult
 HTMLContentSink::ProcessLINKTag(const nsIParserNode& aNode)
 {
-  nsresult  result = NS_OK;
-
-  if (mCurrentContext) {
-    
-    nsCOMPtr<nsIContent> element;
-    nsCOMPtr<nsINodeInfo> nodeInfo;
-    nodeInfo = mNodeInfoManager->GetNodeInfo(nsGkAtoms::link, nsnull,
-                                             kNameSpaceID_XHTML,
-                                             nsIDOMNode::ELEMENT_NODE);
-
-    result = NS_NewHTMLElement(getter_AddRefs(element), nodeInfo.forget(),
-                               NOT_FROM_PARSER);
-    NS_ENSURE_SUCCESS(result, result);
-
-    nsCOMPtr<nsIStyleSheetLinkingElement> ssle(do_QueryInterface(element));
-
-    if (ssle) {
-      
-      if (!mInsideNoXXXTag) {
-        ssle->InitStyleLinkElement(false);
-        ssle->SetEnableUpdates(false);
-      } else {
-        ssle->InitStyleLinkElement(true);
-      }
-    }
-
-    
-    
-    result = AddAttributes(aNode, element);
-    if (NS_FAILED(result)) {
-      return result;
-    }
-
-    mCurrentContext->AddLeaf(element); 
-
-    if (ssle) {
-      ssle->SetEnableUpdates(true);
-      bool willNotify;
-      bool isAlternate;
-      result = ssle->UpdateStyleSheet(mFragmentMode ? nsnull : this,
-                                      &willNotify,
-                                      &isAlternate);
-      if (NS_SUCCEEDED(result) && willNotify && !isAlternate && !mFragmentMode) {
-        ++mPendingSheetCount;
-        mScriptLoader->AddExecuteBlocker();
-      }
-
-      
-      nsAutoString relVal;
-      element->GetAttr(kNameSpaceID_None, nsGkAtoms::rel, relVal);
-      if (!relVal.IsEmpty()) {
-        PRUint32 linkTypes = nsStyleLinkElement::ParseLinkTypes(relVal);
-        bool hasPrefetch = linkTypes & PREFETCH;
-        if (hasPrefetch || (linkTypes & NEXT)) {
-          nsAutoString hrefVal;
-          element->GetAttr(kNameSpaceID_None, nsGkAtoms::href, hrefVal);
-          if (!hrefVal.IsEmpty()) {
-            PrefetchHref(hrefVal, element, hasPrefetch);
-          }
-        }
-        if (linkTypes & DNS_PREFETCH) {
-          nsAutoString hrefVal;
-          element->GetAttr(kNameSpaceID_None, nsGkAtoms::href, hrefVal);
-          if (!hrefVal.IsEmpty()) {
-            PrefetchDNS(hrefVal);
-          }
-        }
-      }
-    }
-  }
-
-  return result;
+  MOZ_NOT_REACHED("Old HTMLContentSink used for processing links.");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 #ifdef DEBUG
@@ -2716,79 +2643,12 @@ HTMLContentSink::UpdateChildCounts()
   mCurrentContext->UpdateChildCounts();
 }
 
-void
-HTMLContentSink::PreEvaluateScript()
-{
-  
-  
-  SINK_TRACE(gSinkLogModuleInfo, SINK_TRACE_CALLS,
-             ("HTMLContentSink::PreEvaluateScript: flushing tags before "
-              "evaluating script"));
-
-  
-  mCurrentContext->FlushText();
-}
-
-void
-HTMLContentSink::PostEvaluateScript(nsIScriptElement *aElement)
-{
-  mHTMLDocument->ScriptExecuted(aElement);
-}
-
 nsresult
 HTMLContentSink::ProcessSCRIPTEndTag(nsGenericHTMLElement *content,
                                      bool aMalformed)
 {
-  
-  
-  
-  
-  
-  
-  
-
-  
-  mCurrentContext->FlushText();
-
-  nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(content);
-  NS_ASSERTION(sele, "Not really closing a script tag?");
-
-  if (aMalformed) {
-    
-    sele->SetIsMalformed();
-  }
-  if (mFrameset) {
-    sele->PreventExecution();
-  }
-
-  
-  mHTMLDocument->ScriptLoading(sele);
-
-  
-  
-  bool block = sele->AttemptToExecute();
-
-  
-  
-  if (block) {
-    
-    
-    
-    
-    mScriptElements.AppendObject(sele);
-  } else {
-    
-    
-    mHTMLDocument->ScriptExecuted(sele);
-  }
-
-  
-  
-  if (mParser && !mParser->IsParserEnabled()) {
-    block = true;
-  }
-
-  return block ? NS_ERROR_HTMLPARSER_BLOCK : NS_OK;
+  MOZ_NOT_REACHED("Must not use HTMLContentSink to run scripts.");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
@@ -2797,29 +2657,8 @@ HTMLContentSink::ProcessSCRIPTEndTag(nsGenericHTMLElement *content,
 nsresult
 HTMLContentSink::ProcessSTYLEEndTag(nsGenericHTMLElement* content)
 {
-  nsCOMPtr<nsIStyleSheetLinkingElement> ssle = do_QueryInterface(content);
-
-  NS_ASSERTION(ssle,
-               "html:style doesn't implement nsIStyleSheetLinkingElement");
-
-  nsresult rv = NS_OK;
-
-  if (ssle) {
-    
-    
-    ssle->SetEnableUpdates(true);
-    bool willNotify;
-    bool isAlternate;
-    rv = ssle->UpdateStyleSheet(mFragmentMode ? nsnull : this,
-                                &willNotify,
-                                &isAlternate);
-    if (NS_SUCCEEDED(rv) && willNotify && !isAlternate && !mFragmentMode) {
-      ++mPendingSheetCount;
-      mScriptLoader->AddExecuteBlocker();
-    }
-  }
-
-  return rv;
+  MOZ_NOT_REACHED("Old HTMLContentSink used for processing style elements.");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 void

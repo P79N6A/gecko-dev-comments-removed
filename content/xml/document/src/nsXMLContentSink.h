@@ -97,11 +97,12 @@ public:
   NS_IMETHOD DidBuildModel(bool aTerminated);
   NS_IMETHOD WillInterrupt(void);
   NS_IMETHOD WillResume(void);
-  NS_IMETHOD SetParser(nsIParser* aParser);  
+  NS_IMETHOD SetParser(nsParserBase* aParser);
   virtual void FlushPendingNotifications(mozFlushType aType);
   NS_IMETHOD SetDocumentCharset(nsACString& aCharset);
   virtual nsISupports *GetTarget();
   virtual bool IsScriptExecuting();
+  virtual void ContinueInterruptedParsingAsync();
 
   
   NS_IMETHOD OnDocumentCreated(nsIDocument *aResultDocument);
@@ -115,6 +116,11 @@ public:
                           bool &aIsAlternate);
 
 protected:
+
+  nsIParser* GetParser();
+
+  void ContinueInterruptedParsingIfEnabled();
+
   
   
   

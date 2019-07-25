@@ -48,7 +48,7 @@
 #include "ImageErrors.h"
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 nsIconDecoder::nsIconDecoder(RasterImage &aImage, imgIDecoderObserver* aObserver)
  : Decoder(aImage, aObserver),

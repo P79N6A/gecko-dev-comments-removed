@@ -151,6 +151,11 @@ class nsHtml5Parser : public nsIParser,
     
 
 
+    NS_IMETHOD_(void) ContinueInterruptedParsingAsync();
+
+    
+
+
     NS_IMETHOD_(bool) IsParserEnabled();
 
     
@@ -185,11 +190,6 @@ class nsHtml5Parser : public nsIParser,
                      const nsACString& aContentType,
                      bool aLastCall,
                      nsDTDMode aMode = eDTDMode_autodetect);
-
-    
-
-
-    NS_IMETHOD_(void *) GetRootContextKey();
 
     
 
@@ -252,25 +252,6 @@ class nsHtml5Parser : public nsIParser,
     virtual bool IsScriptCreated();
 
     
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    nsresult ParseHtml5Fragment(const nsAString& aSourceBuffer,
-                                nsIContent* aTargetNode,
-                                nsIAtom* aContextLocalName,
-                                PRInt32 aContextNamespace,
-                                bool aQuirks,
-                                bool aPreventScriptExecution);
 
     
     

@@ -67,7 +67,7 @@ class imgRequestNotifyRunnable;
 class imgStatusNotifyRunnable;
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 class Image;
 } 
 } 
@@ -91,7 +91,7 @@ public:
   
   
   nsresult Init(imgRequest *request, nsILoadGroup *aLoadGroup,
-                mozilla::imagelib::Image* aImage,
+                mozilla::image::Image* aImage,
                 nsIURI* aURI, imgIDecoderObserver *aObserver);
 
   nsresult ChangeOwner(imgRequest *aNewOwner); 
@@ -130,7 +130,7 @@ public:
 
   
   
-  void SetImage(mozilla::imagelib::Image* aImage);
+  void SetImage(mozilla::image::Image* aImage);
 
   
   
@@ -228,7 +228,7 @@ private:
 
   
   
-  nsRefPtr<mozilla::imagelib::Image> mImage;
+  nsRefPtr<mozilla::image::Image> mImage;
 
   
   

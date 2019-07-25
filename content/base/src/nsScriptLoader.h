@@ -246,6 +246,17 @@ private:
   
 
 
+  void UnblockParser(nsScriptLoadRequest* aParserBlockingRequest);
+
+  
+
+
+  void ContinueParserAsync(nsScriptLoadRequest* aParserBlockingRequest);
+
+
+  
+
+
   static nsresult CheckContentPolicy(nsIDocument* aDocument,
                                      nsISupports *aContext,
                                      nsIURI *aURI,

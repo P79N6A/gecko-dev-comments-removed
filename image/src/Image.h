@@ -43,7 +43,7 @@
 #include "prtypes.h"
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 class Image : public imgIContainer
 {

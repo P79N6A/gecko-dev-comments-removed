@@ -53,7 +53,7 @@
 #include "qcms.h"
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 class RasterImage;
 
 class nsPNGDecoder : public Decoder

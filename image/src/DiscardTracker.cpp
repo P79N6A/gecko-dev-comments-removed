@@ -42,7 +42,7 @@
 #include "mozilla/Preferences.h"
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 static bool sInitialized = false;
 static bool sTimerOn = false;

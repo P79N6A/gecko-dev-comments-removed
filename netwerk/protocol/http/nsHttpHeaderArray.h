@@ -113,6 +113,8 @@ private:
 
     
     bool    IsSingletonHeader(nsHttpAtom header);
+    
+    bool    HeaderMustHaveValue(nsHttpAtom header);
 
     
     
@@ -154,6 +156,12 @@ nsHttpHeaderArray::IsSingletonHeader(nsHttpAtom header)
            header == nsHttp::From                ||
            header == nsHttp::Location            ||
            header == nsHttp::Max_Forwards;
+}
+
+inline bool
+nsHttpHeaderArray::HeaderMustHaveValue(nsHttpAtom header)
+{
+    return header == nsHttp::Location;
 }
 
 inline void

@@ -199,8 +199,6 @@ class nsParser : public nsIParser,
                      bool aLastCall,
                      nsDTDMode aMode = eDTDMode_autodetect);
 
-    NS_IMETHOD_(void *) GetRootContextKey();
-
     
 
 
@@ -218,6 +216,7 @@ class nsParser : public nsIParser,
     NS_IMETHOD        ContinueInterruptedParsing();
     NS_IMETHOD_(void) BlockParser();
     NS_IMETHOD_(void) UnblockParser();
+    NS_IMETHOD_(void) ContinueInterruptedParsingAsync();
     NS_IMETHOD        Terminate(void);
 
     
@@ -309,14 +308,6 @@ class nsParser : public nsIParser,
 
 
     NS_IMETHODIMP CancelParsingEvents();
-
-    
-
-
-
-
-
-    virtual bool CanInterrupt();
 
     
 

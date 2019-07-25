@@ -906,78 +906,17 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 void
 nsHTMLDocument::StopDocumentLoad()
 {
-  if (nsHtml5Module::sEnabled) {
-    BlockOnload();
-    if (mWriteState == eDocumentOpened) {
-      NS_ASSERTION(IsHTML(), "document.open()ed doc is not HTML?");
-
-      
-      
-      mWriteState = eDocumentClosed;
-
-      
-      
-      NS_ASSERTION(mWyciwygChannel, "nsHTMLDocument::StopDocumentLoad(): "
-                   "Trying to remove nonexistent wyciwyg channel!");
-      RemoveWyciwygChannel();
-      NS_ASSERTION(!mWyciwygChannel, "nsHTMLDocument::StopDocumentLoad(): "
-                   "nsIWyciwygChannel could not be removed!");
-    }
-    nsDocument::StopDocumentLoad();
-    UnblockOnload(false);
-    return;
-  }
-  
+  BlockOnload();
 
   
   
-  
-  if (mWriteState != eNotWriting) {
-    Close();
-  } else {
-    nsDocument::StopDocumentLoad();
-  }
-}
+  RemoveWyciwygChannel();
+  NS_ASSERTION(!mWyciwygChannel, "nsHTMLDocument::StopDocumentLoad(): "
+               "nsIWyciwygChannel could not be removed!");
 
-
-void
-nsHTMLDocument::DocumentWriteTerminationFunc(nsISupports *aRef)
-{
-  nsCOMPtr<nsIArray> arr = do_QueryInterface(aRef);
-  NS_ASSERTION(arr, "Must have array!");
-
-  nsCOMPtr<nsIDocument> doc = do_QueryElementAt(arr, 0);
-  NS_ASSERTION(doc, "Must have document!");
-  
-  nsCOMPtr<nsIParser> parser = do_QueryElementAt(arr, 1);
-  NS_ASSERTION(parser, "Must have parser!");
-
-  nsHTMLDocument *htmldoc = static_cast<nsHTMLDocument*>(doc.get());
-
-  
-  
-  if (htmldoc->mParser != parser) {
-    return;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  if (!htmldoc->mWriteLevel && htmldoc->mWriteState != eDocumentOpened) {
-    
-    
-
-    htmldoc->mParser = nsnull;
-  }
-
-  htmldoc->EndLoad();
+  nsDocument::StopDocumentLoad();
+  UnblockOnload(false);
+  return;
 }
 
 void
@@ -998,65 +937,6 @@ nsHTMLDocument::BeginLoad()
 void
 nsHTMLDocument::EndLoad()
 {
-  if (mParser && mWriteState != eDocumentClosed) {
-    nsCOMPtr<nsIJSContextStack> stack =
-      do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-
-    if (stack) {
-      JSContext *cx = nsnull;
-      stack->Peek(&cx);
-
-      if (cx) {
-        nsIScriptContext *scx = nsJSUtils::GetDynamicScriptContext(cx);
-
-        if (scx) {
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-
-          nsresult rv;
-
-          nsCOMPtr<nsIMutableArray> arr =
-            do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
-          if (NS_SUCCEEDED(rv)) {
-            rv = arr->AppendElement(static_cast<nsIDocument*>(this),
-                                    false);
-            if (NS_SUCCEEDED(rv)) {
-              rv = arr->AppendElement(mParser, false);
-              if (NS_SUCCEEDED(rv)) {
-                rv = scx->SetTerminationFunction(DocumentWriteTerminationFunc,
-                                                 arr);
-                
-                
-                
-                if (NS_SUCCEEDED(rv)) {
-                  return;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  
-  
-  NS_ASSERTION(mWriteState == eNotWriting || mWriteState == ePendingClose ||
-               mWriteState == eDocumentClosed, "EndLoad called early");
-  mWriteState = eNotWriting;
-
   bool turnOnEditing =
     mParser && (HasFlag(NODE_IS_EDITABLE) || mContentEditableCount > 0);
   
@@ -1673,8 +1553,6 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
   
   SetContentTypeInternal(contentType);
 
-  mWriteState = eDocumentOpened;
-
   if (NS_SUCCEEDED(rv)) {
     if (loadAsHtml5) {
       nsHtml5Module::Initialize(mParser, this, uri, shell, channel);
@@ -1686,7 +1564,6 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
       if (NS_FAILED(rv)) {
         
         mParser = nsnull;
-        mWriteState = eNotWriting;
         return rv;
       }
 
@@ -1746,55 +1623,51 @@ nsHTMLDocument::Close()
     return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
-  nsresult rv = NS_OK;
-
-  if (mParser && mWriteState == eDocumentOpened) {
-    mPendingScripts.RemoveElement(GenerateParserKey());
-
-    mWriteState = mPendingScripts.IsEmpty() ? eDocumentClosed : ePendingClose;
-
-    ++mWriteLevel;
-    rv = mParser->Parse(EmptyString(), mParser->GetRootContextKey(),
-                        GetContentTypeInternal(), true);
-    --mWriteLevel;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (GetShell()) {
-      FlushPendingNotifications(Flush_Layout);
-    }
-
-    
-    
-    
-    
-    NS_ASSERTION(mWyciwygChannel, "nsHTMLDocument::Close(): Trying to remove "
-                 "nonexistent wyciwyg channel!");
-    RemoveWyciwygChannel();
-    NS_ASSERTION(!mWyciwygChannel, "nsHTMLDocument::Close(): "
-                 "nsIWyciwygChannel could not be removed!");
+  if (!mParser || !mParser->IsScriptCreated()) {
+    return NS_OK;
   }
 
-  return NS_OK;
+  ++mWriteLevel;
+  nsresult rv = mParser->Parse(EmptyString(), nsnull,
+                               GetContentTypeInternal(), true);
+  --mWriteLevel;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (GetShell()) {
+    FlushPendingNotifications(Flush_Layout);
+  }
+
+  
+  
+  
+  NS_ASSERTION(mWyciwygChannel, "nsHTMLDocument::Close(): Trying to remove "
+               "nonexistent wyciwyg channel!");
+  RemoveWyciwygChannel();
+  NS_ASSERTION(!mWyciwygChannel, "nsHTMLDocument::Close(): "
+               "nsIWyciwygChannel could not be removed!");
+  return rv;
 }
 
 nsresult
@@ -1815,10 +1688,7 @@ nsHTMLDocument::WriteCommon(JSContext *cx,
   nsresult rv = NS_OK;
 
   void *key = GenerateParserKey();
-  if (mWriteState == eDocumentClosed ||
-      (mWriteState == ePendingClose &&
-       !mPendingScripts.Contains(key)) ||
-      (mParser && !mParser->IsInsertionPointDefined())) {
+  if (mParser && !mParser->IsInsertionPointDefined()) {
     if (mExternalScriptsBeingEvaluated) {
       
       nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
@@ -1829,7 +1699,6 @@ nsHTMLDocument::WriteCommon(JSContext *cx,
                                       mDocumentURI);
       return NS_OK;
     }
-    mWriteState = eDocumentClosed;
     mParser->Terminate();
     NS_ASSERTION(!mParser, "mParser should have been null'd out");
   }
@@ -1862,7 +1731,7 @@ nsHTMLDocument::WriteCommon(JSContext *cx,
   static NS_NAMED_LITERAL_STRING(new_line, "\n");
 
   
-  if (mWyciwygChannel) {
+  if (mWyciwygChannel && !key) {
     if (!aText.IsEmpty()) {
       mWyciwygChannel->WriteToCacheEntry(aText);
     }
@@ -1881,11 +1750,11 @@ nsHTMLDocument::WriteCommon(JSContext *cx,
   if (aNewlineTerminate) {
     rv = mParser->Parse(aText + new_line,
                         key, GetContentTypeInternal(),
-                        (mWriteState == eNotWriting || (mWriteLevel > 1)));
+                        false);
   } else {
     rv = mParser->Parse(aText,
                         key, GetContentTypeInternal(),
-                        (mWriteState == eNotWriting || (mWriteLevel > 1)));
+                        false);
   }
 
   --mWriteLevel;
@@ -1937,30 +1806,6 @@ nsHTMLDocument::GetElementsByName(const nsAString& aElementName,
   list.forget(aReturn);
 
   return NS_OK;
-}
-
-void
-nsHTMLDocument::ScriptLoading(nsIScriptElement *aScript)
-{
-  if (mWriteState == eNotWriting) {
-    return;
-  }
-
-  mPendingScripts.AppendElement(aScript);
-}
-
-void
-nsHTMLDocument::ScriptExecuted(nsIScriptElement *aScript)
-{
-  if (mWriteState == eNotWriting) {
-    return;
-  }
-
-  mPendingScripts.RemoveElement(aScript);
-  if (mPendingScripts.IsEmpty() && mWriteState == ePendingClose) {
-    
-    mWriteState = eDocumentClosed;
-  }
 }
 
 void
@@ -2411,7 +2256,7 @@ nsHTMLDocument::GenerateParserKey(void)
         
         
         
-        return mParser->GetRootContextKey();
+        return nsnull;
       }
     }
     return script;

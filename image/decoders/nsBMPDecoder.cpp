@@ -53,7 +53,7 @@
 #include "ImageLogging.h"
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 #ifdef PR_LOGGING
 PRLogModuleInfo *gBMPLog = PR_NewLogModule("BMPDecoder");

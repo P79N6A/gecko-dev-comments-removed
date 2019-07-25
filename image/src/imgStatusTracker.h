@@ -47,7 +47,7 @@ class imgStatusNotifyRunnable;
 class imgRequestNotifyRunnable;
 struct nsIntRect;
 namespace mozilla {
-namespace imagelib {
+namespace image {
 class Image;
 } 
 } 
@@ -84,14 +84,14 @@ public:
   
   
   
-  imgStatusTracker(mozilla::imagelib::Image* aImage);
+  imgStatusTracker(mozilla::image::Image* aImage);
   imgStatusTracker(const imgStatusTracker& aOther);
 
   
   
   
   
-  void SetImage(mozilla::imagelib::Image* aImage);
+  void SetImage(mozilla::image::Image* aImage);
 
   
   
@@ -182,7 +182,7 @@ private:
 
   
   
-  mozilla::imagelib::Image* mImage;
+  mozilla::image::Image* mImage;
   PRUint32 mState;
   nsresult mImageStatus;
   bool mHadLastPart;

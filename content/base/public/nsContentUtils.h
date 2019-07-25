@@ -79,9 +79,14 @@ static fp_except_t oldmask = fpsetmask(~allmask);
 #include "nsINode.h"
 #include "nsHashtable.h"
 #include "nsIDOMNode.h"
-#include "nsHtml5Parser.h"
+#include "nsHtml5StringParser.h"
+#include "nsIParser.h"
+#include "nsIDocument.h"
 #include "nsIFragmentContentSink.h"
+#include "nsContentSink.h"
 #include "nsMathUtils.h"
+#include "nsThreadUtils.h"
+#include "nsIContent.h"
 #include "nsCharSeparatedTokenizer.h"
 
 #include "mozilla/AutoRestore.h"
@@ -1046,6 +1051,7 @@ public:
 
 
 
+
   static nsresult ParseFragmentHTML(const nsAString& aSourceBuffer,
                                     nsIContent* aTargetNode,
                                     nsIAtom* aContextLocalName,
@@ -1069,6 +1075,20 @@ public:
                                    nsTArray<nsString>& aTagStack,
                                    bool aPreventScriptExecution,
                                    nsIDOMDocumentFragment** aReturn);
+
+  
+
+
+
+
+
+
+
+
+
+
+  static nsresult ParseDocumentHTML(const nsAString& aSourceBuffer,
+                                    nsIDocument* aTargetDocument);
 
   
 
@@ -1939,7 +1959,7 @@ private:
   static bool sFullScreenKeyInputRestricted;
   static PRUint32 sHandlingInputTimeout;
 
-  static nsHtml5Parser* sHTMLFragmentParser;
+  static nsHtml5StringParser* sHTMLFragmentParser;
   static nsIParser* sXMLFragmentParser;
   static nsIFragmentContentSink* sXMLFragmentSink;
 

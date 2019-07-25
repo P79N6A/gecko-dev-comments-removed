@@ -162,7 +162,7 @@ namespace layers {
 class LayerManager;
 class ImageContainer;
 }
-namespace imagelib {
+namespace image {
 
 class imgDecodeWorker;
 class Decoder;

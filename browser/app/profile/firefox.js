@@ -806,6 +806,10 @@ pref("browser.sessionstore.restore_on_demand", false);
 pref("browser.sessionstore.restore_hidden_tabs", false);
 
 
+
+pref("browser.sessionstore.restore_pinned_tabs_on_demand", false);
+
+
 pref("accessibility.blockautorefresh", false);
 
 
@@ -1032,6 +1036,8 @@ pref("devtools.styleinspector.enabled", true);
 
 
 pref("devtools.tilt.enabled", true);
+pref("devtools.tilt.intro_transition", true);
+pref("devtools.tilt.outro_transition", true);
 
 
 pref("devtools.ruleview.enabled", true);
@@ -1047,7 +1053,7 @@ pref("devtools.styleeditor.transitions", true);
 pref("devtools.chrome.enabled", false);
 
 
-pref("devtools.gcli.enable", true);
+pref("devtools.gcli.enable", false);
 
 
 

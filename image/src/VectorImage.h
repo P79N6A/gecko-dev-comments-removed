@@ -51,7 +51,7 @@ namespace layers {
 class LayerManager;
 class ImageContainer;
 }
-namespace imagelib {
+namespace image {
 
 class SVGDocumentWrapper;
 class SVGRootRenderingObserver;

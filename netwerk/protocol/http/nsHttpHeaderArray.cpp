@@ -88,8 +88,12 @@ nsHttpHeaderArray::SetHeaderFromNet(nsHttpAtom header, const nsACString &value)
     index = LookupEntry(header, &entry);
 
     if (!entry) {
-        if (value.IsEmpty())
+        if (value.IsEmpty()) {
+            if (HeaderMustHaveValue(header)) {
+                return NS_ERROR_CORRUPTED_CONTENT;
+            }
             return NS_OK; 
+        }
         entry = mHeaders.AppendElement(); 
         if (!entry)
             return NS_ERROR_OUT_OF_MEMORY;

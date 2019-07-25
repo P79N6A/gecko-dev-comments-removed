@@ -139,7 +139,7 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
   public:
   
-    nsHtml5TreeOpExecutor();
+    nsHtml5TreeOpExecutor(bool aRunsToCompletion = false);
     virtual ~nsHtml5TreeOpExecutor();
   
     
@@ -179,7 +179,7 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     
 
 
-    NS_IMETHOD SetParser(nsIParser* aParser);
+    NS_IMETHOD SetParser(nsParserBase* aParser);
 
     
 
@@ -202,7 +202,6 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     
     virtual void UpdateChildCounts();
     virtual nsresult FlushTags();
-    virtual void PostEvaluateScript(nsIScriptElement *aElement);
     virtual void ContinueInterruptedParsingAsync();
  
     
@@ -249,7 +248,6 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
 
     void EnableFragmentMode(bool aPreventScriptExecution) {
-      mFragmentMode = true;
       mPreventScriptExecution = aPreventScriptExecution;
     }
     
@@ -257,8 +255,8 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
       mPreventScriptExecution = true;
     }
 
-    bool IsFragmentMode() {
-      return mFragmentMode;
+    bool BelongsToStringParser() {
+      return mRunsToCompletion;
     }
 
     
@@ -436,8 +434,6 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
   private:
     nsHtml5Parser* GetParser();
-
-    nsHtml5Tokenizer* GetTokenizer();
 
     
 

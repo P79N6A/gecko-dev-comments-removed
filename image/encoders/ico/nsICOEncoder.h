@@ -108,8 +108,8 @@ protected:
   
   
   
-  mozilla::imagelib::IconFileHeader mICOFileHeader;
-  mozilla::imagelib::IconDirEntry mICODirEntry;
+  mozilla::image::IconFileHeader mICOFileHeader;
+  mozilla::image::IconDirEntry mICODirEntry;
 
   
   PRUint8* mImageBufferStart;
