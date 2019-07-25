@@ -172,20 +172,6 @@ MakeCommandLine(int argc, PRUnichar **argv)
   for (i = 0; i < argc; ++i)
     len += ArgStrLen(argv[i]) + 1;
 
-#ifdef WINCE
-  wchar_t *env = mozce_GetEnvironmentCL();
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  len += (wcslen(env)) + 10;
-#endif
-
   
   if (len == 0)
     len = 1;
@@ -205,11 +191,6 @@ MakeCommandLine(int argc, PRUnichar **argv)
 
   *c = '\0';
 
-#ifdef WINCE
-  wcscat(s, env);
-  if (env)
-    free(env);
-#endif
   return s;
 }
 
@@ -276,18 +257,6 @@ WinLaunchChild(const PRUnichar *exePath, int argc, PRUnichar **argv)
 {
   PRUnichar *cl;
   BOOL ok;
-
-#ifdef WINCE
-  
-  
-  
-  
-  
-  
-  
-  argv = argv + 1;
-  argc--;
-#endif
 
   cl = MakeCommandLine(argc, argv);
   if (!cl)

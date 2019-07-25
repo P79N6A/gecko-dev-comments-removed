@@ -166,10 +166,8 @@ using mozilla::dom::ContentParent;
 #endif
 
 #ifdef XP_WIN
-#ifndef WINCE
 #include <process.h>
 #include <shlobj.h>
-#endif
 #include "nsThreadUtils.h"
 #endif
 
@@ -217,33 +215,6 @@ using mozilla::dom::ContentParent;
 
 #ifdef ANDROID
 #include "AndroidBridge.h"
-#endif
-
-#ifdef WINCE
-class WindowsMutex {
-public:
-  WindowsMutex(const wchar_t *name) {
-    mHandle = CreateMutexW(0, FALSE, name);
-  }
-
-  ~WindowsMutex() {
-    Unlock();
-    CloseHandle(mHandle);
-  }
-
-  PRBool Lock(DWORD timeout = INFINITE) {
-    DWORD state = WaitForSingleObject(mHandle, timeout);
-    return state == WAIT_OBJECT_0;
-  }
-  
-  void Unlock() {
-    if (mHandle)
-      ReleaseMutex(mHandle);
-  }
-
-protected:
-  HANDLE mHandle;
-};
 #endif
 
 extern PRUint32 gRestartMode;
@@ -846,10 +817,6 @@ typedef enum
 NS_IMETHODIMP
 nsXULAppInfo::GetUserCanElevate(PRBool *aUserCanElevate)
 {
-#ifdef WINCE
-  *aUserCanElevate = PR_FALSE;
-  return NS_OK;
-#else
   HANDLE hToken;
 
   VISTA_TOKEN_ELEVATION_TYPE elevationType;
@@ -877,7 +844,6 @@ nsXULAppInfo::GetUserCanElevate(PRBool *aUserCanElevate)
     CloseHandle(hToken);
 
   return NS_OK;
-#endif 
 }
 #endif
 
@@ -2891,55 +2857,11 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   isNoSplash |= (PR_GetEnv("NO_SPLASH") != 0);
   PRBool isNoRemote = (CheckArg("no-remote", PR_FALSE, NULL, PR_FALSE) == ARG_FOUND);
 
-#ifdef WINCE
-  
-  
-  WindowsMutex winStartupMutex(L"FirefoxStartupMutex");
-
-  
-  PRBool needsMutexLock = ! winStartupMutex.Lock(100);
-
-  
-  
-  
-  
-  
-  
-  if (!needsMutexLock && !isNoRemote) {
-    
-    static PRUnichar classNameBuffer[128];
-    _snwprintf(classNameBuffer, sizeof(classNameBuffer) / sizeof(PRUnichar),
-               L"%S%s",
-               gAppData->name, L"MessageWindow");
-    HANDLE h = FindWindowW(classNameBuffer, 0);
-    if (h) {
-      
-      
-      
-      wantsSplash = PR_FALSE;
-      CloseHandle(h);
-    } else {
-      
-      
-      
-      wantsSplash = PR_TRUE;
-    }
-  }
-#endif 
-
   if (wantsSplash && !isNoSplash)
     splashScreen = nsSplashScreen::GetOrCreate();
 
   if (splashScreen)
     splashScreen->Open();
-
-#ifdef WINCE
-  
-  
-  if (needsMutexLock)
-    winStartupMutex.Lock();
-#endif 
-
 #endif 
 
 
@@ -3405,11 +3327,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
     rv = dirProvider.SetProfile(profD, profLD);
     NS_ENSURE_SUCCESS(rv, 1);
-
-#if defined(WINCE) && defined(MOZ_SPLASHSCREEN)
-    
-    winStartupMutex.Unlock();
-#endif
 
     
 
@@ -3947,7 +3864,7 @@ SetupErrorHandling(const char* progname)
     _SetProcessDEPPolicy(PROCESS_DEP_ENABLE);
 #endif
 
-#if defined (XP_WIN32) && !defined (WINCE)
+#ifdef XP_WIN32
   
   
   
@@ -3968,10 +3885,8 @@ SetupErrorHandling(const char* progname)
   InstallSignalHandlers(progname);
 #endif
 
-#ifndef WINCE
   
   setbuf(stdout, 0);
-#endif
 
 #if defined(FREEBSD)
   

@@ -142,7 +142,6 @@ function onAlertLoad()
   if (window.innerWidth == contentDim.width + 1)
     --window.innerWidth;
 
-#ifndef WINCE
   
   gCurrentSize = 1;
 
@@ -157,7 +156,6 @@ function onAlertLoad()
     gFinalSize = window.outerHeight;
     window.outerHeight = gCurrentSize;
   }
-#endif
 
   
   var x = gOrigin & NS_ALERT_LEFT ? screen.availLeft :
@@ -173,11 +171,7 @@ function onAlertLoad()
 
   window.moveTo(x, y);
 
-#ifndef WINCE
   setTimeout(animateAlert, gSlideTime);
-#else
-  setTimeout(closeAlert, gOpenTime);
-#endif
 }
 
 function animate(step)

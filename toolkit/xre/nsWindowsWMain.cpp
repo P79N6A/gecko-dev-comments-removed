@@ -73,25 +73,6 @@ FreeAllocStrings(int argc, char **argv)
   delete [] argv;
 }
 
-#ifdef WINCE
-
-void ExtractEnvironmentFromCL(int &argc, char **&argv)
-{
-  for (int x = argc - 1; x >= 0; x--) {
-    if (!strncmp(argv[x], "--environ:", 10)) {
-      char* key_val = strdup(argv[x]+10);
-      putenv(key_val);
-      free(key_val);
-      argc -= 1;
-      char *delete_argv = argv[x];
-      if (x < argc) 
-        memcpy(&argv[x], &argv[x+1], (argc - x) * sizeof(char*));
-      delete [] delete_argv;
-    }
-  } 
-}
-#endif  
-
 int wmain(int argc, WCHAR **argv)
 {
 #ifndef XRE_DONT_PROTECT_DLL_LOAD
@@ -112,9 +93,6 @@ int wmain(int argc, WCHAR **argv)
       return 127;
     }
   }
-#ifdef WINCE
-  ExtractEnvironmentFromCL(argc, argvConverted);
-#endif
   argvConverted[argc] = NULL;
 
   

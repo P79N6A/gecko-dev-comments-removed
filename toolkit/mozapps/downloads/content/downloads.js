@@ -295,7 +295,6 @@ function openDownload(aDownload)
     } catch (e) { }
 
 #ifdef XP_WIN
-#ifndef WINCE
     
     
     try {
@@ -306,7 +305,6 @@ function openDownload(aDownload)
         dontAsk = true;
       }
     } catch (ex) { }
-#endif
 #endif
 
     if (!dontAsk) {
@@ -492,11 +490,9 @@ function Startup()
   }, false);
 
 #ifdef XP_WIN
-#ifndef WINCE
   let tempScope = {};
   Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm", tempScope);
   tempScope.DownloadTaskbarProgress.onDownloadWindowLoad(window);
-#endif
 #endif
 }
 
