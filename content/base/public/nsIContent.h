@@ -232,6 +232,14 @@ public:
                  "to binding parent");
     NS_ASSERTION(!GetParent() ||
                  ((GetBindingParent() == GetParent()) ==
+                  HasFlag(NODE_IS_ANONYMOUS)) ||
+                 
+                 
+                 
+                 
+                 
+                 (GetBindingParent() &&
+                  (GetBindingParent() == GetParent()->GetBindingParent()) ==
                   HasFlag(NODE_IS_ANONYMOUS)),
                  "For nodes with parent, flag and GetBindingParent() check "
                  "should match");
