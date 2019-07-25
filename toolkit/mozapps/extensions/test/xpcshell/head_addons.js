@@ -403,7 +403,8 @@ function shutdownManager() {
   }, "addon-repository-shutdown", false);
 
   obs.notifyObservers(null, "quit-application-granted", null);
-  gInternalManager.observe(null, "xpcom-shutdown", null);
+  let scope = Components.utils.import("resource://gre/modules/AddonManager.jsm");
+  scope.AddonManagerInternal.shutdown();
   gInternalManager = null;
 
   AddonRepository.shutdown();
@@ -426,7 +427,7 @@ function shutdownManager() {
 
   
   
-  let scope = Components.utils.import("resource://gre/modules/XPIProvider.jsm");
+  scope = Components.utils.import("resource://gre/modules/XPIProvider.jsm");
   AddonManagerPrivate.unregisterProvider(scope.XPIProvider);
   Components.utils.unload("resource://gre/modules/XPIProvider.jsm");
 }
@@ -439,7 +440,7 @@ function loadAddonsList() {
       let descriptor = parser.getString(aSection, keys.getNext());
       try {
         let file = AM_Cc["@mozilla.org/file/local;1"].
-                   createInstance(AM_Ci.nsILocalFile);
+                   createInstance(AM_Ci.nsIFile);
         file.persistentDescriptor = descriptor;
         dirs.push(file);
       }
@@ -1193,7 +1194,7 @@ if ("nsIWindowsRegKey" in AM_Ci) {
 }
 
 
-const gProfD = do_get_profile().QueryInterface(AM_Ci.nsILocalFile);
+const gProfD = do_get_profile();
 
 
 Services.prefs.setBoolPref("extensions.logging.enabled", true);
