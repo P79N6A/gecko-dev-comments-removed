@@ -2822,32 +2822,17 @@ nsXPCComponents_Utils::LookupMethod()
     jsval funval;
     JSFunction *oldfunction;
 
-    {
-        JSAutoEnterCompartment ac;
+    
+    if(!member->NewFunctionObject(inner_cc, iface,
+                                  JSVAL_TO_OBJECT(argv[0]),
+                                  &funval))
+        return NS_ERROR_XPC_BAD_CONVERT_JS;
 
-        if (!ac.enter(inner_cc, wrapper->GetFlatJSObjectAndMark())) {
-            return NS_ERROR_UNEXPECTED;
-        }
-
-        
-        if(!member->NewFunctionObject(inner_cc, iface,
-                                      wrapper->GetFlatJSObjectAndMark(),
-                                      &funval))
-            return NS_ERROR_XPC_BAD_CONVERT_JS;
-
-        oldfunction = JS_ValueToFunction(inner_cc, funval);
-        NS_ASSERTION(oldfunction, "Function is not a function");
-    }
+    oldfunction = JS_ValueToFunction(inner_cc, funval);
+    NS_ASSERTION(oldfunction, "Function is not a function");
 
     
     *retval = funval;
-
-    
-    
-    
-    if (!JS_WrapValue(inner_cc, retval)) {
-        return NS_ERROR_UNEXPECTED;
-    }
 
     
     cc->SetReturnValueWasSet(PR_TRUE);
