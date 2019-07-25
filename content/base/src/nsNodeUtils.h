@@ -244,7 +244,9 @@ public:
 
 
 
+
   static nsresult CloneNodeImpl(nsINode *aNode, PRBool aDeep,
+                                PRBool aCallUserDataHandlers,
                                 nsIDOMNode **aResult);
 
   
