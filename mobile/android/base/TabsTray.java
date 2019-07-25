@@ -47,6 +47,8 @@ public class TabsTray extends LinearLayout
     private static final int SWIPE_CLOSE_VELOCITY = 5;
     
     private static final int MAX_ANIMATION_TIME = 250;
+    
+    private static final float SWIPE_VERTICAL_WEIGHT = 1.5;
     private static enum DragDirection {
         UNKNOWN,
         HORIZONTAL,
@@ -76,6 +78,11 @@ public class TabsTray extends LinearLayout
                     case MotionEvent.ACTION_UP:
                       mListener.onTouchEnd(event);
                 }
+
+                
+                
+                if (mListener.getDirection() == DragDirection.HORIZONTAL)
+                    result = true;
 
                 return result;
             }
@@ -312,6 +319,10 @@ public class TabsTray extends LinearLayout
             mList = v;
         }
 
+        public DragDirection getDirection() {
+            return dir;
+        }
+
         @Override
         public boolean onDown(MotionEvent e) {
             mView = findViewAt((int)e.getX(), (int)e.getY());
@@ -367,7 +378,9 @@ public class TabsTray extends LinearLayout
             }
 
             if (dir == DragDirection.UNKNOWN) {
-                if (Math.abs(distanceX) > Math.abs(distanceY)) {
+                
+                
+                if (Math.abs(distanceX) > Math.abs(distanceY) * SWIPE_VERTICAL_WEIGHT) {
                     dir = DragDirection.HORIZONTAL;
                 } else {
                     dir = DragDirection.VERTICAL;
@@ -389,7 +402,9 @@ public class TabsTray extends LinearLayout
                 return false;
 
             
-            if (Math.abs(velocityX)/GeckoAppShell.getDpi() > SWIPE_CLOSE_VELOCITY) {
+            
+            if (Math.abs(velocityX) > Math.abs(velocityY * SWIPE_VERTICAL_WEIGHT) &&
+                Math.abs(velocityX)/GeckoAppShell.getDpi() > SWIPE_CLOSE_VELOCITY) {
                 
                 float d = (velocityX > 0 ? 1 : -1) * mView.getWidth();
                 
