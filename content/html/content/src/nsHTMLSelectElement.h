@@ -87,7 +87,7 @@ public:
   
   
 
-  virtual nsIContent* GetNodeAt(PRUint32 aIndex, nsresult* aResult);
+  virtual nsIContent* GetNodeAt(PRUint32 aIndex);
   virtual nsISupports* GetNamedItem(const nsAString& aName,
                                     nsWrapperCache** aCache,
                                     nsresult* aResult);

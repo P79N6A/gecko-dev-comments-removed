@@ -260,7 +260,7 @@ public:
   virtual PRInt32 IndexOf(nsIContent* aContent);
 
   
-  virtual nsIContent* GetNodeAt(PRUint32 aIndex, nsresult* aResult);
+  
   virtual nsISupports* GetNamedItem(const nsAString& aName,
                                     nsWrapperCache** aCache,
                                     nsresult* aResult);
