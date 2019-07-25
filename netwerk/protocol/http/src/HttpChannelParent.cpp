@@ -45,6 +45,7 @@
 #include "nsISupportsPriority.h"
 #include "nsIAuthPromptProvider.h"
 #include "nsIDocShellTreeItem.h"
+#include "nsIBadCertListener2.h"
 
 namespace mozilla {
 namespace net {
@@ -263,10 +264,11 @@ HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
       aIID.Equals(NS_GET_IID(nsIHttpEventSink))  ||
       
       aIID.Equals(NS_GET_IID(nsIApplicationCacheContainer)) ||
-      
       aIID.Equals(NS_GET_IID(nsIProgressEventSink)) ||
       
-      aIID.Equals(NS_GET_IID(nsIDocShellTreeItem))) 
+      aIID.Equals(NS_GET_IID(nsIDocShellTreeItem)) ||
+      
+      aIID.Equals(NS_GET_IID(nsIBadCertListener2))) 
   {
     return QueryInterface(aIID, result);
   } 
