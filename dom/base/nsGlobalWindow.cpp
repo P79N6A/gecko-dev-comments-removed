@@ -6361,7 +6361,12 @@ nsGlobalWindow::Close()
 {
   FORWARD_TO_OUTER(Close, (), NS_ERROR_NOT_INITIALIZED);
 
-  if (IsFrame() || !mDocShell || IsInModalState()) {
+  bool isMozBrowser = false;
+  if (mDocShell) {
+    mDocShell->GetIsBrowserFrame(&isMozBrowser);
+  }
+
+  if ((!isMozBrowser && IsFrame()) || !mDocShell || IsInModalState()) {
     
     
     
