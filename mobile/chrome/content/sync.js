@@ -326,11 +326,13 @@ let WeaveGlue = {
     this.showMessage(message, "undo-disconnect", buttons);
 
     
-    setTimeout(function(self) {
-      let notification = self._msg.getNotificationWithValue("undo-disconnect");
+    let panel = document.getElementById("prefs-container");
+    panel.addEventListener("ToolPanelHidden", function onHide(aEvent) {
+      panel.removeEventListener(aEvent.type, onHide, false);
+      let notification = WeaveGlue._msg.getNotificationWithValue("undo-disconnect");
       if (notification)
         notification.close();
-    }, 10000, this);
+    }, false);
 
     Weave.Service.logout();
   },
