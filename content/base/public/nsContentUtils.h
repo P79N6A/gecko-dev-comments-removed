@@ -1101,6 +1101,7 @@ public:
 
 
 
+
   static nsresult CreateDocument(const nsAString& aNamespaceURI, 
                                  const nsAString& aQualifiedName, 
                                  nsIDOMDocumentType* aDoctype,
@@ -1108,6 +1109,7 @@ public:
                                  nsIURI* aBaseURI,
                                  nsIPrincipal* aPrincipal,
                                  nsIScriptGlobalObject* aScriptObject,
+                                 bool aSVGDocument,
                                  nsIDOMDocument** aResult);
 
   
