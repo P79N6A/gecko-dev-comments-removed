@@ -83,12 +83,7 @@ struct Arena {
 
 
 
-#if defined(__BIG_ENDIAN__) || defined(_BIG_ENDIAN)
-
-#define TAG(d, c, b, a) (a | (b << 8) | (c << 16) | (d << 24))
-#else
 #define TAG(a, b, c, d) (a | (b << 8) | (c << 16) | (d << 24))
-#endif
 
 const struct {
   uint32_t tag;
