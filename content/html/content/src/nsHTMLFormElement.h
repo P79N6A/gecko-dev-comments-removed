@@ -191,7 +191,9 @@ public:
 
 
 
-  nsresult RemoveElement(nsGenericHTMLFormElement* aElement, PRBool aNotify);
+
+  nsresult RemoveElement(nsGenericHTMLFormElement* aElement,
+                         bool aUpdateValidity, PRBool aNotify);
 
   
 
@@ -213,7 +215,9 @@ public:
 
 
 
-  nsresult AddElement(nsGenericHTMLFormElement* aElement, PRBool aNotify);
+
+  nsresult AddElement(nsGenericHTMLFormElement* aElement, bool aUpdateValidity,
+                      PRBool aNotify);
 
   
 

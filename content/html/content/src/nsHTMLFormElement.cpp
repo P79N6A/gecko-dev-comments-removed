@@ -1076,7 +1076,7 @@ AssertDocumentOrder(const nsTArray<nsGenericHTMLFormElement*>& aControls,
 
 nsresult
 nsHTMLFormElement::AddElement(nsGenericHTMLFormElement* aChild,
-                              PRBool aNotify)
+                              bool aUpdateValidity, PRBool aNotify)
 {
   NS_ASSERTION(aChild->GetParent(), "Form control should have a parent");
 
@@ -1208,11 +1208,13 @@ nsHTMLFormElement::AddElement(nsGenericHTMLFormElement* aChild,
 
   
   
-  nsCOMPtr<nsIConstraintValidation> cvElmt =
-    do_QueryInterface(static_cast<nsGenericHTMLElement*>(aChild));
-  if (cvElmt &&
-      cvElmt->IsCandidateForConstraintValidation() && !cvElmt->IsValid()) {
-    UpdateValidity(PR_FALSE);
+  if (aUpdateValidity) {
+    nsCOMPtr<nsIConstraintValidation> cvElmt =
+      do_QueryInterface(static_cast<nsGenericHTMLElement*>(aChild));
+    if (cvElmt &&
+        cvElmt->IsCandidateForConstraintValidation() && !cvElmt->IsValid()) {
+      UpdateValidity(PR_FALSE);
+    }
   }
 
   return NS_OK;
@@ -1228,7 +1230,8 @@ nsHTMLFormElement::AddElementToTable(nsGenericHTMLFormElement* aChild,
 
 nsresult
 nsHTMLFormElement::RemoveElement(nsGenericHTMLFormElement* aChild,
-                                 PRBool aNotify) 
+                                 bool aUpdateValidity,
+                                 PRBool aNotify)
 {
   
   
@@ -1284,11 +1287,13 @@ nsHTMLFormElement::RemoveElement(nsGenericHTMLFormElement* aChild,
 
   
   
-  nsCOMPtr<nsIConstraintValidation> cvElmt =
-    do_QueryInterface(static_cast<nsGenericHTMLElement*>(aChild));
-  if (cvElmt &&
-      cvElmt->IsCandidateForConstraintValidation() && !cvElmt->IsValid()) {
-    UpdateValidity(PR_TRUE);
+  if (aUpdateValidity) {
+    nsCOMPtr<nsIConstraintValidation> cvElmt =
+      do_QueryInterface(static_cast<nsGenericHTMLElement*>(aChild));
+    if (cvElmt &&
+        cvElmt->IsCandidateForConstraintValidation() && !cvElmt->IsValid()) {
+      UpdateValidity(PR_TRUE);
+    }
   }
 
   return rv;
