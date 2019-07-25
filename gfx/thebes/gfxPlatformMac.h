@@ -75,6 +75,8 @@ public:
     
     PRInt32 OSXVersion();
 
+    bool UseAcceleratedCanvas();
+
     
     PRUint32 GetAntiAliasingThreshold() { return mFontAntiAliasingThreshold; }
 

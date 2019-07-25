@@ -6,6 +6,8 @@
 #include "SourceSurfaceCG.h"
 #include "DrawTargetCG.h"
 
+#include "QuartzSupport.h"
+
 namespace mozilla {
 namespace gfx {
 
@@ -285,6 +287,8 @@ SourceSurfaceCGBitmapContext::SourceSurfaceCGBitmapContext(DrawTargetCG *aDrawTa
 {
   mDrawTarget = aDrawTarget;
   mCg = (CGContextRef)aDrawTarget->GetNativeSurface(NATIVE_SURFACE_CGCONTEXT);
+  if (!mCg)
+    abort();
 
   mSize.width = CGBitmapContextGetWidth(mCg);
   mSize.height = CGBitmapContextGetHeight(mCg);
@@ -325,6 +329,8 @@ void SourceSurfaceCGBitmapContext::EnsureImage() const
           
           info = mData;
       }
+
+      if (!mData) abort();
 
       dataProvider = CGDataProviderCreateWithData (info,
                                                    mData,
@@ -387,6 +393,103 @@ SourceSurfaceCGBitmapContext::~SourceSurfaceCGBitmapContext()
   }
   if (mImage)
     CGImageRelease(mImage);
+}
+
+SourceSurfaceCGIOSurfaceContext::SourceSurfaceCGIOSurfaceContext(DrawTargetCG *aDrawTarget)
+{
+  CGContextRef cg = (CGContextRef)aDrawTarget->GetNativeSurface(NATIVE_SURFACE_CGCONTEXT_ACCELERATED);
+
+  RefPtr<MacIOSurface> surf = MacIOSurface::IOSurfaceContextGetSurface(cg);
+
+  mSize.width = surf->GetWidth();
+  mSize.height = surf->GetHeight();
+
+  
+  
+  mImage = NULL;
+
+  aDrawTarget->Flush();
+  surf->Lock();
+  size_t bytesPerRow = surf->GetBytesPerRow();
+  size_t ioHeight = surf->GetHeight();
+  void* ioData = surf->GetBaseAddress();
+  
+  
+  mData = malloc(ioHeight*bytesPerRow);
+  memcpy(mData, ioData, ioHeight*(bytesPerRow));
+  mStride = bytesPerRow;
+  surf->Unlock();
+}
+
+void SourceSurfaceCGIOSurfaceContext::EnsureImage() const
+{
+  
+
+  
+  
+  
+  
+  
+  
+  
+  if (!mImage) {
+      
+      CGColorSpaceRef colorSpace = NULL;
+      CGBitmapInfo bitinfo = 0;
+      CGDataProviderRef dataProvider = NULL;
+      int bitsPerComponent = 8;
+      int bitsPerPixel = 32;
+
+      colorSpace = CGColorSpaceCreateDeviceRGB();
+      bitinfo = kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host;
+
+      void *info = mData;
+
+      dataProvider = CGDataProviderCreateWithData (info,
+                                                   mData,
+                                                   mSize.height * mStride,
+                                                   releaseCallback);
+
+      mImage = CGImageCreate (mSize.width, mSize.height,
+                              bitsPerComponent,
+                              bitsPerPixel,
+                              mStride,
+                              colorSpace,
+                              bitinfo,
+                              dataProvider,
+                              NULL,
+                              true,
+                              kCGRenderingIntentDefault);
+
+      CGDataProviderRelease(dataProvider);
+      CGColorSpaceRelease (colorSpace);
+  }
+
+}
+
+IntSize
+SourceSurfaceCGIOSurfaceContext::GetSize() const
+{
+  return mSize;
+}
+
+void
+SourceSurfaceCGIOSurfaceContext::DrawTargetWillChange()
+{
+}
+
+SourceSurfaceCGIOSurfaceContext::~SourceSurfaceCGIOSurfaceContext()
+{
+  if (mImage)
+    CGImageRelease(mImage);
+  else
+    free(mData);
+}
+
+unsigned char*
+SourceSurfaceCGIOSurfaceContext::GetData()
+{
+  return (unsigned char*)mData;
 }
 
 }

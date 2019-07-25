@@ -71,6 +71,8 @@ public:
   }
   virtual ~PathCG() { CGPathRelease(mPath); }
 
+  
+  
   virtual BackendType GetBackendType() const { return BACKEND_COREGRAPHICS; }
 
   virtual TemporaryRef<PathBuilder> CopyToBuilder(FillRule aFillRule = FILL_WINDING) const;

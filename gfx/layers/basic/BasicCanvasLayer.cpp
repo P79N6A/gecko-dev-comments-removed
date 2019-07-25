@@ -117,6 +117,8 @@ BasicCanvasLayer::UpdateSurface(gfxASurface* aDestSurface, Layer* aMaskLayer)
 {
   if (mDrawTarget) {
     mDrawTarget->Flush();
+    
+    
   }
 
   if (!mGLContext && aDestSurface) {
