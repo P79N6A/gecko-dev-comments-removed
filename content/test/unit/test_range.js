@@ -66,7 +66,6 @@ function isWhitespace(aNode) {
 
 function getFragment(aNode) {
   var frag = aNode.ownerDocument.createDocumentFragment();
-  do_check_true(frag instanceof C_i.nsIDOM3Node);
   for (var i = 0; i < aNode.childNodes.length; i++) {
     frag.appendChild(aNode.childNodes.item(i).cloneNode(true));
   }
@@ -321,8 +320,6 @@ function run_extract_test() {
     var foundStart = false;
     var foundEnd = false;
     do {
-      do_check_true(walker.currentNode instanceof C_i.nsIDOM3Node);
-
       if (walker.currentNode.isSameNode(startContainer)) {
         foundStart = true;
       }
@@ -357,8 +354,6 @@ function run_extract_test() {
     foundStart = false;
     foundEnd = false;
     do {
-      do_check_true(walker.currentNode instanceof C_i.nsIDOM3Node);
-
       if (walker.currentNode.isSameNode(startContainer)) {
         foundStart = true;
       }
