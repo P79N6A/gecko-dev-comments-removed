@@ -50,6 +50,23 @@ function testCSSAttrs(aID)
 
 
 
+function testAbsentCSSAttrs(aID)
+{
+  var attrs = {
+    "display": "",
+    "text-align": "",
+    "text-indent": "",
+    "margin-left": "",
+    "margin-right": "",
+    "margin-top": "",
+    "margin-bottom": ""
+  };
+  testAbsentAttrs(aID, attrs);
+}
+
+
+
+
 
 
 
