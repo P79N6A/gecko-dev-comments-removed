@@ -639,10 +639,16 @@ IonBuilder::finalizeLoop(CFGState &state, MInstruction *last)
 
     
     
+    
+    
+    
+    
+    
     if (successor && breaks && (successor != breaks)) {
-        breaks->end(MGoto::New(successor));
-        if (!successor->addPredecessor(breaks))
+        successor->end(MGoto::New(breaks));
+        if (!breaks->addPredecessor(successor))
             return false;
+        successor = breaks;
     }
 
     state.loop.successor = successor;
@@ -876,6 +882,8 @@ IonBuilder::maybeLoop(JSOp op, jssrcnote *sn)
             
             if (SN_TYPE(sn) == SRC_WHILE)
                 return doWhileLoop(op, sn);
+            
+            
 
             
             if (SN_TYPE(sn) == SRC_FOR)

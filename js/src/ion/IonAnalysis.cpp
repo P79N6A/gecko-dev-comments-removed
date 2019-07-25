@@ -451,3 +451,53 @@ ion::ReorderBlocks(MIRGraph &graph)
     return true;
 }
 
+bool
+ion::BuildPhiReverseMapping(MIRGraph &graph)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    for (size_t i = 0; i < graph.numBlocks(); i++) {
+        MBasicBlock *block = graph.getBlock(i);
+        if (block->numPredecessors() < 2) {
+            JS_ASSERT(block->numPhis() == 0);
+            continue;
+        }
+
+        
+        for (size_t j = 0; j < block->numPredecessors(); j++) {
+            MBasicBlock *pred = block->getPredecessor(j);
+
+#ifdef DEBUG
+            size_t numSuccessorsWithPhis = 0;
+            for (size_t k = 0; k < pred->numSuccessors(); k++) {
+                MBasicBlock *successor = pred->getSuccessor(k);
+                if (successor->numPhis() > 0)
+                    numSuccessorsWithPhis++;
+            }
+            JS_ASSERT(numSuccessorsWithPhis == 1);
+#endif
+
+            pred->setSuccessorWithPhis(block, j);
+        }
+    }
+
+    return true;
+}
+
