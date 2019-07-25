@@ -132,11 +132,17 @@ public:
 };
 
 
+#define HTML_ANCHOR_DNS_PREFETCH_REQUESTED \
+  (1 << ELEMENT_TYPE_SPECIFIC_BITS_OFFSET)
+
+
+PR_STATIC_ASSERT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET < 32);
+
 NS_IMPL_NS_NEW_HTML_ELEMENT(Anchor)
 
 nsHTMLAnchorElement::nsHTMLAnchorElement(already_AddRefed<nsINodeInfo> aNodeInfo)
-  : nsGenericHTMLElement(aNodeInfo),
-    Link(this)
+  : nsGenericHTMLElement(aNodeInfo)
+  , Link(this)
 {
 }
 
@@ -206,6 +212,7 @@ nsHTMLAnchorElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   
   if (aDocument && nsHTMLDNSPrefetch::IsAllowed(OwnerDoc())) {
     nsHTMLDNSPrefetch::PrefetchLow(this);
+    SetFlags(HTML_ANCHOR_DNS_PREFETCH_REQUESTED);
   }
   return rv;
 }
@@ -217,6 +224,12 @@ nsHTMLAnchorElement::UnbindFromTree(bool aDeep, bool aNullParent)
   
   Link::ResetLinkState(false);
 
+  
+  if (HasFlag(HTML_ANCHOR_DNS_PREFETCH_REQUESTED)) {
+    nsHTMLDNSPrefetch::CancelPrefetchLow(this, NS_ERROR_ABORT);
+    UnsetFlags(HTML_ANCHOR_DNS_PREFETCH_REQUESTED);
+  }
+    
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
 
