@@ -1451,6 +1451,8 @@ private:
                             nsIFrame* aScrolledFrame);
 
   
+  
+  
   nsresult
   InitializeSelectFrame(nsFrameConstructorState& aState,
                         nsIFrame*                scrollFrame,
