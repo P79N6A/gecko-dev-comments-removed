@@ -966,9 +966,11 @@ class TypedArrayTemplate
         obj->setSharedNonNativeMap();
         obj->clasp = fastClass();
         obj->setPrivate(tarray);
-
-        AutoIdVector props(cx);
-        return obj->preventExtensions(cx, &props);
+        
+        
+        
+        obj->flags |= JSObject::NOT_EXTENSIBLE;
+        return true;
     }
 
   public:
