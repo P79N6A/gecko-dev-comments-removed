@@ -2600,8 +2600,26 @@ struct NS_STACK_CLASS nsCanvasBidiProcessor : public nsBidiPresUtils::BidiProces
         point.x += xOffset * mAppUnitsPerDevPixel;
 
         
-        if (mTextRun->IsRightToLeft())
-            point.x += width * mAppUnitsPerDevPixel;
+        if (mTextRun->IsRightToLeft()) {
+            
+            
+            
+            
+            
+            gfxTextRun::Metrics textRunMetrics =
+                mTextRun->MeasureText(0,
+                                      mTextRun->GetLength(),
+                                      mDoMeasureBoundingBox ?
+                                          gfxFont::TIGHT_INK_EXTENTS :
+                                          gfxFont::LOOSE_INK_EXTENTS,
+                                      mThebes,
+                                      nsnull);
+            point.x += textRunMetrics.mAdvanceWidth;
+            
+            
+            
+            
+        }
 
         
         if (mOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_STROKE)
