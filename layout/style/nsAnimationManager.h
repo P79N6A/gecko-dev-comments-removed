@@ -14,15 +14,136 @@
 #include "nsThreadUtils.h"
 
 class nsCSSKeyframesRule;
-struct AnimationPropertySegment;
-struct ElementAnimation;
-struct ElementAnimations;
 
 namespace mozilla {
 namespace css {
 class Declaration;
 }
 }
+
+struct AnimationEventInfo {
+  nsRefPtr<mozilla::dom::Element> mElement;
+  nsAnimationEvent mEvent;
+
+  AnimationEventInfo(mozilla::dom::Element *aElement,
+                     const nsString& aAnimationName,
+                     PRUint32 aMessage, mozilla::TimeDuration aElapsedTime)
+    : mElement(aElement),
+      mEvent(true, aMessage, aAnimationName, aElapsedTime.ToSeconds())
+  {
+  }
+
+  
+  
+  AnimationEventInfo(const AnimationEventInfo &aOther)
+    : mElement(aOther.mElement),
+      mEvent(true, aOther.mEvent.message,
+             aOther.mEvent.animationName, aOther.mEvent.elapsedTime)
+  {
+  }
+};
+
+typedef InfallibleTArray<AnimationEventInfo> EventArray;
+
+struct AnimationPropertySegment
+{
+  float mFromKey, mToKey;
+  nsStyleAnimation::Value mFromValue, mToValue;
+  mozilla::css::ComputedTimingFunction mTimingFunction;
+};
+
+struct AnimationProperty
+{
+  nsCSSProperty mProperty;
+  InfallibleTArray<AnimationPropertySegment> mSegments;
+};
+
+
+
+
+
+struct ElementAnimation
+{
+  ElementAnimation()
+    : mLastNotification(LAST_NOTIFICATION_NONE)
+  {
+  }
+
+  nsString mName; 
+  float mIterationCount; 
+  PRUint8 mDirection;
+  PRUint8 mFillMode;
+  PRUint8 mPlayState;
+
+  bool FillsForwards() const {
+    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
+           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_FORWARDS;
+  }
+  bool FillsBackwards() const {
+    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
+           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BACKWARDS;
+  }
+
+  bool IsPaused() const {
+    return mPlayState == NS_STYLE_ANIMATION_PLAY_STATE_PAUSED;
+  }
+
+  mozilla::TimeStamp mStartTime; 
+  mozilla::TimeStamp mPauseStart;
+  mozilla::TimeDuration mIterationDuration;
+
+  enum {
+    LAST_NOTIFICATION_NONE = PRUint32(-1),
+    LAST_NOTIFICATION_END = PRUint32(-2)
+  };
+  
+  
+  PRUint32 mLastNotification;
+
+  InfallibleTArray<AnimationProperty> mProperties;
+};
+
+
+
+
+struct ElementAnimations : public mozilla::css::CommonElementAnimationData
+{
+  typedef mozilla::TimeStamp TimeStamp;
+  typedef mozilla::TimeDuration TimeDuration;
+
+  ElementAnimations(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
+                    nsAnimationManager *aAnimationManager);
+
+  void EnsureStyleRuleFor(TimeStamp aRefreshTime,
+                          EventArray &aEventsToDispatch);
+
+  bool IsForElement() const { 
+    return mElementProperty == nsGkAtoms::animationsProperty;
+  }
+
+  void PostRestyleForAnimation(nsPresContext *aPresContext) {
+    nsRestyleHint styleHint = IsForElement() ? eRestyle_Self : eRestyle_Subtree;
+    aPresContext->PresShell()->RestyleForAnimation(mElement, styleHint);
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  nsRefPtr<mozilla::css::AnimValuesStyleRule> mStyleRule;
+  
+  TimeStamp mStyleRuleRefreshTime;
+
+  
+  
+  
+  bool mNeedsRefreshes;
+
+  InfallibleTArray<ElementAnimation> mAnimations;
+};
 
 class nsAnimationManager : public mozilla::css::CommonAnimationManager
 {
@@ -34,27 +155,8 @@ public:
     mKeyframesRules.Init(16); 
   }
 
-  struct AnimationEventInfo {
-    nsRefPtr<mozilla::dom::Element> mElement;
-    nsAnimationEvent mEvent;
 
-    AnimationEventInfo(mozilla::dom::Element *aElement,
-                       const nsString& aAnimationName,
-                       PRUint32 aMessage, mozilla::TimeDuration aElapsedTime)
-      : mElement(aElement),
-        mEvent(true, aMessage, aAnimationName, aElapsedTime.ToSeconds())
-    {
-    }
 
-    
-    
-    AnimationEventInfo(const AnimationEventInfo &aOther)
-      : mElement(aOther.mElement),
-        mEvent(true, aOther.mEvent.message,
-               aOther.mEvent.animationName, aOther.mEvent.elapsedTime)
-    {
-    }
-  };
 
   
   virtual void RulesMatching(ElementRuleProcessorData* aData);
@@ -88,8 +190,6 @@ public:
   void KeyframesListIsDirty() {
     mKeyframesListIsDirty = true;
   }
-
-  typedef InfallibleTArray<AnimationEventInfo> EventArray;
 
   
 
