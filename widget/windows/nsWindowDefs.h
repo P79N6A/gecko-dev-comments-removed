@@ -266,6 +266,8 @@ struct nsModifierKeyState {
     mIsAltDown(aIsAltDown)
   {
   }
+
+  void InitInputEvent(nsInputEvent& aInputEvent) const;
 };
 
 

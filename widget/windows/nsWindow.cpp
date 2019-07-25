@@ -6258,11 +6258,6 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
   return true; 
 }
 
-static PRInt32 RoundDelta(double aDelta)
-{
-  return aDelta >= 0 ? (PRInt32)floor(aDelta) : (PRInt32)ceil(aDelta);
-}
-
 
 
 
@@ -6299,56 +6294,12 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
 
   
   
-  
-  PRInt32 orienter = eventInfo.IsVertical() ? -1 : 1;
-
-  
-  nsMouseScrollEvent scrollEvent(true, NS_MOUSE_SCROLL, this);
-
-  
-  
-  InitEvent(scrollEvent);
-  scrollEvent.isShift     = modKeyState.mIsShiftDown;
-  scrollEvent.isControl   = modKeyState.mIsControlDown;
-  scrollEvent.isMeta      = false;
-  scrollEvent.isAlt       = modKeyState.mIsAltDown;
-
-  
-  
   MouseScrollHandler::ScrollTargetInfo scrollTargetInfo =
     handler->GetScrollTargetInfo(this, eventInfo, modKeyState);
 
-  
-  
-  scrollEvent.scrollFlags = eventInfo.GetScrollFlags();
-  if (scrollTargetInfo.dispatchPixelScrollEvent) {
-    scrollEvent.scrollFlags |= nsMouseScrollEvent::kHasPixels;
-  }
-
-  PRInt32 nativeDeltaForScroll =
-    eventInfo.GetNativeDelta() + lastEventInfo.mRemainingDeltaForScroll;
-
-  
-  
-  
-  if (eventInfo.IsPage()) {
-    scrollEvent.delta = nativeDeltaForScroll * orienter / WHEEL_DELTA;
-    PRInt32 recomputedNativeDelta = scrollEvent.delta * orienter / WHEEL_DELTA;
-    lastEventInfo.mRemainingDeltaForScroll =
-      nativeDeltaForScroll - recomputedNativeDelta;
-  } else {
-    double deltaPerUnit;
-    deltaPerUnit =
-      (double)WHEEL_DELTA / eventInfo.GetScrollAmount();
-    scrollEvent.delta =
-      RoundDelta((double)nativeDeltaForScroll * orienter / deltaPerUnit);
-    PRInt32 recomputedNativeDelta =
-      (PRInt32)(scrollEvent.delta * orienter * deltaPerUnit);
-    lastEventInfo.mRemainingDeltaForScroll =
-      nativeDeltaForScroll - recomputedNativeDelta;
-  }
-
-  if (scrollEvent.delta) {
+  nsMouseScrollEvent scrollEvent(true, NS_MOUSE_SCROLL, this);
+  if (lastEventInfo.InitMouseScrollEvent(this, scrollEvent,
+                                         scrollTargetInfo, modKeyState)) {
     DispatchWindowEvent(&scrollEvent);
     if (mOnDestroyCalled) {
       lastEventInfo.ResetTransaction();
@@ -6356,45 +6307,14 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
     }
   }
 
-  
-  if (!scrollTargetInfo.dispatchPixelScrollEvent) {
-    lastEventInfo.mRemainingDeltaForPixel = 0;
-    return;
-  }
-
   nsMouseScrollEvent pixelEvent(true, NS_MOUSE_PIXEL_SCROLL, this);
-  InitEvent(pixelEvent);
-  pixelEvent.scrollFlags = nsMouseScrollEvent::kAllowSmoothScroll;
-  pixelEvent.scrollFlags |= eventInfo.IsVertical() ?
-    nsMouseScrollEvent::kIsVertical : nsMouseScrollEvent::kIsHorizontal;
-  if (scrollTargetInfo.actualScrollAction ==
-        nsQueryContentEvent::SCROLL_ACTION_PAGE) {
-    pixelEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-  }
-  
-  pixelEvent.isShift     = scrollEvent.isShift;
-  pixelEvent.isControl   = scrollEvent.isControl;
-  pixelEvent.isMeta      = scrollEvent.isMeta;
-  pixelEvent.isAlt       = scrollEvent.isAlt;
-
-  PRInt32 nativeDeltaForPixel =
-    eventInfo.GetNativeDelta() + lastEventInfo.mRemainingDeltaForPixel;
-  
-  
-  PRInt32 orienterForPixel =
-    scrollTargetInfo.reversePixelScrollDirection ? -orienter : orienter;
-
-  double deltaPerPixel =
-    (double)WHEEL_DELTA / scrollTargetInfo.actualScrollAmount /
-      scrollTargetInfo.pixelsPerUnit;
-  pixelEvent.delta =
-    RoundDelta((double)nativeDeltaForPixel * orienterForPixel / deltaPerPixel);
-  PRInt32 recomputedNativeDelta =
-    (PRInt32)(pixelEvent.delta * orienterForPixel * deltaPerPixel);
-  lastEventInfo.mRemainingDeltaForPixel =
-    nativeDeltaForPixel - recomputedNativeDelta;
-  if (pixelEvent.delta != 0) {
+  if (lastEventInfo.InitMousePixelScrollEvent(this, pixelEvent,
+                                              scrollTargetInfo, modKeyState)) {
     DispatchWindowEvent(&pixelEvent);
+    if (mOnDestroyCalled) {
+      lastEventInfo.ResetTransaction();
+      return;
+    }
   }
   return;
 }
@@ -8312,6 +8232,14 @@ nsModifierKeyState::nsModifierKeyState()
   mIsAltDown     = IS_VK_DOWN(NS_VK_ALT);
 }
 
+void
+nsModifierKeyState::InitInputEvent(nsInputEvent& aInputEvent) const
+{
+  aInputEvent.isShift   = mIsShiftDown;
+  aInputEvent.isControl = mIsControlDown;
+  aInputEvent.isMeta    = false;
+  aInputEvent.isAlt     = mIsAltDown;
+}
 
 
 

@@ -15,6 +15,7 @@
 
 class nsWindow;
 class nsGUIEvent;
+class nsMouseScrollEvent;
 struct nsModifierKeyState;
 
 namespace mozilla {
@@ -159,6 +160,47 @@ public:
 
 
     void RecordEvent(const EventInfo& aEvent);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool InitMouseScrollEvent(nsWindow* aWindow,
+                              nsMouseScrollEvent& aMouseScrollEvent,
+                              const ScrollTargetInfo& aScrollTargetInfo,
+                              const nsModifierKeyState& aModKeyState);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool InitMousePixelScrollEvent(nsWindow* aWindow,
+                                   nsMouseScrollEvent& aPixelScrollEvent,
+                                   const ScrollTargetInfo& aScrollTargetInfo,
+                                   const nsModifierKeyState& aModKeyState);
+
+  private:
+    static PRInt32 RoundDelta(double aDelta);
 
     
     
