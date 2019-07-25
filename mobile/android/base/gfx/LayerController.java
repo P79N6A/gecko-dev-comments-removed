@@ -91,6 +91,7 @@ public class LayerController {
 
     
     private int mCheckerboardColor;
+    private boolean mCheckerboardShouldShowChecks;
 
     private boolean mForceRedraw;
 
@@ -453,8 +454,19 @@ public class LayerController {
     }
 
     
+    public boolean checkerboardShouldShowChecks() {
+        return mCheckerboardShouldShowChecks;
+    }
+
+    
     public int getCheckerboardColor() {
         return mCheckerboardColor;
+    }
+
+    
+    public void setCheckerboardShowChecks(boolean showChecks) {
+        mCheckerboardShouldShowChecks = showChecks;
+        mView.requestRender();
     }
 
     

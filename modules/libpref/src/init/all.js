@@ -287,6 +287,9 @@ pref("accessibility.typeaheadfind.prefillwithselection", true);
 pref("gfx.use_text_smoothing_setting", false);
 
 
+pref("gfx.show_checkerboard_pattern", true);
+
+
 pref("browser.frames.enabled", true);
 
 
