@@ -1,0 +1,114 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <dlfcn.h>
+#include <libunwind.h>
+
+#define panic(args...)				\
+	{ fprintf (stderr, args); exit (-1); }
+
+int verbose;
+int num_errors;
+int in_unwind;
+
+void *
+malloc(size_t s)
+{
+  static void * (*func)();
+
+  if(!func)
+    func = (void *(*)()) dlsym(RTLD_NEXT, "malloc");
+
+  if (in_unwind) {
+    num_errors++;
+    return NULL;
+  } else {
+    return func(s);
+  }
+}
+
+static void
+do_backtrace (void)
+{
+  unw_word_t ip, sp;
+  unw_cursor_t cursor;
+  unw_context_t uc;
+  int ret;
+
+  in_unwind = 1;
+  unw_getcontext (&uc);
+  if (unw_init_local (&cursor, &uc) < 0)
+    panic ("unw_init_local failed!\n");
+
+  do
+    {
+      unw_get_reg (&cursor, UNW_REG_IP, &ip);
+      unw_get_reg (&cursor, UNW_REG_SP, &sp);
+
+      ret = unw_step (&cursor);
+      if (ret < 0)
+	{
+	  ++num_errors;
+	}
+    }
+  while (ret > 0);
+  in_unwind = 0;
+}
+
+void
+foo3 ()
+{
+  do_backtrace ();
+}
+
+void
+foo2 ()
+{
+  foo3 ();
+}
+
+void
+foo1 ()
+{
+  foo2 ();
+}
+
+int
+main (int argc, char **argv)
+{
+  foo1();
+
+  if (num_errors > 0)
+    {
+      fprintf (stderr, "FAILURE: detected %d errors\n", num_errors);
+      exit (-1);
+    }
+  return 0;
+}
