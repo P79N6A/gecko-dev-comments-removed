@@ -46,12 +46,21 @@
 
 #include "prenv.h"
 
+#include "IPCMessageStart.h"
 #include "mozilla/ipc/Shmem.h"
+#include "mozilla/ipc/Transport.h"
 
 
 
 namespace {
+
+
+
+
+
+
 enum {
+    CHANNEL_OPENED_MESSAGE_TYPE = kuint16max - 6,
     SHMEM_DESTROYED_MESSAGE_TYPE = kuint16max - 5,
     UNBLOCK_CHILD_MESSAGE_TYPE = kuint16max - 4,
     BLOCK_CHILD_MESSAGE_TYPE   = kuint16max - 3,
@@ -134,6 +143,20 @@ LoggingEnabled()
 #endif
 }
 
+
+typedef IPCMessageStart ProtocolId;
+
+struct PrivateIPDLInterface {};
+
+bool
+Bridge(const PrivateIPDLInterface&,
+       AsyncChannel*, base::ProcessHandle, AsyncChannel*, base::ProcessHandle,
+       ProtocolId);
+
+bool
+UnpackChannelOpened(const PrivateIPDLInterface&,
+                    const IPC::Message&,
+                    TransportDescriptor*, base::ProcessId*, ProtocolId*);
 
 } 
 } 
