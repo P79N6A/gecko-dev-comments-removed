@@ -117,16 +117,6 @@ public:
 
 
 
-  void NotifyDOMTouchListenerAdded();
-
-  
-
-
-
-
-
-
-
   void CancelDefaultPanZoom();
 
   
@@ -508,10 +498,6 @@ private:
   
   
   ContentPainterStatus mContentPainterStatus;
-
-  
-  
-  bool mMayHaveTouchListeners;
 
   
   

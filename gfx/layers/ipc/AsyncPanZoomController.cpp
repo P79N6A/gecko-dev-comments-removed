@@ -90,7 +90,6 @@ AsyncPanZoomController::AsyncPanZoomController(GeckoContentController* aGeckoCon
      mState(NOTHING),
      mDPI(72),
      mContentPainterStatus(CONTENT_IDLE),
-     mMayHaveTouchListeners(false),
      mDisableNextTouchBatch(false),
      mHandlingTouchQueue(false)
 {
@@ -190,6 +189,12 @@ AsyncPanZoomController::ReceiveInputEvent(const nsInputEvent& aEvent,
 }
 
 nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent) {
+  
+  
+  
+  
+  
+  
   if (mFrameMetrics.mMayHaveTouchListeners && aEvent.mInputType == MULTITOUCH_INPUT &&
       (mState == NOTHING || mState == TOUCHING || mState == PANNING)) {
     const MultiTouchInput& multiTouchInput = aEvent.AsMultiTouchInput();
@@ -947,10 +952,6 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
     
     
     RequestContentRepaint();
-
-    
-    
-    mMayHaveTouchListeners = false;
   } else if (!mFrameMetrics.mCSSContentRect.IsEqualEdges(aViewportFrame.mCSSContentRect)) {
     mFrameMetrics.mCSSContentRect = aViewportFrame.mCSSContentRect;
     SetPageRect(mFrameMetrics.mCSSContentRect);
@@ -967,9 +968,6 @@ void AsyncPanZoomController::UpdateViewportSize(int aWidth, int aHeight) {
   FrameMetrics metrics = GetFrameMetrics();
   metrics.mViewport = nsIntRect(0, 0, aWidth, aHeight);
   mFrameMetrics = metrics;
-}
-
-void AsyncPanZoomController::NotifyDOMTouchListenerAdded() {
 }
 
 void AsyncPanZoomController::CancelDefaultPanZoom() {
