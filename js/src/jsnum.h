@@ -197,14 +197,14 @@ js_IntToString(JSContext *cx, jsint i);
 extern JSString * JS_FASTCALL
 js_NumberToString(JSContext *cx, jsdouble d);
 
-
-
-
-
-extern JSBool JS_FASTCALL
-js_NumberValueToCharBuffer(JSContext *cx, const js::Value &v, JSCharBuffer &cb);
-
 namespace js {
+
+
+
+
+
+extern bool JS_FASTCALL
+NumberValueToStringBuffer(JSContext *cx, const Value &v, StringBuffer &sb);
 
 
 extern JSFlatString *

@@ -1080,9 +1080,9 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
 
 static inline JSBool
-BufferToString(JSContext *cx, JSCharBuffer &cb, Value *rval)
+BufferToString(JSContext *cx, StringBuffer &sb, Value *rval)
 {
-    JSString *str = js_NewStringFromCharBuffer(cx, cb);
+    JSString *str = sb.finishString();
     if (!str)
         return false;
     rval->setString(str);
@@ -1117,28 +1117,28 @@ array_toSource(JSContext *cx, uintN argc, Value *vp)
 
 
 
-    JSCharBuffer cb(cx);
+    StringBuffer sb(cx);
 
     
 #if JS_HAS_SHARP_VARS
     if (IS_SHARP(he)) {
         JS_ASSERT(sharpchars != 0);
-        cb.replaceRawBuffer(sharpchars, js_strlen(sharpchars));
+        sb.replaceRawBuffer(sharpchars, js_strlen(sharpchars));
         goto make_string;
     } else if (sharpchars) {
         MAKE_SHARP(he);
-        cb.replaceRawBuffer(sharpchars, js_strlen(sharpchars));
+        sb.replaceRawBuffer(sharpchars, js_strlen(sharpchars));
     }
 #else
     if (IS_SHARP(he)) {
-        if (!js_AppendLiteral(cb, "[]"))
+        if (!sb.append("[]"))
             goto out;
         cx->free(sharpchars);
         goto make_string;
     }
 #endif
 
-    if (!cb.append('['))
+    if (!sb.append('['))
         goto out;
 
     jsuint length;
@@ -1169,23 +1169,23 @@ array_toSource(JSContext *cx, uintN argc, Value *vp)
             goto out;
 
         
-        if (!cb.append(chars, chars + str->length()))
+        if (!sb.append(chars, chars + str->length()))
             goto out;
         if (index + 1 != length) {
-            if (!js_AppendLiteral(cb, ", "))
+            if (!sb.append(", "))
                 goto out;
         } else if (hole) {
-            if (!cb.append(','))
+            if (!sb.append(','))
                 goto out;
         }
     }
 
     
-    if (!cb.append(']'))
+    if (!sb.append(']'))
         goto out;
 
   make_string:
-    if (!BufferToString(cx, cb, vp))
+    if (!BufferToString(cx, sb, vp))
         goto out;
 
     ok = true;
@@ -1245,7 +1245,7 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
 
 
 
-    JSCharBuffer cb(cx);
+    StringBuffer sb(cx);
 
     jsuint length;
     if (!js_GetLengthProperty(cx, obj, &length))
@@ -1273,19 +1273,19 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
                     goto out;
             }
 
-            if (!js_ValueToCharBuffer(cx, *rval, cb))
+            if (!ValueToStringBuffer(cx, *rval, sb))
                 goto out;
         }
 
         
         if (index + 1 != length) {
-            if (!cb.append(sep, seplen))
+            if (!sb.append(sep, seplen))
                 goto out;
         }
     }
 
     
-    if (!BufferToString(cx, cb, rval))
+    if (!BufferToString(cx, sb, rval))
         goto out;
 
     ok = true;

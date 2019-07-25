@@ -135,6 +135,7 @@ struct TraceMonitor;
 class StackSpace;
 class StackSegment;
 class FrameRegsIter;
+class StringBuffer;
 
 struct Compiler;
 struct Parser;
@@ -172,9 +173,6 @@ struct Shape;
 struct EmptyShape;
 
 } 
-
-
-typedef js::Vector<jschar, 32> JSCharBuffer;
 
 } 
 #endif  

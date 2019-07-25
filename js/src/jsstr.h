@@ -576,6 +576,8 @@ class JSShortString : public js::gc::Cell
 
 namespace js {
 
+class StringBuffer;
+
 
 
 
@@ -787,14 +789,6 @@ extern const char js_encodeURIComponent_str[];
 extern JSFlatString *
 js_NewString(JSContext *cx, jschar *chars, size_t length);
 
-
-
-
-
-
-extern JSFlatString *
-js_NewStringFromCharBuffer(JSContext *cx, JSCharBuffer &cb);
-
 extern JSLinearString *
 js_NewDependentString(JSContext *cx, JSString *base, size_t start,
                       size_t length);
@@ -842,15 +836,15 @@ ValueToString_TestForStringInline(JSContext *cx, const Value &v)
     return js_ValueToString(cx, v);
 }
 
-}
 
 
 
 
 
+extern bool
+ValueToStringBuffer(JSContext *cx, const Value &v, StringBuffer &sb);
 
-extern JSBool
-js_ValueToCharBuffer(JSContext *cx, const js::Value &v, JSCharBuffer &cb);
+} 
 
 
 

@@ -381,20 +381,6 @@ class Vector : AllocPolicy
 };
 
 
-
-
-
-
-
-
-template <class T, size_t N, class AP, size_t ArrayLength>
-JS_ALWAYS_INLINE bool
-js_AppendLiteral(Vector<T,N,AP> &v, const char (&array)[ArrayLength])
-{
-    return v.append(array, array + ArrayLength - 1);
-}
-
-
 #define REENTRANCY_GUARD_ET_AL \
     ReentrancyGuard g(*this); \
     JS_ASSERT_IF(usingInlineStorage(), mCapacity == sInlineCapacity); \

@@ -300,6 +300,8 @@ class TokenStream
     static const uintN ntokensMask = ntokens - 1;
 
   public:
+    typedef Vector<jschar, 32> CharBuffer;
+
     
 
 
@@ -325,7 +327,7 @@ class TokenStream
     JSContext *getContext() const { return cx; }
     bool onCurrentLine(const TokenPos &pos) const { return lineno == pos.end.lineno; }
     const Token &currentToken() const { return tokens[cursor]; }
-    const JSCharBuffer &getTokenbuf() const { return tokenbuf; }
+    const CharBuffer &getTokenbuf() const { return tokenbuf; }
     const char *getFilename() const { return filename; }
     uintN getLineno() const { return lineno; }
 
@@ -354,6 +356,8 @@ class TokenStream
     }
 
   private:
+    static JSAtom *atomize(JSContext *cx, CharBuffer &cb);
+
     
 
 
@@ -501,7 +505,7 @@ class TokenStream
     JSSourceHandler     listener;       
     void                *listenerData;  
     void                *listenerTSData;
-    JSCharBuffer        tokenbuf;       
+    CharBuffer          tokenbuf;       
     bool                maybeEOL[256];  
     bool                maybeStrSpecial[256];
     JSVersion           version;        

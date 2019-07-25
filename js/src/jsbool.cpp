@@ -166,10 +166,10 @@ js_BooleanToString(JSContext *cx, JSBool b)
 }
 
 
-JSBool
-js_BooleanToCharBuffer(JSContext *cx, JSBool b, JSCharBuffer &cb)
+bool
+js::BooleanToStringBuffer(JSContext *cx, JSBool b, StringBuffer &sb)
 {
-    return b ? js_AppendLiteral(cb, "true") : js_AppendLiteral(cb, "false");
+    return b ? sb.append("true") : sb.append("false");
 }
 
 JSBool
