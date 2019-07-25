@@ -103,6 +103,9 @@ public:
 
   static void ReleaseGlobals();
 
+  
+  static PRBool PrefEnabled();
+
 protected:
   nsresult ParseURL(const nsString& aURL);
   nsresult SetProtocol(const nsString& aProtocol);

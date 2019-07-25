@@ -6346,6 +6346,13 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
     }
 
     
+    if (name_struct->mDOMClassInfoID == eDOMClassInfo_WebSocket_id) {
+      if (!nsWebSocket::PrefEnabled()) {
+        return NS_OK;
+      }
+    }
+
+    
     
     nsCOMPtr<nsIXPConnectJSObjectHolder> proto_holder;
     rv = GetXPCProto(sXPConnect, cx, aWin, name_struct,
