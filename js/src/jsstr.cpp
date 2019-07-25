@@ -2214,25 +2214,18 @@ LambdaIsGetElem(JSObject &lambda, JSContext *cx)
     jsbytecode *pc = script->code;
 
     
-    if (JSOp(*pc) != JSOP_NAME)
+
+
+
+
+    if (JSOp(*pc) != JSOP_GETALIASEDVAR || fun->isHeavyweight())
         return NULL;
-    PropertyName *bname;
-    GET_NAME_FROM_BYTECODE(script, pc, 0, bname);
-    pc += JSOP_NAME_LENGTH;
-
-    
-
-
-
-    Value b;
-    RootedObject scope(cx, cx->stack.currentScriptedScopeChain());
-    while (true) {
-        if (!scope->isCall() && !scope->isBlock())
-            return NULL;
-        if (HasDataProperty(cx, scope, bname, &b))
-            break;
-        scope = &scope->asScope().enclosingScope();
-    }
+    ScopeCoordinate sc(pc);
+    ScopeObject *scope = &fun->environment()->asScope();
+    for (unsigned i = 0; i < sc.hops; ++i)
+        scope = &scope->enclosingScope().asScope();
+    Value b = scope->aliasedVar(sc);
+    pc += JSOP_GETALIASEDVAR_LENGTH;
 
     
     if (JSOp(*pc) != JSOP_GETARG || GET_SLOTNO(pc) != 0)
