@@ -1910,6 +1910,20 @@ struct JSContext
 
     js::CallStackSegment *containingSegment(const JSStackFrame *target);
 
+    
+
+
+    JSStackFrame *findFrameAtLevel(uintN targetLevel) {
+        JSStackFrame *fp = this->fp;
+        while (true) {
+            JS_ASSERT(fp && fp->script);
+            if (fp->script->staticLevel == targetLevel)
+                break;
+            fp = fp->down;
+        }
+        return fp;
+    }
+ 
 #ifdef JS_THREADSAFE
     JSThread            *thread;
     jsrefcount          requestDepth;

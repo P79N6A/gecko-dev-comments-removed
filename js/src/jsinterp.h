@@ -422,7 +422,7 @@ ValueToId(JSContext *cx, const Value &v, jsid *idp);
 
 
 extern const js::Value &
-GetUpvar(JSContext *cx, uint16 closureLevel, js::UpvarCookie cookie);
+GetUpvar(JSContext *cx, uintN level, js::UpvarCookie cookie);
 
 } 
 
