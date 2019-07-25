@@ -161,7 +161,7 @@ NS_IMPL_RELEASE(nsChromeRegistry)
 already_AddRefed<nsIChromeRegistry>
 nsChromeRegistry::GetService()
 {
-  if (!nsChromeRegistry::gChromeRegistry)
+  if (!gChromeRegistry)
   {
     
     
@@ -170,7 +170,7 @@ nsChromeRegistry::GetService()
     if (!gChromeRegistry)
       return NULL;
   }
-  NS_IF_ADDREF(gChromeRegistry);
+  NS_ADDREF(gChromeRegistry);
   return gChromeRegistry;
 }
 
