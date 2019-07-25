@@ -72,11 +72,11 @@ public:
   }
 
   
-  bool SetFullyOpen()
+  bool GetFullyOpen() {return mFullyOpen;}
+  void SetFullyOpen() 
   {
-    bool result = !mFullyOpen;
+    NS_ABORT_IF_FALSE(!mFullyOpen, "SetFullyOpen already open");
     mFullyOpen = 1;
-    return result;
   }
 
   nsAHttpTransaction *Transaction()
@@ -113,7 +113,7 @@ private:
                                           nsAutoPtr<nsCString> &,
                                           void *);
 
-  void     ChangeState(enum stateType );
+  void     ChangeState(enum stateType);
   nsresult ParseHttpRequestHeaders(const char *, PRUint32, PRUint32 *);
   nsresult TransmitFrame(const char *, PRUint32 *);
   void     GenerateDataFrameHeader(PRUint32, bool);
@@ -157,6 +157,8 @@ private:
   
   
   
+  
+  
   PRUint32                     mBlockedOnWrite       : 1;
 
   
@@ -180,8 +182,8 @@ private:
   
   
   nsAutoArrayPtr<char>         mTxInlineFrame;
-  PRUint32                     mTxInlineFrameAllocation;
   PRUint32                     mTxInlineFrameSize;
+  PRUint32                     mTxInlineFrameUsed;
   PRUint32                     mTxInlineFrameSent;
 
   
@@ -201,7 +203,7 @@ private:
   
   
   
-  PRInt64                      mRequestBodyLen;
+  PRInt64                      mRequestBodyLenRemaining;
 
   
   PRInt32                      mPriority;
