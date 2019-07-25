@@ -500,9 +500,7 @@ def main(argv):
         
         ion_flags = [ 
                       ['--ion', '-n'],
-                      ['--ion', '-n', '--ion-regalloc=greedy'],
                       ['--ion', '-n', '--ion-gvn=off', '--ion-licm=off' ],
-                      ['--ion', '-n', '--ion-gvn=off', '--ion-licm=off', '--ion-regalloc=greedy']
                     ]
         for test in test_list:
             for variant in ion_flags:
