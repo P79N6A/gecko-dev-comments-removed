@@ -8758,6 +8758,21 @@ nsDocument::RestorePreviousFullScreenState()
     } else {
       
       
+      if (fullScreenDoc != doc) {
+        
+        
+        
+        
+        if (!nsContentUtils::IsSitePermAllow(doc->NodePrincipal(), "fullscreen")) {
+          nsRefPtr<nsAsyncDOMEvent> e =
+            new nsAsyncDOMEvent(doc,
+                                NS_LITERAL_STRING("MozEnteredDomFullscreen"),
+                                true,
+                                true);
+          e->PostDOMEvent();
+        }
+
+      }
       sFullScreenDoc = do_GetWeakReference(doc);
       break;
     }
@@ -9075,6 +9090,13 @@ nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
   for (PRUint32 i = 0; i < changed.Length(); ++i) {
     DispatchFullScreenChange(changed[changed.Length() - i - 1]);
   }
+
+  nsRefPtr<nsAsyncDOMEvent> e =
+    new nsAsyncDOMEvent(this,
+                        NS_LITERAL_STRING("MozEnteredDomFullscreen"),
+                        true,
+                        true);
+  e->PostDOMEvent();
 
   
   sFullScreenDoc = do_GetWeakReference(static_cast<nsIDocument*>(this));
