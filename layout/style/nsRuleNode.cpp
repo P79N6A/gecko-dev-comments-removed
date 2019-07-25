@@ -1716,8 +1716,13 @@ struct AutoCSSValueArray {
   AutoCSSValueArray(void* aStorage, size_t aCount) {
     NS_ABORT_IF_FALSE(size_t(aStorage) % NS_ALIGNMENT_OF(nsCSSValue) == 0,
                       "bad alignment from alloca");
-    mArray = new (aStorage) nsCSSValue[aCount];
     mCount = aCount;
+    
+    
+    mArray = static_cast<nsCSSValue*>(aStorage);
+    for (size_t i = 0; i < mCount; ++i) {
+      new (mArray + i) nsCSSValue();
+    }
   }
 
   ~AutoCSSValueArray() {
