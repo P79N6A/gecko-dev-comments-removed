@@ -138,20 +138,22 @@ static bool IsFixedFrame(nsIFrame* aFrame)
   return aFrame && aFrame->GetParent() && !aFrame->GetParent()->GetParent();
 }
 
-static bool IsFixedItem(nsDisplayItem *aItem, nsDisplayListBuilder* aBuilder)
+static bool IsFixedItem(nsDisplayItem *aItem, nsDisplayListBuilder* aBuilder,
+                          bool* aIsFixedBackground)
 {
   nsIFrame* activeScrolledRoot =
-    nsLayoutUtils::GetActiveScrolledRootFor(aItem, aBuilder);
+    nsLayoutUtils::GetActiveScrolledRootFor(aItem, aBuilder, aIsFixedBackground);
   return activeScrolledRoot &&
          !nsLayoutUtils::ScrolledByViewportScrolling(activeScrolledRoot,
                                                      aBuilder);
 }
 
 static bool ForceVisiblityForFixedItem(nsDisplayListBuilder* aBuilder,
-                                       nsDisplayItem* aItem)
+                                         nsDisplayItem* aItem,
+                                         bool* aIsFixedBackground)
 {
   return aBuilder->GetDisplayPort() && aBuilder->GetHasFixedItems() &&
-         IsFixedItem(aItem, aBuilder);
+         IsFixedItem(aItem, aBuilder, aIsFixedBackground);
 }
 
 void nsDisplayListBuilder::SetDisplayPort(const nsRect& aDisplayPort)
@@ -446,26 +448,22 @@ TreatAsOpaque(nsDisplayItem* aItem, nsDisplayListBuilder* aBuilder,
   return opaque;
 }
 
-static nsRect
-GetDisplayPortBounds(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem)
+static nsRect GetDisplayPortBounds(nsDisplayListBuilder* aBuilder,
+                                   nsDisplayItem* aItem,
+                                   bool aIgnoreTransform)
 {
-  
-  
-  
-  
-  
   nsIFrame* frame = aItem->GetUnderlyingFrame();
-  if (aItem->GetType() == nsDisplayItem::TYPE_TRANSFORM) {
-    frame = nsLayoutUtils::GetCrossDocParentFrame(frame);
+  const nsRect* displayport = aBuilder->GetDisplayPort();
+
+  if (aIgnoreTransform) {
+    return *displayport;
   }
 
-  const nsRect* displayport = aBuilder->GetDisplayPort();
-  nsRect result = nsLayoutUtils::TransformRectToBoundsInAncestor(
-                    frame,
-                    nsRect(0, 0, displayport->width, displayport->height),
-                    aBuilder->ReferenceFrame());
-  result.MoveBy(aBuilder->ToReferenceFrame(frame));
-  return result;
+  
+  return nsLayoutUtils::TransformAncestorRectToFrame(
+           frame,
+           nsRect(0, 0, displayport->width, displayport->height),
+           aBuilder->ReferenceFrame());
 }
 
 bool
@@ -510,8 +508,9 @@ nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
     nsRect bounds = item->GetBounds(aBuilder);
 
     nsRegion itemVisible;
-    if (ForceVisiblityForFixedItem(aBuilder, item)) {
-      itemVisible.And(GetDisplayPortBounds(aBuilder, item), bounds);
+    bool isFixedBackground;
+    if (ForceVisiblityForFixedItem(aBuilder, item, &isFixedBackground)) {
+      itemVisible.And(GetDisplayPortBounds(aBuilder, item, isFixedBackground), bounds);
     } else {
       itemVisible.And(*aVisibleRegion, bounds);
     }
@@ -898,8 +897,9 @@ bool nsDisplayItem::RecomputeVisibility(nsDisplayListBuilder* aBuilder,
   nsRect bounds = GetBounds(aBuilder);
 
   nsRegion itemVisible;
-  if (ForceVisiblityForFixedItem(aBuilder, this)) {
-    itemVisible.And(GetDisplayPortBounds(aBuilder, this), bounds);
+  bool isFixedBackground;
+  if (ForceVisiblityForFixedItem(aBuilder, this, &isFixedBackground)) {
+    itemVisible.And(GetDisplayPortBounds(aBuilder, this, isFixedBackground), bounds);
   } else {
     itemVisible.And(*aVisibleRegion, bounds);
   }
