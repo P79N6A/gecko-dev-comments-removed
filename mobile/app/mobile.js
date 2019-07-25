@@ -321,9 +321,7 @@ pref("geo.wifi.uri", "https://www.google.com/loc/json");
 
 pref("geo.enabled", true);
 
-#ifdef WINCE
 pref("layout.css.devPixelsPerPx", "1");
-#endif
 
 
 pref("content.max.deflected.tokens", 10);
