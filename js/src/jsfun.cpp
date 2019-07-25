@@ -771,17 +771,6 @@ NewCallObject(JSContext *cx, JSScript *script, JSObject &scopeChain, JSObject *c
     size_t slots = JSObject::CALL_RESERVED_SLOTS + argsVars;
     gc::AllocKind kind = gc::GetGCObjectKind(slots);
 
-    
-
-
-
-
-
-    if (cx->typeInferenceEnabled() && gc::GetGCKindSlots(kind) < slots) {
-        kind = gc::GetGCObjectKind(JSObject::CALL_RESERVED_SLOTS);
-        JS_ASSERT(gc::GetGCKindSlots(kind) == JSObject::CALL_RESERVED_SLOTS);
-    }
-
     JSObject *callobj = js_NewGCObject(cx, kind);
     if (!callobj)
         return NULL;
@@ -840,7 +829,7 @@ CreateFunCallObject(JSContext *cx, StackFrame *fp)
 
 
 
-    if (JSAtom *lambdaName = CallObjectLambdaName(fp->fun())) {
+    if (JSAtom *lambdaName = (fp->fun()->flags & JSFUN_LAMBDA) ? fp->fun()->atom : NULL) {
         scopeChain = NewDeclEnvObject(cx, fp);
         if (!scopeChain)
             return NULL;
@@ -957,16 +946,6 @@ js_PutCallObject(StackFrame *fp)
                     callobj.setSlot(JSObject::CALL_RESERVED_SLOTS + nargs + e, fp->slots()[e]);
                 }
             }
-
-            
-
-
-
-            types::TypeScriptNesting *nesting = script->nesting();
-            if (nesting && script->isOuterFunction) {
-                nesting->argArray = callobj.callObjArgArray();
-                nesting->varArray = callobj.callObjVarArray();
-            }
         }
 
         
@@ -1049,11 +1028,7 @@ SetCallArg(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
     else
         obj->setCallObjArg(i, *vp);
 
-    JSFunction *fun = obj->getCallObjCalleeFunction();
-    JSScript *script = fun->script();
-    if (!script->ensureHasTypes(cx, fun))
-        return false;
-
+    JSScript *script = obj->getCallObjCalleeFunction()->script();
     TypeScript::SetArgument(cx, script, i, *vp);
 
     return true;
@@ -1120,11 +1095,7 @@ SetCallVar(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
     else
         obj->setCallObjVar(i, *vp);
 
-    JSFunction *fun = obj->getCallObjCalleeFunction();
-    JSScript *script = fun->script();
-    if (!script->ensureHasTypes(cx, fun))
-        return false;
-
+    JSScript *script = obj->getCallObjCalleeFunction()->script();
     TypeScript::SetLocal(cx, script, i, *vp);
 
     return true;
@@ -1852,7 +1823,6 @@ fun_toSource(JSContext *cx, uintN argc, Value *vp)
 JSBool
 js_fun_call(JSContext *cx, uintN argc, Value *vp)
 {
-    LeaveTrace(cx);
     Value fval = vp[1];
 
     if (!js_IsCallable(fval)) {
@@ -1917,8 +1887,6 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     jsuint length;
     if (!js_GetLengthProperty(cx, aobj, &length))
         return false;
-
-    LeaveTrace(cx);
 
     
     if (length > StackSpace::ARGS_LENGTH_MAX) {
@@ -2026,8 +1994,6 @@ CallOrConstructBoundFunction(JSContext *cx, uintN argc, Value *vp)
     JSObject *obj = &vp[0].toObject();
     JS_ASSERT(obj->isFunction());
     JS_ASSERT(obj->isBoundFunction());
-
-    LeaveTrace(cx);
 
     bool constructing = IsConstructing(vp);
 
@@ -2418,8 +2384,9 @@ js_InitFunctionClass(JSContext *cx, JSObject *obj)
     script->code[0] = JSOP_STOP;
     script->code[1] = SRC_NULL;
     fun->u.i.script = script;
-    fun->getType(cx)->interpretedFunction = fun;
+    fun->getType(cx)->functionScript = script;
     script->hasFunction = true;
+    script->where.fun = fun;
     script->setOwnerObject(fun);
     js_CallNewScriptHook(cx, script, fun);
 
