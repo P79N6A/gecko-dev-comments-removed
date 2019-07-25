@@ -116,6 +116,9 @@ public:
   NS_DECL_NSIACCESSIBLEVALUE
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCESSIBLE_IMPL_IID)
 
+  using nsAccessNode::ScrollTo;
+  using nsAccessNode::GetLanguage;
+
   
   
 
@@ -128,6 +131,17 @@ public:
 
 
   virtual void Description(nsString& aDescription);
+
+  
+
+
+  inline already_AddRefed<nsIDOMNode> DOMNode() const
+  {
+    nsIDOMNode *DOMNode = nsnull;
+    if (GetNode())
+      CallQueryInterface(GetNode(), &DOMNode);
+    return DOMNode;
+  }
 
   
 
