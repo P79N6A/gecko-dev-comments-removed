@@ -3219,21 +3219,6 @@ nsNavHistory::RemoveAllPages()
 
 
 
-NS_IMETHODIMP
-nsNavHistory::HidePage(nsIURI *aURI)
-{
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aURI);
-
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-
-
-
-
-
 
 
 NS_IMETHODIMP
