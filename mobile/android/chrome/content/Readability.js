@@ -511,7 +511,28 @@ Readability.prototype = {
       let node = null;
       let nodesToScore = [];
 
-      for (let nodeIndex = 0; (node = allElements[nodeIndex]); nodeIndex += 1) {
+      
+      for (let i = allElements.length; --i >= 0;) {
+        allElements[i]._index = i;
+      }
+
+      
+
+
+
+
+      function purgeNode(node) {
+        for (let i = node.childNodes.length; --i >= 0;) {
+          purgeNode(node.childNodes[i]);
+        }
+        if (node._index !== undefined && allElements[node._index] == node)
+          delete allElements[node._index];
+      }
+
+      for (let nodeIndex = 0; nodeIndex < allElements.length; nodeIndex++) {
+        if (!(node = allElements[nodeIndex]))
+          continue;
+
         
         if (stripUnlikelyCandidates) {
           let unlikelyMatchString = node.className + node.id;
@@ -520,7 +541,7 @@ Readability.prototype = {
             node.tagName !== "BODY") {
             this.log("Removing unlikely candidate - " + unlikelyMatchString);
             node.parentNode.removeChild(node);
-            nodeIndex -= 1;
+            purgeNode(node);
             continue;
           }
         }
@@ -534,6 +555,12 @@ Readability.prototype = {
             let newNode = doc.createElement('p');
             newNode.innerHTML = node.innerHTML;
             node.parentNode.replaceChild(newNode, node);
+
+            
+            newNode._index = nodeIndex;
+            allElements[nodeIndex] = newNode;
+            purgeNode(node);
+
             nodeIndex -= 1;
             nodesToScore[nodesToScore.length] = node;
           } else {
@@ -545,10 +572,9 @@ Readability.prototype = {
 
               if (childNode.nodeType === 3) { 
                 let p = doc.createElement('p');
-                p.innerHTML = childNode.nodeValue;
+                p.innerHTML = childNode.textContent;
                 p.style.display = 'inline';
                 p.className = 'readability-styled';
-
                 childNode.parentNode.replaceChild(p, childNode);
               }
             }
