@@ -261,8 +261,7 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
 
   renderingContext.SetFont(GetStyleFont()->mFont,
                            aPresContext->GetUserFontSet());
-  nsCOMPtr<nsIFontMetrics> fm;
-  renderingContext.GetFontMetrics(*getter_AddRefs(fm));
+  nsCOMPtr<nsIFontMetrics> fm = renderingContext.GetFontMetrics();
 
   
   
@@ -414,8 +413,7 @@ nsMathMLmrootFrame::GetIntrinsicWidth(nsIRenderingContext* aRenderingContext)
                                          nsLayoutUtils::PREF_WIDTH);
   nscoord sqrWidth = mSqrChar.GetMaxWidth(PresContext(), *aRenderingContext);
 
-  nsCOMPtr<nsIFontMetrics> fm;
-  aRenderingContext->GetFontMetrics(*getter_AddRefs(fm));
+  nsCOMPtr<nsIFontMetrics> fm = aRenderingContext->GetFontMetrics();
   nscoord dxSqr;
   GetRadicalXOffsets(indexWidth, sqrWidth, fm, nsnull, &dxSqr);
 

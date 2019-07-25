@@ -2132,7 +2132,7 @@ void
 nsMathMLChar::ApplyTransforms(nsIRenderingContext& aRenderingContext, nsRect &r)
 {
   
-  aRenderingContext.Translate(r.x, r.y);
+  aRenderingContext.Translate(r.TopLeft());
   aRenderingContext.Scale(mScaleX, mScaleY);
 
   

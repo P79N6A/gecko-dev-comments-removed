@@ -553,7 +553,7 @@ nsPageFrame::PaintPageContent(nsIRenderingContext& aRenderingContext,
   float scale = PresContext()->GetPageScale();
   aRenderingContext.PushState();
   nsPoint framePos = aPt + pageContentFrame->GetOffsetTo(this);
-  aRenderingContext.Translate(framePos.x, framePos.y);
+  aRenderingContext.Translate(framePos);
   
   
   rect -= framePos;

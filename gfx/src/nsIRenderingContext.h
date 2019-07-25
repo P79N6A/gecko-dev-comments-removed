@@ -42,6 +42,7 @@
 #define nsIRenderingContext_h___
 
 #include "nscore.h"
+#include "nsCOMPtr.h"
 #include "nsISupports.h"
 #include "nsColor.h"
 #include "nsCoord.h"
@@ -142,8 +143,7 @@ public:
 
 
 
-
-  NS_IMETHOD GetDeviceContext(nsIDeviceContext *& aDeviceContext) = 0;
+  virtual already_AddRefed<nsIDeviceContext> GetDeviceContext() = 0;
 
   
 
@@ -223,21 +223,20 @@ public:
 
 
 
-  NS_IMETHOD GetFontMetrics(nsIFontMetrics *&aFontMetrics) = 0;
+  virtual already_AddRefed<nsIFontMetrics> GetFontMetrics() = 0;
+
+  
+
+
+
+  NS_IMETHOD Translate(const nsPoint& aPt) = 0;
 
   
 
 
 
 
-  NS_IMETHOD Translate(nscoord aX, nscoord aY) = 0;
-  
-  
-
-
-
-
-  NS_IMETHOD SetTranslation(nscoord aX, nscoord aY) = 0;
+  NS_IMETHOD SetTranslation(const nsPoint& aPt) = 0;
 
   
 
@@ -254,10 +253,10 @@ public:
     nsIRenderingContext* mCtx;
     PushedTranslation mPushed;
   public:
-    AutoPushTranslation(nsIRenderingContext* aCtx, nscoord aX, nscoord aY)
+    AutoPushTranslation(nsIRenderingContext* aCtx, const nsPoint& aPt)
       : mCtx(aCtx) {
       mCtx->PushTranslation(&mPushed);
-      mCtx->Translate(aX, aY);
+      mCtx->Translate(aPt);
     }
     ~AutoPushTranslation() {
       mCtx->PopTranslation(&mPushed);
@@ -272,7 +271,14 @@ public:
 
 
 
-  NS_IMETHOD GetCurrentTransform(nsTransform2D *&aTransform) = 0;
+  virtual nsTransform2D* GetCurrentTransform() = 0;
+
+  
+
+
+
+
+  NS_IMETHOD DrawLine(const nsPoint& aStartPt, const nsPoint& aEndPt) = 0;
 
   
 

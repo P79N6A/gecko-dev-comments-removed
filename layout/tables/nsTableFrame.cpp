@@ -1369,7 +1369,7 @@ nsTableFrame::PaintTableBorderBackground(nsIRenderingContext& aRenderingContext,
     else {
       
       
-      nsIRenderingContext::AutoPushTranslation translate(&aRenderingContext, aPt.x, aPt.y);
+      nsIRenderingContext::AutoPushTranslation translate(&aRenderingContext, aPt);
       PaintBCBorders(aRenderingContext, aDirtyRect - aPt);
     }
   }

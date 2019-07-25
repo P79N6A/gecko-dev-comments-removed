@@ -282,8 +282,7 @@ nsMathMLFrame::GetRuleThickness(nsIRenderingContext& aRenderingContext,
   
   
 #ifdef NS_DEBUG
-  nsCOMPtr<nsIFontMetrics> currFontMetrics;
-  aRenderingContext.GetFontMetrics(*getter_AddRefs(currFontMetrics));
+  nsCOMPtr<nsIFontMetrics> currFontMetrics = aRenderingContext.GetFontMetrics();
   NS_ASSERTION(currFontMetrics->Font().Equals(aFontMetrics->Font()),
       "unexpected state");
 #endif
@@ -321,8 +320,7 @@ nsMathMLFrame::GetAxisHeight(nsIRenderingContext& aRenderingContext,
   
   
 #ifdef NS_DEBUG
-  nsCOMPtr<nsIFontMetrics> currFontMetrics;
-  aRenderingContext.GetFontMetrics(*getter_AddRefs(currFontMetrics));
+  nsCOMPtr<nsIFontMetrics> currFontMetrics = aRenderingContext.GetFontMetrics();
   NS_ASSERTION(currFontMetrics->Font().Equals(aFontMetrics->Font()),
 	"unexpected state");
 #endif

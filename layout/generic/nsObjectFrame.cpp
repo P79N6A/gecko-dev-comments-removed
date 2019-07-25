@@ -1323,7 +1323,7 @@ nsObjectFrame::PaintPrintPlugin(nsIFrame* aFrame, nsIRenderingContext* aCtx,
                                 const nsRect& aDirtyRect, nsPoint aPt)
 {
   nsPoint pt = aPt + aFrame->GetUsedBorderAndPadding().TopLeft();
-  nsIRenderingContext::AutoPushTranslation translate(aCtx, pt.x, pt.y);
+  nsIRenderingContext::AutoPushTranslation translate(aCtx, pt);
   
   static_cast<nsObjectFrame*>(aFrame)->PrintPlugin(*aCtx, aDirtyRect);
 }
@@ -2284,7 +2284,7 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
     } else {
       
       nsIRenderingContext::AutoPushTranslation
-        translate(&aRenderingContext, aPluginRect.x, aPluginRect.y);
+        translate(&aRenderingContext, aPluginRect.TopLeft());
 
       
       gfxRect tmpRect(0, 0, 0, 0);
@@ -2424,7 +2424,7 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
     if (window->type == NPWindowTypeDrawable) {
       
       nsIRenderingContext::AutoPushTranslation
-        translate(&aRenderingContext, aPluginRect.x, aPluginRect.y);
+        translate(&aRenderingContext, aPluginRect.TopLeft());
 
       
       PRBool doupdatewindow = PR_FALSE;

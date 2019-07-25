@@ -5622,7 +5622,7 @@ PresShell::PaintRangePaintInfo(nsTArray<nsAutoPtr<RangePaintInfo> >* aItems,
     rc->Scale(scale, scale);
 
   
-  rc->Translate(-aArea.x, -aArea.y);
+  rc->Translate(-aArea.TopLeft());
 
   
   
@@ -5645,7 +5645,7 @@ PresShell::PaintRangePaintInfo(nsTArray<nsAutoPtr<RangePaintInfo> >* aItems,
     
     
     nsIRenderingContext::AutoPushTranslation
-      translate(rc, rangeInfo->mRootOffset.x, rangeInfo->mRootOffset.y);
+      translate(rc, rangeInfo->mRootOffset);
 
     aArea.MoveBy(-rangeInfo->mRootOffset.x, -rangeInfo->mRootOffset.y);
     nsRegion visible(aArea);

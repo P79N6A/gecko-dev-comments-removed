@@ -1136,8 +1136,7 @@ nsNativeThemeGTK::GetMinimumWidgetSize(nsIRenderingContext* aContext,
     {
       
 
-      nsCOMPtr<nsIDeviceContext> dc;
-      aContext->GetDeviceContext(*getter_AddRefs(dc));
+      nsCOMPtr<nsIDeviceContext> dc = aContext->GetDeviceContext();
 
       nsIntMargin border;
       nsNativeThemeGTK::GetWidgetBorder(dc, aFrame, aWidgetType, &border);
