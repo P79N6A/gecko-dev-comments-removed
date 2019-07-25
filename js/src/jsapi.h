@@ -5650,6 +5650,12 @@ extern JS_PUBLIC_API(void)
 JS_ReportErrorNumber(JSContext *cx, JSErrorCallback errorCallback,
                      void *userRef, const unsigned errorNumber, ...);
 
+#ifdef va_start
+extern JS_PUBLIC_API(void)
+JS_ReportErrorNumberVA(JSContext *cx, JSErrorCallback errorCallback,
+                       void *userRef, const unsigned errorNumber, va_list ap);
+#endif
+
 
 
 
@@ -5700,6 +5706,7 @@ struct JSErrorReport {
     unsigned           errorNumber;    
     const jschar    *ucmessage;     
     const jschar    **messageArgs;  
+    int16_t         exnType;        
 };
 
 
