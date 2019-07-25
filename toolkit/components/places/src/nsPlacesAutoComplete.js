@@ -1072,9 +1072,7 @@ nsPlacesAutoComplete.prototype = {
   
   
 
-  classDescription: "AutoComplete result generator for Places.",
   classID: Components.ID("d0272978-beab-4adc-a3d4-04b76acfa4e7"),
-  contractID: "@mozilla.org/autocomplete/search;1?name=history",
 
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIAutoCompleteSearch,
@@ -1084,11 +1082,5 @@ nsPlacesAutoComplete.prototype = {
   ])
 };
 
-
-
-
 let components = [nsPlacesAutoComplete];
-function NSGetModule(compMgr, fileSpec)
-{
-  return XPCOMUtils.generateModule(components);
-}
+const NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
