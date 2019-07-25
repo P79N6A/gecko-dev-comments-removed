@@ -120,6 +120,14 @@ extern JSONParser *
 js_BeginJSONParse(JSContext *cx, js::Value *rootVal, bool suppressErrors = false);
 
 
+#ifdef STRICT
+#undef STRICT
+#endif
+#ifdef LEGACY
+#undef LEGACY
+#endif
+
+
 
 
 
