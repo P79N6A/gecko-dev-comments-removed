@@ -413,18 +413,18 @@ gTests.push({
   },
 
   onCompositionEnd: function() {
-    gCurrentTest._checkState();
-
-    let isHiddenHeader = function() {
-      return gCurrentTest.popupHeader.hidden;
-    }
-
-    
-    
-    
     
 
-    
+
+
+
+
+
+
+
+
+
+
 
 
 
