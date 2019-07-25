@@ -12,7 +12,6 @@
 #include "nsIDOMStorage.h"
 #include "nsIDOMStorageItem.h"
 #include "nsIPermissionManager.h"
-#include "nsIPrivacyTransitionObserver.h"
 #include "nsInterfaceHashtable.h"
 #include "nsVoidArray.h"
 #include "nsTArray.h"
@@ -25,7 +24,6 @@
 #include "nsIObserver.h"
 #include "nsITimer.h"
 #include "nsWeakReference.h"
-#include "nsIInterfaceRequestor.h"
 
 #include "nsDOMStorageDBWrapper.h"
 
@@ -89,6 +87,8 @@ public:
 
   nsresult ClearAllStorages();
 
+  bool InPrivateBrowsingMode() { return mInPrivateBrowsing; }
+
   static nsresult Initialize();
   static nsDOMStorageManager* GetInstance();
   static void Shutdown();
@@ -104,16 +104,17 @@ public:
 protected:
 
   nsTHashtable<nsDOMStorageEntry> mStorages;
+  bool mInPrivateBrowsing;
 };
 
-class DOMStorageBase : public nsIPrivacyTransitionObserver
+class DOMStorageBase : public nsISupports
 {
 public:
   DOMStorageBase();
   DOMStorageBase(DOMStorageBase&);
 
-  virtual void InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate);
-  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist, bool aPrivate);
+  virtual void InitAsSessionStorage(nsIURI* aDomainURI);
+  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist);
 
   virtual nsTArray<nsString>* GetKeys(bool aCallerSecure) = 0;
   virtual nsresult GetLength(bool aCallerSecure, PRUint32* aLength) = 0;
@@ -125,10 +126,7 @@ public:
   virtual nsresult RemoveValue(bool aCallerSecure, const nsAString& aKey,
                                nsAString& aOldValue) = 0;
   virtual nsresult Clear(bool aCallerSecure, PRInt32* aOldCount) = 0;
-
   
-  bool CanUseStorage();
-
   
   
   
@@ -137,10 +135,6 @@ public:
   
   bool UseDB() {
     return mUseDB;
-  }
-
-  bool IsPrivate() {
-    return mInPrivateBrowsing;
   }
 
   
@@ -204,23 +198,21 @@ protected:
   nsCString mQuotaDomainDBKey;
 
   bool mCanUseChromePersist;
-  bool mInPrivateBrowsing;
 };
 
 class DOMStorageImpl : public DOMStorageBase
-                     , public nsSupportsWeakReference
+
 {
 public:
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(DOMStorageImpl, nsIPrivacyTransitionObserver)
+  NS_DECL_CYCLE_COLLECTION_CLASS(DOMStorageImpl)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_NSIPRIVACYTRANSITIONOBSERVER
 
   DOMStorageImpl(nsDOMStorage*);
   DOMStorageImpl(nsDOMStorage*, DOMStorageImpl&);
   ~DOMStorageImpl();
 
-  virtual void InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate);
-  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist, bool aPrivate);
+  virtual void InitAsSessionStorage(nsIURI* aDomainURI);
+  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist);
 
   bool SessionOnly() {
     return mSessionOnly;
@@ -291,7 +283,7 @@ private:
   
   
   void InitFromChild(bool aUseDB, bool aCanUseChromePersist, bool aSessionOnly,
-                     bool aPrivate, const nsACString& aDomain,
+                     const nsACString& aDomain,
                      const nsACString& aScopeDBKey,
                      const nsACString& aQuotaDomainDBKey,
                      const nsACString& aQuotaETLDplus1DomainDBKey,
@@ -314,8 +306,7 @@ private:
 class nsDOMStorage2;
 
 class nsDOMStorage : public nsIDOMStorageObsolete,
-                     public nsPIDOMStorage,
-                     public nsIInterfaceRequestor
+                     public nsPIDOMStorage
 {
 public:
   nsDOMStorage();
@@ -326,17 +317,14 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMStorage, nsIDOMStorageObsolete)
 
   NS_DECL_NSIDOMSTORAGEOBSOLETE
-  NS_DECL_NSIINTERFACEREQUESTOR
 
   
   nsresult GetItem(const nsAString& key, nsAString& aData);
   nsresult Clear();
 
   
-  virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
-                                        bool aPrivate);
-  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
-                                      bool aPrivate);
+  virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI);
+  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI);
   virtual already_AddRefed<nsIDOMStorage> Clone();
   virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
   virtual bool IsForkOf(nsIDOMStorage* aThat);
@@ -348,7 +336,7 @@ public:
   
   
   static bool
-  CanUseStorage(DOMStorageBase* aStorage = nsnull);
+  CanUseStorage(bool* aSessionOnly);
 
   
   
@@ -393,8 +381,7 @@ public:
 };
 
 class nsDOMStorage2 : public nsIDOMStorage,
-                      public nsPIDOMStorage,
-                      public nsIInterfaceRequestor
+                      public nsPIDOMStorage
 {
 public:
   
@@ -405,13 +392,10 @@ public:
   nsDOMStorage2();
 
   NS_DECL_NSIDOMSTORAGE
-  NS_DECL_NSIINTERFACEREQUESTOR
 
   
-  virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
-                                        bool aPrivate);
-  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
-                                      bool aPrivate);
+  virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI);
+  virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI);
   virtual already_AddRefed<nsIDOMStorage> Clone();
   virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
   virtual bool IsForkOf(nsIDOMStorage* aThat);
