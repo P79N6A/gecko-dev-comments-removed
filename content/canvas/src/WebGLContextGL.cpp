@@ -3435,10 +3435,6 @@ WebGLContext::ReadPixels_base(WebGLint x, WebGLint y, WebGLsizei width, WebGLsiz
             return ErrorInvalidOperation("readPixels: Invalid format/type pair");
     }
 
-    
-    if (width == 0 || height == 0)
-        return NS_OK;
-
     MakeContextCurrent();
 
     if (mBoundFramebuffer) {
@@ -3448,6 +3444,11 @@ WebGLContext::ReadPixels_base(WebGLint x, WebGLint y, WebGLsizei width, WebGLsiz
     } else {
         EnsureBackbufferClearedAsNeeded();
     }
+    
+
+    
+    if (width == 0 || height == 0)
+        return NS_OK;
 
     if (CanvasUtils::CheckSaneSubrectSize(x, y, width, height, boundWidth, boundHeight)) {
         
