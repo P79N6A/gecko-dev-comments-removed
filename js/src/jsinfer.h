@@ -47,10 +47,6 @@
 #include "jsprvtd.h"
 #include "jsvalue.h"
 
-#ifndef _MSC_VER
-#include <sys/time.h>
-#endif
-
 namespace js {
     struct CallArgs;
 namespace analyze {
@@ -177,7 +173,20 @@ public:
 
 
 
-    virtual void newObjectState(JSContext *cx) {}
+    virtual void newPropertyState(JSContext *cx, TypeSet *source) {}
+
+    
+
+
+
+    virtual void newObjectState(JSContext *cx, TypeObject *object) {}
+
+    
+
+
+
+
+    virtual void slotsReallocation(JSContext *cx) {}
 
     
 
@@ -232,7 +241,19 @@ enum {
     TYPE_FLAG_UNKNOWN   = 1 << TYPE_UNKNOWN,
 
     
-    TYPE_FLAG_INTERMEDIATE_SET = 0x1000
+    TYPE_FLAG_INTERMEDIATE_SET    = 0x1000,
+
+    
+    TYPE_FLAG_OWN_PROPERTY        = 0x2000,
+
+    
+
+
+
+    TYPE_FLAG_CONFIGURED_PROPERTY = 0x4000,
+
+    
+    TYPE_FLAG_BASE_MASK           = 0x7000
 };
 
 
@@ -260,12 +281,18 @@ class TypeSet
     void print(JSContext *cx);
 
     void setIntermediate() { typeFlags |= TYPE_FLAG_INTERMEDIATE_SET; }
+    void setOwnProperty(bool configurable) {
+        typeFlags |= TYPE_FLAG_OWN_PROPERTY;
+        if (configurable)
+            typeFlags |= TYPE_FLAG_CONFIGURED_PROPERTY;
+    }
 
     inline void destroy(JSContext *cx);
 
     
     inline bool hasType(jstype type);
 
+    TypeFlags baseFlags() { return typeFlags & ~TYPE_FLAG_BASE_MASK; }
     bool hasAnyFlag(TypeFlags flags) { return typeFlags & flags; }
     bool unknown() { return typeFlags & TYPE_FLAG_UNKNOWN; }
 
@@ -277,6 +304,9 @@ class TypeSet
 
     
     void addTypeSet(JSContext *cx, ClonedTypeSet *types);
+
+    
+    inline void setOwnProperty(JSContext *cx, bool configured);
 
     
 
@@ -331,6 +361,18 @@ class TypeSet
     static ObjectKind GetObjectKind(JSContext *cx, TypeObject *object);
 
     
+    static void WatchObjectReallocation(JSContext *cx, JSObject *object);
+
+    
+
+
+
+
+
+
+    bool isOwnProperty(JSContext *cx, bool configurable);
+
+    
     bool hasUnknownProperties(JSContext *cx);
 
     
@@ -372,9 +414,6 @@ struct Property
 
     
     TypeSet types;
-
-    
-    TypeSet ownTypes;
 
     Property(jsid id)
         : id(id)
@@ -742,18 +781,6 @@ struct TypeCompartment
 
     void init(JSContext *cx);
     ~TypeCompartment();
-
-    uint64 currentTime()
-    {
-#if 0
-        timeval current;
-        gettimeofday(&current, NULL);
-        return current.tv_sec * (uint64_t) 1000000 + current.tv_usec;
-#else
-        
-        return 0;
-#endif
-    }
 
     
     inline void addPending(JSContext *cx, TypeConstraint *constraint, TypeSet *source, jstype type);

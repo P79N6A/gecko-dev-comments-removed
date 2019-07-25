@@ -128,6 +128,7 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript, bool isConstructi
     addTraceHints(false),
 #endif
     inlining(false),
+    hasGlobalReallocation(false),
     oomInVector(false),
     applyTricks(NoApplyTricks)
 {
@@ -2625,7 +2626,7 @@ mjit::Compiler::generateMethod()
           BEGIN_CASE(JSOP_CALLGNAME)
           {
             uint32 index = fullAtomIndex(PC);
-            jsop_getgname(index, knownPushedType(0));
+            jsop_getgname(index);
             frame.extra(frame.peek(-1)).name = script->getAtom(index);
             if (op == JSOP_CALLGNAME)
                 jsop_callgname_epilogue();
@@ -2633,7 +2634,11 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_GETGNAME)
 
           BEGIN_CASE(JSOP_SETGNAME)
-            jsop_setgname(script->getAtom(fullAtomIndex(PC)), true);
+          {
+            jsbytecode *next = &PC[JSOP_SETLOCAL_LENGTH];
+            bool pop = JSOp(*next) == JSOP_POP && !a->analysis.jumpTarget(next);
+            jsop_setgname(script->getAtom(fullAtomIndex(PC)), true, pop);
+          }
           END_CASE(JSOP_SETGNAME)
 
           BEGIN_CASE(JSOP_REGEXP)
@@ -2871,6 +2876,17 @@ mjit::Compiler::jsop_getglobal(uint32 index)
     if (singleton && !globalObj->getSlot(slot).isUndefined()) {
         frame.push(ObjectValue(*singleton));
         return;
+    }
+
+    if (cx->typeInferenceEnabled() && !globalObj->getType()->unknownProperties()) {
+        Value *value = &globalObj->getSlotRef(slot);
+        if (!value->isUndefined()) {
+            watchGlobalReallocation();
+            RegisterID reg = frame.allocReg();
+            masm.move(ImmPtr(value), reg);
+            frame.push(Address(reg), knownPushedType(0), true);
+            return;
+        }
     }
 
     RegisterID reg = frame.allocReg();
@@ -5285,18 +5301,10 @@ mjit::Compiler::jsop_gnameinc(JSOp op, VoidStubAtom stub, uint32 index)
     bool pop = (JSOp(*next) == JSOP_POP) && !a->analysis.jumpTarget(next);
     int amt = (op == JSOP_GNAMEINC || op == JSOP_INCGNAME) ? -1 : 1;
 
-    JSValueType globalType = JSVAL_TYPE_UNKNOWN;
-    if (cx->typeInferenceEnabled() && !globalObj->getType()->unknownProperties()) {
-        types::TypeSet *types = globalObj->getType()->getProperty(cx, ATOM_TO_JSID(atom), false);
-        if (!types)
-            return false;
-        globalType = types->getKnownTypeTag(cx);
-    }
-
     if (pop || (op == JSOP_INCGNAME || op == JSOP_DECGNAME)) {
         
 
-        jsop_getgname(index, globalType);
+        jsop_getgname(index);
         
 
         frame.push(Int32Value(amt));
@@ -5319,7 +5327,7 @@ mjit::Compiler::jsop_gnameinc(JSOp op, VoidStubAtom stub, uint32 index)
         frame.shift(-1);
         
 
-        jsop_setgname(atom, false);
+        jsop_setgname(atom, false, pop);
         
 
         if (pop)
@@ -5327,7 +5335,7 @@ mjit::Compiler::jsop_gnameinc(JSOp op, VoidStubAtom stub, uint32 index)
     } else {
         
 
-        jsop_getgname(index, globalType);
+        jsop_getgname(index);
         
 
         jsop_pos();
@@ -5355,7 +5363,7 @@ mjit::Compiler::jsop_gnameinc(JSOp op, VoidStubAtom stub, uint32 index)
         frame.shift(-1);
         
 
-        jsop_setgname(atom, false);
+        jsop_setgname(atom, false, true);
         
 
         frame.pop();
@@ -5863,7 +5871,7 @@ mjit::Compiler::jsop_bindgname()
 }
 
 void
-mjit::Compiler::jsop_getgname(uint32 index, JSValueType type)
+mjit::Compiler::jsop_getgname(uint32 index)
 {
     REJOIN_SITE_2(ic::GetGlobalName, stubs::GetGlobalName);
 
@@ -5887,6 +5895,32 @@ mjit::Compiler::jsop_getgname(uint32 index, JSValueType type)
     if (obj && testSingletonProperty(globalObj, ATOM_TO_JSID(atom))) {
         frame.push(ObjectValue(*obj));
         return;
+    }
+
+    
+
+
+
+    JSValueType type = JSVAL_TYPE_UNKNOWN;
+    if (cx->typeInferenceEnabled() && !globalObj->getType()->unknownProperties()) {
+        types::TypeSet *types = globalObj->getType()->getProperty(cx, ATOM_TO_JSID(atom), false);
+        if (!types)
+            return;
+        type = types->getKnownTypeTag(cx);
+
+        const js::Shape *shape = globalObj->nativeLookup(ATOM_TO_JSID(atom));
+        if (shape && shape->hasDefaultGetterOrIsMethod() && shape->hasSlot()) {
+            Value *value = &globalObj->getSlotRef(shape->slot);
+            if (!value->isUndefined() && !types->isOwnProperty(cx, true)) {
+                watchGlobalReallocation();
+                RegisterID reg = frame.allocReg();
+                masm.move(ImmPtr(value), reg);
+                frame.push(Address(reg), type, true);
+                return;
+            }
+        }
+        if (mayPushUndefined(0))
+            type = JSVAL_TYPE_UNKNOWN;
     }
 
 #if defined JS_MONOIC
@@ -6058,7 +6092,7 @@ mjit::Compiler::jsop_setgname_slow(JSAtom *atom, bool usePropertyCache)
 }
 
 void
-mjit::Compiler::jsop_setgname(JSAtom *atom, bool usePropertyCache)
+mjit::Compiler::jsop_setgname(JSAtom *atom, bool usePropertyCache, bool popGuaranteed)
 {
     REJOIN_SITE_2(ic::SetGlobalName,
                   usePropertyCache
@@ -6069,6 +6103,30 @@ mjit::Compiler::jsop_setgname(JSAtom *atom, bool usePropertyCache)
         
         jsop_setgname_slow(atom, usePropertyCache);
         return;
+    }
+
+    if (cx->typeInferenceEnabled() && !globalObj->getType()->unknownProperties()) {
+        
+
+
+
+
+
+        types::TypeSet *types = globalObj->getType()->getProperty(cx, ATOM_TO_JSID(atom), false);
+        if (!types)
+            return;
+        const js::Shape *shape = globalObj->nativeLookup(ATOM_TO_JSID(atom));
+        if (shape && !shape->isMethod() && shape->hasDefaultSetter() &&
+            shape->writable() && shape->hasSlot() && !types->isOwnProperty(cx, true)) {
+            watchGlobalReallocation();
+            Value *value = &globalObj->getSlotRef(shape->slot);
+            RegisterID reg = frame.allocReg();
+            masm.move(ImmPtr(value), reg);
+            frame.storeTo(frame.peek(-1), Address(reg), popGuaranteed);
+            frame.shimmy(1);
+            frame.freeReg(reg);
+            return;
+        }
     }
 
 #if defined JS_MONOIC
@@ -6862,7 +6920,7 @@ mjit::Compiler::jsop_forgname(JSAtom *atom)
 
     
     
-    jsop_setgname(atom, false);
+    jsop_setgname(atom, false, true);
 
     
     
@@ -6947,6 +7005,16 @@ mjit::Compiler::restoreAnalysisTypes(uint32 stackDepth)
                 frame.learnType(fe, type, false);
         }
     }
+}
+
+void
+mjit::Compiler::watchGlobalReallocation()
+{
+    JS_ASSERT(cx->typeInferenceEnabled());
+    if (hasGlobalReallocation)
+        return;
+    types::TypeSet::WatchObjectReallocation(cx, globalObj);
+    hasGlobalReallocation = true;
 }
 
 JSValueType

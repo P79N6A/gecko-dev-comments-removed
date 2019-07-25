@@ -2168,6 +2168,12 @@ struct JSContext
     inline bool markTypeObjectHasSpecialEquality(js::types::TypeObject *obj);
 
     
+    inline bool markTypePropertyConfigured(js::types::TypeObject *obj, jsid id);
+
+    
+    inline bool markGlobalReallocation(JSObject *obj);
+
+    
 
 
 

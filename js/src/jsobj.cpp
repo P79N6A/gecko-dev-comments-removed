@@ -2450,6 +2450,10 @@ DefineProperty(JSContext *cx, JSObject *obj, const jsid &id, const PropDesc &des
         if (!cx->addTypePropertyId(obj->getType(), id, TYPE_UNKNOWN))
             return false;
     }
+    if (!desc.configurable() || !desc.enumerable() || !desc.writable()) {
+        if (!cx->markTypePropertyConfigured(obj->getType(), id))
+            return false;
+    }
 
     if (obj->isArray())
         return DefinePropertyOnArray(cx, obj, id, desc, throwError, rval);
@@ -4056,14 +4060,16 @@ DefineConstructorAndPrototype(JSContext *cx, JSObject *obj, JSProtoKey key, JSAt
         goto bad;
     }
 
-    
+    if (!cx->typeInferenceEnabled()) {
+        
 
 
 
-    if (fs)
-        proto->brand(cx);
-    if (ctor != proto && static_fs)
-        ctor->brand(cx);
+        if (fs)
+            proto->brand(cx);
+        if (ctor != proto && static_fs)
+            ctor->brand(cx);
+    }
 
     type = proto->getNewType(cx);
     if (!type)
@@ -4265,6 +4271,7 @@ JSObject::growSlots(JSContext *cx, size_t newcap)
                                             allocCount * sizeof(Value));
     if (!tmpslots)
         return false;    
+    bool changed = slots != tmpslots;
     slots = tmpslots;
     capacity = actualCapacity;
 
@@ -4272,6 +4279,10 @@ JSObject::growSlots(JSContext *cx, size_t newcap)
         
         ClearValueRange(slots + oldAllocCount, allocCount - oldAllocCount, false);
     }
+
+    if (changed && isGlobal())
+        cx->markGlobalReallocation(this);  
+
     return true;
 }
 
@@ -4304,6 +4315,7 @@ JSObject::shrinkSlots(JSContext *cx, size_t newcap)
     Value *tmpslots = (Value*) cx->realloc_(slots, newcap * sizeof(Value));
     if (!tmpslots)
         return;  
+    bool changed = slots != tmpslots;
     slots = tmpslots;
     capacity = newcap;
 
@@ -4312,6 +4324,9 @@ JSObject::shrinkSlots(JSContext *cx, size_t newcap)
         if (!isDenseArray())
             clearSlotRange(fill, newcap - fill);
     }
+
+    if (changed && isGlobal())
+        cx->markGlobalReallocation(this);  
 }
 
 bool

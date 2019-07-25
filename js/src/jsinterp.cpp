@@ -4089,6 +4089,16 @@ do_incop:
     if (!obj->getProperty(cx, id, &regs.sp[-1]))
         goto error;
 
+    
+
+
+
+
+    if (regs.sp[-1].isUndefined() &&
+        !cx->addTypePropertyId(obj->getType(), id, types::TYPE_UNDEFINED)) {
+        goto error;
+    }
+
     const JSCodeSpec *cs = &js_CodeSpec[op];
     JS_ASSERT(cs->ndefs == 1);
     JS_ASSERT((cs->format & JOF_TMPSLOT_MASK) >= JOF_TMPSLOT2);
