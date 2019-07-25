@@ -99,6 +99,12 @@ public class SyncStorageCollectionRequest extends SyncStorageRequest {
       }
 
       
+      
+      
+      
+      
+
+      
       SyncStorageCollectionRequestDelegate delegate = (SyncStorageCollectionRequestDelegate) this.request.delegate;
       InputStream content = null;
       BufferedReader br = null;

@@ -41,6 +41,7 @@ package org.mozilla.gecko.sync.repositories;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionBeginDelegate;
 import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionFetchRecordsDelegate;
 import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionFinishDelegate;
@@ -74,6 +75,15 @@ public abstract class RepositorySession {
   }
 
   private static final String LOG_TAG = "RepositorySession";
+
+  private static void error(String message) {
+    Utils.error(LOG_TAG, message);
+  }
+
+  protected static void trace(String message) {
+    Utils.trace(LOG_TAG, message);
+  }
+
   protected SessionStatus status = SessionStatus.UNSTARTED;
   protected Repository repository;
   protected RepositorySessionStoreDelegate delegate;
@@ -163,11 +173,6 @@ public abstract class RepositorySession {
     }
   }
 
-  private static void error(String msg) {
-    System.err.println("ERROR: " + msg);
-    Log.e(LOG_TAG, msg);
-  }
-
   
 
 
@@ -250,5 +255,92 @@ public abstract class RepositorySession {
     status = SessionStatus.ABORTED;
     storeWorkQueue.shutdown();
     delegateQueue.shutdown();
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  protected Record reconcileRecords(final Record remoteRecord,
+                                    final Record localRecord,
+                                    final long lastRemoteRetrieval,
+                                    final long lastLocalRetrieval) {
+    Log.d(LOG_TAG, "Reconciling remote " + remoteRecord.guid + " against local " + localRecord.guid);
+
+    if (localRecord.equalPayloads(remoteRecord)) {
+      if (remoteRecord.lastModified > localRecord.lastModified) {
+        Log.d(LOG_TAG, "Records are equal. No record application needed.");
+        return null;
+      }
+
+      
+      return null;
+    }
+
+    
+    
+    
+    
+    
+    boolean localIsMoreRecent = localRecord.lastModified > remoteRecord.lastModified;
+    Log.d(LOG_TAG, "Local record is more recent? " + localIsMoreRecent);
+    Record donor = localIsMoreRecent ? localRecord : remoteRecord;
+
+    
+    
+    
+    Record out = donor.copyWithIDs(remoteRecord.guid, localRecord.androidID);
+
+    
+    
+    
+    if (!localIsMoreRecent) {
+      trackRecord(out);
+    }
+    return out;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+  protected synchronized void trackRecord(Record record) {
   }
 }
