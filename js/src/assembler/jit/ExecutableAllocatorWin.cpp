@@ -94,6 +94,8 @@ RandomizeIsBrokenImpl()
 static bool
 RandomizeIsBroken()
 {
+    
+    
     static int result = RandomizeIsBrokenImpl();
     return !!result;
 }
