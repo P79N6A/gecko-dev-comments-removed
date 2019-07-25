@@ -34,27 +34,21 @@ public:
   ~nsBMPEncoder();
 
 protected:
-  enum Version {
-      VERSION_3 = 3,
-      VERSION_5 = 5
-  };
-
   
-  nsresult ParseOptions(const nsAString& aOptions, Version* version,
-                        PRUint32* bpp);
+  nsresult ParseOptions(const nsAString& aOptions, PRUint32* bpp);
   
   void ConvertHostARGBRow(const PRUint8* aSrc, PRUint8* aDest,
                           PRUint32 aPixelWidth);
   
+  void StripAlpha(const PRUint8* aSrc, PRUint8* aDest,
+                  PRUint32 aPixelWidth);
+  
   void NotifyListener();
 
   
-  void InitFileHeader(Version aVersion, PRUint32 aBPP, PRUint32 aWidth,
-                      PRUint32 aHeight);
+  void InitFileHeader(PRUint32 aBPP, PRUint32 aWidth, PRUint32 aHeight);
   
-  void InitInfoHeader(Version aVersion, PRUint32 aBPP, PRUint32 aWidth,
-                      PRUint32 aHeight);
-
+  void InitInfoHeader(PRUint32 aBPP, PRUint32 aWidth, PRUint32 aHeight);
   
   void EncodeFileHeader();
   
@@ -72,7 +66,7 @@ protected:
   
   
   mozilla::image::BMPFILEHEADER mBMPFileHeader;
-  mozilla::image::BITMAPV5HEADER mBMPInfoHeader;
+  mozilla::image::BMPINFOHEADER mBMPInfoHeader;
 
   
   PRUint8* mImageBufferStart;
