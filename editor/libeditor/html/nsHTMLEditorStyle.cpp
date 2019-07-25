@@ -1092,8 +1092,7 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
         bool isSet = false;
         nsCOMPtr<nsIDOMNode> resultNode;
         if (first) {
-          if (useCSS &&
-              mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
+          if (mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
             
             
             
@@ -1113,8 +1112,7 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
             *outValue = firstValue;
           }
         } else {
-          if (useCSS &&
-              mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
+          if (mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
             
             
             if (aValue) {
