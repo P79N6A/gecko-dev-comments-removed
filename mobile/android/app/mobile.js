@@ -758,3 +758,6 @@ pref("ui.scrolling.min_scrollable_distance", -1);
 
 
 pref("ui.zooming.animation_frames", "");
+
+
+pref("accessibility.accessfu", 2);
