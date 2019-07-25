@@ -513,7 +513,7 @@ JS_StrictlyEqual(JSContext *cx, jsval v1, jsval v2)
 JS_PUBLIC_API(JSBool)
 JS_SameValue(JSContext *cx, jsval v1, jsval v2)
 {
-    return SameValue(cx, Valueify(v1), Valueify(v2));
+    return SameValue(Valueify(v1), Valueify(v2), cx);
 }
 
 
@@ -4642,8 +4642,7 @@ JS_TriggerOperationCallback(JSContext *cx)
 
 
 
-    JS_ATOMIC_SET_MASK(const_cast<jsword*>(&cx->interruptFlags),
-                       JSContext::INTERRUPT_OPERATION_CALLBACK);
+    JS_ATOMIC_SET(&cx->operationCallbackFlag, 1);
 }
 
 JS_PUBLIC_API(void)
@@ -5395,7 +5394,7 @@ JS_SetGCZeal(JSContext *cx, uint8 zeal)
 
 #if !defined(STATIC_JS_API) && defined(XP_WIN) && !defined (WINCE)
 
-#include "jswin.h"
+#include <windows.h>
 
 
 
