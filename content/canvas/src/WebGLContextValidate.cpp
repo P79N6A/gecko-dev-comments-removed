@@ -41,6 +41,10 @@
 
 #include "CheckedInt.h"
 
+#ifndef USE_GLES2
+#include "angle/ShaderLang.h"
+#endif
+
 using namespace mozilla;
 
 
@@ -361,39 +365,53 @@ WebGLContext::InitAndValidateGL()
     
     
 
-    gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_ATTRIBS, &val);
-    if (val == 0) {
-        LogMessage("GL_MAX_VERTEX_ATTRIBS is 0!");
+    gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_ATTRIBS, (GLint*) &mGLMaxVertexAttribs);
+    if (mGLMaxVertexAttribs < 8) {
+        LogMessage("GL_MAX_VERTEX_ATTRIBS is < 8!");
         return PR_FALSE;
     }
 
-    mAttribBuffers.SetLength(val);
+    mAttribBuffers.SetLength(mGLMaxVertexAttribs);
 
     
-
     
     
-    
-    
-    gl->fGetIntegerv(LOCAL_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &val);
-    if (val == 0) {
-        LogMessage("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS is 0!");
+    gl->fGetIntegerv(LOCAL_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, (GLint*) &mGLMaxTextureUnits);
+    if (mGLMaxTextureUnits < 8) {
+        LogMessage("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS is < 8!");
         return PR_FALSE;
     }
 
-    mBound2DTextures.SetLength(val);
-    mBoundCubeMapTextures.SetLength(val);
+    mBound2DTextures.SetLength(mGLMaxTextureUnits);
+    mBoundCubeMapTextures.SetLength(mGLMaxTextureUnits);
 
-    
+    gl->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_SIZE, (GLint*) &mGLMaxTextureSize);
+    gl->fGetIntegerv(LOCAL_GL_MAX_CUBE_MAP_TEXTURE_SIZE, (GLint*) &mGLMaxCubeMapTextureSize);
 
-    gl->fGetIntegerv(LOCAL_GL_MAX_COLOR_ATTACHMENTS, &val);
+    gl->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_IMAGE_UNITS, (GLint*) &mGLMaxTextureImageUnits);
+    gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, (GLint*) &mGLMaxVertexTextureImageUnits);
+
+#ifdef USE_GLES2
+    gl->fGetIntegerv(LOCAL_GL_MAX_FRAGMENT_UNIFORM_VECTORS, (GLint*) &mGLMaxFragmentUniformVectors);
+    gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_UNIFORM_VECTORS, (GLint*) &mGLMaxVertexUniformVectors);
+    gl->fGetIntegerv(LOCAL_GL_MAX_VARYING_VECTORS, (GLint*) &mGLMaxVaryingVectors);
+#else
+    gl->fGetIntegerv(LOCAL_GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, (GLint*) &mGLMaxFragmentUniformVectors);
+    mGLMaxFragmentUniformVectors /= 4;
+    gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_UNIFORM_COMPONENTS, (GLint*) &mGLMaxVertexUniformVectors);
+    mGLMaxVertexUniformVectors /= 4;
+    gl->fGetIntegerv(LOCAL_GL_MAX_VARYING_FLOATS, (GLint*) &mGLMaxVaryingVectors);
+    mGLMaxVaryingVectors /= 4;
+#endif
+
+    gl->fGetIntegerv(LOCAL_GL_MAX_COLOR_ATTACHMENTS, (GLint*) &val);
     mFramebufferColorAttachments.SetLength(val);
 
 #if defined(DEBUG_vladimir) && defined(USE_GLES2)
-    gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT, &val);
+    gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT, (GLint*) &val);
     fprintf(stderr, "GL_IMPLEMENTATION_COLOR_READ_FORMAT: 0x%04x\n", val);
 
-    gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_TYPE, &val);
+    gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_TYPE, (GLint*) &val);
     fprintf(stderr, "GL_IMPLEMENTATION_COLOR_READ_TYPE: 0x%04x\n", val);
 #endif
 
@@ -401,6 +419,16 @@ WebGLContext::InitAndValidateGL()
     
     
     gl->fEnable(LOCAL_GL_VERTEX_PROGRAM_POINT_SIZE);
+
+    
+    static bool didTranslatorInit = false;
+    if (!didTranslatorInit && mShaderValidation) {
+        if (!ShInitialize()) {
+            LogMessage("GLSL translator initialization failed!");
+            return PR_FALSE;
+        }
+        didTranslatorInit = true;
+    }
 #endif
 
     return PR_TRUE;

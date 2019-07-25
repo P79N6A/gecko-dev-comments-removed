@@ -38,7 +38,7 @@ int __fastcall ShFinalize();
 typedef enum {
 	EShLangVertex,
 	EShLangFragment,
-	EShLangCount,
+	EShLangCount
 } EShLanguage;
 
 
@@ -56,7 +56,7 @@ typedef enum {
 	EShOptNoGeneration,
 	EShOptNone,
 	EShOptSimple,       
-	EShOptFull,         
+	EShOptFull          
 } EShOptimizationLevel;
 
 
