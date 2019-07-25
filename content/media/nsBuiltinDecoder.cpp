@@ -103,7 +103,12 @@ void nsBuiltinDecoder::AddOutputStream(SourceMediaStream* aStream, bool aFinishW
 
   
   
-  ScheduleStateMachineThread();
+  
+  if (mDecoderStateMachine) {
+    
+    
+    ScheduleStateMachineThread();
+  }
 }
 
 double nsBuiltinDecoder::GetDuration()

@@ -475,6 +475,10 @@ protected:
   
 
 
+  void ShutdownDecoder();
+  
+
+
 
 
   void AbortExistingLoads();
