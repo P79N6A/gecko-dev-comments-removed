@@ -148,7 +148,7 @@ window.Item.prototype = {
   
   
   pushAway: function() {
-    var buffer = 10;
+    var buffer = 2;
     
     var items = Items.getTopLevelItems();
     $.each(items, function(index, item) {

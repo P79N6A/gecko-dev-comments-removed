@@ -73,6 +73,60 @@ window.Group = function(listOfEls, options) {
     .appendTo("body")
     .dequeue();
     
+  $container.dblclick(function(){
+    Groups.setActiveGroup(self);
+    UI.newTab("about:blank");
+  })
+  
+  
+  
+    
+  this.$ntb = $("<div class='newTabButton'/>").appendTo($container)
+
+  function zoomIn(){
+    anim = $("<div class='newTabAnimatee'/>").css({
+      width: self.$ntb.width(),
+      height: self.$ntb.height(),
+      top: self.$ntb.offset().top,
+      left: self.$ntb.offset().left,
+      zIndex: 999
+    })
+    .appendTo("body")
+    
+    
+    
+    
+    .animate({
+      top: self.bounds.top+self.bounds.width/2,
+      left: self.bounds.left+self.bounds.height/2,
+    }, 200, "tabcandyBounce")
+    
+    .animate({
+      top: 0,
+      left: 0,
+      width: window.innerWidth,
+      height: window.innerHeight
+    }, 250, function(){
+      anim.remove();
+      Groups.setActiveGroup(self);          
+      var newTab = Tabs.open("about:blank").focus();
+      UI.tabBar.show(false);
+      UI.navBar.urlBar.focus();
+      anim.remove();
+      
+      
+      
+      
+      
+      setTimeout(function(){
+        UI.tabBar.showOnlyTheseTabs(Groups.getActiveGroup()._children);
+      }, 400)
+      
+    });
+  }
+  
+  this.$ntb.click(function(){ zoomIn(); });  
+    
   
   this.$resizer = $("<div class='resizer'/>")
     .css({
@@ -1048,13 +1102,9 @@ window.Groups = {
   
   
   setActiveGroup: function(group) {
-    try{
-      this._activeGroup = group;
-      if(group)
-        UI.tabBar.showOnlyTheseTabs( group._children );    
-    }catch(e){
-      Utils.log(e)
-    }
+    this._activeGroup = group;
+    if(group)
+      UI.tabBar.showOnlyTheseTabs( group._children );    
   }
   
 };
