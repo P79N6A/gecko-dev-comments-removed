@@ -96,7 +96,8 @@ pref("offline-apps.quota.warn",        51200);
 
 
 
-pref("browser.cache.compression_level", 5);
+
+pref("browser.cache.compression_level", 0);
 
 
 pref("dom.indexedDB.enabled", true);
