@@ -1754,11 +1754,13 @@ const ContentTouchHandler = {
       case "Browser:ContextMenu":
         
         let contextMenu = { name: aMessage.name, json: json, target: aMessage.target };
-        if (ContextHelper.showPopup(contextMenu)) {
-          
-          let event = document.createEvent("Events");
-          event.initEvent("CancelTouchSequence", true, false);
-          document.dispatchEvent(event);
+        if (!SelectionHelper.showPopup(contextMenu)) {
+          if (ContextHelper.showPopup(contextMenu)) {
+            
+            let event = document.createEvent("Events");
+            event.initEvent("CancelTouchSequence", true, false);
+            document.dispatchEvent(event);
+          }
         }
         break;
       case "Browser:CaptureEvents": {
