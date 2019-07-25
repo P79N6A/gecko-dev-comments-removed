@@ -129,11 +129,11 @@ class GlobalObject : public ::JSObject {
     JSObject *createBlankPrototype(JSContext *cx, js::Class *clasp);
 
     void setThrowTypeError(JSFunction *fun) {
-        Value &v = getSlotRef(THROWTYPEERROR);
         
         
         
-        v.setObject(*fun);
+        
+        setSlot(THROWTYPEERROR, ObjectValue(*fun));
     }
 
     JSObject *getThrowTypeError() const {
@@ -157,11 +157,11 @@ class GlobalObject : public ::JSObject {
     }
 
     void setOriginalEval(JSObject *evalobj) {
-        Value &v = getSlotRef(EVAL);
         
         
         
-        v.setObject(*evalobj);
+        
+        setSlot(EVAL, ObjectValue(*evalobj));
     }
 
     bool getFunctionNamespace(JSContext *cx, Value *vp);
