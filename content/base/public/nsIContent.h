@@ -71,8 +71,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID       \
-{ 0x1450010b, 0xcdca, 0x451c, \
-  { 0xba, 0xdc, 0x07, 0x90, 0x89, 0x7b, 0xce, 0xb8 } }
+{ 0x2ac19ac3, 0x1dac, 0x42dc, \
+  { 0xb2, 0x43, 0x78, 0x46, 0xed, 0x6f, 0x1c, 0x89 } }
 
 
 
@@ -927,6 +927,19 @@ public:
   PRBool IsEqual(nsIContent *aOther);
 
   virtual PRBool IsEqualNode(nsINode* aOther);
+
+  
+
+
+
+  PRBool HasIndependentSelection();
+
+  
+
+
+
+
+  nsIContent* GetEditingHost();
 
 protected:
   

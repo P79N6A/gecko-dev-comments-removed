@@ -426,10 +426,7 @@ nsHTMLEditor::FindSelectionRoot(nsINode *aNode)
 
   
   
-  nsIContent *parent;
-  while ((parent = content->GetParent()) && parent->HasFlag(NODE_IS_EDITABLE)) {
-    content = parent;
-  }
+  content = content->GetEditingHost();
   return content.forget();
 }
 
@@ -628,17 +625,6 @@ nsHTMLEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
     
     
     return nsEditor::HandleKeyPressEvent(aKeyEvent);
-  }
-
-  
-  
-  
-  nsCOMPtr<nsIDOMEventTarget> target;
-  nsresult rv = aKeyEvent->GetTarget(getter_AddRefs(target));
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIDOMNode> targetNode = do_QueryInterface(target);
-  if (!IsModifiableNode(targetNode)) {
-    return NS_OK;
   }
 
   nsKeyEvent* nativeKeyEvent = GetNativeKeyEvent(aKeyEvent);
@@ -4200,8 +4186,7 @@ nsHTMLEditor::SelectAll()
   
   
   
-  nsIFrame* frame = anchorContent->GetPrimaryFrame();
-  if (frame && frame->GetStateBits() & NS_FRAME_INDEPENDENT_SELECTION) {
+  if (anchorContent->HasIndependentSelection()) {
     nsCOMPtr<nsISelectionPrivate> selPriv = do_QueryInterface(selection);
     NS_ENSURE_TRUE(selPriv, NS_ERROR_UNEXPECTED);
     rv = selPriv->SetAncestorLimiter(nsnull);
@@ -5804,11 +5789,47 @@ nsHTMLEditor::HasFocus()
   
   
   if (!focusedContent->HasFlag(NODE_IS_EDITABLE) ||
-      IsIndependentSelectionContent(focusedContent)) {
+      focusedContent->HasIndependentSelection()) {
     return PR_FALSE;
   }
   
   return OurWindowHasFocus();
+}
+
+PRBool
+nsHTMLEditor::IsActiveInDOMWindow()
+{
+  NS_ENSURE_TRUE(mDocWeak, PR_FALSE);
+
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
+  NS_ENSURE_TRUE(fm, PR_FALSE);
+
+  nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocWeak);
+  PRBool inDesignMode = doc->HasFlag(NODE_IS_EDITABLE);
+
+  
+  if (inDesignMode) {
+    return PR_TRUE;
+  }
+
+  nsPIDOMWindow* ourWindow = doc->GetWindow();
+  nsCOMPtr<nsPIDOMWindow> win;
+  nsIContent* content =
+    nsFocusManager::GetFocusedDescendant(ourWindow, PR_FALSE,
+                                         getter_AddRefs(win));
+  if (!content) {
+    return PR_FALSE;
+  }
+
+  
+
+  
+  
+  if (!content->HasFlag(NODE_IS_EDITABLE) ||
+      content->HasIndependentSelection()) {
+    return PR_FALSE;
+  }
+  return PR_TRUE;
 }
 
 already_AddRefed<nsPIDOMEventTarget>
@@ -5920,11 +5941,46 @@ nsHTMLEditor::OurWindowHasFocus()
 }
 
 PRBool
-nsHTMLEditor::IsIndependentSelectionContent(nsIContent* aContent)
+nsHTMLEditor::IsAcceptableInputEvent(nsIDOMEvent* aEvent)
 {
-  NS_PRECONDITION(aContent, "aContent must not be null");
-  nsIFrame* frame = aContent->GetPrimaryFrame();
-  return (frame && (frame->GetStateBits() & NS_FRAME_INDEPENDENT_SELECTION));
+  if (!nsEditor::IsAcceptableInputEvent(aEvent)) {
+    return PR_FALSE;
+  }
+
+  NS_ENSURE_TRUE(mDocWeak, PR_FALSE);
+
+  nsCOMPtr<nsIDOMEventTarget> target;
+  aEvent->GetTarget(getter_AddRefs(target));
+  NS_ENSURE_TRUE(target, PR_FALSE);
+
+  nsCOMPtr<nsIDocument> document = do_QueryReferent(mDocWeak);
+  if (document->HasFlag(NODE_IS_EDITABLE)) {
+    
+    
+    nsCOMPtr<nsIDocument> targetDocument = do_QueryInterface(target);
+    if (targetDocument) {
+      return targetDocument == document;
+    }
+    
+    nsCOMPtr<nsIContent> targetContent = do_QueryInterface(target);
+    NS_ENSURE_TRUE(targetContent, PR_FALSE);
+    return document == targetContent->GetCurrentDoc();
+  }
+
+  
+  
+  nsCOMPtr<nsIContent> targetContent = do_QueryInterface(target);
+  NS_ENSURE_TRUE(targetContent, PR_FALSE);
+  if (!targetContent->HasFlag(NODE_IS_EDITABLE) ||
+      targetContent->HasIndependentSelection()) {
+    return PR_FALSE;
+  }
+
+  
+  
+  
+  
+  return IsActiveInDOMWindow();
 }
 
 NS_IMETHODIMP
