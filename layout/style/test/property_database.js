@@ -780,6 +780,22 @@ var gCSSProperties = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	"-moz-float-edge": {
 		domProp: "MozFloatEdge",
 		inherited: false,

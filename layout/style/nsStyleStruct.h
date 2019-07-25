@@ -1099,6 +1099,8 @@ struct nsStylePosition {
   PRUint8       mFlexDirection;         
   PRUint8       mJustifyContent;        
   PRInt32       mOrder;                 
+  float         mFlexGrow;              
+  float         mFlexShrink;            
 #endif 
   nsStyleCoord  mZIndex;                
 

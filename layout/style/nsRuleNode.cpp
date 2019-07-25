@@ -6492,6 +6492,16 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
               NS_STYLE_FLEX_DIRECTION_ROW, 0, 0, 0, 0);
 
   
+  SetFactor(*aRuleData->ValueForFlexGrow(),
+            pos->mFlexGrow, canStoreInRuleTree,
+            parentPos->mFlexGrow, 0.0f);
+
+  
+  SetFactor(*aRuleData->ValueForFlexShrink(),
+            pos->mFlexShrink, canStoreInRuleTree,
+            parentPos->mFlexShrink, 1.0f);
+
+  
   SetDiscrete(*aRuleData->ValueForOrder(),
               pos->mOrder, canStoreInRuleTree,
               SETDSC_INTEGER, parentPos->mOrder,

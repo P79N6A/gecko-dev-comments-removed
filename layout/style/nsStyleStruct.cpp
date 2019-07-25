@@ -1131,6 +1131,8 @@ nsStylePosition::nsStylePosition(void)
   mFlexDirection = NS_STYLE_FLEX_DIRECTION_ROW;
   mJustifyContent = NS_STYLE_JUSTIFY_CONTENT_FLEX_START;
   mOrder = NS_STYLE_ORDER_INITIAL;
+  mFlexGrow = 0.0f;
+  mFlexShrink = 1.0f;
 #endif 
   mZIndex.SetAutoValue();
 }
@@ -1162,6 +1164,8 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
   
   
   if (mAlignSelf != aOther.mAlignSelf ||
+      mFlexGrow != aOther.mFlexGrow ||
+      mFlexShrink != aOther.mFlexShrink ||
       mOrder != aOther.mOrder) {
     return NS_CombineHint(hint, nsChangeHint_ReflowFrame);
   }
