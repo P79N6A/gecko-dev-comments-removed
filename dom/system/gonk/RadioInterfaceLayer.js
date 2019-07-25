@@ -36,6 +36,7 @@ const kNetworkInterfaceStateChangedTopic = "network-interface-state-changed";
 const kSmsReceivedObserverTopic          = "sms-received";
 const kSmsDeliveredObserverTopic         = "sms-delivered";
 const kMozSettingsChangedObserverTopic   = "mozsettings-changed";
+const kSysMsgListenerReadyObserverTopic  = "system-message-listener-ready";
 const DOM_SMS_DELIVERY_RECEIVED          = "received";
 const DOM_SMS_DELIVERY_SENT              = "sent";
 
@@ -207,6 +208,7 @@ function RadioInterfaceLayer() {
   }
   Services.obs.addObserver(this, "xpcom-shutdown", false);
   Services.obs.addObserver(this, kMozSettingsChangedObserverTopic, false);
+  Services.obs.addObserver(this, kSysMsgListenerReadyObserverTopic, false);
 
   this._sentSmsEnvelopes = {};
 
@@ -657,6 +659,11 @@ RadioInterfaceLayer.prototype = {
       
       return;
     }
+    if (!this._sysMsgListenerReady) {
+      
+      
+      return;
+    }
     if (this.rilContext.radioState == RIL.GECKO_RADIOSTATE_UNKNOWN) {
       
       
@@ -1061,6 +1068,11 @@ RadioInterfaceLayer.prototype = {
 
   observe: function observe(subject, topic, data) {
     switch (topic) {
+      case kSysMsgListenerReadyObserverTopic:
+        Services.obs.removeObserver(this, kSysMsgListenerReadyObserverTopic);
+        this._sysMsgListenerReady = true;
+        this._ensureRadioState();
+        break;
       case kMozSettingsChangedObserverTopic:
         let setting = JSON.parse(data);
         this.handle(setting.key, setting.value);
@@ -1078,6 +1090,8 @@ RadioInterfaceLayer.prototype = {
   },
 
   
+  
+  _sysMsgListenerReady: false,
 
   
   
@@ -1087,7 +1101,9 @@ RadioInterfaceLayer.prototype = {
   dataCallSettings: {},
   _dataCallSettingsToRead: [],
   _oldRilDataEnabledState: null,
+
   
+
   handle: function handle(aName, aResult) {
     switch(aName) {
       case "ril.radio.disabled":
