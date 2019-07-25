@@ -2068,8 +2068,7 @@ nsHyperTextAccessible::GetNameInternal(nsAString& aName)
   
   
   
-  if (aName.IsEmpty() && mContent->IsHTML() &&
-      (mContent->Tag() == nsGkAtoms::abbr || mContent->Tag() == nsGkAtoms::acronym)) {
+  if (aName.IsEmpty() && IsAbbreviation()) {
     nsAutoString name;
     if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::title, name)) {
       name.CompressWhitespace();
