@@ -232,13 +232,20 @@ public:
   static DwmDefWindowProcProc dwmDwmDefWindowProcPtr;
 #endif 
 
-  static PRBool CheckForCompositor() {
-    BOOL compositionIsEnabled = FALSE;
+  
+  
+  
+  
+  
+  
+  static PRBool CheckForCompositor(PRBool aUpdateCache = PR_FALSE) {
+    static BOOL sCachedValue = FALSE;
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
-    if(dwmIsCompositionEnabledPtr)
-      dwmIsCompositionEnabledPtr(&compositionIsEnabled);
+    if(aUpdateCache && dwmIsCompositionEnabledPtr) {
+      dwmIsCompositionEnabledPtr(&sCachedValue);
+    }
 #endif 
-    return (compositionIsEnabled != FALSE);
+    return (sCachedValue != FALSE);
   }
 };
 #endif 
