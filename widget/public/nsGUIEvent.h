@@ -1063,6 +1063,9 @@ private:
   nsTextEvent()
   {
   }
+
+public:
+  PRUint32 seqno;
 #endif 
 
 public:
@@ -1091,6 +1094,9 @@ private:
   nsCompositionEvent()
   {
   }
+
+public:
+  PRUint32 seqno;
 #endif 
 
 public:
@@ -1309,6 +1315,9 @@ private:
   nsSelectionEvent()
   {
   }
+
+public:
+  PRUint32 seqno;
 #endif 
 
 public:
