@@ -177,8 +177,7 @@ nsDeckFrame::IndexChanged(nsPresContext* aPresContext)
     return;
 
   
-  nsBoxLayoutState state(aPresContext);
-  Redraw(state);
+  InvalidateOverflowRect();
 
   
   nsIBox* currentBox = GetSelectedBox();
