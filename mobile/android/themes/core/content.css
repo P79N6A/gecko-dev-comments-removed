@@ -316,14 +316,6 @@ input > .anonymous-div:after {
   margin: 16px;
 }
 
-
-
-
-
-video {
-    image-rendering: -moz-crisp-edges;
-}
-
 xul|menulist {
   -moz-binding: url("chrome://browser/content/bindings/menulist.xml#menulist");
 }
