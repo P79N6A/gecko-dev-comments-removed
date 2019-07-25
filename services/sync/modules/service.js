@@ -428,16 +428,8 @@ WeaveSvc.prototype = {
     }
 
     this._log.trace("Global score updated: " + this.globalScore);
-
-    if (this.globalScore > this.syncThreshold) {
-      this._log.debug("Global Score threshold hit, triggering sync.");
-      this.syncOnIdle();
-    }
-    else if (!this._syncTimer) 
-      this._scheduleNextSync();
+    this._checkSyncStatus();
   },
-
-  
 
   
   _findCluster: function _findCluster() {
@@ -986,7 +978,12 @@ WeaveSvc.prototype = {
     }
 
     
-    this._scheduleNextSync();
+    let wait;
+    if (this.globalScore > this.syncThreshold) {
+      this._log.debug("Global Score threshold hit, triggering sync.");
+      wait = 0;
+    }
+    this._scheduleNextSync(wait);
   },
 
   
