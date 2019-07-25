@@ -272,14 +272,6 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
   NS_ABORT_IF_FALSE(aRequest == mCurrentRequest,
                     "One way or another, we should be current by now");
 
-  if (mCurrentRequestNeedsResetAnimation) {
-    nsCOMPtr<imgIContainer> container;
-    mCurrentRequest->GetImage(getter_AddRefs(container));
-    if (container)
-      container->ResetAnimation();
-    mCurrentRequestNeedsResetAnimation = false;
-  }
-
   
   
   
@@ -579,6 +571,7 @@ nsImageLoadingContent::LoadImageWithChannel(nsIChannel* aChannel,
                          getter_AddRefs(req));
   if (NS_SUCCEEDED(rv)) {
     TrackImage(req);
+    ResetAnimationIfNeeded();
   } else {
     
     
@@ -746,6 +739,7 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
                                  getter_AddRefs(req));
   if (NS_SUCCEEDED(rv)) {
     TrackImage(req);
+    ResetAnimationIfNeeded();
 
     
     
@@ -1028,6 +1022,7 @@ nsImageLoadingContent::MakePendingRequestCurrent()
   mPendingRequest = nsnull;
   mCurrentRequestNeedsResetAnimation = mPendingRequestNeedsResetAnimation;
   mPendingRequestNeedsResetAnimation = false;
+  ResetAnimationIfNeeded();
 }
 
 void
@@ -1090,6 +1085,18 @@ nsImageLoadingContent::GetRegisteredFlagForRequest(imgIRequest* aRequest)
     return &mPendingRequestRegistered;
   } else {
     return nsnull;
+  }
+}
+
+void
+nsImageLoadingContent::ResetAnimationIfNeeded()
+{
+  if (mCurrentRequest && mCurrentRequestNeedsResetAnimation) {
+    nsCOMPtr<imgIContainer> container;
+    mCurrentRequest->GetImage(getter_AddRefs(container));
+    if (container)
+      container->ResetAnimation();
+    mCurrentRequestNeedsResetAnimation = false;
   }
 }
 

@@ -289,6 +289,12 @@ protected:
 
 
 
+  void ResetAnimationIfNeeded();
+
+  
+
+
+
   static bool HaveSize(imgIRequest *aImage);
 
   
