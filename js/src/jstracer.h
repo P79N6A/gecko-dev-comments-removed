@@ -616,7 +616,7 @@ struct TreeFragment : public LinkableFragment
     uintN                   execs;
     
     uintN                   iters;
-
+    
     inline unsigned nGlobalTypes() {
         return typeMap.length() - nStackTypes;
     }
@@ -640,6 +640,7 @@ VMFragment::toTreeFragment()
 
 enum MonitorResult {
     MONITOR_RECORDING,
+    MONITOR_PROFILING,
     MONITOR_NOT_RECORDING,
     MONITOR_ERROR
 };
@@ -665,6 +666,7 @@ public:
         OP_FWDJUMP, 
         OP_NEW, 
         OP_RECURSIVE, 
+        OP_ARRAY_READ, 
         OP_TYPED_ARRAY, 
         OP_LIMIT
     };
@@ -673,6 +675,9 @@ public:
     JSScript *script;
 
     
+    JSStackFrame *entryfp;
+    
+    
     jsbytecode *top, *bottom;
 
     
@@ -680,6 +685,9 @@ public:
 
     
     bool profiled;
+
+    
+    bool undecided;
 
     
     bool traceOK;
@@ -723,17 +731,22 @@ public:
     bool maybeShortLoop;
 
     
+    bool expensive;
+    bool unprofitable;
+
+    
 
 
 
     struct InnerLoop {
+        JSStackFrame *entryfp;
         JSScript *script;
         jsbytecode *top, *bottom;
         uintN iters;
 
         InnerLoop() {}
-        InnerLoop(JSScript *script, jsbytecode *top, jsbytecode *bottom)
-            : script(script), top(top), bottom(bottom), iters(0) {}
+        InnerLoop(JSStackFrame *entryfp, jsbytecode *top, jsbytecode *bottom)
+            : entryfp(entryfp), script(entryfp->script()), top(top), bottom(bottom), iters(0) {}
     };
 
     
@@ -783,8 +796,10 @@ public:
             return StackValue(false);
     }
     
-    LoopProfile(JSScript *script, jsbytecode *top, jsbytecode *bottom);
+    LoopProfile(JSStackFrame *entryfp, jsbytecode *top, jsbytecode *bottom);
 
+    void reset();
+    
     enum ProfileAction {
         ProfContinue,
         ProfComplete
@@ -807,8 +822,8 @@ public:
     ProfileAction profileOperation(JSContext *cx, JSOp op);
 
     
-    bool isCompilationExpensive(JSContext *cx, uintN depth);
-    bool isCompilationUnprofitable(JSContext *cx, uintN depth);
+    bool isCompilationExpensive(JSContext *cx);
+    bool isCompilationUnprofitable(JSContext *cx, uintN goodOps);
     void decide(JSContext *cx);
 };
 
@@ -1560,7 +1575,7 @@ class TraceRecorder
     friend class DetermineTypesVisitor;
     friend class RecursiveSlotMap;
     friend class UpRecursiveSlotMap;
-    friend MonitorResult RecordLoopEdge(JSContext*, uintN&);
+    friend MonitorResult RecordLoopEdge(JSContext*, uintN&, bool);
     friend TracePointAction RecordTracePoint(JSContext*, uintN &inlineCallCount,
                                              bool *blacklist);
     friend AbortResult AbortRecording(JSContext*, const char*);
@@ -1656,7 +1671,7 @@ RecordTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist);
 
 extern JS_REQUIRES_STACK TracePointAction
 MonitorTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist,
-                  void** traceData, uintN *traceEpoch);
+                  void** traceData, uintN *traceEpoch, uint32 *loopCounter, uint32 hits);
 
 extern JS_REQUIRES_STACK TraceRecorder::AbortResult
 AbortRecording(JSContext* cx, const char* reason);
