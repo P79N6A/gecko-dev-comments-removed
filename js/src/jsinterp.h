@@ -148,34 +148,12 @@ ComputeThis(JSContext *cx, StackFrame *fp);
 
 
 
-enum ConstructOption {
-    INVOKE_NORMAL = 0,
-    INVOKE_CONSTRUCTOR = StackFrame::CONSTRUCTING
-};
-JS_STATIC_ASSERT(INVOKE_CONSTRUCTOR != INVOKE_NORMAL);
-
-static inline uintN
-ToReportFlags(ConstructOption option)
-{
-    return (uintN)option;
-}
-
-static inline uint32
-ToFrameFlags(ConstructOption option)
-{
-    return (uintN)option;
-}
-
-
-
-
-
 
 
 
 
 extern JS_REQUIRES_STACK bool
-Invoke(JSContext *cx, const CallArgs &args, ConstructOption option = INVOKE_NORMAL);
+Invoke(JSContext *cx, const CallArgs &args, MaybeConstruct construct = NO_CONSTRUCT);
 
 
 
@@ -235,13 +213,18 @@ extern bool
 ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv,
                           Value *rval);
 
+extern bool
+ExternalExecute(JSContext *cx, JSScript *script, JSObject &scopeChain, Value *rval);
 
 
 
 
-extern JS_FORCES_STACK bool
-Execute(JSContext *cx, JSObject &chain, JSScript *script,
-        StackFrame *prev, uintN flags, Value *result);
+
+
+
+extern bool
+Execute(JSContext *cx, JSScript *script, JSObject &scopeChain, const Value &thisv,
+        ExecuteType type, StackFrame *evalInFrame, Value *result);
 
 
 enum InterpMode

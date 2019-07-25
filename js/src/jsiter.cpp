@@ -1150,7 +1150,8 @@ js_NewGenerator(JSContext *cx)
     if (!obj)
         return NULL;
 
-    StackFrame *stackfp = cx->fp();
+    FrameRegs &stackRegs = cx->regs();
+    StackFrame *stackfp = stackRegs.fp();
     JS_ASSERT(stackfp->base() == cx->regs().sp);
     JS_ASSERT(stackfp->actualArgs() <= stackfp->formalArgs());
 
@@ -1180,11 +1181,8 @@ js_NewGenerator(JSContext *cx)
     gen->floating = genfp;
 
     
-    gen->regs = cx->regs();
-    gen->regs.rebaseFromTo(stackfp, genfp);
-
-    
-    genfp->stealFrameAndSlots(genvp, stackfp, stackvp, cx->regs().sp);
+    gen->regs.rebaseFromTo(stackRegs, genfp);
+    genfp->stealFrameAndSlots(genvp, stackfp, stackvp, stackRegs.sp);
     genfp->initFloatingGenerator();
 
     obj->setPrivate(gen);
@@ -1253,54 +1251,29 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
     }
 
     StackFrame *genfp = gen->floatingFrame();
-    Value *genvp = gen->floatingStack;
-    uintN vplen = genfp->formalArgsEnd() - genvp;
 
-    StackFrame *stackfp;
-    Value *stackvp;
     JSBool ok;
     {
-        
-
-
-
-        GeneratorFrameGuard frame;
-        if (!cx->stack.getGeneratorFrame(cx, vplen, genfp->numSlots(), &frame)) {
+        GeneratorFrameGuard gfg;
+        if (!cx->stack.pushGeneratorFrame(cx, gen, &gfg)) {
             gen->state = JSGEN_CLOSED;
             return JS_FALSE;
         }
-        stackfp = frame.fp();
-        stackvp = frame.vp();
 
-        
-        stackfp->stealFrameAndSlots(stackvp, genfp, genvp, gen->regs.sp);
-        stackfp->resetGeneratorPrev(cx);
-        stackfp->unsetFloatingGenerator();
-        gen->regs.rebaseFromTo(genfp, stackfp);
-        MUST_FLOW_THROUGH("restore");
-
-        
-        cx->stack.pushGeneratorFrame(gen->regs, &frame);
+        StackFrame *fp = gfg.fp();
+        gen->regs = cx->regs();
+        JS_ASSERT(gen->liveFrame() == fp);
 
         cx->enterGenerator(gen);   
         JSObject *enumerators = cx->enumerators;
         cx->enumerators = gen->enumerators;
 
-        ok = RunScript(cx, stackfp->script(), stackfp);
+        ok = RunScript(cx, fp->script(), fp);
 
         gen->enumerators = cx->enumerators;
         cx->enumerators = enumerators;
         cx->leaveGenerator(gen);
-
-        
-
-
-
-        genfp->stealFrameAndSlots(genvp, stackfp, stackvp, gen->regs.sp);
-        genfp->setFloatingGenerator();
     }
-    MUST_FLOW_LABEL(restore)
-    gen->regs.rebaseFromTo(stackfp, genfp);
 
     if (gen->floatingFrame()->isYielding()) {
         

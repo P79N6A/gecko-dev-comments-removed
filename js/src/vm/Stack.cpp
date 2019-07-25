@@ -422,22 +422,19 @@ ContextStack::restoreSegment()
     cx_->resetCompartment();
 }
 
-bool
+StackFrame *
 ContextStack::getSegmentAndFrame(JSContext *cx, uintN vplen, uintN nslots,
                                  FrameGuard *frameGuard) const
 {
     Value *start = space().firstUnused();
     uintN nvals = VALUES_PER_STACK_SEGMENT + vplen + VALUES_PER_STACK_FRAME + nslots;
     if (!space().ensureSpace(cx, start, nvals))
-        return false;
+        return NULL;
 
     StackSegment *seg = new(start) StackSegment;
     Value *vp = seg->valueRangeBegin();
-
     frameGuard->seg_ = seg;
-    frameGuard->vp_ = vp;
-    frameGuard->fp_ = reinterpret_cast<StackFrame *>(vp + vplen);
-    return true;
+    return reinterpret_cast<StackFrame *>(vp + vplen);
 }
 
 void
@@ -455,10 +452,10 @@ ContextStack::pushSegmentAndFrameImpl(FrameRegs &regs, StackSegment &seg)
 }
 
 void
-ContextStack::pushSegmentAndFrame(FrameRegs &regs, FrameGuard *frameGuard)
+ContextStack::pushSegmentAndFrame(FrameGuard *frameGuard)
 {
     space().pushSegment(*frameGuard->seg_);
-    pushSegmentAndFrameImpl(regs, *frameGuard->seg_);
+    pushSegmentAndFrameImpl(frameGuard->regs_, *frameGuard->seg_);
     frameGuard->stack_ = this;
 }
 
@@ -499,57 +496,96 @@ FrameGuard::~FrameGuard()
     if (!pushed())
         return;
     JS_ASSERT(stack_->currentSegment() == seg_);
-    JS_ASSERT(stack_->currentSegment()->currentFrame() == fp_);
+    JS_ASSERT(stack_->currentSegment()->currentFrame() == regs_.fp());
     stack_->popSegmentAndFrame();
 }
 
 bool
-ContextStack::getExecuteFrame(JSContext *cx, JSScript *script,
-                              ExecuteFrameGuard *frameGuard) const
+ContextStack::pushExecuteFrame(JSContext *cx, JSScript *script, const Value &thisv,
+                               JSObject &scopeChain, ExecuteType type,
+                               StackFrame *evalInFrame, ExecuteFrameGuard *efg)
 {
-    if (!getSegmentAndFrame(cx, 2, script->nslots, frameGuard))
+    StackFrame *fp = getSegmentAndFrame(cx, 2, script->nslots, efg);
+    if (!fp)
         return false;
-    frameGuard->regs_.prepareToRun(frameGuard->fp(), script);
+
+    
+    StackFrame *prev = evalInFrame ? evalInFrame : maybefp();
+
+    
+    efg->regs_.prepareToRun(fp, script);
+    SetValueRangeToNull(fp->slots(), script->nfixed);
+    fp->initExecuteFrame(script, prev, thisv, scopeChain, type);
+
+    pushSegmentAndFrame(efg);
+    return true;
+}
+
+bool
+ContextStack::pushGeneratorFrame(JSContext *cx, JSGenerator *gen, GeneratorFrameGuard *gfg)
+{
+    StackFrame *genfp = gen->floatingFrame();
+    Value *genvp = gen->floatingStack;
+    uintN vplen = (Value *)genfp - genvp;
+
+    StackFrame *stackfp = getSegmentAndFrame(cx, vplen, genfp->numSlots(), gfg);
+    if (!stackfp)
+        return false;
+
+    Value *stackvp = (Value *)stackfp - vplen;
+
+    
+    gfg->gen_ = gen;
+    gfg->stackvp_ = stackvp;
+
+    
+    gfg->regs_.rebaseFromTo(gen->regs, stackfp);
+    stackfp->stealFrameAndSlots(stackvp, genfp, genvp, gen->regs.sp);
+    stackfp->resetGeneratorPrev(cx);
+    stackfp->unsetFloatingGenerator();
+
+    pushSegmentAndFrame(gfg);
     return true;
 }
 
 void
-ContextStack::pushExecuteFrame(ExecuteFrameGuard *frameGuard)
+ContextStack::popGeneratorFrame(GeneratorFrameGuard *gfg)
 {
-    pushSegmentAndFrame(frameGuard->regs_, frameGuard);
+    JSGenerator *gen = gfg->gen_;
+    StackFrame *genfp = gen->floatingFrame();
+    Value *genvp = gen->floatingStack;
+
+    FrameRegs &stackRegs = gfg->regs_;
+    StackFrame *stackfp = stackRegs.fp();
+    Value *stackvp = gfg->stackvp_;
+
+    
+    gen->regs.rebaseFromTo(stackRegs, genfp);
+    genfp->stealFrameAndSlots(genvp, stackfp, stackvp, stackRegs.sp);
+    genfp->setFloatingGenerator();
+
+    
+}
+
+GeneratorFrameGuard::~GeneratorFrameGuard()
+{
+    if (pushed())
+        stack_->popGeneratorFrame(this);
 }
 
 bool
 ContextStack::pushDummyFrame(JSContext *cx, JSObject &scopeChain,
-                             DummyFrameGuard *frameGuard)
+                             DummyFrameGuard *dfg)
 {
-    if (!getSegmentAndFrame(cx, 0 , 0 , frameGuard))
+    StackFrame *fp = getSegmentAndFrame(cx, 0 , 0 , dfg);
+    if (!fp)
         return false;
 
-    StackFrame *fp = frameGuard->fp();
     fp->initDummyFrame(cx, scopeChain);
-    frameGuard->regs_.initDummyFrame(fp);
+    dfg->regs_.initDummyFrame(fp);
 
-    pushSegmentAndFrame(frameGuard->regs_, frameGuard);
+    pushSegmentAndFrame(dfg);
     return true;
-}
-
-bool
-ContextStack::getGeneratorFrame(JSContext *cx, uintN vplen, uintN nslots,
-                                GeneratorFrameGuard *frameGuard)
-{
-    
-    return getSegmentAndFrame(cx, vplen, nslots, frameGuard);
-}
-
-void
-ContextStack::pushGeneratorFrame(FrameRegs &regs,
-                                 GeneratorFrameGuard *frameGuard)
-{
-    JS_ASSERT(regs.fp() == frameGuard->fp());
-    JS_ASSERT(regs.fp()->prev() == regs_->fp());
-
-    pushSegmentAndFrame(regs, frameGuard);
 }
 
 bool
@@ -597,17 +633,17 @@ ContextStack::popInvokeArgsSlow(const InvokeArgsGuard &argsGuard)
 }
 
 void
-ContextStack::pushInvokeFrameSlow(InvokeFrameGuard *frameGuard)
+ContextStack::pushInvokeFrameSlow(InvokeFrameGuard *ifg)
 {
     JS_ASSERT(space().seg_->empty());
-    pushSegmentAndFrameImpl(frameGuard->regs_, *space().seg_);
-    frameGuard->stack_ = this;
+    pushSegmentAndFrameImpl(ifg->regs_, *space().seg_);
+    ifg->stack_ = this;
 }
 
 void
-ContextStack::popInvokeFrameSlow(const InvokeFrameGuard &frameGuard)
+ContextStack::popInvokeFrameSlow(const InvokeFrameGuard &ifg)
 {
-    JS_ASSERT(frameGuard.regs_.fp() == seg_->initialFrame());
+    JS_ASSERT(ifg.regs_.fp() == seg_->initialFrame());
     popSegmentAndFrameImpl();
 }
 

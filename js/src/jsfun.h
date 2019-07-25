@@ -437,9 +437,7 @@ js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, js::Native native,
 
 
 
-
-
-#define JSV2F_CONSTRUCT         ((uintN)js::INVOKE_CONSTRUCTOR)
+#define JSV2F_CONSTRUCT         CONSTRUCT
 #define JSV2F_SEARCH_STACK      0x10000
 
 extern JSFunction *
