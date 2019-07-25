@@ -215,7 +215,7 @@ public:
 
 
   nsSafeOptionListMutation(nsIContent* aSelect, nsIContent* aParent,
-                           nsIContent* aKid, PRUint32 aIndex);
+                           nsIContent* aKid, PRUint32 aIndex, PRBool aNotify);
   ~nsSafeOptionListMutation();
   void MutationFailed() { mNeedsRebuild = PR_TRUE; }
 private:
@@ -330,7 +330,8 @@ public:
   virtual nsXPCClassInfo* GetClassInfo();
 
   
-  void UpdateBarredFromConstraintValidation();
+  nsresult GetValidationMessage(nsAString& aValidationMessage,
+                                ValidityStateType aType);
 
 protected:
   friend class nsSafeOptionListMutation;
@@ -352,13 +353,13 @@ protected:
 
 
 
-  PRBool SelectSomething();
+  PRBool SelectSomething(PRBool aNotify);
   
 
 
 
 
-  PRBool CheckSelectSomething();
+  PRBool CheckSelectSomething(PRBool aNotify);
   
 
 
@@ -390,7 +391,8 @@ protected:
 
   nsresult InsertOptionsIntoList(nsIContent* aOptions,
                                  PRInt32 aListIndex,
-                                 PRInt32 aDepth);
+                                 PRInt32 aDepth,
+                                 PRBool aNotify);
   
 
 
@@ -399,7 +401,8 @@ protected:
 
   nsresult RemoveOptionsFromList(nsIContent* aOptions,
                                  PRInt32 aListIndex,
-                                 PRInt32 aDepth);
+                                 PRInt32 aDepth,
+                                 PRBool aNotify);
   
 
 
@@ -420,6 +423,12 @@ protected:
                                         PRInt32 aRemoveIndex,
                                         PRInt32* aNumRemoved,
                                         PRInt32 aDepth);
+
+  
+  void UpdateBarredFromConstraintValidation();
+  bool IsValueMissing();
+  void UpdateValueMissingValidityState();
+
   
 
 
