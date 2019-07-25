@@ -411,14 +411,13 @@ TabStore.prototype = {
 
         
         
+        tab.entries = tab.entries.slice(tab.entries.length - 10);
+
         
         
         
         
         for (let k = 0; k < tab.entries.length; k++) {
-          if (k > 10)
-            delete tab.entries[k];
-          else
             delete tab.entries[k].ID;
         }
 
