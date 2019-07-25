@@ -3777,11 +3777,12 @@ nsWindow::Create(nsIWidget        *aParent,
                 
                 
                 mShell = gtk_window_new(GTK_WINDOW_POPUP);
+                gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup", cBrand.get());
             } else {
                 
                 
                 mShell = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-                GtkWindow* gtkWin = GTK_WINDOW(mShell);
+                gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup", cBrand.get());
                 
                 
                 if (mBorderStyle == eBorderStyle_default) {
@@ -3794,11 +3795,11 @@ nsWindow::Create(nsIWidget        *aParent,
                     gtk_window_set_deletable(GTK_WINDOW(mShell), mBorderStyle & eBorderStyle_close);
                   }
                 }
-                gtk_window_set_skip_taskbar_hint(gtkWin, TRUE);
+                gtk_window_set_skip_taskbar_hint(GTK_WINDOW(mShell), TRUE);
                 
                 
                 
-                gtk_window_set_accept_focus(gtkWin, FALSE);
+                gtk_window_set_accept_focus(GTK_WINDOW(mShell), FALSE);
 #ifdef MOZ_X11
                 
                 
@@ -3807,8 +3808,6 @@ nsWindow::Create(nsIWidget        *aParent,
                                       popup_take_focus_filter, NULL); 
 #endif
             }
-
-            gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup", cBrand.get());
 
             GdkWindowTypeHint gtkTypeHint;
             switch (aInitData->mPopupHint) {
