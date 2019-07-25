@@ -2582,6 +2582,16 @@ RasterImage::Draw(gfxContext *aContext,
   }
 
   
+  
+  
+  
+  
+  
+  if (DiscardingActive()) {
+    DiscardTracker::Reset(&mDiscardTrackerNode);
+  }
+
+  
   if (!mDecoded && mHasSourceData) {
       mDrawStartTime = TimeStamp::Now();
 
