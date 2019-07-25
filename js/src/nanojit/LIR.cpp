@@ -814,7 +814,7 @@ namespace nanojit
                 case LIR_ltui: 
                     
                     return oprnd2;
-                case LIR_gtui: 
+                case LIR_geui: 
                     return insImmI(1);
                 case LIR_eqi:
                     if (oprnd1->isop(LIR_ori) &&
@@ -837,6 +837,9 @@ namespace nanojit
                 case LIR_gtui:
                     
                     return insImmI(0);
+                case LIR_leui:
+                    
+                    return insImmI(1);
                 default:
                     ;
                 }
