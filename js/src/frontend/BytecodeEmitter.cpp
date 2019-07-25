@@ -430,8 +430,12 @@ UpdateSourceCoordNotes(JSContext *cx, BytecodeEmitter *bce, TokenPtr pos)
         if (colspan < 0) {
             colspan += SN_COLSPAN_DOMAIN;
         } else if (colspan >= SN_COLSPAN_DOMAIN / 2) {
-            ReportStatementTooLarge(cx, bce->topStmt);
-            return false;
+            
+            
+            
+            
+            
+            return true;
         }
         if (NewSrcNote2(cx, bce, SRC_COLSPAN, colspan) < 0)
             return false;
