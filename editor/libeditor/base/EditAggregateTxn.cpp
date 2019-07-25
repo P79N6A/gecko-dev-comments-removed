@@ -171,8 +171,7 @@ NS_IMETHODIMP EditAggregateTxn::GetTxnAt(PRInt32 aIndex, EditTxn **aTxn)
   }
   
   *aTxn = mChildren[aIndex];
-  if (!*aTxn)
-    return NS_ERROR_UNEXPECTED;
+  NS_ENSURE_TRUE(*aTxn, NS_ERROR_UNEXPECTED);
   NS_ADDREF(*aTxn);
   return NS_OK;
 }

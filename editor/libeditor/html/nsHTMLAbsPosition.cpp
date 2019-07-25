@@ -267,8 +267,7 @@ nsHTMLEditor::CreateGrabber(nsIDOMNode * aParentNode, nsIDOMElement ** aReturn)
                                         PR_FALSE,
                                         aReturn);
 
-  if (!*aReturn)
-    return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(*aReturn, NS_ERROR_FAILURE);
 
   
   nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(*aReturn));

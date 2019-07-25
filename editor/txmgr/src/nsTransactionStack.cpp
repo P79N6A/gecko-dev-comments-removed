@@ -55,8 +55,7 @@ nsTransactionStack::~nsTransactionStack()
 nsresult
 nsTransactionStack::Push(nsTransactionItem *aTransaction)
 {
-  if (!aTransaction)
-    return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
 
   
 
@@ -70,8 +69,7 @@ nsTransactionStack::Push(nsTransactionItem *aTransaction)
 nsresult
 nsTransactionStack::Pop(nsTransactionItem **aTransaction)
 {
-  if (!aTransaction)
-    return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
 
   
 
@@ -84,8 +82,7 @@ nsTransactionStack::Pop(nsTransactionItem **aTransaction)
 nsresult
 nsTransactionStack::PopBottom(nsTransactionItem **aTransaction)
 {
-  if (!aTransaction)
-    return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
 
   
 
@@ -98,8 +95,7 @@ nsTransactionStack::PopBottom(nsTransactionItem **aTransaction)
 nsresult
 nsTransactionStack::Peek(nsTransactionItem **aTransaction)
 {
-  if (!aTransaction)
-    return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
 
   if (!mQue.GetSize()) {
     *aTransaction = 0;
@@ -114,8 +110,7 @@ nsTransactionStack::Peek(nsTransactionItem **aTransaction)
 nsresult
 nsTransactionStack::GetItem(PRInt32 aIndex, nsTransactionItem **aTransaction)
 {
-  if (!aTransaction)
-    return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
 
   if (aIndex < 0 || aIndex >= mQue.GetSize())
     return NS_ERROR_FAILURE;
@@ -152,8 +147,7 @@ nsTransactionStack::Clear(void)
 nsresult
 nsTransactionStack::GetSize(PRInt32 *aStackSize)
 {
-  if (!aStackSize)
-    return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(aStackSize, NS_ERROR_NULL_POINTER);
 
   *aStackSize = mQue.GetSize();
 

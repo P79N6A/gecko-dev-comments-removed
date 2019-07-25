@@ -302,8 +302,7 @@ NS_IMETHODIMP nsPlaintextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
 
 NS_IMETHODIMP nsPlaintextEditor::CanDrag(nsIDOMEvent *aDragEvent, PRBool *aCanDrag)
 {
-  if (!aCanDrag)
-    return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(aCanDrag, NS_ERROR_NULL_POINTER);
   
 
 
@@ -371,8 +370,7 @@ NS_IMETHODIMP nsPlaintextEditor::DoDrag(nsIDOMEvent *aDragEvent)
   
   nsCOMPtr<nsISupportsArray> transferableArray;
   NS_NewISupportsArray(getter_AddRefs(transferableArray));
-  if (!transferableArray)
-    return NS_ERROR_OUT_OF_MEMORY;
+  NS_ENSURE_TRUE(transferableArray, NS_ERROR_OUT_OF_MEMORY);
 
   
   rv = transferableArray->AppendElement(trans);
@@ -539,8 +537,7 @@ nsPlaintextEditor::SetupDocEncoder(nsIDocumentEncoder **aDocEncoder)
 
   
   nsCOMPtr<nsIDocumentEncoder> encoder = do_CreateInstance(NS_HTMLCOPY_ENCODER_CONTRACTID);
-  if (!encoder)
-    return NS_ERROR_OUT_OF_MEMORY;
+  NS_ENSURE_TRUE(encoder, NS_ERROR_OUT_OF_MEMORY);
 
   rv = encoder->Init(domDoc, mimeType, docEncoderFlags);
   NS_ENSURE_SUCCESS(rv, rv);
