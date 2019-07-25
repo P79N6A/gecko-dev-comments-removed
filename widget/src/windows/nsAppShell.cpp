@@ -45,7 +45,6 @@
 #include "WinTaskbar.h"
 #include "nsString.h"
 #include "nsIMM32Handler.h"
-#include "mozilla/widget/AudioSession.h"
 
 
 #include <windows.h> 
@@ -245,19 +244,9 @@ nsAppShell::Run(void)
 {
   LoadedModuleInfo modules[NUM_LOADEDMODULEINFO];
   memset(modules, 0, sizeof(modules));
-  sLoadedModules = modules;	
-
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
-  
-  
-  mozilla::widget::StartAudioSession();
-#endif
+  sLoadedModules = modules;
 
   nsresult rv = nsBaseAppShell::Run();
-
-#ifdef MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
-  mozilla::widget::StopAudioSession();
-#endif
 
   
   sLoadedModules = nsnull;
