@@ -185,8 +185,6 @@ protected:
 
   ISimpleDOMNode *MakeAccessNode(nsINode *aNode);
 
-    static PRBool gIsEnumVariantSupportDisabled;
-
     
 
 
