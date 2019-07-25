@@ -24,6 +24,11 @@ namespace Telemetry {
 
 #include "TelemetryHistogramEnums.h"
 
+enum TimerResolution {
+  Millisecond,
+  Microsecond
+};
+
 
 
 
@@ -51,7 +56,34 @@ void AccumulateTimeDelta(ID id, TimeStamp start, TimeStamp end = TimeStamp::Now(
 
 base::Histogram* GetHistogramById(ID id);
 
-template<ID id>
+
+
+
+
+template<TimerResolution res>
+struct AccumulateDelta_impl
+{
+  static void compute(ID id, TimeStamp start, TimeStamp end = TimeStamp::Now());
+};
+
+template<>
+struct AccumulateDelta_impl<Millisecond>
+{
+  static void compute(ID id, TimeStamp start, TimeStamp end = TimeStamp::Now()) {
+    Accumulate(id, static_cast<uint32_t>((end - start).ToMilliseconds()));
+  }
+};
+
+template<>
+struct AccumulateDelta_impl<Microsecond>
+{
+  static void compute(ID id, TimeStamp start, TimeStamp end = TimeStamp::Now()) {
+    Accumulate(id, static_cast<uint32_t>((end - start).ToMicroseconds()));
+  }
+};
+
+
+template<ID id, TimerResolution res = Millisecond>
 class AutoTimer {
 public:
   AutoTimer(TimeStamp aStart = TimeStamp::Now() MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
@@ -61,7 +93,7 @@ public:
   }
 
   ~AutoTimer() {
-    AccumulateTimeDelta(id, start);
+    AccumulateDelta_impl<res>::compute(id, start);
   }
 
 private:
@@ -136,4 +168,4 @@ void RecordChromeHang(uint32_t duration,
 
 } 
 } 
-#endif
+#endif 
