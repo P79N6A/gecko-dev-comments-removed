@@ -22,17 +22,13 @@ function run_test() {
 
   
   prefs.setIntPref("network.cookie.cookieBehavior", 0);
-  do_set_cookies(uri1, channel1, true, [1, 2, 3, 4]);
-  cs.removeAll();
-  do_set_cookies(uri1, channel2, true, [1, 2, 3, 4]);
-  cs.removeAll();
+  run_cookie_test(cs, uri1, channel1, [1, 2, 3, 4]);
+  run_cookie_test(cs, uri1, channel2, [1, 2, 3, 4]);
 
   
   prefs.setIntPref("network.cookie.cookieBehavior", 1);
-  do_set_cookies(uri1, channel1, true, [0, 0, 0, 0]);
-  cs.removeAll();
-  do_set_cookies(uri1, channel2, true, [0, 0, 0, 0]);
-  cs.removeAll();
+  run_cookie_test(cs, uri1, channel1, [0, 0, 0, 0]);
+  run_cookie_test(cs, uri1, channel2, [0, 0, 0, 0]);
 
   
   
@@ -43,16 +39,28 @@ function run_test() {
 
   
   prefs.setIntPref("network.cookie.cookieBehavior", 0);
-  do_set_cookies(uri1, channel1, true, [1, 2, 3, 4]);
-  cs.removeAll();
-  do_set_cookies(uri1, channel2, true, [1, 2, 3, 4]);
-  cs.removeAll();
+  run_cookie_test(cs, uri1, channel1, [1, 2, 3, 4]);
+  run_cookie_test(cs, uri1, channel2, [1, 2, 3, 4]);
 
   
   prefs.setIntPref("network.cookie.cookieBehavior", 1);
-  do_set_cookies(uri1, channel1, true, [0, 1, 1, 2]);
-  cs.removeAll();
-  do_set_cookies(uri1, channel2, true, [0, 0, 0, 0]);
+  run_cookie_test(cs, uri1, channel1, [0, 1, 1, 2]);
+  run_cookie_test(cs, uri1, channel2, [0, 0, 0, 0]);
+}
+
+function run_cookie_test(cs, uri, channel, expected) {
+  
+  cs.setCookieString(uri, null, "oh=hai", null);
+  do_check_eq(cs.countCookiesFromHost("foo.com"), expected[0]);
+  
+  cs.setCookieString(uri, null, "can=has", channel);
+  do_check_eq(cs.countCookiesFromHost("foo.com"), expected[1]);
+  
+  cs.setCookieStringFromHttp(uri, null, null, "cheez=burger", null, null);
+  do_check_eq(cs.countCookiesFromHost("foo.com"), expected[2]);
+  
+  cs.setCookieStringFromHttp(uri, null, null, "hot=dog", null, channel);
+  do_check_eq(cs.countCookiesFromHost("foo.com"), expected[3]);
   cs.removeAll();
 }
 
