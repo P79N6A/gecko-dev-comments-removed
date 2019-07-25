@@ -101,7 +101,7 @@
 #include "nsPIDOMEventTarget.h"
 #include "nsIArray.h"
 #include "nsIContent.h"
-#include "nsFrameMessageManager.h"
+#include "nsIIndexedDatabaseRequest.h"
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
@@ -338,7 +338,6 @@ public:
   virtual NS_HIDDEN_(void) SetDocShell(nsIDocShell* aDocShell);
   virtual NS_HIDDEN_(nsresult) SetNewDocument(nsIDocument *aDocument,
                                               nsISupports *aState);
-  void DispatchDOMWindowCreated();
   virtual NS_HIDDEN_(void) SetOpenerWindow(nsIDOMWindowInternal *aOpener,
                                            PRBool aOriginalOpener);
   virtual NS_HIDDEN_(void) EnsureSizeUpToDate();
@@ -680,11 +679,6 @@ protected:
   already_AddRefed<nsPIWindowRoot> GetTopWindowRoot();
 
   static void NotifyDOMWindowDestroyed(nsGlobalWindow* aWindow);
-  void NotifyWindowIDDestroyed(const char* aTopic);
-  
-  void ClearStatus();
-
-  virtual void UpdateParentTarget();
 
   
   
@@ -747,13 +741,10 @@ protected:
 
   
   
-  PRPackedBool           mFocusByKeyOccurred : 1;
+  PRPackedBool           mFocusByKeyOccured : 1;
 
   
   PRPackedBool           mHasAcceleration  : 1;
-
-  
-  PRPackedBool           mNotifiedIDDestroyed : 1;
 
   nsCOMPtr<nsIScriptContext>    mContext;
   nsWeakPtr                     mOpener;
@@ -829,9 +820,7 @@ protected:
 
   nsCOMPtr<nsIDocument> mSuspendedDoc;
 
-  
-  
-  PRUint64 mWindowID;
+  nsCOMPtr<nsIIndexedDatabaseRequest> mIndexedDB;
 
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;
@@ -862,8 +851,8 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsGlobalChromeWindow,
                                                      nsGlobalWindow)
 
+protected:
   nsCOMPtr<nsIBrowserDOMWindow> mBrowserDOMWindow;
-  nsCOMPtr<nsIChromeFrameMessageManager> mMessageManager;
 };
 
 
@@ -899,6 +888,7 @@ protected:
 
 
 class nsNavigator : public nsIDOMNavigator,
+                    public nsIDOMJSNavigator,
                     public nsIDOMClientInformation,
                     public nsIDOMNavigatorGeolocation
 {
@@ -908,6 +898,7 @@ public:
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMNAVIGATOR
+  NS_DECL_NSIDOMJSNAVIGATOR
   NS_DECL_NSIDOMCLIENTINFORMATION
   NS_DECL_NSIDOMNAVIGATORGEOLOCATION
   
@@ -925,6 +916,8 @@ protected:
   nsRefPtr<nsPluginArray> mPlugins;
   nsRefPtr<nsGeolocation> mGeolocation;
   nsIDocShell* mDocShell; 
+
+  static jsval       sPrefInternal_id;
 };
 
 class nsIURI;
