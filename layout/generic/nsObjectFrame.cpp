@@ -4754,6 +4754,14 @@ nsPluginInstanceOwner::MouseDown(nsIDOMEvent* aMouseEvent)
 nsresult
 nsPluginInstanceOwner::MouseUp(nsIDOMEvent* aMouseEvent)
 {
+  
+  
+  
+  
+  if (!mContentFocused) {
+    aMouseEvent->PreventDefault();
+    return NS_OK;
+  }
   return DispatchMouseToPlugin(aMouseEvent);
 }
 

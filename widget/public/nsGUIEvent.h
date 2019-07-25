@@ -408,6 +408,9 @@ class nsHashKey;
 #define NS_QUERY_CHARACTER_AT_POINT     (NS_QUERY_CONTENT_EVENT_START + 8)
 
 
+#define NS_QUERY_DOM_WIDGET_HITTEST     (NS_QUERY_CONTENT_EVENT_START + 9)
+
+
 #ifdef MOZ_MEDIA
 #define NS_MEDIA_EVENT_START            3300
 #define NS_LOADSTART           (NS_MEDIA_EVENT_START)
@@ -1270,6 +1273,13 @@ public:
     mInput.mLength = aLength;
   }
 
+  void InitForQueryDOMWidgetHittest(nsIntPoint& aPoint)
+  {
+    NS_ASSERTION(message == NS_QUERY_DOM_WIDGET_HITTEST,
+                 "wrong initializer is called");
+    refPoint = aPoint;
+  }
+
   PRUint32 GetSelectionStart(void) const
   {
     NS_ASSERTION(message == NS_QUERY_SELECTED_TEXT,
@@ -1299,6 +1309,7 @@ public:
     nsIWidget* mFocusedWidget;
     PRPackedBool mReversed; 
     PRPackedBool mHasSelection; 
+    PRPackedBool mWidgetIsHit; 
     
     nsCOMPtr<nsITransferable> mTransferable;
   } mReply;
@@ -1579,7 +1590,8 @@ enum nsDragDropEventStatus {
         ((evnt)->message == NS_QUERY_EDITOR_RECT) || \
         ((evnt)->message == NS_QUERY_CONTENT_STATE) || \
         ((evnt)->message == NS_QUERY_SELECTION_AS_TRANSFERABLE) || \
-        ((evnt)->message == NS_QUERY_CHARACTER_AT_POINT))
+        ((evnt)->message == NS_QUERY_CHARACTER_AT_POINT) || \
+        ((evnt)->message == NS_QUERY_DOM_WIDGET_HITTEST))
 
 #define NS_IS_SELECTION_EVENT(evnt) \
        (((evnt)->message == NS_SELECTION_SET))
