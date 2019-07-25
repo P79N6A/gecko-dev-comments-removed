@@ -544,9 +544,7 @@ protected:
 
 
 
-
-  nsresult MarkLineDirty(line_iterator aLine,
-                         const nsLineList* aLineList = nsnull);
+  void MarkLineDirty(line_iterator aLine, const nsLineList* aLineList);
 
   
   bool IsLastLine(nsBlockReflowState& aState,
@@ -870,13 +868,13 @@ public:
   line_iterator GetLine() { return mLine; }
   bool IsLastLineInList();
   nsBlockFrame* GetContainer() { return mFrame; }
-  bool GetInOverflow() { return mInOverflowLines != nsnull; }
+  bool GetInOverflow() { return mLineList != &mFrame->mLines; }
 
   
 
 
 
-  nsLineList* GetLineList() { return mInOverflowLines; }
+  nsLineList* GetLineList() { return mLineList; }
 
   
 
@@ -901,7 +899,7 @@ private:
 
   nsBlockFrame* mFrame;
   line_iterator mLine;
-  nsLineList*   mInOverflowLines;
+  nsLineList*   mLineList;  
 
   
 
