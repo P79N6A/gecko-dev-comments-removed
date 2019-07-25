@@ -683,11 +683,8 @@ js_InternalThrow(VMFrame &f)
 
     JS_ASSERT(f.regs.sp == cx->regs->sp);
 
-    if (!pc) {
-        *f.oldRegs = f.regs;
-        f.cx->setCurrentRegs(f.oldRegs);
+    if (!pc)
         return NULL;
-    }
 
     return cx->fp()->getScript()->pcToNative(pc);
 }
@@ -781,9 +778,7 @@ PartialInterpret(VMFrame &f)
               !fp->getScript()->nmap[cx->regs->pc - fp->getScript()->code]);
 
     JSBool ok = JS_TRUE;
-    fp->flags |= JSFRAME_BAILING;
-    ok = Interpret(cx, fp);
-    fp->flags &= ~JSFRAME_BAILING;
+    ok = Interpret(cx, fp, 0, JSINTERP_SAFEPOINT);
 
     f.fp() = cx->fp();
 
@@ -807,9 +802,8 @@ static bool
 RemoveExcessFrames(VMFrame &f, JSStackFrame *entryFrame)
 {
     JSContext *cx = f.cx;
-    while (cx->fp() != entryFrame) {
+    while (cx->fp() != entryFrame || entryFrame->hasIMacroPC()) {
         JSStackFrame *fp = cx->fp();
-        fp->flags &= ~JSFRAME_RECORDING;
 
         if (AtSafePoint(cx)) {
             JSScript *script = fp->getScript();
@@ -826,15 +820,16 @@ RemoveExcessFrames(VMFrame &f, JSStackFrame *entryFrame)
             if (!PartialInterpret(f)) {
                 if (!SwallowErrors(f, entryFrame))
                     return false;
-            } else {
+            } else if (cx->fp() != entryFrame) {
                 
 
 
 
-                if (!cx->fp()->hasIMacroPC() && FrameIsFinished(cx)) {
+                JS_ASSERT(!cx->fp()->hasIMacroPC());
+                if (FrameIsFinished(cx)) {
                     JSOp op = JSOp(*cx->regs->pc);
                     if (op == JSOP_RETURN && !(cx->fp()->flags & JSFRAME_BAILED_AT_RETURN))
-                        fp->setReturnValue(f.regs.sp[-1]);
+                        cx->fp()->setReturnValue(f.regs.sp[-1]);
                     InlineReturn(f, JS_TRUE);
                     AdvanceReturnPC(cx);
                 }
@@ -950,16 +945,7 @@ RunTracer(VMFrame &f)
         THROWV(NULL);
 
     
-    entryFrame->flags &= ~JSFRAME_RECORDING;
-    while (entryFrame->hasIMacroPC()) {
-        if (!PartialInterpret(f)) {
-            if (!SwallowErrors(f, entryFrame))
-                THROWV(NULL);
-        }
-
-        
-        goto restart;
-    }
+    JS_ASSERT(!entryFrame->hasIMacroPC());
 
     
     if (AtSafePoint(cx)) {

@@ -67,13 +67,17 @@ enum JSFrameFlags {
     JSFRAME_FLOATING_GENERATOR =   0x20, 
     JSFRAME_YIELDING           =   0x40, 
     JSFRAME_GENERATOR          =   0x80, 
-    JSFRAME_BAILING            =  0x100, 
-    JSFRAME_RECORDING          =  0x200, 
-    JSFRAME_BAILED_AT_RETURN   =  0x400, 
-    JSFRAME_DUMMY              =  0x800, 
-    JSFRAME_IN_IMACRO          = 0x1000, 
+    JSFRAME_BAILED_AT_RETURN   =  0x100, 
+    JSFRAME_DUMMY              =  0x200, 
+    JSFRAME_IN_IMACRO          =  0x400, 
 	
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
+};
+
+
+enum JSInterpFlags {
+    JSINTERP_RECORD         =   0x01, 
+    JSINTERP_SAFEPOINT      =   0x02  
 };
 
 namespace js { namespace mjit {
@@ -757,7 +761,7 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
 
 extern JS_REQUIRES_STACK bool
-Interpret(JSContext *cx, JSStackFrame *stopFp, uintN inlineCallCount = 0);
+Interpret(JSContext *cx, JSStackFrame *stopFp, uintN inlineCallCount = 0, uintN interpFlags = 0);
 
 extern JS_REQUIRES_STACK bool
 RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain);

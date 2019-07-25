@@ -295,7 +295,7 @@ ValueToTypeChar(const Value &v)
 
 
 
-#define HOTLOOP 4
+#define HOTLOOP 8
 
 
 #define BL_ATTEMPTS 2
@@ -304,7 +304,7 @@ ValueToTypeChar(const Value &v)
 #define BL_BACKOFF 32
 
 
-#define MIN_LOOP_ITERS 2
+#define MIN_LOOP_ITERS 8
 
 
 #define HOTEXIT 1
@@ -16254,11 +16254,8 @@ MonitorTracePoint(JSContext* cx, uintN& inlineCallCount, bool& blacklist)
     JS_ASSERT(TRACE_RECORDER(cx));
 
     
-    fp->flags |= JSFRAME_RECORDING;
-    if (!Interpret(cx, fp, inlineCallCount))
+    if (!Interpret(cx, fp, inlineCallCount, JSINTERP_RECORD))
         return TPA_Error;
-
-    fp->flags &= ~JSFRAME_RECORDING;
 
     return TPA_RanStuff;
 }
