@@ -7,6 +7,7 @@ package org.mozilla.gecko.ui;
 
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.util.EventDispatcher;
 import org.mozilla.gecko.util.GeckoEventListener;
 
 import org.json.JSONException;
@@ -26,6 +27,7 @@ class SubdocumentScrollHelper implements GeckoEventListener {
 
     private final PanZoomController mPanZoomController;
     private final Handler mUiHandler;
+    private final EventDispatcher mEventDispatcher;
 
     
 
@@ -47,21 +49,30 @@ class SubdocumentScrollHelper implements GeckoEventListener {
 
     private boolean mScrollSucceeded;
 
-    SubdocumentScrollHelper(PanZoomController controller) {
+    SubdocumentScrollHelper(PanZoomController controller, EventDispatcher eventDispatcher) {
         mPanZoomController = controller;
         
         mUiHandler = new Handler();
         mPendingDisplacement = new PointF();
 
-        GeckoAppShell.registerGeckoEventListener(MESSAGE_PANNING_OVERRIDE, this);
-        GeckoAppShell.registerGeckoEventListener(MESSAGE_CANCEL_OVERRIDE, this);
-        GeckoAppShell.registerGeckoEventListener(MESSAGE_SCROLL_ACK, this);
+        mEventDispatcher = eventDispatcher;
+        registerEventListener(MESSAGE_PANNING_OVERRIDE);
+        registerEventListener(MESSAGE_CANCEL_OVERRIDE);
+        registerEventListener(MESSAGE_SCROLL_ACK);
     }
 
     void destroy() {
-        GeckoAppShell.unregisterGeckoEventListener(MESSAGE_PANNING_OVERRIDE, this);
-        GeckoAppShell.unregisterGeckoEventListener(MESSAGE_CANCEL_OVERRIDE, this);
-        GeckoAppShell.unregisterGeckoEventListener(MESSAGE_SCROLL_ACK, this);
+        unregisterEventListener(MESSAGE_PANNING_OVERRIDE);
+        unregisterEventListener(MESSAGE_CANCEL_OVERRIDE);
+        unregisterEventListener(MESSAGE_SCROLL_ACK);
+    }
+
+    private void registerEventListener(String event) {
+        mEventDispatcher.registerEventListener(event, this);
+    }
+
+    private void unregisterEventListener(String event) {
+        mEventDispatcher.unregisterEventListener(event, this);
     }
 
     boolean scrollBy(PointF displacement) {
