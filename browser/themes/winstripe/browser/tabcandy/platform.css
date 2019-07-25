@@ -2,3 +2,6 @@
 
 
 
+.close {
+  background: url(chrome://global/skin/icons/Close.gif) no-repeat;
+}
