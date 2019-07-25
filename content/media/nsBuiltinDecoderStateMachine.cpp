@@ -1008,7 +1008,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   
   
   nsRefPtr<nsAudioStream> audioStream = nsAudioStream::AllocateStream();
-  audioStream->Init(channels, rate, MOZ_AUDIO_DATA_FORMAT);
+  audioStream->Init(channels, rate);
 
   {
     
