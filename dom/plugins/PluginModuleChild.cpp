@@ -1758,6 +1758,17 @@ PluginModuleChild::AnswerPPluginInstanceConstructor(PPluginInstanceChild* aActor
         return false;
     }
 
+#if defined(XP_MACOSX) && defined(__i386__)
+    
+    
+    
+    
+    
+    if (childInstance->EventModel() == NPEventModelCarbon) {
+        *rv = NPERR_MODULE_LOAD_FAILED_ERROR;
+    }
+#endif
+
     return true;
 }
 
