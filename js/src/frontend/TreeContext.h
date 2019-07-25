@@ -148,8 +148,6 @@ struct SharedContext {
     const RootedObject scopeChain_; 
 
   public:
-    const unsigned  staticLevel;    
-
     Bindings        bindings;       
 
     Bindings::AutoRooter bindingsRoot; 
@@ -158,8 +156,7 @@ struct SharedContext {
 
     
     
-    inline SharedContext(JSContext *cx, JSObject *scopeChain, JSFunction *fun, FunctionBox *funbox,
-                         unsigned staticLevel);
+    inline SharedContext(JSContext *cx, JSObject *scopeChain, JSFunction *fun, FunctionBox *funbox);
 
     
     
@@ -218,6 +215,8 @@ struct Parser;
 struct TreeContext {                
     SharedContext   *sc;            
 
+    const unsigned  staticLevel;    
+
     uint32_t        parenDepth;     
 
     uint32_t        yieldCount;     
@@ -268,7 +267,7 @@ struct TreeContext {
 
     void trace(JSTracer *trc);
 
-    inline TreeContext(Parser *prs, SharedContext *sc);
+    inline TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel);
     inline ~TreeContext();
 
     inline bool init();

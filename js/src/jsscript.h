@@ -566,8 +566,9 @@ struct JSScript : public js::gc::Cell
 
   public:
     static JSScript *Create(JSContext *cx, bool savedCallerFun,
-                            JSPrincipals *principals, JSPrincipals *originPrincipals, bool compileAndGo,
-                            bool noScriptRval, JSVersion version);
+                            JSPrincipals *principals, JSPrincipals *originPrincipals,
+                            bool compileAndGo, bool noScriptRval, JSVersion version,
+                            unsigned staticLevel);
 
     
     
