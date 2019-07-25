@@ -414,13 +414,16 @@ StackSpace::mark(JSTracer *trc)
 }
 
 JS_FRIEND_API(bool)
-StackSpace::ensureSpaceSlow(JSContext *cx, MaybeReportError report,
-                            Value *from, ptrdiff_t nvals) const
+StackSpace::ensureSpaceSlow(JSContext *cx, MaybeReportError report, Value *from, ptrdiff_t nvals,
+                            JSCompartment *dest) const
 {
     assertInvariants();
 
-    bool trusted = !cx->compartment ||
-                   cx->compartment->principals == cx->runtime->trustedPrincipals();
+    
+    if (dest == (JSCompartment *)CX_COMPARTMENT)
+        dest = cx->compartment;
+
+    bool trusted = !dest || dest->principals == cx->runtime->trustedPrincipals();
     Value *end = trusted ? trustedEnd_ : defaultEnd_;
 
     
@@ -548,17 +551,17 @@ ContextStack::containsSlow(const StackFrame *target) const
 
 Value *
 ContextStack::ensureOnTop(JSContext *cx, MaybeReportError report, uintN nvars,
-                          MaybeExtend extend, bool *pushedSeg)
+                          MaybeExtend extend, bool *pushedSeg, JSCompartment *dest)
 {
     Value *firstUnused = space().firstUnused();
 
     if (onTop() && extend) {
-        if (!space().ensureSpace(cx, report, firstUnused, nvars))
+        if (!space().ensureSpace(cx, report, firstUnused, nvars, dest))
             return NULL;
         return firstUnused;
     }
 
-    if (!space().ensureSpace(cx, report, firstUnused, VALUES_PER_STACK_SEGMENT + nvars))
+    if (!space().ensureSpace(cx, report, firstUnused, VALUES_PER_STACK_SEGMENT + nvars, dest))
         return NULL;
 
     FrameRegs *regs;
@@ -696,11 +699,12 @@ ContextStack::pushExecuteFrame(JSContext *cx, JSScript *script, const Value &thi
 }
 
 bool
-ContextStack::pushDummyFrame(JSContext *cx, MaybeReportError report, JSObject &scopeChain,
-                             DummyFrameGuard *dfg)
+ContextStack::pushDummyFrame(JSContext *cx, JSCompartment *dest, JSObject &scopeChain, DummyFrameGuard *dfg)
 {
+    JS_ASSERT(dest == scopeChain.compartment());
+
     uintN nvars = VALUES_PER_STACK_FRAME;
-    Value *firstUnused = ensureOnTop(cx, report, nvars, CAN_EXTEND, &dfg->pushedSeg_);
+    Value *firstUnused = ensureOnTop(cx, REPORT_ERROR, nvars, CAN_EXTEND, &dfg->pushedSeg_, dest);
     if (!firstUnused)
         return NULL;
 
@@ -708,6 +712,7 @@ ContextStack::pushDummyFrame(JSContext *cx, MaybeReportError report, JSObject &s
     fp->initDummyFrame(cx, scopeChain);
     dfg->regs_.initDummyFrame(*fp);
 
+    cx->compartment = dest;
     dfg->prevRegs_ = seg_->pushRegs(dfg->regs_);
     JS_ASSERT(space().firstUnused() == dfg->regs_.sp);
     dfg->setPushed(*this);
@@ -790,24 +795,11 @@ ContextStack::popGeneratorFrame(const GeneratorFrameGuard &gfg)
 bool
 ContextStack::saveFrameChain()
 {
-    
-
-
-
-
-
-
-
-
-    JSCompartment *original = cx_->compartment;
-    cx_->compartment = NULL;
+    JSCompartment *dest = NULL;
 
     bool pushedSeg;
-    if (!ensureOnTop(cx_, DONT_REPORT_ERROR, 0, CANT_EXTEND, &pushedSeg)) {
-        cx_->compartment = original;
-        js_ReportOverRecursed(cx_);
+    if (!ensureOnTop(cx_, REPORT_ERROR, 0, CANT_EXTEND, &pushedSeg, dest))
         return false;
-    }
 
     JS_ASSERT(pushedSeg);
     JS_ASSERT(!hasfp());
