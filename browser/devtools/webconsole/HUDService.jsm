@@ -2505,20 +2505,20 @@ HUD_SERVICE.prototype =
     let outputNode = this.hudReferences[hudId].outputNode;
 
     let chromeDocument = outputNode.ownerDocument;
-    let msgNode = chromeDocument.createElementNS(XUL_NS, "xul:hbox");
+    let msgNode = chromeDocument.createElementNS(XUL_NS, "hbox");
 
-    let methodNode = chromeDocument.createElementNS(XUL_NS, "xul:label");
+    let methodNode = chromeDocument.createElementNS(XUL_NS, "label");
     methodNode.setAttribute("value", aActivityObject.method);
     methodNode.classList.add("webconsole-msg-body-piece");
     msgNode.appendChild(methodNode);
 
-    let linkNode = chromeDocument.createElementNS(XUL_NS, "xul:hbox");
+    let linkNode = chromeDocument.createElementNS(XUL_NS, "hbox");
     linkNode.setAttribute("flex", "1");
     linkNode.classList.add("webconsole-msg-body-piece");
     linkNode.classList.add("webconsole-msg-link");
     msgNode.appendChild(linkNode);
 
-    let urlNode = chromeDocument.createElementNS(XUL_NS, "xul:label");
+    let urlNode = chromeDocument.createElementNS(XUL_NS, "label");
     urlNode.setAttribute("crop", "center");
     urlNode.setAttribute("flex", "1");
     urlNode.setAttribute("title", aActivityObject.url);
@@ -2528,7 +2528,7 @@ HUD_SERVICE.prototype =
     urlNode.classList.add("webconsole-msg-url");
     linkNode.appendChild(urlNode);
 
-    let statusNode = chromeDocument.createElementNS(XUL_NS, "xul:label");
+    let statusNode = chromeDocument.createElementNS(XUL_NS, "label");
     statusNode.setAttribute("value", "");
     statusNode.classList.add("hud-clickable");
     statusNode.classList.add("webconsole-msg-body-piece");
@@ -5396,22 +5396,22 @@ ConsoleUtils = {
     
     
     
-    let iconContainer = aDocument.createElementNS(XUL_NS, "xul:vbox");
+    let iconContainer = aDocument.createElementNS(XUL_NS, "vbox");
     iconContainer.classList.add("webconsole-msg-icon-container");
 
     
     
-    let iconNode = aDocument.createElementNS(XUL_NS, "xul:image");
+    let iconNode = aDocument.createElementNS(XUL_NS, "image");
     iconNode.classList.add("webconsole-msg-icon");
     iconContainer.appendChild(iconNode);
 
     
-    let spacer = aDocument.createElementNS(XUL_NS, "xul:spacer");
+    let spacer = aDocument.createElementNS(XUL_NS, "spacer");
     spacer.setAttribute("flex", "1");
     iconContainer.appendChild(spacer);
 
     
-    let bodyNode = aDocument.createElementNS(XUL_NS, "xul:description");
+    let bodyNode = aDocument.createElementNS(XUL_NS, "description");
     bodyNode.setAttribute("flex", "1");
     bodyNode.classList.add("webconsole-msg-body");
 
@@ -5425,15 +5425,15 @@ ConsoleUtils = {
 
     bodyNode.appendChild(aBody);
 
-    let repeatContainer = aDocument.createElementNS(XUL_NS, "xul:hbox");
+    let repeatContainer = aDocument.createElementNS(XUL_NS, "hbox");
     repeatContainer.setAttribute("align", "start");
-    let repeatNode = aDocument.createElementNS(XUL_NS, "xul:label");
+    let repeatNode = aDocument.createElementNS(XUL_NS, "label");
     repeatNode.setAttribute("value", "1");
     repeatNode.classList.add("webconsole-msg-repeat");
     repeatContainer.appendChild(repeatNode);
 
     
-    let timestampNode = aDocument.createElementNS(XUL_NS, "xul:label");
+    let timestampNode = aDocument.createElementNS(XUL_NS, "label");
     timestampNode.classList.add("webconsole-timestamp");
     let timestamp = ConsoleUtils.timestamp();
     let timestampString = ConsoleUtils.timestampString(timestamp);
@@ -5448,7 +5448,7 @@ ConsoleUtils = {
     }
 
     
-    let node = aDocument.createElementNS(XUL_NS, "xul:richlistitem");
+    let node = aDocument.createElementNS(XUL_NS, "richlistitem");
     node.clipboardText = aClipboardText;
     node.classList.add("hud-msg-node");
 
@@ -5523,7 +5523,7 @@ ConsoleUtils = {
   createLocationNode:
   function ConsoleUtils_createLocationNode(aDocument, aSourceURL,
                                            aSourceLine) {
-    let locationNode = aDocument.createElementNS(XUL_NS, "xul:label");
+    let locationNode = aDocument.createElementNS(XUL_NS, "label");
 
     
     
