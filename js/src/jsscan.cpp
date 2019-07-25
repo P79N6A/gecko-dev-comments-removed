@@ -668,12 +668,13 @@ js::ReportStrictModeError(JSContext *cx, TokenStream *ts, JSTreeContext *tc, JSP
 
     
     uintN flags;
-    if ((tc && tc->flags & TCF_STRICT_MODE_CODE) || (ts && ts->isStrictMode()))
+    if ((ts && ts->isStrictMode()) || (tc && (tc->flags & TCF_STRICT_MODE_CODE))) {
         flags = JSREPORT_ERROR;
-    else if (JS_HAS_STRICT_OPTION(cx))
+    } else {
+        if (!JS_HAS_STRICT_OPTION(cx))
+            return true;
         flags = JSREPORT_WARNING;
-    else
-        return true;
+    }
 
     va_list ap;
     va_start(ap, errorNumber);
