@@ -290,6 +290,43 @@ nsAppShellService::CalculateWindowZLevel(nsIXULWindow *aParent,
 
 
 
+static PRBool
+CheckForFullscreenWindow()
+{
+  nsCOMPtr<nsIWindowMediator> wm(do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
+  if (!wm)
+    return PR_FALSE;
+
+  nsCOMPtr<nsISimpleEnumerator> windowList;
+  wm->GetXULWindowEnumerator(nsnull, getter_AddRefs(windowList));
+  if (!windowList)
+    return PR_FALSE;
+
+  for (;;) {
+    PRBool more = PR_FALSE;
+    windowList->HasMoreElements(&more);
+    if (!more)
+      return PR_FALSE;
+
+    nsCOMPtr<nsISupports> supportsWindow;
+    windowList->GetNext(getter_AddRefs(supportsWindow));
+    nsCOMPtr<nsIBaseWindow> baseWin(do_QueryInterface(supportsWindow));
+    if (baseWin) {
+      PRInt32 sizeMode;
+      nsCOMPtr<nsIWidget> widget;
+      baseWin->GetMainWidget(getter_AddRefs(widget));
+      if (widget && NS_SUCCEEDED(widget->GetSizeMode(&sizeMode)) && 
+          sizeMode == nsSizeMode_Fullscreen) {
+        return PR_TRUE;
+      }
+    }
+  }
+  return PR_FALSE;
+}
+
+
+
+
 nsresult
 nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
                                        nsIURI *aUrl, 
@@ -309,6 +346,14 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
 
   nsRefPtr<nsWebShellWindow> window = new nsWebShellWindow(aChromeMask);
   NS_ENSURE_TRUE(window, NS_ERROR_OUT_OF_MEMORY);
+
+#ifdef XP_WIN
+  
+  
+  
+  if (window && CheckForFullscreenWindow())
+    window->IgnoreXULSizeMode(PR_TRUE);
+#endif
 
   nsWidgetInitData widgetInitData;
 

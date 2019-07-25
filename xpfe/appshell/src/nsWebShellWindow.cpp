@@ -378,6 +378,15 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
         
         
         
+        if (modeEvent->mSizeMode == nsSizeMode_Fullscreen) {
+          nsCOMPtr<nsIDOMWindowInternal> ourWindow = do_GetInterface(docShell);
+          if (ourWindow)
+            ourWindow->SetFullScreen(PR_TRUE);
+        }
+
+        
+        
+        
         
         
         break;

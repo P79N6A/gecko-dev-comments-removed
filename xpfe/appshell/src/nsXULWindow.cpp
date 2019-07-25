@@ -154,6 +154,7 @@ nsXULWindow::nsXULWindow(PRUint32 aChromeFlags)
     mPersistentAttributesDirty(0),
     mPersistentAttributesMask(0),
     mChromeFlags(aChromeFlags),
+    mIgnoreXULSizeMode(PR_FALSE),
     
     mAppPerDev(nsPresContext::AppUnitsPerCSSPixel())
 {
@@ -1219,7 +1220,8 @@ PRBool nsXULWindow::LoadMiscPersistentAttributesFromXUL()
 
 
 
-    if (stateString.Equals(SIZEMODE_MAXIMIZED) || stateString.Equals(SIZEMODE_FULLSCREEN)) {
+    if (!mIgnoreXULSizeMode &&
+        (stateString.Equals(SIZEMODE_MAXIMIZED) || stateString.Equals(SIZEMODE_FULLSCREEN))) {
       
 
 
