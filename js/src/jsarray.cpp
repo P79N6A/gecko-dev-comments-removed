@@ -2059,19 +2059,25 @@ array_push1_dense(JSContext* cx, JSObject* obj, const Value &v, Value *rval)
 JS_ALWAYS_INLINE JSBool
 ArrayCompPushImpl(JSContext *cx, JSObject *obj, const Value &v)
 {
+    uint32 length = obj->getArrayLength();
+    if (obj->isSlowArray()) {
+        
+        jsid id;
+        return js_IndexToId(cx, length, &id) &&
+               js_DefineProperty(cx, obj, id, &v, NULL, NULL, JSPROP_ENUMERATE);
+    }
+
     JS_ASSERT(obj->isDenseArray());
-    uint32_t length = obj->getArrayLength();
     JS_ASSERT(length <= obj->getDenseArrayCapacity());
 
     if (length == obj->getDenseArrayCapacity()) {
         if (length > JS_ARGS_LENGTH_MAX) {
             JS_ReportErrorNumberUC(cx, js_GetErrorMessage, NULL,
                                    JSMSG_ARRAY_INIT_TOO_BIG);
-            return JS_FALSE;
+            return false;
         }
 
         
-
 
 
 
@@ -2080,7 +2086,7 @@ ArrayCompPushImpl(JSContext *cx, JSObject *obj, const Value &v)
     }
     obj->setArrayLength(length + 1);
     obj->setDenseArrayElement(length, v);
-    return JS_TRUE;
+    return true;
 }
 
 JSBool
