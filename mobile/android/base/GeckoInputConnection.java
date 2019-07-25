@@ -56,6 +56,7 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.UnderlineSpan;
 import android.util.Log;
 import android.util.LogPrinter;
+import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.BaseInputConnection;
@@ -98,6 +99,8 @@ public class GeckoInputConnection
 
     
     private int mCompositionStart = NO_COMPOSITION_STRING;
+    private boolean mCommittingText;
+    private KeyCharacterMap mKeyCharacterMap;
     private Editable mEditable;
     private Editable.Factory mEditableFactory;
     private boolean mBatchMode;
@@ -140,7 +143,9 @@ public class GeckoInputConnection
 
     @Override
     public boolean commitText(CharSequence text, int newCursorPosition) {
+        mCommittingText = true;
         replaceText(text, newCursorPosition, false);
+        mCommittingText = false;
 
         if (hasCompositionString()) {
             if (DEBUG) Log.d(LOGTAG, ". . . commitText: endComposition");
@@ -564,15 +569,27 @@ public class GeckoInputConnection
             endComposition();
         }
 
-        if (count == 1 && s.charAt(start) == '\n') {
+        CharSequence changedText = s.subSequence(start, start + count);
+        if (changedText.length() == 1) {
+            char changedChar = changedText.charAt(0);
+
             
             
-            if (DEBUG) Log.d(LOGTAG, ". . . onTextChanged: Typed <Enter>");
-            processKeyDown(KeyEvent.KEYCODE_ENTER, new KeyEvent(KeyEvent.ACTION_DOWN,
-                                                                KeyEvent.KEYCODE_ENTER), false);
-            processKeyUp(KeyEvent.KEYCODE_ENTER, new KeyEvent(KeyEvent.ACTION_UP,
-                                                              KeyEvent.KEYCODE_ENTER), false);
-            return;
+            if (changedChar == '\n') {
+                processKeyDown(KeyEvent.KEYCODE_ENTER, new KeyEvent(KeyEvent.ACTION_DOWN,
+                                                                    KeyEvent.KEYCODE_ENTER), false);
+                processKeyUp(KeyEvent.KEYCODE_ENTER, new KeyEvent(KeyEvent.ACTION_UP,
+                                                                  KeyEvent.KEYCODE_ENTER), false);
+                return;
+            }
+
+            
+            
+            if (mCommittingText && !hasCompositionString() && synthesizeKeyEvents(changedChar)) {
+                
+                GeckoAppShell.geckoEventSync();
+                return;
+            }
         }
 
         if (!hasCompositionString()) {
@@ -590,7 +607,7 @@ public class GeckoInputConnection
                 GeckoEvent.createIMEEvent(GeckoEvent.IME_SET_SELECTION, start, before));
         }
 
-        sendTextToGecko(s.subSequence(start, start + count), start + count);
+        sendTextToGecko(changedText, start + count);
 
         if (DEBUG) {
             Log.d(LOGTAG, ". . . onTextChanged: IME_SET_SELECTION, start=" + (start + count)
@@ -607,6 +624,40 @@ public class GeckoInputConnection
 
         
         GeckoAppShell.geckoEventSync();
+    }
+
+    private boolean synthesizeKeyEvents(char inputChar) {
+        if (mKeyCharacterMap == null) {
+            mKeyCharacterMap = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD);
+        }
+
+        
+        char[] inputChars = { inputChar };
+        KeyEvent[] events = mKeyCharacterMap.getEvents(inputChars);
+        if (events == null) {
+            if (DEBUG) {
+                Log.d(LOGTAG, "synthesizeKeyEvents: char '" + inputChar
+                              + "' has no virtual key mapping");
+            }
+            return false;
+        }
+
+        boolean sentKeyEvents = false;
+
+        for (KeyEvent event : events) {
+            if (!KeyEvent.isModifierKey(event.getKeyCode())) {
+                if (DEBUG) {
+                    Log.d(LOGTAG, "synthesizeKeyEvents: char '" + inputChar
+                                  + "' -> action=" + event.getAction()
+                                  + ", keyCode=" + event.getKeyCode()
+                                  + ", UnicodeChar='" + (char) event.getUnicodeChar() + "'");
+                }
+                GeckoAppShell.sendEventToGecko(GeckoEvent.createKeyEvent(event));
+                sentKeyEvents = true;
+            }
+        }
+
+        return sentKeyEvents;
     }
 
     private void endComposition() {
