@@ -14,8 +14,9 @@
 
 #include "nsInterfaceHashtable.h"
 #include "nsXRemoteService.h"
+#include "mozilla/Attributes.h"
 
-class nsGTKRemoteService : public nsXRemoteService
+class nsGTKRemoteService MOZ_FINAL : public nsXRemoteService
 {
 public:
   
