@@ -176,12 +176,9 @@
 
 
        setPosition: function setPosition(pos, whence) {
-         
-         
-         
-         
-         
-         whence = (whence == undefined)?Const.FILE_BEGIN:whence;
+         if (whence === undefined) {
+           whence = Const.FILE_BEGIN;
+         }
          return throw_on_negative("setPosition",
            WinFile.SetFilePointer(this.fd, pos, null, whence));
        },
@@ -814,20 +811,14 @@
        return result;
      }
 
-
-
-
-     
-
-     
-     File.POS_START = Const.FILE_BEGIN;
-     File.POS_CURRENT = Const.FILE_CURRENT;
-     File.POS_END = Const.FILE_END;
-
      File.Win = exports.OS.Win.File;
      File.Error = exports.OS.Shared.Win.Error;
      exports.OS.File = File;
 
      exports.OS.Path = exports.OS.Win.Path;
+
+     Object.defineProperty(File, "POS_START", { value: OS.Shared.POS_START });
+     Object.defineProperty(File, "POS_CURRENT", { value: OS.Shared.POS_CURRENT });
+     Object.defineProperty(File, "POS_END", { value: OS.Shared.POS_END });
    })(this);
 }

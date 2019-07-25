@@ -123,4 +123,10 @@ if (typeof Components != "undefined") {
   });
 
   exports.OS.Shared.Unix.Error = OSError;
+
+  
+
+   Object.defineProperty(exports.OS.Shared, "POS_START", { value: exports.OS.Constants.libc.SEEK_SET });
+   Object.defineProperty(exports.OS.Shared, "POS_CURRENT", { value: exports.OS.Constants.libc.SEEK_CUR });
+   Object.defineProperty(exports.OS.Shared, "POS_END", { value: exports.OS.Constants.libc.SEEK_END });
 })(this);

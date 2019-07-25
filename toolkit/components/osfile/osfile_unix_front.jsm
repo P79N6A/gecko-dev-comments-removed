@@ -150,12 +150,9 @@
 
 
        setPosition: function setPosition(pos, whence) {
-         
-         
-         
-         
-         
-         whence = (whence == undefined)?OS.Constants.libc.SEEK_SET:whence;
+         if (whence === undefined) {
+           whence = Const.SEEK_START;
+         }
          return throw_on_negative("setPosition",
            UnixFile.lseek(this.fd, pos, whence)
          );
@@ -810,13 +807,12 @@
        return result;
      }
 
-     File.POS_START = exports.OS.Constants.libc.SEEK_SET;
-     File.POS_CURRENT = exports.OS.Constants.libc.SEEK_CUR;
-     File.POS_END = exports.OS.Constants.libc.SEEK_END;
-
      File.Unix = exports.OS.Unix.File;
      File.Error = exports.OS.Shared.Unix.Error;
      exports.OS.File = File;
 
+     Object.defineProperty(File, "POS_START", { value: OS.Shared.POS_START });
+     Object.defineProperty(File, "POS_CURRENT", { value: OS.Shared.POS_CURRENT });
+     Object.defineProperty(File, "POS_END", { value: OS.Shared.POS_END });
    })(this);
 }
