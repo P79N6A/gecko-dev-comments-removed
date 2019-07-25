@@ -577,6 +577,14 @@ JSFunction::toString(JSContext *cx, bool bodyOnly, bool lambdaParen)
 {
     StringBuffer out(cx);
 
+    if (isInterpreted() && script()->isGeneratorExp) {
+        if ((!bodyOnly && !out.append("function genexp() {")) ||
+            !out.append("\n    [generator expression]\n") ||
+            (!bodyOnly && !out.append("}"))) {
+            return NULL;
+        }
+        return out.finishString();
+    }
     if (!bodyOnly) {
         
         if (isInterpreted() && !lambdaParen && (flags & JSFUN_LAMBDA)) {
