@@ -62,7 +62,12 @@ class Message : public Pickle {
 
   
   
+#if !defined(CHROMIUM_MOZILLA_BUILD)
   Message(int32 routing_id, uint16 type, PriorityValue priority);
+#else
+  Message(int32 routing_id, uint16 type, PriorityValue priority,
+          const char* const name="???");
+#endif
 
   
   
@@ -141,20 +146,20 @@ class Message : public Pickle {
   }
 
 #if defined(CHROMIUM_MOZILLA_BUILD)
-  size_t rpc_remote_stack_depth_guess() const {
+  uint32 rpc_remote_stack_depth_guess() const {
     return header()->rpc_remote_stack_depth_guess;
   }
 
-  void set_rpc_remote_stack_depth_guess(size_t depth) {
+  void set_rpc_remote_stack_depth_guess(uint32 depth) {
     DCHECK(is_rpc());
     header()->rpc_remote_stack_depth_guess = depth;
   }
 
-  size_t rpc_local_stack_depth() const {
+  uint32 rpc_local_stack_depth() const {
     return header()->rpc_local_stack_depth;
   }
 
-  void set_rpc_local_stack_depth(size_t depth) {
+  void set_rpc_local_stack_depth(uint32 depth) {
     DCHECK(is_rpc());
     header()->rpc_local_stack_depth = depth;
   }
@@ -165,6 +170,14 @@ class Message : public Pickle {
 
   void set_seqno(int32 seqno) {
     header()->seqno = seqno;
+  }
+
+  const char* const name() const {
+    return name_;
+  }
+
+  void set_name(const char* const name) {
+    name_ = name;
   }
 #endif
 
@@ -280,9 +293,9 @@ class Message : public Pickle {
 #endif
 #if defined(CHROMIUM_MOZILLA_BUILD)
     
-    size_t rpc_remote_stack_depth_guess;
+    uint32 rpc_remote_stack_depth_guess;
     
-    size_t rpc_local_stack_depth;
+    uint32 rpc_local_stack_depth;
     
     int32 seqno;
 #endif
@@ -296,7 +309,11 @@ class Message : public Pickle {
     return headerT<Header>();
   }
 
+#if !defined(CHROMIUM_MOZILLA_BUILD)
   void InitLoggingVariables();
+#else
+  void InitLoggingVariables(const char* const name="???");
+#endif
 
 #if defined(OS_POSIX)
   
@@ -312,6 +329,10 @@ class Message : public Pickle {
   const FileDescriptorSet* file_descriptor_set() const {
     return file_descriptor_set_.get();
   }
+#endif
+
+#if defined(CHROMIUM_MOZILLA_BUILD)
+  const char* name_;
 #endif
 
 #ifdef IPC_MESSAGE_LOG_ENABLED
