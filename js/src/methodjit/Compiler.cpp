@@ -5132,99 +5132,95 @@ mjit::Compiler::jsop_propinc(JSOp op, VoidStubAtom stub, uint32 index)
 {
     JSAtom *atom = script->getAtom(index);
 #if defined JS_POLYIC
-    FrameEntry *objFe = frame.peek(-1);
-    if (!objFe->isTypeKnown() || objFe->getKnownType() == JSVAL_TYPE_OBJECT) {
-        jsbytecode *next = &PC[JSOP_PROPINC_LENGTH];
-        bool pop = (JSOp(*next) == JSOP_POP) && !a->analysis.jumpTarget(next);
-        int amt = (op == JSOP_PROPINC || op == JSOP_INCPROP) ? -1 : 1;
+    jsbytecode *next = &PC[JSOP_PROPINC_LENGTH];
+    bool pop = (JSOp(*next) == JSOP_POP) && !a->analysis.jumpTarget(next);
+    int amt = (op == JSOP_PROPINC || op == JSOP_INCPROP) ? -1 : 1;
 
-        if (pop || (op == JSOP_INCPROP || op == JSOP_DECPROP)) {
-            
+    if (pop || (op == JSOP_INCPROP || op == JSOP_DECPROP)) {
+        
 
 
 
 
 
 
-            frame.dup();
-            
+        frame.dup();
+        
 
-            frame.dup();
-            
+        frame.dup();
+        
 
-            if (!jsop_getprop(atom, JSVAL_TYPE_UNKNOWN))
-                return Compile_Error;
-            
+        if (!jsop_getprop(atom, JSVAL_TYPE_UNKNOWN))
+            return Compile_Error;
+        
 
-            frame.push(Int32Value(amt));
-            
+        frame.push(Int32Value(amt));
+        
 
-            
-            frame.syncAt(-4);
-            if (!jsop_binary(JSOP_SUB, stubs::Sub, JSVAL_TYPE_UNKNOWN, pushedTypeSet(0)))
-                return Compile_Retry;
-            
+        
+        frame.syncAt(-4);
+        if (!jsop_binary(JSOP_SUB, stubs::Sub, JSVAL_TYPE_UNKNOWN, pushedTypeSet(0)))
+            return Compile_Retry;
+        
 
-            frame.shimmy(1);
-            
+        frame.shimmy(1);
+        
 
-            if (!jsop_setprop(atom, false))
-                return Compile_Error;
-            
+        if (!jsop_setprop(atom, false))
+            return Compile_Error;
+        
 
-            if (pop)
-                frame.pop();
-        } else {
-            
-
-            frame.dup();
-            
-
-            if (!jsop_getprop(atom, JSVAL_TYPE_UNKNOWN))
-                return Compile_Error;
-            
-
-            jsop_pos();
-            
-
-            frame.dup();
-            
-
-            frame.push(Int32Value(-amt));
-            
-
-            frame.syncAt(-4);
-            if (!jsop_binary(JSOP_ADD, stubs::Add, JSVAL_TYPE_UNKNOWN, pushedTypeSet(0)))
-                return Compile_Retry;
-            
-
-            frame.dupAt(-3);
-            
-
-            frame.dupAt(-2);
-            
-
-            if (!jsop_setprop(atom, false))
-                return Compile_Error;
-            
-
-            frame.popn(2);
-            
-
-            frame.shimmy(1);
-            
-        }
         if (pop)
-            PC += JSOP_POP_LENGTH;
-    } else
-#endif
-    {
-        prepareStubCall(Uses(1));
-        masm.move(ImmPtr(atom), Registers::ArgReg1);
-        INLINE_STUBCALL(stub);
-        frame.pop();
-        pushSyncedEntry(0);
+            frame.pop();
+    } else {
+        
+
+        frame.dup();
+        
+
+        if (!jsop_getprop(atom, JSVAL_TYPE_UNKNOWN))
+            return Compile_Error;
+        
+
+        jsop_pos();
+        
+
+        frame.dup();
+        
+
+        frame.push(Int32Value(-amt));
+        
+
+        frame.syncAt(-4);
+        if (!jsop_binary(JSOP_ADD, stubs::Add, JSVAL_TYPE_UNKNOWN, pushedTypeSet(0)))
+            return Compile_Retry;
+        
+
+        frame.dupAt(-3);
+        
+
+        frame.dupAt(-2);
+        
+
+        if (!jsop_setprop(atom, false))
+            return Compile_Error;
+        
+
+        frame.popn(2);
+        
+
+        frame.shimmy(1);
+        
     }
+    if (pop)
+        PC += JSOP_POP_LENGTH;
+#else
+    prepareStubCall(Uses(1));
+    masm.move(ImmPtr(atom), Registers::ArgReg1);
+    INLINE_STUBCALL(stub);
+    frame.pop();
+    pushSyncedEntry(0);
+#endif
 
     PC += JSOP_PROPINC_LENGTH;
     return Compile_Okay;
