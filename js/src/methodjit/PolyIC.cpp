@@ -1762,13 +1762,20 @@ ic::GetProp(VMFrame &f, ic::PICInfo *pic)
         atom = f.cx->runtime->atomState.lengthAtom;
     }
 
+    bool usePropCache = pic->usePropCache;
+
+    
+
+
+
+
+    RecompilationMonitor monitor(f.cx);
+
     JSObject *obj = ValueToObject(f.cx, &f.regs.sp[-1]);
     if (!obj)
         THROW();
 
-    bool usePropCache = pic->usePropCache;
-
-    if (pic->shouldUpdate(f.cx)) {
+    if (!monitor.recompiled() && pic->shouldUpdate(f.cx)) {
         VoidStubPIC stub = pic->usePropCache
                            ? DisabledGetPropIC
                            : DisabledGetPropICNoCache;
@@ -1824,10 +1831,6 @@ DisabledSetPropICNoCache(VMFrame &f, ic::PICInfo *pic)
 void JS_FASTCALL
 ic::SetProp(VMFrame &f, ic::PICInfo *pic)
 {
-    JSObject *obj = ValueToObject(f.cx, &f.regs.sp[-2]);
-    if (!obj)
-        THROW();
-
     JSScript *script = f.fp()->script();
     JS_ASSERT(pic->isSet());
 
@@ -1841,15 +1844,15 @@ ic::SetProp(VMFrame &f, ic::PICInfo *pic)
                          ? STRICT_VARIANT(stubs::SetName)
                          : STRICT_VARIANT(stubs::SetPropNoCache);
 
-    
-    
-    
-    
-    
-    
-    
-    if (pic->shouldUpdate(f.cx)) {
+    RecompilationMonitor monitor(f.cx);
 
+    JSObject *obj = ValueToObject(f.cx, &f.regs.sp[-2]);
+    if (!obj)
+        THROW();
+
+    
+    
+    if (!monitor.recompiled() && pic->shouldUpdate(f.cx)) {
         SetPropCompiler cc(f, script, obj, *pic, atom, stub);
         LookupStatus status = cc.update();
         if (status == Lookup_Error)
@@ -2533,11 +2536,13 @@ ic::GetElement(VMFrame &f, ic::GetElementIC *ic)
         return;
     }
 
+    Value idval = f.regs.sp[-1];
+
+    RecompilationMonitor monitor(cx);
+
     JSObject *obj = ValueToObject(cx, &f.regs.sp[-2]);
     if (!obj)
         THROW();
-
-    Value idval = f.regs.sp[-1];
 
     jsid id;
     if (idval.isInt32() && INT_FITS_IN_JSID(idval.toInt32())) {
@@ -2547,7 +2552,7 @@ ic::GetElement(VMFrame &f, ic::GetElementIC *ic)
             THROW();
     }
 
-    if (ic->shouldUpdate(cx)) {
+    if (!monitor.recompiled() && ic->shouldUpdate(cx)) {
 #ifdef DEBUG
         f.regs.sp[-2] = MagicValue(JS_GENERIC_MAGIC);
 #endif
