@@ -2493,6 +2493,11 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
     }
   }
 
+  PRUint16 state;
+  rv = GetReadyState(&state);
+  if (NS_FAILED(rv) || state != OPENED)
+    return NS_ERROR_IN_PROGRESS;
+
   if (!mChannel)             
     return NS_ERROR_FAILURE; 
 
@@ -2555,7 +2560,16 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   }
 
   
-  return httpChannel->SetRequestHeader(header, value, PR_FALSE);
+  rv = httpChannel->SetRequestHeader(header, value, PR_FALSE);
+  if (NS_SUCCEEDED(rv)) {
+    
+    RequestHeader reqHeader = {
+      nsCString(header), nsCString(value)
+    };
+    mModifiedRequestHeaders.AppendElement(reqHeader);
+  }
+
+  return rv;
 }
 
 
@@ -2814,10 +2828,22 @@ nsXMLHttpRequest::OnRedirectVerifyCallback(nsresult result)
   NS_ASSERTION(mRedirectCallback, "mRedirectCallback not set in callback");
   NS_ASSERTION(mNewRedirectChannel, "mNewRedirectChannel not set in callback");
 
-  if (NS_SUCCEEDED(result))
+  if (NS_SUCCEEDED(result)) {
     mChannel = mNewRedirectChannel;
-  else
+
+    nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel));
+    if (httpChannel) {
+      
+      for (PRUint32 i = mModifiedRequestHeaders.Length(); i > 0; ) {
+        --i;
+        httpChannel->SetRequestHeader(mModifiedRequestHeaders[i].header,
+                                      mModifiedRequestHeaders[i].value,
+                                      PR_FALSE);
+      }
+    }
+  } else {
     mErrorLoad = PR_TRUE;
+  }
 
   mNewRedirectChannel = nsnull;
 
