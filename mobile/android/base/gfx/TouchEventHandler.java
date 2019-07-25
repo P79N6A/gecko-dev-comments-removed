@@ -71,6 +71,11 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
     
     
     
+    private boolean mSendBlockToListeners;
+
+    
+    
+    
     private boolean mHoldInQueue;
 
     
@@ -144,18 +149,16 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
 
         if (isDownEvent(event)) {
             
+            mSendBlockToListeners = mWaitForTouchListeners;
             mHoldInQueue = mWaitForTouchListeners;
             if (mHoldInQueue) {
                 
                 
                 mView.postDelayed(mListenerTimeoutProcessor, EVENT_LISTENER_TIMEOUT);
-            } else {
-                
-                
-                
-                
-                mProcessingBalance++;
             }
+            
+            
+            
         }
 
         
@@ -169,8 +172,10 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
             dispatchEvent(event);
         }
 
-        
-        mOnTouchListener.onTouch(mView, event);
+        if (mSendBlockToListeners) {
+            
+            mOnTouchListener.onTouch(mView, event);
+        }
 
         return true;
     }
