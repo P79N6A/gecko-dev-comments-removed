@@ -175,6 +175,7 @@ public:
 
 
   nsresult Resolve(nsBlockFrame* aBlockFrame);
+  void ResolveParagraph(nsBlockFrame* aBlockFrame);
 
   
 
@@ -514,8 +515,12 @@ private:
   PRInt32*        mIndexMap;
   PRUint8*        mLevels;
   nsresult        mSuccess;
+  PRPackedBool    mIsVisual;
+  nsBidiLevel     mParaLevel;
+  nsIFrame*       mPrevFrame;
   nsIContent*     mPrevContent;
 
+  nsAutoPtr<nsBlockInFlowLineIterator> mLineIter;
   nsBidi*         mBidiEngine;
 };
 
