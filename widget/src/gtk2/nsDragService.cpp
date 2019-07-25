@@ -1140,8 +1140,7 @@ nsDragService::TargetResetData(void)
 {
     mTargetDragDataReceived = PR_FALSE;
     
-    if (mTargetDragData)
-      g_free(mTargetDragData);
+    g_free(mTargetDragData);
     mTargetDragData = 0;
     mTargetDragDataLen = 0;
 }
