@@ -339,6 +339,9 @@ var MigrationWizard = {
       case "chrome":
         source = "sourceNameChrome";
         break;
+      case "firefox":
+        source = "sourceNameFirefox";
+        break;
     }
 
     
