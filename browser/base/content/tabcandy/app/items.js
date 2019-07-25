@@ -47,6 +47,10 @@ window.Item = function() {
   
   
   this.container = null;
+  
+  
+  
+  this.locked = false;
 };
 
 window.Item.prototype = { 
@@ -138,7 +142,7 @@ window.Item.prototype = {
       var bbc = bb.center();
     
       $.each(items, function(index, item) {
-        if(item == baseItem)
+        if(item == baseItem || item.locked)
           return;
           
         var data = item.pushAwayData;
@@ -152,11 +156,13 @@ window.Item.prototype = {
           var offset = new Point();
           var center = box.center(); 
           if(Math.abs(center.x - bbc.x) < Math.abs(center.y - bbc.y)) {
+
             if(center.y > bbc.y)
               offset.y = bb.bottom - box.top; 
             else
               offset.y = bb.top - box.bottom;
           } else {
+
             if(center.x > bbc.x)
               offset.x = bb.right - box.left; 
             else
@@ -165,6 +171,7 @@ window.Item.prototype = {
           
           bounds.offset(offset); 
           data.generation = baseData.generation + 1;
+          data.pusher = baseItem;
           itemsToPush.push(item);
         }
       });
@@ -173,10 +180,67 @@ window.Item.prototype = {
     while(itemsToPush.length)
       pushOne(itemsToPush.shift());         
 
+    
+    if(false) {
+      var pageBounds = Items.getPageBounds();
+      $.each(items, function(index, item) {
+        var data = item.pushAwayData;
+        if(data.generation == 0 || item.locked)
+          return;
+  
+        function apply(item, postStep, posStep2, sizeStep) {
+          var data = item.pushAwayData;
+          if(data.generation == 0)
+            return;
+            
+          var bounds = data.bounds;
+          bounds.width -= sizeStep.x; 
+          bounds.height -= sizeStep.y;
+          bounds.left += posStep.x;
+          bounds.top += posStep.y;
+          
+          if(sizeStep.y > sizeStep.x) {
+            var newWidth = bounds.height * (TabItems.tabWidth / TabItems.tabHeight);
+            bounds.left += (bounds.width - newWidth) / 2;
+            bounds.width = newWidth;
+          } else {
+            var newHeight = bounds.width * (TabItems.tabHeight / TabItems.tabWidth);
+            bounds.top += (bounds.height - newHeight) / 2;
+            bounds.height = newHeight;
+          }
+          
+          var pusher = data.pusher;
+          if(pusher)  
+            apply(pusher, posStep.plus(posStep2), posStep2, sizeStep);
+        }
+  
+        var bounds = data.bounds;
+        var posStep = new Point();
+        var posStep2 = new Point();
+        var sizeStep = new Point();
+        if(bounds.top < pageBounds.top) {      
+          posStep.y = pageBounds.top - bounds.top;
+          sizeStep.y = posStep.y / data.generation;
+          posStep2.y = -sizeStep.y;                
+        } else if(bounds.bottom > pageBounds.bottom) {      
+          posStep.y = pageBounds.bottom - bounds.bottom;
+          sizeStep.y = -posStep.y / data.generation;
+          posStep.y += sizeStep.y;
+          posStep2.y = sizeStep.y;
+        }
+  
+        if(posStep.x || posStep.y || sizeStep.x || sizeStep.y) 
+          apply(item, posStep, posStep2, sizeStep);
+      });
+    }
+
+    
     $.each(items, function(index, item) {
       var data = item.pushAwayData;
-      if(!data.bounds.equals(data.startBounds))
-        item.setPosition(data.bounds.left, data.bounds.top);
+      var bounds = data.bounds;
+      if(!bounds.equals(data.startBounds)) {
+        item.setBounds(bounds);
+      }
     });
   },
   
@@ -222,6 +286,15 @@ window.Items = {
     return items;
   }, 
 
+  
+  
+  
+  getPageBounds: function() {
+    var top = 20;
+    var bottom = TabItems.tabHeight + 10; 
+    return new Rect(0, top, window.innerWidth, window.innerHeight - (top + bottom));
+  },
+  
   
   
   
