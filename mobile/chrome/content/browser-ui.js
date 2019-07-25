@@ -297,7 +297,7 @@ var BrowserUI = {
       this._activePanel.close();
 
     
-    let isReadOnly = !(aPanel == AllPagesList && Util.isPortrait());
+    let isReadOnly = !(aPanel == AllPagesList && Util.isPortrait() && (willShowPanel || !this._edit.readOnly));
     this._edit.readOnly = isReadOnly;
     if (isReadOnly)
       this._edit.blur();
