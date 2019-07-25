@@ -266,6 +266,10 @@ public:
 
 protected:
 
+  
+  virtual void CacheChildren();
+
+  
     virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
     virtual nsresult AddEventListeners();
     virtual nsresult RemoveEventListeners();

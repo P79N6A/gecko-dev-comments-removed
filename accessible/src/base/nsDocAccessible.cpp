@@ -1453,16 +1453,14 @@ nsDocAccessible::UpdateTree(nsIContent* aContainerNode,
 
     
     if (container == this) {
+      
       nsIContent* rootContent = nsCoreUtils::GetRoleContent(mDocument);
-
-      
-      
-      if (!rootContent)
-        return;
-
-      
-      if (rootContent != mContent)
+      if (rootContent && rootContent != mContent)
         mContent = rootContent;
+
+      
+      
+      
     }
 
     
@@ -1624,6 +1622,21 @@ nsDocAccessible::NotifyOfCachingEnd(nsAccessible* aAccessible)
     mCacheRoot = nsnull;
     mIsPostCacheProcessing = PR_FALSE;
   }
+}
+
+
+
+
+void
+nsDocAccessible::CacheChildren()
+{
+  
+  
+  nsAccTreeWalker walker(mWeakShell, mDocument->GetRootElement(),
+                         GetAllowsAnonChildAccessibles());
+
+  nsRefPtr<nsAccessible> child;
+  while ((child = walker.GetNextChild()) && AppendChild(child));
 }
 
 
