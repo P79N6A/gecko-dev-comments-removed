@@ -2097,7 +2097,6 @@ Interpret(JSContext *cx, JSStackFrame *entryFrame, uintN inlineCallCount, uintN 
         script = regs.fp->script();                                           \
         argv = regs.fp->maybeFormalArgs();                                    \
         atoms = FrameAtomBase(cx, regs.fp);                                   \
-        currentVersion = (JSVersion) script->version;                         \
         JS_ASSERT(cx->regs == &regs);                                         \
         if (cx->throwing)                                                     \
             goto error;                                                       \
@@ -2212,20 +2211,6 @@ Interpret(JSContext *cx, JSStackFrame *entryFrame, uintN inlineCallCount, uintN 
 
     if (!entryFrame)
         entryFrame = regs.fp;
-
-    
-
-
-
-
-
-
-
-
-    JSVersion currentVersion = (JSVersion) script->version;
-    JSVersion originalVersion = (JSVersion) cx->version;
-    if (currentVersion != originalVersion)
-        js_SetVersion(cx, currentVersion);
 
     
 
@@ -2536,13 +2521,6 @@ BEGIN_CASE(JSOP_STOP)
         PutActivationObjects(cx, regs.fp);
 
         Probes::exitJSFun(cx, regs.fp->maybeFun());
-
-        
-        if (JS_LIKELY(cx->version == currentVersion)) {
-            currentVersion = regs.fp->callerVersion();
-            if (currentVersion != cx->version)
-                js_SetVersion(cx, currentVersion);
-        }
 
         
 
@@ -4444,14 +4422,6 @@ BEGIN_CASE(JSOP_APPLY)
             
             newfp->initCallFrame(cx, *callee, newfun, argc, flags);
             SetValueRangeToUndefined(newfp->slots(), newscript->nfixed);
-
-            
-            newfp->setCallerVersion((JSVersion) cx->version);
-            if (JS_LIKELY(cx->version == currentVersion)) {
-                currentVersion = (JSVersion) newscript->version;
-                if (JS_UNLIKELY(currentVersion != cx->version))
-                    js_SetVersion(cx, currentVersion);
-            }
 
             
             stack.pushInlineFrame(cx, newscript, newfp, &regs);
@@ -6753,9 +6723,6 @@ END_CASE(JSOP_ARRAYPUSH)
     JS_ASSERT_IF(!regs.fp->isGeneratorFrame(), !regs.fp->hasBlockChain());
     JS_ASSERT_IF(!regs.fp->isGeneratorFrame(), !js_IsActiveWithOrBlock(cx, &regs.fp->scopeChain(), 0));
 
-    
-    if (cx->version == currentVersion && currentVersion != originalVersion)
-        js_SetVersion(cx, originalVersion);
     --cx->interpLevel;
 
     return interpReturnOK;

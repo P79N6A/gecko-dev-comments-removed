@@ -5718,12 +5718,6 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
 #endif
 
     
-
-
-
-    newfp->setCallerVersion((JSVersion) fp->script()->version);
-
-    
     stack.pushInlineFrame(cx, newscript, newfp, cx->regs);
 
     

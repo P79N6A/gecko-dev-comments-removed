@@ -272,9 +272,6 @@ mjit::Compiler::generatePrologue()
         masm.storePtr(ImmPtr(NULL), Address(JSFrameReg, JSStackFrame::offsetOfBlockChain()));
 
         
-        masm.store32(Imm32(cx->version), Address(JSFrameReg, JSStackFrame::offsetOfCallerVersion()));
-
-        
         masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), Registers::ReturnReg);
 
         

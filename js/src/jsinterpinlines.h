@@ -113,7 +113,6 @@ JSStackFrame::initCallFrameLatePrologue()
 {
     rval_.setUndefined();
     blockChain_ = NULL;
-    callerVersion_ = prev_->callerVersion_;  
 
     SetValueRangeToUndefined(slots(), script()->nfixed);
 }

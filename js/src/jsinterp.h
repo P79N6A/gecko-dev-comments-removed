@@ -126,7 +126,6 @@ struct JSStackFrame
 
     
     void                *ncode_;        
-    JSVersion           callerVersion_; 
     JSObject            *blockChain_;   
 
 #if JS_BITS_PER_WORD == 32
@@ -555,16 +554,6 @@ struct JSStackFrame
 
     
 
-    JSVersion callerVersion() const {
-        return callerVersion_;
-    }
-
-    void setCallerVersion(JSVersion version) {
-        callerVersion_ = version;
-    }
-
-    
-
     const js::Value& returnValue() {
         return rval_;
     }
@@ -738,10 +727,6 @@ struct JSStackFrame
 
     static ptrdiff_t offsetOfncode() {
         return offsetof(JSStackFrame, ncode_);
-    }
-
-    static size_t offsetOfCallerVersion() {
-        return offsetof(JSStackFrame, callerVersion_);
     }
 
     static size_t offsetOfBlockChain() {

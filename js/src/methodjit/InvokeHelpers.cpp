@@ -213,8 +213,6 @@ InlineReturn(VMFrame &f, JSBool ok)
 
     PutActivationObjects(cx, fp);
 
-    
-
     if (fp->isConstructing() && fp->returnValue().isPrimitive())
         fp->setReturnValue(fp->thisValue());
 
@@ -432,9 +430,6 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, uint32 argc)
     
     newfp->initCallFrame(cx, callee, newfun, argc, flags);
     SetValueRangeToUndefined(newfp->slots(), newscript->nfixed);
-
-    
-    newfp->setCallerVersion((JSVersion)cx->version);
 
     
     stack.pushInlineFrame(cx, newscript, newfp, &f.regs);
