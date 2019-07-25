@@ -1112,7 +1112,7 @@ nsAttrValue::ParseNonNegativeIntValue(const nsAString& aString)
     return PR_FALSE;
   }
 
-  SetIntValueAndType(originalVal, eInteger, strict ? nsnull : &aString);
+  SetIntValueAndType(originalVal, eInteger, nsnull);
 
   return PR_TRUE;
 }
@@ -1129,7 +1129,7 @@ nsAttrValue::ParsePositiveIntValue(const nsAString& aString)
     return PR_FALSE;
   }
 
-  SetIntValueAndType(originalVal, eInteger, strict ? nsnull : &aString);
+  SetIntValueAndType(originalVal, eInteger, nsnull);
 
   return PR_TRUE;
 }
@@ -1253,11 +1253,7 @@ nsAttrValue::SetMiscAtomOrString(const nsAString* aValue)
     
     
     
-    
-    
-    
-    NS_ASSERTION(len || Type() == eCSSStyleRule || Type() == eEnum,
-                 "Empty string?");
+    NS_ASSERTION(len || Type() == eCSSStyleRule, "Empty string?");
     MiscContainer* cont = GetMiscContainer();
     if (len <= NS_ATTRVALUE_MAX_STRINGLENGTH_ATOM) {
       nsIAtom* atom = NS_NewAtom(*aValue);
