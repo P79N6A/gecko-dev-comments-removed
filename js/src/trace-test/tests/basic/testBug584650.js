@@ -1,3 +1,6 @@
+if (typeof gczeal != "function")
+    gczeal = function() {}
+
 
 x = (evalcx('lazy'))
 x.watch("", function () {})
