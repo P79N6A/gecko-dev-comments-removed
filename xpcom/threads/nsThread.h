@@ -80,9 +80,6 @@ public:
   
   void ClearObservers() { mEventObservers.Clear(); }
 
-  
-  static nsIThreadObserver* sGlobalObserver;
-
 private:
   friend class nsThreadShutdownEvent;
 
