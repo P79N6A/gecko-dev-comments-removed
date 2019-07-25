@@ -534,6 +534,10 @@ class CallCompiler
         masm.storePtr(cxReg, Address(Assembler::stackPointerRegister, 0));
 #endif
 
+#ifdef _WIN64
+        
+        masm.subPtr(Imm32(32), Assembler::stackPointerRegister);
+#endif
         
         Assembler::Call call = masm.call();
 
@@ -556,6 +560,9 @@ class CallCompiler
         
         
         masm.addPtr(Imm32(8), Assembler::stackPointerRegister);
+#elif defined(_WIN64)
+        
+        masm.addPtr(Imm32(32), Assembler::stackPointerRegister);
 #endif
 
         Jump done = masm.jump();
