@@ -331,6 +331,12 @@ GlobalObject::clear(JSContext *cx)
     int32 flags = getSlot(FLAGS).toInt32();
     flags |= FLAGS_CLEARED;
     setSlot(FLAGS, Int32Value(flags));
+
+    
+
+
+
+    cx->compartment->newObjectCache.reset();
 }
 
 bool

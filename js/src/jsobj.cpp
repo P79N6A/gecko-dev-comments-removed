@@ -2982,8 +2982,19 @@ js::NewObjectWithClassProto(JSContext *cx, js::Class *clasp, JSObject *proto, JS
     if (!parent)
         parent = GetCurrentGlobal(cx);
 
+    
+
+
+
+
+
+
+
+
+    JSProtoKey protoKey = GetClassProtoKey(clasp);
+
     NewObjectCache::Entry *entry = NULL;
-    if (parent->isGlobal()) {
+    if (parent->isGlobal() && protoKey != JSProto_Null) {
         if (cx->compartment->newObjectCache.lookup(clasp, parent, kind, &entry))
             return NewObjectFromCacheHit(cx, entry);
     }
