@@ -2,6 +2,7 @@
 
 
 function test() {
+  ignoreAllUncaughtExceptions();
   Harness.installConfirmCallback = confirm_install;
   Harness.installsCompletedCallback = finish_test;
   Harness.setup();

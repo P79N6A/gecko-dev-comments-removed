@@ -52,6 +52,7 @@ function cleanup() {
 function test() {
   
   waitForExplicitFinish();
+  ignoreAllUncaughtExceptions();
 
   
   

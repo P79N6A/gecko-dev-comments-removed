@@ -693,8 +693,16 @@ SimpleTest.expectChildProcessCrash = function () {
 
 
 
-SimpleTest.expectUncaughtException = function () {
-    SimpleTest._expectingUncaughtException = true;
+SimpleTest.expectUncaughtException = function (aExpecting) {
+    SimpleTest._expectingUncaughtException = aExpecting === void 0 || !!aExpecting;
+};
+
+
+
+
+
+SimpleTest.isExpectingUncaughtException = function () {
+    return SimpleTest._expectingUncaughtException;
 };
 
 
@@ -702,8 +710,26 @@ SimpleTest.expectUncaughtException = function () {
 
 
 
-SimpleTest.ignoreAllUncaughtExceptions = function () {
-    SimpleTest._ignoringAllUncaughtExceptions = true;
+SimpleTest.ignoreAllUncaughtExceptions = function (aIgnoring) {
+    SimpleTest._ignoringAllUncaughtExceptions = aIgnoring === void 0 || !!aIgnoring;
+};
+
+
+
+
+
+SimpleTest.isIgnoringAllUncaughtExceptions = function () {
+    return SimpleTest._ignoringAllUncaughtExceptions;
+};
+
+
+
+
+
+
+SimpleTest.reset = function () {
+    SimpleTest._ignoringAllUncaughtExceptions = false;
+    SimpleTest._expectingUncaughtException = false;
 };
 
 if (isPrimaryTestWindow) {
@@ -924,22 +950,21 @@ var info = SimpleTest.info;
 
 var gOldOnError = window.onerror;
 window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
-    var funcIdentifier = "[SimpleTest/SimpleTest.js, window.onerror]";
-
     
     
     
     
     
     
-    var message = "An error occurred: " + errorMsg + " at " + url + ":" + lineNumber;
     var href = SpecialPowers.getPrivilegedProps(window, 'location.href');
     var isExpected = !!SimpleTest._expectingUncaughtException;
+    var message = "an " + (isExpected ? "" : "un") + "expected uncaught JS exception reported through window.onerror";
+    var error = errorMsg + " at " + url + ":" + lineNumber;
     if (!SimpleTest._ignoringAllUncaughtExceptions) {
-        SimpleTest.ok(isExpected, funcIdentifier, message);
+        SimpleTest.ok(isExpected, message, error);
         SimpleTest._expectingUncaughtException = false;
     } else {
-        SimpleTest.todo(false, funcIdentifier, message);
+        SimpleTest.todo(false, message + ": " + error);
     }
     
 
