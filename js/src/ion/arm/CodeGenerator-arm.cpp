@@ -467,8 +467,9 @@ CodeGeneratorARM::visitMulI(LMulI *ins)
 }
 
 extern "C" {
-    extern int __aeabi_idiv(int,int);
+    extern int __aeabi_idivmod(int,int);
 }
+
 bool
 CodeGeneratorARM::visitDivI(LDivI *ins)
 {
@@ -501,15 +502,47 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
     masm.setupAlignedABICall(2);
     masm.setABIArg(0, lhs);
     masm.setABIArg(1, rhs);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idiv));
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idivmod));
     
-    
-    
-    
-    
-    masm.ma_cmp(r3, Imm32(0));
+    masm.ma_cmp(r1, Imm32(0));
     if (!bailoutIf(Assembler::NonZero, ins->snapshot()))
         return false;
+    return true;
+}
+
+bool
+CodeGeneratorARM::visitModI(LModI *ins)
+{
+    
+    Register lhs = ToRegister(ins->lhs());
+    Register rhs = ToRegister(ins->rhs());
+    
+    
+    masm.ma_cmp(lhs, Imm32(INT_MIN)); 
+    masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
+    if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+        return false;
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    masm.ma_cmp(rhs, Imm32(0));
+    masm.ma_cmp(lhs, Imm32(0), Assembler::LessThan);
+    if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+        return false;
+    masm.setupAlignedABICall(2);
+    masm.setABIArg(0, lhs);
+    masm.setABIArg(1, rhs);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, __aeabi_idivmod));
     return true;
 }
 

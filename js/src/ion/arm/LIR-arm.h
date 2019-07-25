@@ -140,6 +140,22 @@ class LDivI : public LBinaryMath<2>
     }
 };
 
+class LModI : public LBinaryMath<2>
+{
+  public:
+    LIR_HEADER(ModI);
+
+    LModI(const LAllocation &lhs, const LAllocation &rhs,
+          const LDefinition &temp1, const LDefinition &temp2)
+    {
+        setOperand(0, lhs);
+        setOperand(1, rhs);
+        setTemp(0, temp1);
+        setTemp(1, temp2);
+    }
+};
+
+
 class LTableSwitch : public LInstructionHelper<0, 1, 1>
 {
   public:
