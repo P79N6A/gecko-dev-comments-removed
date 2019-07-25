@@ -629,6 +629,49 @@ class LCompareDAndBranch : public LInstructionHelper<0, 2, 0>
 };
 
 
+class LNotI : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(NotI);
+
+    LNotI(const LAllocation &input) {
+        setOperand(0, input);
+    }
+    const LAllocation *input() {
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
+class LNotD : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(NotD);
+
+    LNotD(const LAllocation &input) {
+        setOperand(0, input);
+    }
+    const LAllocation *input() {
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
+class LNotV : public LCallInstructionHelper<1, BOX_PIECES, 0>
+{
+  public:
+    LIR_HEADER(NotV);
+
+    static const size_t Input = 0;
+};
+
+
 
 class LBitNotI : public LInstructionHelper<1, 1, 0>
 {
@@ -641,7 +684,6 @@ class LBitNotV : public LCallInstructionHelper<1, BOX_PIECES, 0>
 {
   public:
     LIR_HEADER(BitNotV);
-    BOX_OUTPUT_ACCESSORS();
 
     static const size_t Input = 0;
 };

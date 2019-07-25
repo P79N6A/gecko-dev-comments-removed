@@ -858,6 +858,33 @@ MToString::foldsTo(bool useValueNumbers)
     return this;
 }
 
+MDefinition *
+MNot::foldsTo(bool useValueNumbers)
+{
+    
+    if (operand()->isConstant()) {
+       const Value &v = operand()->toConstant()->value();
+        
+        return MConstant::New(BooleanValue(!js_ValueToBoolean(v)));
+    }
+
+    
+    if (specialization_ == MIRType_Object)
+        return MConstant::New(BooleanValue(false));
+
+    
+    if (specialization_ == MIRType_Undefined || specialization_ == MIRType_Null)
+        return MConstant::New(BooleanValue(true));
+
+    return this;
+}
+
+void
+MNot::infer(const MIRType type)
+{
+    specialization_ = type;
+}
+
 HashNumber
 MBoundsCheck::valueHash() const
 {

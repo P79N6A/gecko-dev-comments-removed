@@ -96,7 +96,7 @@ IonBuilder::CFGState::If(jsbytecode *join, MBasicBlock *ifFalse)
 }
 
 IonBuilder::CFGState
-IonBuilder::CFGState::IfElse(jsbytecode *trueEnd, jsbytecode *falseEnd, MBasicBlock *ifFalse) 
+IonBuilder::CFGState::IfElse(jsbytecode *trueEnd, jsbytecode *falseEnd, MBasicBlock *ifFalse)
 {
     CFGState state;
     
@@ -772,6 +772,9 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_LENGTH:
         return jsop_length();
 
+      case JSOP_NOT:
+        return jsop_not();
+
       case JSOP_THIS:
         return jsop_this();
 
@@ -956,22 +959,22 @@ IonBuilder::processIfElseFalseEnd(CFGState &state)
 {
     
     state.branch.ifFalse = current;
-  
+
     
     
     MBasicBlock *pred = state.branch.ifTrue
                         ? state.branch.ifTrue
                         : state.branch.ifFalse;
     MBasicBlock *other = (pred == state.branch.ifTrue) ? state.branch.ifFalse : state.branch.ifTrue;
-  
+
     if (!pred)
         return ControlStatus_Ended;
-  
+
     
     MBasicBlock *join = newBlock(pred, state.branch.falseEnd);
     if (!join)
         return ControlStatus_Error;
-  
+
     
     pred->end(MGoto::New(join));
 
@@ -1777,7 +1780,7 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
     jsbytecode *casepc = NULL;
     for (jsint i = 0; i < high-low+1; i++) {
         casepc = pc + GET_JUMP_OFFSET(pc2);
-        
+
         JS_ASSERT(casepc >= pc && casepc <= exitpc);
 
         
@@ -2052,15 +2055,15 @@ IonBuilder::jsop_bitop(JSOp op)
       case JSOP_BITXOR:
         ins = MBitXor::New(left, right);
         break;
-        
+
       case JSOP_LSH:
         ins = MLsh::New(left, right);
         break;
-        
+
       case JSOP_RSH:
         ins = MRsh::New(left, right);
         break;
-        
+
       case JSOP_URSH:
         ins = MUrsh::New(left, right);
         break;
@@ -3414,6 +3417,33 @@ GetDefiniteSlot(JSContext *cx, types::TypeSet *types, JSAtom *atom, size_t *slot
     types->addFreeze(cx);
 
     *slotp = propertyTypes->definiteSlot();
+    return true;
+}
+
+bool
+IonBuilder::jsop_not()
+{
+    MIRType type = oracle->unaryOp(script, pc).ival;
+
+    
+    MDefinition *value = current->pop();
+
+    
+    if (type == MIRType_String) {
+        MStringLength *len = new MStringLength(value);
+        current->add(len);
+
+        type = MIRType_Int32;
+        value = len;
+    }
+
+    
+    MNot *ins = new MNot(value);
+    ins->infer(type);
+
+    
+    current->add(ins);
+    current->push(ins);
     return true;
 }
 

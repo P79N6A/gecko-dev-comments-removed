@@ -743,18 +743,18 @@ class MTableSwitch
 
   public:
     INSTRUCTION_HEADER(TableSwitch);
-    static MTableSwitch *New(MDefinition *ins, 
+    static MTableSwitch *New(MDefinition *ins,
                              int32 low, int32 high);
 
     size_t numSuccessors() const {
         return successors_.length();
     }
- 
+
     MBasicBlock *getSuccessor(size_t i) const {
         JS_ASSERT(i < numSuccessors());
         return successors_[i];
     }
- 
+
     void replaceSuccessor(size_t i, MBasicBlock *successor) {
         JS_ASSERT(i < numSuccessors());
         if (successors_[i] == defaultCase_)
@@ -1364,7 +1364,7 @@ class MPassArg
 
   private:
     MPassArg(MDefinition *def)
-      : MUnaryInstruction(def), argnum_(-1) 
+      : MUnaryInstruction(def), argnum_(-1)
     {
         setResultType(MIRType_Value);
     }
@@ -2429,6 +2429,37 @@ class MArrayLength
     }
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::ObjectFields);
+    }
+};
+
+
+class MNot : public MUnaryInstruction
+{
+    MIRType specialization_;
+
+  public:
+    MNot(MDefinition *elements)
+      : MUnaryInstruction(elements)
+    {
+        setResultType(MIRType_Boolean);
+        setMovable();
+    }
+
+    INSTRUCTION_HEADER(Not);
+
+    MDefinition *foldsTo(bool useValueNumbers);
+
+    MDefinition *operand() const {
+        return getOperand(0);
+    }
+
+    void infer(MIRType type);
+    MIRType specialization() const {
+        return specialization_;
+    }
+
+    virtual AliasSet getAliasSet() const {
+        return AliasSet::None();
     }
 };
 
