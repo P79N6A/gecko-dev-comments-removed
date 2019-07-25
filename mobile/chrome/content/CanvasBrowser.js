@@ -54,13 +54,16 @@ CanvasBrowser.prototype = {
   _screenY: 0,
 
   get canvasDimensions() {
-    return [this.canvasRect.width, this.canvasRect.height];
+    if (!this._canvasRect) {
+      let canvasRect = this._canvas.getBoundingClientRect();
+      this._canvasRect = {
+        width: canvasRect.width,
+        height: canvasRect.height
+      }
+    }
+    return [this._canvasRect.width, this._canvasRect.height];
   },
   
-  get canvasRect() {
-    return this._canvas.getBoundingClientRect();
-  },
-
   get _effectiveCanvasDimensions() {
     return this.canvasDimensions.map(this._screenToPage, this);
   },
@@ -429,8 +432,9 @@ CanvasBrowser.prototype = {
     
     
 
-    let clickOffsetX = this._screenToPage(aClientX - this.canvasRect.left) + this._pageX;
-    let clickOffsetY = this._screenToPage(aClientY - this.canvasRect.top) + this._pageY;
+    let canvasRect = this._canvas.getBoundingClientRect();
+    let clickOffsetX = this._screenToPage(aClientX - canvasRect.left) + this._pageX;
+    let clickOffsetY = this._screenToPage(aClientY - canvasRect.top) + this._pageY;
 
     
     let cwin = this._browser.contentWindow;
