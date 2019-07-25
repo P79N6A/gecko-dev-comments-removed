@@ -46,6 +46,28 @@ typedef nsLeafAccessible nsFormControlAccessible;
 
 
 
+template<int Max>
+class ProgressMeterAccessible: public nsFormControlAccessible
+{
+public:
+  ProgressMeterAccessible(nsIContent* aContent, nsIWeakReference* aShell) :
+  nsFormControlAccessible(aContent, aShell)
+{
+}
+
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIACCESSIBLEVALUE
+
+  
+  NS_IMETHOD GetValue(nsAString &aValue);
+
+  
+  virtual PRUint32 NativeRole();
+};
+
+
+
+
 class nsRadioButtonAccessible : public nsFormControlAccessible
 {
 

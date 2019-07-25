@@ -49,6 +49,11 @@
 
 
 
+typedef ProgressMeterAccessible<100> XULProgressMeterAccessible;
+
+
+
+
 
 
 
@@ -136,22 +141,6 @@ public:
   
   virtual PRUint32 NativeRole();
   virtual nsresult GetNameInternal(nsAString& aName);
-};
-
-
-
-
-class nsXULProgressMeterAccessible : public nsFormControlAccessible
-{
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIACCESSIBLEVALUE
-
-public:
-  nsXULProgressMeterAccessible(nsIContent *aContent, nsIWeakReference *aShell);
-  NS_IMETHOD GetValue(nsAString &aValue);
-
-  
-  virtual PRUint32 NativeRole();
 };
 
 
