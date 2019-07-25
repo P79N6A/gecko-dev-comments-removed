@@ -102,7 +102,6 @@
 #include "imgIRequest.h"
 #include "imgIContainer.h"
 #include "imgILoader.h"
-#include "mozilla/IHistory.h"
 #include "nsDocShellCID.h"
 #include "nsIImageLoadingContent.h"
 #include "nsIInterfaceRequestor.h"
@@ -234,7 +233,6 @@ nsIXTFService *nsContentUtils::sXTFService = nsnull;
 nsIPrefBranch2 *nsContentUtils::sPrefBranch = nsnull;
 imgILoader *nsContentUtils::sImgLoader;
 imgICache *nsContentUtils::sImgCache;
-mozilla::IHistory *nsContentUtils::sHistory;
 nsIConsoleService *nsContentUtils::sConsoleService;
 nsDataHashtable<nsISupportsHashKey, EventNameMapping>* nsContentUtils::sAtomEventTable = nsnull;
 nsDataHashtable<nsStringHashKey, EventNameMapping>* nsContentUtils::sStringEventTable = nsnull;
@@ -260,8 +258,10 @@ PRUint32 nsContentUtils::sRunnersCountAtFirstBlocker = 0;
 PRUint32 nsContentUtils::sScriptBlockerCountWhereRunnersPrevented = 0;
 nsIInterfaceRequestor* nsContentUtils::sSameOriginChecker = nsnull;
 
+nsIJSRuntimeService *nsAutoGCRoot::sJSRuntimeService;
+JSRuntime *nsAutoGCRoot::sJSScriptRuntime;
+
 PRBool nsContentUtils::sIsHandlingKeyBoardEvent = PR_FALSE;
-PRBool nsContentUtils::sAllowXULXBL_for_file = PR_FALSE;
 
 PRBool nsContentUtils::sInitialized = PR_FALSE;
 
@@ -466,12 +466,6 @@ nsContentUtils::Init()
   rv = CallGetService(NS_UNICHARCATEGORY_CONTRACTID, &sGenCat);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = CallGetService(NS_IHISTORY_CONTRACTID, &sHistory);
-  if (NS_FAILED(rv)) {
-    NS_RUNTIMEABORT("Cannot get the history service");
-    return rv;
-  }
-
   sPtrsToPtrsToRelease = new nsTArray<nsISupports**>();
   if (!sPtrsToPtrsToRelease) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -503,9 +497,6 @@ nsContentUtils::Init()
 
   sBlockedScriptRunners = new nsCOMArray<nsIRunnable>;
   NS_ENSURE_TRUE(sBlockedScriptRunners, NS_ERROR_OUT_OF_MEMORY);
-
-  nsContentUtils::AddBoolPrefVarCache("dom.allow_XUL_XBL_for_file",
-                                      &sAllowXULXBL_for_file);
 
   sInitialized = PR_TRUE;
 
@@ -593,7 +584,6 @@ nsContentUtils::InitializeEventTable() {
                                                 
     { nsGkAtoms::onpageshow,                    NS_PAGE_SHOW, EventNameType_HTML, NS_EVENT },
     { nsGkAtoms::onpagehide,                    NS_PAGE_HIDE, EventNameType_HTML, NS_EVENT },
-    { nsGkAtoms::onMozBeforeResize,             NS_BEFORERESIZE_EVENT, EventNameType_None, NS_EVENT },
     { nsGkAtoms::onresize,                      NS_RESIZE_EVENT,
                                                 (EventNameType_HTMLXUL | EventNameType_SVGSVG), NS_EVENT },
     { nsGkAtoms::onscroll,                      NS_SCROLL_EVENT,
@@ -1159,7 +1149,6 @@ nsContentUtils::Shutdown()
 #endif
   NS_IF_RELEASE(sImgLoader);
   NS_IF_RELEASE(sImgCache);
-  NS_IF_RELEASE(sHistory);
   NS_IF_RELEASE(sPrefBranch);
 #ifdef IBMBIDI
   NS_IF_RELEASE(sBidiKeyboard);
@@ -1208,6 +1197,8 @@ nsContentUtils::Shutdown()
 
   NS_IF_RELEASE(sSameOriginChecker);
   
+  nsAutoGCRoot::Shutdown();
+
   nsTextEditorState::ShutDown();
 }
 
@@ -3281,6 +3272,53 @@ nsContentUtils::GetContentPolicy()
 }
 
 
+nsresult
+nsAutoGCRoot::AddJSGCRoot(void* aPtr, RootType aRootType, const char* aName)
+{
+  if (!sJSScriptRuntime) {
+    nsresult rv = CallGetService("@mozilla.org/js/xpc/RuntimeService;1",
+                                 &sJSRuntimeService);
+    NS_ENSURE_TRUE(sJSRuntimeService, rv);
+
+    sJSRuntimeService->GetRuntime(&sJSScriptRuntime);
+    if (!sJSScriptRuntime) {
+      NS_RELEASE(sJSRuntimeService);
+      NS_WARNING("Unable to get JS runtime from JS runtime service");
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  PRBool ok;
+  if (aRootType == RootType_JSVal)
+    ok = ::js_AddRootRT(sJSScriptRuntime, (jsval *)aPtr, aName);
+  else
+    ok = ::js_AddGCThingRootRT(sJSScriptRuntime, (void **)aPtr, aName);
+  if (!ok) {
+    NS_WARNING("JS_AddNamedRootRT failed");
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  return NS_OK;
+}
+
+
+nsresult
+nsAutoGCRoot::RemoveJSGCRoot(void* aPtr, RootType aRootType)
+{
+  if (!sJSScriptRuntime) {
+    NS_NOTREACHED("Trying to remove a JS GC root when none were added");
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  if (aRootType == RootType_JSVal)
+    ::js_RemoveRoot(sJSScriptRuntime, (jsval *)aPtr);
+  else
+    ::js_RemoveRoot(sJSScriptRuntime, (JSObject **)aPtr);
+
+  return NS_OK;
+}
+
+
 PRBool
 nsContentUtils::IsEventAttributeName(nsIAtom* aName, PRInt32 aType)
 {
@@ -4894,8 +4932,11 @@ nsContentUtils::SetDataTransferInEvent(nsDragEvent* aDragEvent)
     
     
     
+    
+    PRUint32 action = 0;
+    dragSession->GetDragAction(&action);
     initialDataTransfer =
-      new nsDOMDataTransfer(aDragEvent->message);
+      new nsDOMDataTransfer(aDragEvent->message, action);
     NS_ENSURE_TRUE(initialDataTransfer, NS_ERROR_OUT_OF_MEMORY);
 
     
@@ -5143,6 +5184,13 @@ nsContentUtils::EqualsIgnoreASCIICase(const nsAString& aStr1,
 }
 
 
+void
+nsAutoGCRoot::Shutdown()
+{
+  NS_IF_RELEASE(sJSRuntimeService);
+}
+
+
 nsIInterfaceRequestor*
 nsContentUtils::GetSameOriginChecker()
 {
@@ -5154,9 +5202,17 @@ nsContentUtils::GetSameOriginChecker()
 }
 
 
-nsresult
-nsContentUtils::CheckSameOrigin(nsIChannel *aOldChannel, nsIChannel *aNewChannel)
+NS_IMPL_ISUPPORTS2(nsSameOriginChecker,
+                   nsIChannelEventSink,
+                   nsIInterfaceRequestor)
+
+NS_IMETHODIMP
+nsSameOriginChecker::AsyncOnChannelRedirect(nsIChannel *aOldChannel,
+                                            nsIChannel *aNewChannel,
+                                            PRUint32 aFlags,
+                                            nsIAsyncVerifyRedirectCallback *cb)
 {
+  NS_PRECONDITION(aNewChannel, "Redirecting to null channel?");
   if (!nsContentUtils::GetSecurityManager())
     return NS_ERROR_NOT_AVAILABLE;
 
@@ -5176,27 +5232,11 @@ nsContentUtils::CheckSameOrigin(nsIChannel *aOldChannel, nsIChannel *aNewChannel
     rv = oldPrincipal->CheckMayLoad(newOriginalURI, PR_FALSE);
   }
 
-  return rv;
-}
+  if (NS_FAILED(rv))
+      return rv;
 
-NS_IMPL_ISUPPORTS2(nsSameOriginChecker,
-                   nsIChannelEventSink,
-                   nsIInterfaceRequestor)
-
-NS_IMETHODIMP
-nsSameOriginChecker::AsyncOnChannelRedirect(nsIChannel *aOldChannel,
-                                            nsIChannel *aNewChannel,
-                                            PRUint32 aFlags,
-                                            nsIAsyncVerifyRedirectCallback *cb)
-{
-  NS_PRECONDITION(aNewChannel, "Redirecting to null channel?");
-
-  nsresult rv = nsContentUtils::CheckSameOrigin(aOldChannel, aNewChannel);
-  if (NS_SUCCEEDED(rv)) {
-    cb->OnRedirectVerifyCallback(NS_OK);
-  }
-
-  return rv;
+  cb->OnRedirectVerifyCallback(NS_OK);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -5484,11 +5524,6 @@ nsContentUtils::WrapNative(JSContext *cx, JSObject *scope, nsISupports *native,
 
     *vp = JSVAL_NULL;
 
-    return NS_OK;
-  }
-
-  JSObject *wrapper = xpc_GetCachedSlimWrapper(cache, scope, vp);
-  if (wrapper) {
     return NS_OK;
   }
 
@@ -6321,8 +6356,8 @@ nsContentUtils::PlatformToDOMLineBreaks(nsString &aString)
   }
 }
 
-static already_AddRefed<LayerManager>
-LayerManagerForDocumentInternal(nsIDocument *aDoc, bool aRequirePersistent)
+already_AddRefed<LayerManager>
+nsContentUtils::LayerManagerForDocument(nsIDocument *aDoc)
 {
   nsIDocument* doc = aDoc;
   nsIDocument* displayDoc = doc->GetDisplayDocument();
@@ -6356,10 +6391,7 @@ LayerManagerForDocumentInternal(nsIDocument *aDoc, bool aRequirePersistent)
       nsIWidget* widget =
         nsLayoutUtils::GetDisplayRootFrame(rootFrame)->GetNearestWidget();
       if (widget) {
-        nsRefPtr<LayerManager> manager =
-          static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(widget)->
-            GetLayerManager(aRequirePersistent ? nsIWidget_MOZILLA_2_0_BRANCH::LAYER_MANAGER_PERSISTENT : 
-                                                 nsIWidget_MOZILLA_2_0_BRANCH::LAYER_MANAGER_CURRENT);
+        nsRefPtr<LayerManager> manager = widget->GetLayerManager();
         return manager.forget();
       }
     }
@@ -6369,32 +6401,6 @@ LayerManagerForDocumentInternal(nsIDocument *aDoc, bool aRequirePersistent)
   return manager.forget();
 }
 
-already_AddRefed<LayerManager>
-nsContentUtils::LayerManagerForDocument(nsIDocument *aDoc)
-{
-  return LayerManagerForDocumentInternal(aDoc, false);
-}
-
-already_AddRefed<LayerManager>
-nsContentUtils::PersistentLayerManagerForDocument(nsIDocument *aDoc)
-{
-  return LayerManagerForDocumentInternal(aDoc, true);
-}
-
-bool
-nsContentUtils::AllowXULXBLForPrincipal(nsIPrincipal* aPrincipal)
-{
-  if (IsSystemPrincipal(aPrincipal)) {
-    return true;
-  }
-  
-  nsCOMPtr<nsIURI> princURI;
-  aPrincipal->GetURI(getter_AddRefs(princURI));
-  
-  return princURI &&
-         ((sAllowXULXBL_for_file && SchemeIs(princURI, "file")) ||
-          IsSitePermAllow(princURI, "allowXULXBL"));
-}
 
 NS_IMPL_ISUPPORTS1(nsIContentUtils, nsIContentUtils)
 
@@ -6473,18 +6479,4 @@ nsIContentUtils::FindInternalContentViewer(const char* aType,
 #endif 
 
   return NULL;
-}
-
-NS_IMPL_ISUPPORTS1(nsIContentUtils2, nsIContentUtils2)
-
-nsIInterfaceRequestor*
-nsIContentUtils2::GetSameOriginChecker()
-{
-  return nsContentUtils::GetSameOriginChecker();
-}
-
-nsresult
-nsIContentUtils2::CheckSameOrigin(nsIChannel *aOldChannel, nsIChannel *aNewChannel)
-{
-  return nsContentUtils::CheckSameOrigin(aOldChannel, aNewChannel);
 }

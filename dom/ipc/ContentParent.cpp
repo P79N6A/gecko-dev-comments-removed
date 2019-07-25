@@ -40,11 +40,9 @@
 #include "ContentParent.h"
 
 #include "TabParent.h"
-#include "CrashReporterParent.h"
 #include "History.h"
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/net/NeckoParent.h"
-#include "nsHashPropertyBag.h"
 #include "nsIFilePicker.h"
 #include "nsIWindowWatcher.h"
 #include "nsIDOMWindow.h"
@@ -74,12 +72,7 @@
 #include "nsPermissionManager.h"
 #endif
 
-#ifdef MOZ_CRASHREPORTER
-#include "nsExceptionHandler.h"
-#endif
-
 #include "mozilla/dom/ExternalHelperAppParent.h"
-#include "mozilla/dom/StorageParent.h"
 #include "nsAccelerometer.h"
 
 using namespace mozilla::ipc;
@@ -116,9 +109,7 @@ ContentParent::GetSingleton(PRBool aForceNew)
                     }
                 }
                 obs->AddObserver(
-                  parent, NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC, PR_FALSE);
-
-                obs->AddObserver(parent, "memory-pressure", PR_FALSE); 
+                  parent, NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC, PR_FALSE); 
             }
             nsCOMPtr<nsIThreadInternal>
                 threadInt(do_QueryInterface(NS_GetCurrentThread()));
@@ -126,34 +117,9 @@ ContentParent::GetSingleton(PRBool aForceNew)
                 threadInt->GetObserver(getter_AddRefs(parent->mOldObserver));
                 threadInt->SetObserver(parent);
             }
-            if (obs) {
-                obs->NotifyObservers(nsnull, "ipc:content-created", nsnull);
-            }
         }
     }
     return gSingleton;
-}
-
-void
-ContentParent::OnChannelConnected(int32 pid)
-{
-    ProcessHandle handle;
-    if (!base::OpenPrivilegedProcessHandle(pid, &handle)) {
-        NS_WARNING("Can't open handle to child process.");
-    }
-    else {
-        SetOtherProcess(handle);
-    }
-}
-
-namespace {
-void
-DelayedDeleteSubprocess(GeckoChildProcessHost* aSubprocess)
-{
-    XRE_GetIOMessageLoop()
-        ->PostTask(FROM_HERE,
-                   new DeleteTask<GeckoChildProcessHost>(aSubprocess));
-}
 }
 
 void
@@ -175,45 +141,11 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
     mIsAlive = false;
 
     if (obs) {
-        nsRefPtr<nsHashPropertyBag> props = new nsHashPropertyBag();
-        props->Init();
-
-        if (AbnormalShutdown == why) {
-            props->SetPropertyAsBool(NS_LITERAL_STRING("abnormal"), PR_TRUE);
-
-#ifdef MOZ_CRASHREPORTER
-            nsAutoString dumpID;
-
-            nsCOMPtr<nsILocalFile> crashDump;
-            TakeMinidump(getter_AddRefs(crashDump)) &&
-                CrashReporter::GetIDFromMinidump(crashDump, dumpID);
-
-            if (!dumpID.IsEmpty()) {
-                props->SetPropertyAsAString(NS_LITERAL_STRING("dumpID"),
-                                            dumpID);
-
-                CrashReporter::AnnotationTable notes;
-                notes.Init();
-                notes.Put(NS_LITERAL_CSTRING("ProcessType"), NS_LITERAL_CSTRING("content"));
-
-                char startTime[32];
-                sprintf(startTime, "%lld", static_cast<PRInt64>(mProcessStartTime));
-                notes.Put(NS_LITERAL_CSTRING("StartupTime"),
-                          nsDependentCString(startTime));
-
-                
-                CrashReporter::AppendExtraData(dumpID, notes);
-            }
-#endif
-
-            obs->NotifyObservers((nsIPropertyBag2*) props, "ipc:content-shutdown", nsnull);
-        }
+        nsString context = NS_LITERAL_STRING("");
+        if (AbnormalShutdown == why)
+            context.AssignLiteral("abnormal");
+        obs->NotifyObservers(nsnull, "ipc:content-shutdown", context.get());
     }
-
-    MessageLoop::current()->
-        PostTask(FROM_HERE,
-                 NewRunnableFunction(DelayedDeleteSubprocess, mSubprocess));
-    mSubprocess = NULL;
 }
 
 TabParent*
@@ -240,7 +172,6 @@ ContentParent::ContentParent()
     , mRunToCompletionDepth(0)
     , mShouldCallUnblockChild(false)
     , mIsAlive(true)
-    , mProcessStartTime(time(NULL))
 {
     NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
     mSubprocess = new GeckoChildProcessHost(GeckoProcessType_Content);
@@ -255,9 +186,6 @@ ContentParent::ContentParent()
 
 ContentParent::~ContentParent()
 {
-    if (OtherProcess())
-        base::CloseProcessHandle(OtherProcess());
-
     NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
     
     
@@ -339,6 +267,14 @@ NS_IMPL_THREADSAFE_ISUPPORTS3(ContentParent,
                               nsIThreadObserver,
                               nsIDOMGeoPositionCallback)
 
+namespace {
+void
+DeleteSubprocess(GeckoChildProcessHost* aSubprocess)
+{
+    delete aSubprocess;
+}
+}
+
 NS_IMETHODIMP
 ContentParent::Observe(nsISupports* aSubject,
                        const char* aTopic,
@@ -357,18 +293,17 @@ ContentParent::Observe(nsISupports* aSubject,
         RecvRemoveGeolocationListener();
             
         Close();
-        NS_ASSERTION(!mSubprocess, "Close should have nulled mSubprocess");
+        XRE_GetIOMessageLoop()->PostTask(
+            FROM_HERE,
+            NewRunnableFunction(DeleteSubprocess, mSubprocess));
+        mSubprocess = nsnull;
     }
 
     if (!mIsAlive || !mSubprocess)
         return NS_OK;
 
     
-    if (!strcmp(aTopic, "memory-pressure")) {
-        SendFlushMemory(nsDependentString(aData));
-    }
-    
-    else if (!strcmp(aTopic, "nsPref:changed")) {
+    if (!strcmp(aTopic, "nsPref:changed")) {
         
         NS_LossyConvertUTF16toASCII strData(aData);
 
@@ -415,19 +350,6 @@ ContentParent::DeallocPBrowser(PBrowserParent* frame)
   return true;
 }
 
-PCrashReporterParent*
-ContentParent::AllocPCrashReporter()
-{
-  return new CrashReporterParent();
-}
-
-bool
-ContentParent::DeallocPCrashReporter(PCrashReporterParent* crashreporter)
-{
-  delete crashreporter;
-  return true;
-}
-
 PTestShellParent*
 ContentParent::AllocPTestShell()
 {
@@ -447,7 +369,7 @@ ContentParent::AllocPAudio(const PRInt32& numChannels,
                            const PRInt32& format)
 {
     AudioParent *parent = new AudioParent(numChannels, rate, format);
-    NS_ADDREF(parent);
+    parent->AddRef();
     return parent;
 }
 
@@ -477,12 +399,11 @@ ContentParent::AllocPExternalHelperApp(const IPC::URI& uri,
                                        const nsCString& aMimeContentType,
                                        const nsCString& aContentDisposition,
                                        const bool& aForceSave,
-                                       const PRInt64& aContentLength,
-                                       const IPC::URI& aReferrer)
+                                       const PRInt64& aContentLength)
 {
     ExternalHelperAppParent *parent = new ExternalHelperAppParent(uri, aContentLength);
     parent->AddRef();
-    parent->Init(this, aMimeContentType, aContentDisposition, aForceSave, aReferrer);
+    parent->Init(this, aMimeContentType, aContentDisposition, aForceSave);
     return parent;
 }
 
@@ -491,19 +412,6 @@ ContentParent::DeallocPExternalHelperApp(PExternalHelperAppParent* aService)
 {
     ExternalHelperAppParent *parent = static_cast<ExternalHelperAppParent *>(aService);
     parent->Release();
-    return true;
-}
-
-PStorageParent*
-ContentParent::AllocPStorage(const StorageConstructData& aData)
-{
-    return new StorageParent(aData);
-}
-
-bool
-ContentParent::DeallocPStorage(PStorageParent* aActor)
-{
-    delete aActor;
     return true;
 }
 
@@ -537,8 +445,11 @@ bool
 ContentParent::RecvStartVisitedQuery(const IPC::URI& aURI)
 {
     nsCOMPtr<nsIURI> newURI(aURI);
-    IHistory *history = nsContentUtils::GetHistory(); 
-    history->RegisterVisitedCallback(newURI, nsnull);
+    nsCOMPtr<IHistory> history = services::GetHistoryService();
+    NS_ABORT_IF_FALSE(history, "History must exist at this point.");
+    if (history) {
+      history->RegisterVisitedCallback(newURI, nsnull);
+    }
     return true;
 }
 
@@ -550,8 +461,11 @@ ContentParent::RecvVisitURI(const IPC::URI& uri,
 {
     nsCOMPtr<nsIURI> ourURI(uri);
     nsCOMPtr<nsIURI> ourReferrer(referrer);
-    IHistory *history = nsContentUtils::GetHistory(); 
-    history->VisitURI(ourURI, ourReferrer, flags);
+    nsCOMPtr<IHistory> history = services::GetHistoryService();
+    NS_ABORT_IF_FALSE(history, "History must exist at this point");
+    if (history) {
+      history->VisitURI(ourURI, ourReferrer, flags);
+    }
     return true;
 }
 
@@ -561,8 +475,11 @@ ContentParent::RecvSetURITitle(const IPC::URI& uri,
                                       const nsString& title)
 {
     nsCOMPtr<nsIURI> ourURI(uri);
-    IHistory *history = nsContentUtils::GetHistory(); 
-    history->SetURITitle(ourURI, title);
+    nsCOMPtr<IHistory> history = services::GetHistoryService();
+    NS_ABORT_IF_FALSE(history, "History must exist at this point");
+    if (history) {
+      history->SetURITitle(ourURI, title);
+    }
     return true;
 }
 

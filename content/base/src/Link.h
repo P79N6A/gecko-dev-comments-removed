@@ -45,6 +45,7 @@
 #define mozilla_dom_Link_h__
 
 #include "nsIContent.h"
+#include "mozilla/IHistory.h"
 
 namespace mozilla {
 namespace dom {
@@ -132,6 +133,10 @@ private:
 
   nsIContent *Content();
   nsIContent *mContent;
+
+  
+  
+  nsCOMPtr<IHistory> mHistory;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Link, MOZILLA_DOM_LINK_IMPLEMENTATION_IID)

@@ -141,7 +141,6 @@ typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
 #endif
 
 namespace mozilla {
-  class IHistory;
 
 namespace layers {
   class LayerManager;
@@ -505,11 +504,6 @@ public:
     if (!sImgLoaderInitialized)
       InitImgLoader();
     return sImgLoader;
-  }
-
-  static mozilla::IHistory* GetHistory()
-  {
-    return sHistory;
   }
 
 #ifdef MOZ_XTF
@@ -1520,8 +1514,6 @@ public:
   static void ASCIIToUpper(nsAString& aStr);
   static void ASCIIToUpper(const nsAString& aSource, nsAString& aDest);
 
-  
-  static nsresult CheckSameOrigin(nsIChannel *aOldChannel, nsIChannel *aNewChannel);
   static nsIInterfaceRequestor* GetSameOriginChecker();
 
   static nsIThreadJSContextStack* ThreadJSContextStack()
@@ -1690,23 +1682,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-  static already_AddRefed<mozilla::layers::LayerManager>
-  PersistentLayerManagerForDocument(nsIDocument *aDoc);
-
-  
-
-
-
-
-
   static PRBool IsFocusedContent(const nsIContent *aContent);
 
   
@@ -1727,13 +1702,8 @@ public:
 
   static void FlushLayoutForTree(nsIDOMWindow* aWindow);
 
-  
-
-
-
-  static bool AllowXULXBLForPrincipal(nsIPrincipal* aPrincipal);
-
 private:
+
   static PRBool InitializeEventTable();
 
   static nsresult EnsureStringBundle(PropertiesFile aFile);
@@ -1782,8 +1752,6 @@ private:
   static imgILoader* sImgLoader;
   static imgICache* sImgCache;
 
-  static mozilla::IHistory* sHistory;
-
   static nsIConsoleService* sConsoleService;
 
   static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sAtomEventTable;
@@ -1821,7 +1789,6 @@ private:
   static nsIInterfaceRequestor* sSameOriginChecker;
 
   static PRBool sIsHandlingKeyBoardEvent;
-  static PRBool sAllowXULXBL_for_file;
 };
 
 #define NS_HOLD_JS_OBJECTS(obj, clazz)                                         \
@@ -1865,6 +1832,48 @@ private:
 #endif
 };
 
+class NS_STACK_CLASS nsAutoGCRoot {
+public:
+  
+  nsAutoGCRoot(jsval* aPtr, nsresult* aResult
+               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
+    mPtr(aPtr), mRootType(RootType_JSVal)
+  {
+    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
+    mResult = *aResult = AddJSGCRoot(aPtr, RootType_JSVal, "nsAutoGCRoot");
+  }
+
+  
+  nsAutoGCRoot(JSObject** aPtr, nsresult* aResult
+               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
+    mPtr(aPtr), mRootType(RootType_Object)
+  {
+    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
+    mResult = *aResult = AddJSGCRoot(aPtr, RootType_Object, "nsAutoGCRoot");
+  }
+
+  ~nsAutoGCRoot() {
+    if (NS_SUCCEEDED(mResult)) {
+      RemoveJSGCRoot((jsval *)mPtr, mRootType);
+    }
+  }
+
+  static void Shutdown();
+
+private:
+  enum RootType { RootType_JSVal, RootType_Object };
+  static nsresult AddJSGCRoot(void *aPtr, RootType aRootType, const char* aName);
+  static nsresult RemoveJSGCRoot(void *aPtr, RootType aRootType);
+
+  static nsIJSRuntimeService* sJSRuntimeService;
+  static JSRuntime* sJSScriptRuntime;
+
+  void* mPtr;
+  RootType mRootType;
+  nsresult mResult;
+  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 class NS_STACK_CLASS nsAutoScriptBlocker {
 public:
   nsAutoScriptBlocker(MOZILLA_GUARD_OBJECT_NOTIFIER_ONLY_PARAM) {
@@ -1891,6 +1900,13 @@ private:
   nsCOMPtr<nsIDocumentObserver> mObserver;
   MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
+
+#define NS_AUTO_GCROOT_PASTE2(tok,line) tok##line
+#define NS_AUTO_GCROOT_PASTE(tok,line) \
+  NS_AUTO_GCROOT_PASTE2(tok,line)
+#define NS_AUTO_GCROOT(ptr, result) \ \
+  nsAutoGCRoot NS_AUTO_GCROOT_PASTE(_autoGCRoot_, __LINE__) \
+  (ptr, result)
 
 #define NS_INTERFACE_MAP_ENTRY_TEAROFF(_interface, _allocator)                \
   if (aIID.Equals(NS_GET_IID(_interface))) {                                  \
