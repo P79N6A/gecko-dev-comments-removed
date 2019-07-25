@@ -976,17 +976,6 @@ nsChildView::GetDPI()
   return 96.0;
 }
 
-LayerManager*
-nsChildView::GetLayerManager()
-{
-  nsCocoaWindow* window = GetXULWindowWidget();
-  if (window && window->GetAcceleratedRendering() != mUseAcceleratedRendering) {
-    mLayerManager = NULL;
-    mUseAcceleratedRendering = window->GetAcceleratedRendering();
-  }
-  return nsBaseWidget::GetLayerManager();
-}
-
 NS_IMETHODIMP nsChildView::Enable(PRBool aState)
 {
   return NS_OK;
@@ -1043,7 +1032,12 @@ NS_IMETHODIMP nsChildView::SetCursor(imgIContainer* aCursor,
 // Get this component dimension
 NS_IMETHODIMP nsChildView::GetBounds(nsIntRect &aRect)
 {
-  aRect = mBounds;
+  if (!mView) {
+    aRect = mBounds;
+  } else {
+    NSRect frame = [mView frame];
+    NSRectToGeckoRect(frame, aRect);
+  }
   return NS_OK;
 }
 
