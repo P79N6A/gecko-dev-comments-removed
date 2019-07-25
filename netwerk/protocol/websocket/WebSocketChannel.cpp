@@ -929,7 +929,7 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
         
         
         
-        if (!IsUTF8(utf8Data)) {
+        if (!IsUTF8(utf8Data, PR_FALSE)) {
           LOG(("WebSocketChannel:: text frame invalid utf-8\n"));
           AbortSession(NS_ERROR_ILLEGAL_VALUE);
           return NS_ERROR_ILLEGAL_VALUE;
@@ -966,7 +966,7 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
             
             
             
-            if (!IsUTF8(mServerCloseReason)) {
+            if (!IsUTF8(mServerCloseReason, PR_FALSE)) {
               LOG(("WebSocketChannel:: close frame invalid utf-8\n"));
               AbortSession(NS_ERROR_ILLEGAL_VALUE);
               return NS_ERROR_ILLEGAL_VALUE;

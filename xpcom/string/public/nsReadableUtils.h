@@ -250,7 +250,20 @@ PRBool IsASCII( const nsACString& aString );
 
 
 
-PRBool IsUTF8( const nsACString& aString );
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRBool IsUTF8( const nsACString& aString, PRBool aRejectNonChar = PR_TRUE );
 
 PRBool ParseString(const nsACString& aAstring, char aDelimiter, 
                           nsTArray<nsCString>& aArray);
