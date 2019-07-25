@@ -110,7 +110,7 @@ struct JSXDRState {
     JSXDRMode   mode;
     JSXDROps    *ops;
     JSContext   *cx;
-    js::Class   **registry;
+    JSClass     **registry;
     uintN       numclasses;
     uintN       maxclasses;
     void        *reghash;
@@ -164,7 +164,7 @@ extern JS_PUBLIC_API(JSBool)
 JS_XDRStringOrNull(JSXDRState *xdr, JSString **strp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_XDRDouble(JSXDRState *xdr, jsdouble **dp);
+JS_XDRDouble(JSXDRState *xdr, jsdouble *dp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_XDRValue(JSXDRState *xdr, jsval *vp);
@@ -205,7 +205,7 @@ JS_XDRFindClassById(JSXDRState *xdr, uint32 id);
 
 
 
-#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 62)
+#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 63)
 
 
 
