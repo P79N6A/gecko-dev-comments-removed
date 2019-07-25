@@ -1446,6 +1446,19 @@ nsEditor::SplitNode(nsIDOMNode * aNode,
 }
 
 
+nsresult
+nsEditor::JoinNodes(nsINode* aNodeToKeep, nsIContent* aNodeToMove)
+{
+  
+  
+  
+  MOZ_ASSERT(aNodeToKeep && aNodeToMove && aNodeToMove->GetNodeParent());
+  nsresult res = JoinNodes(aNodeToKeep->AsDOMNode(), aNodeToMove->AsDOMNode(),
+                           aNodeToMove->GetNodeParent()->AsDOMNode());
+  NS_ASSERTION(NS_SUCCEEDED(res), "JoinNodes failed");
+  NS_ENSURE_SUCCESS(res, res);
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 nsEditor::JoinNodes(nsIDOMNode * aLeftNode,
@@ -1678,6 +1691,18 @@ nsEditor::InsertContainerAbove( nsIDOMNode *inNode,
 }
 
 
+
+nsresult
+nsEditor::MoveNode(nsIContent* aNode, nsINode* aParent, PRInt32 aOffset)
+{
+  MOZ_ASSERT(aNode && aParent);
+  MOZ_ASSERT(aOffset == -1 || (0 <= aOffset &&
+                               aOffset <= (PRInt32)aParent->Length()));
+  nsresult res = MoveNode(aNode->AsDOMNode(), aParent->AsDOMNode(), aOffset);
+  NS_ASSERTION(NS_SUCCEEDED(res), "MoveNode failed");
+  NS_ENSURE_SUCCESS(res, res);
+  return NS_OK;
+}
 
 nsresult
 nsEditor::MoveNode(nsIDOMNode *aNode, nsIDOMNode *aParent, PRInt32 aOffset)

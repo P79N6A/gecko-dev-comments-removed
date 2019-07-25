@@ -942,6 +942,30 @@ nsHTMLCSSUtils::GenerateCSSDeclarationsFromHTMLStyle(dom::Element* aElement,
 
 
 
+
+PRInt32
+nsHTMLCSSUtils::SetCSSEquivalentToHTMLStyle(dom::Element* aElement,
+                                            nsIAtom* aProperty,
+                                            const nsAString* aAttribute,
+                                            const nsAString* aValue,
+                                            bool aSuppressTransaction)
+{
+  MOZ_ASSERT(aElement && aProperty);
+  MOZ_ASSERT_IF(aAttribute, aValue);
+  PRInt32 count;
+  
+  
+  
+  
+  nsresult res = SetCSSEquivalentToHTMLStyle(aElement->AsDOMNode(),
+                                             aProperty, aAttribute,
+                                             aValue, &count,
+                                             aSuppressTransaction);
+  NS_ASSERTION(NS_SUCCEEDED(res), "SetCSSEquivalentToHTMLStyle failed");
+  NS_ENSURE_SUCCESS(res, count);
+  return count;
+}
+
 nsresult
 nsHTMLCSSUtils::SetCSSEquivalentToHTMLStyle(nsIDOMNode * aNode,
                                             nsIAtom *aHTMLProperty,
@@ -1270,6 +1294,14 @@ nsHTMLCSSUtils::IsCSSPrefChecked()
 
 
 
+
+bool
+nsHTMLCSSUtils::ElementsSameStyle(dom::Element* aFirstNode,
+                                  dom::Element* aSecondNode)
+{
+  MOZ_ASSERT(aFirstNode && aSecondNode);
+  return ElementsSameStyle(aFirstNode->AsDOMNode(), aSecondNode->AsDOMNode());
+}
 
 bool
 nsHTMLCSSUtils::ElementsSameStyle(nsIDOMNode *aFirstNode, nsIDOMNode *aSecondNode)
