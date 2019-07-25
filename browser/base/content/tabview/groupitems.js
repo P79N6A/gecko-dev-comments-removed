@@ -1014,7 +1014,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         if (typeof item.setResizable == 'function')
           item.setResizable(false, options.immediately);
 
-        if (item == UI.getActiveTab() || !this._activeTab)
+        
+        if (iQ(item.container).hasClass("focus"))
           this.setActiveTab(item);
 
         
