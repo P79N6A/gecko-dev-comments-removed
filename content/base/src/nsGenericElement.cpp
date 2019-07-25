@@ -1478,7 +1478,12 @@ nsIContent::IMEState
 nsIContent::GetDesiredIMEState()
 {
   if (!IsEditableInternal()) {
-    return IMEState(IMEState::DISABLED);
+    
+    
+    if (!IsElement() ||
+        !AsElement()->State().HasState(NS_EVENT_STATE_MOZ_READWRITE)) {
+      return IMEState(IMEState::DISABLED);
+    }
   }
   
   
