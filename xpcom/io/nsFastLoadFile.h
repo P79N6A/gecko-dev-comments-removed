@@ -56,7 +56,6 @@
 #include "nsIFastLoadService.h"
 #include "nsISeekableStream.h"
 #include "nsISupportsArray.h"
-#include "mozilla/FileUtils.h"
 
 
 
@@ -401,12 +400,6 @@ class nsFastLoadFileReader
     PRUint32 mFilePos;  
     PRFileMap *mFileMap;
     PRUint8 *mFileData; 
-#ifdef XP_WIN
-    
-    
-    
-    mozilla::AutoFDClose mFD;
-#endif
 };
 
 NS_COM nsresult
