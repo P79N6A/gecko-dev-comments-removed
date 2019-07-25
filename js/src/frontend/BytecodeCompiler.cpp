@@ -118,14 +118,14 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     JS_ASSERT_IF(globalObj, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalObj->getClass()));
 
     GlobalScope globalScope(cx, globalObj);
-    bce.sc->setScopeChain(scopeChain);
+    sc.setScopeChain(scopeChain);
     bce.globalScope = &globalScope;
-    if (!SetStaticLevel(bce.sc, staticLevel))
+    if (!SetStaticLevel(&sc, staticLevel))
         return NULL;
 
     
     if (callerFrame && callerFrame->isScriptFrame() && callerFrame->script()->strictModeCode)
-        bce.sc->setInStrictMode();
+        sc.setInStrictMode();
 
 #ifdef DEBUG
     bool savedCallerFun;
@@ -165,10 +165,8 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
 
 
-    uint32_t bodyid;
-    if (!GenerateBlockId(bce.sc, bodyid))
+    if (!GenerateBlockId(&sc, sc.bodyid))
         return NULL;
-    bce.sc->bodyid = bodyid;
 
     ParseNode *pn;
 #if JS_HAS_XML_SUPPORT
@@ -201,7 +199,7 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
         if (!AnalyzeFunctions(bce.parser))
             return NULL;
-        bce.sc->functionList = NULL;
+        sc.functionList = NULL;
 
         if (!EmitTree(cx, &bce, pn))
             return NULL;
