@@ -76,10 +76,6 @@
 
 #include "jsobj.h"
 
-#include "Layers.h"
-
-using namespace mozilla::layers;
-
 static PRBool IsUniversalXPConnectCapable()
 {
   PRBool hasCap = PR_FALSE;
@@ -575,7 +571,7 @@ nsDOMWindowUtils::Focus(nsIDOMElement* aElement)
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GarbageCollect(nsICycleCollectorListener *aListener)
+nsDOMWindowUtils::GarbageCollect()
 {
   
 #ifndef DEBUG
@@ -584,7 +580,7 @@ nsDOMWindowUtils::GarbageCollect(nsICycleCollectorListener *aListener)
   }
 #endif
 
-  nsJSContext::CC(aListener);
+  nsJSContext::CC();
 
   return NS_OK;
 }
@@ -1465,22 +1461,6 @@ nsDOMWindowUtils::ResumeTimeouts()
   }
 
   mWindow->ResumeTimeouts();
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMWindowUtils::GetLayerManagerType(nsAString& aType)
-{
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (!widget)
-    return NS_ERROR_FAILURE;
-
-  LayerManager *mgr = widget->GetLayerManager();
-  if (!mgr)
-    return NS_ERROR_FAILURE;
-
-  mgr->GetBackendName(aType);
 
   return NS_OK;
 }
