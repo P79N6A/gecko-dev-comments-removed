@@ -24,7 +24,8 @@ namespace {
 
 
 
-PR_STATIC_ASSERT(JS_STRUCTURED_CLONE_VERSION == 1);
+MOZ_STATIC_ASSERT(JS_STRUCTURED_CLONE_VERSION == 1,
+                  "Need to update the major schema version.");
 
 
 const PRUint32 kMajorSchemaVersion = 12;
@@ -36,8 +37,10 @@ const PRUint32 kMinorSchemaVersion = 0;
 
 
 
-PR_STATIC_ASSERT(kMajorSchemaVersion <= 0xFFFFFFF);
-PR_STATIC_ASSERT(kMajorSchemaVersion <= 0xF);
+MOZ_STATIC_ASSERT(kMajorSchemaVersion <= 0xFFFFFFF,
+                  "Major version needs to fit in 28 bits.");
+MOZ_STATIC_ASSERT(kMinorSchemaVersion <= 0xF,
+                  "Minor version needs to fit in 4 bits.");
 
 inline
 PRInt32
@@ -1800,7 +1803,8 @@ OpenDatabaseHelper::CreateDatabaseConnection(
     }
     else  {
       
-      PR_STATIC_ASSERT(kSQLiteSchemaVersion == PRInt32((12 << 4) + 0));
+      MOZ_STATIC_ASSERT(kSQLiteSchemaVersion == PRInt32((12 << 4) + 0),
+                        "Need upgrade code from schema version increase.");
 
       while (schemaVersion != kSQLiteSchemaVersion) {
         if (schemaVersion == 4) {
