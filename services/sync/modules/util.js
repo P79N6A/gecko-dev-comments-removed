@@ -787,6 +787,57 @@ let FakeSvc = {
   "@mozilla.org/privatebrowsing;1": {
     autoStarted: false,
     privateBrowsingEnabled: false
+  },
+  
+  "@mozilla.org/browser/sessionstore;1": {
+    setTabValue: function(tab, key, value) {
+      if (!tab.__SS_extdata)
+        tab.__SS_extdata = {};
+      tab.__SS_extData[key] = value;
+    },
+    getBrowserState: function() {
+      
+      let state = { windows: [{ tabs: [] }] };
+      let window = Svc.WinMediator.getMostRecentWindow("navigator:browser");
+
+      
+      window.Browser._tabs.forEach(function(tab) {
+        let tabState = { entries: [{}] };
+        let browser = tab.browser;
+
+        
+        
+        if (!browser || !browser.currentURI || !browser.sessionHistory)
+          return;
+
+        let history = browser.sessionHistory;
+        if (history.count > 0) {
+          
+          let entry = history.getEntryAtIndex(history.index, false);
+          tabState.entries[0].url = entry.URI.spec;
+          
+          if (entry.title && entry.title != entry.url)
+            tabState.entries[0].title = entry.title;
+        }
+        
+        tabState.index = 1;
+
+        
+        
+        tabState.attributes = { image: browser.mIconURL };
+
+        
+        if (tab.__SS_extdata) {
+          tabState.extData = {};
+          for (let key in tab.__SS_extdata)
+            tabState.extData[key] = tab.__SS_extdata[key];
+        }
+
+        
+        state.windows[0].tabs.push(tabState);
+      });
+      return JSON.stringify(state);
+    }
   }
 };
 
@@ -818,6 +869,7 @@ Svc.Obs = Observers;
  ["Version", "@mozilla.org/xpcom/version-comparator;1", "nsIVersionComparator"],
  ["WinMediator", "@mozilla.org/appshell/window-mediator;1", "nsIWindowMediator"],
  ["WinWatcher", "@mozilla.org/embedcomp/window-watcher;1", "nsIWindowWatcher"],
+ ["Session", "@mozilla.org/browser/sessionstore;1", "nsISessionStore"],
 ].forEach(function(lazy) Utils.lazySvc(Svc, lazy[0], lazy[1], Ci[lazy[2]]));
 
 let Str = {};

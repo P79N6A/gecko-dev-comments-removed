@@ -104,13 +104,6 @@ TabStore.prototype = {
   __proto__: Store.prototype,
   _remoteClients: {},
 
-  get _sessionStore() {
-    let sessionStore = Cc["@mozilla.org/browser/sessionstore;1"].
-		       getService(Ci.nsISessionStore);
-    this.__defineGetter__("_sessionStore", function() { return sessionStore;});
-    return this._sessionStore;
-  },
-
   itemExists: function TabStore_itemExists(id) {
     return id == Clients.clientID;
   },
@@ -119,33 +112,36 @@ TabStore.prototype = {
   getAllTabs: function getAllTabs(filter) {
     let filteredUrls = new RegExp(Svc.Prefs.get("engine.tabs.filteredUrls"), "i");
 
-    
     let allTabs = [];
-    let wins = Svc.WinMediator.getEnumerator("navigator:browser");
-    while (wins.hasMoreElements()) {
-      
-      let window = wins.getNext();
-      let tabs = window.gBrowser && window.gBrowser.tabContainer.childNodes;
-      tabs = tabs || window.Browser._tabs;
-  
-      
-      Array.forEach(tabs, function(tab) {
-        let browser = tab.linkedBrowser || tab.browser;
-        let url = browser.currentURI.spec;
+
+    let currentState = JSON.parse(Svc.Session.getBrowserState());
+    currentState.windows.forEach(function(window) {
+      window.tabs.forEach(function(tab) {
+        
+        if (!tab.entries.length)
+          return;
+        
+        
+        let entry = tab.entries[tab.index - 1];
 
         
-        if (filter && filteredUrls.test(url))
+        
+        if (!entry.url || filter && filteredUrls.test(entry.url))
           return;
 
+        
+        
+        
+        
         allTabs.push({
-          title: browser.contentTitle || "",
-          urlHistory: [url],
-          icon: browser.mIconURL || "",
-          lastUsed: tab.lastUsed || 0
+          title: entry.title || "",
+          urlHistory: [entry.url],
+          icon: tab.attributes && tab.attributes.image || "",
+          lastUsed: tab.extData && tab.extData.weaveLastUsed || 0
         });
       });
-    }
-  
+    });
+
     return allTabs;
   },
 
@@ -248,7 +244,8 @@ TabTracker.prototype = {
     this._changedIDs[Clients.clientID] = true;
 
     
-    event.originalTarget.lastUsed = Math.floor(Date.now() / 1000);
+    Svc.Session.setTabValue(event.originalTarget, "weaveLastUsed",
+                            Math.floor(Date.now() / 1000));
   },
 
   get changedIDs() this._changedIDs,
