@@ -188,12 +188,9 @@ public:
   
   virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix,
                       TransformTypes aWhich = eAllTransforms) const;
-  virtual bool HasValidDimensions() const;
  
   
   float GetLength(PRUint8 mCtxType);
-  
-  void SyncWidthOrHeight(nsIAtom* aName, nsSVGElement *aTarget) const;
 
   
   gfxMatrix GetViewBoxTransform() const;

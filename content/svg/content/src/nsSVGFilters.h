@@ -158,9 +158,6 @@ public:
   
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
-  
-  virtual bool HasValidDimensions() const;
-
   virtual nsSVGString& GetResultImageName() = 0;
   
   

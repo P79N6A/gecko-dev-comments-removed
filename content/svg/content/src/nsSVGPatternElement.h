@@ -96,9 +96,6 @@ public:
 
   virtual nsXPCClassInfo* GetClassInfo();
 
-  
-  virtual bool HasValidDimensions() const;
-
   virtual mozilla::SVGAnimatedTransformList* GetAnimatedTransformList();
   virtual nsIAtom* GetTransformListAttrName() const {
     return nsGkAtoms::patternTransform;

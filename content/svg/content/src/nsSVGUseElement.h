@@ -105,7 +105,6 @@ public:
   
   virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix,
                       TransformTypes aWhich = eAllTransforms) const;
-  virtual bool HasValidDimensions() const;
 
   
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
@@ -131,7 +130,8 @@ protected:
   virtual LengthAttributesInfo GetLengthInfo();
   virtual StringAttributesInfo GetStringInfo();
 
-  void SyncWidthOrHeight(nsIAtom *aName);
+  bool HasValidDimensions();
+  void SyncWidthHeight(nsIAtom *aName);
   void LookupHref();
   void TriggerReclone();
   void UnlinkSource();

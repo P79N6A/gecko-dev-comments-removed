@@ -83,9 +83,6 @@ public:
   void Invalidate();
 
   virtual nsXPCClassInfo* GetClassInfo();
-
-  
-  virtual bool HasValidDimensions() const;
 protected:
 
   virtual LengthAttributesInfo GetLengthInfo();
