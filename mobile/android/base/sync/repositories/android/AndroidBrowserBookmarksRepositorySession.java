@@ -2,45 +2,17 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories.android;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.json.simple.JSONArray;
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.repositories.NoGuidForIdException;
@@ -61,10 +33,138 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
   private HashMap<String, Long> guidToID = new HashMap<String, Long>();
   private HashMap<Long, String> idToGuid = new HashMap<Long, String>();
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
   private HashMap<String, ArrayList<String>> missingParentToChildren = new HashMap<String, ArrayList<String>>();
-  private HashMap<String, JSONArray> parentToChildArray = new HashMap<String, JSONArray>();
-  private AndroidBrowserBookmarksDataAccessor dataAccessor;
+  private HashMap<String, JSONArray>         parentToChildArray      = new HashMap<String, JSONArray>();
   private int needsReparenting = 0;
+
+  private AndroidBrowserBookmarksDataAccessor dataAccessor;
+
+  
+
+
+  public static String[] SPECIAL_GUIDS = new String[] {
+    
+    "mobile",
+    "places",
+    "toolbar",
+    "menu",
+    "unfiled"
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  public static final Map<String, String> SPECIAL_GUID_PARENTS;
+  static {
+    HashMap<String, String> m = new HashMap<String, String>();
+    m.put("places",  null);
+    m.put("menu",    "places");
+    m.put("toolbar", "places");
+    m.put("tags",    "places");
+    m.put("unfiled", "places");
+    m.put("mobile",  "places");
+    SPECIAL_GUID_PARENTS = Collections.unmodifiableMap(m);
+  }
+
+  
+
+
+  
+  public static Map<String, String> SPECIAL_GUIDS_MAP;
 
   
 
@@ -81,7 +181,17 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
 
   public AndroidBrowserBookmarksRepositorySession(Repository repository, Context context) {
     super(repository);
-    RepoUtils.initialize(context);
+
+    if (SPECIAL_GUIDS_MAP == null) {
+      HashMap<String, String> m = new HashMap<String, String>();
+      m.put("menu",    context.getString(R.string.bookmarks_folder_menu));
+      m.put("places",  context.getString(R.string.bookmarks_folder_places));
+      m.put("toolbar", context.getString(R.string.bookmarks_folder_toolbar));
+      m.put("unfiled", context.getString(R.string.bookmarks_folder_unfiled));
+      m.put("mobile",  context.getString(R.string.bookmarks_folder_mobile));
+      SPECIAL_GUIDS_MAP = Collections.unmodifiableMap(m);
+    }
+
     dbHelper = new AndroidBrowserBookmarksDataAccessor(context);
     dataAccessor = (AndroidBrowserBookmarksDataAccessor) dbHelper;
   }
@@ -96,6 +206,15 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     return guid;
   }
 
+  private long getIDForGUID(String guid) {
+    Long id = guidToID.get(guid);
+    if (id == null) {
+      Logger.warn(LOG_TAG, "Couldn't find local ID for GUID " + guid);
+      return -1;
+    }
+    return id.longValue();
+  }
+
   private String getGUID(Cursor cur) {
     return RepoUtils.getStringFromCursor(cur, "guid");
   }
@@ -104,12 +223,20 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     return RepoUtils.getLongFromCursor(cur, BrowserContract.Bookmarks.PARENT);
   }
 
+  
+  private long getPosition(Cursor cur, int positionIndex) {
+    return cur.getLong(positionIndex);
+  }
+  private long getPosition(Cursor cur) {
+    return RepoUtils.getLongFromCursor(cur, BrowserContract.Bookmarks.POSITION);
+  }
+
   private String getParentName(String parentGUID) throws ParentNotFoundException, NullCursorException {
     if (parentGUID == null) {
       return "";
     }
-    if (RepoUtils.SPECIAL_GUIDS_MAP.containsKey(parentGUID)) {
-      return RepoUtils.SPECIAL_GUIDS_MAP.get(parentGUID);
+    if (SPECIAL_GUIDS_MAP.containsKey(parentGUID)) {
+      return SPECIAL_GUIDS_MAP.get(parentGUID);
     }
 
     
@@ -130,74 +257,116 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     return parentName;
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
   @SuppressWarnings("unchecked")
-  private JSONArray getChildren(long androidID) throws NullCursorException {
-    trace("Calling getChildren for androidID " + androidID);
+  private JSONArray getChildrenArray(long folderID, boolean persist) throws NullCursorException {
+    trace("Calling getChildren for androidID " + folderID);
     JSONArray childArray = new JSONArray();
-    Cursor children = dataAccessor.getChildren(androidID);
+    Cursor children = dataAccessor.getChildren(folderID);
     try {
       if (!children.moveToFirst()) {
         trace("No children: empty cursor.");
         return childArray;
       }
-
-      int count = children.getCount();
-      String[] kids = new String[count];
-      trace("Expecting " + count + " children.");
-
-      
-      
-      HashMap<String, Long> broken = new HashMap<String, Long>();
+      final int positionIndex = children.getColumnIndex(BrowserContract.Bookmarks.POSITION);
+      final int count = children.getCount();
+      Logger.debug(LOG_TAG, "Expecting " + count + " children.");
 
       
+      TreeMap<Long, ArrayList<String>> guids = new TreeMap<Long, ArrayList<String>>();
+
       while (!children.isAfterLast()) {
-        String childGuid = getGUID(children);
+        final String childGuid   = getGUID(children);
+        final long childPosition = getPosition(children, positionIndex);
         trace("  Child GUID: " + childGuid);
-        int childPosition = (int) RepoUtils.getLongFromCursor(children, BrowserContract.Bookmarks.POSITION);
         trace("  Child position: " + childPosition);
-        if (childPosition >= count) {
-          Logger.warn(LOG_TAG, "Child position " + childPosition + " greater than expected children " + count);
-          broken.put(childGuid, 0L);
-        } else {
-          String existing = kids[childPosition];
-          if (existing != null) {
-            Logger.warn(LOG_TAG, "Child position " + childPosition + " already occupied! (" +
-                                 childGuid + ", " + existing + ")");
-            broken.put(childGuid, 0L);
-          } else {
-            kids[childPosition] = childGuid;
-          }
-        }
+        Utils.addToIndexBucketMap(guids, Math.abs(childPosition), childGuid);
         children.moveToNext();
       }
 
-      try {
-        Utils.fillArraySpaces(kids, broken);
-      } catch (Exception e) {
-        Logger.error(LOG_TAG, "Unable to reposition children to yield a valid sequence. Data loss may result.", e);
-      }
       
+      
+      
+      
+      
+      boolean changed = false;
+      int i = 0;
+      for (Entry<Long, ArrayList<String>> entry : guids.entrySet()) {
+        long pos = entry.getKey().longValue();
+        int atPos = entry.getValue().size();
 
-      
-      for (int i = 0; i < count; ++i) {
-        String kid = kids[i];
-        if (forbiddenGUID(kid)) {
-          continue;
+        
+        
+        if (atPos > 1 || pos != i) {
+          changed = true;
         }
-        childArray.add(kid);
+        for (String guid : entry.getValue()) {
+          if (!forbiddenGUID(guid)) {
+            childArray.add(guid);
+          }
+        }
       }
+
       if (Logger.logVerbose(LOG_TAG)) {
         
         Logger.trace(LOG_TAG, "Output child array: " + childArray.toJSONString());
       }
+
+      if (!changed) {
+        Logger.debug(LOG_TAG, "Nothing moved! Database reflects child array.");
+        return childArray;
+      }
+
+      if (!persist) {
+        return childArray;
+      }
+
+      Logger.debug(LOG_TAG, "Generating child array required moving records. Updating DB.");
+      final long time = now();
+      if (0 < dataAccessor.updatePositions(childArray)) {
+        Logger.debug(LOG_TAG, "Bumping parent time to " + time + ".");
+        dataAccessor.bumpModified(folderID, time);
+      }
     } finally {
       children.close();
     }
+
     return childArray;
   }
 
+  protected static boolean isDeleted(Cursor cur) {
+    return RepoUtils.getLongFromCursor(cur, BrowserContract.SyncColumns.IS_DELETED) != 0;
+  }
+
   @Override
-  protected Record recordFromMirrorCursor(Cursor cur) throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
+  protected Record retrieveDuringStore(Cursor cur) throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
+    
+    
+    
+    return retrieveRecord(cur, false);
+  }
+
+  @Override
+  protected Record retrieveDuringFetch(Cursor cur) throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
+    return retrieveRecord(cur, true);
+  }
+
+  
+
+
+
+  protected BookmarkRecord retrieveRecord(Cursor cur, boolean computeAndPersistChildren) throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
     String recordGUID = getGUID(cur);
     Logger.trace(LOG_TAG, "Record from mirror cursor: " + recordGUID);
 
@@ -206,8 +375,20 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
       return null;
     }
 
-    long androidParentID     = getParentID(cur);
-    String androidParentGUID = getGUIDForID(androidParentID);
+    
+    if (isDeleted(cur)) {
+      return AndroidBrowserBookmarksRepositorySession.bookmarkFromMirrorCursor(cur, null, null, null);
+    }
+
+    long androidParentID = getParentID(cur);
+
+    
+    String androidParentGUID = SPECIAL_GUID_PARENTS.get(recordGUID);
+    if (androidParentGUID == null) {
+      androidParentGUID = getGUIDForID(androidParentID);
+    }
+
+    boolean needsReparenting = false;
 
     if (androidParentGUID == null) {
       Logger.debug(LOG_TAG, "No parent GUID for record " + recordGUID + " with parent " + androidParentID);
@@ -216,25 +397,64 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
         Logger.error(LOG_TAG, "Have the parent android ID for the record but the parent's GUID wasn't found.");
         throw new NoGuidForIdException(null);
       }
+
+      
+      
+      
+      needsReparenting = true;
     }
 
     
-    JSONArray childArray = getChildArrayForCursor(cur, recordGUID);
+    final JSONArray childArray;
+    if (computeAndPersistChildren) {
+      childArray = getChildrenArrayForRecordCursor(cur, recordGUID, true);
+    } else {
+      childArray = null;
+    }
     String parentName = getParentName(androidParentGUID);
-    return RepoUtils.bookmarkFromMirrorCursor(cur, androidParentGUID, parentName, childArray);
+    BookmarkRecord bookmark = AndroidBrowserBookmarksRepositorySession.bookmarkFromMirrorCursor(cur, androidParentGUID, parentName, childArray);
+
+    if (needsReparenting) {
+      Logger.warn(LOG_TAG, "Bookmark record " + recordGUID + " has a bad parent pointer. Reparenting now.");
+
+      String destination = bookmark.deleted ? "unfiled" : "mobile";
+      bookmark.androidParentID = getIDForGUID(destination);
+      bookmark.androidPosition = getPosition(cur);
+      bookmark.parentID        = destination;
+      bookmark.parentName      = getParentName(destination);
+      if (!bookmark.deleted) {
+        
+        
+        relocateBookmark(bookmark);
+      }
+    }
+
+    return bookmark;
   }
 
-  protected JSONArray getChildArrayForCursor(Cursor cur, String recordGUID) throws NullCursorException {
-    JSONArray childArray = null;
+  
+
+
+
+
+
+  private void relocateBookmark(BookmarkRecord bookmark) {
+    dataAccessor.updateParentAndPosition(bookmark.guid, bookmark.androidParentID, bookmark.androidPosition);
+  }
+
+  protected JSONArray getChildrenArrayForRecordCursor(Cursor cur, String recordGUID, boolean persist) throws NullCursorException {
     boolean isFolder = rowIsFolder(cur);
-    Logger.debug(LOG_TAG, "Record " + recordGUID + " is a " + (isFolder ? "folder." : "bookmark."));
-    if (isFolder) {
-      long androidID = guidToID.get(recordGUID);
-      childArray = getChildren(androidID);
+    if (!isFolder) {
+      return null;
     }
-    if (childArray != null) {
-      Logger.debug(LOG_TAG, "Fetched " + childArray.size() + " children for " + recordGUID);
+
+    long androidID = guidToID.get(recordGUID);
+    JSONArray childArray = getChildrenArray(androidID, persist);
+    if (childArray == null) {
+      return null;
     }
+
+    Logger.debug(LOG_TAG, "Fetched " + childArray.size() + " children for " + recordGUID);
     return childArray;
   }
 
@@ -275,7 +495,11 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     
 
     Logger.debug(LOG_TAG, "Preparing folder ID mappings.");
-    idToGuid.put(0L, "places");       
+
+    
+    Logger.debug(LOG_TAG, "Tracking places root as ID 0.");
+    idToGuid.put(0L, "places");
+    guidToID.put("places", 0L);
     try {
       cur.moveToFirst();
       while (!cur.isAfterLast()) {
@@ -308,33 +532,27 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
   };
 
   @Override
-  @SuppressWarnings("unchecked")
+  protected Record reconcileRecords(Record remoteRecord, Record localRecord,
+                                    long lastRemoteRetrieval,
+                                    long lastLocalRetrieval) {
+
+    BookmarkRecord reconciled = (BookmarkRecord) super.reconcileRecords(remoteRecord, localRecord,
+                                                                        lastRemoteRetrieval,
+                                                                        lastLocalRetrieval);
+
+    
+    
+    reconciled.children = ((BookmarkRecord) remoteRecord).children;
+    return reconciled;
+  }
+
+  @Override
   protected Record prepareRecord(Record record) {
     BookmarkRecord bmk = (BookmarkRecord) record;
-    
-    
-    if (guidToID.containsKey(bmk.parentID)) {
-      bmk.androidParentID = guidToID.get(bmk.parentID);
-      JSONArray children = parentToChildArray.get(bmk.parentID);
-      if (children != null) {
-        if (!children.contains(bmk.guid)) {
-          children.add(bmk.guid);
-          parentToChildArray.put(bmk.parentID, children);
-        }
-        bmk.androidPosition = children.indexOf(bmk.guid);
-      }
-    }
-    else {
-      bmk.androidParentID = guidToID.get("unfiled");
-      ArrayList<String> children;
-      if (missingParentToChildren.containsKey(bmk.parentID)) {
-        children = missingParentToChildren.get(bmk.parentID);
-      } else {
-        children = new ArrayList<String>();
-      }
-      children.add(bmk.guid);
-      needsReparenting++;
-      missingParentToChildren.put(bmk.parentID, children);
+
+    if (!isSpecialRecord(record)) {
+      
+      handleParenting(bmk);
     }
 
     if (Logger.LOG_PERSONAL_INFORMATION) {
@@ -363,8 +581,44 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     return bmk;
   }
 
+  
+
+
+
+
+
+  private void handleParenting(BookmarkRecord bmk) {
+    if (guidToID.containsKey(bmk.parentID)) {
+      bmk.androidParentID = guidToID.get(bmk.parentID);
+
+      
+      JSONArray children = parentToChildArray.get(bmk.parentID);
+      if (children != null) {
+        int index = children.indexOf(bmk.guid);
+        if (index >= 0) {
+          bmk.androidPosition = index;
+        }
+      }
+    }
+    else {
+      bmk.androidParentID = guidToID.get("unfiled");
+      ArrayList<String> children;
+      if (missingParentToChildren.containsKey(bmk.parentID)) {
+        children = missingParentToChildren.get(bmk.parentID);
+      } else {
+        children = new ArrayList<String>();
+      }
+      children.add(bmk.guid);
+      needsReparenting++;
+      missingParentToChildren.put(bmk.parentID, children);
+    }
+  }
+
+  private boolean isSpecialRecord(Record record) {
+    return SPECIAL_GUID_PARENTS.containsKey(record.guid);
+  }
+
   @Override
-  @SuppressWarnings("unchecked")
   protected void updateBookkeeping(Record record) throws NoGuidForIdException,
                                                          NullCursorException,
                                                          ParentNotFoundException {
@@ -372,32 +626,219 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     BookmarkRecord bmk = (BookmarkRecord) record;
 
     
-    if (bmk.type.equalsIgnoreCase(AndroidBrowserBookmarksDataAccessor.TYPE_FOLDER)) {
-      guidToID.put(bmk.guid, bmk.androidID);
-      idToGuid.put(bmk.androidID, bmk.guid);
-
-      JSONArray childArray = bmk.children;
-
-      
-      if (missingParentToChildren.containsKey(bmk.guid)) {
-        for (String child : missingParentToChildren.get(bmk.guid)) {
-          long position;
-          if (!bmk.children.contains(child)) {
-            childArray.add(child);
-          }
-          position = childArray.indexOf(child);
-          dataAccessor.updateParentAndPosition(child, bmk.androidID, position);
-          needsReparenting--;
-        }
-        missingParentToChildren.remove(bmk.guid);
-      }
-      parentToChildArray.put(bmk.guid, childArray);
+    if (!bmk.isFolder()) {
+      Logger.debug(LOG_TAG, "Not a folder. No bookkeeping.");
+      return;
     }
+
+    Logger.debug(LOG_TAG, "Updating bookkeeping for folder " + record.guid);
+
+    
+    
+    
+    guidToID.put(bmk.guid,      bmk.androidID);
+    idToGuid.put(bmk.androidID, bmk.guid);
+
+    JSONArray childArray = bmk.children;
+
+    if (Logger.logVerbose(LOG_TAG)) {
+      Logger.trace(LOG_TAG, bmk.guid + " has children " + childArray.toJSONString());
+    }
+    parentToChildArray.put(bmk.guid, childArray);
+
+    
+    if (missingParentToChildren.containsKey(bmk.guid)) {
+      for (String child : missingParentToChildren.get(bmk.guid)) {
+        
+        
+        long position = childArray.indexOf(child);
+        dataAccessor.updateParentAndPosition(child, bmk.androidID, position);
+        needsReparenting--;
+      }
+      missingParentToChildren.remove(bmk.guid);
+    }
+  }
+
+  @Override
+  protected void storeRecordDeletion(final Record record) {
+    if (SPECIAL_GUIDS_MAP.containsKey(record.guid)) {
+      Logger.debug(LOG_TAG, "Told to delete record " + record.guid + ". Ignoring.");
+      return;
+    }
+    final BookmarkRecord bookmarkRecord = (BookmarkRecord) record;
+    if (bookmarkRecord.isFolder()) {
+      Logger.debug(LOG_TAG, "Deleting folder. Ensuring consistency of children.");
+      handleFolderDeletion(bookmarkRecord);
+      return;
+    }
+    super.storeRecordDeletion(record);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  protected void handleFolderDeletion(final BookmarkRecord folder) {
+    
+    
+    super.storeRecordDeletion(folder);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void finishUp() {
+    try {
+      Logger.debug(LOG_TAG, "Have " + parentToChildArray.size() + " folders whose children might need repositioning.");
+      for (Entry<String, JSONArray> entry : parentToChildArray.entrySet()) {
+        String guid = entry.getKey();
+        JSONArray onServer = entry.getValue();
+        try {
+          final long folderID = getIDForGUID(guid);
+          JSONArray inDB = getChildrenArray(folderID, false);
+          int added = 0;
+          for (Object o : inDB) {
+            if (!onServer.contains(o)) {
+              onServer.add(o);
+              added++;
+            }
+          }
+          Logger.debug(LOG_TAG, "Added " + added + " items locally.");
+          dataAccessor.updatePositions(new ArrayList<String>(onServer));
+          dataAccessor.bumpModified(folderID, now());
+          
+          Logger.debug(LOG_TAG, "Untracking " + guid);
+          final Record record = retrieveByGUIDDuringStore(guid);
+          if (record == null) {
+            return;
+          }
+          untrackRecord(record);
+        } catch (Exception e) {
+          Logger.warn(LOG_TAG, "Error repositioning children for " + guid, e);
+        }
+      }
+    } finally {
+      super.storeDone();
+    }
+  }
+
+  @Override
+  public void storeDone() {
+    Runnable command = new Runnable() {
+      @Override
+      public void run() {
+        finishUp();
+      }
+    };
+    storeWorkQueue.execute(command);
   }
 
   @Override
   protected String buildRecordString(Record record) {
     BookmarkRecord bmk = (BookmarkRecord) record;
     return bmk.title + bmk.bookmarkURI + bmk.type + bmk.parentName;
+  }
+
+  public static BookmarkRecord computeParentFields(BookmarkRecord rec, String suggestedParentGUID, String suggestedParentName) {
+    final String guid = rec.guid;
+    if (guid == null) {
+      
+      Logger.error(LOG_TAG, "No guid in computeParentFields!");
+      return null;
+    }
+
+    String realParent = SPECIAL_GUID_PARENTS.get(guid);
+    if (realParent == null) {
+      
+      realParent = suggestedParentGUID;
+    } else {
+      Logger.debug(LOG_TAG, "Ignoring suggested parent ID " + suggestedParentGUID +
+                            " for " + guid + "; using " + realParent);
+    }
+
+    if (realParent == null) {
+      
+      Logger.error(LOG_TAG, "No parent for record " + guid);
+      return null;
+    }
+
+    
+    String parentName = SPECIAL_GUIDS_MAP.get(realParent);
+    if (parentName == null) {
+      parentName = suggestedParentName;
+    }
+
+    rec.parentID = realParent;
+    rec.parentName = parentName;
+    return rec;
+  }
+
+  private static BookmarkRecord logBookmark(BookmarkRecord rec) {
+    try {
+      Logger.debug(LOG_TAG, "Returning " + (rec.deleted ? "deleted " : "") +
+                            "bookmark record " + rec.guid + " (" + rec.androidID +
+                           ", parent " + rec.parentID + ")");
+      if (!rec.deleted && Logger.LOG_PERSONAL_INFORMATION) {
+        Logger.pii(LOG_TAG, "> Parent name:      " + rec.parentName);
+        Logger.pii(LOG_TAG, "> Title:            " + rec.title);
+        Logger.pii(LOG_TAG, "> Type:             " + rec.type);
+        Logger.pii(LOG_TAG, "> URI:              " + rec.bookmarkURI);
+        Logger.pii(LOG_TAG, "> Android position: " + rec.androidPosition);
+        Logger.pii(LOG_TAG, "> Position:         " + rec.pos);
+        if (rec.isFolder()) {
+          Logger.pii(LOG_TAG, "FOLDER: Children are " +
+                             (rec.children == null ?
+                                 "null" :
+                                 rec.children.toJSONString()));
+        }
+      }
+    } catch (Exception e) {
+      Logger.debug(LOG_TAG, "Exception logging bookmark record " + rec, e);
+    }
+    return rec;
+  }
+
+  
+  public static BookmarkRecord bookmarkFromMirrorCursor(Cursor cur, String parentGUID, String parentName, JSONArray children) {
+    final String collection = "bookmarks";
+    final String guid       = RepoUtils.getStringFromCursor(cur, BrowserContract.SyncColumns.GUID);
+    final long lastModified = RepoUtils.getLongFromCursor(cur,   BrowserContract.SyncColumns.DATE_MODIFIED);
+    final boolean deleted   = isDeleted(cur);
+    BookmarkRecord rec = new BookmarkRecord(guid, collection, lastModified, deleted);
+
+    
+    if (deleted) {
+      return logBookmark(rec);
+    }
+
+    boolean isFolder  = RepoUtils.getIntFromCursor(cur, BrowserContract.Bookmarks.IS_FOLDER) == 1;
+
+    rec.title = RepoUtils.getStringFromCursor(cur, BrowserContract.Bookmarks.TITLE);
+    rec.bookmarkURI = RepoUtils.getStringFromCursor(cur, BrowserContract.Bookmarks.URL);
+    rec.description = RepoUtils.getStringFromCursor(cur, BrowserContract.Bookmarks.DESCRIPTION);
+    rec.tags = RepoUtils.getJSONArrayFromCursor(cur, BrowserContract.Bookmarks.TAGS);
+    rec.keyword = RepoUtils.getStringFromCursor(cur, BrowserContract.Bookmarks.KEYWORD);
+    rec.type = isFolder ? AndroidBrowserBookmarksDataAccessor.TYPE_FOLDER :
+                          AndroidBrowserBookmarksDataAccessor.TYPE_BOOKMARK;
+
+    rec.androidID = RepoUtils.getLongFromCursor(cur, BrowserContract.Bookmarks._ID);
+    rec.androidPosition = RepoUtils.getLongFromCursor(cur, BrowserContract.Bookmarks.POSITION);
+    rec.children = children;
+
+    
+    
+    
+    BookmarkRecord withParentFields = computeParentFields(rec, parentGUID, parentName);
+    if (withParentFields == null) {
+      
+      return null;
+    }
+    return logBookmark(withParentFields);
   }
 }

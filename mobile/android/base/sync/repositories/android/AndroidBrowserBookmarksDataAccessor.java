@@ -38,10 +38,13 @@
 
 package org.mozilla.gecko.sync.repositories.android;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.json.simple.JSONArray;
+import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.repositories.NullCursorException;
+import org.mozilla.gecko.sync.repositories.android.BrowserContract.Bookmarks;
 import org.mozilla.gecko.sync.repositories.domain.BookmarkRecord;
 import org.mozilla.gecko.sync.repositories.domain.Record;
 
@@ -49,7 +52,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.util.Log;
 
 public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositoryDataAccessor {
 
@@ -78,16 +80,53 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
     return BrowserContract.Bookmarks.CONTENT_URI;
   }
 
+  protected Uri getPositionsUri() {
+    return BrowserContract.Bookmarks.POSITIONS_CONTENT_URI;
+  }
+
   protected Cursor getGuidsIDsForFolders() throws NullCursorException {
     
     String where = BOOKMARK_IS_FOLDER + " AND " + GUID_NOT_TAGS_OR_PLACES;
     return queryHelper.safeQuery(".getGuidsIDsForFolders", null, where, null, null);
   }
 
+  
+
+
+
+
+
+
+
+  public int updatePositions(ArrayList<String> childArray) {
+    Logger.debug(LOG_TAG, "Updating positions for " + childArray.size() + " items.");
+    String[] args = childArray.toArray(new String[childArray.size()]);
+    return context.getContentResolver().update(getPositionsUri(), new ContentValues(), null, args);
+  }
+
+  
+
+
+
+
+
+
+  public int bumpModified(long id, long modified) {
+    Logger.debug(LOG_TAG, "Bumping modified for " + id + " to " + modified);
+    String where = Bookmarks._ID + " = ?";
+    String[] selectionArgs = new String[] { String.valueOf(id) };
+    ContentValues values = new ContentValues();
+    values.put(Bookmarks.DATE_MODIFIED, modified);
+
+    return context.getContentResolver().update(getUri(), values, where, selectionArgs);
+  }
+
   protected void updateParentAndPosition(String guid, long newParentId, long position) {
     ContentValues cv = new ContentValues();
     cv.put(BrowserContract.Bookmarks.PARENT, newParentId);
-    cv.put(BrowserContract.Bookmarks.POSITION, position);
+    if (position >= 0) {
+      cv.put(BrowserContract.Bookmarks.POSITION, position);
+    }
     updateByGuid(guid, cv);
   } 
   
@@ -96,12 +135,13 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
 
 
   public void checkAndBuildSpecialGuids() throws NullCursorException {
-    Cursor cur = fetch(RepoUtils.SPECIAL_GUIDS);
+    final String[] specialGUIDs = AndroidBrowserBookmarksRepositorySession.SPECIAL_GUIDS;
+    Cursor cur = fetch(specialGUIDs);
     long mobileRoot  = 0;
     long desktopRoot = 0;
 
     
-    HashMap<String, Boolean> statuses = new HashMap<String, Boolean>(RepoUtils.SPECIAL_GUIDS.length);
+    HashMap<String, Boolean> statuses = new HashMap<String, Boolean>(specialGUIDs.length);
     try {
       if (cur.moveToFirst()) {
         while (!cur.isAfterLast()) {
@@ -123,11 +163,11 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
     }
 
     
-    for (String guid : RepoUtils.SPECIAL_GUIDS) {
+    for (String guid : specialGUIDs) {
       if (statuses.containsKey(guid)) {
         if (statuses.get(guid)) {
           
-          Log.i(LOG_TAG, "Undeleting special GUID " + guid);
+          Logger.info(LOG_TAG, "Undeleting special GUID " + guid);
           ContentValues cv = new ContentValues();
           cv.put(BrowserContract.SyncColumns.IS_DELETED, 0);
           updateByGuid(guid, cv);
@@ -135,12 +175,15 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
       } else {
         
         if (guid.equals("mobile")) {
-          Log.i(LOG_TAG, "No mobile folder. Inserting one.");
+          Logger.info(LOG_TAG, "No mobile folder. Inserting one.");
           mobileRoot = insertSpecialFolder("mobile", 0);
         } else if (guid.equals("places")) {
+          
+          Logger.info(LOG_TAG, "No places root. Inserting one under mobile (" + mobileRoot + ").");
           desktopRoot = insertSpecialFolder("places", mobileRoot);
         } else {
           
+          Logger.info(LOG_TAG, "No " + guid + " root. Inserting one under places (" + desktopRoot + ").");
           insertSpecialFolder(guid, desktopRoot);
         }
       }
@@ -149,7 +192,7 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
 
   private long insertSpecialFolder(String guid, long parentId) {
     BookmarkRecord record = new BookmarkRecord(guid);
-    record.title = RepoUtils.SPECIAL_GUIDS_MAP.get(guid);
+    record.title = AndroidBrowserBookmarksRepositorySession.SPECIAL_GUIDS_MAP.get(guid);
     record.type = "folder";
     record.androidParentID = parentId;
     return(RepoUtils.getAndroidIdFromUri(insert(record)));
@@ -181,11 +224,30 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
   }
   
   
+
+
   public Cursor getChildren(long androidID) throws NullCursorException {
-    String where = BrowserContract.Bookmarks.PARENT + " = ?";
-    String[] args = new String[] { String.valueOf(androidID) };
-    return queryHelper.safeQuery(".getChildren", getAllColumns(), where, args, null);
+    return getChildren(androidID, false);
   }
+
+  
+
+
+
+  public Cursor getChildren(long androidID, boolean includeDeleted) throws NullCursorException {
+    final String where = BrowserContract.Bookmarks.PARENT + " = ? AND " +
+                         BrowserContract.SyncColumns.GUID + " <> ? " +
+                         (!includeDeleted ? ("AND " + BrowserContract.SyncColumns.IS_DELETED + " = 0") : "");
+
+    final String[] args = new String[] { String.valueOf(androidID), "places" };
+
+    
+    final String order = BrowserContract.Bookmarks.POSITION + ", " +
+                         BrowserContract.SyncColumns.DATE_CREATED + ", " +
+                         BrowserContract.Bookmarks._ID;
+    return queryHelper.safeQuery(".getChildren", getAllColumns(), where, args, order);
+  }
+
   
   @Override
   protected String[] getAllColumns() {
