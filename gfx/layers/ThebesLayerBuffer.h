@@ -143,11 +143,16 @@ public:
                         float aXResolution, float aYResolution,
                         PRUint32 aFlags);
 
+  enum {
+    ALLOW_REPEAT = 0x01
+  };
   
 
 
+
+
   virtual already_AddRefed<gfxASurface>
-  CreateBuffer(ContentType aType, const nsIntSize& aSize) = 0;
+  CreateBuffer(ContentType aType, const nsIntSize& aSize, PRUint32 aFlags) = 0;
 
   
 
