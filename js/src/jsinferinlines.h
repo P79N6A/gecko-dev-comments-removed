@@ -1,43 +1,43 @@
-/* -*- Mode: c++; c-basic-offset: 4; tab-width: 40; indent-tabs-mode: nil -*- */
-/* vim: set ts=40 sw=4 et tw=99: */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Mozilla SpiderMonkey bytecode type inference
- *
- * The Initial Developer of the Original Code is
- *   Mozilla Foundation
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Brian Hackett <bhackett@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/* Inline members for javascript type inference. */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "jsanalyze.h"
 #include "jscompartment.h"
@@ -47,9 +47,9 @@
 #ifndef jsinferinlines_h___
 #define jsinferinlines_h___
 
-/////////////////////////////////////////////////////////////////////
-// Types
-/////////////////////////////////////////////////////////////////////
+
+
+
 
 namespace js {
 namespace types {
@@ -82,25 +82,25 @@ GetValueType(JSContext *cx, const Value &val)
     }
 }
 
-/*
- * Get the canonical representation of an id to use when doing inference.  This
- * maintains the constraint that if two different jsids map to the same property
- * in JS (e.g. 3 and "3"), they have the same type representation.
- */
+
+
+
+
+
 inline jsid
 MakeTypeId(JSContext *cx, jsid id)
 {
-    /*
-     * All integers must map to the aggregate property for index types, including
-     * negative integers.
-     */
+    
+
+
+
     if (JSID_IS_INT(id))
         return JSID_VOID;
 
-    /*
-     * Check for numeric strings, as in js_StringIsIndex, but allow negative
-     * and overflowing integers.
-     */
+    
+
+
+
     if (JSID_IS_STRING(id)) {
         JSFlatString *str = JSID_TO_FLAT_STRING(id);
         const jschar *cp = str->getCharsZ(cx);
@@ -119,7 +119,7 @@ MakeTypeId(JSContext *cx, jsid id)
 
 const char * TypeIdStringImpl(jsid id);
 
-/* Convert an id for printing during debug. */
+
 static inline const char *
 TypeIdString(jsid id)
 {
@@ -130,16 +130,16 @@ TypeIdString(jsid id)
 #endif
 }
 
-/*
- * Structure for type inference entry point functions. All functions which can
- * change type information must use this, and functions which depend on
- * intermediate types (i.e. JITs) can use this to ensure that intermediate
- * information is not collected and does not change.
- *
- * Pins inference results so that intermediate type information, TypeObjects
- * and JSScripts won't be collected during GC. Does additional sanity checking
- * that inference is not reentrant and that recompilations occur properly.
- */
+
+
+
+
+
+
+
+
+
+
 struct AutoEnterTypeInference
 {
     JSContext *cx;
@@ -160,7 +160,7 @@ struct AutoEnterTypeInference
 
     ~AutoEnterTypeInference()
     {
-        /* This should have been reset by checkPendingRecompiles. */
+        
         JS_ASSERT(cx->compartment->types.inferenceDepth == depth);
     }
 };
@@ -170,11 +170,11 @@ TypeCompartment::checkPendingRecompiles(JSContext *cx)
 {
     JS_ASSERT(inferenceDepth);
     if (--inferenceDepth != 0) {
-        /*
-         * There is still a type inference activation on the stack, wait for it to
-         * finish before handling any recompilations. Note that we should not be
-         * invoking any scripted code while the inference is running :TODO: assert this.
-         */
+        
+
+
+
+
         return true;
     }
     if (inferenceStartTime)
@@ -190,11 +190,11 @@ TypeCompartment::checkPendingRecompiles(JSContext *cx)
 bool
 UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);
 
-} } /* namespace js::types */
+} } 
 
-/////////////////////////////////////////////////////////////////////
-// JSContext
-/////////////////////////////////////////////////////////////////////
+
+
+
 
 inline bool
 JSContext::typeInferenceEnabled()
@@ -228,14 +228,14 @@ JSContext::markTypeCallerUnexpected(js::types::jstype type)
     if (!typeInferenceEnabled())
         return true;
 
-    /*
-     * Check that we are actually at a scripted callsite. This function is
-     * called from JS natives which can be called anywhere a script can be
-     * called, such as on property getters or setters. This filtering is not
-     * perfect, but we only need to make sure the type result is added wherever
-     * the native's type handler was used, i.e. at scripted callsites directly
-     * calling the native.
-     */
+    
+
+
+
+
+
+
+
 
     JSStackFrame *caller = js_GetScriptedCaller(this, NULL);
     if (!caller)
@@ -297,7 +297,7 @@ JSContext::addTypePropertyId(js::types::TypeObject *obj, jsid id, js::types::jst
     if (!typeInferenceEnabled() || obj->unknownProperties)
         return true;
 
-    /* Convert string index properties into the common index property. */
+    
     id = js::types::MakeTypeId(this, id);
 
     js::types::AutoEnterTypeInference enter(this);
@@ -426,9 +426,9 @@ JSContext::fixObjectType(JSObject *obj)
     return !typeInferenceEnabled() || compartment->types.fixObjectType(this, obj);
 }
 
-/////////////////////////////////////////////////////////////////////
-// JSScript
-/////////////////////////////////////////////////////////////////////
+
+
+
 
 inline bool
 JSScript::ensureVarTypes(JSContext *cx)
@@ -510,7 +510,7 @@ JSScript::getTypeInitObject(JSContext *cx, const jsbytecode *pc, bool isArray)
     while (obj) {
         if (isArray ? obj->initializerArray : obj->initializerObject) {
             if (obj->initializerOffset == offset) {
-                /* Move this to the head of the objects list, maintain LRU order. */
+                
                 if (prev) {
                     prev->next = obj->next;
                     obj->next = typeObjects;
@@ -574,7 +574,7 @@ JSScript::typeSetThis(JSContext *cx, js::types::jstype type)
     if (!ensureVarTypes(cx))
         return false;
 
-    /* Analyze the script regardless if -a was used. */
+    
     bool analyze = !types && cx->hasRunOption(JSOPTION_METHODJIT_ALWAYS) && !isUncachedEval;
 
     if (!thisTypes()->hasType(type) || analyze) {
@@ -621,15 +621,15 @@ JSScript::typeSetNewCalled(JSContext *cx)
         return true;
     calledWithNew = true;
 
-    /*
-     * Determining the 'this' type used when the script is invoked with 'new'
-     * happens during the script's prologue, so we don't try to pick it up from
-     * dynamic calls. Instead, generate constraints modeling the construction
-     * of 'this' when the script is analyzed or reanalyzed after an invoke with 'new',
-     * and if 'new' is first invoked after the script has already been analyzed.
-     */
+    
+
+
+
+
+
+
     if (analyzed) {
-        /* Regenerate types for the function. */
+        
         js::types::AutoEnterTypeInference enter(cx);
         js::types::AnalyzeScriptNew(cx, this);
         if (!cx->compartment->types.checkPendingRecompiles(cx))
@@ -745,9 +745,9 @@ JSScript::typeSetUpvar(JSContext *cx, unsigned upvar, const js::Value &value)
 namespace js {
 namespace types {
 
-/////////////////////////////////////////////////////////////////////
-// TypeCompartment
-/////////////////////////////////////////////////////////////////////
+
+
+
 
 inline void
 TypeCompartment::addPending(JSContext *cx, TypeConstraint *constraint, TypeSet *source, jstype type)
@@ -773,13 +773,13 @@ TypeCompartment::resolvePending(JSContext *cx)
     JS_ASSERT(this == &cx->compartment->types);
 
     if (resolving) {
-        /* There is an active call further up resolving the worklist. */
+        
         return;
     }
 
     resolving = true;
 
-    /* Handle all pending type registrations. */
+    
     while (pendingCount) {
         const PendingWork &pending = pendingArray[--pendingCount];
         InferSpew(ISpewOps, "resolve: C%p %s",
@@ -790,21 +790,21 @@ TypeCompartment::resolvePending(JSContext *cx)
     resolving = false;
 }
 
-/////////////////////////////////////////////////////////////////////
-// TypeSet
-/////////////////////////////////////////////////////////////////////
 
-/*
- * The sets of objects and scripts in a type set grow monotonically, are usually
- * empty, almost always small, and sometimes big.  For empty or singleton sets,
- * the pointer refers directly to the value.  For sets fitting into SET_ARRAY_SIZE,
- * an array of this length is used to store the elements.  For larger sets, a hash
- * table filled to 25%-50% of capacity is used, with collisions resolved by linear
- * probing.  TODO: replace these with jshashtables.
- */
+
+
+
+
+
+
+
+
+
+
+
 const unsigned SET_ARRAY_SIZE = 8;
 
-/* Get the capacity of a set with the given element count. */
+
 static inline unsigned
 HashSetCapacity(unsigned count)
 {
@@ -818,7 +818,7 @@ HashSetCapacity(unsigned count)
     return 1 << (log2 + 2);
 }
 
-/* Compute the FNV hash for the low 32 bits of v. */
+
 template <class T, class KEY>
 static inline uint32
 HashKey(T v)
@@ -831,10 +831,10 @@ HashKey(T v)
     return (hash * 16777619) ^ ((nv >> 24) & 0xff);
 }
 
-/*
- * Insert space for an element into the specified set and grow its capacity if needed.
- * returned value is an existing or new entry (NULL if new).
- */
+
+
+
+
 template <class T, class U, class KEY>
 static U **
 HashSetInsertTry(JSContext *cx, U **&values, unsigned &count, T key, bool pool)
@@ -842,7 +842,7 @@ HashSetInsertTry(JSContext *cx, U **&values, unsigned &count, T key, bool pool)
     unsigned capacity = HashSetCapacity(count);
     unsigned insertpos = HashKey<T,KEY>(key) & (capacity - 1);
 
-    /* Whether we are converting from a fixed array to hashtable. */
+    
     bool converting = (count == SET_ARRAY_SIZE);
 
     if (!converting) {
@@ -889,10 +889,10 @@ HashSetInsertTry(JSContext *cx, U **&values, unsigned &count, T key, bool pool)
     return &values[insertpos];
 }
 
-/*
- * Insert an element into the specified set if it is not already there, returning
- * an entry which is NULL if the element was not there.
- */
+
+
+
+
 template <class T, class U, class KEY>
 static inline U **
 HashSetInsert(JSContext *cx, U **&values, unsigned &count, T key, bool pool)
@@ -938,7 +938,7 @@ HashSetInsert(JSContext *cx, U **&values, unsigned &count, T key, bool pool)
     return HashSetInsertTry<T,U,KEY>(cx, values, count, key, pool);
 }
 
-/* Lookup an entry in a hash set, return NULL if it does not exist. */
+
 template <class T, class U, class KEY>
 static inline U *
 HashSetLookup(U **values, unsigned count, T key)
@@ -1030,7 +1030,7 @@ TypeSet::addType(JSContext *cx, jstype type)
         if (typeFlags & flag)
             return;
 
-        /* If we add float to a type set it is also considered to contain int. */
+        
         if (flag == TYPE_FLAG_DOUBLE)
             flag |= TYPE_FLAG_INT32;
 
@@ -1054,7 +1054,7 @@ TypeSet::addType(JSContext *cx, jstype type)
 
     InferSpew(ISpewOps, "addType: T%p %s", this, TypeString(type));
 
-    /* Propagate the type to all constraints. */
+    
     TypeConstraint *constraint = constraintList;
     while (constraint) {
         cx->compartment->types.addPending(cx, constraint, this, type);
@@ -1081,9 +1081,9 @@ TypeSet::make(JSContext *cx, const char *name)
     return res;
 }
 
-/////////////////////////////////////////////////////////////////////
-// TypeCallsite
-/////////////////////////////////////////////////////////////////////
+
+
+
 
 inline
 TypeCallsite::TypeCallsite(JSContext *cx, JSScript *script, const jsbytecode *pc,
@@ -1091,7 +1091,7 @@ TypeCallsite::TypeCallsite(JSContext *cx, JSScript *script, const jsbytecode *pc
     : script(script), pc(pc), isNew(isNew), argumentCount(argumentCount),
       thisTypes(NULL), thisType(0), returnTypes(NULL)
 {
-    /* Caller must check for failure. */
+    
     argumentTypes = ArenaArray<TypeSet*>(cx->compartment->types.pool, argumentCount);
 }
 
@@ -1121,9 +1121,9 @@ TypeCallsite::compileAndGo()
     return script->compileAndGo;
 }
 
-/////////////////////////////////////////////////////////////////////
-// TypeObject
-/////////////////////////////////////////////////////////////////////
+
+
+
 
 inline TypeSet *
 TypeObject::getProperty(JSContext *cx, jsid id, bool assign)
@@ -1141,9 +1141,9 @@ TypeObject::getProperty(JSContext *cx, jsid id, bool assign)
     return assign ? &(*pprop)->ownTypes : &(*pprop)->types;
 }
 
-/////////////////////////////////////////////////////////////////////
-// TypeScript
-/////////////////////////////////////////////////////////////////////
+
+
+
 
 inline bool
 TypeScript::monitored(uint32 offset)
@@ -1207,8 +1207,10 @@ inline TypeObject::TypeObject(jsid name, JSObject *proto)
 
     if (proto) {
         TypeObject *prototype = proto->getType();
-        if (prototype->unknownProperties)
+        if (prototype->unknownProperties) {
+            hasSpecialEquality = true;
             unknownProperties = true;
+        }
         instanceNext = prototype->instanceList;
         prototype->instanceList = this;
     }
@@ -1245,6 +1247,6 @@ SweepClonedTypes(ClonedTypeSet *types)
     }
 }
 
-} } /* namespace js::types */
+} } 
 
-#endif // jsinferinlines_h___
+#endif 
