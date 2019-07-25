@@ -124,6 +124,10 @@ ElementStyle.prototype = {
 
   populate: function ElementStyle_populate()
   {
+    
+    
+    this._refreshRules = this.rules;
+
     this.rules = [];
 
     let element = this.element;
@@ -134,6 +138,9 @@ ElementStyle.prototype = {
 
     
     this.markOverridden();
+
+    
+    delete this._refreshRules;
   },
 
   _addElementRules: function ElementStyle_addElementRules(aElement)
@@ -190,7 +197,22 @@ ElementStyle.prototype = {
       return false;
     }
 
-    let rule = new Rule(this, aOptions);
+    let rule = null;
+
+    
+    
+    for (let r of (this._refreshRules || [])) {
+      if (r.matches(aOptions)) {
+        rule = r;
+        rule.refresh();
+        break;
+      }
+    }
+
+    
+    if (!rule) {
+      rule = new Rule(this, aOptions);
+    }
 
     
     if (aOptions.inherited && rule.textProps.length == 0) {
@@ -332,7 +354,10 @@ function Rule(aElementStyle, aOptions)
     }
   }
 
-  this._getTextProperties();
+  
+  
+  this.textProps = this._getTextProperties();
+  this.textProps = this.textProps.concat(this._getDisabledProperties());
 }
 
 Rule.prototype = {
@@ -389,6 +414,19 @@ Rule.prototype = {
 
 
 
+  matches: function Rule_matches(aOptions)
+  {
+    return (this.style === (aOptions.style || aOptions.domRule.style));
+  },
+
+  
+
+
+
+
+
+
+
 
 
   createProperty: function Rule_createProperty(aName, aValue, aPriority)
@@ -424,11 +462,15 @@ Rule.prototype = {
         continue;
       }
 
+      this.style.setProperty(prop.name, prop.value, prop.priority);
+
       if (aName && prop.name == aName) {
-        store.userProperties.setProperty(this.style, prop.name, prop.value);
+        store.userProperties.setProperty(
+          this.style, prop.name,
+          this.style.getPropertyValue(prop.name),
+          prop.value);
       }
 
-      this.style.setProperty(prop.name, prop.value, prop.priority);
       
       
       prop.priority = this.style.getPropertyPriority(prop.name);
@@ -512,12 +554,12 @@ Rule.prototype = {
 
   _getTextProperties: function Rule_getTextProperties()
   {
-    this.textProps = [];
+    let textProps = [];
     let store = this.elementStyle.store;
     let lines = this.style.cssText.match(CSS_LINE_RE);
     for each (let line in lines) {
       let matches = CSS_PROP_RE.exec(line);
-      if(!matches || !matches[2])
+      if (!matches || !matches[2])
         continue;
 
       let name = matches[1];
@@ -527,21 +569,153 @@ Rule.prototype = {
       }
       let value = store.userProperties.getProperty(this.style, name, matches[2]);
       let prop = new TextProperty(this, name, value, matches[3] || "");
-      this.textProps.push(prop);
+      textProps.push(prop);
     }
 
+    return textProps;
+  },
+
+  
+
+
+  _getDisabledProperties: function Rule_getDisabledProperties()
+  {
+    let store = this.elementStyle.store;
+
     
-    let disabledProps = this.elementStyle.store.disabled.get(this.style);
+    let disabledProps = store.disabled.get(this.style);
     if (!disabledProps) {
-      return;
+      return [];
     }
+
+    let textProps = [];
 
     for each (let prop in disabledProps) {
       let value = store.userProperties.getProperty(this.style, prop.name, prop.value);
       let textProp = new TextProperty(this, prop.name, value, prop.priority);
       textProp.enabled = false;
-      this.textProps.push(textProp);
+      textProps.push(textProp);
     }
+
+    return textProps;
+  },
+
+  
+
+
+
+  refresh: function Rule_refresh()
+  {
+    let newTextProps = this._getTextProperties();
+
+    
+    
+    
+    
+    
+    
+    let brandNewProps = [];
+    for (let newProp of newTextProps) {
+      if (!this._updateTextProperty(newProp)) {
+        brandNewProps.push(newProp);
+      }
+    }
+
+    
+    
+    for (let prop of this.textProps) {
+      
+      
+      if (!prop._visited) {
+        prop.enabled = false;
+        prop.updateEditor();
+      } else {
+        delete prop._visited;
+      }
+    }
+
+    
+    this.textProps = this.textProps.concat(brandNewProps);
+
+    
+    if (this.editor) {
+      this.editor.populate();
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _updateTextProperty: function Rule__updateTextProperty(aNewProp) {
+    let match = { rank: 0, prop: null };
+
+    for each (let prop in this.textProps) {
+      if (prop.name != aNewProp.name)
+        continue;
+
+      
+      prop._visited = true;
+
+      
+      let rank = 1;
+
+      
+      
+      
+      if (prop.value === aNewProp.value) {
+        rank += 2;
+        if (prop.priority === aNewProp.priority) {
+          rank += 2;
+        }
+      }
+
+      if (prop.enabled) {
+        rank += 1;
+      }
+
+      if (rank > match.rank) {
+        if (match.prop) {
+          
+          match.prop.enabled = false;
+          match.prop.updateEditor();
+        }
+        match.rank = rank;
+        match.prop = prop;
+      } else if (rank) {
+        
+        prop.enabled = false;
+        prop.updateEditor();
+      }
+    }
+
+    
+    
+    if (match.prop) {
+      match.prop.set(aNewProp);
+      return true;
+    }
+
+    return false;
   },
 };
 
@@ -606,6 +780,28 @@ TextProperty.prototype = {
         value: dummyStyle.getPropertyValue(prop),
         priority: dummyStyle.getPropertyPriority(prop),
       });
+    }
+  },
+
+  
+
+
+
+
+
+
+  set: function TextProperty_set(aOther)
+  {
+    let changed = false;
+    for (let item of ["name", "value", "priority", "enabled"]) {
+      if (this[item] != aOther[item]) {
+        this[item] = aOther[item];
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      this.updateEditor();
     }
   },
 
@@ -777,8 +973,10 @@ CssRuleView.prototype = {
 
   nodeChanged: function CssRuleView_nodeChanged()
   {
-    this._clearRules();
+    
     this._elementStyle.populate();
+
+    
     this._createEditors();
   },
 
@@ -839,11 +1037,25 @@ CssRuleView.prototype = {
 
   _createEditors: function CssRuleView_createEditors()
   {
+    
+    
+    let last = null;
     for each (let rule in this._elementStyle.rules) {
-      
-      
-      let editor = new RuleEditor(this, rule);
-      this.element.appendChild(editor.element);
+      if (!rule.editor) {
+        new RuleEditor(this, rule);
+      }
+
+      let target = last ? last.nextSibling : this.element.firstChild;
+      this.element.insertBefore(rule.editor.element, target);
+      last = rule.editor.element;
+    }
+
+    
+    
+    
+    
+    while (last && last.nextSibling) {
+      this.element.removeChild(last.nextSibling);
     }
   },
 
@@ -938,8 +1150,6 @@ CssRuleView.prototype = {
     this._declarationItem.disabled = disablePropertyItems;
     this._propertyItem.disabled = disablePropertyItems;
     this._propertyValueItem.disabled = disablePropertyItems;
-
-    dump("Done updating menu!\n");
   },
 
   _onMouseDown: function CssRuleView_onMouseDown()
@@ -1143,6 +1353,7 @@ function RuleEditor(aRuleView, aRule)
   this.ruleView = aRuleView;
   this.doc = this.ruleView.doc;
   this.rule = aRule;
+  this.rule.editor = this;
 
   this._onNewProperty = this._onNewProperty.bind(this);
 
@@ -1180,9 +1391,8 @@ RuleEditor.prototype = {
 
     let header = createChild(code, "div", {});
 
-    let selectors = createChild(header, "span", {
-      class: "ruleview-selector",
-      textContent: this.rule.selectorText
+    this.selectorText = createChild(header, "span", {
+      class: "ruleview-selector"
     });
 
     this.openBrace = createChild(header, "span", {
@@ -1198,10 +1408,7 @@ RuleEditor.prototype = {
       class: "ruleview-propertylist"
     });
 
-    for each (let prop in this.rule.textProps) {
-      let propEditor = new TextPropertyEditor(this, prop);
-      this.propertyList.appendChild(propEditor.element);
-    }
+    this.populate();
 
     this.closeBrace = createChild(code, "div", {
       class: "ruleview-ruleclose",
@@ -1222,6 +1429,38 @@ RuleEditor.prototype = {
     this.closeBrace.addEventListener("click", function(aEvent) {
       this.closeBrace.focus();
     }.bind(this), true);
+  },
+
+  
+
+
+  populate: function RuleEditor_populate()
+  {
+    this.selectorText.textContent = this.rule.selectorText;
+
+    for (let prop of this.rule.textProps) {
+      if (!prop.editor) {
+        new TextPropertyEditor(this, prop);
+        this.propertyList.appendChild(prop.editor.element);
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  addProperty: function RuleEditor_addProperty(aName, aValue, aPriority)
+  {
+    let prop = this.rule.createProperty(aName, aValue, aPriority);
+    let editor = new TextPropertyEditor(this, prop);
+    this.propertyList.appendChild(editor.element);
   },
 
   
@@ -1830,13 +2069,21 @@ UserProperties.prototype = {
 
 
 
-  getProperty: function UP_getProperty(aStyle, aName, aDefault) {
+
+
+  getProperty: function UP_getProperty(aStyle, aName, aComputedValue) {
     let entry = this.weakMap.get(aStyle, null);
 
     if (entry && aName in entry) {
-      return entry[aName];
+      let item = entry[aName];
+      if (item.computed != aComputedValue) {
+        delete entry[aName];
+        return aComputedValue;
+      }
+
+      return item.user;
     }
-    return typeof aDefault != "undefined" ? aDefault : null;
+    return aComputedValue;
 
   },
 
@@ -1850,13 +2097,16 @@ UserProperties.prototype = {
 
 
 
-  setProperty: function UP_setProperty(aStyle, aName, aValue) {
+
+
+
+  setProperty: function UP_setProperty(aStyle, aName, aComputedValue, aUserValue) {
     let entry = this.weakMap.get(aStyle, null);
     if (entry) {
-      entry[aName] = aValue;
+      entry[aName] = { computed: aComputedValue, user: aUserValue };
     } else {
       let props = {};
-      props[aName] = aValue;
+      props[aName] = { computed: aComputedValue, user: aUserValue };
       this.weakMap.set(aStyle, props);
     }
   },

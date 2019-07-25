@@ -1477,6 +1477,9 @@ InspectorStyleSidebar.prototype = {
     
     let onClick = function() {
       this.activatePanel(aRegObj.id);
+      
+      
+      this._inspector.change("activatepanel-" + aRegObj.id);
     }.bind(this);
     btn.addEventListener("click", onClick, true);
 
