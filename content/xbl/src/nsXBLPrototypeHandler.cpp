@@ -1074,7 +1074,7 @@ nsXBLPrototypeHandler::Write(nsIScriptContext* aContext, nsIObjectOutputStream* 
 {
   
   
-  if (mType & NS_HANDLER_TYPE_XUL)
+  if ((mType & NS_HANDLER_TYPE_XUL) || !mEventName)
     return NS_OK;
 
   XBLBindingSerializeDetails type = XBLBinding_Serialize_Handler;
