@@ -55,7 +55,7 @@ function run_test() {
   };
 
   var mM = Cc["@mozilla.org/parentprocessmessagemanager;1"].
-           getService(Ci.nsIFrameMessageManager);
+           getService(Ci.nsIMessageListenerManager);
   mM.addMessageListener("ContentPref:setPref", messageProxy);
   mM.addMessageListener("ContentPref:getPref", messageProxy);
   mM.addMessageListener("ContentPref:QUIT", messageProxy);

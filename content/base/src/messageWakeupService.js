@@ -21,7 +21,7 @@ MessageWakeupService.prototype =
   get messageManager() {
     if (!this._messageManager)
       this._messageManager = Cc["@mozilla.org/parentprocessmessagemanager;1"].
-                             getService(Ci.nsIFrameMessageManager);
+                             getService(Ci.nsIMessageListenerManager);
     return this._messageManager;
   },
 

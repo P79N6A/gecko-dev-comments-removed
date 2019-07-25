@@ -262,7 +262,7 @@ function OnRefTestLoad(win)
 #endif
 
     gBrowserMessageManager = gBrowser.QueryInterface(CI.nsIFrameLoaderOwner)
-                             .frameLoader.messageManager;
+                                     .frameLoader.messageManager;
     
     
     RegisterMessageListenersAndLoadContentScript();

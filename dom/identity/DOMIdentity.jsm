@@ -200,7 +200,7 @@ let DOMIdentity = {
                                                 : "removeMessageListener"];
 
     for (let message of this.messages) {
-      func(message, this);
+      func.call(aWindow.messageManager, message, this);
     }
   },
 
