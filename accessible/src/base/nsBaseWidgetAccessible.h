@@ -97,14 +97,14 @@ public:
   NS_IMETHOD GetKeyboardShortcut(nsAString& _retval);
 
   
-  NS_IMETHOD GetURI(PRInt32 i, nsIURI **aURI);
-
-  
   virtual PRBool Init();
   virtual void Shutdown();
 
   
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+
+  
+  virtual already_AddRefed<nsIURI> GetAnchorURI(PRUint32 aAnchorIndex);
 
 protected:
   

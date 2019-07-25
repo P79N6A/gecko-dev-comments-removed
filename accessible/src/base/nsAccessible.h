@@ -327,6 +327,49 @@ public:
 
   void TestChildCache(nsAccessible *aCachedChild);
 
+  
+  
+
+  
+
+
+  virtual bool IsHyperLink();
+
+  
+
+
+  virtual PRUint32 StartOffset();
+
+  
+
+
+  virtual PRUint32 EndOffset();
+
+  
+
+
+  virtual bool IsValid();
+
+  
+
+
+  virtual bool IsSelected();
+
+  
+
+
+  virtual PRUint32 AnchorCount();
+
+  
+
+
+  virtual nsAccessible* GetAnchor(PRUint32 aAnchorIndex);
+
+  
+
+
+  virtual already_AddRefed<nsIURI> GetAnchorURI(PRUint32 aAnchorIndex);
+
 protected:
 
   
@@ -382,9 +425,6 @@ protected:
 
 
   nsAccessible *GetFirstAvailableAccessible(nsINode *aStartNode) const;
-
-  
-  virtual nsresult GetLinkOffset(PRInt32* aStartOffset, PRInt32* aEndOffset);
 
   
   

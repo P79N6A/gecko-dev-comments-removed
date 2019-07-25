@@ -92,12 +92,15 @@ public:
   NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  NS_IMETHOD GetURI(PRInt32 aIndex, nsIURI **aURI);
-
-  
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+
+  
+  virtual bool IsHyperLink();
+  virtual PRUint32 StartOffset();
+  virtual PRUint32 EndOffset();
+  virtual already_AddRefed<nsIURI> GetAnchorURI(PRUint32 aAnchorIndex);
 
 protected:
   enum { eAction_Jump = 0 };

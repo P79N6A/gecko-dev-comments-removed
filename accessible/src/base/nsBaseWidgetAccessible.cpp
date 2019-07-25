@@ -207,27 +207,6 @@ nsLinkableAccessible::GetKeyboardShortcut(nsAString& aKeyboardShortcut)
 
 
 
-NS_IMETHODIMP
-nsLinkableAccessible::GetURI(PRInt32 aIndex, nsIURI **aURI)
-{
-  if (mIsLink) {
-    nsAccessible *actionAcc = GetActionAccessible();
-    if (actionAcc) {
-      nsCOMPtr<nsIAccessibleHyperLink> hyperLinkAcc = do_QueryObject(actionAcc);
-      NS_ASSERTION(hyperLinkAcc,
-                   "nsIAccessibleHyperLink isn't implemented.");
-
-      if (hyperLinkAcc)
-        return hyperLinkAcc->GetURI(aIndex, aURI);
-    }
-  }
-  
-  return NS_ERROR_INVALID_ARG;
-}
-
-
-
-
 PRBool
 nsLinkableAccessible::Init()
 {
@@ -240,6 +219,26 @@ nsLinkableAccessible::Shutdown()
 {
   mActionContent = nsnull;
   nsAccessibleWrap::Shutdown();
+}
+
+
+
+
+already_AddRefed<nsIURI>
+nsLinkableAccessible::GetAnchorURI(PRUint32 aAnchorIndex)
+{
+  if (mIsLink) {
+    nsAccessible* link = GetActionAccessible();
+    if (link) {
+      NS_ASSERTION(link->IsHyperLink(),
+                   "nsIAccessibleHyperLink isn't implemented.");
+
+      if (link->IsHyperLink())
+        return link->GetAnchorURI(aAnchorIndex);
+    }
+  }
+
+  return nsnull;
 }
 
 
