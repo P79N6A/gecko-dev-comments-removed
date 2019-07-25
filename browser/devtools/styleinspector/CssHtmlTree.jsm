@@ -130,7 +130,7 @@ CssHtmlTree.processTemplate = function CssHtmlTree_processTemplate(aTemplate,
 };
 
 XPCOMUtils.defineLazyGetter(CssHtmlTree, "_strings", function() Services.strings
-    .createBundle("chrome:
+        .createBundle("chrome:
 
 CssHtmlTree.prototype = {
   htmlComplete: false,

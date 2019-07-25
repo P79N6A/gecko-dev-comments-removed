@@ -314,7 +314,7 @@ StyleInspector.prototype = {
 };
 
 XPCOMUtils.defineLazyGetter(this, "_strings", function() Services.strings
-          .createBundle("chrome:
+        .createBundle("chrome:
 
 XPCOMUtils.defineLazyGetter(this, "CssLogic", function() {
   let tmp = {};
