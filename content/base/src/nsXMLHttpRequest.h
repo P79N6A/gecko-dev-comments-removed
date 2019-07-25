@@ -171,7 +171,7 @@ public:
   
   
   
-  void DispatchProgressEvent(nsPIDOMEventTarget* aTarget,
+  void DispatchProgressEvent(nsDOMEventTargetHelper* aTarget,
                              const nsAString& aType,
                              
                              
@@ -181,7 +181,7 @@ public:
                              PRUint64 aLoaded, PRUint64 aTotal,
                              
                              PRUint64 aPosition, PRUint64 aTotalSize);
-  void DispatchProgressEvent(nsPIDOMEventTarget* aTarget,
+  void DispatchProgressEvent(nsDOMEventTargetHelper* aTarget,
                              const nsAString& aType,
                              PRBool aLengthComputable,
                              PRUint64 aLoaded, PRUint64 aTotal)

@@ -46,8 +46,8 @@ class nsIContent;
 class nsIDocument;
 class nsPresContext;
 class nsIDOMEvent;
-class nsPIDOMEventTarget;
 class nsIScriptGlobalObject;
+class nsIDOMEventTarget;
 class nsEventTargetChainItem;
 template<class E> class nsCOMArray;
 
@@ -192,13 +192,13 @@ public:
   
 
 
-  nsPIDOMEventTarget*   mParentTarget;
+  nsIDOMEventTarget*   mParentTarget;
 
   
 
 
 
-  nsPIDOMEventTarget*   mEventTargetAtParent;
+  nsIDOMEventTarget*   mEventTargetAtParent;
 };
 
 class nsEventChainPostVisitor : public nsEventChainVisitor {
@@ -249,7 +249,7 @@ public:
                            nsIDOMEvent* aDOMEvent = nsnull,
                            nsEventStatus* aEventStatus = nsnull,
                            nsDispatchingCallback* aCallback = nsnull,
-                           nsCOMArray<nsPIDOMEventTarget>* aTargets = nsnull);
+                           nsCOMArray<nsIDOMEventTarget>* aTargets = nsnull);
 
   
 

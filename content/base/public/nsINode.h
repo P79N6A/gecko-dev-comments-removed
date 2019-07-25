@@ -288,7 +288,7 @@ private:
 
 
 
-class nsINode : public nsPIDOMEventTarget,
+class nsINode : public nsIDOMEventTarget,
                 public nsWrapperCache
 {
 public:
@@ -703,6 +703,15 @@ public:
   {
     return mParent;
   }
+
+  
+
+
+  NS_IMETHOD AddEventListener(const nsAString& aType,
+                              nsIDOMEventListener *aListener,
+                              PRBool aUseCapture,
+                              PRBool aWantsUntrusted,
+                              PRUint8 optional_argc);
 
   
 

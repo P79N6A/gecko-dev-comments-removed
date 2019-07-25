@@ -123,7 +123,6 @@ class nsIUGenCategory;
 class nsIWidget;
 class nsIDragSession;
 class nsPIDOMWindow;
-class nsPIDOMEventTarget;
 class nsIPresShell;
 class nsIXPConnectJSObjectHolder;
 #ifdef MOZ_XTF
@@ -1821,10 +1820,10 @@ public:
   ~nsCxPusher(); 
 
   
-  PRBool Push(nsPIDOMEventTarget *aCurrentTarget);
+  PRBool Push(nsIDOMEventTarget *aCurrentTarget);
   
   
-  PRBool RePush(nsPIDOMEventTarget *aCurrentTarget);
+  PRBool RePush(nsIDOMEventTarget *aCurrentTarget);
   
   
   PRBool Push(JSContext *cx, PRBool aRequiresScriptContext = PR_TRUE);
