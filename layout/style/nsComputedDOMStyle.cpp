@@ -149,30 +149,23 @@ nsComputedDOMStyle::Shutdown()
 }
 
 
-
-
-
-NS_IMPL_CYCLE_COLLECTION_1(nsComputedDOMStyle, mContent)
-
-
-
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_1(nsComputedDOMStyle, mContent)
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsComputedDOMStyle)
-  return !tmp->mContent || nsGenericElement::CanSkip(tmp->mContent, true);
+  return tmp->IsBlack();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsComputedDOMStyle)
-  return !tmp->mContent || nsGenericElement::CanSkipInCC(tmp->mContent);
+  return tmp->IsBlack();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
-
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsComputedDOMStyle)
+  return tmp->IsBlack();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 
-NS_INTERFACE_MAP_BEGIN(nsComputedDOMStyle)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsComputedDOMStyle)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
-  NS_INTERFACE_MAP_ENTRIES_CYCLE_COLLECTION(nsComputedDOMStyle)
 NS_INTERFACE_MAP_END_INHERITING(nsDOMCSSDeclaration)
 
 
