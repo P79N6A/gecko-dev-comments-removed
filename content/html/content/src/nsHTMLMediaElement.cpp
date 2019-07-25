@@ -833,9 +833,7 @@ void nsHTMLMediaElement::UpdatePreloadAction()
   PreloadAction nextAction = PRELOAD_UNDEFINED;
   
   
-  if ((IsAutoplayEnabled() && HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay)) ||
-      !mPaused)
-  {
+  if (IsAutoplayEnabled() && HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay)) {
     nextAction = nsHTMLMediaElement::PRELOAD_ENOUGH;
   } else {
     
@@ -1396,9 +1394,7 @@ NS_IMETHODIMP nsHTMLMediaElement::Play()
   mPaused = PR_FALSE;
   mAutoplaying = PR_FALSE;
   
-  
   AddRemoveSelfReference();
-  UpdatePreloadAction();
 
   return NS_OK;
 }
