@@ -48,7 +48,6 @@
 #include "nsIStyleRule.h"
 #include "nsRuleWalker.h"
 #include "nsRuleData.h"
-#include "nsSMILKeySpline.h"
 #include "gfxColor.h"
 #include "nsCSSPropertySet.h"
 #include "nsStyleAnimation.h"
@@ -60,63 +59,11 @@ using mozilla::TimeStamp;
 using mozilla::TimeDuration;
 
 namespace dom = mozilla::dom;
+namespace css = mozilla::css;
 
 
 
 
-
-class ComputedTimingFunction {
-public:
-  typedef nsTimingFunction::Type Type;
-  void Init(const nsTimingFunction &aFunction);
-  double GetValue(double aPortion) const;
-private:
-  Type mType;
-  nsSMILKeySpline mTimingFunction;
-  PRUint32 mSteps;
-};
-
-void
-ComputedTimingFunction::Init(const nsTimingFunction &aFunction)
-{
-  mType = aFunction.mType;
-  if (mType == nsTimingFunction::Function) {
-    mTimingFunction.Init(aFunction.mFunc.mX1, aFunction.mFunc.mY1,
-                         aFunction.mFunc.mX2, aFunction.mFunc.mY2);
-  } else {
-    mSteps = aFunction.mSteps;
-  }
-}
-
-static inline double
-StepEnd(PRUint32 aSteps, double aPortion)
-{
-  NS_ABORT_IF_FALSE(0.0 <= aPortion && aPortion <= 1.0, "out of range");
-  PRUint32 step = PRUint32(aPortion * aSteps); 
-  return double(step) / double(aSteps);
-}
-
-double
-ComputedTimingFunction::GetValue(double aPortion) const
-{
-  switch (mType) {
-    case nsTimingFunction::Function:
-      return mTimingFunction.GetSplineValue(aPortion);
-    case nsTimingFunction::StepStart:
-      
-      
-      
-      
-      
-      
-      return 1.0 - StepEnd(mSteps, 1.0 - aPortion);
-    default:
-      NS_ABORT_IF_FALSE(PR_FALSE, "bad type");
-      
-    case nsTimingFunction::StepEnd:
-      return StepEnd(mSteps, aPortion);
-  }
-}
 
 struct ElementPropertyTransition
 {
@@ -126,7 +73,7 @@ struct ElementPropertyTransition
 
   
   TimeDuration mDuration;
-  ComputedTimingFunction mTimingFunction;
+  css::ComputedTimingFunction mTimingFunction;
 
   
   
@@ -190,67 +137,13 @@ ElementPropertyTransition::ValuePortionFor(TimeStamp aRefreshTime) const
   return mTimingFunction.GetValue(timePortion);
 }
 
-
-
-
-class AnimValuesStyleRule : public nsIStyleRule
-{
-public:
-  
-  NS_DECL_ISUPPORTS
-
-  
-  virtual void MapRuleInfoInto(nsRuleData* aRuleData);
-#ifdef DEBUG
-  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
-#endif
-
-  void AddValue(nsCSSProperty aProperty, nsStyleAnimation::Value &aStartValue)
-  {
-    PropertyValuePair v = { aProperty, aStartValue };
-    mPropertyValuePairs.AppendElement(v);
-  }
-
-  
-  nsStyleAnimation::Value* AddEmptyValue(nsCSSProperty aProperty)
-  {
-    PropertyValuePair *p = mPropertyValuePairs.AppendElement();
-    if (!p) {
-      return nsnull;
-    }
-    p->mProperty = aProperty;
-    return &p->mValue;
-  }
-
-  struct PropertyValuePair {
-    nsCSSProperty mProperty;
-    nsStyleAnimation::Value mValue;
-  };
-
-private:
-  nsTArray<PropertyValuePair> mPropertyValuePairs;
-};
-
-struct ElementTransitions : public PRCList
+struct ElementTransitions : public mozilla::css::CommonElementAnimationData
 {
   ElementTransitions(dom::Element *aElement, nsIAtom *aElementProperty,
                      nsTransitionManager *aTransitionManager)
-    : mElement(aElement)
-    , mElementProperty(aElementProperty)
-    , mTransitionManager(aTransitionManager)
+    : CommonElementAnimationData(aElement, aElementProperty,
+                                 aTransitionManager)
   {
-    PR_INIT_CLIST(this);
-  }
-  ~ElementTransitions()
-  {
-    PR_REMOVE_LINK(this);
-    mTransitionManager->TransitionsRemoved();
-  }
-
-  void Destroy()
-  {
-    
-    mElement->DeleteProperty(mElementProperty);
   }
 
   void EnsureStyleRuleFor(TimeStamp aRefreshTime);
@@ -265,17 +158,9 @@ struct ElementTransitions : public PRCList
   
   
   
-  nsRefPtr<AnimValuesStyleRule> mStyleRule;
+  nsRefPtr<css::AnimValuesStyleRule> mStyleRule;
   
   TimeStamp mStyleRuleRefreshTime;
-
-  dom::Element *mElement;
-
-  
-  
-  nsIAtom *mElementProperty;
-
-  nsTransitionManager *mTransitionManager;
 };
 
 static void
@@ -292,7 +177,7 @@ void
 ElementTransitions::EnsureStyleRuleFor(TimeStamp aRefreshTime)
 {
   if (!mStyleRule || mStyleRuleRefreshTime != aRefreshTime) {
-    mStyleRule = new AnimValuesStyleRule();
+    mStyleRule = new css::AnimValuesStyleRule();
     mStyleRuleRefreshTime = aRefreshTime;
 
     for (PRUint32 i = 0, i_end = mPropertyTransitions.Length(); i < i_end; ++i)
@@ -319,96 +204,9 @@ ElementTransitions::EnsureStyleRuleFor(TimeStamp aRefreshTime)
   }
 }
 
-NS_IMPL_ISUPPORTS1(AnimValuesStyleRule, nsIStyleRule)
-
- void
-AnimValuesStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
-{
-  nsStyleContext *contextParent = aRuleData->mStyleContext->GetParent();
-  if (contextParent && contextParent->HasPseudoElementData()) {
-    
-    
-    return;
-  }
-
-  for (PRUint32 i = 0, i_end = mPropertyValuePairs.Length(); i < i_end; ++i) {
-    PropertyValuePair &cv = mPropertyValuePairs[i];
-    if (aRuleData->mSIDs & nsCachedStyleData::GetBitForSID(
-                             nsCSSProps::kSIDTable[cv.mProperty]))
-    {
-      nsCSSValue *prop = aRuleData->ValueFor(cv.mProperty);
-      if (prop->GetUnit() == eCSSUnit_Null) {
-#ifdef DEBUG
-        PRBool ok =
-#endif
-          nsStyleAnimation::UncomputeValue(cv.mProperty,
-                                           aRuleData->mPresContext,
-                                           cv.mValue, *prop);
-        NS_ABORT_IF_FALSE(ok, "could not store computed value");
-      }
-    }
-  }
-}
-
-#ifdef DEBUG
- void
-AnimValuesStyleRule::List(FILE* out, PRInt32 aIndent) const
-{
-  
-}
-#endif
 
 
 
-
-
-nsTransitionManager::nsTransitionManager(nsPresContext *aPresContext)
-  : mPresContext(aPresContext)
-{
-  PR_INIT_CLIST(&mElementTransitions);
-}
-
-nsTransitionManager::~nsTransitionManager()
-{
-  NS_ABORT_IF_FALSE(!mPresContext, "Disconnect should have been called");
-}
-
-void
-nsTransitionManager::Disconnect()
-{
-  
-  RemoveAllTransitions();
-
-  mPresContext = nsnull;
-}
-
-void
-nsTransitionManager::RemoveAllTransitions()
-{
-  while (!PR_CLIST_IS_EMPTY(&mElementTransitions)) {
-    ElementTransitions *head = static_cast<ElementTransitions*>(
-                                 PR_LIST_HEAD(&mElementTransitions));
-    head->Destroy();
-  }
-}
-
-static PRBool
-TransExtractComputedValue(nsCSSProperty aProperty,
-                          nsStyleContext* aStyleContext,
-                          nsStyleAnimation::Value& aComputedValue)
-{
-  PRBool result =
-    nsStyleAnimation::ExtractComputedValue(aProperty, aStyleContext,
-                                           aComputedValue);
-  if (aProperty == eCSSProperty_visibility) {
-    NS_ABORT_IF_FALSE(aComputedValue.GetUnit() ==
-                        nsStyleAnimation::eUnit_Enumerated,
-                      "unexpected unit");
-    aComputedValue.SetIntValue(aComputedValue.GetIntValue(),
-                               nsStyleAnimation::eUnit_Visibility);
-  }
-  return result;
-}
 
 already_AddRefed<nsIStyleRule>
 nsTransitionManager::StyleContextChanged(dom::Element *aElement,
@@ -560,8 +358,8 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
            !allTransitionProperties.HasProperty(pt.mProperty)) ||
           
           
-          !TransExtractComputedValue(pt.mProperty, aNewStyleContext,
-                                     currentValue) ||
+          !ExtractComputedValueForTransition(pt.mProperty, aNewStyleContext,
+                                             currentValue) ||
           currentValue != pt.mEndValue) {
         
         pts.RemoveElementAt(i);
@@ -596,7 +394,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   
   
 
-  nsRefPtr<AnimValuesStyleRule> coverRule = new AnimValuesStyleRule;
+  nsRefPtr<css::AnimValuesStyleRule> coverRule = new css::AnimValuesStyleRule;
   if (!coverRule) {
     NS_WARNING("out of memory");
     return nsnull;
@@ -642,8 +440,10 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   ElementPropertyTransition pt;
   nsStyleAnimation::Value dummyValue;
   PRBool haveValues =
-    TransExtractComputedValue(aProperty, aOldStyleContext, pt.mStartValue) &&
-    TransExtractComputedValue(aProperty, aNewStyleContext, pt.mEndValue);
+    ExtractComputedValueForTransition(aProperty, aOldStyleContext,
+                                      pt.mStartValue) &&
+    ExtractComputedValueForTransition(aProperty, aNewStyleContext,
+                                      pt.mEndValue);
   PRBool shouldAnimate =
     haveValues &&
     pt.mStartValue != pt.mEndValue &&
@@ -802,7 +602,7 @@ nsTransitionManager::GetElementTransitions(dom::Element *aElement,
                                            nsCSSPseudoElements::Type aPseudoType,
                                            PRBool aCreateIfNeeded)
 {
-  if (!aCreateIfNeeded && PR_CLIST_IS_EMPTY(&mElementTransitions)) {
+  if (!aCreateIfNeeded && PR_CLIST_IS_EMPTY(&mElementData)) {
     
     return nsnull;
   }
@@ -837,29 +637,11 @@ nsTransitionManager::GetElementTransitions(dom::Element *aElement,
       return nsnull;
     }
 
-    AddElementTransitions(et);
+    AddElementData(et);
   }
 
   return et;
 }
-
-void
-nsTransitionManager::AddElementTransitions(ElementTransitions* aElementTransitions)
-{
-  if (PR_CLIST_IS_EMPTY(&mElementTransitions)) {
-    
-    nsRefreshDriver *rd = mPresContext->RefreshDriver();
-    rd->AddRefreshObserver(this, Flush_Style);
-  }
-
-  PR_INSERT_BEFORE(aElementTransitions, &mElementTransitions);
-}
-
-
-
-
-
-NS_IMPL_ISUPPORTS1(nsTransitionManager, nsIStyleRuleProcessor)
 
 
 
@@ -932,30 +714,6 @@ nsTransitionManager::RulesMatching(XULTreeRuleProcessorData* aData)
 }
 #endif
 
-nsRestyleHint
-nsTransitionManager::HasStateDependentStyle(StateRuleProcessorData* aData)
-{
-  return nsRestyleHint(0);
-}
-
-PRBool
-nsTransitionManager::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
-{
-  return PR_FALSE;
-}
-
-nsRestyleHint
-nsTransitionManager::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
-{
-  return nsRestyleHint(0);
-}
-
- PRBool
-nsTransitionManager::MediumFeaturesChanged(nsPresContext* aPresContext)
-{
-  return PR_FALSE;
-}
-
 struct TransitionEventInfo {
   nsCOMPtr<nsIContent> mElement;
   nsTransitionEvent mEvent;
@@ -990,7 +748,7 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
     
     
     
-    RemoveAllTransitions();
+    RemoveAllElementData();
     return;
   }
 
@@ -999,8 +757,8 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
   
   
   {
-    PRCList *next = PR_LIST_HEAD(&mElementTransitions);
-    while (next != &mElementTransitions) {
+    PRCList *next = PR_LIST_HEAD(&mElementData);
+    while (next != &mElementData) {
       ElementTransitions *et = static_cast<ElementTransitions*>(next);
       next = PR_NEXT_LINK(next);
 
@@ -1064,7 +822,7 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
   }
 
   
-  TransitionsRemoved();
+  ElementDataRemoved();
 
   for (PRUint32 i = 0, i_end = events.Length(); i < i_end; ++i) {
     TransitionEventInfo &info = events[i];
@@ -1073,15 +831,5 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
     if (!mPresContext) {
       break;
     }
-  }
-}
-
-void
-nsTransitionManager::TransitionsRemoved()
-{
-  
-  
-  if (PR_CLIST_IS_EMPTY(&mElementTransitions)) {
-    mPresContext->RefreshDriver()->RemoveRefreshObserver(this, Flush_Style);
   }
 }

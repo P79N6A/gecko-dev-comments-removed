@@ -40,10 +40,7 @@
 #ifndef nsTransitionManager_h_
 #define nsTransitionManager_h_
 
-#include "prclist.h"
-#include "nsCSSProperty.h"
-#include "nsIStyleRuleProcessor.h"
-#include "nsRefreshDriver.h"
+#include "AnimationCommon.h"
 #include "nsCSSPseudoElements.h"
 
 class nsStyleContext;
@@ -52,16 +49,13 @@ class nsCSSPropertySet;
 struct nsTransition;
 struct ElementTransitions;
 
-class nsTransitionManager : public nsIStyleRuleProcessor,
-                            public nsARefreshObserver {
+class nsTransitionManager : public mozilla::css::CommonAnimationManager
+{
 public:
-  nsTransitionManager(nsPresContext *aPresContext);
-  ~nsTransitionManager();
-
-  
-
-
-  void Disconnect();
+  nsTransitionManager(nsPresContext *aPresContext)
+    : mozilla::css::CommonAnimationManager(aPresContext)
+  {
+  }
 
   
 
@@ -85,27 +79,17 @@ public:
                         nsStyleContext *aNewStyleContext);
 
   
-  NS_DECL_ISUPPORTS
-
-  
   virtual void RulesMatching(ElementRuleProcessorData* aData);
   virtual void RulesMatching(PseudoElementRuleProcessorData* aData);
   virtual void RulesMatching(AnonBoxRuleProcessorData* aData);
 #ifdef MOZ_XUL
   virtual void RulesMatching(XULTreeRuleProcessorData* aData);
 #endif
-  virtual nsRestyleHint HasStateDependentStyle(StateRuleProcessorData* aData);
-  virtual PRBool HasDocumentStateDependentStyle(StateRuleProcessorData* aData);
-  virtual nsRestyleHint
-    HasAttributeDependentStyle(AttributeRuleProcessorData* aData);
-  virtual PRBool MediumFeaturesChanged(nsPresContext* aPresContext);
 
   
   virtual void WillRefresh(mozilla::TimeStamp aTime);
 
 private:
-  friend struct ElementTransitions; 
-
   void ConsiderStartingTransition(nsCSSProperty aProperty,
                                   const nsTransition& aTransition,
                                   mozilla::dom::Element *aElement,
@@ -117,15 +101,8 @@ private:
   ElementTransitions* GetElementTransitions(mozilla::dom::Element *aElement,
                                             nsCSSPseudoElements::Type aPseudoType,
                                             PRBool aCreateIfNeeded);
-  void AddElementTransitions(ElementTransitions* aElementTransitions);
-  void TransitionsRemoved();
   void WalkTransitionRule(RuleProcessorData* aData,
                           nsCSSPseudoElements::Type aPseudoType);
-
-  void RemoveAllTransitions();
-
-  PRCList mElementTransitions;
-  nsPresContext *mPresContext; 
 };
 
 #endif 
