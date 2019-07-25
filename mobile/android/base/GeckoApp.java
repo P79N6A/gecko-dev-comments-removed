@@ -2377,16 +2377,17 @@ abstract public class GeckoApp
     
     public static File getTempDirectory() {
         File dir = mAppContext.getExternalFilesDir("temp");
-        dir.mkdirs();
         return dir;
     }
 
     
     public static void deleteTempFiles() {
-        File[] files  = getTempDirectory().listFiles();
+        File dir = getTempDirectory();
+        if (dir == null)
+            return;
+        File[] files = dir.listFiles();
         if (files == null)
             return;
-
         for (File file : files) {
             file.delete();
         }
