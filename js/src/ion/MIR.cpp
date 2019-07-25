@@ -290,7 +290,7 @@ MConstant::valueHash() const
 {
     
     
-    return (HashNumber)value_.asRawBits();
+    return (HashNumber)JSVAL_TO_IMPL(value_).asBits;
 }
 bool
 MConstant::congruentTo(MDefinition * const &ins) const
