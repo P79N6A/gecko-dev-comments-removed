@@ -156,6 +156,7 @@ struct GfxDriverInfo
 inline bool
 ParseDriverVersion(nsAString& aVersion, PRUint64 *aNumericVersion)
 {
+#if defined(XP_WIN)
   int a, b, c, d;
   
   if (sscanf(NS_LossyConvertUTF16toASCII(aVersion).get(),
@@ -167,6 +168,11 @@ ParseDriverVersion(nsAString& aVersion, PRUint64 *aNumericVersion)
   if (d < 0 || d > 0xffff) return false;
 
   *aNumericVersion = GFX_DRIVER_VERSION(a, b, c, d);
+#elif defined(ANDROID)
+  
+  
+  *aNumericVersion = atoi(NS_LossyConvertUTF16toASCII(aVersion).get());
+#endif
   return true;
 }
 
