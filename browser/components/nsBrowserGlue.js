@@ -62,7 +62,6 @@ XPCOMUtils.defineLazyGetter(this, "PlacesUtils", function() {
   return PlacesUtils;
 });
 
-const PREF_EM_NEW_ADDONS_LIST = "extensions.newAddons";
 const PREF_PLUGINS_NOTIFYUSER = "plugins.update.notifyUser";
 const PREF_PLUGINS_UPDATEURL  = "plugins.update.url";
 
@@ -396,24 +395,6 @@ BrowserGlue.prototype = {
     
     if (Services.prefs.prefHasUserValue("app.update.postupdate"))
       this._showUpdateNotification();
-
-    
-    if (Services.prefs.prefHasUserValue(PREF_EM_NEW_ADDONS_LIST)) {
-      var args = Cc["@mozilla.org/supports-array;1"].
-                 createInstance(Ci.nsISupportsArray);
-      var str = Cc["@mozilla.org/supports-string;1"].
-                createInstance(Ci.nsISupportsString);
-      str.data = "";
-      args.AppendElement(str);
-      var str = Cc["@mozilla.org/supports-string;1"].
-                createInstance(Ci.nsISupportsString);
-      str.data = Services.prefs.getCharPref(PREF_EM_NEW_ADDONS_LIST);
-      args.AppendElement(str);
-      const EMURL = "chrome://mozapps/content/extensions/extensions.xul";
-      const EMFEATURES = "chrome,menubar,extra-chrome,toolbar,dialog=no,resizable";
-      Services.ww.openWindow(null, EMURL, "_blank", EMFEATURES, args);
-      Services.prefs.clearUserPref(PREF_EM_NEW_ADDONS_LIST);
-    }
 
     
     
