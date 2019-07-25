@@ -2460,8 +2460,10 @@ static FrameContentRange GetRangeForFrame(nsIFrame* aFrame) {
 
 
 struct FrameTarget {
-  FrameTarget(nsIFrame* aFrame, PRBool aFrameEdge, PRBool aAfterFrame) :
-    frame(aFrame), frameEdge(aFrameEdge), afterFrame(aAfterFrame) { }
+  FrameTarget(nsIFrame* aFrame, PRBool aFrameEdge, PRBool aAfterFrame,
+              PRBool aEmptyBlock = PR_FALSE) :
+    frame(aFrame), frameEdge(aFrameEdge), afterFrame(aAfterFrame),
+    emptyBlock(aEmptyBlock) { }
   static FrameTarget Null() {
     return FrameTarget(nsnull, PR_FALSE, PR_FALSE);
   }
@@ -2471,6 +2473,7 @@ struct FrameTarget {
   nsIFrame* frame;
   PRPackedBool frameEdge;
   PRPackedBool afterFrame;
+  PRPackedBool emptyBlock;
 };
 
 
@@ -2607,8 +2610,15 @@ static FrameTarget GetSelectionClosestFrameForBlock(nsIFrame* aFrame,
   
   nsBlockFrame::line_iterator firstLine = bf->begin_lines();
   nsBlockFrame::line_iterator end = bf->end_lines();
-  if (firstLine == end)
+  if (firstLine == end) {
+    nsIContent *blockContent = aFrame->GetContent();
+    if (blockContent && blockContent->IsEditable()) {
+      
+      
+      return FrameTarget(aFrame, PR_FALSE, PR_FALSE, PR_TRUE);
+    }
     return FrameTarget::Null();
+  }
   nsBlockFrame::line_iterator curLine = firstLine;
   nsBlockFrame::line_iterator closestLine = end;
   while (curLine != end) {
@@ -2824,6 +2834,17 @@ nsIFrame::ContentOffsets nsIFrame::GetContentOffsetsFromPoint(nsPoint aPoint,
   nsPoint adjustedPoint = aPoint + this->GetOffsetTo(adjustedFrame);
 
   FrameTarget closest = GetSelectionClosestFrame(adjustedFrame, adjustedPoint);
+
+  if (closest.emptyBlock) {
+    ContentOffsets offsets;
+    NS_ASSERTION(closest.frame,
+                 "closest.frame must not be null when it's empty");
+    offsets.content = closest.frame->GetContent();
+    offsets.offset = 0;
+    offsets.secondaryOffset = 0;
+    offsets.associateWithNext = PR_TRUE;
+    return offsets;
+  }
 
   
   
