@@ -3096,7 +3096,14 @@ var XPIProvider = {
                    createInstance(Ci.mozIJSSubScriptLoader);
 
       try {
-        loader.loadSubScript(spec, this.bootstrapScopes[aId]);
+        
+        
+        
+        this.bootstrapScopes[aId].__SCRIPT_URI_SPEC__ = spec;
+        Components.utils.evalInSandbox(
+          "Components.classes['@mozilla.org/moz/jssubscript-loader;1'] \
+                     .createInstance(Components.interfaces.mozIJSSubScriptLoader) \
+                     .loadSubScript(__SCRIPT_URI_SPEC__);", this.bootstrapScopes[aId], "ECMAv5");
       }
       catch (e) {
         WARN("Error loading bootstrap.js for " + aId, e);
