@@ -612,6 +612,19 @@ iQ.fn = iQ.prototype = {
       var duration = (options.duration || 400);
       var easing = (easings[options.easing] || 'ease');
 
+      
+      
+      
+      rupper = /([A-Z])/g;    
+      this.each(function(){
+        var cStyle = window.getComputedStyle(this, null);      
+        for(var prop in css){
+          prop = prop.replace( rupper, "-$1" ).toLowerCase();
+          iQ(this).css(prop, cStyle.getPropertyValue(prop));
+        }    
+      });
+
+
       this.css({
         '-moz-transition-property': 'all', 
         '-moz-transition-duration': (duration / 1000) + 's',  
