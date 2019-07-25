@@ -437,6 +437,13 @@ protected:
   PRBool ParseSingleValueProperty(nsCSSValue& aValue,
                                   nsCSSProperty aPropID);
 
+  enum PriorityParsingStatus {
+    ePriority_None,
+    ePriority_Important,
+    ePriority_Error
+  };
+  PriorityParsingStatus ParsePriority();
+
 #ifdef MOZ_XUL
   PRBool ParseTreePseudoElement(nsPseudoClassList **aPseudoElementArgs);
 #endif
@@ -1417,6 +1424,34 @@ CSSParserImpl::ExpectEndProperty()
   return PR_FALSE;
 }
 
+
+
+CSSParserImpl::PriorityParsingStatus
+CSSParserImpl::ParsePriority()
+{
+  if (!GetToken(PR_TRUE)) {
+    return ePriority_None; 
+  }
+  if (!mToken.IsSymbol('!')) {
+    UngetToken();
+    return ePriority_None; 
+  }
+
+  if (!GetToken(PR_TRUE)) {
+    
+    REPORT_UNEXPECTED_EOF(PEImportantEOF);
+    return ePriority_Error;
+  }
+
+  if (mToken.mType != eCSSToken_Ident ||
+      !mToken.mIdent.LowerCaseEqualsLiteral("important")) {
+    REPORT_UNEXPECTED_TOKEN(PEExpectedImportant);
+    UngetToken();
+    return ePriority_Error;
+  }
+
+  return ePriority_Important;
+}
 
 nsSubstring*
 CSSParserImpl::NextIdent()
@@ -4000,69 +4035,40 @@ CSSParserImpl::ParseDeclaration(css::Declaration* aDeclaration,
   CLEAR_ERROR();
 
   
-  PRBool isImportant = PR_FALSE;
-  if (!GetToken(PR_TRUE)) {
-    
-    TransferTempData(aDeclaration, propID, isImportant, PR_FALSE,
-                     aMustCallValueAppended, aChanged);
-    return PR_TRUE;
-  }
+  PriorityParsingStatus status = ParsePriority();
 
-  if (eCSSToken_Symbol == tk->mType && '!' == tk->mSymbol) {
-    
+  
+  if (status != ePriority_Error) {
     if (!GetToken(PR_TRUE)) {
       
-      REPORT_UNEXPECTED_EOF(PEImportantEOF);
-      ClearTempData(propID);
-      return PR_FALSE;
-    }
-    if ((eCSSToken_Ident != tk->mType) ||
-        !tk->mIdent.LowerCaseEqualsLiteral("important")) {
-      REPORT_UNEXPECTED_TOKEN(PEExpectedImportant);
-      OUTPUT_ERROR();
+    } else if (mToken.IsSymbol(';')) {
+      
+    } else if (mToken.IsSymbol('}')) {
+      
       UngetToken();
-      ClearTempData(propID);
-      return PR_FALSE;
+      if (!aCheckForBraces) {
+        status = ePriority_Error;
+      }
+    } else {
+      status = ePriority_Error;
     }
-    isImportant = PR_TRUE;
-  }
-  else {
-    
-    UngetToken();
   }
 
-  
-  
-  
-  if (!GetToken(PR_TRUE)) {
-    
-    TransferTempData(aDeclaration, propID, isImportant, PR_FALSE,
-                     aMustCallValueAppended, aChanged);
-    return PR_TRUE;
-  }
-  if (eCSSToken_Symbol == tk->mType) {
-    if (';' == tk->mSymbol) {
-      TransferTempData(aDeclaration, propID, isImportant, PR_FALSE,
-                       aMustCallValueAppended, aChanged);
-      return PR_TRUE;
+  if (status == ePriority_Error) {
+    if (aCheckForBraces) {
+      REPORT_UNEXPECTED_TOKEN(PEBadDeclOrRuleEnd2);
+    } else {
+      REPORT_UNEXPECTED(PEBadDeclEnd);
     }
-    if (aCheckForBraces && '}' == tk->mSymbol) {
-      
-      
-      UngetToken();
-      TransferTempData(aDeclaration, propID, isImportant, PR_FALSE,
-                       aMustCallValueAppended, aChanged);
-      return PR_TRUE;
-    }
+    REPORT_UNEXPECTED(PEDeclDropped);
+    OUTPUT_ERROR();
+    ClearTempData(propID);
+    return PR_FALSE;
   }
-  if (aCheckForBraces)
-    REPORT_UNEXPECTED_TOKEN(PEBadDeclOrRuleEnd2);
-  else
-    REPORT_UNEXPECTED_TOKEN(PEBadDeclEnd);
-  REPORT_UNEXPECTED(PEDeclDropped);
-  OUTPUT_ERROR();
-  ClearTempData(propID);
-  return PR_FALSE;
+
+  TransferTempData(aDeclaration, propID, status == ePriority_Important,
+                   PR_FALSE, aMustCallValueAppended, aChanged);
+  return PR_TRUE;
 }
 
 void
