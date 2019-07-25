@@ -189,10 +189,7 @@ class IonBuilder : public MIRGenerator
         return newBlock(NULL, pc);
     }
     bool finalizeLoop(CFGState &state, MInstruction *last);
-
     void assertValidTraceOp(JSOp op);
-    bool jsop_ifeq(JSOp op);
-
     bool forInLoop(JSOp op, jssrcnote *sn) {
         return false;
     }
@@ -200,8 +197,13 @@ class IonBuilder : public MIRGenerator
     ControlStatus whileLoop(JSOp op, jssrcnote *sn);
     ControlStatus doWhileLoop(JSOp op, jssrcnote *sn);
 
+    
+    
+    MSnapshot *takeSnapshot();
+
     bool pushConstant(const Value &v);
     bool jsop_binary(JSOp op);
+    bool jsop_ifeq(JSOp op);
 
   private:
     JSContext *cx;

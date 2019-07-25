@@ -118,11 +118,6 @@ class MBasicBlock : public TempObject
     
     bool setVariable(uint32 slot);
 
-    
-    
-    
-    MInstruction *getSlot(uint32 index);
-
   public:
     
     
@@ -231,9 +226,20 @@ class MBasicBlock : public TempObject
         JS_ASSERT(isLoopHeader());
         return loopSuccessor_;
     }
+    MIRGenerator *gen() {
+        return gen_;
+    }
+    uint32 stackDepth() const {
+        return stackPosition_;
+    }
+
+    
+    
+    
+    MInstruction *getSlot(uint32 index);
 
   private:
-    MIRGenerator *gen;
+    MIRGenerator *gen_;
     InlineList<MInstruction> instructions_;
     Vector<MBasicBlock *, 1, IonAllocPolicy> predecessors_;
     Vector<MPhi *, 2, IonAllocPolicy> phis_;
