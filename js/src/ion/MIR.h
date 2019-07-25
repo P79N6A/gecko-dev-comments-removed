@@ -259,7 +259,11 @@ class MDefinition : public MNode
     ValueNumberData *valueNumber_; 
     MIRType resultType_;           
     uint32 flags_;                 
-    MDefinition *dependency_;      
+    union {
+        MDefinition *dependency_;  
+                                   
+        uint32 virtualRegister_;   
+    };
 
   private:
     enum Flag {
@@ -416,14 +420,14 @@ class MDefinition : public MNode
     }
 
     void setVirtualRegister(uint32 vreg) {
-        id_ = vreg;
+        virtualRegister_ = vreg;
 #ifdef DEBUG
         setLoweredUnchecked();
 #endif
     }
     uint32 virtualRegister() const {
         JS_ASSERT(isLowered());
-        return id_;
+        return virtualRegister_;
     }
 
   public:

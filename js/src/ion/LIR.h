@@ -1104,6 +1104,7 @@ class LIRGraph
     Vector<LInstruction *, 0, SystemAllocPolicy> safepoints_;
     Vector<LInstruction *, 0, SystemAllocPolicy> nonCallSafepoints_;
     uint32 numVirtualRegisters_;
+    uint32 numInstructions_;
 
     
     uint32 localSlotCount_;
@@ -1141,7 +1142,13 @@ class LIRGraph
         
         
         return numVirtualRegisters_ + 1;
-    } 
+    }
+    uint32 getInstructionId() {
+        return numInstructions_++;
+    }
+    uint32 numInstructions() const {
+        return numInstructions_;
+    }
     void setLocalSlotCount(uint32 localSlotCount) {
         localSlotCount_ = localSlotCount;
     }
