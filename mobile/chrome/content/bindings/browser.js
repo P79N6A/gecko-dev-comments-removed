@@ -366,6 +366,8 @@ let ContentScroll =  {
   init: function() {
     addMessageListener("Content:ScrollTo", this);
     addMessageListener("Content:ScrollBy", this);
+    addMessageListener("Content:ZoomLevel", this);
+    addMessageListener("Content:FastScrollTo", this);
   },
 
   receiveMessage: function(aMessage) {
@@ -376,6 +378,20 @@ let ContentScroll =  {
         break;
       case "Content:ScrollBy":
         content.scrollBy(json.dx, json.dy);
+        break;
+      case "Content:ZoomLevel":
+        
+        break;
+      case "Content:FastScrollTo":
+        
+        try {
+          let cwu = Util.getWindowUtils(content);
+          cwu.setDisplayport(json.x - 200, json.y - 400,
+                             content.innerWidth + 400, content.innerHeight + 800);
+        } catch(e) {
+          Util.dumpLn(e);
+        }
+        sendAsyncMessage("Content:FastScrollTo:Return");
         break;
     }
   }
