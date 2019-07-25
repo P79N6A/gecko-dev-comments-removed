@@ -362,8 +362,6 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 
     
 
-    ScopedGfxFeatureReporter reporter("WebGL");
-
     
     
     DestroyResourcesAndContext();
@@ -385,6 +383,8 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         Preferences::GetBool("webgl.disabled", false);
     bool verbose =
         Preferences::GetBool("webgl.verbose", false);
+
+    ScopedGfxFeatureReporter reporter("WebGL", forceEnabled);
 
     if (disabled)
         return NS_ERROR_FAILURE;
