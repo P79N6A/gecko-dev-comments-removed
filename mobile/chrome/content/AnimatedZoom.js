@@ -92,8 +92,8 @@ const AnimatedZoom = {
     
     
     
-    getBrowser()._frameLoader.setViewportScale(zoomLevel, zoomLevel);
-    getBrowser()._frameLoader.scrollViewportTo(nextRect.left * zoomRatio, nextRect.top * zoomRatio);
+    getBrowser()._contentViewManager.rootContentView.setScale(zoomLevel, zoomLevel);
+    getBrowser()._contentViewManager.rootContentView.scrollTo(nextRect.left * zoomRatio, nextRect.top * zoomRatio);
     this.zoomRect = nextRect;
   },
 
