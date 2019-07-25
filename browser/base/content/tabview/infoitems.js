@@ -41,7 +41,6 @@
 
 
 
-(function() {
 
 
 
@@ -57,8 +56,7 @@
 
 
 
-
-window.InfoItem = function(bounds, options) {
+function InfoItem(bounds, options) {
   try {
     Utils.assertThrow(Utils.isRect(bounds), 'bounds');
 
@@ -121,12 +119,12 @@ window.InfoItem = function(bounds, options) {
 };
 
 
-window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
+InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
   
   
   
-  getStorageData: function() {
+  getStorageData: function InfoItem_getStorageData() {
     var data = null;
 
     try {
@@ -144,7 +142,7 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  save: function() {
+  save: function InfoItem_save() {
     try {
       if (!this._inited) 
         return;
@@ -159,7 +157,7 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  setBounds: function(rect, immediately) {
+  setBounds: function InfoItem_setBounds(rect, immediately) {
     try {
       Utils.assertThrow(Utils.isRect(rect), 'InfoItem.setBounds: rect must be a real rectangle!');
 
@@ -210,7 +208,7 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  setZ: function(value) {
+  setZ: function InfoItem_setZ(value) {
     try {
       Utils.assertThrow(typeof value == 'number', 'value must be a number');
 
@@ -228,7 +226,7 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  close: function() {
+  close: function InfoItem_close() {
     try {
       this._sendToSubscribers("close");
       this.removeTrenches();
@@ -245,7 +243,7 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  html: function(value) {
+  html: function InfoItem_html(value) {
     try {
       Utils.assertThrow(typeof value == 'string', 'value must be a string');
       this.$contents.html(value);
@@ -254,5 +252,3 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     }
   }
 });
-
-})();

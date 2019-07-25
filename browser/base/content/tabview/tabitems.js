@@ -48,7 +48,7 @@
 
 
 
-window.TabItem = function(tab) {
+function TabItem(tab) {
 
   Utils.assert(tab, "tab");
 
@@ -207,12 +207,12 @@ window.TabItem = function(tab) {
     GroupItems.newTab(this);
 };
 
-window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
+TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
   
-  forceCanvasSize: function(w, h) {
+  forceCanvasSize: function TabItem_forceCanvasSize(w, h) {
     this.canvasSizeForced = true;
     this.canvasEl.width = w;
     this.canvasEl.height = h;
@@ -225,7 +225,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  unforceCanvasSize: function() {
+  unforceCanvasSize: function TabItem_unforceCanvasSize() {
     this.canvasSizeForced = false;
   },
 
@@ -233,7 +233,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  showCachedData: function(tabData) {
+  showCachedData: function TabItem_showCachedData(tabData) {
     this.isShowingCachedData = true;
     var $nameElement = iQ(this.nameEl);
     var $canvasElement = iQ(this.canvasEl);
@@ -246,7 +246,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  hideCachedData: function() {
+  hideCachedData: function TabItem_hideCachedData() {
     var $canvasElement = iQ(this.canvasEl);
     var $cachedThumbElement = iQ(this.cachedThumbEl);
     $cachedThumbElement.hide();
@@ -260,7 +260,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  getStorageData: function(getImageData) {
+  getStorageData: function TabItem_getStorageData(getImageData) {
     return {
       bounds: this.getBounds(),
       userSize: (Utils.isPoint(this.userSize) ? new Point(this.userSize) : null),
@@ -278,7 +278,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  save: function(saveImageData) {
+  save: function TabItem_save(saveImageData) {
     try{
       if (!this.tab || this.tab.parentNode == null || !this.reconnected) 
         return;
@@ -302,7 +302,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  setBounds: function(rect, immediately, options) {
+  setBounds: function TabItem_setBounds(rect, immediately, options) {
     if (!Utils.isRect(rect)) {
       Utils.trace('TabItem.setBounds: rect is not a real rectangle!', rect);
       return;
@@ -416,7 +416,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  getBoundsWithTitle: function() {
+  getBoundsWithTitle: function TabItem_getBoundsWithTitle() {
     var b = this.getBounds();
     var $title = iQ(this.container).find('.tab-title');
     var height = b.height;
@@ -428,14 +428,14 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  inStack: function() {
+  inStack: function TabItem_inStack() {
     return iQ(this.container).hasClass("stacked");
   },
 
   
   
   
-  setZ: function(value) {
+  setZ: function TabItem_setZ(value) {
     this.zIndex = value;
     iQ(this.container).css({zIndex: value});
   },
@@ -444,7 +444,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  close: function() {
+  close: function TabItem_close() {
     gBrowser.removeTab(this.tab);
     this._sendToSubscribers("tabRemoved");
 
@@ -455,14 +455,14 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  addClass: function(className) {
+  addClass: function TabItem_addClass(className) {
     iQ(this.container).addClass(className);
   },
 
   
   
   
-  removeClass: function(className) {
+  removeClass: function TabItem_removeClass(className) {
     iQ(this.container).removeClass(className);
   },
 
@@ -470,7 +470,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  setResizable: function(value) {
+  setResizable: function TabItem_setResizable(value) {
     var $resizer = iQ('.expander', this.container);
 
     this.resizeOptions.minWidth = TabItems.minTabWidth;
@@ -488,7 +488,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  makeActive: function() {
+  makeActive: function TabItem_makeActive() {
    iQ(this.container).find("canvas").addClass("focus");
    iQ(this.container).find("img.cached-thumb").addClass("focus");
 
@@ -497,7 +497,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  makeDeactive: function() {
+  makeDeactive: function TabItem_makeDeactive() {
    iQ(this.container).find("canvas").removeClass("focus");
    iQ(this.container).find("img.cached-thumb").removeClass("focus");
   },
@@ -508,7 +508,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  zoomIn: function(isNewBlankTab) {
+  zoomIn: function TabItem_zoomIn(isNewBlankTab) {
     var self = this;
     var $tabEl = iQ(this.container);
     var childHitResult = { shouldZoom: true };
@@ -571,7 +571,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  zoomOut: function(complete) {
+  zoomOut: function TabItem_zoomOut(complete) {
     var $tab = iQ(this.container);
 
     var box = this.getBounds();
@@ -607,7 +607,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  setZoomPrep: function(value) {
+  setZoomPrep: function TabItem_setZoomPrep(value) {
     var $div = iQ(this.container);
     var data;
 
@@ -644,7 +644,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
 
 
-window.TabItems = {
+let TabItems = {
   minTabWidth: 40,
   tabWidth: 160,
   tabHeight: 120,
@@ -660,7 +660,7 @@ window.TabItems = {
   
   
   
-  init: function() {
+  init: function TabItems_init() {
     Utils.assert(window.AllTabs, "AllTabs must be initialized first");
     var self = this;
 
@@ -702,7 +702,7 @@ window.TabItems = {
 
   
   
-  uninit: function() {
+  uninit: function TabItems_uninit() {
     for (let name in this._eventListeners) {
       AllTabs.unregister(name, this._eventListeners[name]);
     }
@@ -722,7 +722,7 @@ window.TabItems = {
   
   
   
-  update: function(tab) {
+  update: function TabItems_update(tab) {
     try {
       Utils.assertThrow(tab, "tab");
 
@@ -750,7 +750,7 @@ window.TabItems = {
   
   
   
-  _update: function(tab) {
+  _update: function TabItems__update(tab) {
     try {
       Utils.assertThrow(tab, "tab");
 
@@ -816,7 +816,7 @@ window.TabItems = {
   
   
   
-  link: function(tab){
+  link: function TabItems_link(tab){
     try {
       Utils.assertThrow(tab, "tab");
       Utils.assertThrow(!tab.tabItem, "shouldn't already be linked");
@@ -829,7 +829,7 @@ window.TabItems = {
   
   
   
-  unlink: function(tab) {
+  unlink: function TabItems_unlink(tab) {
     try {
       Utils.assertThrow(tab, "tab");
       Utils.assertThrow(tab.tabItem, "should already be linked");
@@ -854,7 +854,7 @@ window.TabItems = {
   
   
   
-  heartbeat: function() {
+  heartbeat: function TabItems_heartbeat() {
     if (!this._heartbeatOn)
       return;
 
@@ -878,7 +878,7 @@ window.TabItems = {
   
   
   
-  pausePainting: function() {
+  pausePainting: function TabItems_pausePainting() {
     this.paintingPaused++;
 
     if (this.isPaintingPaused() && this._heartbeatOn)
@@ -890,7 +890,7 @@ window.TabItems = {
   
   
   
-  resumePainting: function() {
+  resumePainting: function TabItems_resumePainting() {
     this.paintingPaused--;
 
     if (!this.isPaintingPaused() &&
@@ -905,14 +905,14 @@ window.TabItems = {
   
   
   
-  isPaintingPaused: function() {
+  isPaintingPaused: function TabItems_isPaintingPaused() {
     return this.paintingPaused > 0;
   },
 
   
   
   
-  register: function(item) {
+  register: function TabItems_register(item) {
     Utils.assert(item && item.isAnItem, 'item must be a TabItem');
     Utils.assert(this.items.indexOf(item) == -1, 'only register once per item');
     this.items.push(item);
@@ -921,7 +921,7 @@ window.TabItems = {
   
   
   
-  unregister: function(item) {
+  unregister: function TabItems_unregister(item) {
     var index = this.items.indexOf(item);
     if (index != -1)
       this.items.splice(index, 1);
@@ -930,7 +930,7 @@ window.TabItems = {
   
   
   
-  getItems: function() {
+  getItems: function TabItems_getItems() {
     return Utils.copy(this.items);
   },
 
@@ -940,7 +940,7 @@ window.TabItems = {
   
   
   
-  saveAll: function(saveImageData) {
+  saveAll: function TabItems_saveAll(saveImageData) {
     var items = this.getItems();
     items.forEach(function(item) {
       item.save(saveImageData);
@@ -952,7 +952,7 @@ window.TabItems = {
   
   
   
-  storageSanity: function(data) {
+  storageSanity: function TabItems_storageSanity(data) {
     var sane = true;
     if (!Utils.isRect(data.bounds)) {
       Utils.log('TabItems.storageSanity: bad bounds', data.bounds);
@@ -965,7 +965,7 @@ window.TabItems = {
   
   
   
-  reconnect: function(item) {
+  reconnect: function TabItems_reconnect(item) {
     var found = false;
 
     try{
@@ -1027,14 +1027,14 @@ window.TabItems = {
 
 
 
-var TabCanvas = function(tab, canvas) {
+function TabCanvas(tab, canvas) {
   this.init(tab, canvas);
 };
 
 TabCanvas.prototype = {
   
   
-  init: function(tab, canvas) {
+  init: function TabCanvas_init(tab, canvas) {
     this.tab = tab;
     this.canvas = canvas;
 
@@ -1047,7 +1047,7 @@ TabCanvas.prototype = {
 
   
   
-  paint: function(evt) {
+  paint: function TabCanvas_paint(evt) {
     var ctx = this.canvas.getContext("2d");
 
     var w = this.canvas.width;
@@ -1078,7 +1078,7 @@ TabCanvas.prototype = {
 
   
   
-  toImageData: function() {
+  toImageData: function TabCanvas_toImageData() {
     return this.canvas.toDataURL("image/png", "");
   }
 };

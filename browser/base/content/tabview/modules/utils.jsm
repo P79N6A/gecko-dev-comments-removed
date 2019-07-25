@@ -77,7 +77,7 @@ Point.prototype = {
   
   
   
-  distance: function(point) {
+  distance: function Point_distance(point) {
     var ax = this.x - point.x;
     var ay = this.y - point.y;
     return Math.sqrt((ax * ax) + (ay * ay));
@@ -133,7 +133,7 @@ Rect.prototype = {
   
   
   
-  intersects: function(rect) {
+  intersects: function Rect_intersects(rect) {
     return (rect.right > this.left &&
             rect.left < this.right &&
             rect.bottom > this.top &&
@@ -144,7 +144,7 @@ Rect.prototype = {
   
   
   
-  intersection: function(rect) {
+  intersection: function Rect_intersection(rect) {
     var box = new Rect(Math.max(rect.left, this.left), Math.max(rect.top, this.top), 0, 0);
     box.right = Math.min(rect.right, this.right);
     box.bottom = Math.min(rect.bottom, this.bottom);
@@ -161,7 +161,7 @@ Rect.prototype = {
   
   
   
-  contains: function(rect) {
+  contains: function Rect_contains(rect) {
     return (rect.left > this.left &&
             rect.right < this.right &&
             rect.top > this.top &&
@@ -171,28 +171,28 @@ Rect.prototype = {
   
   
   
-  center: function() {
+  center: function Rect_center() {
     return new Point(this.left + (this.width / 2), this.top + (this.height / 2));
   },
 
   
   
   
-  size: function() {
+  size: function Rect_size() {
     return new Point(this.width, this.height);
   },
 
   
   
   
-  position: function() {
+  position: function Rect_position() {
     return new Point(this.left, this.top);
   },
 
   
   
   
-  area: function() {
+  area: function Rect_area() {
     return this.width * this.height;
   },
 
@@ -203,7 +203,7 @@ Rect.prototype = {
   
   
   
-  inset: function(a, b) {
+  inset: function Rect_inset(a, b) {
     if (Utils.isPoint(a)) {
       b = a.y;
       a = a.x;
@@ -221,7 +221,7 @@ Rect.prototype = {
   
   
   
-  offset: function(a, b) {
+  offset: function Rect_offset(a, b) {
     if (Utils.isPoint(a)) {
       this.left += a.x;
       this.top += a.y;
@@ -234,7 +234,7 @@ Rect.prototype = {
   
   
   
-  equals: function(rect) {
+  equals: function Rect_equals(rect) {
     return (rect.left == this.left &&
             rect.top == this.top &&
             rect.width == this.width &&
@@ -244,7 +244,7 @@ Rect.prototype = {
   
   
   
-  union: function(a) {
+  union: function Rect_union(a) {
     var newLeft = Math.min(a.left, this.left);
     var newTop = Math.min(a.top, this.top);
     var newWidth = Math.max(a.right, this.right) - newLeft;
@@ -257,7 +257,7 @@ Rect.prototype = {
   
   
   
-  copy: function(a) {
+  copy: function Rect_copy(a) {
     this.left = a.left;
     this.top = a.top;
     this.width = a.width;
@@ -271,7 +271,7 @@ Rect.prototype = {
   
   
   
-  css: function() {
+  css: function Rect_css() {
     return {
       left: this.left,
       top: this.top,
@@ -314,7 +314,7 @@ Range.prototype = {
   
   
   
-  contains: function(value) {
+  contains: function Range_contains(value) {
     if (Utils.isNumber(value))
       return value >= this.min && value <= this.max;
     if (Utils.isRange(value))
@@ -330,7 +330,7 @@ Range.prototype = {
   
   
   
-  proportion: function(value, smooth) {
+  proportion: function Range_proportion(value, smooth) {
     if (value <= this.min)
       return 0;
     if (this.max <= value)
@@ -359,7 +359,7 @@ Range.prototype = {
   
   
   
-  scale: function(value) {
+  scale: function Range_scale(value) {
     if (value > 1)
       value = 1;
     if (value < 0)
@@ -380,7 +380,7 @@ Subscribable.prototype = {
   
   
   
-  addSubscriber: function(refObject, eventName, callback) {
+  addSubscriber: function Subscribable_addSubscriber(refObject, eventName, callback) {
     try {
       Utils.assertThrow(refObject, "refObject");
       Utils.assertThrow(typeof callback == "function", "callback must be a function");
@@ -416,7 +416,7 @@ Subscribable.prototype = {
   
   
   
-  removeSubscriber: function(refObject, eventName) {
+  removeSubscriber: function Subscribable_removeSubscriber(refObject, eventName) {
     try {
       Utils.assertThrow(refObject, "refObject");
       Utils.assertThrow(eventName && typeof eventName == "string",
@@ -437,7 +437,7 @@ Subscribable.prototype = {
   
   
   
-  _sendToSubscribers: function(eventName, eventInfo) {
+  _sendToSubscribers: function Subscribable__sendToSubscribers(eventName, eventInfo) {
     try {
       Utils.assertThrow(eventName && typeof eventName == "string",
           "eventName must be a non-empty string");
@@ -473,7 +473,7 @@ let Utils = {
   
   
   
-  log: function() {
+  log: function Utils_log() {
     var text = this.expandArgumentsForLog(arguments);
     var prefix = this.showTime ? Date.now() + ': ' : '';
     if (this.useConsole)    
@@ -486,7 +486,7 @@ let Utils = {
   
   
   
-  error: function() {
+  error: function Utils_error() {
     var text = this.expandArgumentsForLog(arguments);
     var prefix = this.showTime ? Date.now() + ': ' : '';
     if (this.useConsole)    
@@ -500,7 +500,7 @@ let Utils = {
   
   
   
-  trace: function() {
+  trace: function Utils_trace() {
     var text = this.expandArgumentsForLog(arguments);
     
     let stack = Error().stack.replace(/^.*?\n.*?\n/, "");
@@ -528,7 +528,7 @@ let Utils = {
   
   
   
-  assertThrow: function(condition, label) {
+  assertThrow: function Utils_assertThrow(condition, label) {
     if (!condition) {
       let text;
       if (typeof label != 'string')
@@ -546,7 +546,7 @@ let Utils = {
   
   
   
-  expandObject: function(obj) {
+  expandObject: function Utils_expandObject(obj) {
     var s = obj + ' = {';
     for (let prop in obj) {
       let value;
@@ -572,7 +572,7 @@ let Utils = {
   
   
   
-  expandArgumentsForLog: function(args) {
+  expandArgumentsForLog: function Utils_expandArgumentsForLog(args) {
     var that = this;
     return Array.map(args, function(arg) {
       return typeof arg == 'object' ? that.expandObject(arg) : arg;
@@ -584,28 +584,28 @@ let Utils = {
   
   
   
-  isRightClick: function(event) {
+  isRightClick: function Utils_isRightClick(event) {
     return event.button == 2;
   },
 
   
   
   
-  isDOMElement: function(object) {
+  isDOMElement: function Utils_isDOMElement(object) {
     return object instanceof Ci.nsIDOMElement;
   },
 
   
   
   
-  isNumber: function(n) {
+  isNumber: function Utils_isNumber(n) {
     return typeof n == 'number' && !isNaN(n);
   },
 
   
   
   
-  isRect: function(r) {
+  isRect: function Utils_isRect(r) {
     return (r &&
             this.isNumber(r.left) &&
             this.isNumber(r.top) &&
@@ -616,7 +616,7 @@ let Utils = {
   
   
   
-  isRange: function(r) {
+  isRange: function Utils_isRange(r) {
     return (r &&
             this.isNumber(r.min) &&
             this.isNumber(r.max));
@@ -625,14 +625,14 @@ let Utils = {
   
   
   
-  isPoint: function(p) {
+  isPoint: function Utils_isPoint(p) {
     return (p && this.isNumber(p.x) && this.isNumber(p.y));
   },
 
   
   
   
-  isPlainObject: function(obj) {
+  isPlainObject: function Utils_isPlainObject(obj) {
     
     
     if (!obj || Object.prototype.toString.call(obj) !== "[object Object]" ||
@@ -661,7 +661,7 @@ let Utils = {
   
   
   
-  isEmptyObject: function(obj) {
+  isEmptyObject: function Utils_isEmptyObject(obj) {
     for (let name in obj)
       return false;
     return true;
@@ -671,7 +671,7 @@ let Utils = {
   
   
   
-  copy: function(value) {
+  copy: function Utils_copy(value) {
     if (value && typeof value == 'object') {
       if (Array.isArray(value))
         return this.extend([], value);
@@ -683,7 +683,7 @@ let Utils = {
   
   
   
-  merge: function(first, second) {
+  merge: function Utils_merge(first, second) {
     Array.forEach(second, function(el) Array.push(first, el));
     return first;
   },
@@ -691,7 +691,7 @@ let Utils = {
   
   
   
-  extend: function() {
+  extend: function Utils_extend() {
 
     
     let target = arguments[0] || {};

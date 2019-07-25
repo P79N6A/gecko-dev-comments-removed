@@ -55,7 +55,7 @@
 
 
 
-var Trench = function(element, xory, type, edge) {
+function Trench(element, xory, type, edge) {
   
   
   

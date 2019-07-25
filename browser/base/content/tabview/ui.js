@@ -42,14 +42,12 @@
 
 
 
-(function() {
-
-window.Keys = { meta: false };
+let Keys = { meta: false };
 
 
 
 
-var UIManager = {
+let UI = {
   
   
   _frameInitalized: false,
@@ -88,7 +86,7 @@ var UIManager = {
   
   
   
-  init: function() {
+  init: function UI_init() {
     try {
       let self = this;
 
@@ -237,7 +235,7 @@ var UIManager = {
     }
   },
 
-  uninit: function() {
+  uninit: function UI_uninit() {
     TabItems.uninit();
     GroupItems.uninit();
     Storage.uninit();
@@ -253,7 +251,7 @@ var UIManager = {
   
   
   
-  getActiveTab: function() {
+  getActiveTab: function UI_getActiveTab() {
     return this._activeTab;
   },
 
@@ -266,7 +264,7 @@ var UIManager = {
   
   
   
-  setActiveTab: function(tab) {
+  setActiveTab: function UI_setActiveTab(tab) {
     if (tab == this._activeTab)
       return;
 
@@ -289,7 +287,7 @@ var UIManager = {
   
   
   
-  _isTabViewVisible: function() {
+  _isTabViewVisible: function UI__isTabViewVisible() {
     return gTabViewDeck.selectedIndex == 1;
   },
 
@@ -298,7 +296,7 @@ var UIManager = {
   
   
   
-  showTabView: function(zoomOut) {
+  showTabView: function UI_showTabView(zoomOut) {
     if (this._isTabViewVisible())
       return;
 
@@ -356,7 +354,7 @@ var UIManager = {
   
   
   
-  hideTabView: function() {
+  hideTabView: function UI_hideTabView() {
     if (!this._isTabViewVisible())
       return;
 
@@ -396,7 +394,7 @@ var UIManager = {
   
   
   
-  _setActiveTitleColor: function(set) {
+  _setActiveTitleColor: function UI__setActiveTitleColor(set) {
     
     var mainWindow = gWindow.document.getElementById("main-window");
     if (set)
@@ -409,7 +407,7 @@ var UIManager = {
   
   
   
-  _addTabActionHandlers: function() {
+  _addTabActionHandlers: function UI__addTabActionHandlers() {
     var self = this;
 
     this._eventListeners.close = function(tab) {
@@ -468,7 +466,7 @@ var UIManager = {
   
   
   
-  _removeTabActionHandlers: function() {
+  _removeTabActionHandlers: function UI__removeTabActionHandlers() {
     for (let name in this._eventListeners)
       AllTabs.unregister(name, this._eventListeners[name]);
   },
@@ -476,7 +474,7 @@ var UIManager = {
   
   
   
-  onTabSelect: function(tab) {
+  onTabSelect: function UI_onTabSelect(tab) {
     let currentTab = this._currentTab;
     this._currentTab = tab;
 
@@ -522,7 +520,7 @@ var UIManager = {
   
   
   
-  setReorderTabsOnHide: function(groupItem) {
+  setReorderTabsOnHide: function UI_setReorderTabsOnHide(groupItem) {
     if (this._isTabViewVisible()) {
       var index = this._reorderTabsOnHide.indexOf(groupItem);
       if (index == -1)
@@ -536,7 +534,7 @@ var UIManager = {
   
   
   
-  setReorderTabItemsOnShow: function(groupItem) {
+  setReorderTabItemsOnShow: function UI_setReorderTabItemsOnShow(groupItem) {
     if (!this._isTabViewVisible()) {
       var index = this._reorderTabItemsOnShow.indexOf(groupItem);
       if (index == -1)
@@ -547,15 +545,15 @@ var UIManager = {
   
   
   
-  _setTabViewFrameKeyHandlers: function() {
+  _setTabViewFrameKeyHandlers: function UI__setTabViewFrameKeyHandlers() {
     var self = this;
 
     iQ(window).keyup(function(event) {
-      if (!event.metaKey) window.Keys.meta = false;
+      if (!event.metaKey) Keys.meta = false;
     });
 
     iQ(window).keydown(function(event) {
-      if (event.metaKey) window.Keys.meta = true;
+      if (event.metaKey) Keys.meta = true;
 
       if (!self.getActiveTab() || iQ(":focus").length > 0) {
         
@@ -669,7 +667,7 @@ var UIManager = {
   
   
   
-  _createGroupItemOnDrag: function(e) {
+  _createGroupItemOnDrag: function UI__createGroupItemOnDrag(e) {
     const minSize = 60;
     const minMinSize = 15;
 
@@ -795,7 +793,7 @@ var UIManager = {
   
   
   
-  _resize: function(force) {
+  _resize: function UI__resize(force) {
     if (typeof force == "undefined")
       force = false;
 
@@ -880,7 +878,7 @@ var UIManager = {
   
   
   
-  _addDevMenu: function() {
+  _addDevMenu: function UI__addDevMenu() {
     try {
       var self = this;
 
@@ -952,7 +950,7 @@ var UIManager = {
   
   
   
-  _reset: function() {
+  _reset: function UI__reset() {
     Storage.wipe();
     location.href = "";
   },
@@ -960,7 +958,7 @@ var UIManager = {
   
   
   
-  _storageSanity: function(data) {
+  _storageSanity: function UI__storageSanity(data) {
     if (Utils.isEmptyObject(data))
       return true;
 
@@ -976,7 +974,7 @@ var UIManager = {
   
   
   
-  _save: function() {
+  _save: function UI__save() {
     if (!this._frameInitalized)
       return;
 
@@ -992,7 +990,7 @@ var UIManager = {
   
   
   
-  _saveAll: function() {
+  _saveAll: function UI__saveAll() {
     this._save();
     GroupItems.saveAll();
     TabItems.saveAll();
@@ -1002,7 +1000,7 @@ var UIManager = {
   
   
   
-  _arrangeBySite: function() {
+  _arrangeBySite: function UI__arrangeBySite() {
     function putInGroupItem(set, key) {
       var groupItem = GroupItems.getGroupItemWithTitle(key);
       if (groupItem) {
@@ -1050,7 +1048,4 @@ var UIManager = {
 };
 
 
-window.UI = UIManager;
-window.UI.init();
-
-})();
+UI.init();

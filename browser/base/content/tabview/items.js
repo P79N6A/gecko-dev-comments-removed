@@ -57,7 +57,7 @@
 
 
 
-window.Item = function() {
+function Item() {
   
   
   this.isAnItem = true;
@@ -138,14 +138,14 @@ window.Item = function() {
   this.isDragging = false;
 };
 
-window.Item.prototype = {
+Item.prototype = {
   
   
   
   
   
   
-  _init: function(container) {
+  _init: function Item__init(container) {
     Utils.assert(typeof this.addSubscriber == 'function' && 
         typeof this.removeSubscriber == 'function' && 
         typeof this._sendToSubscribers == 'function',
@@ -239,7 +239,7 @@ window.Item.prototype = {
   
   
   
-  getBounds: function() {
+  getBounds: function Item_getBounds() {
     Utils.assert(Utils.isRect(this.bounds), 'this.bounds');
     return new Rect(this.bounds);
   },
@@ -247,7 +247,7 @@ window.Item.prototype = {
   
   
   
-  overlapsWithOtherItems: function() {
+  overlapsWithOtherItems: function Item_overlapsWithOtherItems() {
     var self = this;
     var items = Items.getTopLevelItems();
     var bounds = this.getBounds();
@@ -268,7 +268,7 @@ window.Item.prototype = {
   
   
   
-  setPosition: function(left, top, immediately) {
+  setPosition: function Item_setPosition(left, top, immediately) {
     Utils.assert(Utils.isRect(this.bounds), 'this.bounds');
     this.setBounds(new Rect(left, top, this.bounds.width, this.bounds.height), immediately);
   },
@@ -282,7 +282,7 @@ window.Item.prototype = {
   
   
   
-  setSize: function(width, height, immediately) {
+  setSize: function Item_setSize(width, height, immediately) {
     Utils.assert(Utils.isRect(this.bounds), 'this.bounds');
     this.setBounds(new Rect(this.bounds.left, this.bounds.top, width, height), immediately);
   },
@@ -290,7 +290,7 @@ window.Item.prototype = {
   
   
   
-  setUserSize: function() {
+  setUserSize: function Item_setUserSize() {
     Utils.assert(Utils.isRect(this.bounds), 'this.bounds');
     this.userSize = new Point(this.bounds.width, this.bounds.height);
     this.save();
@@ -299,14 +299,14 @@ window.Item.prototype = {
   
   
   
-  getZ: function() {
+  getZ: function Item_getZ() {
     return this.zIndex;
   },
 
   
   
   
-  setRotation: function(degrees) {
+  setRotation: function Item_setRotation(degrees) {
     var value = degrees ? "rotate(%deg)".replace(/%/, degrees) : null;
     iQ(this.container).css({"-moz-transform": value});
   },
@@ -314,7 +314,7 @@ window.Item.prototype = {
   
   
   
-  setParent: function(parent) {
+  setParent: function Item_setParent(parent) {
     this.parent = parent;
     this.removeTrenches();
     this.save();
@@ -323,7 +323,7 @@ window.Item.prototype = {
   
   
   
-  pushAway: function() {
+  pushAway: function Item_pushAway() {
     var buffer = Math.floor(Items.defaultGutter / 2);
 
     var items = Items.getTopLevelItems();
@@ -505,7 +505,7 @@ window.Item.prototype = {
   
   
   
-  _updateDebugBounds: function() {
+  _updateDebugBounds: function Item__updateDebugBounds() {
     if (this.$debug) {
       this.$debug.css(this.bounds.css());
     }
@@ -514,7 +514,7 @@ window.Item.prototype = {
   
   
   
-  setTrenches: function(rect) {
+  setTrenches: function Item_setTrenches(rect) {
     if (this.parent !== null)
       return;
 
@@ -541,7 +541,7 @@ window.Item.prototype = {
   
   
   
-  removeTrenches: function() {
+  removeTrenches: function Item_removeTrenches() {
     for (var edge in this.borderTrenches) {
       Trenches.unregister(this.borderTrenches[edge]); 
     }
@@ -572,7 +572,7 @@ window.Item.prototype = {
   
   
   
-  draggable: function() {
+  draggable: function Item_draggable() {
     try {
       Utils.assert(this.dragOptions, 'dragOptions');
 
@@ -721,7 +721,7 @@ window.Item.prototype = {
   
   
   
-  droppable: function(value) {
+  droppable: function Item_droppable(value) {
     try {
       var $container = iQ(this.container);
       if (value)
@@ -739,7 +739,7 @@ window.Item.prototype = {
   
   
   
-  resizable: function(value) {
+  resizable: function Item_resizable(value) {
     try {
       var $container = iQ(this.container);
       iQ('.iq-resizable-handle', $container).remove();
@@ -823,7 +823,7 @@ window.Item.prototype = {
 
 
 
-window.Items = {
+let Items = {
   
   
   
@@ -832,14 +832,14 @@ window.Items = {
   
   
   
-  item: function(el) {
+  item: function Items_item(el) {
     return iQ(el).data('item');
   },
 
   
   
   
-  getTopLevelItems: function() {
+  getTopLevelItems: function Items_getTopLevelItems() {
     var items = [];
 
     iQ('.tab, .groupItem, .info-item').each(function(elem) {
@@ -855,7 +855,7 @@ window.Items = {
   
   
   
-  getPageBounds: function() {
+  getPageBounds: function Items_getPageBounds() {
     var width = Math.max(100, window.innerWidth);
     var height = Math.max(100, window.innerHeight);
     return new Rect(0, 0, width, height);
@@ -864,7 +864,7 @@ window.Items = {
   
   
   
-  getSafeWindowBounds: function() {
+  getSafeWindowBounds: function Items_getSafeWindowBounds() {
     
     var gutter = Items.defaultGutter;
     
@@ -895,7 +895,7 @@ window.Items = {
   
   
   
-  arrange: function(items, bounds, options) {
+  arrange: function Items_arrange(items, bounds, options) {
     var animate;
     if (!options || typeof options.animate == 'undefined')
       animate = true;
@@ -985,7 +985,7 @@ window.Items = {
   
   
   
-  unsquish: function(pairs, ignore) {
+  unsquish: function Items_unsquish(pairs, ignore) {
     var pairsProvided = (pairs ? true : false);
     if (!pairsProvided) {
       var items = Items.getTopLevelItems();
