@@ -456,7 +456,7 @@ abstract public class GeckoApp
         
         String scheme = Uri.parse(tab.getURL()).getScheme();
         share.setEnabled(!(scheme.equals("about") || scheme.equals("chrome") ||
-                           scheme.equals("file")));
+                           scheme.equals("file") || scheme.equals("resource")));
 
         
         saveAsPDF.setEnabled(!(tab.getURL().equals("about:home") ||
@@ -1677,9 +1677,10 @@ abstract public class GeckoApp
         if (uri != null && uri.length() > 0)
             passedUri = mLastTitle = uri;
 
+        mRestoreSession |= getProfile().shouldRestoreSession();
         if (passedUri == null || passedUri.equals("about:home")) {
             
-            if (! getProfile().hasSession()) {
+            if (!mRestoreSession) {
                 mBrowserToolbar.updateTabCount(1);
                 showAboutHome();
             }
@@ -1742,9 +1743,15 @@ abstract public class GeckoApp
 
 
             mLayerController = new LayerController(this);
-            mPlaceholderLayerClient = new PlaceholderLayerClient(mLayerController, mLastViewport);
+            View v = mLayerController.getView();
 
-            mGeckoLayout.addView(mLayerController.getView(), 0);
+            mPlaceholderLayerClient = new PlaceholderLayerClient(mLayerController, mLastViewport);
+            if (!mPlaceholderLayerClient.loadScreenshot()) {
+                
+                v.setBackgroundColor(Color.WHITE);
+            }
+
+            mGeckoLayout.addView(v, 0);
         }
 
         mPluginContainer = (AbsoluteLayout) findViewById(R.id.plugin_container);
@@ -2784,6 +2791,7 @@ abstract public class GeckoApp
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Add", args.toString()));
     }
 
+    
     public GeckoLayerClient getLayerClient() { return mLayerClient; }
     public LayerController getLayerController() { return mLayerController; }
 

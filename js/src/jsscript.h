@@ -462,16 +462,6 @@ struct JSScript : public js::gc::Cell
     uint16_t        nClosedArgs; 
     uint16_t        nClosedVars; 
 
-    
-
-
-
-
-#if JS_BITS_PER_WORD == 64
-#define JS_SCRIPT_INLINE_DATA_LIMIT 4
-    uint8_t         inlineData[JS_SCRIPT_INLINE_DATA_LIMIT];
-#endif
-
     const char      *filename;  
     JSAtom          **atoms;    
   private:

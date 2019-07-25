@@ -39,8 +39,8 @@
 #define nsAHttpConnection_h__
 
 #include "nsISupports.h"
+#include "nsAHttpTransaction.h"
 
-class nsAHttpTransaction;
 class nsHttpRequestHead;
 class nsHttpResponseHead;
 class nsHttpConnectionInfo;
@@ -122,10 +122,16 @@ public:
 
     
     virtual bool IsReused() = 0;
-    
+    virtual void   DontReuse() = 0;
+
     
     
     virtual nsresult PushBack(const char *data, PRUint32 length) = 0;
+
+    
+    
+    
+    virtual bool IsProxyConnectInProgress() = 0;
 
     
     
@@ -139,6 +145,14 @@ public:
     
     
     virtual nsISocketTransport *Transport() = 0;
+
+    
+    
+    virtual PRUint32 CancelPipeline(nsresult originalReason) = 0;
+
+    
+    virtual nsAHttpTransaction::Classifier Classification() = 0;
+    virtual void Classify(nsAHttpTransaction::Classifier newclass) = 0;
 };
 
 #define NS_DECL_NSAHTTPCONNECTION \
@@ -153,10 +167,15 @@ public:
     void GetSecurityInfo(nsISupports **); \
     bool IsPersistent(); \
     bool IsReused(); \
+    void DontReuse();  \
     nsresult PushBack(const char *, PRUint32); \
+    bool IsProxyConnectInProgress(); \
     bool LastTransactionExpectedNoContent(); \
-    void   SetLastTransactionExpectedNoContent(bool); \
+    void SetLastTransactionExpectedNoContent(bool); \
     nsHttpConnection *TakeHttpConnection(); \
-    nsISocketTransport *Transport();
+    nsISocketTransport *Transport();        \
+    PRUint32 CancelPipeline(nsresult originalReason);   \
+    nsAHttpTransaction::Classifier Classification();    \
+    void Classify(nsAHttpTransaction::Classifier);
 
 #endif 

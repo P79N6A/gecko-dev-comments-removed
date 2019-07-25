@@ -587,27 +587,16 @@ private:
 
 struct KeyframeData {
   float mKey;
+  PRUint32 mIndex; 
   nsCSSKeyframeRule *mRule;
 };
 
-typedef InfallibleTArray<KeyframeData> KeyframeDataArray;
-
-static PLDHashOperator
-AppendKeyframeData(const float &aKey, nsCSSKeyframeRule *aRule, void *aData)
-{
-  KeyframeDataArray *array = static_cast<KeyframeDataArray*>(aData);
-  KeyframeData *data = array->AppendElement();
-  data->mKey = aKey;
-  data->mRule = aRule;
-  return PL_DHASH_NEXT;
-}
-
 struct KeyframeDataComparator {
   bool Equals(const KeyframeData& A, const KeyframeData& B) const {
-    return A.mKey == B.mKey;
+    return A.mKey == B.mKey && A.mIndex == B.mIndex;
   }
   bool LessThan(const KeyframeData& A, const KeyframeData& B) const {
-    return A.mKey < B.mKey;
+    return A.mKey < B.mKey || (A.mKey == B.mKey && A.mIndex < B.mIndex);
   }
 };
 
@@ -688,8 +677,12 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
     
     
     
-    nsDataHashtable<PercentageHashKey, nsCSSKeyframeRule*> keyframes;
-    keyframes.Init(16); 
+    
+    
+    
+
+    AutoInfallibleTArray<KeyframeData, 16> sortedKeyframes;
+
     for (PRUint32 ruleIdx = 0, ruleEnd = rule->StyleRuleCount();
          ruleIdx != ruleEnd; ++ruleIdx) {
       css::Rule* cssRule = rule->GetStyleRuleAt(ruleIdx);
@@ -707,13 +700,14 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
         
         
         if (0.0f <= key && key <= 1.0f) {
-          keyframes.Put(key, kfRule);
+          KeyframeData *data = sortedKeyframes.AppendElement();
+          data->mKey = key;
+          data->mIndex = ruleIdx;
+          data->mRule = kfRule;
         }
       }
     }
 
-    KeyframeDataArray sortedKeyframes;
-    keyframes.EnumerateRead(AppendKeyframeData, &sortedKeyframes);
     sortedKeyframes.Sort(KeyframeDataComparator());
 
     if (sortedKeyframes.Length() == 0) {
@@ -742,18 +736,37 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
         continue;
       }
 
+      
+      
+      
+      
+      AutoInfallibleTArray<PRUint32, 16> keyframesWithProperty;
+      float lastKey = 100.0f; 
+      for (PRUint32 kfIdx = 0, kfEnd = sortedKeyframes.Length();
+           kfIdx != kfEnd; ++kfIdx) {
+        KeyframeData &kf = sortedKeyframes[kfIdx];
+        if (!kf.mRule->Declaration()->HasProperty(prop)) {
+          continue;
+        }
+        if (kf.mKey == lastKey) {
+          
+          keyframesWithProperty[keyframesWithProperty.Length() - 1] = kfIdx;
+        } else {
+          keyframesWithProperty.AppendElement(kfIdx);
+        }
+        lastKey = kf.mKey;
+      }
+
       AnimationProperty &propData = *aDest.mProperties.AppendElement();
       propData.mProperty = prop;
 
       KeyframeData *fromKeyframe = nsnull;
       nsRefPtr<nsStyleContext> fromContext;
       bool interpolated = true;
-      for (PRUint32 kfIdx = 0, kfEnd = sortedKeyframes.Length();
-           kfIdx != kfEnd; ++kfIdx) {
+      for (PRUint32 wpIdx = 0, wpEnd = keyframesWithProperty.Length();
+           wpIdx != wpEnd; ++wpIdx) {
+        PRUint32 kfIdx = keyframesWithProperty[wpIdx];
         KeyframeData &toKeyframe = sortedKeyframes[kfIdx];
-        if (!toKeyframe.mRule->Declaration()->HasProperty(prop)) {
-          continue;
-        }
 
         nsRefPtr<nsStyleContext> toContext =
           resolvedStyles.Get(mPresContext, aStyleContext, toKeyframe.mRule);

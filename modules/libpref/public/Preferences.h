@@ -352,6 +352,12 @@ public:
 
 protected:
   nsresult NotifyServiceObservers(const char *aSubject);
+  
+
+
+
+
+
   nsresult UseDefaultPrefFile();
   nsresult UseUserPrefFile();
   nsresult ReadAndOwnUserPrefFile(nsIFile *aFile);

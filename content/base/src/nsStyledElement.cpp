@@ -220,40 +220,6 @@ nsStyledElementNotElementCSSInlineStyle::GetInlineStyleRule()
   return nsnull;
 }
 
-nsresult
-nsStyledElementNotElementCSSInlineStyle::BindToTree(nsIDocument* aDocument,
-                                                    nsIContent* aParent,
-                                                    nsIContent* aBindingParent,
-                                                    bool aCompileEventHandlers)
-{
-  nsresult rv = nsStyledElementBase::BindToTree(aDocument, aParent,
-                                                aBindingParent,
-                                                aCompileEventHandlers);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aDocument && HasID() && !GetBindingParent()) {
-    aDocument->AddToIdTable(this, DoGetID());
-  }
-
-  if (!IsXUL()) {
-    
-    
-    ReparseStyleAttribute(false);
-  }
-
-  return NS_OK;
-}
-
-void
-nsStyledElementNotElementCSSInlineStyle::UnbindFromTree(bool aDeep,
-                                                        bool aNullParent)
-{
-  RemoveFromIdTable();
-
-  nsStyledElementBase::UnbindFromTree(aDeep, aNullParent);
-}
-
-
 
 
 

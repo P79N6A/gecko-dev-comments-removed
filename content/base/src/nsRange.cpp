@@ -2172,10 +2172,21 @@ nsRange::SurroundContents(nsIDOMNode* aNewParent)
   }
 
   
+  
+  PRUint16 nodeType;
+  nsresult res = aNewParent->GetNodeType(&nodeType);
+  if (NS_FAILED(res)) return res;
+  if (nodeType == nsIDOMNode::DOCUMENT_NODE ||
+      nodeType == nsIDOMNode::DOCUMENT_TYPE_NODE ||
+      nodeType == nsIDOMNode::DOCUMENT_FRAGMENT_NODE) {
+    return NS_ERROR_DOM_INVALID_NODE_TYPE_ERR;
+  }
+
+  
 
   nsCOMPtr<nsIDOMDocumentFragment> docFrag;
 
-  nsresult res = ExtractContents(getter_AddRefs(docFrag));
+  res = ExtractContents(getter_AddRefs(docFrag));
 
   if (NS_FAILED(res)) return res;
   if (!docFrag) return NS_ERROR_FAILURE;

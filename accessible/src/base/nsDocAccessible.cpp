@@ -1467,14 +1467,8 @@ nsDocAccessible::RecreateAccessible(nsIContent* aContent)
   
   
 
-  
-  nsAccessible* container = GetContainerAccessible(aContent);
-  if (container) {
-    
-    UpdateTree(container, aContent, false);
-    container->UpdateChildren();
-    UpdateTree(container, aContent, true);
-  }
+  ContentRemoved(aContent->GetParent(), aContent);
+  ContentInserted(aContent->GetParent(), aContent, aContent->GetNextSibling());
 }
 
 void
@@ -1623,7 +1617,7 @@ nsDocAccessible::AddDependentIDsFor(nsAccessible* aRelProvider,
         continue;
     }
 
-    IDRefsIterator iter(aRelProvider->GetContent(), relAttr);
+    IDRefsIterator iter(this, aRelProvider->GetContent(), relAttr);
     while (true) {
       const nsDependentSubstring id = iter.NextID();
       if (id.IsEmpty())
@@ -1674,7 +1668,7 @@ nsDocAccessible::RemoveDependentIDsFor(nsAccessible* aRelProvider,
     if (aRelAttr && aRelAttr != *kRelationAttrs[idx])
       continue;
 
-    IDRefsIterator iter(aRelProvider->GetContent(), relAttr);
+    IDRefsIterator iter(this, aRelProvider->GetContent(), relAttr);
     while (true) {
       const nsDependentSubstring id = iter.NextID();
       if (id.IsEmpty())
@@ -1717,8 +1711,7 @@ nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
     
     
     
-    HandleNotification<nsDocAccessible, nsIContent>
-      (this, &nsDocAccessible::RecreateAccessible, aElement);
+    RecreateAccessible(aElement);
 
     return true;
   }
@@ -1731,9 +1724,7 @@ nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
 
     
     
-    mNotificationController->ScheduleNotification<nsDocAccessible, nsIContent>
-      (this, &nsDocAccessible::RecreateAccessible, aElement);
-
+    RecreateAccessible(aElement);
     return true;
   }
 
@@ -1742,8 +1733,7 @@ nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
     
     
     
-    HandleNotification<nsDocAccessible, nsIContent>
-      (this, &nsDocAccessible::RecreateAccessible, aElement);
+    RecreateAccessible(aElement);
 
     return true;
   }

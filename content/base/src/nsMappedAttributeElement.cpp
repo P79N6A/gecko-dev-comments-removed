@@ -42,28 +42,6 @@
 #include "nsIDocument.h"
 
 nsresult
-nsMappedAttributeElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                                     nsIContent* aBindingParent,
-                                     bool aCompileEventHandlers)
-{
-  nsresult rv = nsMappedAttributeElementBase::BindToTree(aDocument, aParent,
-                                                         aBindingParent,
-                                                         aCompileEventHandlers);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aDocument) {
-    
-    
-    nsHTMLStyleSheet* sheet = aDocument->GetAttributeStyleSheet();
-    if (sheet) {
-      mAttrsAndChildren.SetMappedAttrStyleSheet(sheet);
-    }
-  }
-
-  return rv;
-}
-
-nsresult
 nsMappedAttributeElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
 {
   mAttrsAndChildren.WalkMappedAttributeStyleRules(aRuleWalker);

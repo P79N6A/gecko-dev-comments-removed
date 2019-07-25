@@ -57,6 +57,8 @@
 #include "nsThreadUtils.h"
 #include "nsIThreadInternal.h"
 #include "nsContentUtils.h"
+#include "nsIRequest.h"
+
 #include "nsFrameManager.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIXPConnect.h"
@@ -2849,6 +2851,13 @@ void nsHTMLMediaElement::SetRequestHeaders(nsIHttpChannel* aChannel)
 {
   
   SetAcceptHeader(aChannel);
+
+  
+  
+  nsLoadFlags loadflags;
+  aChannel->GetLoadFlags(&loadflags);
+  loadflags |= nsIRequest::INHIBIT_PIPELINE;
+  aChannel->SetLoadFlags(loadflags);
 
   
   

@@ -39,6 +39,7 @@
 #define nsNodeUtils_h___
 
 #include "nsINode.h"
+#include "nsIContent.h"
 
 struct CharacterDataChangeInfo;
 struct JSContext;
@@ -140,7 +141,16 @@ public:
 
 
 
-  static void ParentChainChanged(nsIContent *aContent);
+  static inline void ParentChainChanged(nsIContent *aContent)
+  {
+    nsINode::nsSlots* slots = aContent->GetExistingSlots();
+    if (slots && !slots->mMutationObservers.IsEmpty()) {
+      NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(slots->mMutationObservers,
+                                         nsIMutationObserver,
+                                         ParentChainChanged,
+                                         (aContent));
+    }
+  }
 
   
 

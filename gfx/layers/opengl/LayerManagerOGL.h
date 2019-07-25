@@ -254,16 +254,6 @@ public:
   { return mThebesLayerCallbackData; }
 
   
-  
-  
-  
-  GLContext *glForResources() const {
-    if (mGLContext->GetSharedContext())
-      return mGLContext->GetSharedContext();
-    return mGLContext;
-  }
-
-  
 
 
   void CallThebesLayerDrawCallback(ThebesLayer* aLayer,

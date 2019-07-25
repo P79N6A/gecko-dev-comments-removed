@@ -40,6 +40,12 @@
 
 
 
+
+
+
+
+
+
 #include "mozilla/Util.h"
 
 #include "nsContentSink.h"
@@ -49,7 +55,6 @@
 #include "nsIHTMLContentSink.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsIParser.h"
 #include "nsScriptLoader.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
@@ -154,6 +159,10 @@ static const contentCreatorCallback sContentCreatorCallbacks[] = {
 
 class SinkContext;
 class HTMLContentSink;
+
+
+
+
 
 class HTMLContentSink : public nsContentSink,
 #ifdef DEBUG

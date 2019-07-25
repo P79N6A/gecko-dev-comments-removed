@@ -113,7 +113,6 @@ public:
                   nsIAsyncInputStream  **responseBody);
 
     
-    PRUint8                Caps()           { return mCaps; }
     nsHttpConnectionInfo  *ConnectionInfo() { return mConnInfo; }
     nsHttpResponseHead    *ResponseHead()   { return mHaveAllHeaders ? mResponseHead : nsnull; }
     nsISupports           *SecurityInfo()   { return mSecurityInfo; }
@@ -135,9 +134,11 @@ public:
     PRInt32    Priority()                 { return mPriority; }
 
     const TimingStruct& Timings() const { return mTimings; }
+    enum Classifier Classification() { return mClassification; }
 
 private:
     nsresult Restart();
+    nsresult RestartInProgress();
     char    *LocateHttpStart(char *buf, PRUint32 len,
                              bool aAllowPartialMatch);
     nsresult ParseLine(char *line);
@@ -147,6 +148,9 @@ private:
     nsresult HandleContent(char *, PRUint32 count, PRUint32 *contentRead, PRUint32 *contentRemaining);
     nsresult ProcessData(char *, PRUint32, PRUint32 *);
     void     DeleteSelfOnConsumerThread();
+
+    Classifier Classify();
+    void       CancelPipeline(PRUint32 reason);
 
     static NS_METHOD ReadRequestSegment(nsIInputStream *, void *, const char *,
                                         PRUint32, PRUint32, PRUint32 *);
@@ -200,6 +204,9 @@ private:
 
     PRUint16                        mRestartCount;        
     PRUint8                         mCaps;
+    enum Classifier                 mClassification;
+    PRInt32                         mPipelinePosition;
+    PRInt64                         mMaxPipelineObjectSize;
 
     
     
@@ -222,6 +229,66 @@ private:
     
     
     
+
+    
+    PRInt64                         mToReadBeforeRestart;
+    bool                            mReportedStart;
+    bool                            mReportedResponseHeader;
+
+    
+    nsHttpResponseHead             *mForTakeResponseHead;
+    bool                            mTakenResponseHeader;
+
+    class RestartVerifier 
+    {
+
+        
+        
+        
+        
+        
+        
+        
+
+    public:
+        RestartVerifier()
+            : mContentLength(-1)
+            , mAlreadyProcessed(0)
+            , mActive(false)
+            , mSetup(false)
+        {}
+        ~RestartVerifier() {}
+        
+        void Set(PRInt64 contentLength, nsHttpResponseHead *head);
+        bool Verify(PRInt64 contentLength, nsHttpResponseHead *head);
+        bool Active() { return mActive; }
+        void SetActive(bool val) { mActive = val; }
+        bool IsSetup() { return mSetup; }
+        PRInt64 AlreadyProcessed() { return mAlreadyProcessed; }
+        void SetAlreadyProcessed(PRInt64 val) { mAlreadyProcessed = val; }
+
+    private:
+        
+        
+
+        PRInt64                         mContentLength;
+        nsCString                       mETag;
+        nsCString                       mLastModified;
+        nsCString                       mContentRange;
+        nsCString                       mContentEncoding;
+        nsCString                       mTransferEncoding;
+
+        
+        
+        
+        PRInt64                         mAlreadyProcessed;
+
+        
+        bool                            mActive;
+
+        
+        bool                            mSetup;
+    } mRestartInProgressVerifier;
 };
 
 #endif 

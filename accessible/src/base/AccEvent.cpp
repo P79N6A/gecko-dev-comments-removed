@@ -48,6 +48,7 @@
 #include "nsXULTreeAccessible.h"
 #endif
 #include "nsAccEvent.h"
+#include "States.h"
 
 #include "nsIDOMDocument.h"
 #include "nsEventStateManager.h"
@@ -55,6 +56,8 @@
 #ifdef MOZ_XUL
 #include "nsIDOMXULMultSelectCntrlEl.h"
 #endif
+
+using namespace mozilla::a11y;
 
 
 
@@ -254,6 +257,10 @@ AccTextChangeEvent::
   , mIsInserted(aIsInserted)
   , mModifiedText(aModifiedText)
 {
+  
+  
+   mIsFromUserInput = mAccessible->State() &
+    (states::FOCUSED | states::EDITABLE);
 }
 
 already_AddRefed<nsAccEvent>

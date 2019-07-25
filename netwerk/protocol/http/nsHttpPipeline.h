@@ -60,8 +60,6 @@ public:
     nsHttpPipeline();
     virtual ~nsHttpPipeline();
 
-    nsresult AddTransaction(nsAHttpTransaction *);
-
 private:
     nsresult FillSendBuf();
     
@@ -84,6 +82,9 @@ private:
         return mResponseQ[i];
     }
 
+    
+    nsHttpPipeline *QueryPipeline();
+
     nsAHttpConnection            *mConnection;
     nsTArray<nsAHttpTransaction*> mRequestQ;  
     nsTArray<nsAHttpTransaction*> mResponseQ; 
@@ -98,6 +99,10 @@ private:
 
     
     bool mClosed;
+
+    
+    
+    bool mUtilizedPipeline;
 
     
     nsAHttpSegmentReader *mReader;

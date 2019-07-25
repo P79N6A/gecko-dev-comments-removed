@@ -685,6 +685,15 @@ NS_IMETHODIMP imgRequest::OnStopDecode(imgIRequest *aRequest,
                                               aStatusArg);
   }
 
+  if (NS_FAILED(aStatus)) {
+    
+    
+
+    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+    if (os)
+      os->NotifyObservers(mURI, "net:failed-to-process-uri", nsnull);
+  }
+
   
   
   

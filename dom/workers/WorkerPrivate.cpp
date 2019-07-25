@@ -1286,11 +1286,14 @@ public:
 
     
     
-    mWorkerRunnable->Dispatch(nsnull);
+    
+    aRunnable->Run();
 
     
     
-    return aRunnable->Run();
+    mWorkerRunnable->Dispatch(nsnull);
+
+    return NS_OK;
   }
 
   NS_IMETHOD
