@@ -301,11 +301,11 @@ StackSpace::popSegmentForInvoke(const InvokeArgsGuard &ag)
 }
 
 bool
-StackSpace::getSegmentAndFrame(JSContext *cx, uintN vplen, uintN nfixed,
+StackSpace::getSegmentAndFrame(JSContext *cx, uintN vplen, uintN nslots,
                                FrameGuard *fg) const
 {
     Value *start = firstUnused();
-    uintN nvals = VALUES_PER_STACK_SEGMENT + vplen + VALUES_PER_STACK_FRAME + nfixed;
+    uintN nvals = VALUES_PER_STACK_SEGMENT + vplen + VALUES_PER_STACK_FRAME + nslots;
     if (!ensureSpace(cx, start, nvals))
         return false;
 
@@ -363,7 +363,7 @@ FrameGuard::~FrameGuard()
 bool
 StackSpace::getExecuteFrame(JSContext *cx, JSScript *script, ExecuteFrameGuard *fg) const
 {
-    return getSegmentAndFrame(cx, 2, script->nfixed, fg);
+    return getSegmentAndFrame(cx, 2, script->nslots, fg);
 }
 
 void
@@ -392,9 +392,9 @@ StackSpace::pushDummyFrame(JSContext *cx, JSObject &scopeChain, DummyFrameGuard 
 }
 
 bool
-StackSpace::getGeneratorFrame(JSContext *cx, uintN vplen, uintN nfixed, GeneratorFrameGuard *fg)
+StackSpace::getGeneratorFrame(JSContext *cx, uintN vplen, uintN nslots, GeneratorFrameGuard *fg)
 {
-    return getSegmentAndFrame(cx, vplen, nfixed, fg);
+    return getSegmentAndFrame(cx, vplen, nslots, fg);
 }
 
 void
