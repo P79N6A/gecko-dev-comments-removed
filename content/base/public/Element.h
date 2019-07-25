@@ -143,6 +143,37 @@ public:
                                         NS_EVENT_STATE_FULL_SCREEN);
   }
 
+  
+
+
+
+  nsEventStates StyleState() const {
+    if (!HasLockedStyleStates()) {
+      return mState;
+    }
+    return StyleStateFromLocks();
+  };
+
+  
+
+
+  nsEventStates LockedStyleStates() const;
+
+  
+
+
+  void LockStyleStates(nsEventStates aStates);
+
+  
+
+
+  void UnlockStyleStates(nsEventStates aStates);
+
+  
+
+
+  void ClearStyleStateLocks();
+
 protected:
   
 
@@ -183,6 +214,11 @@ private:
   friend class Link;
 
   void NotifyStateChange(nsEventStates aStates);
+
+  void NotifyStyleStateChange(nsEventStates aStates);
+
+  
+  nsEventStates StyleStateFromLocks() const;
 
   
   

@@ -1262,7 +1262,7 @@ nsCSSRuleProcessor::GetWindowsThemeIdentifier()
 nsEventStates
 nsCSSRuleProcessor::GetContentState(Element* aElement)
 {
-  nsEventStates state = aElement->State();
+  nsEventStates state = aElement->StyleState();
 
   
   
@@ -1282,7 +1282,7 @@ nsCSSRuleProcessor::GetContentState(Element* aElement)
 bool
 nsCSSRuleProcessor::IsLink(Element* aElement)
 {
-  nsEventStates state = aElement->State();
+  nsEventStates state = aElement->StyleState();
   return state.HasAtLeastOneOfStates(NS_EVENT_STATE_VISITED | NS_EVENT_STATE_UNVISITED);
 }
 

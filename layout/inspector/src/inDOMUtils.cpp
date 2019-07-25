@@ -357,3 +357,103 @@ inDOMUtils::GetUsedFontFaces(nsIDOMRange* aRange,
 {
   return static_cast<nsRange*>(aRange)->GetUsedFontFaces(aFontFaceList);
 }
+
+static nsEventStates
+GetStatesForPseudoClass(const nsAString& aStatePseudo)
+{
+  
+  
+  static const nsEventStates sPseudoClassStates[] = {
+#define CSS_PSEUDO_CLASS(_name, _value) \
+    nsEventStates(),
+#define CSS_STATE_PSEUDO_CLASS(_name, _value, _states) \
+    _states,
+#include "nsCSSPseudoClassList.h"
+#undef CSS_STATE_PSEUDO_CLASS
+#undef CSS_PSEUDO_CLASS
+
+    
+    
+    nsEventStates(),
+    nsEventStates()
+  };
+  PR_STATIC_ASSERT(NS_ARRAY_LENGTH(sPseudoClassStates) ==
+                   nsCSSPseudoClasses::ePseudoClass_NotPseudoClass + 1);
+
+  nsCOMPtr<nsIAtom> atom = do_GetAtom(aStatePseudo);
+
+  
+  
+  if (nsCSSPseudoClasses::GetPseudoType(atom) ==
+      nsCSSPseudoClasses::ePseudoClass_mozAnyLink) {
+    return nsEventStates();
+  }
+  
+  
+  return sPseudoClassStates[nsCSSPseudoClasses::GetPseudoType(atom)];
+}
+
+NS_IMETHODIMP
+inDOMUtils::AddPseudoClassLock(nsIDOMElement *aElement,
+                               const nsAString &aPseudoClass)
+{
+  NS_ENSURE_ARG_POINTER(aElement);
+
+  nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
+  if (state.IsEmpty()) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
+  element->LockStyleStates(state);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+inDOMUtils::RemovePseudoClassLock(nsIDOMElement *aElement,
+                                  const nsAString &aPseudoClass)
+{
+  NS_ENSURE_ARG_POINTER(aElement);
+
+  nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
+  if (state.IsEmpty()) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
+  element->UnlockStyleStates(state);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+inDOMUtils::HasPseudoClassLock(nsIDOMElement *aElement,
+                               const nsAString &aPseudoClass,
+                               bool *_retval)
+{
+  NS_ENSURE_ARG_POINTER(aElement);
+
+  nsEventStates state = GetStatesForPseudoClass(aPseudoClass);
+  if (state.IsEmpty()) {
+    *_retval = false;
+    return NS_OK;
+  }
+
+  nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
+  nsEventStates locks = element->LockedStyleStates();
+
+  *_retval = locks.HasAllStates(state);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+inDOMUtils::ClearPseudoClassLocks(nsIDOMElement *aElement)
+{
+  NS_ENSURE_ARG_POINTER(aElement);
+
+  nsCOMPtr<mozilla::dom::Element> element = do_QueryInterface(aElement);
+  element->ClearStyleStateLocks();
+
+  return NS_OK;
+}

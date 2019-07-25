@@ -1250,6 +1250,8 @@ private:
     
     NodeHasExplicitBaseURI,
     
+    ElementHasLockedStyleStates,
+    
     BooleanFlagCount
   };
 
@@ -1321,6 +1323,10 @@ protected:
     { SetBoolFlag(ElementMayHaveContentEditableAttr); }
   bool HasExplicitBaseURI() const { return GetBoolFlag(NodeHasExplicitBaseURI); }
   void SetHasExplicitBaseURI() { SetBoolFlag(NodeHasExplicitBaseURI); }
+  void SetHasLockedStyleStates() { SetBoolFlag(ElementHasLockedStyleStates); }
+  void ClearHasLockedStyleStates() { ClearBoolFlag(ElementHasLockedStyleStates); }
+  bool HasLockedStyleStates() const
+    { return GetBoolFlag(ElementHasLockedStyleStates); }
 
 public:
   
