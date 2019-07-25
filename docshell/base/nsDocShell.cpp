@@ -104,11 +104,13 @@
 #include "nsIViewManager.h"
 #include "nsIScriptChannel.h"
 #include "nsIOfflineCacheUpdate.h"
+#include "nsITimedChannel.h"
 #include "nsCPrefetchService.h"
 #include "nsJSON.h"
 #include "IHistory.h"
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Telemetry.h"
 
 
 
@@ -6115,6 +6117,20 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
     nsCOMPtr<nsIURI> url;
     nsresult rv = aChannel->GetURI(getter_AddRefs(url));
     if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr<nsITimedChannel> timingChannel =
+        do_QueryInterface(aChannel);
+    if (timingChannel) {
+        TimeStamp channelCreationTime;
+        rv = timingChannel->GetChannelCreation(&channelCreationTime);
+        if (NS_SUCCEEDED(rv) && !channelCreationTime.IsNull()) {
+            PRUint32 interval = (PRUint32)
+                (TimeStamp::Now() - channelCreationTime)
+                .ToMilliseconds();
+            Telemetry::Accumulate(Telemetry::TOTAL_CONTENT_PAGE_LOAD_TIME, 
+                                  interval);
+        }
+    }
 
     
     mTiming = nsnull;
