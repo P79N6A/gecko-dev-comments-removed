@@ -40,7 +40,7 @@
 
 #include "nsIWeakReference.h"
 #include "nsIAccessibleText.h"
-#include "nsIDOMNode.h"
+#include "nsIContent.h"
 #include "nsISelectionListener.h"
 #include "nsISelectionController.h"
 #include "nsRect.h"
@@ -92,7 +92,7 @@ public:
 
 
 
-  nsresult SetControlSelectionListener(nsIDOMNode *aCurrentNode);
+  nsresult SetControlSelectionListener(nsIContent *aCurrentNode);
 
   
 
@@ -125,15 +125,20 @@ protected:
   nsresult NormalSelectionChanged(nsIDOMDocument *aDoc, nsISelection *aSel);
   nsresult SpellcheckSelectionChanged(nsIDOMDocument *aDoc, nsISelection *aSel);
 
+  
+
+
   already_AddRefed<nsISelectionController>
-  GetSelectionControllerForNode(nsIDOMNode *aNode);
+    GetSelectionControllerForNode(nsIContent *aNode);
 
 private:
   
   
   
   
-  nsCOMPtr<nsIDOMNode> mCurrentControl;  
+
+  
+  nsCOMPtr<nsIContent> mCurrentControl;
 
   
   

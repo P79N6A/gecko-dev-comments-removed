@@ -50,7 +50,7 @@ class nsRadioButtonAccessible : public nsFormControlAccessible
 {
 
 public:
-  nsRadioButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsRadioButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   NS_IMETHOD GetNumActions(PRUint8 *_retval);

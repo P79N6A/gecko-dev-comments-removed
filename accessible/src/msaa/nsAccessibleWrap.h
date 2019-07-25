@@ -103,9 +103,9 @@ class nsAccessibleWrap : public nsAccessible,
                          public IAccessible2,
                          public IEnumVARIANT
 {
-  public: 
-    nsAccessibleWrap(nsIDOMNode*, nsIWeakReference *aShell);
-    virtual ~nsAccessibleWrap();
+public: 
+  nsAccessibleWrap(nsIContent *aContent, nsIWeakReference *aShell);
+  virtual ~nsAccessibleWrap();
 
     
     NS_DECL_ISUPPORTS_INHERITED

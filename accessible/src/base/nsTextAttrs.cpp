@@ -131,24 +131,26 @@ nsTextAttrsMgr::GetAttributes(nsIPersistentProperties *aAttributes,
     return NS_OK;
   }
 
-  nsIDOMNode *hyperTextNode = mHyperTextAcc->GetDOMNode();
-  nsCOMPtr<nsIDOMElement> hyperTextElm =
-    nsCoreUtils::GetDOMElementFor(mHyperTextAcc->GetDOMNode());
-  nsIFrame *rootFrame = nsCoreUtils::GetFrameFor(hyperTextElm);
+  
+  
+  nsIContent *hyperTextElm = mHyperTextAcc->GetContent();
+  nsIFrame *rootFrame = mHyperTextAcc->GetFrame();
+  NS_ASSERTION(rootFrame, "No frame for accessible!");
+  if (!rootFrame)
+    return NS_OK;
 
-  nsIDOMNode *offsetNode = nsnull;
-  nsCOMPtr<nsIDOMElement> offsetElm;
+  nsIContent *offsetNode = nsnull, *offsetElm = nsnull;
   nsIFrame *frame = nsnull;
   if (mOffsetAcc) {
-    offsetNode = mOffsetAcc->GetDOMNode();
+    offsetNode = mOffsetAcc->GetContent();
     offsetElm = nsCoreUtils::GetDOMElementFor(offsetNode);
-    frame = nsCoreUtils::GetFrameFor(offsetElm);
+    frame = offsetElm->GetPrimaryFrame();
   }
 
   nsTPtrArray<nsITextAttr> textAttrArray(10);
 
   
-  nsLangTextAttr langTextAttr(mHyperTextAcc, hyperTextNode, offsetNode);
+  nsLangTextAttr langTextAttr(mHyperTextAcc, hyperTextElm, offsetNode);
   textAttrArray.AppendElement(static_cast<nsITextAttr*>(&langTextAttr));
 
   
@@ -224,8 +226,7 @@ nsTextAttrsMgr::GetRange(const nsTPtrArray<nsITextAttr>& aTextAttrArray,
     if (nsAccUtils::IsEmbeddedObject(currAcc))
       break;
 
-    nsCOMPtr<nsIDOMElement> currElm =
-      nsCoreUtils::GetDOMElementFor(currAcc->GetDOMNode());
+    nsIContent *currElm = nsCoreUtils::GetDOMElementFor(currAcc->GetContent());
     NS_ENSURE_STATE(currElm);
 
     PRBool offsetFound = PR_FALSE;
@@ -250,8 +251,7 @@ nsTextAttrsMgr::GetRange(const nsTPtrArray<nsITextAttr>& aTextAttrArray,
     if (nsAccUtils::IsEmbeddedObject(currAcc))
       break;
 
-    nsCOMPtr<nsIDOMElement> currElm =
-      nsCoreUtils::GetDOMElementFor(currAcc->GetDOMNode());
+    nsIContent *currElm = nsCoreUtils::GetDOMElementFor(currAcc->GetContent());
     NS_ENSURE_STATE(currElm);
 
     PRBool offsetFound = PR_FALSE;
@@ -279,25 +279,20 @@ nsTextAttrsMgr::GetRange(const nsTPtrArray<nsITextAttr>& aTextAttrArray,
 
 
 nsLangTextAttr::nsLangTextAttr(nsHyperTextAccessible *aRootAcc, 
-                               nsIDOMNode *aRootNode, nsIDOMNode *aNode) :
-  nsTextAttr<nsAutoString>(aNode == nsnull)
+                               nsIContent *aRootContent, nsIContent *aContent) :
+  nsTextAttr<nsAutoString>(aContent == nsnull), mRootContent(aRootContent)
 {
-  mRootContent = do_QueryInterface(aRootNode);
-
   nsresult rv = aRootAcc->GetLanguage(mRootNativeValue);
   mIsRootDefined = NS_SUCCEEDED(rv) && !mRootNativeValue.IsEmpty();
 
-  if (aNode) {
-    nsCOMPtr<nsIContent> content(do_QueryInterface(aNode));
-    mIsDefined = GetLang(content, mNativeValue);
-  }
+  if (aContent)
+    mIsDefined = GetLang(aContent, mNativeValue);
 }
 
 PRBool
-nsLangTextAttr::GetValueFor(nsIDOMElement *aElm, nsAutoString *aValue)
+nsLangTextAttr::GetValueFor(nsIContent *aElm, nsAutoString *aValue)
 {
-  nsCOMPtr<nsIContent> content = do_QueryInterface(aElm);
-  return GetLang(content, *aValue);
+  return GetLang(aElm, *aValue);
 }
 
 void
@@ -316,14 +311,16 @@ nsLangTextAttr::GetLang(nsIContent *aContent, nsAString& aLang)
 
 
 
-nsCSSTextAttr::nsCSSTextAttr(PRUint32 aIndex, nsIDOMElement *aRootElm,
-                             nsIDOMElement *aElm) :
-  nsTextAttr<nsAutoString>(aElm == nsnull), mIndex(aIndex)
-{
-  mIsRootDefined = GetValueFor(aRootElm, &mRootNativeValue);
 
-  if (aElm)
-    mIsDefined = GetValueFor(aElm, &mNativeValue);
+
+nsCSSTextAttr::nsCSSTextAttr(PRUint32 aIndex, nsIContent *aRootContent,
+                             nsIContent *aContent) :
+  nsTextAttr<nsAutoString>(aContent == nsnull), mIndex(aIndex)
+{
+  mIsRootDefined = GetValueFor(aRootContent, &mRootNativeValue);
+
+  if (aContent)
+    mIsDefined = GetValueFor(aContent, &mNativeValue);
 }
 
 nsIAtom*
@@ -333,11 +330,10 @@ nsCSSTextAttr::GetName()
 }
 
 PRBool
-nsCSSTextAttr::GetValueFor(nsIDOMElement *aElm, nsAutoString *aValue)
+nsCSSTextAttr::GetValueFor(nsIContent *aContent, nsAutoString *aValue)
 {
-  nsCOMPtr<nsIDOMCSSStyleDeclaration> currStyleDecl;
-  nsCoreUtils::GetComputedStyleDeclaration(EmptyString(), aElm,
-                                           getter_AddRefs(currStyleDecl));
+  nsCOMPtr<nsIDOMCSSStyleDeclaration> currStyleDecl =
+    nsCoreUtils::GetComputedStyleDeclaration(EmptyString(), aContent);
   if (!currStyleDecl)
     return PR_FALSE;
 
@@ -367,6 +363,8 @@ nsCSSTextAttr::Format(const nsAutoString& aValue, nsAString& aFormattedValue)
 
 
 
+
+
 nsBGColorTextAttr::nsBGColorTextAttr(nsIFrame *aRootFrame, nsIFrame *aFrame) :
   nsTextAttr<nscolor>(aFrame == nsnull), mRootFrame(aRootFrame)
 {
@@ -376,9 +374,9 @@ nsBGColorTextAttr::nsBGColorTextAttr(nsIFrame *aRootFrame, nsIFrame *aFrame) :
 }
 
 PRBool
-nsBGColorTextAttr::GetValueFor(nsIDOMElement *aElm, nscolor *aValue)
+nsBGColorTextAttr::GetValueFor(nsIContent *aContent, nscolor *aValue)
 {
-  nsIFrame *frame = nsCoreUtils::GetFrameFor(aElm);
+  nsIFrame *frame = aContent->GetPrimaryFrame();
   if (!frame)
     return PR_FALSE;
 
@@ -429,6 +427,8 @@ nsBGColorTextAttr::GetColor(nsIFrame *aFrame, nscolor *aColor)
 
 
 
+
+
 nsFontSizeTextAttr::nsFontSizeTextAttr(nsIFrame *aRootFrame, nsIFrame *aFrame) :
   nsTextAttr<nscoord>(aFrame == nsnull)
 {
@@ -444,9 +444,9 @@ nsFontSizeTextAttr::nsFontSizeTextAttr(nsIFrame *aRootFrame, nsIFrame *aFrame) :
 }
 
 PRBool
-nsFontSizeTextAttr::GetValueFor(nsIDOMElement *aElm, nscoord *aValue)
+nsFontSizeTextAttr::GetValueFor(nsIContent *aContent, nscoord *aValue)
 {
-  nsIFrame *frame = nsCoreUtils::GetFrameFor(aElm);
+  nsIFrame *frame = aContent->GetPrimaryFrame();
   if (!frame)
     return PR_FALSE;
   
@@ -488,6 +488,7 @@ nsFontSizeTextAttr::GetFontSize(nsIFrame *aFrame)
 
 
 
+
 nsFontWeightTextAttr::nsFontWeightTextAttr(nsIFrame *aRootFrame,
                                            nsIFrame *aFrame) :
   nsTextAttr<PRInt32>(aFrame == nsnull)
@@ -502,9 +503,9 @@ nsFontWeightTextAttr::nsFontWeightTextAttr(nsIFrame *aRootFrame,
 }
 
 PRBool
-nsFontWeightTextAttr::GetValueFor(nsIDOMElement *aElm, PRInt32 *aValue)
+nsFontWeightTextAttr::GetValueFor(nsIContent *aContent, PRInt32 *aValue)
 {
-  nsIFrame *frame = nsCoreUtils::GetFrameFor(aElm);
+  nsIFrame *frame = aContent->GetPrimaryFrame();
   if (!frame)
     return PR_FALSE;
 

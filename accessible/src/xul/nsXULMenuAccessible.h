@@ -52,7 +52,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIACCESSIBLESELECTABLE
 
-  nsXULSelectableAccessible(nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
+  nsXULSelectableAccessible(nsIContent *aContent, nsIWeakReference *aShell);
   virtual ~nsXULSelectableAccessible() {}
 
   
@@ -74,7 +74,7 @@ class nsXULMenuitemAccessible : public nsAccessibleWrap
 public:
   enum { eAction_Click = 0 };
 
-  nsXULMenuitemAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
+  nsXULMenuitemAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   NS_IMETHOD GetDescription(nsAString& aDescription);
@@ -98,10 +98,13 @@ public:
   virtual PRBool GetAllowsAnonChildAccessibles();
 };
 
+
+
+
 class nsXULMenuSeparatorAccessible : public nsXULMenuitemAccessible
 {
 public:
-  nsXULMenuSeparatorAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
+  nsXULMenuSeparatorAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   NS_IMETHOD DoAction(PRUint8 index);
@@ -121,7 +124,7 @@ public:
 class nsXULMenupopupAccessible : public nsXULSelectableAccessible
 {
 public:
-  nsXULMenupopupAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
+  nsXULMenupopupAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
@@ -129,10 +132,13 @@ public:
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
+
+
+
 class nsXULMenubarAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULMenubarAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
+  nsXULMenubarAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);

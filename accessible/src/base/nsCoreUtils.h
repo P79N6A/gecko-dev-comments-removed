@@ -123,8 +123,7 @@ public:
 
 
 
-
-  static already_AddRefed<nsIDOMElement> GetDOMElementFor(nsIDOMNode *aNode);
+  static nsIContent* GetDOMElementFor(nsIContent *aContent);
 
   
 
@@ -140,7 +139,7 @@ public:
 
 
 
-  static nsIContent *GetRoleContent(nsIDOMNode *aDOMNode);
+  static nsIContent* GetRoleContent(nsINode *aNode);
 
   
 
@@ -215,13 +214,13 @@ public:
 
 
 
-  static nsIntPoint GetScreenCoordsForWindow(nsIDOMNode *aNode);
+  static nsIntPoint GetScreenCoordsForWindow(nsINode *aNode);
 
   
 
 
   static already_AddRefed<nsIDocShellTreeItem>
-    GetDocShellTreeItemFor(nsIDOMNode *aNode);
+    GetDocShellTreeItemFor(nsINode *aNode);
 
   
 
@@ -246,11 +245,6 @@ public:
   
 
 
-  static nsIFrame* GetFrameFor(nsIDOMElement *aElm);
-
-  
-
-
 
 
 
@@ -259,11 +253,16 @@ public:
   
 
 
-  static nsIPresShell *GetPresShellFor(nsIDOMNode *aNode)
+  static nsIPresShell *GetPresShellFor(nsINode *aNode)
   {
-    nsCOMPtr<nsINode> node(do_QueryInterface(aNode));
-    nsIDocument *document = node->GetOwnerDoc();
+    nsIDocument *document = aNode->GetOwnerDoc();
     return document ? document->GetPrimaryShell() : nsnull;
+  }
+  static already_AddRefed<nsIWeakReference> GetWeakShellFor(nsINode *aNode)
+  {
+    nsCOMPtr<nsIWeakReference> weakShell =
+      do_GetWeakReference(GetPresShellFor(aNode));
+    return weakShell.forget();
   }
 
   
@@ -340,9 +339,9 @@ public:
   
 
 
-  static void GetComputedStyleDeclaration(const nsAString& aPseudoElt,
-                                          nsIDOMNode *aNode,
-                                          nsIDOMCSSStyleDeclaration **aCssDecl);
+  static already_AddRefed<nsIDOMCSSStyleDeclaration>
+    GetComputedStyleDeclaration(const nsAString& aPseudoElt,
+                                nsIContent *aContent);
 
   
 
@@ -432,8 +431,8 @@ public:
   
 
 
-  static void
-    GetTreeBoxObject(nsIDOMNode* aDOMNode, nsITreeBoxObject** aBoxObject);
+  static already_AddRefed<nsITreeBoxObject>
+    GetTreeBoxObject(nsIContent* aContent);
 
   
 
@@ -491,7 +490,8 @@ public:
 
 
 
-  static void GeneratePopupTree(nsIDOMNode *aNode, PRBool aIsAnon = PR_FALSE);
+  static void GeneratePopupTree(nsIContent *aContent,
+                                PRBool aIsAnon = PR_FALSE);
 };
 
 

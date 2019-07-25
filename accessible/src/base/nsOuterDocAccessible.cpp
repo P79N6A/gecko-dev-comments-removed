@@ -45,9 +45,9 @@
 
 
 
-nsOuterDocAccessible::nsOuterDocAccessible(nsIDOMNode* aNode, 
-                                           nsIWeakReference* aShell):
-  nsAccessibleWrap(aNode, aShell)
+nsOuterDocAccessible::
+  nsOuterDocAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
+  nsAccessibleWrap(aContent, aShell)
 {
 }
 
@@ -228,14 +228,12 @@ nsOuterDocAccessible::CacheChildren()
 {
   
   
-  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-  nsIDocument *outerDoc = content->GetCurrentDoc();
+  nsIDocument *outerDoc = mContent->GetCurrentDoc();
   if (!outerDoc)
     return;
 
-  nsIDocument *innerDoc = outerDoc->GetSubDocumentFor(content);
-  nsCOMPtr<nsIDOMNode> innerNode(do_QueryInterface(innerDoc));
-  if (!innerNode)
+  nsIDocument *innerDoc = outerDoc->GetSubDocumentFor(mContent);
+  if (!innerDoc)
     return;
 
   nsDocAccessible *docAcc = GetAccService()->GetDocAccessible(innerDoc);

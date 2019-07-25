@@ -63,9 +63,12 @@
 
 
 
-nsHTMLCheckboxAccessible::nsHTMLCheckboxAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
-nsFormControlAccessible(aNode, aShell)
-{ 
+
+
+nsHTMLCheckboxAccessible::
+  nsHTMLCheckboxAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
+  nsFormControlAccessible(aContent, aShell)
+{
 }
 
 nsresult
@@ -123,8 +126,8 @@ nsHTMLCheckboxAccessible::GetStateInternal(PRUint32 *aState,
   PRBool checked = PR_FALSE;   
   PRBool mixed = PR_FALSE;     
 
-  nsCOMPtr<nsIDOMNSHTMLInputElement>
-           html5CheckboxElement(do_QueryInterface(mDOMNode));
+  nsCOMPtr<nsIDOMNSHTMLInputElement> html5CheckboxElement =
+    do_QueryInterface(mContent);
            
   if (html5CheckboxElement) {
     html5CheckboxElement->GetIndeterminate(&mixed);
@@ -135,7 +138,8 @@ nsHTMLCheckboxAccessible::GetStateInternal(PRUint32 *aState,
     }
   }
   
-  nsCOMPtr<nsIDOMHTMLInputElement> htmlCheckboxElement(do_QueryInterface(mDOMNode));
+  nsCOMPtr<nsIDOMHTMLInputElement> htmlCheckboxElement =
+    do_QueryInterface(mContent);
   if (htmlCheckboxElement) {
     htmlCheckboxElement->GetChecked(&checked);
   
@@ -150,9 +154,10 @@ nsHTMLCheckboxAccessible::GetStateInternal(PRUint32 *aState,
 
 
 
-nsHTMLRadioButtonAccessible::nsHTMLRadioButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
-nsRadioButtonAccessible(aNode, aShell)
-{ 
+nsHTMLRadioButtonAccessible::
+  nsHTMLRadioButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
+  nsRadioButtonAccessible(aContent, aShell)
+{
 }
 
 nsresult
@@ -166,7 +171,8 @@ nsHTMLRadioButtonAccessible::GetStateInternal(PRUint32 *aState,
   
   PRBool checked = PR_FALSE;   
 
-  nsCOMPtr<nsIDOMHTMLInputElement> htmlRadioElement(do_QueryInterface(mDOMNode));
+  nsCOMPtr<nsIDOMHTMLInputElement> htmlRadioElement =
+    do_QueryInterface(mContent);
   if (htmlRadioElement)
     htmlRadioElement->GetChecked(&checked);
 
@@ -181,27 +187,25 @@ nsHTMLRadioButtonAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet,
                                                         PRInt32 *aSetSize)
 {
   nsAutoString nsURI;
-  mDOMNode->GetNamespaceURI(nsURI);
+  mContent->NodeInfo()->GetNamespaceURI(nsURI);
   nsAutoString tagName;
-  mDOMNode->GetLocalName(tagName);
-
-  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  mContent->NodeInfo()->GetName(tagName);
 
   nsAutoString type;
-  content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::type, type);
+  mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::type, type);
   nsAutoString name;
-  content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::name, name);
+  mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::name, name);
 
   nsCOMPtr<nsIDOMNodeList> inputs;
 
-  nsCOMPtr<nsIDOMHTMLInputElement> radio(do_QueryInterface(mDOMNode));
+  nsCOMPtr<nsIDOMHTMLInputElement> radio(do_QueryInterface(mContent));
   nsCOMPtr<nsIDOMHTMLFormElement> form;
   radio->GetForm(getter_AddRefs(form));
   if (form) {
     form->GetElementsByTagNameNS(nsURI, tagName, getter_AddRefs(inputs));
   } else {
-    nsCOMPtr<nsIDOMDocument> document;
-    mDOMNode->GetOwnerDocument(getter_AddRefs(document));
+    nsIDocument* doc = mContent->GetOwnerDoc();
+    nsCOMPtr<nsIDOMDocument> document(do_QueryInterface(doc));
     if (document)
       document->GetElementsByTagNameNS(nsURI, tagName, getter_AddRefs(inputs));
   }
@@ -228,7 +232,7 @@ nsHTMLRadioButtonAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet,
 
       count++;
 
-      if (itemNode == mDOMNode)
+      if (item == mContent)
         indexOf = count;
     }
   }
@@ -241,9 +245,10 @@ nsHTMLRadioButtonAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet,
 
 
 
-nsHTMLButtonAccessible::nsHTMLButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
-nsHyperTextAccessibleWrap(aNode, aShell)
-{ 
+nsHTMLButtonAccessible::
+  nsHTMLButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
+  nsHyperTextAccessibleWrap(aContent, aShell)
+{
 }
 
 NS_IMETHODIMP nsHTMLButtonAccessible::GetNumActions(PRUint8 *_retval)
@@ -279,12 +284,8 @@ nsHTMLButtonAccessible::GetStateInternal(PRUint32 *aState,
                                                             aExtraState);
   NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIDOMElement> element(do_QueryInterface(mDOMNode));
-  NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
-
-  nsAutoString buttonType;
-  element->GetAttribute(NS_LITERAL_STRING("type"), buttonType);
-  if (buttonType.LowerCaseEqualsLiteral("submit"))
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                            nsAccessibilityAtoms::submit, eIgnoreCase))
     *aState |= nsIAccessibleStates::STATE_DEFAULT;
 
   return NS_OK;
@@ -304,14 +305,12 @@ nsHTMLButtonAccessible::GetNameInternal(nsAString& aName)
   if (!aName.IsEmpty())
     return NS_OK;
 
-  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-
   
   nsAutoString name;
-  if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value,
-                        name) &&
-      !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::alt,
-                        name)) {
+  if (!mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value,
+                         name) &&
+      !mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::alt,
+                         name)) {
     
     nsIFrame* frame = GetFrame();
     if (frame) {
@@ -322,9 +321,9 @@ nsHTMLButtonAccessible::GetNameInternal(nsAString& aName)
   }
 
   if (name.IsEmpty() &&
-      !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::src,
-                        name)) {
-    content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::data, name);
+      !mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::src,
+                         name)) {
+    mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::data, name);
   }
 
   name.CompressWhitespace();
@@ -336,9 +335,12 @@ nsHTMLButtonAccessible::GetNameInternal(nsAString& aName)
 
 
 
-nsHTML4ButtonAccessible::nsHTML4ButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
-nsHyperTextAccessibleWrap(aNode, aShell)
-{ 
+
+
+nsHTML4ButtonAccessible::
+  nsHTML4ButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
+  nsHyperTextAccessibleWrap(aContent, aShell)
+{
 }
 
 NS_IMETHODIMP nsHTML4ButtonAccessible::GetNumActions(PRUint8 *_retval)
@@ -381,14 +383,10 @@ nsHTML4ButtonAccessible::GetStateInternal(PRUint32 *aState,
                                                             aExtraState);
   NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIDOMElement> element(do_QueryInterface(mDOMNode));
-  NS_ASSERTION(element, "No element for button's dom node!");
-
   *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
 
-  nsAutoString buttonType;
-  element->GetAttribute(NS_LITERAL_STRING("type"), buttonType);
-  if (buttonType.LowerCaseEqualsLiteral("submit"))
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                            nsAccessibilityAtoms::submit, eIgnoreCase))
     *aState |= nsIAccessibleStates::STATE_DEFAULT;
 
   return NS_OK;
@@ -396,8 +394,12 @@ nsHTML4ButtonAccessible::GetStateInternal(PRUint32 *aState,
 
 
 
-nsHTMLTextFieldAccessible::nsHTMLTextFieldAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
-nsHyperTextAccessibleWrap(aNode, aShell)
+
+
+
+nsHTMLTextFieldAccessible::
+  nsHTMLTextFieldAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
+  nsHyperTextAccessibleWrap(aContent, aShell)
 {
 }
 
@@ -407,10 +409,9 @@ nsresult
 nsHTMLTextFieldAccessible::GetRoleInternal(PRUint32 *aRole)
 {
   *aRole = nsIAccessibleRole::ROLE_ENTRY;
-  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-  if (content &&
-      content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
-                           nsAccessibilityAtoms::password, eIgnoreCase)) {
+
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                            nsAccessibilityAtoms::password, eIgnoreCase)) {
     *aRole = nsIAccessibleRole::ROLE_PASSWORD_TEXT;
   }
   return NS_OK;
@@ -425,8 +426,7 @@ nsHTMLTextFieldAccessible::GetNameInternal(nsAString& aName)
   if (!aName.IsEmpty())
     return NS_OK;
 
-  nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
-  if (!content->GetBindingParent())
+  if (!mContent->GetBindingParent())
     return NS_OK;
 
   
@@ -434,9 +434,8 @@ nsHTMLTextFieldAccessible::GetNameInternal(nsAString& aName)
   
   
   
-  nsCOMPtr<nsIAccessible> parent;
-  rv = GetParent(getter_AddRefs(parent));
-  return parent ? parent->GetName(aName) : rv;
+  nsAccessible* parent = GetParent();
+  return parent ? parent->GetName(aName) : NS_OK;
 }
 
 NS_IMETHODIMP nsHTMLTextFieldAccessible::GetValue(nsAString& _retval)
@@ -448,12 +447,12 @@ NS_IMETHODIMP nsHTMLTextFieldAccessible::GetValue(nsAString& _retval)
   if (state & nsIAccessibleStates::STATE_PROTECTED)    
     return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIDOMHTMLTextAreaElement> textArea(do_QueryInterface(mDOMNode));
+  nsCOMPtr<nsIDOMHTMLTextAreaElement> textArea(do_QueryInterface(mContent));
   if (textArea) {
     return textArea->GetValue(_retval);
   }
   
-  nsCOMPtr<nsIDOMHTMLInputElement> inputElement(do_QueryInterface(mDOMNode));
+  nsCOMPtr<nsIDOMHTMLInputElement> inputElement(do_QueryInterface(mContent));
   if (inputElement) {
     return inputElement->GetValue(_retval);
   }
@@ -470,28 +469,23 @@ nsHTMLTextFieldAccessible::GetStateInternal(PRUint32 *aState,
   NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
   
-  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-  NS_ASSERTION(content, "Should not have gotten here if upcalled GetExtState() succeeded");
-
-  if (content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
-                           nsAccessibilityAtoms::password, eIgnoreCase)) {
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                            nsAccessibilityAtoms::password, eIgnoreCase)) {
     *aState |= nsIAccessibleStates::STATE_PROTECTED;
   }
   else {
-    nsCOMPtr<nsIAccessible> parent;
-    GetParent(getter_AddRefs(parent));
-    if (nsAccUtils::Role(parent) == nsIAccessibleRole::ROLE_AUTOCOMPLETE)
+    if (nsAccUtils::Role(GetParent()) == nsIAccessibleRole::ROLE_AUTOCOMPLETE)
       *aState |= nsIAccessibleStates::STATE_HASPOPUP;
   }
 
-  if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::readonly)) {
+  if (mContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::readonly)) {
     *aState |= nsIAccessibleStates::STATE_READONLY;
   }
 
   if (!aExtraState)
     return NS_OK;
 
-  nsCOMPtr<nsIDOMHTMLInputElement> htmlInput(do_QueryInterface(mDOMNode));
+  nsCOMPtr<nsIDOMHTMLInputElement> htmlInput(do_QueryInterface(mContent));
   
   if (htmlInput) {
     *aExtraState |= nsIAccessibleStates::EXT_STATE_SINGLE_LINE;
@@ -503,7 +497,7 @@ nsHTMLTextFieldAccessible::GetStateInternal(PRUint32 *aState,
   if (!(*aExtraState & nsIAccessibleStates::EXT_STATE_EDITABLE))
     return NS_OK;
 
-  nsCOMPtr<nsIContent> bindingContent = content->GetBindingParent();
+  nsCOMPtr<nsIContent> bindingContent = mContent->GetBindingParent();
   if (bindingContent &&
       bindingContent->NodeInfo()->Equals(nsAccessibilityAtoms::textbox,
                                          kNameSpaceID_XUL) &&
@@ -521,8 +515,8 @@ nsHTMLTextFieldAccessible::GetStateInternal(PRUint32 *aState,
     
     
     nsAutoString autocomplete;
-    content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::autocomplete,
-                     autocomplete);
+    mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::autocomplete,
+                      autocomplete);
 
     if (!autocomplete.LowerCaseEqualsLiteral("off")) {
       nsCOMPtr<nsIDOMHTMLFormElement> form;
@@ -559,7 +553,7 @@ NS_IMETHODIMP nsHTMLTextFieldAccessible::GetActionName(PRUint8 aIndex, nsAString
 NS_IMETHODIMP nsHTMLTextFieldAccessible::DoAction(PRUint8 index)
 {
   if (index == 0) {
-    nsCOMPtr<nsIDOMNSHTMLElement> element(do_QueryInterface(mDOMNode));
+    nsCOMPtr<nsIDOMNSHTMLElement> element(do_QueryInterface(mContent));
     if ( element ) {
       return element->Focus();
     }
@@ -571,7 +565,7 @@ NS_IMETHODIMP nsHTMLTextFieldAccessible::DoAction(PRUint8 index)
 NS_IMETHODIMP nsHTMLTextFieldAccessible::GetAssociatedEditor(nsIEditor **aEditor)
 {
   *aEditor = nsnull;
-  nsCOMPtr<nsIDOMNSEditableElement> editableElt(do_QueryInterface(mDOMNode));
+  nsCOMPtr<nsIDOMNSEditableElement> editableElt(do_QueryInterface(mContent));
   NS_ENSURE_TRUE(editableElt, NS_ERROR_FAILURE);
 
   
@@ -597,11 +591,10 @@ NS_IMETHODIMP nsHTMLTextFieldAccessible::GetAssociatedEditor(nsIEditor **aEditor
 
 
 
-
-
-nsHTMLGroupboxAccessible::nsHTMLGroupboxAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
-nsHyperTextAccessibleWrap(aNode, aShell)
-{ 
+nsHTMLGroupboxAccessible::
+  nsHTMLGroupboxAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
+  nsHyperTextAccessibleWrap(aContent, aShell)
+{
 }
 
 nsresult
@@ -613,16 +606,13 @@ nsHTMLGroupboxAccessible::GetRoleInternal(PRUint32 *aRole)
 
 nsIContent* nsHTMLGroupboxAccessible::GetLegend()
 {
-  nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
-  NS_ENSURE_TRUE(content, nsnull);
-
   nsresult count = 0;
-  nsIContent *testLegendContent;
-  while ((testLegendContent = content->GetChildAt(count ++ )) != nsnull) {
-    if (testLegendContent->NodeInfo()->Equals(nsAccessibilityAtoms::legend,
-                                              content->GetNameSpaceID())) {
+  nsIContent *legendContent = nsnull;
+  while ((legendContent = mContent->GetChildAt(count++)) != nsnull) {
+    if (legendContent->NodeInfo()->Equals(nsAccessibilityAtoms::legend,
+                                          mContent->GetNameSpaceID())) {
       
-      return testLegendContent;
+      return legendContent;
     }
   }
 
@@ -667,9 +657,12 @@ nsHTMLGroupboxAccessible::GetRelationByType(PRUint32 aRelationType,
 
 
 
-nsHTMLLegendAccessible::nsHTMLLegendAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
-nsHyperTextAccessibleWrap(aNode, aShell)
-{ 
+
+
+nsHTMLLegendAccessible::
+  nsHTMLLegendAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
+  nsHyperTextAccessibleWrap(aContent, aShell)
+{
 }
 
 NS_IMETHODIMP

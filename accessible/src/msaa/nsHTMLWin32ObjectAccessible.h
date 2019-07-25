@@ -53,7 +53,8 @@ public:
   
   
   
-  nsHTMLWin32ObjectOwnerAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell, void* aHwnd);
+  nsHTMLWin32ObjectOwnerAccessible(nsIContent *aContent,
+                                   nsIWeakReference *aShell, void *aHwnd);
   virtual ~nsHTMLWin32ObjectOwnerAccessible() {}
 
   
@@ -86,7 +87,7 @@ class nsHTMLWin32ObjectAccessible : public nsLeafAccessible,
 {
 public:
 
-  nsHTMLWin32ObjectAccessible(void* aHwnd);
+  nsHTMLWin32ObjectAccessible(void *aHwnd);
   virtual ~nsHTMLWin32ObjectAccessible() {}
 
   NS_DECL_ISUPPORTS_INHERITED

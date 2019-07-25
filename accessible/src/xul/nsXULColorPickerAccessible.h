@@ -48,7 +48,8 @@
 class nsXULColorPickerTileAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULColorPickerTileAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULColorPickerTileAccessible(nsIContent *aContent,
+                                 nsIWeakReference *aShell);
 
   
   NS_IMETHOD GetValue(nsAString& _retval);
@@ -65,7 +66,7 @@ public:
 class nsXULColorPickerAccessible : public nsXULColorPickerTileAccessible
 {
 public:
-  nsXULColorPickerAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULColorPickerAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual nsresult Init();

@@ -83,9 +83,9 @@ class nsAccessNodeWrap :  public nsAccessNode,
   public: 
     STDMETHODIMP QueryService(REFGUID guidService, REFIID riid, void** ppv);
 
-  public: 
-    nsAccessNodeWrap(nsIDOMNode *, nsIWeakReference* aShell);
-    virtual ~nsAccessNodeWrap();
+public: 
+  nsAccessNodeWrap(nsIContent *aContent, nsIWeakReference *aShell);
+  virtual ~nsAccessNodeWrap();
 
     
     STDMETHODIMP QueryInterface(REFIID, void**);
@@ -162,9 +162,17 @@ class nsAccessNodeWrap :  public nsAccessNode,
     static void TurnOffNewTabSwitchingForJawsAndWE();
 
     static void DoATSpecificProcessing();
-  protected:
+
+protected:
     void GetAccessibleFor(nsIDOMNode *node, nsIAccessible **newAcc);
-    ISimpleDOMNode* MakeAccessNode(nsIDOMNode *node);
+
+  
+
+
+
+
+
+  ISimpleDOMNode *MakeAccessNode(nsINode *aNode);
 
     static PRBool gIsEnumVariantSupportDisabled;
 

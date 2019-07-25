@@ -89,8 +89,9 @@ static const PRInt32 kIEnumVariantDisconnected = -1;
 
 
 
-nsAccessibleWrap::nsAccessibleWrap(nsIDOMNode* aNode, nsIWeakReference *aShell):
-  nsAccessible(aNode, aShell), mEnumVARIANTPosition(0), mTypeInfo(NULL)
+nsAccessibleWrap::
+  nsAccessibleWrap(nsIContent *aContent, nsIWeakReference *aShell) :
+  nsAccessible(aContent, aShell), mEnumVARIANTPosition(0), mTypeInfo(NULL)
 {
 }
 
@@ -481,7 +482,7 @@ __try {
   
   
   
-  nsIContent *content = nsCoreUtils::GetRoleContent(xpAccessible->GetDOMNode());
+  nsIContent *content = xpAccessible->GetContent();
   if (!content)
     return E_FAIL;
 
@@ -596,9 +597,8 @@ STDMETHODIMP nsAccessibleWrap::get_accFocus(
   
   
 __try {
-  if (!mDOMNode) {
-    return E_FAIL; 
-  }
+  if (IsDefunct())
+    return E_FAIL;
 
   VariantInit(pvarChild);
 
@@ -1470,7 +1470,7 @@ nsAccessibleWrap::get_windowHandle(HWND *aWindowHandle)
 __try {
   *aWindowHandle = 0;
 
-  if (!mDOMNode)
+  if (IsDefunct())
     return E_FAIL;
 
   void *handle = nsnull;

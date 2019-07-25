@@ -44,12 +44,13 @@
 #include "nsAutoPtr.h"
 #include "nsBaseWidgetAccessible.h"
 
-class nsIWeakReference;
+
+
 
 class nsHTMLTextAccessible : public nsTextAccessibleWrap
 {
 public:
-  nsHTMLTextAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
+  nsHTMLTextAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -63,19 +64,25 @@ public:
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
+
+
+
 class nsHTMLHRAccessible : public nsLeafAccessible
 {
 public:
-  nsHTMLHRAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
+  nsHTMLHRAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
 };
 
+
+
+
 class nsHTMLBRAccessible : public nsLeafAccessible
 {
 public:
-  nsHTMLBRAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
+  nsHTMLBRAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
@@ -83,10 +90,13 @@ public:
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
+
+
+
 class nsHTMLLabelAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  nsHTMLLabelAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
+  nsHTMLLabelAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -95,10 +105,13 @@ public:
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
 };
 
+
+
+
 class nsHTMLListBulletAccessible : public nsLeafAccessible
 {
 public:
-  nsHTMLListBulletAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell,
+  nsHTMLListBulletAccessible(nsIContent *aContent, nsIWeakReference *aShell,
                              const nsAString& aBulletText);
 
   
@@ -128,11 +141,13 @@ protected:
   nsString mBulletText;
 };
 
+
+
+
 class nsHTMLListAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  nsHTMLListAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell):
-    nsHyperTextAccessibleWrap(aDOMNode, aShell) { }
+  nsHTMLListAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -142,10 +157,13 @@ public:
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
+
+
+
 class nsHTMLLIAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  nsHTMLLIAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell, 
+  nsHTMLLIAccessible(nsIContent *aContent, nsIWeakReference *aShell,
                      const nsAString& aBulletText);
 
   

@@ -56,7 +56,7 @@ class nsXULButtonAccessible : public nsAccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };
-  nsXULButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -90,7 +90,7 @@ class nsXULCheckboxAccessible : public nsFormControlAccessible
 {
 public:
   enum { eAction_Click = 0 };
-  nsXULCheckboxAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULCheckboxAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
@@ -102,11 +102,14 @@ public:
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
+
+
+
 class nsXULDropmarkerAccessible : public nsFormControlAccessible
 {
 public:
   enum { eAction_Click = 0 };
-  nsXULDropmarkerAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULDropmarkerAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
@@ -121,10 +124,13 @@ private:
   PRBool DropmarkerOpen(PRBool aToggleOpen);
 };
 
+
+
+
 class nsXULGroupboxAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULGroupboxAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULGroupboxAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
@@ -135,13 +141,16 @@ public:
   virtual nsresult GetNameInternal(nsAString& aName);
 };
 
+
+
+
 class nsXULProgressMeterAccessible : public nsFormControlAccessible
 {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIACCESSIBLEVALUE
 
 public:
-  nsXULProgressMeterAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULProgressMeterAccessible(nsIContent *aContent, nsIWeakReference *aShell);
   NS_IMETHOD GetValue(nsAString &aValue);
 
   
@@ -155,7 +164,7 @@ class nsXULRadioButtonAccessible : public nsRadioButtonAccessible
 {
 
 public:
-  nsXULRadioButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULRadioButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
@@ -163,29 +172,38 @@ public:
                                           PRInt32 *aSetSize);
 };
 
+
+
+
 class nsXULRadioGroupAccessible : public nsXULSelectableAccessible
 {
 public:
-  nsXULRadioGroupAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULRadioGroupAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
+
+
+
 class nsXULStatusBarAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULStatusBarAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULStatusBarAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
 };
 
+
+
+
 class nsXULToolbarButtonAccessible : public nsXULButtonAccessible
 {
 public:
-  nsXULToolbarButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULToolbarButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
@@ -195,32 +213,42 @@ public:
   static PRBool IsSeparator(nsAccessible *aAccessible);
 };
 
+
+
+
 class nsXULToolbarAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULToolbarAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULToolbarAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetNameInternal(nsAString& aName);
 };
 
+
+
+
 class nsXULToolbarSeparatorAccessible : public nsLeafAccessible
 {
 public:
-  nsXULToolbarSeparatorAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULToolbarSeparatorAccessible(nsIContent* aContent,
+                                  nsIWeakReference *aShell);
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
+
+
+
 class nsXULTextFieldAccessible : public nsHyperTextAccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };
 
-  nsXULTextFieldAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULTextFieldAccessible(nsIContent* aContent, nsIWeakReference *aShell);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -244,7 +272,7 @@ protected:
   virtual void CacheChildren();
 
   
-  already_AddRefed<nsIDOMNode> GetInputField();
+  already_AddRefed<nsIContent> GetInputField() const;
 };
 
 

@@ -202,8 +202,6 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
   nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(webNav));
   NS_ENSURE_STATE(docShell);
 
-  nsCOMPtr<nsIDOMNode> DOMNode = do_QueryInterface(document);
-
   
   
   
@@ -223,7 +221,7 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
   
   
   nsRefPtr<nsAccEvent> stateEvent =
-    new nsAccStateChangeEvent(DOMNode, nsIAccessibleStates::STATE_BUSY,
+    new nsAccStateChangeEvent(document, nsIAccessibleStates::STATE_BUSY,
                               PR_FALSE, PR_TRUE);
   docAcc->FireDelayedAccessibleEvent(stateEvent);
 
@@ -357,15 +355,14 @@ nsAccDocManager::HandleDOMDocumentLoad(nsIDocument *aDocument,
   }
 
   
-  nsCOMPtr<nsIDOMNode> DOMNode = do_QueryInterface(aDocument);
   if (aLoadEventType) {
-    nsRefPtr<nsAccEvent> loadEvent = new nsAccEvent(aLoadEventType, DOMNode);
+    nsRefPtr<nsAccEvent> loadEvent = new nsAccEvent(aLoadEventType, aDocument);
     docAcc->FireDelayedAccessibleEvent(loadEvent);
   }
 
   
   nsRefPtr<nsAccEvent> stateEvent =
-    new nsAccStateChangeEvent(DOMNode, nsIAccessibleStates::STATE_BUSY,
+    new nsAccStateChangeEvent(aDocument, nsIAccessibleStates::STATE_BUSY,
                               PR_FALSE, PR_FALSE);
   docAcc->FireDelayedAccessibleEvent(stateEvent);
 }
@@ -453,9 +450,9 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
 
   
   
-  nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(aDocument));
-  if (!nsCoreUtils::GetRoleContent(DOMNode))
-    return NS_OK;
+  nsIContent *rootElm = nsCoreUtils::GetRoleContent(aDocument);
+  if (!rootElm)
+    return nsnull;
 
   PRBool isRootDoc = nsCoreUtils::IsRootDocument(aDocument);
 
@@ -468,8 +465,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
       return nsnull;
 
     nsIContent* ownerContent = parentDoc->FindContentForSubDocument(aDocument);
-    nsCOMPtr<nsIDOMNode> ownerNode(do_QueryInterface(ownerContent));
-    if (!ownerNode)
+    if (!ownerContent)
       return nsnull;
 
     
@@ -477,7 +473,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
     
     
     
-    outerDocAcc = GetAccService()->GetAccessible(ownerNode);
+    outerDocAcc = GetAccService()->GetAccessible(ownerContent);
     if (!outerDocAcc)
       return nsnull;
   }
@@ -487,8 +483,8 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
   
   
   nsDocAccessible *docAcc = isRootDoc ?
-    new nsRootAccessibleWrap(DOMNode, weakShell) :
-    new nsDocAccessibleWrap(DOMNode, weakShell);
+    new nsRootAccessibleWrap(aDocument, rootElm, weakShell) :
+    new nsDocAccessibleWrap(aDocument, rootElm, weakShell);
 
   if (!docAcc)
     return nsnull;
@@ -509,7 +505,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
   }
 
   if (!GetAccService()->InitAccessible(docAcc,
-                                       nsAccUtils::GetRoleMapEntry(DOMNode))) {
+                                       nsAccUtils::GetRoleMapEntry(aDocument))) {
     mDocAccessibleCache.Remove(static_cast<void*>(aDocument));
     return nsnull;
   }

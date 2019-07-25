@@ -92,7 +92,7 @@ class nsAccessible : public nsAccessNodeWrap,
                      public nsIAccessibleValue
 {
 public:
-  nsAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsAccessible(nsIContent *aContent, nsIWeakReference *aShell);
   virtual ~nsAccessible();
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -349,7 +349,7 @@ protected:
 
 
 
-  nsAccessible *GetFirstAvailableAccessible(nsIDOMNode *aStartNode) const;
+  nsAccessible *GetFirstAvailableAccessible(nsINode *aStartNode) const;
 
   
   virtual nsresult GetLinkOffset(PRInt32* aStartOffset, PRInt32* aEndOffset);

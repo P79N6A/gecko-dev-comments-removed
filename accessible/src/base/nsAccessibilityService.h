@@ -44,19 +44,7 @@
 #include "a11yGeneric.h"
 #include "nsAccDocManager.h"
 
-#include "nsCOMArray.h"
 #include "nsIObserver.h"
-
-class nsAccessNode;
-class nsAccessible;
-class nsIFrame;
-class nsIWeakReference;
-class nsIDOMNode;
-class nsObjectFrame;
-class nsIDocShell;
-class nsIPresShell;
-class nsIContent;
-struct nsRoleMapEntry;
 
 class nsAccessibilityService : public nsAccDocManager,
                                public nsIAccessibilityService,
@@ -143,14 +131,6 @@ public:
   
 
 
-
-
-  static nsresult GetShellFromNode(nsIDOMNode *aNode,
-                                   nsIWeakReference **weakShell);
-
-  
-
-
   static PRBool IsShutdown() { return gIsShutdown; }
 
   
@@ -163,13 +143,13 @@ public:
 
 
   already_AddRefed<nsAccessible>
-    GetAccessible(nsIDOMNode *aNode, nsIPresShell *aPresShell,
+    GetAccessible(nsINode *aNode, nsIPresShell *aPresShell,
                   nsIWeakReference *aWeakShell, PRBool *aIsHidden = nsnull);
 
   
 
 
-  nsAccessible *GetAccessible(nsIDOMNode *aNode);
+  nsAccessible *GetAccessible(nsINode *aNode);
 
   
 
@@ -177,7 +157,7 @@ public:
 
 
 
-  nsAccessible *GetAccessibleInWeakShell(nsIDOMNode *aNode,
+  nsAccessible *GetAccessibleInWeakShell(nsINode *aNode,
                                          nsIWeakReference *aPresShell);
 
   
@@ -187,7 +167,7 @@ public:
 
 
 
-  nsAccessible *GetContainerAccessible(nsIDOMNode *aNode, PRBool aCanCreate);
+  nsAccessible *GetContainerAccessible(nsINode *aNode, PRBool aCanCreate);
 
   
 
@@ -197,7 +177,33 @@ public:
 
 
 
-  nsAccessNode* GetCachedAccessNode(nsIDOMNode *aNode,
+
+
+  nsAccessible *GetAttachedAccessibleFor(nsINode *aNode);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsINode *GetRelevantContentNodeFor(nsINode *aNode);
+
+  
+
+
+
+
+
+
+
+  nsAccessNode* GetCachedAccessNode(nsINode *aNode,
                                     nsIWeakReference *aShell);
 
   
@@ -239,15 +245,14 @@ private:
 
 
 
-  nsresult GetInfo(nsIFrame *aFrame,
-                   nsIWeakReference **aShell,
-                   nsIDOMNode **aContent);
+  nsresult GetInfo(nsIFrame *aFrame, nsIWeakReference **aShell,
+                   nsIContent **aContent);
 
   
 
 
   already_AddRefed<nsAccessible>
-    GetAreaAccessible(nsIFrame *aImageFrame, nsIDOMNode *aAreaNode,
+    GetAreaAccessible(nsIFrame *aImageFrame, nsINode *aAreaNode,
                       nsIWeakReference *aWeakShell);
 
   
@@ -255,20 +260,20 @@ private:
 
 
   already_AddRefed<nsAccessible>
-    CreateAccessibleByType(nsIDOMNode *aNode, nsIWeakReference *aWeakShell);
+    CreateAccessibleByType(nsIContent *aContent, nsIWeakReference *aWeakShell);
 
   
 
 
   already_AddRefed<nsAccessible>
     CreateHTMLAccessibleByMarkup(nsIFrame *aFrame, nsIWeakReference *aWeakShell,
-                                 nsIDOMNode *aNode);
+                                 nsINode *aNode);
 
   
 
 
   already_AddRefed<nsAccessible>
-    CreateAccessibleForDeckChild(nsIFrame *aFrame, nsIDOMNode *aNode,
+    CreateAccessibleForDeckChild(nsIFrame *aFrame, nsIContent *aContent,
                                  nsIWeakReference *aWeakShell);
 
 #ifdef MOZ_XUL
@@ -276,7 +281,8 @@ private:
 
 
   already_AddRefed<nsAccessible>
-    CreateAccessibleForXULTree(nsIDOMNode *aNode, nsIWeakReference *aWeakShell);
+    CreateAccessibleForXULTree(nsIContent *aContent,
+                               nsIWeakReference *aWeakShell);
 #endif
 
   

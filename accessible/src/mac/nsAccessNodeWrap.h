@@ -48,7 +48,7 @@
 class nsAccessNodeWrap :  public nsAccessNode
 {
   public: 
-    nsAccessNodeWrap(nsIDOMNode *aNode, nsIWeakReference* aShell);
+    nsAccessNodeWrap(nsIContent *aContent, nsIWeakReference *aShell);
     virtual ~nsAccessNodeWrap();
 
     static void InitAccessibility();

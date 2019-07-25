@@ -58,7 +58,7 @@ struct objc_class;
 class nsAccessibleWrap : public nsAccessible
 {
   public: 
-    nsAccessibleWrap(nsIDOMNode*, nsIWeakReference *aShell);
+    nsAccessibleWrap(nsIContent *aContent, nsIWeakReference *aShell);
     virtual ~nsAccessibleWrap();
     
     

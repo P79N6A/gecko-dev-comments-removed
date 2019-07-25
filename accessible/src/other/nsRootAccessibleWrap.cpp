@@ -43,8 +43,12 @@
 
 
 
-nsRootAccessibleWrap::nsRootAccessibleWrap(nsIDOMNode *aDOMNode, nsIWeakReference *aShell): 
-  nsRootAccessible(aDOMNode, aShell)
+
+
+nsRootAccessibleWrap::
+  nsRootAccessibleWrap(nsIDocument *aDocument, nsIContent *aRootContent,
+                       nsIWeakReference *aShell) :
+  nsRootAccessible(aDocument, aRootContent, aShell)
 {
 }
 

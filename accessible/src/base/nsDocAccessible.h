@@ -82,7 +82,8 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
   NS_DECL_NSIOBSERVER
 
 public:
-  nsDocAccessible(nsIDOMNode *aNode, nsIWeakReference* aShell);
+  nsDocAccessible(nsIDocument *aDocument, nsIContent *aRootContent,
+                  nsIWeakReference* aShell);
   virtual ~nsDocAccessible();
 
   
@@ -104,6 +105,7 @@ public:
   virtual nsresult Shutdown();
   virtual nsIFrame* GetFrame();
   virtual PRBool IsDefunct();
+  virtual nsINode* GetNode() const { return mDocument; }
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
@@ -149,7 +151,7 @@ public:
 
 
 
-  nsresult FireDelayedAccessibleEvent(PRUint32 aEventType, nsIDOMNode *aDOMNode,
+  nsresult FireDelayedAccessibleEvent(PRUint32 aEventType, nsINode *aNode,
                                       nsAccEvent::EEventRule aAllowDupes = nsAccEvent::eRemoveDupes,
                                       PRBool aIsAsynch = PR_FALSE,
                                       EIsFromUserInput aIsFromUserInput = eAutoDetect);
@@ -223,9 +225,13 @@ protected:
 
 
 
-  void InvalidateChildrenInSubtree(nsIDOMNode *aStartNode);
+  void InvalidateChildrenInSubtree(nsINode *aStartNode);
 
-    void RefreshNodes(nsIDOMNode *aStartNode);
+  
+
+
+  void RefreshNodes(nsINode *aStartNode);
+
     static void ScrollTimerCallback(nsITimer *aTimer, void *aClosure);
 
     
@@ -273,7 +279,7 @@ protected:
 
   already_AddRefed<nsAccEvent>
     CreateTextChangeEventForNode(nsAccessible *aContainerAccessible,
-                                 nsIDOMNode *aNode,
+                                 nsIContent *aChangeNode,
                                  nsAccessible *aAccessible,
                                  PRBool aIsInserting,
                                  PRBool aIsAsynch,
@@ -299,7 +305,7 @@ protected:
 
 
 
-  nsresult FireShowHideEvents(nsIDOMNode *aDOMNode, PRBool aAvoidOnThisNode,
+  nsresult FireShowHideEvents(nsINode *aDOMNode, PRBool aAvoidOnThisNode,
                               PRUint32 aEventType,
                               EEventFiringType aDelayedOrNormal,
                               PRBool aIsAsyncChange,

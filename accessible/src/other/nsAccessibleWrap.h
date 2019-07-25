@@ -48,9 +48,9 @@
 
 class nsAccessibleWrap : public nsAccessible
 {
-  public: 
-    nsAccessibleWrap(nsIDOMNode*, nsIWeakReference *aShell);
-    virtual ~nsAccessibleWrap();
+public: 
+  nsAccessibleWrap(nsIContent *aContent, nsIWeakReference *aShell);
+  virtual ~nsAccessibleWrap();
 
   protected:
     virtual nsresult FirePlatformEvent(nsAccEvent *aEvent) {

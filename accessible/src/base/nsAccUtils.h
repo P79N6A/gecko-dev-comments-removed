@@ -112,7 +112,7 @@ public:
 
 
 
-  static void GetPositionAndSizeForXULSelectControlItem(nsIDOMNode *aNode,
+  static void GetPositionAndSizeForXULSelectControlItem(nsIContent *aContent,
                                                         PRInt32 *aPosInSet,
                                                         PRInt32 *aSetSize);
 
@@ -120,14 +120,14 @@ public:
 
 
 
-  static void GetPositionAndSizeForXULContainerItem(nsIDOMNode *aNode,
+  static void GetPositionAndSizeForXULContainerItem(nsIContent *aContent,
                                                     PRInt32 *aPosInSet,
                                                     PRInt32 *aSetSize);
 
   
 
 
-  static PRInt32 GetLevelForXULContainerItem(nsIDOMNode *aNode);
+  static PRInt32 GetLevelForXULContainerItem(nsIContent *aContent);
 
   
 
@@ -162,7 +162,7 @@ public:
   
 
 
-  static nsDocAccessible *GetDocAccessibleFor(nsIDOMNode *aNode)
+  static nsDocAccessible *GetDocAccessibleFor(nsINode *aNode)
   {
     nsIPresShell *presShell = nsCoreUtils::GetPresShellFor(aNode);
     return presShell ?
@@ -184,7 +184,7 @@ public:
   
 
 
-  static PRBool HasAccessibleChildren(nsIDOMNode *aNode);
+  static PRBool HasAccessibleChildren(nsINode *aNode);
 
   
 
@@ -192,8 +192,10 @@ public:
 
 
 
-   static already_AddRefed<nsIAccessible>
-     GetAncestorWithRole(nsIAccessible *aDescendant, PRUint32 aRole);
+
+
+   static nsAccessible * GetAncestorWithRole(nsAccessible *aDescendant,
+                                             PRUint32 aRole);
 
    
 
@@ -214,14 +216,13 @@ public:
 
 
 
-  static already_AddRefed<nsIAccessible>
-    GetSelectableContainer(nsIAccessible *aAccessible, PRUint32 aState);
+  static nsAccessible *GetSelectableContainer(nsAccessible *aAccessible,
+                                              PRUint32 aState);
 
   
 
 
-  static already_AddRefed<nsIAccessible>
-    GetMultiSelectableContainer(nsIDOMNode *aNode);
+  static nsAccessible *GetMultiSelectableContainer(nsINode *aNode);
 
   
 
@@ -239,7 +240,7 @@ public:
 
   static already_AddRefed<nsIAccessibleText>
     GetTextAccessibleFromSelection(nsISelection *aSelection,
-                                   nsIDOMNode **aNode = nsnull);
+                                   nsINode **aNode = nsnull);
 
   
 
@@ -254,7 +255,7 @@ public:
 
   static nsresult ConvertToScreenCoords(PRInt32 aX, PRInt32 aY,
                                         PRUint32 aCoordinateType,
-                                        nsIAccessNode *aAccessNode,
+                                        nsAccessNode *aAccessNode,
                                         nsIntPoint *aCoords);
 
   
@@ -270,21 +271,21 @@ public:
 
   static nsresult ConvertScreenCoordsTo(PRInt32 *aX, PRInt32 *aY,
                                         PRUint32 aCoordinateType,
-                                        nsIAccessNode *aAccessNode);
+                                        nsAccessNode *aAccessNode);
 
   
 
 
 
 
-  static nsIntPoint GetScreenCoordsForWindow(nsIAccessNode *aAccessNode);
+  static nsIntPoint GetScreenCoordsForWindow(nsAccessNode *aAccessNode);
 
   
 
 
 
 
-  static nsIntPoint GetScreenCoordsForParent(nsIAccessNode *aAccessNode);
+  static nsIntPoint GetScreenCoordsForParent(nsAccessNode *aAccessNode);
 
   
 
@@ -292,7 +293,9 @@ public:
 
 
 
-  static nsRoleMapEntry* GetRoleMapEntry(nsIDOMNode *aNode);
+
+
+  static nsRoleMapEntry *GetRoleMapEntry(nsINode *aNode);
 
   
 
@@ -410,7 +413,7 @@ public:
 
 
 
-  static PRBool IsNodeRelevant(nsIDOMNode *aNode);
+  static PRBool IsNodeRelevant(nsINode *aNode);
 
   
 

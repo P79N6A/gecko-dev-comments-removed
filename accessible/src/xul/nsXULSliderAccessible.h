@@ -43,10 +43,13 @@
 
 #include "nsIDOMElement.h"
 
+
+
+
 class nsXULSliderAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULSliderAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULSliderAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -79,10 +82,13 @@ private:
 };
 
 
+
+
+
 class nsXULThumbAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULThumbAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+  nsXULThumbAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);

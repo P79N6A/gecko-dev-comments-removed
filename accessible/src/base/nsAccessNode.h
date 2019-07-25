@@ -82,9 +82,10 @@ typedef nsRefPtrHashtable<nsVoidPtrHashKey, nsAccessNode>
 
 class nsAccessNode: public nsIAccessNode
 {
-  public: 
-    nsAccessNode(nsIDOMNode *, nsIWeakReference* aShell);
-    virtual ~nsAccessNode();
+public:
+
+  nsAccessNode(nsIContent *aContent, nsIWeakReference *aShell);
+  virtual ~nsAccessNode();
 
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsAccessNode, nsIAccessNode)
@@ -110,9 +111,18 @@ class nsAccessNode: public nsIAccessNode
 
   already_AddRefed<nsRootAccessible> GetRootAccessible();
 
-    static nsIDOMNode *gLastFocusedNode;
+  
 
-    already_AddRefed<nsIDOMNode> GetCurrentFocus();
+
+  static nsINode *gLastFocusedNode;
+
+  
+
+
+
+
+
+  already_AddRefed<nsINode> GetCurrentFocus();
 
     
 
@@ -137,7 +147,31 @@ class nsAccessNode: public nsIAccessNode
   
 
 
-  nsIDOMNode *GetDOMNode() const { return mDOMNode; }
+  already_AddRefed<nsIDOMNode> GetDOMNode() const
+  {
+    nsIDOMNode *DOMNode = nsnull;
+    if (GetNode())
+      CallQueryInterface(GetNode(), &DOMNode);
+    return DOMNode;
+  }
+
+  
+
+
+  virtual nsINode* GetNode() const { return mContent; }
+  nsIContent* GetContent() const { return mContent; }
+
+  
+
+
+  PRBool IsContent() const
+  {
+    return GetNode() && GetNode()->IsNodeOfType(nsINode::eCONTENT);
+  }
+  PRBool IsDocument() const
+  {
+    return GetNode() && GetNode()->IsNodeOfType(nsINode::eDOCUMENT);
+  }
 
   
 
@@ -158,14 +192,17 @@ class nsAccessNode: public nsIAccessNode
 #endif
 
 protected:
-    nsresult MakeAccessNode(nsIDOMNode *aNode, nsIAccessNode **aAccessNode);
+  
+
+
+  nsAccessNode *MakeAccessNode(nsINode *aNode);
 
     nsPresContext* GetPresContext();
 
     void LastRelease();
 
-    nsCOMPtr<nsIDOMNode> mDOMNode;
-    nsCOMPtr<nsIWeakReference> mWeakShell;
+  nsCOMPtr<nsIContent> mContent;
+  nsCOMPtr<nsIWeakReference> mWeakShell;
 
 #ifdef DEBUG_A11Y
     PRBool mIsInitialized;

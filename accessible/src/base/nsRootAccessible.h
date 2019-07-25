@@ -68,7 +68,8 @@ class nsRootAccessible : public nsDocAccessibleWrap,
   NS_DECL_ISUPPORTS_INHERITED
 
 public:
-  nsRootAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell);
+  nsRootAccessible(nsIDocument *aDocument, nsIContent *aRootContent,
+                   nsIWeakReference *aShell);
   virtual ~nsRootAccessible();
 
   
@@ -103,8 +104,8 @@ public:
 
 
 
-  PRBool FireAccessibleFocusEvent(nsIAccessible *aFocusAccessible,
-                                  nsIDOMNode *aFocusNode,
+  PRBool FireAccessibleFocusEvent(nsAccessible *aFocusAccessible,
+                                  nsINode *aFocusNode,
                                   nsIDOMEvent *aFocusEvent,
                                   PRBool aForceEvent = PR_FALSE,
                                   PRBool aIsAsynch = PR_FALSE,
@@ -123,16 +124,23 @@ protected:
 
     nsresult AddEventListeners();
     nsresult RemoveEventListeners();
-    nsresult HandleEventWithTarget(nsIDOMEvent* aEvent,
-                                   nsIDOMNode* aTargetNode);
+
+  
+
+
+  nsresult HandleEventWithTarget(nsIDOMEvent* aEvent, nsINode* aTargetNode);
+
     static void GetTargetNode(nsIDOMEvent *aEvent, nsIDOMNode **aTargetNode);
 
-    
+  
 
 
-    nsresult HandlePopupShownEvent(nsIAccessible *aAccessible);
-    nsresult HandlePopupHidingEvent(nsIDOMNode *aNode,
-                                    nsIAccessible *aAccessible);
+
+  nsresult HandlePopupShownEvent(nsAccessible *aAccessible);
+  
+
+
+  nsresult HandlePopupHidingEvent(nsINode *aNode, nsAccessible *aAccessible);
 
 #ifdef MOZ_XUL
     nsresult HandleTreeRowCountChangedEvent(nsIDOMEvent *aEvent,
@@ -145,7 +153,7 @@ protected:
     already_AddRefed<nsIDocShellTreeItem>
            GetContentDocShell(nsIDocShellTreeItem *aStart);
     nsRefPtr<nsCaretAccessible> mCaretAccessible;
-    nsCOMPtr<nsIDOMNode> mCurrentARIAMenubar;
+  nsCOMPtr<nsINode> mCurrentARIAMenubar;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsRootAccessible, NS_ROOTACCESSIBLE_IMPL_CID)
