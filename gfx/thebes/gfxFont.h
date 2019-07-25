@@ -295,11 +295,6 @@ public:
     hb_blob_t *ShareFontTableAndGetBlob(PRUint32 aTag,
                                         FallibleTArray<PRUint8>* aTable);
 
-    
-    
-    
-    void PreloadFontTable(PRUint32 aTag, FallibleTArray<PRUint8>& aTable);
-
     nsString         mName;
 
     PRPackedBool     mItalic      : 1;

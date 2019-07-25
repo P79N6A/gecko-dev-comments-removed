@@ -375,91 +375,6 @@ SanitizeOpenTypeData(const PRUint8* aData, PRUint32 aLength,
 
 
 
-
-
-
-
-
-
-static void
-CacheLayoutTablesFromSFNT(const PRUint8* aFontData, PRUint32 aLength,
-                          gfxFontEntry* aFontEntry)
-{
-    const SFNTHeader *sfntHeader = reinterpret_cast<const SFNTHeader*>(aFontData);
-    PRUint16 numTables = sfntHeader->numTables;
-    
-    
-    const TableDirEntry *dirEntry = 
-        reinterpret_cast<const TableDirEntry*>(aFontData + sizeof(SFNTHeader));
-
-    while (numTables-- > 0) {
-        switch (dirEntry->tag) {
-        case TRUETYPE_TAG('G','D','E','F'):
-        case TRUETYPE_TAG('G','P','O','S'):
-        case TRUETYPE_TAG('G','S','U','B'): {
-                FallibleTArray<PRUint8> buffer;
-                if (!buffer.AppendElements(aFontData + dirEntry->offset,
-                                           dirEntry->length)) {
-                    NS_WARNING("failed to cache font table - out of memory?");
-                    break;
-                }
-                aFontEntry->PreloadFontTable(dirEntry->tag, buffer);
-            }
-            break;
-
-        default:
-            if (dirEntry->tag > TRUETYPE_TAG('G','S','U','B')) {
-                
-                
-                numTables = 0;
-            }
-            break;
-        }
-        ++dirEntry;
-    }
-}
-
-
-
-
-static void
-PreloadTableFromWOFF(const PRUint8* aFontData, PRUint32 aLength,
-                     PRUint32 aTableTag, gfxFontEntry* aFontEntry)
-{
-    PRUint32 status = eWOFF_ok;
-    PRUint32 len = woffGetTableSize(aFontData, aLength, aTableTag, &status);
-    if (WOFF_SUCCESS(status) && len > 0) {
-        FallibleTArray<PRUint8> buffer;
-        if (!buffer.AppendElements(len)) {
-            NS_WARNING("failed to cache font table - out of memory?");
-            return;
-        }
-        woffGetTableToBuffer(aFontData, aLength, aTableTag,
-                             buffer.Elements(), buffer.Length(),
-                             &len, &status);
-        if (WOFF_FAILURE(status)) {
-            NS_WARNING("failed to cache font table - WOFF decoding error?");
-            return;
-        }
-        aFontEntry->PreloadFontTable(aTableTag, buffer);
-    }
-}
-
-static void
-CacheLayoutTablesFromWOFF(const PRUint8* aFontData, PRUint32 aLength,
-                          gfxFontEntry* aFontEntry)
-{
-    PreloadTableFromWOFF(aFontData, aLength, TRUETYPE_TAG('G','D','E','F'),
-                         aFontEntry);
-    PreloadTableFromWOFF(aFontData, aLength, TRUETYPE_TAG('G','P','O','S'),
-                         aFontEntry);
-    PreloadTableFromWOFF(aFontData, aLength, TRUETYPE_TAG('G','S','U','B'),
-                         aFontEntry);
-}
-
-
-
-
 PRBool 
 gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
                                const PRUint8 *aFontData, PRUint32 aLength, 
@@ -496,24 +411,7 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
                 fe = gfxPlatform::GetPlatform()->MakePlatformFont(aProxy,
                                                                   saneData,
                                                                   saneLen);
-                if (fe) {
-                    
-                    
-                    
-                    
-                    switch (fontType) {
-                    case GFX_USERFONT_OPENTYPE:
-                        CacheLayoutTablesFromSFNT(aFontData, aLength, fe);
-                        break;
-
-                    case GFX_USERFONT_WOFF:
-                        CacheLayoutTablesFromWOFF(aFontData, aLength, fe);
-                        break;
-
-                    default:
-                        break;
-                    }
-                } else {
+                if (!fe) {
                     NS_WARNING("failed to make platform font from download");
                 }
             }
