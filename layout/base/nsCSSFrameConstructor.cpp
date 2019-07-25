@@ -6015,26 +6015,11 @@ nsIFrame*
 nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
                                                nsIContent* aContainer,
                                                nsIContent* aChild,
-                                               PRInt32 aIndexInContainer,
                                                PRBool* aIsAppend,
                                                PRBool* aIsRangeInsertSafe,
-                                               PRInt32 aStartSkipIndexInContainer,
                                                nsIContent* aStartSkipChild,
-                                               PRInt32 aEndSkipIndexInContainer,
-                                               nsIContent *aEndSkipChild)
+                                               nsIContent* aEndSkipChild)
 {
-  NS_PRECONDITION((aStartSkipIndexInContainer >= 0) == !!aStartSkipChild,
-                  "aStartSkipIndexInContainer >= 0 iff aStartSkipChild");
-  NS_PRECONDITION((aEndSkipIndexInContainer >= 0) == !!aEndSkipChild,
-                  "aEndSkipIndexInContainer >= 0 iff aEndSkipChild");
-  NS_PRECONDITION((aStartSkipIndexInContainer >= 0 &&
-                   aEndSkipIndexInContainer >= 0 &&
-                   aEndSkipIndexInContainer > aStartSkipIndexInContainer) ||
-                  (aStartSkipIndexInContainer == -1 &&
-                   aEndSkipIndexInContainer == -1),
-                  "aStartSkipIndexInContainer and aEndSkipIndexInContainer "
-                  "should both be valid and in correct order or both invalid");
-
   *aIsAppend = PR_FALSE;
 
   
@@ -6059,10 +6044,6 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
       iter.seek(aChild);
     }
   }
-  
-  
-  
-  
 #ifdef DEBUG
   else {
     NS_WARNING("Someone passed native anonymous content directly into frame "
@@ -6987,8 +6968,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
 
   PRBool isAppend, isRangeInsertSafe;
   nsIFrame* prevSibling =
-    GetInsertionPrevSibling(parentFrame, aContainer,
-                            aStartChild, aIndexInContainer,
+    GetInsertionPrevSibling(parentFrame, aContainer, aStartChild,
                             &isAppend, &isRangeInsertSafe);
 
   
@@ -7106,8 +7086,8 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
       
       
       prevSibling = GetInsertionPrevSibling(parentFrame, aContainer,
-                                            aStartChild, aIndexInContainer,
-                                            &isAppend, &isRangeInsertSafe);
+                                            aStartChild, &isAppend,
+                                            &isRangeInsertSafe);
 
       
       if (!isSingleInsert && !isRangeInsertSafe) {
@@ -7296,7 +7276,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
     if (isSingleInsert) {
       captionPrevSibling =
         GetInsertionPrevSibling(captionParent, aContainer, aStartChild,
-                                aIndexInContainer, &captionIsAppend, &ignored);
+                                &captionIsAppend, &ignored);
     } else {
       nsIContent* firstCaption = captionItems.FirstChild()->GetContent();
       
@@ -7304,9 +7284,8 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
       
       captionPrevSibling =
         GetInsertionPrevSibling(captionParent, aContainer, firstCaption,
-          aContainer->IndexOf(firstCaption), &captionIsAppend, &ignored,
-          aIndexInContainer, aStartChild,
-          aEndIndexInContainer, aContainer->GetChildAt(aEndIndexInContainer));
+                                &captionIsAppend, &ignored,
+                                aStartChild, aEndChild);
     }
 
     nsIFrame* outerTable = nsnull;

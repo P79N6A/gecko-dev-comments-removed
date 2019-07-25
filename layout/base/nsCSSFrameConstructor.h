@@ -1794,17 +1794,12 @@ private:
   
   
   
-  
-  
   nsIFrame* GetInsertionPrevSibling(nsIFrame*& aParentFrame, 
                                     nsIContent* aContainer,
                                     nsIContent* aChild,
-                                    PRInt32 aIndexInContainer,
                                     PRBool* aIsAppend,
                                     PRBool* aIsRangeInsertSafe,
-                                    PRInt32 aStartSkipIndexInContainer = -1,
                                     nsIContent* aStartSkipChild = nsnull,
-                                    PRInt32 aEndSkipIndexInContainer = -1,
                                     nsIContent *aEndSkipChild = nsnull);
 
   
