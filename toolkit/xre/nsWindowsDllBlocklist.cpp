@@ -129,7 +129,11 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
 
   
   {"accelerator.dll", MAKE_VERSION(3,2,1,6)},
+
   
+  {"rf-firefox.dll", MAKE_VERSION(7,6,1,0)},
+  {"roboform.dll", MAKE_VERSION(7,6,1,0)},
+
   
   { "mozdllblockingtest.dll", ALL_VERSIONS },
   { "mozdllblockingtest_versioned.dll", 0x0000000400000000ULL },
