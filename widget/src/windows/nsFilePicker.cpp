@@ -814,9 +814,6 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   }
 
   
-  mFiles.Clear();
-
-  
   
   
   
@@ -1040,7 +1037,9 @@ nsFilePicker::ShowW(PRInt16 *aReturnVal)
     initialDir = mLastUsedUnicodeDirectory;
   }
 
+  
   mUnicodeFile.Truncate();
+  mFiles.Clear();
 
   bool result = false;
    if (mMode == modeGetFolder) {
