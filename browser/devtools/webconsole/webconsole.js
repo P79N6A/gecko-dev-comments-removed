@@ -343,11 +343,30 @@ WebConsoleFrame.prototype = {
       this.saveRequestAndResponseBodies = !this.saveRequestAndResponseBodies;
     }.bind(this));
     saveBodies.setAttribute("checked", this.saveRequestAndResponseBodies);
+    saveBodies.disabled = !this.getFilterState("networkinfo") &&
+                          !this.getFilterState("network");
 
-    let contextMenuId = this.outputNode.getAttribute("context");
-    let contextMenu = doc.getElementById(contextMenuId);
-    contextMenu.addEventListener("popupshowing", function() {
+    saveBodies.parentNode.addEventListener("popupshowing", function() {
       saveBodies.setAttribute("checked", this.saveRequestAndResponseBodies);
+      saveBodies.disabled = !this.getFilterState("networkinfo") &&
+                            !this.getFilterState("network");
+    }.bind(this));
+
+    
+    let saveBodiesContextMenu = doc.getElementById("saveBodiesContextMenu");
+    saveBodiesContextMenu.addEventListener("command", function() {
+      this.saveRequestAndResponseBodies = !this.saveRequestAndResponseBodies;
+    }.bind(this));
+    saveBodiesContextMenu.setAttribute("checked",
+                                       this.saveRequestAndResponseBodies);
+    saveBodiesContextMenu.disabled = !this.getFilterState("networkinfo") &&
+                                     !this.getFilterState("network");
+
+    saveBodiesContextMenu.parentNode.addEventListener("popupshowing", function() {
+      saveBodiesContextMenu.setAttribute("checked",
+                                         this.saveRequestAndResponseBodies);
+      saveBodiesContextMenu.disabled = !this.getFilterState("networkinfo") &&
+                                       !this.getFilterState("network");
     }.bind(this));
 
     this.closeButton = doc.getElementById("webconsole-close-button");
@@ -687,12 +706,21 @@ WebConsoleFrame.prototype = {
         this.setFilterState(prefKey, state);
 
         
+        if (prefKey == "networkinfo" || prefKey == "network") {
+          let checkState = !this.getFilterState("networkinfo") &&
+                           !this.getFilterState("network");
+          this.document.getElementById("saveBodies").disabled = checkState;
+          this.document.getElementById("saveBodiesContextMenu").disabled = checkState;
+        }
+
+        
         let menuPopup = target.parentNode;
 
         let someChecked = false;
         let menuItem = menuPopup.firstChild;
         while (menuItem) {
-          if (menuItem.getAttribute("checked") === "true") {
+          if (menuItem.hasAttribute("prefKey") &&
+              menuItem.getAttribute("checked") === "true") {
             someChecked = true;
             break;
           }
