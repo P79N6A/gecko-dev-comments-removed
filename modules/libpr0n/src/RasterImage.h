@@ -230,29 +230,31 @@ public:
 
   nsresult SetSize(PRInt32 aWidth, PRInt32 aHeight);
 
-  nsresult EnsureCleanFrame(PRUint32 aFramenum, PRInt32 aX, PRInt32 aY,
-                            PRInt32 aWidth, PRInt32 aHeight,
-                            gfxASurface::gfxImageFormat aFormat,
-                            PRUint8** imageData,
-                            PRUint32* imageLength);
 
   
 
 
-  nsresult AppendFrame(PRInt32 aX, PRInt32 aY,
+
+
+
+  nsresult EnsureFrame(PRUint32 aFramenum, PRInt32 aX, PRInt32 aY,
+                       PRInt32 aWidth, PRInt32 aHeight,
+                       gfxASurface::gfxImageFormat aFormat,
+                       PRUint8 aPaletteDepth,
+                       PRUint8** imageData,
+                       PRUint32* imageLength,
+                       PRUint32** paletteData,
+                       PRUint32* paletteLength);
+
+  
+
+
+
+  nsresult EnsureFrame(PRUint32 aFramenum, PRInt32 aX, PRInt32 aY,
                        PRInt32 aWidth, PRInt32 aHeight,
                        gfxASurface::gfxImageFormat aFormat,
                        PRUint8** imageData,
                        PRUint32* imageLength);
-
-  nsresult AppendPalettedFrame(PRInt32 aX, PRInt32 aY,
-                               PRInt32 aWidth, PRInt32 aHeight,
-                               gfxASurface::gfxImageFormat aFormat,
-                               PRUint8 aPaletteDepth,
-                               PRUint8**  imageData,
-                               PRUint32*  imageLength,
-                               PRUint32** paletteData,
-                               PRUint32*  paletteLength);
 
   void FrameUpdated(PRUint32 aFrameNum, nsIntRect& aUpdatedRect);
 

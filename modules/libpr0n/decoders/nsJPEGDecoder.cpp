@@ -385,13 +385,10 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
     
     jpeg_calc_output_dimensions(&mInfo);
 
-
-    
-    
     PRUint32 imagelength;
-    if (NS_FAILED(mImage->EnsureCleanFrame(0, 0, 0, mInfo.image_width, mInfo.image_height,
-                                           gfxASurface::ImageFormatRGB24,
-                                           &mImageData, &imagelength))) {
+    if (NS_FAILED(mImage->EnsureFrame(0, 0, 0, mInfo.image_width, mInfo.image_height,
+                                      gfxASurface::ImageFormatRGB24,
+                                      &mImageData, &imagelength))) {
       mState = JPEG_ERROR;
       PostDecoderError(NS_ERROR_OUT_OF_MEMORY);
       PR_LOG(gJPEGDecoderAccountingLog, PR_LOG_DEBUG,

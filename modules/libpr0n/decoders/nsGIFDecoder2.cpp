@@ -215,13 +215,15 @@ nsresult nsGIFDecoder2::BeginImageFrame(gfx_depth aDepth)
   
   if (mGIFStruct.images_decoded) {
     
-    rv = mImage->AppendPalettedFrame(mGIFStruct.x_offset, mGIFStruct.y_offset,
-                                     mGIFStruct.width, mGIFStruct.height,
-                                     format, aDepth, &mImageData, &imageDataLength,
-                                     &mColormap, &mColormapSize);
+    rv = mImage->EnsureFrame(mGIFStruct.images_decoded,
+                             mGIFStruct.x_offset, mGIFStruct.y_offset,
+                             mGIFStruct.width, mGIFStruct.height,
+                             format, aDepth, &mImageData, &imageDataLength,
+                             &mColormap, &mColormapSize);
   } else {
     
-    rv = mImage->AppendFrame(mGIFStruct.x_offset, mGIFStruct.y_offset,
+    rv = mImage->EnsureFrame(mGIFStruct.images_decoded,
+                             mGIFStruct.x_offset, mGIFStruct.y_offset,
                              mGIFStruct.width, mGIFStruct.height,
                              format, &mImageData, &imageDataLength);
   }
