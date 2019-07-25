@@ -154,7 +154,7 @@ Debug::~Debug()
         
         JS_ASSERT(object->compartment()->rt->gcCurrentCompartment == object->compartment());
         for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront())
-            removeDebuggee(e.front(), NULL, &e);
+            removeDebuggeeGlobal(e.front(), NULL, &e);
     }
 
     
@@ -618,7 +618,7 @@ Debug::sweepAll(JSRuntime *rt)
         
         if (!dbg->object->isMarked()) {
             for (GlobalObjectSet::Enum e(dbg->debuggees); !e.empty(); e.popFront())
-                dbg->removeDebuggee(e.front(), NULL, &e);
+                dbg->removeDebuggeeGlobal(e.front(), NULL, &e);
         }
 
         
@@ -639,7 +639,7 @@ Debug::detachAllDebuggersFromGlobal(GlobalObject *global, GlobalObjectSet::Enum 
     const GlobalObject::DebugVector *debuggers = global->getDebuggers();
     JS_ASSERT(!debuggers->empty());
     while (!debuggers->empty())
-        debuggers->back()->removeDebuggee(global, compartmentEnum, NULL);
+        debuggers->back()->removeDebuggeeGlobal(global, compartmentEnum, NULL);
 }
 
 void
@@ -816,7 +816,7 @@ Debug::construct(JSContext *cx, uintN argc, Value *vp)
     if (!dbg)
         return false;
     obj->setPrivate(dbg);
-    if (!dbg->init(cx) || !dbg->addDebuggee(cx, debuggee)) {
+    if (!dbg->init(cx) || !dbg->addDebuggeeGlobal(cx, debuggee)) {
         cx->delete_(dbg);
         return false;
     }
@@ -825,7 +825,7 @@ Debug::construct(JSContext *cx, uintN argc, Value *vp)
 }
 
 bool
-Debug::addDebuggee(JSContext *cx, GlobalObject *obj)
+Debug::addDebuggeeGlobal(JSContext *cx, GlobalObject *obj)
 {
     
     GlobalObject::DebugVector *v = obj->getOrCreateDebuggers(cx);
@@ -849,8 +849,8 @@ fail1:
 }
 
 void
-Debug::removeDebuggee(GlobalObject *global, GlobalObjectSet::Enum *compartmentEnum,
-                      GlobalObjectSet::Enum *debugEnum)
+Debug::removeDebuggeeGlobal(GlobalObject *global, GlobalObjectSet::Enum *compartmentEnum,
+                            GlobalObjectSet::Enum *debugEnum)
 {
     
     
