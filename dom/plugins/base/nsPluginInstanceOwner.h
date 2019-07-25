@@ -184,6 +184,7 @@ public:
   static void AddToCARefreshTimer(nsPluginInstanceOwner *aPluginInstance);
   static void RemoveFromCARefreshTimer(nsPluginInstanceOwner *aPluginInstance);
   void SetupCARefresh();
+  
   void* FixUpPluginWindow(PRInt32 inPaintState);
   void HidePluginWindow();
   
