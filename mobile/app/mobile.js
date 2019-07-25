@@ -42,7 +42,6 @@ pref("browser.chromeURL", "chrome://browser/content/");
 
 pref("browser.startup.homepage", "http://www.mozilla.org/");
 pref("browser.ui.cursor", false);
-pref("browser.ui.panning.kinetic", true);
 
 
 pref("browser.cache.disk.enable", false);
@@ -66,9 +65,11 @@ pref("browser.sessionhistory.max_total_viewers", 0);
 pref("browser.sessionhistory.max_entries", 50);
 
 
-pref("mozilla.widget.force-24bpp", true);
-pref("mozilla.widget.use-buffer-pixmap", true);
-pref("mozilla.widget.disable-native-theme", true);
+pref("browser.dom.window.dump.enabled", true);
+pref("javascript.options.showInConsole", true);
+pref("javascript.options.strict", true);
+pref("nglayout.debug.disable_xul_cache", false);
+pref("nglayout.debug.disable_xul_fastload", false);
 
 
 pref("browser.download.useDownloadDir", true);
@@ -161,9 +162,6 @@ pref("accessibility.typeaheadfind.casesensitive", 0);
 
 pref("browser.search.defaultenginename",      "chrome://browser/locale/region.properties");
 
-pref("browser.ssl_override_behavior", 2);
-pref("browser.xul.error_pages.expert_bad_cert", false);
-
 
 pref("browser.search.log", false);
 
@@ -232,12 +230,12 @@ pref("places.frecency.unvisitedBookmarkBonus", 140);
 pref("places.frecency.unvisitedTypedBonus", 200);
 
 
-pref("gfx.color_management.mode", 0);
-
-
-pref("dom.disable_window_move_resize", true);
-
-
-
-pref("browser.link.open_external", 3);
-pref("browser.link.open_newwindow", 3);
+pref("privacy.sanitize.promptOnSanitize", false);
+pref("privacy.item.cache", true);
+pref("privacy.item.cookies", true);
+pref("privacy.item.offlineApps", true);
+pref("privacy.item.history", true);
+pref("privacy.item.formdata", true);
+pref("privacy.item.downloads", true);
+pref("privacy.item.passwords", true);
+pref("privacy.item.sessions", true);
