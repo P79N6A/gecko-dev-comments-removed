@@ -336,6 +336,11 @@ protected:
 
   void SanitizeValue(nsAString& aValue);
 
+  
+
+
+  nsresult SetDefaultValueAsValue();
+
   nsCOMPtr<nsIControllers> mControllers;
 
   
