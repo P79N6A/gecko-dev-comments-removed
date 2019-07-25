@@ -51,6 +51,24 @@ const CB_FAIL = {};
 
 const SECRET = {};
 
+function checkAppReady() {
+  
+  let os = Cc["@mozilla.org/observer-service;1"].
+    getService(Ci.nsIObserverService);
+  os.addObserver({
+    observe: function observe() {
+      
+      checkAppReady = function() {
+        throw Components.Exception("App. Quitting", Cr.NS_ERROR_ABORT);
+      };
+      os.removeObserver(this, "quit-application");
+    }
+  }, "quit-application", false);
+
+  
+  return (checkAppReady = function() true)();
+};
+
 
 
 
@@ -99,6 +117,9 @@ function makeCallback() {
 function Sync(func, thisArg, callback) {
   return function syncFunc() {
     
+    checkAppReady();
+
+    
     let thread = Cc["@mozilla.org/thread-manager;1"].getService().currentThread;
 
     
@@ -117,7 +138,7 @@ function Sync(func, thisArg, callback) {
 
     
     let callbackData = instanceCallback._(SECRET);
-    while (callbackData.state == CB_READY)
+    while (callbackData.state == CB_READY && checkAppReady())
       thread.processNextEvent(true);
 
     
