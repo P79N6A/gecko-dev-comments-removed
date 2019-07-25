@@ -39,8 +39,8 @@ nsClipboardHelper::~nsClipboardHelper()
 
 NS_IMETHODIMP
 nsClipboardHelper::CopyStringToClipboard(const nsAString& aString,
-                                         nsIDOMDocument* aDocument,
-                                         PRInt32 aClipboardID)
+                                         PRInt32 aClipboardID,
+                                         nsIDOMDocument* aDocument)
 {
   nsresult rv;
 
@@ -108,7 +108,7 @@ nsClipboardHelper::CopyString(const nsAString& aString, nsIDOMDocument* aDocumen
   nsresult rv;
 
   
-  rv = CopyStringToClipboard(aString, aDocument, nsIClipboard::kGlobalClipboard);
+  rv = CopyStringToClipboard(aString, nsIClipboard::kGlobalClipboard, aDocument);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -120,7 +120,7 @@ nsClipboardHelper::CopyString(const nsAString& aString, nsIDOMDocument* aDocumen
   
   
   
-  CopyStringToClipboard(aString, aDocument, nsIClipboard::kSelectionClipboard);
+  CopyStringToClipboard(aString, nsIClipboard::kSelectionClipboard, aDocument);
 
   return NS_OK;
 }
