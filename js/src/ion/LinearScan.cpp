@@ -525,6 +525,7 @@ RegisterAllocator::allocateRegisters()
             LDefinition::Policy pol = current->reg()->def()->policy();
             if (pol == LDefinition::PRESET) {
                 IonSpew(IonSpew_LSRA, " Definition has preset policy.");
+                current->setFlag(LiveInterval::FIXED);
                 if (!assign(*def->output()))
                     return false;
                 continue;
@@ -567,6 +568,7 @@ RegisterAllocator::allocateRegisters()
 
             
             if (fixedOp) {
+                current->setFlag(LiveInterval::FIXED);
                 if (!assign(LGeneralReg(Register::FromCode(fixedOp->use->registerCode()))))
                     return false;
                 continue;
@@ -713,7 +715,10 @@ RegisterAllocator::assign(LAllocation allocation)
                     
                     
                     
-                    IonSpew(IonSpew_LSRA, "  Employing gross deallocation hack");
+                    
+                    
+                    JS_ASSERT(!it->hasFlag(LiveInterval::FIXED));
+
                     it->setAllocation(LUse(it->reg()->reg(), LUse::ANY));
                     active.removeAt(i);
                     unhandled.enqueue(it);
