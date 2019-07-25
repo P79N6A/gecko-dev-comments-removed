@@ -39,6 +39,8 @@
 
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
+                                  "resource://gre/modules/NetUtil.jsm");
 
 
 const ORGANIZER_ROOT_BOOKMARKS = "place:folder=BOOKMARKS_MENU&excludeItems=1&queryType=1";
@@ -56,14 +58,7 @@ const RELOAD_ACTION_MOVE = 3;
 
 
 
-
-
 const REMOVE_PAGES_CHUNKLEN = 300;
-
-
-
-
-const REMOVE_PAGES_MAX_SINGLEREMOVES = 10;
 
 
 
@@ -269,7 +264,7 @@ PlacesController.prototype = {
         host = queries[0].domain;
       }
       else
-        host = PlacesUtils._uri(this._view.selectedNode.uri).host;
+        host = NetUtil.newURI(this._view.selectedNode.uri).host;
       PlacesUIUtils.privateBrowsing.removeDataFromDomain(host);
       break;
     case "cmd_selectAll":
@@ -316,7 +311,7 @@ PlacesController.prototype = {
                                                      , "keyword"
                                                      , "location"
                                                      , "loadInSidebar" ]
-                                       , uri: PlacesUtils._uri(node.uri)
+                                       , uri: NetUtil.newURI(node.uri)
                                        , title: node.title
                                        }, window.top, true);
       break;
@@ -510,7 +505,7 @@ PlacesController.prototype = {
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_VISIT:
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_FULL_VISIT:
           nodeData["link"] = true;
-          uri = PlacesUtils._uri(node.uri);
+          uri = NetUtil.newURI(node.uri);
           if (PlacesUtils.nodeIsBookmark(node)) {
             nodeData["bookmark"] = true;
             PlacesUtils.nodeIsTagQuery(node.parent)
@@ -887,7 +882,7 @@ PlacesController.prototype = {
         
         
         var tagItemId = PlacesUtils.getConcreteItemId(node.parent);
-        var uri = PlacesUtils._uri(node.uri);
+        var uri = NetUtil.newURI(node.uri);
         transactions.push(PlacesUIUtils.ptm.untagURI(uri, [tagItemId]));
       }
       else if (PlacesUtils.nodeIsTagQuery(node) && node.parent &&
@@ -908,8 +903,7 @@ PlacesController.prototype = {
                PlacesUtils.asQuery(node.parent).queryOptions.queryType ==
                  Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY) {
         
-        var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
-        bhist.removePage(PlacesUtils._uri(node.uri));
+        PlacesUtils.bhistory.removePage(NetUtil.newURI(node.uri));
         
       }
       else if (node.itemId == -1 &&
@@ -956,18 +950,15 @@ PlacesController.prototype = {
   
 
 
-  _removeRowsFromHistory: function PC__removeRowsFromHistory() {
-    
-    
-    var nodes = this._view.selectedNodes;
-    var URIs = [];
-    var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
-    var root = this._view.result.root;
 
-    for (var i = 0; i < nodes.length; ++i) {
-      var node = nodes[i];
+
+  _removeRowsFromHistory: function PC__removeRowsFromHistory() {
+    let nodes = this._view.selectedNodes;
+    let URIs = [];
+    for (let i = 0; i < nodes.length; ++i) {
+      let node = nodes[i];
       if (PlacesUtils.nodeIsURI(node)) {
-        var uri = PlacesUtils._uri(node.uri);
+        let uri = NetUtil.newURI(node.uri);
         
         if (URIs.indexOf(uri) < 0) {
           URIs.push(uri);
@@ -975,28 +966,26 @@ PlacesController.prototype = {
       }
       else if (PlacesUtils.nodeIsQuery(node) &&
                PlacesUtils.asQuery(node).queryOptions.queryType ==
-                 Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY)
+                 Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY) {
         this._removeHistoryContainer(node);
+      }
     }
 
     
-    
-    if (URIs.length > REMOVE_PAGES_MAX_SINGLEREMOVES) {
-      
-      for (var i = 0; i < URIs.length; i += REMOVE_PAGES_CHUNKLEN) {
-        var URIslice = URIs.slice(i, i + REMOVE_PAGES_CHUNKLEN);
-        
-        
-        bhist.removePages(URIslice, URIslice.length,
-                          (i + REMOVE_PAGES_CHUNKLEN) >= URIs.length);
+    function pagesChunkGenerator(aURIs) {
+      while (aURIs.length) {
+        let URIslice = aURIs.splice(0, REMOVE_PAGES_CHUNKLEN);
+        PlacesUtils.bhistory.removePages(URIslice, URIslice.length);
+        Services.tm.mainThread.dispatch(function() {
+          try {
+            gen.next();
+          } catch (ex if ex instanceof StopIteration) {}
+        }, Ci.nsIThread.DISPATCH_NORMAL); 
+        yield;
       }
     }
-    else {
-      
-      
-      for (var i = 0; i < URIs.length; ++i)
-        bhist.removePage(URIs[i]);
-    }
+    let gen = pagesChunkGenerator(URIs);
+    gen.next();
   },
 
   
@@ -1004,24 +993,25 @@ PlacesController.prototype = {
 
 
 
-  _removeHistoryContainer: function PC_removeHistoryContainer(aContainerNode) {
-    var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
+
+
+  _removeHistoryContainer: function PC__removeHistoryContainer(aContainerNode) {
     if (PlacesUtils.nodeIsHost(aContainerNode)) {
       
-      bhist.removePagesFromHost(aContainerNode.title, true);
+      PlacesUtils.bhistory.removePagesFromHost(aContainerNode.title, true);
     }
     else if (PlacesUtils.nodeIsDay(aContainerNode)) {
       
-      var query = aContainerNode.getQueries()[0];
-      var beginTime = query.beginTime;
-      var endTime = query.endTime;
+      let query = aContainerNode.getQueries()[0];
+      let beginTime = query.beginTime;
+      let endTime = query.endTime;
       NS_ASSERT(query && beginTime && endTime,
                 "A valid date container query should exist!");
       
       
       
       
-      bhist.removePagesByTimeframe(beginTime+1, endTime);
+      PlacesUtils.bhistory.removePagesByTimeframe(beginTime + 1, endTime);
     }
   },
 
@@ -1299,7 +1289,7 @@ PlacesController.prototype = {
         
         
         transactions.push(
-          new PlacesTagURITransaction(PlacesUtils._uri(items[i].uri),
+          new PlacesTagURITransaction(NetUtil.newURI(items[i].uri),
                                       [ip.itemId])
         );
         continue;
@@ -1549,7 +1539,7 @@ let PlacesControllerDragHelper = {
       
       if (insertionPoint.isTag &&
           insertionPoint.orientation == Ci.nsITreeView.DROP_ON) {
-        let uri = PlacesUtils._uri(unwrapped.uri);
+        let uri = NetUtil.newURI(unwrapped.uri);
         let tagItemId = insertionPoint.itemId;
         transactions.push(PlacesUIUtils.ptm.tagURI(uri,[tagItemId]));
       }
