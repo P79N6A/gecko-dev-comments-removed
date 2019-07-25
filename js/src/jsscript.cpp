@@ -1950,3 +1950,58 @@ JSScript::setNeedsArgsObj(bool needsArgsObj)
     analyzedArgsUsage_ = true;
     needsArgsObj_ = needsArgsObj;
 }
+
+bool
+JSScript::applySpeculationFailed(JSContext *cx)
+{
+    JS_ASSERT(analyzedArgsUsage());
+    JS_ASSERT(!needsArgsObj());
+    needsArgsObj_ = true;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    for (AllFramesIter i(cx->stack.space()); !i.done(); ++i) {
+        StackFrame *fp = i.fp();
+        if (fp->isFunctionFrame() && fp->script() == this) {
+            if (!fp->hasArgsObj() && !ArgumentsObject::create(cx, fp)) {
+                
+
+
+
+
+                needsArgsObj_ = false;
+                return false;
+            }
+        }
+    }
+
+#ifdef JS_METHODJIT
+    if (hasJITCode()) {
+        mjit::Recompiler::clearStackReferences(cx, this);
+        mjit::ReleaseScriptCode(cx, this);
+    }
+#endif
+
+    if (hasAnalysis() && analysis()->ranInference()) {
+        types::AutoEnterTypeInference enter(cx);
+        for (unsigned off = 0; off < length; off += GetBytecodeLength(code + off)) {
+            if (code[off] == JSOP_ARGUMENTS) {
+                types::TypeSet *set = analysis()->pushedTypes(off, 0);
+                JS_ASSERT(set->isLazyArguments(cx));
+                set->addType(cx, types::Type::UnknownType());
+            }
+        }
+    }
+
+    return true;
+}

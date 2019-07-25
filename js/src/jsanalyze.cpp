@@ -1633,23 +1633,49 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
         return;
     }
 
-    offset = 0;
-    while (offset < script->length) {
-        Bytecode *code = maybeCode(offset);
-        jsbytecode *pc = script->code + offset;
+    
+
+
+
+
+
+
+
+
+
+
+    bool canOptimizeApply = !script->function()->isHeavyweight();
+    bool haveOptimizedApply = false;
+
+    jsbytecode *pc;
+    for (offset = 0; offset < script->length; offset += GetBytecodeLength(pc)) {
+        pc = script->code + offset;
 
         
         JS_ASSERT_IF(script->strictModeCode, *pc != JSOP_SETARG);
 
-        if (code && JSOp(*pc) == JSOP_ARGUMENTS) {
-            Vector<SSAValue> seen(cx);
-            if (!followEscapingArguments(cx, SSAValue::PushedValue(offset, 0), &seen)) {
-                script->setNeedsArgsObj(true);
-                return;
-            }
+        
+        if (JSOp(*pc) != JSOP_ARGUMENTS)
+            continue;
+
+        
+        if (!maybeCode(offset))
+            continue;
+
+        if (SpeculateApplyOptimization(pc) && canOptimizeApply) {
+            haveOptimizedApply = true;
+            continue;
         }
 
-        offset += GetBytecodeLength(pc);
+        Vector<SSAValue> seen(cx);
+        if (haveOptimizedApply ||
+            !followEscapingArguments(cx, SSAValue::PushedValue(offset, 0), &seen))
+        {
+            script->setNeedsArgsObj(true);
+            return;
+        }
+
+        canOptimizeApply = false;
     }
 
     script->setNeedsArgsObj(false);
