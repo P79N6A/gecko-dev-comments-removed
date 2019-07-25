@@ -238,6 +238,11 @@ pref("gfx.color_management.mode", 0);
 pref("dom.disable_window_move_resize", true);
 
 
+
+pref("browser.link.open_external", 3);
+pref("browser.link.open_newwindow", 3);
+
+
 pref("privacy.sanitize.promptOnSanitize", false);
 pref("privacy.item.cache", true);
 pref("privacy.item.cookies", true);
