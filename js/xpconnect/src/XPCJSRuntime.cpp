@@ -690,36 +690,28 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
             
             
             if (!self->GetXPConnect()->IsShuttingDown()) {
-                Mutex* threadLock = XPCPerThreadData::GetLock();
-                if (threadLock)
-                { 
-                    MutexAutoLock lock(*threadLock);
 
-                    XPCPerThreadData* iterp = nsnull;
-                    XPCPerThreadData* thread;
+                
+                if (AutoMarkingPtr *roots = Get()->mAutoRoots)
+                    roots->MarkAfterJSFinalizeAll();
 
+                XPCCallContext* ccxp = XPCJSRuntime::Get()->GetCallContext();
+                while (ccxp) {
                     
-                    if (AutoMarkingPtr *roots = Get()->mAutoRoots)
-                        roots->MarkAfterJSFinalizeAll();
-
-                    XPCCallContext* ccxp = XPCJSRuntime::Get()->GetCallContext();
-                    while (ccxp) {
-                        
-                        
-                        
-                        
-                        if (ccxp->CanGetSet()) {
-                            XPCNativeSet* set = ccxp->GetSet();
-                            if (set)
-                                set->Mark();
-                        }
-                        if (ccxp->CanGetInterface()) {
-                            XPCNativeInterface* iface = ccxp->GetInterface();
-                            if (iface)
-                                iface->Mark();
-                        }
-                        ccxp = ccxp->GetPrevCallContext();
+                    
+                    
+                    
+                    if (ccxp->CanGetSet()) {
+                        XPCNativeSet* set = ccxp->GetSet();
+                        if (set)
+                            set->Mark();
                     }
+                    if (ccxp->CanGetInterface()) {
+                        XPCNativeInterface* iface = ccxp->GetInterface();
+                        if (iface)
+                            iface->Mark();
+                    }
+                    ccxp = ccxp->GetPrevCallContext();
                 }
             }
 
@@ -789,38 +781,25 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
             
             
             if (!self->GetXPConnect()->IsShuttingDown()) {
-                Mutex* threadLock = XPCPerThreadData::GetLock();
-                if (threadLock) {
+                
+
+                XPCCallContext* ccxp = XPCJSRuntime::Get()->GetCallContext();
+                while (ccxp) {
                     
-
-                    { 
-                        MutexAutoLock lock(*threadLock);
-
-                        XPCPerThreadData* iterp = nsnull;
-                        XPCPerThreadData* thread;
-
-                        while (nsnull != (thread =
-                                          XPCPerThreadData::IterateThreads(&iterp))) {
-                            XPCCallContext* ccxp = XPCJSRuntime::Get()->GetCallContext();
-                            while (ccxp) {
-                                
-                                
-                                
-                                
-                                if (ccxp->CanGetTearOff()) {
-                                    XPCWrappedNativeTearOff* to =
-                                        ccxp->GetTearOff();
-                                    if (to)
-                                        to->Mark();
-                                }
-                                ccxp = ccxp->GetPrevCallContext();
-                            }
-                        }
+                    
+                    
+                    
+                    if (ccxp->CanGetTearOff()) {
+                        XPCWrappedNativeTearOff* to =
+                            ccxp->GetTearOff();
+                        if (to)
+                            to->Mark();
                     }
-
-                    
-                    XPCWrappedNativeScope::SweepAllWrappedNativeTearOffs();
+                    ccxp = ccxp->GetPrevCallContext();
                 }
+
+                
+                XPCWrappedNativeScope::SweepAllWrappedNativeTearOffs();
             }
 
             
@@ -2114,10 +2093,6 @@ XPCJSRuntime::OnJSContextNew(JSContext *cx)
         ok = InternStaticDictionaryJSVals(cx);
     }
     if (!ok)
-        return false;
-
-    XPCPerThreadData* tls = XPCPerThreadData::GetData(cx);
-    if (!tls)
         return false;
 
     XPCContext* xpc = new XPCContext(this, cx);
