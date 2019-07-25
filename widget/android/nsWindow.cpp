@@ -1616,6 +1616,8 @@ static unsigned int ConvertAndroidKeyCodeToDOMKeyCode(int androidKeyCode)
 
     switch (androidKeyCode) {
         
+        case AndroidKeyEvent::KEYCODE_BACK:               return NS_VK_ESCAPE;
+        
         case AndroidKeyEvent::KEYCODE_DPAD_UP:            return NS_VK_UP;
         case AndroidKeyEvent::KEYCODE_DPAD_DOWN:          return NS_VK_DOWN;
         case AndroidKeyEvent::KEYCODE_DPAD_LEFT:          return NS_VK_LEFT;
