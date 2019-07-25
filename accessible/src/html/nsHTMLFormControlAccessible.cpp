@@ -407,8 +407,9 @@ nsHTMLTextFieldAccessible::GetNameInternal(nsAString& aName)
     
     
     
-    nsAccessible* parent = GetParent();
-    parent->GetName(aName);
+    nsAccessible* parent = Parent();
+    if (parent)
+      parent->GetName(aName);
   }
 
   if (!aName.IsEmpty())
@@ -452,7 +453,7 @@ nsHTMLTextFieldAccessible::NativeState()
     state |= states::PROTECTED;
   }
   else {
-    nsAccessible* parent = GetParent();
+    nsAccessible* parent = Parent();
     if (parent && parent->Role() == nsIAccessibleRole::ROLE_AUTOCOMPLETE)
       state |= states::HASPOPUP;
   }
@@ -650,7 +651,7 @@ nsHTMLLegendAccessible::GetRelationByType(PRUint32 aRelationType,
 
   if (aRelationType == nsIAccessibleRelation::RELATION_LABEL_FOR) {
     
-    nsAccessible* groupbox = GetParent();
+    nsAccessible* groupbox = Parent();
 
     if (groupbox && groupbox->Role() == nsIAccessibleRole::ROLE_GROUPING) {
       

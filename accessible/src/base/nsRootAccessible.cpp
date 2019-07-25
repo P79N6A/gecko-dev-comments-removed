@@ -699,14 +699,14 @@ nsRootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
         
         return;
       } else {
-        nsAccessible *containerAccessible = accessible->GetParent();
-        if (!containerAccessible)
+        nsAccessible* container = accessible->Parent();
+        if (!container)
           return;
         
         
         
-        if (containerAccessible->State() & states::COLLAPSED) {
-          nsAccessible *containerParent = containerAccessible->GetParent();
+        if (container->State() & states::COLLAPSED) {
+          nsAccessible* containerParent = container->Parent();
           if (!containerParent)
             return;
           if (containerParent->Role() != nsIAccessibleRole::ROLE_COMBOBOX) {
@@ -796,7 +796,7 @@ nsRootAccessible::GetContentDocShell(nsIDocShellTreeItem *aStart)
     
     
     
-    nsAccessible *parent = accDoc->GetParent();
+    nsAccessible* parent = accDoc->Parent();
     while (parent) {
       if (parent->State() & states::INVISIBLE)
         return nsnull;
@@ -804,7 +804,7 @@ nsRootAccessible::GetContentDocShell(nsIDocShellTreeItem *aStart)
       if (parent == this)
         break; 
 
-      parent = parent->GetParent();
+      parent = parent->Parent();
     }
 
     NS_ADDREF(aStart);
@@ -878,7 +878,7 @@ nsRootAccessible::HandlePopupShownEvent(nsAccessible* aAccessible)
 
   if (role == nsIAccessibleRole::ROLE_COMBOBOX_LIST) {
     
-    nsAccessible* combobox = aAccessible->GetParent();
+    nsAccessible* combobox = aAccessible->Parent();
     if (!combobox)
       return;
 
@@ -914,7 +914,7 @@ nsRootAccessible::HandlePopupHidingEvent(nsINode* aNode,
       aAccessible->Role() != nsIAccessibleRole::ROLE_COMBOBOX_LIST)
     return;
 
-  nsAccessible* combobox = aAccessible->GetParent();
+  nsAccessible* combobox = aAccessible->Parent();
   if (!combobox)
     return;
 

@@ -581,7 +581,7 @@ nsDocAccessible::GetAccessible(nsINode* aNode) const
   
   
   
-  nsAccessible* parent(accessible->GetParent());
+  nsAccessible* parent = accessible->Parent();
   if (parent)
     parent->TestChildCache(accessible);
 #endif
@@ -1487,8 +1487,8 @@ nsDocAccessible::NotifyOfInitialUpdate()
   
   if (!IsRoot()) {
     nsRefPtr<AccEvent> reorderEvent =
-      new AccEvent(nsIAccessibleEvent::EVENT_REORDER, GetParent(),
-                   eAutoDetect, AccEvent::eCoalesceFromSameSubtree);
+      new AccEvent(nsIAccessibleEvent::EVENT_REORDER, Parent(), eAutoDetect,
+                   AccEvent::eCoalesceFromSameSubtree);
     ParentDocument()->FireDelayedAccessibleEvent(reorderEvent);
   }
 }
@@ -1817,7 +1817,7 @@ nsDocAccessible::UpdateTree(nsAccessible* aContainer, nsIContent* aChildNode,
       if (ancestor == this)
         break;
 
-      ancestor = ancestor->GetParent();
+      ancestor = ancestor->Parent();
     }
   }
 
@@ -1902,7 +1902,7 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aChild, bool aIsInsert)
     
     
     
-    nsAccessible* parent = aChild->GetParent();
+    nsAccessible* parent = aChild->Parent();
     NS_ASSERTION(parent, "No accessible parent?!");
     if (parent)
       parent->RemoveChild(aChild);

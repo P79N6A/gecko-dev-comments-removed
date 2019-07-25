@@ -300,7 +300,7 @@ nsHTMLSelectOptionAccessible::NativeState()
     
     state &= ~states::OFFSCREEN;
     
-    nsAccessible* listAcc = GetParent();
+    nsAccessible* listAcc = Parent();
     if (listAcc) {
       PRInt32 optionX, optionY, optionWidth, optionHeight;
       PRInt32 listX, listY, listWidth, listHeight;
@@ -382,8 +382,9 @@ NS_IMETHODIMP nsHTMLSelectOptionAccessible::DoAction(PRUint8 index)
     if (!newHTMLOption) 
       return NS_ERROR_FAILURE;
     
-    nsAccessible* parent = GetParent();
-    NS_ASSERTION(parent, "No parent!");
+    nsAccessible* parent = Parent();
+    if (!parent)
+      return NS_OK;
 
     nsCOMPtr<nsIContent> oldHTMLOptionContent =
       GetFocusedOption(parent->GetContent());
@@ -891,7 +892,7 @@ void nsHTMLComboboxListAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aBo
 {
   *aBoundingFrame = nsnull;
 
-  nsAccessible* comboAcc = GetParent();
+  nsAccessible* comboAcc = Parent();
   if (!comboAcc)
     return;
 

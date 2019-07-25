@@ -234,8 +234,8 @@ nsLinkableAccessible::BindToParent(nsAccessible* aParent,
   
   
   nsAccessible* walkUpAcc = this;
-  while ((walkUpAcc = walkUpAcc->GetParent()) && !walkUpAcc->IsDoc()) {
-    if (walkUpAcc && walkUpAcc->Role() == nsIAccessibleRole::ROLE_LINK &&
+  while ((walkUpAcc = walkUpAcc->Parent()) && !walkUpAcc->IsDoc()) {
+    if (walkUpAcc->Role() == nsIAccessibleRole::ROLE_LINK &&
         walkUpAcc->State() & states::LINKED) {
       mIsLink = PR_TRUE;
       mActionAcc = walkUpAcc;

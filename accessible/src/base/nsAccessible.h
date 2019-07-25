@@ -279,7 +279,7 @@ public:
   
 
 
-  nsAccessible* GetParent() const { return mParent; }
+  nsAccessible* Parent() const { return mParent; }
 
   
 
@@ -313,6 +313,14 @@ public:
     {  return GetSiblingAtOffset(1); }
   inline nsAccessible* PrevSibling() const
     { return GetSiblingAtOffset(-1); }
+  inline nsAccessible* FirstChild()
+    { return GetChildCount() != 0 ? GetChildAt(0) : nsnull; }
+  inline nsAccessible* LastChild()
+  {
+    PRUint32 childCount = GetChildCount();
+    return childCount != 0 ? GetChildAt(childCount - 1) : nsnull;
+  }
+
 
   
 

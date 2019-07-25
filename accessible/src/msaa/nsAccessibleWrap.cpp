@@ -214,7 +214,7 @@ __try {
     }
   }
 
-  nsAccessible* xpParentAcc = GetParent();
+  nsAccessible* xpParentAcc = Parent();
   if (!xpParentAcc) {
     if (IsApplication())
       return S_OK;
@@ -374,7 +374,7 @@ __try {
   
   
   if (xpRole == nsIAccessibleRole::ROLE_ROW) {
-    nsAccessible* xpParent = GetParent();
+    nsAccessible* xpParent = Parent();
     if (xpParent && xpParent->Role() == nsIAccessibleRole::ROLE_TREE_TABLE)
       msaaRole = ROLE_SYSTEM_OUTLINEITEM;
   }
@@ -1160,7 +1160,7 @@ __try {
   
   
   if (xpRole == nsIAccessibleRole::ROLE_ROW) {
-    nsAccessible* xpParent = GetParent();
+    nsAccessible* xpParent = Parent();
     if (xpParent && xpParent->Role() == nsIAccessibleRole::ROLE_TREE_TABLE)
       *aRole = ROLE_SYSTEM_OUTLINEITEM;
   }
@@ -1768,12 +1768,12 @@ nsAccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
 
       
       
-      nsAccessible* parent = child ? child->GetParent() : nsnull;
+      nsAccessible* parent = child ? child->Parent() : nsnull;
       while (parent && parent != document) {
         if (parent == this)
           return child;
 
-        parent = parent->GetParent();
+        parent = parent->Parent();
       }
     }
 
