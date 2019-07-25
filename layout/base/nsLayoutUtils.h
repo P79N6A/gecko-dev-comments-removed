@@ -1349,7 +1349,9 @@ public:
   };
 
   struct SurfaceFromElementResult {
-    SurfaceFromElementResult() : mIsWriteOnly(PR_TRUE), mIsStillLoading(PR_FALSE) {}
+    SurfaceFromElementResult() :
+      
+      mIsWriteOnly(PR_TRUE), mIsStillLoading(PR_FALSE), mCORSUsed(PR_FALSE) {}
 
     
     nsRefPtr<gfxASurface> mSurface;
@@ -1364,6 +1366,8 @@ public:
     
 
     PRPackedBool mIsStillLoading;
+    
+    PRPackedBool mCORSUsed;
   };
 
   static SurfaceFromElementResult SurfaceFromElement(nsIDOMElement *aElement,

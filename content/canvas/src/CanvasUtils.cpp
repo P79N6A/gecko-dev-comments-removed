@@ -65,7 +65,8 @@ namespace CanvasUtils {
 void
 DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
                          nsIPrincipal *aPrincipal,
-                         PRBool forceWriteOnly)
+                         PRBool forceWriteOnly,
+                         PRBool CORSUsed)
 {
     
     if (!aCanvasElement) {
@@ -83,6 +84,10 @@ DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
     }
 
     if (aPrincipal == nsnull)
+        return;
+
+    
+    if (CORSUsed)
         return;
 
     PRBool subsumes;
