@@ -41,115 +41,82 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
+#include "mozilla/Util.h"
 
-nsTransactionStack::nsTransactionStack()
+nsTransactionStack::nsTransactionStack(nsTransactionStack::Type aType)
   : mQue(0)
+  , mType(aType)
 {
-} 
+}
 
 nsTransactionStack::~nsTransactionStack()
 {
   Clear();
 }
 
-nsresult
+void
 nsTransactionStack::Push(nsTransactionItem *aTransaction)
 {
-  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
+  if (!aTransaction) {
+    return;
+  }
 
   
 
 
   NS_ADDREF(aTransaction);
   mQue.Push(aTransaction);
-
-  return NS_OK;
 }
 
-nsresult
-nsTransactionStack::Pop(nsTransactionItem **aTransaction)
+already_AddRefed<nsTransactionItem>
+nsTransactionStack::Pop()
 {
-  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
-
   
 
 
-  *aTransaction = (nsTransactionItem *)mQue.Pop();
-
-  return NS_OK;
+  return static_cast<nsTransactionItem*> (mQue.Pop());
 }
 
-nsresult
-nsTransactionStack::PopBottom(nsTransactionItem **aTransaction)
+already_AddRefed<nsTransactionItem>
+nsTransactionStack::PopBottom()
 {
-  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
-
   
 
 
-  *aTransaction = (nsTransactionItem *)mQue.PopFront();
-
-  return NS_OK;
+  return static_cast<nsTransactionItem*> (mQue.PopFront());
 }
 
-nsresult
-nsTransactionStack::Peek(nsTransactionItem **aTransaction)
+already_AddRefed<nsTransactionItem>
+nsTransactionStack::Peek()
 {
-  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
-
-  if (!mQue.GetSize()) {
-    *aTransaction = 0;
-    return NS_OK;
+  nsTransactionItem* transaction = nsnull;
+  if (mQue.GetSize()) {
+    NS_IF_ADDREF(transaction = static_cast<nsTransactionItem*>(mQue.Last()));
   }
 
-  NS_IF_ADDREF(*aTransaction = static_cast<nsTransactionItem*>(mQue.Last()));
-
-  return NS_OK;
+  return transaction;
 }
 
-nsresult
-nsTransactionStack::GetItem(PRInt32 aIndex, nsTransactionItem **aTransaction)
+already_AddRefed<nsTransactionItem>
+nsTransactionStack::GetItem(PRInt32 aIndex)
 {
-  NS_ENSURE_TRUE(aTransaction, NS_ERROR_NULL_POINTER);
+  nsTransactionItem* transaction = nsnull;
+  if (aIndex >= 0 && aIndex < mQue.GetSize()) {
+    NS_IF_ADDREF(transaction =
+                 static_cast<nsTransactionItem*>(mQue.ObjectAt(aIndex)));
+  }
 
-  if (aIndex < 0 || aIndex >= mQue.GetSize())
-    return NS_ERROR_FAILURE;
-
-  NS_IF_ADDREF(*aTransaction =
-               static_cast<nsTransactionItem*>(mQue.ObjectAt(aIndex)));
-
-  return NS_OK;
+  return transaction;
 }
 
-nsresult
-nsTransactionStack::Clear(void)
+void
+nsTransactionStack::Clear()
 {
   nsRefPtr<nsTransactionItem> tx;
-  nsresult result    = NS_OK;
 
-  
-
-  result = Pop(getter_AddRefs(tx));
-
-  NS_ENSURE_SUCCESS(result, result);
-
-  while (tx) {
-    result = Pop(getter_AddRefs(tx));
-
-    NS_ENSURE_SUCCESS(result, result);
-  }
-
-  return NS_OK;
-}
-
-nsresult
-nsTransactionStack::GetSize(PRInt32 *aStackSize)
-{
-  NS_ENSURE_TRUE(aStackSize, NS_ERROR_NULL_POINTER);
-
-  *aStackSize = mQue.GetSize();
-
-  return NS_OK;
+  do {
+    tx = mType == FOR_UNDO ? Pop() : PopBottom();
+  } while (tx);
 }
 
 void
@@ -164,32 +131,3 @@ nsTransactionStack::DoTraverse(nsCycleCollectionTraversalCallback &cb)
     }
   }
 }
-
-nsTransactionRedoStack::~nsTransactionRedoStack()
-{
-  Clear();
-}
-
-nsresult
-nsTransactionRedoStack::Clear(void)
-{
-  nsRefPtr<nsTransactionItem> tx;
-  nsresult result       = NS_OK;
-
-  
-
-
-
-  result = PopBottom(getter_AddRefs(tx));
-
-  NS_ENSURE_SUCCESS(result, result);
-
-  while (tx) {
-    result = PopBottom(getter_AddRefs(tx));
-
-    NS_ENSURE_SUCCESS(result, result);
-  }
-
-  return NS_OK;
-}
-
