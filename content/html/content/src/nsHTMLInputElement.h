@@ -379,12 +379,12 @@ protected:
 
 
   virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                                 const nsAttrValue* aValue, bool aNotify);
+                                 const nsAString* aValue, bool aNotify);
   
 
 
   virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                                const nsAttrValue* aValue, bool aNotify);
+                                const nsAString* aValue, bool aNotify);
 
   
 
