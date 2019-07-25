@@ -39,10 +39,6 @@
 
 
 
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-let Cu = Components.utils;
-
 
 
 
@@ -72,6 +68,10 @@ const AnimatedZoom = {
 
       window.addEventListener("MozBeforePaint", this, false);
       mozRequestAnimationFrame();
+
+      let event = document.createEvent("Events");
+      event.initEvent("AnimatedZoomBegin", true, true);
+      window.dispatchEvent(event);
     }
   },
 
@@ -105,6 +105,14 @@ const AnimatedZoom = {
     this.zoomTo = null;
     this.zoomFrom = null;
     this.zoomRect = null;
+
+    let event = document.createEvent("Events");
+    event.initEvent("AnimatedZoomEnd", true, true);
+    window.dispatchEvent(event);
+  },
+
+  isZooming: function isZooming() {
+    return this.beginTime != null;
   },
 
   handleEvent: function(aEvent) {
