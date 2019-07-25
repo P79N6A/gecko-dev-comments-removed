@@ -12,18 +12,133 @@
 
 
 
-function Highlighter(aInspector)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Cu = Components.utils;
+Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
+
+var EXPORTED_SYMBOLS = ["Highlighter"];
+
+const INSPECTOR_INVISIBLE_ELEMENTS = {
+  "head": true,
+  "base": true,
+  "basefont": true,
+  "isindex": true,
+  "link": true,
+  "meta": true,
+  "script": true,
+  "style": true,
+  "title": true,
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Highlighter(aWindow)
 {
-  this.IUI = aInspector;
+  this.chromeWin = aWindow;
+  this.tabbrowser = aWindow.gBrowser;
+  this.chromeDoc = aWindow.document;
+  this.browser = aWindow.gBrowser.selectedBrowser;
+  this.events = {};
+
   this._init();
 }
 
 Highlighter.prototype = {
   _init: function Highlighter__init()
   {
-    this.browser = this.IUI.browser;
-    this.chromeDoc = this.IUI.chromeDoc;
-
     let stack = this.browser.parentNode;
     this.win = this.browser.contentWindow;
     this._highlighting = false;
@@ -49,18 +164,11 @@ Highlighter.prototype = {
 
     this.buildInfobar(controlsBox);
 
-    if (!this.IUI.store.getValue(this.winID, "inspecting")) {
-      this.veilContainer.setAttribute("locked", true);
-      this.nodeInfo.container.setAttribute("locked", true);
-    }
-
-    this.browser.addEventListener("resize", this, true);
-    this.browser.addEventListener("scroll", this, true);
-
     this.transitionDisabler = null;
 
     this.computeZoomFactor();
-    this.handleResize();
+    this.unlock();
+    this.hide();
   },
 
   
@@ -68,9 +176,11 @@ Highlighter.prototype = {
 
   destroy: function Highlighter_destroy()
   {
-    this.IUI.win.clearTimeout(this.transitionDisabler);
-    this.browser.removeEventListener("scroll", this, true);
-    this.browser.removeEventListener("resize", this, true);
+    this.detachKeysListeners();
+    this.detachMouseListeners();
+    this.detachPageListeners();
+
+    this.chromeWin.clearTimeout(this.transitionDisabler);
     this.boundCloseEventHandler = null;
     this._contentRect = null;
     this._highlightRect = null;
@@ -87,7 +197,11 @@ Highlighter.prototype = {
     this.win = null
     this.browser = null;
     this.chromeDoc = null;
-    this.IUI = null;
+    this.chromeWin = null;
+    this.tabbrowser = null;
+
+    this.emitEvent("closed");
+    this.removeAllListeners();
   },
 
   
@@ -96,74 +210,49 @@ Highlighter.prototype = {
 
 
 
-  highlight: function Highlighter_highlight(aScroll)
+
+
+
+  highlight: function Highlighter_highlight(aNode, aScroll)
+  {
+    if (this.hidden)
+      this.show();
+
+    let oldNode = this.node;
+
+    if (!aNode) {
+      if (!this.node)
+        this.node = this.win.document.documentElement;
+    } else {
+      this.node = aNode;
+    }
+
+    if (oldNode !== this.node) {
+      this.updateInfobar();
+    }
+
+    this.invalidateSize(!!aScroll);
+
+    if (oldNode !== this.node) {
+      this.emitEvent("nodeselected");
+    }
+  },
+
+  
+
+
+  invalidateSize: function Highlighter_invalidateSize(aScroll)
   {
     let rect = null;
 
     if (this.node && this.isNodeHighlightable(this.node)) {
 
-      if (aScroll) {
+      if (aScroll &&
+          this.node.scrollIntoView) { 
         this.node.scrollIntoView();
       }
-
       let clientRect = this.node.getBoundingClientRect();
-
-      
-      
-      rect = {top: clientRect.top,
-              left: clientRect.left,
-              width: clientRect.width,
-              height: clientRect.height};
-
-      let frameWin = this.node.ownerDocument.defaultView;
-
-      
-      while (true) {
-
-        
-        let diffx = frameWin.innerWidth - (rect.left + rect.width);
-        if (diffx < 0) {
-          rect.width += diffx;
-        }
-
-        
-        let diffy = frameWin.innerHeight - (rect.top + rect.height);
-        if (diffy < 0) {
-          rect.height += diffy;
-        }
-
-        
-        if (rect.left < 0) {
-          rect.width += rect.left;
-          rect.left = 0;
-        }
-
-        
-        if (rect.top < 0) {
-          rect.height += rect.top;
-          rect.top = 0;
-        }
-
-        
-
-        
-        if (frameWin.parent === frameWin || !frameWin.frameElement) {
-          break;
-        }
-
-        
-        
-        
-        let frameRect = frameWin.frameElement.getBoundingClientRect();
-
-        let [offsetTop, offsetLeft] =
-          this.IUI.getIframeContentOffset(frameWin.frameElement);
-
-        rect.top += frameRect.top + offsetTop;
-        rect.left += frameRect.left + offsetLeft;
-
-        frameWin = frameWin.parent;
-      }
+      rect = LayoutHelpers.getDirtyRect(this.node);
     }
 
     this.highlightRectangle(rect);
@@ -171,9 +260,76 @@ Highlighter.prototype = {
     this.moveInfobar();
 
     if (this._highlighting) {
-      Services.obs.notifyObservers(null,
-        INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, null);
+      this.emitEvent("highlighting");
     }
+  },
+
+  
+
+
+
+
+  getNode: function() {
+    return this.node;
+  },
+
+  
+
+
+  show: function() {
+    if (!this.hidden) return;
+    this.veilContainer.removeAttribute("hidden");
+    this.nodeInfo.container.removeAttribute("hidden");
+    this.attachKeysListeners();
+    this.attachPageListeners();
+    this.invalidateSize();
+    this.hidden = false;
+  },
+
+  
+
+
+  hide: function() {
+    if (this.hidden) return;
+    this.veilContainer.setAttribute("hidden", "true");
+    this.nodeInfo.container.setAttribute("hidden", "true");
+    this.detachKeysListeners();
+    this.detachPageListeners();
+    this.hidden = true;
+  },
+
+  
+
+
+
+
+  isHidden: function() {
+    return this.hidden;
+  },
+
+  
+
+
+  lock: function() {
+    if (this.locked === true) return;
+    this.veilContainer.setAttribute("locked", "true");
+    this.nodeInfo.container.setAttribute("locked", "true");
+    this.detachMouseListeners();
+    this.locked = true;
+    this.emitEvent("locked");
+  },
+
+  
+
+
+
+  unlock: function() {
+    if (this.locked === false) return;
+    this.veilContainer.removeAttribute("locked");
+    this.nodeInfo.container.removeAttribute("locked");
+    this.attachMouseListeners();
+    this.locked = false;
+    this.emitEvent("unlocked");
   },
 
   
@@ -317,29 +473,6 @@ Highlighter.prototype = {
 
 
 
-  get isHighlighting() {
-    return this._highlighting;
-  },
-
-  
-
-
-
-
-
-
-
-  highlightNode: function Highlighter_highlightNode(aNode, aParams)
-  {
-    this.node = aNode;
-    this.updateInfobar();
-    this.highlight(aParams && aParams.scroll);
-  },
-
-  
-
-
-
 
 
 
@@ -355,14 +488,10 @@ Highlighter.prototype = {
 
     if (oldRect && aRect.top == oldRect.top && aRect.left == oldRect.left &&
         aRect.width == oldRect.width && aRect.height == oldRect.height) {
-      return this._highlighting; 
+      return; 
     }
 
-    
-    let aRectScaled = {};
-    for (let prop in aRect) {
-      aRectScaled[prop] = aRect[prop] * this.zoom;
-    }
+    let aRectScaled = LayoutHelpers.getZoomedRect(this.win, aRect);
 
     if (aRectScaled.left >= 0 && aRectScaled.top >= 0 &&
         aRectScaled.width > 0 && aRectScaled.height > 0) {
@@ -384,7 +513,7 @@ Highlighter.prototype = {
     this._contentRect = aRect; 
     this._highlightRect = aRectScaled; 
 
-    return this._highlighting;
+    return;
   },
 
   
@@ -396,8 +525,6 @@ Highlighter.prototype = {
     this.veilMiddleBox.style.height = 0;
     this.veilTransparentBox.style.width = 0;
     this.veilTransparentBox.style.visibility = "hidden";
-    Services.obs.notifyObservers(null,
-      INSPECTOR_NOTIFICATIONS.UNHIGHLIGHTING, null);
   },
 
   
@@ -543,7 +670,7 @@ Highlighter.prototype = {
     
     let midpoint = this.midPoint(a, b);
 
-    return this.IUI.elementFromPoint(this.win.document, midpoint.x,
+    return LayoutHelpers.getElementFromPoint(this.win.document, midpoint.x,
       midpoint.y);
   },
 
@@ -560,7 +687,47 @@ Highlighter.prototype = {
   
   
 
-  attachInspectListeners: function Highlighter_attachInspectListeners()
+  addListener: function Highlighter_addListener(aEvent, aListener)
+  {
+    if (!(aEvent in this.events))
+      this.events[aEvent] = [];
+    this.events[aEvent].push(aListener);
+  },
+
+  removeListener: function Highlighter_removeListener(aEvent, aListener)
+  {
+    if (!(aEvent in this.events))
+      return;
+    let idx = this.events[aEvent].indexOf(aListener);
+    if (idx > -1)
+      this.events[aEvent].splice(idx, 1);
+  },
+
+  emitEvent: function Highlighter_emitEvent(aEvent, aArgv)
+  {
+    if (!(aEvent in this.events))
+      return;
+
+    let listeners = this.events[aEvent];
+    let highlighter = this;
+    listeners.forEach(function(aListener) {
+      try {
+        aListener.apply(highlighter, aArgv);
+      } catch(e) {}
+    });
+  },
+
+  removeAllListeners: function Highlighter_removeAllIsteners()
+  {
+    for (let event in this.events) {
+      delete this.events[event];
+    }
+  },
+
+  
+  
+
+  attachMouseListeners: function Highlighter_attachMouseListeners()
   {
     this.browser.addEventListener("mousemove", this, true);
     this.browser.addEventListener("click", this, true);
@@ -569,7 +736,7 @@ Highlighter.prototype = {
     this.browser.addEventListener("mouseup", this, true);
   },
 
-  detachInspectListeners: function Highlighter_detachInspectListeners()
+  detachMouseListeners: function Highlighter_detachMouseListeners()
   {
     this.browser.removeEventListener("mousemove", this, true);
     this.browser.removeEventListener("click", this, true);
@@ -578,6 +745,29 @@ Highlighter.prototype = {
     this.browser.removeEventListener("mouseup", this, true);
   },
 
+  attachPageListeners: function Highlighter_attachPageListeners()
+  {
+    this.browser.addEventListener("resize", this, true);
+    this.browser.addEventListener("scroll", this, true);
+  },
+
+  detachPageListeners: function Highlighter_detachPageListeners()
+  {
+    this.browser.removeEventListener("resize", this, true);
+    this.browser.removeEventListener("scroll", this, true);
+  },
+
+  attachKeysListeners: function Highlighter_attachKeysListeners()
+  {
+    this.browser.addEventListener("keypress", this, true);
+    this.highlighterContainer.addEventListener("keypress", this, true);
+  },
+
+  detachKeysListeners: function Highlighter_detachKeysListeners()
+  {
+    this.browser.removeEventListener("keypress", this, true);
+    this.highlighterContainer.removeEventListener("keypress", this, true);
+  },
 
   
 
@@ -595,9 +785,10 @@ Highlighter.prototype = {
         this.handleMouseMove(aEvent);
         break;
       case "resize":
+      case "scroll":
         this.computeZoomFactor();
         this.brieflyDisableTransitions();
-        this.handleResize(aEvent);
+        this.invalidateSize();
         break;
       case "dblclick":
       case "mousedown":
@@ -605,10 +796,78 @@ Highlighter.prototype = {
         aEvent.stopPropagation();
         aEvent.preventDefault();
         break;
-      case "scroll":
-        this.brieflyDisableTransitions();
-        this.highlight();
         break;
+      case "keypress":
+        switch (aEvent.keyCode) {
+          case this.chromeWin.KeyEvent.DOM_VK_RETURN:
+            this.locked ? this.unlock() : this.lock();
+            aEvent.preventDefault();
+            aEvent.stopPropagation();
+            break;
+          case this.chromeWin.KeyEvent.DOM_VK_LEFT:
+            let node;
+            if (this.node) {
+              node = this.node.parentNode;
+            } else {
+              node = this.defaultSelection;
+            }
+            if (node && this.isNodeHighlightable(node)) {
+              this.highlight(node);
+            }
+            aEvent.preventDefault();
+            aEvent.stopPropagation();
+            break;
+          case this.chromeWin.KeyEvent.DOM_VK_RIGHT:
+            if (this.node) {
+              
+              for (let i = 0; i < this.node.childNodes.length; i++) {
+                node = this.node.childNodes[i];
+                if (node && this.isNodeHighlightable(node)) {
+                  break;
+                }
+              }
+            } else {
+              node = this.defaultSelection;
+            }
+            if (node && this.isNodeHighlightable(node)) {
+              this.highlight(node, true);
+            }
+            aEvent.preventDefault();
+            aEvent.stopPropagation();
+            break;
+          case this.chromeWin.KeyEvent.DOM_VK_UP:
+            if (this.node) {
+              
+              node = this.node.previousSibling;
+              while (node && !this.isNodeHighlightable(node)) {
+                node = node.previousSibling;
+              }
+            } else {
+              node = this.defaultSelection;
+            }
+            if (node && this.isNodeHighlightable(node)) {
+              this.highlight(node, true);
+            }
+            aEvent.preventDefault();
+            aEvent.stopPropagation();
+            break;
+          case this.chromeWin.KeyEvent.DOM_VK_DOWN:
+            if (this.node) {
+              
+              node = this.node.nextSibling;
+              while (node && !this.isNodeHighlightable(node)) {
+                node = node.nextSibling;
+              }
+            } else {
+              node = this.defaultSelection;
+            }
+            if (node && this.isNodeHighlightable(node)) {
+              this.highlight(node, true);
+            }
+            aEvent.preventDefault();
+            aEvent.stopPropagation();
+            break;
+        }
     }
   },
 
@@ -619,13 +878,13 @@ Highlighter.prototype = {
   brieflyDisableTransitions: function Highlighter_brieflyDisableTransitions()
   {
    if (this.transitionDisabler) {
-     this.IUI.win.clearTimeout(this.transitionDisabler);
+     this.chromeWin.clearTimeout(this.transitionDisabler);
    } else {
      this.veilContainer.setAttribute("disable-transitions", "true");
      this.nodeInfo.container.setAttribute("disable-transitions", "true");
    }
    this.transitionDisabler =
-     this.IUI.win.setTimeout(function() {
+     this.chromeWin.setTimeout(function() {
        this.veilContainer.removeAttribute("disable-transitions");
        this.nodeInfo.container.removeAttribute("disable-transitions");
        this.transitionDisabler = null;
@@ -643,7 +902,7 @@ Highlighter.prototype = {
     
     if (aEvent.button == 0) {
       let win = aEvent.target.ownerDocument.defaultView;
-      this.IUI.stopInspecting();
+      this.lock();
       win.focus();
     }
     aEvent.preventDefault();
@@ -658,19 +917,11 @@ Highlighter.prototype = {
 
   handleMouseMove: function Highlighter_handleMouseMove(aEvent)
   {
-    let element = this.IUI.elementFromPoint(aEvent.target.ownerDocument,
+    let element = LayoutHelpers.getElementFromPoint(aEvent.target.ownerDocument,
       aEvent.clientX, aEvent.clientY);
     if (element && element != this.node) {
-      this.IUI.inspectNode(element);
+      this.highlight(element);
     }
-  },
-
-  
-
-
-  handleResize: function Highlighter_handleResize()
-  {
-    this.highlight();
   },
 };
 
