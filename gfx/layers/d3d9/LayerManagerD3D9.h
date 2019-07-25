@@ -119,19 +119,21 @@ public:
 
   virtual void Destroy();
 
-  void BeginTransaction();
+  virtual void BeginTransaction();
 
-  void BeginTransactionWithTarget(gfxContext* aTarget);
+  virtual void BeginTransactionWithTarget(gfxContext* aTarget);
 
   void EndConstruction();
+
+  virtual bool EndEmptyTransaction();
 
   struct CallbackInfo {
     DrawThebesLayerCallback Callback;
     void *CallbackData;
   };
 
-  void EndTransaction(DrawThebesLayerCallback aCallback,
-                      void* aCallbackData);
+  virtual void EndTransaction(DrawThebesLayerCallback aCallback,
+                              void* aCallbackData);
 
   const CallbackInfo &GetCallbackInfo() { return mCurrentCallbackInfo; }
 
@@ -205,6 +207,12 @@ private:
 
 
   nsIntRegion mClippingRegion;
+
+  
+
+
+
+  PRUint32 mDeviceResetCount;
 
   
 

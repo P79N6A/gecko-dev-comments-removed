@@ -160,11 +160,14 @@ public:
 
   bool DeviceWasRemoved() { return mDeviceWasRemoved; }
 
+  PRUint32 GetDeviceResetCount() { return mDeviceResetCount; }
+
   
 
 
 
   nsTArray<LayerD3D9*> mLayersWithResources;
+
 private:
   friend class SwapChainD3D9;
 
@@ -229,6 +232,8 @@ private:
 
 
   HWND mFocusWnd;
+
+  PRUint32 mDeviceResetCount;
 
   
   bool mHasDynamicTextures;

@@ -54,8 +54,9 @@ namespace layers {
 DeviceManagerD3D9 *LayerManagerD3D9::mDefaultDeviceManager = nsnull;
 
 LayerManagerD3D9::LayerManagerD3D9(nsIWidget *aWidget)
+  : mWidget(aWidget)
+  , mDeviceResetCount(0)
 {
-  mWidget = aWidget;
   mCurrentCallbackInfo.Callback = NULL;
   mCurrentCallbackInfo.CallbackData = NULL;
 }
@@ -151,10 +152,26 @@ LayerManagerD3D9::EndConstruction()
 {
 }
 
+bool
+LayerManagerD3D9::EndEmptyTransaction()
+{
+  
+  
+  
+  
+  if (!mRoot || mDeviceResetCount != mDeviceManager->GetDeviceResetCount())
+    return false;
+
+  EndTransaction(nsnull, nsnull);
+  return true;
+}
+
 void
 LayerManagerD3D9::EndTransaction(DrawThebesLayerCallback aCallback,
                                  void* aCallbackData)
 {
+  mDeviceResetCount = mDeviceManager->GetDeviceResetCount();
+
   mCurrentCallbackInfo.Callback = aCallback;
   mCurrentCallbackInfo.CallbackData = aCallbackData;
 
