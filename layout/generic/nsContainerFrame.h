@@ -392,8 +392,10 @@ protected:
   
 
 
+
+
   void DestroyOverflowList(nsPresContext* aPresContext,
-                           nsIFrame*      aDestructRoot = nsnull);
+                           nsIFrame*      aDestructRoot);
 
   
 
