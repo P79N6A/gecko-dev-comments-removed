@@ -424,7 +424,8 @@ static const char kRoleNames[][20] = {
   "flat equation",       
   "gridcell",            
   "embedded object",     
-  "note"                 
+  "note",                
+  "figure"               
 };
 
 
