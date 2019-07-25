@@ -1172,22 +1172,7 @@ HUD_SERVICE.prototype =
   
 
 
-  _headsUpDisplays: {},
-
-  
-
-
-  displayRegistry: {},
-
-  
-
-
-  windowRegistry: {},
-
-  
-
-
-  uriRegistry: {},
+  windowIds: {},
 
   
 
@@ -1220,9 +1205,21 @@ HUD_SERVICE.prototype =
 
   getWindowByWindowId: function HS_getWindowByWindowId(aId)
   {
+    
+    
+    
+    
+
     let someWindow = Services.wm.getMostRecentWindow(null);
-    let windowUtils = someWindow.getInterface(Ci.nsIDOMWindowUtils);
-    return windowUtils.getOuterWindowWithId(aId);
+    let content = null;
+
+    if (someWindow) {
+      let windowUtils = someWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                  .getInterface(Ci.nsIDOMWindowUtils);
+      content = windowUtils.getOuterWindowWithId(aId);
+    }
+
+    return content;
   },
 
   
@@ -1295,13 +1292,14 @@ HUD_SERVICE.prototype =
   {
     this.wakeup();
 
-    var window = aContext.linkedBrowser.contentWindow;
-    var id = aContext.linkedBrowser.parentNode.parentNode.getAttribute("id");
-    this.registerActiveContext(id);
+    let window = aContext.linkedBrowser.contentWindow;
+    let nBox = aContext.ownerDocument.defaultView.
+      getNotificationBox(window);
+    this.registerActiveContext(nBox.id);
     this.windowInitializer(window);
 
     if (!aAnimated) {
-      this.disableAnimation("hud_" + id);
+      this.disableAnimation("hud_" + nBox.id);
     }
   },
 
@@ -1320,12 +1318,11 @@ HUD_SERVICE.prototype =
     let hudId = "hud_" + nBox.id;
     let displayNode = nBox.querySelector("#" + hudId);
 
-    if (hudId in this.displayRegistry && displayNode) {
+    if (hudId in this.hudReferences && displayNode) {
       if (!aAnimated) {
         this.storeHeight(hudId);
       }
 
-      this.unregisterActiveContext(hudId);
       this.unregisterDisplay(displayNode);
       window.focus();
     }
@@ -1587,61 +1584,15 @@ HUD_SERVICE.prototype =
 
 
 
-
-  deleteHeadsUpDisplay: function HS_deleteHeadsUpDisplay(aHUDId)
-  {
-    delete this.hudReferences[aHUDId];
-  },
-
-  
-
-
-
-
-
-  registerDisplay: function HS_registerDisplay(aHUDId, aContentWindow)
+  registerDisplay: function HS_registerDisplay(aHUDId)
   {
     
-
-    if (!aHUDId || !aContentWindow){
+    if (!aHUDId){
       throw new Error(ERRORS.MISSING_ARGS);
     }
-    var URISpec = aContentWindow.document.location.href;
     this.filterPrefs[aHUDId] = this.defaultFilterPrefs;
-    this.displayRegistry[aHUDId] = URISpec;
-
-    this._headsUpDisplays[aHUDId] = { id: aHUDId };
-
-    this.registerActiveContext(aHUDId);
     
     this.storage.createDisplay(aHUDId);
-
-    var huds = this.uriRegistry[URISpec];
-    var foundHUDId = false;
-
-    if (huds) {
-      var len = huds.length;
-      for (var i = 0; i < len; i++) {
-        if (huds[i] == aHUDId) {
-          foundHUDId = true;
-          break;
-        }
-      }
-      if (!foundHUDId) {
-        this.uriRegistry[URISpec].push(aHUDId);
-      }
-    }
-    else {
-      this.uriRegistry[URISpec] = [aHUDId];
-    }
-
-    var windows = this.windowRegistry[aHUDId];
-    if (!windows) {
-      this.windowRegistry[aHUDId] = [aContentWindow];
-    }
-    else {
-      windows.push(aContentWindow);
-    }
   },
 
   
@@ -1662,7 +1613,7 @@ HUD_SERVICE.prototype =
     var id, outputNode;
     if (typeof(aHUD) === "string") {
       id = aHUD;
-      outputNode = this.mixins.getOutputNodeById(aHUD);
+      outputNode = this.getHeadsUpDisplay(aHUD);
     }
     else {
       id = aHUD.getAttribute("id");
@@ -1684,27 +1635,19 @@ HUD_SERVICE.prototype =
     parent.removeChild(outputNode);
 
     
-    delete this._headsUpDisplays[id];
-    
-    this.deleteHeadsUpDisplay(id);
+    delete this.hudReferences[id];
     
     this.storage.removeDisplay(id);
-    
-    delete this.windowRegistry[id];
 
-    let displays = this.displays();
-
-    var uri  = this.displayRegistry[id];
-
-    if (this.uriRegistry[uri]) {
-      this.uriRegistry[uri] = this.uriRegistry[uri].filter(function(e) e != id);
+    for (let windowID in this.windowIds) {
+      if (this.windowIds[windowID] == id) {
+        delete this.windowIds[windowID];
+      }
     }
 
-    delete displays[id];
-    delete this.displayRegistry[id];
-    delete this.uriRegistry[uri];
+    this.unregisterActiveContext(id);
 
-    if (Object.keys(this._headsUpDisplays).length == 0) {
+    if (Object.keys(this.hudReferences).length == 0) {
       this.suspend();
     }
   },
@@ -1717,7 +1660,7 @@ HUD_SERVICE.prototype =
 
   wakeup: function HS_wakeup()
   {
-    if (Object.keys(this._headsUpDisplays).length > 0) {
+    if (Object.keys(this.hudReferences).length > 0) {
       return;
     }
 
@@ -1761,8 +1704,8 @@ HUD_SERVICE.prototype =
 
   shutdown: function HS_shutdown()
   {
-    for (var displayId in this._headsUpDisplays) {
-      this.unregisterDisplay(displayId);
+    for (let hudId in this.hudReferences) {
+      this.unregisterDisplay(hudId);
     }
   },
 
@@ -1775,40 +1718,8 @@ HUD_SERVICE.prototype =
 
   getHudIdByWindow: function HS_getHudIdByWindow(aContentWindow)
   {
-    
-    for (let hudId in this.windowRegistry) {
-      if (this.windowRegistry[hudId] &&
-          this.windowRegistry[hudId].indexOf(aContentWindow) != -1) {
-        return hudId;
-      }
-    }
-
-    
-    
-    
-    let [ , tabBrowser, browser ] = ConsoleUtils.getParents(aContentWindow);
-    if (!tabBrowser) {
-      return null;
-    }
-
-    let notificationBox = tabBrowser.getNotificationBox(browser);
-    let hudBox = notificationBox.querySelector(".hud-box");
-    if (!hudBox) {
-      return null;
-    }
-
-    
-    let hudId = hudBox.id;
-    this.windowRegistry[hudId].push(aContentWindow);
-
-    let uri = aContentWindow.document.location.href;
-    if (!this.uriRegistry[uri]) {
-      this.uriRegistry[uri] = [ hudId ];
-    } else {
-      this.uriRegistry[uri].push(hudId);
-    }
-
-    return hudId;
+    let windowId = this.getWindowId(aContentWindow);
+    return this.getHudIdByWindowId(windowId);
   },
 
   
@@ -1817,9 +1728,10 @@ HUD_SERVICE.prototype =
 
 
 
+
   getHeadsUpDisplay: function HS_getHeadsUpDisplay(aId)
   {
-    return this.mixins.getOutputNodeById(aId);
+    return aId in this.hudReferences ? this.hudReferences[aId].HUDBox : null;
   },
 
   
@@ -1830,16 +1742,7 @@ HUD_SERVICE.prototype =
 
   getOutputNodeById: function HS_getOutputNodeById(aId)
   {
-    return this.mixins.getOutputNodeById(aId);
-  },
-
-  
-
-
-
-
-  displays: function HS_displays() {
-    return this._headsUpDisplays;
+    return this.getHeadsUpDisplay(aId);
   },
 
   
@@ -1848,11 +1751,19 @@ HUD_SERVICE.prototype =
 
   displaysIndex: function HS_displaysIndex()
   {
-    var props = [];
-    for (var prop in this._headsUpDisplays) {
-      props.push(prop);
-    }
-    return props;
+    return Object.keys(this.hudReferences);
+  },
+
+  
+
+
+
+
+
+
+  getHudIdByWindowId: function HS_getHudIdByWindowId(aWindowId)
+  {
+    return this.windowIds[aWindowId];
   },
 
   
@@ -1965,21 +1876,22 @@ HUD_SERVICE.prototype =
       severity = SEVERITY_WARNING;
     }
 
-    
-    let hudIds = ConsoleUtils.getHUDIdsForScriptError(aScriptError);
-    for (let i = 0; i < hudIds.length; i++) {
-      let hudId = hudIds[i];
-      let outputNode = this.hudReferences[hudId].outputNode;
-      let chromeDocument = outputNode.ownerDocument;
+    let window = HUDService.getWindowByWindowId(aScriptError.outerWindowID);
+    if (window) {
+      let hudId = HUDService.getHudIdByWindow(window.top);
+      if (hudId) {
+        let outputNode = this.hudReferences[hudId].outputNode;
+        let chromeDocument = outputNode.ownerDocument;
 
-      let node = ConsoleUtils.createMessageNode(chromeDocument,
-                                                aCategory,
-                                                severity,
-                                                aScriptError.errorMessage,
-                                                aScriptError.sourceName,
-                                                aScriptError.lineNumber);
+        let node = ConsoleUtils.createMessageNode(chromeDocument,
+                                                  aCategory,
+                                                  severity,
+                                                  aScriptError.errorMessage,
+                                                  aScriptError.sourceName,
+                                                  aScriptError.lineNumber);
 
-      ConsoleUtils.outputMessageNode(node, hudId);
+        ConsoleUtils.outputMessageNode(node, hudId);
+      }
     }
   },
 
@@ -2096,7 +2008,7 @@ HUD_SERVICE.prototype =
             }
 
             
-            hudId = self.getHudIdByWindow(win);
+            hudId = self.getHudIdByWindow(win.top);
             if (!hudId) {
               return;
             }
@@ -2561,7 +2473,7 @@ HUD_SERVICE.prototype =
       return;
     }
 
-    this.registerDisplay(hudId, aContentWindow);
+    this.registerDisplay(hudId);
 
     let hudNode;
     let childNodes = nBox.childNodes;
@@ -2586,6 +2498,8 @@ HUD_SERVICE.prototype =
       hud = new HeadsUpDisplay(config);
 
       HUDService.registerHUDReference(hud);
+      let windowId = this.getWindowId(aContentWindow.top);
+      this.windowIds[windowId] = hudId;
     }
     else {
       hud = this.hudReferences[hudId];
@@ -4678,42 +4592,6 @@ function FirefoxApplicationHooks()
 { }
 
 FirefoxApplicationHooks.prototype = {
-
-  
-
-
-  get chromeWindows()
-  {
-    var windows = [];
-    var enumerator = Services.ww.getWindowEnumerator(null);
-    while (enumerator.hasMoreElements()) {
-      windows.push(enumerator.getNext());
-    }
-    return windows;
-  },
-
-  
-
-
-
-
-
-  getOutputNodeById: function FAH_getOutputNodeById(aId)
-  {
-    if (!aId) {
-      throw new Error("FAH_getOutputNodeById: id is null!!");
-    }
-    var enumerator = Services.ww.getWindowEnumerator(null);
-    while (enumerator.hasMoreElements()) {
-      let window = enumerator.getNext();
-      let node = window.document.getElementById(aId);
-      if (node) {
-        return node;
-      }
-    }
-    throw new Error("Cannot get outputNode by id");
-  },
-
   
 
 
@@ -4722,7 +4600,7 @@ FirefoxApplicationHooks.prototype = {
   getCurrentContext: function FAH_getCurrentContext()
   {
     return Services.wm.getMostRecentWindow("navigator:browser");
-  }
+  },
 };
 
 
@@ -5052,79 +4930,6 @@ ConsoleUtils = {
     }
 
     return aSourceURL;
-  },
-
-  
-
-
-
-
-
-
-
-  getHUDIdsForScriptError:
-  function ConsoleUtils_getHUDIdsForScriptError(aScriptError) {
-    if (aScriptError instanceof Ci.nsIScriptError2) {
-      let windowID = aScriptError.outerWindowID;
-      if (windowID) {
-        
-        
-        let someWindow = Services.wm.getMostRecentWindow(null);
-        if (someWindow) {
-          let windowUtils = someWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                                      .getInterface(Ci.nsIDOMWindowUtils);
-
-          
-          
-          
-          
-          let content = windowUtils.getOuterWindowWithId(windowID);
-          if (content) {
-            let hudId = HUDService.getHudIdByWindow(content);
-            if (hudId) {
-              return [ hudId ];
-            }
-          }
-        }
-      }
-    }
-
-    
-    
-    let hudIds = HUDService.uriRegistry[aScriptError.sourceName];
-    return hudIds ? hudIds : [];
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  getParents: function ConsoleUtils_getParents(aContentWindow) {
-    let chromeEventHandler =
-      aContentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                    .getInterface(Ci.nsIWebNavigation)
-                    .QueryInterface(Ci.nsIDocShell)
-                    .chromeEventHandler;
-    if (!chromeEventHandler) {
-      return [ null, null, null ];
-    }
-
-    let chromeWindow = chromeEventHandler.ownerDocument.defaultView;
-    let gBrowser = XPCNativeWrapper.unwrap(chromeWindow).gBrowser;
-    let documentElement = chromeWindow.document.documentElement;
-    if (!documentElement || !gBrowser ||
-        documentElement.getAttribute("windowtype") !== "navigator:browser") {
-      
-      return [ chromeWindow, null, null ];
-    }
-
-    return [ chromeWindow, gBrowser, chromeEventHandler ];
   }
 };
 
@@ -5692,8 +5497,11 @@ HUDConsoleObserver = {
       return;
     }
 
-    if (!(aSubject instanceof Ci.nsIScriptError))
+    if (!(aSubject instanceof Ci.nsIScriptError) ||
+        !(aSubject instanceof Ci.nsIScriptError2) ||
+        !aSubject.outerWindowID) {
       return;
+    }
 
     switch (aSubject.category) {
       
