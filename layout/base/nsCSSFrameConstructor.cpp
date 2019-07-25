@@ -1909,7 +1909,12 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
     innerFrame = NS_NewMathMLmtableFrame(mPresShell, styleContext);
   else
     innerFrame = NS_NewTableFrame(mPresShell, styleContext);
- 
+
+  if (!innerFrame) {
+    newFrame->Destroy();
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
   InitAndRestoreFrame(aState, content, newFrame, nsnull, innerFrame);
 
   
@@ -6675,10 +6680,8 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   if (captionItems.NotEmpty()) { 
     NS_ASSERTION(nsGkAtoms::tableFrame == frameType, "how did that happen?");
     nsIFrame* outerTable = parentFrame->GetParent();
-    if (outerTable) {
-      state.mFrameManager->AppendFrames(outerTable, nsIFrame::kCaptionList,
-                                        captionItems);
-    }
+    state.mFrameManager->AppendFrames(outerTable, nsIFrame::kCaptionList,
+                                      captionItems);
   }
 
   if (frameItems.NotEmpty()) { 
