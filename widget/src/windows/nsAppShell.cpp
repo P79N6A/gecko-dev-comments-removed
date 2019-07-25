@@ -46,6 +46,7 @@
 #include "nsString.h"
 #include "nsIMM32Handler.h"
 #include "mozilla/widget/AudioSession.h"
+#include "mozilla/HangMonitor.h"
 
 
 #include <windows.h> 
@@ -338,11 +339,13 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
         ::PostQuitMessage(msg.wParam);
         Exit();
       } else {
+        mozilla::HangMonitor::NotifyActivity();
         ::TranslateMessage(&msg);
         ::DispatchMessageW(&msg);
       }
     } else if (mayWait) {
       
+      mozilla::HangMonitor::Suspend();
       ::WaitMessage();
     }
   } while (!gotMessage && mayWait);
