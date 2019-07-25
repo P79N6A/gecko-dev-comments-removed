@@ -159,7 +159,7 @@ CancelVibrate(const WindowIdentifier &id)
   if (InSandbox()) {
     hal_sandbox::CancelVibrate(id);
   }
-  else if (*gLastIDToVibrate == id.AsArray()) {
+  else if (gLastIDToVibrate && *gLastIDToVibrate == id.AsArray()) {
     
     
     
