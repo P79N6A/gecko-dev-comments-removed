@@ -195,6 +195,11 @@ class FrameState
     
 
 
+    void sync(Assembler &masm) const;
+
+    
+
+
 
     void syncAndKill(uint32 mask); 
 
@@ -210,6 +215,11 @@ class FrameState
 
 
     void forgetEverything();
+
+    
+
+
+    inline void learnType(FrameEntry *fe, uint32 tag);
 
     
 

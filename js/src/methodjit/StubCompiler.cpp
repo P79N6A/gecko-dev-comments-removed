@@ -47,8 +47,8 @@ using namespace js;
 using namespace mjit;
 
 StubCompiler::StubCompiler(JSContext *cx, mjit::Compiler &cc, FrameState &frame, JSScript *script)
-  : cx(cx), cc(cc), frame(frame), script(script), generation(1), lastGeneration(0), hasJump(false),
-    exits(SystemAllocPolicy()), joins(SystemAllocPolicy())
+  : cx(cx), cc(cc), frame(frame), script(script), generation(1), lastGeneration(0),
+    exits(SystemAllocPolicy()), joins(SystemAllocPolicy()), jumpList(SystemAllocPolicy())
 {
 }
 
@@ -65,48 +65,26 @@ StubCompiler::init(uint32 nargs)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void
 StubCompiler::linkExit(Jump j)
 {
     JaegerSpew(JSpew_Insns, " ---- BEGIN SLOW MERGE CODE ---- \n");
-#if 0
     if (lastGeneration == generation) {
-        if (hasJump)
-            lastJump.linkTo(masm.label(), &masm);
-        frame.deltize(masm, snapshot);
-        lastJump = masm.jump();
-        hasJump = true;
+        Jump j = masm.jump();
+        jumpList.append(j);
     }
-    frame.snapshot(snapshot);
+    frame.sync(masm);
     lastGeneration = generation;
     exits.append(CrossPatch(j, masm.label()));
-#endif
     JaegerSpew(JSpew_Insns, " ---- END SLOW MERGE CODE ---- \n");
 }
 
 void
 StubCompiler::leave()
 {
+    for (size_t i = 0; i < jumpList.length(); i++)
+        jumpList[i].linkTo(masm.label(), &masm);
+    jumpList.clear();
 }
 
 void
@@ -132,7 +110,6 @@ JSC::MacroAssembler::Call
 StubCompiler::stubCall(void *ptr)
 {
     generation++;
-    hasJump = false;
     JaegerSpew(JSpew_Insns, " ---- BEGIN SLOW CALL CODE ---- \n");
     Call cl = masm.stubCall(ptr, cc.getPC(), frame.stackDepth() + script->nfixed);
     JaegerSpew(JSpew_Insns, " ---- END SLOW CALL CODE ---- \n");
