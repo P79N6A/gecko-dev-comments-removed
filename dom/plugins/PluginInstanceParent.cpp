@@ -566,6 +566,16 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
               }
             }
             break;
+
+            case WM_WINDOWPOSCHANGED:
+            {
+                
+                SendWindowPosChanged(npremoteevent);
+                
+                
+                return 1;
+            }
+            break;
         }
     }
 #endif

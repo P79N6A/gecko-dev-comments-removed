@@ -58,19 +58,25 @@ using namespace mozilla::plugins;
 #include <QX11Info>
 #elif defined(OS_WIN)
 
+#include "nsWindowsDllInterceptor.h"
+
+typedef BOOL (WINAPI *User32TrackPopupMenu)(HMENU hMenu,
+                                            UINT uFlags,
+                                            int x,
+                                            int y,
+                                            int nReserved,
+                                            HWND hWnd,
+                                            CONST RECT *prcRect);
+static WindowsDllInterceptor sUser32Intercept;
+static HWND sWinlessPopupSurrogateHWND = NULL;
+static User32TrackPopupMenu sUser32TrackPopupMenuStub = NULL;
+
 using mozilla::gfx::SharedDIB;
 
 #include <windows.h>
 #include <windowsx.h>
 
 #define NS_OOPP_DOUBLEPASS_MSGID TEXT("MozDoublePassMsg")
-
-
-
-
-
-#define CHILD_MODALPUMPTIMEOUT 50
-#define CHILD_MODALLOOPTIMER   654321
 
 #endif 
 
@@ -85,11 +91,10 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
     , mPluginWndProc(0)
     , mPluginParentHWND(0)
     , mNestedEventHook(0)
-    , mNestedPumpHook(0)
     , mNestedEventLevelDepth(0)
     , mNestedEventState(false)
     , mCachedWinlessPluginHWND(0)
-    , mEventPumpTimer(0)
+    , mWinlessPopupSurrogateHWND(0)
 #endif 
 {
     memset(&mWindow, 0, sizeof(mWindow));
@@ -108,6 +113,9 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
     mAlphaExtract.doublePassEvent = ::RegisterWindowMessage(NS_OOPP_DOUBLEPASS_MSGID);
 #endif 
     InitQuirksModes(aMimeType);
+#if defined(OS_WIN)
+    InitPopupMenuHook();
+#endif 
 }
 
 PluginInstanceChild::~PluginInstanceChild()
@@ -124,8 +132,14 @@ PluginInstanceChild::InitQuirksModes(const nsCString& aMimeType)
     
     
     NS_NAMED_LITERAL_CSTRING(silverlight, "application/x-silverlight");
+    
+    NS_NAMED_LITERAL_CSTRING(flash, "application/x-shockwave-flash");
     if (FindInReadable(silverlight, aMimeType)) {
         mQuirks |= QUIRK_SILVERLIGHT_WINLESS_INPUT_TRANSLATION;
+        mQuirks |= QUIRK_WINLESS_TRACKPOPUP_HOOK;
+    }
+    else if (FindInReadable(flash, aMimeType)) {
+        mQuirks |= QUIRK_WINLESS_TRACKPOPUP_HOOK;
     }
 #endif
 }
@@ -499,6 +513,19 @@ PluginInstanceChild::AnswerNPP_HandleEvent(const NPRemoteEvent& event,
     return true;
 }
 
+bool
+PluginInstanceChild::RecvWindowPosChanged(const NPRemoteEvent& event)
+{
+#ifdef OS_WIN
+    int16_t dontcare;
+    return AnswerNPP_HandleEvent(event, &dontcare);
+#else
+    NS_RUNTIMEABORT("WindowPosChanged is a windows-only message");
+    return false;
+#endif
+}
+
+
 #if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
 static bool
 XVisualIDToInfo(Display* aDisplay, VisualID aVisualID,
@@ -603,6 +630,8 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
       break;
 
       case NPWindowTypeDrawable:
+          if (mQuirks & QUIRK_WINLESS_TRACKPOPUP_HOOK)
+              CreateWinlessPopupSurrogate();
           return SharedSurfaceSetWindow(aWindow);
       break;
 
@@ -823,26 +852,6 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
 
 
 
-VOID CALLBACK
-PluginInstanceChild::PumpTimerProc(HWND hwnd,
-                                   UINT uMsg,
-                                   UINT_PTR idEvent,
-                                   DWORD dwTime)
-{
-    MessageLoop::current()->ScheduleWork();
-}
-
-LRESULT CALLBACK
-PluginInstanceChild::NestedInputPumpHook(int nCode,
-                                         WPARAM wParam,
-                                         LPARAM lParam)
-{
-    if (nCode >= 0) {
-        MessageLoop::current()->ScheduleWork();
-    }
-    return CallNextHookEx(NULL, nCode, wParam, lParam);
-}
-
 
 
 
@@ -862,41 +871,11 @@ PluginInstanceChild::NestedInputEventHook(int nCode,
     if (nCode >= 0) {
         NS_ASSERTION(gTempChildPointer, "Never should be null here!");
         gTempChildPointer->ResetNestedEventHook();
-        gTempChildPointer->SetNestedInputPumpHook();
         gTempChildPointer->InternalCallSetNestedEventState(true);
 
         gTempChildPointer = NULL;
     }
     return CallNextHookEx(NULL, nCode, wParam, lParam);
-}
-
-void
-PluginInstanceChild::SetNestedInputPumpHook()
-{
-    NS_ASSERTION(!mNestedPumpHook,
-        "mNestedPumpHook already setup in call to SetNestedInputPumpHook?");
-
-    PLUGIN_LOG_DEBUG(("%s", FULLFUNCTION));
-
-    mNestedPumpHook = SetWindowsHookEx(WH_CALLWNDPROC,
-                                       NestedInputPumpHook,
-                                       NULL,
-                                       GetCurrentThreadId());
-    mEventPumpTimer = 
-        SetTimer(NULL,
-                 CHILD_MODALLOOPTIMER,
-                 CHILD_MODALPUMPTIMEOUT,
-                 PumpTimerProc);
-}
-
-void
-PluginInstanceChild::ResetPumpHooks()
-{
-    if (mNestedPumpHook)
-        UnhookWindowsHookEx(mNestedPumpHook);
-    mNestedPumpHook = NULL;
-    if (mEventPumpTimer)
-        KillTimer(NULL, mEventPumpTimer);
 }
 
 void
@@ -936,6 +915,117 @@ PluginInstanceChild::InternalCallSetNestedEventState(bool aState)
         mNestedEventState = aState;
         SendSetNestedEventState(mNestedEventState);
     }
+}
+
+
+
+BOOL
+WINAPI
+PluginInstanceChild::TrackPopupHookProc(HMENU hMenu,
+                                        UINT uFlags,
+                                        int x,
+                                        int y,
+                                        int nReserved,
+                                        HWND hWnd,
+                                        CONST RECT *prcRect)
+{
+  if (!sUser32TrackPopupMenuStub) {
+      NS_ERROR("TrackPopupMenu stub isn't set! Badness!");
+      return 0;
+  }
+
+  
+  
+  
+  PRUnichar szClass[21];
+  bool haveClass = GetClassNameW(hWnd, szClass, NS_ARRAY_LENGTH(szClass));
+  if (!haveClass || 
+      (wcscmp(szClass, L"MozillaWindowClass") &&
+       wcscmp(szClass, L"SWFlash_Placeholder"))) {
+      
+      return sUser32TrackPopupMenuStub(hMenu, uFlags, x, y, nReserved,
+                                       hWnd, prcRect);
+  }
+
+  
+  if (!sWinlessPopupSurrogateHWND) {
+      NS_WARNING(
+          "Untraced TrackPopupHookProc call! Menu might not work right!");
+      return sUser32TrackPopupMenuStub(hMenu, uFlags, x, y, nReserved,
+                                       hWnd, prcRect);
+  }
+
+  HWND surrogateHwnd = sWinlessPopupSurrogateHWND;
+  sWinlessPopupSurrogateHWND = NULL;
+
+  
+  
+  
+  
+  bool isRetCmdCall = (uFlags & TPM_RETURNCMD);
+
+  
+  
+  HWND focusHwnd = SetFocus(surrogateHwnd);
+  DWORD res = sUser32TrackPopupMenuStub(hMenu, uFlags|TPM_RETURNCMD, x, y,
+                                        nReserved, surrogateHwnd, prcRect);
+  if (IsWindow(focusHwnd)) {
+      SetFocus(focusHwnd);
+  }
+
+  if (!isRetCmdCall && res) {
+      SendMessage(hWnd, WM_COMMAND, MAKEWPARAM(res, 0), 0);
+  }
+
+  return res;
+}
+
+void
+PluginInstanceChild::InitPopupMenuHook()
+{
+    if (!(mQuirks & QUIRK_WINLESS_TRACKPOPUP_HOOK) ||
+        sUser32TrackPopupMenuStub)
+        return;
+
+    
+    
+    
+    
+    sUser32Intercept.Init("user32.dll");
+    sUser32Intercept.AddHook("TrackPopupMenu", TrackPopupHookProc,
+                             (void**) &sUser32TrackPopupMenuStub);
+}
+
+void
+PluginInstanceChild::CreateWinlessPopupSurrogate()
+{
+    
+    if (mWinlessPopupSurrogateHWND)
+        return;
+
+    HWND hwnd = NULL;
+    NPError result;
+    if (!CallNPN_GetValue_NPNVnetscapeWindow(&hwnd, &result)) {
+        NS_ERROR("CallNPN_GetValue_NPNVnetscapeWindow failed.");
+        return;
+    }
+
+    mWinlessPopupSurrogateHWND =
+        CreateWindowEx(WS_EX_NOPARENTNOTIFY, L"Static", NULL, WS_CHILD, 0, 0,
+                       0, 0, hwnd, 0, GetModuleHandle(NULL), 0);
+    if (!mWinlessPopupSurrogateHWND) {
+        NS_ERROR("CreateWindowEx failed for winless placeholder!");
+        return;
+    }
+    return;
+}
+
+void
+PluginInstanceChild::DestroyWinlessPopupSurrogate()
+{
+    if (mWinlessPopupSurrogateHWND)
+        DestroyWindow(mWinlessPopupSurrogateHWND);
+    mWinlessPopupSurrogateHWND = NULL;
 }
 
 
@@ -1019,12 +1109,22 @@ PluginInstanceChild::WinlessHandleEvent(NPEvent& event)
         SetNestedInputEventHook();
     }
 
+    
+    
+    
+    if ((mQuirks & QUIRK_WINLESS_TRACKPOPUP_HOOK) && 
+          (event.event == WM_RBUTTONDOWN || 
+           event.event == WM_RBUTTONUP)) {  
+      sWinlessPopupSurrogateHWND = mWinlessPopupSurrogateHWND;
+    }
+
     bool old_state = MessageLoop::current()->NestableTasksAllowed();
     MessageLoop::current()->SetNestableTasksAllowed(true);
     handled = mPluginIface->event(&mData, reinterpret_cast<void*>(&event));
     MessageLoop::current()->SetNestableTasksAllowed(old_state);
 
     gTempChildPointer = NULL;
+    sWinlessPopupSurrogateHWND = NULL;
 
     mNestedEventLevelDepth--;
     PLUGIN_LOG_DEBUG(("WinlessHandleEvent end depth: %i", mNestedEventLevelDepth));
@@ -1032,7 +1132,6 @@ PluginInstanceChild::WinlessHandleEvent(NPEvent& event)
     NS_ASSERTION(!(mNestedEventLevelDepth < 0), "mNestedEventLevelDepth < 0?");
     if (mNestedEventLevelDepth <= 0) {
         ResetNestedEventHook();
-        ResetPumpHooks();
         InternalCallSetNestedEventState(false);
     }
     return handled;
@@ -1583,7 +1682,7 @@ PluginInstanceChild::AnswerNPP_Destroy(NPError* aResult)
 #if defined(OS_WIN)
     SharedSurfaceRelease();
     ResetNestedEventHook();
-    ResetPumpHooks();
+    DestroyWinlessPopupSurrogate();
 #endif
 
     return true;
