@@ -110,7 +110,12 @@ private:
 
 
 
-  void TranslateFixedLayers(Layer* aLayer, const gfxPoint& aTranslation);
+
+
+
+  void TransformFixedLayers(Layer* aLayer,
+                            const gfxPoint& aTranslation,
+                            const gfxPoint& aScaleDiff);
 
   nsRefPtr<LayerManager> mLayerManager;
   nsIWidget* mWidget;
