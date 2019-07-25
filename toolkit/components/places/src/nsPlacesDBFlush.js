@@ -155,6 +155,11 @@ nsPlacesDBFlush.prototype = {
 
   onBeginUpdateBatch: function DBFlush_onBeginUpdateBatch()
   {
+    
+    
+    if (this._inBatchMode)
+      return;
+
     this._inBatchMode = true;
 
     
@@ -164,6 +169,11 @@ nsPlacesDBFlush.prototype = {
 
   onEndUpdateBatch: function DBFlush_onEndUpdateBatch()
   {
+    
+    
+    if (!this._inBatchMode)
+      return;
+
     this._inBatchMode = false;
 
     
