@@ -624,6 +624,13 @@ nsWindow::Destroy(void)
     }
     mLayerManager = nsnull;
 
+    
+    
+    
+    
+    
+    DestroyCompositor();
+
     ClearCachedResources();
 
     g_signal_handlers_disconnect_by_func(gtk_settings_get_default(),

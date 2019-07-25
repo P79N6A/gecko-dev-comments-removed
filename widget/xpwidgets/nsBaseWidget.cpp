@@ -110,7 +110,7 @@ nsBaseWidget::nsBaseWidget()
 }
 
 
-static void DestroyCompositor(CompositorParent* aCompositorParent,
+static void DeferredDestroyCompositor(CompositorParent* aCompositorParent,
                               CompositorChild* aCompositorChild,
                               Thread* aCompositorThread)
 {
@@ -120,6 +120,27 @@ static void DestroyCompositor(CompositorParent* aCompositorParent,
     aCompositorChild->Release();
 }
 
+void nsBaseWidget::DestroyCompositor() 
+{
+  if (mCompositorChild) {
+    mCompositorChild->SendWillStop();
+
+    
+    
+    
+    
+    
+    
+    
+    MessageLoop::current()->PostTask(FROM_HERE,
+               NewRunnableFunction(DeferredDestroyCompositor, mCompositorParent,
+                                   mCompositorChild, mCompositorThread));
+    
+    
+    mCompositorParent.forget();
+    mCompositorChild.forget();
+  }
+}
 
 
 
@@ -138,25 +159,7 @@ nsBaseWidget::~nsBaseWidget()
     mLayerManager = nsnull;
   }
 
-  if (mCompositorChild) {
-    mCompositorChild->SendWillStop();
-
-    
-    
-    
-    
-    
-    
-    
-    MessageLoop::current()->
-      PostTask(FROM_HERE,
-               NewRunnableFunction(DestroyCompositor, mCompositorParent,
-                                   mCompositorChild, mCompositorThread));
-    
-    
-    mCompositorParent.forget();
-    mCompositorChild.forget();
-  }
+  DestroyCompositor();
 
 #ifdef NOISY_WIDGET_LEAKS
   gNumWidgets--;
