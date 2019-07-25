@@ -320,6 +320,12 @@ class nsHtml5Highlighter
 
 
 
+    PRInt32 mUnicharsInThisPre;
+
+    
+
+
+
     PRInt32 mInlinesOpen;
 
     
