@@ -954,19 +954,15 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   showExpandControl: function GroupItem_showExpandControl() {
-    var childBB = this.getChild(0).getBounds();
-    var dT = childBB.top - this.getBounds().top;
-    var dL = childBB.left - this.getBounds().left;
-
+    let parentBB = this.getBounds();
+    let childBB = this.getChild(0).getBounds();
+    let padding = 7;
     this.$expander
         .show()
         .css({
           opacity: .2,
-          top: dT + childBB.height + Math.min(7, (this.getBounds().bottom-childBB.bottom)/2),
-          
-          
-          
-          left: dL + childBB.width/2 - this.$expander.width()/2 - 6,
+          top: childBB.top + childBB.height - parentBB.top + padding,
+          left: parentBB.width/2 - this.$expander.width()/2
         });
   },
 
