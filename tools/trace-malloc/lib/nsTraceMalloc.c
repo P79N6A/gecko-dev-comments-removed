@@ -65,6 +65,7 @@
 #include "nscore.h"
 #include "prinit.h"
 #include "prthread.h"
+#include "plstr.h"
 #include "nsStackWalk.h"
 #include "nsTraceMallocCallbacks.h"
 
@@ -157,6 +158,11 @@ static char      sdlogname[PATH_MAX] = "";
 
 
 static uint32 tracing_enabled = 0;
+
+
+
+
+static uint32 stacks_enabled = 1;
 
 
 
@@ -520,6 +526,10 @@ static callsite calltree_root =
   {0, 0, LFD_SET_STATIC_INITIALIZER, NULL, NULL, 0, NULL, NULL, NULL};
 
 
+
+#define STACK_DISABLED_PC ((void*)1)
+
+
 static nsTMStats tmstats = NS_TMSTATS_STATIC_INITIALIZER;
 
 
@@ -688,7 +698,20 @@ calltree(void **stack, size_t num_stack_entries, tm_thread *t)
 
 
 
-        
+        if (!stacks_enabled) {
+            
+
+
+
+            PL_strncpyz(details.library, "stacks_disabled",
+                        sizeof(details.library));
+            details.loffset = 0;
+            details.filename[0] = '\0';
+            details.lineno = 0;
+            details.function[0] = '\0';
+            details.foffset = 0;
+        } else {
+            
 
 
 
@@ -700,12 +723,13 @@ calltree(void **stack, size_t num_stack_entries, tm_thread *t)
 
 
 
-        TM_EXIT_LOCK(t);
-        rv = NS_DescribeCodeAddress(pc, &details);
-        TM_ENTER_LOCK(t);
-        if (NS_FAILED(rv)) {
-            tmstats.dladdr_failures++;
-            goto fail;
+            TM_EXIT_LOCK(t);
+            rv = NS_DescribeCodeAddress(pc, &details);
+            TM_ENTER_LOCK(t);
+            if (NS_FAILED(rv)) {
+                tmstats.dladdr_failures++;
+                goto fail;
+            }
         }
 
         
@@ -932,44 +956,62 @@ backtrace(tm_thread *t, int skip, int *immediate_abort)
 
     t->suppress_tracing++;
 
-    
+    if (!stacks_enabled) {
+        
+
+
+
+        if (info->size < 1) {
+            PR_ASSERT(!info->buffer); 
+            info->buffer = __libc_malloc(1 * sizeof(void*));
+            if (!info->buffer)
+                return NULL;
+            info->size = 1;
+        }
+
+        info->entries = 1;
+        info->buffer[0] = STACK_DISABLED_PC;
+    } else {
+        
 
 
 
 
 
 
-
-    
-    
-    info->entries = 0;
-    rv = NS_StackWalk(stack_callback, skip, info);
-    *immediate_abort = rv == NS_ERROR_UNEXPECTED;
-    if (rv == NS_ERROR_UNEXPECTED || info->entries == 0) {
-        t->suppress_tracing--;
-        return NULL;
-    }
-
-    
-
-
-
-
-
-    if (info->entries > info->size) {
-        new_stack_buffer_size = 2 * info->entries;
-        new_stack_buffer = __libc_realloc(info->buffer,
-                               new_stack_buffer_size * sizeof(void*));
-        if (!new_stack_buffer)
-            return NULL;
-        info->buffer = new_stack_buffer;
-        info->size = new_stack_buffer_size;
 
         
+        
         info->entries = 0;
-        NS_StackWalk(stack_callback, skip, info);
+        rv = NS_StackWalk(stack_callback, skip, info);
+        *immediate_abort = rv == NS_ERROR_UNEXPECTED;
+        if (rv == NS_ERROR_UNEXPECTED || info->entries == 0) {
+            t->suppress_tracing--;
+            return NULL;
+        }
 
-        PR_ASSERT(info->entries * 2 == new_stack_buffer_size); 
+        
+
+
+
+
+
+        if (info->entries > info->size) {
+            new_stack_buffer_size = 2 * info->entries;
+            new_stack_buffer = __libc_realloc(info->buffer,
+                                   new_stack_buffer_size * sizeof(void*));
+            if (!new_stack_buffer)
+                return NULL;
+            info->buffer = new_stack_buffer;
+            info->size = new_stack_buffer_size;
+
+            
+            info->entries = 0;
+            NS_StackWalk(stack_callback, skip, info);
+
+            
+            PR_ASSERT(info->entries * 2 == new_stack_buffer_size);
+        }
     }
 
     TM_ENTER_LOCK(t);
@@ -1300,10 +1342,16 @@ log_header(int logfd)
 PR_IMPLEMENT(void)
 NS_TraceMallocStartup(int logfd)
 {
+    const char* stack_disable_env;
+
     
     PR_ASSERT(tracing_enabled == 0);
     PR_ASSERT(logfp == &default_logfile);
     tracing_enabled = (logfd >= 0);
+
+    
+    stack_disable_env = PR_GetEnv("NS_TRACE_MALLOC_DISABLE_STACKS");
+    stacks_enabled = !stack_disable_env || !*stack_disable_env;
 
     if (tracing_enabled) {
         PR_ASSERT(logfp->simsize == 0); 
