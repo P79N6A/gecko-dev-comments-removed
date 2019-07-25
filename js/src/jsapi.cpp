@@ -1597,8 +1597,10 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
 
 
 
-    if (cx->runtime->gcIncrementalState != NO_INCREMENTAL)
+    if (cx->runtime->gcIncrementalState != NO_INCREMENTAL) {
+        PrepareForIncrementalGC(cx->runtime);
         FinishIncrementalGC(cx->runtime, gcreason::TRANSPLANT);
+    }
 
     JSCompartment *destination = target->compartment();
     WrapperMap &map = destination->crossCompartmentWrappers;
