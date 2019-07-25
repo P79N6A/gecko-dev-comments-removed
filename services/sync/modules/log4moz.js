@@ -36,6 +36,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ['Log4Moz'];
 
 const Cc = Components.classes;
@@ -55,6 +56,12 @@ const PERMS_DIRECTORY = 0755;
 const ONE_BYTE = 1;
 const ONE_KILOBYTE = 1024 * ONE_BYTE;
 const ONE_MEGABYTE = 1024 * ONE_KILOBYTE;
+
+const STREAM_SEGMENT_SIZE = 4096;
+const PR_UINT32_MAX = 0xffffffff;
+
+Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
 
 let Log4Moz = {
   Level: {
@@ -98,6 +105,10 @@ let Log4Moz = {
   Appender: Appender,
   DumpAppender: DumpAppender,
   ConsoleAppender: ConsoleAppender,
+  BlockingStreamAppender: BlockingStreamAppender,
+  StorageStreamAppender: StorageStreamAppender,
+
+  
   FileAppender: FileAppender,
   RotatingFileAppender: RotatingFileAppender,
 
@@ -406,7 +417,7 @@ Appender.prototype = {
 
 function DumpAppender(formatter) {
   this._name = "DumpAppender";
-  this._formatter = formatter? formatter : new BasicFormatter();
+  Appender.call(this, formatter);
 }
 DumpAppender.prototype = {
   __proto__: Appender.prototype,
@@ -423,7 +434,7 @@ DumpAppender.prototype = {
 
 function ConsoleAppender(formatter) {
   this._name = "ConsoleAppender";
-  this._formatter = formatter;
+  Appender.call(this, formatter);
 }
 ConsoleAppender.prototype = {
   __proto__: Appender.prototype,
@@ -443,59 +454,141 @@ ConsoleAppender.prototype = {
 
 
 
+
+
+
+function BlockingStreamAppender(formatter) {
+  this._name = "BlockingStreamAppender";
+  Appender.call(this, formatter);
+}
+BlockingStreamAppender.prototype = {
+  __proto__: Appender.prototype,
+
+  _converterStream: null, 
+  _outputStream: null,    
+
+  
+
+
+
+
+
+
+  get outputStream() {
+    if (!this._outputStream) {
+      
+      this._outputStream = this.newOutputStream();
+      if (!this._outputStream) {
+        return null;
+      }
+
+      
+      
+      if (!this._converterStream) {
+        this._converterStream = Cc["@mozilla.org/intl/converter-output-stream;1"]
+                                  .createInstance(Ci.nsIConverterOutputStream);
+      }
+      this._converterStream.init(
+        this._outputStream, "UTF-8", STREAM_SEGMENT_SIZE,
+        Ci.nsIConverterOutputStream.DEFAULT_REPLACEMENT_CHARACTER);      
+    }
+    return this._converterStream;
+  },
+
+  newOutputStream: function newOutputStream() {
+    throw "Stream-based appenders need to implement newOutputStream()!";
+  },
+
+  reset: function reset() {
+    if (!this._outputStream) {
+      return;
+    }
+    this.outputStream.close();
+    this._outputStream = null;
+  },
+
+  doAppend: function doAppend(message) {
+    if (!message) {
+      return;
+    }
+    try {
+      this.outputStream.writeString(message);
+    } catch(ex) {
+      if (ex.result == Cr.NS_BASE_STREAM_CLOSED) {
+        
+        
+        this._outputStream = null;
+        try {
+          this.outputStream.writeString(message);
+        } catch (ex) {
+          
+        }
+      }
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+function StorageStreamAppender(formatter) {
+  this._name = "StorageStreamAppender";
+  BlockingStreamAppender.call(this, formatter);
+}
+StorageStreamAppender.prototype = { 
+  __proto__: BlockingStreamAppender.prototype,
+
+  _ss: null,
+  newOutputStream: function newOutputStream() {
+    let ss = this._ss = Cc["@mozilla.org/storagestream;1"]
+                          .createInstance(Ci.nsIStorageStream);
+    ss.init(STREAM_SEGMENT_SIZE, PR_UINT32_MAX, null);
+    return ss.getOutputStream(0);
+  },
+
+  getInputStream: function getInputStream() {
+    if (!this._ss) {
+      return null;
+    }
+    return this._ss.newInputStream(0);
+  },
+
+  reset: function reset() {
+    BlockingStreamAppender.prototype.reset.call(this);
+    this._ss = null;
+  }
+};
+
+
+
+
+
+
+
+
 function FileAppender(file, formatter) {
   this._name = "FileAppender";
   this._file = file; 
-  this._formatter = formatter? formatter : new BasicFormatter();
+  BlockingStreamAppender.call(this, formatter);
 }
 FileAppender.prototype = {
-  __proto__: Appender.prototype,
-  __fos: null,
-  get _fos() {
-    if (!this.__fos)
-      this.openStream();
-    return this.__fos;
-  },
+  __proto__: BlockingStreamAppender.prototype,
 
-  openStream: function FApp_openStream() {
+  newOutputStream: function newOutputStream() {
     try {
-      let __fos = Cc["@mozilla.org/network/file-output-stream;1"].
-        createInstance(Ci.nsIFileOutputStream);
-      let flags = MODE_WRONLY | MODE_CREATE | MODE_APPEND;
-      __fos.init(this._file, flags, PERMS_FILE, 0);
-
-      this.__fos = Cc["@mozilla.org/intl/converter-output-stream;1"]
-            .createInstance(Ci.nsIConverterOutputStream);
-      this.__fos.init(__fos, "UTF-8", 4096,
-            Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
+      return FileUtils.openFileOutputStream(this._file);
     } catch(e) {
-      dump("Error opening stream:\n" + e);
+      return null;
     }
   },
 
-  closeStream: function FApp_closeStream() {
-    if (!this.__fos)
-      return;
-    try {
-      this.__fos.close();
-      this.__fos = null;
-    } catch(e) {
-      dump("Failed to close file output stream\n" + e);
-    }
-  },
-
-  doAppend: function FApp_doAppend(message) {
-    if (message === null || message.length <= 0)
-      return;
-    try {
-      this._fos.writeString(message);
-    } catch(e) {
-      dump("Error writing file:\n" + e);
-    }
-  },
-
-  clear: function FApp_clear() {
-    this.closeStream();
+  reset: function reset() {
+    BlockingStreamAppender.prototype.reset.call(this);
     try {
       this._file.remove(false);
     } catch (e) {
@@ -517,42 +610,41 @@ function RotatingFileAppender(file, formatter, maxSize, maxBackups) {
     maxBackups = 0;
 
   this._name = "RotatingFileAppender";
-  this._file = file; 
-  this._formatter = formatter? formatter : new BasicFormatter();
+  FileAppender.call(this, file, formatter);
   this._maxSize = maxSize;
   this._maxBackups = maxBackups;
 }
 RotatingFileAppender.prototype = {
   __proto__: FileAppender.prototype,
 
-  doAppend: function RFApp_doAppend(message) {
-    if (message === null || message.length <= 0)
-      return;
+  doAppend: function doAppend(message) {
+    FileAppender.prototype.doAppend.call(this, message);
     try {
       this.rotateLogs();
-      FileAppender.prototype.doAppend.call(this, message);
     } catch(e) {
       dump("Error writing file:" + e + "\n");
     }
   },
 
-  rotateLogs: function RFApp_rotateLogs() {
-    if(this._file.exists() &&
-       this._file.fileSize < this._maxSize)
+  rotateLogs: function rotateLogs() {
+    if (this._file.exists() && this._file.fileSize < this._maxSize) {
       return;
+    }
 
-    this.closeStream();
+    BlockingStreamAppender.prototype.reset.call(this);
 
-    for (let i = this.maxBackups - 1; i > 0; i--){
+    for (let i = this.maxBackups - 1; i > 0; i--) {
       let backup = this._file.parent.clone();
       backup.append(this._file.leafName + "." + i);
-      if (backup.exists())
+      if (backup.exists()) {
         backup.moveTo(this._file.parent, this._file.leafName + "." + (i + 1));
+      }
     }
 
     let cur = this._file.clone();
-    if (cur.exists())
+    if (cur.exists()) {
       cur.moveTo(cur.parent, cur.leafName + ".1");
+    }
 
     
   }
