@@ -57,6 +57,7 @@
 #include "nsRect.h"
 #include "nsTHashtable.h"
 #include "mozilla/PaintTracker.h"
+#include "gfxASurface.h"
 
 namespace mozilla {
 namespace plugins {
@@ -377,6 +378,102 @@ public:
 
 private:
     const NPCocoaEvent   *mCurrentEvent;
+#endif
+
+    
+    
+    
+    
+    
+    PRBool ShowPluginFrame(void);
+
+    
+    void AsyncShowPluginFrame(void);
+
+    
+    
+
+    
+    void PaintRectToSurface(const nsIntRect& aRect,
+                            gfxASurface* aSurface,
+                            const gfxRGBA& aColor);
+
+    
+    
+    void PaintRectWithAlphaExtraction(const nsIntRect& aRect,
+                                      gfxASurface* aSurface);
+
+    
+    
+    
+    void PaintRectToPlatformSurface(const nsIntRect& aRect,
+                                    gfxASurface* aSurface);
+
+    
+    
+    void UpdateWindowAttributes(PRBool aForceSetWindow = PR_FALSE);
+
+    
+    
+    PRBool CreateOptSurface(void);
+
+    
+    
+    PRBool MaybeCreatePlatformHelperSurface(void);
+
+    
+    PRBool EnsureCurrentBuffer(void);
+
+    
+    
+    void InvalidateRectDelayed(void);
+
+    
+    
+    PRPackedBool          mLayersRendering;
+    
+    nsRefPtr<gfxASurface> mCurrentSurface;
+    
+    
+    nsRefPtr<gfxASurface> mBackSurface;
+    
+    nsIntRect             mAccumulatedInvalidRect;
+    
+    
+    
+    PRPackedBool          mIsTransparent;
+    
+    gfxSurfaceType        mSurfaceType;
+
+    
+    
+    PRPackedBool          mPendingForcePaint;
+
+    
+    CancelableTask       *mCurrentInvalidateTask;
+
+    
+    
+    PRPackedBool          mPendingPluginCall;
+
+    
+    
+    
+    
+    nsRefPtr<gfxASurface> mHelperSurface;
+
+    
+    
+    
+    PRPackedBool          mDoAlphaExtraction;
+
+    
+    
+    nsIntRect             mSurfaceDifferenceRect;
+
+#ifdef MOZ_X11
+    
+    PRPackedBool          mFlash10Quirks;
 #endif
 };
 
