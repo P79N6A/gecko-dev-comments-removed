@@ -49,7 +49,7 @@
 #include "nsStyleContext.h"
 #include "nsStyleConsts.h"
 #include "nsINameSpaceManager.h"
-#include "nsIRenderingContext.h"
+#include "nsRenderingContext.h"
 #include "nsIFontMetrics.h"
 
 #include "nsIDOMText.h"
@@ -83,7 +83,7 @@ NS_QUERYFRAME_TAIL_INHERITING(nsHTMLContainerFrame)
 
 
 nsresult
-nsMathMLContainerFrame::ReflowError(nsIRenderingContext& aRenderingContext,
+nsMathMLContainerFrame::ReflowError(nsRenderingContext& aRenderingContext,
                                     nsHTMLReflowMetrics& aDesiredSize)
 {
   nsresult rv;
@@ -135,12 +135,12 @@ public:
 #endif
 
   virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     nsIRenderingContext* aCtx);
+                     nsRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("MathMLError", TYPE_MATHML_ERROR)
 };
 
 void nsDisplayMathMLError::Paint(nsDisplayListBuilder* aBuilder,
-                                 nsIRenderingContext* aCtx)
+                                 nsRenderingContext* aCtx)
 {
   
   nsLayoutUtils::SetFontFromStyle(aCtx, mFrame->GetStyleContext());
@@ -238,7 +238,7 @@ nsMathMLContainerFrame::ClearSavedChildMetrics()
 
 
 void
-nsMathMLContainerFrame::GetPreferredStretchSize(nsIRenderingContext& aRenderingContext,
+nsMathMLContainerFrame::GetPreferredStretchSize(nsRenderingContext& aRenderingContext,
                                                 PRUint32             aOptions,
                                                 nsStretchDirection   aStretchDirection,
                                                 nsBoundingMetrics&   aPreferredStretchSize)
@@ -333,7 +333,7 @@ nsMathMLContainerFrame::GetPreferredStretchSize(nsIRenderingContext& aRenderingC
 }
 
 NS_IMETHODIMP
-nsMathMLContainerFrame::Stretch(nsIRenderingContext& aRenderingContext,
+nsMathMLContainerFrame::Stretch(nsRenderingContext& aRenderingContext,
                                 nsStretchDirection   aStretchDirection,
                                 nsBoundingMetrics&   aContainerSize,
                                 nsHTMLReflowMetrics& aDesiredStretchSize)
@@ -484,7 +484,7 @@ nsMathMLContainerFrame::Stretch(nsIRenderingContext& aRenderingContext,
 }
 
 nsresult
-nsMathMLContainerFrame::FinalizeReflow(nsIRenderingContext& aRenderingContext,
+nsMathMLContainerFrame::FinalizeReflow(nsRenderingContext& aRenderingContext,
                                        nsHTMLReflowMetrics& aDesiredSize)
 {
   
@@ -1031,7 +1031,7 @@ nsMathMLContainerFrame::Reflow(nsPresContext*           aPresContext,
 }
 
  nscoord
-nsMathMLContainerFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
+nsMathMLContainerFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
@@ -1040,7 +1040,7 @@ nsMathMLContainerFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
 }
 
  nscoord
-nsMathMLContainerFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
+nsMathMLContainerFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 {
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
@@ -1049,7 +1049,7 @@ nsMathMLContainerFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
 }
 
  nscoord
-nsMathMLContainerFrame::GetIntrinsicWidth(nsIRenderingContext* aRenderingContext)
+nsMathMLContainerFrame::GetIntrinsicWidth(nsRenderingContext* aRenderingContext)
 {
   
   nsIFrame* childFrame = mFrames.FirstChild();
@@ -1087,7 +1087,7 @@ nsMathMLContainerFrame::GetIntrinsicWidth(nsIRenderingContext* aRenderingContext
 }
 
  nsresult
-nsMathMLContainerFrame::MeasureForWidth(nsIRenderingContext& aRenderingContext,
+nsMathMLContainerFrame::MeasureForWidth(nsRenderingContext& aRenderingContext,
                                         nsHTMLReflowMetrics& aDesiredSize)
 {
   return Place(aRenderingContext, PR_FALSE, aDesiredSize);
@@ -1281,7 +1281,7 @@ private:
 };
 
  nsresult
-nsMathMLContainerFrame::Place(nsIRenderingContext& aRenderingContext,
+nsMathMLContainerFrame::Place(nsRenderingContext& aRenderingContext,
                               PRBool               aPlaceOrigin,
                               nsHTMLReflowMetrics& aDesiredSize)
 {

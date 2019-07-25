@@ -137,7 +137,7 @@ nsFirstLetterFrame::GetChildFrameContainingOffset(PRInt32 inContentOffset,
 
 
  void
-nsFirstLetterFrame::AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
+nsFirstLetterFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
                                       nsIFrame::InlineMinWidthData *aData)
 {
   DoInlineIntrinsicWidth(aRenderingContext, aData, nsLayoutUtils::MIN_WIDTH);
@@ -146,7 +146,7 @@ nsFirstLetterFrame::AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
 
 
  void
-nsFirstLetterFrame::AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
+nsFirstLetterFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
                                        nsIFrame::InlinePrefWidthData *aData)
 {
   DoInlineIntrinsicWidth(aRenderingContext, aData, nsLayoutUtils::PREF_WIDTH);
@@ -154,20 +154,20 @@ nsFirstLetterFrame::AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
 
 
  nscoord
-nsFirstLetterFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
+nsFirstLetterFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 {
   return nsLayoutUtils::MinWidthFromInline(this, aRenderingContext);
 }
 
 
  nscoord
-nsFirstLetterFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
+nsFirstLetterFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 {
   return nsLayoutUtils::PrefWidthFromInline(this, aRenderingContext);
 }
 
  nsSize
-nsFirstLetterFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
+nsFirstLetterFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                 nsSize aCBSize, nscoord aAvailableWidth,
                                 nsSize aMargin, nsSize aBorder, nsSize aPadding,
                                 PRBool aShrinkWrap)

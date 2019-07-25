@@ -85,7 +85,7 @@ class nsHTMLReflowCommand;
 class nsIAtom;
 class nsPresContext;
 class nsIPresShell;
-class nsIRenderingContext;
+class nsRenderingContext;
 class nsIView;
 class nsIWidget;
 class nsIDOMRange;
@@ -1406,7 +1406,7 @@ public:
 
 
 
-  virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext) = 0;
+  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext) = 0;
 
   
 
@@ -1414,7 +1414,7 @@ public:
 
 
 
-  virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext) = 0;
+  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext) = 0;
 
   
 
@@ -1471,11 +1471,11 @@ public:
     
     
     
-    void ForceBreak(nsIRenderingContext *aRenderingContext);
+    void ForceBreak(nsRenderingContext *aRenderingContext);
 
     
     
-    void OptionallyBreak(nsIRenderingContext *aRenderingContext,
+    void OptionallyBreak(nsRenderingContext *aRenderingContext,
                          nscoord aHyphenWidth = 0);
 
     
@@ -1490,7 +1490,7 @@ public:
   };
 
   struct InlinePrefWidthData : public InlineIntrinsicWidthData {
-    void ForceBreak(nsIRenderingContext *aRenderingContext);
+    void ForceBreak(nsRenderingContext *aRenderingContext);
   };
 
   
@@ -1513,7 +1513,7 @@ public:
 
 
   virtual void
-  AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
+  AddInlineMinWidth(nsRenderingContext *aRenderingContext,
                     InlineMinWidthData *aData) = 0;
 
   
@@ -1527,7 +1527,7 @@ public:
 
 
   virtual void
-  AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
+  AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
                      InlinePrefWidthData *aData) = 0;
 
   
@@ -1544,7 +1544,7 @@ public:
     {}
   };
   virtual IntrinsicWidthOffsetData
-    IntrinsicWidthOffsets(nsIRenderingContext* aRenderingContext) = 0;
+    IntrinsicWidthOffsets(nsRenderingContext* aRenderingContext) = 0;
 
   
 
@@ -1625,7 +1625,7 @@ public:
 
 
 
-  virtual nsSize ComputeSize(nsIRenderingContext *aRenderingContext,
+  virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
                              PRBool aShrinkWrap) = 0;

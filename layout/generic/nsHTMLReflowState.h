@@ -45,7 +45,7 @@
 #include "nsIFrame.h"
 
 class nsPresContext;
-class nsIRenderingContext;
+class nsRenderingContext;
 class nsFloatManager;
 class nsLineLayout;
 class nsIPercentHeightObserver;
@@ -147,7 +147,7 @@ public:
   nsIFrame*           frame;
 
   
-  nsIRenderingContext* rendContext;
+  nsRenderingContext* rendContext;
 
   
   nsMargin         mComputedMargin;
@@ -159,13 +159,13 @@ public:
   nsMargin         mComputedPadding;
 
   
-  nsCSSOffsetState(nsIFrame *aFrame, nsIRenderingContext *aRenderingContext)
+  nsCSSOffsetState(nsIFrame *aFrame, nsRenderingContext *aRenderingContext)
     : frame(aFrame)
     , rendContext(aRenderingContext)
   {
   }
 
-  nsCSSOffsetState(nsIFrame *aFrame, nsIRenderingContext *aRenderingContext,
+  nsCSSOffsetState(nsIFrame *aFrame, nsRenderingContext *aRenderingContext,
                    nscoord aContainingBlockWidth)
     : frame(aFrame)
     , rendContext(aRenderingContext)
@@ -377,7 +377,7 @@ public:
   
   nsHTMLReflowState(nsPresContext*           aPresContext,
                     nsIFrame*                aFrame,
-                    nsIRenderingContext*     aRenderingContext,
+                    nsRenderingContext*     aRenderingContext,
                     const nsSize&            aAvailableSpace);
 
   

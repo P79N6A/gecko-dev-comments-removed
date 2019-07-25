@@ -151,7 +151,7 @@ public:
                                       PRUint32         aFlags = 0);
 
   
-  void DoInlineIntrinsicWidth(nsIRenderingContext *aRenderingContext,
+  void DoInlineIntrinsicWidth(nsRenderingContext *aRenderingContext,
                               InlineIntrinsicWidthData *aData,
                               nsLayoutUtils::IntrinsicWidthType aType);
 
@@ -159,7 +159,7 @@ public:
 
 
 
-  virtual nsSize ComputeAutoSize(nsIRenderingContext *aRenderingContext,
+  virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
                                  nsSize aPadding, PRBool aShrinkWrap);

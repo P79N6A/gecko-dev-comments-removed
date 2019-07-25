@@ -630,7 +630,7 @@ public:
 
 
 
-  static nsresult PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFrame,
+  static nsresult PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFrame,
                              const nsRegion& aDirtyRegion, nscolor aBackstop,
                              PRUint32 aFlags = 0);
 
@@ -653,7 +653,7 @@ public:
 
 
   static PRBool
-  BinarySearchForPosition(nsIRenderingContext* acx,
+  BinarySearchForPosition(nsRenderingContext* acx,
                           const PRUnichar* aText,
                           PRInt32    aBaseWidth,
                           PRInt32    aBaseInx,
@@ -809,7 +809,7 @@ public:
 
 
   enum IntrinsicWidthType { MIN_WIDTH, PREF_WIDTH };
-  static nscoord IntrinsicForContainer(nsIRenderingContext* aRenderingContext,
+  static nscoord IntrinsicForContainer(nsRenderingContext* aRenderingContext,
                                        nsIFrame* aFrame,
                                        IntrinsicWidthType aType);
 
@@ -839,7 +839,7 @@ public:
 
 
   static nscoord ComputeWidthValue(
-                   nsIRenderingContext* aRenderingContext,
+                   nsRenderingContext* aRenderingContext,
                    nsIFrame*            aFrame,
                    nscoord              aContainingBlockWidth,
                    nscoord              aContentEdgeToBoxSizing,
@@ -904,28 +904,28 @@ public:
 
 
   static nsSize ComputeSizeWithIntrinsicDimensions(
-                    nsIRenderingContext* aRenderingContext, nsIFrame* aFrame,
+                    nsRenderingContext* aRenderingContext, nsIFrame* aFrame,
                     const nsIFrame::IntrinsicSize& aIntrinsicSize,
                     nsSize aIntrinsicRatio, nsSize aCBSize,
                     nsSize aMargin, nsSize aBorder, nsSize aPadding);
 
   
   static nscoord PrefWidthFromInline(nsIFrame* aFrame,
-                                     nsIRenderingContext* aRenderingContext);
+                                     nsRenderingContext* aRenderingContext);
 
   
   static nscoord MinWidthFromInline(nsIFrame* aFrame,
-                                    nsIRenderingContext* aRenderingContext);
+                                    nsRenderingContext* aRenderingContext);
 
   static void DrawString(const nsIFrame*      aFrame,
-                         nsIRenderingContext* aContext,
+                         nsRenderingContext* aContext,
                          const PRUnichar*     aString,
                          PRInt32              aLength,
                          nsPoint              aPoint,
                          PRUint8              aDirection = NS_STYLE_DIRECTION_INHERIT);
 
   static nscoord GetStringWidth(const nsIFrame*      aFrame,
-                                nsIRenderingContext* aContext,
+                                nsRenderingContext* aContext,
                                 const PRUnichar*     aString,
                                 PRInt32              aLength);
 
@@ -1022,7 +1022,7 @@ public:
 
 
 
-  static nsresult DrawImage(nsIRenderingContext* aRenderingContext,
+  static nsresult DrawImage(nsRenderingContext* aRenderingContext,
                             imgIContainer*       aImage,
                             GraphicsFilter       aGraphicsFilter,
                             const nsRect&        aDest,
@@ -1052,7 +1052,7 @@ public:
 
 
 
-  static void DrawPixelSnapped(nsIRenderingContext* aRenderingContext,
+  static void DrawPixelSnapped(nsRenderingContext* aRenderingContext,
                                gfxDrawable*         aDrawable,
                                GraphicsFilter       aFilter,
                                const nsRect&        aDest,
@@ -1076,7 +1076,7 @@ public:
 
 
 
-  static nsresult DrawSingleUnscaledImage(nsIRenderingContext* aRenderingContext,
+  static nsresult DrawSingleUnscaledImage(nsRenderingContext* aRenderingContext,
                                           imgIContainer*       aImage,
                                           GraphicsFilter       aGraphicsFilter,
                                           const nsPoint&       aDest,
@@ -1099,7 +1099,7 @@ public:
 
 
 
-  static nsresult DrawSingleImage(nsIRenderingContext* aRenderingContext,
+  static nsresult DrawSingleImage(nsRenderingContext* aRenderingContext,
                                   imgIContainer*       aImage,
                                   GraphicsFilter       aGraphicsFilter,
                                   const nsRect&        aDest,
@@ -1140,7 +1140,7 @@ public:
   
 
 
-  static void SetFontFromStyle(nsIRenderingContext* aRC, nsStyleContext* aSC);
+  static void SetFontFromStyle(nsRenderingContext* aRC, nsStyleContext* aSC);
 
   
 

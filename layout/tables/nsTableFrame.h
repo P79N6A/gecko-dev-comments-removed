@@ -269,7 +269,7 @@ public:
 
 
 
-  void PaintTableBorderBackground(nsIRenderingContext& aRenderingContext,
+  void PaintTableBorderBackground(nsRenderingContext& aRenderingContext,
                                   const nsRect& aDirtyRect,
                                   nsPoint aPt, PRUint32 aBGPaintFlags);
 
@@ -308,22 +308,22 @@ public:
   void SetBCDamageArea(const nsRect& aValue);
   PRBool BCRecalcNeeded(nsStyleContext* aOldStyleContext,
                         nsStyleContext* aNewStyleContext);
-  void PaintBCBorders(nsIRenderingContext& aRenderingContext,
+  void PaintBCBorders(nsRenderingContext& aRenderingContext,
                       const nsRect&        aDirtyRect);
 
   virtual void MarkIntrinsicWidthsDirty();
   
   
-  virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
-  virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);
+  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
+  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
   virtual IntrinsicWidthOffsetData
-    IntrinsicWidthOffsets(nsIRenderingContext* aRenderingContext);
+    IntrinsicWidthOffsets(nsRenderingContext* aRenderingContext);
 
-  virtual nsSize ComputeSize(nsIRenderingContext *aRenderingContext,
+  virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
                              PRBool aShrinkWrap);
-  virtual nsSize ComputeAutoSize(nsIRenderingContext *aRenderingContext,
+  virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
                                  nsSize aPadding, PRBool aShrinkWrap);
@@ -331,7 +331,7 @@ public:
 
 
 
-  nscoord TableShrinkWidthToFit(nsIRenderingContext *aRenderingContext,
+  nscoord TableShrinkWidthToFit(nsRenderingContext *aRenderingContext,
                                 nscoord aWidthInCB);
 
   
@@ -557,7 +557,7 @@ protected:
   
   
   
-  void ReflowColGroups(nsIRenderingContext* aRenderingContext);
+  void ReflowColGroups(nsRenderingContext* aRenderingContext);
 
   
 

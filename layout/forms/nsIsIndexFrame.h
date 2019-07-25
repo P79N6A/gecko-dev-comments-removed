@@ -83,7 +83,7 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
+  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   
   virtual PRBool IsLeaf() const;
 

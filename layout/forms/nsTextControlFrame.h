@@ -79,8 +79,8 @@ public:
     return do_QueryFrame(GetFirstChild(nsnull));
   }
 
-  virtual nscoord GetMinWidth(nsIRenderingContext* aRenderingContext);
-  virtual nsSize ComputeAutoSize(nsIRenderingContext *aRenderingContext,
+  virtual nscoord GetMinWidth(nsRenderingContext* aRenderingContext);
+  virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
                                  nsSize aPadding, PRBool aShrinkWrap);
@@ -367,7 +367,7 @@ protected:
   
   
   
-  nsresult CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
+  nsresult CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
                              nsSize&              aIntrinsicSize);
 
   nsresult ScrollSelectionIntoView();

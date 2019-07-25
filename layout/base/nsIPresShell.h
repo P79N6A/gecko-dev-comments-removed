@@ -77,7 +77,7 @@ class nsPresContext;
 class nsStyleSet;
 class nsIViewManager;
 class nsIView;
-class nsIRenderingContext;
+class nsRenderingContext;
 class nsIPageSequenceFrame;
 class nsAString;
 class nsCaret;
@@ -504,7 +504,7 @@ public:
 
 
 
-  virtual already_AddRefed<nsIRenderingContext> GetReferenceRenderingContext() = 0;
+  virtual already_AddRefed<nsRenderingContext> GetReferenceRenderingContext() = 0;
 
   
 
@@ -803,7 +803,7 @@ public:
   virtual NS_HIDDEN_(void) DumpReflows() = 0;
   virtual NS_HIDDEN_(void) CountReflows(const char * aName, nsIFrame * aFrame) = 0;
   virtual NS_HIDDEN_(void) PaintCount(const char * aName,
-                                      nsIRenderingContext* aRenderingContext,
+                                      nsRenderingContext* aRenderingContext,
                                       nsPresContext * aPresContext,
                                       nsIFrame * aFrame,
                                       PRUint32 aColor) = 0;

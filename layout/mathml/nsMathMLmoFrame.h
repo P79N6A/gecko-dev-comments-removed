@@ -81,7 +81,7 @@ public:
   virtual void MarkIntrinsicWidthsDirty();
 
   virtual nscoord
-  GetIntrinsicWidth(nsIRenderingContext *aRenderingContext);
+  GetIntrinsicWidth(nsRenderingContext *aRenderingContext);
 
   NS_IMETHOD
   AttributeChanged(PRInt32         aNameSpaceID,
@@ -91,7 +91,7 @@ public:
   
   
   NS_IMETHOD
-  Stretch(nsIRenderingContext& aRenderingContext,
+  Stretch(nsRenderingContext& aRenderingContext,
           nsStretchDirection   aStretchDirection,
           nsBoundingMetrics&   aContainerSize,
           nsHTMLReflowMetrics& aDesiredStretchSize);

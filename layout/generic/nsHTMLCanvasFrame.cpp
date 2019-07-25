@@ -156,7 +156,7 @@ nsHTMLCanvasFrame::GetCanvasSize()
 }
 
  nscoord
-nsHTMLCanvasFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
+nsHTMLCanvasFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 {
   
   
@@ -166,7 +166,7 @@ nsHTMLCanvasFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
 }
 
  nscoord
-nsHTMLCanvasFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
+nsHTMLCanvasFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 {
   
   
@@ -184,7 +184,7 @@ nsHTMLCanvasFrame::GetIntrinsicRatio()
 }
 
  nsSize
-nsHTMLCanvasFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
+nsHTMLCanvasFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                nsSize aCBSize, nscoord aAvailableWidth,
                                nsSize aMargin, nsSize aBorder, nsSize aPadding,
                                PRBool aShrinkWrap)

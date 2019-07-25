@@ -46,7 +46,7 @@
 #include "nsStyleContext.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
-#include "nsIRenderingContext.h"
+#include "nsRenderingContext.h"
 #include "nsIFontMetrics.h"
 #include "nsAbsoluteContainingBlock.h"
 #include "nsCSSAnonBoxes.h"
@@ -204,21 +204,21 @@ nsInlineFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 
  void
-nsInlineFrame::AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
+nsInlineFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
                                  nsIFrame::InlineMinWidthData *aData)
 {
   DoInlineIntrinsicWidth(aRenderingContext, aData, nsLayoutUtils::MIN_WIDTH);
 }
 
  void
-nsInlineFrame::AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
+nsInlineFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
                                   nsIFrame::InlinePrefWidthData *aData)
 {
   DoInlineIntrinsicWidth(aRenderingContext, aData, nsLayoutUtils::PREF_WIDTH);
 }
 
  nsSize
-nsInlineFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
+nsInlineFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                            nsSize aCBSize, nscoord aAvailableWidth,
                            nsSize aMargin, nsSize aBorder, nsSize aPadding,
                            PRBool aShrinkWrap)

@@ -45,7 +45,7 @@
 #include "nsMargin.h"
 #include "nsRect.h"
 
-#include "nsIRenderingContext.h" 
+#include "nsRenderingContext.h" 
 
 
 

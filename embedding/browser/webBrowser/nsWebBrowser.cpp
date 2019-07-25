@@ -76,7 +76,7 @@
 #include "gfxContext.h"
 
 
-#include "nsIRenderingContext.h"
+#include "nsRenderingContext.h"
 #include "nsIDeviceContext.h"
 #include "nsIRegion.h"
 #include "nsILookAndFeel.h"

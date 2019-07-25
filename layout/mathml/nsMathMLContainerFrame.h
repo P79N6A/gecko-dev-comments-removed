@@ -79,7 +79,7 @@ public:
   
 
   NS_IMETHOD
-  Stretch(nsIRenderingContext& aRenderingContext,
+  Stretch(nsRenderingContext& aRenderingContext,
           nsStretchDirection   aStretchDirection,
           nsBoundingMetrics&   aContainerSize,
           nsHTMLReflowMetrics& aDesiredStretchSize);
@@ -136,13 +136,13 @@ public:
 
 
 
-  virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
-  virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);
+  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
+  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
 
   
 
 
-  virtual nscoord GetIntrinsicWidth(nsIRenderingContext *aRenderingContext);
+  virtual nscoord GetIntrinsicWidth(nsRenderingContext *aRenderingContext);
 
   NS_IMETHOD
   Reflow(nsPresContext*          aPresContext,
@@ -227,7 +227,7 @@ protected:
 
 
   virtual nsresult
-  Place(nsIRenderingContext& aRenderingContext,
+  Place(nsRenderingContext& aRenderingContext,
         PRBool               aPlaceOrigin,
         nsHTMLReflowMetrics& aDesiredSize);
 
@@ -240,7 +240,7 @@ protected:
   
   
   virtual nsresult
-  MeasureForWidth(nsIRenderingContext& aRenderingContext,
+  MeasureForWidth(nsRenderingContext& aRenderingContext,
                   nsHTMLReflowMetrics& aDesiredSize);
 
 
@@ -252,7 +252,7 @@ protected:
   
   
   void
-  GetPreferredStretchSize(nsIRenderingContext& aRenderingContext,
+  GetPreferredStretchSize(nsRenderingContext& aRenderingContext,
                           PRUint32             aOptions,
                           nsStretchDirection   aStretchDirection,
                           nsBoundingMetrics&   aPreferredStretchSize);
@@ -266,7 +266,7 @@ public:
   
   
   nsresult
-  ReflowError(nsIRenderingContext& aRenderingContext,
+  ReflowError(nsRenderingContext& aRenderingContext,
               nsHTMLReflowMetrics& aDesiredSize);
 
   
@@ -293,7 +293,7 @@ protected:
   
   
   virtual nsresult
-  FinalizeReflow(nsIRenderingContext& aRenderingContext,
+  FinalizeReflow(nsRenderingContext& aRenderingContext,
                  nsHTMLReflowMetrics& aDesiredSize);
 
   

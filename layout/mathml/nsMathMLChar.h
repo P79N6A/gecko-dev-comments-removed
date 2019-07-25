@@ -131,7 +131,7 @@ public:
           const nsRect*           aSelectedRect = nsnull);
           
   void PaintForeground(nsPresContext* aPresContext,
-                       nsIRenderingContext& aRenderingContext,
+                       nsRenderingContext& aRenderingContext,
                        nsPoint aPt,
                        PRBool aIsSelected);
 
@@ -140,7 +140,7 @@ public:
   
   nsresult
   Stretch(nsPresContext*           aPresContext,
-          nsIRenderingContext&     aRenderingContext,
+          nsRenderingContext&     aRenderingContext,
           nsStretchDirection       aStretchDirection,
           const nsBoundingMetrics& aContainerSize,
           nsBoundingMetrics&       aDesiredStretchSize,
@@ -201,7 +201,7 @@ public:
   
   nscoord
   GetMaxWidth(nsPresContext* aPresContext,
-              nsIRenderingContext& aRenderingContext,
+              nsRenderingContext& aRenderingContext,
               PRUint32 aStretchHint = NS_STRETCH_NORMAL,
               float aMaxSize = NS_MATHML_OPERATOR_SIZE_INFINITY,
               
@@ -263,7 +263,7 @@ private:
   
   nsresult
   StretchInternal(nsPresContext*           aPresContext,
-                  nsIRenderingContext&     aRenderingContext,
+                  nsRenderingContext&     aRenderingContext,
                   nsStretchDirection&      aStretchDirection,
                   const nsBoundingMetrics& aContainerSize,
                   nsBoundingMetrics&       aDesiredStretchSize,
@@ -273,7 +273,7 @@ private:
 
   nsresult
   ComposeChildren(nsPresContext*       aPresContext,
-                  nsIRenderingContext& aRenderingContext,
+                  nsRenderingContext& aRenderingContext,
                   nsGlyphTable*        aGlyphTable,
                   nscoord              aTargetSize,
                   nsBoundingMetrics&   aCompositeSize,
@@ -281,7 +281,7 @@ private:
 
   nsresult
   PaintVertically(nsPresContext*       aPresContext,
-                  nsIRenderingContext& aRenderingContext,
+                  nsRenderingContext& aRenderingContext,
                   nsFont&              aFont,
                   nsStyleContext*      aStyleContext,
                   nsGlyphTable*        aGlyphTable,
@@ -289,14 +289,14 @@ private:
 
   nsresult
   PaintHorizontally(nsPresContext*       aPresContext,
-                    nsIRenderingContext& aRenderingContext,
+                    nsRenderingContext& aRenderingContext,
                     nsFont&              aFont,
                     nsStyleContext*      aStyleContext,
                     nsGlyphTable*        aGlyphTable,
                     nsRect&              aRect);
 
   void
-  ApplyTransforms(nsIRenderingContext& aRenderingContext, nsRect &r);
+  ApplyTransforms(nsRenderingContext& aRenderingContext, nsRect &r);
 };
 
 #endif 

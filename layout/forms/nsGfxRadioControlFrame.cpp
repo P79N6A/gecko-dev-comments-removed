@@ -82,7 +82,7 @@ nsGfxRadioControlFrame::CreateAccessible()
 
 static void
 PaintCheckedRadioButton(nsIFrame* aFrame,
-                        nsIRenderingContext* aCtx,
+                        nsRenderingContext* aCtx,
                         const nsRect& aDirtyRect,
                         nsPoint aPt)
 {

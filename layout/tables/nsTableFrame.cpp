@@ -39,7 +39,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsTableFrame.h"
-#include "nsIRenderingContext.h"
+#include "nsRenderingContext.h"
 #include "nsStyleContext.h"
 #include "nsStyleConsts.h"
 #include "nsIContent.h"
@@ -1134,13 +1134,13 @@ public:
 #endif
 
   virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     nsIRenderingContext* aCtx);
+                     nsRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("TableBorderBackground", TYPE_TABLE_BORDER_BACKGROUND)
 };
 
 void
 nsDisplayTableBorderBackground::Paint(nsDisplayListBuilder* aBuilder,
-                                      nsIRenderingContext* aCtx)
+                                      nsRenderingContext* aCtx)
 {
   static_cast<nsTableFrame*>(mFrame)->
     PaintTableBorderBackground(*aCtx, mVisibleRect,
@@ -1344,7 +1344,7 @@ nsTableFrame::GetDeflationForBackground(nsPresContext* aPresContext) const
 
 
 void
-nsTableFrame::PaintTableBorderBackground(nsIRenderingContext& aRenderingContext,
+nsTableFrame::PaintTableBorderBackground(nsRenderingContext& aRenderingContext,
                                          const nsRect& aDirtyRect,
                                          nsPoint aPt, PRUint32 aBGPaintFlags)
 {
@@ -1369,7 +1369,7 @@ nsTableFrame::PaintTableBorderBackground(nsIRenderingContext& aRenderingContext,
     else {
       
       
-      nsIRenderingContext::AutoPushTranslation translate(&aRenderingContext, aPt);
+      nsRenderingContext::AutoPushTranslation translate(&aRenderingContext, aPt);
       PaintBCBorders(aRenderingContext, aDirtyRect - aPt);
     }
   }
@@ -1492,7 +1492,7 @@ nsTableFrame::MarkIntrinsicWidthsDirty()
 }
 
  nscoord
-nsTableFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
+nsTableFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 {
   if (NeedToCalcBCBorders())
     CalcBCBorders();
@@ -1503,7 +1503,7 @@ nsTableFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
 }
 
  nscoord
-nsTableFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
+nsTableFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 {
   if (NeedToCalcBCBorders())
     CalcBCBorders();
@@ -1514,7 +1514,7 @@ nsTableFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
 }
 
  nsIFrame::IntrinsicWidthOffsetData
-nsTableFrame::IntrinsicWidthOffsets(nsIRenderingContext* aRenderingContext)
+nsTableFrame::IntrinsicWidthOffsets(nsRenderingContext* aRenderingContext)
 {
   IntrinsicWidthOffsetData result =
     nsHTMLContainerFrame::IntrinsicWidthOffsets(aRenderingContext);
@@ -1531,7 +1531,7 @@ nsTableFrame::IntrinsicWidthOffsets(nsIRenderingContext* aRenderingContext)
 }
 
  nsSize
-nsTableFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
+nsTableFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                           nsSize aCBSize, nscoord aAvailableWidth,
                           nsSize aMargin, nsSize aBorder, nsSize aPadding,
                           PRBool aShrinkWrap)
@@ -1550,7 +1550,7 @@ nsTableFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
 }
 
 nscoord
-nsTableFrame::TableShrinkWidthToFit(nsIRenderingContext *aRenderingContext,
+nsTableFrame::TableShrinkWidthToFit(nsRenderingContext *aRenderingContext,
                                     nscoord aWidthInCB)
 {
   nscoord result;
@@ -1577,7 +1577,7 @@ nsTableFrame::TableShrinkWidthToFit(nsIRenderingContext *aRenderingContext,
 }
 
  nsSize
-nsTableFrame::ComputeAutoSize(nsIRenderingContext *aRenderingContext,
+nsTableFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                               nsSize aCBSize, nscoord aAvailableWidth,
                               nsSize aMargin, nsSize aBorder, nsSize aPadding,
                               PRBool aShrinkWrap)
@@ -2919,7 +2919,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
 }
 
 void
-nsTableFrame::ReflowColGroups(nsIRenderingContext *aRenderingContext)
+nsTableFrame::ReflowColGroups(nsRenderingContext *aRenderingContext)
 {
   if (!GetPrevInFlow() && !HaveReflowedColGroups()) {
     nsHTMLReflowMetrics kidMet;
@@ -5934,7 +5934,7 @@ struct BCVerticalSeg
 
 
    void Paint(BCPaintBorderIterator& aIter,
-              nsIRenderingContext&   aRenderingContext,
+              nsRenderingContext&   aRenderingContext,
               BCPixelSize            aHorSegHeight);
   void AdvanceOffsetY();
   void IncludeCurrentBorder(BCPaintBorderIterator& aIter);
@@ -5985,7 +5985,7 @@ struct BCHorizontalSeg
    void AdvanceOffsetX(PRInt32 aIncrement);
    void IncludeCurrentBorder(BCPaintBorderIterator& aIter);
    void Paint(BCPaintBorderIterator& aIter,
-              nsIRenderingContext&   aRenderingContext);
+              nsRenderingContext&   aRenderingContext);
 
   nscoord            mOffsetX;       
   nscoord            mOffsetY;       
@@ -6025,8 +6025,8 @@ public:
   PRBool SetDamageArea(nsRect aDirtyRect);
   void First();
   void Next();
-  void AccumulateOrPaintHorizontalSegment(nsIRenderingContext& aRenderingContext);
-  void AccumulateOrPaintVerticalSegment(nsIRenderingContext& aRenderingContext);
+  void AccumulateOrPaintHorizontalSegment(nsRenderingContext& aRenderingContext);
+  void AccumulateOrPaintVerticalSegment(nsRenderingContext& aRenderingContext);
   void ResetVerInfo();
   void StoreColumnWidth(PRInt32 aIndex);
   PRBool VerticalSegmentOwnsCorner();
@@ -6689,7 +6689,7 @@ BCVerticalSeg::GetBottomCorner(BCPaintBorderIterator& aIter,
 
 void
 BCVerticalSeg::Paint(BCPaintBorderIterator& aIter,
-                     nsIRenderingContext&   aRenderingContext,
+                     nsRenderingContext&   aRenderingContext,
                      BCPixelSize            aHorSegHeight)
 {
   
@@ -6871,7 +6871,7 @@ BCHorizontalSeg::GetRightCorner(BCPaintBorderIterator& aIter,
 
 void
 BCHorizontalSeg::Paint(BCPaintBorderIterator& aIter,
-                       nsIRenderingContext&   aRenderingContext)
+                       nsRenderingContext&   aRenderingContext)
 {
   
   mozilla::css::Side side = (aIter.IsDamageAreaBottomMost()) ? NS_SIDE_BOTTOM :
@@ -7013,7 +7013,7 @@ BCPaintBorderIterator::VerticalSegmentOwnsCorner()
 
 
 void
-BCPaintBorderIterator::AccumulateOrPaintHorizontalSegment(nsIRenderingContext& aRenderingContext)
+BCPaintBorderIterator::AccumulateOrPaintHorizontalSegment(nsRenderingContext& aRenderingContext)
 {
 
   PRInt32 relColIndex = GetRelativeColIndex();
@@ -7061,7 +7061,7 @@ BCPaintBorderIterator::AccumulateOrPaintHorizontalSegment(nsIRenderingContext& a
 
 
 void
-BCPaintBorderIterator::AccumulateOrPaintVerticalSegment(nsIRenderingContext& aRenderingContext)
+BCPaintBorderIterator::AccumulateOrPaintVerticalSegment(nsRenderingContext& aRenderingContext)
 {
   BCBorderOwner borderOwner = eCellOwner;
   BCBorderOwner ignoreBorderOwner;
@@ -7120,7 +7120,7 @@ BCPaintBorderIterator::ResetVerInfo()
 
 
 void
-nsTableFrame::PaintBCBorders(nsIRenderingContext& aRenderingContext,
+nsTableFrame::PaintBCBorders(nsRenderingContext& aRenderingContext,
                              const nsRect&        aDirtyRect)
 {
   

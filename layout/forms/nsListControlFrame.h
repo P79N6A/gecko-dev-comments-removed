@@ -88,8 +88,8 @@ public:
   NS_IMETHOD SetInitialChildList(nsIAtom*        aListName,
                                  nsFrameList&    aChildList);
 
-  virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);
-  virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
+  virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
+  virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
 
   NS_IMETHOD Reflow(nsPresContext*          aCX,
                     nsHTMLReflowMetrics&     aDesiredSize,
@@ -238,7 +238,7 @@ public:
 
 
 
-  void PaintFocus(nsIRenderingContext& aRC, nsPoint aPt);
+  void PaintFocus(nsRenderingContext& aRC, nsPoint aPt);
   
 
 

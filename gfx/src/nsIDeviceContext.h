@@ -220,7 +220,7 @@ public:
 
 
 
-  NS_IMETHOD  CreateRenderingContext(nsIView *aView, nsIRenderingContext *&aContext) = 0;
+  NS_IMETHOD  CreateRenderingContext(nsIView *aView, nsRenderingContext *&aContext) = 0;
 
   
 
@@ -228,21 +228,21 @@ public:
 
 
 
-  NS_IMETHOD  CreateRenderingContext(nsIWidget *aWidget, nsIRenderingContext *&aContext) = 0;
+  NS_IMETHOD  CreateRenderingContext(nsIWidget *aWidget, nsRenderingContext *&aContext) = 0;
 
   
 
 
 
 
-  NS_IMETHOD  CreateRenderingContext(nsIRenderingContext *&aContext) = 0;
+  NS_IMETHOD  CreateRenderingContext(nsRenderingContext *&aContext) = 0;
 
   
 
 
 
 
-  NS_IMETHOD  CreateRenderingContextInstance(nsIRenderingContext *&aContext) = 0;
+  NS_IMETHOD  CreateRenderingContextInstance(nsRenderingContext *&aContext) = 0;
 
   
 

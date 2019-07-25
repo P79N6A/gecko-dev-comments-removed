@@ -47,7 +47,7 @@
 class nsIFrame;
 class nsDisplayListBuilder;
 class nsDisplayList;
-class nsIRenderingContext;
+class nsRenderingContext;
 
 
 
@@ -99,7 +99,7 @@ public:
 
 
   static void
-  PaintFramesWithEffects(nsIRenderingContext* aCtx,
+  PaintFramesWithEffects(nsRenderingContext* aCtx,
                          nsIFrame* aEffectsFrame, const nsRect& aDirtyRect,
                          nsDisplayListBuilder* aBuilder,
                          nsDisplayList* aInnerList);
@@ -140,7 +140,7 @@ public:
 
 
   static void
-  DrawPaintServer(nsIRenderingContext* aRenderingContext,
+  DrawPaintServer(nsRenderingContext* aRenderingContext,
                   nsIFrame*            aTarget,
                   nsIFrame*            aPaintServer,
                   gfxPattern::GraphicsFilter aFilter,

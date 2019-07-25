@@ -221,7 +221,7 @@ nsTextControlFrame::GetType() const
 }
 
 nsresult
-nsTextControlFrame::CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
+nsTextControlFrame::CalcIntrinsicSize(nsRenderingContext* aRenderingContext,
                                       nsSize&              aIntrinsicSize)
 {
   
@@ -466,7 +466,7 @@ nsTextControlFrame::AppendAnonymousContentTo(nsBaseContentList& aElements,
 }
 
 nscoord
-nsTextControlFrame::GetMinWidth(nsIRenderingContext* aRenderingContext)
+nsTextControlFrame::GetMinWidth(nsRenderingContext* aRenderingContext)
 {
   
   nscoord result;
@@ -478,7 +478,7 @@ nsTextControlFrame::GetMinWidth(nsIRenderingContext* aRenderingContext)
 }
 
 nsSize
-nsTextControlFrame::ComputeAutoSize(nsIRenderingContext *aRenderingContext,
+nsTextControlFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                     nsSize aCBSize, nscoord aAvailableWidth,
                                     nsSize aMargin, nsSize aBorder,
                                     nsSize aPadding, PRBool aShrinkWrap)

@@ -64,7 +64,7 @@
 #include "nsStyleContext.h"
 #include "nsCoord.h"
 #include "nsIFontMetrics.h"
-#include "nsIRenderingContext.h"
+#include "nsRenderingContext.h"
 #include "nsIPresShell.h"
 #include "nsITimer.h"
 #include "nsTArray.h"
@@ -1607,9 +1607,9 @@ GetFontGroupForFrame(nsIFrame* aFrame,
 }
 
 static already_AddRefed<gfxContext>
-GetReferenceRenderingContext(nsTextFrame* aTextFrame, nsIRenderingContext* aRC)
+GetReferenceRenderingContext(nsTextFrame* aTextFrame, nsRenderingContext* aRC)
 {
-  nsCOMPtr<nsIRenderingContext> tmp = aRC;
+  nsRefPtr<nsRenderingContext> tmp = aRC;
   if (!tmp) {
     tmp = aTextFrame->PresContext()->PresShell()->GetReferenceRenderingContext();
     if (!tmp)
@@ -3708,9 +3708,9 @@ public:
   virtual nsIFrame* GetFirstInFlow() const;
   virtual nsIFrame* GetFirstContinuation() const;
 
-  virtual void AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
+  virtual void AddInlineMinWidth(nsRenderingContext *aRenderingContext,
                                  InlineMinWidthData *aData);
-  virtual void AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
+  virtual void AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
                                   InlinePrefWidthData *aData);
   
   virtual nsresult GetRenderedText(nsAString* aString = nsnull,
@@ -3855,20 +3855,20 @@ nsContinuingTextFrame::GetFirstContinuation() const
 
 
  nscoord
-nsTextFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
+nsTextFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 {
   return nsLayoutUtils::MinWidthFromInline(this, aRenderingContext);
 }
 
 
  nscoord
-nsTextFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
+nsTextFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 {
   return nsLayoutUtils::PrefWidthFromInline(this, aRenderingContext);
 }
 
  void
-nsContinuingTextFrame::AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
+nsContinuingTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
                                          InlineMinWidthData *aData)
 {
   
@@ -3876,7 +3876,7 @@ nsContinuingTextFrame::AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
 }
 
  void
-nsContinuingTextFrame::AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
+nsContinuingTextFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
                                           InlinePrefWidthData *aData)
 {
   
@@ -4116,7 +4116,7 @@ public:
     }
   }
   virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     nsIRenderingContext* aCtx);
+                     nsRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("Text", TYPE_TEXT)
 
   virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder)
@@ -4131,7 +4131,7 @@ public:
 
 void
 nsDisplayText::Paint(nsDisplayListBuilder* aBuilder,
-                     nsIRenderingContext* aCtx) {
+                     nsRenderingContext* aCtx) {
   
   
   
@@ -5059,7 +5059,7 @@ nsTextFrame::GetSnappedBaselineY(gfxContext* aContext, gfxFloat aY)
 }
 
 void
-nsTextFrame::PaintText(nsIRenderingContext* aRenderingContext, nsPoint aPt,
+nsTextFrame::PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
                        const nsRect& aDirtyRect)
 {
   
@@ -6025,7 +6025,7 @@ void nsTextFrame::MarkIntrinsicWidthsDirty()
 
 
 void
-nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
+nsTextFrame::AddInlineMinWidthForFlow(nsRenderingContext *aRenderingContext,
                                       nsIFrame::InlineMinWidthData *aData)
 {
   PRUint32 flowEndInTextRun;
@@ -6152,7 +6152,7 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
 
 
  void
-nsTextFrame::AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
+nsTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
                                nsIFrame::InlineMinWidthData *aData)
 {
   nsTextFrame* f;
@@ -6183,7 +6183,7 @@ nsTextFrame::AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
 
 
 void
-nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
+nsTextFrame::AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
                                        nsIFrame::InlinePrefWidthData *aData)
 {
   PRUint32 flowEndInTextRun;
@@ -6276,7 +6276,7 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
 
 
  void
-nsTextFrame::AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
+nsTextFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
                                 nsIFrame::InlinePrefWidthData *aData)
 {
   nsTextFrame* f;
@@ -6305,7 +6305,7 @@ nsTextFrame::AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
 }
 
  nsSize
-nsTextFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
+nsTextFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                          nsSize aCBSize, nscoord aAvailableWidth,
                          nsSize aMargin, nsSize aBorder, nsSize aPadding,
                          PRBool aShrinkWrap)
@@ -6532,7 +6532,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
 
 void
 nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
-                        nsIRenderingContext* aRenderingContext,
+                        nsRenderingContext* aRenderingContext,
                         PRBool aShouldBlink,
                         nsHTMLReflowMetrics& aMetrics,
                         nsReflowStatus& aStatus)
@@ -7057,7 +7057,7 @@ nsTextFrame::CanContinueTextRun() const
 }
 
 nsTextFrame::TrimOutput
-nsTextFrame::TrimTrailingWhiteSpace(nsIRenderingContext* aRC)
+nsTextFrame::TrimTrailingWhiteSpace(nsRenderingContext* aRC)
 {
   TrimOutput result;
   result.mChanged = PR_FALSE;

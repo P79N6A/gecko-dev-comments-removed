@@ -181,7 +181,7 @@ public:
     nsIScrollableFrame*  mColumnsScrollFrame;
   };
 
-  void PaintTreeBody(nsIRenderingContext& aRenderingContext,
+  void PaintTreeBody(nsRenderingContext& aRenderingContext,
                      const nsRect& aDirtyRect, nsPoint aPt);
 
   nsITreeBoxObject* GetTreeBoxObject() const { return mTreeBoxObject; }
@@ -196,14 +196,14 @@ protected:
   void PaintColumn(nsTreeColumn*        aColumn,
                    const nsRect&        aColumnRect,
                    nsPresContext*      aPresContext,
-                   nsIRenderingContext& aRenderingContext,
+                   nsRenderingContext& aRenderingContext,
                    const nsRect&        aDirtyRect);
 
   
   void PaintRow(PRInt32              aRowIndex,
                 const nsRect&        aRowRect,
                 nsPresContext*       aPresContext,
-                nsIRenderingContext& aRenderingContext,
+                nsRenderingContext& aRenderingContext,
                 const nsRect&        aDirtyRect,
                 nsPoint              aPt);
 
@@ -211,7 +211,7 @@ protected:
   void PaintSeparator(PRInt32              aRowIndex,
                       const nsRect&        aSeparatorRect,
                       nsPresContext*      aPresContext,
-                      nsIRenderingContext& aRenderingContext,
+                      nsRenderingContext& aRenderingContext,
                       const nsRect&        aDirtyRect);
 
   
@@ -219,7 +219,7 @@ protected:
                  nsTreeColumn*        aColumn,
                  const nsRect&        aCellRect,
                  nsPresContext*       aPresContext,
-                 nsIRenderingContext& aRenderingContext,
+                 nsRenderingContext& aRenderingContext,
                  const nsRect&        aDirtyRect,
                  nscoord&             aCurrX,
                  nsPoint              aPt);
@@ -229,7 +229,7 @@ protected:
                    nsTreeColumn*        aColumn,
                    const nsRect&        aTwistyRect,
                    nsPresContext*      aPresContext,
-                   nsIRenderingContext& aRenderingContext,
+                   nsRenderingContext& aRenderingContext,
                    const nsRect&        aDirtyRect,
                    nscoord&             aRemainingWidth,
                    nscoord&             aCurrX);
@@ -239,7 +239,7 @@ protected:
                   nsTreeColumn*        aColumn,
                   const nsRect&        aImageRect,
                   nsPresContext*      aPresContext,
-                  nsIRenderingContext& aRenderingContext,
+                  nsRenderingContext& aRenderingContext,
                   const nsRect&        aDirtyRect,
                   nscoord&             aRemainingWidth,
                   nscoord&             aCurrX);
@@ -249,7 +249,7 @@ protected:
                  nsTreeColumn*        aColumn,
                  const nsRect&        aTextRect,
                  nsPresContext*      aPresContext,
-                 nsIRenderingContext& aRenderingContext,
+                 nsRenderingContext& aRenderingContext,
                  const nsRect&        aDirtyRect,
                  nscoord&             aCurrX,
                  PRBool               aTextRTL);
@@ -259,7 +259,7 @@ protected:
                      nsTreeColumn*        aColumn,
                      const nsRect&        aCheckboxRect,
                      nsPresContext*      aPresContext,
-                     nsIRenderingContext& aRenderingContext,
+                     nsRenderingContext& aRenderingContext,
                      const nsRect&        aDirtyRect);
 
   
@@ -267,13 +267,13 @@ protected:
                           nsTreeColumn*        aColumn,
                           const nsRect&        aProgressMeterRect,
                           nsPresContext*      aPresContext,
-                          nsIRenderingContext& aRenderingContext,
+                          nsRenderingContext& aRenderingContext,
                           const nsRect&        aDirtyRect);
 
   
   void PaintDropFeedback(const nsRect&        aDropFeedbackRect, 
                          nsPresContext*      aPresContext,
-                         nsIRenderingContext& aRenderingContext,
+                         nsRenderingContext& aRenderingContext,
                          const nsRect&        aDirtyRect,
                          nsPoint              aPt);
 
@@ -281,7 +281,7 @@ protected:
   
   void PaintBackgroundLayer(nsStyleContext*      aStyleContext,
                             nsPresContext*      aPresContext, 
-                            nsIRenderingContext& aRenderingContext, 
+                            nsRenderingContext& aRenderingContext, 
                             const nsRect&        aRect,
                             const nsRect&        aDirtyRect);
 
@@ -300,7 +300,7 @@ protected:
 
   void AdjustForCellText(nsAutoString& aText,
                          PRInt32 aRowIndex,  nsTreeColumn* aColumn,
-                         nsIRenderingContext& aRenderingContext,
+                         nsRenderingContext& aRenderingContext,
                          nsRect& aTextRect);
 
   
@@ -318,7 +318,7 @@ protected:
                           nsRect& aImageRect,
                           nsRect& aTwistyRect,
                           nsPresContext* aPresContext,
-                          nsIRenderingContext& aRenderingContext,
+                          nsRenderingContext& aRenderingContext,
                           nsStyleContext* aTwistyContext);
 
   
@@ -398,7 +398,7 @@ protected:
   nsIContent* GetBaseElement();
 
   nsresult GetCellWidth(PRInt32 aRow, nsTreeColumn* aCol,
-                        nsIRenderingContext* aRenderingContext,
+                        nsRenderingContext* aRenderingContext,
                         nscoord& aDesiredSize, nscoord& aCurrentSize);
   nscoord CalcMaxRowWidth();
 
