@@ -36,6 +36,7 @@
 
 
 
+
  
 
 
@@ -70,32 +71,6 @@ public:
 
 private:
     nsCOMPtr<nsINode> mCurrentNode;
-    
-    
-
-
-
-    nsAutoTArray<PRInt32, 8> mPossibleIndexes;
-    
-    
-
-
-    PRInt32 mPossibleIndexesPos;
-    
-    
-
-
-
-
-
-
-
-
-
-    nsresult FirstChildOf(nsINode* aNode,
-                          PRBool aReversed,
-                          PRInt32 aIndexPos,
-                          nsINode** _retval);
 
     
 
@@ -104,28 +79,7 @@ private:
 
 
 
-
-
-
-    nsresult NextSiblingOf(nsINode* aNode,
-                           PRBool aReversed,
-                           PRInt32 aIndexPos,
-                           nsINode** _retval);
-                           
-    
-
-
-
-
-
-
-
-
-
-    nsresult NextInDocumentOrderOf(nsINode* aNode,
-                                   PRBool aReversed,
-                                   PRInt32 aIndexPos,
-                                   nsINode** _retval);
+    nsresult FirstChildInternal(PRBool aReversed, nsIDOMNode **_retval);
 
     
 
@@ -134,44 +88,7 @@ private:
 
 
 
-
-
-
-
-
-    nsresult ChildOf(nsINode* aNode,
-                     PRInt32 childNum,
-                     PRBool aReversed,
-                     PRInt32 aIndexPos,
-                     nsINode** _retval);
-
-    
-
-
-
-
-
-
-
-
-
-    PRInt32 IndexOf(nsINode* aParent,
-                    nsINode* aChild,
-                    PRInt32 aIndexPos);
-
-    
-
-
-
-
-
-    void SetChildIndex(PRInt32 aIndexPos, PRInt32 aChildIndex)
-    {
-        if (aIndexPos >= 0 &&
-            mPossibleIndexes.EnsureLengthAtLeast(aIndexPos+1)) {
-            mPossibleIndexes.ElementAt(aIndexPos) = aChildIndex;
-        }
-    }
+    nsresult NextSiblingInternal(PRBool aReversed, nsIDOMNode **_retval);
 };
 
 #endif

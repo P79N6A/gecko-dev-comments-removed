@@ -41,14 +41,12 @@
 
 
 
+
 #include "nsTreeWalker.h"
 
 #include "nsIDOMNode.h"
 #include "nsIDOMNodeFilter.h"
 #include "nsDOMError.h"
-
-#include "nsIContent.h"
-#include "nsIDocument.h"
 
 #include "nsContentUtils.h"
 
@@ -61,8 +59,7 @@ nsTreeWalker::nsTreeWalker(nsINode *aRoot,
                            nsIDOMNodeFilter *aFilter,
                            PRBool aExpandEntityReferences) :
     nsTraversal(aRoot, aWhatToShow, aFilter, aExpandEntityReferences),
-    mCurrentNode(aRoot),
-    mPossibleIndexesPos(-1)
+    mCurrentNode(aRoot)
 {
 }
 
@@ -119,8 +116,7 @@ NS_IMETHODIMP nsTreeWalker::GetFilter(nsIDOMNodeFilter * *aFilter)
 {
     NS_ENSURE_ARG_POINTER(aFilter);
 
-    nsCOMPtr<nsIDOMNodeFilter> filter = mFilter;
-    filter.swap((*aFilter = nsnull));
+    NS_IF_ADDREF(*aFilter = mFilter);
 
     return NS_OK;
 }
@@ -152,8 +148,6 @@ NS_IMETHODIMP nsTreeWalker::SetCurrentNode(nsIDOMNode * aCurrentNode)
     NS_ENSURE_SUCCESS(rv, rv);
 
     mCurrentNode = do_QueryInterface(aCurrentNode);
-    mPossibleIndexes.Clear();
-    mPossibleIndexesPos = -1;
 
     return NS_OK;
 }
@@ -166,16 +160,13 @@ NS_IMETHODIMP nsTreeWalker::SetCurrentNode(nsIDOMNode * aCurrentNode)
 NS_IMETHODIMP nsTreeWalker::ParentNode(nsIDOMNode **_retval)
 {
     *_retval = nsnull;
-    
+
     nsresult rv;
 
-    PRInt32 indexPos = mPossibleIndexesPos;
     nsCOMPtr<nsINode> node = mCurrentNode;
-    
+
     while (node && node != mRoot) {
         node = node->GetNodeParent();
-        
-        indexPos--;
 
         if (node) {
             PRInt16 filtered;
@@ -183,8 +174,6 @@ NS_IMETHODIMP nsTreeWalker::ParentNode(nsIDOMNode **_retval)
             NS_ENSURE_SUCCESS(rv, rv);
             if (filtered == nsIDOMNodeFilter::FILTER_ACCEPT) {
                 mCurrentNode = node;
-                mPossibleIndexesPos = indexPos >= 0 ? indexPos : -1;
-
                 return CallQueryInterface(node, _retval);
             }
         }
@@ -196,279 +185,133 @@ NS_IMETHODIMP nsTreeWalker::ParentNode(nsIDOMNode **_retval)
 
 NS_IMETHODIMP nsTreeWalker::FirstChild(nsIDOMNode **_retval)
 {
-    *_retval = nsnull;
-
-    nsCOMPtr<nsINode> result;
-    nsresult rv =  FirstChildOf(mCurrentNode,
-                                PR_FALSE,
-                                mPossibleIndexesPos + 1,
-                                getter_AddRefs(result));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return result ? CallQueryInterface(result, _retval) : NS_OK;
+    return FirstChildInternal(PR_FALSE, _retval);
 }
 
 
 NS_IMETHODIMP nsTreeWalker::LastChild(nsIDOMNode **_retval)
 {
-    *_retval = nsnull;
-
-    nsCOMPtr<nsINode> result;
-    nsresult rv =  FirstChildOf(mCurrentNode,
-                                PR_TRUE,
-                                mPossibleIndexesPos + 1,
-                                getter_AddRefs(result));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return result ? CallQueryInterface(result, _retval) : NS_OK;
+    return FirstChildInternal(PR_TRUE, _retval);
 }
 
 
 NS_IMETHODIMP nsTreeWalker::PreviousSibling(nsIDOMNode **_retval)
 {
-    *_retval = nsnull;
-
-    nsCOMPtr<nsINode> result;
-    nsresult rv = NextSiblingOf(mCurrentNode,
-                                PR_TRUE,
-                                mPossibleIndexesPos,
-                                getter_AddRefs(result));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return result ? CallQueryInterface(result, _retval) : NS_OK;
+    return NextSiblingInternal(PR_TRUE, _retval);
 }
 
 
 NS_IMETHODIMP nsTreeWalker::NextSibling(nsIDOMNode **_retval)
 {
-    *_retval = nsnull;
-
-    nsCOMPtr<nsINode> result;
-    nsresult rv = NextSiblingOf(mCurrentNode,
-                                PR_FALSE,
-                                mPossibleIndexesPos,
-                                getter_AddRefs(result));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return result ? CallQueryInterface(result, _retval) : NS_OK;
+    return NextSiblingInternal(PR_FALSE, _retval);
 }
 
 
 NS_IMETHODIMP nsTreeWalker::PreviousNode(nsIDOMNode **_retval)
 {
+    nsresult rv;
+    PRInt16 filtered;
+
     *_retval = nsnull;
 
-    nsCOMPtr<nsINode> result;
-    nsresult rv = NextInDocumentOrderOf(mCurrentNode,
-                                        PR_TRUE,
-                                        mPossibleIndexesPos,
-                                        getter_AddRefs(result));
-    NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<nsINode> node = mCurrentNode;
 
-    return result ? CallQueryInterface(result, _retval) : NS_OK;
+    while (node != mRoot) {
+        while (nsINode *previousSibling = node->GetPreviousSibling()) {
+            node = previousSibling;
+
+            rv = TestNode(node, &filtered);
+            NS_ENSURE_SUCCESS(rv, rv);
+
+            nsINode *lastChild;
+            while (filtered != nsIDOMNodeFilter::FILTER_REJECT &&
+                   (lastChild = node->GetLastChild())) {
+                node = lastChild;
+                rv = TestNode(node, &filtered);
+                NS_ENSURE_SUCCESS(rv, rv);
+            }
+
+            if (filtered == nsIDOMNodeFilter::FILTER_ACCEPT) {
+                mCurrentNode = node;
+                return CallQueryInterface(node, _retval);
+            }
+        }
+
+        if (node == mRoot)
+            break;
+
+        node = node->GetNodeParent();
+        if (!node)
+            break;
+
+        rv = TestNode(node, &filtered);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (filtered == nsIDOMNodeFilter::FILTER_ACCEPT) {
+            mCurrentNode = node;
+            return CallQueryInterface(node, _retval);
+        }
+    }
+
+    return NS_OK;
 }
 
 
 NS_IMETHODIMP nsTreeWalker::NextNode(nsIDOMNode **_retval)
 {
-    *_retval = nsnull;
-
-    nsCOMPtr<nsINode> result;
-    nsresult rv = NextInDocumentOrderOf(mCurrentNode,
-                                        PR_FALSE,
-                                        mPossibleIndexesPos,
-                                        getter_AddRefs(result));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return result ? CallQueryInterface(result, _retval) : NS_OK;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsTreeWalker::FirstChildOf(nsINode* aNode,
-                           PRBool aReversed,
-                           PRInt32 aIndexPos,
-                           nsINode** _retval)
-{
-    *_retval = nsnull;
-    PRInt32 start = aReversed ? (PRInt32)aNode->GetChildCount() : -1;
-
-    return ChildOf(aNode, start, aReversed, aIndexPos, _retval);
-}
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsTreeWalker::NextSiblingOf(nsINode* aNode,
-                            PRBool aReversed,
-                            PRInt32 aIndexPos,
-                            nsINode** _retval)
-{
     nsresult rv;
-    nsCOMPtr<nsINode> node = aNode;
-    PRInt16 filtered;
-    PRInt32 childNum;
+    PRInt16 filtered = nsIDOMNodeFilter::FILTER_ACCEPT; 
 
-    if (node == mRoot) {
-        *_retval = nsnull;
-        return NS_OK;
-    }
+    *_retval = nsnull;
+
+    nsCOMPtr<nsINode> node = mCurrentNode;
 
     while (1) {
-        nsCOMPtr<nsINode> parent = node->GetNodeParent();
 
-        if (!parent)
-            break;
+        nsINode *firstChild;
+        while (filtered != nsIDOMNodeFilter::FILTER_REJECT &&
+               (firstChild = node->GetFirstChild())) {
+            node = firstChild;
 
-        childNum = IndexOf(parent, node, aIndexPos);
-        NS_ENSURE_TRUE(childNum >= 0, NS_ERROR_UNEXPECTED);
-
-        
-        rv = ChildOf(parent, childNum, aReversed, aIndexPos, _retval);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        if (*_retval)
-            return NS_OK;
-
-        
-        if (parent == mRoot)
-            break;
-
-        
-        rv = TestNode(parent, &filtered);
-        NS_ENSURE_SUCCESS(rv, rv);
-        if (filtered == nsIDOMNodeFilter::FILTER_ACCEPT)
-            break;
-
-        node = parent;
-        aIndexPos = aIndexPos < 0 ? -1 : aIndexPos-1;
-    }
-
-    *_retval = nsnull;
-    return NS_OK;
-}
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsTreeWalker::NextInDocumentOrderOf(nsINode* aNode,
-                                    PRBool aReversed,
-                                    PRInt32 aIndexPos,
-                                    nsINode** _retval)
-{
-    nsresult rv;
-
-    if (!aReversed) {
-        rv = FirstChildOf(aNode, aReversed, aIndexPos+1, _retval);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        if (*_retval)
-            return NS_OK;
-    }
-
-    if (aNode == mRoot){
-        *_retval = nsnull;
-        return NS_OK;
-    }
-
-    nsCOMPtr<nsINode> node = aNode;
-    nsCOMPtr<nsINode> currentNodeBackup = mCurrentNode;
-    PRInt16 filtered;
-    PRInt32 childNum;
-
-    while (1) {
-        
-        nsCOMPtr<nsINode> parent = node->GetNodeParent();
-        if (!parent)
-            break;
-
-        childNum = IndexOf(parent, node, aIndexPos);
-        NS_ENSURE_TRUE(childNum >= 0, NS_ERROR_UNEXPECTED);
-
-        
-        nsCOMPtr<nsINode> sibling;
-        rv = ChildOf(parent, childNum, aReversed, aIndexPos,
-                     getter_AddRefs(sibling));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        if (sibling) {
-            if (aReversed) {
-                
-                
-                nsCOMPtr<nsINode> child = sibling;
-                while (child) {
-                    sibling = child;
-                    rv = FirstChildOf(sibling,
-                                      PR_TRUE,
-                                      aIndexPos,
-                                      getter_AddRefs(child));
-                    if (NS_FAILED(rv)) {
-                        
-                        
-                        mCurrentNode = currentNodeBackup;
-                        mPossibleIndexesPos = -1;
-                        return rv;
-                    }
-                }
-            }
-            *_retval = sibling;
-            NS_ADDREF(*_retval);
-            return NS_OK;
-        }
-
-        aIndexPos = aIndexPos < 0 ? -1 : aIndexPos-1;
-
-        if (aReversed) {
-            
-            rv = TestNode(parent, &filtered);
+            rv = TestNode(node, &filtered);
             NS_ENSURE_SUCCESS(rv, rv);
-            if (filtered == nsIDOMNodeFilter::FILTER_ACCEPT) {
-                mCurrentNode = parent;
-                mPossibleIndexesPos = aIndexPos;
-                *_retval = parent;
-                NS_ADDREF(*_retval);
-                return NS_OK;
+
+            if (filtered ==  nsIDOMNodeFilter::FILTER_ACCEPT) {
+                
+                mCurrentNode = node;
+                return CallQueryInterface(node, _retval);
             }
         }
 
-        
-        if (parent == mRoot)
+        nsINode *sibling = nsnull;
+        nsINode *temp = node;
+        do {
+            if (temp == mRoot)
+                break;
+
+            sibling = temp->GetNextSibling();
+            if (sibling)
+                break;
+
+            temp = temp->GetNodeParent();
+        } while (temp);
+
+        if (!sibling)
             break;
 
-        node = parent;
+        node = sibling;
+
+        
+        rv = TestNode(node, &filtered);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (filtered ==  nsIDOMNodeFilter::FILTER_ACCEPT) {
+            
+            mCurrentNode = node;
+            return CallQueryInterface(node, _retval);
+        }
     }
 
-    *_retval = nsnull;
     return NS_OK;
 }
 
@@ -483,64 +326,55 @@ nsTreeWalker::NextInDocumentOrderOf(nsINode* aNode,
 
 
 
-
-nsresult
-nsTreeWalker::ChildOf(nsINode* aNode,
-                      PRInt32 childNum,
-                      PRBool aReversed,
-                      PRInt32 aIndexPos,
-                      nsINode** _retval)
+nsresult nsTreeWalker::FirstChildInternal(PRBool aReversed, nsIDOMNode **_retval)
 {
-    PRInt16 filtered;
     nsresult rv;
+    PRInt16 filtered;
 
-    PRInt32 dir = aReversed ? -1 : 1;
+    *_retval = nsnull;
 
-    
-    PRInt32 i = childNum;
-    while (1) {
-        i += dir;
-        nsCOMPtr<nsINode> child = aNode->GetChildAt(i);
-        if (!child) {
-            break;
-        }
+    nsCOMPtr<nsINode> node = aReversed ? mCurrentNode->GetLastChild()
+                                       : mCurrentNode->GetFirstChild();
 
-        rv = TestNode(child, &filtered);
+    while (node) {
+        rv = TestNode(node, &filtered);
         NS_ENSURE_SUCCESS(rv, rv);
 
         switch (filtered) {
             case nsIDOMNodeFilter::FILTER_ACCEPT:
                 
-                mCurrentNode = child;
-                mPossibleIndexesPos = aIndexPos;
-                *_retval = child;
-                NS_ADDREF(*_retval);
-
-                SetChildIndex(aIndexPos, i);
-
-                return NS_OK;
-
-            case nsIDOMNodeFilter::FILTER_SKIP:
-                
-                rv = FirstChildOf(child, aReversed, aIndexPos+1, _retval);
-                NS_ENSURE_SUCCESS(rv, rv);
-
-                if (*_retval) {
-                    SetChildIndex(aIndexPos, i);
-                    return NS_OK;
+                mCurrentNode = node;
+                return CallQueryInterface(node, _retval);
+            case nsIDOMNodeFilter::FILTER_SKIP: {
+                    nsINode *child = aReversed ? node->GetLastChild()
+                                               : node->GetFirstChild();
+                    if (child) {
+                        node = child;
+                        continue;
+                    }
+                    break;
                 }
-                break;
-
             case nsIDOMNodeFilter::FILTER_REJECT:
                 
                 break;
-
-            default:
-                return NS_ERROR_UNEXPECTED;
         }
+
+        do {
+            nsINode *sibling = aReversed ? node->GetPreviousSibling()
+                                         : node->GetNextSibling();
+            if (sibling) {
+                node = sibling;
+                break;
+            }
+            nsINode *parent = node->GetNodeParent();
+
+            if (!parent || parent == mRoot || parent == mCurrentNode) {
+                return NS_OK;
+            }
+
+        } while (node);
     }
 
-    *_retval = nsnull;
     return NS_OK;
 }
 
@@ -551,19 +385,60 @@ nsTreeWalker::ChildOf(nsINode* aNode,
 
 
 
+nsresult nsTreeWalker::NextSiblingInternal(PRBool aReversed, nsIDOMNode **_retval)
 
-
-
-PRInt32 nsTreeWalker::IndexOf(nsINode* aParent,
-                              nsINode* aChild,
-                              PRInt32 aIndexPos)
 {
-    if (aIndexPos >= 0 && aIndexPos < PRInt32(mPossibleIndexes.Length())) {
-        PRInt32 possibleIndex = mPossibleIndexes.ElementAt(aIndexPos);
-        if (aChild == aParent->GetChildAt(possibleIndex)) {
-            return possibleIndex;
+    nsresult rv;
+    PRInt16 filtered;
+
+    *_retval = nsnull;
+
+    nsCOMPtr<nsINode> node = mCurrentNode;
+
+    if (node == mRoot)
+        return NS_OK;
+
+    while (1) {
+        nsCOMPtr<nsINode> sibling = aReversed ? node->GetPreviousSibling()
+                                              : node->GetNextSibling();
+
+        while (sibling) {
+            rv = TestNode(sibling, &filtered);
+            NS_ENSURE_SUCCESS(rv, rv);
+
+            switch (filtered) {
+                case nsIDOMNodeFilter::FILTER_ACCEPT:
+                    
+                    mCurrentNode = sibling;
+                    return CallQueryInterface(sibling, _retval);
+                case nsIDOMNodeFilter::FILTER_SKIP: {
+                        nsINode *firstChild = aReversed ? sibling->GetLastChild()
+                                                        : sibling->GetFirstChild();
+                        if (firstChild) {
+                            sibling = firstChild;
+                            continue;
+                        }
+                    }
+                    break;
+                case nsIDOMNodeFilter::FILTER_REJECT:
+                    
+                    break;
+            }
+            sibling = aReversed ? sibling->GetPreviousSibling()
+                                : sibling->GetNextSibling();
         }
+
+        node = node->GetNodeParent();
+
+        if (!node || node == mRoot)
+            break;
+
+        
+        rv = TestNode(node, &filtered);
+        NS_ENSURE_SUCCESS(rv, rv);
+        if (filtered == nsIDOMNodeFilter::FILTER_ACCEPT)
+            break;
     }
 
-    return aParent->IndexOf(aChild);
+    return NS_OK;
 }
