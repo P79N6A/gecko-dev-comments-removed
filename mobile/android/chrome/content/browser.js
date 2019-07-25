@@ -247,7 +247,7 @@ var BrowserApp = {
 
     let updated = this.isAppUpdated();
     if (pinned) {
-      WebAppRT.init(updated);
+      WebAppRT.init(updated, url);
     } else {
       SearchEngines.init();
       this.initContextMenu();
@@ -1990,6 +1990,7 @@ nsBrowserAccess.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIBrowserDOMWindow]),
 
   _getBrowser: function _getBrowser(aURI, aOpener, aWhere, aContext) {
+    console.log("GetBrowser");
     let isExternal = (aContext == Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
     if (isExternal && aURI && aURI.schemeIs("chrome"))
       return null;
@@ -2728,6 +2729,7 @@ Tab.prototype = {
       }
 
       case "DOMWillOpenModalDialog": {
+        console.log("DOMWillOpenModalDialog");
         if (!aEvent.isTrusted)
           return;
 
@@ -2926,7 +2928,7 @@ Tab.prototype = {
 
     let documentURI = contentWin.document.documentURIObject.spec;
     let contentType = contentWin.document.contentType;
-    
+
     
     
     
@@ -2940,6 +2942,18 @@ Tab.prototype = {
     this.pluginDoorhangerTimeout = null;
     this.shouldShowPluginDoorhanger = true;
     this.clickToPlayPluginsActivated = false;
+
+    
+    
+    if (WebappsUI.isMarketplace(aLocationURI)) {
+      
+      
+      HelperApps.showDoorhanger(aLocationURI, function() {
+        WebappsUI.installAndLaunchMarketplace(aLocationURI.spec);
+        if (aRequest)
+          aRequest.cancel(Cr.NS_OK);
+      });
+    }
 
     let message = {
       gecko: {
@@ -5951,6 +5965,7 @@ var WebappsUI = {
     Services.obs.addObserver(this, "webapps-sync-install", false);
     Services.obs.addObserver(this, "webapps-sync-uninstall", false);
     Services.obs.addObserver(this, "webapps-install-error", false);
+    Services.obs.addObserver(this, "WebApps:InstallMarketplace", false);
   },
   
   uninit: function unint() {
@@ -5959,6 +5974,7 @@ var WebappsUI = {
     Services.obs.removeObserver(this, "webapps-sync-install");
     Services.obs.removeObserver(this, "webapps-sync-uninstall");
     Services.obs.removeObserver(this, "webapps-install-error", false);
+    Services.obs.removeObserver(this, "WebApps:InstallMarketplace", false);
   },
 
   DEFAULT_PREFS_FILENAME: "default-prefs.js",
@@ -6024,6 +6040,55 @@ var WebappsUI = {
           }
         });
         break;
+      case "WebApps:InstallMarketplace":
+        this.installAndLaunchMarketplace(data.url);
+        break;
+    }
+  },
+
+  MARKETPLACE: {
+      MANIFEST: "https://marketplace.mozilla.org/manifest.webapp",
+      get URI() {
+        delete this.URI;
+        return this.URI = Services.io.newURI(this.MANIFEST, null, null);
+      }
+  },
+
+  isMarketplace: function isMarketplace(aUri) {
+    return aUri.host == this.MARKETPLACE.URI.host;
+  },
+
+  
+  
+  installAndLaunchMarketplace: function installAndLaunchMarketplace(aLaunchUrl) {
+    
+    let request = navigator.mozApps.getInstalled();
+    request.onsuccess = function() {
+      let foundMarket = false;
+      for (let i = 0; i < request.result.length; i++) {
+        if (request.result[i].origin == this.MARKETPLACE.URI.prePath)
+          foundMarket = true;
+      }
+
+      let launchFun = (function() {
+        if (aLaunchUrl)
+          WebappsUI.openURL(aLaunchUrl || WebappsUI.MARKETPLACE.URI.prePath, WebappsUI.MARKETPLACE.URI.prePath);
+      }).bind(this);
+
+      if (foundMarket) {
+        launchFun();
+      } else {
+        let r = navigator.mozApps.install(WebappsUI.MARKETPLACE.MANIFEST);
+        r.onsuccess = function() {
+          launchFun();
+        };
+        r.onerror = function() {
+          console.log("error installing market " + this.error.name);
+        };
+      }
+    };
+    request.onerror = function() {
+      console.log("error getting installed " + this.error.name);
     }
   },
 
@@ -6063,7 +6128,13 @@ var WebappsUI = {
   doInstall: function doInstall(aData) {
     let manifest = new DOMApplicationManifest(aData.app.manifest, aData.app.origin);
     let name = manifest.name ? manifest.name : manifest.fullLaunchPath();
-    if (Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), name)) {
+    let showPrompt = true;
+
+    
+    if (aData.app.origin == this.MARKETPLACE.URI.prePath)
+      showPrompt = false;
+
+    if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), name)) {
       
       
       this.makeBase64Icon(this.getBiggestIcon(manifest.icons, Services.io.newURI(aData.app.origin, null, null)),
