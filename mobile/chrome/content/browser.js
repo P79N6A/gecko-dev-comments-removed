@@ -461,9 +461,6 @@ var Browser = {
     var os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
     os.addObserver(gXPInstallObserver, "xpinstall-install-blocked", false);
     os.addObserver(gSessionHistoryObserver, "browser:purge-session-history", false);
-#ifdef WINCE
-    os.addObserver(SoftKeyboardObserver, "softkb-change", false);
-#endif
 
     
     os.addObserver(MemoryObserver, "memory-pressure", false);
@@ -584,9 +581,6 @@ var Browser = {
     os.removeObserver(gXPInstallObserver, "xpinstall-install-blocked");
     os.removeObserver(gSessionHistoryObserver, "browser:purge-session-history");
     os.removeObserver(MemoryObserver, "memory-pressure");
-#ifdef WINCE
-    os.removeObserver(SoftKeyboardObserver, "softkb-change");
-#endif
     os.removeObserver(BrowserSearch, "browser-search-engine-modified");
 
     window.controllers.removeController(this);
@@ -2333,27 +2327,6 @@ var MemoryObserver = {
     } while (memory.isLowMemory() && Browser.sacrificeTab());
   }
 };
-
-#ifdef WINCE
-
-
-var SoftKeyboardObserver = {
-  observe: function sko_observe(subject, topic, data) {
-    if (topic === "softkb-change") {
-      
-      
-      let rect = JSON.parse(data);
-      if (rect) {
-        let height = rect.bottom - rect.top;
-        let width = rect.right - rect.left;
-        let popup = document.getElementById("popup_autocomplete");
-        popup.height = height - BrowserUI.toolbarH;
-        popup.width = width;
-      }
-    }
-  }
-};
-#endif
 
 function getNotificationBox(aWindow) {
   return Browser.getNotificationBox();
