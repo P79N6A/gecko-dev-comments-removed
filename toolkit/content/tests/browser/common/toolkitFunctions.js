@@ -64,12 +64,18 @@ function callSaveWithMockObjects(aSaveFunction) {
   
   
   
-  mockTransferForContinuingRegisterer.register();
+  mockFilePickerRegisterer.register();
   try {
-    aSaveFunction();
+    mockTransferForContinuingRegisterer.register();
+    try {
+      aSaveFunction();
+    }
+    finally {
+      mockTransferForContinuingRegisterer.unregister();
+    }
   }
   finally {
-    mockTransferForContinuingRegisterer.unregister();
+    mockFilePickerRegisterer.unregister();
   }
 }
 
