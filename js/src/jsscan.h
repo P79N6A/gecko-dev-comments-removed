@@ -241,17 +241,73 @@ struct Token {
     union {
         struct {                        
             JSOp        op;             
-            JSAtom      *atom;          
+            union {
+              private:
+                friend class Token;
+                PropertyName *name;     
+                JSAtom       *atom;     
+            } n;
         } s;
         uintN           reflags;        
 
-        struct {                        
-            JSAtom      *atom2;         
-            JSAtom      *atom;          
-        } p;
+        class {                         
+            friend class Token;
+            JSAtom       *data;         
+            PropertyName *target;       
+        } xmlpi;
         jsdouble        dval;           
     } u;
+
+    
+
+    void setName(JSOp op, PropertyName *name) {
+        JS_ASSERT(op == JSOP_NAME);
+        u.s.op = op;
+        u.s.n.name = name;
+    }
+
+    void setAtom(JSOp op, JSAtom *atom) {
+        JS_ASSERT(op == JSOP_STRING || op == JSOP_XMLCOMMENT || JSOP_XMLCDATA);
+        u.s.op = op;
+        u.s.n.atom = atom;
+    }
+
+    void setProcessingInstruction(PropertyName *target, JSAtom *data) {
+        u.xmlpi.target = target;
+        u.xmlpi.data = data;
+    }
+
+    
+
+    PropertyName *name() const {
+        JS_ASSERT(type == TOK_NAME);
+        return u.s.n.name->asPropertyName(); 
+    }
+
+    JSAtom *atom() const {
+        JS_ASSERT(type == TOK_STRING ||
+                  type == TOK_XMLNAME ||
+                  type == TOK_XMLATTR ||
+                  type == TOK_XMLTEXT ||
+                  type == TOK_XMLCDATA ||
+                  type == TOK_XMLSPACE ||
+                  type == TOK_XMLCOMMENT);
+        return u.s.n.atom;
+    }
+
+    PropertyName *xmlPITarget() const {
+        JS_ASSERT(type == TOK_XMLPI);
+        return u.xmlpi.target;
+    }
+    JSAtom *xmlPIData() const {
+        JS_ASSERT(type == TOK_XMLPI);
+        return u.xmlpi.data;
+    }
 };
+
+#define t_op            u.s.op
+#define t_reflags       u.reflags
+#define t_dval          u.dval
 
 enum TokenStreamFlags
 {
@@ -289,12 +345,6 @@ enum TokenStreamFlags
 
     TSF_IN_HTML_COMMENT = 0x2000
 };
-
-#define t_op            u.s.op
-#define t_reflags       u.reflags
-#define t_atom          u.s.atom
-#define t_atom2         u.p.atom2
-#define t_dval          u.dval
 
 class TokenStream
 {
