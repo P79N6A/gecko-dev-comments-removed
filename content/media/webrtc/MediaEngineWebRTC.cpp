@@ -3,8 +3,30 @@
 
 
 #include "MediaEngineWebRTC.h"
+#include "ImageContainer.h"
 
 namespace mozilla {
+
+MediaEngineWebRTCVideoSource::MediaEngineWebRTCVideoSource(webrtc::VideoEngine* videoEnginePtr,
+                                                           int index, int aFps)
+  : mVideoEngine(videoEnginePtr)
+  , mCapIndex(index)
+  , mWidth(640)
+  , mHeight(480)
+  , mState(kReleased)
+  , mMonitor("WebRTCCamera.Monitor")
+  , mFps(aFps)
+  , mInitDone(false)
+  , mInSnapshotMode(false)
+  , mSnapshotPath(NULL)
+{
+  Init();
+}
+
+MediaEngineWebRTCVideoSource::~MediaEngineWebRTCVideoSource()
+{
+  Shutdown();
+}
 
 void
 MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSource> >* aVSources)

@@ -40,7 +40,12 @@ struct PRLogModuleInfo;
 class gfxContext;
 class nsPaintEvent;
 
+extern PRUint8 gLayerManagerLayerBuilder;
+
 namespace mozilla {
+
+class FrameLayerBuilder;
+
 namespace gl {
 class GLContext;
 }
@@ -80,6 +85,20 @@ class SpecificLayerAttributes;
 class THEBES_API LayerUserData {
 public:
   virtual ~LayerUserData() {}
+};
+
+class LayerManagerLayerBuilder : public LayerUserData {
+public:
+  LayerManagerLayerBuilder(FrameLayerBuilder* aBuilder, bool aDelete = true)
+    : mLayerBuilder(aBuilder)
+    , mDelete(aDelete)
+  {
+    MOZ_COUNT_CTOR(LayerManagerLayerBuilder);
+  }
+  ~LayerManagerLayerBuilder();
+
+  FrameLayerBuilder* mLayerBuilder;
+  bool mDelete;
 };
 
 
@@ -186,12 +205,17 @@ public:
 
 
   virtual void BeginTransactionWithTarget(gfxContext* aTarget) = 0;
-  
+
   enum EndTransactionFlags {
     END_DEFAULT = 0,
     END_NO_IMMEDIATE_REDRAW = 1 << 0,  
     END_NO_COMPOSITE = 1 << 1 
   };
+
+  FrameLayerBuilder* GetLayerBuilder() {
+    LayerManagerLayerBuilder *data = static_cast<LayerManagerLayerBuilder*>(GetUserData(&gLayerManagerLayerBuilder));
+    return data ? data->mLayerBuilder : nullptr;
+  }
 
   
 
