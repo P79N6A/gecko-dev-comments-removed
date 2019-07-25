@@ -86,7 +86,7 @@ static const jsbytecode emptyScriptCode[] = {JSOP_STOP, SRC_NULL};
     false,      
 #endif
     const_cast<jsbytecode*>(emptyScriptCode),
-    {0, NULL}, NULL, 0, 0, 0,
+    {0, NULL}, NULL, NULL, 0, 0, 0,
     0,          
     0,          
     NULL, {NULL},
@@ -1065,6 +1065,7 @@ JSScript::NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natom
               nsrcnotes * sizeof(jssrcnote) ==
               (uint8 *)script + size);
 
+    script->compartment = cx->compartment;
 #ifdef CHECK_SCRIPT_OWNER
     script->owner = cx->thread;
 #endif
@@ -1639,6 +1640,79 @@ js_GetScriptLineExtent(JSScript *script)
         }
     }
     return 1 + lineno - script->lineno;
+}
+
+class DisablePrincipalsTranscoding {
+    JSSecurityCallbacks *callbacks;
+    JSPrincipalsTranscoder temp;
+
+  public:
+    DisablePrincipalsTranscoding(JSContext *cx) {
+        callbacks = JS_GetRuntimeSecurityCallbacks(cx->runtime);
+        if (callbacks) {
+            temp = callbacks->principalsTranscoder;
+            callbacks->principalsTranscoder = NULL;
+        }
+    }
+
+    ~DisablePrincipalsTranscoding() {
+        if (callbacks)
+            callbacks->principalsTranscoder = temp;
+    }
+};
+
+JSScript *
+js_CloneScript(JSContext *cx, JSScript *script)
+{
+    JS_ASSERT(script != JSScript::emptyScript());
+    JS_ASSERT(cx->compartment != script->compartment);
+    JS_ASSERT(script->compartment);
+
+    
+    JSXDRState *w = JS_XDRNewMem(cx, JSXDR_ENCODE);
+    if (!w)
+        return NULL;
+
+    
+    DisablePrincipalsTranscoding disable(cx);
+
+    if (!JS_XDRScript(w, &script)) {
+        JS_XDRDestroy(w);
+        return NULL;
+    }
+
+    uint32 nbytes;
+    void *p = JS_XDRMemGetData(w, &nbytes);
+    if (!p) {
+        JS_XDRDestroy(w);
+        return NULL;
+    }
+
+    
+    JSXDRState *r = JS_XDRNewMem(cx, JSXDR_DECODE);
+    if (!r) {
+        JS_XDRDestroy(w);
+        return NULL;
+    }
+
+    
+    
+    JS_XDRMemSetData(r, p, nbytes);
+    JS_XDRMemSetData(w, NULL, 0);
+
+    
+    if (!js_XDRScript(r, &script, true, NULL))
+        return NULL;
+
+    JS_XDRDestroy(r);
+    JS_XDRDestroy(w);
+
+    
+    script->principals = script->compartment->principals;
+    if (script->principals)
+        JSPRINCIPALS_HOLD(cx, script->principals);
+
+    return script;
 }
 
 #ifdef JS_METHODJIT
