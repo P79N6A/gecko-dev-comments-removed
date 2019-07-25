@@ -2960,13 +2960,8 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   UpdateEditableState();
 
   
-  PRUint32 i;
-  
-  
-  
-  for (i = 0; i < mAttrsAndChildren.ChildCount(); ++i) {
-    
-    nsCOMPtr<nsIContent> child = mAttrsAndChildren.ChildAt(i);
+  for (nsIContent* child = GetFirstChild(); child;
+       child = child->GetNextSibling()) {
     rv = child->BindToTree(aDocument, this, aBindingParent,
                            aCompileEventHandlers);
     NS_ENSURE_SUCCESS(rv, rv);
