@@ -2066,7 +2066,7 @@ DrawTargetD2D::CreateBrushForPattern(const Pattern &aPattern, Float aAlpha)
       {
         DataSourceSurface *dataSurf =
           static_cast<DataSourceSurface*>(pat->mSurface.get());
-        bitmap = CreatePartialBitmapForSurface(dataSurf, mat);
+        bitmap = CreatePartialBitmapForSurface(dataSurf, mat, pat->mExtendMode);
         
         if (!bitmap) {
           return NULL;
@@ -2301,8 +2301,9 @@ DrawTargetD2D::CreateTextureForAnalysis(IDWriteGlyphRunAnalysis *aAnalysis, cons
 
   return tex;
 }
+
 TemporaryRef<ID2D1Bitmap>
-DrawTargetD2D::CreatePartialBitmapForSurface(DataSourceSurface *aSurface, Matrix &aMatrix)
+DrawTargetD2D::CreatePartialBitmapForSurface(DataSourceSurface *aSurface, Matrix &aMatrix, ExtendMode aExtendMode)
 {
   RefPtr<ID2D1Bitmap> bitmap;
 
@@ -2330,13 +2331,37 @@ DrawTargetD2D::CreatePartialBitmapForSurface(DataSourceSurface *aSurface, Matrix
 
   
   
-  uploadRect = uploadRect.Intersect(rect);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-  if (uploadRect.IsEmpty()) {
+  if (uploadRect.Contains(rect)) {
     
     
-    return NULL;
+    uploadRect = rect;
+  } else if (aExtendMode == EXTEND_CLAMP && uploadRect.Intersects(rect)) {
+    
+    
+    
+    uploadRect = uploadRect.Intersect(rect);
+
+    
+    
+  } else if (rect.x >= 0 && rect.XMost() < size.width) {
+    uploadRect.x = rect.x;
+    uploadRect.width = rect.width;
+  } else if (rect.y >= 0 && rect.YMost() < size.height) {
+    uploadRect.y = rect.y;
+    uploadRect.height = rect.height;
   }
+
 
   int stride = aSurface->Stride();
 
