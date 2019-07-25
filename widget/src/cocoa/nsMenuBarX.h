@@ -114,6 +114,7 @@ public:
   
   
   nsCOMPtr<nsIContent> mAboutItemContent;
+  nsCOMPtr<nsIContent> mUpdateItemContent;
   nsCOMPtr<nsIContent> mPrefItemContent;
   nsCOMPtr<nsIContent> mQuitItemContent;
 
