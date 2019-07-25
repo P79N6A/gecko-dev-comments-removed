@@ -1422,8 +1422,13 @@ nsNavBookmarks::GetDescendantChildren(PRInt64 aFolderId,
   PRUint32 childCount = aFolderChildrenArray.Length();
   for (PRUint32 i = startIndex; i < childCount; ++i) {
     if (aFolderChildrenArray[i].type == TYPE_FOLDER) {
+      
+      
+      
+      
+      nsCString guid = aFolderChildrenArray[i].guid;
       GetDescendantChildren(aFolderChildrenArray[i].id,
-                            aFolderChildrenArray[i].guid,
+                            guid,
                             aFolderId,
                             aFolderChildrenArray);
     }
