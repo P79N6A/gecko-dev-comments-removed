@@ -1324,14 +1324,41 @@ nsresult nsNSSComponent::getParamsForNextCrlToDownload(nsAutoString *url, PRTime
     PRTime tempTime;
     nsCAutoString timingPrefCString(updateTimePref);
     timingPrefCString.AppendWithConversion(tempCrlKey);
+    
     rv = pref->GetCharPref(timingPrefCString.get(), &tempTimeString);
     if (NS_FAILED(rv)){
-      continue;
-    }
-    rv = PR_ParseTimeString(tempTimeString,true, &tempTime);
-    nsMemory::Free(tempTimeString);
-    if (NS_FAILED(rv)){
-      continue;
+      
+      tempTime = PR_Now();
+      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+             ("get %s failed: forcing download\n", timingPrefCString.get()));
+    } else {
+      tempTime = (PRTime)nsCRT::atoll(tempTimeString);
+      nsMemory::Free(tempTimeString);
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (tempTime == 0)
+        tempTime = PR_Now();
+#ifdef PR_LOGGING
+      PRExplodedTime explodedTime;
+      PR_ExplodeTime(tempTime, PR_GMTParameters, &explodedTime);
+      
+      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+             ("%s tempTime(%lli) "
+              "(m/d/y h:m:s = %02d/%02d/%d %02d:%02d:%02d GMT\n",
+              timingPrefCString.get(), tempTime,
+              explodedTime.tm_month+1, explodedTime.tm_mday,
+              explodedTime.tm_year, explodedTime.tm_hour,
+              explodedTime.tm_min, explodedTime.tm_sec));
+#endif
     }
 
     if(nearestUpdateTime == 0 || tempTime < nearestUpdateTime){
