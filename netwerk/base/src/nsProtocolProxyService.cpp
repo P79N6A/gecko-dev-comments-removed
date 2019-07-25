@@ -1262,6 +1262,12 @@ nsProtocolProxyService::Resolve_Internal(nsIURI *uri,
 
         
         
+        
+        if (mPACMan && mPACMan->IsPACURI(uri))
+            return NS_OK;
+
+        
+        
         nsresult rv = ConfigureFromPAC(PACURI, PR_FALSE);
         if (NS_FAILED(rv))
             return rv;
