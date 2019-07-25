@@ -279,6 +279,9 @@ public:
   void PassEnum(TestEnum, ErrorResult&);
   void PassOptionalEnum(const Optional<TestEnum>&, ErrorResult&);
   TestEnum ReceiveEnum(ErrorResult&);
+  TestEnum GetEnumAttribute(ErrorResult&);
+  TestEnum GetReadonlyEnumAttribute(ErrorResult&);
+  void SetEnumAttribute(TestEnum, ErrorResult&);
 
   
   void PassCallback(JSContext*, JSObject*, ErrorResult&);

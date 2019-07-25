@@ -450,9 +450,8 @@ FindEnumStringIndex(JSContext* cx, JS::Value v, const EnumEntry* values, bool* o
     }
   }
 
-  
-  *ok = Throw<false>(cx, NS_ERROR_XPC_BAD_CONVERT_JS);
-  return 0;
+  *ok = true;
+  return -1;
 }
 
 inline nsWrapperCache*
