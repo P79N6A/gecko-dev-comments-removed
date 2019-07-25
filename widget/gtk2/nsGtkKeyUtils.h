@@ -272,6 +272,24 @@ protected:
 
 
 
+    gint GetFirstLatinGroup();
+
+    
+
+
+
+
+
+
+
+    bool IsLatinGroup(guint8 aGroup);
+
+    
+
+
+
+
+
 
 
     static bool IsBasicLatinLetterOrNumeral(PRUint32 aCharCode);
