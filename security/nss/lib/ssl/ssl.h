@@ -465,6 +465,7 @@ SSL_IMPORT SECStatus SSL_SetPKCS11PinArg(PRFileDesc *fd, void *a);
 
 
 
+
 typedef SECStatus (PR_CALLBACK *SSLBadCertHandler)(void *arg, PRFileDesc *fd);
 SSL_IMPORT SECStatus SSL_BadCertHook(PRFileDesc *fd, SSLBadCertHandler f, 
 				     void *arg);
@@ -807,8 +808,18 @@ extern const char *NSSSSL_GetVersion(void);
 
 
 
-SSL_IMPORT SECStatus SSL_RestartHandshakeAfterAuthCertificate(PRFileDesc *fd);
 
+
+
+
+
+
+
+
+
+
+SSL_IMPORT SECStatus SSL_AuthCertificateComplete(PRFileDesc *fd,
+						 PRErrorCode status);
 SEC_END_PROTOS
 
 #endif 

@@ -2607,6 +2607,40 @@ ssl3_HandshakeFailure(sslSocket *ss)
     return SECFailure;
 }
 
+static void
+ssl3_SendAlertForCertError(sslSocket * ss, PRErrorCode errCode)
+{
+    SSL3AlertDescription desc	= bad_certificate;
+    PRBool isTLS = ss->version >= SSL_LIBRARY_VERSION_3_1_TLS;
+
+    switch (errCode) {
+    case SEC_ERROR_LIBRARY_FAILURE:     desc = unsupported_certificate; break;
+    case SEC_ERROR_EXPIRED_CERTIFICATE: desc = certificate_expired;     break;
+    case SEC_ERROR_REVOKED_CERTIFICATE: desc = certificate_revoked;     break;
+    case SEC_ERROR_INADEQUATE_KEY_USAGE:
+    case SEC_ERROR_INADEQUATE_CERT_TYPE:
+		                        desc = certificate_unknown;     break;
+    case SEC_ERROR_UNTRUSTED_CERT:
+		    desc = isTLS ? access_denied : certificate_unknown; break;
+    case SEC_ERROR_UNKNOWN_ISSUER:      
+    case SEC_ERROR_UNTRUSTED_ISSUER:    
+		    desc = isTLS ? unknown_ca : certificate_unknown; break;
+    case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
+		    desc = isTLS ? unknown_ca : certificate_expired; break;
+
+    case SEC_ERROR_CERT_NOT_IN_NAME_SPACE:
+    case SEC_ERROR_PATH_LEN_CONSTRAINT_INVALID:
+    case SEC_ERROR_CA_CERT_INVALID:
+    case SEC_ERROR_BAD_SIGNATURE:
+    default:                            desc = bad_certificate;     break;
+    }
+    SSL_DBG(("%d: SSL3[%d]: peer certificate is no good: error=%d",
+	     SSL_GETPID(), ss->fd, errCode));
+
+    (void) SSL3_SendAlert(ss, alert_fatal, desc);
+}
+
+
 
 
 
@@ -5709,7 +5743,6 @@ ssl3_HandleServerHelloDone(sslSocket *ss)
 
 
 
-
 static SECStatus
 ssl3_SendClientSecondRound(sslSocket *ss)
 {
@@ -5748,14 +5781,14 @@ ssl3_SendClientSecondRound(sslSocket *ss)
 
 
     if (ss->ssl3.hs.restartTarget) {
-        PR_NOT_REACHED("unexpected ss->ssl3.hs.restartTarget");
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        return SECFailure;
+	PR_NOT_REACHED("unexpected ss->ssl3.hs.restartTarget");
+	PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	return SECFailure;
     }
     if (ss->ssl3.hs.authCertificatePending &&
-        (sendClientCert || ss->ssl3.sendEmptyCert || ss->firstHsDone)) {
-        ss->ssl3.hs.restartTarget = ssl3_SendClientSecondRound;
-        return SECWouldBlock;
+	(sendClientCert || ss->ssl3.sendEmptyCert || ss->firstHsDone)) {
+	ss->ssl3.hs.restartTarget = ssl3_SendClientSecondRound;
+	return SECWouldBlock;
     }
 
     ssl_GetXmitBufLock(ss);		
@@ -7828,7 +7861,7 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     PRBool           isServer	= (PRBool)(!!ss->sec.isServer);
     PRBool           trusted 	= PR_FALSE;
     PRBool           isTLS;
-    SSL3AlertDescription desc	= bad_certificate;
+    SSL3AlertDescription desc;
     int              errCode    = SSL_ERROR_RX_MALFORMED_CERTIFICATE;
     SECItem          certItem;
 
@@ -7982,12 +8015,20 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 		goto loser;
 	    }
 
-            ss->ssl3.hs.authCertificatePending = PR_TRUE;
-            rv = SECSuccess;
+	    ss->ssl3.hs.authCertificatePending = PR_TRUE;
+	    rv = SECSuccess;
+
+	    
+
+
+
+
+	    ss->opt.enableFalseStart = PR_FALSE;
 	}
-        
-        if (rv != SECSuccess) {
-	    goto bad_cert;
+
+	if (rv != SECSuccess) {
+	    ssl3_SendAlertForCertError(ss, errCode);
+	    goto loser;
 	}
     }
 
@@ -8058,6 +8099,7 @@ server_no_cert:
 	rv = SECFailure;
 	goto loser;
     }
+
     return rv;
 
 ambiguous_err:
@@ -8072,34 +8114,8 @@ ambiguous_err:
 	}
 	goto loser;
     }
-    
-
-bad_cert:	
-    switch (errCode) {
-    case SEC_ERROR_LIBRARY_FAILURE:     desc = unsupported_certificate; break;
-    case SEC_ERROR_EXPIRED_CERTIFICATE: desc = certificate_expired;     break;
-    case SEC_ERROR_REVOKED_CERTIFICATE: desc = certificate_revoked;     break;
-    case SEC_ERROR_INADEQUATE_KEY_USAGE:
-    case SEC_ERROR_INADEQUATE_CERT_TYPE:
-		                        desc = certificate_unknown;     break;
-    case SEC_ERROR_UNTRUSTED_CERT:
-		    desc = isTLS ? access_denied : certificate_unknown; break;
-    case SEC_ERROR_UNKNOWN_ISSUER:      
-    case SEC_ERROR_UNTRUSTED_ISSUER:    
-		    desc = isTLS ? unknown_ca : certificate_unknown; break;
-    case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
-		    desc = isTLS ? unknown_ca : certificate_expired; break;
-
-    case SEC_ERROR_CERT_NOT_IN_NAME_SPACE:
-    case SEC_ERROR_PATH_LEN_CONSTRAINT_INVALID:
-    case SEC_ERROR_CA_CERT_INVALID:
-    case SEC_ERROR_BAD_SIGNATURE:
-    default:                            desc = bad_certificate;     break;
-    }
-    SSL_DBG(("%d: SSL3[%d]: peer certificate is no good: error=%d",
-	     SSL_GETPID(), ss->fd, errCode));
-
-    goto alert_loser;
+    ssl3_SendAlertForCertError(ss, errCode);
+    goto loser;
 
 decode_loser:
     desc = isTLS ? decode_error : bad_certificate;
@@ -8120,10 +8136,17 @@ loser:
 
 static SECStatus ssl3_FinishHandshake(sslSocket *ss);
 
+static SECStatus
+ssl3_AlwaysFail(sslSocket * ss)
+{
+    PORT_SetError(PR_INVALID_STATE_ERROR);
+    return SECFailure;
+}
+
 
 
 SECStatus
-ssl3_RestartHandshakeAfterAuthCertificate(sslSocket *ss)
+ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode status)
 {
     SECStatus rv;
 
@@ -8138,26 +8161,33 @@ ssl3_RestartHandshakeAfterAuthCertificate(sslSocket *ss)
     ssl_GetSSL3HandshakeLock(ss);
 
     if (!ss->ssl3.hs.authCertificatePending) {
-        PORT_SetError(PR_INVALID_STATE_ERROR);
-        rv = SECFailure;
-    } else {
-        ss->ssl3.hs.authCertificatePending = PR_FALSE;
-        if (ss->ssl3.hs.restartTarget != NULL) {
-            sslRestartTarget target = ss->ssl3.hs.restartTarget;
-            ss->ssl3.hs.restartTarget = NULL;
-            rv = target(ss);
-	    
-
-
-
-            if (rv == SECWouldBlock) {
-                rv = SECSuccess;
-            }
-        } else {
-            rv = SECSuccess;
-        }
+	PORT_SetError(PR_INVALID_STATE_ERROR);
+	rv = SECFailure;
+	goto done;
     }
 
+    ss->ssl3.hs.authCertificatePending = PR_FALSE;
+
+    if (status != 0) {
+	ss->ssl3.hs.restartTarget = ssl3_AlwaysFail;
+	ssl3_SendAlertForCertError(ss, status);
+	rv = SECSuccess;
+    } else if (ss->ssl3.hs.restartTarget != NULL) {
+	sslRestartTarget target = ss->ssl3.hs.restartTarget;
+	ss->ssl3.hs.restartTarget = NULL;
+	rv = target(ss);
+	
+
+
+
+	if (rv == SECWouldBlock) {
+	    rv = SECSuccess;
+	}
+    } else {
+	rv = SECSuccess;
+    }
+
+done:
     ssl_ReleaseSSL3HandshakeLock(ss);
     ssl_ReleaseRecvBufLock(ss);
 
@@ -8566,16 +8596,16 @@ xmit_loser:
     }
 
     if (ss->ssl3.hs.authCertificatePending) {
-      if (ss->ssl3.hs.restartTarget) {
-          PR_NOT_REACHED("ssl3_HandleFinished: unexpected restartTarget");
-          PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-          return SECFailure;
-      }
+	if (ss->ssl3.hs.restartTarget) {
+	    PR_NOT_REACHED("ssl3_HandleFinished: unexpected restartTarget");
+	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+	    return SECFailure;
+	}
 
-      ss->ssl3.hs.restartTarget = ssl3_FinishHandshake;
-      return SECWouldBlock;
+	ss->ssl3.hs.restartTarget = ssl3_FinishHandshake;
+	return SECWouldBlock;
     }
-    
+
     rv = ssl3_FinishHandshake(ss);
     return rv;
 }
@@ -8584,7 +8614,7 @@ SECStatus
 ssl3_FinishHandshake(sslSocket * ss)
 {
     SECStatus rv;
-    
+
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
     PORT_Assert( ss->ssl3.hs.restartTarget == NULL );
@@ -8890,7 +8920,6 @@ ssl3_HandleHandshake(sslSocket *ss, sslBuffer *origBuf)
     buf->buf = NULL;	
     return SECSuccess;
 }
-
 
 
 

@@ -89,6 +89,13 @@
 #define MAX_ECKEY_LEN 	        72	/* Bytes */
 
 
+#define EC_POINT_FORM_COMPRESSED_Y0    0x02
+#define EC_POINT_FORM_COMPRESSED_Y1    0x03
+#define EC_POINT_FORM_UNCOMPRESSED     0x04
+#define EC_POINT_FORM_HYBRID_Y0        0x06
+#define EC_POINT_FORM_HYBRID_Y1        0x07
+
+
 
 
 #define MD2_LENGTH		16	/* Bytes */

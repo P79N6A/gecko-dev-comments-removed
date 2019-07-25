@@ -795,9 +795,10 @@ const ssl3CipherSuiteDef *suite_def;
     PRBool                authCertificatePending;
     
 
+
     sslRestartTarget      restartTarget;
     
-    PRBool                cacheSID; 
+    PRBool                cacheSID;
 } SSL3HandshakeState;
 
 
@@ -1358,7 +1359,7 @@ extern void ssl_FreeSocket(struct sslSocketStr *ssl);
 extern SECStatus SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level,
 				SSL3AlertDescription desc);
 
-extern SECStatus ssl3_RestartHandshakeAfterAuthCertificate(sslSocket *ss);
+extern SECStatus ssl3_AuthCertificateComplete(sslSocket *ss, PRErrorCode status);
 
 
 

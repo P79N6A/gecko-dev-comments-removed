@@ -592,7 +592,7 @@ SECMOD_UnloadModule(SECMODModule *mod) {
     
 
 
-    if (mod->internal) {
+    if (mod->internal && (mod->dllName == NULL)) {
         if (0 == PR_ATOMIC_DECREMENT(&softokenLoadCount)) {
           if (softokenLib) {
               disableUnload = PR_GetEnv("NSS_DISABLE_UNLOAD");
