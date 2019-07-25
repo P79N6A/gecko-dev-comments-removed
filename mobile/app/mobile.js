@@ -383,9 +383,6 @@ pref("plugins.force.wmode", "opaque");
 pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");
 
 
-pref("geo.wifi.uri", "https://maps.googleapis.com/maps/api/browserlocation/json");
-
-
 pref("geo.enabled", true);
 
 
