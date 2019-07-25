@@ -324,6 +324,9 @@ private:
 
   
   nsRefPtr<nsDOMEventListenerWrapper> mOnErrorListener;
+
+  nsTArray<nsRefPtr<IDBIndex> > mCreatedIndexes;
+
 };
 
 END_INDEXEDDB_NAMESPACE

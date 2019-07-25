@@ -157,6 +157,10 @@ public:
     return mDatabase;
   }
 
+  already_AddRefed<IDBObjectStore>
+  GetOrCreateObjectStore(const nsAString& aName,
+                         ObjectStoreInfo* aObjectStoreInfo);
+
 private:
   IDBTransaction();
   ~IDBTransaction();
@@ -184,6 +188,8 @@ private:
 
   
   PRUint32 mSavepointCount;
+
+  nsTArray<nsRefPtr<IDBObjectStore> > mCreatedObjectStores;
 
   bool mAborted;
 };
