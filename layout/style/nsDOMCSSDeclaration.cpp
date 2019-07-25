@@ -152,7 +152,7 @@ nsDOMCSSDeclaration::SetCssText(const nsAString& aCssText)
     return result;
   }
 
-  return DeclarationChanged();
+  return SetCSSDeclaration(decl);
 }
 
 NS_IMETHODIMP
@@ -306,7 +306,7 @@ nsDOMCSSDeclaration::ParsePropertyValue(const nsCSSProperty aPropID,
     return result;
   }
 
-  return DeclarationChanged();
+  return SetCSSDeclaration(decl);
 }
 
 nsresult
@@ -325,7 +325,7 @@ nsDOMCSSDeclaration::RemoveProperty(const nsCSSProperty aPropID)
   mozAutoDocConditionalContentUpdateBatch autoUpdate(DocToUpdate(), PR_TRUE);
 
   decl->RemoveProperty(aPropID);
-  return DeclarationChanged();
+  return SetCSSDeclaration(decl);
 }
 
 

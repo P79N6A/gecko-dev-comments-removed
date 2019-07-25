@@ -105,7 +105,7 @@ public:
   
   
   virtual mozilla::css::Declaration* GetCSSDeclaration(PRBool);
-  virtual nsresult DeclarationChanged();
+  virtual nsresult SetCSSDeclaration(mozilla::css::Declaration*);
   virtual nsIDocument* DocToUpdate();
   virtual nsresult GetCSSParsingEnvironment(nsIURI**, nsIURI**, nsIPrincipal**,
                                             mozilla::css::Loader**);

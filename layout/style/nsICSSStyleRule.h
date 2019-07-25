@@ -294,9 +294,8 @@ private:
 
 
 #define NS_ICSS_STYLE_RULE_IID \
-{ 0x86354e96, 0x99a5, 0x4e73, \
- { 0x89, 0xad, 0xe1, 0x7f, 0x77, 0x71, 0xc4, 0x7b } }
-
+{ 0x0512253d, 0xff15, 0x45e7,  \
+  { 0xab, 0xe8, 0xf0, 0x86, 0xdd, 0xb5, 0x67, 0x62 } }
 
 class nsICSSStyleRule : public nsICSSRule {
 public:
@@ -320,7 +319,8 @@ public:
 
 
   virtual already_AddRefed<nsICSSStyleRule>
-    DeclarationChanged(PRBool aHandleContainer) = 0;
+  DeclarationChanged(mozilla::css::Declaration* aDecl,
+                     PRBool aHandleContainer) = 0;
 
   
 
