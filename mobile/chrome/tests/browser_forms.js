@@ -2,23 +2,25 @@ let testURL = chromeRoot + "browser_forms.html";
 messageManager.loadFrameScript(chromeRoot + "remote_forms.js", true);
 
 let newTab = null;
-let isLoading = function() {
-  return !newTab.isLoading() && newTab.browser.currentURI.spec != "about:blank";
-};
 
 function test() {
   
   waitForExplicitFinish();
 
   
-  newTab = Browser.addTab(testURL, true);
-  BrowserUI.closeAutoComplete(true);
+  messageManager.addMessageListener("pageshow", function(aMessage) {
+    if (newTab.browser.currentURI.spec != "about:blank") {
+      messageManager.removeMessageListener(aMessage.name, arguments.callee);
+      setTimeout(onTabLoaded, 0);
+    }
+  });
 
   
-  waitFor(onTabLoaded, isLoading);
+  newTab = Browser.addTab(testURL, true);
 }
 
 function onTabLoaded() {
+  BrowserUI.closeAutoComplete(true);
   testMouseEvents();
 }
 
