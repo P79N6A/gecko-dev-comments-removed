@@ -631,7 +631,18 @@ nsPermissionManager::CommonTestPermission(nsIURI     *aURI,
   nsCAutoString host;
   nsresult rv = GetHost(aURI, host);
   
-  if (NS_FAILED(rv)) return NS_OK;
+  
+  if (NS_FAILED(rv)) {
+    PRBool isFile;
+    rv = aURI->SchemeIs("file", &isFile);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (isFile) {
+      host.AssignLiteral("<file>");
+    }
+    else {
+      return NS_OK;
+    }
+  }
   
   PRInt32 typeIndex = GetTypeIndex(aType, PR_FALSE);
   
@@ -644,6 +655,8 @@ nsPermissionManager::CommonTestPermission(nsIURI     *aURI,
 
   return NS_OK;
 }
+
+
 
 
 
