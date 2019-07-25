@@ -40,12 +40,10 @@
 #define nsDOMUIEvent_h
 
 #include "nsIDOMUIEvent.h"
-#include "nsIDOMNSUIEvent.h"
 #include "nsDOMEvent.h"
 
 class nsDOMUIEvent : public nsDOMEvent,
-                     public nsIDOMUIEvent,
-                     public nsIDOMNSUIEvent
+                     public nsIDOMUIEvent
 {
 public:
   nsDOMUIEvent(nsPresContext* aPresContext, nsGUIEvent* aEvent);
@@ -57,9 +55,6 @@ public:
   NS_DECL_NSIDOMUIEVENT
 
   
-  NS_DECL_NSIDOMNSUIEVENT
-
-  
   NS_IMETHOD DuplicatePrivateData();
   virtual void Serialize(IPC::Message* aMsg, PRBool aSerializeInterfaceType);
   virtual PRBool Deserialize(const IPC::Message* aMsg, void** aIter);
@@ -68,15 +63,23 @@ public:
   NS_FORWARD_TO_NSDOMEVENT
 
   NS_FORWARD_NSIDOMNSEVENT(nsDOMEvent::)
-protected:
 
+protected:
   
   nsIntPoint GetClientPoint();
   nsIntPoint GetScreenPoint();
   nsIntPoint GetLayerPoint();
   nsIntPoint GetPagePoint();
+
   
-protected:
+  virtual nsresult Which(PRUint32* aWhich)
+  {
+    NS_ENSURE_ARG_POINTER(aWhich);
+    
+    *aWhich = 0;
+    return NS_OK;
+  }
+
   nsCOMPtr<nsIDOMWindow> mView;
   PRInt32 mDetail;
   nsIntPoint mClientPoint;

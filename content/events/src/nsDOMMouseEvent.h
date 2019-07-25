@@ -64,8 +64,9 @@ public:
   
   NS_FORWARD_TO_NSDOMUIEVENT
 
+protected:
   
-  NS_IMETHOD GetWhich(PRUint32 *aWhich);
+  virtual nsresult Which(PRUint32* aWhich);
 };
 
 #define NS_FORWARD_TO_NSDOMMOUSEEVENT         \

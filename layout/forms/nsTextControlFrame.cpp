@@ -87,7 +87,6 @@
 #include "nsIDOMEventListener.h"
 #include "nsGUIEvent.h"
 #include "nsIDOMNSEvent.h"
-#include "nsIDOMNSUIEvent.h"
 
 #include "nsIDOMCharacterData.h" 
 #include "nsIDOMNodeList.h" 
