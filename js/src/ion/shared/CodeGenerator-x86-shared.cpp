@@ -838,8 +838,7 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
         static const VMFunction InvokeFunctionInfo = FunctionInfo<pf>(InvokeFunction);
 
         
-        if (unusedStack)
-            masm.addPtr(Imm32(unusedStack), StackPointer);
+        masm.freeStack(unusedStack);
 
         pushArg(StackPointer);          
         pushArg(Imm32(call->nargs()));  
@@ -849,8 +848,7 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
             return false;
 
         
-        if (unusedStack)
-            masm.subPtr(Imm32(unusedStack), StackPointer);
+        masm.reserveStack(unusedStack);
 
         
         masm.jump(&end);
