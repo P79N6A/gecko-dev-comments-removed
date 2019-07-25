@@ -221,6 +221,12 @@ var ContentPopupHelper = {
 
       case "MozBeforeResize":
         popup.left = 0;
+        popup.style.visibility = "hidden";
+
+        
+        
+        
+        popup.firstChild.style.maxWidth = "0px";
         break;
 
       case "resize":
