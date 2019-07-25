@@ -50,7 +50,8 @@ class Test:
         self.slow = False      
         self.allow_oom = False 
         self.valgrind = False  
-        self.error = ''        
+        self.expect_error = '' 
+        self.expect_status = 0 
 
     def copy(self):
         t = Test(self.path)
@@ -58,7 +59,8 @@ class Test:
         t.slow = self.slow
         t.allow_oom = self.allow_oom
         t.valgrind = self.valgrind
-        t.error = self.error
+        t.expect_error = self.expect_error
+        t.expect_status = self.expect_status
         return t
 
     COOKIE = '|jit-test|'
@@ -80,7 +82,12 @@ class Test:
                 if value:
                     value = value.strip()
                     if name == 'error':
-                        test.error = value
+                        test.expect_error = value
+                    elif name == 'exitstatus':
+                        try:
+                            test.expect_status = int(value, 0);
+                        except ValueError:
+                            print("warning: couldn't parse exit status %s"%value)
                     else:
                         print('warning: unrecognized |jit-test| attribute %s'%part)
                 else:
@@ -226,12 +233,12 @@ def run_test(test, lib_dir, shell_args):
         sys.stdout.write('Exit code: %s\n' % code)
     if test.valgrind:
         sys.stdout.write(err)
-    return (check_output(out, err, code, test.allow_oom, test.error), 
+    return (check_output(out, err, code, test),
             out, err, code, timed_out)
 
-def check_output(out, err, rc, allow_oom, expectedError):
-    if expectedError:
-        return expectedError in err
+def check_output(out, err, rc, test):
+    if test.expect_error:
+        return test.expect_error in err
 
     for line in out.split('\n'):
         if line.startswith('Trace stats check failed'):
@@ -241,10 +248,10 @@ def check_output(out, err, rc, allow_oom, expectedError):
         if 'Assertion failed:' in line:
             return False
 
-    if rc != 0:
+    if rc != test.expect_status:
         
         
-        return allow_oom and ': out of memory' in err
+        return test.allow_oom and ': out of memory' in err
 
     return True
 
