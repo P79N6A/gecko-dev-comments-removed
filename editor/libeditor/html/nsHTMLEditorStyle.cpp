@@ -620,19 +620,21 @@ nsresult nsHTMLEditor::ApplyDefaultProperties()
 }
 
 nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode, 
-                                         nsIAtom *aProperty,   
+                                         
+                                         nsIAtom *aProperty,
                                          const nsAString *aAttribute,
-                                         bool aChildrenOnly)
+                                         const bool aChildrenOnly)
 {
   NS_ENSURE_TRUE(aNode, NS_ERROR_NULL_POINTER);
-  if (IsTextNode(aNode)) return NS_OK;
-  nsresult res = NS_OK;
+  if (IsTextNode(aNode)) {
+    return NS_OK;
+  }
+  nsresult res;
 
   
   nsCOMPtr<nsIDOMNode> child, tmp;
   aNode->GetFirstChild(getter_AddRefs(child));
-  while (child)
-  {
+  while (child) {
     
     child->GetNextSibling(getter_AddRefs(tmp));
     res = RemoveStyleInside(child, aProperty, aAttribute);
@@ -641,22 +643,28 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
   }
 
   
-  if ((!aChildrenOnly &&
-        ((aProperty && NodeIsType(aNode, aProperty)) || 
-        (aProperty == nsEditProperty::href && nsHTMLEditUtils::IsLink(aNode)) || 
-        (aProperty == nsEditProperty::name && nsHTMLEditUtils::IsNamedAnchor(aNode)))) || 
-        (!aProperty && NodeIsProperty(aNode)))  
-  {
+  if (
+    (!aChildrenOnly &&
+      (
+        
+        (aProperty && NodeIsType(aNode, aProperty)) ||
+        
+        (aProperty == nsEditProperty::href && nsHTMLEditUtils::IsLink(aNode)) ||
+        
+        (aProperty == nsEditProperty::name && nsHTMLEditUtils::IsNamedAnchor(aNode))
+      )
+    ) ||
+    
+    (!aProperty && NodeIsProperty(aNode))
+  ) {
     
     
-    if (!aAttribute || aAttribute->IsEmpty())
-    {
+    if (!aAttribute || aAttribute->IsEmpty()) {
       NS_NAMED_LITERAL_STRING(styleAttr, "style");
       NS_NAMED_LITERAL_STRING(classAttr, "class");
       bool hasStyleAttr = HasAttr(aNode, &styleAttr);
-      bool hasClassAtrr = HasAttr(aNode, &classAttr);
-      if (aProperty &&
-          (hasStyleAttr || hasClassAtrr)) {
+      bool hasClassAttr = HasAttr(aNode, &classAttr);
+      if (aProperty && (hasStyleAttr || hasClassAttr)) {
         
         
         
@@ -669,8 +677,7 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
         NS_ENSURE_SUCCESS(res, res);
         res = CloneAttribute(classAttr, spanNode, aNode);
         NS_ENSURE_SUCCESS(res, res);
-        if (hasStyleAttr)
-        {
+        if (hasStyleAttr) {
           
           
           nsAutoString propertyValue;
@@ -684,59 +691,52 @@ nsresult nsHTMLEditor::RemoveStyleInside(nsIDOMNode *aNode,
         }
       }
       res = RemoveContainer(aNode);
-    }
-    
-    else
-    {
-      if (HasAttr(aNode, aAttribute))
-      {
+      NS_ENSURE_SUCCESS(res, res);
+    } else {
+      
+      if (HasAttr(aNode, aAttribute)) {
         
         
-        if (IsOnlyAttribute(aNode, aAttribute))
-        {
+        if (IsOnlyAttribute(aNode, aAttribute)) {
           res = RemoveContainer(aNode);
-        }
-        else
-        {
+        } else {
           nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(aNode);
           NS_ENSURE_TRUE(elem, NS_ERROR_NULL_POINTER);
           res = RemoveAttribute(elem, *aAttribute);
         }
+        NS_ENSURE_SUCCESS(res, res);
       }
     }
-  }
-  else {
-    if (!aChildrenOnly && IsCSSEnabled() &&
-        mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) {
+  } else if (!aChildrenOnly && IsCSSEnabled() &&
+             mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) {
+    
+    
+    
+    nsAutoString propertyValue;
+    bool isSet;
+    mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(aNode, aProperty, aAttribute,
+                                                       isSet, propertyValue,
+                                                       SPECIFIED_STYLE_TYPE);
+    if (isSet) {
       
       
-      nsAutoString propertyValue;
-      bool isSet;
-      mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(aNode, aProperty, aAttribute,
-                                                         isSet, propertyValue,
-                                                         SPECIFIED_STYLE_TYPE);
-      if (isSet) {
-        
-        
-        mHTMLCSSUtils->RemoveCSSEquivalentToHTMLStyle(aNode,
-                                                      aProperty,
-                                                      aAttribute,
-                                                      &propertyValue,
-                                                      false);
-        
-        
-        RemoveElementIfNoStyleOrIdOrClass(aNode);
-        res = NS_OK;
-      }
+      mHTMLCSSUtils->RemoveCSSEquivalentToHTMLStyle(aNode,
+                                                    aProperty,
+                                                    aAttribute,
+                                                    &propertyValue,
+                                                    false);
+      
+      
+      RemoveElementIfNoStyleOrIdOrClass(aNode);
     }
-  }  
-  if ( aProperty == nsEditProperty::font &&    
-       (nsHTMLEditUtils::IsBig(aNode) || nsHTMLEditUtils::IsSmall(aNode)) &&
-       aAttribute && aAttribute->LowerCaseEqualsLiteral("size"))       
-  {
-    res = RemoveContainer(aNode);  
   }
-  return res;
+
+  if (aProperty == nsEditProperty::font &&    
+      (nsHTMLEditUtils::IsBig(aNode) || nsHTMLEditUtils::IsSmall(aNode)) &&
+      aAttribute && aAttribute->LowerCaseEqualsLiteral("size")) {
+    return RemoveContainer(aNode);  
+  }
+  return NS_OK;
 }
 
 bool nsHTMLEditor::IsOnlyAttribute(nsIDOMNode *aNode, 
