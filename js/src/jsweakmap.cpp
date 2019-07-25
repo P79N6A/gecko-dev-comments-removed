@@ -121,16 +121,14 @@ GetKeyArg(JSContext *cx, CallArgs &args)
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_NONNULL_OBJECT);
         return NULL;
     }
-    JSObject *key = &vp->toObject();
-    if (!key)
-        return NULL;
+    JSObject &key = vp->toObject();
 
     
     
     
     
     
-    return JS_UnwrapObject(key);
+    return JS_UnwrapObject(&key);
 }
 
 static JSBool
