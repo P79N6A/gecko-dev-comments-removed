@@ -91,7 +91,7 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
 
 
 
-  protected boolean shouldIgnore(Record record) {
+  public boolean shouldIgnore(Record record) {
     return false;
   }
 

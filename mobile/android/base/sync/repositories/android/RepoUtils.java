@@ -125,6 +125,45 @@ public class RepoUtils {
 
 
 
+  public static boolean isValidHistoryURI(String uri) {
+    if (uri == null || uri.length() == 0) {
+      return false;
+    }
+
+    
+    if (uri.startsWith("http:") || uri.startsWith("https:")) {
+      return true;
+    }
+
+    String scheme = Uri.parse(uri).getScheme();
+    if (scheme == null) {
+      return false;
+    }
+
+    
+    if (scheme.equals("about") ||
+        scheme.equals("imap") ||
+        scheme.equals("news") ||
+        scheme.equals("mailbox") ||
+        scheme.equals("moz-anno") ||
+        scheme.equals("view-source") ||
+        scheme.equals("chrome") ||
+        scheme.equals("resource") ||
+        scheme.equals("data") ||
+        scheme.equals("wyciwyg") ||
+        scheme.equals("javascript")) {
+      return false;
+    }
+
+    return true;
+  }
+
+  
+
+
+
+
+
   public static HistoryRecord historyFromMirrorCursor(Cursor cur) {
     final String guid = getStringFromCursor(cur, BrowserContract.SyncColumns.GUID);
     if (guid == null) {
@@ -133,8 +172,8 @@ public class RepoUtils {
     }
 
     final String historyURI = getStringFromCursor(cur, BrowserContract.History.URL);
-    if (historyURI == null || (historyURI.length() == 0)) {
-      Logger.debug(LOG_TAG, "Skipping history record " + guid + " with null or empty URI.");
+    if (!isValidHistoryURI(historyURI)) {
+      Logger.debug(LOG_TAG, "Skipping history record " + guid + " with unwanted/invalid URI " + historyURI);
       return null;
     }
 
