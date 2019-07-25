@@ -621,8 +621,7 @@ abstract public class BrowserApp extends GeckoApp
                                tab.getContentType().equals("application/vnd.mozilla.xul+xml")));
 
         
-        if (!tab.getURL().equals("about:home"))
-            findInPage.setEnabled(true);
+        findInPage.setEnabled(!tab.getURL().equals("about:home"));
 
         charEncoding.setVisible(GeckoPreferences.getCharEncodingState());
 
