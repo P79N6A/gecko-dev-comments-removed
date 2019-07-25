@@ -40,6 +40,7 @@
 
 
 #include "jscntxt.h"
+#include "jsfriendapi.h"
 
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsJSNPRuntime.h"
