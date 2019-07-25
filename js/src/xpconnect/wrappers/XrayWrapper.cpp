@@ -175,13 +175,26 @@ EnsureExpandoObject(JSContext *cx, JSObject *holder)
     return expando;
 }
 
+static inline JSObject *
+FindWrapper(JSObject *wrapper)
+{
+    while (!wrapper->isWrapper() ||
+           !(JSWrapper::wrapperHandler(wrapper)->flags() & WrapperFactory::IS_XRAY_WRAPPER_FLAG)) {
+        wrapper = wrapper->getProto();
+        
+    }
+
+    return wrapper;
+}
+
 
 
 
 static JSBool
 holder_get(JSContext *cx, JSObject *wrapper, jsid id, jsval *vp)
 {
-    NS_ASSERTION(wrapper->isProxy(), "bad this object in get");
+    wrapper = FindWrapper(wrapper);
+
     JSObject *holder = GetHolder(wrapper);
 
     JSObject *wnObject = GetWrappedNativeObjectFromHolder(cx, holder);
@@ -204,7 +217,8 @@ holder_get(JSContext *cx, JSObject *wrapper, jsid id, jsval *vp)
 static JSBool
 holder_set(JSContext *cx, JSObject *wrapper, jsid id, JSBool strict, jsval *vp)
 {
-    NS_ASSERTION(wrapper->isProxy(), "bad this object in set");
+    wrapper = FindWrapper(wrapper);
+
     JSObject *holder = GetHolder(wrapper);
     if (IsResolving(holder, id)) {
         return true;
