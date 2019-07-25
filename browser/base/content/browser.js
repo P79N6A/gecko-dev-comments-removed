@@ -1670,8 +1670,19 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   
   
   window.addEventListener("fullscreen", onFullScreen, true);
+
+  
+  
+  window.addEventListener("mozfullscreenchange", onMozFullScreenChange, true);
+
+  
+  
+  window.addEventListener("MozShowFullScreenWarning", onShowFullScreenWarning, true);
+
   if (window.fullScreen)
     onFullScreen();
+  if (document.mozFullScreen)
+    onMozFullScreenChange();
 
 #ifdef MOZ_SERVICES_SYNC
   
@@ -2839,6 +2850,14 @@ function onFullScreen(event) {
   FullScreen.toggle(event);
 }
 
+function onMozFullScreenChange(event) {
+  FullScreen.enterDomFullScreen(event);
+}
+
+function onShowFullScreenWarning(event) {
+  FullScreen.showWarning(false);
+}
+
 function getWebNavigation()
 {
   try {
@@ -3831,16 +3850,18 @@ var FullScreen = {
       
       
       
-      let fullScrToggler = document.getElementById("fullscr-toggler");
-      if (!fullScrToggler) {
-        fullScrToggler = document.createElement("hbox");
-        fullScrToggler.id = "fullscr-toggler";
-        fullScrToggler.collapsed = true;
-        gNavToolbox.parentNode.insertBefore(fullScrToggler, gNavToolbox.nextSibling);
+      
+      if (!document.mozFullScreen) {
+        let fullScrToggler = document.getElementById("fullscr-toggler");
+        if (!fullScrToggler) {
+          fullScrToggler = document.createElement("hbox");
+          fullScrToggler.id = "fullscr-toggler";
+          fullScrToggler.collapsed = true;
+          gNavToolbox.parentNode.insertBefore(fullScrToggler, gNavToolbox.nextSibling);
+        }
+        fullScrToggler.addEventListener("mouseover", this._expandCallback, false);
+        fullScrToggler.addEventListener("dragenter", this._expandCallback, false);
       }
-      fullScrToggler.addEventListener("mouseover", this._expandCallback, false);
-      fullScrToggler.addEventListener("dragenter", this._expandCallback, false);
-
       if (gPrefService.getBoolPref("browser.fullscreen.autohide"))
         gBrowser.mPanelContainer.addEventListener("mousemove",
                                                   this._collapseCallback, false);
@@ -3848,7 +3869,10 @@ var FullScreen = {
       document.addEventListener("keypress", this._keyToggleCallback, false);
       document.addEventListener("popupshown", this._setPopupOpen, false);
       document.addEventListener("popuphidden", this._setPopupOpen, false);
-      this._shouldAnimate = true;
+      
+      
+      
+      this._shouldAnimate = !document.mozFullScreen;
       this.mouseoverToggle(false);
 
       
@@ -3869,6 +3893,29 @@ var FullScreen = {
     }
   },
 
+  enterDomFullScreen : function(event) {
+    if (!document.mozFullScreen) {
+      return;
+    }
+    this.showWarning(true);
+
+    
+    
+    clearInterval(this._animationInterval);
+    clearTimeout(this._animationTimeout);
+    this._isAnimating = false;
+    this._shouldAnimate = false;
+    this.mouseoverToggle(false);
+
+    
+    
+    let fullScrToggler = document.getElementById("fullscr-toggler");
+    if (fullScrToggler) {
+      fullScrToggler.removeEventListener("mouseover", this._expandCallback, false);
+      fullScrToggler.removeEventListener("dragenter", this._expandCallback, false);
+    }
+  },
+
   cleanup: function () {
     if (window.fullScreen) {
       gBrowser.mPanelContainer.removeEventListener("mousemove",
@@ -3883,6 +3930,7 @@ var FullScreen = {
         fullScrToggler.removeEventListener("mouseover", this._expandCallback, false);
         fullScrToggler.removeEventListener("dragenter", this._expandCallback, false);
       }
+      this.cancelWarning();
     }
   },
 
@@ -4003,6 +4051,84 @@ var FullScreen = {
     FullScreen._animationInterval = setInterval(animateUpFrame, 70);
   },
 
+  cancelWarning: function(event) {
+    if (!this.warningBox) {
+      return;
+    }
+    if (this.onWarningHidden) {
+      this.warningBox.removeEventListener("transitionend", this.onWarningHidden, false);
+      this.onWarningHidden = null;
+    }
+    if (this.warningFadeOutTimeout) {
+      clearTimeout(this.warningFadeOutTimeout);
+      this.warningFadeOutTimeout = null;
+    }
+    if (this.revealBrowserTimeout) {
+      clearTimeout(this.revealBrowserTimeout);
+      this.revealBrowserTimeout = null;
+    }
+    this.warningBox.removeAttribute("fade-warning-out");
+    this.warningBox.removeAttribute("stop-obscuring-browser");
+    this.warningBox.removeAttribute("obscure-browser");
+    this.warningBox.setAttribute("hidden", true);
+    this.warningBox = null;
+  },
+
+  warningBox: null,
+  warningFadeOutTimeout: null,
+  revealBrowserTimeout: null,  
+  onWarningHidden: null,
+
+  
+  
+  showWarning: function(obscureBackground) {
+    if (!document.mozFullScreen || !gPrefService.getBoolPref("full-screen-api.warning.enabled")) {
+      return;
+    }
+    if (this.warningBox) {
+      
+      
+      if (this.warningFadeOutTimeout) {
+        clearTimeout(this.warningFadeOutTimeout);
+        this.warningFadeOutTimeout = null;
+      }
+    } else {
+      this.warningBox = document.getElementById("full-screen-warning-container");
+      
+      this.onWarningHidden =
+        function(event) {
+          if (event.propertyName != "opacity")
+            return;
+          this.cancelWarning();
+        }.bind(this);
+      this.warningBox.addEventListener("transitionend", this.onWarningHidden, false);
+      this.warningBox.removeAttribute("hidden");
+    }
+
+    if (obscureBackground) {
+      
+      this.warningBox.setAttribute("obscure-browser", "true");
+      
+      this.warningBox.removeAttribute("stop-obscuring-browser");
+      this.revealBrowserTimeout =
+        setTimeout(
+          function() {
+            if (this.warningBox)
+              this.warningBox.setAttribute("stop-obscuring-browser", "true");
+          }.bind(this),
+          1250);
+    }
+
+    
+    this.warningFadeOutTimeout =
+      setTimeout(
+        function() {
+          if (this.warningBox)
+            this.warningBox.setAttribute("fade-warning-out", "true");
+        }.bind(this),
+        3000);
+  },
+
   mouseoverToggle: function(aShow, forceHide)
   {
     
@@ -4042,7 +4168,10 @@ var FullScreen = {
     gNavToolbox.style.marginTop =
       aShow ? "" : -gNavToolbox.getBoundingClientRect().height + "px";
 
-    document.getElementById("fullscr-toggler").collapsed = aShow;
+    let toggler = document.getElementById("fullscr-toggler");
+    if (toggler) {
+      toggler.collapsed = aShow;
+    }
     this._isChromeCollapsed = !aShow;
     if (gPrefService.getIntPref("browser.fullscreen.animateUp") == 2)
       this._shouldAnimate = true;
