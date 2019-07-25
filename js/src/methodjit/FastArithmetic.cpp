@@ -978,7 +978,7 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
     }
 
     if (target) {
-        Value rval = UndefinedValue();  
+        Value rval;
         bool rhsConst = false;
         if (rhs->isConstant()) {
             rhsConst = true;
@@ -1000,7 +1000,7 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
 
         frame.pop();
         frame.pop();
-        frame.discardFrame();
+        frame.throwaway();
 
         
         Label stubCall = stubcc.masm.label();
@@ -1286,7 +1286,7 @@ mjit::Compiler::jsop_relational_double(JSOp op, BoolStub stub, jsbytecode *targe
         stubcc.call(stub);
 
         frame.popn(2);
-        frame.syncAndForgetEverything();
+        frame.forgetEverything();
 
         Jump j = masm.branchDouble(dblCond, fpLeft, fpRight);
 
@@ -1453,12 +1453,7 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
             frame.pinReg(reg.reg());
         
         frame.popn(2);
-
-        frame.syncAndKillEverything();
-        frame.unpinKilledReg(cmpReg);
-        if (reg.isSet())
-            frame.unpinKilledReg(reg.reg());
-        frame.syncAndForgetEverything();
+        frame.forgetEverything();
         
         
         Assembler::Condition i32Cond;
