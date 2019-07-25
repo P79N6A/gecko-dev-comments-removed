@@ -55,6 +55,35 @@ private:
   static bool DispatchEvent(nsWindow* aWindow, nsGUIEvent& aEvent);
 
 public:
+
+  class EventInfo;
+  
+
+
+
+
+
+
+
+  struct ScrollTargetInfo {
+    
+    bool dispatchPixelScrollEvent;
+    
+    
+    bool reversePixelScrollDirection;
+    
+    PRInt32 actualScrollAmount;
+    
+    
+    PRInt32 actualScrollAction;
+    
+    PRInt32 pixelsPerUnit;
+  };
+  ScrollTargetInfo GetScrollTargetInfo(
+                     nsWindow* aWindow,
+                     const EventInfo& aEvent,
+                     const nsModifierKeyState& aModiferKeyState);
+
   class EventInfo {
   public:
     

@@ -6315,69 +6315,20 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
 
   
   
-  bool dispatchPixelScrollEvent = false;
-  bool reversePixelScrollDirection = false;
-  PRInt32 actualScrollAction = nsQueryContentEvent::SCROLL_ACTION_NONE;
-  PRInt32 pixelsPerUnit = 0;
+  MouseScrollHandler::ScrollTargetInfo scrollTargetInfo =
+    handler->GetScrollTargetInfo(this, eventInfo, modKeyState);
+
   
-  PRInt32 computedScrollAmount = eventInfo.GetScrollAmount();
-
-  if (MouseScrollHandler::GetInstance()->
-        GetUserPrefs().IsPixelScrollingEnabled()) {
-    nsMouseScrollEvent testEvent(true, NS_MOUSE_SCROLL, this);
-    InitEvent(testEvent);
-    testEvent.scrollFlags = eventInfo.GetScrollFlags();
-    testEvent.isShift     = scrollEvent.isShift;
-    testEvent.isControl   = scrollEvent.isControl;
-    testEvent.isMeta      = scrollEvent.isMeta;
-    testEvent.isAlt       = scrollEvent.isAlt;
-
-    testEvent.delta       = computedScrollAmount;
-    if ((eventInfo.IsVertical() && eventInfo.IsPositive()) ||
-        (!eventInfo.IsVertical() && !eventInfo.IsPositive())) {
-      testEvent.delta *= -1;
-    }
-    nsQueryContentEvent queryEvent(true, NS_QUERY_SCROLL_TARGET_INFO, this);
-    InitEvent(queryEvent);
-    queryEvent.InitForQueryScrollTargetInfo(&testEvent);
-    DispatchWindowEvent(&queryEvent);
-    
-    
-    if (queryEvent.mSucceeded) {
-      actualScrollAction = queryEvent.mReply.mComputedScrollAction;
-      if (actualScrollAction == nsQueryContentEvent::SCROLL_ACTION_PAGE) {
-        if (eventInfo.IsVertical()) {
-          pixelsPerUnit = queryEvent.mReply.mPageHeight;
-        } else {
-          pixelsPerUnit = queryEvent.mReply.mPageWidth;
-        }
-      } else {
-        pixelsPerUnit = queryEvent.mReply.mLineHeight;
-      }
-      computedScrollAmount = queryEvent.mReply.mComputedScrollAmount;
-      if (pixelsPerUnit > 0 && computedScrollAmount != 0 &&
-          actualScrollAction != nsQueryContentEvent::SCROLL_ACTION_NONE) {
-        dispatchPixelScrollEvent = true;
-        
-        
-        reversePixelScrollDirection =
-          (testEvent.delta > 0 && computedScrollAmount < 0) ||
-          (testEvent.delta < 0 && computedScrollAmount > 0);
-        
-        computedScrollAmount = NS_ABS(computedScrollAmount);
-      }
-    }
+  
+  scrollEvent.scrollFlags = eventInfo.GetScrollFlags();
+  if (scrollTargetInfo.dispatchPixelScrollEvent) {
+    scrollEvent.scrollFlags |= nsMouseScrollEvent::kHasPixels;
   }
-
-  
-  
-  scrollEvent.scrollFlags =
-    dispatchPixelScrollEvent ? nsMouseScrollEvent::kHasPixels : 0;
-  scrollEvent.scrollFlags |= eventInfo.GetScrollFlags();
 
   PRInt32 nativeDeltaForScroll =
     eventInfo.GetNativeDelta() + lastEventInfo.mRemainingDeltaForScroll;
 
+  
   
   
   if (eventInfo.IsPage()) {
@@ -6406,7 +6357,7 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   }
 
   
-  if (!dispatchPixelScrollEvent) {
+  if (!scrollTargetInfo.dispatchPixelScrollEvent) {
     lastEventInfo.mRemainingDeltaForPixel = 0;
     return;
   }
@@ -6416,7 +6367,8 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   pixelEvent.scrollFlags = nsMouseScrollEvent::kAllowSmoothScroll;
   pixelEvent.scrollFlags |= eventInfo.IsVertical() ?
     nsMouseScrollEvent::kIsVertical : nsMouseScrollEvent::kIsHorizontal;
-  if (actualScrollAction == nsQueryContentEvent::SCROLL_ACTION_PAGE) {
+  if (scrollTargetInfo.actualScrollAction ==
+        nsQueryContentEvent::SCROLL_ACTION_PAGE) {
     pixelEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
   }
   
@@ -6429,10 +6381,12 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
     eventInfo.GetNativeDelta() + lastEventInfo.mRemainingDeltaForPixel;
   
   
-  PRInt32 orienterForPixel = reversePixelScrollDirection ? -orienter : orienter;
+  PRInt32 orienterForPixel =
+    scrollTargetInfo.reversePixelScrollDirection ? -orienter : orienter;
 
   double deltaPerPixel =
-    (double)WHEEL_DELTA / computedScrollAmount / pixelsPerUnit;
+    (double)WHEEL_DELTA / scrollTargetInfo.actualScrollAmount /
+      scrollTargetInfo.pixelsPerUnit;
   pixelEvent.delta =
     RoundDelta((double)nativeDeltaForPixel * orienterForPixel / deltaPerPixel);
   PRInt32 recomputedNativeDelta =
