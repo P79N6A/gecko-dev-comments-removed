@@ -34,14 +34,14 @@
 
 
 
-#ifndef nsScriptableHTMLUnescape_h__
-#define nsScriptableHTMLUnescape_h__
+#ifndef nsParserUtils_h_
+#define nsParserUtils_h_
 
 #include "nsIScriptableUnescapeHTML.h"
 #include "nsIParserUtils.h"
 
-class nsScriptableUnescapeHTML : public nsIScriptableUnescapeHTML,
-                                 public nsIParserUtils
+class nsParserUtils : public nsIScriptableUnescapeHTML,
+                               public nsIParserUtils
 {
 public:
   NS_DECL_ISUPPORTS
