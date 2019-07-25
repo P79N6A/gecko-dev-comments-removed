@@ -11,7 +11,7 @@
 #include "SkColorPriv.h"
 #include "SkUtils.h"
 
-#if __ARM_ARCH__ >= 6 && !defined(SK_CPU_BENDIAN)
+#if SK_ARM_ARCH >= 6 && !defined(SK_CPU_BENDIAN)
 void SI8_D16_nofilter_DX_arm(
     const SkBitmapProcState& s,
     const uint32_t* SK_RESTRICT xy,
@@ -200,7 +200,7 @@ void SkBitmapProcState::platformProcs() {
 
     switch (fBitmap->config()) {
         case SkBitmap::kIndex8_Config:
-#if __ARM_ARCH__ >= 6 && !defined(SK_CPU_BENDIAN)
+#if SK_ARM_ARCH >= 6 && !defined(SK_CPU_BENDIAN)
             if (justDx && !doFilter) {
 #if 0   
                 fSampleProc16 = SI8_D16_nofilter_DX_arm;
