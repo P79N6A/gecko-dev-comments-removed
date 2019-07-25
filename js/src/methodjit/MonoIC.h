@@ -43,8 +43,10 @@
 
 #include "assembler/assembler/MacroAssembler.h"
 #include "assembler/assembler/CodeLocation.h"
+#include "assembler/moco/MocoStubs.h"
 #include "methodjit/MethodJIT.h"
 #include "CodeGenIncludes.h"
+#include "methodjit/ICRepatcher.h"
 
 namespace js {
 namespace mjit {
@@ -90,53 +92,54 @@ class FrameSize
 
 namespace ic {
 
-struct MICInfo {
-#ifdef JS_CPU_X86
-    static const uint32 GET_DATA_OFFSET = 6;
-    static const uint32 GET_TYPE_OFFSET = 12;
+struct GlobalNameIC
+{
+    typedef JSC::MacroAssembler::RegisterID RegisterID;
 
-    static const uint32 SET_TYPE_OFFSET = 6;
-    static const uint32 SET_DATA_CONST_TYPE_OFFSET = 16;
-    static const uint32 SET_DATA_TYPE_OFFSET = 12;
-#elif JS_CPU_X64 || JS_CPU_ARM
-    
-    
-#endif
-
-    enum Kind
-#ifdef _MSC_VER
-    : uint8_t
-#endif
-    {
-        GET,
-        SET
-    };
-
-    
-    JSC::CodeLocationLabel entry;
-    JSC::CodeLocationLabel stubEntry;
+    JSC::CodeLocationLabel  fastPathStart;
+    JSC::CodeLocationCall   slowPathCall;
 
     
 
-    
-    JSC::CodeLocationLabel load;
-    JSC::CodeLocationDataLabel32 shape;
-    JSC::CodeLocationCall stubCall;
-#if defined JS_PUNBOX64
-    uint32 patchValueOffset;
-#endif
+
+
+
+
+
+
+
+    int32 loadStoreOffset   : 15;
+    int32 shapeOffset       : 15;
+    bool usePropertyCache   : 1;
+};
+
+struct GetGlobalNameIC : public GlobalNameIC
+{
+};
+
+struct SetGlobalNameIC : public GlobalNameIC
+{
+    JSC::CodeLocationLabel  slowPathStart;
 
     
-    Kind kind : 3;
-    union {
-        
-        struct {
-            bool touched : 1;
-            bool typeConst : 1;
-            bool dataConst : 1;
-            bool usePropertyCache : 1;
-        } name;
-    } u;
+    JSC::JITCode            extraStub;
+
+    
+    int inlineShapeJump : 10;   
+    int extraShapeGuard : 6;    
+    bool objConst : 1;          
+    RegisterID objReg   : 5;    
+    RegisterID shapeReg : 5;    
+    bool hasExtraStub : 1;      
+
+    int fastRejoinOffset : 16;  
+    int extraStoreOffset : 16;  
+
+    
+    ValueRemat vr;              
+
+    void patchInlineShapeGuard(Repatcher &repatcher, int32 shape);
+    void patchExtraShapeGuard(Repatcher &repatcher, int32 shape);
 };
 
 struct TraceICInfo {
@@ -154,14 +157,17 @@ struct TraceICInfo {
     
     void *traceData;
     uintN traceEpoch;
+    uint32 loopCounter;
+    uint32 loopCounterStart;
 
+    bool initialized : 1;
     bool hasSlowTraceHint : 1;
 };
 
 static const uint16 BAD_TRACEIC_INDEX = (uint16)0xffff;
 
-void JS_FASTCALL GetGlobalName(VMFrame &f, ic::MICInfo *ic);
-void JS_FASTCALL SetGlobalName(VMFrame &f, ic::MICInfo *ic);
+void JS_FASTCALL GetGlobalName(VMFrame &f, ic::GetGlobalNameIC *ic);
+void JS_FASTCALL SetGlobalName(VMFrame &f, ic::SetGlobalNameIC *ic);
 
 struct EqualityICInfo {
     typedef JSC::MacroAssembler::RegisterID RegisterID;
@@ -244,6 +250,10 @@ struct CallICInfo {
     RegisterID funPtrReg : 5;
     bool hit : 1;
     bool hasJsFunCheck : 1;
+    bool typeMonitored : 1;
+
+    
+    types::jstype *argTypes;
 
     inline void reset() {
         fastGuardedObject = NULL;
@@ -257,6 +267,10 @@ struct CallICInfo {
         releasePool(Pool_ScriptStub);
         releasePool(Pool_ClosureStub);
         releasePool(Pool_NativeStub);
+        if (argTypes) {
+            js_free(argTypes);
+            argTypes = NULL;
+        }
     }
 
     inline void releasePool(PoolIndex index) {
@@ -282,7 +296,7 @@ void JS_FASTCALL NativeCall(VMFrame &f, ic::CallICInfo *ic);
 JSBool JS_FASTCALL SplatApplyArgs(VMFrame &f);
 
 void PurgeMICs(JSContext *cx, JSScript *script);
-void SweepCallICs(JSScript *script, bool purgeAll);
+void SweepCallICs(JSContext *cx, JSScript *script, bool purgeAll);
 
 } 
 } 

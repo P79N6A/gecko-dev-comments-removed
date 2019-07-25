@@ -460,9 +460,9 @@ mjit::Compiler::generatePrologue()
 
 
             arityLabel = stubcc.masm.label();
+
             Jump argMatch = stubcc.masm.branch32(Assembler::Equal, JSParamReg_Argc,
                                                  Imm32(fun->nargs));
-            stubcc.crossJump(argMatch, fastPath);
 
             if (JSParamReg_Argc != Registers::ArgReg1)
                 stubcc.masm.move(JSParamReg_Argc, Registers::ArgReg1);
@@ -472,6 +472,26 @@ mjit::Compiler::generatePrologue()
             stubcc.masm.storePtr(JSFrameReg, FrameAddress(offsetof(VMFrame, regs.fp)));
             OOL_STUBCALL(stubs::FixupArity);
             stubcc.masm.move(Registers::ReturnReg, JSFrameReg);
+            argMatch.linkTo(stubcc.masm.label(), &stubcc.masm);
+
+            if (cx->typeInferenceEnabled()) {
+                
+                bool emitCall = false;
+                if (!isConstructing && !script->thisTypes()->unknown())
+                    emitCall = true;
+                for (unsigned i = 0; i < fun->nargs; i++) {
+                    if (!isConstructing && !script->argTypes(i)->unknown())
+                        emitCall = true;
+                }
+                if (emitCall) {
+                    stubcc.masm.storePtr(ImmPtr(fun), Address(JSFrameReg, JSStackFrame::offsetOfExec()));
+                    OOL_STUBCALL(stubs::ClearArgumentTypes);
+                } else if (recompiling) {
+                    stubcc.crossJump(stubcc.masm.jump(), fastPath);
+                    OOL_STUBCALL(stubs::ClearArgumentTypes);
+                }
+            }
+
             stubcc.crossJump(stubcc.masm.jump(), fastPath);
         }
 
@@ -752,6 +772,8 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
         jitCallICs[i].funGuard = fullCode.locationOf(callICs[i].funGuard);
         jitCallICs[i].funJump = fullCode.locationOf(callICs[i].funJump);
         jitCallICs[i].slowPathStart = stubCode.locationOf(callICs[i].slowPathStart);
+        jitCallICs[i].typeMonitored = callICs[i].typeMonitored;
+        jitCallICs[i].argTypes = callICs[i].argTypes;
 
         
         uint32 offset = fullCode.locationOf(callICs[i].hotJump) -
@@ -2811,15 +2833,14 @@ mjit::Compiler::checkCallApplySpeculation(uint32 callImmArgc, uint32 speculatedA
         notCompiled.linkTo(stubcc.masm.label(), &stubcc.masm);
 
         
-        JS_ASSERT(knownPushedType(0) != JSVAL_TYPE_DOUBLE);
-
-        
 
 
 
 
         JaegerSpew(JSpew_Insns, " ---- BEGIN SLOW RESTORE CODE ---- \n");
         Address rval = frame.addressOf(origCallee);  
+        if (knownPushedType(0) == JSVAL_TYPE_DOUBLE)
+            stubcc.masm.ensureInMemoryDouble(rval);
         stubcc.masm.loadValueAsComponents(rval, JSReturnReg_Type, JSReturnReg_Data);
         *uncachedCallSlowRejoin = stubcc.masm.jump();
         JaegerSpew(JSpew_Insns, " ---- END SLOW RESTORE CODE ---- \n");
@@ -2840,26 +2861,16 @@ mjit::Compiler::checkCallApplySpeculation(uint32 callImmArgc, uint32 speculatedA
 bool
 mjit::Compiler::canUseApplyTricks()
 {
-    if (cx->typeInferenceEnabled()) {
-        
-
-
-
-
-        return false;
-    }
-
     JS_ASSERT(*PC == JSOP_ARGUMENTS);
     jsbytecode *nextpc = PC + JSOP_ARGUMENTS_LENGTH;
     return *nextpc == JSOP_FUNAPPLY &&
-           !cx->typeInferenceEnabled()  && 
            IsLowerableFunCallOrApply(nextpc) &&
            !analysis->jumpTarget(nextpc) &&
            !debugMode();
 }
 
 
-void
+bool
 mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
 {
     
@@ -2887,14 +2898,14 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
 
 
 
-    bool lowerFunCallOrApply = !cx->typeInferenceEnabled()  && IsLowerableFunCallOrApply(PC);
+    bool lowerFunCallOrApply = IsLowerableFunCallOrApply(PC);
 
     
 
 
 
 #ifdef JS_MONOIC
-    if (debugMode() || monitored(PC) ||
+    if (debugMode() ||
         origCallee->isConstant() || origCallee->isNotType(JSVAL_TYPE_OBJECT) ||
         (lowerFunCallOrApply &&
          (origThis->isConstant() || origThis->isNotType(JSVAL_TYPE_OBJECT)))) {
@@ -2905,7 +2916,8 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
             frame.pushSynced(JSVAL_TYPE_UNKNOWN, NULL);
         }
         emitUncachedCall(callImmArgc, callingNew);
-        return;
+        applyTricks = NoApplyTricks;
+        return true;
 #ifdef JS_MONOIC
     }
 
@@ -2985,6 +2997,20 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
             icCalleeData = origCalleeData;
             icRvalAddr = frame.addressOf(origCallee);
             callIC.frameSize.initStatic(frame.localSlots(), speculatedArgc);
+        }
+    }
+
+    callIC.argTypes = NULL;
+    callIC.typeMonitored = monitored(PC);
+    if (callIC.typeMonitored && callIC.frameSize.isStatic()) {
+        callIC.argTypes = (types::jstype *) js_calloc((1 + callImmArgc) * sizeof(types::jstype));
+        if (!callIC.argTypes)
+            return false;
+        types::TypeSet *types = origThis->getTypeSet();
+        callIC.argTypes[0] = types ? types->getSingleType(cx, script) : types::TYPE_UNKNOWN;
+        for (unsigned i = 0; i < callImmArgc; i++) {
+            types::TypeSet *types = frame.peek(-(callImmArgc - i))->getTypeSet();
+            callIC.argTypes[i + 1] = types ? types->getSingleType(cx, script) : types::TYPE_UNKNOWN;
         }
     }
 
@@ -3172,6 +3198,8 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
         callPatches.append(uncachedCallPatch);
 
     applyTricks = NoApplyTricks;
+
+    return true;
 #endif
 }
 
