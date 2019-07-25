@@ -816,6 +816,11 @@ pref("network.websocket.extensions.stream-deflate", true);
 
 
 
+pref("network.websocket.max-connections", 200);
+
+
+
+
 
 pref("dom.server-events.enabled", true);
 
