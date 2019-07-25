@@ -509,16 +509,16 @@ WeaveSvc.prototype = {
     DAV.baseURL = Utils.prefs.getCharPref("serverURL");
     DAV.defaultPrefix = "user/" + username;
 
-    DAV.checkLogin.async(DAV, self.cb, username, password);
-    let resultMsg = yield;
+    this._log.info("Using server URL: " + DAV.baseURL + DAV.defaultPrefix);
 
-    
-    
-    if (resultMsg) {
-      this._log.debug("Login verification: " + resultMsg);
-      throw resultMsg;
+    let status = yield DAV.checkLogin.async(DAV, self.cb, username, password);
+    if (status == 404) {
+      
+      
+      yield this._checkUserDir.async(this, self.cb);
+      status = yield DAV.checkLogin.async(DAV, self.cb, username, password);
     }
-
+    Utils.ensureStatus(status, "Login verification failed");
   },
 
   login: function WeaveSync_login(onComplete) {
@@ -539,15 +539,12 @@ WeaveSvc.prototype = {
 
     this._log.info("Using server URL: " + DAV.baseURL + DAV.defaultPrefix);
 
-    this._versionCheck.async(this, self.cb);
-    yield;
-    this._getKeypair.async(this, self.cb);
-    yield;
-
-    this._loggedIn = true;
+    yield this._versionCheck.async(this, self.cb);
+    yield this._getKeypair.async(this, self.cb);
 
     this._setSchedule(this.schedule);
 
+    this._loggedIn = true;
     self.done(true);
   },
 
