@@ -3571,10 +3571,9 @@ CancelExecution(JSRuntime *rt)
 #ifdef JS_THREADSAFE
     if (gWorkers) {
         JSContext *cx = JS_NewContext(rt, 8192);
-        if (cx) {
+        if (cx)
             js::workers::terminateAll(cx, gWorkers);
-            JS_DestroyContextNoGC(cx);
-        }
+        JS_DestroyContextNoGC(cx);
     }
 #endif
     JS_TriggerAllOperationCallbacks(rt);
@@ -4612,20 +4611,18 @@ global_resolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
                JSObject **objp)
 {
 #ifdef LAZY_STANDARD_CLASSES
-    if ((flags & JSRESOLVE_ASSIGNING) == 0) {
-        JSBool resolved;
+    JSBool resolved;
 
-        if (!JS_ResolveStandardClass(cx, obj, id, &resolved))
-            return JS_FALSE;
-        if (resolved) {
-            *objp = obj;
-            return JS_TRUE;
-        }
+    if (!JS_ResolveStandardClass(cx, obj, id, &resolved))
+        return JS_FALSE;
+    if (resolved) {
+        *objp = obj;
+        return JS_TRUE;
     }
 #endif
 
 #if defined(SHELL_HACK) && defined(DEBUG) && defined(XP_UNIX)
-    if ((flags & (JSRESOLVE_QUALIFIED | JSRESOLVE_ASSIGNING)) == 0) {
+    if (!(flags & JSRESOLVE_QUALIFIED)) {
         
 
 
