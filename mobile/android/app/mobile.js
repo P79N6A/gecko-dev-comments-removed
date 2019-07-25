@@ -724,3 +724,21 @@ pref("gfx.show_checkerboard_pattern", false);
 
 pref("remote-debugger.enabled", false);
 pref("remote-debugger.port", 6000);
+
+
+pref("ui.scrolling.friction_slow", -1);
+
+pref("ui.scrolling.friction_fast", -1);
+
+
+pref("ui.scrolling.velocity_threshold", -1);
+
+
+pref("ui.scrolling.max_event_acceleration", -1);
+
+pref("ui.scrolling.overscroll_decel_rate", -1);
+
+pref("ui.scrolling.overscroll_snap_limit", -1);
+
+
+pref("ui.scrolling.min_scrollable_distance", -1);
