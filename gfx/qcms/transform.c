@@ -20,8 +20,6 @@
 
 
 
-
-
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
@@ -662,8 +660,8 @@ static float clamp_float(float a)
 {
 	if (a > 1.)
 		return 1.;
-	else if (a < 0)
-		return 0;
+	else if (a < 0.)
+		return 0.;
 	else
 		return a;
 }
