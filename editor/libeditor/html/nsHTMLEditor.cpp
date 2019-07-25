@@ -2125,42 +2125,41 @@ nsHTMLEditor::GetHTMLBackgroundColorState(bool *aMixed, nsAString &aOutColor)
   *aMixed = false;
   aOutColor.Truncate();
   
-  nsCOMPtr<nsIDOMElement> element;
+  nsCOMPtr<nsIDOMElement> domElement;
   PRInt32 selectedCount;
   nsAutoString tagName;
   nsresult res = GetSelectedOrParentTableElement(tagName,
                                                  &selectedCount,
-                                                 getter_AddRefs(element));
+                                                 getter_AddRefs(domElement));
   NS_ENSURE_SUCCESS(res, res);
 
-  NS_NAMED_LITERAL_STRING(styleName, "bgcolor"); 
+  nsCOMPtr<nsINode> element = do_QueryInterface(domElement);
 
-  while (element)
-  {
+  while (element) {
     
-    res = element->GetAttribute(styleName, aOutColor);
-    NS_ENSURE_SUCCESS(res, res);
+    element->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::bgcolor, aOutColor);
 
     
-    if (!aOutColor.IsEmpty())
+    if (!aOutColor.IsEmpty()) {
       return NS_OK;
+    }
 
     
-    if(nsTextEditUtils::IsBody(element)) return NS_OK;
+    if (element->AsElement()->IsHTML(nsGkAtoms::body)) {
+      return NS_OK;
+    }
 
     
     
-    nsCOMPtr<nsIDOMNode> parentNode;
-    res = element->GetParentNode(getter_AddRefs(parentNode));
-    NS_ENSURE_SUCCESS(res, res);
-    element = do_QueryInterface(parentNode);
+    element = element->GetElementParent();
   }
 
   
-  mozilla::dom::Element *bodyElement = GetRoot();
+  dom::Element* bodyElement = GetRoot();
   NS_ENSURE_TRUE(bodyElement, NS_ERROR_NULL_POINTER);
 
-  return bodyElement->GetAttr(kNameSpaceID_None, nsGkAtoms::bgcolor, aOutColor);
+  bodyElement->GetAttr(kNameSpaceID_None, nsGkAtoms::bgcolor, aOutColor);
+  return NS_OK;
 }
 
 NS_IMETHODIMP 
