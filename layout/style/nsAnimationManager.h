@@ -11,6 +11,7 @@
 #include "nsDataHashtable.h"
 #include "nsGUIEvent.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/Preferences.h"
 #include "nsThreadUtils.h"
 
 class nsCSSKeyframesRule;
@@ -88,6 +89,9 @@ struct ElementAnimation
     return mPlayState == NS_STYLE_ANIMATION_PLAY_STATE_PAUSED;
   }
 
+  bool CanPerformOnCompositor(mozilla::dom::Element* aElement,
+                              mozilla::TimeStamp aTime) const;
+
   mozilla::TimeStamp mStartTime; 
   mozilla::TimeStamp mPauseStart;
   mozilla::TimeDuration mIterationDuration;
@@ -114,6 +118,26 @@ struct ElementAnimations : public mozilla::css::CommonElementAnimationData
   ElementAnimations(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
                     nsAnimationManager *aAnimationManager);
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static double GetPositionInIteration(TimeStamp aStartTime,
+                                       TimeStamp aCurrentTime,
+                                       TimeDuration aDuration,
+                                       double aIterationCount,
+                                       PRUint32 aDirection,
+                                       bool IsForElement = true,
+                                       ElementAnimation* aAnimation = nsnull,
+                                       ElementAnimations* aEa = nsnull,
+                                       EventArray* aEventsToDispatch = nsnull);
+
   void EnsureStyleRuleFor(TimeStamp aRefreshTime,
                           EventArray &aEventsToDispatch);
 
@@ -126,6 +150,9 @@ struct ElementAnimations : public mozilla::css::CommonElementAnimationData
     aPresContext->PresShell()->RestyleForAnimation(mElement, styleHint);
   }
 
+  
+  bool CanPerformOnCompositorThread() const;
+  bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
   
   
   
@@ -149,14 +176,39 @@ class nsAnimationManager : public mozilla::css::CommonAnimationManager
 {
 public:
   nsAnimationManager(nsPresContext *aPresContext)
-    : mozilla::css::CommonAnimationManager(aPresContext),
-      mKeyframesListIsDirty(true)
+    : mozilla::css::CommonAnimationManager(aPresContext)
+    , mKeyframesListIsDirty(true)
   {
     mKeyframesRules.Init(16); 
   }
 
+  static bool CanAnimateOpacity() {
+    static bool canAnimateOpacity =
+      mozilla::Preferences::GetBool("layers.offmainthreadcomposition.animate-opacity", false) &&
+      mozilla::Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
+    return canAnimateOpacity;
+  }
 
+  static bool CanAnimateTransform() {
+    static bool canAnimateTransform =
+      mozilla::Preferences::GetBool("layers.offmainthreadcomposition.animate-transform", false) &&
+      mozilla::Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
+    return canAnimateTransform;
+  }
 
+  static ElementAnimations* GetAnimationsForCompositor(nsIContent* aContent,
+                                                       nsCSSProperty aProperty)
+  {
+    if (!aContent->MayHaveAnimations())
+      return nsnull;
+    ElementAnimations* animations = static_cast<ElementAnimations*>(
+      aContent->GetProperty(nsGkAtoms::animationsProperty));
+    if (!animations)
+      return nsnull;
+    bool propertyMatches = animations->HasAnimationOfProperty(aProperty);
+    return (propertyMatches && animations->CanPerformOnCompositorThread()) ?
+      animations : nsnull;
+  }
 
   
   virtual void RulesMatching(ElementRuleProcessorData* aData);

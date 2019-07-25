@@ -2324,6 +2324,13 @@ public:
                                     float aAppUnitsPerPixel,
                                     nsRect* aOutRect);
 
+  static gfxPoint3D GetDeltaToMozTransformOrigin(const nsIFrame* aFrame,
+                                                 float aAppUnitsPerPixel,
+                                                 const nsRect* aBoundsOverride);
+
+  static gfxPoint3D GetDeltaToMozPerspectiveOrigin(const nsIFrame* aFrame,
+                                                   float aAppUnitsPerPixel);
+
   
 
 
@@ -2357,6 +2364,10 @@ public:
                                                  const nsPoint& aOrigin,
                                                  float aAppUnitsPerPixel,
                                                  const nsRect* aBoundsOverride = nsnull,
+                                                 const nsCSSValueList* aTransformOverride = nsnull,
+                                                 gfxPoint3D* aToMozOrigin = nsnull,
+                                                 gfxPoint3D* aToPerspectiveOrigin = nsnull,
+                                                 nscoord* aChildPerspective = nsnull, 
                                                  nsIFrame** aOutAncestor = nsnull);
   
 
