@@ -534,8 +534,12 @@ UIClass.prototype = {
       });
     
       iQ(window).bind('beforeunload', function() {
-        self.showChrome();  
-        self.tabBar.showAllTabs();
+        
+        if(self.showChrome)
+          self.showChrome();  
+          
+        if(self.tabBar && self.tabBar.showAllTabs)
+          self.tabBar.showAllTabs();
       });
       
       
