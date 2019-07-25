@@ -219,7 +219,7 @@ class PropertyCache
     PropertyCacheEntry *fill(JSContext *cx, JSObject *obj, unsigned scopeIndex,
                              JSObject *pobj, const js::Shape *shape);
 
-    void purge(JSContext *cx);
+    void purge(JSRuntime *rt);
 
     
     void restore(PropertyCacheEntry *entry);

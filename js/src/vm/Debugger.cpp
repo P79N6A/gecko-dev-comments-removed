@@ -1722,7 +1722,7 @@ Debugger::addDebuggeeGlobal(JSContext *cx, GlobalObject *global)
     }
 
     
-    if (!debuggeeCompartment->debugMode() && debuggeeCompartment->hasScriptsOnStack(cx)) {
+    if (!debuggeeCompartment->debugMode() && debuggeeCompartment->hasScriptsOnStack()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_IDLE);
         return false;
     }
