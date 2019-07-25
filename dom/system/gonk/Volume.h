@@ -5,6 +5,7 @@
 #ifndef mozilla_system_volume_h__
 #define mozilla_system_volume_h__
 
+#include "mozilla/Observer.h"
 #include "mozilla/RefPtr.h"
 #include "nsString.h"
 #include "VolumeCommand.h"
@@ -67,6 +68,18 @@ public:
   
   const nsCString &MountPoint() const { return mMountPoint; }
 
+  typedef mozilla::Observer<Volume *>     EventObserver;
+  typedef mozilla::ObserverList<Volume *> EventObserverList;
+
+  
+  void RegisterObserver(EventObserver *aObserver);
+  void UnregisterObserver(EventObserver *aObserver);
+
+private:
+  friend class AutoMounter;         
+  friend class VolumeManager;       
+  friend class VolumeListCallback;  
+
   
   
   
@@ -75,18 +88,14 @@ public:
   void StartShare(VolumeResponseCallback *aCallback);
   void StartUnshare(VolumeResponseCallback *aCallback);
 
-private:
-  friend class VolumeManager;       
-  friend class VolumeListCallback;  
-
   void SetState(STATE aNewState);
   void SetMountPoint(const nsCSubstring &aMountPoint);
   void StartCommand(VolumeCommand *aCommand);
 
   STATE             mState;
   const nsCString   mName;
-
   nsCString         mMountPoint;
+  EventObserverList mEventObserverList;
 };
 
 } 
