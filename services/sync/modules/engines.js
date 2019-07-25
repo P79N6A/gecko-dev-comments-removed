@@ -269,7 +269,10 @@ SyncEngine.prototype = {
   
   _createRecord: function SyncEngine__createRecord(id) {
     let record = this._store.createRecord(id);
+    this._log.debug("setting uri to " + this.engineURL + id);
     record.uri = this.engineURL + id;
+    this._log.debug("uri set to " + record.uri);
+    this._log.debug("record id set to " + record.id);
     record.encryption = this.cryptoMetaURL;
     return record;
   },
@@ -373,6 +376,19 @@ SyncEngine.prototype = {
     Cu.forceGC();
   },
 
+  _isEqual: function SyncEngine__isEqual(item) {
+    let local = this._createRecord(item.id);
+    this._log.trace("Local record: \n" + local);
+    if (item.parentid == local.parentid &&
+        Utils.deepEquals(item.cleartext, local.cleartext)) {
+      this._log.debug("Local record is the same");
+      return true;
+    } else {
+      this._log.debug("Local record is different");
+      return false;
+    }
+  },
+
   
   
   
@@ -390,20 +406,18 @@ SyncEngine.prototype = {
     let ret = true;
 
     
+    
     if (item.id in this._tracker.changedIDs) {
-      
-      let out = this._createRecord(item.id);
-      if (Utils.deepEquals(item.cleartext, out.cleartext))
+      if (this._isEqual(item))
         this._tracker.removeChangedID(item.id);
-      else
-        this._log.debug("Discarding server change due to conflict with local change");
       self.done(false);
       return;
     }
 
     
+    
     if (this._store.itemExists(item.id)) {
-      self.done(true);
+      self.done(!this._isEqual(item));
       return;
     }
 
@@ -454,7 +468,8 @@ SyncEngine.prototype = {
         this._log.trace("Outgoing:\n" + out);
         yield out.encrypt(self.cb, ID.get('WeaveCryptoID').password);
         yield up.pushRecord(self.cb, out);
-        this._store.createMetaRecords(out.id, meta);
+        if (out.cleartext) 
+          this._store.createMetaRecords(out.id, meta);
       }
 
       this._store.cache.enabled = true;
@@ -469,9 +484,7 @@ SyncEngine.prototype = {
           }
       }
 
-      this._log.debug("Uploading client changes (" + outnum + ")");
-      this._log.debug(count + " outgoing depth+index records");
-
+      this._log.debug("Uploading " + outnum + " records + " + count + " index/depth records)");
       
       yield up.post(self.cb);
 
