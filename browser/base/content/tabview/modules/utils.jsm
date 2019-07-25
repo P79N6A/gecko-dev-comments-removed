@@ -88,7 +88,7 @@ var Utils = {
   
   error: function(text) { 
     var text = this.expandArgumentsForLog(arguments);
-    Components.utils.reportError(text);
+    Components.utils.reportError('tabcandy error: ' + text);
   }, 
   
   trace: function(text) { 
@@ -148,6 +148,12 @@ var Utils = {
       return (event.button == 2);
     
     return false;
+  },
+  
+  
+  getMilliseconds: function() {
+  	var date = new Date();
+  	return date.getTime();
   }     
 };
 
