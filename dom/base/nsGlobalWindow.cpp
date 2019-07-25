@@ -569,10 +569,10 @@ nsPIDOMWindow::~nsPIDOMWindow() {}
 
 
 
-class nsOuterWindowProxy : public js::Wrapper
+class nsOuterWindowProxy : public js::DirectWrapper
 {
 public:
-  nsOuterWindowProxy() : js::Wrapper(0) {}
+  nsOuterWindowProxy() : js::DirectWrapper(0) {}
 
   virtual bool isOuterWindow() {
     return true;
