@@ -298,6 +298,10 @@ typedef PRUint64 nsFrameState;
 #define NS_FRAME_HAS_CACHED_BACKGROUND              NS_FRAME_STATE_BIT(46)
 
 
+
+#define NS_FRAME_IS_SVG_TEXT                        NS_FRAME_STATE_BIT(47)
+
+
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
 #define NS_STATE_IS_DIRECTION_NORMAL                NS_FRAME_STATE_BIT(31)
 
