@@ -45,6 +45,7 @@
 #include "nsCoreAnimationSupport.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/mozalloc.h"
 
 namespace mozilla {
 namespace layers {
@@ -407,6 +408,12 @@ public:
     PRUint32 mPicY;
     gfxIntSize mPicSize;
     StereoMode mStereoMode;
+
+    nsIntRect GetPictureRect() const {
+      return nsIntRect(mPicX, mPicY,
+                       mPicSize.width,
+                       mPicSize.height);
+    }
   };
 
   enum {
@@ -432,6 +439,20 @@ public:
 
 
   virtual const Data* GetData() { return nsnull; }
+
+  
+
+
+
+
+
+
+
+
+  PRUint8 *CopyData(Data& aDest, gfxIntSize& aDestSize,
+                    PRUint32& aDestBufferSize, const Data& aData);
+
+  virtual PRUint8* AllocateBuffer(PRUint32 aSize);
 
 protected:
   PlanarYCbCrImage(void* aImplData) : Image(aImplData, PLANAR_YCBCR) {}
