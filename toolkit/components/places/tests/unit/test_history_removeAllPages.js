@@ -170,10 +170,6 @@ PlacesUtils.history.addObserver(historyObserver, false);
 function run_test() {
   
   
-  Services.obs.removeObserver(PlacesUtils.history, "idle-daily");
-
-  
-  
   
   Services.obs.addObserver(function(aSubject, aTopic, aData) {
     Services.obs.removeObserver(arguments.callee, aTopic, false);
