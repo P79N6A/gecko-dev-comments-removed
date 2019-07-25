@@ -4,6 +4,9 @@
 
 
 
+const PREF_MATCH_OS_LOCALE = "intl.locale.matchOS";
+const PREF_SELECTED_LOCALE = "general.useragent.locale";
+
 
 Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
@@ -25,6 +28,8 @@ profileDir.append("extensions");
 
 function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
+  Services.prefs.setBoolPref(PREF_MATCH_OS_LOCALE, false);
+  Services.prefs.setCharPref(PREF_SELECTED_LOCALE, "fr-FR");
 
   
   testserver = new nsHttpServer();
@@ -635,7 +640,7 @@ function run_test_8() {
       do_check_eq(current_app_version, "1");
       do_check_eq(app_os, "XPCShell");
       do_check_eq(app_abi, "noarch-spidermonkey");
-      do_check_eq(app_locale, "en-US");
+      do_check_eq(app_locale, "fr-FR");
 
       request.setStatusLine(null, 500, "Server Error");
     });
