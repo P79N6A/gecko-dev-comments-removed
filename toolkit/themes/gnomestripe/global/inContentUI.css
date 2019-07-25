@@ -35,11 +35,17 @@
 
 
 
+
+
+
+
+
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
 
 
 
-:root {
+*|*:root {
   -moz-appearance: none;
   padding: 18px;
   background-color: Window;
@@ -48,8 +54,12 @@
   color: WindowText;
 }
 
+html|html {
+  font: message-box;
+}
 
-.main-content {
+
+*|*.main-content {
   
   
 

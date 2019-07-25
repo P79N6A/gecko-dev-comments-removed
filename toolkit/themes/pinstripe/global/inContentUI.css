@@ -35,13 +35,18 @@
 
 
 
+
 %include shared.inc
+
+
+
+
 
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 @namespace html url("http://www.w3.org/1999/xhtml");
 
 
-:root {
+*|*:root {
   -moz-appearance: none;
   padding: 18px;
   background-image: 
@@ -50,8 +55,12 @@
                     -moz-linear-gradient(top, #ADB5C2, #BFC6D1);
 }
 
+html|html {
+  font: message-box;
+}
 
-.main-content {
+
+*|*.main-content {
   
   
 
@@ -62,7 +71,7 @@
 }
 
 
-button,
+*|button,
 menulist,
 colorpicker[type="button"] {
   -moz-appearance: none;
@@ -84,6 +93,7 @@ colorpicker[type="button"]:-moz-focusring:not([open="true"]) > .colorpicker-butt
   outline: 1px dotted #252F3B;
 }
 
+html|button[disabled],
 button[disabled="true"],
 menulist[disabled="true"],
 colorpicker[type="button"][disabled="true"] {
@@ -91,6 +101,7 @@ colorpicker[type="button"][disabled="true"] {
   color: #505050;
 }
 
+html|button:not([disabled]):active:hover,
 button:not([disabled="true"]):active:hover,
 menulist[open="true"]:not([disabled="true"]),
 colorpicker[type="button"][open="true"]:not([disabled="true"]) {

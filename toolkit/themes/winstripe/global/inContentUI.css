@@ -35,10 +35,16 @@
 
 
 
+
+
+
+
+
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
 
 
-:root {
+*|*:root {
   -moz-appearance: none;
   padding: 18px;
   background-repeat: repeat;
@@ -50,9 +56,13 @@
                     url("chrome://global/skin/inContentUI/background-texture.png");
 }
 
+html|html {
+  font: message-box;
+}
+
 %ifdef WINSTRIPE_AERO
 @media all and (-moz-windows-default-theme) {
-  :root {
+  *|*:root {
     color: #000;
     background-color: #CCD9EA;
     background-image: 
@@ -63,7 +73,7 @@
 }
 
 @media all and (-moz-windows-compositor) {
-  :root {
+  *|*:root {
     color: #000;
     
     background-image: 
@@ -93,7 +103,7 @@
 %endif
 
 
-.main-content {
+*|*.main-content {
   
   
 
@@ -109,7 +119,7 @@
 %ifdef WINSTRIPE_AERO
 @media all and (-moz-windows-compositor) {
   
-  button,
+  *|button,
   menulist,
   colorpicker[type="button"] {
     -moz-appearance: none;
@@ -133,6 +143,7 @@
     outline: 1px dotted ThreeDDarkShadow;
   }
 
+  html|button[disabled],
   button[disabled="true"],
   menulist[disabled="true"],
   colorpicker[type="button"][disabled="true"] {
@@ -144,6 +155,7 @@
     color: #505050;
   }
 
+  html|button:not([disabled]):active:hover,
   button:not([disabled="true"]):active:hover,
   menulist[open="true"]:not([disabled="true"]),
   colorpicker[type="button"][open="true"]:not([disabled="true"]) {
