@@ -131,6 +131,16 @@ var TabUtils = {
   
   
   
+  URLOf: function TabUtils_URLOf(tab) {
+    
+    if(tab.tab != undefined)
+      tab = tab.tab;
+    return tab.linkedBrowser.currentURI.spec;
+  },
+
+  
+  
+  
   faviconURLOf: function TabUtils_faviconURLOf(tab) {
     return tab.image != undefined ? tab.image : tab.favImgEl.src;
   },
@@ -165,8 +175,9 @@ TabMatcher.prototype = {
   _filterAndSortForMatches: function TabMatcher__filterAndSortForMatches(tabs) {
     var self = this;
     tabs = tabs.filter(function(tab){
-      var name = TabUtils.nameOf(tab);
-      return name.match(self.term, "i");
+      let name = TabUtils.nameOf(tab);
+      let url = TabUtils.URLOf(tab);
+      return name.match(self.term, "i") || url.match(self.term, "i");
     });
 
     tabs.sort(function sorter(x, y){
@@ -186,7 +197,8 @@ TabMatcher.prototype = {
     var self = this;
     return tabs.filter(function(tab) {
       var name = tab.nameEl.innerHTML;
-      return !name.match(self.term, "i");
+      let url = TabUtils.URLOf(tab);
+      return !name.match(self.term, "i") && !url.match(self.term, "i");
     });
   },
   

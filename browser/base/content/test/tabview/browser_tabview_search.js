@@ -126,6 +126,20 @@ function searchTest(contentWindow) {
       searchBox.getAttribute("value")).matched().length, 2,
      "Match something when a part of title exists");
 
+  
+  searchBox.setAttribute("value", "search1.html");
+  contentWindow.performSearch();
+  is(new contentWindow.TabMatcher(
+      searchBox.getAttribute("value")).matched().length, 1,
+     "Match something when a unique part of a url exists");
+   
+  
+  searchBox.setAttribute("value", "tabview");
+  contentWindow.performSearch();
+  is(new contentWindow.TabMatcher(
+      searchBox.getAttribute("value")).matched().length, 2,
+     "Match something when a common part of a url exists");
+     
   cleanup(contentWindow);
 }
 
