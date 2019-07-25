@@ -23,27 +23,7 @@ function run_test() {
   do_check_true(httpURI.equals(httpChannel.URI));
   do_check_true(httpsURI.equals(httpsChannel.URI));
 
-  
-  
-  try {
-    var dataFeedURI = ios.newURI("feed:data:text/xml,<rss/>", null, null);
-    do_throw("Not reached");
-  } catch (e if (e instanceof Ci.nsIException &&
-                 e.result == NS_ERROR_MALFORMED_URI)) {
-    
-  }
-  try {
-    var ftpFeedURI = ios.newURI("feed:ftp://example.com/feed.xml", null, null);
-    do_throw("Not reached");
-  } catch (e if (e instanceof Ci.nsIException &&
-                 e.result == NS_ERROR_MALFORMED_URI)) {
-    
-  }
-  try {
-    var fileFeedURI = ios.newURI("feed:file:///var/feed.xml", null, null);
-    do_throw("Not reached");
-  } catch (e if (e instanceof Ci.nsIException &&
-                 e.result == NS_ERROR_MALFORMED_URI)) {
-    
-  }
+  var dataFeedURI = ios.newURI("feed:data:text/xml,<rss/>", null, null);
+  var ftpFeedURI = ios.newURI("feed:ftp://example.com/feed.xml", null, null);
+  var fileFeedURI = ios.newURI("feed:file:///var/feed.xml", null, null);
 }

@@ -549,49 +549,28 @@ GenericProtocolHandler.prototype = {
     
     
     
-    
-    
-    
 
-    const feedSlashes = "feed:
-    const feedHttpSlashes = "feed:http:
-    const feedHttpsSlashes = "feed:https:
-    const NS_ERROR_MALFORMED_URI = 0x804B000A;
+    var scheme = this._scheme + ":";
+    if (spec.substr(0, scheme.length) != scheme)
+      throw Components.results.NS_ERROR_MALFORMED_URI;
 
-    if (spec.substr(0, feedSlashes.length) != feedSlashes &&
-        spec.substr(0, feedHttpSlashes.length) != feedHttpSlashes &&
-        spec.substr(0, feedHttpsSlashes.length) != feedHttpsSlashes)
-      throw NS_ERROR_MALFORMED_URI;
-
-    var uri = 
-        Cc["@mozilla.org/network/standard-url;1"].
-        createInstance(Ci.nsIStandardURL);
-    uri.init(Ci.nsIStandardURL.URLTYPE_STANDARD, 80, spec, originalCharset,
-             baseURI);
+    var prefix = spec.substr(scheme.length, 2) == "
+    var inner = Cc["@mozilla.org/network/io-service;1"].
+                getService(Ci.nsIIOService).newURI(spec.replace(scheme, prefix),
+                                                   originalCharset, baseURI);
+    var uri = Cc["@mozilla.org/network/util;1"].
+              getService(Ci.nsINetUtil).newSimpleNestedURI(inner);
+    uri.spec = inner.spec.replace(prefix, scheme);
     return uri;
   },
   
   newChannel: function GPH_newChannel(aUri) {
-    var ios = 
-        Cc["@mozilla.org/network/io-service;1"].
-        getService(Ci.nsIIOService);
-    
-    
-    var feedSpec = aUri.spec;
-    const httpsChunk = "feed:
-    const httpChunk = "feed:
-    if (feedSpec.substr(0, httpsChunk.length) == httpsChunk)
-      feedSpec = "https:
-    else if (feedSpec.substr(0, httpChunk.length) == httpChunk)
-      feedSpec = "http:
-    else
-      feedSpec = feedSpec.replace(/^feed/, "http");
-
-    var uri = ios.newURI(feedSpec, aUri.originCharset, null);
-    var channel =
-      ios.newChannelFromURI(uri, null).QueryInterface(Ci.nsIHttpChannel);
-    
-    channel.setRequestHeader("X-Moz-Is-Feed", "1", false);
+    var inner = aUri.QueryInterface(Ci.nsINestedURI).innerURI;
+    var channel = Cc["@mozilla.org/network/io-service;1"].
+                  getService(Ci.nsIIOService).newChannelFromURI(inner, null);
+    if (channel instanceof Components.interfaces.nsIHttpChannel)
+      
+      channel.setRequestHeader("X-Moz-Is-Feed", "1", false);
     channel.originalURI = aUri;
     return channel;
   },
