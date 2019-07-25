@@ -84,6 +84,7 @@ XPIDLSRCS	= \
 		nsIInputStreamPump.idl \
 		nsIInputStreamChannel.idl \
                 nsIIOService2.idl \
+                nsIIPCSerializable.idl \
 		nsIMIMEInputStream.idl \
                 nsINetworkLinkService.idl \
 		nsIPermission.idl \
@@ -135,7 +136,6 @@ XPIDLSRCS	= \
 		nsIProxiedChannel.idl \
 		nsIRandomGenerator.idl \
 		nsIURIWithPrincipal.idl \
-		nsIURIClassifier.idl \
 		$(NULL)
 
 EXPORTS		= \
