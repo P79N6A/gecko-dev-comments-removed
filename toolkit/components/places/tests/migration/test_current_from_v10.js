@@ -282,7 +282,7 @@ function test_moz_hosts()
 {
   
   let stmt = DBConn().createStatement(
-    "SELECT host, frecency, typed "
+    "SELECT host, frecency, typed, prefix "
   + "FROM moz_hosts "
   );
   stmt.finalize();

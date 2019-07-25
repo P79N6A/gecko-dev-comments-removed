@@ -49,17 +49,50 @@
 
 
 
+
+
+
+
+
+#define HOSTS_PREFIX_PRIORITY_FRAGMENT \
+  "SELECT CASE " \
+    "WHEN EXISTS( " \
+      "SELECT 1 FROM moz_places WHERE url BETWEEN 'https://www.' || host || '/' " \
+                                             "AND 'https://www.' || host || '/' || X'FFFF' " \
+    ") THEN 'https://www.' " \
+    "WHEN EXISTS( " \
+      "SELECT 1 FROM moz_places WHERE url BETWEEN 'https://' || host || '/' " \
+                                             "AND 'https://' || host || '/' || X'FFFF' " \
+    ") THEN 'https://' " \
+    "WHEN EXISTS( " \
+      "SELECT 1 FROM moz_places WHERE url BETWEEN 'ftp://' || host || '/' " \
+                                             "AND 'ftp://' || host || '/' || X'FFFF' " \
+    ") THEN 'ftp://' " \
+    "WHEN EXISTS( " \
+      "SELECT 1 FROM moz_places WHERE url BETWEEN 'http://www.' || host || '/' " \
+                                             "AND 'http://www.' || host || '/' || X'FFFF' " \
+    ") THEN 'www.' " \
+  "END "
+
+
+
+
 #define CREATE_PLACES_AFTERINSERT_TRIGGER NS_LITERAL_CSTRING( \
   "CREATE TEMP TRIGGER moz_places_afterinsert_trigger " \
   "AFTER INSERT ON moz_places FOR EACH ROW " \
   "WHEN LENGTH(NEW.rev_host) > 1 " \
   "BEGIN " \
-    "INSERT OR REPLACE INTO moz_hosts (id, host, frecency, typed) " \
+    "INSERT OR REPLACE INTO moz_hosts (id, host, frecency, typed, prefix) " \
     "VALUES (" \
       "(SELECT id FROM moz_hosts WHERE host = fixup_url(get_unreversed_host(NEW.rev_host))), " \
       "fixup_url(get_unreversed_host(NEW.rev_host)), " \
       "MAX(IFNULL((SELECT frecency FROM moz_hosts WHERE host = fixup_url(get_unreversed_host(NEW.rev_host))), -1), NEW.frecency), " \
-      "MAX(IFNULL((SELECT typed FROM moz_hosts WHERE host = fixup_url(get_unreversed_host(NEW.rev_host))), 0), NEW.typed) " \
+      "MAX(IFNULL((SELECT typed FROM moz_hosts WHERE host = fixup_url(get_unreversed_host(NEW.rev_host))), 0), NEW.typed), " \
+      "(" HOSTS_PREFIX_PRIORITY_FRAGMENT \
+       "FROM ( " \
+          "SELECT fixup_url(get_unreversed_host(NEW.rev_host)) AS host " \
+        ") AS match " \
+      ") " \
     "); " \
   "END" \
 )
@@ -75,6 +108,11 @@
           "WHERE rev_host = get_unreversed_host(host || '.') || '.' " \
              "OR rev_host = get_unreversed_host(host || '.') || '.www.' " \
       "); " \
+    "UPDATE moz_hosts " \
+    "SET prefix = (" \
+      HOSTS_PREFIX_PRIORITY_FRAGMENT \
+    ") " \
+    "WHERE host = fixup_url(get_unreversed_host(OLD.rev_host)); " \
   "END" \
 )
 
