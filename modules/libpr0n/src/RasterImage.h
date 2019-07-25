@@ -71,6 +71,7 @@
 #endif
 
 class imgIDecoder;
+class imgIContainerObserver;
 class nsIInputStream;
 
 #define NS_RASTERIMAGE_CID \
@@ -80,6 +81,24 @@ class nsIInputStream;
      0x418a,                                         \
     {0xb1, 0x43, 0x33, 0x40, 0xc0, 0x01, 0x12, 0xf7} \
 }
+
+
+
+
+
+#define UINT64_MAX_VAL PRUint64(-1)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -151,7 +170,6 @@ class imgDecodeWorker;
 class Decoder;
 
 class RasterImage : public Image
-                  , public nsITimerCallback
                   , public nsIProperties
                   , public nsSupportsWeakReference
 #ifdef DEBUG
@@ -160,7 +178,6 @@ class RasterImage : public Image
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSIPROPERTIES
 #ifdef DEBUG
   NS_DECL_IMGICONTAINERDEBUG
@@ -335,6 +352,10 @@ private:
     
     nsIntRect                  firstFrameRefreshArea;
     PRUint32                   currentAnimationFrameIndex; 
+
+    
+    TimeStamp                  currentAnimationFrameTime;
+
     
     PRInt32                    lastCompositedFrameIndex;
     
@@ -353,22 +374,32 @@ private:
 
 
     nsAutoPtr<imgFrame>        compositingPrevFrame;
-    
-    nsCOMPtr<nsITimer>         timer;
 
     Anim() :
       firstFrameRefreshArea(),
       currentAnimationFrameIndex(0),
-      lastCompositedFrameIndex(-1)
-    {
-      ;
-    }
-    ~Anim()
-    {
-      if (timer)
-        timer->Cancel();
-    }
+      lastCompositedFrameIndex(-1) {}
+    ~Anim() {}
   };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool AdvanceFrame(mozilla::TimeStamp aTime, nsIntRect* aDirtyRect);
 
   
 
@@ -386,6 +417,7 @@ private:
   imgFrame* GetCurrentImgFrame();
   imgFrame* GetCurrentDrawableImgFrame();
   PRUint32 GetCurrentImgFrameIndex() const;
+  mozilla::TimeStamp GetCurrentImgFrameEndTime() const;
   
   inline void EnsureAnimExists()
   {
@@ -406,7 +438,7 @@ private:
       LockImage();
     }
   }
-  
+
   
 
 
