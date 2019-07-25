@@ -112,7 +112,7 @@ protected:
 
   
   enum {
-    kTooltipMouseMoveTolerance = 7,    
+    kTooltipMouseMoveTolerance = 7     
   };
 
   

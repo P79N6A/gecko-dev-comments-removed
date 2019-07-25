@@ -1801,20 +1801,17 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
 
     
     nscoord logicalHeight;
-    nscoord topLeading;
     PerSpanData* frameSpan = pfd->mSpan;
     if (frameSpan) {
       
       
       logicalHeight = frameSpan->mLogicalHeight;
-      topLeading = frameSpan->mTopLeading;
     }
     else {
       
       
       logicalHeight = pfd->mBounds.height + pfd->mMargin.top +
         pfd->mMargin.bottom;
-      topLeading = 0;
     }
 
     
@@ -2042,7 +2039,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
                pfd->mAscent, pfd->mBounds.height,
                pfd->mBorderPadding.top, pfd->mBorderPadding.bottom,
                logicalHeight,
-               pfd->mSpan ? topLeading : 0,
+               frameSpan ? frameSpan->mTopLeading : 0,
                pfd->mBounds.y, minY, maxY);
 #endif
       }
