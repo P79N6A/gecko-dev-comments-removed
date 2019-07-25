@@ -455,11 +455,11 @@ function test_date_liveupdate(aResultType) {
   bs.removeItem(itemId);
 }
 
-
 function run_test() {
   
-  bh.removeAllPages();
-  remove_all_bookmarks();
+  if (nowObj.getHours() == 23 && nowObj.getMinutes() >= 50) {
+    return;
+  }
 
   fill_history();
   test_RESULTS_AS_DATE_SITE_QUERY();
@@ -468,9 +468,6 @@ function run_test() {
 
   test_date_liveupdate(Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_SITE_QUERY);
   test_date_liveupdate(Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_QUERY);
-
-  
-  bh.removeAllPages();
 
   
   
