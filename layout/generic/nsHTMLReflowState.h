@@ -367,7 +367,7 @@ public:
                                      
     PRUint16 mHeightDependsOnAncestorCell:1;   
                                                
-    
+    PRUint16 mIsColumnBalancing:1;   
   } mFlags;
 
 private:
