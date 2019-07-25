@@ -43,7 +43,6 @@
 #include "nsSyncLoadService.h"
 #include "nsCOMPtr.h"
 #include "nsIChannel.h"
-#include "nsIDOMLoadListener.h"
 #include "nsIChannelEventSink.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsIInterfaceRequestor.h"
@@ -64,13 +63,13 @@
 
 
 
-class nsSyncLoader : public nsIDOMLoadListener,
+class nsSyncLoader : public nsIStreamListener,
                      public nsIChannelEventSink,
                      public nsIInterfaceRequestor,
                      public nsSupportsWeakReference
 {
 public:
-    nsSyncLoader() : mLoading(PR_FALSE), mLoadSuccess(PR_FALSE) {}
+    nsSyncLoader() : mLoading(PR_FALSE) {}
     virtual ~nsSyncLoader();
 
     NS_DECL_ISUPPORTS
@@ -79,14 +78,8 @@ public:
                           PRBool aChannelIsSync, PRBool aForceToXML,
                           nsIDOMDocument** aResult);
 
-    NS_DECL_NSIDOMEVENTLISTENER
-
-    
-    NS_IMETHOD Load(nsIDOMEvent* aEvent);
-    NS_IMETHOD BeforeUnload(nsIDOMEvent* aEvent);
-    NS_IMETHOD Unload(nsIDOMEvent* aEvent);
-    NS_IMETHOD Abort(nsIDOMEvent* aEvent);
-    NS_IMETHOD Error(nsIDOMEvent* aEvent);
+    NS_FORWARD_NSISTREAMLISTENER(mListener->)
+    NS_DECL_NSIREQUESTOBSERVER
 
     NS_DECL_NSICHANNELEVENTSINK
 
@@ -97,8 +90,9 @@ private:
     nsresult PushSyncStream(nsIStreamListener* aListener);
 
     nsCOMPtr<nsIChannel> mChannel;
+    nsCOMPtr<nsIStreamListener> mListener;
     PRPackedBool mLoading;
-    PRPackedBool mLoadSuccess;
+    nsresult mAsyncLoadStatus;
 };
 
 class nsForceXMLListener : public nsIStreamListener
@@ -156,8 +150,8 @@ nsSyncLoader::~nsSyncLoader()
 }
 
 NS_IMPL_ISUPPORTS5(nsSyncLoader,
-                   nsIDOMLoadListener,
-                   nsIDOMEventListener,
+                   nsIStreamListener,
+                   nsIRequestObserver,
                    nsIChannelEventSink,
                    nsIInterfaceRequestor,
                    nsISupportsWeakReference)
@@ -222,24 +216,9 @@ nsSyncLoader::LoadDocument(nsIChannel* aChannel,
     if (aLoaderPrincipal) {
         listener = new nsCORSListenerProxy(listener, aLoaderPrincipal,
                                            mChannel, PR_FALSE, &rv);
-        NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    
-    nsCOMPtr<nsPIDOMEventTarget> target = do_QueryInterface(document);
-    NS_ENSURE_TRUE(target, NS_ERROR_FAILURE);
-
-    nsWeakPtr requestWeak = do_GetWeakReference(static_cast<nsIDOMLoadListener*>(this));
-    nsLoadListenerProxy* proxy = new nsLoadListenerProxy(requestWeak);
-    NS_ENSURE_TRUE(proxy, NS_ERROR_OUT_OF_MEMORY);
-
-    
-    rv = target->AddEventListenerByIID(static_cast<nsIDOMEventListener*>(proxy), 
-                                       NS_GET_IID(nsIDOMLoadListener));
-    NS_ENSURE_SUCCESS(rv, rv);
-    
-    mLoadSuccess = PR_FALSE;
     if (aChannelIsSync) {
         rv = PushSyncStream(listener);
     }
@@ -248,22 +227,16 @@ nsSyncLoader::LoadDocument(nsIChannel* aChannel,
     }
 
     http = do_QueryInterface(mChannel);
-    if (mLoadSuccess && http) {
+    if (NS_SUCCEEDED(rv) && http) {
         PRBool succeeded;
-        mLoadSuccess = NS_SUCCEEDED(http->GetRequestSucceeded(&succeeded)) &&
-                       succeeded;
+        if (NS_FAILED(http->GetRequestSucceeded(&succeeded)) || !succeeded) {
+            rv = NS_ERROR_FAILURE;
+        }
     }
     mChannel = nsnull;
 
     
-    
-    target->RemoveEventListenerByIID(static_cast<nsIDOMEventListener*>(proxy), 
-                                     NS_GET_IID(nsIDOMLoadListener));
-
-    
     NS_ENSURE_SUCCESS(rv, rv);
-
-    NS_ENSURE_TRUE(mLoadSuccess, NS_ERROR_FAILURE);
 
     NS_ENSURE_TRUE(document->GetRootElement(), NS_ERROR_FAILURE);
 
@@ -273,8 +246,12 @@ nsSyncLoader::LoadDocument(nsIChannel* aChannel,
 nsresult
 nsSyncLoader::PushAsyncStream(nsIStreamListener* aListener)
 {
+    mListener = aListener;
+
+    mAsyncLoadStatus = NS_OK;
+
     
-    nsresult rv = mChannel->AsyncOpen(aListener, nsnull);
+    nsresult rv = mChannel->AsyncOpen(this, nsnull);
 
     if (NS_SUCCEEDED(rv)) {
         
@@ -288,10 +265,14 @@ nsSyncLoader::PushAsyncStream(nsIStreamListener* aListener)
         }
     }
 
+    mListener = nsnull;
+
+    NS_ENSURE_SUCCESS(rv, rv);
+
     
     
-    
-    return rv;
+
+    return mAsyncLoadStatus;
 }
 
 nsresult
@@ -303,61 +284,31 @@ nsSyncLoader::PushSyncStream(nsIStreamListener* aListener)
 
     mLoading = PR_TRUE;
     rv = nsSyncLoadService::PushSyncStreamToListener(in, aListener, mChannel);
-
+    mLoading = PR_FALSE;
+    
     return rv;
 }
 
-
-nsresult
-nsSyncLoader::HandleEvent(nsIDOMEvent* aEvent)
+NS_IMETHODIMP
+nsSyncLoader::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 {
-    return NS_OK;
+    return mListener->OnStartRequest(aRequest, aContext);
 }
 
-
-nsresult
-nsSyncLoader::Load(nsIDOMEvent* aEvent)
+NS_IMETHODIMP
+nsSyncLoader::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
+                            nsresult aStatusCode)
 {
-    if (mLoading) {
-        mLoading = PR_FALSE;
-        mLoadSuccess = PR_TRUE;
+    if (NS_SUCCEEDED(mAsyncLoadStatus) && NS_FAILED(aStatusCode)) {
+        mAsyncLoadStatus = aStatusCode;
     }
-
-    return NS_OK;
-}
-
-nsresult
-nsSyncLoader::BeforeUnload(nsIDOMEvent* aEvent)
-{
-    
-
-    return NS_OK;
-}
-
-nsresult
-nsSyncLoader::Unload(nsIDOMEvent* aEvent)
-{
-    return NS_OK;
-}
-
-nsresult
-nsSyncLoader::Abort(nsIDOMEvent* aEvent)
-{
-    if (mLoading) {
-        mLoading = PR_FALSE;
+    nsresult rv = mListener->OnStopRequest(aRequest, aContext, aStatusCode);
+    if (NS_SUCCEEDED(mAsyncLoadStatus) && NS_FAILED(rv)) {
+        mAsyncLoadStatus = rv;
     }
+    mLoading = PR_FALSE;
 
-    return NS_OK;
-}
-
-nsresult
-nsSyncLoader::Error(nsIDOMEvent* aEvent)
-{
-    if (mLoading) {
-        mLoading = PR_FALSE;
-    }
-
-    return NS_OK;
+    return rv;
 }
 
 NS_IMETHODIMP
