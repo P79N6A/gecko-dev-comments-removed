@@ -12,6 +12,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const allowedOrigins = [
   WebappRT.config.app.origin,
+  "https://browserid.org",
+  "https://www.facebook.com",
 ];
 
 function ContentPolicy() {}
