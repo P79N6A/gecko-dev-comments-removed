@@ -203,6 +203,25 @@ protected:
   TimeContainerHashtable     mChildContainerTable;
   mozilla::TimeStamp         mCurrentSampleTime;
   mozilla::TimeStamp         mStartTime;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsSMILTime                 mAvgTimeBetweenSamples;
+
   PRPackedBool               mResampleNeeded;
   
   

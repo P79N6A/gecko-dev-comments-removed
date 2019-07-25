@@ -72,7 +72,8 @@ GetRefreshDriverForDoc(nsIDocument* aDoc)
 
 
 nsSMILAnimationController::nsSMILAnimationController()
-  : mResampleNeeded(PR_FALSE),
+  : mAvgTimeBetweenSamples(0),
+    mResampleNeeded(PR_FALSE),
     mDeferredStartSampling(PR_FALSE),
     mRunningSample(PR_FALSE),
     mDocument(nsnull)
@@ -142,6 +143,9 @@ void
 nsSMILAnimationController::Resume(PRUint32 aType)
 {
   PRBool wasPaused = (mPauseState != 0);
+  
+  
+  mCurrentSampleTime = mozilla::TimeStamp::Now();
 
   nsSMILTimeContainer::Resume(aType);
 
@@ -176,7 +180,42 @@ nsSMILAnimationController::WillRefresh(mozilla::TimeStamp aTime)
   
   
   
-  mCurrentSampleTime = NS_MAX(mCurrentSampleTime, aTime);
+  aTime = NS_MAX(mCurrentSampleTime, aTime);
+
+  
+  
+  
+  
+  
+
+  
+  
+  
+  static const double SAMPLE_DUR_WEIGHTING = 0.2;
+  
+  
+  static const double SAMPLE_DEV_THRESHOLD = 200.0;
+
+  nsSMILTime elapsedTime =
+    (nsSMILTime)(aTime - mCurrentSampleTime).ToMilliseconds();
+  
+  if (mAvgTimeBetweenSamples == 0) {
+    mAvgTimeBetweenSamples = elapsedTime;
+  
+  } else if (elapsedTime > SAMPLE_DEV_THRESHOLD * mAvgTimeBetweenSamples) {
+    NS_WARNING("Detected really long delay between samples, continuing from "
+               "previous sample");
+    mParentOffset += elapsedTime - mAvgTimeBetweenSamples;
+  
+  } else {
+    
+    
+    mAvgTimeBetweenSamples =
+      (nsSMILTime)(elapsedTime * SAMPLE_DUR_WEIGHTING +
+      mAvgTimeBetweenSamples * (1.0 - SAMPLE_DUR_WEIGHTING));
+  }
+  mCurrentSampleTime = aTime;
+
   Sample();
 }
 
@@ -287,6 +326,9 @@ nsSMILAnimationController::StartSampling(nsRefreshDriver* aRefreshDriver)
     NS_ABORT_IF_FALSE(!GetRefreshDriverForDoc(mDocument) ||
                       aRefreshDriver == GetRefreshDriverForDoc(mDocument),
                       "Starting sampling with wrong refresh driver");
+    
+    
+    mCurrentSampleTime = mozilla::TimeStamp::Now();
     aRefreshDriver->AddRefreshObserver(this, Flush_Style);
   }
 }
