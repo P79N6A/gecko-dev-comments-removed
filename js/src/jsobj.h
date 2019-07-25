@@ -66,6 +66,7 @@ namespace js {
 class AutoPropDescArrayRooter;
 class JSProxyHandler;
 class RegExp;
+class CallObject;
 struct GCMarker;
 struct NativeIterator;
 
@@ -424,11 +425,11 @@ struct JSObject : js::gc::Cell {
   public:
     inline const js::Shape *lastProperty() const;
 
-    inline js::Shape **nativeSearch(jsid id, bool adding = false);
-    inline const js::Shape *nativeLookup(jsid id);
+    inline js::Shape **nativeSearch(JSContext *cx, jsid id, bool adding = false);
+    inline const js::Shape *nativeLookup(JSContext *cx, jsid id);
 
-    inline bool nativeContains(jsid id);
-    inline bool nativeContains(const js::Shape &shape);
+    inline bool nativeContains(JSContext *cx, jsid id);
+    inline bool nativeContains(JSContext *cx, const js::Shape &shape);
 
     enum {
         DELEGATE                  =       0x01,
@@ -733,6 +734,8 @@ struct JSObject : js::gc::Cell {
 
   private:
     inline js::Value* fixedSlots() const;
+
+  protected:
     inline bool hasContiguousSlots(size_t start, size_t count) const;
 
   public:
@@ -1065,58 +1068,10 @@ struct JSObject : js::gc::Cell {
     inline js::NormalArgumentsObject *asNormalArguments();
     inline js::StrictArgumentsObject *asStrictArguments();
 
-  private:
-    
-
-
-
-
-
-
-
-
-
-
-    static const uint32 JSSLOT_CALL_CALLEE = 0;
-    static const uint32 JSSLOT_CALL_ARGUMENTS = 1;
+  public:
+    inline js::CallObject &asCall();
 
   public:
-    
-    static const uint32 CALL_RESERVED_SLOTS = 2;
-
-    
-    inline bool callIsForEval() const;
-
-    
-    inline js::StackFrame *maybeCallObjStackFrame() const;
-
-    
-
-
-
-    inline JSObject *getCallObjCallee() const;
-    inline JSFunction *getCallObjCalleeFunction() const; 
-    inline void setCallObjCallee(JSObject *callee);
-
-    inline const js::Value &getCallObjArguments() const;
-    inline void setCallObjArguments(const js::Value &v);
-
-    
-    inline const js::Value &callObjArg(uintN i) const;
-    inline void setCallObjArg(uintN i, const js::Value &v);
-
-    
-    inline const js::Value &callObjVar(uintN i) const;
-    inline void setCallObjVar(uintN i, const js::Value &v);
-
-    
-
-
-
-
-    inline js::Value *callObjArgArray();
-    inline js::Value *callObjVarArray();
-
     
 
 
@@ -1926,10 +1881,7 @@ IsCacheableNonGlobalScope(JSObject *obj)
 {
     JS_ASSERT(obj->getParent());
 
-    js::Class *clasp = obj->getClass();
-    bool cacheable = (clasp == &CallClass ||
-                      clasp == &BlockClass ||
-                      clasp == &DeclEnvClass);
+    bool cacheable = (obj->isCall() || obj->isBlock() || obj->isDeclEnv());
 
     JS_ASSERT_IF(cacheable, !obj->getOps()->lookupProperty);
     return cacheable;
@@ -2032,7 +1984,7 @@ namespace js {
 
 
 extern bool
-HasDataProperty(JSObject *obj, jsid methodid, js::Value *vp);
+HasDataProperty(JSContext *cx, JSObject *obj, jsid methodid, js::Value *vp);
 
 extern JSBool
 CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,

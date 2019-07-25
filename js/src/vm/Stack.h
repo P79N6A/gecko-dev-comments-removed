@@ -852,9 +852,9 @@ class StackFrame
         return ret;
     }
 
-    inline JSObject &callObj() const;
+    inline CallObject &callObj() const;
     inline void setScopeChainNoCallObj(JSObject &obj);
-    inline void setScopeChainWithOwnCallObj(JSObject &obj);
+    inline void setScopeChainWithOwnCallObj(CallObject &obj);
 
     
 
