@@ -2927,6 +2927,9 @@ RIL[REQUEST_LAST_CALL_FAIL_CAUSE] = function REQUEST_LAST_CALL_FAIL_CAUSE(length
     num = Buf.readUint32();
   }
   if (!num) {
+    
+    
+    this._handleDisconnectedCall(options);
     return;
   }
 
