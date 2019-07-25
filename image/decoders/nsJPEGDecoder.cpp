@@ -609,7 +609,7 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
 
       
       for (; (NS_PTR_TO_UINT32(sampleRow) & 0x3) && idx; --idx) {
-        *imageRow++ = GFX_PACKED_PIXEL(0xFF, sampleRow[0], sampleRow[1], sampleRow[2]);
+        *imageRow++ = gfxPackedPixel(0xFF, sampleRow[0], sampleRow[1], sampleRow[2]);
         sampleRow += 3;
       }
 
@@ -624,7 +624,7 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
       
       while (idx--) {
         
-        *imageRow++ = GFX_PACKED_PIXEL(0xFF, sampleRow[0], sampleRow[1], sampleRow[2]);
+        *imageRow++ = gfxPackedPixel(0xFF, sampleRow[0], sampleRow[1], sampleRow[2]);
         sampleRow += 3;
       }
   }
