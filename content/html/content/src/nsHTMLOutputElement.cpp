@@ -40,11 +40,13 @@
 #include "nsFormSubmission.h"
 #include "nsDOMSettableTokenList.h"
 #include "nsStubMutationObserver.h"
+#include "nsConstraintValidation.h"
 
 
 class nsHTMLOutputElement : public nsGenericHTMLFormElement,
                             public nsIDOMHTMLOutputElement,
-                            public nsStubMutationObserver
+                            public nsStubMutationObserver,
+                            public nsConstraintValidation
 {
 public:
   nsHTMLOutputElement(already_AddRefed<nsINodeInfo> aNodeInfo);
@@ -78,6 +80,9 @@ public:
   
   
   void DescendantsChanged();
+
+  
+  PRBool IsBarredFromConstraintValidation() const { return PR_TRUE; }
 
   
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
@@ -136,6 +141,9 @@ NS_IMPL_ELEMENT_CLONE(nsHTMLOutputElement)
 
 
 NS_IMPL_STRING_ATTR(nsHTMLOutputElement, Name, name)
+
+
+NS_IMPL_NSCONSTRAINTVALIDATION(nsHTMLOutputElement)
 
 NS_IMETHODIMP
 nsHTMLOutputElement::Reset()
