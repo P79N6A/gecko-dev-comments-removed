@@ -221,7 +221,9 @@ TimerManager.prototype = {
         lastUpdateTime = Services.prefs.getIntPref(prefLastUpdate);
       }
       else {
-        lastUpdateTime = now;
+        
+        
+        lastUpdateTime = 0;
         Services.prefs.setIntPref(prefLastUpdate, lastUpdateTime);
       }
 
