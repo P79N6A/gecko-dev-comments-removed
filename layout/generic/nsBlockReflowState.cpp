@@ -6,6 +6,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsBlockReflowContext.h"
 #include "nsBlockReflowState.h"
 #include "nsBlockFrame.h"
@@ -546,7 +582,7 @@ FloatMarginWidth(const nsHTMLReflowState& aCBReflowState,
                  nsIFrame *aFloat,
                  const nsCSSOffsetState& aFloatOffsetState)
 {
-  AutoMaybeNullInflationContainer an(aFloat);
+  AutoMaybeDisableFontInflation an(aFloat);
   return aFloat->ComputeSize(
     aCBReflowState.rendContext,
     nsSize(aCBReflowState.ComputedWidth(),

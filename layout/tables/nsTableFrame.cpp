@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsCOMPtr.h"
 #include "nsTableFrame.h"
 #include "nsRenderingContext.h"
@@ -1480,7 +1514,7 @@ nsTableFrame::ComputeSize(nsRenderingContext *aRenderingContext,
 
   
   
-  AutoMaybeNullInflationContainer an(this);
+  AutoMaybeDisableFontInflation an(this);
 
   
   nscoord minWidth = GetMinWidth(aRenderingContext);
@@ -1496,7 +1530,7 @@ nsTableFrame::TableShrinkWidthToFit(nsRenderingContext *aRenderingContext,
 {
   
   
-  AutoMaybeNullInflationContainer an(this);
+  AutoMaybeDisableFontInflation an(this);
 
   nscoord result;
   nscoord minWidth = GetMinWidth(aRenderingContext);

@@ -3,6 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsLayoutUtils_h__
 #define nsLayoutUtils_h__
 
@@ -1660,29 +1695,33 @@ namespace mozilla {
 
 
 
-    class AutoMaybeNullInflationContainer {
+    class AutoMaybeDisableFontInflation {
     public:
-      AutoMaybeNullInflationContainer(nsIFrame *aFrame)
+      AutoMaybeDisableFontInflation(nsIFrame *aFrame)
       {
+        
+        
+        
+        
         if (nsLayoutUtils::IsContainerForFontSizeInflation(aFrame)) {
           mPresContext = aFrame->PresContext();
-          mOldValue = mPresContext->mCurrentInflationContainer;
-          mPresContext->mCurrentInflationContainer = nsnull;
+          mOldValue = mPresContext->mInflationDisabledForShrinkWrap;
+          mPresContext->mInflationDisabledForShrinkWrap = true;
         } else {
           
           mPresContext = nsnull;
         }
       }
 
-      ~AutoMaybeNullInflationContainer()
+      ~AutoMaybeDisableFontInflation()
       {
         if (mPresContext) {
-          mPresContext->mCurrentInflationContainer = mOldValue;
+          mPresContext->mInflationDisabledForShrinkWrap = mOldValue;
         }
       }
     private:
       nsPresContext *mPresContext;
-      nsIFrame *mOldValue;
+      bool mOldValue;
     };
 
   }

@@ -6,6 +6,42 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "mozilla/Attributes.h"
 #include "mozilla/Util.h"
 
@@ -3917,7 +3953,7 @@ nsFrame::ShrinkWidthToFit(nsRenderingContext *aRenderingContext,
 {
   
   
-  AutoMaybeNullInflationContainer an(this);
+  AutoMaybeDisableFontInflation an(this);
 
   nscoord result;
   nscoord minWidth = GetMinWidth(aRenderingContext);
@@ -7376,7 +7412,7 @@ nsFrame::RefreshSizeCache(nsBoxLayoutState& aState)
     {
       
       
-      AutoMaybeNullInflationContainer an(this);
+      AutoMaybeDisableFontInflation an(this);
 
       metrics->mBlockPrefSize.width =
         GetPrefWidth(rendContext) + bp.LeftRight();

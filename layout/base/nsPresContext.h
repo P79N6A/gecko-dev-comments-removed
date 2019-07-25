@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsPresContext_h___
 #define nsPresContext_h___
 
@@ -1107,6 +1140,10 @@ public:
   
   
   nscoord               mCurrentInflationContainerWidth;
+
+  
+  
+  bool                  mInflationDisabledForShrinkWrap;
 
 protected:
 

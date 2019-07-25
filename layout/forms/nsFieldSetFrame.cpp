@@ -6,6 +6,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsContainerFrame.h"
 #include "nsLegendFrame.h"
 #include "nsIDOMNode.h"
@@ -379,7 +411,7 @@ nsFieldSetFrame::ComputeSize(nsRenderingContext *aRenderingContext,
 
   
   
-  AutoMaybeNullInflationContainer an(this);
+  AutoMaybeDisableFontInflation an(this);
 
   nscoord minWidth = GetMinWidth(aRenderingContext);
   if (minWidth > result.width)

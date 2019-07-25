@@ -9,6 +9,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "BasicTableLayoutStrategy.h"
 #include "nsTableFrame.h"
 #include "nsTableCellFrame.h"
@@ -83,7 +115,7 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
     if (aIsCell) {
         
         
-        AutoMaybeNullInflationContainer an(aFrame);
+        AutoMaybeDisableFontInflation an(aFrame);
 
         minCoord = aFrame->GetMinWidth(aRenderingContext);
         prefCoord = aFrame->GetPrefWidth(aRenderingContext);
