@@ -13,9 +13,5 @@ var html5Exceptions = {
   "<svg>\u0000</svg><frameset>" : true, 
   "<svg>\u0000 </svg><frameset>" : true, 
   "<option><span><option>" : true, 
-  "<math><annotation-xml encoding=\"application/xhtml+xml\"><div>" : true, 
-  "<math><annotation-xml encoding=\"aPPlication/xhtmL+xMl\"><div>" : true, 
-  "<math><annotation-xml encoding=\"text/html\"><div>" : true, 
-  "<math><annotation-xml encoding=\"Text/htmL\"><div>" : true, 
   "<!doctype html><div><body><frameset>" : true, 
 }
