@@ -1642,14 +1642,6 @@ struct nsStyleDisplay {
   }
 
   
-  
-  bool IsTableClip() const {
-    return mOverflowX == NS_STYLE_OVERFLOW_CLIP ||
-           (mOverflowX == NS_STYLE_OVERFLOW_HIDDEN &&
-            mOverflowY == NS_STYLE_OVERFLOW_HIDDEN);
-  }
-
-  
   bool HasTransform() const {
     return mSpecifiedTransform != nsnull || mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D;
   }

@@ -1382,31 +1382,9 @@ static bool ApplyAbsPosClipping(nsDisplayListBuilder* aBuilder,
   return true;
 }
 
-
-
-
-
-static inline bool ApplyOverflowHiddenClipping(const nsIFrame* aFrame,
-                                                 const nsStyleDisplay* aDisp)
-{
-  if (aDisp->mOverflowX != NS_STYLE_OVERFLOW_HIDDEN)
-    return false;
-    
-  nsIAtom* type = aFrame->GetType();
-  
-  
-  
-  
-  
-  
-  return type == nsGkAtoms::tableFrame ||
-       type == nsGkAtoms::tableCellFrame ||
-       type == nsGkAtoms::bcTableCellFrame;
-}
-
 static bool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
-                                    const nsIFrame* aFrame,
-                                    const nsStyleDisplay* aDisp, nsRect* aRect) {
+                                  const nsIFrame* aFrame,
+                                  const nsStyleDisplay* aDisp, nsRect* aRect) {
   
   
   
@@ -1415,16 +1393,12 @@ static bool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
   
   
   
-  if (!ApplyOverflowHiddenClipping(aFrame, aDisp) &&
-      !nsFrame::ApplyPaginatedOverflowClipping(aFrame)) {
-    bool clip = aDisp->mOverflowX == NS_STYLE_OVERFLOW_CLIP;
-    if (!clip)
-      return false;
-    
-    
-    
-  }
   
+  
+  
+  if (!nsFrame::ApplyOverflowClipping(aFrame, aDisp)) {
+    return false;
+  }
   *aRect = aFrame->GetPaddingRect() - aFrame->GetPosition();
   if (aBuilder) {
     *aRect += aBuilder->ToReferenceFrame(aFrame);
@@ -6609,13 +6583,11 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
   
   
   
-  const nsStyleDisplay *disp = GetStyleDisplay();
+  const nsStyleDisplay* disp = GetStyleDisplay();
   NS_ASSERTION((disp->mOverflowY == NS_STYLE_OVERFLOW_CLIP) ==
                (disp->mOverflowX == NS_STYLE_OVERFLOW_CLIP),
                "If one overflow is clip, the other should be too");
-  if (disp->mOverflowX == NS_STYLE_OVERFLOW_CLIP ||
-      disp->IsTableClip() ||
-      nsFrame::ApplyPaginatedOverflowClipping(this)) {
+  if (nsFrame::ApplyOverflowClipping(this, disp)) {
     
     aOverflowAreas.SetAllTo(bounds);
   }

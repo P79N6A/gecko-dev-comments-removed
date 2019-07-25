@@ -168,11 +168,13 @@ nsLayoutUtils::UnionChildOverflow(nsIFrame* aFrame,
                                   nsOverflowAreas& aOverflowAreas)
 {
   
+  const nsIFrame::ChildListIDs skip(nsIFrame::kPopupList |
+                                    nsIFrame::kSelectPopupList);
   for (nsIFrame::ChildListIterator childLists(aFrame);
        !childLists.IsDone(); childLists.Next()) {
-    if (childLists.CurrentID() == nsIFrame::kPopupList ||
-        childLists.CurrentID() == nsIFrame::kSelectPopupList)
+    if (skip.Contains(childLists.CurrentID())) {
       continue;
+    }
 
     nsFrameList children = childLists.CurrentList();
     for (nsFrameList::Enumerator e(children); !e.AtEnd(); e.Next()) {
