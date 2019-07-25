@@ -474,3 +474,8 @@ pref("font.default.x-western", "SwissA");
 
 pref("network.buffer.cache.count", 24);
 pref("network.buffer.cache.size",  16384);
+
+
+pref("services.sync.client.type", "mobile");
+pref("services.sync.registerEngines", "Tab,Bookmarks,Form,History,Password");
+pref("services.sync.autoconnectDelay", 5);
