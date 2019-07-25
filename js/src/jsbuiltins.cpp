@@ -76,7 +76,7 @@ js_SetTraceableNativeFailed(JSContext *cx)
 
 
 
-    SetBuiltinError(&JS_TRACE_MONITOR(cx));
+    SetBuiltinError(JS_TRACE_MONITOR_FROM_CONTEXT(cx));
 }
 
 

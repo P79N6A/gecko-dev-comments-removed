@@ -459,11 +459,55 @@ struct JS_FRIEND_API(JSCompartment) {
 
 
 
+static inline bool
+JS_ON_TRACE(JSContext *cx)
+{
 #ifdef JS_TRACER
-# define JS_ON_TRACE(cx)            (cx->compartment && JS_TRACE_MONITOR(cx).ontrace())
-#else
-# define JS_ON_TRACE(cx)            false
+    if (JS_THREAD_DATA(cx)->onTraceCompartment)
+        return JS_THREAD_DATA(cx)->onTraceCompartment->traceMonitor.ontrace();
 #endif
+    return false;
+}
+
+#ifdef JS_TRACER
+static inline js::TraceMonitor *
+JS_TRACE_MONITOR_ON_TRACE(JSContext *cx)
+{
+    JS_ASSERT(JS_ON_TRACE(cx));
+    return &JS_THREAD_DATA(cx)->onTraceCompartment->traceMonitor;
+}
+
+
+
+
+
+
+static inline js::TraceMonitor *
+JS_TRACE_MONITOR_FROM_CONTEXT(JSContext *cx)
+{
+    return &cx->compartment->traceMonitor;
+}
+#endif
+
+static inline js::TraceRecorder *
+TRACE_RECORDER(JSContext *cx)
+{
+#ifdef JS_TRACER
+    if (JS_THREAD_DATA(cx)->recordingCompartment)
+        return JS_THREAD_DATA(cx)->recordingCompartment->traceMonitor.recorder;
+#endif
+    return NULL;
+}
+
+static inline js::LoopProfile *
+TRACE_PROFILER(JSContext *cx)
+{
+#ifdef JS_TRACER
+    if (JS_THREAD_DATA(cx)->profilingCompartment)
+        return JS_THREAD_DATA(cx)->profilingCompartment->traceMonitor.profile;
+#endif
+    return NULL;
+}
 
 namespace js {
 static inline MathCache *

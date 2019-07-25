@@ -848,6 +848,20 @@ struct JSThreadData {
     unsigned            requestDepth;
 #endif
 
+#ifdef JS_TRACER
+    
+
+
+
+
+
+
+
+    JSCompartment       *onTraceCompartment;
+    JSCompartment       *recordingCompartment;
+    JSCompartment       *profilingCompartment;
+ #endif
+
     
 
 
