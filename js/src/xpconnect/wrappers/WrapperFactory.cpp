@@ -241,32 +241,4 @@ WrapperFactory::WrapLocationObject(JSContext *cx, JSObject *obj)
     return wrapperObj;
 }
 
-bool
-WrapperFactory::IsScriptAccessOnly(JSContext *cx, JSObject *wrapper)
-{
-    JS_ASSERT(wrapper->isWrapper());
-
-    uintN flags;
-    JSObject *obj = wrapper->unwrap(&flags);
-
-    
-    if (flags & SCRIPT_ACCESS_ONLY_FLAG)
-        return true;
-
-    
-    if (wrapper->getProxyHandler() == &FilteringWrapper<JSCrossCompartmentWrapper,
-        CrossOriginAccessiblePropertiesOnly>::singleton) {
-        jsid scriptOnlyId = GetRTIdByIndex(cx, XPCJSRuntime::IDX_SCRIPTONLY);
-        jsval scriptOnly;
-        if (JS_LookupPropertyById(cx, obj, scriptOnlyId, &scriptOnly) &&
-            scriptOnly == JSVAL_TRUE)
-            return true; 
-    }
-
-    
-    
-    return IsLocationObject(obj) &&
-           !xpc::AccessCheck::isLocationObjectSameOrigin(cx, wrapper);
-}
-
 }

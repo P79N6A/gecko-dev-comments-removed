@@ -46,6 +46,8 @@
 
 #include "XPCWrapper.h"
 #include "XrayWrapper.h"
+#include "FilteringWrapper.h"
+#include "WrapperFactory.h"
 
 namespace xpc {
 
@@ -272,6 +274,41 @@ AccessCheck::needsSystemOnlyWrapper(JSObject *obj)
 
     XPCWrappedNative *wn = static_cast<XPCWrappedNative *>(obj->getPrivate());
     return wn->NeedsSOW();
+}
+
+bool
+AccessCheck::isScriptAccessOnly(JSContext *cx, JSObject *wrapper)
+{
+    JS_ASSERT(wrapper->isWrapper());
+
+    uintN flags;
+    JSObject *obj = wrapper->unwrap(&flags);
+
+    
+    if (flags & WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG) {
+        nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+        if (!ssm)
+            return true;
+
+        
+        PRBool privileged;
+        return !NS_SUCCEEDED(ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged)) ||
+               !privileged;
+    }
+
+    
+    if (wrapper->getProxyHandler() == &FilteringWrapper<JSCrossCompartmentWrapper,
+        CrossOriginAccessiblePropertiesOnly>::singleton) {
+        jsid scriptOnlyId = GetRTIdByIndex(cx, XPCJSRuntime::IDX_SCRIPTONLY);
+        jsval scriptOnly;
+        if (JS_LookupPropertyById(cx, obj, scriptOnlyId, &scriptOnly) &&
+            scriptOnly == JSVAL_TRUE)
+            return true; 
+    }
+
+    
+    
+    return WrapperFactory::IsLocationObject(obj) && !isLocationObjectSameOrigin(cx, wrapper);
 }
 
 void

@@ -59,8 +59,6 @@ class WrapperFactory {
         return HasWrapperFlag(wrapper, IS_XRAY_WRAPPER_FLAG);
     }
 
-    static bool IsScriptAccessOnly(JSContext *cx, JSObject *wrapper);
-
     
     static JSObject *PrepareForWrapping(JSContext *cx,
                                         JSObject *scope,
