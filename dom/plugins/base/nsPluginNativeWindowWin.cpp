@@ -146,10 +146,8 @@ public:
   virtual nsresult CallSetWindow(nsCOMPtr<nsIPluginInstance> &aPluginInstance);
 
 private:
-#ifndef WINCE
   nsresult SubclassAndAssociateWindow();
   nsresult UndoSubclassAndAssociateWindow();
-#endif
 
 public:
   
@@ -288,7 +286,6 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
 
       break;
 
-#ifndef WINCE
     case WM_MOUSEACTIVATE: {
       
       
@@ -332,7 +329,6 @@ static LRESULT CALLBACK PluginWndProcInternal(HWND hWnd, UINT msg, WPARAM wParam
       }
       break;
     }
-#endif
   }
 
   
@@ -653,8 +649,6 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsCOMPtr<nsIPluginInstance> &aPl
     }
   }
 
-  
-#ifndef WINCE
   if (window) {
     
     
@@ -675,23 +669,18 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsCOMPtr<nsIPluginInstance> &aPl
       }
     }
   }
-#endif
 
   nsPluginNativeWindow::CallSetWindow(aPluginInstance);
 
-#ifndef WINCE
   SubclassAndAssociateWindow();
 
   if (window && mPluginType == nsPluginType_Flash &&
       !GetPropW((HWND)window, L"PluginInstanceParentProperty")) {
     HookSetWindowLongPtr();
   }
-#endif
 
   return NS_OK;
 }
-
-#ifndef WINCE
 
 nsresult nsPluginNativeWindowWin::SubclassAndAssociateWindow()
 {
@@ -774,7 +763,6 @@ nsresult nsPluginNativeWindowWin::UndoSubclassAndAssociateWindow()
 
   return NS_OK;
 }
-#endif 
 
 nsresult PLUG_NewPluginNativeWindow(nsPluginNativeWindow ** aPluginNativeWindow)
 {
