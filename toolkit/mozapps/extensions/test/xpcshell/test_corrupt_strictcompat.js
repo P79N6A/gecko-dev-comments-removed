@@ -249,11 +249,13 @@ function run_test_1() {
 
     
     
-    restartManager();
+    
+    shutdownManager();
     var dbfile = gProfD.clone();
     dbfile.append("extensions.sqlite");
     dbfile.remove(true);
     dbfile.create(AM_Ci.nsIFile.DIRECTORY_TYPE, 0755);
+    startupManager(false);
 
     
     AddonManager.getAddonsByIDs(["addon1@tests.mozilla.org",
