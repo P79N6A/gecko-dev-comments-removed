@@ -261,19 +261,16 @@ ContentSecurityPolicy.prototype = {
       for (let i in this._requestHeaders) {
         strHeaders += this._requestHeaders[i] + "\n";
       }
-
-      var report = "<csp-report>\n" +
-        " <request>" + this._request + "</request>\n" +
-        "   <request-headers><![CDATA[\n" +
-        strHeaders +
-        "   ]]></request-headers>\n" +
-        "   <blocked-uri>" + 
-        (blockedUri instanceof Ci.nsIURI ? blockedUri.asciiSpec : blockedUri) + 
-        "</blocked-uri>\n" +
-        "   <violated-directive>" + violatedDirective + "</violated-directive>\n" +
-        "</csp-report>\n";
-
-      CSPdebug("Constructed violation report:\n" + report);
+      var report = {
+        'csp-report': {
+          'request': this._request,
+          'request-headers': strHeaders,
+          'blocked-uri': (blockedUri instanceof Ci.nsIURI ?
+                          blockedUri.asciiSpec : blockedUri),
+          'violated-directive': violatedDirective
+        }
+      }
+      CSPdebug("Constructed violation report:\n" + JSON.stringify(report));
 
       
       for (let i in uris) {
@@ -301,7 +298,7 @@ ContentSecurityPolicy.prototype = {
           
           req.channel.loadFlags |= Ci.nsIChannel.LOAD_ANONYMOUS;
 
-          req.send(report);
+          req.send(JSON.stringify(report));
           CSPdebug("Sent violation report to " + uris[i]);
         } catch(e) {
           
