@@ -197,14 +197,12 @@
 
 
 
-#if (!defined(MOZ_MEMORY_WINDOWS) && !defined(MOZ_MEMORY_DARWIN))
-   
 
 
 
 
-#define MALLOC_PAGEFILE
-#endif
+
+
 
 #ifdef MALLOC_PAGEFILE
 
@@ -1391,21 +1389,12 @@ static void	_malloc_postfork(void);
 static bool osx_use_jemalloc = false;
 
 
-
-
-
-
-static lion_malloc_zone l_jemalloc_zone, l_szone;
-static malloc_zone_t * const jemalloc_zone = (malloc_zone_t*)(&l_jemalloc_zone);
+static lion_malloc_zone l_szone;
 static malloc_zone_t * szone = (malloc_zone_t*)(&l_szone);
 
-
-static lion_malloc_introspection l_zone_introspect, l_ozone_introspect;
-static malloc_introspection_t * const zone_introspect =
-	(malloc_introspection_t*)(&l_zone_introspect);
+static lion_malloc_introspection l_ozone_introspect;
 static malloc_introspection_t * const ozone_introspect =
 	(malloc_introspection_t*)(&l_ozone_introspect);
-static malloc_zone_t *create_zone(unsigned version);
 static void szone2ozone(malloc_zone_t *zone, size_t size);
 static size_t zone_version_size(int version);
 #endif
@@ -2311,8 +2300,9 @@ pages_map(void *addr, size_t size, int pfd)
 	}
 	assert(ret != NULL);
 
-	if (ret == MAP_FAILED)
+	if (ret == MAP_FAILED) {
 		ret = NULL;
+        }
 #if defined(__ia64__)
         
 
@@ -2526,6 +2516,10 @@ malloc_rtree_set(malloc_rtree_t *rtree, uintptr_t key, void *val)
 }
 #endif
 
+#if defined(MOZ_MEMORY_WINDOWS) || defined(JEMALLOC_USES_MAP_ALIGN) || defined(MALLOC_PAGEFILE)
+
+
+
 static void *
 chunk_alloc_mmap(size_t size, bool pagefile)
 {
@@ -2543,16 +2537,6 @@ chunk_alloc_mmap(size_t size, bool pagefile)
 	} else
 #endif
 		pfd = -1;
-
-	
-
-
-
-
-
-
-
-
 
 #ifdef JEMALLOC_USES_MAP_ALIGN
 	ret = pages_map_align(size, pfd, chunksize);
@@ -2605,6 +2589,143 @@ RETURN:
 #endif
 	return (ret);
 }
+
+#else 
+
+
+
+
+
+#ifndef NO_TLS
+static __thread bool	mmap_unaligned_tls __attribute__((tls_model("initial-exec")));
+#define	MMAP_UNALIGNED_GET()	mmap_unaligned_tls
+#define	MMAP_UNALIGNED_SET(v)	do {					\
+	mmap_unaligned_tls = (v);					\
+} while (0)
+#else
+#define NEEDS_PTHREAD_MMAP_UNALIGNED_TSD
+static pthread_key_t	mmap_unaligned_tsd;
+#define	MMAP_UNALIGNED_GET()	((bool)pthread_getspecific(mmap_unaligned_tsd))
+#define	MMAP_UNALIGNED_SET(v)	do {					\
+	pthread_setspecific(mmap_unaligned_tsd, (void *)(v));		\
+} while (0)
+#endif
+
+
+
+
+static void *
+chunk_alloc_mmap_slow(size_t size, bool unaligned)
+{
+	void *ret;
+	size_t offset;
+
+	
+	if (size + chunksize <= size)
+		return (NULL);
+
+	ret = pages_map(NULL, size + chunksize, -1);
+	if (ret == NULL)
+		return (NULL);
+
+	
+	offset = CHUNK_ADDR2OFFSET(ret);
+	if (offset != 0) {
+		
+		unaligned = true;
+
+		
+		pages_unmap(ret, chunksize - offset);
+
+		ret = (void *)((uintptr_t)ret +
+		    (chunksize - offset));
+
+		
+		pages_unmap((void *)((uintptr_t)ret + size),
+		    offset);
+	} else {
+		
+		pages_unmap((void *)((uintptr_t)ret + size),
+		    chunksize);
+	}
+
+	
+
+
+
+
+	if (unaligned == false)
+		MMAP_UNALIGNED_SET(false);
+
+	return (ret);
+}
+
+static void *
+chunk_alloc_mmap(size_t size, bool pagefile)
+{
+	void *ret;
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	if (MMAP_UNALIGNED_GET() == false) {
+		size_t offset;
+
+		ret = pages_map(NULL, size, -1);
+		if (ret == NULL)
+			return (NULL);
+
+		offset = CHUNK_ADDR2OFFSET(ret);
+		if (offset != 0) {
+			MMAP_UNALIGNED_SET(true);
+			
+			if (pages_map((void *)((uintptr_t)ret + size),
+			    chunksize - offset, -1) == NULL) {
+				
+
+
+
+				pages_unmap(ret, size);
+				ret = chunk_alloc_mmap_slow(size, true);
+			} else {
+				
+				pages_unmap(ret, chunksize - offset);
+				ret = (void *)((uintptr_t)ret + (chunksize -
+				    offset));
+			}
+		}
+	} else
+		ret = chunk_alloc_mmap_slow(size, false);
+
+	return (ret);
+}
+
+#endif 
 
 #ifdef MALLOC_PAGEFILE
 static int
@@ -5929,43 +6050,44 @@ MALLOC_OUT:
 
 	malloc_initialized = true;
 
+#if defined(NEEDS_PTHREAD_MMAP_UNALIGNED_TSD)
+	if (pthread_key_create(&mmap_unaligned_tsd, NULL) != 0) {
+		malloc_printf("<jemalloc>: Error in pthread_key_create()\n");
+	}
+#endif
+
 #ifdef MOZ_MEMORY_DARWIN
-    
+	
 
 
-    default_zone = malloc_default_zone();
+	default_zone = malloc_default_zone();
 
-    
-
-
-
+	
 
 
 
-    osx_use_jemalloc = (default_zone->version == LEOPARD_MALLOC_ZONE_T_VERSION ||
-                        default_zone->version == SNOW_LEOPARD_MALLOC_ZONE_T_VERSION);
 
-    
+
+	osx_use_jemalloc = (default_zone->version == LEOPARD_MALLOC_ZONE_T_VERSION ||
+			    default_zone->version == SNOW_LEOPARD_MALLOC_ZONE_T_VERSION ||
+			    default_zone->version == LION_MALLOC_ZONE_T_VERSION);
+
+	
 	if (getenv("NO_MAC_JEMALLOC"))
-        osx_use_jemalloc = false;
+		osx_use_jemalloc = false;
 
-    if (osx_use_jemalloc) {
-        size_t size;
-
-        
-        malloc_zone_register(create_zone(default_zone->version));
-
-        
+	if (osx_use_jemalloc) {
+		
 
 
 
 
-        size = zone_version_size(default_zone->version);
-        szone2ozone(default_zone, size);
-    }
-    else {
-        szone = default_zone;
-    }
+		size_t size = zone_version_size(default_zone->version);
+		szone2ozone(default_zone, size);
+	}
+	else {
+		szone = default_zone;
+	}
 #endif
 
 #ifndef MOZ_MEMORY_WINDOWS
@@ -6665,22 +6787,6 @@ _malloc_postfork(void)
 
 #ifdef MOZ_MEMORY_DARWIN
 
-static size_t
-zone_size(malloc_zone_t *zone, void *ptr)
-{
-
-	
-
-
-
-
-
-
-
-
-	return (isalloc_validate(ptr));
-}
-
 static void *
 zone_malloc(malloc_zone_t *zone, size_t size)
 {
@@ -6705,31 +6811,10 @@ zone_valloc(malloc_zone_t *zone, size_t size)
 	return (ret);
 }
 
-static void
-zone_free(malloc_zone_t *zone, void *ptr)
-{
-
-	free(ptr);
-}
-
-static void *
-zone_realloc(malloc_zone_t *zone, void *ptr, size_t size)
-{
-
-	return (realloc(ptr, size));
-}
-
 static void *
 zone_memalign(malloc_zone_t *zone, size_t alignment, size_t size)
 {
 	return (memalign(alignment, size));
-}
-
-static void
-zone_free_definite_size(malloc_zone_t *zone, void *ptr, size_t size)
-{
-	assert(isalloc_validate(ptr) == size);
-	free(ptr);
 }
 
 static void *
@@ -6752,6 +6837,8 @@ zone_good_size(malloc_zone_t *zone, size_t size)
 
 
 
+
+
 	p = malloc(size);
 	if (p != NULL) {
 		ret = isalloc(p);
@@ -6760,67 +6847,6 @@ zone_good_size(malloc_zone_t *zone, size_t size)
 		ret = size;
 
 	return (ret);
-}
-
-static void
-zone_force_lock(malloc_zone_t *zone)
-{
-
-	_malloc_prefork();
-}
-
-static void
-zone_force_unlock(malloc_zone_t *zone)
-{
-
-	_malloc_postfork();
-}
-
-static malloc_zone_t *
-create_zone(unsigned version)
-{
-	assert(malloc_initialized);
-
-	jemalloc_zone->size = (void *)zone_size;
-	jemalloc_zone->malloc = (void *)zone_malloc;
-	jemalloc_zone->calloc = (void *)zone_calloc;
-	jemalloc_zone->valloc = (void *)zone_valloc;
-	jemalloc_zone->free = (void *)zone_free;
-	jemalloc_zone->realloc = (void *)zone_realloc;
-	jemalloc_zone->destroy = (void *)zone_destroy;
-	jemalloc_zone->zone_name = "jemalloc_zone";
-	jemalloc_zone->version = version;
-	jemalloc_zone->batch_malloc = NULL;
-	jemalloc_zone->batch_free = NULL;
-	jemalloc_zone->introspect = zone_introspect;
-
-	zone_introspect->enumerator = NULL;
-	zone_introspect->good_size = (void *)zone_good_size;
-	zone_introspect->check = NULL;
-	zone_introspect->print = NULL;
-	zone_introspect->log = NULL;
-	zone_introspect->force_lock = (void *)zone_force_lock;
-	zone_introspect->force_unlock = (void *)zone_force_unlock;
-	zone_introspect->statistics = NULL;
-
-	
-
-
-
-
-	
-	l_jemalloc_zone.m15 = (void (*)())zone_memalign;
-	l_jemalloc_zone.m16 = (void (*)())zone_free_definite_size;
-    l_zone_introspect.m9 = NULL;
-
-	
-	l_jemalloc_zone.m17 = NULL;
-	l_zone_introspect.m10 = NULL;
-	l_zone_introspect.m11 = NULL;
-	l_zone_introspect.m12 = NULL;
-	l_zone_introspect.m13 = NULL;
-
-	return jemalloc_zone;
 }
 
 static size_t
@@ -6964,10 +6990,12 @@ szone2ozone(malloc_zone_t *default_zone, size_t size)
 	default_zone->free = (void *)ozone_free;
 	default_zone->realloc = (void *)ozone_realloc;
 	default_zone->destroy = (void *)zone_destroy;
-	default_zone->zone_name = "jemalloc_ozone";
 	default_zone->batch_malloc = NULL;
 	default_zone->batch_free = ozone_batch_free;
 	default_zone->introspect = ozone_introspect;
+
+	
+
 
 	ozone_introspect->enumerator = NULL;
 	ozone_introspect->good_size = (void *)zone_good_size;
