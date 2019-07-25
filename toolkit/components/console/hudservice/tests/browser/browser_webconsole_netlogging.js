@@ -75,14 +75,8 @@ function testNetworkLogging()
       "Logged network entry is page load");
     is(httpActivity.method, "GET", "Method is correct");
     is(httpActivity.request.body, undefined, "No request body sent");
-
-    
-    
-    
-    if (navigator.platform.indexOf("Linux") != 0) {
       ok(httpActivity.response.body.indexOf("<!DOCTYPE HTML>") == 0,
         "Response body's beginning is okay");
-    }
 
     
     browser.contentWindow.wrappedJSObject.testXhrGet(loggingGen);
