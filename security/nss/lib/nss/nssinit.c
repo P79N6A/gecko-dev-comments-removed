@@ -540,13 +540,13 @@ nss_doLockInit(void)
 {
     nssInitLock = PZ_NewLock(nssILockOther);
     if (nssInitLock == NULL) {
-	return (PRStatus) SECFailure;
+	return PR_FAILURE;
     }
     nssInitCondition = PZ_NewCondVar(nssInitLock);
     if (nssInitCondition == NULL) {
-	return (PRStatus) SECFailure;
+	return PR_FAILURE;
     }
-    return (PRStatus) SECSuccess;
+    return PR_SUCCESS;
 }
 
 
@@ -577,10 +577,10 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 	return SECSuccess;
     }
   
-     
-    rv = PR_CallOnce(&nssInitOnce, nss_doLockInit);
-    if (rv != SECSuccess) {
-	return rv;
+    
+ 
+    if (PR_CallOnce(&nssInitOnce, nss_doLockInit) != PR_SUCCESS) {
+	return SECFailure;
     }
 
     
@@ -597,7 +597,6 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 	
 
     }
-    
     nssIsInInit++;
     PZ_Unlock(nssInitLock);
 
@@ -761,6 +760,11 @@ loser:
 	   PR_smprintf_free(configStrings);
 	}
     }
+    PZ_Lock(nssInitLock);
+    nssIsInInit--;
+    
+    PZ_NotifyCondVar(nssInitCondition);
+    PZ_Unlock(nssInitLock);
     return SECFailure;
 }
 
