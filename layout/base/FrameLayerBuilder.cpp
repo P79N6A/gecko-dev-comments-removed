@@ -281,6 +281,7 @@ protected:
 
 
 
+
   nscolor FindOpaqueBackgroundColorFor(PRInt32 aThebesLayerIndex);
   
 
@@ -345,6 +346,10 @@ class ThebesDisplayItemLayerUserData : public LayerUserData
 public:
   ThebesDisplayItemLayerUserData() :
     mForcedBackgroundColor(NS_RGBA(0,0,0,0)) {}
+
+  
+
+
 
   nscolor mForcedBackgroundColor;
 };
@@ -1637,8 +1642,11 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
       (aLayer->GetUserData(&gThebesDisplayItemLayerUserData));
   NS_ASSERTION(userData, "where did our user data go?");
   if (NS_GET_A(userData->mForcedBackgroundColor) > 0) {
+    nsIntRect r = aLayer->GetVisibleRegion().GetBounds();
+    aContext->NewPath();
+    aContext->Rectangle(gfxRect(r.x, r.y, r.width, r.height));
     aContext->SetColor(gfxRGBA(userData->mForcedBackgroundColor));
-    aContext->Paint();
+    aContext->Fill();
   }
 
   gfxMatrix transform;
