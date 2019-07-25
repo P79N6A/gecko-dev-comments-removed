@@ -828,6 +828,10 @@ function loadManifestFromRDF(aUri, aStream) {
 
   
   
+  let storage = Services.storage;
+
+  
+  
   let rng = Cc["@mozilla.org/security/random-generator;1"].
             createInstance(Ci.nsIRandomGenerator);
   let bytes = rng.generateRandomBytes(9);
