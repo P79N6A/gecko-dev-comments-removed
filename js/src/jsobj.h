@@ -845,7 +845,7 @@ struct JSObject : js::gc::Cell {
         return type_;
     }
 
-    js::types::TypeObject *gctype() const {
+    js::types::TypeObject *typeFromGC() const {
         
         return type_;
     }

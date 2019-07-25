@@ -1295,7 +1295,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         storePtr(ImmPtr(templateObject->parent), Address(result, offsetof(JSObject, parent)));
         storePtr(ImmPtr(templateObject->privateData), Address(result, offsetof(JSObject, privateData)));
         storePtr(ImmPtr((void *) templateObject->capacity), Address(result, offsetof(JSObject, capacity)));
-        storePtr(ImmPtr(templateObject->gctype()), Address(result, JSObject::offsetOfType()));
+        storePtr(ImmPtr(templateObject->type()), Address(result, JSObject::offsetOfType()));
 
         
         if (!templateObject->isDenseArray()) {
