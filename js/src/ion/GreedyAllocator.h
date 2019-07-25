@@ -45,6 +45,7 @@
 #include "MIR.h"
 #include "MIRGraph.h"
 #include "LIR.h"
+#include "StackSlotAllocator.h"
 
 namespace js {
 namespace ion {
@@ -191,7 +192,7 @@ class GreedyAllocator
     RegisterSet disallowed;
     RegisterSet discouraged;
     AllocationState state;
-    StackAssignment stackSlots;
+    StackSlotAllocator stackSlotAllocator;
     BlockInfo *blocks;
 
     
@@ -257,7 +258,7 @@ class GreedyAllocator
     bool maybeEvict(AnyRegister reg);
 
     
-    bool allocateStack(VirtualRegister *vr);
+    void allocateStack(VirtualRegister *vr);
     void freeStack(VirtualRegister *vr);
 
     
@@ -291,7 +292,7 @@ class GreedyAllocator
     bool prescanDefinitions(LInstruction *ins);
     bool prescanUses(LInstruction *ins);
     bool spillForCall(LInstruction *ins);
-    bool informSnapshot(LSnapshot *snapshot);
+    void informSnapshot(LSnapshot *snapshot);
     bool allocateSameAsInput(LDefinition *def, LAllocation *a, AnyRegister *out);
     bool allocateDefinitions(LInstruction *ins);
     bool allocateTemporaries(LInstruction *ins);

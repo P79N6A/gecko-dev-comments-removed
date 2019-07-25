@@ -186,25 +186,21 @@ GreedyAllocator::prescanUses(LInstruction *ins)
     return true;
 }
 
-bool
+void
 GreedyAllocator::allocateStack(VirtualRegister *vr)
 {
     if (vr->hasBackingStack())
-        return true;
+        return;
 
     uint32 index;
-    if (vr->isDouble()) {
-        if (!stackSlots.allocateDoubleSlot(&index))
-            return false;
-    } else {
-        if (!stackSlots.allocateSlot(&index))
-            return false;
-    }
+    if (vr->isDouble())
+        index = stackSlotAllocator.allocateDoubleSlot();
+    else
+        index = stackSlotAllocator.allocateSlot();
 
     IonSpew(IonSpew_RegAlloc, "    assign vr%d := stack%d", vr->def->virtualRegister(), index);
 
     vr->setStackSlot(index);
-    return true;
 }
 
 bool
@@ -236,9 +232,9 @@ void
 GreedyAllocator::freeStack(VirtualRegister *vr)
 {
     if (vr->isDouble())
-        stackSlots.freeDoubleSlot(vr->stackSlot());
+        stackSlotAllocator.freeDoubleSlot(vr->stackSlot());
     else
-        stackSlots.freeSlot(vr->stackSlot());
+        stackSlotAllocator.freeSlot(vr->stackSlot());
 }
 
 void
@@ -278,8 +274,7 @@ GreedyAllocator::evict(AnyRegister reg)
     JS_ASSERT(vr->reg() == reg);
 
     
-    if (!allocateStack(vr))
-        return false;
+    allocateStack(vr);
 
     
     
@@ -344,8 +339,7 @@ GreedyAllocator::allocateWritableOperand(LAllocation *a, VirtualRegister *vr)
             
             reg = vr->reg();
 
-            if (!allocateStack(vr))
-                return false;
+            allocateStack(vr);
             if (!restore(vr->backingStack(), reg))
                 return false;
         }
@@ -368,9 +362,9 @@ GreedyAllocator::allocateAnyOperand(LAllocation *a, VirtualRegister *vr, bool pr
         return allocateRegisterOperand(a, vr);
 
     
-    if (!allocateStack(vr))
-        return false;
+    allocateStack(vr);
     *a = vr->backingStack();
+
     return true;
 }
 
@@ -595,7 +589,7 @@ GreedyAllocator::spillForCall(LInstruction *ins)
     return true;
 }
 
-bool
+void
 GreedyAllocator::informSnapshot(LSnapshot *snapshot)
 {
     for (size_t i = 0; i < snapshot->numEntries(); i++) {
@@ -608,12 +602,10 @@ GreedyAllocator::informSnapshot(LSnapshot *snapshot)
         if (vr->hasRegister()) {
             *a = LAllocation(vr->reg());
         } else {
-            if (!allocateStack(vr))
-                return false;
+            allocateStack(vr);
             *a = vr->backingStack();
         }
     }
-    return true;
 }
 
 void
@@ -660,10 +652,8 @@ GreedyAllocator::allocateInstruction(LBlock *block, LInstruction *ins)
         return false;
 
     
-    if (ins->snapshot() && ins->op() != LInstruction::LOp_CaptureAllocations) {
-        if (!informSnapshot(ins->snapshot()))
-            return false;
-    }
+    if (ins->snapshot() && ins->op() != LInstruction::LOp_CaptureAllocations)
+        informSnapshot(ins->snapshot());
 
     
     if (!allocateDefinitions(ins))
@@ -682,8 +672,8 @@ GreedyAllocator::allocateInstruction(LBlock *block, LInstruction *ins)
     }
 
     
-    if (ins->postSnapshot() && !informSnapshot(ins->postSnapshot()))
-        return false;
+    if (ins->postSnapshot())
+        informSnapshot(ins->postSnapshot());
 
     if (aligns)
         block->insertBefore(ins, aligns);
@@ -807,8 +797,7 @@ GreedyAllocator::mergeRegisterState(const AnyRegister &reg, LBlock *left, LBlock
         if (!rinfo->restores.move(vright->reg(), reg))
             return false;
     } else {
-        if (!allocateStack(vright))
-            return false;
+        allocateStack(vright);
 
         IonSpew(IonSpew_RegAlloc, "    merging vr%d stack to %s",
                 vright->def->virtualRegister(), reg.name());
@@ -846,8 +835,7 @@ GreedyAllocator::findLoopCarriedUses(LBlock *backedge)
                 VirtualRegister *vr = getVirtualRegister(use);
                 if (vr->def->virtualRegister() < lowerBound ||
                     vr->def->virtualRegister() > upperBound) {
-                    if (!allocateStack(vr))
-                        return false;
+                    allocateStack(vr);
                 }
             }
         }
@@ -924,8 +912,7 @@ GreedyAllocator::mergeBackedgeState(LBlock *header, LBlock *backedge)
         
         
         
-        if (!allocateStack(inVr))
-            return false;
+        allocateStack(inVr);
 
         IonSpew(IonSpew_RegAlloc, "    loop carried vr%d (stack:%d) -> %s",
                 inVr->def->virtualRegister(), inVr->stackSlot_, reg.name());
@@ -1188,7 +1175,7 @@ GreedyAllocator::allocate()
     findDefinitions();
     if (!allocateRegisters())
         return false;
-    graph.setLocalSlotCount(stackSlots.stackHeight());
+    graph.setLocalSlotCount(stackSlotAllocator.stackHeight());
 
     return true;
 }
