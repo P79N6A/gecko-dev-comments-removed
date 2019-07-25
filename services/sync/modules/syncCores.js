@@ -34,7 +34,8 @@
 
 
 
-const EXPORTED_SYMBOLS = ['SyncCore', 'BookmarksSyncCore', 'HistorySyncCore', 'CookieSyncCore'];
+const EXPORTED_SYMBOLS = ['SyncCore', 'BookmarksSyncCore', 'HistorySyncCore',
+                          'CookieSyncCore', 'PasswordSyncCore'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -498,3 +499,41 @@ CookieSyncCore.prototype = {
   }
 };
 CookieSyncCore.prototype.__proto__ = new SyncCore();
+
+
+function PasswordSyncCore() {
+  this._init();
+}
+PasswordSyncCore.prototype = {
+  _logName: "PasswordSync",
+
+  __loginManager : null,
+  get _loginManager() {
+    if (!this.__loginManager)
+      this.__loginManager = Cc["@mozilla.org/login-manager;1"].
+                            getService(Ci.nsILoginManager);
+    return this.__loginManager;
+  },
+
+  _itemExists: function PSC__itemExists(GUID) {
+    var found = false;
+    var logins = this._loginManager.getAllLogins({});
+
+    
+    
+    
+    for (var i = 0; i < logins.length && !found; i++) {
+        var hash = this._hashLoginInfo(logins[i]);
+        if (hash == GUID)
+            found = true;;
+    }
+
+    return found;
+  },
+
+  _commandLike: function PSC_commandLike(a, b) {
+    
+    return false;
+  }
+};
+PasswordSyncCore.prototype.__proto__ = new SyncCore();
