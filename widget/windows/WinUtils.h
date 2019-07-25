@@ -231,44 +231,6 @@ public:
   static bool GetShellItemPath(IShellItem* aItem,
                                nsString& aResultString);
 
-#ifdef DEBUG
-  
-
-
-
-
-
-
-
-
-
-
-
-  static void SaveDCToPng(HDC hdc, const WCHAR* aFilePath,
-                          int aXPos, int aYPos,
-                          int aWidth, int aHeight);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static void SaveDCToPngIndexed(HDC aHdc, const WCHAR* aDirectory,
-                                 const WCHAR* aAnnotation,
-                                 int aXPos, int aYPos,
-                                 int aWidth, int aHeight);
-#endif
-
 private:
   typedef HRESULT (WINAPI * SHCreateItemFromParsingNamePtr)(PCWSTR pszPath,
                                                             IBindCtx *pbc,

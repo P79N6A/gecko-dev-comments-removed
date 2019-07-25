@@ -43,9 +43,6 @@
 
 
 
-
-#include <vsstyle.h>
-
 #define THEME_COLOR 204
 #define THEME_FONT  210
 
@@ -219,7 +216,6 @@
 #define WS_EX_LAYOUTRTL         0x00400000L // Right to left mirroring
 #endif
 
-#define TMT_TRANSITIONDURATIONS 6000
 
 
 #define DFCS_RTL             0x00010000
