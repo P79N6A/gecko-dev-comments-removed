@@ -41,6 +41,9 @@ let WeaveGlue = {
     this._addListeners();
 
     
+    this._updateOptions();
+
+    
     Weave.Service.keyGenEnabled = false;
   },
 
