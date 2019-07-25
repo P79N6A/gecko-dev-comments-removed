@@ -541,9 +541,15 @@ BasicTextureImage::BeginUpdate(nsIntRegion& aRegion)
     ImageFormat format =
         (GetContentType() == gfxASurface::CONTENT_COLOR) ?
         gfxASurface::ImageFormatRGB24 : gfxASurface::ImageFormatARGB32;
-    if (!mTextureInited || !mBackingSurface ||
-        mBackingSurface->GetSize() != gfxIntSize(mSize.width, mSize.height) ||
-        mBackingSurface->Format() != format) {
+    PRBool repaintEverything = PR_FALSE;
+    if (mGLContext->IsExtensionSupported(gl::GLContext::APPLE_client_storage)) {
+        repaintEverything =
+            !(mBackingSurface &&
+              mBackingSurface->GetSize() == gfxIntSize(mSize.width, mSize.height) &&
+              mBackingSurface->Format() == format);
+    }
+    if (!mTextureInited || repaintEverything)
+    {
         
         
         
