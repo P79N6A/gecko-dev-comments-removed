@@ -324,6 +324,11 @@ public:
   
 
 
+  virtual void GetBackendName(nsAString& aName) = 0;
+
+  
+
+
 
   void SetUserData(void* aKey, LayerUserData* aData)
   { mUserData.Set(aKey, aData); }
