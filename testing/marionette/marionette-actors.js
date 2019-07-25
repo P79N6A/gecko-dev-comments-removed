@@ -761,6 +761,13 @@ MarionetteDriverActor.prototype = {
   
 
 
+  getTitle: function MDA_getTitle() {
+    this.sendAsync("getTitle", {});
+  },
+
+  
+
+
   goBack: function MDA_goBack() {
     this.sendAsync("goBack", {});
   },
@@ -1374,6 +1381,7 @@ MarionetteDriverActor.prototype.requestTypes = {
   "isElementSelected": MarionetteDriverActor.prototype.isElementSelected,
   "sendKeysToElement": MarionetteDriverActor.prototype.sendKeysToElement,
   "clearElement": MarionetteDriverActor.prototype.clearElement,
+  "getTitle": MarionetteDriverActor.prototype.getTitle,
   "goUrl": MarionetteDriverActor.prototype.goUrl,
   "getUrl": MarionetteDriverActor.prototype.getUrl,
   "goBack": MarionetteDriverActor.prototype.goBack,
