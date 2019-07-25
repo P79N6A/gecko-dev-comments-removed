@@ -111,7 +111,8 @@ protected:
 
 
 
-  virtual void OnSuccess(nsIDOMEventTarget* aTarget);
+
+  virtual PRUint16 OnSuccess(nsIDOMEventTarget* aTarget);
 
   
 
