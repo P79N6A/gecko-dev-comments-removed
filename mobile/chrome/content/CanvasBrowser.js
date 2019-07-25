@@ -57,7 +57,8 @@ CanvasBrowser.prototype = {
   _visibleBounds: null,
 
   
-  _maybeZoomToPage: false,
+  _lazyWidthChanged: false,
+  _lazyHeightChanged: false,
 
   
   _pageLoading: true,
@@ -249,7 +250,8 @@ CanvasBrowser.prototype = {
 
   endLoading: function() {
     this._pageLoading = false;
-    this._maybeZoomToPage = false;
+    this._lazyWidthChanged = false;
+    this._lazyHeightChanged = false;
     this.zoomToPage();
     
     
@@ -398,14 +400,14 @@ CanvasBrowser.prototype = {
     for each (var rect in rects) {
       if (this._pageLoading)  {
         
-        if (rect.bottom > this._maxBottom) {
-          this._maybeZoomToPage = true;
-          this._maxBottom = rect.bottom;
-        }
-
+        
         if (rect.right > this._maxRight) {
-          this._maybeZoomToPage = true;
+          this._lazyWidthChanged = true;
           this._maxRight = rect.right;
+        }
+        if (rect.bottom > this._maxBottom) {
+          this._lazyHeightChanged = true;
+          this._maxBottom = rect.bottom;
         }
       }
 
@@ -428,10 +430,27 @@ CanvasBrowser.prototype = {
     
     
     function resizeAndPaint(self) {
-      if (self._maybeZoomToPage) {
-        self.zoomToPage();
-        self._maybeZoomToPage = false;
+      if (self._lazyWidthChanged) {
+        
+        
+        
+        
+        
+        let contentW = self._maxRight;
+        let [canvasW, ] = self.canvasDimensions;
+
+        if (contentW > canvasW)
+          this.zoomLevel = canvasW / contentW;
+
+        self._lazyWidthChanged = false;
+      } else if (self._lazyHeightChanged) {
+
+        
+        
+        Browser.updateViewportSize();
+        self._lazyHeightChanged = false;
       }
+
       
       if (!self._isPanning)
         self.flushRegion(true);
@@ -451,7 +470,7 @@ CanvasBrowser.prototype = {
     if (this._pageLoading && !this._drawTimeout) {
       
       flushNow = true;
-      this._maybeZoomToPage = true;
+      this._lazyWidthChanged = true;
       this._drawTimeout = setTimeout(resizeAndPaint, 2000, this);
     }
 
