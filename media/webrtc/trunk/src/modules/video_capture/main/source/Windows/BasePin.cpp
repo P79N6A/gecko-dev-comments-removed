@@ -4,6 +4,7 @@
 
 
 
+#include <assert.h>
 #include "nsAutoPtr.h"
 #include "BasePin.h"
 

@@ -4,7 +4,7 @@
 
 
 
-
+#include <assert.h>
 #include "BaseFilter.h"
 #include "BasePin.h"
 

@@ -4,6 +4,7 @@
 
 
 
+#include <assert.h>
 #include "BaseInputPin.h"
 #include <vector>
 
