@@ -713,7 +713,13 @@ BasicImageLayer::GetAndPaintCurrentImage(gfxContext* aContext,
 
   pat->SetFilter(mFilter);
 
-  PaintContext(pat, GetVisibleRegion(), GetTileSourceRect(),
+  
+  
+  
+  const nsIntRect* tileSrcRect = GetTileSourceRect();
+  PaintContext(pat,
+               tileSrcRect ? GetVisibleRegion() : nsIntRegion(nsIntRect(0, 0, mSize.width, mSize.height)),
+               tileSrcRect,
                aOpacity, aContext); 
   return pat.forget();
 }
