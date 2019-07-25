@@ -57,10 +57,10 @@ pref("extensions.logging.enabled", false);
 
 pref("extensions.getAddons.cache.enabled", true);
 pref("extensions.getAddons.maxResults", 15);
-pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/guid:%IDS%?src=firefox&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%");
-pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/%APP%/search?q=%TERMS%");
-pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/%TERMS%/all/%MAX_RESULTS%/%OS%/%VERSION%?src=firefox");
-pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%LOCALE%/%APP%/discovery/pane/%VERSION%/%OS%");
+pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/guid:%IDS%?src=firefox&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%");
+pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/firefox/search?q=%TERMS%");
+pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/%TERMS%/all/%MAX_RESULTS%/%OS%/%VERSION%?src=firefox");
+pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%LOCALE%/firefox/discovery/pane/%VERSION%/%OS%");
 
 
 pref("extensions.blocklist.enabled", true);
@@ -74,7 +74,7 @@ pref("extensions.blocklist.detailsURL", "https://www.mozilla.com/%LOCALE%/blockl
 pref("extensions.update.autoUpdateDefault", true);
 
 
-pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/%APP%/dictionaries/");
+pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/firefox/dictionaries/");
 
 
 
@@ -199,7 +199,7 @@ pref("extensions.update.url", "https://versioncheck.addons.mozilla.org/update/Ve
 pref("extensions.update.interval", 86400);  
                                             
 
-pref("extensions.getMoreThemesURL", "https://addons.mozilla.org/%LOCALE%/%APP%/getpersonas");
+pref("extensions.getMoreThemesURL", "https://addons.mozilla.org/%LOCALE%/firefox/getpersonas");
 pref("extensions.dss.enabled", false);          
 pref("extensions.dss.switchPending", false);    
                                                 
@@ -323,7 +323,7 @@ pref("browser.download.manager.scanWhenDone", true);
 pref("browser.download.manager.resumeOnWakeDelay", 10000);
 
 
-pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE%/%APP%/search-engines/");
+pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE%/firefox/search-engines/");
 
 
 pref("browser.search.defaultenginename",      "chrome://browser-region/locale/region.properties");
@@ -712,8 +712,8 @@ pref("browser.safebrowsing.provider.0.reportMalwareURL", "http://{moz:locale}.ma
 pref("browser.safebrowsing.provider.0.reportMalwareErrorURL", "http://{moz:locale}.malware-error.mozilla.com/?hl={moz:locale}");
 
 
-pref("browser.safebrowsing.warning.infoURL", "http://www.mozilla.com/%LOCALE%/%APP%/phishing-protection/");
-pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/%APP%/geolocation/");
+pref("browser.safebrowsing.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/phishing-protection/");
+pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");
 
 
 
@@ -859,7 +859,7 @@ pref("browser.zoom.updateBackgroundTabs", true);
 pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 
 
-pref("app.support.baseURL", "http://support.mozilla.com/1/%APP%/%VERSION%/%OS%/%LOCALE%/");
+pref("app.support.baseURL", "http://support.mozilla.com/1/firefox/%VERSION%/%OS%/%LOCALE%/");
 
 
 pref("security.alternate_certificate_error_page", "certerror");
