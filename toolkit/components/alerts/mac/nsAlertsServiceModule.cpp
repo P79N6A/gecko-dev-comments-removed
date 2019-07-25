@@ -2,7 +2,7 @@
 
 
 
-#include "nsGrowlAlertsService.h"
+#include "nsMacAlertsService.h"
 #include "nsToolkitCompsCID.h"
 #include "mozilla/ModuleUtils.h"
 #include "nsCOMPtr.h"
@@ -11,11 +11,11 @@
 #include "nsICategoryManager.h"
 #include "nsMemory.h"
 
-NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsGrowlAlertsService, Init)
+NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsMacAlertsService, Init)
 NS_DEFINE_NAMED_CID(NS_SYSTEMALERTSSERVICE_CID);
 
 static const mozilla::Module::CIDEntry kAlertsCIDs[] = {
-  { &kNS_SYSTEMALERTSSERVICE_CID, false, NULL, nsGrowlAlertsServiceConstructor },
+  { &kNS_SYSTEMALERTSSERVICE_CID, false, NULL, nsMacAlertsServiceConstructor },
   { NULL }
 };
 
