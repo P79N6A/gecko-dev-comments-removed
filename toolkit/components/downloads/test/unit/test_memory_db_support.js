@@ -56,6 +56,7 @@ function run_test() {
   do_check_neq(dm.DBConnection.databaseFile, null);
   do_check_true(connDisk.databaseFile.equals(dm.DBConnection.databaseFile));
   connDisk = dm.DBConnection;
+  let oldFile = connDisk.databaseFile;
 
   
   observer.observe(null, "dlmgr-switchdb", "memory");
@@ -79,5 +80,5 @@ function run_test() {
   
   do_check_true(dm.DBConnection.connectionReady);
   do_check_neq(dm.DBConnection.databaseFile, null);
-  do_check_true(connDisk.databaseFile.equals(dm.DBConnection.databaseFile));
+  do_check_true(oldFile.equals(dm.DBConnection.databaseFile));
 }
