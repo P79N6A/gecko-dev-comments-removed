@@ -623,6 +623,9 @@ class SetPropCompiler : public PICStubCompiler
             if (flags & Shape::METHOD)
                 obj->nativeSetSlot(shape->slot, f.regs.sp[-1]);
 
+            if (monitor.recompiled())
+                return Lookup_Uncacheable;
+
             
 
 
