@@ -1270,6 +1270,7 @@ Tab.prototype = {
     }
     this._metadata = aMetadata;
     this.updateViewportSize();
+    this.sendViewportUpdate(true);
   },
 
   
@@ -1327,6 +1328,8 @@ Tab.prototype = {
   },
 
   getPageZoomLevel: function getPageZoomLevel() {
+    if (!this.browser.contentDocument)
+      return 1.0;
     return screen.width / this.browser.contentDocument.body.clientWidth;
   },
 
