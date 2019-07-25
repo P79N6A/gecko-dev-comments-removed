@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.util;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
-public class INIParser extends INISection {
+public final class INIParser extends INISection {
     
     private File mFile = null;
 

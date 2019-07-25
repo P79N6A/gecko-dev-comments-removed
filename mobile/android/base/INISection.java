@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.util;
 
 import android.text.TextUtils;
 import android.util.Log;
@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Hashtable;
 
-class INISection {
+public class INISection {
     private static final String LOGTAG = "INIParser";
 
     
