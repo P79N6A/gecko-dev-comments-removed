@@ -133,6 +133,7 @@ struct ObjectStoreInfoGuts
   bool autoIncrement;
 
   
+  
   nsTArray<IndexInfo> indexes;
 };
 
