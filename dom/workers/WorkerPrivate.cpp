@@ -58,6 +58,7 @@
 
 #include "jsfriendapi.h"
 #include "jsdbgapi.h"
+#include "jsfriendapi.h"
 #include "jsprf.h"
 #include "js/MemoryMetrics.h"
 
@@ -90,6 +91,12 @@
 #if 0 
 #define EXTRA_GC
 #endif
+
+
+#define NORMAL_GC_TIMER_DELAY_MS 30000
+
+
+#define IDLE_GC_TIMER_DELAY_MS 5000
 
 using mozilla::MutexAutoLock;
 using mozilla::TimeDuration;
@@ -1418,6 +1425,43 @@ public:
 };
 #endif
 
+class GarbageCollectRunnable : public WorkerControlRunnable
+{
+protected:
+  bool mShrinking;
+  bool mCollectChildren;
+
+public:
+  GarbageCollectRunnable(WorkerPrivate* aWorkerPrivate, bool aShrinking,
+                         bool aCollectChildren)
+  : WorkerControlRunnable(aWorkerPrivate, WorkerThread, UnchangedBusyCount),
+    mShrinking(aShrinking), mCollectChildren(aCollectChildren)
+  { }
+
+  bool
+  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
+  {
+    
+    
+    return true;
+  }
+
+  void
+  PostDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+                bool aDispatchResult)
+  {
+    
+    
+  }
+
+  bool
+  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
+  {
+    aWorkerPrivate->GarbageCollectInternal(aCx, mShrinking, mCollectChildren);
+    return true;
+  }
+};
+
 class CollectRuntimeStatsRunnable : public WorkerControlRunnable
 {
   typedef mozilla::Mutex Mutex;
@@ -2172,6 +2216,18 @@ WorkerPrivateParent<Derived>::UpdateGCZeal(JSContext* aCx, PRUint8 aGCZeal)
 
 template <class Derived>
 void
+WorkerPrivateParent<Derived>::GarbageCollect(JSContext* aCx, bool aShrinking)
+{
+  nsRefPtr<GarbageCollectRunnable> runnable =
+    new GarbageCollectRunnable(ParentAsWorkerPrivate(), aShrinking, true);
+  if (!runnable->Dispatch(aCx)) {
+    NS_WARNING("Failed to update worker heap size!");
+    JS_ClearPendingException(aCx);
+  }
+}
+
+template <class Derived>
+void
 WorkerPrivateParent<Derived>::SetBaseURI(nsIURI* aBaseURI)
 {
   AssertIsOnMainThread();
@@ -2495,6 +2551,37 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
     mStatus = Running;
   }
 
+  
+  
+  
+  
+  
+  nsCOMPtr<nsITimer> gcTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
+  if (!gcTimer) {
+    JS_ReportError(aCx, "Failed to create GC timer!");
+    return;
+  }
+
+  bool normalGCTimerRunning = false;
+
+  
+  nsCOMPtr<nsIEventTarget> normalGCEventTarget;
+  nsCOMPtr<nsIEventTarget> idleGCEventTarget;
+
+  
+  
+  nsCOMPtr<nsIRunnable> idleGCEvent;
+  {
+    nsRefPtr<GarbageCollectRunnable> runnable =
+      new GarbageCollectRunnable(this, false, false);
+    normalGCEventTarget = new WorkerRunnableEventTarget(runnable);
+
+    runnable = new GarbageCollectRunnable(this, true, false);
+    idleGCEventTarget = new WorkerRunnableEventTarget(runnable);
+
+    idleGCEvent = runnable;
+  }
+
   mMemoryReporter = new WorkerMemoryReporter(this);
 
   if (NS_FAILED(NS_RegisterMemoryMultiReporter(mMemoryReporter))) {
@@ -2504,6 +2591,8 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
 
   for (;;) {
     Status currentStatus;
+    bool scheduleIdleGC;
+
     nsIRunnable* event;
     {
       MutexAutoLock lock(mMutex);
@@ -2512,19 +2601,72 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
         mCondVar.Wait();
       }
 
+      bool eventIsNotIdleGCEvent;
+      currentStatus = mStatus;
+
       {
         MutexAutoUnlock unlock(mMutex);
+
+        if (!normalGCTimerRunning &&
+            event != idleGCEvent &&
+            currentStatus <= Terminating) {
+          
+          if (NS_FAILED(gcTimer->Cancel())) {
+            NS_WARNING("Failed to cancel GC timer!");
+          }
+
+          if (NS_SUCCEEDED(gcTimer->SetTarget(normalGCEventTarget)) &&
+              NS_SUCCEEDED(gcTimer->InitWithFuncCallback(
+                                             DummyCallback, nsnull,
+                                             NORMAL_GC_TIMER_DELAY_MS,
+                                             nsITimer::TYPE_REPEATING_SLACK))) {
+            normalGCTimerRunning = true;
+          }
+          else {
+            JS_ReportError(aCx, "Failed to start normal GC timer!");
+          }
+        }
 
 #ifdef EXTRA_GC
         
         JS_GC(aCx);
 #endif
 
+        
+        eventIsNotIdleGCEvent = event != idleGCEvent;
+
         event->Run();
         NS_RELEASE(event);
       }
 
       currentStatus = mStatus;
+      scheduleIdleGC = mControlQueue.IsEmpty() &&
+                       mQueue.IsEmpty() &&
+                       eventIsNotIdleGCEvent;
+    }
+
+    
+    
+    
+    if (currentStatus > Terminating || scheduleIdleGC) {
+      if (NS_SUCCEEDED(gcTimer->Cancel())) {
+        normalGCTimerRunning = false;
+      }
+      else {
+        NS_WARNING("Failed to cancel GC timer!");
+      }
+    }
+
+    if (scheduleIdleGC) {
+      if (NS_SUCCEEDED(gcTimer->SetTarget(idleGCEventTarget)) &&
+          NS_SUCCEEDED(gcTimer->InitWithFuncCallback(
+                                                    DummyCallback, nsnull,
+                                                    IDLE_GC_TIMER_DELAY_MS,
+                                                    nsITimer::TYPE_ONE_SHOT))) {
+      }
+      else {
+        JS_ReportError(aCx, "Failed to start idle GC timer!");
+      }
     }
 
 #ifdef EXTRA_GC
@@ -2552,6 +2694,11 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
 
       
       if (currentStatus == Killing) {
+        
+        if (NS_FAILED(gcTimer->Cancel())) {
+          NS_WARNING("Failed to cancel the GC timer!");
+        }
+
         
         
         DisableMemoryReporter();
@@ -3639,6 +3786,26 @@ WorkerPrivate::UpdateGCZealInternal(JSContext* aCx, PRUint8 aGCZeal)
   }
 }
 #endif
+
+void
+WorkerPrivate::GarbageCollectInternal(JSContext* aCx, bool aShrinking,
+                                      bool aCollectChildren)
+{
+  AssertIsOnWorkerThread();
+
+  if (aShrinking) {
+    JS_ShrinkingGC(aCx);
+  }
+  else {
+    JS_GC(aCx);
+  }
+
+  if (aCollectChildren) {
+    for (PRUint32 index = 0; index < mChildWorkers.Length(); index++) {
+      mChildWorkers[index]->GarbageCollect(aCx, aShrinking);
+    }
+  }
+}
 
 #ifdef DEBUG
 template <class Derived>
