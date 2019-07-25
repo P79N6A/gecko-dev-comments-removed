@@ -205,6 +205,9 @@ var BrowserUI = {
     document.getElementById("notifications").width = windowW;
 
     
+    document.getElementById("findbar-container").width = windowW;
+
+    
     let sideBarHeight = windowH - this._toolbarH;
     document.getElementById("browser-controls").height = sideBarHeight;
     document.getElementById("tabs-container").height = sideBarHeight;
