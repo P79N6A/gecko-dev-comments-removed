@@ -109,6 +109,7 @@ public:
     , mContentSize(0, 0)
     , mViewportScrollOffset(0, 0)
     , mScrollId(NULL_SCROLL_ID)
+    , mCSSContentSize(0, 0)
   {}
 
   
@@ -146,6 +147,10 @@ public:
   nsIntPoint mViewportScrollOffset;
   nsIntRect mDisplayPort;
   ViewID mScrollId;
+
+  
+  
+  gfx::Size mCSSContentSize;
 };
 
 #define MOZ_LAYER_DECL_NAME(n, e)                           \
