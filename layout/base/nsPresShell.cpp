@@ -815,8 +815,6 @@ public:
 
   virtual LayerManager* GetLayerManager();
 
-  virtual void SynthesizeMouseMove(PRBool aFromScroll);
-
   
 
   NS_IMETHOD Paint(nsIView* aDisplayRoot,
@@ -836,6 +834,7 @@ public:
                                                         nsIDOMEvent* aEvent,
                                                         nsEventStatus* aStatus);
   NS_IMETHOD ResizeReflow(nsIView *aView, nscoord aWidth, nscoord aHeight);
+  NS_IMETHOD_(PRBool) IsVisible();
   NS_IMETHOD_(PRBool) ShouldIgnoreInvalidation();
   NS_IMETHOD_(void) WillPaint(PRBool aWillSendDidPaint);
   NS_IMETHOD_(void) DidPaint();
@@ -4529,10 +4528,7 @@ PresShell::CaptureHistoryState(nsILayoutHistoryState** aState, PRBool aLeavingPa
 void
 PresShell::UnsuppressAndInvalidate()
 {
-  
-  
-  if ((!mDocument->IsResourceDoc() && !mPresContext->EnsureVisible()) ||
-      mHaveShutDown) {
+  if (!mPresContext->EnsureVisible() || mHaveShutDown) {
     
     return;
   }
@@ -4559,8 +4555,8 @@ PresShell::UnsuppressAndInvalidate()
   if (win)
     win->SetReadyForFocus();
 
-  if (!mHaveShutDown)
-    SynthesizeMouseMove(PR_FALSE);
+  if (!mHaveShutDown && mViewManager)
+    mViewManager->SynthesizeMouseMove(PR_FALSE);
 }
 
 void
@@ -4726,12 +4722,7 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
   NS_ASSERTION(aType >= Flush_Frames, "Why did we get called?");
 
   PRBool isSafeToFlush = IsSafeToFlush();
-
-  
-  
-  if (mDocument->GetScriptGlobalObject()) {
-    isSafeToFlush = isSafeToFlush && nsContentUtils::IsSafeToRunScript();
-  }
+  isSafeToFlush = isSafeToFlush && nsContentUtils::IsSafeToRunScript();
 
   NS_ASSERTION(!isSafeToFlush || mViewManager, "Must have view manager");
   
@@ -5378,7 +5369,7 @@ PresShell::ClipListToRange(nsDisplayListBuilder *aBuilder,
             
             
             itemToInsert = new (aBuilder)
-                nsDisplayClip(aBuilder, frame, i, textRect);
+                nsDisplayClip(aBuilder, frame, frame, i, textRect);
           }
         }
         
@@ -5627,7 +5618,7 @@ PresShell::PaintRangePaintInfo(nsTArray<nsAutoPtr<RangePaintInfo> >* aItems,
 
     aArea.MoveBy(-rangeInfo->mRootOffset.x, -rangeInfo->mRootOffset.y);
     nsRegion visible(aArea);
-    rangeInfo->mList.ComputeVisibilityForRoot(&rangeInfo->mBuilder, &visible);
+    rangeInfo->mList.ComputeVisibility(&rangeInfo->mBuilder, &visible);
     rangeInfo->mList.PaintRoot(&rangeInfo->mBuilder, rc, nsDisplayList::PAINT_DEFAULT);
     aArea.MoveBy(rangeInfo->mRootOffset.x, rangeInfo->mRootOffset.y);
   }
@@ -5814,7 +5805,8 @@ void PresShell::UpdateCanvasBackground()
     mCanvasBackgroundColor =
       nsCSSRendering::DetermineBackgroundColor(mPresContext, bgStyle,
                                                rootStyleFrame);
-    if (GetPresContext()->IsRootContentDocument() &&
+    if (nsLayoutUtils::GetCrossDocParentFrame(FrameManager()->GetRootFrame()) &&
+        !nsContentUtils::IsChildOfSameType(mDocument) &&
         !IsTransparentContainerElement(mPresContext)) {
       mCanvasBackgroundColor =
         NS_ComposeColors(mPresContext->DefaultBackgroundColor(), mCanvasBackgroundColor);
@@ -5861,13 +5853,6 @@ LayerManager* PresShell::GetLayerManager()
     }
   }
   return nsnull;
-}
-
-void PresShell::SynthesizeMouseMove(PRBool aFromScroll)
-{
-  if (mViewManager && !mPaintingSuppressed && mIsActive) {
-    mViewManager->SynthesizeMouseMove(aFromScroll);
-  }
 }
 
 static void DrawThebesLayer(ThebesLayer* aLayer,
@@ -7190,9 +7175,21 @@ PresShell::ResizeReflow(nsIView *aView, nscoord aWidth, nscoord aHeight)
 }
 
 NS_IMETHODIMP_(PRBool)
+PresShell::IsVisible()
+{
+  nsCOMPtr<nsISupports> container = mPresContext->GetContainer();
+  nsCOMPtr<nsIBaseWindow> bw = do_QueryInterface(container);
+  if (!bw)
+    return PR_FALSE;
+  PRBool res = PR_TRUE;
+  bw->GetVisibility(&res);
+  return res;
+}
+
+NS_IMETHODIMP_(PRBool)
 PresShell::ShouldIgnoreInvalidation()
 {
-  return mPaintingSuppressed || !mIsActive;
+  return mPaintingSuppressed;
 }
 
 NS_IMETHODIMP_(void)
@@ -7200,7 +7197,7 @@ PresShell::WillPaint(PRBool aWillSendDidPaint)
 {
   
   
-  if (mPaintingSuppressed || !mIsActive) {
+  if (mPaintingSuppressed) {
     return;
   }
 
@@ -7369,6 +7366,8 @@ PresShell::Thaw()
   if (mDocument)
     mDocument->EnumerateSubDocuments(ThawSubDocument, nsnull);
 
+  UnsuppressPainting();
+
   
   
   QueryIsActive();
@@ -7376,8 +7375,6 @@ PresShell::Thaw()
   
   mFrozen = PR_FALSE;
   UpdateImageLockingState();
-
-  UnsuppressPainting();
 }
 
 
@@ -7443,7 +7440,10 @@ PresShell::DidDoReflow(PRBool aInterruptible)
   mFrameConstructor->EndUpdate();
   
   HandlePostedReflowCallbacks(aInterruptible);
-  SynthesizeMouseMove(PR_FALSE);
+  
+  
+  if (!mPaintingSuppressed && mViewManager)
+    mViewManager->SynthesizeMouseMove(PR_FALSE);
   if (mCaret) {
     
     
@@ -9012,11 +9012,6 @@ nsresult
 PresShell::SetIsActive(PRBool aIsActive)
 {
   mIsActive = aIsActive;
-  nsPresContext* presContext = GetPresContext();
-  if (presContext &&
-      presContext->RefreshDriver()->PresContext() == presContext) {
-    presContext->RefreshDriver()->SetThrottled(!mIsActive);
-  }
   return UpdateImageLockingState();
 }
 
