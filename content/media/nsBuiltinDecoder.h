@@ -413,7 +413,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   void Stop();
 
-  void AudioAvailable(float* aFrameBuffer, PRUint32 aFrameBufferLength, PRUint64 aTime);
+  void AudioAvailable(float* aFrameBuffer, PRUint32 aFrameBufferLength, float aTime);
 
   
   

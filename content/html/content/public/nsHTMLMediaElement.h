@@ -189,7 +189,7 @@ public:
   nsresult DispatchAsyncEvent(const nsAString& aName);
   nsresult DispatchAudioAvailableEvent(float* aFrameBuffer,
                                        PRUint32 aFrameBufferLength,
-                                       PRUint64 aTime);
+                                       float aTime);
 
   
   nsresult DispatchPendingMediaEvents();
@@ -296,7 +296,7 @@ public:
 
 
   void NotifyAudioAvailable(float* aFrameBuffer, PRUint32 aFrameBufferLength,
-                            PRUint64 aTime);
+                            float aTime);
 
   
 

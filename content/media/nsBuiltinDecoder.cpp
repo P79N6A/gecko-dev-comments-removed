@@ -310,7 +310,7 @@ already_AddRefed<nsIPrincipal> nsBuiltinDecoder::GetCurrentPrincipal()
 
 void nsBuiltinDecoder::AudioAvailable(float* aFrameBuffer,
                                       PRUint32 aFrameBufferLength,
-                                      PRUint64 aTime)
+                                      float aTime)
 {
   
   

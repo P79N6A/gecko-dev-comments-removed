@@ -121,8 +121,6 @@ static PRLogModuleInfo* gMediaElementEventsLog;
 #include "nsIChannelPolicy.h"
 #include "nsChannelPolicy.h"
 
-#define MS_PER_SECOND 1000
-
 using namespace mozilla::layers;
 
 
@@ -693,7 +691,7 @@ void nsHTMLMediaElement::NotifyLoadError()
 
 void nsHTMLMediaElement::NotifyAudioAvailable(float* aFrameBuffer,
                                               PRUint32 aFrameBufferLength,
-                                              PRUint64 aTime)
+                                              float aTime)
 {
   
   
@@ -2218,7 +2216,7 @@ ImageContainer* nsHTMLMediaElement::GetImageContainer()
 
 nsresult nsHTMLMediaElement::DispatchAudioAvailableEvent(float* aFrameBuffer,
                                                          PRUint32 aFrameBufferLength,
-                                                         PRUint64 aTime)
+                                                         float aTime)
 {
   
   
@@ -2238,7 +2236,7 @@ nsresult nsHTMLMediaElement::DispatchAudioAvailableEvent(float* aFrameBuffer,
 
   rv = audioavailableEvent->InitAudioAvailableEvent(NS_LITERAL_STRING("MozAudioAvailable"),
                                                     PR_TRUE, PR_TRUE, frameBuffer.forget(), aFrameBufferLength,
-                                                    (float)aTime / MS_PER_SECOND, mAllowAudioData);
+                                                    aTime, mAllowAudioData);
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool dummy;

@@ -82,7 +82,7 @@ private:
   nsBuiltinDecoder* mDecoder;
 
   
-  PRUint64 mSamplesPerSecond;
+  float mSamplesPerSecond;
 
   
   nsAutoArrayPtr<float> mSignalBuffer;
