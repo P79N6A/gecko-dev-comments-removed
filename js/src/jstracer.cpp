@@ -141,10 +141,10 @@ StackFilter::getTop(LIns* guard)
 }
 
 #ifdef DEBUG
-void ValidateWriter::checkAccSet(LOpcode op, LIns* base, AccSet accSet)
+void ValidateWriter::checkAccSet(LOpcode op, LIns* base, int32_t disp, AccSet accSet)
 {
-    LIns* sp = checkAccSetIns1;
-    LIns* rp = checkAccSetIns2;
+    LIns* sp = (LIns*)checkAccSetExtras[0];
+    LIns* rp = (LIns*)checkAccSetExtras[1];
 
     bool isRstack = base == rp;
     bool isStack =
@@ -2357,6 +2357,16 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* frag
         fragment->loopLabel = entryLabel;
     })
 
+#ifdef DEBUG
+    
+    
+    void** extras = new (tempAlloc()) void*[2];
+    extras[0] = 0;      
+    extras[1] = 0;      
+    validate1->setCheckAccSetExtras(extras);
+    validate2->setCheckAccSetExtras(extras);
+#endif
+
     lirbuf->sp =
         addName(lir->insLoad(LIR_ldp, lirbuf->state, offsetof(TracerState, sp), ACCSET_OTHER), "sp");
     lirbuf->rp =
@@ -2370,10 +2380,8 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* frag
 
 #ifdef DEBUG
     
-    validate1->setCheckAccSetIns1(lirbuf->sp);
-    validate2->setCheckAccSetIns1(lirbuf->sp);
-    validate1->setCheckAccSetIns2(lirbuf->rp);
-    validate2->setCheckAccSetIns2(lirbuf->rp);
+    extras[0] = lirbuf->sp;
+    extras[1] = lirbuf->rp;
 #endif
 
     
