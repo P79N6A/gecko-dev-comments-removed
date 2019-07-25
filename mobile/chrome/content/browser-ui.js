@@ -183,7 +183,7 @@ var BrowserUI = {
       return;
     
     this._toolbarLocked--;
-    if(!this._toolbarLocked)
+    if (!this._toolbarLocked)
       document.getElementById("toolbar-moveable-container").top = "";
   },
 
@@ -202,9 +202,7 @@ var BrowserUI = {
       
       
       this._edit.inputField.blur();
-
       this._edit.inputField.focus();
-      this._edit.select();
     }
     else if (!aEdit && icons.getAttribute("mode") != "view") {
       icons.setAttribute("mode", "view");
