@@ -41,6 +41,7 @@
 
 
 
+
 #include <string.h>
 #include "jsprvtd.h"
 #include "jstypes.h"
@@ -770,6 +771,12 @@ JS_GetScriptFilename(JSContext *cx, JSScript *script)
     return script->filename;
 }
 
+JS_PUBLIC_API(const jschar *)
+JS_GetScriptSourceMap(JSContext *cx, JSScript *script)
+{
+    return script->sourceMap;
+}
+
 JS_PUBLIC_API(uintN)
 JS_GetScriptBaseLineNumber(JSContext *cx, JSScript *script)
 {
@@ -839,7 +846,7 @@ JS_EvaluateInStackFrame(JSContext *cx, JSStackFrame *fp,
     jschar *chars;
     JSBool ok;
     size_t len = length;
-    
+
     if (!CheckDebugMode(cx))
         return JS_FALSE;
 

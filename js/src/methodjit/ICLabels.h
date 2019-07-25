@@ -1,44 +1,44 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
- * May 28, 2008.
- *
- * The Initial Developer of the Original Code is
- *   Brendan Eich <brendan@mozilla.org>
- *
- * Contributor(s):
- *   David Mandelin <dmandelin@mozilla.com>
- *   David Anderson <danderson@mozilla.com>
- *   Chris Leary <cdleary@mozilla.com>
- *   Jacob Bramley <Jacob.Bramely@arm.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #if !defined jsjaeger_ic_labels_h__ && defined JS_METHODJIT
 #define jsjaeger_ic_labels_h__
@@ -54,21 +54,21 @@ namespace js {
 namespace mjit {
 namespace ic {
 
-/*
- * On x64 and ARM, we record offsets into the labels data structures at runtime
- * instead of using hardcoded offsets into the instruction stream, as we do on
- * x86.
- *
- * This is done on x64 because of variable-width instruction encoding when
- * using the extended register set. It is done on ARM for ease of
- * implementation.
- */
+
+
+
+
+
+
+
+
+
 
 #if defined JS_CPU_X64 || defined JS_CPU_ARM || defined JS_CPU_SPARC
 # define JS_HAS_IC_LABELS
 #endif
 
-/* GetPropCompiler */
+
 struct GetPropLabels : MacroAssemblerTypedefs {
     friend class ::ICOffsetInitializer;
 
@@ -77,10 +77,10 @@ struct GetPropLabels : MacroAssemblerTypedefs {
 #ifdef JS_HAS_IC_LABELS
         inlineValueLoadOffset = offset;
 #endif
-        /* 
-         * Note: the offset between the type and data loads for x86 is asserted
-         * in NunboxAssembler::loadValueWithAddressOffsetPatch.
-         */
+        
+
+
+
         JS_ASSERT(offset == inlineValueLoadOffset);
         (void) offset;
     }
@@ -107,10 +107,10 @@ struct GetPropLabels : MacroAssemblerTypedefs {
         return fastShapeGuard.dataLabel32AtOffset(getInlineShapeOffset());
     }
 
-    /*
-     * Note: on x64, the base is the inlineShapeLabel DataLabel32, whereas on other
-     * platforms the base is the shapeGuard.
-     */
+    
+
+
+
     template <typename T>
     void setInlineShapeJump(MacroAssembler &masm, T base, Label afterJump) {
         setInlineShapeJumpOffset(masm.differenceBetween(base, afterJump));
@@ -134,7 +134,7 @@ struct GetPropLabels : MacroAssemblerTypedefs {
         setStubShapeJumpOffset(offset);
     }
 
-    /* Offset-based interface */
+    
 
     void setDslotsLoadOffset(int offset) {
 #ifdef JS_HAS_IC_LABELS
@@ -197,43 +197,43 @@ struct GetPropLabels : MacroAssemblerTypedefs {
     }
 
   private:
-    /* Offset from storeBack to beginning of 'mov dslots, addr' */
+    
     int32 dslotsLoadOffset : 8;
 
-    /* Offset from shapeGuard to end of shape comparison. */
+    
     int32 inlineShapeOffset : 8;
 
-    /* Offset from storeBack to end of value load. */
+    
     int32 inlineValueLoadOffset : 8;
 
-    /* 
-     * Offset from lastStubStart to end of shape jump.
-     * TODO: We can redefine the location of lastStubStart to be
-     * after the jump -- at which point this is always 0.
-     */
+    
+
+
+
+
     int32 stubShapeJumpOffset : 8;
 
 #if defined JS_CPU_X86 
     static const int32 INLINE_SHAPE_JUMP = 12;
-    static const int32 INLINE_TYPE_JUMP = 12;
+    static const int32 INLINE_TYPE_JUMP = 9;
 #elif defined JS_CPU_X64
     static const int32 INLINE_SHAPE_JUMP = 6;
     static const int32 INLINE_TYPE_JUMP = 19;
 #elif defined JS_CPU_ARM
-    /* Offset from the shape guard start to the shape guard jump. */
+    
     static const int32 INLINE_SHAPE_JUMP = 12;
 
-    /* Offset from the fast path to the type guard jump. */
+    
     int32 inlineTypeJumpOffset : 8;
 #elif defined JS_CPU_SPARC
     static const int32 INLINE_SHAPE_JUMP = 48;
     static const int32 INLINE_TYPE_JUMP = 48;
-    /* Offset from the fast path to the type guard jump. */
+    
     int32 inlineTypeJumpOffset : 8;
 #endif
 };
 
-/* SetPropCompiler */
+
 struct SetPropLabels : MacroAssemblerTypedefs {
     friend class ::ICOffsetInitializer;
 
@@ -286,7 +286,7 @@ struct SetPropLabels : MacroAssemblerTypedefs {
 
   private:
 
-    /* Offset-based interface. */
+    
 
     void setDslotsLoadOffset(int offset, bool isConstant, bool isTypeKnown) {
 #if defined JS_HAS_IC_LABELS
@@ -371,7 +371,7 @@ struct SetPropLabels : MacroAssemblerTypedefs {
 #endif
     }
 
-    /* Offset from storeBack to beginning of 'mov dslots, addr'. */
+    
 #if defined JS_CPU_X86
     static const int INLINE_DSLOTS_BEFORE_CONSTANT = -23;
     static const int INLINE_DSLOTS_BEFORE_KTYPE = -19;
@@ -380,14 +380,14 @@ struct SetPropLabels : MacroAssemblerTypedefs {
     int32 dslotsLoadOffset : 8;
 #endif
 
-    /* Offset from shapeGuard to end of shape comparison. */
+    
     int32 inlineShapeDataOffset : 8;
 
-    /* 
-     * Offset from lastStubStart to end of shape jump.
-     * TODO: We can redefine the location of lastStubStart to be
-     * after the jump -- at which point this is always 0.
-     */
+    
+
+
+
+
     int32 stubShapeJumpOffset : 8;
 
 #if defined JS_CPU_X86
@@ -398,11 +398,11 @@ struct SetPropLabels : MacroAssemblerTypedefs {
     int32 inlineValueStoreOffset : 8;
 #endif
 
-    /* Offset from shapeGuard to the end of the shape jump. */
+    
     int32 inlineShapeJumpOffset : 8;
 };
 
-/* BindNameCompiler */
+
 struct BindNameLabels : MacroAssemblerTypedefs {
     friend class ::ICOffsetInitializer;
 
@@ -447,14 +447,14 @@ struct BindNameLabels : MacroAssemblerTypedefs {
     }
 
   private:
-    /* Offset from shapeGuard to end of shape jump. */
+    
     int32 inlineJumpOffset : 8;
 
-    /* Offset from lastStubStart to end of the shape jump. */
+    
     int32 stubJumpOffset : 8;
 };
 
-/* ScopeNameCompiler */
+
 struct ScopeNameLabels : MacroAssemblerTypedefs {
     friend class ::ICOffsetInitializer;
 
@@ -499,15 +499,15 @@ struct ScopeNameLabels : MacroAssemblerTypedefs {
     }
 
   private:
-    /* Offset from fastPathStart to end of shape jump. */
+    
     int32 inlineJumpOffset : 8;
 
-    /* Offset from lastStubStart to end of the shape jump. */
+    
     int32 stubJumpOffset : 8;
 };
 
-} /* namespace ic */
-} /* namespace mjit */
-} /* namespace js */
+} 
+} 
+} 
 
-#endif /* jsjaeger_ic_labels_h__ */
+#endif 
