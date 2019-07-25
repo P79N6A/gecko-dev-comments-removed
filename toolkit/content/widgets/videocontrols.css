@@ -18,6 +18,10 @@
 
 .mediaControlsFrame {
   direction: ltr;
+  
+  list-style-image: none !important;
+  font: normal normal normal 100%/normal sans-serif !important;
+  text-decoration: none !important;
 }
 
 
