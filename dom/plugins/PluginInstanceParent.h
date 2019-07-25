@@ -165,6 +165,12 @@ public:
     virtual bool
     RecvNPN_InvalidateRect(const NPRect& rect);
 
+    
+    virtual bool
+    RecvShow(const NPRect& updatedRect,
+             const SurfaceDescriptor& newSurface,
+             SurfaceDescriptor* prevSurface);
+
     virtual bool
     AnswerNPN_PushPopupsEnabledState(const bool& aState);
 
