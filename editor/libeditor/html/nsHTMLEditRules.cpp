@@ -5084,7 +5084,7 @@ nsHTMLEditRules::GetInnerContent(nsIDOMNode *aNode, nsCOMArray<nsIDOMNode> &outA
 
 
 
-PRBool
+nsresult
 nsHTMLEditRules::ExpandSelectionForDeletion(nsISelection *aSelection)
 {
   NS_ENSURE_TRUE(aSelection, NS_ERROR_NULL_POINTER);

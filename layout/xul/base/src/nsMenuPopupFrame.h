@@ -435,6 +435,8 @@ protected:
   
   PRInt8 mPopupAlignment;
   PRInt8 mPopupAnchor;
+  
+  PRInt8 mConsumeRollupEvent;
   PRPackedBool mFlipBoth; 
 
   PRPackedBool mIsOpenChanged; 
@@ -445,7 +447,6 @@ protected:
 
   PRPackedBool mMenuCanOverlapOSBar;    
   PRPackedBool mShouldAutoPosition; 
-  PRPackedBool mConsumeRollupEvent; 
   PRPackedBool mInContentShell; 
   PRPackedBool mIsMenuLocked; 
 

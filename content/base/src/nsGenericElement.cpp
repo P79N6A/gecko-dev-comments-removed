@@ -4005,7 +4005,7 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
 
     PRBool appending =
       !IsNodeOfType(eDOCUMENT) && PRUint32(insPos) == GetChildCount();
-    PRBool firstInsPos = insPos;
+    PRInt32 firstInsPos = insPos;
     nsIContent* firstInsertedContent = fragChildren[0];
 
     

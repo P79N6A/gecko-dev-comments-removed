@@ -247,7 +247,7 @@ nsIURIFixup *nsDocShell::sURIFixup = 0;
 
 
 
-static PRBool gValidateOrigin = (PRBool)0xffffffff;
+static PRUint32 gValidateOrigin = 0xffffffff;
 
 
 
@@ -4504,7 +4504,7 @@ nsDocShell::Create()
     mAllowSubframes =
         Preferences::GetBool("browser.frames.enabled", mAllowSubframes);
 
-    if (gValidateOrigin == (PRBool)0xffffffff) {
+    if (gValidateOrigin == 0xffffffff) {
         
         gValidateOrigin =
             Preferences::GetBool("browser.frame.validate_origin", PR_TRUE);
