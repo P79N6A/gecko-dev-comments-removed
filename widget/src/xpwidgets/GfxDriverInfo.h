@@ -71,10 +71,20 @@ enum VersionComparisonOp {
 };
 
 
-typedef const PRUint32 *GfxDeviceFamily;
+typedef PRUint32 *GfxDeviceFamily;
 
 struct GfxDriverInfo
 {
+  
+  
+  GfxDriverInfo(OperatingSystem os, PRUint32 vendor, GfxDeviceFamily devices,
+                PRInt32 feature, PRInt32 featureStatus, VersionComparisonOp op,
+                PRUint64 driverVersion, bool ownDevices = false);
+
+  GfxDriverInfo();
+  GfxDriverInfo(const GfxDriverInfo&);
+  ~GfxDriverInfo();
+
   OperatingSystem mOperatingSystem;
 
   PRUint32 mAdapterVendor;
@@ -82,6 +92,10 @@ struct GfxDriverInfo
 
   GfxDeviceFamily mDevices;
   static GfxDeviceFamily allDevices;
+
+  
+  
+  bool mDeleteDevices;
 
   
   PRInt32 mFeature;
