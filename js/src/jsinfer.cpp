@@ -1128,6 +1128,14 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, jstype type)
 void
 TypeConstraintArith::newType(JSContext *cx, TypeSet *source, jstype type)
 {
+    
+
+
+
+
+
+
+
     if (other) {
         
 
@@ -1136,47 +1144,37 @@ TypeConstraintArith::newType(JSContext *cx, TypeSet *source, jstype type)
 
 
         switch (type) {
-          case TYPE_UNDEFINED:
-          case TYPE_NULL:
-          case TYPE_INT32:
-          case TYPE_BOOLEAN:
-            
-            if (other->typeFlags & (TYPE_FLAG_UNDEFINED | TYPE_FLAG_NULL |
-                                    TYPE_FLAG_INT32 | TYPE_FLAG_BOOLEAN))
-                target->addType(cx, TYPE_INT32);
-            if (other->typeFlags & TYPE_FLAG_DOUBLE)
-                target->addType(cx, TYPE_DOUBLE);
-            break;
           case TYPE_DOUBLE:
             if (other->typeFlags & (TYPE_FLAG_UNDEFINED | TYPE_FLAG_NULL |
-                                    TYPE_FLAG_INT32 | TYPE_FLAG_DOUBLE | TYPE_FLAG_BOOLEAN))
+                                    TYPE_FLAG_INT32 | TYPE_FLAG_DOUBLE | TYPE_FLAG_BOOLEAN) ||
+                other->objectCount != 0) {
                 target->addType(cx, TYPE_DOUBLE);
+            }
             break;
           case TYPE_STRING:
             target->addType(cx, TYPE_STRING);
             break;
-          default:
-            
-
-
-
+          case TYPE_UNKNOWN:
             target->addType(cx, TYPE_UNKNOWN);
+          default:
+            if (other->typeFlags & (TYPE_FLAG_UNDEFINED | TYPE_FLAG_NULL |
+                                    TYPE_FLAG_INT32 | TYPE_FLAG_BOOLEAN) ||
+                other->objectCount != 0) {
+                target->addType(cx, TYPE_INT32);
+            }
+            if (other->typeFlags & TYPE_FLAG_DOUBLE)
+                target->addType(cx, TYPE_DOUBLE);
             break;
         }
     } else {
-        
         switch (type) {
-          case TYPE_UNDEFINED:
-          case TYPE_NULL:
-          case TYPE_INT32:
-          case TYPE_BOOLEAN:
-            target->addType(cx, TYPE_INT32);
-            break;
           case TYPE_DOUBLE:
             target->addType(cx, TYPE_DOUBLE);
             break;
-          default:
+          case TYPE_UNKNOWN:
             target->addType(cx, TYPE_UNKNOWN);
+          default:
+            target->addType(cx, TYPE_INT32);
             break;
         }
     }
