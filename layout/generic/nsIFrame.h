@@ -1894,7 +1894,7 @@ public:
 
 
 
-  virtual gfxMatrix GetTransformMatrix(nsIFrame **aOutAncestor);
+  virtual gfx3DMatrix GetTransformMatrix(nsIFrame **aOutAncestor);
 
   
 

@@ -461,7 +461,7 @@ public:
 
 
 
-  static gfxMatrix ChangeMatrixBasis(const gfxPoint &aOrigin, const gfxMatrix &aMatrix);
+  static gfx3DMatrix ChangeMatrixBasis(const gfxPoint &aOrigin, const gfx3DMatrix &aMatrix);
 
   
 
@@ -519,8 +519,8 @@ public:
 
 
 
-  static gfxMatrix GetTransformToAncestor(nsIFrame *aFrame,
-                                          nsIFrame* aStopAtAncestor = nsnull);
+  static gfx3DMatrix GetTransformToAncestor(nsIFrame *aFrame,
+                                            nsIFrame* aStopAtAncestor = nsnull);
 
   
 
@@ -545,7 +545,7 @@ public:
 
 
   static nsRect MatrixTransformRect(const nsRect &aBounds,
-                                    const gfxMatrix &aMatrix, float aFactor);
+                                    const gfx3DMatrix &aMatrix, float aFactor);
 
   
 
@@ -558,7 +558,7 @@ public:
 
 
   static nsRect MatrixTransformRectOut(const nsRect &aBounds,
-                                    const gfxMatrix &aMatrix, float aFactor);
+                                    const gfx3DMatrix &aMatrix, float aFactor);
   
 
 
@@ -569,7 +569,7 @@ public:
 
 
   static nsPoint MatrixTransformPoint(const nsPoint &aPoint,
-                                      const gfxMatrix &aMatrix, float aFactor);
+                                      const gfx3DMatrix &aMatrix, float aFactor);
 
   
 

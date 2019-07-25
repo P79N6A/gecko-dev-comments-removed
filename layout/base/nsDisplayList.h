@@ -2114,7 +2114,7 @@ public:
                                    const nsRect& aAllowVisibleRegionExpansion);
   virtual PRBool TryMerge(nsDisplayListBuilder *aBuilder, nsDisplayItem *aItem);
 
-  const gfxMatrix& GetTransform(float aFactor);
+  const gfx3DMatrix& GetTransform(float aFactor);
 
   
 
@@ -2147,9 +2147,10 @@ public:
   
 
 
-  static nsRect UntransformRect(const nsRect &aUntransformedBounds, 
+  static PRBool UntransformRect(const nsRect &aUntransformedBounds, 
                                 const nsIFrame* aFrame,
-                                const nsPoint &aOrigin);
+                                const nsPoint &aOrigin,
+                                nsRect* aOutRect);
 
   
 
@@ -2180,14 +2181,14 @@ public:
 
 
 
-  static gfxMatrix GetResultingTransformMatrix(const nsIFrame* aFrame,
-                                               const nsPoint& aOrigin,
-                                               float aFactor,
-                                               const nsRect* aBoundsOverride = nsnull);
+  static gfx3DMatrix GetResultingTransformMatrix(const nsIFrame* aFrame,
+                                                 const nsPoint& aOrigin,
+                                                 float aFactor,
+                                                 const nsRect* aBoundsOverride = nsnull);
 
 private:
   nsDisplayWrapList mStoredList;
-  gfxMatrix mTransform;
+  gfx3DMatrix mTransform;
   float mCachedFactor;
 };
 

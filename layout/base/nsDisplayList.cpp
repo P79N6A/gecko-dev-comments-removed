@@ -452,7 +452,7 @@ static nsRect GetDisplayPortBounds(nsDisplayListBuilder* aBuilder,
 {
   nsIFrame* frame = aItem->GetUnderlyingFrame();
   nscoord auPerDevPixel = frame->PresContext()->AppUnitsPerDevPixel();
-  gfxMatrix transform;
+  gfx3DMatrix transform;
 
   if (!aIgnoreTransform) {
     transform = nsLayoutUtils::GetTransformToAncestor(frame,
@@ -2353,7 +2353,7 @@ gfxPoint GetDeltaToMozTransformOrigin(const nsIFrame* aFrame,
 
 
 
-gfxMatrix
+gfx3DMatrix
 nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
                                                 const nsPoint &aOrigin,
                                                 float aFactor,
@@ -2387,7 +2387,7 @@ nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
                                             dummy, bounds, aFactor));
 }
 
-const gfxMatrix&
+const gfx3DMatrix&
 nsDisplayTransform::GetTransform(float aFactor)
 {
   if (mTransform.IsIdentity() || mCachedFactor != aFactor) {
@@ -2404,15 +2404,14 @@ already_AddRefed<Layer> nsDisplayTransform::BuildLayer(nsDisplayListBuilder *aBu
                                                        LayerManager *aManager,
                                                        const ContainerParameters& aContainerParameters)
 {
-  const gfxMatrix& newTransformMatrix = 
+  const gfx3DMatrix& newTransformMatrix = 
     GetTransform(mFrame->PresContext()->AppUnitsPerDevPixel());
   if (newTransformMatrix.IsSingular())
     return nsnull;
 
-  gfx3DMatrix matrix = gfx3DMatrix::From2D(newTransformMatrix);
   return aBuilder->LayerBuilder()->
     BuildContainerLayerFor(aBuilder, aManager, mFrame, this, *mStoredList.GetList(),
-                           aContainerParameters, &matrix);
+                           aContainerParameters, &newTransformMatrix);
 }
 
 nsDisplayItem::LayerState
@@ -2436,8 +2435,17 @@ PRBool nsDisplayTransform::ComputeVisibility(nsDisplayListBuilder *aBuilder,
   
 
 
-  nsRegion untransformedVisible =
-    UntransformRect(mVisibleRect, mFrame, ToReferenceFrame());
+
+  nsRect untransformedVisibleRect;
+  if (!UntransformRect(mVisibleRect, 
+                       mFrame, 
+                       aBuilder->ToReferenceFrame(mFrame), 
+                       &untransformedVisibleRect)) 
+  {
+    untransformedVisibleRect = mFrame->GetVisualOverflowRectRelativeToSelf() +  
+                               aBuilder->ToReferenceFrame(mFrame);
+  }
+  nsRegion untransformedVisible = untransformedVisibleRect;
   
   
   
@@ -2463,7 +2471,7 @@ void nsDisplayTransform::HitTest(nsDisplayListBuilder *aBuilder,
 
 
   float factor = nsPresContext::AppUnitsPerCSSPixel();
-  gfxMatrix matrix = GetTransform(factor);
+  gfx3DMatrix matrix = GetTransform(factor);
 
   if (matrix.IsSingular())
     return;
@@ -2546,13 +2554,17 @@ nsRegion nsDisplayTransform::GetOpaqueRegion(nsDisplayListBuilder *aBuilder,
   if (aForceTransparentSurface) {
     *aForceTransparentSurface = PR_FALSE;
   }
-  nsRect untransformedVisible =
-    UntransformRect(mVisibleRect, mFrame, ToReferenceFrame());
-
-  const gfxMatrix& matrix = GetTransform(nsPresContext::AppUnitsPerCSSPixel());
+  nsRect untransformedVisible;
+  if (!UntransformRect(mVisibleRect, mFrame, ToReferenceFrame(), &untransformedVisible)) {
+      return nsRegion();
+  }
+  
+  const gfx3DMatrix& matrix = GetTransform(nsPresContext::AppUnitsPerCSSPixel());
                 
   nsRegion result;
-  if (matrix.PreservesAxisAlignedRectangles() &&
+  gfxMatrix matrix2d;
+  if (matrix.Is2D(&matrix2d) &&
+      matrix2d.PreservesAxisAlignedRectangles() &&
       mStoredList.GetOpaqueRegion(aBuilder).Contains(untransformedVisible)) {
     result = mVisibleRect;
   }
@@ -2565,11 +2577,15 @@ nsRegion nsDisplayTransform::GetOpaqueRegion(nsDisplayListBuilder *aBuilder,
 
 PRBool nsDisplayTransform::IsUniform(nsDisplayListBuilder *aBuilder, nscolor* aColor)
 {
-  nsRect untransformedVisible =
-    UntransformRect(mVisibleRect, mFrame, ToReferenceFrame());
-  const gfxMatrix& matrix = GetTransform(nsPresContext::AppUnitsPerCSSPixel());
+  nsRect untransformedVisible;
+  if (!UntransformRect(mVisibleRect, mFrame, ToReferenceFrame(), &untransformedVisible)) {
+    return PR_FALSE;
+  }
+  const gfx3DMatrix& matrix = GetTransform(nsPresContext::AppUnitsPerCSSPixel());
 
-  return matrix.PreservesAxisAlignedRectangles() &&
+  gfxMatrix matrix2d;
+  return matrix.Is2D(&matrix2d) &&
+         matrix2d.PreservesAxisAlignedRectangles() &&
          mStoredList.GetVisibleRect().Contains(untransformedVisible) &&
          mStoredList.IsUniform(aBuilder, aColor);
 }
@@ -2660,9 +2676,10 @@ nsRect nsDisplayTransform::TransformRectOut(const nsRect &aUntransformedBounds,
      factor);
 }
 
-nsRect nsDisplayTransform::UntransformRect(const nsRect &aUntransformedBounds,
+PRBool nsDisplayTransform::UntransformRect(const nsRect &aUntransformedBounds,
                                            const nsIFrame* aFrame,
-                                           const nsPoint &aOrigin)
+                                           const nsPoint &aOrigin,
+                                           nsRect* aOutRect)
 {
   NS_PRECONDITION(aFrame, "Can't take the transform based on a null frame!");
   NS_PRECONDITION(aFrame->GetStyleDisplay()->HasTransform(),
@@ -2673,15 +2690,17 @@ nsRect nsDisplayTransform::UntransformRect(const nsRect &aUntransformedBounds,
 
 
   float factor = nsPresContext::AppUnitsPerCSSPixel();
-  gfxMatrix matrix = GetResultingTransformMatrix(aFrame, aOrigin, factor, nsnull);
-  if (matrix.IsSingular())
-    return nsRect();
+  gfx3DMatrix matrix = GetResultingTransformMatrix(aFrame, aOrigin, factor, nsnull);
+  if (matrix.IsSingular() || !matrix.Is2D())
+    return PR_FALSE;
 
   
   matrix.Invert();
 
-  return nsLayoutUtils::MatrixTransformRect(aUntransformedBounds, matrix,
-                                            factor);
+  *aOutRect = nsLayoutUtils::MatrixTransformRect(aUntransformedBounds, matrix,
+                                                 factor);
+
+  return PR_TRUE;
 }
 
 nsDisplaySVGEffects::nsDisplaySVGEffects(nsDisplayListBuilder* aBuilder,
