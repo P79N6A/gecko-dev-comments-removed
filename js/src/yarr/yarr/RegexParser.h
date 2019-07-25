@@ -39,27 +39,28 @@ enum BuiltInCharacterClassID {
     NewlineClassID
 };
 
+enum ErrorCode {
+    NoError,
+    PatternTooLarge,
+    QuantifierOutOfOrder,
+    QuantifierWithoutAtom,
+    MissingParentheses,
+    ParenthesesUnmatched,
+    ParenthesesTypeInvalid,
+    CharacterClassUnmatched,
+    CharacterClassOutOfOrder,
+    CharacterClassRangeSingleChar,
+    EscapeUnterminated,
+    QuantifierTooLarge,
+    NumberOfErrorCodes
+};
+
 
 template<class Delegate>
 class Parser {
 private:
     template<class FriendDelegate>
     friend int parse(FriendDelegate& delegate, const UString& pattern, unsigned backReferenceLimit);
-
-    enum ErrorCode {
-        NoError,
-        PatternTooLarge,
-        QuantifierOutOfOrder,
-        QuantifierWithoutAtom,
-        MissingParentheses,
-        ParenthesesUnmatched,
-        ParenthesesTypeInvalid,
-        CharacterClassUnmatched,
-        CharacterClassOutOfOrder,
-        EscapeUnterminated,
-        QuantifierTooLarge,
-        NumberOfErrorCodes
-    };
 
     
 
@@ -76,6 +77,7 @@ private:
             : m_delegate(delegate)
             , m_err(err)
             , m_state(empty)
+            , m_sawCharacterClass(false)
         {
         }
 
@@ -107,6 +109,14 @@ private:
                 break;
 
             case cachedCharacter:
+                
+                if ((m_character == '-') && m_sawCharacterClass) {
+                    m_err = CharacterClassRangeSingleChar;
+                    m_state = empty;
+                    break;
+                }
+
+                m_sawCharacterClass = false;
                 if (ch == '-')
                     m_state = cachedCharacterHyphen;
                 else {
@@ -138,6 +148,7 @@ private:
                 flush();
 
             atomPatternCharacterUnescaped(ch);
+            m_sawCharacterClass = false;
         }
 
         
@@ -147,8 +158,20 @@ private:
 
         void atomBuiltInCharacterClass(BuiltInCharacterClassID classID, bool invert)
         {
+            
+            
+            if (m_state == cachedCharacterHyphen ||
+                (m_sawCharacterClass && (m_state == cachedCharacter) && m_character == '-')) {
+                
+                
+                
+                m_err = CharacterClassRangeSingleChar;
+                m_state = empty;
+                return;
+            }
             flush();
             m_delegate.atomCharacterClassBuiltIn(classID, invert);
+            m_sawCharacterClass = true;
         }
 
         
@@ -184,6 +207,8 @@ private:
             cachedCharacter,
             cachedCharacterHyphen
         } m_state;
+        
+        bool m_sawCharacterClass;
         UChar m_character;
     };
 
