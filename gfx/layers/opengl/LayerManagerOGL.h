@@ -259,6 +259,8 @@ private:
   LayerOGL *mRootLayer;
   
   GLuint mVBO;
+  
+  GLenum mFBOTextureTarget;
 
   
 
