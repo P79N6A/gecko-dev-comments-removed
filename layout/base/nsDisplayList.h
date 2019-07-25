@@ -722,8 +722,14 @@ public:
 
 
 
+
+
+
+
+  typedef mozilla::FrameLayerBuilder::ContainerParameters ContainerParameters;
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
-                                             LayerManager* aManager)
+                                             LayerManager* aManager,
+                                             const ContainerParameters& aContainerParameters)
   { return nsnull; }
 
   
@@ -1753,7 +1759,8 @@ public:
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                    PRBool* aForceTransparentSurface = nsnull);
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
-                                             LayerManager* aManager);
+                                             LayerManager* aManager,
+                                             const ContainerParameters& aContainerParameters);
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager);
   virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
@@ -1776,7 +1783,8 @@ public:
 #endif
   
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
-                                             LayerManager* aManager);
+                                             LayerManager* aManager,
+                                             const ContainerParameters& aContainerParameters);
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager)
   {
@@ -1837,7 +1845,8 @@ public:
 #endif
 
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
-                                             LayerManager* aManager);
+                                             LayerManager* aManager,
+                                             const ContainerParameters& aContainerParameters);
 
   virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
@@ -2098,7 +2107,8 @@ public:
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager);
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
-                                             LayerManager* aManager);
+                                             LayerManager* aManager,
+                                             const ContainerParameters& aContainerParameters);
   virtual PRBool ComputeVisibility(nsDisplayListBuilder *aBuilder,
                                    nsRegion *aVisibleRegion,
                                    const nsRect& aAllowVisibleRegionExpansion);

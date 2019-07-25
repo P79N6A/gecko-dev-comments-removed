@@ -132,7 +132,13 @@ public:
 
   void DidEndTransaction(LayerManager* aManager);
 
+  struct ContainerParameters {
+    ContainerParameters() : mXScale(1), mYScale(1) {}
+    double mXScale, mYScale;
+  };
   
+
+
 
 
 
@@ -152,7 +158,9 @@ public:
                          LayerManager* aManager,
                          nsIFrame* aContainerFrame,
                          nsDisplayItem* aContainerItem,
-                         const nsDisplayList& aChildren);
+                         const nsDisplayList& aChildren,
+                         const ContainerParameters& aContainerParameters,
+                         const gfx3DMatrix* aTransform);
 
   
 
