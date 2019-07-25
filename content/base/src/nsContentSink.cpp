@@ -610,6 +610,9 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
   nsresult rv = NS_OK;
 
   
+  PRBool seenParameters = PR_FALSE;
+
+  
   nsAutoString href;
   nsAutoString rel;
   nsAutoString title;
@@ -704,12 +707,15 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
       if ((*start == kLessThan) && (*last == kGreaterThan)) {
         *last = kNullCh;
 
-        if (href.IsEmpty()) { 
+        
+        
+        if (href.IsEmpty() && !seenParameters) {
           href = (start + 1);
           href.StripWhitespace();
         }
       } else {
         PRUnichar* equals = start;
+        seenParameters = PR_TRUE;
 
         while ((*equals != kNullCh) && (*equals != kEqual)) {
           equals++;
@@ -791,6 +797,8 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
       type.Truncate();
       media.Truncate();
       anchor.Truncate();
+      
+      seenParameters = PR_FALSE;
     }
 
     start = ++end;
