@@ -240,6 +240,22 @@ private:
     InternalGetNPObjectForValue(NPNVariable aValue,
                                 NPObject** aObject);
 
+    NS_OVERRIDE
+    virtual bool RecvUpdateBackground(const SurfaceDescriptor& aBackground,
+                                      const nsIntRect& aRect);
+
+    NS_OVERRIDE
+    virtual PPluginBackgroundDestroyerChild*
+    AllocPPluginBackgroundDestroyer();
+
+    NS_OVERRIDE
+    virtual bool
+    RecvPPluginBackgroundDestroyerConstructor(PPluginBackgroundDestroyerChild* aActor);
+
+    NS_OVERRIDE
+    virtual bool
+    DeallocPPluginBackgroundDestroyer(PPluginBackgroundDestroyerChild* aActor);
+
 #if defined(OS_WIN)
     static bool RegisterWindowClass();
     bool CreatePluginWindow();
@@ -294,7 +310,6 @@ private:
                                           int nIndex,
                                           LONG newLong);
 #endif
-    void HookSystemParametersInfo();
 
     class FlashThrottleAsyncMsg : public ChildAsyncCall
     {
@@ -411,6 +426,8 @@ private:
     const NPCocoaEvent   *mCurrentEvent;
 #endif
 
+    bool CanPaintOnBackground();
+
     bool IsVisible() {
         return mWindow.clipRect.top != 0 ||
             mWindow.clipRect.left != 0 ||
@@ -491,6 +508,13 @@ private:
     
     
     nsRefPtr<gfxASurface> mBackSurface;
+
+    
+    
+    
+    
+    
+    nsRefPtr<gfxASurface> mBackground;
 
 #ifdef XP_WIN
     

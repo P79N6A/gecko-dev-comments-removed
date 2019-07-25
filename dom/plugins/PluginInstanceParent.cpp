@@ -40,6 +40,7 @@
 #include "PluginInstanceParent.h"
 
 #include "BrowserStreamParent.h"
+#include "PluginBackgroundDestroyer.h"
 #include "PluginModuleParent.h"
 #include "PluginStreamParent.h"
 #include "StreamNotifyParent.h"
@@ -498,6 +499,12 @@ PluginInstanceParent::RecvShow(const NPRect& updatedRect,
                                const SurfaceDescriptor& newSurface,
                                SurfaceDescriptor* prevSurface)
 {
+    PLUGIN_LOG_DEBUG(
+        ("[InstanceParent][%p] RecvShow for <x=%d,y=%d, w=%d,h=%d>",
+         this, updatedRect.left, updatedRect.top,
+         updatedRect.right - updatedRect.left,
+         updatedRect.bottom - updatedRect.top));
+
     nsRefPtr<gfxASurface> surface;
     if (newSurface.type() == SurfaceDescriptor::TShmem) {
         if (!newSurface.get_Shmem().IsReadable()) {
@@ -529,6 +536,11 @@ PluginInstanceParent::RecvShow(const NPRect& updatedRect,
 #ifdef MOZ_X11
     if (mFrontSurface &&
         mFrontSurface->GetType() == gfxASurface::SurfaceTypeXlib)
+        
+        
+        
+        
+        
         XSync(DefaultXDisplay(), False);
 #endif
 
@@ -539,6 +551,9 @@ PluginInstanceParent::RecvShow(const NPRect& updatedRect,
 
     mFrontSurface = surface;
     RecvNPN_InvalidateRect(updatedRect);
+
+    PLUGIN_LOG_DEBUG(("   (RecvShow invalidated for surface %p)",
+                      mFrontSurface.get()));
 
     return true;
 }
@@ -626,6 +641,164 @@ PluginInstanceParent::IsRemoteDrawingCoreAnimation(PRBool *aDrawing)
     return NS_OK;
 }
 #endif
+
+nsresult
+PluginInstanceParent::SetBackgroundUnknown()
+{
+    PLUGIN_LOG_DEBUG(("[InstanceParent][%p] SetBackgroundUnknown", this));
+
+    if (mBackground) {
+        DestroyBackground();
+        NS_ABORT_IF_FALSE(!mBackground, "Background not destroyed");
+    }
+
+    return NS_OK;
+}
+
+nsresult
+PluginInstanceParent::BeginUpdateBackground(const nsIntRect& aRect,
+                                            gfxContext** aCtx)
+{
+    PLUGIN_LOG_DEBUG(
+        ("[InstanceParent][%p] BeginUpdateBackground for <x=%d,y=%d, w=%d,h=%d>",
+         this, aRect.x, aRect.y, aRect.width, aRect.height));
+
+    if (!mBackground) {
+        
+        
+        
+        
+        NS_ABORT_IF_FALSE(aRect.TopLeft() == nsIntPoint(0, 0),
+                          "Expecting rect for whole frame");
+        if (!CreateBackground(aRect.Size())) {
+            *aCtx = nsnull;
+            return NS_OK;
+        }
+    }
+
+#ifdef DEBUG
+    gfxIntSize sz = mBackground->GetSize();
+    NS_ABORT_IF_FALSE(nsIntRect(0, 0, sz.width, sz.height).Contains(aRect),
+                      "Update outside of background area");
+#endif
+
+    nsRefPtr<gfxContext> ctx = new gfxContext(mBackground);
+    *aCtx = ctx.forget().get();
+
+    return NS_OK;
+}
+
+nsresult
+PluginInstanceParent::EndUpdateBackground(gfxContext* aCtx,
+                                          const nsIntRect& aRect)
+{
+    PLUGIN_LOG_DEBUG(
+        ("[InstanceParent][%p] EndUpdateBackground for <x=%d,y=%d, w=%d,h=%d>",
+         this, aRect.x, aRect.y, aRect.width, aRect.height));
+
+#ifdef MOZ_X11
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    XSync(DefaultXDisplay(), False);
+#endif
+
+    unused << SendUpdateBackground(BackgroundDescriptor(), aRect);
+
+    return NS_OK;
+}
+
+bool
+PluginInstanceParent::CreateBackground(const nsIntSize& aSize)
+{
+    NS_ABORT_IF_FALSE(!mBackground, "Already have a background");
+
+    
+
+#if defined(MOZ_X11)
+    Screen* screen = DefaultScreenOfDisplay(DefaultXDisplay());
+    Visual* visual = DefaultVisualOfScreen(screen);
+    mBackground = gfxXlibSurface::Create(screen, visual,
+                                         gfxIntSize(aSize.width, aSize.height));
+    return !!mBackground;
+
+#elif defined(XP_WIN)
+    
+    
+    mBackground =
+        gfxSharedImageSurface::CreateUnsafe(
+            this,
+            gfxIntSize(aSize.width, aSize.height),
+            gfxASurface::ImageFormatRGB24);
+    return !!mBackground;
+#else
+    return nsnull;
+#endif
+}
+
+void
+PluginInstanceParent::DestroyBackground()
+{
+    if (!mBackground) {
+        return;
+    }
+
+    
+    PPluginBackgroundDestroyerParent* pbd =
+        new PluginBackgroundDestroyerParent(mBackground);
+    mBackground = nsnull;
+
+    
+    
+    unused << SendPPluginBackgroundDestroyerConstructor(pbd);
+}
+
+SurfaceDescriptor
+PluginInstanceParent::BackgroundDescriptor()
+{
+    NS_ABORT_IF_FALSE(mBackground, "Need a background here");
+
+    
+
+#ifdef MOZ_X11
+    gfxXlibSurface* xsurf = static_cast<gfxXlibSurface*>(mBackground.get());
+    return SurfaceDescriptorX11(xsurf->XDrawable(), xsurf->XRenderFormat()->id,
+                                xsurf->GetSize());
+#endif
+
+#ifdef XP_WIN
+    NS_ABORT_IF_FALSE(gfxSharedImageSurface::IsSharedImage(mBackground),
+                      "Expected shared image surface");
+    gfxSharedImageSurface* shmem =
+        static_cast<gfxSharedImageSurface*>(mBackground.get());
+    return shmem->GetShmem();
+#endif
+
+    
+    
+    return SurfaceDescriptor();
+}
+
+PPluginBackgroundDestroyerParent*
+PluginInstanceParent::AllocPPluginBackgroundDestroyer()
+{
+    NS_RUNTIMEABORT("'Power-user' ctor is used exclusively");
+    return nsnull;
+}
+
+bool
+PluginInstanceParent::DeallocPPluginBackgroundDestroyer(
+    PPluginBackgroundDestroyerParent* aActor)
+{
+    delete aActor;
+    return true;
+}
 
 NPError
 PluginInstanceParent::NPP_SetWindow(const NPWindow* aWindow)

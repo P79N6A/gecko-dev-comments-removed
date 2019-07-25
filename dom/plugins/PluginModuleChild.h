@@ -248,10 +248,7 @@ public:
         QUIRK_FLASH_HOOK_GETWINDOWINFO                  = 1 << 5,
         
         
-        QUIRK_FLASH_MASK_CLEARTYPE_SETTINGS             = 1 << 6,
-        
-        
-        QUIRK_FLASH_FIXUP_MOUSE_CAPTURE                 = 1 << 7,
+        QUIRK_FLASH_FIXUP_MOUSE_CAPTURE                 = 1 << 6,
     };
 
     int GetQuirks() { return mQuirks; }

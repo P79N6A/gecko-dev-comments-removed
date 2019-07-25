@@ -282,13 +282,27 @@ public:
 #ifdef XP_MACOSX
     nsresult IsRemoteDrawingCoreAnimation(PRBool *aDrawing);
 #endif
-    nsresult SetBackgroundUnknown() { return NS_OK; }
+    nsresult SetBackgroundUnknown();
     nsresult BeginUpdateBackground(const nsIntRect& aRect,
-                                   gfxContext** aCtx) { return NS_OK; }
+                                   gfxContext** aCtx);
     nsresult EndUpdateBackground(gfxContext* aCtx,
-                                 const nsIntRect& aRect) { return NS_OK; }
+                                 const nsIntRect& aRect);
 
 private:
+    
+    
+    bool CreateBackground(const nsIntSize& aSize);
+    void DestroyBackground();
+    SurfaceDescriptor BackgroundDescriptor() ;
+
+    NS_OVERRIDE
+    virtual PPluginBackgroundDestroyerParent*
+    AllocPPluginBackgroundDestroyer();
+
+    NS_OVERRIDE
+    virtual bool
+    DeallocPPluginBackgroundDestroyer(PPluginBackgroundDestroyerParent* aActor);
+
     
     enum PluginQuirks {
         
@@ -345,6 +359,16 @@ private:
 
     
     nsRefPtr<gfxASurface>    mFrontSurface;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsRefPtr<gfxASurface>    mBackground;
 };
 
 
