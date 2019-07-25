@@ -1071,12 +1071,65 @@ PatchFile::Execute()
   if (rv)
     return rv;
 
+#if defined(HAVE_POSIX_FALLOCATE)
   AutoFile ofile = ensure_open(mDestFile, NS_T("wb+"), ss.st_mode);
+  posix_fallocate(fileno((FILE*)ofile), 0, header.dlen);
+#elif defined(XP_WIN)
+  PRBool shouldTruncate = PR_TRUE;
+  
+  
+  
+  
+  
+  
+  
+  HANDLE hfile = CreateFileW(mDestFile,
+                             GENERIC_WRITE,
+                             0,
+                             NULL,
+                             CREATE_ALWAYS,
+                             FILE_ATTRIBUTE_NORMAL,
+                             NULL);
+
+  if (hfile != INVALID_HANDLE_VALUE) {
+    if (SetFilePointer(hfile, header.dlen, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+        SetEndOfFile(hfile) != 0) {
+      shouldTruncate = PR_FALSE;
+    }
+    CloseHandle(hfile);
+  }
+
+  AutoFile ofile = ensure_open(mDestFile, shouldTruncate ? NS_T("wb+") : NS_T("rb+"), ss.st_mode);
+#elif defined(XP_MACOSX)
+  AutoFile ofile = ensure_open(mDestFile, NS_T("wb+"), ss.st_mode);
+  
+  fstore_t store = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, header.dlen};
+  
+  rv = fcntl(fileno((FILE*)ofile), F_PREALLOCATE, &store);
+  if (rv == -1) {
+    
+    store.fst_flags = F_ALLOCATEALL;
+    rv = fcntl(fileno((FILE*)ofile), F_PREALLOCATE, &store);
+  }
+
+  if (rv != -1) {
+    ftruncate(fileno((FILE*)ofile), header.dlen);
+  }
+#else
+  AutoFile ofile = ensure_open(mDestFile, NS_T("wb+"), ss.st_mode);
+#endif
+
   if (ofile == NULL) {
     LOG(("unable to create new file: " LOG_S ", err: %d\n", mDestFile,
          errno));
     return WRITE_ERROR;
   }
+
+#ifdef XP_WIN
+  if (!shouldTruncate) {
+    fseek(ofile, 0, SEEK_SET);
+  }
+#endif
 
   rv = MBS_ApplyPatch(&header, pfile, buf, ofile);
 
