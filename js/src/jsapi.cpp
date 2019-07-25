@@ -76,6 +76,7 @@
 #include "jsobj.h"
 #include "jsopcode.h"
 #include "jsparse.h"
+#include "jsprobes.h"
 #include "jsproxy.h"
 #include "jsregexp.h"
 #include "jsscope.h"
@@ -636,9 +637,7 @@ JS_IsBuiltinFunctionConstructor(JSFunction *fun)
 
 
 
-#ifdef DEBUG
 static JSBool js_NewRuntimeWasCalled = JS_FALSE;
-#endif
 
 JSRuntime::JSRuntime()
   : gcChunkAllocator(&defaultGCChunkAllocator),
@@ -754,8 +753,11 @@ JSRuntime::~JSRuntime()
 JS_PUBLIC_API(JSRuntime *)
 JS_NewRuntime(uint32 maxbytes)
 {
-#ifdef DEBUG
     if (!js_NewRuntimeWasCalled) {
+#ifdef MOZ_ETW
+        EventRegisterMozillaSpiderMonkey();
+#endif
+#ifdef DEBUG
         
 
 
@@ -780,16 +782,16 @@ JS_NewRuntime(uint32 maxbytes)
     JS_END_MACRO;
 #include "js.msg"
 #undef MSG_DEF
+#endif 
 
         js_NewRuntimeWasCalled = JS_TRUE;
     }
-#endif 
 
     void *mem = OffTheBooks::calloc_(sizeof(JSRuntime));
     if (!mem)
         return NULL;
 
-#ifdef JS_METHODJIT
+#if defined(JS_METHODJIT) && defined(JS_ION)
     if (!ion::InitializeIon())
         return NULL;
 #endif
@@ -820,6 +822,10 @@ JS_ShutDown(void)
     js_CleanupLocks();
 #endif
     PRMJ_NowShutdown();
+
+#ifdef MOZ_ETW
+    EventUnregisterMozillaSpiderMonkey();
+#endif
 }
 
 JS_PUBLIC_API(void *)
@@ -2726,7 +2732,9 @@ JS_PUBLIC_API(JSString *)
 JS_NewExternalString(JSContext *cx, const jschar *chars, size_t length, intN type)
 {
     CHECK_REQUEST(cx);
-    return JSExternalString::new_(cx, chars, length, type, NULL);
+    JSString *s = JSExternalString::new_(cx, chars, length, type, NULL);
+    Probes::createString(cx, s, length);
+    return s;
 }
 
 extern JS_PUBLIC_API(JSString *)
