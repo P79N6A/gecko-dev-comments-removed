@@ -147,7 +147,7 @@ var inMimeType = "image/png";
 var imgFile = do_get_file(imgName);
 
 var istream = getFileInputStream(imgFile);
-do_check_eq(istream.available(), 10698);
+do_check_eq(istream.available(), 8415);
 
 var outParam = { value: null };
 imgTools.decodeImageData(istream, inMimeType, outParam);
