@@ -47,6 +47,7 @@
 #endif
 
 #ifdef MOZ_IPC
+#include "base/basictypes.h"
 #include "mozilla/dom/ContentChild.h"
 #include "nsXULAppAPI.h"
 #endif
@@ -137,6 +138,15 @@
 
 #include "nsIPrivateBrowsingService.h"
 
+#ifdef MOZ_IPC
+#include "TabChild.h"
+#include "nsXULAppAPI.h"
+#include "nsPIDOMWindow.h"
+#include "nsIDocShellTreeOwner.h"
+#include "nsIDocShellTreeItem.h"
+#include "ExternalHelperAppChild.h"
+#endif
+
 
 #define BUFFERED_OUTPUT_SIZE (1024 * 32)
 
@@ -156,6 +166,7 @@ PRLogModuleInfo* nsExternalHelperAppService::mLog = nsnull;
 
 
 
+#undef LOG
 #define LOG(args) PR_LOG(mLog, 3, args)
 #define LOG_ENABLED() PR_LOG_TEST(mLog, 3)
 
@@ -616,6 +627,26 @@ nsExternalHelperAppService::~nsExternalHelperAppService()
   gExtProtSvc = nsnull;
 }
 
+static PRInt64 GetContentLengthAsInt64(nsIRequest *request)
+{
+  PRInt64 contentLength = -1;
+  nsresult rv;
+  nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(request, &rv));
+  if (props)
+    rv = props->GetPropertyAsInt64(NS_CHANNEL_PROP_CONTENT_LENGTH, &contentLength);
+
+  if (NS_FAILED(rv)) {
+    nsCOMPtr<nsIChannel> channel = do_QueryInterface(request);
+    if (channel) {
+      PRInt32 smallLen;
+      channel->GetContentLength(&smallLen);
+      contentLength = smallLen;
+    }
+  }
+
+  return contentLength;
+}
+
 NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeContentType,
                                                     nsIRequest *aRequest,
                                                     nsIInterfaceRequestor *aWindowContext,
@@ -629,6 +660,60 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
 
   
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+  nsCOMPtr<nsIURI> uri;
+  if (channel)
+    channel->GetURI(getter_AddRefs(uri));
+
+#ifdef MOZ_IPC
+  PRInt64 contentLength = GetContentLengthAsInt64(aRequest);
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIDocShell> docshell(do_GetInterface(aWindowContext));
+    nsCOMPtr<nsIDocShellTreeItem> item = do_QueryInterface(docshell);
+    nsCOMPtr<nsIDocShellTreeOwner> owner;
+    item->GetTreeOwner(getter_AddRefs(owner));
+    NS_ENSURE_TRUE(owner, NS_ERROR_FAILURE);
+
+    nsCOMPtr<nsITabChild> tabchild = do_GetInterface(owner);
+    if (!tabchild)
+      return NS_ERROR_FAILURE;
+
+    
+    
+    
+    
+    using mozilla::dom::TabChild;
+    using mozilla::dom::ExternalHelperAppChild;
+    TabChild *child = static_cast<TabChild*>(tabchild.get());
+    mozilla::dom::PExternalHelperAppChild *pc;
+    pc = child->SendPExternalHelperAppConstructor(IPC::URI(uri),
+                                                  nsCString(aMimeContentType),
+                                                  aForceSave, contentLength);
+    ExternalHelperAppChild *childListener = static_cast<ExternalHelperAppChild *>(pc);
+
+    NS_ADDREF(*aStreamListener = childListener);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    return NS_OK;
+  }
+#endif 
+
   if (channel) {
     
     
@@ -639,9 +724,6 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
       httpChan->GetRequestMethod(requestMethod);
       allowURLExt = !requestMethod.Equals("POST");
     }
-
-    nsCOMPtr<nsIURI> uri;
-    channel->GetURI(getter_AddRefs(uri));
 
     
     
@@ -1282,7 +1364,6 @@ void nsExternalAppHandler::RetargetLoadNotifications(nsIRequest *request)
       
   aChannel->SetLoadGroup(nsnull);
   aChannel->SetNotificationCallbacks(nsnull);
-
 }
 
 
@@ -1458,18 +1539,9 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   mIsFileChannel = fileChan != nsnull;
 
   
-  nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(request, &rv));
-  if (props) {
-    rv = props->GetPropertyAsInt64(NS_CHANNEL_PROP_CONTENT_LENGTH,
-                                   &mContentLength.mValue);
-  }
-  
-  if (NS_FAILED(rv) && aChannel) {
-    PRInt32 len;
-    aChannel->GetContentLength(&len);
-    mContentLength = len;
-  }
+  mContentLength.mValue = GetContentLengthAsInt64(request);
 
+  nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(request, &rv));
   
   if (props) {
     PRBool tmp = PR_FALSE;
