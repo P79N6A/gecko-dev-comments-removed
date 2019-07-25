@@ -2704,6 +2704,15 @@ public:
                            nsISupports* aCOMObj,
                            XPCWrappedNative** aWrapper);
 
+    
+    
+    
+    
+    XPCWrappedNative *GetParentWrapper();
+
+    bool IsOrphan();
+    nsresult RescueOrphans(XPCCallContext& ccx);
+
     void FlatJSObjectFinalized();
 
     void SystemIsBeingShutDown();
