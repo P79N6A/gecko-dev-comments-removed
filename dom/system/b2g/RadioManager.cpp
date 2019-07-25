@@ -227,9 +227,7 @@ RadioManager::Init()
   
   
   nsCOMPtr<nsITelephonyWorker> worker(do_CreateInstance(kTelephonyWorkerCID));
-  if (!worker) {
-    return NS_ERROR_FAILURE;
-  }
+  NS_ENSURE_TRUE(worker, NS_ERROR_FAILURE);
 
   jsval workerval;
   rv = worker->GetWorker(&workerval);
