@@ -114,8 +114,8 @@ nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow) :
 #endif
     mDummyContext(nsnull),
     mCompositionStart(PR_UINT32_MAX), mProcessingKeyEvent(nsnull),
-    mIsComposing(false), mIsIMFocused(false),
-    mIgnoreNativeCompositionEvent(false)
+    mCompositionState(eCompositionState_NotComposing),
+    mIsIMFocused(false), mIgnoreNativeCompositionEvent(false)
 {
 #ifdef PR_LOGGING
     if (!gGtkIMLog) {
@@ -412,7 +412,7 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
     
     bool filterThisEvent = isFiltered && mFilterKeyEvent;
 
-    if (mIsComposing && !isFiltered) {
+    if (IsComposing() && !isFiltered) {
         if (aEvent->type == GDK_KEY_PRESS) {
             if (!mDispatchedCompositionString.IsEmpty()) {
                 
@@ -448,8 +448,10 @@ void
 nsGtkIMModule::OnFocusChangeInGecko(bool aFocus)
 {
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): OnFocusChangeInGecko, aFocus=%s mIsComposing=%s, mIsIMFocused=%s, mIgnoreNativeCompositionEvent=%s",
-         this, aFocus ? "YES" : "NO", mIsComposing ? "YES" : "NO",
+        ("GtkIMModule(%p): OnFocusChangeInGecko, aFocus=%s, "
+         "mCompositionState=%s, mIsIMFocused=%s, "
+         "mIgnoreNativeCompositionEvent=%s",
+         this, aFocus ? "YES" : "NO", GetCompositionStateName(),
          mIsIMFocused ? "YES" : "NO",
          mIgnoreNativeCompositionEvent ? "YES" : "NO"));
     if (aFocus) {
@@ -463,8 +465,8 @@ void
 nsGtkIMModule::ResetIME()
 {
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): ResetIME, mIsComposing=%s, mIsIMFocused=%s",
-         this, mIsComposing ? "YES" : "NO", mIsIMFocused ? "YES" : "NO"));
+        ("GtkIMModule(%p): ResetIME, mCompositionState=%s, mIsIMFocused=%s",
+         this, GetCompositionStateName(), mIsIMFocused ? "YES" : "NO"));
 
     GtkIMContext *im = GetContext();
     if (NS_UNLIKELY(!im)) {
@@ -485,8 +487,8 @@ nsGtkIMModule::ResetInputState(nsWindow* aCaller)
     }
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): ResetInputState, aCaller=%p, mIsComposing=%s",
-         this, aCaller, mIsComposing ? "YES" : "NO"));
+        ("GtkIMModule(%p): ResetInputState, aCaller=%p, mCompositionState=%s",
+         this, aCaller, GetCompositionStateName()));
 
     if (aCaller != mLastFocusedWindow) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
@@ -495,7 +497,7 @@ nsGtkIMModule::ResetInputState(nsWindow* aCaller)
         return NS_OK;
     }
 
-    if (!mIsComposing) {
+    if (!IsComposing()) {
         return NS_OK;
     }
 
@@ -524,7 +526,7 @@ nsGtkIMModule::CancelIMEComposition(nsWindow* aCaller)
         return NS_OK;
     }
 
-    if (!mIsComposing) {
+    if (!IsComposing()) {
         return NS_OK;
     }
 
@@ -830,7 +832,7 @@ nsGtkIMModule::OnEndCompositionNative(GtkIMContext *aContext)
     
     mIgnoreNativeCompositionEvent = false;
 
-    if (!mIsComposing || shouldIgnoreThisEvent) {
+    if (!IsComposing() || shouldIgnoreThisEvent) {
         
         return;
     }
@@ -868,13 +870,13 @@ nsGtkIMModule::OnChangeCompositionNative(GtkIMContext *aContext)
 
     nsAutoString compositionString;
     GetCompositionString(compositionString);
-    if (!mIsComposing && compositionString.IsEmpty()) {
+    if (!IsComposing() && compositionString.IsEmpty()) {
         mDispatchedCompositionString.Truncate();
         return; 
     }
 
     
-    DispatchTextEvent(compositionString, true);
+    DispatchTextEvent(compositionString, false);
 }
 
 
@@ -989,7 +991,7 @@ nsGtkIMModule::OnCommitCompositionNative(GtkIMContext *aContext,
     
     
     
-    if (!mIsComposing && !commitString[0]) {
+    if (!IsComposing() && !commitString[0]) {
         return;
     }
 
@@ -1000,7 +1002,7 @@ nsGtkIMModule::OnCommitCompositionNative(GtkIMContext *aContext,
     
     
     
-    if (!mIsComposing && mProcessingKeyEvent) {
+    if (!IsComposing() && mProcessingKeyEvent) {
         char keyval_utf8[8]; 
         gint keyval_utf8_len;
         guint32 keyval_unicode;
@@ -1031,7 +1033,7 @@ nsGtkIMModule::CommitCompositionBy(const nsAString& aString)
          this, NS_ConvertUTF16toUTF8(aString).get(),
          NS_ConvertUTF16toUTF8(mDispatchedCompositionString).get()));
 
-    if (!DispatchTextEvent(aString, false)) {
+    if (!DispatchTextEvent(aString, true)) {
         return false;
     }
     
@@ -1067,7 +1069,7 @@ nsGtkIMModule::DispatchCompositionStart()
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("GtkIMModule(%p): DispatchCompositionStart", this));
 
-    if (mIsComposing) {
+    if (IsComposing()) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    WARNING, we're already in composition"));
         return true;
@@ -1120,7 +1122,7 @@ nsGtkIMModule::DispatchCompositionStart()
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("    mCompositionStart=%u", mCompositionStart));
-    mIsComposing = true;
+    mCompositionState = eCompositionState_CompositionStartDispatched;
     nsCompositionEvent compEvent(true, NS_COMPOSITION_START,
                                  mLastFocusedWindow);
     InitEvent(compEvent);
@@ -1144,7 +1146,7 @@ nsGtkIMModule::DispatchCompositionEnd()
          "mDispatchedCompositionString=\"%s\"",
          this, NS_ConvertUTF16toUTF8(mDispatchedCompositionString).get()));
 
-    if (!mIsComposing) {
+    if (!IsComposing()) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    WARNING, we have alrady finished the composition"));
         return false;
@@ -1164,7 +1166,7 @@ nsGtkIMModule::DispatchCompositionEnd()
     nsEventStatus status;
     nsCOMPtr<nsIWidget> kungFuDeathGrip = mLastFocusedWindow;
     mLastFocusedWindow->DispatchEvent(&compEvent, status);
-    mIsComposing = false;
+    mCompositionState = eCompositionState_NotComposing;
     mCompositionStart = PR_UINT32_MAX;
     mDispatchedCompositionString.Truncate();
     if (static_cast<nsWindow*>(kungFuDeathGrip.get())->IsDestroyed() ||
@@ -1179,11 +1181,11 @@ nsGtkIMModule::DispatchCompositionEnd()
 
 bool
 nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
-                                 bool aCheckAttr)
+                                 bool aIsCommit)
 {
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): DispatchTextEvent, aCheckAttr=%s",
-         this, aCheckAttr ? "TRUE" : "FALSE"));
+        ("GtkIMModule(%p): DispatchTextEvent, aIsCommit=%s",
+         this, aIsCommit ? "TRUE" : "FALSE"));
 
     if (!mLastFocusedWindow) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
@@ -1191,7 +1193,7 @@ nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
         return false;
     }
 
-    if (!mIsComposing) {
+    if (!IsComposing()) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    The composition wasn't started, force starting..."));
         nsCOMPtr<nsIWidget> kungFuDeathGrip = mLastFocusedWindow;
@@ -1224,7 +1226,7 @@ nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
     PRUint32 targetOffset = mCompositionStart;
 
     nsAutoTArray<nsTextRange, 4> textRanges;
-    if (aCheckAttr) {
+    if (!aIsCommit) {
         
         
         SetTextRangeList(textRanges);
@@ -1241,6 +1243,10 @@ nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
     textEvent.rangeCount = textRanges.Length();
     textEvent.rangeArray = textRanges.Elements();
     textEvent.theText = mDispatchedCompositionString.get();
+
+    mCompositionState = aIsCommit ?
+        eCompositionState_CommitTextEventDispatched :
+        eCompositionState_TextEventDispatched;
 
     mLastFocusedWindow->DispatchEvent(&textEvent, status);
     if (lastFocusedWindow->IsDestroyed() ||

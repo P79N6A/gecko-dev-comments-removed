@@ -173,12 +173,39 @@ protected:
     
     GdkEventKey* mProcessingKeyEvent;
 
+    
+    enum eCompositionState {
+        eCompositionState_NotComposing,
+        eCompositionState_CompositionStartDispatched,
+        eCompositionState_TextEventDispatched,
+        eCompositionState_CommitTextEventDispatched
+    };
+    eCompositionState mCompositionState;
 
-    
-    
-    
-    
-    bool mIsComposing;
+    bool IsComposing()
+    {
+        return (mCompositionState != eCompositionState_NotComposing);
+    }
+
+#ifdef PR_LOGGING
+    const char* GetCompositionStateName()
+    {
+        switch (mCompositionState) {
+            case eCompositionState_NotComposing:
+                return "NotComposing";
+            case eCompositionState_CompositionStartDispatched:
+                return "CompositionStartDispatched";
+            case eCompositionState_TextEventDispatched:
+                return "TextEventDispatched";
+            case eCompositionState_CommitTextEventDispatched:
+                return "CommitTextEventDispatched";
+            default:
+                return "InvaildState";
+        }
+    }
+#endif 
+
+
     
     
     bool mIsIMFocused;
@@ -306,7 +333,7 @@ protected:
     
     
     bool DispatchTextEvent(const nsAString& aCompositionString,
-                             bool aCheckAttr);
+                           bool aIsCommit);
 
 };
 
