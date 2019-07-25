@@ -757,8 +757,6 @@ JS_StringToVersion(const char *string);
                                                    leaving that up to the
                                                    embedding. */
 
-#define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
-
 extern JS_PUBLIC_API(uint32)
 JS_GetOptions(JSContext *cx);
 
@@ -1569,8 +1567,10 @@ struct JSExtendedClass {
 
 
 
+
+
 #define JSCLASS_GLOBAL_FLAGS \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 2))
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -3075,12 +3075,10 @@ class Value
     }
 
     void setDouble(double d) {
-        ASSERT_DOUBLE_ALIGN();
         data = DOUBLE_TO_JSVAL_IMPL(d);
     }
 
     double &asDoubleRef() {
-        ASSERT_DOUBLE_ALIGN();
         JS_ASSERT(isDouble());
         return data.asDouble;
     }
@@ -3271,7 +3269,6 @@ class Value
 
     double asDouble() const {
         JS_ASSERT(isDouble());
-        ASSERT_DOUBLE_ALIGN();
         return data.asDouble;
     }
 
