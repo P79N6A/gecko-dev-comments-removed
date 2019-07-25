@@ -2121,45 +2121,62 @@ nsMediaCacheStream::Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes)
     PRInt32 bytes;
     PRUint32 channelBlock = PRUint32(mChannelOffset/BLOCK_SIZE);
     PRInt32 cacheBlock = streamBlock < mBlocks.Length() ? mBlocks[streamBlock] : -1;
-    if (channelBlock == streamBlock && mStreamOffset < mChannelOffset) {
+    if (cacheBlock < 0) {
       
-      
-      
-      bytes = NS_MIN<PRInt64>(size, mChannelOffset - mStreamOffset);
-      memcpy(aBuffer + count,
-        reinterpret_cast<char*>(mPartialBlockBuffer) + offsetInStreamBlock, bytes);
-      if (mCurrentMode == MODE_METADATA) {
-        mMetadataInPartialBlockBuffer = true;
-      }
-      gMediaCache->NoteBlockUsage(this, cacheBlock, mCurrentMode, TimeStamp::Now());
-    } else {
-      if (cacheBlock < 0) {
-        if (count > 0) {
-          
-          
-          break;
-        }
 
+      if (count > 0) {
         
-        mon.Wait();
-        if (mClosed) {
-          
-          
-          return NS_ERROR_FAILURE;
-        }
-        continue;
-      }
-
-      gMediaCache->NoteBlockUsage(this, cacheBlock, mCurrentMode, TimeStamp::Now());
-
-      PRInt64 offset = cacheBlock*BLOCK_SIZE + offsetInStreamBlock;
-      nsresult rv = gMediaCache->ReadCacheFile(offset, aBuffer + count, size, &bytes);
-      if (NS_FAILED(rv)) {
-        if (count == 0)
-          return rv;
         
         break;
       }
+
+      
+      
+      
+      
+      nsMediaCacheStream* streamWithPartialBlock = nsnull;
+      nsMediaCache::ResourceStreamIterator iter(mResourceID);
+      while (nsMediaCacheStream* stream = iter.Next()) {
+        if (PRUint32(stream->mChannelOffset/BLOCK_SIZE) == streamBlock &&
+            mStreamOffset < stream->mChannelOffset) {
+          streamWithPartialBlock = stream;
+          break;
+        }
+      }
+      if (streamWithPartialBlock) {
+        
+        
+        
+        bytes = NS_MIN<PRInt64>(size, streamWithPartialBlock->mChannelOffset - mStreamOffset);
+        memcpy(aBuffer,
+          reinterpret_cast<char*>(streamWithPartialBlock->mPartialBlockBuffer) + offsetInStreamBlock, bytes);
+        if (mCurrentMode == MODE_METADATA) {
+          streamWithPartialBlock->mMetadataInPartialBlockBuffer = true;
+        }
+        mStreamOffset += bytes;
+        count = bytes;
+        break;
+      }
+
+      
+      mon.Wait();
+      if (mClosed) {
+        
+        
+        return NS_ERROR_FAILURE;
+      }
+      continue;
+    }
+
+    gMediaCache->NoteBlockUsage(this, cacheBlock, mCurrentMode, TimeStamp::Now());
+
+    PRInt64 offset = cacheBlock*BLOCK_SIZE + offsetInStreamBlock;
+    nsresult rv = gMediaCache->ReadCacheFile(offset, aBuffer + count, size, &bytes);
+    if (NS_FAILED(rv)) {
+      if (count == 0)
+        return rv;
+      
+      break;
     }
     mStreamOffset += bytes;
     count += bytes;
