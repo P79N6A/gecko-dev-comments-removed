@@ -218,7 +218,7 @@ nsHtml5Parser::IsComplete()
 }
 
 NS_IMETHODIMP
-nsHtml5Parser::Parse(nsIURI* aURL, 
+nsHtml5Parser::Parse(nsIURI* aURL,
                      nsIRequestObserver* aObserver,
                      void* aKey,
                      nsDTDMode aMode) 
@@ -232,6 +232,7 @@ nsHtml5Parser::Parse(nsIURI* aURL,
   NS_PRECONDITION(mStreamParser, 
                   "Can't call this Parse() variant on script-created parser");
   mStreamParser->SetObserver(aObserver);
+  mStreamParser->SetViewSourceTitle(aURL); 
   mExecutor->SetStreamParser(mStreamParser);
   mExecutor->SetParser(this);
   mRootContextKey = aKey;
