@@ -21,7 +21,7 @@
 
 typedef unsigned char uc;
 
-__inline signed char vp8_signed_char_clamp(int t)
+static __inline signed char vp8_signed_char_clamp(int t)
 {
     t = (t < -128 ? -128 : t);
     t = (t > 127 ? 127 : t);
@@ -30,7 +30,7 @@ __inline signed char vp8_signed_char_clamp(int t)
 
 
 
-__inline signed char vp8_filter_mask(signed char limit, signed char flimit,
+static __inline signed char vp8_filter_mask(signed char limit, signed char flimit,
                                      uc p3, uc p2, uc p1, uc p0, uc q0, uc q1, uc q2, uc q3)
 {
     signed char mask = 0;
@@ -50,7 +50,7 @@ __inline signed char vp8_filter_mask(signed char limit, signed char flimit,
 }
 
 
-__inline signed char vp8_hevmask(signed char thresh, uc p1, uc p0, uc q0, uc q1)
+static __inline signed char vp8_hevmask(signed char thresh, uc p1, uc p0, uc q0, uc q1)
 {
     signed char hev = 0;
     hev  |= (abs(p1 - p0) > thresh) * -1;
@@ -58,7 +58,7 @@ __inline signed char vp8_hevmask(signed char thresh, uc p1, uc p0, uc q0, uc q1)
     return hev;
 }
 
-__inline void vp8_filter(signed char mask, signed char hev, uc *op1, uc *op0, uc *oq0, uc *oq1)
+static __inline void vp8_filter(signed char mask, signed char hev, uc *op1, uc *op0, uc *oq0, uc *oq1)
 
 {
     signed char ps0, qs0;
@@ -164,7 +164,7 @@ void vp8_loop_filter_vertical_edge_c
     while (++i < count * 8);
 }
 
-__inline void vp8_mbfilter(signed char mask, signed char hev,
+static __inline void vp8_mbfilter(signed char mask, signed char hev,
                            uc *op2, uc *op1, uc *op0, uc *oq0, uc *oq1, uc *oq2)
 {
     signed char s, u;
@@ -284,7 +284,7 @@ void vp8_mbloop_filter_vertical_edge_c
 }
 
 
-__inline signed char vp8_simple_filter_mask(signed char limit, signed char flimit, uc p1, uc p0, uc q0, uc q1)
+static __inline signed char vp8_simple_filter_mask(signed char limit, signed char flimit, uc p1, uc p0, uc q0, uc q1)
 {
 
 
@@ -297,7 +297,7 @@ __inline signed char vp8_simple_filter_mask(signed char limit, signed char flimi
     return mask;
 }
 
-__inline void vp8_simple_filter(signed char mask, uc *op1, uc *op0, uc *oq0, uc *oq1)
+static __inline void vp8_simple_filter(signed char mask, uc *op1, uc *op0, uc *oq0, uc *oq1)
 {
     signed char vp8_filter, Filter1, Filter2;
     signed char p1 = (signed char) * op1 ^ 0x80;

@@ -80,7 +80,6 @@ void vp8_kfread_modes(VP8D_COMP *pbi)
         {
             MB_PREDICTION_MODE y_mode;
 
-            vp8dx_bool_decoder_fill(bc);
             
             
             m->mbmi.segment_id = 0;

@@ -171,8 +171,7 @@ void vp8_decode_mode_mvs(VP8D_COMP *pbi)
             VP8_COMMON *const pc = &pbi->common;
             MACROBLOCKD *xd = &pbi->mb;
 
-            vp8dx_bool_decoder_fill(bc);
-
+            mbmi->need_to_clamp_mvs = 0;
             
             
             xd->mb_to_left_edge = -((mb_col * 16) << 3);
@@ -270,17 +269,16 @@ void vp8_decode_mode_mvs(VP8D_COMP *pbi)
                             break;
                         }
 
-                        
-
-                        if (mv->col < (xd->mb_to_left_edge - LEFT_TOP_MARGIN))
-                            mv->col = xd->mb_to_left_edge - LEFT_TOP_MARGIN;
-                        else if (mv->col > xd->mb_to_right_edge + RIGHT_BOTTOM_MARGIN + 7)
-                            mv->col = xd->mb_to_right_edge + RIGHT_BOTTOM_MARGIN + 7;
-
-                        if (mv->row < (xd->mb_to_top_edge - LEFT_TOP_MARGIN))
-                            mv->row = xd->mb_to_top_edge - LEFT_TOP_MARGIN;
-                        else if (mv->row > xd->mb_to_bottom_edge + RIGHT_BOTTOM_MARGIN + 7)
-                            mv->row = xd->mb_to_bottom_edge + RIGHT_BOTTOM_MARGIN + 7;
+                        if (mv->col < xd->mb_to_left_edge
+                                      - LEFT_TOP_MARGIN
+                            || mv->col > xd->mb_to_right_edge
+                                         + RIGHT_BOTTOM_MARGIN
+                            || mv->row < xd->mb_to_top_edge
+                                         - LEFT_TOP_MARGIN
+                            || mv->row > xd->mb_to_bottom_edge
+                                         + RIGHT_BOTTOM_MARGIN
+                            )
+                            mbmi->need_to_clamp_mvs = 1;
 
                         
 
@@ -338,27 +336,18 @@ void vp8_decode_mode_mvs(VP8D_COMP *pbi)
                     read_mv(bc, mv, (const MV_CONTEXT *) mvc);
                     mv->row += best_mv.row;
                     mv->col += best_mv.col;
+
                     
 
 
 
 
-#if CONFIG_DEBUG
-                    assert(mv->col >= (xd->mb_to_left_edge - LEFT_TOP_MARGIN));
-                    assert(mv->col <= (xd->mb_to_right_edge + RIGHT_BOTTOM_MARGIN));
-                    assert(mv->row >= (xd->mb_to_top_edge - LEFT_TOP_MARGIN));
-                    assert(mv->row <= (xd->mb_to_bottom_edge + RIGHT_BOTTOM_MARGIN));
-#endif
-
-                    if (mv->col < (xd->mb_to_left_edge - LEFT_TOP_MARGIN))
-                        mv->col = xd->mb_to_left_edge - LEFT_TOP_MARGIN;
-                    else if (mv->col > xd->mb_to_right_edge + RIGHT_BOTTOM_MARGIN)
-                        mv->col = xd->mb_to_right_edge + RIGHT_BOTTOM_MARGIN;
-
-                    if (mv->row < (xd->mb_to_top_edge - LEFT_TOP_MARGIN))
-                        mv->row = xd->mb_to_top_edge - LEFT_TOP_MARGIN;
-                    else if (mv->row > xd->mb_to_bottom_edge + RIGHT_BOTTOM_MARGIN)
-                        mv->row = xd->mb_to_bottom_edge + RIGHT_BOTTOM_MARGIN;
+                    if (mv->col < xd->mb_to_left_edge - LEFT_TOP_MARGIN
+                        || mv->col > xd->mb_to_right_edge + RIGHT_BOTTOM_MARGIN
+                        || mv->row < xd->mb_to_top_edge - LEFT_TOP_MARGIN
+                        || mv->row > xd->mb_to_bottom_edge + RIGHT_BOTTOM_MARGIN
+                        )
+                        mbmi->need_to_clamp_mvs = 1;
 
                 propagate_mv:  
                     {
@@ -394,7 +383,6 @@ void vp8_decode_mode_mvs(VP8D_COMP *pbi)
                     assert(0);
 #endif
                 }
-
             }
             else
             {

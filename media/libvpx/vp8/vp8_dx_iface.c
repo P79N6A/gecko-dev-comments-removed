@@ -201,9 +201,6 @@ static void vp8_finalize_mmaps(vpx_codec_alg_priv_t *ctx)
 
 
 
-
-
-
 }
 
 static vpx_codec_err_t vp8_init(vpx_codec_ctx_t *ctx)
@@ -226,11 +223,12 @@ static vpx_codec_err_t vp8_init(vpx_codec_ctx_t *ctx)
         res = vp8_mmap_alloc(&mmap);
 
         if (!res)
+        {
             vp8_init_ctx(ctx, &mmap);
 
-        ctx->priv->alg_priv->defer_alloc = 1;
-        
-
+            ctx->priv->alg_priv->defer_alloc = 1;
+            
+        }
     }
 
     return res;
@@ -530,7 +528,7 @@ static vpx_codec_err_t vp8_xma_set_mmap(vpx_codec_ctx_t         *ctx,
 
     done = 1;
 
-    if (ctx->priv->alg_priv)
+    if (!res && ctx->priv->alg_priv)
     {
         for (i = 0; i < NELEMENTS(vp8_mem_req_segs); i++)
         {
@@ -657,7 +655,7 @@ vpx_codec_ctrl_fn_map_t vp8_ctf_maps[] =
 #endif
 vpx_codec_iface_t vpx_codec_vp8_dx_algo =
 {
-    "vpx Technologies VP8 Decoder" VERSION_STRING,
+    "WebM Project VP8 Decoder" VERSION_STRING,
     VPX_CODEC_INTERNAL_ABI_VERSION,
     VPX_CODEC_CAP_DECODER | VP8_CAP_POSTPROC,
     
@@ -680,7 +678,7 @@ vpx_codec_iface_t vpx_codec_vp8_dx_algo =
 
 vpx_codec_iface_t vpx_codec_vp8_algo =
 {
-    "vpx Technologies VP8 Decoder (Deprecated API)" VERSION_STRING,
+    "WebM Project VP8 Decoder (Deprecated API)" VERSION_STRING,
     VPX_CODEC_INTERNAL_ABI_VERSION,
     VPX_CODEC_CAP_DECODER | VP8_CAP_POSTPROC,
     

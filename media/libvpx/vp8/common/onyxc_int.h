@@ -33,6 +33,7 @@ void vp8_initialize_common(void);
 #define MAXQ 127
 #define QINDEX_RANGE (MAXQ + 1)
 
+#define NUM_YV12_BUFFERS 4
 
 typedef struct frame_contexts
 {
@@ -94,11 +95,12 @@ typedef struct VP8Common
     YUV_TYPE clr_type;
     CLAMP_TYPE  clamp_type;
 
-    YV12_BUFFER_CONFIG last_frame;
-    YV12_BUFFER_CONFIG golden_frame;
-    YV12_BUFFER_CONFIG alt_ref_frame;
-    YV12_BUFFER_CONFIG new_frame;
     YV12_BUFFER_CONFIG *frame_to_show;
+
+    YV12_BUFFER_CONFIG yv12_fb[NUM_YV12_BUFFERS];
+    int fb_idx_ref_cnt[NUM_YV12_BUFFERS];
+    int new_fb_idx, lst_fb_idx, gld_fb_idx, alt_fb_idx;
+
     YV12_BUFFER_CONFIG post_proc_buffer;
     YV12_BUFFER_CONFIG temp_scale_frame;
 
@@ -131,8 +133,6 @@ typedef struct VP8Common
 
     unsigned int frames_since_golden;
     unsigned int frames_till_alt_ref_frame;
-    unsigned char *gf_active_flags;   
-    int gf_active_count;
 
     
 
@@ -165,8 +165,8 @@ typedef struct VP8Common
     int ref_frame_sign_bias[MAX_REF_FRAMES];    
 
     
-    ENTROPY_CONTEXT *above_context[4];   
-    ENTROPY_CONTEXT left_context[4][4];  
+    ENTROPY_CONTEXT_PLANES *above_context;   
+    ENTROPY_CONTEXT_PLANES left_context;  
 
 
     
@@ -201,6 +201,7 @@ typedef struct VP8Common
 
 void vp8_adjust_mb_lf_value(MACROBLOCKD *mbd, int *filter_level);
 void vp8_init_loop_filter(VP8_COMMON *cm);
+void vp8_frame_init_loop_filter(loop_filter_info *lfi, int frame_type);
 extern void vp8_loop_filter_frame(VP8_COMMON *cm,    MACROBLOCKD *mbd,  int filt_val);
 
 #endif
