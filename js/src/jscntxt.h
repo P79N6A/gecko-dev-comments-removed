@@ -1496,7 +1496,7 @@ class AutoGCRooter {
         DESCRIPTOR =  -13, 
         STRING =      -14, 
         IDVECTOR =    -15, 
-        OBJVECTOR =   -16, 
+        OBJVECTOR =   -16  
     };
 
     private:
