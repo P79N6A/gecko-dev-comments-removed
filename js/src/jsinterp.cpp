@@ -76,13 +76,12 @@
 #include "jsvector.h"
 
 #include "jsatominlines.h"
-#include "jscntxtinlines.h"
-#include "jsdtracef.h"
-#include "jsobjinlines.h"
 #include "jspropertycacheinlines.h"
+#include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 #include "jsscriptinlines.h"
 #include "jsstrinlines.h"
+#include "jsdtracef.h"
 
 #if JS_HAS_XML_SUPPORT
 #include "jsxml.h"
@@ -94,6 +93,140 @@ using namespace js;
 
 
 #if !JS_LONE_INTERPRET ^ defined jsinvoke_cpp___
+
+
+
+
+
+static JS_REQUIRES_STACK JSBool
+AllocateAfterSP(JSContext *cx, jsval *sp, uintN nslots)
+{
+    uintN surplus;
+    jsval *sp2;
+
+    JS_ASSERT((jsval *) cx->stackPool.current->base <= sp);
+    JS_ASSERT(sp <= (jsval *) cx->stackPool.current->avail);
+    surplus = (jsval *) cx->stackPool.current->avail - sp;
+    if (nslots <= surplus)
+        return JS_TRUE;
+
+    
+
+
+
+    if (nslots > (size_t) ((jsval *) cx->stackPool.current->limit - sp))
+        return JS_FALSE;
+
+    JS_ARENA_ALLOCATE_CAST(sp2, jsval *, &cx->stackPool,
+                           (nslots - surplus) * sizeof(jsval));
+    JS_ASSERT(sp2 == sp + surplus);
+    return JS_TRUE;
+}
+
+JS_STATIC_INTERPRET JS_REQUIRES_STACK jsval *
+js_AllocRawStack(JSContext *cx, uintN nslots, void **markp)
+{
+    jsval *sp;
+
+    JS_ASSERT(nslots != 0);
+    JS_ASSERT_NOT_ON_TRACE(cx);
+
+    if (!cx->stackPool.first.next) {
+        int64 *timestamp;
+
+        JS_ARENA_ALLOCATE_CAST(timestamp, int64 *,
+                               &cx->stackPool, sizeof *timestamp);
+        if (!timestamp) {
+            js_ReportOutOfScriptQuota(cx);
+            return NULL;
+        }
+        *timestamp = JS_Now();
+    }
+
+    if (markp)
+        *markp = JS_ARENA_MARK(&cx->stackPool);
+    JS_ARENA_ALLOCATE_CAST(sp, jsval *, &cx->stackPool, nslots * sizeof(jsval));
+    if (!sp)
+        js_ReportOutOfScriptQuota(cx);
+    return sp;
+}
+
+JS_STATIC_INTERPRET JS_REQUIRES_STACK void
+js_FreeRawStack(JSContext *cx, void *mark)
+{
+    JS_ARENA_RELEASE(&cx->stackPool, mark);
+}
+
+JS_REQUIRES_STACK JS_FRIEND_API(jsval *)
+js_AllocStack(JSContext *cx, uintN nslots, void **markp)
+{
+    jsval *sp;
+    JSArena *a;
+    JSStackHeader *sh;
+
+    
+    if (nslots == 0) {
+        *markp = NULL;
+        return (jsval *) JS_ARENA_MARK(&cx->stackPool);
+    }
+
+    
+    sp = js_AllocRawStack(cx, 2 + nslots, markp);
+    if (!sp)
+        return NULL;
+
+    
+    a = cx->stackPool.current;
+    sh = cx->stackHeaders;
+    if (sh && JS_STACK_SEGMENT(sh) + sh->nslots == sp) {
+        
+        sh->nslots += nslots;
+        a->avail -= 2 * sizeof(jsval);
+    } else {
+        
+
+
+
+        sh = (JSStackHeader *)sp;
+        sh->nslots = nslots;
+        sh->down = cx->stackHeaders;
+        cx->stackHeaders = sh;
+        sp += 2;
+    }
+
+    
+
+
+
+
+    memset(sp, 0, nslots * sizeof(jsval));
+    return sp;
+}
+
+JS_REQUIRES_STACK JS_FRIEND_API(void)
+js_FreeStack(JSContext *cx, void *mark)
+{
+    JSStackHeader *sh;
+    jsuword slotdiff;
+
+    
+    if (!mark)
+        return;
+
+    
+    sh = cx->stackHeaders;
+    JS_ASSERT(sh);
+
+    
+    slotdiff = JS_UPTRDIFF(mark, JS_STACK_SEGMENT(sh)) / sizeof(jsval);
+    if (slotdiff < (jsuword)sh->nslots)
+        sh->nslots = slotdiff;
+    else
+        cx->stackHeaders = sh->down;
+
+    
+    JS_ARENA_RELEASE(&cx->stackPool, mark);
+}
 
 JSObject *
 js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
@@ -124,8 +257,8 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
 
     JSObject *limitBlock, *limitClone;
     if (fp->fun && !fp->callobj) {
-        JS_ASSERT_IF(fp->scopeChain->getClass() == &js_BlockClass,
-                     fp->scopeChain->getPrivate() != js_FloatingFrameIfGenerator(cx, fp));
+        JS_ASSERT(fp->scopeChain->getClass() != &js_BlockClass ||
+                  fp->scopeChain->getPrivate() != fp);
         if (!js_GetCallObject(cx, fp))
             return NULL;
 
@@ -211,7 +344,7 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
 
     JS_ASSERT_IF(limitBlock &&
                  limitBlock->getClass() == &js_BlockClass &&
-                 limitClone->getPrivate() == js_FloatingFrameIfGenerator(cx, fp),
+                 limitClone->getPrivate() == fp,
                  sharedBlock);
 
     
@@ -369,27 +502,34 @@ js_OnUnknownMethod(JSContext *cx, jsval *vp)
 static JS_REQUIRES_STACK JSBool
 NoSuchMethod(JSContext *cx, uintN argc, jsval *vp, uint32 flags)
 {
-    InvokeArgsGuard args;
-    if (!cx->stack().pushInvokeArgs(cx, 2, args))
+    jsval *invokevp;
+    void *mark;
+    JSBool ok;
+    JSObject *obj, *argsobj;
+
+    invokevp = js_AllocStack(cx, 2 + 2, &mark);
+    if (!invokevp)
         return JS_FALSE;
 
     JS_ASSERT(!JSVAL_IS_PRIMITIVE(vp[0]));
     JS_ASSERT(!JSVAL_IS_PRIMITIVE(vp[1]));
-    JSObject *obj = JSVAL_TO_OBJECT(vp[0]);
+    obj = JSVAL_TO_OBJECT(vp[0]);
     JS_ASSERT(obj->getClass() == &js_NoSuchMethodClass);
 
-    jsval *invokevp = args.getvp();
     invokevp[0] = obj->fslots[JSSLOT_FOUND_FUNCTION];
     invokevp[1] = vp[1];
     invokevp[2] = obj->fslots[JSSLOT_SAVED_ID];
-    JSObject *argsobj = js_NewArrayObject(cx, argc, vp + 2);
-    if (!argsobj)
-        return JS_FALSE;
-    invokevp[3] = OBJECT_TO_JSVAL(argsobj);
-    JSBool ok = (flags & JSINVOKE_CONSTRUCT)
-                ? js_InvokeConstructor(cx, args, JS_TRUE)
-                : js_Invoke(cx, args, flags);
-    *vp = *invokevp;
+    argsobj = js_NewArrayObject(cx, argc, vp + 2);
+    if (!argsobj) {
+        ok = JS_FALSE;
+    } else {
+        invokevp[3] = OBJECT_TO_JSVAL(argsobj);
+        ok = (flags & JSINVOKE_CONSTRUCT)
+             ? js_InvokeConstructor(cx, 2, JS_TRUE, invokevp)
+             : js_Invoke(cx, 2, invokevp, flags);
+        vp[0] = invokevp[0];
+    }
+    js_FreeStack(cx, mark);
     return ok;
 }
 
@@ -421,55 +561,76 @@ const uint16 js_PrimitiveTestFlags[] = {
 
 
 JS_REQUIRES_STACK JS_FRIEND_API(JSBool)
-js_Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
+js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
 {
-    jsval *vp = args.getvp();
-    uintN argc = args.getArgc();
-    JS_ASSERT(argc <= JS_ARGS_LENGTH_MAX);
-
-    jsval v = vp[0];
-    if (JSVAL_IS_PRIMITIVE(v)) {
-        js_ReportIsNotFunction(cx, vp, flags & JSINVOKE_FUNFLAGS);
-        return false;
-    }
-
-    JSObject *funobj = JSVAL_TO_OBJECT(v);
-    JSObject *parent = funobj->getParent();
-    JSClass *clasp = funobj->getClass();
-
-    
+    void *mark;
+    CallStack callStack(cx);
+    JSStackFrame frame;
+    jsval *sp, *argv, *newvp;
+    jsval v;
+    JSObject *funobj, *parent;
+    JSBool ok;
+    JSClass *clasp;
+    const JSObjectOps *ops;
     JSNative native;
     JSFunction *fun;
     JSScript *script;
+    uintN nslots, i;
+    uint32 rootedArgsFlag;
+    JSInterpreterHook hook;
+    void *hookData;
+    bool pushCall;
+
+    JS_ASSERT(argc <= JS_ARGS_LENGTH_MAX);
+
+    
+    JS_ASSERT((jsval *) cx->stackPool.current->base <= vp);
+    JS_ASSERT(vp + 2 + argc <= (jsval *) cx->stackPool.current->avail);
+
+    
+    mark = JS_ARENA_MARK(&cx->stackPool);
+    MUST_FLOW_THROUGH("out2");
+    v = *vp;
+
+    if (JSVAL_IS_PRIMITIVE(v))
+        goto bad;
+
+    funobj = JSVAL_TO_OBJECT(v);
+    parent = funobj->getParent();
+    clasp = funobj->getClass();
     if (clasp != &js_FunctionClass) {
 #if JS_HAS_NO_SUCH_METHOD
-        if (clasp == &js_NoSuchMethodClass)
-            return NoSuchMethod(cx, argc, vp, flags);
+        if (clasp == &js_NoSuchMethodClass) {
+            ok = NoSuchMethod(cx, argc, vp, flags);
+            goto out2;
+        }
 #endif
 
         
-        const JSObjectOps *ops = funobj->map->ops;
+        ops = funobj->map->ops;
 
         fun = NULL;
         script = NULL;
+        nslots = 0;
 
         
         if (flags & JSINVOKE_CONSTRUCT) {
             if (!JSVAL_IS_OBJECT(vp[1])) {
-                if (!js_PrimitiveToObject(cx, &vp[1]))
-                    return false;
+                ok = js_PrimitiveToObject(cx, &vp[1]);
+                if (!ok)
+                    goto out2;
             }
             native = ops->construct;
         } else {
             native = ops->call;
         }
-        if (!native) {
-            js_ReportIsNotFunction(cx, vp, flags & JSINVOKE_FUNFLAGS);
-            return false;
-        }
+        if (!native)
+            goto bad;
     } else {
         
         fun = GET_FUNCTION_PRIVATE(cx, funobj);
+        nslots = FUN_MINARGS(fun);
+        nslots = (nslots > argc) ? nslots - argc : 0;
         if (FUN_INTERPRETED(fun)) {
             native = NULL;
             script = fun->u.i.script;
@@ -482,11 +643,13 @@ js_Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
                 } else {
                     *vp = JSVAL_VOID;
                 }
-                return true;
+                ok = JS_TRUE;
+                goto out2;
             }
         } else {
             native = fun->u.n.native;
             script = NULL;
+            nslots += fun->u.n.extra;
         }
 
         if (JSFUN_BOUND_METHOD_TEST(fun->flags)) {
@@ -513,118 +676,151 @@ js_Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
 
 
         if (native && (!fun || !(fun->flags & JSFUN_FAST_NATIVE))) {
-            if (!js_ComputeThis(cx, vp + 2))
-                return false;
+            if (!js_ComputeThis(cx, vp + 2)) {
+                ok = JS_FALSE;
+                goto out2;
+            }
             flags |= JSFRAME_COMPUTED_THIS;
         }
     }
 
   start_call:
-    if (native && fun && fun->isFastNative()) {
+    if (native && fun && (fun->flags & JSFUN_FAST_NATIVE)) {
 #ifdef DEBUG_NOT_THROWING
         JSBool alreadyThrowing = cx->throwing;
 #endif
-        JSBool ok = ((JSFastNative) native)(cx, argc, vp);
+        JS_ASSERT(nslots == 0);
+        ok = ((JSFastNative) native)(cx, argc, vp);
         JS_RUNTIME_METER(cx->runtime, nativeCalls);
 #ifdef DEBUG_NOT_THROWING
         if (ok && !alreadyThrowing)
             ASSERT_NOT_THROWING(cx);
 #endif
-        return ok;
+        goto out2;
     }
 
-    
-    uintN nmissing;
-    uintN nvars;
-    if (fun) {
-        if (fun->isInterpreted()) {
-            uintN minargs = fun->nargs;
-            nmissing = minargs > argc ? minargs - argc : 0;
-            nvars = fun->u.i.nvars;
-        } else if (fun->isFastNative()) {
-            nvars = nmissing = 0;
-        } else {
-            uintN minargs = fun->nargs;
-            nmissing = (minargs > argc ? minargs - argc : 0) + fun->u.n.extra;
-            nvars = 0;
+    argv = vp + 2;
+    sp = argv + argc;
+
+    rootedArgsFlag = JSFRAME_ROOTED_ARGV;
+    if (nslots != 0) {
+        
+
+
+
+
+
+        if (!AllocateAfterSP(cx, sp, nslots)) {
+            rootedArgsFlag = 0;
+            newvp = js_AllocRawStack(cx, 2 + argc + nslots, NULL);
+            if (!newvp) {
+                ok = JS_FALSE;
+                goto out2;
+            }
+            memcpy(newvp, vp, (2 + argc) * sizeof(jsval));
+            argv = newvp + 2;
+            sp = argv + argc;
         }
 
-    } else {
-        nvars = nmissing = 0;
+        
+        i = nslots;
+        do {
+            *sp++ = JSVAL_VOID;
+        } while (--i != 0);
     }
 
-    uintN nfixed = script ? script->nslots : 0;
+    
+    if (script && script->nslots != 0) {
+        if (!AllocateAfterSP(cx, sp, script->nslots)) {
+            
+            sp = js_AllocRawStack(cx, script->nslots, NULL);
+            if (!sp) {
+                ok = JS_FALSE;
+                goto out2;
+            }
+        }
+
+        
+        for (jsval *end = sp + fun->u.i.nvars; sp != end; ++sp)
+            *sp = JSVAL_VOID;
+    }
 
     
 
 
-
-    InvokeFrameGuard frame;
-    if (!cx->stack().getInvokeFrame(cx, args, nmissing, nfixed, frame))
-        return false;
-    JSStackFrame *fp = frame.getFrame();
-
-    
-    jsval *missing = vp + 2 + argc;
-    for (jsval *v = missing, *end = missing + nmissing; v != end; ++v)
-        *v = JSVAL_VOID;
-    for (jsval *v = fp->slots(), *end = v + nvars; v != end; ++v)
-        *v = JSVAL_VOID;
+    frame.thisv = vp[1];
+    frame.callobj = NULL;
+    frame.argsobj = NULL;
+    frame.script = script;
+    frame.fun = fun;
+    frame.argc = argc;
+    frame.argv = argv;
 
     
-    fp->thisv = vp[1];
-    fp->callobj = NULL;
-    fp->argsobj = NULL;
-    fp->script = script;
-    fp->fun = fun;
-    fp->argc = argc;
-    fp->argv = vp + 2;
-    fp->rval = (flags & JSINVOKE_CONSTRUCT) ? fp->thisv : JSVAL_VOID;
-    fp->annotation = NULL;
-    fp->scopeChain = NULL;
-    fp->blockChain = NULL;
-    fp->regs = NULL;
-    fp->imacpc = NULL;
-    fp->flags = flags;
-    fp->displaySave = NULL;
+    frame.rval = (flags & JSINVOKE_CONSTRUCT) ? vp[1] : JSVAL_VOID;
+    frame.down = cx->fp;
+    frame.annotation = NULL;
+    frame.scopeChain = NULL;    
+    frame.blockChain = NULL;
+    frame.regs = NULL;
+    frame.imacpc = NULL;
+    frame.slots = NULL;
+    frame.flags = flags | rootedArgsFlag;
+    frame.displaySave = NULL;
+
+    MUST_FLOW_THROUGH("out");
+    pushCall = !cx->fp;
+    if (pushCall) {
+        
+
+
+
+        callStack.setInitialFrame(&frame);
+        cx->pushCallStack(&callStack);
+    }
+    cx->fp = &frame;
 
     
-    cx->stack().pushInvokeFrame(cx, args, frame);
+    hook = cx->debugHooks->callHook;
+    hookData = NULL;
 
-    
     if (native) {
         
-        if (JSStackFrame *down = fp->down)
-            fp->scopeChain = down->scopeChain;
+        if (frame.down) {
+            JS_ASSERT(!pushCall);
+            frame.scopeChain = frame.down->scopeChain;
+        }
 
         
-        if (!fp->scopeChain)
-            fp->scopeChain = parent;
+        if (!frame.scopeChain)
+            frame.scopeChain = parent;
     } else {
         
-        fp->scopeChain = parent;
-        if (fun->isHeavyweight() && !js_GetCallObject(cx, fp))
-            return false;
+        frame.scopeChain = parent;
+        if (JSFUN_HEAVYWEIGHT_TEST(fun->flags)) {
+            
+            if (!js_GetCallObject(cx, &frame)) {
+                ok = JS_FALSE;
+                goto out;
+            }
+        }
+        frame.slots = sp - fun->u.i.nvars;
     }
 
     
-    JSInterpreterHook hook = cx->debugHooks->callHook;
-    void *hookData = NULL;
     if (hook)
-        hookData = hook(cx, fp, JS_TRUE, 0, cx->debugHooks->callHookData);
+        hookData = hook(cx, &frame, JS_TRUE, 0, cx->debugHooks->callHookData);
 
-    DTrace::enterJSFun(cx, fp, fun, fp->down, fp->argc, fp->argv);
+    DTrace::enterJSFun(cx, &frame, fun, frame.down, frame.argc, frame.argv);
 
     
-    JSBool ok;
     if (native) {
 #ifdef DEBUG_NOT_THROWING
         JSBool alreadyThrowing = cx->throwing;
 #endif
         
-        JSObject *thisp = JSVAL_TO_OBJECT(fp->thisv);
-        ok = native(cx, thisp, fp->argc, fp->argv, &fp->rval);
-        JS_ASSERT(cx->fp == fp);
+        JSObject *thisp = JSVAL_TO_OBJECT(frame.thisv);
+        ok = native(cx, thisp, argc, frame.argv, &frame.rval);
         JS_RUNTIME_METER(cx->runtime, nativeCalls);
 #ifdef DEBUG_NOT_THROWING
         if (ok && !alreadyThrowing)
@@ -635,55 +831,77 @@ js_Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
         ok = js_Interpret(cx);
     }
 
-    DTrace::exitJSFun(cx, fp, fun, fp->rval);
+    DTrace::exitJSFun(cx, &frame, fun, frame.rval);
 
+out:
     if (hookData) {
         hook = cx->debugHooks->callHook;
         if (hook)
-            hook(cx, fp, JS_FALSE, &ok, hookData);
+            hook(cx, &frame, JS_FALSE, &ok, hookData);
     }
 
-    fp->putActivationObjects(cx);
-    *vp = fp->rval;
+    frame.putActivationObjects(cx);
+
+    *vp = frame.rval;
+
+    
+    if (pushCall)
+        cx->popCallStack();
+    cx->fp = frame.down;
+
+out2:
+    
+    JS_ARENA_RELEASE(&cx->stackPool, mark);
+    if (!ok)
+        *vp = JSVAL_NULL;
     return ok;
+
+bad:
+    js_ReportIsNotFunction(cx, vp, flags & JSINVOKE_FUNFLAGS);
+    ok = JS_FALSE;
+    goto out2;
 }
 
 JSBool
 js_InternalInvoke(JSContext *cx, JSObject *obj, jsval fval, uintN flags,
                   uintN argc, jsval *argv, jsval *rval)
 {
+    jsval *invokevp;
+    void *mark;
+    JSBool ok;
+
     LeaveTrace(cx);
-
-    InvokeArgsGuard args;
-    if (!cx->stack().pushInvokeArgs(cx, argc, args))
+    invokevp = js_AllocStack(cx, 2 + argc, &mark);
+    if (!invokevp)
         return JS_FALSE;
 
-    args.getvp()[0] = fval;
-    args.getvp()[1] = OBJECT_TO_JSVAL(obj);
-    memcpy(args.getvp() + 2, argv, argc * sizeof(jsval));
+    invokevp[0] = fval;
+    invokevp[1] = OBJECT_TO_JSVAL(obj);
+    memcpy(invokevp + 2, argv, argc * sizeof *argv);
 
-    if (!js_Invoke(cx, args, flags))
-        return JS_FALSE;
-
-    
-
+    ok = js_Invoke(cx, argc, invokevp, flags);
+    if (ok) {
+        
 
 
 
 
 
-    *rval = *args.getvp();
-    if (JSVAL_IS_GCTHING(*rval) && *rval != JSVAL_NULL) {
-        JSLocalRootStack *lrs = JS_THREAD_DATA(cx)->localRootStack;
-        if (lrs) {
-            if (js_PushLocalRoot(cx, lrs, *rval) < 0)
-                return JS_FALSE;
-        } else {
-            cx->weakRoots.lastInternalResult = *rval;
+
+        *rval = *invokevp;
+        if (JSVAL_IS_GCTHING(*rval) && *rval != JSVAL_NULL) {
+            JSLocalRootStack *lrs = JS_THREAD_DATA(cx)->localRootStack;
+            if (lrs) {
+                if (js_PushLocalRoot(cx, lrs, *rval) < 0)
+                    ok = JS_FALSE;
+            } else {
+                cx->weakRoots.lastInternalResult = *rval;
+            }
         }
     }
 
-    return JS_TRUE;
+    js_FreeStack(cx, mark);
+    return ok;
 }
 
 JSBool
@@ -715,53 +933,22 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
     DTrace::ExecutionScope executionScope(script);
 
-    
-
-
-
-
-
-
-    ExecuteFrameGuard frame;
-    if (!cx->stack().getExecuteFrame(cx, down, 0, script->nslots, frame))
-        return false;
-    JSStackFrame *fp = frame.getFrame();
-
-    
-    PodZero(fp->slots(), script->nfixed);
-#if JS_HAS_SHARP_VARS
-    JS_STATIC_ASSERT(SHARP_NSLOTS == 2);
-    if (script->hasSharps) {
-        JS_ASSERT(script->nfixed >= SHARP_NSLOTS);
-        jsval *sharps = &fp->slots()[script->nfixed - SHARP_NSLOTS];
-        if (down && down->script && down->script->hasSharps) {
-            JS_ASSERT(down->script->nfixed >= SHARP_NSLOTS);
-            int base = (down->fun && !(down->flags & JSFRAME_SPECIAL))
-                       ? down->fun->sharpSlotBase(cx)
-                       : down->script->nfixed - SHARP_NSLOTS;
-            if (base < 0)
-                return false;
-            sharps[0] = down->slots()[base];
-            sharps[1] = down->slots()[base + 1];
-        } else {
-            sharps[0] = sharps[1] = JSVAL_VOID;
-        }
-    }
-#endif
-
-    
-    JSObject *initialVarObj;
+    JSInterpreterHook hook = cx->debugHooks->executeHook;
+    void *hookData = NULL;
+    JSStackFrame frame;
+    CallStack callStack(cx);
+    frame.script = script;
     if (down) {
         
-        fp->callobj = down->callobj;
-        fp->argsobj = down->argsobj;
-        fp->fun = (script->staticLevel > 0) ? down->fun : NULL;
-        fp->thisv = down->thisv;
-        fp->flags = flags | (down->flags & JSFRAME_COMPUTED_THIS);
-        fp->argc = down->argc;
-        fp->argv = down->argv;
-        fp->annotation = down->annotation;
-        fp->scopeChain = chain;
+        frame.callobj = down->callobj;
+        frame.argsobj = down->argsobj;
+        frame.fun = (script->staticLevel > 0) ? down->fun : NULL;
+        frame.thisv = down->thisv;
+        if (down->flags & JSFRAME_COMPUTED_THIS)
+            flags |= JSFRAME_COMPUTED_THIS;
+        frame.argc = down->argc;
+        frame.argv = down->argv;
+        frame.annotation = down->annotation;
 
         
 
@@ -770,51 +957,127 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
 
 
-        initialVarObj = (down == cx->fp)
-                        ? down->varobj(cx)
-                        : down->varobj(cx->containingCallStack(down));
+        if (down == cx->fp) {
+            callStack.setInitialVarObj(down->varobj(cx));
+        } else {
+            CallStack *cs = cx->containingCallStack(down);
+            callStack.setInitialVarObj(down->varobj(cs));
+        }
     } else {
-        fp->callobj = NULL;
-        fp->argsobj = NULL;
+        frame.callobj = NULL;
+        frame.argsobj = NULL;
         JSObject *obj = chain;
-        if (cx->options & JSOPTION_VAROBJFIX)
-            obj = obj->getGlobal();
-        fp->fun = NULL;
-        JSObject *thisp = chain->thisObject(cx);
-        if (!thisp)
+        if (cx->options & JSOPTION_VAROBJFIX) {
+            while (JSObject *tmp = obj->getParent())
+                obj = tmp;
+        }
+        frame.fun = NULL;
+        frame.thisv = OBJECT_TO_JSVAL(chain);
+        frame.argc = 0;
+        frame.argv = NULL;
+        frame.annotation = NULL;
+        callStack.setInitialVarObj(obj);
+    }
+
+    frame.imacpc = NULL;
+
+    struct RawStackGuard {
+        JSContext *cx;
+        void *mark;
+        RawStackGuard(JSContext *cx) : cx(cx), mark(NULL) {}
+        ~RawStackGuard() { if (mark) js_FreeRawStack(cx, mark); }
+    } rawStackGuard(cx);
+
+    if (script->nslots != 0) {
+        frame.slots = js_AllocRawStack(cx, script->nslots, &rawStackGuard.mark);
+        if (!frame.slots)
             return false;
-        fp->thisv = OBJECT_TO_JSVAL(thisp);
-        fp->flags = flags | JSFRAME_COMPUTED_THIS;
-        fp->argc = 0;
-        fp->argv = NULL;
-        fp->annotation = NULL;
+        memset(frame.slots, 0, script->nfixed * sizeof(jsval));
+
+#if JS_HAS_SHARP_VARS
+        JS_STATIC_ASSERT(SHARP_NSLOTS == 2);
+
+        if (script->hasSharps) {
+            JS_ASSERT(script->nfixed >= SHARP_NSLOTS);
+            jsval *sharps = &frame.slots[script->nfixed - SHARP_NSLOTS];
+
+            if (down && down->script && down->script->hasSharps) {
+                JS_ASSERT(down->script->nfixed >= SHARP_NSLOTS);
+                int base = (down->fun && !(down->flags & JSFRAME_SPECIAL))
+                           ? down->fun->sharpSlotBase(cx)
+                           : down->script->nfixed - SHARP_NSLOTS;
+                if (base < 0)
+                    return false;
+                sharps[0] = down->slots[base];
+                sharps[1] = down->slots[base + 1];
+            } else {
+                sharps[0] = sharps[1] = JSVAL_VOID;
+            }
+        }
+#endif
+    } else {
+        frame.slots = NULL;
+    }
+
+    frame.rval = JSVAL_VOID;
+    frame.down = down;
+    frame.scopeChain = chain;
+    frame.regs = NULL;
+    frame.flags = flags;
+    frame.blockChain = NULL;
+
+    
+
+
+
+
+    JSStackFrame *oldfp = cx->fp;
+    bool newCallStack = !oldfp || oldfp != down;
+    if (newCallStack) {
+        callStack.setInitialFrame(&frame);
+        cx->pushCallStack(&callStack);
+    }
+    cx->fp = &frame;
+
+    struct FinishGuard {
+        JSContext *cx;
+        JSStackFrame *oldfp;
+        bool newCallStack;
+        FinishGuard(JSContext *cx, JSStackFrame *oldfp, bool newCallStack)
+            : cx(cx), oldfp(oldfp), newCallStack(newCallStack) {}
+        ~FinishGuard() {
+            if (newCallStack)
+                cx->popCallStack();
+            cx->fp = oldfp;
+        }
+    } finishGuard(cx, oldfp, newCallStack);
+
+    if (!down) {
         OBJ_TO_INNER_OBJECT(cx, chain);
         if (!chain)
             return false;
-        fp->scopeChain = chain;
+        frame.scopeChain = chain;
 
-        initialVarObj = obj;
+        JSObject *thisp = JSVAL_TO_OBJECT(frame.thisv)->thisObject(cx);
+        if (!thisp)
+            return false;
+        frame.thisv = OBJECT_TO_JSVAL(thisp);
+        frame.flags |= JSFRAME_COMPUTED_THIS;
     }
-    fp->script = script;
-    fp->imacpc = NULL;
-    fp->rval = JSVAL_VOID;
-    fp->regs = NULL;
-    fp->blockChain = NULL;
 
-    
-    cx->stack().pushExecuteFrame(cx, frame, initialVarObj);
-
-    void *hookData = NULL;
-    if (JSInterpreterHook hook = cx->debugHooks->executeHook)
-        hookData = hook(cx, fp, JS_TRUE, 0, cx->debugHooks->executeHookData);
+    if (hook) {
+        hookData = hook(cx, &frame, JS_TRUE, 0,
+                        cx->debugHooks->executeHookData);
+    }
 
     JSBool ok = js_Interpret(cx);
     if (result)
-        *result = fp->rval;
+        *result = frame.rval;
 
     if (hookData) {
-        if (JSInterpreterHook hook = cx->debugHooks->executeHook)
-            hook(cx, fp, JS_FALSE, &ok, hookData);
+        hook = cx->debugHooks->executeHook;
+        if (hook)
+            hook(cx, &frame, JS_FALSE, &ok, hookData);
     }
 
     return ok;
@@ -1005,12 +1268,16 @@ js_SameValue(jsval v1, jsval v2, JSContext *cx)
 }
 
 JS_REQUIRES_STACK JSBool
-js_InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampReturn)
+js_InvokeConstructor(JSContext *cx, uintN argc, JSBool clampReturn, jsval *vp)
 {
-    JSFunction *fun = NULL;
-    JSObject *obj2 = NULL;
-    jsval *vp = args.getvp();
-    jsval lval = *vp;
+    JSFunction *fun, *fun2;
+    JSObject *obj, *obj2, *proto, *parent;
+    jsval lval, rval;
+    JSClass *clasp;
+
+    fun = NULL;
+    obj2 = NULL;
+    lval = *vp;
     if (!JSVAL_IS_OBJECT(lval) ||
         (obj2 = JSVAL_TO_OBJECT(lval)) == NULL ||
         
@@ -1022,8 +1289,7 @@ js_InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampRet
             return JS_FALSE;
     }
 
-    JSObject *proto, *parent;
-    JSClass *clasp = &js_ObjectClass;
+    clasp = &js_ObjectClass;
     if (!obj2) {
         proto = parent = NULL;
         fun = NULL;
@@ -1038,27 +1304,27 @@ js_InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampRet
                                &vp[1])) {
             return JS_FALSE;
         }
-        jsval v = vp[1];
-        proto = JSVAL_IS_OBJECT(v) ? JSVAL_TO_OBJECT(v) : NULL;
+        rval = vp[1];
+        proto = JSVAL_IS_OBJECT(rval) ? JSVAL_TO_OBJECT(rval) : NULL;
         parent = obj2->getParent();
 
         if (obj2->getClass() == &js_FunctionClass) {
-            JSFunction *f = GET_FUNCTION_PRIVATE(cx, obj2);
-            if (!f->isInterpreted() && f->u.n.clasp)
-                clasp = f->u.n.clasp;
+            fun2 = GET_FUNCTION_PRIVATE(cx, obj2);
+            if (!FUN_INTERPRETED(fun2) && fun2->u.n.clasp)
+                clasp = fun2->u.n.clasp;
         }
     }
-    JSObject *obj = NewObject(cx, clasp, proto, parent);
+    obj = NewObject(cx, clasp, proto, parent);
     if (!obj)
         return JS_FALSE;
 
     
     vp[1] = OBJECT_TO_JSVAL(obj);
-    if (!js_Invoke(cx, args, JSINVOKE_CONSTRUCT))
+    if (!js_Invoke(cx, argc, vp, JSINVOKE_CONSTRUCT))
         return JS_FALSE;
 
     
-    jsval rval = *vp;
+    rval = *vp;
     if (clampReturn && JSVAL_IS_PRIMITIVE(rval)) {
         if (!fun) {
             
@@ -1144,7 +1410,7 @@ js_LeaveWith(JSContext *cx)
 
     withobj = cx->fp->scopeChain;
     JS_ASSERT(withobj->getClass() == &js_WithClass);
-    JS_ASSERT(withobj->getPrivate() == js_FloatingFrameIfGenerator(cx, cx->fp));
+    JS_ASSERT(withobj->getPrivate() == cx->fp);
     JS_ASSERT(OBJ_BLOCK_DEPTH(cx, withobj) >= 0);
     cx->fp->scopeChain = withobj->getParent();
     withobj->setPrivate(NULL);
@@ -1157,7 +1423,7 @@ js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth)
 
     clasp = obj->getClass();
     if ((clasp == &js_WithClass || clasp == &js_BlockClass) &&
-        obj->getPrivate() == js_FloatingFrameIfGenerator(cx, cx->fp) &&
+        obj->getPrivate() == cx->fp &&
         OBJ_BLOCK_DEPTH(cx, obj) >= stackDepth) {
         return clasp;
     }
@@ -1236,7 +1502,7 @@ js_GetUpvar(JSContext *cx, uintN level, uintN cookie)
     jsval *vp;
 
     if (!fp->fun || (fp->flags & JSFRAME_EVAL)) {
-        vp = fp->slots() + fp->script->nfixed;
+        vp = fp->slots + fp->script->nfixed;
     } else if (slot < fp->fun->nargs) {
         vp = fp->argv;
     } else if (slot == CALLEE_UPVAR_SLOT) {
@@ -1245,7 +1511,7 @@ js_GetUpvar(JSContext *cx, uintN level, uintN cookie)
     } else {
         slot -= fp->fun->nargs;
         JS_ASSERT(slot < fp->script->nslots);
-        vp = fp->slots();
+        vp = fp->slots;
     }
 
     return vp[slot];
@@ -1284,7 +1550,7 @@ js_TraceOpcode(JSContext *cx)
 
 
         if (ndefs != 0 &&
-            ndefs < regs->sp - fp->slots()) {
+            ndefs < regs->sp - fp->slots) {
             for (n = -ndefs; n < 0; n++) {
                 char *bytes = js_DecompileValueGenerator(cx, n, regs->sp[n],
                                                          NULL);
@@ -2317,8 +2583,12 @@ js_Interpret(JSContext *cx)
         fp->regs = &regs;
 #if JS_HAS_GENERATORS
     } else {
-        JS_ASSERT(fp->regs == &cx->generatorFor(fp)->savedRegs);
-        regs = *fp->regs;
+        JSGenerator *gen;
+
+        JS_ASSERT(fp->flags & JSFRAME_GENERATOR);
+        gen = FRAME_TO_GENERATOR(fp);
+        JS_ASSERT(fp->regs == &gen->savedRegs);
+        regs = gen->savedRegs;
         fp->regs = &regs;
         JS_ASSERT((size_t) (regs.pc - script->code) <= script->length);
         JS_ASSERT((size_t) (regs.sp - StackBase(fp)) <= StackDepth(script));
@@ -2606,15 +2876,19 @@ js_Interpret(JSContext *cx)
         AbortRecording(cx, "recording out of js_Interpret");
 #endif
 #if JS_HAS_GENERATORS
-    if (JS_UNLIKELY(fp->isGenerator())) {
-        cx->generatorFor(fp)->savedRegs = regs;
+    if (JS_UNLIKELY(fp->flags & JSFRAME_YIELDING)) {
+        JSGenerator *gen;
+
+        gen = FRAME_TO_GENERATOR(fp);
+        gen->savedRegs = regs;
+        gen->frame.regs = &gen->savedRegs;
     } else
 #endif 
     {
         JS_ASSERT(!fp->blockChain);
         JS_ASSERT(!js_IsActiveWithOrBlock(cx, fp->scopeChain, 0));
+        fp->regs = NULL;
     }
-    fp->regs = NULL;
 
     
     if (script->staticLevel < JS_DISPLAY_SIZE)

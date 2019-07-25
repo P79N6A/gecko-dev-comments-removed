@@ -124,56 +124,17 @@ typedef enum JSGeneratorState {
 struct JSGenerator {
     JSObject            *obj;
     JSGeneratorState    state;
+    JSStackFrame        frame;
     JSFrameRegs         savedRegs;
-    uintN               vplen;
-    JSStackFrame        *liveFrame;
-    jsval               floatingStack[1];
-
-    JSStackFrame *getFloatingFrame() {
-        return reinterpret_cast<JSStackFrame *>(floatingStack + vplen);
-    }
-
-    JSStackFrame *getLiveFrame() {
-        JS_ASSERT((state == JSGEN_RUNNING || state == JSGEN_CLOSING) ==
-                  (liveFrame != getFloatingFrame()));
-        return liveFrame;
-    }
+    JSArena             arena;
+    jsval               slots[1];
 };
+
+#define FRAME_TO_GENERATOR(fp) \
+    ((JSGenerator *) ((uint8 *)(fp) - offsetof(JSGenerator, frame)))
 
 extern JSObject *
 js_NewGenerator(JSContext *cx);
-
-
-
-
-
-
-
-
-
-
-
-
-inline JSStackFrame *
-js_FloatingFrameIfGenerator(JSContext *cx, JSStackFrame *fp)
-{
-    JS_ASSERT(cx->stack().contains(fp));
-    if (JS_UNLIKELY(fp->isGenerator()))
-        return cx->generatorFor(fp)->getFloatingFrame();
-    return fp;
-}
-
-
-extern JSGenerator *
-js_FloatingFrameToGenerator(JSStackFrame *fp);
-
-inline JSStackFrame *
-js_LiveFrameIfGenerator(JSStackFrame *fp)
-{
-    if (fp->flags & JSFRAME_GENERATOR)
-        return js_FloatingFrameToGenerator(fp)->getLiveFrame();
-    return fp;
-}
 
 #endif
 

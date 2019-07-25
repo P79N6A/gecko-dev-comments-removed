@@ -75,7 +75,6 @@ JS_PUBLIC_API(void) JS_Assert(const char *s, const char *file, JSIntn ln)
 
 
     *((int *) NULL) = 0;  
-    raise(SIGABRT);  
 #else
     raise(SIGABRT);  
 #endif
