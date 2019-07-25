@@ -20,34 +20,29 @@ let gUpdater = {
     
     let sites = this._findRemainingSites(links);
 
-    Grid.lock();
+    let self = this;
 
     
     this._removeLegacySites(sites, function () {
       
       
-      this._freezeSitePositions(sites);
+      self._freezeSitePositions(sites);
 
       
       
       
-      this._moveSiteNodes(sites);
+      self._moveSiteNodes(sites);
 
       
       
-      this._rearrangeSites(sites, function () {
+      self._rearrangeSites(sites, function () {
         
-        this._fillEmptyCells(links, function () {
-          gGrid.unlock();
-
-          if (aCallback)
-            aCallback();
-        });
+        self._fillEmptyCells(links, aCallback);
 
         
         gAllPages.update(gPage);
-      }.bind(this));
-    }.bind(this));
+      });
+    });
   },
 
   

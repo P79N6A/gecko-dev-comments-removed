@@ -94,29 +94,34 @@ function whenLoaded(aElement, aCallback) {
 
 
 function captureAndCheckColor(aRed, aGreen, aBlue, aMessage) {
-  let browser = gBrowser.selectedBrowser;
+  let window = gBrowser.selectedTab.linkedBrowser.contentWindow;
 
   
-  PageThumbs.captureAndStore(browser, function () {
-    let width = 100, height = 100;
-    let thumb = PageThumbs.getThumbnailURL(browser.currentURI.spec, width, height);
+  PageThumbs.capture(window, function (aData) {
+    let key = Date.now();
 
-    getXULDocument(function (aDocument) {
-      let htmlns = "http://www.w3.org/1999/xhtml";
-      let img = aDocument.createElementNS(htmlns, "img");
-      img.setAttribute("src", thumb);
+    
+    PageThumbs.store(key, aData, function () {
+      let width = 100, height = 100;
+      let thumb = PageThumbs.getThumbnailURL(key, width, height);
 
-      whenLoaded(img, function () {
-        let canvas = aDocument.createElementNS(htmlns, "canvas");
-        canvas.setAttribute("width", width);
-        canvas.setAttribute("height", height);
+      getXULDocument(function (aDocument) {
+        let htmlns = "http://www.w3.org/1999/xhtml";
+        let img = aDocument.createElementNS(htmlns, "img");
+        img.setAttribute("src", thumb);
 
-        
-        let ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-        checkCanvasColor(ctx, aRed, aGreen, aBlue, aMessage);
+        whenLoaded(img, function () {
+          let canvas = aDocument.createElementNS(htmlns, "canvas");
+          canvas.setAttribute("width", width);
+          canvas.setAttribute("height", height);
 
-        next();
+          
+          let ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          checkCanvasColor(ctx, aRed, aGreen, aBlue, aMessage);
+
+          next();
+        });
       });
     });
   });
