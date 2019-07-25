@@ -591,6 +591,8 @@ public:
 
 
 
+
+
   virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion)
   { return !mVisibleRect.IsEmpty(); }
@@ -851,8 +853,25 @@ public:
 
 
 
-  PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                           nsRegion* aVisibleRegion);
+
+
+
+
+  PRBool ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
+                                     nsRegion* aVisibleRegion,
+                                     const nsRect& aListVisibleBounds);
+
+  
+
+
+
+
+
+
+
+  PRBool ComputeVisibilityForRoot(nsDisplayListBuilder* aBuilder,
+                                  nsRegion* aVisibleRegion);
+
   
 
 
