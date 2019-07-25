@@ -39,11 +39,6 @@ var WebAppRT = {
       this.getDefaultPrefs().forEach(this.addPref);
 
       
-      
-      let uri = Services.io.newURI(url, null, null);
-      Services.perms.add(uri, "native-intent", Ci.nsIPermissionManager.DENY_ACTION);
-
-      
       let blocklist = Services.prefs.getCharPref("extensions.blocklist.url");
       blocklist = blocklist.replace(/%APP_ID%/g, "webapprt-mobile@mozilla.org");
       Services.prefs.setCharPref("extensions.blocklist.url", blocklist);
