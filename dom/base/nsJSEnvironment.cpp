@@ -179,9 +179,6 @@ static PRLogModuleInfo* gJSDiagnostics;
 #define NS_MAX_SUSPECT_CHANGES      100
 
 
-#define NS_MIN_INACTIVE_SUSPECT_CHANGES 5
-
-
 
 static PRUint32 sDelayedCCollectCount;
 static PRUint32 sCCollectCount;
@@ -3620,14 +3617,10 @@ nsJSContext::CC(nsICycleCollectorListener *aListener)
   sCCSuspectChanges = 0;
   
   
-  if (nsContentUtils::XPConnect()) {
-    nsContentUtils::XPConnect()->GarbageCollect();
-  }
+  nsContentUtils::XPConnect()->GarbageCollect();
   sCollectedObjectsCounts = nsCycleCollector_collect(aListener);
   sCCSuspectedCount = nsCycleCollector_suspectedCount();
-  if (nsJSRuntime::sRuntime) {
-    sSavedGCCount = JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER);
-  }
+  sSavedGCCount = JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER);
 #ifdef DEBUG_smaug
   printf("Collected %u objects, %u suspected objects, took %lldms\n",
          sCollectedObjectsCounts, sCCSuspectedCount,
@@ -3698,22 +3691,11 @@ nsJSContext::MaybeCC(PRBool aHigherProbability)
 
 
 void
-nsJSContext::CCIfUserInactive(PRBool aOrMaybeCC,
-                              PRBool aOnlyIfNewSuspectedObjects)
+nsJSContext::CCIfUserInactive()
 {
   if (sUserIsActive) {
-    if (aOrMaybeCC) {
-      MaybeCC(PR_TRUE);
-    }
-  } else if (!aOnlyIfNewSuspectedObjects ||
-             ((nsCycleCollector_suspectedCount() - sCCSuspectedCount) >
-              NS_MIN_INACTIVE_SUSPECT_CHANGES)) {
-#ifdef DEBUG_smaug
-    if (aOnlyIfNewSuspectedObjects) {
-      printf("CCIfUserInactive, %u suspected changes\n",
-             nsCycleCollector_suspectedCount() - sCCSuspectedCount);
-    }
-#endif
+    MaybeCC(PR_TRUE);
+  } else {
     IntervalCC();
   }
 }
@@ -3925,7 +3907,7 @@ nsJSRuntime::Startup()
   sDelayedCCollectCount = 0;
   sCCollectCount = 0;
   sUserIsActive = PR_FALSE;
-  sPreviousCCTime = PR_Now();
+  sPreviousCCTime = 0;
   sCollectedObjectsCounts = 0;
   sSavedGCCount = 0;
   sCCSuspectChanges = 0;
