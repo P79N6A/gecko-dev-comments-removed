@@ -693,7 +693,10 @@ var gCookiesWindow = {
     }
     else {
       var rangeCount = seln.getRangeCount();
-      for (var i = 0; i < rangeCount; ++i) {
+      
+      
+      
+      for (var i = rangeCount - 1; i >= 0; --i) {
         var min = {}; var max = {};
         seln.getRangeAt(i, min, max);
         nextSelected = min.value;
