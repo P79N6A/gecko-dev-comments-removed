@@ -60,7 +60,7 @@
 #include "nsIDOM3EventTarget.h"
 #include "nsIDOMXULElement.h"
 #include "nsIDOMXULMultSelectCntrlEl.h"
-#include "nsIEventListenerManager.h"
+#include "nsEventListenerManager.h"
 #include "nsIRDFCompositeDataSource.h"
 #include "nsIRDFResource.h"
 #include "nsIScriptObjectOwner.h"
@@ -659,7 +659,7 @@ protected:
                                   nsAttrValue& aResult);
 
     virtual nsresult
-      GetEventListenerManagerForAttr(nsIEventListenerManager** aManager,
+      GetEventListenerManagerForAttr(nsEventListenerManager** aManager,
                                      nsISupports** aTarget,
                                      PRBool* aDefer);
   

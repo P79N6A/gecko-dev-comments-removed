@@ -78,7 +78,7 @@ class nsIDOMCSSStyleDeclaration;
 class nsIURI;
 class nsINodeInfo;
 class nsIControllers;
-class nsIEventListenerManager;
+class nsEventListenerManager;
 class nsIScrollableFrame;
 class nsContentList;
 class nsDOMTokenList;
@@ -230,8 +230,6 @@ private:
 
 
   void LastRelease();
-
-  nsresult GetDOM3EventTarget(nsIDOM3EventTarget **aTarget);
 
 public:
   virtual ~nsDOMEventRTTearoff();
@@ -854,7 +852,7 @@ protected:
 
 
   virtual nsresult
-    GetEventListenerManagerForAttr(nsIEventListenerManager** aManager,
+    GetEventListenerManagerForAttr(nsEventListenerManager** aManager,
                                    nsISupports** aTarget,
                                    PRBool* aDefer);
 

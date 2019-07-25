@@ -93,7 +93,7 @@
 #include "nsThreadUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsIContent.h"
-#include "nsIEventListenerManager.h"
+#include "nsEventListenerManager.h"
 #include "nsGUIEvent.h"
 
 
@@ -647,7 +647,7 @@ mozInlineSpellChecker::RegisterEventListeners()
   nsCOMPtr<nsIDOMEventTarget> piTarget = do_QueryInterface(doc, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsIEventListenerManager* elmP = piTarget->GetListenerManager(PR_TRUE);
+  nsEventListenerManager* elmP = piTarget->GetListenerManager(PR_TRUE);
   if (elmP) {
     
     elmP->AddEventListenerByIID(static_cast<nsIDOMFocusListener *>(this),
@@ -680,7 +680,7 @@ mozInlineSpellChecker::UnregisterEventListeners()
   nsCOMPtr<nsIDOMEventTarget> piTarget = do_QueryInterface(doc);
   NS_ENSURE_TRUE(piTarget, NS_ERROR_NULL_POINTER);
 
-  nsCOMPtr<nsIEventListenerManager> elmP =
+  nsEventListenerManager* elmP =
     piTarget->GetListenerManager(PR_TRUE);
   if (elmP) {
     elmP->RemoveEventListenerByIID(static_cast<nsIDOMFocusListener *>(this),

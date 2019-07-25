@@ -73,7 +73,7 @@
 #include "nsCExternalHandlerService.h"
 #include "nsNetUtil.h"
 #include "nsMimeTypes.h"
-#include "nsIEventListenerManager.h"
+#include "nsEventListenerManager.h"
 #include "nsContentUtils.h"
 #include "nsThreadUtils.h"
 #include "nsJSUtils.h"
@@ -407,7 +407,7 @@ nsXMLDocument::Load(const nsAString& aUrl, PRBool *aReturn)
   
   
   
-  nsCOMPtr<nsIEventListenerManager> elm(mListenerManager);
+  nsRefPtr<nsEventListenerManager> elm(mListenerManager);
   mListenerManager = nsnull;
 
   

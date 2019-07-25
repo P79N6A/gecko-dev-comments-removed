@@ -42,14 +42,14 @@
 
 class nsPIDOMWindow;
 class nsIDOMEventListener;
-class nsIEventListenerManager;
+class nsEventListenerManager;
 class nsIDOMEvent;
 class nsEventChainPreVisitor;
 class nsEventChainPostVisitor;
 
 #include "nsIDOMEventTarget.h"
 #include "nsIDOM3EventTarget.h"
-#include "nsIEventListenerManager.h"
+#include "nsEventListenerManager.h"
 #include "nsPIWindowRoot.h"
 #include "nsCycleCollectionParticipant.h"
 
@@ -86,7 +86,7 @@ public:
 protected:
   
   nsPIDOMWindow* mWindow; 
-  nsCOMPtr<nsIEventListenerManager> mListenerManager; 
+  nsRefPtr<nsEventListenerManager> mListenerManager; 
                                                       
 
   nsCOMPtr<nsIDOMNode> mPopupNode; 
