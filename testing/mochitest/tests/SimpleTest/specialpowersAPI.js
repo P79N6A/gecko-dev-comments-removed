@@ -641,6 +641,10 @@ SpecialPowersAPI.prototype = {
       copyString(str);
   },
 
+  openDialog: function(win, args) {
+    return win.openDialog.apply(win, args);
+  },
+
   
   getPrivilegedProps: function(obj, props) {
     parts = props.split('.');
