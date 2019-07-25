@@ -885,12 +885,11 @@ abstract public class GeckoApp
                     public void run() {
                         if (sMenu != null)
                             sMenu.findItem(R.id.preferences).setEnabled(true);
-                        Looper.myQueue().addIdleHandler(new UpdateIdleHandler());
-                        connectGeckoLayerClient();
                     }
                 });
                 setLaunchState(GeckoApp.LaunchState.GeckoRunning);
                 GeckoAppShell.sendPendingEventsToGecko();
+                connectGeckoLayerClient();
             } else if (event.equals("ToggleChrome:Hide")) {
                 mMainHandler.post(new Runnable() {
                     public void run() {
@@ -1327,18 +1326,13 @@ abstract public class GeckoApp
 
 
             mLayerController = new LayerController(this);
-            if (mUserDefinedProfile != true &&
-                GeckoApp.mAppContext.mLastScreen != null) {
-                mPlaceholderLayerClient = PlaceholderLayerClient.createInstance(this);
-                if (mPlaceholderLayerClient != null) {
-                    mLayerController.setLayerClient(mPlaceholderLayerClient);
-                    mGeckoLayout.addView(mLayerController.getView(), 0);
-                    if (mLastUri != null && mLastTitle != null) { 
-                        GeckoAppShell.sendEventToGecko(new GeckoEvent(mLastUri));
-                        mBrowserToolbar.setTitle(mLastTitle);
-                    }
-                }
+            mPlaceholderLayerClient = mUserDefinedProfile ?  null :
+                PlaceholderLayerClient.createInstance(this);
+            if (mPlaceholderLayerClient != null) {
+                mLayerController.setLayerClient(mPlaceholderLayerClient);
             }
+
+            mGeckoLayout.addView(mLayerController.getView(), 0);
         }
 
         mPluginContainer = (AbsoluteLayout) findViewById(R.id.plugin_container);
@@ -1407,6 +1401,31 @@ abstract public class GeckoApp
         registerReceiver(mSmsReceiver, smsFilter);
 
         final GeckoApp self = this;
+ 
+        mMainHandler.postDelayed(new Runnable() {
+            public void run() {
+                
+                Log.w(LOGTAG, "zerdatime " + new Date().getTime() + " - pre checkLaunchState");
+
+                
+
+
+
+
+
+
+
+
+                if (!checkLaunchState(LaunchState.Launched)) {
+                    return;
+                }
+
+                
+                long startTime = new Date().getTime();
+                checkAndLaunchUpdate();
+                Log.w(LOGTAG, "checking for an update took " + (new Date().getTime() - startTime) + "ms");
+            }
+        }, 50);
     }
 
     public void enableCameraView() {
@@ -1647,21 +1666,6 @@ abstract public class GeckoApp
 
     public void handleNotification(String action, String alertName, String alertCookie) {
         GeckoAppShell.handleNotification(action, alertName, alertCookie);
-    }
-
-    
-    private class UpdateIdleHandler implements MessageQueue.IdleHandler {
-        public boolean queueIdle() {
-            mMainHandler.post(new Runnable() {
-                    public void run() {
-                        long startTime = new Date().getTime();
-                        checkAndLaunchUpdate();
-                        Log.w(LOGTAG, "checking for an update took " + (new Date().getTime() - startTime) + "ms");
-                    }
-                });
-            
-            return false;
-        }
     }
 
     private void checkAndLaunchUpdate() {
@@ -2022,13 +2026,8 @@ abstract public class GeckoApp
 
 
     private void connectGeckoLayerClient() {
-        if (mPlaceholderLayerClient != null) {
+        if (mPlaceholderLayerClient != null)
             mPlaceholderLayerClient.destroy();
-        }
-        else {
-            
-            mGeckoLayout.addView(mLayerController.getView(), 0);
-        }
 
         LayerController layerController = getLayerController();
         layerController.setLayerClient(mSoftwareLayerClient);
@@ -2048,7 +2047,7 @@ abstract public class GeckoApp
                         
                     }
                 }
-            }, "DNSPrefetcher Thread").start();
+            }).start();
     }
 }
 
