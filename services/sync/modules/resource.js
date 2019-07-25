@@ -312,8 +312,17 @@ ChannelListener.prototype = {
   onStartRequest: function Channel_onStartRequest(channel) {
     
     channel.QueryInterface(Ci.nsIHttpChannel);
-    this._log.debug(channel.requestMethod + " request for " +
-      channel.URI.spec);
+
+    let log = "trace";
+    let mesg = channel.requestMethod + " request for " + channel.URI.spec;
+    
+    if (this._log.level > Log4Moz.Level.Trace) {
+      log = "debug";
+      if (mesg.length > 200)
+        mesg = mesg.substr(0, 200) + "...";
+    }
+    this._log[log](mesg);
+
     this._data = '';
   },
 
