@@ -2382,19 +2382,33 @@ nsScriptSecurityManager::GetObjectPrincipal(JSContext *aCx, JSObject *aObj,
 
 
 nsIPrincipal*
-nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj
+nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj)
+{
+    JSCompartment *compartment = js::GetObjectCompartment(aObj);
+    JSPrincipals *principals = JS_GetCompartmentPrincipals(compartment);
+    nsIPrincipal *principal = nsJSPrincipals::get(principals);
+
+    
+    
+    
 #ifdef DEBUG
-                                              , bool aAllowShortCircuit
+    nsIPrincipal *old = old_doGetObjectPrincipal(aObj);
+    MOZ_ASSERT(NS_SUCCEEDED(CheckSameOriginPrincipal(principal, old)));
 #endif
-                                              )
+
+    return principal;
+}
+
+#ifdef DEBUG
+
+nsIPrincipal*
+nsScriptSecurityManager::old_doGetObjectPrincipal(JSObject *aObj,
+                                                  bool aAllowShortCircuit)
 {
     NS_ASSERTION(aObj, "Bad call to doGetObjectPrincipal()!");
     nsIPrincipal* result = nsnull;
 
-#ifdef DEBUG
     JSObject* origObj = aObj;
-#endif
-    
     js::Class *jsClass = js::GetObjectClass(aObj);
 
     
@@ -2428,12 +2442,7 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj
         
         if (IS_WRAPPER_CLASS(jsClass)) {
             result = sXPConnect->GetPrincipal(aObj,
-#ifdef DEBUG
-                                              aAllowShortCircuit
-#else
-                                              true
-#endif
-                                              );
+                                              aAllowShortCircuit);
             if (result) {
                 break;
             }
@@ -2449,7 +2458,6 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj
                 priv = nsnull;
             }
 
-#ifdef DEBUG
             if (aAllowShortCircuit) {
                 nsCOMPtr<nsIXPConnectWrappedNative> xpcWrapper =
                     do_QueryInterface(priv);
@@ -2459,7 +2467,6 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj
                              "Uh, an nsIXPConnectWrappedNative with the "
                              "wrong JSClass or getObjectOps hooks!");
             }
-#endif
 
             nsCOMPtr<nsIScriptObjectPrincipal> objPrin =
                 do_QueryInterface(priv);
@@ -2481,9 +2488,8 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj
         jsClass = js::GetObjectClass(aObj);
     } while (1);
 
-#ifdef DEBUG
     if (aAllowShortCircuit) {
-        nsIPrincipal *principal = doGetObjectPrincipal(origObj, false);
+        nsIPrincipal *principal = old_doGetObjectPrincipal(origObj, false);
 
         
         
@@ -2491,10 +2497,10 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj
         NS_ASSERTION(NS_SUCCEEDED(CheckSameOriginPrincipal(result, principal)),
                      "Principal mismatch.  Not good");
     }
-#endif
 
     return result;
 }
+#endif 
 
 
 NS_IMETHODIMP
