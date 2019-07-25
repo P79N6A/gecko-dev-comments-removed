@@ -150,48 +150,6 @@ public:
     return new nsDOMClassInfo(aData);
   }
 
-  static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, const nsIID* aIID,
-                             PRBool aAllowWrapping, jsval *vp,
-                             
-                             
-                             nsIXPConnectJSObjectHolder** aHolder = nsnull)
-  {
-    return WrapNative(cx, scope, native, nsnull, aIID, vp, aHolder,
-                      aAllowWrapping);
-  }
-
-  
-  
-  
-  
-  static inline nsresult WrapNativeParent(JSContext *cx, JSObject *scope,
-                                          nsISupports *native,
-                                          nsWrapperCache *nativeWrapperCache,
-                                          JSObject **parentObj);
-
-  
-  static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, PRBool aAllowWrapping,
-                             jsval *vp,
-                             
-                             
-                             nsIXPConnectJSObjectHolder** aHolder = nsnull)
-  {
-    return WrapNative(cx, scope, native, nsnull, nsnull, vp, aHolder,
-                      aAllowWrapping);
-  }
-  static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, nsWrapperCache *cache,
-                             PRBool aAllowWrapping, jsval *vp,
-                             
-                             
-                             nsIXPConnectJSObjectHolder** aHolder = nsnull)
-  {
-    return WrapNative(cx, scope, native, cache, nsnull, vp, aHolder,
-                      aAllowWrapping);
-  }
-
   static nsresult ThrowJSException(JSContext *cx, nsresult aResult);
 
   
@@ -275,12 +233,6 @@ protected:
             id == sStatus_id       ||
             id == sName_id);
   }
-
-  inline static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                                    nsISupports *native, nsWrapperCache *cache,
-                                    const nsIID* aIID, jsval *vp,
-                                    nsIXPConnectJSObjectHolder** aHolder,
-                                    PRBool aAllowWrapping);
 
   static nsIXPConnect *sXPConnect;
   static nsIScriptSecurityManager *sSecMan;
