@@ -3127,6 +3127,19 @@ Tab.prototype = {
     
     let oldBrowserWidth = this.browserWidth;
     this.setBrowserSize(viewportW, viewportH);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!this.contentDocumentIsDisplayed) {
+      return;
+    }
+
     let minScale = 1.0;
     if (this.browser.contentDocument) {
       
@@ -3202,6 +3215,9 @@ Tab.prototype = {
         
         let contentDocument = aSubject;
         if (contentDocument == this.browser.contentDocument) {
+          BrowserApp.displayedDocumentChanged();
+          this.contentDocumentIsDisplayed = true;
+
           
           
           
@@ -3228,9 +3244,6 @@ Tab.prototype = {
             this.setResolution(fitZoom, false);
             this.sendViewportUpdate();
           }
-
-          BrowserApp.displayedDocumentChanged();
-          this.contentDocumentIsDisplayed = true;
         }
         break;
       case "nsPref:changed":
@@ -4462,7 +4475,7 @@ var ViewportHandler = {
         let document = target.ownerDocument;
         let browser = BrowserApp.getBrowserForDocument(document);
         let tab = BrowserApp.getTabForBrowser(browser);
-        if (tab && tab.contentDocumentIsDisplayed)
+        if (tab)
           this.updateMetadata(tab);
         break;
     }
