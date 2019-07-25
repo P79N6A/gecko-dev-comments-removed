@@ -94,20 +94,6 @@ function checkFile() {
 
 function run_test() {
   
-  let isWin7OrHigher = false;
-  let isWindows = ("@mozilla.org/windows-registry-key;1" in Components.classes);
-  if (isWindows) {
-    try {
-      let version = Cc["@mozilla.org/system-info;1"]
-                      .getService(Ci.nsIPropertyBag2)
-                      .getProperty("version");
-      isWin7OrHigher = (parseFloat(version) >= 6.1);
-    } catch (ex) { }
-  }
-  if (isWin7OrHigher)
-    return;
-
-  
   var ioService =
     Components.classes["@mozilla.org/network/io-service;1"]
               .getService(Components.interfaces.nsIIOService);
