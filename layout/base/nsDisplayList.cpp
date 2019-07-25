@@ -2701,14 +2701,6 @@ nsDisplayScrollLayer::TryMerge(nsDisplayListBuilder* aBuilder,
   props.Set(nsIFrame::ScrollLayerCount(),
     reinterpret_cast<void*>(GetScrollLayerCount() - 1));
 
-  
-  
-  
-  
-  
-  nsIFrame* tmp = mFrame;
-  mFrame = other->mFrame;
-  other->mFrame = tmp;
   MergeFromTrackingMergedFrames(other);
   return true;
 }
