@@ -82,7 +82,10 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       
       eFallbackVulnerableUpdatable = nsIObjectLoadingContent::PLUGIN_VULNERABLE_UPDATABLE,
       
-      eFallbackVulnerableNoUpdate = nsIObjectLoadingContent::PLUGIN_VULNERABLE_NO_UPDATE
+      eFallbackVulnerableNoUpdate = nsIObjectLoadingContent::PLUGIN_VULNERABLE_NO_UPDATE,
+      
+      
+      eFallbackPlayPreview = nsIObjectLoadingContent::PLUGIN_PLAY_PREVIEW
     };
 
     nsObjectLoadingContent();
@@ -293,6 +296,11 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
 
 
+    bool ShouldPreview();
+
+    
+
+
 
 
 
@@ -422,6 +430,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
     
     bool                        mActivated : 1;
+
+    
+    bool                        mPlayPreviewCanceled : 1;
 
     
     bool                        mIsStopping : 1;
