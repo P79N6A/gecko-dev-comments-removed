@@ -436,13 +436,15 @@ SyncEngine.prototype = {
       CryptoMetas.set(meta.uri, meta);
     }
 
-    this._maybeLastSyncLocal = Date.now();
+    
+    
+    
+    
+    
+    
+    this.lastSyncLocal = Date.now();
     if (this.lastSync) {
       this._modified = this.getChangedIDs();
-      
-      
-      this._backupChangedIDs = this._tracker.changedIDs;
-      this._tracker.clearChangedIDs();
     } else {
       
       this._log.debug("First sync, uploading all items");
@@ -450,9 +452,15 @@ SyncEngine.prototype = {
       for (let id in this._store.getAllIDs())
         this._modified[id] = 0;
     }
-
-    let outnum = [i for (i in this._modified)].length;
-    this._log.info(outnum + " outgoing items pre-reconciliation");
+    
+    
+    this._tracker.clearChangedIDs();
+ 
+    
+    
+    this._modifiedIDs = [id for (id in this._modified)];
+    this._log.info(this._modifiedIDs.length +
+                   " outgoing items pre-reconciliation");
 
     
     this._delete = {};
@@ -622,7 +630,7 @@ SyncEngine.prototype = {
     if (item.id in this._modified) {
       
       if (this._isEqual(item)) {
-        this._tracker.removeChangedID(item.id);
+        delete this._modified[item.id];
         return false;
       }
 
@@ -654,10 +662,9 @@ SyncEngine.prototype = {
 
   
   _uploadOutgoing: function SyncEngine__uploadOutgoing() {
-    let failed = {};
-    let outnum = [i for (i in this._modified)].length;
-    if (outnum) {
-      this._log.trace("Preparing " + outnum + " outgoing records");
+    if (this._modifiedIDs.length) {
+      this._log.trace("Preparing " + this._modifiedIDs.length +
+                      " outgoing records");
 
       
       let up = new Collection(this.engineURL);
@@ -665,7 +672,8 @@ SyncEngine.prototype = {
 
       
       let doUpload = Utils.bind2(this, function(desc) {
-        this._log.info("Uploading " + desc + " of " + outnum + " records");
+        this._log.info("Uploading " + desc + " of " +
+                       this._modifiedIDs.length + " records");
         let resp = up.post();
         if (!resp.success) {
           this._log.debug("Uploading records failed: " + resp);
@@ -678,22 +686,21 @@ SyncEngine.prototype = {
         if (modified > this.lastSync)
           this.lastSync = modified;
 
-        
-        
-        let failed_ids = [];
-        for (let id in resp.obj.failed) {
-          failed[id] = this._modified[id];
-          failed_ids.push(id);
-        }
+        let failed_ids = [id for (id in resp.obj.failed)];
         if (failed_ids.length)
           this._log.debug("Records that will be uploaded again because "
                           + "the server couldn't store them: "
                           + failed_ids.join(", "));
 
+        
+        for each (let id in resp.obj.success) {
+          delete this._modified[id];
+        }
+
         up.clearRecords();
       });
 
-      for (let id in this._modified) {
+      for each (let id in this._modifiedIDs) {
         try {
           let out = this._createRecord(id);
           if (this._log.level <= Log4Moz.Level.Trace)
@@ -716,16 +723,6 @@ SyncEngine.prototype = {
       
       if (count % MAX_UPLOAD_RECORDS > 0)
         doUpload(count >= MAX_UPLOAD_RECORDS ? "last batch" : "all");
-    }
-
-    
-    this.lastSyncLocal = this._maybeLastSyncLocal;
-    delete this._modified;
-    delete this._backupChangedIDs;
-
-    
-    for (let id in failed) {
-      this._tracker.addChangedID(id, failed[id]);
     }
   },
 
@@ -758,13 +755,16 @@ SyncEngine.prototype = {
     }
   },
 
-  _rollback: function _rollback() {
-    if (!this._backupChangedIDs)
+  _syncCleanup: function _syncCleanup() {
+    if (!this._modified)
       return;
 
-    for (let [id, when] in Iterator(this._backupChangedIDs)) {
+    
+    for (let [id, when] in Iterator(this._modified)) {
       this._tracker.addChangedID(id, when);
     }
+    delete this._modified;
+    delete this._modifiedIDs;
   },
 
   _sync: function SyncEngine__sync() {
@@ -775,11 +775,8 @@ SyncEngine.prototype = {
       Observers.notify("weave:engine:sync:status", "upload-outgoing");
       this._uploadOutgoing();
       this._syncFinish();
-    }
-    catch (e) {
-      this._rollback();
-      this._log.warn("Sync failed");
-      throw e;
+    } finally {
+      this._syncCleanup();
     }
   },
 
