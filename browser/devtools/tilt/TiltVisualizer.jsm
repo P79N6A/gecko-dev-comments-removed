@@ -60,6 +60,7 @@ const WIREFRAME_COLOR = [0, 0, 0, 0.25];
 const INTRO_TRANSITION_DURATION = 50;
 const OUTRO_TRANSITION_DURATION = 40;
 const INITIAL_Z_TRANSLATION = 400;
+const MOVE_INTO_VIEW_ACCURACY = 50;
 
 const MOUSE_CLICK_THRESHOLD = 10;
 const MOUSE_INTRO_DELAY = 10;
@@ -642,9 +643,11 @@ TiltVisualizer.Presenter.prototype = {
 
 
 
-  highlightNode: function TVP_highlightNode(aNode)
+
+
+  highlightNode: function TVP_highlightNode(aNode, aFlags)
   {
-    this.highlightNodeFor(this.traverseData.nodes.indexOf(aNode));
+    this.highlightNodeFor(this.traverseData.nodes.indexOf(aNode), aFlags);
   },
 
   
@@ -704,7 +707,9 @@ TiltVisualizer.Presenter.prototype = {
 
 
 
-  highlightNodeFor: function TVP_highlightNodeFor(aNodeIndex)
+
+
+  highlightNodeFor: function TVP_highlightNodeFor(aNodeIndex, aFlags)
   {
     this.redraw = true;
 
@@ -748,6 +753,17 @@ TiltVisualizer.Presenter.prototype = {
     this.chromeWindow.InspectorUI.inspectNode(node,
       this.contentWindow.innerHeight < y ||
       this.contentWindow.pageYOffset > 0);
+
+    
+    
+    
+
+    if (aFlags && aFlags.indexOf("moveIntoView") !== -1)
+    {
+      this.controller.arcball.moveIntoView(vec3.lerp(
+        vec3.scale(this.highlight.v0, this.transforms.zoom, []),
+        vec3.scale(this.highlight.v1, this.transforms.zoom, []), 0.5));
+    }
 
     Services.obs.notifyObservers(null, this.NOTIFICATIONS.HIGHLIGHTING, null);
   },
@@ -1002,6 +1018,7 @@ TiltVisualizer.Controller = function TV_Controller(aCanvas, aPresenter)
 
 
   this.presenter = aPresenter;
+  this.presenter.controller = this;
 
   
 
@@ -1731,6 +1748,25 @@ TiltVisualizer.Arcball.prototype = {
   {
     this._rotating = false;
     this._mouseButton = -1;
+  },
+
+  
+
+
+
+
+
+
+  moveIntoView: function TVA_moveIntoView(aPoint) {
+    let visiblePointX = -(this._currentTrans[0] + this._additionalTrans[0]);
+    let visiblePointY = -(this._currentTrans[1] + this._additionalTrans[1]);
+
+    if (aPoint[1] - visiblePointY - MOVE_INTO_VIEW_ACCURACY > this.height ||
+        aPoint[1] - visiblePointY + MOVE_INTO_VIEW_ACCURACY < 0 ||
+        aPoint[0] - visiblePointX > this.width ||
+        aPoint[0] - visiblePointX < 0) {
+      this.reset([0, -aPoint[1]]);
+    }
   },
 
   
