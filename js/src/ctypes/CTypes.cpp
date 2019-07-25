@@ -1256,6 +1256,57 @@ jsvalToFloat(JSContext *cx, jsval val, FloatType* result)
   return false;
 }
 
+template<class IntegerType>
+static bool
+StringToInteger(JSContext* cx, JSString* string, IntegerType* result)
+{
+  JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
+
+  const jschar* cp = string->chars();
+  const jschar* end = cp + string->length();
+  if (cp == end)
+    return false;
+
+  IntegerType sign = 1;
+  if (cp[0] == '-') {
+    if (!numeric_limits<IntegerType>::is_signed)
+      return false;
+
+    sign = -1;
+    ++cp;
+  }
+
+  
+  IntegerType base = 10;
+  if (end - cp > 2 && cp[0] == '0' && (cp[1] == 'x' || cp[1] == 'X')) {
+    cp += 2;
+    base = 16;
+  }
+
+  
+  
+  IntegerType i = 0;
+  while (cp != end) {
+    jschar c = *cp++;
+    if (c >= '0' && c <= '9')
+      c -= '0';
+    else if (base == 16 && c >= 'a' && c <= 'f')
+      c = c - 'a' + 10;
+    else if (base == 16 && c >= 'A' && c <= 'F')
+      c = c - 'A' + 10;
+    else
+      return false;
+
+    IntegerType ii = i;
+    i = ii * base + sign * c;
+    if (i / base != ii) 
+      return false;
+  }
+
+  *result = i;
+  return true;
+}
+
 
 
 
@@ -1497,57 +1548,6 @@ IntegerToString(IntegerType i, jsuint radix, AutoString& result)
 
   JS_ASSERT(cp >= buffer);
   result.append(cp, end);
-}
-
-template<class IntegerType>
-static bool
-StringToInteger(JSContext* cx, JSString* string, IntegerType* result)
-{
-  JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
-
-  const jschar* cp = string->chars();
-  const jschar* end = cp + string->length();
-  if (cp == end)
-    return false;
-
-  IntegerType sign = 1;
-  if (cp[0] == '-') {
-    if (!numeric_limits<IntegerType>::is_signed)
-      return false;
-
-    sign = -1;
-    ++cp;
-  }
-
-  
-  IntegerType base = 10;
-  if (end - cp > 2 && cp[0] == '0' && (cp[1] == 'x' || cp[1] == 'X')) {
-    cp += 2;
-    base = 16;
-  }
-
-  
-  
-  IntegerType i = 0;
-  while (cp != end) {
-    jschar c = *cp++;
-    if (c >= '0' && c <= '9')
-      c -= '0';
-    else if (base == 16 && c >= 'a' && c <= 'f')
-      c = c - 'a' + 10;
-    else if (base == 16 && c >= 'A' && c <= 'F')
-      c = c - 'A' + 10;
-    else
-      return false;
-
-    IntegerType ii = i;
-    i = ii * base + sign * c;
-    if (i / base != ii) 
-      return false;
-  }
-
-  *result = i;
-  return true;
 }
 
 template<class CharType>
@@ -5653,12 +5653,11 @@ CData::ReadString(JSContext* cx, uintN argc, jsval *vp)
       return JS_FALSE;
 
     jschar* dst =
-      static_cast<jschar*>(JS_malloc(cx, (dstlen + 1) * sizeof(jschar)));
+      static_cast<jschar*>(JS_malloc(cx, dstlen * sizeof(jschar)));
     if (!dst)
       return JS_FALSE;
 
     ASSERT_OK(js_InflateUTF8StringToBuffer(cx, bytes, length, dst, &dstlen));
-    dst[dstlen] = 0;
 
     result = JS_NewUCString(cx, dst, dstlen);
     break;
