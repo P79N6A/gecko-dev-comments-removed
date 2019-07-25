@@ -54,6 +54,7 @@ namespace layers {
 ThebesLayerD3D10::ThebesLayerD3D10(LayerManagerD3D10 *aManager)
   : ThebesLayer(aManager, NULL)
   , LayerD3D10(aManager)
+  , mCurrentSurfaceMode(SURFACE_OPAQUE)
 {
   mImplData = static_cast<LayerD3D10*>(this);
 }
@@ -119,19 +120,23 @@ ThebesLayerD3D10::RenderLayer()
     return;
   }
 
-  nsIntRect visibleRect = mVisibleRegion.GetBounds();
-
   SetEffectTransformAndOpacity();
 
   ID3D10EffectTechnique *technique;
-  if (mTextureOnWhite) {
+  switch (mCurrentSurfaceMode) {
+  case SURFACE_COMPONENT_ALPHA:
     technique = effect()->GetTechniqueByName("RenderComponentAlphaLayer");
-  } else if (CanUseOpaqueSurface()) {
+    break;
+  case SURFACE_OPAQUE:
     technique = effect()->GetTechniqueByName("RenderRGBLayerPremul");
-  } else {
+    break;
+  case SURFACE_SINGLE_CHANNEL_ALPHA:
     technique = effect()->GetTechniqueByName("RenderRGBALayerPremul");
+    break;
+  default:
+    NS_ERROR("Unknown mode");
+    return;
   }
-
 
   nsIntRegionRectIterator iter(mVisibleRegion);
 
@@ -154,10 +159,10 @@ ThebesLayerD3D10::RenderLayer()
 
     effect()->GetVariableByName("vTextureCoords")->AsVector()->SetFloatVector(
       ShaderConstantRectD3D10(
-        (float)(iterRect->x - visibleRect.x) / (float)visibleRect.width,
-        (float)(iterRect->y - visibleRect.y) / (float)visibleRect.height,
-        (float)iterRect->width / (float)visibleRect.width,
-        (float)iterRect->height / (float)visibleRect.height)
+        (float)(iterRect->x - mTextureRect.x) / (float)mTextureRect.width,
+        (float)(iterRect->y - mTextureRect.y) / (float)mTextureRect.height,
+        (float)iterRect->width / (float)mTextureRect.width,
+        (float)iterRect->height / (float)mTextureRect.height)
       );
 
     technique->GetPassByIndex(0)->Apply(0);
@@ -176,11 +181,34 @@ ThebesLayerD3D10::Validate(ReadbackProcessor *aReadback)
     return;
   }
 
+  nsIntRect newTextureRect = mVisibleRegion.GetBounds();
+
   SurfaceMode mode = GetSurfaceMode();
   if (mode == SURFACE_COMPONENT_ALPHA &&
       (!mParent || !mParent->SupportsComponentAlphaChildren())) {
     mode = SURFACE_SINGLE_CHANNEL_ALPHA;
   }
+  
+  
+  
+  
+  
+  nsIntRegion neededRegion = mVisibleRegion;
+  if (neededRegion.GetBounds() != newTextureRect ||
+      neededRegion.GetNumRects() > 1) {
+    gfxMatrix transform2d;
+    if (!GetEffectiveTransform().Is2D(&transform2d) ||
+        transform2d.HasNonIntegerTranslation()) {
+      neededRegion = newTextureRect;
+      if (mode == SURFACE_OPAQUE) {
+        
+        
+        
+        mode = SURFACE_SINGLE_CHANNEL_ALPHA;
+      }
+    }
+  }
+  mCurrentSurfaceMode = mode;
 
   VerifyContentType(mode);
 
@@ -199,26 +227,21 @@ ThebesLayerD3D10::Validate(ReadbackProcessor *aReadback)
     aReadback->GetThebesLayerUpdates(this, &readbackUpdates, &readbackRegion);
   }
 
-  nsIntRect visibleRect = mVisibleRegion.GetBounds();
-
   if (mTexture) {
-    if (!mTextureRegion.IsEqual(mVisibleRegion)) {
+    if (mTextureRect != newTextureRect) {
       nsRefPtr<ID3D10Texture2D> oldTexture = mTexture;
       mTexture = nsnull;
       nsRefPtr<ID3D10Texture2D> oldTextureOnWhite = mTextureOnWhite;
       mTextureOnWhite = nsnull;
 
-      nsIntRegion retainRegion = mTextureRegion;
-      nsIntRect oldBounds = mTextureRegion.GetBounds();
-      nsIntRect newBounds = mVisibleRegion.GetBounds();
-
-      CreateNewTextures(gfxIntSize(newBounds.width, newBounds.height), mode);
-
+      nsIntRegion retainRegion = mTextureRect;
       
       
       retainRegion.And(retainRegion, mVisibleRegion);
       
       retainRegion.And(retainRegion, mValidRegion);
+
+      CreateNewTextures(gfxIntSize(newTextureRect.width, newTextureRect.height), mode);
 
       nsIntRect largeRect = retainRegion.GetLargestRectangle();
 
@@ -234,47 +257,41 @@ ThebesLayerD3D10::Validate(ReadbackProcessor *aReadback)
           ResolutionChanged(xres, yres)) {
         mValidRegion.SetEmpty();
       } else {
-        CopyRegion(oldTexture, oldBounds.TopLeft(),
-                   mTexture, newBounds.TopLeft(),
+        CopyRegion(oldTexture, mTextureRect.TopLeft(),
+                   mTexture, newTextureRect.TopLeft(),
                    retainRegion, &mValidRegion,
                    xres, yres);
         if (oldTextureOnWhite) {
-          CopyRegion(oldTextureOnWhite, oldBounds.TopLeft(),
-                     mTextureOnWhite, newBounds.TopLeft(),
+          CopyRegion(oldTextureOnWhite, mTextureRect.TopLeft(),
+                     mTextureOnWhite, newTextureRect.TopLeft(),
                      retainRegion, &mValidRegion,
                      xres, yres);
         }
       }
     }
   }
-  mTextureRegion = mVisibleRegion;
+  mTextureRect = newTextureRect;
 
   if (!mTexture || (mode == SURFACE_COMPONENT_ALPHA && !mTextureOnWhite)) {
-    CreateNewTextures(gfxIntSize(visibleRect.width, visibleRect.height), mode);
+    CreateNewTextures(gfxIntSize(newTextureRect.width, newTextureRect.height), mode);
     mValidRegion.SetEmpty();
   }
 
-  if (!mValidRegion.IsEqual(mVisibleRegion)) {
+  nsIntRegion drawRegion;
+  drawRegion.Sub(neededRegion, mValidRegion);
+
+  if (!drawRegion.IsEmpty()) {
     LayerManagerD3D10::CallbackInfo cbInfo = mD3DManager->GetCallbackInfo();
     if (!cbInfo.Callback) {
       NS_ERROR("D3D10 should never need to update ThebesLayers in an empty transaction");
       return;
     }
 
-    
-
-
-
-
-
-    nsIntRegion region;
-    region.Sub(mVisibleRegion, mValidRegion);
-
-    DrawRegion(region, mode);
+    DrawRegion(drawRegion, mode);
 
     if (readbackUpdates.Length() > 0) {
       CD3D10_TEXTURE2D_DESC desc(DXGI_FORMAT_B8G8R8A8_UNORM,
-                                 visibleRect.width, visibleRect.height,
+                                 newTextureRect.width, newTextureRect.height,
                                  1, 1, 0, D3D10_USAGE_STAGING,
                                  D3D10_CPU_ACCESS_READ);
 
@@ -285,11 +302,11 @@ ThebesLayerD3D10::Validate(ReadbackProcessor *aReadback)
       for (int i = 0; i < readbackUpdates.Length(); i++) {
         mD3DManager->readbackManager()->PostTask(readbackTexture,
                                                  &readbackUpdates[i],
-                                                 gfxPoint(visibleRect.x, visibleRect.y));
+                                                 gfxPoint(newTextureRect.x, newTextureRect.y));
       }
     }
 
-    mValidRegion = mVisibleRegion;
+    mValidRegion = neededRegion;
   }
 }
 

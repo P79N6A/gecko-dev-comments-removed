@@ -208,11 +208,34 @@ ThebesLayerD3D9::RenderThebesLayer(ReadbackProcessor* aReadback)
     return;
   }
 
+  nsIntRect newTextureRect = mVisibleRegion.GetBounds();
+
   SurfaceMode mode = GetSurfaceMode();
   if (mode == SURFACE_COMPONENT_ALPHA &&
       (!mParent || !mParent->SupportsComponentAlphaChildren())) {
     mode = SURFACE_SINGLE_CHANNEL_ALPHA;
   }
+  
+  
+  
+  
+  
+  nsIntRegion neededRegion = mVisibleRegion;
+  if (neededRegion.GetBounds() != newTextureRect ||
+      neededRegion.GetNumRects() > 1) {
+    gfxMatrix transform2d;
+    if (!GetEffectiveTransform().Is2D(&transform2d) ||
+        transform2d.HasNonIntegerTranslation()) {
+      neededRegion = newTextureRect;
+      if (mode == SURFACE_OPAQUE) {
+        
+        
+        
+        mode = SURFACE_SINGLE_CHANNEL_ALPHA;
+      }
+    }
+  }
+
   VerifyContentType(mode);
   UpdateTextures(mode);
   if (!HaveTextures(mode)) {
@@ -232,7 +255,7 @@ ThebesLayerD3D9::RenderThebesLayer(ReadbackProcessor* aReadback)
   
   
   nsIntRegion drawRegion;
-  drawRegion.Sub(mVisibleRegion, mValidRegion);
+  drawRegion.Sub(neededRegion, mValidRegion);
   drawRegion.Or(drawRegion, readbackRegion);
   
 
@@ -245,7 +268,7 @@ ThebesLayerD3D9::RenderThebesLayer(ReadbackProcessor* aReadback)
 
     DrawRegion(drawRegion, mode, readbackUpdates);
 
-    mValidRegion = mVisibleRegion;
+    mValidRegion = neededRegion;
   }
 
   SetShaderTransformAndOpacity();
