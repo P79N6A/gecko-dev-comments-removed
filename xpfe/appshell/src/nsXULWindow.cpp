@@ -146,7 +146,6 @@ nsXULWindow::nsXULWindow(PRUint32 aChromeFlags)
     mChromeFlagsFrozen(PR_FALSE),
     mIgnoreXULSizeMode(PR_FALSE),
     mContextFlags(0),
-    mBlurSuppressionLevel(0),
     mPersistentAttributesDirty(0),
     mPersistentAttributesMask(0),
     mChromeFlags(aChromeFlags),
@@ -852,30 +851,6 @@ NS_IMETHODIMP nsXULWindow::SetEnabled(bool aEnable)
     return NS_OK;
   }
   return NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP nsXULWindow::GetBlurSuppression(bool *aBlurSuppression)
-{
-  NS_ENSURE_ARG_POINTER(aBlurSuppression);
-  *aBlurSuppression = mBlurSuppressionLevel > 0;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsXULWindow::SetBlurSuppression(bool aBlurSuppression)
-{
-  if (aBlurSuppression)
-    ++mBlurSuppressionLevel;
-  else {
-    NS_ASSERTION(mBlurSuppressionLevel > 0, "blur over-allowed");
-    if (mBlurSuppressionLevel > 0)
-      --mBlurSuppressionLevel;
-  }
-  return NS_OK;
-
-  
-
-
-
 }
 
 NS_IMETHODIMP nsXULWindow::GetMainWidget(nsIWidget** aMainWidget)
