@@ -212,8 +212,7 @@ NS_IMPL_CLASSINFO(nsNavHistory, NULL, nsIClassInfo::SINGLETON,
                   NS_NAVHISTORYSERVICE_CID)
 NS_INTERFACE_MAP_BEGIN(nsNavHistory)
   NS_INTERFACE_MAP_ENTRY(nsINavHistoryService)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIGlobalHistory2, nsIGlobalHistory3)
-  NS_INTERFACE_MAP_ENTRY(nsIGlobalHistory3)
+  NS_INTERFACE_MAP_ENTRY(nsIGlobalHistory2)
   NS_INTERFACE_MAP_ENTRY(nsIDownloadHistory)
   NS_INTERFACE_MAP_ENTRY(nsIBrowserHistory)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
@@ -227,10 +226,9 @@ NS_INTERFACE_MAP_BEGIN(nsNavHistory)
 NS_INTERFACE_MAP_END
 
 
-NS_IMPL_CI_INTERFACE_GETTER5(
+NS_IMPL_CI_INTERFACE_GETTER4(
   nsNavHistory
 , nsINavHistoryService
-, nsIGlobalHistory3
 , nsIGlobalHistory2
 , nsIDownloadHistory
 , nsIBrowserHistory
@@ -470,8 +468,6 @@ nsNavHistory::Init()
   NS_ENSURE_TRUE(mRecentLink.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE),
                  NS_ERROR_OUT_OF_MEMORY);
   NS_ENSURE_TRUE(mRecentBookmark.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE),
-                 NS_ERROR_OUT_OF_MEMORY);
-  NS_ENSURE_TRUE(mRecentRedirects.Init(RECENT_EVENTS_INITIAL_CACHE_SIZE),
                  NS_ERROR_OUT_OF_MEMORY);
 
   
@@ -2728,7 +2724,6 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
   
   
   
-  
   if (newItem && (aIsRedirect || aTransitionType == TRANSITION_DOWNLOAD)) {
     nsCOMPtr<nsIObserverService> obsService =
       do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
@@ -4841,10 +4836,6 @@ nsNavHistory::AddURIInternal(nsIURI* aURI, PRTime aTime, PRBool aRedirect,
 
 
 
-
-
-
-
 nsresult
 nsNavHistory::AddVisitChain(nsIURI* aURI,
                             PRTime aTime,
@@ -4869,52 +4860,10 @@ nsNavHistory::AddVisitChain(nsIURI* aURI,
   PRBool isEmbedVisit = !aToplevel &&
                         !CheckIsRecentEvent(&mRecentLink, spec);
 
-  
   PRUint32 transitionType = 0;
-  PRTime redirectTime = 0;
-  nsCAutoString redirectSourceUrl;
-  if (GetRedirectFor(spec, redirectSourceUrl, &redirectTime, &transitionType)) {
-    
-    
-    nsCOMPtr<nsIURI> redirectSourceURI;
-    rv = NS_NewURI(getter_AddRefs(redirectSourceURI), redirectSourceUrl);
-    NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    PRBool redirectIsSame;
-    if (NS_SUCCEEDED(aURI->Equals(redirectSourceURI, &redirectIsSame)) &&
-        redirectIsSame)
-      return NS_OK;
-
-    
-    
-    
-    
-    PRTime sourceTime = NS_MIN(redirectTime, aTime - 1);
-    PRInt64 sourceVisitId = 0;
-    rv = AddVisitChain(redirectSourceURI, sourceTime, aToplevel,
-                       PR_TRUE, 
-                       aReferrerURI, 
-                       &sourceVisitId, 
-                       aSessionID);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    if (isEmbedVisit)
-      transitionType = nsINavHistoryService::TRANSITION_EMBED;
-    else if (!aToplevel)
-      transitionType = nsINavHistoryService::TRANSITION_FRAMED_LINK;
-
-    
-    
-    
-    
-    
-    fromVisitURI = redirectSourceURI;
-  }
-  else if (aReferrerURI) {
-    
+  if (aReferrerURI) {
+  
 
     
     PRTime lastVisitTime;
@@ -5078,107 +5027,6 @@ nsNavHistory::GetPageTitle(nsIURI* aURI, nsAString& aTitle)
 
   rv = stmt->GetString(nsNavHistory::kGetInfoIndex_Title, aTitle);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-
-
-
-
-NS_IMETHODIMP
-nsNavHistory::GetURIGeckoFlags(nsIURI* aURI, PRUint32* aResult)
-{
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aURI);
-  NS_ENSURE_ARG_POINTER(aResult);
-
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-
-
-
-
-NS_IMETHODIMP
-nsNavHistory::SetURIGeckoFlags(nsIURI* aURI, PRUint32 aFlags)
-{
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aURI);
-
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-
-
-
-
-
-
-
-
-
-PLDHashOperator nsNavHistory::ExpireNonrecentRedirects(
-    nsCStringHashKey::KeyType aKey, RedirectInfo& aData, void* aUserArg)
-{
-  PRInt64* threshold = reinterpret_cast<PRInt64*>(aUserArg);
-  if (aData.mTimeCreated < *threshold)
-    return PL_DHASH_REMOVE;
-  return PL_DHASH_NEXT;
-}
-
-NS_IMETHODIMP
-nsNavHistory::AddDocumentRedirect(nsIChannel *aOldChannel,
-                                  nsIChannel *aNewChannel,
-                                  PRInt32 aFlags,
-                                  PRBool aToplevel)
-{
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aOldChannel);
-  NS_ENSURE_ARG(aNewChannel);
-
-  
-  
-  
-  if (aFlags & nsIChannelEventSink::REDIRECT_INTERNAL)
-    return NS_OK;
-
-  nsresult rv;
-  nsCOMPtr<nsIURI> oldURI, newURI;
-  rv = aOldChannel->GetURI(getter_AddRefs(oldURI));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = aNewChannel->GetURI(getter_AddRefs(newURI));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCString oldSpec, newSpec;
-  rv = oldURI->GetSpec(oldSpec);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = newURI->GetSpec(newSpec);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (mRecentRedirects.Count() > RECENT_EVENT_QUEUE_MAX_LENGTH) {
-    
-    PRInt64 threshold = PR_Now() - RECENT_EVENT_THRESHOLD;
-    mRecentRedirects.Enumerate(ExpireNonrecentRedirects,
-                               reinterpret_cast<void*>(&threshold));
-  }
-
-  RedirectInfo info;
-
-  
-  
-  if (mRecentRedirects.Get(newSpec, &info))
-    mRecentRedirects.Remove(newSpec);
-  
-  info.mSourceURI = oldSpec;
-  info.mTimeCreated = PR_Now();
-  if (aFlags & nsIChannelEventSink::REDIRECT_TEMPORARY)
-    info.mType = TRANSITION_REDIRECT_TEMPORARY;
-  else
-    info.mType = TRANSITION_REDIRECT_PERMANENT;
-  mRecentRedirects.Put(newSpec, info);
 
   return NS_OK;
 }
@@ -6330,77 +6178,6 @@ nsNavHistory::ExpireNonrecentEvents(RecentEventHash* hashTable)
   PRInt64 threshold = GetNow() - RECENT_EVENT_THRESHOLD;
   hashTable->Enumerate(ExpireNonrecentEventsCallback,
                        reinterpret_cast<void*>(&threshold));
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-PRBool
-nsNavHistory::GetRedirectFor(const nsACString& aDestination,
-                             nsACString& aSource,
-                             PRTime* aTime,
-                             PRUint32* aRedirectType)
-{
-  RedirectInfo info;
-  if (mRecentRedirects.Get(aDestination, &info)) {
-    
-    mRecentRedirects.Remove(aDestination);
-    if (info.mTimeCreated < GetNow() - RECENT_EVENT_THRESHOLD)
-      return PR_FALSE; 
-    aSource = info.mSourceURI;
-    *aTime = info.mTimeCreated;
-    *aRedirectType = info.mType;
-    return PR_TRUE;
-  }
-  return PR_FALSE;
 }
 
 
