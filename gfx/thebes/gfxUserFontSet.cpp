@@ -374,6 +374,7 @@ SanitizeOpenTypeData(const PRUint8* aData, PRUint32 aLength,
 
 static void
 StoreUserFontData(gfxFontEntry* aFontEntry, gfxProxyFontEntry* aProxy,
+                  const nsAString& aOriginalName,
                   nsTArray<PRUint8>* aMetadata, PRUint32 aMetaOrigLen)
 {
     if (!aFontEntry->mUserFontData) {
@@ -388,6 +389,7 @@ StoreUserFontData(gfxFontEntry* aFontEntry, gfxProxyFontEntry* aProxy,
         userFontData->mURI = src.mURI;
     }
     userFontData->mFormat = src.mFormatFlags;
+    userFontData->mRealName = aOriginalName;
     if (aMetadata) {
         userFontData->mMetadata.SwapElements(*aMetadata);
         userFontData->mMetaOrigLen = aMetaOrigLen;
@@ -468,6 +470,11 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
         
         
 
+        
+        
+        
+        nsAutoString originalFullName;
+
         if (gfxPlatform::GetPlatform()->SanitizeDownloadedFonts()) {
            
             
@@ -486,6 +493,12 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
             if (saneData) {
                 
                 
+                
+                
+                gfxFontUtils::GetFullNameFromSFNT(saneData, saneLen,
+                                                  originalFullName);
+                
+                
                 fe = gfxPlatform::GetPlatform()->MakePlatformFont(aProxy,
                                                                   saneData,
                                                                   saneLen);
@@ -501,6 +514,10 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
 
             if (aFontData) {
                 if (gfxFontUtils::ValidateSFNTHeaders(aFontData, aLength)) {
+                    
+                    
+                    gfxFontUtils::GetFullNameFromSFNT(aFontData, aLength,
+                                                      originalFullName);
                     
                     
                     fe = gfxPlatform::GetPlatform()->MakePlatformFont(aProxy,
@@ -525,7 +542,8 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
             
             fe->mFeatureSettings.AppendElements(aProxy->mFeatureSettings);
             fe->mLanguageOverride = aProxy->mLanguageOverride;
-            StoreUserFontData(fe, aProxy, &metadata, metaOrigLen);
+            StoreUserFontData(fe, aProxy, originalFullName,
+                              &metadata, metaOrigLen);
 #ifdef PR_LOGGING
             
             
@@ -617,7 +635,7 @@ gfxUserFontSet::LoadNext(gfxProxyFontEntry *aProxyEntry)
                      PRUint32(mGeneration)));
                 fe->mFeatureSettings.AppendElements(aProxyEntry->mFeatureSettings);
                 fe->mLanguageOverride = aProxyEntry->mLanguageOverride;
-                StoreUserFontData(fe, aProxyEntry, nsnull, 0);
+                StoreUserFontData(fe, aProxyEntry, nsString(), nsnull, 0);
                 ReplaceFontEntry(aProxyEntry, fe);
                 return STATUS_LOADED;
             } else {

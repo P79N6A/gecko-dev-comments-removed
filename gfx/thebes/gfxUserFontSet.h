@@ -87,6 +87,7 @@ public:
     nsTArray<PRUint8> mMetadata;  
     nsCOMPtr<nsIURI>  mURI;       
     nsString          mLocalName; 
+    nsString          mRealName;  
     PRUint32          mSrcIndex;  
     PRUint32          mFormat;    
     PRUint32          mMetaOrigLen; 

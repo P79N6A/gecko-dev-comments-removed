@@ -194,6 +194,11 @@ public:
     
     virtual nsString FamilyName() const;
 
+    
+    
+    
+    virtual nsString RealFaceName();
+
 protected:
     gfxFcFontEntry(const nsAString& aName)
         : gfxFontEntry(aName),
@@ -227,6 +232,29 @@ gfxFcFontEntry::FamilyName() const
         return NS_ConvertUTF8toUTF16((const char*)familyname);
     }
     return gfxFontEntry::FamilyName();
+}
+
+nsString
+gfxFcFontEntry::RealFaceName()
+{
+    FcChar8 *name;
+    if (!mPatterns.IsEmpty()) {
+        if (FcPatternGetString(mPatterns[0],
+                               FC_FULLNAME, 0, &name) == FcResultMatch) {
+            return NS_ConvertUTF8toUTF16((const char*)name);
+        }
+        if (FcPatternGetString(mPatterns[0],
+                               FC_FAMILY, 0, &name) == FcResultMatch) {
+            NS_ConvertUTF8toUTF16 result((const char*)name);
+            if (FcPatternGetString(mPatterns[0],
+                                   FC_STYLE, 0, &name) == FcResultMatch) {
+                result.AppendLiteral(" ");
+                AppendUTF8toUTF16((const char*)name, result);
+            }
+            return result;
+        }
+    }
+    return gfxFontEntry::RealFaceName();
 }
 
 PRBool

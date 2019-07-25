@@ -222,7 +222,12 @@ public:
     virtual ~gfxFontEntry();
 
     
+    
     const nsString& Name() const { return mName; }
+
+    
+    
+    virtual nsString RealFaceName();
 
     gfxFontFamily* Family() const { return mFamily; }
 
