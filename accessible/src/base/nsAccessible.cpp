@@ -2612,7 +2612,7 @@ nsAccessible::GetValid(PRBool *aValid)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  *aValid = IsValid();
+  *aValid = IsLinkValid();
   return NS_OK;
 }
 
@@ -2918,18 +2918,6 @@ nsAccessible::EndOffset()
 
   nsHyperTextAccessible* hyperText = mParent ? mParent->AsHyperText() : nsnull;
   return hyperText ? (hyperText->GetChildOffset(this) + 1) : 0;
-}
-
-bool
-nsAccessible::IsValid()
-{
-  NS_PRECONDITION(IsHyperLink(), "IsValid is called on not hyper link!");
-
-  return (0 == (State() & states::INVALID));
-  
-  
-  
-  
 }
 
 PRUint32

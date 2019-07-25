@@ -40,6 +40,7 @@
 #define _nsAccessible_H_
 
 #include "nsAccessNodeWrap.h"
+#include "States.h"
 
 #include "nsIAccessible.h"
 #include "nsIAccessibleHyperLink.h"
@@ -421,7 +422,16 @@ public:
   
 
 
-  virtual bool IsValid();
+  inline bool IsLinkValid()
+  {
+    NS_PRECONDITION(IsHyperLink(), "IsLinkValid is called on not hyper link!");
+
+    
+    
+    
+    
+    return (0 == (State() & states::INVALID));
+  }
 
   
 
