@@ -212,6 +212,9 @@ SessionStoreService.prototype = {
   _windows: {},
 
   
+  _internalWindows: {},
+
+  
   _closedWindows: [],
 
   
@@ -554,10 +557,13 @@ SessionStoreService.prototype = {
       });
       
       for (let ix in this._windows) {
-        if (ix in openWindows)
+        if (ix in openWindows) {
           this._windows[ix]._closedTabs = [];
-        else
+        }
+        else {
           delete this._windows[ix];
+          delete this._internalWindows[ix];
+        }
       }
       
       this._closedWindows = [];
@@ -794,6 +800,10 @@ SessionStoreService.prototype = {
 
     
     this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [], busy: false };
+
+    
+    this._internalWindows[aWindow.__SSi] = { hosts: {} }
+
     if (!this._isWindowLoaded(aWindow))
       this._windows[aWindow.__SSi]._restoring = true;
     if (!aWindow.toolbar.visible)
@@ -965,7 +975,9 @@ SessionStoreService.prototype = {
         winData.title = aWindow.content.document.title || tabbrowser.selectedTab.label;
         winData.title = this._replaceLoadingTitle(winData.title, tabbrowser,
                                                   tabbrowser.selectedTab);
-        this._updateCookies([winData]);
+        let windows = {};
+        windows[aWindow.__SSi] = winData;
+        this._updateCookies(windows);
       }
 
 #ifndef XP_MACOSX
@@ -986,6 +998,7 @@ SessionStoreService.prototype = {
       
       
       delete this._windows[aWindow.__SSi];
+      delete this._internalWindows[aWindow.__SSi];
       
       
       this.saveStateDelayed();
@@ -2306,7 +2319,7 @@ SessionStoreService.prototype = {
 
 
   _updateCookieHosts: function sss_updateCookieHosts(aWindow) {
-    var hosts = this._windows[aWindow.__SSi]._hosts = {};
+    var hosts = this._internalWindows[aWindow.__SSi].hosts = {};
 
     this._windows[aWindow.__SSi].tabs.forEach(function(aTabData) {
       aTabData.entries.forEach(function(entry) {
@@ -2316,6 +2329,7 @@ SessionStoreService.prototype = {
   },
 
   
+
 
 
 
@@ -2331,18 +2345,17 @@ SessionStoreService.prototype = {
       aHash[aHost][aPath][aName] = aCookie;
     }
 
-    
-    for (var i = 0; i < aWindows.length; i++)
-      aWindows[i].cookies = [];
-
     var jscookies = {};
     var _this = this;
     
     var MAX_EXPIRY = Math.pow(2, 62);
-    aWindows.forEach(function(aWindow) {
-      if (!aWindow._hosts)
+
+    for (let [id, window] in Iterator(aWindows)) {
+      window.cookies = [];
+      let internalWindow = this._internalWindows[id];
+      if (!internalWindow.hosts)
         return;
-      for (var [host, isPinned] in Iterator(aWindow._hosts)) {
+      for (var [host, isPinned] in Iterator(internalWindow.hosts)) {
         let list;
         try {
           list = CookieSvc.getCookiesFromHost(host);
@@ -2371,16 +2384,15 @@ SessionStoreService.prototype = {
 
               addCookieToHash(jscookies, cookie.host, cookie.path, cookie.name, jscookie);
             }
-            aWindow.cookies.push(jscookies[cookie.host][cookie.path][cookie.name]);
+            window.cookies.push(jscookies[cookie.host][cookie.path][cookie.name]);
           }
         }
       }
-    });
 
-    
-    for (i = 0; i < aWindows.length; i++)
-      if (aWindows[i].cookies.length == 0)
-        delete aWindows[i].cookies;
+      
+      if (!window.cookies.length)
+        delete window.cookies;
+    }
   },
 
   
@@ -2439,18 +2451,19 @@ SessionStoreService.prototype = {
     }
     
     
-    var total = [], windows = [];
+    var total = [], windows = {}, ids = [];
     var nonPopupCount = 0;
     var ix;
     for (ix in this._windows) {
       if (this._windows[ix]._restoring) 
         continue;
       total.push(this._windows[ix]);
-      windows.push(ix);
+      ids.push(ix);
+      windows[ix] = this._windows[ix];
       if (!this._windows[ix].isPopup)
         nonPopupCount++;
     }
-    this._updateCookies(total);
+    this._updateCookies(windows);
 
     
     for (ix in this._statesToRestore) {
@@ -2501,7 +2514,7 @@ SessionStoreService.prototype = {
     if (activeWindow) {
       this.activeWindowSSiCache = activeWindow.__SSi || "";
     }
-    ix = windows.indexOf(this.activeWindowSSiCache);
+    ix = ids.indexOf(this.activeWindowSSiCache);
     
     
     if (ix != -1 && total[ix] && total[ix].sizemode == "minimized")
@@ -2540,10 +2553,12 @@ SessionStoreService.prototype = {
       this._collectWindowData(aWindow);
     }
     
-    var total = [this._windows[aWindow.__SSi]];
-    this._updateCookies(total);
+    var winData = this._windows[aWindow.__SSi];
+    let windows = {};
+    windows[aWindow.__SSi] = winData;
+    this._updateCookies(windows);
     
-    return { windows: total };
+    return { windows: [winData] };
   },
 
   _collectWindowData: function sss_collectWindowData(aWindow) {
