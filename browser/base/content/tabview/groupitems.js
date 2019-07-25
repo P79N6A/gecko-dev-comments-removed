@@ -797,9 +797,9 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       if (!options.dontArrange) {
         this.arrange();
       }
-      
+
       this._sendToSubscribers("childAdded",{ groupItemId: this.id, item: item });
-      
+
       UI.setReorderTabsOnHide(this);
     } catch(e) {
       Utils.log('GroupItem.add error', e);
@@ -833,7 +833,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       var index = this._children.indexOf(item);
       if (index != -1)
         this._children.splice(index, 1);
-        
+
       if (item == this._activeTab) {
         if (this._children.length)
           this._activeTab = this._children[0];
@@ -896,7 +896,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         GroupItems._updateTabBar();
         UI.goToTab(iQ(this).data("xulTab"));
       });
-      
+
     let columnWidth = $appTab.width();
     if (parseInt(this.$appTabTray.css("width")) != columnWidth) {
       this.$appTabTray.css({width: columnWidth});
@@ -1481,16 +1481,53 @@ let GroupItems = {
   _inited: false,
   _activeGroupItem: null,
   _activeOrphanTab: null,
+  _cleanupFunctions: [],
 
   
   
   init: function GroupItems_init() {
+    let self = this;
+
+    
+    function handleAttrModified(xulTab) {
+      self._handleAttrModified(xulTab);
+    }
+
+    AllTabs.register("attrModified", handleAttrModified);
+    this._cleanupFunctions.push(function() {
+      AllTabs.unregister("attrModified", handleAttrModified);
+    });
   },
 
   
   
   uninit : function GroupItems_uninit () {
+    this._cleanupFunctions.forEach(function(func) {
+      func();
+    });
+
+    this._cleanupFunctions = [];
+
     this.groupItems = null;
+  },
+
+  
+  
+  _handleAttrModified: function GroupItems__handleAttrModified(xulTab) {
+    if (xulTab.ownerDocument.defaultView != gWindow || !xulTab.pinned)
+      return;
+
+    let iconUrl = xulTab.image || Utils.defaultFaviconURL;
+    this.groupItems.forEach(function(groupItem) {
+      iQ(".appTabIcon", groupItem.$appTabTray).each(function(icon) {
+        let $icon = iQ(icon);
+        if ($icon.data("xulTab") != xulTab)
+          return;
+
+        if (iconUrl != $icon.attr("src"))
+          $icon.attr("src", iconUrl);
+      });
+    });
   },
 
   
@@ -1885,11 +1922,11 @@ let GroupItems = {
   
   
   moveTabToGroupItem : function GroupItems_moveTabToGroupItem (tab, groupItemId) {
-    if (tab.pinned) 
+    if (tab.pinned)
       return;
-      
+
     Utils.assertThrow(tab.tabItem, "tab must be linked to a TabItem");
-      
+
     let shouldUpdateTabBar = false;
     let shouldShowTabView = false;
     let groupItem;
