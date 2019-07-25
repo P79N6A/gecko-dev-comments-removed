@@ -2958,8 +2958,11 @@ SessionStoreService.prototype = {
         
         browser.__SS_restore_data = { url: null };
         browser.__SS_restore_tab = aTab;
+        if (didStartLoad)
+          browser.stop();
         didStartLoad = true;
-        browser.loadURI(tabData.userTypedValue, null, null, true);
+        browser.loadURIWithFlags(tabData.userTypedValue,
+                                 Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP);
       }
     }
 
