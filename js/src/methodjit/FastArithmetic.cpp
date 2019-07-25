@@ -1173,21 +1173,8 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
 
     
     bool hasDoublePath = false;
-    if (!rhs->isTypeKnown() || lhsUnknownDone.isSet()) {
-        
-        if (lhsUnknownDone.isSet())
-            lhsUnknownDone.get().linkTo(stubcc.masm.label(), &stubcc.masm);
-
-        
-
-
-
-
-        if (target)
-            frame.sync(stubcc.masm, Uses(frame.frameDepth()));
-
+    if (!rhs->isTypeKnown() || lhsUnknownDone.isSet())
         hasDoublePath = true;
-    }
 
     
     JSOp cmpOp = op;
@@ -1238,6 +1225,9 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
         MaybeJump doubleTest, doubleFall;
         Assembler::DoubleCondition dblCond = DoubleCondForOp(op, fused);
         if (hasDoublePath) {
+            if (lhsUnknownDone.isSet())
+                lhsUnknownDone.get().linkTo(stubcc.masm.label(), &stubcc.masm);
+            frame.sync(stubcc.masm, Uses(frame.frameDepth()));
             doubleTest = stubcc.masm.branchDouble(dblCond, fpLeft, fpRight);
             doubleFall = stubcc.masm.jump();
 
@@ -1251,7 +1241,11 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
                 rhsNotNumber2.get().linkTo(stubcc.masm.label(), &stubcc.masm);
 
             
-            stubcc.syncExit(Uses(frame.frameDepth()));
+
+
+
+
+            frame.sync(stubcc.masm, Uses(frame.frameDepth()));
             stubcc.leave();
             stubcc.call(stub);
         }
@@ -1327,6 +1321,8 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
         MaybeJump doubleDone;
         Assembler::DoubleCondition dblCond = DoubleCondForOp(op, JSOP_NOP);
         if (hasDoublePath) {
+            if (lhsUnknownDone.isSet())
+                lhsUnknownDone.get().linkTo(stubcc.masm.label(), &stubcc.masm);
             
             Jump test = stubcc.masm.branchDouble(dblCond, fpLeft, fpRight);
             stubcc.masm.move(Imm32(0), regs.result);
@@ -1346,7 +1342,7 @@ mjit::Compiler::jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target,
                 rhsNotNumber2.get().linkTo(stubcc.masm.label(), &stubcc.masm);
 
             
-            stubcc.syncExit(Uses(frame.frameDepth()));
+            stubcc.syncExit(Uses(2));
             stubcc.leave();
             stubcc.call(stub);
         }
