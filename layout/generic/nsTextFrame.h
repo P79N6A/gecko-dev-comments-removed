@@ -257,7 +257,7 @@ public:
                                    PRUint32 aSkippedStartOffset = 0,
                                    PRUint32 aSkippedMaxLength = PR_UINT32_MAX);
 
-  nsRect RecomputeOverflowRect();
+  nsOverflowAreas RecomputeOverflow();
 
   void AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
                                 nsIFrame::InlineMinWidthData *aData);
@@ -400,7 +400,7 @@ protected:
   
   void UnionTextDecorationOverflow(nsPresContext* aPresContext,
                                    PropertyProvider& aProvider,
-                                   nsRect* aOverflowRect);
+                                   nsRect* aVisualOverflowRect);
 
   void DrawText(gfxContext* aCtx,
                 const gfxPoint& aTextBaselinePt,
