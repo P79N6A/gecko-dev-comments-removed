@@ -165,13 +165,22 @@ ResponseListener.prototype =
     let httpActivity = this.httpActivity;
     
     if (!httpActivity.response.header) {
-      httpActivity.response.header = {};
       if (aRequest instanceof Ci.nsIHttpChannel) {
+      httpActivity.response.header = {};
+        try {
         aRequest.visitResponseHeaders({
           visitHeader: function(aName, aValue) {
             httpActivity.response.header[aName] = aValue;
           }
         });
+      }
+        
+        
+        
+        
+        catch (ex) {
+          delete httpActivity.response.header;
+        }
       }
     }
   },
