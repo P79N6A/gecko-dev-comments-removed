@@ -408,7 +408,8 @@ void nsBuiltinDecoder::AudioAvailable(float* aFrameBuffer,
 }
 
 void nsBuiltinDecoder::MetadataLoaded(PRUint32 aChannels,
-                                      PRUint32 aRate)
+                                      PRUint32 aRate,
+                                      bool aHasAudio)
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   if (mShuttingDown) {
@@ -435,7 +436,7 @@ void nsBuiltinDecoder::MetadataLoaded(PRUint32 aChannels,
     
     
     Invalidate();
-    mElement->MetadataLoaded(aChannels, aRate);
+    mElement->MetadataLoaded(aChannels, aRate, aHasAudio);
   }
 
   if (!mResourceLoaded) {

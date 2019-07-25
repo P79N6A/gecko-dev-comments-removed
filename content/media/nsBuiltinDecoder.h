@@ -555,7 +555,8 @@ public:
   
   
   void MetadataLoaded(PRUint32 aChannels,
-                      PRUint32 aRate);
+                      PRUint32 aRate,
+                      bool aHasAudio);
 
   
   

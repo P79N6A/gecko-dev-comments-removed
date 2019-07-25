@@ -132,7 +132,7 @@ public:
   
   
   
-  void MetadataLoaded(PRUint32 aChannels, PRUint32 aRate);
+  void MetadataLoaded(PRUint32 aChannels, PRUint32 aRate, bool aHasAudio);
 
   
   
@@ -794,6 +794,9 @@ protected:
 
   
   mozilla::CORSMode mCORSMode;
+
+  
+  bool mHasAudio;
 };
 
 #endif
