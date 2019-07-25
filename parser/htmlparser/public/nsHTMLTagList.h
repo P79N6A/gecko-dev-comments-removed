@@ -149,7 +149,7 @@ HTML_TAG(option, Option)
 HTML_TAG(output, Output)
 HTML_TAG(p, Paragraph)
 HTML_TAG(param, Shared)
-HTML_TAG(plaintext, Span)
+HTML_TAG(plaintext, ) 
 HTML_TAG(pre, Pre)
 HTML_TAG(q, Shared)
 HTML_TAG(s, Span)
@@ -185,7 +185,7 @@ HTML_TAG(var, Span)
 HTML_TAG(video, Video)
 #endif
 HTML_TAG(wbr, Shared)
-HTML_TAG(xmp, Span)
+HTML_TAG(xmp, ) 
 
 
 
