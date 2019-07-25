@@ -81,11 +81,6 @@ public class PanZoomController
     
     private static final float OVERSCROLL_DECEL_RATE = 0.04f;
     
-    private static final int SNAP_TIME = 240;
-    
-    
-    private static final int SUBDIVISION_COUNT = 1000;
-    
     
     private static final float PAN_THRESHOLD = 0.1f;
     
@@ -95,6 +90,26 @@ public class PanZoomController
     private static final float MAX_EVENT_ACCELERATION = 0.012f;
     
     public static final int ZOOM_DURATION         = 200;
+
+    
+    private static final float[] EASE_OUT_ANIMATION_FRAMES = {
+        0.00000f,   
+        0.10211f,   
+        0.19864f,   
+        0.29043f,   
+        0.37816f,   
+        0.46155f,   
+        0.54054f,   
+        0.61496f,   
+        0.68467f,   
+        0.74910f,   
+        0.80794f,   
+        0.86069f,   
+        0.90651f,   
+        0.94471f,   
+        0.97401f,   
+        0.99309f,   
+    };
 
     private Timer mFlingTimer;
     private Axis mX, mY;
@@ -599,7 +614,6 @@ public class PanZoomController
         public boolean disableSnap;             
 
         private FlingStates mFlingState;        
-        private EaseOutAnimation mSnapAnim;     
 
         
         private float viewportPos;
@@ -608,7 +622,11 @@ public class PanZoomController
         private float mPageLength;
 
         public float displacement;
-        private float mSnapPosition;
+
+        private int mSnapFrame;
+        private float mSnapPos, mSnapEndPos;
+
+        public Axis() { mSnapFrame = -1; }
 
         public FlingStates getFlingState() { return mFlingState; }
 
@@ -709,10 +727,12 @@ public class PanZoomController
         public void startSnap() {
             switch (getOverscroll()) {
             case MINUS:
-                mSnapAnim = new EaseOutAnimation(0, getExcess());
+                mSnapFrame = 0;
+                mSnapEndPos = getExcess();
                 break;
             case PLUS:
-                mSnapAnim = new EaseOutAnimation(0, -getExcess());
+                mSnapFrame = 0;
+                mSnapEndPos = -getExcess();
                 break;
             default:
                 
@@ -721,20 +741,26 @@ public class PanZoomController
             }
 
             displacement = 0;
-            mSnapPosition = mSnapAnim.getPosition();
+            mSnapPos = 0.0f;
             setFlingState(FlingStates.SNAPPING);
         }
 
         
         private void snap() {
-            mSnapAnim.advance();
-            displacement += mSnapAnim.getPosition() - mSnapPosition;
-            mSnapPosition = mSnapAnim.getPosition();
+            mSnapFrame++;
+            if (mSnapFrame == EASE_OUT_ANIMATION_FRAMES.length) {
+                mSnapFrame = -1;
+                displacement += mSnapEndPos - mSnapPos;
+                mSnapPos = mSnapEndPos;
 
-            if (mSnapAnim.getFinished()) {
-                mSnapAnim = null;
                 setFlingState(FlingStates.STOPPED);
+                return;
             }
+
+            float t = EASE_OUT_ANIMATION_FRAMES[mSnapFrame];
+            float newSnapPos = FloatUtils.interpolate(0.0f, mSnapEndPos, t);
+            displacement += newSnapPos - mSnapPos;
+            mSnapPos = newSnapPos;
         }
 
         
@@ -746,66 +772,6 @@ public class PanZoomController
                 displacement += lastTouchPos - touchPos;
             else
                 displacement += velocity;
-        }
-    }
-
-    private static class EaseOutAnimation {
-        private float[] mFrames;
-        private float mPosition;
-        private float mOrigin;
-        private float mDest;
-        private long mTimestamp;
-        private boolean mFinished;
-
-        public EaseOutAnimation(float position, float dest) {
-            mPosition = mOrigin = position;
-            mDest = dest;
-            mFrames = new float[SNAP_TIME];
-            mTimestamp = System.currentTimeMillis();
-            mFinished = false;
-            plot(position, dest, mFrames);
-        }
-
-        public float getPosition() { return mPosition; }
-        public boolean getFinished() { return mFinished; }
-
-        private void advance() {
-            int frame = (int)(System.currentTimeMillis() - mTimestamp);
-            if (frame >= SNAP_TIME) {
-                mPosition = mDest;
-                mFinished = true;
-                return;
-            }
-
-            mPosition = mFrames[frame];
-        }
-
-        private static void plot(float from, float to, float[] frames) {
-            int nextX = 0;
-            for (int i = 0; i < SUBDIVISION_COUNT; i++) {
-                float t = (float)i / (float)SUBDIVISION_COUNT;
-                float xPos = (3.0f*t*t - 2.0f*t*t*t) * (float)frames.length;
-                if ((int)xPos < nextX)
-                    continue;
-
-                int oldX = nextX;
-                nextX = (int)xPos;
-
-                float yPos = 1.74f*t*t - 0.74f*t*t*t;
-                float framePos = from + (to - from) * yPos;
-
-                while (oldX < nextX)
-                    frames[oldX++] = framePos;
-
-                if (nextX >= frames.length)
-                    break;
-            }
-
-            
-            while (nextX < frames.length) {
-                frames[nextX] = frames[nextX - 1];
-                nextX++;
-            }
         }
     }
 
