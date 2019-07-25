@@ -1183,6 +1183,7 @@ class AutoIdVector;
 struct JSCompartment {
     JSRuntime *rt;
     JSPrincipals *principals;
+    void *data;
     bool marked;
     js::WrapperMap crossCompartmentWrappers;
 
@@ -1219,6 +1220,9 @@ struct JSRuntime {
 
     
     JSContextCallback   cxCallback;
+
+    
+    JSCompartmentCallback compartmentCallback;
 
     
 

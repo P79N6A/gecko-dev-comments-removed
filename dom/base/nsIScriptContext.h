@@ -74,8 +74,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
 
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x5a5d683e, 0xf387, 0x4694, \
-  { 0x9f, 0xf0, 0x3a, 0x90, 0xb3, 0xe6, 0x74, 0x9e } }
+{ 0x5b6d04a3, 0xf095, 0x4924, \
+  { 0xad, 0x84, 0x4f, 0x44, 0xf9, 0xb3, 0xfa, 0xe0 } }
 
 
 
@@ -320,6 +320,7 @@ public:
   virtual nsresult CreateNativeGlobalForInner(
                                       nsIScriptGlobalObject *aNewInner,
                                       PRBool aIsChrome,
+                                      nsIPrincipal *aPrincipal,
                                       void **aNativeGlobal,
                                       nsISupports **aHolder) = 0;
 
@@ -342,7 +343,8 @@ public:
 
 
 
-  virtual nsresult CreateOuterObject(nsIScriptGlobalObject *aGlobalObject) = 0;
+  virtual nsresult CreateOuterObject(nsIScriptGlobalObject *aGlobalObject,
+                                     nsIPrincipal *aPrincipal) = 0;
 
   
 
