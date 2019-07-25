@@ -124,6 +124,9 @@ public class ProfileMigrator {
     private static final String ROOT_NAME      = "root_name";
     private static final String ROOT_FOLDER_ID = "folder_id";
 
+    
+    private static final String ROOT_TAGS_FOLDER_NAME = "tags";
+
     private static final String BOOKMARK_QUERY_SELECT =
         "SELECT places.url             AS p_url,"         +
         "       bookmark.guid          AS b_guid,"        +
@@ -557,6 +560,7 @@ public class ProfileMigrator {
 
     private class PlacesRunnable implements Runnable {
         private Map<Long, Long> mRerootMap;
+        private Long mTagsPlacesFolderId;
         private ArrayList<ContentProviderOperation> mOperations;
         private int mMaxEntries;
         
@@ -644,6 +648,12 @@ public class ProfileMigrator {
                     mRerootMap.put(placesFolderId, getFolderId(name));
                     Log.v(LOGTAG, "Name: " + name + ", pid=" + placesFolderId
                           + ", nid=" + mRerootMap.get(placesFolderId));
+
+                    
+                    
+                    if (ROOT_TAGS_FOLDER_NAME.equals(name))
+                        mTagsPlacesFolderId = placesFolderId;
+
                     cursor.moveToNext();
                 }
                 cursor.close();
@@ -1053,7 +1063,8 @@ public class ProfileMigrator {
 
                         
                         
-                        if (id == 1 && parent == 0 && type == PLACES_TYPE_FOLDER) {
+                        if ((id == 1 && parent == 0 && type == PLACES_TYPE_FOLDER) ||
+                            parent == mTagsPlacesFolderId) {
                             cursor.moveToNext();
                             continue;
                         }
