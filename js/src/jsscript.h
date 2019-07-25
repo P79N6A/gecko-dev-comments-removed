@@ -162,8 +162,12 @@ namespace JSC {
 namespace js {
 namespace mjit {
 namespace ic {
+# if defined JS_POLYIC
     struct PICInfo;
+# endif
+# if defined JS_MONOIC
     struct MICInfo;
+# endif
 }
 }
 }
@@ -216,8 +220,12 @@ struct JSScript {
     void            *ncode;     
     void            **nmap;     
     JSC::ExecutablePool *execPool;  
+# if defined JS_POLYIC
     js::mjit::ic::PICInfo *pics; 
+# endif
+# if defined JS_MONOIC
     js::mjit::ic::MICInfo *mics; 
+# endif
 # ifdef DEBUG
     uint32          jitLength;  
 
@@ -227,9 +235,11 @@ struct JSScript {
     }
 # endif
 
+# if defined JS_POLYIC
     inline uint32 numPICs() {
         return pics ? *(uint32*)((uint8 *)pics - sizeof(uint32)) : 0;
     }
+# endif
 #endif
 #if 0 
     js::TraceTreeCache  *trees; 

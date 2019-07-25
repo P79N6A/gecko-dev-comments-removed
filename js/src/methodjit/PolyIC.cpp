@@ -52,7 +52,7 @@
 using namespace js;
 using namespace js::mjit;
 
-#if ENABLE_PIC
+#if defined JS_POLYIC
 
 
 static const uint32 INLINE_PATH_LENGTH = 64;
@@ -1595,5 +1595,6 @@ ic::PurgePICs(JSContext *cx, JSScript *script)
         pic.reset();
     }
 }
-#endif
+
+#endif 
 
