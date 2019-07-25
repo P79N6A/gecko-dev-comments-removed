@@ -145,6 +145,17 @@ public:
 
 
 
+
+
+
+  void DestroyedThebesBuffer(ShadowableLayer* aThebes,
+                             const SurfaceDescriptor& aBackBufferToDestroy);
+
+  
+
+
+
+
   void Mutated(ShadowableLayer* aMutant);
 
   void SetRoot(ShadowableLayer* aRoot);
