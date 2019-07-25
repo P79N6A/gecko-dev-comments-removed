@@ -789,15 +789,15 @@ EvalCacheLookup(JSContext *cx, JSLinearString *str, StackFrame *caller, unsigned
 
     JSVersion version = cx->findVersion();
     JSScript *script;
+    JSSubsumePrincipalsOp subsume = cx->runtime->securityCallbacks->subsumePrincipals;
     while ((script = *scriptp) != NULL) {
         if (script->savedCallerFun &&
             script->staticLevel == staticLevel &&
             script->getVersion() == version &&
             !script->hasSingletons &&
-            (script->principals == principals ||
-             (principals && script->principals &&
-              principals->subsume(principals, script->principals) &&
-              script->principals->subsume(script->principals, principals)))) {
+            (!subsume || script->principals == principals ||
+             (subsume(principals, script->principals) &&
+              subsume(script->principals, principals)))) {
             
 
 
@@ -1163,12 +1163,14 @@ obj_watch_handler(JSContext *cx, JSObject *obj, jsid id, jsval old,
                   jsval *nvp, void *closure)
 {
     JSObject *callable = (JSObject *) closure;
-    if (JSPrincipals *watcher = callable->principals(cx)) {
-        if (JSObject *scopeChain = cx->stack.currentScriptedScopeChain()) {
-            if (JSPrincipals *subject = scopeChain->principals(cx)) {
-                if (!watcher->subsume(watcher, subject)) {
-                    
-                    return JS_TRUE;
+    if (JSSubsumePrincipalsOp subsume = cx->runtime->securityCallbacks->subsumePrincipals) {
+        if (JSPrincipals *watcher = callable->principals(cx)) {
+            if (JSObject *scopeChain = cx->stack.currentScriptedScopeChain()) {
+                if (JSPrincipals *subject = scopeChain->principals(cx)) {
+                    if (!subsume(watcher, subject)) {
+                        
+                        return true;
+                    }
                 }
             }
         }
@@ -5881,10 +5883,7 @@ CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
     JSBool writing;
     JSObject *pobj;
     JSProperty *prop;
-    Class *clasp;
     const Shape *shape;
-    JSSecurityCallbacks *callbacks;
-    JSCheckAccessOp check;
 
     while (JS_UNLIKELY(obj->isWith()))
         obj = obj->getProto();
@@ -5948,12 +5947,9 @@ CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
 
 
 
-    clasp = pobj->getClass();
-    check = clasp->checkAccess;
-    if (!check) {
-        callbacks = JS_GetSecurityCallbacks(cx);
-        check = callbacks ? callbacks->checkObjectAccess : NULL;
-    }
+    JSCheckAccessOp check = pobj->getClass()->checkAccess;
+    if (!check)
+        check = cx->runtime->securityCallbacks->checkObjectAccess;
     return !check || check(cx, pobj, id, mode, vp);
 }
 
