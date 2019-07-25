@@ -132,6 +132,7 @@ BrowserCLH.prototype = {
       let searchService = Services.search;
       let autoComplete = Cc["@mozilla.org/autocomplete/search;1?name=history"].
                          getService(Ci.nsIAutoCompleteSearch);
+      return;
     }
 
     
@@ -152,6 +153,7 @@ BrowserCLH.prototype = {
       catch (e) {
         Cu.reportError(e);
       }
+      return;
     }
 
     
