@@ -425,8 +425,11 @@ struct CallSite
 };
 
 
+
+
+
 void
-EnableTraceHint(JSScript *script, jsbytecode *pc, uint16_t index);
+ResetTraceHint(JSScript *script, jsbytecode *pc, uint16_t index, bool full);
 
 uintN
 GetCallTargetCount(JSScript *script, jsbytecode *pc);
