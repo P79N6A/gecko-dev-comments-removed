@@ -385,8 +385,8 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj,
 
   
   
-  NS_ERROR("Implicit native wrapper in content code");
-  return JS_FALSE;
+  NS_WARNING("Implicit native wrapper in content code");
+  return JS_TRUE;
 #else
   return JS_TRUE;
 #endif
