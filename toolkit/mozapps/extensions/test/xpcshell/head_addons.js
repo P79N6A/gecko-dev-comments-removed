@@ -1014,6 +1014,10 @@ Services.prefs.setBoolPref("extensions.showMismatchUI", false);
 Services.prefs.setBoolPref("extensions.getAddons.cache.enabled", false);
 
 
+Services.prefs.setCharPref("extensions.update.url", "http://127.0.0.1/updateURL");
+Services.prefs.setCharPref("extensions.blocklist.url", "http://127.0.0.1/blocklistURL");
+
+
 const gTmpD = gProfD.clone();
 gTmpD.append("temp");
 gTmpD.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
