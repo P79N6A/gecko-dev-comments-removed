@@ -1194,9 +1194,6 @@ nsHttpChannel::ProcessResponse()
     }
 
     MOZ_ASSERT(!mCachedContentIsValid);
-    if (httpStatus != 304 && httpStatus != 206) {
-        mCacheInputStream.CloseAndRelease();
-    }
 
     
     gHttpHandler->OnExamineResponse(this);
@@ -3859,7 +3856,14 @@ nsHttpChannel::InstallCacheListener(PRUint32 offset)
             LOG(("unable to mark cache entry for compression"));
         }
     } 
-      
+
+    LOG(("Trading cache input stream for output stream [channel=%p]", this));
+
+    
+    
+    
+    mCacheInputStream.CloseAndRelease();
+
     nsCOMPtr<nsIOutputStream> out;
     rv = mCacheEntry->OpenOutputStream(offset, getter_AddRefs(out));
     if (NS_FAILED(rv)) return rv;
