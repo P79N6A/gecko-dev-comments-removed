@@ -353,7 +353,7 @@ public:
   {
     nsCString path;
 
-    path.AppendLiteral("heap-used/storage/");
+    path.AppendLiteral("heap-used/storage/sqlite/");
     path.Append(mDBConn.getFilename());
 
     if (mType == LookAside_Used) {
@@ -583,9 +583,6 @@ Connection::initialize(nsIFile *aDatabaseFile,
   mMemoryReporters.AppendElement(reporter);
 #endif
 
-  
-  
-  
   reporter =
     new StorageMemoryReporter(*this, StorageMemoryReporter::Cache_Used);
   mMemoryReporters.AppendElement(reporter);
