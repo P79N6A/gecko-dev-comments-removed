@@ -215,6 +215,7 @@ struct Registers {
         | (1 << JSC::ARMRegisters::r1)
         | (1 << JSC::ARMRegisters::r2);
     
+    
 
     static const uint32 SavedRegs =
           (1 << JSC::ARMRegisters::r4)
@@ -224,7 +225,6 @@ struct Registers {
     
         | (1 << JSC::ARMRegisters::r9)
         | (1 << JSC::ARMRegisters::r10);
-    
     
     
     

@@ -472,6 +472,7 @@ SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
 # elif defined(JS_CPU_ARM)
 
 JS_STATIC_ASSERT(sizeof(VMFrame) == 88);
+JS_STATIC_ASSERT(sizeof(VMFrame)%8 == 0);   
 JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) ==          (4*21));
 JS_STATIC_ASSERT(offsetof(VMFrame, entryfp) ==          (4*10));
 JS_STATIC_ASSERT(offsetof(VMFrame, stackLimit) ==       (4*9));
@@ -593,6 +594,39 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 "   it      ne"                             "\n"
 "   bxne    r0"                             "\n"
 
+    
+"   mov     r0, sp"                         "\n"
+"   blx  " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
+"   add     sp, sp, #(4*7 + 4*6)"           "\n"
+"   mov     r0, #0"                         "\n"
+"   pop     {r4-r11,pc}"                    "\n"
+);
+
+asm (
+".text\n"
+FUNCTION_HEADER_EXTRA
+".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
+SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
+    
+
+"   ldr     r11, [r11, #(4*4)]"             "\n"    
+"   str     r11, [sp, #(4*7)]"              "\n"    
+    
+
+FUNCTION_HEADER_EXTRA
+".globl " SYMBOL_STRING(JaegerInterpoline)  "\n"
+SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
+"   mov     r3, sp"                         "\n"    
+"   mov     r2, r0"                         "\n"    
+"   mov     r1, r5"                         "\n"    
+"   mov     r0, r4"                         "\n"    
+"   blx  " SYMBOL_STRING_RELOC(js_InternalInterpret) "\n"
+"   cmp     r0, #0"                         "\n"
+"   ldr     ip, [sp, #(4*7)]"               "\n"    
+"   ldrd    r4, r5, [ip, #(4*6)]"           "\n"    
+"   ldr     r1, [sp, #(4*3)]"               "\n"    
+"   it      ne"                             "\n"
+"   bxne    r0"                             "\n"
     
 "   mov     r0, sp"                         "\n"
 "   blx  " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
