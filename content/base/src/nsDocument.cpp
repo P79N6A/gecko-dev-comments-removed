@@ -5966,14 +5966,6 @@ nsDocument::GetDocumentURI(nsAString& aDocumentURI)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsDocument::SetDocumentURI(const nsAString& aDocumentURI)
-{
-  
-  
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
 static void BlastSubtreeToPieces(nsINode *aNode);
 
 PLDHashOperator
