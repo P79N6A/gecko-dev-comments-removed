@@ -382,21 +382,14 @@ nsHTMLFormElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
   if (aName == nsGkAtoms::novalidate && aNameSpaceID == kNameSpaceID_None) {
     
     
-    nsIDocument* doc = GetCurrentDoc();
-    if (doc) {
-      for (PRUint32 i = 0, length = mControls->mElements.Length();
-           i < length; ++i) {
-        doc->ContentStateChanged(mControls->mElements[i],
-                                 NS_EVENT_STATE_MOZ_UI_VALID |
-                                 NS_EVENT_STATE_MOZ_UI_INVALID);
-      }
+    for (PRUint32 i = 0, length = mControls->mElements.Length();
+         i < length; ++i) {
+      mControls->mElements[i]->UpdateState(true);
+    }
 
-      for (PRUint32 i = 0, length = mControls->mNotInElements.Length();
-           i < length; ++i) {
-        doc->ContentStateChanged(mControls->mNotInElements[i],
-                                 NS_EVENT_STATE_MOZ_UI_VALID |
-                                 NS_EVENT_STATE_MOZ_UI_INVALID);
-      }
+    for (PRUint32 i = 0, length = mControls->mNotInElements.Length();
+         i < length; ++i) {
+      mControls->mNotInElements[i]->UpdateState(true);
     }
   }
 
@@ -506,7 +499,6 @@ CollectOrphans(nsINode* aRemovalRoot, nsTArray<nsGenericHTMLFormElement*> aArray
                )
 {
   
-  nsIDocument* doc = aArray.IsEmpty() ? nsnull : aArray[0]->GetCurrentDoc();
   nsAutoScriptBlocker scriptBlocker;
 
   
@@ -528,19 +520,7 @@ CollectOrphans(nsINode* aRemovalRoot, nsTArray<nsGenericHTMLFormElement*> aArray
         node->ClearForm(PR_TRUE);
 
         
-        
-        nsEventStates states = NS_EVENT_STATE_MOZ_UI_VALID |
-                               NS_EVENT_STATE_MOZ_UI_INVALID;
-
-        
-        
-        if (node->IsSubmitControl()) {
-          states |= NS_EVENT_STATE_MOZ_SUBMITINVALID;
-        }
-
-        if (doc) {
-          doc->ContentStateChanged(node, states);
-        }
+        node->UpdateState(true);
 #ifdef DEBUG
         removed = PR_TRUE;
 #endif
@@ -1203,7 +1183,7 @@ nsHTMLFormElement::AddElement(nsGenericHTMLFormElement* aChild,
     
     
     
-    nsIFormControl* oldDefaultSubmit = mDefaultSubmitElement;
+    nsGenericHTMLFormElement* oldDefaultSubmit = mDefaultSubmitElement;
     if (!*firstSubmitSlot ||
         (!lastElement &&
          CompareFormControlPosition(aChild, *firstSubmitSlot, this) < 0)) {
@@ -1227,15 +1207,8 @@ nsHTMLFormElement::AddElement(nsGenericHTMLFormElement* aChild,
     
     
     
-    
-    if (aNotify && oldDefaultSubmit &&
-        oldDefaultSubmit != mDefaultSubmitElement) {
-      nsIDocument* document = GetCurrentDoc();
-      if (document) {
-        nsAutoScriptBlocker scriptBlocker;
-        nsCOMPtr<nsIContent> oldElement(do_QueryInterface(oldDefaultSubmit));
-        document->ContentStateChanged(oldElement, NS_EVENT_STATE_DEFAULT);
-      }
+    if (oldDefaultSubmit && oldDefaultSubmit != mDefaultSubmitElement) {
+      oldDefaultSubmit->UpdateState(aNotify);
     }
   }
 
@@ -1368,12 +1341,7 @@ nsHTMLFormElement::HandleDefaultSubmitRemoval()
 
   
   if (mDefaultSubmitElement) {
-    nsIDocument* document = GetCurrentDoc();
-    if (document) {
-      nsAutoScriptBlocker scriptBlocker;
-      document->ContentStateChanged(mDefaultSubmitElement,
-                                    NS_EVENT_STATE_DEFAULT);
-    }
+    mDefaultSubmitElement->UpdateState(true);
   }
 }
 
@@ -1742,40 +1710,33 @@ nsHTMLFormElement::CheckValidFormSubmission()
       if (!mEverTriedInvalidSubmit) {
         mEverTriedInvalidSubmit = true;
 
-        nsIDocument* doc = GetCurrentDoc();
-        if (doc) {
+        
+
+
+
+
+
+        nsAutoScriptBlocker scriptBlocker;
+
+        for (PRUint32 i = 0, length = mControls->mElements.Length();
+             i < length; ++i) {
           
-
-
-
-
-
-          nsAutoScriptBlocker scriptBlocker;
-
-          for (PRUint32 i = 0, length = mControls->mElements.Length();
-               i < length; ++i) {
-            
-            
-            if (mControls->mElements[i]->IsHTML(nsGkAtoms::input) &&
-                nsContentUtils::IsFocusedContent(mControls->mElements[i])) {
-              static_cast<nsHTMLInputElement*>(mControls->mElements[i])
-                ->UpdateValidityUIBits(true);
-            }
-
-            doc->ContentStateChanged(mControls->mElements[i],
-                                     NS_EVENT_STATE_MOZ_UI_VALID |
-                                     NS_EVENT_STATE_MOZ_UI_INVALID);
+          
+          if (mControls->mElements[i]->IsHTML(nsGkAtoms::input) &&
+              nsContentUtils::IsFocusedContent(mControls->mElements[i])) {
+            static_cast<nsHTMLInputElement*>(mControls->mElements[i])
+              ->UpdateValidityUIBits(true);
           }
 
-          
-          
-          
-          for (PRUint32 i = 0, length = mControls->mNotInElements.Length();
-               i < length; ++i) {
-            doc->ContentStateChanged(mControls->mNotInElements[i],
-                                     NS_EVENT_STATE_MOZ_UI_VALID |
-                                     NS_EVENT_STATE_MOZ_UI_INVALID);
-          }
+          mControls->mElements[i]->UpdateState(true);
+        }
+
+        
+        
+        
+        for (PRUint32 i = 0, length = mControls->mNotInElements.Length();
+             i < length; ++i) {
+          mControls->mNotInElements[i]->UpdateState(true);
         }
       }
 
@@ -1823,11 +1784,6 @@ nsHTMLFormElement::UpdateValidity(PRBool aElementValidity)
     return;
   }
 
-  nsIDocument* doc = GetCurrentDoc();
-  if (!doc) {
-    return;
-  }
-
   
 
 
@@ -1841,8 +1797,7 @@ nsHTMLFormElement::UpdateValidity(PRBool aElementValidity)
   for (PRUint32 i = 0, length = mControls->mElements.Length();
        i < length; ++i) {
     if (mControls->mElements[i]->IsSubmitControl()) {
-      doc->ContentStateChanged(mControls->mElements[i],
-                               NS_EVENT_STATE_MOZ_SUBMITINVALID);
+      mControls->mElements[i]->UpdateState(true);
     }
   }
 
@@ -1851,8 +1806,7 @@ nsHTMLFormElement::UpdateValidity(PRBool aElementValidity)
   PRUint32 length = mControls->mNotInElements.Length();
   for (PRUint32 i = 0; i < length; ++i) {
     if (mControls->mNotInElements[i]->IsSubmitControl()) {
-      doc->ContentStateChanged(mControls->mNotInElements[i],
-                               NS_EVENT_STATE_MOZ_SUBMITINVALID);
+      mControls->mNotInElements[i]->UpdateState(true);
     }
   }
 }

@@ -180,6 +180,9 @@ nsHTMLSharedObjectElement::nsHTMLSharedObjectElement(already_AddRefed<nsINodeInf
 {
   RegisterFreezableElement();
   SetIsNetworkCreated(aFromParser == FROM_PARSER_NETWORK);
+
+  
+  AddStatesSilently(NS_EVENT_STATE_LOADING);
 }
 
 nsHTMLSharedObjectElement::~nsHTMLSharedObjectElement()

@@ -55,6 +55,9 @@ public:
   nsGenConImageContent(already_AddRefed<nsINodeInfo> aNodeInfo)
     : nsXMLElement(aNodeInfo)
   {
+    
+    
+    AddStatesSilently(NS_EVENT_STATE_SUPPRESSED);
   }
 
   nsresult Init(imgIRequest* aImageRequest)

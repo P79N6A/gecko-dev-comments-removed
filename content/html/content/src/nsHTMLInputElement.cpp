@@ -631,6 +631,15 @@ nsHTMLInputElement::nsHTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,
   
   if (!gUploadLastDir)
     nsHTMLInputElement::InitUploadLastDir();
+
+  
+  
+  
+  
+  
+  AddStatesSilently(NS_EVENT_STATE_ENABLED |
+                    NS_EVENT_STATE_OPTIONAL |
+                    NS_EVENT_STATE_VALID);
 }
 
 nsHTMLInputElement::~nsHTMLInputElement()
@@ -800,9 +809,6 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  const nsAString* aValue,
                                  PRBool aNotify)
 {
-  
-  nsEventStates states;
-
   if (aNameSpaceID == kNameSpaceID_None) {
     
     
@@ -815,8 +821,6 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
         (mForm || !(GET_BOOLBIT(mBitField, BF_PARSER_CREATING)))) {
       AddedToRadioGroup();
       UpdateValueMissingValidityStateForRadio(false);
-      states |= NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID |
-                NS_EVENT_STATE_REQUIRED | NS_EVENT_STATE_OPTIONAL;
     }
 
     
@@ -883,30 +887,6 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
           LoadImage(src, PR_FALSE, aNotify);
         }
       }
-
-      
-      
-      
-      
-      
-      
-      states |= NS_EVENT_STATE_CHECKED |
-                NS_EVENT_STATE_DEFAULT |
-                NS_EVENT_STATE_BROKEN |
-                NS_EVENT_STATE_USERDISABLED |
-                NS_EVENT_STATE_SUPPRESSED |
-                NS_EVENT_STATE_LOADING |
-                NS_EVENT_STATE_MOZ_READONLY |
-                NS_EVENT_STATE_MOZ_READWRITE |
-                NS_EVENT_STATE_REQUIRED |
-                NS_EVENT_STATE_OPTIONAL |
-                NS_EVENT_STATE_VALID |
-                NS_EVENT_STATE_INVALID |
-                NS_EVENT_STATE_MOZ_UI_VALID |
-                NS_EVENT_STATE_MOZ_UI_INVALID |
-                NS_EVENT_STATE_INDETERMINATE |
-                NS_EVENT_STATE_MOZ_PLACEHOLDER |
-                NS_EVENT_STATE_MOZ_SUBMITINVALID;
     }
 
     if (mType == NS_FORM_INPUT_RADIO && aName == nsGkAtoms::required) {
@@ -929,34 +909,14 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       if (aName == nsGkAtoms::readonly || aName == nsGkAtoms::disabled) {
         UpdateBarredFromConstraintValidation();
       }
-
-      states |= NS_EVENT_STATE_REQUIRED | NS_EVENT_STATE_OPTIONAL |
-                NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID |
-                NS_EVENT_STATE_MOZ_UI_VALID | NS_EVENT_STATE_MOZ_UI_INVALID;
     } else if (MaxLengthApplies() && aName == nsGkAtoms::maxlength) {
       UpdateTooLongValidityState();
-      states |= NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID |
-                NS_EVENT_STATE_MOZ_UI_VALID | NS_EVENT_STATE_MOZ_UI_INVALID;
     } else if (aName == nsGkAtoms::pattern) {
       UpdatePatternMismatchValidityState();
-      states |= NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID |
-                NS_EVENT_STATE_MOZ_UI_VALID | NS_EVENT_STATE_MOZ_UI_INVALID;
     }
 
-    if (aNotify) {
-      nsIDocument* doc = GetCurrentDoc();
-
-      if (aName == nsGkAtoms::type) {
-        UpdateEditableState();
-      } else if (IsSingleLineTextControl(PR_FALSE) && aName == nsGkAtoms::readonly) {
-        UpdateEditableState();
-        states |= NS_EVENT_STATE_MOZ_READONLY | NS_EVENT_STATE_MOZ_READWRITE;
-      }
-
-      if (doc && !states.IsEmpty()) {
-        doc->ContentStateChanged(this, states);
-      }
-    }
+    UpdateEditableState(aNotify);
+    UpdateState(aNotify);
   }
 
   return nsGenericHTMLFormElement::AfterSetAttr(aNameSpaceID, aName,
@@ -1023,12 +983,7 @@ nsHTMLInputElement::SetIndeterminateInternal(PRBool aValue,
       frame->InvalidateFrameSubtree();
   }
 
-  
-  nsIDocument* document = GetCurrentDoc();
-  if (document) {
-    nsAutoScriptBlocker scriptBlocker;
-    document->ContentStateChanged(this, NS_EVENT_STATE_INDETERMINATE);
-  }
+  UpdateState(true);
 
   return NS_OK;
 }
@@ -1441,11 +1396,7 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
 
     if (PlaceholderApplies() &&
         HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)) {
-      nsIDocument* doc = GetCurrentDoc();
-      if (doc) {
-        nsAutoScriptBlocker scriptBlocker;
-        doc->ContentStateChanged(this, NS_EVENT_STATE_MOZ_PLACEHOLDER);
-      }
+      UpdateState(true);
     }
 
     return NS_OK;
@@ -1480,12 +1431,7 @@ nsHTMLInputElement::SetValueChanged(PRBool aValueChanged)
   }
 
   if (valueChangedBefore != aValueChanged) {
-    nsIDocument* doc = GetCurrentDoc();
-    if (doc) {
-      nsAutoScriptBlocker scriptBlocker;
-      doc->ContentStateChanged(this, NS_EVENT_STATE_MOZ_UI_VALID |
-                                     NS_EVENT_STATE_MOZ_UI_INVALID);
-    }
+    UpdateState(true);
   }
 
   return NS_OK;
@@ -1529,13 +1475,7 @@ nsHTMLInputElement::SetCheckedChangedInternal(PRBool aCheckedChanged)
   
   
   if (checkedChangedBefore != aCheckedChanged) {
-    nsIDocument* document = GetCurrentDoc();
-    if (document) {
-      nsAutoScriptBlocker scriptBlocker;
-      document->ContentStateChanged(this,
-                                    NS_EVENT_STATE_MOZ_UI_VALID |
-                                    NS_EVENT_STATE_MOZ_UI_INVALID);
-    }
+    UpdateState(true);
   }
 }
 
@@ -1729,17 +1669,11 @@ nsHTMLInputElement::SetCheckedInternal(PRBool aChecked, PRBool aNotify)
     }
   }
 
-  
-  
-  if (aNotify) {
-    nsIDocument* document = GetCurrentDoc();
-    if (document) {
-      nsAutoScriptBlocker scriptBlocker;
-      document->ContentStateChanged(this, NS_EVENT_STATE_CHECKED);
-    }
-  }
-
   UpdateAllValidityStates(aNotify);
+
+  
+  
+  UpdateState(aNotify);
 }
 
 NS_IMETHODIMP
@@ -2057,30 +1991,10 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 
   if (aVisitor.mEvent->message == NS_FOCUS_CONTENT ||
       aVisitor.mEvent->message == NS_BLUR_CONTENT) {
-    nsEventStates states;
 
-    if (aVisitor.mEvent->message == NS_FOCUS_CONTENT) {
-      UpdateValidityUIBits(true);
+    UpdateValidityUIBits(aVisitor.mEvent->message == NS_FOCUS_CONTENT);
 
-      
-      
-    } else { 
-      UpdateValidityUIBits(false);
-      states |= NS_EVENT_STATE_MOZ_UI_VALID | NS_EVENT_STATE_MOZ_UI_INVALID;
-    }
-
-    if (PlaceholderApplies() &&
-        HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)) {
-        
-      
-      states |= NS_EVENT_STATE_MOZ_PLACEHOLDER;
-    }
-
-    nsIDocument* doc = GetCurrentDoc();
-    if (doc) {
-      nsAutoScriptBlocker scriptBlocker;
-      doc->ContentStateChanged(this, states);
-    }
+    UpdateState(true);
   }
 
   
@@ -2455,7 +2369,10 @@ nsHTMLInputElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     
     
     if (HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
+      
+      
       ClearBrokenState();
+      RemoveStatesSilently(NS_EVENT_STATE_BROKEN);
       nsContentUtils::AddScriptRunner(
         NS_NewRunnableMethod(this, &nsHTMLInputElement::MaybeLoadImage));
     }
@@ -2475,6 +2392,9 @@ nsHTMLInputElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   
   
   UpdateBarredFromConstraintValidation();
+
+  
+  UpdateState(false);
 
   return rv;
 }
@@ -2498,6 +2418,9 @@ nsHTMLInputElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   UpdateValueMissingValidityState();
   
   UpdateBarredFromConstraintValidation();
+
+  
+  UpdateState(false);
 }
 
 void
@@ -3654,14 +3577,7 @@ nsHTMLInputElement::SetCustomValidity(const nsAString& aError)
 {
   nsIConstraintValidation::SetCustomValidity(aError);
 
-  nsIDocument* doc = GetCurrentDoc();
-  if (doc) {
-    nsAutoScriptBlocker scriptBlocker;
-    doc->ContentStateChanged(this, NS_EVENT_STATE_INVALID |
-                                   NS_EVENT_STATE_VALID |
-                                   NS_EVENT_STATE_MOZ_UI_INVALID |
-                                   NS_EVENT_STATE_MOZ_UI_VALID);
-  }
+  UpdateState(true);
 
   return NS_OK;
 }
@@ -3872,15 +3788,8 @@ nsHTMLInputElement::UpdateAllValidityStates(PRBool aNotify)
   UpdateTypeMismatchValidityState();
   UpdatePatternMismatchValidityState();
 
-  if (validBefore != IsValid() && aNotify) {
-    nsIDocument* doc = GetCurrentDoc();
-    if (doc) {
-      nsAutoScriptBlocker scriptBlocker;
-      doc->ContentStateChanged(this,
-                               NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID |
-                               NS_EVENT_STATE_MOZ_UI_VALID |
-                               NS_EVENT_STATE_MOZ_UI_INVALID);
-    }
+  if (validBefore != IsValid()) {
+    UpdateState(aNotify);
   }
 }
 
@@ -4173,26 +4082,20 @@ nsHTMLInputElement::OnValueChanged(PRBool aNotify)
 
   
   
-  if (aNotify && PlaceholderApplies()
+  if (PlaceholderApplies()
       && HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)
       && !nsContentUtils::IsFocusedContent((nsIContent*)(this))) {
-    nsIDocument* doc = GetCurrentDoc();
-    if (doc) {
-      nsAutoScriptBlocker scriptBlocker;
-      doc->ContentStateChanged(this, NS_EVENT_STATE_MOZ_PLACEHOLDER);
-    }
+    UpdateState(aNotify);
   }
 }
 
 void
-nsHTMLInputElement::FieldSetDisabledChanged(nsEventStates aStates, PRBool aNotify)
+nsHTMLInputElement::FieldSetDisabledChanged(PRBool aNotify)
 {
   UpdateValueMissingValidityState();
   UpdateBarredFromConstraintValidation();
 
-  aStates |= NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID |
-             NS_EVENT_STATE_MOZ_UI_VALID | NS_EVENT_STATE_MOZ_UI_INVALID;
-  nsGenericHTMLFormElement::FieldSetDisabledChanged(aStates, aNotify);
+  nsGenericHTMLFormElement::FieldSetDisabledChanged(aNotify);
 }
 
 PRInt32

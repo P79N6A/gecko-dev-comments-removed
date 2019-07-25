@@ -180,6 +180,8 @@ NS_NewHTMLImageElement(already_AddRefed<nsINodeInfo> aNodeInfo,
 nsHTMLImageElement::nsHTMLImageElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
+  
+  AddStatesSilently(NS_EVENT_STATE_BROKEN);
 }
 
 nsHTMLImageElement::~nsHTMLImageElement()
@@ -506,7 +508,10 @@ nsHTMLImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
+    
+    
     ClearBrokenState();
+    RemoveStatesSilently(NS_EVENT_STATE_BROKEN);
     
     
     

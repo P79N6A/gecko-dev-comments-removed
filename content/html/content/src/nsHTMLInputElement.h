@@ -161,7 +161,7 @@ public:
   virtual PRBool RestoreState(nsPresState* aState);
   virtual PRBool AllowDrop();
 
-  virtual void FieldSetDisabledChanged(nsEventStates aStates, PRBool aNotify);
+  virtual void FieldSetDisabledChanged(PRBool aNotify);
 
   
   virtual PRBool IsHTMLFocusable(PRBool aWithMouse, PRBool *aIsFocusable, PRInt32 *aTabIndex);
@@ -218,7 +218,6 @@ public:
   void GetDisplayFileName(nsAString& aFileName) const;
   const nsCOMArray<nsIDOMFile>& GetFiles() const;
   void SetFiles(const nsCOMArray<nsIDOMFile>& aFiles, bool aSetValueChanged);
-  void SetFiles(nsIDOMFileList* aFiles, bool aSetValueChanged);
 
   void SetCheckedChangedInternal(PRBool aCheckedChanged);
   PRBool GetCheckedChanged() const {
@@ -240,9 +239,9 @@ public:
 
   NS_IMETHOD FireAsyncClickHandler();
 
-  virtual void UpdateEditableState()
+  virtual void UpdateEditableState(PRBool aNotify)
   {
-    return UpdateEditableFormControlState();
+    return UpdateEditableFormControlState(aNotify);
   }
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLInputElement,
@@ -457,11 +456,6 @@ protected:
 
 
   nsresult UpdateFileList();
-
-  
-
-
-  void AfterSetFiles(bool aSetValueChanged);
 
   
 

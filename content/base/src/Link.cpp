@@ -86,24 +86,17 @@ Link::SetLinkState(nsLinkState aState)
                "Setting state to the currently set state!");
 
   
-  nsEventStates oldLinkState = LinkState();
-
-  
   mLinkState = aState;
 
   
   mRegistered = false;
 
+  NS_ABORT_IF_FALSE(LinkState() == NS_EVENT_STATE_VISITED ||
+                    LinkState() == NS_EVENT_STATE_UNVISITED,
+                    "Unexpected state obtained from LinkState()!");
+
   
-  Element *element = mElement;
-  nsIDocument *doc = element->GetCurrentDoc();
-  NS_ASSERTION(doc, "Registered but we have no document?!");
-  nsEventStates newLinkState = LinkState();
-  NS_ASSERTION(newLinkState == NS_EVENT_STATE_VISITED ||
-               newLinkState == NS_EVENT_STATE_UNVISITED,
-               "Unexpected state obtained from LinkState()!");
-  nsAutoScriptBlocker scriptBlocker;
-  doc->ContentStateChanged(element, oldLinkState ^ newLinkState);
+  mElement->UpdateState(true);
 }
 
 nsEventStates
@@ -489,10 +482,11 @@ Link::ResetLinkState(bool aNotify)
   
   
   
-  if (aNotify && doc) {
-    nsEventStates changedState = NS_EVENT_STATE_VISITED ^ NS_EVENT_STATE_UNVISITED;
-    nsAutoScriptBlocker scriptBlocker;
-    doc->ContentStateChanged(element, changedState);
+  
+  if (aNotify) {
+    mElement->UpdateState(aNotify);
+  } else {
+    mElement->UpdateLinkState(nsEventStates());
   }
 }
 

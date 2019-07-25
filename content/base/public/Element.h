@@ -85,11 +85,16 @@ enum {
 namespace mozilla {
 namespace dom {
 
+class Link;
+
 class Element : public nsIContent
 {
 public:
 #ifdef MOZILLA_INTERNAL_API
-  Element(already_AddRefed<nsINodeInfo> aNodeInfo) : nsIContent(aNodeInfo) {}
+  Element(already_AddRefed<nsINodeInfo> aNodeInfo) :
+    nsIContent(aNodeInfo),
+    mState(NS_EVENT_STATE_MOZ_READONLY)
+  {}
 #endif 
 
   
@@ -97,7 +102,9 @@ public:
 
 
   nsEventStates State() const {
-    return IntrinsicState() | mState;
+    
+    
+    return mState;
   }
 
   
@@ -110,6 +117,18 @@ public:
 
 
   virtual void RequestLinkStateUpdate();
+
+  
+
+
+
+
+
+
+
+
+
+  void UpdateState(bool aNotify);
 
 protected:
   
@@ -125,12 +144,35 @@ protected:
 
   void UpdateLinkState(nsEventStates aState);
 
+  
+
+
+
+
+
+  void AddStatesSilently(nsEventStates aStates) {
+    mState |= aStates;
+  }
+
+  
+
+
+
+
+
+  void RemoveStatesSilently(nsEventStates aStates) {
+    mState &= ~aStates;
+  }
+
 private:
   
   
   friend class ::nsEventStateManager;
   friend class ::nsGlobalWindow;
   friend class ::nsFocusManager;
+
+  
+  friend class Link;
 
   void NotifyStateChange(nsEventStates aStates);
 
@@ -140,13 +182,13 @@ private:
   void AddStates(nsEventStates aStates) {
     NS_PRECONDITION(!aStates.HasAtLeastOneOfStates(INTRINSIC_STATES),
                     "Should only be adding ESM-managed states here");
-    mState |= aStates;
+    AddStatesSilently(aStates);
     NotifyStateChange(aStates);
   }
   void RemoveStates(nsEventStates aStates) {
     NS_PRECONDITION(!aStates.HasAtLeastOneOfStates(INTRINSIC_STATES),
                     "Should only be removing ESM-managed states here");
-    mState &= ~aStates;
+    RemoveStatesSilently(aStates);
     NotifyStateChange(aStates);
   }
 

@@ -337,9 +337,7 @@ class AutoNotifier {
         mOldState = aContent->ObjectState();
     }
     ~AutoNotifier() {
-      if (mNotify) {
-        mContent->NotifyStateChanged(mOldType, mOldState, PR_FALSE);
-      }
+      mContent->NotifyStateChanged(mOldType, mOldState, PR_FALSE, mNotify);
     }
 
     
@@ -350,7 +348,7 @@ class AutoNotifier {
     void Notify() {
       NS_ASSERTION(mNotify, "Should not notify when notify=false");
 
-      mContent->NotifyStateChanged(mOldType, mOldState, PR_TRUE);
+      mContent->NotifyStateChanged(mOldType, mOldState, PR_TRUE, PR_TRUE);
       mOldType = mContent->Type();
       mOldState = mContent->ObjectState();
     }
@@ -1639,7 +1637,9 @@ nsObjectLoadingContent::UnloadContent()
 
 void
 nsObjectLoadingContent::NotifyStateChanged(ObjectType aOldType,
-                                          nsEventStates aOldState, PRBool aSync)
+                                           nsEventStates aOldState,
+                                           PRBool aSync,
+                                           PRBool aNotify)
 {
   LOG(("OBJLC [%p]: Notifying about state change: (%u, %llx) -> (%u, %llx) (sync=%i)\n",
        this, aOldType, aOldState.GetInternalValue(), mType,
@@ -1648,6 +1648,18 @@ nsObjectLoadingContent::NotifyStateChanged(ObjectType aOldType,
   nsCOMPtr<nsIContent> thisContent = 
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   NS_ASSERTION(thisContent, "must be a content");
+
+  NS_ASSERTION(thisContent->IsElement(), "Not an element?");
+
+  
+  
+  
+  thisContent->AsElement()->UpdateState(false);
+
+  if (!aNotify) {
+    
+    return;
+  }
 
   nsIDocument* doc = thisContent->GetCurrentDoc();
   if (!doc) {
@@ -1666,7 +1678,6 @@ nsObjectLoadingContent::NotifyStateChanged(ObjectType aOldType,
       doc->ContentStateChanged(thisContent, changedBits);
     }
     if (aSync) {
-      
       
       doc->FlushPendingNotifications(Flush_Frames);
     }

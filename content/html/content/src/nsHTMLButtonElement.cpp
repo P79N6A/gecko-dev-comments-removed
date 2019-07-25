@@ -134,6 +134,12 @@ public:
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
   virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor);
 
+  virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                              nsIContent* aBindingParent,
+                              PRBool aCompileEventHandlers);
+  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
+                              PRBool aNullParent = PR_TRUE);
+
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual void DoneCreatingElement();
   virtual nsXPCClassInfo* GetClassInfo();
@@ -167,6 +173,9 @@ nsHTMLButtonElement::nsHTMLButtonElement(already_AddRefed<nsINodeInfo> aNodeInfo
 {
   
   SetBarredFromConstraintValidation(PR_TRUE);
+
+  
+  AddStatesSilently(NS_EVENT_STATE_ENABLED);
 }
 
 nsHTMLButtonElement::~nsHTMLButtonElement()
@@ -487,6 +496,31 @@ nsHTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 }
 
 nsresult
+nsHTMLButtonElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                                nsIContent* aBindingParent,
+                                PRBool aCompileEventHandlers)
+{
+  nsresult rv = nsGenericHTMLFormElement::BindToTree(aDocument, aParent,
+                                                     aBindingParent,
+                                                     aCompileEventHandlers);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  UpdateState(false);
+
+  return NS_OK;
+}
+
+void
+nsHTMLButtonElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
+{
+  nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
+
+  
+  UpdateState(false);
+}
+
+nsresult
 nsHTMLButtonElement::GetDefaultValue(nsAString& aDefaultValue)
 {
   GetAttr(kNameSpaceID_None, nsGkAtoms::value, aDefaultValue);
@@ -574,22 +608,13 @@ nsresult
 nsHTMLButtonElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                   const nsAString* aValue, PRBool aNotify)
 {
-  nsEventStates states;
-
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::type) {
       if (!aValue) {
         mType = kButtonDefaultType->value;
       }
 
-      states |= NS_EVENT_STATE_MOZ_SUBMITINVALID;
-    }
-
-    if (aNotify && !states.IsEmpty()) {
-      nsIDocument* doc = GetCurrentDoc();
-      if (doc) {
-        doc->ContentStateChanged(this, states);
-      }
+      UpdateState(aNotify);
     }
   }
 

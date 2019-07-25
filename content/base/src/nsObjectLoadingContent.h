@@ -257,8 +257,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
+
     void NotifyStateChanged(ObjectType aOldType, nsEventStates aOldState,
-                            PRBool aSync);
+                            PRBool aSync, PRBool aNotify);
 
     
 

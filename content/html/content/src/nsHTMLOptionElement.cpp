@@ -120,6 +120,8 @@ nsHTMLOptionElement::nsHTMLOptionElement(already_AddRefed<nsINodeInfo> aNodeInfo
     mIsSelected(PR_FALSE),
     mIsInSetDefaultSelected(PR_FALSE)
 {
+  
+  AddStatesSilently(NS_EVENT_STATE_ENABLED);
 }
 
 nsHTMLOptionElement::~nsHTMLOptionElement()
@@ -171,12 +173,8 @@ nsHTMLOptionElement::SetSelectedInternal(PRBool aValue, PRBool aNotify)
 
   
   
-  if (aNotify && !mIsInSetDefaultSelected) {
-    nsIDocument* document = GetCurrentDoc();
-    if (document) {
-      nsAutoScriptBlocker scriptBlocker;
-      document->ContentStateChanged(this, NS_EVENT_STATE_CHECKED);
-    }
+  if (!mIsInSetDefaultSelected) {
+    UpdateState(aNotify);
   }
 }
 

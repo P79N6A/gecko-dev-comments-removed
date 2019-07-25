@@ -86,6 +86,10 @@ public:
 
   nsEventStates IntrinsicState() const;
 
+  virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                               nsIContent* aBindingParent,
+                               PRBool aCompileEventHandlers);
+
   
   
   void DescendantsChanged();
@@ -120,6 +124,9 @@ nsHTMLOutputElement::nsHTMLOutputElement(already_AddRefed<nsINodeInfo> aNodeInfo
   , mValueModeFlag(eModeDefault)
 {
   AddMutationObserver(this);
+
+  
+  AddStatesSilently(NS_EVENT_STATE_VALID | NS_EVENT_STATE_MOZ_UI_VALID);
 }
 
 nsHTMLOutputElement::~nsHTMLOutputElement()
@@ -157,14 +164,7 @@ nsHTMLOutputElement::SetCustomValidity(const nsAString& aError)
 {
   nsIConstraintValidation::SetCustomValidity(aError);
 
-  nsIDocument* doc = GetCurrentDoc();
-  if (doc) {
-    nsAutoScriptBlocker scriptBlocker;
-    doc->ContentStateChanged(this, NS_EVENT_STATE_INVALID |
-                                   NS_EVENT_STATE_VALID |
-                                   NS_EVENT_STATE_MOZ_UI_INVALID |
-                                   NS_EVENT_STATE_MOZ_UI_VALID);
-  }
+  UpdateState(true);
 
   return NS_OK;
 }
@@ -220,6 +220,26 @@ nsHTMLOutputElement::IntrinsicState() const
   }
 
   return states;
+}
+
+nsresult
+nsHTMLOutputElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                                nsIContent* aBindingParent,
+                                PRBool aCompileEventHandlers)
+{
+  nsresult rv = nsGenericHTMLFormElement::BindToTree(aDocument, aParent,
+                                                     aBindingParent,
+                                                     aCompileEventHandlers);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  
+  
+  UpdateState(false);
+
+  return rv;
 }
 
 NS_IMETHODIMP

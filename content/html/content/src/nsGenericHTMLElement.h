@@ -199,7 +199,13 @@ public:
   
   void Compact() { mAttrsAndChildren.Compact(); }
 
-  virtual void UpdateEditableState();
+  virtual void UpdateEditableState(PRBool aNotify);
+
+  
+  void DoSetEditableFlag(PRBool aEditable, bool aNotify) {
+    SetEditableFlag(aEditable);
+    UpdateState(aNotify);
+  }
 
   virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
@@ -878,14 +884,10 @@ public:
 
 
 
-  virtual void FieldSetDisabledChanged(nsEventStates aStates, PRBool aNotify);
+  virtual void FieldSetDisabledChanged(PRBool aNotify);
 
   void FieldSetFirstLegendChanged(PRBool aNotify) {
-    UpdateFieldSet();
-
-    
-    
-    FieldSetDisabledChanged(nsEventStates(), aNotify);
+    UpdateFieldSet(aNotify);
   }
 
   
@@ -916,7 +918,7 @@ protected:
   virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                 const nsAString* aValue, PRBool aNotify);
 
-  void UpdateEditableFormControlState();
+  void UpdateEditableFormControlState(PRBool aNotify);
 
   
 
@@ -934,7 +936,7 @@ protected:
   
 
 
-  void UpdateFieldSet();
+  void UpdateFieldSet(PRBool aNotify);
 
   
 

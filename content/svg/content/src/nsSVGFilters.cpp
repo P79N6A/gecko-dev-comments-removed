@@ -5377,6 +5377,8 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGFEImageElementBase)
 nsSVGFEImageElement::nsSVGFEImageElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsSVGFEImageElementBase(aNodeInfo)
 {
+  
+  AddStatesSilently(NS_EVENT_STATE_BROKEN);
 }
 
 nsSVGFEImageElement::~nsSVGFEImageElement()
@@ -5466,7 +5468,10 @@ nsSVGFEImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (HasAttr(kNameSpaceID_XLink, nsGkAtoms::href)) {
+    
+    
     ClearBrokenState();
+    RemoveStatesSilently(NS_EVENT_STATE_BROKEN);
     nsContentUtils::AddScriptRunner(
       NS_NewRunnableMethod(this, &nsSVGFEImageElement::MaybeLoadSVGImage));
   }
