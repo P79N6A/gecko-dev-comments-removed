@@ -762,7 +762,7 @@ var AddonManagerInternal = {
 
         
         
-        scope.AddonRepository.repopulateCache(ids, function BUC_repopulateCacheCallback() {
+        scope.AddonRepository.backgroundUpdateCheck(ids, function BUC_backgroundUpdateCheckCallback() {
           AddonManagerInternal.updateAddonRepositoryData(function BUC_updateAddonCallback() {
 
             pendingUpdates += aAddons.length;
