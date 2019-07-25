@@ -160,19 +160,6 @@ void nsPluginTag::InitMime(const char* const* aMimeTypes,
     }
 
     
-    
-    
-    
-    if (mIsJavaPlugin) {
-      if (strcmp(aMimeTypes[i], "application/x-java-vm-npruntime") == 0) {
-        
-        
-        
-        continue;
-      }
-    }
-
-    
     if (nsPluginHost::IsJavaMIMEType(aMimeTypes[i])) {
       mIsJavaPlugin = true;
     } else if (strcmp(aMimeTypes[i], "application/x-shockwave-flash") == 0) {
