@@ -2524,8 +2524,8 @@ nsXPConnect::CheckForDebugMode(JSRuntime *rt) {
         } adc(cx);
         JSAutoRequest ar(cx);
 
-        js::CompartmentVector &vector = rt->compartments;
-        for (JSCompartment **p = vector.begin(); p != vector.end(); ++p) {
+        const js::CompartmentVector &vector = js::GetRuntimeCompartments(rt);
+        for (JSCompartment * const *p = vector.begin(); p != vector.end(); ++p) {
             JSCompartment *comp = *p;
             if (!JS_GetCompartmentPrincipals(comp)) {
                 
