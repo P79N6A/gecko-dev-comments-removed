@@ -98,6 +98,13 @@ let gBrowserThumbnails = {
   },
 
   _shouldCapture: function Thumbnails_shouldCapture(aBrowser) {
+    let doc = aBrowser.contentDocument;
+
+    
+    
+    if (doc instanceof SVGDocument || doc instanceof XMLDocument)
+      return false;
+
     
     if (aBrowser.docShell.busyFlags != Ci.nsIDocShell.BUSY_FLAGS_NONE)
       return false;
