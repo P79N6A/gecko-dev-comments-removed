@@ -54,6 +54,8 @@
 class nsIFile;
 class nsCString;
 class nsString;
+class nsAdoptingString;
+class nsAdoptingCString;
 
 namespace mozilla {
 
@@ -126,6 +128,11 @@ public:
     return result;
   }
 
+  static nsAdoptingCString GetCString(const char* aPref);
+  static nsAdoptingString GetString(const char* aPref);
+  static nsAdoptingCString GetLocalizedCString(const char* aPref);
+  static nsAdoptingString GetLocalizedString(const char* aPref);
+
   
 
 
@@ -152,9 +159,9 @@ public:
 
 
 
-  static nsresult GetChar(const char* aPref, nsACString* aResult);
-  static nsresult GetChar(const char* aPref, nsAString* aResult);
-  static nsresult GetLocalizedString(const char* aPref, nsACString* aResult);
+  static nsresult GetCString(const char* aPref, nsACString* aResult);
+  static nsresult GetString(const char* aPref, nsAString* aResult);
+  static nsresult GetLocalizedCString(const char* aPref, nsACString* aResult);
   static nsresult GetLocalizedString(const char* aPref, nsAString* aResult);
 
   
@@ -166,10 +173,10 @@ public:
   {
     return SetInt(aPref, static_cast<PRInt32>(aValue));
   }
-  static nsresult SetChar(const char* aPref, const char* aValue);
-  static nsresult SetChar(const char* aPref, const nsACString &aValue);
-  static nsresult SetChar(const char* aPref, const PRUnichar* aValue);
-  static nsresult SetChar(const char* aPref, const nsAString &aValue);
+  static nsresult SetCString(const char* aPref, const char* aValue);
+  static nsresult SetCString(const char* aPref, const nsACString &aValue);
+  static nsresult SetString(const char* aPref, const PRUnichar* aValue);
+  static nsresult SetString(const char* aPref, const nsAString &aValue);
 
   
 
