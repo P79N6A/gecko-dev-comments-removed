@@ -91,6 +91,12 @@ using namespace mozilla::gfx;
 
 
 
+
+#undef MOZ_WINSDK_TARGETVER
+
+
+
+
 #if MOZ_WINSDK_TARGETVER > MOZ_NTDDI_WIN7
 #define ENABLE_GPU_MEM_REPORTER
 #endif
