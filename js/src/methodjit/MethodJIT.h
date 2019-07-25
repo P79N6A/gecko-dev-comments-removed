@@ -761,6 +761,14 @@ struct CrossChunkEdge
     void *sourceJump1;
     void *sourceJump2;
 
+#ifdef JS_CPU_X64
+    
+
+
+
+    void *sourceTrampoline;
+#endif
+
     
     typedef Vector<void**,4,SystemAllocPolicy> JumpTableEntryVector;
     JumpTableEntryVector *jumpTableEntries;
