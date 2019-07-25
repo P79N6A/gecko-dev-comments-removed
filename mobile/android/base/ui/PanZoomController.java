@@ -921,7 +921,7 @@ public class PanZoomController
 
 
 
-        float resistance = Math.min(mX.getEdgeResistance(), mY.getEdgeResistance());
+        float resistance = Math.min(mX.getEdgeResistance(true), mY.getEdgeResistance(true));
         if (spanRatio > 1.0f)
             spanRatio = 1.0f + (spanRatio - 1.0f) * resistance;
         else

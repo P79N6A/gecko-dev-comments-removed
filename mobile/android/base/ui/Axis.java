@@ -216,9 +216,9 @@ abstract class Axis {
 
 
 
-    float getEdgeResistance() {
+    float getEdgeResistance(boolean forPinching) {
         float excess = getExcess();
-        if (excess > 0.0f) {
+        if (excess > 0.0f && (getOverscroll() == Overscroll.BOTH || !forPinching)) {
             
             
             return Math.max(0.0f, SNAP_LIMIT - excess / getViewportLength());
@@ -299,7 +299,7 @@ abstract class Axis {
         }
 
         if (mFlingState == FlingStates.PANNING)
-            mDisplacement += (mLastTouchPos - mTouchPos) * getEdgeResistance();
+            mDisplacement += (mLastTouchPos - mTouchPos) * getEdgeResistance(false);
         else
             mDisplacement += mVelocity;
     }
