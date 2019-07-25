@@ -1646,7 +1646,9 @@ nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
     
     
     
-    RecreateAccessible(aElement);
+    HandleNotification<nsDocAccessible, nsINode>
+      (this, &nsDocAccessible::RecreateAccessible, aElement);
+
     return true;
   }
 
@@ -1655,7 +1657,9 @@ nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
     
     
     
-    RecreateAccessible(aElement);
+    HandleNotification<nsDocAccessible, nsINode>
+      (this, &nsDocAccessible::RecreateAccessible, aElement);
+
     return true;
   }
 
@@ -1664,7 +1668,9 @@ nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
     
     
     
-    RecreateAccessible(aElement);
+    HandleNotification<nsDocAccessible, nsINode>
+      (this, &nsDocAccessible::RecreateAccessible, aElement);
+
     return true;
   }
 
