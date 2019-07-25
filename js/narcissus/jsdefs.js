@@ -43,13 +43,14 @@
 
 
 
+
 Narcissus = {};
 Narcissus.jsdefs = (function() {
 
     var tokens = [
         
         "END",
-    
+
         
         
         "\n", ";",
@@ -72,15 +73,15 @@ Narcissus.jsdefs = (function() {
         "[", "]",
         "{", "}",
         "(", ")",
-    
+
         
         "SCRIPT", "BLOCK", "LABEL", "FOR_IN", "CALL", "NEW_WITH_ARGS", "INDEX",
         "ARRAY_INIT", "OBJECT_INIT", "PROPERTY_INIT", "GETTER", "SETTER",
         "GROUP", "LIST", "LET_BLOCK", "ARRAY_COMP", "GENERATOR", "COMP_TAIL",
-    
+
         
         "IDENTIFIER", "NUMBER", "STRING", "REGEXP",
-    
+
         
         "break",
         "case", "catch", "const", "continue",
@@ -97,7 +98,7 @@ Narcissus.jsdefs = (function() {
         "yield",
         "while", "with",
     ];
-    
+
     
     
     
@@ -142,14 +143,14 @@ Narcissus.jsdefs = (function() {
         '(':    "LEFT_PAREN",
         ')':    "RIGHT_PAREN"
     };
-    
+
     
     
     var keywords = {__proto__: null};
-    
+
     
     var tokenIds = {};
-    
+
     
     var consts = "const ";
     for (var i = 0, j = tokens.length; i < j; i++) {
@@ -168,23 +169,23 @@ Narcissus.jsdefs = (function() {
         tokens[t] = i;
     }
     consts += ";";
-    
+
     
     var assignOps = ['|', '^', '&', '<<', '>>', '>>>', '+', '-', '*', '/', '%'];
-    
+
     for (i = 0, j = assignOps.length; i < j; i++) {
         t = assignOps[i];
         assignOps[t] = tokens[t];
     }
-    
+
     function defineGetter(obj, prop, fn, dontDelete, dontEnum) {
         Object.defineProperty(obj, prop, { get: fn, configurable: !dontDelete, enumerable: !dontEnum });
     }
-    
+
     function defineProperty(obj, prop, val, dontDelete, readOnly, dontEnum) {
         Object.defineProperty(obj, prop, { value: val, writable: !readOnly, configurable: !dontDelete, enumerable: !dontEnum });
     }
-    
+
     return {
       "tokens": tokens,
       "opTypeNames": opTypeNames,
