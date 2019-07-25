@@ -164,14 +164,18 @@ private:
         js::AutoObjectRooter obj(mCx, mObj);
         mObj = NULL;
 
-        JSBool hasOnInvalidate;
-        if (JS_HasProperty(mCx, obj.object(), "onInvalidate",
-                           &hasOnInvalidate) && hasOnInvalidate) {
-          js::AutoValueRooter r(mCx);
-          JSBool ok = JS_CallFunctionName(mCx, obj.object(), "onInvalidate", 0,
-                                          NULL, r.jsval_addr());
-          if (!ok)
-            JS_ReportPendingException(mCx);
+        
+        JSAutoEnterCompartment ac;
+        if (ac.enter(mCx, obj.object())) {
+          JSBool hasOnInvalidate;
+          if (JS_HasProperty(mCx, obj.object(), "onInvalidate",
+                             &hasOnInvalidate) && hasOnInvalidate) {
+            js::AutoValueRooter r(mCx);
+            JSBool ok = JS_CallFunctionName(mCx, obj.object(), "onInvalidate", 0,
+                                            NULL, r.jsval_addr());
+            if (!ok)
+              JS_ReportPendingException(mCx);
+          }
         }
 
         
