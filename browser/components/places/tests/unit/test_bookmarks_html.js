@@ -218,58 +218,6 @@ add_test(function test_emptytitle_export()
   });
 });
 
-add_test(function test_import_preplaces_to_folder()
-{
-  
-  
-  
-  
-
-  let testFolder = PlacesUtils.bookmarks.createFolder(
-    PlacesUtils.bookmarksMenuFolderId, "test-import",
-    PlacesUtils.bookmarks.DEFAULT_INDEX
-  );
-  try {
-    importer.importHTMLFromFileToFolder(gBookmarksFileOld, testFolder, false);
-  } catch(ex) { do_throw("couldn't import the exported file to folder: " + ex); }
-
-  waitForAsyncUpdates(function () {
-    
-    testImportedBookmarksToFolder(testFolder);
-
-    waitForAsyncUpdates(function () {
-      remove_all_bookmarks();
-      run_next_test();
-    });
-  });
-});
-
-add_test(function test_import_to_folder()
-{
-  
-  
-  
-  
-
-  let testFolder = PlacesUtils.bookmarks.createFolder(
-    PlacesUtils.bookmarksMenuFolderId, "test-import",
-    PlacesUtils.bookmarks.DEFAULT_INDEX
-  );
-  try {
-    importer.importHTMLFromFileToFolder(gBookmarksFileNew, testFolder, false);
-  } catch(ex) { do_throw("couldn't import the exported file to folder: " + ex); }
-
-  waitForAsyncUpdates(function () {
-    
-    testImportedBookmarksToFolder(testFolder);
-
-    waitForAsyncUpdates(function () {
-      remove_all_bookmarks();
-      run_next_test();
-    });
-  });
-});
-
 add_test(function test_import_ontop()
 {
   
