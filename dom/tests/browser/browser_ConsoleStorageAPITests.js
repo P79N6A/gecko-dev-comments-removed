@@ -24,7 +24,6 @@ var ConsoleObserver = {
     if (aTopic == "console-storage-cache-event") {
       apiCallCount ++;
       if (apiCallCount == 4) {
-        
         Services.obs.removeObserver(this, "console-storage-cache-event");
 
         try {
@@ -42,12 +41,13 @@ var ConsoleObserver = {
         
         
         win.console.log("adding a new event");
-
         
         gBrowser.removeTab(tab, {animate: false});
-
+        
         window.QueryInterface(Ci.nsIInterfaceRequestor)
               .getInterface(Ci.nsIDOMWindowUtils).garbageCollect();
+        
+        
         executeSoon(function () {
           
           messages = ConsoleAPIStorage.getEvents(windowID);
@@ -71,6 +71,12 @@ function tearDown()
 
 function test()
 {
+  
+  Services.prefs.setIntPref("browser.tabs.max_tabs_undo", 0);
+  registerCleanupFunction(function() {
+    Services.prefs.clearUserPref("browser.tabs.max_tabs_undo");
+  });
+
   registerCleanupFunction(tearDown);
 
   ConsoleObserver.init();
