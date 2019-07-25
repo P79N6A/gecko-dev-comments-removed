@@ -269,10 +269,17 @@ sweep_line_init (sweep_line_t	 *sweep_line,
     sweep_line->head.right = NULL;
     sweep_line->head.dir = 0;
     sweep_line->head.next = &sweep_line->tail;
+    
+
+
+
+    sweep_line->head.prev = NULL;
+
     sweep_line->tail.x = INT32_MAX;
     sweep_line->tail.right = NULL;
     sweep_line->tail.dir = 0;
     sweep_line->tail.prev = &sweep_line->head;
+    sweep_line->tail.next = NULL;
 
     sweep_line->insert_left = &sweep_line->tail;
     sweep_line->insert_right = &sweep_line->tail;
@@ -545,11 +552,19 @@ insert_edge (edge_t *edge, edge_t *pos)
 	    } while (TRUE);
 	}
     }
+    if (pos->prev) {
+        pos->prev->next = edge;
+        edge->prev = pos->prev;
+        edge->next = pos;
+        pos->prev = edge;
+    } else {
+        
 
-    pos->prev->next = edge;
-    edge->prev = pos->prev;
-    edge->next = pos;
-    pos->prev = edge;
+        pos->next->prev = edge;
+        edge->next = pos->next;
+        edge->prev = pos;
+        pos->next = edge;
+    }
 }
 
 static inline cairo_bool_t
