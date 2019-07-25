@@ -94,11 +94,11 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
 
     JSWrapper *wrapper;
     if (AccessCheck::isChrome(target)) {
-        NS_ASSERTION(!AccessCheck::isChrome(origin), "we shouldn't rewrap from chrome into chrome");
-
-        
-        
-        if (flags & WAIVE_XRAY_WRAPPER_FLAG) {
+        if (AccessCheck::isChrome(origin)) {
+            wrapper = &JSCrossCompartmentWrapper::singleton;
+        } else if (flags & WAIVE_XRAY_WRAPPER_FLAG) {
+            
+            
             wrapper = &XrayWrapperWaivedWrapper;
         } else {
             
