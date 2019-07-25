@@ -1726,7 +1726,7 @@ struct JSContext
     JSPackedBool        insideGCMarkCallback;
 
     
-    JSPackedBool        throwing;           
+    JSBool              throwing;           
     js::Value           exception;          
 
     
