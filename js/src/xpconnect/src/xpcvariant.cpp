@@ -79,7 +79,8 @@ XPCVariant::XPCVariant(XPCCallContext& ccx, jsval aJSVal)
 
 XPCTraceableVariant::~XPCTraceableVariant()
 {
-    NS_ASSERTION(JSVAL_IS_GCTHING(mJSVal), "Must be traceable or unlinked");
+    NS_ASSERTION(JSVAL_IS_GCTHING(mJSVal) || JSVAL_IS_NULL(mJSVal), 
+                 "Must be traceable or unlinked");
 
     
     
