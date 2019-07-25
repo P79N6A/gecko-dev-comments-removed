@@ -602,13 +602,6 @@ TabSyncCore.prototype = {
     return this._sessionStore;
   },
 
-  
-  get _json() {
-    let json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
-    this.__defineGetter__("_json", function() json);
-    return this._json;
-  },
-
   _itemExists: function TSC__itemExists(GUID) {
     
     
