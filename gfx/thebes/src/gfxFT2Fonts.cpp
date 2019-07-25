@@ -110,10 +110,12 @@ FontEntry::~FontEntry()
     
     mFTFace = nsnull;
 
+#ifndef ANDROID
     if (mFontFace) {
         cairo_font_face_destroy(mFontFace);
         mFontFace = nsnull;
     }
+#endif
 }
 
 
