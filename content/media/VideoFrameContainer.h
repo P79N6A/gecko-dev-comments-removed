@@ -37,11 +37,13 @@ public:
                       already_AddRefed<ImageContainer> aContainer)
     : mElement(aElement),
       mImageContainer(aContainer), mMutex("nsVideoFrameContainer"),
-      mIntrinsicSizeChanged(false), mImageSizeChanged(false)
+      mIntrinsicSizeChanged(false), mImageSizeChanged(false),
+      mNeedInvalidation(true)
   {
     NS_ASSERTION(aElement, "aElement must not be null");
     NS_ASSERTION(mImageContainer, "aContainer must not be null");
   }
+
   
   void SetCurrentFrame(const gfxIntSize& aIntrinsicSize, Image* aImage,
                        TimeStamp aTargetTime);
@@ -86,6 +88,8 @@ protected:
   
   
   bool mImageSizeChanged;
+
+  bool mNeedInvalidation;
 };
 
 }
