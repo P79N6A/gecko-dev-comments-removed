@@ -115,21 +115,6 @@ public:
   void SetDefaultTarget(gfxContext* aContext, BufferMode aDoubleBuffering);
   gfxContext* GetDefaultTarget() { return mDefaultTarget; }
 
-  
-
-
-
-
-
-  void SetResolution(float aXResolution, float aYResolution)
-  {
-    NS_ASSERTION(InConstruction(), "resolution must be set before drawing");
-    mXResolution = aXResolution;
-    mYResolution = aYResolution;
-  }
-  float XResolution() const { return mXResolution; }
-  float YResolution() const { return mYResolution; }
-
   nsIWidget* GetRetainerWidget() { return mWidget; }
   void ClearRetainerWidget() { mWidget = nsnull; }
 
@@ -211,10 +196,6 @@ protected:
 
   bool EndTransactionInternal(DrawThebesLayerCallback aCallback,
                               void* aCallbackData);
-
-  
-  float mXResolution;
-  float mYResolution;
 
   
   

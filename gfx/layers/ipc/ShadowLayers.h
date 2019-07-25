@@ -157,7 +157,6 @@ public:
 
   void CreatedThebesBuffer(ShadowableLayer* aThebes,
                            const nsIntRegion& aFrontValidRegion,
-                           float aXResolution, float aYResolution,
                            const nsIntRect& aBufferRect,
                            const SurfaceDescriptor& aInitialFrontBuffer);
   
@@ -494,8 +493,7 @@ public:
 
 
   virtual void SetFrontBuffer(const OptionalThebesBuffer& aNewFront,
-                              const nsIntRegion& aValidRegion,
-                              float aXResolution, float aYResolution) = 0;
+                              const nsIntRegion& aValidRegion) = 0;
 
   virtual void InvalidateRegion(const nsIntRegion& aRegion)
   {
@@ -514,16 +512,6 @@ public:
   
 
 
-  virtual void SetResolution(float aXResolution, float aYResolution)
-  {
-    mXResolution = aXResolution;
-    mYResolution = aYResolution;
-    Mutated();
-  }
-
-  
-
-
 
 
 
@@ -531,7 +519,6 @@ public:
   virtual void
   Swap(const ThebesBuffer& aNewFront, const nsIntRegion& aUpdatedRegion,
        ThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
-       float* aNewXResolution, float* aNewYResolution,
        OptionalThebesBuffer* aReadOnlyFront, nsIntRegion* aFrontUpdatedRegion) = 0;
 
   

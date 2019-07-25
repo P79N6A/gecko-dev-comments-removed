@@ -171,8 +171,6 @@ public:
 
   enum { PAINT_WILL_RESAMPLE = ThebesLayerBuffer::PAINT_WILL_RESAMPLE };
   virtual PaintState BeginPaint(ContentType aContentType,
-                                float aXResolution,
-                                float aYResolution,
                                 PRUint32 aFlags) = 0;
 
   void RenderTo(const nsIntPoint& aOffset, LayerManagerOGL* aManager,
@@ -214,9 +212,6 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
   
   TextureImage::ScopedBindTexture texBind(mTexImage, LOCAL_GL_TEXTURE0);
   TextureImage::ScopedBindTexture texOnWhiteBind(mTexImageOnWhite, LOCAL_GL_TEXTURE1);
-
-  float xres = mLayer->GetXResolution();
-  float yres = mLayer->GetYResolution();
 
   PRInt32 passes = mTexImageOnWhite ? 2 : 1;
   for (PRInt32 pass = 1; pass <= passes; ++pass) {
@@ -274,12 +269,6 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
 
       quadRect.MoveBy(-GetOriginOffset());
 
-      
-      
-      
-      
-      quadRect.ScaleRoundOut(xres, yres);
-
       BindAndDrawQuadWithTextureRect(gl(), program, quadRect,
                                      mTexImage->GetSize(),
                                      mTexImage->GetWrapMode());
@@ -312,15 +301,11 @@ public:
 
   
   virtual PaintState BeginPaint(ContentType aContentType, 
-                                float aXResolution, 
-                                float aYResolution,
                                 PRUint32 aFlags)
   {
     
     return ThebesLayerBuffer::BeginPaint(mLayer, 
                                          aContentType, 
-                                         aXResolution, 
-                                         aYResolution,
                                          aFlags);
   }
 
@@ -356,8 +341,6 @@ public:
   virtual ~BasicBufferOGL() {}
 
   virtual PaintState BeginPaint(ContentType aContentType,
-                                float aXResolution,
-                                float aYResolution,
                                 PRUint32 aFlags);
 
 protected:
@@ -410,42 +393,20 @@ FillSurface(gfxASurface* aSurface, const nsIntRegion& aRegion,
   ctx->Paint();
 }
 
-static nsIntSize
-ScaledSize(const nsIntSize& aSize, float aXScale, float aYScale)
-{
-  if (aXScale == 1.0 && aYScale == 1.0) {
-    return aSize;
-  }
-
-  nsIntRect rect(0, 0, aSize.width, aSize.height);
-  rect.ScaleRoundOut(aXScale, aYScale);
-  return rect.Size();
-}
-
 BasicBufferOGL::PaintState
 BasicBufferOGL::BeginPaint(ContentType aContentType,
-                           float aXResolution,
-                           float aYResolution,
                            PRUint32 aFlags)
 {
   PaintState result;
-  float curXRes = mLayer->GetXResolution();
-  float curYRes = mLayer->GetYResolution();
   
   
-  
-  
-  
-  
-  PRBool canHaveRotation =
-    !(aFlags & PAINT_WILL_RESAMPLE) && aXResolution == 1.0 && aYResolution == 1.0;
+  PRBool canHaveRotation =  !(aFlags & PAINT_WILL_RESAMPLE);
 
   nsIntRegion validRegion = mLayer->GetValidRegion();
 
   Layer::SurfaceMode mode;
   ContentType contentType;
   nsIntRegion neededRegion;
-  nsIntSize destBufferDims;
   PRBool canReuseBuffer;
   nsIntRect destBufferRect;
 
@@ -453,8 +414,6 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
     mode = mLayer->GetSurfaceMode();
     contentType = aContentType;
     neededRegion = mLayer->GetVisibleRegion();
-    destBufferDims = ScaledSize(neededRegion.GetBounds().Size(),
-                                aXResolution, aYResolution);
     
     canReuseBuffer = neededRegion.GetBounds().Size() <= mBufferRect.Size() &&
       mTexImage &&
@@ -499,21 +458,11 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
       
       
       neededRegion = destBufferRect;
-      destBufferDims = ScaledSize(neededRegion.GetBounds().Size(),
-                                  aXResolution, aYResolution);
     }
 
     if (mTexImage &&
         (mTexImage->GetContentType() != contentType ||
-         aXResolution != curXRes || aYResolution != curYRes ||
          (mode == Layer::SURFACE_COMPONENT_ALPHA) != (mTexImageOnWhite != nsnull))) {
-      
-      
-      
-      
-      
-      
-      
       
       
       result.mRegionToInvalidate = mLayer->GetValidRegion();
@@ -534,8 +483,8 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
   if (result.mRegionToDraw.IsEmpty())
     return result;
 
-  if (destBufferDims.width > gl()->GetMaxTextureSize() ||
-      destBufferDims.height > gl()->GetMaxTextureSize()) {
+  if (destBufferRect.width > gl()->GetMaxTextureSize() ||
+      destBufferRect.height > gl()->GetMaxTextureSize()) {
     return result;
   }
 
@@ -545,9 +494,6 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
 
   PRUint32 bufferFlags = canHaveRotation ? ALLOW_REPEAT : 0;
   if (canReuseBuffer) {
-    NS_ASSERTION(curXRes == aXResolution && curYRes == aYResolution,
-                 "resolution changes must clear the buffer!");
-
     nsIntRect keepArea;
     if (keepArea.IntersectRect(destBufferRect, mBufferRect)) {
       
@@ -571,12 +517,12 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
         
         
         destBufferRect = neededRegion.GetBounds();
-        destBuffer = CreateClampOrRepeatTextureImage(gl(), destBufferDims, contentType, bufferFlags);
+        destBuffer = CreateClampOrRepeatTextureImage(gl(), destBufferRect.Size(), contentType, bufferFlags);
         if (!destBuffer)
           return result;
         if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
           destBufferOnWhite =
-            CreateClampOrRepeatTextureImage(gl(), destBufferDims, contentType, bufferFlags);
+            CreateClampOrRepeatTextureImage(gl(), destBufferRect.Size(), contentType, bufferFlags);
           if (!destBufferOnWhite)
             return result;
         }
@@ -593,13 +539,13 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
     }
   } else {
     
-    destBuffer = CreateClampOrRepeatTextureImage(gl(), destBufferDims, contentType, bufferFlags);
+    destBuffer = CreateClampOrRepeatTextureImage(gl(), destBufferRect.Size(), contentType, bufferFlags);
     if (!destBuffer)
       return result;
 
     if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
       destBufferOnWhite = 
-        CreateClampOrRepeatTextureImage(gl(), destBufferDims, contentType, bufferFlags);
+        CreateClampOrRepeatTextureImage(gl(), destBufferRect.Size(), contentType, bufferFlags);
       if (!destBufferOnWhite)
         return result;
     }
@@ -623,24 +569,21 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
         srcRect.MoveBy(- mBufferRect.TopLeft() + mBufferRotation);
         dstRect.MoveBy(- destBufferRect.TopLeft());
 
-        nsIntSize size = ScaledSize(destBufferRect.Size(), aXResolution, aYResolution);
-        destBuffer->Resize(size);
-        srcRect.ScaleRoundOut(aXResolution, aYResolution);
-        dstRect.ScaleRoundOut(aXResolution, aYResolution);
+        destBuffer->Resize(destBufferRect.Size());
 
         gl()->BlitTextureImage(mTexImage, srcRect,
                                destBuffer, dstRect);
         if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
-          destBufferOnWhite->Resize(size);
+          destBufferOnWhite->Resize(destBufferRect.Size());
           gl()->BlitTextureImage(mTexImageOnWhite, srcRect,
                                  destBufferOnWhite, dstRect);
         }
       } else {
         
-        destBuffer = CreateClampOrRepeatTextureImage(gl(), destBufferDims, contentType, bufferFlags);
+        destBuffer = CreateClampOrRepeatTextureImage(gl(), destBufferRect.Size(), contentType, bufferFlags);
         if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
           destBufferOnWhite = 
-            CreateClampOrRepeatTextureImage(gl(), destBufferDims, contentType, bufferFlags);
+            CreateClampOrRepeatTextureImage(gl(), destBufferRect.Size(), contentType, bufferFlags);
         }
       }
     }
@@ -672,7 +615,6 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
   
   
   result.mRegionToDraw.MoveBy(offset);
-  result.mRegionToDraw.ScaleRoundOut(aXResolution, aYResolution);
   
   
   if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
@@ -711,15 +653,10 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
     NS_WARNING("unable to get context for update");
     return result;
   }
-  result.mContext->Scale(aXResolution, aYResolution);
   result.mContext->Translate(-gfxPoint(quadrantRect.x, quadrantRect.y));
   
   
-  result.mRegionToDraw.ScaleRoundOut(1/aXResolution, 1/aYResolution);
   result.mRegionToDraw.MoveBy(-offset);
-  
-  
-  result.mRegionToDraw.ExtendForScaling(aXResolution, aYResolution);
   
   return result;
 }
@@ -795,15 +732,8 @@ ThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer,
                             gfxASurface::CONTENT_COLOR_ALPHA;
 
   gfxMatrix transform2d;
-  gfxSize scale(1.0, 1.0);
-  float paintXRes = 1.0;
-  float paintYRes = 1.0;
   PRUint32 flags = 0;
   if (GetEffectiveTransform().Is2D(&transform2d)) {
-    scale = transform2d.ScaleFactors(PR_TRUE);
-    paintXRes = gfxUtils::ClampToScaleFactor(scale.width);
-    paintYRes = gfxUtils::ClampToScaleFactor(scale.height);
-    transform2d.Scale(1.0/paintXRes, 1.0/paintYRes);
     if (transform2d.HasNonIntegerTranslation()) {
       flags |= ThebesLayerBufferOGL::PAINT_WILL_RESAMPLE;
     }
@@ -811,14 +741,11 @@ ThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer,
     flags |= ThebesLayerBufferOGL::PAINT_WILL_RESAMPLE;
   }
 
-  Buffer::PaintState state =
-    mBuffer->BeginPaint(contentType, paintXRes, paintYRes, flags);
+  Buffer::PaintState state = mBuffer->BeginPaint(contentType, flags);
   mValidRegion.Sub(mValidRegion, state.mRegionToInvalidate);
 
   if (state.mContext) {
     state.mRegionToInvalidate.And(state.mRegionToInvalidate, mVisibleRegion);
-    mXResolution = paintXRes;
-    mYResolution = paintYRes;
 
     LayerManager::DrawThebesLayerCallback callback =
       mOGLManager->GetThebesLayerCallback();
@@ -866,8 +793,7 @@ public:
     : ThebesLayerBufferOGL(aLayer, aLayer)
   {}
 
-  virtual PaintState BeginPaint(ContentType aContentType,
-                                float, float, PRUint32) {
+  virtual PaintState BeginPaint(ContentType aContentType, PRUint32) {
     NS_RUNTIMEABORT("can't BeginPaint for a shadow layer");
     return PaintState();
   }
@@ -904,25 +830,7 @@ ShadowBufferOGL::Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,
   destRegion.MoveBy(-visTopLeft);
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsIntRect destBounds = destRegion.GetBounds();
-  gfxRect destRect(destBounds.x, destBounds.y, destBounds.width, destBounds.height);
-  destRect.Scale(mLayer->GetXResolution(), mLayer->GetYResolution());
-  destRect.RoundOut();
-
-  
-  nsIntRegion scaledDestRegion(nsIntRect(destRect.X(), destRect.Y(),
-                                         destRect.Width(), destRect.Height()));
-  mTexImage->DirectUpdate(aUpdate, scaledDestRegion);
+  mTexImage->DirectUpdate(aUpdate, destRegion);
 
   mBufferRect = aRect;
   mBufferRotation = aRotation;
@@ -940,8 +848,7 @@ ShadowThebesLayerOGL::~ShadowThebesLayerOGL()
 
 void
 ShadowThebesLayerOGL::SetFrontBuffer(const OptionalThebesBuffer& aNewFront,
-                                     const nsIntRegion& aValidRegion,
-                                     float aXResolution, float aYResolution)
+                                     const nsIntRegion& aValidRegion)
 {
   if (mDestroyed) {
     return;
@@ -960,7 +867,6 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
                            const nsIntRegion& aUpdatedRegion,
                            ThebesBuffer* aNewBack,
                            nsIntRegion* aNewBackValidRegion,
-                           float* aNewXResolution, float* aNewYResolution,
                            OptionalThebesBuffer* aReadOnlyFront,
                            nsIntRegion* aFrontUpdatedRegion)
 {
@@ -971,8 +877,6 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
 
   *aNewBack = aNewFront;
   *aNewBackValidRegion = mValidRegion;
-  *aNewXResolution = mXResolution;
-  *aNewYResolution = mYResolution;
   *aReadOnlyFront = null_t();
   aFrontUpdatedRegion->SetEmpty();
 }
