@@ -39,15 +39,27 @@
 
 
 
+
 #include <QApplication>
 #include <QMimeData>
 #include <QString>
 #include <QStringList>
+#include <QByteArray>
+#include <QImage>
+#include <QImageWriter>
+#include <QBuffer>
 
 #include "nsClipboard.h"
 #include "nsISupportsPrimitives.h"
 #include "nsXPIDLString.h"
 #include "nsPrimitiveHelpers.h"
+#include "nsIInputStream.h"
+#include "nsReadableUtils.h"
+#include "nsStringStream.h"
+#include "nsComponentManagerUtils.h"
+
+#include "imgIContainer.h"
+#include "gfxImageSurface.h"
 
 NS_IMPL_ISUPPORTS1(nsClipboard, nsIClipboard)
 
@@ -74,6 +86,20 @@ nsClipboard::~nsClipboard()
 {
 }
 
+static inline QImage::Format
+_gfximage_to_qformat(gfxASurface::gfxImageFormat aFormat)
+{
+    switch (aFormat) {
+    case gfxASurface::ImageFormatARGB32:
+        return QImage::Format_ARGB32_Premultiplied;
+    case gfxASurface::ImageFormatRGB24:
+        return QImage::Format_ARGB32;
+    case gfxASurface::ImageFormatRGB16_565:
+        return QImage::Format_RGB16;
+    default:
+        return QImage::Format_Invalid;
+    }
+}
 
 
 
@@ -90,17 +116,20 @@ nsClipboard::SetNativeClipboardData( nsITransferable *aTransferable,
     
     
     nsCOMPtr<nsISupportsArray> flavorList;
-    nsresult errCode = aTransferable->FlavorsTransferableCanExport( getter_AddRefs(flavorList) );
+    nsresult rv = aTransferable->FlavorsTransferableCanExport( getter_AddRefs(flavorList) );
 
-    if (NS_FAILED(errCode))
+    if (NS_FAILED(rv))
     {
         qDebug("nsClipboard::SetNativeClipboardData(): no FlavorsTransferable !");
         return NS_ERROR_FAILURE;
     }
 
     QClipboard *cb = QApplication::clipboard();
+    QMimeData *mimeData = new QMimeData;
+
     PRUint32 flavorCount = 0;
     flavorList->Count(&flavorCount);
+    bool imageAdded = false;
 
     for (PRUint32 i = 0; i < flavorCount; ++i)
     {
@@ -122,32 +151,107 @@ nsClipboard::SetNativeClipboardData( nsITransferable *aTransferable,
             
             if (!strcmp(flavorStr.get(), kUnicodeMime))
             {
-                aTransferable->GetTransferData(flavorStr,getter_AddRefs(clip),&len);
+                rv = aTransferable->GetTransferData(flavorStr,getter_AddRefs(clip),&len);
                 nsCOMPtr<nsISupportsString> wideString;
                 wideString = do_QueryInterface(clip);
-                if (!wideString)
-                {
-                    return NS_ERROR_FAILURE;
-                }
+                if (!wideString || NS_FAILED(rv))
+                    continue;
 
                 nsAutoString utf16string;
                 wideString->GetData(utf16string);
                 QString str = QString::fromUtf16(utf16string.get());
 
                 
-                cb->setText(str, clipboardMode);
-                break;
+                mimeData->setText(str);
             }
 
-            if ( !strcmp(flavorStr.get(), kNativeImageMime)
-              || !strcmp(flavorStr.get(), kPNGImageMime)
-              || !strcmp(flavorStr.get(), kJPEGImageMime)
-              || !strcmp(flavorStr.get(), kGIFImageMime))
+            
+            else if (!strcmp(flavorStr.get(), kHTMLMime))
             {
-                qDebug("nsClipboard::SetNativeClipboardData(): Copying image data not implemented!");
+                rv = aTransferable->GetTransferData(flavorStr,getter_AddRefs(clip),&len);
+                nsCOMPtr<nsISupportsString> wideString;
+                wideString = do_QueryInterface(clip);
+                if (!wideString || NS_FAILED(rv))
+                    continue;
+
+                nsAutoString utf16string;
+                wideString->GetData(utf16string);
+                QString str = QString::fromUtf16(utf16string.get());
+
+                
+                mimeData->setHtml(str);
+            }
+
+            
+            else if (!imageAdded 
+                     && (!strcmp(flavorStr.get(), kNativeImageMime)
+                     ||  !strcmp(flavorStr.get(), kPNGImageMime)
+                     ||  !strcmp(flavorStr.get(), kJPEGImageMime)
+                     ||  !strcmp(flavorStr.get(), kGIFImageMime))
+                    )
+            {
+                
+                static const char* const imageMimeTypes[] = {
+                    kNativeImageMime, kPNGImageMime, kJPEGImageMime, kGIFImageMime };
+                nsCOMPtr<nsISupportsInterfacePointer> ptrPrimitive;
+                for (PRUint32 i = 0; !ptrPrimitive && i < NS_ARRAY_LENGTH(imageMimeTypes); i++)
+                {
+                    aTransferable->GetTransferData(imageMimeTypes[i], getter_AddRefs(clip), &len);
+                    ptrPrimitive = do_QueryInterface(clip);
+                }
+
+                if (!ptrPrimitive)
+                    continue;
+
+                nsCOMPtr<nsISupports> primitiveData;
+                ptrPrimitive->GetData(getter_AddRefs(primitiveData));
+                nsCOMPtr<imgIContainer> image(do_QueryInterface(primitiveData));
+                if (!image)  
+                   continue;
+
+                nsRefPtr<gfxImageSurface> imageSurface;
+                image->CopyFrame(imgIContainer::FRAME_CURRENT,
+                                 imgIContainer::FLAG_SYNC_DECODE,
+                                 getter_AddRefs(imageSurface));
+
+                QImage qImage(imageSurface->Data(),
+                              imageSurface->Width(),
+                              imageSurface->Height(),
+                              imageSurface->Stride(),
+                              _gfximage_to_qformat(imageSurface->Format()));
+
+                
+                mimeData->setImageData(qImage);
+                imageAdded = true;
+            }
+
+            
+            else
+            {
+                rv = aTransferable->GetTransferData(flavorStr.get(), getter_AddRefs(clip), &len);
+                
+                if (!clip || NS_FAILED(rv))
+                    continue;
+
+                void *primitive_data = nsnull;
+                nsPrimitiveHelpers::CreateDataFromPrimitive(flavorStr.get(), clip,
+                                                            &primitive_data, len);
+
+                if (primitive_data)
+                {
+                    QByteArray data ((const char *)primitive_data, len);
+                    
+                    mimeData->setData(flavorStr.get(), data);
+                }
             }
         }
     }
+
+    
+    if(!mimeData->formats().isEmpty())
+        cb->setMimeData(mimeData, clipboardMode);
+    else
+        delete mimeData;
 
     return NS_OK;
 }
@@ -198,42 +302,119 @@ nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable,
 
             
             
-            if (!strcmp(flavorStr.get(), kUnicodeMime)) 
+            if (!strcmp(flavorStr.get(), kUnicodeMime) && mimeData->hasText())
             {
-                if (mimeData->hasText())
-                {
-                    
-                    
-                    foundFlavor = nsCAutoString(flavorStr);
+                
+                
+                foundFlavor = nsCAutoString(flavorStr);
 
-                    
-                    QString text = mimeData->text();
-                    const QChar *unicode = text.unicode();
-                    
-                    PRUint32 len = (PRUint32) 2*text.size();
+                
+                QString text = mimeData->text();
+                const QChar *unicode = text.unicode();
+                
+                PRUint32 len = (PRUint32) 2*text.size();
 
-                    
-                    nsCOMPtr<nsISupports> genericDataWrapper;
-                    nsPrimitiveHelpers::CreatePrimitiveForData(
+                
+                nsCOMPtr<nsISupports> genericDataWrapper;
+                nsPrimitiveHelpers::CreatePrimitiveForData(
                         foundFlavor.get(),
                         (void*)unicode,
                         len,
                         getter_AddRefs(genericDataWrapper));
-
-                    
-                    aTransferable->SetTransferData(foundFlavor.get(),
-                                                   genericDataWrapper,len);
-                    
-                    break;
-                }
+                
+                aTransferable->SetTransferData(foundFlavor.get(),
+                                               genericDataWrapper,len);
+                
+                break;
             }
 
             
-            if (!strcmp(flavorStr.get(), kJPEGImageMime)
-             || !strcmp(flavorStr.get(), kPNGImageMime)
-             || !strcmp(flavorStr.get(), kGIFImageMime))
+            if (!strcmp(flavorStr.get(), kHTMLMime) && mimeData->hasHtml())
             {
-                qDebug("nsClipboard::GetNativeClipboardData(): Pasting image data not implemented!");
+                
+                
+                foundFlavor = nsCAutoString(flavorStr);
+
+                
+                QString html = mimeData->html();
+                const QChar *unicode = html.unicode();
+                
+                PRUint32 len = (PRUint32) 2*html.size();
+
+                
+                nsCOMPtr<nsISupports> genericDataWrapper;
+                nsPrimitiveHelpers::CreatePrimitiveForData(
+                        foundFlavor.get(),
+                        (void*)unicode,
+                        len,
+                        getter_AddRefs(genericDataWrapper));
+                
+                aTransferable->SetTransferData(foundFlavor.get(),
+                                               genericDataWrapper,len);
+                
+                break;
+            }
+
+            
+            if ((  !strcmp(flavorStr.get(), kJPEGImageMime)
+                || !strcmp(flavorStr.get(), kPNGImageMime)
+                || !strcmp(flavorStr.get(), kGIFImageMime))
+                && mimeData->hasImage())
+            {
+                
+                QImage image = cb->image();
+                if(image.isNull())
+                    continue;
+
+                
+                QByteArray imageFormat;
+                if (!strcmp(flavorStr.get(), kJPEGImageMime))
+                    imageFormat = "jpeg";
+                else if (!strcmp(flavorStr.get(), kPNGImageMime))
+                    imageFormat = "png";
+                else if (!strcmp(flavorStr.get(), kGIFImageMime))
+                    imageFormat = "gif";
+                else
+                    continue;
+
+                
+                QByteArray imageData;
+                QBuffer imageBuffer(&imageData);
+                QImageWriter imageWriter(&imageBuffer, imageFormat);
+                if(!imageWriter.write(image))
+                    continue;
+
+                
+                nsCOMPtr<nsIInputStream> byteStream;
+                NS_NewByteInputStream(getter_AddRefs(byteStream), imageData.constData(),
+                                      imageData.size(), NS_ASSIGNMENT_COPY);
+                
+                aTransferable->SetTransferData(flavorStr, byteStream, sizeof(nsIInputStream*));
+
+                imageBuffer.close();
+
+                
+                break;
+            }
+
+            
+            
+            if(mimeData->hasFormat(flavorStr.get()))
+            {
+                
+                QByteArray clipboardData = mimeData->data(flavorStr.get());
+                
+                nsCOMPtr<nsISupports> genericDataWrapper;
+                nsPrimitiveHelpers::CreatePrimitiveForData(
+                        foundFlavor.get(),
+                        (void*) clipboardData.data(),
+                        clipboardData.size(),
+                        getter_AddRefs(genericDataWrapper));
+
+                
+                aTransferable->SetTransferData(foundFlavor.get(),
+                                               genericDataWrapper,clipboardData.size());
+                
                 break;
             }
         }
