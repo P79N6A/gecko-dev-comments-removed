@@ -192,6 +192,15 @@ public:
   
 
 
+  inline void HandleAnchorJump(nsIContent* aTargetNode)
+  {
+    HandleNotification<nsDocAccessible, nsIContent>
+      (this, &nsDocAccessible::ProcessAnchorJump, aTargetNode);
+  }
+
+  
+
+
 
 
 
@@ -389,6 +398,11 @@ protected:
 
 
   void ProcessPendingEvent(AccEvent* aEvent);
+
+  
+
+
+  void ProcessAnchorJump(nsIContent* aTargetNode);
 
   
 

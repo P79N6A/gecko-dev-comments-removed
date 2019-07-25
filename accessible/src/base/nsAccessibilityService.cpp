@@ -143,26 +143,14 @@ nsAccessibilityService::Observe(nsISupports *aSubject, const char *aTopic,
 
 
 void
-nsAccessibilityService::NotifyOfAnchorJumpTo(nsIContent *aTarget)
+nsAccessibilityService::NotifyOfAnchorJumpTo(nsIContent* aTargetNode)
 {
-  nsIDocument *document = aTarget->GetCurrentDoc();
-  if (!document)
-    return;
-
-  
-  
-  nsCOMPtr<nsIWeakReference> weakShell(nsCoreUtils::GetWeakShellFor(aTarget));
-  nsAccessible* targetAcc = GetAccessibleOrContainer(aTarget, weakShell);
-  if (!targetAcc)
-    return;
-
-  nsINode* targetNode = targetAcc->GetNode();
-
-  
-  
-  GetDocAccessible(document)->
-    FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_SCROLLING_START,
-                               targetNode);
+  nsIDocument* documentNode = aTargetNode->GetCurrentDoc();
+  if (documentNode) {
+    nsDocAccessible* document = GetDocAccessible(documentNode);
+    if (document)
+      document->HandleAnchorJump(aTargetNode);
+  }
 }
 
 
