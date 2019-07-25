@@ -509,7 +509,7 @@ searchBar.prototype = {
 
   checkSearchResultPage : function searchBar_checkSearchResultPage(searchTerm) {
     
-    var targetUrl = this._bss.currentEngine.getSubmission(searchTerm, null).uri;
+    var targetUrl = this._bss.currentEngine.getSubmission(searchTerm).uri;
     var currentUrl = this._controller.tabs.activeTabWindow.document.location.href;
 
     
