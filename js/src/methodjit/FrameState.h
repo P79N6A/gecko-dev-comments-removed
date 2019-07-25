@@ -328,12 +328,6 @@ class FrameState
 
 
 
-    void popAfterSet();
-
-    
-
-
-
 
     inline void pinReg(RegisterID reg);
 
