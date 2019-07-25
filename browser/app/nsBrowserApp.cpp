@@ -56,7 +56,6 @@
 #ifdef XP_WIN
 
 #define XRE_WANT_DLL_BLOCKLIST
-#define XRE_PRELOAD_XUL
 
 #include "nsWindowsWMain.cpp"
 #endif

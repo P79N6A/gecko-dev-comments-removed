@@ -73,76 +73,8 @@ FreeAllocStrings(int argc, char **argv)
   delete [] argv;
 }
 
-#ifdef XRE_PRELOAD_XUL
-static void preload(LPCWSTR dll)
-{
-  HANDLE fd = CreateFileW(dll, GENERIC_READ, FILE_SHARE_READ,
-                          NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-  char buf[64 * 1024];
-
-  if (fd == INVALID_HANDLE_VALUE)
-    return;
-  
-  DWORD dwBytesRead;
-  
-  
-  
-  while (ReadFile(fd, buf, sizeof(buf), &dwBytesRead, NULL) && dwBytesRead == sizeof(buf))
-    ;
-  
-  CloseHandle(fd);
-}
-
-
-static void preload_libs(LPCWSTR appPath) 
-{
-  wchar_t buf[MAX_PATH];
-  size_t pathlen = wcslen(appPath);
-
-  
-
- 
-  
-
-    pathlen++;
-
-  if (pathlen + 10 > MAX_PATH) {
-    return;
-  }
-
-  wcsncpy(buf, appPath, pathlen);
-  size_t remaining = sizeof(buf)/sizeof(buf[0]) - pathlen - 1;
-  
-  
-  LPCWSTR files[] = {L"xul.dll", 
-#ifndef MOZ_STATIC_JS
-                     L"mozjs.dll",
-#endif
-                     0};
-  for(int i = 0; files[i]; i++) {
-    wcsncpy(buf + pathlen, files[i], remaining);
-    preload(buf);
-  }
-  return;
-}
-#endif
-
 int wmain(int argc, WCHAR **argv)
 {
-#ifdef XRE_PRELOAD_XUL 
-  
-  
-  
-  
-  
-  IO_COUNTERS ioCounters;
-  if (GetProcessIoCounters(GetCurrentProcess(), &ioCounters)
-      && !ioCounters.ReadOperationCount)
-    {
-      preload_libs(argv[0]);
-    }
-#endif
-
 #ifndef XRE_DONT_PROTECT_DLL_LOAD
   mozilla::NS_SetDllDirectory(L"");
 #endif
