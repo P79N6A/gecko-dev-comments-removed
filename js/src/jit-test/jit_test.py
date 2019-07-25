@@ -3,9 +3,6 @@
 
 
 
-
-
-
 import datetime, os, re, sys, tempfile, traceback, time, shlex
 import subprocess
 from subprocess import *
@@ -54,9 +51,8 @@ class Test:
         self.slow = False      
         self.allow_oom = False 
         self.valgrind = False  
-        self.tz_pacific = False 
-        self.expect_error = '' 
-        self.expect_status = 0 
+        self.tmflags = ''      
+        self.error = ''        
 
     def copy(self):
         t = Test(self.path)
@@ -64,9 +60,8 @@ class Test:
         t.slow = self.slow
         t.allow_oom = self.allow_oom
         t.valgrind = self.valgrind
-        t.tz_pacific = self.tz_pacific
-        t.expect_error = self.expect_error
-        t.expect_status = self.expect_status
+        t.tmflags = self.tmflags
+        t.error = self.error
         return t
 
     COOKIE = '|jit-test|'
@@ -87,13 +82,10 @@ class Test:
                 name, _, value = part.partition(':')
                 if value:
                     value = value.strip()
-                    if name == 'error':
-                        test.expect_error = value
-                    elif name == 'exitstatus':
-                        try:
-                            test.expect_status = int(value, 0);
-                        except ValueError:
-                            print("warning: couldn't parse exit status %s"%value)
+                    if name == 'TMFLAGS':
+                        test.tmflags = value
+                    elif name == 'error':
+                        test.error = value
                     else:
                         print('warning: unrecognized |jit-test| attribute %s'%part)
                 else:
@@ -103,16 +95,12 @@ class Test:
                         test.allow_oom = True
                     elif name == 'valgrind':
                         test.valgrind = options.valgrind
-                    elif name == 'tz-pacific':
-                        test.tz_pacific = True
                     elif name == 'mjitalways':
                         test.jitflags.append('-a')
                     elif name == 'debug':
                         test.jitflags.append('-d')
                     elif name == 'mjit':
                         test.jitflags.append('-m')
-                    elif name == 'dump-bytecode':
-                        test.jitflags.append('-D')
                     else:
                         print('warning: unrecognized |jit-test| attribute %s'%part)
 
@@ -142,15 +130,20 @@ def get_test_cmd(path, jitflags, lib_dir, shell_args):
     libdir_var = lib_dir
     if not libdir_var.endswith('/'):
         libdir_var += '/'
-    scriptdir_var = os.path.dirname(path);
-    if not scriptdir_var.endswith('/'):
-        scriptdir_var += '/'
-    expr = ("const platform=%r; const libdir=%r; const scriptdir=%r"
-            % (sys.platform, libdir_var, scriptdir_var))
+    expr = "const platform=%r; const libdir=%r;"%(sys.platform, libdir_var)
     
     
     return ([ JS ] + list(set(jitflags)) + shell_args +
             [ '-e', expr, '-f', os.path.join(lib_dir, 'prolog.js'), '-f', path ])
+
+def set_limits():
+    
+    try:
+        import resource
+        GB = 2**30
+        resource.setrlimit(resource.RLIMIT_AS, (1*GB, 1*GB))
+    except:
+        return
 
 def tmppath(token):
     fd, path = tempfile.mkstemp(prefix=token)
@@ -166,8 +159,10 @@ def read_and_unlink(path):
 
 def th_run_cmd(cmdline, options, l):
     
+    
     if sys.platform != 'win32':
         options["close_fds"] = True
+        options["preexec_fn"] = set_limits
     p = Popen(cmdline, stdin=PIPE, stdout=PIPE, stderr=PIPE, **options)
 
     l[0] = p
@@ -207,6 +202,9 @@ def run_cmd_avoid_stdio(cmdline, env, timeout):
     return read_and_unlink(stdoutPath), read_and_unlink(stderrPath), code
 
 def run_test(test, lib_dir, shell_args):
+    env = os.environ.copy()
+    if test.tmflags:
+        env['TMFLAGS'] = test.tmflags
     cmd = get_test_cmd(test.path, test.jitflags, lib_dir, shell_args)
 
     if (test.valgrind and
@@ -228,11 +226,6 @@ def run_test(test, lib_dir, shell_args):
         run = run_cmd_avoid_stdio
     else:
         run = run_cmd
-
-    env = os.environ.copy()
-    if test.tz_pacific:
-        env['TZ'] = 'PST8PDT'
-
     out, err, code, timed_out = run(cmd, env, OPTIONS.timeout)
 
     if OPTIONS.show_output:
@@ -241,12 +234,12 @@ def run_test(test, lib_dir, shell_args):
         sys.stdout.write('Exit code: %s\n' % code)
     if test.valgrind:
         sys.stdout.write(err)
-    return (check_output(out, err, code, test),
+    return (check_output(out, err, code, test.allow_oom, test.error), 
             out, err, code, timed_out)
 
-def check_output(out, err, rc, test):
-    if test.expect_error:
-        return test.expect_error in err
+def check_output(out, err, rc, allow_oom, expectedError):
+    if expectedError:
+        return expectedError in err
 
     for line in out.split('\n'):
         if line.startswith('Trace stats check failed'):
@@ -256,10 +249,10 @@ def check_output(out, err, rc, test):
         if 'Assertion failed:' in line:
             return False
 
-    if rc != test.expect_status:
+    if rc != 0:
         
         
-        return test.allow_oom and 'out of memory' in err and 'Assertion failure' not in err
+        return allow_oom and ': out of memory' in err
 
     return True
 
@@ -275,12 +268,11 @@ def run_tests(tests, test_dir, lib_dir, shell_args):
     if not OPTIONS.hide_progress and not OPTIONS.show_cmd:
         try:
             from progressbar import ProgressBar
-            pb = ProgressBar('', len(tests), 24)
+            pb = ProgressBar('', len(tests), 16)
         except ImportError:
             pass
 
     failures = []
-    timeouts = 0
     complete = False
     doing = 'before starting'
     try:
@@ -291,8 +283,6 @@ def run_tests(tests, test_dir, lib_dir, shell_args):
 
             if not ok:
                 failures.append([ test, out, err, code, timed_out ])
-            if timed_out:
-                timeouts += 1
 
             if OPTIONS.tinderbox:
                 if ok:
@@ -308,7 +298,7 @@ def run_tests(tests, test_dir, lib_dir, shell_args):
 
             n = i + 1
             if pb:
-                pb.label = '[%4d|%4d|%4d|%4d]'%(n - len(failures), len(failures), timeouts, n)
+                pb.label = '[%4d|%4d|%4d]'%(n - len(failures), len(failures), n)
                 pb.update(n)
         complete = True
     except KeyboardInterrupt:
@@ -364,7 +354,7 @@ def parse_jitflags():
                  for flags in OPTIONS.jitflags.split(',') ]
     for flags in jitflags:
         for flag in flags:
-            if flag not in ('-m', '-a', '-p', '-d', '-n'):
+            if flag not in ('-j', '-m', '-a', '-p', '-d', '-n'):
                 print('Invalid jit flag: "%s"'%flag)
                 sys.exit(1)
     return jitflags
@@ -428,17 +418,20 @@ def main(argv):
                   help='Enable the |valgrind| flag, if valgrind is in $PATH.')
     op.add_option('--valgrind-all', dest='valgrind_all', action='store_true',
                   help='Run all tests with valgrind, if valgrind is in $PATH.')
-    op.add_option('--jitflags', dest='jitflags', default='m,mn',
-                  help='Example: --jitflags=m,mn to run each test with -m, -m -n [default=%default]')
+    op.add_option('--jitflags', dest='jitflags', default='mjp',
+                  help='Example: --jitflags=j,mj,mjp to run each test with -j, -m -j, -m -j -p [default=%default]')
     op.add_option('--avoid-stdio', dest='avoid_stdio', action='store_true',
                   help='Use js-shell file indirection instead of piping stdio.')
     op.add_option('--write-failure-output', dest='write_failure_output', action='store_true',
                   help='With --write-failures=FILE, additionally write the output of failed tests to [FILE]')
+    op.add_option('--ion', dest='ion', action='store_true',
+                  help='Test all IonMonkey options')
     (OPTIONS, args) = op.parse_args(argv)
     if len(args) < 1:
         op.error('missing JS_SHELL argument')
     
     JS, test_args = os.path.normpath(args[0]), args[1:]
+    JS = os.path.realpath(JS) 
 
     if stdio_might_be_broken():
         
@@ -498,12 +491,27 @@ def main(argv):
 
     
     job_list = []
-    jitflags_list = parse_jitflags()
-    for test in test_list:
-        for jitflags in jitflags_list:
-            new_test = test.copy()
-            new_test.jitflags.extend(jitflags)
-            job_list.append(new_test)
+    if OPTIONS.ion:
+        ion_flags = [ '--ion-eager',
+                      '--ion-regalloc=greedy',
+                      '--ion-gvn=off',
+                      '--ion-licm=off' ]
+        for test in test_list:
+            for i in range(0, 2 ** len(ion_flags)):
+                args = ['--ion']
+                for j in range(0, len(ion_flags)):
+                    if i & (1 << j):
+                        args.append(ion_flags[j])
+                new_test = test.copy()
+                new_test.jitflags.extend(args)
+                job_list.append(new_test)
+    else:
+        jitflags_list = parse_jitflags()
+        for test in test_list:
+            for jitflags in jitflags_list:
+                new_test = test.copy()
+                new_test.jitflags.extend(jitflags)
+                job_list.append(new_test)
     
 
     shell_args = shlex.split(OPTIONS.shell_args)
