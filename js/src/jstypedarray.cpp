@@ -543,6 +543,18 @@ TypedArray::obj_setAttributes(JSContext *cx, JSObject *obj, jsid id, uintN *attr
     return false;
 }
 
+ int
+TypedArray::lengthOffset()
+{
+    return JSObject::getFixedSlotOffset(FIELD_LENGTH);
+}
+
+ int
+TypedArray::dataOffset()
+{
+    return offsetof(JSObject, privateData);
+}
+
 
 
 int32 JS_FASTCALL
