@@ -209,7 +209,15 @@ extern JSObject *
 TransparentObjectWrapper(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSObject *parent,
                          uintN flags);
 
-JS_FRIEND_API(bool) IsWrapper(const JSObject *obj);
+
+
+extern JS_FRIEND_DATA(int) sWrapperFamily;
+
+inline bool
+IsWrapper(const JSObject *obj)
+{
+    return IsProxy(obj) && GetProxyHandler(obj)->family() == &sWrapperFamily;
+}
 
 
 
