@@ -15,13 +15,13 @@
 
 class nsWindow;
 class nsGUIEvent;
-class nsMouseScrollEvent;
 struct nsIntPoint;
 
 namespace mozilla {
 namespace widget {
 
 class ModifierKeyState;
+class WheelEvent;
 
 class MouseScrollHandler {
 public:
@@ -180,34 +180,6 @@ private:
                           WPARAM aWParam,
                           LPARAM aLParam);
 
-  class EventInfo;
-  
-
-
-
-
-
-
-
-  struct ScrollTargetInfo {
-    
-    bool dispatchPixelScrollEvent;
-    
-    
-    bool reversePixelScrollDirection;
-    
-    PRInt32 actualScrollAmount;
-    
-    
-    PRInt32 actualScrollAction;
-    
-    PRInt32 pixelsPerUnit;
-  };
-  ScrollTargetInfo GetScrollTargetInfo(
-                     nsWindow* aWindow,
-                     const EventInfo& aEvent,
-                     const ModifierKeyState& aModiferKeyState);
-
   class EventInfo {
   public:
     
@@ -216,7 +188,7 @@ private:
 
     EventInfo(nsWindow* aWindow, UINT aMessage, WPARAM aWParam, LPARAM aLParam);
 
-    bool CanDispatchMouseScrollEvent() const;
+    bool CanDispatchWheelEvent() const;
 
     PRInt32 GetNativeDelta() const { return mDelta; }
     HWND GetWindowHandle() const { return mWnd; }
@@ -229,12 +201,6 @@ private:
 
 
     PRInt32 GetScrollAmount() const;
-
-    
-
-
-
-    PRInt32 GetScrollFlags() const;
 
   protected:
     EventInfo() :
@@ -257,7 +223,7 @@ private:
   class LastEventInfo : public EventInfo {
   public:
     LastEventInfo() :
-      EventInfo(), mRemainingDeltaForScroll(0), mRemainingDeltaForPixel(0)
+      EventInfo(), mAccumulatedDelta(0)
     {
     }
 
@@ -292,38 +258,14 @@ private:
 
 
 
-
-    bool InitMouseScrollEvent(nsWindow* aWindow,
-                              nsMouseScrollEvent& aMouseScrollEvent,
-                              const ScrollTargetInfo& aScrollTargetInfo,
-                              const ModifierKeyState& aModKeyState);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool InitMousePixelScrollEvent(nsWindow* aWindow,
-                                   nsMouseScrollEvent& aPixelScrollEvent,
-                                   const ScrollTargetInfo& aScrollTargetInfo,
-                                   const ModifierKeyState& aModKeyState);
+    bool InitWheelEvent(nsWindow* aWindow,
+                        WheelEvent& aWheelEvent,
+                        const ModifierKeyState& aModKeyState);
 
   private:
     static PRInt32 RoundDelta(double aDelta);
 
-    
-    
-    PRInt32 mRemainingDeltaForScroll;
-    PRInt32 mRemainingDeltaForPixel;
+    PRInt32 mAccumulatedDelta;
   };
 
   LastEventInfo mLastEventInfo;
@@ -364,12 +306,6 @@ private:
 
     void MarkDirty();
 
-    bool IsPixelScrollingEnabled()
-    {
-      Init();
-      return mPixelScrollingEnabled;
-    }
-
     bool IsScrollMessageHandledAsWheelMessage()
     {
       Init();
@@ -404,7 +340,6 @@ private:
     }
 
     bool mInitialized;
-    bool mPixelScrollingEnabled;
     bool mScrollMessageHandledAsWheelMessage;
     PRInt32 mOverriddenVerticalScrollAmount;
     PRInt32 mOverriddenHorizontalScrollAmount;

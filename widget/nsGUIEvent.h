@@ -395,12 +395,6 @@ class nsHashKey;
 #define NS_QUERY_DOM_WIDGET_HITTEST     (NS_QUERY_CONTENT_EVENT_START + 9)
 
 
-
-
-
-#define NS_QUERY_SCROLL_TARGET_INFO     (NS_QUERY_CONTENT_EVENT_START + 99)
-
-
 #define NS_MEDIA_EVENT_START            3300
 #define NS_LOADSTART           (NS_MEDIA_EVENT_START)
 #define NS_PROGRESS            (NS_MEDIA_EVENT_START+1)
@@ -1356,21 +1350,7 @@ public:
                             
                             
                             
-    kNoLines =      1 << 4, 
-                            
-                            
-                            
-                            
-    kNoDefer =      1 << 5, 
-                            
-    kIsMomentum =   1 << 6, 
-                            
-                            
-    kAllowSmoothScroll = 1 << 7, 
-                                 
-    kFromLines =    1 << 8  
-                            
-                            
+    kIsMomentum =   1 << 6  
                             
                             
 };
@@ -1564,13 +1544,6 @@ public:
     refPoint = aPoint;
   }
 
-  void InitForQueryScrollTargetInfo(nsMouseScrollEvent* aEvent)
-  {
-    NS_ASSERTION(message == NS_QUERY_SCROLL_TARGET_INFO,
-                 "wrong initializer is called");
-    mInput.mMouseScrollEvent = aEvent;
-  }
-
   PRUint32 GetSelectionStart(void) const
   {
     NS_ASSERTION(message == NS_QUERY_SELECTED_TEXT,
@@ -1590,8 +1563,6 @@ public:
   struct {
     PRUint32 mOffset;
     PRUint32 mLength;
-    
-    nsMouseScrollEvent* mMouseScrollEvent;
   } mInput;
   struct {
     void* mContentsRoot;
@@ -1605,18 +1576,6 @@ public:
     bool mWidgetIsHit; 
     
     nsCOMPtr<nsITransferable> mTransferable;
-    
-    PRInt32 mLineHeight;
-    PRInt32 mPageWidth;
-    PRInt32 mPageHeight;
-    
-    
-    
-    
-    
-    
-    PRInt32 mComputedScrollAmount;
-    PRInt32 mComputedScrollAction;
   } mReply;
 
   enum {
@@ -2017,8 +1976,7 @@ enum nsDragDropEventStatus {
 
 #define NS_IS_IME_RELATED_EVENT(evnt) \
   (NS_IS_IME_EVENT(evnt) || \
-   (NS_IS_QUERY_CONTENT_EVENT(evnt) && \
-    evnt->message != NS_QUERY_SCROLL_TARGET_INFO) || \
+   NS_IS_QUERY_CONTENT_EVENT(evnt) || \
    NS_IS_SELECTION_EVENT(evnt))
 
 
