@@ -345,72 +345,72 @@ Highlighter.prototype = {
 
   highlight: function Highlighter_highlight(aScroll)
   {
-    
-    if (!this.node || !this.isNodeHighlightable(this.node)) {
-      return;
-    }
+    let rect = null;
 
-    if (aScroll) {
-      this.node.scrollIntoView();
-    }
+    if (this.node && this.isNodeHighlightable(this.node)) {
 
-    let clientRect = this.node.getBoundingClientRect();
-
-    
-    
-    let rect = {top: clientRect.top,
-                left: clientRect.left,
-                width: clientRect.width,
-                height: clientRect.height};
-
-    let frameWin = this.node.ownerDocument.defaultView;
-
-    
-    while (true) {
-
-      
-      let diffx = frameWin.innerWidth - (rect.left + rect.width);
-      if (diffx < 0) {
-        rect.width += diffx;
+      if (aScroll) {
+        this.node.scrollIntoView();
       }
 
+      let clientRect = this.node.getBoundingClientRect();
+
       
-      let diffy = frameWin.innerHeight - (rect.top + rect.height);
-      if (diffy < 0) {
-        rect.height += diffy;
+      
+      rect = {top: clientRect.top,
+              left: clientRect.left,
+              width: clientRect.width,
+              height: clientRect.height};
+
+      let frameWin = this.node.ownerDocument.defaultView;
+
+      
+      while (true) {
+
+        
+        let diffx = frameWin.innerWidth - (rect.left + rect.width);
+        if (diffx < 0) {
+          rect.width += diffx;
+        }
+
+        
+        let diffy = frameWin.innerHeight - (rect.top + rect.height);
+        if (diffy < 0) {
+          rect.height += diffy;
+        }
+
+        
+        if (rect.left < 0) {
+          rect.width += rect.left;
+          rect.left = 0;
+        }
+
+        
+        if (rect.top < 0) {
+          rect.height += rect.top;
+          rect.top = 0;
+        }
+
+        
+
+        
+        if (frameWin.parent === frameWin || !frameWin.frameElement) {
+          break;
+        }
+
+        
+        
+        
+        let frameRect = frameWin.frameElement.getBoundingClientRect();
+
+        let [offsetTop, offsetLeft] =
+          this.IUI.getIframeContentOffset(frameWin.frameElement);
+
+        rect.top += frameRect.top + offsetTop;
+        rect.left += frameRect.left + offsetLeft;
+
+        frameWin = frameWin.parent;
       }
-
-      
-      if (rect.left < 0) {
-        rect.width += rect.left;
-        rect.left = 0;
-      }
-
-      
-      if (rect.top < 0) {
-        rect.height += rect.top;
-        rect.top = 0;
-      }
-
-      
-
-      
-      if (frameWin.parent === frameWin || !frameWin.frameElement) {
-        break;
-      }
-
-      
-      
-      
-      let frameRect = frameWin.frameElement.getBoundingClientRect();
-
-      let [offsetTop, offsetLeft] =
-        this.IUI.getIframeContentOffset(frameWin.frameElement);
-
-      rect.top += frameRect.top + offsetTop;
-      rect.left += frameRect.left + offsetLeft;
-
-      frameWin = frameWin.parent;
     }
 
     this.highlightRectangle(rect);
@@ -448,6 +448,11 @@ Highlighter.prototype = {
 
   highlightRectangle: function Highlighter_highlightRectangle(aRect)
   {
+    if (!aRect) {
+      this.unhighlight();
+      return;
+    }
+
     let oldRect = this._contentRect;
 
     if (oldRect && aRect.top == oldRect.top && aRect.left == oldRect.left &&
@@ -469,6 +474,9 @@ Highlighter.prototype = {
 
     if (aRectScaled.left >= 0 && aRectScaled.top >= 0 &&
         aRectScaled.width > 0 && aRectScaled.height > 0) {
+
+      this.veilTransparentBox.style.visibility = "visible";
+
       
       
       this.veilTopBox.style.height = aRectScaled.top + "px";
@@ -495,6 +503,7 @@ Highlighter.prototype = {
     this._highlighting = false;
     this.veilMiddleBox.style.height = 0;
     this.veilTransparentBox.style.width = 0;
+    this.veilTransparentBox.style.visibility = "hidden";
     Services.obs.notifyObservers(null,
       INSPECTOR_NOTIFICATIONS.UNHIGHLIGHTING, null);
   },
