@@ -2175,29 +2175,12 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   
   NS_ABORT_IF_FALSE(mDecoder, "Calling ShutdownDecoder() with no active decoder!");
 
-  nsresult rv;
-
-  
-  if ((aIntent == eShutdownIntent_Done) &&
-      !(mDecoderFlags && imgIDecoder::DECODER_FLAG_HEADERONLY)) {
-    mInDecoder = PR_TRUE;
-    rv = mDecoder->Flush();
-    mInDecoder = PR_FALSE;
-
-    
-    
-    if (NS_FAILED(rv)) {
-      DoError();
-      return rv;
-    }
-  }
-
   
   mInDecoder = PR_TRUE;
   PRUint32 closeFlags = (aIntent == eShutdownIntent_Error)
                           ? (PRUint32) imgIDecoder::CLOSE_FLAG_DONTNOTIFY
                           : 0;
-  rv = mDecoder->Close(closeFlags);
+  nsresult rv = mDecoder->Close(closeFlags);
   mInDecoder = PR_FALSE;
 
   
