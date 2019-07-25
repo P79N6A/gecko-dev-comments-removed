@@ -254,16 +254,6 @@ SimpleTest.isnot = function (a, b, name) {
 
 
 
-
-SimpleTest.ise = function (a, b, name) {
-    var pass = (a === b);
-    var diag = pass ? repr(a) + " should strictly equal " + repr(b)
-                    : "got " + repr(a) + ", strictly expected " + repr(b)
-    SimpleTest.ok(pass, name, diag);
-};
-
-
-
 SimpleTest.todo = function(condition, name, diag) {
     var test = {'result': !!condition, 'name': name, 'diag': diag, todo: true};
     SimpleTest._logResult(test, "TEST-UNEXPECTED-PASS", "TEST-KNOWN-FAIL");
@@ -284,7 +274,6 @@ SimpleTest._logResult = function(test, passString, failString) {
     var msg = [resultString, url, diagnostic].join(" | ");
     if (parentRunner) {
         if (isError) {
-            parentRunner.addFailedTest(url);
             parentRunner.error(msg);
         } else {
             parentRunner.log(msg);
@@ -324,6 +313,11 @@ SimpleTest.report = function () {
     var passed = 0;
     var failed = 0;
     var todo = 0;
+
+    
+    if (SimpleTest._tests.length == 0)
+      
+      SimpleTest.todo(false, "[SimpleTest.report()] No checks actually run.");
 
     var tallyAndCreateDiv = function (test) {
             var cls, msg, div;
@@ -472,7 +466,6 @@ SimpleTest.requestLongerTimeout = function (factor) {
 SimpleTest.waitForFocus_started = false;
 SimpleTest.waitForFocus_loaded = false;
 SimpleTest.waitForFocus_focused = false;
-SimpleTest._pendingWaitForFocusCount = 0;
 
 
 
@@ -493,7 +486,6 @@ SimpleTest._pendingWaitForFocusCount = 0;
 
 
 SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
-    SimpleTest._pendingWaitForFocusCount++;
     if (!targetWindow)
       targetWindow = window;
 
@@ -515,7 +507,6 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
         if (SimpleTest.waitForFocus_loaded &&
             SimpleTest.waitForFocus_focused &&
             !SimpleTest.waitForFocus_started) {
-            SimpleTest._pendingWaitForFocusCount--;
             SimpleTest.waitForFocus_started = true;
             setTimeout(callback, 0, targetWindow);
         }
@@ -652,8 +643,25 @@ SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
 
 
 SimpleTest.executeSoon = function(aFunc) {
-    if ("SpecialPowers" in window) {
-        return SpecialPowers.executeSoon(aFunc, window);
+    
+    
+    if ("Components" in window && "classes" in window.Components) {
+        try {
+            netscape.security.PrivilegeManager
+              .enablePrivilege("UniversalXPConnect");
+            var tm = Components.classes["@mozilla.org/thread-manager;1"]
+                       .getService(Components.interfaces.nsIThreadManager);
+
+            tm.mainThread.dispatch({
+                run: function() {
+                    aFunc();
+                }
+            }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+            return;
+        } catch (ex) {
+            
+            
+        }
     }
     setTimeout(aFunc, 0);
 }
@@ -666,22 +674,6 @@ SimpleTest.finish = function () {
     if (SimpleTest._expectingUncaughtException) {
         SimpleTest.ok(false, "expectUncaughtException was called but no uncaught exception was detected!");
     }
-    if (SimpleTest._pendingWaitForFocusCount != 0) {
-        SimpleTest.is(SimpleTest._pendingWaitForFocusCount, 0,
-                      "[SimpleTest.finish()] waitForFocus() was called a "
-                      + "different number of times from the number of "
-                      + "callbacks run.  Maybe the test terminated "
-                      + "prematurely -- be sure to use "
-                      + "SimpleTest.waitForExplicitFinish().");
-    }
-    if (SimpleTest._tests.length == 0) {
-        SimpleTest.ok(false, "[SimpleTest.finish()] No checks actually run. "
-                           + "(You need to call ok(), is(), or similar "
-                           + "functions at least once.  Make sure you use "
-                           + "SimpleTest.waitForExplicitFinish() if you need "
-                           + "it.)");
-    }
-
     if (parentRunner) {
         
         parentRunner.testFinished(SimpleTest._tests);
@@ -781,9 +773,6 @@ SimpleTest._deepCheck = function (e1, e2, stack, seen) {
         ok = SimpleTest._eqArray(e1, e2, stack, seen);
     } else if (typeof e1 == "object" && typeof e2 == "object") {
         ok = SimpleTest._eqAssoc(e1, e2, stack, seen);
-    } else if (typeof e1 == "number" && typeof e2 == "number"
-               && isNaN(e1) && isNaN(e2)) {
-        ok = true;
     } else {
         
         
@@ -957,7 +946,6 @@ SimpleTest.isa = function (object, clas) {
 var ok = SimpleTest.ok;
 var is = SimpleTest.is;
 var isnot = SimpleTest.isnot;
-var ise = SimpleTest.ise;
 var todo = SimpleTest.todo;
 var todo_is = SimpleTest.todo_is;
 var todo_isnot = SimpleTest.todo_isnot;
