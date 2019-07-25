@@ -388,18 +388,10 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
     
     
     
-    firstLevelMarker = new nsHtml5OwningUTF16Buffer((void*)nsnull);
-    if (mFirstBuffer == mLastBuffer) {
-      firstLevelMarker->next = mLastBuffer;
-      mFirstBuffer = firstLevelMarker;
-    } else {
-      prevSearchBuf = mFirstBuffer;
-      while (prevSearchBuf->next != mLastBuffer) {
-        prevSearchBuf = prevSearchBuf->next;
-      }
-      firstLevelMarker->next = mLastBuffer;
-      prevSearchBuf->next = firstLevelMarker;
-    }
+    
+    mLastBuffer->next = new nsHtml5OwningUTF16Buffer((void*)nsnull);
+    firstLevelMarker = mLastBuffer;
+    mLastBuffer = mLastBuffer->next;
   }
 
   nsHtml5DependentUTF16Buffer stackBuffer(aSourceBuffer);
