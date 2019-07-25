@@ -135,6 +135,7 @@ NS_CYCLE_COLLECTION_CLASSNAME(XPCWrappedNative)::Traverse(void *p,
         
 
         JSObject *obj = tmp->GetFlatJSObjectPreserveColor();
+        NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mFlatJSObject");
         cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT, obj);
     }
 
@@ -147,6 +148,7 @@ NS_CYCLE_COLLECTION_CLASSNAME(XPCWrappedNative)::Traverse(void *p,
     rt->GetCompartmentMap().EnumerateRead(TraverseExpandoObjects, &closure);
 
     
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mIdentity");
     cb.NoteXPCOMChild(tmp->GetIdentityObject());
 
     tmp->NoteTearoffs(cb);
@@ -171,6 +173,7 @@ XPCWrappedNative::NoteTearoffs(nsCycleCollectionTraversalCallback& cb)
             JSObject* jso = to->GetJSObject();
             if(!jso)
             {
+                NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "tearoff's mNative");
                 cb.NoteXPCOMChild(to->GetNative());
             }
         }
