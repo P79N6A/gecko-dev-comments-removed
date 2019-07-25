@@ -5665,13 +5665,20 @@ mjit::Compiler::jsop_this()
     if (script->hasFunction && !script->strictModeCode) {
         FrameEntry *thisFe = frame.peek(-1);
 
-        
-
-
-
-        JS_ASSERT(!thisFe->isNotType(JSVAL_TYPE_OBJECT));
-
         if (!thisFe->isType(JSVAL_TYPE_OBJECT)) {
+            
+
+
+
+
+
+
+            if (cx->typeInferenceEnabled() && knownPushedType(0) != JSVAL_TYPE_OBJECT) {
+                prepareStubCall(Uses(1));
+                INLINE_STUBCALL(stubs::This, REJOIN_FALLTHROUGH);
+                return;
+            }
+
             JSValueType type = cx->typeInferenceEnabled()
                 ? types::TypeScript::ThisTypes(script)->getKnownTypeTag(cx)
                 : JSVAL_TYPE_UNKNOWN;
@@ -5682,16 +5689,6 @@ mjit::Compiler::jsop_this()
                 OOL_STUBCALL(stubs::This, REJOIN_FALLTHROUGH);
                 stubcc.rejoin(Changes(1));
             }
-
-            
-
-
-
-
-
-
-            if (cx->typeInferenceEnabled() && knownPushedType(0) != JSVAL_TYPE_OBJECT)
-                return;
 
             
             frame.pop();
