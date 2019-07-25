@@ -9,6 +9,7 @@ let Ci = Components.interfaces;
 
 let whitelistedEvents = [
   Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE,   
+  Ci.nsIDOMKeyEvent.DOM_VK_SLEEP,    
   Ci.nsIDOMKeyEvent.DOM_VK_CONTEXT_MENU,
   Ci.nsIDOMKeyEvent.DOM_VK_F5,       
   Ci.nsIDOMKeyEvent.DOM_VK_PAGE_UP,  
@@ -27,7 +28,7 @@ iframe.src = browserElementTestHelpers.focusPage;
 document.body.appendChild(iframe);
 
 
-var nbEvents = 15;
+var nbEvents = whitelistedEvents.length * 3;
 
 function eventHandler(e) {
   ok(((e.type == 'keydown' || e.type == 'keypress' || e.type == 'keyup') &&
@@ -70,6 +71,7 @@ function runTest() {
   synthesizeKey("VK_PAGE_UP", {});   
   synthesizeKey("VK_PAGE_DOWN", {}); 
   synthesizeKey("VK_CONTEXT_MENU", {});
+  synthesizeKey("VK_SLEEP", {});
 }
 
 SimpleTest.waitForFocus(function() {

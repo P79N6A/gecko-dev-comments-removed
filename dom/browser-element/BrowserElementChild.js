@@ -16,6 +16,7 @@ Cu.import("resource://gre/modules/BrowserElementPromptService.jsm");
 
 let whitelistedEvents = [
   Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE,   
+  Ci.nsIDOMKeyEvent.DOM_VK_SLEEP,    
   Ci.nsIDOMKeyEvent.DOM_VK_CONTEXT_MENU,
   Ci.nsIDOMKeyEvent.DOM_VK_F5,       
   Ci.nsIDOMKeyEvent.DOM_VK_PAGE_UP,  
