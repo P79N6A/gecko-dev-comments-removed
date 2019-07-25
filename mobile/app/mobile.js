@@ -424,6 +424,14 @@ pref("dom.ipc.plugins.enabled", true);
 
 
 
+#if MOZ_PLATFORM_MAEMO
+pref("dom.ipc.content.nice", 10);
+#else
+pref("dom.ipc.content.nice", 1);
+#endif
+
+
+
 pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 pref("app.releaseNotesURL", "http://www.mozilla.com/%LOCALE%/mobile/%VERSION%/releasenotes/");
 pref("app.sync.tutorialURL", "https://www.mozilla.com/%LOCALE%/mobile/sync/");
