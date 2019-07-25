@@ -402,16 +402,6 @@ public:
     return FromSupports(wrapper->Native());
   }
 
-  
-
-
-
-
-  nsresult GetTop(nsIDOMWindow **aWindow)
-  {
-    return nsIDOMWindow::GetTop(aWindow);
-  }
-
   inline nsGlobalWindow *GetTop()
   {
     nsCOMPtr<nsIDOMWindow> top;
@@ -573,9 +563,6 @@ public:
 
   void AddEventTargetObject(nsDOMEventTargetHelper* aObject);
   void RemoveEventTargetObject(nsDOMEventTargetHelper* aObject);
-private:
-  
-  nsresult GetTopImpl(nsIDOMWindow **aWindow, bool aScriptable);
 
 protected:
   friend class HashchangeCallback;
