@@ -906,6 +906,9 @@ protected:
   nsresult GetTopImpl(nsIDOMWindow **aWindow, bool aScriptable);
 
   
+  void CreatePerformanceObjectIfNeeded();
+
+  
   
   
   
@@ -990,6 +993,7 @@ protected:
   nsCOMPtr<nsIPrincipal>        mArgumentsOrigin;
   nsRefPtr<Navigator>           mNavigator;
   nsRefPtr<nsScreen>            mScreen;
+  
   nsRefPtr<nsPerformance>       mPerformance;
   nsRefPtr<nsDOMWindowList>     mFrames;
   nsRefPtr<nsBarProp>           mMenubar;

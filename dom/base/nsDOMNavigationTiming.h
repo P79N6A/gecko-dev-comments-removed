@@ -136,6 +136,17 @@ private:
   DOMTimeMilliSec mDOMContentLoadedEventStart;
   DOMTimeMilliSec mDOMContentLoadedEventEnd;
   DOMTimeMilliSec mDOMComplete;
+
+  
+  
+  
+  bool mLoadEventStartSet : 1;
+  bool mLoadEventEndSet : 1;
+  bool mDOMLoadingSet : 1;
+  bool mDOMInteractiveSet : 1;
+  bool mDOMContentLoadedEventStartSet : 1;
+  bool mDOMContentLoadedEventEndSet : 1;
+  bool mDOMCompleteSet : 1;
 };
 
 #endif 
