@@ -51,6 +51,10 @@ window.Item = function() {
   
   
   this.locked = false;
+  
+  
+  
+  this.parent = null;
 };
 
 window.Item.prototype = { 
@@ -380,8 +384,9 @@ window.Items = {
     
     $('.tab, .group').each(function() {
       $this = $(this);
-      if(!$this.data('group') && !$this.hasClass('phantom'))
-        items.push($this.data('item'));
+      var item = $this.data('item');  
+      if(!item.parent && !$this.hasClass('phantom'))
+        items.push(item);
     });
     
     return items;
