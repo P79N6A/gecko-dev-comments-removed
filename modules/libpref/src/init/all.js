@@ -3202,14 +3202,7 @@ pref("image.mem.max_ms_before_yield", 400);
 pref("image.mem.max_bytes_for_sync_decode", 150000);
 
 
-
-
-
-#ifdef MOZ_WIDGET_GTK2
-pref("webgl.enabled_for_all_sites", false);
-#else
 pref("webgl.enabled_for_all_sites", true);
-#endif
 pref("webgl.shader_validator", true);
 pref("webgl.force_osmesa", false);
 pref("webgl.mochitest_native_gl", false);
