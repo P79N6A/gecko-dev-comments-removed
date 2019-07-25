@@ -236,7 +236,7 @@ let TabView = {
   },
 
   
-  show: function() {
+  show: function TabView_show() {
     if (this.isVisible())
       return;
 
@@ -247,7 +247,7 @@ let TabView = {
   },
 
   
-  hide: function() {
+  hide: function TabView_hide() {
     if (!this.isVisible())
       return;
 
@@ -255,7 +255,7 @@ let TabView = {
   },
 
   
-  toggle: function() {
+  toggle: function TabView_toggle() {
     if (this.isVisible())
       this.hide();
     else 
@@ -287,7 +287,7 @@ let TabView = {
   },
 
   
-  updateContextMenu: function(tab, popup) {
+  updateContextMenu: function TabView_updateContextMenu(tab, popup) {
     let separator = document.getElementById("context_tabViewNamedGroups");
     let isEmpty = true;
 
@@ -374,7 +374,7 @@ let TabView = {
 
   
   
-  prepareUndoCloseTab: function(blankTabToRemove) {
+  prepareUndoCloseTab: function TabView_prepareUndoCloseTab(blankTabToRemove) {
     if (this._window) {
       this._window.UI.restoredClosedTab = true;
 
@@ -385,7 +385,7 @@ let TabView = {
 
   
   
-  afterUndoCloseTab: function () {
+  afterUndoCloseTab: function TabView_afterUndoCloseTab() {
     if (this._window)
       this._window.UI.restoredClosedTab = false;
   },
@@ -435,7 +435,7 @@ let TabView = {
   
   
   
-  enableSessionRestore: function UI_enableSessionRestore() {
+  enableSessionRestore: function TabView_enableSessionRestore() {
     if (!this._window || !this.firstUseExperienced)
       return;
 

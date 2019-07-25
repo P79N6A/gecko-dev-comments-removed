@@ -141,7 +141,7 @@ Trench.prototype = {
   
   
   
-  setPosition: function Trench_setPos(position, range, minRange) {
+  setPosition: function Trench_setPosition(position, range, minRange) {
     this.position = position;
 
     var page = Items.getPageBounds(true);
@@ -172,7 +172,7 @@ Trench.prototype = {
   
   
   
-  setActiveRange: function Trench_setActiveRect(activeRange) {
+  setActiveRange: function Trench_setActiveRange(activeRange) {
     if (!Utils.isRange(activeRange))
       return false;
     this.activeRange = activeRange;
