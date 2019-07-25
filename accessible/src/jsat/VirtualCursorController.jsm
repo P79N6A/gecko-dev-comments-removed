@@ -122,20 +122,28 @@ var VirtualCursorController = {
       Ci.nsIAccessibleTraversalRule.PREFILTER_INVISIBLE,
 
     match: function(aAccessible) {
-      let rv = Ci.nsIAccessibleTraversalRule.FILTER_IGNORE;
-      if (aAccessible.childCount == 0) {
+      if (aAccessible.childCount)
         
-        
-        
-        let ignoreRoles = [Ci.nsIAccessibleRole.ROLE_WHITESPACE,
-                           Ci.nsIAccessibleRole.ROLE_STATICTEXT];
-        let state = {};
-        aAccessible.getState(state, {});
-        if ((state.value & Ci.nsIAccessibleStates.STATE_FOCUSABLE) ||
-          (aAccessible.name && ignoreRoles.indexOf(aAccessible.role) < 0))
-          rv = Ci.nsIAccessibleTraversalRule.FILTER_MATCH;
-        }
-      return rv;
+        return Ci.nsIAccessibleTraversalRule.FILTER_IGNORE;
+
+      
+      
+      
+      let ignoreRoles = [Ci.nsIAccessibleRole.ROLE_WHITESPACE,
+                         Ci.nsIAccessibleRole.ROLE_STATICTEXT];
+
+      if (ignoreRoles.indexOf(aAccessible.role) < 0) {
+        let name = aAccessible.name;
+        if (name && name.trim())
+          return Ci.nsIAccessibleTraversalRule.FILTER_MATCH;
+      }
+
+      let state = {};
+      aAccessible.getState(state, {});
+      if (state.value & Ci.nsIAccessibleStates.STATE_FOCUSABLE)
+        return Ci.nsIAccessibleTraversalRule.FILTER_MATCH;
+
+      return Ci.nsIAccessibleTraversalRule.FILTER_IGNORE;
     },
 
     QueryInterface: XPCOMUtils.generateQI([Ci.nsIAccessibleTraversalRule])
