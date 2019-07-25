@@ -830,11 +830,11 @@ struct JSContext : js::ContextFriendFields
     bool                hasVersionOverride;
 
     
-    JSBool              throwing;           
-    js::Value           exception;          
+    JSBool              throwing;            
+    js::Value           exception;           
 
     
-    unsigned               runOptions;            
+    unsigned            runOptions;          
 
   public:
     int32_t             reportGranularity;  
@@ -845,10 +845,7 @@ struct JSContext : js::ContextFriendFields
     js::AutoResolving   *resolvingList;
 
     
-
-
-
-    bool        generatingError;
+    bool                generatingError;
 
     
     JSCompartment       *compartment;
