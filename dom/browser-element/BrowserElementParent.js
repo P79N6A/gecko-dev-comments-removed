@@ -120,8 +120,8 @@ BrowserElementParentFactory.prototype = {
 
 function BrowserElementParent(frameLoader) {
   debug("Creating new BrowserElementParent object for " + frameLoader);
-  this._screenshotListeners = {};
-  this._screenshotReqCounter = 0;
+  this._domRequestCounter = 0;
+  this._pendingDOMRequests = {};
 
   this._frameElement = frameLoader.QueryInterface(Ci.nsIFrameLoader).ownerElement;
   if (!this._frameElement) {
@@ -150,15 +150,23 @@ function BrowserElementParent(frameLoader) {
   addMessageListener("get-mozapp-manifest-url", this._sendMozAppManifestURL);
   addMessageListener("keyevent", this._fireKeyEvent);
   addMessageListener("showmodalprompt", this._handleShowModalPrompt);
-  addMessageListener('got-screenshot', this._recvGotScreenshot);
+  addMessageListener('got-screenshot', this._gotDOMRequestResult);
+  addMessageListener('got-can-go-back', this._gotDOMRequestResult);
+  addMessageListener('got-can-go-forward', this._gotDOMRequestResult);
 
   function defineMethod(name, fn) {
     XPCNativeWrapper.unwrap(self._frameElement)[name] = fn.bind(self);
   }
 
+  function defineDOMRequestMethod(domName, msgName) {
+    XPCNativeWrapper.unwrap(self._frameElement)[domName] = self._sendDOMRequest.bind(self, msgName);
+  }
+
   
-  defineMethod('getScreenshot', this._getScreenshot);
   defineMethod('setVisible', this._setVisible);
+  defineDOMRequestMethod('getScreenshot', 'get-screenshot');
+  defineDOMRequestMethod('getCanGoBack', 'get-can-go-back');
+  defineDOMRequestMethod('getCanGoForward', 'get-can-go-forward');
 
   this._mm.loadFrameScript("chrome://global/content/BrowserElementChild.js",
                             true);
@@ -265,19 +273,35 @@ BrowserElementParent.prototype = {
     return this._frameElement.getAttribute('mozapp');
   },
 
+  
 
-  _getScreenshot: function() {
-    let id = 'req_' + this._screenshotReqCounter++;
+
+
+
+
+
+
+
+  _sendDOMRequest: function(msgName) {
+    let id = 'req_' + this._domRequestCounter++;
     let req = Services.DOMRequest.createRequest(this._window);
-    this._screenshotListeners[id] = req;
-    this._sendAsyncMsg('get-screenshot', {id: id});
+    this._pendingDOMRequests[id] = req;
+    this._sendAsyncMsg(msgName, {id: id});
     return req;
   },
 
-  _recvGotScreenshot: function(data) {
-    var req = this._screenshotListeners[data.json.id];
-    delete this._screenshotListeners[data.json.id];
-    Services.DOMRequest.fireSuccess(req, data.json.screenshot);
+  
+
+
+
+
+
+
+
+  _gotDOMRequestResult: function(data) {
+    let req = this._pendingDOMRequests[data.json.id];
+    delete this._pendingDOMRequests[data.json.id];
+    Services.DOMRequest.fireSuccess(req, data.json.rv);
   },
 
   _setVisible: function(visible) {
