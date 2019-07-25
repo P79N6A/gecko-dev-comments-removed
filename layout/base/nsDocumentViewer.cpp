@@ -1199,7 +1199,9 @@ DocumentViewerImpl::PermitUnload(PRBool aCallerClosesWindow, PRBool *aPermitUnlo
         return NS_OK;
       }
 
-      PRBool dummy;
+      
+      
+      PRBool dummy = PR_FALSE;
       PRInt32 buttonPressed = 0;
       PRUint32 buttonFlags = (nsIPrompt::BUTTON_POS_0_DEFAULT |
                              (nsIPrompt::BUTTON_TITLE_IS_STRING * nsIPrompt::BUTTON_POS_0) |
