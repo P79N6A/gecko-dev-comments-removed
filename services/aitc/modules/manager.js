@@ -21,7 +21,7 @@ Cu.import("resource://services-common/tokenserverclient.js");
 Cu.import("resource://services-common/utils.js");
 
 const PREFS = new Preferences("services.aitc.");
-const TOKEN_TIMEOUT = 240000; 
+const INITIAL_TOKEN_DURATION = 240000; 
 const DASHBOARD_URL = PREFS.get("dashboard.url");
 const MARKETPLACE_URL = PREFS.get("marketplace.url");
 
@@ -33,12 +33,16 @@ const MARKETPLACE_URL = PREFS.get("marketplace.url");
 
 
 
-function AitcManager(cb, premadeClient) {
+function AitcManager(cb, premadeClient, premadeToken) {
   this._client = null;
   this._getTimer = null;
   this._putTimer = null;
 
-  this._lastToken = 0;
+  this._lastTokenTime = 0;
+  this._tokenDuration = INITIAL_TOKEN_DURATION;
+  this._premadeToken = premadeToken || null;
+  this._invalidTokenFlag = false;
+  
   this._lastEmail = null;
   this._dashboardWindow = null;
 
@@ -225,11 +229,14 @@ AitcManager.prototype = {
 
 
   _validateToken: function _validateToken(func) {
-    if (Date.now() - this._lastToken < TOKEN_TIMEOUT) {
+    let timeSinceLastToken = Date.now() - this._lastTokenTime;
+    if (!this._invalidTokenFlag && timeSinceLastToken < this._tokenDuration) {
+      this._log.info("Current token is valid");
       func();
       return;
     }
 
+    this._log.info("Current token is invalid");
     let win;
     if (this._state == this.ACTIVE) {
       win = this._dashboardWindow;
@@ -238,10 +245,10 @@ AitcManager.prototype = {
     let self = this;
     this._refreshToken(function(err, done) {
       if (!done) {
-        this._log.warn("_checkServer could not refresh token, aborting");
+        self._log.warn("_checkServer could not refresh token, aborting");
         return;
       }
-      func();
+      func(err);
     }, win);
   },
 
@@ -260,7 +267,14 @@ AitcManager.prototype = {
       return;
     }
 
-    this._validateToken(this._getApps.bind(this));
+    let self = this;
+    this._validateToken(function validation(err) {
+      if (err) {
+        self._log.error(err);
+      } else {
+        self._getApps();
+      }
+    });
   },
 
   _getApps: function _getApps() {
@@ -271,7 +285,16 @@ AitcManager.prototype = {
     this._client.getApps(function gotApps(err, apps) {
       if (err) {
         
-        return;
+        if (err.authfailure) {
+          self._invalidTokenFlag = true;
+          self._validateToken(function revalidated(err) {
+            if (!err) {
+              self._getApps();
+            }
+          });
+        } else {
+          return;
+        }
       }
       if (!apps) {
         
@@ -310,7 +333,14 @@ AitcManager.prototype = {
       return;
     }
 
-    this._validateToken(this._putApps.bind(this));
+    let self = this;
+    this._validateToken(function validation(err) {
+      if (err) {
+        self._log.error(err);
+      } else {
+        self._putApps();
+      }
+    });
   },
 
   _putApps: function _putApps() {
@@ -324,6 +354,17 @@ AitcManager.prototype = {
       
       if (err && !err.removeFromQueue) {
         self._log.info("PUT failed, re-adding to queue");
+        
+        if (err.authfailure) {
+          self._invalidTokenFlag = true;
+          self._validateToken(function validation(err) {
+            if (err) {
+              self._log.error("Failed to obtain an updated token");
+            }
+            _reschedule();
+          });
+          return;
+        }
 
         
         record.retries += 1;
@@ -427,8 +468,9 @@ AitcManager.prototype = {
             cb(err, null);
             return;
           }
-          self._lastToken = Date.now();
+          self._lastTokenTime = Date.now();
           self._client.updateToken(token);
+          self._invalidTokenFlag = false;
           cb(null, true);
         });
         return;
@@ -449,6 +491,7 @@ AitcManager.prototype = {
       
         
         self._client = client;
+        self._invalidTokenFlag = false;
         cb(null, true);
       }, win);
     }
@@ -459,7 +502,15 @@ AitcManager.prototype = {
     } else {
       options.sameEmailAs = MARKETPLACE_URL;
     }
-    BrowserID.getAssertion(refreshedAssertion, options);
+    if (this._premadeToken) {
+      this._client.updateToken(this._premadeToken);
+      this._tokenDuration = parseInt(this._premadeToken.duration, 10);
+      this._lastTokenTime = Date.now();
+      this._invalidTokenFlag = false;
+      cb(null, true);
+    } else {
+      BrowserID.getAssertion(refreshedAssertion, options);
+    }
   },
 
   
@@ -485,6 +536,7 @@ AitcManager.prototype = {
   _gotToken: function _gotToken(err, tok, cb) {
     if (!err) {
       this._log.info("Got token from server: " + JSON.stringify(tok));
+      this._tokenDuration = parseInt(tok.duration, 10);
       cb(null, tok);
       return;
     }
@@ -539,7 +591,7 @@ AitcManager.prototype = {
         }
 
         
-        self._lastToken = Date.now();
+        self._lastTokenTime = Date.now();
 
         
         cb(null, new AitcClient(

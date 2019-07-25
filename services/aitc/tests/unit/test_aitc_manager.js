@@ -77,6 +77,53 @@ function do_check_lt(a, b) {
   do_check_true(a < b);
 }
 
+add_test(function test_401_responses() {
+  PREFS.set("client.backoff", "50");
+  PREFS.set("manager.putFreq", 50);
+  const app = get_mock_app();
+  const username = "123";
+  const premadeToken = {
+    id: "testtest",
+    key: "testtest",
+    endpoint: "http://localhost:8080/1.0/123",
+    uid: "uid",
+    duration: "5000"
+  };
+  let server = get_server_with_user(username);
+  server.mockStatus = {
+    code: 401,
+    method: "Unauthorized"
+  }
+  let client = get_client_for_server(username, server);
+  let manager = new AitcManager(function () {}, client, premadeToken);
+  
+  manager._lastTokenTime = Date.now();
+  let mockRequestCount = 0;
+  let clientFirstToken = null;
+
+  server.onRequest = function mockstatus () {
+    mockRequestCount++;
+    switch (mockRequestCount) {
+      case 1:
+        clientFirstToken = client.token;
+        
+        this.mockStatus = {
+          code: 201,
+          method: "Created"
+        };
+        break;
+      case 2:
+        
+        do_check_neq(client.token.id, clientFirstToken.id);
+        do_check_neq(client.token.key, clientFirstToken.key);
+        server.stop(run_next_test);
+        break;
+    }
+  }
+
+  manager.appEvent("install", get_mock_app());
+});
+
 add_test(function test_client_exponential_backoff() {
   _("Test that the client is properly setting the backoff");
 
@@ -124,7 +171,7 @@ add_test(function test_client_exponential_backoff() {
   }, client);
 
   function gotManager() {
-    manager._lastToken = new Date();
+    manager._lastTokenTime = Date.now();
     
     manager._pending._queue = [
       get_mock_queue_element(),
