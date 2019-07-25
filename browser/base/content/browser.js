@@ -7170,9 +7170,8 @@ let gPrivateBrowsingUI = {
 
 
   get privateWindow() {
-    return gBrowser.selectedTab.linkedBrowser
-                               .docShell.QueryInterface(Ci.nsILoadContext)
-                               .usePrivateBrowsing;
+    return gBrowser.docShell.QueryInterface(Ci.nsILoadContext)
+                            .usePrivateBrowsing;
   }
 };
 
