@@ -58,153 +58,6 @@ struct nsRect;
 
 typedef PRUptrdiff PtrBits;
 
-#if 0
-
-
-
-
-
-
-class nsChildContentList MOZ_FINAL : public nsINodeList
-{
-public:
-  nsChildContentList(nsINode* aNode)
-    : mNode(aNode)
-  {
-    SetIsDOMBinding();
-  }
-
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(nsChildContentList)
-
-  
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap);
-
-  
-  NS_DECL_NSIDOMNODELIST
-
-  
-  virtual PRInt32 IndexOf(nsIContent* aContent);
-
-  void DropReference()
-  {
-    mNode = nullptr;
-  }
-
-  virtual nsINode* GetParentObject()
-  {
-    return mNode;
-  }
-
-private:
-  
-  nsINode* mNode;
-};
-
-
-
-
-class nsNode3Tearoff : public nsIDOMXPathNSResolver
-{
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsNode3Tearoff)
-
-  NS_DECL_NSIDOMXPATHNSRESOLVER
-
-  nsNode3Tearoff(nsINode *aNode) : mNode(aNode)
-  {
-  }
-
-protected:
-  virtual ~nsNode3Tearoff() {}
-
-private:
-  nsCOMPtr<nsINode> mNode;
-};
-
-
-
-
-
-class nsNodeWeakReference MOZ_FINAL : public nsIWeakReference
-{
-public:
-  nsNodeWeakReference(nsINode* aNode)
-    : mNode(aNode)
-  {
-  }
-
-  ~nsNodeWeakReference();
-
-  
-  NS_DECL_ISUPPORTS
-
-  
-  NS_DECL_NSIWEAKREFERENCE
-
-  void NoticeNodeDestruction()
-  {
-    mNode = nullptr;
-  }
-
-private:
-  nsINode* mNode;
-};
-
-
-
-
-class nsNodeSupportsWeakRefTearoff MOZ_FINAL : public nsISupportsWeakReference
-{
-public:
-  nsNodeSupportsWeakRefTearoff(nsINode* aNode)
-    : mNode(aNode)
-  {
-  }
-
-  
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  
-  NS_DECL_NSISUPPORTSWEAKREFERENCE
-
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsNodeSupportsWeakRefTearoff)
-
-private:
-  nsCOMPtr<nsINode> mNode;
-};
-
-
-
-
-class nsNodeSelectorTearoff MOZ_FINAL : public nsIDOMNodeSelector
-{
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  NS_DECL_NSIDOMNODESELECTOR
-
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsNodeSelectorTearoff)
-
-  nsNodeSelectorTearoff(nsINode *aNode) : mNode(aNode)
-  {
-  }
-
-private:
-  ~nsNodeSelectorTearoff() {}
-
-private:
-  nsCOMPtr<nsINode> mNode;
-};
-
-
-class nsTouchEventReceiverTearoff;
-class nsInlineEventHandlersTearoff;
-#endif
-
 
 
 
@@ -213,35 +66,6 @@ class nsGenericElement : public mozilla::dom::Element
 {
 public:
   nsGenericElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-#if 0
-  virtual ~nsGenericElement();
-
-  friend class nsTouchEventReceiverTearoff;
-  friend class nsInlineEventHandlersTearoff;
-
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  NS_DECL_SIZEOF_EXCLUDING_THIS
-
-  
-
-
-
-  nsresult PostQueryInterface(REFNSIID aIID, void** aInstancePtr);
-
-  
-  virtual PRUint32 GetChildCount() const;
-  virtual nsIContent *GetChildAt(PRUint32 aIndex) const;
-  virtual nsIContent * const * GetChildArray(PRUint32* aChildCount) const;
-  virtual PRInt32 IndexOf(nsINode* aPossibleChild) const;
-  virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
-                                 bool aNotify);
-  virtual void RemoveChildAt(PRUint32 aIndex, bool aNotify);
-  NS_IMETHOD GetTextContent(nsAString &aTextContent);
-  NS_IMETHOD SetTextContent(const nsAString& aTextContent);
-
-  
-#endif
   virtual void UpdateEditableState(bool aNotify);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -249,9 +73,6 @@ public:
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep = true,
                               bool aNullParent = true);
-#if 0
-  virtual already_AddRefed<nsINodeList> GetChildren(PRUint32 aFilter);
-#endif
   virtual nsIAtom *GetClassAttributeName() const;
   virtual already_AddRefed<nsINodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const;
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
@@ -302,29 +123,7 @@ public:
                              bool aNotify);
   virtual const nsAttrName* GetAttrNameAt(PRUint32 aIndex) const;
   virtual PRUint32 GetAttrCount() const;
-#if 0
-  virtual const nsTextFragment *GetText();
-  virtual PRUint32 TextLength() const;
-  virtual nsresult SetText(const PRUnichar* aBuffer, PRUint32 aLength,
-                           bool aNotify);
-  
-  nsresult SetText(const nsAString& aStr, bool aNotify)
-  {
-    return SetText(aStr.BeginReading(), aStr.Length(), aNotify);
-  }
-  virtual nsresult AppendText(const PRUnichar* aBuffer, PRUint32 aLength,
-                              bool aNotify);
-  virtual bool TextIsOnlyWhitespace();
-  virtual void AppendTextTo(nsAString& aResult);
-  virtual nsIContent *GetBindingParent() const;
-#endif
   virtual bool IsNodeOfType(PRUint32 aFlags) const;
-#if 0
-  virtual bool IsLink(nsIURI** aURI) const;
-
-  virtual void DestroyContent();
-  virtual void SaveSubtreeState();
-#endif
 
   virtual nsISMILAttr* GetAnimatedAttr(PRInt32 , nsIAtom* )
   {
@@ -346,10 +145,6 @@ public:
   void ListAttributes(FILE* out) const;
 #endif
 
-#if 0
-  virtual const nsAttrValue* DoGetClasses() const;
-  NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker);
-#endif
   virtual mozilla::css::StyleRule* GetInlineStyleRule();
   virtual nsresult SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule,
                                       const nsAString* aSerialized,
@@ -386,53 +181,8 @@ private:
                           PRUint32 aMapCount);
 
 public:
-#if 0
-  
-  NS_IMETHOD GetNodeName(nsAString& aNodeName);
-  NS_IMETHOD GetLocalName(nsAString& aLocalName);
-  NS_IMETHOD GetNodeValue(nsAString& aNodeValue);
-  NS_IMETHOD SetNodeValue(const nsAString& aNodeValue);
-  NS_IMETHOD GetNodeType(PRUint16* aNodeType);
-  NS_IMETHOD GetAttributes(nsIDOMNamedNodeMap** aAttributes);
-  NS_IMETHOD GetNamespaceURI(nsAString& aNamespaceURI);
-  NS_IMETHOD GetPrefix(nsAString& aPrefix);
-  NS_IMETHOD IsSupported(const nsAString& aFeature,
-                         const nsAString& aVersion, bool* aReturn);
-  NS_IMETHOD HasAttributes(bool* aHasAttributes);
-  NS_IMETHOD HasChildNodes(bool* aHasChildNodes);
-  nsresult InsertBefore(nsIDOMNode* aNewChild, nsIDOMNode* aRefChild,
-                        nsIDOMNode** aReturn)
-  {
-    return ReplaceOrInsertBefore(false, aNewChild, aRefChild, aReturn);
-  }
-  nsresult ReplaceChild(nsIDOMNode* aNewChild, nsIDOMNode* aOldChild,
-                        nsIDOMNode** aReturn)
-  {
-    return ReplaceOrInsertBefore(true, aNewChild, aOldChild, aReturn);
-  }
-  nsresult RemoveChild(nsIDOMNode* aOldChild, nsIDOMNode** aReturn)
-  {
-    return nsINode::RemoveChild(aOldChild, aReturn);
-  }
-  nsresult AppendChild(nsIDOMNode* aNewChild, nsIDOMNode** aReturn)
-  {
-    return InsertBefore(aNewChild, nullptr, aReturn);
-  }
-#endif
-
   
   NS_DECL_NSIDOMELEMENT
-
-#if 0
-  nsresult CloneNode(bool aDeep, PRUint8 aOptionalArgc, nsIDOMNode **aResult)
-  {
-    if (!aOptionalArgc) {
-      aDeep = true;
-    }
-    
-    return nsNodeUtils::CloneNodeImpl(this, aDeep, true, aResult);
-  }
-#endif
 
   
 
@@ -452,41 +202,7 @@ public:
 
   nsresult LeaveLink(nsPresContext* aPresContext);
 
-#if 0
-  
-
-
-
-
-
-
-
-  static nsresult InternalIsSupported(nsISupports* aObject,
-                                      const nsAString& aFeature,
-                                      const nsAString& aVersion,
-                                      bool* aReturn);
-#endif
-
   static bool ShouldBlur(nsIContent *aContent);
-
-#if 0
-  
-
-
-
-  static void FireNodeInserted(nsIDocument* aDoc,
-                               nsINode* aParent,
-                               nsTArray<nsCOMPtr<nsIContent> >& aNodes);
-
-  
-
-
-  static nsIContent* doQuerySelector(nsINode* aRoot, const nsAString& aSelector,
-                                     nsresult *aResult);
-  static nsresult doQuerySelectorAll(nsINode* aRoot,
-                                     const nsAString& aSelector,
-                                     nsIDOMNodeList **aReturn);
-#endif
 
   
 
@@ -603,51 +319,9 @@ public:
 
   virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
 
-#if 0
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(nsGenericElement)
-#endif
-
   virtual void NodeInfoChanged(nsINodeInfo* aOldNodeInfo)
   {
   }
-
-#if 0
-  
-
-
-  void FireNodeRemovedForChildren();
-
-  virtual bool OwnedOnlyByTheDOMTree()
-  {
-    PRUint32 rc = mRefCnt.get();
-    if (GetParent()) {
-      --rc;
-    }
-    rc -= mAttrsAndChildren.ChildCount();
-    return rc == 0;
-  }
-
-  virtual bool IsPurple()
-  {
-    return mRefCnt.IsPurple();
-  }
-
-  virtual void RemovePurple()
-  {
-    mRefCnt.RemovePurple();
-  }
-
-  static void ClearContentUnbinder();
-  static bool CanSkip(nsINode* aNode, bool aRemovingAllowed);
-  static bool CanSkipInCC(nsINode* aNode);
-  static bool CanSkipThis(nsINode* aNode);
-  static void MarkNodeChildren(nsINode* aNode);
-  static void InitCCCallbacks();
-  static void MarkUserData(void* aObject, nsIAtom* aKey, void* aChild,
-                           void *aData);
-  static void MarkUserDataHandler(void* aObject, nsIAtom* aKey, void* aChild,
-                                  void* aData);
-#endif
 
   
 
@@ -795,14 +469,6 @@ protected:
   virtual nsEventListenerManager*
     GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer);
 
-#if 0
-  
-
-
-
-  nsresult CopyInnerTo(nsGenericElement* aDest);
-#endif
-
   
 
 
@@ -834,98 +500,6 @@ protected:
   nsresult GetAttributeNodeNSInternal(const nsAString& aNamespaceURI,
                                       const nsAString& aLocalName,
                                       nsIDOMAttr** aReturn);
-
-public:
-#if 0
-  
-  
-  
-
-
-
-
-
-
-
-  class nsDOMSlots : public nsINode::nsSlots
-  {
-  public:
-    nsDOMSlots();
-    virtual ~nsDOMSlots();
-
-    void Traverse(nsCycleCollectionTraversalCallback &cb, bool aIsXUL);
-    void Unlink(bool aIsXUL);
-
-    
-
-
-
-
-    nsCOMPtr<nsICSSDeclaration> mStyle;
-
-    
-
-
-
-    nsIDOMDOMStringMap* mDataset; 
-
-    
-
-
-
-    nsCOMPtr<nsICSSDeclaration> mSMILOverrideStyle;
-
-    
-
-
-    nsRefPtr<mozilla::css::StyleRule> mSMILOverrideStyleRule;
-
-    
-
-
-
-    nsRefPtr<nsDOMAttributeMap> mAttributeMap;
-
-    union {
-      
-
-
-
-      nsIContent* mBindingParent;  
-
-      
-
-
-      nsIControllers* mControllers; 
-    };
-
-    
-
-
-    nsRefPtr<nsContentList> mChildrenList;
-
-    
-
-
-    nsRefPtr<nsDOMTokenList> mClassList;
-  };
-#endif
-
-protected:
-#if 0
-  
-  virtual nsINode::nsSlots* CreateSlots();
-
-  nsDOMSlots *DOMSlots()
-  {
-    return static_cast<nsDOMSlots*>(GetSlots());
-  }
-
-  nsDOMSlots *GetExistingDOMSlots() const
-  {
-    return static_cast<nsDOMSlots*>(GetExistingSlots());
-  }
-#endif
 
   void RegisterFreezableElement() {
     OwnerDoc()->RegisterFreezableElement(this);
@@ -997,14 +571,6 @@ protected:
 
   virtual void GetLinkTarget(nsAString& aTarget);
 
-#if 0
-  friend class ContentUnbinder;
-  
-
-
-  nsAttrAndChildArray mAttrsAndChildren;
-#endif
-
 private:
   
 
@@ -1013,10 +579,6 @@ private:
   nsRect GetClientAreaRect();
 
   nsIScrollableFrame* GetScrollFrame(nsIFrame **aStyledFrame = nullptr);
-
-#if 0
-  nsContentList* GetChildrenList();
-#endif
 };
 
 
@@ -1094,66 +656,5 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
   {                                                                     \
     return SetAttr(kNameSpaceID_None, nsGkAtoms::_atom, nullptr, aValue, true); \
   }
-
-#if 0
-
-
-
-class nsTouchEventReceiverTearoff MOZ_FINAL : public nsITouchEventReceiver
-{
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  NS_FORWARD_NSITOUCHEVENTRECEIVER(mElement->)
-
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsTouchEventReceiverTearoff)
-
-  nsTouchEventReceiverTearoff(nsGenericElement *aElement) : mElement(aElement)
-  {
-  }
-
-private:
-  nsRefPtr<nsGenericElement> mElement;
-};
-
-
-
-
-class nsInlineEventHandlersTearoff MOZ_FINAL : public nsIInlineEventHandlers
-{
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  NS_FORWARD_NSIINLINEEVENTHANDLERS(mElement->)
-
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsInlineEventHandlersTearoff)
-
-  nsInlineEventHandlersTearoff(nsGenericElement *aElement) : mElement(aElement)
-  {
-  }
-
-private:
-  nsRefPtr<nsGenericElement> mElement;
-};
-
-#define NS_ELEMENT_INTERFACE_TABLE_TO_MAP_SEGUE                               \
-    rv = nsGenericElement::QueryInterface(aIID, aInstancePtr);                \
-    if (NS_SUCCEEDED(rv))                                                     \
-      return rv;                                                              \
-                                                                              \
-    NS_OFFSET_AND_INTERFACE_TABLE_TO_MAP_SEGUE
-
-#define NS_ELEMENT_INTERFACE_MAP_END                                          \
-    {                                                                         \
-      return PostQueryInterface(aIID, aInstancePtr);                          \
-    }                                                                         \
-                                                                              \
-    NS_ADDREF(foundInterface);                                                \
-                                                                              \
-    *aInstancePtr = foundInterface;                                           \
-                                                                              \
-    return NS_OK;                                                             \
-  }
-#endif
 
 #endif 
