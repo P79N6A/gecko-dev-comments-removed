@@ -291,6 +291,15 @@ nsEventListenerManager::nsEventListenerManager() :
 
 nsEventListenerManager::~nsEventListenerManager() 
 {
+  
+  
+  
+  
+  
+  
+  
+  
+  
   NS_ASSERTION(!mTarget, "didn't call Disconnect");
   RemoveAllListeners();
 
