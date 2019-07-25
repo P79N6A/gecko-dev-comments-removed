@@ -591,15 +591,59 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
         nsIntRect srcRect(overlap), dstRect(overlap);
         srcRect.MoveBy(- mBufferRect.TopLeft() + mBufferRotation);
         dstRect.MoveBy(- destBufferRect.TopLeft());
+        
+        if (mBufferRotation != nsIntPoint(0, 0)) {
+          
+          
+          
+          
+          
+          
+          
+          nsIntPoint rotationPoint(mBufferRect.x + mBufferRect.width - mBufferRotation.x, 
+                                   mBufferRect.y + mBufferRect.height - mBufferRotation.y);
+
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          nsIntRect bottom(mBufferRect.x, rotationPoint.y, mBufferRect.width, mBufferRotation.y);
+          
+          nsIntRect topright(rotationPoint.x, mBufferRect.y, mBufferRotation.x, rotationPoint.y - mBufferRect.y);
+
+          if (!bottom.IsEmpty()) {
+            nsIntRegion temp;
+            temp.And(destBufferRect, bottom);
+            result.mRegionToDraw.Or(result.mRegionToDraw, temp);
+          }
+          if (!topright.IsEmpty()) {
+            nsIntRegion temp;
+            temp.And(destBufferRect, topright);
+            result.mRegionToDraw.Or(result.mRegionToDraw, temp);
+          }
+        }
 
         destBuffer->Resize(destBufferRect.Size());
 
         gl()->BlitTextureImage(mTexImage, srcRect,
                                destBuffer, dstRect);
+        destBuffer->MarkValid();
         if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
           destBufferOnWhite->Resize(destBufferRect.Size());
           gl()->BlitTextureImage(mTexImageOnWhite, srcRect,
                                  destBufferOnWhite, dstRect);
+          destBufferOnWhite->MarkValid();
         }
       } else {
         
