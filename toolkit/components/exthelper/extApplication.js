@@ -559,7 +559,7 @@ extApplication.prototype = {
   
   _xpcom_categories: [
     
-    { category: "JavaScript global privileged property" }
+    { category: "JavaScript-global-privileged-property" }
   ],
 
   
