@@ -3624,14 +3624,10 @@ nsJSContext::CC(nsICycleCollectorListener *aListener)
   sCCSuspectChanges = 0;
   
   
-  if (nsContentUtils::XPConnect()) {
-    nsContentUtils::XPConnect()->GarbageCollect();
-  }
+  nsContentUtils::XPConnect()->GarbageCollect();
   sCollectedObjectsCounts = nsCycleCollector_collect(aListener);
   sCCSuspectedCount = nsCycleCollector_suspectedCount();
-  if (nsJSRuntime::sRuntime) {
-    sSavedGCCount = JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER);
-  }
+  sSavedGCCount = JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER);
 #ifdef DEBUG_smaug
   printf("Collected %u objects, %u suspected objects, took %lldms\n",
          sCollectedObjectsCounts, sCCSuspectedCount,
@@ -3688,10 +3684,6 @@ nsJSContext::MaybeCC(PRBool aHigherProbability)
   if (aHigherProbability ||
       sCollectedObjectsCounts > NS_COLLECTED_OBJECTS_LIMIT) {
     sDelayedCCollectCount *= NS_PROBABILITY_MULTIPLIER;
-  } else if (!sUserIsActive && sCCSuspectChanges > NS_MAX_SUSPECT_CHANGES) {
-    
-    
-    sDelayedCCollectCount += (sCCSuspectChanges / NS_MAX_SUSPECT_CHANGES);
   }
 
   if (!sGCTimer &&
@@ -3712,15 +3704,6 @@ nsJSContext::CCIfUserInactive()
     MaybeCC(PR_TRUE);
   } else {
     IntervalCC();
-  }
-}
-
-
-void
-nsJSContext::MaybeCCIfUserInactive()
-{
-  if (!sUserIsActive) {
-    MaybeCC(PR_FALSE);
   }
 }
 
@@ -3931,7 +3914,7 @@ nsJSRuntime::Startup()
   sDelayedCCollectCount = 0;
   sCCollectCount = 0;
   sUserIsActive = PR_FALSE;
-  sPreviousCCTime = PR_Now();
+  sPreviousCCTime = 0;
   sCollectedObjectsCounts = 0;
   sSavedGCCount = 0;
   sCCSuspectChanges = 0;
@@ -3999,7 +3982,7 @@ SetMemoryHighWaterMarkPrefChangedCallback(const char* aPrefName, void* aClosure)
 
 
     JS_SetGCParameter(nsJSRuntime::sRuntime, JSGC_MAX_MALLOC_BYTES,
-                      64L * 1024L * 1024L);
+                      128L * 1024L * 1024L);
     JS_SetGCParameter(nsJSRuntime::sRuntime, JSGC_MAX_BYTES,
                       0xffffffff);
   } else {
@@ -4178,7 +4161,7 @@ nsJSRuntime::GetNameSpaceManager()
 
   if (!gNameSpaceManager) {
     gNameSpaceManager = new nsScriptNameSpaceManager;
-    NS_ADDREF(gNameSpaceManager);
+    NS_ENSURE_TRUE(gNameSpaceManager, nsnull);
 
     nsresult rv = gNameSpaceManager->Init();
     NS_ENSURE_SUCCESS(rv, nsnull);
@@ -4202,7 +4185,8 @@ nsJSRuntime::Shutdown()
     sLoadInProgressGCTimer = PR_FALSE;
   }
 
-  NS_IF_RELEASE(gNameSpaceManager);
+  delete gNameSpaceManager;
+  gNameSpaceManager = nsnull;
 
   if (!sContextCount) {
     
