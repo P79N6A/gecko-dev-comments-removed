@@ -44,6 +44,7 @@
 #include "nsThreadUtils.h"
 #include "nsCoreAnimationSupport.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/TimeStamp.h"
 
 namespace mozilla {
 namespace layers {
@@ -132,7 +133,12 @@ class THEBES_API ImageContainer {
   THEBES_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
 
 public:
-  ImageContainer() : mMonitor("ImageContainer") {}
+  ImageContainer() :
+    mMonitor("ImageContainer"),
+    mPaintCount(0),
+    mPreviousImagePainted(PR_FALSE)
+  {}
+
   virtual ~ImageContainer() {}
 
   
@@ -157,6 +163,8 @@ public:
   virtual void SetCurrentImage(Image* aImage) = 0;
 
   
+
+
 
 
 
@@ -224,6 +232,48 @@ public:
 
   virtual LayerManager::LayersBackend GetBackendType() = 0;
 
+  
+
+
+
+
+
+  TimeStamp GetPaintTime() {
+    MonitorAutoEnter mon(mMonitor);
+    return mPaintTime;
+  }
+
+  
+
+
+
+  PRUint32 GetPaintCount() {
+    MonitorAutoEnter mon(mMonitor);
+    return mPaintCount;
+  }
+
+  
+
+
+
+
+  void NotifyPaintedImage(Image* aPainted) {
+    MonitorAutoEnter mon(mMonitor);
+    nsRefPtr<Image> current = GetCurrentImage();
+    if (aPainted == current) {
+      if (mPaintTime.IsNull()) {
+        mPaintTime = TimeStamp::Now();
+        mPaintCount++;
+      }
+    } else if (!mPreviousImagePainted) {
+      
+      
+      
+      mPaintCount++;
+      mPreviousImagePainted = PR_TRUE;
+    }
+  }
+
 protected:
   typedef mozilla::Monitor Monitor;
   LayerManager* mManager;
@@ -232,7 +282,33 @@ protected:
   
   Monitor mMonitor;
 
-  ImageContainer(LayerManager* aManager) : mManager(aManager), mMonitor("ImageContainer")  {}
+  ImageContainer(LayerManager* aManager) :
+    mManager(aManager),
+    mMonitor("ImageContainer"),
+    mPaintCount(0),
+    mPreviousImagePainted(PR_FALSE)
+  {}
+
+  
+  
+  
+  void CurrentImageChanged() {
+    mMonitor.AssertCurrentThreadIn();
+    mPreviousImagePainted = !mPaintTime.IsNull();
+    mPaintTime = TimeStamp();
+  }
+
+  
+  
+  
+  PRUint32 mPaintCount;
+
+  
+  
+  TimeStamp mPaintTime;
+
+  
+  PRPackedBool mPreviousImagePainted;
 };
 
 
