@@ -1,0 +1,18 @@
+
+input:invalid {
+  -moz-box-shadow: none;
+}
+
+input.notvalid {
+  background-color: green;
+}
+input.notvalid:valid {
+  background-color: red;
+}
+
+input.valid {
+  background-color: red;
+}
+input.valid:valid {
+  background-color: green;
+}

@@ -2,11 +2,8 @@
 <html class="reftest-wait">
   
 
-  <style>
-    button { background-color: red; }
-    button:valid { background-color: green; }
-  </style>
+  <link rel='stylesheet' type='text/css' href='style.css'>
   <body onload="document.getElementById('b').removeAttribute('disabled'); document.documentElement.className='';">
-    <button id='b' disabled></button>
+    <button class='valid' id='b' disabled></button>
   </body>
 </html>

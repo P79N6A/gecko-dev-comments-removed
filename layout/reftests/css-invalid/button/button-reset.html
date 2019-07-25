@@ -2,11 +2,8 @@
 <html class="reftest-wait">
   
 
-  <style>
-    button { background-color: green; }
-    button:invalid { background-color: red; }
-  </style>
+  <link rel='stylesheet' type='text/css' href='style.css'>
   <body onload="document.getElementById('b').setCustomValidity('foo'); document.documentElement.className='';">
-    <button id='b' type='reset'></button>
+    <button class='notinvalid' id='b' type='reset'></button>
   </body>
 </html>

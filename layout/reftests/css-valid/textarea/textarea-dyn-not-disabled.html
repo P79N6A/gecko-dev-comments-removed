@@ -2,11 +2,8 @@
 <html class="reftest-wait">
   
 
-  <style>
-    textarea { background-color: red; }
-    textarea:valid { background-color: green; }
-  </style>
+  <link rel='stylesheet' type='text/css' href='style.css'>
   <body onload="document.getElementById('t').removeAttribute('disabled'); document.documentElement.className='';">
-    <textarea id='t' disabled></textarea>
+    <textarea class='valid' id='t' disabled></textarea>
   </body>
 </html>

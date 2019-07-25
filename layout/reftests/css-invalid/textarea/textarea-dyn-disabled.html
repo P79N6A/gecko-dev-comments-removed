@@ -2,10 +2,7 @@
 <html class="reftest-wait">
   
 
-  <style>
-    textarea { background-color: green; }
-    textarea:invalid { background-color: red; }
-  </style>
+  <link rel='stylesheet' type='text/css' href='style.css'>
   <script>
     function onLoadHandler()
     {
@@ -16,6 +13,6 @@
     }
   </script>
   <body onload="onLoadHandler();">
-    <textarea id='t'></textarea>
+    <textarea class='notinvalid' id='t'></textarea>
   </body>
 </html>

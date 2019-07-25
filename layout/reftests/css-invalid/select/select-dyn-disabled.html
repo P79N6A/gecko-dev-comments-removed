@@ -2,10 +2,7 @@
 <html class="reftest-wait">
   
 
-  <style>
-    select { background-color: green; }
-    select:invalid { background-color: red; }
-  </style>
+  <link rel='stylesheet' type='text/css' href='style.css'>
   <script>
     function onLoadHandler()
     {
@@ -16,6 +13,6 @@
     }
   </script>
   <body onload="onLoadHandler();">
-    <select id='s'></select>
+    <select class='notinvalid' id='s'></select>
   </body>
 </html>
