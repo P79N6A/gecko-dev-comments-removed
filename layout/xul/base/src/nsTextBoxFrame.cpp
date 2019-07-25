@@ -71,6 +71,7 @@
 #include "nsDisplayList.h"
 #include "nsCSSRendering.h"
 #include "nsIReflowCallback.h"
+#include "nsBoxFrame.h"
 
 #ifdef IBMBIDI
 #include "nsBidiUtils.h"
@@ -83,7 +84,9 @@
 #define CROP_START  "start"
 #define CROP_END    "end"
 
-#define NS_STATE_NEED_LAYOUT NS_FRAME_STATE_BIT(24)
+
+
+#define NS_STATE_NEED_LAYOUT NS_STATE_BOX_CHILD_RESERVED
 
 class nsAccessKeyInfo
 {
