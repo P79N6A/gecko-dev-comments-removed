@@ -245,11 +245,18 @@ public:
     }
 
     History::GetService()->NotifyVisited(mPlace.uri);
+
+    
+    
+    
+    mPlace.uri = nsnull;
+    mReferrer.uri = nsnull;
+
     return NS_OK;
   }
 private:
-  const VisitData mPlace;
-  const VisitData mReferrer;
+  VisitData mPlace;
+  VisitData mReferrer;
 };
 
 
@@ -671,6 +678,11 @@ public:
     nsNavHistory* navhistory = nsNavHistory::GetHistoryService();
     NS_ENSURE_TRUE(navhistory, NS_ERROR_OUT_OF_MEMORY);
     navhistory->NotifyTitleChange(mURI, mTitle);
+
+    
+    
+    
+    mURI = nsnull;
 
     return NS_OK;
   }
