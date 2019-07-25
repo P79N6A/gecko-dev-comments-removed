@@ -94,7 +94,7 @@ enum gr_attrCode {
     
     gr_slatDir,             
     
-    gr_slatInsert,          
+    gr_slatInsert,
     
     gr_slatPosX,            
     
@@ -120,7 +120,9 @@ enum gr_attrCode {
     
     gr_slatJWidth,          
     
-    gr_slatUserDefn = gr_slatJStretch + 30,
+    gr_slatSegSplit = gr_slatJStretch + 29,
+    
+    gr_slatUserDefn,
                             
     
     gr_slatMax,             

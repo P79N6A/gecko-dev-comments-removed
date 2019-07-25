@@ -64,86 +64,69 @@ void Silf::releaseBuffers() throw()
 }
 
 
-bool Silf::readGraphite(const void* pSilf, size_t lSilf, const Face& face, uint32 version)
+bool Silf::readGraphite(const byte * const silf_start, size_t lSilf, const Face& face, uint32 version)
 {
-    const byte * p = (byte *)pSilf,
-    		   * const eSilf = p + lSilf;
+    const byte * p = silf_start,
+    		   * const silf_end = p + lSilf;
 
     if (version >= 0x00030000)
     {
-        if (lSilf < 27)		{ releaseBuffers(); return false; }
-        p += 8;
+        if (lSilf < 28)		{ releaseBuffers(); return false; }
+        be::skip<int32>(p);	   
+        be::skip<uint16>(p,2); 
     }
-    else if (lSilf < 19) 	{ releaseBuffers(); return false; }
-    p += 2;     
-    p += 4;     
-    m_numPasses = uint8(*p++);
-    if (m_numPasses > 128)
-        return false;
-    m_passes = new Pass[m_numPasses];
-    m_sPass = uint8(*p++);
-    m_pPass = uint8(*p++);
-    if (m_pPass < m_sPass) {
-        releaseBuffers();
-        return false;
-    }
-    m_jPass = uint8(*p++);
-    if (m_jPass < m_pPass) {
-        releaseBuffers();
-        return false;
-    }
-    m_bPass = uint8(*p++);     
-    if (m_bPass != 0xFF && (m_bPass < m_jPass || m_bPass > m_numPasses)) {
-        releaseBuffers();
-        return false;
-    }
-    m_flags = uint8(*p++);
-    p += 2;     
-    m_aPseudo = uint8(*p++);
-    m_aBreak = uint8(*p++);
-    m_aBidi = uint8(*p++);
-    m_aMirror = uint8(*p++);
-    p += 1;     
-    m_numJusts = uint8(*p++);
+    else if (lSilf < 20) 	{ releaseBuffers(); return false; }
+    be::skip<uint16>(p);  
+    be::skip<int16>(p,2); 
+    m_numPasses = be::read<uint8>(p);
+    m_sPass     = be::read<uint8>(p);
+    m_pPass     = be::read<uint8>(p);
+    m_jPass     = be::read<uint8>(p);
+    m_bPass     = be::read<uint8>(p);
+    m_flags     = be::read<uint8>(p);
+    be::skip<uint8>(p,2); 
+    m_aPseudo   = be::read<uint8>(p);
+    m_aBreak    = be::read<uint8>(p);
+    m_aBidi     = be::read<uint8>(p);
+    m_aMirror   = be::read<uint8>(p);
+    be::skip<byte>(p);     
+
+    
+    m_numJusts  = be::read<uint8>(p);
+    if (p + m_numJusts * 8 >= silf_end)  { releaseBuffers(); return false; }
     m_justs = gralloc<Justinfo>(m_numJusts);
     for (uint8 i = 0; i < m_numJusts; i++)
     {
         ::new(m_justs + i) Justinfo(p[0], p[1], p[2], p[3]);
-        p += 8;
+        be::skip<byte>(p,8);
     }
 
-    if (p + 9 >= eSilf) { releaseBuffers(); return false; }
-    m_aLig = be::read<uint16>(p);
-    if (m_aLig > 127) {
-        releaseBuffers();
-        return false;
+    if (p + sizeof(uint16) + sizeof(uint8)*8 >= silf_end) { releaseBuffers(); return false; }
+    m_aLig      = be::read<uint16>(p);
+    m_aUser     = be::read<uint8>(p);
+    m_iMaxComp  = be::read<uint8>(p);
+    be::skip<byte>(p,5); 						
+    be::skip<uint16>(p, be::read<uint8>(p)); 	
+    be::skip<byte>(p);							
+    if (p >= silf_end)   { releaseBuffers(); return false; }
+    be::skip<uint32>(p, be::read<uint8>(p));	
+    be::skip<uint16>(p); 
+    const byte * o_passes = p,
+               * const passes_start = silf_start + be::read<uint32>(p);
+
+    if (m_numPasses > 128 || passes_start >= silf_end
+    	|| m_pPass < m_sPass
+    	|| m_jPass < m_pPass
+    	|| (m_bPass != 0xFF && (m_bPass < m_jPass || m_bPass > m_numPasses))
+    	|| m_aLig > 127) {
+        releaseBuffers(); return false;
     }
-    m_aUser = uint8(*p++);
-    m_iMaxComp = uint8(*p++);
-    p += 5;     
-    p += uint8(*p) * 2 + 1;        
-    p++;        
-    if (p >= eSilf) 
-    {
-        releaseBuffers();
-        return false;
-    }
-    p += uint8(*p) * 4 + 1;        
-    p += 2;     
-    
-    if (p + 4 * (m_numPasses + 1) + 6 >= eSilf) 
-    {
-        releaseBuffers(); 
-        return false;
-    }
-    const byte * pPasses = p;
-    p += 4 * (m_numPasses + 1);
+    be::skip<uint32>(p, m_numPasses);
+    if (p + sizeof(uint16) >= passes_start)  { releaseBuffers(); return false; }
     m_numPseudo = be::read<uint16>(p);
-    p += 6;
-    if (p + m_numPseudo * 6 >= eSilf) 
-    {
-        releaseBuffers();
-        return false;
+    be::skip<uint16>(p, 3);	
+    if (p + m_numPseudo*(sizeof(uint32) + sizeof(uint16)) >= passes_start) {
+        releaseBuffers(); return false;
     }
     m_pseudos = new Pseudo[m_numPseudo];
     for (int i = 0; i < m_numPseudo; i++)
@@ -151,30 +134,21 @@ bool Silf::readGraphite(const void* pSilf, size_t lSilf, const Face& face, uint3
         m_pseudos[i].uid = be::read<uint32>(p);
         m_pseudos[i].gid = be::read<uint16>(p);
     }
-    if (p >= eSilf) 
-    {
-        releaseBuffers();
-        return false;
-    }
 
-    int clen = readClassMap(p, be::peek<uint32>(pPasses) - (p - (byte *)pSilf), version);
-    if (clen < 0) {
-        releaseBuffers();
-        return false;
-    }
-    p += clen;
+    const size_t clen = readClassMap(p, passes_start - p, version);
+    if (clen == 0 || p + clen > passes_start)  { releaseBuffers(); return false; }
 
+    m_passes = new Pass[m_numPasses];
     for (size_t i = 0; i < m_numPasses; ++i)
     {
-        uint32 pOffset = be::read<uint32>(pPasses);
-        uint32 pEnd = be::peek<uint32>(pPasses);
-        if ((uint8 *)pSilf + pEnd > eSilf || pOffset > pEnd)
-        {
-            releaseBuffers();
-            return false;
+        const byte * const pass_start = silf_start + be::read<uint32>(o_passes),
+        		   * const pass_end = silf_start + be::peek<uint32>(o_passes);
+        if (pass_start > pass_end || pass_end > silf_end) {
+        	releaseBuffers(); return false;
         }
+
         m_passes[i].init(this);
-        if (!m_passes[i].readPass((char *)pSilf + pOffset, pEnd - pOffset, pOffset, face))
+        if (!m_passes[i].readPass(pass_start, pass_end - pass_start, pass_start - silf_start, face))
         {
         	releaseBuffers();
         	return false;
@@ -204,7 +178,7 @@ template<typename T> inline uint32 Silf::readClassOffsets(const byte *&p, size_t
 
 size_t Silf::readClassMap(const byte *p, size_t data_len, uint32 version)
 {
-	if (data_len < sizeof(uint16)*2)	return -1;
+	if (data_len < sizeof(uint16)*2)	return 0;
 
 	m_nClass  = be::read<uint16>(p);
 	m_nLinear = be::read<uint16>(p);
@@ -213,7 +187,7 @@ size_t Silf::readClassMap(const byte *p, size_t data_len, uint32 version)
 	
 	if (m_nLinear > m_nClass
 	 || (m_nClass + 1) * (version >= 0x00040000 ? sizeof(uint32) : sizeof(uint16))> (data_len - 4))
-		return -1;
+		return 0;
 
     
     uint32 max_off;
@@ -222,12 +196,12 @@ size_t Silf::readClassMap(const byte *p, size_t data_len, uint32 version)
     else
         max_off = readClassOffsets<uint16>(p, data_len);
 
-    if (max_off == 0) return -1;
+    if (max_off == 0) return 0;
 
 	
 	for (const uint32 *o = m_classOffsets, * const o_end = o + m_nLinear; o != o_end; ++o)
 		if (o[0] > o[1])
-			return -1;
+			return 0;
 
 	
     m_classData = gralloc<uint16>(max_off);
@@ -241,7 +215,7 @@ size_t Silf::readClassMap(const byte *p, size_t data_len, uint32 version)
 		if (lookup[0] == 0							
 		 || lookup[0] > (max_off - *o - 4)/2  	    
 		 || lookup[3] != lookup[0] - lookup[1])		
-			return -1;
+			return 0;
 	}
 
 	return max_off;
@@ -271,7 +245,7 @@ uint16 Silf::findClassIndex(uint16 cid, uint16 gid) const
     				 * 	max = min + cls[0]*2; 
     	do
         {
-        	const uint16 * p = min + (-2U & ((max-min)/2));
+        	const uint16 * p = min + (-2 & ((max-min)/2));
         	if 	(p[0] > gid)	max = p;
         	else 				min = p;
         }

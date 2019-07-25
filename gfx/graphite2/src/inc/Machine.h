@@ -154,7 +154,12 @@ private:
 inline Machine::Machine(SlotMap & map) throw()
 : _map(map), _status(finished)
 {
-	memset(_stack, 0, STACK_GUARD);
+	
+	
+	
+	
+	
+	for (size_t n = STACK_GUARD + 1; n; --n)  _stack[n-1] = 0;
 }
 
 inline SlotMap& Machine::slotMap() const throw()

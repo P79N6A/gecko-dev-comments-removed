@@ -38,6 +38,7 @@ namespace graphite2 {
 typedef gr_attrCode attrCode;
 
 class Segment;
+class SegCacheEntry;
 
 class Slot
 {
@@ -134,6 +135,9 @@ private:
     byte     m_bidiCls;     
     byte     m_bidiLevel;   
     int16   *m_userAttr;     
+
+    friend class SegCacheEntry;
+    friend class Segment;
 };
 
 } 

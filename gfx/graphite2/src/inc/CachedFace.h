@@ -33,6 +33,7 @@
 namespace graphite2 {
 
 class SegCacheStore;
+class SegCache;
 
 class CachedFace : public Face
 {

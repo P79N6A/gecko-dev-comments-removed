@@ -168,7 +168,7 @@ void gr_seg_justify(gr_segment* pSeg, gr_slot* pSlot, const gr_font *pFont, doub
 {
     assert(pSeg);
     assert(pSlot);
-    pSeg->justify(pSlot, pFont, width, justFlags(flags), pFirst, pLast);
+    pSeg->justify(pSlot, pFont, float(width), justFlags(flags), pFirst, pLast);
 }
 
 } 
