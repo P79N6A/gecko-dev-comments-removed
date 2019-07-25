@@ -386,13 +386,8 @@ pref("browser.ui.touch.bottom", 4);
 pref("browser.ui.touch.weight.visited", 120); 
 
 
-#if ANDROID
 pref("plugin.disable", true);
 pref("dom.ipc.plugins.enabled", false);
-#else
-pref("plugin.disable", false);
-pref("dom.ipc.plugins.enabled", true);
-#endif
 
 
 
