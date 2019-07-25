@@ -613,8 +613,6 @@ struct JSScopeProperty {
         js::PropertyOp  rawGetter;      
         JSObject        *getterObj;     
 
-
-
         JSScopeProperty *next;          
     };
 
