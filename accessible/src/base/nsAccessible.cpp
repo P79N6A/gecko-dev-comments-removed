@@ -985,39 +985,49 @@ void nsAccessible::GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame
 
 
 
-NS_IMETHODIMP nsAccessible::GetBounds(PRInt32 *x, PRInt32 *y, PRInt32 *width, PRInt32 *height)
+NS_IMETHODIMP
+nsAccessible::GetBounds(PRInt32* aX, PRInt32* aY,
+                        PRInt32* aWidth, PRInt32* aHeight)
 {
-  
-  
-  
-  
-  
+  NS_ENSURE_ARG_POINTER(aX);
+  *aX = 0;
+  NS_ENSURE_ARG_POINTER(aY);
+  *aY = 0;
+  NS_ENSURE_ARG_POINTER(aWidth);
+  *aWidth = 0;
+  NS_ENSURE_ARG_POINTER(aHeight);
+  *aHeight = 0;
 
-  nsPresContext *presContext = GetPresContext();
-  if (!presContext)
-  {
-    *x = *y = *width = *height = 0;
+  if (IsDefunct())
     return NS_ERROR_FAILURE;
-  }
+
+  
+  
+  
+  nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+  presShell->FlushPendingNotifications(Flush_Layout);
+
+  
+  
+  
+  
+  
 
   nsRect unionRectTwips;
-  nsIFrame* aBoundingFrame = nsnull;
-  GetBoundsRect(unionRectTwips, &aBoundingFrame);   
-  if (!aBoundingFrame) {
-    *x = *y = *width = *height = 0;
-    return NS_ERROR_FAILURE;
-  }
+  nsIFrame* boundingFrame = nsnull;
+  GetBoundsRect(unionRectTwips, &boundingFrame);   
+  NS_ENSURE_STATE(boundingFrame);
 
-  *x      = presContext->AppUnitsToDevPixels(unionRectTwips.x); 
-  *y      = presContext->AppUnitsToDevPixels(unionRectTwips.y);
-  *width  = presContext->AppUnitsToDevPixels(unionRectTwips.width);
-  *height = presContext->AppUnitsToDevPixels(unionRectTwips.height);
+  nsPresContext* presContext = presShell->GetPresContext();
+  *aX = presContext->AppUnitsToDevPixels(unionRectTwips.x);
+  *aY = presContext->AppUnitsToDevPixels(unionRectTwips.y);
+  *aWidth = presContext->AppUnitsToDevPixels(unionRectTwips.width);
+  *aHeight = presContext->AppUnitsToDevPixels(unionRectTwips.height);
 
   
-
-  nsIntRect orgRectPixels = aBoundingFrame->GetScreenRectExternal();
-  *x += orgRectPixels.x;
-  *y += orgRectPixels.y;
+  nsIntRect orgRectPixels = boundingFrame->GetScreenRectExternal();
+  *aX += orgRectPixels.x;
+  *aY += orgRectPixels.y;
 
   return NS_OK;
 }
