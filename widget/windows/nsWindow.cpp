@@ -6295,20 +6295,12 @@ nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   
   *aRetValue = eventInfo.ComputeMessageResult(true);
 
-  nsModifierKeyState modKeyState;
+  nsModifierKeyState modKeyState = MouseScrollHandler::GetModifierKeyState();
 
   
   
   
   PRInt32 orienter = eventInfo.IsVertical() ? -1 : 1;
-
-  
-  
-  
-  if (!modKeyState.mIsControlDown) {
-    modKeyState.mIsControlDown =
-      MouseScrollHandler::Device::Elantech::IsZooming();
-  }
 
   
   nsMouseScrollEvent scrollEvent(true, NS_MOUSE_SCROLL, this);

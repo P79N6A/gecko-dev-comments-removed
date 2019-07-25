@@ -168,6 +168,20 @@ MouseScrollHandler::DispatchEvent(nsWindow* aWindow, nsGUIEvent& aEvent)
 }
 
 
+nsModifierKeyState
+MouseScrollHandler::GetModifierKeyState()
+{
+  nsModifierKeyState result;
+  
+  
+  
+  if (!result.mIsControlDown) {
+    result.mIsControlDown = Device::Elantech::IsZooming();
+  }
+  return result;
+}
+
+
 
 
 

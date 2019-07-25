@@ -15,6 +15,7 @@
 
 class nsWindow;
 class nsGUIEvent;
+struct nsModifierKeyState;
 
 namespace mozilla {
 namespace widget {
@@ -32,6 +33,13 @@ public:
                              LPARAM lParam,
                              LRESULT *aRetValue,
                              bool &aEatMessage);
+
+  
+
+
+
+
+  static nsModifierKeyState GetModifierKeyState();
 
 private:
   MouseScrollHandler();
