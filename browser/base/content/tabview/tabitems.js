@@ -188,7 +188,7 @@ function TabItem(tab, options) {
       return;
 
     
-    if (iQ(e.target).hasClass("close") || Utils.isMiddleClick(e)) {
+    if (iQ(e.target).hasClass("close") || e.button == 1) {
       self.close();
     } else {
       if (!Items.item(this).isDragging)
