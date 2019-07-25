@@ -155,6 +155,7 @@ leaky::leaky()
   showThreads = false;
   stackDepth = 100000;
   onlyThread = 0;
+  cleo = false;
 
   mappedLogFile = -1;
   firstLogEntry = lastLogEntry = 0;
@@ -179,7 +180,7 @@ leaky::~leaky()
 
 void leaky::usageError()
 {
-  fprintf(stderr, "Usage: %s [-v] [-t] [-e exclude] [-i include] [-s stackdepth] [--last] [--all] [--start n [--end m]] [--output-dir dir] prog log [log2 ...]\n", (char*) applicationName);
+  fprintf(stderr, "Usage: %s [-v] [-t] [-e exclude] [-i include] [-s stackdepth] [--last] [--all] [--start n [--end m]] [--cleo] [--output-dir dir] prog log [log2 ...]\n", (char*) applicationName);
   fprintf(stderr, 
           "\t-v: verbose\n"
           "\t-t | --threads: split threads\n"
@@ -189,6 +190,7 @@ void leaky::usageError()
           "\t-s stackdepth: Limit depth looked at from captured stack frames\n"
           "\t--last: only profile the last capture section\n"
           "\t--start n [--end m]: profile n to m (or end) capture sections\n"
+          "\t--cleo: format output for 'cleopatra' display\n"
           "\t--output-dir dir: write output files to dir\n"
           "\tIf there's one log, output goes to stdout unless --output-dir is set\n"
           "\tIf there are more than one log, output files will be named with .html added\n"
@@ -202,6 +204,7 @@ static struct option longopts[] = {
     { "last", 0, NULL, 'l' },
     { "start", 1, NULL, 'x' },
     { "end", 1, NULL, 'n' },
+    { "cleo",0, NULL, 'c' },
     { "output-dir", 1, NULL, 'd' },
     { NULL, 0, NULL, 0 },
 };
@@ -222,6 +225,7 @@ void leaky::initialize(int argc, char** argv)
 
   onlyThread = 0;
   output_dir = NULL;
+  cleo = false;
 
   
   
@@ -237,6 +241,9 @@ void leaky::initialize(int argc, char** argv)
       case 'A': 
 	showAddress = true;
 	break;
+      case 'c':
+        cleo = true;
+        break;
       case 'd':
         output_dir = optarg; 
 	break;
@@ -439,20 +446,24 @@ void leaky::open(char *logFile)
     fprintf(stderr,"Done collecting: sections %d: first=%p, last=%p, numThreads=%d\n",
             section,(void*)firstLogEntry,(void*)lastLogEntry,numThreads);
 
-  fprintf(outputfd,"<html><head><title>Jprof Profile Report</title></head><body>\n");
-  fprintf(outputfd,"<h1><center>Jprof Profile Report</center></h1>\n");
+  if (!cleo) {
+    fprintf(outputfd,"<html><head><title>Jprof Profile Report</title></head><body>\n");
+    fprintf(outputfd,"<h1><center>Jprof Profile Report</center></h1>\n");
+  }
 
   if (showThreads)
   {
     fprintf(stderr,"Num threads %d\n",numThreads);
 
-    fprintf(outputfd,"<hr>Threads:<p><pre>\n");
-    for (int i=0; i<numThreads; i++)
-    {
-      fprintf(outputfd,"   <a href=\"#thread_%d\">%d</a>  ",
-              threadArray[i],threadArray[i]);
+    if (!cleo) {
+      fprintf(outputfd,"<hr>Threads:<p><pre>\n");
+      for (int i=0; i<numThreads; i++)
+      {
+        fprintf(outputfd,"   <a href=\"#thread_%d\">%d</a>  ",
+                threadArray[i],threadArray[i]);
+      }
+      fprintf(outputfd,"</pre>");
     }
-    fprintf(outputfd,"</pre>");
 
     for (int i=0; i<numThreads; i++)
     {
@@ -465,7 +476,8 @@ void leaky::open(char *logFile)
     analyze(0);
   }
 
-  fprintf(outputfd,"</pre></body></html>\n");
+  if (!cleo)
+    fprintf(outputfd,"</pre></body></html>\n");
 }
 
 
@@ -762,6 +774,9 @@ void leaky::analyze(int thread)
   
   memset(flagArray, -1, sizeof(flagArray[0])*usefulSymbols);
 
+  if (cleo)
+    fprintf(outputfd,"m-Start\n");
+
   
   
   stacks = 0;
@@ -777,49 +792,78 @@ void leaky::analyze(int thread)
 
     ++stacks; 
 
-    
-    
     u_int n = (lep->numpcs < stackDepth) ? lep->numpcs : stackDepth;
     char** pcp = &lep->pcs[n-1];
     int idx=-1, parrentIdx=-1;  
-    for (int i=n-1; i>=0; --i, --pcp) {
-      idx = findSymbolIndex(reinterpret_cast<u_long>(*pcp));
+    if (cleo) {
+      
+      
+      char type = 's';
+      for (int i=n-1; i>=0; --i, --pcp) {
+        idx = findSymbolIndex(reinterpret_cast<u_long>(*pcp));
 
-      if(idx>=0) {
-	
-	
-	if (i > 0 && !strcmp(externalSymbols[idx].name, "__restore_rt")) {
-	  --pcp;
-	  --i;
-	  idx = findSymbolIndex(reinterpret_cast<u_long>(*pcp));
-	  if (idx < 0) {
-	    continue;
-	  }
-	}
-	
-	
-	if(flagArray[idx]!=stacks && ((flagArray[idx]=stacks) || true)) {
-	  ++countArray[idx];
-	}
-
-	
-	if(parrentIdx>=0) {
-	  externalSymbols[parrentIdx].regChild(idx);
-	  externalSymbols[idx].regParrent(parrentIdx);
-	}
+        if(idx>=0) {
+          
+          
+          if (i > 0 && !strcmp(externalSymbols[idx].name, "__restore_rt")) {
+            --pcp;
+            --i;
+            idx = findSymbolIndex(reinterpret_cast<u_long>(*pcp));
+            if (idx < 0) {
+              continue;
+            }
+          }
+          Symbol *sp=&externalSymbols[idx];
+          char *symname = htmlify(sp->name);
+          fprintf(outputfd,"%c-%s\n",type,symname);
+          delete [] symname;
+        }
         
-        
-        parrentIdx=idx;
+        type = 'c';
       }
-    }
+    } else {
+      
+      
+      for (int i=n-1; i>=0; --i, --pcp) {
+        idx = findSymbolIndex(reinterpret_cast<u_long>(*pcp));
 
-    
-    if(idx>=0) {
-      ++externalSymbols[idx].timerHit;
+        if(idx>=0) {
+          
+          
+          if (i > 0 && !strcmp(externalSymbols[idx].name, "__restore_rt")) {
+            --pcp;
+            --i;
+            idx = findSymbolIndex(reinterpret_cast<u_long>(*pcp));
+            if (idx < 0) {
+              continue;
+            }
+          }
+	
+          
+          if(flagArray[idx]!=stacks && ((flagArray[idx]=stacks) || true)) {
+            ++countArray[idx];
+          }
+
+          
+          if(parrentIdx>=0) {
+            externalSymbols[parrentIdx].regChild(idx);
+            externalSymbols[idx].regParrent(parrentIdx);
+          }
+          
+          
+          parrentIdx=idx;
+        }
+      }
+
+      
+      if(idx>=0) {
+        ++externalSymbols[idx].timerHit;
+      }
+
     }
   }
-
-  generateReportHTML(outputfd, countArray, stacks, thread);
+  if (!cleo)
+    generateReportHTML(outputfd, countArray, stacks, thread);
 }
 
 void FunctionCount::printReport(FILE *fp, leaky *lk, int parent, int total)
