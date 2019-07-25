@@ -3098,7 +3098,7 @@ JSVAL_TRACE_KIND(jsval v)
 
 
 typedef void
-(* JSTraceCallback)(JSTracer *trc, void *thing, JSGCTraceKind kind);
+(* JSTraceCallback)(JSTracer *trc, void **thingp, JSGCTraceKind kind);
 
 struct JSTracer {
     JSRuntime           *runtime;
