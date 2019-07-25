@@ -73,6 +73,11 @@ public:
   
 
 
+  inline bool operator==(const gfx3DMatrix& aMatrix) const;
+
+  
+
+
 
 
   static inline gfx3DMatrix From2D(const gfxMatrix &aMatrix);
@@ -151,6 +156,16 @@ gfx3DMatrix::operator*(const gfx3DMatrix &aMatrix)
   matrix._44 = _41 * aMatrix._14 + _42 * aMatrix._24 + _43 * aMatrix._34 + _44 * aMatrix._44;
 
   return matrix;
+}
+
+inline bool
+gfx3DMatrix::operator==(const gfx3DMatrix& o) const
+{
+  
+  return _11 == o._11 && _12 == o._12 && _13 == o._13 && _14 == o._14 &&
+         _21 == o._21 && _22 == o._22 && _23 == o._23 && _24 == o._24 &&
+         _31 == o._31 && _32 == o._32 && _33 == o._33 && _34 == o._34 &&
+         _41 == o._41 && _42 == o._42 && _43 == o._43 && _44 == o._44;
 }
 
 inline gfx3DMatrix
