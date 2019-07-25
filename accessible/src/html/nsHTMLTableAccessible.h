@@ -131,15 +131,12 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_TABLEACCESSIBLE_IMPL_CID)
 
   
-  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
-                               nsIAccessibleRelation **aRelation);
-
-  
   virtual void Description(nsString& aDescription);
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
+  virtual Relation RelationByType(PRUint32 aRelationType);
 
   
   inline nsAccessible* Caption() const
@@ -219,11 +216,10 @@ public:
     nsHyperTextAccessibleWrap(aContent, aShell) { }
 
   
-  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
-                               nsIAccessibleRelation **aRelation);
 
   
   virtual PRUint32 NativeRole();
+  virtual Relation RelationByType(PRUint32 aRelationType);
 };
 
 #endif  
