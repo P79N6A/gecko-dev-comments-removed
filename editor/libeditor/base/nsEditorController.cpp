@@ -110,8 +110,6 @@ nsresult nsEditorController::RegisterEditingCommands(nsIControllerCommandTable *
 
 nsresult nsEditorController::RegisterEditorCommands(nsIControllerCommandTable *inCommandTable)
 {
-  nsresult rv;
-
   
 
   NS_REGISTER_FIRST_COMMAND(nsSelectionMoveCommands, "cmd_scrollTop");
