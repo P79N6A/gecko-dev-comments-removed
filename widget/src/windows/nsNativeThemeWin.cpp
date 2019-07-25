@@ -362,11 +362,13 @@ static const PRInt32 kProgressVistaOverlayWidth = 120;
 
 static const PRInt32 kProgressXPOverlayWidth = 55;
 
-static const double kProgressDeterminedVistaSpeed = 0.3;
+static const double kProgressDeterminedVistaSpeed = 0.225;
 
 static const double kProgressIndeterminateSpeed = 0.175;
 
 static const PRInt32 kProgressIndeterminateDelay = 500;
+
+static const PRInt32 kProgressDeterminedVistaDelay = 1000;
 
 
 static void AddPaddingRect(nsIntSize* aSize, CaptionButton button) {
@@ -1587,14 +1589,12 @@ RENDER_AGAIN:
       const double pixelsPerMillisecond = indeterminate
                                             ? kProgressIndeterminateSpeed
                                             : kProgressDeterminedVistaSpeed;
+      const PRInt32 delay = indeterminate ? kProgressIndeterminateDelay
+                                          : kProgressDeterminedVistaDelay;
 
       const PRInt32 frameWidth = widgetRect.right - widgetRect.left;
-      PRInt32 animationWidth = frameWidth + overlayWidth;
-      
-      if (indeterminate) {
-        animationWidth += static_cast<PRInt32>(pixelsPerMillisecond *
-                          kProgressIndeterminateDelay);
-      }
+      const PRInt32 animationWidth = frameWidth + overlayWidth +
+                                     static_cast<PRInt32>(pixelsPerMillisecond * delay);
       const double interval = animationWidth / pixelsPerMillisecond;
       
       double tempValue;
