@@ -199,6 +199,21 @@ var AccessFu = {
             QueryInterface(Ci.nsIAccessibleCursorable).virtualCursor;
           let event = aEvent.
             QueryInterface(Ci.nsIAccessibleVirtualCursorChangeEvent);
+          let position = pivot.position;
+          let doc = aEvent.DOMNode;
+
+          if (doc instanceof Ci.nsIDOMDocument && position.DOMNode) {
+            
+            
+            
+            
+            
+            let sel = doc.getSelection();
+            sel.collapse(position.DOMNode, 0);
+            Cc["@mozilla.org/focus-manager;1"]
+              .getService(Ci.nsIFocusManager).moveFocus(
+                doc.defaultView, null, Ci.nsIFocusManager.MOVEFOCUS_CARET, 0);
+          }
 
           let newContext = this.getNewContext(event.oldAccessible,
                                               pivot.position);

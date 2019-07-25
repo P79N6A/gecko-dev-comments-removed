@@ -18,14 +18,17 @@ var gAccRetrieval = Cc['@mozilla.org/accessibleRetrieval;1'].
   getService(Ci.nsIAccessibleRetrieval);
 
 var VirtualCursorController = {
+  NOT_EDITABLE: 0,
+  SINGLE_LINE_EDITABLE: 1,
+  MULTI_LINE_EDITABLE: 2,
+
   attach: function attach(aWindow) {
     this.chromeWin = aWindow;
-    this.chromeWin.document.addEventListener('keypress', this._onkeypress, true);
+    this.chromeWin.document.addEventListener('keypress', this, true);
   },
 
   detach: function detach() {
-    this.chromeWin.document.removeEventListener('keypress', this._onkeypress,
-                                                true);
+    this.chromeWin.document.removeEventListener('keypress', this, true);
   },
 
   _getBrowserApp: function _getBrowserApp() {
@@ -37,26 +40,38 @@ var VirtualCursorController = {
     }
   },
 
-  _onkeypress: function _onkeypress(aEvent) {
-    let document = VirtualCursorController._getBrowserApp().
-      selectedBrowser.contentDocument;
-
-    dump('keypress ' + aEvent.keyCode + '\n');
+  handleEvent: function handleEvent(aEvent) {
+    let document = this._getBrowserApp().selectedBrowser.contentDocument;
+    let target = aEvent.target;
 
     switch (aEvent.keyCode) {
       case aEvent.DOM_VK_END:
-        VirtualCursorController.moveForward(document, true);
+        this.moveForward(document, true);
         break;
       case aEvent.DOM_VK_HOME:
-        VirtualCursorController.moveBackward(document, true);
+        this.moveBackward(document, true);
         break;
       case aEvent.DOM_VK_RIGHT:
-        VirtualCursorController.moveForward(document, aEvent.shiftKey);
+        if (this._isEditableText(target) &&
+            target.selectionEnd != target.textLength)
+          
+          
+          return;
+        this.moveForward(document, aEvent.shiftKey);
         break;
       case aEvent.DOM_VK_LEFT:
-        VirtualCursorController.moveBackward(document, aEvent.shiftKey);
+        if (this._isEditableText(target) &&
+            target.selectionEnd != 0)
+          
+          
+          return;
+        this.moveBackward(document, aEvent.shiftKey);
         break;
       case aEvent.DOM_VK_UP:
+        if (this._isEditableText(target) == this.MULTI_LINE_EDITABLE &&
+            target.selectionEnd != 0)
+          
+          return;
         if (Services.appinfo.OS == 'Android')
           
           Cc['@mozilla.org/android/bridge;1'].
@@ -64,12 +79,10 @@ var VirtualCursorController = {
               JSON.stringify({ gecko: { type: 'ToggleChrome:Focus' } }));
         break;
       case aEvent.DOM_VK_RETURN:
-        
-        
-        if (Services.appinfo.OS == 'Android' || !aEvent.ctrlKey)
-          return;
       case aEvent.DOM_VK_ENTER:
-        VirtualCursorController.activateCurrent(document);
+        if (this._isEditableText(target))
+          return;
+        this.activateCurrent(document);
         break;
       default:
         return;
@@ -77,6 +90,18 @@ var VirtualCursorController = {
 
     aEvent.preventDefault();
     aEvent.stopPropagation();
+  },
+
+  _isEditableText: function _isEditableText(aElement) {
+    
+    if (aElement instanceof Ci.nsIDOMHTMLInputElement &&
+        aElement.mozIsTextField(false))
+      return this.SINGLE_LINE_EDITABLE;
+
+    if (aElement instanceof Ci.nsIDOMHTMLTextAreaElement)
+      return this.MULTI_LINE_EDITABLE;
+
+    return this.NOT_EDITABLE;
   },
 
   moveForward: function moveForward(document, last) {
