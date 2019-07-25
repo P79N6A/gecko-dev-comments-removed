@@ -914,7 +914,11 @@ mjit::Compiler::generateMethod()
           BEGIN_CASE(JSOP_TABLESWITCH)
             frame.forgetEverything();
             masm.move(ImmPtr(PC), Registers::ArgReg1);
+
+            
             stubCall(stubs::TableSwitch);
+            frame.pop();
+
             masm.jump(Registers::ReturnReg);
             PC += js_GetVariableBytecodeLength(PC);
             break;
@@ -923,7 +927,11 @@ mjit::Compiler::generateMethod()
           BEGIN_CASE(JSOP_LOOKUPSWITCH)
             frame.forgetEverything();
             masm.move(ImmPtr(PC), Registers::ArgReg1);
+
+            
             stubCall(stubs::LookupSwitch);
+            frame.pop();
+
             masm.jump(Registers::ReturnReg);
             PC += js_GetVariableBytecodeLength(PC);
             break;
