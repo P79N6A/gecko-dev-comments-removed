@@ -132,6 +132,18 @@ namespace places {
   , DB_SET_PLACE_TITLE = 9
   };
 
+  enum JournalMode {
+    
+    JOURNAL_DELETE = 0
+    
+    
+  , JOURNAL_TRUNCATE
+    
+  , JOURNAL_MEMORY
+    
+  , JOURNAL_WAL
+  };
+
 } 
 } 
 
@@ -461,10 +473,6 @@ public:
 
   void NotifyTitleChange(nsIURI* aURI, const nsString& title);
 
-  bool isBatching() {
-    return mBatchLevel > 0;
-  }
-
 private:
   ~nsNavHistory();
 
@@ -483,6 +491,7 @@ protected:
   nsCOMPtr<mozIStorageService> mDBService;
   nsCOMPtr<mozIStorageConnection> mDBConn;
   nsCOMPtr<nsIFile> mDBFile;
+  PRInt32 mDBPageSize;
 
   nsCOMPtr<mozIStorageStatement> mDBGetURLPageInfo;   
   nsCOMPtr<mozIStorageStatement> mDBGetIdPageInfo;     
@@ -549,6 +558,12 @@ protected:
 
 
   nsresult InitDBFile(PRBool aForceInit);
+
+  
+
+
+  nsresult SetJournalMode(enum mozilla::places::JournalMode aJournalMode);
+  enum mozilla::places::JournalMode mCurrentJournalMode;
 
   
 
