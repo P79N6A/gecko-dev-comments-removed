@@ -206,18 +206,6 @@ public:
 
 
 
-  nsPresContext* GetParentPresContext();
-
-  
-
-
-
-  nsPresContext* GetToplevelContentDocumentPresContext();
-
-  
-
-
-
 
   nsRootPresContext* GetRootPresContext();
   virtual bool IsRoot() { return false; }
