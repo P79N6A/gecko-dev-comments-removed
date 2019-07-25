@@ -427,6 +427,14 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     void dumpStack(FILE *fp);
 
+#ifdef TRACK_SNAPSHOTS
+    
+    
+    void updateTrackedPc(jsbytecode *pc) {
+        trackedPc_ = pc;
+    }
+#endif
+
   private:
     MIRGraph &graph_;
     CompileInfo &info_; 
@@ -454,6 +462,12 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     MBasicBlock *immediateDominator_;
     size_t numDominated_;
     MBasicBlock *loopHeader_;
+
+#ifdef TRACK_SNAPSHOTS
+    
+    
+    jsbytecode *trackedPc_;
+#endif
 };
 
 typedef InlineListIterator<MBasicBlock> MBasicBlockIterator;
