@@ -3700,12 +3700,14 @@ nsCanvasRenderingContext2DAzure::DrawImage(const HTMLImageOrCanvasOrVideoElement
       
       srcSurf = srcCanvas->GetSurfaceSnapshot();
 
-      if (srcSurf && mCanvasElement) {
-        
-        CanvasUtils::DoDrawImageSecurityCheck(mCanvasElement,
-                                              element->NodePrincipal(),
-                                              canvas->IsWriteOnly(),
-                                              false);
+      if (srcSurf) {
+        if (mCanvasElement) {
+          
+          CanvasUtils::DoDrawImageSecurityCheck(mCanvasElement,
+                                                element->NodePrincipal(),
+                                               canvas->IsWriteOnly(),
+                                                false);
+        }
         imgSize = gfxIntSize(srcSurf->GetSize().width, srcSurf->GetSize().height);
       }
     }
