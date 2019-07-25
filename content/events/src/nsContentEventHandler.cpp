@@ -207,20 +207,51 @@ static void AppendSubString(nsAString& aString, nsIContent* aContent,
 }
 
 #if defined(XP_WIN)
-static PRUint32 CountNewlinesIn(nsIContent* aContent, PRUint32 aMaxOffset)
+static PRUint32 CountNewlinesInXPLength(nsIContent* aContent,
+                                        PRUint32 aXPLength)
 {
   NS_ASSERTION(aContent->IsNodeOfType(nsINode::eTEXT),
                "aContent is not a text node!");
   const nsTextFragment* text = aContent->GetText();
   if (!text)
     return 0;
-  NS_ASSERTION(aMaxOffset == PR_UINT32_MAX || aMaxOffset <= text->GetLength(),
-               "text offset is out-of-bounds");
-  const PRUint32 length = NS_MIN(aMaxOffset, text->GetLength());
+  
+  NS_ABORT_IF_FALSE(
+    (aXPLength == PR_UINT32_MAX || aXPLength <= text->GetLength()),
+    "aXPLength is out-of-bounds");
+  const PRUint32 length = NS_MIN(aXPLength, text->GetLength());
   PRUint32 newlines = 0;
   for (PRUint32 i = 0; i < length; ++i) {
     if (text->CharAt(i) == '\n') {
       ++newlines;
+    }
+  }
+  return newlines;
+}
+
+static PRUint32 CountNewlinesInNativeLength(nsIContent* aContent,
+                                            PRUint32 aNativeLength)
+{
+  NS_ASSERTION(aContent->IsNodeOfType(nsINode::eTEXT),
+               "aContent is not a text node!");
+  const nsTextFragment* text = aContent->GetText();
+  if (!text) {
+    return 0;
+  }
+  
+  NS_ABORT_IF_FALSE(
+    (aNativeLength == PR_UINT32_MAX || aNativeLength <= text->GetLength() * 2),
+    "aNativeLength is unexpected value");
+  const PRUint32 xpLength = text->GetLength();
+  PRUint32 newlines = 0;
+  for (PRUint32 i = 0, nativeOffset = 0;
+       i < xpLength && nativeOffset < aNativeLength;
+       ++i, ++nativeOffset) {
+    
+    NS_ABORT_IF_FALSE(i < text->GetLength(), "i is out-of-bounds");
+    if (text->CharAt(i) == '\n') {
+      ++newlines;
+      ++nativeOffset;
     }
   }
   return newlines;
@@ -239,7 +270,7 @@ static PRUint32 GetNativeTextLength(nsIContent* aContent, PRUint32 aMaxLength = 
       
       
       
-      CountNewlinesIn(aContent, aMaxLength);
+      CountNewlinesInXPLength(aContent, aMaxLength);
 #else
       
       0;
@@ -271,7 +302,7 @@ static PRUint32 ConvertToXPOffset(nsIContent* aContent, PRUint32 aNativeOffset)
   
   
   
-  return aNativeOffset - CountNewlinesIn(aContent, aNativeOffset);
+  return aNativeOffset - CountNewlinesInNativeLength(aContent, aNativeOffset);
 #else
   
   return aNativeOffset;
