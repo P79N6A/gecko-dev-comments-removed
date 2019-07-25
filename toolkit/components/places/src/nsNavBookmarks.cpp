@@ -126,6 +126,8 @@ nsNavBookmarks::nsNavBookmarks() : mItemCount(0)
                                  , mBookmarksRoot(0)
                                  , mTagRoot(0)
                                  , mToolbarFolder(0)
+                                 , mBatchLevel(0)
+                                 , mBatchDBTransaction(nsnull)
                                  , mCanNotify(false)
                                  , mCacheObservers("bookmark-observers")
                                  , mShuttingDown(false)
@@ -249,17 +251,12 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
 
   
   
+  
   RETURN_IF_STMT(mDBFindURIBookmarks, NS_LITERAL_CSTRING(
     "SELECT b.id "
     "FROM moz_bookmarks b "
-    "WHERE b.type = :item_type AND b.fk = ( "
-      "SELECT id FROM moz_places_temp "
-      "WHERE url = :page_url "
-      "UNION "
-      "SELECT id FROM moz_places "
-      "WHERE url = :page_url "
-      "LIMIT 1 "
-    ") "
+    "WHERE b.fk = (SELECT id FROM moz_places WHERE url = :page_url) "
+      "AND b.fk NOTNULL "
     "ORDER BY b.lastModified DESC, b.id DESC "));
 
   
@@ -269,15 +266,10 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
   
   
   RETURN_IF_STMT(mDBGetChildren, NS_LITERAL_CSTRING(
-    "SELECT IFNULL(h_t.id, h.id), IFNULL(h_t.url, h.url), "
-           "COALESCE(b.title, h_t.title, h.title), "
-           "IFNULL(h_t.rev_host, h.rev_host), "
-           "IFNULL(h_t.visit_count, h.visit_count), "
-           "IFNULL(h_t.last_visit_date, h.last_visit_date), "
-           "f.url, null, b.id, b.dateAdded, b.lastModified, b.parent, null, "
-           "b.position, b.type, b.fk, b.folder_type "
+    "SELECT h.id, h.url, IFNULL(b.title, h.title), h.rev_host, h.visit_count, "
+           "h.last_visit_date, f.url, null, b.id, b.dateAdded, b.lastModified, "
+           "b.parent, null, b.position, b.type, b.fk, b.folder_type "
     "FROM moz_bookmarks b "
-    "LEFT JOIN moz_places_temp h_t ON b.fk = h_t.id "
     "LEFT JOIN moz_places h ON b.fk = h.id "
     "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
     "WHERE b.parent = :parent "
@@ -296,8 +288,7 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
   
   RETURN_IF_STMT(mDBGetItemProperties, NS_LITERAL_CSTRING(
     "SELECT b.id, "
-           "IFNULL((SELECT url FROM moz_places_temp WHERE id = b.fk), "
-                  "(SELECT url FROM moz_places WHERE id = b.fk)), "
+           "(SELECT url FROM moz_places WHERE id = b.fk), "
            "b.title, b.position, b.fk, b.parent, b.type, b.folder_type, "
            "b.dateAdded, b.lastModified "
     "FROM moz_bookmarks b "
@@ -321,12 +312,9 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
     "SELECT 1 FROM moz_bookmarks WHERE fk = :page_id"));
 
   RETURN_IF_STMT(mDBIsURIBookmarkedInDatabase, NS_LITERAL_CSTRING(
-    "SELECT 1 FROM moz_bookmarks WHERE fk = ("
-      "SELECT id FROM moz_places_temp WHERE url = :page_url "
-      "UNION ALL "
-      "SELECT id FROM moz_places WHERE url = :page_url "
-      "LIMIT 1"
-    ")"));
+    "SELECT 1 FROM moz_bookmarks b "
+    "JOIN moz_places h ON b.fk = h.id "
+    "WHERE h.url = :page_url"));
 
   
   RETURN_IF_STMT(mDBIsRealBookmark, NS_LITERAL_CSTRING(
@@ -361,19 +349,12 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
   RETURN_IF_STMT(mDBSetItemIndex, NS_LITERAL_CSTRING(
     "UPDATE moz_bookmarks SET position = :item_index WHERE id = :item_id"));
 
-  
   RETURN_IF_STMT(mDBGetKeywordForURI, NS_LITERAL_CSTRING(
     "SELECT k.keyword "
-    "FROM ( "
-      "SELECT id FROM moz_places_temp "
-      "WHERE url = :page_url "
-      "UNION ALL "
-      "SELECT id FROM moz_places "
-      "WHERE url = :page_url "
-      "LIMIT 1 "
-    ") AS h "
+    "FROM moz_places h "
     "JOIN moz_bookmarks b ON b.fk = h.id "
-    "JOIN moz_keywords k ON k.id = b.keyword_id"));
+    "JOIN moz_keywords k ON k.id = b.keyword_id "
+    "WHERE h.url = :page_url "));
 
   RETURN_IF_STMT(mDBAdjustPosition, NS_LITERAL_CSTRING(
     "UPDATE moz_bookmarks SET position = position + :delta "
@@ -422,14 +403,6 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
 
 #define COALESCE_PLACEID \
   "COALESCE(greatgrandparent.place_id, grandparent.place_id, parent.place_id) "
@@ -440,31 +413,13 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
                     nsINavHistoryService::TRANSITION_REDIRECT_TEMPORARY);
 
   RETURN_IF_STMT(mDBFindRedirectedBookmark, NS_LITERAL_CSTRING(
-    "SELECT IFNULL( "
-      "(SELECT url FROM moz_places_temp WHERE id = :page_id), "
+    "SELECT "
       "(SELECT url FROM moz_places WHERE id = :page_id) "
-    ") "
     "FROM moz_bookmarks b "
     "WHERE b.fk = :page_id "
     "UNION ALL " 
-    "SELECT IFNULL( "
-      "(SELECT url FROM moz_places_temp WHERE id = " COALESCE_PLACEID "), "
+    "SELECT "
       "(SELECT url FROM moz_places WHERE id = " COALESCE_PLACEID ") "
-    ") "
-    "FROM moz_historyvisits_temp self "
-    "JOIN moz_bookmarks b ON b.fk = " COALESCE_PLACEID
-    "LEFT JOIN moz_historyvisits_temp parent ON parent.id = self.from_visit "
-    "LEFT JOIN moz_historyvisits_temp grandparent ON parent.from_visit = grandparent.id "
-      "AND parent.visit_type IN (") + redirectsFragment + NS_LITERAL_CSTRING(") "
-    "LEFT JOIN moz_historyvisits_temp greatgrandparent ON grandparent.from_visit = greatgrandparent.id "
-      "AND grandparent.visit_type IN (") + redirectsFragment + NS_LITERAL_CSTRING(") "
-    "WHERE self.visit_type IN (") + redirectsFragment + NS_LITERAL_CSTRING(") "
-      "AND self.place_id = :page_id "
-    "UNION ALL " 
-    "SELECT IFNULL( "
-      "(SELECT url FROM moz_places_temp WHERE id = " COALESCE_PLACEID "), "
-      "(SELECT url FROM moz_places WHERE id = " COALESCE_PLACEID ") "
-    ") "
     "FROM moz_historyvisits self "
     "JOIN moz_bookmarks b ON b.fk = " COALESCE_PLACEID
     "LEFT JOIN moz_historyvisits parent ON parent.id = self.from_visit "
@@ -1013,8 +968,7 @@ nsNavBookmarks::InsertBookmark(PRInt64 aFolder,
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemAdded(*aNewBookmarkId, aFolder, index, TYPE_BOOKMARK,
-                               aURI));
+                   OnItemAdded(*aNewBookmarkId, aFolder, index, TYPE_BOOKMARK));
 
   
   
@@ -1279,8 +1233,7 @@ nsNavBookmarks::CreateContainerWithID(PRInt64 aItemId,
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemAdded(*aNewFolder, aParent, index, containerType,
-                               nsnull));
+                   OnItemAdded(*aNewFolder, aParent, index, containerType));
 
   *aIndex = index;
   return NS_OK;
@@ -1326,8 +1279,7 @@ nsNavBookmarks::InsertSeparator(PRInt64 aParent,
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemAdded(*aNewItemId, aParent, index, TYPE_SEPARATOR,
-                               nsnull));
+                   OnItemAdded(*aNewItemId, aParent, index, TYPE_SEPARATOR));
 
   return NS_OK;
 }
@@ -2632,8 +2584,6 @@ nsNavBookmarks::GetBookmarkIdsForURITArray(nsIURI* aURI,
   DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBFindURIBookmarks);
   nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), aURI);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("item_type"), TYPE_BOOKMARK);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool more;
   while (NS_SUCCEEDED((rv = stmt->ExecuteStep(&more))) && more) {
@@ -2963,20 +2913,48 @@ nsNavBookmarks::EnsureKeywordsHash() {
 }
 
 
+
+nsresult
+nsNavBookmarks::BeginUpdateBatch()
+{
+  if (mBatchLevel++ == 0) {
+    mBatchDBTransaction = new mozStorageTransaction(mDBConn, PR_FALSE);
+
+    NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                     nsINavBookmarkObserver, OnBeginUpdateBatch());
+  }
+  return NS_OK;
+}
+
+
+nsresult
+nsNavBookmarks::EndUpdateBatch()
+{
+  if (--mBatchLevel == 0) {
+    if (mBatchDBTransaction) {
+      nsresult rv = mBatchDBTransaction->Commit();
+      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Batch failed to commit transaction");
+      delete mBatchDBTransaction;
+      mBatchDBTransaction = nsnull;
+    }
+
+    NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                     nsINavBookmarkObserver, OnEndUpdateBatch());
+  }
+  return NS_OK;
+}
+
+
 NS_IMETHODIMP
 nsNavBookmarks::RunInBatchMode(nsINavHistoryBatchCallback* aCallback,
                                nsISupports* aUserData) {
   NS_ENSURE_ARG(aCallback);
 
-  
-  
-  
-  nsNavHistory* history = nsNavHistory::GetHistoryService();
-  NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
-  nsresult rv = history->RunInBatchMode(aCallback, aUserData);
-  NS_ENSURE_SUCCESS(rv, rv);
+  BeginUpdateBatch();
+  nsresult rv = aCallback->RunBatched(aUserData);
+  EndUpdateBatch();
 
-  return NS_OK;
+  return rv;
 }
 
 
@@ -3001,8 +2979,7 @@ nsNavBookmarks::RemoveObserver(nsINavBookmarkObserver* aObserver)
 NS_IMETHODIMP
 nsNavBookmarks::OnBeginUpdateBatch()
 {
-  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                   nsINavBookmarkObserver, OnBeginUpdateBatch());
+  
   return NS_OK;
 }
 
@@ -3010,8 +2987,7 @@ nsNavBookmarks::OnBeginUpdateBatch()
 NS_IMETHODIMP
 nsNavBookmarks::OnEndUpdateBatch()
 {
-  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                   nsINavBookmarkObserver, OnEndUpdateBatch());
+  
   return NS_OK;
 }
 

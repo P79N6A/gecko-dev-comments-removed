@@ -85,7 +85,9 @@ let tests = [
       PlacesUtils.favicons.setAndLoadFaviconForPage(this.pageURI, favicons[0].uri, true);
     },
     clean: function clean2() {
-      Services.prefs.setBoolPref("places.history.enabled", true);
+      try {
+        Services.prefs.clearUserPref("places.history.enabled");
+      } catch (ex) {}
     }
   },
 
@@ -136,8 +138,8 @@ let historyObserver = {
       return;
 
     
-    dump_table("moz_places_temp");
-    dump_table("moz_favicons");
+    
+    
 
     
     do_check_true(pageURI.equals(uri("http://test4.bar/")));

@@ -121,7 +121,7 @@ var gTestSteps = [
   },
   function() {
     info("Running step 7 - remove tab immediately");
-    let tab = gBrowser.addTab("about:logo");
+    let tab = gBrowser.addTab("about:blank");
     gBrowser.removeTab(tab);
     ensure_opentabs_match_db();
     nextStep();
@@ -209,8 +209,6 @@ function ensure_opentabs_match_db() {
     for (let i = 0; i < browserWin.gBrowser.tabContainer.childElementCount; i++) {
       let browser = browserWin.gBrowser.getBrowserAtIndex(i);
       let url = browser.currentURI.spec;
-      if (url == "about:blank")
-        continue;
       if (!(url in tabs))
         tabs[url] = 1;
       else
@@ -223,10 +221,9 @@ function ensure_opentabs_match_db() {
 
   try {
     var stmt = db.createStatement(
-                          "SELECT t.url, open_count, IFNULL(p_t.id, p.id) " +
+                          "SELECT t.url, open_count, p.id " +
                           "FROM moz_openpages_temp t " +
-                          "LEFT JOIN moz_places p ON p.url = t.url " +
-                          "LEFT JOIN moz_places_temp p_t ON p_t.url = t.url");
+                          "LEFT JOIN moz_places p ON p.url = t.url ");
   } catch (e) {
     ok(false, "error creating db statement: " + e);
     return;
@@ -251,10 +248,6 @@ function ensure_opentabs_match_db() {
     ok(dbtabs.indexOf(url) > -1,
        "tab is open (" + tabs[url] + " times) and should recorded in db: " + url);
   }
-  dbtabs.forEach(function (url) {
-    ok(url in tabs,
-       "db-recorded tab should actually exist: " + url);
-  });
 }
 
 

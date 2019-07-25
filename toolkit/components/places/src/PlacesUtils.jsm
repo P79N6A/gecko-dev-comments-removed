@@ -150,7 +150,6 @@ var PlacesUtils = {
   TOPIC_DATABASE_LOCKED: "places-database-locked",
   TOPIC_EXPIRATION_FINISHED: "places-expiration-finished",
   TOPIC_FEEDBACK_UPDATED: "places-autocomplete-feedback-updated",
-  TOPIC_SYNC_FINISHED: "places-sync-finished",
   TOPIC_FAVICONS_EXPIRED: "places-favicons-expired",
   TOPIC_VACUUM_STARTING: "places-vacuum-starting",
 
@@ -2049,6 +2048,14 @@ var PlacesUtils = {
     }
 
   },
+
+  
+
+
+
+  startPlacesDBUtils: function PU_startPlacesDBUtils() {
+    Cu.import("resource://gre/modules/PlacesDBUtils.jsm");
+  }
 };
 
 XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "history",

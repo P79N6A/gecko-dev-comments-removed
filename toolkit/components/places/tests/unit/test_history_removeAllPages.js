@@ -51,11 +51,7 @@ let os = Cc["@mozilla.org/observer-service;1"].
 let lms = Cc["@mozilla.org/browser/livemark-service;2"].
           getService(Ci.nsILivemarkService);
 
-const kSyncFinished = "places-sync-finished";
 const kExpirationFinished = "places-expiration-finished";
-
-
-const EXPECTED_SYNCS = 4;
 
 function add_fake_livemark() {
   let lmId = lms.createLivemarkFolderOnly(bs.toolbarFolder,
@@ -91,42 +87,84 @@ let observer = {
     
     do_check_eq(0, bh.count);
 
+    
+    
+    
+    stmt = mDBConn.createStatement(
+      "SELECT h.id FROM moz_places h WHERE h.frecency > 0 " +
+        "AND EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) LIMIT 1");
+    do_check_false(stmt.executeStep());
+    stmt.finalize();
+
+    stmt = mDBConn.createStatement(
+      "SELECT h.id FROM moz_places h WHERE h.frecency = -2 " +
+        "AND EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) LIMIT 1");
+    do_check_true(stmt.executeStep());
+    stmt.finalize();
+
     let expirationObserver = {
       observe: function (aSubject, aTopic, aData) {
         os.removeObserver(this, kExpirationFinished, false);
- 
-        
-        
-        
-        
-        stmt = mDBConn.createStatement(
-          "SELECT id FROM moz_places_temp WHERE frecency > 0 LIMIT 1");
-        do_check_false(stmt.executeStep());
-        stmt.finalize();
-
-        stmt = mDBConn.createStatement(
-          "SELECT h.id FROM moz_places_temp h WHERE h.frecency = -2 " +
-            "AND EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) LIMIT 1");
-        do_check_true(stmt.executeStep());
-        stmt.finalize();
 
         
         stmt = mDBConn.createStatement(
-          "SELECT id FROM moz_places_temp WHERE visit_count <> 0 LIMIT 1");
+          "SELECT id FROM moz_places WHERE visit_count <> 0 LIMIT 1");
         do_check_false(stmt.executeStep());
         stmt.finalize();
 
         
         stmt = mDBConn.createStatement(
-          "SELECT * FROM (SELECT id FROM moz_historyvisits_temp LIMIT 1) " +
-          "UNION ALL " +
           "SELECT * FROM (SELECT id FROM moz_historyvisits LIMIT 1)");
         do_check_false(stmt.executeStep());
         stmt.finalize();
 
         
-        bs.insertBookmark(bs.unfiledBookmarksFolder, uri("place:folder=4"),
-                          bs.DEFAULT_INDEX, "shortcut");
+        stmt = mDBConn.createStatement(
+          "SELECT h.id FROM moz_places h WHERE SUBSTR(h.url, 1, 6) <> 'place:' "+
+            "AND NOT EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) LIMIT 1");
+        do_check_false(stmt.executeStep());
+        stmt.finalize();
+
+        
+        stmt = mDBConn.createStatement(
+          "SELECT f.id FROM moz_favicons f WHERE NOT EXISTS " +
+            "(SELECT id FROM moz_places WHERE favicon_id = f.id) LIMIT 1");
+        do_check_false(stmt.executeStep());
+        stmt.finalize();
+
+        
+        stmt = mDBConn.createStatement(
+          "SELECT a.id FROM moz_annos a WHERE NOT EXISTS " +
+            "(SELECT id FROM moz_places WHERE id = a.place_id) LIMIT 1");
+        do_check_false(stmt.executeStep());
+        stmt.finalize();
+
+        
+        stmt = mDBConn.createStatement(
+          "SELECT i.place_id FROM moz_inputhistory i WHERE NOT EXISTS " +
+            "(SELECT id FROM moz_places WHERE id = i.place_id) LIMIT 1");
+        do_check_false(stmt.executeStep());
+        stmt.finalize();
+
+        
+        stmt = mDBConn.createStatement(
+          "SELECT h.id FROM moz_places h " +
+          "WHERE SUBSTR(h.url, 1, 6) = 'place:' AND h.frecency <> 0 LIMIT 1");
+        do_check_false(stmt.executeStep());
+        stmt.finalize();
+
+        
+        stmt = mDBConn.createStatement(
+          "SELECT h.id FROM moz_places h " +
+          "JOIN moz_bookmarks b ON h.id = b.fk " +
+          "JOIN moz_bookmarks bp ON bp.id = b.parent " +
+          "JOIN moz_items_annos t ON t.item_id = bp.id " +
+          "JOIN moz_anno_attributes n ON t.anno_attribute_id = n.id " +
+          "WHERE n.name = 'livemark/feedURI' AND h.frecency <> 0 LIMIT 1");
+        do_check_false(stmt.executeStep());
+        stmt.finalize();
+
+        do_test_finished();
       }
     }
     os.addObserver(expirationObserver, kExpirationFinished, false);
@@ -137,104 +175,11 @@ let observer = {
   onDeleteVisits: function() {
   },
 
-  QueryInterface: function(iid) {
-    if (iid.equals(Ci.nsINavHistoryObserver) ||
-        iid.equals(Ci.nsISupports)) {
-      return this;
-    }
-    throw Cr.NS_ERROR_NO_INTERFACE;
-  }
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsINavHistoryObserver,
+  ]),
 }
 hs.addObserver(observer, false);
-
-let syncObserver = {
-  _runCount: 0,
-  observe: function (aSubject, aTopic, aData) {
-    if (++this._runCount < EXPECTED_SYNCS)
-      return;
-    if (this._runCount == EXPECTED_SYNCS) {
-      bh.removeAllPages();
-      return;
-    }
-    os.removeObserver(this, kSyncFinished, false);
-
-    
-    stmt = mDBConn.createStatement(
-      "SELECT id FROM moz_places_temp LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-
-    
-    
-    
-    stmt = mDBConn.createStatement(
-      "SELECT id FROM moz_places WHERE frecency > 0 LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-
-    stmt = mDBConn.createStatement(
-      "SELECT h.id FROM moz_places h WHERE h.frecency = -2 " +
-        "AND EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) LIMIT 1");
-    do_check_true(stmt.executeStep());
-    stmt.finalize();
-
-    
-    stmt = mDBConn.createStatement(
-      "SELECT id FROM moz_places WHERE visit_count <> 0 LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-
-    
-    stmt = mDBConn.createStatement(
-      "SELECT h.id FROM moz_places h WHERE SUBSTR(h.url, 1, 6) <> 'place:' "+
-        "AND NOT EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-
-    
-    stmt = mDBConn.createStatement(
-      "SELECT f.id FROM moz_favicons f WHERE NOT EXISTS " +
-        "(SELECT id FROM moz_places WHERE favicon_id = f.id) LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-
-    
-    stmt = mDBConn.createStatement(
-      "SELECT a.id FROM moz_annos a WHERE NOT EXISTS " +
-        "(SELECT id FROM moz_places WHERE id = a.place_id) LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-
-    
-    stmt = mDBConn.createStatement(
-      "SELECT i.place_id FROM moz_inputhistory i WHERE NOT EXISTS " +
-        "(SELECT id FROM moz_places WHERE id = i.place_id) LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-
-    
-    stmt = mDBConn.createStatement(
-      "SELECT h.id FROM moz_places h " +
-      "WHERE SUBSTR(h.url, 1, 6) = 'place:' AND h.frecency <> 0 LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-
-    
-    stmt = mDBConn.createStatement(
-      "SELECT h.id FROM moz_places h " +
-      "JOIN moz_bookmarks b ON h.id = b.fk " +
-      "JOIN moz_bookmarks bp ON bp.id = b.parent " +
-      "JOIN moz_items_annos t ON t.item_id = bp.id " +
-      "JOIN moz_anno_attributes n ON t.anno_attribute_id = n.id " +
-      "WHERE n.name = 'livemark/feedURI' AND h.frecency <> 0 LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-
-    do_test_finished();
-  }
-}
-os.addObserver(syncObserver, kSyncFinished, false);
-
 
 function run_test() {
   
@@ -269,13 +214,23 @@ function run_test() {
 
   
   
-  
   bs.insertBookmark(bs.unfiledBookmarksFolder, uri("http://typed.mozilla.org"),
                     bs.DEFAULT_INDEX, "bookmark");
 
-  
   hs.addVisit(uri("http://typed.mozilla.org"), Date.now(), null,
               hs.TRANSITION_BOOKMARK, false, 0);
+
+  
+  
+  Services.obs.removeObserver(hs, "idle-daily");
+
+  
+  
+  
+  
+  do_execute_soon(function () {
+    bh.removeAllPages();
+  });
 
   do_test_pending();
 }

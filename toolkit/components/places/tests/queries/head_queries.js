@@ -85,7 +85,7 @@ function populateDB(aArray) {
         if (qdata.title && !qdata.isDetails) {
           
           let stmt = DBConn().createStatement(
-            "UPDATE moz_places_view SET title = :title WHERE url = :url"
+            "UPDATE moz_places SET title = :title WHERE url = :url"
           );
           stmt.params.title = qdata.title;
           stmt.params.url = qdata.uri;
@@ -102,7 +102,7 @@ function populateDB(aArray) {
           
           
           let stmt = DBConn().createStatement(
-            "UPDATE moz_places_view SET visit_count = :vc WHERE url = :url");
+            "UPDATE moz_places SET visit_count = :vc WHERE url = :url");
           stmt.params.vc = qdata.visitCount;
           stmt.params.url = qdata.uri;
           try {
