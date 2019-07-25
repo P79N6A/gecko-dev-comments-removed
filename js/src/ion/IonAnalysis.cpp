@@ -233,7 +233,7 @@ GuessPhiType(MPhi *phi)
             continue;
         if (type == MIRType_None)
             type = in->type();
-        if (type != in->type())
+        else if (type != in->type())
             return MIRType_Value;
     }
     return type;
