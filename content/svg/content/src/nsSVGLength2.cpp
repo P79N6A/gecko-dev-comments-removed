@@ -36,7 +36,6 @@
 
 
 
-#include "nsISVGLength.h"
 #include "nsSVGLength2.h"
 #include "prdtoa.h"
 #include "nsTextFormatter.h"
