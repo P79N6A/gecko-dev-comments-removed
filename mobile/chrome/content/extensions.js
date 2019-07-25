@@ -766,7 +766,7 @@ AddonInstallListener.prototype = {
   onInstallEnded: function(aInstall, aAddon) {
     
     if (aAddon.pendingOperations & AddonManager.PENDING_INSTALL)
-      ExtensionsView.showRestart(this._updating ? "update" : "normal");
+      ExtensionsView.showRestart(element.hasAttribute("updating") ? "update" : "normal");
 
     this._showInstallCompleteAlert(true);
 
@@ -785,9 +785,6 @@ AddonInstallListener.prototype = {
       let strings = Elements.browserBundle;
       element.setAttribute("updateStatus", strings.getFormattedString("addonUpdate.updated", [aAddon.version]));
       element.removeAttribute("updating");
-
-      
-      this._updating = true;
     }
   },
 
