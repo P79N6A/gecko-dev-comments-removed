@@ -131,6 +131,27 @@ DeviceTabActor.prototype = {
     return this._contextPool;
   },
 
+  
+
+
+
+
+
+
+  addToBreakpointPool: function DTA_addToBreakpointPool(actor) {
+    this.conn.addActor(actor);
+  },
+
+  
+
+
+
+
+
+  removeFromBreakpointPool: function DTA_removeFromBreakpointPool(actor) {
+    this.conn.removeActor(actor);
+  },
+
   actorPrefix: 'tab',
 
   grip: function DTA_grip() {

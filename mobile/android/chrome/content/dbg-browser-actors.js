@@ -205,6 +205,27 @@ BrowserTabActor.prototype = {
   _contextPool: null,
   get contextActorPool() { return this._contextPool; },
 
+  
+
+
+
+
+
+
+  addToBreakpointPool: function BTA_addToBreakpointPool(aActor) {
+    this.conn.addActor(aActor);
+  },
+
+  
+
+
+
+
+
+  removeFromBreakpointPool: function BTA_removeFromBreakpointPool(aActor) {
+    this.conn.removeActor(aActor);
+  },
+
   actorPrefix: "tab",
 
   grip: function BTA_grip() {
