@@ -1246,13 +1246,13 @@ namespace nanojit
         asm_cmpi(cond);
     }
 
-    NIns* Assembler::asm_branch(bool onFalse, LIns* cond, NIns* target) {
-        NIns* patch = asm_branch_helper(onFalse, cond, target);
+    Branches Assembler::asm_branch(bool onFalse, LIns* cond, NIns* target) {
+        Branches branches = asm_branch_helper(onFalse, cond, target);
         asm_cmp(cond);
-        return patch;
+        return branches;
     }
 
-    NIns* Assembler::asm_branch_helper(bool onFalse, LIns *cond, NIns *target) {
+    Branches Assembler::asm_branch_helper(bool onFalse, LIns *cond, NIns *target) {
         if (target && !isTargetWithinS32(target)) {
             
             
@@ -1269,7 +1269,7 @@ namespace nanojit
              : asm_branchi_helper(onFalse, cond, target);
     }
 
-    NIns* Assembler::asm_branchi_helper(bool onFalse, LIns *cond, NIns *target) {
+    Branches Assembler::asm_branchi_helper(bool onFalse, LIns *cond, NIns *target) {
         
         
         LOpcode condop = cond->opcode();
@@ -1330,7 +1330,7 @@ namespace nanojit
                 }
             }
         }
-        return _nIns;   
+        return Branches(_nIns); 
     }
 
     NIns* Assembler::asm_branch_ov(LOpcode, NIns* target) {
@@ -1412,15 +1412,17 @@ namespace nanojit
     
     
 
-    NIns* Assembler::asm_branchd_helper(bool onFalse, LIns *cond, NIns *target) {
+    Branches Assembler::asm_branchd_helper(bool onFalse, LIns *cond, NIns *target) {
         LOpcode condop = cond->opcode();
-        NIns *patch;
+        NIns *patch1 = NULL;
+        NIns *patch2 = NULL;
         if (condop == LIR_eqd) {
             if (onFalse) {
                 
                 JP(16, target);     
+                patch1 = _nIns;
                 JNE(0, target);     
-                patch = _nIns;
+                patch2 = _nIns;
             } else {
                 
                 
@@ -1428,7 +1430,7 @@ namespace nanojit
                 underrunProtect(16); 
                 NIns *skip = _nIns;
                 JE(0, target);      
-                patch = _nIns;
+                patch1 = _nIns;
                 JP8(0, skip);       
             }
         }
@@ -1443,9 +1445,9 @@ namespace nanojit
             case LIR_ged: if (onFalse) JB(8, target);  else JAE(8, target); break;
             default:      NanoAssert(0);                                    break;
             }
-            patch = _nIns;
+            patch1 = _nIns;
         }
-        return patch;
+        return Branches(patch1, patch2);
     }
 
     void Assembler::asm_condd(LIns *ins) {
@@ -2033,17 +2035,6 @@ namespace nanojit
             return;         
         }
         ((int32_t*)next)[-1] = int32_t(target - next);
-        if (next[0] == 0x0F && next[1] == 0x8A) {
-            
-            
-            next += 6;
-            NanoAssert(((int32_t*)next)[-1] == 0);
-            if (!isS32(target - next)) {
-                setError(BranchTooFar);
-                return;     
-            }
-            ((int32_t*)next)[-1] = int32_t(target - next);
-        }
     }
 
     Register Assembler::nRegisterAllocFromSet(RegisterMask set) {

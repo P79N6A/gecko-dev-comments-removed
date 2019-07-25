@@ -2291,7 +2291,7 @@ Assembler::asm_cmpd(LIns* ins)
 
 
 
-NIns*
+Branches
 Assembler::asm_branch(bool branchOnFalse, LIns* cond, NIns* targ)
 {
     LOpcode condop = cond->opcode();
@@ -2351,7 +2351,7 @@ Assembler::asm_branch(bool branchOnFalse, LIns* cond, NIns* targ)
 
     asm_cmp(cond);
 
-    return at;
+    return Branches(at);
 }
 
 NIns* Assembler::asm_branch_ov(LOpcode op, NIns* target)
