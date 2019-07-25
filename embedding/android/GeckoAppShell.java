@@ -587,7 +587,7 @@ class GeckoAppShell
         removeNotification(notificationID);
 
         AlertNotification notification = new AlertNotification(GeckoApp.mAppContext,
-            notificationID, icon, aAlertTitle, System.currentTimeMillis());
+            notificationID, icon, aAlertTitle, aAlertText, System.currentTimeMillis());
 
         
         Intent notificationIntent = new Intent(GeckoApp.ACTION_ALERT_CLICK);
