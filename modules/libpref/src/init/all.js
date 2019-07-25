@@ -711,8 +711,6 @@ pref("network.http.prompt-temp-redirect", true);
 
 pref("network.http.qos", 0);
 
-pref("network.gopher.qos", 0);
-
 
 
 
@@ -907,8 +905,6 @@ pref("permissions.default.image",           1);
 pref("network.proxy.type",                  5);
 pref("network.proxy.ftp",                   "");
 pref("network.proxy.ftp_port",              0);
-pref("network.proxy.gopher",                "");
-pref("network.proxy.gopher_port",           0);
 pref("network.proxy.http",                  "");
 pref("network.proxy.http_port",             0);
 pref("network.proxy.ssl",                   "");

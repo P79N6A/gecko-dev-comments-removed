@@ -107,7 +107,6 @@ static NS_DEFINE_CID(kRDFServiceCID,             NS_RDFSERVICE_CID);
 
 
 static const char               kFTPProtocol[] = "ftp://";
-static const char               kGopherProtocol[] = "gopher://";
 
 
 
@@ -428,18 +427,11 @@ nsHTTPIndex::OnIndexAvailable(nsIRequest* aRequest, nsISupports *aContext,
   
   nsCAutoString entryuriC(baseStr);
 
-  
-  
-  
-  
   nsXPIDLCString filename;
   nsresult rv = aIndex->GetLocation(getter_Copies(filename));
   if (NS_FAILED(rv)) return rv;
   entryuriC.Append(filename);
 
-  
-  
-  
   
   PRUint32 type;
   rv = aIndex->GetType(&type);
@@ -464,14 +456,7 @@ nsHTTPIndex::OnIndexAvailable(nsIRequest* aRequest, nsISupports *aContext,
     nsCOMPtr<nsIRDFLiteral> lit;
     nsString str;
 
-    
-    
-    
-    if (!strncmp(entryuriC.get(), kGopherProtocol, sizeof(kGopherProtocol)-1))
-      str.AssignWithConversion(filename);
-    else {
-      str.AssignWithConversion(entryuriC.get());
-    }
+    str.AssignWithConversion(entryuriC.get());
 
     rv = mDirRDF->GetLiteral(str.get(), getter_AddRefs(lit));
 
@@ -795,7 +780,6 @@ void nsHTTPIndex::GetDestination(nsIRDFResource* r, nsXPIDLCString& dest) {
 
 
 
-
 PRBool
 nsHTTPIndex::isWellknownContainerURI(nsIRDFResource *r)
 {
@@ -809,31 +793,12 @@ nsHTTPIndex::isWellknownContainerURI(nsIRDFResource *r)
   } else {
     nsXPIDLCString uri;
     
-    
-    
     GetDestination(r,uri);
 
     if ((uri.get()) && (!strncmp(uri, kFTPProtocol, sizeof(kFTPProtocol) - 1))) {
       if (uri.Last() == '/') {
         isContainerFlag = PR_TRUE;
       }
-    }
-
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    if ((uri.get()) &&
-        (!strncmp(uri,kGopherProtocol, sizeof(kGopherProtocol)-1))) {
-      char* pos = PL_strchr(uri+sizeof(kGopherProtocol)-1, '/');
-      if (!pos || pos[1] == '\0' || pos[1] == '1')
-        isContainerFlag = PR_TRUE;
     }
   }
   return isContainerFlag;
