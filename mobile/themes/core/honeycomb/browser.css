@@ -1360,12 +1360,6 @@ setting {
 }
 
 
-.full-screen {
-  position: absolute;
-  z-index: 500;
-}
-
-
 .webapps-noperm description.webapps-perm-requested-hint {
   display: block;
 }
