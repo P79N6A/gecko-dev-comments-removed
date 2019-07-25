@@ -71,6 +71,9 @@ static Qt::GestureType gSwipeGestureId = Qt::CustomGesture;
 
 static const float GESTURES_BLOCK_MOUSE_FOR = 200;
 #endif 
+#ifdef MOZ_ENABLE_MEEGOTOUCH
+#include <MApplication>
+#endif
 
 #ifdef MOZ_X11
 #include <QX11Info>
@@ -1063,7 +1066,7 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
         matr.Translate(gfxPoint(aPainter->transform().dx(), aPainter->transform().dy()));
         matr.Rotate((M_PI/180)*angle);
         ctx->SetMatrix(matr);
-        NS_ASSERTION(PIXMAN_VERSION < PIXMAN_VERSION_ENCODE(0, 21, 2) && angle, "Old pixman and rotate transform, it is going to be slow");
+        NS_ASSERTION(PIXMAN_VERSION > PIXMAN_VERSION_ENCODE(0, 21, 2) || !angle, "Old pixman and rotate transform, it is going to be slow");
       }
     }
 #endif
