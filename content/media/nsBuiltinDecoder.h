@@ -755,7 +755,8 @@ public:
   
   
   
-  PlayState mNextState;	
+  
+  PlayState mNextState;
 
   
   

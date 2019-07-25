@@ -446,23 +446,18 @@ void nsBuiltinDecoder::MetadataLoaded(PRUint32 aChannels,
     return;
   }
 
-  
-  
-  bool notifyElement = true;
   {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     mDuration = mDecoderStateMachine ? mDecoderStateMachine->GetDuration() : -1;
     
     UpdatePlaybackRate();
-
-    notifyElement = mNextState != PLAY_STATE_SEEKING;
   }
 
   if (mDuration == -1) {
     SetInfinite(true);
   }
 
-  if (mElement && notifyElement) {
+  if (mElement) {
     
     
     Invalidate();
@@ -482,7 +477,7 @@ void nsBuiltinDecoder::MetadataLoaded(PRUint32 aChannels,
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
   bool resourceIsLoaded = !mResourceLoaded && mResource &&
     mResource->IsDataCachedToEndOfResource(mDecoderPosition);
-  if (mElement && notifyElement) {
+  if (mElement) {
     mElement->FirstFrameLoaded(resourceIsLoaded);
   }
 
@@ -568,7 +563,7 @@ void nsBuiltinDecoder::DecodeError()
 bool nsBuiltinDecoder::IsSeeking() const
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-  return mPlayState == PLAY_STATE_SEEKING || mNextState == PLAY_STATE_SEEKING;
+  return mPlayState == PLAY_STATE_SEEKING;
 }
 
 bool nsBuiltinDecoder::IsEnded() const
