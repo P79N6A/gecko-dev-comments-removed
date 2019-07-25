@@ -1086,8 +1086,15 @@ Function(JSContext *cx, unsigned argc, Value *vp)
         }
 
         
+
+
+
+
+
+
         TokenStream ts(cx, principals, originPrincipals,
-                       collected_args, args_length, filename, lineno, cx->findVersion());
+                       collected_args, args_length, filename, lineno, cx->findVersion(),
+                        NULL);
 
         
         TokenKind tt = ts.getToken();
