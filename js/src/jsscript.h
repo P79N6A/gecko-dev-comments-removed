@@ -171,6 +171,9 @@ namespace JSC {
 }
 namespace js {
 namespace mjit {
+
+struct JITScript;
+
 namespace ic {
 # if defined JS_POLYIC
     struct PICInfo;
@@ -179,7 +182,7 @@ namespace ic {
     struct MICInfo;
 # endif
 }
-union CallSite;
+struct CallSite;
 }
 }
 #endif
@@ -254,33 +257,15 @@ struct JSScript {
     
     void            *ncode;     
     void            **nmap;     
-    JSC::ExecutablePool *execPool;  
+    js::mjit::JITScript *jit;   
 # if defined JS_POLYIC
     js::mjit::ic::PICInfo *pics; 
 # endif
 # if defined JS_MONOIC
     js::mjit::ic::MICInfo *mics; 
 # endif
-    js::mjit::CallSite *callSites;
-    uint32          inlineLength;  
-    uint32          outOfLineLength; 
 
-    inline bool isValidJitCode(void *jcode) {
-        return (char*)jcode >= (char*)nmap[-1] &&
-               (char*)jcode < (char*)nmap[-1] + inlineLength + outOfLineLength;
-    }
-
-# if defined JS_POLYIC
-    inline uint32 numPICs() {
-        return pics ? *(uint32*)((uint8 *)pics - sizeof(uint32)) : 0;
-    }
-# endif
-
-# if defined JS_MONOIC
-    inline uint32 numMICs() {
-        return mics ? *(uint32*)((uint8 *)mics - sizeof(uint32)) : 0;
-    }
-# endif
+    bool isValidJitCode(void *jcode);
 #endif
 
     
