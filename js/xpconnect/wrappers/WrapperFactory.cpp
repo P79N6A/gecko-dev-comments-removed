@@ -187,11 +187,6 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
 
     XPCWrappedNative *wn = static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
 
-    
-    
-    if (!wn->GetClassInfo())
-        return DoubleWrap(cx, obj, flags);
-
     JSAutoEnterCompartment ac;
     if (!ac.enter(cx, obj))
         return nsnull;
