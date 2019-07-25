@@ -58,20 +58,49 @@ js_Stringify(JSContext *cx, jsval *vp, JSObject *replacer, jsval space,
 
 extern JSBool js_TryJSON(JSContext *cx, jsval *vp);
 
+
 enum JSONParserState {
+    
     JSON_PARSE_STATE_INIT,
+
+    
+    JSON_PARSE_STATE_FINISHED,
+
+    
     JSON_PARSE_STATE_OBJECT_VALUE,
+
+    
     JSON_PARSE_STATE_VALUE,
+
+    
     JSON_PARSE_STATE_OBJECT,
+
+    
     JSON_PARSE_STATE_OBJECT_PAIR,
+
+    
     JSON_PARSE_STATE_OBJECT_IN_PAIR,
+
+    
     JSON_PARSE_STATE_ARRAY,
+
+
+    
+
+    
     JSON_PARSE_STATE_STRING,
+
+    
     JSON_PARSE_STATE_STRING_ESCAPE,
+
+    
     JSON_PARSE_STATE_STRING_HEX,
+
+    
     JSON_PARSE_STATE_NUMBER,
-    JSON_PARSE_STATE_KEYWORD,
-    JSON_PARSE_STATE_FINISHED
+
+    
+    JSON_PARSE_STATE_KEYWORD
 };
 
 enum JSONDataType {
