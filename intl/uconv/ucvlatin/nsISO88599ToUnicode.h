@@ -38,12 +38,7 @@
 #ifndef nsISO88599ToUnicode_h___
 #define nsISO88599ToUnicode_h___
 
-#include "nsISupports.h"
-
-
-
-
-
+#include "nsCP1254ToUnicode.h"
 
 
 nsresult
