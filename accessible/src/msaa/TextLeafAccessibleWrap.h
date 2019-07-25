@@ -3,22 +3,25 @@
 
 
 
-#ifndef _nsTextAccessibleWrap_H_
-#define _nsTextAccessibleWrap_H_
+#ifndef mozilla_a11y_TextLeafAccessibleWrap_h__
+#define mozilla_a11y_TextLeafAccessibleWrap_h__
 
-#include "nsTextAccessible.h"
+#include "TextLeafAccessible.h"
 #include "ISimpleDOMText.h"
 #include "nsRect.h"
 
 class nsIFrame;
 class nsRenderingContext;
 
-class nsTextAccessibleWrap : public nsTextAccessible, 
-                             public ISimpleDOMText
+namespace mozilla {
+namespace a11y {
+ 
+class TextLeafAccessibleWrap : public TextLeafAccessible, 
+                               public ISimpleDOMText
 {
 public:
-  nsTextAccessibleWrap(nsIContent* aContent, nsDocAccessible* aDoc);
-  virtual ~nsTextAccessibleWrap() {}
+  TextLeafAccessibleWrap(nsIContent* aContent, nsDocAccessible* aDoc);
+  virtual ~TextLeafAccessibleWrap() {}
 
     
     STDMETHODIMP_(ULONG) AddRef();
@@ -60,6 +63,9 @@ public:
     nsIFrame* GetPointFromOffset(nsIFrame *aContainingFrame,
                                  PRInt32 aOffset, bool aPreferNext, nsPoint& aOutPoint);
 };
+
+} 
+} 
 
 #endif
 

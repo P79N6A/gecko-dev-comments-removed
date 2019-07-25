@@ -6,26 +6,8 @@
 #ifndef _nsHTMLTextAccessible_H_
 #define _nsHTMLTextAccessible_H_
 
-#include "nsTextAccessibleWrap.h"
 #include "nsAutoPtr.h"
 #include "nsBaseWidgetAccessible.h"
-
-
-
-
-class nsHTMLTextAccessible : public nsTextAccessibleWrap
-{
-public:
-  nsHTMLTextAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
-
-  
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
-  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
-  virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
-  virtual mozilla::a11y::role NativeRole();
-};
 
 
 
