@@ -299,6 +299,7 @@ public:
 
 
 
+  mozilla::dom::Element* GetElementContainerOrSelf(nsINode* aNode);
   already_AddRefed<nsIDOMElement> GetElementContainerOrSelf(nsIDOMNode* aNode);
 
   
