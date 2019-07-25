@@ -135,7 +135,6 @@ nsHttpChannel::nsHttpChannel()
     , mResuming(false)
     , mInitedCacheEntry(false)
     , mCacheForOfflineUse(false)
-    , mCachingOpportunistically(false)
     , mFallbackChannel(false)
     , mCustomConditionalRequest(false)
     , mFallingBack(false)
@@ -2082,7 +2081,6 @@ nsHttpChannel::ProcessFallback(bool *waitingForRedirectCallback)
     }
 
     mCacheForOfflineUse = false;
-    mCachingOpportunistically = false;
     mOfflineCacheClientID.Truncate();
     mOfflineCacheEntry = 0;
     mOfflineCacheAccess = 0;
@@ -2335,9 +2333,7 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
             NS_FAILED(namespaceEntry->GetItemType(&namespaceType)) ||
             (namespaceType &
              (nsIApplicationCacheNamespace::NAMESPACE_FALLBACK |
-              nsIApplicationCacheNamespace::NAMESPACE_OPPORTUNISTIC |
               nsIApplicationCacheNamespace::NAMESPACE_BYPASS)) == 0) {
-            
             
             
             
@@ -2352,19 +2348,6 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
             nsIApplicationCacheNamespace::NAMESPACE_FALLBACK) {
             rv = namespaceEntry->GetData(mFallbackKey);
             NS_ENSURE_SUCCESS(rv, rv);
-        }
-
-        if ((namespaceType &
-             nsIApplicationCacheNamespace::NAMESPACE_OPPORTUNISTIC) &&
-            mLoadFlags & LOAD_DOCUMENT_URI) {
-            
-            
-            nsCString clientID;
-            mApplicationCache->GetClientID(clientID);
-
-            mCacheForOfflineUse = !clientID.IsEmpty();
-            SetOfflineCacheClientID(clientID);
-            mCachingOpportunistically = true;
         }
     }
 
@@ -3105,17 +3088,6 @@ nsHttpChannel::CloseOfflineCacheEntry()
 
     mOfflineCacheEntry = 0;
     mOfflineCacheAccess = 0;
-
-    if (mCachingOpportunistically) {
-        nsCOMPtr<nsIApplicationCacheService> appCacheService =
-            do_GetService(NS_APPLICATIONCACHESERVICE_CONTRACTID);
-        if (appCacheService) {
-            nsCAutoString cacheKey;
-            GenerateCacheKey(mPostID, cacheKey);
-            appCacheService->CacheOpportunistically(mApplicationCache,
-                                                    cacheKey);
-        }
-    }
 }
 
 
