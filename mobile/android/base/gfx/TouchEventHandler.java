@@ -150,6 +150,12 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
             return true;
         }
 
+        
+        if (isHoverEvent(event)) {
+            mOnTouchListener.onTouch(mView, event);
+            return true;
+        }
+
         if (isDownEvent(event)) {
             
             mHoldInQueue = mWaitForTouchListeners;
@@ -230,6 +236,11 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
     
     public void setOnTouchListener(OnTouchListener onTouchListener) {
         mOnTouchListener = onTouchListener;
+    }
+
+    private boolean isHoverEvent(MotionEvent event) {
+        int action = (event.getAction() & MotionEvent.ACTION_MASK);
+        return (action == MotionEvent.ACTION_HOVER_ENTER || action == MotionEvent.ACTION_HOVER_MOVE || action == MotionEvent.ACTION_HOVER_EXIT);
     }
 
     private boolean isDownEvent(MotionEvent event) {
