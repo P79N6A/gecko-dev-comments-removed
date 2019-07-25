@@ -164,12 +164,6 @@ public:
   
 
 
-  static nsIStringBundle* GetStringBundle()
-    { return gStringBundle; }
-
-  
-
-
   void Language(nsAString& aLocale);
   void ScrollTo(PRUint32 aType);
 
