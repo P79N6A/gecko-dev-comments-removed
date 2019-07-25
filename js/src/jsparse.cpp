@@ -2539,12 +2539,6 @@ JSParseNode *
 Parser::functionDef(uintN lambda, bool namePermitted)
 {
     
-
-
-
-    JSOp op = tokenStream.currentToken().t_op;
-
-    
     JSParseNode *pn = FunctionNode::create(tc);
     if (!pn)
         return NULL;
@@ -2691,9 +2685,6 @@ Parser::functionDef(uintN lambda, bool namePermitted)
         return NULL;
 
     JSFunction *fun = (JSFunction *) funbox->object;
-
-    if (op != JSOP_NOP)
-        fun->flags |= (op == JSOP_GETTER) ? JSPROP_GETTER : JSPROP_SETTER;
 
     
 #if JS_HAS_DESTRUCTURING
@@ -2903,6 +2894,7 @@ Parser::functionDef(uintN lambda, bool namePermitted)
     }
 
     JSParseNode *result = pn;
+    JSOp op = JSOP_NOP;
     if (lambda != 0) {
         
 
@@ -2931,8 +2923,6 @@ Parser::functionDef(uintN lambda, bool namePermitted)
 
 
         op = JSOP_DEFFUN;
-    } else {
-        op = JSOP_NOP;
     }
 
     funbox->kids = funtc.functionList;
