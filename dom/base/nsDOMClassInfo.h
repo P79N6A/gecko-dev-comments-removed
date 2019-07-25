@@ -133,6 +133,11 @@ public:
 
 
 
+
+
+
+
+
   static bool ObjectIsNativeWrapper(JSContext* cx, JSObject* obj);
 
   static nsISupports *GetNative(nsIXPConnectWrappedNative *wrapper, JSObject *obj);

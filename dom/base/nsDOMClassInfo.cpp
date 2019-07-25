@@ -7197,7 +7197,8 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
 
-  if (!ObjectIsNativeWrapper(cx, obj)) {
+  if (!ObjectIsNativeWrapper(cx, obj) ||
+      xpc::WrapperFactory::XrayWrapperNotShadowing(obj, id)) {
     nsCOMPtr<nsIDocShellTreeNode> dsn(do_QueryInterface(win->GetDocShell()));
 
     int32_t count = 0;
@@ -9221,7 +9222,8 @@ nsHTMLDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
     JSAutoRequest ar(cx);
 
-    if (!ObjectIsNativeWrapper(cx, obj)) {
+    if (!ObjectIsNativeWrapper(cx, obj) ||
+        xpc::WrapperFactory::XrayWrapperNotShadowing(obj, id)) {
       nsCOMPtr<nsISupports> result;
       nsWrapperCache *cache;
       nsresult rv = ResolveImpl(cx, wrapper, id, getter_AddRefs(result),
@@ -9313,23 +9315,20 @@ nsHTMLDocumentSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
                               JSContext *cx, JSObject *obj, jsid id,
                               jsval *vp, bool *_retval)
 {
-  
-  if (!ObjectIsNativeWrapper(cx, obj)) {
-    nsCOMPtr<nsISupports> result;
+  nsCOMPtr<nsISupports> result;
 
-    JSAutoRequest ar(cx);
+  JSAutoRequest ar(cx);
 
-    nsWrapperCache *cache;
-    nsresult rv = ResolveImpl(cx, wrapper, id, getter_AddRefs(result), &cache);
-    NS_ENSURE_SUCCESS(rv, rv);
+  nsWrapperCache *cache;
+  nsresult rv = ResolveImpl(cx, wrapper, id, getter_AddRefs(result), &cache);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    if (result) {
-      rv = WrapNative(cx, obj, result, cache, true, vp);
-      if (NS_SUCCEEDED(rv)) {
-        rv = NS_SUCCESS_I_DID_SOMETHING;
-      }
-      return rv;
+  if (result) {
+    rv = WrapNative(cx, obj, result, cache, true, vp);
+    if (NS_SUCCEEDED(rv)) {
+      rv = NS_SUCCESS_I_DID_SOMETHING;
     }
+    return rv;
   }
 
   return NS_OK;
@@ -9371,7 +9370,8 @@ nsHTMLFormElementSH::NewResolve(nsIXPConnectWrappedNative *wrapper,
 {
   
   if ((!(JSRESOLVE_ASSIGNING & flags)) && JSID_IS_STRING(id) &&
-      !ObjectIsNativeWrapper(cx, obj)) {
+      (!ObjectIsNativeWrapper(cx, obj) ||
+       xpc::WrapperFactory::XrayWrapperNotShadowing(obj, id))) {
     nsCOMPtr<nsIForm> form(do_QueryWrappedNative(wrapper, obj));
     nsCOMPtr<nsISupports> result;
     nsWrapperCache *cache;
@@ -9402,18 +9402,16 @@ nsHTMLFormElementSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
 
   if (JSID_IS_STRING(id)) {
     
-    if (!ObjectIsNativeWrapper(cx, obj)) {
-      nsCOMPtr<nsISupports> result;
-      nsWrapperCache *cache;
+    nsCOMPtr<nsISupports> result;
+    nsWrapperCache *cache;
 
-      FindNamedItem(form, id, getter_AddRefs(result), &cache);
+    FindNamedItem(form, id, getter_AddRefs(result), &cache);
 
-      if (result) {
-        
-        
-        nsresult rv = WrapNative(cx, obj, result, cache, true, vp);
-        return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
-      }
+    if (result) {
+      
+      
+      nsresult rv = WrapNative(cx, obj, result, cache, true, vp);
+      return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
     }
   } else {
     int32_t n = GetArrayIndexFromId(cx, id);

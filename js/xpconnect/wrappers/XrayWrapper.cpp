@@ -279,6 +279,68 @@ createHolder(JSContext *cx, JSObject *wrappedNative, JSObject *parent)
 
 using namespace XrayUtils;
 
+ResolvingId::ResolvingId(JSObject *wrapper, jsid id)
+    : mId(id),
+    mHolder(getHolderObject(wrapper)),
+    mPrev(getResolvingId(mHolder)),
+    mXrayShadowing(false)
+{
+    js::SetReservedSlot(mHolder, JSSLOT_RESOLVING, js::PrivateValue(this));
+}
+
+ResolvingId::~ResolvingId()
+{
+    MOZ_ASSERT(getResolvingId(mHolder) == this, "unbalanced ResolvingIds");
+    js::SetReservedSlot(mHolder, JSSLOT_RESOLVING, js::PrivateValue(mPrev));
+}
+
+bool
+ResolvingId::isXrayShadowing(jsid id)
+{
+    if (!mXrayShadowing)
+        return false;
+
+    return mId == id;
+}
+
+bool
+ResolvingId::isResolving(jsid id)
+{
+    for (ResolvingId *cur = this; cur; cur = cur->mPrev) {
+        if (cur->mId == id)
+            return true;
+    }
+
+    return false;
+}
+
+ResolvingId *
+ResolvingId::getResolvingId(JSObject *holder)
+{
+    MOZ_ASSERT(strcmp(JS_GetClass(holder)->name, "NativePropertyHolder") == 0);
+    return (ResolvingId *)js::GetReservedSlot(holder, JSSLOT_RESOLVING).toPrivate();
+}
+
+JSObject *
+ResolvingId::getHolderObject(JSObject *wrapper)
+{
+    return &js::GetProxyExtra(wrapper, 0).toObject();
+}
+
+ResolvingId *
+ResolvingId::getResolvingIdFromWrapper(JSObject *wrapper)
+{
+    return getResolvingId(getHolderObject(wrapper));
+}
+
+class ResolvingIdDummy
+{
+public:
+    ResolvingIdDummy(JSObject *wrapper, jsid id)
+    {
+    }
+};
+
 class XPCWrappedNativeXrayTraits
 {
 public:
@@ -298,29 +360,17 @@ public:
     }
     static JSObject* getInnerObject(JSObject *wrapper);
 
-    class ResolvingId
-    {
-    public:
-        ResolvingId(JSObject *holder, jsid id);
-        ~ResolvingId();
-
-    private:
-        friend class XPCWrappedNativeXrayTraits;
-
-        jsid mId;
-        JSObject *mHolder;
-        ResolvingId *mPrev;
-    };
     static bool isResolving(JSContext *cx, JSObject *holder, jsid id);
+
+    static bool resolveDOMCollectionProperty(JSContext *cx, JSObject *wrapper, JSObject *holder,
+                                             jsid id, bool set, PropertyDescriptor *desc);
+
+    typedef ResolvingId ResolvingIdImpl;
 
 private:
     static JSObject* getHolderObject(JSObject *wrapper)
     {
         return &js::GetProxyExtra(wrapper, 0).toObject();
-    }
-    static ResolvingId* getResolvingId(JSObject *holder)
-    {
-        return (ResolvingId *)js::GetReservedSlot(holder, JSSLOT_RESOLVING).toPrivate();
     }
 };
 
@@ -346,17 +396,12 @@ public:
         return &js::GetProxyPrivate(wrapper).toObject();
     }
 
-    class ResolvingId
-    {
-    public:
-        ResolvingId(JSObject *holder, jsid id)
-        {
-        }
-    };
     static bool isResolving(JSContext *cx, JSObject *holder, jsid id)
     {
-      return false;
+        return false;
     }
+
+    typedef ResolvingIdDummy ResolvingIdImpl;
 
 private:
     static JSObject* getHolderObject(JSContext *cx, JSObject *wrapper,
@@ -395,17 +440,12 @@ public:
         return &js::GetProxyPrivate(wrapper).toObject();
     }
 
-    class ResolvingId
-    {
-    public:
-        ResolvingId(JSObject *holder, jsid id)
-        {
-        }
-    };
     static bool isResolving(JSContext *cx, JSObject *holder, jsid id)
     {
-      return false;
+        return false;
     }
+
+    typedef ResolvingIdDummy ResolvingIdImpl;
 
 private:
     static JSObject* getHolderObject(JSContext *cx, JSObject *wrapper,
@@ -472,30 +512,11 @@ XPCWrappedNativeXrayTraits::getInnerObject(JSObject *wrapper)
     return GetWrappedNativeObjectFromHolder(getHolderObject(wrapper));
 }
 
-XPCWrappedNativeXrayTraits::ResolvingId::ResolvingId(JSObject *wrapper, jsid id)
-  : mId(id),
-    mHolder(getHolderObject(wrapper)),
-    mPrev(getResolvingId(mHolder))
-{
-    js::SetReservedSlot(mHolder, JSSLOT_RESOLVING, PrivateValue(this));
-}
-
-XPCWrappedNativeXrayTraits::ResolvingId::~ResolvingId()
-{
-    NS_ASSERTION(getResolvingId(mHolder) == this, "unbalanced ResolvingIds");
-    js::SetReservedSlot(mHolder, JSSLOT_RESOLVING, PrivateValue(mPrev));
-}
-
 bool
 XPCWrappedNativeXrayTraits::isResolving(JSContext *cx, JSObject *holder,
                                         jsid id)
 {
-    for (ResolvingId *cur = getResolvingId(holder); cur; cur = cur->mPrev) {
-        if (cur->mId == id)
-            return true;
-    }
-
-    return false;
+    return ResolvingId::getResolvingId(holder)->isResolving(id);
 }
 
 
@@ -548,6 +569,71 @@ holder_set(JSContext *cx, JSHandleObject wrapper_, JSHandleId id, JSBool strict,
     return true;
 }
 
+class AutoSetWrapperNotShadowing
+{
+public:
+    AutoSetWrapperNotShadowing(JSObject *wrapper MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        MOZ_ASSERT(wrapper);
+        mResolvingId = ResolvingId::getResolvingIdFromWrapper(wrapper);
+        MOZ_ASSERT(mResolvingId);
+        mResolvingId->mXrayShadowing = true;
+    }
+
+    ~AutoSetWrapperNotShadowing()
+    {
+        mResolvingId->mXrayShadowing = false;
+    }
+
+private:
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    ResolvingId *mResolvingId;
+};
+
+
+
+
+
+bool
+XPCWrappedNativeXrayTraits::resolveDOMCollectionProperty(JSContext *cx, JSObject *wrapper,
+                                                         JSObject *holder, jsid id, bool set,
+                                                         PropertyDescriptor *desc)
+{
+    
+    
+    ResolvingId *rid = ResolvingId::getResolvingId(holder);
+    if (!rid || rid->mId != id)
+        return true;
+
+    XPCWrappedNative *wn = GetWrappedNativeFromHolder(holder);
+    if (!NATIVE_HAS_FLAG(wn, WantNewResolve))
+        return true;
+
+    
+    
+    AutoSetWrapperNotShadowing asw(wrapper);
+
+    bool retval = true;
+    JSObject *pobj = NULL;
+    unsigned flags = (set ? JSRESOLVE_ASSIGNING : 0) | JSRESOLVE_QUALIFIED;
+    nsresult rv = wn->GetScriptableInfo()->GetCallback()->NewResolve(wn, cx, wrapper, id,
+                                                                     flags, &pobj, &retval);
+    if (NS_FAILED(rv)) {
+        if (retval)
+            XPCThrower::Throw(rv, cx);
+        return false;
+    }
+
+    if (pobj && !JS_GetPropertyDescriptorById(cx, holder, id,
+                                              JSRESOLVE_QUALIFIED, desc))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 bool
 XPCWrappedNativeXrayTraits::resolveNativeProperty(JSContext *cx, JSObject *wrapper,
                                                   JSObject *holder, jsid id, bool set,
@@ -564,9 +650,11 @@ XPCWrappedNativeXrayTraits::resolveNativeProperty(JSContext *cx, JSObject *wrapp
 
     
     
+    
+    
     if (!JSID_IS_STRING(id)) {
         
-        return true;
+        return resolveDOMCollectionProperty(cx, wrapper, holder, id, set, desc);
     }
 
     XPCNativeInterface *iface;
@@ -576,7 +664,7 @@ XPCWrappedNativeXrayTraits::resolveNativeProperty(JSContext *cx, JSObject *wrapp
         !(iface = ccx.GetInterface()) ||
         !(member = ccx.GetMember())) {
         
-        return true;
+        return resolveDOMCollectionProperty(cx, wrapper, holder, id, set, desc);
     }
 
     desc->obj = holder;
@@ -1235,7 +1323,7 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, JSObject *wrappe
     if (!this->enter(cx, wrapper, id, action, &status))
         return status;
 
-    typename Traits::ResolvingId resolving(wrapper, id);
+    typename Traits::ResolvingIdImpl resolving(wrapper, id);
 
     
     if (XrayUtils::IsTransparent(cx, wrapper)) {
@@ -1334,7 +1422,7 @@ XrayWrapper<Base, Traits>::getOwnPropertyDescriptor(JSContext *cx, JSObject *wra
     if (!this->enter(cx, wrapper, id, action, &status))
         return status;
 
-    typename Traits::ResolvingId resolving(wrapper, id);
+    typename Traits::ResolvingIdImpl resolving(wrapper, id);
 
     
     

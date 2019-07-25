@@ -626,6 +626,14 @@ WrapperFactory::WrapForSameCompartmentXray(JSContext *cx, JSObject *obj)
 }
 
 
+bool
+WrapperFactory::XrayWrapperNotShadowing(JSObject *wrapper, jsid id)
+{
+    ResolvingId *rid = ResolvingId::getResolvingIdFromWrapper(wrapper);
+    return rid->isXrayShadowing(id);
+}
+
+
 
 
 
