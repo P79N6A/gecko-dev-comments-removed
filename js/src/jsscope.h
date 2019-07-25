@@ -224,7 +224,9 @@ struct JSScope : public JSObjectMap
 #endif
     JSObject        *object;            
     uint32          freeslot;           
+  protected:
     uint8           flags;              
+  public:
     int8            hashShift;          
 
     uint16          spare;              
@@ -423,9 +425,10 @@ struct JSScope : public JSObjectMap
 
 
 
-    bool branded()              { JS_ASSERT(!generic()); return flags & BRANDED; }
+    bool branded()              { return flags & BRANDED; }
 
     bool brand(JSContext *cx, uint32 slot, jsval v) {
+        JS_ASSERT(!generic());
         JS_ASSERT(!branded());
         generateOwnShape(cx);
         if (js_IsPropertyCacheDisabled(cx))  
@@ -435,7 +438,17 @@ struct JSScope : public JSObjectMap
     }
 
     bool generic()              { return flags & GENERIC; }
-    void setGeneric()           { flags |= GENERIC; }
+
+    
+
+
+
+
+
+    void unbrand(JSContext *cx) {
+        if (!branded())
+            flags |= GENERIC;
+    }
 
     bool hadIndexedProperties() { return flags & INDEXED_PROPERTIES; }
     void setIndexedProperties() { flags |= INDEXED_PROPERTIES; }
