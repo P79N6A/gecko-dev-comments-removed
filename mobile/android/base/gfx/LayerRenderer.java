@@ -313,18 +313,6 @@ public class LayerRenderer {
                                  mCoordBuffer);
     }
 
-    public void resizeView(final int width, final int height) {
-        
-        
-        mView.post(new Runnable() {
-            public void run() {
-                mView.setViewportSize(new IntSize(width, height));
-            }
-        });
-
-        
-    }
-
     private void updateDroppedFrames(long frameStartTime) {
         int frameElapsedTime = (int)(SystemClock.uptimeMillis() - frameStartTime);
 
