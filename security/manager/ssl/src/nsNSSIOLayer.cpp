@@ -164,6 +164,8 @@ nsNSSSocketInfo::nsNSSSocketInfo()
     mErrorCode(0),
     mErrorMessageType(PlainErrorMessage),
     mForSTARTTLS(false),
+    mSSL3Enabled(false),
+    mTLSEnabled(false),
     mHandshakePending(true),
     mHasCleartextPhase(false),
     mHandshakeInProgress(false),
@@ -1759,15 +1761,12 @@ nsSSLIOLayerHelpers::getSiteKey(nsNSSSocketInfo *socketInfo, nsCSubstring &key)
 
 
 bool
-nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(PRFileDesc* ssl_layer_fd, nsNSSSocketInfo *socketInfo)
+nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(nsNSSSocketInfo *socketInfo)
 {
-  PRBool currentlyUsesTLS = false;
-
   nsCAutoString key;
   getSiteKey(socketInfo, key);
 
-  SSL_OptionGet(ssl_layer_fd, SSL_ENABLE_TLS, &currentlyUsesTLS);
-  if (!currentlyUsesTLS) {
+  if (!socketInfo->IsTLSEnabled()) {
     
     
     
@@ -1776,27 +1775,19 @@ nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(PRFileDesc* ssl_layer_fd, ns
     return false;
   }
 
-  PRBool enableSSL3 = false;
-  SSL_OptionGet(ssl_layer_fd, SSL_ENABLE_SSL3, &enableSSL3);
-  if (enableSSL3) {
+  if (socketInfo->IsSSL3Enabled()) {
     
     addIntolerantSite(key);
   }
   
-  return currentlyUsesTLS;
+  return socketInfo->IsTLSEnabled();
 }
 
 void
-nsSSLIOLayerHelpers::rememberTolerantSite(PRFileDesc* ssl_layer_fd, 
-                                          nsNSSSocketInfo *socketInfo)
+nsSSLIOLayerHelpers::rememberTolerantSite(nsNSSSocketInfo *socketInfo)
 {
-  PRBool usingSecurity = false;
-  PRBool currentlyUsesTLS = false;
-  SSL_OptionGet(ssl_layer_fd, SSL_SECURITY, &usingSecurity);
-  SSL_OptionGet(ssl_layer_fd, SSL_ENABLE_TLS, &currentlyUsesTLS);
-  if (!usingSecurity || !currentlyUsesTLS) {
+  if (!socketInfo->IsTLSEnabled())
     return;
-  }
 
   nsCAutoString key;
   getSiteKey(socketInfo, key);
@@ -2024,7 +2015,7 @@ PRInt32 checkHandshake(PRInt32 bytesTransfered, bool wasReading,
       if (!wantRetry 
           && isTLSIntoleranceError(err, socketInfo->GetHasCleartextPhase()))
       {
-        wantRetry = nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(ssl_layer_fd, socketInfo);
+        wantRetry = nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(socketInfo);
       }
     }
     
@@ -2052,7 +2043,7 @@ PRInt32 checkHandshake(PRInt32 bytesTransfered, bool wasReading,
           && !socketInfo->GetHasCleartextPhase()) 
       {
         wantRetry = 
-          nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(ssl_layer_fd, socketInfo);
+          nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(socketInfo);
       }
     }
   }
@@ -3914,6 +3905,16 @@ nsSSLIOLayerSetOptions(PRFileDesc *fd, bool forSTARTTLS,
     
     
   }
+
+  PRBool enabled;
+  if (SECSuccess != SSL_OptionGet(fd, SSL_ENABLE_SSL3, &enabled)) {
+    return NS_ERROR_FAILURE;
+  }
+  infoObject->SetSSL3Enabled(enabled);
+  if (SECSuccess != SSL_OptionGet(fd, SSL_ENABLE_TLS, &enabled)) {
+    return NS_ERROR_FAILURE;
+  }
+  infoObject->SetTLSEnabled(enabled);
 
   if (SECSuccess != SSL_OptionSet(fd, SSL_HANDSHAKE_AS_CLIENT, true)) {
     return NS_ERROR_FAILURE;

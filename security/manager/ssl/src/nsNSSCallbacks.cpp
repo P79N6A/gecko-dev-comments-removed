@@ -836,7 +836,7 @@ void PR_CALLBACK HandshakeCallback(PRFileDesc* fd, void* client_data) {
 
   
   
-  nsSSLIOLayerHelpers::rememberTolerantSite(fd, infoObject);
+  nsSSLIOLayerHelpers::rememberTolerantSite(infoObject);
 
   if (SECSuccess != SSL_SecurityStatus(fd, &sslStatus, &cipherName, &keyLength,
                                        &encryptBits, &signer, nsnull)) {
