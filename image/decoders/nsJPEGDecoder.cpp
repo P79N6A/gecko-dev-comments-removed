@@ -191,7 +191,7 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
   nsresult error_code;
   
   
-  if ((error_code = (nsresult)setjmp(mErr.setjmp_buffer)) != 0) {
+  if ((error_code = (nsresult)setjmp(mErr.setjmp_buffer)) != NS_OK) {
     if (error_code == NS_ERROR_FAILURE) {
       PostDataError();
       
@@ -658,7 +658,8 @@ my_error_exit (j_common_ptr cinfo)
 #endif
 
   
-  longjmp(err->setjmp_buffer, error_code);
+
+  longjmp(err->setjmp_buffer, static_cast<int>(error_code));
 }
 
 
