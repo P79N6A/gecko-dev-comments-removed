@@ -116,7 +116,6 @@ static const int32 SCOPENAME_JUMP_OFFSET = 5;
 static const int32 BINDNAME_INLINE_JUMP_OFFSET = 10; 
 static const int32 BINDNAME_STUB_JUMP_OFFSET   =  5; 
 #elif defined JS_CPU_X64
-static const int32 BINDNAME_INLINE_JUMP_OFFSET = 36; 
 static const int32 BINDNAME_STUB_JUMP_OFFSET   =  5; 
 #endif
 
@@ -178,6 +177,12 @@ union PICLabels {
         
         int32 stubShapeJump : 8;
     } getelem;
+
+    
+    struct {
+        
+        int32 inlineJumpOffset : 8;
+    } bindname;
 };
 #endif
 
