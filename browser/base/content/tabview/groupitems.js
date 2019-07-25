@@ -1459,32 +1459,34 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   reorderTabsBasedOnTabItemOrder: function GroupItem_reorderTabsBasedOnTabItemOrder() {
-    var tabBarTabs = Array.slice(gBrowser.tabs);
-    var currentIndex;
+    let targetIndices = null;
 
-    
-    
-    this._children.forEach(function(tabItem) {
-      tabBarTabs.some(function(tab, i) {
-        if (tabItem.tab == tab) {
-          if (!currentIndex)
-            currentIndex = i;
-          else if (tab.pinned)
-            currentIndex++;
-          else {
-            var removed;
-            if (currentIndex < i)
-              currentIndex = i;
-            else if (currentIndex > i) {
-              removed = tabBarTabs.splice(i, 1);
-              tabBarTabs.splice(currentIndex, 0, removed);
-              gBrowser.moveTabTo(tabItem.tab, currentIndex);
-            }
-          }
+    let self = this;
+    this._children.some(function(tabItem, index) {
+      
+      if (!targetIndices) {
+        let currentIndices = [tabItem.tab._tPos for each (tabItem in self._children)];
+        targetIndices = currentIndices.concat().sort();
+        
+        if (currentIndices == targetIndices)
           return true;
-        }
-        return false;
-      });
+      }
+    
+      
+      let originalIndex = tabItem.tab._tPos;
+      let targetRange = new Range(index ? targetIndices[index - 1] : -1,
+                                  targetIndices[index + 1] || Infinity);
+
+      
+      
+      if (!targetRange.contains(originalIndex)) {
+        let targetIndex = targetIndices[index];
+        gBrowser.moveTabTo(tabItem.tab, targetIndex);
+        
+        targetIndices = null;
+      }
+      
+      return false;
     });
   },
 
