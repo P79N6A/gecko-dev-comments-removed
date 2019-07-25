@@ -204,6 +204,34 @@ class JaegerCompartment {
 #endif
 };
 
+
+
+
+
+
+
+
+class CompilerAllocPolicy : public ContextAllocPolicy
+{
+    bool *oomFlag;
+
+    void *checkAlloc(void *p) {
+        if (!p)
+            *oomFlag = true;
+        return p;
+    }
+
+  public:
+    CompilerAllocPolicy(JSContext *cx, bool *oomFlag)
+    : ContextAllocPolicy(cx), oomFlag(oomFlag) {}
+    CompilerAllocPolicy(JSContext *cx, Compiler &compiler);
+
+    void *malloc(size_t bytes) { return checkAlloc(ContextAllocPolicy::malloc(bytes)); }
+    void *realloc(void *p, size_t bytes) {
+        return checkAlloc(ContextAllocPolicy::realloc(p, bytes));
+    }
+};
+
 namespace ic {
 # if defined JS_POLYIC
     struct PICInfo;
