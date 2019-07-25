@@ -143,6 +143,9 @@ pref("formhelper.autozoom", true);
 pref("formhelper.restore", false);
 
 
+pref("findhelper.autozoom", true);
+
+
 pref("browser.formfill.enable", true);
 
 #ifdef WINCE

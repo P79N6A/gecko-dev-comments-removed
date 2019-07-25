@@ -1832,6 +1832,9 @@ IdentityHandler.prototype = {
     this._identityPopupContentVerif.textContent = verifier;
 
     
+    FindHelperUI.updateFindInPage();
+
+    
     BrowserSearch.updatePageSearchEngines();
 
     
