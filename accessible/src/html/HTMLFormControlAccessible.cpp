@@ -63,6 +63,9 @@
 #include "nsIServiceManager.h"
 #include "nsITextControlFrame.h"
 
+#include "mozilla/Preferences.h"
+
+using namespace mozilla;
 using namespace mozilla::a11y;
 
 
@@ -496,7 +499,7 @@ HTMLTextFieldAccessible::NativeState()
 
   
   
-  if (mParent && gIsFormFillEnabled) {
+  if (mParent && Preferences::GetBool("browser.formfill.enable")) {
     
     
     
