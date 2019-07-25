@@ -58,13 +58,18 @@ Image::Image(imgStatusTracker* aStatusTracker) :
 }
 
 PRUint32
-Image::GetDataSize()
+Image::SizeOfData()
 {
   if (mError)
     return 0;
   
-  return GetSourceHeapSize() + GetDecodedHeapSize() +
-         GetDecodedNonheapSize() + GetDecodedOutOfProcessSize();
+  
+  
+  
+  return PRUint32(HeapSizeOfSourceWithComputedFallback(moz_malloc_size_of) +
+                  HeapSizeOfDecodedWithComputedFallback(moz_malloc_size_of) +
+                  NonHeapSizeOfDecoded() +
+                  OutOfProcessSizeOfDecoded());
 }
 
 
