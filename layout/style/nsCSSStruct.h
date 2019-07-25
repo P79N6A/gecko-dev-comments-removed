@@ -344,16 +344,16 @@ struct nsCSSTable : public nsCSSStruct  {
   nsCSSValue mBorderSpacing;
   nsCSSValue mCaptionSide;
   nsCSSValue mEmptyCells;
-  
+
   nsCSSValue mLayout;
-  nsCSSValue mSpan; 
-  nsCSSValue mCols; 
 private:
   nsCSSTable(const nsCSSTable& aOther); 
 };
 
 struct nsRuleDataTable : public nsCSSTable {
   nsRuleDataTable() {}
+  nsCSSValue mSpan; 
+  nsCSSValue mCols; 
 private:
   nsRuleDataTable(const nsRuleDataTable& aOther); 
 };
