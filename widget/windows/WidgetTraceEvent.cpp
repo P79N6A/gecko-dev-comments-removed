@@ -125,6 +125,7 @@ bool InitWidgetTracing()
 void CleanUpWidgetTracing()
 {
   CloseHandle(sEventHandle);
+  sEventHandle = NULL;
 }
 
 
