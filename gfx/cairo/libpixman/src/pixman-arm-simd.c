@@ -29,7 +29,7 @@
 
 #include "pixman-private.h"
 #include "pixman-arm-common.h"
-#include "pixman-fast-path.h"
+#include "pixman-inlines.h"
 
 #if 0 
 

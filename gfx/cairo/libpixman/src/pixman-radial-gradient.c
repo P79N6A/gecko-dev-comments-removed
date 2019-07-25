@@ -92,7 +92,7 @@ radial_compute_color (double                    a,
 
 
 
-    double det;
+    double discr;
 
     if (a == 0)
     {
@@ -116,14 +116,25 @@ radial_compute_color (double                    a,
 	return 0;
     }
 
-    det = fdot (b, a, 0, b, -c, 0);
-    if (det >= 0)
+    discr = fdot (b, a, 0, b, -c, 0);
+    if (discr >= 0)
     {
-	double sqrtdet, t0, t1;
+	double sqrtdiscr, t0, t1;
 
-	sqrtdet = sqrt (det);
-	t0 = (b + sqrtdet) * inva;
-	t1 = (b - sqrtdet) * inva;
+	sqrtdiscr = sqrt (discr);
+	t0 = (b + sqrtdiscr) * inva;
+	t1 = (b - sqrtdiscr) * inva;
+
+	
+
+
+
+
+
+
+
+
+
 
 	if (repeat == PIXMAN_REPEAT_NONE)
 	{
@@ -251,7 +262,7 @@ radial_get_scanline_narrow (pixman_iter_t *iter, const uint32_t *mask)
     {
 	if (!pixman_transform_point_3d (image->common.transform, &v))
 	    return iter->buffer;
-	
+
 	unit.vector[0] = image->common.transform->matrix[0][0];
 	unit.vector[1] = image->common.transform->matrix[1][0];
 	unit.vector[2] = image->common.transform->matrix[2][0];
@@ -457,4 +468,3 @@ pixman_image_create_radial_gradient (pixman_point_fixed_t *        inner,
 
     return image;
 }
-

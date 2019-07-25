@@ -102,7 +102,11 @@
 
 static const box_type_t PREFIX (_empty_box_) = { 0, 0, 0, 0 };
 static const region_data_type_t PREFIX (_empty_data_) = { 0, 0 };
+#if defined (__llvm__) && !defined (__clang__)
+static const volatile region_data_type_t PREFIX (_broken_data_) = { 0, 0 };
+#else
 static const region_data_type_t PREFIX (_broken_data_) = { 0, 0 };
+#endif
 
 static box_type_t *pixman_region_empty_box =
     (box_type_t *)&PREFIX (_empty_box_);
@@ -824,8 +828,7 @@ pixman_op (region_type_t *  new_reg,
     {
         if (!pixman_rect_alloc (new_reg, new_size))
         {
-            if (old_data)
-		free (old_data);
+            free (old_data);
             return FALSE;
 	}
     }
@@ -1001,8 +1004,7 @@ pixman_op (region_type_t *  new_reg,
         APPEND_REGIONS (new_reg, r2_band_end, r2_end);
     }
 
-    if (old_data)
-	free (old_data);
+    free (old_data);
 
     if (!(numRects = new_reg->data->numRects))
     {
@@ -1023,8 +1025,7 @@ pixman_op (region_type_t *  new_reg,
     return TRUE;
 
 bail:
-    if (old_data)
-	free (old_data);
+    free (old_data);
 
     return pixman_break (new_reg);
 }
@@ -2089,6 +2090,39 @@ PIXMAN_EXPORT PREFIX (_inverse) (region_type_t *new_reg,
 
 
 
+static box_type_t *
+find_box_for_y (box_type_t *begin, box_type_t *end, int y)
+{
+    box_type_t *mid;
+
+    if (end == begin)
+	return end;
+
+    if (end - begin == 1)
+    {
+	if (begin->y2 > y)
+	    return begin;
+	else
+	    return end;
+    }
+
+    mid = begin + (end - begin) / 2;
+    if (mid->y2 > y)
+    {
+	
+
+
+
+	return find_box_for_y (begin, mid, y);
+    }
+    else
+    {
+	return find_box_for_y (mid, end, y);
+    }
+}
+
+
+
 
 
 
@@ -2139,12 +2173,15 @@ PIXMAN_EXPORT PREFIX (_contains_rectangle) (region_type_t *  region,
 
     
     for (pbox = PIXREGION_BOXPTR (region), pbox_end = pbox + numRects;
-         pbox != pbox_end;
-         pbox++)
+	 pbox != pbox_end;
+	 pbox++)
     {
-
-        if (pbox->y2 <= y)
-	    continue;   
+	
+	if (pbox->y2 <= y)
+	{
+	    if ((pbox = find_box_for_y (pbox, pbox_end, y)) == pbox_end)
+		break;
+	}
 
         if (pbox->y1 > y)
         {
@@ -2319,6 +2356,16 @@ PREFIX (_reset) (region_type_t *region, box_type_t *box)
     region->data = NULL;
 }
 
+PIXMAN_EXPORT void
+PREFIX (_clear) (region_type_t *region)
+{
+    GOOD (region);
+    FREE_DATA (region);
+
+    region->extents = *pixman_region_empty_box;
+    region->data = pixman_region_empty_data;
+}
+
 
 PIXMAN_EXPORT int
 PREFIX (_contains_point) (region_type_t * region,
@@ -2342,13 +2389,13 @@ PREFIX (_contains_point) (region_type_t * region,
         return(TRUE);
     }
 
-    for (pbox = PIXREGION_BOXPTR (region), pbox_end = pbox + numRects;
-	 pbox != pbox_end;
-	 pbox++)
-    {
-        if (y >= pbox->y2)
-	    continue;           
+    pbox = PIXREGION_BOXPTR (region);
+    pbox_end = pbox + numRects;
 
+    pbox = find_box_for_y (pbox, pbox_end, y);
+
+    for (;pbox != pbox_end; pbox++)
+    {
         if ((y < pbox->y1) || (x < pbox->x1))
 	    break;              
 

@@ -24,10 +24,15 @@
 #endif
 
 #include <string.h>
+#include <stdlib.h>
 
 #if defined(USE_ARM_SIMD) && defined(_MSC_VER)
 
 #include <windows.h>
+#endif
+
+#if defined(__APPLE__)
+#include "TargetConditionals.h"
 #endif
 
 #include "pixman-private.h"
@@ -187,7 +192,7 @@ pixman_have_vmx (void)
 #endif 
 #endif 
 
-#if defined(USE_ARM_SIMD) || defined(USE_ARM_NEON)
+#if defined(USE_ARM_SIMD) || defined(USE_ARM_NEON) || defined(USE_ARM_IWMMXT)
 
 #if defined(_MSC_VER)
 
@@ -244,16 +249,48 @@ pixman_have_arm_neon (void)
 
 #endif 
 
-#elif defined (__linux__) || defined(ANDROID) 
+#elif (defined (__APPLE__) && defined(TARGET_OS_IPHONE)) 
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <string.h>
-#include <elf.h>
+
+
+
+
+
+
+
+pixman_bool_t
+pixman_have_arm_simd (void)
+{
+#if defined(USE_ARM_SIMD)
+    return TRUE;
+#else
+    return FALSE;
+#endif
+}
+
+pixman_bool_t
+pixman_have_arm_neon (void)
+{
+#if defined(USE_ARM_NEON) && defined(__ARM_NEON__)
+    
+    return TRUE;
+#else
+    
+    return FALSE;
+#endif
+}
+
+pixman_bool_t
+pixman_have_arm_iwmmxt (void)
+{
+#if defined(USE_ARM_IWMMXT)
+    return FALSE;
+#else
+    return FALSE;
+#endif
+}
+
+#elif defined (__linux__) || defined(__ANDROID__) || defined(ANDROID) 
 
 static pixman_bool_t arm_has_v7 = FALSE;
 static pixman_bool_t arm_has_v6 = FALSE;
@@ -262,15 +299,10 @@ static pixman_bool_t arm_has_neon = FALSE;
 static pixman_bool_t arm_has_iwmmxt = FALSE;
 static pixman_bool_t arm_tests_initialized = FALSE;
 
-#ifdef ANDROID
-
-
-
-
-
+#if defined(__ANDROID__) || defined(ANDROID) 
 
 static void
-pixman_arm_detect_cpu_features (void)
+pixman_arm_read_auxv_or_cpu_features ()
 {
     char buf[1024];
     char* pos;
@@ -298,10 +330,18 @@ pixman_arm_detect_cpu_features (void)
     arm_tests_initialized = TRUE;
 }
 
-#else
+#elif defined (__linux__) 
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <string.h>
+#include <elf.h>
 
 static void
-pixman_arm_detect_cpu_features (void)
+pixman_arm_read_auxv_or_cpu_features ()
 {
     int fd;
     Elf32_auxv_t aux;
@@ -341,14 +381,15 @@ pixman_arm_detect_cpu_features (void)
 
     arm_tests_initialized = TRUE;
 }
-#endif
+
+#endif 
 
 #if defined(USE_ARM_SIMD)
 pixman_bool_t
 pixman_have_arm_simd (void)
 {
     if (!arm_tests_initialized)
-	pixman_arm_detect_cpu_features ();
+	pixman_arm_read_auxv_or_cpu_features ();
 
     return arm_has_v6;
 }
@@ -360,9 +401,21 @@ pixman_bool_t
 pixman_have_arm_neon (void)
 {
     if (!arm_tests_initialized)
-	pixman_arm_detect_cpu_features ();
+	pixman_arm_read_auxv_or_cpu_features ();
 
     return arm_has_neon;
+}
+
+#endif 
+
+#if defined(USE_ARM_IWMMXT)
+pixman_bool_t
+pixman_have_arm_iwmmxt (void)
+{
+    if (!arm_tests_initialized)
+	pixman_arm_read_auxv_or_cpu_features ();
+
+    return arm_has_iwmmxt;
 }
 
 #endif 
@@ -371,12 +424,61 @@ pixman_have_arm_neon (void)
 
 #define pixman_have_arm_simd() FALSE
 #define pixman_have_arm_neon() FALSE
+#define pixman_have_arm_iwmmxt() FALSE
 
 #endif
 
 #endif 
 
-#if defined(USE_MMX) || defined(USE_SSE2)
+#if defined(USE_MIPS_DSPR2)
+
+#if defined (__linux__) 
+
+pixman_bool_t
+pixman_have_mips_dspr2 (void)
+{
+    const char *search_string = "MIPS 74K";
+    const char *file_name = "/proc/cpuinfo";
+    
+
+
+
+
+
+
+
+
+    char cpuinfo_line[256];
+
+    FILE *f = NULL;
+
+    if ((f = fopen (file_name, "r")) == NULL)
+        return FALSE;
+
+    while (fgets (cpuinfo_line, sizeof (cpuinfo_line), f) != NULL)
+    {
+        if (strstr (cpuinfo_line, search_string) != NULL)
+        {
+            fclose (f);
+            return TRUE;
+        }
+    }
+
+    fclose (f);
+
+    
+    return FALSE;
+}
+
+#else 
+
+#define pixman_have_mips_dspr2() FALSE
+
+#endif 
+
+#endif 
+
+#if defined(USE_X86_MMX) || defined(USE_SSE2)
 
 
 
@@ -567,6 +669,7 @@ detect_cpu_features (void)
     return features;
 }
 
+#ifdef USE_X86_MMX
 static pixman_bool_t
 pixman_have_mmx (void)
 {
@@ -582,6 +685,7 @@ pixman_have_mmx (void)
 
     return mmx_present;
 }
+#endif
 
 #ifdef USE_SSE2
 static pixman_bool_t
@@ -603,7 +707,7 @@ pixman_have_sse2 (void)
 #endif
 
 #else 
-#ifdef USE_MMX
+#ifdef USE_X86_MMX
 #define pixman_have_mmx() TRUE
 #endif
 #ifdef USE_SSE2
@@ -612,38 +716,83 @@ pixman_have_sse2 (void)
 #endif 
 #endif
 
+static pixman_bool_t
+disabled (const char *name)
+{
+    const char *env;
+
+    if ((env = getenv ("PIXMAN_DISABLE")))
+    {
+	do
+	{
+	    const char *end;
+	    int len;
+
+	    if ((end = strchr (env, ' ')))
+		len = end - env;
+	    else
+		len = strlen (env);
+
+	    if (strlen (name) == len && strncmp (name, env, len) == 0)
+	    {
+		printf ("pixman: Disabled %s implementation\n", name);
+		return TRUE;
+	    }
+
+	    env += len;
+	}
+	while (*env++);
+    }
+
+    return FALSE;
+}
+
 pixman_implementation_t *
 _pixman_choose_implementation (void)
 {
     pixman_implementation_t *imp;
 
     imp = _pixman_implementation_create_general();
-    imp = _pixman_implementation_create_fast_path (imp);
-    
-#ifdef USE_MMX
-    if (pixman_have_mmx ())
+
+    if (!disabled ("fast"))
+	imp = _pixman_implementation_create_fast_path (imp);
+
+#ifdef USE_X86_MMX
+    if (!disabled ("mmx") && pixman_have_mmx ())
 	imp = _pixman_implementation_create_mmx (imp);
 #endif
 
 #ifdef USE_SSE2
-    if (pixman_have_sse2 ())
+    if (!disabled ("sse2") && pixman_have_sse2 ())
 	imp = _pixman_implementation_create_sse2 (imp);
 #endif
 
 #ifdef USE_ARM_SIMD
-    if (pixman_have_arm_simd ())
+    if (!disabled ("arm-simd") && pixman_have_arm_simd ())
 	imp = _pixman_implementation_create_arm_simd (imp);
 #endif
 
+#ifdef USE_ARM_IWMMXT
+    if (!disabled ("arm-iwmmxt") && pixman_have_arm_iwmmxt ())
+	imp = _pixman_implementation_create_mmx (imp);
+#endif
+
 #ifdef USE_ARM_NEON
-    if (pixman_have_arm_neon ())
+    if (!disabled ("arm-neon") && pixman_have_arm_neon ())
 	imp = _pixman_implementation_create_arm_neon (imp);
 #endif
-    
+
+#ifdef USE_MIPS_DSPR2
+    if (!disabled ("mips-dspr2") && pixman_have_mips_dspr2 ())
+	imp = _pixman_implementation_create_mips_dspr2 (imp);
+#endif
+
 #ifdef USE_VMX
-    if (pixman_have_vmx ())
+    if (!disabled ("vmx") && pixman_have_vmx ())
 	imp = _pixman_implementation_create_vmx (imp);
 #endif
+
+    imp = _pixman_implementation_create_noop (imp);
 
     return imp;
 }
