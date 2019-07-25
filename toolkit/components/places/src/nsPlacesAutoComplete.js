@@ -393,6 +393,11 @@ nsPlacesAutoComplete.prototype = {
   {
     
     
+    if ("_pendingQuery" in this)
+      this.stopSearch();
+
+    
+    
 
     
     
