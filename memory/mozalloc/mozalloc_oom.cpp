@@ -38,7 +38,7 @@
 
 
 
-#if defined(XP_WIN) || (defined(XP_OS2) && defined(__declspec))
+#if defined(XP_WIN) || defined(XP_OS2)
 #  define MOZALLOC_EXPORT __declspec(dllexport)
 #endif
 
