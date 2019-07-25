@@ -62,7 +62,7 @@
 #include "nsLayoutErrors.h"
 #include "nsFocusManager.h"
 #include "nsHTMLFormElement.h"
-#include "nsConstraintValidation.h"
+#include "nsIConstraintValidation.h"
 
 #define NS_IN_SUBMIT_CLICK      (1 << 0)
 #define NS_OUTER_ACTIVATE_EVENT (1 << 1)
@@ -79,7 +79,7 @@ static const nsAttrValue::EnumTable* kButtonDefaultType = &kButtonTypeTable[2];
 
 class nsHTMLButtonElement : public nsGenericHTMLFormElement,
                             public nsIDOMHTMLButtonElement,
-                            public nsConstraintValidation
+                            public nsIConstraintValidation
 {
 public:
   nsHTMLButtonElement(already_AddRefed<nsINodeInfo> aNodeInfo);
@@ -185,13 +185,13 @@ DOMCI_NODE_DATA(HTMLButtonElement, nsHTMLButtonElement)
 NS_INTERFACE_TABLE_HEAD(nsHTMLButtonElement)
   NS_HTML_CONTENT_INTERFACE_TABLE2(nsHTMLButtonElement,
                                    nsIDOMHTMLButtonElement,
-                                   nsConstraintValidation)
+                                   nsIConstraintValidation)
   NS_HTML_CONTENT_INTERFACE_TABLE_TO_MAP_SEGUE(nsHTMLButtonElement,
                                                nsGenericHTMLFormElement)
 NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLButtonElement)
 
 
-NS_IMPL_NSCONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(nsHTMLButtonElement)
+NS_IMPL_NSICONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(nsHTMLButtonElement)
 
 
 
@@ -676,7 +676,7 @@ nsHTMLButtonElement::IntrinsicState() const
 NS_IMETHODIMP
 nsHTMLButtonElement::SetCustomValidity(const nsAString& aError)
 {
-  nsConstraintValidation::SetCustomValidity(aError);
+  nsIConstraintValidation::SetCustomValidity(aError);
 
   nsIDocument* doc = GetCurrentDoc();
   if (doc) {

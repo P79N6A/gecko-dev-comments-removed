@@ -39,7 +39,7 @@
 #define nsDOMValidityState_h__
 
 #include "nsIDOMValidityState.h"
-#include "nsConstraintValidation.h"
+#include "nsIConstraintValidation.h"
 
 
 class nsDOMValidityState : public nsIDOMValidityState
@@ -48,10 +48,10 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMVALIDITYSTATE
 
-  friend class nsConstraintValidation;
+  friend class nsIConstraintValidation;
 
 protected:
-  nsDOMValidityState(nsConstraintValidation* aConstraintValidation);
+  nsDOMValidityState(nsIConstraintValidation* aConstraintValidation);
 
   
 
@@ -66,14 +66,14 @@ protected:
   
 
 
-  inline PRBool GetValidityState(nsConstraintValidation::ValidityStateType aState) const
+  inline PRBool GetValidityState(nsIConstraintValidation::ValidityStateType aState) const
   {
     return mConstraintValidation &&
            mConstraintValidation->GetValidityState(aState);
   }
 
   
-  nsConstraintValidation*       mConstraintValidation;
+  nsIConstraintValidation*       mConstraintValidation;
 };
 
 #endif 

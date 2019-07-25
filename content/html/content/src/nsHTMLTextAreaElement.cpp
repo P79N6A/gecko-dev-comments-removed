@@ -77,7 +77,7 @@
 #include "mozAutoDocUpdate.h"
 #include "nsISupportsPrimitives.h"
 #include "nsContentCreatorFunctions.h"
-#include "nsConstraintValidation.h"
+#include "nsIConstraintValidation.h"
 
 #include "nsTextEditorState.h"
 
@@ -91,7 +91,7 @@ class nsHTMLTextAreaElement : public nsGenericHTMLFormElement,
                               public nsITextControlElement,
                               public nsIDOMNSEditableElement,
                               public nsStubMutationObserver,
-                              public nsConstraintValidation
+                              public nsIConstraintValidation
 {
 public:
   nsHTMLTextAreaElement(already_AddRefed<nsINodeInfo> aNodeInfo,
@@ -306,7 +306,7 @@ NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLTextAreaElement)
                                    nsITextControlElement,
                                    nsIDOMNSEditableElement,
                                    nsIMutationObserver,
-                                   nsConstraintValidation)
+                                   nsIConstraintValidation)
   NS_HTML_CONTENT_INTERFACE_TABLE_TO_MAP_SEGUE(nsHTMLTextAreaElement,
                                                nsGenericHTMLFormElement)
 NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLTextAreaElement)
@@ -318,7 +318,7 @@ NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLTextAreaElement)
 NS_IMPL_ELEMENT_CLONE(nsHTMLTextAreaElement)
 
 
-NS_IMPL_NSCONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(nsHTMLTextAreaElement)
+NS_IMPL_NSICONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(nsHTMLTextAreaElement)
 
 
 NS_IMETHODIMP
@@ -1096,7 +1096,7 @@ nsHTMLTextAreaElement::IsMutable() const
 NS_IMETHODIMP
 nsHTMLTextAreaElement::SetCustomValidity(const nsAString& aError)
 {
-  nsConstraintValidation::SetCustomValidity(aError);
+  nsIConstraintValidation::SetCustomValidity(aError);
 
   nsIDocument* doc = GetCurrentDoc();
   if (doc) {
@@ -1193,7 +1193,7 @@ nsHTMLTextAreaElement::GetValidationMessage(nsAString& aValidationMessage,
       }
       break;
     default:
-      rv = nsConstraintValidation::GetValidationMessage(aValidationMessage, aType);
+      rv = nsIConstraintValidation::GetValidationMessage(aValidationMessage, aType);
   }
 
   return rv;

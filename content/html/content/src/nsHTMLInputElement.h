@@ -49,7 +49,7 @@
 
 #include "nsTextEditorState.h"
 #include "nsCOMPtr.h"
-#include "nsConstraintValidation.h"
+#include "nsIConstraintValidation.h"
 
 
 
@@ -82,7 +82,7 @@ class nsHTMLInputElement : public nsGenericHTMLFormElement,
                            public nsIPhonetic,
                            public nsIDOMNSEditableElement,
                            public nsIFileControlElement,
-                           public nsConstraintValidation
+                           public nsIConstraintValidation
 {
 public:
   nsHTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,

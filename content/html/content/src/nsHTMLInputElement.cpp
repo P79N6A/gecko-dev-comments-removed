@@ -306,13 +306,13 @@ NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLInputElement)
                                    nsIImageLoadingContent,
                                    imgIContainerObserver,
                                    nsIDOMNSEditableElement,
-                                   nsConstraintValidation)
+                                   nsIConstraintValidation)
   NS_HTML_CONTENT_INTERFACE_TABLE_TO_MAP_SEGUE(nsHTMLInputElement,
                                                nsGenericHTMLFormElement)
 NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLInputElement)
 
 
-NS_IMPL_NSCONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(nsHTMLInputElement)
+NS_IMPL_NSICONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(nsHTMLInputElement)
 
 
 
@@ -3183,7 +3183,7 @@ nsHTMLInputElement::DoesPatternApply() const
 NS_IMETHODIMP
 nsHTMLInputElement::SetCustomValidity(const nsAString& aError)
 {
-  nsConstraintValidation::SetCustomValidity(aError);
+  nsIConstraintValidation::SetCustomValidity(aError);
 
   nsIDocument* doc = GetCurrentDoc();
   if (doc) {
@@ -3449,7 +3449,7 @@ nsHTMLInputElement::GetValidationMessage(nsAString& aValidationMessage,
       break;
     }
     default:
-      rv = nsConstraintValidation::GetValidationMessage(aValidationMessage, aType);
+      rv = nsIConstraintValidation::GetValidationMessage(aValidationMessage, aType);
   }
 
   return rv;
