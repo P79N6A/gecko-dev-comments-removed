@@ -93,6 +93,9 @@ public:
 
 
   virtual PRInt32 GetCharNumAtPosition(nsIDOMSVGPoint *point);
+  void GetEffectiveXY(nsTArray<float> &aX, nsTArray<float> &aY);
+  void GetEffectiveDxDy(nsTArray<float> &aDx, nsTArray<float> &aDy);
+  void GetEffectiveRotate(nsTArray<float> &aRotate);
 
 protected:
   
@@ -111,6 +114,15 @@ protected:
 
 
   void SetWhitespaceHandling();
+  void CopyPositionList(nsTArray<float> *parentList,
+                        mozilla::SVGUserUnitList *selfList,
+                        nsTArray<float> &dstList,
+                        PRUint32 aOffset);
+  void CopyRotateList(nsTArray<float> *parentList,
+                      nsCOMPtr<nsIDOMSVGNumberList> selfList,
+                      nsTArray<float> &dstList,
+                      PRUint32 aOffset);
+  PRUint32 BuildPositionList(PRUint32 aOffset, PRUint32 aDepth);
 
 private:
   
@@ -126,6 +138,11 @@ private:
 
 
   nsSVGTextFrame * GetTextFrame();
+  nsTArray<float> mX;
+  nsTArray<float> mY;
+  nsTArray<float> mDx;
+  nsTArray<float> mDy;
+  nsTArray<float> mRotate;
 };
 
 #endif

@@ -65,6 +65,23 @@ public:
   NS_IMETHOD_(PRBool) IsStartOfChunk()=0; 
 
   NS_IMETHOD_(void) GetXY(mozilla::SVGUserUnitList *aX, mozilla::SVGUserUnitList *aY)=0;
+  NS_IMETHOD_(void) SetStartIndex(PRUint32 aStartIndex)=0;
+  
+
+
+
+  NS_IMETHOD_(void) GetEffectiveXY(nsTArray<float> &aX, nsTArray<float> &aY)=0;
+  
+
+
+
+  NS_IMETHOD_(void) GetEffectiveDxDy(nsTArray<float> &aDx,
+                                     nsTArray<float> &aDy)=0;
+  
+
+
+
+  NS_IMETHOD_(void) GetEffectiveRotate(nsTArray<float> &aRotate)=0;
   NS_IMETHOD_(PRUint16) GetTextAnchor()=0;
   NS_IMETHOD_(PRBool) IsAbsolutelyPositioned()=0;
 };
