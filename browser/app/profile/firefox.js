@@ -937,13 +937,11 @@ pref("toolbar.customization.usesheet", false);
 
 #ifdef XP_MACOSX
 
+pref("dom.ipc.plugins.enabled.i386", false);
+pref("dom.ipc.plugins.enabled.i386.flash player.plugin", true);
+pref("dom.ipc.plugins.enabled.i386.javaplugin2_npapi.plugin", true);
 
-
-
-pref("dom.ipc.plugins.enabled", false);
-
-pref("dom.ipc.plugins.enabled.flash player.plugin", true);
-pref("dom.ipc.plugins.enabled.javaplugin2_npapi.plugin", true);
+pref("dom.ipc.plugins.enabled.x86_64", true);
 #elifdef MOZ_IPC
 pref("dom.ipc.plugins.enabled", true);
 #else
