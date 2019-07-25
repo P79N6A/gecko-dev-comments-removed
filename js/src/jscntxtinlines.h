@@ -134,18 +134,6 @@ struct PreserveRegsGuard
     FrameRegs &regs_;
 };
 
-static inline GlobalObject *
-GetGlobalForScopeChain(JSContext *cx)
-{
-    if (cx->hasfp())
-        return &cx->fp()->global();
-
-    JSObject *scope = JS_ObjectToInnerObject(cx, HandleObject::fromMarkedLocation(&cx->globalObject));
-    if (!scope)
-        return NULL;
-    return &scope->asGlobal();
-}
-
 inline GSNCache *
 GetGSNCache(JSContext *cx)
 {
@@ -211,12 +199,7 @@ class CompartmentChecker
   public:
     explicit CompartmentChecker(JSContext *cx)
       : context(cx), compartment(cx->compartment)
-    {
-        if (cx->compartment) {
-            GlobalObject *global = GetGlobalForScopeChain(cx);
-            JS_ASSERT(cx->global() == global);
-        }
-    }
+    {}
 
     
 
@@ -582,6 +565,22 @@ inline js::PropertyTree&
 JSContext::propertyTree()
 {
     return compartment->propertyTree;
+}
+
+inline void
+JSContext::setDefaultCompartmentObject(JSObject *obj)
+{
+    defaultCompartmentObject_ = obj;
+
+    if (!hasfp())
+        resetCompartment();
+}
+
+inline void
+JSContext::setDefaultCompartmentObjectIfUnset(JSObject *obj)
+{
+    if (!defaultCompartmentObject_)
+        setDefaultCompartmentObject(obj);
 }
 
 

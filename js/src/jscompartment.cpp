@@ -182,15 +182,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 
 
-    RootedObject global(cx);
-    if (cx->hasfp()) {
-        global = &cx->fp()->global();
-    } else {
-        global = cx->globalObject;
-        global = JS_ObjectToInnerObject(cx, global);
-        if (!global)
-            return false;
-    }
+    HandleObject global = cx->global();
 
     
     if (vp->isObject()) {
@@ -202,7 +194,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         
         if (obj->isStopIteration()) {
             RootedValue vvp(cx, *vp);
-            bool result = js_FindClassObject(cx, NullPtr(), JSProto_StopIteration, &vvp);
+            bool result = js_FindClassObject(cx, JSProto_StopIteration, &vvp);
             *vp = vvp;
             return result;
         }

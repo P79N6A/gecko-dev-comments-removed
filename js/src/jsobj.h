@@ -1148,8 +1148,8 @@ js_IdentifyClassPrototype(JSObject *obj);
 
 
 bool
-js_FindClassObject(JSContext *cx, js::HandleObject start, JSProtoKey protoKey,
-                   js::MutableHandleValue vp, js::Class *clasp = NULL);
+js_FindClassObject(JSContext *cx, JSProtoKey protoKey, js::MutableHandleValue vp,
+                   js::Class *clasp = NULL);
 
 
 
@@ -1409,8 +1409,8 @@ js_Object(JSContext *cx, unsigned argc, js::Value *vp);
 
 
 extern JS_FRIEND_API(bool)
-js_GetClassPrototype(JSContext *cx, js::HandleObject scopeobj, JSProtoKey protoKey,
-                     js::MutableHandleObject protop, js::Class *clasp = NULL);
+js_GetClassPrototype(JSContext *cx, JSProtoKey protoKey, js::MutableHandleObject protop,
+                     js::Class *clasp = NULL);
 
 namespace js {
 

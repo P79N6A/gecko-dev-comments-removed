@@ -1167,6 +1167,18 @@ struct JSContext : js::ContextFriendFields
     inline void setCompartment(JSCompartment *compartment);
 
     
+
+
+
+
+  private:
+    JSObject *defaultCompartmentObject_;
+  public:
+    inline void setDefaultCompartmentObject(JSObject *obj);
+    inline void setDefaultCompartmentObjectIfUnset(JSObject *obj);
+    JSObject *maybeDefaultCompartmentObject() const { return defaultCompartmentObject_; }
+
+    
     js::ContextStack    stack;
 
     
@@ -1190,9 +1202,6 @@ struct JSContext : js::ContextFriendFields
     js::frontend::ParseMapPool *parseMapPool_;
 
   public:
-    
-    JSObject            *globalObject;
-
     
     JSSharpObjectMap    sharpObjectMap;
     js::BusyArraysSet   busyArrays;
@@ -1789,9 +1798,6 @@ js_HandleExecutionInterrupt(JSContext *cx);
 
 extern jsbytecode*
 js_GetCurrentBytecodePC(JSContext* cx);
-
-extern JSScript *
-js_GetCurrentScript(JSContext* cx);
 
 
 

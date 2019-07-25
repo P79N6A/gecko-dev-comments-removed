@@ -679,21 +679,6 @@ ArrayBufferObject::obj_typeOf(JSContext *cx, HandleObject obj)
 
 
 
-static JSObject *
-GetProtoForClass(JSContext *cx, Class *clasp)
-{
-    
-    Rooted<GlobalObject*> parent(cx, GetCurrentGlobal(cx));
-    RootedObject proto(cx);
-    if (!FindProto(cx, clasp, parent, &proto))
-        return NULL;
-    return proto;
-}
-
-
-
-
-
 
 
 
@@ -1678,8 +1663,9 @@ class TypedArrayTemplate
 
 
 
-                Rooted<JSObject*> proto(cx, GetProtoForClass(cx, fastClass()));
-                if (!proto)
+
+                Rooted<JSObject*> proto(cx);
+                if (!FindProto(cx, fastClass(), &proto))
                     return NULL;
 
                 InvokeArgsGuard ag;
