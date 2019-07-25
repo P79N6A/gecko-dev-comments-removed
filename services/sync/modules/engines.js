@@ -288,36 +288,11 @@ SyncEngine.prototype = {
   },
 
   
-  
-  
-  _createRecord: function SyncEngine__createRecord(id, encrypt) {
-    let self = yield;
-
-    let record = new CryptoWrapper();
+  _createRecord: function SyncEngine__createRecord(id) {
+    let record = this._store.createRecord(id);
     record.uri = this.engineURL + id;
     record.encryption = this.cryptoMetaURL;
-    record.cleartext = this._store.wrapItem(id);
-
-    
-    if (record.cleartext) {
-      if (record.cleartext.parentid) {
-        record.parentid = record.cleartext.parentid;
-        delete record.cleartext.parentid;
-      }
-      if (typeof(record.cleartext.depth) != "undefined") {
-        record.depth = record.cleartext.depth;
-        delete record.cleartext.depth;
-      }
-      if (typeof(record.cleartext.sortindex) != "undefined") {
-        record.sortindex = record.cleartext.sortindex;
-        delete record.cleartext.sortindex;
-      }
-    }
-
-    if (encrypt || encrypt == undefined)
-      yield record.encrypt(self.cb, ID.get('WeaveCryptoID').password);
-
-    self.done(record);
+    return record;
   },
 
   
@@ -389,16 +364,16 @@ SyncEngine.prototype = {
     
     
     
-    this._store.cacheItemsHint();
+    
 
     
     
     
     for (let id in this._tracker.changedIDs) {
-      this.outgoing.push(yield this._createRecord.async(this, self.cb, id, false));
+      this.outgoing.push(this._createRecord(id));
     }
 
-    this._store.clearItemCacheHint();
+    
   },
 
   
@@ -525,7 +500,7 @@ SyncEngine.prototype = {
       let up = new Collection(this.engineURL);
 
       
-      this._store.cacheItemsHint();
+      
       let depth = {};
 
       let out;
@@ -541,7 +516,7 @@ SyncEngine.prototype = {
       for (let id in depth) {
         up.pushDepthRecord({id: id, depth: depth[id]});
       }
-      this._store.clearItemCacheHint();
+      
 
       
       yield up.post(self.cb);
@@ -595,119 +570,5 @@ SyncEngine.prototype = {
     let self = yield;
     let all = new Resource(this.engineURL);
     yield all.delete(self.cb);
-  }
-};
-
-function BlobEngine() {
-  
-  
-}
-BlobEngine.prototype = {
-  __proto__: Engine.prototype,
-
-  get _profileID() {
-    return ClientData.GUID;
-  },
-
-  _init: function BlobEngine__init() {
-    
-    this.__proto__.__proto__.__proto__.__proto__._init.call(this);
-    this._keys = new Keychain(this.serverPrefix);
-    this._file = new Resource(this.serverPrefix + "data");
-    this._file.pushFilter(new JsonFilter());
-    this._file.pushFilter(new CryptoFilter(this.engineId));
-  },
-
-  _initialUpload: function BlobEngine__initialUpload() {
-    let self = yield;
-    this._log.info("Initial upload to server");
-    yield this._keys.initialize(self.cb, this.engineId);
-    this._file.data = {};
-    yield this._merge.async(this, self.cb);
-    yield this._file.put(self.cb);
-  },
-
-  
-  
-  _merge: function BlobEngine__merge() {
-    let self = yield;
-    this._file.data[this._profileID] = this._store.wrap();
-  },
-
-  
-  
-  
-  
-  
-  
-  _sync: function BlobEngine__sync() {
-    let self = yield;
-
-    this._log.info("Beginning sync");
-    this._os.notifyObservers(null, "weave:service:sync:engine:start", this.name);
-
-    
-    
-    
-
-    try {
-      if ("none" != Utils.prefs.getCharPref("encryption"))
-        yield this._keys.getKeyAndIV(self.cb, this.engineId);
-      yield this._file.get(self.cb);
-      yield this._merge.async(this, self.cb);
-      yield this._file.put(self.cb);
-
-    } catch (e if e.status == 404) {
-      yield this._initialUpload.async(this, self.cb);
-    }
-
-    this._log.info("Sync complete");
-    this._os.notifyObservers(null, "weave:service:sync:engine:success", this.name);
-    self.done(true);
-  }
-};
-
-function HeuristicEngine() {
-}
-HeuristicEngine.prototype = {
-  __proto__: new Engine(),
-
-  get _remote() {
-    let remote = new RemoteStore(this);
-    this.__defineGetter__("_remote", function() remote);
-    return remote;
-  },
-
-  get _snapshot() {
-    let snap = new SnapshotStore(this.name);
-    this.__defineGetter__("_snapshot", function() snap);
-    return snap;
-  },
-
-  _resetServer: function SyncEngine__resetServer() {
-    let self = yield;
-    yield this._remote.wipe(self.cb);
-  },
-
-  _resetClient: function SyncEngine__resetClient() {
-    let self = yield;
-    this._log.debug("Resetting client state");
-    this._snapshot.wipe();
-    this._store.wipe();
-    this._log.debug("Client reset completed successfully");
-  },
-
-  _initialUpload: function HeuristicEngine__initialUpload() {
-    let self = yield;
-    this._log.info("Initial upload to server");
-    this._snapshot.data = this._store.wrap();
-    this._snapshot.version = 0;
-    this._snapshot.GUID = null; 
-    yield this._remote.initialize(self.cb, this._snapshot);
-    this._snapshot.save();
-  },
-
-  _sync: function HeuristicEngine__sync() {
-    let self = yield;
   }
 };

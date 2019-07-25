@@ -66,6 +66,7 @@ Cu.import("resource://weave/trackers.js");
 Cu.import("resource://weave/identity.js");
 Cu.import("resource://weave/notifications.js");
 Cu.import("resource://weave/resource.js");
+Cu.import("resource://weave/type_records/bookmark.js");
 
 Function.prototype.async = Async.sugar;
 
@@ -128,17 +129,18 @@ BookmarksStore.prototype = {
     return this.__ls;
   },
 
-  __ms: null,
   get _ms() {
-    if (!this.__ms)
-      try {
-        this.__ms = Cc["@mozilla.org/microsummary/service;1"].
-          getService(Ci.nsIMicrosummaryService);
-      } catch( e ) {
-	this.__ms = SERVICE_NOT_SUPPORTED;
-	this._log.warn("There is no Microsummary service.");
-      }
-    return this.__ms;
+    let ms;
+    try {
+      ms = Cc["@mozilla.org/microsummary/service;1"].
+        getService(Ci.nsIMicrosummaryService);
+    } catch (e) {
+      ms = null;
+      this._log.warn("Could not load microsummary service");
+      this._log.debug(e);
+    }
+    this.__defineGetter__("_ms", function() ms);
+    return ms;
   },
 
   __ts: null,
@@ -171,6 +173,28 @@ BookmarksStore.prototype = {
     return null;
   },
 
+  _getWeaveIdForItem: function BStore__getWeaveIdForItem(placeId) {
+    if (placeId == this._bms.bookmarksMenuFolder)
+      return "menu";
+    if (placeId == this._bms.toolbarFolder)
+      return "toolbar";
+    if (placeId == this._bms.unfiledBookmarksFolder)
+      return "unfiled";
+    return this._bms.getItemGUID(placeId);
+  },
+
+  _isToplevel: function BStore__isToplevel(placeId) {
+    if (placeId == this._bms.bookmarksMenuFolder)
+      return true;
+    if (placeId == this._bms.toolbarFolder)
+      return true;
+    if (placeId == this._bms.unfiledBookmarksFolder)
+      return true;
+    if (this._bms.getFolderIdForItem(placeId) < 0)
+      return true;
+    return false;
+  },
+
   _itemExists: function BStore__itemExists(id) {
     return this._getItemIdForGUID(id) >= 0;
   },
@@ -189,11 +213,11 @@ BookmarksStore.prototype = {
     case "bookmark":
     case "microsummary": {
       this._log.debug(" -> creating bookmark \"" + record.cleartext.title + "\"");
-      let URI = Utils.makeURI(record.cleartext.URI);
-      newId = this._bms.insertBookmark(parentId, URI, record.sortindex,
+      let uri = Utils.makeURI(record.cleartext.uri);
+      newId = this._bms.insertBookmark(parentId, uri, record.sortindex,
                                        record.cleartext.title);
-      this._ts.untagURI(URI, null);
-      this._ts.tagURI(URI, record.cleartext.tags);
+      this._ts.untagURI(uri, null);
+      this._ts.tagURI(uri, record.cleartext.tags);
       this._bms.setKeywordForBookmark(newId, record.cleartext.keyword);
       if (record.cleartext.description) {
         this._ans.setItemAnnotation(newId, "bookmarkProperties/description",
@@ -210,7 +234,7 @@ BookmarksStore.prototype = {
 	  this._log.warn("Can't create microsummary -- not supported.");
 	} else {
           try {
-            let micsum = this._ms.createMicrosummary(URI, genURI);
+            let micsum = this._ms.createMicrosummary(uri, genURI);
             this._ms.setMicrosummary(newId, micsum);
           }
           catch(ex) {  }
@@ -348,8 +372,8 @@ BookmarksStore.prototype = {
       case "title":
         this._bms.setItemTitle(itemId, record.cleartext.title);
         break;
-      case "URI":
-        this._bms.changeBookmarkURI(itemId, Utils.makeURI(record.cleartext.URI));
+      case "uri":
+        this._bms.changeBookmarkURI(itemId, Utils.makeURI(record.cleartext.uri));
         break;
       case "tags": {
         
@@ -423,152 +447,132 @@ BookmarksStore.prototype = {
     Engines.get("bookmarks")._tracker._all[itemId] = newID; 
   },
 
-  _getNode: function BSS__getNode(folder) {
+  _getNode: function BStore__getNode(folder) {
     let query = this._hsvc.getNewQuery();
     query.setFolders([folder], 1);
     return this._hsvc.executeQuery(query, this._hsvc.getNewQueryOptions()).root;
   },
 
-  __wrap: function BSS___wrap(node, items, parentid, index, depth, guidOverride) {
-    let GUID, item;
+  
+  _itemDepth: function BStore__itemDepth(id) {
+    if (this._isToplevel(id))
+      return 0;
+    return this._itemDepth(this._bms.getFolderIdForItem(id)) + 1;
+  },
 
-    
-    if (guidOverride) {
-      GUID = guidOverride;
-      item = {sortindex: index, depth: depth};
-    } else {
-      GUID = this._bms.getItemGUID(node.itemId);
-      item = {parentid: parentid, sortindex: index, depth: depth};
+  _getTags: function BStore__getTags(uri) {
+    try {
+      if (typeof(uri) == "string")
+        uri = Utils.makeURI(uri);
+    } catch(e) {
+      this._log.warn("Could not parse URI \"" + uri + "\": " + e);
     }
+    return this._ts.getTagsForURI(uri, {});
+  },
 
-    if (node.type == node.RESULT_TYPE_FOLDER) {
-      if (this._ls.isLivemark(node.itemId)) {
-        item.type = "livemark";
-        let siteURI = this._ls.getSiteURI(node.itemId);
-        let feedURI = this._ls.getFeedURI(node.itemId);
-        item.siteURI = siteURI? siteURI.spec : "";
-        item.feedURI = feedURI? feedURI.spec : "";
-      } else if (this._ans.itemHasAnnotation(node.itemId, INCOMING_SHARED_ANNO)){
-	
-
-
-	item.type = "incoming-share";
-	item.title = node.title;
-        item.serverPathAnno = this._ans.getItemAnnotation(node.itemId,
-                                                      SERVER_PATH_ANNO);
-	item.incomingSharedAnno = this._ans.getItemAnnotation(node.itemId,
-                                                      INCOMING_SHARED_ANNO);
-      } else {
-        item.type = "folder";
-        node.QueryInterface(Ci.nsINavHistoryQueryResultNode);
-        node.containerOpen = true;
-	
-	if (this._ans.itemHasAnnotation(node.itemId, OUTGOING_SHARED_ANNO)) {
-	  item.outgoingSharedAnno = this._ans.getItemAnnotation(node.itemId,
-                                                      OUTGOING_SHARED_ANNO);
-	}
-	if (this._ans.itemHasAnnotation(node.itemId, SERVER_PATH_ANNO)) {
-	  item.serverPathAnno = this._ans.getItemAnnotation(node.itemId,
-							    SERVER_PATH_ANNO);
-	}
-
-        for (var i = 0; i < node.childCount; i++) {
-          this.__wrap(node.getChild(i), items, GUID, i, depth + 1);
-        }
-      }
-      if (!guidOverride)
-        item.title = node.title; 
-
-    } else if (node.type == node.RESULT_TYPE_URI ||
-               node.type == node.RESULT_TYPE_QUERY) {
-      if (this._ms != SERVICE_NOT_SUPPORTED &&
-	  this._ms.hasMicrosummary(node.itemId)) {
-        item.type = "microsummary";
-        let micsum = this._ms.getMicrosummary(node.itemId);
-        item.generatorURI = micsum.generator.uri.spec; 
-        item.staticTitle = "";
-        try {
-          item.staticTitle = this._ans.getItemAnnotation(node.itemId,
-                                                         "bookmarks/staticTitle");
-        } catch (e) {}
-      } else if (node.type == node.RESULT_TYPE_QUERY) {
-        item.type = "query";
-        item.title = node.title;
-      } else {
-        item.type = "bookmark";
-        item.title = node.title;
-      }
-
-      try {
-        item.description =
-          this._ans.getItemAnnotation(node.itemId, "bookmarkProperties/description");
-      } catch (e) {
-        item.description = undefined;
-      }
-
-      item.URI = node.uri;
-
-      
-      
-      
-      
-      let uri;
-      try {
-        uri = Utils.makeURI(node.uri);
-      }
-      catch(e) {
-        this._log.error("error parsing URI string <" + node.uri + "> " +
-                        "for item " + node.itemId + " (" + node.title + "): " +
-                        e);
-      }
-
-      if (uri)
-        item.tags = this._ts.getTagsForURI(uri, {});
-
-      item.keyword = this._bms.getKeywordForBookmark(node.itemId);
-
-    } else if (node.type == node.RESULT_TYPE_SEPARATOR) {
-      item.type = "separator";
-
-    } else {
-      this._log.warn("Warning: unknown item type, cannot serialize: " + node.type);
-      return;
+  _getDescription: function BStore__getDescription(id) {
+    try {
+      return this._ans.getItemAnnotation(id, "bookmarkProperties/description");
+    } catch (e) {
+      return undefined;
     }
+  },
 
-    items[GUID] = item;
+  _getStaticTitle: function BStore__getStaticTitle(id) {
+    try {
+      return this._ans.getItemAnnotation(id, "bookmarks/staticTitle");
+    } catch (e) {
+      return "";
+    }
   },
 
   
-  _wrap: function BStore__wrap(node, items, rootName) {
-    return this.__wrap(node, items, null, 0, 0, rootName);
+  
+  
+  createRecord: function BStore_createRecord(guid) {
+    let record;
+
+    let placeId = this._bms.getItemIdForGUID(guid);
+    if (placeId < 0) {
+      record = new PlacesItem();
+      record.cleartext = null; 
+      return record;
+    }
+
+    switch (this._bms.getItemType(placeId)) {
+    case this._bms.TYPE_BOOKMARK:
+      if (this._ms && this._ms.hasMicrosummary(placeId)) {
+        record = new BookmarkMicsum();
+        let micsum = this._ms.getMicrosummary(placeId);
+        record.generatorURI = micsum.generator.uri; 
+        record.staticTitle = this._getStaticTitle(placeId);
+
+      } else {
+        record = new Bookmark();
+        record.title = this._bms.getItemTitle(placeId);
+      }
+
+      record.bmkUri = this._bms.getBookmarkURI(placeId);
+      record.tags = this._getTags(record.bmkUri);
+      record.keyword = this._bms.getKeywordForBookmark(placeId);
+      record.description = this._getDescription(placeId);
+      break;
+
+    case this._bms.TYPE_FOLDER:
+      if (this._ls.isLivemark(placeId)) {
+        record = new Livemark();
+        record.siteURI = this._ls.getSiteURI(placeId);
+        record.feedURI = this._ls.getFeedURI(placeId);
+
+      } else {
+        record = new BookmarkFolder();
+        record.title = this._bms.getItemTitle(placeId);
+      }
+      break;
+
+    case this._bms.TYPE_SEPARATOR:
+      record = new BookmarkSeparator();
+      break;
+
+    case this._bms.TYPE_DYNAMIC_CONTAINER:
+      record = new PlacesItem();
+      this._log.warn("Don't know how to serialize dynamic containers yet");
+      break;
+
+    default:
+      record = new PlacesItem();
+      this._log.warn("Unknown item type, cannot serialize: " +
+                     this._bms.getItemType(placeId));
+    }
+
+    record.parentid = this._getWeaveIdForItem(this._bms.getFolderIdForItem(placeId));
+    record.depth = this._itemDepth(placeId);
+    record.sortindex = this._bms.getItemIndex(placeId);
+
+    return record;
   },
 
-  wrap: function BStore_wrap() {
-    var items = {};
-    this._wrap(this._getNode(this._bms.bookmarksMenuFolder), items, "menu");
-    this._wrap(this._getNode(this._bms.toolbarFolder), items, "toolbar");
-    this._wrap(this._getNode(this._bms.unfiledBookmarksFolder), items, "unfiled");
-    this._lookup = items;
+  getAllIDs: function BStore_getAllIDs(node, items) {
+    if (!node) {
+      let items = {};
+      this.getAllIDs(this._getNode(this._bms.bookmarksMenuFolder), items);
+      this.getAllIDs(this._getNode(this._bms.toolbarFolder), items);
+      this.getAllIDs(this._getNode(this._bms.unfiledBookmarksFolder), items);
+      return items;
+    }
+
+    if (node.type == node.RESULT_TYPE_FOLDER &&
+        !this._ls.isLivemark(node.itemId)) {
+      node.QueryInterface(Ci.nsINavHistoryQueryResultNode);
+      node.containerOpen = true;
+      for (var i = 0; i < node.childCount; i++) {
+        let child = node.getChild(i);
+        items[this._bms.getItemGUID(child.itemId)] = {placesId: child.itemId};
+        this.getAllIDs(child, items);
+      }
+    }
+
     return items;
-  },
-
-  
-  
-  
-  wrapItem: function BStore_wrapItem(id) {
-    if (this._itemCache)
-      return this._itemCache[id];
-    let all = this.wrap();
-    return all[id];
-  },
-
-  
-  getAllIDs: function BStore_getAllIDs() {
-    let all = this.wrap();
-    delete all["unfiled"];
-    delete all["toolbar"];
-    delete all["menu"];
-    return all;
   },
 
   wipe: function BStore_wipe() {
@@ -630,7 +634,7 @@ BookmarksTracker.prototype = {
 
     
     let store = new BookmarksStore();
-    let all = store.wrap();
+    let all = store.getAllIDs();
     this._all = {};
     for (let guid in all) {
       this._all[this._bms.getItemIdForGUID(guid)] = guid;
