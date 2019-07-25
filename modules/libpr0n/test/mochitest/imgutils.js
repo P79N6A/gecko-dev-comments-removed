@@ -73,29 +73,49 @@ function forceDecode(id)
 
 
 
-const DISCARD_BRANCH_NAME = "image.cache.";
-const DISCARD_PREF_NAME = "discard_timer_ms";
 
-function setDiscardTimerPref(timeMS)
+const DISCARD_ENABLED_PREF = {name: "discardable", branch: "image.mem.", type: "bool"};
+const DECODEONDRAW_ENABLED_PREF = {name: "decodeondraw", branch: "image.mem.", type: "bool"};
+const DISCARD_TIMEOUT_PREF = {name: "min_discard_timeout_ms", branch: "image.mem.", type: "int"};
+
+function setImagePref(pref, val)
 {
   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
   var prefService = Components.classes["@mozilla.org/preferences-service;1"]
                               .getService(Components.interfaces.nsIPrefService);
-  var branch = prefService.getBranch(DISCARD_BRANCH_NAME);
-  if (timeMS != null)
-    branch.setIntPref(DISCARD_PREF_NAME, timeMS);
-  else if (branch.prefHasUserValue(DISCARD_PREF_NAME))
-    branch.clearUserPref(DISCARD_PREF_NAME);
+  var branch = prefService.getBranch(pref.branch);
+  if (val != null) {
+    switch(pref.type) {
+      case "bool":
+        branch.setBoolPref(pref.name, val);
+        break;
+      case "int":
+        branch.setIntPref(pref.name, val);
+        break;
+      default:
+        throw new Error("Unknown pref type");
+    }
+  }
+  else if (branch.prefHasUserValue(pref.name))
+    branch.clearUserPref(pref.name);
 }
 
-function getDiscardTimerPref()
+function getImagePref(pref)
 {
   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
   var prefService = Components.classes["@mozilla.org/preferences-service;1"]
                               .getService(Components.interfaces.nsIPrefService);
-  var branch = prefService.getBranch(DISCARD_BRANCH_NAME);
-  if (branch.prefHasUserValue(DISCARD_PREF_NAME))
-    return branch.getIntPref("discard_timeout_ms");
+  var branch = prefService.getBranch(pref.branch);
+  if (branch.prefHasUserValue(pref.name)) {
+    switch (pref.type) {
+      case "bool":
+        return branch.getBoolPref(pref.name);
+      case "int":
+        return branch.getIntPref(pref.name);
+      default:
+        throw new Error("Unknown pref type");
+    }
+  }
   else
     return null;
 }
