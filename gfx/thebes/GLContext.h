@@ -387,7 +387,7 @@ public:
 
     
     
-    void MarkDestroyed();
+    void THEBES_API MarkDestroyed();
 
     enum NativeDataType {
       NativeGLContext,
