@@ -361,16 +361,17 @@ nsHTMLEditor::FindSelectionRoot(nsINode *aNode)
                   aNode->IsNodeOfType(nsINode::eCONTENT),
                   "aNode must be content or document node");
 
-  nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
   nsCOMPtr<nsIDocument> doc = aNode->GetCurrentDoc();
   if (!doc) {
     return nsnull;
   }
 
-  if (doc->HasFlag(NODE_IS_EDITABLE) || !content) {
+  nsCOMPtr<nsIContent> content;
+  if (doc->HasFlag(NODE_IS_EDITABLE) || !aNode->IsContent()) {
     content = doc->GetRootElement();
     return content.forget();
   }
+  content = aNode->AsContent();
 
   
   
@@ -3396,8 +3397,8 @@ nsHTMLEditor::DeleteSelectionImpl(EDirection aAction,
   NS_ENSURE_STATE(selection->GetAnchorFocusRange());
   NS_ENSURE_STATE(selection->GetAnchorFocusRange()->Collapsed());
 
-  nsCOMPtr<nsIContent> content = do_QueryInterface(selection->GetAnchorNode());
-  NS_ENSURE_STATE(content);
+  NS_ENSURE_STATE(selection->GetAnchorNode()->IsContent());
+  nsCOMPtr<nsIContent> content = selection->GetAnchorNode()->AsContent();
 
   
   

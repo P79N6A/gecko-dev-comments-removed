@@ -1177,10 +1177,13 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
     NS_ENSURE_SUCCESS(result, result);
 
     for (iter->Init(range); !iter->IsDone(); iter->Next()) {
-      nsCOMPtr<nsIContent> content = do_QueryInterface(iter->GetCurrentNode());
-      nsCOMPtr<nsIDOMNode> node = do_QueryInterface(content);
+      if (!iter->GetCurrentNode()->IsContent()) {
+        continue;
+      }
+      nsCOMPtr<nsIContent> content = iter->GetCurrentNode()->AsContent();
+      nsCOMPtr<nsIDOMNode> node = content->AsDOMNode();
 
-      if (node && nsTextEditUtils::IsBody(node)) {
+      if (nsTextEditUtils::IsBody(node)) {
         break;
       }
 
@@ -1208,60 +1211,59 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
         
         continue;
       }
-      if (node) {
-        bool isSet = false;
-        if (first) {
-          if (mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty,
-                                                   aAttribute) &&
-              
-              (aProperty != nsEditProperty::font ||
-               !aAttribute->EqualsLiteral("size"))) {
+
+      bool isSet = false;
+      if (first) {
+        if (mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty,
+                                                 aAttribute) &&
             
-            
-            
-            if (aValue) {
-              firstValue.Assign(*aValue);
-            }
-            mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(node, aProperty, aAttribute,
-                                                               isSet, firstValue,
-                                                               COMPUTED_STYLE_TYPE);
-          } else {
-            IsTextPropertySetByContent(node, aProperty, aAttribute, aValue, isSet,
-                                       &firstValue);
+            (aProperty != nsEditProperty::font ||
+             !aAttribute->EqualsLiteral("size"))) {
+          
+          
+          
+          if (aValue) {
+            firstValue.Assign(*aValue);
           }
-          *aFirst = isSet;
-          first = false;
-          if (outValue) {
-            *outValue = firstValue;
-          }
+          mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(node, aProperty, aAttribute,
+                                                             isSet, firstValue,
+                                                             COMPUTED_STYLE_TYPE);
         } else {
-          if (mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty,
-                                                   aAttribute) &&
-              
-              (aProperty != nsEditProperty::font ||
-               !aAttribute->EqualsLiteral("size"))) {
-            
-            
-            if (aValue) {
-              theValue.Assign(*aValue);
-            }
-            mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(node, aProperty, aAttribute,
-                                                               isSet, theValue,
-                                                               COMPUTED_STYLE_TYPE);
-          } else {
-            IsTextPropertySetByContent(node, aProperty, aAttribute, aValue, isSet,
-                                       &theValue);
-          }
-          if (firstValue != theValue) {
-            *aAll = false;
-          }
+          IsTextPropertySetByContent(node, aProperty, aAttribute, aValue, isSet,
+                                     &firstValue);
         }
-        
-        if (isSet) {
-          *aAny = true;
+        *aFirst = isSet;
+        first = false;
+        if (outValue) {
+          *outValue = firstValue;
+        }
+      } else {
+        if (mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty,
+                                                 aAttribute) &&
+            
+            (aProperty != nsEditProperty::font ||
+             !aAttribute->EqualsLiteral("size"))) {
+          
+          
+          if (aValue) {
+            theValue.Assign(*aValue);
+          }
+          mHTMLCSSUtils->IsCSSEquivalentToHTMLInlineStyleSet(node, aProperty, aAttribute,
+                                                             isSet, theValue,
+                                                             COMPUTED_STYLE_TYPE);
         } else {
+          IsTextPropertySetByContent(node, aProperty, aAttribute, aValue, isSet,
+                                     &theValue);
+        }
+        if (firstValue != theValue) {
           *aAll = false;
         }
+      }
+
+      if (isSet) {
+        *aAny = true;
+      } else {
+        *aAll = false;
       }
     }
   }
@@ -1621,8 +1623,8 @@ nsHTMLEditor::RelativeFontChange( PRInt32 aSizeChange)
       if (NS_SUCCEEDED(res)) {
         nsCOMArray<nsIContent> arrayOfNodes;
         while (!iter->IsDone()) {
-          nsCOMPtr<nsIContent> node = do_QueryInterface(iter->GetCurrentNode());
-          NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
+          NS_ENSURE_TRUE(iter->GetCurrentNode()->IsContent(), NS_ERROR_FAILURE);
+          nsCOMPtr<nsIContent> node = iter->GetCurrentNode()->AsContent();
 
           if (IsEditable(node)) {
             arrayOfNodes.AppendObject(node);
