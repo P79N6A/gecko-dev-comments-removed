@@ -1833,7 +1833,7 @@ var gCSSProperties = {
 		inherited: true,
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ "show" ],
-		other_values: [ "hide" ],
+		other_values: [ "hide", "-moz-show-background" ],
 		invalid_values: []
 	},
 	"float": {
@@ -1874,7 +1874,7 @@ var gCSSProperties = {
 		inherited: true,
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ "normal" ],
-		other_values: [ "'TRK'", "\"TRK\"", "'N\\'Ko'" ],
+		other_values: [ "'ENG'", "'TRK'", "\"TRK\"", "'N\\'Ko'" ],
 		invalid_values: [ "TRK" ]
 	},
 	"font-size": {
@@ -1935,7 +1935,7 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ "normal", "400" ],
 		other_values: [ "bold", "100", "200", "300", "500", "600", "700", "800", "900", "bolder", "lighter" ],
-		invalid_values: [ "107", "399", "401", "699", "710" ]
+		invalid_values: [ "0", "100.0", "107", "399", "401", "699", "710", "1000" ]
 	},
 	"height": {
 		domProp: "height",
