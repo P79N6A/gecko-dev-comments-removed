@@ -2245,6 +2245,27 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+            if (cg->flags & TCF_FUN_HEAVYWEIGHT)
+                return JS_TRUE;
+
+            
+
+
+
+
             JSFunction *fun = cg->parser->callerFrame->fun();
             JS_ASSERT(cg->staticLevel >= fun->u.i.script->staticLevel);
             unsigned skip = cg->staticLevel - fun->u.i.script->staticLevel;
