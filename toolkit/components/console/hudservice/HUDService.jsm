@@ -96,6 +96,10 @@ XPCOMUtils.defineLazyGetter(this, "stringBundle", function () {
 
 const NEW_GROUP_DELAY = 5000;
 
+
+
+const SEARCH_DELAY = 200;
+
 const ERRORS = { LOG_MESSAGE_MISSING_ARGS:
                  "Missing arguments: aMessage, aConsoleNode and aMessageNode are required.",
                  CANNOT_GET_HUD: "Cannot getHeads Up Display with provided ID",
@@ -463,6 +467,75 @@ HUD_SERVICE.prototype =
 
 
 
+
+
+
+  buildXPathFunctionForString: function HS_buildXPathFunctionForString(aStr)
+  {
+    let words = aStr.split(/\s+/), results = [];
+    for (let i = 0; i < words.length; i++) {
+      let word = words[i];
+      if (word === "") {
+        continue;
+      }
+
+      let result;
+      if (word.indexOf('"') === -1) {
+        result = '"' + word + '"';
+      }
+      else if (word.indexOf("'") === -1) {
+        result = "'" + word + "'";
+      }
+      else {
+        result = 'concat("' + word.replace(/"/g, "\", '\"', \"") + '")';
+      }
+
+      results.push("contains(., " + result + ")");
+    }
+
+    return (results.length === 0) ? "true()" : results.join(" and ");
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  adjustVisibilityOnSearchStringChange:
+  function HS_adjustVisibilityOnSearchStringChange(aHUDId, aSearchString)
+  {
+    let fn = this.buildXPathFunctionForString(aSearchString);
+    let displayNode = this.getOutputNodeById(aHUDId);
+    let outputNode = displayNode.querySelector(".hud-output-node");
+    let doc = outputNode.ownerDocument;
+    this.liftNode(outputNode, function() {
+      let xpath = './/*[contains(@class, "hud-msg-node") and ' +
+        'not(contains(@class, "hud-filtered-by-string")) and not(' + fn + ')]';
+      let result = doc.evaluate(xpath, outputNode, null,
+        Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+      for (let i = 0; i < result.snapshotLength; i++) {
+        result.snapshotItem(i).classList.add("hud-filtered-by-string");
+      }
+
+      xpath = './/*[contains(@class, "hud-msg-node") and contains(@class, ' +
+        '"hud-filtered-by-string") and ' + fn + ']';
+      result = doc.evaluate(xpath, outputNode, null,
+        Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+      for (let i = 0; i < result.snapshotLength; i++) {
+        result.snapshotItem(i).classList.remove("hud-filtered-by-string");
+      }
+    });
+  },
+
+  
+
+
+
   hudWeakReferences: {},
 
   
@@ -692,19 +765,13 @@ HUD_SERVICE.prototype =
 
 
 
-  hudFilterStrings: {},
-
-  
-
-
-
 
 
 
   updateFilterText: function HS_updateFiltertext(aTextBoxNode)
   {
-    var hudId = aTextBoxNode.getAttribute(hudId);
-    this.hudFilterStrings[hudId] = aTextBoxNode.value || null;
+    var hudId = aTextBoxNode.getAttribute("hudId");
+    this.adjustVisibilityOnSearchStringChange(hudId, aTextBoxNode.value);
   },
 
   
@@ -1959,12 +2026,31 @@ HeadsUpDisplay.prototype = {
 
   setFilterTextBoxEvents: function HUD_setFilterTextBoxEvents()
   {
-    var self = this;
-    function keyPress(aEvent)
+    var filterBox = this.filterBox;
+    function onChange()
     {
-      HUDService.updateFilterText(aEvent.target);
+      
+      
+
+      if (this.timer == null) {
+        let timerClass = Cc["@mozilla.org/timer;1"];
+        this.timer = timerClass.createInstance(Ci.nsITimer);
+      } else {
+        this.timer.cancel();
+      }
+
+      let timerEvent = {
+        notify: function setFilterTextBoxEvents_timerEvent_notify() {
+          HUDService.updateFilterText(filterBox);
+        }
+      };
+
+      this.timer.initWithCallback(timerEvent, SEARCH_DELAY,
+        Ci.nsITimer.TYPE_ONE_SHOT);
     }
-    this.filterBox.addEventListener("keydown", keyPress, false);
+
+    filterBox.addEventListener("command", onChange, false);
+    filterBox.addEventListener("input", onChange, false);
   },
 
   
