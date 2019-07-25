@@ -40,6 +40,8 @@ import os, os.path
 import subprocess
 import sys
 
+CL_INCLUDES_PREFIX = os.environ.get("CL_INCLUDES_PREFIX", "Note: including file:")
+
 def InvokeClWithDependencyGeneration(cmdline):
     target = ""
     
@@ -61,8 +63,8 @@ def InvokeClWithDependencyGeneration(cmdline):
     for line in cl.stdout:
         
         
-        if line.startswith("Note: including file:"):
-            dep = line[21:].strip()
+        if line.startswith(CL_INCLUDES_PREFIX):
+            dep = line[len(CL_INCLUDES_PREFIX):].strip()
             
             
             
