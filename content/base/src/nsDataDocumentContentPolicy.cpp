@@ -79,7 +79,7 @@ nsDataDocumentContentPolicy::ShouldLoad(PRUint32 aContentType,
   }
 
   
-  if (doc->IsLoadedAsData()) {
+  if (doc->IsLoadedAsData() || doc->IsBeingUsedAsImage()) {
     *aDecision = nsIContentPolicy::REJECT_TYPE;
     return NS_OK;
   }
