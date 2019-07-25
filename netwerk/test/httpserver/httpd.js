@@ -1911,6 +1911,13 @@ LineData.prototype =
     if (length < 0)
     {
       this._start = data.length;
+
+      
+      
+      
+      if (data.length > 0 && data[data.length - 1] === CR)
+        --this._start;
+
       return false;
     }
 
