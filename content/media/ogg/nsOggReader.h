@@ -63,8 +63,12 @@ public:
   
   virtual PRBool DecodeVideoFrame(PRBool &aKeyframeSkip,
                                   PRInt64 aTimeThreshold);
+
   virtual VideoData* FindStartTime(PRInt64 aOffset,
                                    PRInt64& aOutStartTime);
+
+  
+  
   virtual PRInt64 FindEndTime(PRInt64 aEndOffset);
 
   virtual PRBool HasAudio()
@@ -81,11 +85,21 @@ public:
 
   virtual nsresult ReadMetadata();
   virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime);
-
-  
-  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered);
+  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered, PRInt64 aStartTime);
 
 private:
+
+  
+  
+  
+  
+  
+  
+  
+  PRInt64 FindEndTime(PRInt64 aEndOffset,
+                      PRBool aCachedDataOnly,
+                      ogg_sync_state* aState);
+
   
   
   nsresult DecodeVorbis(nsTArray<SoundData*>& aChunks,

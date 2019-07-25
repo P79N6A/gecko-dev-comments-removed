@@ -140,8 +140,6 @@ private:
 
 
 
-
-
 class nsMediaStream 
 {
 public:
@@ -253,6 +251,14 @@ public:
   
   
   virtual PRBool IsSuspendedByCache() = 0;
+  
+  
+  
+  
+  
+  virtual nsresult ReadFromCache(char* aBuffer,
+                                 PRInt64 aOffset,
+                                 PRUint32 aCount) = 0;
 
   
 
@@ -342,6 +348,7 @@ public:
   
   PRBool IsClosed() const { return mCacheStream.IsClosed(); }
   virtual nsMediaStream* CloneData(nsMediaDecoder* aDecoder);
+  virtual nsresult ReadFromCache(char* aBuffer, PRInt64 aOffset, PRUint32 aCount);
 
   
   virtual void     SetReadMode(nsMediaCacheStream::ReadMode aMode);

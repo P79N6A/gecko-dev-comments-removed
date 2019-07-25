@@ -427,7 +427,7 @@ public:
   
   virtual nsresult ReadMetadata() = 0;
 
-
+  
   
   
   virtual VideoData* FindStartTime(PRInt64 aOffset,
@@ -453,7 +453,11 @@ public:
   MediaQueue<VideoData> mVideoQueue;
 
   
-  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered, PRInt64 aStartTime) = 0;
+  
+  
+  
+  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered,
+                               PRInt64 aStartTime) = 0;
 
 protected:
 
