@@ -18,6 +18,14 @@
 #define USING_BLUETOOTH_NAMESPACE \
   using namespace mozilla::dom::bluetooth;
 
+#define LOCAL_AGENT_PATH  "/B2G/bluetooth/agent"
+#define REMOTE_AGENT_PATH "/B2G/bluetooth/remote_device_agent"
+
+
+#define BLUETOOTH_ADDRESS_LENGTH 17
+
+#define DOM_BLUETOOTH_URL_PREF "dom.mozBluetooth.whitelist"
+
 class nsCString;
 
 BEGIN_BLUETOOTH_NAMESPACE
