@@ -710,7 +710,7 @@ nsHTMLSelectElement::Add(nsIDOMHTMLElement* aElement,
   
   
   nsCOMPtr<nsIDOMNode> beforeNode;
-  if NS_SUCCEEDED(Item(index, getter_AddRefs(beforeNode))) {
+  if (NS_SUCCEEDED(Item(index, getter_AddRefs(beforeNode)))) {
     beforeElement = do_QueryInterface(beforeNode);
   }
 
