@@ -1809,12 +1809,6 @@ nsFrameSelection::TakeFocus(nsIContent *aNewFocus,
   mStartSelectedCell = nsnull;
   mEndSelectedCell = nsnull;
   mAppendStartSelectedCell = nsnull;
-
-  
-  if (!aNewFocus->GetParent())
-    return NS_ERROR_FAILURE;
-  
-
   mHint = aHint;
   
   PRInt8 index = GetIndexFromSelectionType(nsISelectionController::SELECTION_NORMAL);
