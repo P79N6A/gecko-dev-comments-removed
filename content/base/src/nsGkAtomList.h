@@ -1749,6 +1749,7 @@ GK_ATOM(DeleteTxnName, "Deleting")
 
 GK_ATOM(Remote, "remote")
 GK_ATOM(RemoteId, "_remote_id")
+GK_ATOM(DisplayPort, "_displayport")
 
 
 GK_ATOM(scrollbar_start_backward, "scrollbar-start-backward")

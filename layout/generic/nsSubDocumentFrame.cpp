@@ -340,32 +340,12 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   PRInt32 parentAPD = PresContext()->AppUnitsPerDevPixel();
   PRInt32 subdocAPD = presContext->AppUnitsPerDevPixel();
 
-  nsIFrame* subdocRootScrollFrame = presShell->GetRootScrollFrame();
-
   nsRect dirty;
   if (subdocRootFrame) {
-    if (presShell->UsingDisplayPort() && subdocRootScrollFrame) {
-      dirty = presShell->GetDisplayPort();
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      subdocRootScrollFrame->AddStateBits(
-        NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO);
-
-    } else {
-      
-      dirty = aDirtyRect + GetOffsetToCrossDoc(subdocRootFrame);
-      
-      dirty = dirty.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
-    }
+    
+    dirty = aDirtyRect + GetOffsetToCrossDoc(subdocRootFrame);
+    
+    dirty = dirty.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
 
     aBuilder->EnterPresShell(subdocRootFrame, dirty);
   }
@@ -424,32 +404,6 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (NS_SUCCEEDED(rv)) {
 
     bool addedLayer = false;
-
-#ifdef MOZ_IPC
-    
-    
-    if (XRE_GetProcessType() == GeckoProcessType_Content) {
-      nsIScrollableFrame* scrollFrame = presShell->GetRootScrollFrameAsScrollable();
-
-      if (scrollFrame) {
-        NS_ASSERTION(subdocRootFrame, "Root scroll frame should be non-null");
-        nsRect scrollRange = scrollFrame->GetScrollRange();
-        
-        
-        
-        if (scrollRange.width != 0 || scrollRange.height != 0) {
-          addedLayer = true;
-          nsDisplayScrollLayer* layerItem = new (aBuilder) nsDisplayScrollLayer(
-            aBuilder,
-            &childItems,
-            subdocRootScrollFrame,
-            subdocRootFrame
-          );
-          childItems.AppendToTop(layerItem);
-        }
-      }
-    }
-#endif
 
     if (subdocRootFrame && parentAPD != subdocAPD) {
       NS_WARN_IF_FALSE(!addedLayer,

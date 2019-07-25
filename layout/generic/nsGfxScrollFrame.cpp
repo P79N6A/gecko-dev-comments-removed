@@ -1863,9 +1863,12 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                         scrollParts, createLayersForScrollbars);
   }
 
-  nsIPresShell* presShell = mOuter->PresContext()->GetPresShell();
-  nsRect scrollPort = (mIsRoot && presShell->UsingDisplayPort()) ?
-                      (presShell->GetDisplayPort()) : mScrollPort;
+  nsRect displayport;
+  PRBool usingDisplayPort = nsLayoutUtils::GetDisplayPort(mOuter->GetContent(),
+                                                        &displayport);
+  if (!usingDisplayPort) {
+    displayport = mScrollPort;
+  }
 
   
   
@@ -1876,18 +1879,69 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  dirtyRect.IntersectRect(aDirtyRect, scrollPort);
+  dirtyRect.IntersectRect(aDirtyRect, mScrollPort);
+
+  if (usingDisplayPort) {
+    dirtyRect = displayport;
+  }
 
   nsDisplayListCollection set;
-  rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
+
+  nsPresContext* presContext = mOuter->PresContext();
+  PRInt32 appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
+
+#ifdef MOZ_IPC
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsRect scrollRange = GetScrollRange();
+  PRBool buildingLayer =
+     (XRE_GetProcessType() == GeckoProcessType_Content &&
+     (scrollRange.width >= NSIntPixelsToAppUnits(20, appUnitsPerDevPixel) ||
+     scrollRange.height >= NSIntPixelsToAppUnits(20, appUnitsPerDevPixel))) &&
+     (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument());
+
+#else
+  PRBool buildingLayer = false;
+#endif
+
+  if (buildingLayer) {
+    
+    
+
+    rv = mScrolledFrame->BuildDisplayListForStackingContext(
+      aBuilder,
+      dirtyRect + mOuter->GetOffsetTo(mScrolledFrame),
+      set.Content()
+    );
+
+    nsDisplayScrollLayer* layerItem = new (aBuilder) nsDisplayScrollLayer(
+      aBuilder,
+      set.Content(),
+      mScrolledFrame,
+      mOuter,
+      displayport
+    );
+    set.Content()->AppendNewToTop(layerItem);
+  } else {
+    rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
+  }
+
   NS_ENSURE_SUCCESS(rv, rv);
   nsRect clip;
-  clip = scrollPort + aBuilder->ToReferenceFrame(mOuter);
+  clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
 
   nscoord radii[8];
   
   
   mOuter->GetPaddingBoxBorderRadii(radii);
+
   
   
   
