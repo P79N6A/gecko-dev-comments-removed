@@ -102,6 +102,8 @@ class AssemblerX86Shared
     {
     }
 
+    static Condition inverseCondition(Condition cond);
+
     static void TraceRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
 
     
@@ -316,6 +318,18 @@ class AssemblerX86Shared
     }
     void cmpl(Imm32 imm, const Register &reg) {
         masm.cmpl_ir(imm.value, reg.code());
+    }
+    void cmpl(const Register &lhs, const Operand &rhs) {
+        switch (rhs.kind()) {
+          case Operand::REG:
+            masm.cmpl_rr(rhs.reg(), lhs.code());
+            break;
+          case Operand::REG_DISP:
+            masm.cmpl_mr(rhs.disp(), rhs.base(), lhs.code());
+            break;
+          default:
+            JS_NOT_REACHED("unexpected operand kind");
+        }
     }
     void cmpl(const Operand &op, Imm32 imm) {
         switch (op.kind()) {
