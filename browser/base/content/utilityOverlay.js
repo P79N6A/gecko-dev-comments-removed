@@ -452,18 +452,6 @@ function openAdvancedPreferences(tabID)
 
 
 
-function openReleaseNotes()
-{
-  var formatter = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
-                            .getService(Components.interfaces.nsIURLFormatter);
-  var relnotesURL = formatter.formatURLPref("app.releaseNotesURL");
-  
-  openUILinkIn(relnotesURL, "tab");
-}
-
-
-
-
 
 function openTroubleshootingPage()
 {
