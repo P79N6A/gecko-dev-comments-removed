@@ -1226,6 +1226,19 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
   if (opacity != 1.0f || maskFrame || (clipPathFrame && !isTrivialClip)) {
     complexEffects = true;
     gfx->Save();
+    if (!(aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+      
+      
+      gfxContextMatrixAutoSaveRestore matrixAutoSaveRestore(gfx);
+      gfx->Multiply(GetCanvasTM(aFrame));
+      nsRect overflowRect = aFrame->GetVisualOverflowRectRelativeToSelf();
+      if (aFrame->IsFrameOfType(nsIFrame::eSVGGeometry)) {
+        
+        
+        overflowRect = overflowRect + aFrame->GetPosition();
+      }
+      aContext->IntersectClip(overflowRect);
+    }
     gfx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
   }
 
