@@ -204,7 +204,7 @@ public:
         
         switch (mWindowsFamily) {
         case FF_DONTCARE:
-            return PR_TRUE;
+            return PR_FALSE;
         case FF_ROMAN:
             return aGeneric.EqualsLiteral("serif");
         case FF_SWISS:
