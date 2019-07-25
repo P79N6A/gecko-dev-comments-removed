@@ -455,6 +455,10 @@ findbar {
 
 
 #identity-container {
+  border-bottom: 0.1mm solid grey;
+}
+
+#identity-popup-container {
   padding: 1.1mm; 
 }
 
@@ -486,6 +490,17 @@ findbar {
 #identity-popup-content-host,
 #identity-popup-content-owner {
   font-weight: bold;
+}
+
+
+#search-container {
+  border-top: 0.1mm solid rgb(207,207,207);
+  padding: 1.1mm; 
+  margin-top: 1mm;
+}
+
+#search-engine-label-add {
+  font-size: 80%;
 }
 
 
