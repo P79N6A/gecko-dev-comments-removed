@@ -1960,9 +1960,9 @@ const ElementTouchHelper = {
                                                true,   
                                                false); 
 
-    let nodes = aWindowUtils.nodesFromRect(aX, aY, this.radius.bottom,
+    let nodes = aWindowUtils.nodesFromRect(aX, aY, this.radius.top,
                                                    this.radius.right,
-                                                   this.radius.top,
+                                                   this.radius.bottom,
                                                    this.radius.left, true, false);
 
     

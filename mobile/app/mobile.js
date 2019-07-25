@@ -370,8 +370,8 @@ pref("browser.ui.zoom.pageFitGranularity", 10);
 
 pref("browser.ui.touch.left", 8);
 pref("browser.ui.touch.right", 8);
-pref("browser.ui.touch.top", 4);
-pref("browser.ui.touch.bottom", 12);
+pref("browser.ui.touch.top", 12);
+pref("browser.ui.touch.bottom", 4);
 pref("browser.ui.touch.weight.visited", 120); 
 
 
