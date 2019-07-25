@@ -57,8 +57,10 @@
 #include "nsString.h"
 #include "nsID.h"
 #include "pldhash.h"
-
 #include "nsDOMClassInfo.h"
+#include "nsIObserver.h"
+#include "nsWeakReference.h"
+
 
 struct nsGlobalNameStruct
 {
@@ -104,9 +106,13 @@ class nsICategoryManager;
 class GlobalNameMapEntry;
 
 
-class nsScriptNameSpaceManager
+class nsScriptNameSpaceManager : public nsIObserver
+                               , public nsSupportsWeakReference
 {
 public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
   nsScriptNameSpaceManager();
   virtual ~nsScriptNameSpaceManager();
 
@@ -157,13 +163,22 @@ protected:
                                 const PRUnichar **aClassName = nsnull);
 
   nsresult FillHash(nsICategoryManager *aCategoryManager,
-                    const char *aCategory,
-                    nsGlobalNameStruct::nametype aType,
-                    PRBool aPrivilegedOnly);
+                    const char *aCategory);
   nsresult FillHashWithDOMInterfaces();
   nsresult RegisterInterface(const char* aIfName,
                              const nsIID *aIfIID,
                              PRBool* aFoundOld);
+
+  
+
+
+
+
+
+
+  nsresult AddCategoryEntryToHash(nsICategoryManager* aCategoryManager,
+                                  const char* aCategory,
+                                  nsISupports* aEntry);
 
   
   
