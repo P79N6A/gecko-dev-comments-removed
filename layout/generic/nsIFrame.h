@@ -1227,8 +1227,6 @@ public:
 
 
   bool IsTransformed() const;
-  
-  bool HasOpacity() const;
 
   
 
