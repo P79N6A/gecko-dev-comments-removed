@@ -260,11 +260,11 @@ typedef PRUint64 nsFrameState;
 #define NS_FRAME_IS_PUSHED_FLOAT                    NS_FRAME_STATE_BIT(32)
 
 
+#define NS_FRAME_DRAWING_AS_PAINTSERVER             NS_FRAME_STATE_BIT(33)
+
+
 
 #define NS_FRAME_RESERVED                           ~NS_FRAME_IMPL_RESERVED
-
-
-#define NS_FRAME_DRAWING_AS_PAINTSERVER             NS_FRAME_STATE_BIT(32)
 
 
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
