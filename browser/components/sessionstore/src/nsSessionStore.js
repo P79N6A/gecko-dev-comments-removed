@@ -2553,7 +2553,14 @@ SessionStoreService.prototype = {
       
       let activeIndex = (tabData.index || tabData.entries.length) - 1;
       let activePageData = tabData.entries[activeIndex] || null;
-      browser.userTypedValue = activePageData ? activePageData.url || null : null;
+      let uri = activePageData ? activePageData.url || null : null;
+      browser.userTypedValue = uri;
+
+      
+      
+      
+      if (uri)
+        browser.docShell.setCurrentURI(this._getURIFromString(uri));
 
       
       if (activePageData) {
@@ -2723,6 +2730,9 @@ SessionStoreService.prototype = {
     let activeIndex = (tabData.index || tabData.entries.length) - 1;
     if (activeIndex >= tabData.entries.length)
       activeIndex = tabData.entries.length - 1;
+
+    
+    browser.webNavigation.setCurrentURI(this._getURIFromString("about:blank"));
 
     
     if (activeIndex > -1) {
