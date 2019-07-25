@@ -88,6 +88,17 @@
   padding: 2px 4px;
 }
 
+
+
+toolbarseparator {
+  min-height: 22px;
+}
+
+
+toolbar[mode="full"] toolbarseparator {
+  min-height: 36px;
+}
+
 #nav-bar {
   padding-bottom: 4px !important;
 }
