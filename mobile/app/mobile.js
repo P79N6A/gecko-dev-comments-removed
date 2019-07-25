@@ -346,8 +346,11 @@ pref("browser.ui.kinetic.decelerationRate", 15);
 pref("plugin.default_plugin_disabled", true);
 
 
-pref("app.releaseNotesURL", "http://www.mozilla.com/%LOCALE%/%APP%/%VERSION%/releasenotes/");
-pref("app.support.baseURL", "http://support.mozilla.com/1/%APP%/%VERSION%/%OS%/%LOCALE%/");
+pref("app.releaseNotesURL", "http://www.mozilla.com/%LOCALE%/mobile/%VERSION%/releasenotes/");
+pref("app.support.baseURL", "http://support.mozilla.com/1/mobile/%VERSION%/%OS%/%LOCALE%/");
+pref("app.faqURL", "http://www.mozilla.com/%LOCALE%/mobile/faq/");
+pref("app.privacyURL", "http://www.mozilla.com/%LOCALE%/legal/privacy/firefox/mobile/");
+pref("app.creditsURL", "http://www.mozilla.com/%LOCALE%/mobile/credits");
 
 
 pref("security.alternate_certificate_error_page", "certerror");
