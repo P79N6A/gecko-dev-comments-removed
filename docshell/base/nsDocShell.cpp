@@ -1773,7 +1773,7 @@ nsDocShell::GetContentViewer(nsIContentViewer ** aContentViewer)
 NS_IMETHODIMP
 nsDocShell::SetChromeEventHandler(nsIDOMEventTarget* aChromeEventHandler)
 {
-    nsCOMPtr<nsPIDOMEventTarget> piTarget =
+    nsCOMPtr<nsIDOMEventTarget> piTarget =
       do_QueryInterface(aChromeEventHandler);
     
     mChromeEventHandler = piTarget;

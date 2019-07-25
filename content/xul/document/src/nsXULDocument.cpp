@@ -1717,7 +1717,7 @@ nsXULDocument::AddElementToDocumentPost(Element* aElement)
         
         nsCOMPtr<nsIXBLService> xblService(do_GetService("@mozilla.org/xbl;1"));
         if (xblService) {
-            nsCOMPtr<nsPIDOMEventTarget> piTarget(do_QueryInterface(aElement));
+            nsCOMPtr<nsIDOMEventTarget> piTarget(do_QueryInterface(aElement));
             xblService->AttachGlobalKeyHandler(piTarget);
         }
     }
@@ -1793,7 +1793,7 @@ nsXULDocument::RemoveSubtreeFromDocument(nsIContent* aContent)
     if (aElement->NodeInfo()->Equals(nsGkAtoms::keyset, kNameSpaceID_XUL)) {
         nsCOMPtr<nsIXBLService> xblService(do_GetService("@mozilla.org/xbl;1"));
         if (xblService) {
-            nsCOMPtr<nsPIDOMEventTarget> piTarget(do_QueryInterface(aElement));
+            nsCOMPtr<nsIDOMEventTarget> piTarget(do_QueryInterface(aElement));
             xblService->DetachGlobalKeyHandler(piTarget);
         }
     }

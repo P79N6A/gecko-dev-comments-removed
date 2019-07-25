@@ -45,7 +45,7 @@
 #include "nsIDOMXULCommandDispatcher.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMWindowInternal.h"
-#include "nsPIDOMEventTarget.h"
+#include "nsIDOMEventTarget.h"
 #include "nsIDOMDocument.h"
 #include "nsCOMPtr.h"
 #include "nsEvent.h"
@@ -115,14 +115,14 @@ public:
     return mIsBackground;
   }
 
-  nsPIDOMEventTarget* GetChromeEventHandler() const
+  nsIDOMEventTarget* GetChromeEventHandler() const
   {
     return mChromeEventHandler;
   }
 
-  virtual void SetChromeEventHandler(nsPIDOMEventTarget* aChromeEventHandler) = 0;
+  virtual void SetChromeEventHandler(nsIDOMEventTarget* aChromeEventHandler) = 0;
 
-  nsPIDOMEventTarget* GetParentTarget()
+  nsIDOMEventTarget* GetParentTarget()
   {
     if (!mParentTarget) {
       UpdateParentTarget();
@@ -588,7 +588,7 @@ protected:
 
   ~nsPIDOMWindow();
 
-  void SetChromeEventHandlerInternal(nsPIDOMEventTarget* aChromeEventHandler) {
+  void SetChromeEventHandlerInternal(nsIDOMEventTarget* aChromeEventHandler) {
     mChromeEventHandler = aChromeEventHandler;
     
     mParentTarget = nsnull;
@@ -599,10 +599,10 @@ protected:
   
   
   
-  nsCOMPtr<nsPIDOMEventTarget> mChromeEventHandler; 
+  nsCOMPtr<nsIDOMEventTarget> mChromeEventHandler; 
   nsCOMPtr<nsIDOMDocument> mDocument; 
 
-  nsCOMPtr<nsPIDOMEventTarget> mParentTarget; 
+  nsCOMPtr<nsIDOMEventTarget> mParentTarget; 
 
   
   nsCOMPtr<nsIDOMElement> mFrameElement;

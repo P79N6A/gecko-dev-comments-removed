@@ -445,7 +445,7 @@ nsWidgetUtils::GetChromeEventHandler(nsIDOMWindow *aDOMWin,
                                      nsIDOMEventTarget **aChromeTarget)
 {
     nsCOMPtr<nsPIDOMWindow> privateDOMWindow(do_QueryInterface(aDOMWin));
-    nsPIDOMEventTarget* chromeEventHandler = nsnull;
+    nsIDOMEventTarget* chromeEventHandler = nsnull;
     if (privateDOMWindow) {
         chromeEventHandler = privateDOMWindow->GetChromeEventHandler();
     }
@@ -467,7 +467,7 @@ nsWidgetUtils::RemoveWindowListeners(nsIDOMWindow *aDOMWin)
     }
 
     
-    nsCOMPtr<nsPIDOMEventTarget> piTarget(do_QueryInterface(chromeEventHandler));
+    nsCOMPtr<nsIDOMEventTarget> piTarget(do_QueryInterface(chromeEventHandler));
 
     
     rv = piTarget->RemoveEventListenerByIID(static_cast<nsIDOMMouseListener*>(this),
@@ -495,7 +495,7 @@ nsWidgetUtils::AttachWindowListeners(nsIDOMWindow *aDOMWin)
     }
 
     
-    nsCOMPtr<nsPIDOMEventTarget> piTarget(do_QueryInterface(chromeEventHandler));
+    nsCOMPtr<nsIDOMEventTarget> piTarget(do_QueryInterface(chromeEventHandler));
 
     
     rv = piTarget->AddEventListenerByIID(static_cast<nsIDOMMouseListener*>(this),

@@ -469,7 +469,7 @@ nsDOMDataTransfer::MozGetDataAt(const nsAString& aFormat,
         nsCOMPtr<nsISupports> data;
         formatitem.mData->GetAsISupports(getter_AddRefs(data));
         
-        nsCOMPtr<nsPIDOMEventTarget> pt = do_QueryInterface(data);
+        nsCOMPtr<nsIDOMEventTarget> pt = do_QueryInterface(data);
         if (pt) {
           nsresult rv = NS_OK;
           nsIScriptContext* c = pt->GetContextForEventHandlers(&rv);

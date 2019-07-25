@@ -106,7 +106,7 @@
 #include "nsISecureBrowserUI.h"
 #include "nsIObserver.h"
 #include "nsDocShellLoadTypes.h"
-#include "nsPIDOMEventTarget.h"
+#include "nsIDOMEventTarget.h"
 #include "nsILoadContext.h"
 #include "nsIWidget.h"
 #include "nsIWebShellServices.h"
@@ -768,7 +768,7 @@ protected:
     
 
     nsIDocShellTreeOwner *     mTreeOwner; 
-    nsPIDOMEventTarget *       mChromeEventHandler; 
+    nsIDOMEventTarget *       mChromeEventHandler; 
 
     eCharsetReloadState        mCharsetReloadState;
 

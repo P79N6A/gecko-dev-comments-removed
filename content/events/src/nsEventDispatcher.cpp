@@ -37,7 +37,7 @@
 
 #include "nsEventDispatcher.h"
 #include "nsDOMEvent.h"
-#include "nsPIDOMEventTarget.h"
+#include "nsIDOMEventTarget.h"
 #include "nsPresContext.h"
 #include "nsIPrivateDOMEvent.h"
 #include "nsEventListenerManager.h"
@@ -64,12 +64,12 @@ static nsEventTargetChainItem* gCachedETCI = nsnull;
 class nsEventTargetChainItem
 {
 private:
-  nsEventTargetChainItem(nsPIDOMEventTarget* aTarget,
+  nsEventTargetChainItem(nsIDOMEventTarget* aTarget,
                          nsEventTargetChainItem* aChild = nsnull);
 
 public:
   static nsEventTargetChainItem* Create(nsFixedSizeAllocator* aAllocator, 
-                                        nsPIDOMEventTarget* aTarget,
+                                        nsIDOMEventTarget* aTarget,
                                         nsEventTargetChainItem* aChild = nsnull)
   {
     void* place = nsnull;
@@ -109,12 +109,12 @@ public:
     return !!(mTarget);
   }
 
-  nsPIDOMEventTarget* GetNewTarget()
+  nsIDOMEventTarget* GetNewTarget()
   {
     return mNewTarget;
   }
 
-  void SetNewTarget(nsPIDOMEventTarget* aNewTarget)
+  void SetNewTarget(nsIDOMEventTarget* aNewTarget)
   {
     mNewTarget = aNewTarget;
   }
@@ -161,7 +161,7 @@ public:
     return !!(mFlags & NS_TARGET_CHAIN_MAY_HAVE_MANAGER);
   }
   
-  nsPIDOMEventTarget* CurrentTarget()
+  nsIDOMEventTarget* CurrentTarget()
   {
     return mTarget;
   }
@@ -232,7 +232,7 @@ public:
     sMaxEtciCount = 0;
   }
 
-  nsCOMPtr<nsPIDOMEventTarget>      mTarget;
+  nsCOMPtr<nsIDOMEventTarget>      mTarget;
   nsEventTargetChainItem*           mChild;
   union {
     nsEventTargetChainItem*         mParent;
@@ -243,7 +243,7 @@ public:
   PRUint16                          mItemFlags;
   nsCOMPtr<nsISupports>             mItemData;
   
-  nsCOMPtr<nsPIDOMEventTarget>      mNewTarget;
+  nsCOMPtr<nsIDOMEventTarget>      mNewTarget;
   
   nsRefPtr<nsEventListenerManager>  mManager;
 
@@ -254,7 +254,7 @@ public:
 PRUint32 nsEventTargetChainItem::sMaxEtciCount = 0;
 PRUint32 nsEventTargetChainItem::sCurrentEtciCount = 0;
 
-nsEventTargetChainItem::nsEventTargetChainItem(nsPIDOMEventTarget* aTarget,
+nsEventTargetChainItem::nsEventTargetChainItem(nsIDOMEventTarget* aTarget,
                                                nsEventTargetChainItem* aChild)
 : mChild(aChild), mParent(nsnull), mFlags(0), mItemFlags(0)
 {
@@ -298,7 +298,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
 {
   PRUint32 createdELMs = nsEventListenerManager::sCreatedCount;
   
-  nsCOMPtr<nsPIDOMEventTarget> firstTarget = aVisitor.mEvent->target;
+  nsCOMPtr<nsIDOMEventTarget> firstTarget = aVisitor.mEvent->target;
 
   
   nsEventTargetChainItem* item = this;
@@ -318,7 +318,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
       
       nsEventTargetChainItem* nextTarget = item->mChild;
       while (nextTarget) {
-        nsPIDOMEventTarget* newTarget = nextTarget->GetNewTarget();
+        nsIDOMEventTarget* newTarget = nextTarget->GetNewTarget();
         if (newTarget) {
           aVisitor.mEvent->target = newTarget;
           break;
@@ -351,7 +351,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
   aVisitor.mEvent->flags &= ~NS_EVENT_FLAG_CAPTURE;
   item = item->mParent;
   while (item) {
-    nsPIDOMEventTarget* newTarget = item->GetNewTarget();
+    nsIDOMEventTarget* newTarget = item->GetNewTarget();
     if (newTarget) {
       
       
@@ -468,7 +468,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
                             nsIDOMEvent* aDOMEvent,
                             nsEventStatus* aEventStatus,
                             nsDispatchingCallback* aCallback,
-                            nsCOMArray<nsPIDOMEventTarget>* aTargets)
+                            nsCOMArray<nsIDOMEventTarget>* aTargets)
 {
   NS_ASSERTION(aEvent, "Trying to dispatch without nsEvent!");
   NS_ENSURE_TRUE(!NS_IS_EVENT_IN_DISPATCH(aEvent),
@@ -487,7 +487,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
                            timer_event_name ? timer_event_name : "<other>");
 #endif
 
-  nsCOMPtr<nsPIDOMEventTarget> target = do_QueryInterface(aTarget);
+  nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(aTarget);
 
   PRBool retargeted = PR_FALSE;
 
@@ -518,14 +518,14 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
     if (!nsContentUtils::IsChromeDoc(doc)) {
       nsPIDOMWindow* win = doc ? doc->GetInnerWindow() : nsnull;
       
-      nsPIDOMEventTarget* piTarget = win ? win->GetChromeEventHandler() : nsnull;
+      nsIDOMEventTarget* piTarget = win ? win->GetChromeEventHandler() : nsnull;
       NS_ENSURE_TRUE(piTarget, NS_OK);
 
       nsCOMPtr<nsIFrameLoaderOwner> flo = do_QueryInterface(piTarget);
       if (flo) {
         nsRefPtr<nsFrameLoader> fl = flo->GetFrameLoader();
         if (fl) {
-          nsPIDOMEventTarget* t = fl->GetTabChildGlobalAsEventTarget();
+          nsIDOMEventTarget* t = fl->GetTabChildGlobalAsEventTarget();
           piTarget = t ? t : piTarget;
         }
       }
@@ -619,7 +619,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
   if (preVisitor.mCanHandle) {
     
     
-    nsCOMPtr<nsPIDOMEventTarget> t = do_QueryInterface(aEvent->target);
+    nsCOMPtr<nsIDOMEventTarget> t = do_QueryInterface(aEvent->target);
     targetEtci->SetNewTarget(t);
     nsEventTargetChainItem* topEtci = targetEtci;
     while (preVisitor.mParentTarget) {

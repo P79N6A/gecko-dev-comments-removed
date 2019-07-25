@@ -6235,7 +6235,7 @@ nsDocument::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   
   if (aVisitor.mEvent->message != NS_LOAD) {
     nsGlobalWindow* window = static_cast<nsGlobalWindow*>(GetWindow());
-    aVisitor.mParentTarget = static_cast<nsPIDOMEventTarget*>(window);
+    aVisitor.mParentTarget = static_cast<nsIDOMEventTarget*>(window);
   }
   return NS_OK;
 }
@@ -6999,7 +6999,7 @@ nsDocument::CanSavePresentation(nsIRequest *aNewRequest)
   }
 
   
-  nsCOMPtr<nsPIDOMEventTarget> piTarget = do_QueryInterface(mScriptGlobalObject);
+  nsCOMPtr<nsIDOMEventTarget> piTarget = do_QueryInterface(mScriptGlobalObject);
   if (piTarget) {
     nsIEventListenerManager* manager =
       piTarget->GetListenerManager(PR_FALSE);
@@ -7311,7 +7311,7 @@ nsDocument::CheckAncestryAndGetFrame(nsIDocument* aDocument) const
 }
 
 void
-nsDocument::DispatchPageTransition(nsPIDOMEventTarget* aDispatchTarget,
+nsDocument::DispatchPageTransition(nsIDOMEventTarget* aDispatchTarget,
                                    const nsAString& aType,
                                    PRBool aPersisted)
 {
@@ -7381,7 +7381,7 @@ nsDocument::OnPageShow(PRBool aPersisted,
     SetImagesNeedAnimating(PR_TRUE);
   }
 
-  nsCOMPtr<nsPIDOMEventTarget> target =
+  nsCOMPtr<nsIDOMEventTarget> target =
     aDispatchStartTarget ? do_QueryInterface(aDispatchStartTarget) :
                            do_QueryInterface(GetWindow());
   DispatchPageTransition(target, NS_LITERAL_STRING("pageshow"), aPersisted);
@@ -7434,7 +7434,7 @@ nsDocument::OnPageHide(PRBool aPersisted,
   }
 
   
-  nsCOMPtr<nsPIDOMEventTarget> target =
+  nsCOMPtr<nsIDOMEventTarget> target =
     aDispatchStartTarget ? do_QueryInterface(aDispatchStartTarget) :
                            do_QueryInterface(GetWindow());
   DispatchPageTransition(target, NS_LITERAL_STRING("pagehide"), aPersisted);

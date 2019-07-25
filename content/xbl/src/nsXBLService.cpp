@@ -709,11 +709,11 @@ nsXBLService::ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID,
 
 
 NS_IMETHODIMP
-nsXBLService::AttachGlobalKeyHandler(nsPIDOMEventTarget* aTarget)
+nsXBLService::AttachGlobalKeyHandler(nsIDOMEventTarget* aTarget)
 {
   
   
-  nsCOMPtr<nsPIDOMEventTarget> piTarget = aTarget;
+  nsCOMPtr<nsIDOMEventTarget> piTarget = aTarget;
   nsCOMPtr<nsIContent> contentNode(do_QueryInterface(aTarget));
   if (contentNode) {
     
@@ -765,9 +765,9 @@ nsXBLService::AttachGlobalKeyHandler(nsPIDOMEventTarget* aTarget)
 
 
 NS_IMETHODIMP
-nsXBLService::DetachGlobalKeyHandler(nsPIDOMEventTarget* aTarget)
+nsXBLService::DetachGlobalKeyHandler(nsIDOMEventTarget* aTarget)
 {
-  nsCOMPtr<nsPIDOMEventTarget> piTarget = aTarget;
+  nsCOMPtr<nsIDOMEventTarget> piTarget = aTarget;
   nsCOMPtr<nsIContent> contentNode(do_QueryInterface(aTarget));
   if (!contentNode) 
     return NS_ERROR_FAILURE;

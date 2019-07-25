@@ -69,11 +69,11 @@ public:
 
   static nsDOMEventTargetWrapperCache* FromSupports(nsISupports* aSupports)
   {
-    nsPIDOMEventTarget* target =
-      static_cast<nsPIDOMEventTarget*>(aSupports);
+    nsIDOMEventTarget* target =
+      static_cast<nsIDOMEventTarget*>(aSupports);
 #ifdef DEBUG
     {
-      nsCOMPtr<nsPIDOMEventTarget> target_qi =
+      nsCOMPtr<nsIDOMEventTarget> target_qi =
         do_QueryInterface(aSupports);
 
       

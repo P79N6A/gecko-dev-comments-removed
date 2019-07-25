@@ -62,7 +62,7 @@
 #include "nsSelectionState.h"
 #include "nsIEditorSpellCheck.h"
 #include "nsIInlineSpellChecker.h"
-#include "nsPIDOMEventTarget.h"
+#include "nsIDOMEventTarget.h"
 #include "nsStubMutationObserver.h"
 #include "nsIViewManager.h"
 #include "nsCycleCollectionParticipant.h"
@@ -613,7 +613,7 @@ public:
                                     nsIDOMNode *aEndNode,
                                     PRInt32 aEndOffset);
 
-  virtual already_AddRefed<nsPIDOMEventTarget> GetPIDOMEventTarget() = 0;
+  virtual already_AddRefed<nsIDOMEventTarget> GetPIDOMEventTarget() = 0;
 
   
   nsIDOMElement *GetRoot();
@@ -764,7 +764,7 @@ protected:
   PRInt8                        mDocDirtyState;		
   nsWeakPtr        mDocWeak;  
   
-  nsCOMPtr<nsPIDOMEventTarget> mEventTarget;
+  nsCOMPtr<nsIDOMEventTarget> mEventTarget;
 
   nsString* mPhonetic;
 
