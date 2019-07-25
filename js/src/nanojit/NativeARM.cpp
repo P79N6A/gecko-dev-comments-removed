@@ -623,7 +623,7 @@ Assembler::asm_arg(ArgType ty, LIns* arg, Register& r, int& stkd)
         
         if (r < R4) {
             asm_regarg(ty, arg, r);
-            r = nextreg(r);
+            r = Register(r + 1);
         } else {
             asm_stkarg(arg, stkd);
             stkd += 4;
@@ -657,14 +657,14 @@ Assembler::asm_arg_64(LIns* arg, Register& r, int& stkd)
     
     
     if ((r == R1) || (r == R3)) {
-        r = nextreg(r);
+        r = Register(r + 1);
     }
 #endif
 
     if (r < R3) {
         Register    ra = r;
-        Register    rb = nextreg(r);
-        r = nextreg(rb);
+        Register    rb = Register(r + 1);
+        r = Register(rb + 1);
 
 #ifdef NJ_ARM_EABI
         
@@ -687,12 +687,8 @@ Assembler::asm_arg_64(LIns* arg, Register& r, int& stkd)
         
         
         
-        Register    ra = r;
-        r = nextreg(r);
-
-        
-        
-        NanoAssert(r == R4);
+        Register    ra = r; 
+        r = R4;
 
         
         
@@ -967,8 +963,6 @@ Assembler::nRegisterResetAll(RegAlloc& a)
         rmask(R10) | rmask(LR);
     if (_config.arm_vfp)
         a.free |= FpRegs;
-
-    debug_only(a.managed = a.free);
 }
 
 static inline ConditionCode

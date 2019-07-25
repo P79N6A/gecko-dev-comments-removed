@@ -120,9 +120,13 @@ namespace nanojit
             return active[r];
         }
 
-        debug_only( uint32_t    countActive(); )
+        
+        
+        RegisterMask activeMask() const {
+            return ~free & managed;
+        }
+
         debug_only( bool        isConsistent(Register r, LIns* v) const; )
-        debug_only( RegisterMask managed; )     
 
         
         
@@ -171,10 +175,41 @@ namespace nanojit
         
         LIns*           active[LastReg + 1];    
         int32_t         usepri[LastReg + 1];    
-        RegisterMask    free;
+        RegisterMask    free;       
+        RegisterMask    managed;    
         int32_t         priority;
 
         DECLARE_PLATFORM_REGALLOC()
     };
+
+    
+    inline Register lsReg(RegisterMask mask) {
+        
+        
+        if (sizeof(RegisterMask) == 4)
+            return (Register) lsbSet32(mask);
+        else
+            return (Register) lsbSet64(mask);
+    }
+
+    
+    inline Register msReg(RegisterMask mask) {
+        
+        
+        if (sizeof(RegisterMask) == 4)
+            return (Register) msbSet32(mask);
+        else
+            return (Register) msbSet64(mask);
+    }
+
+    
+    inline Register nextLsReg(RegisterMask& mask, Register r) {
+        return lsReg(mask &= ~rmask(r));
+    }
+
+    
+    inline Register nextMsReg(RegisterMask& mask, Register r) {
+        return msReg(mask &= ~rmask(r));
+    }
 }
 #endif

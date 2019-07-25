@@ -481,8 +481,8 @@ namespace nanojit
         
         if (stkd & 4) {
             if (stkd < 16) {
-                r = nextreg(r);
-                fr = nextreg(fr);
+                r = Register(r + 1);
+                fr = Register(fr + 1);
             }
             stkd += 4;
         }
@@ -496,11 +496,11 @@ namespace nanojit
                 
                 Register fpupair = arg->getReg();
                 Register intpair = fr;
-                MFC1(mswregpair(intpair), nextreg(fpupair));       
+                MFC1(mswregpair(intpair), Register(fpupair + 1));  
                 MFC1(lswregpair(intpair), fpupair);                
             }
-            r = nextreg(nextreg(r));
-            fr = nextreg(nextreg(fr));
+            r = Register(r + 2);
+            fr = Register(fr + 2);
         }
         else
             asm_stkarg(arg, stkd);
@@ -1578,8 +1578,8 @@ namespace nanojit
             NanoAssert(ty == ARGTYPE_I || ty == ARGTYPE_UI);
             if (stkd < 16) {
                 asm_regarg(ty, arg, r);
-                fr = nextreg(fr);
-                r = nextreg(r);
+                fr = Register(fr + 1);
+                r = Register(r + 1);
             }
             else
                 asm_stkarg(arg, stkd);
@@ -1684,7 +1684,6 @@ namespace nanojit
         regs.free = GpRegs;
         if (cpu_has_fpu)
             regs.free |= FpRegs;
-        debug_only(regs.managed = regs.free;)
     }
 
 #define signextend16(s) ((int32_t(s)<<16)>>16)
