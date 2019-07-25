@@ -39,7 +39,7 @@
 #define _PKCS11N_H_
 
 #ifdef DEBUG
-static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.23 $ $Date: 2011/09/14 01:21:10 $";
+static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.27 $ $Date: 2011/11/24 12:26:35 $";
 #endif 
 
 
@@ -160,7 +160,6 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.23 $
 
 #define CKA_CERT_SHA1_HASH	        (CKA_TRUST + 100)
 #define CKA_CERT_MD5_HASH		(CKA_TRUST + 101)
-
 
 
 
@@ -346,7 +345,7 @@ typedef CK_ULONG          CK_TRUST;
 
 
 
-#if __GNUC__ > 3
+#if defined(__GNUC__) && (__GNUC__ > 3)
 
 
 
@@ -362,7 +361,7 @@ typedef CK_ULONG          CK_TRUST;
 
 
 
-#if (__GNUC__  == 4) && (__GNUC_MINOR < 5)
+#if (__GNUC__  == 4) && (__GNUC_MINOR__ < 5)
 
 
 typedef CK_TRUST __CKT_NSS_UNTRUSTED __attribute__((deprecated));

@@ -188,6 +188,62 @@ SSL_IMPORT SECStatus SSL_CertDBHandleSet(PRFileDesc *fd, CERTCertDBHandle *dbHan
 
 
 
+
+
+
+typedef SECStatus (PR_CALLBACK *SSLNextProtoCallback)(
+    void *arg,
+    PRFileDesc *fd,
+    const unsigned char* protos,
+    unsigned int protosLen,
+    unsigned char* protoOut,
+    unsigned int* protoOutLen,
+    unsigned int protoMaxOut);
+
+
+
+SSL_IMPORT SECStatus SSL_SetNextProtoCallback(PRFileDesc *fd,
+                                              SSLNextProtoCallback callback,
+                                              void *arg);
+
+
+
+
+
+
+
+
+
+SSL_IMPORT SECStatus SSL_SetNextProtoNego(PRFileDesc *fd,
+					  const unsigned char *data,
+					  unsigned int length);
+
+typedef enum SSLNextProtoState { 
+  SSL_NEXT_PROTO_NO_SUPPORT = 0, 
+  SSL_NEXT_PROTO_NEGOTIATED = 1, 
+  SSL_NEXT_PROTO_NO_OVERLAP = 2  
+} SSLNextProtoState;
+
+
+
+
+
+
+
+
+SSL_IMPORT SECStatus SSL_GetNextProto(PRFileDesc *fd,
+				      SSLNextProtoState *state,
+				      unsigned char *buf,
+				      unsigned int *bufLen,
+				      unsigned int bufLenMax);
+
+
+
+
+
+
+
+
 #ifdef SSL_DEPRECATED_FUNCTION 
 
 SSL_IMPORT SECStatus SSL_EnableCipher(long which, PRBool enabled);

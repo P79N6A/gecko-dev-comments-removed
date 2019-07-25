@@ -522,7 +522,6 @@ ssl2_GetSendBuffer(sslSocket *ss, unsigned int len)
 
 
 
-
 	
 int
 ssl2_SendErrorMessage(sslSocket *ss, int error)
@@ -763,7 +762,6 @@ done:
     ssl_ReleaseXmitBufLock(ss);    
     return rv;
 }
-
 
 
 
@@ -1180,7 +1178,6 @@ loser:
 
 
 
-
 static void
 ssl2_UseEncryptedSendFunc(sslSocket *ss)
 {
@@ -1200,8 +1197,6 @@ ssl2_UseClearSendFunc(sslSocket *ss)
 {
     ss->sec.send = ssl2_SendClear;
 }
-
-
 
 
 
@@ -2233,8 +2228,6 @@ ssl2_TriggerNextMessage(sslSocket *ss)
 
 
 
-
-
 static SECStatus
 ssl2_TryToFinish(sslSocket *ss)
 {
@@ -2264,7 +2257,6 @@ ssl2_TryToFinish(sslSocket *ss)
     }
     return SECSuccess;
 }
-
 
 
 
@@ -2354,8 +2346,9 @@ ssl2_HandleRequestCertificate(sslSocket *ss)
     ret = (*ss->getClientAuthData)(ss->getClientAuthDataArg, ss->fd,
 				   NULL, &cert, &key);
     if ( ret == SECWouldBlock ) {
-	ssl_SetAlwaysBlock(ss);
-	goto done;
+	PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SSL2);
+	ret = -1;
+	goto loser;
     }
 
     if (ret) {
@@ -2717,7 +2710,6 @@ ssl2_HandleMessage(sslSocket *ss)
 
 
 
-
 static SECStatus
 ssl2_HandleVerifyMessage(sslSocket *ss)
 {
@@ -2936,19 +2928,16 @@ ssl2_HandleServerHelloMessage(sslSocket *ss)
 	    rv = (*ss->handleBadCert)(ss->badCertArg, ss->fd);
 	    if ( rv ) {
 		if ( rv == SECWouldBlock ) {
+		    SSL_DBG(("%d: SSL[%d]: SSL2 bad cert handler returned "
+			     "SECWouldBlock", SSL_GETPID(), ss->fd));
+		    PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SSL2);
+		    rv = SECFailure;
+		} else {
 		    
-
-		    SSL_DBG(("%d: SSL[%d]: go to async cert handler",
-			     SSL_GETPID(), ss->fd));
-		    ssl_ReleaseRecvBufLock(ss);
-		    ssl_SetAlwaysBlock(ss);
-		    return SECWouldBlock;
+		    SSL_DBG(("%d: SSL[%d]: server certificate is no good: error=%d",
+			     SSL_GETPID(), ss->fd, PORT_GetError()));
 		}
-		
-		SSL_DBG(("%d: SSL[%d]: server certificate is no good: error=%d",
-			 SSL_GETPID(), ss->fd, PORT_GetError()));
 		goto loser;
-
 	    }
 	    
 	} else {
@@ -3328,133 +3317,6 @@ bad_client:
 
 loser:
     return SECFailure;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int
-ssl2_RestartHandshakeAfterCertReq(sslSocket *          ss,
-				  CERTCertificate *    cert, 
-				  SECKEYPrivateKey *   key)
-{
-    int              ret;
-    SECStatus        rv          = SECSuccess;
-    SECItem          response;
-
-    if (ss->version >= SSL_LIBRARY_VERSION_3_0) 
-    	return SECFailure;
-
-    response.data = NULL;
-
-    
-    if ( ( cert == NULL ) || ( key == NULL ) ) {
-	goto no_cert;
-    }
-    
-    
-    rv = ssl2_SignResponse(ss, key, &response);
-    if ( rv != SECSuccess ) {
-	goto no_cert;
-    }
-    
-    
-    ret = ssl2_SendCertificateResponseMessage(ss, &cert->derCert, &response);
-    if (ret) {
-	goto no_cert;
-    }
-
-    
-    ret = ssl2_TryToFinish(ss);
-    if (ret) {
-	goto loser;
-    }
-    
-    
-    if (ss->handshake == 0) {
-	ret = SECSuccess;
-	goto done;
-    }
-
-    
-    ssl_GetRecvBufLock(ss);
-    ss->gs.recordLen = 0;
-    ssl_ReleaseRecvBufLock(ss);
-
-    ss->handshake     = ssl_GatherRecord1stHandshake;
-    ss->nextHandshake = ssl2_HandleMessage;
-    ret = ssl2_TriggerNextMessage(ss);
-    goto done;
-    
-no_cert:
-    
-    ret = ssl2_SendErrorMessage(ss, SSL_PE_NO_CERTIFICATE);
-    goto done;
-    
-loser:
-    ret = SECFailure;
-done:
-    
-    if ( response.data ) {
-	PORT_Free(response.data);
-    }
-    
-    return ret;
-}
-
-
-
-
-
-
-
-
-
-
-int
-ssl2_RestartHandshakeAfterServerCert(sslSocket *ss)
-{
-    int rv	= SECSuccess;
-
-    if (ss->version >= SSL_LIBRARY_VERSION_3_0) 
-	return SECFailure;
-
-    
-
-
-
-
-    ssl2_UseEncryptedSendFunc(ss);
-
-    rv = ssl2_TryToFinish(ss);
-    if (rv == SECSuccess && ss->handshake != NULL) {	
-	
-
-	SSL_TRC(5, ("%d: SSL[%d]: got server-hello, required=0x%d got=0x%x",
-		SSL_GETPID(), ss->fd, ss->sec.ci.requiredElements,
-		ss->sec.ci.elements));
-
-	ssl_GetRecvBufLock(ss);
-	ss->gs.recordLen = 0;	
-	ssl_ReleaseRecvBufLock(ss);
-
-	ss->handshake     = ssl_GatherRecord1stHandshake;
-	ss->nextHandshake = ssl2_HandleVerifyMessage;
-    }
-
-    return rv;
 }
 
 

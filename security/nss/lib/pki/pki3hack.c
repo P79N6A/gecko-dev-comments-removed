@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: pki3hack.c,v $ $Revision: 1.102 $ $Date: 2011/04/13 00:10:26 $";
+static const char CVS_ID[] = "@(#) $RCSfile: pki3hack.c,v $ $Revision: 1.105 $ $Date: 2011/11/17 00:20:21 $";
 #endif 
 
 
@@ -592,10 +592,6 @@ cert_trust_from_stan_trust(NSSTrust *t, PRArenaPool *arena)
     rvTrust->sslFlags |= client;
     rvTrust->emailFlags = get_nss3trust_from_nss4trust(t->emailProtection);
     rvTrust->objectSigningFlags = get_nss3trust_from_nss4trust(t->codeSigning);
-    
-    if (t->stepUpApproved) {
-	rvTrust->sslFlags |= CERTDB_GOVT_APPROVED_CA;
-    }
     return rvTrust;
 }
 

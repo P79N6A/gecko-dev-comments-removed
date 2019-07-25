@@ -313,6 +313,10 @@ typedef struct {
 #endif 
 
 typedef struct sslOptionsStr {
+    
+
+    SECItem nextProtoNego;
+
     unsigned int useSecurity		: 1;  
     unsigned int useSocks		: 1;  
     unsigned int requestCertificate	: 1;  
@@ -771,8 +775,6 @@ const ssl3CipherSuiteDef *suite_def;
     unsigned long         msg_len;
     SECItem               ca_list;     
     PRBool                isResuming;  
-    PRBool                rehandshake; 
-
     PRBool                usedStepDownKey;  
     PRBool                sendingSCSV; 
     sslBuffer             msgState;    
@@ -828,6 +830,12 @@ struct ssl3StateStr {
     PRBool               initialized;
     SSL3HandshakeState   hs;
     ssl3CipherSpec       specs[2];	
+
+    
+
+
+    SECItem		 nextProto;
+    SSLNextProtoState    nextProtoState;
 };
 
 typedef struct {
@@ -1059,6 +1067,8 @@ const unsigned char *  preferredCipher;
     SSLHandshakeCallback      handshakeCallback;
     void                     *handshakeCallbackData;
     void                     *pkcs11PinArg;
+    SSLNextProtoCallback      nextProtoCallback;
+    void                     *nextProtoArg;
 
     PRIntervalTime            rTimeout; 
     PRIntervalTime            wTimeout; 
@@ -1138,7 +1148,6 @@ extern FILE *                  ssl_keylog_iob;
 extern CERTDistNames *         ssl3_server_ca_list;
 extern PRUint32                ssl_sid_timeout;
 extern PRUint32                ssl3_sid_timeout;
-extern PRBool                  ssl3_global_policy_some_restricted;
 
 extern const char * const      ssl_cipherName[];
 extern const char * const      ssl3_cipherName[];
@@ -1252,7 +1261,7 @@ extern PRBool    ssl_FdIsBlocking(PRFileDesc *fd);
 
 extern PRBool    ssl_SocketIsBlocking(sslSocket *ss);
 
-extern void      ssl_SetAlwaysBlock(sslSocket *ss);
+extern void      ssl3_SetAlwaysBlock(sslSocket *ss);
 
 extern SECStatus ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled);
 
@@ -1341,16 +1350,11 @@ extern void ssl_FreeSocket(struct sslSocketStr *ssl);
 extern SECStatus SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level,
 				SSL3AlertDescription desc);
 
-extern int ssl2_RestartHandshakeAfterCertReq(sslSocket *          ss,
-					     CERTCertificate *    cert, 
-					     SECKEYPrivateKey *   key);
-
 extern SECStatus ssl3_RestartHandshakeAfterCertReq(sslSocket *    ss,
 					     CERTCertificate *    cert, 
 					     SECKEYPrivateKey *   key,
 					     CERTCertificateList *certChain);
 
-extern int ssl2_RestartHandshakeAfterServerCert(sslSocket *ss);
 extern int ssl3_RestartHandshakeAfterServerCert(sslSocket *ss);
 
 
@@ -1568,6 +1572,9 @@ extern PRBool ssl_GetSessionTicketKeysPKCS11(SECKEYPrivateKey *svrPrivKey,
 
 #define TLS_EX_SESS_TICKET_LIFETIME_HINT    (2 * 24 * 60 * 60) /* 2 days */
 #define TLS_EX_SESS_TICKET_VERSION          (0x0100)
+
+extern SECStatus ssl3_ValidateNextProtoNego(const unsigned char* data,
+					    unsigned int length);
 
 
 extern PRFileDesc *ssl_NewPRSocket(sslSocket *ss, PRFileDesc *fd);
