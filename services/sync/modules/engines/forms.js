@@ -110,7 +110,7 @@ let FormWrapper = {
   createStatement: function createStatement(query) {
     try {
       
-      return Utils.createStatement(Svc.Form.DBConnection, query);
+      return Svc.Form.DBConnection.createStatement(query);
     }
     catch(ex) {
       
@@ -121,7 +121,7 @@ let FormWrapper = {
         "ON moz_formhistory (guid)");
 
       
-      return Utils.createStatement(Svc.Form.DBConnection, query);
+      return Svc.Form.DBConnection.createStatement(query);
     }
   }
 };
@@ -202,68 +202,26 @@ FormStore.prototype = {
 
 function FormTracker(name) {
   Tracker.call(this, name);
-  Svc.Obs.add("weave:engine:start-tracking", this);
-  Svc.Obs.add("weave:engine:stop-tracking", this);
+  Svc.Obs.add("form-notifier", this);
+
+  
+  
+  Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService).
+    addObserver(this, "earlyformsubmit", false);
 }
 FormTracker.prototype = {
   __proto__: Tracker.prototype,
 
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIFormSubmitObserver,
-    Ci.nsIObserver,
-    Ci.nsISupportsWeakReference]),
+    Ci.nsIObserver]),
 
   trackEntry: function trackEntry(name, value) {
     this.addChangedID(FormWrapper.getGUID(name, value));
     this.score += 10;
   },
 
-  _enabled: false,
   observe: function observe(subject, topic, data) {
-    switch (topic) {
-      case "weave:engine:start-tracking":
-        if (!this._enabled) {
-          Svc.Obs.add("form-notifier", this);
-          Svc.Obs.add("satchel-storage-changed", this);
-          
-          
-          
-          Cc["@mozilla.org/observer-service;1"]
-            .getService(Ci.nsIObserverService)
-            .addObserver(this, "earlyformsubmit", true);
-          this._enabled = true;
-        }
-        break;
-      case "weave:engine:stop-tracking":
-        if (this._enabled) {
-          Svc.Obs.remove("form-notifier", this);
-          Svc.Obs.remove("satchel-storage-changed", this);
-          Cc["@mozilla.org/observer-service;1"]
-            .getService(Ci.nsIObserverService)
-            .removeObserver(this, "earlyformsubmit");
-          this._enabled = false;
-        }
-        break;
-      
-      case "satchel-storage-changed":
-        if (data == "addEntry" || data == "before-removeEntry") {
-          subject = subject.QueryInterface(Ci.nsIArray);
-          let name = subject.queryElementAt(0, Ci.nsISupportsString)
-                            .toString();
-          let value = subject.queryElementAt(1, Ci.nsISupportsString)
-                             .toString();
-          this.trackEntry(name, value);
-        }
-        break;
-      
-      case "form-notifier":
-        this.onFormNotifier(data);
-        break;
-    }
-  },
-
-  
-  onFormNotifier: function onFormNotifier(data) {
     let name, value;
 
     

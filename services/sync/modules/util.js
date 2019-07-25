@@ -146,15 +146,6 @@ let Utils = {
         throw batchEx;
     };
   },
-  
-  createStatement: function createStatement(db, query) {
-    
-    if (db.createAsyncStatement)
-      return db.createAsyncStatement(query);
-
-    
-    return db.createStatement(query);
-  },
 
   queryAsync: function(query, names) {
     
@@ -918,8 +909,3 @@ Svc.Obs = Observers;
 let Str = {};
 ["errors", "sync"]
   .forEach(function(lazy) Utils.lazy2(Str, lazy, Utils.lazyStrings(lazy)));
-
-Svc.Obs.add("xpcom-shutdown", function () {
-  for (let name in Svc)
-    delete Svc[name];
-});
