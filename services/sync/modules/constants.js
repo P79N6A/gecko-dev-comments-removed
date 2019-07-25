@@ -82,6 +82,9 @@ PARTIAL_DATA_SYNC:                     60 * 1000,
 HMAC_EVENT_INTERVAL:                   600000,
 
 
+MASTER_PASSWORD_LOCKED_RETRY_INTERVAL: 15 * 60 * 1000,   
+
+
 
 MOBILE_BATCH_SIZE:                     50,
 
@@ -116,6 +119,7 @@ LOGIN_FAILED:                          "error.login.failed",
 SYNC_FAILED_PARTIAL:                   "error.sync.failed_partial",
 CLIENT_NOT_CONFIGURED:                 "service.client_not_configured",
 STATUS_DISABLED:                       "service.disabled",
+MASTER_PASSWORD_LOCKED:                "service.master_password_locked",
 
 
 LOGIN_SUCCEEDED:                       "success.login",
@@ -161,6 +165,7 @@ JPAKE_ERROR_KEYMISMATCH:               "jpake.error.keymismatch",
 JPAKE_ERROR_WRONGMESSAGE:              "jpake.error.wrongmessage",
 
 
+kSyncMasterPasswordLocked:             "User elected to leave Master Password locked",
 kSyncWeaveDisabled:                    "Weave is disabled",
 kSyncNotLoggedIn:                      "User is not logged in",
 kSyncNetworkOffline:                   "Network is offline",

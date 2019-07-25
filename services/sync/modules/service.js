@@ -83,7 +83,6 @@ function WeaveSvc() {
 WeaveSvc.prototype = {
 
   _lock: Utils.lock,
-  _catch: Utils.catch,
   _locked: false,
   _loggedIn: false,
 
@@ -218,6 +217,20 @@ WeaveSvc.prototype = {
   },
   unlock: function Svc_unlock() {
     this._locked = false;
+  },
+
+  
+  
+  
+  _catch: function _catch(func) {
+    function lockExceptions(ex) {
+      if (Utils.isLockException(ex)) {
+        
+        this._log.info("Cannot start sync: already syncing?");
+      }
+    }
+      
+    return Utils.catch.call(this, func, lockExceptions);
   },
 
   _updateCachedURLs: function _updateCachedURLs() {
@@ -825,9 +838,24 @@ WeaveSvc.prototype = {
         return false;
       }
 
+      
       try {
         
+        
+        
+        
+        
+        try {
+          this.passphrase;
+        } catch (ex) {
+          this._log.debug("Fetching passphrase threw " + ex +
+                          "; assuming master password locked.");
+          Status.login = MASTER_PASSWORD_LOCKED;
+          return false;
+        }
+        
         let test = new Resource(this.infoURL).get();
+        
         switch (test.status) {
           case 200:
             
@@ -1065,6 +1093,11 @@ WeaveSvc.prototype = {
       this._log.info("Logging in user " + this.username);
 
       if (!this.verifyLogin()) {
+        if (Status.login == MASTER_PASSWORD_LOCKED) {
+          
+          this._log.debug("Login failed: " + Status.login);
+          return false;
+        }
         
         throw "Login failed: " + Status.login;
       }
@@ -1361,6 +1394,9 @@ WeaveSvc.prototype = {
       reason = kSyncNetworkOffline;
     else if (Status.minimumNextSync > Date.now())
       reason = kSyncBackoffNotMet;
+    else if ((Status.login == MASTER_PASSWORD_LOCKED) &&
+             Utils.mpLocked())
+      reason = kSyncMasterPasswordLocked;
     else if (!this._loggedIn)
       reason = kSyncNotLoggedIn;
     else if (Svc.Prefs.get("firstSync") == "notReady")
@@ -1376,6 +1412,8 @@ WeaveSvc.prototype = {
 
 
   _clearSyncTriggers: function _clearSyncTriggers() {
+    this._log.debug("Clearing sync triggers.");
+    
     
     if (this._syncTimer)
       this._syncTimer.clear();
@@ -1400,8 +1438,10 @@ WeaveSvc.prototype = {
     
     
     
-    if (Utils.mpLocked())
+    if (Utils.mpLocked()) {
       ignore.push(kSyncNotLoggedIn);
+      ignore.push(kSyncMasterPasswordLocked);
+    }
     
     let skip = this._checkSync(ignore);
     this._log.trace("_checkSync returned \"" + skip + "\".");
@@ -1426,8 +1466,18 @@ WeaveSvc.prototype = {
 
   syncOnIdle: function WeaveSvc_syncOnIdle(delay) {
     
+    
+    if (Status.login == MASTER_PASSWORD_LOCKED &&
+        Utils.mpLocked()) {
+      this._log.debug("Not syncing on idle: Login status is " + Status.login);
+      
+      
+      this._scheduleAtInterval(MASTER_PASSWORD_LOCKED_RETRY_INTERVAL);
+      return false;
+    }
+
     if (this._idleTime)
-      return;
+      return false;
 
     this._idleTime = delay || IDLE_TIME;
     this._log.debug("Idle timer created for sync, will sync after " +
@@ -1451,8 +1501,8 @@ WeaveSvc.prototype = {
 
     
     if (interval <= 0) {
-      this._log.debug("Syncing as soon as we're idle.");
-      this.syncOnIdle();
+      if (this.syncOnIdle())
+        this._log.debug("Syncing as soon as we're idle.");
       return;
     }
 
@@ -1536,6 +1586,22 @@ WeaveSvc.prototype = {
     Utils.delay(function() this._doHeartbeat(), interval, this, "_heartbeatTimer");
   },
 
+  
+
+
+
+  _scheduleAtInterval: function _scheduleAtInterval(minimumInterval) {
+    const MINIMUM_BACKOFF_INTERVAL = 15 * 60 * 1000;     
+    let interval = this._calculateBackoff(this._syncErrors, MINIMUM_BACKOFF_INTERVAL);
+    if (minimumInterval)
+      interval = Math.max(minimumInterval, interval);
+
+    let d = new Date(Date.now() + interval);
+    this._log.config("Starting backoff, next sync at:" + d.toString());
+
+    this._scheduleNextSync(interval);
+  },
+  
   _syncErrors: 0,
   
 
@@ -1551,37 +1617,38 @@ WeaveSvc.prototype = {
       }
       Status.enforceBackoff = true;
     }
-
-    const MINIMUM_BACKOFF_INTERVAL = 15 * 60 * 1000;     
-    let interval = this._calculateBackoff(this._syncErrors, MINIMUM_BACKOFF_INTERVAL);
-
-    this._scheduleNextSync(interval);
-
-    let d = new Date(Date.now() + interval);
-    this._log.config("Starting backoff, next sync at:" + d.toString());
+    
+    this._scheduleAtInterval();
   },
 
-  
-  
+  _skipScheduledRetry: function _skipScheduledRetry() {
+    return [LOGIN_FAILED_INVALID_PASSPHRASE,
+            LOGIN_FAILED_LOGIN_REJECTED].indexOf(Status.login) == -1;
+  },
   
   sync: function sync() {
-    try {
+    this._log.debug("In wrapping sync().");
+    this._catch(function () {
       
       if (this._shouldLogin()) {
-        this._log.trace("In sync: should login.");
-        this.login();
+        this._log.debug("In sync: should login.");
+        if (!this.login()) {
+          this._log.debug("Not syncing: login returned false.");
+          this._clearSyncTriggers();    
+          
+          
+          
+          if (!this._skipScheduledRetry())
+            this._scheduleAtInterval(MASTER_PASSWORD_LOCKED_RETRY_INTERVAL);
+    
+          return;
+        }
       }
       else {
         this._log.trace("In sync: no need to login.");
       }
       return this._lockedSync.apply(this, arguments);
-    } catch (ex) {
-      this._log.debug("Exception: " + Utils.exceptionStr(ex));
-      if (Utils.isLockException(ex)) {
-        
-        this._log.info("Cannot start sync: already syncing?");
-      }
-    }
+    })();
   },
   
   

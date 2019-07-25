@@ -90,7 +90,10 @@ let Utils = {
 
 
 
-  catch: function Utils_catch(func) {
+
+
+
+  catch: function Utils_catch(func, exceptionCallback) {
     let thisArg = this;
     return function WrappedCatch() {
       try {
@@ -98,6 +101,10 @@ let Utils = {
       }
       catch(ex) {
         thisArg._log.debug("Exception: " + Utils.exceptionStr(ex));
+        if (exceptionCallback) {
+          return exceptionCallback.call(thisArg, ex);
+        }
+        return null;
       }
     };
   },
@@ -125,7 +132,7 @@ let Utils = {
   },
   
   isLockException: function isLockException(ex) {
-    return ex && (ex.indexOf("Could not acquire lock.") == 0);
+    return ex && ex.indexOf && ex.indexOf("Could not acquire lock.") == 0;
   },
 
   
