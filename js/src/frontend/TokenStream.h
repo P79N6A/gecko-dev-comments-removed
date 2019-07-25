@@ -75,7 +75,6 @@ enum TokenKind {
     TOK_BITOR = 9,                      
     TOK_BITXOR = 10,                    
     TOK_BITAND = 11,                    
-    TOK_EQOP = 12,                      
     TOK_RELOP = 13,                     
     TOK_SHOP = 14,                      
     TOK_PLUS = 15,                      
@@ -149,8 +148,28 @@ enum TokenKind {
 
     TOK_RESERVED,                       
     TOK_STRICT_RESERVED,                
+
+    
+
+
+
+
+    
+    TOK_STRICTEQ,
+    TOK_EQUALITY_START = TOK_STRICTEQ,
+    TOK_EQ,
+    TOK_STRICTNE,
+    TOK_NE,
+    TOK_EQUALITY_LAST = TOK_NE,
+
     TOK_LIMIT                           
 };
+
+inline bool
+TokenKindIsEquality(TokenKind tt)
+{
+    return TOK_EQUALITY_START <= tt && tt <= TOK_EQUALITY_LAST;
+}
 
 inline bool
 TokenKindIsXML(TokenKind tt)
@@ -453,6 +472,10 @@ class TokenStream
     JSVersion versionWithFlags() const { return version; }
     bool hasXML() const { return xml || VersionShouldParseXML(versionNumber()); }
     void setXML(bool enabled) { xml = enabled; }
+
+    bool isCurrentTokenEquality() const {
+        return TokenKindIsEquality(currentToken().type);
+    }
 
     
     void setStrictMode(bool enabled = true) { setFlag(enabled, TSF_STRICT_MODE_CODE); }

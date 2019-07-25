@@ -292,6 +292,8 @@ namespace js {
 
 
 
+
+
 enum ParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -342,6 +344,8 @@ struct ParseNode {
     ParseNodeArity getArity() const        { return ParseNodeArity(pn_arity); }
     bool isArity(ParseNodeArity a) const   { return getArity() == a; }
     void setArity(ParseNodeArity a)        { pn_arity = a; }
+
+    bool isEquality() const                { return TokenKindIsEquality(getKind()); }
 
     
     bool isInParens() const                { return pn_parens; }
