@@ -334,7 +334,16 @@ function _execute_test() {
     
     
     if (!_quit || e != Components.results.NS_ERROR_ABORT) {
-      msg = "TEST-UNEXPECTED-FAIL | (xpcshell/head.js) | " + e;
+      msg = "TEST-UNEXPECTED-FAIL | ";
+      if ('fileName' in e) {
+        msg += e.fileName;
+        if ('lineNumber' in e) {
+          msg += ":" + e.lineNumber;
+        }
+      } else {
+        msg += "xpcshell/head.js";
+      }
+      msg += " | " + e;
       if (e.stack) {
         _dump(msg + " - See following stack:\n");
         _dump_exception_stack(e.stack);
