@@ -106,7 +106,7 @@ function InspectorUI(aWindow)
   this.toolEvents = {};
   this.store = new InspectorStore();
   this.INSPECTOR_NOTIFICATIONS = INSPECTOR_NOTIFICATIONS;
-  this.buildInspectButtonTooltip();
+  this.buildButtonsTooltip();
 }
 
 InspectorUI.prototype = {
@@ -137,9 +137,11 @@ InspectorUI.prototype = {
 
 
 
-  buildInspectButtonTooltip: function IUI_buildInspectButtonTooltip()
+  buildButtonsTooltip: function IUI_buildButtonsTooltip()
   {
     let keysbundle = Services.strings.createBundle("chrome://global-platform/locale/platformKeys.properties");
+
+    
 
     let key = this.chromeDoc.getElementById("key_inspect");
 
@@ -170,6 +172,23 @@ InspectorUI.prototype = {
       [combo.join(separator)], 1);
     let button = this.chromeDoc.getElementById("inspector-inspect-toolbutton");
     button.setAttribute("tooltiptext", tooltip);
+
+    
+
+    button = this.chromeDoc.getElementById("inspector-treepanel-toolbutton");
+#ifdef XP_MACOSX
+    
+    tooltip = this.strings.GetStringFromName("markupButton.tooltip");
+#else
+    let altString = keysbundle.GetStringFromName("VK_ALT");
+    let accesskey = button.getAttribute("accesskey");
+    let separator = keysbundle.GetStringFromName("MODIFIER_SEPARATOR");
+    let shortcut = altString + separator + accesskey;
+    tooltip = this.strings.formatStringFromName("markupButton.tooltipWithAccesskey",
+      [shortcut], 1);
+#endif
+    button.setAttribute("tooltiptext", tooltip);
+
   },
 
   
@@ -1848,6 +1867,22 @@ HTMLBreadcrumbs.prototype = {
     let popupSet = this.IUI.chromeDoc.getElementById("mainPopupSet");
     popupSet.appendChild(this.menu);
 
+    
+    
+    this.container.removeAttribute("overflows");
+    this.container._scrollButtonUp.collapsed = true;
+    this.container._scrollButtonDown.collapsed = true;
+
+    this.onscrollboxreflow = function() {
+      if (this.container._scrollButtonDown.collapsed)
+        this.container.removeAttribute("overflows");
+      else
+        this.container.setAttribute("overflows", true);
+    }.bind(this);
+
+    this.container.addEventListener("underflow", this.onscrollboxreflow, false);
+    this.container.addEventListener("overflow", this.onscrollboxreflow, false);
+
     this.menu.addEventListener("popuphiding", (function() {
       while (this.menu.hasChildNodes()) {
         this.menu.removeChild(this.menu.firstChild);
@@ -2025,6 +2060,10 @@ HTMLBreadcrumbs.prototype = {
 
   destroy: function BC_destroy()
   {
+    this.container.removeEventListener("underflow", this.onscrollboxreflow, false);
+    this.container.removeEventListener("overflow", this.onscrollboxreflow, false);
+    this.onscrollboxreflow = null;
+
     this.empty();
     this.container.removeEventListener("mousedown", this, true);
     this.menu.parentNode.removeChild(this.menu);
