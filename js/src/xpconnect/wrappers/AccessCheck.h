@@ -46,7 +46,8 @@ class AccessCheck {
   public:
     static bool isSameOrigin(JSCompartment *a, JSCompartment *b);
     static bool isChrome(JSCompartment *compartment);
-    static bool isCrossOriginAccessPermitted(JSContext *cx, JSObject *obj, jsid id, bool set);
+    static bool isCrossOriginAccessPermitted(JSContext *cx, JSObject *obj, jsid id,
+                                             JSWrapper::Action act);
     static bool isSystemOnlyAccessPermitted(JSContext *cx);
 
     static bool needsSystemOnlyWrapper(JSObject *obj);
@@ -64,7 +65,8 @@ struct Policy {
 
 
 struct Permissive : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, bool set, Permission &perm) {
+    static bool check(JSContext *cx, JSObject *wrapper, jsid id, JSWrapper::Action act,
+                      Permission &perm) {
         perm = PermitObjectAccess;
         return true;
     }
@@ -73,7 +75,8 @@ struct Permissive : public Policy {
 
 
 struct OnlyIfSubjectIsSystem : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, bool set, Permission &perm) {
+    static bool check(JSContext *cx, JSObject *wrapper, jsid id, JSWrapper::Action act,
+                      Permission &perm) {
         perm = DenyAccess;
         if (AccessCheck::isSystemOnlyAccessPermitted(cx))
             perm = PermitObjectAccess;
@@ -84,9 +87,10 @@ struct OnlyIfSubjectIsSystem : public Policy {
 
 
 struct CrossOriginAccessiblePropertiesOnly : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, bool set, Permission &perm) {
+    static bool check(JSContext *cx, JSObject *wrapper, jsid id, JSWrapper::Action act,
+                      Permission &perm) {
         perm = DenyAccess;
-        if (AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, set))
+        if (AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act))
             perm = PermitPropertyAccess;
         return true;
     }
@@ -95,7 +99,8 @@ struct CrossOriginAccessiblePropertiesOnly : public Policy {
 
 
 struct ExposedPropertiesOnly : public Policy {
-    static bool check(JSContext *cx, JSObject *wrapper, jsid id, bool set, Permission &perm);
+    static bool check(JSContext *cx, JSObject *wrapper, jsid id, JSWrapper::Action act,
+                      Permission &perm);
 };
 
 }
