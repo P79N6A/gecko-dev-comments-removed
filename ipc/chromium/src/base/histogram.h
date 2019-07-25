@@ -297,7 +297,7 @@ class Histogram {
     
     kIPCSerializationSourceFlag = 0x10,
 
-    kHexRangePrintingFlag = 0x8000,  
+    kHexRangePrintingFlag = 0x8000  
   };
 
   enum Inconsistencies {
