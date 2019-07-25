@@ -1304,14 +1304,8 @@ Browser.MainDragger.prototype = {
   isDraggable: function isDraggable(target, scroller) { return true; },
 
   dragStart: function dragStart(clientX, clientY, target, scroller) {
-    
-    this.bv.pauseRendering();
-
-    
-    
-    
-    
-    this.bv._idleServiceObserver.pause();
+    this._nextRender = Date.now() + 500;
+    this._dragMoved = false;
   },
 
   dragStop: function dragStop(dx, dy, scroller) {
@@ -1320,15 +1314,17 @@ Browser.MainDragger.prototype = {
 
     Browser.tryUnfloatToolbar();
 
-    this.bv.resumeRendering();
-
-    
-    this.bv._idleServiceObserver.resume();
+    if (this._dragMoved)
+      this.bv.resumeRendering();
   },
 
   dragMove: function dragMove(dx, dy, scroller) {
     let doffset = new Point(dx, dy);
-    let render = false;
+
+    if (!this._dragMoved) {
+      this._dragMoved = true;
+      this.bv.pauseRendering();
+    }
 
     
     let panOffset = this._panControlsAwayOffset(doffset);
@@ -1345,8 +1341,10 @@ Browser.MainDragger.prototype = {
 
     this.bv.onAfterVisibleMove();
 
-    if (render)
+    if (Date.now() >= this._nextRender) {
       this.bv.renderNow();
+      this._nextRender = Date.now() + 500;
+    }
 
     return !doffset.equals(dx, dy);
   },
