@@ -1053,6 +1053,10 @@ pref("devtools.inspector.sidebarOpen", false);
 pref("devtools.inspector.activeSidebar", "ruleview");
 
 
+pref("devtools.layoutview.enabled", false);
+pref("devtools.layoutview.open", false);
+
+
 pref("devtools.debugger.enabled", false);
 
 
