@@ -477,6 +477,11 @@ var PlacesCommandHook = {
 
 
 function HistoryMenu(aPopupShowingEvent) {
+  
+  
+  
+  
+  this.__proto__.__proto__ = PlacesMenu.prototype;
   XPCOMUtils.defineLazyServiceGetter(this, "_ss",
                                      "@mozilla.org/browser/sessionstore;1",
                                      "nsISessionStore");
@@ -485,8 +490,6 @@ function HistoryMenu(aPopupShowingEvent) {
 }
 
 HistoryMenu.prototype = {
-  __proto__: PlacesMenu.prototype,
-
   toggleRecentlyClosedTabs: function HM_toggleRecentlyClosedTabs() {
     
     var undoMenu = this._rootElt.getElementsByClassName("recentlyClosedTabsMenu")[0];
