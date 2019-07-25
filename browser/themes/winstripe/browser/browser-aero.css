@@ -25,7 +25,7 @@
   }
 
   
-  #main-window[sizemode="maximized"] {
+  #main-window[sizemode="maximized"][chromemargin^="0,"] {
     margin-top: 8px;
   }
 
