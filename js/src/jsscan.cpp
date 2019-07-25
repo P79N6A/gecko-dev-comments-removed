@@ -381,7 +381,8 @@ TokenStream::findWlineLimit(jschar *tokptr, int max)
     uintN tmpFlags = flags;
     uintN tmpLineno = lineno;
 
-    JS_ASSERT(userbuf.base <= tokptr && tokptr <= userbuf.limit);
+    
+    
     userbuf.ptr = tokptr;   
 
     jschar *wlinelimit;
