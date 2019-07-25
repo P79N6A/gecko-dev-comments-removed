@@ -2143,6 +2143,7 @@ GCHelperThread::doSweep()
     for (ArenaHeader **i = finalizeVector.begin(); i != finalizeVector.end(); ++i)
         ArenaList::backgroundFinalize(cx, *i);
     finalizeVector.resize(0);
+    ExpireGCChunks(cx->runtime);
     cx = NULL;
 
     if (freeCursor) {
@@ -2416,11 +2417,14 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
         js_SweepScriptFilenames(rt);
     }
 
+#ifndef JS_THREADSAFE
     
 
 
 
+
     ExpireGCChunks(rt);
+#endif
     TIMESTAMP(sweepDestroyEnd);
 
     if (rt->gcCallback)
