@@ -253,7 +253,7 @@ BrowserView.prototype = {
         case "Nokia N900":
           cacheSize = 26;
           break;
-        case "Nokia N8XX":
+        case "Nokia N8xx":
           
           cacheSize = 10;
           break;

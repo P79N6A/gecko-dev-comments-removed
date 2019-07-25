@@ -61,7 +61,6 @@ pref("browser.dom.window.dump.enabled", false);
 #ifdef MOZ_PLATFORM_HILDON
 pref("browser.cache.disk.enable", true);
 pref("browser.cache.disk.capacity", 10240); 
-pref("browser.cache.disk.parent_directory", "/media/mmc2/.mozilla/@APP_NAME@");
 #elifdef WINCE
 pref("browser.cache.disk.enable", false);
 pref("browser.cache.disk.capacity", 0); 
@@ -90,9 +89,6 @@ pref("browser.cache.offline.enable", true);
 pref("browser.cache.offline.capacity", 5120); 
 pref("offline-apps.quota.max", 2048); 
 pref("offline-apps.quota.warn", 1024); 
-#ifdef MOZ_PLATFORM_HILDON
-pref("browser.cache.offline.parent_directory", "/media/mmc2/.mozilla/@APP_NAME@");
-#endif
 
 
 pref("network.http.pipelining", true);
