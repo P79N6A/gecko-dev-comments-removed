@@ -4354,8 +4354,11 @@ nsIFrame::GetRelativeOffset(const nsStyleDisplay* aDisplay) const
 }
 
 nsRect
-nsIFrame::GetOverflowRect() const
+nsIFrame::GetOverflowRect(nsOverflowType aType) const
 {
+  NS_ABORT_IF_FALSE(aType == eVisualOverflow || aType == eScrollableOverflow,
+                    "unexpected type");
+
   
   
   
@@ -4365,29 +4368,39 @@ nsIFrame::GetOverflowRect() const
   if (mOverflow.mType == NS_FRAME_OVERFLOW_LARGE) {
     
     
-    return *const_cast<nsIFrame*>(this)->GetOverflowAreaProperty(PR_FALSE);
+    return static_cast<nsOverflowAreas*>(const_cast<nsIFrame*>(this)->
+             GetOverflowAreasProperty())->Overflow(aType);
   }
 
-  
-  
-  
-  
-  return nsRect(-(PRInt32)mOverflow.mDeltas.mLeft,
-                -(PRInt32)mOverflow.mDeltas.mTop,
-                mRect.width + mOverflow.mDeltas.mRight +
-                              mOverflow.mDeltas.mLeft,
-                mRect.height + mOverflow.mDeltas.mBottom +
-                               mOverflow.mDeltas.mTop);
+  if (aType == eVisualOverflow &&
+      mOverflow.mType != NS_FRAME_OVERFLOW_NONE) {
+    return GetVisualOverflowFromDeltas();
+  }
+
+  return nsRect(nsPoint(0, 0), GetSize());
+}
+
+nsOverflowAreas
+nsIFrame::GetOverflowAreas() const
+{
+  if (mOverflow.mType == NS_FRAME_OVERFLOW_LARGE) {
+    
+    
+    return *const_cast<nsIFrame*>(this)->GetOverflowAreasProperty();
+  }
+
+  return nsOverflowAreas(GetVisualOverflowFromDeltas(),
+                         nsRect(nsPoint(0, 0), GetSize()));
 }
 
 nsRect
-nsIFrame::GetOverflowRectRelativeToParent() const
+nsIFrame::GetScrollableOverflowRectRelativeToParent() const
 {
-  return GetOverflowRect() + mRect.TopLeft();
+  return GetScrollableOverflowRect() + mRect.TopLeft();
 }
-  
+
 nsRect
-nsIFrame::GetOverflowRectRelativeToSelf() const
+nsIFrame::GetVisualOverflowRectRelativeToSelf() const
 {
   if (IsTransformed()) {
     nsRect* preTransformBBox = static_cast<nsRect*>
@@ -4395,7 +4408,7 @@ nsIFrame::GetOverflowRectRelativeToSelf() const
     if (preTransformBBox)
       return *preTransformBBox;
   }
-  return GetOverflowRect();
+  return GetVisualOverflowRect();
 }
 
 void
@@ -4509,7 +4522,7 @@ nsFrame::IsFrameTreeTooDeep(const nsHTMLReflowState& aReflowState,
 {
   if (aReflowState.mReflowDepth >  MAX_FRAME_DEPTH) {
     mState |= NS_FRAME_TOO_DEEP_IN_FRAME_TREE;
-    ClearOverflowRect();
+    ClearOverflowRects();
     aMetrics.width = 0;
     aMetrics.height = 0;
     aMetrics.ascent = 0;
@@ -5951,12 +5964,15 @@ nsFrame::CreateAccessible()
 }
 #endif
 
-NS_DECLARE_FRAME_PROPERTY(OverflowAreaProperty, nsIFrame::DestroyRect)
+NS_DECLARE_FRAME_PROPERTY(OverflowAreasProperty,
+                          nsIFrame::DestroyOverflowAreas)
 
 void
-nsIFrame::ClearOverflowRect()
+nsIFrame::ClearOverflowRects()
 {
-  Properties().Delete(OverflowAreaProperty());
+  if (mOverflow.mType == NS_FRAME_OVERFLOW_LARGE) {
+    Properties().Delete(OverflowAreasProperty());
+  }
   mOverflow.mType = NS_FRAME_OVERFLOW_NONE;
 }
 
@@ -5964,63 +5980,73 @@ nsIFrame::ClearOverflowRect()
 
 
 
-
-nsRect*
-nsIFrame::GetOverflowAreaProperty(PRBool aCreateIfNecessary) 
+nsOverflowAreas*
+nsIFrame::GetOverflowAreasProperty()
 {
-  if (!((mOverflow.mType == NS_FRAME_OVERFLOW_LARGE) ||
-        aCreateIfNecessary)) {
-    return nsnull;
-  }
-
   FrameProperties props = Properties();
-  void *value = props.Get(OverflowAreaProperty());
+  nsOverflowAreas *overflow =
+    static_cast<nsOverflowAreas*>(props.Get(OverflowAreasProperty()));
 
-  if (value) {
-    return (nsRect*)value;  
-  } else if (aCreateIfNecessary) {
-    
-    
-    nsRect*  overflow = new nsRect(0, 0, 0, 0);
-    props.Set(OverflowAreaProperty(), overflow);
-    return overflow;
+  if (overflow) {
+    return overflow; 
   }
 
-  NS_NOTREACHED("Frame abuses GetOverflowAreaProperty()");
-  return nsnull;
+  
+  
+  overflow = new nsOverflowAreas;
+  props.Set(OverflowAreasProperty(), overflow);
+  return overflow;
 }
 
 
 
 
 void
-nsIFrame::SetOverflowRect(const nsRect& aRect)
+nsIFrame::SetOverflowAreas(const nsOverflowAreas& aOverflowAreas)
 {
-  PRUint32 l = -aRect.x, 
-           t = -aRect.y, 
-           r = aRect.XMost() - mRect.width, 
-           b = aRect.YMost() - mRect.height; 
-  if (l <= NS_FRAME_OVERFLOW_DELTA_MAX &&
+  if (mOverflow.mType == NS_FRAME_OVERFLOW_LARGE) {
+    nsOverflowAreas *overflow =
+      static_cast<nsOverflowAreas*>(Properties().Get(OverflowAreasProperty()));
+    *overflow = aOverflowAreas;
+
+    
+    
+    return;
+  }
+
+  const nsRect& vis = aOverflowAreas.VisualOverflow();
+  PRUint32 l = -vis.x, 
+           t = -vis.y, 
+           r = vis.XMost() - mRect.width, 
+           b = vis.YMost() - mRect.height; 
+  if (aOverflowAreas.ScrollableOverflow() == nsRect(nsPoint(0, 0), GetSize()) &&
+      l <= NS_FRAME_OVERFLOW_DELTA_MAX &&
       t <= NS_FRAME_OVERFLOW_DELTA_MAX &&
       r <= NS_FRAME_OVERFLOW_DELTA_MAX &&
       b <= NS_FRAME_OVERFLOW_DELTA_MAX &&
+      
+      
+      
+      
+      
+      
+      
+      
       (l | t | r | b) != 0) {
     
     
     
     
-    
-    Properties().Delete(OverflowAreaProperty());
-    mOverflow.mDeltas.mLeft   = l;
-    mOverflow.mDeltas.mTop    = t;
-    mOverflow.mDeltas.mRight  = r;
-    mOverflow.mDeltas.mBottom = b;
+    mOverflow.mVisualDeltas.mLeft   = l;
+    mOverflow.mVisualDeltas.mTop    = t;
+    mOverflow.mVisualDeltas.mRight  = r;
+    mOverflow.mVisualDeltas.mBottom = b;
   } else {
     
     mOverflow.mType = NS_FRAME_OVERFLOW_LARGE;
-    nsRect* overflowArea = GetOverflowAreaProperty(PR_TRUE); 
-    NS_ASSERTION(overflowArea, "should have created rect");
-    *overflowArea = aRect;
+    nsOverflowAreas* overflow = GetOverflowAreasProperty();
+    NS_ASSERTION(overflow, "should have created areas");
+    *overflow = aOverflowAreas;
   }
 }
 
@@ -6164,16 +6190,17 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
 }
 
 void
-nsFrame::ConsiderChildOverflow(nsRect&   aOverflowArea,
+nsFrame::ConsiderChildOverflow(nsOverflowAreas& aOverflowAreas,
                                nsIFrame* aChildFrame)
 {
   const nsStyleDisplay* disp = GetStyleDisplay();
   
   
+  
+  
   if (!disp->IsTableClip()) {
-    nsRect childOverflow = aChildFrame->GetOverflowRect();
-    childOverflow.MoveBy(aChildFrame->GetPosition());
-    aOverflowArea.UnionRect(aOverflowArea, childOverflow);
+    aOverflowAreas.UnionWith(aChildFrame->GetOverflowAreas() +
+                             aChildFrame->GetPosition());
   }
 }
 

@@ -404,7 +404,7 @@ public:
 
   
   
-  void ConsiderChildOverflow(nsRect&   aOverflowArea,
+  void ConsiderChildOverflow(nsOverflowAreas& aOverflowAreas,
                              nsIFrame* aChildFrame);
 
   virtual const void* GetStyleDataExternal(nsStyleStructID aSID) const;

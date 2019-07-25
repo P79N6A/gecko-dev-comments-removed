@@ -465,7 +465,7 @@ typedef PRBool nsDidReflowStatus;
 
 #define NS_FRAME_OVERFLOW_DELTA_MAX     0xfe // max delta we can store
 
-#define NS_FRAME_OVERFLOW_NONE    0x00000000 // there is no overflow rect;
+#define NS_FRAME_OVERFLOW_NONE    0x00000000 // there are no overflow rects;
                                              
                                              
 
@@ -784,22 +784,17 @@ public:
 
 
   void SetRect(const nsRect& aRect) {
-    if (HasOverflowRect() && mOverflow.mType != NS_FRAME_OVERFLOW_LARGE) {
-      nsRect r = GetOverflowRect();
+    if (mOverflow.mType != NS_FRAME_OVERFLOW_LARGE &&
+        mOverflow.mType != NS_FRAME_OVERFLOW_NONE) {
+      nsOverflowAreas overflow = GetOverflowAreas();
       mRect = aRect;
-      SetOverflowRect(r);
+      SetOverflowAreas(overflow);
     } else {
       mRect = aRect;
     }
   }
   void SetSize(const nsSize& aSize) {
-    if (HasOverflowRect() && mOverflow.mType != NS_FRAME_OVERFLOW_LARGE) {
-      nsRect r = GetOverflowRect();
-      mRect.SizeTo(aSize);
-      SetOverflowRect(r);
-    } else {
-      mRect.SizeTo(aSize);
-    }
+    SetRect(nsRect(mRect.TopLeft(), aSize));
   }
   void SetPosition(const nsPoint& aPt) { mRect.MoveTo(aPt); }
 
@@ -834,6 +829,11 @@ public:
   static void DestroyPoint(void* aPropertyValue)
   {
     delete static_cast<nsPoint*>(aPropertyValue);
+  }
+
+  static void DestroyOverflowAreas(void* aPropertyValue)
+  {
+    delete static_cast<nsOverflowAreas*>(aPropertyValue);
   }
 
 #ifdef _MSC_VER
@@ -2059,7 +2059,6 @@ public:
 
 
 
-
   void InvalidateOverflowRect();
 
   
@@ -2080,7 +2079,13 @@ public:
 
 
 
-  nsRect GetOverflowRect() const;
+
+
+
+
+  nsRect GetVisualOverflowRect() const {
+    return GetOverflowRect(eVisualOverflow);
+  }
 
   
 
@@ -2098,7 +2103,17 @@ public:
 
 
 
-  nsRect GetOverflowRectRelativeToParent() const;
+
+
+
+
+  nsRect GetScrollableOverflowRect() const {
+    return GetOverflowRect(eScrollableOverflow);
+  }
+
+  nsRect GetOverflowRect(nsOverflowType aType) const;
+
+  nsOverflowAreas GetOverflowAreas() const;
 
   
 
@@ -2107,9 +2122,16 @@ public:
 
 
 
+  nsRect GetScrollableOverflowRectRelativeToParent() const;
+
+  
 
 
-  nsRect GetOverflowRectRelativeToSelf() const;
+
+
+
+
+  nsRect GetVisualOverflowRectRelativeToSelf() const;
 
   
 
@@ -2126,14 +2148,14 @@ public:
 
 
 
-  PRBool HasOverflowRect() const {
+  PRBool HasOverflowAreas() const {
     return mOverflow.mType != NS_FRAME_OVERFLOW_NONE;
   }
 
   
 
 
-  void ClearOverflowRect();
+  void ClearOverflowRects();
 
   
 
@@ -2589,9 +2611,9 @@ protected:
       PRUint8 mTop;
       PRUint8 mRight;
       PRUint8 mBottom;
-    } mDeltas;
+    } mVisualDeltas;
   } mOverflow;
-  
+
   
   
 
@@ -2685,8 +2707,22 @@ protected:
    nsresult PeekOffsetParagraph(nsPeekOffsetStruct *aPos);
 
 private:
-  nsRect* GetOverflowAreaProperty(PRBool aCreateIfNecessary = PR_FALSE);
-  void SetOverflowRect(const nsRect& aRect);
+  nsOverflowAreas* GetOverflowAreasProperty();
+  nsRect GetVisualOverflowFromDeltas() const {
+    NS_ABORT_IF_FALSE(mOverflow.mType != NS_FRAME_OVERFLOW_LARGE,
+                      "should not be called when overflow is in a property");
+    
+    
+    
+    
+    return nsRect(-(PRInt32)mOverflow.mVisualDeltas.mLeft,
+                  -(PRInt32)mOverflow.mVisualDeltas.mTop,
+                  mRect.width + mOverflow.mVisualDeltas.mRight +
+                                mOverflow.mVisualDeltas.mLeft,
+                  mRect.height + mOverflow.mVisualDeltas.mBottom +
+                                 mOverflow.mVisualDeltas.mTop);
+  }
+  void SetOverflowAreas(const nsOverflowAreas& aOverflowAreas);
   nsPoint GetOffsetToCrossDoc(const nsIFrame* aOther, const PRInt32 aAPD) const;
 
 #ifdef NS_DEBUG

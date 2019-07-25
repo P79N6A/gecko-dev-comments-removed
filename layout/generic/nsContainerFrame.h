@@ -128,7 +128,7 @@ public:
   static void SyncFrameViewAfterReflow(nsPresContext* aPresContext,
                                        nsIFrame*       aFrame,
                                        nsIView*        aView,
-                                       const nsRect*   aCombinedArea,
+                                       const nsRect&   aVisualOverflowArea,
                                        PRUint32        aFlags = 0);
 
   
