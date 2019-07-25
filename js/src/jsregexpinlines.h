@@ -141,6 +141,8 @@ class RegExp
 
 
 
+
+
     static bool parseFlags(JSContext *cx, JSString *flagStr, uintN *flagsOut);
 
     
