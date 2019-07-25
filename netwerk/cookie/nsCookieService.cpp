@@ -1503,6 +1503,7 @@ nsresult
 nsCookieService::Read()
 {
   
+  
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = mDefaultDBState.dbConn->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT "
@@ -1516,7 +1517,8 @@ nsCookieService::Read()
       "isSecure, "
       "isHttpOnly, "
       "baseDomain "
-    "FROM moz_cookies"), getter_AddRefs(stmt));
+    "FROM moz_cookies "
+    "WHERE baseDomain NOTNULL"), getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsRefPtr<ReadCookieDBListener> readListener = new ReadCookieDBListener;
@@ -1527,6 +1529,18 @@ nsCookieService::Read()
   mDefaultDBState.readListener = readListener;
   if (!mDefaultDBState.readSet.IsInitialized())
     mDefaultDBState.readSet.Init();
+
+  
+  
+  
+  
+  rv = mDefaultDBState.dbConn->CreateStatement(NS_LITERAL_CSTRING(
+    "DELETE FROM moz_cookies WHERE baseDomain ISNULL"), getter_AddRefs(stmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<mozIStoragePendingStatement> handle;
+  rv = stmt->ExecuteAsync(mRemoveListener, getter_AddRefs(handle));
+  NS_ASSERT_SUCCESS(rv);
 
   return NS_OK;
 }
@@ -1640,7 +1654,12 @@ nsCookieService::GetSyncDBConn()
 
   mStorageService->OpenUnsharedDatabase(cookieFile,
     getter_AddRefs(mDefaultDBState.syncConn));
-  NS_ASSERTION(mDefaultDBState.syncConn, "can't open sync db connection");
+  if (!mDefaultDBState.syncConn) {
+    NS_ERROR("can't open sync db connection");
+    COOKIE_LOGSTRING(PR_LOG_DEBUG,
+      ("GetSyncDBConn(): can't open sync db connection"));
+  }
+
   return mDefaultDBState.syncConn;
 }
 
