@@ -600,6 +600,41 @@ SourceEditor.prototype = {
 
 
 
+
+
+  setCaretPosition: function SE_setCaretPosition(aLine, aColumn)
+  {
+    aColumn = aColumn || 0;
+
+    let text = this._textbox.value;
+    let i = 0, n = text.length, c0, c1;
+    let line = 0, col = 0;
+    while (i < n) {
+      c1 = text.charAt(i++);
+      if (line < aLine && (c1 == "\r" || (c0 != "\r" && c1 == "\n"))) {
+        
+        
+        
+        line++;
+        col = 0;
+      } else {
+        col++;
+      }
+
+      if (line == aLine && col == aColumn) {
+        this.setCaretOffset(i);
+        return;
+      }
+      c0 = c1;
+    }
+  },
+
+  
+
+
+
+
+
   getLineDelimiter: function SE_getLineDelimiter()
   {
     return this._lineDelimiter;

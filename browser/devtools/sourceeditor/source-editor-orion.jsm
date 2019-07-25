@@ -680,6 +680,47 @@ SourceEditor.prototype = {
 
 
 
+
+
+  getCaretPosition: function SE_getCaretPosition()
+  {
+    let offset = this.getCaretOffset();
+    let line = this._model.getLineAtOffset(offset);
+    let lineStart = this._model.getLineStart(line);
+    let column = offset - lineStart;
+    return {line: line, col: column};
+  },
+
+  
+
+
+
+
+
+
+
+  setCaretPosition: function SE_setCaretPosition(aLine, aColumn)
+  {
+    this.setCaretOffset(this._model.getLineStart(aLine) + (aColumn || 0));
+  },
+
+  
+
+
+
+
+
+  getLineCount: function SE_getLineCount()
+  {
+    return this._model.getLineCount();
+  },
+
+  
+
+
+
+
+
   getLineDelimiter: function SE_getLineDelimiter()
   {
     return this._model.getLineDelimiter();
