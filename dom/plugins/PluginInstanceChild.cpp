@@ -624,6 +624,9 @@ PluginInstanceChild::AnswerNPP_HandleEvent(const NPRemoteEvent& event,
     return true;
 #endif
 
+    
+    
+    
     if (!mPluginIface->event)
         *handled = false;
     else

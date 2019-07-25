@@ -15,6 +15,8 @@
 #include "base/message_pump.h"
 #include "base/time.h"
 
+class QTimer;
+
 namespace base {
 
 class MessagePumpForUI;
@@ -27,9 +29,14 @@ class MessagePumpQt : public QObject {
   ~MessagePumpQt();
 
   virtual bool event (QEvent *e);
+  void scheduleDelayedIfNeeded(const Time& delayed_work_time);
+
+ public slots:
+  void dispatchDelayed();
 
  private:
   base::MessagePumpForUI &pump;
+  QTimer* mTimer;
 };
 
 
@@ -61,10 +68,6 @@ class MessagePumpForUI : public MessagePump {
 
     
     int run_depth;
-
-    
-    
-    bool more_work_is_plausible;
   };
 
   RunState* state_;

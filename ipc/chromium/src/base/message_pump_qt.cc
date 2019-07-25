@@ -7,8 +7,10 @@
 #include <qabstracteventdispatcher.h>
 #include <qevent.h>
 #include <qapplication.h>
+#include <qtimer.h>
 
 #include <fcntl.h>
+#include <limits>
 #include <math.h>
 
 #include "base/eintr_wrapper.h"
@@ -33,7 +35,7 @@ MessagePumpForUI::~MessagePumpForUI() {
 }
 
 MessagePumpQt::MessagePumpQt(MessagePumpForUI &aPump)
-  : pump(aPump)
+  : pump(aPump), mTimer(new QTimer(this))
 {
   
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 4, 0))
@@ -41,10 +43,14 @@ MessagePumpQt::MessagePumpQt(MessagePumpForUI &aPump)
 #else
   sPokeEvent = QEvent::User+5000;
 #endif
+  connect(mTimer, SIGNAL(timeout()), this, SLOT(dispatchDelayed()));
+  mTimer->setSingleShot(true);
 }
 
 MessagePumpQt::~MessagePumpQt()
 {
+  mTimer->stop();
+  delete mTimer;
 }
 
 bool
@@ -57,6 +63,31 @@ MessagePumpQt::event(QEvent *e)
   return false;
 }
 
+void
+MessagePumpQt::scheduleDelayedIfNeeded(const Time& delayed_work_time)
+{
+  if (delayed_work_time.is_null()) {
+    return;
+  }
+
+  if (mTimer->isActive()) {
+    mTimer->stop();
+  }
+
+  TimeDelta later = delayed_work_time - Time::Now();
+  
+  
+  int laterMsecs = later.InMilliseconds() > std::numeric_limits<int>::max() ?
+    std::numeric_limits<int>::max() : later.InMilliseconds();
+  mTimer->start(laterMsecs);
+}
+
+void
+MessagePumpQt::dispatchDelayed()
+{
+  pump.HandleDispatch();
+}
+
 void MessagePumpForUI::Run(Delegate* delegate) {
   RunState state;
   state.delegate = delegate;
@@ -67,54 +98,75 @@ void MessagePumpForUI::Run(Delegate* delegate) {
   
   
   
-  state.more_work_is_plausible = true;
+  bool more_work_is_plausible = true;
 
   RunState* previous_state = state_;
   state_ = &state;
 
-  
-  
-  
+  for(;;) {
+    QEventLoop::ProcessEventsFlags block = QEventLoop::AllEvents;
+    if (!more_work_is_plausible) {
+      block |= QEventLoop::WaitForMoreEvents;
+    }
 
-  while (!state_->should_quit) {
-    QAbstractEventDispatcher *dispatcher = QAbstractEventDispatcher::instance(qApp->thread());
-    if (!dispatcher)
+    QAbstractEventDispatcher* dispatcher =
+      QAbstractEventDispatcher::instance(qApp->thread());
+    
+    
+    if (!dispatcher) {
       return;
-    dispatcher->processEvents(QEventLoop::AllEvents | QEventLoop::WaitForMoreEvents);
+    }
+
+    
+    more_work_is_plausible = dispatcher->processEvents(block);
+
+    if (state_->should_quit) {
+      break;
+    }
+
+    more_work_is_plausible |= state_->delegate->DoWork();
+    if (state_->should_quit) {
+      break;
+    }
+
+    more_work_is_plausible |=
+      state_->delegate->DoDelayedWork(&delayed_work_time_);
+    if (state_->should_quit) {
+      break;
+    }
+
+    qt_pump.scheduleDelayedIfNeeded(delayed_work_time_);
+
+    if (more_work_is_plausible) {
+      continue;
+    }
+
+    more_work_is_plausible = state_->delegate->DoIdleWork();
+    if (state_->should_quit) {
+      break;
+    }
   }
 
   state_ = previous_state;
 }
 
 void MessagePumpForUI::HandleDispatch() {
-  
-  
-  
-  if (state_->should_quit)
+  if (state_->should_quit) {
     return;
+  }
 
-  state_->more_work_is_plausible = false;
+  if (state_->delegate->DoWork()) {
+    
+    
+    ScheduleWork();
+  }
 
-  if (state_->delegate->DoWork())
-    state_->more_work_is_plausible = true;
-
-  if (state_->should_quit)
+  if (state_->should_quit) {
     return;
+  }
 
-  if (state_->delegate->DoDelayedWork(&delayed_work_time_))
-    state_->more_work_is_plausible = true;
-  if (state_->should_quit)
-    return;
-
-  
-  
-  if (state_->more_work_is_plausible)
-    return;
-
-  if (state_->delegate->DoIdleWork())
-    state_->more_work_is_plausible = true;
-  if (state_->should_quit)
-    return;
+  state_->delegate->DoDelayedWork(&delayed_work_time_);
+  qt_pump.scheduleDelayedIfNeeded(delayed_work_time_);
 }
 
 void MessagePumpForUI::Quit() {
@@ -126,9 +178,6 @@ void MessagePumpForUI::Quit() {
 }
 
 void MessagePumpForUI::ScheduleWork() {
-  
-  
-  
   QCoreApplication::postEvent(&qt_pump,
                               new QEvent((QEvent::Type) sPokeEvent));
 }
@@ -136,8 +185,9 @@ void MessagePumpForUI::ScheduleWork() {
 void MessagePumpForUI::ScheduleDelayedWork(const Time& delayed_work_time) {
   
   
+  
   delayed_work_time_ = delayed_work_time;
-  ScheduleWork();
+  qt_pump.scheduleDelayedIfNeeded(delayed_work_time_);
 }
 
 }  
