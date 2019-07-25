@@ -663,6 +663,29 @@ protected:
 
 
 
+  NS_HIDDEN_(nsresult) GetUnsignedIntAttr(nsIAtom* aAttr, PRUint32 aDefault,
+                                          PRUint32* aValue);
+
+  
+
+
+
+
+
+
+
+  NS_HIDDEN_(nsresult) SetUnsignedIntAttr(nsIAtom* aAttr, PRUint32 aValue);
+
+  
+
+
+
+
+
+
+
+
+
   NS_HIDDEN_(nsresult) GetFloatAttr(nsIAtom* aAttr, float aDefault, float* aValue);
 
   
@@ -1127,6 +1150,50 @@ protected:
   _class::Set##_method(PRInt32 aValue)                                    \
   {                                                                       \
     return SetIntAttr(nsGkAtoms::_atom, aValue);                        \
+  }
+
+
+
+
+
+
+#define NS_IMPL_UINT_ATTR(_class, _method, _atom)                         \
+  NS_IMPL_UINT_ATTR_DEFAULT_VALUE(_class, _method, _atom, 0)
+
+#define NS_IMPL_UINT_ATTR_DEFAULT_VALUE(_class, _method, _atom, _default) \
+  NS_IMETHODIMP                                                           \
+  _class::Get##_method(PRUint32* aValue)                                  \
+  {                                                                       \
+    return GetUnsignedIntAttr(nsGkAtoms::_atom, _default, aValue);        \
+  }                                                                       \
+  NS_IMETHODIMP                                                           \
+  _class::Set##_method(PRUint32 aValue)                                   \
+  {                                                                       \
+    return SetUnsignedIntAttr(nsGkAtoms::_atom, aValue);                  \
+  }
+
+
+
+
+
+
+
+#define NS_IMPL_UINT_ATTR_NON_ZERO(_class, _method, _atom)                \
+  NS_IMPL_UINT_ATTR_NON_ZERO_DEFAULT_VALUE(_class, _method, _atom, 1)
+
+#define NS_IMPL_UINT_ATTR_NON_ZERO_DEFAULT_VALUE(_class, _method, _atom, _default) \
+  NS_IMETHODIMP                                                           \
+  _class::Get##_method(PRUint32* aValue)                                  \
+  {                                                                       \
+    return GetUnsignedIntAttr(nsGkAtoms::_atom, _default, aValue);        \
+  }                                                                       \
+  NS_IMETHODIMP                                                           \
+  _class::Set##_method(PRUint32 aValue)                                   \
+  {                                                                       \
+    if (aValue == 0) {                                                    \
+      return NS_ERROR_DOM_INDEX_SIZE_ERR;                                 \
+    }                                                                     \
+    return SetUnsignedIntAttr(nsGkAtoms::_atom, aValue);                  \
   }
 
 
