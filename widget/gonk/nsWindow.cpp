@@ -522,10 +522,18 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 {
     if (aAllowRetaining)
         *aAllowRetaining = true;
-    if (mLayerManager)
+    if (mLayerManager) {
+        
+        
+        if (mLayerManager->GetBackendType() == LAYERS_BASIC) {
+            BasicLayerManager* manager =
+                static_cast<BasicLayerManager*>(mLayerManager.get());
+            manager->SetDefaultTargetConfiguration(mozilla::layers::BUFFER_NONE, 
+                                                   ScreenRotation(EffectiveScreenRotation()));
+        }
         return mLayerManager;
+    }
 
-    LOG("Creating layer Manaer\n");
     
     
     mUseAcceleratedRendering = GetShouldAccelerate();
