@@ -7692,7 +7692,7 @@ var ctx = canvas.getContext('2d');
 
 var _thrown = undefined; try {
   ctx.createImageData(null);
-} catch (e) { _thrown = e }; ok(_thrown && _thrown.code == DOMException.NOT_SUPPORTED_ERR, "should throw NOT_SUPPORTED_ERR");
+} catch (e) { _thrown = e }; todo(_thrown && _thrown instanceof TypeError, "should throw TypeError");
 
 
 }
@@ -10790,7 +10790,7 @@ if (ctx.createImageData) {
 } catch (e) { _thrown = e }; todo(_thrown && _thrown.code == DOMException.NOT_SUPPORTED_ERR, "should throw NOT_SUPPORTED_ERR");
     var _thrown = undefined; try {
   ctx.createImageData(1);
-} catch (e) { _thrown = e }; ok(_thrown && _thrown.code == DOMException.NOT_SUPPORTED_ERR, "should throw NOT_SUPPORTED_ERR");
+} catch (e) { _thrown = e }; todo(_thrown && _thrown.code == DOMException.NOT_SUPPORTED_ERR, "should throw NOT_SUPPORTED_ERR");
 }
 if (ctx.getImageData) {
     var _thrown = undefined; try {
