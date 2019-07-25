@@ -392,8 +392,12 @@ var Browser = {
   },
 
   quit: function quit() {
-    window.QueryInterface(Ci.nsIDOMChromeWindow).minimize();
-    window.close();
+    
+    
+    if (this.closing()) {
+      window.QueryInterface(Ci.nsIDOMChromeWindow).minimize();
+      window.close();
+    }
   },
 
   _waitingToClose: false,
