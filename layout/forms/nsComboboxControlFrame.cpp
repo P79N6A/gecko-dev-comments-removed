@@ -1170,23 +1170,23 @@ nsComboboxControlFrame::CreateFrameFor(nsIContent*      aContent)
   }
 
   
-  mTextFrame = NS_NewTextFrame(shell, textStyleContext);
-  if (NS_UNLIKELY(!mTextFrame)) {
+  nsIFrame* textFrame = NS_NewTextFrame(shell, textStyleContext);
+  if (NS_UNLIKELY(!textFrame)) {
     return nsnull;
   }
 
   
-  rv = mTextFrame->Init(aContent, mDisplayFrame, nsnull);
+  rv = textFrame->Init(aContent, mDisplayFrame, nsnull);
   if (NS_FAILED(rv)) {
     mDisplayFrame->Destroy();
     mDisplayFrame = nsnull;
-    mTextFrame->Destroy();
-    mTextFrame = nsnull;
+    textFrame->Destroy();
+    textFrame = nsnull;
     return nsnull;
   }
-  mDisplayContent->SetPrimaryFrame(mTextFrame);
+  mDisplayContent->SetPrimaryFrame(textFrame);
 
-  nsFrameList textList(mTextFrame, mTextFrame);
+  nsFrameList textList(textFrame, textFrame);
   mDisplayFrame->SetInitialChildList(nsnull, textList);
   return mDisplayFrame;
 }

@@ -265,7 +265,6 @@ protected:
   nsIFrame*                mDisplayFrame;            
   nsIFrame*                mButtonFrame;             
   nsIFrame*                mDropdownFrame;           
-  nsIFrame*                mTextFrame;               
   nsIListControlFrame *    mListControlFrame;        
 
   
