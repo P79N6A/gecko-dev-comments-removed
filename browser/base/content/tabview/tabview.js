@@ -1,7 +1,3 @@
-
-
-#include profile.js
-
 Components.utils.import("resource://gre/modules/tabview/AllTabs.jsm");
 Components.utils.import("resource://gre/modules/tabview/groups.jsm");
 Components.utils.import("resource://gre/modules/tabview/utils.jsm");
