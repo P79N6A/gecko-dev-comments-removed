@@ -61,7 +61,7 @@
 
 namespace js {
 namespace ion {
-
+class ValueNumberData;
 static const inline
 MIRType MIRTypeFromValue(const js::Value &vp)
 {
@@ -255,7 +255,7 @@ class MDefinition : public MNode
     InlineForwardList<MUse> uses_; 
     uint32 id_;                    
                                    
-    uint32 valueNumber_;           
+    ValueNumberData *valueNumber_; 
     MIRType resultType_;           
     uint32 flags_;                 
     MDefinition *dependency_;      
@@ -301,7 +301,7 @@ class MDefinition : public MNode
   public:
     MDefinition()
       : id_(0),
-        valueNumber_(0),
+        valueNumber_(NULL),
         resultType_(MIRType_None),
         flags_(0),
         dependency_(NULL)
@@ -334,12 +334,13 @@ class MDefinition : public MNode
         id_ = id;
     }
 
-    uint32 valueNumber() const {
-        JS_ASSERT(block_);
+    uint32 valueNumber() const;
+    void setValueNumber(uint32 vn);
+    ValueNumberData *valueNumberData() {
         return valueNumber_;
     }
-
-    void setValueNumber(uint32 vn) {
+    void setValueNumberData(ValueNumberData *vn) {
+        JS_ASSERT(valueNumber_ == NULL);
         valueNumber_ = vn;
     }
 #define FLAG_ACCESSOR(flag) \
