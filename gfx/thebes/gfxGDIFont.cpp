@@ -166,11 +166,11 @@ gfxGDIFont::InitTextRun(gfxContext *aContext,
 
     if (!ok) {
         GDIFontEntry *fe = static_cast<GDIFontEntry*>(GetFontEntry());
-        PRBool useUniscribeOnly = !fe->IsTrueType() || fe->IsSymbolFont();
+        PRBool preferUniscribe =
+            (!fe->IsTrueType() || fe->IsSymbolFont()) && !fe->mForceGDI;
 
-        if (useUniscribeOnly ||
-            (UseUniscribe(aTextRun, aString, aRunStart, aRunLength)
-             && !fe->mForceGDI))
+        if (preferUniscribe ||
+            UseUniscribe(aTextRun, aString, aRunStart, aRunLength))
         {
             
             if (!mUniscribeShaper) {
@@ -185,16 +185,13 @@ gfxGDIFont::InitTextRun(gfxContext *aContext,
             }
 
             
-            if (!useUniscribeOnly) {
-                if (!mPlatformShaper) {
-                    CreatePlatformShaper();
-                }
-
-                ok = mPlatformShaper->InitTextRun(aContext, aTextRun, aString,
-                                                  aRunStart, aRunLength, 
-                                                  aRunScript);
+            if (!mPlatformShaper) {
+                CreatePlatformShaper();
             }
 
+            ok = mPlatformShaper->InitTextRun(aContext, aTextRun, aString,
+                                              aRunStart, aRunLength, 
+                                              aRunScript);
         } else {
             
             if (!mPlatformShaper) {
