@@ -2512,6 +2512,8 @@ CSS_PROP_FONT(
     script_level,
     ScriptLevel,
     
+    
+    
     CSS_PROPERTY_PARSE_VALUE,
     
     
@@ -2524,7 +2526,7 @@ CSS_PROP_FONT(
     script_size_multiplier,
     ScriptSizeMultiplier,
     
-    CSS_PROPERTY_PARSE_VALUE,
+    CSS_PROPERTY_PARSE_INACCESSIBLE,
     0,
     nsnull,
     CSS_PROP_NO_OFFSET,
@@ -2534,7 +2536,7 @@ CSS_PROP_FONT(
     script_min_size,
     ScriptMinSize,
     
-    CSS_PROPERTY_PARSE_VALUE,
+    CSS_PROPERTY_PARSE_INACCESSIBLE,
     0,
     nsnull,
     CSS_PROP_NO_OFFSET,
