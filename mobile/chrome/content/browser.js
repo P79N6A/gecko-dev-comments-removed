@@ -53,6 +53,7 @@ Cu.import("resource://gre/modules/SpatialNavigation.js");
 
 __defineGetter__("gPrefService", function () {
   delete gPrefService;
+  var gPrefService;
   return gPrefService = Components.classes["@mozilla.org/preferences-service;1"]
                                   .getService(Components.interfaces.nsIPrefBranch2);
 });
