@@ -102,7 +102,7 @@ class MachoID {
   uint32_t crc_;
 
   
-  MD5Context md5_context_;
+  google_breakpad::MD5Context md5_context_;
 
   
   UpdateFunction update_function_;
