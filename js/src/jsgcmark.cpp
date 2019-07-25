@@ -238,8 +238,6 @@ MarkTypeObject(JSTracer *trc, types::TypeObject *type, const char *name)
     if (IS_GC_MARKING_TRACER(trc)) {
         if (type->singleton)
             MarkObject(trc, *type->singleton, "type_singleton");
-        if (type->interpretedFunction)
-            MarkObject(trc, *type->interpretedFunction, "type_function");
     }
 }
 
@@ -915,6 +913,9 @@ ScanTypeObject(GCMarker *gcmarker, types::TypeObject *type)
         PushMarkStack(gcmarker, type->newScript->fun);
         PushMarkStack(gcmarker, type->newScript->shape);
     }
+
+    if (type->interpretedFunction)
+        PushMarkStack(gcmarker, type->interpretedFunction);
 
     
 
