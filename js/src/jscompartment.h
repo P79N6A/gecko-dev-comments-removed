@@ -374,16 +374,6 @@ struct JS_FRIEND_API(JSCompartment) {
     bool                         debugMode;  
     JSCList                      scripts;    
 
-    
-
-
-
-
-
-
-    JSObject                     *anynameObject;
-    JSObject                     *functionNamespaceObject;
-
     JSC::ExecutableAllocator     *regExpAllocator;
 
     js::NativeIterCache          nativeIterCache;
