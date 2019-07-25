@@ -518,7 +518,7 @@ CanvasBrowser.prototype = {
     if (needToPanToTop) {
       ws.beginUpdateBatch();
       this._needToPanToTop = false;
-      ws.panTo(0, -60);
+      ws.panTo(0, -BrowserUI.toolbarH);
     }
     
     

@@ -474,6 +474,19 @@ WidgetStack.prototype = {
   },
 
   
+  
+  
+  
+  moveUnfrozenTo: function (wid, x, y) {
+    delete this._widgetState[wid];
+    let widget = document.getElementById(wid);
+    if (x) widget.setAttribute("left", x);
+    if (y) widget.setAttribute("top", y);
+    this._addNewWidget(widget);
+    this._updateWidgets();
+  },
+
+  
   get viewportVisibleRect () {
     let rect = this._viewportBounds.intersect(this._viewingRect);
     if (!rect)
