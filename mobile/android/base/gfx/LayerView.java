@@ -224,14 +224,6 @@ public class LayerView extends GLSurfaceView
         }
     }
 
-    public void addLayer(Layer layer) {
-        mRenderer.addLayer(layer);
-    }
-
-    public void removeLayer(Layer layer) {
-        mRenderer.removeLayer(layer);
-    }
-
     
 
 
