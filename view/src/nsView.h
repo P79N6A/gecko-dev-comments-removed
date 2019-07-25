@@ -118,15 +118,6 @@ public:
 
 public:
   
-  nsresult CreateWidget(const nsIID &aWindowIID,
-                        nsWidgetInitData *aWidgetInitData,
-                        nsNativeWidget aNative,
-                        PRBool aEnableDragDrop,
-                        PRBool aResetVisibility,
-                        nsContentType aContentType,
-                        nsIWidget* aParentWidget);
-
-  
   
   
   nsView* GetFirstChild() const { return mFirstChild; }
