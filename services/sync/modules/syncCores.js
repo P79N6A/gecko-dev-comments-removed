@@ -227,7 +227,7 @@ SyncCore.prototype = {
     let conflicts = [[], []];
     let ret = {propagations: propagations, conflicts: conflicts};
     this._log.debug("Reconciling " + listA.length +
-		    " against " + listB.length + "commands");
+		    " against " + listB.length + " commands");
 
     let guidChanges = [];
     for (let i = 0; i < listA.length; i++) {
@@ -416,12 +416,12 @@ function HistorySyncCore() {
 HistorySyncCore.prototype = {
   _logName: "HistSync",
 
-  _itemExists: function BSC__itemExists(GUID) {
+  _itemExists: function HSC__itemExists(GUID) {
     
     return false;
   },
 
-  _commandLike: function BSC_commandLike(a, b) {
+  _commandLike: function HSC_commandLike(a, b) {
     
     
     

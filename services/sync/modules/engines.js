@@ -273,7 +273,7 @@ Engine.prototype = {
   
   
 
-  _sync: function BmkEngine__sync() {
+  _sync: function Engine__sync() {
     let self = yield;
 
     this._log.info("Beginning sync");
