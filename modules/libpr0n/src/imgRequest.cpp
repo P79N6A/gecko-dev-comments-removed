@@ -1020,13 +1020,13 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
       isDiscardable = doDecodeOnDraw = PR_FALSE;
 
     
-    PRUint32 containerFlags = imgIContainer::INIT_FLAG_NONE;
+    PRUint32 containerFlags = Image::INIT_FLAG_NONE;
     if (isDiscardable)
-      containerFlags |= imgIContainer::INIT_FLAG_DISCARDABLE;
+      containerFlags |= Image::INIT_FLAG_DISCARDABLE;
     if (doDecodeOnDraw)
-      containerFlags |= imgIContainer::INIT_FLAG_DECODE_ON_DRAW;
+      containerFlags |= Image::INIT_FLAG_DECODE_ON_DRAW;
     if (mIsMultiPartChannel)
-      containerFlags |= imgIContainer::INIT_FLAG_MULTIPART;
+      containerFlags |= Image::INIT_FLAG_MULTIPART;
 
     
     

@@ -211,10 +211,7 @@ RasterImage::~RasterImage()
   total_source_bytes -= mSourceData.Length();
 }
 
-
-
-
-NS_IMETHODIMP
+nsresult
 RasterImage::Init(imgIDecoderObserver *aObserver,
                   const char* aMimeType,
                   PRUint32 aFlags)
@@ -468,9 +465,7 @@ RasterImage::GetCurrentFrameIsOpaque(PRBool *aIsOpaque)
   return NS_OK;
 }
 
-
-
-NS_IMETHODIMP
+nsresult
 RasterImage::GetCurrentFrameRect(nsIntRect &aRect)
 {
   if (mError)
@@ -496,9 +491,7 @@ RasterImage::GetCurrentFrameRect(nsIntRect &aRect)
   return NS_OK;
 }
 
-
-
-NS_IMETHODIMP
+nsresult
 RasterImage::GetCurrentFrameIndex(PRUint32 *aCurrentFrameIdx)
 {
   if (mError)
@@ -511,9 +504,7 @@ RasterImage::GetCurrentFrameIndex(PRUint32 *aCurrentFrameIdx)
   return NS_OK;
 }
 
-
-
-NS_IMETHODIMP
+nsresult
 RasterImage::GetNumFrames(PRUint32 *aNumFrames)
 {
   if (mError)
@@ -672,9 +663,7 @@ RasterImage::GetFrame(PRUint32 aWhichFrame,
   return rv;
 }
 
-
-
-NS_IMETHODIMP
+nsresult
 RasterImage::GetDataSize(PRUint32 *_retval)
 {
   if (mError)
