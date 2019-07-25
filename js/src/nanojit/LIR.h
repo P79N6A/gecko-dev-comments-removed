@@ -323,7 +323,7 @@ namespace nanojit
         uintptr_t   _address;
         uint32_t    _typesig:27;     
         AbiKind     _abi:3;
-        uint8_t     _isPure:1;      
+        uint32_t    _isPure:1;      
         AccSet      _storeAccSet;   
         verbose_only ( const char* _name; )
 
