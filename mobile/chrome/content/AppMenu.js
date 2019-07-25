@@ -17,7 +17,7 @@ var AppMenu = {
 
   show: function show() {
     let modals = document.getElementsByClassName("modal-block").length;
-    if (BrowserUI.activePanel || BrowserUI.isPanelVisible() || modals > 0 || BrowserUI.activeDialog)
+    if (AwesomeScreen.activePanel || BrowserUI.isPanelVisible() || modals > 0 || BrowserUI.activeDialog)
       return;
 
     

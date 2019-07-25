@@ -15,7 +15,7 @@ function runNextTest() {
   }
   else {
     
-    BrowserUI.activePanel = null;
+    AwesomeScreen.activePanel = null;
     finish();
   }
 }
