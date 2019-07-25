@@ -4,8 +4,12 @@
 
 
 #include "mozilla/net/CookieServiceParent.h"
+
+#include "mozilla/ipc/URIUtils.h"
 #include "nsCookieService.h"
 #include "nsNetUtil.h"
+
+using namespace mozilla::ipc;
 
 namespace mozilla {
 namespace net {
@@ -27,7 +31,7 @@ CookieServiceParent::~CookieServiceParent()
 }
 
 bool
-CookieServiceParent::RecvGetCookieString(const IPC::URI& aHost,
+CookieServiceParent::RecvGetCookieString(const URIParams& aHost,
                                          const bool& aIsForeign,
                                          const bool& aFromHttp,
                                          nsCString* aResult)
@@ -37,7 +41,7 @@ CookieServiceParent::RecvGetCookieString(const IPC::URI& aHost,
 
   
   
-  nsCOMPtr<nsIURI> hostURI(aHost);
+  nsCOMPtr<nsIURI> hostURI = DeserializeURI(aHost);
   if (!hostURI)
     return false;
 
@@ -47,7 +51,7 @@ CookieServiceParent::RecvGetCookieString(const IPC::URI& aHost,
 }
 
 bool
-CookieServiceParent::RecvSetCookieString(const IPC::URI& aHost,
+CookieServiceParent::RecvSetCookieString(const URIParams& aHost,
                                          const bool& aIsForeign,
                                          const nsCString& aCookieString,
                                          const nsCString& aServerTime,
@@ -58,7 +62,7 @@ CookieServiceParent::RecvSetCookieString(const IPC::URI& aHost,
 
   
   
-  nsCOMPtr<nsIURI> hostURI(aHost);
+  nsCOMPtr<nsIURI> hostURI = DeserializeURI(aHost);
   if (!hostURI)
     return false;
 

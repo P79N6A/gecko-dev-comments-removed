@@ -12,6 +12,7 @@
 
 class nsCString;
 class nsIAboutModule;
+class nsIURI;
 
 class nsAboutProtocolHandler : public nsIProtocolHandler
 {
@@ -45,8 +46,6 @@ private:
 
 class nsNestedAboutURI : public nsSimpleNestedURI {
 public:
-    NS_DECL_NSIIPCSERIALIZABLEOBSOLETE
-
     nsNestedAboutURI(nsIURI* aInnerURI, nsIURI* aBaseURI)
         : nsSimpleNestedURI(aInnerURI)
         , mBaseURI(aBaseURI)
