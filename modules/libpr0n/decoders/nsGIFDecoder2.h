@@ -98,7 +98,6 @@ private:
   PRUint8 mColorMask;        
   PRPackedBool mGIFOpen;
   PRPackedBool mSawTransparency;
-  PRPackedBool mEnded;
 
   gif_struct mGIFStruct;
 };

@@ -117,7 +117,6 @@ nsGIFDecoder2::nsGIFDecoder2()
   , mLastFlushedPass(0)
   , mGIFOpen(PR_FALSE)
   , mSawTransparency(PR_FALSE)
-  , mEnded(PR_FALSE)
 {
   
   memset(&mGIFStruct, 0, sizeof(mGIFStruct));
@@ -141,6 +140,8 @@ nsGIFDecoder2::FinishInternal()
       EndImageFrame();
     EndGIF( PR_TRUE);
   }
+
+  mImage->SetLoopCount(mGIFStruct.loop_count);
 }
 
 
@@ -172,44 +173,6 @@ nsGIFDecoder2::FlushImageData()
   }
 }
 
-void
-nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
-{
-  
-  if (IsError())
-    return;
-
-  
-  nsresult rv = GifWrite((const unsigned char *)aBuffer, aCount);
-
-  
-  if (NS_SUCCEEDED(rv) && !mGIFStruct.images_decoded) {
-    FlushImageData();
-    mLastFlushedRow = mCurrentRow;
-    mLastFlushedPass = mCurrentPass;
-  }
-
-  
-  
-  
-  
-  
-  if (NS_FAILED(rv)) {
-
-    
-    
-    
-    
-    if (mImage && mImage->GetNumFrames() > 1) {
-      EndGIF( PR_TRUE);
-    }
-
-    
-    else
-      PostDataError();
-  }
-}
-
 
 
 
@@ -232,7 +195,7 @@ void nsGIFDecoder2::BeginGIF()
 
 void nsGIFDecoder2::EndGIF(PRBool aSuccess)
 {
-  if (mEnded)
+  if (!mGIFOpen)
     return;
 
   if (aSuccess)
@@ -244,10 +207,7 @@ void nsGIFDecoder2::EndGIF(PRBool aSuccess)
                             nsnull);
   }
 
-  mImage->SetLoopCount(mGIFStruct.loop_count);
-
   mGIFOpen = PR_FALSE;
-  mEnded = PR_TRUE;
 }
 
 
@@ -658,15 +618,16 @@ static void ConvertColormap(PRUint32 *aColormap, PRUint32 aColors)
   }
 }
 
-
-
-
-
-
-nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
+void
+nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
-  if (!buf || !len)
-    return NS_ERROR_FAILURE;
+  
+  if (IsError())
+    return;
+
+  
+  const PRUint8 *buf = (const PRUint8 *)aBuffer;
+  PRUint32 len = aCount;
 
   const PRUint8 *q = buf;
 
@@ -685,7 +646,7 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
       
       mGIFStruct.bytes_in_hold += l;
       mGIFStruct.bytes_to_consume -= l;
-      return NS_OK;
+      return;
     }
     
     mGIFStruct.bytes_in_hold = 0;
@@ -975,7 +936,7 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
 
         
         if (IsSizeDecode())
-          return NS_OK;
+          return;
       }
 
       
@@ -1107,17 +1068,18 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
 
     case gif_done:
       EndGIF( PR_TRUE);
-      return NS_OK;
-      break;
+      goto done;
 
     case gif_error:
+      PostDataError();
       EndGIF( PR_FALSE);
-      return NS_ERROR_FAILURE;
-      break;
+      return;
 
     
     case gif_oom:
-      return NS_ERROR_OUT_OF_MEMORY;
+      PostDecoderError(NS_ERROR_OUT_OF_MEMORY);
+      EndGIF( PR_FALSE);
+      return;
 
     
     default:
@@ -1127,8 +1089,9 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
 
   
   if (mGIFStruct.state == gif_error) {
+      PostDataError();
       EndGIF( PR_FALSE);
-      return NS_ERROR_FAILURE;
+      return;
   }
   
   
@@ -1142,7 +1105,15 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
     mGIFStruct.bytes_to_consume -= len;
   }
 
-  return NS_OK;
+
+done:
+  if (!mGIFStruct.images_decoded) {
+    FlushImageData();
+    mLastFlushedRow = mCurrentRow;
+    mLastFlushedPass = mCurrentPass;
+  }
+
+  return;
 }
 
 } 
