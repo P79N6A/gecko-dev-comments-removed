@@ -65,7 +65,22 @@ using namespace js::mjit;
 using namespace js::mjit::ic;
 #endif
 
-#define ADD_CALLSITE(stub) if (debugMode) addCallSite(__LINE__, (stub))
+
+#define ADD_CALLSITE(stub)                                                    \
+    if (debugMode) addCallSite(__LINE__, (stub))
+
+
+#if (defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)) || defined(_WIN64)
+# define ADD_NON_STUB_CALLSITE(stub)                                          \
+    if (stub)                                                                 \
+        stubcc.masm.callLabel = stubcc.masm.label()                           \
+    else                                                                      \
+        masm.callLabel = masm.label();                                        \
+    ADD_CALLSITE(stub)
+#else
+# define ADD_NON_STUB_CALLSITE(stub)                                          \
+    ADD_CALLSITE(stub)
+#endif
 
 #define RETURN_IF_OOM(retval)                                   \
     JS_BEGIN_MACRO                                              \
@@ -590,7 +605,8 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
     for (size_t i = 0; i < callPatches.length(); i++) {
         CallPatchInfo &patch = callPatches[i];
 
-        fullCode.patch(patch.fastNcodePatch, fullCode.locationOf(patch.joinPoint));
+        if (patch.hasFastNcode)
+            fullCode.patch(patch.fastNcodePatch, fullCode.locationOf(patch.joinPoint));
         if (patch.hasSlowNcode)
             stubCode.patch(patch.slowNcodePatch, fullCode.locationOf(patch.joinPoint));
     }
@@ -2286,7 +2302,6 @@ void
 mjit::Compiler::emitUncachedCall(uint32 argc, bool callingNew)
 {
     CallPatchInfo callPatch;
-    callPatch.hasSlowNcode = false;
 
     RegisterID r0 = Registers::ReturnReg;
     VoidPtrStubUInt32 stub = callingNew ? stubs::UncachedNew : stubs::UncachedCall;
@@ -2300,16 +2315,13 @@ mjit::Compiler::emitUncachedCall(uint32 argc, bool callingNew)
     Jump notCompiled = masm.branchTestPtr(Assembler::Zero, r0, r0);
 
     masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
+    callPatch.hasFastNcode = true;
     callPatch.fastNcodePatch =
         masm.storePtrWithPatch(ImmPtr(NULL),
                                Address(JSFrameReg, JSStackFrame::offsetOfncode()));
 
     masm.jump(r0);
-
-#if (defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)) || defined(_WIN64)
-    masm.callLabel = masm.label();
-#endif
-    ADD_CALLSITE(false);
+    ADD_NON_STUB_CALLSITE(false);
 
     callPatch.joinPoint = masm.label();
     masm.loadPtr(Address(JSFrameReg, JSStackFrame::offsetOfPrev()), JSFrameReg);
@@ -2324,6 +2336,78 @@ mjit::Compiler::emitUncachedCall(uint32 argc, bool callingNew)
     callPatches.append(callPatch);
 }
 
+static bool
+IsLowerableFunCall(jsbytecode *pc)
+{
+#ifdef JS_MONOIC
+    return *pc == JSOP_FUNCALL && GET_ARGC(pc) >= 1;
+#else
+    return false;
+#endif
+}
+
+void
+mjit::Compiler::checkCallSpeculation(uint32 argc, FrameEntry *origCallee, FrameEntry *origThis,
+                                     MaybeRegisterID origCalleeType, RegisterID origCalleeData,
+                                     MaybeRegisterID origThisType, RegisterID origThisData,
+                                     Jump *uncachedCallSlowRejoin, CallPatchInfo *uncachedCallPatch)
+{
+    JS_ASSERT(IsLowerableFunCall(PC));
+
+    
+
+
+
+
+    MaybeJump isObj;
+    if (origCalleeType.isSet())
+        isObj = masm.testObject(Assembler::NotEqual, origCalleeType.reg());
+    Jump isFun = masm.testFunction(Assembler::NotEqual, origCalleeData);
+    masm.loadFunctionPrivate(origCalleeData, origCalleeData);
+    Jump isNative = masm.branchPtr(Assembler::NotEqual,
+                                   Address(origCalleeData, JSFunction::offsetOfNativeOrScript()),
+                                   ImmPtr(JS_FUNC_TO_DATA_PTR(void *, js_fun_call)));
+
+    
+
+
+
+    {
+        if (isObj.isSet())
+            stubcc.linkExitDirect(isObj.getJump(), stubcc.masm.label());
+        stubcc.linkExitDirect(isFun, stubcc.masm.label());
+        stubcc.linkExitDirect(isNative, stubcc.masm.label());
+
+        stubcc.masm.move(Imm32(argc), Registers::ArgReg1);
+        stubcc.call(stubs::UncachedCall);
+        ADD_CALLSITE(true);
+
+        RegisterID r0 = Registers::ReturnReg;
+        Jump notCompiled = stubcc.masm.branchTestPtr(Assembler::Zero, r0, r0);
+
+        stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
+        Address ncodeAddr(JSFrameReg, JSStackFrame::offsetOfncode());
+        uncachedCallPatch->hasSlowNcode = true;
+        uncachedCallPatch->slowNcodePatch = stubcc.masm.storePtrWithPatch(ImmPtr(NULL), ncodeAddr);
+
+        stubcc.masm.jump(r0);
+        ADD_NON_STUB_CALLSITE(true);
+
+        notCompiled.linkTo(stubcc.masm.label(), &stubcc.masm);
+
+        
+
+
+
+
+        JaegerSpew(JSpew_Insns, " ---- BEGIN SLOW RESTORE CODE ---- \n");
+        Address rval = frame.addressOf(origCallee);  
+        stubcc.masm.loadValueAsComponents(rval, JSReturnReg_Type, JSReturnReg_Data);
+        *uncachedCallSlowRejoin = stubcc.masm.jump();
+        JaegerSpew(JSpew_Insns, " ---- END SLOW RESTORE CODE ---- \n");
+    }
+}
+
 
 void
 mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
@@ -2331,54 +2415,95 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
     
     interruptCheckHelper();
 
+    FrameEntry *origCallee = frame.peek(-int(argc + 2));
+    FrameEntry *origThis = frame.peek(-int(argc + 1));
+
     
     if (callingNew)
-        frame.discardFe(frame.peek(-int(argc + 1)));
-
-    FrameEntry *fe = frame.peek(-int(argc + 2));
+        frame.discardFe(origThis);
 
     
-    if (fe->isConstant() || fe->isNotType(JSVAL_TYPE_OBJECT) || debugMode) {
-        emitUncachedCall(argc, callingNew);
-        return;
-    }
+
+
 
 #ifdef JS_MONOIC
-    CallGenInfo callIC(argc);
-    CallPatchInfo callPatch;
+    if (origCallee->isConstant() || origCallee->isNotType(JSVAL_TYPE_OBJECT) || debugMode) {
+#endif
+        emitUncachedCall(argc, callingNew);
+        return;
+#ifdef JS_MONOIC
+    }
 
     
 
 
 
-    callIC.pc = PC;
-    callIC.frameDepth = frame.frameDepth();
+
+
+    bool lowerFunCall = IsLowerableFunCall(PC);
 
     
-    MaybeRegisterID typeReg, maybeDataReg;
-    frame.ensureFullRegs(fe, &typeReg, &maybeDataReg);
-    RegisterID dataReg = maybeDataReg.reg();
-    if (!fe->isTypeKnown())
-        frame.pinReg(typeReg.reg());
-    frame.pinReg(dataReg);
+    CallGenInfo     callIC(PC);
+    CallPatchInfo   callPatch;
+    MaybeRegisterID icCalleeType; 
+    RegisterID      icCalleeData; 
+    Address         icRvalAddr;   
 
     
+    Jump            uncachedCallSlowRejoin;
+    CallPatchInfo   uncachedCallPatch;
 
+    {
+        MaybeRegisterID origCalleeType, maybeOrigCalleeData;
+        RegisterID origCalleeData;
 
+        
+        frame.ensureFullRegs(origCallee, &origCalleeType, &maybeOrigCalleeData);
+        origCalleeData = maybeOrigCalleeData.reg();
+        PinRegAcrossSyncAndKill p1(frame, origCalleeData), p2(frame, origCalleeType);
 
-    frame.syncAndKill(Registers(Registers::AvailRegs), Uses(argc + 2));
-    frame.unpinKilledReg(dataReg);
-    if (typeReg.isSet())
-        frame.unpinKilledReg(typeReg.reg());
+        if (lowerFunCall) {
+            MaybeRegisterID origThisType, maybeOrigThisData;
+            RegisterID origThisData;
+            {
+                
+                frame.ensureFullRegs(origThis, &origThisType, &maybeOrigThisData);
+                origThisData = maybeOrigThisData.reg();
+                PinRegAcrossSyncAndKill p3(frame, origThisData), p4(frame, origThisType);
 
-    Registers tempRegs;
+                
+                frame.syncAndKill(Registers(Registers::AvailRegs), Uses(argc + 2));
+            }
+
+            checkCallSpeculation(argc,origCallee, origThis,
+                                 origCalleeType, origCalleeData,
+                                 origThisType, origThisData,
+                                 &uncachedCallSlowRejoin, &uncachedCallPatch);
+
+            icCalleeType = origThisType;
+            icCalleeData = origThisData;
+            icRvalAddr = frame.addressOf(origThis);
+            callIC.argc = argc - 1;
+            callIC.frameDepth = frame.frameDepth();
+        } else {
+            
+            frame.syncAndKill(Registers(Registers::AvailRegs), Uses(argc + 2));
+
+            icCalleeType = origCalleeType;
+            icCalleeData = origCalleeData;
+            icRvalAddr = frame.addressOf(origCallee);
+            callIC.argc = argc;
+            callIC.frameDepth = frame.frameDepth();
+        }
+    }
 
     
     MaybeJump notObjectJump;
-    if (typeReg.isSet())
-        notObjectJump = masm.testObject(Assembler::NotEqual, typeReg.reg());
+    if (icCalleeType.isSet())
+        notObjectJump = masm.testObject(Assembler::NotEqual, icCalleeType.reg());
 
-    tempRegs.takeReg(dataReg);
+    Registers tempRegs;
+    tempRegs.takeReg(icCalleeData);
     RegisterID t0 = tempRegs.takeAnyReg();
     RegisterID t1 = tempRegs.takeAnyReg();
 
@@ -2387,7 +2512,7 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
 
 
 
-    Jump j = masm.branchPtrWithPatch(Assembler::NotEqual, dataReg, callIC.funGuard);
+    Jump j = masm.branchPtrWithPatch(Assembler::NotEqual, icCalleeData, callIC.funGuard);
     callIC.funJump = j;
 
     Jump rejoin1, rejoin2;
@@ -2399,10 +2524,10 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
 
 
 
-        Jump notFunction = stubcc.masm.testFunction(Assembler::NotEqual, dataReg);
+        Jump notFunction = stubcc.masm.testFunction(Assembler::NotEqual, icCalleeData);
 
         
-        stubcc.masm.loadFunctionPrivate(dataReg, t0);
+        stubcc.masm.loadFunctionPrivate(icCalleeData, t0);
         stubcc.masm.load16(Address(t0, offsetof(JSFunction, flags)), t1);
         stubcc.masm.and32(Imm32(JSFUN_KINDMASK), t1);
         Jump isNative = stubcc.masm.branch32(Assembler::Below, t1, Imm32(JSFUN_INTERPRETED));
@@ -2420,7 +2545,7 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
         callIC.addrLabel1 = stubcc.masm.moveWithPatch(ImmPtr(NULL), Registers::ArgReg1);
         callIC.oolCall = stubcc.call(callingNew ? ic::New : ic::Call);
 
-        callIC.funObjReg = dataReg;
+        callIC.funObjReg = icCalleeData;
         callIC.funPtrReg = t0;
 
         
@@ -2433,7 +2558,7 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
 
         rejoin1 = stubcc.masm.branchTestPtr(Assembler::Zero, Registers::ReturnReg,
                                             Registers::ReturnReg);
-        stubcc.masm.move(Imm32(argc), JSParamReg_Argc);
+        stubcc.masm.move(Imm32(callIC.argc), JSParamReg_Argc);
         stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
         callPatch.hasSlowNcode = true;
         callPatch.slowNcodePatch =
@@ -2464,10 +2589,13 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
         flags |= JSFRAME_CONSTRUCTING;
 
     InlineFrameAssembler inlFrame(masm, callIC, flags);
+    callPatch.hasFastNcode = true;
     callPatch.fastNcodePatch = inlFrame.assemble(NULL);
 
     callIC.hotJump = masm.jump();
     callIC.joinPoint = callPatch.joinPoint = masm.label();
+    if (lowerFunCall)
+        uncachedCallPatch.joinPoint = callIC.joinPoint;
     masm.loadPtr(Address(JSFrameReg, JSStackFrame::offsetOfPrev()), JSFrameReg);
 
     frame.popn(argc + 2);
@@ -2475,15 +2603,27 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
     frame.takeReg(JSReturnReg_Data);
     frame.pushRegs(JSReturnReg_Type, JSReturnReg_Data);
 
+    
+
+
+
+
+
     callIC.slowJoinPoint = stubcc.masm.label();
     rejoin1.linkTo(callIC.slowJoinPoint, &stubcc.masm);
     rejoin2.linkTo(callIC.slowJoinPoint, &stubcc.masm);
-    stubcc.rejoin(Changes(0));
+    JaegerSpew(JSpew_Insns, " ---- BEGIN SLOW RESTORE CODE ---- \n");
+    stubcc.masm.loadValueAsComponents(icRvalAddr, JSReturnReg_Type, JSReturnReg_Data);
+    stubcc.crossJump(stubcc.masm.jump(), masm.label());
+    JaegerSpew(JSpew_Insns, " ---- END SLOW RESTORE CODE ---- \n");
+
+    if (lowerFunCall)
+        stubcc.crossJump(uncachedCallSlowRejoin, masm.label());
 
     callICs.append(callIC);
     callPatches.append(callPatch);
-#else
-    emitUncachedCall(argc, callingNew);
+    if (lowerFunCall)
+        callPatches.append(uncachedCallPatch);
 #endif
 }
 
