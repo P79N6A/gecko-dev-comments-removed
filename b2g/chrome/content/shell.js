@@ -189,6 +189,10 @@ var shell = {
     window.removeEventListener('sizemodechange', this);
     this.contentBrowser.removeEventListener('mozbrowserloadstart', this, true);
     ppmm.removeMessageListener("content-handler", this);
+    if (this.timer) {
+      this.timer.cancel();
+      this.timer = null;
+    }
 
 #ifndef MOZ_WIDGET_GONK
     delete Services.audioManager;
@@ -254,8 +258,11 @@ var shell = {
       this.sendChromeEvent({type: type});
     }
   },
-  
+
   lastHardwareButtonEventType: null, 
+  needBufferSysMsgs: true,
+  bufferedSysMsgs: [],
+  timer: null,
 
   handleEvent: function shell_handleEvent(evt) {
     let content = this.contentBrowser.contentWindow;
@@ -340,6 +347,18 @@ var shell = {
                    ObjectWrapper.wrap(details, getContentWindow()));
   },
 
+  sendSystemMessage: function shell_sendSystemMessage(msg) {
+    let origin = Services.io.newURI(msg.manifest, null, null).prePath;
+    this.sendChromeEvent({
+      type: 'open-app',
+      url: msg.uri,
+      origin: origin,
+      manifest: msg.manifest,
+      isActivity: (msg.type == 'activity'),
+      target: msg.target
+    });
+  },
+
   receiveMessage: function shell_receiveMessage(message) {
     if (message.name != 'content-handler') {
       return;
@@ -389,15 +408,13 @@ nsBrowserAccess.prototype = {
 
 Services.obs.addObserver(function onSystemMessage(subject, topic, data) {
   let msg = JSON.parse(data);
-  let origin = Services.io.newURI(msg.manifest, null, null).prePath;
-  shell.sendChromeEvent({
-    type: 'open-app',
-    url: msg.uri,
-    origin: origin,
-    manifest: msg.manifest,
-    isActivity: (msg.type == 'activity'),
-    target: msg.target
-  });
+  
+  
+  if (shell.needBufferSysMsgs && msg.type !== 'activity') {
+    shell.bufferedSysMsgs.push(msg);
+    return;
+  }
+  shell.sendSystemMessage(msg);
 }, 'system-messages-open-app', false);
 
 Services.obs.addObserver(function(aSubject, aTopic, aData) {
@@ -461,6 +478,18 @@ var CustomEventManager = {
     window.addEventListener("ContentStart", (function(evt) {
       let content = shell.contentBrowser.contentWindow;
       content.addEventListener("mozContentEvent", this, false, true);
+
+      
+      
+      shell.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      shell.timer.initWithCallback(function timerCallback() {
+        shell.bufferedSysMsgs.forEach(function sendSysMsg(msg) {
+          shell.sendSystemMessage(msg);
+        });
+        shell.bufferedSysMsgs.length = 0;
+        shell.needBufferSysMsgs = false;
+        shell.timer = null;
+      }, 10000, Ci.nsITimer.TYPE_ONE_SHOT);
     }).bind(this), false);
   },
 
