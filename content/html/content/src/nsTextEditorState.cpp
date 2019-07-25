@@ -1170,7 +1170,7 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
 
   bool shouldInitializeEditor = false;
   nsCOMPtr<nsIEditor> newEditor; 
-  nsresult rv;
+  nsresult rv = NS_OK;
   if (!mEditor) {
     shouldInitializeEditor = true;
 
