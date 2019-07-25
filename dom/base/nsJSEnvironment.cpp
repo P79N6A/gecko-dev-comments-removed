@@ -1074,21 +1074,6 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime)
 
   mDefaultJSOptions = JSOPTION_PRIVATE_IS_NSISUPPORTS | JSOPTION_ALLOW_XML;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  mDefaultJSOptions |= JSOPTION_ONLY_CNG_SOURCE;
-
   mContext = ::JS_NewContext(aRuntime, gStackSize);
   if (mContext) {
     ::JS_SetContextPrivate(mContext, static_cast<nsIScriptContext *>(this));
@@ -1555,7 +1540,8 @@ nsJSContext::CompileScript(const PRUnichar* aText,
                            const char *aURL,
                            PRUint32 aLineNo,
                            PRUint32 aVersion,
-                           nsScriptObjectHolder<JSScript>& aScriptObject)
+                           nsScriptObjectHolder<JSScript>& aScriptObject,
+                           bool aSaveSource )
 {
   NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_NOT_INITIALIZED);
 
@@ -1582,15 +1568,20 @@ nsJSContext::CompileScript(const PRUnichar* aText,
   XPCAutoRequest ar(mContext);
 
 
-  JSScript* script =
-    ::JS_CompileUCScriptForPrincipalsVersion(mContext,
-                                             scopeObject,
-                                             nsJSPrincipals::get(aPrincipal),
-                                             static_cast<const jschar*>(aText),
-                                             aTextLength,
-                                             aURL,
-                                             aLineNo,
-                                             JSVersion(aVersion));
+  JS::CompileOptions options(mContext);
+  JS::CompileOptions::SourcePolicy sp = aSaveSource ?
+    JS::CompileOptions::SAVE_SOURCE :
+    JS::CompileOptions::LAZY_SOURCE;
+  options.setPrincipals(nsJSPrincipals::get(aPrincipal))
+         .setFileAndLine(aURL, aLineNo)
+         .setVersion(JSVersion(aVersion))
+         .setSourcePolicy(sp);
+  JS::RootedObject rootedScope(mContext, scopeObject);
+  JSScript* script = JS::Compile(mContext,
+                                 rootedScope,
+                                 options,
+                                 static_cast<const jschar*>(aText),
+                                 aTextLength);
   if (!script) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -3946,7 +3937,6 @@ ReadSourceFromFilename(JSContext *cx, const char *filename, jschar **src, PRUint
 
 
 
-
 static bool
 SourceHook(JSContext *cx, JSScript *script, jschar **src, uint32_t *length)
 {
@@ -3992,6 +3982,22 @@ nsJSRuntime::Init()
   rv = sRuntimeService->GetRuntime(&sRuntime);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   JS_SetSourceHook(sRuntime, SourceHook);
 
   
