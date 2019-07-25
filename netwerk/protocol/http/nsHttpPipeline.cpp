@@ -373,12 +373,6 @@ nsHttpPipeline::TakeSubTransactions(
     if (mResponseQ.Length() || mRequestIsPartial)
         return NS_ERROR_ALREADY_OPENED;
 
-    
-    
-    
-    if (!mRequestQ.Length())
-        return NS_ERROR_NOT_IMPLEMENTED;
-
     PRInt32 i, count = mRequestQ.Length();
     for (i = 0; i < count; ++i) {
         nsAHttpTransaction *trans = Request(i);
