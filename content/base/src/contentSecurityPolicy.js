@@ -127,21 +127,45 @@ ContentSecurityPolicy.prototype = {
   },
 
   get allowsInlineScript() {
-    
-    if (!this._policy.allowsInlineScripts) {
-      this._asyncReportViolation('self','inline script base restriction',
-                                 'violated base restriction: Inline Scripts will not execute');
-    }
     return this._reportOnlyMode || this._policy.allowsInlineScripts;
   },
 
   get allowsEval() {
-    
-    if (!this._policy.allowsEvalInScripts) {
-      this._asyncReportViolation('self','eval script base restriction',
-                                 'violated base restriction: Code will not be created from strings');
-    }
     return this._reportOnlyMode || this._policy.allowsEvalInScripts;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  logViolationDetails:
+  function(aViolationType, aSourceFile, aScriptSample, aLineNum) {
+    
+    
+    
+    switch (aViolationType) {
+    case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT:
+      if (!this._policy.allowsInlineScripts)
+        this._asyncReportViolation('self','inline script base restriction',
+                                   'violated base restriction: Inline Scripts will not execute',
+                                   aSourceFile, aScriptSample, aLineNum);
+      break;
+    case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_EVAL:
+      if (!this._policy.allowsEvalInScripts)
+        this._asyncReportViolation('self','eval script base restriction',
+                                   'violated base restriction: Code will not be created from strings',
+                                   aSourceFile, aScriptSample, aLineNum);
+      break;
+    }
   },
 
   set reportOnlyMode(val) {
@@ -234,7 +258,7 @@ ContentSecurityPolicy.prototype = {
 
 
   sendReports:
-  function(blockedUri, violatedDirective) {
+  function(blockedUri, violatedDirective, aSourceFile, aScriptSample, aLineNum) {
     var uriString = this._policy.getReportURIs();
     var uris = uriString.split(/\s+/);
     if (uris.length > 0) {
@@ -262,10 +286,21 @@ ContentSecurityPolicy.prototype = {
           'violated-directive': violatedDirective
         }
       }
+      
+      if (aSourceFile)
+        report["csp-report"]["source-file"] = aSourceFile;
+      if (aScriptSample)
+        report["csp-report"]["script-sample"] = aScriptSample;
+      if (aLineNum)
+        report["csp-report"]["line-number"] = aLineNum;
+
       CSPdebug("Constructed violation report:\n" + JSON.stringify(report));
 
       CSPWarning("Directive \"" + violatedDirective + "\" violated"
-               + (blockedUri['asciiSpec'] ? " by " + blockedUri.asciiSpec : ""));
+               + (blockedUri['asciiSpec'] ? " by " + blockedUri.asciiSpec : ""),
+                 (aSourceFile) ? aSourceFile : null,
+                 (aScriptSample) ? decodeURIComponent(aScriptSample) : null,
+                 (aLineNum) ? aLineNum : null);
 
       
       
@@ -440,8 +475,15 @@ ContentSecurityPolicy.prototype = {
 
 
 
+
+
+
+
+
+
   _asyncReportViolation:
-  function(blockedContentSource, violatedDirective, observerSubject) {
+  function(blockedContentSource, violatedDirective, observerSubject,
+           aSourceFile, aScriptSample, aLineNum) {
     
     
     if (!observerSubject)
@@ -463,7 +505,8 @@ ContentSecurityPolicy.prototype = {
         Services.obs.notifyObservers(observerSubject,
                                      CSP_VIOLATION_TOPIC,
                                      violatedDirective);
-        reportSender.sendReports(blockedContentSource, violatedDirective);
+        reportSender.sendReports(blockedContentSource, violatedDirective,
+                                 aSourceFile, aScriptSample, aLineNum);
       }, Ci.nsIThread.DISPATCH_NORMAL);
   },
 };

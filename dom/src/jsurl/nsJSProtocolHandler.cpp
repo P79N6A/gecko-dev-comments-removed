@@ -197,16 +197,23 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
     nsCOMPtr<nsIContentSecurityPolicy> csp;
     rv = principal->GetCsp(getter_AddRefs(csp));
     NS_ENSURE_SUCCESS(rv, rv);
-    if(csp) {
-      PRBool allowsInline;
-      
-      
-      rv = csp->GetAllowsInlineScript(&allowsInline);
-      NS_ENSURE_SUCCESS(rv, rv);
+    if (csp) {
+		PRBool allowsInline;
+		rv = csp->GetAllowsInlineScript(&allowsInline);
+		NS_ENSURE_SUCCESS(rv, rv);
 
-      
-      if (!allowsInline)
-        return NS_ERROR_DOM_RETVAL_UNDEFINED;
+      if (!allowsInline) {
+          
+          nsCOMPtr<nsIURI> uri;
+          principal->GetURI(getter_AddRefs(uri));
+          nsCAutoString asciiSpec;
+          uri->GetAsciiSpec(asciiSpec);
+		  csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_SCRIPT,
+								   NS_ConvertUTF8toUTF16(asciiSpec),
+								   NS_ConvertUTF8toUTF16(mURL),
+                                   nsnull);
+          return NS_ERROR_DOM_RETVAL_UNDEFINED;
+      }
     }
 
     

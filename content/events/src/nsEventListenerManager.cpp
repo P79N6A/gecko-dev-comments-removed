@@ -734,16 +734,29 @@ nsEventListenerManager::AddScriptEventListener(nsISupports *aObject,
 
     if (csp) {
       PRBool inlineOK;
-      
       rv = csp->GetAllowsInlineScript(&inlineOK);
       NS_ENSURE_SUCCESS(rv, rv);
 
       if ( !inlineOK ) {
         
+        nsIURI* uri = doc->GetDocumentURI();
+        nsCAutoString asciiSpec;
+        if (uri)
+          uri->GetAsciiSpec(asciiSpec);
+        nsAutoString scriptSample, attr, tagName(NS_LITERAL_STRING("UNKNOWN"));
+        aName->ToString(attr);
+        nsCOMPtr<nsIDOMNode> domNode(do_QueryInterface(aObject));
+        if (domNode)
+          domNode->GetNodeName(tagName);
         
-        
-        
-        
+        scriptSample.Assign(attr);
+        scriptSample.AppendLiteral(" attribute on ");
+        scriptSample.Append(tagName);
+        scriptSample.AppendLiteral(" element");
+        csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_SCRIPT,
+                                 NS_ConvertUTF8toUTF16(asciiSpec),
+                                 scriptSample,
+                                 nsnull);
         return NS_OK;
       }
     }

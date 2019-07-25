@@ -552,14 +552,41 @@ nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(JSContext *cx)
         return JS_TRUE;
 
     PRBool evalOK = PR_TRUE;
-    
-    
     rv = csp->GetAllowsEval(&evalOK);
 
     if (NS_FAILED(rv))
     {
         NS_WARNING("CSP: failed to get allowsEval");
         return JS_TRUE; 
+    }
+
+    if (!evalOK) {
+        
+        
+        JSStackFrame *fp = nsnull;
+        nsAutoString fileName;
+        PRUint32 lineNum = 0;
+        NS_NAMED_LITERAL_STRING(scriptSample, "call to eval() or related function blocked by CSP");
+
+        fp = JS_FrameIterator(cx, &fp);
+        if (fp) {
+            JSScript *script = JS_GetFrameScript(cx, fp);
+            if (script) {
+                const char *file = JS_GetScriptFilename(cx, script);
+                if (file) {
+                    CopyUTF8toUTF16(nsDependentCString(file), fileName);
+                }
+                jsbytecode *pc = JS_GetFramePC(cx, fp);
+                if (pc) {
+                    lineNum = JS_PCToLineNumber(cx, script, pc);
+                }
+            }
+        }
+
+        csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_EVAL,
+                                 fileName,
+                                 scriptSample,
+                                 lineNum);
     }
 
     return evalOK;

@@ -674,12 +674,28 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
   if (csp) {
     PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("New ScriptLoader i ****with CSP****"));
     PRBool inlineOK;
-    
     rv = csp->GetAllowsInlineScript(&inlineOK);
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (!inlineOK) {
       PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("CSP blocked inline scripts (2)"));
+      
+      nsIURI* uri = mDocument->GetDocumentURI();
+      nsCAutoString asciiSpec;
+      uri->GetAsciiSpec(asciiSpec);
+      nsAutoString scriptText;
+      aElement->GetScriptText(scriptText);
+
+      
+      if (scriptText.Length() > 40) {
+        scriptText.Truncate(40);
+        scriptText.Append(NS_LITERAL_STRING("..."));
+      }
+
+      csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_SCRIPT,
+                               NS_ConvertUTF8toUTF16(asciiSpec),
+                               scriptText,
+                               aElement->GetScriptLineNumber());
       return NS_ERROR_FAILURE;
     }
   }
