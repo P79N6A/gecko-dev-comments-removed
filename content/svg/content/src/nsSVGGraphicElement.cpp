@@ -38,6 +38,7 @@
 
 
 #include "nsSVGGraphicElement.h"
+#include "nsSVGSVGElement.h"
 #include "nsSVGTransformList.h"
 #include "nsSVGAnimatedTransformList.h"
 #include "nsGkAtoms.h"
@@ -82,7 +83,7 @@ NS_IMETHODIMP nsSVGGraphicElement::GetNearestViewportElement(nsIDOMSVGElement * 
 
 NS_IMETHODIMP nsSVGGraphicElement::GetFarthestViewportElement(nsIDOMSVGElement * *aFarthestViewportElement)
 {
-  *aFarthestViewportElement = nsSVGUtils::GetFarthestViewportElement(this).get();
+  NS_IF_ADDREF(*aFarthestViewportElement = nsSVGUtils::GetOuterSVGElement(this));
   return NS_OK;
 }
 

@@ -1024,33 +1024,12 @@ NS_IMETHODIMP nsSVGElement::SetId(const nsAString & aId)
 NS_IMETHODIMP
 nsSVGElement::GetOwnerSVGElement(nsIDOMSVGSVGElement * *aOwnerSVGElement)
 {
-  *aOwnerSVGElement = nsnull;
+  NS_IF_ADDREF(*aOwnerSVGElement = GetCtx());
 
-  nsIContent* ancestor = nsSVGUtils::GetParentElement(this);
-
-  while (ancestor && ancestor->GetNameSpaceID() == kNameSpaceID_SVG) {
-    nsIAtom* tag = ancestor->Tag();
-    if (tag == nsGkAtoms::foreignObject) {
-      
-      
-      return NS_OK;
-    }
-    if (tag == nsGkAtoms::svg) {
-      *aOwnerSVGElement = static_cast<nsSVGSVGElement*>(ancestor);
-      NS_ADDREF(*aOwnerSVGElement);
-      return NS_OK;
-    }
-    ancestor = nsSVGUtils::GetParentElement(ancestor);
-  }
-
-  
-
-  
-  if (Tag() == nsGkAtoms::svg) {
+  if (*aOwnerSVGElement || Tag() == nsGkAtoms::svg) {
+    
     return NS_OK;
   }
-  
-  
   
   return NS_ERROR_FAILURE;
 }
@@ -1432,9 +1411,21 @@ nsIAtom* nsSVGElement::GetEventNameForAttr(nsIAtom* aAttr)
 nsSVGSVGElement *
 nsSVGElement::GetCtx()
 {
-  nsCOMPtr<nsIDOMSVGSVGElement> svg;
-  GetOwnerSVGElement(getter_AddRefs(svg));
-  return static_cast<nsSVGSVGElement*>(svg.get());
+  dom::Element* ancestor = nsSVGUtils::GetParentElement(this);
+
+  while (ancestor && ancestor->GetNameSpaceID() == kNameSpaceID_SVG) {
+    nsIAtom* tag = ancestor->Tag();
+    if (tag == nsGkAtoms::foreignObject) {
+      return nsnull;
+    }
+    if (tag == nsGkAtoms::svg) {
+      return static_cast<nsSVGSVGElement*>(ancestor);
+    }
+    ancestor = nsSVGUtils::GetParentElement(ancestor);
+  }
+
+  
+  return nsnull;
 }
 
  gfxMatrix

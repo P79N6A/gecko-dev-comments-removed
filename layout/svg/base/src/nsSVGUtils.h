@@ -231,6 +231,11 @@ public:
   
 
 
+  static nsSVGSVGElement *GetOuterSVGElement(nsSVGElement *aSVGElement);
+
+  
+
+
 
 
 
@@ -301,9 +306,6 @@ public:
 
   static already_AddRefed<nsIDOMSVGElement>
   GetNearestViewportElement(nsIContent *aContent);
-
-  static already_AddRefed<nsIDOMSVGElement>
-  GetFarthestViewportElement(nsIContent *aContent);
 
   
 
@@ -585,12 +587,6 @@ public:
 
   static gfxRect PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
                                                nsSVGGeometryFrame* aFrame);
-
-  
-
-
-
-  static PRBool IsInnerSVG(nsIContent* aContent);
 
   
 

@@ -271,15 +271,13 @@ nsSVGAnimationElement::BindToTree(nsIDocument* aDocument,
   NS_ENSURE_SUCCESS(rv,rv);
 
   
-  nsCOMPtr<nsIDOMSVGSVGElement> ownerDOMSVG;
-  rv = GetOwnerSVGElement(getter_AddRefs(ownerDOMSVG));
-
-  if (NS_FAILED(rv) || !ownerDOMSVG)
+  if (!GetCtx()) {
     
     
     
     
     return NS_OK;
+  }
 
   
   if (aDocument) {
@@ -420,18 +418,13 @@ nsSVGAnimationElement::IsNodeOfType(PRUint32 aFlags) const
 nsSMILTimeContainer*
 nsSVGAnimationElement::GetTimeContainer()
 {
-  nsSMILTimeContainer *result = nsnull;
-  nsCOMPtr<nsIDOMSVGSVGElement> ownerDOMSVG;
+  nsSVGSVGElement *element = nsSVGUtils::GetOuterSVGElement(this);
 
-  nsresult rv = GetOwnerSVGElement(getter_AddRefs(ownerDOMSVG));
-
-  if (NS_SUCCEEDED(rv) && ownerDOMSVG) {
-    nsSVGSVGElement *ownerSVG =
-      static_cast<nsSVGSVGElement*>(ownerDOMSVG.get());
-    result = ownerSVG->GetTimedDocumentRoot();
+  if (element) {
+    return element->GetTimedDocumentRoot();
   }
 
-  return result;
+  return nsnull;
 }
 
 
