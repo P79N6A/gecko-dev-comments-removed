@@ -252,7 +252,9 @@ nsWebShellWindow::WindowResized(nsIWidget* aWidget, PRInt32 aWidth, PRInt32 aHei
   }
 
   nsCOMPtr<nsIBaseWindow> shellAsWin(do_QueryInterface(mDocShell));
-  shellAsWin->SetPositionAndSize(0, 0, aWidth, aHeight, false);
+  if (shellAsWin) {
+    shellAsWin->SetPositionAndSize(0, 0, aWidth, aHeight, false);
+  }
   
   
   if (!IsLocked())
