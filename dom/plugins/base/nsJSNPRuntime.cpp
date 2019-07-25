@@ -1782,7 +1782,7 @@ nsNPObjWrapper::OnDestroy(NPObject *npobj)
     
     PL_DHashTableRawRemove(&sNPObjWrappers, entry);
 
-    OnWrapperDestroyed();
+    
   }
 }
 
