@@ -182,14 +182,14 @@ public:
   
   PRBool HasAudio() const {
     mDecoder->GetMonitor().AssertCurrentThreadIn();
-    return mInfo.mHasAudio;
+    return mReader->GetInfo().mHasAudio;
   }
 
   
   
   PRBool HasVideo() const {
     mDecoder->GetMonitor().AssertCurrentThreadIn();
-    return mInfo.mHasVideo;
+    return mReader->GetInfo().mHasVideo;
   }
 
   
@@ -374,9 +374,6 @@ protected:
   
   
   nsAutoPtr<nsAudioStream> mAudioStream;
-
-  
-  nsVideoInfo mInfo;
 
   
   

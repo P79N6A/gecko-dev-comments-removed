@@ -40,6 +40,8 @@
 #define nsBuiltinDecoderReader_h_
 
 #include <nsDeque.h>
+#include "Layers.h"
+#include "ImageLayers.h"
 #include "nsAutoLock.h"
 #include "nsClassHashtable.h"
 #include "mozilla/TimeStamp.h"
@@ -48,6 +50,53 @@
 #include "mozilla/Monitor.h"
 
 class nsBuiltinDecoderStateMachine;
+
+
+class nsVideoInfo {
+public:
+  nsVideoInfo()
+    : mFramerate(0.0),
+      mAspectRatio(1.0),
+      mCallbackPeriod(1),
+      mAudioRate(0),
+      mAudioChannels(0),
+      mFrame(0,0),
+      mHasAudio(PR_FALSE),
+      mHasVideo(PR_FALSE)
+  {}
+
+  
+  float mFramerate;
+
+  
+  float mAspectRatio;
+
+  
+  
+  PRUint32 mCallbackPeriod;
+
+  
+  PRUint32 mAudioRate;
+
+  
+  PRUint32 mAudioChannels;
+
+  
+  nsIntSize mFrame;
+
+  
+  nsIntRect mPicture;
+
+  
+  
+  PRInt64 mDataOffset;
+
+  
+  PRPackedBool mHasAudio;
+
+  
+  PRPackedBool mHasVideo;
+};
 
 
 class SoundData {
@@ -106,6 +155,9 @@ public:
 
 class VideoData {
 public:
+  typedef mozilla::layers::ImageContainer ImageContainer;
+  typedef mozilla::layers::Image Image;
+
   
   
   
@@ -125,7 +177,11 @@ public:
   
   
   
-  static VideoData* Create(PRInt64 aOffset,
+  
+  
+  static VideoData* Create(nsVideoInfo& aInfo,
+                           ImageContainer* aContainer,
+                           PRInt64 aOffset,
                            PRInt64 aTime,
                            const YCbCrBuffer &aBuffer,
                            PRBool aKeyframe,
@@ -144,9 +200,6 @@ public:
   ~VideoData()
   {
     MOZ_COUNT_DTOR(VideoData);
-    for (PRUint32 i = 0; i < 3; ++i) {
-      moz_free(mBuffer.mPlanes[i].mData);
-    }
   }
 
   
@@ -159,7 +212,8 @@ public:
   
   PRInt64 mTimecode;
 
-  YCbCrBuffer mBuffer;
+  
+  nsRefPtr<Image> mImage;
 
   
   
@@ -175,7 +229,6 @@ public:
       mKeyframe(PR_FALSE)
   {
     MOZ_COUNT_CTOR(VideoData);
-    memset(&mBuffer, 0, sizeof(YCbCrBuffer));
   }
 
   VideoData(PRInt64 aOffset,
@@ -334,53 +387,6 @@ public:
 };
 
 
-class nsVideoInfo {
-public:
-  nsVideoInfo()
-    : mFramerate(0.0),
-      mAspectRatio(1.0),
-      mCallbackPeriod(1),
-      mAudioRate(0),
-      mAudioChannels(0),
-      mFrame(0,0),
-      mHasAudio(PR_FALSE),
-      mHasVideo(PR_FALSE)
-  {}
-
-  
-  float mFramerate;
-
-  
-  float mAspectRatio;
-
-  
-  
-  PRUint32 mCallbackPeriod;
-
-  
-  PRUint32 mAudioRate;
-
-  
-  PRUint32 mAudioChannels;
-
-  
-  nsIntSize mFrame;
-
-  
-  nsIntRect mPicture;
-
-  
-  
-  PRInt64 mDataOffset;
-
-  
-  PRPackedBool mHasAudio;
-
-  
-  PRPackedBool mHasVideo;
-};
-
-
 
 
 
@@ -418,7 +424,7 @@ public:
   
   
   
-  virtual nsresult ReadMetadata(nsVideoInfo& aInfo) = 0;
+  virtual nsresult ReadMetadata() = 0;
 
 
   
@@ -433,6 +439,11 @@ public:
   
   
   virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime) = 0;
+
+  
+  const nsVideoInfo& GetInfo() {
+    return mInfo;
+  }
 
   
   MediaQueue<SoundData> mAudioQueue;
@@ -490,6 +501,9 @@ protected:
   
   
   PRInt64 mDataOffset;
+
+  
+  nsVideoInfo mInfo;
 };
 
 #endif

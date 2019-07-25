@@ -61,9 +61,19 @@ static PRBool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
 
 static PRBool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
 
-
-extern PRBool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult);
-
+static PRBool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult)
+{
+  
+  
+  
+  PRUint64 a64 = a;
+  PRUint64 b64 = b;
+  PRUint64 r64 = a64 * b64;
+  if (r64 > PR_UINT32_MAX)
+     return PR_FALSE;
+  aResult = static_cast<PRUint32>(r64);
+  return PR_TRUE;
+}
 
 nsOggCodecState*
 nsOggCodecState::Create(ogg_page* aPage)
@@ -179,6 +189,7 @@ PRBool nsTheoraState::Init() {
   mFrameDuration = static_cast<PRUint32>(f);
 
   n = mInfo.aspect_numerator;
+
   d = mInfo.aspect_denominator;
   mAspectRatio = (n == 0 || d == 0) ?
     1.0f : static_cast<float>(n) / static_cast<float>(d);
