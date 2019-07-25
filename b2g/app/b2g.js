@@ -493,3 +493,6 @@ pref("dom.disable_window_print", true);
 
 
 pref("dom.disable_window_showModalDialog", true);
+
+
+pref("gfx.gralloc.enabled", false);
