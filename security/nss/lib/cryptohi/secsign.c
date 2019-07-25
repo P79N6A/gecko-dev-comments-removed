@@ -478,6 +478,8 @@ SEC_GetSignatureAlgorithmOidTag(KeyType keyType, SECOidTag hashAlgTag)
 	case SEC_OID_UNKNOWN:	
 	case SEC_OID_SHA1:
 	    sigTag = SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION;	break;
+	case SEC_OID_SHA224:
+	    sigTag = SEC_OID_PKCS1_SHA224_WITH_RSA_ENCRYPTION;	break;
 	case SEC_OID_SHA256:
 	    sigTag = SEC_OID_PKCS1_SHA256_WITH_RSA_ENCRYPTION;	break;
 	case SEC_OID_SHA384:
@@ -502,6 +504,8 @@ SEC_GetSignatureAlgorithmOidTag(KeyType keyType, SECOidTag hashAlgTag)
 	case SEC_OID_UNKNOWN:	
 	case SEC_OID_SHA1:
             sigTag = SEC_OID_ANSIX962_ECDSA_SHA1_SIGNATURE; break;
+	case SEC_OID_SHA224:
+            sigTag = SEC_OID_ANSIX962_ECDSA_SHA224_SIGNATURE; break;
 	case SEC_OID_SHA256:
             sigTag = SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE; break;
 	case SEC_OID_SHA384:

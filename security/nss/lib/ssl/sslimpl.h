@@ -1152,6 +1152,10 @@ extern sslSessionIDUncacheFunc ssl_sid_uncache;
 SEC_BEGIN_PROTOS
 
 
+extern SECStatus ssl_Init(void);
+extern SECStatus ssl_InitializePRErrorTable(void);
+
+
 extern int ssl_DefConnect(sslSocket *ss, const PRNetAddr *addr);
 extern PRFileDesc *ssl_DefAccept(sslSocket *ss, PRNetAddr *addr);
 extern int ssl_DefBind(sslSocket *ss, const PRNetAddr *addr);

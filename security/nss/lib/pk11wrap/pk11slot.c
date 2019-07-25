@@ -73,6 +73,7 @@ PK11DefaultArrayEntry PK11_DefaultArray[] = {
 	{ "SEED", SECMOD_SEED_FLAG, CKM_SEED_CBC },
 	{ "RC5", SECMOD_RC5_FLAG, CKM_RC5_CBC },
 	{ "SHA-1", SECMOD_SHA1_FLAG, CKM_SHA_1 },
+
 	{ "SHA256", SECMOD_SHA256_FLAG, CKM_SHA256 },
 
 	{ "SHA512", SECMOD_SHA512_FLAG, CKM_SHA512 },
@@ -857,6 +858,7 @@ PK11_GetSlotList(CK_MECHANISM_TYPE type)
 	return &pk11_rc5SlotList;
     case CKM_SHA_1:
 	return &pk11_sha1SlotList;
+    case CKM_SHA224:
     case CKM_SHA256:
 	return &pk11_sha256SlotList;
     case CKM_SHA384:
@@ -2024,6 +2026,7 @@ PK11_GetBestSlotMultiple(CK_MECHANISM_TYPE *type, int mech_count, void *wincx)
     for (i=0; i < mech_count; i++) {
 	if ((type[i] != CKM_FAKE_RANDOM) && 
 	    (type[i] != CKM_SHA_1) &&
+	    (type[i] != CKM_SHA224) &&
 	    (type[i] != CKM_SHA256) &&
 	    (type[i] != CKM_SHA384) &&
 	    (type[i] != CKM_SHA512) &&
