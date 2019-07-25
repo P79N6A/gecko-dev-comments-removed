@@ -98,6 +98,7 @@ window.TabItem.prototype = $.extend(new Item(), {
     
     
     if(immediately || (!this._hasBeenDrawn) ) {
+      $container.stop(true, true);
       $container.css(css);
     } else {
       TabMirror.pausePainting();
@@ -219,9 +220,13 @@ window.TabItems = {
         if(e.target.className == "close") {
           $(this).find("canvas").data("link").tab.close(); }
         else {
-          if(!$(this).data('isDragging')) {
+          if(!$(this).data('isDragging')) {        
             var item = $(this).data('tabItem');
-            if(!item.parent || !item.parent.childHit(item)) {
+            var childHitResult = { shouldZoom: true };
+            if(item.parent)
+              childHitResult = item.parent.childHit(item);
+              
+            if(childHitResult.shouldZoom) {
               
               var orig = {
                 width: $(this).width(),
@@ -259,9 +264,11 @@ window.TabItems = {
                 }
                 else
                   Groups.setActiveGroup( null );
-                
               
-                $("body").css("overflow", overflow);              
+                $("body").css("overflow", overflow); 
+                
+                if(childHitResult.callback)
+                  childHitResult.callback();             
               }
     
               TabMirror.pausePainting();

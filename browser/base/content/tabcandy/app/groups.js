@@ -598,9 +598,9 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
         child.setZ(zIndex);
         zIndex--;
         
+        child.addClass("stacked");
         child.setBounds(box, !animate);
         child.setRotation(self._randRotate(35, index));
-        child.addClass("stacked");
       }
     });
     
@@ -619,16 +619,21 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
   },
 
   
+  
+  
+  
+  
   childHit: function(child) {
     var self = this;
     
     
     if(!this._isStacked || this.expanded) {
-      setTimeout(function() {
-        self.collapse();
-      }, 200);
-      
-      return false;
+      return {
+        shouldZoom: true,
+        callback: function() {
+          self.collapse();
+        }
+      };
     }
       
     
@@ -698,7 +703,7 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
       $shield: $shield
     };
 
-    return true;
+    return {};
   },
 
   
