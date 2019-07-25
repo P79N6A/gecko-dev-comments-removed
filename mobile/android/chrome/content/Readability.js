@@ -60,6 +60,10 @@ Readability.prototype = {
 
   
   
+  N_TOP_CANDIDATES: 5,
+
+  
+  
   MAX_PAGES: 5,
 
   
@@ -535,23 +539,33 @@ Readability.prototype = {
 
       
       
-      let topCandidate = null;
+      let topCandidates = [];
       for (let c = 0, cl = candidates.length; c < cl; c += 1) {
-        
-        
-        
-        candidates[c].readability.contentScore =
-            candidates[c].readability.contentScore * (1 - this._getLinkDensity(candidates[c]));
+        let candidate = candidates[c];
 
-        this.log('Candidate: ' + candidates[c] + " (" + candidates[c].className + ":" +
-          candidates[c].id + ") with score " +
-          candidates[c].readability.contentScore);
+        
+        
+        
+        let candidateScore = candidate.readability.contentScore * (1 - this._getLinkDensity(candidate));
+        candidate.readability.contentScore = candidateScore;
 
-        if (!topCandidate ||
-          candidates[c].readability.contentScore > topCandidate.readability.contentScore) {
-          topCandidate = candidates[c];
+        this.log('Candidate: ' + candidate + " (" + candidate.className + ":" +
+          candidate.id + ") with score " + candidateScore);
+
+        for (let t = 0; t < this.N_TOP_CANDIDATES; t++) {
+          let aTopCandidate = topCandidates[t];
+
+          if (!aTopCandidate || candidateScore > aTopCandidate.readability.contentScore) {
+            topCandidates.splice(t, 0, candidate);
+            if (topCandidates.length > this.N_TOP_CANDIDATES)
+              topCandidates.pop();
+            break;
+          }
         }
       }
+
+      let topCandidate = topCandidates[0] || null;
+      let lastTopCandidate = (topCandidates.length > 3 ? topCandidates[topCandidates.length - 1] : null);
 
       
       
@@ -647,7 +661,7 @@ Readability.prototype = {
       
       
       
-      if (this._getInnerText(articleContent, false).length < 250) {
+      if (this._getInnerText(articleContent, true).length < 500) {
         page.innerHTML = pageCacheHtml;
 
         if (this._flagIsActive(this.FLAG_STRIP_UNLIKELYS)) {
@@ -660,6 +674,17 @@ Readability.prototype = {
           return null;
         }
       } else {
+        if (lastTopCandidate !== null) {
+          
+          
+          
+          
+          
+          let contrastRatio = lastTopCandidate.readability.contentScore / topCandidate.readability.contentScore;
+          if (contrastRatio > 0.45)
+            return null;
+        }
+
         return articleContent;
       }
     }
