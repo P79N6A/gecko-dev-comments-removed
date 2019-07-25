@@ -1410,6 +1410,13 @@ FullTrustSecMan::GetAppCodebasePrincipal(nsIURI *aURI, PRUint32 aAppId, bool aIn
 
 
 NS_IMETHODIMP
+FullTrustSecMan::GetDocShellCodebasePrincipal(nsIURI *aURI, nsIDocShell* aDocShell, nsIPrincipal **_retval)
+{
+    return GetCodebasePrincipal(aURI, _retval);
+}
+
+
+NS_IMETHODIMP
 FullTrustSecMan::RequestCapability(nsIPrincipal *principal,
                                    const char *capability, PRInt16 *_retval)
 {
