@@ -2933,6 +2933,22 @@ let GsmPDUHelper = {
 
 
 
+
+
+
+  readProtocolIndicator: function readProtocolIndicator(msg) {
+    
+    
+    msg.pid = this.readHexOctet();
+    
+    msg.epid = PDU_PID_DEFAULT;
+  },
+
+  
+
+
+
+
   readTimestamp: function readTimestamp() {
     let year   = this.readSwappedNibbleBCD(1) + PDU_TIMESTAMP_YEAR_OFFSET;
     let month  = this.readSwappedNibbleBCD(1) - 1;
@@ -3074,7 +3090,7 @@ let GsmPDUHelper = {
 
     
     if (pi & PDU_PI_PROTOCOL_IDENTIFIER) {
-      msg.pid = this.readHexOctet();
+      this.readProtocolIndicator(msg);
     }
     
     if (pi & PDU_PI_DATA_CODING_SCHEME) {
@@ -3106,6 +3122,7 @@ let GsmPDUHelper = {
       sender:    null, 
       recipient: null, 
       pid:       null, 
+      epid:      null, 
       dcs:       null, 
       body:      null, 
       timestamp: null, 
@@ -3157,7 +3174,7 @@ let GsmPDUHelper = {
     let senderAddressLength = this.readHexOctet();
     msg.sender = this.readAddress(senderAddressLength);
     
-    msg.pid = this.readHexOctet();
+    this.readProtocolIndicator(msg);
     
     msg.dcs = this.readHexOctet();
     
