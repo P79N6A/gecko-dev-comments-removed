@@ -915,7 +915,11 @@ let Items = {
       return rects;
 
     var columns = 1;
-    var padding = options.padding || 0;
+    
+    
+    var itemMargin = items && items.length ?
+                       parseInt(iQ(items[0].container).css('margin-left')) : 0;
+    var padding = itemMargin * 2;
     var yScale = 1.1; 
     var rows;
     var tabWidth;
@@ -924,9 +928,9 @@ let Items = {
 
     function figure() {
       rows = Math.ceil(count / columns);
-      tabWidth = (bounds.width - (padding * (columns - 1))) / columns;
+      tabWidth = (bounds.width - (padding * columns)) / columns;
       tabHeight = tabWidth * tabAspect;
-      totalHeight = (tabHeight * yScale * rows) + (padding * (rows - 1));
+      totalHeight = (tabHeight * yScale * rows) + (padding * rows);
     }
 
     figure();
@@ -937,8 +941,7 @@ let Items = {
     }
 
     if (rows == 1) {
-      var maxWidth = Math.max(TabItems.tabWidth, bounds.width / 2);
-      tabWidth = Math.min(Math.min(maxWidth, bounds.width / count), bounds.height / tabAspect);
+      tabWidth = Math.min(tabWidth, (bounds.height - 2 * itemMargin) / tabAspect);
       tabHeight = tabWidth * tabAspect;
     }
 
