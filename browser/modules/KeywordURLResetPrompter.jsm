@@ -74,6 +74,7 @@ let KeywordURLResetPrompter = {
         popup:     null,
         callback: function(aNotificationBar, aButton) {
           Services.prefs.clearUserPref("keyword.URL");
+          Services.prefs.clearUserPref("browser.search.defaultenginename");
           try {
             
             
