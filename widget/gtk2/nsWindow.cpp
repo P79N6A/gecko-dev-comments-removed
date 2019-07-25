@@ -3733,14 +3733,11 @@ nsWindow::Create(nsIWidget        *aParent,
         
         mNeedsResize = true;
 
-        nsXPIDLString brandName;
-        GetBrandName(brandName);
-        NS_ConvertUTF16toUTF8 cBrand(brandName);
-
         if (mWindowType == eWindowType_dialog) {
             mShell = gtk_window_new(GTK_WINDOW_TOPLEVEL);
             SetDefaultIcon();
-            gtk_window_set_wmclass(GTK_WINDOW(mShell), "Dialog", cBrand.get());
+            gtk_window_set_wmclass(GTK_WINDOW(mShell), "Dialog", 
+                                   gdk_get_program_class());
             gtk_window_set_type_hint(GTK_WINDOW(mShell),
                                      GDK_WINDOW_TYPE_HINT_DIALOG);
             gtk_window_set_transient_for(GTK_WINDOW(mShell),
@@ -3781,12 +3778,14 @@ nsWindow::Create(nsIWidget        *aParent,
                 
                 
                 mShell = gtk_window_new(GTK_WINDOW_POPUP);
-                gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup", cBrand.get());
+                gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup", 
+                                       gdk_get_program_class());
             } else {
                 
                 
                 mShell = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-                gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup", cBrand.get());
+                gtk_window_set_wmclass(GTK_WINDOW(mShell), "Popup", 
+                                       gdk_get_program_class());
                 
                 
                 if (mBorderStyle == eBorderStyle_default) {
@@ -3848,7 +3847,8 @@ nsWindow::Create(nsIWidget        *aParent,
         else { 
             mShell = gtk_window_new(GTK_WINDOW_TOPLEVEL);
             SetDefaultIcon();
-            gtk_window_set_wmclass(GTK_WINDOW(mShell), "Toplevel", cBrand.get());
+            gtk_window_set_wmclass(GTK_WINDOW(mShell), "Toplevel", 
+                                   gdk_get_program_class());
 
             
             mWindowGroup = gtk_window_group_new();
@@ -4076,61 +4076,13 @@ nsWindow::SetWindowClass(const nsAString &xulWinType)
   if (!mShell)
     return NS_ERROR_FAILURE;
 
-#ifdef MOZ_X11
-  nsXPIDLString brandName;
-  GetBrandName(brandName);
-
-  XClassHint *class_hint = XAllocClassHint();
-  if (!class_hint)
-    return NS_ERROR_OUT_OF_MEMORY;
-  const char *role = NULL;
-  class_hint->res_name = ToNewCString(xulWinType);
-  if (!class_hint->res_name) {
-    XFree(class_hint);
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-  class_hint->res_class = ToNewCString(brandName);
-  if (!class_hint->res_class) {
-    nsMemory::Free(class_hint->res_name);
-    XFree(class_hint);
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
+  const char *res_class = gdk_get_program_class();
+  if (!res_class)
+    return NS_ERROR_FAILURE;
   
-  
-  
-  
-  for (char *c = class_hint->res_name; *c; c++) {
-    if (':' == *c) {
-      *c = 0;
-      role = c + 1;
-    }
-    else if (!isascii(*c) || (!isalnum(*c) && ('_' != *c) && ('-' != *c)))
-      *c = '_';
-  }
-  class_hint->res_name[0] = toupper(class_hint->res_name[0]);
-  if (!role) role = class_hint->res_name;
-
-  GdkWindow *shellWindow = gtk_widget_get_window(GTK_WIDGET(mShell));
-  gdk_window_set_role(shellWindow, role);
-  
-  
-  XSetClassHint(GDK_DISPLAY_XDISPLAY(gdk_display_get_default()),
-                gdk_x11_window_get_xid(shellWindow),
-                class_hint);
-  nsMemory::Free(class_hint->res_class);
-  nsMemory::Free(class_hint->res_name);
-  XFree(class_hint);
-#else 
-
-  char *res_name;
-
-  res_name = ToNewCString(xulWinType);
+  char *res_name = ToNewCString(xulWinType);
   if (!res_name)
     return NS_ERROR_OUT_OF_MEMORY;
-
-  printf("WARN: res_name = '%s'\n", res_name);
-
 
   const char *role = NULL;
 
@@ -4149,11 +4101,28 @@ nsWindow::SetWindowClass(const nsAString &xulWinType)
   res_name[0] = toupper(res_name[0]);
   if (!role) role = res_name;
 
-  gdk_window_set_role(gtk_widget_get_window(GTK_WIDGET(mShell)), role);
+  GdkWindow *shellWindow = gtk_widget_get_window(GTK_WIDGET(mShell));
+  gdk_window_set_role(shellWindow, role);
+
+#ifdef MOZ_X11
+  XClassHint *class_hint = XAllocClassHint();
+  if (!class_hint) {
+    nsMemory::Free(res_name);
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  class_hint->res_name = res_name;
+  class_hint->res_class = const_cast<char*>(res_class);
+
+  
+  
+  XSetClassHint(GDK_DISPLAY_XDISPLAY(gdk_display_get_default()),
+                gdk_x11_window_get_xid(shellWindow),
+                class_hint);
+  XFree(class_hint);
+#endif 
 
   nsMemory::Free(res_name);
 
-#endif 
   return NS_OK;
 }
 

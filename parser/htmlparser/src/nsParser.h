@@ -189,18 +189,6 @@ class nsParser : public nsIParser,
     
 
 
-
-
-
-    NS_IMETHOD Parse(const nsAString& aSourceBuffer,
-                     void* aKey,
-                     const nsACString& aContentType,
-                     bool aLastCall,
-                     nsDTDMode aMode = eDTDMode_autodetect);
-
-    
-
-
     NS_IMETHOD ParseFragment(const nsAString& aSourceBuffer,
                              nsTArray<nsString>& aTagStack);
                              
@@ -432,6 +420,13 @@ private:
 
 
     bool DidTokenize(bool aIsFinalChunk = false);
+
+    
+
+
+    nsresult Parse(const nsAString& aSourceBuffer,
+                   void* aKey,
+                   bool aLastCall);
 
 protected:
     

@@ -97,107 +97,6 @@ using namespace js;
 using namespace js::gc;
 using namespace js::types;
 
-bool
-StackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
-{
-    if (!isFunctionFrame()) {
-        vp->setNull();
-        return true;
-    }
-
-    JSFunction *fun = this->callee().toFunction();
-    vp->setObject(*fun);
-
-    
-
-
-
-
-    const Value &thisv = functionThis();
-    if (thisv.isObject() && fun->methodAtom() && !fun->isClonedMethod()) {
-        JSObject *thisp = &thisv.toObject();
-        JSObject *first_barriered_thisp = NULL;
-
-        do {
-            
-
-
-
-
-            if (!thisp->isNative())
-                continue;
-
-            const Shape *shape = thisp->nativeLookup(cx, ATOM_TO_JSID(fun->methodAtom()));
-            if (shape) {
-                
-
-
-
-
-
-
-
-
-
-                if (shape->isMethod() && thisp->nativeGetMethod(shape) == fun) {
-                    if (!thisp->methodReadBarrier(cx, *shape, vp))
-                        return false;
-                    overwriteCallee(vp->toObject());
-                    return true;
-                }
-
-                if (shape->hasSlot()) {
-                    Value v = thisp->getSlot(shape->slot());
-                    JSFunction *clone;
-
-                    if (IsFunctionObject(v, &clone) &&
-                        clone->isInterpreted() &&
-                        clone->script() == fun->script() &&
-                        clone->methodObj() == thisp) {
-                        
-
-
-
-
-
-                        JS_ASSERT_IF(!clone->hasSingletonType(), clone != fun);
-                        *vp = v;
-                        overwriteCallee(*clone);
-                        return true;
-                    }
-                }
-            }
-
-            if (!first_barriered_thisp)
-                first_barriered_thisp = thisp;
-        } while ((thisp = thisp->getProto()) != NULL);
-
-        if (!first_barriered_thisp)
-            return true;
-
-        
-
-
-
-
-
-
-
-
-
-
-        JSFunction *newfunobj = CloneFunctionObject(cx, fun);
-        if (!newfunobj)
-            return false;
-        newfunobj->setMethodObj(*first_barriered_thisp);
-        overwriteCallee(*newfunobj);
-        vp->setObject(*newfunobj);
-        return true;
-    }
-
-    return true;
-}
-
 static JSBool
 fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
@@ -1279,7 +1178,6 @@ LookupInterpretedFunctionPrototype(JSContext *cx, JSObject *funobj)
     JS_ASSERT(!shape->configurable());
     JS_ASSERT(shape->isDataDescriptor());
     JS_ASSERT(shape->hasSlot());
-    JS_ASSERT(!shape->isMethod());
     return shape;
 }
 

@@ -459,7 +459,7 @@ GetCustomIterator(JSContext *cx, JSObject *obj, unsigned flags, Value *vp)
 
     
     JSAtom *atom = cx->runtime->atomState.iteratorAtom;
-    if (!js_GetMethod(cx, obj, ATOM_TO_JSID(atom), JSGET_NO_METHOD_BARRIER, vp))
+    if (!js_GetMethod(cx, obj, ATOM_TO_JSID(atom), 0, vp))
         return false;
 
     
@@ -1251,7 +1251,7 @@ js_IteratorMore(JSContext *cx, JSObject *iterobj, Value *rval)
     } else {
         
         jsid id = ATOM_TO_JSID(cx->runtime->atomState.nextAtom);
-        if (!js_GetMethod(cx, iterobj, id, JSGET_METHOD_BARRIER, rval))
+        if (!js_GetMethod(cx, iterobj, id, 0, rval))
             return false;
         if (!Invoke(cx, ObjectValue(*iterobj), *rval, 0, NULL, rval)) {
             

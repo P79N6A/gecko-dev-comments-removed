@@ -968,22 +968,6 @@ EmitRegExp(JSContext *cx, uint32_t index, BytecodeEmitter *bce)
 }
 
 static bool
-EmitSlotObjectOp(JSContext *cx, JSOp op, unsigned slot, uint32_t index, BytecodeEmitter *bce)
-{
-    JS_ASSERT(JOF_OPTYPE(op) == JOF_SLOTOBJECT);
-
-    ptrdiff_t off = EmitN(cx, bce, op, SLOTNO_LEN + UINT32_INDEX_LEN);
-    if (off < 0)
-        return false;
-
-    jsbytecode *pc = bce->code(off);
-    SET_SLOTNO(pc, slot);
-    pc += SLOTNO_LEN;
-    SET_UINT32_INDEX(pc, index);
-    return true;
-}
-
-static bool
 EmitArguments(JSContext *cx, BytecodeEmitter *bce)
 {
     if (!bce->mayOverwriteArguments())
@@ -4592,43 +4576,6 @@ EmitWith(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 }
 
 static bool
-SetMethodFunction(JSContext *cx, FunctionBox *funbox, JSAtom *atom)
-{
-    RootedVarObject parent(cx);
-    parent = funbox->function()->getParent();
-
-    
-
-
-
-
-
-    JSFunction *fun = js_NewFunction(cx, NULL, NULL,
-                                     funbox->function()->nargs,
-                                     funbox->function()->flags,
-                                     parent,
-                                     funbox->function()->atom,
-                                     JSFunction::ExtendedFinalizeKind);
-    if (!fun)
-        return false;
-
-    JSScript *script = funbox->function()->script();
-    if (script) {
-        fun->setScript(script);
-        if (!script->typeSetFunction(cx, fun))
-            return false;
-    }
-
-    JS_ASSERT(funbox->function()->joinable());
-    fun->setJoinable();
-
-    fun->setMethodAtom(atom);
-
-    funbox->object = fun;
-    return true;
-}
-
-static bool
 EmitForIn(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 {
     StmtInfo stmtInfo;
@@ -5064,7 +5011,14 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         {
             return false;
         }
-        return EmitSlotObjectOp(cx, JSOP_DEFLOCALFUN, slot, index, bce);
+
+        if (NewSrcNote(cx, bce, SRC_CONTINUE) < 0)
+            return false;
+        if (!EmitIndexOp(cx, JSOP_LAMBDA, index, bce))
+            return false;
+        EMIT_UINT16_IMM_OP(JSOP_SETLOCAL, slot);
+        if (Emit1(cx, bce, JSOP_POP) < 0)
+            return false;
     }
 
     return true;
@@ -5390,23 +5344,6 @@ EmitStatement(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         }
 #endif
         if (op != JSOP_NOP) {
-            
-
-
-
-
-
-
-            if (!wantval &&
-                pn2->isKind(PNK_ASSIGN) &&
-                pn2->pn_left->isOp(JSOP_SETPROP) &&
-                pn2->pn_right->isOp(JSOP_LAMBDA) &&
-                pn2->pn_right->pn_funbox->joinable())
-            {
-                if (!SetMethodFunction(cx, pn2->pn_right->pn_funbox, pn2->pn_left->pn_atom))
-                    return false;
-                pn2->pn_left->setOp(JSOP_SETMETHOD);
-            }
             if (!EmitTree(cx, bce, pn2))
                 return false;
             if (Emit1(cx, bce, op) < 0)
@@ -5920,27 +5857,12 @@ EmitObject(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                 return false;
 
             
-            ParseNode *init = pn2->pn_right;
-            bool lambda = init->isOp(JSOP_LAMBDA);
-            if (lambda)
-                ++methodInits;
-            if (op == JSOP_INITPROP && lambda && init->pn_funbox->joinable()) {
+
+
+
+            if (pn3->pn_atom == cx->runtime->atomState.protoAtom)
                 obj = NULL;
-                op = JSOP_INITMETHOD;
-                if (!SetMethodFunction(cx, init->pn_funbox, pn3->pn_atom))
-                    return JS_FALSE;
-                pn2->setOp(op);
-            } else {
-                
-
-
-
-                if (pn3->pn_atom == cx->runtime->atomState.protoAtom)
-                    obj = NULL;
-                op = JSOP_INITPROP;
-                if (lambda)
-                    ++slowMethodInits;
-            }
+            op = JSOP_INITPROP;
 
             if (obj) {
                 JS_ASSERT(!obj->inDictionaryMode());

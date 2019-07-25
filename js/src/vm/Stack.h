@@ -822,26 +822,12 @@ class StackFrame
         return calleev;
     }
 
-    
-
-
-
-
-    inline void overwriteCallee(JSObject &newCallee);
-
     Value &mutableCalleev() const {
         JS_ASSERT(isFunctionFrame());
         if (isEvalFrame())
             return ((Value *)this)[-2];
         return formalArgs()[-2];
     }
-
-    
-
-
-
-
-    bool getValidCalleeObject(JSContext *cx, Value *vp);
 
     CallReceiver callReceiver() const {
         return CallReceiverFromArgv(formalArgs());

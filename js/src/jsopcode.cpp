@@ -4515,7 +4515,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
                 break;
 
               case JSOP_SETPROP:
-              case JSOP_SETMETHOD:
               {
                 LOAD_ATOM(0);
                 GET_QUOTE_AND_FMT("[%s] %s= ", ".%s %s= ", xval);
@@ -4788,8 +4787,22 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
                     break;
                 }
 #endif 
-                
+                else if (sn && SN_TYPE(sn) == SRC_CONTINUE) {
+                    
 
+
+
+
+
+
+                    LOCAL_ASSERT(pc[JSOP_LAMBDA_LENGTH] == JSOP_SETLOCAL);
+                    LOCAL_ASSERT(pc[JSOP_LAMBDA_LENGTH + JSOP_SETLOCAL_LENGTH] == JSOP_POP);
+                    len = JSOP_LAMBDA_LENGTH + JSOP_SETLOCAL_LENGTH + JSOP_POP_LENGTH;
+                    todo = -2;
+                    break;
+                }
+
+                
                 fun = jp->script->getFunction(GET_UINT32_INDEX(pc));
                 {
                     
@@ -5108,7 +5121,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
                 break;
 
               case JSOP_INITPROP:
-              case JSOP_INITMETHOD:
                 LOAD_ATOM(0);
                 xval = QuoteString(&ss->sprinter, atom, jschar(IsIdentifier(atom) ? 0 : '\''));
                 if (!xval)

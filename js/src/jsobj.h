@@ -511,18 +511,7 @@ struct JSObject : public js::ObjectImpl
   public:
     inline bool nativeEmpty() const;
 
-    js::Shape *methodShapeChange(JSContext *cx, const js::Shape &shape);
     bool shadowingShapeChange(JSContext *cx, const js::Shape &shape);
-
-    
-
-
-
-
-    js::Shape *methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp);
-
-    
-    inline bool canHaveMethodBarrier() const;
 
     
     inline bool isIndexed() const;
@@ -574,8 +563,6 @@ struct JSObject : public js::ObjectImpl
     inline void prepareElementRangeForOverwrite(size_t start, size_t end);
 
     void rollbackProperties(JSContext *cx, uint32_t slotSpan);
-
-    inline JSFunction *nativeGetMethod(const js::Shape *shape) const;
 
     inline void nativeSetSlot(unsigned slot, const js::Value &value);
     inline void nativeSetSlotWithType(JSContext *cx, const js::Shape *shape, const js::Value &value);
@@ -941,6 +928,8 @@ struct JSObject : public js::ObjectImpl
     
     js::Shape *changeProperty(JSContext *cx, js::Shape *shape, unsigned attrs, unsigned mask,
                               JSPropertyOp getter, JSStrictPropertyOp setter);
+
+    inline bool changePropertyAttributes(JSContext *cx, js::Shape *shape, unsigned attrs);
 
     
     bool removeProperty(JSContext *cx, jsid id);
@@ -1353,16 +1342,6 @@ js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
                      JSPropertyOp getter, JSStrictPropertyOp setter, uint32_t slot,
                      unsigned attrs, unsigned flags, int shortid);
 
-
-
-
-
-
-extern js::Shape *
-js_ChangeNativePropertyAttrs(JSContext *cx, JSObject *obj,
-                             js::Shape *shape, unsigned attrs, unsigned mask,
-                             JSPropertyOp getter, JSStrictPropertyOp setter);
-
 extern JSBool
 js_DefineOwnProperty(JSContext *cx, JSObject *obj, jsid id,
                      const js::Value &descriptor, JSBool *bp);
@@ -1374,13 +1353,10 @@ namespace js {
 
 const unsigned DNP_CACHE_RESULT = 1;   
 const unsigned DNP_DONT_PURGE   = 2;   
-const unsigned DNP_SET_METHOD   = 4;   
+const unsigned DNP_UNQUALIFIED  = 4;   
 
 
-const unsigned DNP_UNQUALIFIED  = 8;   
-
-
-const unsigned DNP_SKIP_TYPE = 0x10;   
+const unsigned DNP_SKIP_TYPE    = 8;   
 
 
 
@@ -1463,21 +1439,7 @@ extern JSObject *
 js_FindVariableScope(JSContext *cx, JSFunction **funp);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-const unsigned JSGET_METHOD_BARRIER    = 0; 
-const unsigned JSGET_NO_METHOD_BARRIER = 1; 
-const unsigned JSGET_CACHE_RESULT      = 2; 
+const unsigned JSGET_CACHE_RESULT = 1; 
 
 
 
@@ -1527,14 +1489,6 @@ GetMethod(JSContext *cx, JSObject *obj, PropertyName *name, unsigned getHow, Val
 }
 
 } 
-
-
-
-
-
-extern JSBool
-js_SetNativeAttributes(JSContext *cx, JSObject *obj, js::Shape *shape,
-                       unsigned attrs);
 
 namespace js {
 

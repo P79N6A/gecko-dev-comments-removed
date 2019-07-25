@@ -70,6 +70,10 @@
 #include "nsChildIterator.h"
 #include "nsRenderingContext.h"
 
+#ifdef ACCESSIBILITY
+#include "nsAccessibilityService.h"
+#endif
+
 
 
 
@@ -1514,6 +1518,15 @@ nsListBoxBodyFrame::RemoveChildFrame(nsBoxLayoutState &aState,
     
     return;
   }
+
+#ifdef ACCESSIBILITY
+  nsAccessibilityService* accService = nsIPresShell::AccService();
+  if (accService) {
+    nsIContent* content = aFrame->GetContent();
+    accService->ContentRemoved(PresContext()->PresShell(), content->GetParent(),
+                               content);
+  }
+#endif
 
   mFrames.RemoveFrame(aFrame);
   if (mLayoutManager)

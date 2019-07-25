@@ -1936,6 +1936,7 @@ GK_ATOM(VolumeDown, "VolumeDown")
 GK_ATOM(Menu, "Menu")
 
 
+GK_ATOM(mouseWheel, "mouseWheel")  
 GK_ATOM(pixels,     "pixels")
 GK_ATOM(lines,      "lines")
 GK_ATOM(pages,      "pages")

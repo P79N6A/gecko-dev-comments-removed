@@ -1330,7 +1330,7 @@ public:
 
   void InitSmoothScroll(TimeStamp aTime, nsPoint aCurrentPos,
                         nsSize aCurrentVelocity, nsPoint aDestination,
-                        nsIAtom *aProfile);
+                        nsIAtom *aOrigin);
 
   bool IsFinished(TimeStamp aTime) {
     return aTime > mStartTime + mDuration; 
@@ -1354,11 +1354,9 @@ public:
   
   
   
-  
-  nsIAtom* mProfile;
-  PRInt32 mProfileMinMS;
-  PRInt32 mProfileMaxMS;
-  bool    mIsProfileSmoothnessEnabled;
+  nsCOMPtr<nsIAtom> mOrigin;
+  PRInt32 mOriginMinMS;
+  PRInt32 mOriginMaxMS;
   double  mIntervalRatio;
 
   TimeDuration mDuration;
@@ -1383,7 +1381,7 @@ protected:
                           nscoord aCurrentPos, nscoord aCurrentVelocity,
                           nscoord aDestination);
 
-  void InitDuration(nsIAtom *aProfile);
+  void InitDuration(nsIAtom *aOrigin);
 };
 
 nsPoint
@@ -1408,44 +1406,46 @@ nsGfxScrollFrameInner::AsyncScroll::VelocityAt(TimeStamp aTime) {
 
 
 void
-nsGfxScrollFrameInner::AsyncScroll::InitDuration(nsIAtom *aProfile) {
+nsGfxScrollFrameInner::AsyncScroll::InitDuration(nsIAtom *aOrigin) {
+  if (!aOrigin){
+    aOrigin = nsGkAtoms::other;
+  }
+
   
-  if (mIsFirstIteration || aProfile != mProfile) {
-    mProfile = aProfile;
-    mProfileMinMS = mProfileMaxMS = 0;
-    mIsProfileSmoothnessEnabled = false;
+  if (mIsFirstIteration || aOrigin != mOrigin) {
+    mOrigin = aOrigin;
+    mOriginMinMS = mOriginMaxMS = 0;
+    bool isOriginSmoothnessEnabled = false;
     mIntervalRatio = 1;
 
     
-    if (aProfile) {
-      static const PRInt32 kDefaultMinMS = 150, kDefaultMaxMS = 150;
-      static const bool kDefaultIsSmoothEnabled = true;
+    static const PRInt32 kDefaultMinMS = 150, kDefaultMaxMS = 150;
+    static const bool kDefaultIsSmoothEnabled = true;
 
-      nsCAutoString profileName;
-      aProfile->ToUTF8String(profileName);
-      nsCAutoString prefBase = NS_LITERAL_CSTRING("general.smoothScroll.") + profileName;
+    nsCAutoString originName;
+    aOrigin->ToUTF8String(originName);
+    nsCAutoString prefBase = NS_LITERAL_CSTRING("general.smoothScroll.") + originName;
 
-      mIsProfileSmoothnessEnabled = Preferences::GetBool(prefBase.get(), kDefaultIsSmoothEnabled);
-      if (mIsProfileSmoothnessEnabled) {
-        nsCAutoString prefMin = prefBase + NS_LITERAL_CSTRING(".durationMinMS");
-        nsCAutoString prefMax = prefBase + NS_LITERAL_CSTRING(".durationMaxMS");
-        mProfileMinMS = Preferences::GetInt(prefMin.get(), kDefaultMinMS);
-        mProfileMaxMS = Preferences::GetInt(prefMax.get(), kDefaultMaxMS);
+    isOriginSmoothnessEnabled = Preferences::GetBool(prefBase.get(), kDefaultIsSmoothEnabled);
+    if (isOriginSmoothnessEnabled) {
+      nsCAutoString prefMin = prefBase + NS_LITERAL_CSTRING(".durationMinMS");
+      nsCAutoString prefMax = prefBase + NS_LITERAL_CSTRING(".durationMaxMS");
+      mOriginMinMS = Preferences::GetInt(prefMin.get(), kDefaultMinMS);
+      mOriginMaxMS = Preferences::GetInt(prefMax.get(), kDefaultMaxMS);
 
-        static const PRInt32 kSmoothScrollMaxAllowedAnimationDurationMS = 10000;
-        mProfileMinMS = clamped(mProfileMinMS, 0,             kSmoothScrollMaxAllowedAnimationDurationMS);
-        mProfileMaxMS = clamped(mProfileMaxMS, mProfileMinMS, kSmoothScrollMaxAllowedAnimationDurationMS);
-      }
-
-      
-      
-      static const double kDefaultDurationToIntervalRatio = 2; 
-      mIntervalRatio = Preferences::GetInt("general.smoothScroll.durationToIntervalRatio",
-                                           kDefaultDurationToIntervalRatio * 100) / 100.0;
-
-      
-      mIntervalRatio = NS_MAX(1.0, mIntervalRatio);
+      static const PRInt32 kSmoothScrollMaxAllowedAnimationDurationMS = 10000;
+      mOriginMaxMS = clamped(mOriginMaxMS, 0, kSmoothScrollMaxAllowedAnimationDurationMS);
+      mOriginMinMS = clamped(mOriginMinMS, 0, mOriginMaxMS);
     }
+
+    
+    
+    static const double kDefaultDurationToIntervalRatio = 2; 
+    mIntervalRatio = Preferences::GetInt("general.smoothScroll.durationToIntervalRatio",
+                                         kDefaultDurationToIntervalRatio * 100) / 100.0;
+
+    
+    mIntervalRatio = NS_MAX(1.0, mIntervalRatio);
 
     if (mIsFirstIteration) {
       
@@ -1453,7 +1453,7 @@ nsGfxScrollFrameInner::AsyncScroll::InitDuration(nsIAtom *aProfile) {
       mIsFirstIteration = false;
 
       
-      TimeDuration maxDelta = TimeDuration::FromMilliseconds(mProfileMaxMS / mIntervalRatio);
+      TimeDuration maxDelta = TimeDuration::FromMilliseconds(mOriginMaxMS / mIntervalRatio);
       mPrevStartTime[0] = mStartTime         - maxDelta;
       mPrevStartTime[1] = mPrevStartTime[0]  - maxDelta;
       mPrevStartTime[2] = mPrevStartTime[1]  - maxDelta;
@@ -1471,7 +1471,7 @@ nsGfxScrollFrameInner::AsyncScroll::InitDuration(nsIAtom *aProfile) {
   
   
   
-  PRInt32 durationMS = clamped<PRInt32>(eventsDeltaMs * mIntervalRatio, mProfileMinMS, mProfileMaxMS);
+  PRInt32 durationMS = clamped<PRInt32>(eventsDeltaMs * mIntervalRatio, mOriginMinMS, mOriginMaxMS);
 
   mDuration = TimeDuration::FromMilliseconds(durationMS);
 }
@@ -1481,11 +1481,11 @@ nsGfxScrollFrameInner::AsyncScroll::InitSmoothScroll(TimeStamp aTime,
                                                      nsPoint aCurrentPos,
                                                      nsSize aCurrentVelocity,
                                                      nsPoint aDestination,
-                                                     nsIAtom *aProfile) {
+                                                     nsIAtom *aOrigin) {
   mStartTime = aTime;
   mStartPos = aCurrentPos;
   mDestination = aDestination;
-  InitDuration(aProfile);
+  InitDuration(aOrigin);
   InitTimingFunction(mTimingFunctionX, mStartPos.x, aCurrentVelocity.width, aDestination.x);
   InitTimingFunction(mTimingFunctionY, mStartPos.y, aCurrentVelocity.height, aDestination.y);
 }
@@ -1653,9 +1653,9 @@ nsGfxScrollFrameInner::AsyncScrollCallback(nsITimer *aTimer, void* anInstance)
 
 
 void
-nsGfxScrollFrameInner::ScrollToWithSmoothnessProfile(nsPoint aScrollPosition,
-                                                     nsIScrollableFrame::ScrollMode aMode,
-                                                     nsIAtom *aProfile)
+nsGfxScrollFrameInner::ScrollToWithOrigin(nsPoint aScrollPosition,
+                                          nsIScrollableFrame::ScrollMode aMode,
+                                          nsIAtom *aOrigin)
 {
   if (ShouldClampScrollPosition()) {
     mDestination = ClampScrollPosition(aScrollPosition);
@@ -1707,7 +1707,7 @@ nsGfxScrollFrameInner::ScrollToWithSmoothnessProfile(nsPoint aScrollPosition,
 
   if (isSmoothScroll) {
     mAsyncScroll->InitSmoothScroll(now, currentPosition, currentVelocity,
-                                   mDestination, aProfile);
+                                   mDestination, aOrigin);
   }
 }
 
@@ -2322,26 +2322,36 @@ void
 nsGfxScrollFrameInner::ScrollBy(nsIntPoint aDelta,
                                 nsIScrollableFrame::ScrollUnit aUnit,
                                 nsIScrollableFrame::ScrollMode aMode,
-                                nsIntPoint* aOverflow)
+                                nsIntPoint* aOverflow,
+                                nsIAtom *aOrigin)
 {
   nsSize deltaMultiplier;
-  nsCOMPtr<nsIAtom> aProfile = nsGkAtoms::other;
+  if (!aOrigin){
+    aOrigin = nsGkAtoms::other;
+  }
+  bool isGenericOrigin = (aOrigin == nsGkAtoms::other);
   switch (aUnit) {
   case nsIScrollableFrame::DEVICE_PIXELS: {
     nscoord appUnitsPerDevPixel =
       mOuter->PresContext()->AppUnitsPerDevPixel();
     deltaMultiplier = nsSize(appUnitsPerDevPixel, appUnitsPerDevPixel);
-    aProfile = nsGkAtoms::pixels;
+    if (isGenericOrigin){
+      aOrigin = nsGkAtoms::pixels;
+    }
     break;
   }
   case nsIScrollableFrame::LINES: {
     deltaMultiplier = GetLineScrollAmount();
-    aProfile = nsGkAtoms::lines;
+    if (isGenericOrigin){
+      aOrigin = nsGkAtoms::lines;
+    }
     break;
   }
   case nsIScrollableFrame::PAGES: {
     deltaMultiplier = GetPageScrollAmount();
-    aProfile = nsGkAtoms::pages;
+    if (isGenericOrigin){
+      aOrigin = nsGkAtoms::pages;
+    }
     break;
   }
   case nsIScrollableFrame::WHOLE: {
@@ -2361,7 +2371,7 @@ nsGfxScrollFrameInner::ScrollBy(nsIntPoint aDelta,
 
   nsPoint newPos = mDestination +
     nsPoint(aDelta.x*deltaMultiplier.width, aDelta.y*deltaMultiplier.height);
-  ScrollToWithSmoothnessProfile(newPos, aMode, aProfile);
+  ScrollToWithOrigin(newPos, aMode, aOrigin);
 
   if (aOverflow) {
     nsPoint clampAmount = mDestination - newPos;
@@ -2777,9 +2787,9 @@ void nsGfxScrollFrameInner::CurPosAttributeChanged(nsIContent* aContent)
     
     UpdateScrollbarPosition();
   }
-  ScrollToWithSmoothnessProfile(dest,
-                                isSmooth ? nsIScrollableFrame::SMOOTH : nsIScrollableFrame::INSTANT,
-                                nsGkAtoms::scrollbars);
+  ScrollToWithOrigin(dest,
+                     isSmooth ? nsIScrollableFrame::SMOOTH : nsIScrollableFrame::INSTANT,
+                     nsGkAtoms::scrollbars);
 }
 
 

@@ -284,10 +284,10 @@ public:
 
   void AddInlineMinWidthForFlow(nsRenderingContext *aRenderingContext,
                                 nsIFrame::InlineMinWidthData *aData,
-                                float aInflation, TextRunType aTextRunType);
+                                TextRunType aTextRunType);
   void AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
                                  InlinePrefWidthData *aData,
-                                 float aInflation, TextRunType aTextRunType);
+                                 TextRunType aTextRunType);
 
   
 
@@ -396,20 +396,11 @@ public:
 
 
 
-
   gfxSkipCharsIterator EnsureTextRun(TextRunType aWhichTextRun,
-                                     float aInflation,
                                      gfxContext* aReferenceContext = nsnull,
                                      nsIFrame* aLineContainer = nsnull,
                                      const nsLineList::iterator* aLine = nsnull,
                                      PRUint32* aFlowEndInTextRun = nsnull);
-  
-  gfxSkipCharsIterator EnsureTextRun(TextRunType aWhichTextRun) {
-    return EnsureTextRun(aWhichTextRun,
-                         (aWhichTextRun == eInflated)
-                           ? GetFontSizeInflation() : 1.0f);
-  }
-
 
   gfxTextRun* GetTextRun(TextRunType aWhichTextRun) {
     if (aWhichTextRun == eInflated || !HasFontSizeInflation())

@@ -3164,6 +3164,8 @@ WorkerPrivate::NotifyFeatures(JSContext* aCx, Status aStatus)
 void
 WorkerPrivate::CancelAllTimeouts(JSContext* aCx)
 {
+  AssertIsOnWorkerThread();
+
   if (mTimerRunning) {
     NS_ASSERTION(mTimer, "Huh?!");
     NS_ASSERTION(!mTimeouts.IsEmpty(), "Huh?!");
@@ -3176,13 +3178,19 @@ WorkerPrivate::CancelAllTimeouts(JSContext* aCx)
       mTimeouts[index]->mCanceled = true;
     }
 
-    RunExpiredTimeouts(aCx);
+    if (!RunExpiredTimeouts(aCx)) {
+      JS_ReportPendingException(aCx);
+    }
 
-    mTimer = nsnull;
+    mTimerRunning = false;
   }
-  else {
+#ifdef DEBUG
+  else if (!mRunningExpiredTimeouts) {
     NS_ASSERTION(mTimeouts.IsEmpty(), "Huh?!");
   }
+#endif
+
+  mTimer = nsnull;
 }
 
 PRUint32
@@ -3511,8 +3519,15 @@ WorkerPrivate::SetTimeout(JSContext* aCx, unsigned aArgc, jsval* aVp,
     currentStatus = mStatus;
   }
 
-  if (currentStatus > Running) {
+  
+  
+  if (currentStatus == Closing) {
     JS_ReportError(aCx, "Cannot schedule timeouts from the close handler!");
+  }
+
+  
+  
+  if (currentStatus >= Closing) {
     return false;
   }
 
@@ -3655,6 +3670,7 @@ WorkerPrivate::RunExpiredTimeouts(JSContext* aCx)
     return true;
   }
 
+  NS_ASSERTION(mTimer, "Must have a timer!");
   NS_ASSERTION(!mTimeouts.IsEmpty(), "Should have some work to do!");
 
   bool retval = true;
@@ -3719,12 +3735,16 @@ WorkerPrivate::RunExpiredTimeouts(JSContext* aCx)
       }
     }
 
+    NS_ASSERTION(mRunningExpiredTimeouts, "Someone changed this!");
+
     
-    if (info->mIsInterval) {
+    if (info->mIsInterval && !info->mCanceled) {
       PRUint32 timeoutIndex = mTimeouts.IndexOf(info);
       NS_ASSERTION(timeoutIndex != PRUint32(-1),
                    "Should still be in the main list!");
 
+      
+      
       mTimeouts[timeoutIndex].forget();
       mTimeouts.RemoveElementAt(timeoutIndex);
 

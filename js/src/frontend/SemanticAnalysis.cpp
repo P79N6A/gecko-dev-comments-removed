@@ -126,211 +126,6 @@ CleanFunctionList(ParseNodeAllocator *allocator, FunctionBox **funboxHead)
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static unsigned
-FindFunArgs(FunctionBox *funbox, int level, FunctionBoxQueue *queue)
-{
-    unsigned allskipmin = UpvarCookie::FREE_LEVEL;
-
-    do {
-        ParseNode *fn = funbox->node;
-        JS_ASSERT(fn->isArity(PN_FUNC));
-        int fnlevel = level;
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-        if (funbox->tcflags & (TCF_FUN_HEAVYWEIGHT | TCF_FUN_IS_GENERATOR)) {
-            fn->setFunArg();
-            for (FunctionBox *kid = funbox->kids; kid; kid = kid->siblings)
-                kid->node->setFunArg();
-        }
-
-        
-
-
-
-
-        unsigned skipmin = UpvarCookie::FREE_LEVEL;
-        ParseNode *pn = fn->pn_body;
-
-        if (pn->isKind(PNK_UPVARS)) {
-            AtomDefnMapPtr &upvars = pn->pn_names;
-            JS_ASSERT(upvars->count() != 0);
-
-            for (AtomDefnRange r = upvars->all(); !r.empty(); r.popFront()) {
-                Definition *defn = r.front().value();
-                Definition *lexdep = defn->resolve();
-
-                if (!lexdep->isFreeVar()) {
-                    unsigned upvarLevel = lexdep->frameLevel();
-
-                    if (int(upvarLevel) <= fnlevel)
-                        fn->setFunArg();
-
-                    unsigned skip = (funbox->level + 1) - upvarLevel;
-                    if (skip < skipmin)
-                        skipmin = skip;
-                }
-            }
-        }
-
-        
-
-
-
-
-
-
-        if (fn->isFunArg()) {
-            queue->push(funbox);
-            fnlevel = int(funbox->level);
-        }
-
-        
-
-
-
-        if (funbox->kids) {
-            unsigned kidskipmin = FindFunArgs(funbox->kids, fnlevel, queue);
-
-            JS_ASSERT(kidskipmin != 0);
-            if (kidskipmin != UpvarCookie::FREE_LEVEL) {
-                --kidskipmin;
-                if (kidskipmin != 0 && kidskipmin < skipmin)
-                    skipmin = kidskipmin;
-            }
-        }
-
-        
-
-
-
-
-        if (skipmin != UpvarCookie::FREE_LEVEL) {
-            if (skipmin < allskipmin)
-                allskipmin = skipmin;
-        }
-    } while ((funbox = funbox->siblings) != NULL);
-
-    return allskipmin;
-}
-
-static bool
-MarkFunArgs(JSContext *cx, FunctionBox *funbox, uint32_t functionCount)
-{
-    FunctionBoxQueue queue;
-    if (!queue.init(functionCount)) {
-        js_ReportOutOfMemory(cx);
-        return false;
-    }
-
-    FindFunArgs(funbox, -1, &queue);
-    while ((funbox = queue.pull()) != NULL) {
-        ParseNode *fn = funbox->node;
-        JS_ASSERT(fn->isFunArg());
-
-        ParseNode *pn = fn->pn_body;
-        if (pn->isKind(PNK_UPVARS)) {
-            AtomDefnMapPtr upvars = pn->pn_names;
-            JS_ASSERT(!upvars->empty());
-
-            for (AtomDefnRange r = upvars->all(); !r.empty(); r.popFront()) {
-                Definition *defn = r.front().value();
-                Definition *lexdep = defn->resolve();
-
-                if (!lexdep->isFreeVar() &&
-                    !lexdep->isFunArg() &&
-                    (lexdep->kind() == Definition::FUNCTION ||
-                     lexdep->isOp(JSOP_CALLEE))) {
-                    
-
-
-
-
-
-
-
-
-                    lexdep->setFunArg();
-
-                    FunctionBox *afunbox;
-                    if (lexdep->isOp(JSOP_CALLEE)) {
-                        
-
-
-
-
-
-
-                        afunbox = funbox;
-                        unsigned calleeLevel = lexdep->pn_cookie.level();
-                        unsigned staticLevel = afunbox->level + 1U;
-                        while (staticLevel != calleeLevel) {
-                            afunbox = afunbox->parent;
-                            --staticLevel;
-                        }
-                        JS_ASSERT(afunbox->level + 1U == calleeLevel);
-                        afunbox->node->setFunArg();
-                    } else {
-                       afunbox = lexdep->pn_funbox;
-                    }
-                    queue.push(afunbox);
-
-                    
-
-
-
-
-                    if (afunbox->kids)
-                        FindFunArgs(afunbox->kids, afunbox->level, &queue);
-                }
-            }
-        }
-    }
-    return true;
-}
-
 static void
 FlagHeavyweights(Definition *dn, FunctionBox *funbox, uint32_t *tcflags)
 {
@@ -347,7 +142,6 @@ FlagHeavyweights(Definition *dn, FunctionBox *funbox, uint32_t *tcflags)
             funbox->tcflags |= TCF_FUN_HEAVYWEIGHT;
             break;
         }
-        funbox->tcflags |= TCF_FUN_ENTRAINS_SCOPES;
     }
 
     if (!funbox && (*tcflags & TCF_IN_FUNCTION))
@@ -423,9 +217,6 @@ SetFunctionKinds(FunctionBox *funbox, uint32_t *tcflags, bool isDirectEval)
                     FlagHeavyweights(lexdep, funbox, tcflags);
             }
         }
-
-        if (funbox->joinable())
-            fun->setJoinable();
     }
 }
 
@@ -473,8 +264,6 @@ frontend::AnalyzeFunctions(TreeContext *tc)
     CleanFunctionList(&tc->parser->allocator, &tc->functionList);
     if (!tc->functionList)
         return true;
-    if (!MarkFunArgs(tc->parser->context, tc->functionList, tc->parser->functionCount))
-        return false;
     if (!MarkExtensibleScopeDescendants(tc->parser->context, tc->functionList, false))
         return false;
     bool isDirectEval = !!tc->parser->callerFrame;

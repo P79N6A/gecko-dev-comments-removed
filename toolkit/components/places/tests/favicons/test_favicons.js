@@ -304,6 +304,15 @@ add_test(function test_insert_asynchronous_update_preserves_guid() {
   }));
 });
 
+add_test(function test_setFaviconURLForPage_nonexistingPage_throws() {
+  try {
+    PlacesUtils.favicons.setFaviconUrlForPage(
+      NetUtil.newURI("http://nonexisting.moz.org"), icons[0].uri);
+    do_throw("Setting an icon for a nonexisting page should throw")
+  } catch (ex if ex.result == Cr.NS_ERROR_NOT_AVAILABLE) {}
+  run_next_test();
+});
+
 
 
 

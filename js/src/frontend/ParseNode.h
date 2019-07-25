@@ -765,15 +765,14 @@ struct ParseNode {
 #define PND_GVAR        0x40            /* gvar binding, can't close over
                                            because it could be deleted */
 #define PND_PLACEHOLDER 0x80            /* placeholder definition for lexdep */
-#define PND_FUNARG     0x100            /* downward or upward funarg usage */
-#define PND_BOUND      0x200            /* bound to a stack or global slot */
-#define PND_DEOPTIMIZED 0x400           /* former pn_used name node, pn_lexdef
+#define PND_BOUND      0x100            /* bound to a stack or global slot */
+#define PND_DEOPTIMIZED 0x200           /* former pn_used name node, pn_lexdef
                                            still valid, but this use no longer
                                            optimizable via an upvar opcode */
-#define PND_CLOSED      0x800           /* variable is closed over */
+#define PND_CLOSED      0x400           /* variable is closed over */
 
 
-#define PND_USE2DEF_FLAGS (PND_ASSIGNED | PND_FUNARG | PND_CLOSED)
+#define PND_USE2DEF_FLAGS (PND_ASSIGNED | PND_CLOSED)
 
 
 #define PNX_STRCAT      0x01            /* PNK_ADD list has string term */
@@ -816,7 +815,6 @@ struct ParseNode {
     bool isPlaceholder() const  { return test(PND_PLACEHOLDER); }
     bool isDeoptimized() const  { return test(PND_DEOPTIMIZED); }
     bool isAssigned() const     { return test(PND_ASSIGNED); }
-    bool isFunArg() const       { return test(PND_FUNARG); }
     bool isClosed() const       { return test(PND_CLOSED); }
 
     
@@ -832,9 +830,6 @@ struct ParseNode {
 
 
     bool isTopLevel() const     { return test(PND_TOPLEVEL); }
-
-    
-    void setFunArg();
 
     void become(ParseNode *pn2);
     void clear();
@@ -1432,26 +1427,6 @@ void DumpParseTree(ParseNode *pn, int indent = 0);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define dn_uses         pn_link
 
 struct Definition : public ParseNode
@@ -1528,7 +1503,7 @@ ParseNode::test(unsigned flag) const
 {
     JS_ASSERT(pn_defn || pn_arity == PN_FUNC || pn_arity == PN_NAME);
 #ifdef DEBUG
-    if ((flag & (PND_ASSIGNED | PND_FUNARG)) && pn_defn && !(pn_dflags & flag)) {
+    if ((flag & PND_ASSIGNED) && pn_defn && !(pn_dflags & flag)) {
         for (ParseNode *pn = ((Definition *) this)->dn_uses; pn; pn = pn->pn_link) {
             JS_ASSERT(!pn->pn_defn);
             JS_ASSERT(!(pn->pn_dflags & flag));
@@ -1536,25 +1511,6 @@ ParseNode::test(unsigned flag) const
     }
 #endif
     return !!(pn_dflags & flag);
-}
-
-inline void
-ParseNode::setFunArg()
-{
-    
-
-
-
-
-
-
-
-
-
-    JS_ASSERT(!(pn_defn & pn_used));
-    if (pn_used)
-        pn_lexdef->pn_dflags |= PND_FUNARG;
-    pn_dflags |= PND_FUNARG;
 }
 
 inline void
@@ -1597,8 +1553,6 @@ struct FunctionBox : public ObjectBox
     uint32_t            tcflags;
 
     JSFunction *function() const { return (JSFunction *) object; }
-
-    bool joinable() const;
 
     
 

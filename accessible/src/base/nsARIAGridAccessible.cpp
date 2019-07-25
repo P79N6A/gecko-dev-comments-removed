@@ -58,7 +58,7 @@ using namespace mozilla::a11y;
 
 nsARIAGridAccessible::
   nsARIAGridAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
-  nsAccessibleWrap(aContent, aDoc)
+  nsAccessibleWrap(aContent, aDoc), xpcAccessibleTable(this)
 {
 }
 
@@ -72,18 +72,15 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsARIAGridAccessible,
 
 
 
-NS_IMETHODIMP
-nsARIAGridAccessible::GetCaption(nsIAccessible **aCaption)
+void
+nsARIAGridAccessible::Shutdown()
 {
-  NS_ENSURE_ARG_POINTER(aCaption);
-  *aCaption = nsnull;
-
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
-  
-  return NS_ERROR_NOT_IMPLEMENTED;
+  mTable = nsnull;
+  nsAccessibleWrap::Shutdown();
 }
+
+
+
 
 NS_IMETHODIMP
 nsARIAGridAccessible::GetSummary(nsAString &aSummary)
@@ -706,15 +703,6 @@ nsARIAGridAccessible::UnselectColumn(PRInt32 aColumn)
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsARIAGridAccessible::IsProbablyForLayout(bool *aIsProbablyForLayout)
-{
-  NS_ENSURE_ARG_POINTER(aIsProbablyForLayout);
-  *aIsProbablyForLayout = false;
 
   return NS_OK;
 }

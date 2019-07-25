@@ -85,48 +85,6 @@ JSFunction::initializeExtended()
 }
 
 inline void
-JSFunction::setJoinable()
-{
-    JS_ASSERT(isInterpreted());
-    flags |= JSFUN_JOINABLE;
-}
-
-inline bool
-JSFunction::isClonedMethod() const
-{
-    return joinable() && isExtended() && getExtendedSlot(METHOD_OBJECT_SLOT).isObject();
-}
-
-inline JSAtom *
-JSFunction::methodAtom() const
-{
-    return (joinable() && isExtended() && getExtendedSlot(METHOD_PROPERTY_SLOT).isString())
-           ? (JSAtom *) getExtendedSlot(METHOD_PROPERTY_SLOT).toString()
-           : NULL;
-}
-
-inline void
-JSFunction::setMethodAtom(JSAtom *atom)
-{
-    JS_ASSERT(joinable());
-    setExtendedSlot(METHOD_PROPERTY_SLOT, js::StringValue(atom));
-}
-
-inline JSObject *
-JSFunction::methodObj() const
-{
-    JS_ASSERT(joinable());
-    return isClonedMethod() ? &getExtendedSlot(METHOD_OBJECT_SLOT).toObject() : NULL;
-}
-
-inline void
-JSFunction::setMethodObj(JSObject& obj)
-{
-    JS_ASSERT(joinable());
-    setExtendedSlot(METHOD_OBJECT_SLOT, js::ObjectValue(obj));
-}
-
-inline void
 JSFunction::setExtendedSlot(size_t which, const js::Value &val)
 {
     JS_ASSERT(which < js::ArrayLength(toExtended()->extendedSlots));

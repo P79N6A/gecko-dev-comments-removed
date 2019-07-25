@@ -327,29 +327,19 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
   
   
   
-
   
+  
+  
+  
+  
+  
+
   nsIDocument* doc = GetOurDocument();
   nsIPresShell* shell = doc ? doc->GetShell() : nsnull;
-  if (shell) {
-    
-    bool doRequestDecode = false;
+  if (shell && shell->IsVisible() &&
+      (!shell->DidInitialReflow() || shell->IsPaintingSuppressed())) {
 
-    
-    
-    if (!shell->DidInitialReflow())
-      doRequestDecode = true;
-
-    
-    
-    
-    
-    if (shell->IsPaintingSuppressed())
-      doRequestDecode = true;
-
-    
-    if (doRequestDecode)
-      mCurrentRequest->RequestDecode();
+    mCurrentRequest->RequestDecode();
   }
 
   

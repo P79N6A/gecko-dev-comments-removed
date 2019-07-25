@@ -161,46 +161,56 @@ struct StmtInfo {
 #define SET_STATEMENT_TOP(stmt, top)                                          \
     ((stmt)->update = (top), (stmt)->breaks = (stmt)->continues = (-1))
 
-#define TCF_COMPILING           0x01 /* TreeContext is BytecodeEmitter */
-#define TCF_IN_FUNCTION         0x02 /* parsing inside function body */
-#define TCF_RETURN_EXPR         0x04 /* function has 'return expr;' */
-#define TCF_RETURN_VOID         0x08 /* function has 'return;' */
-#define TCF_IN_FOR_INIT         0x10 /* parsing init expr of for; exclude 'in' */
-#define TCF_FUN_SETS_OUTER_NAME 0x20 /* function set outer name (lexical or free) */
-#define TCF_FUN_PARAM_ARGUMENTS 0x40 /* function has parameter named arguments */
-#define TCF_FUN_LOCAL_ARGUMENTS 0x80 /* function may contain a local named arguments */
-#define TCF_FUN_USES_ARGUMENTS 0x100 /* function uses arguments except as a
-                                        parameter name */
-#define TCF_FUN_HEAVYWEIGHT    0x200 /* function needs Call object per call */
-#define TCF_FUN_IS_GENERATOR   0x400 /* parsed yield statement in function */
-#define TCF_FUN_USES_OWN_NAME  0x800 /* named function expression that uses its
-                                        own name */
-#define TCF_HAS_FUNCTION_STMT 0x1000 /* block contains a function statement */
-#define TCF_GENEXP_LAMBDA     0x2000 /* flag lambda from generator expression */
-#define TCF_COMPILE_N_GO      0x4000 /* compile-and-go mode of script, can
-                                        optimize name references based on scope
-                                        chain */
-#define TCF_NO_SCRIPT_RVAL    0x8000 /* API caller does not want result value
-                                        from global script */
+JS_ENUM_HEADER(TreeContextFlags, uint32_t)
+{
+    
+    TCF_COMPILING =                            0x1,
 
+    
+    TCF_IN_FUNCTION =                          0x2,
 
+    
+    TCF_RETURN_EXPR =                          0x4,
 
+    
+    TCF_RETURN_VOID =                          0x8,
 
+    
+    TCF_IN_FOR_INIT =                         0x10,
 
+    
+    TCF_FUN_PARAM_ARGUMENTS =                 0x20,
 
+    
+    TCF_FUN_LOCAL_ARGUMENTS =                 0x40,
 
+    
+    TCF_FUN_USES_ARGUMENTS =                  0x80,
 
+    
+    TCF_FUN_HEAVYWEIGHT =                    0x100,
 
+    
+    TCF_FUN_IS_GENERATOR =                   0x200,
 
+    
+    TCF_FUN_USES_OWN_NAME =                  0x400,
 
-#define TCF_DECL_DESTRUCTURING  0x10000
+    
+    TCF_HAS_FUNCTION_STMT =                  0x800,
 
+    
+    TCF_GENEXP_LAMBDA =                     0x1000,
 
+    
+    TCF_COMPILE_N_GO =                      0x2000,
 
+    
+    TCF_NO_SCRIPT_RVAL =                    0x4000,
 
+    
 
 
-#define TCF_STRICT_MODE_CODE    0x20000
 
 
 
@@ -208,79 +218,70 @@ struct StmtInfo {
 
 
 
-#define TCF_FUN_MODULE_PATTERN 0x200000
 
+    TCF_DECL_DESTRUCTURING =                0x8000,
 
+    
 
 
 
 
 
+    TCF_STRICT_MODE_CODE =                 0x10000,
 
-#define TCF_FUN_ENTRAINS_SCOPES 0x400000
+    
+    TCF_FUN_CALLS_EVAL =                   0x20000,
 
+    
+    TCF_FUN_MUTATES_PARAMETER =            0x40000,
 
-#define TCF_FUN_CALLS_EVAL       0x800000
+    
+    TCF_COMPILE_FOR_EVAL =                0x100000,
 
+    
 
-#define TCF_FUN_MUTATES_PARAMETER 0x1000000
 
 
+    TCF_FUN_MIGHT_ALIAS_LOCALS =          0x200000,
 
+    
+    TCF_HAS_SINGLETONS =                  0x400000,
 
-#define TCF_COMPILE_FOR_EVAL     0x2000000
+    
+    TCF_IN_WITH =                         0x800000,
 
+    
 
 
 
 
-#define TCF_FUN_MIGHT_ALIAS_LOCALS  0x4000000
 
 
 
+    TCF_FUN_EXTENSIBLE_SCOPE =           0x1000000,
 
-#define TCF_HAS_SINGLETONS       0x8000000
+    
+    TCF_NEED_SCRIPT_GLOBAL =             0x2000000
 
+} JS_ENUM_FOOTER(TreeContextFlags);
 
 
+static const uint32_t TCF_RETURN_FLAGS = TCF_RETURN_EXPR | TCF_RETURN_VOID;
 
-#define TCF_IN_WITH             0x10000000
 
 
 
-
-
-
-
-
-
-#define TCF_FUN_EXTENSIBLE_SCOPE 0x20000000
-
-
-
-
-#define TCF_NEED_SCRIPT_GLOBAL 0x40000000
-
-
-
-
-#define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
-
-
-
-
-#define TCF_FUN_FLAGS           (TCF_FUN_SETS_OUTER_NAME |                    \
-                                 TCF_FUN_USES_ARGUMENTS  |                    \
-                                 TCF_FUN_PARAM_ARGUMENTS |                    \
-                                 TCF_FUN_LOCAL_ARGUMENTS |                    \
-                                 TCF_FUN_HEAVYWEIGHT     |                    \
-                                 TCF_FUN_IS_GENERATOR    |                    \
-                                 TCF_FUN_USES_OWN_NAME   |                    \
-                                 TCF_FUN_CALLS_EVAL      |                    \
-                                 TCF_FUN_MIGHT_ALIAS_LOCALS |                 \
-                                 TCF_FUN_MUTATES_PARAMETER |                  \
-                                 TCF_STRICT_MODE_CODE    |                    \
-                                 TCF_FUN_EXTENSIBLE_SCOPE)
+static const uint32_t TCF_FUN_FLAGS = TCF_FUN_USES_ARGUMENTS |
+                                      TCF_FUN_PARAM_ARGUMENTS |
+                                      TCF_FUN_LOCAL_ARGUMENTS |
+                                      TCF_FUN_HEAVYWEIGHT |
+                                      TCF_FUN_IS_GENERATOR |
+                                      TCF_FUN_USES_OWN_NAME |
+                                      TCF_FUN_CALLS_EVAL |
+                                      TCF_FUN_MIGHT_ALIAS_LOCALS |
+                                      TCF_FUN_MUTATES_PARAMETER |
+                                      TCF_STRICT_MODE_CODE |
+                                      TCF_FUN_EXTENSIBLE_SCOPE;
 
 struct BytecodeEmitter;
 
@@ -443,14 +444,16 @@ struct TreeContext {
                 flags & (TCF_FUN_PARAM_ARGUMENTS | TCF_FUN_LOCAL_ARGUMENTS));
     }
 
+    void noteLocalOverwritesArguments() {
+        flags |= TCF_FUN_LOCAL_ARGUMENTS;
+    }
+
     void noteArgumentsNameUse(ParseNode *node) {
         JS_ASSERT(inFunction());
         JS_ASSERT(node->isKind(PNK_NAME));
         JS_ASSERT(node->pn_atom == parser->context->runtime->atomState.argumentsAtom);
         countArgumentsUse(node);
         flags |= TCF_FUN_USES_ARGUMENTS;
-        if (funbox)
-            funbox->node->pn_dflags |= PND_FUNARG;
     }
 
     
