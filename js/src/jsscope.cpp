@@ -896,6 +896,9 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
 
 
+
+
+
     if (inDictionaryMode()) {
         
         if (slot == SHAPE_INVALID_SLOT && !(attrs & JSPROP_SHARED) && !(flags & Shape::ALIAS)) {
@@ -903,28 +906,14 @@ JSObject::putProperty(JSContext *cx, jsid id,
                 return NULL;
         }
 
-        
-
-
-
-        shape->shape = js_GenerateShape(cx, false);
-
-        
-
-
-
         shape->slot = slot;
+        if (slot != SHAPE_INVALID_SLOT && slot >= shape->slotSpan) {
+            shape->slotSpan = slot + 1;
 
-        if (shape != lastProp) {
-            if (PropertyTable *table = lastProp->table) {
-                shape->table = table;
-                lastProp->table = NULL;
+            for (Shape *temp = lastProp; temp != shape; temp = temp->parent) {
+                if (temp->slotSpan <= slot)
+                    temp->slotSpan = slot + 1;
             }
-            shape->removeFromDictionary(this);
-            shape->insertIntoDictionary(&lastProp);
-        } else {
-            if (slot != SHAPE_INVALID_SLOT && slot >= shape->slotSpan)
-                shape->slotSpan = slot + 1;
         }
 
         shape->rawGetter = getter;
@@ -938,8 +927,17 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
 
 
+
         updateFlags(shape);
-        updateShape(cx);
+
+        
+
+
+
+
+
+        lastProp->shape = js_GenerateShape(cx, false);
+        clearOwnShape();
     } else {
         
 
@@ -964,13 +962,11 @@ JSObject::putProperty(JSContext *cx, jsid id,
         }
 
         shape = newShape;
-    }
 
-    JS_ASSERT(shape == lastProp);
-
-    if (!shape->table) {
-        
-        shape->maybeHash(cx);
+        if (!shape->table) {
+            
+            shape->maybeHash(cx);
+        }
     }
 
     
