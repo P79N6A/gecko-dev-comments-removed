@@ -214,6 +214,8 @@ let LocaleUI = {
   },
 
   closeWindow : function() {
+    var buildID =  Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo).platformBuildID;
+    Services.prefs.setCharPref("extensions.compatability.locales.buildid", buildID);
     
     if (LocaleUI._currentInstall) {
       

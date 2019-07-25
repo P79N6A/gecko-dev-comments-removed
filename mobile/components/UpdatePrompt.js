@@ -238,6 +238,9 @@ UpdatePrompt.prototype = {
           aLocale.addon.install.install();
         }
       }, this);
+      
+      
+      Services.prefs.setCharPref("extensions.compatability.locales.buildid", aUpdate.buildID);
     }).bind(this), { buildID: aUpdate.buildID });
   },
 

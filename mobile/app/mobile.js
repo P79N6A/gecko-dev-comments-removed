@@ -217,6 +217,7 @@ pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCAL
 
 
 pref("extensions.getLocales.get.url", "");
+pref("extensions.compatability.locales.buildid", "0");
 
 
 pref("extensions.blocklist.enabled", true);

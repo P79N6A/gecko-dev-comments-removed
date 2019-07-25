@@ -126,6 +126,12 @@ function haveSystemLocale() {
 
 function checkCurrentLocale() {
   if (Services.prefs.prefHasUserValue("general.useragent.locale")) {
+    
+    var buildID = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo).appBuildID;
+    let localeBuildID = Services.prefs.getCharPref("extensions.compatability.locales.buildid");
+    if (buildID != localeBuildID)
+      return false;
+
     let currentLocale = Services.prefs.getCharPref("general.useragent.locale");
     return isLocaleAvailable(currentLocale);
   }
