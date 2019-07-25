@@ -172,7 +172,6 @@ public:
     mVisitedHandling = mRuleWalker->VisitedHandling();
   }
   
-  const nsString* GetLang();
   nsEventStates ContentState();
   nsEventStates DocumentState();
   PRBool IsLink();
@@ -198,8 +197,6 @@ public:
   RuleProcessorData* mParentData;
 
 private:
-  nsString *mLanguage; 
-
   
   nsEventStates mContentState;  
                                 
