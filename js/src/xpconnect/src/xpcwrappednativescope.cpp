@@ -779,8 +779,12 @@ void DEBUG_CheckForComponentsInScope(JSContext* cx, JSObject* obj,
     
     
     NS_ERROR("XPConnect is being called on a scope without a 'Components' property!  (stack and details follow)");
+    
+    
+#if 0
     printf("The current JS stack is:\n");
     xpc_DumpJSStack(cx, JS_TRUE, JS_TRUE, JS_TRUE);
+#endif
 
     printf("And the object whose scope lacks a 'Components' property is:\n");
     js_DumpObject(startingObj);
