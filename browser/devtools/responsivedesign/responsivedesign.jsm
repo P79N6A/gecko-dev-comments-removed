@@ -93,7 +93,7 @@ function ResponsiveUI(aWindow, aTab)
   this.browser = aTab.linkedBrowser;
   this.chromeDoc = aWindow.document;
   this.container = aWindow.gBrowser.getBrowserContainer(this.browser);
-  this.stack = this.container.querySelector("[anonid=browserStack]");
+  this.stack = this.container.querySelector(".browserStack");
 
   
   if (Services.prefs.prefHasUserValue("devtools.responsiveUI.presets")) {
