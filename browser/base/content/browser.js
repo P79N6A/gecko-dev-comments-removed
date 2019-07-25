@@ -5825,13 +5825,25 @@ var IndexedDBPromptHelper = {
       responseTopic = this._quotaResponse;
     }
 
-    var self = this;
+    const hiddenTimeoutDuration = 30000; 
+    const firstTimeoutDuration = 120000; 
+
+    var timeoutId;
+
+    function cleanup() {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        delete timeoutId;
+      }
+    }
+
     var observer = requestor.getInterface(Ci.nsIObserver);
 
     var mainAction = {
       label: gNavigatorBundle.getString("offlineApps.allow"),
       accessKey: gNavigatorBundle.getString("offlineApps.allowAccessKey"),
       callback: function() {
+        cleanup();
         observer.observe(null, responseTopic,
                          Ci.nsIPermissionManager.ALLOW_ACTION);
       }
@@ -5842,15 +5854,60 @@ var IndexedDBPromptHelper = {
         label: gNavigatorBundle.getString("offlineApps.never"),
         accessKey: gNavigatorBundle.getString("offlineApps.neverAccessKey"),
         callback: function() {
+          cleanup();
           observer.observe(null, responseTopic,
                            Ci.nsIPermissionManager.DENY_ACTION);
         }
       }
     ];
 
-    PopupNotifications.show(browser, topic, message, this._notificationIcon,
-                            mainAction, secondaryActions);
+    
+    var notification;
 
+    function timeoutNotification() {
+      
+      notification.remove();
+
+      
+      cleanup();
+
+      
+      observer.observe(null, responseTopic,
+                       Ci.nsIPermissionManager.UNKNOWN_ACTION);
+    }
+
+    var options = {
+      eventCallback: function(state) {
+        
+        
+        if (!timeoutId) {
+          return;
+        }
+
+        
+        if (state == "dismissed") {
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(timeoutNotification, hiddenTimeoutDuration);
+          return;
+        }
+
+        
+        
+        
+        else if (state == "shown") {
+          clearTimeout(timeoutId);
+        }
+      }
+    };
+
+    notification = PopupNotifications.show(browser, topic, message,
+                                           this._notificationIcon, mainAction,
+                                           secondaryActions, options);
+
+    
+    
+    
+    timeoutId = setTimeout(timeoutNotification, firstTimeoutDuration);
   }
 };
 
