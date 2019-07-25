@@ -802,14 +802,17 @@ CookieStore.prototype = {
 
     this._log.info("CookieStore got createCommand: " + command );
     
-    this._cookieManager.add( command.data.host,
-			     command.data.path,
-			     command.data.name,
-			     command.data.value,
-			     command.data.isSecure,
-			     command.data.isHttpOnly,
-			     command.data.isSession,
-			     command.data.expiry );
+    if ( command.data.expiry ) {
+      
+      this._cookieManager.add( command.data.host,
+			       command.data.path,
+			       command.data.name,
+			       command.data.value,
+			       command.data.isSecure,
+			       command.data.isHttpOnly,
+			       command.data.isSession,
+			       command.data.expiry );
+    }
   },
 
   _removeCommand: function CookieStore__removeCommand(command) {
@@ -859,15 +862,20 @@ CookieStore.prototype = {
 				matchingCookie.name,
 				matchingCookie.path,
 				false );
+
     
-    this._cookieManager.add( matchingCookie.host,
-			     matchingCookie.path,
-			     matchingCookie.name,
-			     matchingCookie.value,
-			     matchingCookie.isSecure,
-			     matchingCookie.isHttpOnly,
-			     matchingCookie.isSession,
-			     matchingCookie.expiry );
+    if ( command.data.expiry ) {
+      
+
+      this._cookieManager.add( matchingCookie.host,
+			       matchingCookie.path,
+			       matchingCookie.name,
+			       matchingCookie.value,
+			       matchingCookie.isSecure,
+			       matchingCookie.isHttpOnly,
+			       matchingCookie.isSession,
+			       matchingCookie.expiry );
+    }
 
     
     
@@ -885,6 +893,12 @@ CookieStore.prototype = {
       if (cookie instanceof Ci.nsICookie){
 	
 	
+	if ( !cookie.expiry ) {
+	  
+
+	  continue;
+	}
+	  
 	let key = cookie.host + ":" + cookie.path + ":" + cookie.name;
 	items[ key ] = { parentGUID: '',
 			 name: cookie.name,
