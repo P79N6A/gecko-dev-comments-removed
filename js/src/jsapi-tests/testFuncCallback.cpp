@@ -61,37 +61,46 @@ BEGIN_TEST(testFuncCallback_bug507012)
 
     
     EXEC("42");
-    CHECK(enters == 1 && leaves == 1 && depth == 0);
+    CHECK_EQUAL(enters, 1);
+    CHECK_EQUAL(leaves, 1);
+    CHECK_EQUAL(depth, 0);
     interpreted = enters = leaves = depth = 0;
 
     
     EXEC("f(1)");
-    CHECK(enters == 1+1 && leaves == 1+1 && depth == 0);
+    CHECK_EQUAL(enters, 1+1);
+    CHECK_EQUAL(leaves, 1+1);
+    CHECK_EQUAL(depth, 0);
 
     
     enters = 777;
     JS_SetFunctionCallback(cx, funcTransition2);
     EXEC("f(1)");
-    CHECK(called2 && enters == 777);
+    CHECK(called2);
+    CHECK_EQUAL(enters, 777);
 
     
     JS_SetFunctionCallback(cx, NULL);
     EXEC("f(1)");
-    CHECK(enters == 777);
+    CHECK_EQUAL(enters, 777);
     interpreted = enters = leaves = depth = 0;
 
     
     JS_SetFunctionCallback(cx, funcTransition);
     enters = leaves = depth = 0;
     EXEC("f(3)");
-    CHECK(enters == 1+3 && leaves == 1+3 && depth == 0);
+    CHECK_EQUAL(enters, 1+3);
+    CHECK_EQUAL(leaves, 1+3);
+    CHECK_EQUAL(depth, 0);
     interpreted = enters = leaves = depth = 0;
 
     
     EXEC("function g () { ++x; }");
     interpreted = enters = leaves = depth = 0;
     EXEC("for (i = 0; i < 50; ++i) { g(); }");
-    CHECK(enters == 1+50 && leaves == 1+50 && depth == 0);
+    CHECK_EQUAL(enters, 1+50);
+    CHECK_EQUAL(leaves, 1+50);
+    CHECK_EQUAL(depth, 0);
 
     
     
@@ -111,10 +120,10 @@ BEGIN_TEST(testFuncCallback_bug507012)
     interpreted = enters = leaves = depth = overlays = 0;
 
     EXEC("42.5");
-    CHECK(enters == 1);
-    CHECK(leaves == 1);
-    CHECK(depth == 0);
-    CHECK(overlays == enters + leaves);
+    CHECK_EQUAL(enters, 1);
+    CHECK_EQUAL(leaves, 1);
+    CHECK_EQUAL(depth, 0);
+    CHECK_EQUAL(overlays, enters + leaves);
     interpreted = enters = leaves = depth = overlays = 0;
 #endif
 
