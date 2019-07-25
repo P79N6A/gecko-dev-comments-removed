@@ -693,8 +693,123 @@ PodEqual(T *one, T *two, size_t len)
 
 enum MaybeReportError { REPORT_ERROR = true, DONT_REPORT_ERROR = false };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+class MoveRef {
+  public:
+    typedef T Referent;
+    explicit MoveRef(T &t) : pointer(&t) { }
+    T &operator*()  const { return *pointer; }
+    T *operator->() const { return  pointer; }
+    operator T &()  const { return *pointer; }
+  private:
+    T *pointer;
+};
+
+template<typename T>
+MoveRef<T> Move(T &t) { return MoveRef<T>(t); }
+
 } 
 
-#endif
+#endif 
 
-#endif
+#endif 
