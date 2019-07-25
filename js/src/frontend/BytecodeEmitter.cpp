@@ -3509,7 +3509,8 @@ EmitAssignment(JSContext *cx, BytecodeEmitter *bce, ParseNode *lhs, JSOp op, Par
       case PNK_LP:
         if (!EmitTree(cx, bce, lhs))
             return false;
-        offset++;
+        JS_ASSERT(lhs->pn_xflags & PNX_SETCALL);
+        offset += 2;
         break;
 #if JS_HAS_XML_SUPPORT
       case PNK_XMLUNARY:
@@ -3585,7 +3586,12 @@ EmitAssignment(JSContext *cx, BytecodeEmitter *bce, ParseNode *lhs, JSOp op, Par
             return false;
     } else {
         
-        if (Emit2(cx, bce, JSOP_ITERNEXT, offset) < 0)
+
+
+
+
+
+        if (offset != 1 && Emit2(cx, bce, JSOP_PICK, offset - 1) < 0)
             return false;
     }
 
@@ -4603,6 +4609,8 @@ EmitForIn(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 
 
 
+    if (Emit1(cx, bce, JSOP_ITERNEXT) < 0)
+        return false;
     if (!EmitAssignment(cx, bce, forHead->pn_kid2, JSOP_NOP, NULL))
         return false;
 
