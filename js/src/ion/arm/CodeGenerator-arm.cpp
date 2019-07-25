@@ -476,7 +476,7 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
     
     
     
-    if (mir->canBeDividebyZero() || mir->canBeNegativeZero()) {
+    if (mir->canBeDivideByZero() || mir->canBeNegativeZero()) {
         masm.ma_cmp(rhs, Imm32(0));
         masm.ma_cmp(lhs, Imm32(0), Assembler::LessThan);
         if (!bailoutIf(Assembler::Equal, ins->snapshot()))
