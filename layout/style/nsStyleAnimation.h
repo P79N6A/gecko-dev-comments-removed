@@ -50,7 +50,6 @@
 #include "nsCoord.h"
 #include "nsColor.h"
 
-class nsIContent;
 class nsPresContext;
 class nsStyleContext;
 class nsCSSValue;
@@ -58,6 +57,12 @@ struct nsCSSValueList;
 struct nsCSSValuePair;
 struct nsCSSValuePairList;
 struct nsCSSRect;
+
+namespace mozilla {
+namespace dom {
+class Element;
+} 
+} 
 
 
 
@@ -171,7 +176,7 @@ public:
 
 
   static PRBool ComputeValue(nsCSSProperty aProperty,
-                             nsIContent* aElement,
+                             mozilla::dom::Element* aElement,
                              const nsAString& aSpecifiedValue,
                              PRBool aUseSVGMode,
                              Value& aComputedValue);
