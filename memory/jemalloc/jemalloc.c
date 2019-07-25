@@ -96,6 +96,11 @@
 
 
 
+#ifdef MOZ_MEMORY_ANDROID
+#define NO_TLS
+#define _pthread_self() pthread_self()
+#endif
+
 
 
 
