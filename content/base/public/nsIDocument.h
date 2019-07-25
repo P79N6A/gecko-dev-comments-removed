@@ -1425,7 +1425,8 @@ public:
 
 
 
-  virtual void RegisterFileDataUri(nsACString& aUri) = 0;
+  virtual void RegisterFileDataUri(const nsACString& aUri) = 0;
+  virtual void UnregisterFileDataUri(const nsACString& aUri) = 0;
 
   virtual void SetScrollToRef(nsIURI *aDocumentURI) = 0;
   virtual void ScrollToRef() = 0;
