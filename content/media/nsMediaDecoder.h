@@ -92,7 +92,7 @@ public:
 
   
   
-  virtual nsMediaStream* GetCurrentStream() = 0;
+  virtual nsMediaStream* GetStream() = 0;
 
   
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal() = 0;
