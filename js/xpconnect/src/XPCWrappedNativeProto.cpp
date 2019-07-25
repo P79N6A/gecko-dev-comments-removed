@@ -127,24 +127,37 @@ XPCWrappedNativeProto::Init(XPCCallContext& ccx,
                                         mScope->GetPrototypeJSObject(),
                                         true, parent);
 
-    JSBool ok = !!mJSProtoObject;
-
-    if (ok) {
+    bool success = !!mJSProtoObject;
+    if (success) {
         JS_SetPrivate(mJSProtoObject, this);
-        if (callback) {
-            nsresult rv = callback->PostCreatePrototype(ccx, mJSProtoObject);
-            if (NS_FAILED(rv)) {
-                JS_SetPrivate(mJSProtoObject, nsnull);
-                mJSProtoObject = nsnull;
-                XPCThrower::Throw(rv, ccx);
-                return false;
-            }
-        }
+        success = CallPostCreatePrototype(ccx);
     }
 
     DEBUG_ReportShadowedMembers(mSet, nsnull, this);
 
-    return ok;
+    return success;
+}
+
+bool
+XPCWrappedNativeProto::CallPostCreatePrototype(XPCCallContext& ccx)
+{
+    
+    nsIXPCScriptable *callback = mScriptableInfo ? mScriptableInfo->GetCallback()
+                                                 : nsnull;
+    if (!callback)
+        return true;
+
+    
+    
+    nsresult rv = callback->PostCreatePrototype(ccx, mJSProtoObject);
+    if (NS_FAILED(rv)) {
+        JS_SetPrivate(mJSProtoObject, nsnull);
+        mJSProtoObject = nsnull;
+        XPCThrower::Throw(rv, ccx);
+        return false;
+    }
+
+    return true;
 }
 
 void
