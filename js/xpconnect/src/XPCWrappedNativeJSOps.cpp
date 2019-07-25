@@ -624,39 +624,18 @@ XPC_WN_NoHelper_Finalize(js::FreeOp *fop, JSObject *obj)
 }
 
 static void
-TraceScopeJSObjects(JSTracer *trc, XPCWrappedNativeScope* scope)
+TraceInsideSlimWrapper(JSTracer *trc, JSObject *obj)
 {
-    scope->TraceSelf(trc);
+    GetSlimWrapperProto(obj)->TraceSelf(trc);
 }
 
-static void
-TraceForValidWrapper(JSTracer *trc, XPCWrappedNative* wrapper)
-{
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
-    wrapper->TraceJS(trc);
 
-    TraceScopeJSObjects(trc, wrapper->GetScope());
-}
+
+
+
+
+
 
 static void
 MarkWrappedNative(JSTracer *trc, JSObject *obj)
@@ -675,9 +654,9 @@ MarkWrappedNative(JSTracer *trc, JSObject *obj)
 
     if (wrapper) {
         if (wrapper->IsValid())
-             TraceForValidWrapper(trc, wrapper);
+            wrapper->TraceInside(trc);
     } else if (obj2) {
-        GetSlimWrapperProto(obj2)->TraceJS(trc);
+        TraceInsideSlimWrapper(obj2);
     }
 }
 
@@ -1602,7 +1581,7 @@ XPC_WN_Shared_Proto_Trace(JSTracer *trc, JSObject *obj)
     XPCWrappedNativeProto* p =
         (XPCWrappedNativeProto*) xpc_GetJSPrivate(obj);
     if (p)
-        TraceScopeJSObjects(trc, p->GetScope());
+        p->TraceInside(trc);
 }
 
 
