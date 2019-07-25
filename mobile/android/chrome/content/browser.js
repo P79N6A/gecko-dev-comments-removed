@@ -208,7 +208,6 @@ var BrowserApp = {
     WebappsUI.init();
     RemoteDebugger.init();
     Reader.init();
-    UserAgent.init();
 #ifdef MOZ_TELEMETRY_REPORTING
     Telemetry.init();
 #endif
@@ -360,7 +359,6 @@ var BrowserApp = {
     WebappsUI.uninit();
     RemoteDebugger.uninit();
     Reader.uninit();
-    UserAgent.uninit();
 #ifdef MOZ_TELEMETRY_REPORTING
     Telemetry.uninit();
 #endif
@@ -1453,16 +1451,12 @@ var SelectionHandler = {
     }
 
     
-    if (selection.rangeCount == 0)
-      return;
-
-    let range = selection.getRangeAt(0);
-    if (!range)
+    if (selection.rangeCount == 0 || !selection.getRangeAt(0))
       return;
 
     
     this.cache = {};
-    this.updateCacheFromRange(range);
+    this.updateCacheForSelection();
     this.updateCacheOffset();
 
     
@@ -1522,21 +1516,9 @@ var SelectionHandler = {
     let end = this._end.getBoundingClientRect();
     cwu.sendMouseEventToWindow("mousedown", end.left + this.HANDLE_PADDING, end.top - this.HANDLE_VERTICAL_MARGIN, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
     cwu.sendMouseEventToWindow("mouseup", end.left + this.HANDLE_PADDING, end.top - this.HANDLE_VERTICAL_MARGIN, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
-  },
-
-  finishMoveSelection: function sh_finishMoveSelection(aIsStartHandle) {
-    
-    let selection = this._view.getSelection();
-    this.selectedText = selection.toString().trim();
 
     
-    let range = selection.getRangeAt(0);
-
-    this.updateCacheFromRange(range);
-    this.updateCacheOffset();
-
-    
-    this.positionHandles();
+    this.updateCacheForSelection();
   },
 
   
@@ -1572,12 +1554,14 @@ var SelectionHandler = {
     this.cache = null;
   },
 
-  updateCacheFromRange: function sh_updateCacheFromRange(aRange) {
-    let rects = aRange.getClientRects();
+  updateCacheForSelection: function sh_updateCacheForSelection() {
+    let range = this._view.getSelection().getRangeAt(0);
+
+    let rects = range.getClientRects();
     this.cache.start = { x: rects[0].left, y: rects[0].bottom };
     this.cache.end = { x: rects[rects.length - 1].right, y: rects[rects.length - 1].bottom };
 
-    this.cache.rect = aRange.getBoundingClientRect();
+    this.cache.rect = range.getBoundingClientRect();
   },
 
   updateCacheOffset: function sh_updateCacheOffset() {
@@ -1685,7 +1669,11 @@ var SelectionHandler = {
         this._touchDelta = null;
 
         
-        this.finishMoveSelection(isStartHandle);
+        let selection = this._view.getSelection();
+        this.selectedText = selection.toString().trim();
+
+        
+        this.positionHandles();
         break;
 
       case "touchmove":
@@ -1698,57 +1686,6 @@ var SelectionHandler = {
     }
   }
 };
-
-
-var UserAgent = {
-  init: function ua_init() {
-    Services.obs.addObserver(this, "http-on-modify-request", false);
-  },
-
-  uninit: function ua_uninit() {
-    Services.obs.removeObserver(this, "http-on-modify-request");
-  },
-
-  getRequestLoadContext: function ua_getRequestLoadContext(aRequest) {
-    if (aRequest && aRequest.notificationCallbacks) {
-      try {
-        return aRequest.notificationCallbacks.getInterface(Ci.nsILoadContext);
-      } catch (ex) { }
-    }
-
-    if (aRequest && aRequest.loadGroup && aRequest.loadGroup.notificationCallbacks) {
-      try {
-        return aRequest.loadGroup.notificationCallbacks.getInterface(Ci.nsILoadContext);
-      } catch (ex) { }
-    }
-
-    return null;
-  },
-
-  getWindowForRequest: function ua_getWindowForRequest(aRequest) {
-    let loadContext = this.getRequestLoadContext(aRequest);
-    if (loadContext)
-      return loadContext.associatedWindow;
-    return null;
-  },
-
-  observe: function ua_observe(aSubject, aTopic, aData) {
-    if (!(aSubject instanceof Ci.nsIHttpChannel))
-      return;
-
-    let channel = aSubject.QueryInterface(Ci.nsIHttpChannel);
-    let channelWindow = this.getWindowForRequest(channel);
-    if (BrowserApp.getBrowserForWindow(channelWindow)) {
-      if (channel.URI.host.indexOf("youtube") != -1) {
-        let ua = Cc["@mozilla.org/network/protocol;1?name=http"].getService(Ci.nsIHttpProtocolHandler).userAgent;
-#expand let version = "__MOZ_APP_VERSION__";
-        ua += " Fennec/" + version;
-        channel.setRequestHeader("User-Agent", ua, false);
-      }
-    }
-  }
-};
-
 
 function nsBrowserAccess() {
 }
@@ -2856,6 +2793,29 @@ Tab.prototype = {
     if (md && md.maxZoom)
       zoom = Math.min(zoom, md.maxZoom);
     return zoom;
+  },
+
+  getRequestLoadContext: function(aRequest) {
+    if (aRequest && aRequest.notificationCallbacks) {
+      try {
+        return aRequest.notificationCallbacks.getInterface(Ci.nsILoadContext);
+      } catch (ex) { }
+    }
+
+    if (aRequest && aRequest.loadGroup && aRequest.loadGroup.notificationCallbacks) {
+      try {
+        return aRequest.loadGroup.notificationCallbacks.getInterface(Ci.nsILoadContext);
+      } catch (ex) { }
+    }
+
+    return null;
+  },
+
+  getWindowForRequest: function(aRequest) {
+    let loadContext = this.getRequestLoadContext(aRequest);
+    if (loadContext)
+      return loadContext.associatedWindow;
+    return null;
   },
 
   observe: function(aSubject, aTopic, aData) {
