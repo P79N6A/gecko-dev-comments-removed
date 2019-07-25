@@ -261,13 +261,22 @@ FrameState::pushUntypedPayload(JSValueTag tag, RegisterID payload)
 
     FrameEntry *fe = rawPush();
 
+    fe->clear();
+
+    
+
+
+
+
+
+
+    if (!fe->type.synced())
+        masm.storeTypeTag(ImmTag(tag), addressOf(fe));
+
     
 #ifdef DEBUG
     fe->type.unsync();
 #endif
-    fe->clear();
-
-    masm.storeTypeTag(ImmTag(tag), addressOf(fe));
     fe->type.setMemory();
     fe->data.unsync();
     fe->setNotCopied();
