@@ -8,6 +8,7 @@
 #define BASE_STRING_UTIL_H_
 
 #include <stdarg.h>   
+#include <ctype.h>
 
 #include <string>
 #include <vector>
