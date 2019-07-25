@@ -7666,8 +7666,7 @@ UpdateViewsForTree(nsIFrame* aFrame, nsIViewManager* aViewManager,
   do {
     nsIFrame* child = aFrame->GetFirstChild(childList);
     while (child) {
-      if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
-          || (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
+      if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
         
         if (nsGkAtoms::placeholderFrame == child->GetType()) {
           
