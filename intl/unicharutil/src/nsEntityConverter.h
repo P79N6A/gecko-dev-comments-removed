@@ -35,6 +35,9 @@
 
 
 
+#ifndef nsEntityConverter_h__
+#define nsEntityConverter_h__
+
 #include "nsIEntityConverter.h"
 #include "nsIFactory.h"
 #include "nsIStringBundle.h"
@@ -93,3 +96,5 @@ protected:
   nsEntityVersionList *mVersionList;            
   PRUint32 mVersionListLength;                  
 };
+
+#endif
