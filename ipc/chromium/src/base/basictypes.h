@@ -31,9 +31,6 @@
 
 #include "obsolete/protypes.h"
 
-#define _INT32
-#define _UINT32
-
 #ifdef _WIN32_SAVE
 #undef _WIN32_SAVE
 #define _WIN32
@@ -48,37 +45,6 @@
 #ifndef COMPILER_MSVC
 
 #include <stdint.h>         
-#endif
-
-typedef signed char         schar;
-typedef signed char         int8;
-typedef short               int16;
-
-
-#ifndef _INT32
-#define _INT32
-typedef int                 int32;
-#endif
-#ifndef PROTYPES_H
-typedef long long           int64;
-#endif
-
-
-
-
-
-
-
-typedef unsigned char      uint8;
-typedef unsigned short     uint16;
-
-
-#ifndef _UINT32
-#define _UINT32
-typedef unsigned int       uint32;
-#endif
-#ifndef PROTYPES_H
-typedef unsigned long long uint64;
 #endif
 
 
