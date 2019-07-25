@@ -160,6 +160,7 @@ public:
         NS_ASSERTION(!NS_IsMainThread(),
             "AsyncLocalFileWinOperation should not be run on the main thread!");
 
+        CoInitialize(NULL);
         switch(mOperation) {
         case RevealOp: {
             Reveal();
@@ -170,6 +171,7 @@ public:
         }
         break;
         }
+        CoUninitialize();
 
         
         nsCOMPtr<nsIRunnable> resultrunnable = new AsyncLocalFileWinDone();
