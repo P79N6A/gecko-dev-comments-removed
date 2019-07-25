@@ -493,13 +493,7 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
   rv = editor->AddDocumentStateListener(mStateMaintainer);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  nsCOMPtr<nsIPresShell> presShell;
-  rv = docShell->GetPresShell(getter_AddRefs(presShell));
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(presShell, NS_ERROR_FAILURE);
-
-  rv = editor->Init(domDoc, presShell, nsnull ,
+  rv = editor->Init(domDoc, nsnull ,
                     nsnull, mEditorFlags);
   NS_ENSURE_SUCCESS(rv, rv);
 
