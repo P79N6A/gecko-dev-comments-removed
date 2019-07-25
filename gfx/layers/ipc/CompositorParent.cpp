@@ -510,7 +510,10 @@ CompositorParent::TransformFixedLayers(Layer* aLayer,
     gfxPoint translation(aTranslation.x - (anchor.x - anchor.x / aScaleDiff.x),
                          aTranslation.y - (anchor.y - anchor.y / aScaleDiff.y));
 
-    gfx3DMatrix layerTransform = aLayer->GetTransform();
+    
+    
+    
+    gfx3DMatrix layerTransform = aLayer->GetBaseTransform();
     Translate2D(layerTransform, translation);
     ShadowLayer* shadow = aLayer->AsShadowLayer();
     shadow->SetShadowTransform(layerTransform);
@@ -536,7 +539,8 @@ SetShadowProperties(Layer* aLayer)
 {
   
   ShadowLayer* shadow = aLayer->AsShadowLayer();
-  shadow->SetShadowTransform(aLayer->GetTransform());
+  
+  shadow->SetShadowTransform(aLayer->GetBaseTransform());
   shadow->SetShadowVisibleRegion(aLayer->GetVisibleRegion());
   shadow->SetShadowClipRect(aLayer->GetClipRect());
 
@@ -592,6 +596,8 @@ CompositorParent::TransformShadowTree(TimeStamp aCurrentFrame)
   Layer* root = mLayerManager->GetRoot();
 
   const FrameMetrics& metrics = container->GetFrameMetrics();
+  
+  
   const gfx3DMatrix& rootTransform = root->GetTransform();
   const gfx3DMatrix& currentTransform = layer->GetTransform();
 
@@ -683,7 +689,14 @@ CompositorParent::TransformShadowTree(TimeStamp aCurrentFrame)
       scaleDiff.y = tempScaleDiffY;
     }
 
-    shadow->SetShadowTransform(treeTransform * currentTransform);
+    
+    
+    
+    gfx3DMatrix computedTransform = treeTransform * currentTransform;
+    computedTransform.Scale(1.0f/layer->GetXScale(),
+                            1.0f/layer->GetYScale(),
+                            1);
+    shadow->SetShadowTransform(computedTransform);
     TransformFixedLayers(layer, offset, scaleDiff);
   }
 
