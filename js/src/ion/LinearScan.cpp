@@ -1427,7 +1427,11 @@ LinearScanAllocator::allocateSlotFor(const LiveInterval *interval)
 
     if (!freed->empty()) {
         LiveInterval *maybeDead = freed->back();
-        if (maybeDead->end() <= interval->reg()->getInterval(0)->start()) {
+        if (maybeDead->end() < interval->reg()->getInterval(0)->start()) {
+            
+            
+            
+            
             
             
             
