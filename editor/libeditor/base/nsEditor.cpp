@@ -3605,28 +3605,33 @@ IsElementVisible(dom::Element* aElement)
 
   nsIContent *cur = aElement;
   for (; ;) {
+    
+    
+    
+    bool haveLazyBitOnChild = cur->HasFlag(NODE_NEEDS_FRAME);
     cur = cur->GetFlattenedTreeParent();
     if (!cur) {
+      if (!haveLazyBitOnChild) {
+        
+        
+        return false;
+      }
+
       
-      return false;
+      
+      break;
     }
 
     if (cur->GetPrimaryFrame()) {
-      
-      
-      return false;
-    }
+      if (!haveLazyBitOnChild) {
+        
+        
+        return false;
+      }
 
-    if (cur->HasFlag(NODE_NEEDS_FRAME)) {
-      
-      nsIContent *parent = cur->GetFlattenedTreeParent();
-      if (parent) {
-        NS_ASSERTION(parent->GetPrimaryFrame(),
-                     "Why does our parent not have a frame?");
-        if (parent->GetPrimaryFrame()->IsLeaf()) {
-          
-          return false;
-        }
+      if (cur->GetPrimaryFrame()->IsLeaf()) {
+        
+        return false;
       }
 
       
