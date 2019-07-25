@@ -49,6 +49,8 @@
 #include "nsMappedAttributes.h"
 #include "nsNetUtil.h"
 #include "nsHTMLFormElement.h"
+#include "nsHtml5Module.h"
+
 
 
 extern nsAttrValue::EnumTable kListTypeTable[];
@@ -140,6 +142,22 @@ public:
 };
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Shared)
+
+
+
+
+
+nsGenericHTMLElement*
+NS_NewHTMLIsIndexElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+                         mozilla::dom::FromParser aFromParser)
+{
+  if (nsHtml5Module::sEnabled) {
+    return NS_NewHTMLElement(aNodeInfo, aFromParser);
+  } else {
+    return NS_NewHTMLSharedElement(aNodeInfo, aFromParser);
+  }
+}
+
 
 
 nsHTMLSharedElement::nsHTMLSharedElement(already_AddRefed<nsINodeInfo> aNodeInfo)
