@@ -335,10 +335,7 @@ private:
   static nsTArray<nsPluginInstanceOwner*>  *sCARefreshListeners;
   bool                                      mSentInitialTopLevelWindowEvent;
 #endif
-  
-  
-  bool                                      mAsyncHidePluginWindow;
-  
+
   
   
   
