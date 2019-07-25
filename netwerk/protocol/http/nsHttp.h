@@ -167,6 +167,11 @@ struct nsHttp
     static void DestroyAtomTable();
 
     
+    
+    
+    static mozilla::Mutex *GetLock();
+
+    
     static nsHttpAtom ResolveAtom(const char *);
     static nsHttpAtom ResolveAtom(const nsACString &s)
     {
