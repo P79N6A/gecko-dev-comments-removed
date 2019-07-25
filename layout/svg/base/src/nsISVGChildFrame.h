@@ -103,8 +103,11 @@ public:
   
   
   
+  
+  
+  
   enum SVGChangedFlags {
-    SUPPRESS_INVALIDATION = 0x01,
+    DO_NOT_NOTIFY_RENDERING_OBSERVERS = 0x01,
     TRANSFORM_CHANGED     = 0x02,
     COORD_CONTEXT_CHANGED = 0x04
   };
