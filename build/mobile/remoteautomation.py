@@ -72,6 +72,21 @@ class RemoteAutomation(Automation):
     def setRemoteLog(self, logfile):
         self._remoteLog = logfile
 
+    
+    def environment(self, env = None, xrePath = None, crashreporter = True):
+        
+        
+        if env is None:
+            env = {}
+
+        if crashreporter:
+            env['MOZ_CRASHREPORTER_NO_REPORT'] = '1'
+            env['MOZ_CRASHREPORTER'] = '1'
+        else:
+            env['MOZ_CRASHREPORTER_DISABLE'] = '1'
+
+        return env
+
     def waitForFinish(self, proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsDir):
         
         status = proc.wait(timeout = maxTime)
@@ -115,7 +130,7 @@ class RemoteAutomation(Automation):
         dm = None
         def __init__(self, dm, cmd, stdout = None, stderr = None, env = None, cwd = '.'):
             self.dm = dm
-            self.proc = dm.launchProcess(cmd, stdout)
+            self.proc = dm.launchProcess(cmd, stdout, cwd, env)
             exepath = cmd[0]
             name = exepath.split('/')[-1]
             self.procName = name
