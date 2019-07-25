@@ -494,7 +494,6 @@ CompositorParent::AllocPLayers(const LayersBackend& aBackendType, int* aMaxTextu
     *aMaxTextureSize = layerManager->GetMaxTextureSize();
     return new ShadowLayersParent(slm, this);
   } else if (aBackendType == LayerManager::LAYERS_BASIC) {
-    
     nsRefPtr<LayerManager> layerManager = new BasicShadowLayerManager(mWidget);
     mWidget = NULL;
     mLayerManager = layerManager;

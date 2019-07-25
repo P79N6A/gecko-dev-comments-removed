@@ -876,8 +876,12 @@ void nsBaseWidget::CreateCompositor()
     AsyncChannel::Side childSide = mozilla::ipc::AsyncChannel::Child;
     mCompositorChild->Open(parentChannel, childMessageLoop, childSide);
     PRInt32 maxTextureSize;
-    PLayersChild* shadowManager =
-      mCompositorChild->SendPLayersConstructor(LayerManager::LAYERS_OPENGL, &maxTextureSize);
+    PLayersChild* shadowManager;
+    if (mUseAcceleratedRendering) {
+      shadowManager = mCompositorChild->SendPLayersConstructor(LayerManager::LAYERS_OPENGL, &maxTextureSize);
+    } else {
+      shadowManager = mCompositorChild->SendPLayersConstructor(LayerManager::LAYERS_BASIC, &maxTextureSize);
+    }
 
     if (shadowManager) {
       ShadowLayerForwarder* lf = lm->AsShadowForwarder();
@@ -887,7 +891,10 @@ void nsBaseWidget::CreateCompositor()
         return;
       }
       lf->SetShadowManager(shadowManager);
-      lf->SetParentBackendType(LayerManager::LAYERS_OPENGL);
+      if (mUseAcceleratedRendering)
+        lf->SetParentBackendType(LayerManager::LAYERS_OPENGL);
+      else
+        lf->SetParentBackendType(LayerManager::LAYERS_BASIC);
       lf->SetMaxTextureSize(maxTextureSize);
 
       mLayerManager = lm;
@@ -913,16 +920,15 @@ LayerManager* nsBaseWidget::GetLayerManager(PLayersChild* aShadowManager,
 
     mUseAcceleratedRendering = GetShouldAccelerate();
 
-    if (mUseAcceleratedRendering) {
-
+    
+    if (UseOffMainThreadCompositing()) {
       
-      if (UseOffMainThreadCompositing()) {
-        
-        
-        NS_ASSERTION(aShadowManager == nsnull, "Async Compositor not supported with e10s");
-        CreateCompositor();
-      }
+      
+      NS_ASSERTION(aShadowManager == nsnull, "Async Compositor not supported with e10s");
+      CreateCompositor();
+    }
 
+    if (mUseAcceleratedRendering) {
       if (!mLayerManager) {
         nsRefPtr<LayerManagerOGL> layerManager = new LayerManagerOGL(this);
         
