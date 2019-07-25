@@ -4505,7 +4505,8 @@ JSTerm.prototype = {
   {
     this.completionValue = suffix;
 
-    let prefix = new Array(this.inputNode.value.length + 1).join(" ");
+    
+    let prefix = this.inputNode.value.replace(/[\S]/g, " ");
     this.completeNode.value = prefix + this.completionValue;
   },
 };
