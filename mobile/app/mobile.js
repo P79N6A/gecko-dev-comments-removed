@@ -66,6 +66,9 @@ pref("browser.viewport.scaleRatio", -1);
 pref("ui.use_native_popup_windows", true);
 
 
+pref("ui.scrollbarsCanOverlapContent", 1);
+
+
 pref("ui.click_hold_context_menus", true);
 
 
