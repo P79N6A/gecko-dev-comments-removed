@@ -242,8 +242,7 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
       
       
       ColorTextureLayerProgram *basicProgram =
-        aManager->GetBasicLayerProgram(mTexImage->GetContentType() == gfxASurface::CONTENT_COLOR,
-                                       mTexImage->IsRGB());
+        aManager->GetColorTextureLayerProgram(mTexImage->GetShaderProgramType());
 
       basicProgram->Activate();
       basicProgram->SetTextureUnit(0);
