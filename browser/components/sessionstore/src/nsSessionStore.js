@@ -641,14 +641,15 @@ SessionStoreService.prototype = {
         if (quitting) {
           
           
+          
+          
+          
           if ("_stateBackup" in this) {
             var oState = this._stateBackup;
             oState.session = { state: STATE_STOPPED_STR };
 
             this._saveStateObject(oState);
           }
-          
-          this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
         }
         else
           this._inPrivateBrowsing = false;
@@ -1912,7 +1913,15 @@ SessionStoreService.prototype = {
     let hasContent = false;
 
     for (let i = 0; i < aHistory.count; i++) {
-      let uri = aHistory.getEntryAtIndex(i, false).URI;
+      let uri;
+      try {
+        uri = aHistory.getEntryAtIndex(i, false).URI;
+      }
+      catch (ex) {
+        
+        
+        continue;
+      }
       
       let domain = uri.spec;
       try {
