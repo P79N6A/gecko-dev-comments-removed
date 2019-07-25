@@ -4007,6 +4007,7 @@ nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     if (NS_SUCCEEDED(mStatus) && !mCachePump && mTransaction) {
         
         
+        
         mResponseHead = mTransaction->TakeResponseHead();
         
         

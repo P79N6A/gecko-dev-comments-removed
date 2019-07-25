@@ -541,6 +541,10 @@ nsHttpTransaction::WritePipeSegment(nsIOutputStream *stream,
 
     
     
+    
+    
+    
+    
     rv = trans->ProcessData(buf, *countWritten, countWritten);
     if (NS_FAILED(rv))
         trans->Close(rv);
