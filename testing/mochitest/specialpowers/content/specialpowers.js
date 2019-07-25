@@ -71,6 +71,12 @@ var SpecialPowers = {
   },
 
   
+  clearUserPref: function(aPrefName) {
+    var msg = {'op':'clear', 'prefName': aPrefName, 'prefType': ""};
+    sendSyncMessage('SPPrefService', msg);
+  },
+
+  
   _getPref: function(aPrefName, aPrefType, aIid) {
     var msg = {};
     if (aIid) {
