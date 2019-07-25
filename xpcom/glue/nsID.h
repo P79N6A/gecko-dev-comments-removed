@@ -74,8 +74,6 @@ struct nsID {
 
 
   inline PRBool Equals(const nsID& other) const {
-    PR_STATIC_ASSERT(sizeof(nsID) == 64);
-
     
     return
       ((PRUint64*)(void*) &m0)[0] == ((PRUint64*)(void*) &other.m0)[0] &&
@@ -107,6 +105,9 @@ struct nsID {
 
   
 };
+
+
+PR_STATIC_ASSERT(sizeof(nsID) == 16);
 
 
 
