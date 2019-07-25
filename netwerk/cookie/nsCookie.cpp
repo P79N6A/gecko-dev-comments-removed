@@ -81,21 +81,20 @@ StrBlockCopy(const nsACString &aSource1,
 
 
 
-
-static PRInt64 gLastCreationTime;
+static PRInt64 gLastCreationID;
 
 PRInt64
-nsCookie::GenerateUniqueCreationTime(PRInt64 aCreationTime)
+nsCookie::GenerateCreationID(PRInt64 aCreationTime)
 {
   
   
-  if (aCreationTime > gLastCreationTime) {
-    gLastCreationTime = aCreationTime;
+  if (aCreationTime > gLastCreationID) {
+    gLastCreationID = aCreationTime;
     return aCreationTime;
   }
 
   
-  return ++gLastCreationTime;
+  return ++gLastCreationID;
 }
 
 nsCookie *
@@ -105,7 +104,7 @@ nsCookie::Create(const nsACString &aName,
                  const nsACString &aPath,
                  PRInt64           aExpiry,
                  PRInt64           aLastAccessed,
-                 PRInt64           aCreationTime,
+                 PRInt64           aCreationID,
                  PRBool            aIsSession,
                  PRBool            aIsSecure,
                  PRBool            aIsHttpOnly)
@@ -127,13 +126,12 @@ nsCookie::Create(const nsACString &aName,
                name, value, host, path, end);
 
   
-  
-  if (aCreationTime > gLastCreationTime)
-    gLastCreationTime = aCreationTime;
+  if (aCreationID > gLastCreationID)
+    gLastCreationID = aCreationID;
 
   
   return new (place) nsCookie(name, value, host, path, end,
-                              aExpiry, aLastAccessed, aCreationTime,
+                              aExpiry, aLastAccessed, aCreationID,
                               aIsSession, aIsSecure, aIsHttpOnly);
 }
 
@@ -155,7 +153,7 @@ NS_IMETHODIMP nsCookie::GetIsSecure(PRBool *aIsSecure)     { *aIsSecure = IsSecu
 NS_IMETHODIMP nsCookie::GetIsHttpOnly(PRBool *aHttpOnly)   { *aHttpOnly = IsHttpOnly(); return NS_OK; }
 NS_IMETHODIMP nsCookie::GetStatus(nsCookieStatus *aStatus) { *aStatus = 0;              return NS_OK; }
 NS_IMETHODIMP nsCookie::GetPolicy(nsCookiePolicy *aPolicy) { *aPolicy = 0;              return NS_OK; }
-NS_IMETHODIMP nsCookie::GetCreationTime(PRInt64 *aCreation){ *aCreation = CreationTime(); return NS_OK; }
+NS_IMETHODIMP nsCookie::GetCreationTime(PRInt64 *aCreation){ *aCreation = CreationID(); return NS_OK; }
 NS_IMETHODIMP nsCookie::GetLastAccessed(PRInt64 *aTime)    { *aTime = LastAccessed();   return NS_OK; }
 
 

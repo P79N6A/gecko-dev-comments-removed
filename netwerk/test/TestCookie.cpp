@@ -741,8 +741,7 @@ main(PRInt32 argc, char *argv[])
       
       rv[14] = NS_SUCCEEDED(cookieMgr2->CountCookiesFromHost(NS_LITERAL_CSTRING("cookiemgr.test"), &hostCookies)) &&
               hostCookies == 1;
-      
-      rv[15] = NS_SUCCEEDED(cookieMgr2->CookieExists(expiredCookie, &found)) && found;
+      rv[15] = NS_SUCCEEDED(cookieMgr2->CookieExists(expiredCookie, &found)) && !found;
       
       rv[16] = NS_SUCCEEDED(cookieMgr->RemoveAll());
       rv[17] = NS_SUCCEEDED(cookieMgr->GetEnumerator(getter_AddRefs(enumerator))) &&
