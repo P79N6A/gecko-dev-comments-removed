@@ -1245,11 +1245,7 @@ nsNativeThemeGTK::WidgetStateChanged(nsIFrame* aFrame, PRUint8 aWidgetType,
 NS_IMETHODIMP
 nsNativeThemeGTK::ThemeChanged()
 {
-  
-  
-  static NS_DEFINE_CID(kDeviceContextCID, NS_DEVICE_CONTEXT_CID);
-  nsCOMPtr<nsIDeviceContext> dctx = do_CreateInstance(kDeviceContextCID);
-  dctx->ClearCachedSystemFonts();
+  nsDeviceContext::ClearCachedSystemFonts();
 
   memset(mDisabledWidgetTypes, 0, sizeof(mDisabledWidgetTypes));
   return NS_OK;

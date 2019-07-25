@@ -45,9 +45,8 @@
 #include "gfxFont.h"
 
 class nsIAtom;
-class nsIDeviceContext;
+class nsDeviceContext;
 class nsRenderingContext;
-class nsThebesDeviceContext;
 struct nsBoundingMetrics;
 
 
@@ -83,7 +82,7 @@ public:
 
 
     nsresult Init(const nsFont& aFont, nsIAtom* aLanguage,
-                  nsIDeviceContext *aContext,
+                  nsDeviceContext *aContext,
                   gfxUserFontSet *aUserFontSet = nsnull);
 
     
@@ -238,7 +237,7 @@ protected:
     nsFont mFont;
     nsRefPtr<gfxFontGroup> mFontGroup;
     nsCOMPtr<nsIAtom> mLanguage;
-    nsThebesDeviceContext *mDeviceContext;
+    nsDeviceContext *mDeviceContext;
     PRInt32 mP2A;
     PRPackedBool mTextRunRTL;
 };

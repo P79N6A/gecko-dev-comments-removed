@@ -37,7 +37,7 @@
 
 #include "nsRect.h"
 #include "nsString.h"
-#include "nsIDeviceContext.h"
+#include "nsDeviceContext.h"
 #include "prlog.h"
 #include <limits.h>
 
@@ -85,16 +85,16 @@ FILE* operator<<(FILE* out, const nsRect& rect)
   
   tmp.AppendLiteral("{");
   tmp.AppendFloat(NSAppUnitsToFloatPixels(rect.x,
-                       nsIDeviceContext::AppUnitsPerCSSPixel()));
+                       nsDeviceContext::AppUnitsPerCSSPixel()));
   tmp.AppendLiteral(", ");
   tmp.AppendFloat(NSAppUnitsToFloatPixels(rect.y,
-                       nsIDeviceContext::AppUnitsPerCSSPixel()));
+                       nsDeviceContext::AppUnitsPerCSSPixel()));
   tmp.AppendLiteral(", ");
   tmp.AppendFloat(NSAppUnitsToFloatPixels(rect.width,
-                       nsIDeviceContext::AppUnitsPerCSSPixel()));
+                       nsDeviceContext::AppUnitsPerCSSPixel()));
   tmp.AppendLiteral(", ");
   tmp.AppendFloat(NSAppUnitsToFloatPixels(rect.height,
-                       nsIDeviceContext::AppUnitsPerCSSPixel()));
+                       nsDeviceContext::AppUnitsPerCSSPixel()));
   tmp.AppendLiteral("}");
   fputs(NS_LossyConvertUTF16toASCII(tmp).get(), out);
   return out;

@@ -52,7 +52,7 @@ struct nsFont;
 struct nsIntMargin;
 class nsPresContext;
 class nsRenderingContext;
-class nsIDeviceContext;
+class nsDeviceContext;
 class nsIFrame;
 class nsIContent;
 class nsIAtom;
@@ -111,7 +111,7 @@ public:
   
 
 
-  NS_IMETHOD GetWidgetBorder(nsIDeviceContext* aContext, 
+  NS_IMETHOD GetWidgetBorder(nsDeviceContext* aContext, 
                              nsIFrame* aFrame,
                              PRUint8 aWidgetType,
                              nsIntMargin* aResult)=0;
@@ -125,7 +125,7 @@ public:
 
 
 
-  virtual PRBool GetWidgetPadding(nsIDeviceContext* aContext,
+  virtual PRBool GetWidgetPadding(nsDeviceContext* aContext,
                                   nsIFrame* aFrame,
                                   PRUint8 aWidgetType,
                                   nsIntMargin* aResult) = 0;
@@ -138,7 +138,7 @@ public:
 
 
 
-  virtual PRBool GetWidgetOverflow(nsIDeviceContext* aContext,
+  virtual PRBool GetWidgetOverflow(nsDeviceContext* aContext,
                                    nsIFrame* aFrame,
                                    PRUint8 aWidgetType,
                                     nsRect* aOverflowRect)

@@ -40,7 +40,7 @@
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
-#include "nsIDeviceContext.h"
+#include "nsDeviceContext.h"
 
 namespace mozilla {
 namespace layers {
@@ -189,7 +189,7 @@ MovePixels(gfxASurface* aBuffer,
   
   
   static const gfxFloat kPrecision =
-    1.0 / gfxFloat(nsIDeviceContext::AppUnitsPerCSSPixel());
+    1.0 / gfxFloat(nsDeviceContext::AppUnitsPerCSSPixel());
   
   
   NS_WARN_IF_FALSE(
