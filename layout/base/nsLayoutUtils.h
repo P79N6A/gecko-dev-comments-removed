@@ -530,6 +530,18 @@ public:
 
 
 
+
+  static nsRect MatrixTransformRectOut(const nsRect &aBounds,
+                                    const gfxMatrix &aMatrix, float aFactor);
+  
+
+
+
+
+
+
+
+
   static nsPoint MatrixTransformPoint(const nsPoint &aPoint,
                                       const gfxMatrix &aMatrix, float aFactor);
 
