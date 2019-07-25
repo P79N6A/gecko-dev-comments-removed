@@ -1335,21 +1335,12 @@ moz_gtk_scrollbar_thumb_paint(GtkThemeWidgetType widget,
 
 
 
-    
-
-
-
-
     adj = gtk_range_get_adjustment(GTK_RANGE(scrollbar));
 
     if (widget == MOZ_GTK_SCROLLBAR_THUMB_HORIZONTAL) {
-        cliprect->x -= 1;
-        cliprect->width += 2;
         adj->page_size = rect->width;
     }
     else {
-        cliprect->y -= 1;
-        cliprect->height += 2;
         adj->page_size = rect->height;
     }
 
