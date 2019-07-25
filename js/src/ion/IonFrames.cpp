@@ -480,7 +480,9 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
     safepoint.getGcRegs(&actual, &spilled);
     
     
+#if 0
     JS_ASSERT(actual.empty() && spilled.empty());
+#endif
 
     
     

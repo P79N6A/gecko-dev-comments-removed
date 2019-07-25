@@ -127,6 +127,15 @@ struct ImmGCPtr
 };
 
 
+struct AbsoluteAddress {
+    void *addr;
+
+    explicit AbsoluteAddress(void *addr)
+      : addr(addr)
+    { }
+};
+
+
 
 struct Address
 {
