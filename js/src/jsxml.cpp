@@ -6810,6 +6810,12 @@ xml_setName(JSContext *cx, uintN argc, jsval *vp)
     return JS_TRUE;
 }
 
+
+static JSBool qn_match(const void *xml, const void *qn) {
+    return qname_identity(((JSXML *)xml)->name, (JSObject *)qn);
+}
+
+
 static JSBool
 xml_setNamespace(JSContext *cx, uintN argc, jsval *vp)
 {
@@ -6837,6 +6843,22 @@ xml_setNamespace(JSContext *cx, uintN argc, jsval *vp)
     qn = js_ConstructObject(cx, &QNameClass, NULL, NULL, 2, qnargv);
     if (!qn)
         return JS_FALSE;
+
+    
+
+
+
+
+
+    if (xml->xml_class == JSXML_CLASS_ATTRIBUTE &&
+        xml->parent && xml->parent->xml_class == JSXML_CLASS_ELEMENT &&
+        !qn_match(xml, qn))
+    {
+        JSXMLArray *array = &xml->parent->xml_attrs;
+        uint32 i = XMLArrayFindMember(array, qn, qn_match);
+        if (i != XML_NOT_FOUND)
+            XMLArrayDelete(cx, array, i, JS_TRUE);
+    }
 
     xml->name = qn;
 
