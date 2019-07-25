@@ -327,6 +327,16 @@ private:
 
 
 
+class AccSelectionChangeEvent : public AccEvent
+{
+public:
+
+};
+
+
+
+
+
 class AccTableChangeEvent : public AccEvent
 {
 public:
