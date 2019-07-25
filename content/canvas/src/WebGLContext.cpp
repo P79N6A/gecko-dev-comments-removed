@@ -811,18 +811,31 @@ WebGLContext::GetThebesSurface(gfxASurface **surface)
 
 static PRUint8 gWebGLLayerUserData;
 
+namespace mozilla {
+
 class WebGLContextUserData : public LayerUserData {
 public:
     WebGLContextUserData(nsHTMLCanvasElement *aContent)
     : mContent(aContent) {}
+
+  
+
+
   static void DidTransactionCallback(void* aData)
   {
-    static_cast<WebGLContextUserData*>(aData)->mContent->MarkContextClean();
+    WebGLContextUserData *userdata = static_cast<WebGLContextUserData*>(aData);
+    nsHTMLCanvasElement *canvas = userdata->mContent;
+    WebGLContext *context = static_cast<WebGLContext*>(canvas->GetContextAtIndex(0));
+
+    context->mBackbufferClearingStatus = BackbufferClearingStatus::NotClearedSinceLastPresented;
+    canvas->MarkContextClean();
   }
 
 private:
   nsRefPtr<nsHTMLCanvasElement> mContent;
 };
+
+} 
 
 already_AddRefed<layers::CanvasLayer>
 WebGLContext::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
@@ -886,8 +899,6 @@ WebGLContext::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
     canvasLayer->Updated();
 
     mResetLayer = false;
-
-    mBackbufferClearingStatus = BackbufferClearingStatus::NotClearedSinceLastPresented;
 
     return canvasLayer.forget().get();
 }
