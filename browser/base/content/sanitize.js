@@ -113,8 +113,6 @@ Sanitizer.prototype = {
     cache: {
       clear: function ()
       {
-        const Cc = Components.classes;
-        const Ci = Components.interfaces;
         var cacheService = Cc["@mozilla.org/network/cache-service;1"].
                           getService(Ci.nsICacheService);
         try {
@@ -139,7 +137,6 @@ Sanitizer.prototype = {
     cookies: {
       clear: function ()
       {
-        const Ci = Components.interfaces;
         var cookieMgr = Components.classes["@mozilla.org/cookiemanager;1"]
                                   .getService(Ci.nsICookieManager);
         if (this.range) {
@@ -156,6 +153,37 @@ Sanitizer.prototype = {
         else {
           
           cookieMgr.removeAll();
+        }
+
+        
+        let ph = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
+        const phInterface = Ci.nsIPluginHost_MOZILLA_2_0_BRANCH;
+        const FLAG_CLEAR_ALL = phInterface.FLAG_CLEAR_ALL;
+        ph.QueryInterface(phInterface);
+
+        
+        
+        
+        
+        let age = this.range ? (Date.now() / 1000 - this.range[0] / 1000000)
+                             : -1;
+        if (!this.range || age >= 0) {
+          let tags = ph.getPluginTags();
+          for (let i = 0; i < tags.length; i++) {
+            try {
+              ph.clearSiteData(tags[i], null, FLAG_CLEAR_ALL, age);
+            } catch (e) {
+              
+              if (e.result == Components.results.
+                    NS_ERROR_PLUGIN_TIME_RANGE_NOT_SUPPORTED) {
+                try {
+                  ph.clearSiteData(tags[i], null, FLAG_CLEAR_ALL, -1);
+                } catch (e) {
+                  
+                }
+              }
+            }
+          }
         }
 
         
