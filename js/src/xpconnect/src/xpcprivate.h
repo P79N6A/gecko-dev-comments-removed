@@ -113,6 +113,7 @@
 #include "nsBaseHashtable.h"
 #include "nsHashKeys.h"
 #include "nsWrapperCache.h"
+#include "nsStringBuffer.h"
 
 #include "nsIXPCScriptNotify.h"  
 
@@ -3226,9 +3227,11 @@ class XPCStringConvert
 {
 public:
 
+    
+    
+    
     static jsval ReadableToJSVal(JSContext *cx, const nsAString &readable,
-                                 PRBool dontAddrefShared = PR_FALSE,
-                                 PRBool* sharedBuffer = nsnull);
+                                 nsStringBuffer** sharedBuffer);
 
     static XPCReadableJSStringWrapper *JSStringToReadable(XPCCallContext& ccx,
                                                           JSString *str);
