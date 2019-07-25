@@ -50,86 +50,22 @@
 #include "jsdhash.h"
 #endif
 
+
+namespace js {
+class RegExp;
+class RegExpStatics;
+class AutoValueRooter;
+}
+
 JS_BEGIN_EXTERN_C
 
-namespace js { class AutoValueRooter; }
-
-extern JS_FRIEND_API(void)
-js_SaveAndClearRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
-                             js::AutoValueRooter *tvr);
-
-extern JS_FRIEND_API(void)
-js_RestoreRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
-                        js::AutoValueRooter *tvr);
-
-
-
-
-
-
-
-
-
-typedef struct RECharSet {
-    JSPackedBool    converted;
-    JSPackedBool    sense;
-    uint16          length;
-    union {
-        uint8       *bits;
-        struct {
-            size_t  startIndex;
-            size_t  length;
-        } src;
-    } u;
-} RECharSet;
-
-typedef struct RENode RENode;
-
-struct JSRegExp {
-    jsrefcount   nrefs;         
-    uint16       flags;         
-    size_t       parenCount;    
-    size_t       classCount;    
-    RECharSet    *classList;    
-    JSString     *source;       
-    jsbytecode   program[1];    
-};
-
-extern JSRegExp *
-js_NewRegExp(JSContext *cx, js::TokenStream *ts,
-             JSString *str, uintN flags, JSBool flat);
-
-extern JSRegExp *
-js_NewRegExpOpt(JSContext *cx, JSString *str, JSString *opt, JSBool flat);
-
-#define HOLD_REGEXP(cx, re) JS_ATOMIC_INCREMENT(&(re)->nrefs)
-#define DROP_REGEXP(cx, re) js_DestroyRegExp(cx, re)
-
-extern void
-js_DestroyRegExp(JSContext *cx, JSRegExp *re);
-
-
-
-
-
-
-extern JSBool
-js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
-                 JSBool test, jsval *rval);
-
-extern void
-js_InitRegExpStatics(JSContext *cx);
-
-extern void
-js_TraceRegExpStatics(JSTracer *trc, JSContext *acx);
-
-extern void
-js_FreeRegExpStatics(JSContext *cx);
-
-#define VALUE_IS_REGEXP(cx, v)                                                \
-    (!JSVAL_IS_PRIMITIVE(v) && JSVAL_TO_OBJECT(v)->isRegExp())
-
 extern JSClass js_RegExpClass;
+
+static inline bool
+VALUE_IS_REGEXP(JSContext *cx, jsval v)
+{
+    return !JSVAL_IS_PRIMITIVE(v) && JSVAL_TO_OBJECT(v)->isRegExp();
+}
 
 inline bool
 JSObject::isRegExp() const
@@ -149,22 +85,22 @@ js_InitRegExpClass(JSContext *cx, JSObject *obj);
 extern JSBool
 js_regexp_toString(JSContext *cx, JSObject *obj, jsval *vp);
 
-
-
-
-extern JSObject *
-js_NewRegExpObject(JSContext *cx, js::TokenStream *ts,
-                   const jschar *chars, size_t length, uintN flags);
-
-extern JSBool
-js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp);
-
 extern JS_FRIEND_API(JSObject *) JS_FASTCALL
 js_CloneRegExpObject(JSContext *cx, JSObject *obj, JSObject *proto);
 
 
-extern bool
-js_ContainsRegExpMetaChars(const jschar *chars, size_t length);
+
+
+
+extern JS_FRIEND_API(void)
+js_SaveAndClearRegExpStatics(JSContext *cx, js::RegExpStatics *statics, js::AutoValueRooter *tvr);
+
+
+extern JS_FRIEND_API(void)
+js_RestoreRegExpStatics(JSContext *cx, js::RegExpStatics *statics, js::AutoValueRooter *tvr);
+
+extern JSBool
+js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp);
 
 JS_END_EXTERN_C
 
