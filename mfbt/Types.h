@@ -110,14 +110,23 @@
 
 
 
+
+
 #if defined(__clang__) && (__clang_major__ >= 3 || (__clang_major__ == 2 && __clang_minor__ >= 9))
 # define MOZ_DELETE            = delete
 #elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))
+ 
 
 
 
 
-# define MOZ_DELETE
+
+
+# if defined(__GXX_EXPERIMENTAL_CXX0X__) || __cplusplus >= 201103L
+#  define MOZ_DELETE           = delete
+# else
+#  define MOZ_DELETE
+# endif
 #else
 # define MOZ_DELETE
 #endif
