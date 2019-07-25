@@ -121,8 +121,22 @@ nsAppShellService::CreateHiddenWindow()
   PRUint32    chromeMask = 0;
   nsAdoptingCString prefVal =
       Preferences::GetCString("browser.hiddenWindowChromeURL");
-  const char* hiddenWindowURL = prefVal.get() ? prefVal.get() : DEFAULT_HIDDENWINDOW_URL;
-  mApplicationProvidedHiddenWindow = prefVal.get() ? true : false;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  mApplicationProvidedHiddenWindow = prefVal.get() && strcmp(prefVal.get(), DEFAULT_HIDDENWINDOW_URL) ? true : false;
+
+  const char* hiddenWindowURL = mApplicationProvidedHiddenWindow ? prefVal.get() : DEFAULT_HIDDENWINDOW_URL;
 #else
   static const char hiddenWindowURL[] = DEFAULT_HIDDENWINDOW_URL;
   PRUint32    chromeMask =  nsIWebBrowserChrome::CHROME_ALL;

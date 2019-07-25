@@ -43,6 +43,7 @@
 #include "mozilla/HashFunctions.h"
 
 #include "nsXULAppAPI.h"
+#include "nsIXULAppInfo.h"
 
 #include "mozilla/Preferences.h"
 #include "nsAppDirectoryServiceDefs.h"
@@ -83,6 +84,8 @@ namespace mozilla {
 
 #define INITIAL_PREF_FILES 10
 static NS_DEFINE_CID(kZipReaderCID, NS_ZIPREADER_CID);
+
+#define WEBAPPRT_APPID "webapprt@mozilla.org"
 
 
 static nsresult openPrefFile(nsIFile* aFile);
@@ -1015,6 +1018,14 @@ static nsresult pref_InitInitialObjects()
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
 
   nsZipFind *findPtr;
   nsAutoPtr<nsZipFind> find;
@@ -1038,6 +1049,30 @@ static nsresult pref_InitInitialObjects()
     }
 
     prefEntries.Sort();
+
+    
+    
+    nsCOMPtr<nsIXULAppInfo> appInfo =
+      do_GetService("@mozilla.org/xre/app-info;1", &rv);
+    if (NS_SUCCEEDED(rv)) {
+      nsCAutoString appID;
+      if (NS_SUCCEEDED(appInfo->GetID(appID)) && appID.Equals(WEBAPPRT_APPID)) {
+        nsCAutoString prefsPath("defaults/pref/");
+        prefsPath.Append(appID);
+        prefsPath.AppendLiteral("/*.js$");
+        rv = jarReader->FindInit(prefsPath.get(), &findPtr);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        
+        
+        
+        find = findPtr;
+        while (NS_SUCCEEDED(find->FindNext(&entryName, &entryNameLen))) {
+          prefEntries.InsertElementAt(0, Substring(entryName, entryNameLen));
+        }
+      }
+    }
+
     for (PRUint32 i = prefEntries.Length(); i--; ) {
       rv = pref_ReadPrefFromJar(jarReader, prefEntries[i].get());
       if (NS_FAILED(rv))
