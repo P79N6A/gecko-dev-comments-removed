@@ -426,9 +426,7 @@ nsSVGLength2::SetBaseValueString(const nsAString &aValueAsString,
   }
 #endif
 
-  
-  
-  
+  aSVGElement->DidChangeLength(mAttrEnum, aDoSetAttr);
   return NS_OK;
 }
 
