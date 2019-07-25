@@ -2276,12 +2276,7 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
 
 
   if (HasTransform() != aOther.HasTransform()) {
-    
-    
-    
-    NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_AddOrRemoveTransform,
-                          NS_CombineHint(nsChangeHint_UpdateOverflow,
-                                         nsChangeHint_RepaintFrame)));
+    NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
   }
   else if (HasTransform()) {
     
@@ -2344,8 +2339,7 @@ nsChangeHint nsStyleDisplay::MaxDifference()
   return nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
                       nsChangeHint_UpdateOpacityLayer |
                       nsChangeHint_UpdateTransformLayer |
-                      nsChangeHint_UpdateOverflow |
-                      nsChangeHint_AddOrRemoveTransform);
+                      nsChangeHint_UpdateOverflow);
 }
 #endif
 

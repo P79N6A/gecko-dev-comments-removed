@@ -107,14 +107,6 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_AddOrRemoveTransform = 0x4000,
-
-  
-
-
-
-
-
 
 
 
@@ -124,8 +116,7 @@ enum nsChangeHint {
     nsChangeHint_UpdateOpacityLayer |
     nsChangeHint_UpdateOverflow |
     nsChangeHint_ChildrenOnlyTransform |
-    nsChangeHint_RecomputePosition |
-    nsChangeHint_AddOrRemoveTransform
+    nsChangeHint_RecomputePosition
 };
 
 

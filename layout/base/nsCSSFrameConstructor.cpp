@@ -7976,31 +7976,6 @@ nsCSSFrameConstructor::CharacterDataChanged(nsIContent* aContent,
 
 NS_DECLARE_FRAME_PROPERTY(ChangeListProperty, nullptr)
 
-
-
-
-
-static bool
-FrameHasAbsPosPlaceholderDescendants(nsIFrame* aFrame)
-{
-  const nsIFrame::ChildListIDs skip(nsIFrame::kAbsoluteList |
-                                    nsIFrame::kFixedList);
-  for (nsIFrame::ChildListIterator lists(aFrame); !lists.IsDone(); lists.Next()) {
-    if (!skip.Contains(childLists.CurrentID())) {
-      for (nsFrameList::Enumerator childFrames(lists.CurrentList());
-           !childFrames.AtEnd(); childFrames.Next()) {
-        nsIFrame* f = childFrames.get();
-        if ((f->GetType() == nsGkAtoms::placeholderFrame &&
-             nsPlaceholderFrame::GetRealFrameForPlaceholder(f)->IsAbsolutelyPositioned()) ||
-            FrameHasAbsPosPlaceholderDescendants(f)) {
-          return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-
 nsresult
 nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
 {
@@ -8061,20 +8036,6 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
         continue;
     }
 
-    if ((hint & nsChangeHint_AddOrRemoveTransform) && frame &&
-        !(hint & nsChangeHint_ReconstructFrame)) {
-      if (FrameHasAbsPosPlaceholderDescendants(frame)) {
-        NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
-      } else {
-        
-        
-        
-        
-        
-        
-        frame->AddStateBits(NS_FRAME_MAY_BE_TRANSFORMED);
-      }
-    }
     if (hint & nsChangeHint_ReconstructFrame) {
       
       
