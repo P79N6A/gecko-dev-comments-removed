@@ -1522,11 +1522,26 @@ WeaveSvc.prototype = {
   },
 
   
+  
+  
+  sync: function sync() {
+    try {
+      return this._lockedSync();
+    } catch (ex) {
+      this._log.debug("Exception: " + Utils.exceptionStr(ex));
+      if (Utils.isLockException(ex)) {
+        
+        this._log.info("Cannot start sync: already syncing?");
+      }
+    }
+  },
+  
+  
 
 
-  sync: function sync()
-    this._catch(this._lock("service.js: sync", 
-                           this._notify("sync", "", function() {
+  _lockedSync: function _lockedSync()
+    this._lock("service.js: sync", 
+               this._notify("sync", "", function() {
 
     this._log.info("In sync().");
 
@@ -1647,7 +1662,7 @@ WeaveSvc.prototype = {
       this._syncError = false;
       Svc.Prefs.reset("firstSync");
     }
-  })))(),
+  }))(),
 
   
 

@@ -123,6 +123,10 @@ let Utils = {
       }
     };
   },
+  
+  isLockException: function isLockException(ex) {
+    return ex && (ex.indexOf("Could not acquire lock.") == 0);
+  },
 
   
 
