@@ -32,6 +32,9 @@ function createGroupItemWithTabs(win, width, height, padding, urls, animate) {
     ok(newItem.container, "Created element "+t+":"+newItem.container);
     ++t;
   });
+  
+  
+  contentWindow.UI.setActive(groupItem);
   return groupItem;
 }
 

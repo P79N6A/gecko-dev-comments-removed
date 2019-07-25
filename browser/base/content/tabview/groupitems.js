@@ -125,15 +125,6 @@ function GroupItem(listOfEls, options) {
     .appendTo("body");
 
   
-  this.$ntb = iQ("<div>")
-    .addClass('newTabButton')
-    .click(function() {
-      self.newTab();
-    })
-    .attr('title', tabviewString('groupItem.newTabButton'))
-    .appendTo($container);
-
-  
   this.$resizer = iQ("<div>")
     .addClass('resizer')
     .appendTo($container)
@@ -1669,7 +1660,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       
       if (Utils.isLeftClick(e) &&
           self.$closeButton[0] != target &&
-          self.$ntb[0] != target &&
           self.$titlebar[0] != target &&
           !self.$titlebar.contains(target) &&
           !self.$appTabTray.contains(target)) {
