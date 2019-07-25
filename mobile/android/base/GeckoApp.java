@@ -231,6 +231,14 @@ abstract public class GeckoApp
                     continue;
                 }
 
+                
+                
+                
+                if (serviceInfo.packageName.equals("com.htc.flashliteplugin")) {
+                    Log.w(LOGTAG, "Skipping HTC's flash lite plugin");
+                    continue;
+                }
+
                 Log.w(LOGTAG, "Loading plugin: " + serviceInfo.packageName);
 
 
