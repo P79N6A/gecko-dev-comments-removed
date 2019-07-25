@@ -623,10 +623,13 @@ var ExtensionsView = {
     this.appendSearchResults(aRecommendedAddons, false, aRecommendedAddons.length);
     this.appendSearchResults(aBrowseAddons, true, (aRecommendedAddons.length >= kAddonPageSize ? 0 : kAddonPageSize));
 
+    let totalAddons = aRecommendedAddons.length + aBrowseAddons.length;
+
     let showmore = document.createElement("richlistitem");
     showmore.setAttribute("typeName", "showmore");
     showmore.setAttribute("pagelabel", strings.getString("addonsBrowseAll.seeMore"));
     showmore.setAttribute("onpagecommand", "ExtensionsView.showMoreSearchResults();");
+    showmore.setAttribute("hidepage", totalAddons > kAddonPageSize ? "false" : "true");
     showmore.setAttribute("sitelabel", strings.getString("addonsBrowseAll.browseSite"));
     showmore.setAttribute("onsitecommand", "ExtensionsView.showMoreResults('" + browseURL + "');");
     this._list.appendChild(showmore);
