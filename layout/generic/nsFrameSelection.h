@@ -372,20 +372,6 @@ public:
   
 
 
-
-  static nsFrameSelection* GetMouseDownFrameSelection()
-  {
-    return sDraggingFrameSelection;
-  }
-
-  
-
-
-  void AbortDragForSelection();
-
-  
-
-
   PRBool GetTableCellSelection() const { return mSelectingTableCellMode != 0; }
   void ClearTableCellSelection() { mSelectingTableCellMode = 0; }
 
@@ -612,7 +598,6 @@ public:
 
 
   nsFrameSelection();
-  virtual ~nsFrameSelection();
 
   void StartBatchChanges();
   void EndBatchChanges();
@@ -621,11 +606,7 @@ public:
 
   nsIPresShell *GetShell()const  { return mShell; }
 
-  void DisconnectFromPresShell()
-  {
-    AbortDragForSelection();
-    mShell = nsnull;
-  }
+  void DisconnectFromPresShell() { StopAutoScrollTimer(); mShell = nsnull; }
 private:
   nsresult TakeFocus(nsIContent *aNewFocus,
                      PRUint32 aContentOffset,
@@ -714,8 +695,6 @@ private:
   nsIContent* GetParentTable(nsIContent *aCellNode) const;
   nsresult CreateAndAddRange(nsINode *aParentNode, PRInt32 aOffset);
   nsresult ClearNormalSelection();
-
-  static nsFrameSelection* sDraggingFrameSelection;
 
   nsCOMPtr<nsINode> mCellParent; 
   nsCOMPtr<nsIContent> mStartSelectedCell;

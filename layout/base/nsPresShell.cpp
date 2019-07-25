@@ -6198,14 +6198,6 @@ PresShell::Paint(nsIView*           aViewToPaint,
 void
 nsIPresShell::SetCapturingContent(nsIContent* aContent, PRUint8 aFlags)
 {
-  
-  
-  nsRefPtr<nsFrameSelection> fs =
-    nsFrameSelection::GetMouseDownFrameSelection();
-  if (fs) {
-    fs->AbortDragForSelection();
-  }
-
   NS_IF_RELEASE(gCaptureInfo.mContent);
 
   

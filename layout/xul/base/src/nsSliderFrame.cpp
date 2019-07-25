@@ -587,19 +587,8 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
 
   
 
-  if (aEvent->message == NS_MOUSE_EXIT_SYNTH && mChange) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    HandleRelease(aPresContext, aEvent, aEventStatus);
-    nsIPresShell::SetCapturingContent(nsnull, 0);
-  }
+  if (aEvent->message == NS_MOUSE_EXIT_SYNTH && mChange)
+     HandleRelease(aPresContext, aEvent, aEventStatus);
 
   return nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
 }
@@ -1055,7 +1044,7 @@ nsSliderFrame::HandleRelease(nsPresContext* aPresContext,
 {
   StopRepeat();
 
-  return nsBoxFrame::HandleRelease(aPresContext, aEvent, aEventStatus);
+  return NS_OK;
 }
 
 void

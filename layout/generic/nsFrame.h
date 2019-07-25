@@ -600,53 +600,6 @@ protected:
                                       PRInt32 *aTarget);
 
   
-  
-  
-  
-  nsFrameSelection* FindDraggingFrameSelection(nsIPresShell* aPresShell,
-                                               nsFrame** aEventTarget);
-
-  
-  
-  
-  
-  nsresult ExpandSelectionByMouseMove(nsFrameSelection* aFrameSelection,
-                                      nsIPresShell* aPresShell,
-                                      nsMouseEvent* aEvent,
-                                      nsEventStatus* aEventStatus);
-
-  
-  
-  
-  
-  
-  
-  
-  nsresult EndSelectionChangeByMouse(nsFrameSelection* aFrameSelection,
-                                     nsMouseEvent* aMouseEvent,
-                                     nsEventStatus* aEventStatus);
-
-  
-  
-  
-  
-  PRBool IsOnScrollableFrameEdge(nsIScrollableFrame* aScrollableFrame,
-                                 nsGUIEvent* aEvent,
-                                 nsPoint &aScrollIntoView);
-
-  
-  
-  static nsFrame* FindSelectableAncestor(nsIFrame* aFrame,
-                                         nsFrameSelection* aFrameSelection);
-
-  
-  nsFrameSelection* GetFrameSelectionForSelectingByMouse();
-
-  
-  
-  PRBool IsSelectionOff();
-
-  
   static void FillCursorInformationFromStyle(const nsStyleUserInterface* ui,
                                              nsIFrame::Cursor& aCursor);
   NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState);
