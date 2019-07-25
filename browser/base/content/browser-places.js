@@ -843,6 +843,7 @@ var BookmarksEventHandler = {
 var PlacesMenuDNDHandler = {
   _springLoadDelay: 350, 
   _loadTimer: null,
+  _closerTimer: null,
 
   
 
@@ -854,18 +855,13 @@ var PlacesMenuDNDHandler = {
     if (!this._isStaticContainer(event.target))
       return;
 
-    let ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId,
-                                PlacesUtils.bookmarks.DEFAULT_INDEX,
-                                Ci.nsITreeView.DROP_ON);
-    if (ip && PlacesControllerDragHelper.canDrop(ip, event.dataTransfer)) {
-      this._loadTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      this._loadTimer.initWithCallback(function() {
-        PlacesMenuDNDHandler._loadTimer = null;
-        event.target.lastChild.setAttribute("autoopened", "true");
-        event.target.lastChild.showPopup(event.target.lastChild);
-      }, this._springLoadDelay, Ci.nsITimer.TYPE_ONE_SHOT);
-      event.preventDefault();
-    }
+    this._loadTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    this._loadTimer.initWithCallback(function() {
+      PlacesMenuDNDHandler._loadTimer = null;
+      event.target.lastChild.setAttribute("autoopened", "true");
+      event.target.lastChild.showPopup(event.target.lastChild);
+    }, this._springLoadDelay, Ci.nsITimer.TYPE_ONE_SHOT);
+    event.preventDefault();
     event.stopPropagation();
   },
 
@@ -883,8 +879,9 @@ var PlacesMenuDNDHandler = {
       this._loadTimer.cancel();
       this._loadTimer = null;
     }
-    let closeTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    closeTimer.initWithCallback(function() {
+    this._closeTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    this._closeTimer.initWithCallback(function() {
+      this._closeTimer = null;
       let node = PlacesControllerDragHelper.currentDropTarget;
       let inHierarchy = false;
       while (node && !inHierarchy) {
