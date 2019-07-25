@@ -62,9 +62,6 @@ Readability.prototype = {
   MAX_PAGES: 5,
 
   
-  GEN_ITERATIONS: 100,
-
-  
   
   REGEXPS: {
     unlikelyCandidates: /combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter/i,
@@ -456,29 +453,6 @@ Readability.prototype = {
     node.readability.contentScore += this._getClassWeight(node);
   },
 
-  _grabArticle: function (callback) {
-    let gen = this._grabArticleGenerator();
-    let iterate = function () {
-      for (let i = this.GEN_ITERATIONS; i--;) {
-        let result;
-        try {
-          
-          
-          result = gen.next();
-        } catch (e) {
-          dump("Caught exception while grabbing article, aborting");
-          result = null;
-        }
-        if (result !== undefined) {
-          callback(result);
-          return;
-        }
-      }
-      setTimeout(iterate, 0);
-    }.bind(this);
-    iterate();
-  },
-
   
 
 
@@ -486,7 +460,7 @@ Readability.prototype = {
 
 
 
-  _grabArticleGenerator: function(page) {
+  _grabArticle: function (page) {
     while (true) {
       let doc = this._doc;
       let stripUnlikelyCandidates = this._flagIsActive(this.FLAG_STRIP_UNLIKELYS);
@@ -496,8 +470,6 @@ Readability.prototype = {
 
       let pageCacheHtml = page.innerHTML;
       let allElements = page.getElementsByTagName('*');
-
-      yield;
 
       
       
@@ -577,8 +549,6 @@ Readability.prototype = {
             }
           }
         }
-
-        yield;
       }
 
       
@@ -630,8 +600,6 @@ Readability.prototype = {
 
         if (grandParentNode)
           grandParentNode.readability.contentScore += contentScore / 2;
-
-        yield;
       }
 
       
@@ -652,8 +620,6 @@ Readability.prototype = {
           candidates[c].readability.contentScore > topCandidate.readability.contentScore) {
           topCandidate = candidates[c];
         }
-
-        yield;
       }
 
       
@@ -737,14 +703,10 @@ Readability.prototype = {
           
           articleContent.appendChild(nodeToAppend);
         }
-
-        yield;
       }
 
       
       this._prepArticle(articleContent);
-
-      yield;
 
       if (this._curPageNum === 1)
         articleContent.innerHTML = '<div id="readability-page-1" class="page">' + articleContent.innerHTML + '</div>';
@@ -764,10 +726,10 @@ Readability.prototype = {
         } else if (this._flagIsActive(this.FLAG_CLEAN_CONDITIONALLY)) {
           this._removeFlag(this.FLAG_CLEAN_CONDITIONALLY);
         } else {
-          yield null;
+          return null;
         }
       } else {
-        yield articleContent;
+        return articleContent;
       }
     }
   },
@@ -1427,11 +1389,10 @@ Readability.prototype = {
 
 
 
-  parse: function (callback) {
+  parse: function () {
     let uri = this._uri;
     if ((uri.prePath + "/") === uri.spec) {
-      callback(null);
-      return;
+      return null;
     }
 
     
@@ -1450,24 +1411,22 @@ Readability.prototype = {
     this._prepDocument();
 
     let articleTitle = this._getArticleTitle();
-    this._grabArticle(function (articleContent) {
-      if (!articleContent) {
-        callback(null);
-        return;
-      }
+    let articleContent = this._grabArticle();
+    if (!articleContent) {
+      return null;
+    }
 
-      this._postProcessContent(articleContent);
+    this._postProcessContent(articleContent);
 
-      
-      
-      
-      
-      
-      
-      
+    
+    
+    
+    
+    
+    
+    
 
-      callback({ title: this._getInnerText(articleTitle),
-                 content: articleContent.innerHTML });
-    }.bind(this));
+    return { title: this._getInnerText(articleTitle),
+             content: articleContent.innerHTML };
   }
 };
