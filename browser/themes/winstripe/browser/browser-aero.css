@@ -21,6 +21,15 @@
     background: transparent;
   }
 
+  
+  #main-window[sizemode="maximized"][chromemargin^="0,"] {
+    margin-top: 8px;
+  }
+
+  #main-window[sizemode="normal"][chromemargin^="0,"] {
+    margin-top: 2px;
+  }
+
   #main-window:not(:-moz-lwtheme)[inFullscreen="true"] {
     -moz-appearance: none;
     background-color: #556;
