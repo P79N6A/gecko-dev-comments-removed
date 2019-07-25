@@ -746,6 +746,16 @@ public:
   nsIDOMDOMTokenList* GetClassList(nsresult *aResult);
   PRBool MozMatchesSelector(const nsAString& aSelector);
 
+  
+
+
+
+
+
+
+
+  virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
+
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsGenericElement)
 
 protected:
@@ -862,16 +872,6 @@ protected:
     GetEventListenerManagerForAttr(nsIEventListenerManager** aManager,
                                    nsISupports** aTarget,
                                    PRBool* aDefer);
-
-  
-
-
-
-
-
-
-
-  virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
 
   
 

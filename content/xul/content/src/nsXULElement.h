@@ -577,6 +577,13 @@ public:
       mBindingParent = aBindingParent;
     }
 
+    
+
+
+
+
+    virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
+
 protected:
     
     
@@ -626,13 +633,6 @@ protected:
 
 
     nsresult MakeHeavyweight();
-
-    
-
-
-
-
-    virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
 
     const nsAttrValue* FindLocalOrProtoAttr(PRInt32 aNameSpaceID,
                                             nsIAtom *aName) const {
