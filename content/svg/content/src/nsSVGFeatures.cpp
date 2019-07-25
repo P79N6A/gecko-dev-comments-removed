@@ -223,9 +223,11 @@ nsSVGFeatures::PassesConditionalProcessingTests(nsIContent *aContent,
 
     
     if (!acceptLangs.IsEmpty()) {
+      printf("Bug 652050 diagnostic: intl.accept_languages is nonempty.\n");
       return MatchesLanguagePreferences(value, acceptLangs);
     } else {
       
+      printf("Bug 652050 diagnostic: intl.accept_languages is EMPTY!\n");
       NS_WARNING("no default language specified for systemLanguage conditional test");
       return !value.IsEmpty();
     }
