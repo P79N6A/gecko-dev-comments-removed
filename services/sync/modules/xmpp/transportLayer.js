@@ -314,7 +314,7 @@ HTTPPollingTransport.prototype = {
   },
  
   setCallbackObject: function( callbackObject ) {
-      this._callbackObject = callbackObject;
+    this._callbackObject = callbackObject;
   },
 
   notify: function( timer ) {
@@ -332,6 +332,9 @@ HTTPPollingTransport.prototype = {
   },
  
   connect: function() {
+    
+    this._init(this._serverUrl, this._useKeys, this._interval);
+
     
 
     

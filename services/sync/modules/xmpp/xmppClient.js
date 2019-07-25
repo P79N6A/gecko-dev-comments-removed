@@ -7,6 +7,9 @@ const EXPORTED_SYMBOLS = ['XmppClient', 'HTTPPollingTransport', 'PlainAuthentica
 
 
 
+
+
+
 var Cc = Components.classes;
 var Ci = Components.interfaces;
 var Cu = Components.utils;
@@ -419,15 +422,9 @@ XmppClient.prototype = {
   },
 
   waitForDisconnect: function() {
-    LOG("waitForDisconnect(): starting");
     var thread = this._threadManager.currentThread;
     while ( this._connectionStatus == this.CONNECTED ) {
       thread.processNextEvent( true );
     }
   }
-
 };
-
-
-
-

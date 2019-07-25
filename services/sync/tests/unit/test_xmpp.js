@@ -6,10 +6,8 @@ function LOG(aMsg) {
   dump("TEST_XMPP: " + aMsg + "\n");
 }
 
-var serverUrl = "http://127.0.0.1:5280/http-poll";
-var jabberDomain = Cc["@mozilla.org/network/dns-service;1"].
-                   getService(Ci.nsIDNSService).myHostName;
-LOG("DOMAIN: " + jabberDomain);
+var serverUrl = "http://localhost:5280/http-poll";
+var jabberDomain = "localhost";
 
 var timer = Cc["@mozilla.org/timer;1"].createInstance( Ci.nsITimer );
 var threadManager = Cc["@mozilla.org/thread-manager;1"].getService();
@@ -19,12 +17,10 @@ function run_test() {
   return;
 
   
-  var transport = new HTTPPollingTransport( serverUrl,
-					    false,
-					    4000 );
+  var transport = new HTTPPollingTransport(serverUrl, false, 4000);
   var auth = new PlainAuthenticator();
   var alice = new XmppClient("alice", jabberDomain, "iamalice",
-	            		       transport, auth);
+    	            		       transport, auth);
 
   
   LOG("connecting");
@@ -40,14 +36,14 @@ function run_test() {
   LOG("disconnected");
 
   
+  LOG("reconnecting");
+  alice.connect( jabberDomain );
+  alice.waitForConnection();
+  LOG("reconnected");
+  do_check_eq( alice._connectionStatus, alice.CONNECTED);
+  alice.disconnect();
 
-
-
-
-
-
-
-
+  
 
 
 
