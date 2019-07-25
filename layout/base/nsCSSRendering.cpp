@@ -501,6 +501,12 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
   }
 
   nsStyleBorder newStyleBorder(*styleBorder);
+  
+  
+#ifdef DEBUG
+  newStyleBorder.mImageTracked = styleBorder->mImageTracked;
+#endif
+
   NS_FOR_CSS_SIDES(side) {
     newStyleBorder.SetBorderColor(side,
       aStyleContext->GetVisitedDependentColor(
@@ -509,6 +515,10 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
   PaintBorderWithStyleBorder(aPresContext, aRenderingContext, aForFrame,
                              aDirtyRect, aBorderArea, newStyleBorder,
                              aStyleContext, aSkipSides);
+
+#ifdef DEBUG
+  newStyleBorder.mImageTracked = false;
+#endif
 }
 
 void

@@ -868,6 +868,11 @@ struct nsStyleBorder {
   inline void SetBorderImage(imgIRequest* aImage);
   inline imgIRequest* GetBorderImage() const;
 
+  bool HasBorderImage() {return !!mBorderImage;}
+
+  void TrackImage(nsPresContext* aContext);
+  void UntrackImage(nsPresContext* aContext);
+
   
   
   inline void SetSubImage(PRUint8 aIndex, imgIContainer* aSubImage) const;
@@ -903,6 +908,10 @@ struct nsStyleBorder {
     mBorderStyle[aSide] |= BORDER_COLOR_FOREGROUND;
   }
 
+#ifdef DEBUG
+  bool mImageTracked;
+#endif
+
 protected:
   
   
@@ -936,6 +945,8 @@ private:
   nsCOMArray<imgIContainer> mSubImages;
 
   nscoord       mTwipsPerPixel;
+
+  nsStyleBorder& operator=(const nsStyleBorder& aOther); 
 };
 
 
