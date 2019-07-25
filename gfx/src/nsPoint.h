@@ -34,6 +34,8 @@ struct nsIntPoint : public mozilla::gfx::BasePoint<PRInt32, nsIntPoint> {
   nsIntPoint() : Super() {}
   nsIntPoint(const nsIntPoint& aPoint) : Super(aPoint) {}
   nsIntPoint(PRInt32 aX, PRInt32 aY) : Super(aX, aY) {}
+
+  inline nsPoint ToAppUnits(nscoord aAppUnitsPerPixel) const;
 };
 
 inline nsIntPoint
@@ -61,6 +63,14 @@ nsPoint::ConvertAppUnits(PRInt32 aFromAPP, PRInt32 aToAPP) const
     return point;
   }
   return *this;
+}
+
+
+inline nsPoint
+nsIntPoint::ToAppUnits(nscoord aAppUnitsPerPixel) const
+{
+  return nsPoint(NSIntPixelsToAppUnits(x, aAppUnitsPerPixel),
+                 NSIntPixelsToAppUnits(y, aAppUnitsPerPixel));
 }
 
 #endif 

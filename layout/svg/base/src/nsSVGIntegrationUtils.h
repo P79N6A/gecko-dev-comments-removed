@@ -21,6 +21,8 @@ struct nsSize;
 
 
 
+
+
 class nsSVGIntegrationUtils
 {
 public:
@@ -34,8 +36,47 @@ public:
 
 
 
-  static nsRect
-  GetNonSVGUserSpace(nsIFrame* aFirst);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsPoint
+  GetOffsetToUserSpace(nsIFrame* aFrame);
+
+  
+
+
+
+  static nsSize
+  GetContinuationUnionSize(nsIFrame* aNonSVGFrame);
+
+  
+
+
+
+
+
+
+
+  static gfxSize
+  GetSVGCoordContextForNonSVGFrame(nsIFrame* aNonSVGFrame);
+
   
 
 
