@@ -1764,7 +1764,7 @@ gfxFontGroup::BuildFontList()
 {
 
 
-#if defined(XP_MACOSX) || (defined(XP_WIN) && !defined(WINCE))
+#if defined(XP_MACOSX) || (defined(XP_WIN) && !defined(WINCE)) || defined(ANDROID)
     ForEachFont(FindPlatformFont, this);
 
     if (mFonts.Length() == 0) {

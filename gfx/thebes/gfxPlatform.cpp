@@ -242,7 +242,7 @@ gfxPlatform::Init()
 
     nsresult rv;
 
-#if defined(XP_MACOSX) || defined(XP_WIN) 
+#if defined(XP_MACOSX) || defined(XP_WIN) || defined(ANDROID) 
     rv = gfxPlatformFontList::Init();
     if (NS_FAILED(rv)) {
         NS_ERROR("Could not initialize gfxPlatformFontList");

@@ -94,6 +94,8 @@ public:
         
         
 
+    virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, PRBool aNeedsBold);
+
     cairo_font_face_t *CairoFontFace();
     nsresult ReadCMAP();
 
@@ -159,22 +161,9 @@ protected:
 class THEBES_API gfxFT2FontGroup : public gfxFontGroup {
 public: 
     gfxFT2FontGroup (const nsAString& families,
-                    const gfxFontStyle *aStyle);
+                    const gfxFontStyle *aStyle,
+                    gfxUserFontSet *aUserFontSet);
     virtual ~gfxFT2FontGroup ();
-
-    inline gfxFT2Font *GetFontAt (PRInt32 i) {
-        
-        
-        
-        
-        NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
-                     "Whoever was caching this font group should have "
-                     "called UpdateFontList on it");
-        NS_ASSERTION(mFonts.Length() > PRUint32(i), 
-                     "Requesting a font index that doesn't exist");
-
-        return static_cast <gfxFT2Font *>(static_cast <gfxFont *>(mFonts[i]));
-    }
 
 protected: 
     virtual gfxTextRun *MakeTextRun(const PRUnichar *aString, 
