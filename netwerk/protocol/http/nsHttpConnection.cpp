@@ -870,6 +870,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
                     LOG(("ProxyStartSSL failed [rv=%x]\n", rv));
             }
             mCompletedProxyConnect = true;
+            mProxyConnectInProgress = false;
             rv = mSocketOut->AsyncWait(this, 0, 0, nsnull);
             
             NS_ASSERTION(NS_SUCCEEDED(rv), "mSocketOut->AsyncWait failed");
