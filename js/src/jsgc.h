@@ -1258,7 +1258,7 @@ typedef void (*IterateCallback)(JSContext *cx, void *data, size_t traceKind, voi
 
 
 
-void
+extern JS_FRIEND_API(void)
 IterateCells(JSContext *cx, JSCompartment *comp, uint64 traceKindMask,
              void *data, IterateCallback callback);
 

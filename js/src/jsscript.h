@@ -458,16 +458,17 @@ struct JSScript {
   private:
     uint16          version;    
 
-    size_t          callCount_; 
-
   public:
     uint16          nfixed;     
 
+  private:
+    size_t          callCount_; 
 
     
 
 
 
+  public:
     uint8           objectsOffset;  
 
 
@@ -575,6 +576,9 @@ struct JSScript {
         return JITScript_Valid;
     }
 #endif
+
+    JS_FRIEND_API(size_t) totalSize();  
+    uint32 numNotes();                  
 
     
     jssrcnote *notes() { return (jssrcnote *)(code + length); }
