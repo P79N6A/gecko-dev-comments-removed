@@ -62,9 +62,6 @@
 
 
 
-
-
-
 #if defined(EVENT_DEBUG_OUTPUT)
 #define SHOW_REPEAT_EVENTS      PR_TRUE
 #define SHOW_MOUSEMOVE_EVENTS   PR_FALSE
@@ -83,12 +80,6 @@ typedef struct {
 #define DISPLAY_NMM_PRT(_arg) printf((_arg));
 #else
 #define DISPLAY_NMM_PRT(_arg)
-#endif 
-
-#if defined(HEAP_DUMP_EVENT)
-void InitHeapDump();
-nsresult HeapDump(UINT msg, WPARAM wParam, LPARAM lParam);
-UINT GetHeapMsg();
 #endif 
 
 #if defined(DEBUG)
