@@ -1645,6 +1645,56 @@ nsGlobalWindow::SetOuterObject(JSContext* aCx, JSObject* aOuterObject)
   return NS_OK;
 }
 
+
+
+
+
+
+static nsresult
+CreateNativeGlobalForInner(JSContext* aCx,
+                           nsGlobalWindow* aNewInner,
+                           nsIURI* aURI,
+                           bool aIsChrome,
+                           nsIPrincipal* aPrincipal,
+                           JSObject** aNativeGlobal,
+                           nsIXPConnectJSObjectHolder** aHolder)
+{
+  MOZ_ASSERT(aCx);
+  MOZ_ASSERT(aNewInner);
+  MOZ_ASSERT(aNewInner->IsInnerWindow());
+  MOZ_ASSERT(aPrincipal);
+  MOZ_ASSERT(aNativeGlobal);
+  MOZ_ASSERT(aHolder);
+
+  nsIXPConnect* xpc = nsContentUtils::XPConnect();
+  PRUint32 flags = aIsChrome ? nsIXPConnect::FLAG_SYSTEM_GLOBAL_OBJECT : 0;
+
+  nsCOMPtr<nsIPrincipal> systemPrincipal;
+  if (aIsChrome) {
+    nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+    ssm->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
+    MOZ_ASSERT(systemPrincipal);
+  }
+
+  nsRefPtr<nsIXPConnectJSObjectHolder> jsholder;
+  nsresult rv = xpc->InitClassesWithNewWrappedGlobal(
+    aCx, static_cast<nsIScriptGlobalObject*>(aNewInner),
+    aIsChrome ? systemPrincipal.get() : aPrincipal, flags,
+    getter_AddRefs(jsholder));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  MOZ_ASSERT(jsholder);
+  jsholder->GetJSObject(aNativeGlobal);
+  jsholder.forget(aHolder);
+
+  
+  
+  MOZ_ASSERT(*aNativeGlobal);
+  xpc::SetLocationForGlobal(*aNativeGlobal, aURI);
+
+  return NS_OK;
+}
+
 nsresult
 nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
                                nsISupports* aState,
@@ -1800,10 +1850,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
     if (!aState) {
       
-      nsIScriptGlobalObject *sgo =
-        (nsIScriptGlobalObject *)newInnerWindow.get();
-
-      
       
       
       
@@ -1819,14 +1865,12 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       mCreatingInnerWindow = true;
       
       
-      nsCOMPtr<nsIXPConnectJSObjectHolder> &holder = mInnerWindowHolder;
-      rv = mContext->CreateNativeGlobalForInner(sgo,
-                                                aDocument->GetDocumentURI(),
-                                                isChrome,
-                                                aDocument->NodePrincipal(),
-                                                &newInnerWindow->mJSObject,
-                                                getter_AddRefs(holder));
-      NS_ASSERTION(NS_SUCCEEDED(rv) && newInnerWindow->mJSObject && holder,
+      rv = CreateNativeGlobalForInner(cx, newInnerWindow,
+                                      aDocument->GetDocumentURI(), isChrome,
+                                      aDocument->NodePrincipal(),
+                                      &newInnerWindow->mJSObject,
+                                      getter_AddRefs(mInnerWindowHolder));
+      NS_ASSERTION(NS_SUCCEEDED(rv) && newInnerWindow->mJSObject && mInnerWindowHolder,
                    "Failed to get script global and holder");
 
       mCreatingInnerWindow = false;
