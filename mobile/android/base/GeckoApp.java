@@ -530,8 +530,6 @@ abstract public class GeckoApp
 
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (!isApplicationInBackground())
-            return; 
 
         if (outState == null)
             outState = new Bundle();
