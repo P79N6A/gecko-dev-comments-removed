@@ -100,39 +100,96 @@ function reflectUnsignedInt(aElement, aAttr, aNonNull, aDefault)
 
 
 
-function reflectLimitedEnumerated(aElement, aAttr, aSupportedValues,
-                                  aUnsupportedValues)
+
+
+function reflectLimitedEnumerated(aElement, aAttr, aValidValues, aInvalidValues,
+                                  aDefaultValue, aUnsupportedValues)
 {
-  aSupportedValues.forEach(function (v) {
+  var defaultValue = aDefaultValue !== undefined ? aDefaultValue : "";
+  var unsupportedValues = aUnsupportedValues !== undefined ? aUnsupportedValues
+                                                           : [];
+  
+  aElement.removeAttribute(aAttr);
+  is(aElement[aAttr], defaultValue,
+     "When no attribute is set, the value should be the default value.");
+
+  
+  aValidValues.forEach(function (v) {
     aElement.setAttribute(aAttr, v);
-    is(aElement[aAttr], v);
-    is(aElement.getAttribute(aAttr), v);
+    is(aElement[aAttr], v,
+       v + " should be accepted as a valid value for " + aAttr);
+    is(aElement.getAttribute(aAttr), v,
+       "Content attribute should return the value it has been set to.");
     aElement.removeAttribute(aAttr);
 
     aElement.setAttribute(aAttr, v.toUpperCase());
-    is(aElement[aAttr], v);
-    is(aElement.getAttribute(aAttr), v.toUpperCase());
+    is(aElement[aAttr], v,
+       "Enumerated attributes should be case-insensitive.");
+    is(aElement.getAttribute(aAttr), v.toUpperCase(),
+       "Content attribute should be upper-cased.");
     aElement.removeAttribute(aAttr);
 
     aElement[aAttr] = v;
-    is(aElement[aAttr], v);
-    is(aElement.getAttribute(aAttr), v);
+    is(aElement[aAttr], v,
+       v + " should be accepted as a valid value for " + aAttr);
+    is(aElement.getAttribute(aAttr), v,
+       "Content attribute should return the value it has been set to.");
     aElement.removeAttribute(aAttr);
 
     aElement[aAttr] = v.toUpperCase();
-    is(aElement[aAttr], v);
-    is(aElement.getAttribute(aAttr), v.toUpperCase());
+    is(aElement[aAttr], v,
+       "Enumerated attributes should be case-insensitive.");
+    is(aElement.getAttribute(aAttr), v.toUpperCase(),
+       "Content attribute should be upper-cased.");
     aElement.removeAttribute(aAttr);
   });
-  ["cheesecake"].concat(aUnsupportedValues).forEach(function (v) {
+
+  
+  aInvalidValues.forEach(function (v) {
     aElement.setAttribute(aAttr, v);
-    is(aElement[aAttr], "");
-    is(aElement.getAttribute(aAttr), v);
+    is(aElement[aAttr], defaultValue,
+       "When the content attribute is set to an invalid value, the default value should be returned.");
+    is(aElement.getAttribute(aAttr), v,
+       "Content attribute should not have been changed.");
     aElement.removeAttribute(aAttr);
 
     aElement[aAttr] = v;
-    is(aElement[aAttr], "");
-    is(aElement.getAttribute(aAttr), v);
+    is(aElement[aAttr], defaultValue,
+       "When the value is set to an invalid value, the default value should be returned.");
+    is(aElement.getAttribute(aAttr), v,
+       "Content attribute should not have been changed.");
+    aElement.removeAttribute(aAttr);
+  });
+
+  
+  
+  unsupportedValues.forEach(function (v) {
+    aElement.setAttribute(aAttr, v);
+    todo_is(aElement[aAttr], v,
+            v + " should be accepted as a valid value for " + aAttr);
+    is(aElement.getAttribute(aAttr), v,
+       "Content attribute should return the value it has been set to.");
+    aElement.removeAttribute(aAttr);
+
+    aElement.setAttribute(aAttr, v.toUpperCase());
+    todo_is(aElement[aAttr], v,
+            "Enumerated attributes should be case-insensitive.");
+    is(aElement.getAttribute(aAttr), v.toUpperCase(),
+       "Content attribute should be upper-cased.");
+    aElement.removeAttribute(aAttr);
+
+    aElement[aAttr] = v;
+    todo_is(aElement[aAttr], v,
+            v + " should be accepted as a valid value for " + aAttr);
+    is(aElement.getAttribute(aAttr), v,
+       "Content attribute should return the value it has been set to.");
+    aElement.removeAttribute(aAttr);
+
+    aElement[aAttr] = v.toUpperCase();
+    todo_is(aElement[aAttr], v,
+            "Enumerated attributes should be case-insensitive.");
+    is(aElement.getAttribute(aAttr), v.toUpperCase(),
+       "Content attribute should be upper-cased.");
     aElement.removeAttribute(aAttr);
   });
 }
