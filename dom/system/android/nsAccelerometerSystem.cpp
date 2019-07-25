@@ -34,6 +34,7 @@
 
 
 
+
 #include "nsAccelerometerSystem.h"
 
 #include "AndroidBridge.h"
@@ -53,10 +54,12 @@ nsAccelerometerSystem::~nsAccelerometerSystem()
 
 void nsAccelerometerSystem::Startup()
 {
-    AndroidBridge::Bridge()->EnableAccelerometer(true);
+    if (AndroidBridge::Bridge())
+        AndroidBridge::Bridge()->EnableAccelerometer(true);
 }
 
 void nsAccelerometerSystem::Shutdown()
 {
-    AndroidBridge::Bridge()->EnableAccelerometer(false);
+    if (AndroidBridge::Bridge())
+        AndroidBridge::Bridge()->EnableAccelerometer(false);
 }
