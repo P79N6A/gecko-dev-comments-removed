@@ -152,6 +152,7 @@ toolbar[mode="icons"] > #reload-button[displaystop] {
 
 
 
+#urlbar-progress:-moz-locale-dir(rtl),
 .urlbar-input-box:-moz-locale-dir(rtl) {
   direction: rtl;
 }
