@@ -248,20 +248,18 @@ nsTableRowGroupFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                        const nsRect&           aDirtyRect,
                                        const nsDisplayListSet& aLists)
 {
-  if (!IsVisibleInSelection(aBuilder))
-    return NS_OK;
-
-  bool isRoot = aBuilder->IsAtRootOfPseudoStackingContext();
   nsDisplayTableItem* item = nsnull;
-  if (isRoot) {
-    
-    
-    
-    item = new (aBuilder) nsDisplayTableRowGroupBackground(aBuilder, this);
-    nsresult rv = aLists.BorderBackground()->AppendNewToTop(item);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  
+  if (IsVisibleInSelection(aBuilder)) {
+    bool isRoot = aBuilder->IsAtRootOfPseudoStackingContext();
+    if (isRoot) {
+      
+      
+      
+      item = new (aBuilder) nsDisplayTableRowGroupBackground(aBuilder, this);
+      nsresult rv = aLists.BorderBackground()->AppendNewToTop(item);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }  
   return nsTableFrame::DisplayGenericTablePart(aBuilder, this, aDirtyRect,
                                                aLists, item, DisplayRows);
 }
