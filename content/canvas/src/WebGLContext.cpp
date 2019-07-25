@@ -501,6 +501,41 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     }
 #endif
 
+
+#ifdef ANDROID
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!forceEnabled) {
+        GLContext *globalContext = GLContextProvider::GetGlobalContext();
+        if (!globalContext) {
+            
+            
+            NS_RUNTIMEABORT("No global context anymore? Then you need to update "
+                            "this code, or force-enable WebGL.");
+        }
+        int renderer = globalContext->Renderer();
+        if (renderer == gl::GLContext::RendererAdreno200 ||
+            renderer == gl::GLContext::RendererAdreno205)
+        {
+            LogMessage("WebGL blocked on this Adreno driver!");
+            return NS_ERROR_FAILURE;
+        }
+    }
+#endif
+
     
     if (forceOSMesa) {
         gl = gl::GLContextProviderOSMesa::CreateOffscreen(gfxIntSize(width, height), format);
