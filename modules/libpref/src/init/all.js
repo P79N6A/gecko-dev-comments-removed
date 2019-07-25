@@ -273,6 +273,11 @@ pref("toolkit.scrollbox.scrollIncrement", 20);
 pref("toolkit.scrollbox.clickToScroll.scrollDelay", 150);
 
 
+pref("toolkit.telemetry.enabled", false);
+
+pref("toolkit.telemetry.server", "http://telemetry.allizom.org");
+
+
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);
 pref("view_source.editor.external", false);
