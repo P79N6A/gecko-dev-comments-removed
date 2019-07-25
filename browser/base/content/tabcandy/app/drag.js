@@ -117,7 +117,7 @@ Drag.prototype = {
         bounds = newRect;
       }
     } else {
-      Trenches.hideGuides();
+      Trenches.hideGuides( true );
     }
 
     
@@ -128,7 +128,7 @@ Drag.prototype = {
       iQ.extend(snappedTrenches,newRect.snappedTrenches);
     }
 
-    Trenches.hideGuides();
+    Trenches.hideGuides( true );
     for (let edge in snappedTrenches) {
       let trench = snappedTrenches[edge];
       if (typeof trench == 'object') {
@@ -231,6 +231,7 @@ Drag.prototype = {
   
   
   stop: function() {
+		Trenches.hideGuides();
     this.item.isDragging = false;
 
     if(this.parent && !this.parent.locked.close && this.parent != this.item.parent 
