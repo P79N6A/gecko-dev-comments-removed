@@ -1159,7 +1159,6 @@ function buildDownloadList(aForceBuild)
   gBuilder = setTimeout(function() {
     
     stepListBuilder(1);
-    gDownloadsView.selectedIndex = 0;
 
     
     updateClearListButton();
