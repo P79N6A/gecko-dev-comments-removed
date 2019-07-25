@@ -3534,18 +3534,15 @@ nsEditor::GetLeftmostChild(nsIDOMNode *aCurrentNode,
   return resultNode.forget();
 }
 
-bool 
-nsEditor::IsBlockNode(nsIDOMNode *aNode)
+bool
+nsEditor::IsBlockNode(nsIDOMNode* aNode)
 {
-  
-  
-  
-  
-  return false;
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  return IsBlockNode(node);
 }
 
-bool 
-nsEditor::IsBlockNode(nsINode *aNode)
+bool
+nsEditor::IsBlockNode(nsINode* aNode)
 {
   
   
