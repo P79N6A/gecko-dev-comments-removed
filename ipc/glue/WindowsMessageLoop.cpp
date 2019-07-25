@@ -517,6 +517,45 @@ Init()
                "Running on different threads!");
 }
 
+
+
+
+
+struct TimeoutData
+{
+  DWORD startTicks;
+  DWORD targetTicks;
+};
+
+void
+InitTimeoutData(TimeoutData* aData,
+                int32 aTimeoutMs)
+{
+  aData->startTicks = GetTickCount();
+  if (!aData->startTicks) {
+    
+    aData->startTicks++;
+  }
+  aData->targetTicks = aData->startTicks + aTimeoutMs;
+}
+
+
+bool
+TimeoutHasExpired(const TimeoutData& aData)
+{
+  if (!aData.startTicks) {
+    return false;
+  }
+
+  DWORD now = GetTickCount();
+
+  if (aData.targetTicks < aData.startTicks) {
+    
+    return now < aData.startTicks && now >= aData.targetTicks;
+  }
+  return now >= aData.targetTicks;
+}
+
 } 
 
 bool
@@ -609,10 +648,24 @@ SyncChannel::WaitForNotify()
 
   MutexAutoUnlock unlock(mMutex);
 
+  bool retval = true;
+
   if (++gEventLoopDepth == 1) {
     NS_ASSERTION(!gNeuteredWindows, "Should only set this once!");
     gNeuteredWindows = new nsAutoTArray<HWND, 20>();
     NS_ASSERTION(gNeuteredWindows, "Out of memory!");
+  }
+
+  UINT_PTR timerId = NULL;
+  TimeoutData timeoutData = { 0 };
+
+  if (mTimeoutMs != kNoTimeout) {
+    InitTimeoutData(&timeoutData, mTimeoutMs);
+
+    
+    
+    timerId = SetTimer(NULL, 0, mTimeoutMs, NULL);
+    NS_ASSERTION(timerId, "SetTimer failed!");
   }
 
   
@@ -630,7 +683,7 @@ SyncChannel::WaitForNotify()
       {
         MutexAutoLock lock(mMutex);
         if (!Connected()) {
-          return true;
+          break;
         }
       }
 
@@ -644,6 +697,12 @@ SyncChannel::WaitForNotify()
                                                QS_ALLINPUT);
       if (result != WAIT_OBJECT_0) {
         NS_ERROR("Wait failed!");
+        break;
+      }
+
+      if (TimeoutHasExpired(timeoutData)) {
+        
+        retval = false;
         break;
       }
 
@@ -702,9 +761,13 @@ SyncChannel::WaitForNotify()
   
   ScheduleDeferredMessageRun();
 
+  if (timerId) {
+    KillTimer(NULL, timerId);
+  }
+
   SyncChannel::SetIsPumpingMessages(false);
 
-  return true;
+  return retval;
 }
 
 bool
@@ -712,10 +775,17 @@ RPCChannel::WaitForNotify()
 {
   mMutex.AssertCurrentThreadOwns();
 
+  if (!StackDepth() && !mBlockedOnParent) {
+    
+    NS_RUNTIMEABORT("StackDepth() is 0 in call to RPCChannel::WaitForNotify!");
+  }
+
   
   Init();
 
   MutexAutoUnlock unlock(mMutex);
+
+  bool retval = true;
 
   
   
@@ -737,6 +807,18 @@ RPCChannel::WaitForNotify()
     NS_ASSERTION(gNeuteredWindows, "Out of memory!");
   }
 
+  UINT_PTR timerId = NULL;
+  TimeoutData timeoutData = { 0 };
+
+  if (mTimeoutMs != kNoTimeout) {
+    InitTimeoutData(&timeoutData, mTimeoutMs);
+
+    
+    
+    timerId = SetTimer(NULL, 0, mTimeoutMs, NULL);
+    NS_ASSERTION(timerId, "SetTimer failed!");
+  }
+
   
   NS_ASSERTION(!SyncChannel::IsPumpingMessages(),
                "Shouldn't be pumping already!");
@@ -752,14 +834,21 @@ RPCChannel::WaitForNotify()
       
       {
         MutexAutoLock lock(mMutex);
-        if (!Connected())
+        if (!Connected()) {
           break;
+        }
       }
 
       DWORD result = MsgWaitForMultipleObjects(0, NULL, FALSE, INFINITE,
                                                QS_ALLINPUT);
       if (result != WAIT_OBJECT_0) {
         NS_ERROR("Wait failed!");
+        break;
+      }
+
+      if (TimeoutHasExpired(timeoutData)) {
+        
+        retval = false;
         break;
       }
 
@@ -778,6 +867,11 @@ RPCChannel::WaitForNotify()
         
         UnhookWindowsHookEx(windowHook);
         windowHook = NULL;
+
+        if (timerId) {
+          KillTimer(NULL, timerId);
+          timerId = NULL;
+        }
 
         
         SyncChannel::SetIsPumpingMessages(false);
@@ -832,9 +926,13 @@ RPCChannel::WaitForNotify()
   
   ScheduleDeferredMessageRun();
 
+  if (timerId) {
+    KillTimer(NULL, timerId);
+  }
+
   SyncChannel::SetIsPumpingMessages(false);
 
-  return true;
+  return retval;
 }
 
 void
