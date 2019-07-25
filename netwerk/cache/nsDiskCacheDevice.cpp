@@ -989,11 +989,13 @@ nsDiskCacheDevice::OpenDiskCache()
         nsDiskCache::CorruptCacheInfo corruptInfo;
         rv = mCacheMap.Open(mCacheDirectory, &corruptInfo);
 
-        
         if (NS_SUCCEEDED(rv)) {
             Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT_DETAILS,
                                   corruptInfo);
-        } else if (rv == NS_ERROR_FILE_CORRUPTED) {
+        } else if (rv == NS_ERROR_ALREADY_INITIALIZED) {
+          NS_WARNING("nsDiskCacheDevice::OpenDiskCache: already open!");
+        } else {
+            
             Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT_DETAILS,
                                   corruptInfo);
             
@@ -1001,10 +1003,6 @@ nsDiskCacheDevice::OpenDiskCache()
             if (NS_FAILED(rv))
                 return rv;
             exists = false;
-        } else {
-            
-            
-            return rv;
         }
     }
 
