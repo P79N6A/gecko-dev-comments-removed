@@ -223,7 +223,7 @@ class nsHtml5Parser : public nsIParser,
 
 
     NS_IMETHOD ParseFragment(const nsAString& aSourceBuffer,
-                             nsISupports* aTargetNode,
+                             nsIContent* aTargetNode,
                              nsIAtom* aContextLocalName,
                              PRInt32 aContextNamespace,
                              PRBool aQuirks);

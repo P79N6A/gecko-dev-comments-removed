@@ -1601,11 +1601,9 @@ nsContentSink::DropParserAndPerfHint(void)
   
   
   
-  nsCOMPtr<nsIParser> kungFuDeathGrip(mParser);
-
   
   
-  mParser = nsnull;
+  nsCOMPtr<nsIParser> kungFuDeathGrip(mParser.forget());
 
   if (mDynamicLowerValue) {
     
