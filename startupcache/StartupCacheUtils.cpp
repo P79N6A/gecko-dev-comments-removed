@@ -5,6 +5,7 @@
 #include "nsNetUtil.h"
 #include "nsIJARURI.h"
 #include "nsIResProtocolHandler.h"
+#include "nsIChromeRegistry.h"
 #include "nsAutoPtr.h"
 #include "StartupCacheUtils.h"
 #include "mozilla/scache/StartupCache.h"
@@ -162,7 +163,17 @@ NS_PathifyURI(nsIURI *in, nsACString &out)
         rv = ioService->NewURI(spec, nsnull, nsnull, getter_AddRefs(uri));
         NS_ENSURE_SUCCESS(rv, rv);
     } else {
-        rv = in->GetSpec(spec);
+        if (NS_SUCCEEDED(in->SchemeIs("chrome", &equals)) && equals) {
+            nsCOMPtr<nsIChromeRegistry> chromeReg =
+                mozilla::services::GetChromeRegistryService();
+            if (!chromeReg)
+                return NS_ERROR_UNEXPECTED;
+
+            rv = chromeReg->ConvertChromeURL(in, getter_AddRefs(uri));
+            NS_ENSURE_SUCCESS(rv, rv);
+        }
+
+        rv = uri->GetSpec(spec);
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -186,15 +197,10 @@ NS_PathifyURI(nsIURI *in, nsACString &out)
             rv = jarURI->GetJARFile(getter_AddRefs(jarFileURI));
             NS_ENSURE_SUCCESS(rv, rv);
 
-            nsCOMPtr<nsIFileURL> jarFileURL;
-            jarFileURL = do_QueryInterface(jarFileURI, &rv);
+            rv = NS_PathifyURI(jarFileURI, out);
             NS_ENSURE_SUCCESS(rv, rv);
 
             nsCAutoString path;
-            rv = jarFileURL->GetPath(path);
-            NS_ENSURE_SUCCESS(rv, rv);
-            out.Append(path);
-
             rv = jarURI->GetJAREntry(path);
             NS_ENSURE_SUCCESS(rv, rv);
             out.Append("/");
@@ -208,8 +214,6 @@ NS_PathifyURI(nsIURI *in, nsACString &out)
             out.Append(spec);
         }
     }
-
-    out.Append(".bin");
     return NS_OK;
 }
 
