@@ -51,7 +51,7 @@ let EXPORTED_SYMBOLS = [ "PlacesDBUtils" ];
 
 
 
-const FINISHED_MAINTENANCE_NOTIFICATION_TOPIC = "places-maintenance-finished";
+const FINISHED_MAINTENANCE_TOPIC = "places-maintenance-finished";
 
 
 
@@ -63,39 +63,242 @@ XPCOMUtils.defineLazyGetter(this, "DBConn", function() {
 
 
 
-function nsPlacesDBUtils() {
-}
-
-nsPlacesDBUtils.prototype = {
-  _statementsRunningCount: 0,
-
-  
+let PlacesDBUtils = {
   
 
-  handleError: function PDBU_handleError(aError) {
+
+
+
+
+
+
+
+  _executeTasks: function PDBU__executeTasks(aTasks)
+  {
+    let task = aTasks.pop();
+    if (task) {
+      task.call(PlacesDBUtils, aTasks);
+    }
+    else {
+      if (aTasks.callback) {
+        let scope = aTasks.scope || Cu.getGlobalForObject(aTasks.callback);
+        aTasks.callback.call(scope, aTasks.messages);
+      }
+      else {
+        
+        let messages = aTasks.messages
+                             .unshift("[ Places Maintenance ]");  
+        try {
+          Services.console.logStringMessage(messages.join("\n"));
+        } catch(ex) {}
+      }
+
+      
+      Services.prefs.setIntPref("places.database.lastMaintenance", parseInt(Date.now() / 1000));
+      Services.obs.notifyObservers(null, FINISHED_MAINTENANCE_TOPIC, null);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  maintenanceOnIdle: function PDBU_maintenanceOnIdle(aCallback, aScope)
+  {
+    let tasks = new Tasks([
+      this.checkIntegrity
+    , this.checkCoherence
+    , this._refreshUI
+    ]);
+    tasks.callback = aCallback;
+    tasks.scope = aScope;
+    this._executeTasks(tasks);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  checkAndFixDatabase: function PDBU_checkAndFixDatabase(aCallback, aScope)
+  {
+    let tasks = new Tasks([
+      this.checkIntegrity
+    , this.checkCoherence
+    , this.expire
+    , this.vacuum
+    , this.stats
+    , this._refreshUI
+    ]);
+    tasks.callback = aCallback;
+    tasks.scope = aScope;
+    this._executeTasks(tasks);
+  },
+
+  
+
+
+
+
+
+  _refreshUI: function PDBU__refreshUI(aTasks)
+  {
+    let tasks = new Tasks(aTasks);
+
+    
+    PlacesUtils.history.runInBatchMode({
+      runBatched: function (aUserData) {}
+    }, null);
+    PlacesDBUtils._executeTasks(tasks);
+  },
+
+  _handleError: function PDBU__handleError(aError)
+  {
     Cu.reportError("Async statement execution returned with '" +
                    aError.result + "', '" + aError.message + "'");
   },
 
-  handleCompletion: function PDBU_handleCompletion(aReason) {
-    
-    if (--this._statementsRunningCount > 0)
-      return;
+  
 
-    
-    
-    
-    PlacesUtils.history.runInBatchMode({runBatched: function(aUserData){}}, null);
-    PlacesUtils.bookmarks.runInBatchMode({runBatched: function(aUserData){}}, null);
-    
-    Services.obs.notifyObservers(null, FINISHED_MAINTENANCE_NOTIFICATION_TOPIC, null);
+
+
+
+
+  reindex: function PDBU_reindex(aTasks)
+  {
+    let tasks = new Tasks(aTasks);
+    tasks.log("> Reindex");
+
+    let stmt = DBConn.createAsyncStatement("REINDEX");
+    stmt.executeAsync({
+      handleError: PlacesDBUtils._handleError,
+      handleResult: function () {},
+
+      handleCompletion: function (aReason)
+      {
+        if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+          tasks.log("+ The database has been reindexed");
+        }
+        else {
+          tasks.log("- Unable to reindex database");
+        }
+
+        PlacesDBUtils._executeTasks(tasks);
+      }
+    });
+    stmt.finalize();
   },
 
   
+
+
+
+
+
+  _checkIntegritySkipReindex: function PDBU__checkIntegritySkipReindex(aTasks)
+    this.checkIntegrity(aTasks, true),
+
   
 
-  maintenanceOnIdle: function PDBU_maintenanceOnIdle() {
+
+
+
+
+
+
+  checkIntegrity: function PDBU_checkIntegrity(aTasks, aSkipReindex)
+  {
+    let tasks = new Tasks(aTasks);
+    tasks.log("> Integrity check");
+
     
+    let stmt = DBConn.createAsyncStatement("PRAGMA integrity_check(1)");
+    stmt.executeAsync({
+      handleError: PlacesDBUtils._handleError,
+
+      _corrupt: false,
+      handleResult: function (aResultSet)
+      {
+        let row = aResultSet.getNextRow();
+        this._corrupt = row.getResultByIndex(0) != "ok";
+      },
+
+      handleCompletion: function (aReason)
+      {
+        if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+          if (this._corrupt) {
+            tasks.log("- The database is corrupt");
+            if (aSkipReindex) {
+              tasks.log("- Unable to fix corruption, database will be replaced on next startup");
+              Services.prefs.setBoolPref("places.database.replaceOnStartup", true);
+              tasks.clear();
+            }
+            else {
+              
+              
+              tasks.push(PlacesDBUtils._checkIntegritySkipReindex);
+              tasks.push(PlacesDBUtils.reindex);
+            }
+          }
+          else {
+            tasks.log("+ The database is sane");
+          }
+        }
+        else {
+          tasks.log("- Unable to check database status");
+          tasks.clear();
+        }
+
+        PlacesDBUtils._executeTasks(tasks);
+      }
+    });
+    stmt.finalize();
+  },
+
+  
+
+
+
+
+
+  checkCoherence: function PDBU_checkCoherence(aTasks)
+  {
+    let tasks = new Tasks(aTasks);
+    tasks.log("> Coherence check");
+
+    let stmts = this._getBoundCoherenceStatements();
+    DBConn.executeAsync(stmts, stmts.length, {
+      handleError: PlacesDBUtils._handleError,
+      handleResult: function () {},
+
+      handleCompletion: function (aReason)
+      {
+        if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+          tasks.log("+ The database is coherent");
+        }
+        else {
+          tasks.log("- Unable to check database coherence");
+          tasks.clear();
+        }
+
+        PlacesDBUtils._executeTasks(tasks);
+      }
+    });
+    stmts.forEach(function (aStmt) aStmt.finalize());
+  },
+
+  _getBoundCoherenceStatements: function PDBU__getBoundCoherenceStatements()
+  {
     let cleanupStatements = [];
 
     
@@ -473,13 +676,7 @@ nsPlacesDBUtils.prototype = {
 
     
 
-    
-    this._statementsRunningCount = cleanupStatements.length;
-    
-    cleanupStatements.forEach(function (aStatement) {
-        aStatement.executeAsync(this);
-        aStatement.finalize();
-      }, this);
+    return cleanupStatements;
   },
 
   
@@ -487,154 +684,198 @@ nsPlacesDBUtils.prototype = {
 
 
 
-  checkAndFixDatabase: function PDBU_checkAndFixDatabase(aLogCallback) {
-    let log = [];
-    let self = this;
-    let sep = "- - -";
 
-    function integrity() {
-      let integrityCheckStmt =
-        DBConn.createStatement("PRAGMA integrity_check");
-      log.push("INTEGRITY");
-      let logIndex = log.length;
-      while (integrityCheckStmt.executeStep()) {
-        log.push(integrityCheckStmt.getString(0));
-      }
-      integrityCheckStmt.finalize();
-      log.push(sep);
-      return log[logIndex] == "ok";
-    }
+  vacuum: function PDBU_vacuum(aTasks)
+  {
+    let tasks = new Tasks(aTasks);
+    tasks.log("> Vacuum");
 
-    function vacuum(aVacuumCallback) {
-      log.push("VACUUM");
-      let dirSvc = Cc["@mozilla.org/file/directory_service;1"].
-                   getService(Ci.nsIProperties);
-      let placesDBFile = dirSvc.get("ProfD", Ci.nsILocalFile);
-      placesDBFile.append("places.sqlite");
-      log.push("places.sqlite: " + placesDBFile.fileSize + " byte");
-      log.push(sep);
-      let stmt = DBConn.createStatement("VACUUM");
-      stmt.executeAsync({
-        handleResult: function() {},
-        handleError: function() {
-          Cu.reportError("Maintenance VACUUM failed");
-        },
-        handleCompletion: function(aReason) {
-          aVacuumCallback();
-        }
-      });
-      stmt.finalize();
-    }
+    let DBFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
+    DBFile.append("places.sqlite");
+    tasks.log("Initial database size is " +
+              parseInt(DBFile.fileSize / 1024) + " KiB");
 
-    function backup() {
-      log.push("BACKUP");
-      let dirSvc = Cc["@mozilla.org/file/directory_service;1"].
-                   getService(Ci.nsIProperties);
-      let profD = dirSvc.get("ProfD", Ci.nsILocalFile);
-      let placesDBFile = profD.clone();
-      placesDBFile.append("places.sqlite");
-      let backupDBFile = profD.clone();
-      backupDBFile.append("places.sqlite.corrupt");
-      backupDBFile.createUnique(backupDBFile.NORMAL_FILE_TYPE, 0666);
-      let backupName = backupDBFile.leafName;
-      backupDBFile.remove(false);
-      placesDBFile.copyTo(profD, backupName);
-      log.push(backupName);
-      log.push(sep);
-    }
+    let stmt = DBConn.createAsyncStatement("VACUUM");
+    stmt.executeAsync({
+      handleError: PlacesDBUtils._handleError,
+      handleResult: function () {},
 
-    function reindex() {
-      log.push("REINDEX");
-      DBConn.executeSimpleSQL("REINDEX");
-      log.push(sep);
-    }
-
-    function cleanup() {
-      log.push("CLEANUP");
-      self.maintenanceOnIdle()
-      log.push(sep);
-    }
-
-    function expire() {
-      log.push("EXPIRE");
-      
-      
-      let expiration = Cc["@mozilla.org/places/expiration;1"].
-                       getService(Ci.nsIObserver);
-      
-      let prefs = Cc["@mozilla.org/preferences-service;1"].
-                  getService(Ci.nsIPrefBranch);
-      let limitURIs = prefs.getIntPref(
-        "places.history.expiration.transient_current_max_pages");
-      if (limitURIs >= 0)
-        log.push("Current unique URIs limit: " + limitURIs);
-      
-      expiration.observe(null, "places-debug-start-expiration",
-                         -1 );
-      log.push(sep);
-    }
-
-    function stats() {
-      log.push("STATS");
-      let dirSvc = Cc["@mozilla.org/file/directory_service;1"].
-                   getService(Ci.nsIProperties);
-      let placesDBFile = dirSvc.get("ProfD", Ci.nsILocalFile);
-      placesDBFile.append("places.sqlite");
-      log.push("places.sqlite: " + placesDBFile.fileSize + " byte");
-      let stmt = DBConn.createStatement(
-        "SELECT name FROM sqlite_master WHERE type = :DBType");
-      stmt.params["DBType"] = "table";
-      while (stmt.executeStep()) {
-        let tableName = stmt.getString(0);
-        let countStmt = DBConn.createStatement(
-        "SELECT count(*) FROM " + tableName);
-        countStmt.executeStep();
-        log.push(tableName + ": " + countStmt.getInt32(0));
-        countStmt.finalize();
-      }
-      stmt.finalize();
-      log.push(sep);
-    }
-
-    
-    let integrityIsGood = integrity();
-
-    
-    
-    if (!integrityIsGood) {
-      
-      backup();
-      
-      reindex();
-      
-      integrityIsGood = integrity();
-    }
-
-    
-    
-    if (integrityIsGood) {
-      cleanup();
-      expire();
-      vacuum(function () {
-        stats();
-        if (aLogCallback) {
-          aLogCallback(log);
+      handleCompletion: function (aReason)
+      {
+        if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+          tasks.log("+ The database has been vacuumed");
+          let vacuumedDBFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
+          vacuumedDBFile.append("places.sqlite");
+          tasks.log("Final database size is " +
+                    parseInt(vacuumedDBFile.fileSize / 1024) + " KiB");
         }
         else {
-          try {
-            let console = Cc["@mozilla.org/consoleservice;1"].
-                          getService(Ci.nsIConsoleService);
-            console.logStringMessage(log.join('\n'));
-          }
-          catch(ex) {}
+          tasks.log("- Unable to vacuum database");
+          tasks.clear();
         }
-      });
-    }
-  }
 
+        PlacesDBUtils._executeTasks(tasks);
+      }
+    });
+    stmt.finalize();
+  },
+
+  
+
+
+
+
+
+  expire: function PDBU_expire(aTasks)
+  {
+    let tasks = new Tasks(aTasks);
+    tasks.log("> Orphans expiration");
+
+    let expiration = Cc["@mozilla.org/places/expiration;1"].
+                     getService(Ci.nsIObserver);
+
+    Services.obs.addObserver(function (aSubject, aTopic, aData) {
+      Services.obs.removeObserver(arguments.callee, aTopic);
+      tasks.log("+ Database cleaned up");
+      PlacesDBUtils._executeTasks(tasks);
+    }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
+
+    
+    expiration.observe(null, "places-debug-start-expiration", -1);
+  },
+
+  
+
+
+
+
+
+  stats: function PDBU_stats(aTasks)
+  {
+    let tasks = new Tasks(aTasks);
+    tasks.log("> Statistics");
+
+    let DBFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
+    DBFile.append("places.sqlite");
+    tasks.log("Database size is " + parseInt(DBFile.fileSize / 1024) + " KiB");
+
+    [ "user_version"
+    , "page_size"
+    , "cache_size"
+    , "journal_mode"
+    , "synchronous"
+    ].forEach(function (aPragma) {
+      let stmt = DBConn.createStatement("PRAGMA " + aPragma);
+      stmt.executeStep();
+      tasks.log(aPragma + " is " + stmt.getString(0));
+      stmt.finalize();
+    });
+
+    
+    try {
+      let limitURIs = Services.prefs.getIntPref(
+        "places.history.expiration.transient_current_max_pages");
+      tasks.log("History can store a maximum of " + limitURIs + " unique pages");
+    } catch(ex) {}
+
+    let stmt = DBConn.createStatement(
+      "SELECT name FROM sqlite_master WHERE type = :type");
+    stmt.params.type = "table";
+    while (stmt.executeStep()) {
+      let tableName = stmt.getString(0);
+      let countStmt = DBConn.createStatement(
+        "SELECT count(*) FROM " + tableName);
+      countStmt.executeStep();
+      tasks.log("Table " + tableName + " has " + countStmt.getInt32(0) + " records");
+      countStmt.finalize();
+    }
+    stmt.reset();
+
+    stmt.params.type = "index";
+    while (stmt.executeStep()) {
+      tasks.log("Index " + stmt.getString(0));
+    }
+    stmt.reset();
+
+    stmt.params.type = "trigger";
+    while (stmt.executeStep()) {
+      tasks.log("Trigger " + stmt.getString(0));
+    }
+    stmt.finalize();
+
+    PlacesDBUtils._executeTasks(tasks);
+  }
 };
 
-__defineGetter__("PlacesDBUtils", function() {
-  delete this.PlacesDBUtils;
-  return this.PlacesDBUtils = new nsPlacesDBUtils;
-});
+
+
+
+
+
+
+function Tasks(aTasks)
+{
+  if (Array.isArray(aTasks)) {
+    this._list = aTasks.slice(0, aTasks.length);
+  }
+  else if ("list" in aTasks) {
+    this._list = aTasks.list;
+    this._log = aTasks.messages;
+    this.callback = aTasks.callback;
+    this.scope = aTasks.scope;
+  }
+}
+
+Tasks.prototype = {
+  _list: [],
+  _log: [],
+  callback: null,
+  scope: null,
+
+  
+
+
+
+
+
+  push: function T_push(aNewElt)
+  {
+    this._list.unshift(aNewElt);
+  },
+
+  
+
+
+
+
+  pop: function T_pop() this._list.shift(),
+
+  
+
+
+  clear: function T_clear()
+  {
+    this._list.length = 0;
+  },
+
+  
+
+
+  get list() this._list.slice(0, this._list.length),
+
+  
+
+
+
+
+
+  log: function T_log(aMsg)
+  {
+    this._log.push(aMsg);
+  },
+
+  
+
+
+  get messages() this._log.slice(0, this._log.length),
+}
