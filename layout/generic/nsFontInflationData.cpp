@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsFontInflationData.h"
 #include "FramePropertyTable.h"
 #include "nsTextFragment.h"
@@ -203,6 +235,7 @@ nsFontInflationData::UpdateWidth(const nsHTMLReflowState &aReflowState)
     mTextDirty = true;
   }
 
+  mNCAWidth = newNCAWidth;
   mTextThreshold = newTextThreshold;
   mInflationEnabled = mTextAmount >= mTextThreshold;
 }

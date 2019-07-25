@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsFontInflationData_h_
 #define nsFontInflationData_h_
 
@@ -30,6 +62,10 @@ public:
       ScanText();
     }
     return mInflationEnabled;
+  }
+
+  nscoord EffectiveWidth() const {
+    return mNCAWidth;
   }
 
 private:
@@ -62,6 +98,7 @@ private:
   }
 
   nsIFrame *mBFCFrame;
+  nscoord mNCAWidth;
   nscoord mTextAmount, mTextThreshold;
   bool mInflationEnabled; 
   bool mTextDirty;
