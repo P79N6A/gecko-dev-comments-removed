@@ -447,6 +447,11 @@ toolbarbutton.choice-remotetabs {
 }
 
 
+#prefs-languages .menulist-label {
+  direction: ltr !important;
+}
+
+
 @media (min-width: 500px) {
   #addons-repo {
     -moz-box-orient: horizontal;
