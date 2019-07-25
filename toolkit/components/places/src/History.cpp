@@ -159,11 +159,9 @@ Step::HandleCompletion(PRUint16 aReason)
 
 namespace {
 
-class VisitedQuery : public mozIStorageStatementCallback
+class VisitedQuery : public AsyncStatementCallback
 {
 public:
-  NS_DECL_ISUPPORTS
-
   static nsresult Start(nsIURI* aURI)
   {
     NS_PRECONDITION(aURI, "Null URI");
@@ -250,10 +248,6 @@ private:
   nsCOMPtr<nsIURI> mURI;
   bool mIsVisited;
 };
-NS_IMPL_ISUPPORTS1(
-  VisitedQuery,
-  mozIStorageStatementCallback
-)
 
 
 
@@ -315,8 +309,6 @@ struct VisitURIData : public FailSafeFinishTask
 class UpdateFrecencyAndNotifyStep : public Step
 {
 public:
-  NS_DECL_ISUPPORTS
-
   UpdateFrecencyAndNotifyStep(nsAutoPtr<VisitURIData> aData)
   : mData(aData)
   {
@@ -375,10 +367,6 @@ public:
 protected:
   nsAutoPtr<VisitURIData> mData;
 };
-NS_IMPL_ISUPPORTS1(
-  UpdateFrecencyAndNotifyStep
-, mozIStorageStatementCallback
-)
 
 
 
@@ -386,8 +374,6 @@ NS_IMPL_ISUPPORTS1(
 class GetVisitIDStep : public Step
 {
 public:
-  NS_DECL_ISUPPORTS
-
   GetVisitIDStep(nsAutoPtr<VisitURIData> aData)
   : mData(aData)
   {
@@ -416,10 +402,6 @@ public:
 protected:
   nsAutoPtr<VisitURIData> mData;
 };
-NS_IMPL_ISUPPORTS1(
-  GetVisitIDStep
-, mozIStorageStatementCallback
-)
 
 
 
@@ -427,8 +409,6 @@ NS_IMPL_ISUPPORTS1(
 class AddVisitStep : public Step
 {
 public:
-  NS_DECL_ISUPPORTS
-
   AddVisitStep(nsAutoPtr<VisitURIData> aData)
   : mData(aData)
   {
@@ -506,10 +486,6 @@ public:
 protected:
   nsAutoPtr<VisitURIData> mData;
 };
-NS_IMPL_ISUPPORTS1(
-  AddVisitStep
-, mozIStorageStatementCallback
-)
 
 
 
@@ -518,8 +494,6 @@ NS_IMPL_ISUPPORTS1(
 class CheckLastVisitStep : public Step
 {
 public:
-  NS_DECL_ISUPPORTS
-
   CheckLastVisitStep(nsAutoPtr<VisitURIData> aData)
   : mData(aData)
   {
@@ -571,10 +545,6 @@ public:
 protected:
   nsAutoPtr<VisitURIData> mData;
 };
-NS_IMPL_ISUPPORTS1(
-  CheckLastVisitStep
-, mozIStorageStatementCallback
-)
 
 
 
@@ -583,8 +553,6 @@ NS_IMPL_ISUPPORTS1(
 class FindNewIdStep : public Step
 {
 public:
-  NS_DECL_ISUPPORTS
-
   FindNewIdStep(nsAutoPtr<VisitURIData> aData)
   : mData(aData)
   {
@@ -612,10 +580,6 @@ public:
 protected:
   nsAutoPtr<VisitURIData> mData;
 };
-NS_IMPL_ISUPPORTS1(
-  FindNewIdStep
-, mozIStorageStatementCallback
-)
 
 
 
@@ -624,8 +588,6 @@ NS_IMPL_ISUPPORTS1(
 class CheckExistingStep : public Step
 {
 public:
-  NS_DECL_ISUPPORTS
-
   CheckExistingStep(nsAutoPtr<VisitURIData> aData)
   : mData(aData)
   {
@@ -709,10 +671,6 @@ public:
 protected:
   nsAutoPtr<VisitURIData> mData;
 };
-NS_IMPL_ISUPPORTS1(
-  CheckExistingStep
-, mozIStorageStatementCallback
-)
 
 
 
@@ -720,8 +678,6 @@ NS_IMPL_ISUPPORTS1(
 class StartVisitURIStep : public Step
 {
 public:
-  NS_DECL_ISUPPORTS
-
   StartVisitURIStep(nsAutoPtr<VisitURIData> aData)
   : mData(aData)
   {
@@ -752,10 +708,6 @@ public:
 protected:
   nsAutoPtr<VisitURIData> mData;
 };
-NS_IMPL_ISUPPORTS1(
-  StartVisitURIStep
-, Step
-)
 
 
 
@@ -772,8 +724,6 @@ struct SetTitleData : public FailSafeFinishTask
 class TitleNotifyStep: public Step
 {
 public:
-  NS_DECL_ISUPPORTS
-
   TitleNotifyStep(nsAutoPtr<SetTitleData> aData)
   : mData(aData)
   {
@@ -791,10 +741,6 @@ public:
 protected:
   nsAutoPtr<SetTitleData> mData;
 };
-NS_IMPL_ISUPPORTS1(
-  TitleNotifyStep
-, mozIStorageStatementCallback
-)
 
 
 
@@ -802,8 +748,6 @@ NS_IMPL_ISUPPORTS1(
 class SetTitleStep : public Step
 {
 public:
-  NS_DECL_ISUPPORTS
-
   SetTitleStep(nsAutoPtr<SetTitleData> aData)
   : mData(aData)
   {
@@ -862,10 +806,6 @@ public:
 protected:
   nsAutoPtr<SetTitleData> mData;
 };
-NS_IMPL_ISUPPORTS1(
-  SetTitleStep
-, mozIStorageStatementCallback
-)
 
 
 
@@ -873,8 +813,6 @@ NS_IMPL_ISUPPORTS1(
 class StartSetURITitleStep : public Step
 {
 public:
-  NS_DECL_ISUPPORTS
-
   StartSetURITitleStep(nsAutoPtr<SetTitleData> aData)
   : mData(aData)
   {
@@ -904,10 +842,6 @@ public:
 protected:
   nsAutoPtr<SetTitleData> mData;
 };
-NS_IMPL_ISUPPORTS1(
-  StartSetURITitleStep
-, Step
-)
 
 } 
 

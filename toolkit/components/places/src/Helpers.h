@@ -55,8 +55,12 @@ namespace places {
 class AsyncStatementCallback : public mozIStorageStatementCallback
 {
 public:
-  
-  NS_IMETHOD HandleError(mozIStorageError *aError);
+  NS_DECL_ISUPPORTS
+  NS_DECL_MOZISTORAGESTATEMENTCALLBACK
+  AsyncStatementCallback() {}
+
+protected:
+  virtual ~AsyncStatementCallback() {}
 };
 
 

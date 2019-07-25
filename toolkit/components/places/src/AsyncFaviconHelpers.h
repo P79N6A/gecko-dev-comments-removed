@@ -112,11 +112,9 @@ class AsyncFaviconStepper;
 
 
 
-class AsyncFaviconStep : public nsISupports
+class AsyncFaviconStep : public AsyncStatementCallback
 {
 public:
-  NS_DECL_ISUPPORTS
-
   AsyncFaviconStep() {}
 
   
@@ -135,7 +133,6 @@ public:
 protected:
   nsCOMPtr<AsyncFaviconStepperInternal> mStepper;
 };
-
 
 
 
@@ -276,10 +273,8 @@ private:
 
 
 class GetEffectivePageStep : public AsyncFaviconStep
-                           , public mozilla::places::AsyncStatementCallback
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_MOZISTORAGESTATEMENTCALLBACK
 
   GetEffectivePageStep();
@@ -297,10 +292,8 @@ private:
 
 
 class FetchDatabaseIconStep : public AsyncFaviconStep
-                            , public mozilla::places::AsyncStatementCallback
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_MOZISTORAGESTATEMENTCALLBACK
 
   FetchDatabaseIconStep() {};
@@ -313,11 +306,10 @@ public:
 
 
 class EnsureDatabaseEntryStep : public AsyncFaviconStep
-                              , public mozilla::places::AsyncStatementCallback
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_MOZISTORAGESTATEMENTCALLBACK
+  NS_IMETHOD HandleCompletion(PRUint16 aReason);
+  NS_IMETHOD HandleError(mozIStorageError* aError);
 
   EnsureDatabaseEntryStep() {};
   void Run();
@@ -361,11 +353,10 @@ private:
 
 
 class SetFaviconDataStep : public AsyncFaviconStep
-                         , public mozilla::places::AsyncStatementCallback
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_MOZISTORAGESTATEMENTCALLBACK
+  NS_IMETHOD HandleCompletion(PRUint16 aReason);
+  NS_IMETHOD HandleError(mozIStorageError* aError);
 
   SetFaviconDataStep() {};
   void Run();
@@ -376,11 +367,10 @@ public:
 
 
 class AssociateIconWithPageStep : public AsyncFaviconStep
-                                , public mozilla::places::AsyncStatementCallback
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_MOZISTORAGESTATEMENTCALLBACK
+  NS_IMETHOD HandleCompletion(PRUint16 aReason);
+  NS_IMETHOD HandleError(mozIStorageError* aError);
 
   AssociateIconWithPageStep() {};
   void Run();
@@ -393,8 +383,6 @@ public:
 class NotifyStep : public AsyncFaviconStep
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
-
   NotifyStep() {};
   void Run();
 };
