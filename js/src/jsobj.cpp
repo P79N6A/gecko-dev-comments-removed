@@ -1073,108 +1073,66 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
     }
 
     
-    JSObject *scopeobj = NULL;
-    if (argc >= 2) {
-        if (!js_ValueToObjectOrNull(cx, argv[1], &scopeobj))
-            return JS_FALSE;
-        argv[1].setObjectOrNull(scopeobj);
-        JSObject *obj = scopeobj;
-        while (obj) {
-            if (obj->isDenseArray() && !obj->makeDenseArraySlow(cx))
-                return false;
-            JSObject *parent = obj->getParent();
-            if (!obj->isNative() ||
-                (!parent && !(obj->getClass()->flags & JSCLASS_IS_GLOBAL))) {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                     JSMSG_INVALID_EVAL_SCOPE_ARG);
-                return false;
-            }
-            obj = parent;
-        }
-    }
 
-    
-    struct WithGuard {
-        JSObject *obj;
-        WithGuard() : obj(NULL) {}
-        ~WithGuard() { if (obj) obj->setPrivate(NULL); }
-    } withGuard;
+
+
+
+    if (argc > 1 && !caller->script->warnedAboutTwoArgumentEval) {
+        static const char TWO_ARGUMENT_WARNING[] =
+            "Support for eval(code, scopeObject) has been removed. "
+            "Use |with (scopeObject) eval(code);| instead.";
+        if (!JS_ReportWarning(cx, TWO_ARGUMENT_WARNING))
+            return JS_FALSE;
+        caller->script->warnedAboutTwoArgumentEval = true;
+    }
 
     
     MUST_FLOW_THROUGH("out");
     uintN staticLevel = caller->script->staticLevel + 1;
-    if (!scopeobj) {
-        
+
+    
 
 
 
-        JSObject *callerScopeChain = js_GetScopeChain(cx, caller);
-        if (!callerScopeChain)
-            return JS_FALSE;
+    JSObject *callerScopeChain = js_GetScopeChain(cx, caller);
+    if (!callerScopeChain)
+        return JS_FALSE;
+
+    JSObject *scopeobj = NULL;
 
 #if JS_HAS_EVAL_THIS_SCOPE
-        
+    
 
 
 
 
-        if (indirectCall) {
-            
-            staticLevel = 0;
-
-            OBJ_TO_INNER_OBJECT(cx, obj);
-            if (!obj)
-                return JS_FALSE;
-
-            if (!js_CheckPrincipalsAccess(cx, obj,
-                                          JS_StackFramePrincipals(cx, caller),
-                                          cx->runtime->atomState.evalAtom)) {
-                return JS_FALSE;
-            }
-
-            
-            JS_ASSERT(!obj->getParent());
-            scopeobj = obj;
-        } else {
-            
-
-
-
-
-
-            JS_ASSERT_IF(caller->argv, caller->callobj);
-            scopeobj = callerScopeChain;
-        }
-#endif
-    } else {
-        scopeobj = scopeobj->wrappedObject(cx);
-        OBJ_TO_INNER_OBJECT(cx, scopeobj);
-        if (!scopeobj)
-            return JS_FALSE;
-
-        if (!js_CheckPrincipalsAccess(cx, scopeobj,
-                                      JS_StackFramePrincipals(cx, caller),
-                                      cx->runtime->atomState.evalAtom))
-            return JS_FALSE;
-
-        
-
-
-
-        if (scopeobj->getParent()) {
-            JSObject *global = scopeobj->getGlobal();
-            withGuard.obj = js_NewWithObject(cx, scopeobj, global, 0);
-            if (!withGuard.obj)
-                return JS_FALSE;
-
-            scopeobj = withGuard.obj;
-            JS_ASSERT(argc >= 2);
-            argv[1].setObject(*withGuard.obj);
-        }
-
+    if (indirectCall) {
         
         staticLevel = 0;
+
+        OBJ_TO_INNER_OBJECT(cx, obj);
+        if (!obj)
+            return JS_FALSE;
+
+        if (!js_CheckPrincipalsAccess(cx, obj,
+                                      JS_StackFramePrincipals(cx, caller),
+                                      cx->runtime->atomState.evalAtom)) {
+            return JS_FALSE;
+        }
+
+        
+        JS_ASSERT(!obj->getParent());
+        scopeobj = obj;
+    } else {
+        
+
+
+
+
+        JS_ASSERT_IF(caller->argv, caller->callobj);
+        scopeobj = callerScopeChain;
     }
+#endif
 
     
     JSObject *result = js_CheckScopeChainValidity(cx, scopeobj, js_eval_str);

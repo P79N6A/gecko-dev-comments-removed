@@ -172,6 +172,9 @@ struct JSScript {
     bool            savedCallerFun:1; 
     bool            hasSharps:1;      
     bool            strictModeCode:1; 
+    bool            warnedAboutTwoArgumentEval:1; 
+
+
 
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
