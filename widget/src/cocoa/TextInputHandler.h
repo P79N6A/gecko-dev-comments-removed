@@ -628,9 +628,6 @@ public:
 
   void HandleKeyUpEventForPlugin(NSEvent* aNativeKeyEvent);
 
-  PRBool DoesIgnoreNextKeyUpEvent() { return mIgnoreNextKeyUpEvent; }
-  void ResetIgnoreNextKeyUpEvent() { mIgnoreNextKeyUpEvent = PR_FALSE; }
-
   
 
 
@@ -665,26 +662,15 @@ public:
     mPluginTSMInComposition = aInComposition;
   }
 
-  
+#endif 
 
+protected:
+  PRPackedBool mIgnoreNextKeyUpEvent;
 
+  PluginTextInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
+  ~PluginTextInputHandler();
 
-
-
-
-
-
-
-
-  void ActivatePluginTSMDocument();
-
-  
-
-
-
-
-
-  void HandleCarbonPluginKeyEvent(EventRef aKeyEvent);
+#ifndef NP_NO_CARBON
 
   
 
@@ -705,12 +691,6 @@ public:
                 PRBool aMakeKeyDownEventIfNSFlagsChanged = PR_FALSE);
 
 #endif 
-
-protected:
-  PRPackedBool mIgnoreNextKeyUpEvent;
-
-  PluginTextInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
-  ~PluginTextInputHandler();
 
 private:
 
@@ -742,6 +722,27 @@ private:
   PRBool IsInPluginComposition();
 
 #ifndef NP_NO_CARBON
+
+  
+
+
+
+
+
+
+
+
+
+
+  void ActivatePluginTSMDocument();
+
+  
+
+
+
+
+
+  void HandleCarbonPluginKeyEvent(EventRef aKeyEvent);
 
   
 
@@ -1066,6 +1067,8 @@ private:
 class TextInputHandler : public IMEInputHandler
 {
 public:
+  static PRBool sLastModifierState;
+
   static CFArrayRef CreateAllKeyboardLayoutList();
   static void DebugPrintAllKeyboardLayouts(PRLogModuleInfo* aLogModuleInfo);
 
@@ -1079,8 +1082,21 @@ public:
 
 
 
-
   PRBool HandleKeyDownEvent(NSEvent* aNativeEvent);
+
+  
+
+
+
+
+  void HandleKeyUpEvent(NSEvent* aNativeEvent);
+
+  
+
+
+
+
+  void HandleFlagsChanged(NSEvent* aNativeEvent);
 
   
 
@@ -1104,6 +1120,20 @@ public:
   {
     return mCurrentKeyEvent.mKeyPressHandled;
   }
+
+protected:
+  
+
+
+
+
+
+
+
+
+
+  void DispatchKeyEventForFlagsChanged(NSEvent* aNativeEvent,
+                                       PRBool aDispatchKeyDown);
 };
 
 } 

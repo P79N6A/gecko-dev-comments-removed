@@ -87,6 +87,9 @@ class TextInputHandler;
   
 - (void)maybeInitContextMenuTracking;
 
+  
+- (BOOL)isPluginView;
+
 @end
 
 
