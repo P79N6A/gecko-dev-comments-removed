@@ -563,6 +563,24 @@ FlowsIntoNext(JSOp op)
            op != JSOP_GOTO && op != JSOP_GOTOX && op != JSOP_RETSUB;
 }
 
+
+
+
+
+
+class AutoScriptUntrapper
+{
+    JSContext *cx;
+    JSScript *origScript;
+    jsbytecode *origCode;
+    size_t nbytes;
+    bool saveOriginal(JSScript *script);
+  public:
+    AutoScriptUntrapper();
+    bool untrap(JSContext *cx, JSScript *script);
+    ~AutoScriptUntrapper();
+};
+
 }
 #endif
 

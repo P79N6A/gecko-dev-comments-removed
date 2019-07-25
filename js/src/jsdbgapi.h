@@ -143,14 +143,6 @@ extern JS_PUBLIC_API(JSBool)
 JS_SetSingleStepMode(JSContext *cx, JSScript *script, JSBool singleStep);
 
 
-
-
-
-
-extern jsbytecode *
-js_UntrapScriptCode(JSContext *cx, JSScript *script);
-
-
 extern JS_PUBLIC_API(JSBool)
 JS_SetTrap(JSContext *cx, JSScript *script, jsbytecode *pc,
            JSTrapHandler handler, jsval closure);
