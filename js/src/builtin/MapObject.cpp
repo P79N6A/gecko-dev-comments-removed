@@ -591,6 +591,10 @@ class OrderedHashMap
         typedef Key KeyType;
         static void makeEmpty(Entry *e) {
             OrderedHashPolicy::makeEmpty(const_cast<Key *>(&e->key));
+
+            
+            
+            e->value = Value();
         }
         static const Key &getKey(const Entry &e) { return e.key; }
         static void setKey(Entry &e, const Key &k) { const_cast<Key &>(e.key) = k; }
@@ -978,6 +982,15 @@ MapObject::set(JSContext *cx, unsigned argc, Value *vp)
 bool
 MapObject::delete_impl(JSContext *cx, CallArgs args)
 {
+    
+    
+    
+    
+    
+    
+    
+    
+    
     JS_ASSERT(MapObject::is(args.thisv()));
 
     ValueMap &map = extract(args);
