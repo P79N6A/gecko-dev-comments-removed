@@ -458,67 +458,71 @@ mjit::Compiler::jsop_bitop(JSOp op)
 }
 
 void
-mjit::Compiler::jsop_globalinc(JSOp op, uint32 index)
+mjit::Compiler::jsop_globalinc(JSOp op, uint32 index, bool popped)
 {
     uint32 slot = script->getGlobalSlot(index);
-    JSValueType type = knownPushedType(0); 
+    JSValueType type = knownPushedType(0);
 
-    jsbytecode *next = PC + JSOP_GLOBALINC_LENGTH;
-    bool popped = (JSOp(*next) == JSOP_POP && !analysis->jumpTarget(next));
-
-    int amt = (js_CodeSpec[op].format & JOF_INC) ? 1 : -1;
-    bool post = !!(js_CodeSpec[op].format & JOF_POST);
-
-    RegisterID data;
     RegisterID reg = frame.allocReg();
     Address addr = masm.objSlotRef(globalObj, reg, slot);
-    uint32 depth = frame.stackDepth();
 
-    if (type != JSVAL_TYPE_UNKNOWN && type != JSVAL_TYPE_INT32) {
-        data = frame.allocReg();
-        stubcc.linkExit(masm.jump(), Uses(0));
-    } else if (post && !popped) {
-        Jump notInt = masm.testInt32(Assembler::NotEqual, addr);
-        stubcc.linkExit(notInt, Uses(0));
-        frame.push(addr, type);
-        FrameEntry *fe = frame.peek(-1);
-        data = frame.copyDataIntoReg(fe);
+    if (popped || (op == JSOP_INCGLOBAL || op == JSOP_DECGLOBAL)) {
+        int amt = (op == JSOP_GLOBALINC || op == JSOP_INCGLOBAL) ? -1 : 1;
+
+        
+        
+        
+        
+        frame.push(addr, JSVAL_TYPE_UNKNOWN);
+
+        
+        
+        frame.push(Int32Value(amt));
+
+        
+        
+        
+        jsop_binary(JSOP_SUB, stubs::Sub, type);
+
+        
+        
+        frame.storeTo(frame.peek(-1), addr, popped);
+
+        if (popped)
+            frame.pop();
     } else {
-        Jump notInt = masm.testInt32(Assembler::NotEqual, addr);
-        stubcc.linkExit(notInt, Uses(0));
-        data = frame.allocReg();
-        masm.loadPayload(addr, data);
+        int amt = (op == JSOP_GLOBALINC || op == JSOP_INCGLOBAL) ? 1 : -1;
+
+        
+        
+        frame.push(addr, JSVAL_TYPE_UNKNOWN);
+
+        
+        
+        jsop_pos();
+
+        
+        
+        frame.dup();
+
+        
+        
+        frame.push(Int32Value(amt));
+
+        
+        
+        jsop_binary(JSOP_ADD, stubs::Add, type);
+
+        
+        
+        frame.storeTo(frame.peek(-1), addr, popped);
+
+        
+        
+        frame.pop();
     }
 
-    Jump ovf;
-    if (amt > 0)
-        ovf = masm.branchAdd32(Assembler::Overflow, Imm32(1), data);
-    else
-        ovf = masm.branchSub32(Assembler::Overflow, Imm32(1), data);
-    stubcc.linkExit(ovf, Uses(0));
-
-    stubcc.leave();
-    stubcc.masm.lea(addr, Registers::ArgReg1);
-    stubcc.vpInc(op, depth);
-
-#if defined JS_NUNBOX32
-    masm.storePayload(data, addr);
-#elif defined JS_PUNBOX64
-    masm.storeValueFromComponents(ImmType(JSVAL_TYPE_INT32), data, addr);
-#endif
-
-    if (!post && !popped)
-        frame.pushInt32(data);
-    else
-        frame.freeReg(data);
-
     frame.freeReg(reg);
-
-    stubcc.rejoin(Changes((!post && !popped) ? 1 : 0));
-
-    PC += JSOP_GLOBALINC_LENGTH;
-    if (popped)
-        PC += JSOP_POP_LENGTH;
 }
 
 static inline bool
