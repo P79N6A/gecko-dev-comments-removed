@@ -83,16 +83,13 @@ CanvasUtils::DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
     if (aPrincipal == nsnull)
         return;
 
-    nsCOMPtr<nsINode> elem = do_QueryInterface(static_cast<nsIDOMHTMLCanvasElement*>(aCanvasElement));
-    if (elem) { 
-        PRBool subsumes;
-        nsresult rv =
-            elem->NodePrincipal()->Subsumes(aPrincipal, &subsumes);
-            
-        if (NS_SUCCEEDED(rv) && subsumes) {
-            
-            return;
-        }
+    PRBool subsumes;
+    nsresult rv =
+        aCanvasElement->NodePrincipal()->Subsumes(aPrincipal, &subsumes);
+
+    if (NS_SUCCEEDED(rv) && subsumes) {
+        
+        return;
     }
 
     aCanvasElement->SetWriteOnly();
