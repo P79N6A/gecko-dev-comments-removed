@@ -17,7 +17,6 @@ var gMainPane = {
     window.addEventListener("focus", this._updateUseCurrentButton.bind(this), false);
 
     this.updateBrowserStartupLastSession();
-    this.startupPagePrefChanged();
 
     
     Components.classes["@mozilla.org/observer-service;1"]
@@ -45,16 +44,6 @@ var gMainPane = {
 
 
 
-
-  
-
-
-  startupPagePrefChanged: function ()
-  {
-    let startupPref = document.getElementById("browser.startup.page");
-    let restoreOnDemandPref = document.getElementById("browser.sessionstore.restore_on_demand");
-    restoreOnDemandPref.disabled = startupPref.value != 3;
-  },
 
   syncFromHomePref: function ()
   {
