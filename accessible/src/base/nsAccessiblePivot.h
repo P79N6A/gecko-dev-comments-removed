@@ -60,16 +60,16 @@ private:
 
   nsAccessible* SearchForward(nsAccessible* aAccessible,
                               nsIAccessibleTraversalRule* aRule,
-                              bool searchCurrent,
-                              nsresult* rv);
+                              bool aSearchCurrent,
+                              nsresult* aResult);
 
   
 
 
   nsAccessible* SearchBackward(nsAccessible* aAccessible,
                                nsIAccessibleTraversalRule* aRule,
-                               bool searchCurrent,
-                               nsresult* rv);
+                               bool aSearchCurrent,
+                               nsresult* aResult);
 
   
 
