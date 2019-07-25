@@ -46,10 +46,6 @@ let EXPORTED_SYMBOLS = ["AllTabs"];
 
 let AllTabs = {
   
-  
-  
-
-  
 
 
 
@@ -57,8 +53,7 @@ let AllTabs = {
 
   get tabs() {
     
-    let browserWindows = AllTabs.allBrowserWindows;
-    return Array.concat.apply({}, browserWindows.map(function(browserWindow) {
+    return Array.concat.apply(null, browserWindows.map(function(browserWindow) {
       return Array.slice(browserWindow.gBrowser.tabs);
     }));
   },
@@ -74,131 +69,75 @@ let AllTabs = {
 
 
 
-
-  get onChange() AllTabs.makeBind("onChange"),
-
-  
-
-
-
-
-
-
-
-
-
-
-  get onClose() AllTabs.makeBind("onClose"),
-
-  
-
-
-
-
-
-
-
-
-
-
-  get onMove() AllTabs.makeBind("onMove"),
-
-  
-
-
-
-
-
-
-
-
-
-
-  get onOpen() AllTabs.makeBind("onOpen"),
-
-  
-
-
-
-
-
-
-
-
-
-
-  get onSelect() AllTabs.makeBind("onSelect"),
-
-  
-  
-  
-
-  get allBrowserWindows() {
-    let browserWindows = [];
-    let windows = Services.wm.getEnumerator("navigator:browser");
-    while (windows.hasMoreElements())
-      browserWindows.push(windows.getNext());
-    return browserWindows;
+  register: function register(eventName, callback) {
+    
+    let listeners = eventListeners[eventName];
+    if (listeners == null)
+      eventListeners[eventName] = [callback];
+    else
+      listeners.push(callback);
   },
 
-  eventMap: {
-    TabAttrModified: "onChange",
-    TabClose: "onClose",
-    TabMove: "onMove",
-    TabOpen: "onOpen",
-    TabSelect: "onSelect",
-  },
+  
 
-  registerBrowserWindow: function registerBrowserWindow(browserWindow) {
+
+
+
+
+
+
+
+
+  unregister: function unregister(eventName, callback) {
     
-    [i for (i in Iterator(AllTabs.eventMap))].forEach(function([tabEvent, topic]) {
-      browserWindow.addEventListener(tabEvent, function(event) {
-        AllTabs.trigger(topic, event.originalTarget, event);
-      }, true);
-    });
-  },
-
-  listeners: {},
-
-  makeBind: function makeBind(topic) {
-    delete AllTabs[topic];
-    AllTabs.listeners[topic] = [];
-
-    
-    AllTabs[topic] = function bind(callback) {
-      AllTabs.listeners[topic].push(callback);
-    };
-
-    
-    AllTabs[topic].unbind = function unbind(callback) {
-      let index = AllTabs.listeners[topic].indexOf(callback);
-      if (index != -1)
-        AllTabs.listeners[topic].splice(index, 1);
-    };
-
-    return AllTabs[topic];
-  },
-
-  trigger: function trigger(topic, tab, event) {
-    
-    let listeners = AllTabs.listeners[topic];
+    let listeners = eventListeners[eventName];
     if (listeners == null)
       return;
 
     
-    listeners.slice().forEach(function(callback) {
-      try {
-        callback.call(tab, event);
-      }
+    let index = listeners.indexOf(callback);
+    if (index == -1)
+      return;
+
+    listeners.splice(index, 1);
+  }
+};
+
+__defineGetter__("browserWindows", function browserWindows() {
+  let browserWindows = [];
+  let windows = Services.wm.getEnumerator("navigator:browser");
+  while (windows.hasMoreElements())
+    browserWindows.push(windows.getNext());
+  return browserWindows;
+});
+
+let events = ["attrModified", "close", "move", "open", "select"];
+let eventListeners = {};
+
+function registerBrowserWindow(browserWindow) {
+  events.forEach(function(eventName) {
+    let tabEvent = "Tab" + eventName[0].toUpperCase() + eventName.slice(1);
+    browserWindow.addEventListener(tabEvent, function(event) {
       
-      catch(ex) {}
-    });
-  },
+      let listeners = eventListeners[eventName];
+      if (listeners == null)
+        return;
 
-  
-  
-  
+      let tab = event.originalTarget;
 
+      
+      listeners.slice().forEach(function(callback) {
+        try {
+          callback(tab, event);
+        }
+        
+        catch(ex) {}
+      });
+    }, true);
+  });
+}
+
+let observer = {
   observe: function observe(subject, topic, data) {
     switch (topic) {
       case "domwindowopened":
@@ -208,13 +147,13 @@ let AllTabs = {
           
           let doc = subject.document.documentElement;
           if (doc.getAttribute("windowtype") == "navigator:browser")
-            AllTabs.registerBrowserWindow(subject);
+            registerBrowserWindow(subject);
         }, false);
         break;
     }
-  },
+  }
 };
 
 
-AllTabs.allBrowserWindows.forEach(AllTabs.registerBrowserWindow);
-Services.obs.addObserver(AllTabs, "domwindowopened", false);
+browserWindows.forEach(registerBrowserWindow);
+Services.obs.addObserver(observer, "domwindowopened", false);
