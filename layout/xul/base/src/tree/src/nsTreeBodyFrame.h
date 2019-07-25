@@ -54,7 +54,6 @@
 #include "nsTArray.h"
 #include "nsTreeStyleCache.h"
 #include "nsTreeColumns.h"
-#include "nsTreeImageListener.h"
 #include "nsAutoPtr.h"
 #include "nsDataHashtable.h"
 #include "imgIRequest.h"
@@ -62,8 +61,10 @@
 #include "nsScrollbarFrame.h"
 #include "nsThreadUtils.h"
 #include "mozilla/LookAndFeel.h"
+#include "nsITreeImageListener.h"
 
 class nsOverflowChecker;
+class nsTreeImageListener;
 
 
 struct nsTreeImageCacheEntry
@@ -90,6 +91,13 @@ public:
   NS_DECL_QUERYFRAME_TARGET(nsTreeBodyFrame)
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
+
+  
+  
+  
+  nsresult OnStartDecode(imgIRequest* aRequest);
+  nsresult OnStopDecode(imgIRequest* aRequest, nsresult aStatus,
+                        const PRUnichar* aStatusArg);
 
   
   nsresult GetColumns(nsITreeColumns **aColumns);
@@ -435,6 +443,15 @@ public:
     return col;
   }
 
+  
+
+
+
+
+
+
+  void RemoveTreeImageListener(nsTreeImageListener* aListener);
+
 protected:
 
   
@@ -464,6 +481,12 @@ protected:
 
   void PostScrollEvent();
   void FireScrollEvent();
+
+  
+
+
+
+  void DetachImageListeners();
 
 #ifdef ACCESSIBILITY
   
@@ -602,6 +625,11 @@ protected:
   bool mHorizontalOverflow;
 
   bool mReflowCallbackPosted;
+
+  
+  
+  nsTHashtable<nsPtrHashKey<nsTreeImageListener> > mCreatedListeners;
+
 }; 
 
 #endif
