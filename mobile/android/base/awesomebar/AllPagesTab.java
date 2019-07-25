@@ -543,7 +543,7 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
             keyword = cursor.getString(keywordCol);
 
         
-        int id = cursor.getInt(cursor.getColumnIndexOrThrow(Combined._ID));
+        int id = cursor.getInt(cursor.getColumnIndexOrThrow(Combined.HISTORY_ID));
 
         subject = new ContextMenuSubject(id,
                                         cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL)),
