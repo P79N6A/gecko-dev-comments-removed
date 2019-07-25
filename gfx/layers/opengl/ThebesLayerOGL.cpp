@@ -575,6 +575,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
         
         
         
+        destBufferRect = neededRegion.GetBounds();
         destBuffer = CreateClampOrRepeatTextureImage(gl(), destBufferDims, contentType, bufferFlags);
         if (!destBuffer)
           return result;
