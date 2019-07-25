@@ -69,6 +69,8 @@ class AsyncConnectionHelper;
 
 class CheckQuotaHelper;
 
+enum FactoryPrivilege;
+
 class IndexedDatabaseManager MOZ_FINAL : public nsIIndexedDatabaseManager,
                                          public nsIObserver
 {
@@ -153,6 +155,7 @@ public:
   GetIndexedDBQuotaMB();
 
   nsresult EnsureOriginIsInitialized(const nsACString& aOrigin,
+                                     FactoryPrivilege aPrivilege,
                                      nsIFile** aDirectory);
 
   
