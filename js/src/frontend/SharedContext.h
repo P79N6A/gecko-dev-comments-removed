@@ -126,13 +126,11 @@ struct SharedContext {
     JSContext       *const context;
 
   private:
-    const RootedFunction fun_;      
-
     FunctionBox *const funbox_;     
 
 
-
     const RootedObject scopeChain_; 
+
 
   public:
     ContextFlags    cxFlags;
@@ -160,7 +158,7 @@ struct SharedContext {
 
     
     
-    inline SharedContext(JSContext *cx, JSObject *scopeChain, JSFunction *fun, FunctionBox *funbox,
+    inline SharedContext(JSContext *cx, JSObject *scopeChain, FunctionBox *funbox,
                          StrictMode sms);
 
     
@@ -185,9 +183,8 @@ struct SharedContext {
 
 #undef INFUNC
 
-    bool inFunction() const { return !!fun_; }
+    bool inFunction() const { return !!funbox_; }
 
-    JSFunction *fun()      const { JS_ASSERT(inFunction());  return fun_; }
     FunctionBox *funbox()  const { JS_ASSERT(inFunction());  return funbox_; }
     JSObject *scopeChain() const { JS_ASSERT(!inFunction()); return scopeChain_; }
 
@@ -304,9 +301,9 @@ struct FunctionBox : public ObjectBox
     FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseContext *pc,
                 StrictMode sms);
 
-    bool funIsGenerator()        const { return cxFlags.funIsGenerator; }
+    bool funIsGenerator() const { return cxFlags.funIsGenerator; }
 
-    JSFunction *function() const { return (JSFunction *) object; }
+    JSFunction *fun() const { return (JSFunction *) object; }
 
     void recursivelySetStrictMode(StrictMode strictness);
 };

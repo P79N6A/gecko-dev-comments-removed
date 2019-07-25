@@ -100,7 +100,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
         return NULL;
     parser.sct = &sct;
 
-    SharedContext sc(cx, scopeChain,  NULL,  NULL, StrictModeFromContext(cx));
+    SharedContext sc(cx, scopeChain,  NULL, StrictModeFromContext(cx));
 
     ParseContext pc(&parser, &sc, staticLevel,  0);
     if (!pc.init())
@@ -275,8 +275,11 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     parser.sct = &sct;
 
     JS_ASSERT(fun);
-    SharedContext funsc(cx,  NULL, fun,  NULL,
-                        StrictModeFromContext(cx));
+
+    StrictMode sms = StrictModeFromContext(cx);
+    FunctionBox *funbox = parser.newFunctionBox(fun,  NULL, sms);
+
+    SharedContext funsc(cx,  NULL, funbox, sms);
     fun->setArgCount(formals.length());
 
     unsigned staticLevel = 0;
