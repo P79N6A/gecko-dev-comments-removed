@@ -65,6 +65,8 @@
 #include "nsDOMProgressEvent.h"
 #include "nsDOMEventTargetWrapperCache.h"
 #include "nsContentUtils.h"
+#include "nsDOMFile.h"
+#include "nsDOMBlobBuilder.h"
 
 class nsILoadGroup;
 class AsyncVerifyRedirectCallbackForwarder;
@@ -217,7 +219,8 @@ protected:
                 PRUint32 count,
                 PRUint32 *writeCount);
   nsresult CreateResponseParsedJSON(JSContext* aCx);
-  bool CreateResponseBlob(nsIRequest *request);
+  nsresult CreatePartialBlob(void);
+  bool CreateDOMFile(nsIRequest *request);
   
   
   nsresult ChangeState(PRUint32 aState, bool aBroadcast = true);
@@ -309,10 +312,20 @@ protected:
     XML_HTTP_RESPONSE_TYPE_TEXT,
     XML_HTTP_RESPONSE_TYPE_JSON,
     XML_HTTP_RESPONSE_TYPE_CHUNKED_TEXT,
-    XML_HTTP_RESPONSE_TYPE_CHUNKED_ARRAYBUFFER
+    XML_HTTP_RESPONSE_TYPE_CHUNKED_ARRAYBUFFER,
+    XML_HTTP_RESPONSE_TYPE_MOZ_BLOB
   } mResponseType;
 
+  
+  
   nsCOMPtr<nsIDOMBlob> mResponseBlob;
+  
+  
+  
+  nsRefPtr<nsDOMFileBase> mDOMFile;
+  
+  
+  nsRefPtr<nsDOMBlobBuilder> mBuilder;
 
   nsCString mOverrideMimeType;
 
