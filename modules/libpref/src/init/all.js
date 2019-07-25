@@ -738,6 +738,7 @@ pref("network.IDN.whitelist.jp", true);
 pref("network.IDN.whitelist.kr", true);
 pref("network.IDN.whitelist.li", true);
 pref("network.IDN.whitelist.lt", true);
+pref("network.IDN.whitelist.lu", true);
 pref("network.IDN.whitelist.no", true);
 pref("network.IDN.whitelist.nu", true);
 pref("network.IDN.whitelist.nz", true);
@@ -749,6 +750,14 @@ pref("network.IDN.whitelist.th", true);
 pref("network.IDN.whitelist.tm", true);
 pref("network.IDN.whitelist.tw", true);
 pref("network.IDN.whitelist.vn", true);
+
+
+
+pref("network.IDN.whitelist.xn--mgberp4a5d4ar", true); 
+
+pref("network.IDN.whitelist.xn--p1ai", true);
+
+pref("network.IDN.whitelist.xn--mgbayh7gpa", true);
 
 
 pref("network.IDN.whitelist.biz", true);
