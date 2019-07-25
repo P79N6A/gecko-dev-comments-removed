@@ -298,17 +298,10 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsRect dirty;
   if (subdocRootFrame) {
-    nsIDocument* doc = subdocRootFrame->PresContext()->Document();
-    nsIContent* root = doc ? doc->GetRootElement() : nsnull;
-    nsRect displayPort;
-    if (root && nsLayoutUtils::GetDisplayPort(root, &displayPort)) {
-      dirty = displayPort;
-    } else {
-      
-      dirty = aDirtyRect + GetOffsetToCrossDoc(subdocRootFrame);
-      
-      dirty = dirty.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
-    }
+    
+    dirty = aDirtyRect + GetOffsetToCrossDoc(subdocRootFrame);
+    
+    dirty = dirty.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
 
     aBuilder->EnterPresShell(subdocRootFrame, dirty);
   }
