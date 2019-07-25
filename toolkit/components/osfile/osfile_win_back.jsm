@@ -73,70 +73,56 @@
        
 
        Types.HANDLE =
-         new Type("HANDLE",
-                  ctypes.voidptr_t);
+         Types.voidptr_t.withName("HANDLE");
 
        
 
 
 
        Types.maybe_HANDLE =
-         new Type("maybe_HANDLE",
-           Types.HANDLE.implementation,
-           function (maybe) {
-             if (ctypes.cast(maybe, ctypes.int).value == invalid_handle) {
-               
-               
-               
-               return invalid_handle;
-             }
-             return ctypes.CDataFinalizer(maybe, _CloseHandle);
-           });
+         Types.HANDLE.withName("maybe_HANDLE");
+       Types.maybe_HANDLE.importFromC =
+         function maybe_HANDLE_importFromC(maybe) {
+           if (Types.int.cast(maybe).value == INVALID_HANDLE) {
+             
+             
+             
+             return INVALID_HANDLE;
+           }
+         return ctypes.CDataFinalizer(maybe, _CloseHandle);
+         };
 
        
 
 
 
        Types.maybe_find_HANDLE =
-         new Type("maybe_find_HANDLE",
-           Types.HANDLE.implementation,
-           function (maybe) {
-             if (ctypes.cast(maybe, ctypes.int).value == invalid_handle) {
-               
-               
-               
-               return invalid_handle;
-             }
-             return ctypes.CDataFinalizer(maybe, _FindClose);
-           });
+         Types.maybe_HANDLE.withName("maybe_find_HANDLE");
 
-       let invalid_handle = exports.OS.Constants.Win.INVALID_HANDLE_VALUE;
+       let INVALID_HANDLE = exports.OS.Constants.Win.INVALID_HANDLE_VALUE;
 
-       Types.DWORD = Types.int32_t;
+       Types.DWORD = Types.int32_t.withName("DWORD");
 
        
 
 
 
        Types.negative_or_DWORD =
-         new Type("negative_or_DWORD",
-                  ctypes.int32_t);
+         Types.DWORD.withName("negative_or_DWORD");
 
        
 
 
 
        Types.zero_or_DWORD =
-         new Type("zero_or_DWORD",
-                  ctypes.int32_t);
+         Types.DWORD.withName("zero_or_DWORD");
 
        
 
 
 
        Types.zero_or_nothing =
-         new Type("zero_or_nothing",
-                  Types.bool.implementation);
+         Types.int.withName("zero_or_nothing");
 
        Types.FILETIME =
          new Type("FILETIME",
