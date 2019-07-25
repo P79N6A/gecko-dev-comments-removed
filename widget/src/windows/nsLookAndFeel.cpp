@@ -356,6 +356,9 @@ nsLookAndFeel::GetIntImpl(IntID aID, PRInt32 &aResult)
         
         aResult = GetSystemParam(SPI_GETMENUSHOWDELAY, 400);
         break;
+    case eIntID_TooltipDelay:
+        aResult = 500;
+        break;
     case eIntID_MenusCanOverlapOSBar:
         
         aResult = 1;
