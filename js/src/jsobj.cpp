@@ -1335,9 +1335,9 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
 
     JSStackFrame *callerFrame = (staticLevel != 0) ? caller : NULL;
     if (!script) {
-        uint32 tcflags = TCF_COMPILE_N_GO | TCF_NEED_MUTABLE_SCRIPT | TCF_COMPILE_FOR_EVAL;
         script = Compiler::compileScript(cx, scopeobj, callerFrame,
-                                         principals, tcflags,
+                                         principals,
+                                         TCF_COMPILE_N_GO | TCF_NEED_MUTABLE_SCRIPT,
                                          str->chars(), str->length(),
                                          NULL, file, line, str, staticLevel);
         if (!script)
@@ -2812,7 +2812,6 @@ Detecting(JSContext *cx, jsbytecode *pc)
             }
             return JS_FALSE;
 
-          case JSOP_GETGNAME:
           case JSOP_NAME:
             
 
@@ -5385,7 +5384,7 @@ js_DefaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp)
                 return JS_FALSE;
         }
     }
-    if (!v.isPrimitive()) {
+    if (v.isObject()) {
         
         JSString *str;
         if (hint == JSTYPE_STRING) {
@@ -6277,8 +6276,6 @@ js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 
 #ifdef DEBUG
 
-namespace js {
-
 
 
 
@@ -6311,7 +6308,7 @@ dumpChars(const jschar *s, size_t n)
 }
 
 JS_FRIEND_API(void)
-DumpChars(const jschar *s, size_t n)
+js_DumpChars(const jschar *s, size_t n)
 {
     fprintf(stderr, "jschar * (%p) = ", (void *) s);
     dumpChars(s, n);
@@ -6325,7 +6322,7 @@ dumpString(JSString *str)
 }
 
 JS_FRIEND_API(void)
-DumpString(JSString *str)
+js_DumpString(JSString *str)
 {
     fprintf(stderr, "JSString* (%p) = jschar * (%p) = ",
             (void *) str, (void *) str->chars());
@@ -6334,10 +6331,10 @@ DumpString(JSString *str)
 }
 
 JS_FRIEND_API(void)
-DumpAtom(JSAtom *atom)
+js_DumpAtom(JSAtom *atom)
 {
     fprintf(stderr, "JSAtom* (%p) = ", (void *) atom);
-    DumpString(ATOM_TO_STRING(atom));
+    js_DumpString(ATOM_TO_STRING(atom));
 }
 
 void
@@ -6392,14 +6389,14 @@ dumpValue(const Value &v)
 }
 
 JS_FRIEND_API(void)
-DumpValue(const Value &val)
+js_DumpValue(const Value &val)
 {
     dumpValue(val);
     fputc('\n', stderr);
 }
 
 JS_FRIEND_API(void)
-DumpId(jsid id)
+js_DumpId(jsid id)
 {
     fprintf(stderr, "jsid %p = ", (void *) JSID_BITS(id));
     dumpValue(IdToValue(id));
@@ -6431,7 +6428,7 @@ dumpScopeProp(JSScopeProperty *sprop)
 }
 
 JS_FRIEND_API(void)
-DumpObject(JSObject *obj)
+js_DumpObject(JSObject *obj)
 {
     uint32 i, slots;
     Class *clasp;
@@ -6519,7 +6516,7 @@ MaybeDumpValue(const char *name, const Value &v)
 }
 
 JS_FRIEND_API(void)
-DumpStackFrame(JSContext *cx, JSStackFrame *start)
+js_DumpStackFrame(JSContext *cx, JSStackFrame *start)
 {
     
     VOUCH_DOES_NOT_REQUIRE_STACK();
@@ -6587,6 +6584,8 @@ DumpStackFrame(JSContext *cx, JSStackFrame *start)
             fprintf(stderr, " none");
         if (fp->flags & JSFRAME_CONSTRUCTING)
             fprintf(stderr, " constructing");
+        if (fp->flags & JSFRAME_COMPUTED_THIS)
+            fprintf(stderr, " computed_this");
         if (fp->flags & JSFRAME_ASSIGNING)
             fprintf(stderr, " assigning");
         if (fp->flags & JSFRAME_DEBUGGER)
@@ -6612,19 +6611,5 @@ DumpStackFrame(JSContext *cx, JSStackFrame *start)
         fputc('\n', stderr);
     }
 }
-
-#ifdef DEBUG
-bool
-IsSaneThisObject(JSObject &obj)
-{
-    Class *clasp = obj.getClass();
-    return clasp != &js_CallClass &&
-           clasp != &js_BlockClass &&
-           clasp != &js_DeclEnvClass &&
-           clasp != &js_WithClass;
-}
-#endif
-
-}  
 
 #endif
