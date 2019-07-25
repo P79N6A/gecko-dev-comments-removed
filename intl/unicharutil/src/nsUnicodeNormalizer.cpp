@@ -713,3 +713,30 @@ nsUnicodeNormalizer::NormalizeUnicodeNFKC( const nsAString& aSrc, nsAString& aDe
   return mdn_normalize(true, true, aSrc, aDest);
 }
 
+bool
+nsUnicodeNormalizer::Compose(PRUint32 a, PRUint32 b, PRUint32 *ab)
+{
+  return mdn__unicode_compose(a, b, ab) == NS_OK;
+}
+
+bool
+nsUnicodeNormalizer::DecomposeNonRecursively(PRUint32 c, PRUint32 *c1, PRUint32 *c2)
+{
+  
+  
+  
+  
+  
+  const PRUint32 *seq;
+  PRUint32 seqidx = decompose_char(c, &seq);
+  if (seqidx == 0 || ((seqidx & DECOMP_COMPAT) != 0)) {
+    return false;
+  }
+  *c1 = *seq & ~END_BIT;
+  if (*seq & END_BIT) {
+    *c2 = 0;
+  } else {
+    *c2 = *++seq & ~END_BIT;
+  }
+  return true;
+}
