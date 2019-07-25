@@ -91,12 +91,20 @@ class FrameSize
 
 namespace ic {
 
-struct GlobalNameIC
-{
+struct MICInfo {
+    enum Kind
+#ifdef _MSC_VER
+    : uint8_t
+#endif
+    {
+        GET,
+        SET
+    };
+
     typedef JSC::MacroAssembler::RegisterID RegisterID;
 
-    JSC::CodeLocationLabel  fastPathStart;
-    JSC::CodeLocationCall   slowPathCall;
+    JSC::CodeLocationLabel fastPathStart;
+    JSC::CodeLocationLabel slowPathStart;
 
     
 
@@ -107,28 +115,19 @@ struct GlobalNameIC
 
 
 
-    int32 loadStoreOffset   : 15;
-    int32 shapeOffset       : 15;
-    bool usePropertyCache   : 1;
-};
-
-struct GetGlobalNameIC : public GlobalNameIC
-{
-};
-
-struct SetGlobalNameIC : public GlobalNameIC
-{
-    JSC::CodeLocationLabel  slowPathStart;
+    JSC::CodeLocationLabel load;
+    JSC::CodeLocationDataLabel32 shape;
+    JSC::CodeLocationCall stubCall;
 
     
-    JSC::JITCode            extraStub;
-
-    
+    Kind kind : 2;
+    bool usePropertyCache : 1;
     int inlineShapeJump : 10;   
     int extraShapeGuard : 6;    
     bool objConst : 1;          
     RegisterID objReg   : 5;    
     RegisterID shapeReg : 5;    
+    JSC::JITCode extraStub;     
 
     int fastRejoinOffset : 16;  
     int extraStoreOffset : 16;  
@@ -160,8 +159,8 @@ struct TraceICInfo {
 
 static const uint16 BAD_TRACEIC_INDEX = (uint16)0xffff;
 
-void JS_FASTCALL GetGlobalName(VMFrame &f, ic::GetGlobalNameIC *ic);
-void JS_FASTCALL SetGlobalName(VMFrame &f, ic::SetGlobalNameIC *ic);
+void JS_FASTCALL GetGlobalName(VMFrame &f, ic::MICInfo *ic);
+void JS_FASTCALL SetGlobalName(VMFrame &f, ic::MICInfo *ic);
 
 struct EqualityICInfo {
     typedef JSC::MacroAssembler::RegisterID RegisterID;
