@@ -740,6 +740,20 @@ var FormHelperUI = {
       case "keydown":
       case "keypress":
       case "keyup":
+        
+        
+        if (!aEvent.view) {
+          aEvent.preventDefault();
+          aEvent.stopPropagation();
+          return;
+        }
+
+        
+        
+        let focusedElement = gFocusManager.getFocusedElementForWindow(window, true, {});
+        if (focusedElement.localName == "browser")
+          return;
+
         Browser.keySender.handleEvent(aEvent);
         break;
 
