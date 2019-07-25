@@ -84,5 +84,13 @@ GetCurrentNetworkInformation(hal::NetworkInformation* aNetworkInfo)
   aNetworkInfo->canBeMetered() = dom::network::kDefaultCanBeMetered;
 }
 
+void
+Reboot()
+{}
+
+void
+PowerOff()
+{}
+
 } 
 } 
