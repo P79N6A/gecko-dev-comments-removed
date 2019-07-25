@@ -50,12 +50,12 @@
 #include "nsIContent.h"
 #include "nsCSSPseudoElements.h"
 #include "nsRuleWalker.h"
+#include "nsNthIndexCache.h"
 
 class nsIStyleSheet;
 class nsIAtom;
 class nsICSSPseudoComparator;
 class nsAttrValue;
-
 
 
 
@@ -82,15 +82,23 @@ struct TreeMatchContext {
   nsRuleWalker::VisitedHandlingType mVisitedHandling;
 
   
+  nsIDocument* const mDocument;
+
+  
   
   nsIContent* mScopedRoot;
 
   
   
+  
   const PRPackedBool mIsHTMLDocument;
 
   
+  
   const nsCompatibility mCompatMode;
+
+  
+  nsNthIndexCache mNthIndexCache;
 
   TreeMatchContext(PRBool aForStyling,
                    nsRuleWalker::VisitedHandlingType aVisitedHandling,
@@ -98,6 +106,7 @@ struct TreeMatchContext {
     : mForStyling(aForStyling)
     , mHaveRelevantLink(PR_FALSE)
     , mVisitedHandling(aVisitedHandling)
+    , mDocument(aDocument)
     , mScopedRoot(nsnull)
     , mIsHTMLDocument(aDocument->IsHTML())
     , mCompatMode(aDocument->GetCompatibilityMode())
@@ -172,15 +181,6 @@ public:
                   nsRuleWalker::VisitedHandlingType aVisitedHandling,
                   PRBool aIsRelevantLink);
 
-  
-  
-  
-  
-  
-  
-  PRInt32 GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd,
-                      PRBool aCheckEdgeOnly);
-
   nsPresContext*    mPresContext;
   mozilla::dom::Element* mElement;       
   nsIContent*       mParentContent; 
@@ -199,14 +199,6 @@ public:
 
 private:
   nsString *mLanguage; 
-
-  
-  
-  
-  
-  
-  
-  PRInt32 mNthIndices[2][2];
 
   
   nsEventStates mContentState;  
