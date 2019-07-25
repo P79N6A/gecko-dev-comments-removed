@@ -95,14 +95,15 @@ protected:
   AsyncConnectionHelper(IDBDatabaseRequest* aDatabase,
                         IDBRequest* aRequest);
 
+  virtual ~AsyncConnectionHelper();
+
   
 
 
-  AsyncConnectionHelper(IDBDatabaseRequest* aDatabase,
-                        IDBRequest* aRequest,
-                        PRUint32 aTimeoutMS);
-
-  virtual ~AsyncConnectionHelper();
+  void SetTimeoutMS(PRUint32 aTimeoutMS)
+  {
+    mTimeoutDuration = TimeDuration::FromMilliseconds(aTimeoutMS);
+  }
 
   
 
