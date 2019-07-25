@@ -58,16 +58,17 @@ const DownloadsPanel = {
   
 
 
-  _panelState: 0,
+
+  _state: 0,
 
   
-  get kPanelUninitialized() 0,
+  get kStateUninitialized() 0,
   
-  get kPanelHidden() 1,
+  get kStateHidden() 1,
   
-  get kPanelShowing() 2,
+  get kStateShowing() 2,
   
-  get kPanelShown() 3,
+  get kStateShown() 3,
 
   
 
@@ -84,12 +85,12 @@ const DownloadsPanel = {
 
   initialize: function DP_initialize(aCallback)
   {
-    if (this._panelState != this.kPanelUninitialized) {
+    if (this._state != this.kStateUninitialized) {
       DownloadsOverlayLoader.ensureOverlayLoaded(this.kDownloadsOverlay,
                                                  aCallback);
       return;
     }
-    this._panelState = this.kPanelHidden;
+    this._state = this.kStateHidden;
 
     window.addEventListener("unload", this.onWindowUnload, false);
 
@@ -115,7 +116,7 @@ const DownloadsPanel = {
 
   terminate: function DP_terminate()
   {
-    if (this._panelState == this.kPanelUninitialized) {
+    if (this._state == this.kStateUninitialized) {
       return;
     }
 
@@ -127,7 +128,7 @@ const DownloadsPanel = {
     DownloadsViewController.terminate();
     DownloadsCommon.data.removeView(DownloadsView);
 
-    this._panelState = this.kPanelUninitialized;
+    this._state = this.kStateUninitialized;
   },
 
   
@@ -163,7 +164,7 @@ const DownloadsPanel = {
       setTimeout(function () DownloadsPanel._openPopupIfDataReady(), 0);
     }.bind(this));
 
-    this._panelState = this.kPanelShowing;
+    this._state = this.kStateShowing;
   },
 
   
@@ -181,7 +182,7 @@ const DownloadsPanel = {
     
     
     
-    this._panelState = this.kPanelHidden;
+    this._state = this.kStateHidden;
   },
 
   
@@ -189,8 +190,8 @@ const DownloadsPanel = {
 
   get isPanelShowing()
   {
-    return this._panelState == this.kPanelShowing ||
-           this._panelState == this.kPanelShown;
+    return this._state == this.kStateShowing ||
+           this._state == this.kStateShown;
   },
 
   
@@ -220,6 +221,8 @@ const DownloadsPanel = {
       return;
     }
 
+    this._state = this.kStateShown;
+
     
     DownloadsCommon.indicatorData.attentionSuppressed = true;
 
@@ -246,7 +249,7 @@ const DownloadsPanel = {
     DownloadsButton.releaseAnchor();
 
     
-    this._panelState = this.kPanelHidden;
+    this._state = this.kStateHidden;
   },
 
   
@@ -275,7 +278,7 @@ const DownloadsPanel = {
   _focusPanel: function DP_focusPanel()
   {
     
-    if (this._panelState != this.kPanelShown) {
+    if (this._state != this.kStateShown) {
       return;
     }
 
@@ -295,11 +298,9 @@ const DownloadsPanel = {
   {
     
     
-    if (this._panelState != this.kPanelShowing || DownloadsView.loading) {
+    if (this._state != this.kStateShowing || DownloadsView.loading) {
       return;
     }
-
-    this._panelState = this.kPanelShown;
 
     
     this.panel.popupBoxObject.setConsumeRollupEvent(Ci.nsIPopupBoxObject
@@ -308,6 +309,16 @@ const DownloadsPanel = {
     
     
     DownloadsButton.getAnchor(function DP_OPIDR_callback(aAnchor) {
+      
+      
+      
+      
+      if (window.windowState == Ci.nsIDOMChromeWindow.STATE_MINIMIZED) {
+        DownloadsButton.releaseAnchor();
+        this._state = this.kStateHidden;
+        return;
+      }
+
       if (aAnchor) {
         this.panel.openPopup(aAnchor, "bottomcenter topright", 0, 0, false,
                              null);

@@ -78,6 +78,11 @@ DownloadsUI.prototype = {
     
     let browserWin = gBrowserGlue.getMostRecentBrowserWindow();
     if (browserWin) {
+      
+      
+      if (browserWin.windowState == Ci.nsIDOMChromeWindow.STATE_MINIMIZED) {
+        browserWin.restore();
+      }
       browserWin.focus();
       browserWin.DownloadsPanel.showPanel();
       return;
