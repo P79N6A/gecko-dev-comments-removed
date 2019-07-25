@@ -548,7 +548,7 @@ public:
   virtual PRBool IsContainer(nsIDOMNode *aNode);
 
   
-  virtual PRBool IsEditable(nsIDOMNode *aNode);
+  PRBool IsEditable(nsIDOMNode *aNode);
 
   virtual PRBool IsTextInDirtyFrameVisible(nsIDOMNode *aNode);
 
