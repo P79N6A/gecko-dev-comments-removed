@@ -127,14 +127,13 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 
 
 @interface NSEvent (DeviceDelta)
-  - (CGFloat)deviceDeltaX;
-  - (CGFloat)deviceDeltaY;
-@end
 
+- (CGFloat)deviceDeltaX;
+- (CGFloat)deviceDeltaY;
 
-
-@interface NSEvent (ScrollPhase)
-- (long long)_scrollPhase;
+- (CGFloat)scrollingDeltaX;
+- (CGFloat)scrollingDeltaY;
+- (BOOL)hasPreciseScrollingDeltas;
 @end
 
 #if !defined(MAC_OS_X_VERSION_10_6) || \
@@ -160,7 +159,6 @@ MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6
 
 
 #if !defined(MAC_OS_X_VERSION_10_7) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_7
-#ifdef __LP64__
 enum {
   NSEventPhaseNone        = 0,
   NSEventPhaseBegan       = 0x1 << 0,
@@ -171,6 +169,7 @@ enum {
 };
 typedef NSUInteger NSEventPhase;
 
+#ifdef __LP64__
 enum {
   NSEventSwipeTrackingLockDirection = 0x1 << 0,
   NSEventSwipeTrackingClampGestureAmount = 0x1 << 1
@@ -197,6 +196,15 @@ typedef NSInteger NSEventGestureAxis;
 @end
 #endif 
 #endif 
+
+
+
+@interface NSEvent (ScrollPhase)
+
+- (long long)_scrollPhase;
+
+- (NSEventPhase)momentumPhase;
+@end
 
 @interface ChildView : NSView<
 #ifdef ACCESSIBILITY
