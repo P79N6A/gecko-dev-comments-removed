@@ -95,7 +95,7 @@ class RuntimeService : public nsIObserver
   nsTArray<IdleThreadInfo> mIdleThreadArray;
 
   
-  nsClassHashtable<nsVoidPtrHashKey, nsTArray<WorkerPrivate*> > mWindowMap;
+  nsClassHashtable<nsPtrHashKey<nsPIDOMWindow>, nsTArray<WorkerPrivate*> > mWindowMap;
 
   
   nsCOMPtr<nsITimer> mIdleThreadTimer;

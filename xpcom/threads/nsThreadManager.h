@@ -88,7 +88,7 @@ private:
   
   static nsThreadManager sInstance;
 
-  nsRefPtrHashtable<nsVoidPtrHashKey, nsThread> mThreadsByPRThread;
+  nsRefPtrHashtable<nsPtrHashKey<PRThread>, nsThread> mThreadsByPRThread;
   PRUintn             mCurThreadIndex;  
   nsRefPtr<nsThread>  mMainThread;
   PRThread           *mMainPRThread;
