@@ -93,8 +93,6 @@ public class GeckoAppShell
     static private final int NOTIFY_IME_CANCELCOMPOSITION = 2;
     static private final int NOTIFY_IME_FOCUSCHANGE = 3;
 
-    static public final long kFreeSpaceThreshold = 157286400L; 
-    static private final long kLibFreeSpaceBuffer = 20971520L; 
     static private File sCacheFile = null;
     static private int sFreeSpace = -1;
 
@@ -355,7 +353,8 @@ public class GeckoAppShell
 
         putLocaleEnv();
 
-        if (freeSpace + kLibFreeSpaceBuffer < kFreeSpaceThreshold) {
+        boolean extractLibs = GeckoApp.ACTION_DEBUG.equals(i.getAction());
+        if (!extractLibs) {
             
             File[] files = cacheFile.listFiles();
             if (files != null) {
@@ -367,7 +366,7 @@ public class GeckoAppShell
                 }
             }
         }
-        loadLibs(apkName, freeSpace > kFreeSpaceThreshold);
+        loadLibs(apkName, extractLibs);
     }
 
     private static void putLocaleEnv() {
