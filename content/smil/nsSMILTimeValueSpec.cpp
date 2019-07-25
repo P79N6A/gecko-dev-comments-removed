@@ -100,9 +100,6 @@ nsresult
 nsSMILTimeValueSpec::SetSpec(const nsAString& aStringSpec,
                              Element* aContextNode)
 {
-  NS_ABORT_IF_FALSE(aContextNode,
-                    "null context node; can't determine if script is enabled");
-
   nsSMILTimeValueSpecParams params;
   nsresult rv =
     nsSMILParserUtils::ParseTimeValueSpecParams(aStringSpec, params);
@@ -110,28 +107,24 @@ nsSMILTimeValueSpec::SetSpec(const nsAString& aStringSpec,
   if (NS_FAILED(rv))
     return rv;
 
-  
-  
-  
-  
-  if (params.mType == nsSMILTimeValueSpecParams::OFFSET ||
-      (!mIsBegin && params.mType == nsSMILTimeValueSpecParams::INDEFINITE)) {
-    mOwner->AddInstanceTime(new nsSMILInstanceTime(params.mOffset), mIsBegin);
-  }
-
-  
-  if (params.mType == nsSMILTimeValueSpecParams::REPEAT) {
-    params.mEventSymbol = nsGkAtoms::repeatEvent;
-  } else if (params.mType == nsSMILTimeValueSpecParams::ACCESSKEY) {
-    
-    if (!aContextNode->GetOwnerDocument()->IsScriptEnabled()) {
-      return NS_ERROR_FAILURE;
-    }
-
-    params.mEventSymbol = nsGkAtoms::keypress;
-  }
-
   mParams = params;
+
+  
+  
+  
+  
+  if (mParams.mType == nsSMILTimeValueSpecParams::OFFSET ||
+      (!mIsBegin && mParams.mType == nsSMILTimeValueSpecParams::INDEFINITE)) {
+    mOwner->AddInstanceTime(new nsSMILInstanceTime(mParams.mOffset), mIsBegin);
+  }
+
+  
+  if (mParams.mType == nsSMILTimeValueSpecParams::REPEAT) {
+    mParams.mEventSymbol = nsGkAtoms::repeatEvent;
+  } else if (mParams.mType == nsSMILTimeValueSpecParams::ACCESSKEY) {
+    mParams.mEventSymbol = nsGkAtoms::keypress;
+  }
+
   ResolveReferences(aContextNode);
 
   return rv;
