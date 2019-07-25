@@ -344,21 +344,34 @@ nsMenuBarListener::KeyDown(nsIDOMEvent* aKeyEvent)
     PRUint32 theChar;
     keyEvent->GetKeyCode(&theChar);
 
-    if (!mAccessKeyDownCanceled && theChar == (PRUint32)mAccessKey &&
-        (GetModifiers(keyEvent) & ~mAccessKeyMask) == 0) {
+    
+    
+    
+    bool isAccessKeyDownEvent =
+      ((theChar == (PRUint32)mAccessKey) &&
+       (GetModifiers(keyEvent) & ~mAccessKeyMask) == 0);
+
+    if (!mAccessKeyDown) {
       
       
-      
+      if (!isAccessKeyDownEvent) {
+        return NS_OK;
+      }
+
       
       mAccessKeyDown = true;
+      mAccessKeyDownCanceled = false;
+      return NS_OK;
     }
-    else {
-      
-      
-      
 
-      mAccessKeyDownCanceled = true;
+    
+    if (mAccessKeyDownCanceled) {
+      return NS_OK;
     }
+
+    
+    
+    mAccessKeyDownCanceled = !isAccessKeyDownEvent;
   }
 
   return NS_OK; 
@@ -371,9 +384,11 @@ nsMenuBarListener::Blur(nsIDOMEvent* aEvent)
 {
   if (!mMenuBarFrame->IsMenuOpen() && mMenuBarFrame->IsActive()) {
     ToggleMenuActiveState();
-    mAccessKeyDown = false;
-    mAccessKeyDownCanceled = false;
   }
+  
+  
+  mAccessKeyDown = false;
+  mAccessKeyDownCanceled = false;
   return NS_OK; 
 }
   
