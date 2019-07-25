@@ -291,6 +291,20 @@ public:
 
   Nv3DVUtils *GetNv3DVUtils()  { return mD3DManager->GetNv3DVUtils(); }
 
+  
+
+
+
+
+
+
+
+
+
+  virtual already_AddRefed<ID3D10ShaderResourceView> GetAsTexture(gfxIntSize* aSize)
+  {
+    return nsnull;
+  }
 
   void SetEffectTransformAndOpacity()
   {
@@ -302,6 +316,14 @@ public:
   }
 
 protected:
+  
+
+
+
+
+
+  bool LoadMaskTexture();
+
   LayerManagerD3D10 *mD3DManager;
 };
 
