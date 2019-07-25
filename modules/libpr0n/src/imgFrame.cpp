@@ -69,9 +69,6 @@ static PRUint32 gTotalDDBSize = 0;
 
 static PRBool AllowedImageSize(PRInt32 aWidth, PRInt32 aHeight)
 {
-  NS_ASSERTION(aWidth > 0, "invalid image width");
-  NS_ASSERTION(aHeight > 0, "invalid image height");
-
   
   const PRInt32 k64KLimit = 0x0000FFFF;
   if (NS_UNLIKELY(aWidth > k64KLimit || aHeight > k64KLimit )) {
@@ -80,8 +77,7 @@ static PRBool AllowedImageSize(PRInt32 aWidth, PRInt32 aHeight)
   }
 
   
-  
-  if (NS_UNLIKELY(aHeight == 0)) {
+  if (NS_UNLIKELY(aHeight <= 0 || aWidth <= 0)) {
     return PR_FALSE;
   }
 
