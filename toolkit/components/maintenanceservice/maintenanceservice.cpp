@@ -55,7 +55,7 @@ HANDLE gThread = NULL;
 bool gServiceControlStopping = false;
 
 
-#define LOGS_TO_KEEP 5
+#define LOGS_TO_KEEP 10
 
 BOOL GetLogDirectoryPath(WCHAR *path);
 
