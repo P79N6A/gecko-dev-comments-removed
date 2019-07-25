@@ -434,36 +434,51 @@ NS_NewTelephony(nsPIDOMWindow* aWindow, nsIDOMTelephony** aTelephony)
                                aWindow->GetCurrentInnerWindow();
   NS_ENSURE_TRUE(innerWindow, NS_ERROR_FAILURE);
 
+  
+  
   if (!nsContentUtils::CanCallerAccess(innerWindow)) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
+  
   nsCOMPtr<nsIDocument> document =
     do_QueryInterface(innerWindow->GetExtantDocument());
   NS_ENSURE_TRUE(document, NS_NOINTERFACE);
 
-  nsCOMPtr<nsIURI> documentURI;
-  nsresult rv = document->NodePrincipal()->GetURI(getter_AddRefs(documentURI));
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  
+  if (!nsContentUtils::IsSystemPrincipal(document->NodePrincipal())) {
+    nsCOMPtr<nsIURI> documentURI;
+    nsresult rv =
+      document->NodePrincipal()->GetURI(getter_AddRefs(documentURI));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCString documentURL;
-  rv = documentURI->GetSpec(documentURL);
-  NS_ENSURE_SUCCESS(rv, rv);
+    nsCString documentURL;
+    rv = documentURI->GetSpec(documentURL);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCString phoneAppURL;
-  rv = Preferences::GetCString(DOM_TELEPHONY_APP_PHONE_URL_PREF, &phoneAppURL);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsRefPtr<Telephony> telephony;
-  if (phoneAppURL.Equals(documentURL, nsCaseInsensitiveCStringComparator())) {
-    nsIInterfaceRequestor* ireq = SystemWorkerManager::GetInterfaceRequestor();
-    NS_ENSURE_TRUE(ireq, NS_ERROR_UNEXPECTED);
-
-    nsCOMPtr<nsITelephone> telephone = do_GetInterface(ireq);
-    NS_ENSURE_TRUE(telephone, NS_ERROR_UNEXPECTED);
-
-    telephony = Telephony::Create(innerWindow, telephone);
+    
+    
+    nsCString phoneAppURL;
+    if (NS_FAILED(Preferences::GetCString(DOM_TELEPHONY_APP_PHONE_URL_PREF,
+                                          &phoneAppURL)) ||
+        !phoneAppURL.Equals(documentURL,
+                            nsCaseInsensitiveCStringComparator())) {
+      *aTelephony = nsnull;
+      return NS_OK;
+    }
   }
+
+  
+  nsIInterfaceRequestor* ireq = SystemWorkerManager::GetInterfaceRequestor();
+  NS_ENSURE_TRUE(ireq, NS_ERROR_UNEXPECTED);
+
+  nsCOMPtr<nsITelephone> telephone = do_GetInterface(ireq);
+  NS_ENSURE_TRUE(telephone, NS_ERROR_UNEXPECTED);
+
+  nsRefPtr<Telephony> telephony = Telephony::Create(innerWindow, telephone);
+  NS_ENSURE_TRUE(telephony, NS_ERROR_UNEXPECTED);
+
   telephony.forget(aTelephony);
   return NS_OK;
 }
