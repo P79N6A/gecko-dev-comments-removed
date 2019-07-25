@@ -65,6 +65,11 @@
 #endif
 
 
+#ifdef cairo_public
+#   define PIXMAN_EXPORT cairo_public
+#else
+
+
 #if defined(__GNUC__) && __GNUC__ >= 4 && !defined(_WIN32)
 #   define PIXMAN_EXPORT __attribute__ ((visibility("default")))
 
@@ -73,6 +78,8 @@
 #else
 #   define PIXMAN_EXPORT
 #endif
+
+#endif 
 
 
 #if defined(PIXMAN_NO_TLS)
