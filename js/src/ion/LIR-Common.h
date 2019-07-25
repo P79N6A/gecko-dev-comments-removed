@@ -184,6 +184,13 @@ class LParameter : public LInstructionHelper<BOX_PIECES, 0, 0>
 };
 
 
+class LCallee : public LInstructionHelper<1, 0, 0>
+{
+  public:
+    LIR_HEADER(Callee);
+};
+
+
 class LGoto : public LInstructionHelper<0, 0, 0>
 {
     MBasicBlock *block_;
@@ -770,6 +777,22 @@ class LOsrValue : public LInstructionHelper<BOX_PIECES, 1, 0>
 };
 
 
+class LOsrScopeChain : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(OsrScopeChain);
+
+    LOsrScopeChain(const LAllocation &entry)
+    {
+        setOperand(0, entry);
+    }
+
+    const MOsrScopeChain *mir() {
+        return mir_->toOsrScopeChain();
+    }
+};
+
+
 class LImplicitThis : public LInstructionHelper<BOX_PIECES, 1, 0>
 {
   public:
@@ -1122,14 +1145,47 @@ class LStringLength : public LInstructionHelper<1, 1, 0>
     }
 };
 
-class LLoadPropertyGeneric : public LCallInstructionHelper<BOX_PIECES, 1, 0>
+
+class LFunctionEnvironment : public LInstructionHelper<1, 1, 0>
 {
   public:
-    LIR_HEADER(LoadPropertyGeneric);
+    LIR_HEADER(FunctionEnvironment);
 
-    MLoadProperty *mir() const {
-        return mir_->toLoadProperty();
+    LFunctionEnvironment(const LAllocation &function) {
+        setOperand(0, function);
     }
+    const LAllocation *function() {
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+class LCallGetPropertyOrName : public LCallInstructionHelper<BOX_PIECES, 1, 0>
+{
+  public:
+    MCallGetPropertyOrName *mir() const {
+        return static_cast<MCallGetPropertyOrName *>(mir_);
+    }
+};
+
+class LCallGetProperty : public LCallGetPropertyOrName
+{
+  public:
+    LIR_HEADER(CallGetProperty);
+};
+
+class LCallGetName : public LCallGetPropertyOrName
+{
+  public:
+    LIR_HEADER(CallGetName);
+};
+
+class LCallGetNameTypeOf : public LCallGetPropertyOrName
+{
+  public:
+    LIR_HEADER(CallGetNameTypeOf);
 };
 
 

@@ -119,8 +119,12 @@ class CodeGeneratorShared : public LInstructionVisitor
 
     
     inline int32 ArgToStackOffset(int32 slot) const {
-        JS_ASSERT(slot >= 0);
         return masm.framePushed() + sizeof(IonJSFrameLayout) + slot;
+    }
+
+    
+    inline int32 CalleeStackOffset() const {
+        return masm.framePushed() + IonJSFrameLayout::offsetOfCalleeToken();
     }
 
     inline int32 SlotToStackOffset(int32 slot) const {

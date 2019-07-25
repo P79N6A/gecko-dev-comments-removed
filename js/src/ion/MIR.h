@@ -607,7 +607,6 @@ class MConstant : public MAryInstruction<0>
     }
 };
 
-
 class MParameter : public MAryInstruction<0>
 {
     int32 index_;
@@ -637,6 +636,21 @@ class MParameter : public MAryInstruction<0>
 
     HashNumber valueHash() const;
     bool congruentTo(MDefinition * const &ins) const;
+};
+
+class MCallee : public MAryInstruction<0>
+{
+  public:
+    MCallee()
+    {
+        setResultType(MIRType_Object);
+    }
+
+  public:
+    INSTRUCTION_HEADER(Callee);
+    static MCallee *New() {
+        return new MCallee();
+    }
 };
 
 class MControlInstruction : public MInstruction
@@ -1745,6 +1759,7 @@ class MPhi : public MDefinition, public InlineForwardListNode<MPhi>
 
 class MOsrValue : public MAryInstruction<1>
 {
+  private:
     ptrdiff_t frameOffset_;
 
     MOsrValue(MOsrEntry *entry, ptrdiff_t frameOffset)
@@ -1774,6 +1789,28 @@ class MOsrValue : public MAryInstruction<1>
     }
     virtual AliasSet getAliasSet() const {
         return AliasSet::None();
+    }
+};
+
+
+
+class MOsrScopeChain : public MAryInstruction<1>
+{
+  private:
+    MOsrScopeChain(MOsrEntry *entry)
+    {
+        setOperand(0, entry);
+        setResultType(MIRType_Object);
+    }
+
+  public:
+    INSTRUCTION_HEADER(OsrScopeChain);
+    static MOsrScopeChain *New(MOsrEntry *entry) {
+        return new MOsrScopeChain(entry);
+    }
+
+    MOsrEntry *entry() {
+        return getOperand(0)->toOsrEntry();
     }
 };
 
@@ -2260,6 +2297,29 @@ class MLoadSlot
 };
 
 
+class MFunctionEnvironment
+  : public MUnaryInstruction,
+    public ObjectPolicy
+{
+  public:
+    MFunctionEnvironment(MDefinition *function)
+        : MUnaryInstruction(function)
+    {
+        setResultType(MIRType_Object);
+    }
+
+    INSTRUCTION_HEADER(FunctionEnvironment);
+
+    static MFunctionEnvironment *New(MDefinition *function) {
+        return new MFunctionEnvironment(function);
+    }
+
+    MDefinition *function() const {
+        return getOperand(0);
+    }
+};
+
+
 class MStoreSlot
   : public MBinaryInstruction,
     public ObjectPolicy
@@ -2318,22 +2378,33 @@ class MStoreSlot
 };
 
 
-class MLoadProperty
+
+
+class MCallGetPropertyOrName
   : public MUnaryInstruction,
     public ObjectPolicy
 {
-    JSAtom *atom_;
-
   public:
-    MLoadProperty(MDefinition *obj, JSAtom *atom)
+    enum AccessKind {
+        PROPERTY,
+        NAMETYPEOF,
+        NAME
+    };
+
+  private:
+    JSAtom *atom_;
+    AccessKind kind_;
+
+  protected:
+    MCallGetPropertyOrName(MDefinition *obj, JSAtom *atom, AccessKind kind)
       : MUnaryInstruction(obj),
-        atom_(atom)
+        atom_(atom),
+        kind_(kind)
     {
         setResultType(MIRType_Value);
     }
 
-    INSTRUCTION_HEADER(LoadProperty);
-
+  public:
     TypePolicy *typePolicy() {
         return this;
     }
@@ -2342,6 +2413,9 @@ class MLoadProperty
     }
     JSAtom *atom() const {
         return atom_;
+    }
+    AccessKind accessKind() const {
+        return kind_;
     }
     bool congruentTo(MDefinition * const &) const {
         return false;
@@ -2352,6 +2426,48 @@ class MLoadProperty
         
         return AliasSet::Load(AliasSet::Any) |
                AliasSet::Store(AliasSet::Any);
+    }
+};
+
+class MCallGetProperty : public MCallGetPropertyOrName
+{
+    MCallGetProperty(MDefinition *obj, JSAtom *atom)
+        : MCallGetPropertyOrName(obj, atom, MCallGetPropertyOrName::PROPERTY)
+    {}
+
+  public:
+    INSTRUCTION_HEADER(CallGetProperty);
+
+    static MCallGetProperty *New(MDefinition *obj, JSAtom *atom) {
+        return new MCallGetProperty(obj, atom);
+    }
+};
+
+class MCallGetName : public MCallGetPropertyOrName
+{
+    MCallGetName(MDefinition *obj, JSAtom *atom)
+        : MCallGetPropertyOrName(obj, atom, MCallGetPropertyOrName::NAME)
+    {}
+
+  public:
+    INSTRUCTION_HEADER(CallGetName);
+
+    static MCallGetName *New(MDefinition *obj, JSAtom *atom) {
+        return new MCallGetName(obj, atom);
+    }
+};
+
+class MCallGetNameTypeOf : public MCallGetPropertyOrName
+{
+    MCallGetNameTypeOf(MDefinition *obj, JSAtom *atom)
+        : MCallGetPropertyOrName(obj, atom, MCallGetPropertyOrName::NAMETYPEOF)
+    {}
+
+  public:
+    INSTRUCTION_HEADER(CallGetNameTypeOf);
+
+    static MCallGetNameTypeOf *New(MDefinition *obj, JSAtom *atom) {
+        return new MCallGetNameTypeOf(obj, atom);
     }
 };
 
@@ -2561,5 +2677,5 @@ typedef Vector<MDefinition *, 8, IonAllocPolicy> MDefinitionVector;
 } 
 } 
 
-#endif 
+#endif
 
