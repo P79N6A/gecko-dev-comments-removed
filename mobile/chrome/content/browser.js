@@ -466,38 +466,41 @@ var Browser = {
     return this._browsers;
   },
 
+  _resizeAndPaint: function() {
+    
+    this._browserView.simulateMozAfterSizeChange();
+    
+
+    this._browserView.zoomToPage();
+    this._browserView.commitBatchOperation();
+
+    if (this._pageLoading) {
+      
+      this._browserView.beginBatchOperation();
+      this._loadingTimeout = setTimeout(resizeAndPaint, 2000);
+    } else {
+      delete this._loadingTimeout;
+    }
+  },
+
   startLoading: function() {
     if (this._pageLoading)
       throw "!@@!#!";
 
     this._pageLoading = true;
 
-    function resizeAndPaint(self) {
-      
-      self._browserView.simulateMozAfterSizeChange();
-      
-
-      self._browserView.zoomToPage();
-      self._browserView.commitBatchOperation();
-
-      if (self._pageLoading) {
-	
-	self._browserView.beginBatchOperation();
-	self._loadingTimeout = setTimeout(resizeAndPaint, 2000, self);
-      } else {
-	delete self._loadingTimeout;
-      }
-    }
-
     if (!this._loadingTimeout) {
       this._browserView.beginBatchOperation();
-      this._loadingTimeout = setTimeout(resizeAndPaint, 2000, this);
+      this._loadingTimeout = setTimeout(Util.bind(this, this._resizeAndPaint), 2000);
     }
-
   },
 
   endLoading: function() {
     this._pageLoading = false;
+    clearTimeout(this._loadingTimeout);
+    
+    
+    this._resizeAndPaint();
   },
 
 
