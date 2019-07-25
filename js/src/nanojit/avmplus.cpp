@@ -62,7 +62,20 @@ avmplus::AvmLog(char const *msg, ...) {
 #ifdef _DEBUG
 namespace avmplus {
     void AvmAssertFail(const char* ) {
-        abort();
+        fflush(stderr);
+#if defined(WIN32)
+        DebugBreak();
+        exit(3);
+#elif defined(__APPLE__)
+        
+
+
+
+        *((int *) NULL) = 0;  
+        raise(SIGABRT);  
+#else
+        raise(SIGABRT);  
+#endif
     }
 }
 #endif
