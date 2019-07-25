@@ -862,12 +862,21 @@ public:
 
 
 
+
+
+
   enum {
     PAINT_DEFAULT = 0,
     PAINT_USE_WIDGET_LAYERS = 0x01
   };
-  void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
-             PRUint32 aFlags) const;
+  void PaintRoot(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
+                 PRUint32 aFlags) const;
+  
+
+
+
+  void PaintForFrame(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
+                     nsIFrame* aForFrame, PRUint32 aFlags) const;
   
 
 
@@ -945,6 +954,7 @@ public:
 
 
 
+
   already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                      LayerManager* aManager,
                                      nsTArray<LayerItems>* aLayers) const;
@@ -968,6 +978,8 @@ private:
   nsDisplayItemLink  mSentinel;
   nsDisplayItemLink* mTop;
 
+  
+  nsRect mVisibleRect;
   
   
   

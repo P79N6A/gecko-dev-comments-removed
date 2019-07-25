@@ -1259,7 +1259,7 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
 
     widget->UpdatePossiblyTransparentRegion(dirtyWindowRegion, visibleWindowRegion);
   }
-  list.Paint(&builder, aRenderingContext, flags);
+  list.PaintRoot(&builder, aRenderingContext, flags);
   
   list.DeleteAll();
   return NS_OK;
