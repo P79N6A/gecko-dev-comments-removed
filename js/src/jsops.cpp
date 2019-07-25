@@ -2077,10 +2077,6 @@ BEGIN_CASE(JSOP_APPLY)
                 *v = JSVAL_VOID;
 
             
-            if (fun->isHeavyweight() && !js_GetCallObject(cx, newfp))
-                goto error;
-
-            
             newfp->callerVersion = (JSVersion) cx->version;
             if (JS_LIKELY(cx->version == currentVersion)) {
                 currentVersion = (JSVersion) newscript->version;
@@ -2100,6 +2096,10 @@ BEGIN_CASE(JSOP_APPLY)
             fp = newfp;
             script = newscript;
             atoms = script->atomMap.vector;
+
+            
+            if (fun->isHeavyweight() && !js_GetCallObject(cx, fp))
+                goto error;
 
             
             if (JSInterpreterHook hook = cx->debugHooks->callHook) {
