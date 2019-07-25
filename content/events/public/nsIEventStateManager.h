@@ -110,6 +110,9 @@ public:
 
 
 
+
+
+
   virtual PRBool SetContentState(nsIContent *aContent, nsEventStates aState) = 0;
 
   NS_IMETHOD ContentRemoved(nsIDocument* aDocument, nsIContent* aContent) = 0;
