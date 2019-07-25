@@ -30,6 +30,13 @@ struct TypeInferenceSizes
     size_t objects;
     size_t tables;
     size_t temporary;
+
+    void add(TypeInferenceSizes &sizes) {
+        this->scripts   += sizes.scripts;
+        this->objects   += sizes.objects;
+        this->tables    += sizes.tables;
+        this->temporary += sizes.temporary;
+    }
 };
 
 
@@ -79,6 +86,9 @@ struct CompartmentStats
     }
 
     void   *extra;
+
+    
+    
     size_t gcHeapArenaAdmin;
     size_t gcHeapUnusedGcThings;
 
@@ -107,6 +117,45 @@ struct CompartmentStats
     size_t crossCompartmentWrappers;
 
     TypeInferenceSizes typeInferenceSizes;
+
+    
+    void add(CompartmentStats &cStats) {
+        #define ADD(x)  this->x += cStats.x
+
+        ADD(gcHeapArenaAdmin);
+        ADD(gcHeapUnusedGcThings);
+
+        ADD(gcHeapObjectsNonFunction);
+        ADD(gcHeapObjectsFunction);
+        ADD(gcHeapStrings);
+        ADD(gcHeapShapesTree);
+        ADD(gcHeapShapesDict);
+        ADD(gcHeapShapesBase);
+        ADD(gcHeapScripts);
+        ADD(gcHeapTypeObjects);
+    #if JS_HAS_XML_SUPPORT
+        ADD(gcHeapXML);
+    #endif
+
+        ADD(objectSlots);
+        ADD(objectElements);
+        ADD(objectMisc);
+        ADD(stringChars);
+        ADD(shapesExtraTreeTables);
+        ADD(shapesExtraDictTables);
+        ADD(shapesExtraTreeShapeKids);
+        ADD(shapesCompartmentTables);
+        ADD(scriptData);
+        ADD(mjitData);
+        ADD(crossCompartmentWrappers);
+
+        #undef ADD
+
+        typeInferenceSizes.add(cStats.typeInferenceSizes);
+    }
+
+    
+    size_t gcHeapThingsSize();
 };
 
 struct RuntimeStats
@@ -114,21 +163,14 @@ struct RuntimeStats
     RuntimeStats(JSMallocSizeOfFun mallocSizeOf)
       : runtime()
       , gcHeapChunkTotal(0)
-      , gcHeapCommitted(0)
-      , gcHeapUnused(0)
-      , gcHeapUnusedChunks(0)
-      , gcHeapUnusedArenas(0)
       , gcHeapChunkCleanDecommitted(0)
       , gcHeapChunkDirtyDecommitted(0)
+      , gcHeapUnusedChunks(0)
+      , gcHeapUnusedArenas(0)
       , gcHeapUnusedGcThings(0)
       , gcHeapChunkAdmin(0)
-      , totalObjects(0)
-      , totalShapes(0)
-      , totalScripts(0)
-      , totalStrings(0)
-      , totalMjit(0)
-      , totalTypeInference(0)
-      , totalAnalysisTemp(0)
+      , gcHeapGcThings(0)
+      , totals()
       , compartmentStatsVector()
       , currCompartmentStats(NULL)
       , mallocSizeOf(mallocSizeOf)
@@ -136,23 +178,35 @@ struct RuntimeStats
 
     RuntimeSizes runtime;
 
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     size_t gcHeapChunkTotal;
-    size_t gcHeapCommitted;
-    size_t gcHeapUnused;
-    size_t gcHeapUnusedChunks;
-    size_t gcHeapUnusedArenas;
     size_t gcHeapChunkCleanDecommitted;
     size_t gcHeapChunkDirtyDecommitted;
+    size_t gcHeapUnusedChunks;
+    size_t gcHeapUnusedArenas;
     size_t gcHeapUnusedGcThings;
     size_t gcHeapChunkAdmin;
-    size_t totalObjects;
-    size_t totalShapes;
-    size_t totalScripts;
-    size_t totalStrings;
-    size_t totalMjit;
-    size_t totalTypeInference;
-    size_t totalAnalysisTemp;
+    size_t gcHeapGcThings;
 
+    
+    CompartmentStats totals;
+ 
     js::Vector<CompartmentStats, 0, js::SystemAllocPolicy> compartmentStatsVector;
     CompartmentStats *currCompartmentStats;
 

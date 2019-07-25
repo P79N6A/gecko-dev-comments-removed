@@ -268,7 +268,7 @@ nsresult
 ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
                                  const nsACString &pathPrefix,
                                  nsIMemoryMultiReporterCallback *cb,
-                                 nsISupports *closure);
+                                 nsISupports *closure, size_t *rtTotal = NULL);
 
 
 
