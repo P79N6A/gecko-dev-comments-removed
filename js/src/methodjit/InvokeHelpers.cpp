@@ -103,7 +103,22 @@ top:
         for (unsigned i = 0; i < tnarray->length; ++i) {
             JSTryNote *tn = &tnarray->vector[i];
             JS_ASSERT(offset < script->length);
-            if (offset - tn->start >= tn->length)
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            if (offset - tn->start > tn->length)
                 continue;
             if (tn->stackDepth > cx->regs->sp - fp->base())
                 continue;
