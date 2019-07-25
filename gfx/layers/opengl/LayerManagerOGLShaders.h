@@ -295,7 +295,7 @@ uniform sampler2DRect uTexture;\n\
 uniform vec2 uTexCoordMultiplier;\n\
 void main()\n\
 {\n\
-float mask = texture2D(uMaskTexture, vMaskCoord).r;\n\
+float mask = texture2D(uMaskTexture, vMaskCoord).a;\n\
 \n\
 gl_FragColor = texture2DRect(uTexture, vec2(vTexCoord * uTexCoordMultiplier)) * uLayerOpacity * mask;\n\
 }\n\
@@ -333,7 +333,7 @@ uniform vec2 uTexCoordMultiplier;\n\
 void main()\n\
 {\n\
 vec2 maskCoords = vMaskCoord.xy / vMaskCoord.z;\n\
-float mask = texture2D(uMaskTexture, maskCoords).r;\n\
+float mask = texture2D(uMaskTexture, maskCoords).a;\n\
 \n\
 gl_FragColor = texture2DRect(uTexture, vec2(vTexCoord * uTexCoordMultiplier)) * uLayerOpacity * mask;\n\
 }\n\

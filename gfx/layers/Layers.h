@@ -428,15 +428,12 @@ public:
   virtual already_AddRefed<gfxASurface>
     CreateOptimalSurface(const gfxIntSize &aSize,
                          gfxASurface::gfxImageFormat imageFormat);
- 
+
   
 
 
-
-
-
-  virtual already_AddRefed<gfxASurface>
-    CreateOptimalMaskSurface(const gfxIntSize &aSize);
+  virtual gfxASurface::gfxImageFormat MaskImageFormat() 
+  { return gfxASurface::ImageFormatA8; }
 
   
 
@@ -702,7 +699,8 @@ public:
     if (aMaskLayer) {
       gfxMatrix maskTransform;
       bool maskIs2D = aMaskLayer->GetTransform().CanDraw2D(&maskTransform);
-      NS_ASSERTION(maskIs2D, "Mask layer has invalid transform.");
+      NS_ASSERTION(maskIs2D && maskTransform.HasOnlyIntegerTranslation(),
+                   "Mask layer has invalid transform.");
     }
 #endif
 
