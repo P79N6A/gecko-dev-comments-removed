@@ -610,11 +610,6 @@ public:
     return sPrefBranch;
   }
 
-  
-  
-  
-  static PRBool IsSitePermAllow(nsIURI* aURI, const char* aType);
-
   static nsILineBreaker* LineBreaker()
   {
     return sLineBreaker;
