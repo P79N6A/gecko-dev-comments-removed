@@ -601,7 +601,7 @@ Item.prototype = {
       
       var handleMouseMove = function(e) {
         
-        var mouse = new Point(e.pageX, e.pageY);		
+        var mouse = new Point(e.pageX, e.pageY);
         if (!startSent) {
           if(Math.abs(mouse.x - startMouse.x) > self.dragOptions.minDragDistance ||
              Math.abs(mouse.y - startMouse.y) > self.dragOptions.minDragDistance) {
@@ -905,26 +905,28 @@ let Items = {
   
   
   
+  
+  
+  
+  
+  
   arrange: function Items_arrange(items, bounds, options) {
-    var animate;
-    if (!options || typeof options.animate == 'undefined')
-      animate = true;
-    else
-      animate = options.animate;
-
     if (typeof options == 'undefined')
       options = {};
 
-    var rects = null;
-    if (options.pretend)
-      rects = [];
+    var animate = true;
+    if (typeof options.animate != 'undefined')
+      animate = options.animate;
+    var immediately = !animate;
+
+    var rects = [];
 
     var tabAspect = TabItems.tabHeight / TabItems.tabWidth;
     var count = options.count || (items ? items.length : 0);
     if (!count)
       return rects;
 
-    var columns = 1;
+    var columns = options.columns || 1;
     
     
     var itemMargin = items && items.length ?
@@ -954,20 +956,17 @@ let Items = {
       tabWidth = Math.min(tabWidth, (bounds.height - 2 * itemMargin) / tabAspect);
       tabHeight = tabWidth * tabAspect;
     }
+    
+    if (options.return == 'widthAndColumns')
+      return {childWidth: tabWidth, columns: columns};
 
     var box = new Rect(bounds.left, bounds.top, tabWidth, tabHeight);
-    var row = 0;
     var column = 0;
-    var immediately;
 
-    var a;
-    for (a = 0; a < count; a++) {
-      immediately = !animate;
-
-      if (rects)
-        rects.push(new Rect(box));
-      else if (items && a < items.length) {
-        var item = items[a];
+    for (let a = 0; a < count; a++) {
+      rects.push(new Rect(box));
+      if (items && a < items.length) {
+        let item = items[a];
         if (!item.locked.bounds) {
           item.setBounds(box, immediately);
           item.setRotation(0);
@@ -982,7 +981,6 @@ let Items = {
         box.left = bounds.left;
         box.top += (box.height * yScale) + padding;
         column = 0;
-        row++;
       }
     }
 
