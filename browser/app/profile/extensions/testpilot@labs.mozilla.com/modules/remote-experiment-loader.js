@@ -185,7 +185,7 @@ exports.RemoteExperimentLoader.prototype = {
     } else {
       this._fileGetter = downloadFile;
     }
-    this._logger.trace("About to instantiate preferences store.");
+    this._logger.trace("About to instantiate jar store.");
     this._jarStore = new JarStore();
     this._experimentFileNames = [];
     let self = this;
@@ -324,10 +324,16 @@ exports.RemoteExperimentLoader.prototype = {
 
   
   
+  
+  
 
   
-    
+  
+  
+  
 
+  
+  
   
 
   _cachedIndexNsiFile: null,
