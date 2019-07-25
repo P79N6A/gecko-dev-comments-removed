@@ -90,6 +90,9 @@ private:
     TInfoSink infoSink;  
     TVariableInfoList attribs;  
     TVariableInfoList uniforms;  
+
+    
+    TMap<TString, TString> varyingLongNameMap;
 };
 
 

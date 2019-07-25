@@ -268,23 +268,6 @@ bool Framebuffer::hasStencil()
     return false;
 }
 
-bool Framebuffer::isMultisample()
-{
-    
-    
-    
-    
-    
-    if (completeness() == GL_FRAMEBUFFER_COMPLETE && getColorbuffer()->getSamples() > 0)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
 GLenum Framebuffer::completeness()
 {
     int width = 0;
