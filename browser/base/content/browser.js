@@ -7746,6 +7746,11 @@ var TabContextMenu = {
     this.contextTab = document.popupNode.localName == "tab" ?
                       document.popupNode : gBrowser.selectedTab;
     var disabled = gBrowser.tabs.length == 1;
+
+    
+    document.getElementById("context_closeTab").disabled =
+      disabled && gBrowser.tabContainer._closeWindowWithLastTab;
+
     var menuItems = aPopupMenu.getElementsByAttribute("tbattr", "tabbrowser-multiple");
     for (var i = 0; i < menuItems.length; i++)
       menuItems[i].disabled = disabled;
