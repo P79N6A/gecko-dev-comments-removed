@@ -387,8 +387,17 @@ nsDragService::GetNumDropItems(PRUint32 * aNumItems)
 
   if (IsCollectionObject(mDataObject)) {
     nsDataObjCollection * dataObjCol = GetDataObjCollection(mDataObject);
-    if (dataObjCol)
+    if (dataObjCol) {
       *aNumItems = dataObjCol->GetNumDataObjects();
+    }
+    else {
+      
+      
+      
+      
+      
+      *aNumItems = 0;
+    }
   }
   else {
     
