@@ -89,9 +89,12 @@ function test() {
            state.windows[0].tabs[i].extData["uniq"],
            "sanity check that tab has correct extData");
       }
-      else
+      else {
         ok(!("extData" in curState.windows[0].tabs[i]),
            "sanity check that tab doesn't have extData");
+        
+        info("tabState: " + JSON.stringify(curState.windows[0].tabs[i]));
+      }
     }
 
     
