@@ -4806,27 +4806,25 @@ nsCSSFrameConstructor::FindSVGData(nsIContent* aContent,
     return &sSuppressData;
   }
 
-  
-  
-  
-  if (!nsSVGFeatures::PassesConditionalProcessingTests(aContent)) {
-    return &sContainerData;
-  }
-
-  
-  
-  if (aTag == nsGkAtoms::svg) {
-    if (parentIsSVG) {
-      static const FrameConstructionData sInnerSVGData =
-        SIMPLE_SVG_FCDATA(NS_NewSVGInnerSVGFrame);
-      return &sInnerSVGData;
-    }
-
+  if (aTag == nsGkAtoms::svg && !parentIsSVG) {
+    
+    
+    
+    
+    
+    
     static const FrameConstructionData sOuterSVGData =
       FCDATA_DECL(FCDATA_FORCE_VIEW | FCDATA_SKIP_ABSPOS_PUSH |
                   FCDATA_DISALLOW_GENERATED_CONTENT,
                   NS_NewSVGOuterSVGFrame);
     return &sOuterSVGData;
+  }
+  
+  if (!nsSVGFeatures::PassesConditionalProcessingTests(aContent)) {
+    
+    
+    
+    return &sContainerData;
   }
 
   
@@ -4858,6 +4856,7 @@ nsCSSFrameConstructor::FindSVGData(nsIContent* aContent,
   }
 
   static const FrameConstructionDataByTag sSVGData[] = {
+    SIMPLE_SVG_CREATE(svg, NS_NewSVGInnerSVGFrame),
     SIMPLE_SVG_CREATE(g, NS_NewSVGGFrame),
     SIMPLE_SVG_CREATE(svgSwitch, NS_NewSVGSwitchFrame),
     SIMPLE_SVG_CREATE(polygon, NS_NewSVGPathGeometryFrame),
