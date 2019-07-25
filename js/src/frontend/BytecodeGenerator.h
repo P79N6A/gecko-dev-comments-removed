@@ -66,6 +66,7 @@ namespace js {
 
 
 
+
 enum StmtType {
     STMT_LABEL,                 
     STMT_IF,                    
@@ -434,7 +435,7 @@ struct TreeContext {
     int sharpSlotBase;
     bool ensureSharpSlots();
 
-    Compiler *compiler() { return (Compiler *) parser; }
+    BytecodeCompiler *compiler() { return (BytecodeCompiler *) parser; }
 
     
     

@@ -2742,11 +2742,12 @@ EvaluateInScope(JSContext *cx, JSObject *scobj, StackFrame *fp, const jschar *ch
 
 
 
-    JSScript *script = Compiler::compileScript(cx, scobj, fp, fp->scopeChain().principals(cx),
-                                               TCF_COMPILE_N_GO | TCF_NEED_SCRIPT_OBJECT,
-                                               chars, length,
-                                               filename, lineno, cx->findVersion(),
-                                               NULL, UpvarCookie::UPVAR_LEVEL_LIMIT);
+    JSScript *script = BytecodeCompiler::compileScript(cx, scobj, fp,
+                                                       fp->scopeChain().principals(cx),
+                                                       TCF_COMPILE_N_GO | TCF_NEED_SCRIPT_OBJECT,
+                                                       chars, length, filename, lineno,
+                                                       cx->findVersion(), NULL,
+                                                       UpvarCookie::UPVAR_LEVEL_LIMIT);
 
     if (!script)
         return false;

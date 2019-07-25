@@ -5643,6 +5643,7 @@ EmitTree(JSContext *cx, CodeGenerator *cg, ParseNode *pn)
 
 
 
+
         JS_ASSERT(cg->staticLevel < JS_BITMASK(16) - 1);
         cg2->staticLevel = cg->staticLevel + 1;
 
@@ -7625,6 +7626,7 @@ static void DumpSrcNoteSizeHist()
     fputc('\n', fp);
 }
 #endif
+
 
 
 
