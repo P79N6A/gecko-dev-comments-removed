@@ -624,7 +624,15 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         jump(label);
         return ret;
     }
-    CodeOffsetJump branchPtrWithPatch(Condition cond, Address addr, ImmGCPtr ptr, Label *label) {
+    template <typename T>
+    CodeOffsetJump branchPtrWithPatch(Condition cond, Register reg, T ptr, Label *label) {
+        ma_cmp(reg, ptr);
+        CodeOffsetJump ret(nextOffset().getOffset());
+        ma_b(label, cond);
+        return ret;
+    }
+    template <typename T>
+    CodeOffsetJump branchPtrWithPatch(Condition cond, Address addr, T ptr, Label *label) {
         
         
         
