@@ -1263,52 +1263,7 @@ nsAccessible::GetRole(PRUint32 *aRole)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  if (mRoleMapEntry) {
-    *aRole = mRoleMapEntry->role;
-
-    
-    
-    if (*aRole == nsIAccessibleRole::ROLE_PUSHBUTTON) {
-
-      if (nsAccUtils::HasDefinedARIAToken(mContent,
-                                          nsAccessibilityAtoms::aria_pressed)) {
-        
-        
-        *aRole = nsIAccessibleRole::ROLE_TOGGLE_BUTTON;
-
-      } else if (mContent->AttrValueIs(kNameSpaceID_None,
-                                       nsAccessibilityAtoms::aria_haspopup,
-                                       nsAccessibilityAtoms::_true,
-                                       eCaseMatters)) {
-        
-        *aRole = nsIAccessibleRole::ROLE_BUTTONMENU;
-      }
-    }
-    else if (*aRole == nsIAccessibleRole::ROLE_LISTBOX) {
-      
-      nsCOMPtr<nsIAccessible> possibleCombo;
-      GetParent(getter_AddRefs(possibleCombo));
-      if (nsAccUtils::Role(possibleCombo) == nsIAccessibleRole::ROLE_COMBOBOX) {
-        *aRole = nsIAccessibleRole::ROLE_COMBOBOX_LIST;
-      }
-      else {   
-        possibleCombo = nsRelUtils::
-          GetRelatedAccessible(this, nsIAccessibleRelation::RELATION_NODE_CHILD_OF);
-        if (nsAccUtils::Role(possibleCombo) == nsIAccessibleRole::ROLE_COMBOBOX)
-          *aRole = nsIAccessibleRole::ROLE_COMBOBOX_LIST;
-      }
-    }
-    else if (*aRole == nsIAccessibleRole::ROLE_OPTION) {
-      if (nsAccUtils::Role(GetParent()) == nsIAccessibleRole::ROLE_COMBOBOX_LIST)
-        *aRole = nsIAccessibleRole::ROLE_COMBOBOX_OPTION;
-    }
-
-    
-    if (mRoleMapEntry->roleRule == kUseMapRole)
-      return NS_OK;
-  }
-
-  *aRole = NativeRole();
+  *aRole = Role();
   return NS_OK;
 }
 
@@ -1628,10 +1583,6 @@ nsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
     }
   }
 
-  PRUint32 role;
-  rv = GetRole(&role);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
   
   nsIFrame *frame = GetFrame();
@@ -1851,6 +1802,52 @@ nsAccessible::GetKeyBindings(PRUint8 aActionIndex,
 
   NS_ADDREF(*aKeyBindings = keyBindings);
   return NS_OK;
+}
+
+PRUint32
+nsAccessible::Role()
+{
+  
+  if (!mRoleMapEntry || mRoleMapEntry->roleRule != kUseMapRole)
+    return NativeRole();
+
+  
+  
+  if (mRoleMapEntry->role == nsIAccessibleRole::ROLE_PUSHBUTTON) {
+    if (nsAccUtils::HasDefinedARIAToken(mContent,
+                                        nsAccessibilityAtoms::aria_pressed)) {
+      
+      
+      return nsIAccessibleRole::ROLE_TOGGLE_BUTTON;
+    }
+
+    if (mContent->AttrValueIs(kNameSpaceID_None,
+                              nsAccessibilityAtoms::aria_haspopup,
+                              nsAccessibilityAtoms::_true,
+                              eCaseMatters)) {
+      
+      return nsIAccessibleRole::ROLE_BUTTONMENU;
+    }
+
+  } else if (mRoleMapEntry->role == nsIAccessibleRole::ROLE_LISTBOX) {
+    
+    
+    if (nsAccUtils::Role(mParent) == nsIAccessibleRole::ROLE_COMBOBOX) {
+      return nsIAccessibleRole::ROLE_COMBOBOX_LIST;
+
+      nsCOMPtr<nsIAccessible> possibleCombo =
+        nsRelUtils::GetRelatedAccessible(this,
+                                         nsIAccessibleRelation::RELATION_NODE_CHILD_OF);
+      if (nsAccUtils::Role(possibleCombo) == nsIAccessibleRole::ROLE_COMBOBOX)
+        return nsIAccessibleRole::ROLE_COMBOBOX_LIST;
+    }
+
+  } else if (mRoleMapEntry->role == nsIAccessibleRole::ROLE_OPTION) {
+    if (nsAccUtils::Role(mParent) == nsIAccessibleRole::ROLE_COMBOBOX_LIST)
+      return nsIAccessibleRole::ROLE_COMBOBOX_OPTION;
+  }
+
+  return mRoleMapEntry->role;
 }
 
 PRUint32
