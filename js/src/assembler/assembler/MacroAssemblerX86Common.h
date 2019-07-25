@@ -719,11 +719,11 @@ public:
     }
 
     
-    Jump branch32WithPatch(Condition cond, RegisterID left, Imm32 right, Label &clabel)
+    Jump branch32WithPatch(Condition cond, RegisterID left, Imm32 right, DataLabel32 &dataLabel)
     {
         
         m_assembler.cmpl_ir(right.m_value, left);
-        clabel = label();
+        dataLabel = DataLabel32(this);
         return Jump(m_assembler.jCC(x86Condition(cond)));
     }
 

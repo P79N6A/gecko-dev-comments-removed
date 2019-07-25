@@ -483,6 +483,11 @@ public:
         return AssemblerType::getDifferenceBetweenLabels(from.m_label, to.m_label);
     }
 
+    ptrdiff_t differenceBetween(DataLabel32 from, Label to)
+    {
+        return AssemblerType::getDifferenceBetweenLabels(from.m_label, to.m_label);
+    }
+
     ptrdiff_t differenceBetween(DataLabelPtr from, Jump to)
     {
         return AssemblerType::getDifferenceBetweenLabels(from.m_label, to.m_jmp);
