@@ -179,7 +179,7 @@ NewDenseUnallocatedArray(JSContext *cx, uint length, JSObject *proto=NULL);
 
 
 extern JSObject *
-NewDenseCopiedArray(JSContext *cx, uint length, const Value *vp, JSObject *proto=NULL);
+NewDenseCopiedArray(JSContext *cx, uint length, Value *vp, JSObject *proto=NULL);
 
 
 extern JSObject *

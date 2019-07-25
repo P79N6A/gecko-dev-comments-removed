@@ -200,7 +200,7 @@ AttachSetGlobalNameStub(VMFrame &f, ic::SetGlobalNameIC *ic, JSObject *obj, cons
 
 
 
-    masm.loadPtr(Address(ic->objReg, JSObject::offsetOfSlots()), ic->shapeReg);
+    masm.loadPtr(Address(ic->objReg, offsetof(JSObject, slots)), ic->shapeReg);
 
     
     Address slot(ic->shapeReg, sizeof(Value) * shape->slot);
@@ -213,7 +213,7 @@ AttachSetGlobalNameStub(VMFrame &f, ic::SetGlobalNameIC *ic, JSObject *obj, cons
     
     if (ic->objConst)
         masm.move(ImmPtr(obj), ic->objReg);
-    masm.loadPtr(Address(ic->objReg, JSObject::offsetOfSlots()), ic->shapeReg);
+    masm.loadPtr(Address(ic->objReg, offsetof(JSObject, slots)), ic->shapeReg);
 
     
     isNotObject.linkTo(masm.label(), &masm);

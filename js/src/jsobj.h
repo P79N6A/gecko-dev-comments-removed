@@ -391,13 +391,8 @@ struct JSObject : js::gc::Cell {
     void        *privateData;               
     jsuword     capacity;                   
 
-  private:
     js::Value   *slots;                     
 
-  public:
-    static size_t offsetOfSlots() {
-        return offsetof(JSObject, slots);
-    }
 
     
 
@@ -645,19 +640,8 @@ struct JSObject : js::gc::Cell {
 
 
 
-    const js::Value *getSlots() const { return slots; }
-
-    js::Value *getSlotsPtr() { return slots; }
-    void setSlotsPtr(js::Value *vp) { slots = vp; }
-
-    void copySlots(uint32 dstStart, const js::Value *src, uint32 count) {
-        JS_ASSERT(dstStart + count <= capacity);
-        memcpy(slots + dstStart, src, count * sizeof(js::Value));
-    }
-
-    void setSlotsUndefined(uint32 start, uint32 count) {
-        JS_ASSERT(start + count <= capacity);
-        js::SetValueRangeToUndefined(slots + start, count);
+    js::Value *getSlots() const {
+        return slots;
     }
 
     
@@ -799,11 +783,10 @@ struct JSObject : js::gc::Cell {
     inline void setArrayLength(uint32 length);
 
     inline uint32 getDenseArrayCapacity();
-    inline const js::Value* getDenseArrayElements();
+    inline js::Value* getDenseArrayElements();
     inline const js::Value &getDenseArrayElement(uintN idx);
+    inline js::Value* addressOfDenseArrayElement(uintN idx);
     inline void setDenseArrayElement(uintN idx, const js::Value &val);
-    inline void copyDenseArrayElements(uintN dstStart, const js::Value *src, uintN count);
-    inline void moveDenseArrayElements(uintN dstStart, uintN srcStart, uintN count);
     inline void shrinkDenseArrayElements(JSContext *cx, uintN cap);
 
     
@@ -867,11 +850,11 @@ struct JSObject : js::gc::Cell {
 
     
     inline const js::Value &callObjArg(uintN i) const;
-    inline void setCallObjArg(uintN i, const js::Value &v);
+    inline js::Value &callObjArg(uintN i);
 
     
     inline const js::Value &callObjVar(uintN i) const;
-    inline void setCallObjVar(uintN i, const js::Value &v);
+    inline js::Value &callObjVar(uintN i);
 
     
 
@@ -932,8 +915,7 @@ struct JSObject : js::gc::Cell {
 
     inline js::Value *getFlatClosureUpvars() const;
     inline js::Value getFlatClosureUpvar(uint32 i) const;
-    inline const js::Value &getFlatClosureUpvar(uint32 i);
-    inline void setFlatClosureUpvar(uint32 i, const js::Value &v);
+    inline js::Value &getFlatClosureUpvar(uint32 i);
     inline void setFlatClosureUpvars(js::Value *upvars);
 
     inline bool hasMethodObj(const JSObject& obj) const;
