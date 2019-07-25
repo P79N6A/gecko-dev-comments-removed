@@ -1831,6 +1831,15 @@ ProcessReplaceRequest()
   NS_tchar sourceDir[MAXPATHLEN];
   NS_tsnprintf(sourceDir, sizeof(sourceDir)/sizeof(sourceDir[0]),
                NS_T("%s/Contents"), installDir);
+#elif XP_WIN
+  
+  
+  
+  
+  NS_tchar sourceDir[MAXPATHLEN];
+  if (!GetLongPathNameW(installDir, sourceDir, sizeof(sourceDir)/sizeof(sourceDir[0]))) {
+    return NO_INSTALLDIR_ERROR;
+  }
 #else
   NS_tchar* sourceDir = installDir;
 #endif
