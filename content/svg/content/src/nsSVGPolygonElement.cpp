@@ -112,6 +112,10 @@ nsSVGPolygonElement::GetMarkPoints(nsTArray<nsSVGMark> *aMarks)
 
     endMark->angle = nsSVGUtils::AngleBisect(angle, endMark->angle);
     startMark->angle = nsSVGUtils::AngleBisect(angle, startMark->angle);
+    
+    
+    
+    aMarks->AppendElement(nsSVGMark(startMark->x, startMark->y, startMark->angle));
   }
 }
 
