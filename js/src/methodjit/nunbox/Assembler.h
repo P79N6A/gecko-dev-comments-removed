@@ -40,12 +40,12 @@
 #if !defined jsjaeger_assembler_h__ && defined JS_METHODJIT
 #define jsjaeger_assembler_h__
 
-#include "assembler/assembler/MacroAssembler.h"
+#include "methodjit/BaseAssembler.h"
 
 namespace js {
 namespace mjit {
 
-class Assembler : public JSC::MacroAssembler
+class Assembler : public BaseAssembler
 {
   public:
 };
