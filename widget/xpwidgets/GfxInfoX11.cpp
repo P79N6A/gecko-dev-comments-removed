@@ -65,6 +65,7 @@ pid_t glxtest_pid = 0;
 nsresult
 GfxInfo::Init()
 {
+    mGLMajorVersion = 0;
     mMajorVersion = 0;
     mMinorVersion = 0;
     mRevisionVersion = 0;
@@ -208,6 +209,9 @@ GfxInfo::GetData()
 #endif
 
     
+    mGLMajorVersion = strtol(mVersion.get(), 0, 10);
+
+    
     
     const char *whereToReadVersionNumbers = nsnull;
     const char *Mesa_in_version_string = strstr(mVersion.get(), "Mesa");
@@ -282,6 +286,15 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
   OperatingSystem os = DRIVER_OS_LINUX;
   if (aOS)
     *aOS = os;
+
+  if (mGLMajorVersion < 2) {
+    
+    
+    
+    
+    *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
+    return NS_OK;
+  }
 
 #ifdef MOZ_PLATFORM_MAEMO
   *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
