@@ -314,6 +314,8 @@ private:
   void ProcessPendingRestyleTable(
            nsDataHashtable<nsISupportsHashKey, RestyleData>& aRestyles);
 
+  void RestyleForEmptyChange(Element* aContainer);
+
 public:
   
   

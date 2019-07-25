@@ -11318,6 +11318,21 @@ nsCSSFrameConstructor::ReframeContainingBlock(nsIFrame* aFrame)
 }
 
 void
+nsCSSFrameConstructor::RestyleForEmptyChange(Element* aContainer)
+{
+  Element* toRestyle = aContainer;
+  
+  
+  
+  nsIContent* grandparent = aContainer->GetParent();
+  if (grandparent &&
+      (grandparent->GetFlags() & NODE_HAS_SLOW_SELECTOR_NOAPPEND)) {
+    toRestyle = grandparent->AsElement();
+  }
+  PostRestyleEvent(toRestyle, eRestyle_Self, NS_STYLE_HINT_NONE);
+}
+
+void
 nsCSSFrameConstructor::RestyleForAppend(Element* aContainer,
                                         nsIContent* aFirstNewContent)
 {
@@ -11336,12 +11351,6 @@ nsCSSFrameConstructor::RestyleForAppend(Element* aContainer,
   if (selectorFlags == 0)
     return;
 
-  if (selectorFlags & NODE_HAS_SLOW_SELECTOR) {
-    PostRestyleEvent(aContainer, eRestyle_Self, NS_STYLE_HINT_NONE);
-    
-    return;
-  }
-
   if (selectorFlags & NODE_HAS_EMPTY_SELECTOR) {
     
     PRBool wasEmpty = PR_TRUE; 
@@ -11358,11 +11367,17 @@ nsCSSFrameConstructor::RestyleForAppend(Element* aContainer,
       }
     }
     if (wasEmpty) {
-      PostRestyleEvent(aContainer, eRestyle_Self, NS_STYLE_HINT_NONE);
-      
+      RestyleForEmptyChange(aContainer);
       return;
     }
   }
+
+  if (selectorFlags & NODE_HAS_SLOW_SELECTOR) {
+    PostRestyleEvent(aContainer, eRestyle_Self, NS_STYLE_HINT_NONE);
+    
+    return;
+  }
+
   if (selectorFlags & NODE_HAS_EDGE_CHILD_SELECTOR) {
     
     for (nsIContent* cur = aFirstNewContent->GetPreviousSibling();
@@ -11393,13 +11408,6 @@ nsCSSFrameConstructor::RestyleForInsertOrChange(Element* aContainer,
   if (selectorFlags == 0)
     return;
 
-  if (selectorFlags & (NODE_HAS_SLOW_SELECTOR |
-                       NODE_HAS_SLOW_SELECTOR_NOAPPEND)) {
-    PostRestyleEvent(aContainer, eRestyle_Self, NS_STYLE_HINT_NONE);
-    
-    return;
-  }
-
   if (selectorFlags & NODE_HAS_EMPTY_SELECTOR) {
     
     PRBool wasEmpty = PR_TRUE; 
@@ -11418,10 +11426,16 @@ nsCSSFrameConstructor::RestyleForInsertOrChange(Element* aContainer,
       }
     }
     if (wasEmpty) {
-      PostRestyleEvent(aContainer, eRestyle_Self, NS_STYLE_HINT_NONE);
-      
+      RestyleForEmptyChange(aContainer);
       return;
     }
+  }
+
+  if (selectorFlags & (NODE_HAS_SLOW_SELECTOR |
+                       NODE_HAS_SLOW_SELECTOR_NOAPPEND)) {
+    PostRestyleEvent(aContainer, eRestyle_Self, NS_STYLE_HINT_NONE);
+    
+    return;
   }
 
   if (selectorFlags & NODE_HAS_EDGE_CHILD_SELECTOR) {
@@ -11474,13 +11488,6 @@ nsCSSFrameConstructor::RestyleForRemove(Element* aContainer,
   if (selectorFlags == 0)
     return;
 
-  if (selectorFlags & (NODE_HAS_SLOW_SELECTOR |
-                       NODE_HAS_SLOW_SELECTOR_NOAPPEND)) {
-    PostRestyleEvent(aContainer, eRestyle_Self, NS_STYLE_HINT_NONE);
-    
-    return;
-  }
-
   if (selectorFlags & NODE_HAS_EMPTY_SELECTOR) {
     
     PRBool isEmpty = PR_TRUE; 
@@ -11497,10 +11504,16 @@ nsCSSFrameConstructor::RestyleForRemove(Element* aContainer,
       }
     }
     if (isEmpty) {
-      PostRestyleEvent(aContainer, eRestyle_Self, NS_STYLE_HINT_NONE);
-      
+      RestyleForEmptyChange(aContainer);
       return;
     }
+  }
+
+  if (selectorFlags & (NODE_HAS_SLOW_SELECTOR |
+                       NODE_HAS_SLOW_SELECTOR_NOAPPEND)) {
+    PostRestyleEvent(aContainer, eRestyle_Self, NS_STYLE_HINT_NONE);
+    
+    return;
   }
 
   if (selectorFlags & NODE_HAS_EDGE_CHILD_SELECTOR) {

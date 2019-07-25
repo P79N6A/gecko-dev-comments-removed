@@ -1654,6 +1654,11 @@ static PRBool SelectorMatches(RuleProcessorData &data,
           PRInt32 index = -1;
 
           if (aTreeMatchContext.mForStyling)
+            
+            
+            
+            
+            
             element->SetFlags(NODE_HAS_SLOW_SELECTOR);
           do {
             child = element->GetChildAt(++index);
