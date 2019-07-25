@@ -25,11 +25,10 @@
 
 
 #include <iterator>
-#include "GlyphFace.h"
-#include "XmlTraceLog.h"
-#include "GlyphFaceCache.h"
-#include "TtfUtil.h"
-#include "Endian.h"
+#include "inc/GlyphFace.h"
+#include "inc/GlyphFaceCache.h"
+#include "inc/TtfUtil.h"
+#include "inc/Endian.h"
 
 
 using namespace graphite2;
@@ -79,6 +78,8 @@ namespace
 	};
 }
 
+
+
 GlyphFace::GlyphFace(const GlyphFaceCacheHeader& hdr, unsigned short glyphid)
 {
     if (glyphid < hdr.m_nGlyphsWithGraphics)
@@ -93,7 +94,6 @@ GlyphFace::GlyphFace(const GlyphFaceCacheHeader& hdr, unsigned short glyphid)
             m_advance = Position();
         if (pGlyph && TtfUtil::GlyfBox(pGlyph, xMin, yMin, xMax, yMax))
             m_bbox = Rect(Position(static_cast<float>(xMin), static_cast<float>(yMin)),
-
                 Position(static_cast<float>(xMax), static_cast<float>(yMax)));
         else
             m_bbox = Rect();
@@ -103,32 +103,25 @@ GlyphFace::GlyphFace(const GlyphFaceCacheHeader& hdr, unsigned short glyphid)
         m_advance = Position();
         m_bbox = Rect();
     }
-#ifndef DISABLE_TRACING
-    if (XmlTraceLog::get().active())
-    {
-        XmlTraceLog::get().openElement(ElementGlyphFace);
-        XmlTraceLog::get().addAttribute(AttrGlyphId, glyphid);
-        XmlTraceLog::get().addAttribute(AttrAdvanceX, m_advance.x);
-        XmlTraceLog::get().addAttribute(AttrAdvanceY, m_advance.y);
-    }
-#endif
     if (glyphid < hdr.m_nGlyphsWithAttributes)
     {
         size_t glocs, gloce;
+        const byte * gloc = hdr.m_pGloc;
+
         if (hdr.m_locFlagsUse32Bit)
         {
-            glocs = be::swap<uint32>(((uint32 *)hdr.m_pGloc)[2+glyphid]);
-            gloce = be::swap<uint32>(((uint32 *)hdr.m_pGloc)[3+glyphid]);
+        	be::skip<uint32>(gloc, glyphid);
+            glocs = be::read<uint32>(gloc);
+            gloce = be::read<uint32>(gloc);
         }
         else
         {
-            glocs = be::swap<uint16>(((uint16 *)hdr.m_pGloc)[4+glyphid]);
-            gloce = be::swap<uint16>(((uint16 *)hdr.m_pGloc)[5+glyphid]);
+        	be::skip<uint16>(gloc, glyphid);
+            glocs = be::read<uint16>(gloc);
+            gloce = be::read<uint16>(gloc);
         }
         if (glocs < hdr.m_lGlat && gloce <= hdr.m_lGlat)
         {
-
-
         	if (hdr.m_fGlat < 0x00020000)
         	{
         		if (gloce - glocs < 2*sizeof(byte)+sizeof(uint16)
@@ -153,87 +146,8 @@ GlyphFace::GlyphFace(const GlyphFaceCacheHeader& hdr, unsigned short glyphid)
         	}
         }
     }
-#ifndef DISABLE_TRACING
-    XmlTraceLog::get().closeElement(ElementGlyphFace);
-#endif
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-inline
-void GlyphFace::logAttr(GR_MAYBE_UNUSED const uint16 attrs[], GR_MAYBE_UNUSED const uint16 * attr)
-{
-#ifndef DISABLE_TRACING
-	if (XmlTraceLog::get().active())
-	{
-		XmlTraceLog::get().openElement(ElementAttr);
-		XmlTraceLog::get().addAttribute(AttrAttrId, attr - attrs);
-		XmlTraceLog::get().addAttribute(AttrAttrVal, *attr);
-		XmlTraceLog::get().closeElement(ElementAttr);
-	}
-#endif
-}
 
 
 uint16 GlyphFace::getMetric(uint8 metric) const

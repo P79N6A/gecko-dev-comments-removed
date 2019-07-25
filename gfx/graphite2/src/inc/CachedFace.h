@@ -26,9 +26,9 @@
 
 #pragma once
 
-#ifndef DISABLE_SEGCACHE
+#ifndef GRAPHITE2_NSEGCACHE
 
-#include "Face.h"
+#include "inc/Face.h"
 
 namespace graphite2 {
 

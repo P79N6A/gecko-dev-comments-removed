@@ -24,7 +24,7 @@
 
 
 
-#include "Font.h"
+#include "inc/Font.h"
 
 
 using namespace graphite2;

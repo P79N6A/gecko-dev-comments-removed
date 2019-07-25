@@ -33,8 +33,8 @@
 
 #include <cassert>
 #include <graphite2/Types.h>
-#include "Main.h"
-#include "Machine.h"
+#include "inc/Main.h"
+#include "inc/Machine.h"
 
 namespace graphite2 {
 

@@ -25,10 +25,10 @@
 
 
 
-#include "Main.h"
-#include "CmapCache.h"
-#include "TtfTypes.h"
-#include "TtfUtil.h"
+#include "inc/Main.h"
+#include "inc/CmapCache.h"
+#include "inc/TtfTypes.h"
+#include "inc/TtfUtil.h"
 
 
 using namespace graphite2;

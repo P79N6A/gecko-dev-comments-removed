@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include "GlyphFace.h"
+#include "inc/GlyphFace.h"
 #include "graphite2/Font.h"
 
 namespace graphite2 {

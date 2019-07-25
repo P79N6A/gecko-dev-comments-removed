@@ -27,8 +27,8 @@
 #pragma once
 
 #include <graphite2/Segment.h>
-#include "TtfTypes.h"
-#include "locale2lcid.h"
+#include "inc/TtfTypes.h"
+#include "inc/locale2lcid.h"
 
 namespace graphite2 {
 

@@ -25,7 +25,7 @@
 
 
 
-#include "Sparse.h"
+#include "inc/Sparse.h"
 
 using namespace graphite2;
 

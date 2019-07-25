@@ -24,9 +24,9 @@
 
 
 
-#include "Main.h"
-#include "Slot.h"
-#include "Segment.h"
+#include "inc/Main.h"
+#include "inc/Slot.h"
+#include "inc/Segment.h"
 
 using namespace graphite2;
 

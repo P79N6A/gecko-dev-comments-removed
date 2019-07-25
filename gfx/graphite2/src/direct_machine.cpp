@@ -39,11 +39,10 @@
 
 #include <cassert>
 #include <cstring>
-#include "Machine.h"
-#include "Segment.h"
-#include "XmlTraceLog.h"
-#include "Slot.h"
-#include "Rule.h"
+#include "inc/Machine.h"
+#include "inc/Segment.h"
+#include "inc/Slot.h"
+#include "inc/Rule.h"
 
 #define STARTOP(name)           name: {
 #define ENDOP                   }; goto *((sp - sb)/Machine::STACK_MAX ? &&end : *++ip);
@@ -66,7 +65,7 @@ const void * direct_run(const bool          get_table_mode,
 {
     
     
-    #include "opcode_table.h"
+    #include "inc/opcode_table.h"
     if (get_table_mode)
         return opcode_table;
 
@@ -86,7 +85,7 @@ const void * direct_run(const bool          get_table_mode,
     goto **ip;
 
     
-    #include "opcodes.h"
+    #include "inc/opcodes.h"
     
     end:
     __map  = map;

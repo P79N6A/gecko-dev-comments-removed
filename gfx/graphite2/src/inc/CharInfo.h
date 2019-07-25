@@ -25,7 +25,7 @@
 
 
 #pragma once
-#include "Main.h"
+#include "inc/Main.h"
 
 
 namespace graphite2 {

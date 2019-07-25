@@ -25,10 +25,10 @@
 
 
 
-#ifndef DISABLE_SEGCACHE
+#ifndef GRAPHITE2_NSEGCACHE
 
-#include "SegCacheStore.h"
-#include "Face.h"
+#include "inc/SegCacheStore.h"
+#include "inc/Face.h"
 
 
 using namespace graphite2;

@@ -26,11 +26,9 @@
 
 #pragma once
 
-#include "Main.h"
-#include "XmlTraceLog.h"
-#include "Main.h"
-#include "Position.h"
-#include "Sparse.h"
+#include "inc/Main.h"
+#include "inc/Position.h"
+#include "inc/Sparse.h"
 
 namespace graphite2 {
 
@@ -55,7 +53,6 @@ public :
     Position tr;
 };
 
-class XmlTraceLog;
 class GlyphFaceCacheHeader;
 
 class GlyphFace
@@ -70,18 +67,9 @@ public:
     const Position    & theAdvance() const;
     const Rect &theBBox() const { return m_bbox; }
     uint16  getAttr(uint8 index) const { 
-        if (m_attrs)
-            return m_attrs[index];
-#ifdef ENABLE_DEEP_TRACING
-        XmlTraceLog::get().warning("No attributes for glyph attr %d", index);
-#endif
-        return 0;
+    	return m_attrs ? m_attrs[index] : 0;
     }
     uint16  getMetric(uint8 metric) const;
-
-private:
-
-    static void logAttr(const uint16 attrs[], const uint16 * attr);
 
 private:
     Rect     m_bbox;        

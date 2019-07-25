@@ -28,7 +28,7 @@
 
 #include "graphite2/Types.h"
 
-#define GR2_VERSION_MAJOR   1
+#define GR2_VERSION_MAJOR   2
 #define GR2_VERSION_MINOR   0
 #define GR2_VERSION_BUGFIX  1
 
@@ -87,7 +87,7 @@ typedef const void *(*gr_get_table_fn)(const void* appFaceHandle, unsigned int n
 
 GR2_API gr_face* gr_make_face(const void* appFaceHandle, gr_get_table_fn getTable, unsigned int faceOptions);
 
-#ifndef DISABLE_SEGCACHE
+
 
 
 
@@ -98,7 +98,7 @@ GR2_API gr_face* gr_make_face(const void* appFaceHandle, gr_get_table_fn getTabl
 
 
 GR2_API gr_face* gr_make_face_with_seg_cache(const void* appFaceHandle, gr_get_table_fn getTable, unsigned int segCacheMaxSize, unsigned int faceOptions);
-#endif
+
 
 
 
@@ -154,7 +154,7 @@ GR2_API void gr_face_destroy(gr_face *face);
 
 GR2_API unsigned short gr_face_n_glyphs(const gr_face* pFace);
 
-#ifndef DISABLE_FILE_FACE
+#ifndef GRAPHITE2_NFILEFACE
 
 
 
@@ -163,7 +163,7 @@ GR2_API unsigned short gr_face_n_glyphs(const gr_face* pFace);
 
 GR2_API gr_face* gr_make_file_face(const char *filename, unsigned int faceOptions);
 
-#ifndef DISABLE_SEGCACHE
+
 
 
 
@@ -172,7 +172,7 @@ GR2_API gr_face* gr_make_file_face(const char *filename, unsigned int faceOption
 
 
 GR2_API gr_face* gr_make_file_face_with_seg_cache(const char *filename, unsigned int segCacheMaxSize, unsigned int faceOptions);
-#endif
+
 #endif      
 
 

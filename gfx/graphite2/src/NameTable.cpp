@@ -24,11 +24,11 @@
 
 
 
-#include "Main.h"
-#include "Endian.h"
+#include "inc/Main.h"
+#include "inc/Endian.h"
 
-#include "NameTable.h"
-#include "UtfCodec.h"
+#include "inc/NameTable.h"
+#include "inc/UtfCodec.h"
 
 using namespace graphite2;
 

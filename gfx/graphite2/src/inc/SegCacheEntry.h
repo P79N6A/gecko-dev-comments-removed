@@ -26,9 +26,9 @@
 
 #pragma once
 
-#ifndef DISABLE_SEGCACHE
+#ifndef GRAPHITE2_NSEGCACHE
 
-#include "Main.h"
+#include "inc/Main.h"
 
 namespace graphite2 {
 
@@ -78,7 +78,6 @@ public:
     const Slot * first() const { return m_glyph; }
     const Slot * last() const { return m_glyph + (m_glyphLength - 1); }
 
-    void log(size_t unicodeLength) const;
     
     unsigned long long accessCount() const { return m_accessCount; }
     
@@ -100,13 +99,13 @@ public:
     CLASS_NEW_DELETE;
 private:
 
-    size_t m_glyphLength;
+    size_t   m_glyphLength;
     
 
     uint16 * m_unicode;
     
-    Slot * m_glyph;
-    uint16 * m_attr;
+    Slot   * m_glyph;
+    int16  * m_attr;
     mutable unsigned long long m_accessCount;
     mutable unsigned long long m_lastAccess;
 };

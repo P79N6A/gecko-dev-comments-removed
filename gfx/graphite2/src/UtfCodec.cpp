@@ -24,7 +24,7 @@
 
 
 
-#include "UtfCodec.h"
+#include "inc/UtfCodec.h"
 
 
 namespace graphite2 {

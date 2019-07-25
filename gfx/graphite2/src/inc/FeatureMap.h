@@ -28,8 +28,8 @@
 
 
 #include "graphite2/Font.h"
-#include "Main.h"
-#include "FeatureVal.h"
+#include "inc/Main.h"
+#include "inc/FeatureVal.h"
 
 namespace graphite2 {
 

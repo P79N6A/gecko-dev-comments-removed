@@ -25,8 +25,8 @@
 
 
 #include "graphite2/Segment.h"
-#include "UtfCodec.h"
-#include "Segment.h"
+#include "inc/UtfCodec.h"
+#include "inc/Segment.h"
 
 using namespace graphite2;
 
@@ -53,9 +53,7 @@ namespace
       pRes->prepare_pos(font);
       
       pRes->finalise(font);
-  #ifndef DISABLE_TRACING
-      pRes->logSegment(enc, pStart, nChars);
-  #endif
+
       return static_cast<gr_segment*>(pRes);
   }
 
@@ -170,7 +168,6 @@ void gr_seg_justify(gr_segment* pSeg, gr_slot* pSlot, const gr_font *pFont, doub
 {
     assert(pSeg);
     assert(pSlot);
-    printf("[%f]", width);
     pSeg->justify(pSlot, pFont, width, justFlags(flags), pFirst, pLast);
 }
 

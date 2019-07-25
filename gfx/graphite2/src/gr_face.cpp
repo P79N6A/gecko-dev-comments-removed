@@ -25,9 +25,8 @@
 
 
 #include "graphite2/Font.h"
-#include "Face.h"
-#include "CachedFace.h"
-#include "XmlTraceLog.h"
+#include "inc/Face.h"
+#include "inc/CachedFace.h"
 
 
 using namespace graphite2;
@@ -51,9 +50,6 @@ gr_face* gr_make_face(const void* appFaceHandle, gr_get_table_fn getTable, unsig
     else
     	faceOptions &= ~gr_face_dumbRendering;
 
-#ifndef DISABLE_TRACING
-    XmlTraceLog::get().openElement(ElementFace);
-#endif
     bool valid = true;
     valid &= res->readGlyphs(faceOptions);
     if (!valid) {
@@ -62,9 +58,6 @@ gr_face* gr_make_face(const void* appFaceHandle, gr_get_table_fn getTable, unsig
     }
     valid &= res->readFeatures();
     valid &= res->readGraphite();
-#ifndef DISABLE_TRACING
-    XmlTraceLog::get().closeElement(ElementFace);
-#endif
     
     if (!(faceOptions & gr_face_dumbRendering) && !valid) {
         delete res;
@@ -73,15 +66,23 @@ gr_face* gr_make_face(const void* appFaceHandle, gr_get_table_fn getTable, unsig
     return static_cast<gr_face *>(res);
 }
 
-#ifndef DISABLE_SEGCACHE
-
+#ifndef GRAPHITE2_NSEGCACHE
 gr_face* gr_make_face_with_seg_cache(const void* appFaceHandle, gr_get_table_fn getTable, unsigned int cacheSize, unsigned int faceOptions)
                   
 {
     CachedFace *res = new CachedFace(appFaceHandle, getTable);
-#ifndef DISABLE_TRACING
-    XmlTraceLog::get().openElement(ElementFace);
-#endif
+
+    if (res->getTable(Tag::Silf) == 0)
+    {
+		if (!(faceOptions & gr_face_dumbRendering))
+		{
+			delete res;
+			return 0;
+		}
+    }
+    else
+    	faceOptions &= ~gr_face_dumbRendering;
+
     bool valid = true;
     valid &= res->readGlyphs(faceOptions);
     if (!valid) {
@@ -92,17 +93,12 @@ gr_face* gr_make_face_with_seg_cache(const void* appFaceHandle, gr_get_table_fn 
     valid &= res->readGraphite();
     valid &= res->setupCache(cacheSize);
 
-#ifndef DISABLE_TRACING
-    XmlTraceLog::get().closeElement(ElementFace);
-#endif
-
     if (!(faceOptions & gr_face_dumbRendering) && !valid) {
         delete res;
         return 0;
     }
     return static_cast<gr_face *>(static_cast<Face *>(res));
 }
-
 #endif
 
 gr_uint32 gr_str_to_tag(const char *str)
@@ -209,7 +205,7 @@ unsigned short gr_face_n_glyphs(const gr_face* pFace)
 }
 
 
-#ifndef DISABLE_FILE_FACE
+#ifndef GRAPHITE2_NFILEFACE
 gr_face* gr_make_file_face(const char *filename, unsigned int faceOptions)
 {
     FileFace* pFileFace = new FileFace(filename);
@@ -229,7 +225,7 @@ gr_face* gr_make_file_face(const char *filename, unsigned int faceOptions)
     return NULL;
 }
 
-#ifndef DISABLE_SEGCACHE
+#ifndef GRAPHITE2_NSEGCACHE
 gr_face* gr_make_file_face_with_seg_cache(const char* filename, unsigned int segCacheMaxSize, unsigned int faceOptions)   
                   
 {

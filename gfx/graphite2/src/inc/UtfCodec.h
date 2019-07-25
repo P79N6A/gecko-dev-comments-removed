@@ -26,9 +26,8 @@
 
 #pragma once
 
-#include <iterator>
-#include "Main.h"
-#include "graphite2/Segment.h"
+#include <cstdlib>
+#include "inc/Main.h"
 
 namespace graphite2 {
 

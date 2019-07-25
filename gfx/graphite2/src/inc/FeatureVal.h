@@ -27,8 +27,8 @@
 #pragma once
 #include <cstring>
 #include <cassert>
-#include "Main.h"
-#include "List.h"
+#include "inc/Main.h"
+#include "inc/List.h"
 
 namespace graphite2 {
 
