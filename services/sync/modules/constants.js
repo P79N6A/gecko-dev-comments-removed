@@ -76,15 +76,6 @@ SYNC_KEY_ENCODED_LENGTH:               26,
 SYNC_KEY_DECODED_LENGTH:               16,
 SYNC_KEY_HYPHENATED_LENGTH:            31,    
 
-
-SINGLE_USER_SYNC:                      24 * 60 * 60 * 1000, 
-MULTI_DEVICE_IDLE_SYNC:                60 * 60 * 1000, 
-MULTI_DEVICE_ACTIVE_SYNC:              5 * 60 * 1000, 
-MULTI_DEVICE_IMMEDIATE_SYNC:           60 * 1000, 
-
-
-IDLE_TIME:                             300, 
-
 NO_SYNC_NODE_INTERVAL:                 10 * 60 * 1000, 
 
 MAX_ERROR_COUNT_BEFORE_BACKOFF:        3,
