@@ -37,6 +37,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -210,9 +211,12 @@ dump("misspelling\n");
       try {
         var cmdLine = window.arguments[0].QueryInterface(Ci.nsICommandLine);
         if (cmdLine.length == 1) {
-          whereURI = cmdLine.resolveURI(cmdLine.getArgument(0));
-          if (whereURI)
-            whereURI = whereURI.spec;
+          var uri = cmdLine.getArgument(0);
+          if(uri != "" && uri[0] != '-'){
+            whereURI = cmdLine.resolveURI(uri);
+            if (whereURI)
+              whereURI = whereURI.spec;
+          }
         }
       }
       catch (e) {
