@@ -328,7 +328,7 @@ Content.prototype = {
       case "DOMActivate": {
         
         let href = Util.getHrefForElement(aEvent.originalTarget);
-        if (!Util.isLocalScheme(href)) {
+        if (/^http(s?):/.test(href)) {
           aEvent.preventDefault();
           sendAsyncMessage("Browser:OpenURI", { uri: href, bringFront: true });
         }
