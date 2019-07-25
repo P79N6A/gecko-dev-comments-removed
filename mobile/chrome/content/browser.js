@@ -1022,7 +1022,7 @@ var Browser = {
         
         if (tab) {
           tab.updateViewportMetadata(json);
-          if (!this.isLoading())
+          if (!tab.isLoading())
             tab.updateThumbnail();
         }
         break;
