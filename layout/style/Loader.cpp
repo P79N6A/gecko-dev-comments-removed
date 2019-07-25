@@ -56,10 +56,10 @@
 #include "nsCOMArray.h"
 #include "nsString.h"
 #include "nsIContent.h"
-#include "nsIDOMNode.h"
-#include "nsIDOMWindow.h"
 #include "nsIDocument.h"
-#include "nsIDOMNSDocumentStyle.h"
+#include "nsIDOMNode.h"
+#include "nsIDOMDocument.h"
+#include "nsIDOMWindow.h"
 #include "nsICharsetAlias.h"
 #include "nsHashtable.h"
 #include "nsIURI.h"
@@ -457,7 +457,7 @@ Loader::Loader(nsIDocument* aDocument)
   
   
   
-  nsCOMPtr<nsIDOMNSDocumentStyle> domDoc(do_QueryInterface(mDocument));
+  nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(mDocument);
   if (domDoc) {
     domDoc->GetPreferredStyleSheetSet(mPreferredSheet);
   }
@@ -511,7 +511,7 @@ nsresult
 Loader::SetPreferredSheet(const nsAString& aTitle)
 {
 #ifdef DEBUG
-  nsCOMPtr<nsIDOMNSDocumentStyle> doc(do_QueryInterface(mDocument));
+  nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(mDocument);
   if (doc) {
     nsAutoString currentPreferred;
     doc->GetLastStyleSheetSet(currentPreferred);

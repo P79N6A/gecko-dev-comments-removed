@@ -54,7 +54,6 @@
 #include "nsIDOMXMLDocument.h"
 #include "nsIDOMDocumentXBL.h"
 #include "nsIDOMNSDocument.h"
-#include "nsIDOMNSDocumentStyle.h"
 #include "nsStubDocumentObserver.h"
 #include "nsIDOM3EventTarget.h"
 #include "nsIDOMNSEventTarget.h"
@@ -491,7 +490,6 @@ protected:
 class nsDocument : public nsIDocument,
                    public nsIDOMXMLDocument, 
                    public nsIDOMNSDocument,
-                   public nsIDOMNSDocumentStyle,
                    public nsIDOMDocumentXBL,
                    public nsSupportsWeakReference,
                    public nsIDOMEventTarget,
@@ -793,12 +791,6 @@ public:
 
   
   NS_DECL_NSIDOMNSDOCUMENT
-
-  
-  NS_DECL_NSIDOMDOCUMENTSTYLE
-
-  
-  NS_DECL_NSIDOMNSDOCUMENTSTYLE
 
   
   NS_DECL_NSIDOMDOCUMENTXBL
