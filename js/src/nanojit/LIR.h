@@ -1990,6 +1990,12 @@ namespace nanojit
         
         
         
+        HashMap <LIns*, bool> knownCmpValues;
+
+        
+        
+        
+        
         bool suspended;
 
         CseAcc miniAccSetToCseAcc(MiniAccSet miniAccSet, LoadQual loadQual) {

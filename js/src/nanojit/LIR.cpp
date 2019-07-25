@@ -2052,6 +2052,7 @@ namespace nanojit
           CSE_ACC_MULTIPLE( EMB_NUM_USED_ACCS + 1),
           storesSinceLastLoad(ACCSET_NONE),
           alloc(alloc),
+          knownCmpValues(alloc),
           suspended(false)
     {
 
@@ -2153,6 +2154,8 @@ namespace nanojit
         
         for (CseAcc a = 0; a < CSE_NUM_USED_ACCS; a++)
             clearL(a);
+
+        knownCmpValues.clear();
     }
 
     inline uint32_t CseFilter::hashImmI(int32_t a) {
@@ -2556,6 +2559,15 @@ namespace nanojit
         if (!ins) {
             ins = out->ins2(op, a, b);
             addNL(LIns2, ins, k);
+        } else if (ins->isCmp()) {
+            if (knownCmpValues.containsKey(ins)) {
+                
+                
+                
+                NanoAssert(ins->isCmp());
+                bool cmpValue = knownCmpValues.get(ins);
+                return insImmI(cmpValue ? 1 : 0);
+            }
         }
         NanoAssert(ins->isop(op) && ins->oprnd1() == a && ins->oprnd2() == b);
         return ins;
@@ -2669,6 +2681,13 @@ namespace nanojit
             if (!ins) {
                 ins = out->insGuard(op, c, gr);
                 addNL(LIns1, ins, k);
+            }
+            
+            
+            
+            if (!suspended) {
+                bool c_value = (op == LIR_xt ? false : true);
+                knownCmpValues.put(c, c_value);
             }
         } else {
             ins = out->insGuard(op, c, gr);
