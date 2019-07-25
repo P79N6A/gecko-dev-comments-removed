@@ -282,22 +282,23 @@ BookmarksEngine.prototype = {
     this._log.debug("Sharing bookmarks from " + folder + " with " + username);
 
     
-    this._getSymKey.async(this, self.cb);
-    yield;
+    let keychain = this._remote.keys;
+    let identity = 'jono';
+    keychain.getKey( this.cb, identity );
+    let symKey = yield;
+    dump( "SymKey is " + symKey + "\n" );
 
+
+
+
+
+
+    
+    
+
+
+    
     dump( "Trying DAV.GET...\n" );
-    dump( "Keyfile is " + this.keysFile + "\n" );
-
-
-
-
-
-
-    
-    
-
-
-    
     DAV.GET(this.keysFile, self.cb);
     let ret = yield;
     Utils.ensureStatus(ret.status, "Could not get keys file.");
