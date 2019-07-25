@@ -254,6 +254,8 @@ public:
   
   
   
+  
+  
   void ProcessOfflineManifest(const nsAString& aManifestSpec);
 
   
