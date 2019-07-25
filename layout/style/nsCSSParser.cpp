@@ -476,6 +476,11 @@ protected:
   bool ParseCalcTerm(nsCSSValue& aValue, PRInt32& aVariantMask);
   bool RequireWhitespace();
 
+#ifdef MOZ_FLEXBOX
+  
+  bool ParseFlex();
+#endif
+
   
   bool ParseRect(nsCSSProperty aPropID);
   bool ParseColumns();
@@ -4831,6 +4836,116 @@ CSSParserImpl::ParseElement(nsCSSValue& aValue)
   return false;
 }
 
+#ifdef MOZ_FLEXBOX
+
+bool
+CSSParserImpl::ParseFlex()
+{
+  
+  nsCSSValue tmpVal;
+  if (ParseVariant(tmpVal, VARIANT_INHERIT, nsnull)) {
+    AppendValue(eCSSProperty_flex_grow, tmpVal);
+    AppendValue(eCSSProperty_flex_shrink, tmpVal);
+    AppendValue(eCSSProperty_flex_basis, tmpVal);
+    return true;
+  }
+
+  
+  if (ParseVariant(tmpVal, VARIANT_NONE, nsnull)) {
+    AppendValue(eCSSProperty_flex_grow, nsCSSValue(0.0f, eCSSUnit_Number));
+    AppendValue(eCSSProperty_flex_shrink, nsCSSValue(0.0f, eCSSUnit_Number));
+    AppendValue(eCSSProperty_flex_basis, nsCSSValue(eCSSUnit_Auto));
+    return true;
+  }
+
+  
+  
+
+  
+  
+  
+  
+  nsCSSValue flexGrow(1.0f, eCSSUnit_Number);
+  nsCSSValue flexShrink(1.0f, eCSSUnit_Number);
+  nsCSSValue flexBasis(0.0f, eCSSUnit_Percent);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  PRUint32 variantMask = VARIANT_NUMBER |
+    (nsCSSProps::ParserVariant(eCSSProperty_flex_basis) & ~(VARIANT_INHERIT));
+
+  if (!ParseNonNegativeVariant(tmpVal, variantMask, nsCSSProps::kWidthKTable)) {
+    
+    return false;
+  }
+
+  
+  bool wasFirstComponentFlexBasis = (tmpVal.GetUnit() != eCSSUnit_Number);
+  (wasFirstComponentFlexBasis ? flexBasis : flexGrow) = tmpVal;
+
+  
+  bool doneParsing = false;
+  if (wasFirstComponentFlexBasis) {
+    if (ParseNonNegativeVariant(tmpVal, VARIANT_NUMBER, nsnull)) {
+      flexGrow = tmpVal;
+    } else {
+      
+      
+      doneParsing = true;
+    }
+  }
+
+  if (!doneParsing) {
+    
+    
+    if (ParseNonNegativeVariant(tmpVal, VARIANT_NUMBER, nsnull)) {
+      flexShrink = tmpVal;
+    }
+ 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!wasFirstComponentFlexBasis &&
+        ParseNonNegativeVariant(tmpVal, variantMask,
+                                nsCSSProps::kWidthKTable)) {
+      if (tmpVal.GetUnit() == eCSSUnit_Number) {
+        
+        
+        return false;
+      }
+      flexBasis = tmpVal;
+    }
+  }
+
+  AppendValue(eCSSProperty_flex_grow,   flexGrow);
+  AppendValue(eCSSProperty_flex_shrink, flexShrink);
+  AppendValue(eCSSProperty_flex_basis,  flexBasis);
+
+  return true;
+}
+#endif
+
 
 bool
 CSSParserImpl::ParseColorStop(nsCSSValueGradient* aGradient)
@@ -5488,6 +5603,10 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
     return ParseCounterData(aPropID);
   case eCSSProperty_cursor:
     return ParseCursor();
+#ifdef MOZ_FLEXBOX
+  case eCSSProperty_flex:
+    return ParseFlex();
+#endif 
   case eCSSProperty_font:
     return ParseFont();
   case eCSSProperty_image_region:
