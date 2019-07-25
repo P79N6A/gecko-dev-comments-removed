@@ -386,72 +386,57 @@ TaggingService.prototype = {
   },
 
   
-  _inBatch: false,
-
-  
-  _itemsInRemoval: {},
-
-  
-  onBeginUpdateBatch: function() {
-    this._inBatch = true;
-  },
-  onEndUpdateBatch: function() {
-    this._inBatch = false;
-  },
-
-  onItemAdded: function(aItemId, aFolderId, aIndex, aItemType, aURI) {
+  onItemAdded: function TS_onItemAdded(aItemId, aFolderId, aIndex, aItemType,
+                                       aURI, aTitle) {
     
     if (aFolderId != PlacesUtils.tagsFolderId ||
         aItemType != PlacesUtils.bookmarks.TYPE_FOLDER)
       return;
 
-    this._tagFolders[aItemId] = PlacesUtils.bookmarks.getItemTitle(aItemId);
+    this._tagFolders[aItemId] = aTitle;
   },
 
-  onBeforeItemRemoved: function(aItemId, aItemType) {
-    if (aItemType == PlacesUtils.bookmarks.TYPE_BOOKMARK)
-      this._itemsInRemoval[aItemId] = PlacesUtils.bookmarks.getBookmarkURI(aItemId);
-  },
-
-  onItemRemoved: function(aItemId, aFolderId, aIndex, aItemType) {
-    var itemURI = this._itemsInRemoval[aItemId];
-    delete this._itemsInRemoval[aItemId];
-
+  onItemRemoved: function TS_onItemRemoved(aItemId, aFolderId, aIndex,
+                                           aItemType, aURI) {
     
     if (aFolderId == PlacesUtils.tagsFolderId && this._tagFolders[aItemId])
       delete this._tagFolders[aItemId];
 
     
-    else if (itemURI && !this._tagFolders[aFolderId]) {
+    else if (aURI && !this._tagFolders[aFolderId]) {
 
       
       
       
-      var tagIds = this._getTagsIfUnbookmarkedURI(itemURI);
+      var tagIds = this._getTagsIfUnbookmarkedURI(aURI);
       if (tagIds)
-        this.untagURI(itemURI, tagIds);
+        this.untagURI(aURI, tagIds);
     }
 
     
-    else if (itemURI && this._tagFolders[aFolderId]) {
+    else if (aURI && this._tagFolders[aFolderId]) {
       this._removeTagIfEmpty(aFolderId);
     }
   },
 
-  onItemChanged: function(aItemId, aProperty, aIsAnnotationProperty, aNewValue,
-                          aLastModified, aItemType) {
+  onItemChanged: function TS_onItemChanged(aItemId, aProperty,
+                                           aIsAnnotationProperty, aNewValue,
+                                           aLastModified, aItemType) {
     if (aProperty == "title" && this._tagFolders[aItemId])
-      this._tagFolders[aItemId] = PlacesUtils.bookmarks.getItemTitle(aItemId);
+      this._tagFolders[aItemId] = aNewValue;
   },
 
-  onItemVisited: function(aItemId, aVisitID, time) {},
-
-  onItemMoved: function(aItemId, aOldParent, aOldIndex, aNewParent, aNewIndex,
-                        aItemType) {
+  onItemMoved: function TS_onItemMoved(aItemId, aOldParent, aOldIndex,
+                                      aNewParent, aNewIndex, aItemType) {
     if (this._tagFolders[aItemId] && PlacesUtils.tagsFolderId == aOldParent &&
         PlacesUtils.tagsFolderId != aNewParent)
       delete this._tagFolders[aItemId];
   },
+
+  onItemVisited: function () {},
+  onBeforeItemRemoved: function () {},
+  onBeginUpdateBatch: function () {},
+  onEndUpdateBatch: function () {},
 
   
   classID: Components.ID("{bbc23860-2553-479d-8b78-94d9038334f7}"),

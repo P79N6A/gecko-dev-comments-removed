@@ -59,10 +59,10 @@ function run_test()
 
   
   bs.addObserver({
-    onItemAdded: function(aItemId, aFolder, aIndex, aItemType, aURI)
+    onItemAdded: function(aItemId, aFolder, aIndex, aItemType, aURI, aTitle)
     {
       do_check_eq(aItemId, id);
-      do_check_eq(bs.getItemTitle(aItemId), TITLE);
+      do_check_eq(aTitle, TITLE);
     }
   }, false);
   transaction.undoTransaction();
