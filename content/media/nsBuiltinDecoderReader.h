@@ -452,6 +452,9 @@ public:
   
   MediaQueue<VideoData> mVideoQueue;
 
+  
+  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered, PRInt64 aStartTime) = 0;
+
 protected:
 
   

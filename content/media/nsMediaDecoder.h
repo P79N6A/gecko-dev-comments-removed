@@ -51,6 +51,7 @@
 class nsHTMLMediaElement;
 class nsMediaStream;
 class nsIStreamListener;
+class nsHTMLTimeRanges;
 
 
 
@@ -235,6 +236,10 @@ public:
   void SetVideoData(const gfxIntSize& aSize,
                     float aPixelAspectRatio,
                     Image* aImage);
+
+  
+  
+  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered) = 0;
 
   
   

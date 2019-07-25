@@ -46,6 +46,7 @@
 #include "nsOggCodecState.h"
 
 class nsMediaDecoder;
+class nsHTMLTimeRanges;
 
 class nsOggReader : public nsBuiltinDecoderReader
 {
@@ -80,6 +81,9 @@ public:
 
   virtual nsresult ReadMetadata();
   virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime);
+
+  
+  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered);
 
 private:
   
@@ -125,9 +129,6 @@ private:
   
   
   PRInt64 mPageOffset;
-
-  
-  PRUint32 mCallbackPeriod;
 
   
   PRInt64 mTheoraGranulepos;

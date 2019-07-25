@@ -234,6 +234,10 @@ public:
   
   State mState;
 
+  nsresult GetBuffered(nsHTMLTimeRanges* aBuffered) {
+    return mReader->GetBuffered(aBuffered, mStartTime);
+  }
+
 protected:
 
   
