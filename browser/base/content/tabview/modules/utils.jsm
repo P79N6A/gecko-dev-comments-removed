@@ -81,10 +81,9 @@ var consoleService = Cc["@mozilla.org/consoleservice;1"]
 
 
 window.Point = function(a, y) {
-  if (isPoint(a)) {
+  if (Utils.isPoint(a)) {
     
     this.x = a.x;
-
     
     this.y = a.y;
   } else {
@@ -92,30 +91,14 @@ window.Point = function(a, y) {
     this.y = (Utils.isNumber(y) ? y : 0);
   }
 };
-
-
-
-
-
-window.isPoint = function(p) {
-  return (p && Utils.isNumber(p.x) && Utils.isNumber(p.y));
-};
-
 window.Point.prototype = {
   
   
   
   distance: function(point) {
-    var ax = Math.abs(this.x - point.x);
-    var ay = Math.abs(this.y - point.y);
+    var ax = this.x - point.x;
+    var ay = this.y - point.y;
     return Math.sqrt((ax * ax) + (ay * ay));
-  },
-
-  
-  
-  
-  plus: function(point) {
-    return new Point(this.x + point.x, this.y + point.y);
   }
 };
 
@@ -130,7 +113,7 @@ window.Point.prototype = {
 
 window.Rect = function(a, top, width, height) {
   
-  if (isRect(a)) {
+  if (Utils.isRect(a)) {
     
     this.left = a.left;
 
@@ -148,18 +131,6 @@ window.Rect = function(a, top, width, height) {
     this.width = width;
     this.height = height;
   }
-};
-
-
-
-
-
-window.isRect = function(r) {
-  return (r
-      && Utils.isNumber(r.left)
-      && Utils.isNumber(r.top)
-      && Utils.isNumber(r.width)
-      && Utils.isNumber(r.height));
 };
 
 window.Rect.prototype = {
@@ -230,20 +201,6 @@ window.Rect.prototype = {
   
   
   
-  containsPoint: function(point){
-    return( point.x > this.left
-         && point.x < this.right
-         && point.y > this.top
-         && point.y < this.bottom )
-  },
-
-  
-  
-  
-  
-  
-  
-  
   contains: function(rect){
     return( rect.left > this.left
          && rect.right < this.right
@@ -287,7 +244,7 @@ window.Rect.prototype = {
   
   
   inset: function(a, b) {
-    if (typeof(a.x) != 'undefined' && typeof(a.y) != 'undefined') {
+    if (Utils.isPoint(a)) {
       b = a.y;
       a = a.x;
     }
@@ -305,7 +262,7 @@ window.Rect.prototype = {
   
   
   offset: function(a, b) {
-    if (typeof(a.x) != 'undefined' && typeof(a.y) != 'undefined') {
+    if (Utils.isPoint(a)) {
       this.left += a.x;
       this.top += a.y;
     } else {
@@ -317,11 +274,11 @@ window.Rect.prototype = {
   
   
   
-  equals: function(a) {
-    return (a.left == this.left
-        && a.top == this.top
-        && a.width == this.width
-        && a.height == this.height);
+  equals: function(rect) {
+    return (rect.left == this.left
+        && rect.top == this.top
+        && rect.width == this.width
+        && rect.height == this.height);
   },
 
   
@@ -351,6 +308,7 @@ window.Rect.prototype = {
   
   
   
+  
   css: function() {
     return {
       left: this.left,
@@ -368,23 +326,13 @@ window.Rect.prototype = {
 
 
 window.Range = function(min, max) {
-  if (isRange(min) && !max) { 
+  if (Utils.isRange(min) && !max) { 
     this.min = min.min;
     this.max = min.max;
   } else {
     this.min = min || 0;
     this.max = max || 0;
   }
-};
-
-
-
-
-
-window.isRange = function(r) {
-  return (r
-      && Utils.isNumber(r.min)
-      && Utils.isNumber(r.max));
 };
 
 window.Range.prototype = {
@@ -406,30 +354,10 @@ window.Range.prototype = {
   
   contains: function(value) {
     return Utils.isNumber(value) ?
-      ( value >= this.min && value <= this.max ) :
-      ( value.min >= this.min && value.max <= this.max );
-  },
-  
-  
-  
-  
-  
-  
-  containsWithin: function(value) {
-    return Utils.isNumber(value) ?
-      ( value > this.min && value < this.max ) :
-      ( value.min > this.min && value.max < this.max );
-  },
-  
-  
-  
-  
-  
-  
-  overlaps: function(value) {
-    return Utils.isNumber(value) ?
-      this.contains(value) :
-      ( value.min <= this.max && this.min <= value.max );
+      value >= this.min && value <= this.max :
+      Utils.isRange(value) ? 
+        ( value.min <= this.max && this.min <= value.max ) :
+        false;
   },
 };
 
@@ -671,6 +599,33 @@ var Utils = {
   
   isNumber: function(n) {
     return (typeof(n) == 'number' && !isNaN(n));
+  },
+  
+  
+  
+  
+  isRect: function(r) {
+    return (r
+        && this.isNumber(r.left)
+        && this.isNumber(r.top)
+        && this.isNumber(r.width)
+        && this.isNumber(r.height));
+  },
+  
+  
+  
+  
+  isRange: function(r) {
+    return (r
+        && this.isNumber(r.min)
+        && this.isNumber(r.max));
+  },
+
+  
+  
+  
+  isPoint: function(p) {
+    return (p && this.isNumber(p.x) && this.isNumber(p.y));
   },
 
   
