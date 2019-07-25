@@ -104,6 +104,13 @@ function teststylePanels() {
     doc.getElementById("container")
   ];
 
+  
+  
+  
+  
+  
+  
+  
   info("looping through array to check initialization");
   for (let i = 0, max = stylePanels.length; i < max; i++) {
     ok(stylePanels[i], "style inspector instance " + i +
@@ -111,15 +118,40 @@ function teststylePanels() {
     ok(stylePanels[i].isOpen(), "style inspector " + i + " is open");
 
     let htmlTree = stylePanels[i].cssHtmlTree;
+    let cssLogic = htmlTree.cssLogic;
+    let elt = eltArray[i];
+    let eltId = elt.id;
 
-    is(eltArray[i], htmlTree.viewedElement,
-      "style inspector node matches the selected node (id=" +
-      eltArray[i].id + ")");
+    
+    is(elt, htmlTree.viewedElement,
+      "style inspector node matches the selected node (id=" + eltId + ")");
     is(htmlTree.viewedElement, stylePanels[i].cssLogic.viewedElement,
-      "cssLogic node matches the cssHtmlTree node (id=" + eltArray[i].id + ")");
+      "cssLogic node matches the cssHtmlTree node (id=" + eltId + ")");
 
     ok(groupRuleCount(0, stylePanels[i]) > 0,
        "we have rules for the current node (id=" + eltArray[i].id + ")");
+
+    
+    let matchedSelectors = cssLogic.getPropertyInfo("font-family").matchedSelectors;
+    let sel = matchedSelectors[0];
+    let selector = sel.selector.text;
+    let value = sel.value;
+
+    
+    
+    switch(eltId) {
+      case "text":
+        is(selector, "#container > .text", "correct best match for #text");
+        is(value, "cursive", "correct css property value for #" + eltId);
+        break;
+      case "text2":
+        is(selector, "#container > span", "correct best match for #text2");
+        is(value, "cursive", "correct css property value for #" + eltId);
+        break;
+      case "container":
+        is(selector, "#container", "correct best match for #container");
+        is(value, "fantasy", "correct css property value for #" + eltId);
+    }
   }
 
   info("hiding stylePanels[1]");

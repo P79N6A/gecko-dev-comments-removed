@@ -1087,6 +1087,7 @@ function CssSelector(aCssRule, aSelector)
   this._cssRule = aCssRule;
   this.text = aSelector;
   this.elementStyle = this.text == "@element.style";
+  this._specificity = null;
 }
 
 CssSelector.prototype = {
@@ -1166,6 +1167,57 @@ CssSelector.prototype = {
   get ruleLine()
   {
     return this._cssRule.line;
+  },
+
+  
+
+
+
+
+
+
+
+
+  get specificity()
+  {
+    if (this._specificity) {
+      return this._specificity;
+    }
+
+    let specificity = {};
+
+    specificity.ids = 0;
+    specificity.classes = 0;
+    specificity.tags = 0;
+
+    
+    
+    if (!this.elementStyle) {
+      this.text.split(/[ >+]/).forEach(function(aSimple) {
+        
+        if (!aSimple) {
+          return;
+        }
+        
+        
+        specificity.ids += (aSimple.match(/#/g) || []).length;
+        
+        specificity.classes += (aSimple.match(/\./g) || []).length;
+        specificity.classes += (aSimple.match(/\[/g) || []).length;
+        
+        specificity.tags += (aSimple.match(/:/g) || []).length;
+        
+        
+        let tag = aSimple.split(/[#.[:]/)[0];
+        if (tag && tag != "*") {
+          specificity.tags++;
+        }
+      }, this);
+    }
+
+    this._specificity = specificity;
+
+    return this._specificity;
   },
 
   toString: function CssSelector_toString()
@@ -1470,6 +1522,25 @@ function CssSelectorInfo(aSelector, aProperty, aValue, aStatus)
 
   let priority = this.selector._cssRule.getPropertyPriority(this.property);
   this.important = (priority === "important");
+
+  
+
+
+
+
+
+
+
+  let scorePrefix = this.systemRule ? 0 : 2;
+  if (this.elementStyle) {
+    scorePrefix++;
+  }
+  if (this.important) {
+    scorePrefix += this.systemRule ? 1 : 2;
+  }
+
+  this.specificityScore = "" + scorePrefix + this.specificity.ids +
+      this.specificity.classes + this.specificity.tags;
 }
 
 CssSelectorInfo.prototype = {
@@ -1516,6 +1587,17 @@ CssSelectorInfo.prototype = {
   get elementStyle()
   {
     return this.selector.elementStyle;
+  },
+
+  
+
+
+
+
+
+  get specificity()
+  {
+    return this.selector.specificity;
   },
 
   
@@ -1586,6 +1668,15 @@ CssSelectorInfo.prototype = {
 
     if (this.important && !aThat.important) return -1;
     if (aThat.important && !this.important) return 1;
+
+    if (this.specificity.ids > aThat.specificity.ids) return -1;
+    if (aThat.specificity.ids > this.specificity.ids) return 1;
+
+    if (this.specificity.classes > aThat.specificity.classes) return -1;
+    if (aThat.specificity.classes > this.specificity.classes) return 1;
+
+    if (this.specificity.tags > aThat.specificity.tags) return -1;
+    if (aThat.specificity.tags > this.specificity.tags) return 1;
 
     if (this.sheetIndex > aThat.sheetIndex) return -1;
     if (aThat.sheetIndex > this.sheetIndex) return 1;
