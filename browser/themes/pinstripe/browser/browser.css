@@ -1,46 +1,46 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998-1999
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Joe Hewitt (hewitt@netscape.com)
- *   Jason Kersey (kerz@netscape.com)
- *   Pierre Chanial (chanial@noos.fr)
- *   Kevin Gerich (kevin@kmgerich.com)
- *   Pamela Greene (pamg.bugs@gmail.com)
- *   Dão Gottwald (dao@mozilla.com)
- *   Stephen Horlander (stephen@noved.org)
- *   Drew Willcoxon (adw@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @import url("chrome://global/skin/");
 
@@ -63,8 +63,8 @@
 #nav-bar:-moz-lwtheme {
   -moz-appearance: none !important;
   background: none !important;
-  /* Switching to a lightweight theme shouldn't move the content area,
-     so avoid changing border widths here. */
+  
+
   border-color: transparent !important;
 }
 
@@ -88,7 +88,7 @@
 
 #PersonalToolbar {
   -moz-appearance: none;
-  margin-top: -1px; /* overlay the bottom border of the toolbar above us */
+  margin-top: -1px; 
   padding-top: 0 !important;
   background-color: -moz-mac-chrome-active;
   border-bottom: 1px solid rgba(0, 0, 0, 0.57);
@@ -98,11 +98,11 @@
 #navigator-toolbox[tabsontop="true"]:not([customizing]) > #nav-bar[collapsed="true"] + toolbar,
 #navigator-toolbox[tabsontop="true"]:not([customizing]) > #nav-bar[collapsed="true"] + #customToolbars + #PersonalToolbar {
   -moz-appearance: none;
-  margin-top: 0; /* don't overlay the bottom border of the tabs toolbar */
+  margin-top: 0; 
   padding-top: 4px !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.57);
   background-color: -moz-mac-chrome-active;
-  background-image: -moz-linear-gradient(rgba(255,255,255,.43), rgba(255,255,255,0)) !important; /* override lwtheme style */
+  background-image: -moz-linear-gradient(rgba(255,255,255,.43), rgba(255,255,255,0)) !important; 
   background-origin: border-box !important;
 }
 
@@ -122,10 +122,10 @@
   border-bottom-color: rgba(0, 0, 0, 0.32);
 }
 
-/* ----- BOOKMARK TOOLBAR ----- */
+
 
 #personal-bookmarks {
-  min-height: 17px; /* 16px button height + 1px margin-bottom */
+  min-height: 17px; 
 }
 
 toolbarbutton.chevron {
@@ -142,7 +142,7 @@ toolbarbutton.chevron:-moz-locale-dir(rtl) > .toolbarbutton-icon {
   -moz-transform: scaleX(-1);
 }
 
-/* ----- BOOKMARK BUTTONS ----- */
+
 
 toolbarbutton.bookmark-item {
   font-weight: bold;
@@ -162,7 +162,7 @@ toolbarbutton.bookmark-item {
 }
 
 .bookmark-item > .toolbarbutton-text {
-  display: -moz-box !important; /* prevent [mode="icons"] from hiding the label */
+  display: -moz-box !important; 
   margin: 0 !important;
 }
 
@@ -256,7 +256,7 @@ toolbarbutton.bookmark-item > menupopup {
   list-style-image: url("chrome://browser/skin/places/bookmarksToolbar.png") !important;
 }
 
-/* ----- BOOKMARK MENUS ----- */
+
 
 .bookmark-item > .menu-iconic-left > .menu-iconic-icon {
   width: 16px;
@@ -272,7 +272,7 @@ toolbarbutton.bookmark-item > menupopup {
   list-style-image: url("chrome://browser/skin/places/unfiledBookmarks.png");
 }
 
-/* ----- PRIMARY TOOLBAR BUTTONS ----- */
+
 
 .toolbarbutton-1:not([type="menu-button"]),
 .toolbarbutton-1 > .toolbarbutton-menubutton-button,
@@ -449,7 +449,7 @@ toolbar[mode="icons"] .toolbarbutton-1 > menupopup {
   margin-top: 1px;
 }
 
-/* unified back/forward button */
+
 
 #unified-back-forward-button {
   -moz-box-align: center;
@@ -486,7 +486,7 @@ toolbar[mode="icons"] #forward-button {
 }
 
 toolbar[mode="icons"]:not([iconsize="small"]) #forward-button {
-  /* 1px to the right */
+  
   padding-left: 4px;
   padding-right: 2px;
 }
@@ -531,19 +531,19 @@ toolbar[iconsize="small"][mode="icons"] #back-button {
 }
 
 
-/* reload button */
+
 
 #reload-button {
   -moz-image-region: rect(0, 80px, 20px, 60px);
 }
 
-/* stop button */
+
 
 #stop-button {
   -moz-image-region: rect(0, 100px, 20px, 80px);
 }
 
-/* home button */
+
 
 #home-button {
   -moz-image-region: rect(0, 120px, 20px, 100px);
@@ -564,7 +564,7 @@ toolbar[iconsize="small"][mode="icons"] #back-button {
   -moz-margin-end: 3px;
 }
 
-/* tabview button */
+
 
 #tabview-button {
   list-style-image: url(chrome://browser/skin/tabview/tabview.png);
@@ -587,13 +587,13 @@ toolbar[iconsize="small"][mode="icons"] #back-button {
   -moz-image-region: rect(0, 80px, 20px, 60px);
 }
 
-/* download manager button */
+
 
 #downloads-button {
   -moz-image-region: rect(0, 140px, 20px, 120px);
 }
 
-/* history sidebar button */
+
 
 #history-button {
   -moz-image-region: rect(0, 160px, 20px, 140px);
@@ -607,7 +607,7 @@ toolbar[iconsize="small"][mode="icons"] #back-button {
   -moz-image-region: rect(40px, 160px, 60px, 140px);
 }
 
-/* bookmark sidebar & menu buttons */
+
 
 #bookmarks-button,
 #bookmarks-menu-button {
@@ -631,49 +631,49 @@ toolbar[iconsize="small"][mode="icons"] #back-button {
   -moz-box-orient: horizontal;
 }
 
-/* print button */
+
 
 #print-button {
   -moz-image-region: rect(0, 200px, 20px, 180px);
 }
 
-/* toolbar new tab button */
+
 
 #new-tab-button {
   -moz-image-region: rect(0, 220px, 20px, 200px);
 }
 
-/* new window button */
+
 
 #new-window-button {
   -moz-image-region: rect(0, 240px, 20px, 220px);
 }
 
-/* cut button */
+
 
 #cut-button {
   -moz-image-region: rect(0, 260px, 20px, 240px);
 }
 
-/* copy button */
+
 
 #copy-button {
   -moz-image-region: rect(0, 280px, 20px, 260px);
 }
 
-/* paste button */
+
 
 #paste-button {
   -moz-image-region: rect(0, 300px, 20px, 280px);
 }
 
-/* alltabs button */
+
 
 #alltabs-button {
   -moz-image-region: rect(0, 380px, 20px, 360px);
 }
 
-/* fullscreen button */
+
 
 #fullscreen-button {
   -moz-image-region: rect(0, 340px, 20px, 320px);
@@ -684,7 +684,7 @@ toolbar[iconsize="small"][mode="icons"] #back-button {
   -moz-image-region: rect(0, 360px, 20px, 340px);
 }
 
-/* zoom controls */
+
 
 #zoom-controls {
   -moz-box-align: center;
@@ -720,7 +720,7 @@ toolbar[mode="icons"] #zoom-in-button {
   border-bottom-left-radius: 0;
 }
 
-/* sync button */
+
 
 #sync-button {
   -moz-image-region: rect(0, 440px, 20px, 420px);
@@ -731,14 +731,14 @@ toolbar[mode="icons"] #zoom-in-button {
   -moz-image-region: rect(0, 20px, 20px, 0px);
 }
 
-/* feed button */
+
 
 #feed-button {
   -moz-image-region: rect(0, 460px, 20px, 440px);
 }
 
 
-/* ----- FULLSCREEN WINDOW CONTROLS ----- */
+
 
 #minimize-button,
 #close-button,
@@ -746,7 +746,7 @@ toolbar[mode="icons"] #zoom-in-button {
   display: none;
 }
 
-/* ::::: nav-bar-inner ::::: */
+
 
 #urlbar,
 .searchbar-textbox {
@@ -897,7 +897,7 @@ toolbar[mode="icons"] #zoom-in-button {
   margin-top: 2px;
 }
 
-/* over-link in location bar */
+
 
 .urlbar-origin-label {
   padding-top: 0;
@@ -933,7 +933,7 @@ toolbar[mode="icons"] #zoom-in-button {
   margin: 0;
 }
 
-/* ----- AUTOCOMPLETE ----- */
+
 
 #treecolAutoCompleteImage {
   max-width: 36px;
@@ -1006,7 +1006,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   border-top: 1px solid GrayText;
 }
 
-/* ----- GO BUTTON ----- */
+
 
 #go-button {
   list-style-image: url("chrome://browser/skin/Go-arrow.png");
@@ -1025,7 +1025,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   -moz-image-region: rect(0px, 48px, 16px, 32px);
 }
 
-/* ----- COMBINED GO/RELOAD/STOP BUTTON IN LOCATION BAR ----- */
+
 
 #urlbar > toolbarbutton {
   list-style-image: url("chrome://browser/skin/reload-stop-go.png");
@@ -1082,7 +1082,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
               -1px -1px 1px rgba(255,255,255,.15) inset;
 }
 
-/* POPUP BLOCKER BUTTON */
+
 #page-report-button {
   list-style-image: url("chrome://browser/skin/urlbar-popup-blocked.png");
   -moz-image-region: rect(0, 16px, 16px, 0);
@@ -1097,7 +1097,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   -moz-image-region: rect(0, 48px, 16px, 32px);
 }
 
-/* STAR BUTTON */
+
 #star-button {
   padding: 1px;
   -moz-padding-start: 4px;
@@ -1125,7 +1125,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   -moz-image-region: rect(16px, 48px, 32px, 32px);
 }
 
-/* BOOKMARKING PANEL */
+
 #editBookmarkPanelStarIcon {
   list-style-image: url("chrome://browser/skin/places/starred48.png");
   width: 48px;
@@ -1141,7 +1141,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   font-weight: bold;
 }
 
-/**** HUD style buttons ****/
+
 
 .editBookmarkPanelHeaderButton,
 .editBookmarkPanelBottomButton {
@@ -1169,10 +1169,10 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   margin-bottom: 6px;
 }
 
-/* The following elements come from editBookmarkOverlay.xul. Styling that's
-   specific to the editBookmarkPanel should be in browser.css. Styling that
-   should be shared by all editBookmarkOverlay.xul consumers should be in
-   editBookmarkOverlay.css. */
+
+
+
+
 
 #editBMPanel_newFolderBox {
   background-image: -moz-linear-gradient(rgb(90,90,90), rgb(40,40,40));
@@ -1251,7 +1251,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   list-style-image: url("chrome://browser/skin/hud-style-dropmarker-double-arrows.png");
 }
 
-/**** folder tree ****/
+
 
 #editBMPanel_folderTree {
   -moz-appearance: none;
@@ -1261,7 +1261,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   border-bottom: none;
   box-shadow: inset 0 1px 2px rgba(0,0,0,.15);
   color: #fff;
-  /* Implements editBookmarkPanel resizing on folderTree un-collapse. */
+  
   min-width: 27em;
   position: relative;
 }
@@ -1342,7 +1342,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   background-color: #b3b3b3;
 }
 
-/**** expanders ****/
+
 
 #editBookmarkPanel .expander-up,
 #editBookmarkPanel .expander-down {
@@ -1376,7 +1376,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   list-style-image: url("chrome://browser/skin/hud-style-expander-closed.png");
 }
 
-/**** name picker ****/
+
 
 #editBMPanel_tagsField,
 #editBMPanel_namePicker[droppable="false"] > .menulist-editable-box {
@@ -1415,7 +1415,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   text-align: end;
 }
 
-/* ----- SIDEBAR ELEMENTS ----- */
+
 
 #sidebar,
 sidebarheader {
@@ -1459,7 +1459,7 @@ sidebarheader > .tabs-closebutton > .toolbarbutton-text {
 }
 
 
-/* ----- THROBBER ----- */
+
 
 #navigator-throbber {
   width: 17px;
@@ -1487,7 +1487,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   list-style-image: none;
 }
 
-/* ::::: tabbrowser ::::: */
+
 
 .tabbrowser-tabbox {
   margin: 0;
@@ -1512,7 +1512,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   opacity: .8;
 }
 
-/* Prevent overlapping of tabs during the close animation */
+
 .tab-label:not([fadein]):not([pinned]) {
   margin-left: -16px;
   margin-right: -16px;
@@ -1521,7 +1521,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 }
 
 .tab-stack {
-  /* ensure stable tab height with and without toolbarbuttons on the tab bar */
+  
   height: 26px;
 }
 
@@ -1685,7 +1685,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   -moz-border-image: url(chrome://browser/skin/tabbrowser/tab-bottom-selected-active.png) 0 11 repeat stretch;
 }
 
-/* preloading hack */
+
 #TabsToolbar::after {
   content: '';
   display: block;
@@ -1721,11 +1721,11 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 }
 
 #navigator-toolbox[tabsontop="true"]:not(:-moz-lwtheme)::before {
-  /* We want the titlebar to be unified, but we still want to be able
-   * to give #TabsToolbar a background. So we can't set -moz-appearance:
-   * toolbar on #TabsToolbar itself. Instead, we set it on a box of the
-   * right size which is put underneath #TabsToolbar.
-   */
+  
+
+
+
+
   content: '';
   display: block;
   -moz-appearance: toolbar;
@@ -1798,18 +1798,18 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   padding-bottom: 2px;
 }
 
-/**
- * Tab Drag and Drop
- */
+
+
+
 
 .tab-drop-indicator {
   margin-top: -8px !important;
   list-style-image: url(chrome://browser/skin/tabbrowser/tabDragIndicator.png);
 }
 
-/**
- * In-tab close button
- */
+
+
+
 
 .tab-close-button > .toolbarbutton-icon {
   -moz-margin-end: 0px !important;
@@ -1876,9 +1876,9 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 }
 
 
-/**
- * Tabstrip & add-on bar toolbar buttons
- */
+
+
+
 
 :-moz-any(#TabsToolbar, #addon-bar) .toolbarbutton-1,
 :-moz-any(#TabsToolbar, #addon-bar) .toolbarbutton-1 > .toolbarbutton-menubutton-button,
@@ -1887,7 +1887,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   padding: 0;
   border: none;
   border-radius: 0;
-  /* !important flags needed because of bug 561154: */
+  
   background: none !important;
   box-shadow: none !important;
 }
@@ -1935,16 +1935,16 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 #TabsToolbar #alltabs-button {
   list-style-image: url(chrome://browser/skin/tabbrowser/alltabs-box-bkgnd-icon.png);
-  -moz-image-region: rect(0, 22px, 20px, 0);
+  -moz-image-region: rect(0, 17px, 20px, 0);
 }
 
 #TabsToolbar > #alltabs-button:not([disabled="true"]):hover {
-  -moz-image-region: rect(0, 44px, 20px, 22px);
+  -moz-image-region: rect(0, 34px, 20px, 17px);
 }
 
 #TabsToolbar > #alltabs-button[type="menu"][open="true"]:not([disabled="true"]),
 #TabsToolbar > #alltabs-button:not([disabled="true"]):hover:active {
-  -moz-image-region: rect(0, 66px, 20px, 44px);
+  -moz-image-region: rect(0, 51px, 20px, 34px);
 }
 
 #alltabs-button[type="menu"] > .toolbarbutton-menu-dropmarker {
@@ -1955,7 +1955,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   -moz-margin-end: 2px;
 }
 
-/* All Tabs Menupopup */
+
 .alltabs-item > .menu-iconic-left > .menu-iconic-icon {
   list-style-image: url("chrome://global/skin/tree/item.png");
 }
@@ -1964,7 +1964,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   list-style-image: url("chrome://global/skin/icons/loading_16.png") !important;
 }
 
-/* Tabstrip close button */
+
 .tabs-closebutton {
   -moz-padding-end: 4px;
   list-style-image: url("chrome://global/skin/icons/closetab.png");
@@ -1975,22 +1975,22 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   list-style-image: url("chrome://global/skin/icons/closetab-active.png");
 }
 
-/* Bookmarks toolbar */
+
 #PlacesToolbarDropIndicator {
   list-style-image: url(chrome://browser/skin/places/toolbarDropMarker.png);
 }
 
-/* Bookmark drag and drop styles */
+
 
 .bookmark-item[dragover-into="true"] {
   background: Highlight !important;
   color: HighlightText !important;
 }
 
-/* rules for menupopup drop indicators */
+
 .menupopup-drop-indicator-bar {
   position: relative;
-  /* these two margins must together compensate the indicator's height */
+  
   margin-top: -1px;
   margin-bottom: -1px;
 }
@@ -2006,7 +2006,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   -moz-window-shadow: sheet;
 }
 
-/* Popup Icons */
+
 #identity-popup-icon {
   height: 64px;
   width: 64px;
@@ -2023,7 +2023,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   -moz-image-region: rect(128px, 64px, 192px, 0px);
 }
 
-/* Popup Body Text */
+
 .identity-popup-description {
   white-space: pre-wrap;
   -moz-padding-start: 15px;
@@ -2168,7 +2168,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   list-style-image: url(chrome://mozapps/skin/passwordmgr/key-64.png);
 }
 
-/* Popup Buttons */
+
 #identity-popup-more-info-button {
   @hudButton@
   margin: 10px 0 0;
@@ -2187,7 +2187,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   list-style-image: url("chrome://mozapps/skin/downloads/downloadStatusIcon.png");
 }
 
-/* ::::: Keyboard UI Panel ::::: */
+
 
 .KUI-panel {
   -moz-appearance: none;
@@ -2219,9 +2219,9 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   margin: 0;
 }
 
-/* ::::: Ctrl-Tab and All Tabs Panels ::::: */
 
-/* Ctrl-Tab */
+
+
 
 #ctrlTab-panel {
   padding: 20px 10px 10px;
@@ -2270,7 +2270,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   margin-top: .5em;
 }
 
-/* All Tabs */
+
 
 #allTabs-panel {
   padding-bottom: 10px;
@@ -2329,7 +2329,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   box-shadow: @focusRingShadow@;
 }
 
-/* Inspector / Highlighter */
+
 
 #highlighter-panel {
   -moz-appearance: none;
@@ -2354,7 +2354,7 @@ panel[dimmed="true"] {
   opacity: 0.5;
 }
 
-/* Add-on bar */
+
 
 #addon-bar {
   min-height: 18px;
