@@ -244,7 +244,6 @@ var Browser = {
       
       BrowserUI.sizeControls(w, h);
 
-
       
       Browser.hideSidebars();
 
@@ -625,7 +624,6 @@ var Browser = {
       BrowserUI.lockToolbar();
 
     bv.setBrowser(tab.browser, tab.browserViewportState);
-
 
     document.getElementById("tabs").selectedTab = tab.chromeTab;
 
@@ -2375,6 +2373,11 @@ Tab.prototype = {
     browser.webProgress.addProgressListener(this._listener, flags);
 
     browser.setAttribute("src", aURI);
+
+    let self = this;
+    browser.messageManager.addMessageListener("MozScrolledAreaChanged", function() {
+      self.updateDefaultZoomLevel();
+    });
   },
 
   _destroyBrowser: function _destroyBrowser() {
@@ -2392,19 +2395,71 @@ Tab.prototype = {
     }
   },
 
+  clampZoomLevel: function clampZoomLevel(zl) {
+    let browser = this._browser;
+    if (!browser.contentWindow) {
+      let bounded = Math.min(Math.max(ZoomManager.MIN, zl), ZoomManager.MAX);
+
+      let md = this.metaData;
+      if (md && md.minZoom)
+        bounded = Math.max(bounded, md.minZoom);
+      if (md && md.maxZoom)
+        bounded = Math.min(bounded, md.maxZoom);
+
+      bounded = Math.max(bounded, this.getPageZoomLevel());
+
+      let rounded = Math.round(bounded * kBrowserViewZoomLevelPrecision) / kBrowserViewZoomLevelPrecision;
+      return rounded || 1.0;
+    }
+    return 1;
+  },
+
   
 
 
-
-
   resetZoomLevel: function resetZoomLevel() {
-    return;
+    let browser = this._browser;
+    if (!browser.contentWindow)
+      this._defaultZoomLevel = browser.zoomLevel;
+  },
 
-    let bvs = this._browserViewportState;
-    bvs.defaultZoomLevel = bvs.zoomLevel;
+  
+
+
+  updateDefaultZoomLevel: function updateDefaultZoomLevel() {
+    let browser = this._browser;
+    if (!browser.contentWindow) {
+      let isDefault = (browser.zoomLevel == this._defaultZoomLevel);
+      this._defaultZoomLevel = this.getDefaultZoomLevel();
+      if (isDefault)
+        browser.zoomLevel = this._defaultZoomLevel;
+    }
+  },
+
+  getDefaultZoomLevel: function getDefaultZoomLevel() {
+    let md = this.metaData;
+    if (md && md.defaultZoom)
+      return this.clampZoomLevel(md.defaultZoom);
+
+    let pageZoom = this.getPageZoomLevel();
+
+    
+    let granularity = Services.prefs.getIntPref("browser.ui.zoom.pageFitGranularity");
+    let threshold = 1 - 1 / granularity;
+    if (threshold < pageZoom && pageZoom < 1)
+      pageZoom = 1;
+
+    return this.clampZoomLevel(pageZoom);
+  },
+
+  getPageZoomLevel: function getPageZoomLevel() {
+    let browserW = this._browser.widthInCssPx;
+    return this._browser.getBoundingClientRect().width / browserW;
   },
 
   updateThumbnail: function updateThumbnail() {
+    return;
+
     if (!this._browser)
       return;
 
