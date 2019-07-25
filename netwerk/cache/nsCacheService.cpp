@@ -2377,6 +2377,7 @@ nsCacheService::ProcessPendingRequests(nsCacheEntry * entry)
         
         
         
+        
     }
 
     nsCacheAccessMode  accessGranted = nsICache::ACCESS_NONE;
@@ -2422,6 +2423,14 @@ nsCacheService::ProcessPendingRequests(nsCacheEntry * entry)
                 
             } else {
                 
+                
+                
+                nsCOMPtr<nsIRunnable> ev =
+                    new nsProcessRequestEvent(request);
+                rv = DispatchToCacheIOThread(ev);
+                if (NS_FAILED(rv)) {
+                    delete request; 
+                }
             }
         } else {
 
