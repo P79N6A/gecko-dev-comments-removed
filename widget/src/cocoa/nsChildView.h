@@ -147,6 +147,7 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
   
   NSMutableArray* mPendingDirtyRects;
   BOOL mPendingFullDisplay;
+  BOOL mPendingDisplay;
 
   
   
