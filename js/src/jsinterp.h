@@ -192,6 +192,9 @@ struct JSStackFrame
                               uint32 nactual, uint32 flags);
 
     
+    inline void resetInvokeCallFrame();
+
+    
     inline void initCallFrameCallerHalf(JSContext *cx, uint32 nactual, uint32 flags);
     inline void initCallFrameEarlyPrologue(JSFunction *fun, void *ncode);
     inline void initCallFrameLatePrologue();
@@ -368,7 +371,8 @@ struct JSStackFrame
     template <class Op> inline void forEachCanonicalActualArg(Op op);
     template <class Op> inline void forEachFormalArg(Op op);
 
-    
+    inline void clearMissingArgs();
+
     bool hasArgsObj() const {
         return !!(flags_ & JSFRAME_HAS_ARGS_OBJ);
     }
@@ -558,7 +562,7 @@ struct JSStackFrame
 
     
 
-    const js::Value& returnValue() {
+    const js::Value &returnValue() {
         if (!(flags_ & JSFRAME_HAS_RVAL))
             rval_.setUndefined();
         return rval_;
@@ -884,6 +888,32 @@ struct CallArgs
 
 extern JS_REQUIRES_STACK bool
 Invoke(JSContext *cx, const CallArgs &args, uint32 flags);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class InvokeSessionGuard;
 
 
 

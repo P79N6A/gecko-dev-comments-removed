@@ -217,6 +217,12 @@ struct JITScript {
 };
 
 
+
+
+
+JSBool EnterMethodJIT(JSContext *cx, JSStackFrame *fp, void *code, Value *stackLimit);
+
+
 JSBool JaegerShot(JSContext *cx);
 
 
