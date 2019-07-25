@@ -52,6 +52,8 @@
 #include "nscore.h"
 #include <windows.h>
 #include <shobjidl.h>
+#include "nsAutoPtr.h"
+#include "nsString.h"
 
 class nsWindow;
 
@@ -205,15 +207,19 @@ public:
 
 
 
-  static bool VistaCreateItemFromParsingNameInit();
+  static HRESULT SHCreateItemFromParsingName(PCWSTR pszPath, IBindCtx *pbc,
+                                             REFIID riid, void **ppv);
 
   
 
 
 
 
-  static HRESULT SHCreateItemFromParsingName(PCWSTR pszPath, IBindCtx *pbc,
-                                             REFIID riid, void **ppv);
+
+
+
+  static bool GetShellItemPath(IShellItem* aItem,
+                               nsString& aResultString);
 
 private:
   typedef HRESULT (WINAPI * SHCreateItemFromParsingNamePtr)(PCWSTR pszPath,
@@ -221,6 +227,13 @@ private:
                                                             REFIID riid,
                                                             void **ppv);
   static SHCreateItemFromParsingNamePtr sCreateItemFromParsingName;
+
+  
+
+
+
+
+  static bool VistaCreateItemFromParsingNameInit();
 };
 
 } 
