@@ -11,53 +11,53 @@
 
 const test = [
 
-              ["%00%2D%00%2D%D8%35%DC%20%00%2D%00%2D",
+              ["%D8%35%DC%20%00%2D%00%2D",
 
-               "--\uD835\uDC20--"],
+               "\uD835\uDC20--"],
 
-              ["%00%2D%00%2D%D8%35%00%2D%00%2D",
+              ["%D8%35%00%2D%00%2D",
 
-               "--\uFFFD--"],
+               "\uFFFD--"],
 
-              ["%00%2D%00%2D%DC%20%00%2D%00%2D",
+              ["%DC%20%00%2D%00%2D",
 
-               "--\uFFFD--"],
+               "\uFFFD--"],
 
-              ["%00%2D%00%2D%D8%35%D8%35%00%2D%00%2D",
+              ["%D8%35%D8%35%00%2D%00%2D",
 
-               "--\uFFFD\uFFFD--"],
+               "\uFFFD\uFFFD--"],
 
-              ["%00%2D%00%2D%DC%20%DC%20%00%2D%00%2D",
+              ["%DC%20%DC%20%00%2D%00%2D",
 
-              "--\uFFFD\uFFFD--"],
+	       "\uFFFD\uFFFD--"],
 
-              ["%00%2D%00%2D%DC%20%D8%35%00%2D%00%2D",
+              ["%DC%20%D8%35%00%2D%00%2D",
 
-               "--\uFFFD\uFFFD--"],
+               "\uFFFD\uFFFD--"],
 
-              ["%00%2D%00%2D%D8%35%D8%35%DC%20%00%2D%00%2D",
+              ["%D8%35%D8%35%DC%20%00%2D%00%2D",
 
-               "--\uFFFD\uD835\uDC20--"],
+               "\uFFFD\uD835\uDC20--"],
 
-              ["%00%2D%00%2D%DC%20%D8%35%DC%20%00%2D%00%2D",
+              ["%DC%20%D8%35%DC%20%00%2D%00%2D",
 
-               "--\uFFFD\uD835\uDC20--"],
+               "\uFFFD\uD835\uDC20--"],
 
-              ["%00%2D%00%2D%D8%35%DC%20%D8%35%00%2D%00%2D",
+              ["%D8%35%DC%20%D8%35%00%2D%00%2D",
 
-               "--\uD835\uDC20\uFFFD--"],
+               "\uD835\uDC20\uFFFD--"],
 
-              ["%00%2D%00%2D%D8%35%DC%20%DC%20%00%2D%00%2D",
+              ["%D8%35%DC%20%DC%20%00%2D%00%2D",
 
-               "--\uD835\uDC20\uFFFD--"],
+               "\uD835\uDC20\uFFFD--"],
 
-              ["%00%2D%00%2D%00%2D%00%2D%D8%35%",
+              ["%D8%35%",
 
-               "----"],
+               ""],
 
-              ["%00%2D%00%2D%00%2D%00%2D%D8",
+              ["%D8",
 
-              "----"]];
+              ""]];
 
 const IOService = Components.Constructor("@mozilla.org/network/io-service;1",
                                          "nsIIOService");
@@ -96,14 +96,39 @@ function testCase(testText, expectedText, bufferLength, charset)
 }
 
 
+
+const MINIMUM_BUFFER_SIZE=32;
+function padBytes(str)
+{
+  var padding = "";
+  for (var i = 0; i < MINIMUM_BUFFER_SIZE; ++i) {
+    padding += "%00%2D";
+  }
+  return padding + str;
+}
+
+function padUnichars(str)
+{
+  var padding = "";
+  for (var i = 0; i < MINIMUM_BUFFER_SIZE; ++i) {
+    padding += "-";
+  }
+  return padding + str;
+}
+
+
 function flip(str) { return str.replace(/(%..)(%..)/g, "$2$1"); }
 
 function run_test()
 {
   for (var i = 0; i < 12; ++i) {
-    for (var bufferLength = 4; bufferLength < 8; ++ bufferLength) {
-      testCase(test[i][0], test[i][1], bufferLength, "UTF-16BE");
-      testCase(flip(test[i][0]), test[i][1], bufferLength, "UTF-16LE");
+    for (var bufferLength = MINIMUM_BUFFER_SIZE;
+	 bufferLength < MINIMUM_BUFFER_SIZE + 4;
+	 ++ bufferLength) {
+      var testText = padBytes(test[i][0]);
+      var expectedText = padUnichars(test[i][1]);
+      testCase(testText, expectedText, bufferLength, "UTF-16BE");
+      testCase(flip(testText), expectedText, bufferLength, "UTF-16LE");
     }
   }
 }
