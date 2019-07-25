@@ -493,19 +493,18 @@ var Browser = {
     Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
 
     
-    
-    
-    if (window.arguments && window.arguments[0]) {
-      var whereURI = null;
+    var whereURI = "about:blank";
+    try {
+      
+      whereURI = gPrefService.getCharPref("browser.startup.homepage");
+    } catch (e) {}
 
+    
+    
+    if (window.arguments && window.arguments[0] &&
+	window.arguments[0] instanceof Ci.nsICommandLine) {
       try {
-        
-        var cmdLine = window.arguments[0].QueryInterface(Ci.nsICommandLine);
-
-        try {
-          
-          whereURI = gPrefService.getCharPref("browser.startup.homepage");
-        } catch (e) {}
+        var cmdLine = window.arguments[0];
 
         
         if (cmdLine.length == 1) {
@@ -526,10 +525,9 @@ var Browser = {
             whereURI = whereURI.spec;
         }
       } catch (e) {}
-
-      if (whereURI)
-        this.addTab(whereURI, true);
     }
+
+    this.addTab(whereURI, true);
 
     
     if (gPrefService.getBoolPref("browser.console.showInPanel")){
