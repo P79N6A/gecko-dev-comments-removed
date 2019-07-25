@@ -2758,16 +2758,37 @@ TryReuseArrayType(JSObject *obj, JSObject *nobj)
 
 
 
+
 static inline bool
 CanOptimizeForDenseStorage(JSObject *arr, uint32 startingIndex, uint32 count, JSContext *cx)
 {
-    JS_ASSERT(UINT32_MAX - startingIndex >= count);
+    
+    if (UINT32_MAX - startingIndex < count)
+        return false;
 
-    uint32 length = startingIndex + count;
-    return arr->isDenseArray() &&
-           !arr->getType(cx)->hasAllFlags(OBJECT_FLAG_NON_PACKED_ARRAY) &&
-           !js_PrototypeHasIndexedProperties(cx, arr) &&
-           length <= arr->getDenseArrayInitializedLength();
+    
+    if (!arr->isDenseArray())
+        return false;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    if (JS_UNLIKELY(arr->getType(cx)->hasAllFlags(OBJECT_FLAG_ITERATED)))
+        return false;
+
+    
+    return !js_PrototypeHasIndexedProperties(cx, arr) &&
+           startingIndex + count <= arr->getDenseArrayInitializedLength();
 }
 
 static inline bool
