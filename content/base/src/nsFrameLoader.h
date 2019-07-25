@@ -65,6 +65,10 @@ namespace dom {
 class PBrowserParent;
 class TabParent;
 }
+
+namespace layout {
+class RenderFrameParent;
+}
 }
 
 #ifdef MOZ_WIDGET_GTK2
@@ -81,6 +85,7 @@ class nsFrameLoader : public nsIFrameLoader
 #ifdef MOZ_IPC
   typedef mozilla::dom::PBrowserParent PBrowserParent;
   typedef mozilla::dom::TabParent TabParent;
+  typedef mozilla::layout::RenderFrameParent RenderFrameParent;
 #endif
 
 protected:
@@ -98,6 +103,7 @@ protected:
     , mDelayRemoteDialogs(PR_FALSE)
     , mRemoteBrowserShown(PR_FALSE)
     , mRemoteFrame(false)
+    , mCurrentRemoteFrame(nsnull)
     , mRemoteBrowser(nsnull)
 #endif
   {}
@@ -168,6 +174,35 @@ public:
 
 #ifdef MOZ_IPC
   PBrowserParent* GetRemoteBrowser();
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  RenderFrameParent* GetCurrentRemoteFrame() const
+  {
+    return mCurrentRemoteFrame;
+  }
+
+  
+
+
+
+
+  void SetCurrentRemoteFrame(RenderFrameParent* aFrame)
+  {
+    mCurrentRemoteFrame = aFrame;
+  }
 #endif
   nsFrameMessageManager* GetFrameMessageManager() { return mMessageManager; }
 
@@ -229,6 +264,7 @@ private:
   bool mRemoteFrame;
   
   nsCOMPtr<nsIObserver> mChildHost;
+  RenderFrameParent* mCurrentRemoteFrame;
   TabParent* mRemoteBrowser;
 #endif
 
