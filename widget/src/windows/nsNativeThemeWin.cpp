@@ -1600,6 +1600,11 @@ RENDER_AGAIN:
       double tempValue;
       double ratio = modf(PR_IntervalToMilliseconds(PR_IntervalNow())/interval,
                           &tempValue);
+      
+      
+      if (IsFrameRTL(aFrame)) {
+        ratio = 1.0 - ratio;
+      }
       PRInt32 dx = static_cast<PRInt32>(animationWidth * ratio) - overlayWidth;
 
       RECT overlayRect = widgetRect;
