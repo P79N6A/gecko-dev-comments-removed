@@ -1,6 +1,5 @@
 
 
-
 var g = newGlobal('new-compartment');
 var dbg1 = new Debug;
 var gw1 = dbg1.addDebuggee(g);

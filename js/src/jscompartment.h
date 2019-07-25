@@ -461,8 +461,11 @@ struct JS_FRIEND_API(JSCompartment) {
     const js::Shape              *initialRegExpShape;
     const js::Shape              *initialStringShape;
 
-    bool                         debugMode;  
-    JSCList                      scripts;    
+  private:
+    enum { DebugFromC = 1, DebugFromJS = 2 };
+    uintN                        debugModeBits;  
+  public:
+    JSCList                      scripts;        
 
     js::NativeIterCache          nativeIterCache;
 
@@ -527,13 +530,52 @@ struct JS_FRIEND_API(JSCompartment) {
     size_t backEdgeCount(jsbytecode *pc) const;
     size_t incBackEdgeCount(jsbytecode *pc);
 
+    
+
+
+
+
+
+
+    bool debugMode() const { return !!debugModeBits; }
+
+    
+
+
+
+
+    bool haveScriptsOnStack(JSContext *cx);
+
+    bool setDebugModeFromC(JSContext *cx, bool b);
+
+    
+    void updateForDebugMode(JSContext *cx);
+
     js::GlobalObjectSet &getDebuggees() { return debuggees; }
-    bool addDebuggee(js::GlobalObject *global) {
-        JS_ASSERT(debugMode);
-        return !!debuggees.put(global);
+
+    bool addDebuggee(JSContext *cx, js::GlobalObject *global) {
+        bool wasEnabled = debugMode();
+        if (!wasEnabled && haveScriptsOnStack(cx)) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_IDLE);
+            return false;
+        }
+        if (!debuggees.put(global)) {
+            js_ReportOutOfMemory(cx);
+            return false;
+        }
+        debugModeBits |= DebugFromJS;
+        if (!wasEnabled)
+            updateForDebugMode(cx);
+        return true;
     }
-    void removeDebuggee(js::GlobalObject *global) {
+
+    void removeDebuggee(JSContext *cx, js::GlobalObject *global) {
+        JS_ASSERT(debuggees.has(global));
         debuggees.remove(global);
+        if (debuggees.empty()) {
+            debugModeBits &= ~DebugFromJS;
+            updateForDebugMode(cx);
+        }
     }
 };
 

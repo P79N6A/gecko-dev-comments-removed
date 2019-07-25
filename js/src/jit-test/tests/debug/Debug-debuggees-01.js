@@ -1,5 +1,4 @@
 
-
 var dbg = new Debug;
 var debuggees = dbg.getDebuggees();
 assertEq(Array.isArray(debuggees), true);

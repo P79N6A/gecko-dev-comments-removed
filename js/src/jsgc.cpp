@@ -2329,7 +2329,7 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
     js_SweepWatchPoints(cx);
 
     if (!comp)
-        Debug::sweepAll(rt);
+        Debug::sweepAll(cx);
 
     
 

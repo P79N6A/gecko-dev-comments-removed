@@ -1,8 +1,5 @@
 
-
-
 var g = newGlobal('new-compartment');
-
 var dbg = Debug(g);
 dbg.hooks = {
     debuggerHandler: function (stack) {

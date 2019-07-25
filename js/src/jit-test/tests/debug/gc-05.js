@@ -1,6 +1,5 @@
 
 
-
 var g2arr = []; 
 var xarr = []; 
 

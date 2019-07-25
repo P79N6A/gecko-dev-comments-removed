@@ -1,6 +1,4 @@
 
-
-
 var g1 = newGlobal('new-compartment');
 var g2 = g1.eval("newGlobal('same-compartment')");
 var dbg = new Debug(g1, g2);

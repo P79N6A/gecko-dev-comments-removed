@@ -1,6 +1,5 @@
 
 
-
 var log = '';
 
 function addDebug(g, id) {

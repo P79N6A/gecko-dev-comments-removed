@@ -1,5 +1,3 @@
-
-
 load(libdir + 'asserts.js');
 
 
@@ -21,14 +19,3 @@ var g = newGlobal('new-compartment');
 var dbg = new Debug(g);
 assertEq(dbg instanceof Debug, true);
 assertEq(Object.getPrototypeOf(dbg), Debug.prototype);
-
-
-var g2 = newGlobal('new-compartment');
-g2.debuggeeGlobal = this;
-g2.eval("var dbg = new Debug(debuggeeGlobal);");
-assertEq(g2.eval("dbg instanceof Debug"), true);
-
-
-
-g2.outer = this;
-assertThrowsInstanceOf(function () { g2.eval("outer.Debug(outer.Object())"); }, TypeError);

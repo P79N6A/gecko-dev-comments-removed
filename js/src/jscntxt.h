@@ -533,7 +533,7 @@ struct JSRuntime {
     
 
 
-    JSBool              debugMode;
+    bool                debugMode;
 
 #ifdef JS_TRACER
     

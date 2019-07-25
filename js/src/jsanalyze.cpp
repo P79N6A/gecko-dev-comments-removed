@@ -315,7 +315,7 @@ Script::analyze(JSContext *cx, JSScript *script)
 
 
 
-    if (script->usesEval || cx->compartment->debugMode) {
+    if (script->usesEval || cx->compartment->debugMode()) {
         for (uint32 i = 0; i < nfixed; i++)
             setLocal(i, LOCAL_USE_BEFORE_DEF);
     }
@@ -330,7 +330,7 @@ Script::analyze(JSContext *cx, JSScript *script)
 
 
 
-    if (cx->compartment->debugMode)
+    if (cx->compartment->debugMode())
         usesRval = true;
 
     

@@ -1,6 +1,4 @@
 
-
-
 var g = newGlobal('new-compartment');
 var dbg = new Debug(g);
 dbg.hooks = {
