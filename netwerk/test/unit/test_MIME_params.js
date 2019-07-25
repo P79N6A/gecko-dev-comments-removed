@@ -407,6 +407,10 @@ var tests = [
 
   ["attachment filename=foo", 
    "attachment", Cr.NS_ERROR_INVALID_ARG], 
+
+  
+  ['attachment; filename="\\b\\a\\', 
+   "attachment", "ba\\"], 
 ];
 
 var rfc5987paramtests = [
