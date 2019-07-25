@@ -3,11 +3,13 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.util;
 
 import android.graphics.PointF;
 
 public final class FloatUtils {
+    private FloatUtils() {}
+
     public static boolean fuzzyEquals(float a, float b) {
         return (Math.abs(a - b) < 1e-6);
     }
