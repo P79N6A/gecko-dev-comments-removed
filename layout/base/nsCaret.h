@@ -293,8 +293,11 @@ protected:
                                               
     PRInt32               mLastContentOffset; 
 
-    nsFrameSelection::HINT mLastHint;        
+    nsFrameSelection::HINT mLastHint;         
                                               
+
+    nsWeakFrame           mLastFrame;         
+    PRInt32               mLastFrameOffset;   
 
 };
 
