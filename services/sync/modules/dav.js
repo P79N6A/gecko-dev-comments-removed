@@ -120,7 +120,13 @@ DAVCollection.prototype = {
     this._log.debug(op + " request for " + (path? path : 'root folder'));
 
     if (!path || path[0] != '/')
+      
       path = this._defaultPrefix + path;
+    else
+      path = path.slice(1); 
+    
+    dump("DefaultPrefix is " + this._defaultPrefix + "\n");
+    dump(" In _makeRequest, after fixing the path, it is " + path +"\n");
 
     let request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Ci.nsIXMLHttpRequest);
 
