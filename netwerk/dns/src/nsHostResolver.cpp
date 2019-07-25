@@ -66,6 +66,8 @@
 #include "plstr.h"
 #include "nsURLHelper.h"
 
+#include "mozilla/FunctionTimer.h"
+
 
 
 
@@ -361,6 +363,8 @@ nsHostResolver::~nsHostResolver()
 nsresult
 nsHostResolver::Init()
 {
+    NS_TIME_FUNCTION;
+
     mLock = PR_NewLock();
     if (!mLock)
         return NS_ERROR_OUT_OF_MEMORY;

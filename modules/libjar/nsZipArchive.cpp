@@ -60,6 +60,8 @@
 #include "nsWildCard.h"
 #include "nsZipArchive.h"
 
+#include "mozilla/FunctionTimer.h"
+
 
 
 
@@ -521,6 +523,8 @@ nsZipItem* nsZipArchive::CreateZipItem()
 
 nsresult nsZipArchive::BuildFileList()
 {
+  NS_TIME_FUNCTION;
+
   
   PRUint8* buf;
   PRUint8* startp = mFd->mFileData;

@@ -46,6 +46,15 @@
 #include "prlog.h"
 #include "nsThreadUtilsInternal.h"
 
+#include "mozilla/FunctionTimer.h"
+#if defined(NS_FUNCTION_TIMER) && defined(_MSC_VER)
+#include "nsTimerImpl.h"
+#include "nsStackWalk.h"
+#endif
+#ifdef NS_FUNCTION_TIMER
+#include "nsCRT.h"
+#endif
+
 #ifdef PR_LOGGING
 static PRLogModuleInfo *sLog = PR_NewLogModule("nsThread");
 #endif
@@ -519,6 +528,17 @@ nsThread::ProcessNextEvent(PRBool mayWait, PRBool *result)
     
     nsCOMPtr<nsIRunnable> event;
     mEvents->GetEvent(mayWait && !ShuttingDown(), getter_AddRefs(event));
+
+#ifdef NS_FUNCTION_TIMER
+    char message[1024] = {'\0'};
+    if (NS_IsMainThread()) {
+        mozilla::FunctionTimer::ft_snprintf(message, sizeof(message), 
+                                            "@ Main Thread Event %p", (void*)event.get());
+    }
+    
+    
+    NS_TIME_FUNCTION_MIN_FMT(5.0, message);
+#endif
 
     *result = (event.get() != nsnull);
 

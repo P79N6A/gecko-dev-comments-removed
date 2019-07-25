@@ -46,6 +46,8 @@
 #include "gfxFont.h"
 #include "gfxPlatform.h"
 
+#include "mozilla/FunctionTimer.h"
+
 
 
 
@@ -62,6 +64,8 @@ public:
     }
 
     static nsresult Init() {
+        NS_TIME_FUNCTION;
+
         NS_ASSERTION(!sPlatformFontList, "What's this doing here?");
         sPlatformFontList = gfxPlatform::GetPlatform()->CreatePlatformFontList();
         if (!sPlatformFontList) return NS_ERROR_OUT_OF_MEMORY;

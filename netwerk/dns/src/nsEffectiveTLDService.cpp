@@ -47,6 +47,8 @@
 #include "nsNetUtil.h"
 #include "prnetdb.h"
 
+#include "mozilla/FunctionTimer.h"
+
 NS_IMPL_ISUPPORTS1(nsEffectiveTLDService, nsIEffectiveTLDService)
 
 
@@ -60,6 +62,8 @@ static const ETLDEntry gEntries[] =
 nsresult
 nsEffectiveTLDService::Init()
 {
+  NS_TIME_FUNCTION;
+
   
   
   

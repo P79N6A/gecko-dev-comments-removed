@@ -41,6 +41,9 @@
 
 
 
+
+
+
 enum mozFlushType {
   Flush_Content          = 1, 
   Flush_ContentAndNotify = 2, 

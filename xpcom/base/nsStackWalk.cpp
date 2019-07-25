@@ -50,6 +50,7 @@
 #include <stdio.h>
 #include "plstr.h"
 #include "nsMemory.h" 
+#include "mozilla/FunctionTimer.h"
 
 #include "nspr.h"
 #if defined(_M_IX86) || defined(_M_AMD64)
@@ -601,6 +602,8 @@ WalkStackThread(void* aData)
             DWORD ret;
 
             struct WalkStackData *data = (WalkStackData *)msg.lParam;
+            if (!data)
+              continue;
 
             
             
@@ -944,6 +947,8 @@ EnsureSymInitialized()
 
     if (gInitialized)
         return gInitialized;
+
+    NS_TIME_FUNCTION;
 
     if (!EnsureImageHlpInitialized())
         return PR_FALSE;

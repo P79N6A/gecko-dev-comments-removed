@@ -121,6 +121,11 @@ public:
 
   nsresult internalClose();
 
+  
+
+
+  nsCString getFilename();
+
 private:
   ~Connection();
 
