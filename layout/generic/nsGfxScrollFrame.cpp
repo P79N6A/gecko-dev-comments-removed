@@ -1067,20 +1067,40 @@ nsXULScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
                                      PRUint32 aFlags)
 {
   if (aForChild == mInner.mScrolledFrame) {
+    nsRect damage = aDamageRect + nsPoint(aX, aY);
     
-    nsRect damage = aDamageRect + nsPoint(aX, aY) +
-      GetScrollPosition() - mInner.mScrollPosAtLastPaint;
-    nsRect r;
-    r.IntersectRect(damage, mInner.mScrollPort);
-    PRBool seperateThebes = IsScrollingActive() &&
-      !(aFlags & INVALIDATE_NO_THEBES_LAYERS) && r != damage;
-    if (seperateThebes) {
-      nsBoxFrame::InvalidateInternal(damage, 0, 0, aForChild,
-        aFlags | INVALIDATE_ONLY_THEBES_LAYERS);
-    }
-    if (!r.IsEmpty()) {
-      nsBoxFrame::InvalidateInternal(r, 0, 0, aForChild,
-        aFlags | (seperateThebes ? INVALIDATE_NO_THEBES_LAYERS : 0));
+    nsRect parentDamage;
+    parentDamage.IntersectRect(damage, mInner.mScrollPort);
+
+    if (IsScrollingActive()) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      nsRect thebesLayerDamage = damage + GetScrollPosition() - mInner.mScrollPosAtLastPaint;
+      if (parentDamage == thebesLayerDamage) {
+        
+        nsBoxFrame::InvalidateInternal(parentDamage, 0, 0, aForChild, aFlags);
+      } else {
+        
+        if (!(aFlags & INVALIDATE_NO_THEBES_LAYERS)) {
+          nsBoxFrame::InvalidateInternal(thebesLayerDamage, 0, 0, aForChild,
+                                         aFlags | INVALIDATE_ONLY_THEBES_LAYERS);
+        }
+        if (!(aFlags & INVALIDATE_ONLY_THEBES_LAYERS) && !parentDamage.IsEmpty()) {
+          nsBoxFrame::InvalidateInternal(parentDamage, 0, 0, aForChild,
+                                         aFlags | INVALIDATE_NO_THEBES_LAYERS);
+        }
+      }
+    } else {
+      if (!parentDamage.IsEmpty()) {
+        nsBoxFrame::InvalidateInternal(parentDamage, 0, 0, aForChild, aFlags);
+      }
     }
     return;
   }
