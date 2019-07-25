@@ -1125,9 +1125,7 @@ xpc_qsAssertContextOK(JSContext *cx)
     XPCPerThreadData *thread = XPCPerThreadData::GetData(cx);
     XPCJSContextStack* stack = thread->GetJSContextStack();
 
-    JSContext* topJSContext = nsnull;
-    nsresult rv = stack->Peek(&topJSContext);
-    NS_ASSERTION(NS_SUCCEEDED(rv), "XPCJSContextStack::Peek failed");
+    JSContext *topJSContext = stack->Peek();
 
     
     NS_ASSERTION(cx == topJSContext, "wrong context on XPCJSContextStack!");
