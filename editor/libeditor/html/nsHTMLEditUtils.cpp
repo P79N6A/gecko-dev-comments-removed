@@ -433,7 +433,6 @@ nsHTMLEditUtils::IsFormWidget(nsIDOMNode *node)
       || (nodeAtom == nsEditProperty::button)
       || (nodeAtom == nsEditProperty::output)
       || (nodeAtom == nsEditProperty::keygen)
-      || (nodeAtom == nsEditProperty::progress)
       || (nodeAtom == nsEditProperty::input);
 }
 
@@ -684,7 +683,6 @@ static const nsElementInfo kElements[eHTMLTag_userdefined] = {
   ELEM(param, PR_FALSE, PR_FALSE, GROUP_OBJECT_CONTENT, GROUP_NONE),
   ELEM(plaintext, PR_FALSE, PR_FALSE, GROUP_NONE, GROUP_NONE),
   ELEM(pre, PR_TRUE, PR_TRUE, GROUP_BLOCK, GROUP_INLINE_ELEMENT),
-  ELEM(progress, PR_TRUE, PR_FALSE, GROUP_SPECIAL, GROUP_FLOW_ELEMENT),
   ELEM(q, PR_TRUE, PR_TRUE, GROUP_SPECIAL, GROUP_INLINE_ELEMENT),
   ELEM(s, PR_TRUE, PR_TRUE, GROUP_FONTSTYLE, GROUP_INLINE_ELEMENT),
   ELEM(samp, PR_TRUE, PR_TRUE, GROUP_PHRASE, GROUP_INLINE_ELEMENT),

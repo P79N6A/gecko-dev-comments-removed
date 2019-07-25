@@ -1010,15 +1010,6 @@ const nsHTMLElement gHTMLElements[] = {
                 0,&gPreKids,
   },
   {
-                                 eHTMLTag_progress,
-              eHTMLTag_unknown,eHTMLTag_unknown,
-              &gRootTags,&gRootTags,
-     0,0,0,0,
-              kFormControl, kFlowEntity, kNone,
-           0,kDefaultPropRange,
-                0,0,
-  },
-  {
                                  eHTMLTag_q,
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gRootTags,&gRootTags,
