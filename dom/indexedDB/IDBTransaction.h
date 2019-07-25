@@ -193,10 +193,10 @@ public:
                       IDBObjectStore** _retval);
 
   nsresult
-  AbortWithCode(nsresult aAbortCode);
+  Abort(IDBRequest* aRequest);
 
   nsresult
-  Abort(IDBRequest* aRequest);
+  Abort(nsresult aAbortCode);
 
   nsresult
   GetAbortCode() const
@@ -205,6 +205,9 @@ public:
   }
 
 private:
+  nsresult
+  AbortInternal(nsresult aAbortCode, already_AddRefed<nsIDOMDOMError> aError);
+
   
   static already_AddRefed<IDBTransaction>
   CreateInternal(IDBDatabase* aDatabase,
