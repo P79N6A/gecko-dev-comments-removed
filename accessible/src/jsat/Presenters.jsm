@@ -260,24 +260,11 @@ AndroidPresenter.prototype = {
 
     let output = [];
 
-    if (isExploreByTouch) {
-      
-      
-      for (var i = aContext.newAncestry.length - 1; i >= 0; i--) {
-        let utter = UtteranceGenerator.genForObject(aContext.newAncestry[i]);
-        if (utter.length) {
-          output.push.apply(output, utter);
-          break;
-        }
+    aContext.newAncestry.forEach(
+      function(acc) {
+        output.push.apply(output, UtteranceGenerator.genForObject(acc));
       }
-    } else {
-      
-      aContext.newAncestry.forEach(
-        function(acc) {
-          output.push.apply(output, UtteranceGenerator.genForObject(acc));
-        }
-      );
-    }
+    );
 
     output.push.apply(output,
                       UtteranceGenerator.genForObject(aContext.accessible));
