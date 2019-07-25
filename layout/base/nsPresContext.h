@@ -1082,7 +1082,7 @@ protected:
   
   
   
-  
+
   nsPresContextType     mType;
   nsIPresShell*         mShell;         
   nsCOMPtr<nsIDocument> mDocument;
@@ -1091,7 +1091,7 @@ protected:
                                         
                                         
                                         
-  nsEventStateManager* mEventManager;   
+  nsRefPtr<nsEventStateManager> mEventManager;
   nsRefPtr<nsRefreshDriver> mRefreshDriver;
   nsRefPtr<nsTransitionManager> mTransitionManager;
   nsRefPtr<nsAnimationManager> mAnimationManager;
