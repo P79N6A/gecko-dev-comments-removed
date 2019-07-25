@@ -998,37 +998,42 @@ nsHTMLInputElement::GetValue(nsAString& aValue)
 nsresult
 nsHTMLInputElement::GetValueInternal(nsAString& aValue) const
 {
-  nsTextEditorState* state = GetEditorState();
-  if (state) {
-    state->GetValue(aValue, PR_TRUE);
-    return NS_OK;
-  }
+  switch (GetValueMode()) {
+    case VALUE_MODE_VALUE:
+      mInputData.mState->GetValue(aValue, PR_TRUE);
+      return NS_OK;
 
-  if (mType == NS_FORM_INPUT_FILE) {
-    if (nsContentUtils::IsCallerTrustedForCapability("UniversalFileRead")) {
-      if (mFiles.Count()) {
-        return mFiles[0]->GetMozFullPath(aValue);
+    case VALUE_MODE_FILENAME:
+      if (nsContentUtils::IsCallerTrustedForCapability("UniversalFileRead")) {
+        if (mFiles.Count()) {
+          return mFiles[0]->GetMozFullPath(aValue);
+        }
+        else {
+          aValue.Truncate();
+        }
+      } else {
+        
+        if (mFiles.Count() == 0 || NS_FAILED(mFiles[0]->GetName(aValue))) {
+          aValue.Truncate();
+        }
       }
-      else {
-        aValue.Truncate();
-      }
-    } else {
+
+      return NS_OK;
+
+    case VALUE_MODE_DEFAULT:
       
-      if (mFiles.Count() == 0 || NS_FAILED(mFiles[0]->GetName(aValue))) {
-        aValue.Truncate();
+      GetAttr(kNameSpaceID_None, nsGkAtoms::value, aValue);
+      return NS_OK;
+
+    case VALUE_MODE_DEFAULT_ON:
+      
+      if (!GetAttr(kNameSpaceID_None, nsGkAtoms::value, aValue)) {
+        aValue.AssignLiteral("on");
       }
-    }
-    
-    return NS_OK;
+      return NS_OK;
   }
 
   
-  if (!GetAttr(kNameSpaceID_None, nsGkAtoms::value, aValue) &&
-      (mType == NS_FORM_INPUT_RADIO || mType == NS_FORM_INPUT_CHECKBOX)) {
-    
-    aValue.AssignLiteral("on");
-  }
-
   return NS_OK;
 }
 
@@ -1393,48 +1398,61 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
                                      PRBool aUserInput,
                                      PRBool aSetValueChanged)
 {
-  NS_PRECONDITION(mType != NS_FORM_INPUT_FILE,
+  NS_PRECONDITION(GetValueMode() != VALUE_MODE_FILENAME,
                   "Don't call SetValueInternal for file inputs");
 
-  if (mType == NS_FORM_INPUT_FILE) {
-    return NS_ERROR_UNEXPECTED;
-  }
+  switch (GetValueMode()) {
+    case VALUE_MODE_VALUE:
+    {
+      
+      
+      
+      nsAutoString value(aValue);
 
-  if (IsSingleLineTextControl(PR_FALSE)) {
-    
-    
-    
-    nsAutoString value(aValue);
-    if (!GET_BOOLBIT(mBitField, BF_PARSER_CREATING)) {
-      SanitizeValue(value);
+      if (!GET_BOOLBIT(mBitField, BF_PARSER_CREATING)) {
+        SanitizeValue(value);
+      }
+
+      if (aSetValueChanged) {
+        SetValueChanged(PR_TRUE);
+      }
+
+      mInputData.mState->SetValue(value, aUserInput);
+
+      
+      
+      
+      
+      if (PlaceholderApplies() &&
+          HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)) {
+        UpdateState(true);
+      }
+
+      return NS_OK;
     }
 
-    if (aSetValueChanged) {
-      SetValueChanged(PR_TRUE);
-    }
-    mInputData.mState->SetValue(value, aUserInput);
+    case VALUE_MODE_DEFAULT:
+    case VALUE_MODE_DEFAULT_ON:
+      
+      
+      
+      
+      
+      if (mType == NS_FORM_INPUT_HIDDEN) {
+        SetValueChanged(PR_TRUE);
+      }
 
-    if (PlaceholderApplies() &&
-        HasAttr(kNameSpaceID_None, nsGkAtoms::placeholder)) {
-      UpdateState(true);
-    }
+      
+      return nsGenericHTMLFormElement::SetAttr(kNameSpaceID_None,
+                                               nsGkAtoms::value, aValue,
+                                               PR_TRUE);
 
-    return NS_OK;
+    case VALUE_MODE_FILENAME:
+      return NS_ERROR_UNEXPECTED;
   }
 
   
-  
-  
-  
-  
-  if (mType == NS_FORM_INPUT_HIDDEN) {
-    SetValueChanged(PR_TRUE);
-  }
-
-  
-  return nsGenericHTMLFormElement::SetAttr(kNameSpaceID_None,
-                                           nsGkAtoms::value, aValue,
-                                           PR_TRUE);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1443,12 +1461,6 @@ nsHTMLInputElement::SetValueChanged(PRBool aValueChanged)
   PRBool valueChangedBefore = GetValueChanged();
 
   SET_BOOLBIT(mBitField, BF_VALUE_CHANGED, aValueChanged);
-
-  if (!aValueChanged) {
-    if (!IsSingleLineTextControl(PR_FALSE)) {
-      FreeData();
-    }
-  }
 
   if (valueChangedBefore != aValueChanged) {
     UpdateState(true);
