@@ -214,7 +214,6 @@ public:
   
   nsresult ContentAppended(nsIContent* aContainer,
                            nsIContent* aFirstNewContent,
-                           PRInt32     aNewIndexInContainer,
                            PRBool      aAllowLazyConstruction);
 
   
