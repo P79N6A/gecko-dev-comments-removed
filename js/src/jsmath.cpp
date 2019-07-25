@@ -504,7 +504,7 @@ math_pow(JSContext *cx, uintN argc, Value *vp)
 
     if (!JSDOUBLE_IS_FINITE(y) && (x == 1.0 || x == -1.0)) {
         vp->setDouble(js_NaN);
-        return JS_TRUE;
+        return vp[3].isDouble() || cx->markTypeCallerOverflow();
     }
     
     if (y == 0) {
