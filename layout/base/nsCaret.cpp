@@ -260,10 +260,10 @@ nsCaret::Metrics nsCaret::ComputeMetrics(nsIFrame* aFrame, PRInt32 aOffset, nsco
 
   
   
-  PRUint32 tpp = aFrame->PresContext()->AppUnitsPerDevPixel();
   Metrics result;
-  result.mCaretWidth = NS_ROUND_BORDER_TO_PIXELS(caretWidth, tpp);
-  result.mBidiIndicatorSize = NS_ROUND_BORDER_TO_PIXELS(bidiIndicatorSize, tpp);
+  result.mAppPerDev = aFrame->PresContext()->AppUnitsPerDevPixel();
+  result.mCaretWidth = NS_ROUND_BORDER_TO_PIXELS(caretWidth, result.mAppPerDev);
+  result.mBidiIndicatorSize = NS_ROUND_BORDER_TO_PIXELS(bidiIndicatorSize, result.mAppPerDev);
   return result;
 }
 
@@ -383,8 +383,13 @@ nsCaret::GetGeometryForFrame(nsIFrame* aFrame,
     
     nscoord overflow = caretInScroll.XMost() -
       scrolled->GetVisualOverflowRectRelativeToSelf().width;
-    if (overflow > 0)
+    if (overflow > 0) {
       aRect->x -= overflow;
+      
+      
+      
+      aRect->x = floor(double(aRect->x) / caretMetrics.mAppPerDev) * caretMetrics.mAppPerDev;
+    }
   }
 
   if (aBidiIndicatorSize)
