@@ -177,13 +177,13 @@ private:
 
   TemporaryRef<ID2D1Brush> CreateBrushForPattern(const Pattern &aPattern, Float aAlpha = 1.0f);
 
-  TemporaryRef<ID3D10Texture2D> CreateGradientTexture(const GradientStopsD2D *aStops);
+  TemporaryRef<ID3D10Texture1D> CreateGradientTexture(const GradientStopsD2D *aStops);
   TemporaryRef<ID3D10Texture2D> CreateTextureForAnalysis(IDWriteGlyphRunAnalysis *aAnalysis, const IntRect &aBounds);
 
   
   
   
-  TemporaryRef<ID2D1Bitmap> CreatePartialBitmapForSurface(DataSourceSurface *aSurface, Matrix &aMatrix);
+  TemporaryRef<ID2D1Bitmap> CreatePartialBitmapForSurface(SourceSurfaceD2D *aSurface, Matrix &aMatrix);
 
   void SetupEffectForRadialGradient(const RadialGradientPattern *aPattern);
   void SetupStateForRendering();
