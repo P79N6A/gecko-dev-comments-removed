@@ -1954,7 +1954,16 @@ WifiWorker.prototype = {
     this.waitForScan((function (networks) {
       this._sendMessage(message, networks !== null, networks, msg);
     }).bind(this));
-    WifiManager.scan(true, function() {});
+
+    WifiManager.scan(true, function(ok) {
+      
+      if (ok)
+        return;
+
+      
+      
+      this._sendMessage(message, false, "ScanFailed", msg);
+    });
   },
 
   _notifyAfterStateChange: function(success, newState) {
