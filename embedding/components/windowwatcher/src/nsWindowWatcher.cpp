@@ -648,6 +648,8 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
     }
   }
   
+  PRBool newWindowShouldBeModal = PR_FALSE;
+  PRBool parentIsModal = PR_FALSE;
   if (!newDocShellItem) {
     windowIsNew = PR_TRUE;
     isNewToplevelWindow = PR_TRUE;
@@ -656,8 +658,11 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
 
     
     PRBool weAreModal = (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL) != 0;
-    if (!weAreModal && parentChrome)
+    newWindowShouldBeModal = weAreModal;
+    if (!weAreModal && parentChrome) {
       parentChrome->IsWindowModal(&weAreModal);
+      parentIsModal = weAreModal;
+    }
 
     if (weAreModal) {
       windowIsModal = PR_TRUE;
@@ -1002,12 +1007,24 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
       return NS_OK;
     }
 
-    
-    
-    
-    nsAutoPopupStatePusher popupStatePusher(modalContentWindow, openAbused);
-
-    newChrome->ShowAsModal();
+        
+    if (!newWindowShouldBeModal && parentIsModal) {
+      nsCOMPtr<nsIBaseWindow> parentWindow(do_GetInterface(newTreeOwner));
+      if (parentWindow) {
+        nsCOMPtr<nsIWidget> parentWidget;
+        parentWindow->GetMainWidget(getter_AddRefs(parentWidget));
+        if (parentWidget) {
+          parentWidget->SetModal(PR_TRUE);
+        }
+      }
+    } else { 
+      
+      
+      
+      nsAutoPopupStatePusher popupStatePusher(modalContentWindow, openAbused);
+  
+      newChrome->ShowAsModal();
+    }
   }
 
   return NS_OK;
