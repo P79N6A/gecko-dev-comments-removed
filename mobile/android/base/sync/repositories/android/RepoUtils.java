@@ -25,7 +25,7 @@ import android.net.Uri;
 
 public class RepoUtils {
 
-  private static final String LOG_TAG = "DBUtils";
+  private static final String LOG_TAG = "RepoUtils";
 
   
 
@@ -205,7 +205,7 @@ public class RepoUtils {
     return Long.parseLong(path.substring(lastSlash + 1));
   }
 
-  public static BookmarkRecord computeParentFields(BookmarkRecord rec, String suggestedParentID, String suggestedParentName) {
+  public static BookmarkRecord computeParentFields(BookmarkRecord rec, String suggestedParentGUID, String suggestedParentName) {
     final String guid = rec.guid;
     if (guid == null) {
       
@@ -216,9 +216,9 @@ public class RepoUtils {
     String realParent = SPECIAL_GUID_PARENTS.get(guid);
     if (realParent == null) {
       
-      realParent = suggestedParentID;
+      realParent = suggestedParentGUID;
     } else {
-      Logger.debug(LOG_TAG, "Ignoring suggested parent ID " + suggestedParentID +
+      Logger.debug(LOG_TAG, "Ignoring suggested parent ID " + suggestedParentGUID +
                            " for " + guid + "; using " + realParent);
     }
 
@@ -240,7 +240,7 @@ public class RepoUtils {
   }
 
   
-  public static BookmarkRecord bookmarkFromMirrorCursor(Cursor cur, String parentId, String parentName, JSONArray children) {
+  public static BookmarkRecord bookmarkFromMirrorCursor(Cursor cur, String parentGUID, String parentName, JSONArray children) {
 
     String guid = getStringFromCursor(cur, BrowserContract.SyncColumns.GUID);
     String collection = "bookmarks";
