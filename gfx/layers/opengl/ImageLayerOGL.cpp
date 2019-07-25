@@ -466,6 +466,16 @@ ImageLayerOGL::RenderLayer(int,
      MacIOSurfaceImageOGL *ioImage =
        static_cast<MacIOSurfaceImageOGL*>(image.get());
 
+     if (!mOGLManager->GetThebesLayerCallback()) {
+       
+       
+       
+       ioImage->Update(GetContainer());
+       image = GetContainer()->GetCurrentImage();
+       gl()->MakeCurrent();
+       ioImage = static_cast<MacIOSurfaceImageOGL*>(image.get());
+     }
+     
      gl()->fBindTexture(LOCAL_GL_TEXTURE_RECTANGLE_ARB, ioImage->mTexture.GetTextureID());
 
      ColorTextureLayerProgram *program = 

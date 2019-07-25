@@ -180,6 +180,8 @@ public:
   virtual PRBool ReflowFinished();
   virtual void ReflowCallbackCanceled();
 
+  void UpdateImageLayer(ImageContainer* aContainer, const gfxRect& aRect);
+
   
 
 
