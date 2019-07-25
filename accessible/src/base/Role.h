@@ -814,7 +814,7 @@ enum Role {
   
 
 
-  DEFINITION = 128,
+  DEFINITION = 128
 };
 
 } 
