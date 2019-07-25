@@ -1071,13 +1071,23 @@ nsObjectFrame::CallSetWindow()
 
   PRBool windowless = (window->type == NPWindowTypeDrawable);
 
-  nsIntPoint origin = GetWindowOriginInPixels(windowless);
-
-  window->x = origin.x;
-  window->y = origin.y;
-
   
   window->window = mInstanceOwner->GetPluginPortFromWidget();
+
+  
+  
+  nsPresContext* presContext = PresContext();
+  nsRootPresContext* rootPC = presContext->GetRootPresContext();
+  if (!rootPC)
+    return;
+  PRInt32 appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
+  nsIFrame* rootFrame = rootPC->PresShell()->FrameManager()->GetRootFrame();
+  nsRect bounds = GetContentRect() + GetParent()->GetOffsetToCrossDoc(rootFrame);
+  nsIntRect intBounds = bounds.ToNearestPixels(appUnitsPerDevPixel);
+  window->x = intBounds.x;
+  window->y = intBounds.y;
+  window->width = intBounds.width;
+  window->height = intBounds.height;
 
   
   
