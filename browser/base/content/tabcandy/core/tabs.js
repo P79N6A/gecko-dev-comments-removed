@@ -49,81 +49,6 @@ const Cr = Components.results;
 
 
 
-function Dictionary() {
-  var keys = [];
-  var values = [];
-
-  
-  
-  this.set = function set(key, value) {
-    var id = keys.indexOf(key);
-    if (id == -1) {
-      keys.push(key);
-      values.push(value);
-    } else
-      values[id] = value;
-  };
-
-  
-  
-  this.get = function get(key, defaultValue) {
-    if (defaultValue === undefined)
-      defaultValue = null;
-    var id = keys.indexOf(key);
-    if (id == -1)
-      return defaultValue;
-    return values[id];
-  };
-
-  
-  
-  this.remove = function remove(key) {
-    var id = keys.indexOf(key);
-    if (id == -1)
-      throw new Error("object not in dictionary: " + key);
-    keys.splice(id, 1);
-    values.splice(id, 1);
-  };
-
-  
-  
-  this.__defineGetter__("keys", function() keys);
-
-  
-  
-  this.__defineGetter__("values", function() values);
-
-  
-  
-  this.__defineGetter__("length", function() keys.length);
-}
-
-
-
-
-var Extension = {
-  
-  
-  
-  
-  
-  
-  
-  
-  addUnloadMethod: function addUnloadMethod(obj, unloader) {
-    function unloadWrapper() {
-      window.removeEventListener("unload", unloadWrapper, true);
-      unloader.apply(obj, arguments);
-    }
-
-    window.addEventListener("unload", unloadWrapper, true);
-
-    obj.unload = unloadWrapper;
-  }
-};
-
-
-
 function EventListenerMixIns(mixInto) {
   var mixIns = {};
 
@@ -145,15 +70,6 @@ function EventListenerMixIns(mixInto) {
       mixIns[name].trigger(target, event);
   };
 
-  Extension.addUnloadMethod(
-    this,
-    function() {
-      for (name in mixIns) {
-        mixIns[name].unload();
-        delete mixIns[name];
-      }
-      mixIns = null;
-    });
 }
 
 
@@ -212,15 +128,6 @@ function EventListenerMixIn(options) {
                                      onEvent,
                                      options.useCapture);
 
-  Extension.addUnloadMethod(
-    this,
-    function() {
-      listeners = null;
-      if (options.observe)
-        options.observe.removeEventListener(options.eventName,
-                                            onEvent,
-                                            options.useCapture);
-    });
 }
 
 
@@ -240,20 +147,17 @@ window.TabsManager = iQ.extend(new Subscribable(), {
       return;
     }
 
-    var trackedWindows = new Dictionary();
-    var trackedTabs = new Dictionary();
+    var trackedTabs = [];
 
-    trackedWindows.set(chromeWindow,
-                        new BrowserWindow(chromeWindow));
+    chromeWindow.tabcandyBrowserWindow = new BrowserWindow(chromeWindow);
 
     var windows = {
       get focused() {
         var wm = Cc["@mozilla.org/appshell/window-mediator;1"]
                  .getService(Ci.nsIWindowMediator);
         var chromeWindow = wm.getMostRecentWindow("navigator:browser");
-  
         if (chromeWindow)
-          return trackedWindows.get(chromeWindow);
+          return chromeWindow.tabcandyBrowserWindow;
         return null;
       }
     };
@@ -289,7 +193,7 @@ window.TabsManager = iQ.extend(new Subscribable(), {
       }
     };
 
-    window.Tabs.__proto__ = trackedTabs.values;
+    window.Tabs.__proto__ = trackedTabs;
 
     var tabsMixIns = new EventListenerMixIns(window.Tabs);
     tabsMixIns.add({name: "onReady"});
@@ -303,13 +207,19 @@ window.TabsManager = iQ.extend(new Subscribable(), {
 
     function newBrowserTab(tabbrowser, chromeTab) {
       var browserTab = new BrowserTab(tabbrowser, chromeTab);
-      trackedTabs.set(chromeTab, browserTab);
+      chromeTab.tabcandyBrowserTab = browserTab;
+      trackedTabs.push(browserTab);
       return browserTab;
     }
 
     function unloadBrowserTab(chromeTab) {
-      var browserTab = trackedTabs.get(chromeTab);
-      trackedTabs.remove(chromeTab);
+      var browserTab = chromeTab.tabcandyBrowserTab;
+      var index = trackedTabs.indexOf(browserTab);
+      if (index > -1) {
+        trackedTabs.splice(index,1);
+      } else {
+        Utils.assert("unloadBrowserTab: browserTab not found in trackedTabs",false);
+      }
       browserTab._unload();
     }
     
@@ -333,26 +243,26 @@ window.TabsManager = iQ.extend(new Subscribable(), {
           switch (event.type) {
             case "TabSelect":
               tabsMixIns.bubble("onFocus",
-                               trackedTabs.get(chromeTab),
+                               chromeTab.tabcandyBrowserTab,
                                true);
               break;
 
             case "TabOpen":
               newBrowserTab(tabbrowser, chromeTab);
               tabsMixIns.bubble("onOpen",
-                                trackedTabs.get(chromeTab),
+                                chromeTab.tabcandyBrowserTab,
                                 true);
               break;
 
             case "TabMove":
               tabsMixIns.bubble("onMove",
-                               trackedTabs.get(chromeTab),
+                               chromeTab.tabcandyBrowserTab,
                                true);
               break;
 
             case "TabClose":
               tabsMixIns.bubble("onClose",
-                                trackedTabs.get(chromeTab),
+                                chromeTab.tabcandyBrowserTab,
                                 true);
               unloadBrowserTab(chromeTab);
               break;
@@ -371,23 +281,12 @@ window.TabsManager = iQ.extend(new Subscribable(), {
         var chromeTab = tabbrowser.addTab(url);
         
         
-        return trackedTabs.get(chromeTab);
+        return chromeTab.tabcandyBrowserTab;
       };
-
+    
       this.getFocusedTab = function getFocusedTab() {
-        return trackedTabs.get(tabbrowser.selectedTab);
+        return tabbrowser.selectedTab.tabcandyBrowserTab;
       };
-
-      Extension.addUnloadMethod(
-        this,
-        function() {
-          EVENTS_TO_WATCH.forEach(
-            function(eventType) {
-              tabbrowser.tabContainer.removeEventListener(eventType, onEvent, true);
-            });
-          for (var i = 0; i < tabbrowser.tabContainer.itemCount; i++)
-            unloadBrowserTab(tabbrowser.tabContainer.getItemAtIndex(i));
-        });
     }
 
     function BrowserTab(tabbrowser, chromeTab) {
@@ -461,7 +360,6 @@ window.TabsManager = iQ.extend(new Subscribable(), {
         toString: function toString() !browser ? "[Closed Browser Tab]" : "[Browser Tab]",
     
         _unload: function _unload() {
-          mixIns.unload();
           mixIns = null;
           tabbrowser = null;
           chromeTab = null;
