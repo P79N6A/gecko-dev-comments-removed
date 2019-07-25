@@ -268,6 +268,8 @@ let Manager = {
 
 
 
+
+
   enableFeature: function Manager_enableFeature(aFeature, aMessage)
   {
     if (this._enabledFeatures.indexOf(aFeature) != -1) {
@@ -286,6 +288,11 @@ let Manager = {
         break;
       case "NetworkMonitor":
         NetworkMonitor.init(aMessage);
+        break;
+      case "LocationChange":
+        ConsoleProgressListener.startMonitor(ConsoleProgressListener
+                                             .MONITOR_LOCATION_CHANGE);
+        ConsoleProgressListener.sendLocation();
         break;
       default:
         Cu.reportError("Web Console content: unknown feature " + aFeature);
@@ -323,6 +330,10 @@ let Manager = {
         break;
       case "NetworkMonitor":
         NetworkMonitor.destroy();
+        break;
+      case "LocationChange":
+        ConsoleProgressListener.stopMonitor(ConsoleProgressListener
+                                            .MONITOR_LOCATION_CHANGE);
         break;
       default:
         Cu.reportError("Web Console content: unknown feature " + aFeature);
@@ -739,7 +750,17 @@ let JSTerm = {
   
 
 
-  init: function JST_init()
+
+
+
+
+
+
+
+
+
+
+  init: function JST_init(aMessage)
   {
     this._objectCache = {};
     this._messageHandlers = {
@@ -755,6 +776,13 @@ let JSTerm = {
     }
 
     this._createSandbox();
+
+    if (aMessage && aMessage.notifyNonNativeConsoleAPI) {
+      let consoleObject = WebConsoleUtils.unwrap(this.window).console;
+      if (!("__mozillaConsole__" in consoleObject)) {
+        Manager.sendMessage("JSTerm:NonNativeConsoleAPI", {});
+      }
+    }
   },
 
   
@@ -1697,10 +1725,8 @@ let NetworkMonitor = {
 
     
     if (aMessage && aMessage.monitorFileActivity) {
-      let webProgress = docShell.QueryInterface(Ci.nsIWebProgress);
-      this.progressListener = new ConsoleProgressListener();
-      webProgress.addProgressListener(this.progressListener,
-        Ci.nsIWebProgress.NOTIFY_STATE_ALL);
+      ConsoleProgressListener.startMonitor(ConsoleProgressListener
+                                           .MONITOR_FILE_ACTIVITY);
     }
   },
 
@@ -2240,11 +2266,8 @@ let NetworkMonitor = {
 
     activityDistributor.removeObserver(this);
 
-    if (this.progressListener) {
-      let webProgress = docShell.QueryInterface(Ci.nsIWebProgress);
-      webProgress.removeProgressListener(this.progressListener);
-      delete this.progressListener;
-    }
+    ConsoleProgressListener.stopMonitor(ConsoleProgressListener
+                                        .MONITOR_FILE_ACTIVITY);
 
     delete this.openRequests;
     delete this.openResponses;
@@ -2259,16 +2282,142 @@ let NetworkMonitor = {
 
 
 
-function ConsoleProgressListener() { }
 
-ConsoleProgressListener.prototype = {
+
+
+
+
+let ConsoleProgressListener = {
+  
+
+
+
+  MONITOR_FILE_ACTIVITY: 1,
+
+  
+
+
+
+  MONITOR_LOCATION_CHANGE: 2,
+
+  
+
+
+
+
+  _fileActivity: false,
+
+  
+
+
+
+
+  _locationChange: false,
+
+  
+
+
+
+
+  _initialized: false,
+
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
                                          Ci.nsISupportsWeakReference]),
 
-  onStateChange: function CPL_onStateChange(aProgress, aRequest, aState,
-                                            aStatus)
+  
+
+
+
+  _init: function CPL__init()
   {
-    if (!_alive || !(aState & Ci.nsIWebProgressListener.STATE_START)) {
+    if (this._initialized) {
+      return;
+    }
+
+    this._initialized = true;
+    let webProgress = docShell.QueryInterface(Ci.nsIWebProgress);
+    webProgress.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_ALL);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  startMonitor: function CPL_startMonitor(aMonitor)
+  {
+    switch (aMonitor) {
+      case this.MONITOR_FILE_ACTIVITY:
+        this._fileActivity = true;
+        break;
+      case this.MONITOR_LOCATION_CHANGE:
+        this._locationChange = true;
+        break;
+      default:
+        throw new Error("HUDService-content: unknown monitor type " +
+                        aMonitor + " for the ConsoleProgressListener!");
+    }
+    this._init();
+  },
+
+  
+
+
+
+
+
+
+  stopMonitor: function CPL_stopMonitor(aMonitor)
+  {
+    switch (aMonitor) {
+      case this.MONITOR_FILE_ACTIVITY:
+        this._fileActivity = false;
+        break;
+      case this.MONITOR_LOCATION_CHANGE:
+        this._locationChange = false;
+        break;
+      default:
+        throw new Error("HUDService-content: unknown monitor type " +
+                        aMonitor + " for the ConsoleProgressListener!");
+    }
+
+    if (!this._fileActivity && !this._locationChange) {
+      this.destroy();
+    }
+  },
+
+  onStateChange:
+  function CPL_onStateChange(aProgress, aRequest, aState, aStatus)
+  {
+    if (!_alive) {
+      return;
+    }
+
+    if (this._fileActivity) {
+      this._checkFileActivity(aProgress, aRequest, aState, aStatus);
+    }
+
+    if (this._locationChange) {
+      this._checkLocationChange(aProgress, aRequest, aState, aStatus);
+    }
+  },
+
+  
+
+
+
+
+
+  _checkFileActivity:
+  function CPL__checkFileActivity(aProgress, aRequest, aState, aStatus)
+  {
+    if (!(aState & Ci.nsIWebProgressListener.STATE_START)) {
       return;
     }
 
@@ -2289,10 +2438,62 @@ ConsoleProgressListener.prototype = {
     Manager.sendMessage("WebConsole:FileActivity", {uri: uri.spec});
   },
 
+  
+
+
+
+
+
+  _checkLocationChange:
+  function CPL__checkLocationChange(aProgress, aRequest, aState, aStatus)
+  {
+    let isStop = aState & Ci.nsIWebProgressListener.STATE_STOP;
+    let isNetwork = aState & Ci.nsIWebProgressListener.STATE_IS_NETWORK;
+    let isWindow = aState & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
+
+    
+    if (!isStop || !isNetwork || !isWindow ||
+        aProgress.DOMWindow != Manager.window) {
+      return;
+    }
+
+    this.sendLocation();
+  },
+
   onLocationChange: function() {},
   onStatusChange: function() {},
   onProgressChange: function() {},
   onSecurityChange: function() {},
+
+  
+
+
+
+
+  sendLocation: function CPL_sendLocation()
+  {
+    let message = {
+      "location": Manager.window.location.href,
+      "title": Manager.window.document.title,
+    };
+    Manager.sendMessage("WebConsole:LocationChange", message);
+  },
+
+  
+
+
+  destroy: function CPL_destroy()
+  {
+    if (!this._initialized) {
+      return;
+    }
+
+    this._initialized = false;
+    this._fileActivity = false;
+    this._locationChange = false;
+    let webProgress = docShell.QueryInterface(Ci.nsIWebProgress);
+    webProgress.removeProgressListener(this);
+  },
 };
 
 Manager.init();
