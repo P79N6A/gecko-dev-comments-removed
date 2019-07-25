@@ -501,8 +501,10 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         
         bumpParents(cr, Bookmarks.URL, uri);
 
-        final String[] urlArgs = new String[] { uri };
-        final String urlEquals = Bookmarks.URL + " = ?";
+        
+        final String[] urlArgs = new String[] { uri, String.valueOf(Bookmarks.FIXED_READING_LIST_ID) };
+        final String urlEquals = Bookmarks.URL + " = ? AND " + Bookmarks.PARENT + " != ?";
+
         cr.delete(contentUri, urlEquals, urlArgs);
     }
 
