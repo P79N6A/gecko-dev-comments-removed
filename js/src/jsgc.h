@@ -65,6 +65,18 @@
 
 #define JSTRACE_LIMIT       3
 
+
+
+
+const size_t GC_ARENA_ALLOCATION_TRIGGER = 25 * js::GC_CHUNK_SIZE;
+
+
+
+
+
+
+const float GC_HEAP_GROWTH_FACTOR = 1.5;
+
 const uintN JS_EXTERNAL_STRING_LIMIT = 8;
 
 

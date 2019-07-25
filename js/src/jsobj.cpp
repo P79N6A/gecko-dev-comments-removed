@@ -3451,11 +3451,12 @@ js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
 
 
 
-    bool ok;
-    JS_LOCK_OBJ(cx, proto);
-    ok = proto->getEmptyShape(cx, clasp);
-    JS_UNLOCK_OBJ(cx, proto);
-    if (!ok)
+
+
+
+    JS_ASSERT_IF(proto->clasp != clasp,
+                 clasp == &js_ArrayClass && proto->clasp == &js_SlowArrayClass);
+    if (!proto->getEmptyShape(cx, proto->clasp))
         goto bad;
 
     
