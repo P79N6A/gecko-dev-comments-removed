@@ -2681,8 +2681,8 @@ nsHTMLDocument::EditingStateChanged()
     rv = LoadChromeSheetSync(uri, true, getter_AddRefs(sheet));
     NS_ENSURE_TRUE(sheet, rv);
 
-    rv = agentSheets.AppendObject(sheet);
-    NS_ENSURE_SUCCESS(rv, rv);
+    bool result = agentSheets.AppendObject(sheet);
+    NS_ENSURE_TRUE(result, NS_ERROR_OUT_OF_MEMORY);
 
     
     
@@ -2695,8 +2695,8 @@ nsHTMLDocument::EditingStateChanged()
       rv = LoadChromeSheetSync(uri, true, getter_AddRefs(sheet));
       NS_ENSURE_TRUE(sheet, rv);
 
-      rv = agentSheets.AppendObject(sheet);
-      NS_ENSURE_SUCCESS(rv, rv);
+      result = agentSheets.AppendObject(sheet);
+      NS_ENSURE_TRUE(result, NS_ERROR_OUT_OF_MEMORY);
 
       
       rv = editSession->DisableJSAndPlugins(window);
