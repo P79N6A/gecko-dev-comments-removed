@@ -621,7 +621,7 @@ public:
   virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
                                    nsRegion* aVisibleRegionBeforeMove)
-  { return PR_TRUE; }
+  { return !mVisibleRect.IsEmpty(); }
 
   
 
@@ -865,9 +865,13 @@ public:
 
 
 
-  void ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                         nsRegion* aVisibleRegion,
-                         nsRegion* aVisibleRegionBeforeMove);
+
+
+
+
+  PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                           nsRegion* aVisibleRegion,
+                           nsRegion* aVisibleRegionBeforeMove);
   
 
 
@@ -921,6 +925,10 @@ public:
   void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                nsDisplayItem::HitTestState* aState,
                nsTArray<nsIFrame*> *aOutFrames) const;
+
+#ifdef DEBUG
+  PRBool DidComputeVisibility() const { return mDidComputeVisibility; }
+#endif
 
 private:
   

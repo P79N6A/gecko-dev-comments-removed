@@ -838,6 +838,15 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     
     if (layerState == LAYER_ACTIVE) {
       
+      
+      
+      
+      if (itemVisibleRect.IsEmpty()) {
+        InvalidateForLayerChange(item, nsnull);
+        continue;
+      }
+
+      
       nsRefPtr<Layer> ownLayer = item->BuildLayer(mBuilder, mManager);
       if (!ownLayer) {
         InvalidateForLayerChange(item, ownLayer);
