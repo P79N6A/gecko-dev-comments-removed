@@ -2130,6 +2130,12 @@ gfxFont::GetShapedWord(gfxContext *aContext,
                        PRUint32 aFlags)
 {
     
+    if (mWordCache.Count() > 10000) {
+        NS_WARNING("flushing shaped-word cache");
+        ClearCachedWords();
+    }
+
+    
     CacheHashKey key(aText, aLength, aHash,
                      aRunScript,
                      aAppUnitsPerDevUnit,
