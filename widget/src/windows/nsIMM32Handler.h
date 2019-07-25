@@ -119,7 +119,14 @@ public:
   static PRBool ProcessMessage(nsWindow* aWindow, UINT msg,
                                WPARAM &wParam, LPARAM &lParam,
                                LRESULT *aRetValue, PRBool &aEatMessage);
-  static PRBool IsComposing(nsWindow* aWindow);
+  static PRBool IsComposing()
+  {
+    return IsComposingOnOurEditor() || IsComposingOnPlugin();
+  }
+  static PRBool IsComposingOn(nsWindow* aWindow)
+  {
+    return IsComposing() && IsComposingWindow(aWindow);
+  }
   static PRBool IsStatusChanged() { return sIsStatusChanged; }
 
   static PRBool IsDoingKakuteiUndo(HWND aWnd);
@@ -128,13 +135,35 @@ public:
 
   static PRBool CanOptimizeKeyAndIMEMessages(MSG *aNextKeyOrIMEMessage);
 
+  
+  
+  
+  static void CommitComposition(nsWindow* aWindow, PRBool aForce = PR_FALSE);
+  static void CancelComposition(nsWindow* aWindow, PRBool aForce = PR_FALSE);
+
 protected:
   static void EnsureHandlerInstance();
+
+  static PRBool IsComposingOnOurEditor();
+  static PRBool IsComposingOnPlugin();
+  static PRBool IsComposingWindow(nsWindow* aWindow);
 
   static PRBool ShouldDrawCompositionStringOurselves();
   static void InitKeyboardLayout(HKL aKeyboardLayout);
   static UINT GetKeyboardCodePage();
 
+  
+
+
+
+
+  static PRBool IsTopLevelWindowOfComposition(nsWindow* aWindow);
+
+  static PRBool ProcessInputLangChangeMessage(nsWindow* aWindow,
+                                              WPARAM wParam,
+                                              LPARAM lParam,
+                                              LRESULT *aRetValue,
+                                              PRBool &aEatMessage);
   static PRBool ProcessMessageForPlugin(nsWindow* aWindow, UINT msg,
                                         WPARAM &wParam, LPARAM &lParam,
                                         LRESULT *aRetValue,
@@ -153,17 +182,30 @@ protected:
 
   
   PRBool OnIMEStartComposition(nsWindow* aWindow);
+  PRBool OnIMEStartCompositionOnPlugin(nsWindow* aWindow,
+                                       WPARAM wParam, LPARAM lParam);
   PRBool OnIMEComposition(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  PRBool OnIMECompositionOnPlugin(nsWindow* aWindow,
+                                  WPARAM wParam, LPARAM lParam);
   PRBool OnIMEEndComposition(nsWindow* aWindow);
+  PRBool OnIMEEndCompositionOnPlugin(nsWindow* aWindow,
+                                     WPARAM wParam, LPARAM lParam);
   PRBool OnIMERequest(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                       LRESULT *aResult);
+  PRBool OnIMECharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  PRBool OnChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  PRBool OnCharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
   PRBool OnInputLangChange(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
 
   
   
   static PRBool OnIMEChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
   static PRBool OnIMESetContext(nsWindow* aWindow,
-                                WPARAM wParam, LPARAM &lParam);
+                                WPARAM wParam, LPARAM lParam,
+                                LRESULT *aResult);
+  static PRBool OnIMESetContextOnPlugin(nsWindow* aWindow,
+                                        WPARAM wParam, LPARAM lParam,
+                                        LRESULT *aResult);
   static PRBool OnIMECompositionFull(nsWindow* aWindow);
   static PRBool OnIMENotify(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
   static PRBool OnIMESelect(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
@@ -178,6 +220,17 @@ protected:
   PRBool HandleQueryCharPosition(nsWindow* aWindow, LPARAM lParam,
                                  LRESULT *oResult);
   PRBool HandleDocumentFeed(nsWindow* aWindow, LPARAM lParam, LRESULT *oResult);
+
+  
+
+
+
+
+
+
+
+
+  PRBool CommitCompositionOnPreviousWindow(nsWindow* aWindow);
 
   
 
@@ -230,6 +283,42 @@ protected:
   nsresult EnsureClauseArray(PRInt32 aCount);
   nsresult EnsureAttributeArray(PRInt32 aCount);
 
+  
+
+
+
+
+
+
+
+
+
+  nsTArray<MSG> mPassedIMEChar;
+
+  PRBool IsIMECharRecordsEmpty()
+  {
+    return mPassedIMEChar.IsEmpty();
+  }
+  void ResetIMECharRecords()
+  {
+    mPassedIMEChar.Clear();
+  }
+  void DequeueIMECharRecords(WPARAM &wParam, LPARAM &lParam)
+  {
+    MSG msg = mPassedIMEChar.ElementAt(0);
+    wParam = msg.wParam;
+    lParam = msg.lParam;
+    mPassedIMEChar.RemoveElementAt(0);
+  }
+  void EnqueueIMECharRecords(WPARAM wParam, LPARAM lParam)
+  {
+    MSG msg;
+    msg.wParam = wParam;
+    msg.lParam = lParam;
+    mPassedIMEChar.AppendElement(msg);
+  }
+
+  nsWindow* mComposingWindow;
   nsString  mCompositionString;
   nsTArray<PRUint32> mClauseArray;
   nsTArray<PRUint8> mAttributeArray;
@@ -238,9 +327,9 @@ protected:
   PRUint32 mCompositionStart;
 
   PRPackedBool mIsComposing;
+  PRPackedBool mIsComposingOnPlugin;
   PRPackedBool mNativeCaretIsCreated;
 
-  static PRPackedBool sIsComposingOnPlugin;
   static PRPackedBool sIsStatusChanged;
   static PRPackedBool sIsIME;
   static PRPackedBool sIsIMEOpening;
