@@ -27,7 +27,7 @@ function test() {
     ok(state, "get the tab's state");
     
     
-    state = eval("(" + state + ")");
+    state = JSON.parse(state);
     ok(state instanceof Object && state.entries instanceof Array && state.entries.length > 0,
        "state object seems valid");
     ok(state.entries.length == 1 && state.entries[0].url == testURL,
@@ -50,7 +50,7 @@ function test() {
   
   let tab2 = tabbrowser.addTab();
   
-  ss.setTabState(tab2, state.toSource());
+  ss.setTabState(tab2, JSON.stringify(state));
   tab2.linkedBrowser.addEventListener("load", function(aEvent) {
     this.removeEventListener("load", arguments.callee, true);
     

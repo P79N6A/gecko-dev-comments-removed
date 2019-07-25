@@ -125,14 +125,24 @@ SessionStartup.prototype = {
     this._iniString = this._readStateFile(sessionFile);
     if (!this._iniString)
       return;
+
     
+    let initialState;
     try {
       
-      var s = new Cu.Sandbox("about:blank");
-      var initialState = Cu.evalInSandbox("(" + this._iniString + ")", s);
+      if (this._iniString.charAt(0) == '(')
+        this._iniString = this._iniString.slice(1, -1);
+      try {
+        initialState = JSON.parse(this._iniString);
+      }
+      catch (exJSON) {
+        var s = new Cu.Sandbox("about:blank");
+        initialState = Cu.evalInSandbox("(" + this._iniString + ")", s);
+        this._iniString = JSON.stringify(initialState);
+      }
     }
-    catch (ex) { debug("The session file is invalid: " + ex); } 
-    
+    catch (ex) { debug("The session file is invalid: " + ex); }
+
     let lastSessionCrashed =
       initialState && initialState.session && initialState.session.state &&
       initialState.session.state == STATE_RUNNING_STR;
