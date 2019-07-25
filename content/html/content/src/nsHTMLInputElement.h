@@ -391,6 +391,13 @@ protected:
 
   nsresult GetValueInternal(nsAString& aValue) const;
 
+  
+
+
+
+
+  bool IsValueEmpty() const;
+
   void ClearFiles(bool aSetValueChanged) {
     nsCOMArray<nsIDOMFile> files;
     SetFiles(files, aSetValueChanged);
