@@ -344,6 +344,80 @@ var tests = [
       this.notification.remove();
     }
   },
+  
+  { 
+    run: function () {
+      this.oldSelectedTab = gBrowser.selectedTab;
+      gBrowser.selectedTab = gBrowser.addTab("about:blank");
+
+      let self = this;
+      loadURI("http://example.com/", function() {
+        self.notifyObj = new basicNotification();
+        self.notifyObj.options = {
+          persistence: 2
+        };
+        self.notification = showNotification(self.notifyObj);
+      });
+    },
+    onShown: function (popup) {
+      this.complete = false;
+
+      let self = this;
+      loadURI("http://example.org/", function() {
+        loadURI("http://example.com/", function() {
+
+          
+          self.complete = true;
+
+          loadURI("http://example.org/");
+        });
+      });
+    },
+    onHidden: function (popup) {
+      ok(this.complete, "Should only have hidden the notification after 3 page loads");
+      this.notification.remove();
+      gBrowser.removeTab(gBrowser.selectedTab);
+      gBrowser.selectedTab = this.oldSelectedTab;
+    }
+  },
+  
+  { 
+    run: function () {
+      this.oldSelectedTab = gBrowser.selectedTab;
+      gBrowser.selectedTab = gBrowser.addTab("about:blank");
+
+      let self = this;
+      loadURI("http://example.com/", function() {
+        self.notifyObj = new basicNotification();
+        
+        self.notifyObj.options = {
+          timeout: Date.now() + 600000
+        };
+        self.notification = showNotification(self.notifyObj);
+      });
+    },
+    onShown: function (popup) {
+      this.complete = false;
+
+      let self = this;
+      loadURI("http://example.org/", function() {
+        loadURI("http://example.com/", function() {
+
+          
+          self.notification.options.timeout = Date.now() - 1;
+          self.complete = true;
+
+          loadURI("http://example.org/");
+        });
+      });
+    },
+    onHidden: function (popup) {
+      ok(this.complete, "Should only have hidden the notification after the timeout was passed");
+      this.notification.remove();
+      gBrowser.removeTab(gBrowser.selectedTab);
+      gBrowser.selectedTab = this.oldSelectedTab;
+    }
+  },
 ];
 
 function showNotification(notifyObj) {
@@ -352,7 +426,8 @@ function showNotification(notifyObj) {
                                  notifyObj.message,
                                  notifyObj.anchorID,
                                  notifyObj.mainAction,
-                                 notifyObj.secondaryActions);
+                                 notifyObj.secondaryActions,
+                                 notifyObj.options);
 }
 
 function checkPopup(popup, notificationObj) {
@@ -407,6 +482,19 @@ function triggerSecondaryCommand(popup, index) {
 
   
   EventUtils.synthesizeKey("VK_DOWN", { altKey: (navigator.platform.indexOf("Mac") == -1) });
+}
+
+function loadURI(uri, callback) {
+  gBrowser.addEventListener("load", function() {
+    
+    if (gBrowser.currentURI.spec != uri)
+      return;
+
+    gBrowser.removeEventListener("load", arguments.callee, true);
+
+    callback();
+  }, true);
+  gBrowser.loadURI(uri);
 }
 
 function dismissNotification(popup) {

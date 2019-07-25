@@ -47,7 +47,7 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 
 
 function Notification(id, message, anchorID, mainAction, secondaryActions,
-                      browser, owner) {
+                      browser, owner, options) {
   this.id = id;
   this.message = message;
   this.anchorID = anchorID;
@@ -55,6 +55,7 @@ function Notification(id, message, anchorID, mainAction, secondaryActions,
   this.secondaryActions = secondaryActions || [];
   this.browser = browser;
   this.owner = owner;
+  this.options = options || {};
 }
 
 Notification.prototype = {
@@ -165,6 +166,13 @@ PopupNotifications.prototype = {
 
 
 
+
+
+
+
+
+
+
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -183,7 +191,7 @@ PopupNotifications.prototype = {
       throw "PopupNotifications_show: invalid secondaryActions";
 
     let notification = new Notification(id, message, anchorID, mainAction,
-                                        secondaryActions, browser, this);
+                                        secondaryActions, browser, this, options);
 
 
     let existingNotification = this.getNotification(id, browser);
@@ -222,8 +230,23 @@ PopupNotifications.prototype = {
 
 
   locationChange: function PopupNotifications_locationChange() {
-    
-    this._currentNotifications = [];
+    this._currentNotifications = this._currentNotifications.filter(function(notification) {
+      
+      
+      if ("persistence" in notification.options &&
+          notification.options.persistence) {
+        notification.options.persistence--;
+        return true;
+      }
+
+      
+      if ("timeout" in notification.options &&
+          Date.now() <= notification.options.timeout) {
+        return true;
+      }
+
+      return false;
+    });
 
     this._update();
   },
