@@ -1292,25 +1292,23 @@ nsCanvasRenderingContext2DAzure::InitializeWithTarget(DrawTarget *target, PRInt3
   mWidth = width;
   mHeight = height;
 
-  mTarget = target;
-
-  mResetLayer = true;
-
+  
+  
+  
+  
+  
+  
+  
   
 
-
-  if (!target)
-  {
-    mTarget = gfxPlatform::GetPlatform()->CreateOffscreenDrawTarget(IntSize(1, 1), FORMAT_B8G8R8A8);
-    if (!mTarget) {
-      
-      
-      mValid = false;
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-  } else {
+  if (target) {
     mValid = true;
+    mTarget = target;
+  } else {
+    mValid = false;
   }
+
+  mResetLayer = true;
 
   
   mStyleStack.Clear();
@@ -1325,11 +1323,12 @@ nsCanvasRenderingContext2DAzure::InitializeWithTarget(DrawTarget *target, PRInt3
   state->colorStyles[STYLE_STROKE] = NS_RGB(0,0,0);
   state->shadowColor = NS_RGBA(0,0,0,0);
 
-  mTarget->ClearRect(mgfx::Rect(Point(0, 0), Size(mWidth, mHeight)));
+  if (mTarget) {
+    mTarget->ClearRect(mgfx::Rect(Point(0, 0), Size(mWidth, mHeight)));
     
-  
-  
-  Redraw();
+    
+    Redraw();
+  }
 
   return mValid ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
