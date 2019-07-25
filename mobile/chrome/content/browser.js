@@ -708,7 +708,7 @@ var Browser = {
 
     if (!firstTab) {
       
-      BrowserUI.setURI();
+      BrowserUI.updateURI();
       getIdentityHandler().checkIdentity();
 
       let event = document.createEvent("Events");
@@ -2208,7 +2208,7 @@ ProgressController.prototype = {
     this._hostChanged = true;
 
     if (this._tab == Browser.selectedTab) {
-      BrowserUI.setURI();
+      BrowserUI.updateURI();
 
       
       
@@ -2273,7 +2273,7 @@ ProgressController.prototype = {
     
     Browser.translatePhoneNumbers();
 
-    if (this._tab == Browser.selectedTab) {
+    if (this._tab == Browser.selectedTab && !BrowserUI.isAutoCompleteOpen()) {
       
       if (this.browser.currentURI.spec != "about:blank")
         this.browser.contentWindow.focus();
