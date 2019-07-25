@@ -227,22 +227,9 @@ JS_BEGIN_EXTERN_C
 
 
 
-
-
-typedef int JSIntn;
-typedef unsigned int JSUintn;
-
-
-
-
-
-
-
-
-
-typedef JSIntn JSBool;
-#define JS_TRUE (JSIntn)1
-#define JS_FALSE (JSIntn)0
+typedef int JSBool;
+#define JS_TRUE (int)1
+#define JS_FALSE (int)0
 
 
 
