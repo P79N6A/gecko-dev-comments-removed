@@ -212,8 +212,10 @@ typedef enum JSWhyMagic
 {
     JS_ARRAY_HOLE,               
     JS_ARGS_HOLE,                
-    JS_STOP_ITERATION,           
-    JS_STOP_ITERATION_EXCEPTION  
+    JS_NATIVE_ENUMERATE,         
+
+
+    JS_GENERATOR_CLOSING         
 } JSWhyMagic;
 
 typedef union jsval_data

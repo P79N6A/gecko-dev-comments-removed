@@ -3234,7 +3234,7 @@ class Value
 
 
 
-    template <class T> Value(T *);  
+    template <class T> explicit Value(T *);  
 
   public:
 
@@ -3462,6 +3462,10 @@ class Value
 
     bool isBoolean() const {
         return mask == BooleanMask;
+    }
+
+    bool isBoolean(bool b) const {
+        return (mask == BooleanMask) & (data.boo == b);
     }
 
     bool asBoolean() const {

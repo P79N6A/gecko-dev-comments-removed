@@ -198,7 +198,7 @@ struct TracerState
 
     
     uintN          nativeVpLen;
-    jsval*         nativeVp;
+    js::Value*     nativeVp;
 
     
     
@@ -290,13 +290,18 @@ class CallStack
     JSStackFrame        *suspendedFrame;
 
     
-    JSFrameRegs         *suspendedRegs;
+
+
+
+
+
+
+
+
+    AlignedPtrAndFlag<JSFrameRegs> suspendedRegsAndSaved;
 
     
-    bool                saved;
-
-    
-    jsval               *initialArgEnd;
+    Value               *initialArgEnd;
 
     
     JSObject            *initialVarObj;
@@ -304,18 +309,19 @@ class CallStack
   public:
     CallStack()
       : cx(NULL), previousInContext(NULL), previousInThread(NULL),
-        initialFrame(NULL), suspendedFrame(NULL), saved(false),
-        initialArgEnd(NULL), initialVarObj(NULL)
+        initialFrame(NULL), suspendedFrame(NULL),
+        suspendedRegsAndSaved(NULL, false), initialArgEnd(NULL),
+        initialVarObj(NULL)
     {}
 
     
 
-    jsval *previousCallStackEnd() const {
-        return (jsval *)this;
+    Value *previousCallStackEnd() const {
+        return (Value *)this;
     }
 
-    jsval *getInitialArgBegin() const {
-        return (jsval *)(this + 1);
+    Value *getInitialArgBegin() const {
+        return (Value *)(this + 1);
     }
 
     
@@ -331,7 +337,7 @@ class CallStack
 
     bool inContext() const {
         JS_ASSERT(!!cx == !!initialFrame);
-        JS_ASSERT_IF(!initialFrame, !suspendedFrame && !saved);
+        JS_ASSERT_IF(!initialFrame, !suspendedFrame && !suspendedRegsAndSaved.flag());
         return cx;
     }
 
@@ -341,15 +347,15 @@ class CallStack
     }
 
     bool isSuspended() const {
-        JS_ASSERT_IF(!suspendedFrame, !saved);
+        JS_ASSERT_IF(!suspendedFrame, !suspendedRegsAndSaved.flag());
         JS_ASSERT_IF(suspendedFrame, inContext());
         return suspendedFrame;
     }
 
     
     bool isSaved() const {
-        JS_ASSERT_IF(saved, isSuspended());
-        return saved;
+        JS_ASSERT_IF(suspendedRegsAndSaved.flag(), isSuspended());
+        return suspendedRegsAndSaved.flag();
     }
 
     
@@ -379,7 +385,7 @@ class CallStack
         JS_ASSERT(fp && contains(fp));
         suspendedFrame = fp;
         JS_ASSERT(isSuspended());
-        suspendedRegs = regs;
+        suspendedRegsAndSaved.setPtr(regs);
     }
 
     void resume() {
@@ -393,25 +399,25 @@ class CallStack
     void save(JSStackFrame *fp, JSFrameRegs *regs) {
         JS_ASSERT(!isSaved());
         suspend(fp, regs);
-        saved = true;
+        suspendedRegsAndSaved.setFlag();
         JS_ASSERT(isSaved());
     }
 
     void restore() {
         JS_ASSERT(isSaved());
-        saved = false;
+        suspendedRegsAndSaved.unsetFlag();
         resume();
         JS_ASSERT(!isSaved());
     }
 
     
 
-    void setInitialArgEnd(jsval *v) {
+    void setInitialArgEnd(Value *v) {
         JS_ASSERT(!inContext() && !initialArgEnd);
         initialArgEnd = v;
     }
 
-    jsval *getInitialArgEnd() const {
+    Value *getInitialArgEnd() const {
         JS_ASSERT(!inContext() && initialArgEnd);
         return initialArgEnd;
     }
@@ -434,12 +440,7 @@ class CallStack
 
     JSFrameRegs *getSuspendedRegs() const {
         JS_ASSERT(isSuspended());
-        return suspendedRegs;
-    }
-
-    jsval *getSuspendedSP() const {
-        JS_ASSERT(isSuspended());
-        return suspendedRegs->sp;
+        return suspendedRegsAndSaved.ptr();
     }
 
     
@@ -476,8 +477,8 @@ class CallStack
 
 };
 
-static const size_t VALUES_PER_CALL_STACK = sizeof(CallStack) / sizeof(jsval);
-JS_STATIC_ASSERT(sizeof(CallStack) % sizeof(jsval) == 0);
+static const size_t VALUES_PER_CALL_STACK = sizeof(CallStack) / sizeof(Value);
+JS_STATIC_ASSERT(sizeof(CallStack) % sizeof(Value) == 0);
 
 
 
@@ -489,13 +490,13 @@ class InvokeArgsGuard
     friend class StackSpace;
     JSContext       *cx;
     CallStack       *cs;  
-    jsval           *vp;
+    Value           *vp;
     uintN           argc;
   public:
     inline InvokeArgsGuard();
-    inline InvokeArgsGuard(jsval *vp, uintN argc);
+    inline InvokeArgsGuard(Value *vp, uintN argc);
     inline ~InvokeArgsGuard();
-    jsval *getvp() const { return vp; }
+    Value *getvp() const { return vp; }
     uintN getArgc() const { JS_ASSERT(vp != NULL); return argc; }
 };
 
@@ -518,13 +519,13 @@ class ExecuteFrameGuard
     friend class StackSpace;
     JSContext       *cx;  
     CallStack       *cs;
-    jsval           *vp;
+    Value           *vp;
     JSStackFrame    *fp;
     JSStackFrame    *down;
   public:
     ExecuteFrameGuard();
     JS_REQUIRES_STACK ~ExecuteFrameGuard();
-    jsval *getvp() const { return vp; }
+    Value *getvp() const { return vp; }
     JSStackFrame *getFrame() const { return fp; }
 };
 
@@ -599,16 +600,16 @@ class ExecuteFrameGuard
 
 class StackSpace
 {
-    jsval *base;
+    Value *base;
 #ifdef XP_WIN
-    mutable jsval *commitEnd;
+    mutable Value *commitEnd;
 #endif
-    jsval *end;
+    Value *end;
     CallStack *currentCallStack;
 
     
     friend class InvokeArgsGuard;
-    JS_REQUIRES_STACK inline void popInvokeArgs(JSContext *cx, jsval *vp);
+    JS_REQUIRES_STACK inline void popInvokeArgs(JSContext *cx, Value *vp);
     friend class InvokeFrameGuard;
     JS_REQUIRES_STACK void popInvokeFrame(JSContext *cx, CallStack *maybecs);
     friend class ExecuteFrameGuard;
@@ -616,7 +617,7 @@ class StackSpace
 
     
     JS_REQUIRES_STACK
-    inline jsval *firstUnused() const;
+    inline Value *firstUnused() const;
 
     inline void assertIsCurrent(JSContext *cx) const;
 #ifdef DEBUG
@@ -627,18 +628,18 @@ class StackSpace
 
 
 
-    inline bool ensureSpace(JSContext *maybecx, jsval *from, ptrdiff_t nvals) const;
+    inline bool ensureSpace(JSContext *maybecx, Value *from, ptrdiff_t nvals) const;
 
 #ifdef XP_WIN
     
-    JS_FRIEND_API(bool) bumpCommit(jsval *from, ptrdiff_t nvals) const;
+    JS_FRIEND_API(bool) bumpCommit(Value *from, ptrdiff_t nvals) const;
 #endif
 
   public:
     static const size_t CAPACITY_VALS   = 512 * 1024;
-    static const size_t CAPACITY_BYTES  = CAPACITY_VALS * sizeof(jsval);
+    static const size_t CAPACITY_BYTES  = CAPACITY_VALS * sizeof(Value);
     static const size_t COMMIT_VALS     = 16 * 1024;
-    static const size_t COMMIT_BYTES    = COMMIT_VALS * sizeof(jsval);
+    static const size_t COMMIT_BYTES    = COMMIT_VALS * sizeof(Value);
 
     
     bool init();
@@ -721,7 +722,7 @@ class StackSpace
 
 
     JS_REQUIRES_STACK
-    inline JSStackFrame *getInlineFrame(JSContext *cx, jsval *sp,
+    inline JSStackFrame *getInlineFrame(JSContext *cx, Value *sp,
                                         uintN nmissing, uintN nfixed) const;
 
     JS_REQUIRES_STACK
@@ -766,7 +767,7 @@ class FrameRegsIter
 {
     CallStack         *curcs;
     JSStackFrame      *curfp;
-    jsval             *cursp;
+    Value             *cursp;
     jsbytecode        *curpc;
 
   public:
@@ -776,7 +777,7 @@ class FrameRegsIter
     FrameRegsIter &operator++();
 
     JSStackFrame *fp() const { return curfp; }
-    jsval *sp() const { return cursp; }
+    Value *sp() const { return cursp; }
     jsbytecode *pc() const { return curpc; }
 };
 
@@ -1166,17 +1167,23 @@ struct JSClassProtoCache {
 #endif
 };
 
-struct JSRootInfo {
-    JSRootInfo() {}
-    JSRootInfo(const char *name, JSGCRootType type) : name(name), type(type) {}
+namespace js {
+
+struct RootInfo {
+    RootInfo() {}
+    RootInfo(const char *name, JSGCRootType type) : name(name), type(type) {}
     const char *name;
     JSGCRootType type;
 };
 
 typedef js::HashMap<void *,
-                    JSRootInfo,
+                    RootInfo,
                     js::DefaultHasher<void *>,
-                    js::SystemAllocPolicy> JSRootedValueMap;
+                    js::SystemAllocPolicy> RootedValueMap;
+
+typedef Vector<JSGCChunkInfo *, 32, SystemAllocPolicy> GCChunks;
+
+} 
 
 struct JSRuntime {
     
@@ -1207,7 +1214,7 @@ struct JSRuntime {
 #endif
     JSGCArenaList       gcArenaList[FINALIZE_LIMIT];
     JSGCDoubleArenaList gcDoubleArenaList;
-    JSRootedValueMap    gcRootsHash;
+    js::RootedValueMap  gcRootsHash;
     JSDHashTable        gcLocksHash;
     jsrefcount          gcKeepAtoms;
     size_t              gcBytes;
@@ -1854,7 +1861,7 @@ struct JSContext
     int64               rngSeed;
 
     
-    jsval               iterValue;
+    js::Value           iterValue;
 
 #ifdef JS_TRACER
     
@@ -2100,7 +2107,7 @@ JSStackFrame::pc(JSContext *cx) const
 namespace js {
 
 JS_ALWAYS_INLINE void
-StackSpace::popInvokeArgs(JSContext *cx, jsval *vp)
+StackSpace::popInvokeArgs(JSContext *cx, Value *vp)
 {
     JS_ASSERT(!currentCallStack->inContext());
     currentCallStack = currentCallStack->getPreviousInThread();
@@ -2112,7 +2119,7 @@ InvokeArgsGuard::InvokeArgsGuard()
 {}
 
 JS_ALWAYS_INLINE
-InvokeArgsGuard::InvokeArgsGuard(jsval *vp, uintN argc)
+InvokeArgsGuard::InvokeArgsGuard(Value *vp, uintN argc)
   : cx(NULL), cs(NULL), vp(vp), argc(argc)
 {}
 
@@ -2239,6 +2246,7 @@ class AutoValueRooter : private AutoGCRooter
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
+
     AutoValueRooter(JSContext *cx, const Value &v
                              JS_GUARD_OBJECT_NOTIFIER_PARAM)
       : AutoGCRooter(cx, JSVAL)
@@ -2246,29 +2254,12 @@ class AutoValueRooter : private AutoGCRooter
         val.copy(v);
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
-    AutoValueRooter(JSContext *cx, JSString *str
-                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, JSVAL), val(str)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
+
     
 
 
 
 
-
-    void setString(JSString *str) {
-        JS_ASSERT(tag == JSVAL);
-        JS_ASSERT(str);
-        val.setString(str);
-    }
-
-    void setDouble(jsdouble d) {
-        JS_ASSERT(tag == JSVAL);
-        JS_ASSERT(d);
-        val.setDouble(d);
-    }
 
     const Value &value() const {
         JS_ASSERT(tag == JSVAL);
@@ -2312,6 +2303,34 @@ class AutoObjectRooter : private AutoGCRooter {
 
   private:
     JSObject *obj;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+class AutoStringRooter : private AutoGCRooter {
+  public:
+    AutoStringRooter(JSContext *cx, JSString *str = NULL
+                     JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, OBJECT), str(str)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    void setString(JSString *str) {
+        this->str = str;
+    }
+
+    JSString * string() const {
+        return str;
+    }
+
+    JSString ** addr() {
+        return &str;
+    }
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+
+  private:
+    JSString *str;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
@@ -2970,10 +2989,8 @@ class AutoValueVector : private AutoGCRooter
 
     size_t length() const { return vector.length(); }
 
-    bool append(jsval v) { return vector.append(v); }
-    bool append(JSString *str) { return append(STRING_TO_JSVAL(str)); }
-    bool append(JSObject *obj) { return append(OBJECT_TO_JSVAL(obj)); }
-    bool append(jsdouble *dp) { return append(DOUBLE_TO_JSVAL(dp)); }
+    bool append(const Value &v) { return vector.append(v); }
+    bool append(JSString *str) { return append(Value(str)); }
 
     void popBack() { vector.popBack(); }
 
@@ -2985,25 +3002,38 @@ class AutoValueVector : private AutoGCRooter
         return vector.reserve(newLength);
     }
 
-    const js::Value &operator[](size_t i) { return vector[i]; }
-    const js::Value &operator[](size_t i) const { return vector[i]; }
+    const Value &operator[](size_t i) { return vector[i]; }
+    const Value &operator[](size_t i) const { return vector[i]; }
 
-    const jsval *begin() const { return vector.begin(); }
-    jsval *begin() { return vector.begin(); }
+    const Value *begin() const { return vector.begin(); }
+    Value *begin() { return vector.begin(); }
 
-    const jsval *end() const { return vector.end(); }
-    jsval *end() { return vector.end(); }
+    const Value *end() const { return vector.end(); }
+    Value *end() { return vector.end(); }
 
-    jsval back() const { return end()[-1]; }
+    const Value &back() const { return vector.back(); }
 
     friend void AutoGCRooter::trace(JSTracer *trc);
     
   private:
-    Vector<js::Value, 8> vector;
+    Vector<Value, 8> vector;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
+static JS_ALWAYS_INLINE void
+SetValueRangeToUndefined(Value *vec, Value *end)
+{
+    for (Value *v = vec; v != end; ++v)
+        v->setUndefined();
 }
+
+static JS_ALWAYS_INLINE void
+SetValueRangeToUndefined(Value *vec, uintN len)
+{
+    return SetValueRangeToUndefined(vec, vec + len);
+}
+
+} 
 
 #ifdef _MSC_VER
 #pragma warning(pop)
