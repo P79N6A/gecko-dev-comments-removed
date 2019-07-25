@@ -4748,8 +4748,8 @@ nsCSSFrameConstructor::FindSVGData(nsIContent* aContent,
   }
 
   static const FrameConstructionData sSuppressData = SUPPRESS_FCDATA();
-  static const FrameConstructionData sGenericContainerData =
-    SIMPLE_SVG_FCDATA(NS_NewSVGGenericContainerFrame);
+  static const FrameConstructionData sContainerData =
+    SIMPLE_SVG_FCDATA(NS_NewSVGContainerFrame);
 
   PRBool parentIsSVG = PR_FALSE;
   nsIContent* parentContent =
@@ -4796,13 +4796,7 @@ nsCSSFrameConstructor::FindSVGData(nsIContent* aContent,
   
   
   if (!nsSVGFeatures::PassesConditionalProcessingTests(aContent)) {
-    
-    
-    
-    
-    
-    
-    return &sSuppressData;
+    return &sContainerData;
   }
 
   
@@ -4860,6 +4854,7 @@ nsCSSFrameConstructor::FindSVGData(nsIContent* aContent,
     SIMPLE_SVG_CREATE(rect, NS_NewSVGPathGeometryFrame),
     SIMPLE_SVG_CREATE(path, NS_NewSVGPathGeometryFrame),
     SIMPLE_SVG_CREATE(defs, NS_NewSVGContainerFrame),
+    SIMPLE_SVG_CREATE(generic, NS_NewSVGGenericContainerFrame),
     { &nsGkAtoms::foreignObject,
       FULL_CTOR_FCDATA(FCDATA_DISALLOW_OUT_OF_FLOW,
                        &nsCSSFrameConstructor::ConstructSVGForeignObjectFrame) },
@@ -4908,7 +4903,7 @@ nsCSSFrameConstructor::FindSVGData(nsIContent* aContent,
                   NS_ARRAY_LENGTH(sSVGData));
 
   if (!data) {
-    data = &sSuppressData;
+    data = &sContainerData;
   }
 
   return data;
