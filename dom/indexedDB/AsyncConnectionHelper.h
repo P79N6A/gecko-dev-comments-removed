@@ -161,9 +161,9 @@ protected:
 
 
 
-  static nsresult WrapNative(JSContext* aCx,
-                             nsISupports* aNative,
-                             jsval* aResult);
+  nsresult WrapNative(JSContext* aCx,
+                      nsISupports* aNative,
+                      jsval* aResult);
 
   
 
