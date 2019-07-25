@@ -170,31 +170,6 @@ var WebConsoleUtils = {
 
 
 
-
-
-  getWindowByInnerId: function WCU_getWindowByInnerId(aInnerId, aHintWindow)
-  {
-    let someWindow = aHintWindow || Services.wm.getMostRecentWindow(null);
-    let content = null;
-
-    if (someWindow) {
-      let windowUtils = someWindow.QueryInterface(Ci.nsIInterfaceRequestor).
-                                   getInterface(Ci.nsIDOMWindowUtils);
-      content = windowUtils.getInnerWindowWithId(aInnerId);
-    }
-
-    return content;
-  },
-
-  
-
-
-
-
-
-
-
-
   abbreviateSourceURL: function WCU_abbreviateSourceURL(aSourceURL)
   {
     
