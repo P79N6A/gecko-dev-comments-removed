@@ -34,13 +34,28 @@
 
 class nsILoadContext;
 
+class nsBaseWinFilePicker :
+  public nsBaseFilePicker
+{
+public:
+  NS_IMETHOD GetDefaultString(nsAString& aDefaultString);
+  NS_IMETHOD SetDefaultString(const nsAString& aDefaultString);
+  NS_IMETHOD GetDefaultExtension(nsAString& aDefaultExtension);
+  NS_IMETHOD SetDefaultExtension(const nsAString& aDefaultExtension);
+
+protected:
+  nsString mDefaultFilePath;
+  nsString mDefaultFilename;
+  nsString mDefaultExtension;
+};
+
 
 
 
 
 class nsFilePicker :
-  public nsBaseFilePicker,
-  public IFileDialogEvents
+  public IFileDialogEvents,
+  public nsBaseWinFilePicker
 {
 public:
   nsFilePicker(); 
@@ -54,10 +69,6 @@ public:
   STDMETHODIMP QueryInterface(REFIID refiid, void** ppvResult);
 
   
-  NS_IMETHOD GetDefaultString(nsAString& aDefaultString);
-  NS_IMETHOD SetDefaultString(const nsAString& aDefaultString);
-  NS_IMETHOD GetDefaultExtension(nsAString& aDefaultExtension);
-  NS_IMETHOD SetDefaultExtension(const nsAString& aDefaultExtension);
   NS_IMETHOD GetFilterIndex(int32_t *aFilterIndex);
   NS_IMETHOD SetFilterIndex(int32_t aFilterIndex);
   NS_IMETHOD GetFile(nsIFile * *aFile);
@@ -109,9 +120,6 @@ protected:
   nsString               mTitle;
   int16_t                mMode;
   nsCString              mFile;
-  nsString               mDefaultFilePath;
-  nsString               mDefaultFilename;
-  nsString               mDefaultExtension;
   nsString               mFilterList;
   int16_t                mSelectedType;
   nsCOMArray<nsIFile>    mFiles;
