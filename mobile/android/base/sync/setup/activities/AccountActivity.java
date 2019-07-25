@@ -8,6 +8,7 @@ import java.util.Locale;
 
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.sync.Logger;
+import org.mozilla.gecko.sync.ThreadPool;
 import org.mozilla.gecko.sync.setup.Constants;
 import org.mozilla.gecko.sync.setup.InvalidSyncKeyException;
 import org.mozilla.gecko.sync.setup.SyncAccounts;
@@ -25,9 +26,9 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -236,45 +237,49 @@ public class AccountActivity extends AccountAuthenticatorActivity {
       return;
     }
     
-    final SyncAccountParameters syncAccount = new SyncAccountParameters(
+    SyncAccountParameters syncAccount = new SyncAccountParameters(
         mContext, mAccountManager, username, key, password, server);
-    final Account account = SyncAccounts.createSyncAccount(syncAccount);
-    final boolean accountResult = (account != null);
+    createAccountOnThread(syncAccount);
+  }
 
-    final Intent intent = new Intent(); 
-    intent.putExtra(AccountManager.KEY_ACCOUNT_NAME, syncAccount.username);
-    intent.putExtra(AccountManager.KEY_ACCOUNT_TYPE, Constants.ACCOUNTTYPE_SYNC);
-    intent.putExtra(AccountManager.KEY_AUTHTOKEN, Constants.ACCOUNTTYPE_SYNC);
-    setAccountAuthenticatorResult(intent.getExtras());
-
-    if (!accountResult) {
-      
-      setResult(RESULT_CANCELED, intent);
-      runOnUiThread(new Runnable() {
-        @Override
-        public void run() {
-          
-          
-          Logger.debug(LOG_TAG, "displayFailure()");
-          displayFailure(result);
+  private void createAccountOnThread(final SyncAccountParameters syncAccount) {
+    ThreadPool.run(new Runnable() {
+      @Override
+      public void run() {
+        Account account = SyncAccounts.createSyncAccount(syncAccount);
+        boolean isSuccess = (account != null);
+        if (!isSuccess) {
+          setResult(RESULT_CANCELED);
+          runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+              
+              
+              Logger.debug(LOG_TAG, "displayFailure()");
+              displayFailure(AuthenticationResult.FAILURE_OTHER);
+            }
+          });
+          return;
         }
-      });
-      return;
-    }
 
-    clearErrors();
-    if (intent != null) {
-      setAccountAuthenticatorResult(intent.getExtras());
-      setResult(RESULT_OK, intent);
+        
+        clearErrors();
 
-      runOnUiThread(new Runnable() {
-        @Override
-        public void run() {
-          authSuccess();
-        }
-      });
-      return;
-    }
+        Bundle resultBundle = new Bundle();
+        resultBundle.putString(AccountManager.KEY_ACCOUNT_NAME, syncAccount.username);
+        resultBundle.putString(AccountManager.KEY_ACCOUNT_TYPE, Constants.ACCOUNTTYPE_SYNC);
+        resultBundle.putString(AccountManager.KEY_AUTHTOKEN, Constants.ACCOUNTTYPE_SYNC);
+        setAccountAuthenticatorResult(resultBundle);
+
+        setResult(RESULT_OK);
+        runOnUiThread(new Runnable() {
+          @Override
+          public void run() {
+            authSuccess();
+          }
+        });
+      }
+    });
   }
 
   private void displayVerifying(final boolean isVerifying) {
