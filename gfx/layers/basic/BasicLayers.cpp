@@ -763,9 +763,7 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
   if (BasicManager()->IsTransactionIncomplete())
     return;
 
-  gfxRect clipExtents;
-  clipExtents = aContext->GetClipExtents();
-  if (!IsHidden() && clipExtents.IsEmpty()) {
+  if (!IsHidden()) {
     AutoSetOperator setOperator(aContext, GetOperator());
     mBuffer.DrawTo(this, aContext, opacity);
   }
@@ -1948,22 +1946,16 @@ BasicLayerManager::PaintLayer(gfxContext* aTarget,
       NS_ABORT_IF_FALSE(untransformedSurface, 
                         "We should always allocate an untransformed surface with 3d transforms!");
 
-      
-      
-      gfxRect clipExtents;
-      clipExtents = aTarget->GetClipExtents();
-      if (!clipExtents.IsEmpty()) {
-        gfxPoint offset;
-        bool dontBlit = needsClipToVisibleRegion || mTransactionIncomplete ||
-                          aLayer->GetEffectiveOpacity() != 1.0f;
-        nsRefPtr<gfxASurface> result =
-          Transform3D(untransformedSurface, aTarget, bounds,
-                      effectiveTransform, offset, dontBlit);
+      gfxPoint offset;
+      bool dontBlit = needsClipToVisibleRegion || mTransactionIncomplete || 
+                        aLayer->GetEffectiveOpacity() != 1.0f;
+      nsRefPtr<gfxASurface> result = 
+        Transform3D(untransformedSurface, aTarget, bounds,
+                    effectiveTransform, offset, dontBlit);
 
-        blitComplete = !result;
-        if (result) {
-          aTarget->SetSource(result, offset);
-        }
+      blitComplete = !result;
+      if (result) {
+        aTarget->SetSource(result, offset);
       }
     }
     
