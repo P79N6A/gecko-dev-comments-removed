@@ -1547,14 +1547,29 @@ CallMethodIfWrapped(JSContext *cx, IsAcceptableThis test, NativeImpl impl, CallA
 
 
 
+
+
+
+
+template<IsAcceptableThis Test, NativeImpl Impl>
 JS_ALWAYS_INLINE bool
-CallNonGenericMethod(JSContext *cx, IsAcceptableThis test, NativeImpl impl, CallArgs args)
+CallNonGenericMethod(JSContext *cx, CallArgs args)
 {
     const Value &thisv = args.thisv();
-    if (test(thisv))
-        return impl(cx, args);
+    if (Test(thisv))
+        return Impl(cx, args);
 
-    return detail::CallMethodIfWrapped(cx, test, impl, args);
+    return detail::CallMethodIfWrapped(cx, Test, Impl, args);
+}
+
+JS_ALWAYS_INLINE bool
+CallNonGenericMethod(JSContext *cx, IsAcceptableThis Test, NativeImpl Impl, CallArgs args)
+{
+    const Value &thisv = args.thisv();
+    if (Test(thisv))
+        return Impl(cx, args);
+
+    return detail::CallMethodIfWrapped(cx, Test, Impl, args);
 }
 
 }  
