@@ -1,5 +1,7 @@
 pref("extensions.testpilot.indexFileName", "index.json");
 
+pref("extensions.testpilot@labs.mozilla.com.description", "chrome://testpilot/locale/main.properties");
+
 pref("extensions.testpilot.popup.delayAfterStartup", 180000); 
 pref("extensions.testpilot.popup.timeBetweenChecks", 86400000); 
 pref("extensions.testpilot.uploadRetryInterval", 3600000); 
