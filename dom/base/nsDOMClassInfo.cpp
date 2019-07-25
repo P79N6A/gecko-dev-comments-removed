@@ -5306,9 +5306,8 @@ nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSHandleObject obj,
                                           JSObject **objp)
 {
   if (flags & (JSRESOLVE_ASSIGNING | JSRESOLVE_DECLARING |
-               JSRESOLVE_CLASSNAME | JSRESOLVE_QUALIFIED) ||
+               JSRESOLVE_QUALIFIED) ||
       !JSID_IS_STRING(id)) {
-    
     
     
 
