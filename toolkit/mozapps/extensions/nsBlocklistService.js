@@ -511,6 +511,7 @@ Blocklist.prototype = {
       return;
     }
 
+    LOG("Blocklist::notify: Requesting " + uri.spec);
     var request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
                   createInstance(Ci.nsIXMLHttpRequest);
     request.open("GET", uri.spec, true);
@@ -860,18 +861,22 @@ Blocklist.prototype = {
             oldState + " to " + state);
 
         
-        if (state == 0)
+        if (state == oldState)
           continue;
 
         
-        if (state == oldState)
+        if (state != Ci.nsIBlocklistService.STATE_SOFTBLOCKED)
+          addons[i].softDisabled = false;
+
+        
+        if (state == Ci.nsIBlocklistService.STATE_NOT_BLOCKED)
           continue;
 
         
         
         if (state == Ci.nsIBlocklistService.STATE_SOFTBLOCKED &&
             oldState == Ci.nsIBlocklistService.STATE_BLOCKED) {
-          addons[i].userDisabled = true;
+          addons[i].softDisabled = true;
           continue;
         }
 
@@ -929,8 +934,10 @@ Blocklist.prototype = {
         plugins[i].blocklisted = state == Ci.nsIBlocklistService.STATE_BLOCKED;
       }
 
-      if (addonList.length == 0)
+      if (addonList.length == 0) {
+        Services.obs.notifyObservers(self, "blocklist-updated", "");
         return;
+      }
 
       if ("@mozilla.org/addons/blocklist-prompt;1" in Cc) {
         try {
@@ -940,6 +947,7 @@ Blocklist.prototype = {
         } catch (e) {
           LOG(e);
         }
+        Services.obs.notifyObservers(self, "blocklist-updated", "");
         return;
       }
 
@@ -962,11 +970,13 @@ Blocklist.prototype = {
         if (addonList[i].item instanceof Ci.nsIPluginTag)
           addonList[i].item.disabled = true;
         else
-          addonList[i].item.userDisabled = true;
+          addonList[i].item.softDisabled = true;
       }
 
       if (args.restart)
         restartApp();
+
+      Services.obs.notifyObservers(self, "blocklist-updated", "");
     });
   },
 

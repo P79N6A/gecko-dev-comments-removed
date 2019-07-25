@@ -27,7 +27,7 @@ function createAppInfo(id, name, version, platformVersion) {
     ID: id,
     version: version,
     appBuildID: "2007010101",
-    platformVersion: platformVersion,
+    platformVersion: platformVersion ? platformVersion : "1.0",
     platformBuildID: "2007010101",
 
     
@@ -611,6 +611,22 @@ function setExtensionModifiedTime(aExt, aTime) {
       setExtensionModifiedTime(entries.nextFile, aTime);
     entries.close();
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+function getFileForAddon(aDir, aId) {
+  var dir = aDir.clone();
+  dir.append(do_get_expected_addon_name(aId));
+  return dir;
 }
 
 function registerDirectory(aKey, aDir) {

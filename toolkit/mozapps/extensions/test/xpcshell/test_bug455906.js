@@ -239,7 +239,7 @@ function load_blocklist(file) {
 }
 
 function check_addon_state(addon) {
-  return addon.userDisabled + "," + addon.appDisabled;
+  return addon.userDisabled + "," + addon.softDisabled + "," + addon.appDisabled;
 }
 
 function check_plugin_state(plugin) {
@@ -278,13 +278,13 @@ function run_test() {
 
 function check_initial_state(callback) {
   AddonManager.getAddonsByIDs([a.id for each (a in ADDONS)], function(addons) {
-    do_check_eq(check_addon_state(addons[0]), "true,false");
-    do_check_eq(check_addon_state(addons[1]), "false,false");
-    do_check_eq(check_addon_state(addons[2]), "false,false");
-    do_check_eq(check_addon_state(addons[3]), "true,false");
-    do_check_eq(check_addon_state(addons[4]), "false,false");
-    do_check_eq(check_addon_state(addons[5]), "false,true");
-    do_check_eq(check_addon_state(addons[6]), "false,true");
+    do_check_eq(check_addon_state(addons[0]), "true,false,false");
+    do_check_eq(check_addon_state(addons[1]), "false,false,false");
+    do_check_eq(check_addon_state(addons[2]), "false,false,false");
+    do_check_eq(check_addon_state(addons[3]), "true,true,false");
+    do_check_eq(check_addon_state(addons[4]), "false,false,false");
+    do_check_eq(check_addon_state(addons[5]), "false,false,true");
+    do_check_eq(check_addon_state(addons[6]), "false,false,true");
   
     do_check_eq(check_plugin_state(PLUGINS[0]), "true,false");
     do_check_eq(check_plugin_state(PLUGINS[1]), "false,false");
@@ -307,17 +307,17 @@ function check_test_pt1() {
         do_throw("Addon " + (i + 1) + " did not get installed correctly");
     }
   
-    do_check_eq(check_addon_state(addons[0]), "false,false");
-    do_check_eq(check_addon_state(addons[1]), "false,false");
-    do_check_eq(check_addon_state(addons[2]), "false,false");
+    do_check_eq(check_addon_state(addons[0]), "false,false,false");
+    do_check_eq(check_addon_state(addons[1]), "false,false,false");
+    do_check_eq(check_addon_state(addons[2]), "false,false,false");
   
     
-    do_check_eq(check_addon_state(addons[3]), "true,false");
-    do_check_eq(check_addon_state(addons[4]), "true,false");
+    do_check_eq(check_addon_state(addons[3]), "true,true,false");
+    do_check_eq(check_addon_state(addons[4]), "true,true,false");
   
     
-    do_check_eq(check_addon_state(addons[5]), "false,true");
-    do_check_eq(check_addon_state(addons[6]), "false,true");
+    do_check_eq(check_addon_state(addons[5]), "false,false,true");
+    do_check_eq(check_addon_state(addons[6]), "false,false,true");
   
     
     
@@ -376,19 +376,19 @@ function check_test_pt2() {
 
   AddonManager.getAddonsByIDs([a.id for each (a in ADDONS)], function(addons) {
     
-    do_check_eq(check_addon_state(addons[2]), "true,false");
+    do_check_eq(check_addon_state(addons[2]), "true,true,false");
     do_check_eq(check_plugin_state(PLUGINS[2]), "true,false");
 
     
-    do_check_eq(check_addon_state(addons[5]), "true,false");
+    do_check_eq(check_addon_state(addons[5]), "true,true,false");
     do_check_eq(check_plugin_state(PLUGINS[5]), "true,false");
 
     
-    do_check_eq(check_addon_state(addons[0]), "true,false");
-    do_check_eq(check_addon_state(addons[1]), "false,false");
-    do_check_eq(check_addon_state(addons[3]), "true,false");
-    do_check_eq(check_addon_state(addons[4]), "false,false");
-    do_check_eq(check_addon_state(addons[6]), "false,true");
+    do_check_eq(check_addon_state(addons[0]), "true,false,false");
+    do_check_eq(check_addon_state(addons[1]), "false,false,false");
+    do_check_eq(check_addon_state(addons[3]), "true,true,false");
+    do_check_eq(check_addon_state(addons[4]), "false,false,false");
+    do_check_eq(check_addon_state(addons[6]), "false,false,true");
     do_check_eq(check_plugin_state(PLUGINS[0]), "true,false");
     do_check_eq(check_plugin_state(PLUGINS[1]), "false,false");
     do_check_eq(check_plugin_state(PLUGINS[3]), "true,false");
@@ -460,11 +460,10 @@ function check_test_pt3() {
 
   AddonManager.getAddonsByIDs([a.id for each (a in ADDONS)], function(addons) {
     
-    do_check_eq(check_addon_state(addons[0]), "true,true");
-    do_check_eq(check_addon_state(addons[1]), "false,true");
-    do_check_eq(check_addon_state(addons[2]), "false,true");
-    do_check_eq(check_addon_state(addons[3]), "true,true");
-    do_check_eq(check_addon_state(addons[4]), "false,true");
+    do_check_eq(check_addon_state(addons[0]), "true,false,true");
+    do_check_eq(check_addon_state(addons[1]), "false,false,true");
+    do_check_eq(check_addon_state(addons[2]), "false,false,true");
+    do_check_eq(check_addon_state(addons[4]), "false,false,true");
     do_check_eq(check_plugin_state(PLUGINS[0]), "true,true");
     do_check_eq(check_plugin_state(PLUGINS[1]), "false,true");
     do_check_eq(check_plugin_state(PLUGINS[2]), "false,true");
@@ -472,8 +471,11 @@ function check_test_pt3() {
     do_check_eq(check_plugin_state(PLUGINS[4]), "false,true");
 
     
-    do_check_eq(check_addon_state(addons[5]), "false,true");
-    do_check_eq(check_addon_state(addons[6]), "false,true");
+    do_check_eq(check_addon_state(addons[3]), "false,false,true");
+
+    
+    do_check_eq(check_addon_state(addons[5]), "false,false,true");
+    do_check_eq(check_addon_state(addons[6]), "false,false,true");
     do_check_eq(check_plugin_state(PLUGINS[5]), "false,true");
 
     
@@ -511,16 +513,18 @@ function check_test_pt4() {
 
   AddonManager.getAddonsByIDs([a.id for each (a in ADDONS)], function(addons) {
     
-    do_check_eq(check_addon_state(addons[5]), "false,false");
+    do_check_eq(check_addon_state(addons[5]), "false,false,false");
     do_check_eq(check_plugin_state(PLUGINS[5]), "false,false");
 
     
-    do_check_eq(check_addon_state(addons[0]), "true,false");
-    do_check_eq(check_addon_state(addons[1]), "false,false");
-    do_check_eq(check_addon_state(addons[2]), "false,false");
-    do_check_eq(check_addon_state(addons[3]), "true,false");
-    do_check_eq(check_addon_state(addons[4]), "false,false");
-    do_check_eq(check_addon_state(addons[6]), "false,true");
+    do_check_eq(check_addon_state(addons[3]), "false,false,false");
+
+    
+    do_check_eq(check_addon_state(addons[0]), "true,false,false");
+    do_check_eq(check_addon_state(addons[1]), "false,false,false");
+    do_check_eq(check_addon_state(addons[2]), "false,false,false");
+    do_check_eq(check_addon_state(addons[4]), "false,false,false");
+    do_check_eq(check_addon_state(addons[6]), "false,false,true");
     do_check_eq(check_plugin_state(PLUGINS[0]), "true,false");
     do_check_eq(check_plugin_state(PLUGINS[1]), "false,false");
     do_check_eq(check_plugin_state(PLUGINS[2]), "false,false");
