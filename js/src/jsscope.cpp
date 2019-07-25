@@ -1261,14 +1261,15 @@ JSObject::clear(JSContext *cx)
 }
 
 void
-JSObject::rollbackProperties(uint32 slotSpan)
+JSObject::rollbackProperties(JSContext *cx, uint32 slotSpan)
 {
     
-    JS_ASSERT(!hasSlotsArray() && slotSpan <= this->slotSpan());
+    JS_ASSERT(!inDictionaryMode() && !hasSlotsArray() && slotSpan <= this->slotSpan());
     while (this->slotSpan() != slotSpan) {
         JS_ASSERT(lastProp->hasSlot() && getSlot(lastProp->slot).isUndefined());
         removeLastProperty();
     }
+    updateShape(cx);
 }
 
 void
