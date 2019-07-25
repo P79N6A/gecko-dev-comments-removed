@@ -467,48 +467,6 @@ nsHTMLDocument::TryCacheCharset(nsICachingChannel* aCachingChannel,
   return PR_FALSE;
 }
 
-PRBool
-nsHTMLDocument::TryBookmarkCharset(nsIDocShell* aDocShell,
-                                   nsIChannel* aChannel,
-                                   PRInt32& aCharsetSource,
-                                   nsACString& aCharset)
-{
-  if (kCharsetFromBookmarks <= aCharsetSource) {
-    return PR_TRUE;
-  }
-
-  if (!aChannel) {
-    return PR_FALSE;
-  }
-
-  nsCOMPtr<nsICharsetResolver> bookmarksResolver =
-    do_GetService("@mozilla.org/embeddor.implemented/bookmark-charset-resolver;1");
-
-  if (!bookmarksResolver) {
-    return PR_FALSE;
-  }
-
-  PRBool wantCharset;         
-  nsCAutoString charset;
-  nsCOMPtr<nsIWebNavigation> webNav(do_QueryInterface(aDocShell));
-  nsCOMPtr<nsISupports> closure;
-  nsresult rv = bookmarksResolver->RequestCharset(webNav,
-                                                  aChannel,
-                                                  &wantCharset,
-                                                  getter_AddRefs(closure),
-                                                  charset);
-  
-  NS_ASSERTION(!wantCharset, "resolved charset notification not implemented!");
-
-  if (NS_SUCCEEDED(rv) && !charset.IsEmpty()) {
-    aCharset = charset;
-    aCharsetSource = kCharsetFromBookmarks;
-    return PR_TRUE;
-  }
-
-  return PR_FALSE;
-}
-
 static PRBool
 CheckSameOrigin(nsINode* aNode1, nsINode* aNode2)
 {
@@ -878,10 +836,6 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
       if (!wyciwygChannel &&
           TryChannelCharset(aChannel, charsetSource, charset)) {
         
-        
-      }
-      else if (!scheme.EqualsLiteral("about") &&          
-               TryBookmarkCharset(docShell, aChannel, charsetSource, charset)) {
         
       }
       else if (cachingChan && !urlSpec.IsEmpty() &&
