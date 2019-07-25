@@ -38,8 +38,8 @@
 
 
 
-#ifndef nsMathMLmfencedFrame_h___
-#define nsMathMLmfencedFrame_h___
+#ifndef nsMathMLmfencedFrame_h
+#define nsMathMLmfencedFrame_h
 
 #include "nsCOMPtr.h"
 #include "nsMathMLContainerFrame.h"
@@ -129,7 +129,7 @@ protected:
   RemoveFencesAndSeparators();
 
   
-  nsresult
+  void
   CreateFencesAndSeparators(nsPresContext* aPresContext);
 };
 
