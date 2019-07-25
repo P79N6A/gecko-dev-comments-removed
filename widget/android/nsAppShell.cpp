@@ -48,6 +48,7 @@
 #include "nsIObserverService.h"
 #include "nsIAppStartup.h"
 #include "nsIGeolocationProvider.h"
+#include "nsCacheService.h"
 
 #include "mozilla/Services.h"
 #include "mozilla/unused.h"
@@ -330,6 +331,11 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
             nsCOMPtr<nsIObserverService> obsServ =
                 mozilla::services::GetObserverService();
             obsServ->NotifyObservers(nsnull, "application-background", nsnull);
+
+            
+            
+            
+            nsCacheService::GlobalInstance()->Shutdown();
         }
 
         
@@ -458,6 +464,11 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
 
     case AndroidGeckoEvent::ACTIVITY_RESUMING: {
         if (curEvent->Flags() == 0) {
+            
+            
+            
+            nsCacheService::GlobalInstance()->Init();
+
             
             
             nsCOMPtr<nsIObserverService> obsServ =
