@@ -90,7 +90,7 @@ function test() {
     if (setFocusToChrome) {
       
       
-      BrowserSearch.searchBar.focus();
+      document.getElementById("urlbar").focus();
     }
     onLoadComplete();
   }
