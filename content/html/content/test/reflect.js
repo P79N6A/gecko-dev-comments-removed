@@ -5,9 +5,26 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function reflectString(aElement, aAttr, aOtherValues)
 {
   var otherValues = aOtherValues !== undefined ? aOtherValues : [];
+
+  ok(aAttr in aElement, aAttr + " should be an IDL attribute of this element");
+  is(typeof aElement[aAttr], "string", aAttr + " IDL attribute should be a string");
 
   
   is(aElement.getAttribute(aAttr), null,
@@ -106,6 +123,9 @@ function reflectUnsignedInt(aElement, aAttr, aNonNull, aDefault)
     }
   }
 
+  ok(aAttr in aElement, aAttr + " should be an IDL attribute of this element");
+  is(typeof aElement[aAttr], "number", aAttr + " IDL attribute should be a string");
+
   
   is(aElement[aAttr], aDefault, "default value should be " + aDefault);
   ok(!aElement.hasAttribute(aAttr), aAttr + " shouldn't be present");
@@ -195,6 +215,10 @@ function reflectLimitedEnumerated(aElement, aAttr, aValidValues, aInvalidValues,
   var defaultValue = aDefaultValue !== undefined ? aDefaultValue : "";
   var unsupportedValues = aUnsupportedValues !== undefined ? aUnsupportedValues
                                                            : [];
+
+  ok(aAttr in aElement, aAttr + " should be an IDL attribute of this element");
+  is(typeof aElement[aAttr], "string", aAttr + " IDL attribute should be a string");
+
   
   aElement.removeAttribute(aAttr);
   is(aElement[aAttr], defaultValue,
@@ -213,7 +237,7 @@ function reflectLimitedEnumerated(aElement, aAttr, aValidValues, aInvalidValues,
     is(aElement[aAttr], v,
        "Enumerated attributes should be case-insensitive.");
     is(aElement.getAttribute(aAttr), v.toUpperCase(),
-       "Content attribute should be upper-cased.");
+       "Content attribute should not be lower-cased.");
     aElement.removeAttribute(aAttr);
 
     aElement[aAttr] = v;
@@ -227,7 +251,7 @@ function reflectLimitedEnumerated(aElement, aAttr, aValidValues, aInvalidValues,
     is(aElement[aAttr], v,
        "Enumerated attributes should be case-insensitive.");
     is(aElement.getAttribute(aAttr), v.toUpperCase(),
-       "Content attribute should be upper-cased.");
+       "Content attribute should not be lower-cased.");
     aElement.removeAttribute(aAttr);
   });
 
@@ -262,7 +286,7 @@ function reflectLimitedEnumerated(aElement, aAttr, aValidValues, aInvalidValues,
     todo_is(aElement[aAttr], v,
             "Enumerated attributes should be case-insensitive.");
     is(aElement.getAttribute(aAttr), v.toUpperCase(),
-       "Content attribute should be upper-cased.");
+       "Content attribute should not be lower-cased.");
     aElement.removeAttribute(aAttr);
 
     aElement[aAttr] = v;
@@ -276,7 +300,7 @@ function reflectLimitedEnumerated(aElement, aAttr, aValidValues, aInvalidValues,
     todo_is(aElement[aAttr], v,
             "Enumerated attributes should be case-insensitive.");
     is(aElement.getAttribute(aAttr), v.toUpperCase(),
-       "Content attribute should be upper-cased.");
+       "Content attribute should not be lower-cased.");
     aElement.removeAttribute(aAttr);
   });
 }
