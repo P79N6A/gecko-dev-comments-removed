@@ -28,11 +28,12 @@
 
 #include <stddef.h> 
 #include <limits>
-#include <wtf/Assertions.h>
+#include "assembler/wtf/Assertions.h"
 
 #include "jsapi.h"
 #include "jsprvtd.h"
 #include "jsvector.h"
+#include "jslock.h"
 
 #if WTF_PLATFORM_IPHONE
 #include <libkern/OSCacheControl.h>
@@ -80,7 +81,7 @@ inline size_t roundUpAllocationSize(size_t request, size_t granularity)
     
     size_t size = request + (granularity - 1);
     size = size & ~(granularity - 1);
-    ASSERT(size >= request);
+    JS_ASSERT(size >= request);
     return size;
 }
 
@@ -104,16 +105,16 @@ private:
     typedef js::Vector<Allocation, 2 ,js::SystemAllocPolicy > AllocationList;
 
     
-    unsigned m_refCount;
+    jsrefcount m_refCount;
 
 public:
       
       
       
-      void addRef() { ++m_refCount; }
+      void addRef() { JS_ATOMIC_INCREMENT(&m_refCount); }
       void release() { 
-	  ASSERT(m_refCount != 0);
-	  if (--m_refCount == 0) 
+	  JS_ASSERT(m_refCount != 0);
+	  if (JS_ATOMIC_DECREMENT(&m_refCount) == 0) 
 	      delete this; 
       }
 
@@ -125,7 +126,7 @@ public:
 
     void* alloc(size_t n)
     {
-        ASSERT(m_freePtr <= m_end);
+        JS_ASSERT(m_freePtr <= m_end);
 
         
         
@@ -339,7 +340,7 @@ inline void* ExecutablePool::poolAllocate(size_t n)
     if (!result.pages)
         CRASH(); 
     
-    ASSERT(m_end >= m_freePtr);
+    JS_ASSERT(m_end >= m_freePtr);
     if ((allocSize - n) > static_cast<size_t>(m_end - m_freePtr)) {
         
         m_freePtr = result.pages + n;
