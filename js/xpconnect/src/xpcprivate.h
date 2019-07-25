@@ -4388,9 +4388,6 @@ xpc_ForcePropertyResolve(JSContext* cx, JSObject* obj, jsid id);
 inline jsid
 GetRTIdByIndex(JSContext *cx, uintN index);
 
-inline jsval
-GetRTStringByIndex(JSContext *cx, uintN index);
-
 
 
 
