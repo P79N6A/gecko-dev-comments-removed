@@ -37,10 +37,45 @@
 
 
 
-function SpecialPowers() {}
+function SpecialPowers(window) {
+  this.window = window;
+  bindDOMWindowUtils(this, window);
+}
 
-var SpecialPowers = {
+function bindDOMWindowUtils(sp, window) {
+  var util = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindowUtils);
+  
+  
+  
+  
+  
+  
+  
+  
+  var proto = Object.getPrototypeOf(util);
+  var target = {};
+  function rebind(desc, prop) {
+    if (prop in desc && typeof(desc[prop]) == "function") {
+      var oldval = desc[prop];
+      desc[prop] = function() { return oldval.apply(util, arguments); };
+    }
+  }
+  for (var i in proto) {
+    var desc = Object.getOwnPropertyDescriptor(proto, i);
+    rebind(desc, "get");
+    rebind(desc, "set");
+    rebind(desc, "value");
+    Object.defineProperty(target, i, desc);
+  }
+  sp.DOMWindowUtils = target;
+}
+
+SpecialPowers.prototype = {
+  toString: function() { return "[SpecialPowers]"; },
   sanityCheck: function() { return "foo"; },
+
+  
+  DOMWindowUtils: undefined,
 
   
   getBoolPref: function(aPrefName) {
@@ -97,6 +132,8 @@ var SpecialPowers = {
     return(sendSyncMessage('SPPrefService', msg)[0]);
   },
 
+  
+  
   _getTopChromeWindow: function(window) {
     var Ci = Components.interfaces;
     return window.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -137,11 +174,10 @@ var SpecialPowers = {
 
 
 
-SpecialPowers.__exposedProps__ = {};
-for each (i in Object.keys(SpecialPowers).filter(function(v) {return v.charAt(0) != "_";})) {
-  SpecialPowers.__exposedProps__[i] = "r";
+SpecialPowers.prototype.__exposedProps__ = {};
+for each (i in Object.keys(SpecialPowers.prototype).filter(function(v) {return v.charAt(0) != "_";})) {
+  SpecialPowers.prototype.__exposedProps__[i] = "r";
 }
-
 
 
 function attachSpecialPowersToWindow(aWindow) {
@@ -150,7 +186,7 @@ function attachSpecialPowersToWindow(aWindow) {
         (aWindow !== undefined) &&
         (aWindow.wrappedJSObject) &&
         !(aWindow.wrappedJSObject.SpecialPowers)) {
-      aWindow.wrappedJSObject.SpecialPowers = SpecialPowers;
+      aWindow.wrappedJSObject.SpecialPowers = new SpecialPowers(aWindow);
     }
   } catch(ex) {
     dump("TEST-INFO | specialpowers.js |  Failed to attach specialpowers to window exception: " + ex + "\n");
