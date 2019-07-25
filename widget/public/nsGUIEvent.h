@@ -547,6 +547,7 @@ class nsHashKey;
 
 #define NS_FULL_SCREEN_START         5100
 #define NS_FULLSCREENCHANGE          (NS_FULL_SCREEN_START)
+#define NS_FULLSCREENERROR           (NS_FULL_SCREEN_START + 1)
 
 
 
