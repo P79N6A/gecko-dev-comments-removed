@@ -159,6 +159,22 @@ public:
 
 
 
+
+namespace mozilla {
+  template <class T>
+  struct AlignmentTestStruct
+  {
+    char c;
+    T t;
+  };
+}
+
+#define NS_ALIGNMENT_OF(t_) \
+  (sizeof(mozilla::AlignmentTestStruct<t_>) - sizeof(t_))
+
+
+
+
 enum nsAssignmentType {
     NS_ASSIGNMENT_COPY,   
     NS_ASSIGNMENT_DEPEND, 
