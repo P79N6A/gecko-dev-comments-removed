@@ -870,9 +870,12 @@ StorageServiceRequest.prototype = {
         return;
       }
 
-      if (response.status == 503) {
+      if (response.status >= 500 && response.status <= 599) {
+        this._log.error(response.status + " seen from server!");
         this._error = new StorageServiceRequestError();
-        this._error.server = new Error("503 Received.");
+        this._error.server = new Error(response.status + " status code.");
+        callOnComplete();
+        return;
       }
 
       callOnComplete();
@@ -1084,14 +1087,20 @@ StorageCollectionGetRequest.prototype = {
 function StorageCollectionSetRequest() {
   StorageServiceRequest.call(this);
 
-  this._lines = [];
-  this._size  = 0;
+  this.size = 0;
 
-  this.successfulIDs = new Set();
-  this.failures      = new Map();
+  
+  this.successfulIDs = [];
+  this.failures      = {};
+
+  this._lines = [];
 }
 StorageCollectionSetRequest.prototype = {
   __proto__: StorageServiceRequest.prototype,
+
+  get count() {
+    return this._lines.length;
+  },
 
   
 
@@ -1112,32 +1121,383 @@ StorageCollectionSetRequest.prototype = {
       throw new Error("Passed BSO must have id defined.");
     }
 
-    let line = JSON.stringify(bso).replace("\n", "\u000a");
+    this.addLine(JSON.stringify(bso));
+  },
 
+  
+
+
+
+
+  addLine: function addLine(line) {
     
-    this._size += line.length + "\n".length;
+    this.size += line.length + 1;
     this._lines.push(line);
   },
 
   _onDispatch: function _onDispatch() {
     this._data = this._lines.join("\n");
+    this.size = this._data.length;
   },
 
   _completeParser: function _completeParser(response) {
     let result = JSON.parse(response.body);
 
     for (let id of result.success) {
-      this.successfulIDs.add(id);
+      this.successfulIDs.push(id);
     }
 
     this.allSucceeded = true;
 
-    for (let [id, reasons] in result.failed) {
+    for (let [id, reasons] in Iterator(result.failed)) {
       this.failures[id] = reasons;
       this.allSucceeded = false;
     }
   },
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function StorageCollectionBatchedSet(client, collection) {
+  this.client     = client;
+  this.collection = collection;
+
+  this._log = client._log;
+
+  this.locallyModifiedVersion = null;
+  this.serverModifiedVersion  = null;
+
+  
+  this.successfulIDs = [];
+  this.failures      = {};
+
+  
+  this._stagingRequest = client.setBSOs(this.collection);
+
+  
+  this._outgoingRequests = [];
+
+  
+  this._requestInFlight = false;
+
+  this._onFinishCallback = null;
+  this._finished         = false;
+  this._errorEncountered = false;
+}
+StorageCollectionBatchedSet.prototype = {
+  
+
+
+  addBSO: function addBSO(bso) {
+    if (this._errorEncountered) {
+      return;
+    }
+
+    let line = JSON.stringify(bso);
+
+    if (line.length > this.client.REQUEST_SIZE_LIMIT) {
+      throw new Error("BSO is larger than allowed limit: " + line.length +
+                      " > " + this.client.REQUEST_SIZE_LIMIT);
+    }
+
+    if (this._stagingRequest.size + line.length > this.client.REQUEST_SIZE_LIMIT) {
+      this._log.debug("Sending request because payload size would be exceeded");
+      this._finishStagedRequest();
+
+      this._stagingRequest.addLine(line);
+      return;
+    }
+
+    
+    this._stagingRequest.addLine(line);
+
+    if (this._stagingRequest.count >= this.client.REQUEST_BSO_COUNT_LIMIT) {
+      this._log.debug("Sending request because BSO count threshold reached.");
+      this._finishStagedRequest();
+      return;
+    }
+  },
+
+  finish: function finish(cb) {
+    if (this._finished) {
+      throw new Error("Batch request has already been finished.");
+    }
+
+    this.flush();
+
+    this._onFinishCallback = cb;
+    this._finished = true;
+    this._stagingRequest = null;
+  },
+
+  flush: function flush() {
+    if (this._finished) {
+      throw new Error("Batch request has been finished.");
+    }
+
+    if (!this._stagingRequest.count) {
+      return;
+    }
+
+    this._finishStagedRequest();
+  },
+
+  _finishStagedRequest: function _finishStagedRequest() {
+    this._outgoingRequests.push(this._stagingRequest);
+    this._sendOutgoingRequest();
+    this._stagingRequest = this.client.setBSOs(this.collection);
+  },
+
+  _sendOutgoingRequest: function _sendOutgoingRequest() {
+    if (this._requestInFlight || this._errorEncountered) {
+      return;
+    }
+
+    if (!this._outgoingRequests.length) {
+      return;
+    }
+
+    let request = this._outgoingRequests.shift();
+
+    if (this.locallyModifiedVersion) {
+      request.locallyModifiedVersion = this.locallyModifiedVersion;
+    }
+
+    request.dispatch(this._onBatchComplete.bind(this));
+    this._requestInFlight = true;
+  },
+
+  _onBatchComplete: function _onBatchComplete(error, request) {
+    this._requestInFlight = false;
+
+    this.serverModifiedVersion = request.serverTime;
+
+    
+    
+    if (this.locallyModifiedVersion) {
+      this.locallyModifiedVersion = request.serverTime;
+    }
+
+    for (let id of request.successfulIDs) {
+      this.successfulIDs.push(id);
+    }
+
+    for (let [id, reason] in Iterator(request.failures)) {
+      this.failures[id] = reason;
+    }
+
+    if (request.error) {
+      this._errorEncountered = true;
+    }
+
+    this._checkFinish();
+  },
+
+  _checkFinish: function _checkFinish() {
+    if (this._outgoingRequests.length && !this._errorEncountered) {
+      this._sendOutgoingRequest();
+      return;
+    }
+
+    if (!this._onFinishCallback) {
+      return;
+    }
+
+    try {
+      this._onFinishCallback(this);
+    } catch (ex) {
+      this._log.warn("Exception when calling finished callback: " +
+                     CommonUtils.exceptionStr(ex));
+    }
+  },
+};
+Object.freeze(StorageCollectionBatchedSet.prototype);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function StorageCollectionBatchedDelete(client, collection) {
+  this.client     = client;
+  this.collection = collection;
+
+  this._log = client._log;
+
+  this.locallyModifiedVersion = null;
+  this.serverModifiedVersion  = null;
+  this.errors                 = [];
+
+  this._pendingIDs          = [];
+  this._requestInFlight     = false;
+  this._finished            = false;
+  this._finishedCallback    = null;
+}
+StorageCollectionBatchedDelete.prototype = {
+  addID: function addID(id) {
+    if (this._finished) {
+      throw new Error("Cannot add IDs to a finished instance.");
+    }
+
+    
+    
+    if (this.errors.length) {
+      return;
+    }
+
+    this._pendingIDs.push(id);
+
+    if (this._pendingIDs.length >= this.client.REQUEST_BSO_DELETE_LIMIT) {
+      this._sendRequest();
+    }
+  },
+
+  
+
+
+
+
+
+
+  finish: function finish(cb) {
+    if (this._finished) {
+      throw new Error("Batch delete instance has already been finished.");
+    }
+
+    this._finished = true;
+    this._finishedCallback = cb;
+
+    if (this._pendingIDs.length) {
+      this._sendRequest();
+    }
+  },
+
+  _sendRequest: function _sendRequest() {
+    
+    
+    if (this._requestInFlight || this.errors.length) {
+      return;
+    }
+
+    let ids = this._pendingIDs.splice(0, this.client.REQUEST_BSO_DELETE_LIMIT);
+    let request = this.client.deleteBSOs(this.collection, ids);
+
+    if (this.locallyModifiedVersion) {
+      request.locallyModifiedVersion = this.locallyModifiedVersion;
+    }
+
+    request.dispatch(this._onRequestComplete.bind(this));
+    this._requestInFlight = true;
+  },
+
+  _onRequestComplete: function _onRequestComplete(error, request) {
+    this._requestInFlight = false;
+
+    if (error) {
+      
+      
+      this._log.warn("Error received from server: " + error);
+      this.errors.push(error);
+    }
+
+    this.serverModifiedVersion = request.serverTime;
+
+    
+    
+    if (this.locallyModifiedVersion) {
+      this.locallyModifiedVersion = request.serverTime;
+    }
+
+    if (this._pendingIDs.length && !this.errors.length) {
+      this._sendRequest();
+      return;
+    }
+
+    if (!this._finishedCallback) {
+      return;
+    }
+
+    try {
+      this._finishedCallback(this);
+    } catch (ex) {
+      this._log.warn("Exception when invoking finished callback: " +
+                     CommonUtils.exceptionStr(ex));
+    }
+  },
+};
+Object.freeze(StorageCollectionBatchedDelete.prototype);
 
 
 
@@ -1194,6 +1554,27 @@ StorageServiceClient.prototype = {
 
 
   userAgent: "StorageServiceClient",
+
+  
+
+
+
+
+  REQUEST_SIZE_LIMIT: 512000,
+
+  
+
+
+
+
+  REQUEST_BSO_COUNT_LIMIT: 100,
+
+  
+
+
+
+
+  REQUEST_BSO_DELETE_LIMIT: 100,
 
   _baseURI: null,
   _log: null,
@@ -1617,8 +1998,6 @@ StorageServiceClient.prototype = {
 
 
 
-
-
   setBSOs: function setBSOs(collection) {
     if (!collection) {
       throw new Error("collection argument must be defined.");
@@ -1633,6 +2012,30 @@ StorageServiceClient.prototype = {
     });
 
     return request;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  setBSOsBatching: function setBSOsBatching(collection) {
+    if (!collection) {
+      throw new Error("collection argument must be defined.");
+    }
+
+    return new StorageCollectionBatchedSet(this, collection);
   },
 
   
@@ -1675,6 +2078,10 @@ StorageServiceClient.prototype = {
 
 
 
+
+
+
+
   deleteBSOs: function deleteBSOs(collection, ids) {
     
     
@@ -1686,6 +2093,24 @@ StorageServiceClient.prototype = {
     return this._getRequest(uri, "DELETE", {
       allowIfUnmodified: true,
     });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  deleteBSOsBatching: function deleteBSOsBatching(collection) {
+    if (!collection) {
+      throw new Error("collection argument must be defined.");
+    }
+
+    return new StorageCollectionBatchedDelete(this, collection);
   },
 
   
