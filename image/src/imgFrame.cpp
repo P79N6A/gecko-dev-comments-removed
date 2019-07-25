@@ -474,8 +474,6 @@ void imgFrame::Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter,
 nsresult imgFrame::Extract(const nsIntRect& aRegion, imgFrame** aResult)
 {
   nsAutoPtr<imgFrame> subImage(new imgFrame());
-  if (!subImage)
-    return NS_ERROR_OUT_OF_MEMORY;
 
   
   
