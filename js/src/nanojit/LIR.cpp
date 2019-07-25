@@ -671,6 +671,7 @@ namespace nanojit
             case LIR_rshi:  return insImmI(c1 >> c2);
             case LIR_lshi:  return insImmI(c1 << c2);
             case LIR_rshui: return insImmI(uint32_t(c1) >> c2);
+
             case LIR_ori:   return insImmI(c1 | c2);
             case LIR_andi:  return insImmI(c1 & c2);
             case LIR_xori:  return insImmI(c1 ^ c2);
@@ -700,6 +701,71 @@ namespace nanojit
                 break;
             }
 
+#ifdef NANOJIT_64BIT
+        } else if (oprnd1->isImmQ() && oprnd2->isImmQ()) {
+            
+            int64_t c1 = oprnd1->immQ();
+            int64_t c2 = oprnd2->immQ();
+            static const int64_t MIN_INT64 = int64_t(0x8000000000000000LL);
+            static const int64_t MAX_INT64 = int64_t(0x7FFFFFFFFFFFFFFFLL);
+
+            switch (v) {
+            case LIR_eqq:   return insImmI(c1 == c2);
+            case LIR_ltq:   return insImmI(c1 <  c2);
+            case LIR_gtq:   return insImmI(c1 >  c2);
+            case LIR_leq:   return insImmI(c1 <= c2);
+            case LIR_geq:   return insImmI(c1 >= c2);
+            case LIR_ltuq:  return insImmI(uint64_t(c1) <  uint64_t(c2));
+            case LIR_gtuq:  return insImmI(uint64_t(c1) >  uint64_t(c2));
+            case LIR_leuq:  return insImmI(uint64_t(c1) <= uint64_t(c2));
+            case LIR_geuq:  return insImmI(uint64_t(c1) >= uint64_t(c2));
+
+            case LIR_orq:   return insImmQ(c1 | c2);
+            case LIR_andq:  return insImmQ(c1 & c2);
+            case LIR_xorq:  return insImmQ(c1 ^ c2);
+
+            
+            
+
+            case LIR_addq:
+                
+                
+                
+                
+                
+                if (c1 > 0 && c2 > 0) {
+                    
+                    
+                    if (c1 > MAX_INT64 - c2)
+                        break;                  
+                } else if (c1 < 0 && c2 < 0) {
+                    
+                    
+                    if (c1 < MIN_INT64 - c2)
+                        break;                  
+                }
+                return insImmQ(c1 + c2);
+
+            case LIR_subq:
+                
+                
+                if (c1 > 0 && c2 < 0) {
+                    
+                    
+                    if (c1 > MAX_INT64 + c2)
+                        break;                  
+                } else if (c1 < 0 && c2 > 0) {
+                    
+                    
+                    if (c1 < MIN_INT64 + c2)
+                        break;                  
+                }
+                return insImmQ(c1 - c2);
+
+            default:
+                break;
+            }
+#endif
         } else if (oprnd1->isImmD() && oprnd2->isImmD()) {
             
             double c1 = oprnd1->immD();
@@ -1001,7 +1067,7 @@ namespace nanojit
                     
                     
                     
-                    NanoAssertMsg(0, "Constantly false guard detected");
+                    NanoAssertMsg(0, "Constantly false branch detected");
 #endif
                     return out->insBranch(LIR_j, NULL, t);
                 }
