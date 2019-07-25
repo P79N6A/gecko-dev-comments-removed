@@ -521,6 +521,8 @@ nsHTMLEditRules::WillDoAction(nsTypedSelection* aSelection,
                               bool* aHandled)
 {
   MOZ_ASSERT(aInfo && aCancel && aHandled);
+  
+  NS_ENSURE_TRUE(aSelection->GetRangeCount(), NS_OK);
 
   *aCancel = false;
   *aHandled = false;
