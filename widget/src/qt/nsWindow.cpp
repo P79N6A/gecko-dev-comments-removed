@@ -64,6 +64,8 @@
 #include <QPinchGesture>
 #endif 
 
+#include "nsXULAppAPI.h"
+
 #include "prlink.h"
 
 #include "nsWindow.h"
@@ -1848,7 +1850,11 @@ nsWindow::NativeShow(PRBool aAction)
 {
     if (aAction) {
         QWidget *widget = GetViewWidget();
-        if (widget && !widget->isVisible())
+        
+        
+        
+        if ((XRE_GetProcessType() == GeckoProcessType_Default) &&
+            widget && !widget->isVisible())
             MakeFullScreen(mSizeMode == nsSizeMode_Fullscreen);
         mWidget->show();
     }
@@ -1925,6 +1931,12 @@ nsWindow::MakeFullScreen(PRBool aFullScreen)
             mLastSizeMode = mSizeMode;
 
         mSizeMode = nsSizeMode_Fullscreen;
+#ifdef Q_WS_X11
+        
+        
+        
+        XSync(QX11Info().display(), False);
+#endif
         widget->showFullScreen();
     }
     else {
