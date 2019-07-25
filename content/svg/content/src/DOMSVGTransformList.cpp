@@ -103,7 +103,7 @@ NS_INTERFACE_MAP_END
 
 
 JSObject*
-DOMSVGTransformList::WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
+DOMSVGTransformList::WrapObject(JSContext *cx, JSObject *scope,
                                 bool *triedToWrap)
 {
   return mozilla::dom::binding::SVGTransformList::create(cx, scope, this,
