@@ -910,10 +910,27 @@ namespace nanojit
         uint32_t aligned = alignUp(stackNeeded + stackPushed, NJ_ALIGN_STACK);
         uint32_t amt = aligned - stackPushed;
 
+#ifdef _WIN32
         
         
-        if (amt)
-        {
+        
+        
+        
+        
+        
+        
+        
+        size_t pageSize = VMPI_getVMPageSize();
+        NanoAssert((pageSize & (pageSize-1)) == 0);
+        size_t pageRounded = amt & ~(pageSize-1);
+        for (int32_t d = pageRounded; d > 0; d -= pageSize) {
+            STi(rEBP, -d, 0);
+        }
+#endif
+
+        
+        
+        if (amt) {
             SUBi(SP, amt);
         }
 

@@ -1956,6 +1956,24 @@ namespace nanojit
         uint32_t aligned = alignUp(stackNeeded + stackPushed, NJ_ALIGN_STACK);
         uint32_t amt = aligned - stackPushed;
 
+#ifdef _WIN64
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        uint32_t pageSize = uint32_t(VMPI_getVMPageSize());
+        NanoAssert((pageSize & (pageSize-1)) == 0);
+        uint32_t pageRounded = amt & ~(pageSize-1);
+        for (int32_t d = pageRounded; d > 0; d -= pageSize) {
+            MOVLMI(RBP, -d, 0);
+        }
+#endif
+
         
         
         if (amt) {
