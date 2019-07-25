@@ -181,17 +181,6 @@ const UnsolicitedNotifications = {
 
 
 
-const UnsolicitedPauses = {
-  "resumeLimit": "resumeLimit",
-  "debuggerStatement": "debuggerStatement",
-  "breakpoint": "breakpoint",
-  "watchpoint": "watchpoint"
-};
-
-
-
-
-
 const DebugProtocolTypes = {
   "assign": "assign",
   "attach": "attach",
@@ -413,9 +402,7 @@ DebuggerClient.prototype = {
       let onResponse;
       
       if (aPacket.from in this._activeRequests &&
-          !(aPacket.type in UnsolicitedNotifications) &&
-          !(aPacket.type == ThreadStateTypes.paused &&
-            aPacket.why.type in UnsolicitedPauses)) {
+          !(aPacket.type in UnsolicitedNotifications)) {
         onResponse = this._activeRequests[aPacket.from].onResponse;
         delete this._activeRequests[aPacket.from];
       }
@@ -424,14 +411,6 @@ DebuggerClient.prototype = {
       if (aPacket.type in ThreadStateTypes &&
           aPacket.from in this._threadClients) {
         this._threadClients[aPacket.from]._onThreadState(aPacket);
-      }
-      
-      
-      
-      if (aPacket.type == UnsolicitedNotifications.tabNavigated &&
-          aPacket.from in this._tabClients) {
-        let resumption = { from: this.activeThread._actor, type: "resumed" };
-        this.activeThread._onThreadState(resumption);
       }
       this.notify(aPacket.type, aPacket);
 
@@ -746,20 +725,12 @@ ThreadClient.prototype = {
     this._client.request(packet, aOnResponse);
   },
 
-  _doInterrupted: function TC_doInterrupted(aAction, aError) {
-    if (this.paused) {
-      aAction();
-      return;
-    }
-    this.interrupt(function(aResponse) {
-      if (aResponse) {
-        aError(aResponse);
-        return;
-      }
-      aAction();
-      this.resume(function() {});
-    }.bind(this));
-  },
+  
+
+
+
+
+  get cachedScripts() { return this._scriptCache; },
 
   
 
