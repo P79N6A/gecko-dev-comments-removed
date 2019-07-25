@@ -155,6 +155,10 @@ gfxGDIFont::InitTextRun(gfxContext *aContext,
 
     PRBool ok = PR_FALSE;
 
+    
+    
+    SetupCairoFont(aContext);
+
     if (mHarfBuzzShaper) {
         if (gfxPlatform::GetPlatform()->UseHarfBuzzLevel() >=
             gfxUnicodeProperties::ScriptShapingLevel(aRunScript)) {
