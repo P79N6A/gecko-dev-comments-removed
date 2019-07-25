@@ -58,10 +58,6 @@ WindowDraggingElement.prototype = {
         aEvent.getPreventDefault())
       return false;
 
-    
-    if (!this._elem._alive)
-      return false;
-
     let target = aEvent.originalTarget, parent = aEvent.originalTarget;
 
     
