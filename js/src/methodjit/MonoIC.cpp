@@ -907,11 +907,9 @@ class CallCompiler : public BaseCompiler
 
 
 
-#if defined(JS_CPU_X86) && !defined(JS_NO_FASTCALL)
-            masm.storePtr(ImmPtr(NULL), FrameAddress(-4));
-#else
-            JS_NOT_REACHED("FIXME");
-#endif
+
+            masm.storePtr(ImmPtr(NATIVE_CALL_SCRATCH_VALUE),
+                          FrameAddress(offsetof(VMFrame, scratch)));
         }
 
         masm.setupABICall(Registers::NormalCall, 3);
@@ -922,6 +920,9 @@ class CallCompiler : public BaseCompiler
             masm.storeArg(1, argcReg.reg());
         masm.storeArg(0, cxReg);
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, fun->u.n.native), false);
+
+        if (cx->typeInferenceEnabled())
+            masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, scratch)));
 
         Jump hasException = masm.branchTest32(Assembler::Zero, Registers::ReturnReg,
                                               Registers::ReturnReg);

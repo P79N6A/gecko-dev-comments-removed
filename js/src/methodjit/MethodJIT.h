@@ -78,6 +78,13 @@ struct VMFrame
     Value        *stackLimit;
     JSStackFrame *entryfp;
 
+
+
+
+
+
+#define NATIVE_CALL_SCRATCH_VALUE (void *) 0x1
+
 #if defined(JS_CPU_X86)
     void *savedEBX;
     void *savedEDI;
@@ -247,7 +254,8 @@ namespace ic {
     struct SetElementIC;
 # endif
 # if defined JS_MONOIC
-    struct MICInfo;
+    struct GetGlobalNameIC;
+    struct SetGlobalNameIC;
     struct EqualityICInfo;
     struct TraceICInfo;
     struct CallICInfo;
@@ -277,8 +285,8 @@ typedef JSBool (JS_FASTCALL *BoolStubUInt32)(VMFrame &f, uint32);
 #ifdef JS_MONOIC
 typedef void (JS_FASTCALL *VoidStubCallIC)(VMFrame &, js::mjit::ic::CallICInfo *);
 typedef void * (JS_FASTCALL *VoidPtrStubCallIC)(VMFrame &, js::mjit::ic::CallICInfo *);
-typedef void (JS_FASTCALL *VoidStubMIC)(VMFrame &, js::mjit::ic::MICInfo *);
-typedef void * (JS_FASTCALL *VoidPtrStubMIC)(VMFrame &, js::mjit::ic::MICInfo *);
+typedef void (JS_FASTCALL *VoidStubGetGlobal)(VMFrame &, js::mjit::ic::GetGlobalNameIC *);
+typedef void (JS_FASTCALL *VoidStubSetGlobal)(VMFrame &, js::mjit::ic::SetGlobalNameIC *);
 typedef JSBool (JS_FASTCALL *BoolStubEqualityIC)(VMFrame &, js::mjit::ic::EqualityICInfo *);
 typedef void * (JS_FASTCALL *VoidPtrStubTraceIC)(VMFrame &, js::mjit::ic::TraceICInfo *);
 #endif
@@ -301,42 +309,35 @@ struct JITScript {
     typedef JSC::MacroAssemblerCodeRef CodeRef;
     CodeRef         code;       
 
-    NativeMapEntry  *nmap;      
-
-    size_t          nNmapPairs; 
 
     void            *invokeEntry;       
     void            *fastEntry;         
     void            *arityCheckEntry;   
 
     
-    js::mjit::CallSite *callSites;
 
-#ifdef JS_MONOIC
-    ic::MICInfo     *mics;      
-    ic::CallICInfo  *callICs;   
-    ic::EqualityICInfo *equalityICs;
-    ic::TraceICInfo *traceICs;
-#endif
-#ifdef JS_POLYIC
-    ic::PICInfo     *pics;      
-    ic::GetElementIC *getElems;
-    ic::SetElementIC *setElems;
-#endif
 
-    uint32          nCallSites:31;
+
+
+
+
+
+    uint32          nNmapPairs:31;      
+
     bool            singleStepMode:1;   
 #ifdef JS_MONOIC
-    uint32          nMICs;      
-    uint32          nCallICs;   
+    uint32          nGetGlobalNames;
+    uint32          nSetGlobalNames;
+    uint32          nCallICs;
     uint32          nEqualityICs;
     uint32          nTraceICs;
 #endif
 #ifdef JS_POLYIC
-    uint32          nPICs;      
     uint32          nGetElems;
     uint32          nSetElems;
+    uint32          nPICs;
 #endif
+    uint32          nCallSites;
 
     
 
@@ -353,6 +354,21 @@ struct JITScript {
     ExecPoolVector execPools;
 #endif
 
+    NativeMapEntry *nmap() const;
+#ifdef JS_MONOIC
+    ic::GetGlobalNameIC *getGlobalNames() const;
+    ic::SetGlobalNameIC *setGlobalNames() const;
+    ic::CallICInfo *callICs() const;
+    ic::EqualityICInfo *equalityICs() const;
+    ic::TraceICInfo *traceICs() const;
+#endif
+#ifdef JS_POLYIC
+    ic::GetElementIC *getElems() const;
+    ic::SetElementIC *setElems() const;
+    ic::PICInfo     *pics() const;
+#endif
+    js::mjit::CallSite *callSites() const;
+
     ~JITScript();
 
     bool isValidCode(void *ptr) {
@@ -362,9 +378,21 @@ struct JITScript {
     }
 
     void nukeScriptDependentICs();
-    void sweepCallICs(bool purgeAll);
+    void sweepCallICs(JSContext *cx, bool purgeAll);
     void purgeMICs();
     void purgePICs();
+
+    size_t scriptDataSize();
+
+    size_t mainCodeSize() { return code.m_size; } 
+
+    jsbytecode *nativeToPC(void *returnAddress) const;
+
+  private:
+    
+    char *nmapSectionLimit() const;
+    char *monoICSectionsLimit() const;
+    char *polyICSectionsLimit() const;
 };
 
 
@@ -381,10 +409,11 @@ JSBool JaegerShotAtSafePoint(JSContext *cx, void *safePoint);
 
 enum CompileStatus
 {
-    Compile_Okay,      
-    Compile_Abort,     
-    Compile_Overflow,  
-    Compile_Error      
+    Compile_Okay,
+    Compile_Abort,
+    Compile_Overflow,
+    Compile_Error,
+    Compile_Skipped
 };
 
 void JS_FASTCALL
@@ -395,19 +424,6 @@ TryCompile(JSContext *cx, JSStackFrame *fp);
 
 void
 ReleaseScriptCode(JSContext *cx, JSScript *script);
-
-static inline CompileStatus
-CanMethodJIT(JSContext *cx, JSScript *script, JSStackFrame *fp)
-{
-    if (!cx->methodJitEnabled)
-        return Compile_Abort;
-    JITScriptStatus status = script->getJITStatus(fp->isConstructing());
-    if (status == JITScript_Invalid)
-        return Compile_Abort;
-    if (status == JITScript_None)
-        return TryCompile(cx, fp);
-    return Compile_Okay;
-}
 
 struct CallSite
 {
@@ -439,8 +455,11 @@ struct CallSite
 };
 
 
+
+
+
 void
-EnableTraceHint(JSScript *script, jsbytecode *pc, uint16_t index);
+ResetTraceHint(JSScript *script, jsbytecode *pc, uint16_t index, bool full);
 
 uintN
 GetCallTargetCount(JSScript *script, jsbytecode *pc);
@@ -477,7 +496,7 @@ JSScript::maybeNativeCodeForPC(bool constructing, jsbytecode *pc)
     if (!jit)
         return NULL;
     JS_ASSERT(pc >= code && pc < code + length);
-    return bsearch_nmap(jit->nmap, jit->nNmapPairs, (size_t)(pc - code));
+    return bsearch_nmap(jit->nmap(), jit->nNmapPairs, (size_t)(pc - code));
 }
 
 inline void *
@@ -485,7 +504,7 @@ JSScript::nativeCodeForPC(bool constructing, jsbytecode *pc)
 {
     js::mjit::JITScript *jit = getJIT(constructing);
     JS_ASSERT(pc >= code && pc < code + length);
-    void* native = bsearch_nmap(jit->nmap, jit->nNmapPairs, (size_t)(pc - code));
+    void* native = bsearch_nmap(jit->nmap(), jit->nNmapPairs, (size_t)(pc - code));
     JS_ASSERT(native);
     return native;
 }

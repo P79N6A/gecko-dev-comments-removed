@@ -78,11 +78,12 @@ Recompiler::PatchableAddress
 Recompiler::findPatch(JITScript *jit, void **location)
 { 
     uint8* codeStart = (uint8 *)jit->code.m_code.executableAddress();
+    CallSite *callSites_ = jit->callSites();
     for (uint32 i = 0; i < jit->nCallSites; i++) {
-        if (jit->callSites[i].codeOffset + codeStart == *location) {
+        if (callSites_[i].codeOffset + codeStart == *location) {
             PatchableAddress result;
             result.location = location;
-            result.callSite = jit->callSites[i];
+            result.callSite = callSites_[i];
             return result;
         }
     }
@@ -111,12 +112,13 @@ Recompiler::stealNative(JITScript *jit, jsbytecode *pc)
 
 
     unsigned i;
+    ic::CallICInfo *callICs = jit->callICs();
     for (i = 0; i < jit->nCallICs; i++) {
-        if (jit->callICs[i].pc == pc)
+        if (callICs[i].pc == pc)
             break;
     }
     JS_ASSERT(i < jit->nCallICs);
-    ic::CallICInfo &ic = jit->callICs[i];
+    ic::CallICInfo &ic = callICs[i];
     JS_ASSERT(ic.fastGuardedNative);
 
     JSC::ExecutablePool *&pool = ic.pools[ic::CallICInfo::Pool_NativeStub];
@@ -154,12 +156,13 @@ Recompiler::patchNative(JITScript *jit, PatchableNative &native)
         return;
 
     unsigned i;
+    ic::CallICInfo *callICs = jit->callICs();
     for (i = 0; i < jit->nCallICs; i++) {
-        if (jit->callICs[i].pc == native.pc)
+        if (callICs[i].pc == native.pc)
             break;
     }
     JS_ASSERT(i < jit->nCallICs);
-    ic::CallICInfo &ic = jit->callICs[i];
+    ic::CallICInfo &ic = callICs[i];
 
     ic.fastGuardedNative = native.guardedNative;
     ic.pools[ic::CallICInfo::Pool_NativeStub] = native.pool;
@@ -170,14 +173,14 @@ Recompiler::patchNative(JITScript *jit, PatchableNative &native)
     
     {
         uint8 *start = (uint8 *)ic.funJump.executableAddress();
-        Repatcher repatch(JSC::JITCode(start - 32, 64));
+        JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
         repatch.relink(ic.funJump, ic.nativeStart);
     }
 
     
     {
         uint8 *start = (uint8 *)native.nativeFunGuard.executableAddress();
-        Repatcher repatch(JSC::JITCode(start - 32, 64));
+        JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
         repatch.relink(native.nativeFunGuard, ic.slowPathStart);
     }
 
@@ -185,7 +188,7 @@ Recompiler::patchNative(JITScript *jit, PatchableNative &native)
     {
         JSC::CodeLocationLabel joinPoint = ic.slowPathStart.labelAtOffset(ic.slowJoinOffset);
         uint8 *start = (uint8 *)native.nativeJump.executableAddress();
-        Repatcher repatch(JSC::JITCode(start - 32, 64));
+        JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
         repatch.relink(native.nativeJump, joinPoint);
     }
 }
@@ -285,20 +288,8 @@ Recompiler::recompile()
             next = fp;
         }
 
-        
-        
-        
-        
-        
-        
         void **addr = f->returnAddressLocation();
-        if (script->jitCtor && script->jitCtor->isValidCode(*addr)) {
-            if (!ctorPatches.append(findPatch(script->jitCtor, addr)))
-                return false;
-        } else if (script->jitNormal && script->jitNormal->isValidCode(*addr)) {
-            if (!normalPatches.append(findPatch(script->jitNormal, addr)))
-                return false;
-        } else if (f->fp()->script() == script) {
+        if (f->fp()->script() == script && f->scratch == NATIVE_CALL_SCRATCH_VALUE) {
             
             if (f->fp()->isConstructing()) {
                 if (!ctorNatives.append(stealNative(script->jitCtor, f->fp()->pc(cx, NULL))))
@@ -307,6 +298,12 @@ Recompiler::recompile()
                 if (!normalNatives.append(stealNative(script->jitNormal, f->fp()->pc(cx, NULL))))
                     return false;
             }
+        } else if (script->jitCtor && script->jitCtor->isValidCode(*addr)) {
+            if (!ctorPatches.append(findPatch(script->jitCtor, addr)))
+                return false;
+        } else if (script->jitNormal && script->jitNormal->isValidCode(*addr)) {
+            if (!normalPatches.append(findPatch(script->jitNormal, addr)))
+                return false;
         }
     }
 
@@ -347,15 +344,16 @@ Recompiler::cleanup(JITScript *jit, Vector<CallSite> *sites, uint32 *recompilati
         ic::CallICInfo *ic = (ic::CallICInfo *) jit->callers.next;
 
         uint8 *start = (uint8 *)ic->funGuard.executableAddress();
-        Repatcher repatch(JSC::JITCode(start - 32, 64));
+        JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
 
         repatch.repatch(ic->funGuard, NULL);
         repatch.relink(ic->funJump, ic->slowPathStart);
         ic->purgeGuardedObject();
     }
 
+    CallSite *callSites_ = jit->callSites();
     for (uint32 i = 0; i < jit->nCallSites; i++) {
-        CallSite &site = jit->callSites[i];
+        CallSite &site = callSites_[i];
         if (site.isTrap() && !sites->append(site))
             return false;
     }
