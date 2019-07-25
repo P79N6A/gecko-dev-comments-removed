@@ -229,32 +229,51 @@ let Utils = {
     return db.createStatement(query);
   },
 
+  
+  
+  
+  _storageCallbackPrototype: {
+    results: null,
+    
+    names: null,
+    syncCb: null,
+
+    handleResult: function handleResult(results) {
+      if (!this.names) {
+        return;
+      }
+      if (!this.results) {
+        this.results = [];
+      }
+      let row;
+      while ((row = results.getNextRow()) != null) {
+        let item = {};
+        for each (name in this.names) {
+          item[name] = row.getResultByName(name);
+        }
+        this.results.push(item);
+      }
+    },
+    handleError: function handleError(error) {
+      this.syncCb.throw(error);
+    },
+    handleCompletion: function handleCompletion(reason) {
+      
+      
+      if (this.names && !this.results) {
+        this.results = [];
+      }
+      this.syncCb(this.results);
+    }
+  },
+
   queryAsync: function(query, names) {
     
-    if (!Utils.isArray(names))
-      names = names == null ? [] : [names];
-
-    
-    let execCb = Utils.makeSyncCallback();
-    query.executeAsync({
-      items: [],
-      handleResult: function handleResult(results) {
-        let row;
-        while ((row = results.getNextRow()) != null) {
-          this.items.push(names.reduce(function(item, name) {
-            item[name] = row.getResultByName(name);
-            return item;
-          }, {}));
-        }
-      },
-      handleError: function handleError(error) {
-        execCb.throw(error);
-      },
-      handleCompletion: function handleCompletion(reason) {
-        execCb(this.items);
-      }
-    });
-    return Utils.waitForSyncCallback(execCb);
+    let storageCallback = {names: names,
+                           syncCb: Utils.makeSyncCallback()};
+    storageCallback.__proto__ = Utils._storageCallbackPrototype;
+    query.executeAsync(storageCallback);
+    return Utils.waitForSyncCallback(storageCallback.syncCb);
   },
 
   byteArrayToString: function byteArrayToString(bytes) {
