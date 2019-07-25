@@ -201,6 +201,7 @@ function createMochitestServer(serverBasePath)
   server.registerDirectory("/", serverBasePath);
   server.registerPathHandler("/server/shutdown", serverShutdown);
   server.registerPathHandler("/server/debug", serverDebug);
+  server.registerPrefixHandler("/auth/", authPrefixHandler);
   server.registerContentType("sjs", "sjs"); 
   server.registerContentType("jar", "application/x-jar");
   server.registerContentType("ogg", "application/ogg");
@@ -663,4 +664,37 @@ function defaultDirHandler(metadata, response)
   } catch (ex) {
     response.write(ex);
   }  
+}
+
+
+
+
+
+
+function authPrefixHandler(metadata, response)
+{
+  if (!metadata.hasHeader("Authorization")) {
+    response.setStatusLine("1.1", 401, "Authorization Required");
+    response.setHeader("WWW-Authenticate", 'Basic realm="secret"', false);
+    return;
+  }
+
+  let auth = metadata.getHeader("Authorization");
+  if (auth.indexOf("Basic ") == 0) {
+    let encoded = auth.substr(6);
+    if (encoded != "Z3Vlc3Q6Z3Vlc3Q=") {
+      response.setStatusLine("1.1", 401, "Authorization Required");
+      response.setHeader("WWW-Authenticate", 'Basic realm="secret"', false);
+      return;
+    }
+
+    
+    
+    metadata._path = metadata.path.substr(5);
+    
+    server._handler._handleDefault(metadata, response);
+  } else {
+    response.setStatusLine("1.1", 400, "Bad Request");
+    return;
+  }
 }

@@ -1402,9 +1402,9 @@ var gBrowserInit = {
     
     let devToolbarEnabled = gPrefService.getBoolPref("devtools.toolbar.enabled");
     if (devToolbarEnabled) {
-      let cmd = document.getElementById("Tools:DevToolbar");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
+      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_DevToolbar");
+      broadcaster.removeAttribute("disabled");
+      broadcaster.removeAttribute("hidden");
       document.getElementById("Tools:DevToolbarFocus").removeAttribute("disabled");
 
       
@@ -1416,25 +1416,25 @@ var gBrowserInit = {
     
     let enabled = gPrefService.getBoolPref("devtools.inspector.enabled");
     if (enabled) {
-      let cmd = document.getElementById("Tools:Inspect");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
+      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_Inspect");
+      broadcaster.removeAttribute("disabled");
+      broadcaster.removeAttribute("hidden");
     }
 
     
     let enabled = gPrefService.getBoolPref("devtools.debugger.enabled");
     if (enabled) {
-      let cmd = document.getElementById("Tools:Debugger");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
+      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_Debugger");
+      broadcaster.removeAttribute("disabled");
+      broadcaster.removeAttribute("hidden");
     }
 
     
     let enabled = gPrefService.getBoolPref("devtools.debugger.remote-enabled");
     if (enabled) {
-      let cmd = document.getElementById("Tools:RemoteDebugger");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
+      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_RemoteDebugger");
+      broadcaster.removeAttribute("disabled");
+      broadcaster.removeAttribute("hidden");
     }
 
     
@@ -1442,34 +1442,34 @@ var gBrowserInit = {
                   gPrefService.getBoolPref("devtools.debugger.chrome-enabled") &&
                   gPrefService.getBoolPref("devtools.debugger.remote-enabled");
     if (enabled) {
-      let cmd = document.getElementById("Tools:ChromeDebugger");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
+      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_ChromeDebugger");
+      broadcaster.removeAttribute("disabled");
+      broadcaster.removeAttribute("hidden");
     }
 
     
     
     let consoleEnabled = true || gPrefService.getBoolPref("devtools.errorconsole.enabled");
     if (consoleEnabled) {
-      let cmd = document.getElementById("Tools:ErrorConsole");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
+      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_ErrorConsole");
+      broadcaster.removeAttribute("disabled");
+      broadcaster.removeAttribute("hidden");
     }
 
     
     let scratchpadEnabled = gPrefService.getBoolPref(Scratchpad.prefEnabledName);
     if (scratchpadEnabled) {
-      let cmd = document.getElementById("Tools:Scratchpad");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
+      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_Scratchpad");
+      broadcaster.removeAttribute("disabled");
+      broadcaster.removeAttribute("hidden");
     }
 
     
     let styleEditorEnabled = gPrefService.getBoolPref(StyleEditor.prefEnabledName);
     if (styleEditorEnabled) {
-      let cmd = document.getElementById("Tools:StyleEditor");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
+      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_StyleEditor");
+      broadcaster.removeAttribute("disabled");
+      broadcaster.removeAttribute("hidden");
     }
 
 #ifdef MENUBAR_CAN_AUTOHIDE
@@ -1484,9 +1484,9 @@ var gBrowserInit = {
     
     let responsiveUIEnabled = gPrefService.getBoolPref("devtools.responsiveUI.enabled");
     if (responsiveUIEnabled) {
-      let cmd = document.getElementById("Tools:ResponsiveUI");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
+      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_ResponsiveUI");
+      broadcaster.removeAttribute("disabled");
+      broadcaster.removeAttribute("hidden");
     }
 
     let appMenuButton = document.getElementById("appmenu-button");
@@ -3091,6 +3091,17 @@ const DOMLinkHandler = {
             var targetDoc = link.ownerDocument;
             var uri = makeURI(link.href, targetDoc.characterSet);
 
+            
+            
+            
+            if (uri.userPass != "") {
+              
+              try {
+                uri.userPass = null;
+              }
+              catch (e) {}
+            }
+
             if (gBrowser.isFailedIcon(uri))
               break;
 
@@ -3135,7 +3146,7 @@ const DOMLinkHandler = {
               break;
 
             let tab = gBrowser.tabs[browserIndex];
-            gBrowser.setIcon(tab, link.href);
+            gBrowser.setIcon(tab, uri);
             iconAdded = true;
           }
           break;
