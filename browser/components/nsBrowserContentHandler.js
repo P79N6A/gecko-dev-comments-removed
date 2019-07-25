@@ -747,10 +747,6 @@ nsDefaultCommandLineHandler.prototype = {
     return this;
   },
 
-  
-  
-  
-  _handledURIs: [ ],
 #ifdef XP_WIN
   _haveProfile: false,
 #endif
@@ -784,25 +780,8 @@ nsDefaultCommandLineHandler.prototype = {
     try {
       var ar;
       while ((ar = cmdLine.handleFlagWithParam("url", false))) {
-        var found = false;
         var uri = resolveURIInternal(cmdLine, ar);
-        
-        var count = this._handledURIs.length;
-        for (var i = 0; i < count; ++i) {
-          if (this._handledURIs[i].spec == uri.spec) {
-            this._handledURIs.splice(i, 1);
-            found = true;
-            cmdLine.preventDefault = true;
-            break;
-          }
-        }
-        if (!found) {
-          urilist.push(uri);
-          
-          if (cmdLine.handleFlag("requestpending", false) &&
-              cmdLine.state == nsICommandLine.STATE_INITIAL_LAUNCH)
-            this._handledURIs.push(uri)
-        }
+        urilist.push(uri);
       }
     }
     catch (e) {

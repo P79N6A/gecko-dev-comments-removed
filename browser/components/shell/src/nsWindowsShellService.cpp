@@ -77,7 +77,10 @@
 #define INITGUID
 #include <shlobj.h>
 
+#pragma comment(lib, "shlwapi.lib") // for SHDeleteKeyW
+
 #include <mbstring.h>
+#include <shlwapi.h>
 
 #ifndef MAX_BUF
 #define MAX_BUF 4096
@@ -172,27 +175,21 @@ OpenKeyForReading(HKEY aKeyRoot, const nsAString& aKeyName, HKEY* aKey)
 
 
 
-
-
-
-
-
-
-
-
 typedef struct {
   char* keyName;
-  char* valueName;
   char* valueData;
+  char* oldValueData;
 } SETTING;
 
 #define APP_REG_NAME L"Firefox"
-#define CLS_HTML "FirefoxHTML"
-#define CLS_URL "FirefoxURL"
-#define VAL_OPEN "\"%APPPATH%\" -requestPending -osint -url \"%1\""
 #define VAL_FILE_ICON "%APPPATH%,1"
+#define VAL_OPEN "\"%APPPATH%\" -osint -url \"%1\""
+#define OLD_VAL_OPEN "\"%APPPATH%\" -requestPending -osint -url \"%1\""
 #define DI "\\DefaultIcon"
-#define SOP "\\shell\\open\\command"
+#define SOC "\\shell\\open\\command"
+#define SOD "\\shell\\open\\ddeexec"
+
+#define FTP_SOC L"Software\\Classes\\ftp\\shell\\open\\command"
 
 #define MAKE_KEY_NAME1(PREFIX, MID) \
   PREFIX MID
@@ -202,18 +199,36 @@ typedef struct {
 
 
 
+
+
 static SETTING gSettings[] = {
   
-  { MAKE_KEY_NAME1(CLS_HTML, SOP), "", VAL_OPEN },
+  { MAKE_KEY_NAME1("FirefoxHTML", SOC), VAL_OPEN, OLD_VAL_OPEN },
 
   
-  { MAKE_KEY_NAME1(CLS_URL, SOP), "", VAL_OPEN },
+  { MAKE_KEY_NAME1("FirefoxURL", SOC), VAL_OPEN, OLD_VAL_OPEN },
 
   
-  { MAKE_KEY_NAME1("HTTP", DI),    "", VAL_FILE_ICON },
-  { MAKE_KEY_NAME1("HTTP", SOP),   "", VAL_OPEN },
-  { MAKE_KEY_NAME1("HTTPS", DI),   "", VAL_FILE_ICON },
-  { MAKE_KEY_NAME1("HTTPS", SOP),  "", VAL_OPEN }
+  { MAKE_KEY_NAME1("HTTP", DI), VAL_FILE_ICON },
+  { MAKE_KEY_NAME1("HTTP", SOC), VAL_OPEN, OLD_VAL_OPEN },
+  { MAKE_KEY_NAME1("HTTPS", DI), VAL_FILE_ICON },
+  { MAKE_KEY_NAME1("HTTPS", SOC), VAL_OPEN, OLD_VAL_OPEN }
+};
+
+
+
+
+static SETTING gDDESettings[] = {
+  
+  { MAKE_KEY_NAME1("Software\\Classes\\FirefoxHTML", SOD) },
+
+  
+  { MAKE_KEY_NAME1("Software\\Classes\\FirefoxURL", SOD) },
+
+  
+  { MAKE_KEY_NAME1("Software\\Classes\\FTP", SOD) },
+  { MAKE_KEY_NAME1("Software\\Classes\\HTTP", SOD) },
+  { MAKE_KEY_NAME1("Software\\Classes\\HTTPS", SOD) }
 };
 
 nsresult
@@ -245,11 +260,10 @@ LaunchHelper(nsAutoString& aPath)
   STARTUPINFOW si = {sizeof(si), 0};
   PROCESS_INFORMATION pi = {0};
 
-  BOOL ok = CreateProcessW(NULL, (LPWSTR)aPath.get(), NULL, NULL,
-                           FALSE, 0, NULL, NULL, &si, &pi);
-
-  if (!ok)
+  if (!CreateProcessW(NULL, (LPWSTR)aPath.get(), NULL, NULL, FALSE, 0, NULL,
+                      NULL, &si, &pi)) {
     return NS_ERROR_FAILURE;
+  }
 
   CloseHandle(pi.hProcess);
   CloseHandle(pi.hThread);
@@ -367,9 +381,6 @@ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
   if (aStartupCheck)
     mCheckedThisSession = true;
 
-  SETTING* settings;
-  SETTING* end = gSettings + sizeof(gSettings)/sizeof(SETTING);
-
   *aIsDefaultBrowser = true;
 
   PRUnichar exePath[MAX_BUF];
@@ -383,40 +394,171 @@ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
 
   nsAutoString appLongPath(exePath);
 
+  HKEY theKey;
+  DWORD res;
   nsresult rv;
   PRUnichar currValue[MAX_BUF];
-  for (settings = gSettings; settings < end; ++settings) {
-    NS_ConvertUTF8toUTF16 dataLongPath(settings->valueData);
-    NS_ConvertUTF8toUTF16 key(settings->keyName);
-    NS_ConvertUTF8toUTF16 value(settings->valueName);
-    PRInt32 offset = dataLongPath.Find("%APPPATH%");
-    dataLongPath.Replace(offset, 9, appLongPath);
 
-    ::ZeroMemory(currValue, sizeof(currValue));
-    HKEY theKey;
-    rv = OpenKeyForReading(HKEY_CLASSES_ROOT, key, &theKey);
+  SETTING* settings;
+  SETTING* end = gSettings + sizeof(gSettings) / sizeof(SETTING);
+
+  for (settings = gSettings; settings < end; ++settings) {
+    NS_ConvertUTF8toUTF16 keyName(settings->keyName);
+    NS_ConvertUTF8toUTF16 valueData(settings->valueData);
+    PRInt32 offset = valueData.Find("%APPPATH%");
+    valueData.Replace(offset, 9, appLongPath);
+
+    rv = OpenKeyForReading(HKEY_CLASSES_ROOT, keyName, &theKey);
     if (NS_FAILED(rv)) {
       *aIsDefaultBrowser = false;
       return NS_OK;
     }
 
+    ::ZeroMemory(currValue, sizeof(currValue));
     DWORD len = sizeof currValue;
-    DWORD res = ::RegQueryValueExW(theKey, PromiseFlatString(value).get(),
-                                   NULL, NULL, (LPBYTE)currValue, &len);
+    res = ::RegQueryValueExW(theKey, L"", NULL, NULL, (LPBYTE)currValue, &len);
     
     ::RegCloseKey(theKey);
     if (REG_FAILED(res) ||
-        !dataLongPath.Equals(currValue, CaseInsensitiveCompare)) {
+        !valueData.Equals(currValue, CaseInsensitiveCompare)) {
       
-      *aIsDefaultBrowser = false;
-      return NS_OK;
+      NS_ConvertUTF8toUTF16 oldValueData(settings->oldValueData);
+      offset = oldValueData.Find("%APPPATH%");
+      oldValueData.Replace(offset, 9, appLongPath);
+      
+      if (!oldValueData.Equals(currValue, CaseInsensitiveCompare)) {
+        *aIsDefaultBrowser = false;
+        return NS_OK;
+      }
+
+      res = ::RegOpenKeyExW(HKEY_CLASSES_ROOT, PromiseFlatString(keyName).get(),
+                            0, KEY_SET_VALUE, &theKey);
+      if (REG_FAILED(res)) {
+        
+        
+        *aIsDefaultBrowser = false;
+        return NS_OK;
+      }
+
+      const nsString &flatValue = PromiseFlatString(valueData);
+      res = ::RegSetValueExW(theKey, L"", 0, REG_SZ,
+                             (const BYTE *) flatValue.get(),
+                             (flatValue.Length() + 1) * sizeof(PRUnichar));
+      
+      ::RegCloseKey(theKey);
+      if (REG_FAILED(res)) {
+        
+        
+        *aIsDefaultBrowser = false;
+        return NS_OK;
+      }
     }
   }
 
   
   
-  if (*aIsDefaultBrowser)
+  if (*aIsDefaultBrowser) {
     IsDefaultBrowserVista(aIsDefaultBrowser);
+  }
+
+  
+  
+  
+  
+  
+  if (*aIsDefaultBrowser) {
+    
+
+    end = gDDESettings + sizeof(gDDESettings) / sizeof(SETTING);
+
+    for (settings = gDDESettings; settings < end; ++settings) {
+      NS_ConvertUTF8toUTF16 keyName(settings->keyName);
+
+      rv = OpenKeyForReading(HKEY_CURRENT_USER, keyName, &theKey);
+      if (NS_FAILED(rv)) {
+        ::RegCloseKey(theKey);
+        
+        
+        *aIsDefaultBrowser = false;
+        return NS_OK;
+      }
+
+      ::ZeroMemory(currValue, sizeof(currValue));
+      DWORD len = sizeof currValue;
+      res = ::RegQueryValueExW(theKey, L"", NULL, NULL, (LPBYTE)currValue,
+                               &len);
+      
+      ::RegCloseKey(theKey);
+      if (REG_FAILED(res) || PRUnichar('\0') != *currValue) {
+        
+        
+        const nsString &flatName = PromiseFlatString(keyName);
+        ::SHDeleteKeyW(HKEY_CURRENT_USER, flatName.get());
+        res = ::RegCreateKeyExW(HKEY_CURRENT_USER, flatName.get(), 0, NULL,
+                                REG_OPTION_NON_VOLATILE, KEY_SET_VALUE, NULL,
+                                &theKey, NULL);
+        if (REG_FAILED(res)) {
+          
+          
+          *aIsDefaultBrowser = false;
+          return NS_OK;
+        }
+
+        res = ::RegSetValueExW(theKey, L"", 0, REG_SZ, (const BYTE *) L"",
+                               sizeof(PRUnichar));
+        
+        ::RegCloseKey(theKey);
+        if (REG_FAILED(res)) {
+          
+          
+          *aIsDefaultBrowser = false;
+          return NS_OK;
+        }
+      }
+    }
+
+    
+    
+    res = ::RegOpenKeyExW(HKEY_CURRENT_USER, FTP_SOC, 0, KEY_ALL_ACCESS,
+                          &theKey);
+    
+    
+    if (NS_FAILED(rv)) {
+      return NS_OK;
+    }
+
+    NS_ConvertUTF8toUTF16 oldValueOpen(OLD_VAL_OPEN);
+    PRInt32 offset = oldValueOpen.Find("%APPPATH%");
+    oldValueOpen.Replace(offset, 9, appLongPath);
+
+    ::ZeroMemory(currValue, sizeof(currValue));
+    DWORD len = sizeof currValue;
+    res = ::RegQueryValueExW(theKey, L"", NULL, NULL, (LPBYTE)currValue,
+                             &len);
+
+    
+    
+    if (REG_FAILED(res) ||
+        !oldValueOpen.Equals(currValue, CaseInsensitiveCompare)) {
+      ::RegCloseKey(theKey);
+      return NS_OK;
+    }
+
+    NS_ConvertUTF8toUTF16 valueData(VAL_OPEN);
+    valueData.Replace(offset, 9, appLongPath);
+    const nsString &flatValue = PromiseFlatString(valueData);
+    res = ::RegSetValueExW(theKey, L"", 0, REG_SZ,
+                           (const BYTE *) flatValue.get(),
+                           (flatValue.Length() + 1) * sizeof(PRUnichar));
+    
+    ::RegCloseKey(theKey);
+    
+    
+    
+    if (REG_FAILED(res)) {
+      *aIsDefaultBrowser = false;
+    }
+  }
 
   return NS_OK;
 }
