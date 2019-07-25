@@ -104,6 +104,7 @@ StartupCache::InitSingleton()
   rv = StartupCache::gStartupCache->Init();
   if (NS_FAILED(rv)) {
     delete StartupCache::gStartupCache;
+    StartupCache::gStartupCache = nsnull;
   }
   return rv;
 }
@@ -116,6 +117,10 @@ StartupCache::StartupCache()
 
 StartupCache::~StartupCache() 
 {
+  if (mTimer) {
+    mTimer->Cancel();
+  }
+
   
   
   
