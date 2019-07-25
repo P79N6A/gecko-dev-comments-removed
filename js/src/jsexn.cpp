@@ -91,20 +91,20 @@ Class js_ErrorClass = {
     js_Error_str,
     JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE | JSCLASS_MARK_IS_TRACE |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Error),
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
+    PropertyStub,         
+    PropertyStub,         
+    PropertyStub,         
+    StrictPropertyStub,   
     exn_enumerate,
     (JSResolveOp)exn_resolve,
     ConvertStub,
     exn_finalize,
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
     JS_CLASS_TRACE(exn_trace)
 };
 
@@ -1049,13 +1049,17 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
         
         JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED | JSRESOLVE_DECLARING);
         if (!js_DefineNativeProperty(cx, proto, nameId, StringValue(atom),
-                                     PropertyStub, PropertyStub, JSPROP_ENUMERATE, 0, 0, NULL) ||
+                                     PropertyStub, StrictPropertyStub, 
+                                     JSPROP_ENUMERATE, 0, 0, NULL) ||
             !js_DefineNativeProperty(cx, proto, messageId, empty,
-                                     PropertyStub, PropertyStub, JSPROP_ENUMERATE, 0, 0, NULL) ||
+                                     PropertyStub, StrictPropertyStub,
+                                     JSPROP_ENUMERATE, 0, 0, NULL) ||
             !js_DefineNativeProperty(cx, proto, fileNameId, empty,
-                                     PropertyStub, PropertyStub, JSPROP_ENUMERATE, 0, 0, NULL) ||
+                                     PropertyStub, StrictPropertyStub,
+                                     JSPROP_ENUMERATE, 0, 0, NULL) ||
             !js_DefineNativeProperty(cx, proto, lineNumberId, Valueify(JSVAL_ZERO),
-                                     PropertyStub, PropertyStub, JSPROP_ENUMERATE, 0, 0, NULL)) {
+                                     PropertyStub, StrictPropertyStub,
+                                     JSPROP_ENUMERATE, 0, 0, NULL)) {
             return NULL;
         }
     }

@@ -530,10 +530,10 @@ static JSFunctionSpec number_functions[] = {
 Class js_NumberClass = {
     js_Number_str,
     JSCLASS_HAS_RESERVED_SLOTS(1) | JSCLASS_HAS_CACHED_PROTO(JSProto_Number),
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
+    PropertyStub,         
+    PropertyStub,         
+    PropertyStub,         
+    StrictPropertyStub,   
     EnumerateStub,
     ResolveStub,
     ConvertStub
@@ -1085,14 +1085,14 @@ js_InitNumberClass(JSContext *cx, JSObject *obj)
     
     rt = cx->runtime;
     if (!JS_DefineProperty(cx, obj, js_NaN_str, Jsvalify(rt->NaNValue),
-                           JS_PropertyStub, JS_PropertyStub,
+                           JS_PropertyStub, JS_StrictPropertyStub,
                            JSPROP_PERMANENT | JSPROP_READONLY)) {
         return NULL;
     }
 
     
     if (!JS_DefineProperty(cx, obj, js_Infinity_str, Jsvalify(rt->positiveInfinityValue),
-                           JS_PropertyStub, JS_PropertyStub,
+                           JS_PropertyStub, JS_StrictPropertyStub,
                            JSPROP_PERMANENT | JSPROP_READONLY)) {
         return NULL;
     }

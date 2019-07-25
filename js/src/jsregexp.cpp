@@ -95,20 +95,20 @@ resc_trace(JSTracer *trc, JSObject *obj)
 Class js::regexp_statics_class = {
     "RegExpStatics", 
     JSCLASS_HAS_PRIVATE | JSCLASS_MARK_IS_TRACE,
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
+    PropertyStub,         
+    PropertyStub,         
+    PropertyStub,         
+    StrictPropertyStub,   
     EnumerateStub,
     ResolveStub,
     ConvertStub,
     resc_finalize,
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
     JS_CLASS_TRACE(resc_trace)
 };
 
@@ -322,7 +322,7 @@ DEFINE_GETTER(multiline_getter,  *vp = BooleanValue(re->multiline()))
 DEFINE_GETTER(sticky_getter,     *vp = BooleanValue(re->sticky()))
 
 static JSBool
-lastIndex_setter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
+lastIndex_setter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
 {
     while (obj->getClass() != &js_RegExpClass) {
         obj = obj->getProto();
@@ -423,7 +423,7 @@ DEFINE_STATIC_GETTER(static_paren9_getter,       return res->createParen(cx, 9, 
 
 #define DEFINE_STATIC_SETTER(name, code)                                        \
     static JSBool                                                               \
-    name(JSContext *cx, JSObject *obj, jsid id, jsval *vp)                      \
+    name(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)       \
     {                                                                           \
         RegExpStatics *res = cx->regExpStatics();                               \
         code;                                                                   \
@@ -555,20 +555,20 @@ js::Class js_RegExpClass = {
     JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE |
     JSCLASS_HAS_RESERVED_SLOTS(JSObject::REGEXP_CLASS_RESERVED_SLOTS) |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_RegExp),
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
+    PropertyStub,         
+    PropertyStub,         
+    PropertyStub,         
+    StrictPropertyStub,   
     regexp_enumerate,
     reinterpret_cast<JSResolveOp>(regexp_resolve),
     ConvertStub,
     regexp_finalize,
-    NULL,           
-    NULL,           
+    NULL,                 
+    NULL,                 
     regexp_call,
-    NULL,           
+    NULL,                 
     js_XDRRegExpObject,
-    NULL,           
+    NULL,                 
     JS_CLASS_TRACE(regexp_trace)
 };
 
@@ -779,47 +779,20 @@ js_regexp_test(JSContext *cx, uintN argc, Value *vp)
     return true;
 }
 
-static JSFunctionSpec regexp_methods[] = {
-#if JS_HAS_TOSOURCE
-    JS_FN(js_toSource_str,  regexp_toString,    0,0),
-#endif
-    JS_FN(js_toString_str,  regexp_toString,    0,0),
-    JS_FN("exec",           js_regexp_exec,     1,0),
-    JS_FN("test",           js_regexp_test,     1,0),
-    JS_FS_END
-};
 
-static JSBool
-regexp_construct(JSContext *cx, uintN argc, Value *vp)
+
+
+
+
+
+
+
+
+
+
+static bool
+CompileRegExpAndSwap(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *rval)
 {
-    Value *argv = JS_ARGV(cx, vp);
-    Value *rval = &JS_RVAL(cx, vp);
-
-    if (!IsConstructing(vp)) {
-        
-
-
-
-
-        if (argc >= 1 && argv[0].isObject() && argv[0].toObject().isRegExp() &&
-            (argc == 1 || argv[1].isUndefined())) {
-            *vp = argv[0];
-            return true;
-        }
-    }
-
-    
-
-
-
-
-
-
-
-    JSObject *obj = NewBuiltinClassInstance(cx, &js_RegExpClass);
-    if (!obj)
-        return false;
-
     if (argc == 0)
         return SwapRegExpInternals(cx, obj, rval, cx->runtime->emptyString);
 
@@ -867,6 +840,52 @@ regexp_construct(JSContext *cx, uintN argc, Value *vp)
 
     return SwapRegExpInternals(cx, obj, rval, escapedSourceStr, flags);
 }
+
+static JSBool
+regexp_compile(JSContext *cx, uintN argc, Value *vp)
+{
+    JSObject *obj = ToObject(cx, &vp[1]);
+    if (!obj || !InstanceOf(cx, obj, &js_RegExpClass, JS_ARGV(cx, vp)))
+        return false;
+
+    return CompileRegExpAndSwap(cx, obj, argc, JS_ARGV(cx, vp), &JS_RVAL(cx, vp));
+}
+
+static JSBool
+regexp_construct(JSContext *cx, uintN argc, Value *vp)
+{
+    Value *argv = JS_ARGV(cx, vp);
+
+    if (!IsConstructing(vp)) {
+        
+
+
+
+
+        if (argc >= 1 && argv[0].isObject() && argv[0].toObject().isRegExp() &&
+            (argc == 1 || argv[1].isUndefined())) {
+            *vp = argv[0];
+            return true;
+        }
+    }
+
+    JSObject *obj = NewBuiltinClassInstance(cx, &js_RegExpClass);
+    if (!obj)
+        return false;
+
+    return CompileRegExpAndSwap(cx, obj, argc, argv, &JS_RVAL(cx, vp));
+}
+
+static JSFunctionSpec regexp_methods[] = {
+#if JS_HAS_TOSOURCE
+    JS_FN(js_toSource_str,  regexp_toString,    0,0),
+#endif
+    JS_FN(js_toString_str,  regexp_toString,    0,0),
+    JS_FN("compile",        regexp_compile,     2,0),
+    JS_FN("exec",           js_regexp_exec,     1,0),
+    JS_FN("test",           js_regexp_test,     1,0),
+    JS_FS_END
+};
 
 
 static bool

@@ -193,6 +193,16 @@ typedef JSBool
 
 
 
+typedef JSBool
+(* JSStrictPropertyOp)(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+
+
+
+
+
+
+
+
 
 
 
