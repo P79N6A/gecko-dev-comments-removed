@@ -377,6 +377,11 @@ SessionStoreService.prototype = {
           
           if (this._initialState.windows[0].sizemode == "minimized")
             this._initialState.windows[0].sizemode = "normal";
+          
+          
+          this._initialState.windows.forEach(function(aWindow) {
+            delete aWindow.__lastSessionWindowID;
+          });
         }
       }
       catch (ex) { debug("The session file is invalid: " + ex); }
@@ -3630,6 +3635,7 @@ SessionStoreService.prototype = {
     while (oState._closedWindows.length) {
       let i = oState._closedWindows.length - 1;
       if (oState._closedWindows[i]._shouldRestore) {
+        delete oState._closedWindows[i]._shouldRestore;
         oState.windows.unshift(oState._closedWindows.pop());
       }
       else {
