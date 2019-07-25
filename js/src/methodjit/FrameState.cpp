@@ -280,6 +280,7 @@ FrameState::assertValidRegisterState() const
         JS_ASSERT(i == fe->trackerIndex());
         JS_ASSERT_IF(fe->isCopy(),
                      fe->trackerIndex() > fe->copyOf()->trackerIndex());
+        JS_ASSERT_IF(fe->isCopy(), fe > fe->copyOf());
         JS_ASSERT_IF(fe->isCopy(), !fe->type.inRegister() && !fe->data.inRegister());
         JS_ASSERT_IF(fe->isCopy(), fe->copyOf() < sp);
         JS_ASSERT_IF(fe->isCopy(), fe->copyOf()->isCopied());
@@ -778,10 +779,15 @@ FrameState::uncopy(FrameEntry *original)
 
 
 
+
+
+
+
+
     uint32 firstCopy = InvalidIndex;
     FrameEntry *bestFe = NULL;
     uint32 ncopies = 0;
-    for (uint32 i = 0; i < tracker.nentries; i++) {
+    for (uint32 i = original->trackerIndex() + 1; i < tracker.nentries; i++) {
         FrameEntry *fe = tracker[i];
         if (fe >= sp)
             continue;
@@ -805,6 +811,7 @@ FrameState::uncopy(FrameEntry *original)
 
     JS_ASSERT(firstCopy != InvalidIndex);
     JS_ASSERT(bestFe);
+    JS_ASSERT(bestFe > original);
 
     
     bestFe->setCopyOf(NULL);
@@ -925,14 +932,13 @@ FrameState::storeLocal(uint32 n, bool popGuaranteed, bool typeChange)
 
 
 
+
     FrameEntry *backing = top;
     if (top->isCopy()) {
         backing = top->copyOf();
         JS_ASSERT(backing->trackerIndex() < top->trackerIndex());
 
-        uint32 backingIndex = indexOfFe(backing);
-        uint32 tol = uint32(spBase - entries);
-        if (backingIndex < tol || backingIndex < localIndex(n)) {
+        if (backing < localFe) {
             
             if (localFe->trackerIndex() < backing->trackerIndex())
                 swapInTracker(backing, localFe);
