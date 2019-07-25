@@ -701,3 +701,10 @@ nsAppShell::NotifyScreenInitialized()
 {
     gAppShell->InitInputDevices();
 }
+
+ void
+nsAppShell::NotifyScreenRotation()
+{
+    gAppShell->mReaderPolicy->setDisplayInfo();
+    gAppShell->mReader->requestRefreshConfiguration(InputReaderConfiguration::CHANGE_DISPLAY_INFO);
+}
