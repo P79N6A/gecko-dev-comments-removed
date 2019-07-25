@@ -1507,7 +1507,10 @@ public:
 
 
 
-  static bool IsContainerForFontSizeInflation(const nsIFrame *aFrame);
+  static bool IsContainerForFontSizeInflation(const nsIFrame *aFrame)
+  {
+    return aFrame->GetStateBits() & NS_FRAME_FONT_INFLATION_CONTAINER;
+  }
 
   
 
