@@ -3,16 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <jni.h>
-
-#ifdef MOZ_MEMORY
-
-#define malloc __wrap_malloc
-#define free __wrap_free
-#endif
-
 #include <stdlib.h>
-#include <fcntl.h>
 
 extern "C"
 __attribute__ ((visibility("default")))
@@ -32,22 +56,16 @@ Java_org_mozilla_gecko_GeckoAppShell_putenv(JNIEnv *jenv, jclass, jstring map)
 extern "C"
 __attribute__ ((visibility("default")))
 jobject JNICALL
-Java_org_mozilla_gecko_mozglue_DirectBufferAllocator_nativeAllocateDirectBuffer(JNIEnv *jenv, jclass, jlong size)
+Java_org_mozilla_gecko_GeckoAppShell_allocateDirectBuffer(JNIEnv *jenv, jclass, jlong size)
 {
-    jobject buffer = NULL;
-    void* mem = malloc(size);
-    if (mem) {
-        buffer = jenv->NewDirectByteBuffer(mem, size);
-        if (!buffer)
-            free(mem);
-    }
-    return buffer;
+    return jenv->NewDirectByteBuffer(malloc(size), size);
 }
 
 extern "C"
 __attribute__ ((visibility("default")))
 void JNICALL
-Java_org_mozilla_gecko_mozglue_DirectBufferAllocator_nativeFreeDirectBuffer(JNIEnv *jenv, jclass, jobject buf)
+Java_org_mozilla_gecko_GeckoAppShell_freeDirectBuffer(JNIEnv *jenv, jclass, jobject buf)
 {
     free(jenv->GetDirectBufferAddress(buf));
 }
+

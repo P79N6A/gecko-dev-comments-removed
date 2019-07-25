@@ -346,13 +346,6 @@ public:
   
 
 
-
-
-  static nsIFrame* GetFrameFor(nsIView *aView) { return aView->GetFrame(); }
-
-  
-
-
   static nsIScrollableFrame* GetScrollableFrameFor(nsIFrame *aScrolledFrame);
 
   

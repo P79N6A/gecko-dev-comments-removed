@@ -272,9 +272,6 @@ protected:
                                   PRInt32& aCharsetSource,
                                   nsACString& aCharset);
 
-  void StartAutodetection(nsIDocShell *aDocShell, nsACString& aCharset,
-                          const char* aCommand);
-
   
   virtual void SetDocumentCharacterSet(const nsACString& aCharSetID);
 

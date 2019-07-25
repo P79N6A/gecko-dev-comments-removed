@@ -497,7 +497,7 @@ nsRange::CharacterDataChanged(nsIDocument* aDocument,
   
   if (aContent == mEndParent &&
       aInfo->mChangeStart < static_cast<PRUint32>(mEndOffset)) {
-    if (aInfo->mDetails && (aContent->GetParent() || newStartNode)) {
+    if (aInfo->mDetails && (aContent->GetNodeParent() || newStartNode)) {
       
       NS_ASSERTION(aInfo->mDetails->mType ==
                    CharacterDataChangeInfo::Details::eSplit,
@@ -511,7 +511,7 @@ nsRange::CharacterDataChanged(nsIDocument* aDocument,
       if (isCommonAncestor && !newStartNode) {
         
         UnregisterCommonAncestor(mStartParent);
-        RegisterCommonAncestor(mStartParent->GetParent());
+        RegisterCommonAncestor(mStartParent->GetNodeParent());
         newEndNode->SetDescendantOfCommonAncestorForRangeInSelection();
       } else if (mEndParent->IsDescendantOfCommonAncestorForRangeInSelection()) {
         newEndNode->SetDescendantOfCommonAncestorForRangeInSelection();
@@ -555,7 +555,7 @@ nsRange::CharacterDataChanged(nsIDocument* aDocument,
     }
     DoSetRange(newStartNode, newStartOffset, newEndNode, newEndOffset,
                newRoot ? newRoot : mRoot.get(),
-               !newEndNode->GetParent() || !newStartNode->GetParent());
+               !newEndNode->GetNodeParent() || !newStartNode->GetNodeParent());
   }
 }
 

@@ -1146,6 +1146,9 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     GenerateDragGesture(aPresContext, (nsMouseEvent*)aEvent);
     UpdateCursor(aPresContext, aEvent, mCurrentTarget, aStatus);
     GenerateMouseEnterExit((nsGUIEvent*)aEvent);
+    
+    
+    FlushPendingEvents(aPresContext);
     break;
   case NS_DRAGDROP_GESTURE:
     if (mClickHoldContextMenu) {

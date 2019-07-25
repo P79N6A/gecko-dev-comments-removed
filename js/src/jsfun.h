@@ -290,6 +290,7 @@ struct JSFunction : public JSObject
     inline JSAtom *methodAtom() const;
     inline void setMethodAtom(JSAtom *atom);
 
+  private:
     
 
 

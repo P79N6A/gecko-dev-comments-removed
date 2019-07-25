@@ -51,7 +51,6 @@
 #include "jsiter.h"
 #include "jstypes.h"
 #include "methodjit/StubCalls.h"
-#include "jspropertycache.h"
 #include "methodjit/MonoIC.h"
 #include "jsanalyze.h"
 #include "methodjit/BaseCompiler.h"
@@ -59,7 +58,6 @@
 #include "vm/Debugger.h"
 
 #include "jsinterpinlines.h"
-#include "jspropertycacheinlines.h"
 #include "jsscopeinlines.h"
 #include "jsscriptinlines.h"
 #include "jsobjinlines.h"
@@ -864,23 +862,8 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
 
 
 
-
-        if (rejoin == REJOIN_NATIVE_LOWERED) {
+        if (rejoin != REJOIN_NATIVE)
             nextsp[-1] = nextsp[0];
-        } else if (rejoin == REJOIN_NATIVE_GETTER) {
-            if (js_CodeSpec[op].format & JOF_CALLOP) {
-                
-
-
-
-
-                if (nextsp[-2].isObject())
-                    nextsp[-1] = nextsp[-2];
-                nextsp[-2] = nextsp[0];
-            } else {
-                nextsp[-1] = nextsp[0];
-            }
-        }
 
         
         RemoveOrphanedNative(cx, fp);
@@ -1029,42 +1012,6 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
 
 
         switch (op) {
-          case JSOP_NAME:
-          case JSOP_GETGNAME:
-          case JSOP_GETFCSLOT:
-          case JSOP_GETPROP:
-          case JSOP_GETXPROP:
-          case JSOP_LENGTH:
-            
-            f.regs.pc = nextpc;
-            break;
-
-          case JSOP_CALLGNAME:
-          case JSOP_CALLNAME:
-            if (!ComputeImplicitThis(cx, &fp->scopeChain(), nextsp[-2], &nextsp[-1]))
-                return js_InternalThrow(f);
-            f.regs.pc = nextpc;
-            break;
-
-          case JSOP_CALLFCSLOT:
-            
-            nextsp[-1].setUndefined();
-            f.regs.pc = nextpc;
-            break;
-
-          case JSOP_CALLPROP: {
-            
-
-
-
-            JS_ASSERT(nextsp[-2].isString());
-            Value tmp = nextsp[-2];
-            nextsp[-2] = nextsp[-1];
-            nextsp[-1] = tmp;
-            f.regs.pc = nextpc;
-            break;
-          }
-
           case JSOP_INSTANCEOF: {
             
 
@@ -1081,7 +1028,8 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
           }
 
           default:
-            JS_NOT_REACHED("Bad rejoin getter op");
+            f.regs.pc = nextpc;
+            break;
         }
         break;
 
@@ -1106,18 +1054,16 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
         bool takeBranch = false;
         switch (JSOp(*nextpc)) {
           case JSOP_IFNE:
-          case JSOP_IFNEX:
             takeBranch = returnReg != NULL;
             break;
           case JSOP_IFEQ:
-          case JSOP_IFEQX:
             takeBranch = returnReg == NULL;
             break;
           default:
             JS_NOT_REACHED("Bad branch op");
         }
         if (takeBranch)
-            f.regs.pc = nextpc + analyze::GetJumpOffset(nextpc, nextpc);
+            f.regs.pc = nextpc + GET_JUMP_OFFSET(nextpc);
         else
             f.regs.pc = nextpc + GetBytecodeLength(nextpc);
         break;
@@ -1136,10 +1082,8 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
 
 
 
-    if (f.regs.pc == nextpc && (js_CodeSpec[op].format & JOF_TYPESET)) {
-        int which = (js_CodeSpec[op].format & JOF_CALLOP) ? -2 : -1;  
-        types::TypeScript::Monitor(cx, script, pc, f.regs.sp[which]);
-    }
+    if (f.regs.pc == nextpc && (js_CodeSpec[op].format & JOF_TYPESET))
+        types::TypeScript::Monitor(cx, script, pc, f.regs.sp[-1]);
 
     
     JaegerStatus status = skipTrap ? Jaeger_UnfinishedAtTrap : Jaeger_Unfinished;

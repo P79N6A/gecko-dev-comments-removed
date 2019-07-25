@@ -134,7 +134,7 @@ public:
   NS_DECL_NSIGEOLOCATIONUPDATE
   NS_DECL_NSIOBSERVER
 
-  nsGeolocationService() {mTimeout = 6000;};
+  nsGeolocationService() {}
 
   nsresult Init();
 
@@ -162,9 +162,6 @@ private:
   
   
   nsCOMPtr<nsITimer> mDisconnectTimer;
-
-  
-  PRInt32 mTimeout;
 
   
   nsCOMArray<nsIGeolocationProvider> mProviders;

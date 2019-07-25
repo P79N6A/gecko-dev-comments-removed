@@ -491,66 +491,6 @@ GenerateBlockId(TreeContext *tc, uint32_t &blockid);
 
 } 
 
-struct JumpTarget;
-
-
-
-
-
-struct SpanDep {
-    ptrdiff_t       top;        
-    ptrdiff_t       offset;     
-    ptrdiff_t       before;     
-    JumpTarget      *target;    
-};
-
-
-
-
-
-
-
-struct JumpTarget {
-    ptrdiff_t       offset;     
-    int             balance;    
-    JumpTarget      *kids[2];   
-};
-
-#define JT_LEFT                 0
-#define JT_RIGHT                1
-#define JT_OTHER_DIR(dir)       (1 - (dir))
-#define JT_IMBALANCE(dir)       (((dir) << 1) - 1)
-#define JT_DIR(imbalance)       (((imbalance) + 1) >> 1)
-
-
-
-
-
-
-#define JT_TAG_BIT              ((jsword) 1)
-#define JT_UNTAG_SHIFT          1
-#define JT_SET_TAG(jt)          ((JumpTarget *)((jsword)(jt) | JT_TAG_BIT))
-#define JT_CLR_TAG(jt)          ((JumpTarget *)((jsword)(jt) & ~JT_TAG_BIT))
-#define JT_HAS_TAG(jt)          ((jsword)(jt) & JT_TAG_BIT)
-
-#define BITS_PER_PTRDIFF        (sizeof(ptrdiff_t) * JS_BITS_PER_BYTE)
-#define BITS_PER_BPDELTA        (BITS_PER_PTRDIFF - 1 - JT_UNTAG_SHIFT)
-#define BPDELTA_MAX             (((ptrdiff_t)1 << BITS_PER_BPDELTA) - 1)
-#define BPDELTA_TO_JT(bp)       ((JumpTarget *)((bp) << JT_UNTAG_SHIFT))
-#define JT_TO_BPDELTA(jt)       ((ptrdiff_t)((jsword)(jt) >> JT_UNTAG_SHIFT))
-
-#define SD_SET_TARGET(sd,jt)    ((sd)->target = JT_SET_TAG(jt))
-#define SD_GET_TARGET(sd)       (JS_ASSERT(JT_HAS_TAG((sd)->target)),         \
-                                 JT_CLR_TAG((sd)->target))
-#define SD_SET_BPDELTA(sd,bp)   ((sd)->target = BPDELTA_TO_JT(bp))
-#define SD_GET_BPDELTA(sd)      (JS_ASSERT(!JT_HAS_TAG((sd)->target)),        \
-                                 JT_TO_BPDELTA((sd)->target))
-
-
-#define SD_SPAN(sd,pivot)       (SD_GET_TARGET(sd)                            \
-                                 ? JT_CLR_TAG((sd)->target)->offset - (pivot) \
-                                 : 0)
-
 struct TryNode {
     JSTryNote       note;
     TryNode       *prev;
@@ -628,14 +568,6 @@ struct BytecodeEmitter : public TreeContext
 
     uintN           ntrynotes;      
     TryNode         *lastTryNode;   
-
-    SpanDep         *spanDeps;      
-    JumpTarget      *jumpTargets;   
-    JumpTarget      *jtFreeList;    
-    uintN           numSpanDeps;    
-    uintN           numJumpTargets; 
-    ptrdiff_t       spanDepTodo;    
-
 
     uintN           arrayCompDepth; 
 
@@ -745,6 +677,8 @@ struct BytecodeEmitter : public TreeContext
         return true;
     }
 
+    bool needsImplicitThis();
+
     TokenStream *tokenStream() { return &parser->tokenStream; }
 
     jsbytecode *base() const { return current->base; }
@@ -798,29 +732,6 @@ Emit3(JSContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1, jsbytecode o
 
 ptrdiff_t
 EmitN(JSContext *cx, BytecodeEmitter *bce, JSOp op, size_t extra);
-
-
-
-
-#define CHECK_AND_SET_JUMP_OFFSET_CUSTOM(cx,bce,pc,off,BAD_EXIT)              \
-    JS_BEGIN_MACRO                                                            \
-        if (!SetJumpOffset(cx, bce, pc, off)) {                               \
-            BAD_EXIT;                                                         \
-        }                                                                     \
-    JS_END_MACRO
-
-#define CHECK_AND_SET_JUMP_OFFSET(cx,bce,pc,off)                              \
-    CHECK_AND_SET_JUMP_OFFSET_CUSTOM(cx,bce,pc,off,return JS_FALSE)
-
-#define CHECK_AND_SET_JUMP_OFFSET_AT_CUSTOM(cx,bce,off,BAD_EXIT)              \
-    CHECK_AND_SET_JUMP_OFFSET_CUSTOM(cx, bce, (bce)->code(off),               \
-                                     bce->offset() - (off), BAD_EXIT)
-
-#define CHECK_AND_SET_JUMP_OFFSET_AT(cx,bce,off)                              \
-    CHECK_AND_SET_JUMP_OFFSET_AT_CUSTOM(cx, bce, off, return JS_FALSE)
-
-JSBool
-SetJumpOffset(JSContext *cx, BytecodeEmitter *bce, jsbytecode *pc, ptrdiff_t off);
 
 
 
@@ -925,8 +836,6 @@ EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *body);
 
 
 
-
-
 enum SrcNoteType {
     SRC_NULL        = 0,        
     SRC_IF          = 1,        
@@ -974,15 +883,11 @@ enum SrcNoteType {
     SRC_SWITCHBREAK = 18,       
     SRC_FUNCDEF     = 19,       
     SRC_CATCH       = 20,       
-    SRC_EXTENDED    = 21,       
+                                
     SRC_NEWLINE     = 22,       
     SRC_SETLINE     = 23,       
     SRC_XDELTA      = 24        
 };
-
-
-
-
 
 
 
@@ -1135,9 +1040,6 @@ inline bool LetDataToGroupAssign(ptrdiff_t w)
 struct JSSrcNoteSpec {
     const char      *name;      
     int8_t          arity;      
-    uint8_t         offsetBias; 
-    int8_t          isSpanDep;  
-
 };
 
 extern JS_FRIEND_DATA(JSSrcNoteSpec)  js_SrcNoteSpec[];
