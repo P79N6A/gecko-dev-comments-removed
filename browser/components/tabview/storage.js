@@ -126,20 +126,6 @@ let Storage = {
   
   
   
-  getTabState: function Storage_getTabState(tab) {
-    Utils.assert(tab, "tab");
-    let tabState;
-
-    try {
-      tabState = JSON.parse(this._sessionStore.getTabState(tab));
-    } catch (e) {}
-
-    return tabState;
-  },
-
-  
-  
-  
   saveGroupItem: function Storage_saveGroupItem(win, data) {
     var id = data.id;
     var existingData = this.readGroupItemData(win);
