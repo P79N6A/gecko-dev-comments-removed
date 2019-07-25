@@ -60,7 +60,6 @@
 #endif 
 
 #include "mozilla/dom/ContentParent.h"
-using mozilla::dom::ContentParent;
 
 #include "nsAppRunner.h"
 #include "nsUpdateDriver.h"
@@ -254,6 +253,8 @@ static char **gQtOnlyArgv;
 #include "nsGTKToolkit.h"
 #endif
 #include "BinaryPath.h"
+
+using mozilla::dom::ContentParent;
 
 
 static void
@@ -2418,7 +2419,7 @@ static nsGTKToolkit* GetGTKToolkit()
   nsCOMPtr<nsIAppShellService> svc = do_GetService(NS_APPSHELLSERVICE_CONTRACTID);
   if (!svc)
     return nsnull;
-  nsCOMPtr<nsIDOMWindowInternal> window;
+  nsCOMPtr<nsIDOMWindow> window;
   svc->GetHiddenDOMWindow(getter_AddRefs(window));
   if (!window)
     return nsnull;

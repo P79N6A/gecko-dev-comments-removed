@@ -37,6 +37,8 @@
 
 
 
+#include "nsHTMLInputElement.h"
+
 #include "nsIDOMHTMLInputElement.h"
 #include "nsITextControlElement.h"
 #include "nsIDOMNSEditableElement.h"
@@ -111,7 +113,6 @@
 
 
 #include "nsImageLoadingContent.h"
-#include "nsIDOMWindowInternal.h"
 
 #include "mozAutoDocUpdate.h"
 #include "nsContentCreatorFunctions.h"
@@ -124,8 +125,6 @@
 
 #include "jsapi.h"
 #include "jscntxt.h"
-
-#include "nsHTMLInputElement.h"
 
 using namespace mozilla::dom;
 

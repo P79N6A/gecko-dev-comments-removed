@@ -141,7 +141,7 @@ function test()
 
   
   let win = Services.ww.getWindowByName("Sanatize", null);
-  if (win && (win instanceof Ci.nsIDOMWindowInternal))
+  if (win && (win instanceof Ci.nsIDOMWindow))
     win.close();
 
   
@@ -154,7 +154,7 @@ function test()
   
   let doTest = function() setTimeout(function() {
     let win = Services.ww.getWindowByName("Sanitize", null)
-                .QueryInterface(Ci.nsIDOMWindowInternal);
+                .QueryInterface(Ci.nsIDOMWindow);
 
     for (let i = 0; i < tests.length; i++)
       tests[i](win);

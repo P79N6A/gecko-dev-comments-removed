@@ -2224,7 +2224,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "focusManager",
 function updateCommandsOnActiveWindow()
 {
   let win = focusManager.activeWindow;
-  if (win && win instanceof Ci.nsIDOMWindowInternal) {
+  if (win && win instanceof Ci.nsIDOMWindow) {
     
     win.updateCommands("undo");
   }

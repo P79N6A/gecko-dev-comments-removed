@@ -125,7 +125,7 @@ nsPrintingPromptService::ShowPrintDialog(nsIDOMWindow *parent, nsIWebBrowserPrin
 
 
 NS_IMETHODIMP 
-nsPrintingPromptService::ShowProgress(nsIDOMWindow*           parent, 
+nsPrintingPromptService::ShowProgress(nsIDOMWindow*            parent, 
                                       nsIWebBrowserPrint*      webBrowserPrint,    
                                       nsIPrintSettings*        printSettings,      
                                       nsIObserver*             openDialogObserver, 
@@ -151,21 +151,16 @@ nsPrintingPromptService::ShowProgress(nsIDOMWindow*           parent,
     rv = prtProgressParams->QueryInterface(NS_GET_IID(nsIPrintProgressParams), (void**)printProgressParams);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (printProgressParams) 
-    {
-        nsCOMPtr<nsIDOMWindowInternal> parentDOMIntl(do_QueryInterface(parent));
+    if (printProgressParams) {
+        nsCOMPtr<nsIDOMWindow> parentDOMIntl = parent;
 
-        if (mWatcher && !parentDOMIntl) 
-        {
-            nsCOMPtr<nsIDOMWindow> active;
-            mWatcher->GetActiveWindow(getter_AddRefs(active));
-            parentDOMIntl = do_QueryInterface(active);
+        if (mWatcher && !parentDOMIntl) {
+            mWatcher->GetActiveWindow(getter_AddRefs(parentDOMIntl));
         }
 
-        if (parentDOMIntl) 
-        {
-            mPrintProgress->OpenProgressDialog(parentDOMIntl, 
-                                               isForPrinting?kPrintProgressDialogURL:kPrtPrvProgressDialogURL, 
+        if (parentDOMIntl) {
+            mPrintProgress->OpenProgressDialog(parentDOMIntl,
+                                               isForPrinting?kPrintProgressDialogURL:kPrtPrvProgressDialogURL,
                                                *printProgressParams, openDialogObserver, notifyOnOpen);
         }
     }

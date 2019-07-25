@@ -38,7 +38,7 @@
 
 
 
-#include "nsIDOMWindowInternal.h"
+#include "nsIDOMWindow.h"
 
 
 
@@ -52,7 +52,7 @@ public:
   
   
   static nsresult openDialog(
-                  nsIDOMWindowInternal *window,
+                  nsIDOMWindow *window,
                   const char *url,
                   nsISupports *params,
                   PRBool modal = PR_TRUE);

@@ -1343,7 +1343,6 @@ DOMCI_DATA(Window, nsGlobalWindow)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsGlobalWindow)
   
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIScriptGlobalObject)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMWindowInternal)
   NS_INTERFACE_MAP_ENTRY(nsIDOMWindow)
   NS_INTERFACE_MAP_ENTRY(nsIDOMJSWindow)
   NS_INTERFACE_MAP_ENTRY(nsIScriptGlobalObject)
@@ -1839,8 +1838,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     return NS_ERROR_UNEXPECTED;
   }
 
-  nsresult rv = NS_OK;
-
   nsCOMPtr<nsIDocument> oldDoc(do_QueryInterface(mDocument));
 
   nsIScriptContext *scx = GetContextInternal();
@@ -1859,9 +1856,9 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     
     
     
-    nsIDOMWindowInternal *internal = nsGlobalWindow::GetPrivateRoot();
+    nsIDOMWindow* privateRoot = nsGlobalWindow::GetPrivateRoot();
 
-    if (internal == static_cast<nsIDOMWindowInternal *>(this)) {
+    if (privateRoot == static_cast<nsIDOMWindow*>(this)) {
       nsCOMPtr<nsIXBLService> xblService = do_GetService("@mozilla.org/xbl;1");
       if (xblService) {
         xblService->AttachGlobalKeyHandler(mChromeEventHandler);
@@ -1883,6 +1880,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   if (oldDoc) {
     oldPrincipal = oldDoc->NodePrincipal();
   }
+
+  nsresult rv = NS_OK;
 
   
   
@@ -2477,7 +2476,7 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
 }
 
 void
-nsGlobalWindow::SetOpenerWindow(nsIDOMWindowInternal* aOpener,
+nsGlobalWindow::SetOpenerWindow(nsIDOMWindow* aOpener,
                                 PRBool aOriginalOpener)
 {
   FORWARD_TO_OUTER_VOID(SetOpenerWindow, (aOpener, aOriginalOpener));
@@ -2912,26 +2911,22 @@ nsGlobalWindow::GetDocument(nsIDOMDocument** aDocument)
   return NS_OK;
 }
 
-
-
-
-
 NS_IMETHODIMP
-nsGlobalWindow::GetWindow(nsIDOMWindowInternal** aWindow)
+nsGlobalWindow::GetWindow(nsIDOMWindow** aWindow)
 {
   FORWARD_TO_OUTER(GetWindow, (aWindow), NS_ERROR_NOT_INITIALIZED);
 
-  *aWindow = static_cast<nsIDOMWindowInternal *>(this);
+  *aWindow = static_cast<nsIDOMWindow*>(this);
   NS_ADDREF(*aWindow);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsGlobalWindow::GetSelf(nsIDOMWindowInternal** aWindow)
+nsGlobalWindow::GetSelf(nsIDOMWindow** aWindow)
 {
   FORWARD_TO_OUTER(GetSelf, (aWindow), NS_ERROR_NOT_INITIALIZED);
 
-  *aWindow = static_cast<nsIDOMWindowInternal *>(this);
+  *aWindow = static_cast<nsIDOMWindow*>(this);
   NS_ADDREF(*aWindow);
   return NS_OK;
 }
@@ -3042,7 +3037,7 @@ nsGlobalWindow::GetParent(nsIDOMWindow** aParent)
                       NS_ERROR_FAILURE);
   }
   else {
-    *aParent = static_cast<nsIDOMWindowInternal *>(this);
+    *aParent = static_cast<nsIDOMWindow*>(this);
     NS_ADDREF(*aParent);
   }
   return NS_OK;
@@ -3104,7 +3099,7 @@ nsGlobalWindow::GetContent(nsIDOMWindow** aContent)
     treeOwner->GetPrimaryContentShell(getter_AddRefs(primaryContent));
   }
 
-  nsCOMPtr<nsIDOMWindowInternal> domWindow(do_GetInterface(primaryContent));
+  nsCOMPtr<nsIDOMWindow> domWindow(do_GetInterface(primaryContent));
   NS_IF_ADDREF(*aContent = domWindow);
 
   return NS_OK;
@@ -3361,7 +3356,7 @@ nsGlobalWindow::GetControllers(nsIControllers** aResult)
 }
 
 NS_IMETHODIMP
-nsGlobalWindow::GetOpener(nsIDOMWindowInternal** aOpener)
+nsGlobalWindow::GetOpener(nsIDOMWindow** aOpener)
 {
   FORWARD_TO_OUTER(GetOpener, (aOpener), NS_ERROR_NOT_INITIALIZED);
 
@@ -3413,7 +3408,7 @@ nsGlobalWindow::GetOpener(nsIDOMWindowInternal** aOpener)
 }
 
 NS_IMETHODIMP
-nsGlobalWindow::SetOpener(nsIDOMWindowInternal* aOpener)
+nsGlobalWindow::SetOpener(nsIDOMWindow* aOpener)
 {
   
   
@@ -4404,7 +4399,7 @@ nsGlobalWindow::SetFullScreen(PRBool aFullScreen)
   nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(mDocShell);
   nsCOMPtr<nsIDocShellTreeItem> rootItem;
   treeItem->GetRootTreeItem(getter_AddRefs(rootItem));
-  nsCOMPtr<nsIDOMWindowInternal> window = do_GetInterface(rootItem);
+  nsCOMPtr<nsIDOMWindow> window = do_GetInterface(rootItem);
   if (!window)
     return NS_ERROR_FAILURE;
   if (rootItem != treeItem)
@@ -4459,7 +4454,7 @@ nsGlobalWindow::GetFullScreen(PRBool* aFullScreen)
     nsCOMPtr<nsIDocShellTreeItem> rootItem;
     treeItem->GetRootTreeItem(getter_AddRefs(rootItem));
     if (rootItem != treeItem) {
-      nsCOMPtr<nsIDOMWindowInternal> window = do_GetInterface(rootItem);
+      nsCOMPtr<nsIDOMWindow> window = do_GetInterface(rootItem);
       if (window)
         return window->GetFullScreen(aFullScreen);
     }
@@ -4929,9 +4924,9 @@ nsGlobalWindow::Focus()
     return NS_OK;
   }
 
-  nsIDOMWindowInternal *caller =
-    static_cast<nsIDOMWindowInternal*>(nsContentUtils::GetWindowFromCaller());
-  nsCOMPtr<nsIDOMWindowInternal> opener;
+  nsIDOMWindow *caller =
+    static_cast<nsIDOMWindow*>(nsContentUtils::GetWindowFromCaller());
+  nsCOMPtr<nsIDOMWindow> opener;
   GetOpener(getter_AddRefs(opener));
 
   
@@ -4977,7 +4972,7 @@ nsGlobalWindow::Focus()
   PRInt32 itemType = nsIDocShellTreeItem::typeContent;
   treeItem->GetItemType(&itemType);
   if (itemType == nsIDocShellTreeItem::typeChrome &&
-      GetPrivateRoot() == static_cast<nsIDOMWindowInternal*>(this) &&
+      GetPrivateRoot() == static_cast<nsIDOMWindow*>(this) &&
       mDocument) {
     nsCOMPtr<nsIDocument> doc(do_QueryInterface(mDocument));
     NS_ASSERTION(doc, "Bogus doc?");
@@ -5395,7 +5390,7 @@ nsGlobalWindow::GetWindowRoot(nsIDOMEventTarget **aWindowRoot)
 already_AddRefed<nsPIWindowRoot>
 nsGlobalWindow::GetTopWindowRoot()
 {
-  nsIDOMWindowInternal *rootWindow = GetPrivateRoot();
+  nsIDOMWindow *rootWindow = GetPrivateRoot();
   nsCOMPtr<nsPIDOMWindow> piWin(do_QueryInterface(rootWindow));
   if (!piWin)
     return nsnull;
@@ -7154,7 +7149,7 @@ nsGlobalWindow::Find(const nsAString& aStr, PRBool aCaseSensitive,
     nsCOMPtr<nsIWindowMediator> windowMediator =
       do_GetService(NS_WINDOWMEDIATOR_CONTRACTID);
 
-    nsCOMPtr<nsIDOMWindowInternal> findDialog;
+    nsCOMPtr<nsIDOMWindow> findDialog;
 
     if (windowMediator) {
       windowMediator->GetMostRecentWindow(NS_LITERAL_STRING("findInPage").get(),
@@ -7460,9 +7455,9 @@ nsGlobalWindow::ActivateOrDeactivate(PRBool aActivate)
   }
 
   
-  nsCOMPtr<nsIDOMWindowInternal> topLevelWindow;
+  nsCOMPtr<nsIDOMWindow> topLevelWindow;
   if (topLevelWidget == mainWidget) {
-    topLevelWindow = static_cast<nsIDOMWindowInternal*>(this);
+    topLevelWindow = static_cast<nsIDOMWindow*>(this);
   } else {
     
     
@@ -8583,24 +8578,19 @@ nsGlobalWindow::FireDelayedDOMEvents()
 
 
 
-nsIDOMWindowInternal *
+nsIDOMWindow *
 nsGlobalWindow::GetParentInternal()
 {
   FORWARD_TO_OUTER(GetParentInternal, (), nsnull);
-
-  nsIDOMWindowInternal *parentInternal = nsnull;
 
   nsCOMPtr<nsIDOMWindow> parent;
   GetParent(getter_AddRefs(parent));
 
   if (parent && parent != static_cast<nsIDOMWindow *>(this)) {
-    nsCOMPtr<nsIDOMWindowInternal> tmp(do_QueryInterface(parent));
-    NS_ASSERTION(parent, "Huh, parent not an nsIDOMWindowInternal?");
-
-    parentInternal = tmp;
+    return parent;
   }
 
-  return parentInternal;
+  return NULL;
 }
 
 

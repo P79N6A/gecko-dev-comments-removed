@@ -147,7 +147,7 @@ protected:
     
     NS_IMETHOD SetDocShell(nsIDocShell* aDocShell);
     NS_IMETHOD EnsureDocShellTreeOwner();
-    NS_IMETHOD GetPrimaryContentWindow(nsIDOMWindowInternal **aDomWindow);
+    NS_IMETHOD GetPrimaryContentWindow(nsIDOMWindow **aDomWindow);
     NS_IMETHOD BindListener(nsISupports *aListener, const nsIID& aIID);
     NS_IMETHOD UnBindListener(nsISupports *aListener, const nsIID& aIID);
     NS_IMETHOD EnableGlobalHistory(PRBool aEnable);

@@ -34,7 +34,7 @@ NS_DEF_PTR(nsIBaseWindow);
 
 
 void 
-Test06_raw(nsIDOMWindowInternal* aDOMWindow, nsIBaseWindow** aBaseWindow)
+Test06_raw(nsIDOMWindow* aDOMWindow, nsIBaseWindow** aBaseWindow)
     
 {
 
@@ -52,7 +52,7 @@ Test06_raw(nsIDOMWindowInternal* aDOMWindow, nsIBaseWindow** aBaseWindow)
 }
 
 void 
-Test06_raw_optimized(nsIDOMWindowInternal* aDOMWindow, nsIBaseWindow** aBaseWindow)
+Test06_raw_optimized(nsIDOMWindow* aDOMWindow, nsIBaseWindow** aBaseWindow)
     
 {
 
@@ -72,7 +72,7 @@ Test06_raw_optimized(nsIDOMWindowInternal* aDOMWindow, nsIBaseWindow** aBaseWind
 }
 
 void
-Test06_nsCOMPtr_as_found(nsIDOMWindowInternal* aDOMWindow, nsCOMPtr<nsIBaseWindow>* aBaseWindow)
+Test06_nsCOMPtr_as_found(nsIDOMWindow* aDOMWindow, nsCOMPtr<nsIBaseWindow>* aBaseWindow)
     
 {
 
@@ -84,7 +84,7 @@ Test06_nsCOMPtr_as_found(nsIDOMWindowInternal* aDOMWindow, nsCOMPtr<nsIBaseWindo
 }
 
 void 
-Test06_nsCOMPtr00(nsIDOMWindowInternal* aDOMWindow, nsIBaseWindow** aBaseWindow)
+Test06_nsCOMPtr00(nsIDOMWindow* aDOMWindow, nsIBaseWindow** aBaseWindow)
     
 {
 
@@ -100,7 +100,7 @@ Test06_nsCOMPtr00(nsIDOMWindowInternal* aDOMWindow, nsIBaseWindow** aBaseWindow)
 }
 
 void 
-Test06_nsCOMPtr_optimized(nsIDOMWindowInternal* aDOMWindow, nsCOMPtr<nsIBaseWindow>* aBaseWindow)
+Test06_nsCOMPtr_optimized(nsIDOMWindow* aDOMWindow, nsCOMPtr<nsIBaseWindow>* aBaseWindow)
     
 {
 
@@ -115,7 +115,7 @@ Test06_nsCOMPtr_optimized(nsIDOMWindowInternal* aDOMWindow, nsCOMPtr<nsIBaseWind
 }
 
 void 
-Test06_nsCOMPtr02(nsIDOMWindowInternal* aDOMWindow, nsIBaseWindow** aBaseWindow)
+Test06_nsCOMPtr02(nsIDOMWindow* aDOMWindow, nsIBaseWindow** aBaseWindow)
     
 {
 
@@ -131,7 +131,7 @@ Test06_nsCOMPtr02(nsIDOMWindowInternal* aDOMWindow, nsIBaseWindow** aBaseWindow)
 }
 
 void 
-Test06_nsCOMPtr03(nsIDOMWindowInternal* aDOMWindow, nsCOMPtr<nsIBaseWindow>* aBaseWindow)
+Test06_nsCOMPtr03(nsIDOMWindow* aDOMWindow, nsCOMPtr<nsIBaseWindow>* aBaseWindow)
     
 {
 

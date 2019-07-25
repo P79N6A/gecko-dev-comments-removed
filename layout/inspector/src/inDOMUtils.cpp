@@ -50,7 +50,7 @@
 #include "nsIStyleRule.h"
 #include "mozilla/css/StyleRule.h"
 #include "nsICSSStyleRuleDOMWrapper.h"
-#include "nsIDOMWindowInternal.h"
+#include "nsIDOMWindow.h"
 #include "nsXBLBinding.h"
 #include "nsXBLPrototypeBinding.h"
 #include "nsIMutableArray.h"
@@ -95,7 +95,7 @@ inDOMUtils::IsIgnorableWhitespace(nsIDOMCharacterData *aDataNode,
   
   
 
-  nsCOMPtr<nsIDOMWindowInternal> win = inLayoutUtils::GetWindowFor(aDataNode);
+  nsCOMPtr<nsIDOMWindow> win = inLayoutUtils::GetWindowFor(aDataNode);
   if (!win) {
     
     NS_ERROR("No window!");

@@ -1528,7 +1528,7 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
 
   
   if (aOptionalArgCount > 2) {
-    nsCOMPtr<nsIDOMWindowInternal> window = GetWindowInternal();
+    nsCOMPtr<nsIDOMWindow> window = GetWindowInternal();
     if (!window) {
       return NS_OK;
     }

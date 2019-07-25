@@ -57,7 +57,6 @@
 #include "nsFrameManager.h"
 
 
-#include "nsIDOMWindowInternal.h"
 #include "nsIScrollableFrame.h"
 #include "nsIDocShell.h"
 

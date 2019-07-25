@@ -67,7 +67,7 @@ nsFormSigningDialog::ConfirmSignText(nsIInterfaceRequestor *aContext,
   *aCanceled = PR_TRUE;
 
   
-  nsCOMPtr<nsIDOMWindowInternal> parent = do_GetInterface(aContext);
+  nsCOMPtr<nsIDOMWindow> parent = do_GetInterface(aContext);
 
   nsresult rv;
   nsCOMPtr<nsIDialogParamBlock> block =

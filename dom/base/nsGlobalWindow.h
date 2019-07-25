@@ -67,7 +67,6 @@
 #include "nsIDOMNavigatorGeolocation.h"
 #include "nsIDOMNavigatorDesktopNotification.h"
 #include "nsIDOMLocation.h"
-#include "nsIDOMWindowInternal.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIDOMJSWindow.h"
@@ -326,9 +325,6 @@ public:
   NS_DECL_NSIDOMWINDOW
 
   
-  NS_DECL_NSIDOMWINDOWINTERNAL
-
-  
   NS_DECL_NSIDOMWINDOWPERFORMANCE
 
   
@@ -370,12 +366,12 @@ public:
                                               nsISupports *aState,
                                               PRBool aForceReuseInnerWindow);
   void DispatchDOMWindowCreated();
-  virtual NS_HIDDEN_(void) SetOpenerWindow(nsIDOMWindowInternal *aOpener,
+  virtual NS_HIDDEN_(void) SetOpenerWindow(nsIDOMWindow* aOpener,
                                            PRBool aOriginalOpener);
   virtual NS_HIDDEN_(void) EnsureSizeUpToDate();
 
-  virtual NS_HIDDEN_(nsIDOMWindow *) EnterModalState();
-  virtual NS_HIDDEN_(void) LeaveModalState(nsIDOMWindow *aWindow);
+  virtual NS_HIDDEN_(nsIDOMWindow*) EnterModalState();
+  virtual NS_HIDDEN_(void) LeaveModalState(nsIDOMWindow* aWindow);
 
   virtual NS_HIDDEN_(PRBool) CanClose();
   virtual NS_HIDDEN_(nsresult) ForceClose();
@@ -582,7 +578,7 @@ protected:
   nsresult DefineArgumentsProperty(nsIArray *aArguments);
 
   
-  nsIDOMWindowInternal *GetParentInternal();
+  nsIDOMWindow* GetParentInternal();
 
   
   PRBool IsPopupSpamWindow()

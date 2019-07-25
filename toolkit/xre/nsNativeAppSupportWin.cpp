@@ -87,7 +87,7 @@ static HWND hwndForDOMWindow( nsISupports * );
 
 static
 nsresult
-GetMostRecentWindow(const PRUnichar* aType, nsIDOMWindowInternal** aWindow) {
+GetMostRecentWindow(const PRUnichar* aType, nsIDOMWindow** aWindow) {
     nsresult rv;
     nsCOMPtr<nsIWindowMediator> med( do_GetService( NS_WINDOWMEDIATOR_CONTRACTID, &rv ) );
     if ( NS_FAILED( rv ) )
@@ -101,7 +101,7 @@ GetMostRecentWindow(const PRUnichar* aType, nsIDOMWindowInternal** aWindow) {
 
 static
 void
-activateWindow( nsIDOMWindowInternal *win ) {
+activateWindow( nsIDOMWindow *win ) {
     
     HWND hwnd = hwndForDOMWindow( win );
     if ( hwnd ) {
@@ -617,7 +617,7 @@ struct MessageWindow {
             (void)nsNativeAppSupportWin::HandleCommandLine((char*)cds->lpData, workingDir, nsICommandLine::STATE_REMOTE_AUTO);
 
             
-            nsCOMPtr<nsIDOMWindowInternal> win;
+            nsCOMPtr<nsIDOMWindow> win;
             GetMostRecentWindow( 0, getter_AddRefs( win ) );
             return win ? (LRESULT)hwndForDOMWindow( win ) : 0;
         }
@@ -997,7 +997,7 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,
                     
                     do {
                         
-                        nsCOMPtr<nsIDOMWindowInternal> navWin;
+                        nsCOMPtr<nsIDOMWindow> navWin;
                         GetMostRecentWindow( NS_LITERAL_STRING( "navigator:browser" ).get(),
                                              getter_AddRefs( navWin ) );
                         if ( !navWin ) {
@@ -1255,7 +1255,7 @@ HDDEDATA nsNativeAppSupportWin::CreateDDEData( LPBYTE value, DWORD len ) {
 }
 
 void nsNativeAppSupportWin::ActivateLastWindow() {
-    nsCOMPtr<nsIDOMWindowInternal> navWin;
+    nsCOMPtr<nsIDOMWindow> navWin;
     GetMostRecentWindow( NS_LITERAL_STRING("navigator:browser").get(), getter_AddRefs( navWin ) );
     if ( navWin ) {
         
@@ -1525,7 +1525,7 @@ nsNativeAppSupportWin::OpenBrowserWindow()
     
     
 
-    nsCOMPtr<nsIDOMWindowInternal> navWin;
+    nsCOMPtr<nsIDOMWindow> navWin;
     GetMostRecentWindow( NS_LITERAL_STRING( "navigator:browser" ).get(), getter_AddRefs( navWin ) );
 
     

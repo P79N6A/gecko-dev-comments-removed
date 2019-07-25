@@ -52,7 +52,7 @@
 #include "nsIWindowMediator.h"
 #include "nsIWindowWatcher.h"
 #include "nsPIWindowWatcher.h"
-#include "nsIDOMWindowInternal.h"
+#include "nsIDOMWindow.h"
 #include "nsWebShellWindow.h"
 
 #include "nsIEnumerator.h"
@@ -120,7 +120,7 @@ nsAppShellService::SetXPConnectSafeContext()
     do_GetService("@mozilla.org/js/xpc/ContextStack;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIDOMWindowInternal> junk;
+  nsCOMPtr<nsIDOMWindow> junk;
   JSContext *cx;
   rv = GetHiddenWindowAndJSContext(getter_AddRefs(junk), &cx);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -139,7 +139,7 @@ nsresult nsAppShellService::ClearXPConnectSafeContext()
     return rv;
   }
 
-  nsCOMPtr<nsIDOMWindowInternal> junk;
+  nsCOMPtr<nsIDOMWindow> junk;
   JSContext *cx;
   rv = GetHiddenWindowAndJSContext(getter_AddRefs(junk), &cx);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -454,7 +454,7 @@ nsAppShellService::GetHiddenWindow(nsIXULWindow **aWindow)
 }
 
 NS_IMETHODIMP
-nsAppShellService::GetHiddenDOMWindow(nsIDOMWindowInternal **aWindow)
+nsAppShellService::GetHiddenDOMWindow(nsIDOMWindow **aWindow)
 {
   nsresult rv;
   nsCOMPtr<nsIDocShell> docShell;
@@ -463,7 +463,7 @@ nsAppShellService::GetHiddenDOMWindow(nsIDOMWindowInternal **aWindow)
   rv = mHiddenWindow->GetDocShell(getter_AddRefs(docShell));
   NS_ENSURE_SUCCESS(rv, rv);
   
-  nsCOMPtr<nsIDOMWindowInternal> hiddenDOMWindow(do_GetInterface(docShell, &rv));
+  nsCOMPtr<nsIDOMWindow> hiddenDOMWindow(do_GetInterface(docShell, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
   *aWindow = hiddenDOMWindow;
@@ -472,7 +472,7 @@ nsAppShellService::GetHiddenDOMWindow(nsIDOMWindowInternal **aWindow)
 }
 
 NS_IMETHODIMP
-nsAppShellService::GetHiddenWindowAndJSContext(nsIDOMWindowInternal **aWindow,
+nsAppShellService::GetHiddenWindowAndJSContext(nsIDOMWindow **aWindow,
                                                JSContext    **aJSContext)
 {
     nsresult rv = NS_OK;
@@ -489,7 +489,7 @@ nsAppShellService::GetHiddenWindowAndJSContext(nsIDOMWindowInternal **aWindow,
                 if (NS_FAILED(rv)) break;
 
                 
-                nsCOMPtr<nsIDOMWindowInternal> hiddenDOMWindow(do_GetInterface(docShell));
+                nsCOMPtr<nsIDOMWindow> hiddenDOMWindow(do_GetInterface(docShell));
                 if(!hiddenDOMWindow) break;
 
                 
