@@ -1582,7 +1582,8 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   
-  let consoleEnabled = gPrefService.getBoolPref("devtools.errorconsole.enabled");
+  
+  let consoleEnabled = true || gPrefService.getBoolPref("devtools.errorconsole.enabled");
   if (consoleEnabled) {
     document.getElementById("javascriptConsole").hidden = false;
     document.getElementById("key_errorConsole").removeAttribute("disabled");
