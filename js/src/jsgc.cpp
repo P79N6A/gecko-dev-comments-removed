@@ -1938,7 +1938,6 @@ JSCompartment::finalizeObjectArenaLists(JSContext *cx)
     FinalizeArenaList<JSObject_Slots12>(this, cx, FINALIZE_OBJECT12);
     FinalizeArenaList<JSObject_Slots16>(this, cx, FINALIZE_OBJECT16);
     FinalizeArenaList<JSFunction>(this, cx, FINALIZE_FUNCTION);
-    FinalizeArenaList<Shape>(this, cx, FINALIZE_SHAPE);
 #if JS_HAS_XML_SUPPORT
     FinalizeArenaList<JSXML>(this, cx, FINALIZE_XML);
 #endif
@@ -1950,6 +1949,12 @@ JSCompartment::finalizeStringArenaLists(JSContext *cx)
     FinalizeArenaList<JSShortString>(this, cx, FINALIZE_SHORT_STRING);
     FinalizeArenaList<JSString>(this, cx, FINALIZE_STRING);
     FinalizeArenaList<JSExternalString>(this, cx, FINALIZE_EXTERNAL_STRING);
+}
+
+void
+JSCompartment::finalizeShapeArenaLists(JSContext *cx)
+{
+    FinalizeArenaList<Shape>(this, cx, FINALIZE_SHAPE);
 }
 
 #ifdef JS_THREADSAFE
@@ -2188,15 +2193,23 @@ PreGCCleanup(JSContext *cx, JSGCInvocationKind gckind)
     }
 }
 
+
+
+
+
+
+
+
+
 static void
-MarkAndSweepCompartment(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIMER_PARAM)
+MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIMER_PARAM)
 {
     JSRuntime *rt = cx->runtime;
     rt->gcNumber++;
-    JS_ASSERT(!rt->gcRegenShapes);
-    JS_ASSERT(gckind != GC_LAST_CONTEXT);
-    JS_ASSERT(comp != rt->atomsCompartment);
-    JS_ASSERT(comp->rt->gcMode == JSGC_MODE_COMPARTMENT);
+    JS_ASSERT_IF(comp, !rt->gcRegenShapes);
+    JS_ASSERT_IF(comp, gckind != GC_LAST_CONTEXT);
+    JS_ASSERT_IF(comp, comp != rt->atomsCompartment);
+    JS_ASSERT_IF(comp, comp->rt->gcMode == JSGC_MODE_COMPARTMENT);
 
     
 
@@ -2210,8 +2223,12 @@ MarkAndSweepCompartment(JSContext *cx, JSCompartment *comp, JSGCInvocationKind g
     for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())
          r.front()->clearMarkBitmap();
 
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
-        (*c)->markCrossCompartmentWrappers(&gcmarker);
+    if (comp) {
+        for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
+            (*c)->markCrossCompartmentWrappers(&gcmarker);
+    } else {
+        js_MarkScriptFilenames(rt);
+    }
 
     MarkRuntime(&gcmarker);
 
@@ -2248,8 +2265,10 @@ MarkAndSweepCompartment(JSContext *cx, JSCompartment *comp, JSGCInvocationKind g
 #endif
 #ifdef DEBUG
     
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
-        JS_ASSERT_IF(*c != comp && *c != rt->atomsCompartment, checkArenaListAllUnmarked(*c));
+    if (comp) {
+        for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
+            JS_ASSERT_IF(*c != comp && *c != rt->atomsCompartment, checkArenaListAllUnmarked(*c));
+    }
 #endif
 
     
@@ -2283,153 +2302,49 @@ MarkAndSweepCompartment(JSContext *cx, JSCompartment *comp, JSGCInvocationKind g
 
 
 
-    comp->sweep(cx, 0);
 
-    comp->finalizeObjectArenaLists(cx);
-    TIMESTAMP(sweepObjectEnd);
+    if (comp) {
+        comp->sweep(cx, 0);
+        comp->finalizeObjectArenaLists(cx);
+        TIMESTAMP(sweepObjectEnd);
+        comp->finalizeStringArenaLists(cx);
+        TIMESTAMP(sweepStringEnd);
+        comp->finalizeShapeArenaLists(cx);
+        TIMESTAMP(sweepShapeEnd);
+    } else {
+        SweepCrossCompartmentWrappers(cx);
+        for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++)
+            (*c)->finalizeObjectArenaLists(cx);
 
-    comp->finalizeStringArenaLists(cx);
-    TIMESTAMP(sweepStringEnd);
+        TIMESTAMP(sweepObjectEnd);
 
-    PropertyTree::dumpShapes(cx);
-    TIMESTAMP(sweepShapeEnd);
+        for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++)
+            (*c)->finalizeStringArenaLists(cx);
 
-    
+        TIMESTAMP(sweepStringEnd);
 
+        for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++)
+            (*c)->finalizeShapeArenaLists(cx);
 
+        TIMESTAMP(sweepShapeEnd);
 
-    ExpireGCChunks(rt);
-    TIMESTAMP(sweepDestroyEnd);
-
-    if (rt->gcCallback)
-        (void) rt->gcCallback(cx, JSGC_FINALIZE_END);
-}
-
-
-
-
-
-
-
-
-static void
-MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind GCTIMER_PARAM)
-{
-    JSRuntime *rt = cx->runtime;
-    rt->gcNumber++;
-
-    
-
-
-    GCMarker gcmarker(cx);
-    JS_ASSERT(IS_GC_MARKING_TRACER(&gcmarker));
-    JS_ASSERT(gcmarker.getMarkColor() == BLACK);
-    rt->gcMarkingTracer = &gcmarker;
-    gcmarker.stackLimit = cx->stackLimit;
-
-    for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())
-         r.front()->clearMarkBitmap();
-
-    MarkRuntime(&gcmarker);
-    js_MarkScriptFilenames(rt);
-
-    
-
-
-
-    gcmarker.markDelayedChildren();
-
-    
-
-
-    while (true) {
-        if (!js_TraceWatchPoints(&gcmarker))
-            break;
-        gcmarker.markDelayedChildren();
+        for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
+            (*c)->propertyTree.dumpShapeStats();
     }
 
-    rt->gcMarkingTracer = NULL;
+    PropertyTree::dumpShapes(cx);
 
-    if (rt->gcCallback)
-        (void) rt->gcCallback(cx, JSGC_MARK_END);
+    if (!comp) {
+        SweepCompartments(cx, gckind);
 
-#ifdef JS_THREADSAFE
-    
-
-
-
-    if (!cx->gcBackgroundFree) {
         
-        rt->gcHelperThread.waitBackgroundSweepEnd(rt);
-        cx->gcBackgroundFree = &rt->gcHelperThread;
+
+
+
+
+
+        js_SweepScriptFilenames(rt);
     }
-#endif
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    TIMESTAMP(startSweep);
-    js_SweepAtomState(cx);
-
-    
-    js_SweepWatchPoints(cx);
-
-#ifdef DEBUG
-    
-    rt->liveObjectPropsPreSweep = rt->liveObjectProps;
-#endif
-
-    SweepCrossCompartmentWrappers(cx);
-
-    
-
-
-
-
-
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++)
-        (*c)->finalizeObjectArenaLists(cx);
-
-    TIMESTAMP(sweepObjectEnd);
-
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++)
-        (*c)->finalizeStringArenaLists(cx);
-
-    TIMESTAMP(sweepStringEnd);
-
-    
-
-
-
-
-
-
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
-        (*c)->propertyTree.dumpShapeStats();
-
-    PropertyTree::dumpShapes(cx);
-    TIMESTAMP(sweepShapeEnd);
-
-    SweepCompartments(cx, gckind);
-
-    
-
-
-
-
-
-    js_SweepScriptFilenames(rt);
 
     
 
@@ -2445,14 +2360,6 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind GCTIMER_PARAM)
     DumpSrcNoteSizeHist();
     printf("GC HEAP SIZE %lu\n", (unsigned long)rt->gcBytes);
   }
-#endif
-
-#ifdef JS_SCOPE_DEPTH_METER
-    DumpScopeDepthMeter(rt);
-#endif
-
-#ifdef JS_DUMP_LOOP_STATS
-    DumpLoopStats(rt);
 #endif
 }
 
@@ -2674,10 +2581,7 @@ GCUntilDone(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind  GCTIM
             firstRun = false;
         }
 
-        if (comp)
-            MarkAndSweepCompartment(cx, comp, gckind  GCTIMER_ARG);
-        else
-            MarkAndSweep(cx, gckind  GCTIMER_ARG);
+        MarkAndSweep(cx, comp, gckind  GCTIMER_ARG);
 
         
         

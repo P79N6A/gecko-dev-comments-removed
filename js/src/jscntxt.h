@@ -1249,11 +1249,6 @@ struct JSRuntime {
 # define ENUM_CACHE_METER(name)     ((void) 0)
 #endif
 
-#ifdef JS_DUMP_LOOP_STATS
-    
-    JSBasicStats        loopStats;
-#endif
-
 #ifdef DEBUG
     
     jsrefcount          inlineCalls;
