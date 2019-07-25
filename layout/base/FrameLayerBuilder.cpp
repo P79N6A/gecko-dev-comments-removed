@@ -2528,7 +2528,10 @@ FrameLayerBuilder::GetThebesLayerScaleForFrame(nsIFrame* aFrame)
     last = f;
     if (f->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER) {
       nsTArray<DisplayItemData>* array = GetDisplayItemDataArrayForFrame(f);
-      NS_ASSERTION(array, "Must have display item data for container");
+	  
+	  
+      if (!array)
+	    continue;
       for (PRUint32 i = 0; i < array->Length(); ++i) {
         Layer* layer = array->ElementAt(i).mLayer;
         ContainerLayer* container = layer->AsContainerLayer();
