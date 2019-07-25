@@ -1819,6 +1819,11 @@ pref("gfx.font_rendering.cleartype_params.cleartype_level", -1);
 pref("gfx.font_rendering.cleartype_params.pixel_structure", -1);
 pref("gfx.font_rendering.cleartype_params.rendering_mode", -1);
 
+
+
+
+pref("gfx.font_rendering.cleartype_params.force_gdi_classic_for_families", "");
+
 pref("ui.key.menuAccessKeyFocuses", true);
 
 

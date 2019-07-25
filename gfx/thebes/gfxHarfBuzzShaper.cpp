@@ -953,8 +953,9 @@ GetRoundOffsetsToPixels(gfxContext *aContext,
             
             
             
-            if (gfxWindowsPlatform::GetPlatform()->DWriteMeasuringMode() ==
-                DWRITE_MEASURING_MODE_NATURAL) {
+            if (!cairo_dwrite_scaled_font_get_force_GDI_classic(scaled_font) &&
+                gfxWindowsPlatform::GetPlatform()->DWriteMeasuringMode() ==
+                    DWRITE_MEASURING_MODE_NATURAL) {
                 return;
             }
 #endif
