@@ -49,7 +49,10 @@ window.Keys = {meta: false};
 Navbar = {
   
   get urlBar() {
-    return Utils.getCurrentWindow().gURLBar;      
+    let win = Utils.getCurrentWindow();
+    if (win)
+      return win.gURLBar;
+    return null;
   }
 };
 
@@ -83,6 +86,23 @@ var Tabbar = {
   
   
   
+  getAllTabs: function() {
+    let tabBarTabs = [];
+    if (this.el) {
+      
+      
+      for (let i = 0; i < this.el.children.length; i++) {
+        tabBarTabs.push(this.el.children[i]);
+      }
+    }
+    return tabBarTabs;
+  },
+  
+  
+  
+  
+  
+  
   
   
   showOnlyTheseTabs: function(tabs, options){
@@ -91,15 +111,10 @@ var Tabbar = {
         options = {};
           
       var tabbrowser = Utils.getCurrentWindow().gBrowser;
-      var tabBarTabs = [];
       var visibleTabs = [];
-      var length = this.el.children.length;
       
-      
-      for (var i = 0; i < length; i++) {
-        tabBarTabs.push(this.el.children[i]);
-      }
-      
+      var tabBarTabs = this.getAllTabs();
+            
       tabs.forEach(function(tab) {
         var rawTab = tab.tab.raw;
         tabBarTabs.some(function(tabBarTab) {
