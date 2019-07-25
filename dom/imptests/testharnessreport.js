@@ -15,6 +15,17 @@ var W3CTest = {
   
 
 
+  "dumpFailures": false,
+
+  
+
+
+
+  "failures": {},
+
+  
+
+
   "tests": [],
 
   
@@ -113,6 +124,9 @@ var W3CTest = {
       "result": test.status === test.PASS,
       "todo": this._todo(test)
     });
+    if (this.dumpFailures && test.status !== test.PASS) {
+      this.failures[test.name] = true;
+    }
   },
 
   
@@ -128,6 +142,11 @@ var W3CTest = {
         url in this.expectedFailures &&
         this.expectedFailures[url] === "error"
     });
+
+    if (this.dumpFailures) {
+      dump("@@@ @@@ Failures\n");
+      dump(url + "@@@" + JSON.stringify(this.failures) + "\n");
+    }
     this.runner.testFinished(this.tests);
   },
 
