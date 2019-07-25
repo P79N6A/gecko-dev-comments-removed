@@ -1863,10 +1863,32 @@ Assembler::Bind(IonCode *code, AbsoluteLabel *label, const void *address)
     JS_NOT_REACHED("Feature NYI");
 }
 
+void dbg_break() {}
+static int stopBKPT = -1;
 void
 Assembler::as_bkpt()
 {
-    writeInst(0xe1200070);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    static int hit = 0;
+    if (stopBKPT == hit)
+        dbg_break();
+    writeInst(0xe1200070 | (hit & 0xf) | ((hit & 0xfff0)<<4));
+    hit++;
 }
 
 void
