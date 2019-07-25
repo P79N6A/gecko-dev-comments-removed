@@ -74,6 +74,15 @@ class nsEmptyStyleRule : public nsIStyleRule
 #endif
 };
 
+class nsInitialStyleRule : public nsIStyleRule
+{
+  NS_DECL_ISUPPORTS
+  virtual void MapRuleInfoInto(nsRuleData* aRuleData);
+#ifdef DEBUG
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+#endif
+};
+
 
 
 
@@ -309,6 +318,8 @@ class nsStyleSet
 
   nsCSSStyleSheet::EnsureUniqueInnerResult EnsureUniqueInnerOnCSSSheets();
 
+  nsIStyleRule* InitialStyleRule();
+
  private:
   
   nsStyleSet(const nsStyleSet& aCopy);
@@ -399,6 +410,10 @@ class nsStyleSet
   
   
   nsRefPtr<nsEmptyStyleRule> mFirstLineRule, mFirstLetterRule;
+
+  
+  
+  nsRefPtr<nsInitialStyleRule> mInitialStyleRule;
 
   PRUint16 mBatching;
 

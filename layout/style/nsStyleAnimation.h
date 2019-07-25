@@ -177,11 +177,20 @@ public:
 
 
 
+
+
+
+
+
+
+
+
   static PRBool ComputeValue(nsCSSProperty aProperty,
-                             mozilla::dom::Element* aElement,
+                             mozilla::dom::Element* aTargetElement,
                              const nsAString& aSpecifiedValue,
                              PRBool aUseSVGMode,
-                             Value& aComputedValue);
+                             Value& aComputedValue,
+                             PRBool* aIsContextSensitive = nsnull);
 
   
 

@@ -1926,48 +1926,13 @@ LookupStyleContext(dom::Element* aElement)
   return nsComputedDOMStyle::GetStyleContextForElement(aElement, nsnull, shell);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-already_AddRefed<nsStyleContext>
-StyleWithRuleAdded(dom::Element* aTargetElement,
-                   css::StyleRule* aStyleRule)
-{
-  NS_ABORT_IF_FALSE(aTargetElement, "null target element");
-  NS_ABORT_IF_FALSE(aTargetElement->GetCurrentDoc(),
-                    "element needs to be in a document "
-                    "if we're going to look up its style context");
-  NS_ABORT_IF_FALSE(aStyleRule, "null style rule");
-
-  
-  nsRefPtr<nsStyleContext> styleContext = LookupStyleContext(aTargetElement);
-  if (!styleContext) {
-    return nsnull;
-  }
-
-  aStyleRule->RuleMatched();
-
-  
-  nsCOMArray<nsIStyleRule> ruleArray;
-  ruleArray.AppendObject(aStyleRule);
-  nsStyleSet* styleSet = styleContext->PresContext()->StyleSet();
-  return styleSet->ResolveStyleByAddingRules(styleContext, ruleArray);
-}
-
 PRBool
 nsStyleAnimation::ComputeValue(nsCSSProperty aProperty,
                                dom::Element* aTargetElement,
                                const nsAString& aSpecifiedValue,
                                PRBool aUseSVGMode,
-                               Value& aComputedValue)
+                               Value& aComputedValue,
+                               PRBool* aIsContextSensitive)
 {
   NS_ABORT_IF_FALSE(aTargetElement, "null target element");
   NS_ABORT_IF_FALSE(aTargetElement->GetCurrentDoc(),
@@ -1984,18 +1949,66 @@ nsStyleAnimation::ComputeValue(nsCSSProperty aProperty,
   if (!styleRule) {
     return PR_FALSE;
   }
-  nsRefPtr<nsStyleContext> tmpStyleContext =
-    StyleWithRuleAdded(aTargetElement, styleRule);
-  if (!tmpStyleContext) {
-    return PR_FALSE;
-  }
 
- if (nsCSSProps::IsShorthand(aProperty) ||
-     nsCSSProps::kAnimTypeTable[aProperty] == eStyleAnimType_None) {
+  if (nsCSSProps::IsShorthand(aProperty) ||
+      nsCSSProps::kAnimTypeTable[aProperty] == eStyleAnimType_None) {
     
     aComputedValue.SetUnparsedStringValue(nsString(aSpecifiedValue));
+    if (aIsContextSensitive) {
+      
+      
+      *aIsContextSensitive = PR_FALSE;
+    }
     return PR_TRUE;
   }
+
+  
+  nsRefPtr<nsStyleContext> styleContext = LookupStyleContext(aTargetElement);
+  if (!styleContext) {
+    return PR_FALSE;
+  }
+  nsStyleSet* styleSet = styleContext->PresContext()->StyleSet();
+
+  nsRefPtr<nsStyleContext> tmpStyleContext;
+  if (aIsContextSensitive) {
+    nsCOMArray<nsIStyleRule> ruleArray;
+    ruleArray.AppendObject(styleSet->InitialStyleRule());
+    ruleArray.AppendObject(styleRule);
+    styleRule->RuleMatched();
+    tmpStyleContext =
+      styleSet->ResolveStyleByAddingRules(styleContext, ruleArray);
+    if (!tmpStyleContext) {
+      return PR_FALSE;
+    }
+
+    
+    nsStyleStructID sid = nsCSSProps::kSIDTable[aProperty];
+    tmpStyleContext->GetStyleData(sid);
+
+    
+    
+    
+    *aIsContextSensitive =
+      !tmpStyleContext->GetRuleNode()->NodeHasCachedData(sid);
+  }
+
+  
+  
+  
+  
+  
+  
+  if (!aIsContextSensitive || *aIsContextSensitive) {
+    nsCOMArray<nsIStyleRule> ruleArray;
+    ruleArray.AppendObject(styleRule);
+    styleRule->RuleMatched();
+    tmpStyleContext =
+      styleSet->ResolveStyleByAddingRules(styleContext, ruleArray);
+    if (!tmpStyleContext) {
+      return PR_FALSE;
+    }
+  }
+
   
   return ExtractComputedValue(aProperty, tmpStyleContext, aComputedValue);
 }
