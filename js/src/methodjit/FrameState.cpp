@@ -782,32 +782,8 @@ FrameState::pushCopyOf(uint32 index)
 }
 
 FrameEntry *
-FrameState::uncopy(FrameEntry *original)
+FrameState::walkTrackerForUncopy(FrameEntry *original)
 {
-    JS_ASSERT(original->isCopied());
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     uint32 firstCopy = InvalidIndex;
     FrameEntry *bestFe = NULL;
     uint32 ncopies = 0;
@@ -829,7 +805,6 @@ FrameState::uncopy(FrameEntry *original)
     if (!ncopies) {
         JS_ASSERT(firstCopy == InvalidIndex);
         JS_ASSERT(!bestFe);
-        original->copied = false;
         return NULL;
     }
 
@@ -868,7 +843,77 @@ FrameState::uncopy(FrameEntry *original)
         bestFe->setNotCopied();
     }
 
-    FrameEntry *fe = bestFe;
+    return bestFe;
+}
+
+FrameEntry *
+FrameState::walkFrameForUncopy(FrameEntry *original)
+{
+    FrameEntry *bestFe = NULL;
+    uint32 ncopies = 0;
+
+    
+    uint32 maxvisits = tracker.nentries;
+
+    for (FrameEntry *fe = original + 1; fe < sp && maxvisits; fe++) {
+        if (!fe->isTracked())
+            continue;
+
+        maxvisits--;
+
+        if (fe->isCopy() && fe->copyOf() == original) {
+            if (!bestFe) {
+                bestFe = fe;
+                bestFe->setCopyOf(NULL);
+            } else {
+                fe->setCopyOf(bestFe);
+                if (fe->trackerIndex() < bestFe->trackerIndex())
+                    swapInTracker(bestFe, fe);
+            }
+            ncopies++;
+        }
+    }
+
+    return bestFe;
+}
+
+FrameEntry *
+FrameState::uncopy(FrameEntry *original)
+{
+    JS_ASSERT(original->isCopied());
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    FrameEntry *fe;
+    if ((tracker.nentries - original->trackerIndex()) * 2 > uint32(sp - original))
+        fe = walkFrameForUncopy(original);
+    else
+        fe = walkTrackerForUncopy(original);
+    if (!fe) {
+        original->setNotCopied();
+        return NULL;
+    }
 
     
 
@@ -902,45 +947,76 @@ FrameState::uncopy(FrameEntry *original)
 void
 FrameState::storeLocal(uint32 n, bool popGuaranteed, bool typeChange)
 {
-    FrameEntry *localFe = getLocal(n);
-    bool cacheable = !eval && !escaping[n];
+    FrameEntry *local = getLocal(n);
 
-    if (!popGuaranteed && !cacheable) {
-        JS_ASSERT_IF(locals[n].isTracked() && (!eval || n < script->nfixed),
-                     locals[n].type.inMemory() &&
-                     locals[n].data.inMemory());
-        Address local(JSFrameReg, sizeof(JSStackFrame) + n * sizeof(Value));
-        storeTo(peek(-1), local, false);
-        forgetAllRegs(getLocal(n));
-        localFe->resetSynced();
-        return;
+    storeTop(local, popGuaranteed, typeChange);
+
+    if (eval || escaping[n]) {
+        
+        if (local->isCopy()) {
+            FrameEntry *backing = local->copyOf();
+            if (!local->data.synced()) {
+                if (backing->data.inMemory())
+                    tempRegForData(backing);
+                syncData(backing, addressOf(local), masm);
+            }
+            if (!local->type.synced()) {
+                if (backing->type.inMemory())
+                    tempRegForType(backing);
+                syncType(backing, addressOf(local), masm);
+            }
+        } else if (local->isConstant()) {
+            if (!local->data.synced())
+                syncData(local, addressOf(local), masm);
+        } else {
+            if (!local->data.synced()) {
+                syncData(local, addressOf(local), masm);
+                local->data.sync();
+            }
+            if (!local->type.synced()) {
+                syncType(local, addressOf(local), masm);
+                local->type.sync();
+            }
+            forgetEntry(local);
+        }
+
+        local->resetSynced();
     }
+}
 
-    bool wasSynced = localFe->type.synced();
+void
+FrameState::forgetEntry(FrameEntry *fe)
+{
+    if (fe->isCopied()) {
+        uncopy(fe);
+        if (!fe->isCopied())
+            forgetAllRegs(fe);
+    } else {
+        forgetAllRegs(fe);
+    }
+}
+
+void
+FrameState::storeTop(FrameEntry *target, bool popGuaranteed, bool typeChange)
+{
+    bool wasSynced = target->type.synced();
 
     
     FrameEntry *top = peek(-1);
-    if (top->isCopy() && top->copyOf() == localFe) {
-        JS_ASSERT(localFe->isCopied());
+    if (top->isCopy() && top->copyOf() == target) {
+        JS_ASSERT(target->isCopied());
         return;
     }
 
     
-    if (localFe->isCopied()) {
-        uncopy(localFe);
-        if (!localFe->isCopied())
-            forgetAllRegs(localFe);
-    } else {
-        forgetAllRegs(localFe);
-    }
-
-    localFe->resetUnsynced();
+    forgetEntry(target);
+    target->resetUnsynced();
 
     
     if (top->isConstant()) {
-        localFe->setCopyOf(NULL);
-        localFe->setNotCopied();
-        localFe->setConstant(Jsvalify(top->getValue()));
+        target->setCopyOf(NULL);
+        target->setNotCopied();
+        target->setConstant(Jsvalify(top->getValue()));
         return;
     }
 
@@ -962,18 +1038,18 @@ FrameState::storeLocal(uint32 n, bool popGuaranteed, bool typeChange)
         backing = top->copyOf();
         JS_ASSERT(backing->trackerIndex() < top->trackerIndex());
 
-        if (backing < localFe) {
+        if (backing < target) {
             
-            if (localFe->trackerIndex() < backing->trackerIndex())
-                swapInTracker(backing, localFe);
-            localFe->setNotCopied();
-            localFe->setCopyOf(backing);
+            if (target->trackerIndex() < backing->trackerIndex())
+                swapInTracker(backing, target);
+            target->setNotCopied();
+            target->setCopyOf(backing);
             if (backing->isTypeKnown())
-                localFe->setType(backing->getKnownType());
+                target->setType(backing->getKnownType());
             else
-                localFe->type.invalidate();
-            localFe->data.invalidate();
-            localFe->isNumber = backing->isNumber;
+                target->type.invalidate();
+            target->data.invalidate();
+            target->isNumber = backing->isNumber;
             return;
         }
 
@@ -1000,7 +1076,7 @@ FrameState::storeLocal(uint32 n, bool popGuaranteed, bool typeChange)
             if (fe >= sp)
                 continue;
             if (fe->isCopy() && fe->copyOf() == backing)
-                fe->setCopyOf(localFe);
+                fe->setCopyOf(target);
         }
     }
     backing->setNotCopied();
@@ -1010,50 +1086,48 @@ FrameState::storeLocal(uint32 n, bool popGuaranteed, bool typeChange)
 
 
 
-    if (backing->trackerIndex() < localFe->trackerIndex())
-        swapInTracker(backing, localFe);
+    if (backing->trackerIndex() < target->trackerIndex())
+        swapInTracker(backing, target);
 
     
 
 
 
     RegisterID reg = tempRegForData(backing);
-    localFe->data.setRegister(reg);
-    regstate[reg].reassociate(localFe);
+    target->data.setRegister(reg);
+    regstate[reg].reassociate(target);
 
     if (typeChange) {
         if (backing->isTypeKnown()) {
-            localFe->setType(backing->getKnownType());
+            target->setType(backing->getKnownType());
         } else {
             RegisterID reg = tempRegForType(backing);
-            localFe->type.setRegister(reg);
-            regstate[reg].reassociate(localFe);
+            target->type.setRegister(reg);
+            regstate[reg].reassociate(target);
         }
     } else {
         if (!wasSynced)
-            masm.storeTypeTag(ImmType(backing->getKnownType()), addressOf(localFe));
-        localFe->type.setMemory();
+            masm.storeTypeTag(ImmType(backing->getKnownType()), addressOf(target));
+        target->type.setMemory();
     }
 
     if (!backing->isTypeKnown())
         backing->type.invalidate();
     backing->data.invalidate();
-    backing->setCopyOf(localFe);
-    backing->isNumber = localFe->isNumber;
-    localFe->setCopied();
+    backing->setCopyOf(target);
+    backing->isNumber = target->isNumber;
 
-    if (!cacheable) {
-        
-        if (!localFe->type.synced())
-            syncType(localFe, addressOf(localFe), masm);
-        if (!localFe->data.synced())
-            syncData(localFe, addressOf(localFe), masm);
-        forgetAllRegs(localFe);
-        localFe->type.setMemory();
-        localFe->data.setMemory();
-    }
+    JS_ASSERT(top->copyOf() == target);
 
-    JS_ASSERT(top->copyOf() == localFe);
+    
+
+
+
+
+
+
+    if (!popGuaranteed || top->isCopy())
+        target->setCopied();
 }
 
 void
@@ -1061,7 +1135,7 @@ FrameState::shimmy(uint32 n)
 {
     JS_ASSERT(sp - n >= spBase);
     int32 depth = 0 - int32(n);
-    storeLocal(uint32(&sp[depth - 1] - locals), true);
+    storeTop(&sp[depth - 1], true);
     popn(n);
 }
 
@@ -1070,7 +1144,7 @@ FrameState::shift(int32 n)
 {
     JS_ASSERT(n < 0);
     JS_ASSERT(sp + n - 1 >= spBase);
-    storeLocal(uint32(&sp[n - 1] - locals), true);
+    storeTop(&sp[n - 1], true);
     pop();
 }
 

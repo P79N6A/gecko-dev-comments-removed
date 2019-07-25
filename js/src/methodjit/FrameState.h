@@ -571,6 +571,7 @@ class FrameState
 
 
     void storeLocal(uint32 n, bool popGuaranteed = false, bool typeChange = true);
+    void storeTop(FrameEntry *target, bool popGuaranteed = false, bool typeChange = true);
 
     
 
@@ -782,6 +783,14 @@ class FrameState
 
 
     FrameEntry *uncopy(FrameEntry *original);
+    FrameEntry *walkTrackerForUncopy(FrameEntry *original);
+    FrameEntry *walkFrameForUncopy(FrameEntry *original);
+
+    
+
+
+
+    void forgetEntry(FrameEntry *fe);
 
     FrameEntry *entryFor(uint32 index) const {
         JS_ASSERT(entries[index].isTracked());
