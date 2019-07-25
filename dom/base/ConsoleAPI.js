@@ -73,9 +73,7 @@ ConsoleAPI.prototype = {
       },
       error: function CA_error() {
         self.notifyObservers(id, "error", arguments);
-      },
-      
-      classID: self.classID
+      }
     };
   },
 

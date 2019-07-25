@@ -94,21 +94,11 @@ function addTab(aURL)
 
 
 
-function testLogEntry(aOutputNode, aMatchString, aSuccessErrObj, aOnlyVisible,
+
+
+function testLogEntry(aOutputNode, aMatchString, aMsg, aOnlyVisible,
                       aFailIfFound)
 {
-  let found = true;
-  let notfound = false;
-  let foundMsg = aSuccessErrObj.success;
-  let notfoundMsg = aSuccessErrObj.err;
-
-  if (aFailIfFound) {
-    found = false;
-    notfound = true;
-    foundMsg = aSuccessErrObj.success;
-    notfoundMsg = aSuccessErrObj.err;
-  }
-
   let selector = ".hud-msg-node";
   
   if (aOnlyVisible) {
@@ -116,14 +106,15 @@ function testLogEntry(aOutputNode, aMatchString, aSuccessErrObj, aOnlyVisible,
   }
 
   let msgs = aOutputNode.querySelectorAll(selector);
+  let found = false;
   for (let i = 0, n = msgs.length; i < n; i++) {
     let message = msgs[i].textContent.indexOf(aMatchString);
     if (message > -1) {
-      ok(found, foundMsg);
-      return;
+      found = true;
+      break;
     }
   }
-  ok(notfound, notfoundMsg);
+  is(found, !aFailIfFound, aMsg);
 }
 
 function openConsole()

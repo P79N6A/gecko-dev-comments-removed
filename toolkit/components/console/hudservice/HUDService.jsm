@@ -2734,10 +2734,19 @@ HUD_SERVICE.prototype =
 
     
     
-    let consoleObject = aContentWindow.wrappedJSObject.console;
-    if (consoleObject && consoleObject.classID != CONSOLEAPI_CLASS_ID) {
+    
+    let consoleObject = unwrap(aContentWindow).console;
+    let consoleGlobal = Cu.getGlobalForObject(consoleObject);
+
+    let nativeConsoleObj = Cc["@mozilla.org/console-api;1"].
+                           createInstance(Ci.nsIDOMGlobalPropertyInitializer).
+                           init(aContentWindow);
+    let nativeConsoleGlobal = Cu.getGlobalForObject(nativeConsoleObj);
+
+    
+    
+    if (consoleGlobal !== nativeConsoleGlobal)
       this.logWarningAboutReplacedAPI(hudId);
-    }
 
     
     this.createController(xulWindow);
