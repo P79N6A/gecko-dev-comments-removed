@@ -128,14 +128,16 @@ AsyncStatementParams::NewResolve(
   NS_ENSURE_TRUE(mStatement, NS_ERROR_NOT_INITIALIZED);
   
   
-  
 
-  PRUint32 idx;
-
+  bool resolved = false;
+  PRBool ok = PR_TRUE;
   if (JSVAL_IS_INT(aId)) {
-    idx = JSVAL_TO_INT(aId);
+    PRUint32 idx = JSVAL_TO_INT(aId);
     
     
+    ok = ::JS_DefineElement(aCtx, aScopeObj, idx, JSVAL_VOID, nsnull,
+                            nsnull, 0);
+    resolved = true;
   }
   else if (JSVAL_IS_STRING(aId)) {
     JSString *str = JSVAL_TO_STRING(aId);
@@ -145,19 +147,13 @@ AsyncStatementParams::NewResolve(
     
     
     
-    *_retval = ::JS_DefineUCProperty(aCtx, aScopeObj, nameChars, nameLength,
-                                     JSVAL_VOID, nsnull, nsnull, 0);
-    NS_ENSURE_TRUE(*_retval, NS_OK);
-  }
-  else {
-    
-    return NS_OK;
+    ok = ::JS_DefineUCProperty(aCtx, aScopeObj, nameChars, nameLength,
+                               JSVAL_VOID, nsnull, nsnull, 0);
+    resolved = true;
   }
 
-  *_retval = ::JS_DefineElement(aCtx, aScopeObj, idx, JSVAL_VOID, nsnull,
-                                nsnull, 0);
-  if (*_retval)
-    *_objp = aScopeObj;
+  *_retval = ok;
+  *_objp = resolved && ok ? aScopeObj : nsnull;
   return NS_OK;
 }
 
