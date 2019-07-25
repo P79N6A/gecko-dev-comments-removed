@@ -495,9 +495,12 @@ public:
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  nsresult DoDatabaseWork(mozIStorageConnection* aConnection);
   nsresult GetSuccessResult(JSContext* aCx,
                             jsval* aVal);
+
+protected:
+  nsresult DoDatabaseWork(mozIStorageConnection* aConnection);
+  nsresult Init();
 
   
   
@@ -553,6 +556,8 @@ OpenDatabaseHelper::DoDatabaseWork()
                  "Running on the wrong thread!");
   }
 #endif
+
+  mState = eFiringEvents; 
 
   if (IndexedDatabaseManager::IsShuttingDown()) {
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
@@ -646,9 +651,10 @@ OpenDatabaseHelper::DoDatabaseWork()
     return NS_ERROR_DOM_INDEXEDDB_VERSION_ERR;
   }
 
-  mState = mCurrentVersion != mRequestedVersion ?
-           eSetVersionPending :
-           eFiringEvents;
+  if (mCurrentVersion != mRequestedVersion) {
+    mState = eSetVersionPending;
+  }
+
   return NS_OK;
 }
 
@@ -684,6 +690,7 @@ OpenDatabaseHelper::StartSetVersion()
   
   
   mState = eSetVersionPending;
+
   return NS_OK;
 }
 
@@ -711,6 +718,12 @@ OpenDatabaseHelper::Run()
                  mState == eSetVersionCompleted, "Why are we here?");
 
     if (mState == eSetVersionCompleted) {
+      
+      
+      
+      
+      mDatabase->ExitSetVersionTransaction();
+
       mState = eFiringEvents;
     } else {
       
@@ -866,6 +879,15 @@ OpenDatabaseHelper::NotifySetVersionFinished()
 }
 
 void
+OpenDatabaseHelper::BlockDatabase()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  NS_ASSERTION(mDatabase, "This is going bad fast.");
+
+  mDatabase->EnterSetVersionTransaction();
+}
+
+void
 OpenDatabaseHelper::DispatchSuccessEvent()
 {
   NS_ASSERTION(mDatabase, "Doesn't seem very successful to me.");
@@ -915,6 +937,15 @@ OpenDatabaseHelper::ReleaseMainThreadObjects()
 }
 
 NS_IMPL_ISUPPORTS_INHERITED0(SetVersionHelper, AsyncConnectionHelper);
+
+nsresult
+SetVersionHelper::Init()
+{
+  
+  mOpenHelper->BlockDatabase();
+
+  return NS_OK;
+}
 
 nsresult
 SetVersionHelper::DoDatabaseWork(mozIStorageConnection* aConnection)

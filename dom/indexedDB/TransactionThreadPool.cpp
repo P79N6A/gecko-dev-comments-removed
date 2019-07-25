@@ -238,7 +238,6 @@ TransactionThreadPool::FinishTransaction(IDBTransaction* aTransaction)
 
 #ifdef DEBUG
   if (aTransaction->mMode == IDBTransaction::VERSION_CHANGE) {
-    NS_ASSERTION(dbTransactionInfo->locked, "Should be locked!");
     NS_ASSERTION(transactionCount == 1,
                  "More transactions running than should be!");
   }
@@ -344,10 +343,6 @@ TransactionThreadPool::TransactionCanRun(IDBTransaction* aTransaction,
   PRUint32 transactionCount = transactionsInProgress.Length();
   NS_ASSERTION(transactionCount, "Should never be 0!");
 
-  if (mode == IDBTransaction::VERSION_CHANGE) {
-    dbTransactionInfo->lockPending = true;
-  }
-
   for (PRUint32 index = 0; index < transactionCount; index++) {
     
     const TransactionInfo& info = transactionsInProgress[index];
@@ -358,11 +353,7 @@ TransactionThreadPool::TransactionCanRun(IDBTransaction* aTransaction,
     }
   }
 
-  if (dbTransactionInfo->locked || dbTransactionInfo->lockPending) {
-    *aCanRun = false;
-    *aExistingQueue = nsnull;
-    return NS_OK;
-  }
+  NS_ASSERTION(mode != IDBTransaction::VERSION_CHANGE, "How did we get here?");
 
   bool writeOverlap;
   nsresult rv =
@@ -446,11 +437,6 @@ TransactionThreadPool::Dispatch(IDBTransaction* aTransaction,
     
     autoDBTransactionInfo = new DatabaseTransactionInfo();
     dbTransactionInfo = autoDBTransactionInfo;
-  }
-
-  if (aTransaction->mMode == IDBTransaction::VERSION_CHANGE) {
-    NS_ASSERTION(!dbTransactionInfo->locked, "Already locked?!");
-    dbTransactionInfo->locked = true;
   }
 
   const nsTArray<nsString>& objectStoreNames = aTransaction->mObjectStoreNames;
