@@ -84,7 +84,7 @@ public:
 
 
   virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                                 const nsAString* aValue, bool aNotify);
+                                 const nsAttrValue* aValue, bool aNotify);
   
 
 
