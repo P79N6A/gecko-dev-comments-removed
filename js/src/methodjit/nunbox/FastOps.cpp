@@ -345,6 +345,10 @@ mjit::Compiler::jsop_relational(JSOp op, BoolStub stub, jsbytecode *target, JSOp
                                     : Assembler::NonZero;
         j = stubcc.masm.branchTest32(cond, Registers::ReturnReg, Registers::ReturnReg);
         stubcc.jumpInScript(j, target);
+
+        
+        j = stubcc.masm.jump();
+        stubcc.crossJump(j, masm.label());
         JaegerSpew(JSpew_Insns, " ---- END SLOW RESTORE CODE ---- \n");
     } else {
         
