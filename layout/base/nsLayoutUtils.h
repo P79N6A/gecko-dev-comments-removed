@@ -704,8 +704,8 @@ public:
   };
 
   struct RectAccumulator : public RectCallback {
-    nsRect       mResultRect;
-    nsRect       mFirstRect;
+    nsRect mResultRect;
+    nsRect mFirstRect;
     bool mSeenFirstRect;
 
     RectAccumulator();
@@ -723,7 +723,13 @@ public:
 
   static nsIFrame* GetContainingBlockForClientRect(nsIFrame* aFrame);
 
+  enum {
+    RECTS_ACCOUNT_FOR_TRANSFORMS = 0x01
+  };
   
+
+
+
 
 
 
@@ -733,13 +739,17 @@ public:
 
 
   static void GetAllInFlowRects(nsIFrame* aFrame, nsIFrame* aRelativeTo,
-                                RectCallback* aCallback);
+                                RectCallback* aCallback, PRUint32 aFlags = 0);
 
   
 
 
 
-  static nsRect GetAllInFlowRectsUnion(nsIFrame* aFrame, nsIFrame* aRelativeTo);
+
+
+
+  static nsRect GetAllInFlowRectsUnion(nsIFrame* aFrame, nsIFrame* aRelativeTo,
+                                       PRUint32 aFlags = 0);
 
   enum {
     EXCLUDE_BLUR_SHADOWS = 0x01
