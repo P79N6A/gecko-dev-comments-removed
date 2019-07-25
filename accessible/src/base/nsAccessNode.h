@@ -66,9 +66,6 @@ class nsPresContext;
 class nsIFrame;
 class nsIDocShellTreeItem;
 
-typedef nsRefPtrHashtable<nsVoidPtrHashKey, nsAccessNode>
-  nsAccessNodeHashtable;
-
 #define ACCESSIBLE_BUNDLE_URL "chrome://global-platform/locale/accessible.properties"
 #define PLATFORM_KEYS_BUNDLE_URL "chrome://global-platform/locale/platformKeys.properties"
 
@@ -129,15 +126,15 @@ public:
 
     virtual PRBool IsDefunct();
 
-    
+  
 
 
-    virtual nsresult Init();
+  virtual PRBool Init();
 
-    
+  
 
 
-    virtual nsresult Shutdown();
+  virtual void Shutdown();
 
     
 
@@ -184,29 +181,13 @@ public:
 
   PRBool HasWeakShell() const { return !!mWeakShell; }
 
-#ifdef DEBUG
-  
-
-
-  PRBool IsInCache();
-#endif
-
 protected:
-  
-
-
-  nsAccessNode *MakeAccessNode(nsINode *aNode);
-
     nsPresContext* GetPresContext();
 
     void LastRelease();
 
   nsCOMPtr<nsIContent> mContent;
   nsCOMPtr<nsIWeakReference> mWeakShell;
-
-#ifdef DEBUG_A11Y
-    PRBool mIsInitialized;
-#endif
 
     
 

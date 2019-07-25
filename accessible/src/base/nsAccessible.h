@@ -107,7 +107,8 @@ public:
   
   
 
-  virtual nsresult Shutdown();
+  virtual PRBool Init();
+  virtual void Shutdown();
 
   
   
@@ -269,6 +270,13 @@ public:
 
 
   nsAccessible* GetCachedFirstChild();
+
+#ifdef DEBUG
+  
+
+
+  PRBool IsInCache();
+#endif
 
   
   

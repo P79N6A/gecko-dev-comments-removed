@@ -55,7 +55,7 @@ public:
     virtual ~nsApplicationAccessibleWrap();
 
     
-    virtual nsresult Init();
+    virtual PRBool Init();
 
     
     NS_IMETHOD GetNativeInterface(void **aOutAccessible);

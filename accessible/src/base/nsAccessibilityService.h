@@ -203,9 +203,12 @@ public:
 
 
 
-  nsAccessNode* GetCachedAccessNode(nsINode *aNode,
-                                    nsIWeakReference *aShell);
 
+
+  PRBool InitAccessible(nsAccessible *aAccessible,
+                        nsRoleMapEntry *aRoleMapEntry);
+
+protected:
   
 
 
@@ -214,10 +217,8 @@ public:
 
 
 
-
-
-  PRBool InitAccessible(nsAccessible *aAccessible,
-                        nsRoleMapEntry *aRoleMapEntry);
+  nsAccessible *GetCachedAccessible(nsINode *aNode,
+                                    nsIWeakReference *aShell);
 
 private:
   

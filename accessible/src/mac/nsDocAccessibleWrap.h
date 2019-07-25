@@ -48,12 +48,12 @@ public:
                       nsIWeakReference *aShell);
   virtual ~nsDocAccessibleWrap();
 
-    
+  
 
-    
+  
 
 
-    virtual nsresult Init ();
+  virtual PRBoo Init();
 };
 
 #endif

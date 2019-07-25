@@ -434,20 +434,6 @@ nsAccessible::GetKeyboardShortcut(nsAString& aAccessKey)
   return NS_OK;
 }
 
-nsresult
-nsAccessible::Shutdown()
-{
-  
-  
-  InvalidateChildren();
-  if (mParent) {
-    mParent->InvalidateChildren();
-    mParent = nsnull;
-  }
-
-  return nsAccessNodeWrap::Shutdown();
-}
-
 NS_IMETHODIMP
 nsAccessible::GetParent(nsIAccessible **aParent)
 {
@@ -2674,6 +2660,56 @@ nsAccessible::AppendTextTo(nsAString& aText, PRUint32 aStartOffset, PRUint32 aLe
 
 
 
+PRBool
+nsAccessible::Init()
+{
+  if (!nsAccessNodeWrap::Init())
+    return PR_FALSE;
+
+  nsDocAccessible *docAcc =
+    GetAccService()->GetDocAccessible(mContent->GetOwnerDoc());
+  NS_ASSERTION(docAcc, "Cannot cache new nsAccessible!");
+  if (!docAcc)
+    return PR_FALSE;
+
+  void *uniqueID = nsnull;
+  GetUniqueID(&uniqueID);
+
+  if (!docAcc->CacheAccessible(uniqueID, this))
+    return PR_FALSE;
+
+  
+  
+  
+  
+  
+  if (mContent && mContent->IsInAnonymousSubtree()) {
+    nsAccessible *parent = GetAccService()->GetContainerAccessible(mContent,
+                                                                   PR_TRUE);
+    if (parent)
+      parent->EnsureChildren();
+  }
+
+  return PR_TRUE;
+}
+
+void
+nsAccessible::Shutdown()
+{
+  
+  
+  InvalidateChildren();
+  if (mParent) {
+    mParent->InvalidateChildren();
+    mParent = nsnull;
+  }
+
+  nsAccessNodeWrap::Shutdown();
+}
+
+
+
+
 nsresult
 nsAccessible::GetARIAName(nsAString& aName)
 {
@@ -2826,6 +2862,23 @@ nsAccessible::GetCachedFirstChild()
 
   return mChildren.SafeElementAt(0, nsnull);
 }
+
+
+#ifdef DEBUG
+PRBool
+nsAccessible::IsInCache()
+{
+  nsDocAccessible *docAccessible =
+    GetAccService()->GetDocAccessible(mContent->GetOwnerDoc());
+  if (!docAccessible)
+    return nsnull;
+
+  void *uniqueID = nsnull;
+  GetUniqueID(&uniqueID);
+
+  return docAccessible->GetCachedAccessible(uniqueID) ? PR_TRUE : PR_FALSE;
+}
+#endif
 
 
 

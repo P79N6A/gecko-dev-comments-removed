@@ -532,7 +532,7 @@ nsApplicationAccessibleWrap::~nsApplicationAccessibleWrap()
     nsAccessibleWrap::ShutdownAtkObject();
 }
 
-nsresult
+PRBool
 nsApplicationAccessibleWrap::Init()
 {
     

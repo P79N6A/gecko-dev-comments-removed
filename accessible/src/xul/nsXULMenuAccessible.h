@@ -56,7 +56,7 @@ public:
   virtual ~nsXULSelectableAccessible() {}
 
   
-  virtual nsresult Shutdown();
+  virtual void Shutdown();
 
 protected:
   nsresult ChangeSelection(PRInt32 aIndex, PRUint8 aMethod, PRBool *aSelState);
@@ -85,7 +85,7 @@ public:
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
 
   
-  virtual nsresult Init();
+  virtual PRBool Init();
 
   
   virtual nsresult GetNameInternal(nsAString& aName);

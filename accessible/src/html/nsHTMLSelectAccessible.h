@@ -232,7 +232,7 @@ public:
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
-  virtual nsresult Shutdown();
+  virtual void Shutdown();
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);

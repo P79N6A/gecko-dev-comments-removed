@@ -156,7 +156,7 @@ nsOuterDocAccessible::DoAction(PRUint8 aIndex)
 
 
 
-nsresult
+void
 nsOuterDocAccessible::Shutdown()
 {
   
@@ -170,7 +170,7 @@ nsOuterDocAccessible::Shutdown()
 
   nsAccessible::InvalidateChildren();
 
-  return nsAccessibleWrap::Shutdown();
+  nsAccessibleWrap::Shutdown();
 }
 
 

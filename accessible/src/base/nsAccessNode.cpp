@@ -137,61 +137,18 @@ void nsAccessNode::LastRelease()
 
 
 
-nsresult
+PRBool
 nsAccessNode::Init()
 {
-  
-  
-  
-
-#ifdef DEBUG_A11Y
-  NS_ASSERTION(!mIsInitialized, "Initialized twice!");
-#endif
-  nsDocAccessible *docAcc = nsnull;
-  nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
-  if (presShell)
-    docAcc = GetAccService()->GetDocAccessible(presShell->GetDocument());
-
-  NS_ASSERTION(docAcc, "Cannot cache new nsAccessNode");
-  if (!docAcc) {
-#ifdef DEBUG
-    docAcc = GetAccService()->GetDocAccessible(presShell->GetDocument());
-#endif
-    return NS_ERROR_FAILURE;
-  }
-
-  void* uniqueID;
-  GetUniqueID(&uniqueID);
-
-  if (!docAcc->CacheAccessNode(uniqueID, this))
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  
-  
-  
-  if (mContent && mContent->IsInAnonymousSubtree()) {
-    
-    nsAccessible *parent = GetAccService()->GetContainerAccessible(mContent,
-                                                                   PR_TRUE);
-    if (parent)
-      parent->EnsureChildren();
-  }
-
-#ifdef DEBUG_A11Y
-  mIsInitialized = PR_TRUE;
-#endif
-
-  return NS_OK;
+  return PR_TRUE;
 }
 
 
-nsresult
+void
 nsAccessNode::Shutdown()
 {
   mContent = nsnull;
   mWeakShell = nsnull;
-
-  return NS_OK;
 }
 
 
@@ -361,20 +318,6 @@ nsAccessNode::GetFrame()
   return mContent ? mContent->GetPrimaryFrame() : nsnull;
 }
 
-#ifdef DEBUG
-PRBool
-nsAccessNode::IsInCache()
-{
-  nsDocAccessible *docAccessible = nsAccUtils::GetDocAccessibleFor(mWeakShell);
-  if (!docAccessible)
-    return nsnull;
-
-  void* uniqueID = nsnull;
-  GetUniqueID(&uniqueID);
-
-  return docAccessible->GetCachedAccessNode(uniqueID) ? PR_TRUE : PR_FALSE;
-}
-#endif
 
 
 
@@ -389,19 +332,6 @@ nsAccessNode::GetDOMNode(nsIDOMNode **aDOMNode)
   if (node)
     CallQueryInterface(node, aDOMNode);
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccessNode::GetNumChildren(PRInt32 *aNumChildren)
-{
-  NS_ENSURE_ARG_POINTER(aNumChildren);
-  *aNumChildren = 0;
-
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
-  *aNumChildren = GetNode()->GetChildCount();
   return NS_OK;
 }
 
@@ -470,144 +400,6 @@ nsAccessNode::ScrollToPoint(PRUint32 aCoordinateType, PRInt32 aX, PRInt32 aY)
   nsIFrame *parentFrame = frame;
   while ((parentFrame = parentFrame->GetParent()))
     nsCoreUtils::ScrollFrameToPoint(parentFrame, frame, coords);
-
-  return NS_OK;
-}
-
-
-nsAccessNode *
-nsAccessNode::MakeAccessNode(nsINode *aNode)
-{
-  nsAccessNode *accessNode = GetAccService()->GetCachedAccessNode(aNode,
-                                                                  mWeakShell);
-
-  if (!accessNode)
-    accessNode = GetAccService()->GetAccessibleInWeakShell(aNode, mWeakShell);
-
-  if (accessNode)
-    return accessNode;
-
-  nsCOMPtr<nsIContent> content(do_QueryInterface(aNode));
-  if (!content)
-    return nsnull;
-
-  nsAccessNode *newAccessNode = new nsAccessNode(content, mWeakShell);
-  if (!newAccessNode)
-    return nsnull;
-
-  
-  if (NS_FAILED(newAccessNode->Init())) {
-    newAccessNode->Shutdown();
-    delete newAccessNode;
-    return nsnull;
-  }
-
-  return newAccessNode;
-}
-
-NS_IMETHODIMP
-nsAccessNode::GetFirstChildNode(nsIAccessNode **aAccessNode)
-{
-  NS_ENSURE_ARG_POINTER(aAccessNode);
-  *aAccessNode = nsnull;
-
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
-  nsIContent* childNode = GetNode()->GetChildAt(0);
-  if (childNode)
-    NS_IF_ADDREF(*aAccessNode = MakeAccessNode(childNode));
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccessNode::GetLastChildNode(nsIAccessNode **aAccessNode)
-{
-  NS_ENSURE_ARG_POINTER(aAccessNode);
-  *aAccessNode = nsnull;
-
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
-  PRUint32 childCount = GetNode()->GetChildCount();
-  nsIContent* childNode = GetNode()->GetChildAt(childCount - 1);
-  if (childNode)
-    NS_IF_ADDREF(*aAccessNode = MakeAccessNode(childNode));
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccessNode::GetParentNode(nsIAccessNode **aAccessNode)
-{
-  NS_ENSURE_ARG_POINTER(aAccessNode);
-  *aAccessNode = nsnull;
-
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
-  nsINode* parentNode = GetNode()->GetNodeParent();
-  if (parentNode)
-    NS_IF_ADDREF(*aAccessNode = MakeAccessNode(parentNode));
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccessNode::GetPreviousSiblingNode(nsIAccessNode **aAccessNode)
-{
-  NS_ENSURE_ARG_POINTER(aAccessNode);
-  *aAccessNode = nsnull;
-
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
-  nsINode* parentNode = GetNode()->GetNodeParent();
-  PRInt32 indexOf = parentNode->IndexOf(GetNode());
-  if (indexOf == -1)
-    return NS_OK;
-
-  nsIContent *siblingNode = parentNode->GetChildAt(indexOf - 1);
-  if (siblingNode)
-    NS_IF_ADDREF(*aAccessNode = MakeAccessNode(siblingNode));
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccessNode::GetNextSiblingNode(nsIAccessNode **aAccessNode)
-{
-  NS_ENSURE_ARG_POINTER(aAccessNode);
-  *aAccessNode = nsnull;
-
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
-  nsINode* parentNode = GetNode()->GetNodeParent();
-  PRInt32 indexOf = parentNode->IndexOf(GetNode());
-  if (indexOf == -1)
-    return NS_OK;
-
-  nsIContent *siblingNode = parentNode->GetChildAt(indexOf + 1);
-  if (siblingNode)
-    NS_IF_ADDREF(*aAccessNode = MakeAccessNode(siblingNode));
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsAccessNode::GetChildNodeAt(PRInt32 aChildNum, nsIAccessNode **aAccessNode)
-{
-  NS_ENSURE_ARG_POINTER(aAccessNode);
-  *aAccessNode = nsnull;
-
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
-  nsIContent* childNode = GetNode()->GetChildAt(aChildNum);
-  if (childNode)
-    NS_IF_ADDREF(*aAccessNode = MakeAccessNode(childNode));
 
   return NS_OK;
 }

@@ -781,13 +781,13 @@ nsAccessibilityService::CreateHTMLCaptionAccessible(nsIFrame *aFrame,
 }
 
 
-nsAccessNode*
-nsAccessibilityService::GetCachedAccessNode(nsINode *aNode,
+nsAccessible *
+nsAccessibilityService::GetCachedAccessible(nsINode *aNode,
                                             nsIWeakReference *aWeakShell)
 {
-  nsDocAccessible *docAccessible = nsAccUtils::GetDocAccessibleFor(aWeakShell);
+  nsDocAccessible *docAccessible = GetDocAccessible(aNode->GetOwnerDoc());
   return docAccessible ?
-    docAccessible->GetCachedAccessNode(static_cast<void*>(aNode)) : nsnull;
+    docAccessible->GetCachedAccessible(static_cast<void*>(aNode)) : nsnull;
 }
 
 
@@ -1072,10 +1072,7 @@ nsAccessibilityService::GetContainerAccessible(nsINode *aNode,
 
     } else {
       
-      nsRefPtr<nsAccessible> cachedAcc =
-        do_QueryObject(GetCachedAccessNode(currNode, weakShell));
-
-      accessible = cachedAcc;
+      accessible = GetCachedAccessible(currNode, weakShell);
     }
   }
 
@@ -1099,8 +1096,8 @@ nsAccessibilityService::InitAccessible(nsAccessible *aAccessible,
   if (!aAccessible)
     return PR_FALSE;
 
-  nsresult rv = aAccessible->Init(); 
-  if (NS_FAILED(rv)) {
+  
+  if (!aAccessible->Init()) {
     NS_ERROR("Failed to initialize an accessible!");
 
     aAccessible->Shutdown();
@@ -1148,24 +1145,17 @@ nsAccessibilityService::GetAccessible(nsINode *aNode,
                                       nsIWeakReference *aWeakShell,
                                       PRBool *aIsHidden)
 {
-  if (!aPresShell || !aWeakShell || gIsShutdown)
+  if (!aPresShell || !aWeakShell || !aNode || gIsShutdown)
     return nsnull;
-
-  NS_ASSERTION(aNode, "GetAccessible() called with no node.");
 
   if (aIsHidden)
     *aIsHidden = PR_FALSE;
 
   
-  nsAccessNode* cachedAccessNode = GetCachedAccessNode(aNode, aWeakShell);
-  if (cachedAccessNode) {
-    
-    
-    
-    nsRefPtr<nsAccessible> cachedAccessible = do_QueryObject(cachedAccessNode);
-
-    if (cachedAccessible)
-      return cachedAccessible.forget();
+  nsAccessible *cachedAccessible = GetCachedAccessible(aNode, aWeakShell);
+  if (cachedAccessible) {
+    NS_ADDREF(cachedAccessible);
+    return cachedAccessible;
   }
 
   
@@ -1611,13 +1601,8 @@ nsAccessibilityService::GetAreaAccessible(nsIFrame *aImageFrame,
 
   
   
-  nsRefPtr<nsAccessible> imageAcc;
-
-  nsAccessNode *cachedImgAcc = GetCachedAccessNode(aImageFrame->GetContent(),
-                                                   aWeakShell);
-  if (cachedImgAcc)
-    imageAcc = do_QueryObject(cachedImgAcc);
-
+  nsRefPtr<nsAccessible> imageAcc =
+    GetCachedAccessible(aImageFrame->GetContent(), aWeakShell);
   if (!imageAcc) {
     nsCOMPtr<nsIAccessible> imageAccessible;
     CreateHTMLImageAccessible(aImageFrame,
@@ -1632,12 +1617,9 @@ nsAccessibilityService::GetAreaAccessible(nsIFrame *aImageFrame,
   
   imageAcc->EnsureChildren();
 
-  nsAccessNode *cachedAreaAcc = GetCachedAccessNode(aAreaNode, aWeakShell);
-  if (!cachedAreaAcc)
-    return nsnull;
-
-  nsRefPtr<nsAccessible> areaAcc = do_QueryObject(cachedAreaAcc);
-  return areaAcc.forget();
+  nsAccessible *cachedAreaAcc = GetCachedAccessible(aAreaNode, aWeakShell);
+  NS_IF_ADDREF(cachedAreaAcc);
+  return cachedAreaAcc;
 }
 
 already_AddRefed<nsAccessible>

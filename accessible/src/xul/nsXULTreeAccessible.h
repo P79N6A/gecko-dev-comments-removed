@@ -80,7 +80,7 @@ public:
 
   
   virtual PRBool IsDefunct();
-  virtual nsresult Shutdown();
+  virtual void Shutdown();
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
@@ -195,7 +195,7 @@ public:
 
   
   virtual PRBool IsDefunct();
-  virtual nsresult Shutdown();
+  virtual void Shutdown();
 
   
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
@@ -259,8 +259,8 @@ public:
 
   
   virtual PRBool IsDefunct();
-  virtual nsresult Init();
-  virtual nsresult Shutdown();
+  virtual PRBool Init();
+  virtual void Shutdown();
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);

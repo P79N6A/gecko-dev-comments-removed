@@ -98,8 +98,8 @@ public:
   NS_IMETHOD GetURI(PRInt32 i, nsIURI **aURI);
 
   
-  virtual nsresult Init();
-  virtual nsresult Shutdown();
+  virtual PRBool Init();
+  virtual void Shutdown();
 
   
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);

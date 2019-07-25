@@ -54,12 +54,11 @@ nsHTMLWin32ObjectOwnerAccessible::
 
 
 
-nsresult
+void
 nsHTMLWin32ObjectOwnerAccessible::Shutdown()
 {
   nsAccessibleWrap::Shutdown();
   mNativeAccessible = nsnull;
-  return NS_OK;
 }
 
 

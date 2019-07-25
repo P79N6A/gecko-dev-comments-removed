@@ -75,7 +75,7 @@ class nsAccessibleWrap : public nsAccessible
     
     void GetNativeWindow (void **aOutNativeWindow);
     
-    virtual nsresult Shutdown ();
+    virtual void Shutdown ();
     virtual void InvalidateChildren();
 
     virtual nsresult HandleAccEvent(nsAccEvent *aEvent);

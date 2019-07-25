@@ -101,8 +101,8 @@ public:
   NS_DECL_NSIDOCUMENTOBSERVER
 
   
-  virtual nsresult Init();
-  virtual nsresult Shutdown();
+  virtual PRBool Init();
+  virtual void Shutdown();
   virtual nsIFrame* GetFrame();
   virtual PRBool IsDefunct();
   virtual nsINode* GetNode() const { return mDocument; }
@@ -187,7 +187,7 @@ public:
 
 
 
-  nsAccessNode* GetCachedAccessNode(void *aUniqueID);
+  nsAccessible* GetCachedAccessible(void *aUniqueID);
 
   
 
@@ -197,12 +197,12 @@ public:
 
 
 
-  PRBool CacheAccessNode(void *aUniqueID, nsAccessNode *aAccessNode);
+  PRBool CacheAccessible(void *aUniqueID, nsAccessible *aAccessible);
 
   
 
 
-  void RemoveAccessNodeFromCache(nsIAccessNode *aAccessNode);
+  void RemoveAccessNodeFromCache(nsAccessible *aAccessible);
 
   
 
@@ -317,7 +317,11 @@ protected:
 
   void FireValueChangeForTextFields(nsAccessible *aAccessible);
 
-    nsAccessNodeHashtable mAccessNodeCache;
+  
+
+
+  nsAccessibleHashtable mAccessibleCache;
+
     void *mWnd;
     nsCOMPtr<nsIDocument> mDocument;
     nsCOMPtr<nsITimer> mScrollWatchTimer;

@@ -67,7 +67,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
 
   
-  virtual nsresult Init();
+  virtual PRBool Init();
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
