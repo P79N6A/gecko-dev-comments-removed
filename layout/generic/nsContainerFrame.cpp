@@ -1375,21 +1375,14 @@ nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
 
 
 
-nsresult
+void
 nsContainerFrame::SetOverflowFrames(nsPresContext* aPresContext,
                                     const nsFrameList& aOverflowFrames)
 {
   NS_PRECONDITION(aOverflowFrames.NotEmpty(), "Shouldn't be called");
   nsFrameList* newList = new nsFrameList(aOverflowFrames);
-  if (!newList) {
-    
-    
-    
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
 
   aPresContext->PropertyTable()->Set(this, OverflowProperty(), newList);
-  return NS_OK;
 }
 
 nsFrameList*

@@ -402,8 +402,8 @@ protected:
   
 
 
-  nsresult SetOverflowFrames(nsPresContext*  aPresContext,
-                             const nsFrameList& aOverflowFrames);
+  void SetOverflowFrames(nsPresContext*  aPresContext,
+                         const nsFrameList& aOverflowFrames);
 
   
 
