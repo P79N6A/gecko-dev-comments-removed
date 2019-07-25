@@ -721,7 +721,7 @@ NotifyAlarmFired()
 }
 
 bool
-SetAlarm(long aSeconds, long aNanoseconds)
+SetAlarm(PRInt32 aSeconds, PRInt32 aNanoseconds)
 {
   
   MOZ_ASSERT(sAlarmObserver);

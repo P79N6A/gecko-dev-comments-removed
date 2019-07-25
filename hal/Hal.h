@@ -400,7 +400,7 @@ void NotifyAlarmFired();
 
 
 
-bool SetAlarm(long aSeconds, long aNanoseconds);
+bool SetAlarm(PRInt32 aSeconds, PRInt32 aNanoseconds);
 
 } 
 } 
