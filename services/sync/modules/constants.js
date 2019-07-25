@@ -44,7 +44,7 @@ WEAVE_ID:                              "@weave_id@",
 
 
 
-STORAGE_VERSION:                       2,
+STORAGE_VERSION:                       3,
 
 UPDATED_DEV_URL:                       "https://services.mozilla.com/sync/updated/?version=@weave_version@&channel=@xpi_type@",
 UPDATED_REL_URL:                       "http://www.mozilla.com/firefox/sync/updated.html",

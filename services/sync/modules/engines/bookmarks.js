@@ -756,11 +756,11 @@ BookmarksStore.prototype = {
   },
 
   
-  createRecord: function createRecord(guid) {
+  createRecord: function createRecord(guid, uri) {
     let placeId = idForGUID(guid);
     let record;
     if (placeId <= 0) { 
-      record = new PlacesItem();
+      record = new PlacesItem(uri);
       record.deleted = true;
       return record;
     }
@@ -770,14 +770,14 @@ BookmarksStore.prototype = {
     case this._bms.TYPE_BOOKMARK:
       let bmkUri = this._bms.getBookmarkURI(placeId).spec;
       if (this._ms && this._ms.hasMicrosummary(placeId)) {
-        record = new BookmarkMicsum();
+        record = new BookmarkMicsum(uri);
         let micsum = this._ms.getMicrosummary(placeId);
         record.generatorUri = micsum.generator.uri.spec; 
         record.staticTitle = this._getStaticTitle(placeId);
       }
       else {
         if (bmkUri.search(/^place:/) == 0) {
-          record = new BookmarkQuery();
+          record = new BookmarkQuery(uri);
 
           
           let folder = bmkUri.match(/[:&]folder=(\d+)/);
@@ -792,7 +792,7 @@ BookmarksStore.prototype = {
           catch(ex) {}
         }
         else
-          record = new Bookmark();
+          record = new Bookmark(uri);
         record.title = this._bms.getItemTitle(placeId);
       }
 
@@ -806,7 +806,7 @@ BookmarksStore.prototype = {
 
     case this._bms.TYPE_FOLDER:
       if (this._ls.isLivemark(placeId)) {
-        record = new Livemark();
+        record = new Livemark(uri);
 
         let siteURI = this._ls.getSiteURI(placeId);
         if (siteURI != null)
@@ -814,7 +814,7 @@ BookmarksStore.prototype = {
         record.feedUri = this._ls.getFeedURI(placeId).spec;
 
       } else {
-        record = new BookmarkFolder();
+        record = new BookmarkFolder(uri);
       }
 
       record.parentName = Svc.Bookmark.getItemTitle(parent);
@@ -823,19 +823,19 @@ BookmarksStore.prototype = {
       break;
 
     case this._bms.TYPE_SEPARATOR:
-      record = new BookmarkSeparator();
+      record = new BookmarkSeparator(uri);
       
       record.parentName = Svc.Bookmark.getItemTitle(parent);
       record.pos = Svc.Bookmark.getItemIndex(placeId);
       break;
 
     case this._bms.TYPE_DYNAMIC_CONTAINER:
-      record = new PlacesItem();
+      record = new PlacesItem(uri);
       this._log.warn("Don't know how to serialize dynamic containers yet");
       break;
 
     default:
-      record = new PlacesItem();
+      record = new PlacesItem(uri);
       this._log.warn("Unknown item type, cannot serialize: " +
                      this._bms.getItemType(placeId));
     }
