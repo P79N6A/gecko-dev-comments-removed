@@ -1973,21 +1973,22 @@ var FormHelperUI = {
       x *= browser.scale;
       y *= browser.scale;
 
-      let scroll = browser.getPosition(scrollX, scrollY);
-      let vis = new Rect(scroll.x, scroll.y, window.innerWidth, window.innerHeight);
+      let scroll = browser.getPosition();
 
       
       
       if (enableZoom && browser.scale != zoomLevel) {
         
         let zoomRatio = zoomLevel / browser.scale;
-        let newVisW = vis.width / zoomRatio, newVisH = vis.height / zoomRatio;
+
+        let visW = window.innerWidth, visH = window.innerHeight;
+        let newVisW = visW / zoomRatio, newVisH = visH / zoomRatio;
         let zoomRect = new Rect(x, y, newVisW, newVisH);
 
         Browser.animatedZoomTo(zoomRect);
       }
       else { 
-        browser.scrollBy(x - vis.x, y - vis.y);
+        browser.scrollTo(x, y);
       }
     }
   },
