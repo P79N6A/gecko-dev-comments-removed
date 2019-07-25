@@ -32,9 +32,14 @@
 
 
 
-function Benchmark(name, run) {
+
+
+
+function Benchmark(name, run, setup, tearDown) {
   this.name = name;
   this.run = run;
+  this.Setup = setup ? setup : function() { };
+  this.TearDown = tearDown ? tearDown : function() { };
 }
 
 
@@ -73,7 +78,24 @@ BenchmarkSuite.suites = [];
 
 
 
-BenchmarkSuite.version = '1';
+BenchmarkSuite.version = '5';
+
+
+
+
+Math.random = (function() {
+  var seed = 49734321;
+  return function() {
+    
+    seed = ((seed + 0x7ed55d16) + (seed << 12))  & 0xffffffff;
+    seed = ((seed ^ 0xc761c23c) ^ (seed >>> 19)) & 0xffffffff;
+    seed = ((seed + 0x165667b1) + (seed << 5))   & 0xffffffff;
+    seed = ((seed + 0xd3a2646c) ^ (seed << 9))   & 0xffffffff;
+    seed = ((seed + 0xfd7046c5) + (seed << 3))   & 0xffffffff;
+    seed = ((seed ^ 0xb55a4f09) ^ (seed >>> 16)) & 0xffffffff;
+    return (seed & 0xfffffff) / 0x10000000;
+  };
+})();
 
 
 
@@ -96,13 +118,14 @@ BenchmarkSuite.RunSuites = function(runner) {
         continuation = suite.RunStep(runner);
       }
       if (continuation && typeof window != 'undefined' && window.setTimeout) {
-        window.setTimeout(RunStep, 100);
+        window.setTimeout(RunStep, 25);
         return;
       }
     }
     if (runner.NotifyScore) {
       var score = BenchmarkSuite.GeometricMean(BenchmarkSuite.scores);
-      runner.NotifyScore(Math.round(100 * score));
+      var formatted = BenchmarkSuite.FormatScore(100 * score);
+      runner.NotifyScore(formatted);
     }
   }
   RunStep();
@@ -133,6 +156,16 @@ BenchmarkSuite.GeometricMean = function(numbers) {
 
 
 
+BenchmarkSuite.FormatScore = function(value) {
+  if (value > 100) {
+    return value.toFixed(0);
+  } else {
+    return value.toPrecision(3);
+  }
+}
+
+
+
 BenchmarkSuite.prototype.NotifyStep = function(result) {
   this.results.push(result);
   if (this.runner.NotifyStep) this.runner.NotifyStep(result.benchmark.name);
@@ -146,14 +179,26 @@ BenchmarkSuite.prototype.NotifyResult = function() {
   var score = this.reference / mean;
   BenchmarkSuite.scores.push(score);
   if (this.runner.NotifyResult) {
-    this.runner.NotifyResult(this.name, Math.round(100 * score));
+    var formatted = BenchmarkSuite.FormatScore(100 * score);
+    this.runner.NotifyResult(this.name, formatted);
+  }
+}
+
+
+
+BenchmarkSuite.prototype.NotifyError = function(error) {
+  if (this.runner.NotifyError) {
+    this.runner.NotifyError(this.name, error);
+  }
+  if (this.runner.NotifyStep) {
+    this.runner.NotifyStep(this.name);
   }
 }
 
 
 
 
-BenchmarkSuite.prototype.RunSingle = function(benchmark) {
+BenchmarkSuite.prototype.RunSingleBenchmark = function(benchmark) {
   var elapsed = 0;
   var start = new Date();
   for (var n = 0; elapsed < 1000; n++) {
@@ -175,13 +220,46 @@ BenchmarkSuite.prototype.RunStep = function(runner) {
   var length = this.benchmarks.length;
   var index = 0;
   var suite = this;
-  function RunNext() {
+
+  
+  
+  
+
+  function RunNextSetup() {
     if (index < length) {
-      suite.RunSingle(suite.benchmarks[index++]);
-      return RunNext;
+      try {
+        suite.benchmarks[index].Setup();
+      } catch (e) {
+        suite.NotifyError(e);
+        return null;
+      }
+      return RunNextBenchmark;
     }
     suite.NotifyResult();
     return null;
   }
-  return RunNext();
+
+  function RunNextBenchmark() {
+    try {
+      suite.RunSingleBenchmark(suite.benchmarks[index]);
+    } catch (e) {
+      suite.NotifyError(e);
+      return null;
+    }
+    return RunNextTearDown;
+  }
+
+  function RunNextTearDown() {
+    try {
+      suite.benchmarks[index++].TearDown();
+    } catch (e) {
+      suite.NotifyError(e);
+      return null;
+    }
+    return RunNextSetup;
+  }
+
+  
+  return RunNextSetup();
 }
+
