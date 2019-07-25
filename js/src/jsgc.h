@@ -520,8 +520,9 @@ struct MarkingDelay {
 
 
 struct ChunkInfo {
-    Chunk           *link;
     JSRuntime       *runtime;
+    Chunk           *next;
+    Chunk           **prevp;
     ArenaHeader     *emptyArenaListHead;
     size_t          age;
     size_t          numFree;
@@ -619,10 +620,24 @@ struct Chunk {
         return (addr & GC_CHUNK_MASK) >> ArenaShift;
     }
 
+    uintptr_t address() const {
+        uintptr_t addr = reinterpret_cast<uintptr_t>(this);
+        JS_ASSERT(!(addr & GC_CHUNK_MASK));
+        return addr;
+    }
+
     void init(JSRuntime *rt);
-    bool unused();
-    bool hasAvailableArenas();
-    bool withinArenasRange(Cell *cell);
+
+    bool unused() const {
+        return info.numFree == ArenasPerChunk;
+    }
+
+    bool hasAvailableArenas() const {
+        return info.numFree > 0;
+    }
+
+    inline void addToAvailableList(JSCompartment *compartment);
+    inline void removeFromAvailableList();
 
     template <size_t thingSize>
     ArenaHeader *allocateArena(JSContext *cx, unsigned thingKind);
@@ -758,8 +773,7 @@ Cell::compartment() const
 
 
 
-const size_t GC_ARENA_ALLOCATION_TRIGGER = 30 * js::GC_CHUNK_SIZE;
-
+const size_t GC_ALLOCATION_THRESHOLD = 30 * 1024 * 1024;
 
 
 
@@ -1008,9 +1022,17 @@ struct FreeLists {
 extern void *
 RefillFinalizableFreeList(JSContext *cx, unsigned thingKind);
 
-} 
 
-typedef Vector<gc::Chunk *, 32, SystemAllocPolicy> GCChunks;
+
+
+
+
+const size_t INITIAL_CHUNK_CAPACITY = 16 * 1024 * 1024 / GC_CHUNK_SIZE;
+
+
+const size_t MAX_EMPTY_CHUNK_AGE = 4;
+
+} 
 
 struct GCPtrHasher
 {
@@ -1378,6 +1400,7 @@ struct LargeMarkItem
 static const size_t OBJECT_MARK_STACK_SIZE = 32768 * sizeof(JSObject *);
 static const size_t ROPES_MARK_STACK_SIZE = 1024 * sizeof(JSString *);
 static const size_t XML_MARK_STACK_SIZE = 1024 * sizeof(JSXML *);
+static const size_t TYPE_MARK_STACK_SIZE = 1024 * sizeof(types::TypeObject *);
 static const size_t LARGE_MARK_STACK_SIZE = 64 * sizeof(LargeMarkItem);
 static const size_t IONCODE_MARK_STACK_SIZE = 1024 * sizeof(ion::IonCode *);
 
@@ -1402,6 +1425,7 @@ struct GCMarker : public JSTracer {
 
     MarkStack<JSObject *> objStack;
     MarkStack<JSRope *> ropeStack;
+    MarkStack<types::TypeObject *> typeStack;
     MarkStack<JSXML *> xmlStack;
     MarkStack<LargeMarkItem> largeStack;
     MarkStack<ion::IonCode *> ionCodeStack;
@@ -1427,9 +1451,10 @@ struct GCMarker : public JSTracer {
     bool isMarkStackEmpty() {
         return objStack.isEmpty() &&
                ropeStack.isEmpty() &&
+               typeStack.isEmpty() &&
                xmlStack.isEmpty() &&
                largeStack.isEmpty() &&
-	       ionCodeStack.isEmpty();
+               ionCodeStack.isEmpty();
     }
 
     JS_FRIEND_API(void) drainMarkStack();
@@ -1444,13 +1469,18 @@ struct GCMarker : public JSTracer {
             delayMarkingChildren(rope);
     }
 
+    void pushType(types::TypeObject *type) {
+        if (!typeStack.push(type))
+            delayMarkingChildren(type);
+    }
+
     void pushXML(JSXML *xml) {
         if (!xmlStack.push(xml))
             delayMarkingChildren(xml);
     }
 
     void pushIonCode(ion::IonCode *code) {
-	if (!ionCodeStack.push(code))
+        if (!ionCodeStack.push(code))
             delayMarkingChildren(code);
     }
 };
@@ -1484,13 +1514,6 @@ IterateCells(JSContext *cx, JSCompartment *compartment, gc::FinalizeKind thingKi
 
 extern void
 js_FinalizeStringRT(JSRuntime *rt, JSString *str);
-
-
-
-
-
-extern void
-js_MarkTraps(JSTracer *trc);
 
 
 

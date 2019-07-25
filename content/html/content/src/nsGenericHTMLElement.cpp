@@ -77,7 +77,6 @@
 #include "nsDOMError.h"
 #include "nsScriptLoader.h"
 #include "nsRuleData.h"
-#include "nsAHtml5FragmentParser.h"
 
 #include "nsPresState.h"
 #include "nsILayoutHistoryState.h"
@@ -734,8 +733,10 @@ nsGenericHTMLElement::FireMutationEventsForDirectParsing(nsIDocument* aDoc,
     NS_ASSERTION(newChildCount - aOldChildCount >= 0,
                  "What, some unexpected dom mutation has happened?");
     childNodes.SetCapacity(newChildCount - aOldChildCount);
-    for (nsINode::ChildIterator iter(aDest); !iter.IsDone(); iter.Next()) {
-      childNodes.AppendElement(iter);
+    for (nsIContent* child = aDest->GetFirstChild();
+         child;
+         child = child->GetNextSibling()) {
+      childNodes.AppendElement(child);
     }
     nsGenericElement::FireNodeInserted(aDoc, aDest, childNodes);
   }
@@ -1247,6 +1248,7 @@ nsGenericHTMLElement::GetEventListenerManagerForAttr(PRBool* aDefer)
     
     
     
+    
     *aDefer = PR_FALSE;
     if (document &&
         (win = document->GetInnerWindow()) && win->IsInnerWindow()) {
@@ -1449,7 +1451,7 @@ nsGenericHTMLElement::GetFormControlFrame(PRBool aFlushFrames)
 
     
     
-    for (frame = frame->GetFirstChild(nsnull);
+    for (frame = frame->GetFirstPrincipalChild();
          frame;
          frame = frame->GetNextSibling()) {
       form_frame = do_QueryFrame(frame);
@@ -3401,7 +3403,7 @@ nsresult nsGenericHTMLElement::Click()
   
   nsMouseEvent event(nsContentUtils::IsCallerChrome(),
                      NS_MOUSE_CLICK, nsnull, nsMouseEvent::eReal);
-  event.inputSource = nsIDOMNSMouseEvent::MOZ_SOURCE_UNKNOWN;
+  event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
 
   nsEventDispatcher::Dispatch(this, context, &event);
 
@@ -3507,7 +3509,7 @@ nsGenericHTMLElement::PerformAccesskey(PRBool aKeyCausesActivation,
     
     nsMouseEvent event(aIsTrustedEvent, NS_MOUSE_CLICK,
                        nsnull, nsMouseEvent::eReal);
-    event.inputSource = nsIDOMNSMouseEvent::MOZ_SOURCE_KEYBOARD;
+    event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_KEYBOARD;
 
     nsAutoPopupStatePusher popupStatePusher(aIsTrustedEvent ?
                                             openAllowed : openAbused);

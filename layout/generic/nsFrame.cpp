@@ -254,6 +254,16 @@ nsFrame::RootFrameList(nsPresContext* aPresContext, FILE* out, PRInt32 aIndent)
 }
 #endif
 
+static PRBool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
+                                    const nsIFrame* aFrame,
+                                    const nsStyleDisplay* aDisp, 
+                                    nsRect* aRect);
+
+static PRBool ApplyAbsPosClipping(nsDisplayListBuilder* aBuilder,
+                                  const nsStyleDisplay* aDisp, 
+                                  const nsIFrame* aFrame,
+                                  nsRect* aRect);
+
 void
 NS_MergeReflowStatusInto(nsReflowStatus* aPrimary, nsReflowStatus aSecondary)
 {
@@ -370,7 +380,7 @@ nsFrame::Init(nsIContent*      aContent,
   return NS_OK;
 }
 
-NS_IMETHODIMP nsFrame::SetInitialChildList(nsIAtom*        aListName,
+NS_IMETHODIMP nsFrame::SetInitialChildList(ChildListID     aListID,
                                            nsFrameList&    aChildList)
 {
   
@@ -385,7 +395,7 @@ NS_IMETHODIMP nsFrame::SetInitialChildList(nsIAtom*        aListName,
 }
 
 NS_IMETHODIMP
-nsFrame::AppendFrames(nsIAtom*        aListName,
+nsFrame::AppendFrames(ChildListID     aListID,
                       nsFrameList&    aFrameList)
 {
   NS_PRECONDITION(PR_FALSE, "not a container");
@@ -393,7 +403,7 @@ nsFrame::AppendFrames(nsIAtom*        aListName,
 }
 
 NS_IMETHODIMP
-nsFrame::InsertFrames(nsIAtom*        aListName,
+nsFrame::InsertFrames(ChildListID     aListID,
                       nsIFrame*       aPrevFrame,
                       nsFrameList&    aFrameList)
 {
@@ -402,7 +412,7 @@ nsFrame::InsertFrames(nsIAtom*        aListName,
 }
 
 NS_IMETHODIMP
-nsFrame::RemoveFrame(nsIAtom*        aListName,
+nsFrame::RemoveFrame(ChildListID     aListID,
                      nsIFrame*       aOldFrame)
 {
   NS_PRECONDITION(PR_FALSE, "not a container");
@@ -438,6 +448,20 @@ nsFrame::DestroyFrom(nsIFrame* aDestructRoot)
     if (placeholder) {
       shell->FrameManager()->UnregisterPlaceholderFrame(placeholder);
       placeholder->SetOutOfFlowFrame(nsnull);
+    }
+  }
+
+  
+  
+  
+  if (mState & NS_FRAME_IS_SPECIAL) {
+    nsIFrame* nextSib = static_cast<nsIFrame*>
+      (Properties().Get(nsIFrame::IBSplitSpecialSibling()));
+    if (nextSib) {
+      NS_WARN_IF_FALSE(this ==
+         nextSib->Properties().Get(nsIFrame::IBSplitSpecialPrevSibling()),
+         "Next-sibling / prev-sibling chain is inconsistent");
+      nextSib->Properties().Delete(nsIFrame::IBSplitSpecialPrevSibling());
     }
   }
 
@@ -591,6 +615,28 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   }
 }
 
+
+
+
+#ifndef _MSC_VER
+
+const nsIFrame::ChildListID nsIFrame::kPrincipalList;
+const nsIFrame::ChildListID nsIFrame::kAbsoluteList;
+const nsIFrame::ChildListID nsIFrame::kBulletList;
+const nsIFrame::ChildListID nsIFrame::kCaptionList;
+const nsIFrame::ChildListID nsIFrame::kColGroupList;
+const nsIFrame::ChildListID nsIFrame::kExcessOverflowContainersList;
+const nsIFrame::ChildListID nsIFrame::kFixedList;
+const nsIFrame::ChildListID nsIFrame::kFloatList;
+const nsIFrame::ChildListID nsIFrame::kOverflowContainersList;
+const nsIFrame::ChildListID nsIFrame::kOverflowList;
+const nsIFrame::ChildListID nsIFrame::kOverflowOutOfFlowList;
+const nsIFrame::ChildListID nsIFrame::kPopupList;
+const nsIFrame::ChildListID nsIFrame::kPushedFloatsList;
+const nsIFrame::ChildListID nsIFrame::kSelectPopupList;
+const nsIFrame::ChildListID nsIFrame::kNoReflowPrincipalList;
+#endif
+
  nsMargin
 nsIFrame::GetUsedMargin() const
 {
@@ -724,6 +770,25 @@ nsIFrame::IsTransformed() const
 {
   return (mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
     GetStyleDisplay()->HasTransform();
+}
+
+PRBool
+nsIFrame::Preserves3DChildren() const
+{
+  return GetStyleDisplay()->mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D && IsTransformed();
+}
+
+PRBool
+nsIFrame::Preserves3D() const
+{
+  if (!GetParent() || !GetParent()->Preserves3DChildren() || !IsTransformed()) {
+    return PR_FALSE;
+  }
+
+  nsRect temp;
+  return (!ApplyOverflowClipping(nsnull, this, GetStyleDisplay(), &temp) &&
+          !ApplyAbsPosClipping(nsnull, GetStyleDisplay(), this, &temp) &&
+          !nsSVGIntegrationUtils::UsingEffectsForFrame(this));
 }
 
 nsRect
@@ -916,21 +981,6 @@ nsFrame::GetBaseline() const
   
   
   return mRect.height + GetUsedMargin().bottom;
-}
-
-
-
-nsIAtom*
-nsFrame::GetAdditionalChildListName(PRInt32 aIndex) const
-{
-  NS_PRECONDITION(aIndex >= 0, "invalid index number");
-  return nsnull;
-}
-
-nsFrameList
-nsFrame::GetChildList(nsIAtom* aListName) const
-{
-  return nsFrameList::EmptyList();
 }
 
 static nsIFrame*
@@ -1184,7 +1234,7 @@ nsFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
 
 PRBool
 nsIFrame::GetAbsPosClipRect(const nsStyleDisplay* aDisp, nsRect* aRect,
-                            const nsSize& aSize)
+                            const nsSize& aSize) const
 {
   NS_PRECONDITION(aRect, "Must have aRect out parameter");
 
@@ -1203,12 +1253,14 @@ nsIFrame::GetAbsPosClipRect(const nsStyleDisplay* aDisp, nsRect* aRect,
 }
 
 static PRBool ApplyAbsPosClipping(nsDisplayListBuilder* aBuilder,
-                                  const nsStyleDisplay* aDisp, nsIFrame* aFrame,
+                                  const nsStyleDisplay* aDisp, const nsIFrame* aFrame,
                                   nsRect* aRect) {
   if (!aFrame->GetAbsPosClipRect(aDisp, aRect, aFrame->GetSize()))
     return PR_FALSE;
 
-  *aRect += aBuilder->ToReferenceFrame(aFrame);
+  if (aBuilder) {
+    *aRect += aBuilder->ToReferenceFrame(aFrame);
+  }
   return PR_TRUE;
 }
 
@@ -1216,7 +1268,7 @@ static PRBool ApplyAbsPosClipping(nsDisplayListBuilder* aBuilder,
 
 
 
-static inline PRBool ApplyOverflowHiddenClipping(nsIFrame* aFrame,
+static inline PRBool ApplyOverflowHiddenClipping(const nsIFrame* aFrame,
                                                  const nsStyleDisplay* aDisp)
 {
   if (aDisp->mOverflowX != NS_STYLE_OVERFLOW_HIDDEN)
@@ -1235,7 +1287,7 @@ static inline PRBool ApplyOverflowHiddenClipping(nsIFrame* aFrame,
 }
 
 static PRBool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
-                                    nsIFrame* aFrame,
+                                    const nsIFrame* aFrame,
                                     const nsStyleDisplay* aDisp, nsRect* aRect) {
   
   
@@ -1255,8 +1307,10 @@ static PRBool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
     
   }
   
-  *aRect = aFrame->GetPaddingRect() - aFrame->GetPosition() +
-    aBuilder->ToReferenceFrame(aFrame);
+  *aRect = aFrame->GetPaddingRect() - aFrame->GetPosition();
+  if (aBuilder) {
+    *aRect += aBuilder->ToReferenceFrame(aFrame);
+  }
   return PR_TRUE;
 }
 
@@ -1406,6 +1460,49 @@ DisplayDebugBorders(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
 }
 #endif
 
+static nsresult
+WrapPreserve3DList(nsIFrame *aFrame, nsDisplayListBuilder *aBuilder, nsDisplayList *aList)
+{
+  nsresult rv = NS_OK;
+  nsDisplayList newList;
+  while (nsDisplayItem *item = aList->RemoveBottom()) {
+    if (item->GetUnderlyingFrame() && item->GetUnderlyingFrame()->GetParent()->Preserves3DChildren()) {
+      switch (item->GetType()) {
+        case nsDisplayItem::TYPE_TRANSFORM: {
+          
+          
+          NS_ASSERTION(item->GetUnderlyingFrame()->Preserves3D(), "Child transform frame must preserve 3d!");
+          break;
+        }
+        case nsDisplayItem::TYPE_WRAP_LIST: {
+          nsDisplayWrapList *list = static_cast<nsDisplayWrapList*>(item);
+          rv = WrapPreserve3DList(aFrame, aBuilder, list->GetList());
+          break;
+        }
+        case nsDisplayItem::TYPE_OPACITY: {
+          nsDisplayOpacity *opacity = static_cast<nsDisplayOpacity*>(item);
+          rv = WrapPreserve3DList(aFrame, aBuilder, opacity->GetList());
+          break;
+        }
+        default: {
+          item = new (aBuilder) nsDisplayTransform(aBuilder, item->GetUnderlyingFrame(), item);
+          break;
+        }
+      } 
+    } else {
+      item = new (aBuilder) nsDisplayTransform(aBuilder, item->GetUnderlyingFrame(), item);
+    }
+ 
+    if (NS_FAILED(rv) || !item)
+      return rv;
+
+    newList.AppendToTop(item);
+  }
+
+  aList->AppendToTop(&newList);
+  return NS_OK;
+}
+
 nsresult
 nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
                                              const nsRect&         aDirtyRect,
@@ -1436,7 +1533,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
       disp->HasTransform()) {
     
-    if (!nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0), &dirtyRect)) {
+    if (Preserves3DChildren() || !nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0), &dirtyRect)) {
       dirtyRect = GetVisualOverflowRectRelativeToSelf();
     }
     inTransform = PR_TRUE;
@@ -1560,12 +1657,33 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   
 
 
+
+
+
+
+
+
+
+
   if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
       disp->HasTransform() && !resultList.IsEmpty()) {
-    rv = resultList.AppendNewToTop(
+    if (Preserves3DChildren()) {
+      rv = WrapPreserve3DList(this, aBuilder, &resultList);
+      if (NS_FAILED(rv))
+        return rv;
+
+      if (resultList.Count() > 1) {
+        rv = resultList.AppendNewToTop(
+          new (aBuilder) nsDisplayWrapList(aBuilder, this, &resultList));
+        if (NS_FAILED(rv))
+          return rv;
+      }
+    } else {
+      rv = resultList.AppendNewToTop(
         new (aBuilder) nsDisplayTransform(aBuilder, this, &resultList));
-    if (NS_FAILED(rv))
-      return rv;
+      if (NS_FAILED(rv))
+        return rv;
+    }
   }
 
   aList->AppendToTop(&resultList);
@@ -2734,7 +2852,7 @@ static FrameTarget DrillDownToSelectionFrame(nsIFrame* aFrame,
                                              PRBool aEndFrame) {
   if (SelectionDescendToKids(aFrame)) {
     nsIFrame* result = nsnull;
-    nsIFrame *frame = aFrame->GetFirstChild(nsnull);
+    nsIFrame *frame = aFrame->GetFirstPrincipalChild();
     if (!aEndFrame) {
       while (frame && (!SelfIsSelectable(frame) ||
                         frame->IsEmpty()))
@@ -2903,7 +3021,7 @@ static FrameTarget GetSelectionClosestFrame(nsIFrame* aFrame, nsPoint aPoint)
       return target;
   }
 
-  nsIFrame *kid = aFrame->GetFirstChild(nsnull);
+  nsIFrame *kid = aFrame->GetFirstPrincipalChild();
 
   if (kid) {
     
@@ -3474,16 +3592,14 @@ nsFrame::ComputeSimpleTightBounds(gfxContext* aContext) const
   }
 
   nsRect r(0, 0, 0, 0);
-  PRInt32 listIndex = 0;
-  nsIAtom* childList = nsnull;
-  do {
-    nsIFrame* child = GetFirstChild(childList);
-    while (child) {
-       r.UnionRect(r, child->ComputeTightBounds(aContext) + child->GetPosition());
-       child = child->GetNextSibling();
+  ChildListIterator lists(this);
+  for (; !lists.IsDone(); lists.Next()) {
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* child = childFrames.get();
+      r.UnionRect(r, child->ComputeTightBounds(aContext) + child->GetPosition());
     }
-    childList = GetAdditionalChildListName(listIndex++);
-  } while (childList);
+  }
   return r;
 }
 
@@ -4139,6 +4255,23 @@ nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
 
 
 
+
+
+
+
+
+
+
+  
+  PRBool rectIsTransformed = (aFlags & INVALIDATE_ALREADY_TRANSFORMED);
+  if (!Preserves3D()) {
+    
+    
+    
+    
+    aFlags &= ~INVALIDATE_ALREADY_TRANSFORMED;
+  }
+
   if ((mState & NS_FRAME_HAS_CONTAINER_LAYER) &&
       !(aFlags & INVALIDATE_NO_THEBES_LAYERS)) {
     
@@ -4156,10 +4289,18 @@ nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
       return;
     }
   }
-  if (IsTransformed()) {
+  if (IsTransformed() && !rectIsTransformed) {
     nsRect newDamageRect;
     newDamageRect.UnionRect(nsDisplayTransform::TransformRectOut
                             (aDamageRect, this, nsPoint(-aX, -aY)), aDamageRect);
+
+    
+    
+    
+    if (Preserves3D()) {
+      aFlags |= INVALIDATE_ALREADY_TRANSFORMED;
+    }
+
     GetParent()->
       InvalidateInternal(newDamageRect, aX + mRect.x, aY + mRect.y, this,
                          aFlags);
@@ -4196,23 +4337,18 @@ nsIFrame::GetTransformMatrix(nsIFrame **aOutAncestor)
   
 
 
-  *aOutAncestor = nsLayoutUtils::GetCrossDocParentFrame(this);
-
-  
-
-
 
   if (IsTransformed()) {
     
 
 
-    NS_ASSERTION(*aOutAncestor, "Cannot transform the viewport frame!");
-    nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
+    NS_ASSERTION(nsLayoutUtils::GetCrossDocParentFrame(this), "Cannot transform the viewport frame!");
     PRInt32 scaleFactor = PresContext()->AppUnitsPerDevPixel();
 
     gfx3DMatrix result =
       nsDisplayTransform::GetResultingTransformMatrix(this, nsPoint(0, 0),
-                                                      scaleFactor);
+                                                      scaleFactor, nsnull, aOutAncestor);
+    nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
     
     result *= gfx3DMatrix::Translation
       (NSAppUnitsToFloatPixels(delta.x, scaleFactor),
@@ -4220,6 +4356,8 @@ nsIFrame::GetTransformMatrix(nsIFrame **aOutAncestor)
        0.0f);
     return result;
   }
+  
+  *aOutAncestor = nsLayoutUtils::GetCrossDocParentFrame(this);
   
   
 
@@ -4935,35 +5073,25 @@ nsFrame::DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, PRInt32 
           mRect.x, mRect.y, mRect.width, mRect.height);
 
   
-  nsIFrame* kid;
-  nsIAtom* list = nsnull;
-  PRInt32 listIndex = 0;
-  do {
-    kid = GetFirstChild(list);
-    if (kid) {
-      IndentBy(out, aIndent);
-      if (nsnull != list) {
-        nsAutoString listName;
-        list->ToString(listName);
-        fprintf(out, "<child-list name=\"");
-        XMLQuote(listName);
-        fputs(NS_LossyConvertUTF16toASCII(listName).get(), out);
-        fprintf(out, "\">\n");
-      }
-      else {
-        fprintf(out, "<child-list>\n");
-      }
-      aIndent++;
-      while (kid) {
-        kid->DumpRegressionData(aPresContext, out, aIndent);
-        kid = kid->GetNextSibling();
-      }
-      aIndent--;
-      IndentBy(out, aIndent);
-      fprintf(out, "</child-list>\n");
+  ChildListIterator lists(this);
+  for (; !lists.IsDone(); lists.Next()) {
+    IndentBy(out, aIndent);
+    if (lists.CurrentID() != kPrincipalList) {
+      fprintf(out, "<child-list name=\"%s\">\n", mozilla::layout::ChildListName(lists.CurrentID()));
     }
-    list = GetAdditionalChildListName(listIndex++);
-  } while (nsnull != list);
+    else {
+      fprintf(out, "<child-list>\n");
+    }
+    aIndent++;
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* kid = childFrames.get();
+      kid->DumpRegressionData(aPresContext, out, aIndent);
+    }
+    aIndent--;
+    IndentBy(out, aIndent);
+    fprintf(out, "</child-list>\n");
+  }
 }
 #endif
 
@@ -5365,13 +5493,13 @@ FindBlockFrameOrBR(nsIFrame* aFrame, nsDirection aDirection)
 
   
   if (aDirection == eDirPrevious) {
-    nsIFrame* child = aFrame->GetChildList(nsnull).LastChild();
+    nsIFrame* child = aFrame->GetLastChild(nsIFrame::kPrincipalList);
     while(child && !result.mContent) {
       result = FindBlockFrameOrBR(child, aDirection);
       child = child->GetPrevSibling();
     }
   } else { 
-    nsIFrame* child = aFrame->GetFirstChild(nsnull);
+    nsIFrame* child = aFrame->GetFirstPrincipalChild();
     while(child && !result.mContent) {
       result = FindBlockFrameOrBR(child, aDirection);
       child = child->GetNextSibling();
@@ -5664,7 +5792,7 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
             if (aPos->mResultFrame->GetType() == nsGkAtoms::tableOuterFrame ||
                 aPos->mResultFrame->GetType() == nsGkAtoms::tableCellFrame)
             {
-              nsIFrame *frame = aPos->mResultFrame->GetFirstChild(nsnull);
+              nsIFrame *frame = aPos->mResultFrame->GetFirstPrincipalChild();
               
               while(frame) 
               {
@@ -5677,7 +5805,7 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
                   break; 
                 }
                 result = NS_ERROR_FAILURE;
-                frame = frame->GetFirstChild(nsnull);
+                frame = frame->GetFirstPrincipalChild();
               }
             }
 
@@ -6257,9 +6385,13 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
 
     nsRect newBounds(nsPoint(0, 0), aNewSize);
     
-    NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
-      nsRect& o = aOverflowAreas.Overflow(otype);
-      o = nsDisplayTransform::TransformRect(o, this, nsPoint(0, 0), &newBounds);
+    if (!Preserves3DChildren()) {
+      NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+        nsRect& o = aOverflowAreas.Overflow(otype);
+       o = nsDisplayTransform::TransformRect(o, this, nsPoint(0, 0), &newBounds);
+      }
+    } else {
+      ComputePreserve3DChildrenOverflow(aOverflowAreas, newBounds);
     }
   }
 
@@ -6314,6 +6446,37 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
                       nsDisplayItem::TYPE_TRANSFORM);
     }
   }
+}
+
+void
+nsIFrame::ComputePreserve3DChildrenOverflow(nsOverflowAreas& aOverflowAreas, const nsRect& aBounds)
+{
+  
+  
+  
+  nsRect childVisual;
+  nsRect childScrollable;
+  nsIFrame::ChildListIterator lists(this);
+  for (; !lists.IsDone(); lists.Next()) {
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* child = childFrames.get();
+      if (child->Preserves3D()) {
+        childVisual = childVisual.Union(child->GetVisualOverflowRect());
+        childScrollable = childScrollable.Union(child->GetScrollableOverflowRect());
+      } else {
+        childVisual = 
+          childVisual.Union(nsDisplayTransform::TransformRect(child->GetVisualOverflowRect(), 
+                            this, nsPoint(0,0), &aBounds));
+        childScrollable = 
+          childScrollable.Union(nsDisplayTransform::TransformRect(child->GetScrollableOverflowRect(), 
+                                this, nsPoint(0,0), &aBounds));
+      }
+    }
+  }
+
+  aOverflowAreas.Overflow(eVisualOverflow) = childVisual;
+  aOverflowAreas.Overflow(eScrollableOverflow) = childScrollable;
 }
 
 void
@@ -6399,8 +6562,8 @@ GetCorrectedParent(nsPresContext* aPresContext, nsIFrame* aFrame,
     
     
     if (pseudo == nsCSSAnonBoxes::tableOuter) {
-      pseudo =
-        aFrame->GetFirstChild(nsnull)->GetStyleContext()->GetPseudo();
+      pseudo = aFrame->GetFirstPrincipalChild()
+                         ->GetStyleContext()->GetPseudo();
     }
     *aSpecialParent = nsFrame::CorrectStyleParentFrame(parent, pseudo);
   }
@@ -6536,7 +6699,7 @@ nsFrame::GetLastLeaf(nsPresContext* aPresContext, nsIFrame **aFrame)
   nsIFrame *child = *aFrame;
   
   while (1){
-    child = child->GetFirstChild(nsnull);
+    child = child->GetFirstPrincipalChild();
     if (!child)
       return;
     nsIFrame* siblingFrame;
@@ -6558,7 +6721,7 @@ nsFrame::GetFirstLeaf(nsPresContext* aPresContext, nsIFrame **aFrame)
     return;
   nsIFrame *child = *aFrame;
   while (1){
-    child = child->GetFirstChild(nsnull);
+    child = child->GetFirstPrincipalChild();
     if (!child)
       return;
     *aFrame = child;
@@ -6607,7 +6770,8 @@ nsIFrame::IsFocusable(PRInt32 *aTabIndex, PRBool aWithMouse)
         
         nsIScrollableFrame *scrollFrame = do_QueryFrame(this);
         if (scrollFrame &&
-            scrollFrame->GetActualScrollbarSizes() != nsMargin(0,0,0,0)) {
+            scrollFrame->GetScrollbarStyles() != nsIScrollableFrame::ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN, NS_STYLE_OVERFLOW_HIDDEN) &&
+            !scrollFrame->GetScrollRange().IsEqualEdges(nsRect(0, 0, 0, 0))) {
             
             isFocusable = PR_TRUE;
             tabIndex = 0;

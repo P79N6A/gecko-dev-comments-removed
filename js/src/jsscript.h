@@ -464,7 +464,9 @@ struct JSScript {
     jsbytecode      *code;      
     uint32          length;     
 
+#ifdef JS_CRASH_DIAGNOSTICS
     uint32          cookie1;
+#endif
 
   private:
     size_t          useCount_;  
@@ -478,6 +480,15 @@ struct JSScript {
 
     uint16          nTypeSets;  
 
+
+    
+
+
+
+
+
+
+    uint32          stepMode;
 
     
 
@@ -513,13 +524,11 @@ struct JSScript {
     bool            hasFunction:1;    
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
-    bool            isUncachedEval:1; 
     bool            usedLazyArgs:1;   
     bool            createdArgs:1;    
     bool            uninlineable:1;   
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
-    bool            singleStepMode:1; 
     bool            failedBoundsCheck:1; 
 #endif
 
@@ -537,18 +546,14 @@ struct JSScript {
     JSPrincipals    *principals;
     jschar          *sourceMap; 
 
+#ifdef JS_CRASH_DIAGNOSTICS
     JSObject        *ownerObject;
+#endif
 
     void setOwnerObject(JSObject *owner);
 
     union {
         
-
-
-
-
-
-
 
 
 
@@ -571,7 +576,9 @@ struct JSScript {
     
     JSPCCounters    pcCounters;
 
+#ifdef JS_CRASH_DIAGNOSTICS
     uint32          cookie2;
+#endif
 
   public:
 #ifdef JS_ION
@@ -741,6 +748,7 @@ struct JSScript {
     }
 
     inline JSFunction *getFunction(size_t index);
+    inline JSFunction *getCallerFunction();
 
     inline JSObject *getRegExp(size_t index);
 
@@ -768,6 +776,42 @@ struct JSScript {
     }
 
     void copyClosedSlotsTo(JSScript *other);
+
+  private:
+    static const uint32 stepFlagMask = 0x80000000U;
+    static const uint32 stepCountMask = 0x7fffffffU;
+
+    
+
+
+
+    bool recompileForStepMode(JSContext *cx);
+
+    
+    bool tryNewStepMode(JSContext *cx, uint32 newValue);
+
+  public:
+    
+
+
+
+
+
+    bool setStepModeFlag(JSContext *cx, bool step);
+    
+    
+
+
+
+
+
+    bool changeStepModeCount(JSContext *cx, int delta);
+
+    bool stepModeEnabled() { return !!stepMode; }
+
+#ifdef DEBUG
+    uint32 stepModeCount() { return stepMode & stepCountMask; }
+#endif
 };
 
 #define SHARP_NSLOTS            2       /* [#array, #depth] slots if the script
@@ -836,19 +880,6 @@ js_DestroyScriptFromGC(JSContext *cx, JSScript *script, JSObject *owner);
 
 extern void
 js_DestroyCachedScript(JSContext *cx, JSScript *script);
-
-namespace js {
-
-
-
-
-
-
-
-void
-CheckCompartmentScripts(JSCompartment *comp);
-
-} 
 
 extern void
 js_TraceScript(JSTracer *trc, JSScript *script, JSObject *owner);

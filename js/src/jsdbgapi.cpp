@@ -1,48 +1,49 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=99:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Nick Fitzgerald <nfitzgerald@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * JS debugging API.
+ */
 #include <string.h>
+#include <stdarg.h>
 #include "jsprvtd.h"
 #include "jstypes.h"
 #include "jsstdint.h"
@@ -68,6 +69,7 @@
 #include "jsstr.h"
 #include "jswatchpoint.h"
 #include "jswrapper.h"
+#include "vm/Debugger.h"
 
 #include "jsatominlines.h"
 #include "jsinferinlines.h"
@@ -80,29 +82,17 @@
 
 #include "jsautooplen.h"
 
-#include "methodjit/MethodJIT.h"
-#include "methodjit/Retcon.h"
+#ifdef __APPLE__
+#include "sharkctl.h"
+#endif
 
 using namespace js;
 using namespace js::gc;
 
-typedef struct JSTrap {
-    JSCList         links;
-    JSScript        *script;
-    jsbytecode      *pc;
-    JSOp            op;
-    JSTrapHandler   handler;
-    jsval           closure;
-} JSTrap;
-
-#define DBG_LOCK(rt)            JS_ACQUIRE_LOCK((rt)->debuggerLock)
-#define DBG_UNLOCK(rt)          JS_RELEASE_LOCK((rt)->debuggerLock)
-#define DBG_LOCK_EVAL(rt,expr)  (DBG_LOCK(rt), (expr), DBG_UNLOCK(rt))
-
 JS_PUBLIC_API(JSBool)
 JS_GetDebugMode(JSContext *cx)
 {
-    return cx->compartment->debugMode;
+    return cx->compartment->debugMode();
 }
 
 JS_PUBLIC_API(JSBool)
@@ -114,7 +104,7 @@ JS_SetDebugMode(JSContext *cx, JSBool debug)
 JS_PUBLIC_API(void)
 JS_SetRuntimeDebugMode(JSRuntime *rt, JSBool debug)
 {
-    rt->debugMode = debug;
+    rt->debugMode = !!debug;
 }
 
 namespace js {
@@ -122,6 +112,8 @@ namespace js {
 void
 ScriptDebugPrologue(JSContext *cx, StackFrame *fp)
 {
+    JS_ASSERT(fp == cx->fp());
+
     if (fp->isFramePushedByExecute()) {
         if (JSInterpreterHook hook = cx->debugHooks->executeHook)
             fp->setHookData(hook(cx, Jsvalify(fp), true, 0, cx->debugHooks->executeHookData));
@@ -129,11 +121,13 @@ ScriptDebugPrologue(JSContext *cx, StackFrame *fp)
         if (JSInterpreterHook hook = cx->debugHooks->callHook)
             fp->setHookData(hook(cx, Jsvalify(fp), true, 0, cx->debugHooks->callHookData));
     }
+    Debugger::onEnterFrame(cx);
 }
 
 bool
 ScriptDebugEpilogue(JSContext *cx, StackFrame *fp, bool okArg)
 {
+    JS_ASSERT(fp == cx->fp());
     JSBool ok = okArg;
 
     if (void *hookData = fp->maybeHookData()) {
@@ -145,121 +139,28 @@ ScriptDebugEpilogue(JSContext *cx, StackFrame *fp, bool okArg)
                 hook(cx, Jsvalify(fp), false, &ok, hookData);
         }
     }
+    Debugger::onLeaveFrame(cx);
 
     return ok;
 }
 
-} 
-
-#ifdef DEBUG
-static bool
-CompartmentHasLiveScripts(JSCompartment *comp)
-{
-#if defined(JS_METHODJIT) && defined(JS_THREADSAFE)
-    jsword currentThreadId = reinterpret_cast<jsword>(js_CurrentThreadId());
-#endif
-
-    
-    
-    JSContext *iter = NULL;
-    JSContext *icx;
-    while ((icx = JS_ContextIterator(comp->rt, &iter))) {
-#if defined(JS_METHODJIT) && defined(JS_THREADSAFE)
-        if (JS_GetContextThread(icx) != currentThreadId)
-            continue;
-#endif
-        for (FrameRegsIter i(icx); !i.done(); ++i) {
-            JSScript *script = i.fp()->script();
-            if (script->compartment == comp)
-                return JS_TRUE;
-        }
-    }
-
-    return JS_FALSE;
-}
-#endif
+} /* namespace js */
 
 JS_FRIEND_API(JSBool)
 JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, JSBool debug)
 {
-    if (comp->debugMode == !!debug)
-        return JS_TRUE;
-
-    
-    
-    
-    JS_ASSERT(!CompartmentHasLiveScripts(comp));
-
-    
-    comp->debugMode = !!debug;
-
-    
-    
-
-#ifdef JS_METHODJIT
-    JS::AutoEnterScriptCompartment ac;
-
-    for (JSScript *script = (JSScript *)comp->scripts.next;
-         &script->links != &comp->scripts;
-         script = (JSScript *)script->links.next)
-    {
-        if (!script->debugMode == !debug)
-            continue;
-
-        
-
-
-
-
-
-        if (!ac.entered() && !ac.enter(cx, script)) {
-            comp->debugMode = JS_FALSE;
-            return JS_FALSE;
-        }
-
-        mjit::ReleaseScriptCode(cx, script, true);
-        mjit::ReleaseScriptCode(cx, script, false);
-        script->debugMode = !!debug;
-    }
-#endif
-
-    return JS_TRUE;
-}
-
-JS_FRIEND_API(JSBool)
-js_SetSingleStepMode(JSContext *cx, JSScript *script, JSBool singleStep)
-{
-    assertSameCompartment(cx, script);
-
-#ifdef JS_METHODJIT
-    if (!script->singleStepMode == !singleStep)
-        return JS_TRUE;
-#endif
-
-    JS_ASSERT_IF(singleStep, cx->compartment->debugMode);
-
-#ifdef JS_METHODJIT
-    
-    script->singleStepMode = !!singleStep;
-
-    js::mjit::JITScript *jit = script->jitNormal ? script->jitNormal : script->jitCtor;
-    if (jit && script->singleStepMode != jit->singleStepMode) {
-        js::mjit::Recompiler recompiler(cx, script);
-        recompiler.recompile();
-    }
-#endif
-    return JS_TRUE;
+    return comp->setDebugModeFromC(cx, !!debug);
 }
 
 static JSBool
 CheckDebugMode(JSContext *cx)
 {
     JSBool debugMode = JS_GetDebugMode(cx);
-    
-
-
-
-
+    /*
+     * :TODO:
+     * This probably should be an assertion, since it's indicative of a severe
+     * API misuse.
+     */
     if (!debugMode) {
         JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage,
                                      NULL, JSMSG_NEED_DEBUG_MODE);
@@ -274,48 +175,21 @@ JS_SetSingleStepMode(JSContext *cx, JSScript *script, JSBool singleStep)
     if (!CheckDebugMode(cx))
         return JS_FALSE;
 
-    return js_SetSingleStepMode(cx, script, singleStep);
-}
-
-
-
-
-static JSTrap *
-FindTrap(JSRuntime *rt, JSScript *script, jsbytecode *pc)
-{
-    JSTrap *trap;
-
-    for (trap = (JSTrap *)rt->trapList.next;
-         &trap->links != &rt->trapList;
-         trap = (JSTrap *)trap->links.next) {
-        if (trap->script == script && trap->pc == pc)
-            return trap;
-    }
-    return NULL;
+    return script->setStepModeFlag(cx, singleStep);
 }
 
 jsbytecode *
 js_UntrapScriptCode(JSContext *cx, JSScript *script)
 {
-    jsbytecode *code;
-    JSRuntime *rt;
-    JSTrap *trap;
-
-    code = script->code;
-    rt = cx->runtime;
-    DBG_LOCK(rt);
-    for (trap = (JSTrap *)rt->trapList.next;
-         &trap->links !=
-                &rt->trapList;
-         trap = (JSTrap *)trap->links.next) {
-        if (trap->script == script &&
-            (size_t)(trap->pc - script->code) < script->length) {
+    jsbytecode *code = script->code;
+    BreakpointSiteMap &sites = script->compartment->breakpointSites;
+    for (BreakpointSiteMap::Range r = sites.all(); !r.empty(); r.popFront()) {
+        BreakpointSite *site = r.front().value;
+        if (site->script == script && size_t(site->pc - script->code) < script->length) {
             if (code == script->code) {
-                jssrcnote *sn, *notes;
-                size_t nbytes;
-
-                nbytes = script->length * sizeof(jsbytecode);
-                notes = script->notes();
+                size_t nbytes = script->length * sizeof(jsbytecode);
+                jssrcnote *notes = script->notes();
+                jssrcnote *sn;
                 for (sn = notes; !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn))
                     continue;
                 nbytes += (sn - notes + 1) * sizeof *sn;
@@ -326,235 +200,56 @@ js_UntrapScriptCode(JSContext *cx, JSScript *script)
                 memcpy(code, script->code, nbytes);
                 GetGSNCache(cx)->purge();
             }
-            code[trap->pc - script->code] = trap->op;
+            code[site->pc - script->code] = site->realOpcode;
         }
     }
-    DBG_UNLOCK(rt);
     return code;
 }
 
 JS_PUBLIC_API(JSBool)
-JS_SetTrap(JSContext *cx, JSScript *script, jsbytecode *pc,
-           JSTrapHandler handler, jsval closure)
+JS_SetTrap(JSContext *cx, JSScript *script, jsbytecode *pc, JSTrapHandler handler, jsval closure)
 {
-    JS_ASSERT(uint32(pc - script->code) < script->length);
-
-    JSTrap *junk, *trap, *twin;
-    JSRuntime *rt;
-    uint32 sample;
-
     if (!CheckDebugMode(cx))
-        return JS_FALSE;
+        return false;
 
-    JS_ASSERT((JSOp) *pc != JSOP_TRAP);
-    junk = NULL;
-    rt = cx->runtime;
-    DBG_LOCK(rt);
-    trap = FindTrap(rt, script, pc);
-    if (trap) {
-        JS_ASSERT(trap->script == script && trap->pc == pc);
-        JS_ASSERT(*pc == JSOP_TRAP);
-    } else {
-        sample = rt->debuggerMutations;
-        DBG_UNLOCK(rt);
-        trap = (JSTrap *) cx->malloc_(sizeof *trap);
-        if (!trap)
-            return JS_FALSE;
-        trap->closure = JSVAL_NULL;
-        DBG_LOCK(rt);
-        twin = (rt->debuggerMutations != sample)
-               ? FindTrap(rt, script, pc)
-               : NULL;
-        if (twin) {
-            junk = trap;
-            trap = twin;
-        } else {
-            JS_APPEND_LINK(&trap->links, &rt->trapList);
-            ++rt->debuggerMutations;
-            trap->script = script;
-            trap->pc = pc;
-            trap->op = (JSOp)*pc;
-            *pc = JSOP_TRAP;
-        }
-    }
-    trap->handler = handler;
-    trap->closure = closure;
-    DBG_UNLOCK(rt);
-    if (junk)
-        cx->free_(junk);
-
-#ifdef JS_METHODJIT
-    if (script->hasJITCode()) {
-        js::mjit::Recompiler recompiler(cx, script);
-        recompiler.recompile();
-    }
-#endif
-
-    return JS_TRUE;
+    BreakpointSite *site = script->compartment->getOrCreateBreakpointSite(cx, script, pc, NULL);
+    if (!site)
+        return false;
+    site->setTrap(cx, handler, Valueify(closure));
+    return true;
 }
 
 JS_PUBLIC_API(JSOp)
 JS_GetTrapOpcode(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
-    JSRuntime *rt;
-    JSTrap *trap;
-    JSOp op;
-
-    rt = cx->runtime;
-    DBG_LOCK(rt);
-    trap = FindTrap(rt, script, pc);
-    op = trap ? trap->op : (JSOp) *pc;
-    DBG_UNLOCK(rt);
-    return op;
-}
-
-static void
-DestroyTrapAndUnlock(JSContext *cx, JSTrap *trap)
-{
-    ++cx->runtime->debuggerMutations;
-    JS_REMOVE_LINK(&trap->links);
-    *trap->pc = (jsbytecode)trap->op;
-    DBG_UNLOCK(cx->runtime);
-    cx->free_(trap);
+    BreakpointSite *site = script->compartment->getBreakpointSite(pc);
+    return site ? site->realOpcode : JSOp(*pc);
 }
 
 JS_PUBLIC_API(void)
 JS_ClearTrap(JSContext *cx, JSScript *script, jsbytecode *pc,
              JSTrapHandler *handlerp, jsval *closurep)
 {
-    JSTrap *trap;
-
-    DBG_LOCK(cx->runtime);
-    trap = FindTrap(cx->runtime, script, pc);
-    if (handlerp)
-        *handlerp = trap ? trap->handler : NULL;
-    if (closurep)
-        *closurep = trap ? trap->closure : JSVAL_NULL;
-    if (trap)
-        DestroyTrapAndUnlock(cx, trap);
-    else
-        DBG_UNLOCK(cx->runtime);
-
-#ifdef JS_METHODJIT
-    if (script->hasJITCode()) {
-        JSCompartment *oldCompartment = cx->compartment;
-        cx->setCompartment(script->compartment);
-
-        mjit::Recompiler recompiler(cx, script);
-        recompiler.recompile();
-
-        cx->setCompartment(oldCompartment);
+    if (BreakpointSite *site = script->compartment->getBreakpointSite(pc)) {
+        site->clearTrap(cx, NULL, handlerp, Valueify(closurep));
+    } else {
+        if (handlerp)
+            *handlerp = NULL;
+        if (closurep)
+            *closurep = JSVAL_VOID;
     }
-#endif
 }
 
 JS_PUBLIC_API(void)
 JS_ClearScriptTraps(JSContext *cx, JSScript *script)
 {
-    JSRuntime *rt;
-    JSTrap *trap, *next;
-    uint32 sample;
-
-    rt = cx->runtime;
-    DBG_LOCK(rt);
-    for (trap = (JSTrap *)rt->trapList.next;
-         &trap->links != &rt->trapList;
-         trap = next) {
-        next = (JSTrap *)trap->links.next;
-        if (trap->script == script) {
-            sample = rt->debuggerMutations;
-            DestroyTrapAndUnlock(cx, trap);
-            DBG_LOCK(rt);
-            if (rt->debuggerMutations != sample + 1)
-                next = (JSTrap *)rt->trapList.next;
-        }
-    }
-    DBG_UNLOCK(rt);
+    script->compartment->clearTraps(cx, script);
 }
 
 JS_PUBLIC_API(void)
-JS_ClearAllTraps(JSContext *cx)
+JS_ClearAllTrapsForCompartment(JSContext *cx)
 {
-    JSRuntime *rt;
-    JSTrap *trap, *next;
-    uint32 sample;
-
-    rt = cx->runtime;
-    DBG_LOCK(rt);
-    for (trap = (JSTrap *)rt->trapList.next;
-         &trap->links != &rt->trapList;
-         trap = next) {
-        next = (JSTrap *)trap->links.next;
-        sample = rt->debuggerMutations;
-        DestroyTrapAndUnlock(cx, trap);
-        DBG_LOCK(rt);
-        if (rt->debuggerMutations != sample + 1)
-            next = (JSTrap *)rt->trapList.next;
-    }
-    DBG_UNLOCK(rt);
-}
-
-
-
-
-
-
-void
-js_MarkTraps(JSTracer *trc)
-{
-    JSRuntime *rt = trc->context->runtime;
-
-    for (JSTrap *trap = (JSTrap *) rt->trapList.next;
-         &trap->links != &rt->trapList;
-         trap = (JSTrap *) trap->links.next) {
-        MarkValue(trc, Valueify(trap->closure), "trap->closure");
-    }
-}
-
-JS_PUBLIC_API(JSTrapStatus)
-JS_HandleTrap(JSContext *cx, JSScript *script, jsbytecode *pc, jsval *rval)
-{
-    JSTrap *trap;
-    jsint op;
-    JSTrapStatus status;
-
-    assertSameCompartment(cx, script);
-    DBG_LOCK(cx->runtime);
-    trap = FindTrap(cx->runtime, script, pc);
-    JS_ASSERT(!trap || trap->handler);
-    if (!trap) {
-        op = (JSOp) *pc;
-        DBG_UNLOCK(cx->runtime);
-
-        
-        JS_ASSERT(op != JSOP_TRAP);
-
-#ifdef JS_THREADSAFE
-        
-        if (op == JSOP_TRAP)
-            return JSTRAP_ERROR;
-
-        
-        *rval = INT_TO_JSVAL(op);
-        return JSTRAP_CONTINUE;
-#else
-        
-        return JSTRAP_ERROR;
-#endif
-    }
-    DBG_UNLOCK(cx->runtime);
-
-    
-
-
-
-    op = (jsint)trap->op;
-    status = trap->handler(cx, script, pc, rval, trap->closure);
-    if (status == JSTRAP_CONTINUE) {
-        
-        *rval = INT_TO_JSVAL(op);
-    }
-    return status;
+    cx->compartment->clearTraps(cx, NULL);
 }
 
 #ifdef JS_TRACER
@@ -564,11 +259,11 @@ JITInhibitingHookChange(JSRuntime *rt, bool wasInhibited)
     if (wasInhibited) {
         if (!rt->debuggerInhibitsJIT()) {
             for (JSCList *cl = rt->contextList.next; cl != &rt->contextList; cl = cl->next)
-                js_ContextFromLinkField(cl)->updateJITEnabled();
+                JSContext::fromLinkField(cl)->updateJITEnabled();
         }
     } else if (rt->debuggerInhibitsJIT()) {
         for (JSCList *cl = rt->contextList.next; cl != &rt->contextList; cl = cl->next)
-            js_ContextFromLinkField(cl)->traceJitEnabled = false;
+            JSContext::fromLinkField(cl)->traceJitEnabled = false;
     }
 }
 #endif
@@ -609,7 +304,7 @@ JS_ClearInterrupt(JSRuntime *rt, JSInterruptHook *hoop, void **closurep)
     return JS_TRUE;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(JSBool)
 JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
@@ -638,10 +333,10 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
         idroot.set(IdToValue(propid));
     }
 
-    
-
-
-
+    /*
+     * If, by unwrapping and innerizing, we changed the object, check
+     * again to make sure that we're allowed to set a watch point.
+     */
     if (origobj != obj && !CheckAccess(cx, obj, propid, JSACC_WATCH, &v, &attrs))
         return false;
 
@@ -697,7 +392,7 @@ JS_ClearAllWatchPoints(JSContext *cx)
     return true;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(uintN)
 JS_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
@@ -789,7 +484,7 @@ JS_GetFunctionLocalNameArray(JSContext *cx, JSFunction *fun, void **markp)
     if (!fun->script()->bindings.getLocalNameArray(cx, &localNames))
         return NULL;
 
-    
+    /* Munge data into the API this method implements.  Avert your eyes! */
     *markp = JS_ARENA_MARK(&cx->tempPool);
 
     jsuword *names;
@@ -824,7 +519,7 @@ JS_ReleaseFunctionLocalNameArray(JSContext *cx, void *mark)
 JS_PUBLIC_API(JSScript *)
 JS_GetFunctionScript(JSContext *cx, JSFunction *fun)
 {
-    return FUN_SCRIPT(fun);
+    return fun->maybeScript();
 }
 
 JS_PUBLIC_API(JSNative)
@@ -839,11 +534,11 @@ JS_GetScriptPrincipals(JSContext *cx, JSScript *script)
     return script->principals;
 }
 
+/************************************************************************/
 
-
-
-
-
+/*
+ *  Stack Frame Iterator
+ */
 JS_PUBLIC_API(JSStackFrame *)
 JS_FrameIterator(JSContext *cx, JSStackFrame **iteratorp)
 {
@@ -878,10 +573,10 @@ JS_GetFrameAnnotation(JSContext *cx, JSStackFrame *fpArg)
         JSPrincipals *principals = fp->scopeChain().principals(cx);
 
         if (principals && principals->globalPrivilegesEnabled(cx, principals)) {
-            
-
-
-
+            /*
+             * Give out an annotation only if privileges have not been revoked
+             * or disabled globally.
+             */
             return fp->annotation();
         }
     }
@@ -912,7 +607,7 @@ JS_IsScriptFrame(JSContext *cx, JSStackFrame *fp)
     return !Valueify(fp)->isDummyFrame();
 }
 
-
+/* this is deprecated, use JS_GetFrameScopeChain instead */
 JS_PUBLIC_API(JSObject *)
 JS_GetFrameObject(JSContext *cx, JSStackFrame *fp)
 {
@@ -929,7 +624,7 @@ JS_GetFrameScopeChain(JSContext *cx, JSStackFrame *fpArg)
     if (!ac.enter())
         return NULL;
 
-    
+    /* Force creation of argument and call objects if not yet created */
     (void) JS_GetFrameCallObject(cx, Jsvalify(fp));
     return GetScopeChain(cx, fp);
 }
@@ -947,10 +642,10 @@ JS_GetFrameCallObject(JSContext *cx, JSStackFrame *fpArg)
     if (!ac.enter())
         return NULL;
 
-    
-
-
-
+    /*
+     * XXX ill-defined: null return here means error was reported, unlike a
+     *     null returned above or in the #else
+     */
     if (!fp->hasCallObj() && fp->isNonEvalFunctionFrame())
         return CreateFunCallObject(cx, fp);
     return &fp->callObj();
@@ -1044,7 +739,7 @@ JS_SetFrameReturnValue(JSContext *cx, JSStackFrame *fpArg, jsval rval)
     fp->setReturnValue(Valueify(rval));
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(const char *)
 JS_GetScriptFilename(JSContext *cx, JSScript *script)
@@ -1076,7 +771,7 @@ JS_GetScriptVersion(JSContext *cx, JSScript *script)
     return VersionNumber(script->getVersion());
 }
 
-
+/***************************************************************************/
 
 JS_PUBLIC_API(void)
 JS_SetNewScriptHook(JSRuntime *rt, JSNewScriptHook hook, void *callerdata)
@@ -1093,7 +788,7 @@ JS_SetDestroyScriptHook(JSRuntime *rt, JSDestroyScriptHook hook,
     rt->globalDebugHooks.destroyScriptHookData = callerdata;
 }
 
-
+/***************************************************************************/
 
 JS_PUBLIC_API(JSBool)
 JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fpArg,
@@ -1114,26 +809,8 @@ JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fpArg,
     if (!ac.enter())
         return false;
 
-    
-
-
-
-
-
     StackFrame *fp = Valueify(fpArg);
-    JSScript *script = Compiler::compileScript(cx, scobj, fp, fp->scopeChain().principals(cx),
-                                               TCF_COMPILE_N_GO, chars, length,
-                                               filename, lineno, cx->findVersion(),
-                                               NULL, UpvarCookie::UPVAR_LEVEL_LIMIT);
-
-    if (!script)
-        return false;
-
-    script->isUncachedEval = true;
-    bool ok = Execute(cx, script, *scobj, fp->thisValue(), EXECUTE_DEBUG, fp, Valueify(rval));
-
-    js_DestroyScript(cx, script, 6);
-    return ok;
+    return EvaluateInScope(cx, scobj, fp, chars, length, filename, lineno, Valueify(rval));
 }
 
 JS_PUBLIC_API(JSBool)
@@ -1160,16 +837,16 @@ JS_EvaluateInStackFrame(JSContext *cx, JSStackFrame *fp,
     return ok;
 }
 
+/************************************************************************/
 
-
-
+/* This all should be reworked to avoid requiring JSScopeProperty types. */
 
 JS_PUBLIC_API(JSScopeProperty *)
 JS_PropertyIterator(JSObject *obj, JSScopeProperty **iteratorp)
 {
     const Shape *shape;
 
-    
+    /* The caller passes null in *iteratorp to get things started. */
     shape = (Shape *) *iteratorp;
     if (!shape) {
         shape = obj->lastProperty();
@@ -1253,7 +930,7 @@ JS_GetPropertyDescArray(JSContext *cx, JSObject *obj, JSPropertyDescArray *pda)
     if (!clasp->enumerate(cx, obj))
         return JS_FALSE;
 
-    
+    /* Return an empty pda early if obj has no own properties. */
     if (obj->nativeEmpty()) {
         pda->length = 0;
         pda->array = NULL;
@@ -1305,7 +982,7 @@ JS_PutPropertyDescArray(JSContext *cx, JSPropertyDescArray *pda)
     cx->free_(pd);
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(JSBool)
 JS_SetDebuggerHandler(JSRuntime *rt, JSDebuggerHandler handler, void *closure)
@@ -1364,7 +1041,7 @@ JS_SetDebugErrorHook(JSRuntime *rt, JSDebugErrorHook hook, void *closure)
     return JS_TRUE;
 }
 
-
+/************************************************************************/
 
 JS_PUBLIC_API(size_t)
 JS_GetObjectTotalSize(JSContext *cx, JSObject *obj)
@@ -1389,8 +1066,8 @@ JS_GetFunctionTotalSize(JSContext *cx, JSFunction *fun)
     size_t nbytes;
 
     nbytes = sizeof *fun;
-    nbytes += JS_GetObjectTotalSize(cx, FUN_OBJECT(fun));
-    if (FUN_INTERPRETED(fun))
+    nbytes += JS_GetObjectTotalSize(cx, fun);
+    if (fun->isInterpreted())
         nbytes += JS_GetScriptTotalSize(cx, fun->script());
     if (fun->atom)
         nbytes += GetAtomTotalSize(cx, fun->atom);
@@ -1472,7 +1149,7 @@ JS_MakeSystemObject(JSContext *cx, JSObject *obj)
     return true;
 }
 
-
+/************************************************************************/
 
 JS_FRIEND_API(void)
 js_RevertVersion(JSContext *cx)
@@ -1512,32 +1189,251 @@ JS_ClearContextDebugHooks(JSContext *cx)
     return JS_SetContextDebugHooks(cx, &js_NullDebugHooks);
 }
 
-JS_PUBLIC_API(JSBool)
-JS_StartProfiling()
+/************************************************************************/
+
+/* Profiling-related API */
+
+/* Thread-unsafe error management */
+
+static char gLastError[2000];
+
+static void
+#ifdef __GNUC__
+__attribute__((unused,format(printf,1,2)))
+#endif
+UnsafeError(const char *format, ...)
 {
-    return Probes::startProfiling();
+    va_list args;
+    va_start(args, format);
+    (void) vsnprintf(gLastError, sizeof(gLastError), format, args);
+    va_end(args);
+
+    gLastError[sizeof(gLastError) - 1] = '\0';
 }
 
-JS_PUBLIC_API(void)
-JS_StopProfiling()
+JS_PUBLIC_API(const char *)
+JS_UnsafeGetLastProfilingError()
 {
-    Probes::stopProfiling();
+    return gLastError;
+}
+
+JS_PUBLIC_API(JSBool)
+JS_StartProfiling(const char *profileName)
+{
+    JSBool ok = JS_TRUE;
+#if defined(MOZ_SHARK) && defined(__APPLE__)
+    if (!Shark::Start()) {
+        UnsafeError("Failed to start Shark for %s", profileName);
+        ok = JS_FALSE;
+    }
+#endif
+#ifdef MOZ_VTUNE
+    if (!js_StartVtune(profileName))
+        ok = JS_FALSE;
+#endif
+    return ok;
+}
+
+JS_PUBLIC_API(JSBool)
+JS_StopProfiling(const char *profileName)
+{
+    JSBool ok = JS_TRUE;
+#if defined(MOZ_SHARK) && defined(__APPLE__)
+    Shark::Stop();
+#endif
+#ifdef MOZ_VTUNE
+    if (!js_StopVtune())
+        ok = JS_FALSE;
+#endif
+    return ok;
+}
+
+/*
+ * Start or stop whatever platform- and configuration-specific profiling
+ * backends are available.
+ */
+static JSBool
+ControlProfilers(bool toState)
+{
+    JSBool ok = JS_TRUE;
+
+    if (! Probes::ProfilingActive && toState) {
+#if defined(MOZ_SHARK) && defined(__APPLE__)
+        if (!Shark::Start()) {
+            UnsafeError("Failed to start Shark");
+            ok = JS_FALSE;
+        }
+#endif
+#ifdef MOZ_CALLGRIND
+        if (! js_StartCallgrind()) {
+            UnsafeError("Failed to start Callgrind");
+            ok = JS_FALSE;
+        }
+#endif
+#ifdef MOZ_VTUNE
+        if (! js_ResumeVtune())
+            ok = JS_FALSE;
+#endif
+    } else if (Probes::ProfilingActive && ! toState) {
+#if defined(MOZ_SHARK) && defined(__APPLE__)
+        Shark::Stop();
+#endif
+#ifdef MOZ_CALLGRIND
+        if (! js_StopCallgrind()) {
+            UnsafeError("failed to stop Callgrind");
+            ok = JS_FALSE;
+        }
+#endif
+#ifdef MOZ_VTUNE
+        if (! js_PauseVtune())
+            ok = JS_FALSE;
+#endif
+    }
+
+    Probes::ProfilingActive = toState;
+
+    return ok;
+}
+
+/*
+ * Pause/resume whatever profiling mechanism is currently compiled
+ * in, if applicable. This will not affect things like dtrace.
+ *
+ * Do not mix calls to these APIs with calls to the individual
+ * profilers' pause/resume functions, because only overall state is
+ * tracked, not the state of each profiler.
+ */
+JS_PUBLIC_API(JSBool)
+JS_PauseProfilers(const char *profileName)
+{
+    return ControlProfilers(false);
+}
+
+JS_PUBLIC_API(JSBool)
+JS_ResumeProfilers(const char *profileName)
+{
+    return ControlProfilers(true);
+}
+
+JS_PUBLIC_API(JSBool)
+JS_DumpProfile(const char *outfile, const char *profileName)
+{
+    JSBool ok = JS_TRUE;
+#ifdef MOZ_CALLGRIND
+    js_DumpCallgrind(outfile);
+#endif
+    return ok;
 }
 
 #ifdef MOZ_PROFILING
 
+struct RequiredStringArg {
+    JSContext *mCx;
+    char *mBytes;
+    RequiredStringArg(JSContext *cx, uintN argc, jsval *vp, size_t argi, const char *caller)
+        : mCx(cx), mBytes(NULL)
+    {
+        if (argc <= argi) {
+            JS_ReportError(cx, "%s: not enough arguments", caller);
+        } else if (!JSVAL_IS_STRING(JS_ARGV(cx, vp)[argi])) {
+            JS_ReportError(cx, "%s: invalid arguments (string expected)", caller);
+        } else {
+            mBytes = JS_EncodeString(cx, JSVAL_TO_STRING(JS_ARGV(cx, vp)[argi]));
+        }
+    }
+    operator void*() {
+        return (void*) mBytes;
+    }
+    ~RequiredStringArg() {
+        if (mBytes)
+            mCx->free_(mBytes);
+    }
+};
+
 static JSBool
 StartProfiling(JSContext *cx, uintN argc, jsval *vp)
 {
-    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(JS_StartProfiling()));
-    return true;
+    if (argc == 0) {
+        JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(JS_StartProfiling(NULL)));
+        return JS_TRUE;
+    }
+
+    RequiredStringArg profileName(cx, argc, vp, 0, "startProfiling");
+    if (!profileName)
+        return JS_FALSE;
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(JS_StartProfiling(profileName.mBytes)));
+    return JS_TRUE;
 }
 
 static JSBool
 StopProfiling(JSContext *cx, uintN argc, jsval *vp)
 {
-    JS_StopProfiling();
-    JS_SET_RVAL(cx, vp, JSVAL_VOID);
+    if (argc == 0) {
+        JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(JS_StopProfiling(NULL)));
+        return JS_TRUE;
+    }
+
+    RequiredStringArg profileName(cx, argc, vp, 0, "stopProfiling");
+    if (!profileName)
+        return JS_FALSE;
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(JS_StopProfiling(profileName.mBytes)));
+    return JS_TRUE;
+}
+
+static JSBool
+PauseProfilers(JSContext *cx, uintN argc, jsval *vp)
+{
+    if (argc == 0) {
+        JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(JS_PauseProfilers(NULL)));
+        return JS_TRUE;
+    }
+
+    RequiredStringArg profileName(cx, argc, vp, 0, "pauseProfiling");
+    if (!profileName)
+        return JS_FALSE;
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(JS_PauseProfilers(profileName.mBytes)));
+    return JS_TRUE;
+}
+
+static JSBool
+ResumeProfilers(JSContext *cx, uintN argc, jsval *vp)
+{
+    if (argc == 0) {
+        JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(JS_ResumeProfilers(NULL)));
+        return JS_TRUE;
+    }
+
+    RequiredStringArg profileName(cx, argc, vp, 0, "resumeProfiling");
+    if (!profileName)
+        return JS_FALSE;
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(JS_ResumeProfilers(profileName.mBytes)));
+    return JS_TRUE;
+}
+
+/* Usage: DumpProfile([filename[, profileName]]) */
+static JSBool
+DumpProfile(JSContext *cx, uintN argc, jsval *vp)
+{
+    bool ret;
+    if (argc == 0) {
+        ret = JS_DumpProfile(NULL, NULL);
+    } else {
+        RequiredStringArg filename(cx, argc, vp, 0, "dumpProfile");
+        if (!filename)
+            return JS_FALSE;
+
+        if (argc == 1) {
+            ret = JS_DumpProfile(filename.mBytes, NULL);
+        } else {
+            RequiredStringArg profileName(cx, argc, vp, 1, "dumpProfile");
+            if (!profileName)
+                return JS_FALSE;
+
+            ret = JS_DumpProfile(filename.mBytes, profileName.mBytes);
+        }
+    }
+
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(ret));
     return true;
 }
 
@@ -1552,15 +1448,94 @@ IgnoreAndReturnTrue(JSContext *cx, uintN argc, jsval *vp)
 
 #endif
 
+#ifdef MOZ_CALLGRIND
+static JSBool
+StartCallgrind(JSContext *cx, uintN argc, jsval *vp)
+{
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(js_StartCallgrind()));
+    return JS_TRUE;
+}
+
+static JSBool
+StopCallgrind(JSContext *cx, uintN argc, jsval *vp)
+{
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(js_StopCallgrind()));
+    return JS_TRUE;
+}
+
+static JSBool
+DumpCallgrind(JSContext *cx, uintN argc, jsval *vp)
+{
+    if (argc == 0) {
+        JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(js_DumpCallgrind(NULL)));
+        return JS_TRUE;
+    }
+
+    RequiredStringArg outFile(cx, argc, vp, 0, "dumpCallgrind");
+    if (!outFile)
+        return JS_FALSE;
+
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(js_DumpCallgrind(outFile.mBytes)));
+    return JS_TRUE;
+}    
+#endif
+
+#ifdef MOZ_VTUNE
+static JSBool
+StartVtune(JSContext *cx, uintN argc, jsval *vp)
+{
+    RequiredStringArg profileName(cx, argc, vp, 0, "startVtune");
+    if (!profileName)
+        return JS_FALSE;
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(js_StartVtune(profileName.mBytes)));
+    return JS_TRUE;
+}
+
+static JSBool
+StopVtune(JSContext *cx, uintN argc, jsval *vp)
+{
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(js_StopVtune()));
+    return JS_TRUE;
+}
+
+static JSBool
+PauseVtune(JSContext *cx, uintN argc, jsval *vp)
+{
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(js_PauseVtune()));
+    return JS_TRUE;
+}
+
+static JSBool
+ResumeVtune(JSContext *cx, uintN argc, jsval *vp)
+{
+    JS_SET_RVAL(cx, vp, BOOLEAN_TO_JSVAL(js_ResumeVtune()));
+    return JS_TRUE;
+}
+#endif
+
 static JSFunctionSpec profiling_functions[] = {
-    JS_FN("startProfiling",  StartProfiling,      0,0),
-    JS_FN("stopProfiling",   StopProfiling,       0,0),
+    JS_FN("startProfiling",  StartProfiling,      1,0),
+    JS_FN("stopProfiling",   StopProfiling,       1,0),
+    JS_FN("pauseProfilers",  PauseProfilers,      1,0),
+    JS_FN("resumeProfilers", ResumeProfilers,     1,0),
+    JS_FN("dumpProfile",     DumpProfile,         2,0),
 #ifdef MOZ_SHARK
-    
+    /* Keep users of the old shark API happy. */
     JS_FN("connectShark",    IgnoreAndReturnTrue, 0,0),
     JS_FN("disconnectShark", IgnoreAndReturnTrue, 0,0),
     JS_FN("startShark",      StartProfiling,      0,0),
     JS_FN("stopShark",       StopProfiling,       0,0),
+#endif
+#ifdef MOZ_CALLGRIND
+    JS_FN("startCallgrind", StartCallgrind,       0,0),
+    JS_FN("stopCallgrind",  StopCallgrind,        0,0),
+    JS_FN("dumpCallgrind",  DumpCallgrind,        1,0),
+#endif
+#ifdef MOZ_VTUNE
+    JS_FN("startVtune",     js_StartVtune,        1,0),
+    JS_FN("stopVtune",      js_StopVtune,         0,0),
+    JS_FN("pauseVtune",     js_PauseVtune,        0,0),
+    JS_FN("resumeVtune",    js_ResumeVtune,       0,0),
 #endif
     JS_FS_END
 };
@@ -1583,43 +1558,33 @@ JS_DefineProfilingFunctions(JSContext *cx, JSObject *obj)
 #include <valgrind/callgrind.h>
 
 JS_FRIEND_API(JSBool)
-js_StartCallgrind(JSContext *cx, uintN argc, jsval *vp)
+js_StartCallgrind()
 {
     CALLGRIND_START_INSTRUMENTATION;
     CALLGRIND_ZERO_STATS;
-    JS_SET_RVAL(cx, vp, JSVAL_VOID);
-    return JS_TRUE;
+    return true;
 }
 
 JS_FRIEND_API(JSBool)
-js_StopCallgrind(JSContext *cx, uintN argc, jsval *vp)
+js_StopCallgrind()
 {
     CALLGRIND_STOP_INSTRUMENTATION;
-    JS_SET_RVAL(cx, vp, JSVAL_VOID);
-    return JS_TRUE;
+    return true;
 }
 
 JS_FRIEND_API(JSBool)
-js_DumpCallgrind(JSContext *cx, uintN argc, jsval *vp)
+js_DumpCallgrind(const char *outfile)
 {
-    JSString *str;
-
-    jsval *argv = JS_ARGV(cx, vp);
-    if (argc > 0 && JSVAL_IS_STRING(argv[0])) {
-        str = JSVAL_TO_STRING(argv[0]);
-        JSAutoByteString bytes(cx, str);
-        if (!!bytes) {
-            CALLGRIND_DUMP_STATS_AT(bytes.ptr());
-            return JS_TRUE;
-        }
+    if (outfile) {
+        CALLGRIND_DUMP_STATS_AT(outfile);
+    } else {
+        CALLGRIND_DUMP_STATS;
     }
-    CALLGRIND_DUMP_STATS;
 
-    JS_SET_RVAL(cx, vp, JSVAL_VOID);
-    return JS_TRUE;
+    return true;
 }
 
-#endif 
+#endif /* MOZ_CALLGRIND */
 
 #ifdef MOZ_VTUNE
 #include <VTuneApi.h>
@@ -1651,8 +1616,8 @@ static const char *vtuneErrorMessages[] = {
 
 };
 
-JS_FRIEND_API(JSBool)
-js_StartVtune(JSContext *cx, uintN argc, jsval *vp)
+bool
+js_StartVtune(const char *profileName)
 {
     VTUNE_EVENT events[] = {
         { 1000000, 0, 0, 0, "CPU_CLK_UNHALTED.CORE" },
@@ -1667,89 +1632,81 @@ js_StartVtune(JSContext *cx, uintN argc, jsval *vp)
     VTUNE_SAMPLING_PARAMS params = {
         sizeof(VTUNE_SAMPLING_PARAMS),
         sizeof(VTUNE_EVENT),
-        0, 0, 
-        1,    
-        0,    
-        4096, 
-        0.1,  
-        1,    
+        0, 0, /* Reserved fields */
+        1,    /* Initialize in "paused" state */
+        0,    /* Max samples, or 0 for "continuous" */
+        4096, /* Samples per buffer */
+        0.1,  /* Sampling interval in ms */
+        1,    /* 1 for event-based sampling, 0 for time-based */
 
         n_events,
         events,
         default_filename,
     };
 
-    jsval *argv = JS_ARGV(cx, vp);
-    if (argc > 0 && JSVAL_IS_STRING(argv[0])) {
-        str = JSVAL_TO_STRING(argv[0]);
-        params.tb5Filename = DeflateString(cx, str->chars(), str->length());
+    if (profileName) {
+        char filename[strlen(profileName) + strlen("-vtune.tb5") + 1];
+        snprintf(filename, sizeof(filename), "%s-vtune.tb5", profileName);
+        params.tb5Filename = filename;
     }
 
     status = VTStartSampling(&params);
 
     if (params.tb5Filename != default_filename)
-        cx->free_(params.tb5Filename);
+        Foreground::free_(params.tb5Filename);
 
     if (status != 0) {
         if (status == VTAPI_MULTIPLE_RUNS)
             VTStopSampling(0);
         if (status < sizeof(vtuneErrorMessages))
-            JS_ReportError(cx, "Vtune setup error: %s",
-                           vtuneErrorMessages[status]);
+            UnsafeError("Vtune setup error: %s", vtuneErrorMessages[status]);
         else
-            JS_ReportError(cx, "Vtune setup error: %d",
-                           status);
+            UnsafeError("Vtune setup error: %d", status);
         return false;
     }
-    JS_SET_RVAL(cx, vp, JSVAL_VOID);
     return true;
 }
 
-JS_FRIEND_API(JSBool)
-js_StopVtune(JSContext *cx, uintN argc, jsval *vp)
+bool
+js_StopVtune()
 {
     U32 status = VTStopSampling(1);
     if (status) {
         if (status < sizeof(vtuneErrorMessages))
-            JS_ReportError(cx, "Vtune shutdown error: %s",
-                           vtuneErrorMessages[status]);
+            UnsafeError("Vtune shutdown error: %s", vtuneErrorMessages[status]);
         else
-            JS_ReportError(cx, "Vtune shutdown error: %d",
-                           status);
+            UnsafeError("Vtune shutdown error: %d", status);
         return false;
     }
-    JS_SET_RVAL(cx, vp, JSVAL_VOID);
     return true;
 }
 
-JS_FRIEND_API(JSBool)
-js_PauseVtune(JSContext *cx, uintN argc, jsval *vp)
+bool
+js_PauseVtune()
 {
     VTPause();
-    JS_SET_RVAL(cx, vp, JSVAL_VOID);
     return true;
 }
 
-JS_FRIEND_API(JSBool)
-js_ResumeVtune(JSContext *cx, uintN argc, jsval *vp)
+bool
+js_ResumeVtune()
 {
     VTResume();
-    JS_SET_RVAL(cx, vp, JSVAL_VOID);
     return true;
 }
 
-#endif 
+#endif /* MOZ_VTUNE */
 
 #ifdef MOZ_TRACEVIS
-
-
-
-
-
-
-
-
-
+/*
+ * Ethogram - Javascript wrapper for TraceVis state
+ *
+ * ethology: The scientific study of animal behavior,
+ *           especially as it occurs in a natural environment.
+ * ethogram: A pictorial catalog of the behavioral patterns of
+ *           an organism or a species.
+ *
+ */
 #if defined(XP_WIN)
 #include "jswin.h"
 #else
@@ -1875,7 +1832,7 @@ public:
             JSHashEntry **hep = JS_HashTableRawLookup(traceVisScriptTable, hash, filename);
             JSHashEntry *he = *hep;
             if (he) {
-                
+                /* we hardly knew he */
                 JS_HashTableRawRemove(traceVisScriptTable, hep, he);
             }
 
@@ -1926,7 +1883,7 @@ jstv_Lineno(JSContext *cx, JSStackFrame *fp)
     return (fp && fp->pcQuadratic(cx->stack)) ? js_FramePCToLineNumber(cx, fp) : 0;
 }
 
-
+/* Collect states here and distribute to a matching buffer, if any */
 JS_FRIEND_API(void)
 js::StoreTraceVisState(JSContext *cx, TraceVisState s, TraceVisExitReason r)
 {
@@ -1936,7 +1893,7 @@ js::StoreTraceVisState(JSContext *cx, TraceVisState s, TraceVisExitReason r)
     JSHashNumber hash = JS_HashString(script_file);
 
     JSHashEntry **hep = JS_HashTableRawLookup(traceVisScriptTable, hash, script_file);
-    
+    /* update event buffer, flag if overflowed */
     JSHashEntry *he = *hep;
     if (he) {
         EthogramEventBuffer *p;
@@ -2014,7 +1971,7 @@ ethogram_addScript(JSContext *cx, uintN argc, jsval *vp)
     if (!obj)
         return false;
     if (argc < 1) {
-        
+        /* silently ignore no args */
         JS_SET_RVAL(cx, vp, JSVAL_VOID);
         return true;
     }
@@ -2156,10 +2113,10 @@ static JSFunctionSpec ethogram_methods[] = {
     JS_FS_END
 };
 
-
-
-
-
+/*
+ * An |Ethogram| organizes the output of a collection of files that should be
+ * monitored together. A single object gets events for the group.
+ */
 JS_FRIEND_API(JSBool)
 js_InitEthogram(JSContext *cx, uintN argc, jsval *vp)
 {
@@ -2186,7 +2143,7 @@ js_ShutdownEthogram(JSContext *cx, uintN argc, jsval *vp)
     return true;
 }
 
-#endif 
+#endif /* MOZ_TRACEVIS */
 
 #ifdef MOZ_TRACE_JSCALLS
 
@@ -2202,35 +2159,32 @@ JS_GetFunctionCallback(JSContext *cx)
     return cx->functionCallback;
 }
 
-#endif 
+#endif /* MOZ_TRACE_JSCALLS */
 
 JS_PUBLIC_API(void)
-JS_DumpProfile(JSContext *cx, JSScript *script)
+JS_DumpBytecode(JSContext *cx, JSScript *script)
 {
     JS_ASSERT(!cx->runtime->gcRunning);
 
 #if defined(DEBUG)
-    if (script->pcCounters) {
-        
-        AutoArenaAllocator mark(&cx->tempPool);
-        Sprinter sprinter;
-        INIT_SPRINTER(cx, &sprinter, &cx->tempPool, 0);
+    AutoArenaAllocator mark(&cx->tempPool);
+    Sprinter sprinter;
+    INIT_SPRINTER(cx, &sprinter, &cx->tempPool, 0);
 
-        fprintf(stdout, "--- PC COUNTS %s:%d ---\n", script->filename, script->lineno);
-        js_Disassemble(cx, script, true, &sprinter);
-        fprintf(stdout, "%s\n", sprinter.base);
-        fprintf(stdout, "--- END PC COUNTS %s:%d ---\n", script->filename, script->lineno);
-    }
+    fprintf(stdout, "--- SCRIPT %s:%d ---\n", script->filename, script->lineno);
+    js_Disassemble(cx, script, true, &sprinter);
+    fputs(sprinter.base, stdout);
+    fprintf(stdout, "--- END SCRIPT %s:%d ---\n", script->filename, script->lineno);
 #endif
 }
 
 JS_PUBLIC_API(void)
-JS_DumpAllProfiles(JSContext *cx)
+JS_DumpCompartmentBytecode(JSContext *cx)
 {
     for (JSScript *script = (JSScript *) JS_LIST_HEAD(&cx->compartment->scripts);
          script != (JSScript *) &cx->compartment->scripts;
          script = (JSScript *) JS_NEXT_LINK((JSCList *)script))
     {
-        JS_DumpProfile(cx, script);
+        JS_DumpBytecode(cx, script);
     }
 }

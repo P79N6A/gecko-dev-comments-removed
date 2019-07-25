@@ -3826,30 +3826,6 @@ private:
 
 
 
-class nsXPCComponents_Interfaces :
-            public nsIScriptableInterfaces,
-            public nsIXPCScriptable,
-            public nsIClassInfo,
-            public nsISecurityCheckedComponent
-{
-public:
-    
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISCRIPTABLEINTERFACES
-    NS_DECL_NSIXPCSCRIPTABLE
-    NS_DECL_NSICLASSINFO
-    NS_DECL_NSISECURITYCHECKEDCOMPONENT
-
-public:
-    nsXPCComponents_Interfaces();
-    virtual ~nsXPCComponents_Interfaces();
-
-private:
-    nsCOMPtr<nsIInterfaceInfoManager> mManager;
-};
-
-
-
 
 extern JSObject*
 xpc_NewIDObject(JSContext *cx, JSObject* jsobj, const nsID& aID);
@@ -3909,7 +3885,9 @@ private:
     PRUint32 mColumnNumber;
     PRUint32 mFlags;
     nsCString mCategory;
-    PRUint64 mWindowID;
+    PRUint64 mOuterWindowID;
+    PRUint64 mInnerWindowID;
+    PRUint64 mTimeStamp;
 };
 
 
@@ -4339,7 +4317,7 @@ xpc_GetJSPrivate(JSObject *obj)
 
 nsresult
 xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop,
-                        JSObject *proto, bool preferXray);
+                        JSObject *proto, bool preferXray, const nsACString &sandboxName);
 
 
 
@@ -4420,6 +4398,7 @@ struct CompartmentPrivate
     JSObject2JSObjectMap *waiverWrapperMap;
     
     nsDataHashtable<nsPtrHashKey<XPCWrappedNative>, JSObject *> *expandoMap;
+    nsCString location;
 
     bool RegisterExpandoObject(XPCWrappedNative *wn, JSObject *expando) {
         if (!expandoMap) {

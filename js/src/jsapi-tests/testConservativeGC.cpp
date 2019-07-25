@@ -47,7 +47,7 @@ BEGIN_TEST(testConservativeGC)
 
 bool checkObjectFields(JSObject *savedCopy, JSObject *obj)
 {
-    
+    /* Ignore fields which are unstable across GCs. */
     CHECK(savedCopy->lastProp == obj->lastProp);
     CHECK(savedCopy->clasp == obj->clasp);
     CHECK(savedCopy->flags == obj->flags);
@@ -68,7 +68,7 @@ BEGIN_TEST(testDerivedValues)
   const jschar *ch = JS_GetStringCharsZ(cx, str);
   str = NULL;
 
-  
+  /* Do a lot of allocation and collection. */
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 1000; j++)
       JS_NewStringCopyZ(cx, "as I pondered weak and weary");

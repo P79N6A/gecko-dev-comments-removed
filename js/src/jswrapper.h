@@ -151,10 +151,6 @@ class JS_FRIEND_API(JSCrossCompartmentWrapper) : public JSWrapper {
 
     virtual void trace(JSTracer *trc, JSObject *wrapper);
 
-    virtual bool isCrossCompartment() {
-        return true;
-    }
-
     static JSCrossCompartmentWrapper singleton;
 };
 
@@ -198,6 +194,22 @@ class AutoCompartment
     
     AutoCompartment(const AutoCompartment &);
     AutoCompartment & operator=(const AutoCompartment &);
+};
+
+
+
+
+
+
+class ErrorCopier {
+    AutoCompartment &ac;
+    JSObject *scope;
+
+  public:
+    ErrorCopier(AutoCompartment &ac, JSObject *scope) : ac(ac), scope(scope) {
+        JS_ASSERT(scope->compartment() == ac.origin);
+    }
+    ~ErrorCopier();
 };
 
 extern JSObject *

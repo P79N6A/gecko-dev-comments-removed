@@ -310,7 +310,7 @@ Parser::newFunctionBox(JSObject *obj, JSParseNode *fn, JSTreeContext *tc)
 bool
 JSFunctionBox::joinable() const
 {
-    return FUN_NULL_CLOSURE(function()) &&
+    return function()->isNullClosure() &&
            !(tcflags & (TCF_FUN_USES_ARGUMENTS | TCF_FUN_USES_OWN_NAME));
 }
 
@@ -908,7 +908,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     bool inDirectivePrologue;
 
     JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL | TCF_NEED_MUTABLE_SCRIPT |
-                            TCF_COMPILE_FOR_EVAL)));
+                            TCF_COMPILE_FOR_EVAL | TCF_NEED_SCRIPT_OBJECT)));
 
     
 
@@ -962,13 +962,10 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
         tokenStream.setStrictMode();
     }
 
-    
-
-
-
-    JSObjectBox *funbox;
-    funbox = NULL;
-
+#ifdef DEBUG
+    bool savedCallerFun;
+    savedCallerFun = false;
+#endif
     if (tcflags & TCF_COMPILE_N_GO) {
         if (source) {
             
@@ -987,12 +984,15 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
 
 
-            funbox = parser.newObjectBox(FUN_OBJECT(callerFrame->fun()));
+            JSObjectBox *funbox = parser.newObjectBox(callerFrame->fun());
             if (!funbox)
                 goto out;
             funbox->emitLink = cg.objectList.lastbox;
             cg.objectList.lastbox = funbox;
             cg.objectList.length++;
+#ifdef DEBUG
+            savedCallerFun = true;
+#endif
         }
     }
 
@@ -1110,11 +1110,10 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     if (!script)
         goto out;
 
-    if (funbox)
-        script->savedCallerFun = true;
+    JS_ASSERT(script->savedCallerFun == savedCallerFun);
 
     {
-        AutoShapeRooter shapeRoot(cx, script->bindings.lastShape());
+        AutoScriptRooter root(cx, script);
         if (!defineGlobals(cx, globalScope, script))
             goto late_error;
     }
@@ -1130,10 +1129,9 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     
 
   late_error:
-    if (script) {
+    if (script && !script->u.object)
         js_DestroyScript(cx, script, 7);
-        script = NULL;
-    }
+    script = NULL;
     goto out;
 }
 
@@ -1977,8 +1975,8 @@ Parser::newFunction(JSTreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind)
                        JSFUN_INTERPRETED | (kind == Expression ? JSFUN_LAMBDA : 0),
                        parent, atom);
     if (fun && !tc->compileAndGo()) {
-        FUN_OBJECT(fun)->clearParent();
-        FUN_OBJECT(fun)->clearType();
+        fun->clearParent();
+        fun->clearType();
     }
     return fun;
 }
@@ -2460,12 +2458,12 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
 
         JSFunction *fun = funbox->function();
 
-        JS_ASSERT(FUN_KIND(fun) == JSFUN_INTERPRETED);
+        JS_ASSERT(fun->kind() == JSFUN_INTERPRETED);
 
         if (funbox->tcflags & TCF_FUN_HEAVYWEIGHT) {
             
         } else if (funbox->inAnyDynamicScope()) {
-            JS_ASSERT(!FUN_NULL_CLOSURE(fun));
+            JS_ASSERT(!fun->isNullClosure());
         } else if (pn->pn_type != TOK_UPVARS) {
             
 
@@ -2483,7 +2481,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
 
 
 
-            FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
+            fun->setKind(JSFUN_NULL_CLOSURE);
         } else {
             AtomDefnMapPtr upvars = pn->pn_names;
             JS_ASSERT(!upvars->empty());
@@ -2511,7 +2509,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
                 }
 
                 if (r.empty())
-                    FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
+                    fun->setKind(JSFUN_NULL_CLOSURE);
             } else {
                 uintN nupvars = 0, nflattened = 0;
 
@@ -2549,13 +2547,13 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
                 }
 
                 if (nupvars == 0) {
-                    FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
+                    fun->setKind(JSFUN_NULL_CLOSURE);
                 } else if (nflattened == nupvars) {
                     
 
 
 
-                    FUN_SET_KIND(fun, JSFUN_FLAT_CLOSURE);
+                    fun->setKind(JSFUN_FLAT_CLOSURE);
                     switch (PN_OP(fn)) {
                       case JSOP_DEFFUN:
                         fn->pn_op = JSOP_DEFFUN_FC;
@@ -2574,7 +2572,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
             }
         }
 
-        if (FUN_KIND(fun) == JSFUN_INTERPRETED && pn->pn_type == TOK_UPVARS) {
+        if (fun->kind() == JSFUN_INTERPRETED && pn->pn_type == TOK_UPVARS) {
             
 
 
@@ -2662,7 +2660,7 @@ EnterFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
         return NULL;
 
     
-    JSFunctionBox *funbox = tc->parser->newFunctionBox(FUN_OBJECT(fun), fn, tc);
+    JSFunctionBox *funbox = tc->parser->newFunctionBox(fun, fn, tc);
     if (!funbox)
         return NULL;
 
@@ -4964,14 +4962,16 @@ CloneLeftHandSide(JSParseNode *opn, JSTreeContext *tc)
 
         pn->pn_link = dn->dn_uses;
         dn->dn_uses = pn;
-    } else if (opn->pn_defn) {
-        
+    } else {
         pn->pn_expr = NULL;
-        pn->pn_cookie.makeFree();
-        pn->pn_dflags &= ~PND_BOUND;
-        pn->pn_defn = false;
+        if (opn->pn_defn) {
+            
+            pn->pn_cookie.makeFree();
+            pn->pn_dflags &= ~PND_BOUND;
+            pn->pn_defn = false;
 
-        LinkUseToDef(pn, (JSDefinition *) opn, tc);
+            LinkUseToDef(pn, (JSDefinition *) opn, tc);
+        }
     }
     return pn;
 }
@@ -8605,8 +8605,16 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
             tt = tokenStream.getToken();
             if (tt == TOK_COLON) {
                 pnval = assignExpr();
-                if (pnval && !pnval->isConstant())
+
+                
+
+
+
+
+                if ((pnval && !pnval->isConstant()) ||
+                    atom == context->runtime->atomState.protoAtom) {
                     pn->pn_xflags |= PNX_NONCONST;
+                }
             } else {
 #if JS_HAS_DESTRUCTURING_SHORTHAND
                 if (tt != TOK_COMMA && tt != TOK_RC) {

@@ -275,6 +275,11 @@ struct JSStmtInfo {
 
 
 
+#define TCF_NEED_SCRIPT_OBJECT 0x40000000
+
+
+
+
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
 
 
