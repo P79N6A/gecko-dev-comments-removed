@@ -961,16 +961,36 @@ MarkChildren(JSTracer *trc, JSScript *script)
         script->types->trace(trc);
 }
 
+const Shape *
+MarkShapeChildrenAcyclic(JSTracer *trc, const Shape *shape)
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+    MarkBaseShapeUnbarriered(trc, shape->base(), "base");
+    MarkIdUnbarriered(trc, shape->maybePropid(), "propid");
+    return shape->previous();
+}
+
 void
 MarkChildren(JSTracer *trc, const Shape *shape)
 {
-restart:
-    MarkBaseShapeUnbarriered(trc, shape->base(), "base");
-    MarkIdUnbarriered(trc, shape->maybePropid(), "propid");
+    
 
-    shape = shape->previous();
-    if (shape)
-        goto restart;
+
+
+    MarkShapeChildrenAcyclic(trc, shape);
+    if (shape->previous())
+        MarkShape(trc, shape->previous(), "parent");
 }
 
 void
