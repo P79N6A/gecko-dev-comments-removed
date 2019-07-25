@@ -750,6 +750,7 @@ let TabItems = {
   _heartbeatTiming: 100, 
   _lastUpdateTime: Date.now(),
   _eventListeners: [],
+  _pauseUpdateForTest: false,
   tempCanvas: null,
 
   
@@ -874,6 +875,9 @@ let TabItems = {
   
   _update: function TabItems__update(tab) {
     try {
+      if (this._pauseUpdateForTest)
+        return;
+
       Utils.assertThrow(tab, "tab");
 
       

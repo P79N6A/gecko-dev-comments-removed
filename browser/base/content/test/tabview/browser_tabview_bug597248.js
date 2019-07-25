@@ -96,6 +96,18 @@ function setupTwo() {
         restoredWin.removeEventListener("load", arguments.callee, false);
 
         
+        let onTabViewFrameInitialized = function() {
+          restoredWin.removeEventListener(
+            "tabviewframeinitialized", onTabViewFrameInitialized, false);
+
+          let restoredContentWindow = 
+            restoredWin.document.getElementById("tab-view").contentWindow;
+          
+          restoredContentWindow.TabItems._pauseUpdateForTest = true;
+        }
+        restoredWin.addEventListener(
+          "tabviewframeinitialized", onTabViewFrameInitialized, false);
+
         restoredWin.addEventListener("tabviewshown", onTabViewShown, false);
         
         is(restoredWin.gBrowser.tabs.length, 2, "The total number of tabs is 2");
@@ -213,6 +225,8 @@ function updateAndCheck() {
   
   let contentWindow = 
     restoredWin.document.getElementById("tab-view").contentWindow;
+
+  contentWindow.TabItems._pauseUpdateForTest = false;
 
   let tabItems = contentWindow.TabItems.getItems();
   tabItems.forEach(function(tabItem) {
