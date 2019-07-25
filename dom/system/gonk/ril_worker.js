@@ -1850,7 +1850,13 @@ let RIL = {
     if (message.header && (message.header.segmentMaxSeq > 1)) {
       message = this._processReceivedSmsSegment(message);
     } else {
-      message.fullBody = message.body;
+      if (message.encoding == PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
+        message.fullData = message.data;
+        delete message.data;
+      } else {
+        message.fullBody = message.body;
+        delete message.body;
+      }
     }
 
     if (message) {
@@ -1952,7 +1958,13 @@ let RIL = {
       return null;
     }
 
-    options.segments[seq] = original.body;
+    if (options.encoding == PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
+      options.segments[seq] = original.data;
+      delete original.data;
+    } else {
+      options.segments[seq] = original.body;
+      delete original.body;
+    }
     options.receivedSegments++;
     if (options.receivedSegments < options.segmentMaxSeq) {
       if (DEBUG) {
@@ -1966,9 +1978,23 @@ let RIL = {
     delete this._receivedSmsSegmentsMap[hash];
 
     
-    options.fullBody = "";
-    for (let i = 1; i <= options.segmentMaxSeq; i++) {
-      options.fullBody += options.segments[i];
+    if (options.encoding == PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
+      
+      
+      let fullDataLen = 0;
+      for (let i = 1; i <= options.segmentMaxSeq; i++) {
+        fullDataLen += options.segments[i].length;
+      }
+
+      options.fullData = new Uint8Array(fullDataLen);
+      for (let d= 0, i = 1; i <= options.segmentMaxSeq; i++) {
+        let data = options.segments[i];
+        for (let j = 0; j < data.length; j++) {
+          options.fullData[d++] = data[j];
+        }
+      }
+    } else {
+      options.fullBody = options.segments.join("");
     }
 
     if (DEBUG) {
@@ -3426,6 +3452,7 @@ let GsmPDUHelper = {
     }
 
     msg.body = null;
+    msg.data = null;
     switch (msg.encoding) {
       case PDU_DCS_MSG_CODING_7BITS_ALPHABET:
         
@@ -3441,7 +3468,7 @@ let GsmPDUHelper = {
                                             langShiftIndex);
         break;
       case PDU_DCS_MSG_CODING_8BITS_ALPHABET:
-        
+        msg.data = this.readHexOctetArray(length);
         break;
       case PDU_DCS_MSG_CODING_16BITS_ALPHABET:
         msg.body = this.readUCS2String(length);
@@ -3517,6 +3544,7 @@ let GsmPDUHelper = {
       dcs:       null, 
       encoding:  null, 
       body:      null, 
+      data:      null, 
       timestamp: null, 
       status:    null, 
       scts:      null, 
