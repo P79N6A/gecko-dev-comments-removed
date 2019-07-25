@@ -391,6 +391,9 @@ let CommonUtils = {
 
 
 
+
+
+
   jsonSave: function jsonSave(filePath, that, obj, callback) {
     let path = filePath + ".json";
     if (that._log) {
@@ -405,7 +408,8 @@ let CommonUtils = {
     let is = this._utf8Converter.convertToInputStream(out);
     NetUtil.asyncCopy(is, fos, function (result) {
       if (typeof callback == "function") {
-        callback.call(that);
+        let error = (result == Cr.NS_OK) ? null : result;
+        callback.call(that, error);
       }
     });
   },
