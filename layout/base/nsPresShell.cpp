@@ -162,6 +162,8 @@
 #include "nsSMILAnimationController.h"
 #endif
 
+#include "nsRefreshDriver.h"
+
 
 #include "nsWidgetsCID.h"
 #include "nsIClipboard.h"

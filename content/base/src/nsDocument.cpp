@@ -192,6 +192,8 @@ static NS_DEFINE_CID(kDOMEventGroupCID, NS_DOMEVENTGROUP_CID);
 #include "nsSVGUtils.h"
 #endif 
 
+#include "nsRefreshDriver.h"
+
 
 #include "nsIContentSecurityPolicy.h"
 #include "nsCSPService.h"
