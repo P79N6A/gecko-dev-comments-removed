@@ -357,8 +357,14 @@ namespace js {
 
 
 
+
+
+
+
+
 char *
-DecompileValueGenerator(JSContext *cx, int spindex, HandleValue v, HandleString fallback);
+DecompileValueGenerator(JSContext *cx, int spindex, HandleValue v,
+                        HandleString fallback, int skipStackHits = 0);
 
 
 

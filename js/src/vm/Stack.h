@@ -1744,6 +1744,21 @@ class ScriptFrameIter : public StackIter
 };
 
 
+class NonBuiltinScriptFrameIter : public StackIter
+{
+    void settle() {
+        while (!done() && (!isScript() || (isFunctionFrame() && fp()->fun()->isSelfHostedBuiltin())))
+            StackIter::operator++();
+    }
+
+  public:
+    NonBuiltinScriptFrameIter(JSContext *cx, StackIter::SavedOption opt = StackIter::STOP_AT_SAVED)
+        : StackIter(cx, opt) { settle(); }
+
+    NonBuiltinScriptFrameIter &operator++() { StackIter::operator++(); settle(); return *this; }
+};
+
+
 
 
 

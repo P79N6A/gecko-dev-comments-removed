@@ -58,7 +58,17 @@ struct Parser : private AutoGCRooter
 
 
 
-    const bool          allowIntrinsicsCalls:1;
+
+
+
+
+
+
+
+
+
+
+    const bool          selfHostingMode:1;
 
   public:
     Parser(JSContext *cx, const CompileOptions &options,
