@@ -1261,6 +1261,9 @@ struct JSCompartment {
     void sweep(JSContext *cx);
 };
 
+typedef void
+(* JSActivityCallback)(void *arg, JSBool active);
+
 struct JSRuntime {
     
     JSCompartment       *defaultCompartment;
@@ -1276,6 +1279,20 @@ struct JSRuntime {
 
     
     JSCompartmentCallback compartmentCallback;
+
+    
+
+
+
+
+
+    void setActivityCallback(JSActivityCallback cb, void *arg) {
+        activityCallback = cb;
+        activityCallbackArg = arg;
+    }
+
+    JSActivityCallback    activityCallback;
+    void                 *activityCallbackArg;
 
     
 
@@ -1986,6 +2003,19 @@ struct JSContext
                         !runtime->debuggerInhibitsJIT())));
 #endif
     }
+
+#ifdef MOZ_TRACE_JSCALLS
+    
+    JSFunctionCallback    functionCallback;
+
+    void doFunctionCallback(const JSFunction *fun,
+                            const JSScript *scr,
+                            JSBool entering) const
+    {
+        if (functionCallback)
+            functionCallback(fun, scr, this, entering);
+    }
+#endif
 
     DSTOffsetCache dstOffsetCache;
 
@@ -3197,11 +3227,25 @@ class AutoValueVector : private AutoGCRooter
     void popBack() { vector.popBack(); }
 
     bool growBy(size_t inc) {
-        return vector.growBy(inc);
+        
+        size_t oldLength = vector.length();
+        if (!vector.growByUninitialized(inc))
+            return false;
+        MakeValueRangeGCSafe(vector.begin() + oldLength, vector.end());
+        return true;
     }
 
     bool resize(size_t newLength) {
-        return vector.resize(newLength);
+        size_t oldLength = vector.length();
+        if (newLength <= oldLength) {
+            vector.shrinkBy(oldLength - newLength);
+            return true;
+        }
+        
+        if (!vector.growByUninitialized(newLength - oldLength))
+            return false;
+        MakeValueRangeGCSafe(vector.begin() + oldLength, vector.end());
+        return true;
     }
 
     bool reserve(size_t newLength) {
@@ -3243,11 +3287,25 @@ class AutoIdVector : private AutoGCRooter
     void popBack() { vector.popBack(); }
 
     bool growBy(size_t inc) {
-        return vector.growBy(inc);
+        
+        size_t oldLength = vector.length();
+        if (!vector.growByUninitialized(inc))
+            return false;
+        MakeIdRangeGCSafe(vector.begin() + oldLength, vector.end());
+        return true;
     }
 
     bool resize(size_t newLength) {
-        return vector.resize(newLength);
+        size_t oldLength = vector.length();
+        if (newLength <= oldLength) {
+            vector.shrinkBy(oldLength - newLength);
+            return true;
+        }
+        
+        if (!vector.growByUninitialized(newLength - oldLength))
+            return false;
+        MakeIdRangeGCSafe(vector.begin() + oldLength, vector.end());
+        return true;
     }
 
     bool reserve(size_t newLength) {
@@ -3274,44 +3332,6 @@ class AutoIdVector : private AutoGCRooter
 
 JSIdArray *
 NewIdArray(JSContext *cx, jsint length);
-
-static JS_ALWAYS_INLINE void
-MakeValueRangeGCSafe(Value *vec, uintN len)
-{
-    PodZero(vec, len);
-}
-
-static JS_ALWAYS_INLINE void
-MakeValueRangeGCSafe(Value *beg, Value *end)
-{
-    PodZero(beg, end - beg);
-}
-
-static JS_ALWAYS_INLINE void
-SetValueRangeToUndefined(Value *beg, Value *end)
-{
-    for (Value *v = beg; v != end; ++v)
-        v->setUndefined();
-}
-
-static JS_ALWAYS_INLINE void
-SetValueRangeToUndefined(Value *vec, uintN len)
-{
-    return SetValueRangeToUndefined(vec, vec + len);
-}
-
-static JS_ALWAYS_INLINE void
-SetValueRangeToNull(Value *beg, Value *end)
-{
-    for (Value *v = beg; v != end; ++v)
-        v->setNull();
-}
-
-static JS_ALWAYS_INLINE void
-SetValueRangeToNull(Value *vec, uintN len)
-{
-    return SetValueRangeToNull(vec, vec + len);
-}
 
 } 
 
