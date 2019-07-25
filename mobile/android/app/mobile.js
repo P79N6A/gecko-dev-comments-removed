@@ -719,3 +719,6 @@ pref("accessibility.accessfu.activate", 2);
 
 
 pref("network.manage-offline-status", true);
+
+
+pref("dom.min_background_timeout_value", 900000);
