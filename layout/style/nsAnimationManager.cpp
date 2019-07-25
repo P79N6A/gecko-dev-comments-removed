@@ -213,7 +213,7 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       
       NS_ABORT_IF_FALSE(currentIterationCount >= 0.0, "must be positive");
       PRUint32 whichIteration = int(currentIterationCount);
-      if (whichIteration == anim.mIterationCount) {
+      if (whichIteration == anim.mIterationCount && whichIteration != 0) {
         
         
         
