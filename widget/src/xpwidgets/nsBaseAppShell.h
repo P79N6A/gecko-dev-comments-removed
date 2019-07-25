@@ -138,6 +138,22 @@ private:
 
 
   PRPackedBool mBlockNativeEvent;
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  PRPackedBool mProcessedGeckoEvents;
 };
 
 #endif 

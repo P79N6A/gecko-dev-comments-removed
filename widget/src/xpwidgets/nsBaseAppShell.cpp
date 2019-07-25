@@ -129,6 +129,7 @@ nsBaseAppShell::NativeEventCallback()
   ++mEventloopNestingLevel;
   EventloopNestingState prevVal = mEventloopNestingState;
   NS_ProcessPendingEvents(thread, THREAD_EVENT_STARVATION_LIMIT);
+  mProcessedGeckoEvents = PR_TRUE;
   mEventloopNestingState = prevVal;
   mBlockNativeEvent = prevBlockNativeEvent;
 
@@ -289,6 +290,9 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, PRBool mayWait,
   
   
   PRBool needEvent = mayWait;
+  
+  
+  mProcessedGeckoEvents = PR_FALSE;
 
   if (mFavorPerf <= 0 && start > mSwitchTime + mStarvationDelay) {
     
@@ -306,7 +310,7 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, PRBool mayWait,
     }
   }
 
-  while (!NS_HasPendingEvents(thr)) {
+  while (!NS_HasPendingEvents(thr) && !mProcessedGeckoEvents) {
     
     
     
