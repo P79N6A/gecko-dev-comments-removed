@@ -1092,6 +1092,9 @@ struct JSThreadData {
 #ifdef JS_TRACER
     
     js::TraceMonitor    traceMonitor;
+
+    
+    unsigned            iterationCounter;
 #endif
 
 #ifdef JS_METHODJIT
