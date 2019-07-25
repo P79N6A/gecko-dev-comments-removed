@@ -8878,7 +8878,7 @@ TraceRecorder::strictEquality(bool equal, bool cmpCase)
                ? l.toNumber() == r.toNumber()
                : l == r;
     }
-    cond = (cond == equal);
+    cond = (!!cond == equal);
 
     if (cmpCase) {
         
