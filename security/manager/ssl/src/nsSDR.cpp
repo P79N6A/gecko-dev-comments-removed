@@ -361,7 +361,16 @@ LogoutAndTeardown()
     SSL_ClearSessionCache();
   }
 
-  return nssComponent->LogoutAuthenticatedPK11();
+  rv = nssComponent->LogoutAuthenticatedPK11();
+
+  
+  
+  
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  if (os)
+    os->NotifyObservers(nsnull, "net:prune-dead-connections", nsnull);
+
+  return rv;
 }
 
 
