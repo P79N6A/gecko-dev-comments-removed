@@ -229,7 +229,7 @@ ic::NativeCallCompiler::finish(JSScript *script, uint8 *start, uint8 *fallthroug
 }
 
 void
-ic::CallFastNative(JSContext *cx, JSScript *script, MICInfo &mic, JSFunction *fun, bool isNew)
+ic::CallNative(JSContext *cx, JSScript *script, MICInfo &mic, JSFunction *fun, bool isNew)
 {
     if (mic.u.generated) {
         
@@ -237,11 +237,11 @@ ic::CallFastNative(JSContext *cx, JSScript *script, MICInfo &mic, JSFunction *fu
     }
     mic.u.generated = true;
 
-    JS_ASSERT(fun->isFastNative());
+    JS_ASSERT(fun->isNative());
     if (isNew)
-        JS_ASSERT(fun->isFastConstructor());
+        JS_ASSERT(fun->isConstructor());
 
-    FastNative fn = (FastNative)fun->u.n.native;
+    Native native = fun->u.n.native;
 
     typedef JSC::MacroAssembler::ImmPtr ImmPtr;
     typedef JSC::MacroAssembler::Imm32 Imm32;
@@ -282,7 +282,9 @@ ic::CallFastNative(JSContext *cx, JSScript *script, MICInfo &mic, JSFunction *fu
 
     if (isNew) {
         
-        ncc.masm.storeValue(MagicValue(JS_FAST_CONSTRUCTOR), Address(temp, sizeof(Value)));
+        Value magicCtorThis;
+        magicCtorThis.setMagicWithObjectOrNullPayload(NULL);
+        ncc.masm.storeValue(magicCtorThis, Address(temp, sizeof(Value)));
     }
 
     
@@ -293,7 +295,7 @@ ic::CallFastNative(JSContext *cx, JSScript *script, MICInfo &mic, JSFunction *fu
     ncc.masm.storePtr(temp, Address(JSC::X86Registers::esp, 0));
 
     
-    ncc.masm.call(JS_FUNC_TO_DATA_PTR(void *, fn));
+    ncc.masm.call(JS_FUNC_TO_DATA_PTR(void *, native));
 
     
     ncc.masm.add32(Imm32(stackAdjustment), JSC::X86Registers::esp);

@@ -688,34 +688,48 @@ Invoke(JSContext *cx, const CallArgs &args, uintN flags);
 
 
 
-extern JSBool
-InternalInvoke(JSContext *cx, const Value &thisv, const Value &fval, uintN flags,
+
+extern bool
+ExternalInvoke(JSContext *cx, const Value &thisv, const Value &fval,
                uintN argc, Value *argv, Value *rval);
 
 static JS_ALWAYS_INLINE bool
-InternalCall(JSContext *cx, JSObject *obj, const Value &fval,
-             uintN argc, Value *argv, Value *rval)
+ExternalInvoke(JSContext *cx, JSObject *obj, const Value &fval,
+               uintN argc, Value *argv, Value *rval)
 {
-    return InternalInvoke(cx, ObjectOrNullValue(obj), fval, 0, argc, argv, rval);
-}
-
-static JS_ALWAYS_INLINE bool
-InternalConstruct(JSContext *cx, JSObject *obj, const Value &fval,
-                  uintN argc, Value *argv, Value *rval)
-{
-    return InternalInvoke(cx, ObjectOrNullValue(obj), fval, JSINVOKE_CONSTRUCT, argc, argv, rval);
+    return ExternalInvoke(cx, ObjectOrNullValue(obj), fval, argc, argv, rval);
 }
 
 extern bool
-InternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
+ExternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
                  JSAccessMode mode, uintN argc, Value *argv, Value *rval);
+
+
+
+
+
+
+
+
+
+extern JS_REQUIRES_STACK bool
+InvokeConstructor(JSContext *cx, const CallArgs &args);
+
+extern JS_REQUIRES_STACK bool
+InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fval,
+                               uintN argc, Value *argv, Value *rval);
+
+
+
+
 
 extern JS_FORCES_STACK bool
 Execute(JSContext *cx, JSObject *chain, JSScript *script,
         JSStackFrame *down, uintN flags, Value *result);
 
-extern JS_REQUIRES_STACK bool
-InvokeConstructor(JSContext *cx, const CallArgs &args);
+
+
+
 
 extern JS_REQUIRES_STACK bool
 Interpret(JSContext *cx, JSStackFrame *stopFp, uintN inlineCallCount = 0);
