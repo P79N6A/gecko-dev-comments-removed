@@ -1944,6 +1944,19 @@ struct JSContext
 #endif
     }
 
+#ifdef MOZ_TRACE_JSCALLS
+    
+    JSFunctionCallback    functionCallback;
+
+    void doFunctionCallback(const JSFunction *fun,
+                            const JSScript *scr,
+                            JSBool entering) const
+    {
+        if (functionCallback)
+            functionCallback(fun, scr, this, entering);
+    }
+#endif
+
     DSTOffsetCache dstOffsetCache;
 
     

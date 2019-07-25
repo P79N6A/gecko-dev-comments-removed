@@ -794,7 +794,7 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
     LeaveTrace(cx);
 
-    DTrace::ExecutionScope executionScope(script);
+    DTrace::ExecutionScope executionScope(cx, script);
     
 
 
