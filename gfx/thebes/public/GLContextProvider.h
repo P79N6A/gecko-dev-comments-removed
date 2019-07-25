@@ -121,6 +121,33 @@ public:
     already_AddRefed<GLContext> CreateForWindow(nsIWidget *aWidget);
 };
 
+
+class THEBES_API GLContextProviderOSMesa
+{
+public:
+    typedef GLContextProvider::ContextFormat ContextFormat;
+
+    
+
+
+
+
+
+
+
+    static already_AddRefed<GLContext> CreatePBuffer(const gfxIntSize &aSize,
+                                              const ContextFormat& aFormat = ContextFormat::BasicRGBA32Format);
+
+    
+
+
+
+
+
+
+    static already_AddRefed<GLContext> CreateForWindow(nsIWidget *aWidget);
+};
+
 extern GLContextProvider THEBES_API sGLContextProvider;
 
 }
