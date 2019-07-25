@@ -188,7 +188,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  isShowingCachedData: function TabItem_isShowingCachedData() {
+  isShowingCachedData: function() {
     return (this._cachedImageData != null);
   },
 
@@ -888,7 +888,7 @@ let TabItems = {
   
   
   
-  isComplete: function TabItems_isComplete(tab) {
+  isComplete: function TabItems_update(tab) {
     
     
     

@@ -175,13 +175,13 @@ function GroupItem(listOfEls, options) {
     
     
     
+    self.adjustTitleSize();
     self.save();
   };
 
   this.$title
     .blur(function() {
       self._titleFocused = false;
-      self.$title[0].setSelectionRange(0, 0);
       self.$titleShield.show();
       if (self.getTitle())
         gTabView.firstUseExperienced = true;
@@ -392,6 +392,22 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  adjustTitleSize: function GroupItem_adjustTitleSize() {
+    Utils.assert(this.bounds, 'bounds needs to have been set');
+    let closeButton = iQ('.close', this.container);
+    var dimension = UI.rtl ? 'left' : 'right';
+    var w = Math.min(this.bounds.width - parseInt(closeButton.width()) - parseInt(closeButton.css(dimension)),
+                     Math.max(150, this.getTitle().length * 6));
+    
+    
+    var css = {width: w};
+    this.$title.css(css);
+    this.$titleShield.css(css);
+  },
+
+  
+  
+  
   focusTitle: function GroupItem_focusTitle() {
     this.$titleShield.hide();
     this.$title[0].focus();
@@ -591,8 +607,14 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       });
     }
 
+    if (css.width) {      
+      this.adjustTitleSize();
+    }
+
     UI.clearShouldResizeItems();
+
     this.setTrenches(rect);
+
     this.save();
   },
 
@@ -862,7 +884,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  _fadeAwayUndoButton: function GroupItem__fadeAwayUndoButton() {
+  _fadeAwayUndoButton: function GroupItem__fadeAwayUdoButton() {
     let self = this;
 
     if (this.$undoContainer) {
@@ -956,7 +978,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
   
   
-  setupFadeAwayUndoButtonTimer: function GroupItem_setupFadeAwayUndoButtonTimer() {
+  setupFadeAwayUndoButtonTimer: function() {
     let self = this;
 
     if (!this._undoButtonTimeoutId) {
@@ -968,7 +990,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  _cancelFadeAwayUndoButtonTimer: function GroupItem__cancelFadeAwayUndoButtonTimer() {
+  _cancelFadeAwayUndoButtonTimer: function() {
     clearTimeout(this._undoButtonTimeoutId);
     this._undoButtonTimeoutId = null;
   }, 
@@ -2089,7 +2111,7 @@ let GroupItems = {
   
   
   
-  getAppTabFavIconUrl: function GroupItems_getAppTabFavIconUrl(xulTab) {
+  getAppTabFavIconUrl: function GroupItems__getAppTabFavIconUrl(xulTab) {
     let iconUrl;
 
     if (UI.shouldLoadFavIcon(xulTab.linkedBrowser))
@@ -2548,7 +2570,7 @@ let GroupItems = {
   
   
   
-  moveTabToGroupItem : function GroupItems_moveTabToGroupItem(tab, groupItemId) {
+  moveTabToGroupItem : function GroupItems_moveTabToGroupItem (tab, groupItemId) {
     if (tab.pinned)
       return;
 

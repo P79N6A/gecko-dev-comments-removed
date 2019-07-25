@@ -34,11 +34,11 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH		= ../../../../..
+DEPTH		= ../../../..
 topsrcdir	= @top_srcdir@
 srcdir		= @srcdir@
 VPATH		= @srcdir@
-relativesrcdir  = browser/base/content/test/tabview
+relativesrcdir  = browser/components/tabview/test
 
 include $(DEPTH)/config/autoconf.mk
 include $(topsrcdir)/config/rules.mk
@@ -78,7 +78,6 @@ _BROWSER_FILES = \
                  browser_tabview_bug597980.js \
                  browser_tabview_bug598375.js \
                  browser_tabview_bug598600.js \
-                 browser_tabview_bug599048.js \
                  browser_tabview_bug599626.js \
                  browser_tabview_bug600645.js \
                  browser_tabview_bug600812.js \
@@ -146,7 +145,6 @@ _BROWSER_FILES = \
                  browser_tabview_bug650280.js \
                  browser_tabview_bug650573.js \
                  browser_tabview_bug651311.js \
-                 browser_tabview_bug654295.js \
                  browser_tabview_bug654721.js \
                  browser_tabview_bug654941.js \
                  browser_tabview_bug655269.js \
