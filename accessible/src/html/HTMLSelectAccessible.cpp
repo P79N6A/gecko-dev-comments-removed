@@ -16,15 +16,10 @@
 #include "States.h"
 
 #include "nsCOMPtr.h"
-#include "nsIFrame.h"
+#include "nsHTMLOptionElement.h"
 #include "nsIComboboxControlFrame.h"
-#include "nsIDocument.h"
-#include "nsIDOMHTMLInputElement.h"
-#include "nsIDOMHTMLOptGroupElement.h"
-#include "nsIDOMHTMLSelectElement.h"
+#include "nsIFrame.h"
 #include "nsIListControlFrame.h"
-#include "nsIServiceManager.h"
-#include "nsIMutableArray.h"
 
 using namespace mozilla::a11y;
 
@@ -238,30 +233,24 @@ HTMLSelectOptionAccessible::NativeState()
     return state;
 
   
-  bool isSelected = false;
-  nsCOMPtr<nsIDOMHTMLOptionElement> option(do_QueryInterface(mContent));
-  if (option) {
-    option->GetSelected(&isSelected);
-    if (isSelected)
-      state |= states::SELECTED;
-  }
+  nsHTMLOptionElement* option = nsHTMLOptionElement::FromContent(mContent);
+  bool selected = option && option->Selected();
+  if (selected)
+    state |= states::SELECTED;
 
   if (selectState & states::OFFSCREEN) {
     state |= states::OFFSCREEN;
-  }
-  else if (selectState & states::COLLAPSED) {
+  } else if (selectState & states::COLLAPSED) {
     
     
-    if (!isSelected) {
+    if (!selected) {
       state |= states::OFFSCREEN;
-    }
-    else {
+    } else {
       
       state &= ~(states::OFFSCREEN | states::INVISIBLE);
       state |= selectState & states::OPAQUE1;
     }
-  }
-  else {
+  } else {
     
     
     state &= ~states::OFFSCREEN;
@@ -348,8 +337,8 @@ HTMLSelectOptionAccessible::SetSelected(bool aSelect)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIDOMHTMLOptionElement> optionElm(do_QueryInterface(mContent));
-  return optionElm->SetSelected(aSelect);
+  nsHTMLOptionElement* option = nsHTMLOptionElement::FromContent(mContent);
+  return option ? option->SetSelected(aSelect) : NS_ERROR_FAILURE;
 }
 
 
