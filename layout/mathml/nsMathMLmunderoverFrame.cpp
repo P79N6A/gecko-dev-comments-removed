@@ -361,7 +361,10 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
     underDelta2 = ruleThickness;
   }
   
-  if (!(bmUnder.ascent + bmUnder.descent)) underDelta1 = 0;
+  if (!(bmUnder.ascent + bmUnder.descent)) {
+    underDelta1 = 0;
+    underDelta2 = 0;
+  }
 
   nscoord overDelta1 = 0; 
   nscoord overDelta2 = 0; 
@@ -391,7 +394,10 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
     overDelta2 = ruleThickness;
   }
   
-  if (!(bmOver.ascent + bmOver.descent)) overDelta1 = 0;
+  if (!(bmOver.ascent + bmOver.descent)) {
+    overDelta1 = 0;
+    overDelta2 = 0;
+  }
 
   nscoord dxBase, dxOver = 0, dxUnder = 0;
 
