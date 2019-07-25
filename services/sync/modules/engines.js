@@ -349,7 +349,26 @@ SyncEngine.prototype = {
   _syncStartup: function SyncEngine__syncStartup() {
     this._log.debug("Ensuring server crypto records are there");
 
+    
     let meta = CryptoMetas.get(this.cryptoMetaURL);
+    if (meta) {
+      try {
+        let pubkey = PubKeys.getDefaultKey();
+        let privkey = PrivKeys.get(pubkey.privateKeyUri);
+        meta.getKey(privkey, ID.get("WeaveCryptoID"));
+      }
+      catch(ex) {
+        
+        this._log.debug("Purging bad data after failed unwrap crypto: " + ex);
+        CryptoMetas.del(this.cryptoMetaURL);
+        meta = null;
+
+        
+        new Resource(this.engineURL).delete();
+      }
+    }
+
+    
     if (!meta) {
       let symkey = Svc.Crypto.generateRandomKey();
       let pubkey = PubKeys.getDefaultKey();
