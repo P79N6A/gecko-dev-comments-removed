@@ -401,10 +401,10 @@ BookmarksEngine.prototype = {
 
 
     
-    let bookmarkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
+    let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
     Crypto.PBEencrypt.async( Crypto, self.cb, json, {password:symKey} );
     let cyphertext = yield;
-    bookmarkFile.put( self.cb, cyphertext );
+    bmkFile.put( self.cb, cyphertext );
     yield;
     self.done();
   },
@@ -412,11 +412,50 @@ BookmarksEngine.prototype = {
   _stopOutgoingShare: function BmkEngine__stopOutgoingShare(folderNode) {
     
 
+
+    
+    let self = yield;
+    let serverPath = this._annoSvc.getItemAnnotation( folderNode,
+                                                      SERVER_PATH_ANNO );
+    let username = this._annoSvc.getItemAnnotation( folderNode,
+                                                    OUTGOING_SHARE_ANNO );
+    
+    
+    let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
+    keyringFile.delete(self.cb);
+    yield;
+    let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
+    keyringFile.delete(self.cb);
+    yield;
     
     
     
     
+    this._annoSvc.setItemAnnotation(folderNode,
+                                    SERVER_PATH_ANNO
+                                    "",
+                                    0,
+                                    this._annoSvc.EXPIRE_NEVER);
+    this._annoSvc.setItemAnnotation(folderNode,
+                                    SERVER_PATH_ANNO
+                                    "",
+                                    0,
+                                    this._annoSvc.EXPIRE_NEVER);
     
+    
+
+    
+    if ( this._xmppClient ) {
+      if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
+ 	let folderName = folderNode.getAttribute( "label" );
+	let msgText = "stop " + serverPath + " " + folderName;
+	this._log.debug( "Sending XMPP message: " + msgText );
+	this._xmppClient.sendMessage( username, msgText );
+      } else {
+	this._log.warn( "No XMPP connection for share notification." );
+      }
+    }
+
   },
 
   _createIncomingShare: function BookmarkEngine__createShare(user,
