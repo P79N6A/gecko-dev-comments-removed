@@ -1471,11 +1471,6 @@ private:
   
   
   SurfaceDescriptor mBackBuffer;
-  
-  
-  
-  SurfaceDescriptor mNewFrontBuffer;
-  nsIntSize mBufferSize;
 };
 
 void
@@ -1527,40 +1522,8 @@ BasicShadowableThebesLayer::PaintBuffer(gfxContext* aContext,
 
   NS_ABORT_IF_FALSE(IsSurfaceDescriptorValid(mBackBuffer),
                     "should have a back buffer by now");
-
-  nsIntRegion updatedRegion = aRegionToDraw;
-  if (IsSurfaceDescriptorValid(mNewFrontBuffer)) {
-    
-    
-    
-    
-    
-    
-    nsRefPtr<gfxASurface> frontBuffer =
-      BasicManager()->OpenDescriptor(mNewFrontBuffer);
-    nsRefPtr<gfxASurface> backBuffer =
-      BasicManager()->OpenDescriptor(mBackBuffer);
-
-    nsRefPtr<gfxContext> ctx = new gfxContext(frontBuffer);
-    ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-    ctx->DrawSurface(backBuffer, backBuffer->GetSize());
-
-    BasicManager()->CreatedThebesBuffer(BasicManager()->Hold(this),
-                                        mValidRegion,
-                                        mXResolution,
-                                        mYResolution,
-                                        mBuffer.BufferRect(),
-                                        mNewFrontBuffer);
-
-    
-    mNewFrontBuffer = SurfaceDescriptor();
-    
-    
-    updatedRegion.SetEmpty();
-  }
-
   BasicManager()->PaintedThebesBuffer(BasicManager()->Hold(this),
-                                      updatedRegion,
+                                      aRegionToDraw,
                                       mBuffer.BufferRect(),
                                       mBuffer.BufferRotation(),
                                       mBackBuffer);
@@ -1581,14 +1544,18 @@ BasicShadowableThebesLayer::CreateBuffer(Buffer::ContentType aType,
   }
 
   
-  NS_ABORT_IF_FALSE(!IsSurfaceDescriptorValid(mNewFrontBuffer),
-                    "Bad!  Did we create a buffer twice without painting?");
+  SurfaceDescriptor tmpFront;
   if (!BasicManager()->AllocDoubleBuffer(gfxIntSize(aSize.width, aSize.height),
                                          aType,
-                                         &mNewFrontBuffer,
+                                         &tmpFront,
                                          &mBackBuffer))
     NS_RUNTIMEABORT("creating ThebesLayer 'back buffer' failed!");
-  mBufferSize = aSize;
+
+  BasicManager()->CreatedThebesBuffer(BasicManager()->Hold(this),
+                                      nsIntRegion(),
+                                      1.0, 1.0,
+                                      nsIntRect(),
+                                      tmpFront);
   return BasicManager()->OpenDescriptor(mBackBuffer);
 }
 
