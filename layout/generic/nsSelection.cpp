@@ -3986,7 +3986,7 @@ Selection::SelectAllFramesForContent(nsIContentIterator* aInnerIter,
 
 nsresult
 Selection::selectFrames(nsPresContext* aPresContext, nsRange* aRange,
-                        bool aFlags)
+                        bool aSelect)
 {
   if (!mFrameSelection || !aPresContext || !aPresContext->GetPresShell()) {
     
@@ -4025,7 +4025,7 @@ Selection::selectFrames(nsPresContext* aPresContext, nsRange* aRange,
       } else {
         endOffset = content->Length();
       }
-      textFrame->SetSelectedRange(startOffset, endOffset, aFlags, mType);
+      textFrame->SetSelectedRange(startOffset, endOffset, aSelect, mType);
     }
   }
 
@@ -4033,7 +4033,7 @@ Selection::selectFrames(nsPresContext* aPresContext, nsRange* aRange,
   nsCOMPtr<nsIContentIterator> inneriter = NS_NewContentIterator();
   for (iter->First(); !iter->IsDone(); iter->Next()) {
     content = do_QueryInterface(iter->GetCurrentNode());
-    SelectAllFramesForContent(inneriter, content, aFlags);
+    SelectAllFramesForContent(inneriter, content, aSelect);
   }
 
   
@@ -4048,7 +4048,7 @@ Selection::selectFrames(nsPresContext* aPresContext, nsRange* aRange,
       
       if (frame && frame->GetType() == nsGkAtoms::textFrame) {
         nsTextFrame* textFrame = static_cast<nsTextFrame*>(frame);
-        textFrame->SetSelectedRange(0, aRange->EndOffset(), aFlags, mType);
+        textFrame->SetSelectedRange(0, aRange->EndOffset(), aSelect, mType);
       }
     }
   }
