@@ -1228,6 +1228,28 @@ TypeConstraintCondensed::arrayNotPacked(JSContext *cx, bool notDense)
 }
 
 
+class TypeConstraintPushAll : public TypeConstraint
+{
+public:
+    const jsbytecode *pc;
+
+    TypeConstraintPushAll(JSScript *script, const jsbytecode *pc)
+        : TypeConstraint("pushAll", script), pc(pc)
+    {}
+
+    void newType(JSContext *cx, TypeSet *source, jstype type)
+    {
+        cx->compartment->types.dynamicPush(cx, script, pc - script->code, type);
+    }
+};
+
+void
+TypeSet::pushAllTypes(JSContext *cx, JSScript *script, const jsbytecode *pc)
+{
+    add(cx, ArenaNew<TypeConstraintPushAll>(cx->compartment->types.pool, script, pc));
+}
+
+
 class TypeConstraintFreeze : public TypeConstraint
 {
 public:
@@ -1754,6 +1776,7 @@ TypeCompartment::dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jst
 
 
 
+
         js::types::TypeSet *pushed = script->types->pushed(offset, 0);
         if (pushed->hasType(type))
             return true;
@@ -1781,8 +1804,10 @@ TypeCompartment::dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jst
                script->id(), offset, TypeString(type));
 
     TypeResult *result = (TypeResult *) cx->calloc(sizeof(TypeResult));
-    if (!result)
-        return false;
+    if (!result) {
+        setPendingNukeTypes(cx);
+        return checkPendingRecompiles(cx);
+    }
 
     result->offset = offset;
     result->type = type;
@@ -2885,14 +2910,13 @@ AnalyzeBytecode(JSContext *cx, AnalyzeState &state, JSScript *script, uint32 off
 
       case JSOP_NAME:
       case JSOP_CALLNAME:
-        pushed[0].addType(cx, TYPE_UNKNOWN);
+        
         if (op == JSOP_CALLNAME)
             pushed[1].addType(cx, TYPE_UNKNOWN);
         break;
 
       case JSOP_BINDGNAME:
       case JSOP_BINDNAME:
-        
         break;
 
       case JSOP_SETGNAME: {

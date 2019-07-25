@@ -316,6 +316,9 @@ struct TypeSet
     bool knownNonEmpty(JSContext *cx, JSScript *script);
 
     
+    void pushAllTypes(JSContext *cx, JSScript *script, const jsbytecode *pc);
+
+    
 
 
 
