@@ -48,8 +48,7 @@ const MSG_INSTALL_CALLBACK = "WebInstallerInstallCallback";
 var gIoService = Components.classes["@mozilla.org/network/io-service;1"]
                            .getService(Components.interfaces.nsIIOService);
 
-function InstallTrigger(installerId, window) {
-  this.installerId = installerId;
+function InstallTrigger(window) {
   this.window = window;
 }
 
@@ -130,7 +129,7 @@ InstallTrigger.prototype = {
       params.icons.push(iconUrl ? iconUrl.spec : null);
     }
     
-    params.callbackId = this.addCallback(aCallback, params.uris);
+    params.callbackId = manager.addCallback(aCallback, params.uris);
     
     return sendSyncMessage(MSG_INSTALL_ADDONS, params)[0];
   },
@@ -151,39 +150,6 @@ InstallTrigger.prototype = {
 
   installChrome: function(aType, aUrl, aSkin) {
     return this.startSoftwareUpdate(aUrl);
-  },
-
-  
-
-  callbacks: {},
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  addCallback: function(aCallback, aUrls) {
-    if (!aCallback)
-      return -1;
-    var callbackId = 0;
-    while (callbackId in this.callbacks)
-      callbackId++;
-    this.callbacks[callbackId] = {
-      callback: aCallback,
-      urls: aUrls.slice(0), 
-                            
-                            
-    };
-    return callbackId;
   },
 
   
@@ -230,8 +196,7 @@ InstallTrigger.prototype = {
 
 
 function InstallTriggerManager() {
-  this.installerIds = [];
-  this.nextInstallerId = 0;
+  this.callbacks = {};
 
   addMessageListener(MSG_INSTALL_CALLBACK, this);
 
@@ -240,46 +205,34 @@ function InstallTriggerManager() {
   var self = this;
   addEventListener("unload", function() {
     
-    for (var installerId in self.installerIds) {
-      self.installerIds[installerId].callbacks = null;
-      self.installerIds[installerId] = null;
-    }
-    self.installerIds = null;
+    self.callbacks = null;
   }, false);
 }
 
 InstallTriggerManager.prototype = {
   handleEvent: function handleEvent(aEvent) {
-    var window = aEvent.originalTarget.defaultView.content;
+    var window = aEvent.target.defaultView;
 
     
     
     
     
-    
-    
-    
-    
-    
-    try {
-      if (!window || !window.wrappedJSObject) {
-        return;
-      }
-    }
-    catch(e) {
+    var uri = window.document.documentURIObject;
+    if (uri.scheme === "chrome" || uri.spec.split(":")[0] == "about") {
       return;
     }
 
-    
-    
-    if (window.wrappedJSObject.InstallTrigger)
-        return;
+    window.wrappedJSObject.__defineGetter__("InstallTrigger", this.createInstallTrigger);
+  },
 
+  createInstallTrigger: function createInstallTrigger() {
     
-    var installerId = this.nextInstallerId ++;
-    var installTrigger = new InstallTrigger(installerId, window);
-    this.installerIds[installerId] = installTrigger;
-    window.wrappedJSObject.InstallTrigger = installTrigger;
+    
+    
+    
+    delete this.InstallTrigger; 
+    this.InstallTrigger = new InstallTrigger(this);
+    return this.InstallTrigger;
   },
 
   
@@ -292,13 +245,40 @@ InstallTriggerManager.prototype = {
 
 
 
+
+
+
+
+  addCallback: function(aCallback, aUrls) {
+    if (!aCallback)
+      return -1;
+    var callbackId = 0;
+    while (callbackId in this.callbacks)
+      callbackId++;
+    this.callbacks[callbackId] = {
+      callback: aCallback,
+      urls: aUrls.slice(0), 
+                            
+                            
+    };
+    return callbackId;
+  },
+
+  
+
+
+
+
+
+
+
+
   receiveMessage: function(aMessage) {
     var payload = aMessage.json;
-    var installer = this.installerIds[payload.installerId];
     var callbackId = payload.callbackId;
     var url = payload.url;
     var status = payload.status;
-    var callbackObj = installer.callbacks[callbackId];
+    var callbackObj = this.callbacks[callbackId];
     if (!callbackObj)
       return;
     try {
@@ -309,9 +289,9 @@ InstallTriggerManager.prototype = {
     }
     callbackObj.urls.splice(callbackObj.urls.indexOf(url), 1);
     if (callbackObj.urls.length == 0)
-      installer.callbacks[callbackId] = null;
+      this.callbacks[callbackId] = null;
   },
 };
 
-new InstallTriggerManager();
+var manager = new InstallTriggerManager();
 
