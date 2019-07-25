@@ -1459,6 +1459,15 @@ SessionStoreService.prototype = {
         tabData.pinned = true;
       else
         delete tabData.pinned;
+      tabData.hidden = aTab.hidden;
+
+      
+      if (aTab.__SS_extdata)
+        tabData.extData = aTab.__SS_extdata;
+      
+      
+      if (tabData.extData && !Object.keys(tabData.extData).length)
+        delete tabData.extData;
       return tabData;
     }
     
