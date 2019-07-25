@@ -288,7 +288,7 @@ WeaveSvc.prototype = {
     let self = yield;
     this._initLogs();
     this._log.info("Weave " + WEAVE_VERSION + " initializing");
-
+    this._registerEngines();
     this._detailedStatus = new StatusRecord();
 
     
@@ -378,6 +378,29 @@ WeaveSvc.prototype = {
   clearLogs: function WeaveSvc_clearLogs() {
     this._briefApp.clear();
     this._debugApp.clear();
+  },
+
+  
+
+
+  _registerEngines: function WeaveSvc__registerEngines() {
+    let engines = [];
+    switch (Svc.AppInfo.name) {
+      case "Fennec":
+        engines = ["Bookmarks", "History", "Password", "Tab"];
+        break;
+
+      case "Firefox":
+        engines = ["Bookmarks", "Form", "History", "Password", "Tab"];
+        break;
+
+      case "Thunderbird":
+        engines = ["Cookie", "Password"];
+        break;
+    }
+
+    
+    Engines.register(engines.map(function(name) Weave[name + "Engine"]));
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
