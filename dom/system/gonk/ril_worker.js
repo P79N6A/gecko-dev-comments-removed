@@ -617,6 +617,11 @@ let RIL = {
   
 
 
+  _pendingSentSmsMap: {},
+
+  
+
+
   _muted: true,
   get muted() {
     return this._muted;
@@ -1545,6 +1550,25 @@ let RIL = {
       return PDU_FCS_UNSPECIFIED;
     }
 
+    let options = this._pendingSentSmsMap[message.messageRef];
+    if (!options) {
+      return PDU_FCS_OK;
+    }
+
+    delete this._pendingSentSmsMap[message.messageRef];
+
+    if ((options.segmentMaxSeq > 1)
+        && (options.segmentSeq < options.segmentMaxSeq)) {
+      
+      this._processSentSmsSegment(options);
+    } else {
+      
+      this.sendDOMMessage({
+        type: "sms-delivered",
+        envelopeId: options.envelopeId,
+      });
+    }
+
     return PDU_FCS_OK;
   },
 
@@ -1599,6 +1623,19 @@ let RIL = {
     }
 
     return options;
+  },
+
+  
+
+
+  _processSentSmsSegment: function _processSentSmsSegment(options) {
+    
+    let next = options.segmentSeq;
+    options.body = options.segments[next].body;
+    options.encodedBodyLength = options.segments[next].encodedBodyLength;
+    options.segmentSeq = next + 1;
+
+    this.sendSMS(options);
   },
 
   
@@ -1866,20 +1903,25 @@ RIL[REQUEST_SEND_SMS] = function REQUEST_SEND_SMS(length, options) {
   options.errorCode = Buf.readUint32();
 
   
+
+  if (options.requestStatusReport) {
+    this._pendingSentSmsMap[options.messageRef] = options;
+  }
+
   if ((options.segmentMaxSeq > 1)
       && (options.segmentSeq < options.segmentMaxSeq)) {
     
-    let next = options.segmentSeq;
-    options.body = options.segments[next].body;
-    options.encodedBodyLength = options.segments[next].encodedBodyLength;
-    options.segmentSeq = next + 1;
-
-    this.sendSMS(options);
-    return;
+    if (!options.requestStatusReport) {
+      
+      this._processSentSmsSegment(options);
+    }
+  } else {
+    
+    this.sendDOMMessage({
+      type: "sms-sent",
+      envelopeId: options.envelopeId,
+    });
   }
-
-  options.type = "sms-sent";
-  this.sendDOMMessage(options);
 };
 RIL[REQUEST_SEND_SMS_EXPECT_MORE] = null;
 
@@ -3059,6 +3101,8 @@ let GsmPDUHelper = {
 
 
 
+
+
   writeMessage: function writeMessage(options) {
     if (DEBUG) {
       debug("writeMessage: " + JSON.stringify(options));
@@ -3143,6 +3187,11 @@ let GsmPDUHelper = {
 
     
     let firstOctet = PDU_MTI_SMS_SUBMIT;
+
+    
+    if (options.requestStatusReport) {
+      firstOctet |= PDU_SRI_SRR;
+    }
 
     
     if (validity) {
