@@ -79,13 +79,19 @@ struct NullPtr
     static void * const constNullValue;
 };
 
+template <typename T>
+class HandleBase {};
+
+
+
+
 
 
 
 
 
 template <typename T>
-class Handle
+class Handle : public HandleBase<T>
 {
   public:
     
@@ -139,10 +145,6 @@ class Handle
     void operator =(S v) MOZ_DELETE;
 };
 
-
-template <>
-class Handle<Value>;
-
 typedef Handle<JSObject*>    HandleObject;
 typedef Handle<JSFunction*>  HandleFunction;
 typedef Handle<JSScript*>    HandleScript;
@@ -150,12 +152,19 @@ typedef Handle<JSString*>    HandleString;
 typedef Handle<jsid>         HandleId;
 typedef Handle<Value>        HandleValue;
 
+template <typename T>
+class MutableHandleBase {};
+
+
+
+
+
 
 
 
 
 template <typename T>
-class MutableHandle
+class MutableHandle : public MutableHandleBase<T>
 {
   public:
     template <typename S>
@@ -199,13 +208,20 @@ struct RootMethods<T *>
     static bool poisoned(T *v) { return IsPoisonedPtr(v); }
 };
 
+template <typename T>
+class RootedBase {};
+
+
+
+
+
 
 
 
 
 
 template <typename T>
-class Rooted
+class Rooted : public RootedBase<T>
 {
     void init(JSContext *cx_)
     {
