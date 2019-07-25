@@ -85,6 +85,10 @@ public class AwesomeBarTabs extends TabHost {
     private SimpleCursorAdapter mBookmarksAdapter;
     private SimpleExpandableListAdapter mHistoryAdapter;
 
+    
+    
+    private static final int MAX_RESULTS = 100;
+
     public interface OnUrlOpenListener {
         public abstract void onUrlOpen(AwesomeBarTabs tabs, String url);
     }
@@ -191,10 +195,6 @@ public class AwesomeBarTabs extends TabHost {
     }
 
     private class HistoryQueryTask extends AsyncTask<Void, Void, Cursor> {
-        
-        
-        private static final int MAX_RESULTS = 100;
-
         private static final long MS_PER_DAY = 86400000;
         private static final long MS_PER_WEEK = MS_PER_DAY * 7;
 
@@ -207,7 +207,7 @@ public class AwesomeBarTabs extends TabHost {
                                   
                                   Browser.BookmarkColumns.DATE + " > 0",
                                   null,
-                                  Browser.BookmarkColumns.DATE + " DESC");
+                                  Browser.BookmarkColumns.DATE + " DESC LIMIT " + MAX_RESULTS);
         }
 
         public Map<String,?> createHistoryItem(Cursor cursor) {
@@ -296,7 +296,7 @@ public class AwesomeBarTabs extends TabHost {
             
             
             
-            while (cursor.moveToNext() && cursor.getPosition() < MAX_RESULTS) {
+            while (cursor.moveToNext()) {
                 long time = cursor.getLong(cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.DATE));
                 HistorySection itemSection = getSectionForTime(time, today);
 
@@ -445,7 +445,7 @@ public class AwesomeBarTabs extends TabHost {
                                       
                                       
                                       Browser.BookmarkColumns.VISITS + " * MAX(1, (" +
-                                      Browser.BookmarkColumns.DATE + " - " + new Date().getTime() + ") / 86400000 + 120) DESC");   
+                                      Browser.BookmarkColumns.DATE + " - " + new Date().getTime() + ") / 86400000 + 120) DESC LIMIT " + MAX_RESULTS);
             }
         });
 
