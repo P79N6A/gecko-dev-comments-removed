@@ -88,23 +88,6 @@ typedef struct JSThinLock {
 
 typedef PRLock JSLock;
 
-typedef struct JSTitle JSTitle;
-
-struct JSTitle {
-    JSContext       *ownercx;           
-    JSThinLock      lock;               
-    union {                             
-        jsrefcount  count;              
-        JSTitle     *link;              
-    } u;
-};
-
-
-
-
-
-#define TITLE_TO_OBJECT(title)      (NULL)
-
 
 
 
@@ -137,33 +120,20 @@ extern void js_Lock(JSContext *cx, JSThinLock *tl);
 extern void js_Unlock(JSContext *cx, JSThinLock *tl);
 extern void js_LockRuntime(JSRuntime *rt);
 extern void js_UnlockRuntime(JSRuntime *rt);
-extern void js_InitTitle(JSContext *cx, JSTitle *title);
-extern void js_FinishTitle(JSContext *cx, JSTitle *title);
-extern void js_LockTitle(JSContext *cx, JSTitle *title);
-extern void js_UnlockTitle(JSContext *cx, JSTitle *title);
 extern int js_SetupLocks(int,int);
 extern void js_CleanupLocks();
 extern void js_InitLock(JSThinLock *);
 extern void js_FinishLock(JSThinLock *);
 
-
-
-
-extern void
-js_ShareWaitingTitles(JSContext *cx);
-
 #ifdef DEBUG
 
 #define JS_IS_RUNTIME_LOCKED(rt)        js_IsRuntimeLocked(rt)
-#define JS_IS_TITLE_LOCKED(cx,title)    js_IsTitleLocked(cx,title)
 
 extern JSBool js_IsRuntimeLocked(JSRuntime *rt);
-extern JSBool js_IsTitleLocked(JSContext *cx, JSTitle *title);
 
 #else
 
 #define JS_IS_RUNTIME_LOCKED(rt)        0
-#define JS_IS_TITLE_LOCKED(cx,title)    1
 
 #endif 
 
@@ -192,7 +162,6 @@ extern JSBool js_IsTitleLocked(JSContext *cx, JSTitle *title);
 #define JS_UNLOCK_RUNTIME(rt)       ((void)0)
 
 #define JS_IS_RUNTIME_LOCKED(rt)        1
-#define JS_IS_TITLE_LOCKED(cx,title)    1
 
 #endif 
 

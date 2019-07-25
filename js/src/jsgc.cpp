@@ -2360,10 +2360,6 @@ LetOtherGCFinish(JSContext *cx)
     }
 
     
-    cx->thread->gcWaiting = true;
-    js_ShareWaitingTitles(cx);
-
-    
 
 
 
@@ -2379,7 +2375,6 @@ LetOtherGCFinish(JSContext *cx)
         JS_AWAIT_GC_DONE(rt);
     } while (rt->gcThread);
 
-    cx->thread->gcWaiting = false;
     rt->requestCount += requestDebit;
 }
 
@@ -2445,18 +2440,9 @@ AutoGCSession::AutoGCSession(JSContext *cx)
     if (requestDebit != rt->requestCount) {
         rt->requestCount -= requestDebit;
 
-        
-
-
-
-
-
-        cx->thread->gcWaiting = true;
-        js_ShareWaitingTitles(cx);
         do {
             JS_AWAIT_REQUEST_DONE(rt);
         } while (rt->requestCount > 0);
-        cx->thread->gcWaiting = false;
         rt->requestCount += requestDebit;
     }
 
@@ -2637,6 +2623,7 @@ SetProtoCheckingForCycles(JSContext *cx, JSObject *obj, JSObject *proto)
 
     bool cycle = false;
     for (JSObject *obj2 = proto; obj2;) {
+        obj2 = obj2->wrappedObject(cx);
         if (obj2 == obj) {
             cycle = true;
             break;

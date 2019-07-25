@@ -1238,26 +1238,11 @@ struct JSThread {
     void                *id;
 
     
-    JSTitle             *titleToShare;
-
-    
-
-
-
-
-
-
-    bool                gcWaiting;
-
-    
     unsigned            suspendCount;
 
 # ifdef DEBUG
     unsigned            checkRequestDepth;
 # endif
-
-    
-    JSTitle             *lockedSealedTitle;
 
     
     JSThreadData        data;
@@ -1471,28 +1456,6 @@ struct JSRuntime {
 
 
 
-
-
-
-
-    PRCondVar           *titleSharingDone;
-    JSTitle             *titleSharingTodo;
-
-
-
-
-
-
-
-
-#define NO_TITLE_SHARING_TODO   ((JSTitle *) 0xfeedbeef)
-
-    
-
-
-
-
-
     PRLock              *debuggerLock;
 
     JSThread::Map       threads;
@@ -1610,13 +1573,6 @@ struct JSRuntime {
     jsrefcount          constructs;
 
     
-    jsrefcount          claimAttempts;
-    jsrefcount          claimedTitles;
-    jsrefcount          deadContexts;
-    jsrefcount          deadlocksAvoided;
-    jsrefcount          liveShapes;
-    jsrefcount          sharedTitles;
-    jsrefcount          totalShapes;
     jsrefcount          liveObjectProps;
     jsrefcount          liveObjectPropsPreSweep;
     jsrefcount          totalObjectProps;
@@ -3071,13 +3027,6 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize);
 
 extern void
 js_DestroyContext(JSContext *cx, JSDestroyContextMode mode);
-
-
-
-
-
-extern JSBool
-js_ValidContextPointer(JSRuntime *rt, JSContext *cx);
 
 static JS_INLINE JSContext *
 js_ContextFromLinkField(JSCList *link)
