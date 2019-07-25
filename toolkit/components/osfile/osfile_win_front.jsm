@@ -16,7 +16,7 @@
     throw new Error("osfile_win_front.jsm cannot be used from the main thread yet");
   }
 
-  importScripts("resource://gre/modules/osfile/osfile_shared.jsm");
+  importScripts("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
   importScripts("resource://gre/modules/osfile/osfile_win_back.jsm");
   importScripts("resource://gre/modules/osfile/ospath_win_back.jsm");
 
@@ -197,75 +197,6 @@
          return new File.Info(gFileInfo);
        }
      };
-
-     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-     File.Error = function FileError(operation, lastError) {
-       operation = operation || File.Error.caller.name || "unknown operation";
-       OS.Shared.Error.call(this, operation);
-       this.winLastError = lastError || ctypes.winLastError;
-     };
-     File.Error.prototype = new OS.Shared.Error();
-     File.Error.prototype.toString = function toString() {
-         let buf = new (ctypes.ArrayType(ctypes.jschar, 1024))();
-         let result = WinFile.FormatMessage(
-           OS.Constants.Win.FORMAT_MESSAGE_FROM_SYSTEM |
-           OS.Constants.Win.FORMAT_MESSAGE_IGNORE_INSERTS,
-           null,
-            this.winLastError,
-            0,
-                buf,
-            1024,
-                  null
-         );
-         if (!result) {
-           buf = "additional error " +
-             ctypes.winLastError +
-             " while fetching system error message";
-         }
-         return "Win error " + this.winLastError + " during operation "
-           + this.operation + " (" + buf.readString() + " )";
-     };
-
-     
-
-
-
-     Object.defineProperty(File.Error.prototype, "becauseExists", {
-       get: function becauseExists() {
-         return this.winLastError == OS.Constants.Win.ERROR_FILE_EXISTS;
-       }
-     });
-     
-
-
-
-     Object.defineProperty(File.Error.prototype, "becauseNoSuchFile", {
-       get: function becauseNoSuchFile() {
-         return this.winLastError == OS.Constants.Win.ERROR_FILE_NOT_FOUND;
-       }
-     });
 
      
      const noOptions = {};
@@ -894,6 +825,9 @@
      File.POS_END = Const.FILE_END;
 
      File.Win = exports.OS.Win.File;
+     File.Error = exports.OS.Shared.Win.Error;
      exports.OS.File = File;
+
+     exports.OS.Path = exports.OS.Win.Path;
    })(this);
 }
