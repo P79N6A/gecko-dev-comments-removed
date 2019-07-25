@@ -1224,7 +1224,10 @@ nsHTMLTextAreaElement::IsValueMissing() const
 void
 nsHTMLTextAreaElement::UpdateTooLongValidityState()
 {
+  
+#if 0
   SetValidityState(VALIDITY_STATE_TOO_LONG, IsTooLong());
+#endif
 }
 
 void
