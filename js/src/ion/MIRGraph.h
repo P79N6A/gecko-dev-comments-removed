@@ -115,6 +115,11 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     void setVariable(uint32 slot);
 
+    
+    
+    
+    void updateIndexes(StackSlot &elem, uint32 oldIdx, uint32 newIdx);
+
   public:
     
     
@@ -131,6 +136,12 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void setId(uint32 id) {
         id_ = id;
     }
+
+    
+    void pick(int32 depth);
+
+    
+    void swapAt(int32 depth);
 
     
     MDefinition *peek(int32 depth);

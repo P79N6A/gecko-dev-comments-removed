@@ -434,6 +434,84 @@ MBasicBlock::pop()
     return slot.def;
 }
 
+void
+MBasicBlock::pick(int32 depth)
+{
+    
+    
+    
+    
+    
+    for (; depth < 0; depth++)
+        swapAt(depth);
+}
+
+void
+MBasicBlock::swapAt(int32 depth)
+{
+    uint32 lhsDepth = stackPosition_ + depth - 1;
+    uint32 rhsDepth = stackPosition_ + depth;
+
+    JS_ASSERT(depth < 0);
+    JS_ASSERT(lhsDepth >= info_.firstStackSlot());
+
+    StackSlot &lhs = slots_[lhsDepth];
+    StackSlot &rhs = slots_[rhsDepth];
+
+    
+    if (rhs.isCopy()) {
+        if (rhs.copyOf == lhsDepth)
+            return;
+        if (lhs.isCopy() && rhs.copyOf == lhs.copyOf)
+            return;
+    }
+
+    
+    updateIndexes(lhs, lhsDepth, rhsDepth);
+    updateIndexes(rhs, rhsDepth, lhsDepth);
+
+    
+    StackSlot tmp = lhs;
+    lhs = rhs;
+    rhs = tmp;
+}
+
+void
+MBasicBlock::updateIndexes(StackSlot &elem, uint32 oldIdx, uint32 newIdx)
+{
+    
+    
+    JS_ASSERT(oldIdx == newIdx + 1 || oldIdx == newIdx - 1);
+    JS_ASSERT(&elem == &slots_[oldIdx] || &elem == &slots_[newIdx]);
+    JS_ASSERT_IF(slots_[oldIdx].isCopy() || slots_[newIdx].isCopy(),
+                 slots_[oldIdx].copyOf != newIdx &&
+                 slots_[oldIdx].copyOf != slots_[newIdx].copyOf &&
+                 oldIdx != slots_[newIdx].copyOf);
+
+    if (elem.isCopy()) {
+        
+        
+        JS_ASSERT(slots_[elem.copyOf].isCopied());
+        if (slots_[elem.copyOf].firstCopy == oldIdx) {
+            slots_[elem.copyOf].firstCopy = newIdx;
+        } else {
+            uint32 copyIndex = slots_[elem.copyOf].firstCopy;
+            while (slots_[copyIndex].nextCopy != oldIdx)
+                copyIndex = slots_[copyIndex].nextCopy;
+            slots_[copyIndex].nextCopy = newIdx;
+        }
+    } else if (elem.isCopied()) {
+        
+        
+        uint32 copyIndex = elem.firstCopy;
+        while (copyIndex != NotACopy) {
+            JS_ASSERT(slots_[copyIndex].copyOf == oldIdx);
+            slots_[copyIndex].copyOf = newIdx;
+            copyIndex = slots_[copyIndex].nextCopy;
+        }
+    }
+}
+
 MDefinition *
 MBasicBlock::peek(int32 depth)
 {
