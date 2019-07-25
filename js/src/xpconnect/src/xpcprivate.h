@@ -95,6 +95,7 @@
 #include "nsXPIDLString.h"
 #include "nsAutoJSValHolder.h"
 #include "mozilla/AutoRestore.h"
+#include "nsDataHashtable.h"
 
 #include "nsThreadUtils.h"
 #include "nsIJSContextStack.h"
@@ -242,6 +243,8 @@ extern const char XPC_CONSOLE_CONTRACTID[];
 extern const char XPC_SCRIPT_ERROR_CONTRACTID[];
 extern const char XPC_ID_CONTRACTID[];
 extern const char XPC_XPCONNECT_CONTRACTID[];
+
+typedef nsDataHashtableMT<nsCStringHashKey, JSCompartment *> XPCCompartmentMap;
 
 
 
@@ -408,6 +411,8 @@ private:
 
 
 
+static const uint32 XPC_GC_COLOR_GRAY = 1;
+
 
 
 
@@ -467,6 +472,11 @@ public:
 
     JSBool IsShuttingDown() const {return mShuttingDown;}
 
+    
+    
+    
+    static JSBool IsGray(void *thing);
+
     nsresult GetInfoForIID(const nsIID * aIID, nsIInterfaceInfo** info);
     nsresult GetInfoForName(const char * name, nsIInterfaceInfo** info);
 
@@ -486,14 +496,6 @@ public:
 #ifdef DEBUG_CC
     virtual void PrintAllReferencesTo(void *p);
 #endif
-
-    
-    
-    
-    PRBool ShouldTraceRoots()
-    {
-        return !mCycleCollecting;
-    }
 
     XPCCallContext* GetCycleCollectionContext()
     {
@@ -624,6 +626,9 @@ public:
     XPCNativeWrapperMap* GetExplicitNativeWrapperMap() const
         {return mExplicitNativeWrapperMap;}
 
+    XPCCompartmentMap& GetCompartmentMap()
+        {return mCompartmentMap;}
+
     XPCLock* GetMapLock() const {return mMapLock;}
 
     JSBool OnJSContextNew(JSContext* cx);
@@ -674,7 +679,7 @@ public:
     }
 
     static void TraceJS(JSTracer* trc, void* data);
-    void TraceXPConnectRoots(JSTracer *trc, JSBool rootGlobals = JS_FALSE);
+    void TraceXPConnectRoots(JSTracer *trc);
     void AddXPConnectRoots(JSContext* cx,
                            nsCycleCollectionTraversalCallback& cb);
 
@@ -687,10 +692,7 @@ public:
     nsresult AddJSHolder(void* aHolder, nsScriptObjectTracer* aTracer);
     nsresult RemoveJSHolder(void* aHolder);
 
-    void UnrootContextGlobals();
-#ifdef DEBUG_CC
-    void RootContextGlobals();
-#endif
+    void ClearWeakRoots();
 
     void DebugDump(PRInt16 depth);
 
@@ -745,6 +747,7 @@ private:
     XPCWrappedNativeProtoMap* mDyingWrappedNativeProtoMap;
     XPCWrappedNativeProtoMap* mDetachedWrappedNativeProtoMap;
     XPCNativeWrapperMap*     mExplicitNativeWrapperMap;
+    XPCCompartmentMap        mCompartmentMap;
     XPCLock* mMapLock;
     PRThread* mThreadRunningGC;
     nsTArray<nsXPCWrappedJS*> mWrappedJSToReleaseArray;
@@ -754,7 +757,6 @@ private:
     XPCRootSetElem *mWrappedJSRoots;
     XPCRootSetElem *mObjectHolderRoots;
     JSDHashTable mJSHolders;
-    uintN mUnrootedGlobalCount;
     PRCondVar *mWatchdogWakeup;
     PRThread *mWatchdogThread;
     nsTArray<JSGCCallback> extraGCCallbacks;
@@ -2528,28 +2530,6 @@ public:
 
     void SystemIsBeingShutDown(JSContext* cx);
 
-#ifdef XPC_DETECT_LEADING_UPPERCASE_ACCESS_ERRORS
-    
-    
-    
-    
-    static void
-    HandlePossibleNameCaseError(XPCCallContext& ccx,
-                                XPCNativeSet* set,
-                                XPCNativeInterface* iface,
-                                jsid name);
-    static void
-    HandlePossibleNameCaseError(JSContext* cx,
-                                XPCNativeSet* set,
-                                XPCNativeInterface* iface,
-                                jsid name);
-
-#define  HANDLE_POSSIBLE_NAME_CASE_ERROR(context, set, iface, name) \
-    XPCWrappedNative::HandlePossibleNameCaseError(context, set, iface, name)
-#else
-#define  HANDLE_POSSIBLE_NAME_CASE_ERROR(context, set, iface, name) ((void)0)
-#endif
-
     enum CallMode {CALL_METHOD, CALL_GETTER, CALL_SETTER};
 
     static JSBool CallMethod(XPCCallContext& ccx,
@@ -3804,6 +3784,11 @@ xpc_DumpJSObject(JSObject* obj);
 
 extern JSBool
 xpc_InstallJSDebuggerKeywordHandler(JSRuntime* rt);
+
+nsresult
+xpc_CreateGlobalObject(JSContext *cx, JSClass *clasp,
+                       const nsACString &origin, nsIPrincipal *principal,
+                       JSObject **global, JSCompartment **compartment);
 
 
 

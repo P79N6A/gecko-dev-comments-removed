@@ -38,8 +38,6 @@
 
 
 
-#define __STDC_LIMIT_MACROS
-
 
 
 
@@ -690,8 +688,8 @@ js_InitRuntimeNumberState(JSContext *cx)
     FIX_FPU();
 
     jsdpun u;
-    u.s.hi = 0x7ff80000;
-    u.s.lo = 0x00000000;
+    u.s.hi = JSDOUBLE_HI32_NAN;
+    u.s.lo = JSDOUBLE_LO32_NAN;
     number_constants[NC_NaN].dval = js_NaN = u.d;
     rt->NaNValue.setDouble(u.d);
 
@@ -936,14 +934,7 @@ ValueToNumberSlow(JSContext *cx, Value v, double *out)
             break;
 
         JS_ASSERT(v.isObject());
-        JSObject *obj = &v.toObject();
-
-        
-
-
-
-
-        if (!obj->defaultValue(cx, JSTYPE_NUMBER, &v))
+        if (!DefaultValue(cx, &v.toObject(), JSTYPE_NUMBER, &v))
             return false;
         if (v.isObject())
             break;

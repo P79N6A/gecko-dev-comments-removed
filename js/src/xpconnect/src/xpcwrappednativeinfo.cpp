@@ -207,7 +207,7 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface)
     JSFunction *fun;
     
     {
-        JSAutoTransferRequest transfer(ccx, cx);
+        JSAutoRequest req(cx);
         fun = JS_NewFunction(cx, callback, argc, flags, nsnull, memberName);
     }
 

@@ -37,8 +37,6 @@
 
 
 
-#define __STDC_LIMIT_MACROS
-
 
 
 

@@ -51,25 +51,54 @@ extern JSObject *
 js_InitJSONClass(JSContext *cx, JSObject *obj);
 
 extern JSBool
-js_Stringify(JSContext *cx, jsval *vp, JSObject *replacer, jsval space,
-             JSCharBuffer &cb);
+js_Stringify(JSContext *cx, js::Value *vp, JSObject *replacer,
+             const js::Value &space, JSCharBuffer &cb);
 
-extern JSBool js_TryJSON(JSContext *cx, jsval *vp);
+extern JSBool js_TryJSON(JSContext *cx, js::Value *vp);
+
 
 enum JSONParserState {
+    
     JSON_PARSE_STATE_INIT,
+
+    
+    JSON_PARSE_STATE_FINISHED,
+
+    
     JSON_PARSE_STATE_OBJECT_VALUE,
+
+    
     JSON_PARSE_STATE_VALUE,
+
+    
     JSON_PARSE_STATE_OBJECT,
+
+    
     JSON_PARSE_STATE_OBJECT_PAIR,
+
+    
     JSON_PARSE_STATE_OBJECT_IN_PAIR,
+
+    
     JSON_PARSE_STATE_ARRAY,
+
+
+    
+
+    
     JSON_PARSE_STATE_STRING,
+
+    
     JSON_PARSE_STATE_STRING_ESCAPE,
+
+    
     JSON_PARSE_STATE_STRING_HEX,
+
+    
     JSON_PARSE_STATE_NUMBER,
-    JSON_PARSE_STATE_KEYWORD,
-    JSON_PARSE_STATE_FINISHED
+
+    
+    JSON_PARSE_STATE_KEYWORD
 };
 
 enum JSONDataType {
@@ -82,12 +111,12 @@ enum JSONDataType {
 struct JSONParser;
 
 extern JSONParser *
-js_BeginJSONParse(JSContext *cx, jsval *rootVal);
+js_BeginJSONParse(JSContext *cx, js::Value *rootVal);
 
 extern JSBool
 js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len);
 
 extern bool
-js_FinishJSONParse(JSContext *cx, JSONParser *jp, jsval reviver);
+js_FinishJSONParse(JSContext *cx, JSONParser *jp, const js::Value &reviver);
 
 #endif 

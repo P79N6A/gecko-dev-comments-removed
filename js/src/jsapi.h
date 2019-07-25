@@ -335,6 +335,7 @@ JSID_TO_STRING(jsid iden)
 JS_PUBLIC_API(JSBool)
 JS_StringHasBeenInterned(JSString *str);
 
+
 static JS_ALWAYS_INLINE jsid
 INTERNED_STRING_TO_JSID(JSString *str)
 {
@@ -425,13 +426,11 @@ JSID_IS_DEFAULT_XML_NAMESPACE(jsid iden)
     return ((size_t)JSID_BITS(iden) == JSID_TYPE_DEFAULT_XML_NAMESPACE);
 }
 
-static JS_ALWAYS_INLINE jsid
-JSID_DEFAULT_XML_NAMESPACE()
-{
-    jsid iden;
-    JSID_BITS(iden) = JSID_TYPE_DEFAULT_XML_NAMESPACE;
-    return iden;
-}
+#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
+extern JS_PUBLIC_DATA(jsid) JS_DEFAULT_XML_NAMESPACE_ID;
+#else
+#define JS_DEFAULT_XML_NAMESPACE_ID ((jsid)JSID_TYPE_DEFAULT_XML_NAMESPACE)
+#endif
 
 
 
@@ -448,10 +447,10 @@ JSID_IS_VOID(jsid iden)
     return ((size_t)JSID_BITS(iden) == JSID_TYPE_VOID);
 }
 
-#ifdef DEBUG
+#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
 extern JS_PUBLIC_DATA(jsid) JSID_VOID;
 #else
-# define JSID_VOID  ((jsid)JSID_TYPE_VOID)
+#define JSID_VOID  ((jsid)JSID_TYPE_VOID)
 #endif
 
 
@@ -755,9 +754,6 @@ JS_SuspendRequest(JSContext *cx);
 extern JS_PUBLIC_API(void)
 JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth);
 
-extern JS_PUBLIC_API(void)
-JS_TransferRequest(JSContext *cx, JSContext *another);
-
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
@@ -821,27 +817,6 @@ class JSAutoSuspendRequest {
     static void *operator new(size_t) CPP_THROW_NEW { return 0; };
     static void operator delete(void *, size_t) { };
 #endif
-};
-
-class JSAutoTransferRequest
-{
-  public:
-    JSAutoTransferRequest(JSContext* cx1, JSContext* cx2)
-        : cx1(cx1), cx2(cx2) {
-        if(cx1 != cx2)
-            JS_TransferRequest(cx1, cx2);
-    }
-    ~JSAutoTransferRequest() {
-        if(cx1 != cx2)
-            JS_TransferRequest(cx2, cx1);
-    }
-  private:
-    JSContext* const cx1;
-    JSContext* const cx2;
-
-    
-    JSAutoTransferRequest(JSAutoTransferRequest &);
-    void operator =(JSAutoTransferRequest&);
 };
 
 JS_BEGIN_EXTERN_C
@@ -964,6 +939,9 @@ JS_ToggleOptions(JSContext *cx, uint32 options);
 extern JS_PUBLIC_API(const char *)
 JS_GetImplementationVersion(void);
 
+extern JS_PUBLIC_API(JSCompartmentCallback)
+JS_SetCompartmentCallback(JSRuntime *rt, JSCompartmentCallback callback);
+
 extern JS_PUBLIC_API(JSWrapObjectCallback)
 JS_SetWrapObjectCallback(JSContext *cx, JSWrapObjectCallback callback);
 
@@ -973,25 +951,37 @@ JS_EnterCrossCompartmentCall(JSContext *cx, JSObject *target);
 extern JS_PUBLIC_API(void)
 JS_LeaveCrossCompartmentCall(JSCrossCompartmentCall *call);
 
+extern JS_PUBLIC_API(void *)
+JS_SetCompartmentPrivate(JSContext *cx, JSCompartment *compartment, void *data);
+
+extern JS_PUBLIC_API(void *)
+JS_GetCompartmentPrivate(JSContext *cx, JSCompartment *compartment);
+
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
-class JSAutoCrossCompartmentCall
+class JS_PUBLIC_API(JSAutoCrossCompartmentCall)
 {
     JSCrossCompartmentCall *call;
   public:
     JSAutoCrossCompartmentCall() : call(NULL) {}
 
-    bool enter(JSContext *cx, JSObject *target) {
-        JS_ASSERT(!call);
-        call = JS_EnterCrossCompartmentCall(cx, target);
-        return call != NULL;
-    }
+    bool enter(JSContext *cx, JSObject *target);
 
     ~JSAutoCrossCompartmentCall() {
         if (call)
             JS_LeaveCrossCompartmentCall(call);
     }
+};
+
+class JS_FRIEND_API(JSAutoEnterCompartment)
+{
+    JSContext *cx;
+    JSCompartment *compartment;
+  public:
+    JSAutoEnterCompartment(JSContext *cx, JSCompartment *newCompartment);
+    JSAutoEnterCompartment(JSContext *cx, JSObject *target);
+    ~JSAutoEnterCompartment();
 };
 
 JS_BEGIN_EXTERN_C
@@ -1170,6 +1160,7 @@ JS_AddGCThingRoot(JSContext *cx, void **rp);
 #define JS_AddValueRoot(cx,vp) JS_AddNamedValueRoot((cx), (vp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
 #define JS_AddStringRoot(cx,rp) JS_AddNamedStringRoot((cx), (rp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
 #define JS_AddObjectRoot(cx,rp) JS_AddNamedObjectRoot((cx), (rp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
+#define JS_AddGCThingRoot(cx,rp) JS_AddNamedGCThingRoot((cx), (rp), (__FILE__ ":" JS_TOKEN_TO_STRING(__LINE__))
 #endif
 
 extern JS_PUBLIC_API(JSBool)
@@ -2674,23 +2665,29 @@ JS_CompareStrings(JSString *str1, JSString *str2);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSString *)
 JS_NewGrowableString(JSContext *cx, jschar *chars, size_t length);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2700,9 +2697,6 @@ JS_NewGrowableString(JSContext *cx, jschar *chars, size_t length);
 extern JS_PUBLIC_API(JSString *)
 JS_NewDependentString(JSContext *cx, JSString *str, size_t start,
                       size_t length);
-
-
-
 
 
 

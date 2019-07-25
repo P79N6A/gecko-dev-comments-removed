@@ -3121,6 +3121,11 @@ pref("image.mem.discardable", false);
 pref("image.mem.decodeondraw", false);
 
 
+
+
+pref("image.mem.min_discard_timeout_ms", 10000);
+
+
 pref("webgl.enabled_for_all_sites", false);
 pref("webgl.software_render", false);
 pref("webgl.osmesalib", "");

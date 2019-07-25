@@ -1285,22 +1285,15 @@ nsGlobalWindow::SetScriptContext(PRUint32 lang_id, nsIScriptContext *aScriptCont
                "We don't support this language ID");
   NS_ASSERTION(IsOuterWindow(), "Uh, SetScriptContext() called on inner window!");
 
-  if (!aScriptContext) {
-    NS_WARNING("Possibly early removal of script object, see bug #41608");
-  } else {
+  NS_ASSERTION(!aScriptContext || !mContext, "Bad call to SetContext()!");
+
+  if (aScriptContext) {
     
     aScriptContext->WillInitializeContext();
 
-    
-    nsresult rv = aScriptContext->InitContext(this);
+    nsresult rv = aScriptContext->InitContext();
     NS_ENSURE_SUCCESS(rv, rv);
-  }
 
-  NS_ASSERTION(!aScriptContext || !mContext, "Bad call to SetContext()!");
-
-  void *script_glob = nsnull;
-
-  if (aScriptContext) {
     if (IsFrame()) {
       
       
@@ -1309,13 +1302,15 @@ nsGlobalWindow::SetScriptContext(PRUint32 lang_id, nsIScriptContext *aScriptCont
       aScriptContext->SetGCOnDestruction(PR_FALSE);
     }
 
+    nsCOMPtr<nsIPrincipal> principal =
+      do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
+
+    aScriptContext->CreateOuterObject(this, principal);
     aScriptContext->DidInitializeContext();
-    script_glob = aScriptContext->GetNativeGlobal();
-    NS_ASSERTION(script_glob, "GetNativeGlobal returned NULL!");
+    mJSObject = (JSObject *)aScriptContext->GetNativeGlobal();
   }
 
   mContext = aScriptContext;
-  mJSObject = (JSObject *)script_glob;
   return NS_OK;
 }
 
@@ -1329,7 +1324,8 @@ nsGlobalWindow::EnsureScriptEnvironment(PRUint32 aLangID)
   if (mJSObject)
       return NS_OK;
 
-  NS_ASSERTION(!GetCurrentInnerWindowInternal(), "Huh?");
+  NS_ASSERTION(!GetCurrentInnerWindowInternal(),
+               "mJSObject is null, but we have an inner window?");
 
   nsCOMPtr<nsIScriptRuntime> scriptRuntime;
   nsresult rv = NS_GetScriptRuntimeByID(aLangID, getter_AddRefs(scriptRuntime));
@@ -1624,6 +1620,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     Thaw();
   }
 
+  
+
   NS_ASSERTION(!GetCurrentInnerWindow() ||
                GetCurrentInnerWindow()->GetExtantDocument() == mDocument,
                "Uh, mDocument doesn't match the current inner window "
@@ -1822,6 +1820,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       void *&newGlobal = (void *&)newInnerWindow->mJSObject;
       nsCOMPtr<nsIXPConnectJSObjectHolder> &holder = mInnerWindowHolder;
       rv = mContext->CreateNativeGlobalForInner(sgo, isChrome,
+                                                aDocument->NodePrincipal(),
                                                 &newGlobal,
                                                 getter_AddRefs(holder));
       NS_ASSERTION(NS_SUCCEEDED(rv) && newGlobal && holder,
@@ -1894,13 +1893,11 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     
     
     
-    JS_BeginRequest((JSContext *)mContext->GetNativeContext());
-    mContext->InitContext(this);
+    mContext->InitOuterWindow();
 
     
     
     mContext->ConnectToInner(newInnerWindow, mJSObject);
-    JS_EndRequest((JSContext *)mContext->GetNativeContext());
 
     nsCOMPtr<nsIContent> frame = do_QueryInterface(GetFrameElementInternal());
     if (frame && frame->GetOwnerDoc()) {
@@ -1985,7 +1982,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         
 
         
-        JSAutoRequest ar(cx);
         ::JS_DeleteProperty(cx, currentInner->mJSObject, "document");
       }
     } else {
@@ -1998,7 +1994,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
       if (navigatorHolder) {
         
-        JSAutoRequest ar(cx);
 
         ::JS_DefineProperty(cx, newInnerWindow->mJSObject, "navigator",
                             nav, nsnull, nsnull,
@@ -2056,6 +2051,10 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 void
 nsGlobalWindow::DispatchDOMWindowCreated()
 {
+  if (!mDoc || !mDocument) {
+    return;
+  }
+
   
   nsContentUtils::DispatchChromeEvent(mDoc, mDocument, NS_LITERAL_STRING("DOMWindowCreated"),
                                       PR_TRUE ,

@@ -1308,6 +1308,8 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
 
     obj = thisObj = wrapper->GetJSObject();
 
+    JSAutoEnterCompartment autoCompartment(ccx, obj);
+
     
     paramCount = info->num_args;
     argc = paramCount -

@@ -1397,6 +1397,9 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime)
     ::JS_SetContextPrivate(mContext, static_cast<nsIScriptContext *>(this));
 
     
+    mDefaultJSOptions |= ::JS_GetOptions(mContext);
+
+    
     ::JS_SetOptions(mContext, mDefaultJSOptions);
 
     
@@ -1599,6 +1602,13 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
     JSAutoRequest ar(mContext);
     nsJSVersionSetter setVersion(mContext, aVersion);
 
+    JSAutoCrossCompartmentCall accc;
+    if (!accc.enter(mContext, (JSObject *)aScopeObject)) {
+      JSPRINCIPALS_DROP(mContext, jsprin);
+      stack->Pop(nsnull);
+      return NS_ERROR_FAILURE;
+    }
+
     ++mExecuteDepth;
 
     ok = ::JS_EvaluateUCScriptForPrincipals(mContext,
@@ -1786,6 +1796,13 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   
   if (ok && ((JSVersion)aVersion) != JSVERSION_UNKNOWN) {
     JSAutoRequest ar(mContext);
+    JSAutoCrossCompartmentCall accc;
+    if (!accc.enter(mContext, (JSObject *)aScopeObject)) {
+      stack->Pop(nsnull);
+      JSPRINCIPALS_DROP(mContext, jsprin);
+      return NS_ERROR_FAILURE;
+    }
+
     nsJSVersionSetter setVersion(mContext, aVersion);
 
     ok = ::JS_EvaluateUCScriptForPrincipals(mContext,
@@ -2211,6 +2228,12 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
 
     jsval funval = OBJECT_TO_JSVAL(static_cast<JSObject *>(aHandler));
     JSAutoRequest ar(mContext);
+    JSAutoCrossCompartmentCall accc;
+    if (!accc.enter(mContext, target)) {
+      stack->Pop(nsnull);
+      return NS_ERROR_FAILURE;
+    }
+
     ++mExecuteDepth;
     PRBool ok = ::JS_CallFunctionValue(mContext, target,
                                        funval, argc, argv, &rval);
@@ -2526,6 +2549,7 @@ nsresult
 nsJSContext::CreateNativeGlobalForInner(
                                 nsIScriptGlobalObject *aNewInner,
                                 PRBool aIsChrome,
+                                nsIPrincipal *aPrincipal,
                                 void **aNativeGlobal, nsISupports **aHolder)
 {
   nsIXPConnect *xpc = nsContentUtils::XPConnect();
@@ -2534,6 +2558,7 @@ nsJSContext::CreateNativeGlobalForInner(
   nsresult rv = xpc->
           InitClassesWithNewWrappedGlobal(mContext,
                                           aNewInner, NS_GET_IID(nsISupports),
+                                          aPrincipal, EmptyCString(),
                                           flags,
                                           getter_AddRefs(jsholder));
   if (NS_FAILED(rv))
@@ -2586,7 +2611,7 @@ nsJSContext::GetNativeContext()
 }
 
 nsresult
-nsJSContext::InitContext(nsIScriptGlobalObject *aGlobalObject)
+nsJSContext::InitContext()
 {
   
   
@@ -2597,105 +2622,99 @@ nsJSContext::InitContext(nsIScriptGlobalObject *aGlobalObject)
 
   ::JS_SetErrorReporter(mContext, NS_ScriptErrorReporter);
 
-  if (!aGlobalObject) {
-    
-
-    return NS_OK;
+  nsIXPConnect *xpc = nsContentUtils::XPConnect();
+  if (!nsDOMClassInfo::GetXPCNativeWrapperGetPropertyOp()) {
+    JSPropertyOp getProperty;
+    xpc->GetNativeWrapperGetPropertyOp(&getProperty);
+    nsDOMClassInfo::SetXPCNativeWrapperGetPropertyOp(getProperty);
   }
 
-  nsCxPusher cxPusher;
-  if (!cxPusher.Push(mContext)) {
-    return NS_ERROR_FAILURE;
+  if (!nsDOMClassInfo::GetXrayWrapperPropertyHolderGetPropertyOp()) {
+    JSPropertyOp getProperty;
+    xpc->GetXrayWrapperPropertyHolderGetPropertyOp(&getProperty);
+    nsDOMClassInfo::SetXrayWrapperPropertyHolderGetPropertyOp(getProperty);
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsJSContext::CreateOuterObject(nsIScriptGlobalObject *aGlobalObject,
+                               nsIPrincipal *aPrincipal)
+{
+  NS_PRECONDITION(!JS_GetGlobalObject(mContext),
+                  "Outer window already initialized");
+
+  nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(aGlobalObject));
+  PRUint32 flags = 0;
+
+  if (chromeWindow) {
+    
+    
+    
+    flags = nsIXPConnect::FLAG_SYSTEM_GLOBAL_OBJECT;
+
+    
+    
+    
+    
+    ::JS_SetOptions(mContext, ::JS_GetOptions(mContext) | JSOPTION_XML);
   }
 
   nsIXPConnect *xpc = nsContentUtils::XPConnect();
-
-  JSObject *global = ::JS_GetGlobalObject(mContext);
-
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-
-  
-  
-
-  nsresult rv;
-
-  if (!global) {
-    nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(aGlobalObject));
-    PRUint32 flags = 0;
-
-    if (chromeWindow) {
-      
-      
-      
-      flags = nsIXPConnect::FLAG_SYSTEM_GLOBAL_OBJECT;
-
-      
-      
-      
-      
-      ::JS_SetOptions(mContext, ::JS_GetOptions(mContext) | JSOPTION_XML);
-    }
-
-    rv = xpc->InitClassesWithNewWrappedGlobal(mContext, aGlobalObject,
-                                              NS_GET_IID(nsISupports),
-                                              flags,
-                                              getter_AddRefs(holder));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    if (!nsDOMClassInfo::GetXPCNativeWrapperGetPropertyOp()) {
-      JSPropertyOp getProperty;
-      xpc->GetNativeWrapperGetPropertyOp(&getProperty);
-      nsDOMClassInfo::SetXPCNativeWrapperGetPropertyOp(getProperty);
-    }
-    if (!nsDOMClassInfo::GetXrayWrapperPropertyHolderGetPropertyOp()) {
-      JSPropertyOp getProperty;
-      xpc->GetXrayWrapperPropertyHolderGetPropertyOp(&getProperty);
-      nsDOMClassInfo::SetXrayWrapperPropertyHolderGetPropertyOp(getProperty);
-    }
-  } else {
-    
-    
-    
-
-    
-    
-    
-    ::JS_ClearScope(mContext, global);
-
-    
-    
-    rv = xpc->InitClassesForOuterObject(mContext, global);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsIClassInfo> ci(do_QueryInterface(aGlobalObject));
-
-    if (ci) {
-      jsval v;
-      rv = nsContentUtils::WrapNative(mContext, global, aGlobalObject, &v,
-                                      getter_AddRefs(holder));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      nsCOMPtr<nsIXPConnectWrappedNative> wrapper(do_QueryInterface(holder));
-      NS_ENSURE_TRUE(wrapper, NS_ERROR_FAILURE);
-
-      rv = wrapper->RefreshPrototype();
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
+  nsresult rv =
+    xpc->InitClassesWithNewWrappedGlobal(mContext, aGlobalObject,
+                                         NS_GET_IID(nsISupports),
+                                         aPrincipal, EmptyCString(),
+                                         flags, getter_AddRefs(holder));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
   
   mGlobalWrapperRef = holder;
+  return NS_OK;
+}
 
-  holder->GetJSObject(&global);
+nsresult
+nsJSContext::InitOuterWindow()
+{
+  JSObject *global = JS_GetGlobalObject(mContext);
+  nsIScriptGlobalObject *sgo = GetGlobalObject();
+
+  
+  
+  
+  JS_ClearScope(mContext, global);
+
+  
+  
+  nsIXPConnect *xpc = nsContentUtils::XPConnect();
+  nsresult rv = xpc->InitClassesForOuterObject(mContext, global);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIClassInfo> ci(do_QueryInterface(sgo));
+
+  if (ci) {
+    jsval v;
+
+    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
+    rv = nsContentUtils::WrapNative(mContext, global, sgo, &v,
+                                    getter_AddRefs(holder));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIXPConnectWrappedNative> wrapper(do_QueryInterface(holder));
+    NS_ENSURE_TRUE(wrapper, NS_ERROR_FAILURE);
+
+    rv = wrapper->RefreshPrototype();
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   rv = InitClasses(global); 
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return rv;
+  return NS_OK;
 }
 
 nsresult

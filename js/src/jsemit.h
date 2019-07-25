@@ -291,7 +291,7 @@ struct JSTreeContext {
 
     JSAtomList      lexdeps;        
     JSTreeContext   *parent;        
-    uint16          staticLevel;    
+    uintN           staticLevel;    
 
     JSFunctionBox   *funbox;        
 

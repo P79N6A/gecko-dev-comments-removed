@@ -334,65 +334,9 @@ nsXPConnect::GetInfoForName(const char * name, nsIInterfaceInfo** info)
     return FindInfo(NameTester, name, mInterfaceInfoManager, info);
 }
 
-static JSGCCallback gOldJSGCCallback;
-
-static PRBool gDidCollection;
-
-static PRBool gInCollection;
-
-static PRBool gCollected;
-
-static JSBool
-XPCCycleCollectGCCallback(JSContext *cx, JSGCStatus status)
-{
-    
-    switch(status)
-    {
-      case JSGC_BEGIN:
-        nsXPConnect::GetRuntimeInstance()->UnrootContextGlobals();
-        break;
-
-      case JSGC_MARK_END:
-        
-        
-        if(!gDidCollection)
-        {
-            NS_ASSERTION(!gInCollection, "Recursing?");
-
-            gDidCollection = PR_TRUE;
-            gInCollection = nsCycleCollector_beginCollection();
-        }
-
-        
-        
-        nsXPConnect::GetRuntimeInstance()->
-            TraceXPConnectRoots(cx->runtime->gcMarkingTracer, JS_TRUE);
-        break;
-
-      case JSGC_END:
-        if(gInCollection)
-        {
-            gInCollection = PR_FALSE;
-            gCollected = nsCycleCollector_finishCollection();
-        }
-        break;
-
-      default:
-        break;
-    }
-
-    return gOldJSGCCallback ? gOldJSGCCallback(cx, status) : JS_TRUE;
-}
-
 PRBool
 nsXPConnect::Collect()
 {
-    
-    
-    
-    
-    
-    
     
     
     
@@ -441,12 +385,10 @@ nsXPConnect::Collect()
 
     mCycleCollecting = PR_TRUE;
     mCycleCollectionContext = &cycleCollectionContext;
-    gDidCollection = PR_FALSE;
-    gInCollection = PR_FALSE;
-    gCollected = PR_FALSE;
+
+    nsXPConnect::GetRuntimeInstance()->ClearWeakRoots();
 
     JSContext *cx = mCycleCollectionContext->GetJSContext();
-    gOldJSGCCallback = JS_SetGCCallback(cx, XPCCycleCollectGCCallback);
 
     
     
@@ -454,8 +396,8 @@ nsXPConnect::Collect()
     
     
     JS_ASSERT(cx->requestDepth >= 1);
-    JS_ASSERT(cx->thread->contextsInRequests >= 1);
-    if(cx->requestDepth >= 2 || cx->thread->contextsInRequests >= 2)
+    JS_ASSERT(cx->thread->requestContext == cx);
+    if(cx->requestDepth >= 2)
     {
         JS_GC(cx);
     }
@@ -465,13 +407,15 @@ nsXPConnect::Collect()
         JS_GC(cx);
         JS_THREAD_DATA(cx)->conservativeGC.enable();
     }
-    JS_SetGCCallback(cx, gOldJSGCCallback);
-    gOldJSGCCallback = nsnull;
+
+    
+    PRBool ok = nsCycleCollector_beginCollection() &&
+                nsCycleCollector_finishCollection();
 
     mCycleCollectionContext = nsnull;
     mCycleCollecting = PR_FALSE;
 
-    return gCollected;
+    return ok;
 }
 
 
@@ -506,7 +450,7 @@ NoteJSRoot(JSTracer *trc, void *thing, uint32 kind)
                                  nsXPConnect::GetXPConnect());
         }
     }
-    else if(kind != JSTRACE_DOUBLE && kind != JSTRACE_STRING)
+    else if(kind != JSTRACE_STRING)
     {
         JS_TraceChildren(trc, thing, kind);
     }
@@ -543,8 +487,6 @@ nsXPConnect::BeginCycleCollection(nsCycleCollectionTraversalCallback &cb)
             return NS_ERROR_OUT_OF_MEMORY;
         }
 
-        GetRuntime()->UnrootContextGlobals();
-
         PRBool alreadyCollecting = mCycleCollecting;
         mCycleCollecting = PR_TRUE;
         NoteJSRootTracer trc(&mJSRoots, cb);
@@ -572,8 +514,6 @@ nsXPConnect::FinishCycleCollection()
     {
         mCycleCollectionContext = nsnull;
         mExplainCycleCollectionContext = nsnull;
-
-        GetRuntime()->RootContextGlobals();
     }
 #endif
 
@@ -591,6 +531,8 @@ nsXPConnect::FinishCycleCollection()
 nsCycleCollectionParticipant *
 nsXPConnect::ToParticipant(void *p)
 {
+    if (!ADD_TO_CC(js_GetGCThingTraceKind(p)))
+        return NULL;
     return this;
 }
 
@@ -693,6 +635,12 @@ WrapperIsNotMainThreadOnly(XPCWrappedNative *wrapper)
     return NS_FAILED(CallQueryInterface(wrapper->Native(), &participant));
 }
 
+JSBool
+nsXPConnect::IsGray(void *thing)
+{
+    return js_GCThingIsMarked(thing, XPC_GC_COLOR_GRAY);
+}
+
 NS_IMETHODIMP
 nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 {
@@ -757,8 +705,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 #endif
     {
         
-        type = !markJSObject && JS_IsAboutToBeFinalized(cx, p) ? GCUnmarked :
-                                                                 GCMarked;
+        type = !markJSObject && IsGray(p) ? GCUnmarked : GCMarked;
     }
 
     if (cb.WantDebugInfo()) {
@@ -888,9 +835,6 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
         cb.DescribeNode(type, 0, sizeof(JSObject), "JS Object");
     }
 
-    if(!ADD_TO_CC(traceKind))
-        return NS_OK;
-
     
     
     
@@ -948,6 +892,9 @@ class JSContextParticipant : public nsCycleCollectionParticipant
 public:
     NS_IMETHOD RootAndUnlinkJSObjects(void *n)
     {
+        JSContext *cx = static_cast<JSContext*>(n);
+        NS_ASSERTION(cx->globalObject, "global object NULL before unlinking");
+        cx->globalObject = nsnull;
         return NS_OK;
     }
     NS_IMETHOD Unlink(void *n)
@@ -973,8 +920,10 @@ public:
         cb.DescribeNode(RefCounted, refCount, sizeof(JSContext),
                         "JSContext");
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "[global object]");
-        cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT,
-                           cx->globalObject);
+        if (cx->globalObject) {
+            cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT,
+                               cx->globalObject);
+        }
 
         return NS_OK;
     }
@@ -1153,17 +1102,60 @@ static JSClass xpcTempGlobalClass = {
     JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
+nsresult
+xpc_CreateGlobalObject(JSContext *cx, JSClass *clasp,
+                       const nsACString &origin, nsIPrincipal *principal,
+                       JSObject **global, JSCompartment **compartment)
+{
+    XPCCompartmentMap& map = nsXPConnect::GetRuntimeInstance()->GetCompartmentMap();
+    JSObject *tempGlobal;
+    if(!map.Get(origin, compartment))
+    {
+        JSPrincipals *principals = nsnull;
+        if(principal)
+            principal->GetJSPrincipals(cx, &principals);
+        tempGlobal = JS_NewCompartmentAndGlobalObject(cx, clasp, principals);
+        if(principals)
+            JSPRINCIPALS_DROP(cx, principals);
+
+        if(!tempGlobal)
+            return UnexpectedFailure(NS_ERROR_FAILURE);
+
+        JSAutoEnterCompartment autocompartment(cx, tempGlobal);
+
+        *global = tempGlobal;
+        *compartment = tempGlobal->getCompartment(cx);
+
+        JS_SetCompartmentPrivate(cx, *compartment, ToNewCString(origin));
+        map.Put(origin, *compartment);
+    }
+    else
+    {
+        JSAutoEnterCompartment autocompartment(cx, *compartment);
+
+        tempGlobal = JS_NewGlobalObject(cx, clasp);
+        if(!tempGlobal)
+            return UnexpectedFailure(NS_ERROR_FAILURE);
+        *global = tempGlobal;
+    }
+
+    return NS_OK;
+}
+
 
 NS_IMETHODIMP
 nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
                                              nsISupports *aCOMObj,
                                              const nsIID & aIID,
+                                             nsIPrincipal * aPrincipal,
+                                             const nsACString & aOrigin,
                                              PRUint32 aFlags,
                                              nsIXPConnectJSObjectHolder **_retval)
 {
     NS_ASSERTION(aJSContext, "bad param");
     NS_ASSERTION(aCOMObj, "bad param");
     NS_ASSERTION(_retval, "bad param");
+    NS_ASSERTION(!aOrigin.IsEmpty() || aPrincipal, "must be able to assign an origin");
 
     
     
@@ -1172,13 +1164,25 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
 
     XPCCallContext ccx(NATIVE_CALLER, aJSContext);
 
-    PRBool system = (aFlags & nsIXPConnect::FLAG_SYSTEM_GLOBAL_OBJECT) != 0;
-    JSObject* tempGlobal = JS_NewGlobalObject(aJSContext, &xpcTempGlobalClass);
+    nsCString origin;
+    if(aOrigin.IsEmpty())
+        aPrincipal->GetOrigin(getter_Copies(origin));
+    else
+        origin = aOrigin;
 
-    if(!tempGlobal ||
-       (system && !JS_MakeSystemObject(aJSContext, tempGlobal)) ||
-       !JS_SetParent(aJSContext, tempGlobal, nsnull) ||
-       !JS_SetPrototype(aJSContext, tempGlobal, nsnull))
+    SaveFrame sf(ccx);
+
+    JSCompartment* compartment;
+    JSObject* tempGlobal;
+
+    nsresult rv = xpc_CreateGlobalObject(ccx, &xpcTempGlobalClass, origin,
+                                         aPrincipal, &tempGlobal, &compartment);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    JSAutoEnterCompartment autocompartment(ccx, compartment);
+
+    PRBool system = (aFlags & nsIXPConnect::FLAG_SYSTEM_GLOBAL_OBJECT) != 0;
+    if(system && !JS_MakeSystemObject(aJSContext, tempGlobal))
         return UnexpectedFailure(NS_ERROR_FAILURE);
 
     jsval v;
@@ -1191,7 +1195,6 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
         if(NS_FAILED(InitClasses(aJSContext, tempGlobal)))
             return UnexpectedFailure(NS_ERROR_FAILURE);
 
-        nsresult rv;
         if(!XPCConvert::NativeInterface2JSObject(ccx, &v,
                                                  getter_AddRefs(holder),
                                                  aCOMObj, &aIID, nsnull,
@@ -1244,7 +1247,6 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
 
     if(!(aFlags & nsIXPConnect::OMIT_COMPONENTS_OBJECT)) {
         
-        SaveFrame sf(ccx);
         if(!nsXPCComponents::AttachNewComponentsObject(ccx, scope, globalJSObj))
             return UnexpectedFailure(NS_ERROR_FAILURE);
 
@@ -2377,7 +2379,7 @@ nsXPConnect::VariantToJS(JSContext* ctx, JSObject* scope, nsIVariant* value, jsv
 
 
 NS_IMETHODIMP 
-nsXPConnect::JSToVariant(JSContext* ctx, jsval value, nsIVariant** _retval)
+nsXPConnect::JSToVariant(JSContext* ctx, const jsval &value, nsIVariant** _retval)
 {
     NS_PRECONDITION(ctx, "bad param");
     NS_PRECONDITION(value != JSVAL_NULL, "bad param");

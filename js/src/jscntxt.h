@@ -651,6 +651,9 @@ class StackSpace
     inline Value *firstUnused() const;
 
     inline void assertIsCurrent(JSContext *cx) const;
+#ifdef DEBUG
+    CallStack *getCurrentCallStack() const { return currentCallStack; }
+#endif
 
     
 
@@ -777,8 +780,6 @@ class StackSpace
     
     JS_REQUIRES_STACK
     JS_FRIEND_API(bool) pushInvokeArgsFriendAPI(JSContext *, uintN, InvokeArgsGuard &);
-
-    CallStack *getCurrentCallStack() const { return currentCallStack; }
 };
 
 JS_STATIC_ASSERT(StackSpace::CAPACITY_VALS % StackSpace::COMMIT_VALS == 0);
@@ -809,20 +810,6 @@ class FrameRegsIter
     JSStackFrame *fp() const { return curfp; }
     Value *sp() const { return cursp; }
     jsbytecode *pc() const { return curpc; }
-};
-
-class AllFramesIter
-{
-    CallStack         *curcs;
-    JSStackFrame      *curfp;
-
-  public:
-    JS_REQUIRES_STACK AllFramesIter(JSContext *cx);
-
-    bool done() const { return curfp == NULL; }
-    AllFramesIter &operator++();
-
-    JSStackFrame *fp() const { return curfp; }
 };
 
 
@@ -1110,8 +1097,7 @@ struct JSThread {
     
 
 
-
-    uint32              contextsInRequests;
+    JSContext           *requestContext;
 
     
     JSThreadData        data;
@@ -1223,6 +1209,7 @@ class AutoIdVector;
 struct JSCompartment {
     JSRuntime *rt;
     JSPrincipals *principals;
+    void *data;
     bool marked;
     js::WrapperMap crossCompartmentWrappers;
 
@@ -1243,6 +1230,10 @@ struct JSCompartment {
     void sweep(JSContext *cx);
 };
 
+struct JSGCTracer : public JSTracer {
+    uint32 color;
+};
+
 struct JSRuntime {
     
     JSCompartment       *defaultCompartment;
@@ -1255,6 +1246,9 @@ struct JSRuntime {
 
     
     JSContextCallback   cxCallback;
+
+    
+    JSCompartmentCallback compartmentCallback;
 
     
 
@@ -1286,7 +1280,7 @@ struct JSRuntime {
     size_t              gcMaxMallocBytes;
     uint32              gcEmptyArenaPoolLifespan;
     uint32              gcNumber;
-    JSTracer            *gcMarkingTracer;
+    JSGCTracer          *gcMarkingTracer;
     uint32              gcTriggerFactor;
     size_t              gcTriggerBytes;
     volatile JSBool     gcIsNeeded;
@@ -1748,9 +1742,6 @@ struct JSContext
     JSPackedBool        generatingError;
 
     
-    JSPackedBool        insideGCMarkCallback;
-
-    
     JSBool              throwing;           
     js::Value           exception;          
 
@@ -1888,6 +1879,8 @@ struct JSContext
     jsrefcount          requestDepth;
     
     jsrefcount          outstandingRequests;
+    JSContext           *prevRequestContext;
+    jsrefcount          prevRequestDepth;
 # ifdef DEBUG
     unsigned            checkRequestDepth;
 # endif    

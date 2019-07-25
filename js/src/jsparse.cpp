@@ -38,8 +38,6 @@
 
 
 
-#define __STDC_LIMIT_MACROS
-
 
 
 
@@ -92,6 +90,8 @@
 
 #include "jsatominlines.h"
 #include "jsobjinlines.h"
+
+#include "jsatominlines.h"
 
 using namespace js;
 
@@ -695,7 +695,7 @@ Parser::parse(JSObject *chain)
 JS_STATIC_ASSERT(UpvarCookie::FREE_LEVEL == JS_BITMASK(JSFB_LEVEL_BITS));
 
 static inline bool
-SetStaticLevel(JSTreeContext *tc, uint16 staticLevel)
+SetStaticLevel(JSTreeContext *tc, uintN staticLevel)
 {
     
 
@@ -719,7 +719,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *calle
                         const jschar *chars, size_t length,
                         FILE *file, const char *filename, uintN lineno,
                         JSString *source ,
-                        uint16 staticLevel )
+                        uintN staticLevel )
 {
     JSArenaPool codePool, notePool;
     TokenKind tt;
