@@ -162,9 +162,12 @@ enum EventNameType {
   EventNameType_All = 0xFFFF
 };
 
-struct EventNameMapping {
-  PRUint32  mId;
-  PRInt32 mType;
+struct EventNameMapping
+{
+  nsIAtom* mAtom;
+  PRUint32 mId;
+  PRInt32  mType;
+  PRUint32 mStructType;
 };
 
 struct nsShortcutCandidate {
@@ -964,6 +967,19 @@ public:
 
 
 
+  static nsIAtom* GetEventIdAndAtom(const nsAString& aName,
+                                    PRUint32 aEventStruct,
+                                    PRUint32* aEventID);
+
+  
+
+
+
+
+
+
+
+
 
 
   static void TraverseListenerManager(nsINode *aNode,
@@ -1669,7 +1685,9 @@ private:
 
   static nsIConsoleService* sConsoleService;
 
-  static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sEventTable;
+  static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sAtomEventTable;
+  static nsDataHashtable<nsStringHashKey, EventNameMapping>* sStringEventTable;
+  static nsCOMArray<nsIAtom>* sUserDefinedEvents;
 
   static nsIStringBundleService* sStringBundleService;
   static nsIStringBundle* sStringBundles[PropertiesFile_COUNT];
