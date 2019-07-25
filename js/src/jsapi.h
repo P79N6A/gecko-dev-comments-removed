@@ -227,36 +227,6 @@ inline Anchor<T>::~Anchor()
 
 
 
-inline void PoisonPtr(uintptr_t *v)
-{
-#if defined(JSGC_ROOT_ANALYSIS) && defined(DEBUG)
-    uint8_t *ptr = (uint8_t *) v + 3;
-    *ptr = JS_FREE_PATTERN;
-#endif
-}
-
-template <typename T>
-inline bool IsPoisonedPtr(T *v)
-{
-#if defined(JSGC_ROOT_ANALYSIS) && defined(DEBUG)
-    uint32_t mask = uintptr_t(v) & 0xff000000;
-    return mask == uint32_t(JS_FREE_PATTERN << 24);
-#else
-    return false;
-#endif
-}
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
