@@ -220,11 +220,14 @@ HttpChannelParentListener::AsyncOnChannelRedirect(
   newChannel->GetURI(getter_AddRefs(newURI));
 
   nsHttpChannel *oldHttpChannel = static_cast<nsHttpChannel *>(oldChannel);
+  nsHttpResponseHead *responseHead = oldHttpChannel->GetResponseHead();
+
   
   mActiveChannel->SendRedirect1Begin(mRedirectChannel,
                                      IPC::URI(newURI),
                                      redirectFlags,
-                                     *oldHttpChannel->GetResponseHead());
+                                     responseHead ? *responseHead 
+                                                  : nsHttpResponseHead());
 
   
   
