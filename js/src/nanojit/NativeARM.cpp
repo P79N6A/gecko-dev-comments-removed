@@ -701,6 +701,7 @@ Assembler::asm_arg_64(LIns* arg, Register& r, int& stkd)
         NanoAssert(stkd == 0);
 
         if (ARM_VFP) {
+            Register dm = findRegFor(arg, FpRegs);
             
             
             
@@ -708,16 +709,15 @@ Assembler::asm_arg_64(LIns* arg, Register& r, int& stkd)
             
             
             STR(IP, SP, 0);
-            stkd += 4;
-            FMRRD(ra, IP, fp_reg);
+            FMRRD(ra, IP, dm);
         } else {
             
             
             
             asm_regarg(ARGTYPE_I, arg->oprnd1(), ra);
             asm_stkarg(arg->oprnd2(), 0);
-            stkd += 4;
         }
+        stkd += 4;
 #endif
     } else {
         
