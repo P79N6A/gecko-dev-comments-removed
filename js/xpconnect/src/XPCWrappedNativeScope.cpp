@@ -39,7 +39,6 @@
 
 
 
-
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
 #include "jsproxy.h"
@@ -255,30 +254,12 @@ XPCWrappedNativeScope::SetGlobal(XPCCallContext& ccx, JSObject* aGlobal,
     mScriptObjectPrincipal = sop;
 
     
-    {
-        AutoJSErrorAndExceptionEater eater(ccx); 
-
-        jsval val;
-        jsid idObj = mRuntime->GetStringID(XPCJSRuntime::IDX_OBJECT);
-        jsid idProto = mRuntime->GetStringID(XPCJSRuntime::IDX_PROTOTYPE);
-
-        
-        
-        
-        
-        
-        JSBool didResolve;
-
-        if (JS_ResolveStandardClass(ccx, aGlobal, idObj, &didResolve) &&
-            JS_GetPropertyById(ccx, aGlobal, idObj, &val) &&
-            !JSVAL_IS_PRIMITIVE(val) &&
-            JS_GetPropertyById(ccx, JSVAL_TO_OBJECT(val), idProto, &val) &&
-            !JSVAL_IS_PRIMITIVE(val)) {
-            mPrototypeJSObject = JSVAL_TO_OBJECT(val);
-        } else {
-            NS_ERROR("Can't get globalObject.Object.prototype");
-        }
-    }
+    JSObject *objectPrototype =
+        JS_GetObjectPrototype(ccx.GetJSContext(), aGlobal);
+    if (objectPrototype)
+        mPrototypeJSObject = objectPrototype;
+    else
+        NS_ERROR("Can't get globalObject.Object.prototype");
 
     
     

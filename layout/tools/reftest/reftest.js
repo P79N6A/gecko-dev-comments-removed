@@ -397,6 +397,7 @@ function StartHTTPServer()
 
 function StartTests()
 {
+    var uri;
 #if BOOTSTRAP
     
     try {

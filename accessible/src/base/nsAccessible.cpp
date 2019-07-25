@@ -1451,6 +1451,23 @@ nsAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
     return NS_OK;
 
   
+  nsCOMPtr<nsIDOMHTMLElement> htmlElement = do_QueryInterface(mContent);
+  if (htmlElement) {
+    bool draggable = false;
+    htmlElement->GetDraggable(&draggable);
+    if (draggable) {
+      nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::draggable,
+                             NS_LITERAL_STRING("true"));
+    }
+  }
+
+  
+  
+  
+  if (!mContent->GetPrimaryFrame() || !IsPrimaryForNode())
+    return NS_OK;
+
+  
   nsAutoString value;
   StyleInfo styleInfo(mContent->AsElement(), mDoc->PresShell());
 
@@ -1481,17 +1498,6 @@ nsAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
   
   styleInfo.MarginBottom(value);
   nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::marginBottom, value);
-
-  
-  nsCOMPtr<nsIDOMHTMLElement> htmlElement = do_QueryInterface(mContent);
-  if (htmlElement) {
-    bool draggable = false;
-    htmlElement->GetDraggable(&draggable);
-    if (draggable) {
-      nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::draggable,
-                             NS_LITERAL_STRING("true"));
-    }
-  }
 
   return NS_OK;
 }

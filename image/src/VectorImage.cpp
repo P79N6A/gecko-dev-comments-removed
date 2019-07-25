@@ -629,6 +629,15 @@ VectorImage::UnlockImage()
 
 
 NS_IMETHODIMP
+VectorImage::RequestDiscard()
+{
+  
+  return NS_OK;
+}
+
+
+
+NS_IMETHODIMP
 VectorImage::ResetAnimation()
 {
   if (mError)

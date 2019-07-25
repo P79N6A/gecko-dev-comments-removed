@@ -530,39 +530,13 @@ public:
 
 
   virtual bool IsDisabled() const {
-    return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
+    return false;
   }
 
   bool IsHidden() const
   {
     return HasAttr(kNameSpaceID_None, nsGkAtoms::hidden);
   }
-
-  
-
-
-
-
-  enum CORSMode {
-    
-
-
-    CORS_NONE,
-
-    
-
-
-
-    CORS_ANONYMOUS,
-
-    
-
-
-
-    CORS_USE_CREDENTIALS
-  };
-
-  const static nsAttrValue::EnumTable kCORSAttributeTable[];
 
 protected:
   

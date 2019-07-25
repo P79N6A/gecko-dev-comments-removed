@@ -179,10 +179,6 @@ public:
     }
   }
 
-  nsLineBox* NewLineBox(nsIFrame* aFrame, PRInt32 aCount, bool aIsBlock);
-
-  void FreeLineBox(nsLineBox* aLine);
-
   
 
   

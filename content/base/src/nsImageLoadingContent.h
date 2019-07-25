@@ -54,6 +54,7 @@
 #include "nsString.h"
 #include "nsEventStates.h"
 #include "nsGenericHTMLElement.h"
+#include "mozilla/CORSMode.h"
 
 class nsIURI;
 class nsIDocument;
@@ -183,7 +184,7 @@ protected:
 
 
 
-  virtual nsGenericHTMLElement::CORSMode GetCORSMode();
+  virtual mozilla::CORSMode GetCORSMode();
 
 private:
   

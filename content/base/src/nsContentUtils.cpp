@@ -5393,6 +5393,7 @@ nsContentUtils::ASCIIToUpper(const nsAString& aSource, nsAString& aDest)
   }
 }
 
+
 bool
 nsContentUtils::EqualsIgnoreASCIICase(const nsAString& aStr1,
                                       const nsAString& aStr2)
@@ -5427,6 +5428,44 @@ nsContentUtils::EqualsIgnoreASCIICase(const nsAString& aStr1,
     }
   }
 
+  return true;
+}
+
+
+bool
+nsContentUtils::EqualsLiteralIgnoreASCIICase(const nsAString& aStr1,
+                                             const char* aStr2,
+                                             const PRUint32 len)
+{
+  if (aStr1.Length() != len) {
+    return false;
+  }
+  
+  const PRUnichar* str1 = aStr1.BeginReading();
+  const char*      str2 = aStr2;
+  const PRUnichar* end = str1 + len;
+  
+  while (str1 < end) {
+    PRUnichar c1 = *str1++;
+    PRUnichar c2 = *str2++;
+
+    
+    if ((c1 ^ c2) & 0xffdf) {
+      return false;
+    }
+    
+    
+    
+    if (c1 != c2) {
+      
+      
+      PRUnichar c1Upper = c1 & 0xffdf;
+      if (!('A' <= c1Upper && c1Upper <= 'Z')) {
+        return false;
+      }
+    }
+  }
+  
   return true;
 }
 

@@ -118,8 +118,8 @@ GetGCObjectFixedSlotsKind(size_t numFixedSlots)
 static inline bool
 IsBackgroundAllocKind(AllocKind kind)
 {
-    JS_ASSERT(kind <= FINALIZE_OBJECT_LAST);
-    return kind % 2 == 1;
+    JS_ASSERT(kind <= FINALIZE_LAST);
+    return kind <= FINALIZE_OBJECT_LAST && kind % 2 == 1;
 }
 
 static inline AllocKind
@@ -353,9 +353,13 @@ class CellIter : public CellIterImpl
       : lists(&comp->arenas),
         kind(kind)
     {
-#ifdef JS_THREADSAFE
-        JS_ASSERT(comp->arenas.doneBackgroundFinalize(kind));
-#endif
+        
+
+
+
+
+
+        JS_ASSERT(!IsBackgroundAllocKind(kind));
         if (lists->isSynchronizedFreeList(kind)) {
             lists = NULL;
         } else {
@@ -402,6 +406,9 @@ NewGCThing(JSContext *cx, js::gc::AllocKind kind, size_t thingSize)
 #endif
     JS_ASSERT(!cx->runtime->gcRunning);
     JS_ASSERT(!cx->runtime->noGCOrAllocationCheck);
+
+    
+    JS_OOM_POSSIBLY_FAIL();
 
 #ifdef JS_GC_ZEAL
     if (cx->runtime->needZealousGC())

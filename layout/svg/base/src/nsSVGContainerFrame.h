@@ -47,6 +47,13 @@ class nsRenderingContext;
 
 typedef nsContainerFrame nsSVGContainerFrameBase;
 
+
+
+
+
+
+
+
 class nsSVGContainerFrame : public nsSVGContainerFrameBase
 {
   friend nsIFrame* NS_NewSVGContainerFrame(nsIPresShell* aPresShell,
@@ -71,9 +78,6 @@ public:
                           nsFrameList&    aFrameList);
   NS_IMETHOD RemoveFrame(ChildListID     aListID,
                          nsIFrame*       aOldFrame);
-  NS_IMETHOD Init(nsIContent*      aContent,
-                  nsIFrame*        aParent,
-                  nsIFrame*        aPrevInFlow);
 
   virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
@@ -81,6 +85,10 @@ public:
             aFlags & ~(nsIFrame::eSVG | nsIFrame::eSVGContainer));
   }
 };
+
+
+
+
 
 class nsSVGDisplayContainerFrame : public nsSVGContainerFrame,
                                    public nsISVGChildFrame

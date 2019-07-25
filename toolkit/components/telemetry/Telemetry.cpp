@@ -1128,8 +1128,10 @@ TelemetrySessionData::LoadFromDisk(nsIFile *file, TelemetrySessionData **ptr)
     return NS_ERROR_FAILURE;
   }
 
+  
+  
   PRInt32 size = PR_Available(fd);
-  if (size == -1) {
+  if (size < static_cast<PRInt32>(sizeof(Pickle::Header))) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1141,6 +1143,13 @@ TelemetrySessionData::LoadFromDisk(nsIFile *file, TelemetrySessionData **ptr)
 
   Pickle pickle(data, size);
   void *iter = NULL;
+
+  
+  
+  const Pickle::Header *header = pickle.headerT<Pickle::Header>();
+  if (header->payload_size != static_cast<PRUint32>(amount) - sizeof(*header)) {
+    return NS_ERROR_FAILURE;
+  }
 
   unsigned int storedVersion;
   if (!(pickle.ReadUInt32(&iter, &storedVersion)

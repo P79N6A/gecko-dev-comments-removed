@@ -1020,6 +1020,79 @@ js::UnwindScope(JSContext *cx, uint32_t stackDepth)
     }
 }
 
+void
+js::UnwindForUncatchableException(JSContext *cx, const FrameRegs &regs)
+{
+
+    
+    for (TryNoteIter tni(regs); !tni.done(); ++tni) {
+        JSTryNote *tn = *tni;
+        if (tn->kind == JSTRY_ITER) {
+            Value *sp = regs.fp()->base() + tn->stackDepth;
+            UnwindIteratorForUncatchableException(cx, &sp[-1].toObject());
+        }
+    }
+}
+
+TryNoteIter::TryNoteIter(const FrameRegs &regs)
+  : regs(regs),
+    script(regs.fp()->script()),
+    pcOffset(regs.pc - script->main())
+{
+    if (JSScript::isValidOffset(script->trynotesOffset)) {
+        tn = script->trynotes()->vector;
+        tnEnd = tn + script->trynotes()->length;
+    } else {
+        tn = tnEnd = NULL;
+    }
+    settle();
+}
+
+void
+TryNoteIter::operator++()
+{
+    ++tn;
+    settle();
+}
+
+bool
+TryNoteIter::done() const
+{
+    return tn == tnEnd;
+}
+
+void
+TryNoteIter::settle()
+{
+    for (; tn != tnEnd; ++tn) {
+        
+        if (pcOffset - tn->start >= tn->length)
+            continue;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (tn->stackDepth <= regs.sp - regs.fp()->base())
+            break;
+    }
+}
+
 
 
 
@@ -4211,14 +4284,7 @@ END_CASE(JSOP_ARRAYPUSH)
     JS_ASSERT(&cx->regs() == &regs);
     JS_ASSERT(uint32_t(regs.pc - script->code) < script->length);
 
-    if (!cx->isExceptionPending()) {
-        
-        interpReturnOK = false;
-    } else {
-        JSThrowHook handler;
-        JSTryNote *tn, *tnlimit;
-        uint32_t offset;
-
+    if (cx->isExceptionPending()) {
         
         atoms = script->atoms;
 
@@ -4227,8 +4293,7 @@ END_CASE(JSOP_ARRAYPUSH)
             Value rval;
             JSTrapStatus st = Debugger::onExceptionUnwind(cx, &rval);
             if (st == JSTRAP_CONTINUE) {
-                handler = cx->runtime->debugHooks.throwHook;
-                if (handler)
+                if (JSThrowHook handler = cx->runtime->debugHooks.throwHook)
                     st = handler(cx, script, regs.pc, &rval, cx->runtime->debugHooks.throwHookData);
             }
 
@@ -4249,40 +4314,10 @@ END_CASE(JSOP_ARRAYPUSH)
             CHECK_INTERRUPT_HANDLER();
         }
 
-        
+        for (TryNoteIter tni(regs); !tni.done(); ++tni) {
+            JSTryNote *tn = *tni;
 
-
-        if (!JSScript::isValidOffset(script->trynotesOffset))
-            goto no_catch;
-
-        offset = (uint32_t)(regs.pc - script->main());
-        tn = script->trynotes()->vector;
-        tnlimit = tn + script->trynotes()->length;
-        do {
-            if (offset - tn->start >= tn->length)
-                continue;
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            if (tn->stackDepth > regs.sp - regs.fp()->base())
-                continue;
+            UnwindScope(cx, tn->stackDepth);
 
             
 
@@ -4290,8 +4325,6 @@ END_CASE(JSOP_ARRAYPUSH)
 
 
             regs.pc = (script)->main() + tn->start + tn->length;
-
-            UnwindScope(cx, tn->stackDepth);
             regs.sp = regs.fp()->base() + tn->stackDepth;
 
             switch (tn->kind) {
@@ -4332,9 +4365,8 @@ END_CASE(JSOP_ARRAYPUSH)
                     goto error;
               }
            }
-        } while (++tn != tnlimit);
+        }
 
-      no_catch:
         
 
 
@@ -4348,6 +4380,9 @@ END_CASE(JSOP_ARRAYPUSH)
             regs.fp()->clearReturnValue();
         }
 #endif
+    } else {
+        UnwindForUncatchableException(cx, regs);
+        interpReturnOK = false;
     }
 
   forced_return:

@@ -104,6 +104,10 @@ public:
   nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
+
+  virtual bool IsDisabled() const {
+    return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
+  }
 protected:
   
 

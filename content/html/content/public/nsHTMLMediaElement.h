@@ -50,6 +50,7 @@
 #include "nsIObserver.h"
 #include "nsAudioStream.h"
 #include "VideoFrameContainer.h"
+#include "mozilla/CORSMode.h"
 
 
 
@@ -71,7 +72,7 @@ public:
     CANPLAY_YES
   };
 
-  CORSMode GetCORSMode() {
+  mozilla::CORSMode GetCORSMode() {
     return mCORSMode;
   }
 
@@ -781,7 +782,7 @@ protected:
   bool mMediaSecurityVerified;
 
   
-  CORSMode mCORSMode;
+  mozilla::CORSMode mCORSMode;
 };
 
 #endif

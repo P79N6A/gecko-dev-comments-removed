@@ -65,6 +65,7 @@
 #include "nsDOMClassInfoID.h" 
 #include "nsIDOMTouchEvent.h"
 #include "nsIInlineEventHandlers.h"
+#include "mozilla/CORSMode.h"
 
 #include "nsISMILAttr.h"
 
@@ -640,6 +641,25 @@ public:
                            void *aData);
   static void MarkUserDataHandler(void* aObject, nsIAtom* aKey, void* aChild,
                                   void* aData);
+
+  
+
+
+
+
+  static void ParseCORSValue(const nsAString& aValue, nsAttrValue& aResult);
+
+  
+
+
+  static mozilla::CORSMode StringToCORSMode(const nsAString& aValue);
+  
+  
+
+
+
+  static mozilla::CORSMode AttrValueToCORSMode(const nsAttrValue* aValue);
+
 protected:
   
 

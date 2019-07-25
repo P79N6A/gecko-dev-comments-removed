@@ -3247,6 +3247,14 @@ nsIDocument::TakeFrameRequestCallbacks(FrameRequestCallbackList& aCallbacks)
   mFrameRequestCallbacks.Clear();
 }
 
+PLDHashOperator RequestDiscardEnumerator(imgIRequest* aKey,
+                                         PRUint32 aData,
+                                         void* userArg)
+{
+  aKey->RequestDiscard();
+  return PL_DHASH_NEXT;
+}
+
 void
 nsDocument::DeleteShell()
 {
@@ -3254,6 +3262,11 @@ nsDocument::DeleteShell()
   if (IsEventHandlingEnabled()) {
     RevokeAnimationFrameNotifications();
   }
+
+  
+  
+  
+  mImageTracker.EnumerateRead(RequestDiscardEnumerator, nsnull);
 
   mPresShell = nsnull;
 }
@@ -4414,7 +4427,7 @@ nsDocument::CreateElement(const nsAString& aTagName,
   bool needsLowercase = IsHTML() && !IsLowercaseASCII(aTagName);
   nsAutoString lcTagName;
   if (needsLowercase) {
-    ToLowerCase(aTagName, lcTagName);
+    nsContentUtils::ASCIIToLower(aTagName, lcTagName);
   }
 
   rv = CreateElem(needsLowercase ? lcTagName : aTagName,
@@ -7724,14 +7737,20 @@ nsDocument::MaybePreLoadImage(nsIURI* uri, const nsAString &aCrossOriginAttr)
   }
 
   nsLoadFlags loadFlags = nsIRequest::LOAD_NORMAL;
-  if (aCrossOriginAttr.LowerCaseEqualsLiteral("anonymous")) {
+  switch (nsGenericElement::StringToCORSMode(aCrossOriginAttr)) {
+  case CORS_NONE:
+    
+    break;
+  case CORS_ANONYMOUS:
     loadFlags |= imgILoader::LOAD_CORS_ANONYMOUS;
-  } else if (aCrossOriginAttr.LowerCaseEqualsLiteral("use-credentials")) {
+    break;
+  case CORS_USE_CREDENTIALS:
     loadFlags |= imgILoader::LOAD_CORS_USE_CREDENTIALS;
+    break;
+  default:
+    
+    MOZ_NOT_REACHED("Unknown CORS mode!");
   }
-  
-  
-  
 
   
   nsCOMPtr<imgIRequest> request;
@@ -8309,25 +8328,31 @@ nsDocument::RemoveImage(imgIRequest* aImage)
 
   
   
-  if (count == 0) {
-    mImageTracker.Remove(aImage);
-  } else {
+  if (count != 0) {
     mImageTracker.Put(aImage, count);
+    return NS_OK;
   }
+
+  mImageTracker.Remove(aImage);
 
   nsresult rv = NS_OK;
 
   
   
-  if (count == 0 && mLockingImages)
+  if (mLockingImages) {
     rv = aImage->UnlockImage();
+  }
 
   
-  
-  if (count == 0 && mAnimatingImages) {
+  if (mAnimatingImages) {
     nsresult rv2 = aImage->DecrementAnimationConsumers();
     rv = NS_SUCCEEDED(rv) ? rv2 : rv;
   }
+
+  
+  
+  
+  aImage->RequestDiscard();
 
   return rv;
 }

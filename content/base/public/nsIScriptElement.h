@@ -47,6 +47,7 @@
 #include "nsIParser.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsIDOMHTMLScriptElement.h"
+#include "mozilla/CORSMode.h"
 
 #define NS_ISCRIPTELEMENT_IID \
 { 0x24ab3ff2, 0xd75e, 0x4be4, \
@@ -256,6 +257,15 @@ public:
       LoseParserInsertedness();
     }
     return block;
+  }
+
+  
+
+
+  virtual mozilla::CORSMode GetCORSMode() const
+  {
+    
+    return mozilla::CORS_NONE;
   }
 
 protected:
