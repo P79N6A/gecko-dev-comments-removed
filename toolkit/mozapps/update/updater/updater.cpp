@@ -1038,8 +1038,9 @@ PatchFile::LoadSourceFile(FILE* ofile)
   size_t r = header.slen;
   unsigned char *rb = buf;
   while (r) {
-    size_t c = fread(rb, 1, r, ofile);
-    if (c < 0) {
+    const size_t count = mmin(SSIZE_MAX, r);
+    size_t c = fread(rb, 1, count, ofile);
+    if (c != count) {
       LOG(("LoadSourceFile: error reading destination file: " LOG_S "\n",
            mFile));
       return READ_ERROR;
@@ -1047,11 +1048,6 @@ PatchFile::LoadSourceFile(FILE* ofile)
 
     r -= c;
     rb += c;
-
-    if (c == 0 && r) {
-      LOG(("LoadSourceFile: expected %d more bytes in destination file\n", r));
-      return UNEXPECTED_ERROR;
-    }
   }
 
   
@@ -1972,8 +1968,7 @@ int NS_main(int argc, NS_tchar **argv)
     
     
     
-    const int max_retries = 10;
-    int retries = 1;
+    int retries = 5;
     do {
       
       
@@ -1986,13 +1981,8 @@ int NS_main(int argc, NS_tchar **argv)
       if (callbackFile != INVALID_HANDLE_VALUE)
         break;
 
-      DWORD lastError = GetLastError();
-      LOG(("NS_main: callback app open attempt %d failed. " \
-           "File: " LOG_S ". Last error: %d\n", retries, 
-           argv[callbackIndex], lastError));
-
-      Sleep(100);
-    } while (++retries <= max_retries);
+      Sleep(50);
+    } while (--retries);
 
     
     
@@ -2411,17 +2401,15 @@ GetManifestContents(const NS_tchar *manifest)
   size_t r = ms.st_size;
   char *rb = mbuf;
   while (r) {
-    size_t c = fread(rb, 1, mmin(SSIZE_MAX, r), mfile);
-    if (c < 0) {
+    const size_t count = mmin(SSIZE_MAX, r);
+    size_t c = fread(rb, 1, count, mfile);
+    if (c != count) {
       LOG(("GetManifestContents: error reading manifest file: " LOG_S "\n", manifest));
       return NULL;
     }
 
     r -= c;
     rb += c;
-
-    if (c == 0 && r)
-      return NULL;
   }
   mbuf[ms.st_size] = '\0';
   rb = mbuf;
