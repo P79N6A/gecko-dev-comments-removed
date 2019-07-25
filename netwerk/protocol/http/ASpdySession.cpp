@@ -33,7 +33,7 @@ ASpdySession::NewSpdySession(PRUint32 version,
   
   
 
-  Telemetry::Accumulate(Telemetry::SPDY_VERSION, version);
+  Telemetry::Accumulate(Telemetry::SPDY_VERSION2, version);
     
   if (version == SpdyInformation::SPDY_VERSION_2)
     return new SpdySession2(aTransaction, aTransport, aPriority);
