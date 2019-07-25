@@ -8402,10 +8402,10 @@ var LightWeightThemeWebInstaller = {
 
 
 
+
 function switchToTabHavingURI(aURI, aOpenNew) {
+  
   function switchIfURIInWindow(aWindow) {
-    if (!("gBrowser" in aWindow))
-      return false;
     let browsers = aWindow.gBrowser.browsers;
     for (let i = 0; i < browsers.length; i++) {
       let browser = browsers[i];
@@ -8421,10 +8421,12 @@ function switchToTabHavingURI(aURI, aOpenNew) {
 
   
   if (!(aURI instanceof Ci.nsIURI))
-    aURI = makeURI(aURI);
+    aURI = Services.io.newURI(aURI, null, null);
+
+  let isBrowserWindow = !!window.gBrowser;
 
   
-  if (switchIfURIInWindow(window))
+  if (isBrowserWindow && switchIfURIInWindow(window))
     return true;
 
   let winEnum = Services.wm.getEnumerator("navigator:browser");
@@ -8440,7 +8442,7 @@ function switchToTabHavingURI(aURI, aOpenNew) {
 
   
   if (aOpenNew) {
-    if (isTabEmpty(gBrowser.selectedTab))
+    if (isBrowserWindow && isTabEmpty(gBrowser.selectedTab))
       gBrowser.selectedBrowser.loadURI(aURI.spec);
     else
       openUILinkIn(aURI.spec, "tab");
