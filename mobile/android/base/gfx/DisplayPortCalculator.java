@@ -152,6 +152,84 @@ final class DisplayPortCalculator {
 
 
 
+    private static class VelocityBiasStrategy implements DisplayPortStrategy {
+        
+        private static final float SIZE_MULTIPLIER = 0.2f;
+        
+        private static final float VELOCITY_THRESHOLD = GeckoAppShell.getDpi() / 32f;
+
+        public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
+            
+            float desiredXMargins = metrics.getWidth() * SIZE_MULTIPLIER;
+            float desiredYMargins = metrics.getHeight() * SIZE_MULTIPLIER;
+
+            
+            
+            if (Math.abs(velocity.x) > VELOCITY_THRESHOLD && FloatUtils.fuzzyEquals(velocity.y, 0)) {
+                desiredYMargins = 0;
+            } else if (Math.abs(velocity.y) > VELOCITY_THRESHOLD && FloatUtils.fuzzyEquals(velocity.x, 0)) {
+                desiredXMargins = 0;
+            }
+
+            
+            
+
+            
+            float xBufferAmount = Math.min(desiredXMargins, metrics.pageSizeWidth - metrics.getWidth());
+            float yBufferAmount = Math.min(desiredYMargins, metrics.pageSizeHeight - metrics.getHeight());
+
+            
+            
+            
+            float leftMargin, rightMargin;
+            if (velocity.x > VELOCITY_THRESHOLD) {
+                rightMargin = Math.min(xBufferAmount, metrics.pageSizeWidth - (metrics.viewportRectLeft + metrics.getWidth()));
+                leftMargin = xBufferAmount - rightMargin;
+            } else if (velocity.x < -VELOCITY_THRESHOLD) {
+                leftMargin = Math.min(xBufferAmount, metrics.viewportRectLeft);
+                rightMargin = xBufferAmount - leftMargin;
+            } else {
+                leftMargin = Math.min(xBufferAmount / 2.0f, metrics.viewportRectLeft);
+                rightMargin = xBufferAmount - leftMargin;
+            }
+
+            float topMargin, bottomMargin;
+            if (velocity.y > VELOCITY_THRESHOLD) {
+                bottomMargin = Math.min(yBufferAmount, metrics.pageSizeHeight - (metrics.viewportRectTop + metrics.getHeight()));
+                topMargin = yBufferAmount - bottomMargin;
+            } else if (velocity.y < -VELOCITY_THRESHOLD) {
+                topMargin = Math.min(yBufferAmount, metrics.viewportRectTop);
+                bottomMargin = yBufferAmount - topMargin;
+            } else {
+                topMargin = Math.min(yBufferAmount / 2.0f, metrics.viewportRectTop);
+                bottomMargin = yBufferAmount - topMargin;
+            }
+
+            return new DisplayPortMetrics(metrics.viewportRectLeft - leftMargin,
+                    metrics.viewportRectTop - topMargin,
+                    metrics.viewportRectRight + rightMargin,
+                    metrics.viewportRectBottom + bottomMargin,
+                    metrics.zoomFactor);
+        }
+
+        public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
+            
+            
+            
+            
+            
+            return true;
+        }
+    }
+
+    
+
+
+
+
+
+
+
     private static class DynamicResolutionStrategy implements DisplayPortStrategy {
         
         
