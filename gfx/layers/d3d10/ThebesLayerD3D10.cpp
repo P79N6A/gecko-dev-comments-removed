@@ -568,7 +568,7 @@ ShadowThebesLayerD3D10::Swap(
 
   
   
-  aNewBack->get_ThebesBuffer().buffer() = aNewFront.buffer();
+  *aNewBack = aNewFront;
 
   
   

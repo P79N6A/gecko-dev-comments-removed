@@ -14,27 +14,48 @@
 #include "IDBRequest.h"
 
 #include "mozIStorageProgressHandler.h"
+#include "nsIEventTarget.h"
 #include "nsIRunnable.h"
 
 #include "nsDOMEvent.h"
 
 class mozIStorageConnection;
-class nsIEventTarget;
 
 BEGIN_INDEXEDDB_NAMESPACE
 
+class AutoSetCurrentTransaction;
 class IDBTransaction;
+
+namespace ipc {
+class ResponseValue;
+}
 
 
 
 class HelperBase : public nsIRunnable
 {
   friend class IDBRequest;
+
 public:
+  enum ChildProcessSendResult
+  {
+    Success_Sent = 0,
+    Success_NotSent,
+    Error
+  };
+
+  virtual ChildProcessSendResult
+  MaybeSendResponseToChildProcess(nsresult aResultCode) = 0;
+
   virtual nsresult GetResultCode() = 0;
 
   virtual nsresult GetSuccessResult(JSContext* aCx,
                                     jsval* aVal) = 0;
+
+  IDBRequest* GetRequest() const
+  {
+    return mRequest;
+  }
 
 protected:
   HelperBase(IDBRequest* aRequest)
@@ -73,12 +94,16 @@ protected:
 class AsyncConnectionHelper : public HelperBase,
                               public mozIStorageProgressHandler
 {
+  friend class AutoSetCurrentTransaction;
+
 public:
+  typedef ipc::ResponseValue ResponseValue;
+
   NS_DECL_ISUPPORTS
   NS_DECL_NSIRUNNABLE
   NS_DECL_MOZISTORAGEPROGRESSHANDLER
 
-  nsresult Dispatch(nsIEventTarget* aDatabaseThread);
+  virtual nsresult Dispatch(nsIEventTarget* aDatabaseThread);
 
   
   nsresult DispatchToTransactionPool();
@@ -101,10 +126,16 @@ public:
     return mRequest ? mRequest->Source() : nsnull;
   }
 
-  nsresult GetResultCode()
+  virtual nsresult GetResultCode() MOZ_OVERRIDE
   {
     return mResultCode;
   }
+
+  virtual nsresult OnParentProcessRequestComplete(
+                                           const ResponseValue& aResponseValue);
+
+  virtual nsresult
+  UnpackResponseFromParentProcess(const ResponseValue& aResponseValue) = 0;
 
 protected:
   AsyncConnectionHelper(IDBDatabase* aDatabase,
@@ -154,14 +185,14 @@ protected:
 
 
   virtual nsresult GetSuccessResult(JSContext* aCx,
-                                    jsval* aVal);
+                                    jsval* aVal) MOZ_OVERRIDE;
 
   
 
 
 
 
-  virtual void ReleaseMainThreadObjects();
+  virtual void ReleaseMainThreadObjects() MOZ_OVERRIDE;
 
   
 
@@ -170,6 +201,11 @@ protected:
                                 JSContext* aCx,
                                 nsTArray<StructuredCloneReadInfo>& aReadInfos,
                                 jsval* aResult);
+
+  
+
+
+  static void SetCurrentTransaction(IDBTransaction* aTransaction);
 
 protected:
   nsRefPtr<IDBDatabase> mDatabase;
@@ -181,6 +217,25 @@ private:
   bool mDispatched;
 };
 
+NS_STACK_CLASS
+class StackBasedEventTarget : public nsIEventTarget
+{
+public:
+  NS_DECL_ISUPPORTS_INHERITED
+};
+
+class MainThreadEventTarget : public StackBasedEventTarget
+{
+public:
+  NS_DECL_NSIEVENTTARGET
+};
+
+class NoDispatchEventTarget : public StackBasedEventTarget
+{
+public:
+  NS_DECL_NSIEVENTTARGET
+};
+
 END_INDEXEDDB_NAMESPACE
 
-#endif 
+#endif
