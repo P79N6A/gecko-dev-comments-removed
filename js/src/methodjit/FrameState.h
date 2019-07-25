@@ -291,7 +291,10 @@ class FrameState
     void pushDouble(Address address);
 
     
-    void ensureNumber(FrameEntry *fe, bool integer);
+    void ensureDouble(FrameEntry *fe);
+
+    
+    void ensureInteger(FrameEntry *fe);
 
     
 

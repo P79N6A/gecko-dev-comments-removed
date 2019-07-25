@@ -118,6 +118,7 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript, bool isConstructi
     callSites(CompilerAllocPolicy(cx, *thisFromCtor())),
     rejoinSites(CompilerAllocPolicy(cx, *thisFromCtor())),
     doubleList(CompilerAllocPolicy(cx, *thisFromCtor())),
+    fixedDoubleEntries(CompilerAllocPolicy(cx, *thisFromCtor())),
     jumpTables(CompilerAllocPolicy(cx, *thisFromCtor())),
     jumpTableOffsets(CompilerAllocPolicy(cx, *thisFromCtor())),
     loopEntries(CompilerAllocPolicy(cx, *thisFromCtor())),
@@ -638,7 +639,7 @@ mjit::Compiler::generatePrologue()
         for (uint32 i = 0; script->fun && i < script->fun->nargs; i++) {
             uint32 slot = analyze::ArgSlot(i);
             if (a->varTypes[slot].type == JSVAL_TYPE_DOUBLE && analysis->trackSlot(slot))
-                frame.ensureNumber(frame.getArg(i), false );
+                frame.ensureDouble(frame.getArg(i));
         }
     }
 
@@ -1314,9 +1315,28 @@ mjit::Compiler::generateMethod()
 
         frame.setPC(PC);
         frame.setInTryBlock(opinfo->inTryBlock);
+
+        if (fallthrough) {
+            
+
+
+
+
+
+
+
+
+            for (unsigned i = 0; i < fixedDoubleEntries.length(); i++) {
+                FrameEntry *fe = fixedDoubleEntries[i];
+                frame.ensureInteger(fe);
+            }
+        }
+        fixedDoubleEntries.clear();
+
         if (opinfo->jumpTarget || trap) {
             if (fallthrough) {
                 fixDoubleTypes(PC);
+                fixedDoubleEntries.clear();
 
                 
 
@@ -3006,7 +3026,7 @@ mjit::Compiler::emitInlineReturnValue(FrameEntry *fe)
 
     if (a->returnValueDouble) {
         JS_ASSERT(fe);
-        frame.ensureNumber(fe, false );
+        frame.ensureDouble(fe);
         Registers mask(a->returnSet
                        ? Registers::maskReg(a->returnRegister)
                        : Registers::AvailFPRegs);
@@ -7084,18 +7104,14 @@ mjit::Compiler::fixDoubleTypes(jsbytecode *target)
             continue;
         if (a->varTypes[slot].type == JSVAL_TYPE_DOUBLE) {
             FrameEntry *fe = frame.getOrTrack(slot);
-            if (!fe->isType(JSVAL_TYPE_DOUBLE))
-                frame.ensureNumber(fe, false );
-        }
-        if (a->varTypes[slot].type == JSVAL_TYPE_INT32) {
-            
+            if (!fe->isType(JSVAL_TYPE_DOUBLE)) {
+                
 
 
 
-
-            FrameEntry *fe = frame.getOrTrack(slot);
-            if (!fe->isType(JSVAL_TYPE_INT32))
-                frame.ensureNumber(fe, true );
+                fixedDoubleEntries.append(fe);
+                frame.ensureDouble(fe);
+            }
         }
     }
 
