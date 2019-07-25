@@ -662,7 +662,7 @@ public:
   
 
 
-  static void TranslateString(const nsAString& aKey, nsAString& aStringOut);
+  static void TranslateString(const nsString& aKey, nsAString& aStringOut);
 
   
 
