@@ -94,7 +94,7 @@ private:
     return rv;
   }
 
-#elif defined(ANDROID)
+#elif defined(MOZ_WIDGET_ANDROID)
   static nsresult Get(const char *argv0, char aResult[MAXPATHLEN])
   {
     
