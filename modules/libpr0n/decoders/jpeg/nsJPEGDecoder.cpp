@@ -444,7 +444,7 @@ nsresult nsJPEGDecoder::Write(const char *aBuffer, PRUint32 aCount)
     }
 
     
-    if (!mTransform && (gfxPlatform::GetCMSMode() == eCMSMode_Off) &&
+    if (!mTransform && (gfxPlatform::GetCMSMode() != eCMSMode_All) &&
         mInfo.jpeg_color_space == JCS_YCbCr && mInfo.out_color_space == JCS_RGB) {
       
       mInfo.out_color_components = 4; 
