@@ -154,21 +154,21 @@ class FrameSizeClass
     }
 };
 
+class IonCommonFrameLayout;
+
 class IonFrameIterator
 {
     uint8 *current_;
     FrameType type_;
 
-    
-    
-    
-    mutable uint8 *prevCache_;
+    IonCommonFrameLayout *current() const {
+        return (IonCommonFrameLayout *)current_;
+    }
 
   public:
     IonFrameIterator(uint8 *top)
       : current_(top),
-        type_(IonFrame_Exit),
-        prevCache_(top)
+        type_(IonFrame_Exit)
     { }
 
     

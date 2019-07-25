@@ -126,11 +126,7 @@ IonFrameIterator::prevType() const
 uint8 *
 IonFrameIterator::prevFp() const
 {
-    IonCommonFrameLayout *current = (IonCommonFrameLayout *) current_;
     JS_ASSERT(type_ != IonFrame_Entry);
-
-    if (prevCache_ != current_)
-        return prevCache_;
 
     size_t currentSize;
     switch (type_) {
@@ -147,9 +143,9 @@ IonFrameIterator::prevFp() const
         JS_NOT_REACHED("unexpected frame type");
         return NULL;
     }
-    currentSize += current->prevFrameLocalSize();
-    prevCache_ = current_ + currentSize;
-    return prevCache_;
+    currentSize += current()->prevFrameLocalSize();
+
+    return current_ + currentSize;
 }
 
 void
@@ -157,17 +153,18 @@ IonFrameIterator::prev()
 {
     JS_ASSERT(type_ != IonFrame_Entry);
 
-    IonCommonFrameLayout *current = (IonCommonFrameLayout *)current_;
-
     
     
-    if (current->prevType() == IonFrame_Entry) {
+    if (current()->prevType() == IonFrame_Entry) {
         type_ = IonFrame_Entry;
         return;
     }
 
-    type_ = current->prevType();
-    current_ = prevFp();
+    
+    
+    uint8 *prev = prevFp();
+    type_ = current()->prevType();
+    current_ = prev;
 }
 
 void
