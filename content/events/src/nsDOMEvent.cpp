@@ -8,7 +8,7 @@
 
 #include "mozilla/Util.h"
 
-#include "IPC/IPCMessageUtils.h"
+#include "ipc/IPCMessageUtils.h"
 #include "nsCOMPtr.h"
 #include "nsError.h"
 #include "nsDOMEvent.h"

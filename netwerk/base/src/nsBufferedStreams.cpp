@@ -3,7 +3,7 @@
 
 
 
-#include "IPC/IPCMessageUtils.h"
+#include "ipc/IPCMessageUtils.h"
 
 #include "nsAlgorithm.h"
 #include "nsBufferedStreams.h"
@@ -815,4 +815,5 @@ nsBufferedOutputStream::GetUnbufferedStream(nsISupports* *aStream)
     NS_IF_ADDREF(*aStream);
     return NS_OK;
 }
+
 
