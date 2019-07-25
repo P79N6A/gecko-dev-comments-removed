@@ -283,7 +283,9 @@ LoggerRepository.prototype = {
     let cur, parent;
 
     
-    for (let i = 0; i < pieces.length; i++) {
+    
+    
+    for (let i = 0; i < pieces.length - 1; i++) {
       if (cur)
         cur += '.' + pieces[i];
       else
@@ -293,14 +295,14 @@ LoggerRepository.prototype = {
     }
 
     
-    if (parent == name)
+    if (!parent)
       this._loggers[name].parent = this.rootLogger;
     else
       this._loggers[name].parent = this._loggers[parent];
 
     
     for (let logger in this._loggers) {
-      if (logger != name && name.indexOf(logger) == 0)
+      if (logger != name && logger.indexOf(name) == 0)
         this._updateParents(logger);
     }
   },
