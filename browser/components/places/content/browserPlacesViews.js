@@ -659,8 +659,9 @@ PlacesViewBase.prototype = {
     if ("_isRTL" in this)
       return this._isRTL;
 
-    return this._isRTL = document.defaultView.getComputedStyle(this, "")
-                                 .direction == "rtl"
+    return this._isRTL = document.defaultView
+                                 .getComputedStyle(this.viewElt, "")
+                                 .direction == "rtl";
   },
 
   
@@ -1036,7 +1037,7 @@ PlacesToolbar.prototype = {
 
     
     
-    if (this._isRTL)
+    if (this.isRTL)
       this._rootElt.scrollLeft = this._rootElt.scrollWidth;
 
     
@@ -1054,9 +1055,10 @@ PlacesToolbar.prototype = {
       let child = this._rootElt.childNodes[i];
       
       if (!childOverflowed) {
-        let childRect = child.getBoundingClientRect();
-        childOverflowed = this._isRTL ? (childRect.left < scrollRect.left)
-                                      : (childRect.right > scrollRect.right);
+              let childRect = child.getBoundingClientRect();
+        childOverflowed = this.isRTL ? (childRect.left < scrollRect.left)
+                                     : (childRect.right > scrollRect.right);
+                                      
       }
       child.style.visibility = childOverflowed ? "hidden" : "visible";
     }
@@ -1261,16 +1263,16 @@ PlacesToolbar.prototype = {
         
         
         let threshold = eltRect.width * 0.25;
-        if (this._isRTL ? (aEvent.clientX > eltRect.right - threshold)
-                        : (aEvent.clientX < eltRect.left + threshold)) {
+        if (this.isRTL ? (aEvent.clientX > eltRect.right - threshold)
+                       : (aEvent.clientX < eltRect.left + threshold)) {
           
           dropPoint.ip =
             new InsertionPoint(PlacesUtils.getConcreteItemId(this._resultNode),
                                eltIndex, Ci.nsITreeView.DROP_BEFORE);
           dropPoint.beforeIndex = eltIndex;
         }
-        else if (this._isRTL ? (aEvent.clientX > eltRect.left + threshold)
-                             : (aEvent.clientX < eltRect.right - threshold)) {
+        else if (this.isRTL ? (aEvent.clientX > eltRect.left + threshold)
+                            : (aEvent.clientX < eltRect.right - threshold)) {
           
           dropPoint.ip =
             new InsertionPoint(PlacesUtils.getConcreteItemId(elt._placesNode),
@@ -1295,8 +1297,8 @@ PlacesToolbar.prototype = {
         
         
         let threshold = eltRect.width * 0.5;
-        if (this._isRTL ? (aEvent.clientX > eltRect.left + threshold)
-                        : (aEvent.clientX < eltRect.left + threshold)) {
+        if (this.isRTL ? (aEvent.clientX > eltRect.left + threshold)
+                       : (aEvent.clientX < eltRect.left + threshold)) {
           
           dropPoint.ip =
             new InsertionPoint(PlacesUtils.getConcreteItemId(this._resultNode),
@@ -1480,7 +1482,7 @@ PlacesToolbar.prototype = {
       let ind = this._dropIndicator;
       let halfInd = ind.clientWidth / 2;
       let translateX;
-      if (this._isRTL) {
+      if (this.isRTL) {
         halfInd = Math.ceil(halfInd);
         translateX = 0 - this._rootElt.getBoundingClientRect().right - halfInd;
         if (this._rootElt.firstChild) {
