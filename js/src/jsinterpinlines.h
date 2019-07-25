@@ -527,7 +527,8 @@ struct AutoInterpPreparer  {
 inline void
 PutActivationObjects(JSContext *cx, JSStackFrame *fp)
 {
-    JS_ASSERT(fp->isFunctionFrame() && !fp->isEvalFrame());
+    JS_ASSERT(!fp->isYielding());
+    JS_ASSERT(!fp->isEvalFrame() || fp->script()->strictModeCode);
 
     
     if (fp->hasCallObj()) {
@@ -535,6 +536,19 @@ PutActivationObjects(JSContext *cx, JSStackFrame *fp)
     } else if (fp->hasArgsObj()) {
         js_PutArgsObject(cx, fp);
     }
+}
+
+
+
+
+
+
+inline void
+PutOwnedActivationObjects(JSContext *cx, JSStackFrame *fp)
+{
+    JS_ASSERT(!fp->isYielding());
+    if (!fp->isEvalFrame() || fp->script()->strictModeCode)
+        PutActivationObjects(cx, fp);
 }
 
 class InvokeSessionGuard

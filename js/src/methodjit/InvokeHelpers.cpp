@@ -368,10 +368,6 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
     JS_ASSERT(newfp == f.regs.fp);
 
     
-    if (newfun->isHeavyweight() && !js_GetCallObject(cx, newfp))
-        return false;
-
-    
     if (newscript->getJITStatus(newfp->isConstructing()) == JITScript_None) {
         CompileStatus status = CanMethodJIT(cx, newscript, newfp, CompileRequest_Interpreter);
         if (status == Compile_Error) {
@@ -382,6 +378,10 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
         if (status == Compile_Abort)
             *unjittable = true;
     }
+
+    
+    if (newfun->isHeavyweight() && !js_GetCallObject(cx, newfp))
+        return false;
 
     
     if (JITScript *jit = newscript->getJIT(newfp->isConstructing())) {
