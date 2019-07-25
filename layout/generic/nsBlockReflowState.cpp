@@ -690,9 +690,16 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   PRBool keepFloatOnSameLine = PR_FALSE;
 
+  
+  
+  
+  PRBool mustPlaceFloat =
+    mReflowState.mFlags.mIsTopOfPage && IsAdjacentWithTop();
+
   for (;;) {
     if (mReflowState.availableHeight != NS_UNCONSTRAINEDSIZE &&
-        floatAvailableSpace.mRect.height <= 0) {
+        floatAvailableSpace.mRect.height <= 0 &&
+        !mustPlaceFloat) {
       
       PushFloatPastBreak(aFloat);
       return PR_FALSE;
@@ -759,6 +766,8 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
                                           adjustedAvailableSpace.width,
                                           aFloat, offsets);
     }
+
+    mustPlaceFloat = PR_FALSE;
   }
 
   
@@ -810,8 +819,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   
   if ((mContentArea.height != NS_UNCONSTRAINEDSIZE &&
        adjustedAvailableSpace.height == NS_UNCONSTRAINEDSIZE &&
-       (!mReflowState.mFlags.mIsTopOfPage || !IsAdjacentWithTop() ||
-        pushedDown) &&
+       !mustPlaceFloat &&
        aFloat->GetSize().height + floatMargin.TopBottom() >
          mContentArea.YMost() - floatY) ||
       NS_FRAME_IS_TRUNCATED(reflowStatus)) {
