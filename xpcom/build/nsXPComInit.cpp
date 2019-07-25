@@ -697,8 +697,8 @@ NS_InitXPCOM3(nsIServiceManager* *result,
     NS_TIME_FUNCTION_MARK("Next: interface info manager init");
 
     
-    nsIInterfaceInfoManager* iim =
-        xptiInterfaceInfoManager::GetSingleton();
+    
+    (void) xptiInterfaceInfoManager::GetSingleton();
 
     NS_TIME_FUNCTION_MARK("Next: try to load compreg.dat");
 
