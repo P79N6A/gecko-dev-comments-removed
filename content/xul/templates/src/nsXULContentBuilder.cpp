@@ -1891,7 +1891,7 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
             
             nsresult strErr = NS_OK;
             staticCount = staticValue.ToInteger(&strErr);
-            if (strErr)
+            if (NS_FAILED(strErr))
                 staticCount = 0;
         } else {
             

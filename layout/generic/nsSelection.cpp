@@ -935,7 +935,7 @@ nsFrameSelection::MoveCaret(uint32_t          aKeycode,
                                             aVisualMovement);
 
   if (NS_FAILED(result) || !frame)
-    return result?result:NS_ERROR_FAILURE;
+    return NS_FAILED(result) ? result : NS_ERROR_FAILURE;
 
   
   
@@ -5567,7 +5567,7 @@ Selection::SelectionLanguageChange(bool aLangRTL)
   uint8_t levelBefore, levelAfter;
   result = GetPresContext(getter_AddRefs(context));
   if (NS_FAILED(result) || !context)
-    return result?result:NS_ERROR_FAILURE;
+    return NS_FAILED(result) ? result : NS_ERROR_FAILURE;
 
   uint8_t level = NS_GET_EMBEDDING_LEVEL(focusFrame);
   int32_t focusOffset = GetFocusOffset();
