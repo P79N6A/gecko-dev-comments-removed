@@ -48,7 +48,6 @@
 #include "nsHttpHandler.h"
 #include "nsMimeTypes.h"
 #include "nsNetUtil.h"
-#include "nsSerializationHelper.h"
 
 namespace mozilla {
 namespace net {
@@ -100,7 +99,6 @@ NS_INTERFACE_MAP_BEGIN(HttpChannelChild)
   NS_INTERFACE_MAP_ENTRY(nsITraceableChannel)
   NS_INTERFACE_MAP_ENTRY(nsIApplicationCacheContainer)
   NS_INTERFACE_MAP_ENTRY(nsIApplicationCacheChannel)
-  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIAssociatedContentSecurity, GetAssociatedContentSecurity())
 NS_INTERFACE_MAP_END_INHERITING(HttpBaseChannel)
 
 
@@ -113,8 +111,7 @@ HttpChannelChild::RecvOnStartRequest(const nsHttpResponseHead& responseHead,
                                      const PRBool& isFromCache,
                                      const PRBool& cacheEntryAvailable,
                                      const PRUint32& cacheExpirationTime,
-                                     const nsCString& cachedCharset,
-                                     const nsCString& securityInfoSerialization)
+                                     const nsCString& cachedCharset)
 {
   LOG(("HttpChannelChild::RecvOnStartRequest [this=%x]\n", this));
 
@@ -125,11 +122,6 @@ HttpChannelChild::RecvOnStartRequest(const nsHttpResponseHead& responseHead,
   else
     mResponseHead = nsnull;
  
-  if (!securityInfoSerialization.IsEmpty())
-    NS_DeserializeObject(securityInfoSerialization, getter_AddRefs(mSecurityInfo));
-  else
-    mSecurityInfo = nsnull;
-
   mIsFromCache = isFromCache;
   mCacheEntryAvailable = cacheEntryAvailable;
   mCacheExpirationTime = cacheExpirationTime;
@@ -288,8 +280,9 @@ HttpChannelChild::Resume()
 NS_IMETHODIMP
 HttpChannelChild::GetSecurityInfo(nsISupports **aSecurityInfo)
 {
+  
   NS_ENSURE_ARG_POINTER(aSecurityInfo);
-  NS_IF_ADDREF(*aSecurityInfo = mSecurityInfo);
+  *aSecurityInfo = 0;
   return NS_OK;
 }
 
@@ -607,127 +600,6 @@ HttpChannelChild::SetChooseApplicationCache(PRBool aChooseApplicationCache)
   return NS_OK;
 }
 
-
-
-
-
-bool
-HttpChannelChild::GetAssociatedContentSecurity(nsIAssociatedContentSecurity** _result)
-{
-  if (!mSecurityInfo)
-    return false;
-
-  nsCOMPtr<nsIAssociatedContentSecurity> assoc =
-      do_QueryInterface(mSecurityInfo);
-  if (!assoc)
-    return false;
-
-  if (_result)
-    assoc.forget(_result);
-  return true;
-}
-
-
-NS_IMETHODIMP
-HttpChannelChild::GetCountSubRequestsHighSecurity(PRInt32 *aSubRequestsHighSecurity)
-{
-  nsCOMPtr<nsIAssociatedContentSecurity> assoc;
-  if (!GetAssociatedContentSecurity(getter_AddRefs(assoc)))
-    return NS_OK;
-
-  return assoc->GetCountSubRequestsHighSecurity(aSubRequestsHighSecurity);
-}
-NS_IMETHODIMP
-HttpChannelChild::SetCountSubRequestsHighSecurity(PRInt32 aSubRequestsHighSecurity)
-{
-  nsCOMPtr<nsIAssociatedContentSecurity> assoc;
-  if (!GetAssociatedContentSecurity(getter_AddRefs(assoc)))
-    return NS_OK;
-
-  return assoc->SetCountSubRequestsHighSecurity(aSubRequestsHighSecurity);
-}
-
-
-NS_IMETHODIMP
-HttpChannelChild::GetCountSubRequestsLowSecurity(PRInt32 *aSubRequestsLowSecurity)
-{
-  nsCOMPtr<nsIAssociatedContentSecurity> assoc;
-  if (!GetAssociatedContentSecurity(getter_AddRefs(assoc)))
-    return NS_OK;
-
-  return assoc->GetCountSubRequestsLowSecurity(aSubRequestsLowSecurity);
-}
-NS_IMETHODIMP
-HttpChannelChild::SetCountSubRequestsLowSecurity(PRInt32 aSubRequestsLowSecurity)
-{
-  nsCOMPtr<nsIAssociatedContentSecurity> assoc;
-  if (!GetAssociatedContentSecurity(getter_AddRefs(assoc)))
-    return NS_OK;
-
-  return assoc->SetCountSubRequestsLowSecurity(aSubRequestsLowSecurity);
-}
-
-
-NS_IMETHODIMP HttpChannelChild::GetCountSubRequestsBrokenSecurity(PRInt32 *aSubRequestsBrokenSecurity)
-{
-  nsCOMPtr<nsIAssociatedContentSecurity> assoc;
-  if (!GetAssociatedContentSecurity(getter_AddRefs(assoc)))
-    return NS_OK;
-
-  return assoc->GetCountSubRequestsBrokenSecurity(aSubRequestsBrokenSecurity);
-}
-NS_IMETHODIMP HttpChannelChild::SetCountSubRequestsBrokenSecurity(PRInt32 aSubRequestsBrokenSecurity)
-{
-  nsCOMPtr<nsIAssociatedContentSecurity> assoc;
-  if (!GetAssociatedContentSecurity(getter_AddRefs(assoc)))
-    return NS_OK;
-
-  return assoc->SetCountSubRequestsBrokenSecurity(aSubRequestsBrokenSecurity);
-}
-
-
-NS_IMETHODIMP
-HttpChannelChild::GetCountSubRequestsNoSecurity(PRInt32 *aSubRequestsNoSecurity)
-{
-  nsCOMPtr<nsIAssociatedContentSecurity> assoc;
-  if (!GetAssociatedContentSecurity(getter_AddRefs(assoc)))
-    return NS_OK;
-
-  return assoc->GetCountSubRequestsNoSecurity(aSubRequestsNoSecurity);
-}
-NS_IMETHODIMP
-HttpChannelChild::SetCountSubRequestsNoSecurity(PRInt32 aSubRequestsNoSecurity)
-{
-  nsCOMPtr<nsIAssociatedContentSecurity> assoc;
-  if (!GetAssociatedContentSecurity(getter_AddRefs(assoc)))
-    return NS_OK;
-
-  return assoc->SetCountSubRequestsNoSecurity(aSubRequestsNoSecurity);
-}
-
-NS_IMETHODIMP
-HttpChannelChild::Flush()
-{
-  nsCOMPtr<nsIAssociatedContentSecurity> assoc;
-  if (!GetAssociatedContentSecurity(getter_AddRefs(assoc)))
-    return NS_OK;
-
-  nsresult rv;
-  PRInt32 hi, low, broken, no;
-
-  rv = assoc->GetCountSubRequestsHighSecurity(&hi);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = assoc->GetCountSubRequestsLowSecurity(&low);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = assoc->GetCountSubRequestsBrokenSecurity(&broken);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = assoc->GetCountSubRequestsNoSecurity(&no);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  SendUpdateAssociatedContentSecurity(hi, low, broken, no);
-
-  return NS_OK;
-}
 
 
 }} 
