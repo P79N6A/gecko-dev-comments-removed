@@ -61,6 +61,7 @@
 #include "nsSVGUtils.h"
 #include "nsSVGSVGElement.h"
 #include "nsSVGEffects.h" 
+#include "nsContentErrors.h" 
 
 #ifdef MOZ_SMIL
 #include "nsEventDispatcher.h"
@@ -212,6 +213,7 @@ nsSVGSVGElement::nsSVGSVGElement(already_AddRefed<nsINodeInfo> aNodeInfo,
 #ifdef MOZ_SMIL
   , mStartAnimationOnBindToTree(!aFromParser)
 #endif 
+  , mNeedsPreserveAspectRatioFlush(PR_FALSE)
 {
 }
 
@@ -994,11 +996,16 @@ nsSVGSVGElement::GetViewBoxTransform()
     return gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
   }
 
+  
+  const SVGPreserveAspectRatio* overridePARPtr =
+    GetImageOverridePreserveAspectRatio();
+
   return nsSVGUtils::GetViewBoxTransform(this,
                                          viewportWidth, viewportHeight,
                                          viewBox.x, viewBox.y,
                                          viewBox.width, viewBox.height,
-                                         mPreserveAspectRatio);
+                                         overridePARPtr ? *overridePARPtr :
+                                         mPreserveAspectRatio.GetAnimValue());
 }
 
 #ifdef MOZ_SMIL
@@ -1098,6 +1105,13 @@ nsSVGSVGElement::InvalidateTransformNotifyFrame()
     NS_WARNING("wrong frame type");
   }
 #endif
+}
+
+PRBool
+nsSVGSVGElement::HasPreserveAspectRatio()
+{
+  return HasAttr(kNameSpaceID_None, nsGkAtoms::preserveAspectRatio) ||
+    mPreserveAspectRatio.IsAnimated();
 }
 
 
@@ -1242,3 +1256,85 @@ nsSVGSVGElement::RemoveAllRenderingObservers()
   nsSVGEffects::RemoveAllRenderingObservers(this);
 }
 #endif 
+
+
+static void
+ReleasePreserveAspectRatioPropertyValue(void*    aObject,       
+                                        nsIAtom* aPropertyName, 
+                                        void*    aPropertyValue,
+                                        void*    aData          )
+{
+  SVGPreserveAspectRatio* valPtr =
+    static_cast<SVGPreserveAspectRatio*>(aPropertyValue);
+  delete valPtr;
+}
+
+void
+nsSVGSVGElement::
+  SetImageOverridePreserveAspectRatio(const SVGPreserveAspectRatio& aPAR)
+{
+#ifdef DEBUG
+  NS_ABORT_IF_FALSE(GetCurrentDoc()->IsBeingUsedAsImage(),
+                    "should only override preserveAspectRatio in images");
+#endif
+
+  if (!mViewBox.IsValid()) {
+    return; 
+  }
+
+  if (aPAR.GetDefer() && HasPreserveAspectRatio()) {
+    return; 
+  }
+
+  SVGPreserveAspectRatio* pAROverridePtr = new SVGPreserveAspectRatio(aPAR);
+  nsresult rv = SetProperty(nsGkAtoms::overridePreserveAspectRatio,
+                            pAROverridePtr,
+                            ReleasePreserveAspectRatioPropertyValue);
+  NS_ABORT_IF_FALSE(rv != NS_PROPTABLE_PROP_OVERWRITTEN,
+                    "Setting override value when it's already set...?"); 
+
+  if (NS_LIKELY(NS_SUCCEEDED(rv))) {
+    mNeedsPreserveAspectRatioFlush = PR_TRUE;
+  } else {
+    
+    delete pAROverridePtr;
+  }
+}
+
+void
+nsSVGSVGElement::ClearImageOverridePreserveAspectRatio()
+{
+#ifdef DEBUG
+  NS_ABORT_IF_FALSE(GetCurrentDoc()->IsBeingUsedAsImage(),
+                    "should only override preserveAspectRatio in images");
+#endif
+
+  void* valPtr = UnsetProperty(nsGkAtoms::overridePreserveAspectRatio);
+  if (valPtr) {
+    mNeedsPreserveAspectRatioFlush = PR_TRUE;
+    delete static_cast<SVGPreserveAspectRatio*>(valPtr);
+  }
+}
+
+const SVGPreserveAspectRatio*
+nsSVGSVGElement::GetImageOverridePreserveAspectRatio()
+{
+  void* valPtr = GetProperty(nsGkAtoms::overridePreserveAspectRatio);
+#ifdef DEBUG
+  if (valPtr) {
+    NS_ABORT_IF_FALSE(GetCurrentDoc()->IsBeingUsedAsImage(),
+                      "should only override preserveAspectRatio in images");
+  }
+#endif
+
+  return static_cast<SVGPreserveAspectRatio*>(valPtr);
+}
+
+void
+nsSVGSVGElement::FlushPreserveAspectRatioOverride()
+{
+  if (mNeedsPreserveAspectRatioFlush) {
+    InvalidateTransformNotifyFrame();
+    mNeedsPreserveAspectRatioFlush = PR_FALSE;
+  }
+}

@@ -130,6 +130,7 @@ class nsSVGSVGElement : public nsSVGSVGElementBase,
 {
   friend class nsSVGOuterSVGFrame;
   friend class nsSVGInnerSVGFrame;
+  friend class nsSVGImageFrame;
 
 protected:
   friend nsresult NS_NewSVGSVGElement(nsIContent **aResult,
@@ -140,6 +141,7 @@ protected:
   
 public:
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
+  typedef mozilla::SVGPreserveAspectRatio SVGPreserveAspectRatio;
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -210,6 +212,10 @@ public:
   gfxMatrix GetViewBoxTransform();
   PRBool    HasValidViewbox() const { return mViewBox.IsValid(); }
 
+  
+  
+  virtual void FlushPreserveAspectRatioOverride();
+
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   svgFloatSize GetViewportSize() const {
@@ -229,6 +235,14 @@ public:
   
   virtual void RemoveAllRenderingObservers();
 #endif 
+
+private:
+  
+  
+  
+  void SetImageOverridePreserveAspectRatio(const SVGPreserveAspectRatio& aPAR);
+  void ClearImageOverridePreserveAspectRatio();
+  const SVGPreserveAspectRatio* GetImageOverridePreserveAspectRatio();
 
 protected:
   
@@ -266,6 +280,11 @@ protected:
 
   
   void InvalidateTransformNotifyFrame();
+
+  
+  
+  
+  PRBool HasPreserveAspectRatio();
 
   virtual LengthAttributesInfo GetLengthInfo();
 
@@ -320,6 +339,7 @@ protected:
   
   PRPackedBool                      mStartAnimationOnBindToTree;
 #endif 
+  PRPackedBool                      mNeedsPreserveAspectRatioFlush;
 };
 
 #endif

@@ -138,6 +138,14 @@ public:
 
   void UpdateViewportBounds(const nsIntSize& aViewportSize);
 
+  
+
+
+
+
+
+
+  void FlushPreserveAspectRatioOverride();
 
   
 
