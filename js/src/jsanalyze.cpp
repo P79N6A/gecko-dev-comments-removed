@@ -1539,9 +1539,22 @@ ScriptAnalysis::insertPhi(JSContext *cx, SSAValue &phi, const SSAValue &v)
 inline void
 ScriptAnalysis::mergeValue(JSContext *cx, uint32 offset, const SSAValue &v, SlotValue *pv)
 {
-    JS_ASSERT(v.kind() != SSAValue::EMPTY && pv->value.kind() != SSAValue::EMPTY);
+    
 
-    if (v.equals(pv->value))
+    
+
+
+
+
+
+
+
+
+
+
+    JS_ASSERT(pv->value.kind() != SSAValue::EMPTY);
+
+    if (v.equals(pv->value) || v.kind() == SSAValue::EMPTY)
         return;
 
     if (pv->value.kind() != SSAValue::PHI || pv->value.phiOffset() < offset) {
@@ -1561,12 +1574,12 @@ void
 ScriptAnalysis::checkPendingValue(JSContext *cx, const SSAValue &v, uint32 slot,
                                   Vector<SlotValue> *pending)
 {
-    JS_ASSERT(v.kind() != SSAValue::EMPTY);
-
     for (unsigned i = 0; i < pending->length(); i++) {
         if ((*pending)[i].slot == slot)
             return;
     }
+
+    JS_ASSERT(v.kind() != SSAValue::EMPTY);
 
     if (!pending->append(SlotValue(slot, v)))
         setOOM(cx);
