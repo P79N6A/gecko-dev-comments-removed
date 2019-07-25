@@ -920,6 +920,52 @@ BooleanHistogram::BooleanHistogram(const std::string& name)
 
 
 
+Histogram *
+FlagHistogram::FactoryGet(const std::string &name, Flags flags)
+{
+  Histogram *h(nsnull);
+
+  if (!StatisticsRecorder::FindHistogram(name, &h)) {
+    
+    FlagHistogram *fh = new FlagHistogram(name);
+    fh->InitializeBucketRange();
+    fh->SetFlags(flags);
+    size_t zero_index = fh->BucketIndex(0);
+    fh->Histogram::Accumulate(1, 1, zero_index);
+    h = StatisticsRecorder::RegisterOrDeleteDuplicate(fh);
+  }
+
+  return h;
+}
+
+FlagHistogram::FlagHistogram(const std::string &name)
+  : BooleanHistogram(name), mSwitched(false) {
+}
+
+Histogram::ClassType
+FlagHistogram::histogram_type() const
+{
+  return FLAG_HISTOGRAM;
+}
+
+void
+FlagHistogram::Accumulate(Sample value, Count count, size_t index)
+{
+  if (mSwitched) {
+    return;
+  }
+
+  mSwitched = true;
+  DCHECK_EQ(value, 1);
+  Histogram::Accumulate(value, 1, index);
+  size_t zero_index = BucketIndex(0);
+  Histogram::Accumulate(1, -1, zero_index);
+}
+
+
+
+
+
 Histogram* CustomHistogram::FactoryGet(const std::string& name,
                                        const std::vector<Sample>& custom_ranges,
                                        Flags flags) {
