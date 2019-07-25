@@ -15,6 +15,7 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/MessagePortBase.jsm");
 
 const EXPORTED_SYMBOLS = ["getFrameWorkerHandle"];
 
@@ -163,17 +164,8 @@ FrameWorker.prototype = {
         return ob.name + ".prototype=" + raw + ";"
       }
       try {
-        let scriptText = [importScripts.toSource(),
-                          AbstractPort.toSource(),
-                          getProtoSource(AbstractPort),
-                          WorkerPort.toSource(),
-                          getProtoSource(WorkerPort),
-                          
-                          "WorkerPort.prototype.__proto__=AbstractPort.prototype;",
-                          __initWorkerMessageHandler.toSource(),
-                          "__initWorkerMessageHandler();" 
-                         ].join("\n")
-        Cu.evalInSandbox(scriptText, sandbox, "1.8", "<injected port handling code>", 1);
+        Services.scriptloader.loadSubScript("resource://gre/modules/MessagePortBase.jsm", sandbox);
+        Services.scriptloader.loadSubScript("resource://gre/modules/MessagePortWorker.js", sandbox);
       }
       catch (e) {
         Cu.reportError("FrameWorker: Error injecting port code into content side of the worker: " + e + "\n" + e.stack);
@@ -280,62 +272,6 @@ WorkerHandle.prototype = {
 };
 
 
-
-function __initWorkerMessageHandler() {
-
-  let ports = {}; 
-
-  function messageHandler(event) {
-    
-    let data = event.data;
-    let portid = data.portId;
-    let port;
-    if (!data.portFromType || data.portFromType === "worker") {
-      
-      return;
-    }
-    switch (data.portTopic) {
-      case "port-create":
-        
-        
-        port = new WorkerPort(portid);
-        ports[portid] = port;
-        
-        onconnect({ports: [port]});
-        break;
-
-      case "port-close":
-        
-        port = ports[portid];
-        if (!port) {
-          
-          
-          
-          return;
-        }
-        delete ports[portid];
-        port.close();
-        break;
-
-      case "port-message":
-        
-        port = ports[portid];
-        if (!port) {
-          
-          return;
-        }
-        port._onmessage(data.data);
-        break;
-
-      default:
-        break;
-    }
-  }
-  
-  _addEventListener('message', messageHandler);
-}
-
-
 function initClientMessageHandler(worker, workerWindow) {
   function _messageHandler(event) {
     
@@ -384,130 +320,6 @@ function initClientMessageHandler(worker, workerWindow) {
     }
   }
   workerWindow.addEventListener('message', messageHandler);
-}
-
-
-
-function AbstractPort(portid) {
-  this._portid = portid;
-  this._handler = undefined;
-  
-  this._pendingMessagesIncoming = [];
-}
-
-AbstractPort.prototype = {
-  _portType: null, 
-  
-  _dopost: function fw_AbstractPort_dopost(data) {
-    throw new Error("not implemented");
-  },
-  _onerror: function fw_AbstractPort_onerror(err) {
-    throw new Error("not implemented");
-  },
-
-  
-  toString: function fw_AbstractPort_toString() {
-    return "MessagePort(portType='" + this._portType + "', portId=" + this._portid + ")";
-  },
-  _JSONParse: function fw_AbstractPort_JSONParse(data) JSON.parse(data),
-
- _postControlMessage: function fw_AbstractPort_postControlMessage(topic, data) {
-    let postData = {portTopic: topic,
-                    portId: this._portid,
-                    portFromType: this._portType,
-                    data: data,
-                    __exposedProps__: {
-                      portTopic: 'r',
-                      portId: 'r',
-                      portFromType: 'r',
-                      data: 'r'
-                    }
-                   };
-    this._dopost(postData);
-  },
-
-  _onmessage: function fw_AbstractPort_onmessage(data) {
-    
-    
-    
-    
-    
-    data = this._JSONParse(data);
-    if (!this._handler) {
-      this._pendingMessagesIncoming.push(data);
-    }
-    else {
-      try {
-        this._handler({data: data,
-                       __exposedProps__: {data: 'r'}
-                      });
-      }
-      catch (ex) {
-        this._onerror(ex);
-      }
-    }
-  },
-
-  set onmessage(handler) { 
-    this._handler = handler;
-    while (this._pendingMessagesIncoming.length) {
-      this._onmessage(this._pendingMessagesIncoming.shift());
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  postMessage: function fw_AbstractPort_postMessage(data) {
-    if (this._portid === null) {
-      throw new Error("port is closed");
-    }
-    
-    
-    
-    
-    
-    
-    
-    this._postControlMessage("port-message", JSON.stringify(data));
-  },
-
-  close: function fw_AbstractPort_close() {
-    if (!this._portid) {
-      return; 
-    }
-    this._postControlMessage("port-close");
-    
-    this._handler = null;
-    this._pendingMessagesIncoming = [];
-    this._portid = null;
-  }
-}
-
-
-
-
-function WorkerPort(portid) {
-  AbstractPort.call(this, portid);
-}
-
-WorkerPort.prototype = {
-  __proto__: AbstractPort.prototype,
-  _portType: "worker",
-
-  _dopost: function fw_WorkerPort_dopost(data) {
-    
-    _postMessage(data, "*");
-  },
-
-  _onerror: function fw_WorkerPort_onerror(err) {
-    throw new Error("Port " + this + " handler failed: " + err);
-  }
 }
 
 
@@ -576,26 +388,5 @@ ClientPort.prototype = {
     AbstractPort.prototype.close.call(this);
     this._window = null;
     this._pendingMessagesOutgoing = null;
-  }
-}
-
-
-function importScripts() {
-  for (var i=0; i < arguments.length; i++) {
-    
-    var scriptURL = arguments[i];
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', scriptURL, false);
-    xhr.onreadystatechange = function(aEvt) {
-      if (xhr.readyState == 4) {
-        if (xhr.status == 200 || xhr.status == 0) {
-          eval(xhr.responseText);
-        }
-        else {
-          throw new Error("Unable to importScripts ["+scriptURL+"], status " + xhr.status)
-        }
-      }
-    };
-    xhr.send(null);
   }
 }
