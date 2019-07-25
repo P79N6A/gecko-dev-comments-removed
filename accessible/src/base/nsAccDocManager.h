@@ -155,17 +155,14 @@ private:
 
 
   static PLDHashOperator
-    ClearDocCacheEntry(const nsIDocument* aKey,
-                       nsRefPtr<nsDocAccessible>& aDocAccessible,
-                       void* aUserArg);
+    GetFirstEntryInDocCache(const nsIDocument* aKey,
+                            nsDocAccessible* aDocAccessible,
+                            void* aUserArg);
 
   
 
 
-  void ClearDocCache()
-  {
-    mDocAccessibleCache.Enumerate(ClearDocCacheEntry, static_cast<void*>(this));
-  }
+  void ClearDocCache();
 
   struct nsSearchAccessibleInCacheArg
   {
