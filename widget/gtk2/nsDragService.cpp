@@ -73,6 +73,7 @@
 #include "nsPresContext.h"
 #include "nsIDocument.h"
 #include "nsISelection.h"
+#include "nsIViewManager.h"
 #include "nsIFrame.h"
 
 
@@ -140,7 +141,7 @@ nsDragService::nsDragService()
     obsServ->AddObserver(this, "quit-application", false);
 
     
-    mHiddenWidget = gtk_invisible_new();
+    mHiddenWidget = gtk_window_new(GTK_WINDOW_POPUP);
     
     
     gtk_widget_realize(mHiddenWidget);
@@ -264,7 +265,7 @@ DispatchMotionEventCopy(gpointer aData)
 
     
     
-    if (gtk_grab_get_current() == data->mWidget) {
+    if (gtk_widget_has_grab(data->mWidget)) {
         gtk_propagate_event(data->mWidget, data->mEvent);
     }
 
@@ -286,7 +287,7 @@ OnSourceGrabEventAfter(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 
     
     
-    if (gtk_grab_get_current() != widget)
+    if (!gtk_widget_has_grab(widget))
         return;
 
     
@@ -307,6 +308,39 @@ OnSourceGrabEventAfter(GtkWidget *widget, GdkEvent *event, gpointer user_data)
         g_timeout_add_full(G_PRIORITY_DEFAULT_IDLE, 350,
                            DispatchMotionEventCopy, data, DestroyMotionEventData);
 }
+
+static GtkWindow*
+GetGtkWindow(nsIDOMDocument *aDocument)
+{
+    nsCOMPtr<nsIDocument> doc = do_QueryInterface(aDocument);
+    if (!doc)
+        return NULL;
+
+    nsCOMPtr<nsIPresShell> presShell = doc->GetShell();
+    if (!presShell)
+        return NULL;
+
+    nsCOMPtr<nsIViewManager> vm = presShell->GetViewManager();
+    if (!vm)
+        return NULL;
+
+    nsCOMPtr<nsIWidget> widget;
+    vm->GetRootWidget(getter_AddRefs(widget));
+    if (!widget)
+        return NULL;
+
+    GtkWidget *gtkWidget =
+        static_cast<nsWindow*>(widget.get())->GetMozContainerWidget();
+    if (!gtkWidget)
+        return NULL;
+
+    GtkWidget *toplevel = NULL;
+    toplevel = gtk_widget_get_toplevel(gtkWidget);
+    if (!GTK_IS_WINDOW(toplevel))
+        return NULL;
+
+    return GTK_WINDOW(toplevel);
+}   
 
 
 
@@ -367,6 +401,14 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
     event.button.time = nsWindow::GetLastUserInputTime();
 
     
+    
+    
+    GtkWindowGroup *window_group =
+        gtk_window_get_group(GetGtkWindow(mSourceDocument));
+    gtk_window_group_add_window(window_group,
+                                GTK_WINDOW(mHiddenWidget));
+
+    
     GdkDragContext *context = gtk_drag_begin(mHiddenWidget,
                                              sourceList,
                                              action,
@@ -379,7 +421,7 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
         StartDragSession();
 
         
-        mGrabWidget = gtk_grab_get_current();
+        mGrabWidget = gtk_window_group_get_current_grab(window_group);
         if (mGrabWidget) {
             g_object_ref(mGrabWidget);
             

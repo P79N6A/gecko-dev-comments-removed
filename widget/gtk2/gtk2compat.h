@@ -103,6 +103,12 @@ gtk_widget_has_focus(GtkWidget *widget)
   return GTK_WIDGET_HAS_FOCUS(widget);
 }
 
+static inline gboolean
+gtk_widget_has_grab(GtkWidget *widget)
+{
+  return GTK_WIDGET_HAS_GRAB(widget);
+}
+
 static inline void
 gtk_widget_get_allocation(GtkWidget *widget, GtkAllocation *allocation)
 {
@@ -180,6 +186,15 @@ static inline GdkDragAction
 gdk_drag_context_get_actions(GdkDragContext *context)
 {
   return context->actions;
+}
+
+static inline GtkWidget *
+gtk_window_group_get_current_grab(GtkWindowGroup *window_group)
+{
+  if (!window_group->grabs)
+    return NULL;
+
+  return GTK_WIDGET(window_group->grabs->data);
 }
 #endif
 
