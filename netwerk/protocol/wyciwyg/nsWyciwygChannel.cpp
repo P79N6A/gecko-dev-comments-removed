@@ -446,6 +446,11 @@ nsWyciwygChannel::WriteToCacheEntryInternal(const nsAString &aData, const nsACSt
     if (NS_FAILED(rv)) return rv;
   }
 
+  if (mLoadFlags & INHIBIT_PERSISTENT_CACHING) {
+    rv = mCacheEntry->SetMetaDataElement("inhibit-persistent-caching", "1");
+    if (NS_FAILED(rv)) return rv;
+  }
+
   if (mSecurityInfo) {
     mCacheEntry->SetSecurityInfo(mSecurityInfo);
   }
@@ -719,6 +724,12 @@ nsWyciwygChannel::ReadFromCache()
 
   
   mCacheEntry->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
+
+  nsCAutoString tmpStr;
+  rv = mCacheEntry->GetMetaDataElement("inhibit-persistent-caching",
+                                       getter_Copies(tmpStr));
+  if (NS_SUCCEEDED(rv) && tmpStr == NS_LITERAL_CSTRING("1"))
+    mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
 
   
   rv = mCacheEntry->OpenInputStream(0, getter_AddRefs(mCacheInputStream));
