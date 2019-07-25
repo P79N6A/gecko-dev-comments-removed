@@ -705,7 +705,7 @@ SourceScripts.prototype = {
 
 
   _onNewScript: function SS__onNewScript(aNotification, aPacket) {
-    this._addScript({ url: aPacket.url, startLine: aPacket.startLine });
+    this._addScript({ url: aPacket.url, startLine: aPacket.startLine }, true);
   },
 
   
@@ -713,8 +713,9 @@ SourceScripts.prototype = {
 
   _onScriptsAdded: function SS__onScriptsAdded() {
     for each (let script in this.activeThread.cachedScripts) {
-      this._addScript(script);
+      this._addScript(script, false);
     }
+    DebuggerView.Scripts.commitScripts();
   },
 
   
@@ -822,12 +823,13 @@ SourceScripts.prototype = {
 
 
 
-  _addScript: function SS__addScript(aScript) {
-    DebuggerView.Scripts.addScript(this._getScriptLabel(aScript.url), aScript);
 
-    if (DebuggerView.editor.getCharCount() == 0) {
-      this.showScript(aScript);
-    }
+
+
+
+  _addScript: function SS__addScript(aScript, aForceFlag) {
+    DebuggerView.Scripts.addScript(
+      this._getScriptLabel(aScript.url), aScript, aForceFlag);
   },
 
   
