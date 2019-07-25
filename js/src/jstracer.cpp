@@ -10211,9 +10211,14 @@ TraceRecorder::getThis(LIns*& this_ins)
 
     
 #ifdef DEBUG
+    
+
+
+
     JS_ASSERT(thisv.isObject());
-    JSObject *thisObj = &thisv.toObject();
-    JS_ASSERT(thisObj->getClass()->ext.innerObject);
+    JSObject *thisObj = thisv.toObject().wrappedObject(cx);
+    OBJ_TO_INNER_OBJECT(cx, thisObj);
+    JS_ASSERT(thisObj == globalObj);
 #endif
     this_ins = INS_CONSTOBJ(globalObj);
     set(&thisv, this_ins);

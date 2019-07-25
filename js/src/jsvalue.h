@@ -987,7 +987,8 @@ struct ClassExtension {
     JSObjectOp          outerObject;
     JSObjectOp          innerObject;
     JSIteratorOp        iteratorObject;
-    void               *unused;
+    JSObjectOp          wrappedObject;  
+
 };
 
 #define JS_NULL_CLASS_EXT   {NULL,NULL,NULL,NULL,NULL}
