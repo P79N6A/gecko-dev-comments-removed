@@ -150,6 +150,8 @@ public:
 
   virtual nsresult HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent);
 
+  virtual already_AddRefed<nsPIDOMEventTarget> GetPIDOMEventTarget();
+
   
   NS_IMETHOD TypedText(const nsAString& aString, PRInt32 aAction);
 

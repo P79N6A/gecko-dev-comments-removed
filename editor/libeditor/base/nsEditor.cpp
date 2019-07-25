@@ -326,6 +326,13 @@ nsEditor::InstallEventListeners()
 {
   NS_ENSURE_TRUE(mDocWeak && mPresShellWeak && mEventListener,
                  NS_ERROR_NOT_INITIALIZED);
+
+  
+  nsCOMPtr<nsIContent> rootContent = do_QueryInterface(GetRoot());
+  NS_ENSURE_TRUE(rootContent, NS_ERROR_NOT_AVAILABLE);
+  mEventTarget = do_QueryInterface(rootContent->GetParent());
+  NS_ENSURE_TRUE(mEventTarget, NS_ERROR_NOT_AVAILABLE);
+
   nsEditorEventListener* listener =
     reinterpret_cast<nsEditorEventListener*>(mEventListener.get());
   return listener->Connect(this);
@@ -338,6 +345,7 @@ nsEditor::RemoveEventListeners()
     return;
   }
   reinterpret_cast<nsEditorEventListener*>(mEventListener.get())->Disconnect();
+  mEventTarget = nsnull;
 }
 
 PRBool
@@ -5088,47 +5096,6 @@ nsEditor::HandleInlineSpellCheck(PRInt32 action,
                                                        aStartOffset,
                                                        aEndNode,
                                                        aEndOffset) : NS_OK;
-}
-
-already_AddRefed<nsPIDOMEventTarget>
-nsEditor::GetPIDOMEventTarget()
-{
-  nsPIDOMEventTarget* piTarget = mEventTarget;
-  if (piTarget)
-  {
-    NS_ADDREF(piTarget);
-    return piTarget;
-  }
-
-  nsIDOMElement *rootElement = GetRoot();
-
-  
-  
-
-  nsCOMPtr<nsIContent> content = do_QueryInterface(rootElement);
-
-  if (content && content->IsRootOfNativeAnonymousSubtree())
-  {
-    mEventTarget = do_QueryInterface(content->GetParent());
-    piTarget = mEventTarget;
-    NS_IF_ADDREF(piTarget);
-  }
-  else
-  {
-    
-    
-    
-    if (mDocWeak)
-    {
-      CallQueryReferent(mDocWeak.get(), &piTarget);
-    }
-    else
-    {
-      NS_ERROR("not initialized yet");
-    }
-  }
-
-  return piTarget;
 }
 
 nsIDOMElement *

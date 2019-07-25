@@ -581,7 +581,7 @@ public:
                                     nsIDOMNode *aEndNode,
                                     PRInt32 aEndOffset);
 
-  already_AddRefed<nsPIDOMEventTarget> GetPIDOMEventTarget();
+  virtual already_AddRefed<nsPIDOMEventTarget> GetPIDOMEventTarget() = 0;
 
   
   nsIDOMElement *GetRoot();

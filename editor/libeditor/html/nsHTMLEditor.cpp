@@ -389,6 +389,10 @@ nsHTMLEditor::InstallEventListeners()
 {
   NS_ENSURE_TRUE(mDocWeak && mPresShellWeak && mEventListener,
                  NS_ERROR_NOT_INITIALIZED);
+
+  
+  
+
   nsHTMLEditorEventListener* listener =
     reinterpret_cast<nsHTMLEditorEventListener*>(mEventListener.get());
   return listener->Connect(this);
@@ -5741,6 +5745,17 @@ nsHTMLEditor::HasFocus()
   }
   
   return OurWindowHasFocus();
+}
+
+already_AddRefed<nsPIDOMEventTarget>
+nsHTMLEditor::GetPIDOMEventTarget()
+{
+  
+  
+  
+  NS_PRECONDITION(mDocWeak, "This editor has not been initialized yet");
+  nsCOMPtr<nsPIDOMEventTarget> piTarget = do_QueryReferent(mDocWeak.get());
+  return piTarget.forget();
 }
 
 nsresult
