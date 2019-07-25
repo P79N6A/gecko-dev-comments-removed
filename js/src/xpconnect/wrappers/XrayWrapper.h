@@ -48,7 +48,12 @@
 
 namespace xpc {
 
+namespace XrayUtils {
+
 extern JSClass HolderClass;
+extern const uint32 JSSLOT_PROXY_OBJ;
+
+}
 
 
 template <typename Base, typename Policy>
