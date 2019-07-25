@@ -956,13 +956,20 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent, nsIFrame* aF
                   aEvent->eventStructType != NS_SIMPLE_GESTURE_EVENT &&
                   aEvent->eventStructType != NS_GESTURENOTIFY_EVENT &&
                   aEvent->eventStructType != NS_MOZTOUCH_EVENT &&
+#ifdef MOZ_TOUCH
+                  aEvent->eventStructType != NS_TOUCH_EVENT &&
+#endif
                   aEvent->eventStructType != NS_QUERY_CONTENT_EVENT))
     return nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
 
   const nsGUIEvent* GUIEvent = static_cast<const nsGUIEvent*>(aEvent);
+#ifdef MOZ_TOUCH
+  return GetEventCoordinatesRelativeTo(aEvent,
+                                       GUIEvent->refPoint,
+                                       aFrame);
+#else
   if (!GUIEvent->widget)
     return nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
-
   
 
 
@@ -973,7 +980,6 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent, nsIFrame* aF
   for (nsIFrame* f = aFrame; f; f = GetCrossDocParentFrame(f)) {
     if (f->IsTransformed())
       transformFound = true;
-
     rootFrame = f;
   }
 
@@ -1004,6 +1010,68 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent, nsIFrame* aF
 
 
   return widgetToView - aFrame->GetOffsetToCrossDoc(rootFrame);
+#endif
+}
+
+nsPoint
+nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent,
+                                             const nsIntPoint aPoint,
+                                             nsIFrame* aFrame)
+{
+  if (!aFrame) {
+    return nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+  }
+
+  const nsGUIEvent* GUIEvent = static_cast<const nsGUIEvent*>(aEvent);
+  nsIWidget* widget = GUIEvent->widget;
+  if (!widget) {
+    return nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+  }
+
+  
+
+
+
+  nsIFrame* rootFrame = aFrame;
+  bool transformFound = false;
+  for (nsIFrame* f = aFrame; f; f = GetCrossDocParentFrame(f)) {
+    if (f->IsTransformed()) {
+      transformFound = true;
+    }
+
+    rootFrame = f;
+  }
+
+  nsIView* rootView = rootFrame->GetView();
+  if (!rootView) {
+    return nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+  }
+
+  nsPoint widgetToView = TranslateWidgetToView(rootFrame->PresContext(),
+                               widget, aPoint, rootView);
+
+  if (widgetToView == nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE)) {
+    return nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
+  }
+
+  
+  
+  PRInt32 rootAPD = rootFrame->PresContext()->AppUnitsPerDevPixel();
+  PRInt32 localAPD = aFrame->PresContext()->AppUnitsPerDevPixel();
+  widgetToView = widgetToView.ConvertAppUnits(rootAPD, localAPD);
+
+  
+
+
+  if (transformFound) {
+    return TransformRootPointToFrame(aFrame, widgetToView);
+  }
+
+  
+
+
+  nsPoint offset = aFrame->GetOffsetToCrossDoc(rootFrame);
+  return widgetToView - offset;
 }
 
 nsIFrame*

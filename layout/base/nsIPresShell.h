@@ -69,6 +69,8 @@
 #include "nsWeakReference.h"
 #include <stdio.h> 
 #include "nsChangeHint.h"
+#include "nsGUIEvent.h"
+#include "nsInterfaceHashtable.h"
 
 class nsIContent;
 class nsIDocument;
@@ -1046,6 +1048,9 @@ public:
   
 
   static CapturingContentInfo gCaptureInfo;
+
+  static nsInterfaceHashtable<nsUint32HashKey, nsIDOMTouch> gCaptureTouchList;
+  static bool gPreventMouseEvents;
 
   
 
