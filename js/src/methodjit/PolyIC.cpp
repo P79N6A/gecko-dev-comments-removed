@@ -2718,7 +2718,13 @@ GetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, const Value &v, jsi
 LookupStatus
 GetElementIC::update(VMFrame &f, JSContext *cx, JSObject *obj, const Value &v, jsid id, Value *vp)
 {
-    if (v.isString())
+    
+
+
+
+
+
+    if (v.isString() && js_CheckForStringIndex(id) == id)
         return attachGetProp(f, cx, obj, v, id, vp);
 
 #if defined JS_METHODJIT_TYPED_ARRAY
