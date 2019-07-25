@@ -267,6 +267,9 @@ nsTextEditRules::AfterEdit(PRInt32 action, nsIEditor::EDirection aDirection)
     
     res = CreateTrailingBRIfNeeded();
     NS_ENSURE_SUCCESS(res, res);
+
+    
+    CollapseSelectionToTrailingBRIfNeeded(selection);
     
     
 
@@ -455,6 +458,12 @@ nsTextEditRules::WillInsertBreak(nsISelection *aSelection, PRBool *aCancel, PRBo
 
 nsresult
 nsTextEditRules::DidInsertBreak(nsISelection *aSelection, nsresult aResult)
+{
+  return NS_OK;
+}
+
+nsresult
+nsTextEditRules::CollapseSelectionToTrailingBRIfNeeded(nsISelection* aSelection)
 {
   
   
