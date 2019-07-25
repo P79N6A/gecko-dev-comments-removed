@@ -51,7 +51,6 @@
 #include "jsscript.h"   
 #include "jsinterp.h"   
 #include "jsparse.h"
-#include "jsregexp.h"
 #include "jsvector.h"
 #include "jsemit.h"
 #include "jsscan.h"
@@ -64,6 +63,8 @@
 #include "jsobj.h"
 #include "jsarray.h"
 #include "jsnum.h"
+
+#include "vm/RegExpObject.h"
 
 #include "jsscriptinlines.h"
 

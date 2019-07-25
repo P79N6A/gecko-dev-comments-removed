@@ -37,21 +37,12 @@
 
 
 
-#ifndef jsregexp_h___
-#define jsregexp_h___
 
+#ifndef RegExpStatics_h__
+#define RegExpStatics_h__
 
-
-#include <stddef.h>
-#include "jsprvtd.h"
-#include "jsobj.h"
-#include "jsstr.h"
 #include "jscntxt.h"
 #include "jsvector.h"
-
-#ifdef JS_THREADSAFE
-#include "jsdhash.h"
-#endif
 
 namespace js {
 
@@ -63,7 +54,7 @@ class RegExpStatics
     JSLinearString  *matchPairsInput;
     
     JSString        *pendingInput;
-    uintN           flags;
+    RegExpFlag      flags;
     RegExpStatics   *bufferLink;
     bool            copied;
 
@@ -156,8 +147,6 @@ class RegExpStatics
 
     bool makeMatch(JSContext *cx, size_t checkValidIndex, size_t pairNum, Value *out) const;
 
-    static const uintN allFlags = JSREG_FOLD | JSREG_GLOB | JSREG_STICKY | JSREG_MULTILINE;
-
     struct InitBuffer {};
     explicit RegExpStatics(InitBuffer) : bufferLink(NULL), copied(false) {}
 
@@ -166,6 +155,7 @@ class RegExpStatics
   public:
     RegExpStatics() : bufferLink(NULL), copied(false) { clear(); }
 
+    static JSObject *create(JSContext *cx, GlobalObject *parent);
     static RegExpStatics *extractFrom(GlobalObject *globalObj);
 
     
@@ -189,14 +179,14 @@ class RegExpStatics
     void setMultiline(bool enabled) {
         aboutToWrite();
         if (enabled)
-            flags = flags | JSREG_MULTILINE;
+            flags = RegExpFlag(flags | MultilineFlag);
         else
-            flags = flags & ~JSREG_MULTILINE;
+            flags = RegExpFlag(flags & ~MultilineFlag);
     }
 
     void clear() {
         aboutToWrite();
-        flags = 0;
+        flags = RegExpFlag(0);
         pendingInput = NULL;
         matchPairsInput = NULL;
         matchPairs.clear();
@@ -239,8 +229,8 @@ class RegExpStatics
     }
 
     JSString *getPendingInput() const { return pendingInput; }
-    uintN getFlags() const { return flags; }
-    bool multiline() const { return flags & JSREG_MULTILINE; }
+    RegExpFlag getFlags() const { return flags; }
+    bool multiline() const { return flags & MultilineFlag; }
 
     size_t matchStart() const {
         int start = get(0, 0);
@@ -301,7 +291,7 @@ class RegExpStatics
 
 class PreserveRegExpStatics
 {
-    RegExpStatics *const original;
+    RegExpStatics * const original;
     RegExpStatics buffer;
 
   public:
@@ -319,106 +309,6 @@ class PreserveRegExpStatics
     }
 };
 
-}
+} 
 
-static inline bool
-VALUE_IS_REGEXP(JSContext *cx, js::Value v)
-{
-    return !v.isPrimitive() && v.toObject().isRegExp();
-}
-
-inline const js::Value &
-JSObject::getRegExpLastIndex() const
-{
-    JS_ASSERT(isRegExp());
-    return getSlot(JSSLOT_REGEXP_LAST_INDEX);
-}
-
-inline void
-JSObject::setRegExpLastIndex(const js::Value &v)
-{
-    JS_ASSERT(isRegExp());
-    setSlot(JSSLOT_REGEXP_LAST_INDEX, v);
-}
-
-inline void
-JSObject::setRegExpLastIndex(jsdouble d)
-{
-    JS_ASSERT(isRegExp());
-    setSlot(JSSLOT_REGEXP_LAST_INDEX, js::NumberValue(d));
-}
-
-inline void
-JSObject::zeroRegExpLastIndex()
-{
-    JS_ASSERT(isRegExp());
-    setSlot(JSSLOT_REGEXP_LAST_INDEX, js::Int32Value(0));
-}
-
-inline void
-JSObject::setRegExpSource(JSString *source)
-{
-    setSlot(JSSLOT_REGEXP_SOURCE, js::StringValue(source));
-}
-
-inline void
-JSObject::setRegExpGlobal(bool global)
-{
-    setSlot(JSSLOT_REGEXP_GLOBAL, js::BooleanValue(global));
-}
-
-inline void
-JSObject::setRegExpIgnoreCase(bool ignoreCase)
-{
-    setSlot(JSSLOT_REGEXP_IGNORE_CASE, js::BooleanValue(ignoreCase));
-}
-
-inline void
-JSObject::setRegExpMultiline(bool multiline)
-{
-    setSlot(JSSLOT_REGEXP_MULTILINE, js::BooleanValue(multiline));
-}
-
-inline void
-JSObject::setRegExpSticky(bool sticky)
-{
-    setSlot(JSSLOT_REGEXP_STICKY, js::BooleanValue(sticky));
-}
-
-namespace js { class AutoStringRooter; }
-
-extern JS_FRIEND_API(JSBool)
-js_ObjectIsRegExp(JSObject *obj);
-
-extern JSObject *
-js_InitRegExpClass(JSContext *cx, JSObject *obj);
-
-
-
-
-extern JSBool
-js_regexp_toString(JSContext *cx, JSObject *obj, js::Value *vp);
-
-extern JS_FRIEND_API(JSObject *) JS_FASTCALL
-js_CloneRegExpObject(JSContext *cx, JSObject *obj, JSObject *proto);
-
-
-
-
-
-extern JS_FRIEND_API(void)
-js_SaveAndClearRegExpStatics(JSContext *cx, js::RegExpStatics *res, js::AutoStringRooter *tvr);
-
-
-extern JS_FRIEND_API(void)
-js_RestoreRegExpStatics(JSContext *cx, js::RegExpStatics *res);
-
-extern JSBool
-js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp);
-
-extern JSBool
-js_regexp_exec(JSContext *cx, uintN argc, js::Value *vp);
-extern JSBool
-js_regexp_test(JSContext *cx, uintN argc, js::Value *vp);
-
-#endif 
+#endif
