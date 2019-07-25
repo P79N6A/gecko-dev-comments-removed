@@ -69,7 +69,7 @@ NS_IMETHODIMP_(nsrefcnt) nsPrintProgress::Release(void)
     mRefCnt = 1; 
     
     
-    NS_DELETEXPCOM(this);
+    delete this;
     return 0;
   }
   return count;
