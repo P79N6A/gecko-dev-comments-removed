@@ -91,8 +91,6 @@ nsHttpConnectionInfo*
 nsHttpConnectionInfo::Clone() const
 {
     nsHttpConnectionInfo* clone = new nsHttpConnectionInfo(mHost, mPort, mProxyInfo, mUsingSSL);
-    if (!clone)
-        return nsnull;
 
     
     clone->SetAnonymous(mHashKey.CharAt(2) == 'A');

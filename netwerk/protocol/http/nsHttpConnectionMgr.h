@@ -42,6 +42,7 @@
 #include "nsHttpConnectionInfo.h"
 #include "nsHttpConnection.h"
 #include "nsHttpTransaction.h"
+#include "NullHttpTransaction.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
 #include "nsClassHashtable.h"
@@ -130,6 +131,16 @@ public:
     
     
     nsresult GetSocketThreadTarget(nsIEventTarget **);
+
+    
+    
+    
+    
+    
+    
+    nsresult SpeculativeConnect(nsHttpConnectionInfo *,
+                                nsIInterfaceRequestor *,
+                                nsIEventTarget *);
 
     
     
@@ -383,7 +394,8 @@ private:
         NS_DECL_NSITIMERCALLBACK
 
         nsHalfOpenSocket(nsConnectionEntry *ent,
-                         nsHttpTransaction *trans);
+                         nsAHttpTransaction *trans,
+                         PRUint8 caps);
         ~nsHalfOpenSocket();
         
         nsresult SetupStreams(nsISocketTransport **,
@@ -396,14 +408,27 @@ private:
         void     CancelBackupTimer();
         void     Abandon();
         
-        nsHttpTransaction *Transaction() { return mTransaction; }
+        nsAHttpTransaction *Transaction() { return mTransaction; }
+
+        bool IsSpeculative() { return mSpeculative; }
+        void SetSpeculative(bool val) { mSpeculative = val; }
 
     private:
         nsConnectionEntry              *mEnt;
-        nsRefPtr<nsHttpTransaction>    mTransaction;
+        nsRefPtr<nsAHttpTransaction>   mTransaction;
         nsCOMPtr<nsISocketTransport>   mSocketTransport;
         nsCOMPtr<nsIAsyncOutputStream> mStreamOut;
         nsCOMPtr<nsIAsyncInputStream>  mStreamIn;
+        PRUint8                        mCaps;
+
+        
+        
+        
+        
+        
+        
+        
+        bool                           mSpeculative;
 
         mozilla::TimeStamp             mPrimarySynStarted;
         mozilla::TimeStamp             mBackupSynStarted;
@@ -455,16 +480,25 @@ private:
     nsresult DispatchTransaction(nsConnectionEntry *,
                                  nsHttpTransaction *,
                                  nsHttpConnection *);
+    nsresult DispatchAbstractTransaction(nsConnectionEntry *,
+                                         nsAHttpTransaction *,
+                                         PRUint8,
+                                         nsHttpConnection *,
+                                         PRInt32);
     nsresult BuildPipeline(nsConnectionEntry *,
                            nsAHttpTransaction *,
                            nsHttpPipeline **);
+    bool     RestrictConnections(nsConnectionEntry *);
     nsresult ProcessNewTransaction(nsHttpTransaction *);
     nsresult EnsureSocketThreadTargetIfOnline();
     void     ClosePersistentConnections(nsConnectionEntry *ent);
-    nsresult CreateTransport(nsConnectionEntry *, nsHttpTransaction *);
+    nsresult CreateTransport(nsConnectionEntry *, nsAHttpTransaction *,
+                             PRUint8, bool);
     void     AddActiveConn(nsHttpConnection *, nsConnectionEntry *);
     void     StartedConnect();
     void     RecvdConnect();
+
+    nsConnectionEntry *GetOrCreateConnectionEntry(nsHttpConnectionInfo *);
 
     bool     MakeNewConnection(nsConnectionEntry *ent,
                                nsHttpTransaction *trans);
@@ -542,6 +576,7 @@ private:
     void OnMsgCancelTransaction    (PRInt32, void *);
     void OnMsgProcessPendingQ      (PRInt32, void *);
     void OnMsgPruneDeadConnections (PRInt32, void *);
+    void OnMsgSpeculativeConnect   (PRInt32, void *);
     void OnMsgReclaimConnection    (PRInt32, void *);
     void OnMsgUpdateParam          (PRInt32, void *);
     void OnMsgClosePersistentConnections (PRInt32, void *);
