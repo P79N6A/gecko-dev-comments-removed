@@ -33,6 +33,7 @@
 
 
 
+
 #include "deflate.h"
 
 #ifdef DEBUG
@@ -152,7 +153,7 @@ local void send_all_trees OF((deflate_state *s, int lcodes, int dcodes,
                               int blcodes));
 local void compress_block OF((deflate_state *s, ct_data *ltree,
                               ct_data *dtree));
-local void set_data_type  OF((deflate_state *s));
+local int  detect_data_type OF((deflate_state *s));
 local unsigned bi_reverse OF((unsigned value, int length));
 local void bi_windup      OF((deflate_state *s));
 local void bi_flush       OF((deflate_state *s));
@@ -203,12 +204,12 @@ local void send_bits(s, value, length)
 
 
     if (s->bi_valid > (int)Buf_size - length) {
-        s->bi_buf |= (value << s->bi_valid);
+        s->bi_buf |= (ush)value << s->bi_valid;
         put_short(s, s->bi_buf);
         s->bi_buf = (ush)value >> (Buf_size - s->bi_valid);
         s->bi_valid += length - Buf_size;
     } else {
-        s->bi_buf |= value << s->bi_valid;
+        s->bi_buf |= (ush)value << s->bi_valid;
         s->bi_valid += length;
     }
 }
@@ -218,12 +219,12 @@ local void send_bits(s, value, length)
 { int len = length;\
   if (s->bi_valid > (int)Buf_size - len) {\
     int val = value;\
-    s->bi_buf |= (val << s->bi_valid);\
+    s->bi_buf |= (ush)val << s->bi_valid;\
     put_short(s, s->bi_buf);\
     s->bi_buf = (ush)val >> (Buf_size - s->bi_valid);\
     s->bi_valid += len - Buf_size;\
   } else {\
-    s->bi_buf |= (value) << s->bi_valid;\
+    s->bi_buf |= (ush)(value) << s->bi_valid;\
     s->bi_valid += len;\
   }\
 }
@@ -250,11 +251,13 @@ local void tr_static_init()
     if (static_init_done) return;
 
     
+#ifdef NO_INIT_GLOBAL_POINTERS
     static_l_desc.static_tree = static_ltree;
     static_l_desc.extra_bits = extra_lbits;
     static_d_desc.static_tree = static_dtree;
     static_d_desc.extra_bits = extra_dbits;
     static_bl_desc.extra_bits = extra_blbits;
+#endif
 
     
     length = 0;
@@ -348,13 +351,14 @@ void gen_trees_header()
                 static_dtree[i].Len, SEPARATOR(i, D_CODES-1, 5));
     }
 
-    fprintf(header, "const uch _dist_code[DIST_CODE_LEN] = {\n");
+    fprintf(header, "const uch ZLIB_INTERNAL _dist_code[DIST_CODE_LEN] = {\n");
     for (i = 0; i < DIST_CODE_LEN; i++) {
         fprintf(header, "%2u%s", _dist_code[i],
                 SEPARATOR(i, DIST_CODE_LEN-1, 20));
     }
 
-    fprintf(header, "const uch _length_code[MAX_MATCH-MIN_MATCH+1]= {\n");
+    fprintf(header,
+        "const uch ZLIB_INTERNAL _length_code[MAX_MATCH-MIN_MATCH+1]= {\n");
     for (i = 0; i < MAX_MATCH-MIN_MATCH+1; i++) {
         fprintf(header, "%2u%s", _length_code[i],
                 SEPARATOR(i, MAX_MATCH-MIN_MATCH, 20));
@@ -379,7 +383,7 @@ void gen_trees_header()
 
 
 
-void _tr_init(s)
+void ZLIB_INTERNAL _tr_init(s)
     deflate_state *s;
 {
     tr_static_init();
@@ -864,13 +868,13 @@ local void send_all_trees(s, lcodes, dcodes, blcodes)
 
 
 
-void _tr_stored_block(s, buf, stored_len, eof)
+void ZLIB_INTERNAL _tr_stored_block(s, buf, stored_len, last)
     deflate_state *s;
     charf *buf;       
     ulg stored_len;   
-    int eof;          
+    int last;         
 {
-    send_bits(s, (STORED_BLOCK<<1)+eof, 3);  
+    send_bits(s, (STORED_BLOCK<<1)+last, 3);    
 #ifdef DEBUG
     s->compressed_len = (s->compressed_len + 3 + 7) & (ulg)~7L;
     s->compressed_len += (stored_len + 4) << 3;
@@ -889,7 +893,7 @@ void _tr_stored_block(s, buf, stored_len, eof)
 
 
 
-void _tr_align(s)
+void ZLIB_INTERNAL _tr_align(s)
     deflate_state *s;
 {
     send_bits(s, STATIC_TREES<<1, 3);
@@ -918,11 +922,11 @@ void _tr_align(s)
 
 
 
-void _tr_flush_block(s, buf, stored_len, eof)
+void ZLIB_INTERNAL _tr_flush_block(s, buf, stored_len, last)
     deflate_state *s;
     charf *buf;       
     ulg stored_len;   
-    int eof;          
+    int last;         
 {
     ulg opt_lenb, static_lenb; 
     int max_blindex = 0;  
@@ -931,8 +935,8 @@ void _tr_flush_block(s, buf, stored_len, eof)
     if (s->level > 0) {
 
         
-        if (stored_len > 0 && s->strm->data_type == Z_UNKNOWN)
-            set_data_type(s);
+        if (s->strm->data_type == Z_UNKNOWN)
+            s->strm->data_type = detect_data_type(s);
 
         
         build_tree(s, (tree_desc *)(&(s->l_desc)));
@@ -978,20 +982,20 @@ void _tr_flush_block(s, buf, stored_len, eof)
 
 
 
-        _tr_stored_block(s, buf, stored_len, eof);
+        _tr_stored_block(s, buf, stored_len, last);
 
 #ifdef FORCE_STATIC
     } else if (static_lenb >= 0) { 
 #else
     } else if (s->strategy == Z_FIXED || static_lenb == opt_lenb) {
 #endif
-        send_bits(s, (STATIC_TREES<<1)+eof, 3);
+        send_bits(s, (STATIC_TREES<<1)+last, 3);
         compress_block(s, (ct_data *)static_ltree, (ct_data *)static_dtree);
 #ifdef DEBUG
         s->compressed_len += 3 + s->static_len;
 #endif
     } else {
-        send_bits(s, (DYN_TREES<<1)+eof, 3);
+        send_bits(s, (DYN_TREES<<1)+last, 3);
         send_all_trees(s, s->l_desc.max_code+1, s->d_desc.max_code+1,
                        max_blindex+1);
         compress_block(s, (ct_data *)s->dyn_ltree, (ct_data *)s->dyn_dtree);
@@ -1005,21 +1009,21 @@ void _tr_flush_block(s, buf, stored_len, eof)
 
     init_block(s);
 
-    if (eof) {
+    if (last) {
         bi_windup(s);
 #ifdef DEBUG
         s->compressed_len += 7;  
 #endif
     }
     Tracev((stderr,"\ncomprlen %lu(%lu) ", s->compressed_len>>3,
-           s->compressed_len-7*eof));
+           s->compressed_len-7*last));
 }
 
 
 
 
 
-int _tr_tally (s, dist, lc)
+int ZLIB_INTERNAL _tr_tally (s, dist, lc)
     deflate_state *s;
     unsigned dist;  
     unsigned lc;    
@@ -1123,19 +1127,40 @@ local void compress_block(s, ltree, dtree)
 
 
 
-local void set_data_type(s)
+
+
+
+
+
+
+
+local int detect_data_type(s)
     deflate_state *s;
 {
+    
+
+
+
+    unsigned long black_mask = 0xf3ffc07fUL;
     int n;
 
-    for (n = 0; n < 9; n++)
+    
+    for (n = 0; n <= 31; n++, black_mask >>= 1)
+        if ((black_mask & 1) && (s->dyn_ltree[n].Freq != 0))
+            return Z_BINARY;
+
+    
+    if (s->dyn_ltree[9].Freq != 0 || s->dyn_ltree[10].Freq != 0
+            || s->dyn_ltree[13].Freq != 0)
+        return Z_TEXT;
+    for (n = 32; n < LITERALS; n++)
         if (s->dyn_ltree[n].Freq != 0)
-            break;
-    if (n == 9)
-        for (n = 14; n < 32; n++)
-            if (s->dyn_ltree[n].Freq != 0)
-                break;
-    s->strm->data_type = (n == 32) ? Z_TEXT : Z_BINARY;
+            return Z_TEXT;
+
+    
+
+
+    return Z_BINARY;
 }
 
 

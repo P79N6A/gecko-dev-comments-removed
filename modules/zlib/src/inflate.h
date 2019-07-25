@@ -32,10 +32,12 @@ typedef enum {
         TYPE,       
         TYPEDO,     
         STORED,     
+        COPY_,      
         COPY,       
         TABLE,      
         LENLENS,    
         CODELENS,   
+            LEN_,       
             LEN,        
             LENEXT,     
             DIST,       
@@ -49,6 +51,8 @@ typedef enum {
     MEM,        
     SYNC        
 } inflate_mode;
+
+
 
 
 
@@ -88,7 +92,7 @@ struct inflate_state {
     unsigned wbits;             
     unsigned wsize;             
     unsigned whave;             
-    unsigned write;             
+    unsigned wnext;             
     unsigned char FAR *window;  
         
     unsigned long hold;         
@@ -112,4 +116,7 @@ struct inflate_state {
     unsigned short lens[320];   
     unsigned short work[288];   
     code codes[ENOUGH];         
+    int sane;                   
+    int back;                   
+    unsigned was;               
 };

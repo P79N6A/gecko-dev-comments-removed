@@ -64,7 +64,7 @@
 
 
 
-void inflate_fast(strm, start)
+void ZLIB_INTERNAL inflate_fast(strm, start)
 z_streamp strm;
 unsigned start;         
 {
@@ -79,7 +79,7 @@ unsigned start;
 #endif
     unsigned wsize;             
     unsigned whave;             
-    unsigned write;             
+    unsigned wnext;             
     unsigned char FAR *window;  
     unsigned long hold;         
     unsigned bits;              
@@ -87,7 +87,7 @@ unsigned start;
     code const FAR *dcode;      
     unsigned lmask;             
     unsigned dmask;             
-    code this;                  
+    code here;                  
     unsigned op;                
                                 
     unsigned len;               
@@ -106,7 +106,7 @@ unsigned start;
 #endif
     wsize = state->wsize;
     whave = state->whave;
-    write = state->write;
+    wnext = state->wnext;
     window = state->window;
     hold = state->hold;
     bits = state->bits;
@@ -124,20 +124,20 @@ unsigned start;
             hold += (unsigned long)(PUP(in)) << bits;
             bits += 8;
         }
-        this = lcode[hold & lmask];
+        here = lcode[hold & lmask];
       dolen:
-        op = (unsigned)(this.bits);
+        op = (unsigned)(here.bits);
         hold >>= op;
         bits -= op;
-        op = (unsigned)(this.op);
+        op = (unsigned)(here.op);
         if (op == 0) {                          
-            Tracevv((stderr, this.val >= 0x20 && this.val < 0x7f ?
+            Tracevv((stderr, here.val >= 0x20 && here.val < 0x7f ?
                     "inflate:         literal '%c'\n" :
-                    "inflate:         literal 0x%02x\n", this.val));
-            PUP(out) = (unsigned char)(this.val);
+                    "inflate:         literal 0x%02x\n", here.val));
+            PUP(out) = (unsigned char)(here.val);
         }
         else if (op & 16) {                     
-            len = (unsigned)(this.val);
+            len = (unsigned)(here.val);
             op &= 15;                           
             if (op) {
                 if (bits < op) {
@@ -155,14 +155,14 @@ unsigned start;
                 hold += (unsigned long)(PUP(in)) << bits;
                 bits += 8;
             }
-            this = dcode[hold & dmask];
+            here = dcode[hold & dmask];
           dodist:
-            op = (unsigned)(this.bits);
+            op = (unsigned)(here.bits);
             hold >>= op;
             bits -= op;
-            op = (unsigned)(this.op);
+            op = (unsigned)(here.op);
             if (op & 16) {                      
-                dist = (unsigned)(this.val);
+                dist = (unsigned)(here.val);
                 op &= 15;                       
                 if (bits < op) {
                     hold += (unsigned long)(PUP(in)) << bits;
@@ -187,12 +187,34 @@ unsigned start;
                 if (dist > op) {                
                     op = dist - op;             
                     if (op > whave) {
-                        strm->msg = (char *)"invalid distance too far back";
-                        state->mode = BAD;
-                        break;
+                        if (state->sane) {
+                            strm->msg =
+                                (char *)"invalid distance too far back";
+                            state->mode = BAD;
+                            break;
+                        }
+#ifdef INFLATE_ALLOW_INVALID_DISTANCE_TOOFAR_ARRR
+                        if (len <= op - whave) {
+                            do {
+                                PUP(out) = 0;
+                            } while (--len);
+                            continue;
+                        }
+                        len -= op - whave;
+                        do {
+                            PUP(out) = 0;
+                        } while (--op > whave);
+                        if (op == 0) {
+                            from = out - dist;
+                            do {
+                                PUP(out) = PUP(from);
+                            } while (--len);
+                            continue;
+                        }
+#endif
                     }
                     from = window - OFF;
-                    if (write == 0) {           
+                    if (wnext == 0) {           
                         from += wsize - op;
                         if (op < len) {         
                             len -= op;
@@ -202,17 +224,17 @@ unsigned start;
                             from = out - dist;  
                         }
                     }
-                    else if (write < op) {      
-                        from += wsize + write - op;
-                        op -= write;
+                    else if (wnext < op) {      
+                        from += wsize + wnext - op;
+                        op -= wnext;
                         if (op < len) {         
                             len -= op;
                             do {
                                 PUP(out) = PUP(from);
                             } while (--op);
                             from = window - OFF;
-                            if (write < len) {  
-                                op = write;
+                            if (wnext < len) {  
+                                op = wnext;
                                 len -= op;
                                 do {
                                     PUP(out) = PUP(from);
@@ -222,7 +244,7 @@ unsigned start;
                         }
                     }
                     else {                      
-                        from += write - op;
+                        from += wnext - op;
                         if (op < len) {         
                             len -= op;
                             do {
@@ -259,7 +281,7 @@ unsigned start;
                 }
             }
             else if ((op & 64) == 0) {          
-                this = dcode[this.val + (hold & ((1U << op) - 1))];
+                here = dcode[here.val + (hold & ((1U << op) - 1))];
                 goto dodist;
             }
             else {
@@ -269,7 +291,7 @@ unsigned start;
             }
         }
         else if ((op & 64) == 0) {              
-            this = lcode[this.val + (hold & ((1U << op) - 1))];
+            here = lcode[here.val + (hold & ((1U << op) - 1))];
             goto dolen;
         }
         else if (op & 32) {                     

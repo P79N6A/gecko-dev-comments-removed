@@ -9,7 +9,7 @@
 #define MAXBITS 15
 
 const char inflate_copyright[] =
-   " inflate 1.2.3 Copyright 1995-2005 Mark Adler ";
+   " inflate 1.2.5 Copyright 1995-2010 Mark Adler ";
 
 
 
@@ -29,7 +29,7 @@ const char inflate_copyright[] =
 
 
 
-int inflate_table(type, lens, codes, table, bits, work)
+int ZLIB_INTERNAL inflate_table(type, lens, codes, table, bits, work)
 codetype type;
 unsigned short FAR *lens;
 unsigned codes;
@@ -50,7 +50,7 @@ unsigned short FAR *work;
     unsigned fill;              
     unsigned low;               
     unsigned mask;              
-    code this;                  
+    code here;                  
     code FAR *next;             
     const unsigned short FAR *base;     
     const unsigned short FAR *extra;    
@@ -62,7 +62,7 @@ unsigned short FAR *work;
         35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0};
     static const unsigned short lext[31] = { 
         16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18,
-        19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 16, 201, 196};
+        19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 16, 73, 195};
     static const unsigned short dbase[32] = { 
         1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
         257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
@@ -115,15 +115,15 @@ unsigned short FAR *work;
         if (count[max] != 0) break;
     if (root > max) root = max;
     if (max == 0) {                     
-        this.op = (unsigned char)64;    
-        this.bits = (unsigned char)1;
-        this.val = (unsigned short)0;
-        *(*table)++ = this;             
-        *(*table)++ = this;
+        here.op = (unsigned char)64;    
+        here.bits = (unsigned char)1;
+        here.val = (unsigned short)0;
+        *(*table)++ = here;             
+        *(*table)++ = here;
         *bits = 1;
         return 0;     
     }
-    for (min = 1; min <= MAXBITS; min++)
+    for (min = 1; min < max; min++)
         if (count[min] != 0) break;
     if (root < min) root = min;
 
@@ -147,7 +147,6 @@ unsigned short FAR *work;
         if (lens[sym] != 0) work[offs[lens[sym]]++] = (unsigned short)sym;
 
     
-
 
 
 
@@ -209,24 +208,25 @@ unsigned short FAR *work;
     mask = used - 1;            
 
     
-    if (type == LENS && used >= ENOUGH - MAXD)
+    if ((type == LENS && used >= ENOUGH_LENS) ||
+        (type == DISTS && used >= ENOUGH_DISTS))
         return 1;
 
     
     for (;;) {
         
-        this.bits = (unsigned char)(len - drop);
+        here.bits = (unsigned char)(len - drop);
         if ((int)(work[sym]) < end) {
-            this.op = (unsigned char)0;
-            this.val = work[sym];
+            here.op = (unsigned char)0;
+            here.val = work[sym];
         }
         else if ((int)(work[sym]) > end) {
-            this.op = (unsigned char)(extra[work[sym]]);
-            this.val = base[work[sym]];
+            here.op = (unsigned char)(extra[work[sym]]);
+            here.val = base[work[sym]];
         }
         else {
-            this.op = (unsigned char)(32 + 64);         
-            this.val = 0;
+            here.op = (unsigned char)(32 + 64);         
+            here.val = 0;
         }
 
         
@@ -235,7 +235,7 @@ unsigned short FAR *work;
         min = fill;                 
         do {
             fill -= incr;
-            next[(huff >> drop) + fill] = this;
+            next[(huff >> drop) + fill] = here;
         } while (fill != 0);
 
         
@@ -277,7 +277,8 @@ unsigned short FAR *work;
 
             
             used += 1U << curr;
-            if (type == LENS && used >= ENOUGH - MAXD)
+            if ((type == LENS && used >= ENOUGH_LENS) ||
+                (type == DISTS && used >= ENOUGH_DISTS))
                 return 1;
 
             
@@ -295,20 +296,20 @@ unsigned short FAR *work;
 
 
 
-    this.op = (unsigned char)64;                
-    this.bits = (unsigned char)(len - drop);
-    this.val = (unsigned short)0;
+    here.op = (unsigned char)64;                
+    here.bits = (unsigned char)(len - drop);
+    here.val = (unsigned short)0;
     while (huff != 0) {
         
         if (drop != 0 && (huff & mask) != low) {
             drop = 0;
             len = root;
             next = *table;
-            this.bits = (unsigned char)len;
+            here.bits = (unsigned char)len;
         }
 
         
-        next[huff >> drop] = this;
+        next[huff >> drop] = here;
 
         
         incr = 1U << (len - 1);
