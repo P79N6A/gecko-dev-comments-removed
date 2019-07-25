@@ -478,7 +478,7 @@ namespace js {
 
 
 extern void
-InitAtomMap(JSContext *cx, AtomIndexMap *indices, HeapPtrAtom *atoms);
+InitAtomMap(JSContext *cx, AtomIndexMap *indices, HeapPtr<JSAtom> *atoms);
 
 template<XDRMode mode>
 bool
