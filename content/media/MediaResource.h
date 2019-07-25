@@ -212,6 +212,8 @@ public:
   
   
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset) = 0;
+  virtual void StartSeekingForMetadata() = 0;
+  virtual void EndSeekingForMetadata() = 0;
   
   virtual PRInt64 Tell() = 0;
   
@@ -378,6 +380,8 @@ public:
   virtual void     SetPlaybackRate(PRUint32 aBytesPerSecond);
   virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes);
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
+  virtual void     StartSeekingForMetadata();
+  virtual void     EndSeekingForMetadata();
   virtual PRInt64  Tell();
 
   
@@ -473,6 +477,9 @@ protected:
   
   
   bool mIgnoreResume;
+
+  
+  bool mSeekingForMetadata;
 };
 
 }
