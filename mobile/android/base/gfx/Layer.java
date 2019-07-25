@@ -53,7 +53,6 @@ public abstract class Layer {
     private boolean mInTransaction;
     private Point mNewOrigin;
     private float mNewResolution;
-    private LayerView mView;
 
     protected Point mOrigin;
     protected float mResolution;
@@ -115,17 +114,12 @@ public abstract class Layer {
 
 
 
-    public void beginTransaction(LayerView aView) {
+    public void beginTransaction() {
         if (mTransactionLock.isHeldByCurrentThread())
             throw new RuntimeException("Nested transactions are not supported");
         mTransactionLock.lock();
-        mView = aView;
         mInTransaction = true;
         mNewResolution = mResolution;
-    }
-
-    public void beginTransaction() {
-        beginTransaction(null);
     }
 
     

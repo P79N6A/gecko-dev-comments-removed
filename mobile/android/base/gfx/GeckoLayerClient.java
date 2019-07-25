@@ -185,7 +185,7 @@ public abstract class GeckoLayerClient implements GeckoEventListener,
             if (!bufferRect.intersect(currentRect)) {
                 
                 
-                mTileLayer.beginTransaction(mLayerController.getView());
+                mTileLayer.beginTransaction();
                 try {
                     updateViewport(true);
                 } finally {
@@ -196,7 +196,7 @@ public abstract class GeckoLayerClient implements GeckoEventListener,
             bufferRect.offset(Math.round(-currentOrigin.x), Math.round(-currentOrigin.y));
         }
 
-        mTileLayer.beginTransaction(mLayerController.getView());
+        mTileLayer.beginTransaction();
 
         
         
