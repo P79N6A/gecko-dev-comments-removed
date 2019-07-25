@@ -87,6 +87,7 @@ const TOPIC_DEBUG_START_EXPIRATION = "places-debug-start-expiration";
 const TOPIC_EXPIRATION_FINISHED = "places-expiration-finished";
 const TOPIC_IDLE_BEGIN = "idle";
 const TOPIC_IDLE_END = "back";
+const TOPIC_IDLE_DAILY = "idle-daily";
 
 
 const PREF_BRANCH = "places.history.expiration.";
@@ -150,6 +151,10 @@ const IDLE_TIMEOUT_SECONDS = 5 * 60;
 
 const SHUTDOWN_WITH_RECENT_CLEARHISTORY_TIMEOUT_SECONDS = 10;
 
+
+
+const ANALYZE_PAGES_THRESHOLD = 100;
+
 const USECS_PER_DAY = 86400000000;
 const ANNOS_EXPIRE_POLICIES = [
   { bind: "expire_days",
@@ -184,15 +189,15 @@ const STATUS = {
 
 
 const ACTION = {
-  TIMED: 1 << 0, 
-  CLEAR_HISTORY: 1 << 1, 
-  SHUTDOWN: 1 << 2, 
-  CLEAN_SHUTDOWN: 1 << 3,  
-                           
-  IDLE: 1 << 4, 
-  DEBUG: 1 << 5, 
-  TIMED_OVERLIMIT: 1 << 6, 
-                           
+  TIMED:           1 << 0, 
+  TIMED_OVERLIMIT: 1 << 1, 
+  TIMED_ANALYZE:   1 << 2, 
+  CLEAR_HISTORY:   1 << 3, 
+  SHUTDOWN_DIRTY:  1 << 4, 
+  SHUTDOWN_CLEAN:  1 << 5, 
+  IDLE_DIRTY:      1 << 6, 
+  IDLE_DAILY:      1 << 7, 
+  DEBUG:           1 << 8, 
 };
 
 
@@ -212,7 +217,7 @@ const EXPIRATION_QUERIES = {
        + "AND visit_date < strftime('%s','now','localtime','start of day','-7 days','utc') * 1000000 "
        + "ORDER BY v.visit_date ASC "
        + "LIMIT :limit_visits",
-    actions: ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN | ACTION.IDLE |
+    actions: ACTION.TIMED_OVERLIMIT | ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY |
              ACTION.DEBUG
   },
 
@@ -221,7 +226,7 @@ const EXPIRATION_QUERIES = {
     sql: "DELETE FROM moz_historyvisits WHERE id IN ( "
        +   "SELECT v_id FROM expiration_notify WHERE v_id NOTNULL "
        + ")",
-    actions: ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN | ACTION.IDLE |
+    actions: ACTION.TIMED_OVERLIMIT | ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY |
              ACTION.DEBUG
   },
 
@@ -243,8 +248,8 @@ const EXPIRATION_QUERIES = {
        +   "AND b.id IS NULL "
        +   "AND frecency <> -1 "
        + "LIMIT :limit_uris",
-    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN |
-             ACTION.IDLE | ACTION.DEBUG
+    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN_DIRTY |
+             ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY | ACTION.DEBUG
   },
 
   
@@ -252,8 +257,8 @@ const EXPIRATION_QUERIES = {
     sql: "DELETE FROM moz_places WHERE id IN ( "
        +   "SELECT p_id FROM expiration_notify WHERE p_id NOTNULL "
        + ")",
-    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN |
-             ACTION.IDLE | ACTION.DEBUG
+    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN_DIRTY |
+             ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY | ACTION.DEBUG
   },
 
   
@@ -279,7 +284,8 @@ const EXPIRATION_QUERIES = {
        +   "LIMIT :limit_favicons "
        + ")",
     actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY |
-             ACTION.SHUTDOWN | ACTION.IDLE | ACTION.DEBUG
+             ACTION.SHUTDOWN_DIRTY | ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY |
+             ACTION.DEBUG
   },
 
   
@@ -293,7 +299,8 @@ const EXPIRATION_QUERIES = {
        +   "LIMIT :limit_annos "
        + ")",
     actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY |
-             ACTION.SHUTDOWN | ACTION.IDLE | ACTION.DEBUG
+             ACTION.SHUTDOWN_DIRTY | ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY |
+             ACTION.DEBUG
   },
 
   
@@ -306,7 +313,8 @@ const EXPIRATION_QUERIES = {
        +    "OR (expiration = :expire_months "
        +   "AND :expire_months_time > MAX(lastModified, dateAdded))",
     actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY |
-             ACTION.SHUTDOWN | ACTION.IDLE | ACTION.DEBUG
+             ACTION.SHUTDOWN_DIRTY | ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY |
+             ACTION.DEBUG
   },
 
   
@@ -319,7 +327,8 @@ const EXPIRATION_QUERIES = {
        +    "OR (expiration = :expire_months "
        +   "AND :expire_months_time > MAX(lastModified, dateAdded))",
     actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY |
-             ACTION.SHUTDOWN | ACTION.IDLE | ACTION.DEBUG
+             ACTION.SHUTDOWN_DIRTY | ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY |
+             ACTION.DEBUG
   },
 
   
@@ -329,7 +338,8 @@ const EXPIRATION_QUERIES = {
        +   "AND NOT EXISTS (SELECT id FROM moz_historyvisits "
        +                   "WHERE place_id = moz_annos.place_id LIMIT 1)",
     actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY |
-             ACTION.SHUTDOWN | ACTION.IDLE | ACTION.DEBUG
+             ACTION.SHUTDOWN_DIRTY | ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY |
+             ACTION.DEBUG
   },
 
   
@@ -340,7 +350,7 @@ const EXPIRATION_QUERIES = {
        +   "WHERE b.id IS NULL "
        +   "LIMIT :limit_annos "
        + ")",
-    actions: ACTION.CLEAR_HISTORY | ACTION.SHUTDOWN | ACTION.IDLE | ACTION.DEBUG
+    actions: ACTION.CLEAR_HISTORY | ACTION.IDLE_DAILY | ACTION.DEBUG
   },
 
   
@@ -353,7 +363,8 @@ const EXPIRATION_QUERIES = {
        +     "AND t.anno_attribute_id IS NULL "
        +   "LIMIT :limit_annos"
        + ")",
-    actions: ACTION.CLEAR_HISTORY | ACTION.SHUTDOWN | ACTION.IDLE | ACTION.DEBUG
+    actions: ACTION.CLEAR_HISTORY | ACTION.SHUTDOWN_DIRTY | ACTION.IDLE_DIRTY |
+             ACTION.IDLE_DAILY | ACTION.DEBUG
   },
 
   
@@ -364,21 +375,23 @@ const EXPIRATION_QUERIES = {
        +   "WHERE h.id IS NULL "
        +   "LIMIT :limit_inputhistory "
        + ")",
-    actions: ACTION.CLEAR_HISTORY | ACTION.SHUTDOWN | ACTION.IDLE | ACTION.DEBUG
+    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY |
+             ACTION.SHUTDOWN_DIRTY | ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY |
+             ACTION.DEBUG
   },
 
   
   QUERY_EXPIRE_ANNOS_SESSION: {
     sql: "DELETE FROM moz_annos WHERE expiration = :expire_session",
-    actions: ACTION.CLEAR_HISTORY | ACTION.SHUTDOWN | ACTION.CLEAN_SHUTDOWN |
-             ACTION.DEBUG
+    actions: ACTION.CLEAR_HISTORY | ACTION.SHUTDOWN_DIRTY |
+             ACTION.SHUTDOWN_CLEAN | ACTION.DEBUG
   },
 
   
   QUERY_EXPIRE_ITEMS_ANNOS_SESSION: {
     sql: "DELETE FROM moz_items_annos WHERE expiration = :expire_session",
-    actions: ACTION.CLEAR_HISTORY | ACTION.SHUTDOWN | ACTION.CLEAN_SHUTDOWN |
-             ACTION.DEBUG
+    actions: ACTION.CLEAR_HISTORY | ACTION.SHUTDOWN_DIRTY |
+             ACTION.SHUTDOWN_CLEAN | ACTION.DEBUG
   },
 
   
@@ -390,15 +403,15 @@ const EXPIRATION_QUERIES = {
        +        "expected_results "
        + "FROM expiration_notify "
        + "GROUP BY url",
-    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN |
-             ACTION.IDLE | ACTION.DEBUG
+    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN_DIRTY |
+             ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY | ACTION.DEBUG
   },
 
   
   QUERY_DELETE_NOTIFICATIONS: {
     sql: "DELETE FROM expiration_notify",
-    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN |
-             ACTION.IDLE | ACTION.DEBUG
+    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN_DIRTY |
+             ACTION.IDLE_DIRTY | ACTION.IDLE_DAILY | ACTION.DEBUG
   },
 
   
@@ -409,22 +422,22 @@ const EXPIRATION_QUERIES = {
 
   QUERY_ANALYZE_MOZ_PLACES: {
     sql: "ANALYZE moz_places",
-    actions: ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY | ACTION.IDLE |
-             ACTION.DEBUG
+    actions: ACTION.TIMED_OVERLIMIT | ACTION.TIMED_ANALYZE |
+             ACTION.CLEAR_HISTORY | ACTION.IDLE_DAILY | ACTION.DEBUG
   },
   QUERY_ANALYZE_MOZ_BOOKMARKS: {
     sql: "ANALYZE moz_bookmarks",
-    actions: ACTION.IDLE | ACTION.DEBUG
+    actions: ACTION.TIMED_ANALYZE | ACTION.IDLE_DAILY | ACTION.DEBUG
   },
   QUERY_ANALYZE_MOZ_HISTORYVISITS: {
     sql: "ANALYZE moz_historyvisits",
-    actions: ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY | ACTION.IDLE |
-             ACTION.DEBUG
+    actions: ACTION.TIMED_OVERLIMIT | ACTION.TIMED_ANALYZE |
+             ACTION.CLEAR_HISTORY | ACTION.IDLE_DAILY | ACTION.DEBUG
   },
   QUERY_ANALYZE_MOZ_INPUTHISTORY: {
     sql: "ANALYZE moz_inputhistory",
-    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY |
-             ACTION.IDLE | ACTION.DEBUG
+    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.TIMED_ANALYZE |
+             ACTION.CLEAR_HISTORY | ACTION.IDLE_DAILY | ACTION.DEBUG
   },
 };
 
@@ -480,6 +493,7 @@ function nsPlacesExpiration()
   
   Services.obs.addObserver(this, TOPIC_SHUTDOWN, false);
   Services.obs.addObserver(this, TOPIC_DEBUG_START_EXPIRATION, false);
+  Services.obs.addObserver(this, TOPIC_IDLE_DAILY, false);
 
   
   this._newTimer();
@@ -496,6 +510,7 @@ nsPlacesExpiration.prototype = {
       this._shuttingDown = true;
       Services.obs.removeObserver(this, TOPIC_SHUTDOWN);
       Services.obs.removeObserver(this, TOPIC_DEBUG_START_EXPIRATION);
+      Services.obs.removeObserver(this, TOPIC_IDLE_DAILY);
 
       this._prefBranch.removeObserver("", this);
 
@@ -512,8 +527,8 @@ nsPlacesExpiration.prototype = {
         Date.now() - this._lastClearHistoryTime <
           SHUTDOWN_WITH_RECENT_CLEARHISTORY_TIMEOUT_SECONDS * 1000;
       let action = hasRecentClearHistory ||
-                   this.status != STATUS.DIRTY ? ACTION.CLEAN_SHUTDOWN
-                                               : ACTION.SHUTDOWN;
+                   this.status != STATUS.DIRTY ? ACTION.SHUTDOWN_CLEAN
+                                               : ACTION.SHUTDOWN_DIRTY;
       this._expireWithActionAndLimit(action, LIMIT.LARGE);
       this._finalizeInternalStatements();
     }
@@ -558,12 +573,15 @@ nsPlacesExpiration.prototype = {
         this._timer = null;
       }
       if (this.expireOnIdle)
-        this._expireWithActionAndLimit(ACTION.IDLE, LIMIT.LARGE);
+        this._expireWithActionAndLimit(ACTION.IDLE_DIRTY, LIMIT.LARGE);
     }
     else if (aTopic == TOPIC_IDLE_END) {
       
       if (!this._timer)
         this._newTimer();
+    }
+    else if (aTopic == TOPIC_IDLE_DAILY) {
+      this._expireWithActionAndLimit(ACTION.IDLE_DAILY, LIMIT.LARGE);
     }
   },
 
@@ -612,28 +630,18 @@ nsPlacesExpiration.prototype = {
   notify: function PEX_timerCallback()
   {
     
-    if (!this._cachedStatements["LIMIT_COUNT"]) {
-      this._cachedStatements["LIMIT_COUNT"] = this._db.createAsyncStatement(
-        "SELECT COUNT(*) FROM moz_places"
-      );
-    }
-    let self = this;
-    this._cachedStatements["LIMIT_COUNT"].executeAsync({
-      handleResult: function(aResults) {
-        let row = aResults.getNextRow();
-        self._overLimit = row.getResultByIndex(0) > self._urisLimit;
-      },
-      handleCompletion: function (aReason) {
-        if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED)
-          return;
-        let action = self._overLimit ? ACTION.TIMED_OVERLIMIT : ACTION.TIMED;
-        self._expireWithActionAndLimit(action, LIMIT.SMALL);
-      },
-      handleError: function(aError) {
-        Cu.reportError("Async statement execution returned with '" +
-                       aError.result + "', '" + aError.message + "'");
+    this._getPagesStats((function onPagesCount(aPagesCount, aStatsCount) {
+      this._overLimit = aPagesCount > this._urisLimit;
+      let action = this._overLimit ? ACTION.TIMED_OVERLIMIT : ACTION.TIMED;
+
+      
+      
+      if (Math.abs(aPagesCount - aStatsCount) >= ANALYZE_PAGES_THRESHOLD) {
+        action = action | ACTION.TIMED_ANALYZE;
       }
-    });
+
+      this._expireWithActionAndLimit(action, LIMIT.SMALL);
+    }).bind(this));
   },
 
   
@@ -796,6 +804,41 @@ nsPlacesExpiration.prototype = {
 
 
 
+  _getPagesStats: function PEX__getPagesStats(aCallback) {
+    if (!this._cachedStatements["LIMIT_COUNT"]) {
+      this._cachedStatements["LIMIT_COUNT"] = this._db.createAsyncStatement(
+        "SELECT (SELECT COUNT(*) FROM moz_places), "
+      +        "(SELECT SUBSTR(stat,1,LENGTH(stat)-2) FROM sqlite_stat1 "
+      +         "WHERE idx = 'moz_places_url_uniqueindex')"
+      );
+    }
+    this._cachedStatements["LIMIT_COUNT"].executeAsync({
+      _pagesCount: 0,
+      _statsCount: 0,
+      handleResult: function(aResults) {
+        let row = aResults.getNextRow();
+        this._pagesCount = row.getResultByIndex(0);
+        this._statsCount = row.getResultByIndex(1);
+      },
+      handleCompletion: function (aReason) {
+        if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+          aCallback(this._pagesCount, this._statsCount);
+        }
+      },
+      handleError: function(aError) {
+        Cu.reportError("Async statement execution returned with '" +
+                       aError.result + "', '" + aError.message + "'");
+      }
+    });
+  },
+
+  
+
+
+
+
+
+
 
 
   _expireWithActionAndLimit:
@@ -806,7 +849,7 @@ nsPlacesExpiration.prototype = {
       return;
     
     if (this._shuttingDown &&
-        aAction != ACTION.SHUTDOWN && aAction != ACTION.CLEAN_SHUTDOWN) {
+        aAction != ACTION.SHUTDOWN_DIRTY && aAction != ACTION.SHUTDOWN_CLEAN) {
       return;
     }
 
