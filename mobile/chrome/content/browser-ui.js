@@ -671,6 +671,35 @@ var BrowserUI = {
   },
 #endif
 
+  handleEscape: function () {
+    
+    let dialog = this.activeDialog;
+    if (dialog) {
+      dialog.close();
+      return;
+    }
+    
+    
+    if (this._popup) {
+      this._hidePopup();
+      return;
+    }
+      
+    
+    let modalElementsLength = document.getElementsByClassName("modal-block").length;
+    if (modalElementsLength > 0) 
+      return;
+
+    
+    if (this.isPanelVisible()) {
+      this.hidePanel();
+      return;
+    }
+
+    
+    Browser.selectedBrowser.goBack();
+  },
+
   handleEvent: function (aEvent) {
     switch (aEvent.type) {
       
@@ -704,11 +733,8 @@ var BrowserUI = {
       }
       
       case "keypress":
-        if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE) {
-          let dialog = this.activeDialog;
-          if (dialog)
-            dialog.close();
-        }
+        if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE)
+          this.handleEscape();
         break;
       case "AppCommand":
         aEvent.stopPropagation();
