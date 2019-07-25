@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: sw=4 ts=4 et :
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Plugin App.
+ *
+ * The Initial Developer of the Original Code is
+ *   Chris Jones <jones.chris.g@gmail.com>
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Jim Mathies <jmathies@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "PluginInstanceParent.h"
 
@@ -49,10 +49,13 @@
 #if defined(OS_WIN)
 #include <windowsx.h>
 
-
+// Plugin focus event for widget.
 extern const PRUnichar* kOOPPPluginFocusEventId;
 UINT gOOPPPluginFocusEvent =
     RegisterWindowMessage(kOOPPPluginFocusEventId);
+extern const PRUnichar* kOOPPGetBaseMessageEventId;
+UINT gOOPPGetBaseMessageEvent =
+    RegisterWindowMessage(kOOPPGetBaseMessageEventId);
 UINT gOOPPSpinNativeLoopEvent =
     RegisterWindowMessage(L"SyncChannel Spin Inner Loop Message");
 UINT gOOPPStopNativeLoopEvent =
@@ -71,7 +74,7 @@ PluginInstanceParent::PluginInstanceParent(PluginModuleParent* parent,
 #if defined(OS_WIN)
     , mPluginHWND(NULL)
     , mPluginWndProc(NULL)
-#endif 
+#endif // defined(XP_WIN)
 {
 }
 
@@ -104,19 +107,19 @@ ActorCollect(const void* aKey,
     return objects->AppendElement(aData) ? PL_DHASH_NEXT : PL_DHASH_STOP;
 }
 
-} 
+} // anonymous namespace
 
 void
 PluginInstanceParent::ActorDestroy(ActorDestroyReason why)
 {
 #if defined(OS_WIN)
     if (why == AbnormalShutdown) {
-        
-        
+        // If the plugin process crashes, this is the only
+        // chance we get to destroy resources.
         SharedSurfaceRelease();
         UnsubclassPluginWindow();
-        
-        
+        // If we crashed in a modal loop in the child, reset
+        // the rpc event spin loop state.
         if (mNestedEventState) {
             mNestedEventState = false;
             PostThreadMessage(GetCurrentThreadId(),
@@ -398,9 +401,9 @@ PluginInstanceParent::NPP_SetWindow(const NPWindow* aWindow)
     mWindowType = aWindow->type;
 
 #if defined(OS_WIN)
-    
+    // On windowless controls, reset the shared memory surface as needed.
     if (mWindowType == NPWindowTypeDrawable) {
-        
+        // SharedSurfaceSetWindow will take care of NPRemoteWindow.
         if (!SharedSurfaceSetWindow(aWindow, window)) {
           return NPERR_OUT_OF_MEMORY_ERROR;
         }
@@ -421,7 +424,7 @@ PluginInstanceParent::NPP_SetWindow(const NPWindow* aWindow)
     window.y = aWindow->y;
     window.width = aWindow->width;
     window.height = aWindow->height;
-    window.clipRect = aWindow->clipRect; 
+    window.clipRect = aWindow->clipRect; // MacOS specific
     window.type = aWindow->type;
 #endif
 
@@ -444,39 +447,7 @@ PluginInstanceParent::NPP_GetValue(NPPVariable aVariable,
 {
     switch (aVariable) {
 
-    case NPPVpluginWindowBool: {
-        bool windowed;
-        NPError rv;
-
-        if (!CallNPP_GetValue_NPPVpluginWindow(&windowed, &rv)) {
-            return NPERR_GENERIC_ERROR;
-        }
-
-        if (NPERR_NO_ERROR != rv) {
-            return rv;
-        }
-
-        (*(NPBool*)_retval) = windowed;
-        return NPERR_NO_ERROR;
-    }
-
-    case NPPVpluginTransparentBool: {
-        bool transparent;
-        NPError rv;
-
-        if (!CallNPP_GetValue_NPPVpluginTransparent(&transparent, &rv)) {
-            return NPERR_GENERIC_ERROR;
-        }
-
-        if (NPERR_NO_ERROR != rv) {
-            return rv;
-        }
-
-        (*(NPBool*)_retval) = transparent;
-        return NPERR_NO_ERROR;
-    }
-
-#ifdef OS_LINUX
+#ifdef MOZ_X11
     case NPPVpluginNeedsXEmbed: {
         bool needsXEmbed;
         NPError rv;
@@ -561,7 +532,7 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
     NPEvent* npevent = reinterpret_cast<NPEvent*>(event);
     NPRemoteEvent npremoteevent;
     npremoteevent.event = *npevent;
-    int16_t handled;
+    int16_t handled = 0;
 
 #if defined(OS_WIN)
     if (mWindowType == NPWindowTypeDrawable) {
@@ -572,13 +543,52 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
                 SharedSurfaceBeforePaint(rect, npremoteevent);
                 CallNPP_HandleEvent(npremoteevent, &handled);
                 SharedSurfaceAfterPaint(npevent);
+                return handled;
             }
             break;
-            default:
-                if (!CallNPP_HandleEvent(npremoteevent, &handled))
-                    return 0;
+
+            case WM_KILLFOCUS:
+            {
+              // When the user selects fullscreen mode in Flash video players,
+              // WM_KILLFOCUS will be delayed by deferred event processing:
+              // WM_LBUTTONUP results in a call to CreateWindow within Flash,
+              // which fires WM_KILLFOCUS. Delayed delivery causes Flash to
+              // misinterpret the event, dropping back out of fullscreen. Trap
+              // this event and drop it.
+              PRUnichar szClass[26];
+              HWND hwnd = GetForegroundWindow();
+              if (hwnd && hwnd != mPluginHWND &&
+                  GetClassNameW(hwnd, szClass,
+                                sizeof(szClass)/sizeof(PRUnichar)) &&
+                  !wcscmp(szClass, L"ShockwaveFlashFullScreen")) {
+                  return 0;
+              }
+            }
+            break;
+
+            case WM_IME_SETCONTEXT:
+            {
+              // Children can activate the underlying parent browser window
+              // generating nested events that arrive here. Check the base
+              // event this event was triggered by and unlock the child using
+              // ReplyMessage if needed.
+              HWND hwnd = NULL;
+              UINT baseMsg = 0;
+              mNPNIface->getvalue(mNPP, NPNVnetscapeWindow, &hwnd);
+              NS_ASSERTION(GetWindowThreadProcessId(hwnd, nsnull) ==
+                           GetCurrentThreadId(),
+                           "hwnd belongs to another thread!");
+              if (hwnd &&
+                  SendMessage(hwnd, gOOPPGetBaseMessageEvent,
+                              (WPARAM)&baseMsg, 0) &&
+                  baseMsg == WM_ACTIVATE) {
+                  ReplyMessage(0);
+              }
+            }
             break;
         }
+        if (!CallNPP_HandleEvent(npremoteevent, &handled))
+            return 0;
     }
     else {
         if (!CallNPP_HandleEvent(npremoteevent, &handled))
@@ -590,20 +600,22 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
     if (GraphicsExpose == npevent->type) {
         PLUGIN_LOG_DEBUG(("  schlepping drawable 0x%lx across the pipe\n",
                           npevent->xgraphicsexpose.drawable));
-        
-        
-        
-        
-        
-        
-        
+        // Make sure the X server has created the Drawable and completes any
+        // drawing before the plugin draws on top.
+        //
+        // XSync() waits for the X server to complete.  Really this parent
+        // process does not need to wait; the child is the process that needs
+        // to wait.  A possibly-slightly-better alternative would be to send
+        // an X event to the child that the child would wait for.
 #  ifdef MOZ_WIDGET_GTK2
         XSync(GDK_DISPLAY(), False);
+#  elif defined(MOZ_WIDGET_QT)
+        XSync(QX11Info::display(), False);
 #  endif
     }
 
     if (!CallNPP_HandleEvent(npremoteevent, &handled))
-        return 0; 
+        return 0; // no good way to handle errors here...
 #endif
 
     return handled;
@@ -665,7 +677,7 @@ PluginInstanceParent::NPP_DestroyStream(NPStream* stream, NPReason reason)
 void
 PluginInstanceParent::NPP_Print(NPPrint* platformPrint)
 {
-    
+    // TODO: implement me
     NS_ERROR("Not implemented");
 }
 
@@ -697,8 +709,8 @@ ActorSearch(const void* aKey,
     return PL_DHASH_NEXT;
 }
 
-} 
-#endif 
+} // anonymous namespace
+#endif // DEBUG
 
 bool
 PluginInstanceParent::DeallocPPluginScriptableObject(
@@ -729,9 +741,9 @@ bool
 PluginInstanceParent::AnswerPPluginScriptableObjectConstructor(
                                           PPluginScriptableObjectParent* aActor)
 {
-    
-    
-    
+    // This is only called in response to the child process requesting the
+    // creation of an actor. This actor will represent an NPObject that is
+    // created by the plugin and returned to the browser.
     PluginScriptableObjectParent* actor =
         static_cast<PluginScriptableObjectParent*>(aActor);
     NS_ASSERTION(!actor->GetObject(false), "Actor already has an object?!");
@@ -780,7 +792,7 @@ PluginInstanceParent::GetActorForNPObject(NPObject* aObject)
     NS_ASSERTION(aObject, "Null pointer!");
 
     if (aObject->_class == PluginScriptableObjectParent::GetClass()) {
-        
+        // One of ours!
         ParentNPObject* object = static_cast<ParentNPObject*>(aObject);
         NS_ASSERTION(object->parent, "Null actor!");
         return object->parent;
@@ -878,24 +890,24 @@ PluginInstanceParent::AnswerNPN_GetAuthenticationInfo(const nsCString& protocol,
 
 #if defined(OS_WIN)
 
+/*
+  plugin focus changes between processes
 
+  focus from dom -> child:
+    Focs manager calls on widget to set the focus on the window.
+    We pick up the resulting wm_setfocus event here, and forward
+    that over ipc to the child which calls set focus on itself. 
 
-
-
-
-
-
-
-
-
-
-
-
+  focus from child -> focus manager:
+    Child picks up the local wm_setfocus and sends it via ipc over
+    here. We then post a custom event to widget/src/windows/nswindow
+    which fires off a gui event letting the browser know.
+*/
 
 static const PRUnichar kPluginInstanceParentProperty[] =
                          L"PluginInstanceParentProperty";
 
-
+// static
 LRESULT CALLBACK
 PluginInstanceParent::PluginWindowHookProc(HWND hWnd,
                                            UINT message,
@@ -913,11 +925,8 @@ PluginInstanceParent::PluginWindowHookProc(HWND hWnd,
 
     switch (message) {
         case WM_SETFOCUS:
-        
-        
-        
-        if ((::InSendMessageEx(NULL) & ISMEX_SEND|ISMEX_REPLIED) != ISMEX_SEND)
-            self->CallSetPluginFocus();
+        // Let the child plugin window know it should take focus.
+        self->CallSetPluginFocus();
         break;
 
         case WM_CLOSE:
@@ -962,27 +971,27 @@ PluginInstanceParent::UnsubclassPluginWindow()
     }
 }
 
+/* windowless drawing helpers */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Origin info:
+ *
+ * windowless, offscreen:
+ *
+ * WM_WINDOWPOSCHANGED: origin is relative to container 
+ * setwindow: origin is 0,0
+ * WM_PAINT: origin is 0,0
+ *
+ * windowless, native:
+ *
+ * WM_WINDOWPOSCHANGED: origin is relative to container 
+ * setwindow: origin is relative to container
+ * WM_PAINT: origin is relative to container
+ *
+ * PluginInstanceParent:
+ *
+ * painting: mPluginPort (nsIntRect, saved in SetWindow)
+ */
 
 void
 PluginInstanceParent::SharedSurfaceRelease()
@@ -1003,26 +1012,26 @@ PluginInstanceParent::SharedSurfaceSetWindow(const NPWindow* aWindow,
 
     nsIntRect newPort(aWindow->x, aWindow->y, aWindow->width, aWindow->height);
 
-    
+    // save the the rect location within the browser window.
     mPluginPort = newPort;
 
-    
+    // move the port to our shared surface origin
     newPort.MoveTo(0,0);
 
-    
+    // check to see if we have the room in shared surface
     if (mSharedSurfaceDib.IsValid() && mSharedSize.Contains(newPort)) {
-      
+      // ok to paint
       aRemoteWindow.surfaceHandle = 0;
       return true;
     }
 
-    
+    // allocate a new shared surface
     SharedSurfaceRelease();
     if (NS_FAILED(mSharedSurfaceDib.Create(reinterpret_cast<HDC>(aWindow->window),
                                            newPort.width, newPort.height, 32)))
       return false;
 
-    
+    // save the new shared surface size we just allocated
     mSharedSize = newPort;
 
     base::SharedMemoryHandle handle;
@@ -1042,7 +1051,7 @@ PluginInstanceParent::SharedSurfaceBeforePaint(RECT& rect,
     HDC parentHdc = (HDC)npremoteevent.event.wParam;
 
     nsIntRect dirtyRect(dr->left, dr->top, dr->right-dr->left, dr->bottom-dr->top);
-    dirtyRect.MoveBy(-mPluginPort.x, -mPluginPort.y); 
+    dirtyRect.MoveBy(-mPluginPort.x, -mPluginPort.y); // should always be smaller than dirtyRect
 
     ::BitBlt(mSharedSurfaceDib.GetHDC(),
              dirtyRect.x,
@@ -1054,7 +1063,7 @@ PluginInstanceParent::SharedSurfaceBeforePaint(RECT& rect,
              dr->top,
              SRCCOPY);
 
-    
+    // setup the translated dirty rect we'll send to the child
     rect.left   = dirtyRect.x;
     rect.top    = dirtyRect.y;
     rect.right  = dirtyRect.x + dirtyRect.width;
@@ -1073,7 +1082,7 @@ PluginInstanceParent::SharedSurfaceAfterPaint(NPEvent* npevent)
     nsIntRect dirtyRect(dr->left, dr->top, dr->right-dr->left, dr->bottom-dr->top);
     dirtyRect.MoveBy(-mPluginPort.x, -mPluginPort.y);
 
-    
+    // src copy the shared dib into the parent surface we are handed.
     ::BitBlt(parentHdc,
              dr->left,
              dr->top,
@@ -1085,17 +1094,17 @@ PluginInstanceParent::SharedSurfaceAfterPaint(NPEvent* npevent)
              SRCCOPY);
 }
 
-#endif 
+#endif // defined(OS_WIN)
 
 bool
 PluginInstanceParent::AnswerPluginGotFocus()
 {
     PLUGIN_LOG_DEBUG(("%s", FULLFUNCTION));
 
-    
-    
-    
-    
+    // Currently only in use on windows - an rpc event we receive from the
+    // child when it's plugin window (or one of it's children) receives keyboard
+    // focus. We forward the event down to widget so the dom/focus manager can
+    // be updated.
 #if defined(OS_WIN)
     ::SendMessage(mPluginHWND, gOOPPPluginFocusEvent, 0, 0);
     return true;

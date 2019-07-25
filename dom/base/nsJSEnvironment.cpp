@@ -2735,9 +2735,10 @@ nsJSContext::ConvertSupportsTojsvals(nsISupports *aArgs,
 
   void *mark = JS_ARENA_MARK(&mContext->tempPool);
   jsval *argv;
-  JS_ARENA_ALLOCATE_CAST(argv, jsval *, &mContext->tempPool,
-                         argCount * sizeof(jsval));
+  size_t nbytes = argCount * sizeof(jsval);
+  JS_ARENA_ALLOCATE_CAST(argv, jsval *, &mContext->tempPool, nbytes);
   NS_ENSURE_TRUE(argv, NS_ERROR_OUT_OF_MEMORY);
+  memset(argv, 0, nbytes);  
 
   
   aPoolRelease.construct(&mContext->tempPool, mark);

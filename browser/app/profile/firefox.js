@@ -865,6 +865,7 @@ pref("browser.bookmarks.editDialog.firstEditField", "namePicker");
 
 
 pref("geo.wifi.uri", "https://www.google.com/loc/json");
+pref("geo.wifi.protocol", 0);
 
 #ifdef WINCE
 

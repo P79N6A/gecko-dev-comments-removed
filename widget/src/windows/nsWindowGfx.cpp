@@ -339,15 +339,40 @@ PRBool nsWindow::OnPaint(HDC aDC)
     return PR_FALSE;
 
   if (mWindowType == eWindowType_plugin) {
+
+    
+
+
+
+
+
+    RECT updateRect;
+    if (!GetUpdateRect(mWnd, &updateRect, FALSE) ||
+        (updateRect.left == updateRect.right &&
+         updateRect.top == updateRect.bottom)) {
+      PAINTSTRUCT ps;
+      BeginPaint(mWnd, &ps);
+      EndPaint(mWnd, &ps);
+      return PR_TRUE;
+    }
+
     PluginInstanceParent* instance = reinterpret_cast<PluginInstanceParent*>(
       ::GetPropW(mWnd, L"PluginInstanceParentProperty"));
     if (instance) {
-      if (!instance->CallUpdateWindow())
-        NS_ERROR("Failed to send message!");
+      instance->CallUpdateWindow();
       ValidateRect(mWnd, NULL);
       return PR_TRUE;
     }
   }
+#endif
+
+#ifdef MOZ_IPC
+  
+  
+  
+  
+  if (mozilla::ipc::RPCChannel::IsSpinLoopActive() && mPainting)
+    return PR_FALSE;
 #endif
 
   nsPaintEvent willPaintEvent(PR_TRUE, NS_WILL_PAINT, this);

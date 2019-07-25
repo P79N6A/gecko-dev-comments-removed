@@ -355,6 +355,23 @@ public:
     };
 
 protected:
+
+    
+
+
+
+    static PRUint32 sNumLivingContexts;
+
+    
+
+
+    static PRUint8 (*sUnpremultiplyTable)[256];
+
+    
+
+
+    static PRUint8 (*sPremultiplyTable)[256];
+
     
     void Destroy();
 
@@ -369,6 +386,16 @@ protected:
 
 
     void ApplyStyle(Style aWhichStyle, PRBool aUseGlobalAlpha = PR_TRUE);
+
+    
+
+
+    void EnsureUnpremultiplyTable();
+
+    
+
+
+    void EnsurePremultiplyTable();
 
     
     PRInt32 mWidth, mHeight;
@@ -652,6 +679,12 @@ NS_INTERFACE_MAP_END
 
 
 
+
+
+PRUint32 nsCanvasRenderingContext2D::sNumLivingContexts = 0;
+PRUint8 (*nsCanvasRenderingContext2D::sUnpremultiplyTable)[256] = nsnull;
+PRUint8 (*nsCanvasRenderingContext2D::sPremultiplyTable)[256] = nsnull;
+
 nsresult
 NS_NewCanvasRenderingContext2D(nsIDOMCanvasRenderingContext2D** aResult)
 {
@@ -668,11 +701,20 @@ nsCanvasRenderingContext2D::nsCanvasRenderingContext2D()
       mSaveCount(0), mIsEntireFrameInvalid(PR_FALSE), mInvalidateCount(0),
       mLastStyle(STYLE_MAX), mStyleStack(20)
 {
+    sNumLivingContexts++;
 }
 
 nsCanvasRenderingContext2D::~nsCanvasRenderingContext2D()
 {
     Destroy();
+
+    sNumLivingContexts--;
+    if (!sNumLivingContexts) {
+        delete sUnpremultiplyTable;
+        delete sPremultiplyTable;
+        sUnpremultiplyTable = nsnull;
+        sPremultiplyTable = nsnull;
+    }
 }
 
 void
@@ -3391,6 +3433,32 @@ JS_FRIEND_API(JSObject *)
 js_NewArrayObjectWithCapacity(JSContext *cx, jsuint capacity, jsval **vector);
 }
 
+void
+nsCanvasRenderingContext2D::EnsureUnpremultiplyTable() {
+  if (sUnpremultiplyTable)
+    return;
+
+  
+  sUnpremultiplyTable = new PRUint8[256][256];
+
+  
+  
+  
+  
+  
+
+  
+  for (PRUint32 c = 0; c <= 255; c++) {
+    sUnpremultiplyTable[0][c] = c;
+  }
+
+  for (int a = 1; a <= 255; a++) {
+    for (int c = 0; c <= 255; c++) {
+      sUnpremultiplyTable[a][c] = (PRUint8)((c * 255) / a);
+    }
+  }
+}
+
 
 
 NS_IMETHODIMP
@@ -3470,12 +3538,12 @@ nsCanvasRenderingContext2D::GetImageData()
     nsAutoGCRoot arrayGCRoot(&dataArray, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    EnsureUnpremultiplyTable();
+
     PRUint8 *row;
     for (int j = 0; j < h; j++) {
         row = surfaceData + surfaceDataOffset + (surfaceDataStride * j);
         for (int i = 0; i < w; i++) {
-            
-            
 #ifdef IS_LITTLE_ENDIAN
             PRUint8 b = *row++;
             PRUint8 g = *row++;
@@ -3488,15 +3556,10 @@ nsCanvasRenderingContext2D::GetImageData()
             PRUint8 b = *row++;
 #endif
             
-            if (a != 0) {
-                r = (r * 255) / a;
-                g = (g * 255) / a;
-                b = (b * 255) / a;
-            }
 
-            *dest++ = INT_TO_JSVAL(r);
-            *dest++ = INT_TO_JSVAL(g);
-            *dest++ = INT_TO_JSVAL(b);
+            *dest++ = INT_TO_JSVAL(sUnpremultiplyTable[a][r]);
+            *dest++ = INT_TO_JSVAL(sUnpremultiplyTable[a][g]);
+            *dest++ = INT_TO_JSVAL(sUnpremultiplyTable[a][b]);
             *dest++ = INT_TO_JSVAL(a);
         }
     }
@@ -3551,6 +3614,25 @@ static inline PRUint8 ToUint8(double aInput)
     }
 
     return retval;
+}
+
+void
+nsCanvasRenderingContext2D::EnsurePremultiplyTable() {
+  if (sPremultiplyTable)
+    return;
+
+  
+  sPremultiplyTable = new PRUint8[256][256];
+
+  
+  
+  
+
+  for (int a = 0; a <= 255; a++) {
+    for (int c = 0; c <= 255; c++) {
+      sPremultiplyTable[a][c] = (a * c + 254) / 255;
+    }
+  }
 }
 
 
@@ -3624,6 +3706,8 @@ nsCanvasRenderingContext2D::PutImageData()
 
     PRUint8 *imgPtr = imageBuffer.get();
 
+    EnsurePremultiplyTable();
+
     JSBool canFastPath =
         js_CoerceArrayToCanvasImageData(dataArray, 0, w*h*4, imageBuffer);
 
@@ -3663,9 +3747,9 @@ nsCanvasRenderingContext2D::PutImageData()
                 else return NS_ERROR_DOM_SYNTAX_ERR;
 
                 
-                ir = (ir*ia + 254) / 255;
-                ig = (ig*ia + 254) / 255;
-                ib = (ib*ia + 254) / 255;
+                ir = sPremultiplyTable[ia][ir];
+                ig = sPremultiplyTable[ia][ig];
+                ib = sPremultiplyTable[ia][ib];
 
 #ifdef IS_LITTLE_ENDIAN
                 *imgPtr++ = ib;
@@ -3682,7 +3766,6 @@ nsCanvasRenderingContext2D::PutImageData()
         }
     } else {
         
-        
         PRUint8 ir, ig, ib, ia;
         PRUint8 *ptr = imgPtr;
         for (int32 i = 0; i < w*h; i++) {
@@ -3692,14 +3775,14 @@ nsCanvasRenderingContext2D::PutImageData()
             ia = ptr[3];
 
 #ifdef IS_LITTLE_ENDIAN
-            ptr[0] = (ib*ia + 254) / 255;
-            ptr[1] = (ig*ia + 254) / 255;
-            ptr[2] = (ir*ia + 254) / 255;
+            ptr[0] = sPremultiplyTable[ia][ib];
+            ptr[1] = sPremultiplyTable[ia][ig];
+            ptr[2] = sPremultiplyTable[ia][ir];
 #else
             ptr[0] = ia;
-            ptr[1] = (ir*ia + 254) / 255;
-            ptr[2] = (ig*ia + 254) / 255;
-            ptr[3] = (ib*ia + 254) / 255;
+            ptr[1] = sPremultiplyTable[ia][ir];
+            ptr[2] = sPremultiplyTable[ia][ig];
+            ptr[3] = sPremultiplyTable[ia][ib];
 #endif
             ptr += 4;
         }
