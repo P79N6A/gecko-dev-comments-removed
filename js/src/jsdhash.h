@@ -580,7 +580,9 @@ extern JS_PUBLIC_API(uint32_t)
 JS_DHashTableEnumerate(JSDHashTable *table, JSDHashEnumerator etor, void *arg);
 
 typedef size_t
-(* JSDHashSizeOfEntryFun)(JSDHashEntryHdr *hdr, JSMallocSizeOfFun mallocSizeOf);
+(* JSDHashSizeOfEntryExcludingThisFun)(JSDHashEntryHdr *hdr,
+                                       JSMallocSizeOfFun mallocSizeOf,
+                                       void *arg);
 
 
 
@@ -590,16 +592,18 @@ typedef size_t
 
 extern JS_PUBLIC_API(size_t)
 JS_DHashTableSizeOfExcludingThis(const JSDHashTable *table,
-                                 JSDHashSizeOfEntryFun sizeOfEntry,
-                                 JSMallocSizeOfFun mallocSizeOf);
+                                 JSDHashSizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
+                                 JSMallocSizeOfFun mallocSizeOf,
+                                 void *arg = NULL);
 
 
 
 
 extern JS_PUBLIC_API(size_t)
 JS_DHashTableSizeOfIncludingThis(const JSDHashTable *table,
-                                 JSDHashSizeOfEntryFun sizeOfEntry,
-                                 JSMallocSizeOfFun mallocSizeOf);
+                                 JSDHashSizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
+                                 JSMallocSizeOfFun mallocSizeOf,
+                                 void *arg = NULL);
 
 #ifdef DEBUG
 

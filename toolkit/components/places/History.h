@@ -115,7 +115,7 @@ public:
 
 
 
-  PRInt64 SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf);
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf);
 
   
 
@@ -196,7 +196,10 @@ private:
   
 
 
-  static PLDHashOperator SizeOfEnumerator(KeyClass* aEntry, void* aArg);
+
+  static size_t SizeOfEntryExcludingThis(KeyClass* aEntry,
+                                         nsMallocSizeOfFun aMallocSizeOf,
+                                         void*);
 
   nsTHashtable<KeyClass> mObservers;
 };
