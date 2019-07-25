@@ -227,17 +227,15 @@ var Browser = {
       if (e.target != window)
         return;
 
-      
       let w = window.innerWidth;
       let h = window.innerHeight;
+
+      
       let maximize = (document.documentElement.getAttribute("sizemode") == "maximized");
       if (maximize && w > screen.width)
         return;
 
       let toolbarHeight = Math.round(document.getElementById("toolbar-main").getBoundingClientRect().height);
-      let scaledDefaultH = (kDefaultBrowserWidth * (h / w));
-      let scaledScreenH = (window.screen.width * (h / w));
-      let dpiScale = Services.prefs.getIntPref("zoom.dpiScale") / 100;
 
       Browser.styles["window-width"].width = w + "px";
       Browser.styles["window-height"].height = h + "px";
@@ -249,8 +247,11 @@ var Browser = {
       
       Browser.hideSidebars();
 
+      let oldWidth = window.cachedWidth || w;
+      window.cachedWidth = w;
+
       for (let i = Browser.tabs.length - 1; i >= 0; i--)
-        Browser.tabs[i].updateViewportSize();
+        Browser.tabs[i].updateViewportSize(w / oldWidth);
 
       
       
@@ -2361,15 +2362,19 @@ Tab.prototype = {
   },
 
   
-  updateViewportSize: function updateViewportSize() {
+
+
+
+  updateViewportSize: function updateViewportSize(aRatio) {
     let browser = this._browser;
     if (!browser)
       return;
 
+    let screenW = window.innerWidth;
+    let screenH = window.innerHeight;
+
     let metadata = this.metadata;
     if (!metadata.autoSize) {
-      let screenW = window.innerWidth;
-      let screenH = window.innerHeight;
       let viewportW = metadata.width;
       let viewportH = metadata.height;
 
@@ -2391,11 +2396,22 @@ Tab.prototype = {
       }
 
       browser.setWindowSize(viewportW, viewportH);
-    }
-    else {
-      let browserBCR = browser.getBoundingClientRect();
-      let w = browserBCR.width;
-      let h = browserBCR.height;
+
+      if (aRatio) {
+        let pos = browser.getPosition();
+
+        
+        let oldScale = browser.scale;
+        let newScale = this.clampZoomLevel(oldScale * aRatio);
+        browser.scale = newScale;
+
+        
+        let scaleRatio = newScale / oldScale;
+        browser.scrollTo(pos.x * scaleRatio, pos.y * scaleRatio);
+      }
+    } else {
+      let w = screenW;
+      let h = screenH;
       if (metadata.defaultZoom != 1.0) {
         let dpiScale = Services.prefs.getIntPref("zoom.dpiScale") / 100;
         w /= dpiScale;
