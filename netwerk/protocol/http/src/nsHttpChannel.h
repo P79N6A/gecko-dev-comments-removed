@@ -129,6 +129,7 @@ public:
 public:  
     typedef void (nsHttpChannel:: *nsAsyncCallback)(void);
     nsHttpResponseHead * GetResponseHead() const { return mResponseHead; }
+    void SetRemoteChannel() { mRemoteChannel = 1; }
 
     nsresult SetReferrerInternal(nsIURI *referrer) {
         nsCAutoString spec;
@@ -351,6 +352,8 @@ private:
     
     
     PRUint32                          mCustomConditionalRequest : 1;
+    
+    PRUint32                          mRemoteChannel : 1;
 
     class nsContentEncodings : public nsIUTF8StringEnumerator
     {

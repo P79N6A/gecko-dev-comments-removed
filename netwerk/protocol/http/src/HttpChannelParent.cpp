@@ -108,6 +108,7 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
     return false;       
 
   nsHttpChannel *httpChan = static_cast<nsHttpChannel *>(mChannel.get());
+  httpChan->SetRemoteChannel();
 
   if (originalUri)
     httpChan->SetOriginalURI(originalUri);
