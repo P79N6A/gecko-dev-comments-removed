@@ -450,6 +450,8 @@ namespace js {
 static JS_ALWAYS_INLINE JSFixedString *
 NewShortString(JSContext *cx, const jschar *chars, size_t length)
 {
+    SkipRoot skip(cx, &chars);
+
     
 
 

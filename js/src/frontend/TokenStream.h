@@ -819,8 +819,10 @@ class TokenStream
     unsigned            flags;          
     const jschar        *linebase;      
     const jschar        *prevLinebase;  
+    JS::SkipRoot        linebaseRoot;
+    JS::SkipRoot        prevLinebaseRoot;
     TokenBuf            userbuf;        
-    JS::SkipRoot        userbufRoot;    
+    JS::SkipRoot        userbufRoot;
     const char          *filename;      
     jschar              *sourceMap;     
     void                *listenerTSData;

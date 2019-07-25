@@ -110,13 +110,6 @@ struct Shape;
 
 enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT };
 
-struct BindingName {
-    JSAtom *maybeAtom;
-    BindingKind kind;
-};
-
-typedef Vector<BindingName, 32> BindingNames;
-
 
 
 
@@ -245,7 +238,7 @@ class Bindings
 
 
 
-    bool getLocalNameArray(JSContext *cx, BindingNames *namesp);
+    bool getLocalNameArray(JSContext *cx, Vector<JSAtom *> *namesp);
 
     
 
@@ -592,8 +585,6 @@ struct JSScript : public js::gc::Cell
                                JSVersion version);
     static JSScript *NewScriptFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
 
-    void setVersion(JSVersion v) { version = v; }
-
     
     bool argumentsHasLocalBinding() const { return argsHasLocalBinding_; }
     jsbytecode *argumentsBytecode() const { JS_ASSERT(code[0] == JSOP_ARGUMENTS); return code; }
@@ -613,7 +604,7 @@ struct JSScript : public js::gc::Cell
     bool analyzedArgsUsage() const { return !needsArgsAnalysis_; }
     bool needsArgsObj() const { JS_ASSERT(analyzedArgsUsage()); return needsArgsObj_; }
     void setNeedsArgsObj(bool needsArgsObj);
-    bool applySpeculationFailed(JSContext *cx);
+    static bool applySpeculationFailed(JSContext *cx, JSScript *script);
 
     
     JSScript *&evalHashLink() { return *globalObject.unsafeGetUnioned(); }

@@ -66,6 +66,9 @@ class JSONParser
     mozilla::RangedPtr<const jschar> current;
     const mozilla::RangedPtr<const jschar> end;
 
+    
+    js::SkipRoot root;
+
     js::Value v;
 
     const ParsingMode parsingMode;
@@ -95,6 +98,7 @@ class JSONParser
       : cx(cx),
         current(data, length),
         end(data + length, data, length),
+        root(cx, this),
         parsingMode(parsingMode),
         errorHandling(errorHandling)
 #ifdef DEBUG
@@ -176,4 +180,4 @@ class JSONParser
     bool errorReturn();
 };
 
-#endif
+#endif 

@@ -213,10 +213,10 @@ class StringifyContext
 {
   public:
     StringifyContext(JSContext *cx, StringBuffer &sb, const StringBuffer &gap,
-                     JSObject *replacer, const AutoIdVector &propertyList)
+                     HandleObject replacer, const AutoIdVector &propertyList)
       : sb(sb),
         gap(gap),
-        replacer(replacer),
+        replacer(cx, replacer),
         propertyList(propertyList),
         depth(0),
         objectStack(cx)
@@ -232,7 +232,7 @@ class StringifyContext
 
     StringBuffer &sb;
     const StringBuffer &gap;
-    JSObject * const replacer;
+    RootedVarObject replacer;
     const AutoIdVector &propertyList;
     uint32_t depth;
     HashSet<JSObject *> objectStack;
@@ -258,8 +258,8 @@ WriteIndent(JSContext *cx, StringifyContext *scx, uint32_t limit)
 class CycleDetector
 {
   public:
-    CycleDetector(StringifyContext *scx, JSObject *obj)
-      : objectStack(scx->objectStack), obj(obj) {
+    CycleDetector(JSContext *cx, StringifyContext *scx, JSObject *obj)
+      : objectStack(scx->objectStack), obj(cx, obj) {
     }
 
     bool init(JSContext *cx) {
@@ -277,7 +277,7 @@ class CycleDetector
 
   private:
     HashSet<JSObject *> &objectStack;
-    JSObject *const obj;
+    RootedVarObject obj;
 };
 
 template<typename KeyType>
@@ -396,7 +396,7 @@ IsFilteredValue(const Value &v)
 
 
 static JSBool
-JO(JSContext *cx, JSObject *obj, StringifyContext *scx)
+JO(JSContext *cx, HandleObject obj, StringifyContext *scx)
 {
     
 
@@ -409,7 +409,7 @@ JO(JSContext *cx, JSObject *obj, StringifyContext *scx)
 
 
     
-    CycleDetector detect(scx, obj);
+    CycleDetector detect(cx, scx, obj);
     if (!detect.init(cx))
         return JS_FALSE;
 
@@ -481,7 +481,7 @@ JO(JSContext *cx, JSObject *obj, StringifyContext *scx)
 
 
 static JSBool
-JA(JSContext *cx, JSObject *obj, StringifyContext *scx)
+JA(JSContext *cx, HandleObject obj, StringifyContext *scx)
 {
     
 
@@ -494,7 +494,7 @@ JA(JSContext *cx, JSObject *obj, StringifyContext *scx)
 
 
     
-    CycleDetector detect(scx, obj);
+    CycleDetector detect(cx, scx, obj);
     if (!detect.init(cx))
         return JS_FALSE;
 
@@ -599,7 +599,7 @@ Str(JSContext *cx, const Value &v, StringifyContext *scx)
 
     
     JS_ASSERT(v.isObject());
-    JSObject *obj = &v.toObject();
+    RootedVarObject obj(cx, &v.toObject());
 
     scx->depth++;
     JSBool ok;
@@ -614,8 +614,11 @@ Str(JSContext *cx, const Value &v, StringifyContext *scx)
 
 
 JSBool
-js_Stringify(JSContext *cx, Value *vp, JSObject *replacer, Value space, StringBuffer &sb)
+js_Stringify(JSContext *cx, Value *vp, JSObject *replacer_, Value space, StringBuffer &sb)
 {
+    RootedVarObject replacer(cx, replacer_);
+    RootValue spaceRoot(cx, &space);
+
     
     AutoIdVector propertyList(cx);
     if (replacer) {
@@ -928,9 +931,11 @@ static JSFunctionSpec json_static_methods[] = {
 };
 
 JSObject *
-js_InitJSONClass(JSContext *cx, JSObject *obj)
+js_InitJSONClass(JSContext *cx, JSObject *obj_)
 {
-    JSObject *JSON = NewObjectWithClassProto(cx, &JSONClass, NULL, obj);
+    RootedVarObject obj(cx, obj_);
+
+    RootedVarObject JSON(cx, NewObjectWithClassProto(cx, &JSONClass, NULL, obj));
     if (!JSON || !JSON->setSingletonType(cx))
         return NULL;
 

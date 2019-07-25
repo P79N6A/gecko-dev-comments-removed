@@ -1118,7 +1118,7 @@ ic::SplatApplyArgs(VMFrame &f)
     }
 
     
-    JSObject *aobj = &args[1].toObject();
+    RootedVarObject aobj(cx, &args[1].toObject());
     uint32_t length;
     if (!js_GetLengthProperty(cx, aobj, &length))
         THROWV(false);

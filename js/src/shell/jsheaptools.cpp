@@ -352,10 +352,10 @@ HeapReverser::getEdgeDescription()
 class ReferenceFinder {
   public:
     ReferenceFinder(JSContext *cx, const HeapReverser &reverser) 
-      : context(cx), reverser(reverser) { }
+      : context(cx), reverser(reverser), result(cx) { }
 
     
-    JSObject *findReferences(JSObject *target);
+    JSObject *findReferences(HandleObject target);
 
   private:
     
@@ -365,7 +365,7 @@ class ReferenceFinder {
     const HeapReverser &reverser;
 
     
-    JSObject *result;
+    RootedVarObject result;
 
     
     class Path {
@@ -513,6 +513,8 @@ ReferenceFinder::addReferrer(jsval referrer, Path *path)
         return false;
     AutoReleasePtr releasePathName(context, pathName);
 
+    Root<jsval> referrerRoot(context, &referrer);
+
     
     jsval v;
     if (!JS_GetProperty(context, result, pathName, &v))
@@ -528,7 +530,7 @@ ReferenceFinder::addReferrer(jsval referrer, Path *path)
 
     
     JS_ASSERT(JSVAL_IS_OBJECT(v) && !JSVAL_IS_NULL(v));
-    JSObject *array = JSVAL_TO_OBJECT(v);
+    RootedVarObject array(context, JSVAL_TO_OBJECT(v));
     JS_ASSERT(JS_IsArrayObject(context, array));
 
     
@@ -538,7 +540,7 @@ ReferenceFinder::addReferrer(jsval referrer, Path *path)
 }
 
 JSObject *
-ReferenceFinder::findReferences(JSObject *target)
+ReferenceFinder::findReferences(HandleObject target)
 {
     result = JS_NewObject(context, NULL, NULL, NULL);
     if (!result)
@@ -573,7 +575,7 @@ FindReferences(JSContext *cx, unsigned argc, jsval *vp)
 
     
     ReferenceFinder finder(cx, reverser);
-    JSObject *references = finder.findReferences(JSVAL_TO_OBJECT(target));
+    JSObject *references = finder.findReferences(RootedVarObject(cx, JSVAL_TO_OBJECT(target)));
     if (!references)
         return false;
     

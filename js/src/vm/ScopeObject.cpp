@@ -176,10 +176,9 @@ CallObject::create(JSContext *cx, JSScript *script, HandleObject enclosing, Hand
 
 
 
-    JSObject &global = enclosing->global();
-    if (&global != obj->getParent()) {
+    if (&enclosing->global() != obj->getParent()) {
         JS_ASSERT(obj->getParent() == NULL);
-        if (!obj->setParent(cx, &global))
+        if (!JSObject::setParent(cx, obj, RootedVarObject(cx, &enclosing->global())))
             return NULL;
     }
 
@@ -226,7 +225,8 @@ CallObject::createForFunction(JSContext *cx, StackFrame *fp)
 
 
 
-    if (JSAtom *lambdaName = CallObjectLambdaName(fp->fun())) {
+    RootedVarAtom lambdaName(cx, CallObjectLambdaName(fp->fun()));
+    if (lambdaName) {
         scopeChain = DeclEnvObject::create(cx, fp);
         if (!scopeChain)
             return NULL;
@@ -423,7 +423,7 @@ DeclEnvObject::create(JSContext *cx, StackFrame *fp)
     if (!emptyDeclEnvShape)
         return NULL;
 
-    JSObject *obj = JSObject::create(cx, FINALIZE_KIND, emptyDeclEnvShape, type, NULL);
+    RootedVarObject obj(cx, JSObject::create(cx, FINALIZE_KIND, emptyDeclEnvShape, type, NULL));
     if (!obj)
         return NULL;
 
@@ -449,7 +449,7 @@ WithObject::create(JSContext *cx, StackFrame *fp, HandleObject proto, HandleObje
     if (!emptyWithShape)
         return NULL;
 
-    JSObject *obj = JSObject::create(cx, FINALIZE_KIND, emptyWithShape, type, NULL);
+    RootedVarObject obj(cx, JSObject::create(cx, FINALIZE_KIND, emptyWithShape, type, NULL));
     if (!obj)
         return NULL;
 
@@ -694,36 +694,35 @@ Class js::WithClass = {
 };
 
 ClonedBlockObject *
-ClonedBlockObject::create(JSContext *cx, StaticBlockObject &block, StackFrame *fp)
+ClonedBlockObject::create(JSContext *cx, Handle<StaticBlockObject*> block, StackFrame *fp)
 {
     RootedVarTypeObject type(cx);
-    type = block.getNewType(cx);
+    type = block->getNewType(cx);
     if (!type)
         return NULL;
 
     HeapSlot *slots;
-    if (!PreallocateObjectDynamicSlots(cx, block.lastProperty(), &slots))
+    if (!PreallocateObjectDynamicSlots(cx, block->lastProperty(), &slots))
         return NULL;
 
     RootedVarShape shape(cx);
-    shape = block.lastProperty();
+    shape = block->lastProperty();
 
-    JSObject *obj = JSObject::create(cx, FINALIZE_KIND, shape, type, slots);
+    RootedVarObject obj(cx, JSObject::create(cx, FINALIZE_KIND, shape, type, slots));
     if (!obj)
         return NULL;
 
     
-    JSObject &global = fp->global();
-    if (&global != obj->getParent()) {
+    if (&fp->global() != obj->getParent()) {
         JS_ASSERT(obj->getParent() == NULL);
-        if (!obj->setParent(cx, &global))
+        if (!JSObject::setParent(cx, obj, RootedVarObject(cx, &fp->global())))
             return NULL;
     }
 
     JS_ASSERT(!obj->inDictionaryMode());
-    JS_ASSERT(obj->slotSpan() >= block.slotCount() + RESERVED_SLOTS);
+    JS_ASSERT(obj->slotSpan() >= block->slotCount() + RESERVED_SLOTS);
 
-    obj->setReservedSlot(DEPTH_SLOT, PrivateUint32Value(block.stackDepth()));
+    obj->setReservedSlot(DEPTH_SLOT, PrivateUint32Value(block->stackDepth()));
     obj->setPrivate(js_FloatingFrameIfGenerator(cx, fp));
 
     if (obj->lastProperty()->extensibleParents() && !obj->generateOwnShape(cx))
@@ -878,23 +877,18 @@ Class js::BlockClass = {
 
 #define NO_PARENT_INDEX UINT32_MAX
 
-
-
-
-
-
 static uint32_t
-FindObjectIndex(JSScript *script, StaticBlockObject *maybeBlock)
+FindObjectIndex(JSObjectArray *array, JSObject *obj)
 {
-    if (!maybeBlock || !JSScript::isValidOffset(script->objectsOffset))
-        return NO_PARENT_INDEX;
+    size_t i;
 
-    JSObjectArray *objects = script->objects();
-    HeapPtrObject *vector = objects->vector;
-    unsigned length = objects->length;
-    for (unsigned i = 0; i < length; ++i) {
-        if (vector[i] == maybeBlock)
-            return i;
+    if (array) {
+        i = array->length;
+        do {
+
+            if (array->vector[--i] == obj)
+                return i;
+        } while (i != 0);
     }
 
     return NO_PARENT_INDEX;
@@ -904,8 +898,6 @@ template<XDRMode mode>
 bool
 js::XDRStaticBlockObject(XDRState<mode> *xdr, JSScript *script, StaticBlockObject **objp)
 {
-    
-
     JSContext *cx = xdr->cx();
 
     StaticBlockObject *obj = NULL;
@@ -914,7 +906,9 @@ js::XDRStaticBlockObject(XDRState<mode> *xdr, JSScript *script, StaticBlockObjec
     uint32_t depthAndCount = 0;
     if (mode == XDR_ENCODE) {
         obj = *objp;
-        parentId = FindObjectIndex(script, obj->enclosingBlock());
+        parentId = JSScript::isValidOffset(script->objectsOffset)
+                   ? FindObjectIndex(script->objects(), obj->enclosingBlock())
+                   : NO_PARENT_INDEX;
         uint32_t depth = obj->stackDepth();
         JS_ASSERT(depth <= UINT16_MAX);
         count = obj->slotCount();
@@ -931,6 +925,11 @@ js::XDRStaticBlockObject(XDRState<mode> *xdr, JSScript *script, StaticBlockObjec
         if (!obj)
             return false;
         *objp = obj;
+
+        
+
+
+
 
         obj->setEnclosingBlock(parentId == NO_PARENT_INDEX
                                ? NULL
@@ -976,8 +975,7 @@ js::XDRStaticBlockObject(XDRState<mode> *xdr, JSScript *script, StaticBlockObjec
         }
     } else {
         AutoShapeVector shapes(cx);
-        if (!shapes.growBy(count))
-            return false;
+        shapes.growBy(count);
 
         for (Shape::Range r(obj->lastProperty()); !r.empty(); r.popFront()) {
             const Shape *shape = &r.front();
@@ -1017,43 +1015,3 @@ js::XDRStaticBlockObject(XDRState<XDR_ENCODE> *xdr, JSScript *script, StaticBloc
 
 template bool
 js::XDRStaticBlockObject(XDRState<XDR_DECODE> *xdr, JSScript *script, StaticBlockObject **objp);
-
-JSObject *
-js::CloneStaticBlockObject(JSContext *cx, StaticBlockObject &srcBlock,
-                           const AutoObjectVector &objects, JSScript *src)
-{
-    
-
-    StaticBlockObject *clone = StaticBlockObject::create(cx);
-    if (!clone)
-        return false;
-
-    uint32_t parentId = FindObjectIndex(src, srcBlock.enclosingBlock());
-    clone->setEnclosingBlock(parentId == NO_PARENT_INDEX
-                             ? NULL
-                             : &objects[parentId]->asStaticBlock());
-
-    clone->setStackDepth(srcBlock.stackDepth());
-
-    
-    AutoShapeVector shapes(cx);
-    if (!shapes.growBy(srcBlock.slotCount()))
-        return false;
-    for (Shape::Range r = srcBlock.lastProperty()->all(); !r.empty(); r.popFront())
-        shapes[r.front().shortid()] = &r.front();
-
-    for (const Shape **p = shapes.begin(); p != shapes.end(); ++p) {
-        jsid id = (*p)->propid();
-        unsigned i = (*p)->shortid();
-
-        bool redeclared;
-        if (!clone->addVar(cx, id, i, &redeclared)) {
-            JS_ASSERT(!redeclared);
-            return false;
-        }
-
-        clone->setAliased(i, srcBlock.isAliased(i));
-    }
-
-    return clone;
-}

@@ -122,7 +122,7 @@ class Debugger {
     class FrameRange;
     class ScriptQuery;
 
-    bool addDebuggeeGlobal(JSContext *cx, GlobalObject *obj);
+    bool addDebuggeeGlobal(JSContext *cx, Handle<GlobalObject*> obj);
     void removeDebuggeeGlobal(FreeOp *fop, GlobalObject *global,
                               GlobalObjectSet::Enum *compartmentEnum,
                               GlobalObjectSet::Enum *debugEnum);
@@ -224,13 +224,13 @@ class Debugger {
 
 
 
-    JSObject *newDebuggerScript(JSContext *cx, JSScript *script);
+    JSObject *newDebuggerScript(JSContext *cx, Handle<JSScript*> script);
 
     
 
 
 
-    void fireNewScript(JSContext *cx, JSScript *script);
+    void fireNewScript(JSContext *cx, Handle<JSScript*> script);
 
     static inline Debugger *fromLinks(JSCList *links);
     inline Breakpoint *firstBreakpoint() const;
@@ -289,7 +289,7 @@ class Debugger {
 
 
 
-    bool wrapEnvironment(JSContext *cx, Env *env, Value *vp);
+    bool wrapEnvironment(JSContext *cx, Handle<Env*> env, Value *vp);
 
     
 
@@ -370,7 +370,7 @@ class Debugger {
 
 
 
-    JSObject *wrapScript(JSContext *cx, JSScript *script);
+    JSObject *wrapScript(JSContext *cx, Handle<JSScript*> script);
 
   private:
     Debugger(const Debugger &) MOZ_DELETE;
@@ -562,7 +562,7 @@ Debugger::onNewScript(JSContext *cx, JSScript *script, GlobalObject *compileAndG
 }
 
 extern JSBool
-EvaluateInEnv(JSContext *cx, Env *env, StackFrame *fp, const jschar *chars,
+EvaluateInEnv(JSContext *cx, Handle<Env*> env, StackFrame *fp, const jschar *chars,
               unsigned length, const char *filename, unsigned lineno, Value *rval);
 
 }

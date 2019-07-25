@@ -259,33 +259,34 @@ JS_ClearInterrupt(JSRuntime *rt, JSInterruptHook *hoop, void **closurep)
 
 
 JS_PUBLIC_API(JSBool)
-JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
-                 JSWatchPointHandler handler, JSObject *closure)
+JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id,
+                 JSWatchPointHandler handler, JSObject *closure_)
 {
-    assertSameCompartment(cx, obj);
+    assertSameCompartment(cx, obj_);
     id = js_CheckForStringIndex(id);
+
+    RootedVarObject obj(cx, obj_), closure(cx, closure_);
 
     JSObject *origobj;
     Value v;
     unsigned attrs;
-    jsid propid;
 
     origobj = obj;
-    OBJ_TO_INNER_OBJECT(cx, obj);
+    OBJ_TO_INNER_OBJECT(cx, obj.reference());
     if (!obj)
         return false;
 
-    AutoValueRooter idroot(cx);
+    RootedVarId propid(cx);
+
     if (JSID_IS_INT(id)) {
         propid = id;
     } else if (JSID_IS_OBJECT(id)) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_WATCH_PROP);
         return false;
     } else {
-        if (!js_ValueToStringId(cx, IdToValue(id), &propid))
+        if (!js_ValueToStringId(cx, IdToValue(id), propid.address()))
             return false;
         propid = js_CheckForStringIndex(propid);
-        idroot.set(IdToValue(propid));
     }
 
     
@@ -435,7 +436,7 @@ JS_FunctionHasLocalNames(JSContext *cx, JSFunction *fun)
 extern JS_PUBLIC_API(uintptr_t *)
 JS_GetFunctionLocalNameArray(JSContext *cx, JSFunction *fun, void **markp)
 {
-    BindingNames localNames(cx);
+    Vector<JSAtom *> localNames(cx);
     if (!fun->script()->bindings.getLocalNameArray(cx, &localNames))
         return NULL;
 
@@ -448,16 +449,15 @@ JS_GetFunctionLocalNameArray(JSContext *cx, JSFunction *fun, void **markp)
         return NULL;
     }
 
-    for (size_t i = 0; i < localNames.length(); i++)
-        names[i] = reinterpret_cast<uintptr_t>(localNames[i].maybeAtom);
-
+    JS_ASSERT(sizeof(*names) == sizeof(*localNames.begin()));
+    js_memcpy(names, localNames.begin(), localNames.length() * sizeof(*names));
     return names;
 }
 
 extern JS_PUBLIC_API(JSAtom *)
 JS_LocalNameToAtom(uintptr_t w)
 {
-    return reinterpret_cast<JSAtom *>(w);
+    return JS_LOCAL_NAME_TO_ATOM(w);
 }
 
 extern JS_PUBLIC_API(JSString *)
@@ -739,7 +739,9 @@ JS_EvaluateUCInStackFrame(JSContext *cx, JSStackFrame *fpArg,
     if (!CheckDebugMode(cx))
         return false;
 
-    Env *env = JS_GetFrameScopeChain(cx, fpArg);
+    SkipRoot skip(cx, &chars);
+
+    RootedVar<Env*> env(cx, JS_GetFrameScopeChain(cx, fpArg));
     if (!env)
         return false;
 
