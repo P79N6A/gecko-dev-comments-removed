@@ -397,6 +397,9 @@ function isKeypressFiredKey(aDOMKeyCode)
 
 
 
+
+
+
 function synthesizeKey(aKey, aEvent, aWindow)
 {
   var utils = _getDOMWindowUtils(aWindow);
@@ -413,23 +416,47 @@ function synthesizeKey(aKey, aEvent, aWindow)
     }
 
     var modifiers = _parseModifiers(aEvent);
+    var flags = 0;
+    if (aEvent.location != undefined) {
+      switch (aEvent.location) {
+        case KeyboardEvent.DOM_KEY_LOCATION_STANDARD:
+          flags |= utils.KEY_FLAG_LOCATION_STANDARD;
+          break;
+        case KeyboardEvent.DOM_KEY_LOCATION_LEFT:
+          flags |= utils.KEY_FLAG_LOCATION_LEFT;
+          break;
+        case KeyboardEvent.DOM_KEY_LOCATION_RIGHT:
+          flags |= utils.KEY_FLAG_LOCATION_RIGHT;
+          break;
+        case KeyboardEvent.DOM_KEY_LOCATION_NUMPAD:
+          flags |= utils.KEY_FLAG_LOCATION_NUMPAD;
+          break;
+        case KeyboardEvent.DOM_KEY_LOCATION_MOBILE:
+          flags |= utils.KEY_FLAG_LOCATION_MOBILE;
+          break;
+        case KeyboardEvent.DOM_KEY_LOCATION_JOYSTICK:
+          flags |= utils.KEY_FLAG_LOCATION_JOYSTICK;
+          break;
+      }
+    }
 
     if (!("type" in aEvent) || !aEvent.type) {
       
       var keyDownDefaultHappened =
-          utils.sendKeyEvent("keydown", keyCode, 0, modifiers);
+        utils.sendKeyEvent("keydown", keyCode, 0, modifiers, flags);
       if (isKeypressFiredKey(keyCode)) {
-        utils.sendKeyEvent("keypress", charCode ? 0 : keyCode, charCode,
-                           modifiers, !keyDownDefaultHappened);
+        if (!keyDownDefaultHappened) {
+          flags |= utils.KEY_FLAG_PREVENT_DEFAULT;
+        }
+        utils.sendKeyEvent("keypress", keyCode, charCode, modifiers, flags);
       }
-      utils.sendKeyEvent("keyup", keyCode, 0, modifiers);
+      utils.sendKeyEvent("keyup", keyCode, 0, modifiers, flags);
     } else if (aEvent.type == "keypress") {
       
-      utils.sendKeyEvent(aEvent.type, charCode ? 0 : keyCode,
-                         charCode, modifiers);
+      utils.sendKeyEvent(aEvent.type, keyCode, charCode, modifiers, flags);
     } else {
       
-      utils.sendKeyEvent(aEvent.type, keyCode, 0, modifiers);
+      utils.sendKeyEvent(aEvent.type, keyCode, 0, modifiers, flags);
     }
   }
 }
