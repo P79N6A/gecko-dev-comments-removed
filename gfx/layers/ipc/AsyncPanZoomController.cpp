@@ -49,7 +49,7 @@ static const float MIN_SKATE_SPEED = 0.5f;
 
 
 
-static const float AXIS_LOCK_ANGLE = M_PI / 6.0;
+static const float AXIS_LOCK_ANGLE = M_PI / 9.0;
 
 
 
