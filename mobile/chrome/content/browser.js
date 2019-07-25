@@ -154,6 +154,9 @@ var Browser = {
         
         if (aEvent.detail == 2)
           document.getElementById("browser-controls").collapsed = false;
+        
+        else if (aEvent.detail == 1)
+          document.getElementById("browser-controls").collapsed = true;
         break;
     }
   },
