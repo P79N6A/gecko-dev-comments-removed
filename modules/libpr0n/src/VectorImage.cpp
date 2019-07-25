@@ -37,9 +37,97 @@
 
 
 #include "VectorImage.h"
+#include "imgIDecoderObserver.h"
+#include "SVGDocumentWrapper.h"
+#include "gfxContext.h"
+#include "gfxPlatform.h"
+#include "nsPresContext.h"
+#include "nsRect.h"
+#include "nsIDocumentViewer.h"
+#include "nsIObserverService.h"
+#include "nsIPresShell.h"
+#include "nsIStreamListener.h"
+#include "nsComponentManagerUtils.h"
+#include "nsServiceManagerUtils.h"
+#include "nsSVGUtils.h"  
+#include "nsSVGEffects.h" 
+#include "gfxDrawable.h"
+#include "gfxUtils.h"
 
 namespace mozilla {
 namespace imagelib {
+
+
+class SVGDrawingCallback : public gfxDrawingCallback {
+public:
+  SVGDrawingCallback(SVGDocumentWrapper* aSVGDocumentWrapper,
+                     const nsIntRect& aViewport,
+                     PRUint32 aImageFlags) :
+    mSVGDocumentWrapper(aSVGDocumentWrapper),
+    mViewport(aViewport),
+    mImageFlags(aImageFlags)
+  {}
+  virtual PRBool operator()(gfxContext* aContext,
+                            const gfxRect& aFillRect,
+                            const gfxPattern::GraphicsFilter& aFilter,
+                            const gfxMatrix& aTransform);
+private:
+  nsRefPtr<SVGDocumentWrapper> mSVGDocumentWrapper;
+  const nsIntRect mViewport;
+  PRUint32        mImageFlags;
+};
+
+
+PRBool
+SVGDrawingCallback::operator()(gfxContext* aContext,
+                               const gfxRect& aFillRect,
+                               const gfxPattern::GraphicsFilter& aFilter,
+                               const gfxMatrix& aTransform)
+{
+  NS_ABORT_IF_FALSE(mSVGDocumentWrapper, "need an SVGDocumentWrapper");
+
+  
+  nsCOMPtr<nsIPresShell> presShell;
+  if (NS_FAILED(mSVGDocumentWrapper->GetPresShell(getter_AddRefs(presShell)))) {
+    NS_WARNING("Unable to draw -- presShell lookup failed");
+    return NS_ERROR_FAILURE;
+  }
+  NS_ABORT_IF_FALSE(presShell, "GetPresShell succeeded but returned null");
+
+  aContext->Save();
+
+  
+  aContext->NewPath();
+  aContext->Rectangle(aFillRect);
+  aContext->Clip();
+  gfxMatrix savedMatrix(aContext->CurrentMatrix());
+
+  aContext->Multiply(gfxMatrix(aTransform).Invert());
+
+
+  nsPresContext* presContext = presShell->GetPresContext();
+  NS_ABORT_IF_FALSE(presContext, "pres shell w/out pres context");
+
+  nsRect svgRect(presContext->DevPixelsToAppUnits(mViewport.x),
+                 presContext->DevPixelsToAppUnits(mViewport.y),
+                 presContext->DevPixelsToAppUnits(mViewport.width),
+                 presContext->DevPixelsToAppUnits(mViewport.height));
+
+  PRUint32 renderDocFlags = nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING;
+  if (!(mImageFlags & imgIContainer::FLAG_SYNC_DECODE)) {
+    renderDocFlags |= nsIPresShell::RENDER_ASYNC_DECODE_IMAGES;
+  }
+
+  presShell->RenderDocument(svgRect, renderDocFlags,
+                            NS_RGBA(0, 0, 0, 0), 
+                            aContext);
+
+  aContext->SetMatrix(savedMatrix);
+  aContext->Restore();
+
+  return PR_TRUE;
+}
+
 
 NS_IMPL_ISUPPORTS3(VectorImage,
                    imgIContainer,
@@ -50,7 +138,15 @@ NS_IMPL_ISUPPORTS3(VectorImage,
 
 
 VectorImage::VectorImage(imgStatusTracker* aStatusTracker) :
-  Image(aStatusTracker) 
+  Image(aStatusTracker), 
+  mRestrictedRegion(0, 0, 0, 0),
+  mLastRenderedSize(0, 0),
+  mAnimationMode(kNormalAnimMode),
+  mIsInitialized(PR_FALSE),
+  mIsFullyLoaded(PR_FALSE),
+  mHaveAnimations(PR_FALSE),
+  mHaveRestrictedRegion(PR_FALSE),
+  mError(PR_FALSE)
 {
 }
 
@@ -66,35 +162,66 @@ VectorImage::Init(imgIDecoderObserver* aObserver,
                   const char* aMimeType,
                   PRUint32 aFlags)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::Init");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  
+  if (mIsInitialized)
+    return NS_ERROR_ILLEGAL_VALUE;
+
+  NS_ABORT_IF_FALSE(!mIsFullyLoaded && !mHaveAnimations &&
+                    !mHaveRestrictedRegion && !mError,
+                    "Flags unexpectedly set before initialization");
+
+  mObserver = do_GetWeakReference(aObserver);
+  NS_ABORT_IF_FALSE(!strcmp(aMimeType, SVG_MIMETYPE), "Unexpected mimetype");
+
+  mIsInitialized = PR_TRUE;
+
+  return NS_OK;
 }
 
 void
 VectorImage::GetCurrentFrameRect(nsIntRect& aRect)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::GetCurrentFrameRect");
+  aRect = kFullImageSpaceRect;
 }
 
 PRUint32
 VectorImage::GetDataSize()
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::GetDataSize");
-  return 0;
+  
+  
+  return sizeof(*this);
 }
 
 nsresult
 VectorImage::StartAnimation()
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::StartAnimation");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  if (mAnimationMode == kDontAnimMode ||
+      !mIsFullyLoaded || !mHaveAnimations) {
+    
+    return NS_OK;
+  }
+
+  mSVGDocumentWrapper->StartAnimation();
+
+  return NS_OK;
 }
 
 nsresult
 VectorImage::StopAnimation()
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::StopAnimation");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  if (!mIsFullyLoaded || !mHaveAnimations) {
+    return NS_OK;
+  }
+
+  mSVGDocumentWrapper->StopAnimation();
+
+  return NS_OK;
 }
 
 
@@ -105,8 +232,16 @@ VectorImage::StopAnimation()
 NS_IMETHODIMP
 VectorImage::GetWidth(PRInt32* aWidth)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::GetWidth");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mError || !mIsFullyLoaded) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (!mSVGDocumentWrapper->GetWidthOrHeight(SVGDocumentWrapper::eWidth,
+                                             *aWidth)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
 }
 
 
@@ -114,8 +249,16 @@ VectorImage::GetWidth(PRInt32* aWidth)
 NS_IMETHODIMP
 VectorImage::GetHeight(PRInt32* aHeight)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::GetHeight");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mError || !mIsFullyLoaded) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (mSVGDocumentWrapper->GetWidthOrHeight(SVGDocumentWrapper::eHeight,
+                                            *aHeight)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
 }
 
 
@@ -132,8 +275,11 @@ VectorImage::GetType(PRUint16* aType)
 NS_IMETHODIMP
 VectorImage::GetAnimated(PRBool* aAnimated)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::GetAnimated");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mError || !mIsFullyLoaded)
+    return NS_ERROR_FAILURE;
+
+  *aAnimated = mSVGDocumentWrapper->IsAnimated();
+  return NS_OK;
 }
 
 
@@ -141,8 +287,9 @@ VectorImage::GetAnimated(PRBool* aAnimated)
 NS_IMETHODIMP
 VectorImage::GetCurrentFrameIsOpaque(PRBool* aIsOpaque)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::GetCurrentFrameIsOpaque");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  NS_ENSURE_ARG_POINTER(aIsOpaque);
+  *aIsOpaque = PR_FALSE;   
+  return NS_OK;
 }
 
 
@@ -165,6 +312,12 @@ VectorImage::CopyFrame(PRUint32 aWhichFrame,
                        PRUint32 aFlags,
                        gfxImageSurface** _retval)
 {
+  if (aWhichFrame > FRAME_MAX_VALUE)
+    return NS_ERROR_INVALID_ARG;
+
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   NS_NOTYETIMPLEMENTED("VectorImage::CopyFrame");
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -179,8 +332,42 @@ VectorImage::ExtractFrame(PRUint32 aWhichFrame,
                           PRUint32 aFlags,
                           imgIContainer** _retval)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::ExtractFrame");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  NS_ENSURE_ARG_POINTER(_retval);
+  if (mError || !mIsFullyLoaded)
+    return NS_ERROR_FAILURE;
+
+  
+  
+  
+  
+  
+  if (aWhichFrame != FRAME_CURRENT) {
+    NS_WARNING("VectorImage::ExtractFrame with something other than "
+               "FRAME_CURRENT isn't supported yet. Assuming FRAME_CURRENT.");
+  }
+
+  
+  
+  
+
+  
+  nsRefPtr<VectorImage> extractedImg = new VectorImage();
+  extractedImg->mSVGDocumentWrapper = mSVGDocumentWrapper;
+  extractedImg->mAnimationMode = kDontAnimMode;
+
+  extractedImg->mRestrictedRegion.x = aRegion.x;
+  extractedImg->mRestrictedRegion.y = aRegion.y;
+
+  
+  extractedImg->mRestrictedRegion.width  = NS_MAX(aRegion.width,  0);
+  extractedImg->mRestrictedRegion.height = NS_MAX(aRegion.height, 0);
+
+  extractedImg->mIsInitialized = PR_TRUE;
+  extractedImg->mIsFullyLoaded = PR_TRUE;
+  extractedImg->mHaveRestrictedRegion = PR_TRUE;
+
+  *_retval = extractedImg.forget().get();
+  return NS_OK;
 }
 
 
@@ -201,8 +388,45 @@ VectorImage::Draw(gfxContext* aContext,
                   const nsIntSize& aViewportSize,
                   PRUint32 aFlags)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::Draw");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mError || !mIsFullyLoaded)
+    return NS_ERROR_FAILURE;
+
+  NS_ENSURE_ARG_POINTER(aContext);
+
+  if (aViewportSize != mLastRenderedSize) {
+    mSVGDocumentWrapper->UpdateViewportBounds(aViewportSize);
+    mLastRenderedSize = aViewportSize;
+  }
+
+  nsIntSize imageSize = mHaveRestrictedRegion ?
+    mRestrictedRegion.Size() : aViewportSize;
+
+  
+  
+  
+  gfxIntSize imageSizeGfx(imageSize.width, imageSize.height);
+
+  
+  gfxRect sourceRect = aUserSpaceToImageSpace.Transform(aFill);
+  gfxRect imageRect(0, 0, imageSize.width, imageSize.height);
+  gfxRect subimage(aSubimage.x, aSubimage.y, aSubimage.width, aSubimage.height);
+
+
+  nsRefPtr<gfxDrawingCallback> cb =
+    new SVGDrawingCallback(mSVGDocumentWrapper,
+                           mHaveRestrictedRegion ?
+                           mRestrictedRegion :
+                           nsIntRect(nsIntPoint(0, 0), aViewportSize),
+                           aFlags);
+
+  nsRefPtr<gfxDrawable> drawable = new gfxCallbackDrawable(cb, imageSizeGfx);
+
+  gfxUtils::DrawPixelSnapped(aContext, drawable,
+                             aUserSpaceToImageSpace,
+                             subimage, sourceRect, imageRect, aFill,
+                             gfxASurface::ImageFormatARGB32, aFilter);
+
+  return NS_OK;
 }
 
 
@@ -210,8 +434,7 @@ VectorImage::Draw(gfxContext* aContext,
 nsIFrame*
 VectorImage::GetRootLayoutFrame()
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::GetRootLayoutFrame");
-  return nsnull;
+  return mSVGDocumentWrapper->GetRootLayoutFrame();
 }
 
 
@@ -228,8 +451,8 @@ VectorImage::RequestDecode()
 NS_IMETHODIMP
 VectorImage::LockImage()
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::LockImage");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  
+  return NS_OK;
 }
 
 
@@ -237,8 +460,8 @@ VectorImage::LockImage()
 NS_IMETHODIMP
 VectorImage::UnlockImage()
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::UnlockImage");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  
+  return NS_OK;
 }
 
 
@@ -246,8 +469,13 @@ VectorImage::UnlockImage()
 NS_IMETHODIMP
 VectorImage::GetAnimationMode(PRUint16* aAnimationMode)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::GetAnimationMode");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  NS_ENSURE_ARG_POINTER(aAnimationMode);
+  
+  *aAnimationMode = mAnimationMode;
+  return NS_OK;
 }
 
 
@@ -255,8 +483,25 @@ VectorImage::GetAnimationMode(PRUint16* aAnimationMode)
 NS_IMETHODIMP
 VectorImage::SetAnimationMode(PRUint16 aAnimationMode)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::SetAnimationMode");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  
+  
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  NS_ASSERTION(aAnimationMode == kNormalAnimMode ||
+               aAnimationMode == kDontAnimMode ||
+               aAnimationMode == kLoopOnceAnimMode,
+               "An unrecognized Animation Mode is being set!");
+
+  mAnimationMode = aAnimationMode;
+
+  if (mAnimationMode == kDontAnimMode) {
+    StopAnimation();
+  } else { 
+    StartAnimation();
+  }
+
+  return NS_OK;
 }
 
 
@@ -264,8 +509,16 @@ VectorImage::SetAnimationMode(PRUint16 aAnimationMode)
 NS_IMETHODIMP
 VectorImage::ResetAnimation()
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::ResetAnimation");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  if (!mIsFullyLoaded || !mHaveAnimations) {
+    return NS_OK; 
+  }
+
+  mSVGDocumentWrapper->ResetAnimation();
+  
+  return NS_OK;
 }
 
 
@@ -276,8 +529,17 @@ VectorImage::ResetAnimation()
 NS_IMETHODIMP
 VectorImage::OnStartRequest(nsIRequest* aRequest, nsISupports* aCtxt)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::OnStartRequest");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  NS_ABORT_IF_FALSE(!mSVGDocumentWrapper,
+                    "Repeated call to OnStartRequest -- can this happen?");
+
+  mSVGDocumentWrapper = new SVGDocumentWrapper();
+  nsresult rv = mSVGDocumentWrapper->OnStartRequest(aRequest, aCtxt);
+  if (NS_FAILED(rv)) {
+    mSVGDocumentWrapper = nsnull;
+    mError = PR_TRUE;
+  }
+
+  return rv;
 }
 
 
@@ -287,8 +549,42 @@ NS_IMETHODIMP
 VectorImage::OnStopRequest(nsIRequest* aRequest, nsISupports* aCtxt,
                            nsresult aStatus)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::OnStopRequest");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  NS_ABORT_IF_FALSE(!mIsFullyLoaded && !mHaveAnimations,
+                    "these flags shouldn't get set until OnStopRequest. "
+                    "Duplicate calls to OnStopRequest?");
+
+  nsresult rv = mSVGDocumentWrapper->OnStopRequest(aRequest, aCtxt, aStatus);
+  if (!mSVGDocumentWrapper->ParsedSuccessfully()) {
+    
+    
+    
+    mError = PR_TRUE;
+    return rv;
+  }
+
+  mIsFullyLoaded = PR_TRUE;
+  mHaveAnimations = mSVGDocumentWrapper->IsAnimated();
+
+  if (mHaveAnimations && mAnimationMode == kDontAnimMode) {
+    
+    
+    mSVGDocumentWrapper->StopAnimation();
+  }
+
+  nsCOMPtr<imgIDecoderObserver> observer = do_QueryReferent(mObserver);
+  if (observer) {
+    
+    observer->OnStartContainer(nsnull, this);
+
+    observer->FrameChanged(this, &kFullImageSpaceRect);
+    observer->OnStopFrame(nsnull, 0);
+    observer->OnStopDecode(nsnull, NS_OK, nsnull);
+  }
+
+  return rv;
 }
 
 
@@ -303,8 +599,8 @@ VectorImage::OnDataAvailable(nsIRequest* aRequest, nsISupports* aCtxt,
                              nsIInputStream* aInStr, PRUint32 aSourceOffset,
                              PRUint32 aCount)
 {
-  NS_NOTYETIMPLEMENTED("VectorImage::OnDataAvailable");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return mSVGDocumentWrapper->OnDataAvailable(aRequest, aCtxt, aInStr,
+                                              aSourceOffset, aCount);
 }
 
 } 

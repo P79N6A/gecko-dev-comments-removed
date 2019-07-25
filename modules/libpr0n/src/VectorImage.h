@@ -41,9 +41,14 @@
 
 #include "Image.h"
 #include "nsIStreamListener.h"
+#include "nsWeakReference.h"
+
+class imgIDecoderObserver;
 
 namespace mozilla {
 namespace imagelib {
+
+class SVGDocumentWrapper;
 
 class VectorImage : public Image,
                     public nsIStreamListener
@@ -70,6 +75,31 @@ public:
 protected:
   virtual nsresult StartAnimation();
   virtual nsresult StopAnimation();
+
+private:
+  nsWeakPtr                          mObserver;   
+  nsRefPtr<SVGDocumentWrapper>       mSVGDocumentWrapper;
+
+  nsIntRect      mRestrictedRegion;       
+                                          
+                                          
+                                          
+
+  nsIntSize      mLastRenderedSize;       
+                                          
+                                          
+                                          
+
+  PRUint16       mAnimationMode;          
+
+  PRPackedBool   mIsInitialized:1;        
+  PRPackedBool   mIsFullyLoaded:1;        
+  PRPackedBool   mHaveAnimations:1;       
+                                          
+  PRPackedBool   mHaveRestrictedRegion:1; 
+                                          
+
+  PRPackedBool   mError:1;                
 };
 
 } 
