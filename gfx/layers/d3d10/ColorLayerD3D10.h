@@ -51,7 +51,7 @@ public:
   ColorLayerD3D10(LayerManagerD3D10 *aManager);
 
   
-  Layer* GetLayer();
+  virtual Layer* GetLayer();
   virtual void RenderLayer(float aOpacity, const gfx3DMatrix &aTransform);
 };
 
