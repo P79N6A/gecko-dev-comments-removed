@@ -6062,21 +6062,11 @@ void PresShell::SetRenderingState(const RenderingState& aState)
   mXResolution = aState.mXResolution;
   mYResolution = aState.mYResolution;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  nsIView* rootView;
+  if (NS_SUCCEEDED(mViewManager->GetRootView(rootView)) && rootView) {
+    rootView->SetInvalidationDimensions(&mDisplayPort);
+  }
+
   nsPresContext* rootPresContext = mPresContext->GetRootPresContext();
   if (rootPresContext) {
     nsIPresShell* rootPresShell = rootPresContext->GetPresShell();

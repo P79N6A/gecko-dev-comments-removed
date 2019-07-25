@@ -76,6 +76,7 @@ public:
 
   virtual void SetDimensions(const nsRect &aRect, PRBool aPaint = PR_TRUE,
                              PRBool aResizeWidget = PR_TRUE);
+  void SetInvalidationDimensions(const nsRect* aRect);
   void GetDimensions(nsRect &aRect) const { aRect = mDimBounds; aRect.x -= mPosX; aRect.y -= mPosY; }
   void GetDimensions(nsSize &aSize) const { aSize.width = mDimBounds.width; aSize.height = mDimBounds.height; }
 
@@ -148,6 +149,11 @@ public:
   nsRect GetDimensions() const { nsRect r = mDimBounds; r.MoveBy(-mPosX, -mPosY); return r; }
   
   nsRect GetBoundsInParentUnits() const;
+
+  nsRect GetInvalidationDimensions() const {
+    return mHaveInvalidationDimensions ? mInvalidationDimensions : GetDimensions();
+  }
+
   
   
 
@@ -202,6 +208,13 @@ protected:
   void DoResetWidgetBounds(PRBool aMoveOnly, PRBool aInvalidateChangedSize);
 
   nsRegion*    mDirtyRegion;
+  
+  
+  
+  
+  
+  nsRect       mInvalidationDimensions;
+  PRPackedBool mHaveInvalidationDimensions;
 
 private:
   void InitializeWindow(PRBool aEnableDragDrop, PRBool aResetVisibility);

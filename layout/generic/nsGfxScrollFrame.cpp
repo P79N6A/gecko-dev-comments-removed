@@ -195,7 +195,15 @@ nsHTMLScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
       nsRect damage = aDamageRect + nsPoint(aX, aY);
       
       nsRect parentDamage;
-      parentDamage.IntersectRect(damage, mInner.mScrollPort);
+      nsIPresShell* presShell = PresContext()->PresShell();
+      
+      
+      
+      if (mInner.mIsRoot && presShell->UsingDisplayPort()) {
+        parentDamage.IntersectRect(damage, presShell->GetDisplayPort());
+      } else {
+        parentDamage.IntersectRect(damage, mInner.mScrollPort);
+      }
 
       if (IsScrollingActive()) {
         
@@ -1104,7 +1112,15 @@ nsXULScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
     nsRect damage = aDamageRect + nsPoint(aX, aY);
     
     nsRect parentDamage;
-    parentDamage.IntersectRect(damage, mInner.mScrollPort);
+    nsIPresShell* presShell = PresContext()->PresShell();
+    
+    
+    
+    if (mInner.mIsRoot && presShell->UsingDisplayPort()) {
+      parentDamage.IntersectRect(damage, presShell->GetDisplayPort());
+    } else {
+      parentDamage.IntersectRect(damage, mInner.mScrollPort);
+    }
 
     if (IsScrollingActive()) {
       
