@@ -174,8 +174,6 @@ public:
  
   
   float GetLength(PRUint8 mCtxType);
-  
-  void SyncWidthOrHeight(nsIAtom* aName, nsSVGElement *aTarget) const;
 
   
 
