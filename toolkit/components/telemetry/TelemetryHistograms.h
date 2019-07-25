@@ -52,6 +52,8 @@
 
 #define HISTOGRAM_BOOLEAN(id, message) HISTOGRAM(id, 0, 1, 2, BOOLEAN, message)
 
+#define HISTOGRAM_FLAG(id, message) HISTOGRAM(id, 0, 1, 2, FLAG, message)
+
 
 
 
@@ -414,3 +416,4 @@ HISTOGRAM(TOTAL_COUNT_HIGH_ERRORS, 1, 3000, 10, EXPONENTIAL, "Number of histogra
 HISTOGRAM(TOTAL_COUNT_LOW_ERRORS, 1, 3000, 10, EXPONENTIAL, "Number of histograms with total count low errors")
 
 #undef HISTOGRAM_BOOLEAN
+#undef HISTOGRAM_FLAG
