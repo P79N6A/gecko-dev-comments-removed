@@ -1639,7 +1639,7 @@ WebGLContext::GetParameter(PRUint32 pname, nsIVariant **retval)
         case LOCAL_GL_SCISSOR_BOX: 
         case LOCAL_GL_VIEWPORT: 
         {
-            GLint iv[2] = { 0 };
+            GLint iv[4] = { 0 };
             gl->fGetIntegerv(pname, iv);
             wrval->SetAsArray(nsIDataType::VTYPE_INT32, nsnull,
                               4, static_cast<void*>(iv));
