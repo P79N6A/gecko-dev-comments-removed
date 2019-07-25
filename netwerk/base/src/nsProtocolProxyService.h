@@ -354,6 +354,9 @@ protected:
     };
 
     
+    PRBool mFilterLocalHosts;
+
+    
     nsTArray<nsAutoPtr<HostInfo> > mHostFiltersArray;
 
     

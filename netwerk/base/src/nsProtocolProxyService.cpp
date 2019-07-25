@@ -306,7 +306,8 @@ NS_IMPL_CI_INTERFACE_GETTER2(nsProtocolProxyService,
                              nsIProtocolProxyService2)
 
 nsProtocolProxyService::nsProtocolProxyService()
-    : mFilters(nsnull)
+    : mFilterLocalHosts(PR_FALSE)
+    , mFilters(nsnull)
     , mProxyConfig(PROXYCONFIG_DIRECT)
     , mHTTPProxyPort(-1)
     , mFTPProxyPort(-1)
@@ -543,6 +544,12 @@ nsProtocolProxyService::CanUseProxy(nsIURI *aURI, PRInt32 defaultPort)
         }
     }
     
+    
+    if (!is_ipaddr && mFilterLocalHosts && (kNotFound == host.FindChar('.'))) {
+        LOG(("Not using proxy for this local host [%s]!\n", host.get()));
+        return PR_FALSE; 
+    }
+
     PRInt32 index = -1;
     while (++index < PRInt32(mHostFiltersArray.Length())) {
         HostInfo *hinfo = mHostFiltersArray[index];
@@ -849,8 +856,10 @@ nsProtocolProxyService::Resolve(nsIURI *uri, PRUint32 flags,
 
     PRBool usePAC;
     rv = Resolve_Internal(uri, info, flags, &usePAC, result);
-    if (NS_FAILED(rv))
+    if (NS_FAILED(rv)) {
+        LOG(("Resolve_Internal returned rv(0x%08x)\n", rv));
         return rv;
+    }
 
     if (usePAC && mPACMan) {
         NS_ASSERTION(*result == nsnull, "we should not have a result yet");
@@ -1069,6 +1078,8 @@ nsProtocolProxyService::LoadHostFilters(const char *filters)
     
     
     
+    
+    mFilterLocalHosts = PR_FALSE;
     while (*filters) {
         
         while (*filters && (*filters == ',' || IS_ASCII_SPACE(*filters)))
@@ -1091,17 +1102,26 @@ nsProtocolProxyService::LoadHostFilters(const char *filters)
 
         filters = endhost; 
 
-        HostInfo *hinfo = new HostInfo();
-        if (!hinfo)
-            return; 
-        hinfo->port = portLocation ? atoi(portLocation + 1) : 0;
-
         
         const char *end = maskLocation ? maskLocation :
                           portLocation ? portLocation :
                           endhost;
 
         nsCAutoString str(starthost, end - starthost);
+
+        
+        
+        if (str.EqualsIgnoreCase("<local>")) {
+            mFilterLocalHosts = PR_TRUE;
+            LOG(("loaded filter for local hosts "
+                 "(plain host names, no dots)\n"));
+            
+            continue;
+        }
+
+        
+        HostInfo *hinfo = new HostInfo();
+        hinfo->port = portLocation ? atoi(portLocation + 1) : 0;
 
         PRNetAddr addr;
         if (PR_StringToNetAddr(str.get(), &addr) == PR_SUCCESS) {

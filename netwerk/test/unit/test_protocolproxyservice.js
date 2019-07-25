@@ -384,6 +384,79 @@ function run_pac_cancel_test() {
   do_test_pending();
 }
 
+function check_host_filters(hostList, bShouldBeFiltered) {
+  var uri;
+  var proxy;
+  for (var i=0; i<hostList.length; i++) {
+    dump("*** uri=" + hostList[i] + " bShouldBeFiltered=" + bShouldBeFiltered + "\n");
+    uri = ios.newURI(hostList, null, null);
+    proxy = pps.resolve(uri, 0); 
+    if (bShouldBeFiltered) {
+      do_check_eq(proxy, null);
+    } else {
+      do_check_neq(proxy, null);
+      
+      
+      check_proxy(proxy, "http", "foopy", 8080, 0, -1, false);
+    }
+  }
+}
+
+
+
+
+
+function run_proxy_host_filters_test() {
+  
+  var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                        .getService(Components.interfaces.nsIPrefBranch);
+  
+  
+  prefs.setIntPref("network.proxy.type", 1);
+  prefs.setCharPref("network.proxy.http", "foopy");
+  prefs.setIntPref("network.proxy.http_port", 8080);
+
+  
+  var hostFilterList = "www.mozilla.org, www.google.com, www.apple.com, "
+                       + ".domain, .domain2.org"
+  prefs.setCharPref("network.proxy.no_proxies_on", hostFilterList);
+  do_check_eq(prefs.getCharPref("network.proxy.no_proxies_on"), hostFilterList);
+  
+  var rv;
+  
+  var uriStrFilterList = [ "http://www.mozilla.org/",
+                           "http://www.google.com/",
+                           "http://www.apple.com/",
+                           "http://somehost.domain/",
+                           "http://someotherhost.domain/",
+                           "http://somehost.domain2.org/",
+                           "http://somehost.subdomain.domain2.org/" ];
+  check_host_filters(uriStrFilterList, true);
+
+  
+  var uriStrUseProxyList = [ "http://www.mozilla.com/",
+                             "http://mail.google.com/",
+                             "http://somehost.domain.co.uk/",
+                             "http://somelocalhost/" ];  
+  check_host_filters(uriStrUseProxyList, false);
+  
+  
+  prefs.setCharPref("network.proxy.no_proxies_on", hostFilterList + ", <local>");
+  do_check_eq(prefs.getCharPref("network.proxy.no_proxies_on"),
+              hostFilterList + ", <local>");
+
+  
+  uriStrFilterList.push(uriStrUseProxyList.pop());
+  check_host_filters(uriStrFilterList, true);
+  check_host_filters(uriStrUseProxyList, false);
+
+  
+  prefs.setCharPref("network.proxy.no_proxies_on", "");
+  do_check_eq(prefs.getCharPref("network.proxy.no_proxies_on"), "");  
+
+  do_test_finished();
+}
+
 function run_test() {
   register_test_protocol_handler();
   run_filter_test();
@@ -399,4 +472,5 @@ function run_test_continued() {
 }
 
 function run_test_continued_2() {
+  run_proxy_host_filters_test();
 }
