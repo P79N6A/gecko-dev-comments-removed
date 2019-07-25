@@ -164,8 +164,6 @@ private:
     nsAHttpTransaction             *mTransaction; 
     nsHttpConnectionInfo           *mConnInfo;    
 
-    PRLock                         *mLock;
-
     PRUint32                        mLastReadTime;
     PRUint16                        mMaxHangTime;    
     PRUint16                        mIdleTimeout;    
