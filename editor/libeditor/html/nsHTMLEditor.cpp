@@ -4245,16 +4245,15 @@ nsresult
 nsHTMLEditor::GetPriorHTMLSibling(nsIDOMNode *inParent, PRInt32 inOffset, nsCOMPtr<nsIDOMNode> *outNode)
 {
   NS_ENSURE_TRUE(outNode && inParent, NS_ERROR_NULL_POINTER);
-  nsresult res = NS_OK;
   *outNode = nsnull;
-  if (inOffset <= 0) {
+  nsCOMPtr<nsIDOMNode> node = nsEditor::GetChildAt(inParent,inOffset-1);
+  if (!node) {
     
     return NS_OK;
   }
-  nsCOMPtr<nsIDOMNode> node = nsEditor::GetChildAt(inParent,inOffset-1);
-  if (node && IsEditable(node)) {
+  if (IsEditable(node)) {
     *outNode = node;
-    return res;
+    return NS_OK;
   }
   
   return GetPriorHTMLSibling(node, outNode);
@@ -4302,16 +4301,15 @@ nsresult
 nsHTMLEditor::GetNextHTMLSibling(nsIDOMNode *inParent, PRInt32 inOffset, nsCOMPtr<nsIDOMNode> *outNode)
 {
   NS_ENSURE_TRUE(outNode && inParent, NS_ERROR_NULL_POINTER);
-  nsresult res = NS_OK;
   *outNode = nsnull;
   nsCOMPtr<nsIDOMNode> node = nsEditor::GetChildAt(inParent, inOffset + 1);
   if (!node) {
     
     return NS_OK;
   }
-  if (node && IsEditable(node)) {
+  if (IsEditable(node)) {
     *outNode = node;
-    return res;
+    return NS_OK;
   }
   
   return GetNextHTMLSibling(node, outNode);
