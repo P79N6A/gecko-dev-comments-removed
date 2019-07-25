@@ -34,6 +34,7 @@
 
 
 
+
 const Cu = Components.utils;
 Cu.import("resource://weave/log4moz.js");
 
@@ -42,38 +43,40 @@ const EXPORTED_SYMBOLS = ["FaultTolerance"];
 FaultTolerance = {
   get Service() {
     if (!this._Service)
-      this._Service = new FaultToleranceService();
+      this._Service = new FTService();
     return this._Service;
   }
 };
 
-function FaultToleranceService() {
+function FTService() {
+  this._log = Log4Moz.Service.getLogger("FaultTolerance");
+  this._appender = new FTAppender(this);
+  Log4Moz.Service.rootLogger.addAppender(this._appender);
 }
-
-FaultToleranceService.prototype = {
-  init: function FTS_init() {
-    var appender = new Appender();
-
-    Log4Moz.Service.rootLogger.addAppender(appender);
-  }
-};
-
-function Formatter() {
-}
-Formatter.prototype = {
-  format: function FTF_format(message) {
-    return message;
-  }
-};
-Formatter.prototype.__proto__ = new Log4Moz.Formatter();
-
-function Appender() {
-  this._name = "FaultToleranceAppender";
-  this._formatter = new Formatter();
-}
-Appender.prototype = {
-  doAppend: function FTA_append(message) {
+FTService.prototype = {
+  onMessage: function FTS_onMessage(message) {
     
+  },
+  onException: function FTS_onException(exception) {
+    dump("got an exception: " + exception + "\n");
+    throw exception;
   }
 };
-Appender.prototype.__proto__ = new Log4Moz.Appender();
+
+function FTFormatter() {}
+FTFormatter.prototype = {
+  __proto__: new Log4Moz.Formatter(),
+  format: function FTF_format(message) message
+};
+
+function FTAppender(ftService) {
+  this._ftService = ftService;
+  this._name = "FTAppender";
+  this._formatter = new FTFormatter();
+}
+FTAppender.prototype = {
+  __proto__: new Log4Moz.Appender(),
+  doAppend: function FTA_append(message) {
+    this._ftService.onMessage(message);
+  }
+};
