@@ -58,7 +58,17 @@ class Compiler : public CompilerBase
     typedef JSC::MacroAssembler::ImmPtr ImmPtr;
     typedef JSC::MacroAssembler::RegisterID RegisterID;
     typedef JSC::MacroAssembler::Address Address;
+    typedef JSC::MacroAssembler::Jump Jump;
     typedef JSC::MacroAssembler MacroAssembler;
+
+    struct BranchPatch {
+        BranchPatch(const Jump &j, jsbytecode *pc)
+          : jump(j), pc(pc)
+        { }
+
+        Jump jump;
+        jsbytecode *pc;
+    };
 
     JSContext *cx;
     JSScript *script;
@@ -71,6 +81,8 @@ class Compiler : public CompilerBase
     MacroAssembler masm;
     FrameState frame;
     CodeGenerator cg;
+    js::Vector<BranchPatch, 64> branchPatches;
+
   public:
     
     
@@ -88,7 +100,9 @@ class Compiler : public CompilerBase
     CompileStatus finishThisUp();
 
     
+    const Label &labelOf(jsbytecode *pc);
     uint32 fullAtomIndex(jsbytecode *pc);
+    void jumpInScript(Jump j, jsbytecode *pc);
 
     
     void jsop_bindname(uint32 index);
