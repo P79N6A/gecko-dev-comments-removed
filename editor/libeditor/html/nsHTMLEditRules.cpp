@@ -8356,8 +8356,7 @@ nsHTMLEditRules::UpdateDocChangeRange(nsIDOMRange *aRange)
   nsCOMPtr<nsIDOMNode> startNode;
   res = aRange->GetStartContainer(getter_AddRefs(startNode));
   NS_ENSURE_SUCCESS(res, res);
-  if (!mHTMLEditor->IsDescendantOfBody(startNode))
-  {
+  if (!mHTMLEditor->IsDescendantOfRoot(startNode)) {
     
     return NS_OK;
   }
