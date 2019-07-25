@@ -463,8 +463,20 @@ struct ParseNode {
     static ParseNode *create(ParseNodeArity arity, TreeContext *tc);
 
   public:
-    static ParseNode *newBinaryOrAppend(TokenKind tt, JSOp op, ParseNode *left, ParseNode *right,
-                                        TreeContext *tc);
+    
+
+
+
+    static ParseNode *
+    append(TokenKind tt, JSOp op, ParseNode *left, ParseNode *right);
+
+    
+
+
+
+
+    static ParseNode *
+    newBinaryOrAppend(TokenKind tt, JSOp op, ParseNode *left, ParseNode *right, TreeContext *tc);
 
     
 
