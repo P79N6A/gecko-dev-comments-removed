@@ -1320,7 +1320,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
                 
                 
                 
-                Utils.timeout(Groups.updateTabBarForActiveGroup, 400);
+                Utils.timeout(function() Groups.updateTabBarForActiveGroup(), 400);
               }
             });
           }
