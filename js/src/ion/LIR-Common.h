@@ -621,6 +621,27 @@ class LValueToInt32 : public LInstructionHelper<1, BOX_PIECES, 1>
 
 
 
+class LDoubleToInt32 : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(DoubleToInt32);
+
+    LDoubleToInt32(const LAllocation &in) {
+        setOperand(0, in);
+    }
+
+    const LAllocation *input() {
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
+
+
+
 class LTruncateDToInt32 : public LInstructionHelper<1, 1, 0>
 {
   public:

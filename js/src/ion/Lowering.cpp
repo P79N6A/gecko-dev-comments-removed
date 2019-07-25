@@ -494,8 +494,13 @@ LIRGenerator::visitToInt32(MToInt32 *convert)
       case MIRType_Boolean:
         return redefine(convert, opd);
 
+      case MIRType_Double:
+      {
+        LDoubleToInt32 *lir = new LDoubleToInt32(use(opd));
+        return define(lir, convert) && assignSnapshot(lir);
+      }
+
       default:
-        
         
         
         
