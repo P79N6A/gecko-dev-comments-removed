@@ -89,10 +89,38 @@ MIRType MIRTypeFromValue(const js::Value &vp)
 class MDefinition;
 class MInstruction;
 class MBasicBlock;
+class MNode;
 class MUse;
 class MIRGraph;
-class MUseIterator;
 class MSnapshot;
+
+
+class MUse : public TempObject, public InlineForwardListNode<MUse>
+{
+    friend class MDefinition;
+
+    MNode *node_;           
+    uint32 index_;          
+
+    MUse(MNode *owner, uint32 index)
+      : node_(owner),
+        index_(index)
+    { }
+
+  public:
+    static inline MUse *New(MNode *owner, uint32 index) {
+        return new MUse(owner, index);
+    }
+
+    MNode *node() const {
+        return node_;
+    }
+    uint32 index() const {
+        return index_;
+    }
+};
+
+typedef InlineForwardList<MUse>::iterator MUseIterator;
 
 
 
@@ -144,7 +172,7 @@ class MNode : public TempObject
 
     
     
-    void replaceOperand(MUse *prev, MUse *use, MDefinition *ins);
+    MUseIterator replaceOperand(MUseIterator use, MDefinition *ins);
     void replaceOperand(size_t index, MDefinition *ins);
 
     inline MDefinition *toDefinition();
@@ -156,40 +184,6 @@ class MNode : public TempObject
 
     
     inline void initOperand(size_t index, MDefinition *ins);
-};
-
-
-class MUse : public TempObject
-{
-    friend class MDefinition;
-
-    MUse *next_;            
-    MNode *node_;           
-    uint32 index_;          
-
-    MUse(MUse *next, MNode *owner, uint32 index)
-      : next_(next), node_(owner), index_(index)
-    { }
-
-    void setNext(MUse *next) {
-        next_ = next;
-    }
-
-  public:
-    static inline MUse *New(MUse *next, MNode *owner, uint32 index)
-    {
-        return new MUse(next, owner, index);
-    }
-
-    MNode *node() const {
-        return node_;
-    }
-    uint32 index() const {
-        return index_;
-    }
-    MUse *next() const {
-        return next_;
-    }
 };
 
 
@@ -207,13 +201,13 @@ class MDefinition : public MNode
     };
 
   private:
-    MUse *uses_;            
-    uint32 id_;             
-                            
-    uint32 valueNumber_;    
-    MIRType resultType_;    
-    uint32 usedTypes_;      
-    uint32 flags_;          
+    InlineForwardList<MUse> uses_; 
+    uint32 id_;                    
+                                   
+    uint32 valueNumber_;           
+    MIRType resultType_;           
+    uint32 usedTypes_;             
+    uint32 flags_;                 
 
   private:
     enum Flag {
@@ -240,8 +234,7 @@ class MDefinition : public MNode
 
   public:
     MDefinition()
-      : uses_(NULL),
-        id_(0),
+      : id_(0),
         valueNumber_(0),
         resultType_(MIRType_None),
         usedTypes_(0),
@@ -304,12 +297,17 @@ class MDefinition : public MNode
     MIRType usedAsType() const;
 
     
-    MUse *uses() const {
-        return uses_;
+    MUseIterator usesBegin() const {
+        return uses_.begin();
     }
 
     
-    MUse *removeUse(MUse *prev, MUse *use);
+    MUseIterator usesEnd() const {
+        return uses_.end();
+    }
+
+    
+    MUseIterator removeUse(MUseIterator use);
 
     
     size_t useCount() const;
@@ -319,7 +317,7 @@ class MDefinition : public MNode
     }
 
     void addUse(MNode *node, size_t index) {
-        uses_ = MUse::New(uses_, node, index);
+        uses_.pushFront(MUse::New(node, index));
     }
     void replaceAllUsesWith(MDefinition *dom);
 
@@ -327,8 +325,7 @@ class MDefinition : public MNode
     
     void linkUse(MUse *use) {
         JS_ASSERT(use->node()->getOperand(use->index()) == this);
-        use->setNext(uses_);
-        uses_ = use;
+        uses_.pushFront(use);
     }
 
   public:   
@@ -383,69 +380,40 @@ class MDefinition : public MNode
 
 
 
-class MUseIterator
-{
-    MUse *current_;
-
-  public:
-    MUseIterator(MDefinition *def)
-      : current_(def->uses())
-    { }
-
-    operator bool() const {
-        return !!current_;
-    }
-    MUseIterator operator ++(int) {
-        MUseIterator old(*this);
-        if (current_)
-            current_ = current_->next();
-        return old;
-    }
-    MUse * operator *() const {
-        return current_;
-    }
-    MUse * operator ->() const {
-        return current_;
-    }
-};
-
-
-
 
 class MUseDefIterator
 {
-    MUse *current_;
-    MUse *next_;
+    MDefinition *def_;
+    MUseIterator current_;
 
-    MUse *search(MUse *start) {
-        while (start && !start->node()->isDefinition())
-            start = start->next();
-        return start;
-    }
-    void next() {
-        current_ = next_;
-        if (next_)
-            next_ = search(next_->next());
+    MUseIterator search(MUseIterator start) {
+        MUseIterator i(start);
+        if (i != def_->usesEnd())
+            i++;
+        for (; i != def_->usesEnd(); i++) {
+            if (i->node()->isDefinition())
+                return i;
+        }
+        return def_->usesEnd();
     }
 
   public:
     MUseDefIterator(MDefinition *def)
-      : next_(search(def->uses()))
+      : def_(def),
+        current_(search(def->usesBegin()))
     {
-        next();
     }
 
     operator bool() const {
-        return !!current_;
+        return current_ != def_->usesEnd();
     }
     MUseDefIterator operator ++(int) {
         MUseDefIterator old(*this);
-        if (current_)
-            next();
+        current_ = search(current_);
         return old;
     }
     MUse *use() const {
-        return current_;
+        return *current_;
     }
     MDefinition *def() const {
         return current_->node()->toDefinition();

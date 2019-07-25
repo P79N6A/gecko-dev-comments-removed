@@ -55,7 +55,7 @@ MoveResolver::addMove(const MoveOperand &from, const MoveOperand &to, Move::Kind
     if (!pm)
         return false;
     new (pm) PendingMove(from, to, kind);
-    pending_.insert(pm);
+    pending_.pushBack(pm);
     return true;
 }
 
@@ -125,10 +125,10 @@ MoveResolver::resolve()
     
     
     while (!pending_.empty()) {
-        PendingMove *pm = pending_.pop();
+        PendingMove *pm = pending_.popBack();
 
         
-        stack.insert(pm);
+        stack.pushBack(pm);
 
         while (!stack.empty()) {
             PendingMove *blocking = findBlockingMove(stack.peekBack());
@@ -150,13 +150,13 @@ MoveResolver::resolve()
                     
                     
                     pending_.remove(blocking);
-                    stack.insert(blocking);
+                    stack.pushBack(blocking);
                 }
             } else {
                 
                 
                 
-                PendingMove *done = stack.pop();
+                PendingMove *done = stack.popBack();
                 if (!orderedMoves_.append(*done))
                     return false;
                 movePool_.free(done);
