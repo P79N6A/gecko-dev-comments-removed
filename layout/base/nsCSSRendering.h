@@ -318,7 +318,9 @@ struct nsCSSRendering {
 
 
 
+
   static void PaintDecorationLine(gfxContext* aGfxContext,
+                                  const gfxRect& aDirtyRect,
                                   const nscolor aColor,
                                   const gfxPoint& aPt,
                                   const gfxSize& aLineSize,

@@ -3367,6 +3367,7 @@ nsCSSRendering::DrawTableBorderSegment(nsRenderingContext&     aContext,
 
 void
 nsCSSRendering::PaintDecorationLine(gfxContext* aGfxContext,
+                                    const gfxRect& aDirtyRect,
                                     const nscolor aColor,
                                     const gfxPoint& aPt,
                                     const gfxSize& aLineSize,
@@ -3381,8 +3382,9 @@ nsCSSRendering::PaintDecorationLine(gfxContext* aGfxContext,
   gfxRect rect =
     GetTextDecorationRectInternal(aPt, aLineSize, aAscent, aOffset,
                                   aDecoration, aStyle, aDescentLimit);
-  if (rect.IsEmpty())
+  if (rect.IsEmpty() || !rect.Intersects(aDirtyRect)) {
     return;
+  }
 
   if (aDecoration != NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE &&
       aDecoration != NS_STYLE_TEXT_DECORATION_LINE_OVERLINE &&
@@ -3524,13 +3526,29 @@ nsCSSRendering::PaintDecorationLine(gfxContext* aGfxContext,
 
 
 
-      rect.x += lineHeight / 2.0;
-      aGfxContext->NewPath();
-
-      gfxPoint pt(rect.TopLeft());
-      gfxFloat rightMost = pt.x + rect.Width() + lineHeight;
       gfxFloat adv = rect.Height() - lineHeight;
       gfxFloat flatLengthAtVertex = NS_MAX((lineHeight - 1.0) * 2.0, 1.0);
+
+      
+      
+      
+      gfxFloat cycleLength = 2 * (adv + flatLengthAtVertex);
+      PRInt32 skipCycles = floor((aDirtyRect.x - rect.x) / cycleLength);
+      if (skipCycles > 0) {
+        rect.x += skipCycles * cycleLength;
+        rect.width -= skipCycles * cycleLength;
+      }
+
+      rect.x += lineHeight / 2.0;
+      gfxPoint pt(rect.TopLeft());
+      gfxFloat rightMost = pt.x + rect.Width() + lineHeight;
+
+      skipCycles = floor((rightMost - aDirtyRect.XMost()) / cycleLength);
+      if (skipCycles > 0) {
+        rightMost -= skipCycles * cycleLength;
+      }
+
+      aGfxContext->NewPath();
 
       pt.x -= lineHeight;
       aGfxContext->MoveTo(pt); 
@@ -3539,7 +3557,16 @@ nsCSSRendering::PaintDecorationLine(gfxContext* aGfxContext,
       aGfxContext->LineTo(pt); 
 
       PRBool goDown = PR_TRUE;
+      PRUint32 iter = 0;
       while (pt.x < rightMost) {
+        if (++iter > 1000) {
+          
+          
+          aGfxContext->Stroke();
+          aGfxContext->NewPath();
+          aGfxContext->MoveTo(pt);
+          iter = 0;
+        }
         pt.x += adv;
         pt.y += goDown ? adv : -adv;
 
