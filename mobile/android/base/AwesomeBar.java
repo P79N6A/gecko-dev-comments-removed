@@ -52,6 +52,7 @@ import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.Spanned;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -195,7 +196,22 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
 
         mText.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(Editable s) {
+                String text = s.toString();
+                mAwesomeTabs.filter(text);
+
                 
+                
+                Object[] spans = s.getSpans(0, s.length(), Object.class);
+                if (spans != null) {
+                    for (Object span : spans) {
+                        if ((s.getSpanFlags(span) & Spanned.SPAN_COMPOSING) != 0) {
+                            
+                            return;
+                        }
+                    }
+                }
+                
+                updateGoButton(text);
             }
 
             public void beforeTextChanged(CharSequence s, int start, int count,
@@ -205,10 +221,7 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
 
             public void onTextChanged(CharSequence s, int start, int before,
                                       int count) {
-                String text = s.toString();
-
-                mAwesomeTabs.filter(text);
-                updateGoButton(text);
+                
             }
         });
 
