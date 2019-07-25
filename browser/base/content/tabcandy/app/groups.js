@@ -1341,16 +1341,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   reorderBasedOnTabOrder: function(){
-    var groupTabs = [];
-    for ( var i=0; i<UI.tabBar.el.children.length; i++ ){
-      var tab = UI.tabBar.el.children[i];
-      if (!tab.collapsed)
-        groupTabs.push(tab);
-    }
-
-    this._children.sort(function(a,b){
-      return groupTabs.indexOf(a.tab.raw) - groupTabs.indexOf(b.tab.raw)
-    });
+    this._children.sort(function(a,b) a.tab.raw._tPos - b.tab.raw._tPos);
 
     this.arrange({animate: false});
     

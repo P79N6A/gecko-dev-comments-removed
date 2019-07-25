@@ -52,29 +52,6 @@ var Tabbar = {
   
   
   
-  get el() {
-    return window.Tabs[0].raw.parentNode;
-  },
-
-  
-  
-  
-  
-  _getAllTabs: function() {
-    var tabBarTabs = [];
-    if (this.el) {
-      
-      
-      for (var i = 0; i < this.el.children.length; i++) {
-        tabBarTabs.push(this.el.children[i]);
-      }
-    }
-    return tabBarTabs;
-  },
-
-  
-  
-  
   
   
   
@@ -84,7 +61,7 @@ var Tabbar = {
       if (!options)
         options = {};
 
-      var tabBarTabs = this._getAllTabs();
+      let tabBarTabs = Array.slice(gBrowser.tabs);
       var visibleTabs = tabs.map(function(tab) tab.tab.raw);
 
       
@@ -119,7 +96,7 @@ var Tabbar = {
   
   
   showAllTabs: function(){
-    this._getAllTabs().forEach(function(tab) {
+    Array.forEach(gBrowser.tabs, function(tab) {
       tab.collapsed = false;
     });
   }
