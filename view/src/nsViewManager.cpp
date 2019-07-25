@@ -398,11 +398,11 @@ void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
 
   
   
-  if (aFlushDirtyRegion) {
+  if (aFlushDirtyRegion && aView->HasNonEmptyDirtyRegion()) {
+    FlushDirtyRegionToWidget(aView);
     if (IsRefreshDriverPaintingEnabled()) {
       nsIWidget *widget = aView->GetWidget();
-      if (widget && widget->NeedsPaint() && aView->HasNonEmptyDirtyRegion()) {
-        FlushDirtyRegionToWidget(aView);
+      if (widget && widget->NeedsPaint()) {
         
         
         for (nsViewManager *vm = this; vm;
@@ -431,8 +431,6 @@ void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
 #endif
         SetPainting(false);
       }
-    } else {
-      FlushDirtyRegionToWidget(aView);
     }
   }
 }
