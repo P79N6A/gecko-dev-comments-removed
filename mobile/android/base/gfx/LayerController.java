@@ -390,29 +390,15 @@ public class LayerController implements Tabs.OnTabsChangedListener {
         int action = event.getAction();
         PointF point = new PointF(event.getX(), event.getY());
 
-        
         if ((action & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
+            mView.clearEventQueue();
             initialTouchLocation = point;
             allowDefaultActions = !mWaitForTouchListeners;
-
-            
-            
-            if (allowDefaultTimer != null) {
-              allowDefaultTimer.cancel();
-            } else {
-              
-              mView.clearEventQueue();
-            }
-            allowDefaultTimer = new Timer();
-            allowDefaultTimer.schedule(new TimerTask() {
+            post(new Runnable() {
                 public void run() {
-                    post(new Runnable() {
-                        public void run() {
-                            preventPanning(false);
-                        }
-                    });
+                    preventPanning(mWaitForTouchListeners);
                 }
-            }, mTimeout);
+            });
         }
 
         
@@ -424,9 +410,47 @@ public class LayerController implements Tabs.OnTabsChangedListener {
             }
         }
 
-        
         if (mOnTouchListener != null)
             mOnTouchListener.onTouch(mView, event);
+
+        if (!mWaitForTouchListeners)
+            return !allowDefaultActions;
+
+        boolean createTimer = false;
+        switch (action & MotionEvent.ACTION_MASK) {
+            case MotionEvent.ACTION_MOVE: {
+                if (!inTouchSession && allowDefaultTimer == null) {
+                    inTouchSession = true;
+                    createTimer = true;
+                }
+                break;
+            }
+            case MotionEvent.ACTION_CANCEL:
+            case MotionEvent.ACTION_UP: {
+                
+                
+                
+                if (initialTouchLocation != null)
+                    createTimer = true;
+                inTouchSession = false;
+            }
+        }
+
+        if (createTimer) {
+            if (allowDefaultTimer != null) {
+              allowDefaultTimer.cancel();
+            }
+            allowDefaultTimer = new Timer();
+            allowDefaultTimer.schedule(new TimerTask() {
+                public void run() {
+                    post(new Runnable() {
+                        public void run() {
+                            preventPanning(false);
+                        }
+                    });
+                }
+            }, PREVENT_DEFAULT_TIMEOUT);
+        }
 
         return !allowDefaultActions;
     }
@@ -434,6 +458,7 @@ public class LayerController implements Tabs.OnTabsChangedListener {
     public void preventPanning(boolean aValue) {
         if (allowDefaultTimer != null) {
             allowDefaultTimer.cancel();
+            allowDefaultTimer.purge();
             allowDefaultTimer = null;
         }
         if (aValue == allowDefaultActions) {
