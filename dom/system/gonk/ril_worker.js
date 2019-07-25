@@ -1352,8 +1352,8 @@ let RIL = {
     }
 
     if (stateChanged) {
-      this.sendDOMMessage({type: "voiceregistrationstatechange",
-                           voiceRegistrationState: rs});
+      rs.type = "voiceregistrationstatechange";
+      this.sendDOMMessage(rs);
     }
   },
 
@@ -1374,8 +1374,8 @@ let RIL = {
     }
 
     if (stateChanged) {
-      this.sendDOMMessage({type: "dataregistrationstatechange",
-                           dataRegistrationState: rs});
+      rs.type = "dataregistrationstatechange";
+      this.sendDOMMessage(rs);
     }
   },
 
@@ -1430,16 +1430,13 @@ let RIL = {
 
   _handleChangedCallState: function _handleChangedCallState(changedCall) {
     let message = {type: "callStateChange",
-                   call: {callIndex: changedCall.callIndex,
-                          state: changedCall.state,
-                          number: changedCall.number,
-                          name: changedCall.name}};
+                   call: changedCall};
     this.sendDOMMessage(message);
   },
 
   _handleDisconnectedCall: function _handleDisconnectedCall(disconnectedCall) {
     let message = {type: "callDisconnected",
-                   call: {callIndex: disconnectedCall.callIndex}};
+                   call: disconnectedCall};
     this.sendDOMMessage(message);
   },
 
@@ -1924,15 +1921,26 @@ RIL[REQUEST_SIGNAL_STRENGTH] = function REQUEST_SIGNAL_STRENGTH(length, options)
 
   
   
-  obj.gsmSignalStrength = Buf.readUint32();
-  
-  
-  obj.bars = obj.gsmSignalStrength >> 8; 
-  obj.gsmSignalStrength = obj.gsmSignalStrength & 0xff;
+  let gsmSignalStrength = Buf.readUint32();
+  obj.gsmSignalStrength = gsmSignalStrength & 0xff;
   
   obj.gsmBitErrorRate = Buf.readUint32();
 
+  obj.gsmDBM = null;
+  obj.gsmRelative = null;
+  if (obj.gsmSignalStrength >= 0 && obj.gsmSignalStrength <= 31) {
+    obj.gsmDBM = -113 + obj.gsmSignalStrength * 2;
+    obj.gsmRelative = Math.floor(obj.gsmSignalStrength * 100 / 31);
+  }
+
   
+  
+  
+  
+  if (obj.gsmSignalStrength == 99) {
+    obj.gsmRelative = (gsmSignalStrength >> 8) * 25;
+  }
+
   
   obj.cdmaDBM = Buf.readUint32();
   
@@ -1964,8 +1972,8 @@ RIL[REQUEST_SIGNAL_STRENGTH] = function REQUEST_SIGNAL_STRENGTH(length, options)
   }
 
   if (DEBUG) debug("Signal strength " + JSON.stringify(obj));
-  this.sendDOMMessage({type: "signalstrengthchange",
-                       signalStrength: obj});
+  obj.type = "signalstrengthchange";
+  this.sendDOMMessage(obj);
 };
 RIL[REQUEST_VOICE_REGISTRATION_STATE] = function REQUEST_VOICE_REGISTRATION_STATE(length, options) {
   if (options.rilRequestError) {
@@ -1998,11 +2006,11 @@ RIL[REQUEST_OPERATOR] = function REQUEST_OPERATOR(length, options) {
       this.operator.alphaLong  != operator[0] ||
       this.operator.alphaShort != operator[1] ||
       this.operator.numeric    != operator[2]) {
-    this.operator = {alphaLong:  operator[0],
+    this.operator = {type: "operatorchange",
+                     alphaLong:  operator[0],
                      alphaShort: operator[1],
                      numeric:    operator[2]};
-    this.sendDOMMessage({type: "operatorchange",
-                         operator: this.operator});
+    this.sendDOMMessage(this.operator);
   }
 };
 RIL[REQUEST_RADIO_POWER] = null;

@@ -74,6 +74,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gSmsDatabaseService",
                                    "@mozilla.org/sms/rilsmsdatabaseservice;1",
                                    "nsISmsDatabaseService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
+                                   "@mozilla.org/parentprocessmessagemanager;1",
+                                   "nsIFrameMessageManager");
+
 function convertRILCallState(state) {
   switch (state) {
     case RIL.CALL_STATE_ACTIVE:
@@ -137,21 +141,36 @@ DataCallInfo.protoptype = {
 
 
 function RadioInterfaceLayer() {
+  debug("Starting RIL Worker");
   this.worker = new ChromeWorker("resource://gre/modules/ril_worker.js");
   this.worker.onerror = this.onerror.bind(this);
   this.worker.onmessage = this.onmessage.bind(this);
-  debug("Starting Worker\n");
+
   this.radioState = {
     radioState:     RIL.GECKO_RADIOSTATE_UNAVAILABLE,
     cardState:      RIL.GECKO_CARDSTATE_UNAVAILABLE,
-    connected:      null,
-    roaming:        null,
-    signalStrength: null,
-    bars:           null,
-    operator:       null,
-    type:           null,
     msisdn:         null,
+
+    
+    
+    voice:          {connected: false,
+                     emergencyCallsOnly: false,
+                     roaming: false,
+                     operator: null,
+                     type: null,
+                     signalStrength: null,
+                     relSignalStrength: null},
+    data:          {connected: false,
+                     emergencyCallsOnly: false,
+                     roaming: false,
+                     operator: null,
+                     type: null,
+                     signalStrength: null,
+                     relSignalStrength: null},
   };
+  ppmm.addMessageListener("RIL:GetRadioState", this);
+  Services.obs.addObserver(this, "xpcom-shutdown", false);
+
   this._sentSmsEnvelopes = {};
 }
 RadioInterfaceLayer.prototype = {
@@ -164,6 +183,18 @@ RadioInterfaceLayer.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWorkerHolder,
                                          Ci.nsIRadioInterfaceLayer]),
+
+  
+
+
+  receiveMessage: function receiveMessage(msg) {
+    debug("Received '" + msg.name + "' message from content process");
+    switch (msg.name) {
+      case "RIL:GetRadioState":
+        
+        return this.radioState;
+    }
+  },
 
   onerror: function onerror(event) {
     debug("Got an error: " + event.filename + ":" +
@@ -178,10 +209,9 @@ RadioInterfaceLayer.prototype = {
 
 
 
-
   onmessage: function onmessage(event) {
     let message = event.data;
-    debug("Received message: " + JSON.stringify(message));
+    debug("Received message from worker: " + JSON.stringify(message));
     switch (message.type) {
       case "callStateChange":
         
@@ -196,62 +226,23 @@ RadioInterfaceLayer.prototype = {
         this.handleEnumerateCalls(message.calls);
         break;
       case "voiceregistrationstatechange":
-        this.updateDataConnection(message.voiceRegistrationState);
+        this.updateVoiceConnection(message);
         break;
       case "dataregistrationstatechange":
-        let state = message.dataRegistrationState;
-        this.updateDataConnection(state);
-
-        
-        
-
-        if (!state || state.regState == RIL.NETWORK_CREG_STATE_UNKNOWN) {
-          this.resetRadioState();
-          this.notifyRadioStateChanged();
-          return;
-        }
-
-        this.radioState.connected =
-          (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_HOME) ||
-          (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING);
-        this.radioState.roaming =
-          this.radioState.connected &&
-          (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING);
-        this.radioState.type = RIL.GECKO_RADIO_TECH[state.radioTech] || null;
-        this.notifyRadioStateChanged();
+        this.updateDataConnection(message);
         break;
       case "signalstrengthchange":
-        
-        let signalStrength = message.signalStrength.gsmSignalStrength;
-        if (signalStrength == 99) {
-          signalStrength = null;
-        }
-        this.radioState.signalStrength = signalStrength;
-        if (message.signalStrength.bars) {
-          this.radioState.bars = message.signalStrength.bars;
-        } else if (signalStrength != null) {
-          
-          
-          this.radioState.bars = Math.round(signalStrength / 7.75);
-        } else {
-          this.radioState.bars = null;
-        }
-        this.notifyRadioStateChanged();
+        this.handleSignalStrengthChange(message);
         break;
       case "operatorchange":
-        this.radioState.operator = message.operator.alphaLong;
-        this.notifyRadioStateChanged();
+        this.handleOperatorChange(message);
         break;
       case "radiostatechange":
         this.radioState.radioState = message.radioState;
-        this.notifyRadioStateChanged();
         break;
       case "cardstatechange":
         this.radioState.cardState = message.cardState;
-        if (!message.cardState || message.cardState == "absent") {
-          this.resetRadioState();
-        }
-        this.notifyRadioStateChanged();
+        ppmm.sendAsyncMessage("RIL:CardStateChange", message);
         break;
       case "sms-received":
         this.handleSmsReceived(message);
@@ -292,6 +283,34 @@ RadioInterfaceLayer.prototype = {
     }
   },
 
+  updateVoiceConnection: function updateVoiceConnection(state) {
+    let voiceInfo = this.radioState.voice;
+    voiceInfo.type = "gsm"; 
+    if (!state || state.regState == RIL.NETWORK_CREG_STATE_UNKNOWN) {
+      voiceInfo.connected = false;
+      voiceInfo.emergencyCallsOnly = false;
+      voiceInfo.roaming = false;
+      voiceInfo.operator = null;
+      voiceInfo.type = null;
+      voiceInfo.signalStrength = null;
+      voiceInfo.relSignalStrength = null;
+      ppmm.sendAsyncMessage("RIL:VoiceThis.RadioState.VoiceChanged",
+                            voiceInfo);
+      return;
+    }
+    
+    voiceInfo.connected =
+      (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_HOME) ||
+      (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING);
+    voiceInfo.roaming =
+      voiceInfo.connected &&
+      (state == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING);    
+    voiceInfo.type =
+      RIL.GECKO_RADIO_TECH[state.radioTech] || null;
+    ppmm.sendAsyncMessage("RIL:VoiceInfoChanged", voiceInfo);
+
+  },
+
   _isDataEnabled: function _isDataEnabled() {
     try {
       return Services.prefs.getBoolPref("ril.data.enabled");
@@ -324,6 +343,32 @@ RadioInterfaceLayer.prototype = {
       debug("Radio is ready for data connection.");
       
       RILNetworkInterface.connect();
+    }
+    
+    
+    
+  },
+
+  handleSignalStrengthChange: function handleSignalStrengthChange(message) {
+    
+    this.radioState.voice.signalStrength = message.gsmDBM;
+    this.radioState.voice.relSignalStrength = message.gsmRelative;
+    ppmm.sendAsyncMessage("RIL:VoiceInfoChanged", this.radioState.voice);
+
+    this.radioState.data.signalStrength = message.gsmDBM;
+    this.radioState.data.relSignalStrength = message.gsmRelative;
+    ppmm.sendAsyncMessage("RIL:DataInfoChanged", this.radioState.data);
+  },
+
+  handleOperatorChange: function handleOperatorChange(message) {
+    let operator = message.alphaLong;
+    if (operator != this.radioState.voice.operator) {
+      this.radioState.voice.operator = operator;
+      ppmm.sendAsyncMessage("RIL:VoiceInfoChanged", this.radioState.voice);
+    }
+    if (operator != this.radioState.data.operator) {
+      this.radioState.data.operator = operator;
+      ppmm.sendAsyncMessage("RIL:DataInfoChanged", this.radioState.data);
     }
   },
 
@@ -525,18 +570,14 @@ RadioInterfaceLayer.prototype = {
                                   [datacalls, datacalls.length]);
   },
 
-  resetRadioState: function resetRadioState() {
-    this.radioState.connected = null;
-    this.radioState.roaming = null;
-    this.radioState.signalStrength = null;
-    this.radioState.bars = null;
-    this.radioState.operator = null;
-    this.radioState.type = null;
-  },
+  
 
-  notifyRadioStateChanged: function notifyRadioStateChanged() {
-    debug("Radio state changed: " + JSON.stringify(this.radioState));
-    Services.obs.notifyObservers(null, "ril-radiostate-changed", null);
+  observe: function observe(subject, topic, data) {
+    if (topic == "xpcom-shutdown") {
+      ppmm.removeMessageListener("RIL:GetRadioState", this);
+      Services.obs.removeObserver(this, "xpcom-shutdown");
+      ppmm = null;
+    }
   },
 
   
