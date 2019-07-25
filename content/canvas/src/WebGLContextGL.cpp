@@ -2988,7 +2988,14 @@ WebGLContext::CompileShader(nsIWebGLShader *sobj)
             return NS_OK;
         }
 
-        s = ShGetObjectCode(compiler);
+        
+
+
+
+        if (!gl->IsGLES2()) {
+            s = ShGetObjectCode(compiler);
+        }
+
         gl->fShaderSource(shadername, 1, &s, NULL);
         shader->SetTranslationSuccess();
 
