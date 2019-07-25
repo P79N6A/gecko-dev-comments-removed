@@ -396,9 +396,9 @@ BookmarksEngine.prototype = {
       
       
       
+      let guidMap;
       try {
-        delete this._guidMap;
-        return this._guidMap = this._buildGUIDMap();
+        guidMap = this._buildGUIDMap();
       } catch (ex) {
         this._log.warn("Got exception \"" + Utils.exceptionStr(ex) +
                        "\" building GUID map." +
@@ -406,6 +406,8 @@ BookmarksEngine.prototype = {
         throw {code: Engine.prototype.eEngineAbortApplyIncoming,
                cause: ex};
       }
+      delete this._guidMap;
+      return this._guidMap = guidMap;
     });
 
     this._store._childrenToOrder = {};
