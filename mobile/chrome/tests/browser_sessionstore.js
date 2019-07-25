@@ -46,15 +46,17 @@ gTests.push({
   _currentTab: null,
 
   run: function() {
-    Browser.addTab("about:blank", true);
     this._currentTab = Browser.addTab(testURL, true);
 
+    
     
     messageManager.addMessageListener("pageshow",
     function(aMessage) {
       if (gCurrentTest._currentTab.browser.currentURI.spec != "about:blank") {
         messageManager.removeMessageListener(aMessage.name, arguments.callee);
-        gCurrentTest.onPageReady();
+        waitFor(gCurrentTest.onPageReady, function() {
+          return Browser.selectedBrowser.__SS_data.entries[0].url != "about:blank";
+        });
       }
     });
   },
@@ -66,25 +68,33 @@ gTests.push({
 
     
     gCurrentTest.numTabs = Browser.tabs.length;
-    gCurrentTest.numClosed = ss.getClosedTabCount(window);
+
+    let tabs = document.getElementById("tabs");
+    tabs.addEventListener("TabClose", function() {
+      tabs.removeEventListener("TabClose", arguments.callee, false);
+      setTimeout(function() { gCurrentTest.onTabClose(); }, 0);
+    }, false);
 
     Browser.closeTab(gCurrentTest._currentTab);
+    gCurrentTest.numClosed = ss.getClosedTabCount(window);
+  },
 
+  onTabClose: function() {
     isnot(Browser.tabs.length, gCurrentTest.numTabs, "Tab was closed");
 
-    
-    todo_isnot(ss.getClosedTabCount(window), gCurrentTest.numClosed, "Tab was stored");
+    is(ss.getClosedTabCount(window), gCurrentTest.numClosed, "Tab was stored");
 
     
     
     gCurrentTest._currentTab = Browser.getTabFromChrome(ss.undoCloseTab(window, 0));
+    gCurrentTest.numClosed = ss.getClosedTabCount(window);
 
     
     messageManager.addMessageListener("pageshow",
     function(aMessage) {
       if (gCurrentTest._currentTab.browser.currentURI.spec != "about:blank") {
         messageManager.removeMessageListener(aMessage.name, arguments.callee);
-        gCurrentTest.onPageUndo();
+        setTimeout(function() { gCurrentTest.onPageUndo(); }, 0);
       }
     });
   },
@@ -92,7 +102,7 @@ gTests.push({
   onPageUndo: function() {
     is(Browser.tabs.length, gCurrentTest.numTabs, "Tab was reopened");
     
-    todo_is(ss.getClosedTabCount(window), gCurrentTest.numClosed, "Tab was removed from store");
+    is(ss.getClosedTabCount(window), gCurrentTest.numClosed, "Tab was removed from store");
 
     is(ss.getTabValue(gCurrentTest._currentTab.chromeTab, "test1"), "hello", "Set/Get tab value matches after un-close");
 
