@@ -45,6 +45,7 @@ class nsAHttpSegmentReader;
 class nsAHttpSegmentWriter;
 class nsIInterfaceRequestor;
 class nsIEventTarget;
+class nsITransport;
 class nsHttpRequestHead;
 
 
@@ -68,7 +69,8 @@ public:
                                       nsIEventTarget **) = 0;
 
     
-    virtual void OnTransportStatus(nsresult status, PRUint64 progress) = 0;
+    virtual void OnTransportStatus(nsITransport* transport,
+                                   nsresult status, PRUint64 progress) = 0;
 
     
     virtual PRBool   IsDone() = 0;
@@ -99,7 +101,8 @@ public:
     void SetConnection(nsAHttpConnection *); \
     void GetSecurityCallbacks(nsIInterfaceRequestor **, \
                               nsIEventTarget **);       \
-    void OnTransportStatus(nsresult status, PRUint64 progress); \
+    void OnTransportStatus(nsITransport* transport, \
+                           nsresult status, PRUint64 progress); \
     PRBool   IsDone(); \
     nsresult Status(); \
     PRUint32 Available(); \

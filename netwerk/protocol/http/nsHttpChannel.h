@@ -137,6 +137,10 @@ public:
     NS_IMETHOD AsyncOpen(nsIStreamListener *listener, nsISupports *aContext);
     
     NS_IMETHOD SetupFallbackChannel(const char *aFallbackKey);
+    NS_IMETHOD GetLocalAddress(nsACString& addr);
+    NS_IMETHOD GetLocalPort(PRInt32* port);
+    NS_IMETHOD GetRemoteAddress(nsACString& addr);
+    NS_IMETHOD GetRemotePort(PRInt32* port);
     
     NS_IMETHOD SetPriority(PRInt32 value);
     
@@ -346,6 +350,9 @@ private:
     
     
     PRUint32                          mRequestTimeInitialized : 1;
+
+    PRNetAddr                         mSelfAddr;
+    PRNetAddr                         mPeerAddr;
 
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
 
