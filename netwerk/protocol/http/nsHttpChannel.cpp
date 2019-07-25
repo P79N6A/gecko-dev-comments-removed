@@ -4602,10 +4602,18 @@ nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
         
         
         
+
+        
+        
+        
+        
+        PRUint32 odaOffset = mLogicalOffset > PR_UINT32_MAX
+                           ? PR_UINT32_MAX : PRUint32(mLogicalOffset);
+
         nsresult rv =  mListener->OnDataAvailable(this,
                                                   mListenerContext,
                                                   input,
-                                                  mLogicalOffset,
+                                                  odaOffset,
                                                   count);
         if (NS_SUCCEEDED(rv))
             mLogicalOffset = progress;
