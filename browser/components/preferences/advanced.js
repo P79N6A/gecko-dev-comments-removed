@@ -531,6 +531,26 @@ var gAdvancedPane = {
     
     warnIncompatible.disabled = radiogroup.disabled || modePref.locked ||
                                 !enabledPref.value || !autoPref.value;
+
+#ifdef MOZ_MAINTENANCE_SERVICE
+    
+    
+    var installed;
+    try {
+      Components.utils.reportError("0");
+      var wrk = Components.classes["@mozilla.org/windows-registry-key;1"]
+                .createInstance(Components.interfaces.nsIWindowsRegKey);
+      wrk.open(wrk.ROOT_KEY_LOCAL_MACHINE,
+               "SOFTWARE\\Mozilla\\MaintenanceService",
+               wrk.ACCESS_READ | wrk.WOW64_64);
+      installed = wrk.readIntValue("Installed");
+      wrk.close();
+    } catch(e) {
+    }
+    if (installed != 1) {
+      document.getElementById("useService").hidden = true;
+    }
+#endif
   },
 
   

@@ -1,0 +1,41 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define STOP_CMD L"stop"
+
+BOOL StartDirectoryChangeMonitor();
+BOOL GetUpdateDirectoryPath(LPWSTR);

@@ -188,9 +188,13 @@ appUpdater.prototype =
 
   
   get isPending() {
-    if (this.update)
-      return this.update.state == "pending";
-    return this.um.activeUpdate && this.um.activeUpdate.state == "pending";
+    if (this.update) {
+      return this.update.state == "pending" || 
+             this.update.state == "pending-service";
+    }
+    return this.um.activeUpdate &&
+           (this.um.activeUpdate.state == "pending" ||
+            this.um.activeUpdate.state == "pending-service");
   },
 
   

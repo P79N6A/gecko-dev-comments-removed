@@ -39,6 +39,7 @@
 
 
 
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "nsUpdateDriver.h"
@@ -190,7 +191,7 @@ GetStatusFile(nsIFile *dir, nsCOMPtr<nsILocalFile> &result)
 }
 
 static bool
-IsPending(nsILocalFile *statusFile)
+IsPending(nsILocalFile *statusFile, bool &isPendingService)
 {
   PRFileDesc *fd = nsnull;
   nsresult rv = statusFile->OpenNSPRFileDesc(PR_RDONLY, 0660, &fd);
@@ -205,14 +206,23 @@ IsPending(nsILocalFile *statusFile)
     return false;
   
   const char kPending[] = "pending";
-  return (strncmp(buf, kPending, sizeof(kPending) - 1) == 0);
+  bool isPending = (strncmp(buf, kPending, sizeof(kPending) - 1) == 0);
+
+  const char kPendingService[] = "pending-service";
+  isPendingService = (strncmp(buf, kPendingService, 
+                      sizeof(kPendingService) - 1) == 0);
+
+  return isPending || isPendingService;
 }
 
 static bool
 SetStatusApplying(nsILocalFile *statusFile)
 {
   PRFileDesc *fd = nsnull;
-  nsresult rv = statusFile->OpenNSPRFileDesc(PR_WRONLY, 0660, &fd);
+  nsresult rv = statusFile->OpenNSPRFileDesc(PR_WRONLY | 
+                                             PR_TRUNCATE | 
+                                             PR_CREATE_FILE, 
+                                             0660, &fd);
   if (NS_FAILED(rv))
     return false;
 
@@ -334,7 +344,7 @@ CopyUpdaterIntoUpdateDir(nsIFile *greDir, nsIFile *appDir, nsIFile *updateDir,
 
 static void
 ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
-            nsIFile *appDir, int appArgc, char **appArgv)
+            nsIFile *appDir, int appArgc, char **appArgv, bool isPendingService)
 {
   nsresult rv;
 
@@ -480,8 +490,42 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
 #if defined(USE_EXECV)
   execv(updaterPath.get(), argv);
 #elif defined(XP_WIN)
-  if (!WinLaunchChild(updaterPathW.get(), argc, argv))
-    return;
+
+#ifndef MOZ_MAINTENANCE_SERVICE
+  
+  isPendingService = false;
+#endif
+
+  if (isPendingService) {
+    
+    SetLastError(ERROR_SUCCESS);
+    HANDLE serviceRunningEvent = 
+      OpenEvent(EVENT_ALL_ACCESS, 
+                FALSE, 
+                L"Global\\moz-5b780de9-065b-4341-a04f-ddd94b3723e5");
+    
+    
+    
+    isPendingService = !serviceRunningEvent && 
+                       GetLastError() != ERROR_ACCESS_DENIED;
+    if (serviceRunningEvent) {
+      CloseHandle(serviceRunningEvent);
+    }
+  }
+
+  
+  
+  
+  if (!isPendingService || 
+      !WriteStatusPending(NS_ConvertUTF8toUTF16(updateDirPath).get()) ||
+      !WinLaunchServiceCommand(updaterPathW.get(), argc, argv)) {
+    
+    if (!WinLaunchChild(updaterPathW.get(), argc, argv)) {
+      return;
+    }
+  }
+
+  
   _exit(0);
 #elif defined(XP_MACOSX)
   CommandLineServiceMac::SetupMacCommandLine(argc, argv, true);
@@ -516,7 +560,9 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
     return rv;
 
   nsCOMPtr<nsILocalFile> statusFile;
-  if (GetStatusFile(updatesDir, statusFile) && IsPending(statusFile)) {
+  bool isPendingService;
+  if (GetStatusFile(updatesDir, statusFile) && 
+      IsPending(statusFile, isPendingService)) {
     nsCOMPtr<nsILocalFile> versionFile;
     nsCOMPtr<nsILocalFile> channelChangeFile;
     
@@ -527,7 +573,8 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
          IsOlderVersion(versionFile, appVersion))) {
       updatesDir->Remove(true);
     } else {
-      ApplyUpdate(greDir, updatesDir, statusFile, appDir, argc, argv);
+      ApplyUpdate(greDir, updatesDir, statusFile, appDir, 
+                  argc, argv, isPendingService);
     }
   }
 
