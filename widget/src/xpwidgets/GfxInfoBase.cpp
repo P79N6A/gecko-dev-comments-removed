@@ -675,7 +675,13 @@ GfxInfoBase::LogFailure(const nsACString &failure)
   
   if (mFailureCount < NS_ARRAY_LENGTH(mFailures)) {
     mFailures[mFailureCount++] = failure;
+
+    
+#if defined(MOZ_CRASHREPORTER) && defined(MOZ_ENABLE_LIBXUL)
+    CrashReporter::AppendAppNotesToCrashReport(failure);
+#endif
   }
+
 }
 
 
