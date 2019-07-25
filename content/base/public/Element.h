@@ -117,7 +117,7 @@ public:
       return mState;
     }
     return StyleStateFromLocks();
-  };
+  }
 
   
 
