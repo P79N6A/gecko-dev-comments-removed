@@ -542,18 +542,18 @@ void TableTicker::Tick(TickSample* sample)
   }
   mStack->mQueueClearMarker = true;
 
-  
-  
-  if (sLastSampledEventGeneration != sCurrentEventGeneration) {
-    
-    
-    
-    mProfile.erase();
-  }
-  sLastSampledEventGeneration = sCurrentEventGeneration;
-
   bool recordSample = true;
   if (mJankOnly) {
+    
+    
+    if (sLastSampledEventGeneration != sCurrentEventGeneration) {
+      
+      
+      
+      mProfile.erase();
+    }
+    sLastSampledEventGeneration = sCurrentEventGeneration;
+
     recordSample = false;
     
     if (!sLastTracerEvent.IsNull()) {
