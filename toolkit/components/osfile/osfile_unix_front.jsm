@@ -667,16 +667,7 @@
 
 
        get size() {
-         delete this.size;
-         let size;
-         try {
-           size = OS.Shared.projectValue(this._st_size);
-         } catch(x) {
-           LOG("get size error", x);
-           size = NaN;
-         }
-         Object.defineProperty(this, "size", { value: size });
-         return size;
+         return exports.OS.Shared.Type.size_t.importFromC(this._st_size);
        },
        
 
@@ -716,20 +707,36 @@
 
 
        get unixOwner() {
-         return this._st_uid;
+         return exports.OS.Shared.Type.uid_t.importFromC(this._st_uid);
        },
        
 
 
        get unixGroup() {
-         return this._st_gid;
+         return exports.OS.Shared.Type.gid_t.importFromC(this._st_gid);
        },
        
 
 
        get unixMode() {
-         return this._st_mode & MODE_MASK;
+         return exports.OS.Shared.Type.mode_t.importFromC(this._st_mode & MODE_MASK);
        }
+     };
+
+     
+
+
+
+
+     File.Info.toMsg = function toMsg(stat) {
+       if (!stat instanceof File.Info) {
+         throw new TypeError("parameter of File.Info.toMsg must be a File.Info");
+       }
+       let serialized = {};
+       for (let key in File.Info.prototype) {
+         serialized[key] = stat[key];
+       }
+       return serialized;
      };
 
      
