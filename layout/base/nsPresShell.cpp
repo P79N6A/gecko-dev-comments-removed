@@ -3656,21 +3656,40 @@ PresShell::DispatchSynthMouseMove(nsGUIEvent *aEvent,
 NS_IMETHODIMP_(void)
 PresShell::ClearMouseCapture(nsIView* aView)
 {
-  if (!aView) {
-    nsIPresShell::ClearMouseCapture(static_cast<nsIFrame*>(nsnull));
-    return;
+  if (gCaptureInfo.mContent) {
+    if (aView) {
+      
+      
+      nsIFrame* frame = gCaptureInfo.mContent->GetPrimaryFrame();
+      if (frame) {
+        nsIView* view = frame->GetClosestView();
+        
+        
+        if (view) {
+          do {
+            if (view == aView) {
+              NS_RELEASE(gCaptureInfo.mContent);
+              
+              
+              gCaptureInfo.mAllowed = false;
+              break;
+            }
+
+            view = view->GetParent();
+          } while (view);
+          
+          return;
+        }
+      }
+    }
+
+    NS_RELEASE(gCaptureInfo.mContent);
   }
 
-  nsIFrame* frame = nsnull;
-  nsIView* view = aView;
-  while (!frame && view) {
-    frame = static_cast<nsIFrame*>(view->GetClientData());
-    view = view->GetParent();
-  }
-
-  if (frame) {
-    nsIPresShell::ClearMouseCapture(frame);
-  }
+  
+  
+  
+  gCaptureInfo.mAllowed = false;
 }
 
 void
