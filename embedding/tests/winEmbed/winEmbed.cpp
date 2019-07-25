@@ -166,18 +166,9 @@ int main(int argc, char *argv[])
     LoadString(ghInstanceApp, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     MyRegisterClass(ghInstanceApp);
 
-    
-    
-    static const GREVersionRange vr = {
-        "1.8a1",
-        PR_TRUE,
-        "2.0",
-        PR_FALSE
-    };
-
     char path[_MAX_PATH];
-    GetModuleFileName(ghInstanceApp, self, sizeof(self));
-    lastslash = ns_strrpbrk(xpcomPath, "/\\");
+    GetModuleFileName(ghInstanceApp, path, sizeof(path));
+    char* lastslash = ns_strrpbrk(path, "/\\");
     if (!lastslash)
         return 7;
 
