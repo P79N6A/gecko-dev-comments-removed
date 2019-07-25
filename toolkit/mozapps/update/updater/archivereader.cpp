@@ -42,6 +42,12 @@
 #include "bzlib.h"
 #include "archivereader.h"
 #include "errors.h"
+#include "nsAlgorithm.h"
+#include "updatehelper.h"
+
+#define UPDATER_NO_STRING_GLUE_STL
+#include "../../../../xpcom/build/nsVersionComparator.cpp"
+#undef UPDATER_NO_STRING_GLUE_STL
 
 #if defined(XP_UNIX)
 # include <sys/types.h>
@@ -113,7 +119,7 @@ VerifyLoadedCert(MarFile *archive, int name, int type)
     return CERT_LOAD_ERROR;
   }
 
-  if (!archive || mar_verify_signatureW(archive, data, size)) {
+  if (mar_verify_signatureW(archive, data, size)) {
     return CERT_VERIFY_ERROR;
   }
 
@@ -133,6 +139,10 @@ VerifyLoadedCert(MarFile *archive, int name, int type)
 int
 ArchiveReader::VerifySignature()
 {
+  if (!mArchive) {
+    return ARCHIVE_NOT_OPEN;
+  }
+
 #ifdef XP_WIN
   int rv = VerifyLoadedCert(mArchive, IDR_PRIMARY_CERT, TYPE_CERT);
   if (rv != OK) {
@@ -142,6 +152,70 @@ ArchiveReader::VerifySignature()
 #else
   return OK;
 #endif
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int
+ArchiveReader::VerifyProductInformation(const char *MARChannelID, 
+                                        const char *appVersion)
+{
+  if (!mArchive) {
+    return ARCHIVE_NOT_OPEN;
+  }
+
+  ProductInformationBlock productInfoBlock;
+  int rv = mar_read_product_info_block(mArchive, 
+                                       &productInfoBlock);
+  if (rv != OK) {
+    return COULD_NOT_READ_PRODUCT_INFO_BLOCK_ERROR;
+  }
+
+  
+  
+  if (MARChannelID && strlen(MARChannelID)) {
+    if (rv == OK && strcmp(MARChannelID, productInfoBlock.MARChannelID)) {
+      rv = MAR_CHANNEL_MISMATCH_ERROR;
+    }
+  }
+
+  if (rv == OK) {
+    
+
+
+
+
+
+
+
+
+    int versionCompareResult = 
+      NS_CompareVersions(appVersion, productInfoBlock.productVersion);
+    if (-1 == versionCompareResult) {
+      rv = VERSION_DOWNGRADE_ERROR;
+    }
+  }
+
+  free((void *)productInfoBlock.MARChannelID);
+  free((void *)productInfoBlock.productVersion);
+  return rv;
 }
 
 int
