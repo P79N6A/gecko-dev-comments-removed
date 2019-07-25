@@ -2495,8 +2495,7 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
       }
     }
 
-    if (aRenderingContext.ThebesContext()->GetFlags() &
-        gfxContext::FLAG_DESTINED_FOR_SCREEN) {
+    if (aFlags & nsCSSRendering::PAINTBG_TO_WINDOW) {
       
       
       
