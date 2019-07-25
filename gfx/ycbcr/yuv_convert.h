@@ -22,6 +22,19 @@ enum YUVType {
 
 
 
+enum Rotate {
+  ROTATE_0,           
+  ROTATE_90,          
+  ROTATE_180,         
+  ROTATE_270,         
+  MIRROR_ROTATE_0,    
+  MIRROR_ROTATE_90,   
+  MIRROR_ROTATE_180,  
+  MIRROR_ROTATE_270   
+};
+
+
+
 NS_GFX_(void) ConvertYCbCrToRGB32(const uint8* yplane,
                                   const uint8* uplane,
                                   const uint8* vplane,
@@ -34,6 +47,22 @@ NS_GFX_(void) ConvertYCbCrToRGB32(const uint8* yplane,
                                   int uvstride,
                                   int rgbstride,
                                   YUVType yuv_type);
+
+
+
+void ScaleYCbCrToRGB32(const uint8* yplane,
+                       const uint8* uplane,
+                       const uint8* vplane,
+                       uint8* rgbframe,
+                       int frame_width,
+                       int frame_height,
+                       int scaled_width,
+                       int scaled_height,
+                       int ystride,
+                       int uvstride,
+                       int rgbstride,
+                       YUVType yuv_type,
+                       Rotate view_rotate);
 
 }  
 }  

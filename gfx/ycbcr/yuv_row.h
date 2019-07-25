@@ -29,6 +29,54 @@ void FastConvertYUVToRGB32Row_C(const uint8* y_buf,
                                 unsigned int x_shift);
 
 
+
+
+
+void ConvertYUVToRGB32Row(const uint8* y_buf,
+                          const uint8* u_buf,
+                          const uint8* v_buf,
+                          uint8* rgb_buf,
+                          int width,
+                          int step);
+
+
+
+
+void RotateConvertYUVToRGB32Row(const uint8* y_buf,
+                                const uint8* u_buf,
+                                const uint8* v_buf,
+                                uint8* rgb_buf,
+                                int width,
+                                int ystep,
+                                int uvstep);
+
+
+
+void DoubleYUVToRGB32Row(const uint8* y_buf,
+                         const uint8* u_buf,
+                         const uint8* v_buf,
+                         uint8* rgb_buf,
+                         int width);
+
+
+
+
+
+void ScaleYUVToRGB32Row(const uint8* y_buf,
+                        const uint8* u_buf,
+                        const uint8* v_buf,
+                        uint8* rgb_buf,
+                        int width,
+                        int scaled_dx);
+
+void ScaleYUVToRGB32Row_C(const uint8* y_buf,
+                          const uint8* u_buf,
+                          const uint8* v_buf,
+                          uint8* rgb_buf,
+                          int width,
+                          int scaled_dx,
+                          unsigned int x_shift);
+
 }  
 
 

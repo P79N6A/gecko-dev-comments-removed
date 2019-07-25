@@ -177,5 +177,26 @@ void FastConvertYUVToRGB32Row_C(const uint8* y_buf,
   }
 }
 
+
+
+
+
+void ScaleYUVToRGB32Row_C(const uint8* y_buf,
+                        const uint8* u_buf,
+                        const uint8* v_buf,
+                        uint8* rgb_buf,
+                        int width,
+                        int scaled_dx,
+                        unsigned int x_shift) {
+  int scaled_x = 0;
+  for (int x = 0; x < width; ++x) {
+    uint8 u = u_buf[scaled_x >> (4 + x_shift)];
+    uint8 v = v_buf[scaled_x >> (4 + x_shift)];
+    uint8 y0 = y_buf[scaled_x >> 4];
+    YuvPixel(y0, u, v, rgb_buf);
+    rgb_buf += 4;
+    scaled_x += scaled_dx;
+  }
+}
 }  
 
