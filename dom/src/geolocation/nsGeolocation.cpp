@@ -149,7 +149,7 @@ public:
   
   RequestSendLocationEvent(nsIDOMGeoPosition* aPosition,
                            nsGeolocationRequest* aRequest,
-                           nsGeolocation* aLocator = nsnull)
+                           nsGeolocation* aLocator)
     : mPosition(aPosition),
       mRequest(aRequest),
       mLocator(aLocator)
@@ -389,7 +389,9 @@ nsGeolocationRequest::Allow()
     
     mAllowed = PR_TRUE;
     
-    nsCOMPtr<nsIRunnable> ev = new RequestSendLocationEvent(lastPosition, this, mLocator);
+     nsCOMPtr<nsIRunnable> ev =
+         new RequestSendLocationEvent(lastPosition, this,
+                                      mIsWatchPositionRequest ? nsnull : mLocator);
     NS_DispatchToMainThread(ev);
   }
 
@@ -462,7 +464,9 @@ nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition)
 void
 nsGeolocationRequest::Update(nsIDOMGeoPosition* aPosition)
 {
-  nsCOMPtr<nsIRunnable> ev  = new RequestSendLocationEvent(aPosition, this);
+  nsCOMPtr<nsIRunnable> ev  =
+      new RequestSendLocationEvent(aPosition, this,
+                                   mIsWatchPositionRequest ? nsnull : mLocator);
   NS_DispatchToMainThread(ev);
 }
 
