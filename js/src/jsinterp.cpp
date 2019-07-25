@@ -323,7 +323,7 @@ Class js_NoSuchMethodClass = {
 
 
 
-JS_STATIC_INTERPRET JSBool
+JSBool
 js_OnUnknownMethod(JSContext *cx, Value *vp)
 {
     JS_ASSERT(!vp[1].isPrimitive());
@@ -1307,7 +1307,7 @@ js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth)
 
 
 
-JS_STATIC_INTERPRET JS_REQUIRES_STACK JSBool
+JS_REQUIRES_STACK JSBool
 js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind)
 {
     JSObject *obj;
