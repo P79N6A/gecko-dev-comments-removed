@@ -34,6 +34,7 @@
 
 
 
+
 #include "xpcprivate.h"
 #include "xpcJSWeakReference.h"
 
@@ -131,11 +132,8 @@ xpcJSWeakReference::Get()
             
             
             
-            
-            
 
-            if (obj->getOps()->thisObject &&
-                !(obj = obj->getOps()->thisObject(cx, obj)))
+            if (!JS_WrapObject(cx, &obj))
             {
                 return NS_ERROR_FAILURE;
             }
