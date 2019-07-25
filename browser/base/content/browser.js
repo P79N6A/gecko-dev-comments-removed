@@ -5559,7 +5559,7 @@ function middleMousePaste(event) {
 
   
   
-  clipboard.replace(/\s*\n\s*/g, "");
+  clipboard = clipboard.replace(/\s*\n\s*/g, "");
 
   let url = getShortcutOrURI(clipboard);
   try {
