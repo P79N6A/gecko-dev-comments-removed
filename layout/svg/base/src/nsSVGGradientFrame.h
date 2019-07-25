@@ -61,9 +61,10 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  virtual PRBool SetupPaintServer(gfxContext *aContext,
-                                  nsSVGGeometryFrame *aSource,
-                                  float aGraphicOpacity);
+  virtual already_AddRefed<gfxPattern>
+    GetPaintServerPattern(nsIFrame *aSource,
+                          float aGraphicOpacity,
+                          const gfxRect *aOverrideBounds);
 
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
@@ -106,7 +107,7 @@ private:
                           float *aOffset, nscolor *aColor, float *aStopOpacity);
 
   
-  gfxMatrix GetGradientTransform(nsSVGGeometryFrame *aSource);
+  gfxMatrix GetGradientTransform(nsIFrame *aSource, const gfxRect *aOverrideBounds);
 
 protected:
   virtual already_AddRefed<gfxPattern> CreateGradient() = 0;
@@ -127,7 +128,7 @@ protected:
   PRUint16 GetGradientUnits();
 
   
-  nsRefPtr<nsSVGElement>                 mSourceContent;
+  nsIFrame*                              mSource;
 
 private:
   
