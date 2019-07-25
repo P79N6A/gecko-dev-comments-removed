@@ -59,6 +59,10 @@
 #define        howmany(x, y)   (((x)+((y)-1))/(y))
 #endif
 
+#ifdef ANDROID
+typedef unsigned long int fd_mask;
+#endif
+
 struct selectop {
 	int event_fds;		
 	int event_fdsz;

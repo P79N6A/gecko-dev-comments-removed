@@ -55,6 +55,12 @@
 #include "nsIFile.h"
 
 #include "mozilla/ipc/BrowserProcessSubThread.h"
+#include <sys/stat.h>
+
+#ifdef XP_WIN
+#include "nsIWinTaskbar.h"
+#define NS_TASKBAR_CONTRACTID "@mozilla.org/windows-taskbar;1"
+#endif
 
 using mozilla::MonitorAutoEnter;
 using mozilla::ipc::GeckoChildProcessHost;
@@ -192,6 +198,9 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
     greDir->GetNativePath(path);
     exePath = FilePath(path.get());
 #ifdef OS_LINUX
+#ifdef ANDROID
+    path += "/lib";
+#endif
     newEnvVars["LD_LIBRARY_PATH"] = path.get();
 #endif
   }
@@ -200,6 +209,11 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
     exePath = exePath.DirName();
   }
   exePath = exePath.AppendASCII(MOZ_CHILD_PROCESS_NAME);
+
+#ifdef ANDROID
+  
+  chmod(exePath.value().c_str(), 0700);
+#endif
 
   
   
@@ -263,6 +277,31 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
        it != aExtraOpts.end();
        ++it) {
       cmdLine.AppendLooseValue(UTF8ToWide(*it));
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIWinTaskbar> taskbarInfo =
+    do_GetService(NS_TASKBAR_CONTRACTID);
+  PRBool set = PR_FALSE;
+  if (taskbarInfo) {
+    PRBool isSupported = PR_FALSE;
+    taskbarInfo->GetAvailable(&isSupported);
+    if (isSupported) {
+      
+      nsAutoString appId, param;
+      param.Append(PRUnichar('\"'));
+      if (NS_SUCCEEDED(taskbarInfo->GetDefaultGroupId(appId))) {
+        param.Append(appId);
+        param.Append(PRUnichar('\"'));
+        cmdLine.AppendLooseValue(std::wstring(param.get()));
+        set = PR_TRUE;
+      }
+    }
+  }
+  if (!set) {
+    cmdLine.AppendLooseValue(std::wstring(L"-"));
   }
 
   cmdLine.AppendLooseValue(UTF8ToWide(pidstring));

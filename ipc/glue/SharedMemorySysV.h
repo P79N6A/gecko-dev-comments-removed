@@ -40,7 +40,7 @@
 #ifndef mozilla_ipc_SharedMemorySysV_h
 #define mozilla_ipc_SharedMemorySysV_h
 
-#ifdef OS_LINUX
+#if defined(OS_LINUX) && !defined(ANDROID)
 
 
 
