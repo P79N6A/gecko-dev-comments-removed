@@ -1,0 +1,17 @@
+
+
+
+var g = newGlobal('new-compartment');
+g.eval("function h(a) { eval(a); }");
+
+var dbg = Debugger(g);
+var arr, kscript;
+dbg.hooks = {
+    newScript: function (script) { arr = script.getChildScripts(); },
+    debuggerHandler: function (frame) { kscript = frame.callee.script; }
+};
+
+g.h("function k(a) { debugger; return a + 1; } k(-1);");
+assertEq(kscript instanceof Debugger.Script, true);
+assertEq(arr.length, 1);
+assertEq(arr[0], kscript);

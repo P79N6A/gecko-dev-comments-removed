@@ -958,13 +958,10 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
         tokenStream.setStrictMode();
     }
 
-    
-
-
-
-    JSObjectBox *funbox;
-    funbox = NULL;
-
+#ifdef DEBUG
+    bool savedCallerFun;
+    savedCallerFun = false;
+#endif
     if (tcflags & TCF_COMPILE_N_GO) {
         if (source) {
             
@@ -983,12 +980,15 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
 
 
-            funbox = parser.newObjectBox(FUN_OBJECT(callerFrame->fun()));
+            JSObjectBox *funbox = parser.newObjectBox(FUN_OBJECT(callerFrame->fun()));
             if (!funbox)
                 goto out;
             funbox->emitLink = cg.objectList.lastbox;
             cg.objectList.lastbox = funbox;
             cg.objectList.length++;
+#ifdef DEBUG
+            savedCallerFun = true;
+#endif
         }
     }
 
@@ -1111,8 +1111,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     if (!script)
         goto out;
 
-    if (funbox)
-        script->savedCallerFun = true;
+    JS_ASSERT(script->savedCallerFun == savedCallerFun);
 
     {
         AutoShapeRooter shapeRoot(cx, script->bindings.lastShape());
