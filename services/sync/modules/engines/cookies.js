@@ -2,7 +2,6 @@ const EXPORTED_SYMBOLS = ['CookieEngine', 'CookieTracker', 'CookieStore'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
-const Cr = Components.results;
 const Cu = Components.utils;
 
 Cu.import("resource://weave/log4moz.js");
@@ -149,7 +148,7 @@ CookieStore.prototype = {
                              getService(Ci.nsICookieManager2);
     
     
-    return this.__cookieManager
+    return this.__cookieManager;
   },
 
   _createCommand: function CookieStore__createCommand(command) {
@@ -211,7 +210,7 @@ CookieStore.prototype = {
     
     for (var key in command.data) {
       
-      matchingCookie[ key ] = command.data[ key ]
+      matchingCookie[ key ] = command.data[ key ];
     }
     
     this._cookieManager.remove( matchingCookie.host,
@@ -265,7 +264,7 @@ CookieStore.prototype = {
 			 rawHost: cookie.rawHost,
 			 isSession: cookie.isSession,
 			 expiry: cookie.expiry,
-			 isHttpOnly: cookie.isHttpOnly }
+			 isHttpOnly: cookie.isHttpOnly };
 
 	
 
@@ -281,7 +280,7 @@ CookieStore.prototype = {
 
 
 
-    this._cookieManager.removeAll()
+    this._cookieManager.removeAll();
   },
 
   resetGUIDs: function CookieStore_resetGUIDs() {
@@ -307,7 +306,7 @@ CookieTracker.prototype = {
 
 
     let observerService = Cc["@mozilla.org/observer-service;1"].
-            getService(Ci.nsIObserverService);
+                          getService(Ci.nsIObserverService);
     observerService.addObserver( this, 'cookie-changed', false );
   },
 
