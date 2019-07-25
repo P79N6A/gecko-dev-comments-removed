@@ -133,3 +133,27 @@ pref("keyword.enabled", true);
 pref("keyword.URL", "http://www.google.com/search?q=");
 
 pref("snav.enabled", true);
+
+pref("accessibility.typeaheadfind", false);
+pref("accessibility.typeaheadfind.timeout", 5000);
+pref("accessibility.typeaheadfind.flashBar", 1);
+pref("accessibility.typeaheadfind.linksonly", false);
+pref("accessibility.typeaheadfind.casesensitive", false);
+
+
+pref("browser.search.defaultenginename",      "chrome://browser/locale/region.properties");
+
+
+pref("browser.search.log", false);
+
+
+pref("browser.search.order.1",                "chrome://browser/locale/region.properties");
+pref("browser.search.order.2",                "chrome://browser/locale/region.properties");
+
+
+pref("browser.search.update", false);
+pref("browser.search.update.log", false);
+pref("browser.search.updateinterval", 6);
+
+
+pref("browser.search.suggest.enabled", true);
