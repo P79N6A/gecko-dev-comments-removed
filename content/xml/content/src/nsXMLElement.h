@@ -65,6 +65,8 @@ public:
 
   virtual nsXPCClassInfo* GetClassInfo();
 
+  virtual nsIDOMNode* AsDOMNode() { return this; }
+
   
   virtual nsIAtom *GetIDAttributeName() const;
   virtual nsIAtom* DoGetID() const;

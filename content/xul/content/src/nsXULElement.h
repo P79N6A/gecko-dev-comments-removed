@@ -559,6 +559,8 @@ public:
     virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
 
     virtual nsXPCClassInfo* GetClassInfo();
+
+    virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
     
     

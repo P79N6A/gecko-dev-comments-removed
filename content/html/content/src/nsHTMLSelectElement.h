@@ -432,6 +432,8 @@ public:
 
   virtual nsXPCClassInfo* GetClassInfo();
 
+  virtual nsIDOMNode* AsDOMNode() { return this; }
+
   
   nsresult GetValidationMessage(nsAString& aValidationMessage,
                                 ValidityStateType aType);

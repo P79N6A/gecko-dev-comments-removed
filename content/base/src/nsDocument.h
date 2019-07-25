@@ -999,6 +999,7 @@ public:
   virtual void DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const;
   
 
+  virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
   friend class nsNodeUtils;
 

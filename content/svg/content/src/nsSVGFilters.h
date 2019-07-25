@@ -311,6 +311,8 @@ public:
   void MaybeLoadSVGImage();
 
   virtual nsXPCClassInfo* GetClassInfo();
+
+  virtual nsIDOMNode* AsDOMNode() { return this; }
 private:
   
   void Invalidate();
