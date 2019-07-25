@@ -2622,11 +2622,7 @@ SessionStoreService.prototype = {
 
       try {
         didStartLoad = true;
-        
-        let label = aTab.label;
         browser.webNavigation.gotoIndex(activeIndex);
-        
-        aTab.label = label;
       }
       catch (ex) {
         
