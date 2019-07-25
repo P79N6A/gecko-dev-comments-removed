@@ -44,7 +44,7 @@
 
 
 
-#include "mozilla/StdInt.h"
+#include "js/LegacyIntTypes.h"
 
 #include <stddef.h>
 #include <stdio.h>
