@@ -92,10 +92,13 @@ class nsMenuGroupOwnerX;
 
 
 enum {
-  eCommand_ID_About = 1,
-  eCommand_ID_Prefs = 2,
-  eCommand_ID_Quit  = 3,
-  eCommand_ID_Last  = 4
+  eCommand_ID_About      = 1,
+  eCommand_ID_Prefs      = 2,
+  eCommand_ID_Quit       = 3,
+  eCommand_ID_HideApp    = 4,
+  eCommand_ID_HideOthers = 5,
+  eCommand_ID_ShowAll    = 6,
+  eCommand_ID_Last       = 7
 };
 
-#endif
+#endif 
