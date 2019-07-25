@@ -80,8 +80,7 @@
 #include "nsNetUtil.h"
 #include "nsIProtocolHandler.h"
 
-#include "nsIPrefService.h"
-#include "nsIPrefBranch2.h"
+#include "mozilla/Preferences.h"
 
 #include "DiscardTracker.h"
 #include "nsAsyncRedirectVerifyHelper.h"
@@ -93,11 +92,19 @@
 #define MAXBYTESFORSYNC_PREF "image.mem.max_bytes_for_sync_decode"
 #define SVG_MIMETYPE "image/svg+xml"
 
+using namespace mozilla;
 using namespace mozilla::imagelib;
 
 
 static PRBool gDecodeOnDraw = PR_FALSE;
 static PRBool gDiscardable = PR_FALSE;
+
+static const char* kObservedPrefs[] = {
+  DISCARD_PREF,
+  DECODEONDRAW_PREF,
+  DISCARD_TIMEOUT_PREF,
+  nsnull
+};
 
 
 
@@ -108,31 +115,28 @@ static PRBool gRegisteredPrefObserver = PR_FALSE;
 
 
 static void
-ReloadPrefs(nsIPrefBranch *aBranch)
+ReloadPrefs()
 {
   
-  PRBool discardable;
-  nsresult rv = aBranch->GetBoolPref(DISCARD_PREF, &discardable);
-  if (NS_SUCCEEDED(rv))
-    gDiscardable = discardable;
+  gDiscardable = Preferences::GetBool(DISCARD_PREF, gDiscardable);
 
   
-  PRBool decodeondraw;
-  rv = aBranch->GetBoolPref(DECODEONDRAW_PREF, &decodeondraw);
-  if (NS_SUCCEEDED(rv))
-    gDecodeOnDraw = decodeondraw;
+  gDecodeOnDraw = Preferences::GetBool(DECODEONDRAW_PREF, gDecodeOnDraw);
 
   
   PRInt32 bytesAtATime, maxMS, maxBytesForSync;
-  rv = aBranch->GetIntPref(BYTESATATIME_PREF, &bytesAtATime);
-  if (NS_SUCCEEDED(rv))
+  if (NS_SUCCEEDED(Preferences::GetInt(BYTESATATIME_PREF, &bytesAtATime))) {
     RasterImage::SetDecodeBytesAtATime(bytesAtATime);
-  rv = aBranch->GetIntPref(MAXMS_PREF, &maxMS);
-  if (NS_SUCCEEDED(rv))
+  }
+
+  if (NS_SUCCEEDED(Preferences::GetInt(MAXMS_PREF, &maxMS))) {
     RasterImage::SetMaxMSBeforeYield(maxMS);
-  rv = aBranch->GetIntPref(MAXBYTESFORSYNC_PREF, &maxBytesForSync);
-  if (NS_SUCCEEDED(rv))
+  }
+
+  if (NS_SUCCEEDED(Preferences::GetInt(MAXBYTESFORSYNC_PREF,
+                                       &maxBytesForSync))) {
     RasterImage::SetMaxBytesForSyncDecode(maxBytesForSync);
+  }
 
   
   mozilla::imagelib::DiscardTracker::ReloadTimeout();
@@ -162,14 +166,7 @@ imgRequestPrefObserver::Observe(nsISupports     *aSubject,
     return NS_OK;
 
   
-  nsCOMPtr<nsIPrefBranch> branch = do_QueryInterface(aSubject);
-  if (!branch) {
-    NS_WARNING("Couldn't get pref branch within imgRequestPrefObserver::Observe!");
-    return NS_OK;
-  }
-
-  
-  ReloadPrefs(branch);
+  ReloadPrefs();
 
   return NS_OK;
 }
@@ -243,15 +240,10 @@ nsresult imgRequest::Init(nsIURI *aURI,
 
   
   if (NS_UNLIKELY(!gRegisteredPrefObserver)) {
-    nsCOMPtr<nsIPrefBranch2> branch = do_GetService(NS_PREFSERVICE_CONTRACTID);
-    if (branch) {
-      nsCOMPtr<nsIObserver> observer(new imgRequestPrefObserver());
-      branch->AddObserver(DISCARD_PREF, observer, PR_FALSE);
-      branch->AddObserver(DECODEONDRAW_PREF, observer, PR_FALSE);
-      branch->AddObserver(DISCARD_TIMEOUT_PREF, observer, PR_FALSE);
-      ReloadPrefs(branch);
-      gRegisteredPrefObserver = PR_TRUE;
-    }
+    nsCOMPtr<nsIObserver> observer(new imgRequestPrefObserver());
+    Preferences::AddStrongObservers(observer, kObservedPrefs);
+    ReloadPrefs();
+    gRegisteredPrefObserver = PR_TRUE;
   }
 
   return NS_OK;
