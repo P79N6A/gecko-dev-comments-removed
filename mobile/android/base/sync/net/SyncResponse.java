@@ -115,6 +115,16 @@ public class SyncResponse {
     return ExtendedJSONObject.parse(content);
   }
 
+  
+
+
+
+
+
+
+
+
+
   public ExtendedJSONObject jsonObjectBody() throws IllegalStateException,
                                             IOException, ParseException,
                                             NonObjectJSONException {
