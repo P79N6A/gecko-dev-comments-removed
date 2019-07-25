@@ -490,6 +490,7 @@ var BrowserUI = {
       FindHelperUI.init();
       FullScreenVideo.init();
       NewTabPopup.init();
+      WebappsUI.init();
 
       
       let addonIDs = AddonManager.getStartupChanges("disabled");
