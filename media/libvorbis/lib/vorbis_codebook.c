@@ -146,9 +146,9 @@ int vorbis_staticbook_pack(const static_codebook *c,oggpack_buffer *opb){
 
 
 
-static_codebook *vorbis_staticbook_unpack(oggpack_buffer *opb){
+int vorbis_staticbook_unpack(oggpack_buffer *opb,static_codebook *s){
   long i,j;
-  static_codebook *s=_ogg_calloc(1,sizeof(*s));
+  memset(s,0,sizeof(*s));
   s->allocedp=1;
 
   
@@ -207,7 +207,7 @@ static_codebook *vorbis_staticbook_unpack(oggpack_buffer *opb){
     break;
   default:
     
-    goto _eofout;
+    return(-1);
   }
 
   
@@ -249,12 +249,12 @@ static_codebook *vorbis_staticbook_unpack(oggpack_buffer *opb){
   }
 
   
-  return(s);
+  return(0);
 
  _errout:
  _eofout:
-  vorbis_staticbook_destroy(s);
-  return(NULL);
+  vorbis_staticbook_clear(s);
+  return(-1);
 }
 
 
@@ -262,6 +262,37 @@ int vorbis_book_encode(codebook *book, int a, oggpack_buffer *b){
   if(a<0 || a>=book->c->entries)return(0);
   oggpack_write(b,book->codelist[a],book->c->lengthlist[a]);
   return(book->c->lengthlist[a]);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int vorbis_book_errorv(codebook *book,float *a){
+  int dim=book->dim,k;
+  int best=_best(book,a,1);
+  for(k=0;k<dim;k++)
+    a[k]=(book->valuelist+best*dim)[k];
+  return(best);
+}
+
+
+int vorbis_book_encodev(codebook *book,int best,float *a,oggpack_buffer *b){
+  int k,dim=book->dim;
+  for(k=0;k<dim;k++)
+    a[k]=(book->valuelist+best*dim)[k];
+  return(vorbis_book_encode(book,best,b));
 }
 
 
@@ -464,3 +495,144 @@ long vorbis_book_decodevv_add(codebook *book,float **a,long offset,int ch,
   }
   return(0);
 }
+
+#ifdef _V_SELFTEST
+
+
+
+
+
+#include <stdio.h>
+
+#include "vorbis/book/lsp20_0.vqh"
+#include "vorbis/book/res0a_13.vqh"
+#define TESTSIZE 40
+
+float test1[TESTSIZE]={
+  0.105939f,
+  0.215373f,
+  0.429117f,
+  0.587974f,
+
+  0.181173f,
+  0.296583f,
+  0.515707f,
+  0.715261f,
+
+  0.162327f,
+  0.263834f,
+  0.342876f,
+  0.406025f,
+
+  0.103571f,
+  0.223561f,
+  0.368513f,
+  0.540313f,
+
+  0.136672f,
+  0.395882f,
+  0.587183f,
+  0.652476f,
+
+  0.114338f,
+  0.417300f,
+  0.525486f,
+  0.698679f,
+
+  0.147492f,
+  0.324481f,
+  0.643089f,
+  0.757582f,
+
+  0.139556f,
+  0.215795f,
+  0.324559f,
+  0.399387f,
+
+  0.120236f,
+  0.267420f,
+  0.446940f,
+  0.608760f,
+
+  0.115587f,
+  0.287234f,
+  0.571081f,
+  0.708603f,
+};
+
+float test3[TESTSIZE]={
+  0,1,-2,3,4,-5,6,7,8,9,
+  8,-2,7,-1,4,6,8,3,1,-9,
+  10,11,12,13,14,15,26,17,18,19,
+  30,-25,-30,-1,-5,-32,4,3,-2,0};
+
+static_codebook *testlist[]={&_vq_book_lsp20_0,
+                             &_vq_book_res0a_13,NULL};
+float   *testvec[]={test1,test3};
+
+int main(){
+  oggpack_buffer write;
+  oggpack_buffer read;
+  long ptr=0,i;
+  oggpack_writeinit(&write);
+
+  fprintf(stderr,"Testing codebook abstraction...:\n");
+
+  while(testlist[ptr]){
+    codebook c;
+    static_codebook s;
+    float *qv=alloca(sizeof(*qv)*TESTSIZE);
+    float *iv=alloca(sizeof(*iv)*TESTSIZE);
+    memcpy(qv,testvec[ptr],sizeof(*qv)*TESTSIZE);
+    memset(iv,0,sizeof(*iv)*TESTSIZE);
+
+    fprintf(stderr,"\tpacking/coding %ld... ",ptr);
+
+    
+    oggpack_reset(&write);
+    vorbis_book_init_encode(&c,testlist[ptr]); 
+
+    vorbis_staticbook_pack(testlist[ptr],&write);
+    fprintf(stderr,"Codebook size %ld bytes... ",oggpack_bytes(&write));
+    for(i=0;i<TESTSIZE;i+=c.dim){
+      int best=_best(&c,qv+i,1);
+      vorbis_book_encodev(&c,best,qv+i,&write);
+    }
+    vorbis_book_clear(&c);
+
+    fprintf(stderr,"OK.\n");
+    fprintf(stderr,"\tunpacking/decoding %ld... ",ptr);
+
+    
+    oggpack_readinit(&read,oggpack_get_buffer(&write),oggpack_bytes(&write));
+    if(vorbis_staticbook_unpack(&read,&s)){
+      fprintf(stderr,"Error unpacking codebook.\n");
+      exit(1);
+    }
+    if(vorbis_book_init_decode(&c,&s)){
+      fprintf(stderr,"Error initializing codebook.\n");
+      exit(1);
+    }
+
+    for(i=0;i<TESTSIZE;i+=c.dim)
+      if(vorbis_book_decodev_set(&c,iv+i,&read,c.dim)==-1){
+        fprintf(stderr,"Error reading codebook test data (EOP).\n");
+        exit(1);
+      }
+    for(i=0;i<TESTSIZE;i++)
+      if(fabs(qv[i]-iv[i])>.000001){
+        fprintf(stderr,"read (%g) != written (%g) at position (%ld)\n",
+                iv[i],qv[i],i);
+        exit(1);
+      }
+
+    fprintf(stderr,"OK\n");
+    ptr++;
+  }
+
+  
+
+  exit(0);
+}
+
+#endif

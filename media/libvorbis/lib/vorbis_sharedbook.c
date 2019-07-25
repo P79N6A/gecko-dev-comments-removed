@@ -52,7 +52,7 @@ long _float32_pack(float val){
     sign=0x80000000;
     val= -val;
   }
-  exp= floor(log(val)/log(2.f)+.001); 
+  exp= floor(log(val)/log(2.f));
   mant=rint(ldexp(val,(VQ_FMAN-1)-exp));
   exp=(exp+VQ_FEXP_BIAS)<<VQ_FMAN;
 
@@ -258,13 +258,34 @@ float *_book_unquantize(const static_codebook *b,int n,int *sparsemap){
   return(NULL);
 }
 
-void vorbis_staticbook_destroy(static_codebook *b){
+void vorbis_staticbook_clear(static_codebook *b){
   if(b->allocedp){
     if(b->quantlist)_ogg_free(b->quantlist);
     if(b->lengthlist)_ogg_free(b->lengthlist);
+    if(b->nearest_tree){
+      _ogg_free(b->nearest_tree->ptr0);
+      _ogg_free(b->nearest_tree->ptr1);
+      _ogg_free(b->nearest_tree->p);
+      _ogg_free(b->nearest_tree->q);
+      memset(b->nearest_tree,0,sizeof(*b->nearest_tree));
+      _ogg_free(b->nearest_tree);
+    }
+    if(b->thresh_tree){
+      _ogg_free(b->thresh_tree->quantthresh);
+      _ogg_free(b->thresh_tree->quantmap);
+      memset(b->thresh_tree,0,sizeof(*b->thresh_tree));
+      _ogg_free(b->thresh_tree);
+    }
+
     memset(b,0,sizeof(*b));
+  }
+}
+
+void vorbis_staticbook_destroy(static_codebook *b){
+  if(b->allocedp){
+    vorbis_staticbook_clear(b);
     _ogg_free(b);
-  } 
+  }
 }
 
 void vorbis_book_clear(codebook *b){
@@ -288,10 +309,7 @@ int vorbis_book_init_encode(codebook *c,const static_codebook *s){
   c->used_entries=s->entries;
   c->dim=s->dim;
   c->codelist=_make_words(s->lengthlist,s->entries,0);
-  
-  c->quantvals=_book_maptype1_quantvals(s);
-  c->minval=(int)rint(_float32_unpack(s->q_min));
-  c->delta=(int)rint(_float32_unpack(s->q_delta));
+  c->valuelist=_book_unquantize(s,s->entries,NULL);
 
   return(0);
 }
@@ -427,6 +445,157 @@ int vorbis_book_init_decode(codebook *c,const static_codebook *s){
   return(-1);
 }
 
+static float _dist(int el,float *ref, float *b,int step){
+  int i;
+  float acc=0.f;
+  for(i=0;i<el;i++){
+    float val=(ref[i]-b[i*step]);
+    acc+=val*val;
+  }
+  return(acc);
+}
+
+int _best(codebook *book, float *a, int step){
+  encode_aux_threshmatch *tt=book->c->thresh_tree;
+
+#if 0
+  encode_aux_nearestmatch *nt=book->c->nearest_tree;
+  encode_aux_pigeonhole *pt=book->c->pigeon_tree;
+#endif
+  int dim=book->dim;
+  int k,o;
+  
+
+
+  
+  if(tt){
+    int index=0,i;
+    
+    for(k=0,o=step*(dim-1);k<dim;k++,o-=step){
+
+      i=tt->threshvals>>1;
+      if(a[o]<tt->quantthresh[i]){
+
+        for(;i>0;i--)
+          if(a[o]>=tt->quantthresh[i-1])
+            break;
+
+      }else{
+
+        for(i++;i<tt->threshvals-1;i++)
+          if(a[o]<tt->quantthresh[i])break;
+
+      }
+
+      index=(index*tt->quantvals)+tt->quantmap[i];
+    }
+    
+    if(book->c->lengthlist[index]>0) 
+
+
+      return(index);
+  }
+
+#if 0
+  
+  if(pt){
+    const static_codebook *c=book->c;
+    int i,besti=-1;
+    float best=0.f;
+    int entry=0;
+
+    
+    if(c->q_sequencep){
+      int pv;
+      long mul=1;
+      float qlast=0;
+      for(k=0,o=0;k<dim;k++,o+=step){
+        pv=(int)((a[o]-qlast-pt->min)/pt->del);
+        if(pv<0 || pv>=pt->mapentries)break;
+        entry+=pt->pigeonmap[pv]*mul;
+        mul*=pt->quantvals;
+        qlast+=pv*pt->del+pt->min;
+      }
+    }else{
+      for(k=0,o=step*(dim-1);k<dim;k++,o-=step){
+        int pv=(int)((a[o]-pt->min)/pt->del);
+        if(pv<0 || pv>=pt->mapentries)break;
+        entry=entry*pt->quantvals+pt->pigeonmap[pv];
+      }
+    }
+
+    
+
+    if(k==dim && pt->fitlength[entry]){
+      
+      long *list=pt->fitlist+pt->fitmap[entry];
+      for(i=0;i<pt->fitlength[entry];i++){
+        float this=_dist(dim,book->valuelist+list[i]*dim,a,step);
+        if(besti==-1 || this<best){
+          best=this;
+          besti=list[i];
+        }
+      }
+
+      return(besti);
+    }
+  }
+
+  if(nt){
+    
+    while(1){
+      float c=0.f;
+      float *p=book->valuelist+nt->p[ptr];
+      float *q=book->valuelist+nt->q[ptr];
+
+      for(k=0,o=0;k<dim;k++,o+=step)
+        c+=(p[k]-q[k])*(a[o]-(p[k]+q[k])*.5);
+
+      if(c>0.f) 
+        ptr= -nt->ptr0[ptr];
+      else     
+        ptr= -nt->ptr1[ptr];
+      if(ptr<=0)break;
+    }
+    return(-ptr);
+  }
+#endif
+
+  
+  {
+    const static_codebook *c=book->c;
+    int i,besti=-1;
+    float best=0.f;
+    float *e=book->valuelist;
+    for(i=0;i<book->entries;i++){
+      if(c->lengthlist[i]>0){
+        float this=_dist(dim,e,a,step);
+        if(besti==-1 || this<best){
+          best=this;
+          besti=i;
+        }
+      }
+      e+=dim;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    return(besti);
+  }
+}
+
 long vorbis_book_codeword(codebook *book,int entry){
   if(book->c) 
 
@@ -469,6 +638,7 @@ static_codebook test1={
   0,
   0,0,0,0,
   NULL,
+  NULL,NULL,NULL,
   0
 };
 static float *test1_result=NULL;
@@ -480,6 +650,7 @@ static_codebook test2={
   2,
   -533200896,1611661312,4,0,
   full_quantlist1,
+  NULL,NULL,NULL,
   0
 };
 static float test2_result[]={-3,-2,-1,0, 1,2,3,4, 5,0,3,-2};
@@ -491,6 +662,7 @@ static_codebook test3={
   2,
   -533200896,1611661312,4,1,
   full_quantlist1,
+  NULL,NULL,NULL,
   0
 };
 static float test3_result[]={-3,-5,-6,-6, 1,3,6,10, 5,5,8,6};
@@ -502,6 +674,7 @@ static_codebook test4={
   1,
   -533200896,1611661312,4,0,
   partial_quantlist1,
+  NULL,NULL,NULL,
   0
 };
 static float test4_result[]={-3,-3,-3, 4,-3,-3, -1,-3,-3,
@@ -521,6 +694,7 @@ static_codebook test5={
   1,
   -533200896,1611661312,4,1,
   partial_quantlist1,
+  NULL,NULL,NULL,
   0
 };
 static float test5_result[]={-3,-6,-9, 4, 1,-2, -1,-4,-7,
