@@ -95,6 +95,43 @@ function InputHandler() {
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 InputHandler.prototype = {
 
   
@@ -242,7 +279,7 @@ function MouseModule(owner) {
   this._owner = owner;
   this._dragData = new DragData(this, 50, 200);
 
-  this._dragger = this._defaultDragger;
+  this._dragger = null;
   this._clicker = null;
 
   this._downUpEvents = [];
@@ -253,7 +290,10 @@ function MouseModule(owner) {
   this._fastPath = false;
 
   var self = this;
-  this._kinetic = new KineticController( function (dx, dy) { return self._dragBy(dx, dy); } );
+  this._kinetic = new KineticController(
+    function _dragByBound(dx, dy) { return self._dragBy(dx, dy); },
+    function _dragStopBound() { return self._doDragStop(0, 0, true); }
+  );
 }
 
 
@@ -284,6 +324,8 @@ MouseModule.prototype = {
 
   _onMouseDown: function _onMouseDown(evInfo) {
     this._owner.allowClicks();
+    if (this._kinetic.isActive())
+      this._kinetic.end();
 
     
     
@@ -294,13 +336,8 @@ MouseModule.prototype = {
 
     this._targetScrollInterface = targetScrollInterface;
 
-    
-    
-    
-    
-    
-
-    this._dragger = (targetScrollInterface && targetScrollbox.customDragger) || this._defaultDragger;
+    this._dragger = (targetScrollInterface) ? (targetScrollbox.customDragger || this._defaultDragger)
+                                            : null;
     this._clicker = (targetClicker) ? targetClicker.customClicker : null;
 
     evInfo.event.stopPropagation();
@@ -309,7 +346,6 @@ MouseModule.prototype = {
     this._owner.grab(this);
 
     if (targetScrollInterface) {
-      this._kinetic.end();
       this._doDragStart(evInfo.event.screenX, evInfo.event.screenY);
     }
 
@@ -396,18 +432,22 @@ MouseModule.prototype = {
     this._dragger.dragStart(this._targetScrollInterface);
   },
 
-  _doDragStop: function _doDragStop(sX, sY) {
-    let dragData = this._dragData;
+  _doDragStop: function _doDragStop(sX, sY, kineticStop) {
+    if (!kineticStop) {    
+                           
+      let dragData = this._dragData;
 
-    let dx = dragData.sX - sX;
-    let dy = dragData.sY - sY;
+      let dx = dragData.sX - sX;
+      let dy = dragData.sY - sY;
 
-    dragData.setDragPosition(sX, sY);
-    this._kinetic.addData(sX, sY);
+      dragData.reset();
+      this._kinetic.addData(sX, sY);
 
-    this._dragger.dragStop(dx, dy, this._targetScrollInterface);
+      this._kinetic.start();
 
-    this._kinetic.start();
+    } else {               
+      this._dragger.dragStop(0, 0, this._targetScrollInterface);
+    }
   },
 
   _doDragMove: function _doDragMove(sX, sY) {
@@ -447,12 +487,14 @@ MouseModule.prototype = {
 
 
   _commitAnotherClick: function _commitAnotherClick() {
-    if (this._clickTimeout) {   
-      window.clearTimeout(this._clickTimeout);
-      this._doDoubleClick();
-    } else {
-      this._clickTimeout = window.setTimeout(function _clickTimeout(self) { self._doSingleClick(); }, 400, this);
-    }
+    this._doSingleClick();
+    
+
+
+
+
+
+
   },
 
   
@@ -667,9 +709,10 @@ DragData.prototype = {
 
 
 
-function KineticController(aPanBy) {
+function KineticController(aPanBy, aEndCallback) {
   this._panBy = aPanBy;
   this._timer = null;
+  this._beforeEnd = aEndCallback;
 
   try {
     this._updateInterval = gPrefService.getIntPref("browser.ui.kinetic.updateInterval");
@@ -782,6 +825,7 @@ KineticController.prototype = {
   },
 
   end: function end() {
+    this._beforeEnd();
     this._reset();
   },
 
