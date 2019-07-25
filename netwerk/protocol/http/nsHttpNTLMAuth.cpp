@@ -37,6 +37,7 @@
 
 
 
+
 #include <stdlib.h>
 #include "nsHttp.h"
 #include "nsHttpNTLMAuth.h"
@@ -52,6 +53,9 @@
 #include "nsIServiceManager.h"
 #include "nsIHttpAuthenticableChannel.h"
 #include "nsIURI.h"
+#include "nsIX509Cert.h"
+#include "nsISSLStatus.h"
+#include "nsISSLStatusProvider.h"
 
 static const char kAllowProxies[] = "network.automatic-ntlm-auth.allow-proxies";
 static const char kTrustedURIs[]  = "network.automatic-ntlm-auth.trusted-uris";
@@ -236,6 +240,9 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpAuthenticableChannel *channel,
          *sessionState, *continuationState));
 
     
+    mUseNative = true;
+
+    
 
     *identityInvalid = false;
 
@@ -298,6 +305,8 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpAuthenticableChannel *channel,
             
             LOG(("Trying to fall back on internal ntlm auth.\n"));
             module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "ntlm");
+	    
+            mUseNative = false;
 
             
             *identityInvalid = true;
@@ -366,8 +375,61 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
         if (NS_FAILED(rv))
             return rv;
 
+
+
+
+
+
+
+
+#if defined (XP_WIN) 
+        
+        
+        
+        
+        
+        
+        
+        nsCOMPtr<nsIChannel> channel = do_QueryInterface(authChannel, &rv);
+        if (NS_FAILED(rv))
+            return rv;
+
+        nsCOMPtr<nsISupports> security;
+        rv = channel->GetSecurityInfo(getter_AddRefs(security));
+        if (NS_FAILED(rv))
+            return rv;
+
+        nsCOMPtr<nsISSLStatusProvider> statusProvider =
+            do_QueryInterface(security);
+
+        if (mUseNative && statusProvider) {
+            nsCOMPtr<nsISSLStatus> status;
+            rv = statusProvider->GetSSLStatus(getter_AddRefs(status));
+            if (NS_FAILED(rv))
+                return rv;
+
+            nsCOMPtr<nsIX509Cert> cert;
+            rv = status->GetServerCert(getter_AddRefs(cert));
+            if (NS_FAILED(rv))
+                return rv;
+
+            PRUint32 length;
+            PRUint8* certArray;
+            cert->GetRawDER(&length, &certArray);						  
+			
+            
+            
+            inBufLen = length;
+            inBuf = certArray;
+        } else { 
+            
+            inBufLen = 0;
+            inBuf = nsnull;
+        }
+#else 
         inBufLen = 0;
         inBuf = nsnull;
+#endif
     }
     else {
         

@@ -35,6 +35,7 @@
 
 
 
+
 #ifndef nsAuthSSPI_h__
 #define nsAuthSSPI_h__
 
@@ -81,6 +82,9 @@ private:
     nsString     mDomain;
     nsString     mUsername;
     nsString     mPassword;
+    bool         mIsFirst;	
+    void*        mCertDERData; 
+    PRUint32     mCertDERLength;
 };
 
 #endif 
