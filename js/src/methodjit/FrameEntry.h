@@ -81,6 +81,16 @@ class FrameEntry
         return knownType;
     }
 
+    
+    bool isType(JSValueType type_) const {
+        return isTypeKnown() && getKnownType() == type_;
+    }
+
+    
+    bool isNotType(JSValueType type_) const {
+        return isTypeKnown() && getKnownType() != type_;
+    }
+
     uint32 getPayload32() const {
         
         return v_.s.payload.u32;
