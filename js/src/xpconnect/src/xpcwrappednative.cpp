@@ -2240,6 +2240,9 @@ class CallMethodHelper
     JS_ALWAYS_INLINE JSBool ConvertIndependentParam(uint8 i);
     JS_ALWAYS_INLINE JSBool ConvertDependentParams();
 
+    JS_ALWAYS_INLINE JSBool HandleDipperParam(nsXPTCVariant* dp,
+                                              const nsXPTParamInfo& paramInfo);
+
     JS_ALWAYS_INLINE nsresult Invoke();
 
 public:
@@ -2823,6 +2826,10 @@ CallMethodHelper::ConvertIndependentParam(uint8 i)
     nsXPTCVariant* dp = GetDispatchParam(i);
     dp->type = type;
 
+    
+    if(paramInfo.IsDipper())
+        return HandleDipperParam(dp, paramInfo);
+
     if(type_tag == nsXPTType::T_INTERFACE)
     {
         dp->SetValIsInterface();
@@ -2878,21 +2885,6 @@ CallMethodHelper::ConvertIndependentParam(uint8 i)
                 
 
             case nsXPTType::T_DOMSTRING:
-                if(paramInfo.IsDipper())
-                {
-                    
-                    
-                    
-
-                    dp->SetValIsDOMString();
-                    if(!(dp->val.p = new nsAutoString()))
-                    {
-                        JS_ReportOutOfMemory(mCallContext);
-                        return JS_FALSE;
-                    }
-                    return JS_TRUE;
-                }
-                
 
                 
                 
@@ -2905,18 +2897,6 @@ CallMethodHelper::ConvertIndependentParam(uint8 i)
                 
             case nsXPTType::T_CSTRING:
                 dp->SetValIsCString();
-                if(paramInfo.IsDipper())
-                {
-                    
-                    if(!(dp->val.p = new nsCString()))
-                    {
-                        JS_ReportOutOfMemory(mCallContext);
-                        return JS_FALSE;
-                    }
-                    return JS_TRUE;
-                }
-                
-                
                 useAllocator = JS_TRUE;
                 break;
             }
@@ -3094,6 +3074,68 @@ CallMethodHelper::ConvertDependentParams()
                 return JS_FALSE;
             }
         }
+    }
+
+    return JS_TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JSBool
+CallMethodHelper::HandleDipperParam(nsXPTCVariant* dp,
+                                    const nsXPTParamInfo& paramInfo)
+{
+    
+    uint8 type_tag = paramInfo.GetType().TagPart();
+
+    
+    NS_ABORT_IF_FALSE(!paramInfo.IsOut(), "Dipper has unexpected flags.");
+
+    
+    
+    NS_ABORT_IF_FALSE(type_tag == nsXPTType::T_ASTRING ||
+                      type_tag == nsXPTType::T_DOMSTRING ||
+                      type_tag == nsXPTType::T_UTF8STRING ||
+                      type_tag == nsXPTType::T_CSTRING,
+                      "Unexpected dipper type!");
+
+    
+    
+    if(type_tag == nsXPTType::T_ASTRING || type_tag == nsXPTType::T_DOMSTRING)
+    {
+        dp->SetValIsDOMString();
+        dp->val.p = new nsAutoString();
+    }
+    else
+    {
+        dp->SetValIsCString();
+        dp->val.p = new nsCString();
+    }
+
+    
+    if(!dp->val.p)
+    {
+        JS_ReportOutOfMemory(mCallContext);
+        return JS_FALSE;
     }
 
     return JS_TRUE;
