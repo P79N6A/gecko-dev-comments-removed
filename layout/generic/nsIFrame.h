@@ -1289,6 +1289,11 @@ public:
     
     bool associateWithNext;
   };
+  enum {
+    IGNORE_SELECTION_STYLE = 0x01,
+    
+    SKIP_HIDDEN = 0x02
+  };
   
 
 
@@ -1297,11 +1302,11 @@ public:
 
 
   ContentOffsets GetContentOffsetsFromPoint(nsPoint aPoint,
-                                            bool aIgnoreSelectionStyle = false);
+                                            PRUint32 aFlags = 0);
 
   virtual ContentOffsets GetContentOffsetsFromPointExternal(nsPoint aPoint,
-                                                            bool aIgnoreSelectionStyle = false)
-  { return GetContentOffsetsFromPoint(aPoint, aIgnoreSelectionStyle); }
+                                                            PRUint32 aFlags = 0)
+  { return GetContentOffsetsFromPoint(aPoint, aFlags); }
 
   
 
