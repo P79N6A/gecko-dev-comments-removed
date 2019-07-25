@@ -107,6 +107,12 @@ BrowserElementChild.prototype = {
                       true,
                       false);
 
+    this._afterPaintHandlerClosure = this._afterPaintHandler.bind(this);
+    addEventListener('MozAfterPaint',
+                     this._afterPaintHandlerClosure,
+                      true,
+                      false);
+
     var self = this;
     function addMsgListener(msg, handler) {
       addMessageListener('browser-element-api:' + msg, handler.bind(self));
@@ -348,6 +354,19 @@ BrowserElementChild.prototype = {
       else {
         debug("Not top level!");
       }
+    }
+  },
+
+  _afterPaintHandler: function(e) {
+    let uri = docShell.QueryInterface(Ci.nsIWebNavigation).currentURI;
+    debug("Got afterpaint event: " + uri.spec);
+    if (uri.spec != "about:blank") {
+      
+
+      removeEventListener('MozAfterPaint', this._afterPaintHandlerClosure,
+                           true);
+
+      sendAsyncMsg('firstpaint');
     }
   },
 
