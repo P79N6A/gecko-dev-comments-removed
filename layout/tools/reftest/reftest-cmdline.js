@@ -94,22 +94,9 @@ RefTestCmdLineHandler.prototype =
 
     
 
-
-
-
-
-
-
-
     var prefs = Components.classes["@mozilla.org/preferences-service;1"].
-                getService(Components.interfaces.nsIPrefService);
-    var branch = prefs.getDefaultBranch("");
-    branch.setBoolPref("gfx.color_management.force_srgb", true);
-    branch.setBoolPref("browser.dom.window.dump.enabled", true);
-    branch.setIntPref("ui.caretBlinkTime", -1);
-    
-    branch.setIntPref("dom.max_script_run_time", 0);
-    branch.setIntPref("dom.max_chrome_script_run_time", 0);
+                getService(Components.interfaces.nsIPrefBranch2);
+    prefs.setBoolPref("gfx.color_management.force_srgb", true);
 
     var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                            .getService(nsIWindowWatcher);
