@@ -4355,9 +4355,18 @@ WebGLContext::CompileShader(nsIWebGLShader *sobj)
         if (mEnabledExtensions[WebGL_OES_standard_derivatives])
             resources.OES_standard_derivatives = 1;
 
+        
+        
+        
+        
+        
         compiler = ShConstructCompiler((ShShaderType) shader->ShaderType(),
                                        SH_WEBGL_SPEC,
+#ifdef MOZ_WIDGET_ANDROID
+                                       SH_GLSL_OUTPUT,
+#else
                                        gl->IsGLES2() ? SH_ESSL_OUTPUT : SH_GLSL_OUTPUT,
+#endif
                                        &resources);
 
         
