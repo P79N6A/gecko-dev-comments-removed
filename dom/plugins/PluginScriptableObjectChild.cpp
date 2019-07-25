@@ -535,7 +535,7 @@ PluginScriptableObjectChild::CreateProxyObject()
   
   
   object->referenceCount = 0;
-  NS_LOG_RELEASE(object, 0, "ChildNPObject");
+  NS_LOG_RELEASE(object, 0, "NPObject");
 
   object->parent = const_cast<PluginScriptableObjectChild*>(this);
   return object;
