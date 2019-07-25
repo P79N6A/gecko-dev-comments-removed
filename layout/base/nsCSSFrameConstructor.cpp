@@ -4954,6 +4954,8 @@ nsCSSFrameConstructor::ConstructSVGForeignObjectFrame(nsFrameConstructorState& a
   nsFrameItems childItems;
   
   
+  const nsStyleDisplay* disp = innerPseudoStyle->GetStyleDisplay();
+  NS_ASSERTION(disp->IsPositioned(), "How did this get to not be positioned?");
   rv = ConstructBlock(aState, innerPseudoStyle->GetStyleDisplay(), content,
                       newFrame, newFrame, innerPseudoStyle,
                       &blockFrame, childItems, true,
