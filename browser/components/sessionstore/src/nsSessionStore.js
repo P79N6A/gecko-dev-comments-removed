@@ -2902,11 +2902,6 @@ SessionStoreService.prototype = {
     }
 
     
-    
-    
-    aWindow.TabView.init();
-
-    
     tabstrip.smoothScroll = smoothScroll;
 
     this._sendRestoreCompletedNotifications();
