@@ -65,7 +65,7 @@ NewTryNote(JSContext *cx, BytecodeEmitter *bce, JSTryNoteKind kind, unsigned sta
 static bool
 SetSrcNoteOffset(JSContext *cx, BytecodeEmitter *bce, unsigned index, unsigned which, ptrdiff_t offset);
 
-struct js::StmtInfoBCE : public js::StmtInfoBase
+struct frontend::StmtInfoBCE : public StmtInfoBase
 {
     StmtInfoBCE     *down;          
     StmtInfoBCE     *downScope;     

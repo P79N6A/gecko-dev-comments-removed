@@ -11,10 +11,10 @@
 #include "jscntxt.h"
 
 #include "frontend/ParseNode.h" 
-
-#include "ParseMaps.h"
+#include "frontend/ParseMaps.h"
 
 namespace js {
+namespace frontend {
 
 template <>
 inline AtomDefnMap *
@@ -113,6 +113,7 @@ AtomDecls::~AtomDecls()
         cx->parseMapPool().release(map);
 }
 
+} 
 } 
 
 #endif

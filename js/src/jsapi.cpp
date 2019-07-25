@@ -87,6 +87,7 @@
 using namespace js;
 using namespace js::gc;
 using namespace js::types;
+using js::frontend::Parser;
 
 
 
@@ -6718,7 +6719,7 @@ JS_IsIdentifier(JSContext *cx, JSString *str, JSBool *isIdentifier)
     if (!linearStr)
         return false;
 
-    *isIdentifier = js::IsIdentifier(linearStr);
+    *isIdentifier = js::frontend::IsIdentifier(linearStr);
     return true;
 }
 
