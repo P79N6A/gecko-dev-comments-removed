@@ -531,7 +531,7 @@ public class GeckoInputConnection
         }
     }
 
-    public void reset() {
+    protected void resetCompositionState() {
         mCompositionStart = NO_COMPOSITION_STRING;
         mBatchMode = false;
         mUpdateRequest = null;
@@ -782,7 +782,14 @@ public class GeckoInputConnection
                                    | EditorInfo.IME_FLAG_NO_FULLSCREEN;
         }
 
-        reset();
+        
+        
+        
+        if (hasCompositionString()) {
+            endComposition();
+        }
+
+        resetCompositionState();
         return this;
     }
 
@@ -933,7 +940,7 @@ public class GeckoInputConnection
 
             
             
-            reset();
+            resetCompositionState();
 
             
             
@@ -1059,12 +1066,11 @@ public class GeckoInputConnection
         Selection.setSelection(mEditable, contents.length());
     }
 
-    private boolean hasCompositionString() {
+    protected final boolean hasCompositionString() {
         return mCompositionStart != NO_COMPOSITION_STRING;
     }
-}
 
-class DebugGeckoInputConnection extends GeckoInputConnection {
+private static final class DebugGeckoInputConnection extends GeckoInputConnection {
     public DebugGeckoInputConnection(View targetView) {
         super(targetView);
     }
@@ -1195,9 +1201,12 @@ class DebugGeckoInputConnection extends GeckoInputConnection {
     }
 
     @Override
-    public void reset() {
-        Log.d(LOGTAG, "IME: reset");
-        super.reset();
+    protected void resetCompositionState() {
+        Log.d(LOGTAG, "IME: resetCompositionState");
+        if (hasCompositionString()) {
+            Log.d(LOGTAG, "resetCompositionState() is abandoning an active composition string");
+        }
+        super.resetCompositionState();
     }
 
     @Override
@@ -1262,11 +1271,6 @@ class DebugGeckoInputConnection extends GeckoInputConnection {
         Log.d(LOGTAG, String.format("IME: >notifyIME(type=%d, state=%d)", type, state));
         super.notifyIME(type, state);
     }
+}
 
-    @Override
-    public void notifyIMEChange(String text, int start, int end, int newEnd) {
-        Log.d(LOGTAG, String.format("IME: >notifyIMEChange(\"%s\", start=%d, end=%d, newEnd=%d)",
-                                    text, start, end, newEnd));
-        super.notifyIMEChange(text, start, end, newEnd);
-    }
 }
