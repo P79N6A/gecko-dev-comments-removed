@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
 let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
 let bh = hs.QueryInterface(Ci.nsIBrowserHistory);
@@ -117,21 +83,23 @@ function continue_test() {
       url: PERMA_REDIR_URL,
       from_visit: 0,
       visit_type: Ci.nsINavHistoryService.TRANSITION_LINK,
-      session: 1 },
+      session: 2 },
     { id: 2,
       url: TEMP_REDIR_URL,
       from_visit: 1,
       visit_type: Ci.nsINavHistoryService.TRANSITION_REDIRECT_PERMANENT,
-      session: 1 },
+      session: 2 },
     { id: 3,
       url: FOUND_URL,
       from_visit: 2,
       visit_type: Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY,
-      session: 1 },
+      session: 2 },
   ];
   try {
     while(stmt.executeStep()) {
       let comparator = EXPECTED.shift();
+      do_log_info("Checking that '" + comparator.url +
+                  "' was entered into the DB correctly");
       do_check_eq(stmt.row.id, comparator.id);
       do_check_eq(stmt.row.url, comparator.url);
       do_check_eq(stmt.row.from_visit, comparator.from_visit);
@@ -194,7 +162,7 @@ ChannelListener.prototype = {
   },
 
   onStartRequest: function(request, context) {
-    print("onStartRequest");
+    do_log_info("onStartRequest");
     this._got_onstartrequest = true;
   },
 
@@ -203,7 +171,7 @@ ChannelListener.prototype = {
   },
 
   onStopRequest: function(request, context, status) {
-    print("onStopRequest");
+    do_log_info("onStopRequest");
     this._got_onstoprequest++;
     let success = Components.isSuccessCode(status);
     do_check_true(success);
@@ -220,7 +188,7 @@ ChannelListener.prototype = {
 
   
   asyncOnChannelRedirect: function (aOldChannel, aNewChannel, aFlags, callback) {
-    print("onChannelRedirect");
+    do_log_info("onChannelRedirect");
     this._got_onchannelredirect = true;
     ghist3.addDocumentRedirect(aOldChannel, aNewChannel, aFlags, true);
     callback.onRedirectVerifyCallback(Components.results.NS_OK);
