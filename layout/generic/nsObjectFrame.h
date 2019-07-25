@@ -221,7 +221,7 @@ protected:
   
 
 
-  void CallSetWindow();
+  nsresult CallSetWindow();
 
   PRBool IsFocusable(PRInt32 *aTabIndex = nsnull, PRBool aWithMouse = PR_FALSE);
 
