@@ -94,6 +94,15 @@ public class IntRect implements Cloneable {
                getRight() >= other.getRight() &&
                getBottom() >= other.getBottom();
     }
+
+    
+    public IntRect intersect(IntRect other) {
+        int left = Math.max(x, other.x);
+        int top = Math.max(y, other.y);
+        int right = Math.min(getRight(), other.getRight());
+        int bottom = Math.min(getBottom(), other.getBottom());
+        return new IntRect(left, top, Math.max(right - left, 0), Math.max(bottom - top, 0));
+    }
 }
 
 
