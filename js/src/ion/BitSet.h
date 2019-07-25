@@ -100,6 +100,13 @@ public:
     
     void intersect(const BitSet *other);
 
+    
+    
+    bool fixedPointIntersect(const BitSet *other);
+
+    
+    void complement();
+
 };
 
 }
