@@ -203,17 +203,12 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, PRInt32 aLength)
   }
 
   
-  
-  const PRInt32 LARGE_STRING_THRESHOLD = 10240; 
-  PRBool need2 = aLength >= LARGE_STRING_THRESHOLD;
-  if (!need2) {
-    
-    while (ucp < uend) {
-      PRUnichar ch = *ucp++;
-      if (ch >= 256) {
-        need2 = PR_TRUE;
-        break;
-      }
+  PRBool need2 = PR_FALSE;
+  while (ucp < uend) {
+    PRUnichar ch = *ucp++;
+    if (ch >= 256) {
+      need2 = PR_TRUE;
+      break;
     }
   }
 
