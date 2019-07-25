@@ -505,6 +505,14 @@ protected:
 
 
 
+
+
+  bool IsTextPropertySetByContent(nsIContent*      aContent,
+                                  nsIAtom*         aProperty,
+                                  const nsAString* aAttribute,
+                                  const nsAString* aValue,
+                                  nsAString*       outValue = nsnull);
+
   void IsTextPropertySetByContent(nsIDOMNode*      aNode,
                                   nsIAtom*         aProperty,
                                   const nsAString* aAttribute,
