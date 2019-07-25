@@ -76,6 +76,13 @@ public:
     IDWriteFontFace *GetFontFace();
 
     
+    virtual RunMetrics Measure(gfxTextRun *aTextRun,
+                               PRUint32 aStart, PRUint32 aEnd,
+                               BoundingBoxType aBoundingBoxType,
+                               gfxContext *aContextForTightBoundingBox,
+                               Spacing *aSpacing);
+
+    
     
     virtual hb_blob_t *GetFontTable(PRUint32 aTag);
 

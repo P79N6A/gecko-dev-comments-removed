@@ -612,6 +612,33 @@ gfxDWriteFont::CairoScaledFont()
     return mCairoScaledFont;
 }
 
+gfxFont::RunMetrics
+gfxDWriteFont::Measure(gfxTextRun *aTextRun,
+                    PRUint32 aStart, PRUint32 aEnd,
+                    BoundingBoxType aBoundingBoxType,
+                    gfxContext *aRefContext,
+                    Spacing *aSpacing)
+{
+    gfxFont::RunMetrics metrics =
+        gfxFont::Measure(aTextRun, aStart, aEnd,
+                         aBoundingBoxType, aRefContext, aSpacing);
+
+    
+    
+    
+    
+    
+    if (aBoundingBoxType == LOOSE_INK_EXTENTS &&
+        mAntialiasOption != kAntialiasNone &&
+        GetMeasuringMode() == DWRITE_MEASURING_MODE_GDI_CLASSIC &&
+        metrics.mBoundingBox.width > 0) {
+        metrics.mBoundingBox.x -= aTextRun->GetAppUnitsPerDevUnit();
+        metrics.mBoundingBox.width += aTextRun->GetAppUnitsPerDevUnit() * 3;
+    }
+
+    return metrics;
+}
+
 
 
 
