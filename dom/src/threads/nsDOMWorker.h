@@ -234,6 +234,12 @@ public:
     return mPrivilegeModel == CHROME;
   }
 
+  static JSObject* ReadStructuredClone(JSContext* aCx,
+                                       JSStructuredCloneReader* aReader,
+                                       uint32 aTag,
+                                       uint32 aData,
+                                       void* aClosure);
+
   
 
 
