@@ -1075,7 +1075,8 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
           
           
           PRInt32 index;
-          if (TypeInState::FindPropInList(aProperty, *aAttribute, outValue, mDefaultStyles, index))
+          if (aAttribute &&
+              TypeInState::FindPropInList(aProperty, *aAttribute, outValue, mDefaultStyles, index))
           {
             *aFirst = *aAny = *aAll = PR_TRUE;
             if (outValue)
