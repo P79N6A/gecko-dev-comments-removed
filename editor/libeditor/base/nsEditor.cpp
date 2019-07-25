@@ -2519,7 +2519,7 @@ nsresult nsEditor::InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert,
   
   
   
-  if (isIMETransaction)
+  if (isIMETransaction && mIMETextNode)
   {
     PRUint32 len;
     mIMETextNode->GetLength(&len);
