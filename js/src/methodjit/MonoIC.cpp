@@ -1389,5 +1389,78 @@ JITScript::resetArgsCheck()
     repatch.relink(argsCheckJump, argsCheckStub);
 }
 
+void
+JITScript::purgeMICs()
+{
+    if (!nGetGlobalNames || !nSetGlobalNames)
+        return;
+
+    Repatcher repatch(this);
+
+    ic::GetGlobalNameIC *getGlobalNames_ = getGlobalNames();
+    for (uint32 i = 0; i < nGetGlobalNames; i++) {
+        ic::GetGlobalNameIC &ic = getGlobalNames_[i];
+        JSC::CodeLocationDataLabel32 label = ic.fastPathStart.dataLabel32AtOffset(ic.shapeOffset);
+        repatch.repatch(label, int(INVALID_SHAPE));
+    }
+
+    ic::SetGlobalNameIC *setGlobalNames_ = setGlobalNames();
+    for (uint32 i = 0; i < nSetGlobalNames; i++) {
+        ic::SetGlobalNameIC &ic = setGlobalNames_[i];
+        ic.patchInlineShapeGuard(repatch, int32(INVALID_SHAPE));
+
+        if (ic.hasExtraStub) {
+            Repatcher repatcher(ic.extraStub);
+            ic.patchExtraShapeGuard(repatcher, int32(INVALID_SHAPE));
+        }
+    }
+}
+
+void
+JITScript::sweepCallICs(JSContext *cx)
+{
+    Repatcher repatcher(this);
+
+    ic::CallICInfo *callICs_ = callICs();
+    for (uint32 i = 0; i < nCallICs; i++) {
+        ic::CallICInfo &ic = callICs_[i];
+
+        
+
+
+
+
+        bool fastFunDead = ic.fastGuardedObject &&
+            IsAboutToBeFinalized(cx, ic.fastGuardedObject);
+        bool nativeDead = ic.fastGuardedNative &&
+            IsAboutToBeFinalized(cx, ic.fastGuardedNative);
+
+        
+
+
+
+
+
+
+
+        if (nativeDead || (fastFunDead && ic.hasJsFunCheck)) {
+            repatcher.relink(ic.funJump, ic.slowPathStart);
+            ic.hit = false;
+        }
+
+        if (fastFunDead) {
+            repatcher.repatch(ic.funGuard, NULL);
+            ic.purgeGuardedObject();
+        }
+
+        if (nativeDead)
+            ic.fastGuardedNative = NULL;
+    }
+
+    
+    if (argsCheckPool)
+        resetArgsCheck();
+}
+
 #endif 
 

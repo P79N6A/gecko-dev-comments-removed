@@ -317,10 +317,7 @@ enum RejoinState {
 
 
 
-    REJOIN_BRANCH,
-
-    
-    REJOIN_RUN_TRACER
+    REJOIN_BRANCH
 };
 
 
@@ -463,9 +460,6 @@ class JaegerCompartment {
 
     Vector<StackFrame *, 8, SystemAllocPolicy> orphanedNativeFrames;
     Vector<JSC::ExecutablePool *, 8, SystemAllocPolicy> orphanedNativePools;
-
-    
-    bool finishingTracer;
 };
 
 
@@ -612,6 +606,7 @@ struct JITScript {
     bool            singleStepMode:1;   
     uint32          nInlineFrames;
     uint32          nCallSites;
+    uint32          nRootedObjects;
 #ifdef JS_MONOIC
     uint32          nGetGlobalNames;
     uint32          nSetGlobalNames;
@@ -649,6 +644,7 @@ struct JITScript {
     NativeMapEntry *nmap() const;
     js::mjit::InlineFrame *inlineFrames() const;
     js::mjit::CallSite *callSites() const;
+    JSObject **rootedObjects() const;
 #ifdef JS_MONOIC
     ic::GetGlobalNameIC *getGlobalNames() const;
     ic::SetGlobalNameIC *setGlobalNames() const;
@@ -670,8 +666,13 @@ struct JITScript {
         return jcheck >= jitcode && jcheck < jitcode + code.m_size;
     }
 
-    void nukeScriptDependentICs();
     void purgeGetterPICs();
+
+    void sweepCallICs(JSContext *cx);
+    void purgeMICs();
+    void purgePICs();
+
+    void trace(JSTracer *trc);
 
     
     size_t scriptDataSize(JSUsableSizeFun usf);
@@ -684,6 +685,8 @@ struct JITScript {
     char *monoICSectionsLimit() const;
     char *polyICSectionsLimit() const;
 };
+
+void PurgeICs(JSContext *cx, JSScript *script);
 
 
 

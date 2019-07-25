@@ -510,7 +510,14 @@ JSCompartment::sweep(JSContext *cx, bool releaseTypes)
 #endif
 
 #ifdef JS_METHODJIT
-    mjit::ClearAllFrames(this);
+    
+    for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+        JSScript *script = i.get<JSScript>();
+        mjit::PurgeICs(cx, script);
+    }
+
+    if (types.inferenceEnabled)
+        mjit::ClearAllFrames(this);
 #endif
 
     if (activeAnalysis) {
@@ -520,9 +527,11 @@ JSCompartment::sweep(JSContext *cx, bool releaseTypes)
 
 
 #ifdef JS_METHODJIT
-        for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
-            JSScript *script = i.get<JSScript>();
-            mjit::ReleaseScriptCode(cx, script);
+        if (types.inferenceEnabled) {
+            for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+                JSScript *script = i.get<JSScript>();
+                mjit::ReleaseScriptCode(cx, script);
+            }
         }
 #endif
     } else {
@@ -560,9 +569,12 @@ JSCompartment::sweep(JSContext *cx, bool releaseTypes)
             }
         } else {
 #ifdef JS_METHODJIT
-            for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
-                JSScript *script = i.get<JSScript>();
-                mjit::ReleaseScriptCode(cx, script);
+            
+            if (!active) {
+                for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+                    JSScript *script = i.get<JSScript>();
+                    mjit::ReleaseScriptCode(cx, script);
+                }
             }
 #endif
         }
