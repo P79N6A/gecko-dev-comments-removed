@@ -362,8 +362,8 @@ protected:
 
 private:
     nsStorageStream* mStorageStream;
-    const char*      mReadCursor;    
-    const char*      mSegmentEnd;    
+    PRUint32         mReadCursor;    
+    PRUint32         mSegmentEnd;    
     PRUint32         mSegmentNum;    
     PRUint32         mSegmentSize;   
     PRUint32         mLogicalCursor; 
@@ -441,13 +441,15 @@ nsStorageInputStream::ReadSegments(nsWriteSegmentFun writer, void * closure, PRU
             if (!available)
                 goto out;
 
-            mReadCursor = mStorageStream->mSegmentedBuffer->GetSegment(++mSegmentNum);
-            mSegmentEnd = mReadCursor + NS_MIN(mSegmentSize, available);
-            availableInSegment = mSegmentEnd - mReadCursor;
+            mSegmentNum++;
+            mReadCursor = 0;
+            mSegmentEnd = NS_MIN(mSegmentSize, available);
+            availableInSegment = mSegmentEnd;
         }
+        const char *cur = mStorageStream->mSegmentedBuffer->GetSegment(mSegmentNum);
 	
         count = NS_MIN(availableInSegment, remainingCapacity);
-        rv = writer(this, closure, mReadCursor, aCount - remainingCapacity,
+        rv = writer(this, closure, cur + mReadCursor, aCount - remainingCapacity,
                     count, &bytesConsumed);
         if (NS_FAILED(rv) || (bytesConsumed == 0))
           break;
@@ -534,11 +536,9 @@ nsStorageInputStream::Seek(PRUint32 aPosition)
         return NS_OK;
 
     mSegmentNum = SegNum(aPosition);
-    PRUint32 segmentOffset = SegOffset(aPosition);
-    mReadCursor = mStorageStream->mSegmentedBuffer->GetSegment(mSegmentNum) +
-        segmentOffset;
+    mReadCursor = SegOffset(aPosition);
     PRUint32 available = length - aPosition;
-    mSegmentEnd = mReadCursor + NS_MIN(mSegmentSize - segmentOffset, available);
+    mSegmentEnd = mReadCursor + NS_MIN(mSegmentSize - mReadCursor, available);
     mLogicalCursor = aPosition;
     return NS_OK;
 }
