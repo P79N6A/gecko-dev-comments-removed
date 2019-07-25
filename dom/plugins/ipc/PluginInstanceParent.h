@@ -279,10 +279,6 @@ public:
     virtual bool
     AnswerPluginFocusChange(const bool& gotFocus);
 
-#ifdef MOZ_WIDGET_COCOA
-    void Invalidate();
-#endif 
-
     nsresult AsyncSetWindow(NPWindow* window);
     nsresult GetImage(mozilla::layers::ImageContainer* aContainer, mozilla::layers::Image** aImage);
     nsresult GetImageSize(nsIntSize* aSize);
@@ -313,16 +309,6 @@ private:
     virtual bool
     DeallocPPluginBackgroundDestroyer(PPluginBackgroundDestroyerParent* aActor);
 
-    
-    enum PluginQuirks {
-        
-        
-        
-        COREANIMATION_REFRESH_TIMER = 1,
-    };
-
-    void InitQuirksModes(const nsCString& aMimeType);
-
     bool InternalGetValueForNPObject(NPNVariable aVariable,
                                      PPluginScriptableObjectParent** aValue,
                                      NPError* aResult);
@@ -332,7 +318,6 @@ private:
     NPP mNPP;
     const NPNetscapeFuncs* mNPNIface;
     NPWindowType mWindowType;
-    int mQuirks;
 
     nsDataHashtable<nsVoidPtrHashKey, PluginScriptableObjectParent*> mScriptableObjects;
 
