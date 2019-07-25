@@ -132,10 +132,10 @@ PanelHighlighter.prototype = {
 
 
 
-  highlightNode: function PanelHighlighter_highlightNode(element, params)
+  highlightNode: function PanelHighlighter_highlightNode(aNode, aParams)
   {
-    this.node = element;
-    this.highlight(params && params.scroll);
+    this.node = aNode;
+    this.highlight(aParams && aParams.scroll);
   },
 
   
@@ -220,11 +220,11 @@ PanelHighlighter.prototype = {
 
 
 
-  midPoint: function PanelHighlighter_midPoint(pointA, pointB)
+  midPoint: function PanelHighlighter_midPoint(aPointA, aPointB)
   {
     let pointC = { };
-    pointC.x = (pointB.x - pointA.x) / 2 + pointA.x;
-    pointC.y = (pointB.y - pointA.y) / 2 + pointA.y;
+    pointC.x = (aPointB.x - aPointA.x) / 2 + aPointA.x;
+    pointC.y = (aPointB.y - aPointA.y) / 2 + aPointA.y;
     return pointC;
   },
 
@@ -306,14 +306,14 @@ PanelHighlighter.prototype = {
 
 
 
-  handleMouseMove: function PanelHighlighter_handleMouseMove(event)
+  handleMouseMove: function PanelHighlighter_handleMouseMove(aEvent)
   {
     if (!InspectorUI.inspecting) {
       return;
     }
     let browserRect = this.browser.getBoundingClientRect();
-    let element = this.win.document.elementFromPoint(event.clientX -
-      browserRect.left, event.clientY - browserRect.top);
+    let element = this.win.document.elementFromPoint(aEvent.clientX -
+      browserRect.left, aEvent.clientY - browserRect.top);
     if (element && element != this.node) {
       InspectorUI.inspectNode(element);
     }
@@ -462,7 +462,7 @@ InspectorTreeView.prototype = {
     let lastIndex;
     let view = this.tree.treeBoxObject.view;
 
-    for (let i = line.length - 1; i >= 0; i--) {
+    for (let i = line.length - 1; i >= 0; --i) {
       index = this.view.getRowIndexFromNode(line[i]);
       if (index < 0) {
         
@@ -492,7 +492,7 @@ InspectorTreeView.prototype = {
 var InspectorUI = {
   browser: null,
   _showTreePanel: true,
-  _showStylePanel: false,
+  _showStylePanel: true,
   _showDOMPanel: false,
   highlightColor: "#EEEE66",
   highlightThickness: 4,
@@ -506,13 +506,42 @@ var InspectorUI = {
 
 
 
-  toggleInspectorUI: function InspectorUI_toggleInspectorUI()
+  toggleInspectorUI: function IUI_toggleInspectorUI(aEvent)
   {
     if (this.isPanelOpen) {
       this.closeInspectorUI();
     } else {
       this.openInspectorUI();
     }
+  },
+
+  
+
+
+
+  toggleInspection: function IUI_toggleInspection()
+  {
+    if (this.inspecting) {
+      this.stopInspecting();
+    } else {
+      this.startInspecting();
+    }
+  },
+
+  
+
+
+  toggleStylePanel: function IUI_toggleStylePanel()
+  {
+    if (this._showStylePanel) {
+      this.stylePanel.hidePopup();
+    } else {
+      this.openStylePanel();
+      if (this.treeView.selectedNode) {
+        this.updateStylePanel(this.treeView.selectedNode);
+      }
+    }
+    this._showStylePanel = !this._showStylePanel;
   },
 
   
@@ -528,7 +557,17 @@ var InspectorUI = {
   
 
 
-  openTreePanel: function InspectorUI_openTreePanel()
+
+
+  get isStylePanelOpen()
+  {
+    return this.stylePanel && this.stylePanel.state == "open";
+  },
+
+  
+
+
+  openTreePanel: function IUI_openTreePanel()
   {
     if (!this.treePanel) {
       this.treePanel = document.getElementById("inspector-panel");
@@ -546,12 +585,40 @@ var InspectorUI = {
     }
   },
 
-  openStylePanel: function InspectorUI_openStylePanel()
+  
+
+
+  openStylePanel: function IUI_openStylePanel()
   {
-    
+    if (!this.stylePanel) {
+      this.stylePanel = document.getElementById("inspector-style-panel");
+      this.stylePanel.hidden = false;
+    }
+    if (!this.isStylePanelOpen) {
+      
+      this.stylePanel.openPopup(this.browser, "end_before", 0, 20, false, false);
+      
+      this.stylePanel.sizeTo(200, this.win.outerHeight / 2 - 60);
+    }
   },
 
-  openDOMPanel: function InspectorUI_openDOMPanel()
+  
+
+
+
+
+
+
+  toggleDimForPanel: function IUI_toggleDimForPanel(aDim)
+  {
+    if (aDim.hasAttribute("dimmed")) {
+      aDim.removeAttribute("dimmed");
+    } else {
+      aDim.setAttribute("dimmed", "true");
+    }
+  },
+
+  openDOMPanel: function IUI_openDOMPanel()
   {
     
   },
@@ -560,25 +627,33 @@ var InspectorUI = {
 
 
 
-  openInspectorUI: function InspectorUI_openInspectorUI()
+  openInspectorUI: function IUI_openInspectorUI()
   {
     
     this.browser = gBrowser.selectedBrowser;
     this.win = this.browser.contentWindow;
+    if (!this.style) {
+      Cu.import("resource:///modules/stylePanel.jsm", this);
+      this.style.initialize();
+    }
 
     
     if (this._showTreePanel) {
       this.openTreePanel();
     }
     if (this._showStylePanel) {
+      this.styleBox = document.getElementById("inspector-style-listbox");
+      this.clearStylePanel();
       this.openStylePanel();
     }
     if (this._showDOMPanel) {
       this.openDOMPanel();
     }
+    this.inspectorBundle = Services.strings.createBundle("chrome://browser/locale/inspector.properties");
     this.initializeHighlighter();
     this.startInspecting();
     this.win.document.addEventListener("scroll", this, false);
+    this.win.addEventListener("resize", this, false);
     gBrowser.tabContainer.addEventListener("TabSelect", this, false);
     this.inspectCmd.setAttribute("checked", true);
   },
@@ -586,7 +661,7 @@ var InspectorUI = {
   
 
 
-  initializeHighlighter: function InspectorUI_initializeHighlighter()
+  initializeHighlighter: function IUI_initializeHighlighter()
   {
     this.highlighter = new PanelHighlighter(this.browser, this.highlightColor,
       this.highlightThickness, this.highlightOpacity);
@@ -597,9 +672,10 @@ var InspectorUI = {
 
 
 
-  closeInspectorUI: function InspectorUI_closeInspectorUI()
+  closeInspectorUI: function IUI_closeInspectorUI()
   {
     this.win.document.removeEventListener("scroll", this, false);
+    this.win.removeEventListener("resize", this, false);
     gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
     this.stopInspecting();
     if (this.highlighter && this.highlighter.isHighlighting) {
@@ -609,6 +685,9 @@ var InspectorUI = {
       this.treePanel.hidePopup();
       this.treeView.destroy();
     }
+    if (this.isStylePanelOpen) {
+      this.stylePanel.hidePopup();
+    }
     this.inspectCmd.setAttribute("checked", false);
     this.browser = this.win = null; 
   },
@@ -617,22 +696,27 @@ var InspectorUI = {
 
 
 
-  startInspecting: function InspectorUI_startInspecting()
+  startInspecting: function IUI_startInspecting()
   {
     this.attachPageListeners();
     this.inspecting = true;
+    this.toggleDimForPanel(this.stylePanel);
   },
 
   
 
 
 
-  stopInspecting: function InspectorUI_stopInspecting()
+  stopInspecting: function IUI_stopInspecting()
   {
     if (!this.inspecting)
       return;
     this.detachPageListeners();
     this.inspecting = false;
+    this.toggleDimForPanel(this.stylePanel);
+    if (this.treeView.selection) {
+      this.updateStylePanel(this.treeView.selectedNode);
+    }
   },
 
   
@@ -641,12 +725,115 @@ var InspectorUI = {
   
 
 
-  createDocumentModel: function InspectorUI_createDocumentModel()
+  createDocumentModel: function IUI_createDocumentModel()
   {
     this.treeView = new InspectorTreeView(this.win);
   },
 
   
+
+
+
+
+
+
+
+
+
+  addStyleItem: function IUI_addStyleItem(aLabel, aType, aContent)
+  {
+    let itemLabelString = this.inspectorBundle.GetStringFromName("style.styleItemLabel");
+    let item = document.createElement("listitem");
+
+    
+    let label = aLabel;
+    item.className = "style-" + aType;
+    if (aContent) {
+      label = itemLabelString.replace("#1", aLabel);
+      label = label.replace("#2", aContent);
+    }
+    item.setAttribute("label", label);
+
+    this.styleBox.appendChild(item);
+  },
+
+  
+
+
+
+
+
+  createStyleRuleItems: function IUI_createStyleRuleItems(aRules)
+  {
+    let selectorLabel = this.inspectorBundle.GetStringFromName("style.selectorLabel");
+
+    aRules.forEach(function(rule) {
+      this.addStyleItem(selectorLabel, "selector", rule.id);
+      rule.properties.forEach(function(property) {
+        if (property.overridden)
+          return; 
+        
+        let important = "";
+        if (property.important)
+          important += " !important";
+        this.addStyleItem(property.name, "property", property.value + important);
+      }, this);
+    }, this);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  createStyleItems: function IUI_createStyleItems(aRules, aSections)
+  {
+    this.createStyleRuleItems(aRules);
+    let inheritedString = 
+        this.inspectorBundle.GetStringFromName("style.inheritedFrom");
+    aSections.forEach(function(section) {
+      let sectionTitle = section.element.tagName;
+      if (section.element.id)
+        sectionTitle += "#" + section.element.id;
+      let replacedString = inheritedString.replace("#1", sectionTitle);
+      this.addStyleItem(replacedString, "section");
+      this.createStyleRuleItems(section.rules);
+    }, this);
+  },
+
+  
+
+
+  clearStylePanel: function IUI_clearStylePanel()
+  {
+    for (let i = this.styleBox.childElementCount; i >= 0; --i)
+      this.styleBox.removeItemAt(i);
+  },
+
+  
+
+
+
+
+
+
+  updateStylePanel: function IUI_updateStylePanel(aNode)
+  {
+    if (this.inspecting || !this.isStylePanelOpen)
+      return;
+    let rules = [], styleSections = [], usedProperties = {};
+    this.style.getInheritedRules(aNode, styleSections, usedProperties);
+    this.style.getElementRules(aNode, rules, usedProperties);
+    this.clearStylePanel();
+    this.createStyleItems(rules, styleSections);
+  },
+
+  
   
 
   
@@ -655,7 +842,7 @@ var InspectorUI = {
 
 
 
-  handleEvent: function InspectorUI_handleEvent(event)
+  handleEvent: function IUI_handleEvent(event)
   {
     switch (event.type) {
       case "TabSelect":
@@ -680,6 +867,7 @@ var InspectorUI = {
         this.stopInspecting();
         break;
       case "scroll":
+      case "resize":
         this.highlighter.highlight();
         break;
     }
@@ -688,7 +876,7 @@ var InspectorUI = {
   
 
 
-  onTreeSelected: function InspectorUI_onTreeSelected()
+  onTreeSelected: function IUI_onTreeSelected()
   {
     if (this.selectEventsSuppressed) {
       return false;
@@ -696,8 +884,9 @@ var InspectorUI = {
 
     let treeView = this.treeView;
     let node = treeView.selectedNode;
-    this.highlighter.highlightNode(node); 
+    this.highlighter.highlightNode(node);
     this.stopInspecting();
+    this.updateStylePanel(node);
     return true;
   },
 
@@ -705,7 +894,7 @@ var InspectorUI = {
 
 
 
-  attachPageListeners: function InspectorUI_attachPageListeners()
+  attachPageListeners: function IUI_attachPageListeners()
   {
     this.win.addEventListener("keypress", this, true);
     this.browser.addEventListener("mousemove", this, true);
@@ -716,7 +905,7 @@ var InspectorUI = {
 
 
 
-  detachPageListeners: function InspectorUI_detachPageListeners()
+  detachPageListeners: function IUI_detachPageListeners()
   {
     this.win.removeEventListener("keypress", this, true);
     this.browser.removeEventListener("mousemove", this, true);
@@ -733,12 +922,13 @@ var InspectorUI = {
 
 
 
-  inspectNode: function InspectorUI_inspectNode(element)
+  inspectNode: function IUI_inspectNode(aNode)
   {
-    this.highlighter.highlightNode(element);
+    this.highlighter.highlightNode(aNode);
     this.selectEventsSuppressed = true;
-    this.treeView.selectedNode = element;
+    this.treeView.selectedNode = aNode;
     this.selectEventsSuppressed = false;
+    this.updateStylePanel(aNode);
   },
 
   

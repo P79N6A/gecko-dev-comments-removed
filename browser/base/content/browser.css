@@ -321,12 +321,6 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
 
 
 
-#highlighter-panel {
-  -moz-appearance: none;
-  -moz-window-shadow: none;
-}
-
-
 
 .notification-anchor-icon {
   display: none;
