@@ -31,15 +31,11 @@ function test1() {
   });
 
   
-  mouseClick(contentElement, 0);
-  
-  mouseClick(contentElement, 0);
+  doubleClick(contentElement, 0);
 }
 
-function mouseClick(targetElement, buttonCode) {
+function doubleClick(targetElement, buttonCode) {
   EventUtils.sendMouseEvent(
-    { type: "mousedown", button: buttonCode }, targetElement, contentWindow);
-  EventUtils.sendMouseEvent(
-    { type: "mouseup", button: buttonCode }, targetElement, contentWindow);
+    { type: "dblclick", button: buttonCode }, targetElement, contentWindow);
 }
 

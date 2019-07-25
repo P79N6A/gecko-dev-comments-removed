@@ -53,16 +53,6 @@ let Keys = { meta: false };
 let UI = {
   
   
-  
-  DBLCLICK_INTERVAL: 500,
-
-  
-  
-  
-  DBLCLICK_OFFSET: 5,
-
-  
-  
   _frameInitialized: false,
 
   
@@ -99,11 +89,6 @@ let UI = {
   
   
   _currentTab: null,
-
-  
-  
-  
-  _lastClick: 0,
 
   
   
@@ -212,38 +197,26 @@ let UI = {
               element.blur();
           });
         }
-        if (e.originalTarget.id == "content") {
-          if (!Utils.isLeftClick(e)) {
-            self._lastClick = 0;
-            self._lastClickPositions = null;
-          } else {
-            
-            if (Date.now() - self._lastClick <= self.DBLCLICK_INTERVAL && 
-                (self._lastClickPositions.x - self.DBLCLICK_OFFSET) <= e.clientX &&
-                (self._lastClickPositions.x + self.DBLCLICK_OFFSET) >= e.clientX &&
-                (self._lastClickPositions.y - self.DBLCLICK_OFFSET) <= e.clientY &&
-                (self._lastClickPositions.y + self.DBLCLICK_OFFSET) >= e.clientY) {
-
-              let box =
-                new Rect(e.clientX - Math.floor(TabItems.tabWidth/2),
-                         e.clientY - Math.floor(TabItems.tabHeight/2),
-                         TabItems.tabWidth, TabItems.tabHeight);
-              box.inset(-30, -30);
-
-              let opts = {immediately: true, bounds: box};
-              let groupItem = new GroupItem([], opts);
-              groupItem.newTab();
-
-              self._lastClick = 0;
-              self._lastClickPositions = null;
-              gTabView.firstUseExperienced = true;
-            } else {
-              self._lastClick = Date.now();
-              self._lastClickPositions = new Point(e.clientX, e.clientY);
-              self._createGroupItemOnDrag(e);
-            }
-          }
+        if (e.originalTarget.id == "content" &&
+            Utils.isLeftClick(e) &&
+            e.detail == 1) {
+          self._createGroupItemOnDrag(e);
         }
+      });
+
+      iQ(gTabViewFrame.contentDocument).dblclick(function(e) {
+        
+        let box =
+          new Rect(e.clientX - Math.floor(TabItems.tabWidth/2),
+                   e.clientY - Math.floor(TabItems.tabHeight/2),
+                   TabItems.tabWidth, TabItems.tabHeight);
+        box.inset(-30, -30);
+
+        let opts = {immediately: true, bounds: box};
+        let groupItem = new GroupItem([], opts);
+        groupItem.newTab();
+
+        gTabView.firstUseExperienced = true;
       });
 
       iQ(window).bind("unload", function() {
