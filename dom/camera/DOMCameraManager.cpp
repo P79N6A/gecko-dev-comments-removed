@@ -2,13 +2,10 @@
 
 
 
-#include "CameraControl.h"
+#include "DOMCameraControl.h"
 #include "DOMCameraManager.h"
 #include "nsDOMClassInfo.h"
 #include "DictionaryHelpers.h"
-
-#undef DOM_CAMERA_LOG_LEVEL
-#define DOM_CAMERA_LOG_LEVEL  DOM_CAMERA_LOG_NOTHING
 #include "CameraCommon.h"
 
 using namespace mozilla;
@@ -30,17 +27,27 @@ NS_IMPL_RELEASE(nsDOMCameraManager)
 
 
 
+#ifdef PR_LOGGING
+PRLogModuleInfo* gCameraLog;
+#endif
+
+
+
+
+
+
+
 nsDOMCameraManager::nsDOMCameraManager(uint64_t aWindowId)
   : mWindowId(aWindowId)
 {
   
-  DOM_CAMERA_LOGI("%s:%d\n", __func__, __LINE__);
+  DOM_CAMERA_LOGT("%s:%d : this=%p, windowId=%llx\n", __func__, __LINE__, this, mWindowId);
 }
 
 nsDOMCameraManager::~nsDOMCameraManager()
 {
   
-  DOM_CAMERA_LOGI("%s:%d\n", __func__, __LINE__);
+  DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
 }
 
 void
@@ -55,6 +62,11 @@ nsDOMCameraManager::Create(uint64_t aWindowId)
 {
   
 
+#ifdef PR_LOGGING
+  if (!gCameraLog) {
+    gCameraLog = PR_LOG_DEFINE("Camera");
+  }
+#endif
   nsRefPtr<nsDOMCameraManager> cameraManager = new nsDOMCameraManager(aWindowId);
   return cameraManager.forget();
 }
@@ -81,10 +93,10 @@ nsDOMCameraManager::GetCamera(const JS::Value& aOptions, nsICameraGetCameraCallb
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  DOM_CAMERA_LOGI("%s:%d\n", __func__, __LINE__);
+  DOM_CAMERA_LOGT("%s:%d\n", __func__, __LINE__);
 
-  nsCOMPtr<nsIRunnable> getCameraTask = new GetCameraTask(cameraId, onSuccess, onError, mCameraThread);
-  mCameraThread->Dispatch(getCameraTask, NS_DISPATCH_NORMAL);
+  
+  nsCOMPtr<nsICameraControl> cameraControl = new nsDOMCameraControl(cameraId, mCameraThread, onSuccess, onError);
 
   return NS_OK;
 }

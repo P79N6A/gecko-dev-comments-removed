@@ -73,7 +73,7 @@ public:
 
     
     
-    void returnBuffer(uint32_t index);
+    bool returnBuffer(uint32_t index, uint32_t generation);
 
     
     void abandon();
@@ -221,6 +221,9 @@ private:
     
     uint64_t mFrameCounter;
 
+    
+    uint32_t mGeneration;
+
     GonkNativeWindowNewFrameCallback* mNewFrameCallback;
 };
 
@@ -231,10 +234,12 @@ class CameraGraphicBuffer : public mozilla::layers::GraphicBufferLocked {
 public:
     CameraGraphicBuffer(GonkNativeWindow* aNativeWindow,
                         uint32_t aIndex,
+                        uint32_t aGeneration,
                         SurfaceDescriptor aBuffer)
         : GraphicBufferLocked(aBuffer)
           , mNativeWindow(aNativeWindow)
           , mIndex(aIndex)
+          , mGeneration(aGeneration)
           , mLocked(true)
     {}
 
@@ -248,8 +253,7 @@ public:
             
             
             sp<GonkNativeWindow> window = mNativeWindow.promote();
-            if (window.get()) {
-                window->returnBuffer(mIndex);
+            if (window.get() && window->returnBuffer(mIndex, mGeneration)) {
                 mLocked = false;
             } else {
                 
@@ -263,6 +267,7 @@ public:
 protected:
     wp<GonkNativeWindow> mNativeWindow;
     uint32_t mIndex;
+    uint32_t mGeneration;
     bool mLocked;
 };
 
