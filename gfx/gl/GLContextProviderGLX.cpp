@@ -71,6 +71,9 @@ GLXLibrary::EnsureInitialized()
     }
     mTriedInitializing = true;
 
+    
+    PR_SetEnv("force_s3tc_enable=true");
+
     if (!mOGLLibrary) {
         
         
