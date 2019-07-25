@@ -44,7 +44,6 @@
 #include "jsobjinlines.h"
 
 using namespace js;
-using namespace JS;
 
 JS_FRIEND_API(JSString *)
 JS_GetAnonymousString(JSRuntime *rt)
@@ -93,6 +92,15 @@ JS_SplicePrototype(JSContext *cx, JSObject *obj, JSObject *proto)
 
 
     CHECK_REQUEST(cx);
+
+    if (!obj->hasSingletonType()) {
+        
+
+
+
+        return JS_SetPrototype(cx, obj, proto);
+    }
+
     return obj->splicePrototype(cx, proto);
 }
 
@@ -111,53 +119,6 @@ JS_ObjectCountDynamicSlots(JSObject *obj)
     if (obj->hasSlotsArray())
         return obj->numDynamicSlots(obj->numSlots());
     return 0;
-}
-
-JS_FRIEND_API(JSPrincipals *)
-JS_GetCompartmentPrincipals(JSCompartment *compartment)
-{
-    return compartment->principals;
-}
-
-JS_FRIEND_API(JSBool)
-JS_WrapPropertyDescriptor(JSContext *cx, js::PropertyDescriptor *desc)
-{
-    return cx->compartment->wrap(cx, desc);
-}
-
-AutoPreserveCompartment::AutoPreserveCompartment(JSContext *cx
-                                                 JS_GUARD_OBJECT_NOTIFIER_PARAM_NO_INIT)
-  : cx(cx), oldCompartment(cx->compartment)
-{
-    JS_GUARD_OBJECT_NOTIFIER_INIT;
-}
-
-AutoPreserveCompartment::~AutoPreserveCompartment()
-{
-    
-    cx->compartment = oldCompartment;
-}
-
-AutoSwitchCompartment::AutoSwitchCompartment(JSContext *cx, JSCompartment *newCompartment
-                                             JS_GUARD_OBJECT_NOTIFIER_PARAM_NO_INIT)
-  : cx(cx), oldCompartment(cx->compartment)
-{
-    JS_GUARD_OBJECT_NOTIFIER_INIT;
-    cx->setCompartment(newCompartment);
-}
-
-AutoSwitchCompartment::AutoSwitchCompartment(JSContext *cx, JSObject *target
-                                             JS_GUARD_OBJECT_NOTIFIER_PARAM_NO_INIT)
-  : cx(cx), oldCompartment(cx->compartment)
-{
-    JS_GUARD_OBJECT_NOTIFIER_INIT;
-    cx->setCompartment(target->compartment());
-}
-
-AutoSwitchCompartment::~AutoSwitchCompartment()
-{
-    
-    cx->compartment = oldCompartment;
 }
 
 
