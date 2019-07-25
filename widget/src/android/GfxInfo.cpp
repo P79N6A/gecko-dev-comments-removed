@@ -267,30 +267,30 @@ GfxInfo::AddOpenGLCrashReportAnnotations()
 #endif
 }
 
-const nsTArray<GfxDriverInfo>&
+static GfxDriverInfo gDriverInfo[] = {
+  GfxDriverInfo()
+};
+
+const GfxDriverInfo*
 GfxInfo::GetGfxDriverInfo()
 {
-  
-  
-  
-  
-  return *mDriverInfo;
+  return &gDriverInfo[0];
 }
 
 nsresult
 GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, 
                               PRInt32 *aStatus, 
                               nsAString & aSuggestedDriverVersion,
-                              const nsTArray<GfxDriverInfo>& aDriverInfo, 
+                              GfxDriverInfo* aDriverInfo , 
                               OperatingSystem* aOS )
 {
-  PRInt32 status = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
+  PRInt32 status = nsIGfxInfo::FEATURE_NO_INFO;
 
   aSuggestedDriverVersion.SetIsVoid(true);
 
   
-  if (aDriverInfo.Length()) {
-    *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
+  if (aDriverInfo) {
+    *aStatus = status;
     return NS_OK;
   }
 
@@ -320,10 +320,5 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
 
   
   
-#if 0
-  return GfxInfoBase::GetFeatureStatusImpl(aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo, &os);
-#else
-  *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
-#endif
   return NS_OK;
 }
