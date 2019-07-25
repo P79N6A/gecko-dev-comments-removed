@@ -471,18 +471,18 @@ SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
 
 # elif defined(JS_CPU_ARM)
 
-JS_STATIC_ASSERT(sizeof(VMFrame) == 80);
-JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) ==          (4*19));
+JS_STATIC_ASSERT(sizeof(VMFrame) == 88);
+JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) ==          (4*21));
 JS_STATIC_ASSERT(offsetof(VMFrame, entryfp) ==          (4*10));
 JS_STATIC_ASSERT(offsetof(VMFrame, stackLimit) ==       (4*9));
 JS_STATIC_ASSERT(offsetof(VMFrame, cx) ==               (4*8));
 JS_STATIC_ASSERT(VMFrame::offsetOfFp ==                 (4*7));
-JS_STATIC_ASSERT(offsetof(VMFrame, scratch) ==          (4*4));
-JS_STATIC_ASSERT(offsetof(VMFrame, previous) ==         (4*3));
+JS_STATIC_ASSERT(offsetof(VMFrame, scratch) ==          (4*3));
+JS_STATIC_ASSERT(offsetof(VMFrame, previous) ==         (4*2));
 
 JS_STATIC_ASSERT(JSFrameReg == JSC::ARMRegisters::r11);
-JS_STATIC_ASSERT(JSReturnReg_Data == JSC::ARMRegisters::r1);
-JS_STATIC_ASSERT(JSReturnReg_Type == JSC::ARMRegisters::r2);
+JS_STATIC_ASSERT(JSReturnReg_Type == JSC::ARMRegisters::r5);
+JS_STATIC_ASSERT(JSReturnReg_Data == JSC::ARMRegisters::r4);
 
 #ifdef MOZ_THUMB2
 #define FUNCTION_HEADER_EXTRA \
@@ -527,10 +527,15 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
 
 
 
+
+
     
     
 "   push    {r4-r11,lr}"                        "\n"
     
+"   mov     ip, #0"                             "\n"    
+"   push    {ip}"                               "\n"    
+"   push    {r1}"                               "\n"    
 "   push    {r1}"                               "\n"    
 "   push    {r3}"                               "\n"    
 "   push    {r0}"                               "\n"    
@@ -557,15 +562,14 @@ asm (
 FUNCTION_HEADER_EXTRA
 ".globl " SYMBOL_STRING(JaegerTrampolineReturn)   "\n"
 SYMBOL_STRING(JaegerTrampolineReturn) ":"         "\n"
-"   str r5, [r11, #24]"                    "\n" 
-"   str r4, [r11, #28]"                    "\n" 
+"   strd    r4, r5, [r11, #24]"             "\n" 
 
     
-"   mov     r0, sp"                             "\n"
+"   mov     r0, sp"                         "\n"
 "   blx  " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
 
     
-"   add     sp, sp, #(4*7 + 4*4)"               "\n"
+"   add     sp, sp, #(4*7 + 4*6)"           "\n"
 
     
 "   mov     r0, #1"                         "\n"
@@ -590,9 +594,9 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 "   bxne    r0"                             "\n"
 
     
-"   mov     r0, sp"                             "\n"
+"   mov     r0, sp"                         "\n"
 "   blx  " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
-"   add     sp, sp, #(4*7 + 4*4)"               "\n"
+"   add     sp, sp, #(4*7 + 4*6)"           "\n"
 "   mov     r0, #0"                         "\n"
 "   pop     {r4-r11,pc}"                    "\n"
 );
