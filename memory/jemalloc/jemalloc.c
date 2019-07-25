@@ -1085,6 +1085,52 @@ static unsigned		ncpus;
 #endif
 
 
+
+
+
+
+#define MALLOC_STATIC_SIZES 1
+
+#ifdef MALLOC_STATIC_SIZES
+
+
+
+
+
+#define pagesize_2pow			((size_t) 12)
+#define pagesize			((size_t) 1 << pagesize_2pow)
+#define pagesize_mask			(pagesize - 1)
+
+
+
+#define QUANTUM_DEFAULT 		((size_t) 1 << QUANTUM_2POW_MIN)
+static const size_t	quantum	=	QUANTUM_DEFAULT;
+static const size_t	quantum_mask =	QUANTUM_DEFAULT - 1;
+
+
+
+static const size_t	small_min =	(QUANTUM_DEFAULT >> 1) + 1;
+static const size_t	small_max =	(size_t) SMALL_MAX_DEFAULT;
+
+
+static const size_t	bin_maxclass =	pagesize >> 1;
+
+ 
+static const unsigned	ntbins =	(unsigned)
+					(QUANTUM_2POW_MIN - TINY_MIN_2POW);
+
+ 
+static const unsigned	nqbins =	(unsigned)
+					(SMALL_MAX_DEFAULT >> QUANTUM_2POW_MIN);
+
+
+static const unsigned	nsbins =	(unsigned)
+					(pagesize_2pow -
+					 SMALL_MAX_2POW_DEFAULT - 1);
+
+#else 
+
+
 static size_t		pagesize;
 static size_t		pagesize_mask;
 static size_t		pagesize_2pow;
@@ -1101,12 +1147,41 @@ static size_t		small_max;
 static size_t		quantum;
 static size_t		quantum_mask; 
 
+#endif
 
+
+
+
+
+
+
+
+
+#define calculate_arena_header_size()					\
+	(sizeof(arena_chunk_t) + sizeof(arena_chunk_map_t) * (chunk_npages - 1))
+
+#define calculate_arena_header_pages()					\
+	((calculate_arena_header_size() >> pagesize_2pow) +		\
+	 ((calculate_arena_header_size() & pagesize_mask) ? 1 : 0))
+
+
+#define calculate_arena_maxclass()					\
+	(chunksize - (arena_chunk_header_npages << pagesize_2pow))
+
+#ifdef MALLOC_STATIC_SIZES
+#define CHUNKSIZE_DEFAULT		((size_t) 1 << CHUNK_2POW_DEFAULT)
+static const size_t	chunksize =	CHUNKSIZE_DEFAULT;
+static const size_t	chunksize_mask =CHUNKSIZE_DEFAULT - 1;
+static const size_t	chunk_npages =	CHUNKSIZE_DEFAULT >> pagesize_2pow;
+#define arena_chunk_header_npages	calculate_arena_header_pages()
+#define arena_maxclass			calculate_arena_maxclass()
+#else
 static size_t		chunksize;
 static size_t		chunksize_mask; 
 static size_t		chunk_npages;
 static size_t		arena_chunk_header_npages;
 static size_t		arena_maxclass; 
+#endif
 
 
 
@@ -1218,9 +1293,15 @@ static size_t	opt_dirty_max = DIRTY_MAX_DEFAULT;
 static uint64_t	opt_balance_threshold = BALANCE_THRESHOLD_DEFAULT;
 #endif
 static bool	opt_print_stats = false;
+#ifdef MALLOC_STATIC_SIZES
+#define opt_quantum_2pow	QUANTUM_2POW_MIN
+#define opt_small_max_2pow	SMALL_MAX_2POW_DEFAULT
+#define opt_chunk_2pow		CHUNK_2POW_DEFAULT
+#else
 static size_t	opt_quantum_2pow = QUANTUM_2POW_MIN;
 static size_t	opt_small_max_2pow = SMALL_MAX_2POW_DEFAULT;
 static size_t	opt_chunk_2pow = CHUNK_2POW_DEFAULT;
+#endif
 #ifdef MALLOC_PAGEFILE
 static bool	opt_pagefile = false;
 #endif
@@ -5559,8 +5640,6 @@ malloc_init_hard(void)
 		GetSystemInfo(&info);
 		result = info.dwPageSize;
 
-		pagesize = (unsigned) result;
-
 #ifndef MOZ_MEMORY_NARENAS_DEFAULT_ONE
 		ncpus = info.dwNumberOfProcessors;
 #endif
@@ -5572,18 +5651,23 @@ malloc_init_hard(void)
 
 	result = sysconf(_SC_PAGESIZE);
 	assert(result != -1);
-
-	pagesize = (unsigned) result;
 #endif
 
 	
-
-
-
 	assert(((result - 1) & result) == 0);
-	pagesize_mask = result - 1;
+#ifdef MALLOC_STATIC_SIZES
+	if (pagesize % (size_t) result) {
+		_malloc_message(_getprogname(),
+				"Compile-time page size does not divide the runtime one.\n",
+				"", "");
+		abort();
+	}
+#else	
+	pagesize = (size_t) result;
+	pagesize_mask = (size_t) result - 1;
 	pagesize_2pow = ffs((int)result) - 1;
-
+#endif
+	
 #ifdef MALLOC_PAGEFILE
 	
 
@@ -5732,6 +5816,7 @@ MALLOC_OUT:
 					opt_junk = true;
 					break;
 #endif
+#ifndef MALLOC_STATIC_SIZES
 				case 'k':
 					
 
@@ -5746,6 +5831,7 @@ MALLOC_OUT:
 					    (sizeof(size_t) << 3))
 						opt_chunk_2pow++;
 					break;
+#endif
 				case 'n':
 					opt_narenas_lshift--;
 					break;
@@ -5768,6 +5854,7 @@ MALLOC_OUT:
 				case 'P':
 					opt_print_stats = true;
 					break;
+#ifndef MALLOC_STATIC_SIZES
 				case 'q':
 					if (opt_quantum_2pow > QUANTUM_2POW_MIN)
 						opt_quantum_2pow--;
@@ -5787,6 +5874,7 @@ MALLOC_OUT:
 					    - 1)
 						opt_small_max_2pow++;
 					break;
+#endif
 #ifdef MALLOC_UTRACE
 				case 'u':
 					opt_utrace = false;
@@ -5849,6 +5937,7 @@ MALLOC_OUT:
 	pthread_atfork(_malloc_prefork, _malloc_postfork, _malloc_postfork);
 #endif
 
+#ifndef MALLOC_STATIC_SIZES
 	
 	if (opt_small_max_2pow < opt_quantum_2pow)
 		opt_small_max_2pow = opt_quantum_2pow;
@@ -5875,23 +5964,10 @@ MALLOC_OUT:
 	chunksize = (1LU << opt_chunk_2pow);
 	chunksize_mask = chunksize - 1;
 	chunk_npages = (chunksize >> pagesize_2pow);
-	{
-		size_t header_size;
 
-		
-
-
-
-
-
-
-		header_size = sizeof(arena_chunk_t) +
-		    (sizeof(arena_chunk_map_t) * (chunk_npages - 1));
-		arena_chunk_header_npages = (header_size >> pagesize_2pow) +
-		    ((header_size & pagesize_mask) != 0);
-	}
-	arena_maxclass = chunksize - (arena_chunk_header_npages <<
-	    pagesize_2pow);
+	arena_chunk_header_npages = calculate_arena_header_pages();
+	arena_maxclass = calculate_arena_maxclass();
+#endif
 
 #ifdef JEMALLOC_USES_MAP_ALIGN
 	
