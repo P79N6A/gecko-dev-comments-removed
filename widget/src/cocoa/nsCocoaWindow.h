@@ -76,6 +76,11 @@ typedef struct _nsCocoaWindowList {
 
   
   BOOL mScheduledShadowInvalidation;
+
+  
+  
+  
+  float mDPI;
 }
 
 - (void)importState:(NSDictionary*)aState;
@@ -87,6 +92,7 @@ typedef struct _nsCocoaWindowList {
 
 - (void)deferredInvalidateShadow;
 - (void)invalidateShadow;
+- (float)getDPI;
 
 @end
 
