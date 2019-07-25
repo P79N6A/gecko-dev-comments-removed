@@ -328,7 +328,7 @@ let gSyncUI = {
     
     let lastSyncDate = new Date(lastSync).toLocaleFormat("%a %H:%M");
     let lastSyncLabel =
-      this._stringBundle.formatStringFromName("lastSync.label", [lastSyncDate], 1);
+      this._stringBundle.formatStringFromName("lastSync2.label", [lastSyncDate], 1);
 
     syncButton.setAttribute("tooltiptext", lastSyncLabel);
   },
