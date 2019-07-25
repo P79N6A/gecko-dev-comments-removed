@@ -61,6 +61,20 @@ PrefsEngine.prototype = {
   _storeObj: PrefStore,
   _trackerObj: PrefTracker,
   _recordObj: PrefRec,
+
+  _wipeClient: function _wipeClient() {
+    SyncEngine.prototype._wipeClient.call(this);
+    this.justWiped = true;
+  },
+
+  _reconcile: function _reconcile(item) {
+    
+    if (this.justWiped) {
+      this.justWiped = false;
+      return true;
+    }
+    return SyncEngine.prototype._reconcile.call(this, item);
+  }
 };
 
 
