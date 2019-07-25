@@ -2152,6 +2152,7 @@ public:
 
 
 
+
   static nsRect GetFrameBoundsForTransform(const nsIFrame* aFrame);
 
   
