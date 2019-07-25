@@ -769,7 +769,9 @@ window.TabItems = {
           
           
           iQ.timeout(function() {
-            mirror.hideCachedData(item.tab);
+            if (mirror && mirror.isShowingCachedData) {
+              mirror.hideCachedData(item.tab);
+            }
           }, 15000);
         }
 
