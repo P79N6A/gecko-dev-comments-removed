@@ -467,7 +467,7 @@ MouseController.prototype = {
 
     this.lastEvent = this.firstEvent = aEvent;
     this._mousedown = true;
-    this._browser.startPan(aEvent);
+    this._browser.startPan();
 
     
 
@@ -489,38 +489,63 @@ MouseController.prototype = {
     var totalDistance = Math.sqrt(
         Math.pow(this.firstEvent.screenX - aEvent.screenX, 2) +
         Math.pow(this.firstEvent.screenY - aEvent.screenY, 2));
-    if (totalDistance > 10)
+
+    if (totalDistance > 10) { 
       aEvent.preventDefault();
-
-    this._browser.endPan(aEvent);
-
+    }
+    else {
+      
+      
+      this._browser.endPan();
+      return;
+    }
     
     
+    function _doKineticScroll(browser, speedX, speedY, step) {
 
+      const decayFactor = 0.95;
+      const cutoff = 2;
 
+      var x, y;
 
+      
+      const speedLimit = 55;
+      if (Math.abs(speedY) > speedLimit)
+        speedY = speedY > 0 ? speedLimit : -speedLimit;
 
+      if (Math.abs(speedX) > speedLimit)
+        speedX = speedX > 0 ? speedLimit : -speedLimit;
 
+      
+      if (speedX < 0)
+        x = Math.ceil(speedX);
+      else
+        x = Math.floor(speedX);
 
+      if (speedY < 0)
+        y = Math.ceil(speedY);
+      else
+        y = Math.floor(speedY);
+        
+      dump("##panning: " + -1 * x + " " + -1 * y + "\n");
+      browser.doPan(- x, - y);
 
+      
+      x *= (decayFactor - step/10);
+      y *= (decayFactor - step/10);
 
+      
+      if (Math.abs(x) > cutoff || Math.abs(y) > cutoff)
+        setTimeout( function() {_doKineticScroll(browser, x, y, ++step);}, 0);
+      else
+        browser.endPan();
 
+    };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    var browser = this._browser;
+    var speedX  = this._speedX * 100; 
+    var speedY  = this._speedY * 100;
+    setTimeout(function() {_doKineticScroll(browser, speedX, speedY, 0);}, 0);
 
   },
 
@@ -533,25 +558,22 @@ MouseController.prototype = {
     var x = aEvent.screenX - this.lastEvent.screenX;
     var y = aEvent.screenY - this.lastEvent.screenY;
 
+    
     if (40 > delta || (2 > Math.abs(x) && 2 > Math.abs(y)))
       return;
 
     
+    this._speedX = (x / delta);
+    this._speedY = (y / delta);
+    this.lastEvent = aEvent;
+
+    dump("##: " + delta + " [" + x + ", " + y + "]\n");
     if (this._contextID) {
       clearTimeout(this._contextID);
       this._contextID = null;
     }
 
-    if (this.lastEvent) {
-      aEvent.momentum = {
-        time: Math.max(delta, 1),
-        x: x,
-        y: y
-      };
-    }
-
-    this._browser.doPan(aEvent, -x, -y);
-    this.lastEvent = aEvent;
+    this._browser.doPan(-x, -y);
 
     
 
