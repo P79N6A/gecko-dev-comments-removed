@@ -65,6 +65,7 @@ nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
       mIsPaintingToWindow(false),
       mHasDisplayPort(false),
       mHasFixedItems(false),
+      mIsInFixedPosition(false),
       mIsCompositingCheap(false)
 {
   MOZ_COUNT_CTOR(nsDisplayListBuilder);
@@ -2072,8 +2073,10 @@ nsDisplayOwnLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
 
 nsDisplayFixedPosition::nsDisplayFixedPosition(nsDisplayListBuilder* aBuilder,
                                                nsIFrame* aFrame,
+                                               nsIFrame* aFixedPosFrame,
                                                nsDisplayList* aList)
-    : nsDisplayOwnLayer(aBuilder, aFrame, aList) {
+    : nsDisplayOwnLayer(aBuilder, aFrame, aList)
+    , mFixedPosFrame(aFixedPosFrame) {
   MOZ_COUNT_CTOR(nsDisplayFixedPosition);
 }
 
@@ -2094,7 +2097,7 @@ nsDisplayFixedPosition::BuildLayer(nsDisplayListBuilder* aBuilder,
   
   
   
-  nsIFrame* viewportFrame = mFrame->GetParent();
+  nsIFrame* viewportFrame = mFixedPosFrame->GetParent();
   nsPresContext *presContext = viewportFrame->PresContext();
 
   
@@ -2121,7 +2124,7 @@ nsDisplayFixedPosition::BuildLayer(nsDisplayListBuilder* aBuilder,
 
   gfxPoint anchor(anchorRect.x, anchorRect.y);
 
-  const nsStylePosition* position = mFrame->GetStylePosition();
+  const nsStylePosition* position = mFixedPosFrame->GetStylePosition();
   if (position->mOffset.GetRightUnit() != eStyleUnit_Auto)
     anchor.x = anchorRect.XMost();
   if (position->mOffset.GetBottomUnit() != eStyleUnit_Auto)
