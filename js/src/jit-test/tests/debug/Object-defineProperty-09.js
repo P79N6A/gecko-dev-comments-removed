@@ -2,6 +2,8 @@
 
 
 
+load(libdir + "asserts.js");
+
 var g = newGlobal('new-compartment');
 var dbg = new Debugger;
 var gw = dbg.addDebuggee(g);
