@@ -55,6 +55,8 @@ BEGIN_INDEXEDDB_NAMESPACE
 
 class AsyncConnectionHelper;
 struct DatabaseInfo;
+class IDBIndex;
+class IDBObjectStore;
 class IDBTransaction;
 class IndexedDatabaseManager;
 
@@ -82,6 +84,11 @@ public:
     return mDatabaseId;
   }
 
+  const nsString& Name()
+  {
+    return mName;
+  }
+
   const nsString& FilePath()
   {
     return mFilePath;
@@ -107,19 +114,31 @@ public:
   }
 
   void Invalidate();
+
+  
+  
   bool IsInvalidated();
+
+  void CloseInternal();
+
+  
+  bool IsClosed();
 
 private:
   IDBDatabase();
   ~IDBDatabase();
+
+  void OnUnlink();
 
   PRUint32 mDatabaseId;
   nsString mName;
   nsString mDescription;
   nsString mFilePath;
   nsCString mASCIIOrigin;
+
   PRInt32 mInvalidated;
   bool mRegistered;
+  bool mClosed;
 
   
   nsRefPtr<nsDOMEventListenerWrapper> mOnErrorListener;

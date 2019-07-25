@@ -42,6 +42,7 @@
 
 #include "mozilla/dom/indexedDB/IndexedDatabase.h"
 #include "mozilla/dom/indexedDB/IDBDatabase.h"
+#include "mozilla/dom/indexedDB/IDBRequest.h"
 
 #include "nsIIndexedDatabaseManager.h"
 #include "nsIObserver.h"
@@ -52,12 +53,13 @@
 #include "nsClassHashtable.h"
 #include "nsHashKeys.h"
 
-#define INDEXEDDB_MANAGER_CONTRACTID \
-  "@mozilla.org/dom/indexeddb/manager;1"
+#define INDEXEDDB_MANAGER_CONTRACTID "@mozilla.org/dom/indexeddb/manager;1"
 
 class nsITimer;
 
 BEGIN_INDEXEDDB_NAMESPACE
+
+class AsyncConnectionHelper;
 
 class IndexedDatabaseManager : public nsIIndexedDatabaseManager,
                                public nsIObserver
@@ -77,8 +79,11 @@ public:
   NS_DECL_NSIINDEXEDDATABASEMANAGER
   NS_DECL_NSIOBSERVER
 
-  nsresult WaitForClearAndDispatch(const nsACString& aOrigin,
-                                   nsIRunnable* aRunnable);
+  
+  
+  nsresult WaitForOpenAllowed(const nsAString& aName,
+                              const nsACString& aOrigin,
+                              nsIRunnable* aRunnable);
 
   nsIThread* IOThread()
   {
@@ -86,15 +91,45 @@ public:
     return mIOThread;
   }
 
+  
   static bool IsShuttingDown();
+
+  
+  nsresult SetDatabaseVersion(IDBDatabase* aDatabase,
+                              IDBVersionChangeRequest* aRequest,
+                              const nsAString& aVersion,
+                              AsyncConnectionHelper* aHelper);
+
+  
+  
+  void CloseDatabasesForWindow(nsPIDOMWindow* aWindow);
 
 private:
   IndexedDatabaseManager();
   ~IndexedDatabaseManager();
 
+  
   bool RegisterDatabase(IDBDatabase* aDatabase);
+
+  
   void UnregisterDatabase(IDBDatabase* aDatabase);
 
+  
+  void OnDatabaseClosed(IDBDatabase* aDatabase);
+
+  
+  void RunSetVersionTransaction(IDBDatabase* aDatabase)
+  {
+    OnDatabaseClosed(aDatabase);
+  }
+
+  
+  
+  
+  
+  
+  
+  
   
   
   class OriginClearRunnable : public nsIRunnable
@@ -103,33 +138,29 @@ private:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIRUNNABLE
 
-    static void DatabaseCompleteCallback(IDBDatabase* aDatabase,
-                                         void* aClosure)
-    {
-      nsRefPtr<OriginClearRunnable> runnable =
-        static_cast<OriginClearRunnable*>(aClosure);
-      runnable->OnDatabaseComplete(aDatabase);
-    }
-
-    void OnDatabaseComplete(IDBDatabase* aDatabase);
-
     OriginClearRunnable(const nsACString& aOrigin,
-                        nsIThread* aThread,
-                        nsTArray<nsRefPtr<IDBDatabase> >& aDatabasesWaiting)
+                        nsIThread* aThread)
     : mOrigin(aOrigin),
-      mThread(aThread)
-    {
-      mDatabasesWaiting.SwapElements(aDatabasesWaiting);
-    }
+      mThread(aThread),
+      mFirstCallback(true)
+    { }
 
     nsCString mOrigin;
     nsCOMPtr<nsIThread> mThread;
-    nsTArray<nsRefPtr<IDBDatabase> > mDatabasesWaiting;
     nsTArray<nsCOMPtr<nsIRunnable> > mDelayedRunnables;
+    bool mFirstCallback;
   };
 
+  
   inline void OnOriginClearComplete(OriginClearRunnable* aRunnable);
 
+  
+  
+  
+  
+  
+  
+  
   
   
   class AsyncUsageRunnable : public nsIRunnable
@@ -142,8 +173,11 @@ private:
                        const nsACString& aOrigin,
                        nsIIndexedDatabaseUsageCallback* aCallback);
 
+    
     void Cancel();
 
+    
+    
     inline nsresult RunInternal();
 
     nsCOMPtr<nsIURI> mURI;
@@ -153,7 +187,31 @@ private:
     PRInt32 mCanceled;
   };
 
+  
   inline void OnUsageCheckComplete(AsyncUsageRunnable* aRunnable);
+
+  
+  
+  
+  
+  class SetVersionRunnable : public nsIRunnable
+  {
+  public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIRUNNABLE
+
+    SetVersionRunnable(IDBDatabase* aDatabase,
+                       nsTArray<nsRefPtr<IDBDatabase> >& aDatabases);
+    ~SetVersionRunnable();
+
+    nsRefPtr<IDBDatabase> mRequestingDatabase;
+    nsTArray<nsRefPtr<IDBDatabase> > mDatabases;
+    nsRefPtr<AsyncConnectionHelper> mHelper;
+    nsTArray<nsCOMPtr<nsIRunnable> > mDelayedRunnables;
+  };
+
+  
+  inline void OnSetVersionRunnableComplete(SetVersionRunnable* aRunnable);
 
   
   nsClassHashtable<nsCStringHashKey, nsTArray<IDBDatabase*> > mLiveDatabases;
@@ -165,7 +223,13 @@ private:
   
   nsAutoTArray<nsRefPtr<AsyncUsageRunnable>, 1> mUsageRunnables;
 
+  
+  nsAutoTArray<nsRefPtr<SetVersionRunnable>, 1> mSetVersionRunnables;
+
+  
   nsCOMPtr<nsIThread> mIOThread;
+
+  
   nsCOMPtr<nsITimer> mShutdownTimer;
 };
 

@@ -37,7 +37,6 @@
 
 
 DOMCI_CLASS(Window)
-DOMCI_CLASS(InnerWindow)
 DOMCI_CLASS(Location)
 DOMCI_CLASS(Navigator)
 DOMCI_CLASS(Plugin)
@@ -189,7 +188,6 @@ DOMCI_CLASS(CSSRect)
 
 
 DOMCI_CLASS(ChromeWindow)
-DOMCI_CLASS(InnerChromeWindow)
 
 
 DOMCI_CLASS(CSSRGBColor)
@@ -410,7 +408,6 @@ DOMCI_CLASS(FileReader)
 
 
 DOMCI_CLASS(ModalContentWindow)
-DOMCI_CLASS(InnerModalContentWindow)
 
 
 DOMCI_CLASS(DataContainerEvent)
@@ -506,3 +503,5 @@ DOMCI_CLASS(IDBTransaction)
 DOMCI_CLASS(IDBCursor)
 DOMCI_CLASS(IDBKeyRange)
 DOMCI_CLASS(IDBIndex)
+DOMCI_CLASS(IDBVersionChangeEvent)
+DOMCI_CLASS(IDBVersionChangeRequest)
