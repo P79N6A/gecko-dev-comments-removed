@@ -632,6 +632,9 @@ namespace nanojit
     {
         NanoAssert(oprnd1 && oprnd2);
 
+        
+        
+        
         if (oprnd1 == oprnd2) {
             
             switch (v) {
@@ -658,6 +661,9 @@ namespace nanojit
             }
         }
 
+        
+        
+        
         if (oprnd1->isImmI() && oprnd2->isImmI()) {
             
             int32_t c1 = oprnd1->immI();
@@ -679,9 +685,9 @@ namespace nanojit
             case LIR_leui:  return insImmI(uint32_t(c1) <= uint32_t(c2));
             case LIR_geui:  return insImmI(uint32_t(c1) >= uint32_t(c2));
 
-            case LIR_rshi:  return insImmI(c1 >> c2);
-            case LIR_lshi:  return insImmI(c1 << c2);
-            case LIR_rshui: return insImmI(uint32_t(c1) >> c2);
+            case LIR_lshi:  return insImmI(c1 << (c2 & 0x1f));
+            case LIR_rshi:  return insImmI(c1 >> (c2 & 0x1f));
+            case LIR_rshui: return insImmI(uint32_t(c1) >> (c2 & 0x1f));
 
             case LIR_ori:   return insImmI(c1 | c2);
             case LIR_andi:  return insImmI(c1 & c2);
@@ -776,7 +782,22 @@ namespace nanojit
             default:
                 break;
             }
+
+        } else if (oprnd1->isImmQ() && oprnd2->isImmI()) {
+            
+            
+            int64_t c1 = oprnd1->immQ();
+            int32_t c2 = oprnd2->immI();
+
+            switch (v) {
+            case LIR_lshq:  return insImmQ(c1 << (c2 & 0x3f));
+            case LIR_rshq:  return insImmQ(c1 >> (c2 & 0x3f));
+            case LIR_rshuq: return insImmQ(uint64_t(c1) >> (c2 & 0x3f));
+
+            default:        break;
+            }
 #endif
+
         } else if (oprnd1->isImmD() && oprnd2->isImmD()) {
             
             double c1 = oprnd1->immD();
@@ -795,19 +816,27 @@ namespace nanojit
 
             default:        break;
             }
+        }
 
-        } else if (oprnd1->isImmI() && !oprnd2->isImmI()) {
-            
-            
+        
+        
+        
+        if (oprnd1->isImmAny() && !oprnd2->isImmAny()) {
             switch (v) {
+            case LIR_eqi:
+            CASE64(LIR_eqq:)
+            case LIR_eqd:
             case LIR_addi:
-            case LIR_muli:
+            CASE64(LIR_addq:)
             case LIR_addd:
+            case LIR_muli:
             case LIR_muld:
-            case LIR_xori:
-            case LIR_ori:
             case LIR_andi:
-            case LIR_eqi: {
+            CASE64(LIR_andq:)
+            case LIR_ori:
+            CASE64(LIR_orq:)
+            case LIR_xori:
+            CASE64(LIR_xorq:) {
                 
                 LIns* t = oprnd2;
                 oprnd2 = oprnd1;
@@ -815,17 +844,20 @@ namespace nanojit
                 break;
             }
             default:
-                if (isCmpIOpcode(v)) {
+                if (isCmpOpcode(v)) {
                     
                     LIns *t = oprnd2;
                     oprnd2 = oprnd1;
                     oprnd1 = t;
-                    v = invertCmpIOpcode(v);
+                    v = invertCmpOpcode(v);
                 }
                 break;
             }
         }
 
+        
+        
+        
         if (oprnd2->isImmI()) {
             
             int c = oprnd2->immI();
@@ -872,6 +904,9 @@ namespace nanojit
                 case LIR_lshi:
                 case LIR_rshi:
                 case LIR_rshui:
+                CASE64(LIR_lshq:)   
+                CASE64(LIR_rshq:)
+                CASE64(LIR_rshuq:)
                     return oprnd1;
 
                 case LIR_andi:
@@ -916,17 +951,70 @@ namespace nanojit
                     return oprnd1;          
                 }
             }
+
+#ifdef NANOJIT_64BIT
+        } else if (oprnd2->isImmQ()) {
+            
+            int64_t c = oprnd2->immQ();
+            if (c == 0) {
+                switch (v) {
+                case LIR_addq:
+                case LIR_orq:
+                case LIR_xorq:
+                case LIR_subq:
+                    return oprnd1;
+
+                case LIR_andq:
+                    return oprnd2;
+
+                case LIR_ltuq: 
+                    return insImmI(0);
+
+                case LIR_geuq: 
+                    return insImmI(1);
+
+                default:
+                    break;
+                }
+
+            } else if (c == -1) {
+                switch (v) {
+                case LIR_orq:  return oprnd2;       
+                case LIR_andq: return oprnd1;       
+                case LIR_gtuq: return insImmI(0);   
+                case LIR_leuq: return insImmI(1);   
+                default:       break;
+                }
+
+            } else if (c == 1) {
+                if (oprnd1->isCmp()) {
+                    switch (v) {
+                    case LIR_orq:   return oprnd2;      
+                    case LIR_andq:  return oprnd1;      
+                    case LIR_gtuq:  return insImmI(0);  
+                    default:        break;
+                    }
+                }
+            }
+#endif
         }
 
 #if NJ_SOFTFLOAT_SUPPORTED
+        
+        
+        
         LIns* ins;
         if (v == LIR_ii2d && oprnd1->isop(LIR_dlo2i) && oprnd2->isop(LIR_dhi2i) &&
-            (ins = oprnd1->oprnd1()) == oprnd2->oprnd1()) {
+            (ins = oprnd1->oprnd1()) == oprnd2->oprnd1())
+        {
             
             return ins;
         }
 #endif
 
+        
+        
+        
         return out->ins2(v, oprnd1, oprnd2);
     }
 
@@ -3008,11 +3096,11 @@ namespace nanojit
     {
         switch (type) {
         case LTy_V:                     return "void";
-        case LTy_I:                     return "int32";
+        case LTy_I:                     return "int";
 #ifdef NANOJIT_64BIT
-        case LTy_Q:                     return "int64";
+        case LTy_Q:                     return "quad";
 #endif
-        case LTy_D:                     return "float64";
+        case LTy_D:                     return "double";
         default:       NanoAssert(0);   return "???";
         }
     }
