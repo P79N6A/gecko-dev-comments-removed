@@ -918,6 +918,8 @@ qcms_profile* qcms_profile_create_rgb_with_table(
 
 
 
+
+
 static qcms_CIE_xyY white_point_from_temp(int temp_K)
 {
 	qcms_CIE_xyY white_point;
@@ -938,7 +940,14 @@ static qcms_CIE_xyY white_point_from_temp(int temp_K)
 		if (T > 7000.0 && T <= 25000.0) {
 			x = -2.0064*(1E9/T3) + 1.9018*(1E6/T2) + 0.24748*(1E3/T) + 0.237040;
 		} else {
+			
+			white_point.x = -1.0;
+			white_point.y = -1.0;
+			white_point.Y = -1.0;
+
 			assert(0 && "invalid temp");
+
+			return white_point;
 		}
 	}
 
