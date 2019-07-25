@@ -87,8 +87,7 @@ static smime_cipher_map smime_cipher_maps[] = {
     { SMIME_RC5PAD_64_16_128,	SEC_OID_RC5_CBC_PAD,	&smime_rc5p128 },
 #endif
     { SMIME_DES_CBC_56,		SEC_OID_DES_CBC,	NULL },
-    { SMIME_DES_EDE3_168,	SEC_OID_DES_EDE3_CBC,	NULL },
-    { SMIME_FORTEZZA,		SEC_OID_FORTEZZA_SKIPJACK, NULL}
+    { SMIME_DES_EDE3_168,	SEC_OID_DES_EDE3_CBC,	NULL }
 };
 
 
@@ -252,8 +251,6 @@ smime_policy_algorithm (SECAlgorithmID *algid, PK11SymKey *key)
 	return SMIME_DES_CBC_56;
       case SEC_OID_DES_EDE3_CBC:
 	return SMIME_DES_EDE3_168;
-      case SEC_OID_FORTEZZA_SKIPJACK:
-	return SMIME_FORTEZZA;
 #ifdef SMIME_DOES_RC5
       case SEC_OID_RC5_CBC_PAD:
 	PORT_Assert (0);	
@@ -403,8 +400,7 @@ smime_choose_cipher (CERTCertificate *scert, CERTCertificate **rcerts)
     int *cipher_abilities;
     int *cipher_votes;
     int strong_mapi;
-    int rcount, mapi, max, i;
-	PRBool isFortezza = PK11_FortezzaHasKEA(scert);
+    int rcount, mapi, max;
 
     if (smime_policy_bits == 0) {
 	PORT_SetError (SEC_ERROR_BAD_EXPORT_ALGORITHM);
@@ -432,20 +428,8 @@ smime_choose_cipher (CERTCertificate *scert, CERTCertificate **rcerts)
 
 
 
-
     
-
-    strong_mapi = -1;
-    if (isFortezza) {
-	for(i=0;i < smime_current_pref_index && strong_mapi < 0;i++)
-	{
-	    if (smime_prefs[i] == SMIME_FORTEZZA)
-		strong_mapi = smime_mapi_by_cipher(SMIME_FORTEZZA);
-	}
-    }
-
-    if (strong_mapi == -1)
-	strong_mapi = smime_mapi_by_cipher (SMIME_DES_EDE3_168);
+    strong_mapi = smime_mapi_by_cipher (SMIME_DES_EDE3_168);
 
     PORT_Assert (strong_mapi >= 0);
 
@@ -505,8 +489,6 @@ smime_choose_cipher (CERTCertificate *scert, CERTCertificate **rcerts)
 	    continue;
 	if (! smime_cipher_allowed (smime_cipher_maps[mapi].cipher))
 	    continue;
-	if (!isFortezza  && (smime_cipher_maps[mapi].cipher == SMIME_FORTEZZA))
-		continue;
 	if (cipher_votes[mapi] > max) {
 	    chosen_cipher = smime_cipher_maps[mapi].cipher;
 	    max = cipher_votes[mapi];
@@ -553,7 +535,6 @@ smime_keysize_by_cipher (unsigned long which)
 #endif
       case SMIME_DES_CBC_56:
       case SMIME_DES_EDE3_168:
-      case SMIME_FORTEZZA:
 	
 
 
@@ -642,21 +623,18 @@ SECMIME_CreateEncrypted(CERTCertificate *scert,
 
 static smime_capability **smime_capabilities;
 static SECItem *smime_encoded_caps;
-static PRBool lastUsedFortezza;
 
 
 static SECStatus
-smime_init_caps (PRBool isFortezza)
+smime_init_caps (void)
 {
     smime_capability *cap;
     smime_cipher_map *map;
     SECOidData *oiddata;
     SECStatus rv;
-    int i, capIndex;
+    int i;
 
-    if (smime_encoded_caps != NULL 
-	&& (! smime_prefs_changed) 
-	&& lastUsedFortezza == isFortezza)
+    if (smime_encoded_caps != NULL && (! smime_prefs_changed))
 	return SECSuccess;
 
     if (smime_encoded_caps != NULL) {
@@ -691,16 +669,7 @@ smime_init_caps (PRBool isFortezza)
 
 
 
-
-
-
-
-
-
-
-
-
-    for (i = 0, capIndex = 0; i < smime_current_pref_index; i++, capIndex++) {
+    for (i = 0; i < smime_current_pref_index; i++) {
 	int mapi;
 
 	
@@ -715,23 +684,14 @@ smime_init_caps (PRBool isFortezza)
 	
 
 
-	if ((!isFortezza) && (map->cipher == SMIME_FORTEZZA))
-	{
-	    capIndex--; 
-	    continue;
-	}
-
-	
 
 
-
-
-	cap = smime_capabilities[capIndex];
+	cap = smime_capabilities[i];
 	if (cap == NULL) {
 	    cap = (smime_capability*)PORT_ZAlloc (sizeof(smime_capability));
 	    if (cap == NULL)
 		break;
-	    smime_capabilities[capIndex] = cap;
+	    smime_capabilities[i] = cap;
 	} else if (cap->cipher == smime_prefs[i]) {
 	    continue;		
 	}
@@ -765,23 +725,21 @@ smime_init_caps (PRBool isFortezza)
     if (i != smime_current_pref_index)
 	return rv;
 
-    while (capIndex < smime_symmetric_count) {
-	cap = smime_capabilities[capIndex];
+    while (i < smime_symmetric_count) {
+	cap = smime_capabilities[i];
 	if (cap != NULL) {
 	    SECITEM_FreeItem (&(cap->capabilityID), PR_FALSE);
 	    PORT_Free (cap);
 	}
-	smime_capabilities[capIndex] = NULL;
-	capIndex++;
+	smime_capabilities[i] = NULL;
+	i++;
     }
-    smime_capabilities[capIndex] = NULL;
+    smime_capabilities[i] = NULL;
 
     smime_encoded_caps = SEC_ASN1EncodeItem (NULL, NULL, &smime_capabilities,
 					     smime_capabilities_template);
     if (smime_encoded_caps == NULL)
 	return SECFailure;
-
-    lastUsedFortezza = isFortezza;
 
     return SECSuccess;
 }
@@ -790,22 +748,16 @@ smime_init_caps (PRBool isFortezza)
 static SECStatus
 smime_add_profile (CERTCertificate *cert, SEC_PKCS7ContentInfo *cinfo)
 {
-    PRBool isFortezza = PR_FALSE;
-
     PORT_Assert (smime_prefs_complete);
     if (! smime_prefs_complete)
 	return SECFailure;
 
     
-    if (cert != NULL)
-	isFortezza = PK11_FortezzaHasKEA(cert);
 
-    
-
-    if (isFortezza != lastUsedFortezza || smime_encoded_caps == NULL || smime_prefs_changed) {
+    if (smime_encoded_caps == NULL || smime_prefs_changed) {
 	SECStatus rv;
 
-	rv = smime_init_caps(isFortezza);
+	rv = smime_init_caps();
 	if (rv != SECSuccess)
 	    return rv;
 

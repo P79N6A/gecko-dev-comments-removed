@@ -168,12 +168,6 @@ extern SECStatus sec_PKCS7Encrypt (sec_PKCS7CipherObject *obj,
 				   PRBool final);
 
 
-
-
-const SEC_ASN1Template * 
-sec_pkcs7_get_kea_template(SECKEATemplateSelector whichTemplate);
-
-
 SEC_END_PROTOS
 
 #endif 

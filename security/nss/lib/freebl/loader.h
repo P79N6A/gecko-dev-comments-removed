@@ -570,10 +570,6 @@ struct FREEBLVectorStr {
 
   
 
- SECStatus (* p_MGF1)(HASH_HashType hashAlg,
-                      unsigned char *mask, unsigned int maskLen,
-                      const unsigned char *mgfSeed, unsigned int mgfSeedLen);
-
  SECStatus (* p_TLS_P_hash)(HASH_HashType hashAlg,
                             const SECItem *secret,
                             const char *label,

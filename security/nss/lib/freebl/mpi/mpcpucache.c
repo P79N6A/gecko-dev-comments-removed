@@ -660,9 +660,13 @@ s_mpi_is_sse2()
 	return 0;
     }
     freebl_cpuid(0, &eax, &ebx, &ecx, &edx);
+    
+
+
+
     *(int *)string = ebx;
-    *(int *)&string[4] = edx;
-    *(int *)&string[8] = ecx;
+    *(int *)&string[4] = (int)edx;
+    *(int *)&string[8] = (int)ecx;
     string[12] = 0;
 
     
@@ -703,9 +707,13 @@ s_mpi_getProcessorLineSize()
     
     freebl_cpuid(0, &eax, &ebx, &ecx, &edx);
     cpuidLevel = eax;
+    
+
+
+
     *(int *)string = ebx;
-    *(int *)&string[4] = edx;
-    *(int *)&string[8] = ecx;
+    *(int *)&string[4] = (int)edx;
+    *(int *)&string[8] = (int)ecx;
     string[12] = 0;
 
     manufacturer = MAN_UNKNOWN;

@@ -1096,8 +1096,6 @@ init_blinding_params(RSABlindingParams *rsabp, RSAPrivateKey *key,
                      mp_int *n, unsigned int modLen)
 {
     blindingParams * bp = rsabp->array;
-    SECStatus rv = SECSuccess;
-    mp_err err = MP_OKAY;
     int i = 0;
 
     
@@ -1218,7 +1216,7 @@ get_blinding_params(RSAPrivateKey *key, mp_int *n, unsigned int modLen,
 	    return SECSuccess;
 	}
 	
-
+	
 	prevbp = NULL;
 	if ((bp = rsabp->free) != NULL) {
 	    

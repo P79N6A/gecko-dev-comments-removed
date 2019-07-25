@@ -496,66 +496,6 @@ SEC_ASN1_CHOOSER_IMPLEMENT(NSS_PointerToCMSGenericWrapperDataTemplate);
 
 
 
-const SEC_ASN1Template NSS_SMIMEKEAParamTemplateSkipjack[] = {
-	{ SEC_ASN1_SEQUENCE,
-	  0, NULL, sizeof(NSSCMSSMIMEKEAParameters) },
-	{ SEC_ASN1_OCTET_STRING ,
-	  offsetof(NSSCMSSMIMEKEAParameters,originatorKEAKey) },
-	{ SEC_ASN1_OCTET_STRING,
-	  offsetof(NSSCMSSMIMEKEAParameters,originatorRA) },
-	{ 0 }
-};
-
-const SEC_ASN1Template NSS_SMIMEKEAParamTemplateNoSkipjack[] = {
-	{ SEC_ASN1_SEQUENCE,
-	  0, NULL, sizeof(NSSCMSSMIMEKEAParameters) },
-	{ SEC_ASN1_OCTET_STRING ,
-	  offsetof(NSSCMSSMIMEKEAParameters,originatorKEAKey) },
-	{ SEC_ASN1_OCTET_STRING,
-	  offsetof(NSSCMSSMIMEKEAParameters,originatorRA) },
-	{ SEC_ASN1_OCTET_STRING  | SEC_ASN1_OPTIONAL ,
-	  offsetof(NSSCMSSMIMEKEAParameters,nonSkipjackIV) },
-	{ 0 }
-};
-
-const SEC_ASN1Template NSS_SMIMEKEAParamTemplateAllParams[] = {
-	{ SEC_ASN1_SEQUENCE,
-	  0, NULL, sizeof(NSSCMSSMIMEKEAParameters) },
-	{ SEC_ASN1_OCTET_STRING ,
-	  offsetof(NSSCMSSMIMEKEAParameters,originatorKEAKey) },
-	{ SEC_ASN1_OCTET_STRING,
-	  offsetof(NSSCMSSMIMEKEAParameters,originatorRA) },
-	{ SEC_ASN1_OCTET_STRING  | SEC_ASN1_OPTIONAL ,
-	  offsetof(NSSCMSSMIMEKEAParameters,nonSkipjackIV) },
-	{ SEC_ASN1_OCTET_STRING  | SEC_ASN1_OPTIONAL ,
-	  offsetof(NSSCMSSMIMEKEAParameters,bulkKeySize) },
-	{ 0 }
-};
-
-const SEC_ASN1Template *
-nss_cms_get_kea_template(NSSCMSKEATemplateSelector whichTemplate)
-{
-	const SEC_ASN1Template *returnVal = NULL;
-
-	switch(whichTemplate)
-	{
-	case NSSCMSKEAUsesNonSkipjack:
-		returnVal = NSS_SMIMEKEAParamTemplateNoSkipjack;
-		break;
-	case NSSCMSKEAUsesSkipjack:
-		returnVal = NSS_SMIMEKEAParamTemplateSkipjack;
-		break;
-	case NSSCMSKEAUsesNonSkipjackWithPaddedEncKey:
-	default:
-		returnVal = NSS_SMIMEKEAParamTemplateAllParams;
-		break;
-	}
-	return returnVal;
-}
-
-
-
-
 static const SEC_ASN1Template *
 nss_cms_choose_content_template(void *src_or_dest, PRBool encoding)
 {

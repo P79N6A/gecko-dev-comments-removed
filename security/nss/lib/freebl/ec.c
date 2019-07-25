@@ -718,6 +718,27 @@ ECDSA_SignDigestWithSeed(ECPrivateKey *key, SECItem *signature,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+    CHECK_MPI_OK( mp_add(&k, &n, &k) );
+    if (mpl_significant_bits(&k) <= mpl_significant_bits(&n)) {
+	CHECK_MPI_OK( mp_add(&k, &n, &k) );
+    }
+
+    
+
+
+
+
     kGpoint.len = 2*flen + 1;
     kGpoint.data = PORT_Alloc(2*flen + 1);
     if ((kGpoint.data == NULL) ||

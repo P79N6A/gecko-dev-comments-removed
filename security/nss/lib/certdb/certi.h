@@ -397,5 +397,19 @@ cert_GetSubjectAltNameList(CERTCertificate *cert, PRArenaPool *arena);
 PRUint32
 cert_CountDNSPatterns(CERTGeneralName *firstName);
 
+
+
+
+
+
+
+
+
+SECStatus
+cert_CheckLeafTrust(CERTCertificate *cert,
+                    SECCertUsage usage, 
+                    unsigned int *failedFlags,
+                    PRBool *isTrusted);
+
 #endif 
 

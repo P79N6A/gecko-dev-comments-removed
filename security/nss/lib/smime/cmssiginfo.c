@@ -215,11 +215,6 @@ NSS_CMSSignerInfo_Sign(NSSCMSSignerInfo *signerinfo, SECItem *digest,
       SECOID_DestroyAlgorithmID(&freeAlgID, PR_FALSE);
     }
 
-    
-
-
-    pubkAlgTag = PK11_FortezzaMapSig(pubkAlgTag);
-
     if (signerinfo->authAttr != NULL) {
 	SECOidTag signAlgTag;
 	SECItem encoded_attrs;
@@ -535,7 +530,28 @@ NSS_CMSSignerInfo_GetVerificationStatus(NSSCMSSignerInfo *signerinfo)
 SECOidData *
 NSS_CMSSignerInfo_GetDigestAlg(NSSCMSSignerInfo *signerinfo)
 {
-    return SECOID_FindOID (&(signerinfo->digestAlg.algorithm));
+    SECOidData *algdata;
+    SECOidTag   algtag;
+
+    algdata = SECOID_FindOID (&(signerinfo->digestAlg.algorithm));
+    if (algdata == NULL) {
+	return algdata;
+    }
+    
+
+
+
+
+    algtag = NSS_CMSUtil_MapSignAlgs(algdata->offset);
+    if (algtag != algdata->offset) {
+	
+
+
+	algdata = SECOID_FindOIDByTag(algtag);
+    }
+
+    return algdata;
+
 }
 
 SECOidTag
@@ -548,7 +564,7 @@ NSS_CMSSignerInfo_GetDigestAlgTag(NSSCMSSignerInfo *signerinfo)
         return SEC_OID_UNKNOWN;
     }
 
-    algdata = SECOID_FindOID (&(signerinfo->digestAlg.algorithm));
+    algdata = NSS_CMSSignerInfo_GetDigestAlg(signerinfo);
     if (algdata != NULL)
 	return algdata->offset;
     else
@@ -784,8 +800,7 @@ NSS_CMSSignerInfo_AddSMIMECaps(NSSCMSSignerInfo *signerinfo)
 	goto loser;
 
     
-    if (NSS_SMIMEUtil_CreateSMIMECapabilities(poolp, smimecaps,
-			    PK11_FortezzaHasKEA(signerinfo->cert)) != SECSuccess)
+    if (NSS_SMIMEUtil_CreateSMIMECapabilities(poolp, smimecaps) != SECSuccess)
 	goto loser;
 
     if ((attr = NSS_CMSAttribute_Create(poolp, SEC_OID_PKCS9_SMIME_CAPABILITIES, smimecaps, PR_TRUE)) == NULL)

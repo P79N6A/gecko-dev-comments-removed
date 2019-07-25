@@ -273,7 +273,6 @@ static const struct FREEBLVectorStr vector =
 
     
 
-    MGF1,
     TLS_P_hash,
     SHA224_NewContext,
     SHA224_DestroyContext,

@@ -407,6 +407,25 @@ NSS_CMSSignedData_Decode_BeforeData(NSSCMSSignedData *sigd)
 	return SECFailure;
     }
     
+    if (sigd->digestAlgorithms != NULL) {
+	int i;
+	for (i=0; sigd->digestAlgorithms[i] != NULL; i++) {
+	    SECAlgorithmID *algid = sigd->digestAlgorithms[i];
+	    SECOidTag senttag= SECOID_FindOIDTag(&algid->algorithm);
+	    SECOidTag maptag = NSS_CMSUtil_MapSignAlgs(senttag);
+
+	    if (maptag != senttag) {
+		SECOidData *hashoid = SECOID_FindOIDByTag(maptag);
+		rv = SECITEM_CopyItem(sigd->cmsg->poolp, &algid->algorithm 
+							,&hashoid->oid);
+		if (rv != SECSuccess) {
+		    return rv;
+		}
+	    }
+	}
+    }
+
+    
     if (sigd->digestAlgorithms != NULL && sigd->digests == NULL) {
 	
 	sigd->contentInfo.privateInfo->digcx = NSS_CMSDigestContext_StartMultiple(sigd->digestAlgorithms);

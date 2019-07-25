@@ -91,7 +91,6 @@ sec_pkcs7_encoder_start_encrypt (SEC_PKCS7ContentInfo *cinfo,
     sec_PKCS7CipherObject *encryptobj;
     SEC_PKCS7RecipientInfo **recipientinfos, *ri;
     SEC_PKCS7EncryptedContentInfo *enccinfo;
-    SEC_PKCS7SMIMEKEAParameters   keaParams;
     SECKEYPublicKey *publickey = NULL;
     SECKEYPrivateKey *ourPrivKey = NULL;
     PK11SymKey  *bulkkey;
@@ -101,9 +100,6 @@ sec_pkcs7_encoder_start_encrypt (SEC_PKCS7ContentInfo *cinfo,
 
     
     wincx = cinfo->pwfn_arg;
-
-    
-    (void) memset(&keaParams, 0, sizeof(keaParams));
 
     kind = SEC_PKCS7ContentType (cinfo);
     switch (kind) {
@@ -200,7 +196,6 @@ sec_pkcs7_encoder_start_encrypt (SEC_PKCS7ContentInfo *cinfo,
 
 
 
-
 	certalgtag=SECOID_GetAlgorithmTag(&(cert->subjectPublicKeyInfo.algorithm));
 
 	switch (certalgtag) {
@@ -223,149 +218,6 @@ sec_pkcs7_encoder_start_encrypt (SEC_PKCS7ContentInfo *cinfo,
 	    if (rv != SECSuccess) goto loser;
 	    params = NULL; 
 	    break;
-	 
-      case SEC_OID_MISSI_KEA_DSS_OLD:
-      case SEC_OID_MISSI_KEA_DSS:
-      case SEC_OID_MISSI_KEA:
-	    {
-#define SMIME_FORTEZZA_RA_LENGTH 128
-#define SMIME_FORTEZZA_IV_LENGTH 24
-#define SMIME_FORTEZZA_MAX_KEY_SIZE 256
-		SECStatus err;
-		PK11SymKey *tek;
-		CERTCertificate *ourCert;
-		SECKEYPublicKey *ourPubKey;
-		SECKEATemplateSelector whichKEA = SECKEAInvalid;
-
-		
-
-		encalgtag = SEC_OID_NETSCAPE_SMIME_KEA;
-
-		
-		publickey = CERT_ExtractPublicKey(cert);
-		if (publickey == NULL) goto loser;
-
-		
-		ourCert = PK11_FindBestKEAMatch(cert,wincx);
-		if (ourCert == NULL) goto loser;
-
-		arena = PORT_NewArena(1024);
-		if (arena == NULL) goto loser;
-
-		ourPubKey = CERT_ExtractPublicKey(ourCert);
-		if (ourPubKey == NULL)
-		{
-		    CERT_DestroyCertificate(ourCert);
-		    goto loser;
-		}
-
-		
-
-		SECITEM_CopyItem(arena, &(keaParams.originatorKEAKey),
-				 &(ourPubKey->u.fortezza.KEAKey));
-		SECKEY_DestroyPublicKey(ourPubKey);
-		ourPubKey = NULL;
-
-		
-
-		ourPrivKey = PK11_FindKeyByAnyCert(ourCert,wincx);
-		CERT_DestroyCertificate(ourCert); 
-		if (!ourPrivKey) goto loser;
-
-		
-		keaParams.originatorRA.data = 
-		  (unsigned char*)PORT_ArenaAlloc(arena,SMIME_FORTEZZA_RA_LENGTH);
-		keaParams.originatorRA.len = SMIME_FORTEZZA_RA_LENGTH;
-
-
-		
-
-
-
-		tek = PK11_PubDerive(ourPrivKey, publickey, PR_TRUE,
-				     &keaParams.originatorRA, NULL,
-				     CKM_KEA_KEY_DERIVE, CKM_SKIPJACK_WRAP,
-				     CKA_WRAP, 0, wincx);
-
-		    SECKEY_DestroyPublicKey(publickey);
-		    SECKEY_DestroyPrivateKey(ourPrivKey);
-		    publickey = NULL;
-		    ourPrivKey = NULL;
-		
-		if (!tek)
-		    goto loser;
-
-		ri->encKey.data = (unsigned char*)PORT_ArenaAlloc(cinfo->poolp,
-						  SMIME_FORTEZZA_MAX_KEY_SIZE);
-		ri->encKey.len = SMIME_FORTEZZA_MAX_KEY_SIZE;
-
-		if (ri->encKey.data == NULL)
-		{
-		    PK11_FreeSymKey(tek);
-		    goto loser;
-		}
-
-		
-
-		switch(PK11_AlgtagToMechanism(enccinfo->encalg))
-		{
-		case CKM_SKIPJACK_CBC64:
-		case CKM_SKIPJACK_ECB64:
-		case CKM_SKIPJACK_OFB64:
-		case CKM_SKIPJACK_CFB64:
-		case CKM_SKIPJACK_CFB32:
-		case CKM_SKIPJACK_CFB16:
-		case CKM_SKIPJACK_CFB8:
-		    
-		    err = PK11_WrapSymKey(CKM_SKIPJACK_WRAP, NULL, 
-				      tek, bulkkey, &ri->encKey);
-		    whichKEA = SECKEAUsesSkipjack;
-		    break;
-		default:
-		    
-		    keaParams.nonSkipjackIV .data = 
-		      (unsigned char*)PORT_ArenaAlloc(arena,
-						     SMIME_FORTEZZA_IV_LENGTH);
-		    keaParams.nonSkipjackIV.len = SMIME_FORTEZZA_IV_LENGTH;
-		    err = PK11_WrapSymKey(CKM_SKIPJACK_CBC64,
-					  &keaParams.nonSkipjackIV, 
-				          tek, bulkkey, &ri->encKey);
-		    if (err != SECSuccess)
-			goto loser;
-
-		    if (ri->encKey.len != PK11_GetKeyLength(bulkkey))
-		    {
-			
-
-
-
-			if (SEC_ASN1EncodeInteger(arena, 
-						  &keaParams.bulkKeySize,
-						  PK11_GetKeyLength(bulkkey))
-			    == NULL)
-			    err = (SECStatus)PORT_GetError();
-			else
-			    
-			    whichKEA = SECKEAUsesNonSkipjackWithPaddedEncKey;
-		    }
-		    else
-			
-			whichKEA = SECKEAUsesNonSkipjack; 
-		    break;
-		}
-
-		PK11_FreeSymKey(tek);
-		if (err != SECSuccess)
-		    goto loser;
-
-		PORT_Assert( whichKEA != SECKEAInvalid);
-
-		
-		params = SEC_ASN1EncodeItem(arena,NULL, &keaParams, 
-				      sec_pkcs7_get_kea_template(whichKEA));
-		if (params == NULL) goto loser;
-		break;
-	    }
 	default:
 	    PORT_SetError (SEC_ERROR_INVALID_ALGORITHM);
 	    goto loser;
@@ -939,10 +791,6 @@ sec_pkcs7_encoder_sig_and_certs (SEC_PKCS7ContentInfo *cinfo,
 
 
 	    signalgtag = SECOID_GetAlgorithmTag (&(cert->subjectPublicKeyInfo.algorithm));
-
-	    
-
-	    signalgtag = PK11_FortezzaMapSig(signalgtag);
 
 	    if (signerinfo->authAttr != NULL) {
 		SEC_PKCS7Attribute *attr;

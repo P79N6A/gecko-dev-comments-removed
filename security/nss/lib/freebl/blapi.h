@@ -1260,13 +1260,6 @@ PRNGTEST_Uninstantiate(void);
 
 
 
-extern SECStatus
-MGF1(HASH_HashType hashAlg, unsigned char *mask, unsigned int maskLen,
-     const unsigned char *mgfSeed, unsigned int mgfSeedLen);
-
-
-
-
 
 extern SECStatus
 PQG_ParamGen(unsigned int j, 	   

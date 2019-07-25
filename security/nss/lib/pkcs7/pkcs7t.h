@@ -98,7 +98,6 @@ typedef struct SEC_PKCS7SignerInfoStr SEC_PKCS7SignerInfo;
 typedef struct SEC_PKCS7RecipientInfoStr SEC_PKCS7RecipientInfo;
 typedef struct SEC_PKCS7DigestedDataStr SEC_PKCS7DigestedData;
 typedef struct SEC_PKCS7EncryptedDataStr SEC_PKCS7EncryptedData;
-typedef struct SEC_PKCS7SMIMEKEAParametersStr SEC_PKCS7SMIMEKEAParameters;
 
 
 
@@ -221,35 +220,6 @@ struct SEC_PKCS7AttributeStr {
     
     SECOidData *typeTag;
     PRBool encoded;	
-};
-
-
-
-typedef enum
-{
-	SECKEAInvalid = -1,
-	SECKEAUsesSkipjack = 0,
-	SECKEAUsesNonSkipjack = 1,
-	SECKEAUsesNonSkipjackWithPaddedEncKey = 2
-} SECKEATemplateSelector;
-
-
-
-struct SEC_PKCS7SMIMEKEAParametersStr {
-	SECItem originatorKEAKey;	
-	SECItem originatorRA;		
-	SECItem nonSkipjackIV;		
-
-
-
-	SECItem bulkKeySize;		
-
-
-
-
-
-
-
 };
 
 

@@ -1552,10 +1552,50 @@ PKIX_PL_Cert_VerifySignature(
 
 
 
+
+
+
 PKIX_Error *
 PKIX_PL_Cert_IsCertTrusted(
         PKIX_PL_Cert *cert,
         PKIX_Boolean trustOnlyUserAnchors,
+        PKIX_Boolean *pTrusted,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_PL_Cert_IsLeafCertTrusted(
+        PKIX_PL_Cert *cert,
         PKIX_Boolean *pTrusted,
         void *plContext);
 

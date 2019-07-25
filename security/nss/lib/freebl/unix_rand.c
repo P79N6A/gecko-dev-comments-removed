@@ -843,7 +843,10 @@ safe_pclose(FILE *fp)
 }
 
 #ifdef DARWIN
+#include <TargetConditionals.h>
+#if !TARGET_OS_IPHONE
 #include <crt_externs.h>
+#endif
 #endif
 
 
@@ -859,7 +862,12 @@ void RNG_SystemInfoForRNG(void)
     const char * const *cp;
     char *randfile;
 #ifdef DARWIN
+#if TARGET_OS_IPHONE
+    
+    char **environ = NULL;
+#else
     char **environ = *_NSGetEnviron();
+#endif
 #else
     extern char **environ;
 #endif

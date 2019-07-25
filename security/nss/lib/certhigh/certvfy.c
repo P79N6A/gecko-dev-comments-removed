@@ -388,6 +388,15 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
 					   &trustType) != SECSuccess ) {
 	    PORT_Assert(0);
 	    EXIT_IF_NOT_LOGGING(log);
+	    
+
+
+
+
+
+
+
+
 	    requiredFlags = 0;
 	    trustType = trustSSL;
 	}
@@ -581,10 +590,10 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
 	        }
 		
 		if ((flags & CERTDB_TERMINAL_RECORD) && 
-			((flags & (CERTDB_VALID_CA|CERTDB_TRUSTED)) == 0)) {
+			((flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA)) == 0)) {
 		    
 
-		    PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
+		    PORT_SetError(SEC_ERROR_UNTRUSTED_ISSUER);
 		    LOG_ERROR_OR_EXIT(log,issuerCert,count+1,flags);
 		}
 	    } else {
@@ -609,10 +618,10 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
                     flags = SEC_GET_TRUST_FLAGS(issuerCert->trust, trustType);
 		    
 		    if ((flags & CERTDB_TERMINAL_RECORD) && 
-			((flags & (CERTDB_VALID_CA|CERTDB_TRUSTED)) == 0)) {
+			((flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA)) == 0)) {
 			
 
-			PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
+			PORT_SetError(SEC_ERROR_UNTRUSTED_ISSUER);
 			LOG_ERROR_OR_EXIT(log,issuerCert,count+1,flags);
 		    }
                 }
@@ -742,7 +751,7 @@ CERT_VerifyCACertForUsage(CERTCertDBHandle *handle, CERTCertificate *cert,
     PRBool validCAOverride = PR_FALSE;
     SECStatus rv;
     SECStatus rvFinal = SECSuccess;
-    int flags;
+    unsigned int flags;
     unsigned int caCertType;
     unsigned int requiredCAKeyUsage;
     unsigned int requiredFlags;
@@ -852,7 +861,7 @@ CERT_VerifyCACertForUsage(CERTCertDBHandle *handle, CERTCertificate *cert,
 	}
 	
 	if ((flags & CERTDB_TERMINAL_RECORD) && 
-		((flags & (CERTDB_VALID_CA|CERTDB_TRUSTED)) == 0)) {
+		((flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA)) == 0)) {
 	    
 
 	    PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
@@ -970,11 +979,9 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 	    break;
 	  case certUsageSSLCA:
 	    flags = cert->trust->sslFlags;
-	    
-
 	    if ( flags & CERTDB_TERMINAL_RECORD) { 
 
-		if (( flags & CERTDB_TRUSTED_CA ) == 0) {	
+		if (( flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA) ) == 0) {	
 		    
 		    *failedFlags = flags;
 		    return SECFailure;
@@ -1041,7 +1048,7 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 	    flags = cert->trust->sslFlags;
 	    if ( flags & CERTDB_TERMINAL_RECORD) { 
 
-		if ((flags & CERTDB_TRUSTED_CA) == 0) {
+		if ((flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA)) == 0) {
 		    *failedFlags = flags;
 		    return SECFailure;
 		}
@@ -1049,16 +1056,17 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 	    flags = cert->trust->emailFlags;
 	    if ( flags & CERTDB_TERMINAL_RECORD) { 
 
-		if ((flags & CERTDB_TRUSTED_CA) == 0) {
+		if ((flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA)) == 0) {
 		    *failedFlags = flags;
 		    return SECFailure;
 		}
 	    }
+	    
 	  case certUsageProtectedObjectSigner:
 	    flags = cert->trust->objectSigningFlags;
 	    if ( flags & CERTDB_TERMINAL_RECORD) { 
 
-		if ((flags & CERTDB_TRUSTED_CA) == 0) {
+		if ((flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA)) == 0) {
 		    *failedFlags = flags;
 		    return SECFailure;
 		}
@@ -1196,8 +1204,7 @@ CERT_VerifyCertificate(CERTCertDBHandle *handle, CERTCertificate *cert,
 	    }
 	    LOG_ERROR(log, cert, 0, flags);
 	    INVALID_USAGE();
-	}
-	if (trusted) {
+	} else if (trusted) {
 	    VALID_USAGE();
 	}
 
@@ -1328,8 +1335,7 @@ CERT_VerifyCert(CERTCertDBHandle *handle, CERTCertificate *cert,
     if (rv  == SECFailure) {
 	PORT_SetError(SEC_ERROR_UNTRUSTED_CERT);
 	LOG_ERROR_OR_EXIT(log,cert,0,flags);
-    }
-    if (trusted) {
+    } else if (trusted) {
 	goto winner;
     }
 

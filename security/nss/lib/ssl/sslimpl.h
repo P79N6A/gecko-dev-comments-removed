@@ -334,6 +334,7 @@ typedef struct sslOptionsStr {
     unsigned int enableRenegotiation    : 2;  
     unsigned int requireSafeNegotiation : 1;  
     unsigned int enableFalseStart       : 1;  
+    unsigned int cbcRandomIV            : 1;  
 } sslOptions;
 
 typedef enum { sslHandshakingUndetermined = 0,

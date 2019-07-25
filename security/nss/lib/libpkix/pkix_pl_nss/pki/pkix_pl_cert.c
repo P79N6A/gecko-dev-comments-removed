@@ -3245,52 +3245,29 @@ cleanup:
 
 
 
-PKIX_Error *
-PKIX_PL_Cert_IsCertTrusted(
-        PKIX_PL_Cert *cert,
-        PKIX_Boolean trustOnlyUserAnchors,
-        PKIX_Boolean *pTrusted,
-        void *plContext)
+
+
+
+static SECStatus
+pkix_pl_Cert_GetTrusted(void *plContext,
+                        PKIX_PL_Cert *cert,
+                        PKIX_Boolean *trusted,
+                        PKIX_Boolean isCA)
 {
-        PKIX_CertStore_CheckTrustCallback trustCallback = NULL;
-        SECCertUsage certUsage = 0;
-        PKIX_Boolean trusted = PKIX_FALSE;
-        SECStatus rv = SECFailure;
-        unsigned int requiredFlags;
-        SECTrustType trustType;
-        CERTCertTrust trust;
+        SECStatus rv;
         CERTCertificate *nssCert = NULL;
+        SECCertUsage certUsage = 0;
         SECCertificateUsage certificateUsage;
+        SECTrustType trustType;
+        unsigned int trustFlags;
+        unsigned int requiredFlags;
+        CERTCertTrust trust;
 
-        PKIX_ENTER(CERT, "pkix_pl_Cert_IsCertTrusted");
-        PKIX_NULLCHECK_TWO(cert, pTrusted);
-
-        if (trustOnlyUserAnchors) {
-            *pTrusted = cert->isUserTrustAnchor;
-            goto cleanup;
-        }
+        *trusted = PKIX_FALSE;
 
         
-        if (plContext == NULL || cert->store == NULL) {
-                *pTrusted = PKIX_FALSE;
-                goto cleanup;
-        }
-
-        if (cert->store) {
-                PKIX_CHECK(PKIX_CertStore_GetTrustCallback
-                        (cert->store, &trustCallback, plContext),
-                        PKIX_CERTSTOREGETTRUSTCALLBACKFAILED);
-
-                PKIX_CHECK_ONLY_FATAL(trustCallback
-                        (cert->store, cert, &trusted, plContext),
-                        PKIX_CHECKTRUSTCALLBACKFAILED);
-
-                if (PKIX_ERROR_RECEIVED || (trusted == PKIX_FALSE)) {
-
-                        *pTrusted = PKIX_FALSE;
-                        goto cleanup;
-                }
-
+        if (plContext == NULL) {
+                return SECSuccess;
         }
 
         certificateUsage = ((PKIX_PL_NssContext*)plContext)->certificateUsage;
@@ -3301,24 +3278,130 @@ PKIX_PL_Cert_IsCertTrusted(
         
         while (0 != (certificateUsage = certificateUsage >> 1)) { certUsage++; }
 
-        rv = CERT_TrustFlagsForCACertUsage(certUsage, &requiredFlags, &trustType);
+        nssCert = cert->nssCert;
+
+        if (!isCA) {
+                PRBool prTrusted;
+                unsigned int failedFlags;
+                rv = cert_CheckLeafTrust(nssCert, certUsage,
+                                         &failedFlags, &prTrusted);
+                *trusted = (PKIX_Boolean) prTrusted;
+                return rv;
+        }
+        rv = CERT_TrustFlagsForCACertUsage(certUsage, &requiredFlags,
+                                           &trustType);
         if (rv != SECSuccess) {
+                return SECSuccess;
+        }
+
+        rv = CERT_GetCertTrust(nssCert, &trust);
+        if (rv != SECSuccess) {
+                return SECSuccess;
+        }
+        trustFlags = SEC_GET_TRUST_FLAGS(&trust, trustType);
+        
+
+
+        if ((trustFlags == 0) && (trustType == trustTypeNone)) {
+                trustFlags = trust.sslFlags | trust.emailFlags |
+                             trust.objectSigningFlags;
+        }
+        if ((trustFlags & requiredFlags) == requiredFlags) {
+                *trusted = PKIX_TRUE;
+                return SECSuccess;
+        }
+        if ((trustFlags & CERTDB_TERMINAL_RECORD) &&
+            ((trustFlags & (CERTDB_VALID_CA|CERTDB_TRUSTED)) == 0)) {
+                return SECFailure;
+        }
+        return SECSuccess;
+}
+
+
+
+
+
+PKIX_Error *
+PKIX_PL_Cert_IsCertTrusted(
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean trustOnlyUserAnchors,
+        PKIX_Boolean *pTrusted,
+        void *plContext)
+{
+        PKIX_CertStore_CheckTrustCallback trustCallback = NULL;
+        PKIX_Boolean trusted = PKIX_FALSE;
+        SECStatus rv = SECFailure;
+
+        PKIX_ENTER(CERT, "PKIX_PL_Cert_IsCertTrusted");
+        PKIX_NULLCHECK_TWO(cert, pTrusted);
+
+        
+
+        rv = pkix_pl_Cert_GetTrusted(plContext, cert, &trusted, PKIX_TRUE);
+        if (rv != SECSuccess) {
+                
+
+                *pTrusted = PKIX_FALSE;
+                PKIX_ERROR(PKIX_CERTISCERTTRUSTEDFAILED);
+        }
+
+        if (trustOnlyUserAnchors) {
+            
+            *pTrusted = cert->isUserTrustAnchor;
+            goto cleanup;
+        }
+
+        
+        if (plContext == NULL || cert->store == NULL) {
                 *pTrusted = PKIX_FALSE;
                 goto cleanup;
         }
 
-        nssCert = cert->nssCert;
+        PKIX_CHECK(PKIX_CertStore_GetTrustCallback
+                (cert->store, &trustCallback, plContext),
+                PKIX_CERTSTOREGETTRUSTCALLBACKFAILED);
 
-        rv = CERT_GetCertTrust(nssCert, &trust);
-        if (rv == SECSuccess) {
-                unsigned int certFlags;
-                certFlags = SEC_GET_TRUST_FLAGS((&trust), trustType);
-                if ((certFlags & requiredFlags) == requiredFlags) {
-                        trusted = PKIX_TRUE;
-                }
+        PKIX_CHECK_ONLY_FATAL(trustCallback
+                (cert->store, cert, &trusted, plContext),
+                PKIX_CHECKTRUSTCALLBACKFAILED);
+
+        
+
+        if (PKIX_ERROR_RECEIVED || (trusted == PKIX_FALSE)) {
+                *pTrusted = PKIX_FALSE;
+                goto cleanup;
         }
 
         *pTrusted = trusted;
+
+cleanup:
+        PKIX_RETURN(CERT);
+}
+
+
+
+
+
+PKIX_Error *
+PKIX_PL_Cert_IsLeafCertTrusted(
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean *pTrusted,
+        void *plContext)
+{
+        SECStatus rv;
+
+        PKIX_ENTER(CERT, "PKIX_PL_Cert_IsLeafCertTrusted");
+        PKIX_NULLCHECK_TWO(cert, pTrusted);
+
+        *pTrusted = PKIX_FALSE;
+
+        rv = pkix_pl_Cert_GetTrusted(plContext, cert, pTrusted, PKIX_FALSE);
+        if (rv != SECSuccess) {
+                
+
+                *pTrusted = PKIX_FALSE;
+                PKIX_ERROR(PKIX_CERTISCERTTRUSTEDFAILED);
+        }
 
 cleanup:
         PKIX_RETURN(CERT);

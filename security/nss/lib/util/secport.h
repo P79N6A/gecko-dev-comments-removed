@@ -149,6 +149,16 @@ SEC_END_PROTOS
 
 #define PORT_Atoi(buff)	(int)strtol(buff, NULL, 10)
 
+
+
+
+
+
+
+#define PORT_ErrorToString(err) PR_ErrorToString((err), PR_LANGUAGE_I_DEFAULT)
+
+#define PORT_ErrorToName PR_ErrorToName
+
 #define PORT_Memcmp 	memcmp
 #define PORT_Memcpy 	memcpy
 #ifndef SUNOS4

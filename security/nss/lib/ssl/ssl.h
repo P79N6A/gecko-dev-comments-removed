@@ -100,7 +100,7 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
                                		  
 #define SSL_HANDSHAKE_AS_SERVER		6 /* force connect to hs as server */
                                		  
-#define SSL_ENABLE_SSL2			7 /* enable ssl v2 (on by default) */
+#define SSL_ENABLE_SSL2			7 /* enable ssl v2 (off by default) */
 #define SSL_ENABLE_SSL3		        8 /* enable ssl v3 (on by default) */
 #define SSL_NO_CACHE		        9 /* don't use the session cache */
                     		          
@@ -139,6 +139,34 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SSL_CBC_RANDOM_IV 23
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 

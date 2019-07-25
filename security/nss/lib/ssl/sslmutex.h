@@ -138,7 +138,10 @@ SEC_BEGIN_PROTOS
 
 extern SECStatus sslMutex_Init(sslMutex *sem, int shared);
 
-extern SECStatus sslMutex_Destroy(sslMutex *sem);
+
+
+
+extern SECStatus sslMutex_Destroy(sslMutex *sem, PRBool processLocal);
 
 extern SECStatus sslMutex_Unlock(sslMutex *sem);
 

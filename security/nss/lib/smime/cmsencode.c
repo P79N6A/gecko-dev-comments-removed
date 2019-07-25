@@ -726,7 +726,6 @@ NSS_CMSEncoder_Finish(NSSCMSEncoderContext *p7ecx)
 {
     SECStatus rv = SECFailure;
     NSSCMSContentInfo *cinfo;
-    SECOidTag childtype;
 
     
 

@@ -579,11 +579,6 @@ NSS_CMSRecipientInfo_UnwrapBulkKey(NSSCMSRecipientInfo *ri, int subIndex,
 	    
 	    bulkkey = NSS_CMSUtil_DecryptSymKey_RSA(privkey, enckey, bulkalgtag);
 	    break;
-	case SEC_OID_NETSCAPE_SMIME_KEA:
-	    
-	    
-	    bulkkey = NSS_CMSUtil_DecryptSymKey_MISSI(privkey, enckey, encalg, bulkalgtag, ri->cmsg->pwfn_arg);
-	    break;
 	default:
 	    error = SEC_ERROR_UNSUPPORTED_KEYALG;
 	    goto loser;
@@ -604,6 +599,7 @@ NSS_CMSRecipientInfo_UnwrapBulkKey(NSSCMSRecipientInfo *ri, int subIndex,
 	    
 	    
 	    error = SEC_ERROR_UNSUPPORTED_KEYALG;
+	    goto loser;
 	    break;
 	default:
 	    error = SEC_ERROR_UNSUPPORTED_KEYALG;
@@ -623,6 +619,7 @@ NSS_CMSRecipientInfo_UnwrapBulkKey(NSSCMSRecipientInfo *ri, int subIndex,
     return bulkkey;
 
 loser:
+    PORT_SetError(error);
     return NULL;
 }
 

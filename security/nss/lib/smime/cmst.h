@@ -100,8 +100,6 @@ typedef struct NSSCMSEncryptedDataStr NSSCMSEncryptedData;
 
 typedef struct NSSCMSGenericWrapperDataStr NSSCMSGenericWrapperData;
 
-typedef struct NSSCMSSMIMEKEAParametersStr NSSCMSSMIMEKEAParameters;
-
 typedef struct NSSCMSAttributeStr NSSCMSAttribute;
 
 typedef struct NSSCMSDecoderContextStr NSSCMSDecoderContext;
@@ -510,38 +508,6 @@ struct NSSCMSEncryptedDataStr {
 };
 #define NSS_CMS_ENCRYPTED_DATA_VERSION		0	/* what we *create* */
 #define NSS_CMS_ENCRYPTED_DATA_VERSION_UPATTR	2	/* what we *create* */
-
-
-
-
-
-
-
-typedef enum {
-    NSSCMSKEAInvalid = -1,
-    NSSCMSKEAUsesSkipjack = 0,
-    NSSCMSKEAUsesNonSkipjack = 1,
-    NSSCMSKEAUsesNonSkipjackWithPaddedEncKey = 2
-} NSSCMSKEATemplateSelector;
-
-
-
-struct NSSCMSSMIMEKEAParametersStr {
-    SECItem originatorKEAKey;	
-    SECItem originatorRA;	
-    SECItem nonSkipjackIV;	
-
-
-
-    SECItem bulkKeySize;	
-
-
-
-
-
-
-
-};
 
 
 

@@ -53,7 +53,6 @@
 #include "nss.h"
 #include "pk11func.h"
 #include "secerr.h"
-#include "errstrs.h"
 #include "nssbase.h"
 #include "nssutil.h"
 #include "pkixt.h"
@@ -381,7 +380,6 @@ nss_InitModules(const char *configdir, const char *certPrefix,
 		PRBool isContextInit)
 {
     SECStatus rv = SECFailure;
-    PRStatus status = PR_SUCCESS;
     char *moduleSpec = NULL;
     char *flags = NULL;
     char *lconfigdir = NULL;
@@ -394,10 +392,9 @@ nss_InitModules(const char *configdir, const char *certPrefix,
     char *lupdateID = NULL;
     char *lupdateName = NULL;
 
-    status = NSS_InitializePRErrorTable();
-    if (status != PR_SUCCESS) {
-	PORT_SetError(status);
-	return SECFailure;
+    if (NSS_InitializePRErrorTable() != SECSuccess) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	return rv;
     }
 
     flags = nss_makeFlags(readOnly,noCertDB,noModDB,forceOpen,
@@ -532,6 +529,27 @@ static SECStatus nss_InitShutdownList(void);
 static CERTCertificate dummyCert;
 #endif
 
+
+static PRCallOnceType nssInitOnce;
+static PZLock *nssInitLock;
+static PZCondVar *nssInitCondition;
+static int nssIsInInit;
+
+static PRStatus
+nss_doLockInit(void)
+{
+    nssInitLock = PZ_NewLock(nssILockOther);
+    if (nssInitLock == NULL) {
+	return (PRStatus) SECFailure;
+    }
+    nssInitCondition = PZ_NewCondVar(nssInitLock);
+    if (nssInitCondition == NULL) {
+	return (PRStatus) SECFailure;
+    }
+    return (PRStatus) SECSuccess;
+}
+
+
 static SECStatus
 nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 		 const char *secmodName, const char *updateDir, 
@@ -558,26 +576,49 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     if (!initContextPtr && nssIsInitted) {
 	return SECSuccess;
     }
+  
+     
+    rv = PR_CallOnce(&nssInitOnce, nss_doLockInit);
+    if (rv != SECSuccess) {
+	return rv;
+    }
 
     
 
 
+
+    PZ_Lock(nssInitLock);
     isReallyInitted = NSS_IsInitialized();
+    if (!isReallyInitted) {
+	while (!isReallyInitted && nssIsInInit) {
+	    PZ_WaitCondVar(nssInitCondition,PR_INTERVAL_NO_TIMEOUT);
+	    isReallyInitted = NSS_IsInitialized();
+ 	}
+	
+
+    }
+    
+    nssIsInInit++;
+    PZ_Unlock(nssInitLock);
+
+    
+
+
 
     if (!isReallyInitted) {
 	
 	PORT_Assert(sizeof(dummyCert.options) == sizeof(void *));
 
 	if (SECSuccess != cert_InitLocks()) {
-            return SECFailure;
+	    goto loser;
 	}
 
 	if (SECSuccess != InitCRLCache()) {
-            return SECFailure;
+	    goto loser;
 	}
     
 	if (SECSuccess != OCSP_InitGlobal()) {
-            return SECFailure;
+	    goto loser;
 	}
     }
 
@@ -697,6 +738,7 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 
 
 
+    PZ_Lock(nssInitLock);
     if (!initContextPtr) {
 	nssIsInitted = PR_TRUE;
     } else {
@@ -704,6 +746,10 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
 	(*initContextPtr)->next = nssInitContextList;
 	nssInitContextList = (*initContextPtr);
     }
+    nssIsInInit--;
+    
+    PZ_NotifyAllCondVar(nssInitCondition);
+    PZ_Unlock(nssInitLock);
 
     return SECSuccess;
 
@@ -894,10 +940,13 @@ NSS_RegisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 {
     int i;
 
+    PZ_Lock(nssInitLock);
     if (!NSS_IsInitialized()) {
+	PZ_Unlock(nssInitLock);
 	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
 	return SECFailure;
     }
+    PZ_Unlock(nssInitLock);
     if (sFunc == NULL) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
@@ -948,10 +997,14 @@ SECStatus
 NSS_UnregisterShutdown(NSS_ShutdownFunc sFunc, void *appData)
 {
     int i;
+
+    PZ_Lock(nssInitLock);
     if (!NSS_IsInitialized()) {
+	PZ_Unlock(nssInitLock);
 	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
 	return SECFailure;
     }
+    PZ_Unlock(nssInitLock);
 
     PORT_Assert(nssShutdownList.lock);
     PZ_Lock(nssShutdownList.lock);
@@ -1082,12 +1135,23 @@ nss_Shutdown(void)
 SECStatus
 NSS_Shutdown(void)
 {
+    SECStatus rv;
+    PZ_Lock(nssInitLock);
+
     if (!nssIsInitted) {
+	PZ_Unlock(nssInitLock);
 	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
 	return SECFailure;
     }
 
-    return nss_Shutdown();
+    
+
+    while (nssIsInInit) {
+	PZ_WaitCondVar(nssInitCondition,PR_INTERVAL_NO_TIMEOUT);
+    }
+    rv = nss_Shutdown();
+    PZ_Unlock(nssInitLock);
+    return rv;
 }
 
 
@@ -1122,32 +1186,49 @@ nss_RemoveList(NSSInitContext *context) {
 SECStatus
 NSS_ShutdownContext(NSSInitContext *context)
 {
-   if (!context) {
+    SECStatus rv = SECSuccess;
+
+    PZ_Lock(nssInitLock);
+    
+
+    while (nssIsInInit) {
+	PZ_WaitCondVar(nssInitCondition,PR_INTERVAL_NO_TIMEOUT);
+    }
+
+    
+    
+    if (!context) {
 	if (!nssIsInitted) {
+	    PZ_Unlock(nssInitLock);
 	    PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
 	    return SECFailure;
 	}
 	nssIsInitted = 0;
     } else if (! nss_RemoveList(context)) {
+	PZ_Unlock(nssInitLock);
 	
 	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
 	return SECFailure;
     }
     if ((nssIsInitted == 0) && (nssInitContextList == NULL)) {
-	return nss_Shutdown();
+	rv = nss_Shutdown();
     }
-    return SECSuccess;
-}
-	
-	
 
+    
+
+
+
+    PZ_Unlock(nssInitLock);
+
+    return rv;
+}
 
 PRBool
 NSS_IsInitialized(void)
 {
     return (nssIsInitted) || (nssInitContextList != NULL);
 }
-
+	
 
 extern const char __nss_base_rcsid[];
 extern const char __nss_base_sccsid[];

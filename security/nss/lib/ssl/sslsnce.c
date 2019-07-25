@@ -1027,15 +1027,16 @@ CloseCache(cacheDesc *cache)
     int locks_initialized = cache->numSIDCacheLocksInitialized;
 
     if (cache->cacheMem) {
-	
-
-
-
-	if (cache->sharedCache &&
-            PR_FALSE == cache->sharedCache->everInherited) {
+	if (cache->sharedCache) {
 	    sidCacheLock *pLock = cache->sidCacheLocks;
 	    for (; locks_initialized > 0; --locks_initialized, ++pLock ) {
-		sslMutex_Destroy(&pLock->mutex);
+		
+
+
+
+
+		sslMutex_Destroy(&pLock->mutex,
+				 cache->sharedCache->everInherited);
 	    }
 	}
 	if (cache->shared) {

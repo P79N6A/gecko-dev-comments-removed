@@ -428,7 +428,6 @@ sec_pkcs7_decoder_finish_digests (SEC_PKCS7DecoderContext *p7dcx,
 
 
 
-extern const SEC_ASN1Template SEC_SMIMEKEAParamTemplateAllParams[];
 
 static PK11SymKey *
 sec_pkcs7_decoder_get_recipient_key (SEC_PKCS7DecoderContext *p7dcx,
@@ -460,7 +459,7 @@ sec_pkcs7_decoder_get_recipient_key (SEC_PKCS7DecoderContext *p7dcx,
 
     keyalgtag = SECOID_GetAlgorithmTag(&(cert->subjectPublicKeyInfo.algorithm));
     encalgtag = SECOID_GetAlgorithmTag (&(ri->keyEncAlg));
-    if ((encalgtag != SEC_OID_NETSCAPE_SMIME_KEA) && (keyalgtag != encalgtag)) {
+    if (keyalgtag != encalgtag) {
 	p7dcx->error = SEC_ERROR_PKCS7_KEYALG_MISMATCH;
 	goto no_key_found;
     }
@@ -477,117 +476,6 @@ sec_pkcs7_decoder_get_recipient_key (SEC_PKCS7DecoderContext *p7dcx,
 	    goto no_key_found;
 	}
 	break;
-	 
-        case SEC_OID_NETSCAPE_SMIME_KEA:
-	  {
-	      SECStatus err;
-	      CK_MECHANISM_TYPE bulkType;
-	      PK11SymKey *tek;
-	      SECKEYPublicKey *senderPubKey;
-	      SEC_PKCS7SMIMEKEAParameters   keaParams;
-
-	      (void) memset(&keaParams, 0, sizeof(keaParams));
-
-	      
-	      err = SEC_ASN1DecodeItem(NULL,
-				       &keaParams,
-				       SEC_SMIMEKEAParamTemplateAllParams,
-				       &(ri->keyEncAlg.parameters));
-	      if (err != SECSuccess)
-	      {
-		  p7dcx->error = err;
-		  PORT_SetError(0);
-		  goto no_key_found;
-	      }
-	  
-
-	      
-
-	     senderPubKey = 
-		  PK11_MakeKEAPubKey(keaParams.originatorKEAKey.data,
-				     keaParams.originatorKEAKey.len);
-	     if (senderPubKey == NULL)
-	     {
-		    p7dcx->error = PORT_GetError();
-		    PORT_SetError(0);
-		    goto no_key_found;
-	     }
-	      
-	     
-
-	     tek = PK11_PubDerive(privkey, senderPubKey, 
-				   PR_FALSE,
-				   &keaParams.originatorRA,
-				   NULL,
-				   CKM_KEA_KEY_DERIVE, CKM_SKIPJACK_WRAP,
-				   CKA_WRAP, 0, p7dcx->pwfn_arg);
-	     SECKEY_DestroyPublicKey(senderPubKey);
-	      
-	     if (tek == NULL)
-	     {
-		  p7dcx->error = PORT_GetError();
-		  PORT_SetError(0);
-		  goto no_key_found;
-	     }
-	      
-	      
-
-
-
-
-	      bulkType = PK11_AlgtagToMechanism (bulkalgtag);
-	      switch(bulkType)
-	      {
-	      case CKM_SKIPJACK_CBC64:
-	      case CKM_SKIPJACK_ECB64:
-	      case CKM_SKIPJACK_OFB64:
-	      case CKM_SKIPJACK_CFB64:
-	      case CKM_SKIPJACK_CFB32:
-	      case CKM_SKIPJACK_CFB16:
-	      case CKM_SKIPJACK_CFB8:
-		  
-		  
-		  bulkkey = PK11_UnwrapSymKey(tek, CKM_SKIPJACK_WRAP,
-					      NULL, &ri->encKey, 
-					      CKM_SKIPJACK_CBC64, 
-					      CKA_DECRYPT, 0);
-		  break;
-	      default:
-		  
-
-
-
-
-
-		  
-		  
-
-		  if (keaParams.bulkKeySize.len > 0)
-		  {
-		      p7dcx->error = SEC_ASN1DecodeItem(NULL, &bulkLength,
-					SEC_ASN1_GET(SEC_IntegerTemplate),
-					&keaParams.bulkKeySize);
-		  }
-		  
-		  if (p7dcx->error != SECSuccess)
-		      goto no_key_found;
-		  
-		  bulkkey = PK11_UnwrapSymKey(tek, CKM_SKIPJACK_CBC64,
-					      &keaParams.nonSkipjackIV, 
-					      &ri->encKey,
-					      bulkType,
-					      CKA_DECRYPT, bulkLength);
-	      }
-	      
-	      
-	      if (bulkkey == NULL)
-	      {
-		  p7dcx->error = PORT_GetError();
-		  PORT_SetError(0);
-		  goto no_key_found;
-	      }
-	      break;
-	  }
       default:
 	p7dcx->error = SEC_ERROR_UNSUPPORTED_KEYALG;
 	break;

@@ -152,8 +152,7 @@ static smime_cipher_map_entry smime_cipher_map[] = {
     { SMIME_RC2_CBC_64,		SEC_OID_RC2_CBC,	&param_int64,	PR_TRUE, PR_TRUE },
     { SMIME_RC2_CBC_128,	SEC_OID_RC2_CBC,	&param_int128,	PR_TRUE, PR_TRUE },
     { SMIME_DES_EDE3_168,	SEC_OID_DES_EDE3_CBC,	NULL,		PR_TRUE, PR_TRUE },
-    { SMIME_AES_CBC_128,	SEC_OID_AES_128_CBC,	NULL,		PR_TRUE, PR_TRUE },
-    { SMIME_FORTEZZA,		SEC_OID_FORTEZZA_SKIPJACK, NULL,	PR_TRUE, PR_TRUE }
+    { SMIME_AES_CBC_128,	SEC_OID_AES_128_CBC,	NULL,		PR_TRUE, PR_TRUE }
 };
 static const int smime_cipher_map_count = sizeof(smime_cipher_map) / sizeof(smime_cipher_map_entry);
 
@@ -273,10 +272,8 @@ nss_smime_get_cipher_for_alg_and_key(SECAlgorithmID *algid, PK11SymKey *key, uns
     case SEC_OID_AES_128_CBC:
 	c = SMIME_AES_CBC_128;
 	break;
-    case SEC_OID_FORTEZZA_SKIPJACK:
-	c = SMIME_FORTEZZA;
-	break;
     default:
+	PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
 	return SECFailure;
     }
     *cipher = c;
@@ -393,7 +390,6 @@ smime_choose_cipher(CERTCertificate *scert, CERTCertificate **rcerts)
     int weak_mapi;
     int strong_mapi;
     int rcount, mapi, max, i;
-    PRBool scert_is_fortezza = (scert == NULL) ? PR_FALSE : PK11_FortezzaHasKEA(scert);
 
     chosen_cipher = SMIME_RC2_CBC_40;		
     weak_mapi = smime_mapi_by_cipher(chosen_cipher);
@@ -408,13 +404,7 @@ smime_choose_cipher(CERTCertificate *scert, CERTCertificate **rcerts)
 	goto done;
 
     
-
     strong_mapi = smime_mapi_by_cipher (SMIME_DES_EDE3_168);
-    if (scert_is_fortezza) {
-	mapi = smime_mapi_by_cipher(SMIME_FORTEZZA);
-	if (mapi >= 0 && smime_cipher_map[mapi].enabled)
-	    strong_mapi = mapi;
-    }
 
     
     for (rcount = 0; rcerts[rcount] != NULL; rcount++) {
@@ -499,9 +489,6 @@ smime_choose_cipher(CERTCertificate *scert, CERTCertificate **rcerts)
 	if (!smime_cipher_map[mapi].enabled || !smime_cipher_map[mapi].allowed)
 	    continue;
 	
-	if (!scert_is_fortezza  && (smime_cipher_map[mapi].cipher == SMIME_FORTEZZA))
-	    continue;
-	
 	if (cipher_votes[mapi] >= max) {
 	    
 	    
@@ -541,7 +528,6 @@ smime_keysize_by_cipher (unsigned long which)
 	break;
       case SMIME_DES_CBC_56:
       case SMIME_DES_EDE3_168:
-      case SMIME_FORTEZZA:
 	
 
 
@@ -589,9 +575,8 @@ NSS_SMIMEUtil_FindBulkAlgForRecipients(CERTCertificate **rcerts, SECOidTag *bulk
 
 
 
-
 SECStatus
-NSS_SMIMEUtil_CreateSMIMECapabilities(PLArenaPool *poolp, SECItem *dest, PRBool includeFortezzaCiphers)
+NSS_SMIMEUtil_CreateSMIMECapabilities(PLArenaPool *poolp, SECItem *dest)
 {
     NSSSMIMECapability *cap;
     NSSSMIMECapability **smime_capabilities;
@@ -617,12 +602,6 @@ NSS_SMIMEUtil_CreateSMIMECapabilities(PLArenaPool *poolp, SECItem *dest, PRBool 
 	
 	map = &(smime_cipher_map[i]);
 	if (!map->enabled)
-	    continue;
-
-	
-
-
-	if ((!includeFortezzaCiphers) && (map->cipher == SMIME_FORTEZZA))
 	    continue;
 
 	

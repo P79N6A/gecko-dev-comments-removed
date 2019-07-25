@@ -126,7 +126,7 @@ extern PRBool NSS_SMIMEUtil_EncryptionPossible(void);
 
 
 
-extern SECStatus NSS_SMIMEUtil_CreateSMIMECapabilities(PLArenaPool *poolp, SECItem *dest, PRBool includeFortezzaCiphers);
+extern SECStatus NSS_SMIMEUtil_CreateSMIMECapabilities(PLArenaPool *poolp, SECItem *dest);
 
 
 
