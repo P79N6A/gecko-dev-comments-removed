@@ -63,12 +63,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "sss",
                                    "@mozilla.org/content/style-sheet-service;1",
                                    "nsIStyleSheetService");
 
-XPCOMUtils.defineLazyGetter(this, "NetUtil", function () {
-  var obj = {};
-  Cu.import("resource://gre/modules/NetUtil.jsm", obj);
-  return obj.NetUtil;
-});
-
 XPCOMUtils.defineLazyGetter(this, "PropertyPanel", function () {
   var obj = {};
   try {
@@ -112,152 +106,6 @@ const ERRORS = { LOG_MESSAGE_MISSING_ARGS:
                  MISSING_ARGS: "Missing arguments",
                  LOG_OUTPUT_FAILED: "Log Failure: Could not append messageNode to outputNode",
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function ResponseListener(aHttpActivity) {
-  this.receivedData = "";
-  this.httpActivity = aHttpActivity;
-}
-
-ResponseListener.prototype =
-{
-  
-
-
-  originalListener: null,
-
-  
-
-
-  httpActivity: null,
-
-  
-
-
-  receivedData: null,
-
-  
-
-
-
-
-  setResponseHeader: function RL_setResponseHeader(aRequest)
-  {
-    let httpActivity = this.httpActivity;
-    
-    if (!httpActivity.response.header) {
-      httpActivity.response.header = {};
-      if (aRequest instanceof Ci.nsIHttpChannel) {
-        aRequest.visitResponseHeaders({
-          visitHeader: function(aName, aValue) {
-            httpActivity.response.header[aName] = aValue;
-          }
-        });
-      }
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  onDataAvailable: function RL_onDataAvailable(aRequest, aContext, aInputStream,
-                                                aOffset, aCount)
-  {
-    this.setResponseHeader(aRequest);
-
-    let StorageStream = Components.Constructor("@mozilla.org/storagestream;1",
-                                                "nsIStorageStream",
-                                                "init");
-    let BinaryOutputStream = Components.Constructor("@mozilla.org/binaryoutputstream;1",
-                                                      "nsIBinaryOutputStream",
-                                                      "setOutputStream");
-
-    storageStream = new StorageStream(8192, aCount, null);
-    binaryOutputStream = new BinaryOutputStream(storageStream.getOutputStream(0));
-
-    let data = NetUtil.readInputStreamToString(aInputStream, aCount);
-    this.receivedData += data;
-    binaryOutputStream.writeBytes(data, aCount);
-
-    this.originalListener.onDataAvailable(aRequest, aContext,
-      storageStream.newInputStream(0), aOffset, aCount);
-  },
-
-  
-
-
-
-
-
-
-  onStartRequest: function RL_onStartRequest(aRequest, aContext)
-  {
-    this.originalListener.onStartRequest(aRequest, aContext);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  onStopRequest: function RL_onStopRequest(aRequest, aContext, aStatusCode)
-  {
-    this.originalListener.onStopRequest(aRequest, aContext, aStatusCode);
-
-    this.setResponseHeader(aRequest);
-    this.httpActivity.response.body = this.receivedData;
-
-    if (HUDService.lastFinishedRequestCallback) {
-      HUDService.lastFinishedRequestCallback(this.httpActivity);
-    }
-
-    
-    this.httpActivity.panels.forEach(function(weakRef) {
-      let panel = weakRef.get();
-      if (panel) {
-        panel.update();
-      }
-    });
-    this.httpActivity.response.isDone = true;
-    this.httpActivity = null;
-  },
-
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIStreamListener,
-    Ci.nsISupports
-  ])
-}
 
 
 
@@ -327,109 +175,6 @@ var NetworkHelper =
 
 
 
-
-
-
-
-  convertToUnicode: function NH_convertToUnicode(aText, aCharset)
-  {
-    let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
-               createInstance(Ci.nsIScriptableUnicodeConverter);
-    conv.charset = aCharset || "UTF-8";
-    return conv.ConvertToUnicode(aText);
-  },
-
-  
-
-
-
-
-
-
-
-  readAndConvertFromStream: function NH_readAndConvertFromStream(aStream, aCharset)
-  {
-    let text = null;
-    try {
-      text = NetUtil.readInputStreamToString(aStream, aStream.available())
-      return this.convertToUnicode(text, aCharset);
-    }
-    catch (err) {
-      return text;
-    }
-  },
-
-   
-
-
-
-
-
-
-
-
-  readPostTextFromRequest: function NH_readPostTextFromRequest(aRequest, aBrowser)
-  {
-    if (aRequest instanceof Ci.nsIUploadChannel) {
-      let iStream = aRequest.uploadStream;
-
-      let isSeekableStream = false;
-      if (iStream instanceof Ci.nsISeekableStream) {
-        isSeekableStream = true;
-      }
-
-      let prevOffset;
-      if (isSeekableStream) {
-        prevOffset = iStream.tell();
-        iStream.seek(Ci.nsISeekableStream.NS_SEEK_SET, 0);
-      }
-
-      
-      let charset = aBrowser.contentWindow.document.characterSet;
-      let text = this.readAndConvertFromStream(iStream, charset);
-
-      
-      
-      
-      if (isSeekableStream && prevOffset == 0) {
-        iStream.seek(Ci.nsISeekableStream.NS_SEEK_SET, 0);
-      }
-      return text;
-    }
-    return null;
-  },
-
-  
-
-
-
-
-
-
-
-  readPostTextFromPage: function NH_readPostTextFromPage(aBrowser)
-  {
-    let webNav = aBrowser.webNavigation;
-    if (webNav instanceof Ci.nsIWebPageDescriptor) {
-      let descriptor = webNav.currentDescriptor;
-
-      if (descriptor instanceof Ci.nsISHEntry && descriptor.postData &&
-          descriptor instanceof Ci.nsISeekableStream) {
-        descriptor.seek(NS_SEEK_SET, 0);
-
-        let charset = browser.contentWindow.document.characterSet;
-        return this.readAndConvertFromStream(descriptor, charset);
-      }
-    }
-    return null;
-  },
-
-  
-
-
-
-
-
   getWindowForRequest: function NH_getWindowForRequest(aRequest)
   {
     let loadContext = this.getRequestLoadContext(aRequest);
@@ -461,610 +206,10 @@ var NetworkHelper =
     }
 
     return null;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  loadFromCache: function NH_loadFromCache(aUrl, aCharset, aCallback)
-  {
-    let channel = NetUtil.newChannel(aUrl);
-
-    
-    channel.loadFlags = Ci.nsIRequest.LOAD_FROM_CACHE |
-      Ci.nsICachingChannel.LOAD_ONLY_FROM_CACHE |
-      Ci.nsICachingChannel.LOAD_BYPASS_LOCAL_CACHE_IF_BUSY;
-
-    NetUtil.asyncFetch(channel, function (aInputStream, aStatusCode, aRequest) {
-      if (!Components.isSuccessCode(aStatusCode)) {
-        aCallback(null);
-        return;
-      }
-
-      
-      
-      let aChannel = aRequest.QueryInterface(Ci.nsIChannel);
-      let contentCharset = aChannel.contentCharset || aCharset;
-
-      
-      aCallback(NetworkHelper.readAndConvertFromStream(aInputStream,
-                                                       contentCharset));
-    });
-  }
+   }
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function createElement(aDocument, aTag, aAttributes)
-{
-  let node = aDocument.createElement(aTag);
-  for (var attr in aAttributes) {
-    node.setAttribute(attr, aAttributes[attr]);
-  }
-  return node;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-function createAndAppendElement(aParent, aTag, aAttributes)
-{
-  let node = createElement(aParent.ownerDocument, aTag, aAttributes);
-  aParent.appendChild(node);
-  return node;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-function NetworkPanel(aParent, aHttpActivity)
-{
-  let doc = aParent.ownerDocument;
-  this.httpActivity = aHttpActivity;
-
-  
-  this.panel = createElement(doc, "panel", {
-    label: HUDService.getStr("NetworkPanel.label"),
-    titlebar: "normal",
-    noautofocus: "true",
-    noautohide: "true",
-    close: "true"
-  });
-
-  
-  this.browser = createAndAppendElement(this.panel, "browser", {
-    src: "chrome://global/content/NetworkPanel.xhtml",
-    disablehistory: "true",
-    flex: "1"
-  });
-
-  
-  this.panel.addEventListener("popuphidden", function onPopupHide() {
-    self.panel.removeEventListener("popuphidden", onPopupHide, false);
-    self.panel.parentNode.removeChild(self.panel);
-    self.panel = null;
-    self.browser = null;
-    self.document = null;
-    self.httpActivity = null;
-  }, false);
-
-  
-  let self = this;
-  this.panel.addEventListener("load", function onLoad() {
-    self.panel.removeEventListener("load", onLoad, true)
-    self.document = self.browser.contentWindow.document;
-    self.update();
-  }, true);
-
-  
-  let footer = createElement(doc, "hbox", { align: "end" });
-  createAndAppendElement(footer, "spacer", { flex: 1 });
-
-  createAndAppendElement(footer, "resizer", { dir: "bottomend" });
-  this.panel.appendChild(footer);
-
-  aParent.appendChild(this.panel);
-}
-
-NetworkPanel.prototype =
-{
-  
-
-
-
-  isDoneCallback: null,
-
-  
-
-
-  _state: 0,
-
-  
-
-
-  _INIT: 0,
-  _DISPLAYED_REQUEST_HEADER: 1,
-  _DISPLAYED_REQUEST_BODY: 2,
-  _DISPLAYED_RESPONSE_HEADER: 3,
-  _TRANSITION_CLOSED: 4,
-
-  _fromDataRegExp: /Content-Type\:\s*application\/x-www-form-urlencoded/,
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _format: function NP_format(aName, aArray)
-  {
-    return HUDService.getFormatStr("NetworkPanel." + aName, aArray);
-  },
-
-  
-
-
-
-
-  get _responseIsImage()
-  {
-    let response = this.httpActivity.response;
-    if (!response || !response.header || !response.header["Content-Type"]) {
-      let request = this.httpActivity.request;
-      if (request.header["Accept"] &&
-          request.header["Accept"].indexOf("image/") != -1) {
-        return true;
-      }
-      else {
-        return false;
-      }
-    }
-    return response.header["Content-Type"].indexOf("image/") != -1;
-  },
-
-  
-
-
-
-
-
-  get _isResponseCached()
-  {
-    return this.httpActivity.response.status.indexOf("304") != -1;
-  },
-
-  
-
-
-
-
-  get _isRequestBodyFormData()
-  {
-    let requestBody = this.httpActivity.request.body;
-    return this._fromDataRegExp.test(requestBody);
-  },
-
-  
-
-
-
-
-
-
-  _appendTextNode: function NP_appendTextNode(aId, aValue)
-  {
-    let textNode = this.document.createTextNode(aValue);
-    this.document.getElementById(aId).appendChild(textNode);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  _appendList: function NP_appendList(aParentId, aList, aIgnoreCookie)
-  {
-    let parent = this.document.getElementById(aParentId);
-    let doc = this.document;
-
-    let sortedList = {};
-    Object.keys(aList).sort().forEach(function(aKey) {
-      sortedList[aKey] = aList[aKey];
-    });
-
-    for (let key in sortedList) {
-      if (aIgnoreCookie && key == "Cookie") {
-        continue;
-      }
-
-      
-
-
-
-
-
-
-
-      let textNode = doc.createTextNode(key + ":");
-      let span = doc.createElement("span");
-      span.setAttribute("class", "property-name");
-      span.appendChild(textNode);
-      parent.appendChild(span);
-
-      textNode = doc.createTextNode(sortedList[key]);
-      span = doc.createElement("span");
-      span.setAttribute("class", "property-value");
-      span.appendChild(textNode);
-      parent.appendChild(span);
-
-      parent.appendChild(doc.createElement("br"));
-    }
-  },
-
-  
-
-
-
-
-
-  _displayNode: function NP_displayNode(aId)
-  {
-    this.document.getElementById(aId).style.display = "block";
-  },
-
-  
-
-
-
-
-
-
-
-
-  _displayRequestHeader: function NP_displayRequestHeader()
-  {
-    let timing = this.httpActivity.timing;
-    let request = this.httpActivity.request;
-
-    this._appendTextNode("headUrl", this.httpActivity.url);
-    this._appendTextNode("headMethod", this.httpActivity.method);
-
-    this._appendTextNode("requestHeadersInfo",
-      ConsoleUtils.timestampString(timing.REQUEST_HEADER/1000));
-
-    this._appendList("requestHeadersContent", request.header, true);
-
-    if ("Cookie" in request.header) {
-      this._displayNode("requestCookie");
-
-      let cookies = request.header.Cookie.split(";");
-      let cookieList = {};
-      let cookieListSorted = {};
-      cookies.forEach(function(cookie) {
-        let name, value;
-        [name, value] = cookie.trim().split("=");
-        cookieList[name] = value;
-      });
-      this._appendList("requestCookieContent", cookieList);
-    }
-  },
-
-  
-
-
-
-
-
-  _displayRequestBody: function NP_displayRequestBody() {
-    this._displayNode("requestBody");
-    this._appendTextNode("requestBodyContent", this.httpActivity.request.body);
-  },
-
-  
-
-
-
-
-
-  _displayRequestForm: function NP_processRequestForm() {
-    let requestBodyLines = this.httpActivity.request.body.split("\n");
-    let formData = requestBodyLines[requestBodyLines.length - 1].
-                      replace(/\+/g, " ").split("&");
-
-    function unescapeText(aText)
-    {
-      try {
-        return decodeURIComponent(aText);
-      }
-      catch (ex) {
-        return decodeURIComponent(unescape(aText));
-      }
-    }
-
-    let formDataObj = {};
-    for (let i = 0; i < formData.length; i++) {
-      let data = formData[i];
-      let idx = data.indexOf("=");
-      let key = data.substring(0, idx);
-      let value = data.substring(idx + 1);
-      formDataObj[unescapeText(key)] = unescapeText(value);
-    }
-
-    this._appendList("requestFormDataContent", formDataObj);
-    this._displayNode("requestFormData");
-  },
-
-  
-
-
-
-
-
-
-  _displayResponseHeader: function NP_displayResponseHeader()
-  {
-    let timing = this.httpActivity.timing;
-    let response = this.httpActivity.response;
-
-    this._appendTextNode("headStatus", response.status);
-
-    let deltaDuration =
-      Math.round((timing.RESPONSE_HEADER - timing.REQUEST_HEADER) / 1000);
-    this._appendTextNode("responseHeadersInfo",
-      this._format("durationMS", [deltaDuration]));
-
-    this._displayNode("responseContainer");
-    this._appendList("responseHeadersContent", response.header);
-  },
-
-  
-
-
-
-
-
-
-
-  _displayResponseImage: function NP_displayResponseImage()
-  {
-    let self = this;
-    let timing = this.httpActivity.timing;
-    let response = this.httpActivity.response;
-    let cached = "";
-
-    if (this._isResponseCached) {
-      cached = "Cached";
-    }
-
-    let imageNode = this.document.getElementById("responseImage" + cached +"Node");
-    imageNode.setAttribute("src", this.httpActivity.url);
-
-    
-    function setImageInfo() {
-      let deltaDuration =
-        Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
-      self._appendTextNode("responseImage" + cached + "Info",
-        self._format("imageSizeDeltaDurationMS", [
-          imageNode.width, imageNode.height, deltaDuration
-        ]
-      ));
-    }
-
-    
-    if (imageNode.width != 0) {
-      setImageInfo();
-    }
-    else {
-      
-      imageNode.addEventListener("load", function imageNodeLoad() {
-        imageNode.removeEventListener("load", imageNodeLoad, false);
-        setImageInfo();
-      }, false);
-    }
-
-    this._displayNode("responseImage" + cached);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _displayResponseBody: function NP_displayResponseBody(aCachedContent)
-  {
-    let timing = this.httpActivity.timing;
-    let response = this.httpActivity.response;
-    let cached =  "";
-    if (aCachedContent) {
-      cached = "Cached";
-    }
-
-    let deltaDuration =
-      Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
-    this._appendTextNode("responseBody" + cached + "Info",
-      this._format("durationMS", [deltaDuration]));
-
-    this._displayNode("responseBody" + cached);
-    this._appendTextNode("responseBody" + cached + "Content",
-                            aCachedContent || response.body);
-  },
-
-  
-
-
-
-
-
-  _displayNoResponseBody: function NP_displayNoResponseBody()
-  {
-    let timing = this.httpActivity.timing;
-
-    this._displayNode("responseNoBody");
-    let deltaDuration =
-      Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
-    this._appendTextNode("responseNoBodyInfo",
-      this._format("durationMS", [deltaDuration]));
-  },
-
-  
-
-
-  _callIsDone: function() {
-    if (this.isDoneCallback) {
-      this.isDoneCallback();
-    }
-  },
-
-  
-
-
-
-
-  update: function NP_update()
-  {
-    
-
-
-
-
-    if (!this.document) {
-      return;
-    }
-
-    let timing = this.httpActivity.timing;
-    let request = this.httpActivity.request;
-    let response = this.httpActivity.response;
-
-    switch (this._state) {
-      case this._INIT:
-        this._displayRequestHeader();
-        this._state = this._DISPLAYED_REQUEST_HEADER;
-        
-
-      case this._DISPLAYED_REQUEST_HEADER:
-        
-        if (request.body) {
-          
-          if (this._isRequestBodyFormData) {
-            this._displayRequestForm();
-          }
-          else {
-            this._displayRequestBody();
-          }
-          this._state = this._DISPLAYED_REQUEST_BODY;
-        }
-        
-
-      case this._DISPLAYED_REQUEST_BODY:
-        
-        
-        
-        if (!response.header) {
-          break
-        }
-        this._displayResponseHeader();
-        this._state = this._DISPLAYED_RESPONSE_HEADER;
-        
-
-      case this._DISPLAYED_RESPONSE_HEADER:
-        
-        if (timing.TRANSACTION_CLOSE && response.isDone) {
-          if (this._responseIsImage) {
-            this._displayResponseImage();
-            this._callIsDone();
-          }
-          else if (response.body) {
-            this._displayResponseBody();
-            this._callIsDone();
-          }
-          else if (this._isResponseCached) {
-            let self = this;
-            NetworkHelper.loadFromCache(this.httpActivity.url,
-                                        this.httpActivity.charset,
-                                        function(aContent) {
-              
-              
-              if (aContent) {
-                self._displayResponseBody(aContent);
-                self._callIsDone();
-              }
-              
-              else {
-                self._displayNoResponseBody();
-                self._callIsDone();
-              }
-            });
-          }
-          else {
-            this._displayNoResponseBody();
-            this._callIsDone();
-          }
-          this._state = this._TRANSITION_CLOSED;
-        }
-        break;
-    }
-  }
-}
 
 function HUD_SERVICE()
 {
@@ -1619,11 +764,6 @@ HUD_SERVICE.prototype =
   {
     
     
-    
-    HUDService.clearDisplay(aId);
-
-    
-    
     var outputNode = this.mixins.getOutputNodeById(aId);
     var parent = outputNode.parentNode;
     var splitters = parent.querySelectorAll("splitter");
@@ -1972,39 +1112,6 @@ HUD_SERVICE.prototype =
   
 
 
-  openRequests: {},
-
-  
-
-
-
-  lastFinishedRequestCallback: null,
-
-  
-
-
-
-
-
-
-
-
-
-  openNetworkPanel: function (aNode, aHttpActivity) {
-    let doc = aNode.ownerDocument;
-    let parent = doc.getElementById("mainPopupSet");
-    let netPanel = new NetworkPanel(parent, aHttpActivity);
-
-    let panel = netPanel.panel;
-    panel.openPopup(aNode, "after_pointer", 0, 0, false, false);
-    panel.sizeTo(350, 400);
-    aHttpActivity.panels.push(Cu.getWeakReference(netPanel));
-    return netPanel;
-  },
-
-  
-
-
 
 
   startHTTPObservation: function HS_httpObserverFactory()
@@ -2016,15 +1123,13 @@ HUD_SERVICE.prototype =
       function (aChannel, aActivityType, aActivitySubtype,
                 aTimestamp, aExtraSizeData, aExtraStringData)
       {
+        var loadGroup;
         if (aActivityType ==
-              activityDistributor.ACTIVITY_TYPE_HTTP_TRANSACTION ||
-            aActivityType ==
-              activityDistributor.ACTIVITY_TYPE_SOCKET_TRANSPORT) {
+            activityDistributor.ACTIVITY_TYPE_HTTP_TRANSACTION) {
 
           aChannel = aChannel.QueryInterface(Ci.nsIHttpChannel);
 
-          let transCodes = this.httpTransactionCodes;
-          let hudId;
+          var transCodes = this.httpTransactionCodes;
 
           if (aActivitySubtype ==
               activityDistributor.ACTIVITY_SUBTYPE_REQUEST_HEADER ) {
@@ -2035,177 +1140,29 @@ HUD_SERVICE.prototype =
             }
 
             
-            hudId = self.getHudIdByWindow(win);
+            let hudId = self.getHudIdByWindow(win);
             if (!hudId) {
               return;
             }
 
-            
-            
-            let httpActivity = {
-              id: self.sequenceId(),
-              hudId: hudId,
-              url: aChannel.URI.spec,
-              method: aChannel.requestMethod,
+            var httpActivity = {
               channel: aChannel,
-              charset: win.document.characterSet,
-
-              panels: [],
-              request: {
-                header: { }
-              },
-              response: {
-                header: null
-              },
-              timing: {
-                "REQUEST_HEADER": aTimestamp
-              }
+              type: aActivityType,
+              subType: aActivitySubtype,
+              timestamp: aTimestamp,
+              extraSizeData: aExtraSizeData,
+              extraStringData: aExtraStringData,
+              stage: transCodes[aActivitySubtype],
+              hudId: hudId
             };
 
             
+            
+            httpActivity.httpId = self.sequenceId();
             let loggedNode =
               self.logActivity("network", aChannel.URI, httpActivity);
-
-            
-            
-            if (!loggedNode) {
-              return;
-            }
-
-            
-            let newListener = new ResponseListener(httpActivity);
-            aChannel.QueryInterface(Ci.nsITraceableChannel);
-            newListener.originalListener = aChannel.setNewListener(newListener);
-            httpActivity.response.listener = newListener;
-
-            
-            aChannel.visitRequestHeaders({
-              visitHeader: function(aName, aValue) {
-                httpActivity.request.header[aName] = aValue;
-              }
-            });
-
-            
-            httpActivity.messageObject = loggedNode;
-            self.openRequests[httpActivity.id] = httpActivity;
-
-            
-            let linkNode = loggedNode.messageNode;
-            linkNode.setAttribute("aria-haspopup", "true");
-            linkNode.onclick = function() {
-              self.openNetworkPanel(linkNode, httpActivity);
-            }
-          }
-          else {
-            
-            
-            let httpActivity = null;
-            for each (var item in self.openRequests) {
-              if (item.channel !== aChannel) {
-                continue;
-              }
-              httpActivity = item;
-              break;
-            }
-
-            if (!httpActivity) {
-              return;
-            }
-
-            let msgObject, updatePanel = false;
-            let data, textNode;
-            
-            httpActivity.timing[transCodes[aActivitySubtype]] = aTimestamp;
-
-            switch (aActivitySubtype) {
-              case activityDistributor.ACTIVITY_SUBTYPE_REQUEST_BODY_SENT:
-                let gBrowser = HUDService.currentContext().gBrowser;
-
-                let sentBody = NetworkHelper.readPostTextFromRequest(
-                                aChannel, gBrowser);
-                if (!sentBody) {
-                  
-                  
-                  
-                  
-                  
-                  
-                  
-                  if (httpActivity.url == gBrowser.contentWindow.location.href) {
-                    sentBody = NetworkHelper.readPostTextFromPage(gBrowser);
-                  }
-                  if (!sentBody) {
-                    sentBody = "";
-                  }
-                }
-                httpActivity.request.body = sentBody;
-                break;
-
-              case activityDistributor.ACTIVITY_SUBTYPE_RESPONSE_HEADER:
-                msgObject = httpActivity.messageObject;
-
-                
-                
-                
-                
-                
-                
-                
-                
-                httpActivity.response.status =
-                  aExtraStringData.split(/\r\n|\n|\r/)[0];
-
-                
-                
-                textNode = msgObject.messageNode.firstChild;
-                textNode.parentNode.removeChild(textNode);
-
-                data = [ httpActivity.url,
-                         httpActivity.response.status ];
-
-                msgObject.messageNode.appendChild(
-                  msgObject.textFactory(
-                    msgObject.prefix +
-                    self.getFormatStr("networkUrlWithStatus", data)));
-
-                break;
-
-              case activityDistributor.ACTIVITY_SUBTYPE_TRANSACTION_CLOSE:
-                msgObject = httpActivity.messageObject;
-
-
-                let timing = httpActivity.timing;
-                let requestDuration =
-                  Math.round((timing.RESPONSE_COMPLETE -
-                                timing.REQUEST_HEADER) / 1000);
-
-                
-                
-                textNode = msgObject.messageNode.firstChild;
-                textNode.parentNode.removeChild(textNode);
-
-                data = [ httpActivity.url,
-                         httpActivity.response.status,
-                         requestDuration ];
-
-                msgObject.messageNode.appendChild(
-                  msgObject.textFactory(
-                    msgObject.prefix +
-                    self.getFormatStr("networkUrlWithStatusAndDuration", data)));
-
-                delete self.openRequests[item.id];
-                updatePanel = true;
-                break;
-            }
-
-            if (updatePanel) {
-              httpActivity.panels.forEach(function(weakRef) {
-                let panel = weakRef.get();
-                if (panel) {
-                  panel.update();
-                }
-              });
-            }
+            self.httpTransactions[aChannel] =
+              new Number(httpActivity.httpId);
           }
         }
       },
@@ -2217,18 +1174,15 @@ HUD_SERVICE.prototype =
         0x5004: "RESPONSE_HEADER",
         0x5005: "RESPONSE_COMPLETE",
         0x5006: "TRANSACTION_CLOSE",
-
-        0x804b0003: "STATUS_RESOLVING",
-        0x804b0007: "STATUS_CONNECTING_TO",
-        0x804b0004: "STATUS_CONNECTED_TO",
-        0x804b0005: "STATUS_SENDING_TO",
-        0x804b000a: "STATUS_WAITING_FOR",
-        0x804b0006: "STATUS_RECEIVING_FROM"
       }
     };
 
     activityDistributor.addObserver(httpObserver);
   },
+
+  
+  
+  httpTransactions: {},
 
   
 
@@ -2257,20 +1211,13 @@ HUD_SERVICE.prototype =
                     };
       var msgType = this.getStr("typeNetwork");
       var msg = msgType + " " +
-        aActivityObject.method +
+        aActivityObject.channel.requestMethod +
         " " +
-        aActivityObject.url;
+        aURI.spec;
       message.message = msg;
-
       var messageObject =
-        this.messageFactory(message, aType, outputNode, aActivityObject);
-
-      var timestampedMessage = messageObject.timestampedMessage;
-      var urlIdx = timestampedMessage.indexOf(aActivityObject.url);
-      messageObject.prefix = timestampedMessage.substring(0, urlIdx);
-
+      this.messageFactory(message, aType, outputNode, aActivityObject);
       this.logMessage(messageObject.messageObject, outputNode, messageObject.messageNode);
-      return messageObject;
     }
     catch (ex) {
       Cu.reportError(ex);
@@ -2360,7 +1307,7 @@ HUD_SERVICE.prototype =
     var displayNode, outputNode, hudId;
 
     if (aType == "network") {
-      return this.logNetActivity(aType, aURI, aActivityObject);
+      var result = this.logNetActivity(aType, aURI, aActivityObject);
     }
     else if (aType == "console-listener") {
       this.logConsoleActivity(aURI, aActivityObject);
@@ -4198,9 +3145,9 @@ LogMessage.prototype = {
     this.messageNode = this.xulElementFactory("label");
 
     var ts = ConsoleUtils.timestamp();
-    this.timestampedMessage = ConsoleUtils.timestampString(ts) + ": " +
+    var timestampedMessage = ConsoleUtils.timestampString(ts) + ": " +
       this.message.message;
-    var messageTxtNode = this.textFactory(this.timestampedMessage);
+    var messageTxtNode = this.textFactory(timestampedMessage);
 
     this.messageNode.appendChild(messageTxtNode);
 
