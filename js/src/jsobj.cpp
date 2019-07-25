@@ -2960,8 +2960,7 @@ js_NewBlockObject(JSContext *cx)
 JSObject *
 js_CloneBlockObject(JSContext *cx, JSObject *proto, JSStackFrame *fp)
 {
-    JS_ASSERT(!OBJ_IS_CLONED_BLOCK(proto));
-    JS_ASSERT(proto->getClass() == &js_BlockClass);
+    JS_ASSERT(proto->isStaticBlock());
 
     JSObject *clone = js_NewGCObject(cx);
     if (!clone)
@@ -2973,11 +2972,11 @@ js_CloneBlockObject(JSContext *cx, JSObject *proto, JSStackFrame *fp)
     clone->init(&js_BlockClass, proto, NULL, priv, cx);
     clone->fslots[JSSLOT_BLOCK_DEPTH] = proto->fslots[JSSLOT_BLOCK_DEPTH];
 
-    clone->setMap(cx->runtime->emptyBlockShape);
-    JS_ASSERT(OBJ_IS_CLONED_BLOCK(clone));
-
+    clone->setMap(proto->map);
     if (!clone->ensureInstanceReservedSlots(cx, OBJ_BLOCK_COUNT(cx, proto)))
         return NULL;
+
+    JS_ASSERT(clone->isClonedBlock());
     return clone;
 }
 
@@ -2989,17 +2988,8 @@ js_PutBlockObject(JSContext *cx, JSBool normalUnwind)
 
     JSStackFrame *const fp = cx->fp();
     JSObject *obj = fp->getScopeChain();
-    JS_ASSERT(obj->getClass() == &js_BlockClass);
+    JS_ASSERT(obj->isClonedBlock());
     JS_ASSERT(obj->getPrivate() == js_FloatingFrameIfGenerator(cx, cx->fp()));
-    JS_ASSERT(OBJ_IS_CLONED_BLOCK(obj));
-
-    
-
-
-
-
-
-    JS_ASSERT(obj->nativeEmpty());
 
     
     uintN count = OBJ_BLOCK_COUNT(cx, obj);
@@ -3040,8 +3030,7 @@ block_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 
 
 
-    JS_ASSERT(obj->getClass() == &js_BlockClass);
-    JS_ASSERT(OBJ_IS_CLONED_BLOCK(obj));
+    JS_ASSERT(obj->isClonedBlock());
     uintN index = (uintN) JSID_TO_INT(id);
     JS_ASSERT(index < OBJ_BLOCK_COUNT(cx, obj));
 
@@ -3055,19 +3044,14 @@ block_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     }
 
     
-    uint32 slot = JSSLOT_BLOCK_DEPTH + 1 + index;
-    JS_LOCK_OBJ(cx, obj);
-    JS_ASSERT(slot < obj->numSlots());
-    *vp = obj->getSlot(slot);
-    JS_UNLOCK_OBJ(cx, obj);
+    JS_ASSERT(obj->getSlot(JSSLOT_FREE(&js_BlockClass) + index) == *vp);
     return true;
 }
 
 static JSBool
 block_setProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
-    JS_ASSERT(obj->getClass() == &js_BlockClass);
-    JS_ASSERT(OBJ_IS_CLONED_BLOCK(obj));
+    JS_ASSERT(obj->isClonedBlock());
     uintN index = (uintN) JSID_TO_INT(id);
     JS_ASSERT(index < OBJ_BLOCK_COUNT(cx, obj));
 
@@ -3081,26 +3065,28 @@ block_setProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     }
 
     
-    uint32 slot = JSSLOT_BLOCK_DEPTH + 1 + index;
-    JS_LOCK_OBJ(cx, obj);
-    JS_ASSERT(slot < obj->numSlots());
-    obj->setSlot(slot, *vp);
-    JS_UNLOCK_OBJ(cx, obj);
+
+
+
     return true;
 }
 
-JSBool
-js_DefineBlockVariable(JSContext *cx, JSObject *obj, jsid id, intN index)
+const Shape *
+JSObject::defineBlockVariable(JSContext *cx, jsid id, intN index)
 {
-    JS_ASSERT(obj->getClass() == &js_BlockClass);
-    JS_ASSERT(!OBJ_IS_CLONED_BLOCK(obj));
+    JS_ASSERT(isStaticBlock());
 
     
-    return js_DefineNativeProperty(cx, obj, id, UndefinedValue(),
-                                   block_getProperty,
-                                   block_setProperty,
-                                   JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED,
-                                   Shape::HAS_SHORTID, index, NULL);
+    uint32 slot = JSSLOT_FREE(&js_BlockClass) + index;
+    const Shape *shape = addProperty(cx, id,
+                                     block_getProperty, block_setProperty,
+                                     slot, JSPROP_ENUMERATE | JSPROP_PERMANENT,
+                                     Shape::HAS_SHORTID, index);
+    if (!shape)
+        return NULL;
+    if (slot >= numSlots() && !growSlots(cx, slot + 1))
+        return NULL;
+    return shape;
 }
 
 static size_t
@@ -3157,13 +3143,9 @@ js_XDRBlockObject(JSXDRState *xdr, JSObject **objp)
     JSContext *cx;
     uint32 parentId;
     JSObject *obj, *parent;
-    uint16 depth, count, i;
-    uint32 tmp;
+    uintN depth, count;
+    uint32 depthAndCount;
     const Shape *shape;
-    jsid propid;
-    JSAtom *atom;
-    int16 shortid;
-    JSBool ok;
 
     cx = xdr->cx;
 #ifdef __GNUC__
@@ -3178,7 +3160,7 @@ js_XDRBlockObject(JSXDRState *xdr, JSObject **objp)
                    : FindObjectIndex(xdr->script->objects(), parent);
         depth = (uint16)OBJ_BLOCK_DEPTH(cx, obj);
         count = (uint16)OBJ_BLOCK_COUNT(cx, obj);
-        tmp = (uint32)(depth << 16) | count;
+        depthAndCount = (uint32)(depth << 16) | count;
     }
 #ifdef __GNUC__ 
     else count = 0;
@@ -3208,46 +3190,51 @@ js_XDRBlockObject(JSXDRState *xdr, JSObject **objp)
 
     AutoObjectRooter tvr(cx, obj);
 
-    if (!JS_XDRUint32(xdr, &tmp))
+    if (!JS_XDRUint32(xdr, &depthAndCount))
         return false;
 
+    Vector<const Shape *, 8> shapes(cx);
+    shapes.growByUninitialized(count);
+
     if (xdr->mode == JSXDR_DECODE) {
-        depth = (uint16)(tmp >> 16);
-        count = (uint16)tmp;
+        depth = (uint16)(depthAndCount >> 16);
+        count = (uint16)depthAndCount;
         obj->setSlot(JSSLOT_BLOCK_DEPTH, Value(Int32Value(depth)));
+    } else {
+        for (Shape::Range r(obj->lastProperty()); !r.empty(); r.popFront()) {
+            shape = &r.front();
+            shapes[shape->shortid] = shape;
+        }
     }
 
     
 
 
 
+    for (uintN i = 0; i < count; i++) {
+        JSAtom *atom;
+        uint16 shortid;
 
-    shape = NULL;
-    ok = JS_TRUE;
-    for (i = 0; i < count; i++) {
         if (xdr->mode == JSXDR_ENCODE) {
-            
-            do {
-                
-                shape = shape ? shape->previous() : obj->lastProperty();
-            } while (!shape->hasShortID());
-
+            shape = shapes[i];
             JS_ASSERT(shape->getter() == block_getProperty);
-            propid = shape->id;
+
+            jsid propid = shape->id;
             JS_ASSERT(JSID_IS_ATOM(propid));
             atom = JSID_TO_ATOM(propid);
-            shortid = shape->shortid;
-            JS_ASSERT(shortid >= 0);
+
+            shortid = uint16(shape->shortid);
+            JS_ASSERT(shortid == i);
         }
 
         
         if (!js_XDRAtom(xdr, &atom) ||
-            !JS_XDRUint16(xdr, (uint16 *)&shortid)) {
+            !JS_XDRUint16(xdr, &shortid)) {
             return false;
         }
 
         if (xdr->mode == JSXDR_DECODE) {
-            if (!js_DefineBlockVariable(cx, obj, ATOM_TO_JSID(atom), shortid))
+            if (!obj->defineBlockVariable(cx, ATOM_TO_JSID(atom), shortid))
                 return false;
         }
     }
@@ -3533,7 +3520,7 @@ JSObject::growSlots(JSContext *cx, size_t nslots)
         return true;
 
     
-    if (nslots >= JS_NSLOTS_LIMIT) {
+    if (nslots >= NSLOTS_LIMIT) {
         JS_ReportOutOfMemory(cx);
         return false;
     }
@@ -3611,17 +3598,9 @@ JSObject::ensureInstanceReservedSlots(JSContext *cx, size_t nreserved)
 {
     JS_ASSERT_IF(isNative(),
                  isBlock() || isCall() || (isFunction() && getFunctionPrivate()->isBound()));
-    JS_ASSERT_IF(isBlock(), nativeEmpty());
 
     uintN nslots = JSSLOT_FREE(clasp) + nreserved;
-    if (nslots > numSlots() && !allocSlots(cx, nslots))
-        return false;
-
-    JS_ASSERT(freeslot >= JSSLOT_START(clasp));
-    JS_ASSERT(freeslot <= JSSLOT_FREE(clasp));
-    if (freeslot < nslots)
-        freeslot = nslots;
-    return true;
+    return nslots <= numSlots() || allocSlots(cx, nslots);
 }
 
 static JSObject *
@@ -3887,12 +3866,22 @@ js_ConstructObject(JSContext *cx, Class *clasp, JSObject *proto, JSObject *paren
 bool
 JSObject::allocSlot(JSContext *cx, uint32 *slotp)
 {
-    JS_ASSERT(freeslot >= JSSLOT_FREE(clasp));
+    uint32 slot = freeslot();
+    JS_ASSERT(slot >= JSSLOT_FREE(clasp));
+
+    
+
+
 
     if (inDictionaryMode() && lastProp->table) {
         uint32 &last = lastProp->table->freeslot;
         if (last != SHAPE_INVALID_SLOT) {
-            JS_ASSERT(last < freeslot);
+#ifdef DEBUG
+            JS_ASSERT(last < slot);
+            uint32 next = getSlot(last).toPrivateUint32();
+            JS_ASSERT_IF(next != SHAPE_INVALID_SLOT, next < slot);
+#endif
+
             *slotp = last;
 
             Value &vref = getSlotRef(last);
@@ -3902,29 +3891,36 @@ JSObject::allocSlot(JSContext *cx, uint32 *slotp)
         }
     }
 
-    if (freeslot >= numSlots() && !growSlots(cx, freeslot + 1))
+    if (slot >= numSlots() && !growSlots(cx, slot + 1))
         return false;
 
     
-    JS_ASSERT(getSlot(freeslot).isUndefined());
-    *slotp = freeslot++;
-    JS_ASSERT(freeslot != 0);
+    JS_ASSERT(getSlot(slot).isUndefined());
+    *slotp = slot;
     return true;
 }
 
 void
 JSObject::freeSlot(JSContext *cx, uint32 slot)
 {
-    JS_ASSERT(freeslot > JSSLOT_FREE(clasp));
+    uint32 limit = freeslot();
+    JS_ASSERT(slot < limit);
 
     Value &vref = getSlotRef(slot);
-    if (freeslot == slot + 1) {
-        freeslot = slot;
-    } else {
-        if (inDictionaryMode() && lastProp->table) {
-            uint32 &last = lastProp->table->freeslot;
+    if (inDictionaryMode() && lastProp->table) {
+        uint32 &last = lastProp->table->freeslot;
 
-            JS_ASSERT_IF(last != SHAPE_INVALID_SLOT, last < freeslot);
+        
+        JS_ASSERT_IF(last != SHAPE_INVALID_SLOT, last < limit && last != slot);
+
+        
+
+
+
+
+
+        if (slot + 1 < limit) {
+            JS_ASSERT_IF(last != SHAPE_INVALID_SLOT, last < freeslot());
             vref.setPrivateUint32(last);
             last = slot;
             return;
@@ -4511,8 +4507,9 @@ js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
 
 
 
-                    JS_ASSERT(pobj == obj->getProto());
-                    JS_ASSERT(protoIndex == 1);
+                    JS_ASSERT(pobj == obj);
+                    JS_ASSERT(pobj->isClonedBlock());
+                    JS_ASSERT(protoIndex == 0);
                 } else {
                     
                     JS_ASSERT(!obj->getProto());
@@ -4957,7 +4954,7 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
             prop = NULL;
     } else {
         
-        JS_ASSERT(obj->getClass() != &js_BlockClass);
+        JS_ASSERT(!obj->isBlock());
 
         if (!obj->getParent() &&
             (defineHow & JSDNP_UNQUALIFIED) &&
@@ -5924,7 +5921,7 @@ js_TraceObject(JSTracer *trc, JSObject *obj)
 
 
 
-        size_t slots = obj->freeslot;
+        size_t slots = obj->freeslot();
         if (obj->numSlots() != slots)
             obj->shrinkSlots(cx, slots);
     }
@@ -5962,8 +5959,8 @@ js_TraceObject(JSTracer *trc, JSObject *obj)
 
 
     uint32 nslots = obj->numSlots();
-    if (!obj->nativeEmpty() && obj->freeslot < nslots)
-        nslots = obj->freeslot;
+    if (!obj->nativeEmpty() && obj->freeslot() < nslots)
+        nslots = obj->freeslot();
     JS_ASSERT(nslots >= JSSLOT_START(clasp));
 
     for (uint32 i = JSSLOT_START(clasp); i != nslots; ++i) {
@@ -5990,7 +5987,6 @@ js_ClearNative(JSContext *cx, JSObject *obj)
         uint32 n = obj->numSlots();
         for (uint32 i = freeslot; i < n; ++i)
             obj->setSlot(i, UndefinedValue());
-        obj->freeslot = freeslot;
     }
     JS_UNLOCK_OBJ(cx, obj);
 }
@@ -6031,9 +6027,6 @@ js_SetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, const Value &v)
             return false;
         }
     }
-
-    if (slot >= obj->freeslot)
-        obj->freeslot = slot + 1;
 
     obj->setSlot(slot, v);
     GC_POKE(cx, JS_NULL);
@@ -6339,7 +6332,7 @@ js_DumpObject(JSObject *obj)
 
     fprintf(stderr, "slots:\n");
     reservedEnd = i + JSCLASS_RESERVED_SLOTS(clasp);
-    slots = obj->freeslot;
+    slots = obj->freeslot();
     for (; i < slots; i++) {
         fprintf(stderr, " %3d ", i);
         if (i < reservedEnd)

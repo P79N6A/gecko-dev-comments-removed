@@ -507,7 +507,7 @@ FinishSharingTitle(JSContext *cx, JSTitle *title)
 
     JSObject *obj = TITLE_TO_OBJECT(title);
     if (obj) {
-        uint32 nslots = obj->freeslot;
+        uint32 nslots = obj->freeslot();
         JS_ASSERT(nslots >= JSSLOT_START(obj->getClass()));
         for (uint32 i = JSSLOT_START(obj->getClass()); i != nslots; ++i) {
             Value v = obj->getSlot(i);
@@ -674,7 +674,7 @@ js_GetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot)
 
 
     JS_ASSERT(obj->title.ownercx != cx);
-    JS_ASSERT(slot < obj->freeslot);
+    JS_ASSERT(obj->containsSlot(slot));
 
     
 
@@ -752,7 +752,7 @@ js_SetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot, jsval v)
 
 
     JS_ASSERT(obj->title.ownercx != cx);
-    JS_ASSERT(slot < obj->freeslot);
+    JS_ASSERT(obj->containsSlot(slot));
 
     
 

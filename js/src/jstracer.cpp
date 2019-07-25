@@ -14534,7 +14534,7 @@ TraceRecorder::traverseScopeChain(JSObject *obj, LIns *obj_ins, JSObject *target
             }
         }
 
-        JS_ASSERT(obj->getClass() != &js_BlockClass);
+        JS_ASSERT(!obj->isBlock());
 
         if (obj == targetObj)
             break;
@@ -14562,7 +14562,7 @@ TraceRecorder::record_JSOP_BINDNAME()
 
         
         
-        while (obj->getClass() == &js_BlockClass) {
+        while (obj->isBlock()) {
             
 #ifdef DEBUG
             

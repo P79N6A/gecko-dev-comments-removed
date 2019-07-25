@@ -117,10 +117,13 @@ using namespace js;
 #define MIN_SPARSE_INDEX 256
 
 
+
+
+
 static inline bool
 INDEX_TOO_BIG(jsuint index)
 {
-    return index > JS_BIT(29) - 1;
+    return index >= JSObject::NSLOTS_LIMIT;
 }
 
 static inline  bool
@@ -1058,15 +1061,6 @@ JSObject::makeDenseArraySlow(JSContext *cx)
         capacity = 0;
     }
 
-    uint32 nslots = numSlots();
-    if (nslots >= JS_NSLOTS_LIMIT) {
-        setMap(oldMap);
-        JS_ReportOutOfMemory(cx);
-        return false;
-    }
-
-    freeslot = nslots;
-
     
     if (!addProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom),
                      array_length_getter, array_length_setter,
@@ -1087,6 +1081,9 @@ JSObject::makeDenseArraySlow(JSContext *cx)
             setDenseArrayElement(i, UndefinedValue());
             continue;
         }
+
+        
+        JS_ASSERT(JS_INITIAL_NSLOTS + i + 1 < NSLOTS_LIMIT);
 
         if (!addDataProperty(cx, id, JS_INITIAL_NSLOTS + i, JSPROP_ENUMERATE)) {
             setMap(oldMap);

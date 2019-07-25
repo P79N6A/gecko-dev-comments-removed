@@ -1272,12 +1272,10 @@ mjit::Compiler::jsop_setelem()
 
 
 
+
         
-
-
-
         stubcc.masm.loadPtr(Address(baseReg, offsetof(JSObject, proto)), T1);
-        stubcc.masm.loadPtr(Address(T1, JSObject::flagsOffset()), T1);
+        stubcc.masm.loadPtr(Address(T1, offsetof(JSObject, flags)), T1);
         stubcc.masm.and32(Imm32(JSObject::INDEXED), T1);
         Jump extendedArray = stubcc.masm.branchTest32(Assembler::NonZero, T1, T1);
         extendedArray.linkTo(syncTarget, &stubcc.masm);
@@ -1285,7 +1283,7 @@ mjit::Compiler::jsop_setelem()
         
         stubcc.masm.loadPtr(Address(baseReg, offsetof(JSObject, proto)), T1);
         stubcc.masm.loadPtr(Address(T1, offsetof(JSObject, proto)), T1);
-        stubcc.masm.loadPtr(Address(T1, JSObject::flagsOffset()), T1);
+        stubcc.masm.loadPtr(Address(T1, offsetof(JSObject, flags)), T1);
         stubcc.masm.and32(Imm32(JSObject::INDEXED), T1);
         Jump extendedObject = stubcc.masm.branchTest32(Assembler::NonZero, T1, T1);
         extendedObject.linkTo(syncTarget, &stubcc.masm);

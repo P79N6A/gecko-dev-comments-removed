@@ -208,6 +208,8 @@
 
 #define SHAPE_INVALID_SLOT              0xffffffff
 
+JS_STATIC_ASSERT(uint32(SHAPE_INVALID_SLOT + 1) == uint32(0));
+
 namespace js {
 
 
@@ -358,7 +360,58 @@ struct Shape : public JSObjectMap
 
     bool maybeHash(JSContext *cx);
 
-    void setTable(js::PropertyTable *t) const { table = t; }
+    void setTable(js::PropertyTable *t) const {
+        JS_ASSERT_IF(t && t->freeslot != SHAPE_INVALID_SLOT, t->freeslot < freeslot);
+        table = t;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void setParent(js::Shape *p) {
+        if (p)
+            freeslot = JS_MAX(p->freeslot, slot + 1);
+        JS_ASSERT(freeslot < JSObject::NSLOTS_LIMIT);
+        parent = p;
+    }
 
     void insertFree(js::Shape **freep) {
         id = JSID_VOID;
@@ -436,8 +489,8 @@ struct Shape : public JSObjectMap
         FROZEN          = 0x10
     };
 
-    Shape(jsid id, js::PropertyOp getter, js::PropertyOp setter, uint32 slot,
-          uintN attrs, uintN flags, intN shortid);
+    Shape(jsid id, js::PropertyOp getter, js::PropertyOp setter, uint32 slot, uintN attrs,
+          uintN flags, intN shortid, uint32 shape = INVALID_SHAPE, uint32 freeslot = 0);
 
     
     Shape(JSContext *cx, Class *aclasp);
@@ -706,7 +759,7 @@ Shape::insertIntoDictionary(js::Shape **dictp)
     JS_ASSERT_IF(*dictp, (*dictp)->listp == dictp);
     JS_ASSERT_IF(*dictp, !JSID_IS_VOID((*dictp)->id));
 
-    parent = *dictp;
+    setParent(*dictp);
     if (parent)
         parent->listp = &parent;
     listp = dictp;

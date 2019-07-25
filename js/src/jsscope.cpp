@@ -118,12 +118,10 @@ JSObject::ensureClassReservedSlotsForEmptyObject(JSContext *cx)
 
 
 
+
     uint32 nfixed = JSSLOT_FREE(getClass());
-    if (nfixed > freeslot) {
-        if (nfixed > numSlots() && !allocSlots(cx, nfixed))
-            return false;
-        freeslot = nfixed;
-    }
+    if (nfixed > numSlots() && !allocSlots(cx, nfixed))
+        return false;
 
     return true;
 }
@@ -479,6 +477,8 @@ JSObject::getChildProperty(JSContext *cx, Shape *parent, Shape &child)
         }
     }
 
+    Shape *shape;
+
     if (inDictionaryMode()) {
         JS_ASSERT(parent == lastProp);
         if (parent->frozen()) {
@@ -487,22 +487,20 @@ JSObject::getChildProperty(JSContext *cx, Shape *parent, Shape &child)
                 return NULL;
             JS_ASSERT(!parent->frozen());
         }
-        if (Shape::newDictionaryShape(cx, child, &lastProp)) {
-            updateFlags(lastProp);
-            updateShape(cx);
-            return lastProp;
+        shape = Shape::newDictionaryShape(cx, child, &lastProp);
+        if (!shape)
+            return NULL;
+    } else {
+        shape = JS_PROPERTY_TREE(cx).getChild(cx, parent, child);
+        if (shape) {
+            JS_ASSERT(shape->parent == parent);
+            JS_ASSERT_IF(parent != lastProp, parent == lastProp->parent);
+            setLastProperty(shape);
         }
-        return NULL;
     }
 
-    Shape *shape = JS_PROPERTY_TREE(cx).getChild(cx, parent, child);
-    if (shape) {
-        JS_ASSERT(shape->parent == parent);
-        JS_ASSERT_IF(parent != lastProp, parent == lastProp->parent);
-        setLastProperty(shape);
-        updateFlags(shape);
-        updateShape(cx);
-    }
+    updateFlags(shape);
+    updateShape(cx);
     return shape;
 }
 
@@ -529,9 +527,8 @@ Shape::newDictionaryShape(JSContext *cx, const Shape &child, Shape **listp)
         return NULL;
 
     new (dprop) Shape(child.id, child.rawGetter, child.rawSetter, child.slot, child.attrs,
-                      (child.flags & ~FROZEN) | IN_DICTIONARY,
-                      child.shortid);
-    dprop->shape = js_GenerateShape(cx, false);
+                      (child.flags & ~FROZEN) | IN_DICTIONARY, child.shortid,
+                      js_GenerateShape(cx, false), child.freeslot);
 
     dprop->listp = NULL;
     dprop->insertIntoDictionary(listp);
@@ -794,6 +791,16 @@ JSObject::putProperty(JSContext *cx, jsid id,
         shape->removeFromDictionary(this);
     }
 
+#ifdef DEBUG
+    if (shape == oldLastProp) {
+        JS_ASSERT(lastProp->freeslot <= shape->freeslot);
+        if (shape->hasSlot())
+            JS_ASSERT(shape->slot < shape->freeslot);
+        if (lastProp->freeslot < numSlots())
+            getSlotRef(lastProp->freeslot).setUndefined();
+    }
+#endif
+
     
 
 
@@ -863,6 +870,7 @@ JSObject::changeProperty(JSContext *cx, const Shape *shape, uintN attrs, uintN m
         return shape;
 
     Shape child(shape->id, getter, setter, shape->slot, attrs, shape->flags, shape->shortid);
+
     if (inDictionaryMode()) {
         shape->removeFromDictionary(this);
         newShape = Shape::newDictionaryShape(cx, child, &lastProp);
@@ -940,7 +948,8 @@ JSObject::removeProperty(JSContext *cx, jsid id)
     }
 
     
-    if (containsSlot(shape->slot)) {
+    bool hadSlot = !shape->isAlias() && containsSlot(shape->slot);
+    if (hadSlot) {
         freeSlot(cx, shape->slot);
         JS_ATOMIC_INCREMENT(&cx->runtime->propertyRemovals);
     }
@@ -983,9 +992,29 @@ JSObject::removeProperty(JSContext *cx, jsid id)
 
         if (shape != lastProp)
             setOwnShape(lastProp->shape);
-        shape->setTable(NULL);
+
+        Shape *oldLastProp = lastProp;
         shape->removeFromDictionary(this);
-        lastProp->setTable(table);
+        if (table) {
+            if (shape == oldLastProp) {
+                JS_ASSERT(shape->table == table);
+                JS_ASSERT(shape->parent == lastProp);
+                JS_ASSERT(shape->freeslot >= lastProp->freeslot);
+                JS_ASSERT_IF(hadSlot, shape->slot + 1 <= shape->freeslot);
+
+                
+
+
+
+
+                if (table->freeslot != SHAPE_INVALID_SLOT)
+                    lastProp->freeslot = shape->freeslot;
+            }
+
+            
+            oldLastProp->setTable(NULL);
+            lastProp->setTable(table);
+        }
     } else {
         
 
