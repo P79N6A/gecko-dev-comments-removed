@@ -3845,6 +3845,8 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
     
     
     case WM_CONTEXTMENU:
+    
+    case WM_IME_SETCONTEXT:
       handled = PR_TRUE;
     break;
   }
