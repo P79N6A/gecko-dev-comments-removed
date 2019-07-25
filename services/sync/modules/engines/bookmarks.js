@@ -92,19 +92,31 @@ BookmarksEngine.prototype = {
     return this.__tracker;
   },
 
+  _init: function BmkEngine__init( pbeId ) {
+    this.__proto__.__proto__._init.call( this, pbeId );
+    if ( Utils.prefs.getBoolPref( "xmpp.enabled" ) ) {
+      dump( "Starting XMPP client for bookmark engine..." );
+      this._startXmppClient();
+      
+    }
+  }
+
   _startXmppClient: function BmkEngine__startXmppClient() {
     
 
     
-    
-    let serverUrl = "http://sm-labs01.mozilla.org:5280/http_poll";
-    let realm = "sm-labs01.mozilla.org";
-    
+    let serverUrl = Utils.prefs.getStringPref( "xmpp.server.url" );
+    let realm = Utils.prefs.getStringPref( "xmpp.server.realm" );
     
     
     
-    let clientName = ID.get('WeaveID').username;
-    let clientPassword = ID.get('WeaveID').password;
+    
+    
+    
+    
+    
+    let clientName = Utils.prefs.getStringPref( "xmpp.client.name" );
+    let clientPassword = Utils.prefs.getStringPref( "xmpp.client.password" );
 
     let transport = new HTTPPollingTransport( serverUrl, false, 15000 );
     let auth = new PlainAuthenticator(); 
