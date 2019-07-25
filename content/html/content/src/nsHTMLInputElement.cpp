@@ -274,7 +274,7 @@ public:
   NS_IMETHOD SetUserInput(const nsAString& aInput);
 
   
-  NS_IMETHOD_(PRInt32) GetType() const { return mType; }
+  NS_IMETHOD_(PRUint32) GetType() const { return mType; }
   NS_IMETHOD Reset();
   NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission,
                                nsIContent* aSubmitElement);
@@ -461,7 +461,7 @@ protected:
 
 
 
-  PRInt8                   mType;
+  PRUint8                  mType;
   
 
 
