@@ -1592,13 +1592,13 @@ JSRuntime::onOutOfMemory(void *p, size_t nbytes, JSContext *cx)
 
 
 
-    {
+    ShrinkGCBuffers(this);
 #ifdef JS_THREADSAFE
+    {
         AutoLockGC lock(this);
         gcHelperThread.waitBackgroundSweepOrAllocEnd();
-#endif
-        gcChunkPool.expireAndFree(this, true);
     }
+#endif
     if (!p)
         p = OffTheBooks::malloc_(nbytes);
     else if (p == reinterpret_cast<void *>(1))
