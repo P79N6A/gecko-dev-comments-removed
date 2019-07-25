@@ -437,6 +437,7 @@ nsBlockReflowState::SetupFloatContinuationList()
     
     
     
+    
     mFloatContinuations = mBlock->EnsureFloatContinuations();
     SetFlag(BRS_PROPTABLE_FLOATCLIST, PR_TRUE);
   }

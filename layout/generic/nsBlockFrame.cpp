@@ -1858,6 +1858,20 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       line->MarkDirty();
     }
 
+    
+    
+    
+    
+    
+    
+    
+    if (!line->IsDirty() &&
+        aState.mReflowState.availableHeight != NS_UNCONSTRAINEDSIZE &&
+        (deltaY != 0 || aState.mReflowState.mFlags.mVResize) &&
+        (line->IsBlock() || line->HasFloats() || line->HadFloatPushed())) {
+      line->MarkDirty();
+    }
+
     if (!line->IsDirty()) {
       
       
