@@ -288,7 +288,17 @@ nsTokenEventRunnable::Run()
 PRBool EnsureNSSInitialized(EnsureNSSOperator op)
 {
 #ifdef MOZ_IPC
-  if (GeckoProcessType_Default != XRE_GetProcessType()) {
+  if (GeckoProcessType_Default != XRE_GetProcessType())
+  {
+    if (op == nssEnsureOnChromeOnly)
+    {
+      
+      
+      
+      
+      return PR_TRUE;
+    }
+
     NS_ERROR("Trying to initialize PSM/NSS in a non-chrome process!");
     return PR_FALSE;
   }
@@ -302,7 +312,7 @@ PRBool EnsureNSSInitialized(EnsureNSSOperator op)
     
     
     
-  case nssLoading:
+  case nssLoadingComponent:
     if (loading)
       return PR_FALSE; 
     loading = PR_TRUE;
@@ -327,6 +337,7 @@ PRBool EnsureNSSInitialized(EnsureNSSOperator op)
     
     
   case nssEnsure:
+  case nssEnsureOnChromeOnly:
     
     if (PR_AtomicAdd(&haveLoaded, 0) || loading)
       return PR_TRUE;
@@ -2044,7 +2055,7 @@ nsNSSComponent::VerifySignature(const char* aRSABuf, PRUint32 aRSABufLen,
     
     
     do {
-      nsCOMPtr<nsIX509Cert> pCert = new nsNSSCertificate(cert);
+      nsCOMPtr<nsIX509Cert> pCert = nsNSSCertificate::Create(cert);
       if (!pCert) {
         rv2 = NS_ERROR_OUT_OF_MEMORY;
         break;
