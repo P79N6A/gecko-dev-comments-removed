@@ -63,6 +63,7 @@ HttpBaseChannel::HttpBaseChannel()
   , mPriority(PRIORITY_NORMAL)
   , mCaps(0)
   , mRedirectionLimit(gHttpHandler->RedirectionLimit())
+  , mApplyConversion(PR_TRUE)
   , mCanceled(PR_FALSE)
   , mIsPending(PR_FALSE)
   , mWasOpened(PR_FALSE)
@@ -157,10 +158,11 @@ HttpBaseChannel::Init(nsIURI *aURI,
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED7(HttpBaseChannel,
+NS_IMPL_ISUPPORTS_INHERITED8(HttpBaseChannel,
                              nsHashPropertyBag, 
                              nsIRequest,
                              nsIChannel,
+                             nsIEncodedChannel,
                              nsIHttpChannel,
                              nsIHttpChannelInternal,
                              nsIUploadChannel,
@@ -375,7 +377,7 @@ HttpBaseChannel::GetContentLength(PRInt32 *aContentLength)
 NS_IMETHODIMP
 HttpBaseChannel::SetContentLength(PRInt32 value)
 {
-  NS_NOTYETIMPLEMENTED("nsHttpChannel::SetContentLength");
+  NS_NOTYETIMPLEMENTED("HttpBaseChannel::SetContentLength");
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -484,6 +486,178 @@ HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream *aStream,
   mUploadStream = aStream;
   return NS_OK;
 }
+
+
+
+
+
+NS_IMETHODIMP
+HttpBaseChannel::GetApplyConversion(PRBool *value)
+{
+  *value = mApplyConversion;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetApplyConversion(PRBool value)
+{
+  LOG(("HttpBaseChannel::SetApplyConversion [this=%p value=%d]\n", this, value));
+  mApplyConversion = value;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetContentEncodings(nsIUTF8StringEnumerator** aEncodings)
+{
+  if (!mResponseHead) {
+    *aEncodings = nsnull;
+    return NS_OK;
+  }
+    
+  const char *encoding = mResponseHead->PeekHeader(nsHttp::Content_Encoding);
+  if (!encoding) {
+    *aEncodings = nsnull;
+    return NS_OK;
+  }
+  nsContentEncodings* enumerator = new nsContentEncodings(this, encoding);
+  NS_ADDREF(*aEncodings = enumerator);
+  return NS_OK;
+}
+
+
+
+
+
+HttpBaseChannel::nsContentEncodings::nsContentEncodings(nsIHttpChannel* aChannel,
+                                                        const char* aEncodingHeader)
+  : mEncodingHeader(aEncodingHeader)
+  , mChannel(aChannel)
+  , mReady(PR_FALSE)
+{
+  mCurEnd = aEncodingHeader + strlen(aEncodingHeader);
+  mCurStart = mCurEnd;
+}
+    
+HttpBaseChannel::nsContentEncodings::~nsContentEncodings()
+{
+}
+
+
+
+
+
+NS_IMETHODIMP
+HttpBaseChannel::nsContentEncodings::HasMore(PRBool* aMoreEncodings)
+{
+  if (mReady) {
+    *aMoreEncodings = PR_TRUE;
+    return NS_OK;
+  }
+
+  nsresult rv = PrepareForNext();
+  *aMoreEncodings = NS_SUCCEEDED(rv);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::nsContentEncodings::GetNext(nsACString& aNextEncoding)
+{
+  aNextEncoding.Truncate();
+  if (!mReady) {
+    nsresult rv = PrepareForNext();
+    if (NS_FAILED(rv)) {
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  const nsACString & encoding = Substring(mCurStart, mCurEnd);
+
+  nsACString::const_iterator start, end;
+  encoding.BeginReading(start);
+  encoding.EndReading(end);
+
+  PRBool haveType = PR_FALSE;
+  if (CaseInsensitiveFindInReadable(NS_LITERAL_CSTRING("gzip"), start, end)) {
+    aNextEncoding.AssignLiteral(APPLICATION_GZIP);
+    haveType = PR_TRUE;
+  }
+
+  if (!haveType) {
+    encoding.BeginReading(start);
+    if (CaseInsensitiveFindInReadable(NS_LITERAL_CSTRING("compress"), start, end)) {
+      aNextEncoding.AssignLiteral(APPLICATION_COMPRESS);
+      haveType = PR_TRUE;
+    }
+  }
+    
+  if (!haveType) {
+    encoding.BeginReading(start);
+    if (CaseInsensitiveFindInReadable(NS_LITERAL_CSTRING("deflate"), start, end)) {
+      aNextEncoding.AssignLiteral(APPLICATION_ZIP);
+      haveType = PR_TRUE;
+    }
+  }
+
+  
+  mCurEnd = mCurStart;
+  mReady = PR_FALSE;
+  
+  if (haveType)
+    return NS_OK;
+
+  NS_WARNING("Unknown encoding type");
+  return NS_ERROR_FAILURE;
+}
+
+
+
+
+
+NS_IMPL_ISUPPORTS1(HttpBaseChannel::nsContentEncodings, nsIUTF8StringEnumerator)
+
+
+
+
+
+nsresult
+HttpBaseChannel::nsContentEncodings::PrepareForNext(void)
+{
+  NS_ASSERTION(mCurStart == mCurEnd, "Indeterminate state");
+    
+  
+  
+    
+  while (mCurEnd != mEncodingHeader) {
+    --mCurEnd;
+    if (*mCurEnd != ',' && !nsCRT::IsAsciiSpace(*mCurEnd))
+      break;
+  }
+  if (mCurEnd == mEncodingHeader)
+    return NS_ERROR_NOT_AVAILABLE; 
+  ++mCurEnd;
+        
+  
+  
+    
+  mCurStart = mCurEnd - 1;
+  while (mCurStart != mEncodingHeader &&
+         *mCurStart != ',' && !nsCRT::IsAsciiSpace(*mCurStart))
+    --mCurStart;
+  if (*mCurStart == ',' || nsCRT::IsAsciiSpace(*mCurStart))
+    ++mCurStart; 
+        
+  
+  
+  if (Substring(mCurStart, mCurEnd).Equals("identity",
+                                           nsCaseInsensitiveCStringComparator())) {
+    mCurEnd = mCurStart;
+    return PrepareForNext();
+  }
+        
+  mReady = PR_TRUE;
+  return NS_OK;
+}
+
 
 
 

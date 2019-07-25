@@ -48,12 +48,14 @@
 #include "nsHttpRequestHead.h"
 #include "nsHttpResponseHead.h"
 #include "nsHttpConnectionInfo.h"
+#include "nsIEncodedChannel.h"
 #include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIUploadChannel.h"
 #include "nsIUploadChannel2.h"
 #include "nsIProgressEventSink.h"
 #include "nsIURI.h"
+#include "nsIStringEnumerator.h"
 #include "nsISupportsPriority.h"
 #include "nsIApplicationCache.h"
 #include "nsIResumableChannel.h"
@@ -91,6 +93,7 @@ typedef enum { eUploadStream_null = -1,
 
 
 class HttpBaseChannel : public nsHashPropertyBag
+                      , public nsIEncodedChannel
                       , public nsIHttpChannel
                       , public nsIHttpChannelInternal
                       , public nsIUploadChannel
@@ -134,6 +137,11 @@ public:
   NS_IMETHOD Open(nsIInputStream **aResult);
 
   
+  NS_IMETHOD GetApplyConversion(PRBool *value);
+  NS_IMETHOD SetApplyConversion(PRBool value);
+  NS_IMETHOD GetContentEncodings(nsIUTF8StringEnumerator** aEncodings);
+
+  
   NS_IMETHOD GetRequestMethod(nsACString& aMethod);
   NS_IMETHOD SetRequestMethod(const nsACString& aMethod);
   NS_IMETHOD GetReferrer(nsIURI **referrer);
@@ -174,6 +182,30 @@ public:
 
   
   NS_IMETHOD GetEntityID(nsACString& aEntityID);
+
+  class nsContentEncodings : public nsIUTF8StringEnumerator
+    {
+    public:
+        NS_DECL_ISUPPORTS
+        NS_DECL_NSIUTF8STRINGENUMERATOR
+
+        nsContentEncodings(nsIHttpChannel* aChannel, const char* aEncodingHeader);
+        virtual ~nsContentEncodings();
+        
+    private:
+        nsresult PrepareForNext(void);
+        
+        
+        const char* mEncodingHeader;
+        const char* mCurStart;  
+        const char* mCurEnd;  
+        
+        
+        
+        nsCOMPtr<nsIHttpChannel> mChannel;
+        
+        PRPackedBool mReady;
+    };
 
 protected:
   void AddCookiesToRequest();
@@ -222,6 +254,7 @@ protected:
   PRUint8                           mCaps;
   PRUint8                           mRedirectionLimit;
 
+  PRUint32                          mApplyConversion            : 1;
   PRUint32                          mCanceled                   : 1;
   PRUint32                          mIsPending                  : 1;
   PRUint32                          mWasOpened                  : 1;

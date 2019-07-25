@@ -1226,11 +1226,15 @@ NS_IMETHODIMP_(nsrefcnt) Class::Release(void)                                 \
     NS_IMPL_ADDREF_INHERITED(Class, Super)                                    \
     NS_IMPL_RELEASE_INHERITED(Class, Super)                                   \
 
-
-
-
-
-
+#define NS_IMPL_ISUPPORTS_INHERITED8(Class, Super, i1, i2, i3, i4, i5, i6, i7, i8) \
+    NS_IMPL_QUERY_INTERFACE_INHERITED8(Class, Super, i1, i2, i3, i4, i5, i6, i7, i8) \
+    NS_IMPL_ADDREF_INHERITED(Class, Super)                                    \
+    NS_IMPL_RELEASE_INHERITED(Class, Super)                                   \
+/*
+ * Macro to glue together a QI that starts with an interface table
+ * and segues into an interface map (e.g. it uses singleton classinfo
+ * or tearoffs).
+ */
 #define NS_INTERFACE_TABLE_TO_MAP_SEGUE \
   if (rv == NS_OK) return rv; \
   nsISupports* foundInterface;
