@@ -178,7 +178,16 @@ typedef enum
   
   HB_SCRIPT_BATAK,                  
   HB_SCRIPT_BRAHMI,                 
-  HB_SCRIPT_MANDAIC                 
+  HB_SCRIPT_MANDAIC,                
+
+  
+  HB_SCRIPT_CHAKMA,                 
+  HB_SCRIPT_MEROITIC_CURSIVE,       
+  HB_SCRIPT_MEROITIC_HIEROGLYPHS,   
+  HB_SCRIPT_MIAO,                   
+  HB_SCRIPT_SHARADA,                
+  HB_SCRIPT_SORA_SOMPENG,           
+  HB_SCRIPT_TAKRI                           
 } hb_script_t;
 
 
