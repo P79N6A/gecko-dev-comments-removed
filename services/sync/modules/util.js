@@ -936,12 +936,16 @@ let Utils = {
   
 
 
+
+
+
+
+
   nextTick: function nextTick(callback, thisObj) {
     if (thisObj) {
       callback = callback.bind(thisObj);
     }
-    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    timer.initWithCallback(callback, 0, timer.TYPE_ONE_SHOT);
+    Services.tm.currentThread.dispatch(callback, Ci.nsIThread.DISPATCH_NORMAL);
   },
 
   
