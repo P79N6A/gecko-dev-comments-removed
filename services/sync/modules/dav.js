@@ -172,7 +172,7 @@ DAVCollection.prototype = {
         
         this._makeRequest.async(this, self.cb, "GET", path2 + "/", this._defaultHeaders);
         let ret = yield;
-        if (!(ret.status == 404 || ret.status == 500)) { 
+        if (ret.status != 404) {
           this._log.trace("Skipping creation of path " + path2 +
         		  " (got status " + ret.status + ")");
         } else {
