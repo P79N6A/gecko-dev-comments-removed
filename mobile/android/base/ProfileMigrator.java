@@ -98,6 +98,9 @@ public class ProfileMigrator {
     private File mProfileDir;
     private ContentResolver mCr;
     private Context mContext;
+    private Runnable mLongOperationStartCallback;
+    private boolean mLongOperationStartRun;
+    private Runnable mLongOperationStopCallback;
 
     
     private static final int DEFAULT_HISTORY_MIGRATE_COUNT = 2000;
@@ -260,6 +263,17 @@ public class ProfileMigrator {
         mProfileDir = profileDir;
         mContext = context;
         mCr = mContext.getContentResolver();
+        mLongOperationStartCallback = null;
+        mLongOperationStopCallback = null;
+    }
+
+    
+    
+    public void setLongOperationCallbacks(Runnable start,
+                                          Runnable stop) {
+        mLongOperationStartCallback = start;
+        mLongOperationStopCallback = stop;
+        mLongOperationStartRun = false;
     }
 
     public void launchPlaces() {
@@ -276,6 +290,7 @@ public class ProfileMigrator {
     }
 
     public void launchPlaces(int maxEntries) {
+        mLongOperationStartRun = false;
         
         
         new PlacesRunnable(maxEntries).run();
@@ -1171,6 +1186,11 @@ public class ProfileMigrator {
                     setMigratedHistory();
                 } else {
                     
+                    if (mLongOperationStartCallback != null) {
+                        mLongOperationStartCallback.run();
+                        mLongOperationStartRun = true;
+                    }
+
                     calculateReroot(db);
 
                     if (!areBookmarksMigrated()) {
@@ -1205,7 +1225,12 @@ public class ProfileMigrator {
                     db.close();
                 }
                 Log.e(LOGTAG, "Error on places database:", e);
-                return;
+            } finally {
+                if (mLongOperationStopCallback != null) {
+                    if (mLongOperationStartRun) {
+                        mLongOperationStopCallback.run();
+                    }
+                }
             }
         }
 
