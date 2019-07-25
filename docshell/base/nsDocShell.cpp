@@ -1391,6 +1391,16 @@ nsDocShell::LoadURI(nsIURI * aURI,
                 }
             } 
         } 
+        else {  
+            
+            
+            
+            bool inOnLoadHandler=false;
+            GetIsExecutingOnLoadHandler(&inOnLoadHandler);
+            if (inOnLoadHandler) {
+                loadType = LOAD_NORMAL_REPLACE;
+            }
+        } 
     } 
 
     if (shEntry) {
