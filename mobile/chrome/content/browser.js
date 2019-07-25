@@ -425,11 +425,11 @@ SpeedCache.prototype = {
     _maxsize : 1,
 
     init: function(maxsize) {
-	
+
 	if (maxsize <= 0) maxsize = 1;
 	this._items = new Array(maxsize);
 	this._count = 0;
-	
+
 	for (x = 0; x < maxsize; x++) {
 	    this._items[x] = 0;
 	}
@@ -440,7 +440,7 @@ SpeedCache.prototype = {
 	this._items[index] = speed;
 	this._count++;
     },
-    
+
     getAverage: function() {
 	var maxsize = this._items.length;
 	var sum = 0;
@@ -520,6 +520,9 @@ MouseController.prototype = {
       this._contextID = null;
     }
 
+    if (!this._panning)
+      return;
+
     
 
     
@@ -527,16 +530,15 @@ MouseController.prototype = {
         Math.pow(this.firstEvent.screenX - aEvent.screenX, 2) +
         Math.pow(this.firstEvent.screenY - aEvent.screenY, 2));
 
-    if (totalDistance > 10) { 
-      aEvent.preventDefault();
-    }
-    else if (this._panning) {
+    if (totalDistance < 10) { 
       
       
       this._browser.endPan();
       this._panning = false;
       return;
     }
+
+    aEvent.preventDefault();
 
     
     function _doKineticScroll(browser, speedX, speedY, step) {
@@ -749,7 +751,7 @@ ZoomController.prototype = {
     if (!el) return;
 
     if (this.scale == 1 || el != this._target) {
-      
+      this._browser.zoomIn(el);
       this._target = el;
     }
     else {
