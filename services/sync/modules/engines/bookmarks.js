@@ -1,42 +1,42 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bookmarks Sync.
- *
- * The Initial Developer of the Original Code is
- * the Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2007
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Dan Mills <thunder@mozilla.com>
- *   Jono DiCarlo <jdicarlo@mozilla.org>
- *   Anant Narayanan <anant@kix.in>
- *   Philipp von Weitershausen <philipp@weitershausen.de>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const EXPORTED_SYMBOLS = ['BookmarksEngine', 'BookmarksSharingManager'];
 
@@ -64,14 +64,14 @@ Cu.import("resource://services-sync/type_records/bookmark.js");
 Cu.import("resource://services-sync/util.js");
 
 function archiveBookmarks() {
-  // Some nightly builds of 3.7 don't have this function
+  
   try {
     PlacesUtils.archiveBookmarksFile(null, true);
   }
   catch(ex) {}
 }
 
-// Lazily initialize the special top level folders
+
 let kSpecialIds = {};
 [["menu", "bookmarksMenuFolder"],
  ["places", "placesRoot"],
@@ -82,13 +82,13 @@ let kSpecialIds = {};
   Utils.lazy2(kSpecialIds, guid, function() Svc.Bookmark[placeName]);
 });
 Utils.lazy2(kSpecialIds, "mobile", function() {
-  // Use the (one) mobile root if it already exists
+  
   let anno = "mobile/bookmarksRoot";
   let root = Svc.Annos.getItemsWithAnnotation(anno, {});
   if (root.length != 0)
     return root[0];
 
-  // Create the special mobile folder to store mobile bookmarks
+  
   let mobile = Svc.Bookmark.createFolder(Svc.Bookmark.placesRoot, "mobile", -1);
   Utils.anno(mobile, anno, 1);
   return mobile;
@@ -115,7 +115,7 @@ BookmarksEngine.prototype = {
       this._log.debug("Tracking all items on successful import");
       this._tracker.ignoreAll = false;
 
-      // Mark all the items as changed so they get uploaded
+      
       for (let id in this._store.getAllIDs())
         this._tracker.addChangedID(id);
     }, this);
@@ -130,17 +130,17 @@ BookmarksEngine.prototype = {
   _syncStartup: function _syncStart() {
     SyncEngine.prototype._syncStartup.call(this);
 
-    // For first-syncs, make a backup for the user to restore
+    
     if (this.lastSync == 0)
       archiveBookmarks();
 
-    // Lazily create a mapping of folder titles and separator positions to GUID
+    
     this.__defineGetter__("_lazyMap", function() {
       delete this._lazyMap;
 
       let lazyMap = {};
       for (let guid in this._store.getAllIDs()) {
-        // Figure out what key to store the mapping
+        
         let key;
         let id = this._store.idForGUID(guid);
         switch (Svc.Bookmark.getItemType(id)) {
@@ -158,7 +158,7 @@ BookmarksEngine.prototype = {
             continue;
         }
 
-        // The mapping is on a per parent-folder-name basis
+        
         let parent = Svc.Bookmark.getFolderIdForItem(id);
         if (parent <= 0)
           continue;
@@ -167,18 +167,18 @@ BookmarksEngine.prototype = {
         if (lazyMap[parentName] == null)
           lazyMap[parentName] = {};
 
-        // If the entry already exists, remember that there are explicit dupes
+        
         let entry = new String(guid);
         entry.hasDupe = lazyMap[parentName][key] != null;
 
-        // Remember this item's guid for its parent-name/key pair
+        
         lazyMap[parentName][key] = entry;
         this._log.trace("Mapped: " + [parentName, key, entry, entry.hasDupe]);
       }
 
-      // Expose a helper function to get a dupe guid for an item
+      
       return this._lazyMap = function(item) {
-        // Figure out if we have something to key with
+        
         let key;
         switch (item.type) {
           case "bookmark":
@@ -197,7 +197,7 @@ BookmarksEngine.prototype = {
             return;
         }
 
-        // Give the guid if we have the matching pair
+        
         this._log.trace("Finding mapping: " + item.parentName + ", " + key);
         let parent = lazyMap[item.parentName];
         let dupe = parent && parent[key];
@@ -210,12 +210,15 @@ BookmarksEngine.prototype = {
   },
 
   _processIncoming: function _processIncoming() {
-    SyncEngine.prototype._processIncoming.call(this);
-    // Reorder children.
-    this._tracker.ignoreAll = true;
-    this._store._orderChildren();
-    this._tracker.ignoreAll = false;
-    delete this._store._childrenToOrder;
+    try {
+      SyncEngine.prototype._processIncoming.call(this);
+    } finally {
+      
+      this._tracker.ignoreAll = true;
+      this._store._orderChildren();
+      this._tracker.ignoreAll = false;
+      delete this._store._childrenToOrder;
+    }
   },
 
   _syncFinish: function _syncFinish() {
@@ -225,7 +228,7 @@ BookmarksEngine.prototype = {
   },
 
   _createRecord: function _createRecord(id) {
-    // Create the record like normal but mark it as having dupes if necessary
+    
     let record = SyncEngine.prototype._createRecord.call(this, id);
     let entry = this._lazyMap(record);
     if (entry != null && entry.hasDupe)
@@ -234,14 +237,14 @@ BookmarksEngine.prototype = {
   },
 
   _findDupe: function _findDupe(item) {
-    // Don't bother finding a dupe if the incoming item has duplicates
+    
     if (item.hasDupe)
       return;
     return this._lazyMap(item);
   },
 
   _handleDupe: function _handleDupe(item, dupeId) {
-    // Always change the local GUID to the incoming one.
+    
     this._store.changeItemID(dupeId, item.id);
     this._deleteId(dupeId);
     this._tracker.addChangedID(item.id, 0);
@@ -254,7 +257,7 @@ BookmarksEngine.prototype = {
 function BookmarksStore(name) {
   Store.call(this, name);
 
-  // Explicitly nullify our references to our cached services so we don't leak
+  
   Svc.Obs.add("places-shutdown", function() {
     this.__bms = null;
     this.__hsvc = null;
@@ -302,7 +305,7 @@ BookmarksStore.prototype = {
       } catch (e) {
         this._log.warn("Could not load microsummary service");
         this._log.debug(e);
-        // Redefine our getter so we won't keep trying to get the service
+        
         this.__defineGetter__("_ms", function() null);
       }
     }
@@ -323,27 +326,27 @@ BookmarksStore.prototype = {
   },
 
   applyIncoming: function BStore_applyIncoming(record) {
-    // For special folders we're only interested in child ordering.
+    
     if ((record.id in kSpecialIds) && record.children) {
       this._log.debug("Processing special node: " + record.id);
-      // Reorder children later
+      
       this._childrenToOrder[record.id] = record.children;
       return;
     }
 
-    // Preprocess the record before doing the normal apply
+    
     switch (record.type) {
       case "query": {
-        // Convert the query uri if necessary
+        
         if (record.bmkUri == null || record.folderName == null)
           break;
 
-        // Tag something so that the tag exists
+        
         let tag = record.folderName;
         let dummyURI = Utils.makeURI("about:weave#BStore_preprocess");
         this._ts.tagURI(dummyURI, [tag]);
 
-        // Look for the id of the tag (that might have just been added)
+        
         let tags = this._getNode(this._bms.tagsFolder);
         if (!(tags instanceof Ci.nsINavHistoryQueryResultNode))
           break;
@@ -351,7 +354,7 @@ BookmarksStore.prototype = {
         tags.containerOpen = true;
         for (let i = 0; i < tags.childCount; i++) {
           let child = tags.getChild(i);
-          // Found the tag, so fix up the query to use the right id
+          
           if (child.title == tag) {
             this._log.debug("query folder: " + tag + " = " + child.itemId);
             record.bmkUri = record.bmkUri.replace(/([:&]folder=)\d+/, "$1" +
@@ -363,62 +366,62 @@ BookmarksStore.prototype = {
       }
     }
 
-    // Figure out the local id of the parent GUID if available
+    
     let parentGUID = record.parentid;
     record._orphan = false;
     if (parentGUID != null) {
       let parentId = this.idForGUID(parentGUID);
 
-      // Default to unfiled if we don't have the parent yet
+      
       if (parentId <= 0) {
         this._log.trace("Reparenting to unfiled until parent is synced");
         record._orphan = true;
         parentId = kSpecialIds.unfiled;
       }
 
-      // Save the parent id for modifying the bookmark later
+      
       record._parent = parentId;
     }
 
-    // Do the normal processing of incoming records
+    
     Store.prototype.applyIncoming.apply(this, arguments);
 
-    // Do some post-processing if we have an item
+    
     let itemId = this.idForGUID(record.id);
     if (itemId > 0) {
-      // Move any children that are looking for this folder as a parent
+      
       if (record.type == "folder") {
         this._reparentOrphans(itemId);
-        // Reorder children later
+        
         if (record.children)
           this._childrenToOrder[record.id] = record.children;
       }
 
-      // Create an annotation to remember that it needs a parent
+      
       if (record._orphan)
         Utils.anno(itemId, PARENT_ANNO, parentGUID);
     }
   },
 
-  /**
-   * Find all ids of items that have a given value for an annotation
-   */
+  
+
+
   _findAnnoItems: function BStore__findAnnoItems(anno, val) {
     return Svc.Annos.getItemsWithAnnotation(anno, {}).filter(function(id)
       Utils.anno(id, anno) == val);
   },
 
-  /**
-   * For the provided parent item, attach its children to it
-   */
+  
+
+
   _reparentOrphans: function _reparentOrphans(parentId) {
-    // Find orphans and reunite with this folder parent
+    
     let parentGUID = this.GUIDForId(parentId);
     let orphans = this._findAnnoItems(PARENT_ANNO, parentGUID);
 
     this._log.debug("Reparenting orphans " + orphans + " to " + parentId);
     orphans.forEach(function(orphan) {
-      // Move the orphan to the parent and drop the missing parent annotation
+      
       Svc.Bookmark.moveItem(orphan, parentId, Svc.Bookmark.DEFAULT_INDEX);
       Svc.Annos.removeItemAnnotation(orphan, PARENT_ANNO);
     }, this);
@@ -453,7 +456,7 @@ BookmarksStore.prototype = {
             let micsum = this._ms.createMicrosummary(uri, genURI);
             this._ms.setMicrosummary(newId, micsum);
           }
-          catch(ex) { /* ignore "missing local generator" exceptions */ }
+          catch(ex) {  }
         }
         else
           this._log.warn("Can't create microsummary -- not supported.");
@@ -468,7 +471,7 @@ BookmarksStore.prototype = {
       if (record.description)
         Utils.anno(newId, "bookmarkProperties/description", record.description);
 
-      // record.children will be dealt with in _orderChildren.
+      
       break;
     case "livemark":
       let siteURI = null;
@@ -537,7 +540,7 @@ BookmarksStore.prototype = {
 
     this._log.trace("Updating " + record.id + " (" + itemId + ")");
 
-    // Move the bookmark to a new parent or new position if necessary
+    
     if (Svc.Bookmark.getFolderIdForItem(itemId) != record._parent) {
       this._log.trace("Moving item to a new parent.");
       Svc.Bookmark.moveItem(itemId, record._parent, Svc.Bookmark.DEFAULT_INDEX);
@@ -595,8 +598,8 @@ BookmarksStore.prototype = {
 
   _orderChildren: function _orderChildren() {
     for (let [guid, children] in Iterator(this._childrenToOrder)) {
-      // Reorder children according to the GUID list. Gracefully deal
-      // with missing items, e.g. locally deleted.
+      
+      
       let delta = 0;
       for (let idx = 0; idx < children.length; idx++) {
         let itemid = this.idForGUID(children[idx]);
@@ -612,9 +615,9 @@ BookmarksStore.prototype = {
         }
       }
 
-      // Update the children annotation. If there were mismatches due to local
-      // changes, we'll have to regenerate it from scratch, otherwise we can
-      // just use the incoming value.
+      
+      
+      
       let folderid = this.idForGUID(guid);
       if (delta) {
         this._updateChildrenAnno(folderid);
@@ -656,14 +659,14 @@ BookmarksStore.prototype = {
   changeItemID: function BStore_changeItemID(oldID, newID) {
     this._log.debug("Changing GUID " + oldID + " to " + newID);
 
-    // Make sure there's an item to change GUIDs
+    
     let itemId = this.idForGUID(oldID);
     if (itemId <= 0)
       return;
 
     this._setGUID(itemId, newID);
 
-    // Update parent
+    
     let parentid = this._bms.getFolderIdForItem(itemId);
     this._updateChildrenAnno(parentid);
   },
@@ -709,7 +712,7 @@ BookmarksStore.prototype = {
     try {
       anno = Utils.anno(itemid, CHILDREN_ANNO);
     } catch(ex) {
-      // Ignore
+      
     }
     if (anno)
       return anno.split(",");
@@ -717,11 +720,11 @@ BookmarksStore.prototype = {
     return this._updateChildrenAnno(itemid);
   },
 
-  // Create a record starting from the weave id (places guid)
+  
   createRecord: function createRecord(id, collection) {
     let placeId = this.idForGUID(id);
     let record;
-    if (placeId <= 0) { // deleted item
+    if (placeId <= 0) { 
       record = new PlacesItem(collection, id);
       record.deleted = true;
       return record;
@@ -734,17 +737,17 @@ BookmarksStore.prototype = {
       if (this._ms && this._ms.hasMicrosummary(placeId)) {
         record = new BookmarkMicsum(collection, id);
         let micsum = this._ms.getMicrosummary(placeId);
-        record.generatorUri = micsum.generator.uri.spec; // breaks local generators
+        record.generatorUri = micsum.generator.uri.spec; 
         record.staticTitle = this._getStaticTitle(placeId);
       }
       else {
         if (bmkUri.search(/^place:/) == 0) {
           record = new BookmarkQuery(collection, id);
 
-          // Get the actual tag name instead of the local itemId
+          
           let folder = bmkUri.match(/[:&]folder=(\d+)/);
           try {
-            // There might not be the tag yet when creating on a new client
+            
             if (folder != null) {
               folder = folder[1];
               record.folderName = this._bms.getItemTitle(folder);
@@ -790,7 +793,7 @@ BookmarksStore.prototype = {
       record = new BookmarkSeparator(collection, id);
       if (parent > 0)
         record.parentName = Svc.Bookmark.getItemTitle(parent);
-      // Create a positioning identifier for the separator, used by _lazyMap
+      
       record.pos = Svc.Bookmark.getItemIndex(placeId);
       break;
 
@@ -853,7 +856,7 @@ BookmarksStore.prototype = {
   },
 
   get _checkGUIDItemAnnotationStm() {
-    // Gecko <2.0 only
+    
     let stmt = this._getStmt(
       "SELECT b.id AS item_id, " +
         "(SELECT id FROM moz_anno_attributes WHERE name = :anno_name) AS name_id, " +
@@ -881,7 +884,7 @@ BookmarksStore.prototype = {
       return this.__setGUIDStm;
     }
 
-    // Obtains a statement to set the guid iff the guid column exists.
+    
     let stmt;
     if (this._haveGUIDColumn) {
       stmt = this._getStmt(
@@ -894,12 +897,12 @@ BookmarksStore.prototype = {
     return this.__setGUIDStm = stmt;
   },
 
-  // Some helper functions to handle GUIDs
+  
   _setGUID: function _setGUID(id, guid) {
     if (arguments.length == 1)
       guid = Utils.makeGUID();
 
-    // If we can, set the GUID on moz_bookmarks and do not do any other work.
+    
     let (stmt = this._setGUIDStm) {
       if (stmt) {
         stmt.params.guid = guid;
@@ -909,7 +912,7 @@ BookmarksStore.prototype = {
       }
     }
 
-    // Ensure annotation name exists
+    
     Utils.queryAsync(this._addGUIDAnnotationNameStm);
 
     let stmt = this._checkGUIDItemAnnotationStm;
@@ -947,9 +950,9 @@ BookmarksStore.prototype = {
       return this.__guidForIdStm;
     }
 
-    // Try to first read from moz_bookmarks.  Creating the statement will
-    // fail, however, if the guid column does not exist.  We fallback to just
-    // reading the annotation table in this case.
+    
+    
+    
     let stmt;
     if (this._haveGUIDColumn) {
       stmt = this._getStmt(
@@ -977,12 +980,12 @@ BookmarksStore.prototype = {
     let stmt = this._guidForIdStm;
     stmt.params.item_id = id;
 
-    // Use the existing GUID if it exists
+    
     let result = Utils.queryAsync(stmt, ["guid"])[0];
     if (result && result.guid)
       return result.guid;
 
-    // Give the uri a GUID if it doesn't have one
+    
     return this._setGUID(id);
   },
 
@@ -993,9 +996,9 @@ BookmarksStore.prototype = {
     }
 
 
-    // Try to first read from moz_bookmarks.  Creating the statement will
-    // fail, however, if the guid column does not exist.  We fallback to just
-    // reading the annotation table in this case.
+    
+    
+    
     let stmt;
     if (this._haveGUIDColumn) {
       stmt = this._getStmt(
@@ -1019,7 +1022,7 @@ BookmarksStore.prototype = {
       return kSpecialIds[guid];
 
     let stmt = this._idForGUIDStm;
-    // guid might be a String object rather than a string.
+    
     stmt.params.guid = guid.toString();
 
     let result = Utils.queryAsync(stmt, ["item_id"])[0];
@@ -1029,17 +1032,17 @@ BookmarksStore.prototype = {
   },
 
   _calculateIndex: function _calculateIndex(record) {
-    // Ensure folders have a very high sort index so they're not synced last.
+    
     if (record.type == "folder")
       return FOLDER_SORTINDEX;
 
-    // For anything directly under the toolbar, give it a boost of more than an
-    // unvisited bookmark
+    
+    
     let index = 0;
     if (record.parentid == "toolbar")
       index += 150;
 
-    // Add in the bookmark's frecency if we have something
+    
     if (record.bmkUri != null) {
       this._frecencyStm.params.url = record.bmkUri;
       let result = Utils.queryAsync(this._frecencyStm, ["frecency"]);
@@ -1051,8 +1054,8 @@ BookmarksStore.prototype = {
   },
 
   _getChildren: function BStore_getChildren(guid, items) {
-    let node = guid; // the recursion case
-    if (typeof(node) == "string") // callers will give us the guid as the first arg
+    let node = guid; 
+    if (typeof(node) == "string") 
       node = this._getNode(this.idForGUID(guid));
 
     if (node.type == node.RESULT_TYPE_FOLDER &&
@@ -1060,7 +1063,7 @@ BookmarksStore.prototype = {
       node.QueryInterface(Ci.nsINavHistoryQueryResultNode);
       node.containerOpen = true;
 
-      // Remember all the children GUIDs and recursively get more
+      
       for (var i = 0; i < node.childCount; i++) {
         let child = node.getChild(i);
         items[this.GUIDForId(child.itemId)] = true;
@@ -1072,10 +1075,10 @@ BookmarksStore.prototype = {
   },
 
   _tagURI: function BStore_tagURI(bmkURI, tags) {
-    // Filter out any null/undefined/empty tags
+    
     tags = tags.filter(function(t) t);
 
-    // Temporarily tag a dummy uri to preserve tag ids when untagging
+    
     let dummyURI = Utils.makeURI("about:weave#BStore_tagURI");
     this._ts.tagURI(dummyURI, tags);
     this._ts.untagURI(bmkURI, null);
@@ -1093,7 +1096,7 @@ BookmarksStore.prototype = {
   },
 
   wipe: function BStore_wipe() {
-    // Save a backup before clearing out all bookmarks
+    
     archiveBookmarks();
 
     for (let [guid, id] in Iterator(kSpecialIds))
@@ -1126,17 +1129,17 @@ BookmarksTracker.prototype = {
           Svc.Bookmark.removeObserver(this);
           this._enabled = false;
         }
-        // Fall through to clean up.
+        
       case "places-shutdown":
-        // Explicitly nullify our references to our cached services so
-        // we don't leak
+        
+        
         this.__ls = null;
         this.__bms = null;
         break;
       case "weave:service:start-over":
-        // User has decided to stop syncing, we're going to stop tracking soon.
-        // This means we have to clean up the children annotations so that they
-        // won't be out of sync with reality if/when we start tracking again.
+        
+        
+        
         Engines.get("bookmarks")._store._removeAllChildrenAnnos();
         break;
     }
@@ -1165,7 +1168,7 @@ BookmarksTracker.prototype = {
   ]),
 
   _GUIDForId: function _GUIDForId(item_id) {
-    // Isn't indirection fun...
+    
     return Engines.get("bookmarks")._store.GUIDForId(item_id);
   },
 
@@ -1173,59 +1176,59 @@ BookmarksTracker.prototype = {
     return Engines.get("bookmarks")._store._updateChildrenAnno(itemid);
   },
 
-  /**
-   * Add a bookmark (places) id to be uploaded and bump up the sync score
-   *
-   * @param itemId
-   *        Places internal id of the bookmark to upload
-   */
+  
+
+
+
+
+
   _addId: function BMT__addId(itemId) {
     if (this.addChangedID(this._GUIDForId(itemId, true)))
       this._upScore();
   },
 
-  /* Every add/remove/change is worth 10 points */
+  
   _upScore: function BMT__upScore() {
     this.score += 10;
   },
 
-  /**
-   * Determine if a change should be ignored: we're ignoring everything or the
-   * folder is for livemarks
-   *
-   * @param itemId
-   *        Item under consideration to ignore
-   * @param folder (optional)
-   *        Folder of the item being changed
-   */
+  
+
+
+
+
+
+
+
+
   _ignore: function BMT__ignore(itemId, folder) {
-    // Ignore unconditionally if the engine tells us to
+    
     if (this.ignoreAll)
       return true;
 
-    // Ensure that the mobile bookmarks query is correct in the UI
+    
     this._ensureMobileQuery();
 
-    // Make sure to remove items that have the exclude annotation
+    
     if (Svc.Annos.itemHasAnnotation(itemId, "places/excludeFromBackup")) {
       this.removeChangedID(this._GUIDForId(itemId, true));
       return true;
     }
 
-    // Get the folder id if we weren't given one
+    
     if (folder == null)
       folder = this._bms.getFolderIdForItem(itemId);
 
     let tags = kSpecialIds.tags;
-    // Ignore changes to tags (folders under the tags folder)
+    
     if (folder == tags)
       return true;
 
-    // Ignore tag items (the actual instance of a tag for a bookmark)
+    
     if (this._bms.getFolderIdForItem(folder) == tags)
       return true;
 
-    // Ignore livemark children
+    
     return this._ls.isLivemark(folder);
   },
 
@@ -1255,30 +1258,30 @@ BookmarksTracker.prototype = {
     let find = function(val) Svc.Annos.getItemsWithAnnotation(anno, {}).filter(
       function(id) Utils.anno(id, anno) == val);
 
-    // Don't continue if the Library isn't ready
+    
     let all = find("AllBookmarks");
     if (all.length == 0)
       return;
 
-    // Disable handling of notifications while changing the mobile query
+    
     this.ignoreAll = true;
 
     let mobile = find("MobileBookmarks");
     let queryURI = Utils.makeURI("place:folder=" + kSpecialIds.mobile);
     let title = Str.sync.get("mobile.label");
 
-    // Don't add OR do remove the mobile bookmarks if there's nothing
+    
     if (Svc.Bookmark.getIdForItemAt(kSpecialIds.mobile, 0) == -1) {
       if (mobile.length != 0)
         Svc.Bookmark.removeItem(mobile[0]);
     }
-    // Add the mobile bookmarks query if it doesn't exist
+    
     else if (mobile.length == 0) {
       let query = Svc.Bookmark.insertBookmark(all[0], queryURI, -1, title);
       Utils.anno(query, anno, "MobileBookmarks");
       Utils.anno(query, "places/excludeFromBackup", 1);
     }
-    // Make sure the existing title is correct
+    
     else if (Svc.Bookmark.getItemTitle(mobile[0]) != title)
       Svc.Bookmark.setItemTitle(mobile[0], title);
 
@@ -1289,14 +1292,14 @@ BookmarksTracker.prototype = {
     if (this._ignore(itemId))
       return;
 
-    // ignore annotations except for the ones that we sync
+    
     let annos = ["bookmarkProperties/description",
       "bookmarkProperties/loadInSidebar", "bookmarks/staticTitle",
       "livemark/feedURI", "livemark/siteURI", "microsummary/generatorURI"];
     if (isAnno && annos.indexOf(property) == -1)
       return;
 
-    // Ignore favicon changes to avoid unnecessary churn
+    
     if (property == "favicon")
       return;
 
@@ -1319,7 +1322,7 @@ BookmarksTracker.prototype = {
       this._addId(newParent);
     }
 
-    // Remove any position annotations now that the user moved the item
+    
     Svc.Annos.removeItemAnnotation(itemId, PARENT_ANNO);
   },
 
