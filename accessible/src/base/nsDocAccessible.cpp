@@ -1515,7 +1515,7 @@ nsDocAccessible::CreateTextChangeEventForNode(nsIAccessible *aContainerAccessibl
 
   PRInt32 offset;
   PRInt32 length = 0;
-  nsCOMPtr<nsIAccessible> changeAccessible =
+  nsAccessible *changeAcc =
     textAccessible->DOMPointToHypertextOffset(aChangeNode, -1, &offset);
 
   if (!aAccessibleForChangeNode) {
@@ -1524,33 +1524,29 @@ nsDocAccessible::CreateTextChangeEventForNode(nsIAccessible *aContainerAccessibl
     
     
     
-    if (!changeAccessible) {
+    if (!changeAcc)
       return nsnull; 
-    }
 
     nsCOMPtr<nsINode> changeNode(do_QueryInterface(aChangeNode));
-    nsCOMPtr<nsIAccessible> child = changeAccessible;
-    while (PR_TRUE) {
-      nsCOMPtr<nsIAccessNode> childAccessNode =
-        do_QueryInterface(changeAccessible);
 
-      nsCOMPtr<nsIDOMNode> childDOMNode;
-      childAccessNode->GetDOMNode(getter_AddRefs(childDOMNode));
+    nsAccessible *parent = changeAcc->GetParent();
+    PRInt32 childCount = parent->GetChildCount();
+    PRInt32 changeAccIdx = parent->GetIndexOf(changeAcc);
 
-      nsCOMPtr<nsINode> childNode(do_QueryInterface(childDOMNode));
+    for (PRInt32 idx = changeAccIdx; idx < childCount; idx++) {
+      nsAccessible *child = parent->GetChildAt(idx);
+      nsCOMPtr<nsINode> childNode(do_QueryInterface(child->GetDOMNode()));
+
       if (!nsCoreUtils::IsAncestorOf(changeNode, childNode)) {
-        break;  
-      }
-      length += nsAccUtils::TextLength(child);
-      child->GetNextSibling(getter_AddRefs(changeAccessible));
-      if (!changeAccessible) {
+        
         break;
       }
-      child.swap(changeAccessible);
+
+      length += nsAccUtils::TextLength(child);
     }
   }
   else {
-    NS_ASSERTION(!changeAccessible || changeAccessible == aAccessibleForChangeNode,
+    NS_ASSERTION(!changeAcc || changeAcc == aAccessibleForChangeNode,
                  "Hypertext is reporting a different accessible for this node");
 
     length = nsAccUtils::TextLength(aAccessibleForChangeNode);
