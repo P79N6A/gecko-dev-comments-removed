@@ -235,35 +235,50 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
     return rv;
 
   
-  
-  this->AddRef();
 
   
-  gNeckoChild->SendPHttpChannelConstructor(this);
+  gHttpHandler->OnModifyRequest(this);
+
+  mIsPending = PR_TRUE;
+  mWasOpened = PR_TRUE;
   mListener = listener;
   mListenerContext = aContext;
 
   
+  if (mLoadGroup)
+    mLoadGroup->AddRequest(this, nsnull);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
 
   
   
-
   
 
   
-
-  
+  gNeckoChild->SendPHttpChannelConstructor(this);
 
   SendAsyncOpen(IPC::URI(mURI), IPC::URI(mOriginalURI), IPC::URI(mDocumentURI),
                 IPC::URI(mReferrer), mLoadFlags, mRequestHeaders,
                 mRequestHead.Method(), mPriority, mRedirectionLimit,
                 mAllowPipelining, mForceAllowThirdPartyCookie);
 
-  mIsPending = PR_TRUE;
-  mWasOpened = PR_TRUE;
-  mState = HCC_OPENED;
+  
+  
+  this->AddRef();
 
+  mState = HCC_OPENED;
   return NS_OK;
 }
 
