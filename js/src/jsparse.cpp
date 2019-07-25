@@ -951,9 +951,6 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *calle
                 JS_ASSERT(fun->getParent() == scopeChain);
 
                 
-                JS_ASSERT(!JSFUN_GSFLAG2ATTR(fun->flags));
-
-                
 
 
 

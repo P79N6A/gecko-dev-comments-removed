@@ -282,14 +282,14 @@ struct ClosureVarInfo;
     _JS_TN_LINKAGE(linkage, crtype) name cargtypes;                                               \
     _JS_CI_LINKAGE(linkage) const nanojit::CallInfo _JS_CALLINFO(name) =                          \
         { (intptr_t) &name, argtypes, nanojit::ABI_CDECL, isPure, storeAccSet _JS_CI_NAME(name) };\
-    JS_STATIC_ASSERT_IF(isPure, storeAccSet == nanojit::ACC_NONE);
+    JS_STATIC_ASSERT_IF(isPure, (storeAccSet) == nanojit::ACCSET_NONE);
 
 #else
 #define _JS_DEFINE_CALLINFO(linkage, name, crtype, cargtypes, argtypes, isPure, storeAccSet)      \
     _JS_TN_LINKAGE(linkage, crtype) FASTCALL name cargtypes;                                      \
     _JS_CI_LINKAGE(linkage) const nanojit::CallInfo _JS_CALLINFO(name) =                          \
         { (intptr_t) &name, argtypes, nanojit::ABI_FASTCALL, isPure, storeAccSet _JS_CI_NAME(name) }; \
-    JS_STATIC_ASSERT_IF(isPure, storeAccSet == nanojit::ACC_NONE);
+    JS_STATIC_ASSERT_IF(isPure, (storeAccSet) == nanojit::ACCSET_NONE);
 #endif
 
 
@@ -577,7 +577,7 @@ JS_DECLARE_CALLINFO(js_Array_dense_setelem)
 JS_DECLARE_CALLINFO(js_Array_dense_setelem_int)
 JS_DECLARE_CALLINFO(js_Array_dense_setelem_double)
 JS_DECLARE_CALLINFO(js_NewEmptyArray)
-JS_DECLARE_CALLINFO(js_NewArrayWithSlots)
+JS_DECLARE_CALLINFO(js_NewPreallocatedArray)
 JS_DECLARE_CALLINFO(js_ArrayCompPush_tn)
 
 

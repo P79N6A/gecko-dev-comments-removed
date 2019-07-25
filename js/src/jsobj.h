@@ -476,6 +476,8 @@ struct JSObject {
     
     static const uint32 JSSLOT_ARRAY_LENGTH = JSSLOT_PRIVATE;
 
+    static const uint32 JSSLOT_DENSE_ARRAY_CAPACITY = JSSLOT_PRIVATE + 1;
+
     
     
     
@@ -488,7 +490,7 @@ struct JSObject {
     inline void setArrayLength(uint32 length);
 
     inline uint32 getDenseArrayCapacity() const;
-    inline void setDenseArrayCapacity(uint32 capacity); 
+    inline void setDenseArrayCapacity(uint32 capacity);
 
     inline const js::Value &getDenseArrayElement(uint32 i) const;
     inline js::Value *addressOfDenseArrayElement(uint32 i);
