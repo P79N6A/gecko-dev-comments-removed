@@ -169,8 +169,8 @@ const PRUint8 kUseAltDCFor_SURFACE_DIM     = 0x08;
 #endif
 
 #define NS_IDEVICE_CONTEXT_IID   \
-{ 0x41391E7C, 0x9ED5, 0x4A60, \
-  { 0x88, 0x72, 0x06, 0x15, 0x73, 0xF5, 0x0E, 0xE7 } }
+{ 0x30a9d22f, 0x8e51, 0x40af, \
+  { 0xa1, 0xf5, 0x48, 0xe3, 0x00, 0xaa, 0xa9, 0x27 } }
 
   typedef enum {
     eSystemFont_Caption,         
@@ -235,7 +235,6 @@ public:
 
 
 
-
   NS_IMETHOD  CreateRenderingContext(nsIRenderingContext *&aContext) = 0;
 
   
@@ -244,15 +243,6 @@ public:
 
 
   NS_IMETHOD  CreateRenderingContextInstance(nsIRenderingContext *&aContext) = 0;
-
-  
-
-
-
-
-
-
-  NS_IMETHOD  SupportsNativeWidgets(PRBool &aSupportsWidgets) = 0;
 
   
 
