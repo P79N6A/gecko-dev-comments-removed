@@ -224,6 +224,9 @@ public:
 
   void SetPaintingToWindow(bool aToWindow) { mIsPaintingToWindow = aToWindow; }
   bool IsPaintingToWindow() const { return mIsPaintingToWindow; }
+
+  void SetIsCompositingCheap(bool aCompositingCheap) { mIsCompositingCheap = aCompositingCheap; }
+  bool IsCompositingCheap() const { return mIsCompositingCheap; }
   
 
 
@@ -532,6 +535,7 @@ private:
   bool                           mIsPaintingToWindow;
   bool                           mHasDisplayPort;
   bool                           mHasFixedItems;
+  bool                           mIsCompositingCheap;
 };
 
 class nsDisplayItem;
@@ -1703,6 +1707,7 @@ protected:
                                const nsRect& aRect, bool* aSnap);
 
   bool TryOptimizeToImageLayer(nsDisplayListBuilder* aBuilder);
+  bool IsSingleFixedPositionImage(nsDisplayListBuilder* aBuilder, const nsRect& aClipRect);
   void ConfigureLayer(ImageLayer* aLayer);
 
   
