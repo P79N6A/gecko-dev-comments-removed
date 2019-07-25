@@ -344,6 +344,8 @@ protected:
   
   PRUint8 mIsDocumentObserver : 1;
   
+  PRUint8 mFragmentMode : 1;
+  
   
   
   
