@@ -4325,6 +4325,20 @@ xpc_GetJSPrivate(JSObject *obj)
     return js::GetObjectPrivate(obj);
 }
 
+namespace xpc {
+struct SandboxOptions {
+    SandboxOptions()
+        : wantXrays(true)
+        , wantComponents(true)
+        , proto(NULL)
+    { }
+
+    bool wantXrays;
+    bool wantComponents;
+    JSObject* proto;
+    nsCString sandboxName;
+};
+}
 
 
 
@@ -4337,8 +4351,7 @@ xpc_GetJSPrivate(JSObject *obj)
 
 nsresult
 xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop,
-                        JSObject *proto, bool preferXray, bool wantComponents,
-                        const nsACString &sandboxName);
+                        xpc::SandboxOptions& options);
 
 
 
