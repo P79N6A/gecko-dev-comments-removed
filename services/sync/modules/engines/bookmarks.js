@@ -241,13 +241,12 @@ BookmarksEngine.prototype = {
 
   _handleDupe: function _handleDupe(item, dupeId) {
     
-    if (dupeId < item.id)
-      [item.id, dupeId] = [dupeId, item.id];
-
-    
     this._store.changeItemID(dupeId, item.id);
     this._deleteId(dupeId);
     this._tracker.addChangedID(item.id, 0);
+    if (item.parentid) {
+      this._tracker.addChangedID(item.parentid, 0);
+    }
   }
 };
 
@@ -322,9 +321,6 @@ BookmarksStore.prototype = {
     return this.idForGUID(id) > 0;
   },
 
-  
-  aliases: {},
-
   applyIncoming: function BStore_applyIncoming(record) {
     
     if ((record.id in kSpecialIds) && record.children) {
@@ -333,13 +329,6 @@ BookmarksStore.prototype = {
       this._childrenToOrder[record.id] = record.children;
       return;
     }
-
-    
-    ["id", "parentid"].forEach(function(field) {
-      let alias = this.aliases[record[field]];
-      if (alias != null)
-        record[field] = alias;
-    }, this);
 
     
     switch (record.type) {
@@ -606,11 +595,6 @@ BookmarksStore.prototype = {
   _orderChildren: function _orderChildren() {
     for (let [guid, children] in Iterator(this._childrenToOrder)) {
       
-      children = children.map(function(guid) {
-        return this.aliases[guid] || guid;
-      }, this);
-
-      
       
       let delta = 0;
       for (let idx = 0; idx < children.length; idx++) {
@@ -669,20 +653,13 @@ BookmarksStore.prototype = {
   },
 
   changeItemID: function BStore_changeItemID(oldID, newID) {
-    
-    this.aliases[oldID] = newID;
-
-    
-    this._findAnnoItems(PARENT_ANNO, oldID).forEach(function(itemId) {
-      Utils.anno(itemId, PARENT_ANNO, newID);
-    }, this);
+    this._log.debug("Changing GUID " + oldID + " to " + newID);
 
     
     let itemId = this.idForGUID(oldID);
     if (itemId <= 0)
       return;
 
-    this._log.debug("Changing GUID " + oldID + " to " + newID);
     this._setGUID(itemId, newID);
 
     
@@ -893,8 +870,7 @@ BookmarksStore.prototype = {
     let result = Utils.queryAsync(stmt, ["item_id", "name_id", "anno_id",
                                          "anno_date"])[0];
     if (!result) {
-      let log = Log4Moz.repository.getLogger("Engine.Bookmarks");
-      log.warn("Couldn't annotate bookmark id " + id);
+      this._log.warn("Couldn't annotate bookmark id " + id);
       return guid;
     }
 
