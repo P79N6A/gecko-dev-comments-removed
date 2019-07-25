@@ -1680,6 +1680,17 @@ nsGfxScrollFrameInner::ScrollToImpl(nsPoint aPt)
   }
 }
 
+static void
+AppendToTop(nsDisplayListBuilder* aBuilder, nsDisplayList* aDest,
+            nsDisplayList* aSource, nsIFrame* aSourceFrame, PRBool aOwnLayer)
+{
+  if (aOwnLayer) {
+    aDest->AppendNewToTop(new (aBuilder) nsDisplayOwnLayer(aSourceFrame, aSource));
+  } else {
+    aDest->AppendToTop(aSource);
+  }  
+}
+
 nsresult
 nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                         const nsRect&           aDirtyRect,
@@ -1706,6 +1717,16 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   PRBool hasResizer = HasResizer();
   nsDisplayListCollection scrollParts;
+  
+  
+  
+  
+  
+  
+  
+  
+  PRBool createLayersForScrollbars = mIsRoot &&
+      !nsContentUtils::IsChildOfSameType(mOuter->GetContent()->GetCurrentDoc());
   for (nsIFrame* kid = mOuter->GetFirstChild(nsnull); kid; kid = kid->GetNextSibling()) {
     if (kid != mScrolledFrame) {
       if (kid == mScrollCornerBox && hasResizer) {
@@ -1715,11 +1736,14 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       rv = mOuter->BuildDisplayListForChild(aBuilder, kid, aDirtyRect, scrollParts,
                                             nsIFrame::DISPLAY_CHILD_FORCE_STACKING_CONTEXT);
       NS_ENSURE_SUCCESS(rv, rv);
+      
+      
+      ::AppendToTop(aBuilder, aLists.BorderBackground(),
+                    scrollParts.PositionedDescendants(), kid,
+                    createLayersForScrollbars);
     }
   }
-  
-  
-  aLists.BorderBackground()->AppendToTop(scrollParts.PositionedDescendants());
+
 
   
   
@@ -1754,7 +1778,9 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     NS_ENSURE_SUCCESS(rv, rv);
     
     
-    aLists.Content()->AppendToTop(scrollParts.PositionedDescendants());
+    ::AppendToTop(aBuilder, aLists.Content(),
+                  scrollParts.PositionedDescendants(), mScrollCornerBox,
+                  createLayersForScrollbars);
   }
 
   return NS_OK;
@@ -2897,8 +2923,11 @@ nsGfxScrollFrameInner::ReflowCallbackCanceled()
 }
 
 static void LayoutAndInvalidate(nsBoxLayoutState& aState,
-                                nsIFrame* aBox, const nsRect& aRect)
+                                nsIFrame* aBox, const nsRect& aRect,
+                                PRBool aScrollbarIsBeingHidden)
 {
+  
+  
   
   
   
@@ -2909,11 +2938,19 @@ static void LayoutAndInvalidate(nsBoxLayoutState& aState,
   
   PRBool rectChanged = aBox->GetRect() != aRect;
   if (rectChanged) {
-    aBox->GetParent()->Invalidate(aBox->GetOverflowRect() + aBox->GetPosition());
+    if (aScrollbarIsBeingHidden) {
+      aBox->GetParent()->Invalidate(aBox->GetOverflowRect() + aBox->GetPosition());
+    } else {
+      aBox->InvalidateOverflowRect();
+    }
   }
   nsBoxFrame::LayoutChildAt(aState, aBox, aRect);
   if (rectChanged) {
-    aBox->GetParent()->Invalidate(aBox->GetOverflowRect() + aBox->GetPosition());
+    if (aScrollbarIsBeingHidden) {
+      aBox->GetParent()->Invalidate(aBox->GetOverflowRect() + aBox->GetPosition());
+    } else {
+      aBox->InvalidateOverflowRect();
+    }
   }
 }
 
@@ -3005,7 +3042,7 @@ nsGfxScrollFrameInner::LayoutScrollbars(nsBoxLayoutState& aState,
       r.y = aContentArea.YMost() - r.height;
       NS_ASSERTION(r.height >= 0, "Scroll area should be inside client rect");
     }
-    LayoutAndInvalidate(aState, mScrollCornerBox, r);
+    LayoutAndInvalidate(aState, mScrollCornerBox, r, PR_FALSE);
   }
 
   nsPresContext* presContext = mScrolledFrame->PresContext();
@@ -3018,7 +3055,7 @@ nsGfxScrollFrameInner::LayoutScrollbars(nsBoxLayoutState& aState,
     mVScrollbarBox->GetMargin(margin);
     vRect.Deflate(margin);
     AdjustScrollbarRectForResizer(mOuter, presContext, vRect, hasResizer, PR_TRUE);
-    LayoutAndInvalidate(aState, mVScrollbarBox, vRect);
+    LayoutAndInvalidate(aState, mVScrollbarBox, vRect, !mHasVerticalScrollbar);
   }
 
   if (mHScrollbarBox) {
@@ -3030,7 +3067,7 @@ nsGfxScrollFrameInner::LayoutScrollbars(nsBoxLayoutState& aState,
     mHScrollbarBox->GetMargin(margin);
     hRect.Deflate(margin);
     AdjustScrollbarRectForResizer(mOuter, presContext, hRect, hasResizer, PR_FALSE);
-    LayoutAndInvalidate(aState, mHScrollbarBox, hRect);
+    LayoutAndInvalidate(aState, mHScrollbarBox, hRect, !mHasHorizontalScrollbar);
   }
 
   

@@ -1484,6 +1484,27 @@ public:
 
 
 
+class nsDisplayOwnLayer : public nsDisplayWrapList {
+public:
+  nsDisplayOwnLayer(nsIFrame* aFrame, nsDisplayList* aList);
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayOwnLayer();
+#endif
+  
+  virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
+                                             LayerManager* aManager);
+  virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem)
+  {
+    
+    return PR_FALSE;
+  }
+  NS_DISPLAY_DECL_NAME("OwnLayer", TYPE_OWN_LAYER)
+};
+
+
+
+
+
 
 class nsDisplayClip : public nsDisplayWrapList {
 public:
