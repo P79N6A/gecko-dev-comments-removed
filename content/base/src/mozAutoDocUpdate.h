@@ -34,6 +34,10 @@
 
 
 
+#include "nsContentUtils.h"
+#include "nsIDocument.h"
+#include "nsIDocumentObserver.h"
+
 
 
 

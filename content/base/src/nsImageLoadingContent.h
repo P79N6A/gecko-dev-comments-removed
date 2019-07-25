@@ -50,7 +50,7 @@
 #include "imgIRequest.h"
 #include "prtypes.h"
 #include "nsCOMPtr.h"
-#include "nsContentUtils.h"
+#include "nsContentUtils.h" 
 #include "nsString.h"
 #include "nsEventStates.h"
 

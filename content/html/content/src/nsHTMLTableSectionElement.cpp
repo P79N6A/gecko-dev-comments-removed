@@ -45,6 +45,7 @@
 #include "nsRuleData.h"
 #include "nsDOMError.h"
 #include "nsIDocument.h"
+#include "nsContentUtils.h"
 
 
 

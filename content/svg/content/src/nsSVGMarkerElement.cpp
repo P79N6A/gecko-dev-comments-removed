@@ -43,6 +43,7 @@
 #include "nsSVGUtils.h"
 #include "nsSVGMarkerElement.h"
 #include "gfxMatrix.h"
+#include "nsContentUtils.h" 
 
 using namespace mozilla;
 

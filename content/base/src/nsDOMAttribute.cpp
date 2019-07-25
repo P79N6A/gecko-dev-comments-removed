@@ -60,6 +60,7 @@
 #include "mozAutoDocUpdate.h"
 #include "nsMutationEvent.h"
 #include "nsPLDOMEvent.h"
+#include "nsContentUtils.h" 
 
 using namespace mozilla::dom;
 

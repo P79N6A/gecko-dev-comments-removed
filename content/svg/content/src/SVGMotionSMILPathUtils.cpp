@@ -40,6 +40,7 @@
 #include "SVGLength.h"
 #include "nsContentCreatorFunctions.h" 
 #include "nsCharSeparatedTokenizer.h"
+#include "nsContentUtils.h"
 
 namespace mozilla {
 

@@ -41,6 +41,7 @@
 #include "nsPresContext.h"
 #include "nsIMediaList.h"
 #include "nsCSSParser.h"
+#include "nsDOMClassInfoID.h" 
 
 nsDOMMediaQueryList::nsDOMMediaQueryList(nsPresContext *aPresContext,
                                          const nsAString &aMediaQueryList)

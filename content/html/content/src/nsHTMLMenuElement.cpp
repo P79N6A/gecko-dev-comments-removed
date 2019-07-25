@@ -34,13 +34,15 @@
 
 
 
+#include "nsHTMLMenuElement.h"
+
 #include "nsIDOMNSHTMLElement.h"
 #include "nsIDOMHTMLMenuItemElement.h"
 #include "nsXULContextMenuBuilder.h"
 #include "nsGUIEvent.h"
 #include "nsEventDispatcher.h"
 #include "nsHTMLMenuItemElement.h"
-#include "nsHTMLMenuElement.h"
+#include "nsContentUtils.h"
 
 enum MenuType
 {

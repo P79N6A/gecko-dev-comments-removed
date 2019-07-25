@@ -38,6 +38,8 @@
 
 
 #include "nsDOMNotifyAudioAvailableEvent.h"
+#include "nsDOMClassInfoID.h" 
+#include "nsContentUtils.h" 
 #include "jstypedarray.h"
 
 nsDOMNotifyAudioAvailableEvent::nsDOMNotifyAudioAvailableEvent(nsPresContext* aPresContext,

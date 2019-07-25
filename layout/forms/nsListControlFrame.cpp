@@ -84,6 +84,7 @@
 #include "nsIDOMEventListener.h"
 #include "nsLayoutUtils.h"
 #include "nsDisplayList.h"
+#include "nsContentUtils.h"
 
 
 const nscoord kMaxDropDownRows          = 20; 

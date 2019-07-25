@@ -44,7 +44,7 @@
 #include "nsScriptElement.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
-
+#include "nsContentUtils.h"
 #include "nsUnicharUtils.h"  
 #include "jsapi.h"
 #include "nsIScriptContext.h"

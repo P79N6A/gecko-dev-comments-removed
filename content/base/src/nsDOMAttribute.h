@@ -51,7 +51,6 @@
 #include "nsINodeInfo.h"
 #include "nsDOMAttributeMap.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsContentUtils.h"
 #include "nsStubMutationObserver.h"
 
 

@@ -40,6 +40,7 @@
 #include "nsSVGUtils.h"
 #include "nsSVGMarkerElement.h"
 #include "nsMathUtils.h"
+#include "nsContentUtils.h" 
 #ifdef MOZ_SMIL
 #include "nsSMILValue.h"
 #include "SVGOrientSMILType.h"

@@ -41,6 +41,7 @@
 #include "nsSVGElement.h"
 #include "nsIDOMSVGNumber.h"
 #include "nsDOMError.h"
+#include "nsContentUtils.h"
 
 
 

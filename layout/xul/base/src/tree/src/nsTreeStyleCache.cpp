@@ -61,8 +61,6 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
     
     mTransitionTable =
       new nsObjectHashtable(nsnull, nsnull, DeleteDFAState, nsnull);
-    if (!mTransitionTable)
-      return nsnull;
   }
 
   
@@ -72,8 +70,6 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
   if (!currState) {
     
     currState = new nsDFAState(mNextState);
-    if (!currState)
-      return nsnull;
     mNextState++;
     mTransitionTable->Put(&key, currState);
   }
@@ -86,9 +82,6 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
     if (!currState) {
       
       currState = new nsDFAState(mNextState);
-      if (!currState)
-        return nsnull;
-
       mNextState++;
       mTransitionTable->Put(&key, currState);
     }
@@ -108,8 +101,6 @@ nsTreeStyleCache::GetStyleContext(nsICSSPseudoComparator* aComparator,
     
     if (!mCache) {
       mCache = new nsObjectHashtable(nsnull, nsnull, ReleaseStyleContext, nsnull);
-      if (!mCache)
-        return nsnull;
     }
     mCache->Put(currState, result);
   }
