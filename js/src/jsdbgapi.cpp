@@ -634,7 +634,7 @@ DropWatchPointAndUnlock(JSContext *cx, JSWatchPoint *wp, uintN flag)
 
 
 
-bool
+JSBool
 js_TraceWatchPoints(JSTracer *trc)
 {
     JSRuntime *rt;

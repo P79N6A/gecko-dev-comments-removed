@@ -184,7 +184,7 @@ JS_ClearAllWatchPoints(JSContext *cx);
 
 
 
-extern bool
+extern JSBool
 js_TraceWatchPoints(JSTracer *trc);
 
 extern void
