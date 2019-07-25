@@ -2454,6 +2454,14 @@ nsCSSRuleProcessor::MediumFeaturesChanged(nsPresContext* aPresContext)
   return (old != mRuleCascades);
 }
 
+ PRInt64
+nsCSSRuleProcessor::SizeOf() const
+{
+  size_t n = sizeof(*this);
+
+  return n;
+}
+
 
 
 PRBool

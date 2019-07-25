@@ -311,6 +311,11 @@ nsHTMLStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
   return PR_FALSE;
 }
 
+ PRInt64
+nsHTMLStyleSheet::SizeOf() const
+{
+  return 0; 
+}
 
  void
 nsHTMLStyleSheet::RulesMatching(PseudoElementRuleProcessorData* aData)
@@ -546,7 +551,7 @@ GetHashEntryAttributesSize(PLDHashTable* aTable, PLDHashEntryHdr* aEntry,
 }
 
 PRInt64
-nsHTMLStyleSheet::SizeOf() const
+nsHTMLStyleSheet::DOMSizeOf() const
 {
   PRInt64 size = sizeof(*this);
 

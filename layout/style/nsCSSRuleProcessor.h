@@ -136,6 +136,8 @@ public:
 
   virtual PRBool MediumFeaturesChanged(nsPresContext* aPresContext);
 
+  virtual PRInt64 SizeOf() const;
+
   
   
   PRBool AppendFontFaceRules(nsPresContext* aPresContext,
