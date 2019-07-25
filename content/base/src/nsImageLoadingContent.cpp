@@ -555,6 +555,24 @@ NS_IMETHODIMP nsImageLoadingContent::ForceReload()
 
 
 
+void
+nsImageLoadingContent::NotifyOwnerDocumentChanged(nsIDocument *aOldDoc)
+{
+  
+  if (aOldDoc) {
+    if (mCurrentRequest)
+      aOldDoc->RemoveImage(mCurrentRequest);
+    if (mPendingRequest)
+      aOldDoc->RemoveImage(mPendingRequest);
+  }
+
+  
+  if (mCurrentRequest)
+    TrackImage(mCurrentRequest);
+  if (mPendingRequest)
+    TrackImage(mPendingRequest);
+}
+
 nsresult
 nsImageLoadingContent::LoadImage(const nsAString& aNewURI,
                                  PRBool aForce,

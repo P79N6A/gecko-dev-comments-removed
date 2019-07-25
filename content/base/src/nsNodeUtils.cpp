@@ -60,6 +60,7 @@
 #ifdef MOZ_MEDIA
 #include "nsHTMLMediaElement.h"
 #endif 
+#include "nsImageLoadingContent.h"
 
 using namespace mozilla::dom;
 
@@ -529,6 +530,13 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
       }
     }
 #endif
+
+    
+    if (oldDoc != newDoc) {
+      nsCOMPtr<nsIImageLoadingContent> imageContent(do_QueryInterface(aNode));
+      if (imageContent)
+        imageContent->NotifyOwnerDocumentChanged(oldDoc);
+    }
 
     if (elem) {
       elem->RecompileScriptEventListeners();
