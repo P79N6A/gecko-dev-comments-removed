@@ -108,10 +108,10 @@ public:
 
 
   enum Mode {
-	PAINTING,
-	EVENT_DELIVERY,
-	PLUGIN_GEOMETRY,
-	OTHER
+    PAINTING,
+    EVENT_DELIVERY,
+    PLUGIN_GEOMETRY,
+    OTHER
   };
   nsDisplayListBuilder(nsIFrame* aReferenceFrame, Mode aMode, bool aBuildCaret);
   ~nsDisplayListBuilder();
