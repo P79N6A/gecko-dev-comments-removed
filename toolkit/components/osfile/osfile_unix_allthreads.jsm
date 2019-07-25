@@ -122,6 +122,24 @@ if (typeof Components != "undefined") {
     }
   });
 
+  
+
+
+
+  OSError.toMsg = function toMsg(error) {
+    return {
+      operation: error.operation,
+      unixErrno: error.unixErrno
+    };
+  };
+
+  
+
+
+  OSError.fromMsg = function fromMsg(msg) {
+    return new OSError(msg.operation, msg.unixErrno);
+  };
+
   exports.OS.Shared.Unix.Error = OSError;
 
   
