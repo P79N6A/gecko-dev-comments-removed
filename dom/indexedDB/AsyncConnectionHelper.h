@@ -168,14 +168,6 @@ protected:
   
 
 
-  static nsresult ConvertCloneBufferToJSVal(
-                                           JSContext* aCx,
-                                           JSAutoStructuredCloneBuffer& aBuffer,
-                                           jsval* aResult);
-
-  
-
-
   static nsresult ConvertCloneBuffersToArray(
                                 JSContext* aCx,
                                 nsTArray<JSAutoStructuredCloneBuffer>& aBuffers,
