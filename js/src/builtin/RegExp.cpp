@@ -576,7 +576,7 @@ ExecuteRegExp(JSContext *cx, Native native, unsigned argc, Value *vp)
         return false;
 
     
-    const Value &lastIndex = reobj->getLastIndex();
+    Value lastIndex = reobj->getLastIndex();
 
     
     double i;
@@ -588,7 +588,7 @@ ExecuteRegExp(JSContext *cx, Native native, unsigned argc, Value *vp)
         i = 0;
 
     const jschar *chars = linearInput->chars();
-    size_t length = input->length();
+    size_t length = linearInput->length();
 
     
     if (i < 0 || i > length) {

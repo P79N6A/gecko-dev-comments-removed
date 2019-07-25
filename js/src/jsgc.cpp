@@ -4327,6 +4327,18 @@ JS::CheckStackRoots(JSContext *cx)
     
     JS_ASSERT(!cx->rootingUnnecessary);
 
+    
+    if (cx->compartment->activeAnalysis)
+        return;
+
+    
+    if (IsAtomsCompartment(cx->compartment)) {
+        for (CompartmentsIter c(rt); !c.done(); c.next()) {
+            if (c.get()->activeAnalysis)
+                return;
+        }
+    }
+
     AutoCopyFreeListToArenas copy(rt);
 
     JSTracer checker;
