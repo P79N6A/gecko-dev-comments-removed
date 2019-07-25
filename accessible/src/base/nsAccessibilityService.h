@@ -193,6 +193,15 @@ public:
 
 
 
+  nsAccessible *GetContainerAccessible(nsIDOMNode *aNode, PRBool aCanCreate);
+
+  
+
+
+
+
+
+
 
   nsAccessNode* GetCachedAccessNode(nsIDOMNode *aNode,
                                     nsIWeakReference *aShell);

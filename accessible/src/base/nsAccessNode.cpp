@@ -181,13 +181,10 @@ nsAccessNode::Init()
   nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
   if (content && content->IsInAnonymousSubtree()) {
     
-    nsCOMPtr<nsIAccessible> parentAccessible;
-    docAcc->GetAccessibleInParentChain(mDOMNode, PR_TRUE,
-                                       getter_AddRefs(parentAccessible));
-    if (parentAccessible) {
-      PRInt32 childCountUnused;
-      parentAccessible->GetChildCount(&childCountUnused);
-    }
+    nsAccessible *parent = GetAccService()->GetContainerAccessible(mDOMNode,
+                                                                   PR_TRUE);
+    if (parent)
+      parent->EnsureChildren();
   }
 
 #ifdef DEBUG_A11Y
