@@ -1,0 +1,167 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef NSSUBDOCUMENTFRAME_H_
+#define NSSUBDOCUMENTFRAME_H_
+
+#include "nsLeafFrame.h"
+#include "nsIFrameFrame.h"
+#include "nsIReflowCallback.h"
+#include "nsFrameLoader.h"
+
+
+
+
+class nsSubDocumentFrame : public nsLeafFrame,
+                           public nsIFrameFrame,
+                           public nsIReflowCallback
+{
+public:
+  NS_DECL_FRAMEARENA_HELPERS
+
+  nsSubDocumentFrame(nsStyleContext* aContext);
+
+#ifdef DEBUG
+  NS_IMETHOD GetFrameName(nsAString& aResult) const;
+#endif
+
+  NS_DECL_QUERYFRAME
+
+  virtual nsIAtom* GetType() const;
+
+  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
+  {
+    
+    return nsLeafFrame::IsFrameOfType(aFlags &
+      ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
+  }
+
+  NS_IMETHOD Init(nsIContent*      aContent,
+                  nsIFrame*        aParent,
+                  nsIFrame*        aPrevInFlow);
+
+  virtual void DestroyFrom(nsIFrame* aDestructRoot);
+
+  virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
+  virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);
+
+  virtual IntrinsicSize GetIntrinsicSize();
+  virtual nsSize  GetIntrinsicRatio();
+
+  virtual nsSize ComputeAutoSize(nsIRenderingContext *aRenderingContext,
+                                 nsSize aCBSize, nscoord aAvailableWidth,
+                                 nsSize aMargin, nsSize aBorder,
+                                 nsSize aPadding, PRBool aShrinkWrap);
+
+  virtual nsSize ComputeSize(nsIRenderingContext *aRenderingContext,
+                             nsSize aCBSize, nscoord aAvailableWidth,
+                             nsSize aMargin, nsSize aBorder, nsSize aPadding,
+                             PRBool aShrinkWrap);
+
+  NS_IMETHOD Reflow(nsPresContext*          aPresContext,
+                    nsHTMLReflowMetrics&     aDesiredSize,
+                    const nsHTMLReflowState& aReflowState,
+                    nsReflowStatus&          aStatus);
+
+  NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                              const nsRect&           aDirtyRect,
+                              const nsDisplayListSet& aLists);
+
+  NS_IMETHOD AttributeChanged(PRInt32 aNameSpaceID,
+                              nsIAtom* aAttribute,
+                              PRInt32 aModType);
+
+  
+  
+  
+  
+  virtual PRBool SupportsVisibilityHidden() { return PR_FALSE; }
+
+#ifdef ACCESSIBILITY
+  virtual already_AddRefed<nsAccessible> CreateAccessible();
+#endif
+
+  
+  NS_IMETHOD GetDocShell(nsIDocShell **aDocShell);
+  NS_IMETHOD BeginSwapDocShells(nsIFrame* aOther);
+  virtual void EndSwapDocShells(nsIFrame* aOther);
+  virtual nsIFrame* GetFrame() { return this; }
+  virtual nsIFrame* GetSubdocumentRootFrame();
+
+  
+  virtual PRBool ReflowFinished();
+  virtual void ReflowCallbackCanceled();
+
+protected:
+  friend class AsyncFrameInit;
+
+  
+  nsIntSize GetMarginAttributes();
+
+  nsFrameLoader* FrameLoader();
+
+  PRBool IsInline() { return mIsInline; }
+  nsIView* CreateViewAndWidget(nsContentType aContentType);
+
+  virtual nscoord GetIntrinsicWidth();
+  virtual nscoord GetIntrinsicHeight();
+
+  virtual PRIntn GetSkipSides() const;
+
+  
+  void HideViewer();
+  void ShowViewer();
+
+  
+
+
+
+
+
+
+
+  nsIFrame* ObtainIntrinsicSizeFrame();
+
+  nsRefPtr<nsFrameLoader> mFrameLoader;
+  nsIView* mInnerView;
+  PRPackedBool mIsInline;
+  PRPackedBool mPostedReflowCallback;
+  PRPackedBool mDidCreateDoc;
+  PRPackedBool mCallingShow;
+};
+
+#endif 
