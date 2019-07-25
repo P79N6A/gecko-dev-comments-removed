@@ -1243,7 +1243,8 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-    
+
+  nsDisplayList replacedContent;
   if (mComputedSize.width != 0 && mComputedSize.height != 0) {
     nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mContent);
     NS_ASSERTION(imageLoader, "Not an image loading content?");
@@ -1276,13 +1277,13 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     if (!imageOK || !haveSize) {
       
       
-      rv = aLists.Content()->AppendNewToTop(new (aBuilder)
+      rv = replacedContent.AppendNewToTop(new (aBuilder)
           nsDisplayGeneric(aBuilder, this, PaintAltFeedback, "AltFeedback",
                            nsDisplayItem::TYPE_ALT_FEEDBACK));
       NS_ENSURE_SUCCESS(rv, rv);
     }
     else {
-      rv = aLists.Content()->AppendNewToTop(new (aBuilder)
+      rv = replacedContent.AppendNewToTop(new (aBuilder)
           nsDisplayImage(aBuilder, this, imgCon));
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1357,8 +1358,13 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   }
 #endif
   
-  return DisplaySelectionOverlay(aBuilder, aLists.Content(),
-                                 nsISelectionDisplay::DISPLAY_IMAGES);
+  rv = DisplaySelectionOverlay(aBuilder, &replacedContent,
+                               nsISelectionDisplay::DISPLAY_IMAGES);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  WrapReplacedContentForBorderRadius(aBuilder, &replacedContent, aLists);
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP

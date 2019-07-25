@@ -1131,6 +1131,15 @@ public:
   
 
 
+
+
+  void WrapReplacedContentForBorderRadius(nsDisplayListBuilder* aBuilder,
+                                          nsDisplayList* aFromList,
+                                          const nsDisplayListSet& aToLists);
+
+  
+
+
   virtual PRBool NeedsView() { return PR_FALSE; }
 
   
