@@ -2638,20 +2638,43 @@ FrameLayerBuilder::Clip::ApplyRoundedRectsTo(gfxContext* aContext,
   aEnd = NS_MIN<PRUint32>(aEnd, mRoundedClipRects.Length());
 
   for (PRUint32 i = aBegin; i < aEnd; ++i) {
-    const Clip::RoundedRect &rr = mRoundedClipRects[i];
-
-    gfxCornerSizes pixelRadii;
-    nsCSSRendering::ComputePixelRadii(rr.mRadii, A2D, &pixelRadii);
-
-    gfxRect clip = nsLayoutUtils::RectToGfxRect(rr.mRect, A2D);
-    clip.Round();
-    clip.Condition();
-    
-
-    aContext->NewPath();
-    aContext->RoundedRectangle(clip, pixelRadii);
+    AddRoundedRectPathTo(aContext, A2D, mRoundedClipRects[i]);
     aContext->Clip();
   }
+}
+
+void
+FrameLayerBuilder::Clip::DrawRoundedRectsTo(gfxContext* aContext,
+                                            PRInt32 A2D,
+                                            PRUint32 aBegin, PRUint32 aEnd) const
+{
+  aEnd = NS_MIN<PRUint32>(aEnd, mRoundedClipRects.Length());
+
+  if (aEnd - aBegin == 0)
+    return;
+
+  
+  
+  ApplyRoundedRectsTo(aContext, A2D, aBegin, aEnd - 1);
+  AddRoundedRectPathTo(aContext, A2D, mRoundedClipRects[aEnd - 1]);
+  aContext->Fill();
+}
+
+void
+FrameLayerBuilder::Clip::AddRoundedRectPathTo(gfxContext* aContext,
+                                              PRInt32 A2D,
+                                              const RoundedRect &aRoundRect) const
+{
+  gfxCornerSizes pixelRadii;
+  nsCSSRendering::ComputePixelRadii(aRoundRect.mRadii, A2D, &pixelRadii);
+
+  gfxRect clip = nsLayoutUtils::RectToGfxRect(aRoundRect.mRect, A2D);
+  clip.Round();
+  clip.Condition();
+  
+
+  aContext->NewPath();
+  aContext->RoundedRectangle(clip, pixelRadii);
 }
 
 nsRect
@@ -2857,12 +2880,9 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
   
   
 
-  PRInt32 A2D = mContainerFrame->PresContext()->AppUnitsPerDevPixel();
-  aClip.ApplyRoundedRectsTo(context, A2D, 0, aRoundedRectClipCount);
-
   
-  context->SetColor(gfxRGBA(0, 0, 0, 1));
-  context->Paint();
+  context->SetColor(gfxRGBA(0, 0, 0, 1));  PRInt32 A2D = mContainerFrame->PresContext()->AppUnitsPerDevPixel();
+  aClip.DrawRoundedRectsTo(context, A2D, 0, aRoundedRectClipCount);
 
   
   nsRefPtr<ImageContainer> container = aLayer->Manager()->CreateImageContainer();
