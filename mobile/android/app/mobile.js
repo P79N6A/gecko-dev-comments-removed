@@ -361,6 +361,10 @@ pref("places.frecency.unvisitedTypedBonus", 200);
 
 
 pref("gfx.color_management.mode", 0);
+#ifdef ANDROID
+
+pref("gfx.displayport.strategy", 0);
+#endif
 
 
 pref("dom.disable_window_move_resize", true);
