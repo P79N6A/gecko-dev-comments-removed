@@ -417,7 +417,7 @@ public:
     NS_IMETHOD SetIsOpaque(PRBool isOpaque);
     already_AddRefed<CanvasLayer> GetCanvasLayer(LayerManager *manager);
     void MarkContextClean();
-    NS_IMETHOD SetIsShmem(PRBool isShmem);
+    NS_IMETHOD SetIsIPC(PRBool isIPC);
     
     NS_IMETHOD Redraw(const gfxRect &r);
     
@@ -503,7 +503,7 @@ protected:
     PRPackedBool mOpaque;
 
 #ifdef MOZ_IPC
-    PRPackedBool mAsync;
+    PRPackedBool mIPC;
 
     
     
@@ -810,7 +810,7 @@ NS_NewCanvasRenderingContext2D(nsIDOMCanvasRenderingContext2D** aResult)
 nsCanvasRenderingContext2D::nsCanvasRenderingContext2D()
     : mValid(PR_FALSE), mOpaque(PR_FALSE)
 #ifdef MOZ_IPC
-    , mAsync(PR_FALSE)
+    , mIPC(PR_FALSE)
 #endif
     , mCanvasElement(nsnull)
     , mSaveCount(0), mIsEntireFrameInvalid(PR_FALSE), mInvalidateCount(0)
@@ -1064,7 +1064,7 @@ nsCanvasRenderingContext2D::SetDimensions(PRInt32 width, PRInt32 height)
             surface = NULL;
 
 #ifdef MOZ_IPC
-        if (mAsync && surface) {
+        if (mIPC && surface) {
 #ifdef MOZ_X11
             if (surface->GetType() == gfxASurface::SurfaceTypeXlib) {
                 mBackSurface =
@@ -1176,13 +1176,13 @@ nsCanvasRenderingContext2D::SetIsOpaque(PRBool isOpaque)
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2D::SetIsShmem(PRBool isShmem)
+nsCanvasRenderingContext2D::SetIsIPC(PRBool isIPC)
 {
 #ifdef MOZ_IPC
-    if (isShmem == mAsync)
+    if (isIPC == mIPC)
         return NS_OK;
 
-    mAsync = isShmem;
+    mIPC = isIPC;
 
     if (mValid) {
         
@@ -3719,7 +3719,7 @@ nsCanvasRenderingContext2D::AsyncDrawXULElement(nsIDOMXULElement* aElem, float a
             w = nsPresContext::CSSPixelsToAppUnits(aW),
             h = nsPresContext::CSSPixelsToAppUnits(aH);
 
-    if (mAsync) {
+    if (mIPC) {
 #ifdef MOZ_X11
         if (mBackSurface &&
 				    mBackSurface->GetType() == gfxASurface::SurfaceTypeXlib) {

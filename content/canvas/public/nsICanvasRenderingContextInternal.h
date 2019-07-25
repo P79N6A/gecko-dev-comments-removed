@@ -115,7 +115,7 @@ public:
   
   
   
-  NS_IMETHOD SetIsShmem(PRBool isShmem) = 0;
+  NS_IMETHOD SetIsIPC(PRBool isIPC) = 0;
 
   
   
