@@ -486,7 +486,7 @@ nsDOMWindowUtils::GetWidgetForElement(nsIDOMElement* aElement)
       frame = presShell->GetRootFrame();
     }
     if (frame)
-      return frame->GetWindow();
+      return frame->GetNearestWidget();
   }
 
   return nsnull;
@@ -1098,7 +1098,7 @@ nsDOMWindowUtils::SendQueryContentEvent(PRUint32 aType,
 
     
     if (popupFrame) {
-      targetWidget = popupFrame->GetWindow();
+      targetWidget = popupFrame->GetNearestWidget();
     }
   }
 

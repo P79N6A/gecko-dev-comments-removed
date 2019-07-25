@@ -734,7 +734,7 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
 
     
     nsIWidget* parentWidget =
-      rpc->PresShell()->FrameManager()->GetRootFrame()->GetWindow();
+      rpc->PresShell()->FrameManager()->GetRootFrame()->GetNearestWidget();
 
     nsWidgetInitData initData;
     initData.mWindowType = eWindowType_plugin;
@@ -756,7 +756,7 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
     
     
     
-    if (parentWidget == GetWindow()) {
+    if (parentWidget == GetNearestWidget()) {
       mWidget->Show(PR_TRUE);
 #ifdef XP_MACOSX
       
@@ -2883,7 +2883,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
     
     
     
-    nsIWidget* win = mObjectFrame->GetWindow();
+    nsIWidget* win = mObjectFrame->GetNearestWidget();
     if (win) {
       nsIView *view = nsIView::GetViewFor(win);
       NS_ASSERTION(view, "No view for widget");
@@ -2911,7 +2911,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
   return rv;
 #elif defined(MOZ_WIDGET_GTK2)
   
-  nsIWidget* win = mObjectFrame->GetWindow();
+  nsIWidget* win = mObjectFrame->GetNearestWidget();
   if (!win)
     return NS_ERROR_FAILURE;
   GdkWindow* gdkWindow = static_cast<GdkWindow*>(win->GetNativeData(NS_NATIVE_WINDOW));
@@ -2924,7 +2924,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
   return NS_OK;
 #elif defined(MOZ_WIDGET_QT)
   
-  nsIWidget* win = mObjectFrame->GetWindow();
+  nsIWidget* win = mObjectFrame->GetNearestWidget();
   if (!win)
     return NS_ERROR_FAILURE;
   QWidget* widget = static_cast<QWidget*>(win->GetNativeData(NS_NATIVE_WINDOW));
@@ -5186,7 +5186,7 @@ static GdkWindow* GetClosestWindow(nsIDOMElement *element)
   if (!frame)
     return nsnull;
 
-  nsIWidget* win = frame->GetWindow();
+  nsIWidget* win = frame->GetNearestWidget();
   if (!win)
     return nsnull;
 
@@ -5801,7 +5801,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
           mPluginWindow->window = nsnull;
 #ifdef MOZ_X11
           
-          nsIWidget* win = mObjectFrame->GetWindow();
+          nsIWidget* win = mObjectFrame->GetNearestWidget();
           NPSetWindowCallbackStruct* ws_info = 
             static_cast<NPSetWindowCallbackStruct*>(mPluginWindow->ws_info);
           if (win) {
@@ -5902,7 +5902,7 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
   
   void* cocoaTopLevelWindow = nsnull;
   if (eventModel == NPEventModelCocoa) {
-    nsIWidget* widget = mObjectFrame->GetWindow();
+    nsIWidget* widget = mObjectFrame->GetNearestWidget();
     if (!widget)
       return nsnull;
     cocoaTopLevelWindow = widget->GetNativeData(NS_NATIVE_WINDOW);

@@ -1661,7 +1661,8 @@ void nsGfxScrollFrameInner::ScrollVisual(nsIntPoint aPixDelta)
   
   
   
-  if (rootPresContext->FrameManager()->GetRootFrame()->GetWindow() == nearestWidget) {
+  if (rootPresContext->FrameManager()->GetRootFrame()->GetNearestWidget() ==
+        nearestWidget) {
     rootPresContext->GetPluginGeometryUpdates(mOuter, &configurations);
   }
 
@@ -1743,7 +1744,7 @@ void nsGfxScrollFrameInner::ScrollVisual(nsIntPoint aPixDelta)
     }
 
     nsIFrame* presContextRootFrame = presContext->FrameManager()->GetRootFrame();
-    if (nearestWidget == presContextRootFrame->GetWindow()) {
+    if (nearestWidget == presContextRootFrame->GetNearestWidget()) {
       nsPoint offsetToPresContext = mOuter->GetOffsetTo(presContextRootFrame);
       blitRectsRegion.MoveBy(-nearestWidgetOffset + offsetToPresContext);
       repaintRegion.MoveBy(-offsetToDisplayRoot + offsetToPresContext);

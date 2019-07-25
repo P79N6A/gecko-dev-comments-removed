@@ -1695,13 +1695,14 @@ public:
 
 
 
-  virtual nsIWidget* GetWindow() const;
+  virtual nsIWidget* GetNearestWidget() const;
 
   
 
 
 
-  virtual nsIWidget* GetWindowOffset(nsPoint& aOffset) const;
+
+  virtual nsIWidget* GetNearestWidget(nsPoint& aOffset) const;
 
   
 
