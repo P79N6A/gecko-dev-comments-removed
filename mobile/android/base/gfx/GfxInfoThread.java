@@ -3,7 +3,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.gfx;
 
 import android.util.Log;
 import java.util.concurrent.SynchronousQueue;
