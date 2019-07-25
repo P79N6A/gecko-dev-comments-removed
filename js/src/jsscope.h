@@ -279,8 +279,8 @@ struct JSScope : public JSObjectMap
     bool changeTable(JSContext *cx, int change);
     void reportReadOnlyScope(JSContext *cx);
 
-    void setOwnShape()                  { flags |= OWN_SHAPE; }
-    void clearOwnShape()                { flags &= ~OWN_SHAPE; }
+    void setOwnShape()          { flags |= OWN_SHAPE; }
+    void clearOwnShape()        { flags &= ~OWN_SHAPE; }
     void generateOwnShape(JSContext *cx);
 
     JSScopeProperty **searchTable(jsid id, bool adding);
@@ -326,17 +326,6 @@ struct JSScope : public JSObjectMap
                                  JSPropertyOp getter, JSPropertyOp setter,
                                  uint32 slot, uintN attrs,
                                  uintN flags, intN shortid);
-
-    
-
-
-
-
-
-    JSScopeProperty *prepareForAddProperty(JSContext *cx, jsid id,
-                                           JSPropertyOp getter, JSPropertyOp setter,
-                                           uint32 slot, uintN attrs,
-                                           uintN flags, intN shortid) const;
 
     
     JSScopeProperty *addDataProperty(JSContext *cx, jsid id, uint32 slot, uintN attrs) {
@@ -411,16 +400,16 @@ struct JSScope : public JSObjectMap
         GENERIC                 = 0x0080
     };
 
-    bool inDictionaryMode() const       { return flags & DICTIONARY_MODE; }
-    void setDictionaryMode()            { flags |= DICTIONARY_MODE; }
-    void clearDictionaryMode()          { flags &= ~DICTIONARY_MODE; }
+    bool inDictionaryMode()     { return flags & DICTIONARY_MODE; }
+    void setDictionaryMode()    { flags |= DICTIONARY_MODE; }
+    void clearDictionaryMode()  { flags &= ~DICTIONARY_MODE; }
 
     
 
 
 
 
-    bool sealed() const                 { return flags & SEALED; }
+    bool sealed()               { return flags & SEALED; }
 
     void seal(JSContext *cx) {
         JS_ASSERT(!isSharedEmpty());
@@ -434,7 +423,7 @@ struct JSScope : public JSObjectMap
 
 
 
-    bool branded() const                { JS_ASSERT(!generic()); return flags & BRANDED; }
+    bool branded()              { JS_ASSERT(!generic()); return flags & BRANDED; }
 
     bool brand(JSContext *cx, uint32 slot, jsval v) {
         JS_ASSERT(!branded());
@@ -445,58 +434,15 @@ struct JSScope : public JSObjectMap
         return true;
     }
 
-    bool generic() const                { return flags & GENERIC; }
-    void setGeneric()                   { flags |= GENERIC; }
+    bool generic()              { return flags & GENERIC; }
+    void setGeneric()           { flags |= GENERIC; }
 
-    bool hadIndexedProperties() const   { return flags & INDEXED_PROPERTIES; }
-    void setIndexedProperties()         { flags |= INDEXED_PROPERTIES; }
+    bool hadIndexedProperties() { return flags & INDEXED_PROPERTIES; }
+    void setIndexedProperties() { flags |= INDEXED_PROPERTIES; }
 
-    bool hasOwnShape() const            { return flags & OWN_SHAPE; }
+    bool hasOwnShape()          { return flags & OWN_SHAPE; }
 
-    bool hasRegenFlag(uint8 regenFlag) const { return (flags & SHAPE_REGEN) == regenFlag; }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool hasMethodBarrier() const       { return flags & METHOD_BARRIER; }
-    void setMethodBarrier()             { flags |= METHOD_BARRIER; }
+    bool hasRegenFlag(uint8 regenFlag) { return (flags & SHAPE_REGEN) == regenFlag; }
 
     
 
@@ -504,9 +450,53 @@ struct JSScope : public JSObjectMap
 
 
 
-    bool brandedOrHasMethodBarrier() const { return flags & (BRANDED | METHOD_BARRIER); }
 
-    bool isSharedEmpty() const          { return !object; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool hasMethodBarrier()     { return flags & METHOD_BARRIER; }
+    void setMethodBarrier()     { flags |= METHOD_BARRIER; }
+
+    
+
+
+
+
+
+    bool
+    brandedOrHasMethodBarrier() { return flags & (BRANDED | METHOD_BARRIER); }
+
+    bool isSharedEmpty() const  { return !object; }
 
     static bool initRuntimeState(JSContext *cx);
     static void finishRuntimeState(JSContext *cx);
