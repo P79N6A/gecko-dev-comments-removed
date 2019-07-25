@@ -213,16 +213,9 @@ nsINode::nsSlots::Unlink()
 
 
 
-nsINode *nsINode::sOrphanNodeHead = nsnull;
-
 nsINode::~nsINode()
 {
   NS_ASSERTION(!HasSlots(), "nsNodeUtils::LastRelease was not called?");
-
-  MOZ_ASSERT(IsOrphan(), "Node should be orphan by the time it's deleted!");
-
-  mPreviousOrphanNode->mNextOrphanNode = mNextOrphanNode;
-  mNextOrphanNode->mPreviousOrphanNode = mPreviousOrphanNode;
 }
 
 void*
@@ -3269,7 +3262,7 @@ nsGenericElement::UnbindFromTree(bool aDeep, bool aNullParent)
 
   
   UnsetFlags(NODE_FORCE_XBL_BINDINGS);
-
+  
 #ifdef MOZ_XUL
   nsXULElement* xulElem = nsXULElement::FromContent(this);
   if (xulElem) {
@@ -3861,21 +3854,6 @@ NS_IMETHODIMP
 nsGenericElement::SetTextContent(const nsAString& aTextContent)
 {
   return nsContentUtils::SetNodeTextContent(this, aTextContent, false);
-}
-
-
-void
-nsINode::Init()
-{
-  
-  static MOZ_ALIGNED_DECL(char orphanNodeListHead[sizeof(nsINode)], 8);
-  sOrphanNodeHead = reinterpret_cast<nsINode *>(&orphanNodeListHead[0]);
-
-  sOrphanNodeHead->mNextOrphanNode = sOrphanNodeHead;
-  sOrphanNodeHead->mPreviousOrphanNode = sOrphanNodeHead;
-
-  sOrphanNodeHead->mFirstChild = reinterpret_cast<nsIContent *>(0xdeadbeef);
-  sOrphanNodeHead->mParent = reinterpret_cast<nsIContent *>(0xdeadbeef);
 }
 
 
