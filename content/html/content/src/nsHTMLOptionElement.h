@@ -74,6 +74,8 @@ public:
   NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
 
   
+  using nsGenericElement::SetText;
+  using nsGenericElement::GetText;
   NS_DECL_NSIDOMHTMLOPTIONELEMENT
 
   
