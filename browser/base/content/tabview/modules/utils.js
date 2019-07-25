@@ -476,7 +476,7 @@ let Utils = {
   
   error: function() {
     var text = this.expandArgumentsForLog(arguments);
-    Cu.reportError('tabcandy error: ' + text);
+    Cu.reportError("tabview error: " + text);
   },
 
   
@@ -503,7 +503,7 @@ let Utils = {
       if (typeof(label) == 'undefined')
         text = 'badly formed assert';
       else
-        text = 'tabcandy assert: ' + label;
+        text = "tabview assert: " + label;
 
       this.trace(text);
     }
@@ -518,7 +518,7 @@ let Utils = {
       if (typeof(label) == 'undefined')
         text = 'badly formed assert';
       else
-        text = 'tabcandy assert: ' + label;
+        text = "tabview assert: " + label;
 
       
       text += Error().stack.replace(/^.*?\n.*?\n/, "");

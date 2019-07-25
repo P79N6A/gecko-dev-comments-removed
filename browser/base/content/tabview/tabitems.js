@@ -384,7 +384,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         TabItems.pausePainting();
         $container.animate(css, {
           duration: 200,
-          easing: 'tabcandyBounce',
+          easing: "tabviewBounce",
           complete: function() {
             TabItems.resumePainting();
           }

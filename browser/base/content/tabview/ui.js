@@ -64,7 +64,7 @@ var UIManager = {
 
   
   
-  _closedSelectedTabInTabCandy : false,
+  _closedSelectedTabInTabView : false,
 
   
   
@@ -119,11 +119,11 @@ var UIManager = {
         });
       });
 
-      gWindow.addEventListener("tabcandyshow", function() {
-        self.showTabCandy(true);
+      gWindow.addEventListener("tabviewshow", function() {
+        self.showTabView(true);
       }, false);
 
-      gWindow.addEventListener("tabcandyhide", function() {
+      gWindow.addEventListener("tabviewhide", function() {
         var activeTab = self.getActiveTab();
         if (activeTab)
           activeTab.zoomIn();
@@ -215,7 +215,7 @@ var UIManager = {
       });
 
       
-      if (data.tabCandyVisible) {
+      if (data.tabViewVisible) {
         var currentTab = self._currentTab;
 
         if (currentTab && currentTab.tabItem)
@@ -223,7 +223,7 @@ var UIManager = {
         else
           self._stopZoomPreparation = true;
 
-        self.showTabCandy();
+        self.showTabView();
         
         
         
@@ -231,7 +231,7 @@ var UIManager = {
           self._reorderTabsOnHide.push(group);
         });
       } else {
-         self.hideTabCandy();
+         self.hideTabView();
         
         
         Groups.groups.forEach(function(group) {
@@ -244,7 +244,7 @@ var UIManager = {
       var observer = {
         observe : function(subject, topic, data) {
           if (topic == "quit-application-requested") {
-            if (self._isTabCandyVisible())
+            if (self._isTabViewVisible())
               TabItems.saveAll(true);
             self._save();
           }
@@ -300,7 +300,7 @@ var UIManager = {
   
   
   
-  _isTabCandyVisible: function() {
+  _isTabViewVisible: function() {
     return gTabViewDeck.selectedIndex == 1;
   },
 
@@ -309,7 +309,7 @@ var UIManager = {
   
   
   
-  showTabCandy: function(zoomOut) {
+  showTabView: function(zoomOut) {
     var self = this;
     var currentTab = this._currentTab;
     var item = null;
@@ -353,7 +353,7 @@ var UIManager = {
   
   
   
-  hideTabCandy: function() {
+  hideTabView: function() {
     this._reorderTabsOnHide.forEach(function(group) {
       group.reorderTabsBasedOnTabItemOrder();
     });
@@ -401,10 +401,10 @@ var UIManager = {
       if (this.ownerDocument.defaultView != gWindow)
         return;
 
-      if (self._isTabCandyVisible()) {
+      if (self._isTabViewVisible()) {
         
         if (self._currentTab == this)
-          self._closedSelectedTabInTabCandy = true;
+          self._closedSelectedTabInTabView = true;
       } else {
         
         if (gBrowser.tabs.length > 1) {
@@ -424,7 +424,7 @@ var UIManager = {
             
             if (this && this.tabItem)
               this.tabItem.setZoomPrep(false);
-            self.showTabCandy();
+            self.showTabView();
           }
           
           
@@ -432,7 +432,7 @@ var UIManager = {
           Utils.timeout(function() { 
             if ((group && group._children.length > 0) ||
               (group == null && gBrowser.visibleTabs.length > 0))
-              self.hideTabCandy();
+              self.hideTabView();
           }, 1);
         }
       }
@@ -444,7 +444,7 @@ var UIManager = {
         return;
 
       Utils.timeout(function() { 
-        if (!self._isTabCandyVisible()) {
+        if (!self._isTabViewVisible()) {
           var activeGroup = Groups.getActiveGroup();
           if (activeGroup) {
             var index = self._reorderTabItemsOnShow.indexOf(activeGroup);
@@ -473,21 +473,21 @@ var UIManager = {
 
     this._currentTab = focusTab;
     
-    if (this._isTabCandyVisible() &&
-        (this._closedLastVisibleTab || this._closedSelectedTabInTabCandy)) {
+    if (this._isTabViewVisible() &&
+        (this._closedLastVisibleTab || this._closedSelectedTabInTabView)) {
       this._closedLastVisibleTab = false;
-      this._closedSelectedTabInTabCandy = false;
+      this._closedSelectedTabInTabView = false;
       return;
     }
 
     
     
-    if (this._isTabCandyVisible())
-      this.hideTabCandy();
+    if (this._isTabViewVisible())
+      this.hideTabView();
 
     
     this._closedLastVisibleTab = false;
-    this._closedSelectedTabInTabCandy = false;
+    this._closedSelectedTabInTabView = false;
 
     Utils.timeout(function() { 
       
@@ -522,13 +522,13 @@ var UIManager = {
 
         
         
-        if (visibleTabCount > 0 && newItem && !self._isTabCandyVisible())
+        if (visibleTabCount > 0 && newItem && !self._isTabViewVisible())
           newItem.setZoomPrep(true);
       } else {
         
         
         if (oldItem)
-          oldItem.setZoomPrep(!self._isTabCandyVisible());
+          oldItem.setZoomPrep(!self._isTabViewVisible());
       }
     }, 1);
   },
@@ -540,7 +540,7 @@ var UIManager = {
   
   
   setReorderTabsOnHide: function(group) {
-    if (this._isTabCandyVisible()) {
+    if (this._isTabViewVisible()) {
       var index = this._reorderTabsOnHide.indexOf(group);
       if (index == -1)
         this._reorderTabsOnHide.push(group);
@@ -555,7 +555,7 @@ var UIManager = {
     var self = this;
 
     gWindow.addEventListener("keypress", function(event) {
-      if (self._isTabCandyVisible())
+      if (self._isTabViewVisible())
         return;
 
       var charCode = event.charCode;
@@ -570,7 +570,7 @@ var UIManager = {
 #endif
         event.stopPropagation();
         event.preventDefault();
-        self.showTabCandy(true);
+        self.showTabView(true);
         return;
       }
 
@@ -831,7 +831,7 @@ var UIManager = {
 
     
     
-    if (!force && !this._isTabCandyVisible())
+    if (!force && !this._isTabViewVisible())
       return;
 
     var oldPageBounds = new Rect(this._pageBounds);
@@ -947,7 +947,7 @@ var UIManager = {
       }, {
         name: "refresh",
         code: function() {
-          location.href = "tabcandy.html";
+          location.href = "tabview.html";
         }
       }, {
         name: "reset",
@@ -1011,7 +1011,7 @@ var UIManager = {
       return;
 
     var data = {
-      tabCandyVisible: this._isTabCandyVisible(),
+      tabViewVisible: this._isTabViewVisible(),
       pageBounds: this._pageBounds
     };
 

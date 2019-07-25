@@ -42,11 +42,11 @@
 
 
 Storage = {
-  GROUP_DATA_IDENTIFIER:  "tabcandy-group",
-  GROUPS_DATA_IDENTIFIER: "tabcandy-groups",
-  TAB_DATA_IDENTIFIER:    "tabcandy-tab",
-  UI_DATA_IDENTIFIER:    "tabcandy-ui",
-  VISIBILITY_DATA_IDENTIFIER:    "tabcandy-visibility",
+  GROUP_DATA_IDENTIFIER:  "tabview-group",
+  GROUPS_DATA_IDENTIFIER: "tabview-groups",
+  TAB_DATA_IDENTIFIER:    "tabview-tab",
+  UI_DATA_IDENTIFIER:    "tabview-ui",
+  VISIBILITY_DATA_IDENTIFIER:    "tabview-visibility",
 
   
   

@@ -1,94 +1,94 @@
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is groups.js.
+ *
+ * The Initial Developer of the Original Code is
+ * Ian Gilman <ian@iangilman.com>.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ * Aza Raskin <aza@mozilla.com>
+ * Michael Yoshitaka Erlewine <mitcho@mitcho.com>
+ * Ehsan Akhgari <ehsan@mozilla.com>
+ * Raymond Lee <raymond@appcoast.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// **********
+// Title: groups.js
 
 (function(){
 
-
-
-
-
+// ----------
+// Function: numCmp
+// Numeric compare for sorting.
+// Private to this file.
 var numCmp = function(a,b){ return a-b; }
 
-
-
-
-
+// ----------
+// Function: min
+// Given a list of numbers, returns the smallest.
+// Private to this file.
 function min(list){ return list.slice().sort(numCmp)[0]; }
 
-
-
-
-
+// ----------
+// Function: max
+// Given a list of numbers, returns the largest.
+// Private to this file.
 function max(list){ return list.slice().sort(numCmp).reverse()[0]; }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// ##########
+// Class: Group
+// A single group in the TabView window. Descended from <Item>.
+// Note that it implements the <Subscribable> interface.
+//
+// ----------
+// Constructor: Group
+//
+// Parameters:
+//   listOfEls - an array of DOM elements for tabs to be added to this group
+//   options - various options for this group (see below). In addition, gets passed
+//     to <add> along with the elements provided.
+//
+// Possible options:
+//   id - specifies the group's id; otherwise automatically generated
+//   locked - see <Item.locked>; default is {}
+//   userSize - see <Item.userSize>; default is null
+//   bounds - a <Rect>; otherwise based on the locations of the provided elements
+//   container - a DOM element to use as the container for this group; otherwise will create
+//   title - the title for the group; otherwise blank
+//   dontPush - true if this group shouldn't push away on creation; default is false
 window.Group = function Group(listOfEls, options) {
   try {
   if (typeof(options) == 'undefined')
     options = {};
 
   this._inited = false;
-  this._children = []; 
+  this._children = []; // an array of Items
   this.defaultSize = new Point(TabItems.tabWidth * 1.5, TabItems.tabHeight * 1.5);
   this.isAGroup = true;
   this.id = options.id || Groups.getNextID();
@@ -100,15 +100,15 @@ window.Group = function Group(listOfEls, options) {
 
   this.keepProportional = false;
 
-  
-  
+  // Variable: _activeTab
+  // The <TabItem> for the group's active tab.
   this._activeTab = null;
 
-   
-   
-   
-   
-   
+   // Variables: xDensity, yDensity
+   // "density" ranges from 0 to 1, with 0 being "not dense" = "squishable" and 1 being "dense"
+   // = "not squishable". For example, if there is extra space in the vertical direction,
+   // yDensity will be < 1. These are set by <Group.arrange>, as it is dependent on the tab items
+   // inside the group.
   this.xDensity = 0;
   this.yDensity = 0;
 
@@ -144,9 +144,9 @@ window.Group = function Group(listOfEls, options) {
   $container
     .css({zIndex: -100})
     .appendTo("body");
+/*     .dequeue(); */
 
-
-  
+  // ___ New Tab Button
   this.$ntb = iQ("<div>")
     .appendTo($container);
 
@@ -160,7 +160,7 @@ window.Group = function Group(listOfEls, options) {
 
   if ( this.isNewTabsGroup() ) this.$ntb.html("<span>+</span>");
 
-  
+  // ___ Resizer
   this.$resizer = iQ("<div>")
     .addClass('resizer')
     .css({
@@ -171,7 +171,7 @@ window.Group = function Group(listOfEls, options) {
     .appendTo($container)
     .hide();
 
-  
+  // ___ Titlebar
   var html =
     "<div class='title-container'>" +
       "<input class='name' value='" + (options.title || "") + "'/>" +
@@ -194,7 +194,7 @@ window.Group = function Group(listOfEls, options) {
     })
     .appendTo($container);
 
-  
+  // ___ Title
   this.$titleContainer = iQ('.title-container', this.$titlebar);
   this.$title = iQ('.name', this.$titlebar);
   this.$titleShield = iQ('.title-shield', this.$titlebar);
@@ -212,13 +212,13 @@ window.Group = function Group(listOfEls, options) {
           "padding-left": "1px"
         }, {
           duration: 200,
-          easing: 'tabcandyBounce'
+          easing: "tabviewBounce"
         });
     }
   };
 
   var handleKeyPress = function(e){
-    if ( e.which == 13 ) { 
+    if ( e.which == 13 ) { // return
       (self.$title)[0].blur();
       self.$title
         .addClass("transparentBorder")
@@ -270,32 +270,32 @@ window.Group = function Group(listOfEls, options) {
       });
   }
 
-  
+  // ___ Stack Expander
   this.$expander = iQ("<img/>")
-    .attr('src', 'chrome://browser/skin/tabcandy/stack-expander.png')
+    .attr("src", "chrome://browser/skin/tabview/stack-expander.png")
     .addClass("stackExpander")
     .appendTo($container)
     .hide();
 
-  
+  // ___ locking
   if (this.locked.bounds)
     $container.css({cursor: 'default'});
 
   if (this.locked.close)
     $close.hide();
 
-  
+  // ___ Superclass initialization
   this._init($container[0]);
 
   if (this.$debug)
     this.$debug.css({zIndex: -1000});
 
-  
+  // ___ Children
   Array.prototype.forEach.call(listOfEls, function(el) {
     self.add(el, null, options);
   });
 
-  
+  // ___ Finish Up
   this._addHandlers($container);
 
   if (!this.locked.bounds)
@@ -303,14 +303,14 @@ window.Group = function Group(listOfEls, options) {
 
   Groups.register(this);
 
-  
+  // ___ Position
   var immediately = $container ? true : false;
   this.setBounds(rectToBe, immediately);
   this.snap();
   if ($container)
     this.setBounds(rectToBe, immediately);
 
-  
+  // ___ Push other objects away
   if (!options.dontPush)
     this.pushAway();
 
@@ -321,31 +321,31 @@ window.Group = function Group(listOfEls, options) {
   }
 };
 
-
+// ----------
 window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
-  
-  
-  
+  // ----------
+  // Variable: defaultName
+  // The prompt text for the title field.
   defaultName: "name this group...",
 
-  
-  
-  
+  // -----------
+  // Function: setActiveTab
+  // Sets the active <TabItem> for this group
   setActiveTab: function(tab){
     Utils.assert('tab must be a TabItem', tab && tab.isATabItem);
     this._activeTab = tab;
   },
 
-  
-  
-  
+  // -----------
+  // Function: getActiveTab
+  // Gets the active <TabItem> for this group
   getActiveTab: function(){
     return this._activeTab;
   },
 
-  
-  
-  
+  // ----------
+  // Function: getStorageData
+  // Returns all of the info worth storing about this group.
   getStorageData: function() {
     var data = {
       bounds: this.getBounds(),
@@ -361,18 +361,18 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     return data;
   },
 
-  
-  
-  
+  // ----------
+  // Function: isEmpty
+  // Returns true if the tab group is empty and unnamed.
   isEmpty: function() {
     return !this._children.length && !this.getTitle();
   },
 
-  
-  
-  
+  // ----------
+  // Function: save
+  // Saves this group to persistent storage.
   save: function() {
-    if (!this._inited) 
+    if (!this._inited) // too soon to save now
       return;
 
     var data = this.getStorageData();
@@ -380,33 +380,33 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
       Storage.saveGroup(gWindow, data);
   },
 
-  
-  
-  
-  
+  // ----------
+  // Function: isNewTabsGroup
+  // Returns true if the callee is the "New Tabs" group.
+  // TODO: more robust
   isNewTabsGroup: function() {
     return (this.locked.bounds && this.locked.title && this.locked.close);
   },
 
-  
-  
-  
+  // ----------
+  // Function: getTitle
+  // Returns the title of this group as a string.
   getTitle: function() {
     var value = (this.$title ? this.$title.val() : '');
     return (value == this.defaultName ? '' : value);
   },
 
-  
-  
-  
+  // ----------
+  // Function: setTitle
+  // Sets the title of this group with the given string
   setTitle: function(value) {
     this.$title.val(value);
     this.save();
   },
 
-  
-  
-  
+  // ----------
+  // Function: adjustTitleSize
+  // Used to adjust the width of the title box depending on group width and title size.
   adjustTitleSize: function() {
     Utils.assert('bounds needs to have been set', this.bounds);
     var w = Math.min(this.bounds.width - 35, Math.max(150, this.getTitle().length * 6));
@@ -415,9 +415,9 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     this.$titleShield.css(css);
   },
 
-  
-  
-  
+  // ----------
+  // Function: getContentBounds
+  // Returns a <Rect> for the group's content area (which doesn't include the title, etc).
   getContentBounds: function() {
     var box = this.getBounds();
     var titleHeight = this.$titlebar.height();
@@ -426,24 +426,24 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     box.inset(6, 6);
 
     if (this.isNewTabsGroup())
-      box.height -= 12; 
+      box.height -= 12; // Hack for tab titles
     else
-      box.height -= 33; 
+      box.height -= 33; // For new tab button
 
     return box;
   },
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // ----------
+  // Function: setBounds
+  // Sets the bounds with the given <Rect>, animating unless "immediately" is false.
+  //
+  // Parameters:
+  //   rect - a <Rect> giving the new bounds
+  //   immediately - true if it should not animate; default false
+  //   options - an object with additional parameters, see below
+  //
+  // Possible options:
+  //   force - true to always update the DOM even if the bounds haven't changed; default false
   setBounds: function(rect, immediately, options) {
     if (!Utils.isRect(rect)) {
       Utils.trace('Group.setBounds: rect is not a real rectangle!', rect);
@@ -458,7 +458,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     var titleHeight = this.$titlebar.height();
 
-    
+    // ___ Determine what has changed
     var css = {};
     var titlebarCSS = {};
     var contentCSS = {};
@@ -486,9 +486,9 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     var offset = new Point(rect.left - this.bounds.left, rect.top - this.bounds.top);
     this.bounds = new Rect(rect);
 
-    
+    // ___ Deal with children
     if (css.width || css.height) {
-      this.arrange({animate: !immediately}); 
+      this.arrange({animate: !immediately}); //(immediately ? 'sometimes' : true)});
     } else if (css.left || css.top) {
       this._children.forEach(function(child) {
         var box = child.getBounds();
@@ -496,7 +496,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
       });
     }
 
-    
+    // ___ Update our representation
     if (immediately) {
       iQ(this.container).css(css);
       this.$titlebar.css(titlebarCSS);
@@ -504,7 +504,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
       TabItems.pausePainting();
       iQ(this.container).animate(css, {
         duration: 350,
-        easing: 'tabcandyBounce',
+        easing: "tabviewBounce",
         complete: function() {
           TabItems.resumePainting();
         }
@@ -525,9 +525,9 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     this.save();
   },
 
-  
-  
-  
+  // ----------
+  // Function: setZ
+  // Set the Z order for the group's container, as well as its children.
   setZ: function(value) {
     this.zIndex = value;
 
@@ -552,9 +552,9 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     }
   },
 
-  
-  
-  
+  // ----------
+  // Function: close
+  // Closes the group, removing (but not closing) all of its children.
   close: function() {
     this.removeAll();
     this._sendToSubscribers("close");
@@ -568,9 +568,9 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     Storage.deleteGroup(gWindow, this.id);
   },
 
-  
-  
-  
+  // ----------
+  // Function: closeAll
+  // Closes the group and all of its children.
   closeAll: function() {
     var self = this;
     if (this._children.length) {
@@ -585,15 +585,15 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
       this.close();
   },
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // ----------
+  // Function: add
+  // Adds an item to the group.
+  // Parameters:
+  //
+  //   a - The item to add. Can be an <Item>, a DOM element or a jQuery object.
+  //       The latter two must refer to the container of an <Item>.
+  //   dropPos - An object with left and top properties referring to the location dropped at.  Optional.
+  //   options - An object with optional settings for this call. Currently the only one is dontArrange.
   add: function(a, dropPos, options) {
     try {
       var item;
@@ -625,8 +625,8 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         wasAlreadyInThisGroup = true;
       }
 
-      
-      
+      // TODO: You should be allowed to drop in the white space at the bottom and have it go to the end
+      // (right now it can match the thumbnail above it and go there)
       function findInsertionPoint(dropPos){
         if (self.shouldStack(self._children.length + 1))
           return 0;
@@ -663,7 +663,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         return 0;
       }
 
-      
+      // Insert the tab into the right position.
       var index = findInsertionPoint(dropPos);
       this._children.splice( index, 0, item );
 
@@ -702,14 +702,14 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     }
   },
 
-  
-  
-  
-  
-  
-  
-  
-  
+  // ----------
+  // Function: remove
+  // Removes an item from the group.
+  // Parameters:
+  //
+  //   a - The item to remove. Can be an <Item>, a DOM element or a jQuery object.
+  //       The latter two must refer to the container of an <Item>.
+  //   options - An object with optional settings for this call. Currently the only one is dontArrange.
   remove: function(a, options) {
     try {
       var $el;
@@ -754,9 +754,9 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     }
   },
 
-  
-  
-  
+  // ----------
+  // Function: removeAll
+  // Removes all of the group's children.
   removeAll: function() {
     var self = this;
     var toRemove = this._children.concat();
@@ -765,29 +765,29 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     });
   },
 
-  
-  
-  
+  // ----------
+  // Function: setNewTabButtonBounds
+  // Used for positioning the "new tab" button in the "new tabs" group.
   setNewTabButtonBounds: function(box, immediately) {
     if (!immediately)
       this.$ntb.animate(box.css(), {
         duration: 320,
-        easing: 'tabcandyBounce'
+        easing: "tabviewBounce"
       });
     else
       this.$ntb.css(box.css());
   },
 
-  
-  
-  
+  // ----------
+  // Function: hideExpandControl
+  // Hide the control which expands a stacked group into a quick-look view.
   hideExpandControl: function(){
     this.$expander.hide();
   },
 
-  
-  
-  
+  // ----------
+  // Function: showExpandControl
+  // Show the control which expands a stacked group into a quick-look view.
   showExpandControl: function(){
     var childBB = this.getChild(0).getBounds();
     var dT = childBB.top - this.getBounds().top;
@@ -798,16 +798,16 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         .css({
           opacity: .2,
           top: dT + childBB.height + Math.min(7, (this.getBounds().bottom-childBB.bottom)/2),
-          
-          
-          
+          // TODO: Why the magic -6? because the childBB.width seems to be over-sizing itself.
+          // But who can blame an object for being a bit optimistic when self-reporting size.
+          // It has to impress the ladies somehow.
           left: dL + childBB.width/2 - this.$expander.width()/2 - 6,
         });
   },
 
-  
-  
-  
+  // ----------
+  // Function: shouldStack
+  // Returns true if the group, given "count", should stack (instead of grid).
   shouldStack: function(count) {
     if (count <= 1)
       return false;
@@ -822,12 +822,12 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     return (rects[0].width < TabItems.minTabWidth * 1.35 );
   },
 
-  
-  
-  
-  
-  
-  
+  // ----------
+  // Function: arrange
+  // Lays out all of the children.
+  //
+  // Parameters:
+  //   options - passed to <Items.arrange> or <_stackArrange>
   arrange: function(options) {
     if (this.expanded) {
       this.topChild = null;
@@ -869,15 +869,15 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
 
         var rects = Items.arrange(this._children, bb, arrangeOptions);
 
-        
-        
+        // yDensity = (the distance of the bottom of the last tab to the top of the content area)
+        // / (the total available content height)
         this.yDensity = (rects[rects.length - 1].bottom - bb.top) / (bb.height);
 
-        
-        
+        // xDensity = (the distance from the left of the content area to the right of the rightmost
+        // tab) / (the total available content width)
 
-        
-        
+        // first, find the right of the rightmost tab! luckily, they're in order.
+        // TODO: does this change for rtl?
         var rightMostRight = 0;
         for each (var rect in rects) {
           if (rect.right > rightMostRight)
@@ -912,16 +912,16 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     else this.hideExpandControl();
   },
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // ----------
+  // Function: _stackArrange
+  // Arranges the children in a stack.
+  //
+  // Parameters:
+  //   bb - <Rect> to arrange within
+  //   options - see below
+  //
+  // Possible "options" properties:
+  //   animate - whether to animate; default: true.
   _stackArrange: function(bb, options) {
     var animate;
     if (!options || typeof(options.animate) == 'undefined')
@@ -939,7 +939,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     var zIndex = this.getZ() + count + 1;
 
     var Pi = Math.acos(-1);
-    var maxRotation = 35; 
+    var maxRotation = 35; // degress
     var scale = 0.8;
     var newTabsPad = 10;
     var w;
@@ -947,23 +947,23 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     var itemAspect = TabItems.tabHeight / TabItems.tabWidth;
     var bbAspect = bb.height / bb.width;
 
-    
-    
-    if (bbAspect > itemAspect) { 
+    // compute h and w. h and w are the dimensions of each of the tabs... in other words, the
+    // height and width of the entire stack, modulo rotation.
+    if (bbAspect > itemAspect) { // Tall, thin group
       w = bb.width * scale;
       h = w * itemAspect;
-      
+      // let's say one, because, even though there's more space, we're enforcing that with scale.
       this.xDensity = 1;
       this.yDensity = h / (bb.height * scale);
-    } else { 
+    } else { // Short, wide group
       h = bb.height * scale;
       w = h * (1 / itemAspect);
       this.yDensity = 1;
       this.xDensity = h / (bb.width * scale);
     }
 
-    
-    
+    // x is the left margin that the stack will have, within the content area (bb)
+    // y is the vertical margin
     var x = (bb.width - w) / 2;
     if (this.isNewTabsGroup())
       x -= (w + newTabsPad) / 2;
@@ -1001,9 +1001,9 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     self._isStacked = true;
   },
 
-  
-  
-  
+  // ----------
+  // Function: _randRotate
+  // Random rotation generator for <_stackArrange>
   _randRotate: function(spread, index){
     if ( index >= this._stackAngles.length ){
       var randAngle = 5*index + parseInt( (Math.random()-.5)*1 );
@@ -1016,17 +1016,17 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     return this._stackAngles[index];
   },
 
-  
-  
-  
-  
-  
-  
-  
+  // ----------
+  // Function: childHit
+  // Called by one of the group's children when the child is clicked on.
+  //
+  // Returns an object:
+  //   shouldZoom - true if the browser should launch into the tab represented by the child
+  //   callback - called after the zoom animation is complete
   childHit: function(child) {
     var self = this;
 
-    
+    // ___ normal click
     if (!this._isStacked || this.expanded) {
       return {
         shouldZoom: true,
@@ -1036,22 +1036,22 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
       };
     }
 
-    
-    
-
-
-
+    // ___ we're stacked, but command isn't held down
+    /*if (!Keys.meta) {
+      Groups.setActiveGroup(self);
+      return { shouldZoom: true };
+    }*/
 
     Groups.setActiveGroup(self);
     return { shouldZoom: true };
 
-    
-
+    /*this.expand();
+    return {};*/
   },
 
   expand: function(){
     var self = this;
-    
+    // ___ we're stacked, and command is held down so expand
     Groups.setActiveGroup(self);
     var startBounds = this.getChild(0).getBounds();
     var $tray = iQ("<div>").css({
@@ -1090,7 +1090,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         left: pos.left
       }, {
         duration: 200,
-        easing: 'tabcandyBounce'
+        easing: "tabviewBounce"
       })
       .addClass("overlay");
 
@@ -1108,15 +1108,15 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         zIndex: 99997
       })
       .appendTo('body')
-      .click(function() { 
+      .click(function() { // just in case
         self.collapse();
       });
 
-    
-    
-    
-    
-    
+    // There is a race-condition here. If there is
+    // a mouse-move while the shield is coming up
+    // it will collapse, which we don't want. Thus,
+    // we wait a little bit before adding this event
+    // handler.
     setTimeout(function(){
       $shield.mouseover(function() {
         self.collapse();
@@ -1132,9 +1132,9 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     this.arrange();
   },
 
-  
-  
-  
+  // ----------
+  // Function: collapse
+  // Collapses the group from the expanded "tray" mode.
   collapse: function() {
     if (this.expanded) {
       var z = this.getZ();
@@ -1151,7 +1151,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
           opacity: 0
         }, {
           duration: 350,
-          easing: 'tabcandyBounce',
+          easing: "tabviewBounce",
           complete: function() {
             iQ(this).remove();
           }
@@ -1168,9 +1168,9 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     }
   },
 
-  
-  
-  
+  // ----------
+  // Function: _addHandlers
+  // Helper routine for the constructor; adds various event handlers to the container.
   _addHandlers: function(container) {
     var self = this;
 
@@ -1197,7 +1197,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         if (!self._mouseDown || !self._mouseDown.location || !self._mouseDown.className)
           return;
 
-        
+        // Don't zoom in on clicks inside of the controls.
         var className = self._mouseDown.className;
         if (className.indexOf('title-shield') != -1
             || className.indexOf('name') != -1
@@ -1212,12 +1212,12 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         if (location.distance(self._mouseDown.location) > 1.0)
           return;
 
-        
+        // Don't zoom in to the last tab for the new tab group.
         if ( self.isNewTabsGroup() )
           return;
 
-        
-        
+        // Zoom into the last-active tab when the group
+        // is clicked, but only for non-stacked groups.
         var activeTab = self.getActiveTab();
         if( !self._isStacked ){
           if ( activeTab )
@@ -1236,9 +1236,9 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     });
   },
 
-  
-  
-  
+  // ----------
+  // Function: setResizable
+  // Sets whether the group is resizable and updates the UI accordingly.
   setResizable: function(value){
     this.resizeOptions.minWidth = 90;
     this.resizeOptions.minHeight = 90;
@@ -1252,20 +1252,20 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     }
   },
 
-  
-  
-  
+  // ----------
+  // Function: newTab
+  // Creates a new tab within this group.
   newTab: function(url) {
     Groups.setActiveGroup(this);
     let newTab = gBrowser.loadOneTab(url || "about:blank", {inBackground: true});
 
-    
-    
-    
-    
-    
+    // Because opening a new tab happens in a different thread(?)
+    // calling UI.showTabView() inline won't do anything. Instead
+    // we have to marshal it. A value of 0 wait time doesn't seem
+    // to work. Instead, we use a value of 1 which seems to be the
+    // minimum amount of time required.
     Utils.timeout(function(){
-      UI.showTabCandy()
+      UI.showTabView()
     }, 1);
 
     var self = this;
@@ -1299,14 +1299,14 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
               complete: function(){
                 iQ(tab.container).css({opacity: 1});
                 gBrowser.selectedTab = newTab;
-                UI.hideTabCandy()
+                UI.hideTabView()
                 gWindow.gURLBar.focus();
                 $anim.remove();
-                
-                
-                
-                
-                
+                // We need a timeout here so that there is a chance for the
+                // new tab to get made! Otherwise it won't appear in the list
+                // of the group's tab.
+                // TODO: This is probably a terrible hack that sets up a race
+                // condition. We need a better solution.
                 Utils.timeout(function() Groups.updateTabBarForActiveGroup(), 400);
               }
             });
@@ -1314,35 +1314,35 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         });
     }
 
-    
-    
-    
-    
+    // TODO: Because this happens as a callback, there is
+    // sometimes a long delay before the animation occurs.
+    // We need to fix this--immediate response to a users
+    // actions is necessary for a good user experience.
 
     self.onNextNewTab(doNextTab);
   },
 
-  
-  
-  
-  
-  
-  
+  // ----------
+  // Function: reorderTabItemsBasedOnTabOrder
+  // Reorders the tabs in a group based on the arrangment of the tabs
+  // shown in the tab bar. It does it by sorting the children
+  // of the group by the positions of their respective tabs in the
+  // tab bar.
   reorderTabItemsBasedOnTabOrder: function() {
     this._children.sort(function(a,b) a.tab._tPos - b.tab._tPos);
 
     this.arrange({animate: false});
-    
+    // this.arrange calls this.save for us
   },
 
-  
-  
-  
+  // Function: reorderTabsBasedOnTabItemOrder
+  // Reorders the tabs in the tab bar based on the arrangment of the tabs
+  // shown in the group.
   reorderTabsBasedOnTabItemOrder: function() {
     var tabBarTabs = Array.slice(gBrowser.tabs);
     var currentIndex;
 
-    
+    // ToDo: optimisation is needed to further reduce the tab move.
     this._children.forEach(function(tabItem) {
       tabBarTabs.some(function(tab, i) {
         if (tabItem.tab == tab) {
@@ -1366,23 +1366,23 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     });
   },
 
-  
-  
-  
+  // ----------
+  // Function: setTopChild
+  // Sets the <Item> that should be displayed on top when in stack mode.
   setTopChild: function(topChild){
     this.topChild = topChild;
 
     this.arrange({animate: false});
-    
+    // this.arrange calls this.save for us
   },
 
-  
-  
-  
-  
-  
-  
-  
+  // ----------
+  // Function: getChild
+  // Returns the nth child tab or null if index is out of range.
+  //
+  // Parameters:
+  //  index - the index of the child tab to return, use negative
+  //          numbers to index from the end (-1 is the last child)
   getChild: function(index){
     if ( index < 0 )
       index = this._children.length + index;
@@ -1391,38 +1391,38 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     return this._children[index];
   },
 
-  
-  
-  
+  // ----------
+  // Function: getChildren
+  // Returns all children.
   getChildren: function(){
     return this._children;
   },
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // ---------
+  // Function: onNextNewTab
+  // Sets up a one-time handler that gets called the next time a
+  // tab is added to the group.
+  //
+  // Parameters:
+  //  callback - the one-time callback that is fired when the next
+  //             time a tab is added to a group; it gets passed the
+  //             new tab
   onNextNewTab: function(callback){
     this._nextNewTabCallback = callback;
   }
 });
 
-
-
-
+// ##########
+// Class: Groups
+// Singelton for managing all <Group>s.
 window.Groups = {
   groups: [],
   nextID: 1,
   _inited: false,
 
-  
-  
-  
+  // ----------
+  // Function: getNextID
+  // Returns the next unused group ID.
   getNextID: function() {
     var result = this.nextID;
     this.nextID++;
@@ -1430,9 +1430,9 @@ window.Groups = {
     return result;
   },
 
-  
-  
-  
+  // ----------
+  // Function: getStorageData
+  // Returns an object for saving Groups state to persistent storage.
   getStorageData: function() {
     var data = {nextID: this.nextID, groups: []};
     this.groups.forEach(function(group) {
@@ -1442,9 +1442,9 @@ window.Groups = {
     return data;
   },
 
-  
-  
-  
+  // ----------
+  // Function: saveAll
+  // Saves Groups state, as well as the state of all of the groups.
   saveAll: function() {
     this.save();
     this.groups.forEach(function(group) {
@@ -1452,19 +1452,19 @@ window.Groups = {
     });
   },
 
-  
-  
-  
+  // ----------
+  // Function: save
+  // Saves Groups state.
   save: function() {
-    if (!this._inited) 
+    if (!this._inited) // too soon to save now
       return;
 
     Storage.saveGroupsData(gWindow, {nextID:this.nextID});
   },
 
-  
-  
-  
+  // ----------
+  // Function: getBoundingBox
+  // Given an array of DOM elements, returns a <Rect> with (roughly) the union of their locations.
   getBoundingBox: function Groups_getBoundingBox(els) {
     var el, b;
     var bounds = [iQ(el).bounds() for each (el in els)];
@@ -1476,10 +1476,10 @@ window.Groups = {
     return new Rect(left, top, right-left, bottom-top);
   },
 
-  
-  
-  
-  
+  // ----------
+  // Function: reconstitute
+  // Restores to stored state, creating groups as needed.
+  // If no data, sets up blank slate (including "new tabs" group).
   reconstitute: function(groupsData, groupData) {
     try {
       if (groupsData && groupsData.nextID)
@@ -1524,17 +1524,17 @@ window.Groups = {
       this.repositionNewTabGroup();
 
       this._inited = true;
-      this.save(); 
+      this.save(); // for nextID
     }catch(e){
       Utils.log("error in recons: "+e);
     }
   },
 
-  
-  
-  
+  // ----------
+  // Function: groupStorageSanity
+  // Given persistent storage data for a group, returns true if it appears to not be damaged.
   groupStorageSanity: function(groupData) {
-    
+    // TODO: check everything
     var sane = true;
     if (!Utils.isRect(groupData.bounds)) {
       Utils.log('Groups.groupStorageSanity: bad bounds', groupData.bounds);
@@ -1544,11 +1544,11 @@ window.Groups = {
     return sane;
   },
 
-  
-  
-  
-  
-  
+  // ----------
+  // Function: getGroupWithTitle
+  // Returns the <Group> that has the given title, or null if none found.
+  // TODO: what if there are multiple groups with the same title??
+  //       Right now, looks like it'll return the last one.
   getGroupWithTitle: function(title) {
     var result = null;
     this.groups.forEach(function(group) {
@@ -1561,9 +1561,9 @@ window.Groups = {
     return result;
   },
 
-  
-  
-  
+  // ----------
+  // Function: getNewTabGroup
+  // Returns the "new tabs" <Group>, or null if not found.
   getNewTabGroup: function() {
     var groupTitle = 'New Tabs';
     var array = this.groups.filter(function(group) {
@@ -1576,9 +1576,9 @@ window.Groups = {
     return null;
   },
 
-  
-  
-  
+  // ----------
+  // Function: getBoundsForNewTabGroup
+  // Returns a <Rect> describing where the "new tabs" group should go.
   getBoundsForNewTabGroup: function() {
     var pad = 0;
     var sw = window.innerWidth;
@@ -1588,27 +1588,27 @@ window.Groups = {
     return new Rect(pad, sh - (h + pad), w, h);
   },
 
-  
-  
-  
+  // ----------
+  // Function: repositionNewTabGroup
+  // Moves the "new tabs" group to where it should be.
   repositionNewTabGroup: function() {
     var box = this.getBoundsForNewTabGroup();
     var group = this.getNewTabGroup();
     group.setBounds(box, true);
   },
 
-  
-  
-  
+  // ----------
+  // Function: register
+  // Adds the given <Group> to the list of groups we're tracking.
   register: function(group) {
     Utils.assert('group', group);
     Utils.assert('only register once per group', this.groups.indexOf(group) == -1);
     this.groups.push(group);
   },
 
-  
-  
-  
+  // ----------
+  // Function: unregister
+  // Removes the given <Group> from the list of groups we're tracking.
   unregister: function(group) {
     var index = this.groups.indexOf(group);
     if (index != -1)
@@ -1618,10 +1618,10 @@ window.Groups = {
       this._activeGroup = null;
   },
 
-  
-  
-  
-  
+  // ----------
+  // Function: group
+  // Given some sort of identifier, returns the appropriate group.
+  // Currently only supports group ids.
   group: function(a) {
     var result = null;
     this.groups.forEach(function(candidate) {
@@ -1634,9 +1634,9 @@ window.Groups = {
     return result;
   },
 
-  
-  
-  
+  // ----------
+  // Function: arrange
+  // Arranges all of the groups into a grid.
   arrange: function() {
     var bounds = Items.getPageBounds();
     var count = this.groups.length - 1;
@@ -1667,9 +1667,9 @@ window.Groups = {
     });
   },
 
-  
-  
-  
+  // ----------
+  // Function: removeAll
+  // Removes all tabs from all groups (which automatically closes all unnamed groups).
   removeAll: function() {
     var toRemove = this.groups.concat();
     toRemove.forEach(function(group) {
@@ -1677,9 +1677,9 @@ window.Groups = {
     });
   },
 
-  
-  
-  
+  // ----------
+  // Function: newTab
+  // Given a <TabItem>, files it in the appropriate group.
   newTab: function(tabItem) {
     var group = this.getActiveGroup();
     if ( group == null )
@@ -1687,44 +1687,44 @@ window.Groups = {
     if (group) group.add(tabItem);
   },
 
-  
-  
-  
-  
-  
+  // ----------
+  // Function: getActiveGroup
+  // Returns the active group. Active means the group where a new
+  // tab will live when it is created as well as what tabs are
+  // shown in the tab bar when not in the TabView interface.
   getActiveGroup: function() {
     return this._activeGroup;
   },
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // ----------
+  // Function: setActiveGroup
+  // Sets the active group, thereby showing only the relavent tabs
+  // to that group. The change is visible only if the tab bar is
+  // visible.
+  //
+  // Paramaters:
+  //  group - the active <Group> or <null> if no group is active
+  //          (which means we have an orphaned tab selected)
   setActiveGroup: function(group) {
     this._activeGroup = group;
     this.updateTabBarForActiveGroup();
   },
 
-  
-  
-  
+  // ----------
+  // Function: updateTabBarForActiveGroup
+  // Hides and shows tabs in the tab bar based on the active group.
   updateTabBarForActiveGroup: function() {
     if (!window.UI)
-      return; 
+      return; // called too soon
 
     let tabItems = this._activeGroup == null ? this.getOrphanedTabs() :
       this._activeGroup._children;
     gBrowser.showOnlyTheseTabs(tabItems.map(function(item) item.tab));
   },
 
-  
-  
-  
+  // ----------
+  // Function: getOrphanedTabs
+  // Returns an array of all tabs that aren't in a group.
   getOrphanedTabs: function(){
     var tabs = TabItems.getItems();
     tabs = tabs.filter(function(tab){
@@ -1733,11 +1733,11 @@ window.Groups = {
     return tabs;
   },
 
-  
-  
-  
-  
-  
+  // ----------
+  // Function: getNextGroupTab
+  // Paramaters:
+  //  reverse - the boolean indicates the direction to look for the next group.
+  // Returns the <tabItem>. If nothing is found, return null.
   getNextGroupTab: function(reverse){
     var groups = Groups.groups.map(function(group) group);
     var activeGroup = Groups.getActiveGroup();
