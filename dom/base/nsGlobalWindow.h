@@ -320,7 +320,7 @@ public:
   
   virtual nsresult SetScriptContext(PRUint32 lang, nsIScriptContext *aContext);
   
-  virtual void OnFinalize(PRUint32 aLangID, void *aScriptGlobal);
+  virtual void OnFinalize(JSObject* aObject);
   virtual void SetScriptsEnabled(PRBool aEnabled, PRBool aFireTimeouts);
 
   
