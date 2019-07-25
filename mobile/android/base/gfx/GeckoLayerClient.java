@@ -367,7 +367,6 @@ public class GeckoLayerClient implements GeckoEventResponder,
             
             
             mLayerController.abortPanZoomAnimation();
-            mLayerController.getView().setPaintState(LayerView.PAINT_BEFORE_FIRST);
         }
     }
 
