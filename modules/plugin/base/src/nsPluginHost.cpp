@@ -907,8 +907,8 @@ nsPluginHost::GetPluginTempDir(nsIFile **aDir)
 }
 
 NS_IMETHODIMP nsPluginHost::InstantiatePluginForChannel(nsIChannel* aChannel,
-                                                            nsIPluginInstanceOwner* aOwner,
-                                                            nsIStreamListener** aListener)
+                                                        nsIPluginInstanceOwner* aOwner,
+                                                        nsIStreamListener** aListener)
 {
   NS_PRECONDITION(aChannel && aOwner,
                   "Invalid arguments to InstantiatePluginForChannel");
@@ -932,6 +932,7 @@ NS_IMETHODIMP nsPluginHost::InstantiatePluginForChannel(nsIChannel* aChannel,
 
   
   
+  
 
   return NewEmbeddedPluginStreamListener(uri, aOwner, nsnull, aListener);
 }
@@ -940,6 +941,14 @@ NS_IMETHODIMP nsPluginHost::InstantiatePluginForChannel(nsIChannel* aChannel,
 NS_IMETHODIMP nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType,
                                                       nsIURI* aURL,
                                                       nsIPluginInstanceOwner *aOwner)
+{
+  return DoInstantiateEmbeddedPlugin(aMimeType, aURL, aOwner, PR_TRUE);
+}
+
+nsresult
+nsPluginHost::DoInstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
+                                          nsIPluginInstanceOwner* aOwner,
+                                          PRBool aAllowOpeningStreams)
 {
   NS_ENSURE_ARG_POINTER(aOwner);
 
@@ -975,7 +984,11 @@ NS_IMETHODIMP nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType,
   
   
   
-  if (aURL) {
+  
+  
+  
+  
+  if (aURL && aAllowOpeningStreams) {
     nsCOMPtr<nsIScriptSecurityManager> secMan =
                     do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
     if (NS_FAILED(rv))
@@ -1015,9 +1028,11 @@ NS_IMETHODIMP nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType,
   
   
   
+  
+  
   PRBool bCanHandleInternally = PR_FALSE;
   nsCAutoString scheme;
-  if (aURL && NS_SUCCEEDED(aURL->GetScheme(scheme))) {
+  if (aURL && aAllowOpeningStreams && NS_SUCCEEDED(aURL->GetScheme(scheme))) {
       nsCAutoString contractID(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX);
       contractID += scheme;
       ToLowerCase(contractID);

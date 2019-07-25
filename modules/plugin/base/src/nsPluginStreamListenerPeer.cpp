@@ -584,10 +584,16 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
       
       PRInt32 mode;
       mOwner->GetMode(&mode);
-      if (mode == NP_EMBED)
-        rv = pluginHost->InstantiateEmbeddedPlugin(aContentType.get(), aURL, mOwner);
-      else
+      if (mode == NP_EMBED) {
+        
+        
+        
+        rv = pluginHost->DoInstantiateEmbeddedPlugin(aContentType.get(), aURL,
+                                                     mOwner, PR_FALSE);
+      }
+      else {
         rv = pluginHost->SetUpPluginInstance(aContentType.get(), aURL, mOwner);
+      }
       
       if (NS_OK == rv) {
         mOwner->GetInstance(getter_AddRefs(pluginInstCOMPtr));

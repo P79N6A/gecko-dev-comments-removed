@@ -2306,6 +2306,10 @@ nsObjectFrame::Instantiate(const char* aMimeType, nsIURI* aURI)
     return NS_OK;
   }
 
+  
+  
+  
+  
   NS_ASSERTION(aMimeType || aURI, "Need a type or a URI!");
 
   

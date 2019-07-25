@@ -174,6 +174,13 @@ public:
   
   nsPluginTag* FindTagForLibrary(PRLibrary* aLibrary);
 
+  
+  
+  
+  nsresult DoInstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
+                                       nsIPluginInstanceOwner* aOwner,
+                                       PRBool aAllowOpeningStreams);
+
 private:
   nsresult
   TrySetUpPluginInstance(const char *aMimeType, nsIURI *aURL, nsIPluginInstanceOwner *aOwner);
