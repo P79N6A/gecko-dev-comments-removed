@@ -96,8 +96,6 @@ static const MimeTypeAssociation appTypes[] = {
   { "application/xhtml+xml", "xhtml xht"      }
 };
 
-static const char kDocumentIconPath[] = "firefox-document.png";
-
 
 #define DG_BACKGROUND "/desktop/gnome/background"
 
