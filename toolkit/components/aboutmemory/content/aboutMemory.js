@@ -671,6 +671,11 @@ function sortTreeAndInsertAggregateNodes(aTotalBytes, aT)
   sortTreeAndInsertAggregateNodes(aTotalBytes, aT._kids[i]);
 }
 
+
+
+
+var gProcessInvalidValues = [];
+
 function genWarningText(aHasKnownHeapAllocated, aHasMozMallocUsableSize)
 {
   var warningText = "";
@@ -698,6 +703,25 @@ function genWarningText(aHasKnownHeapAllocated, aHasMozMallocUsableSize)
       "by individual memory reporters and so will fall under " +
       "'heap-unclassified'.</p>\n\n";
   }
+
+  if (gProcessInvalidValues.length > 0) {
+    warningText +=
+      "<div class='accuracyWarning'>" +
+      "<p>WARNING: the following values are negative or unreasonably " +
+      "large.</p>\n" +
+      "<ul>";
+    for (var i = 0; i < gProcessInvalidValues.length; i++) {
+      warningText += " <li>" + prepName(gProcessInvalidValues[i]) + "</li>\n";
+    }
+    warningText +=
+      "</ul>" +
+      "<p>This indicates a defect in one or more memory reporters.  The " +
+      "invalid values are highlighted, but you may need to expand one " +
+      "or more sub-trees to see them.</p>\n\n" +
+      "</div>";
+    gProcessInvalidValues = [];  
+  }
+
   return warningText;
 }
 
@@ -718,13 +742,6 @@ function genProcessText(aProcess, aReporters, aHasMozMallocUsableSize)
   var hasKnownHeapAllocated = fixUpExplicitTree(explicitTree, aReporters);
   sortTreeAndInsertAggregateNodes(explicitTree._amount, explicitTree);
   var explicitText = genTreeText(explicitTree, aProcess);
-
-  
-  
-  var warningText = "";
-  var accuracyTagText = "<p class='accuracyWarning'>";
-  var warningText =
-        genWarningText(hasKnownHeapAllocated, aHasMozMallocUsableSize);
 
   
   var mapTreeText = "";
@@ -748,6 +765,13 @@ function genProcessText(aProcess, aReporters, aHasMozMallocUsableSize)
   var otherText = genOtherText(aReporters, aProcess);
 
   
+  
+  
+  var warningText = "";
+  var warningText =
+        genWarningText(hasKnownHeapAllocated, aHasMozMallocUsableSize);
+
+  
   return "<h1>" + aProcess + " Process</h1>\n\n" +
          warningText + explicitText + mapTreeText + otherText +
          "<hr></hr>";
@@ -760,10 +784,26 @@ function genProcessText(aProcess, aReporters, aHasMozMallocUsableSize)
 
 
 
+
+function hasNegativeSign(aN)
+{
+  if (aN === 0) {                   
+    return 1 / aN === -Infinity;    
+  }
+  return aN < 0;
+}
+
+
+
+
+
+
+
+
 function formatInt(aN)
 {
   var neg = false;
-  if (aN < 0) {
+  if (hasNegativeSign(aN)) {
     neg = true;
     aN = -aN;
   }
@@ -804,7 +844,8 @@ function formatBytes(aBytes)
   } else {
     var mbytes = (aBytes / (1024 * 1024)).toFixed(2);
     var a = String(mbytes).split(".");
-    s = formatInt(a[0]) + "." + a[1] + " " + unit;
+    
+    s = formatInt(Number(a[0])) + "." + a[1] + " " + unit;
   }
   return s;
 }
@@ -889,9 +930,11 @@ const kHorizontal       = "\u2500",
       kUpAndRight       = "\u2514",
       kVerticalAndRight = "\u251c";
 
-function genMrValueText(aValue)
+function genMrValueText(aValue, aIsInvalid)
 {
-  return "<span class='mrValue'>" + aValue + " </span>";
+  return aIsInvalid ?
+         "<span class='mrValue invalid'>" + aValue + "</span>" :
+         "<span class='mrValue'>"         + aValue + "</span>";
 }
 
 function kindToString(aKind)
@@ -932,19 +975,19 @@ function prepDesc(aStr)
 }
 
 function genMrNameText(aKind, aShowSubtrees, aHasKids, aDesc, aName,
-                       aHasProblem, aNMerged)
+                       aHasProblem, aIsInvalid, aNMerged)
 {
   var text = "";
   if (aHasKids) {
     if (aShowSubtrees) {
-      text += "<span class='mrSep hidden'>++ </span>";
-      text += "<span class='mrSep'>-- </span>";
+      text += "<span class='mrSep hidden'> ++ </span>";
+      text += "<span class='mrSep'> -- </span>";
     } else {
-      text += "<span class='mrSep'>++ </span>";
-      text += "<span class='mrSep hidden'>-- </span>";
+      text += "<span class='mrSep'> ++ </span>";
+      text += "<span class='mrSep hidden'> -- </span>";
     }
   } else {
-    text += "<span class='mrSep'>" + kHorizontal + kHorizontal + " </span>";
+    text += "<span class='mrSep'> " + kHorizontal + kHorizontal + " </span>";
   }
   text += "<span class='mrName' title='" +
           kindToString(aKind) + prepDesc(aDesc) + "'>" +
@@ -952,12 +995,18 @@ function genMrNameText(aKind, aShowSubtrees, aHasKids, aDesc, aName,
   if (aHasProblem) {
     const problemDesc =
       "Warning: this memory reporter was unable to compute a useful value. ";
-    text += "<span class='mrStar' title=\"" + problemDesc + "\"> [*]</span>";
+    text += "<span class='mrNote' title=\"" + problemDesc + "\"> [*]</span>";
+  }
+  if (aIsInvalid) {
+    const invalidDesc =
+      "Warning: this value is invalid and indicates a bug in one or more " +
+      "memory reporters. ";
+    text += "<span class='mrNote' title=\"" + invalidDesc + "\"> [?!]</span>";
   }
   if (aNMerged) {
     const dupDesc = "This value is the sum of " + aNMerged +
                     " memory reporters that all have the same path.";
-    text += "<span class='mrStar' title=\"" + dupDesc + "\"> [" +
+    text += "<span class='mrNote' title=\"" + dupDesc + "\"> [" +
             aNMerged + "]</span>";
   }
   return text + '\n';
@@ -1054,6 +1103,15 @@ function genTreeText(aT, aProcess)
     }
 
     
+    
+    var path = aPrePath + aT._name;
+    var treeId = aProcess + ":" + escapeAll(path);
+    var showSubtrees = !aT._hideKids;
+    if (gToggles[treeId]) {
+      showSubtrees = !showSubtrees;
+    }
+
+    
     var indent = "<span class='treeLine'>";
     if (aIndentGuide.length > 0) {
       for (var i = 0; i < aIndentGuide.length - 1; i++) {
@@ -1076,23 +1134,23 @@ function genTreeText(aT, aProcess)
     indent += "</span>";
 
     
+    
     var percText = "";
-    var showSubtrees = !aT._hideKids;
+    var tIsInvalid = false;
     if (aT._amount === treeBytes) {
       percText = "100.0";
     } else {
       var perc = (100 * aT._amount / treeBytes);
+      if (!(0 <= perc && perc <= 100)) {
+        tIsInvalid = true;
+        gProcessInvalidValues.push(path);
+      }
       percText = (100 * aT._amount / treeBytes).toFixed(2);
       percText = pad(percText, 5, '0');
     }
-    percText = "<span class='mrPerc'>(" + percText + "%) </span>";
-
-    
-    var path = aPrePath + aT._name;
-    var treeId = escapeAll(aProcess + ":" + path);
-    if (gToggles[treeId]) {
-      showSubtrees = !showSubtrees;
-    }
+    percText = tIsInvalid ?
+               "<span class='mrPerc invalid'> (" + percText + "%)</span>" :
+               "<span class='mrPerc'> ("         + percText + "%)</span>";
 
     
     
@@ -1109,9 +1167,9 @@ function genTreeText(aT, aProcess)
       text +=
         "<span onclick='toggle(event)' class='hasKids' id='" + treeId + "'>";
     }
-    text += genMrValueText(tString) + percText;
+    text += genMrValueText(tString, tIsInvalid) + percText;
     text += genMrNameText(kind, showSubtrees, hasKids, aT._description,
-                          aT._name, aT._hasProblem, aT._nMerged);
+                          aT._name, aT._hasProblem, tIsInvalid, aT._nMerged);
     if (hasKids) {
       var hiddenText = showSubtrees ? "" : " hidden";
       
@@ -1152,13 +1210,26 @@ function OtherReporter(aPath, aUnits, aAmount, aDescription,
 
 OtherReporter.prototype = {
   toString: function() {
-    switch(this._units) {
+    switch (this._units) {
       case UNITS_BYTES:            return formatBytes(this._amount);
       case UNITS_COUNT:
       case UNITS_COUNT_CUMULATIVE: return formatInt(this._amount);
       case UNITS_PERCENTAGE:       return formatPercentage(this._amount);
       default:
         assert(false, "bad units in OtherReporter.toString");
+    }
+  },
+
+  isInvalid: function() {
+    var n = this._amount;
+    switch (this._units) {
+      case UNITS_BYTES:
+      case UNITS_COUNT:
+      case UNITS_COUNT_CUMULATIVE: return (n !== kUnknown && n < 0);
+      case UNITS_PERCENTAGE:       return (n !== kUnknown &&
+                                           !(0 <= n && n <= 10000));
+      default:
+        assert(false, "bad units in OtherReporter.isInvalid");
     }
   }
 };
@@ -1189,7 +1260,7 @@ function genOtherText(aReportersByProcess, aProcess)
     var r = aReportersByProcess[path];
     if (!r._done) {
       assert(r._kind === KIND_OTHER, "_kind !== KIND_OTHER for " + r._path);
-      assert(r.nMerged === undefined);  
+      assert(r._nMerged === undefined);  
       var hasProblem = false;
       if (r._amount === kUnknown) {
         hasProblem = true;
@@ -1207,10 +1278,14 @@ function genOtherText(aReportersByProcess, aProcess)
   var text = "";
   for (var i = 0; i < otherReporters.length; i++) {
     var o = otherReporters[i];
-    text += genMrValueText(pad(o.asString, maxStringLength, ' '));
+    var oIsInvalid = o.isInvalid();
+    if (oIsInvalid) {
+      gProcessInvalidValues.push(o._path);
+    }
+    text += genMrValueText(pad(o.asString, maxStringLength, ' '), oIsInvalid);
     text += genMrNameText(KIND_OTHER, true,
                           false, o._description, o._path,
-                          o._hasProblem);
+                          o._hasProblem, oIsInvalid);
   }
 
   return genSectionMarkup('other', text);
