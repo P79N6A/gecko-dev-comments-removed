@@ -75,7 +75,6 @@ public:
 
   bool AddStream(nsAHttpTransaction *, PRInt32);
   bool CanReuse() { return !mShouldGoAway && !mClosed; }
-  void DontReuse();
   bool RoomForMoreStreams();
 
   
