@@ -62,8 +62,7 @@ CodeGeneratorX86Shared::generatePrologue()
 
     
     
-    returnLabel_ = gen->allocate<Label>();
-    new (returnLabel_) Label();
+    returnLabel_ = new HeapLabel();
 
     return true;
 }
@@ -175,7 +174,7 @@ CodeGeneratorX86Shared::visitInteger(LInteger *ins)
 typedef MoveResolver::MoveOperand MoveOperand;
 
 MoveOperand
-CodeGeneratorX86Shared::toMoveOperand(const LAllocation *a)
+CodeGeneratorX86Shared::toMoveOperand(const LAllocation *a) const
 {
     if (a->isGeneralReg())
         return MoveOperand(ToRegister(a));

@@ -75,7 +75,7 @@ MacroAssembler::setupUnalignedABICall(uint32 args, const Register &scratch)
     
     
     
-    stackAdjust_ = alignStackForCall(stackForArgs, scratch);
+    stackAdjust_ = dynamicallyAlignStackForCall(stackForArgs, scratch);
     dynamicAlignment_ = true;
     reserveStack(stackAdjust_);
 }

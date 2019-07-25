@@ -58,7 +58,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         return stackForArgs + ComputeByteAlignment(displacement, StackAlignment);
     }
 
-    uint32 alignStackForCall(uint32 stackForArgs, const Register &scratch) {
+    uint32 dynamicallyAlignStackForCall(uint32 stackForArgs, const Register &scratch) {
         
         
         

@@ -99,7 +99,7 @@ LIRGenerator::visitConstant(MConstant *ins)
       default:
         
         
-        JS_NOT_REACHED("unexepcted constant type");
+        JS_NOT_REACHED("unexpected constant type");
         return false;
     }
     return true;
