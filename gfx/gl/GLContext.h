@@ -1345,8 +1345,12 @@ public:
     struct RectTriangles {
         RectTriangles() { }
 
+        
+        
+        
         void addRect(GLfloat x0, GLfloat y0, GLfloat x1, GLfloat y1,
-                     GLfloat tx0, GLfloat ty0, GLfloat tx1, GLfloat ty1);
+                     GLfloat tx0, GLfloat ty0, GLfloat tx1, GLfloat ty1,
+                     bool flip_y = false);
 
         
 
@@ -1386,9 +1390,11 @@ public:
 
 
 
+
     static void DecomposeIntoNoRepeatTriangles(const nsIntRect& aTexCoordRect,
                                                const nsIntSize& aTexSize,
-                                               RectTriangles& aRects);
+                                               RectTriangles& aRects,
+                                               bool aFlipY = false);
 
     
 
