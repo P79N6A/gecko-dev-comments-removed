@@ -394,20 +394,12 @@ NewEngine.prototype = {
     }
 
     
-    
-
-
-
-
-
-
-
-
-    
+    let up = new Collection(this.engineURL);
     let out;
     while ((out = this.outgoing.pop())) {
-      yield out.put(self.cb);
+      yield up.pushRecord(self.cb, out);
     }
+    yield up.post(self.cb);
 
     
     yield newitems.get(self.cb);
