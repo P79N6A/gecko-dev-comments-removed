@@ -17,7 +17,10 @@ TestObjectReadWrite.prototype = {
   shortProperty: 32767,
   longProperty: 2147483647,
   floatProperty: 5.5,
-  charProperty: "X"
+  charProperty: "X",
+  
+  
+  timeProperty: -1
 };
 
 
@@ -35,7 +38,10 @@ TestObjectReadOnly.prototype = {
   shortReadOnly: 32767,
   longReadOnly: 2147483647,
   floatReadOnly: 5.5,
-  charReadOnly: "X"
+  charReadOnly: "X",
+  
+  
+  timeReadOnly: -1
 };
 
 
