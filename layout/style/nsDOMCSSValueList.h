@@ -64,13 +64,11 @@ public:
   
 
 
-
-
-  PRBool AppendCSSValue(nsIDOMCSSValue* aValue);
+  void AppendCSSValue(nsIDOMCSSValue* aValue);
 
   nsIDOMCSSValue* GetItemAt(PRUint32 aIndex)
   {
-    return mCSSValues.SafeObjectAt(aIndex);
+    return mCSSValues.SafeElementAt(aIndex, nsnull);
   }
 
   static nsDOMCSSValueList* FromSupports(nsISupports* aSupports)
@@ -97,7 +95,7 @@ private:
 
   PRPackedBool                mReadonly;    
 
-  nsCOMArray<nsIDOMCSSValue>  mCSSValues;
+  InfallibleTArray<nsCOMPtr<nsIDOMCSSValue> > mCSSValues;
 };
 
 
