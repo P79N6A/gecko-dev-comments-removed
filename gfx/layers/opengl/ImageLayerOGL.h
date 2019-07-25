@@ -93,7 +93,6 @@ class THEBES_API PlanarYCbCrImageOGL : public PlanarYCbCrImage
 {
 public:
   PlanarYCbCrImageOGL(LayerManagerOGL *aManager);
-  virtual ~PlanarYCbCrImageOGL();
 
   virtual void SetData(const Data &aData);
 
@@ -101,7 +100,7 @@ public:
 
 
 
-  virtual void AllocateTextures();
+  void AllocateTextures();
   
 
 
@@ -109,15 +108,15 @@ public:
 
 
 
-  virtual void FreeTextures();
-  virtual PRBool HasData() { return mHasData; }
+  void FreeTextures();
+  PRBool HasData() { return mHasData; }
 
-  Data mData;
-  PRBool mLoaded;
-  PRBool mHasData;
-  GLuint mTextures[3];
-  gfxIntSize mSize;
+  nsAutoArrayPtr<PRUint8> mBuffer;
   LayerManagerOGL *mManager;
+  Data mData;
+  gfxIntSize mSize;
+  GLuint mTextures[3];
+  PRPackedBool mHasData;
 };
 
 
