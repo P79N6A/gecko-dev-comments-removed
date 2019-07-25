@@ -121,6 +121,9 @@ struct VMFrame
 
 #define NATIVE_CALL_SCRATCH_VALUE (void *) 0x1
 
+
+#define COMPILE_FUNCTION_SCRATCH_VALUE (void *) 0x2
+
 #if defined(JS_CPU_X86)
     void *savedEBX;
     void *savedEDI;
