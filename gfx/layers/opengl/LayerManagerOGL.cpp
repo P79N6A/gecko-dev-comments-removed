@@ -480,17 +480,6 @@ LayerManagerOGL::RememberImageContainer(ImageContainer *aContainer)
   mImageContainers.AppendElement(aContainer);
 }
 
-void
-LayerManagerOGL::MakeCurrent()
-{
-  if (mDestroyed) {
-    NS_WARNING("Call on destroyed layer manager");
-    return;
-  }
-
-  mGLContext->MakeCurrent();
-}
-
 LayerOGL*
 LayerManagerOGL::RootLayer() const
 {
@@ -513,15 +502,25 @@ LayerManagerOGL::Render()
   nsIntRect rect;
   mWidget->GetClientBounds(rect);
 
-  
-  
-  if (rect.width == 0 || rect.height == 0)
-    return;
-
   GLint width = rect.width;
   GLint height = rect.height;
 
-  MakeCurrent();
+  
+  
+  if (width == 0 || height == 0)
+    return;
+
+  
+  
+  if (mWidgetSize.width != width ||
+      mWidgetSize.height != height)
+  {
+    MakeCurrent(PR_TRUE);
+    mWidgetSize.width = width;
+    mWidgetSize.height = height;
+  } else {
+    MakeCurrent();
+  }
 
   DEBUG_GL_ERROR_CHECK(mGLContext);
 
