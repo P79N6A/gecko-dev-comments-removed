@@ -503,7 +503,13 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
   void *userData = aSurface->GetData(&kSourceSurface);
 
   if (userData) {
-    return static_cast<SourceSurface*>(userData);
+    SourceSurface *surf = static_cast<SourceSurface*>(userData);
+
+    if (surf->IsValid()) {
+      return surf;
+    }
+    
+    
   }
 
   SurfaceFormat format;
