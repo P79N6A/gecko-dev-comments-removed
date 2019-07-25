@@ -758,6 +758,14 @@ nsHttpTransaction::Close(nsresult reason)
         if (mCaps & NS_HTTP_STICKY_CONNECTION)
             relConn = false;
     }
+
+    
+    
+    
+    if (TimingEnabled() &&
+        mTimings.responseEnd.IsNull() && !mTimings.responseStart.IsNull())
+        mTimings.responseEnd = mozilla::TimeStamp::Now();
+
     if (relConn && mConnection)
         NS_RELEASE(mConnection);
 
