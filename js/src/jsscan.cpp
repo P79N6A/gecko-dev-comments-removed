@@ -319,32 +319,31 @@ int32
 TokenStream::getChar()
 {
     int32 c;
-    ptrdiff_t len, olen;
+    ptrdiff_t llen, ulen;
 
     if (ungetpos != 0) {
         c = ungetbuf[--ungetpos];
     } else {
         if (linebuf.ptr == linebuf.limit) {
-            len = userbuf.limit - userbuf.ptr;
-            if (len <= 0) {
+            ulen = userbuf.limit - userbuf.ptr;
+            if (ulen <= 0) {
                 if (!file) {
                     flags |= TSF_EOF;
                     return EOF;
                 }
 
                 
-                len = fillUserbuf();
-                JS_ASSERT(len >= 0);
-                if (len == 0) {
+                ulen = fillUserbuf();
+                JS_ASSERT(ulen >= 0);
+                if (ulen == 0) {
                     flags |= TSF_EOF;
                     return EOF;
                 }
-                olen = len;
-                userbuf.limit = userbuf.base + len;
+                userbuf.limit = userbuf.base + ulen;
                 userbuf.ptr = userbuf.base;
             }
             if (listener)
-                listener(filename, lineno, userbuf.ptr, len, &listenerTSData, listenerData);
+                listener(filename, lineno, userbuf.ptr, ulen, &listenerTSData, listenerData);
 
             jschar *nl = saveEOL;
             if (!nl) {
@@ -370,6 +369,8 @@ TokenStream::getChar()
                             break;
                     }
                 }
+            } else {
+                JS_ASSERT(!file);   
             }
 
             
@@ -377,16 +378,18 @@ TokenStream::getChar()
 
 
             if (nl < userbuf.limit)
-                len = (nl - userbuf.ptr) + 1;
-            if (len >= (ptrdiff_t) LINE_LIMIT) {
-                len = LINE_LIMIT - 1;
-                saveEOL = nl;
+                ulen = (nl - userbuf.ptr) + 1;
+
+            if (ulen >= (ptrdiff_t) LINE_LIMIT) {
+                JS_ASSERT(!file);
+                ulen = LINE_LIMIT - 1;
+                saveEOL = nl;       
             } else {
                 saveEOL = NULL;
             }
-            js_strncpy(linebuf.base, userbuf.ptr, len);
-            userbuf.ptr += len;
-            olen = len;
+            js_strncpy(linebuf.base, userbuf.ptr, ulen);
+            userbuf.ptr += ulen;
+            llen = ulen;    
 
             
 
@@ -397,28 +400,28 @@ TokenStream::getChar()
                     
                     
                     
-                    JS_ASSERT(linebuf.base[len-1] == '\r');
-                    linebuf.base[len-1] = '\n';
+                    JS_ASSERT(linebuf.base[llen-1] == '\r');
+                    linebuf.base[llen-1] = '\n';
                 } else if (*nl == '\n') {
                     if (nl > userbuf.base && nl[-1] == '\r') {
                         
                         
                         
                         
-                        JS_ASSERT(linebuf.base[len-2] == '\r' &&
-                                  linebuf.base[len-1] == '\n');
-                        linebuf.base[len-2] = '\n';
-                        len--;
+                        JS_ASSERT(linebuf.base[llen-2] == '\r' &&
+                                  linebuf.base[llen-1] == '\n');
+                        linebuf.base[llen-2] = '\n';
+                        llen--;
                     }
                 } else if (*nl == LINE_SEPARATOR || *nl == PARA_SEPARATOR) {
-                    JS_ASSERT(linebuf.base[len-1] == LINE_SEPARATOR ||
-                              linebuf.base[len-1] == PARA_SEPARATOR);
-                    linebuf.base[len-1] = '\n';
+                    JS_ASSERT(linebuf.base[llen-1] == LINE_SEPARATOR ||
+                              linebuf.base[llen-1] == PARA_SEPARATOR);
+                    linebuf.base[llen-1] = '\n';
                 }
             }
 
             
-            linebuf.limit = linebuf.base + len;
+            linebuf.limit = linebuf.base + llen;
             linebuf.ptr = linebuf.base;
 
             
@@ -432,7 +435,7 @@ TokenStream::getChar()
                 flags &= ~TSF_NLFLAG;
 
             
-            linelen = olen;
+            linelen = ulen;
         }
         c = *linebuf.ptr++;
     }
