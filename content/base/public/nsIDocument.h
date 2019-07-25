@@ -55,6 +55,7 @@
 #include "nsHashKeys.h"
 #include "nsNodeInfoManager.h"
 #include "nsIStreamListener.h"
+#include "nsIVariant.h"
 #include "nsIObserver.h"
 #include "nsGkAtoms.h"
 #include "nsAutoPtr.h"
@@ -1425,23 +1426,10 @@ public:
   
 
 
-
-
-
-
-
-
-  nsAString& GetPendingStateObject()
+  void SetCurrentStateObject(nsAString &obj)
   {
-    return mPendingStateObject;
-  }
-
-  
-
-
-  void SetPendingStateObject(nsAString &obj)
-  {
-    mPendingStateObject.Assign(obj);
+    mCurrentStateObject.Assign(obj);
+    mCurrentStateObjectCached = nsnull;
   }
 
   
@@ -1736,7 +1724,7 @@ protected:
 
   PRUint32 mExternalScriptsBeingEvaluated;
 
-  nsString mPendingStateObject;
+  nsString mCurrentStateObject;
 
   
   
@@ -1752,6 +1740,8 @@ protected:
 
   
   nsString mBaseTarget;
+
+  nsCOMPtr<nsIVariant> mCurrentStateObjectCached;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)

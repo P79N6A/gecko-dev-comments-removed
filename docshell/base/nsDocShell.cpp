@@ -6074,7 +6074,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
     if (!mEODForCurrentDocument && mContentViewer) {
         
         
-        SetDocPendingStateObj(mLSHE);
+        SetDocCurrentStateObj(mLSHE);
 
         mIsExecutingOnLoadHandler = PR_TRUE;
         rv = mContentViewer->LoadComplete(aStatus);
@@ -7766,7 +7766,7 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
 }
 
 nsresult
-nsDocShell::SetDocPendingStateObj(nsISHEntry *shEntry)
+nsDocShell::SetDocCurrentStateObj(nsISHEntry *shEntry)
 {
     nsresult rv;
 
@@ -7782,7 +7782,7 @@ nsDocShell::SetDocPendingStateObj(nsISHEntry *shEntry)
         
     }
 
-    document->SetPendingStateObject(stateData);
+    document->SetCurrentStateObject(stateData);
     return NS_OK;
 }
 
@@ -8432,7 +8432,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 doc->SetDocumentURI(newURI);
             }
 
-            SetDocPendingStateObj(mOSHE);
+            SetDocCurrentStateObj(mOSHE);
 
             
             nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mScriptGlobal);

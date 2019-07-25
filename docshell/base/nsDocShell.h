@@ -567,7 +567,7 @@ protected:
     
     
     
-    nsresult SetDocPendingStateObj(nsISHEntry *shEntry);
+    nsresult SetDocCurrentStateObj(nsISHEntry *shEntry);
 
     nsresult CheckLoadingPermissions();
 
