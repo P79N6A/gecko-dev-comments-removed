@@ -43,11 +43,16 @@ function test_loadTabs(restoreHiddenTabs, callback) {
       ok(isRestoring < 4, "restoring max. 3 tabs concurrently");
     }
 
-    if (win.gBrowser.tabs.length - needsRestore == expectedTabs) {
+    
+    
+    
+    
+    let tabsNeedingRestore = win.gBrowser.tabs.length - needsRestore;
+    if (isRestoring == 1 && tabsNeedingRestore == expectedTabs) {
       is(win.gBrowser.visibleTabs.length, 4, "only 4 visible tabs");
 
       TabsProgressListener.uninit();
-      callback();
+      executeSoon(callback);
     }
   });
 }
