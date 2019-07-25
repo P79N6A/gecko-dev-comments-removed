@@ -163,43 +163,36 @@ function update()
   
   
   
-  var tmrTable = {};
+  var reportersByProcess = {};
   var e = mgr.enumerateReporters();
   while (e.hasMoreElements()) {
-    var mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-    var process;
-    var tmr = {};
-    var i = mr.path.indexOf(':');
-    if (i === -1) {
-      process = "Main";
-      tmr._tpath = mr.path;
-    } else {
-      process = mr.path.slice(0, i);
-      tmr._tpath = mr.path.slice(i + 1);
+    var rOrig = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
+    var process = rOrig.process === "" ? "Main" : rOrig.process;
+    var r = {
+      _path:        rOrig.path,
+      _kind:        rOrig.kind,
+      _description: rOrig.description,
+      _memoryUsed:  rOrig.memoryUsed
+    };
+    if (!reportersByProcess[process]) {
+      reportersByProcess[process] = {};
     }
-    tmr._kind        = mr.kind;
-    tmr._description = mr.description;
-    tmr._memoryUsed  = mr.memoryUsed;
-
-    if (!tmrTable[process]) {
-      tmrTable[process] = {};
-    }
-    var tmrs = tmrTable[process];
-    if (tmrs[tmr._tpath]) {
+    var reporters = reportersByProcess[process];
+    if (reporters[r._path]) {
       
       
-      tmrs[tmr._tpath]._memoryUsed += tmr._memoryUsed;
+      reporters[r._path]._memoryUsed += r._memoryUsed;
     } else {
-      tmrs[tmr._tpath] = tmr;
+      reporters[r._path] = r;
     }
   }
 
   
   
-  var text = genProcessText("Main", tmrTable["Main"]);
-  for (var process in tmrTable) {
+  var text = genProcessText("Main", reportersByProcess["Main"]);
+  for (var process in reportersByProcess) {
     if (process !== "Main") {
-      text += genProcessText(process, tmrTable[process]);
+      text += genProcessText(process, reportersByProcess[process]);
     }
   }
 
@@ -239,7 +232,7 @@ function update()
   content.appendChild(div);
 }
 
-function cmpTmrs(a, b)
+function cmp_memoryUsed(a, b)
 {
   return b._memoryUsed - a._memoryUsed
 };
@@ -253,7 +246,7 @@ function cmpTmrs(a, b)
 
 
 
-function genProcessText(aProcess, aTmrs)
+function genProcessText(aProcess, aReporters)
 {
   
 
@@ -293,10 +286,10 @@ function genProcessText(aProcess, aTmrs)
       _kind: MR_OTHER,
       _kids: []
     };
-    for (var tpath in aTmrs) {
-      var tmr = aTmrs[tpath];
-      if (tmr._tpath.slice(0, treeName.length) === treeName) {
-        var names = tmr._tpath.split('/');
+    for (var path in aReporters) {
+      var r = aReporters[path];
+      if (r._path.slice(0, treeName.length) === treeName) {
+        var names = r._path.split('/');
         var u = t;
         for (var i = 0; i < names.length; i++) {
           var name = names[i];
@@ -313,7 +306,7 @@ function genProcessText(aProcess, aTmrs)
             u = v;
           }
         }
-        u._kind = tmr._kind;
+        u._kind = r._kind;
         u._hasReporter = true;
       }
     }
@@ -324,13 +317,13 @@ function genProcessText(aProcess, aTmrs)
     
     
     
-    function fillInTree(aT, aPretpath)
+    function fillInTree(aT, aPrepath)
     {
-      var tpath = aPretpath ? aPretpath + '/' + aT._name : aT._name;
+      var path = aPrepath ? aPrepath + '/' + aT._name : aT._name;
       if (aT._kids.length === 0) {
         
-        aT._description = getDescription(aTmrs, tpath);
-        var memoryUsed = getBytes(aTmrs, tpath);
+        aT._description = getDescription(aReporters, path);
+        var memoryUsed = getBytes(aReporters, path);
         if (memoryUsed !== kUnknown) {
           aT._memoryUsed = memoryUsed;
         } else {
@@ -342,12 +335,12 @@ function genProcessText(aProcess, aTmrs)
         var childrenBytes = 0;
         for (var i = 0; i < aT._kids.length; i++) {
           
-          var b = fillInTree(aT._kids[i], tpath);
+          var b = fillInTree(aT._kids[i], path);
           childrenBytes += (b === kUnknown ? 0 : b);
         }
         if (aT._hasReporter === true) {
-          aT._description = getDescription(aTmrs, tpath);
-          var memoryUsed = getBytes(aTmrs, tpath);
+          aT._description = getDescription(aReporters, path);
+          var memoryUsed = getBytes(aReporters, path);
           if (memoryUsed !== kUnknown) {
             
             
@@ -397,7 +390,7 @@ function genProcessText(aProcess, aTmrs)
     
     
     
-    var heapUsedBytes = getBytes(aTmrs, "heap-used", true);
+    var heapUsedBytes = getBytes(aReporters, "heap-used", true);
     var unknownHeapUsedBytes = 0;
     var hasProblem = true;
     if (heapUsedBytes !== kUnknown) {
@@ -435,7 +428,7 @@ function genProcessText(aProcess, aTmrs)
 
     function filterTree(aT)
     {
-      aT._kids.sort(cmpTmrs);
+      aT._kids.sort(cmp_memoryUsed);
 
       for (var i = 0; i < aT._kids.length; i++) {
         if (shouldOmit(aT._kids[i]._memoryUsed)) {
@@ -451,14 +444,14 @@ function genProcessText(aProcess, aTmrs)
           }
           aT._kids.splice(i0);
           var n = i - i0;
-          var tmrSub = {
+          var rSub = {
             _name: "(" + n + " omitted)",
             _kind: MR_OTHER,
             _description: "Omitted sub-trees: " + aggNames.join(", ") + ".",
             _memoryUsed: aggBytes,
             _kids: []
           };
-          aT._kids[i0] = tmrSub;
+          aT._kids[i0] = rSub;
           break;
         }
         filterTree(aT._kids[i]);
@@ -473,7 +466,7 @@ function genProcessText(aProcess, aTmrs)
   var text = "";
   text += "<h1>" + aProcess + " Process</h1>\n\n";
   text += genTreeText(buildTree());
-  text += genOtherText(aTmrs);
+  text += genOtherText(aReporters);
   text += "<hr></hr>";
   return text;
 }
@@ -560,13 +553,13 @@ function pad(aS, aN, aC)
 
 
 
-function getBytes(aTmrs, aTpath, aDoNotMark)
+function getBytes(aReporters, aPath, aDoNotMark)
 {
-  var tmr = aTmrs[aTpath];
-  if (tmr) {
-    var bytes = tmr._memoryUsed;
+  var r = aReporters[aPath];
+  if (r) {
+    var bytes = r._memoryUsed;
     if (!aDoNotMark) {
-      tmr._done = true;
+      r._done = true;
     }
     return bytes;
   }
@@ -585,9 +578,9 @@ function getBytes(aTmrs, aTpath, aDoNotMark)
 
 
 
-function getDescription(aTmrs, aTpath)
+function getDescription(aReporters, aPath)
 {
-  var r = aTmrs[aTpath];
+  var r = aReporters[aPath];
   return r ? r._description : "???";
 }
 
@@ -744,43 +737,43 @@ function genTreeText(aT)
 
 
 
-function genOtherText(aTmrs)
+function genOtherText(aReporters)
 {
   
   
   
   var maxBytesLength = 0;
-  var tmrArray = [];
-  for (var tpath in aTmrs) {
-    var tmr = aTmrs[tpath];
-    if (!tmr._done) {
+  var rArray = [];
+  for (var path in aReporters) {
+    var r = aReporters[path];
+    if (!r._done) {
       var hasProblem = false;
-      if (tmr._memoryUsed === kUnknown) {
+      if (r._memoryUsed === kUnknown) {
         hasProblem = true;
       }
       var elem = {
-        _tpath:       tmr._tpath,
-        _kind:        tmr._kind,
-        _description: tmr._description,
-        _memoryUsed:  hasProblem ? 0 : tmr._memoryUsed,
+        _path:        r._path,
+        _kind:        r._kind,
+        _description: r._description,
+        _memoryUsed:  hasProblem ? 0 : r._memoryUsed,
         _hasProblem:  hasProblem
       };
-      tmrArray.push(elem);
+      rArray.push(elem);
       var thisBytesLength = formatBytes(elem._memoryUsed).length;
       if (thisBytesLength > maxBytesLength) {
         maxBytesLength = thisBytesLength;
       }
     }
   }
-  tmrArray.sort(cmpTmrs);
+  rArray.sort(cmp_memoryUsed);
 
   
   var text = "";
-  for (var i = 0; i < tmrArray.length; i++) {
-    var elem = tmrArray[i];
+  for (var i = 0; i < rArray.length; i++) {
+    var elem = rArray[i];
     text += genMrValueText(
               pad(formatBytes(elem._memoryUsed), maxBytesLength, ' ')) + " ";
-    text += genMrNameText(elem._kind, elem._description, elem._tpath,
+    text += genMrNameText(elem._kind, elem._description, elem._path,
                           elem._hasProblem);
   }
 
@@ -789,5 +782,13 @@ function genOtherText(aTmrs)
                "the requested memory measurements above."
   return "<h2 class='hasDesc' title='" + desc + "'>Other Measurements</h2>\n" +
          "<pre>" + text + "</pre>\n";
+}
+
+function debug(x)
+{
+  var content = $("content");
+  var div = document.createElement("div");
+  div.innerHTML = JSON.stringify(x);
+  content.appendChild(div);
 }
 
