@@ -110,7 +110,8 @@ public:
     STARTED, 
     CLONED, 
     FAILED, 
-    STOPPED 
+    STOPPED, 
+    AUDIO_SESSION_DISCONNECTED 
   };
 protected:
   nsRefPtr<IAudioSessionControl> mAudioSessionControl;
@@ -206,7 +207,9 @@ AudioSession::QueryInterface(REFIID iid, void **ppv)
 nsresult
 AudioSession::Start()
 {
-  NS_ABORT_IF_FALSE(mState == UNINITIALIZED || mState == CLONED,
+  NS_ABORT_IF_FALSE(mState == UNINITIALIZED || 
+                    mState == CLONED ||
+                    mState == AUDIO_SESSION_DISCONNECTED,
                     "State invariants violated");
 
   const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
@@ -453,6 +456,8 @@ AudioSession::OnSessionDisconnectedInternal()
   mAudioSessionControl->UnregisterAudioSessionNotification(this);
   mAudioSessionControl = nsnull;
 
+  mState = AUDIO_SESSION_DISCONNECTED;
+  CoUninitialize();
   Start(); 
   return NS_OK;
 }
