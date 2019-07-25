@@ -360,6 +360,10 @@ class AssemblerX86Shared
     void ret() {
         masm.ret();
     }
+    void retn(Imm32 n) {
+        
+        masm.ret(n.value - sizeof(void *));
+    }
     void call(Label *label) {
         if (label->bound()) {
             masm.linkJump(masm.call(), JmpDst(label->offset()));

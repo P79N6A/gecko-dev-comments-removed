@@ -506,18 +506,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
         masm.freeStack(sizeof(Value));
     }
 
-    
-    regs = GeneralRegisterSet::Not(GeneralRegisterSet(Registers::JSCallMask | Registers::CallMask));
-
-    
-    temp = regs.getAny();
-
-    
-    
-    masm.movl(Operand(esp, IonExitFrameLayout::offsetOfReturnAddress()), temp);
-    masm.addl(Imm32(sizeof(IonExitFrameLayout) + f.explicitArgs * sizeof(void *)), esp);
-    masm.push(temp);
-    masm.ret();
+    masm.retn(Imm32(sizeof(IonExitFrameLayout) + f.explicitArgs * sizeof(void *)));
 
     masm.bind(&exception);
     masm.handleException();
