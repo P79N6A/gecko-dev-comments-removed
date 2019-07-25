@@ -379,6 +379,20 @@ var BrowserApp = {
     CharacterEncoding.uninit();
   },
 
+  
+  
+  
+  
+  
+  isBrowserContentDocumentDisplayed: function() {
+    if (window.top.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).isFirstPaint)
+      return false;
+    let tab = this.selectedTab;
+    if (!tab)
+      return true;
+    return tab.contentDocumentIsDisplayed;
+  },
+
   displayedDocumentChanged: function() {
     window.top.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).isFirstPaint = true;
   },
@@ -907,7 +921,8 @@ var BrowserApp = {
     } else if (aTopic == "FullScreen:Exit") {
       browser.contentDocument.mozCancelFullScreen();
     } else if (aTopic == "Viewport:Change") {
-      this.selectedTab.setViewport(JSON.parse(aData));
+      if (this.isBrowserContentDocumentDisplayed())
+        this.selectedTab.setViewport(JSON.parse(aData));
     } else if (aTopic == "SearchEngines:Get") {
       this.getSearchEngines();
     } else if (aTopic == "Passwords:Init") {
@@ -1434,6 +1449,7 @@ function Tab(aURL, aParams) {
   this.userScrollPos = { x: 0, y: 0 };
   this._pluginCount = 0;
   this._pluginOverlayShowing = false;
+  this.contentDocumentIsDisplayed = true;
 }
 
 Tab.prototype = {
@@ -1732,6 +1748,8 @@ Tab.prototype = {
   sendViewportUpdate: function() {
     if (BrowserApp.selectedTab != this)
       return;
+    if (!BrowserApp.isBrowserContentDocumentDisplayed())
+      return;
     let message = this.getViewport();
     message.type = "Viewport:Update";
     let displayPortMargins = sendMessageToJava({ gecko: message });
@@ -1996,6 +2014,9 @@ Tab.prototype = {
       
       
       
+      
+      
+      this.contentDocumentIsDisplayed = false;
       this.refreshDisplayPort({left: 0, top: 0, right: 0, bottom: 0 });
     } else {
       this.sendViewportUpdate();
@@ -2224,6 +2245,7 @@ Tab.prototype = {
           this.setResolution(this.getDefaultZoomLevel(), false);
           ViewportHandler.updateMetadata(this);
           BrowserApp.displayedDocumentChanged();
+          this.contentDocumentIsDisplayed = true;
         }
         break;
     }
@@ -2250,6 +2272,26 @@ var BrowserEventHandler = {
   },
 
   observe: function(aSubject, aTopic, aData) {
+    if (aTopic == "dom-touch-listener-added") {
+      let tab = BrowserApp.getTabForWindow(aSubject);
+      if (!tab)
+        return;
+
+      sendMessageToJava({
+        gecko: {
+          type: "Tab:HasTouchListener",
+          tabID: tab.id
+        }
+      });
+      return;
+    }
+
+    
+    
+    
+    if (!BrowserApp.isBrowserContentDocumentDisplayed())
+      return;
+
     if (aTopic == "Gesture:Scroll") {
       
       
@@ -2323,17 +2365,6 @@ var BrowserEventHandler = {
     } else if (aTopic == "Gesture:DoubleTap") {
       this._cancelTapHighlight();
       this.onDoubleTap(aData);
-    } else if (aTopic == "dom-touch-listener-added") {
-      let tab = BrowserApp.getTabForWindow(aSubject);
-      if (!tab)
-        return;
-
-      sendMessageToJava({
-        gecko: {
-          type: "Tab:HasTouchListener",
-          tabID: tab.id
-        }
-      });
     }
   },
  
