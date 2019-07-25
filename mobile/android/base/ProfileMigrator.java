@@ -206,26 +206,26 @@ public class ProfileMigrator {
         new PlacesRunnable(maxEntries).run();
     }
 
-    
-    public boolean hasMigrationRun() {
-        return isBookmarksMigrated() && (getMigratedHistoryEntries() > 0);
-    }
-
-    
-    public boolean hasMigrationFinished() {
-        return isBookmarksMigrated() && isHistoryMigrated();
-    }
-
     public boolean isBookmarksMigrated() {
         return getPreferences().getBoolean(PREFS_MIGRATE_BOOKMARKS_DONE, false);
     }
 
-    protected SharedPreferences getPreferences() {
-        return GeckoApp.mAppContext.getSharedPreferences(PREFS_NAME, 0);
+    public boolean isHistoryMigrated() {
+        return getPreferences().getBoolean(PREFS_MIGRATE_HISTORY_DONE, false);
     }
 
-    protected boolean isHistoryMigrated() {
-        return getPreferences().getBoolean(PREFS_MIGRATE_HISTORY_DONE, false);
+    
+    protected boolean hasMigrationRun() {
+        return isBookmarksMigrated() && (getMigratedHistoryEntries() > 0);
+    }
+
+    
+    protected boolean hasMigrationFinished() {
+        return isBookmarksMigrated() && isHistoryMigrated();
+    }
+
+    protected SharedPreferences getPreferences() {
+        return GeckoApp.mAppContext.getSharedPreferences(PREFS_NAME, 0);
     }
 
     protected int getMigratedHistoryEntries() {
