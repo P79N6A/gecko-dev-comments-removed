@@ -2791,10 +2791,10 @@ Tab.prototype = {
 
     if (!this._loadingTimeout) {
       let bv = Browser._browserView;
+      bv.beginBatchOperation();
+      bv.invalidateEntireView();
       if (this == Browser.selectedTab)
         bv.setAggressive(false);
-      Browser._browserView.beginBatchOperation();
-      Browser._browserView.invalidateEntireView();
       
       
       Browser.scrollBrowserToContent();
