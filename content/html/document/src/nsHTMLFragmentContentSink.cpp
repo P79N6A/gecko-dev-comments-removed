@@ -1233,6 +1233,9 @@ nsHTMLParanoidFragmentSink::AddLeaf(const nsIParserNode& aNode)
   
   nsresult rv = NS_OK;
 
+  
+  
+  
   if (mSkip || mIgnoreNextCloseHead) {
     return rv;
   }
