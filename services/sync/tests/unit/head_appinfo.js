@@ -1,6 +1,10 @@
+
+
+
+const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
+
 let gSyncProfile;
 
-do_load_httpd_js();
 gSyncProfile = do_get_profile();
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
