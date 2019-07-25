@@ -36,11 +36,13 @@
 
 
 
+
 #include "nsDeleteDir.h"
 #include "nsIFile.h"
 #include "nsString.h"
 #include "prthread.h"
 #include "mozilla/Telemetry.h"
+#include "nsITimer.h"
 
 using namespace mozilla;
 
@@ -52,7 +54,17 @@ static void DeleteDirThreadFunc(void *arg)
   NS_RELEASE(dir);
 }
 
-nsresult DeleteDir(nsIFile *dirIn, PRBool moveToTrash, PRBool sync)
+static void CreateDeleterThread(nsITimer *aTimer, void *arg)
+{
+  nsIFile *dir = static_cast<nsIFile *>(arg);
+
+  
+  PR_CreateThread(PR_USER_THREAD, DeleteDirThreadFunc, dir, PR_PRIORITY_LOW,
+                  PR_GLOBAL_THREAD, PR_UNJOINABLE_THREAD, 0);
+}
+
+nsresult DeleteDir(nsIFile *dirIn, PRBool moveToTrash, PRBool sync,
+                   PRUint32 delay)
 {
   Telemetry::AutoTimer<Telemetry::NETWORK_DISK_CACHE_TRASHRENAME> timer;
   nsresult rv;
@@ -82,9 +94,13 @@ nsresult DeleteDir(nsIFile *dirIn, PRBool moveToTrash, PRBool sync)
       
       
       
+      leaf.AppendInt(rand()); 
       rv = dir->MoveToNative(trash, leaf);
       if (NS_FAILED(rv))
         return rvMove;
+      
+      
+      delay = 0;
     }
   } else {
     
@@ -98,16 +114,15 @@ nsresult DeleteDir(nsIFile *dirIn, PRBool moveToTrash, PRBool sync)
   if (sync) {
     DeleteDirThreadFunc(trashRef);
   } else {
-    
-    PRThread *thread = PR_CreateThread(PR_USER_THREAD,
-                                       DeleteDirThreadFunc,
-                                       trashRef,
-                                       PR_PRIORITY_LOW,
-                                       PR_GLOBAL_THREAD,
-                                       PR_UNJOINABLE_THREAD,
-                                       0);
-    if (!thread)
-      return NS_ERROR_UNEXPECTED;
+    if (delay) {
+      nsCOMPtr<nsITimer> timer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+      if (NS_FAILED(rv))
+        return NS_ERROR_UNEXPECTED;
+      timer->InitWithFuncCallback(CreateDeleterThread, trashRef, delay,
+                                  nsITimer::TYPE_ONE_SHOT);
+    } else {
+      CreateDeleterThread(nsnull, trashRef);
+    }
   }
 
   return NS_OK;
