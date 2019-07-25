@@ -3484,6 +3484,12 @@ DOMGCCallback(JSContext *cx, JSGCStatus status)
         nsJSContext::PokeCC();
       }
     }
+
+    
+    
+    if (!sGCTimer && JS_GetGCParameter(cx->runtime, JSGC_UNUSED_CHUNKS) > 0) {
+      nsJSContext::PokeGC();
+    }
   }
 
   JSBool result = gOldJSGCCallback ? gOldJSGCCallback(cx, status) : JS_TRUE;
