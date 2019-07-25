@@ -38,6 +38,7 @@
 
 
 
+
 const TEST_URI = "http://example.com/browser/toolkit/components/console/hudservice/tests/browser/test-console.html";
 
 let jsterm;
@@ -144,6 +145,13 @@ function testJSTerm()
   
   let label = jsterm.outputNode.querySelector(".webconsole-msg-output");
   is(label.textContent.trim(), '0: "h"\n  1: "i"', 'pprint("hi") worked');
+
+  
+  jsterm.clearOutput();
+  jsterm.execute("pprint(print)");
+  label = jsterm.outputNode.querySelector(".webconsole-msg-output");
+  isnot(label.textContent.indexOf("SEVERITY_LOG"), -1,
+        "pprint(function) shows function source");
 
   finishTest();
 }
