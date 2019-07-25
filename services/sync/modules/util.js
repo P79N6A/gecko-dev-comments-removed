@@ -859,24 +859,11 @@ let FakeSvc = {
 
 
 
+Utils.lazySvc(FakeSvc, "@labs.mozilla.com/Weave/Crypto;2",
+              "@labs.mozilla.com/Weave/Crypto;1", "IWeaveCrypto");
 
-let cryptoContractID = "@labs.mozilla.com/Weave/Crypto";
 
-{
-  let versSvc = Cc["@mozilla.org/xpcom/version-comparator;1"].
-                getService(Ci.nsIVersionComparator);
-  let appinfo = Cc["@mozilla.org/xre/app-info;1"].
-                getService(Ci.nsIXULAppInfo);
-  let platVers = appinfo.platformVersion;
 
-  if (versSvc.compare(platVers, "1.9.3a3") < 0) {
-    
-    cryptoContractID += ";1";
-  } else {
-    
-    cryptoContractID += ";2";
-  }
-}
 
 let Svc = {};
 Svc.Prefs = new Preferences(PREFS_BRANCH);
@@ -884,7 +871,7 @@ Svc.Obs = Observers;
 [["Annos", "@mozilla.org/browser/annotation-service;1", "nsIAnnotationService"],
  ["AppInfo", "@mozilla.org/xre/app-info;1", "nsIXULAppInfo"],
  ["Bookmark", "@mozilla.org/browser/nav-bookmarks-service;1", "nsINavBookmarksService"],
- ["Crypto", cryptoContractID, "IWeaveCrypto"],
+ ["Crypto", "@labs.mozilla.com/Weave/Crypto;2", "IWeaveCrypto"],
  ["Directory", "@mozilla.org/file/directory_service;1", "nsIProperties"],
  ["Env", "@mozilla.org/process/environment;1", "nsIEnvironment"],
  ["Favicon", "@mozilla.org/browser/favicon-service;1", "nsIFaviconService"],
