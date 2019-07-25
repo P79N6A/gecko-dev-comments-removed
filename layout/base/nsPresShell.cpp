@@ -2632,7 +2632,7 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
 
       
       
-      mFrameConstructor->ContentInserted(nsnull, root, 0, nsnull, PR_FALSE);
+      mFrameConstructor->ContentInserted(nsnull, root, nsnull, PR_FALSE);
       VERIFY_STYLE_TREE;
 
       
@@ -4999,8 +4999,7 @@ PresShell::ContentInserted(nsIDocument* aDocument,
   if (aContainer)
     mFrameConstructor->RestyleForInsertOrChange(aContainer->AsElement(), aChild);
 
-  mFrameConstructor->ContentInserted(aContainer, aChild,
-                                     aIndexInContainer, nsnull, PR_TRUE);
+  mFrameConstructor->ContentInserted(aContainer, aChild, nsnull, PR_TRUE);
   VERIFY_STYLE_TREE;
 }
 

@@ -6180,7 +6180,7 @@ nsCSSFrameConstructor::ReframeTextIfNeeded(nsIContent* aParentContent,
   }
   NS_ASSERTION(!content->GetPrimaryFrame(),
                "Text node has a frame and NS_CREATE_FRAME_IF_NON_WHITESPACE");
-  ContentInserted(aParentContent, content, aContentIndex, nsnull, PR_FALSE);
+  ContentInserted(aParentContent, content, nsnull, PR_FALSE);
 }
 
 
@@ -6340,8 +6340,8 @@ nsCSSFrameConstructor::CreateNeededFrames(nsIContent* aContent)
       if (inRun) {
         inRun = PR_FALSE;
         
-        ContentRangeInserted(aContent, firstChildInRun, child, startOfRun, i,
-                             nsnull, PR_FALSE);
+        ContentRangeInserted(aContent, firstChildInRun, child, nsnull,
+                             PR_FALSE);
       }
     }
   }
@@ -6380,14 +6380,13 @@ void nsCSSFrameConstructor::CreateNeededFrames()
 
 void
 nsCSSFrameConstructor::IssueSingleInsertNofications(nsIContent* aContainer,
-                                                    PRInt32 aStartIndexInContainer,
-                                                    PRInt32 aEndIndexInContainer,
+                                                    nsIContent* aStartChild,
+                                                    nsIContent* aEndChild,
                                                     PRBool aAllowLazyConstruction)
 {
-  for (PRUint32 i = aStartIndexInContainer;
-       i < (PRUint32)aEndIndexInContainer;
-       i++) {
-    nsIContent* child = aContainer->GetChildAt(i);
+  for (nsIContent* child = aStartChild;
+       child != aEndChild;
+       child = child->GetNextSibling()) {
     if ((child->GetPrimaryFrame() ||
          mPresShell->FrameManager()->GetUndisplayedContent(child))
 #ifdef MOZ_XUL
@@ -6402,7 +6401,7 @@ nsCSSFrameConstructor::IssueSingleInsertNofications(nsIContent* aContainer,
       continue;
     }
     
-    ContentInserted(aContainer, child, i, mTempFrameTreeState,
+    ContentInserted(aContainer, child, mTempFrameTreeState,
                     aAllowLazyConstruction);
   }
 }
@@ -6412,8 +6411,6 @@ nsCSSFrameConstructor::GetRangeInsertionPoint(nsIContent* aContainer,
                                               nsIFrame* aParentFrame,
                                               nsIContent* aStartChild,
                                               nsIContent* aEndChild,
-                                              PRInt32 aStartIndexInContainer,
-                                              PRInt32 aEndIndexInContainer,
                                               PRBool aAllowLazyConstruction)
 {
   
@@ -6462,12 +6459,8 @@ nsCSSFrameConstructor::GetRangeInsertionPoint(nsIContent* aContainer,
       
       
       
-      
-      
-      PRUint32 endIndex = aEndChild == nsnull ?
-        aContainer->GetChildCount() : aEndIndexInContainer;
-      IssueSingleInsertNofications(aContainer, aStartIndexInContainer,
-                                   endIndex, aAllowLazyConstruction);
+      IssueSingleInsertNofications(aContainer, aStartChild, aEndChild,
+                                   aAllowLazyConstruction);
       return nsnull;
     }
   }
@@ -6545,7 +6538,6 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   LAYOUT_PHASE_TEMP_EXIT();
   parentFrame = GetRangeInsertionPoint(aContainer, parentFrame,
                                        aFirstNewContent, nsnull,
-                                       aNewIndexInContainer, -1,
                                        aAllowLazyConstruction);
   LAYOUT_PHASE_TEMP_REENTER();
   if (!parentFrame) {
@@ -6801,15 +6793,12 @@ PRBool NotifyListBoxBody(nsPresContext*    aPresContext,
 nsresult
 nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
                                        nsIContent*            aChild,
-                                       PRInt32                aIndexInContainer,
                                        nsILayoutHistoryState* aFrameState,
                                        PRBool                 aAllowLazyConstruction)
 {
   return ContentRangeInserted(aContainer,
                               aChild,
                               aChild->GetNextSibling(),
-                              aIndexInContainer,
-                              aIndexInContainer+1,
                               aFrameState,
                               aAllowLazyConstruction);
 }
@@ -6836,8 +6825,6 @@ nsresult
 nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
                                             nsIContent*            aStartChild,
                                             nsIContent*            aEndChild,
-                                            PRInt32                aIndexInContainer,
-                                            PRInt32                aEndIndexInContainer,
                                             nsILayoutHistoryState* aFrameState,
                                             PRBool                 aAllowLazyConstruction)
 {
@@ -6871,9 +6858,8 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
   PRBool isSingleInsert = (aStartChild->GetNextSibling() == aEndChild);
   NS_ASSERTION(isSingleInsert || !aAllowLazyConstruction,
                "range insert shouldn't be lazy");
-  NS_ASSERTION(isSingleInsert || !aContainer ||
-               PRUint32(aEndIndexInContainer) < aContainer->GetChildCount(),
-               "end index should not include all nodes");
+  NS_ASSERTION(isSingleInsert || aEndChild,
+               "range should not include all nodes after aStartChild");
 
 #ifdef MOZ_XUL
   if (aContainer && IsXULListBox(aContainer)) {
@@ -6889,8 +6875,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
       
       
       LAYOUT_PHASE_TEMP_EXIT();
-      IssueSingleInsertNofications(aContainer, aIndexInContainer,
-                                   aEndIndexInContainer,
+      IssueSingleInsertNofications(aContainer, aStartChild, aEndChild,
                                    aAllowLazyConstruction);
       LAYOUT_PHASE_TEMP_REENTER();
       return NS_OK;
@@ -6958,8 +6943,6 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
     LAYOUT_PHASE_TEMP_EXIT();
     parentFrame = GetRangeInsertionPoint(aContainer, parentFrame,
                                          aStartChild, aEndChild,
-                                         aIndexInContainer,
-                                         aEndIndexInContainer,
                                          aAllowLazyConstruction);
     LAYOUT_PHASE_TEMP_REENTER();
     if (!parentFrame) {
@@ -6976,8 +6959,8 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
   if (!isSingleInsert && !isRangeInsertSafe) {
     
     LAYOUT_PHASE_TEMP_EXIT();
-    IssueSingleInsertNofications(aContainer, aIndexInContainer,
-                                 aEndIndexInContainer, aAllowLazyConstruction);
+    IssueSingleInsertNofications(aContainer, aStartChild, aEndChild,
+                                 aAllowLazyConstruction);
     LAYOUT_PHASE_TEMP_REENTER();
     return NS_OK;
   }
@@ -7097,8 +7080,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
 
         
         LAYOUT_PHASE_TEMP_EXIT();
-        IssueSingleInsertNofications(aContainer, aIndexInContainer,
-                                     aEndIndexInContainer,
+        IssueSingleInsertNofications(aContainer, aStartChild, aEndChild,
                                      aAllowLazyConstruction);
         LAYOUT_PHASE_TEMP_REENTER();
         return NS_OK;
@@ -9097,8 +9079,7 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent,
         PostRestyleEvent(aContent->AsElement(), nsRestyleHint(0),
                          nsChangeHint_ReconstructFrame);
       } else {
-        rv = ContentInserted(container, aContent, indexInContainer,
-                             mTempFrameTreeState, PR_FALSE);
+        rv = ContentInserted(container, aContent, mTempFrameTreeState, PR_FALSE);
       }
     }
   }

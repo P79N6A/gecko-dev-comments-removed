@@ -145,8 +145,8 @@ private:
   
   
   void IssueSingleInsertNofications(nsIContent* aContainer,
-                                    PRInt32 aStartIndexInContainer,
-                                    PRInt32 aEndIndexInContainer,
+                                    nsIContent* aStartChild,
+                                    nsIContent* aEndChild,
                                     PRBool aAllowLazyConstruction);
   
   
@@ -158,8 +158,6 @@ private:
                                    nsIFrame* aParentFrame,
                                    nsIContent* aStartChild,
                                    nsIContent* aEndChild,
-                                   PRInt32 aStartIndexInContainer,
-                                   PRInt32 aEndIndexInContainer,
                                    PRBool aAllowLazyConstruction);
 
   
@@ -223,7 +221,6 @@ public:
   
   nsresult ContentInserted(nsIContent*            aContainer,
                            nsIContent*            aChild,
-                           PRInt32                aIndexInContainer,
                            nsILayoutHistoryState* aFrameState,
                            PRBool                 aAllowLazyConstruction);
 
@@ -233,12 +230,9 @@ public:
   
   
   
-  
   nsresult ContentRangeInserted(nsIContent*            aContainer,
                                 nsIContent*            aStartChild,
                                 nsIContent*            aEndChild,
-                                PRInt32                aIndexInContainer,
-                                PRInt32                aEndIndexInContainer,
                                 nsILayoutHistoryState* aFrameState,
                                 PRBool                 aAllowLazyConstruction);
 
