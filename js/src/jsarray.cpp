@@ -3820,6 +3820,11 @@ js_InitArrayClass(JSContext *cx, JSObject *obj)
         return NULL;
 
     
+
+
+
+
+
     if (!arrayProto->setNewTypeUnknown(cx))
         return NULL;
 

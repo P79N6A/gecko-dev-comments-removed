@@ -106,6 +106,11 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     if (!objectProto || !objectProto->setSingletonType(cx))
         return NULL;
 
+    
+
+
+
+
     if (!objectProto->setNewTypeUnknown(cx))
         return NULL;
 
@@ -139,6 +144,11 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
 
         if (!proto->setSingletonType(cx))
             return NULL;
+
+        
+
+
+
 
         if (!proto->setNewTypeUnknown(cx))
             return NULL;

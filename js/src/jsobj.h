@@ -847,8 +847,6 @@ struct JSObject : js::gc::Cell
 
 
 
-
-
     bool setNewTypeUnknown(JSContext *cx);
 
     
