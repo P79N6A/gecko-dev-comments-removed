@@ -4217,15 +4217,8 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   if (aState.mBelowCurrentLineFloats.NotEmpty()) {
     
     
-    if (aState.PlaceBelowCurrentLineFloats(aState.mBelowCurrentLineFloats)) {
-      aLine->AppendFloats(aState.mBelowCurrentLineFloats);
-    }
-    else { 
-      
-      
-      
-      PushTruncatedPlaceholderLine(aState, aLine, *aKeepReflowGoing);
-    }
+    aState.PlaceBelowCurrentLineFloats(aState.mBelowCurrentLineFloats);
+    aLine->AppendFloats(aState.mBelowCurrentLineFloats);
   }
 
   

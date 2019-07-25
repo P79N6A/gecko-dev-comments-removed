@@ -117,7 +117,7 @@ public:
 private:
   void PushFloatPastBreak(nsIFrame* aFloat);
 public:
-  PRBool PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aFloats);
+  void PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aFloats);
 
   
   
