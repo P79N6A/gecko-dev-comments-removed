@@ -233,7 +233,7 @@ private:
 
   ~nsGeolocation();
 
-  void RegisterRequestWithPrompt(nsGeolocationRequest* request);
+  bool RegisterRequestWithPrompt(nsGeolocationRequest* request);
 
   
   
