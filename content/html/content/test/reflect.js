@@ -2,6 +2,88 @@
 
 
 
+
+
+function reflectString(aElement, aAttr)
+{
+  
+  is(aElement.getAttribute(aAttr), null,
+     "When not set, the content attribute should be undefined.");
+  is(aElement[aAttr], "",
+     "When not set, the IDL attribute should return the empty string");
+
+  
+
+
+
+  aElement.setAttribute(aAttr, null);
+  todo_is(aElement.getAttribute(aAttr), "null",
+     "null should have been stringified to 'null'");
+  todo_is(aElement[aAttr], "null",
+     "null should have been stringified to 'null'");
+  aElement.removeAttribute(aAttr);
+
+  aElement[aAttr] = null;
+  todo_is(aElement.getAttribute(aAttr), "null",
+     "null should have been stringified to 'null'");
+  todo_is(aElement[aAttr], "null",
+     "null should have been stringified to 'null'");
+  aElement.removeAttribute(aAttr);
+
+  
+  var stringsToTest = [
+    
+    [ "", "" ],
+    [ "null", "null" ],
+    [ "undefined", "undefined" ],
+    [ "foo", "foo" ],
+    [ aAttr, aAttr ],
+    
+    
+    [ undefined, "undefined" ],
+    [ true, "true" ],
+    [ false, "false" ],
+    [ 42, "42" ],
+    
+    [ { toString: function() { return "foo" } },
+      "foo" ],
+    [ { valueOf: function() { return "foo" } },
+      "[object Object]" ],
+    [ { valueOf: function() { return "quux" },
+       toString: undefined },
+      "quux" ],
+    [ { valueOf: function() { return "foo" },
+        toString: function() { return "bar" } },
+      "bar" ]
+  ];
+
+  stringsToTest.forEach(function([v, r]) {
+    aElement.setAttribute(aAttr, v);
+    is(aElement[aAttr], r,
+       "IDL attribute should return the value it has been set to.");
+    is(aElement.getAttribute(aAttr), r,
+       "Content attribute should return the value it has been set to.");
+    aElement.removeAttribute(aAttr);
+
+    aElement[aAttr] = v;
+    is(aElement[aAttr], r,
+       "IDL attribute should return the value it has been set to.");
+    is(aElement.getAttribute(aAttr), r,
+       "Content attribute should return the value it has been set to.");
+    aElement.removeAttribute(aAttr);
+  });
+
+  
+  is(aElement.getAttribute(aAttr), null,
+     "When not set, the content attribute should be undefined.");
+  is(aElement[aAttr], "",
+     "When not set, the IDL attribute should return the empty string");
+}
+
+
+
+
+
 function reflectUnsignedInt(aElement, aAttr, aNonNull, aDefault)
 {
   function checkGetter(aElement, aAttr, aValue)
