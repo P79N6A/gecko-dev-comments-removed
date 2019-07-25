@@ -433,7 +433,12 @@ WidgetStack.prototype = {
 
   
   
+  
   panTo: function panTo(x, y) {
+    if (x == undefined || x == null)
+      x = this._viewingRect.x;
+    if (y == undefined || y == null)
+      y = this._viewingRect.y;
     this.panBy(x - this._viewingRect.x, y - this._viewingRect.y, true);
   },
 
