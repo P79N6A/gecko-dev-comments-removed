@@ -213,6 +213,34 @@ public:
         return PR_TRUE;
     }
 
+    void WindowDestroyed()
+    {
+        for (unsigned int i=0; i<textures.Length(); i++) {
+            GLContext::DestroyTexture(textures.ElementAt(i));
+        }
+        textures.Clear();
+    }
+
+    
+    
+    
+    
+    virtual GLuint CreateTexture()
+    {
+        GLuint tex = GLContext::CreateTexture();
+        NS_ASSERTION(!textures.Contains(tex), "");
+        textures.AppendElement(tex);
+        return tex;
+    }
+
+    virtual void DestroyTexture(GLuint texture)
+    {
+        if (textures.Contains(texture)) {
+            textures.RemoveElement(texture);
+            GLContext::DestroyTexture(texture);
+        }
+    }
+
 private:
     GLContextGLX(Display *aDisplay, GLXDrawable aWindow, GLXContext aContext, PRBool aPBuffer = PR_FALSE, PRBool aDoubleBuffered=PR_FALSE)
         : mContext(aContext), 
@@ -226,6 +254,7 @@ private:
     GLXDrawable mWindow;
     PRBool mPBuffer;
     PRBool mDoubleBuffered;
+    nsTArray<GLuint> textures;
 };
 
 static PRBool AreCompatibleVisuals(XVisualInfo *one, XVisualInfo *two)
