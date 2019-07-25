@@ -2044,11 +2044,6 @@ Tab.prototype = {
         return;
       }
 
-      let browser = BrowserApp.getBrowserForWindow(aWebProgress.DOMWindow);
-      let uri = "";
-      if (browser)
-        uri = browser.currentURI.spec;
-
       
       
       let restoring = aStateFlags & Ci.nsIWebProgressListener.STATE_RESTORING;
@@ -2056,6 +2051,10 @@ Tab.prototype = {
 
       
       let success = false; 
+      let uri = "";
+      try {
+        uri = aRequest.QueryInterface(Components.interfaces.nsIChannel).originalURI.spec;
+      } catch (e) { }
       try {
         success = aRequest.QueryInterface(Components.interfaces.nsIHttpChannel).requestSucceeded;
       } catch (e) { }
