@@ -980,6 +980,12 @@ struct JSFunctionBox : public JSObjectBox
 
 
 
+    bool inAnyDynamicScope() const;
+
+    
+
+
+
 
 
 

@@ -265,6 +265,11 @@ struct JSStmtInfo {
 
 
 
+#define TCF_IN_WITH             0x10000000
+
+
+
+
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
 
 
