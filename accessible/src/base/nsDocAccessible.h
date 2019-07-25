@@ -217,12 +217,12 @@ public:
 
 
 
-  PRBool CacheAccessible(nsAccessible *aAccessible);
+  bool BindToDocument(nsAccessible* aAccessible, nsRoleMapEntry* aRoleMapEntry);
 
   
 
 
-  void ShutdownAccessible(nsAccessible *aAccessible);
+  void UnbindFromDocument(nsAccessible* aAccessible);
 
   
 

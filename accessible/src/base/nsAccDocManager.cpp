@@ -456,27 +456,28 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
   
   
   nsCOMPtr<nsIWeakReference> weakShell(do_GetWeakReference(presShell));
-  nsDocAccessible *docAcc = isRootDoc ?
+  nsRefPtr<nsDocAccessible> docAcc = isRootDoc ?
     new nsRootAccessibleWrap(aDocument, rootElm, weakShell) :
     new nsDocAccessibleWrap(aDocument, rootElm, weakShell);
 
-  if (!docAcc)
+  
+  if (!docAcc || !mDocAccessibleCache.Put(aDocument, docAcc))
     return nsnull;
 
   
-  if (!mDocAccessibleCache.Put(aDocument, docAcc)) {
-    delete docAcc;
-    return nsnull;
-  }
-
-  
-  
-  
-  if (!outerDocAcc->AppendChild(docAcc) ||
-      !GetAccService()->InitAccessible(docAcc, nsAccUtils::GetRoleMapEntry(aDocument))) {
+  if (!outerDocAcc->AppendChild(docAcc)) {
     mDocAccessibleCache.Remove(aDocument);
     return nsnull;
   }
+
+  
+  
+  if (!docAcc->Init()) {
+    docAcc->Shutdown();
+    mDocAccessibleCache.Remove(aDocument);
+    return nsnull;
+  }
+  docAcc->SetRoleMapEntry(nsAccUtils::GetRoleMapEntry(aDocument));
 
   NS_LOG_ACCDOCCREATE("document creation finished", aDocument)
 

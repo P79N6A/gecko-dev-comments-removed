@@ -43,6 +43,7 @@
 #include "nsAccUtils.h"
 #include "nsAccTreeWalker.h"
 #include "nsCoreUtils.h"
+#include "nsDocAccessible.h"
 #include "nsRelUtils.h"
 
 
@@ -222,6 +223,10 @@ nsXULButtonAccessible::CacheChildren()
       
       buttonAccessible.swap(child);
       break;
+
+    } else {
+      
+      GetDocAccessible()->UnbindFromDocument(child);
     }
   }
 

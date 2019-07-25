@@ -692,21 +692,17 @@ nsHTMLComboboxAccessible::CacheChildren()
   if (!mListAccessible) {
     mListAccessible = 
       new nsHTMLComboboxListAccessible(mParent, mContent, mWeakShell);
-    if (!mListAccessible)
-      return;
 
     
-    if (!mListAccessible->Init()) {
-      mListAccessible->Shutdown();
+    if (!GetDocAccessible()->BindToDocument(mListAccessible, nsnull))
       return;
-    }
   }
 
-  AppendChild(mListAccessible);
-
-  
-  
-  mListAccessible->EnsureChildren();
+  if (AppendChild(mListAccessible)) {
+    
+    
+    mListAccessible->EnsureChildren();
+  }
 }
 
 void

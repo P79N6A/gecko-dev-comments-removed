@@ -202,19 +202,6 @@ public:
       GetCachedAccessibleOrContainer(aNode->GetNodeParent()) : nsnull;
   }
 
-  
-
-
-
-
-
-
-
-
-
-  PRBool InitAccessible(nsAccessible *aAccessible,
-                        nsRoleMapEntry *aRoleMapEntry);
-
 protected:
   
 

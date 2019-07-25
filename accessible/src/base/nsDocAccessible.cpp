@@ -600,31 +600,6 @@ nsDocAccessible::GetCachedAccessible(nsINode *aNode)
 }
 
 
-PRBool
-nsDocAccessible::CacheAccessible(nsAccessible* aAccessible)
-{
-  if (aAccessible->IsPrimaryForNode() &&
-      !mNodeToAccessibleMap.Put(aAccessible->GetNode(), aAccessible))
-    return PR_FALSE;
-
-  return mAccessibleCache.Put(aAccessible->UniqueID(), aAccessible);
-}
-
-
-void
-nsDocAccessible::ShutdownAccessible(nsAccessible *aAccessible)
-{
-  
-  if (aAccessible->IsPrimaryForNode() &&
-      mNodeToAccessibleMap.Get(aAccessible->GetNode()) == aAccessible)
-    mNodeToAccessibleMap.Remove(aAccessible->GetNode());
-
-  void* uniqueID = aAccessible->UniqueID();
-  aAccessible->Shutdown();
-  mAccessibleCache.Remove(uniqueID);
-}
-
-
 
 
 PRBool
@@ -1345,6 +1320,55 @@ nsDocAccessible::GetCachedAccessibleByUniqueIDInSubtree(void* aUniqueID)
   return nsnull;
 }
 
+bool
+nsDocAccessible::BindToDocument(nsAccessible* aAccessible,
+                                nsRoleMapEntry* aRoleMapEntry)
+{
+  if (!aAccessible)
+    return false;
+
+  
+  if (aAccessible->IsPrimaryForNode() &&
+      !mNodeToAccessibleMap.Put(aAccessible->GetNode(), aAccessible))
+    return false;
+
+  
+  if (!mAccessibleCache.Put(aAccessible->UniqueID(), aAccessible)) {
+    if (aAccessible->IsPrimaryForNode())
+      mNodeToAccessibleMap.Remove(aAccessible->GetNode());
+    return false;
+  }
+
+  
+  if (!aAccessible->Init()) {
+    NS_ERROR("Failed to initialize an accessible!");
+
+    UnbindFromDocument(aAccessible);
+    return false;
+  }
+
+  aAccessible->SetRoleMapEntry(aRoleMapEntry);
+  return true;
+}
+
+void
+nsDocAccessible::UnbindFromDocument(nsAccessible* aAccessible)
+{
+  
+  if (aAccessible->IsPrimaryForNode() &&
+      mNodeToAccessibleMap.Get(aAccessible->GetNode()) == aAccessible)
+    mNodeToAccessibleMap.Remove(aAccessible->GetNode());
+
+#ifdef DEBUG
+  NS_ASSERTION(mAccessibleCache.GetWeak(aAccessible->UniqueID()),
+               "Illegitimate illegitimated accessible!");
+#endif
+
+  void* uniqueID = aAccessible->UniqueID();
+  aAccessible->Shutdown();
+  mAccessibleCache.Remove(uniqueID);
+}
+
 void
 nsDocAccessible::UpdateTree(nsIContent* aContainerNode,
                             nsIContent* aStartNode,
@@ -1761,10 +1785,6 @@ nsDocAccessible::UncacheChildrenInSubtree(nsAccessible* aRoot)
 void
 nsDocAccessible::ShutdownChildrenInSubtree(nsAccessible* aAccessible)
 {
-#ifdef DEBUG
-  nsAccessible* incache = mAccessibleCache.GetWeak(aAccessible->UniqueID());
-#endif
-
   
   
   
@@ -1780,6 +1800,6 @@ nsDocAccessible::ShutdownChildrenInSubtree(nsAccessible* aAccessible)
     ShutdownChildrenInSubtree(child);
   }
 
-  ShutdownAccessible(aAccessible);
+  UnbindFromDocument(aAccessible);
 }
 

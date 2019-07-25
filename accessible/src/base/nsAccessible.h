@@ -113,7 +113,6 @@ public:
   
   
 
-  virtual PRBool Init();
   virtual void Shutdown();
 
   
@@ -297,13 +296,6 @@ public:
   nsAccessible* GetCachedChildAt(PRUint32 aIndex) const { return mChildren.ElementAt(aIndex); }
   PRBool AreChildrenCached() const { return mChildrenFlags != eChildrenUninitialized; }
   bool IsBoundToParent() const { return mParent; }
-
-#ifdef DEBUG
-  
-
-
-  PRBool IsInCache();
-#endif
 
   
   

@@ -472,23 +472,21 @@ nsXULTreeAccessible::GetTreeItemAccessible(PRInt32 aRow)
     return nsnull;
 
   void *key = reinterpret_cast<void*>(aRow);
-  nsRefPtr<nsAccessible> accessible = mAccessibleCache.GetWeak(key);
+  nsAccessible* cachedTreeItem = mAccessibleCache.GetWeak(key);
+  if (cachedTreeItem)
+    return cachedTreeItem;
 
-  if (!accessible) {
-    accessible = CreateTreeItemAccessible(aRow);
-    if (!accessible)
-      return nsnull;
+  nsRefPtr<nsAccessible> treeItem = CreateTreeItemAccessible(aRow);
+  if (treeItem) {
+    if (mAccessibleCache.Put(key, treeItem)) {
+      if (GetDocAccessible()->BindToDocument(treeItem, nsnull))
+        return treeItem;
 
-    if (!accessible->Init()) {
-      accessible->Shutdown();
-      return nsnull;
+      mAccessibleCache.Remove(key);
     }
-
-    if (!mAccessibleCache.Put(key, accessible))
-      return nsnull;
   }
 
-  return accessible;
+  return nsnull;
 }
 
 void
@@ -501,22 +499,21 @@ nsXULTreeAccessible::InvalidateCache(PRInt32 aRow, PRInt32 aCount)
   if (aCount > 0)
     return;
 
+  nsDocAccessible* document = GetDocAccessible();
+
   
   for (PRInt32 rowIdx = aRow; rowIdx < aRow - aCount; rowIdx++) {
 
     void* key = reinterpret_cast<void*>(rowIdx);
-    nsAccessible *accessible = mAccessibleCache.GetWeak(key);
+    nsAccessible* treeItem = mAccessibleCache.GetWeak(key);
 
-    if (accessible) {
+    if (treeItem) {
       nsRefPtr<AccEvent> event =
-        new AccEvent(nsIAccessibleEvent::EVENT_HIDE, accessible);
+        new AccEvent(nsIAccessibleEvent::EVENT_HIDE, treeItem);
       nsEventShell::FireEvent(event);
 
       
-      nsDocAccessible *docAccessible = GetDocAccessible();
-      if (docAccessible)
-        docAccessible->ShutdownAccessible(accessible);
-
+      document->UnbindFromDocument(treeItem);
       mAccessibleCache.Remove(key);
     }
   }
@@ -534,14 +531,11 @@ nsXULTreeAccessible::InvalidateCache(PRInt32 aRow, PRInt32 aCount)
   for (PRInt32 rowIdx = newRowCount; rowIdx < oldRowCount; ++rowIdx) {
 
     void *key = reinterpret_cast<void*>(rowIdx);
-    nsAccessible *accessible = mAccessibleCache.GetWeak(key);
+    nsAccessible* treeItem = mAccessibleCache.GetWeak(key);
 
-    if (accessible) {
+    if (treeItem) {
       
-      nsDocAccessible *docAccessible = GetDocAccessible();
-      if (docAccessible)
-        docAccessible->ShutdownAccessible(accessible);
-
+      document->UnbindFromDocument(treeItem);
       mAccessibleCache.Remove(key);
     }
   }
