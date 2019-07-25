@@ -646,13 +646,24 @@ nsTextStateManager::ContentRemoved(nsIDocument* aDocument,
         new TextChangeEvent(mWidget, offset, offset + childOffset, offset));
 }
 
+static bool IsEditable(nsINode* node) {
+  if (node->IsEditable()) {
+    return true;
+  }
+  
+  if (node->IsElement() && node->AsElement()->State().HasState(NS_EVENT_STATE_MOZ_READWRITE)) {
+    return true;
+  }
+  return false;
+}
+
 static nsINode* GetRootEditableNode(nsPresContext* aPresContext,
                                     nsIContent* aContent)
 {
   if (aContent) {
     nsINode* root = nsnull;
     nsINode* node = aContent;
-    while (node && node->IsEditable()) {
+    while (node && IsEditable(node)) {
       root = node;
       node = node->GetNodeParent();
     }
