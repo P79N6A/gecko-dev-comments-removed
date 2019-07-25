@@ -125,6 +125,26 @@ PlacesController.prototype = {
 
   _view: null,
 
+  supportsCommand: function PC_supportsCommand(aCommand) {
+    
+    
+    switch (aCommand) {
+    case "cmd_undo":
+    case "cmd_redo":
+    case "cmd_cut":
+    case "cmd_copy":
+    case "cmd_paste":
+    case "cmd_delete":
+    case "cmd_selectAll":
+      return true;
+    }
+
+    
+    
+    const CMD_PREFIX = "placesCmd_";
+    return (aCommand.substr(0, CMD_PREFIX.length) == CMD_PREFIX);
+  },
+
   isCommandEnabled: function PC_isCommandEnabled(aCommand) {
     switch (aCommand) {
     case "cmd_undo":
@@ -204,26 +224,6 @@ PlacesController.prototype = {
     default:
       return false;
     }
-  },
-
-  supportsCommand: function PC_supportsCommand(aCommand) {
-    
-    
-    switch (aCommand) {
-    case "cmd_undo":
-    case "cmd_redo":
-    case "cmd_cut":
-    case "cmd_copy":
-    case "cmd_paste":
-    case "cmd_delete":
-    case "cmd_selectAll":
-      return true;
-    }
-
-    
-    
-    const CMD_PREFIX = "placesCmd_";
-    return (aCommand.substr(0, CMD_PREFIX.length) == CMD_PREFIX);
   },
 
   doCommand: function PC_doCommand(aCommand) {
