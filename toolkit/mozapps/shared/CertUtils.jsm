@@ -86,7 +86,9 @@ BadCertHandler.prototype = {
   onChannelRedirect: function(oldChannel, newChannel, flags) {
     
     
-    checkCert(oldChannel);
+    
+    if (!(flags & Components.interfaces.nsIChannelEventSink.REDIRECT_INTERNAL))
+      checkCert(oldChannel);
   },
 
   
