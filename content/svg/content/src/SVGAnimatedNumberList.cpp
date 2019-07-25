@@ -69,6 +69,7 @@ SVGAnimatedNumberList::SetBaseValueString(const nsAString& aValue)
   
   
 
+  mIsBaseSet = PR_TRUE;
   rv = mBaseVal.CopyFrom(newBaseValue);
   if (NS_FAILED(rv) && domWrapper) {
     
@@ -88,6 +89,7 @@ SVGAnimatedNumberList::ClearBaseValue(PRUint32 aAttrEnum)
     domWrapper->InternalBaseValListWillChangeTo(SVGNumberList());
   }
   mBaseVal.Clear();
+  mIsBaseSet = PR_FALSE;
   
 }
 

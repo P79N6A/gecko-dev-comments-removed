@@ -96,6 +96,14 @@ public:
   void ClearAnimValue(nsSVGElement *aElement,
                       PRUint32 aAttrEnum);
 
+  
+  
+  
+  
+  
+  PRBool IsExplicitlySet() const
+    { return !!mAnimVal || mIsBaseSet; }
+  
   PRBool IsAnimating() const {
     return !!mAnimVal;
   }
@@ -114,6 +122,7 @@ private:
 
   SVGNumberList mBaseVal;
   nsAutoPtr<SVGNumberList> mAnimVal;
+  PRPackedBool mIsBaseSet;
 
 #ifdef MOZ_SMIL
   struct SMILAnimatedNumberList : public nsISMILAttr

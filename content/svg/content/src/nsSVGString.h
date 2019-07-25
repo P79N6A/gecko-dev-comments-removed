@@ -48,6 +48,7 @@ public:
   void Init(PRUint8 aAttrEnum) {
     mAnimVal = nsnull;
     mAttrEnum = aAttrEnum;
+    mIsBaseSet = PR_FALSE;
   }
 
   void SetBaseValue(const nsAString& aValue,
@@ -58,6 +59,14 @@ public:
 
   void SetAnimValue(const nsAString& aValue, nsSVGElement *aSVGElement);
   void GetAnimValue(nsAString& aValue, const nsSVGElement *aSVGElement) const;
+
+  
+  
+  
+  
+  
+  PRBool IsExplicitlySet() const
+    { return !!mAnimVal || mIsBaseSet; }
 
   nsresult ToDOMAnimatedString(nsIDOMSVGAnimatedString **aResult,
                                nsSVGElement *aSVGElement);
@@ -70,6 +79,7 @@ private:
 
   nsAutoPtr<nsString> mAnimVal;
   PRUint8 mAttrEnum; 
+  PRPackedBool mIsBaseSet;
 
 public:
   struct DOMAnimatedString : public nsIDOMSVGAnimatedString

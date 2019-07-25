@@ -149,9 +149,11 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   
 
   gfxIntSize filterRes;
-  if (filter->HasAttr(kNameSpaceID_None, nsGkAtoms::filterRes)) {
-    PRInt32 filterResX, filterResY;
-    filter->GetAnimatedIntegerValues(&filterResX, &filterResY, nsnull);
+  if (filter->mIntegerPairAttributes[nsSVGFilterElement::FILTERRES].IsExplicitlySet()) {
+    PRInt32 filterResX =
+      filter->mIntegerPairAttributes[nsSVGFilterElement::FILTERRES].GetAnimValue(nsSVGIntegerPair::eFirst);
+    PRInt32 filterResY =
+      filter->mIntegerPairAttributes[nsSVGFilterElement::FILTERRES].GetAnimValue(nsSVGIntegerPair::eSecond);
     
 
     
