@@ -52,6 +52,8 @@
 
 #include "nsGkAtoms.h"
 
+#include "dombindings.h"
+
 
 #include "nsIDOMHTMLFormElement.h"
 
@@ -440,6 +442,9 @@ nsContentList::nsContentList(nsINode* aRootNode,
   
   nsIDocument* doc = mRootNode->GetCurrentDoc();
   mFlushesNeeded = doc && !doc->IsHTML();
+
+  
+  SetIsProxy();
 }
 
 nsContentList::nsContentList(nsINode* aRootNode,
@@ -473,6 +478,9 @@ nsContentList::nsContentList(nsINode* aRootNode,
   
   nsIDocument* doc = mRootNode->GetCurrentDoc();
   mFlushesNeeded = doc && !doc->IsHTML();
+
+  
+  SetIsProxy();
 }
 
 nsContentList::~nsContentList()
@@ -486,6 +494,12 @@ nsContentList::~nsContentList()
     
     (*mDestroyFunc)(mData);
   }
+}
+
+JSObject*
+nsContentList::WrapObject(JSContext *cx)
+{
+  return xpc::dom::NodeList::create(cx, this);
 }
 
 DOMCI_DATA(ContentList, nsContentList)

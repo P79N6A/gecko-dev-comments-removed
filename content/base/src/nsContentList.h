@@ -277,6 +277,9 @@ public:
   virtual ~nsContentList();
 
   
+  virtual JSObject* WrapObject(JSContext *cx);
+
+  
   NS_DECL_NSIDOMHTMLCOLLECTION
 
   
