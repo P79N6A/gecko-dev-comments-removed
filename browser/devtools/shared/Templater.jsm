@@ -47,6 +47,8 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 
+var Node = Ci.nsIDOMNode;
+
 
 
 
@@ -59,7 +61,14 @@ function Templater() {
 
 
 
+
 Templater.prototype.processNode = function(node, data) {
+  if (typeof node === 'string') {
+    node = document.getElementById(node);
+  }
+  if (data === null || data === undefined) {
+    data = {};
+  }
   this.scope.push(node.nodeName + (node.id ? '#' + node.id : ''));
   try {
     
@@ -81,7 +90,7 @@ Templater.prototype.processNode = function(node, data) {
       
       
       var attrs = Array.prototype.slice.call(node.attributes);
-      for (let i = 0, attLen = attrs.length; i < attLen; i++) {
+      for (var i = 0; i < attrs.length; i++) {
         var value = attrs[i].value;
         var name = attrs[i].name;
         this.scope.push(name);
@@ -107,10 +116,9 @@ Templater.prototype.processNode = function(node, data) {
             }
           } else {
             
-            var self = this;
             var newValue = value.replace(/\$\{[^}]*\}/g, function(path) {
-              return self.envEval(path.slice(2, -1), data, value);
-            });
+              return this.envEval(path.slice(2, -1), data, value);
+            }.bind(this));
             
             
             if (name.charAt(0) === '_') {
@@ -128,12 +136,12 @@ Templater.prototype.processNode = function(node, data) {
 
     
     
-    var children = Array.prototype.slice.call(node.childNodes);
-    for (let j = 0, numChildren = children.length; j < numChildren; j++) {
-      this.processNode(children[j], data);
+    var childNodes = Array.prototype.slice.call(node.childNodes);
+    for (var j = 0; j < childNodes.length; j++) {
+      this.processNode(childNodes[j], data);
     }
 
-    if (node.nodeType === Ci.nsIDOMNode.TEXT_NODE) {
+    if (node.nodeType === Node.TEXT_NODE) {
       this.processTextNode(node, data);
     }
   } finally {
@@ -196,9 +204,7 @@ Templater.prototype.processForEach = function(node, data) {
     try {
       var self = this;
       
-      var processSingle = function(member, node, ref) {
-        var clone = node.cloneNode(true);
-        clone.removeAttribute('foreach');
+      var processSingle = function(member, clone, ref) {
         ref.parentNode.insertBefore(clone, ref);
         data[paramName] = member;
         self.processNode(clone, data);
@@ -210,25 +216,28 @@ Templater.prototype.processForEach = function(node, data) {
       var processAll = function(scope, member) {
         self.scope.push(scope);
         try {
-          if (node.nodeName === 'loop') {
-            for (let i = 0, numChildren = node.children.length; i < numChildren; i++) {
-              processSingle(member, node.children[i], node);
+          if (node.nodeName.toLowerCase() === 'loop') {
+            for (var i = 0; i < node.childNodes.length; i++) {
+              var clone = node.childNodes[i].cloneNode(true);
+              processSingle(member, clone, node);
             }
           } else {
-            processSingle(member, node, node);
+            var clone = node.cloneNode(true);
+            clone.removeAttribute('foreach');
+            processSingle(member, clone, node);
           }
         } finally {
           self.scope.pop();
         }
       };
 
-      let reply = this.envEval(value, data, originalValue);
+      var reply = this.envEval(value, data, originalValue);
       if (Array.isArray(reply)) {
         reply.forEach(function(data, i) {
-            processAll('' + i, data)
+          processAll('' + i, data);
         }, this);
       } else {
-        for (let param in reply) {
+        for (var param in reply) {
           if (reply.hasOwnProperty(param)) {
             processAll(param, param);
           }
@@ -364,7 +373,8 @@ Templater.prototype.envEval = function(script, env, context) {
       this.scope.push(context);
       return eval(script);
     } catch (ex) {
-      this.handleError('Template error evaluating \'' + script + '\'', ex);
+      this.handleError('Template error evaluating \'' + script + '\'' +
+          ' environment=' + Object.keys(env).join(', '), ex);
       return script;
     } finally {
       this.scope.pop();
