@@ -7,10 +7,10 @@
 #define DeleteTextTxn_h__
 
 #include "EditTxn.h"
-#include "nsIEditor.h"
 #include "nsIDOMCharacterData.h"
 #include "nsCOMPtr.h"
 
+class nsEditor;
 class nsRangeUpdater;
 
 
@@ -25,11 +25,11 @@ public:
 
 
 
-  NS_IMETHOD Init(nsIEditor *aEditor,
-                  nsIDOMCharacterData *aElement,
+  NS_IMETHOD Init(nsEditor* aEditor,
+                  nsIDOMCharacterData* aCharData,
                   PRUint32 aOffset,
                   PRUint32 aNumCharsToDelete,
-                  nsRangeUpdater *aRangeUpdater);
+                  nsRangeUpdater* aRangeUpdater);
 
   DeleteTextTxn();
 
@@ -45,11 +45,11 @@ public:
 protected:
 
   
-  nsIEditor* mEditor;
+  nsEditor* mEditor;
 
   
-  nsCOMPtr<nsIDOMCharacterData> mElement;
-  
+  nsCOMPtr<nsIDOMCharacterData> mCharData;
+
   
   PRUint32 mOffset;
 
@@ -60,7 +60,7 @@ protected:
   nsString mDeletedText;
 
   
-  nsRangeUpdater *mRangeUpdater;
+  nsRangeUpdater* mRangeUpdater;
 };
 
 #endif
