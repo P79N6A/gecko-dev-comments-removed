@@ -2469,14 +2469,12 @@ CheckCompatibility(nsIFile* aProfileDir, const nsCString& aVersion,
   rv = parser.GetString("Compatibility", "InvalidateCaches", buf);
   *aCachesOK = (NS_FAILED(rv) || !buf.EqualsLiteral("1"));
   
-#ifdef DEBUG
   PRBool purgeCaches = PR_FALSE;
   if (aFlagFile) {
     aFlagFile->Exists(&purgeCaches);
   }
 
   *aCachesOK = !purgeCaches && *aCachesOK;
-#endif
   return PR_TRUE;
 }
 
@@ -3353,21 +3351,33 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     }
 
 #if defined(MOZ_UPDATER) && !defined(ANDROID)
-  
-  nsCOMPtr<nsIFile> updRoot;
-  PRBool persistent;
-  rv = dirProvider.GetFile(XRE_UPDATE_ROOT_DIR, &persistent,
-                           getter_AddRefs(updRoot));
-  
-  if (NS_FAILED(rv))
-    updRoot = dirProvider.GetAppDir();
+    
+    nsCOMPtr<nsIFile> updRoot;
+    PRBool persistent;
+    rv = dirProvider.GetFile(XRE_UPDATE_ROOT_DIR, &persistent,
+                             getter_AddRefs(updRoot));
+    
+    if (NS_FAILED(rv))
+      updRoot = dirProvider.GetAppDir();
 
-  ProcessUpdates(dirProvider.GetGREDir(),
-                 dirProvider.GetAppDir(),
-                 updRoot,
-                 gRestartArgc,
-                 gRestartArgv,
-                 appData.version);
+    
+    
+    
+    
+    
+    if (CheckArg("process-updates")) {
+      SaveToEnv("MOZ_PROCESS_UPDATES=1");
+    }
+    ProcessUpdates(dirProvider.GetGREDir(),
+                   dirProvider.GetAppDir(),
+                   updRoot,
+                   gRestartArgc,
+                   gRestartArgv,
+                   appData.version);
+    if (PR_GetEnv("MOZ_PROCESS_UPDATES")) {
+      PR_SetEnv("MOZ_PROCESS_UPDATES=");
+      return 0;
+    }
 #endif
 
     nsCOMPtr<nsIProfileLock> profileLock;
@@ -3424,32 +3434,32 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     
     
  
-     
-     
-     
-     nsCOMPtr<nsILocalFile> flagFile;
-#ifdef DEBUG
-     rv = NS_ERROR_FILE_NOT_FOUND;
-     nsCOMPtr<nsIFile> fFlagFile;
-     if (gAppData->directory) {
-       rv = gAppData->directory->Clone(getter_AddRefs(fFlagFile));
-     }
-     flagFile = do_QueryInterface(fFlagFile);
-     if (flagFile) {
-       flagFile->AppendNative(FILE_INVALIDATE_CACHES);
-     }
- #endif
+    
+    
+    
+    nsCOMPtr<nsILocalFile> flagFile;
+
+    rv = NS_ERROR_FILE_NOT_FOUND;
+    nsCOMPtr<nsIFile> fFlagFile;
+    if (gAppData->directory) {
+      rv = gAppData->directory->Clone(getter_AddRefs(fFlagFile));
+    }
+    flagFile = do_QueryInterface(fFlagFile);
+    if (flagFile) {
+      flagFile->AppendNative(FILE_INVALIDATE_CACHES);
+    }
+
     PRBool cachesOK;
     PRBool versionOK = CheckCompatibility(profD, version, osABI, 
                                           dirProvider.GetGREDir(),
                                           gAppData->directory, flagFile,
                                           &cachesOK);
-     if (CheckArg("purgecaches")) {
-       cachesOK = PR_FALSE;
-     }
-     if (PR_GetEnv("MOZ_PURGE_CACHES")) {
-       cachesOK = PR_FALSE;
-     }
+    if (CheckArg("purgecaches")) {
+      cachesOK = PR_FALSE;
+    }
+    if (PR_GetEnv("MOZ_PURGE_CACHES")) {
+      cachesOK = PR_FALSE;
+    }
  
     
     
@@ -3487,11 +3497,10 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
                    dirProvider.GetGREDir(), gAppData->directory);
     }
 
-#ifdef DEBUG
     if (flagFile) {
       flagFile->Remove(PR_TRUE);
     }
-#endif
+
     PRBool appInitiatedRestart = PR_FALSE;
 
     MOZ_SPLASHSCREEN_UPDATE(30);
