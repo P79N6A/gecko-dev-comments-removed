@@ -1522,3 +1522,32 @@ nsSVGUtils::RootSVGElementHasViewbox(const nsIContent *aRootSVGElem)
 
   return svgSvgElem->HasValidViewbox();
 }
+
+ void
+nsSVGUtils::GetFallbackOrPaintColor(gfxContext *aContext, nsStyleContext *aStyleContext,
+                                    nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
+                                    float *aOpacity, nscolor *color)
+{
+  const nsStyleSVGPaint &paint = aStyleContext->GetStyleSVG()->*aFillOrStroke;
+  nsStyleContext *styleIfVisited = aStyleContext->GetStyleIfVisited();
+  bool isServer = paint.mType == eStyleSVGPaintType_Server;
+  *color = isServer ? paint.mFallbackColor : paint.mPaint.mColor;
+  if (styleIfVisited) {
+    const nsStyleSVGPaint &paintIfVisited =
+      styleIfVisited->GetStyleSVG()->*aFillOrStroke;
+    
+    
+    
+    
+    
+    
+    
+    if (paintIfVisited.mType == eStyleSVGPaintType_Color &&
+        paint.mType == eStyleSVGPaintType_Color) {
+      nscolor colorIfVisited = paintIfVisited.mPaint.mColor;
+      nscolor colors[2] = { *color, colorIfVisited };
+      *color = nsStyleContext::CombineVisitedColors(colors,
+                                         aStyleContext->RelevantLinkVisited());
+    }
+  }
+}

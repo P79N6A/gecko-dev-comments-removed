@@ -48,6 +48,7 @@
 #include "nsRenderingContext.h"
 #include "gfxRect.h"
 #include "gfxMatrix.h"
+#include "nsStyleStruct.h"
 
 class nsIDocument;
 class nsPresContext;
@@ -586,6 +587,11 @@ public:
 
 
   static bool RootSVGElementHasViewbox(const nsIContent *aRootSVGElem);
+
+  static void GetFallbackOrPaintColor(gfxContext *aContext,
+                                      nsStyleContext *aStyleContext,
+                                      nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
+                                      float *aOpacity, nscolor *color);
 };
 
 #endif
