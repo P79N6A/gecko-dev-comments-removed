@@ -40,6 +40,7 @@
 
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
+#include "mozilla/SSE.h"
 
 class THEBES_API gfxAlphaRecovery {
 public:
@@ -60,11 +61,61 @@ public:
                                 const gfxImageSurface *whiteSurface,
                                 Analysis *analysis = nsnull);
 
+#ifdef MOZILLA_MAY_SUPPORT_SSE2
     
+
 
 
     static PRBool RecoverAlphaSSE2 (gfxImageSurface *blackSurface,
                                     const gfxImageSurface *whiteSurface);
+#endif
+
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static inline PRUint32
+    RecoverPixel(PRUint32 black, PRUint32 white)
+    {
+        const PRUint32 GREEN_MASK = 0x0000FF00;
+        const PRUint32 ALPHA_MASK = 0xFF000000;
+
+        
+
+
+
+
+
+
+
+        PRUint32 diff = (white & GREEN_MASK) - (black & GREEN_MASK);
+        
+
+        PRUint32 limit = diff & ALPHA_MASK;
+        
+        PRUint32 alpha = (ALPHA_MASK - (diff << 16)) | limit;
+
+        return alpha | (black & ~ALPHA_MASK);
+    }
 };
 
 #endif 
