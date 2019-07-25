@@ -64,13 +64,6 @@ protected:
   nsresult GetAvailRect(nsRect& aRect);
 
   nsIDocShell* mDocShell; 
-
-private:
-  static bool sInitialized;
-  static bool sAllowScreenEnabledProperty;
-  static bool sAllowScreenBrightnessProperty;
-
-  static void Initialize();
 };
 
 #endif 

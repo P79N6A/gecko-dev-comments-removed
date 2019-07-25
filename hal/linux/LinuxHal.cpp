@@ -70,26 +70,6 @@ GetCurrentBatteryInformation(hal::BatteryInformation* aBatteryInfo)
 }
 #endif 
 
-bool
-GetScreenEnabled()
-{
-  return true;
-}
-
-void
-SetScreenEnabled(bool enabled)
-{}
-
-double
-GetScreenBrightness()
-{
-  return 1;
-}
-
-void
-SetScreenBrightness(double brightness)
-{}
-
 } 
 } 
 
