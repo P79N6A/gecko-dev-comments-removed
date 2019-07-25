@@ -775,15 +775,16 @@ ion::CanEnterAtBranch(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecod
     JS_ASSERT((JSOp)*pc == JSOP_LOOPHEAD);
 
     
-    if (!js_IonOptions.osr)
+    if (script->ion == ION_DISABLED_SCRIPT)
         return Method_Skipped;
 
     
-    if (script->ion && script->ion != ION_DISABLED_SCRIPT &&
-        script->ion->isOsrForbidden())
-    {
+    if (script->ion && script->ion->isOsrForbidden())
         return Method_Skipped;
-    }
+
+    
+    if (!js_IonOptions.osr)
+        return Method_Skipped;
 
     
     MethodStatus status = Compile(cx, script, fp, pc);
@@ -802,18 +803,24 @@ ion::Compile(JSContext *cx, JSScript *script, js::StackFrame *fp, jsbytecode *os
     JS_ASSERT(ion::IsEnabled());
     JS_ASSERT_IF(osrPc != NULL, (JSOp)*osrPc == JSOP_LOOPHEAD);
 
+
+    if (script->ion == ION_DISABLED_SCRIPT)
+        return Method_CantCompile;
+
     if (cx->compartment->debugMode()) {
         IonSpew(IonSpew_Abort, "debugging");
         return Method_CantCompile;
     }
 
-    if (!CheckFrame(fp))
+    if (!CheckFrame(fp)) {
+        JS_ASSERT(script->ion != ION_DISABLED_SCRIPT);
+        script->ion = ION_DISABLED_SCRIPT;
         return Method_CantCompile;
+    }
 
     if (script->ion) {
-        if (script->ion == ION_DISABLED_SCRIPT || !script->ion->method())
+        if (!script->ion->method())
             return Method_CantCompile;
-
         return Method_Compiled;
     }
 
@@ -821,6 +828,7 @@ ion::Compile(JSContext *cx, JSScript *script, js::StackFrame *fp, jsbytecode *os
         return Method_Skipped;
 
     if (!IonCompile(cx, script, fp, osrPc)) {
+        JS_ASSERT(script->ion != ION_DISABLED_SCRIPT);
         script->ion = ION_DISABLED_SCRIPT;
         return Method_CantCompile;
     }
