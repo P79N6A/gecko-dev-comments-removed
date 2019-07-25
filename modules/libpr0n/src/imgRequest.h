@@ -95,7 +95,8 @@ public:
                 nsIChannel *aChannel,
                 imgCacheEntry *aCacheEntry,
                 void *aCacheId,
-                void *aLoadId);
+                void *aLoadId,
+                nsIPrincipal* aLoadingPrincipal);
 
   
   nsresult AddProxy(imgRequestProxy *proxy);
@@ -134,6 +135,14 @@ public:
   
   
   static void SetCacheValidation(imgCacheEntry* aEntry, nsIRequest* aRequest);
+
+  
+  
+  already_AddRefed<nsIPrincipal> GetLoadingPrincipal() const
+  {
+    nsCOMPtr<nsIPrincipal> principal = mLoadingPrincipal;
+    return principal.forget();
+  }
 
 private:
   friend class imgCacheEntry;
@@ -216,6 +225,9 @@ private:
   nsCOMPtr<nsIURI> mURI;
   
   nsCOMPtr<nsIURI> mCurrentURI;
+  
+  nsCOMPtr<nsIPrincipal> mLoadingPrincipal;
+  
   nsCOMPtr<nsIPrincipal> mPrincipal;
   
   nsAutoPtr<imgStatusTracker> mStatusTracker;

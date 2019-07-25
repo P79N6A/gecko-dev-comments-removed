@@ -1790,6 +1790,7 @@ nsImageFrame::LoadIcon(const nsAString& aSpec,
 
 
                        nsnull,      
+                       nsnull,      
                        loadGroup,
                        gIconLoad,
                        nsnull,      
