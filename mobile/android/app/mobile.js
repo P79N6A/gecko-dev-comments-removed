@@ -244,7 +244,7 @@ pref("browser.search.update.log", false);
 pref("browser.search.updateinterval", 6);
 
 
-pref("browser.search.suggest.enabled", true);
+pref("browser.search.suggest.enabled", false);
 
 
 pref("browser.search.loadFromJars", true);
