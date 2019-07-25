@@ -115,6 +115,10 @@ var Browser = {
         return;
 
       
+      
+      BrowserUI.sizeControls();
+
+      
       let w = window.innerWidth;
       let h = window.innerHeight;
       let containerStyle = browserContainer.style;
@@ -125,7 +129,9 @@ var Browser = {
     }
     window.addEventListener("resize", resizeHandler, false);
 
-    function viewportHandler(b, ob) { self._canvasBrowser.viewportHandler(b, ob); }
+    function viewportHandler(bounds, boundsSizeChanged) {
+      self._canvasBrowser.viewportHandler(bounds, boundsSizeChanged);
+    }
     ws.setViewportHandler(viewportHandler);
 
     

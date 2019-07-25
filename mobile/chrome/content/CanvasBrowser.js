@@ -227,7 +227,7 @@ CanvasBrowser.prototype = {
     this.flushDrawQ();
   },
   
-  viewportHandler: function(bounds, oldBounds) {
+  viewportHandler: function(bounds, boundsSizeChanged) {
     let pageBounds = bounds.clone();
     let visibleBounds = ws.viewingRect;
     pageBounds.top = Math.floor(this._screenToPage(bounds.top));
@@ -244,7 +244,7 @@ CanvasBrowser.prototype = {
     
     
     
-    if (oldBounds)
+    if (!boundsSizeChanged)
       this.flushDrawQ();
 
     this._visibleBounds = visibleBounds;
@@ -255,16 +255,16 @@ CanvasBrowser.prototype = {
     this._screenX = bounds.x;
     this._screenY = bounds.y;
 
-    if (!oldBounds) {
+    if (boundsSizeChanged) {
       
       
       
       this.clearDrawQ();
-      
+
       
       if (!this._clippedPageDrawing)
         this._partiallyDrawn = false;
-       
+
       this._redrawRect(pageBounds);
       return;
     }

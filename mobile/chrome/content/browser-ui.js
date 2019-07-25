@@ -235,34 +235,27 @@ var BrowserUI = {
     document.getElementById("panel-items").selectedPanel = document.getElementById(id);
   },
 
-  _sizeControls : function(aEvent) {
-    if (window != aEvent.target)
-      return
-
-    if (!this._toolbarH)
-      this._toolbarH = document.getElementById("toolbar-main").boxObject.height;
-    
-    let popup = document.getElementById("popup_autocomplete");
+  sizeControls : function() {
     let windowW = window.innerWidth;
     let windowH = window.innerHeight;
+
+    let toolbar = document.getElementById("toolbar-main");
+    if (!this._toolbarH)
+      this._toolbarH = toolbar.boxObject.height;
+
+    toolbar.width = windowW;
+
+    let popup = document.getElementById("popup_autocomplete");
     popup.height = windowH - this._toolbarH;
     popup.width = windowW;
 
+    
     document.getElementById("notifications").width = windowW;
-    document.getElementById("browser-controls").height = windowH - this._toolbarH;
 
     
-
-
-
-
-
-
-
-
-
-
-
+    let sideBarHeight = windowH - this._toolbarH;
+    document.getElementById("browser-controls").height = sideBarHeight;
+    document.getElementById("tabs-container").height = sideBarHeight;
   },
 
   init : function() {
@@ -281,8 +274,6 @@ var BrowserUI = {
     browsers.addEventListener("DOMLinkAdded", this, true);
 
     document.getElementById("tabs").addEventListener("TabSelect", this, true);
-
-    window.addEventListener("resize", this, false);
   },
 
   update : function(aState) {
@@ -674,10 +665,6 @@ var BrowserUI = {
       
       case "error":
         this._favicon.src = "chrome://browser/skin/images/default-favicon.png";
-        break;
-      
-      case "resize":
-        this._sizeControls(aEvent);
         break;
     }
   },
