@@ -274,21 +274,58 @@ nsRange::CharacterDataChanged(nsIDocument* aDocument,
   
   
   if (aContent == mStartParent &&
-      aInfo->mChangeStart < (PRUint32)mStartOffset) {
-    
-    
-    mStartOffset = (PRUint32)mStartOffset <= aInfo->mChangeEnd ?
-       aInfo->mChangeStart :
-       mStartOffset + aInfo->mChangeStart - aInfo->mChangeEnd +
-         aInfo->mReplaceLength;
+      aInfo->mChangeStart < static_cast<PRUint32>(mStartOffset)) {
+    if (aInfo->mDetails) {
+      
+      NS_ASSERTION(aInfo->mDetails->mType ==
+                   CharacterDataChangeInfo::Details::eSplit,
+                   "only a split can start before the end");
+      NS_ASSERTION(static_cast<PRUint32>(mStartOffset) <= aInfo->mChangeEnd,
+                   "mStartOffset is beyond the end of this node");
+      mStartOffset = static_cast<PRUint32>(mStartOffset) - aInfo->mChangeStart;
+      mStartParent = aInfo->mDetails->mNextSibling;
+    } else {
+      
+      
+      mStartOffset = static_cast<PRUint32>(mStartOffset) <= aInfo->mChangeEnd ?
+        aInfo->mChangeStart :
+        mStartOffset + aInfo->mChangeStart - aInfo->mChangeEnd +
+          aInfo->mReplaceLength;
+    }
   }
 
   
-  if (aContent == mEndParent && aInfo->mChangeStart < (PRUint32)mEndOffset) {
-    mEndOffset = (PRUint32)mEndOffset <= aInfo->mChangeEnd ?
-       aInfo->mChangeStart :
-       mEndOffset + aInfo->mChangeStart - aInfo->mChangeEnd +
-         aInfo->mReplaceLength;
+  if (aContent == mEndParent && aInfo->mChangeStart < static_cast<PRUint32>(mEndOffset)) {
+    if (aInfo->mDetails) {
+      
+      NS_ASSERTION(aInfo->mDetails->mType ==
+                   CharacterDataChangeInfo::Details::eSplit,
+                   "only a split can start before the end");
+      NS_ASSERTION(static_cast<PRUint32>(mEndOffset) <= aInfo->mChangeEnd,
+                   "mEndOffset is beyond the end of this node");
+      mEndOffset = static_cast<PRUint32>(mEndOffset) - aInfo->mChangeStart;
+      mEndParent = aInfo->mDetails->mNextSibling;
+    } else {
+      mEndOffset = static_cast<PRUint32>(mEndOffset) <= aInfo->mChangeEnd ?
+        aInfo->mChangeStart :
+        mEndOffset + aInfo->mChangeStart - aInfo->mChangeEnd +
+          aInfo->mReplaceLength;
+    }
+  }
+
+  if (aInfo->mDetails &&
+      aInfo->mDetails->mType == CharacterDataChangeInfo::Details::eMerge) {
+    
+    
+    nsIContent* removed = aInfo->mDetails->mNextSibling;
+    if (removed == mStartParent) {
+      mStartOffset = static_cast<PRUint32>(mStartOffset) + aInfo->mChangeStart;
+      mStartParent = aContent;
+    }
+    if (removed == mEndParent) {
+      mEndOffset = static_cast<PRUint32>(mEndOffset) + aInfo->mChangeStart;
+      mEndParent = aContent;
+    }
   }
 }
 

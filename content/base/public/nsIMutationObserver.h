@@ -93,6 +93,23 @@ struct CharacterDataChangeInfo
 
 
 
+
+  struct Details {
+    enum {
+      eMerge,  
+      eSplit   
+    } mType;
+    
+
+
+
+    nsIContent* mNextSibling;
+  };
+
+  
+
+
+  Details* mDetails;
 };
 
 
