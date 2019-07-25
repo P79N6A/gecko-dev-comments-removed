@@ -1429,10 +1429,11 @@ int NS_main(int argc, NS_tchar **argv)
         CloseHandle(parent);
         if (result != WAIT_OBJECT_0)
           return 1;
-        
-        
-        Sleep(50);
       }
+
+      
+      
+      Sleep(50);
 #else
       int status;
       waitpid(pid, &status, 0);
