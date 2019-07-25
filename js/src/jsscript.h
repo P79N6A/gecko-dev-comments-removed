@@ -421,6 +421,8 @@ class JSPCCounters {
     }
 };
 
+static const uint32 JS_SCRIPT_COOKIE = 0xc00cee;
+
 struct JSScript {
     
 
@@ -444,6 +446,8 @@ struct JSScript {
     JSCList         links;      
     jsbytecode      *code;      
     uint32          length;     
+
+    uint32          cookie1;
 
   private:
     uint16          version;    
@@ -528,6 +532,8 @@ struct JSScript {
 
     
     JSPCCounters    pcCounters;
+
+    uint32          cookie2;
 
   public:
 #ifdef JS_ION
@@ -736,6 +742,19 @@ js_DestroyScriptFromGC(JSContext *cx, JSScript *script);
 
 extern void
 js_DestroyCachedScript(JSContext *cx, JSScript *script);
+
+namespace js {
+
+
+
+
+
+
+
+void
+CheckCompartmentScripts(JSCompartment *comp);
+
+} 
 
 extern void
 js_TraceScript(JSTracer *trc, JSScript *script);
