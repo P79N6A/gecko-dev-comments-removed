@@ -8255,7 +8255,7 @@ var TabContextMenu = {
     document.getElementById("context_closeOtherTabs").hidden = this.contextTab.pinned;
 
     
-    document.getElementById("context_tabViewMenu").disabled = this.contextTab.pinned;
+    document.getElementById("context_tabViewMenu").hidden = this.contextTab.pinned;
   }
 };
 
