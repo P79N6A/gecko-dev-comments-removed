@@ -224,70 +224,122 @@ nsTArray_base<Alloc>::InsertSlotsAt(index_type index, size_type count,
   return PR_TRUE;
 }
 
+
+
+
+
+
+
+
+
+template<class Alloc>
+nsTArray_base<Alloc>::IsAutoArrayRestorer::IsAutoArrayRestorer(
+  nsTArray_base<Alloc> &array) 
+  : mArray(array),
+    mIsAuto(array.IsAutoArray())
+{
+}
+
+template<class Alloc>
+nsTArray_base<Alloc>::IsAutoArrayRestorer::~IsAutoArrayRestorer() {
+  
+  if (mIsAuto && mArray.mHdr == mArray.EmptyHdr()) {
+    
+    
+    mArray.mHdr = mArray.GetAutoArrayBufferUnsafe();
+    mArray.mHdr->mLength = 0;
+  }
+  else {
+    mArray.mHdr->mIsAutoArray = mIsAuto;
+  }
+}
+
 template<class Alloc>
 template<class Allocator>
 PRBool
 nsTArray_base<Alloc>::SwapArrayElements(nsTArray_base<Allocator>& other,
                                         size_type elemSize) {
-#ifdef DEBUG
-  PRBool isAuto = IsAutoArray();
-  PRBool otherIsAuto = other.IsAutoArray();
-#endif
 
-  if (!EnsureNotUsingAutoArrayBuffer(elemSize) ||
-      !other.EnsureNotUsingAutoArrayBuffer(elemSize)) {
+  
+  
+  
+  
+
+  IsAutoArrayRestorer ourAutoRestorer(*this);
+  typename nsTArray_base<Allocator>::IsAutoArrayRestorer otherAutoRestorer(other);
+
+  
+  
+  
+  if ((!UsesAutoArrayBuffer() || Capacity() < other.Length()) &&
+      (!other.UsesAutoArrayBuffer() || other.Capacity() < Length())) {
+
+    if (!EnsureNotUsingAutoArrayBuffer(elemSize) ||
+        !other.EnsureNotUsingAutoArrayBuffer(elemSize)) {
+      return PR_FALSE;
+    }
+
+    Header *temp = mHdr;
+    mHdr = other.mHdr;
+    other.mHdr = temp;
+
+    return PR_TRUE;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (!EnsureCapacity(other.Length(), elemSize) ||
+      !other.EnsureCapacity(Length(), elemSize)) {
     return PR_FALSE;
   }
 
-  NS_ASSERTION(isAuto == IsAutoArray(), "lost auto info");
-  NS_ASSERTION(otherIsAuto == other.IsAutoArray(), "lost auto info");
-  NS_ASSERTION(!UsesAutoArrayBuffer() && !other.UsesAutoArrayBuffer(),
-               "both should be using an alloced buffer now");
+  
+  
+  NS_ABORT_IF_FALSE(UsesAutoArrayBuffer() || other.UsesAutoArrayBuffer(),
+                    "One of the arrays should be using its auto buffer.");
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  if (IsAutoArray() && !other.IsAutoArray()) {
-    if (other.mHdr == EmptyHdr()) {
-      
-      
-      other.mHdr = GetAutoArrayBuffer();
-      other.mHdr->mLength = 0;
-    }
-    else {
-      other.mHdr->mIsAutoArray = 1;
-    }
-    mHdr->mIsAutoArray = 0;
+  size_type smallerLength = NS_MIN(Length(), other.Length());
+  size_type largerLength = NS_MAX(Length(), other.Length());
+  void *smallerElements, *largerElements;
+  if (Length() <= other.Length()) {
+    smallerElements = Hdr() + 1;
+    largerElements = other.Hdr() + 1;
   }
-  else if (!IsAutoArray() && other.IsAutoArray()) {
-    if (mHdr == EmptyHdr()) {
-      
-      
-      mHdr = other.GetAutoArrayBuffer();
-      mHdr->mLength = 0;
-    }
-    else {
-      mHdr->mIsAutoArray = 1;
-    }
-    other.mHdr->mIsAutoArray = 0;
+  else {
+    smallerElements = other.Hdr() + 1;
+    largerElements = Hdr() + 1;
   }
 
   
-  Header *h = other.mHdr;
-  other.mHdr = mHdr;
-  mHdr = h;
+  
+  
+  
+  
+  nsAutoTArray<PRUint8, 8192, Alloc> temp;
+  if (!temp.SetCapacity(smallerLength * elemSize)) {
+    return PR_FALSE;
+  }
 
-  NS_ASSERTION(isAuto == IsAutoArray(), "lost auto info");
-  NS_ASSERTION(otherIsAuto == other.IsAutoArray(), "lost auto info");
+  memcpy(temp.Elements(), smallerElements, smallerLength * elemSize);
+  memcpy(smallerElements, largerElements, largerLength * elemSize);
+  memcpy(largerElements, temp.Elements(), smallerLength * elemSize);
+
+  
+  NS_ABORT_IF_FALSE((other.Length() == 0 || mHdr != EmptyHdr()) &&
+                    (Length() == 0 || other.mHdr != EmptyHdr()),
+                    "Don't set sEmptyHdr's length.");
+  size_type tempLength = Length();
+  mHdr->mLength = other.Length();
+  other.mHdr->mLength = tempLength;
 
   return PR_TRUE;
 }
@@ -296,6 +348,16 @@ template<class Alloc>
 PRBool
 nsTArray_base<Alloc>::EnsureNotUsingAutoArrayBuffer(size_type elemSize) {
   if (UsesAutoArrayBuffer()) {
+
+    
+    
+    
+    
+    if (Length() == 0) {
+      mHdr = EmptyHdr();
+      return PR_TRUE;
+    }
+
     size_type size = sizeof(Header) + Length() * elemSize;
 
     Header* header = static_cast<Header*>(Alloc::Malloc(size));

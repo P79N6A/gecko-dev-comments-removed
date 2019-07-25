@@ -148,7 +148,6 @@ struct nsTArray_SafeElementAtHelper<E*, Derived>
 
 
 
-
 template<class Alloc>
 class nsTArray_base
 {
@@ -231,11 +230,20 @@ protected:
                        size_type elementSize);
 
 protected:
-  
-  
   template<class Allocator>
   PRBool SwapArrayElements(nsTArray_base<Allocator>& other,
                            size_type elemSize);
+
+  
+  class IsAutoArrayRestorer {
+    public:
+      IsAutoArrayRestorer(nsTArray_base<Alloc> &array);
+      ~IsAutoArrayRestorer();
+
+    private:
+      nsTArray_base<Alloc> &mArray;
+      PRBool mIsAuto;
+  };
 
   
   
@@ -256,7 +264,12 @@ protected:
   
   Header* GetAutoArrayBuffer() {
     NS_ASSERTION(IsAutoArray(), "Should be an auto array to call this");
+    return GetAutoArrayBufferUnsafe();
+  }
 
+  
+  
+  Header* GetAutoArrayBufferUnsafe() {
     return reinterpret_cast<Header*>(&(reinterpret_cast<AutoArray*>(&mHdr))->aligned);
   }
 
@@ -935,8 +948,6 @@ public:
     return RemoveElementSorted(item, nsDefaultComparator<elem_type, Item>());
   }
 
-  
-  
   
   
   template<class Allocator>

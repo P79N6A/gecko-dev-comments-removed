@@ -41,7 +41,7 @@
 #include "nsTArray.h"
 #include "nsMemory.h"
 #include "nsAutoPtr.h"
-#include "nsString.h"
+#include "nsStringAPI.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsComponentManagerUtils.h"
@@ -233,7 +233,7 @@ class Object {
 
     PRBool operator<(const Object& other) const {
       
-      return Compare(mStr, other.mStr) < 0;
+      return mStr.Compare(other.mStr) < 0;
     }
 
     const char *Str() const { return mStr.get(); }
@@ -303,7 +303,9 @@ static PRBool test_string_array() {
   const char kdata[] = "hello world";
   PRUint32 i;
   for (i = 0; i < NS_ARRAY_LENGTH(kdata); ++i) {
-    if (!strArray.AppendElement(nsCString(kdata[i])))
+    nsCString str;
+    str.Assign(kdata[i]);
+    if (!strArray.AppendElement(str))
       return PR_FALSE;
   }
   for (i = 0; i < NS_ARRAY_LENGTH(kdata); ++i) {
@@ -581,6 +583,286 @@ static PRBool test_heap() {
 
 
 
+
+
+
+#define IS_USING_AUTO(arr) \
+  ((uintptr_t) &(arr) < (uintptr_t) arr.Elements() && \
+   ((PRPtrdiff)arr.Elements() - (PRPtrdiff)&arr) <= 16)
+
+#define CHECK_IS_USING_AUTO(arr) \
+  do {                                                    \
+    if (!(IS_USING_AUTO(arr))) {                          \
+      printf("%s:%d CHECK_IS_USING_AUTO(%s) failed.\n",   \
+             __FILE__, __LINE__, #arr);                   \
+      return PR_FALSE;                                    \
+    }                                                     \
+  } while(0)
+
+#define CHECK_NOT_USING_AUTO(arr) \
+  do {                                                    \
+    if (IS_USING_AUTO(arr)) {                             \
+      printf("%s:%d CHECK_NOT_USING_AUTO(%s) failed.\n",  \
+             __FILE__, __LINE__, #arr);                   \
+      return PR_FALSE;                                    \
+    }                                                     \
+  } while(0)
+
+#define CHECK_USES_SHARED_EMPTY_HDR(arr) \
+  do {                                                    \
+    nsTArray<int> _empty;                                 \
+    if (_empty.Elements() != arr.Elements()) {            \
+      printf("%s:%d CHECK_USES_EMPTY_HDR(%s) failed.\n",  \
+             __FILE__, __LINE__, #arr);                   \
+      return PR_FALSE;                                    \
+    }                                                     \
+  } while(0)
+
+#define CHECK_EQ_INT(actual, expected) \
+  do {                                                                       \
+    if ((actual) != (expected)) {                                            \
+      printf("%s:%d CHECK_EQ_INT(%s=%u, %s=%u) failed.\n",                   \
+             __FILE__, __LINE__, #actual, (actual), #expected, (expected));  \
+      return PR_FALSE;                                                       \
+    }                                                                        \
+  } while(0)
+
+#define CHECK_ARRAY(arr, data) \
+  do {                                                          \
+    CHECK_EQ_INT((arr).Length(), NS_ARRAY_LENGTH(data));        \
+    for (PRUint32 _i = 0; _i < NS_ARRAY_LENGTH(data); _i++) {   \
+      CHECK_EQ_INT((arr)[_i], (data)[_i]);                      \
+    }                                                           \
+  } while(0)
+
+static PRBool test_swap() {
+  
+  int data1[] = {8, 6, 7, 5};
+  int data2[] = {3, 0, 9};
+
+  
+  {
+    nsAutoTArray<int, 8> a;
+    nsAutoTArray<int, 6> b;
+
+    a.AppendElements(data1, NS_ARRAY_LENGTH(data1));
+    b.AppendElements(data2, NS_ARRAY_LENGTH(data2));
+    CHECK_IS_USING_AUTO(a);
+    CHECK_IS_USING_AUTO(b);
+
+    a.SwapElements(b);
+
+    CHECK_IS_USING_AUTO(a);
+    CHECK_IS_USING_AUTO(b);
+    CHECK_ARRAY(a, data2);
+    CHECK_ARRAY(b, data1);
+  }
+
+  
+  
+  {
+    nsAutoTArray<int, 3> a;
+    nsAutoTArray<int, 3> b;
+
+    a.AppendElements(data1, NS_ARRAY_LENGTH(data1));
+    a.RemoveElementAt(3);
+    b.AppendElements(data2, NS_ARRAY_LENGTH(data2));
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    CHECK_NOT_USING_AUTO(a);
+
+    
+    CHECK_IS_USING_AUTO(b);
+
+    a.SwapElements(b);
+
+    CHECK_IS_USING_AUTO(b);
+    CHECK_ARRAY(a, data2);
+    int expectedB[] = {8, 6, 7};
+    CHECK_ARRAY(b, expectedB);
+  }
+
+  
+  
+  {
+    nsAutoTArray<int, 3> a;
+    nsAutoTArray<int, 2> b;
+    a.AppendElements(data1, NS_ARRAY_LENGTH(data1));
+    a.RemoveElementAt(3);
+
+    b.AppendElements(data2, NS_ARRAY_LENGTH(data2));
+    b.RemoveElementAt(2);
+
+    CHECK_NOT_USING_AUTO(a);
+    CHECK_NOT_USING_AUTO(b);
+
+    a.SwapElements(b);
+
+    CHECK_NOT_USING_AUTO(b);
+
+    int expected1[] = {3, 0};
+    int expected2[] = {8, 6, 7};
+
+    CHECK_ARRAY(a, expected1);
+    CHECK_ARRAY(b, expected2);
+  }
+
+  
+  {
+    nsAutoTArray<int, 1> a;
+    nsAutoTArray<int, 3> b;
+
+    a.AppendElements(data1, NS_ARRAY_LENGTH(data1));
+    b.AppendElements(data2, NS_ARRAY_LENGTH(data2));
+
+    a.SwapElements(b);
+
+    CHECK_ARRAY(a, data2);
+    CHECK_ARRAY(b, data1);
+  }
+
+  
+  {
+    nsTArray<int> a;
+    nsAutoTArray<int, 3> b;
+
+    b.AppendElements(data2, NS_ARRAY_LENGTH(data2));
+    CHECK_IS_USING_AUTO(b);
+
+    a.SwapElements(b);
+
+    CHECK_ARRAY(a, data2);
+    CHECK_EQ_INT(b.Length(), 0);
+    CHECK_IS_USING_AUTO(b);
+  }
+
+  
+  {
+    const int size = 8192;
+    nsAutoTArray<int, size> a;
+    nsAutoTArray<int, size> b;
+
+    for (int i = 0; i < size; i++) {
+      a.AppendElement(i);
+      b.AppendElement(i + 1);
+    }
+
+    CHECK_IS_USING_AUTO(a);
+    CHECK_IS_USING_AUTO(b);
+
+    a.SwapElements(b);
+
+    CHECK_IS_USING_AUTO(a);
+    CHECK_IS_USING_AUTO(b);
+
+    CHECK_EQ_INT(a.Length(), size);
+    CHECK_EQ_INT(b.Length(), size);
+
+    for (int i = 0; i < size; i++) {
+      CHECK_EQ_INT(a[i], i + 1);
+      CHECK_EQ_INT(b[i], i);
+    }
+  }
+
+  
+  
+  {
+    nsTArray<int> a;
+    nsTArray<int> b;
+    b.AppendElements(data2, NS_ARRAY_LENGTH(data2));
+
+    CHECK_EQ_INT(a.Capacity(), 0);
+    PRUint32 bCapacity = b.Capacity();
+
+    a.SwapElements(b);
+
+    
+    CHECK_ARRAY(a, data2);
+    CHECK_EQ_INT(b.Length(), 0);
+    CHECK_EQ_INT(b.Capacity(), 0);
+    CHECK_EQ_INT(a.Capacity(), bCapacity);
+  }
+
+  
+  
+  {
+    nsTArray<int> a;
+    nsAutoTArray<int, 3> b;
+
+    a.AppendElements(data1, NS_ARRAY_LENGTH(data1));
+
+    a.SwapElements(b);
+
+    CHECK_EQ_INT(a.Length(), 0);
+    CHECK_ARRAY(b, data1);
+
+    b.Clear();
+
+    CHECK_USES_SHARED_EMPTY_HDR(a);
+    CHECK_IS_USING_AUTO(b);
+  }
+
+  
+  {
+    nsAutoTArray<int, 16> a;
+    nsAutoTArray<int, 3> b;
+
+    a.AppendElements(data1, NS_ARRAY_LENGTH(data1));
+
+    a.SwapElements(b);
+
+    CHECK_EQ_INT(a.Length(), 0);
+    CHECK_ARRAY(b, data1);
+
+    b.Clear();
+
+    CHECK_IS_USING_AUTO(a);
+    CHECK_IS_USING_AUTO(b);
+  }
+
+  
+  {
+    nsAutoTArray<int, 8> a;
+    nsTArray<int> b;
+
+    a.SwapElements(b);
+
+    CHECK_IS_USING_AUTO(a);
+    CHECK_NOT_USING_AUTO(b);
+    CHECK_EQ_INT(a.Length(), 0);
+    CHECK_EQ_INT(b.Length(), 0);
+  }
+
+  
+  
+  {
+    nsAutoTArray<int, 2> a;
+    nsAutoTArray<int, 1> b;
+
+    a.AppendElements(data1, NS_ARRAY_LENGTH(data1));
+
+    a.SwapElements(b);
+
+    CHECK_IS_USING_AUTO(a);
+    CHECK_NOT_USING_AUTO(b);
+    CHECK_ARRAY(b, data1);
+    CHECK_EQ_INT(a.Length(), 0);
+  }
+
+  return PR_TRUE;
+}
+
+
+
 typedef PRBool (*TestFunc)();
 #define DECL_TEST(name) { #name, name }
 
@@ -602,6 +884,7 @@ static const struct Test {
 #endif
   DECL_TEST(test_indexof),
   DECL_TEST(test_heap),
+  DECL_TEST(test_swap),
   { nsnull, nsnull }
 };
 
@@ -617,12 +900,16 @@ int main(int argc, char **argv) {
   if (NS_FAILED(NS_InitXPCOM2(nsnull, nsnull, nsnull)))
     return -1;
 
+  bool success = true;
   while (count--) {
     for (const Test* t = tests; t->name != nsnull; ++t) {
-      printf("%25s : %s\n", t->name, t->func() ? "SUCCESS" : "FAILURE");
+      bool test_result = t->func();
+      printf("%25s : %s\n", t->name, test_result ? "SUCCESS" : "FAILURE");
+      if (!test_result)
+        success = false;
     }
   }
   
   NS_ShutdownXPCOM(nsnull);
-  return 0;
+  return success ? 0 : -1;
 }
