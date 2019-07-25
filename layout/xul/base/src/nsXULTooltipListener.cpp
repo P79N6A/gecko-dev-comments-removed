@@ -635,15 +635,17 @@ nsXULTooltipListener::GetTooltipFor(nsIContent* aTarget, nsIContent** aTooltip)
     return rv;
   }
 
+#ifdef MOZ_XUL
   
   nsIContent* parent = tooltip->GetParent();
   if (parent) {
-    nsIFrame* frame = parent->GetPrimaryFrame();
-    if (frame && frame->GetType() == nsGkAtoms::menuFrame) {
+    nsMenuFrame* menu = do_QueryFrame(parent->GetPrimaryFrame());
+    if (menu) {
       NS_WARNING("Menu cannot be used as a tooltip");
       return NS_ERROR_FAILURE;
     }
   }
+#endif
 
   tooltip.swap(*aTooltip);
   return rv;

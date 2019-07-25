@@ -157,10 +157,7 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
       
       nsMenuPopupFrame* menuPopupFrame = nullptr;
       if (contentToResize) {
-        nsIFrame* frameToResize = contentToResize->GetPrimaryFrame();
-        if (frameToResize && frameToResize->GetType() == nsGkAtoms::menuPopupFrame) {
-          menuPopupFrame = static_cast<nsMenuPopupFrame *>(frameToResize);
-        }
+        menuPopupFrame = do_QueryFrame(contentToResize->GetPrimaryFrame());
       }
 
       
@@ -284,8 +281,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
       nsIContent* contentToResize =
         GetContentToResize(presShell, getter_AddRefs(window));
       if (contentToResize) {
-        nsIFrame* frameToResize = contentToResize->GetPrimaryFrame();
-        if (frameToResize && frameToResize->GetType() == nsGkAtoms::menuPopupFrame)
+        nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(contentToResize->GetPrimaryFrame());
+        if (menuPopupFrame)
           break; 
                  
 
@@ -316,8 +313,9 @@ nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWi
     
     nsIFrame* popup = GetParent();
     while (popup) {
-      if (popup->GetType() == nsGkAtoms::menuPopupFrame) {
-        return popup->GetContent();
+      nsMenuPopupFrame* popupFrame = do_QueryFrame(popup);
+      if (popupFrame) {
+        return popupFrame->GetContent();
       }
       popup = popup->GetParent();
     }

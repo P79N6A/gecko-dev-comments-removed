@@ -7692,8 +7692,9 @@ ReResolveMenusAndTrees(nsIFrame *aFrame, void *aClosure)
   
   
   
-  if (aFrame && aFrame->GetType() == nsGkAtoms::menuFrame)
-    (static_cast<nsMenuFrame *>(aFrame))->CloseMenu(true);
+  nsMenuFrame* menu = do_QueryFrame(aFrame);
+  if (menu)
+    menu->CloseMenu(true);
   return true;
 }
 
