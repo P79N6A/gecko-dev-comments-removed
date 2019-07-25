@@ -10,13 +10,3 @@
   nsIAccessibleEditableText *mGeckoEditableTextAccessible; 
 }
 @end
-
-
-
-@interface mozComboboxAccessible : mozTextAccessible
-
-- (void)confirm;
-
-
-- (void)showMenu;
-@end
