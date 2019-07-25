@@ -787,6 +787,10 @@ nsHttpServer.prototype =
     
     if (!this._hasOpenConnections() && this._socketClosed)
       this._notifyStopped();
+    
+    
+    
+    gc();
   },
 
   
