@@ -11,7 +11,27 @@ public interface SyncStorageRequestDelegate {
   
   
   
+
+  
+
+
+
+
+
+
+
   void handleRequestSuccess(SyncStorageResponse response);
+
+  
+
+
+
+
+
+
+
+
   void handleRequestFailure(SyncStorageResponse response);
+
   void handleRequestError(Exception ex);
 }

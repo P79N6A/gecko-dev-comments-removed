@@ -4,6 +4,7 @@
 
 package org.mozilla.gecko.sync.net;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -40,6 +41,7 @@ import ch.boye.httpclientandroidlib.params.HttpParams;
 import ch.boye.httpclientandroidlib.params.HttpProtocolParams;
 import ch.boye.httpclientandroidlib.protocol.BasicHttpContext;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
+import ch.boye.httpclientandroidlib.util.EntityUtils;
 
 import org.mozilla.gecko.sync.Logger;
 
@@ -224,5 +226,68 @@ public class BaseResource implements Resource {
     HttpPut request = new HttpPut(this.uri);
     request.setEntity(body);
     this.go(request);
+  }
+
+  
+
+
+
+
+
+
+
+  public static void consumeEntity(HttpEntity entity) {
+    try {
+      EntityUtils.consume(entity);
+    } catch (Exception e) {
+      
+    }
+  }
+
+  
+
+
+
+
+
+
+
+
+
+  public static void consumeEntity(HttpResponse response) {
+    consumeEntity(response.getEntity());
+  }
+
+  
+
+
+
+
+
+
+
+
+
+  public static void consumeEntity(SyncStorageResponse response) {
+    if (response.httpResponse() != null) {
+      consumeEntity(response.httpResponse());
+    }
+  }
+
+  
+
+
+
+
+
+
+
+  public static void consumeReader(BufferedReader reader) {
+    try {
+      while ((reader.readLine()) != null) {
+      }
+    } catch (IOException e) {
+      return;
+    }
   }
 }

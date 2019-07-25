@@ -102,6 +102,7 @@ public class SyncStorageRequest implements Resource {
       Log.d(LOG_TAG, "SyncStorageResourceDelegate handling response: " + response.getStatusLine() + ".");
       SyncStorageRequestDelegate d = this.request.delegate;
       SyncStorageResponse res = new SyncStorageResponse(response);
+      
       if (res.wasSuccessful()) {
         d.handleRequestSuccess(res);
       } else {

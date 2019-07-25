@@ -60,6 +60,14 @@ public interface ResourceDelegate {
   void addHeaders(HttpRequestBase request, DefaultHttpClient client);
 
   
+
+  
+
+
+
+
+
+
   void handleHttpResponse(HttpResponse response);
   void handleHttpProtocolException(ClientProtocolException e);
   void handleHttpIOException(IOException e);

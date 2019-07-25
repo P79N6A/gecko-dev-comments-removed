@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.net;
 
 import java.io.BufferedReader;
@@ -120,13 +87,13 @@ public class SyncStorageCollectionRequest extends SyncStorageRequest {
             delegate.handleRequestProgress(line);
           } catch (Exception ex) {
             delegate.handleRequestError(new HandleProgressException(ex));
-            SyncResourceDelegate.consumeEntity(entity);
+            BaseResource.consumeEntity(entity);
             return;
           }
         }
       } catch (IOException ex) {
         delegate.handleRequestError(ex);
-        SyncResourceDelegate.consumeEntity(entity);
+        BaseResource.consumeEntity(entity);
         return;
       } finally {
         
@@ -139,7 +106,7 @@ public class SyncStorageCollectionRequest extends SyncStorageRequest {
         }
       }
       
-      SyncResourceDelegate.consumeEntity(entity);
+      BaseResource.consumeEntity(entity);
       delegate.handleRequestSuccess(new SyncStorageResponse(response));
     }
   }
