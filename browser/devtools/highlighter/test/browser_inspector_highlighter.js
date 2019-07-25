@@ -107,6 +107,47 @@ function performTestComparisons(evt)
   is(InspectorUI.selection, h1, "selection matches node");
   is(InspectorUI.selection, InspectorUI.highlighter.highlitNode, "selection matches highlighter");
 
+  
+  let h1Dims = h1.getBoundingClientRect();
+  let h1Width = h1Dims.width;
+  let h1Height = h1Dims.height;
+
+  
+  let veilBoxDims = 
+    InspectorUI.highlighter.veilTransparentBox.getBoundingClientRect();
+  let veilBoxWidth = veilBoxDims.width;
+  let veilBoxHeight = veilBoxDims.height;
+
+  ok((veilBoxWidth == h1Width && veilBoxHeight == h1Height), "transparent veil box matches dimensions of element (no zoom)");
+
+  
+  let contentDocument = InspectorUI.browser.docShell.contentViewer
+                            .QueryInterface(Ci.nsIMarkupDocumentViewer);
+  contentDocument.fullZoom = 2;
+
+  finishTestComparisons();
+}
+
+function finishTestComparisons()
+{
+  
+  let zoom =
+      InspectorUI.win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+      .getInterface(Components.interfaces.nsIDOMWindowUtils)
+      .screenPixelsPerCSSPixel;
+
+  
+  let h1Dims = h1.getBoundingClientRect();
+  let h1Width = h1Dims.width * zoom;
+  let h1Height = h1Dims.height * zoom;
+
+  
+  let veilBoxDims = InspectorUI.highlighter.veilTransparentBox.getBoundingClientRect();
+  let veilBoxWidth = veilBoxDims.width;
+  let veilBoxHeight = veilBoxDims.height;
+
+  ok((veilBoxWidth == h1Width && veilBoxHeight == h1Height), "transparent veil box matches dimensions of element (2x zoom)");
+
   doc = h1 = null;
   executeSoon(finishUp);
 }
