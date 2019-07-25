@@ -5731,11 +5731,12 @@ nsHTMLEditRules::PromoteRange(nsIDOMRange *inRange,
       PRBool bIsEmptyNode = PR_FALSE;
       
       nsIDOMElement *rootElement = mHTMLEditor->GetRoot();
-      NS_ENSURE_TRUE(rootElement, NS_ERROR_UNEXPECTED);
-      nsCOMPtr<nsIDOMNode> rootNode = do_QueryInterface(rootElement);
-      if (block != rootNode)
+      nsCOMPtr<nsINode> rootNode = do_QueryInterface(rootElement);
+      nsCOMPtr<nsINode> blockNode = do_QueryInterface(block);
+      NS_ENSURE_TRUE(rootNode && blockNode, NS_ERROR_UNEXPECTED);
+      
+      if (!nsContentUtils::ContentIsDescendantOf(rootNode, blockNode))
       {
-        
         res = mHTMLEditor->IsEmptyNode(block, &bIsEmptyNode, PR_TRUE, PR_FALSE);
       }
       if (bIsEmptyNode)
