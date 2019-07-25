@@ -105,23 +105,23 @@ class InlineFrameAssembler {
 
     DataLabelPtr assemble(void *ncode)
     {
-        JS_ASSERT((flags & ~StackFrame::CONSTRUCTING) == 0);
+        JS_ASSERT((flags & ~JSFRAME_CONSTRUCTING) == 0);
 
         
 
         DataLabelPtr ncodePatch;
         if (frameSize.isStatic()) {
             uint32 frameDepth = frameSize.staticLocalSlots();
-            AdjustedFrame newfp(sizeof(StackFrame) + frameDepth * sizeof(Value));
+            AdjustedFrame newfp(sizeof(JSStackFrame) + frameDepth * sizeof(Value));
 
-            Address flagsAddr = newfp.addrOf(StackFrame::offsetOfFlags());
-            masm.store32(Imm32(StackFrame::FUNCTION | flags), flagsAddr);
-            Address prevAddr = newfp.addrOf(StackFrame::offsetOfPrev());
+            Address flagsAddr = newfp.addrOf(JSStackFrame::offsetOfFlags());
+            masm.store32(Imm32(JSFRAME_FUNCTION | flags), flagsAddr);
+            Address prevAddr = newfp.addrOf(JSStackFrame::offsetOfPrev());
             masm.storePtr(JSFrameReg, prevAddr);
-            Address ncodeAddr = newfp.addrOf(StackFrame::offsetOfNcode());
+            Address ncodeAddr = newfp.addrOf(JSStackFrame::offsetOfncode());
             ncodePatch = masm.storePtrWithPatch(ImmPtr(ncode), ncodeAddr);
 
-            masm.addPtr(Imm32(sizeof(StackFrame) + frameDepth * sizeof(Value)), JSFrameReg);
+            masm.addPtr(Imm32(sizeof(JSStackFrame) + frameDepth * sizeof(Value)), JSFrameReg);
         } else {
             
 
@@ -134,11 +134,11 @@ class InlineFrameAssembler {
             RegisterID newfp = tempRegs.takeAnyReg();
             masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.sp)), newfp);
 
-            Address flagsAddr(newfp, StackFrame::offsetOfFlags());
-            masm.store32(Imm32(StackFrame::FUNCTION | flags), flagsAddr);
-            Address prevAddr(newfp, StackFrame::offsetOfPrev());
+            Address flagsAddr(newfp, JSStackFrame::offsetOfFlags());
+            masm.store32(Imm32(JSFRAME_FUNCTION | flags), flagsAddr);
+            Address prevAddr(newfp, JSStackFrame::offsetOfPrev());
             masm.storePtr(JSFrameReg, prevAddr);
-            Address ncodeAddr(newfp, StackFrame::offsetOfNcode());
+            Address ncodeAddr(newfp, JSStackFrame::offsetOfncode());
             ncodePatch = masm.storePtrWithPatch(ImmPtr(ncode), ncodeAddr);
 
             masm.move(newfp, JSFrameReg);

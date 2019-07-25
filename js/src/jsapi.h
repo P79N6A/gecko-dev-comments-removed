@@ -1880,7 +1880,33 @@ JS_RemoveExternalStringFinalizer(JSStringFinalizeOp finalizer);
 
 
 extern JS_PUBLIC_API(JSString *)
-JS_NewExternalString(JSContext *cx, jschar *chars, size_t length, intN type);
+JS_NewExternalString(JSContext *cx, const jschar *chars, size_t length, intN type);
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSString *)
+JS_NewExternalStringWithClosure(JSContext *cx, const jschar *chars, size_t length,
+                                intN type, void *closure);
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_IsExternalString(JSContext *cx, JSString *str);
+
+
+
+
+
+extern JS_PUBLIC_API(void *)
+JS_GetExternalStringClosure(JSContext *cx, JSString *str);
 
 
 
@@ -1987,16 +2013,6 @@ struct JSClass {
 #define JSCLASS_FREEZE_CTOR             (1<<(JSCLASS_HIGH_FLAGS_SHIFT+6))
 
 
-#define JSRESERVED_GLOBAL_SLOTS_COUNT     7
-#define JSRESERVED_GLOBAL_THIS            (JSProto_LIMIT * 3)
-#define JSRESERVED_GLOBAL_THROWTYPEERROR  (JSRESERVED_GLOBAL_THIS + 1)
-#define JSRESERVED_GLOBAL_REGEXP_STATICS  (JSRESERVED_GLOBAL_THROWTYPEERROR + 1)
-#define JSRESERVED_GLOBAL_FUNCTION_NS     (JSRESERVED_GLOBAL_REGEXP_STATICS + 1)
-#define JSRESERVED_GLOBAL_EVAL_ALLOWED    (JSRESERVED_GLOBAL_FUNCTION_NS + 1)
-#define JSRESERVED_GLOBAL_EVAL            (JSRESERVED_GLOBAL_EVAL_ALLOWED + 1)
-#define JSRESERVED_GLOBAL_FLAGS           (JSRESERVED_GLOBAL_EVAL + 1)
-
-
 #define JSGLOBAL_FLAGS_CLEARED          0x1
 
 
@@ -2010,9 +2026,9 @@ struct JSClass {
 
 
 
+#define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 6)
 #define JSCLASS_GLOBAL_FLAGS                                                  \
-    (JSCLASS_IS_GLOBAL |                                                      \
-     JSCLASS_HAS_RESERVED_SLOTS(JSRESERVED_GLOBAL_THIS + JSRESERVED_GLOBAL_SLOTS_COUNT))
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -2182,6 +2198,9 @@ JS_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent);
 
 extern JS_PUBLIC_API(JSBool)
 JS_IsExtensible(JSObject *obj);
+
+extern JS_PUBLIC_API(JSBool)
+JS_IsNative(JSObject *obj);
 
 
 
