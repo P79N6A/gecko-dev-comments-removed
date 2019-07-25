@@ -52,6 +52,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
 
 
 const CB_READY = {};
@@ -300,28 +301,8 @@ let Utils = {
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  getProfileFile: function getProfileFile(arg) {
-    if (typeof arg == "string")
-      arg = {path: arg};
-
-    let pathParts = arg.path.split("/");
-    let file = Services.dirsvc.get("ProfD", Ci.nsIFile);
-    file.QueryInterface(Ci.nsILocalFile);
-    for (let i = 0; i < pathParts.length; i++)
-      file.append(pathParts[i]);
-    if (arg.autoCreate && !file.exists())
-      file.create(file.NORMAL_FILE_TYPE, PERMS_FILE);
-    return file;
+  getProfileFile: function getProfileFile(path) {
+    return FileUtils.getFile("ProfD", path.split("/"), true);
   },
 
   
@@ -1031,14 +1012,11 @@ let Utils = {
     if (that._log)
       that._log.trace("Saving json to disk: " + filePath);
 
-    let file = Utils.getProfileFile({ autoCreate: true, path: filePath });
+    let file = Utils.getProfileFile(filePath);
     let json = typeof obj == "function" ? obj.call(that) : obj;
     let out = JSON.stringify(json);
 
-    let fos = Cc["@mozilla.org/network/safe-file-output-stream;1"]
-                .createInstance(Ci.nsIFileOutputStream);
-    fos.init(file, MODE_WRONLY | MODE_CREATE | MODE_TRUNCATE, PERMS_FILE,
-             fos.DEFER_OPEN);
+    let fos = FileUtils.openSafeFileOutputStream(file);
     let is = this._utf8Converter.convertToInputStream(out);
     NetUtil.asyncCopy(is, fos, function (result) {
       if (typeof callback == "function") {
