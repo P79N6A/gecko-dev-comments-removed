@@ -2640,7 +2640,7 @@ var BadgeHandlers = {
     {
       _lastUpdate: 0,
       _lastCount: 0,
-      url: "http://mail.google.com",
+      url: "https://mail.google.com/mail",
       updateBadge: function(aBadge) {
         
         let now = Date.now();
