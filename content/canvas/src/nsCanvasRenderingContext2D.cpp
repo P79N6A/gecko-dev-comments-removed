@@ -3229,105 +3229,6 @@ nsCanvasRenderingContext2D::IsPointInPath(float x, float y, PRBool *retVal)
     return NS_OK;
 }
 
-#ifdef WINCE
-
-
-static void
-bitblt(gfxImageSurface *s, int src_x, int src_y, int width, int height,
-                int dest_x, int dest_y) {
-    unsigned char *data = s->Data();
-    int stride = s->Stride()/4;
-    int x, y;
-    unsigned int *dest = (unsigned int *)data;
-    unsigned int *src  = (unsigned int *)data;
-
-    int surface_width  = s->Width();
-    int surface_height = s->Height();
-
-    
-    if (src_x < 0) {
-        dest_x += -src_x;
-        width  -= -src_x;
-        src_x = 0;
-    }
-    if (src_y < 0) {
-        dest_y += -src_y;
-        height -= -src_y;
-        src_y = 0;
-    }
-    if (dest_x < 0) {
-        src_x += -dest_x;
-        width -= -dest_x;
-        dest_x = 0;
-    }
-    if (dest_y < 0) {
-        src_y  += -dest_y;
-        height -= -dest_y;
-        dest_y  = 0;
-    }
-
-    
-    if (src_x + width > surface_width)
-        width = surface_width - src_x;
-    if (dest_x + width > surface_width)
-        width = surface_width - dest_x;
-    if (src_y + height > surface_height)
-        height = surface_height - src_y;
-    if (dest_y + height > surface_height)
-        height = surface_height - dest_y;
-
-    if (dest_x < src_x) {
-        if (dest_y < src_y) {
-            dest = dest + dest_y*stride + dest_x;
-            src  = src  +  src_y*stride + src_x;
-            
-            for (y=0; y<height; y++) {
-                for (x=0; x<width; x++) {
-                    *dest++ = *src++;
-                }
-                dest += stride - width;
-                src  += stride - width;
-            }
-        } else {
-            dest = dest + (dest_y+height-1)*stride + dest_x;
-            src  = src  + (src_y +height-1)*stride + src_x;
-            
-            for (y=0; y<height; y++) {
-                for (x=0; x<width; x++) {
-                    *dest++ = *src++;
-                }
-                dest += -stride - width;
-                src  += -stride - width;
-            }
-        }
-    } else {
-        if (dest_y < src_y) {
-            dest = dest + dest_y*stride + (dest_x+width-1);
-            src  = src  +  src_y*stride + (src_x +width-1);
-            
-            for (y=0; y<height; y++) {
-                for (x=0; x<width; x++) {
-                    *dest-- = *src--;
-                }
-                dest += stride + width;
-                src  += stride + width;
-            }
-        } else {
-            dest = dest + (dest_y+height-1)*stride + (dest_x+width-1);
-            src  = src  + (src_y +height-1)*stride + (src_x +width-1);
-            
-            for (y=0; y<height; y++) {
-                for (x=0; x<width; x++) {
-                    *dest-- = *src--;
-                }
-                dest += -stride + width;
-                src  += -stride + width;
-            }
-        }
-    }
-}
-#endif
-
 
 
 
@@ -3369,7 +3270,6 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
             return res.mIsStillLoading ? NS_OK : NS_ERROR_NOT_AVAILABLE;
         }
 
-#ifndef WINCE
         
         
         if (res.mSurface == mSurface) {
@@ -3378,7 +3278,6 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
             if (!res.mSurface)
                 return NS_ERROR_NOT_AVAILABLE;
         }
-#endif
 
         imgsurf = res.mSurface.forget();
         imgSize = res.mSize;
@@ -3467,34 +3366,6 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
 
     matrix.Translate(gfxPoint(sx, sy));
     matrix.Scale(sw/dw, sh/dh);
-#ifdef WINCE
-    
-
-
-
-    {
-        nsRefPtr<gfxASurface> csurf = mThebes->CurrentSurface();
-        if (csurf == imgsurf) {
-            if (imgsurf->GetType() == gfxASurface::SurfaceTypeImage) {
-                gfxImageSurface *surf = static_cast<gfxImageSurface*>(imgsurf.get());
-                gfxContext::GraphicsOperator op = mThebes->CurrentOperator();
-                PRBool opaque, unscaled;
-
-                opaque  = surf->Format() == gfxASurface::ImageFormatARGB32 &&
-                    (op == gfxContext::OPERATOR_SOURCE);
-                opaque |= surf->Format() == gfxASurface::ImageFormatRGB24  &&
-                    (op == gfxContext::OPERATOR_SOURCE || op == gfxContext::OPERATOR_OVER);
-
-                unscaled = sw == dw && sh == dh;
-
-                if (opaque && unscaled) {
-                    bitblt(surf, sx, sy, sw, sh, dx, dy);
-                    return NS_OK;
-                }
-            }
-        }
-    }
-#endif
 
     pattern = new gfxPattern(imgsurf);
     pattern->SetMatrix(matrix);
