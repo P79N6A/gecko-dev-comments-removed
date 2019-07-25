@@ -1212,6 +1212,8 @@ function WifiWorker() {
         return;
       }
 
+      this._highestPriority = -1;
+
       
       for (let net in networks) {
         let network = networks[net];
@@ -1456,6 +1458,72 @@ WifiWorker.prototype = {
   },
 
   
+  _reprioritizeNetworks: function(callback) {
+    
+    var ordered = Object.getOwnPropertyNames(this.configuredNetworks);
+    let self = this;
+    ordered.sort(function(a, b) {
+      var neta = self.configuredNetworks[a],
+          netb = self.configuredNetworks[b];
+
+      
+      if (isNaN(neta.priority))
+        return isNaN(netb.priority) ? 0 : 1;
+      if (isNaN(netb.priority))
+        return -1;
+      return netb.priority - neta.priority;
+    });
+
+    
+    let newPriority = 0, i;
+    for (i = ordered.length - 1; i >= 0; --i) {
+      if (!isNaN(this.configuredNetworks[ordered[i]].priority))
+        break;
+    }
+
+    
+    if (i < 0) {
+      WifiManager.saveConfig(callback);
+      return;
+    }
+
+    
+    
+    
+    let done = 0, errors = 0, total = i + 1;
+    for (; i >= 0; --i) {
+      let network = this.configuredNetworks[ordered[i]];
+      network.priority = newPriority++;
+
+      
+      
+      WifiManager.updateNetwork(network, networkUpdated);
+    }
+
+    function networkUpdated(ok) {
+      if (!ok)
+        ++errors;
+      if (++done === total) {
+        if (errors > 0) {
+          callback(false);
+          return;
+        }
+
+        WifiManager.saveConfig(function(ok) {
+          if (!ok) {
+            callback(false);
+            return;
+          }
+
+          self._reloadConfiguredNetworks(function(ok) {
+            callback(ok);
+          });
+        });
+      }
+    }
+  },
+
+  
 
   _fireEvent: function(message, data) {
     this._mm.sendAsyncMessage("WifiManager:" + message, data);
@@ -1505,12 +1573,13 @@ WifiWorker.prototype = {
   },
 
   associate: function(network, rid, mid) {
+    const MAX_PRIORITY = 9999;
     const message = "WifiManager:associate:Return";
     let privnet = network;
     let self = this;
     function networkReady() {
       
-      WifiManager.saveConfig(function() {
+      function selectAndConnect() {
         WifiManager.enableNetwork(privnet.netId, true, function (ok) {
           if (ok)
             self._needToEnableNetworks = true;
@@ -1523,7 +1592,12 @@ WifiWorker.prototype = {
             self._sendMessage(message, ok, ok, rid, mid);
           }
         });
-      });
+      }
+
+      if (self._highestPriority >= MAX_PRIORITY)
+        self._reprioritizeNetworks(selectAndConnect);
+      else
+        WifiManager.saveConfig(selectAndConnect);
     }
 
     let ssid = privnet.ssid;
@@ -1534,7 +1608,6 @@ WifiWorker.prototype = {
 
     netFromDOM(privnet, configured);
 
-    
     privnet.priority = ++this._highestPriority;
     if (configured) {
       privnet.netId = configured.netId;
