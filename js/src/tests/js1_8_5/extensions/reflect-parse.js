@@ -104,6 +104,9 @@ function xmlAttr(value) Pattern({ type: "XMLAttribute", value: value })
 function xmlText(text) Pattern({ type: "XMLText", text: text })
 function xmlPI(target, contents) Pattern({ type: "XMLProcessingInstruction", target: target, contents: contents })
 function xmlDefNS(ns) Pattern({ type: "XMLDefaultDeclaration", namespace: ns })
+function xmlName(name) Pattern({ type: "XMLName", contents: name })
+function xmlComment(contents) Pattern({ type: "XMLComment", contents: contents })
+function xmlCdata(cdata) Pattern({ type: "XMLCdata", contents: cdata })
 
 function assertBlockStmt(src, patt) {
     blockPatt(patt).assert(Reflect.parse(blockSrc(src)));
@@ -851,6 +854,25 @@ assertStmt("for (x[*] in foo);", emptyForInPatt(memExpr(ident("x"), xmlAnyName),
 
 
 
+
+
+
+assertExpr("(<x> </x>)()", callExpr(xmlElt([xmlStartTag([xmlName("x")]),
+                                            xmlText(" "),
+                                            xmlEndTag([xmlName("x")])]),
+                                    []));
+assertExpr("(<x>    </x>)()", callExpr(xmlElt([xmlStartTag([xmlName("x")]),
+                                               xmlText("    "),
+                                               xmlEndTag([xmlName("x")])]),
+                                       []));
+assertExpr("(<x><![CDATA[hello, world]]></x>)()", callExpr(xmlElt([xmlStartTag([xmlName("x")]),
+                                                                   xmlCdata("hello, world"),
+                                                                   xmlEndTag([xmlName("x")])]),
+                                                           []));
+assertExpr("(<x><!-- hello, world --></x>)()", callExpr(xmlElt([xmlStartTag([xmlName("x")]),
+                                                                xmlComment(" hello, world "),
+                                                                xmlEndTag([xmlName("x")])]),
+                                                        []));
 
 
 
