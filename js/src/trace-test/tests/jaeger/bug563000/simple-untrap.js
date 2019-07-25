@@ -1,0 +1,10 @@
+var x = "notset";
+function main() { x = "success"; }
+function failure() { x = "failure"; }
+
+
+trap(main, 8, "failure()");
+untrap(main, 8);
+main();
+
+assertEq(x, "success");
