@@ -35,6 +35,7 @@
 
 
 
+var gTestfile = 'regress-348532.js';
 
 var BUGNUMBER = 348532;
 var summary = 'Do not overflow int when constructing Error.stack';
@@ -62,13 +63,9 @@ function test()
 
   var recursionDepth = 0;
   function err() {
-    try {
-        return err.apply(this, arguments);
-    } catch (e) {
-        if (!(e instanceof InternalError))
-            throw e;
-    }
-    return new Error();
+    if (++recursionDepth == 64)
+      return new Error();
+    return err.apply(this, arguments);
   }
 
   
