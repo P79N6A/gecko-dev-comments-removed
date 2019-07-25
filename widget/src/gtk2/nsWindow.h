@@ -347,9 +347,6 @@ public:
 #endif
     NS_IMETHOD         ReparentNativeWidget(nsIWidget* aNewParent);
 
-#ifdef ACCESSIBILITY
-    static bool        sAccessibilityEnabled;
-#endif
 protected:
     
     void ReparentNativeWidgetInternal(nsIWidget* aNewParent,
