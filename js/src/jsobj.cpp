@@ -5588,6 +5588,51 @@ js_DeleteProperty(JSContext *cx, JSObject *obj, jsid id, Value *rval, JSBool str
 
 namespace js {
 
+
+
+
+
+
+
+
+
+static JS_ALWAYS_INLINE bool
+StringMethodIsNative(JSContext *cx, JSObject *obj, jsid methodid, Native native)
+{
+    JS_ASSERT(obj->getClass() == &js_StringClass);
+
+    JS_LOCK_OBJ(cx, obj);
+    JSObject *lockedobj = obj;
+    const Shape *shape = obj->nativeLookup(methodid);
+    JSObject *pobj = obj;
+
+    if (!shape) {
+        pobj = obj->getProto();
+
+        if (pobj && pobj->getClass() == &js_StringClass) {
+            JS_UNLOCK_OBJ(cx, obj);
+            JS_LOCK_OBJ(cx, pobj);
+            lockedobj = pobj;
+            shape = pobj->nativeLookup(methodid);
+        }
+    }
+
+    if (shape && shape->hasDefaultGetter() && pobj->containsSlot(shape->slot)) {
+        const Value &fval = pobj->lockedGetSlot(shape->slot);
+
+        JSObject *funobj;
+        if (IsFunctionObject(fval, &funobj)) {
+            JSFunction *fun = funobj->getFunctionPrivate();
+            if (fun->maybeNative() == native) {
+                JS_UNLOCK_OBJ(cx, lockedobj);
+                return true;
+            }
+        }
+    }
+    JS_UNLOCK_OBJ(cx, lockedobj);
+    return false;
+}
+
 JSBool
 DefaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp)
 {
@@ -5596,65 +5641,36 @@ DefaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp)
     Value v = ObjectValue(*obj);
     if (hint == JSTYPE_STRING) {
         
-
-
-
-
-        if (obj->getClass() == &js_StringClass) {
-            jsid toStringId = ATOM_TO_JSID(cx->runtime->atomState.toStringAtom);
-
-            JS_LOCK_OBJ(cx, obj);
-            JSObject *lockedobj = obj;
-            const Shape *shape = obj->nativeLookup(toStringId);
-            JSObject *pobj = obj;
-
-            if (!shape) {
-                pobj = obj->getProto();
-
-                if (pobj && pobj->getClass() == &js_StringClass) {
-                    JS_UNLOCK_OBJ(cx, obj);
-                    JS_LOCK_OBJ(cx, pobj);
-                    lockedobj = pobj;
-                    shape = pobj->nativeLookup(toStringId);
-                }
-            }
-
-            if (shape && shape->hasDefaultGetter() && pobj->containsSlot(shape->slot)) {
-                const Value &fval = pobj->lockedGetSlot(shape->slot);
-
-                JSObject *funobj;
-                if (IsFunctionObject(fval, &funobj)) {
-                    JSFunction *fun = funobj->getFunctionPrivate();
-                    if (fun->maybeNative() == js_str_toString) {
-                        JS_UNLOCK_OBJ(cx, lockedobj);
-                        *vp = obj->getPrimitiveThis();
-                        return JS_TRUE;
-                    }
-                }
-            }
-            JS_UNLOCK_OBJ(cx, lockedobj);
+        if (obj->getClass() == &js_StringClass &&
+            StringMethodIsNative(cx, obj,
+                                 ATOM_TO_JSID(cx->runtime->atomState.toStringAtom),
+                                 js_str_toString)) {
+            *vp = obj->getPrimitiveThis();
+            return true;
         }
 
-        
-
-
-
-        if (!js_TryMethod(cx, obj, cx->runtime->atomState.toStringAtom,
-                          0, NULL, &v)) {
-            return JS_FALSE;
-        }
-
+        if (!js_TryMethod(cx, obj, cx->runtime->atomState.toStringAtom, 0, NULL, &v))
+            return false;
         if (!v.isPrimitive()) {
             if (!obj->getClass()->convert(cx, obj, hint, &v))
-                return JS_FALSE;
+                return false;
         }
     } else {
+        
+        if (obj->getClass() == &js_StringClass &&
+            StringMethodIsNative(cx, obj,
+                                 ATOM_TO_JSID(cx->runtime->atomState.valueOfAtom),
+                                 js_str_toString)) {
+            *vp = obj->getPrimitiveThis();
+            return true;
+        }
+
         if (!obj->getClass()->convert(cx, obj, hint, &v))
-            return JS_FALSE;
+            return false;
         if (v.isObject()) {
             JS_ASSERT(hint != TypeOfValue(cx, v));
             if (!js_TryMethod(cx, obj, cx->runtime->atomState.toStringAtom, 0, NULL, &v))
-                return JS_FALSE;
+                return false;
         }
     }
     if (v.isObject()) {
@@ -5663,7 +5679,7 @@ DefaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp)
         if (hint == JSTYPE_STRING) {
             str = JS_InternString(cx, obj->getClass()->name);
             if (!str)
-                return JS_FALSE;
+                return false;
         } else {
             str = NULL;
         }
@@ -5673,10 +5689,10 @@ DefaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp)
                              (hint == JSTYPE_VOID)
                              ? "primitive type"
                              : JS_TYPE_STR(hint));
-        return JS_FALSE;
+        return false;
     }
     *vp = v;
-    return JS_TRUE;
+    return true;
 }
 
 } 
