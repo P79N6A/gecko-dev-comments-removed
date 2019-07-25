@@ -790,7 +790,6 @@ protected:
     PRPackedBool               mAllowKeywordFixup;
     PRPackedBool               mIsOffScreenBrowser;
     PRPackedBool               mIsActive;
-    PRPackedBool               mIsAppTab;
 
     
     
