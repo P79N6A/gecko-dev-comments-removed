@@ -58,10 +58,6 @@ public:
     CGFontRef GetCGFontRef() const { return mCGFont; }
 
     
-    
-    float GetAdjustedSize() const { return mAdjustedSize; }
-
-    
     virtual const gfxFont::Metrics& GetMetrics() {
         return mMetrics;
     }
@@ -77,6 +73,8 @@ public:
     virtual hb_blob_t *GetFontTable(PRUint32 aTag);
 
 protected:
+    virtual void CreatePlatformShaper();
+
     void InitMetrics();
 
     gfxFloat GetCharWidth(CFDataRef aCmap, PRUint32 aUpem, gfxFloat aSize,
@@ -92,7 +90,6 @@ protected:
 
     Metrics               mMetrics;
     PRUint32              mSpaceGlyph;
-    float                 mAdjustedSize;
 };
 
 #endif 

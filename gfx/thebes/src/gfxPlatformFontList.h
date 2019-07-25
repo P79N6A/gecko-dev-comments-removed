@@ -93,6 +93,7 @@ public:
 
     gfxFontEntry* FindFontForChar(const PRUint32 aCh, gfxFont *aPrevFont);
 
+    
     gfxFontFamily* FindFamily(const nsAString& aFamily);
 
     gfxFontEntry* FindFontForFamily(const nsAString& aFamily, const gfxFontStyle* aStyle, PRBool& aNeedsBold);
@@ -177,15 +178,15 @@ protected:
     virtual PRBool RunLoader();
     virtual void FinishLoader();
 
-      
-    nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mFontFamilies;
-  
     
-    PRPackedBool mOtherFamilyNamesInitialized;
+    nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mFontFamilies;
 
     
-      
+    
     nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mOtherFamilyNames;
+
+    
+    PRPackedBool mOtherFamilyNamesInitialized;
 
     
     PRPackedBool mFaceNamesInitialized;

@@ -65,6 +65,7 @@
 
 
 #include "gfxPlatformFontList.h"
+#include "gfxTextRunWordCache.h"
 
 #include "nsIPrefService.h"
 #include "nsIPrefBranch2.h"  
@@ -99,6 +100,7 @@ gfxFontListPrefObserver::Observe(nsISupports     *aSubject,
     
     
     gfxPlatformFontList::PlatformFontList()->ClearPrefFonts();
+    gfxFontCache::GetCache()->AgeAllGenerations();
     return NS_OK;
 }
 

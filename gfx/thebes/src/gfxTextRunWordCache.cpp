@@ -122,6 +122,9 @@ public:
 
     void RemoveTextRun(gfxTextRun *aTextRun);
 
+    
+
+
     void Flush() {
         mCache.Clear(); 
 #ifdef DEBUG

@@ -236,6 +236,22 @@ public:
     virtual PRBool DownloadableFontsEnabled();
 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+    PRInt8 UseHarfBuzzLevel();
+
+    
     virtual PRBool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags) { return PR_FALSE; }
 
     void GetPrefFonts(nsIAtom *aLanguage, nsString& array, PRBool aAppendUnicode = PR_TRUE);
@@ -350,6 +366,9 @@ protected:
     static PRInt32 sDPI;
 
     PRBool  mAllowDownloadableFonts;
+
+    
+    PRInt8  mUseHarfBuzzLevel;
 
 private:
     virtual qcms_profile* GetPlatformCMSOutputProfile();

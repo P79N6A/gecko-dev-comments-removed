@@ -144,3 +144,31 @@ gfxUnicodeProperties::GetScriptCode(PRUint32 aCh)
                                      [(aCh & 0xffff) >> kScriptCharBits]]
                         [aCh & ((1 << kScriptCharBits) - 1)];
 }
+
+
+
+
+
+
+
+
+
+
+
+PRInt32
+gfxUnicodeProperties::ScriptShapingLevel(PRInt32 aScriptCode)
+{
+    switch (aScriptCode) {
+    case HB_SCRIPT_LATIN:
+    case HB_SCRIPT_CYRILLIC:
+    case HB_SCRIPT_HAN:
+    case HB_SCRIPT_HIRAGANA:
+    case HB_SCRIPT_KATAKANA:
+    case HB_SCRIPT_COMMON:
+    case HB_SCRIPT_INHERITED:
+    case HB_SCRIPT_UNKNOWN:
+        return 1; 
+    }
+
+    return 2; 
+}
