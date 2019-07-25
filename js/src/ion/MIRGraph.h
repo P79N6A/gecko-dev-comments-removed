@@ -410,8 +410,8 @@ class MIRGraph
         return numBlocks_;
     }
 #endif
-    uint32 maxBlockId() const {
-        return blockIdGen_ - 1;
+    uint32 numBlockIds() const {
+        return blockIdGen_;
     }
     void allocDefinitionId(MDefinition *ins) {
         
