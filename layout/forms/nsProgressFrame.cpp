@@ -171,10 +171,12 @@ nsProgressFrame::ReflowBarFrame(nsIFrame*                aBarFrame,
                                 const nsHTMLReflowState& aReflowState,
                                 nsReflowStatus&          aStatus)
 {
+  bool vertical = GetStyleDisplay()->mOrient == NS_STYLE_ORIENT_VERTICAL;
   nsHTMLReflowState reflowState(aPresContext, aReflowState, aBarFrame,
                                 nsSize(aReflowState.ComputedWidth(),
                                        NS_UNCONSTRAINEDSIZE));
-  nscoord width = aReflowState.ComputedWidth();
+  nscoord size = vertical ? aReflowState.ComputedHeight()
+                          : aReflowState.ComputedWidth();
   nscoord xoffset = aReflowState.mComputedBorderPadding.left;
   nscoord yoffset = aReflowState.mComputedBorderPadding.top;
 
@@ -186,11 +188,11 @@ nsProgressFrame::ReflowBarFrame(nsIFrame*                aBarFrame,
   
   
   if (position >= 0.0) {
-    width *= position;
+    size *= position;
   }
 
-  if (GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
-    xoffset += aReflowState.ComputedWidth() - width;
+  if (!vertical && GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+    xoffset += aReflowState.ComputedWidth() - size;
   }
 
   
@@ -201,10 +203,25 @@ nsProgressFrame::ReflowBarFrame(nsIFrame*                aBarFrame,
   
   
   if (position != -1 || ShouldUseNativeStyle()) {
-    width -= reflowState.mComputedMargin.LeftRight() +
-             reflowState.mComputedBorderPadding.LeftRight();
-    width = NS_MAX(width, 0);
-    reflowState.SetComputedWidth(width);
+    if (vertical) {
+      
+      yoffset += aReflowState.ComputedHeight() - size;
+
+      size -= reflowState.mComputedMargin.TopBottom() +
+              reflowState.mComputedBorderPadding.TopBottom();
+      size = NS_MAX(size, 0);
+      reflowState.SetComputedHeight(size);
+    } else {
+      size -= reflowState.mComputedMargin.LeftRight() +
+              reflowState.mComputedBorderPadding.LeftRight();
+      size = NS_MAX(size, 0);
+      reflowState.SetComputedWidth(size);
+    }
+  } else if (vertical) {
+    
+    
+    
+    yoffset += aReflowState.ComputedHeight() - reflowState.ComputedHeight();
   }
 
   xoffset += reflowState.mComputedMargin.left;
