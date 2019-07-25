@@ -1654,12 +1654,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
   NS_PRECONDITION(mDocumentPrincipal == nsnull,
                   "mDocumentPrincipal prematurely set!");
-
-  if (!aDocument) {
-    NS_ERROR("SetNewDocument(null) called!");
-
-    return NS_ERROR_INVALID_ARG;
-  }
+  MOZ_ASSERT(aDocument);
 
   if (IsInnerWindow()) {
     if (!mOuterWindow) {
@@ -10551,11 +10546,11 @@ nsGlobalModalWindow::SetNewDocument(nsIDocument *aDocument,
                                     nsISupports *aState,
                                     bool aForceReuseInnerWindow)
 {
+  MOZ_ASSERT(aDocument);
+
   
   
-  if (aDocument) {
-    mReturnValue = nsnull;
-  }
+  mReturnValue = nsnull;
 
   return nsGlobalWindow::SetNewDocument(aDocument, aState,
                                         aForceReuseInnerWindow);

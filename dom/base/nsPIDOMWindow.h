@@ -371,6 +371,8 @@ public:
 
 
 
+
+
   virtual nsresult SetNewDocument(nsIDocument *aDocument,
                                   nsISupports *aState,
                                   bool aForceReuseInnerWindow) = 0;

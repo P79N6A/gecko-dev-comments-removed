@@ -1713,6 +1713,7 @@ NS_IMETHODIMP
 DocumentViewerImpl::SetDocumentInternal(nsIDocument* aDocument,
                                         bool aForceReuseInnerWindow)
 {
+  MOZ_ASSERT(aDocument);
 
   
   nsCOMPtr<nsISupports> container = do_QueryReferent(mContainer);
