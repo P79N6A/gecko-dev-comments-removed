@@ -795,6 +795,17 @@ ContextStack::pushGeneratorFrame(JSContext *cx, JSGenerator *gen, GeneratorFrame
     gfg->stackvp_ = stackvp;
 
     
+
+
+
+
+
+
+    JSObject *genobj = js_FloatingFrameToGenerator(genfp)->obj;
+    JS_ASSERT(genobj->getClass()->trace);
+    JSObject::writeBarrierPre(genobj);
+
+    
     stackfp->stealFrameAndSlots(stackvp, genfp, genvp, gen->regs.sp);
     stackfp->resetGeneratorPrev(cx);
     stackfp->unsetFloatingGenerator();
