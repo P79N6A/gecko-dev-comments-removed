@@ -280,7 +280,6 @@ FrameState::assertValidRegisterState() const
         JS_ASSERT(i == fe->trackerIndex());
         JS_ASSERT_IF(fe->isCopy(),
                      fe->trackerIndex() > fe->copyOf()->trackerIndex());
-        JS_ASSERT_IF(fe->isCopy(), fe > fe->copyOf());
         JS_ASSERT_IF(fe->isCopy(), !fe->type.inRegister() && !fe->data.inRegister());
         JS_ASSERT_IF(fe->isCopy(), fe->copyOf() < sp);
         JS_ASSERT_IF(fe->isCopy(), fe->copyOf()->isCopied());
@@ -779,15 +778,10 @@ FrameState::uncopy(FrameEntry *original)
 
 
 
-
-
-
-
-
     uint32 firstCopy = InvalidIndex;
     FrameEntry *bestFe = NULL;
     uint32 ncopies = 0;
-    for (uint32 i = original->trackerIndex() + 1; i < tracker.nentries; i++) {
+    for (uint32 i = 0; i < tracker.nentries; i++) {
         FrameEntry *fe = tracker[i];
         if (fe >= sp)
             continue;
@@ -811,7 +805,6 @@ FrameState::uncopy(FrameEntry *original)
 
     JS_ASSERT(firstCopy != InvalidIndex);
     JS_ASSERT(bestFe);
-    JS_ASSERT(bestFe > original);
 
     
     bestFe->setCopyOf(NULL);
@@ -932,13 +925,14 @@ FrameState::storeLocal(uint32 n, bool popGuaranteed, bool typeChange)
 
 
 
-
     FrameEntry *backing = top;
     if (top->isCopy()) {
         backing = top->copyOf();
         JS_ASSERT(backing->trackerIndex() < top->trackerIndex());
 
-        if (backing < localFe) {
+        uint32 backingIndex = indexOfFe(backing);
+        uint32 tol = uint32(spBase - entries);
+        if (backingIndex < tol || backingIndex < localIndex(n)) {
             
             if (localFe->trackerIndex() < backing->trackerIndex())
                 swapInTracker(backing, localFe);
@@ -1082,34 +1076,6 @@ FrameState::allocForSameBinary(FrameEntry *fe, JSOp op, BinaryAlloc &alloc)
 
     if (alloc.lhsType.isSet())
         unpinReg(alloc.lhsType.reg());
-}
-
-void
-FrameState::ensureFullRegs(FrameEntry *fe)
-{
-    FrameEntry *backing = fe;
-    if (fe->isCopy())
-        backing = fe->copyOf();
-
-    if (!fe->type.inMemory()) {
-        if (fe->data.inRegister())
-            return;
-        if (fe->type.inRegister())
-            pinReg(fe->type.reg());
-        if (fe->data.inMemory())
-            tempRegForData(fe);
-        if (fe->type.inRegister())
-            unpinReg(fe->type.reg());
-    } else if (!fe->data.inMemory()) {
-        if (fe->type.inRegister())
-            return;
-        if (fe->data.inRegister())
-            pinReg(fe->data.reg());
-        if (fe->type.inMemory())
-            tempRegForType(fe);
-        if (fe->data.inRegister())
-            unpinReg(fe->data.reg());
-    }
 }
 
 void
