@@ -365,7 +365,6 @@ public:
   static void RemoveFromCARefreshTimer(nsPluginInstanceOwner *aPluginInstance);
   void SetupCARefresh();
   void* FixUpPluginWindow(PRInt32 inPaintState);
-  void HidePluginWindow();
   
   
   void SetPluginPortChanged(PRBool aState) { mPluginPortChanged = aState; }
@@ -1103,6 +1102,8 @@ nsObjectFrame::CallSetWindow()
   if (IsHidden())
     return;
 
+  PRBool windowless = (window->type == NPWindowTypeDrawable);
+
   
   window->window = mInstanceOwner->GetPluginPortFromWidget();
 
@@ -1254,7 +1255,7 @@ nsDisplayPlugin::Paint(nsDisplayListBuilder* aBuilder,
                        nsIRenderingContext* aCtx)
 {
   nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
-  f->PaintPlugin(aBuilder, *aCtx, mVisibleRect, GetBounds(aBuilder));
+  f->PaintPlugin(*aCtx, mVisibleRect, GetBounds(aBuilder));
 }
 
 PRBool
@@ -1266,29 +1267,9 @@ nsDisplayPlugin::ComputeVisibility(nsDisplayListBuilder* aBuilder,
 }
 
 PRBool
-nsDisplayPlugin::IsOpaque(nsDisplayListBuilder* aBuilder,
-                          PRBool* aForceTransparentSurface)
+nsDisplayPlugin::IsOpaque(nsDisplayListBuilder* aBuilder)
 {
-  if (aForceTransparentSurface) {
-    *aForceTransparentSurface = PR_FALSE;
-  }
   nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
-  if (!aBuilder->IsForPluginGeometry()) {
-    nsIWidget* widget = f->GetWidget();
-    if (widget) {
-      nsTArray<nsIntRect> clip;
-      widget->GetWindowClipRegion(&clip);
-      nsTArray<nsIWidget::Configuration> configuration;
-      GetWidgetConfiguration(aBuilder, &configuration);
-      NS_ASSERTION(configuration.Length() == 1, "No configuration found");
-      if (clip != configuration[0].mClipRegion) {
-        
-        
-        
-    	return PR_FALSE;
-      }
-    }
-  }
   return f->IsOpaque();
 }
 
@@ -1794,8 +1775,7 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
 }
 
 void
-nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
-                           nsIRenderingContext& aRenderingContext,
+nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
                            const nsRect& aDirtyRect, const nsRect& aPluginRect)
 {
   
@@ -2030,6 +2010,36 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
         nativeDraw.EndNativeDrawing();
       } while (nativeDraw.ShouldRenderAgain());
       nativeDraw.PaintToContext();
+    } else if (!(ctx->GetFlags() & gfxContext::FLAG_DESTINED_FOR_SCREEN)) {
+      
+      
+      typedef BOOL (WINAPI * PrintWindowPtr)
+          (HWND hwnd, HDC hdcBlt, UINT nFlags);
+      PrintWindowPtr printProc = nsnull;
+      HMODULE module = ::GetModuleHandleW(L"user32.dll");
+      if (module) {
+        printProc = reinterpret_cast<PrintWindowPtr>
+          (::GetProcAddress(module, "PrintWindow"));
+      }
+      
+      if (printProc && !mInstanceOwner->MatchPluginName("Java(TM) Platform")) {
+        HWND hwnd = reinterpret_cast<HWND>(window->window);
+        RECT rc;
+        GetWindowRect(hwnd, &rc);
+        nsRefPtr<gfxWindowsSurface> surface =
+          new gfxWindowsSurface(gfxIntSize(rc.right - rc.left, rc.bottom - rc.top));
+
+        if (surface && printProc) {
+          printProc(hwnd, surface->GetDC(), 0);
+        
+          ctx->Translate(frameGfxRect.pos);
+          ctx->SetSource(surface);
+          gfxRect r = frameGfxRect.Intersect(dirtyGfxRect) - frameGfxRect.pos;
+          ctx->NewPath();
+          ctx->Rectangle(r);
+          ctx->Fill();
+        }
+      }
     }
 
     ctx->SetMatrix(currentMatrix);
@@ -2268,16 +2278,6 @@ nsObjectFrame::Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamList
                "Instantiation should still be prevented!");
   mPreventInstantiation = PR_FALSE;
 
-#ifdef ACCESSIBILITY
-  if (PresContext()->PresShell()->IsAccessibilityActive()) {
-    nsCOMPtr<nsIAccessibilityService> accService =
-      do_GetService("@mozilla.org/accessibilityService;1");
-    if (accService) {
-      accService->RecreateAccessible(PresContext()->PresShell(), mContent);
-    }
-  }
-#endif
-
   return rv;
 }
 
@@ -2292,10 +2292,6 @@ nsObjectFrame::Instantiate(const char* aMimeType, nsIURI* aURI)
     return NS_OK;
   }
 
-  
-  
-  
-  
   NS_ASSERTION(aMimeType || aURI, "Need a type or a URI!");
 
   
@@ -2339,16 +2335,6 @@ nsObjectFrame::Instantiate(const char* aMimeType, nsIURI* aURI)
 
   NS_ASSERTION(mPreventInstantiation,
                "Instantiation should still be prevented!");
-
-#ifdef ACCESSIBILITY
-  if (PresContext()->PresShell()->IsAccessibilityActive()) {
-    nsCOMPtr<nsIAccessibilityService> accService =
-      do_GetService("@mozilla.org/accessibilityService;1");
-    if (accService) {
-      accService->RecreateAccessible(PresContext()->PresShell(), mContent);
-    }
-  }
-#endif
 
   mPreventInstantiation = PR_FALSE;
 
@@ -2448,11 +2434,7 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
     
     if (DoDelayedStop(aInstanceOwner, aDelayedStop))
       return;
-
-#if defined(XP_MACOSX)
-    aInstanceOwner->HidePluginWindow();
-#endif
-
+    
     inst->Stop();
 
     nsCOMPtr<nsIPluginHost> pluginHost = do_GetService(MOZ_PLUGIN_HOST_CONTRACTID);
@@ -2533,21 +2515,17 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
 
   if (mWidget) {
     nsRootPresContext* rootPC = PresContext()->GetRootPresContext();
-    if (rootPC) {
-      rootPC->UnregisterPluginForGeometryUpdates(this);
+    NS_ASSERTION(rootPC, "unable to unregister the plugin frame");
+    rootPC->UnregisterPluginForGeometryUpdates(this);
 
-      
-      
-      nsIWidget* parent = mWidget->GetParent();
-      if (parent) {
-        nsTArray<nsIWidget::Configuration> configurations;
-        GetEmptyClipConfiguration(&configurations);
-        parent->ConfigureChildren(configurations);
-      }
-    }
-    else {
-      NS_ASSERTION(PresContext()->PresShell()->IsFrozen(),
-                   "unable to unregister the plugin frame");
+    
+    
+    nsIWidget* parent = mWidget->GetParent();
+    if (parent) {
+      nsTArray<nsIWidget::Configuration> configurations;
+      GetEmptyClipConfiguration(&configurations);
+      parent->ConfigureChildren(configurations);
+      DidSetWidgetGeometry();
     }
   }
 
@@ -6204,6 +6182,9 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
           NS_NAMED_LITERAL_CSTRING(flash10Head, "Shockwave Flash 10.");
           mFlash10Quirks = StringBeginsWith(description, flash10Head);
 #endif
+
+          
+          mObjectFrame->FixupWindow(mObjectFrame->GetContentRect().Size());
         } else if (mWidget) {
           nsIWidget* parent = mWidget->GetParent();
           NS_ASSERTION(parent, "Plugin windows must not be toplevel");
@@ -6415,19 +6396,6 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
 #endif
 
   return nsnull;
-}
-
-void
-nsPluginInstanceOwner::HidePluginWindow()
-{
-  if (!mPluginWindow || !mInstance) {
-    return;
-  }
-
-  mPluginWindow->clipRect.bottom = mPluginWindow->clipRect.top;
-  mPluginWindow->clipRect.right  = mPluginWindow->clipRect.left;
-  mWidgetVisible = PR_FALSE;
-  mInstance->SetWindow(mPluginWindow);
 }
 
 #endif 
