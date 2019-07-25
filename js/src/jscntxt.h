@@ -45,6 +45,7 @@
 
 #include <string.h>
 
+#include "jsapi.h"
 #include "jsfriendapi.h"
 #include "jsprvtd.h"
 #include "jsatom.h"
@@ -263,10 +264,14 @@ struct JSThread {
                         js::SystemAllocPolicy> Map;
 
     
-    JSCList             contextList;
+    void                *id;
+
+    void staticAsserts() {
+        JS_STATIC_ASSERT(offsetof(JSThread, id) == offsetof(js::shadow::Thread, id));
+    }
 
     
-    void                *id;
+    JSCList             contextList;
 
     
     unsigned            suspendCount;
@@ -349,13 +354,31 @@ typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> CompartmentVector;
 
 struct JSRuntime {
     
+    JSAtomState         atomState;
+
+    
     JSCompartment       *atomsCompartment;
-#ifdef JS_THREADSAFE
-    bool                atomsCompartmentIsLocked;
-#endif
 
     
     js::CompartmentVector compartments;
+
+    
+    const JSStructuredCloneCallbacks *structuredCloneCallbacks;
+
+    void staticAsserts() {
+        JS_STATIC_ASSERT(offsetof(JSRuntime, atomState) ==
+                         offsetof(js::shadow::Runtime, atomState));
+        JS_STATIC_ASSERT(offsetof(JSRuntime, atomsCompartment) ==
+                         offsetof(js::shadow::Runtime, atomsCompartment));
+        JS_STATIC_ASSERT(offsetof(JSRuntime, compartments) ==
+                         offsetof(js::shadow::Runtime, compartments));
+        JS_STATIC_ASSERT(offsetof(JSRuntime, structuredCloneCallbacks) ==
+                         offsetof(js::shadow::Runtime, structuredCloneCallbacks));
+    }
+
+#ifdef JS_THREADSAFE
+    bool                atomsCompartmentIsLocked;
+#endif
 
     
     JSRuntimeState      state;
@@ -442,6 +465,9 @@ struct JSRuntime {
     void                *gcMarkStackTypes[js::TYPE_MARK_STACK_SIZE / sizeof(void *)];
     void                *gcMarkStackXMLs[js::XML_MARK_STACK_SIZE / sizeof(void *)];
     void                *gcMarkStackLarges[js::LARGE_MARK_STACK_SIZE / sizeof(void *)];
+
+    
+    bool                wasCompartmentGC;
 
     
 
@@ -602,9 +628,6 @@ struct JSRuntime {
     JSSecurityCallbacks *securityCallbacks;
 
     
-    const JSStructuredCloneCallbacks *structuredCloneCallbacks;
-
-    
     JSAccumulateTelemetryDataCallback telemetryCallback;
 
     
@@ -664,9 +687,6 @@ struct JSRuntime {
 
 
     volatile uint32     shapeGen;
-
-    
-    JSAtomState         atomState;
 
     
     js::StaticStrings   staticStrings;
@@ -806,7 +826,6 @@ extern const JSDebugHooks js_NullDebugHooks;
 
 namespace js {
 
-class AutoGCRooter;
 struct AutoResolving;
 
 static inline bool
@@ -916,6 +935,71 @@ struct JSContext
     ~JSContext();
 
     
+    js::AutoGCRooter   *autoGCRooters;
+
+    
+    void                *data;
+    void                *data2;
+
+#ifdef JS_THREADSAFE
+  private:
+    JSThread            *thread_;
+  public:
+    JSThread *thread() const { return thread_; }
+
+    void setThread(JSThread *thread);
+    static const size_t threadOffset() { return offsetof(JSContext, thread_); }
+#endif
+
+    
+    JSCompartment       *compartment;
+
+    
+    JSObject            *globalObject;
+
+    
+    JSRuntime *const    runtime;
+
+    
+    jsuword             stackLimit;
+
+#ifdef JS_THREADSAFE
+    unsigned            outstandingRequests;
+
+
+#endif
+
+    
+    const JSDebugHooks  *debugHooks;
+
+    void staticAsserts() {
+        JS_STATIC_ASSERT(offsetof(JSContext, autoGCRooters) ==
+                         offsetof(JS::shadow::Context, autoGCRooters));
+        JS_STATIC_ASSERT(offsetof(JSContext, data) ==
+                         offsetof(js::shadow::Context, data));
+        JS_STATIC_ASSERT(offsetof(JSContext, data2) ==
+                         offsetof(js::shadow::Context, data2));
+#ifdef JS_THREADSAFE
+        JS_STATIC_ASSERT(offsetof(JSContext, thread_) ==
+                         offsetof(js::shadow::Context, thread_));
+#endif
+        JS_STATIC_ASSERT(offsetof(JSContext, compartment) ==
+                         offsetof(js::shadow::Context, compartment));
+        JS_STATIC_ASSERT(offsetof(JSContext, runtime) ==
+                         offsetof(js::shadow::Context, runtime));
+        JS_STATIC_ASSERT(offsetof(JSContext, stackLimit) ==
+                         offsetof(js::shadow::Context, stackLimit));
+#ifdef JS_THREADSAFE
+        JS_STATIC_ASSERT(offsetof(JSContext, outstandingRequests) ==
+                         offsetof(js::shadow::Context, outstandingRequests));
+#endif
+        JS_STATIC_ASSERT(offsetof(JSContext, globalObject) ==
+                         offsetof(js::shadow::Context, globalObject));
+        JS_STATIC_ASSERT(offsetof(JSContext, debugHooks) ==
+                         offsetof(js::shadow::Context, debugHooks));
+    }
+
+    
     JSCList             link;
 
   private:
@@ -945,26 +1029,7 @@ struct JSContext
 
     JSPackedBool        generatingError;
 
-    
-    jsuword             stackLimit;
-
-    
-    JSRuntime *const    runtime;
-
-    
-    JSCompartment       *compartment;
-
     inline void setCompartment(JSCompartment *compartment);
-
-#ifdef JS_THREADSAFE
-  private:
-    JSThread            *thread_;
-  public:
-    JSThread *thread() const { return thread_; }
-
-    void setThread(JSThread *thread);
-    static const size_t threadOffset() { return offsetof(JSContext, thread_); }
-#endif
 
     
     js::ContextStack    stack;
@@ -988,9 +1053,6 @@ struct JSContext
 
   public:
     
-    JSObject            *globalObject;
-
-    
     JSSharpObjectMap    sharpObjectMap;
     js::BusyArraysSet   busyArrays;
 
@@ -1005,10 +1067,6 @@ struct JSContext
 
     
     JSOperationCallback operationCallback;
-
-    
-    void                *data;
-    void                *data2;
 
     inline js::RegExpStatics *regExpStatics();
 
@@ -1096,17 +1154,8 @@ struct JSContext
     inline js::LifoAlloc &typeLifoAlloc();
 
 #ifdef JS_THREADSAFE
-    unsigned            outstandingRequests;
-
-
     JSCList             threadLinks;        
 #endif
-
-    
-    js::AutoGCRooter   *autoGCRooters;
-
-    
-    const JSDebugHooks  *debugHooks;
 
     
     JSSecurityCallbacks *securityCallbacks;
@@ -1363,164 +1412,11 @@ struct AutoResolving {
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class AutoGCRooter {
-  public:
-    AutoGCRooter(JSContext *cx, ptrdiff_t tag)
-      : down(cx->autoGCRooters), tag(tag), context(cx)
-    {
-        JS_ASSERT(this != cx->autoGCRooters);
-        CHECK_REQUEST(cx);
-        cx->autoGCRooters = this;
-    }
-
-    ~AutoGCRooter() {
-        JS_ASSERT(this == context->autoGCRooters);
-        CHECK_REQUEST(context);
-        context->autoGCRooters = down;
-    }
-
-    
-    inline void trace(JSTracer *trc);
-
-#ifdef __GNUC__
-# pragma GCC visibility push(default)
-#endif
-    friend JS_FRIEND_API(void) MarkContext(JSTracer *trc, JSContext *acx);
-    friend void MarkRuntime(JSTracer *trc);
-#ifdef __GNUC__
-# pragma GCC visibility pop
-#endif
-
-  protected:
-    AutoGCRooter * const down;
-
-    
-
-
-
-
-
-
-    ptrdiff_t tag;
-
-    JSContext * const context;
-
-    enum {
-        JSVAL =        -1, 
-        VALARRAY =     -2, 
-        PARSER =       -3, 
-        SHAPEVECTOR =  -4, 
-        ENUMERATOR =   -5, 
-        IDARRAY =      -6, 
-        DESCRIPTORS =  -7, 
-        NAMESPACES =   -8, 
-        XML =          -9, 
-        OBJECT =      -10, 
-        ID =          -11, 
-        VALVECTOR =   -12, 
-        DESCRIPTOR =  -13, 
-        STRING =      -14, 
-        IDVECTOR =    -15, 
-        OBJVECTOR =   -16  
-    };
-
-    private:
-    
-    AutoGCRooter(AutoGCRooter &ida);
-    void operator=(AutoGCRooter &ida);
-};
-
-
-class AutoValueRooter : private AutoGCRooter
-{
-  public:
-    explicit AutoValueRooter(JSContext *cx
-                             JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, JSVAL), val(js::NullValue())
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    AutoValueRooter(JSContext *cx, const Value &v
-                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, JSVAL), val(v)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    
-
-
-
-
-
-    void set(Value v) {
-        JS_ASSERT(tag == JSVAL);
-        val = v;
-    }
-
-    const Value &value() const {
-        JS_ASSERT(tag == JSVAL);
-        return val;
-    }
-
-    Value *addr() {
-        JS_ASSERT(tag == JSVAL);
-        return &val;
-    }
-
-    const jsval &jsval_value() const {
-        JS_ASSERT(tag == JSVAL);
-        return val;
-    }
-
-    jsval *jsval_addr() {
-        JS_ASSERT(tag == JSVAL);
-        return &val;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-    friend void MarkRuntime(JSTracer *trc);
-
-  private:
-    Value val;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoObjectRooter : private AutoGCRooter {
-  public:
-    AutoObjectRooter(JSContext *cx, JSObject *obj = NULL
-                     JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, OBJECT), obj(obj)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    void setObject(JSObject *obj) {
-        this->obj = obj;
-    }
-
-    JSObject * object() const {
-        return obj;
-    }
-
-    JSObject ** addr() {
-        return &obj;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-    friend void MarkRuntime(JSTracer *trc);
-
-  private:
-    JSObject *obj;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
 class AutoStringRooter : private AutoGCRooter {
   public:
     AutoStringRooter(JSContext *cx, JSString *str = NULL
                      JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, STRING), str(str)
+      : AutoGCRooter(cx), str(str)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
@@ -1537,108 +1433,11 @@ class AutoStringRooter : private AutoGCRooter {
         return &str;
     }
 
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
   private:
+    virtual void trace(JSTracer *trc);
+
     JSString *str;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoArrayRooter : private AutoGCRooter {
-  public:
-    AutoArrayRooter(JSContext *cx, size_t len, Value *vec
-                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, len), array(vec)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-        JS_ASSERT(tag >= 0);
-    }
-
-    void changeLength(size_t newLength) {
-        tag = ptrdiff_t(newLength);
-        JS_ASSERT(tag >= 0);
-    }
-
-    void changeArray(Value *newArray, size_t newLength) {
-        changeLength(newLength);
-        array = newArray;
-    }
-
-    Value *array;
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
-  private:
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoIdRooter : private AutoGCRooter
-{
-  public:
-    explicit AutoIdRooter(JSContext *cx, jsid id = INT_TO_JSID(0)
-                          JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, ID), id_(id)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    jsid id() {
-        return id_;
-    }
-
-    jsid * addr() {
-        return &id_;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-    friend void MarkRuntime(JSTracer *trc);
-
-  private:
-    jsid id_;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoIdArray : private AutoGCRooter {
-  public:
-    AutoIdArray(JSContext *cx, JSIdArray *ida JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, IDARRAY), idArray(ida)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-    ~AutoIdArray() {
-        if (idArray)
-            JS_DestroyIdArray(context, idArray);
-    }
-    bool operator!() {
-        return idArray == NULL;
-    }
-    jsid operator[](size_t i) const {
-        JS_ASSERT(idArray);
-        JS_ASSERT(i < size_t(idArray->length));
-        return idArray->vector[i];
-    }
-    size_t length() const {
-         return idArray->length;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
-    JSIdArray *steal() {
-        JSIdArray *copy = idArray;
-        idArray = NULL;
-        return copy;
-    }
-
-  protected:
-    inline void trace(JSTracer *trc);
-
-  private:
-    JSIdArray * idArray;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-    
-    AutoIdArray(AutoIdArray &ida);
-    void operator=(AutoIdArray &ida);
 };
 
 
@@ -1647,7 +1446,7 @@ class AutoEnumStateRooter : private AutoGCRooter
   public:
     AutoEnumStateRooter(JSContext *cx, JSObject *obj
                         JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, ENUMERATOR), obj(obj), stateValue()
+      : AutoGCRooter(cx), obj(obj), stateValue()
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
         JS_ASSERT(obj);
@@ -1655,17 +1454,15 @@ class AutoEnumStateRooter : private AutoGCRooter
 
     ~AutoEnumStateRooter();
 
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
     const Value &state() const { return stateValue; }
     Value *addr() { return &stateValue; }
 
   protected:
-    void trace(JSTracer *trc);
-
     JSObject * const obj;
 
   private:
+    virtual void trace(JSTracer *trc);
+
     Value stateValue;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
@@ -1675,16 +1472,15 @@ class AutoXMLRooter : private AutoGCRooter {
   public:
     AutoXMLRooter(JSContext *cx, JSXML *xml
                   JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, XML), xml(xml)
+      : AutoGCRooter(cx), xml(xml)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
         JS_ASSERT(xml);
     }
 
-    friend void AutoGCRooter::trace(JSTracer *trc);
-    friend void MarkRuntime(JSTracer *trc);
-
   private:
+    virtual void trace(JSTracer *trc);
+
     JSXML * const xml;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
@@ -1973,21 +1769,6 @@ js_ContextIterator(JSRuntime *rt, JSBool unlocked, JSContext **iterp);
 extern JS_FRIEND_API(JSContext *)
 js_NextActiveContext(JSRuntime *, JSContext *);
 
-
-
-
-
-typedef enum JSErrNum {
-#define MSG_DEF(name, number, count, exception, format) \
-    name = number,
-#include "js.msg"
-#undef MSG_DEF
-    JSErr_Limit
-} JSErrNum;
-
-extern JS_FRIEND_API(const JSErrorFormatString *)
-js_GetErrorMessage(void *userRef, const char *locale, const uintN errorNumber);
-
 #ifdef va_start
 extern JSBool
 js_ReportErrorVA(JSContext *cx, uintN flags, const char *format, va_list ap);
@@ -2007,22 +1788,8 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
 extern void
 js_ReportOutOfMemory(JSContext *cx);
 
-
-JS_FRIEND_API(void)
-js_ReportOverRecursed(JSContext *maybecx);
-
 extern JS_FRIEND_API(void)
 js_ReportAllocationOverflow(JSContext *cx);
-
-#define JS_CHECK_RECURSION(cx, onerror)                                       \
-    JS_BEGIN_MACRO                                                            \
-        int stackDummy_;                                                      \
-                                                                              \
-        if (!JS_CHECK_STACK_SIZE(cx->stackLimit, &stackDummy_)) {             \
-            js_ReportOverRecursed(cx);                                        \
-            onerror;                                                          \
-        }                                                                     \
-    JS_END_MACRO
 
 
 
@@ -2125,9 +1892,6 @@ js_CurrentPCIsInImacro(JSContext *cx);
 
 namespace js {
 
-extern JS_FORCES_STACK JS_FRIEND_API(void)
-LeaveTrace(JSContext *cx);
-
 extern bool
 CanLeaveTrace(JSContext *cx);
 
@@ -2185,31 +1949,6 @@ ClearValueRange(Value *vec, uintN len, bool useHoles)
 }
 
 static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(Value *vec, size_t len)
-{
-    PodZero(vec, len);
-}
-
-static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(Value *beg, Value *end)
-{
-    PodZero(beg, end - beg);
-}
-
-static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(jsid *beg, jsid *end)
-{
-    for (jsid *id = beg; id != end; ++id)
-        *id = INT_TO_JSID(0);
-}
-
-static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(jsid *vec, size_t len)
-{
-    MakeRangeGCSafe(vec, vec + len);
-}
-
-static JS_ALWAYS_INLINE void
 MakeRangeGCSafe(const Shape **beg, const Shape **end)
 {
     PodZero(beg, end - beg);
@@ -2247,128 +1986,20 @@ SetValueRangeToNull(Value *vec, size_t len)
     SetValueRangeToNull(vec, vec + len);
 }
 
-template<class T>
-class AutoVectorRooter : protected AutoGCRooter
-{
-  public:
-    explicit AutoVectorRooter(JSContext *cx, ptrdiff_t tag
-                              JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoGCRooter(cx, tag), vector(cx)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    size_t length() const { return vector.length(); }
-
-    bool append(const T &v) { return vector.append(v); }
-
-    
-    void infallibleAppend(const T &v) { vector.infallibleAppend(v); }
-
-    void popBack() { vector.popBack(); }
-    T popCopy() { return vector.popCopy(); }
-
-    bool growBy(size_t inc) {
-        size_t oldLength = vector.length();
-        if (!vector.growByUninitialized(inc))
-            return false;
-        MakeRangeGCSafe(vector.begin() + oldLength, vector.end());
-        return true;
-    }
-
-    bool resize(size_t newLength) {
-        size_t oldLength = vector.length();
-        if (newLength <= oldLength) {
-            vector.shrinkBy(oldLength - newLength);
-            return true;
-        }
-        if (!vector.growByUninitialized(newLength - oldLength))
-            return false;
-        MakeRangeGCSafe(vector.begin() + oldLength, vector.end());
-        return true;
-    }
-
-    void clear() { vector.clear(); }
-
-    bool reserve(size_t newLength) {
-        return vector.reserve(newLength);
-    }
-
-    T &operator[](size_t i) { return vector[i]; }
-    const T &operator[](size_t i) const { return vector[i]; }
-
-    const T *begin() const { return vector.begin(); }
-    T *begin() { return vector.begin(); }
-
-    const T *end() const { return vector.end(); }
-    T *end() { return vector.end(); }
-
-    const T &back() const { return vector.back(); }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-
-  private:
-    typedef Vector<T, 8> VectorImpl;
-    VectorImpl vector;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoValueVector : public AutoVectorRooter<Value>
-{
-  public:
-    explicit AutoValueVector(JSContext *cx
-                             JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoVectorRooter<Value>(cx, VALVECTOR)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    const jsval *jsval_begin() const { return begin(); }
-    jsval *jsval_begin() { return begin(); }
-
-    const jsval *jsval_end() const { return end(); }
-    jsval *jsval_end() { return end(); }
-
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoObjectVector : public AutoVectorRooter<JSObject *>
-{
-  public:
-    explicit AutoObjectVector(JSContext *cx
-                              JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoVectorRooter<JSObject *>(cx, OBJVECTOR)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoIdVector : public AutoVectorRooter<jsid>
-{
-  public:
-    explicit AutoIdVector(JSContext *cx
-                          JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoVectorRooter<jsid>(cx, IDVECTOR)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
 class AutoShapeVector : public AutoVectorRooter<const Shape *>
 {
   public:
     explicit AutoShapeVector(JSContext *cx
                              JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoVectorRooter<const Shape *>(cx, SHAPEVECTOR)
+        : AutoVectorRooter<const Shape *>(cx)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+
+  protected:
+    virtual void trace(JSTracer *trc);
 };
 
 class AutoValueArray : public AutoGCRooter
@@ -2379,7 +2010,7 @@ class AutoValueArray : public AutoGCRooter
   public:
     AutoValueArray(JSContext *cx, js::Value *start, unsigned length
                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoGCRooter(cx, VALARRAY), start_(start), length_(length)
+        : AutoGCRooter(cx), start_(start), length_(length)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
@@ -2388,6 +2019,9 @@ class AutoValueArray : public AutoGCRooter
     unsigned length() const { return length_; }
 
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+
+  protected:
+    virtual void trace(JSTracer *trc);
 };
 
 JSIdArray *

@@ -47,7 +47,8 @@
 
 
 
-#include "jscntxt.h"  
+#include "jsapi.h"
+#include "jsfriendapi.h"
 #include "nsXULContentSink.h"
 #include "nsCOMPtr.h"
 #include "nsForwardReference.h"
@@ -1060,7 +1061,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
               
               
               
-              version |= js::VersionFlags::HAS_XML;
+              version = JS_VersionSetXML(JSVersion(version), true);
 
               nsAutoString value;
               rv = parser.GetParameter("e4x", value);
@@ -1069,7 +1070,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
                       return rv;
               } else {
                   if (value.Length() == 1 && value[0] == '0')
-                    version &= ~js::VersionFlags::HAS_XML;
+                    version = JS_VersionSetXML(JSVersion(version), false);
               }
           }
       }
@@ -1083,7 +1084,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
 
               
               
-              version |= js::VersionFlags::HAS_XML;
+              version = JS_VersionSetXML(JSVersion(version), true);
           }
       }
       aAttributes += 2;

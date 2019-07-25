@@ -102,7 +102,7 @@ GetGSNCache(JSContext *cx)
 
 class AutoNamespaceArray : protected AutoGCRooter {
   public:
-    AutoNamespaceArray(JSContext *cx) : AutoGCRooter(cx, NAMESPACES) {
+    AutoNamespaceArray(JSContext *cx) : AutoGCRooter(cx) {
         array.init();
     }
 
@@ -112,9 +112,10 @@ class AutoNamespaceArray : protected AutoGCRooter {
 
     uint32 length() const { return array.length; }
 
-  public:
-    friend void AutoGCRooter::trace(JSTracer *trc);
+  protected:
+    virtual void trace(JSTracer *trc);
 
+  public:
     JSXMLArray array;
 };
 

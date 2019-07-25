@@ -41,7 +41,8 @@
 
 
 
-#include "jscntxt.h"
+#include "jsapi.h"
+#include "jsfriendapi.h"
 #include "nsScriptLoader.h"
 #include "nsIDOMCharacterData.h"
 #include "nsParserUtils.h"
@@ -497,7 +498,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
           
           
           
-          version |= js::VersionFlags::HAS_XML;
+          version = JS_VersionSetXML(JSVersion(version), true);
       }
     }
   } else {
