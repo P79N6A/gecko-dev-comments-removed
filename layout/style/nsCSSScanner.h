@@ -160,9 +160,19 @@ class nsCSSScanner {
 
   
   void ReportUnexpected(const char* aMessage);
+  
+private:
   void ReportUnexpectedParams(const char* aMessage,
-                              const PRUnichar **aParams,
+                              const PRUnichar** aParams,
                               PRUint32 aParamsLength);
+
+public:
+  template<PRUint32 N>                           
+  void ReportUnexpectedParams(const char* aMessage,
+                              const PRUnichar* (&aParams)[N])
+    {
+      return ReportUnexpectedParams(aMessage, aParams, N);
+    }
   
   void ReportUnexpectedEOF(const char* aLookingFor);
   

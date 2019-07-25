@@ -374,7 +374,7 @@ nsHTMLTags::AddRefTable(void)
 
   if (gTableRefCount++ == 0) {
     
-    NS_RegisterStaticAtoms(sTagAtoms_info, ArrayLength(sTagAtoms_info));
+    NS_RegisterStaticAtoms(sTagAtoms_info);
 
 
     NS_ASSERTION(!gTagTable && !gTagAtomTable, "pre existing hash!");
