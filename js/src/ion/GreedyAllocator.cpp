@@ -574,51 +574,99 @@ GreedyAllocator::assertValidRegisterState()
 }
 
 bool
+GreedyAllocator::allocateInstruction(LBlock *block, LInstruction *ins)
+{
+    if (!gen->ensureBallast())
+        return false;
+
+    
+    reset();
+    assertValidRegisterState();
+
+    
+    
+    if (!prescanDefinitions(ins))
+        return false;
+
+    
+    
+    if (!prescanUses(ins))
+        return false;
+
+    
+    if (!allocateDefinitions(ins))
+        return false;
+
+    
+    if (!allocateInputs(ins))
+        return false;
+
+    
+    if (ins->snapshot() && !informSnapshot(ins->snapshot()))
+        return false;
+
+    if (aligns)
+        block->insertBefore(ins, aligns);
+
+    return true;
+}
+
+bool
 GreedyAllocator::allocateRegistersInBlock(LBlock *block)
 {
-    for (LInstructionReverseIterator ri = block->instructions().rbegin();
-         ri != block->instructions().rend();
-         ri++)
-    {
-        if (!gen->ensureBallast())
-            return false;
+    LInstructionReverseIterator ri = block->instructions().rbegin();
 
+    
+    
+    
+    if (!allocateInstruction(block, *ri))
+        return false;
+    ri++;
+
+    JS_ASSERT(!spills);
+
+    if (restores) {
+        
+        
+        
+        
+        for (size_t i = 0; i < block->mir()->numSuccessors(); i++) {
+            MBasicBlock *msuccessor = block->mir()->getSuccessor(i);
+            if (msuccessor->id() <= block->mir()->id())
+                continue;
+
+            Mover moves;
+            LBlock *successor = msuccessor->lir();
+            for (size_t i = 0; i < restores->numMoves(); i++) {
+                const LMove &move = restores->getMove(i);
+                if (!moves.move(*move.from(), *move.to()))
+                    return false;
+            }
+
+            successor->insertBefore(*successor->begin(), moves.moves);
+        }
+    }
+
+    if (block->mir()->isLoopBackedge()) {
+        
+        
+        
+        if (!prepareBackedge(block))
+            return false;
+    }
+
+    for (; ri != block->instructions().rend(); ri++) {
         LInstruction *ins = *ri;
 
-        
-        reset();
-        assertValidRegisterState();
-
-        
-        
-        if (!prescanDefinitions(ins))
-            return false;
-
-        
-        
-        if (!prescanUses(ins))
-            return false;
-
-        
-        if (!allocateDefinitions(ins))
-            return false;
-
-        
-        if (!allocateInputs(ins))
-            return false;
-
-        
-        if (ins->snapshot() && !informSnapshot(ins->snapshot()))
+        if (!allocateInstruction(block, ins))
             return false;
 
         
         if (restores)
             block->insertAfter(ins, restores);
-        if (spills) 
+        if (spills) {
+            JS_ASSERT(ri != block->rbegin());
             block->insertAfter(ins, spills);
-        if (aligns) {
-            block->insertBefore(ins, aligns);
-            ri++;
         }
 
         assertValidRegisterState();
@@ -852,16 +900,11 @@ GreedyAllocator::mergeAllocationState(LBlock *block)
         
         BlockInfo *info = blockInfo(rightblock);
         if (info->restores.moves)
-            rightblock->insertAfter(*rightblock->begin(), info->restores.moves);
+            rightblock->insertBefore(*rightblock->begin(), info->restores.moves);
     }
 
-    if (mblock->isLoopBackedge()) {
-        if (!prepareBackedge(block))
-            return false;
-    } else {
-        if (!mergePhiState(block))
-            return false;
-    }
+    if (!mergePhiState(block))
+        return false;
 
     return true;
 }
