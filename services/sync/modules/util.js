@@ -755,6 +755,130 @@ let Utils = {
     return Utils.encodeKeyBase32(atob(encodedKey));
   },
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  computeHTTPMACSHA1: function computeHTTPMACSHA1(identifier, key, method,
+                                                  uri, extra) {
+    let ts = (extra && extra.ts) ? extra.ts : Math.floor(Date.now() / 1000);
+    let nonce_bytes = (extra && extra.nonce_bytes > 0) ? extra.nonce_bytes : 8;
+
+    
+    let nonce = (extra && extra.nonce)
+                ? extra.nonce
+                : btoa(Utils.generateRandomBytes(nonce_bytes));
+
+    let host = uri.asciiHost;
+    let port;
+    let usedMethod = method.toUpperCase();
+
+    if (uri.port != -1) {
+      port = uri.port;
+    } else if (uri.scheme == "http") {
+      port = "80";
+    } else if (uri.scheme == "https") {
+      port = "443";
+    } else {
+      throw new Error("Unsupported URI scheme: " + uri.scheme);
+    }
+
+    let ext = (extra && extra.ext) ? extra.ext : "";
+
+    let requestString = ts.toString(10) + "\n" +
+                        nonce           + "\n" +
+                        usedMethod      + "\n" +
+                        uri.path        + "\n" +
+                        host            + "\n" +
+                        port            + "\n" +
+                        ext             + "\n";
+
+    let hasher = Utils.makeHMACHasher(Ci.nsICryptoHMAC.SHA1,
+                                      Utils.makeHMACKey(key));
+    let mac = Utils.digestBytes(requestString, hasher);
+
+    function getHeader() {
+      return Utils.getHTTPMACSHA1Header(this.identifier, this.ts, this.nonce,
+                                        this.mac, this.ext);
+    }
+
+    return {
+      identifier: identifier,
+      key:        key,
+      method:     usedMethod,
+      hostname:   host,
+      port:       port,
+      mac:        mac,
+      nonce:      nonce,
+      ts:         ts,
+      ext:        ext,
+      getHeader:  getHeader
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getHTTPMACSHA1Header: function getHTTPMACSHA1Header(identifier, ts, nonce,
+                                                      mac, ext) {
+    let header ='MAC id="' + identifier + '", ' +
+                'ts="'     + ts         + '", ' +
+                'nonce="'  + nonce      + '", ' +
+                'mac="'    + btoa(mac)  + '"';
+
+    if (!ext) {
+      return header;
+    }
+
+    return header += ', ext="' + ext +'"';
+  },
+
   makeURI: function Weave_makeURI(URIString) {
     if (!URIString)
       return null;
