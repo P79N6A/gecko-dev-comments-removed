@@ -544,12 +544,6 @@ class DeviceManagerSUT(DeviceManager):
       return None
 
     
-    
-    if re.search('am instrument -w -e class org.mozilla', appname):
-      print "terminating early due to am instrument vs org.mozilla.f*"
-      return 1
-
-    
     timeslept = 0
     while (timeslept <= 30):
       process = self.processExist(appname)
