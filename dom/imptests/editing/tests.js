@@ -2478,6 +2478,10 @@ var tests = {
 		['abc\ndef', 'foo[]bar'],
 		['\x07', 'foo[]bar'],
 
+		['<b>hi</b>', 'foo[]bar'],
+		['<', 'foo[]bar'],
+		['&amp;', 'foo[]bar'],
+
 		
 		['!\r', 'foo[]bar'],
 		['!\r\n', 'foo[]bar'],
