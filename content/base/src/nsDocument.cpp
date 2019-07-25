@@ -7668,7 +7668,7 @@ FireOrClearDelayedEvents(nsTArray<nsCOMPtr<nsIDocument> >& aDocuments,
 }
 
 void
-nsDocument::MaybePreLoadImage(nsIURI* uri, const nsAString &aCrossOriginAttr)
+nsDocument::MaybePreLoadImage(nsIURI* uri)
 {
   
   
@@ -7680,17 +7680,6 @@ nsDocument::MaybePreLoadImage(nsIURI* uri, const nsAString &aCrossOriginAttr)
     return;
   }
 
-  nsLoadFlags loadFlags = nsIRequest::LOAD_NORMAL;
-  PRInt32 corsmode = GetCORSMode();
-  if (aCrossOriginAttr.LowercaseEqualsLiteral("anonymous")) {
-    loadFlags |= imgILoader::LOAD_CORS_ANONYMOUS;
-  } else if (aCrossOriginAttr.LowercaseEqualsLiteral("use-credentials")) {
-    loadFlags |= imgILoader::LOAD_CORS_USE_CREDENTIALS;
-  }
-  
-  
-  
-
   
   nsCOMPtr<imgIRequest> request;
   nsresult rv =
@@ -7699,7 +7688,7 @@ nsDocument::MaybePreLoadImage(nsIURI* uri, const nsAString &aCrossOriginAttr)
                               NodePrincipal(),
                               mDocumentURI, 
                               nsnull,       
-                              loadFlags,
+                              nsIRequest::LOAD_NORMAL,
                               getter_AddRefs(request));
 
   
