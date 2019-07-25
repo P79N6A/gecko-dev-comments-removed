@@ -70,34 +70,52 @@ WorkerAPI.prototype = {
       this._port.postMessage({topic: "social.cookies-get-response",
                               data: results});
     },
-    
-    
-    "social.ambient-notification-area": function (data) {
-      
-      
-      if (data.background) {
-        
-        try {
-          data.iconURL = /url\((['"]?)(.*)(\1)\)/.exec(data.background)[2];
-        } catch(e) {
-          data.iconURL = data.background;
+    'social.notification-create': function(data) {
+      let port = this._port;
+      let provider = this._provider;
+      let {id, type, icon, body, action, actionArgs} = data;
+      let alertsService = Cc["@mozilla.org/alerts-service;1"]
+                              .getService(Ci.nsIAlertsService);
+      function listener(subject, topic, data) {
+        if (topic === "alertclickcallback") {
+          
+          port.postMessage({topic: "social.notification-action",
+                            data: {id: id,
+                                   action: action,
+                                   actionArgs: actionArgs}});
+          switch (action) {
+            case "link":
+              
+              if (actionArgs.toURL) {
+                try {
+                  let pUri = Services.io.newURI(provider.origin, null, null);
+                  let nUri = Services.io.newURI(pUri.resolve(actionArgs.toURL),
+                                                null, null);
+                  
+                  if (nUri.scheme != pUri.scheme)
+                    nUri.scheme = pUri.scheme;
+                  if (nUri.prePath == provider.origin) {
+                    let xulWindow = Services.wm.getMostRecentWindow("navigator:browser");
+                    xulWindow.openUILink(nUri.spec);
+                  }
+                } catch(e) {
+                  Cu.reportError("social.notification-create error: "+e);
+                }
+              }
+              break;
+            default:
+              break;
+          }
         }
       }
-
-      this._provider.updateUserProfile(data);
+      alertsService.showAlertNotification(icon,
+                                          this._provider.name, 
+                                          body,
+                                          !!action, 
+                                                    
+                                          null,
+                                          listener,
+                                          type); 
     },
-    "social.ambient-notification-update": function (data) {
-      
-      
-      if (data.background) {
-        
-        try {
-          data.iconURL = /url\((['"]?)(.*)(\1)\)/.exec(data.background)[2];
-        } catch(e) {
-          data.iconURL = data.background;
-        }
-      }
-      this._provider.setAmbientNotification(data);
-    }
   }
 }
