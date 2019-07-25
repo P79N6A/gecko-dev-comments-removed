@@ -2560,15 +2560,6 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
 
     overflowAreas.ScrollableOverflow().UnionRect(
       psd->mFrame->mOverflowAreas.ScrollableOverflow(), adjustedBounds);
-
-    
-    if (mPresContext->CompatibilityMode() != eCompatibility_NavQuirks) {
-      nsRect shadowRect = nsLayoutUtils::GetTextShadowRectsUnion(adjustedBounds,
-                                                                 psd->mFrame->mFrame);
-      adjustedBounds.UnionRect(adjustedBounds, shadowRect);
-    }
-
-    
     overflowAreas.VisualOverflow().UnionRect(
       psd->mFrame->mOverflowAreas.VisualOverflow(), adjustedBounds);
   }
