@@ -1,3 +1,40 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const EXPORTED_SYMBOLS = ['BookmarksEngine'];
 
 const Cc = Components.classes;
@@ -56,6 +93,13 @@ BookmarksEngine.prototype = {
     this._syncMounts.async(this, onComplete);
   },
   _syncMounts: function BmkEngine__syncMounts() {
+    
+
+
+
+
+
+
     let self = yield;
     let mounts = this._store.findMounts();
 
