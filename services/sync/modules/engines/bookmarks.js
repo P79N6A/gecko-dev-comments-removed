@@ -476,7 +476,6 @@ BookmarksStore.prototype = {
 
   
   
-  
   createRecord: function BStore_createRecord(guid) {
     let record = this.cache.get(guid);
     if (record)

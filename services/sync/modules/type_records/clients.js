@@ -59,16 +59,6 @@ ClientRecord.prototype = {
     this._WBORec_init(uri);
   },
 
-  get name() this.payload.name,
-  set name(value) {
-    this.payload.name = value;
-  },
-
-  get type() this.payload.type,
-  set type(value) {
-    this.payload.type = value;
-  },
-
   
   encrypt: function ClientRec_encrypt(onComplete) {
     let fn = function ClientRec__encrypt() {let self = yield;};
