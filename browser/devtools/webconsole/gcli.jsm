@@ -5416,7 +5416,8 @@ function Console(options) {
     completeElement: options.completeElement,
     completionPrompt: '',
     backgroundElement: options.backgroundElement,
-    focusManager: this.focusManager
+    focusManager: this.focusManager,
+    scratchpad: options.scratchpad
   });
 
   this.menu = new CommandMenu({
@@ -5567,12 +5568,13 @@ exports.Console = Console;
 
 
 
-define('gcli/ui/inputter', ['require', 'exports', 'module' , 'gcli/util', 'gcli/types', 'gcli/history', 'text!gcli/ui/inputter.css'], function(require, exports, module) {
+define('gcli/ui/inputter', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/types', 'gcli/history', 'text!gcli/ui/inputter.css'], function(require, exports, module) {
 var cliView = exports;
 
 
 var KeyEvent = require('gcli/util').event.KeyEvent;
 var dom = require('gcli/util').dom;
+var l10n = require('gcli/l10n');
 
 var Status = require('gcli/types').Status;
 var History = require('gcli/history').History;
@@ -5585,6 +5587,7 @@ var inputterCss = require('text!gcli/ui/inputter.css');
 
 function Inputter(options) {
   this.requisition = options.requisition;
+  this.scratchpad = options.scratchpad;
 
   
   this.element = options.inputElement || 'gcli-input';
@@ -5867,6 +5870,14 @@ Inputter.prototype.onKeyDown = function(ev) {
 
 Inputter.prototype.onKeyUp = function(ev) {
   
+  if (this.scratchpad && this.scratchpad.shouldActivate(ev)) {
+    if (this.scratchpad.activate(this.element.value)) {
+      this._setInputInternal('', true);
+    }
+    return;
+  }
+
+  
   if (ev.keyCode === KeyEvent.DOM_VK_RETURN) {
     var worst = this.requisition.getStatus();
     
@@ -5964,6 +5975,11 @@ Inputter.prototype.getInputState = function() {
     console.log('fixing input.typed=""', input);
   }
 
+  
+  if (input.cursor.start == null) {
+    input.cursor.start = 0;
+  }
+
   return input;
 };
 
@@ -5987,6 +6003,7 @@ function Completer(options) {
   this.document = options.document || document;
   this.requisition = options.requisition;
   this.elementCreated = false;
+  this.scratchpad = options.scratchpad;
 
   this.element = options.completeElement || 'gcli-row-complete';
   if (typeof this.element === 'string') {
@@ -6080,6 +6097,11 @@ Completer.prototype.decorate = function(inputter) {
 
 
 Completer.prototype.resizer = function() {
+  
+  if (!this.inputter.element.getBoundingClientRect) {
+    return;
+  }
+
   var rect = this.inputter.element.getBoundingClientRect();
   
   var height = rect.bottom - rect.top - 4;
@@ -6114,6 +6136,7 @@ Completer.prototype.update = function(input) {
 
   dom.clearElement(this.element);
 
+  
   
   
   
@@ -6167,13 +6190,23 @@ Completer.prototype.update = function(input) {
   
   
   var command = this.requisition.commandAssignment.getValue();
-  var unclosedJs = command && command.name === '{' &&
+  var isJsCommand = (command && command.name === '{');
+  var isUnclosedJs = isJsCommand &&
           this.requisition.getAssignment(0).getArg().suffix.indexOf('}') === -1;
-  if (unclosedJs) {
+  if (isUnclosedJs) {
     var close = dom.createElement(document, 'span');
     close.classList.add('gcli-in-closebrace');
     close.appendChild(document.createTextNode(' }'));
     this.element.appendChild(close);
+  }
+
+  
+  
+  if (isJsCommand && this.scratchpad) {
+    var hint = dom.createElement(document, 'div');
+    hint.classList.add('gcli-in-scratchlink');
+    hint.appendChild(document.createTextNode(this.scratchpad.linkText));
+    this.element.appendChild(hint);
   }
 };
 
