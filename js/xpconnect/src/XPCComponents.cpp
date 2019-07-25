@@ -3097,6 +3097,11 @@ bool BindPropertyOp(JSContext *cx, JSObject *targetObj, Op& op,
     return true;
 }
 
+extern JSBool
+XPC_WN_Helper_GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+extern JSBool
+XPC_WN_Helper_SetProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+
 bool
 xpc::SandboxProxyHandler::getPropertyDescriptor(JSContext *cx, JSObject *proxy,
                                                 jsid id, bool set,
@@ -3120,10 +3125,16 @@ xpc::SandboxProxyHandler::getPropertyDescriptor(JSContext *cx, JSObject *proxy,
     
     
     
+    
+    
+    
+    
     if (desc->getter != xpc::holder_get &&
+        desc->getter != XPC_WN_Helper_GetProperty &&
         !BindPropertyOp(cx, obj, desc->getter, desc, id, JSPROP_GETTER))
         return false;
     if (desc->setter != xpc::holder_set &&
+        desc->setter != XPC_WN_Helper_SetProperty &&
         !BindPropertyOp(cx, obj, desc->setter, desc, id, JSPROP_SETTER))
         return false;
     if (desc->value.isObject()) {
