@@ -1114,11 +1114,7 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
 
   
   
-
-  
-  
-  
-  
+  editorFlags |= nsIPlaintextEditor::eEditorUseAsyncUpdatesMask;
 
   PRBool shouldInitializeEditor = PR_FALSE;
   nsCOMPtr<nsIEditor> newEditor; 
