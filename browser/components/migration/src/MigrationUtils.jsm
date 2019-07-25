@@ -20,6 +20,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
 
 let gMigrators = null;
 let gProfileStartup = null;
+let gMigrationBundle = null;
+
+function getMigrationBundle() {
+  if (!gMigrationBundle) {
+    gMigrationBundle = Services.strings.createBundle(
+     "chrome://browser/locale/migration/migration.properties"); 
+  }
+  return gMigrationBundle;
+}
 
 
 
@@ -224,9 +233,22 @@ let MigratorPrototype = {
     
     
     
-    let profiles = this.sourceProfiles;
-    return (!profiles && this.getResources("")) ||
-           (profiles && profiles.length > 0);
+    let exists = false;
+    try {
+      let profiles = this.sourceProfiles;
+      if (!profiles) {
+        let resources = this._getMaybeCachedResources("");
+        if (resources && resources.length > 0)
+          exists = true;
+      }
+      else {
+        exists = profiles.length > 0;
+      }
+    }
+    catch(ex) {
+      Cu.reportError(ex);
+    }
+    return exists;
   },
 
   
@@ -243,6 +265,16 @@ let MigratorPrototype = {
 };
 
 let MigrationUtils = Object.freeze({
+  resourceTypes: {
+    SETTINGS:   Ci.nsIBrowserProfileMigrator.SETTINGS,
+    COOKIES:    Ci.nsIBrowserProfileMigrator.COOKIES,
+    HISTORY:    Ci.nsIBrowserProfileMigrator.HISTORY,
+    FORMDATA:   Ci.nsIBrowserProfileMigrator.FORMDATA,
+    PASSWORDS:  Ci.nsIBrowserProfileMigrator.PASSWORDS,
+    BOOKMARKS:  Ci.nsIBrowserProfileMigrator.BOOKMARKS,
+    OTHERDATA:  Ci.nsIBrowserProfileMigrator.OTHERDATA
+  },
+
   
 
 
@@ -309,15 +341,40 @@ let MigrationUtils = Object.freeze({
 
 
 
+
+
+  getLocalizedString: function MU_getLocalizedString(aKey, aReplacements) {
+    const OVERRIDES = {
+      "4_firefox": "4_firefox_history_and_bookmarks"
+    };
+    aKey = OVERRIDES[aKey] || aKey;
+
+    if (aReplacements === undefined)
+      return getMigrationBundle().GetStringFromName(aKey);
+    return getMigrationBundle().formatStringFromName(
+      aKey, aReplacements, aReplacements.length);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
   createImportedBookmarksFolder:
   function MU_createImportedBookmarksFolder(aSourceNameStr, aParentId) {
-    let bundle = Services.strings.createBundle(
-     "chrome://browser/locale/migration/migration.properties");
-    let sourceName = bundle.GetStringFromName("sourceName" + aSourceNameStr);
-    let folderName = bundle.formatStringFromName("importedBookmarksFolder",
-                                                 [sourceName], 1);
+    let source = this.getLocalizedString("sourceName" + aSourceNameStr);
+    let label = this.getLocalizedString("importedBookmarksFolder", [source]);
     return PlacesUtils.bookmarks.createFolder(
-      aParentId, folderName, PlacesUtils.bookmarks.DEFAULT_INDEX);
+      aParentId, label, PlacesUtils.bookmarks.DEFAULT_INDEX);
   },
 
   get _migrators() gMigrators ? gMigrators : gMigrators = new Dict(),
@@ -455,5 +512,6 @@ let MigrationUtils = Object.freeze({
   finishMigration: function MU_finishMigration() {
     gMigrators = null;
     gProfileStartup = null;
+    gMigrationBundle = null;
   }
 });
