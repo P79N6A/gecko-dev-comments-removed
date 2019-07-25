@@ -295,8 +295,11 @@ public:
   
 
 
-  void SetHasDisplayPort() { mHasDisplayPort = PR_TRUE; }
-  PRBool GetHasDisplayPort() { return mHasDisplayPort; }
+  void SetDisplayPort(const nsRect& aDisplayPort) {
+    mHasDisplayPort = PR_TRUE;
+    mDisplayPort = aDisplayPort;
+  }
+  const nsRect* GetDisplayPort() { return mHasDisplayPort ? &mDisplayPort : nsnull; }
 
   
 
@@ -510,6 +513,7 @@ private:
   PRPackedBool                   mIsPaintingToWindow;
   PRPackedBool                   mSnappingEnabled;
   PRPackedBool                   mHasDisplayPort;
+  nsRect                         mDisplayPort;
   PRPackedBool                   mHasFixedItems;
 };
 
