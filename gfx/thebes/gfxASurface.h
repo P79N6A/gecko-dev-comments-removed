@@ -150,6 +150,17 @@ public:
 
     virtual already_AddRefed<gfxASurface> CreateSimilarSurface(gfxContentType aType,
                                                                const gfxIntSize& aSize);
+
+    
+
+
+
+
+    virtual already_AddRefed<gfxImageSurface> GetAsImageSurface()
+    {
+      return nsnull;
+    }
+
     
 
 
