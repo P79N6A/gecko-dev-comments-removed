@@ -488,6 +488,13 @@ gfxASurface::MovePixels(const nsIntRect& aSourceRect,
     nsRefPtr<gfxASurface> tmp = 
       CreateSimilarSurface(GetContentType(), 
                            gfxIntSize(aSourceRect.width, aSourceRect.height));
+    
+    
+    
+    NS_ASSERTION(tmp, "Must have temporary surface to move pixels!");
+    if (!tmp) {
+        return;
+    }
     nsRefPtr<gfxContext> ctx = new gfxContext(tmp);
     ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
     ctx->SetSource(this, gfxPoint(-aSourceRect.x, -aSourceRect.y));
