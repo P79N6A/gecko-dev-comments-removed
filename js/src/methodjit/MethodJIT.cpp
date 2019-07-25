@@ -1302,6 +1302,13 @@ JITScript::destroyChunk(FreeOp *fop, unsigned chunkIndex, bool resetUses)
     ChunkDescriptor &desc = chunkDescriptor(chunkIndex);
 
     if (desc.chunk) {
+        
+
+
+
+        if (script->compartment()->needsBarrier())
+            desc.chunk->trace(script->compartment()->barrierTracer());
+
         Probes::discardMJITCode(fop, this, desc.chunk, desc.chunk->code.m_code.executableAddress());
         fop->delete_(desc.chunk);
         desc.chunk = NULL;
@@ -1532,8 +1539,10 @@ void
 JITChunk::trace(JSTracer *trc)
 {
     JSObject **rootedTemplates_ = rootedTemplates();
-    for (size_t i = 0; i < nRootedTemplates; i++)
+    for (size_t i = 0; i < nRootedTemplates; i++) {
+        
         MarkObjectUnbarriered(trc, &rootedTemplates_[i], "jitchunk_template");
+    }
 }
 
 void
