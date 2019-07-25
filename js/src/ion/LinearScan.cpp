@@ -207,6 +207,17 @@ LiveInterval::intersect(LiveInterval *other)
     return CodePosition::MIN;
 }
 
+bool
+LiveInterval::requireSpill(const LiveInterval *other) const
+{
+    
+    
+    JS_ASSERT(isSpillInterval());
+    JS_ASSERT(!other->isSpillInterval());
+    return (other->index() > 0 || start() != other->start() ||
+            !other->reg()->ins()->isCall());
+}
+
 
 
 
@@ -314,6 +325,22 @@ LiveInterval::nextUseAfter(CodePosition after)
 
 
 
+UsePosition *
+LiveInterval::fixedUseAt(CodePosition pos)
+{
+    for (UsePositionIterator usePos(usesBegin()); usePos != usesEnd(); usePos++) {
+        if (usePos->pos > pos)
+            return NULL;
+        if (usePos->pos == pos && usePos->use->policy() == LUse::FIXED)
+            return *usePos;
+    }
+    return NULL;
+}
+
+
+
+
+
 
 
 CodePosition
@@ -398,14 +425,75 @@ LinearScanAllocator::createDataStructures()
 
 
 void
-LinearScanAllocator::addSpillInterval(LInstruction *ins, const Requirement &req)
+LinearScanAllocator::addSpillInterval(CodePosition pos, const Requirement &req)
 {
     LiveInterval *bogus = new LiveInterval(NULL, 0);
 
-    bogus->addRange(inputOf(ins), outputOf(ins));
+    bogus->addRange(pos, pos.next());
     bogus->setRequirement(req);
 
     unhandled.enqueueAtHead(bogus);
+}
+
+static inline AnyRegister
+GetFixedRegister(LDefinition *def, LUse *use)
+{
+    return def->type() == LDefinition::DOUBLE
+           ? AnyRegister(FloatRegister::FromCode(use->registerCode()))
+           : AnyRegister(Register::FromCode(use->registerCode()));
+}
+
+static inline bool
+IsNunbox(VirtualRegister *vreg)
+{
+#ifdef JS_NUNBOX32
+    return (vreg->type() == LDefinition::TYPE ||
+            vreg->type() == LDefinition::PAYLOAD);
+#else
+    return false;
+#endif
+}
+
+static inline bool
+IsTraceable(VirtualRegister *reg)
+{
+    if (reg->type() == LDefinition::OBJECT)
+        return true;
+#ifdef JS_PUNBOX64
+    if (reg->type() == LDefinition::BOX)
+        return true;
+#endif
+    return false;
+}
+
+
+
+
+
+
+bool
+LinearScanAllocator::copyFixedRegister(LInstruction *ins, CodePosition pos, LUse *src, LUse *dest)
+{
+    JS_ASSERT(src->virtualRegister() == dest->virtualRegister());
+    JS_ASSERT(!IsTraceable(&vregs[src]));
+    JS_ASSERT(!IsNunbox(&vregs[src]));
+
+    AnyRegister srcReg = GetFixedRegister(vregs[src].def(), src);
+    AnyRegister destReg = GetFixedRegister(vregs[dest].def(), dest);
+    JS_ASSERT(srcReg != destReg);
+
+    
+    addSpillInterval(pos, Requirement(LAllocation(destReg)));
+
+    
+    LAllocation *srcAlloc = LAllocation::New(srcReg);
+    LAllocation *destAlloc = LAllocation::New(destReg);
+
+    if (!moveBeforeAlloc(inputOf(ins), srcAlloc, destAlloc))
+        return false;
+
+    *static_cast<LAllocation *>(dest) = *destAlloc;
+    return true;
 }
 
 
@@ -477,7 +565,7 @@ LinearScanAllocator::buildLivenessInfo()
             
             if (ins->isCall()) {
                 for (AnyRegisterIterator iter(RegisterSet::All()); iter.more(); iter++)
-                    addSpillInterval(*ins, Requirement(LAllocation(*iter)));
+                    addSpillInterval(inputOf(*ins), Requirement(LAllocation(*iter)));
             }
 
             for (size_t i = 0; i < ins->numDefs(); i++) {
@@ -514,6 +602,17 @@ LinearScanAllocator::buildLivenessInfo()
 
                     CodePosition endPos = use->usedAtStart() ? inputOf(*ins) : outputOf(*ins);
                     LiveInterval *interval = vregs[use].getInterval(0);
+
+                    
+                    
+                    if (use->policy() == LUse::FIXED) {
+                        if (UsePosition *other = interval->fixedUseAt(endPos)) {
+                            if (!copyFixedRegister(*ins, endPos.previous(), other->use, use))
+                                return false;
+                            continue;
+                        }
+                    }
+
                     interval->addRange(inputOf(block->firstId()), endPos);
                     interval->addUse(new UsePosition(use, endPos));
 
@@ -976,29 +1075,6 @@ LinearScanAllocator::reifyAllocations()
     graph.setLocalSlotCount(stackSlotAllocator.stackHeight());
 
     return true;
-}
-
-static inline bool
-IsNunbox(VirtualRegister *vreg)
-{
-#ifdef JS_NUNBOX32
-    return (vreg->type() == LDefinition::TYPE ||
-            vreg->type() == LDefinition::PAYLOAD);
-#else
-    return false;
-#endif
-}
-
-static inline bool
-IsTraceable(VirtualRegister *reg)
-{
-    if (reg->type() == LDefinition::OBJECT)
-        return true;
-#ifdef JS_PUNBOX64
-    if (reg->type() == LDefinition::BOX)
-        return true;
-#endif
-    return false;
 }
 
 
@@ -1829,12 +1905,7 @@ LinearScanAllocator::setIntervalRequirement(LiveInterval *interval)
 
     if (fixedOp) {
         
-        AnyRegister required;
-        if (reg->isDouble())
-            required = AnyRegister(FloatRegister::FromCode(fixedOp->use->registerCode()));
-        else
-            required = AnyRegister(Register::FromCode(fixedOp->use->registerCode()));
-
+        AnyRegister required = GetFixedRegister(reg->def(), fixedOp->use);
         if (fixedOpIsHint)
             interval->setHint(Requirement(LAllocation(required), fixedOp->pos));
         else
