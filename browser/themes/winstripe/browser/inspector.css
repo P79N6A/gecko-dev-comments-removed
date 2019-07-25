@@ -201,6 +201,8 @@ code {
 
 .docType {
   position: absolute;
+  
+  
   top: -16px;
   font-family: Menlo, Andale Mono, monospace;
   padding-left: 8px;
@@ -210,7 +212,9 @@ code {
 }
 
 .htmlNodeBox {
-  top: 16px;
+  
+  
+  margin-top: 16px;
 }
 
 .nodeWhiteSpace {
