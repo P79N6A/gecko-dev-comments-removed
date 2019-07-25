@@ -37,18 +37,23 @@
 
 
 
+
 #ifndef nsDOMCSSAttributeDeclaration_h
 #define nsDOMCSSAttributeDeclaration_h
 
 #include "nsDOMCSSDeclaration.h"
 
+#include "nsAutoPtr.h"
 #include "nsString.h"
 #include "nsWrapperCache.h"
-#include "nsIContent.h"
 
 namespace mozilla {
 namespace css {
 class Loader;
+}
+
+namespace dom {
+class Element;
 }
 }
 
@@ -56,7 +61,8 @@ class nsDOMCSSAttributeDeclaration : public nsDOMCSSDeclaration,
                                      public nsWrapperCache
 {
 public:
-  nsDOMCSSAttributeDeclaration(nsIContent *aContent
+  typedef mozilla::dom::Element Element;
+  nsDOMCSSAttributeDeclaration(Element* aContent
 #ifdef MOZ_SMIL
                                , PRBool aIsSMILOverride
 #endif 
@@ -76,17 +82,13 @@ public:
                                             mozilla::css::Loader** aCSSLoader);
   NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent);
 
-  virtual nsINode *GetParentObject()
-  {
-    return mContent;
-  }
+  virtual nsINode* GetParentObject();
 
 protected:
   virtual nsresult SetCSSDeclaration(mozilla::css::Declaration* aDecl);
   virtual nsIDocument* DocToUpdate();
 
-  
-  nsCOMPtr<nsIContent> mContent;
+  nsRefPtr<Element> mElement;
 
 #ifdef MOZ_SMIL
   
