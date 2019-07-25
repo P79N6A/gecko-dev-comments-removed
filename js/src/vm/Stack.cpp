@@ -964,6 +964,12 @@ StackIter::settleOnNewState()
             }
 
             
+            if (containsCall && !calls_->active() && calls_->argv() == fp_->actualArgs()) {
+                popFrame();
+                continue;
+            }
+
+            
 
 
 

@@ -1,11 +1,6 @@
 
 
-
-
-
-
-
-
-o = { toString:function() { return evalInFrame(1, "arguments; x") } }
+o = { toString:function() { return evalInFrame(1, "x") } }
+var x = 'C';
 var s = "aaaaaaaaaa".replace(/a/g, function() { var x = 'B'; return o });
-assertEq(s, "BBBBBBBBBB");
+assertEq(s, "CCCCCCCCCC");
