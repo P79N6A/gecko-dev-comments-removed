@@ -195,8 +195,10 @@ public:
       CreateDrawTargetForData(unsigned char* aData, const mozilla::gfx::IntSize& aSize, 
                               int32_t aStride, mozilla::gfx::SurfaceFormat aFormat);
 
-    virtual bool SupportsAzure(mozilla::gfx::BackendType& aBackend) { return false; }
+    
+    bool SupportsAzure(mozilla::gfx::BackendType& aBackend);
 
+    
     void GetAzureBackendInfo(mozilla::widget::InfoObject &aObj) {
       mozilla::gfx::BackendType backend;
       if (SupportsAzure(backend)) {
@@ -455,7 +457,30 @@ protected:
 
     void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, 
                             eFontPrefLang aCharLang, eFontPrefLang aPageLang);
-                                               
+
+    
+
+
+
+    mozilla::RefPtr<mozilla::gfx::DrawTarget>
+      CreateDrawTargetForBackend(mozilla::gfx::BackendType aBackend,
+                                 const mozilla::gfx::IntSize& aSize,
+                                 mozilla::gfx::SurfaceFormat aFormat);
+
+    
+
+
+
+
+
+    void InitCanvasBackend(PRUint32 aBackendBitmask);
+    
+
+
+
+    static mozilla::gfx::BackendType GetCanvasBackendPref(PRUint32 aBackendBitmask);
+    static mozilla::gfx::BackendType BackendTypeForName(const nsCString& aName);
+
     PRInt8  mAllowDownloadableFonts;
     PRInt8  mDownloadableFontsSanitize;
 #ifdef MOZ_GRAPHITE
@@ -472,7 +497,9 @@ protected:
     PRInt32 mUseHarfBuzzScripts;
 
     
-    mozilla::gfx::BackendType mPreferredDrawTargetBackend;
+    mozilla::gfx::BackendType mPreferredCanvasBackend;
+    
+    mozilla::gfx::BackendType mFallbackCanvasBackend;
 
 private:
     
