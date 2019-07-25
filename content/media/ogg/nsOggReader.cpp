@@ -1355,7 +1355,7 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
   
   ogg_int64_t startOffset = aRange.mOffsetStart;
   ogg_int64_t startTime = aRange.mTimeStart;
-  ogg_int64_t startLength = 0;
+  ogg_int64_t startLength = 0; 
   ogg_int64_t endOffset = aRange.mOffsetEnd;
   ogg_int64_t endTime = aRange.mTimeEnd;
 
@@ -1363,10 +1363,14 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
   PRInt64 seekLowerBound = NS_MAX(static_cast<PRInt64>(0), aTarget - aFuzz);
   int hops = 0;
   ogg_int64_t previousGuess = -1;
-  int backsteps = 1;
+  int backsteps = 0;
   const int maxBackStep = 10;
   NS_ASSERTION(static_cast<PRUint64>(PAGE_STEP) * pow(2.0, maxBackStep) < PR_INT32_MAX,
                "Backstep calculation must not overflow");
+
+  
+  
+  
   while (PR_TRUE) {
     ogg_int64_t duration = 0;
     double target = 0;
@@ -1376,10 +1380,10 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
     int skippedBytes = 0;
     ogg_int64_t pageOffset = 0;
     ogg_int64_t pageLength = 0;
-    int backoff = 0;
     ogg_int64_t granuleTime = -1;
-    PRInt64 oldPageOffset = 0;
+    PRBool mustBackoff = PR_FALSE;
 
+    
     
     
     while (PR_TRUE) {
@@ -1389,33 +1393,49 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
         return NS_ERROR_FAILURE;
       }
 
+      interval = endOffset - startOffset - startLength;
+      if (interval == 0) {
+        
+        
+        
+        SEEK_LOG(PR_LOG_DEBUG, ("Interval narrowed, terminating bisection."));
+        break;
+      }
+
       
       duration = endTime - startTime;
       target = (double)(seekTarget - startTime) / (double)duration;
-      interval = endOffset - startOffset - startLength;
       guess = startOffset + startLength +
-              (ogg_int64_t)((double)interval * target) - backoff;
+              static_cast<ogg_int64_t>((double)interval * target);
       guess = NS_MIN(guess, endOffset - PAGE_STEP);
+      if (mustBackoff) {
+        
+        
+        
+        
+        SEEK_LOG(PR_LOG_DEBUG, ("Backing off %d bytes, backsteps=%d",
+          static_cast<PRInt32>(PAGE_STEP * pow(2.0, backsteps)), backsteps));
+        guess -= PAGE_STEP * pow(2.0, backsteps);
+        backsteps = NS_MIN(backsteps + 1, maxBackStep);
+        
+        
+        mustBackoff = PR_FALSE;
+      } else {
+        backsteps = 0;
+      }
       guess = NS_MAX(guess, startOffset + startLength);
 
-      if (interval == 0 || guess == previousGuess) {
-        interval = 0;
-        
-        
-        
-        break;
-      }
+      SEEK_LOG(PR_LOG_DEBUG, ("Seek loop start[o=%lld..%lld t=%lld] "
+                              "end[o=%lld t=%lld] "
+                              "interval=%lld target=%lf guess=%lld",
+                              startOffset, (startOffset+startLength), startTime,
+                              endOffset, endTime, interval, target, guess));
 
       NS_ASSERTION(guess >= startOffset + startLength, "Guess must be after range start");
       NS_ASSERTION(guess < endOffset, "Guess must be before range end");
       NS_ASSERTION(guess != previousGuess, "Guess should be differnt to previous");
       previousGuess = guess;
 
-      SEEK_LOG(PR_LOG_DEBUG, ("Seek loop offset_start=%lld start_end=%lld "
-                              "offset_guess=%lld offset_end=%lld interval=%lld "
-                              "target=%lf time_start=%lld time_end=%lld",
-                              startOffset, (startOffset+startLength), guess,
-                              endOffset, interval, target, startTime, endTime));
       hops++;
     
       
@@ -1436,34 +1456,28 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
       pageLength = page.header_len + page.body_len;
       mPageOffset = pageOffset + pageLength;
 
-      if (mPageOffset == endOffset || res == PAGE_SYNC_END_OF_RANGE) {
+      if (res == PAGE_SYNC_END_OF_RANGE) {
         
         
         
-        backsteps = NS_MIN(backsteps + 1, maxBackStep);
-        backoff = PAGE_STEP * pow(2.0, backsteps);
+        mustBackoff = PR_TRUE;
+        SEEK_LOG(PR_LOG_DEBUG, ("Hit the end of range, backing off"));
         continue;
       }
-
-      NS_ASSERTION(mPageOffset < endOffset, "Page read cursor should be inside range");
 
       
       
       ogg_int64_t audioTime = -1;
       ogg_int64_t videoTime = -1;
-      int ret;
-      oldPageOffset = mPageOffset;
-      while ((mVorbisState && audioTime == -1) ||
-             (mTheoraState && videoTime == -1)) {
-      
+      do {
         
         PRUint32 serial = ogg_page_serialno(&page);
         nsOggCodecState* codecState = nsnull;
         mCodecStates.Get(serial, &codecState);
         if (codecState && codecState->mActive) {
-          ret = ogg_stream_pagein(&codecState->mState, &page);
+          int ret = ogg_stream_pagein(&codecState->mState, &page);
           NS_ENSURE_TRUE(ret == 0, NS_ERROR_FAILURE);
-        }      
+        }
 
         ogg_int64_t granulepos = ogg_page_granulepos(&page);
 
@@ -1481,17 +1495,37 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
           videoTime = mTheoraState->StartTime(granulepos);
         }
 
-        mPageOffset += page.header_len + page.body_len;
+        if (mPageOffset == endOffset) {
+          
+          break;
+        }
+
         if (ReadOggPage(&page) == -1) {
           break;
         }
-      }
+        
+      } while ((mVorbisState && audioTime == -1) ||
+               (mTheoraState && videoTime == -1));
+
+      NS_ASSERTION(mPageOffset <= endOffset, "Page read cursor should be inside range");
 
       if ((HasAudio() && audioTime == -1) ||
           (HasVideo() && videoTime == -1)) 
       {
-        backsteps = NS_MIN(backsteps + 1, maxBackStep);
-        backoff = PAGE_STEP * pow(2.0, backsteps);
+        
+        if (pageOffset == startOffset + startLength && mPageOffset == endOffset) {
+          
+          
+          
+          
+          
+          interval = 0;
+          break;
+        }
+
+        
+        
+        mustBackoff = PR_TRUE;
         continue;
       }
 
@@ -1500,12 +1534,12 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
       granuleTime = NS_MAX(audioTime, videoTime);
       NS_ASSERTION(granuleTime > 0, "Must get a granuletime");
       break;
-    }
+    } 
 
     if (interval == 0) {
       
       
-      SEEK_LOG(PR_LOG_DEBUG, ("Seek loop (interval == 0) break"));
+      SEEK_LOG(PR_LOG_DEBUG, ("Terminating seek at offset=%lld", startOffset));
       NS_ASSERTION(startTime < aTarget, "Start time must always be less than target");
       res = stream->Seek(nsISeekableStream::NS_SEEK_SET, startOffset);
       NS_ENSURE_SUCCESS(res,res);
@@ -1519,12 +1553,13 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
     SEEK_LOG(PR_LOG_DEBUG, ("Time at offset %lld is %lldms", guess, granuleTime));
     if (granuleTime < seekTarget && granuleTime > seekLowerBound) {
       
-      res = stream->Seek(nsISeekableStream::NS_SEEK_SET, oldPageOffset);
+      res = stream->Seek(nsISeekableStream::NS_SEEK_SET, pageOffset);
       NS_ENSURE_SUCCESS(res,res);
-      mPageOffset = oldPageOffset;
+      mPageOffset = pageOffset;
       if (NS_FAILED(ResetDecode())) {
         return NS_ERROR_FAILURE;
       }
+      SEEK_LOG(PR_LOG_DEBUG, ("Terminating seek at offset=%lld", mPageOffset));
       break;
     }
 
