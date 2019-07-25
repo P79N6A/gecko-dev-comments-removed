@@ -817,6 +817,8 @@ pref("network.http.pipelining.max-optimistic-requests" , 4);
 
 pref("network.http.pipelining.aggressive", false);
 pref("network.http.pipelining.maxsize" , 300000);
+pref("network.http.pipelining.reschedule-on-timeout", true);
+pref("network.http.pipelining.reschedule-timeout", 1500);
 
 
 
