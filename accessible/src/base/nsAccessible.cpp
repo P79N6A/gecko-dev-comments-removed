@@ -99,6 +99,7 @@
 #include "nsWhitespaceTokenizer.h"
 #include "nsAttrName.h"
 #include "nsNetUtil.h"
+#include "nsIEventStateManager.h"
 
 #ifdef NS_DEBUG
 #include "nsIDOMCharacterData.h"
@@ -685,24 +686,20 @@ nsAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
   if (aExtraState)
     *aExtraState = 0;
 
+  PRInt32 intrinsicState = mContent->IntrinsicState();
+
+  if (intrinsicState & NS_EVENT_STATE_REQUIRED)
+    *aState |= nsIAccessibleStates::STATE_REQUIRED;
+
+  PRBool disabled = mContent->IsHTML() ? 
+    (intrinsicState & NS_EVENT_STATE_DISABLED) :
+    (mContent->AttrValueIs(kNameSpaceID_None,
+                           nsAccessibilityAtoms::disabled,
+                           nsAccessibilityAtoms::_true,
+                           eCaseMatters));
+
   
-  
-  
-  
-  PRBool isDisabled;
-  if (mContent->IsHTML()) {
-    
-    
-    isDisabled = mContent->HasAttr(kNameSpaceID_None,
-                                   nsAccessibilityAtoms::disabled);
-  }
-  else {
-    isDisabled = mContent->AttrValueIs(kNameSpaceID_None,
-                                       nsAccessibilityAtoms::disabled,
-                                       nsAccessibilityAtoms::_true,
-                                       eCaseMatters);
-  }
-  if (isDisabled) {
+  if (disabled) {
     *aState |= nsIAccessibleStates::STATE_UNAVAILABLE;
   }
   else if (mContent->IsElement()) {
