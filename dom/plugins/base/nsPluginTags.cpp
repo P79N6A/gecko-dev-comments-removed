@@ -81,7 +81,6 @@ mMimeDescriptions(aPluginTag->mMimeDescriptions),
 mExtensions(aPluginTag->mExtensions),
 mLibrary(nsnull),
 mIsJavaPlugin(aPluginTag->mIsJavaPlugin),
-mIsNPRuntimeEnabledJavaPlugin(aPluginTag->mIsNPRuntimeEnabledJavaPlugin),
 mIsFlashPlugin(aPluginTag->mIsFlashPlugin),
 mFileName(aPluginTag->mFileName),
 mFullPath(aPluginTag->mFullPath),
@@ -97,7 +96,6 @@ mName(aPluginInfo->fName),
 mDescription(aPluginInfo->fDescription),
 mLibrary(nsnull),
 mIsJavaPlugin(false),
-mIsNPRuntimeEnabledJavaPlugin(false),
 mIsFlashPlugin(false),
 mFileName(aPluginInfo->fFileName),
 mFullPath(aPluginInfo->fFullPath),
@@ -128,7 +126,6 @@ mName(aName),
 mDescription(aDescription),
 mLibrary(nsnull),
 mIsJavaPlugin(false),
-mIsNPRuntimeEnabledJavaPlugin(false),
 mIsFlashPlugin(false),
 mFileName(aFileName),
 mFullPath(aFullPath),
@@ -164,12 +161,13 @@ void nsPluginTag::InitMime(const char* const* aMimeTypes,
 
     
     
+    
+    
     if (mIsJavaPlugin) {
       if (strcmp(aMimeTypes[i], "application/x-java-vm-npruntime") == 0) {
         
         
         
-        mIsNPRuntimeEnabledJavaPlugin = true;
         continue;
       }
     }

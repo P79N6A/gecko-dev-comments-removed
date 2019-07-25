@@ -110,7 +110,6 @@ public:
   PRLibrary     *mLibrary;
   nsRefPtr<nsNPAPIPlugin> mPlugin;
   bool          mIsJavaPlugin;
-  bool          mIsNPRuntimeEnabledJavaPlugin;
   bool          mIsFlashPlugin;
   nsCString     mFileName; 
   nsCString     mFullPath; 

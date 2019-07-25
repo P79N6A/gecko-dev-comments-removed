@@ -130,7 +130,6 @@ class nsIDocShellLoadInfo;
 class WindowStateHolder;
 class nsGlobalWindowObserver;
 class nsGlobalWindow;
-class nsDummyJavaPluginOwner;
 class PostMessageEvent;
 class nsRunnable;
 class nsDOMEventTargetHelper;
@@ -493,8 +492,6 @@ public:
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsGlobalWindow,
                                                                    nsIScriptGlobalObject)
 
-  void InitJavaProperties();
-
   virtual NS_HIDDEN_(JSObject*)
     GetCachedXBLPrototypeHandler(nsXBLPrototypeHandler* aKey);
 
@@ -825,10 +822,6 @@ protected:
   
   
   bool                          mIsFrozen : 1;
-
-  
-  
-  bool                          mDidInitJavaProperties : 1;
   
   
   
@@ -928,10 +921,6 @@ protected:
   PRUint32                      mTimeoutFiringDepth;
   nsRefPtr<nsLocation>          mLocation;
   nsRefPtr<nsHistory>           mHistory;
-
-  
-  
-  nsRefPtr<nsDummyJavaPluginOwner> mDummyJavaPluginOwner;
 
   
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;

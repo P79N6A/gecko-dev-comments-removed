@@ -2553,7 +2553,7 @@ nsPluginHost::WritePluginInfo()
         (tag->mName.get()),
         PLUGIN_REGISTRY_FIELD_DELIMITER,
         PLUGIN_REGISTRY_END_OF_LINE_MARKER,
-        tag->mMimeTypes.Length() + (tag->mIsNPRuntimeEnabledJavaPlugin ? 1 : 0));
+        tag->mMimeTypes.Length() + 1);
 
       
       for (PRUint32 i = 0; i < tag->mMimeTypes.Length(); i++) {
@@ -2568,17 +2568,17 @@ nsPluginHost::WritePluginInfo()
           PLUGIN_REGISTRY_END_OF_LINE_MARKER);
       }
 
-      if (tag->mIsNPRuntimeEnabledJavaPlugin) {
-        PR_fprintf(fd, "%d%c%s%c%s%c%s%c%c\n",
-          tag->mMimeTypes.Length(), PLUGIN_REGISTRY_FIELD_DELIMITER,
-          "application/x-java-vm-npruntime",
-          PLUGIN_REGISTRY_FIELD_DELIMITER,
-          "",
-          PLUGIN_REGISTRY_FIELD_DELIMITER,
-          "",
-          PLUGIN_REGISTRY_FIELD_DELIMITER,
-          PLUGIN_REGISTRY_END_OF_LINE_MARKER);
-      }
+      
+      
+      PR_fprintf(fd, "%d%c%s%c%s%c%s%c%c\n",
+        tag->mMimeTypes.Length(), PLUGIN_REGISTRY_FIELD_DELIMITER,
+        "application/x-java-vm-npruntime",
+        PLUGIN_REGISTRY_FIELD_DELIMITER,
+        "",
+        PLUGIN_REGISTRY_FIELD_DELIMITER,
+        "",
+        PLUGIN_REGISTRY_FIELD_DELIMITER,
+        PLUGIN_REGISTRY_END_OF_LINE_MARKER);
     }
   }
   
@@ -3664,33 +3664,6 @@ nsresult
 nsPluginHost::NewPluginNativeWindow(nsPluginNativeWindow ** aPluginNativeWindow)
 {
   return PLUG_NewPluginNativeWindow(aPluginNativeWindow);
-}
-
-nsresult
-nsPluginHost::InstantiateDummyJavaPlugin(nsIPluginInstanceOwner *aOwner)
-{
-  
-  
-  nsPluginTag *plugin = FindPluginForType("application/x-java-vm", false);
-
-  if (!plugin || !plugin->mIsNPRuntimeEnabledJavaPlugin) {
-    
-    
-
-    return NS_OK;
-  }
-
-  nsresult rv = SetUpPluginInstance("application/x-java-vm", nsnull, aOwner);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsRefPtr<nsNPAPIPluginInstance> instance;
-  aOwner->GetInstance(getter_AddRefs(instance));
-  if (!instance)
-    return NS_OK;
-
-  instance->DefineJavaProperties();
-
-  return NS_OK;
 }
 
 nsresult
