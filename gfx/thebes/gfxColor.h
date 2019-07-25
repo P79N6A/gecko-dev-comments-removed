@@ -11,8 +11,6 @@
 #include "prbit.h" 
 #include "prio.h"  
 
-#include "mozilla/Attributes.h" 
-
 #define GFX_UINT32_FROM_BPTR(pbptr,i) (((uint32_t*)(pbptr))[i])
 
 #if defined(IS_BIG_ENDIAN)
@@ -97,36 +95,30 @@
 
 
 
-PRUint8 MOZ_ALWAYS_INLINE gfxPreMultiply(PRUint8 c, PRUint8 a) {
-    return GFX_DIVIDE_BY_255((c)*(a));
-}
+#define GFX_PREMULTIPLY(c,a) GFX_DIVIDE_BY_255((c)*(a))
 
 
 
 
 
-PRUint32 MOZ_ALWAYS_INLINE
-gfxPackedPixelNoPreMultiply(PRUint8 a, PRUint8 r, PRUint8 g, PRUint8 b) {
-    return (((a) << 24) | ((r) << 16) | ((g) << 8) | (b));
-}
+
+
+
+#define GFX_PACKED_PIXEL(a,r,g,b)                                       \
+    ((a) == 0x00) ? 0x00000000 :                                        \
+    ((a) == 0xFF) ? ((0xFF << 24) | ((r) << 16) | ((g) << 8) | (b))     \
+                  : ((a) << 24) |                                       \
+                    (GFX_PREMULTIPLY(r,a) << 16) |                      \
+                    (GFX_PREMULTIPLY(g,a) << 8) |                       \
+                    (GFX_PREMULTIPLY(b,a))
 
 
 
 
 
-PRUint32 MOZ_ALWAYS_INLINE
-gfxPackedPixel(PRUint8 a, PRUint8 r, PRUint8 g, PRUint8 b) {
-    if (a == 0x00)
-        return 0x00000000;
-    else if (a == 0xFF) {
-        return gfxPackedPixelNoPreMultiply(a, r, g, b);
-    } else {
-        return  ((a) << 24) |
-                (gfxPreMultiply(r,a) << 16) |
-                (gfxPreMultiply(g,a) << 8)  |
-                (gfxPreMultiply(b,a));
-    }
-}
+#define GFX_PACKED_PIXEL_NO_PREMULTIPLY(a,r,g,b)                        \
+    (((a) << 24) | ((r) << 16) | ((g) << 8) | (b))
+
 
 
 
