@@ -1517,13 +1517,13 @@ for (uint32_t i = 0; i < length; ++i) {
             if forceOwningType:
                 
                 
-                templateBody += "nsCOMPtr<" + typeName + "> ${holderName};"
+                templateBody += "nsRefPtr<" + typeName + "> ${holderName};"
             else:
-                holderType = "nsCOMPtr<" + typeName + ">"
+                holderType = "nsRefPtr<" + typeName + ">"
             templateBody += (
                 "jsval tmpVal = ${val};\n" +
                 typePtr + " tmp;\n"
-                "if (NS_FAILED(xpc_qsUnwrapArg<" + typeName + ">(cx, ${val}, &tmp, getter_AddRefs(${holderName}), &tmpVal))) {\n")
+                "if (NS_FAILED(xpc_qsUnwrapArg<" + typeName + ">(cx, ${val}, &tmp, static_cast<" + typeName + "**>(getter_AddRefs(${holderName})), &tmpVal))) {\n")
             templateBody += CGIndenter(onFailure(failureCode,
                                                  descriptor.workers)).define()
             templateBody += ("}\n"
@@ -3460,6 +3460,7 @@ class CGBindingRoot(CGThing):
                          ['mozilla/dom/Nullable.h',
                           'mozilla/dom/PrimitiveConversions.h',
                           'XPCQuickStubs.h',
+                          'nsDOMQS.h',
                           'AccessCheck.h',
                           'WorkerPrivate.h',
                           'nsContentUtils.h',
