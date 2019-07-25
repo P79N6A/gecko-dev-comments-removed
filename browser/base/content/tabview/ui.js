@@ -107,7 +107,12 @@ var UIManager = {
       this._currentTab = gBrowser.selectedTab;
 
       
-      this._addDevMenu();
+      
+      
+      
+      
+      if (false)
+        this._addDevMenu();
 
       
       
