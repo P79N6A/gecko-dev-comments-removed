@@ -36,16 +36,16 @@
 
 
 
-#include <pthread.h>
+#include <stdlib.h>
+#include "thread_helper.h"
 #include "nscore.h"
 #include "mozilla/TimeStamp.h"
 
 using mozilla::TimeStamp;
 using mozilla::TimeDuration;
 
-
-
-extern pthread_key_t pkey_stack;
+extern mozilla::tls::key pkey_stack;
+extern mozilla::tls::key pkey_ticker;
 extern bool stack_key_initialized;
 
 #define SAMPLER_INIT() mozilla_sampler_init();
@@ -87,7 +87,22 @@ LinuxKernelMemoryBarrierFunc pLinuxKernelMemoryBarrier __attribute__((weak)) =
 
 # define STORE_SEQUENCER() pLinuxKernelMemoryBarrier()
 #elif defined(V8_HOST_ARCH_IA32) || defined(V8_HOST_ARCH_X64)
-# define STORE_SEQUENCER() asm volatile("" ::: "memory")
+# if defined(_MSC_VER)
+   
+#  define _interlockedbittestandreset _interlockedbittestandreset_NAME_CHANGED_TO_AVOID_MSVS2005_ERROR
+#  define _interlockedbittestandset _interlockedbittestandset_NAME_CHANGED_TO_AVOID_MSVS2005_ERROR
+#  include <intrin.h>
+   
+   
+#  pragma intrinsic(_ReadWriteBarrier)
+#  define STORE_SEQUENCER() _ReadWriteBarrier();
+# elif defined(__INTEL_COMPILER)
+#  define STORE_SEQUENCER() __memory_barrier();
+# elif __GNUC__
+#  define STORE_SEQUENCER() asm volatile("" ::: "memory");
+# else
+#  error "Memory clobber not supported for your compiler."
+# endif
 #else
 # error "Memory clobber not supported for your platform."
 #endif
@@ -181,7 +196,7 @@ public:
     
     mStack[mStackPointer] = aName;
     
-    asm("":::"memory");
+    STORE_SEQUENCER();
     mStackPointer++;
   }
   void pop()
@@ -198,15 +213,15 @@ public:
   }
 
   
-  const char *mStack[1024];
+  char const * volatile mStack[1024];
   
-  const char *mMarkers[1024];
-  sig_atomic_t mStackPointer;
-  sig_atomic_t mMarkerPointer;
-  sig_atomic_t mDroppedStackEntries;
+  char const * volatile mMarkers[1024];
+  volatile mozilla::sig_safe_t mStackPointer;
+  volatile mozilla::sig_safe_t mMarkerPointer;
+  volatile mozilla::sig_safe_t mDroppedStackEntries;
   
   
-  sig_atomic_t mQueueClearMarker;
+  volatile mozilla::sig_safe_t mQueueClearMarker;
 };
 
 inline void* mozilla_sampler_call_enter(const char *aInfo)
@@ -216,7 +231,7 @@ inline void* mozilla_sampler_call_enter(const char *aInfo)
   if (!stack_key_initialized)
     return NULL;
 
-  Stack *stack = (Stack*)pthread_getspecific(pkey_stack);
+  Stack *stack = mozilla::tls::get<Stack>(pkey_stack);
   
   
   
@@ -245,7 +260,7 @@ inline void mozilla_sampler_call_exit(void *aHandle)
 
 inline void mozilla_sampler_add_marker(const char *aMarker)
 {
-  Stack *stack = (Stack*)pthread_getspecific(pkey_stack);
+  Stack *stack = mozilla::tls::get<Stack>(pkey_stack);
   if (!stack) {
     return;
   }
