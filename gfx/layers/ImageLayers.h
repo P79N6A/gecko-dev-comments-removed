@@ -218,7 +218,12 @@ public:
 
 
 
-  void SetContainer(ImageContainer* aContainer) { mContainer = aContainer; }
+  void SetContainer(ImageContainer* aContainer) 
+  {
+    NS_ASSERTION(aContainer->Manager() == Manager(), 
+                 "ImageContainer must have the same manager as the ImageLayer");
+    mContainer = aContainer;  
+  }
   
 
 

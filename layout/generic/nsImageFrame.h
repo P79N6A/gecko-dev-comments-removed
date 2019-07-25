@@ -52,6 +52,11 @@
 #include "nsStubImageDecoderObserver.h"
 #include "imgIDecoderObserver.h"
 
+#include "Layers.h"
+#include "ImageLayers.h"
+#include "nsDisplayList.h"
+#include "imgIContainer.h"
+
 class nsIFrame;
 class nsImageMap;
 class nsIURI;
@@ -63,6 +68,9 @@ class nsDisplayImage;
 class nsPresContext;
 class nsImageFrame;
 class nsTransform2D;
+
+using namespace mozilla;
+using namespace mozilla::layers;
 
 class nsImageListener : public nsStubImageDecoderObserver
 {
@@ -178,6 +186,9 @@ public:
   virtual void AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
                                  InlineMinWidthData *aData);
 
+  nsRefPtr<ImageContainer> GetContainer(LayerManager* aManager,
+                                        imgIContainer* aImage);
+
 protected:
   virtual ~nsImageFrame();
 
@@ -218,7 +229,7 @@ protected:
   void PaintImage(nsIRenderingContext& aRenderingContext, nsPoint aPt,
                   const nsRect& aDirtyRect, imgIContainer* aImage,
                   PRUint32 aFlags);
-                  
+
 protected:
   friend class nsImageListener;
   nsresult OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
@@ -293,6 +304,8 @@ private:
   PRBool mDisplayingIcon;
 
   static nsIIOService* sIOService;
+  
+  nsRefPtr<ImageContainer> mImageContainer; 
 
   
 
@@ -358,6 +371,43 @@ public:
   static IconLoad* gIconLoad; 
   
   friend class nsDisplayImage;
+};
+
+
+
+
+
+
+
+class nsDisplayImage : public nsDisplayItem {
+public:
+  nsDisplayImage(nsDisplayListBuilder* aBuilder, nsImageFrame* aFrame,
+                 imgIContainer* aImage)
+    : nsDisplayItem(aBuilder, aFrame), mImage(aImage) {
+    MOZ_COUNT_CTOR(nsDisplayImage);
+  }
+  virtual ~nsDisplayImage() {
+    MOZ_COUNT_DTOR(nsDisplayImage);
+  }
+  virtual void Paint(nsDisplayListBuilder* aBuilder,
+                     nsIRenderingContext* aCtx);
+  nsCOMPtr<imgIContainer> GetImage();
+ 
+  
+
+
+
+  nsRefPtr<ImageContainer> GetContainer(LayerManager* aManager);
+  
+  
+
+
+
+  void ConfigureLayer(ImageLayer* aLayer);
+
+  NS_DISPLAY_DECL_NAME("Image", TYPE_IMAGE)
+private:
+  nsCOMPtr<imgIContainer> mImage;
 };
 
 #endif 
