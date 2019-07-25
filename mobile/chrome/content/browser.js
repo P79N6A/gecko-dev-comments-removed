@@ -1644,7 +1644,6 @@ nsBrowserAccess.prototype = {
       if (isExternal)
         tab.closeOnExit = true;
       browser = tab.browser;
-      BrowserUI.hidePanel();
     } else if (aWhere == OPEN_APPTAB) {
       Browser.tabs.forEach(function(aTab) {
         if ("appURI" in aTab.browser && aTab.browser.appURI.spec == aURI.spec) {
@@ -1662,7 +1661,6 @@ nsBrowserAccess.prototype = {
         
         browser = null;
       }
-      BrowserUI.hidePanel();
     } else { 
       browser = Browser.selectedBrowser;
     }
@@ -1679,7 +1677,10 @@ nsBrowserAccess.prototype = {
       browser.focus();
     } catch(e) { }
 
+    
+    BrowserUI.hidePanel();
     BrowserUI.closeAutoComplete();
+    Browser.hideSidebars();
     return browser;
   },
 
