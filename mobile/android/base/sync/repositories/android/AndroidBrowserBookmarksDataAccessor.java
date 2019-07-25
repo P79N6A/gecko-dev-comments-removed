@@ -175,7 +175,8 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
     
     cv.put(BrowserContract.Bookmarks.IS_FOLDER,   rec.type.equalsIgnoreCase(TYPE_FOLDER) ? 1 : 0);
 
-    cv.put("modified", rec.lastModified);
+    
+    
     return cv;
   }
   
