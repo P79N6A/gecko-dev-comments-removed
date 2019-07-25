@@ -118,7 +118,7 @@ class nsIntervalSet;
 
 
 #define NS_BLOCK_NEEDS_BIDI_RESOLUTION      NS_FRAME_STATE_BIT(20)
-#define NS_BLOCK_HAS_FLOAT_CONTINUATIONS    NS_FRAME_STATE_BIT(21)
+#define NS_BLOCK_HAS_PUSHED_FLOATS          NS_FRAME_STATE_BIT(21)
 #define NS_BLOCK_HAS_LINE_CURSOR            NS_FRAME_STATE_BIT(24)
 #define NS_BLOCK_HAS_OVERFLOW_LINES         NS_FRAME_STATE_BIT(25)
 #define NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS  NS_FRAME_STATE_BIT(26)
@@ -161,7 +161,7 @@ public:
 
   
   
-  NS_DECLARE_FRAME_PROPERTY(FloatContinuationProperty,
+  NS_DECLARE_FRAME_PROPERTY(PushedFloatProperty,
                             nsContainerFrame::DestroyFrameList)
 
   
@@ -464,7 +464,7 @@ protected:
   
 
 
-  void DrainFloatContinuations(nsBlockReflowState& aState);
+  void DrainPushedFloats(nsBlockReflowState& aState);
 
   
 
@@ -473,7 +473,7 @@ protected:
 
   
 
-  nsresult ReflowFloatContinuations(nsBlockReflowState& aState,
+  nsresult ReflowPushedFloats(nsBlockReflowState& aState,
                                     nsRect&             aBounds,
                                     nsReflowStatus&     aStatus);
 
@@ -725,12 +725,12 @@ protected:
   void SetOverflowOutOfFlows(const nsFrameList& aList, nsFrameList* aPropValue);
 
   
-  nsFrameList* GetFloatContinuations() const;
+  nsFrameList* GetPushedFloats() const;
   
   
-  nsFrameList* EnsureFloatContinuations();
+  nsFrameList* EnsurePushedFloats();
   
-  nsFrameList* RemoveFloatContinuations();
+  nsFrameList* RemovePushedFloats();
 
 #ifdef NS_DEBUG
   void VerifyLines(PRBool aFinalCheckOK);

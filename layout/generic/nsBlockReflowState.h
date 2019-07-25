@@ -230,15 +230,15 @@ public:
   
   
   
-  nsFrameList *mFloatContinuations;
+  nsFrameList *mPushedFloats;
   
   
-  void SetupFloatContinuationList();
+  void SetupPushedFloatList();
   
-  void AppendFloatContinuation(nsIFrame* aFloatCont) {
-    SetupFloatContinuationList();
-    aFloatCont->AddStateBits(NS_FRAME_IS_FLOAT_CONTINUATION);
-    mFloatContinuations->AppendFrame(mBlock, aFloatCont);
+  void AppendPushedFloat(nsIFrame* aFloatCont) {
+    SetupPushedFloatList();
+    aFloatCont->AddStateBits(NS_FRAME_IS_PUSHED_FLOAT);
+    mPushedFloats->AppendFrame(mBlock, aFloatCont);
   }
 
   

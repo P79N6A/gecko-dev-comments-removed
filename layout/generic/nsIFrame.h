@@ -260,7 +260,7 @@ typedef PRUint64 nsFrameState;
 
 
 
-#define NS_FRAME_IS_FLOAT_CONTINUATION              NS_FRAME_STATE_BIT(32)
+#define NS_FRAME_IS_PUSHED_FLOAT                    NS_FRAME_STATE_BIT(32)
 
 
 

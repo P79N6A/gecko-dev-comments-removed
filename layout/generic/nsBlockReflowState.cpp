@@ -71,7 +71,7 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
   : mBlock(aFrame),
     mPresContext(aPresContext),
     mReflowState(aReflowState),
-    mFloatContinuations(nsnull),
+    mPushedFloats(nsnull),
     mOverflowTracker(nsnull),
     mPrevBottomMargin(),
     mLineNumber(0),
@@ -426,9 +426,9 @@ nsBlockReflowState::ReconstructMarginAbove(nsLineList::iterator aLine)
 }
 
 void
-nsBlockReflowState::SetupFloatContinuationList()
+nsBlockReflowState::SetupPushedFloatList()
 {
-  NS_ABORT_IF_FALSE(!GetFlag(BRS_PROPTABLE_FLOATCLIST) == !mFloatContinuations,
+  NS_ABORT_IF_FALSE(!GetFlag(BRS_PROPTABLE_FLOATCLIST) == !mPushedFloats,
                     "flag mismatch");
   if (!GetFlag(BRS_PROPTABLE_FLOATCLIST)) {
     
@@ -438,7 +438,7 @@ nsBlockReflowState::SetupFloatContinuationList()
     
     
     
-    mFloatContinuations = mBlock->EnsureFloatContinuations();
+    mPushedFloats = mBlock->EnsurePushedFloats();
     SetFlag(BRS_PROPTABLE_FLOATCLIST, PR_TRUE);
   }
 }
@@ -552,10 +552,10 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
   NS_ABORT_IF_FALSE(aFloat->GetParent()->IsFrameOfType(nsIFrame::eBlockFrame),
                     "float's parent must be block");
   NS_ABORT_IF_FALSE(aFloat->GetParent() == mBlock ||
-                    (aFloat->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION),
+                    (aFloat->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT),
                     "float should be in this block unless it was marked as "
-                    "float continuation");
-  if (aFloat->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION) {
+                    "pushed float");
+  if (aFloat->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT) {
     
     
     
@@ -565,7 +565,7 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
       static_cast<nsBlockFrame*>(aFloat->GetParent());
     floatParent->StealFrame(mPresContext, aFloat);
 
-    aFloat->RemoveStateBits(NS_FRAME_IS_FLOAT_CONTINUATION);
+    aFloat->RemoveStateBits(NS_FRAME_IS_PUSHED_FLOAT);
 
     
     
@@ -951,7 +951,7 @@ nsBlockReflowState::PushFloatPastBreak(nsIFrame *aFloat)
   
   nsresult rv = mBlock->StealFrame(mPresContext, aFloat);
   NS_ASSERTION(NS_SUCCEEDED(rv), "StealFrame should succeed");
-  AppendFloatContinuation(aFloat);
+  AppendPushedFloat(aFloat);
 
   NS_FRAME_SET_OVERFLOW_INCOMPLETE(mReflowStatus);
 }
