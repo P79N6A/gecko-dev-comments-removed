@@ -1406,67 +1406,60 @@ JSStackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
 
         if (&fun->compiledFunObj() == &funobj && fun->methodAtom()) {
             JSObject *thisp = &thisv.toObject();
+            JS_ASSERT(thisp->canHaveMethodBarrier());
 
-            do {
+            if (thisp->hasMethodBarrier()) {
+                const Shape *shape = thisp->nativeLookup(ATOM_TO_JSID(fun->methodAtom()));
+
                 
 
 
 
 
-                if (!thisp->isNative())
-                    break;
 
-                const Shape *shape = thisp->nativeLookup(ATOM_TO_JSID(fun->methodAtom()));
+
+
+
+
+
+
                 if (shape) {
-                    if (thisp->hasMethodBarrier()) {
-                        
+                    if (shape->isMethod() && &shape->methodObject() == &funobj) {
+                        if (!thisp->methodReadBarrier(cx, *shape, vp))
+                            return false;
+                        calleeValue().setObject(vp->toObject());
+                        return true;
+                    }
+                    if (shape->hasSlot()) {
+                        Value v = thisp->getSlot(shape->slot);
+                        JSObject *clone;
 
-
-
-
-
-
-
-
-
-                        if (shape->isMethod() && &shape->methodObject() == &funobj) {
-                            if (!thisp->methodReadBarrier(cx, *shape, vp))
-                                return false;
-                            calleeValue().setObject(vp->toObject());
+                        if (IsFunctionObject(v, &clone) &&
+                            GET_FUNCTION_PRIVATE(cx, clone) == fun &&
+                            clone->hasMethodObj(*thisp)) {
+                            JS_ASSERT(clone != &funobj);
+                            *vp = v;
+                            calleeValue().setObject(*clone);
                             return true;
                         }
-
-                        if (shape->hasSlot()) {
-                            Value v = thisp->getSlot(shape->slot);
-                            JSObject *clone;
-
-                            if (IsFunctionObject(v, &clone) &&
-                                GET_FUNCTION_PRIVATE(cx, clone) == fun &&
-                                clone->hasMethodObj(*thisp)) {
-                                JS_ASSERT(clone != &funobj);
-                                *vp = v;
-                                calleeValue().setObject(*clone);
-                                return true;
-                            }
-                        }
-
-                        
-
-
-
-
-
-
-
-                        JSObject *newfunobj = CloneFunctionObject(cx, fun, fun->getParent());
-                        if (!newfunobj)
-                            return false;
-                        newfunobj->setMethodObj(*thisp);
-                        calleeValue().setObject(*newfunobj);
                     }
-                    return true;
                 }
-            } while ((thisp = thisp->getProto()) != NULL);
+
+                
+
+
+
+
+
+
+
+                JSObject *newfunobj = CloneFunctionObject(cx, fun, fun->getParent());
+                if (!newfunobj)
+                    return false;
+                newfunobj->setMethodObj(*thisp);
+                calleeValue().setObject(*newfunobj);
+                return true;
+            }
         }
     }
 
