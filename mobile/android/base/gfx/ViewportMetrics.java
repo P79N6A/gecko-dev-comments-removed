@@ -122,6 +122,10 @@ public class ViewportMetrics {
         return mViewportRect;
     }
 
+    public RectF getCssViewport() {
+        return RectUtils.scale(mViewportRect, 1/mZoomFactor);
+    }
+
     
     public RectF getClampedViewport() {
         RectF clampedViewport = new RectF(mViewportRect);
