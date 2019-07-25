@@ -1632,7 +1632,7 @@ nsWebSocketHandler::AsyncOnChannelRedirect(
     
     if (NS_FAILED(rv)) {
         LOG(("nsWebSocketHandler Redirect could not QI to HTTP\n"));
-        callback->OnRedirectVerifyCallback(NS_ERROR_FAILURE);
+        callback->OnRedirectVerifyCallback(rv);
         return NS_OK;
     }
 
@@ -1641,7 +1641,7 @@ nsWebSocketHandler::AsyncOnChannelRedirect(
     
     if (NS_FAILED(rv)) {
         LOG(("nsWebSocketHandler Redirect could not QI to HTTP Upgrade\n"));
-        callback->OnRedirectVerifyCallback(NS_ERROR_FAILURE);
+        callback->OnRedirectVerifyCallback(rv);
         return NS_OK;
     }
     
@@ -1651,7 +1651,12 @@ nsWebSocketHandler::AsyncOnChannelRedirect(
     mURI = newuri;
     mHttpChannel = newHttpChannel;
     mChannel = newUpgradeChannel;
-    SetupRequest();
+    rv = SetupRequest();
+    if (NS_FAILED(rv)) {
+        LOG(("nsWebSocketHandler Redirect could not SetupRequest()\n"));
+        callback->OnRedirectVerifyCallback(rv);
+        return NS_OK;
+    }
     
     
     
@@ -1666,7 +1671,7 @@ nsWebSocketHandler::AsyncOnChannelRedirect(
     rv = ApplyForAdmission();
     if (NS_FAILED(rv)) {
         LOG(("nsWebSocketHandler Redirect failed due to DNS failure\n"));
-        callback->OnRedirectVerifyCallback(NS_ERROR_FAILURE);
+        callback->OnRedirectVerifyCallback(rv);
         mRedirectCallback = nsnull;
     }
     
