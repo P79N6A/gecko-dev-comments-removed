@@ -1582,8 +1582,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   
-  
-  let consoleEnabled = true || gPrefService.getBoolPref("devtools.errorconsole.enabled");
+  let consoleEnabled = gPrefService.getBoolPref("devtools.errorconsole.enabled");
   if (consoleEnabled) {
     document.getElementById("javascriptConsole").hidden = false;
     document.getElementById("key_errorConsole").removeAttribute("disabled");
@@ -4276,12 +4275,14 @@ var XULBrowserWindow = {
 
   
   _state: null,
+  _tooltipText: null,
   _hostChanged: false, 
 
   onSecurityChange: function (aWebProgress, aRequest, aState) {
     
     
     if (this._state == aState &&
+        this._tooltipText == gBrowser.securityUI.tooltipText &&
         !this._hostChanged) {
 #ifdef DEBUG
       try {
@@ -4307,6 +4308,7 @@ var XULBrowserWindow = {
 #endif
 
     this._hostChanged = false;
+    this._tooltipText = gBrowser.securityUI.tooltipText
 
     
     
@@ -7930,11 +7932,14 @@ var TabContextMenu = {
     let unpinnedTabs = gBrowser.visibleTabs.length - gBrowser._numPinnedTabs;
     document.getElementById("context_closeOtherTabs").disabled = unpinnedTabs <= 1;
     document.getElementById("context_closeOtherTabs").hidden = this.contextTab.pinned;
+
+    
+    document.getElementById("context_tabViewMenu").disabled = this.contextTab.pinned;
   }
 };
 
 XPCOMUtils.defineLazyGetter(this, "HUDConsoleUI", function () {
-  Cu.import("resource:///modules/HUDService.jsm");
+  Cu.import("resource://gre/modules/HUDService.jsm");
   try {
     return HUDService.consoleUI;
   }
