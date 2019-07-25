@@ -722,8 +722,13 @@ var PlacesUtils = {
       case this.TYPE_X_MOZ_PLACE:
       case this.TYPE_X_MOZ_PLACE_SEPARATOR:
       case this.TYPE_X_MOZ_PLACE_CONTAINER:
-        var JSON = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
-        nodes = JSON.decode("[" + blob + "]");
+        var json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
+        
+        
+        
+        
+        
+        nodes = json.legacyDecode("[" + blob + "]");
         break;
       case this.TYPE_X_MOZ_URL:
         var parts = blob.split("\n");
