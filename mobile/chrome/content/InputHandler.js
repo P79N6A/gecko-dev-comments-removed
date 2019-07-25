@@ -318,7 +318,7 @@ ChromeInputModule.prototype = {
     [sX, sY] = dragData.lockMouseMove(sX, sY);
     if (this._targetScrollbox)
       this._targetScrollbox.scrollBy(dragData.sX - sX, dragData.sY - sY);
-    this.setDragPosition(sX, sY);
+    dragData.setDragPosition(sX, sY);
   },
 
   _onMouseDown: function _onMouseDown(aEvent) {
@@ -402,7 +402,7 @@ ChromeInputModule.prototype = {
     if (!dragData.sX)
       dragData.setDragPosition(aEvent.screenX, aEvent.screenY);
 
-    let [sX, sY] = dragData.lockMouseMove(aEvent.screenX, aEvent.screenY);
+    [sX, sY] = dragData.lockMouseMove(aEvent.screenX, aEvent.screenY);
 
     dragData.detectEarlyDrag(sX, sY);
 
@@ -506,7 +506,7 @@ KineticData.prototype = {
         if (self._speedX == 0 && self._speedY == 0)
           self.endKinetic();
       }
-    };  
+    };
 
     this._kineticTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     
