@@ -6704,6 +6704,14 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             }
             if (js_Emit1(cx, cg, op) < 0)
                 return JS_FALSE;
+            if (js_CodeSpec[op].format & JOF_DECOMPOSE) {
+                
+
+
+
+                if (js_Emit1(cx, cg, (JSOp)0) < 0)
+                    return JS_FALSE;
+            }
             break;
 #if JS_HAS_XML_SUPPORT
           case TOK_UNARYOP:
