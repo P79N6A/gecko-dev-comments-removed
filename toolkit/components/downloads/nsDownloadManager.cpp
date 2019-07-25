@@ -326,7 +326,7 @@ nsDownloadManager::CloseDB()
   MOZ_ASSERT(NS_SUCCEEDED(rv));
   rv = mUpdateDownloadStatement->Finalize();
   MOZ_ASSERT(NS_SUCCEEDED(rv));
-  rv = mDBConn->Close();
+  rv = mDBConn->AsyncClose(nsnull);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 }
 
@@ -899,6 +899,11 @@ nsDownloadManager::Init()
   nsCOMPtr<nsINavHistoryService> history =
     do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID);
 
+  (void)mObserverService->NotifyObservers(
+                                static_cast<nsIDownloadManager *>(this),
+                                "download-manager-initialized",
+                                nsnull);
+
   
   
   
@@ -932,6 +937,19 @@ nsDownloadManager::GetRetentionBehavior()
   PRInt32 val;
   rv = pref->GetIntPref(PREF_BDM_RETENTION, &val);
   NS_ENSURE_SUCCESS(rv, 0);
+
+  
+  
+  
+  
+  
+  nsCOMPtr<nsISupportsPRInt32> retentionBehavior =
+    do_CreateInstance(NS_SUPPORTS_PRINT32_CONTRACTID);
+  retentionBehavior->SetData(val);
+  (void)mObserverService->NotifyObservers(retentionBehavior,
+                                          "download-manager-change-retention",
+                                          nsnull);
+  retentionBehavior->GetData(&val);
 
   return val;
 }
@@ -1840,6 +1858,12 @@ nsDownloadManager::SwitchDatabaseTypeTo(enum nsDownloadManager::DatabaseType aTy
   
   rv = RestoreDatabaseState();
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  (void)mObserverService->NotifyObservers(
+                                static_cast<nsIDownloadManager *>(this),
+                                "download-manager-database-type-changed",
+                                nsnull);
 
   rv = RestoreActiveDownloads();
   NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Failed to restore all active downloads");

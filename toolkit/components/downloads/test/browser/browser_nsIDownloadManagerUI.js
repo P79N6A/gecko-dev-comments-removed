@@ -107,6 +107,13 @@ function test()
     win.close();
 
   
+  
+  Services.prefs.setBoolPref("browser.download.useToolkitUI", true);
+  registerCleanupFunction(function() {
+    Services.prefs.clearUserPref("browser.download.useToolkitUI");
+  });
+
+  
   Cc["@mozilla.org/download-manager-ui;1"].
   getService(Ci.nsIDownloadManagerUI).show();
 
