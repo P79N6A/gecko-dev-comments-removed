@@ -333,7 +333,12 @@ class Script
 
     void setFunction(JSContext *cx, JSFunction *fun);
 
+    
     bool isEval() { return parent && !fun; }
+
+    
+    bool isGlobal() { return !parent || (!fun && !parent->analysis->parent); }
+
     unsigned argCount() { return fun ? fun->nargs : 0; }
     types::TypeFunction *function() { return fun->getTypeObject()->asFunction(); }
 

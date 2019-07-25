@@ -2273,7 +2273,7 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-        if (cg->hasDefFun())
+        if (cg->mightAliasLocals())
             return JS_TRUE;
 
         switch (op) {

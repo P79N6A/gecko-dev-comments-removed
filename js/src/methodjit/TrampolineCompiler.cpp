@@ -146,7 +146,7 @@ TrampolineCompiler::generateForceReturnFast(Assembler &masm)
 #else
     
     
-    masm.addPtr(Imm32(8), Registers::StackPointer);
+    masm.addPtr(Imm32(16), Registers::StackPointer);
 #endif
     return generateForceReturn(masm);
 }

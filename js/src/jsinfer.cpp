@@ -2301,6 +2301,23 @@ SearchScope(JSContext *cx, Script *script, TypeStack *stack, jsid id)
     return SCOPE_GLOBAL;
 }
 
+
+void
+TrashScope(JSContext *cx, Script *script, jsid id)
+{
+    while (true) {
+        if (!script->isEval()) {
+            TypeSet *types = script->getVariable(cx, id);
+            types->addType(cx, TYPE_UNKNOWN);
+        }
+        if (!script->parent)
+            break;
+        script = script->parent->analysis;
+    }
+    TypeSet *types = cx->getGlobalTypeObject()->getProperty(cx, id, true);
+    types->addType(cx, TYPE_UNKNOWN);
+}
+
 static inline jsid
 GetAtomId(JSContext *cx, Script *script, const jsbytecode *pc, unsigned offset)
 {
@@ -3033,30 +3050,16 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
             jsid id = getLocalId(GET_SLOTNO(pc), code);
             res = evalParent()->getVariable(cx, id);
         } else {
-            
             JSAtom *atom = obj->getFunctionPrivate()->atom;
             JS_ASSERT(atom);
             jsid id = ATOM_TO_JSID(atom);
-            if (parent) {
-                if (this->fun) {
-                    
-
-
-
-                    res = getVariable(cx, id);
-                } else {
-                    
-                    Script *scope = SearchScope(cx, parent->analysis, parentCode()->inStack, id);
-                    if (scope == SCOPE_GLOBAL) {
-                        res = cx->getGlobalTypeObject()->getProperty(cx, id, true);
-                    } else if (scope) {
-                        res = scope->getVariable(cx, id);
-                        res->addType(cx, TYPE_UNKNOWN);
-                    }
-                }
-            } else {
+            if (isGlobal()) {
                 
                 res = cx->getGlobalTypeObject()->getProperty(cx, id, true);
+            } else {
+                
+                TrashScope(cx, this, id);
+                break;
             }
         }
 
@@ -3227,8 +3230,8 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
         jsid id = getLocalId(GET_SLOTNO(pc), code);
         JS_ASSERT(!JSID_IS_VOID(id));
 
-        SetForTypes(cx, state, code, evalParent()->getVariable(cx, id));
-        break;
+        SetForTypes(cx, state, code, evalParent()->getVariable(cx, id)); 
+       break;
       }
 
       case JSOP_FORARG: {
@@ -3269,13 +3272,12 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
 
 
-        if (parent && !fun) {
+
+
+
+        if (!isGlobal()) {
             jsid id = GetAtomId(cx, this, pc, 0);
-            Script *scope = SearchScope(cx, parent->analysis, parentCode()->inStack, id);
-            if (scope && scope != SCOPE_GLOBAL) {
-                TypeSet *types = scope->getVariable(cx, id);
-                types->addType(cx, TYPE_UNKNOWN);
-            }
+            TrashScope(cx, this, id);
         }
         break;
 
