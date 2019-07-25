@@ -79,7 +79,7 @@ CanvasBrowser.prototype = {
   
   _maxRight: 0,
   _maxBottom: 0,
-  
+
   
   _needToPanToTop: false,
 
@@ -508,9 +508,9 @@ CanvasBrowser.prototype = {
     
     
     if (needToPanToTop) {
-      ws.beginUpdateBatch();      
+      ws.beginUpdateBatch();
       this._needToPanToTop = false;
-      ws.panTo(0, 0);
+      ws.panTo(0, -60);
     }
     
     
@@ -519,7 +519,7 @@ CanvasBrowser.prototype = {
 
     if (contentW > canvasW)
       this.zoomLevel = canvasW / contentW;
-    
+
     if (needToPanToTop)
       ws.endUpdateBatch();
   },
@@ -614,7 +614,7 @@ CanvasBrowser.prototype = {
     return [clickOffsetX - scrollX,
             clickOffsetY - scrollY];
   },
-  
+
   get contentScrollValues() {
     let cwu = this.contentDOMWindowUtils;
     let scrollX = {}, scrollY = {};
