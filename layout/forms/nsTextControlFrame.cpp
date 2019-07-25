@@ -514,14 +514,12 @@ nsTextControlFrame::Reflow(nsPresContext*   aPresContext,
 
   
   aDesiredSize.width = aReflowState.ComputedWidth() +
-                        aReflowState.mComputedBorderPadding.LeftRight();
-  aDesiredSize.height = NS_CSS_MINMAX(aReflowState.ComputedHeight(),
-                                      aReflowState.mComputedMinHeight,
-                                      aReflowState.mComputedMaxHeight);
-  nscoord lineHeight = aDesiredSize.height;
-  aDesiredSize.height += aReflowState.mComputedBorderPadding.TopBottom();
+                       aReflowState.mComputedBorderPadding.LeftRight();
+  aDesiredSize.height = aReflowState.ComputedHeight() +
+                        aReflowState.mComputedBorderPadding.TopBottom();
 
   
+  nscoord lineHeight = aReflowState.ComputedHeight();
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   if (!IsSingleLineTextControl()) {
     lineHeight = nsHTMLReflowState::CalcLineHeight(GetStyleContext(), 
