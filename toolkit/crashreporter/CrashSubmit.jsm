@@ -187,10 +187,8 @@ function writeSubmittedReport(crashID, viewURL) {
 }
 
 
-function Submitter(id, element, submitSuccess, submitError, noThrottle) {
+function Submitter(id, submitSuccess, submitError, noThrottle) {
   this.id = id;
-  this.element = element;
-  this.document = element.ownerDocument;
   this.successCallback = submitSuccess;
   this.errorCallback = submitError;
   this.noThrottle = noThrottle;
@@ -223,8 +221,6 @@ Submitter.prototype = {
 
   cleanup: function Submitter_cleanup() {
     
-    this.element = null;
-    this.document = null;
     this.successCallback = null;
     this.errorCallback = null;
     this.iframe = null;
@@ -239,74 +235,43 @@ Submitter.prototype = {
   submitForm: function Submitter_submitForm()
   {
     let reportData = parseKeyValuePairsFromFile(this.extra);
-    let form = this.iframe.contentDocument.forms[0];
-    if ('ServerURL' in reportData) {
-      form.action = reportData.ServerURL;
-      delete reportData.ServerURL;
-    }
-    else {
+    if (!('ServerURL' in reportData)) {
       return false;
     }
+
+    let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
+              .createInstance(Ci.nsIXMLHttpRequest);
+    xhr.open("POST", reportData.ServerURL, true);
+    delete reportData.ServerURL;
+
+    let formData = Cc["@mozilla.org/files/formdata;1"]
+                   .createInstance(Ci.nsIDOMFormData);
     
     for (let [name, value] in Iterator(reportData)) {
-      addFormEntry(this.iframe.contentDocument, form, name, value);
+      formData.append(name, value);
     }
     if (this.noThrottle) {
       
-      addFormEntry(this.iframe.contentDocument, form, "Throttleable", "0");
+      formData.append("Throttleable", "0");
     }
     
-    this.iframe.contentDocument.getElementById('minidump').value
-      = this.dump.path;
-    this.iframe.docShell.QueryInterface(Ci.nsIWebProgress);
-    this.iframe.docShell.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
-    form.submit();
+    formData.append("upload_file_minidump", File(this.dump.path));
+    let self = this;
+    xhr.onreadystatechange = function (aEvt) {
+      if (xhr.readyState == 4) {
+        if (xhr.status != 200) {
+          self.notifyStatus(FAILED);
+          self.cleanup();
+        } else {
+          let ret = parseKeyValuePairs(xhr.responseText);
+          self.submitSuccess(ret);
+        }
+      }
+    };
+
+    xhr.send(formData);
     return true;
   },
-
-  
-  QueryInterface: function(aIID)
-  {
-    if (aIID.equals(Ci.nsIWebProgressListener) ||
-        aIID.equals(Ci.nsISupportsWeakReference) ||
-        aIID.equals(Ci.nsISupports))
-      return this;
-    throw Components.results.NS_NOINTERFACE;
-  },
-
-  onStateChange: function(aWebProgress, aRequest, aFlag, aStatus)
-  {
-    if(aFlag & STATE_STOP) {
-      this.iframe.docShell.QueryInterface(Ci.nsIWebProgress);
-      this.iframe.docShell.removeProgressListener(this);
-
-      
-      if (!Components.isSuccessCode(aStatus)) {
-        this.element.removeChild(this.iframe);
-        this.notifyStatus(FAILED);
-        this.cleanup();
-        return 0;
-      }
-      
-      if (aRequest instanceof Ci.nsIHttpChannel &&
-          aRequest.responseStatus != 200) {
-        this.element.removeChild(this.iframe);
-        this.notifyStatus(FAILED);
-        this.cleanup();
-        return 0;
-      }
-
-      var ret = parseKeyValuePairs(this.iframe.contentDocument.documentElement.textContent);
-      this.element.removeChild(this.iframe);
-      this.submitSuccess(ret);
-    }
-    return 0;
-  },
-
-  onLocationChange: function(aProgress, aRequest, aURI) {return 0;},
-  onProgressChange: function() {return 0;},
-  onStatusChange: function() {return 0;},
-  onSecurityChange: function() {return 0;},
 
   notifyStatus: function Submitter_notify(status, ret)
   {
@@ -346,26 +311,12 @@ Submitter.prototype = {
 
     this.dump = dump;
     this.extra = extra;
-    let iframe = this.document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "iframe");
-    iframe.setAttribute("type", "content");
-    iframe.style.width = 0;
-    iframe.style.minWidth = 0;
 
-    let self = this;
-    function loadHandler() {
-      if (iframe.contentWindow.location == "about:blank")
-        return;
-      iframe.removeEventListener("load", loadHandler, true);
-      if (!self.submitForm()) {
-        self.notifyStatus(FAILED);
-        self.cleanup();
-      }
+    if (!this.submitForm()) {
+       this.notifyStatus(FAILED);
+       this.cleanup();
+       return false;
     }
-
-    iframe.addEventListener("load", loadHandler, true);
-    this.element.appendChild(iframe);
-    this.iframe = iframe;
-    iframe.webNavigation.loadURI("chrome://global/content/crash-submit-form.xhtml", 0, null, null, null);
     return true;
   }
 };
@@ -398,14 +349,10 @@ let CrashSubmit = {
 
 
 
-
-
-
-  submit: function CrashSubmit_submit(id, element, submitSuccess, submitError,
+  submit: function CrashSubmit_submit(id, submitSuccess, submitError,
                                       noThrottle)
   {
     let submitter = new Submitter(id,
-                                  element,
                                   submitSuccess,
                                   submitError,
                                   noThrottle);

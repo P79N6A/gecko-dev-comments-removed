@@ -6797,9 +6797,9 @@ var gPluginHandler = {
   submitReport : function(pluginDumpID, browserDumpID) {
     
     
-    this.CrashSubmit.submit(pluginDumpID, gBrowser, null, null);
+    this.CrashSubmit.submit(pluginDumpID, null, null);
     if (browserDumpID)
-      this.CrashSubmit.submit(browserDumpID, gBrowser, null, null);
+      this.CrashSubmit.submit(browserDumpID, null, null);
   },
 
   
