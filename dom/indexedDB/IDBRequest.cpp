@@ -77,10 +77,6 @@ IDBRequest::~IDBRequest()
     
     UnrootResultVal();
   }
-
-  if (mListenerManager) {
-    mListenerManager->Disconnect();
-  }
 }
 
 
