@@ -301,6 +301,12 @@ class FrameState
     
 
 
+
+    void popAfterSet();
+
+    
+
+
     uint32 stackDepth() const { return sp - spBase; }
     uint32 tos() const { return sp - base; }
 
@@ -320,6 +326,11 @@ class FrameState
     inline FrameEntry *addToTracker(uint32 index);
     inline void syncType(const FrameEntry *fe, Assembler &masm) const;
     inline void syncData(const FrameEntry *fe, Assembler &masm) const;
+
+    void
+    moveOwnership(RegisterID reg, FrameEntry *newFe) {
+        regstate[reg].fe = newFe;
+    }
 
     RegisterID evictSomething() {
         return evictSomething(Registers::AvailRegs);
