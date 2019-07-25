@@ -675,7 +675,7 @@ var Browser = {
       return;
 
     
-    if (tab.isLoading())
+    if (tab == this._selectedTab && tab.isLoading())
       BrowserUI.unlockToolbar();
 
     let tabIndex = this._tabs.indexOf(tab);
