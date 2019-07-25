@@ -40,13 +40,34 @@
 pref("toolkit.defaultChromeURI", "chrome://browser/content/shell.xul");
 pref("browser.chromeURL", "chrome://browser/content/");
 #ifdef MOZ_OFFICIAL_BRANDING
-pref("browser.homescreenURL", "file:///system/home/homescreen.html");
+pref("browser.homescreenURL", "http://homescreen.gaiamobile.org/");
 #else
-pref("browser.homescreenURL", "file:///data/local/homescreen.html,file:///system/home/homescreen.html");
+pref("browser.homescreenURL", "http://homescreen.gaiamobile.org/");
 #endif
 
 
-pref("dom.telephony.app.phone.url", "http://localhost:7777/data/local/apps/dialer/dialer.html,http://localhost:7777/data/local/apps/homescreen/homescreen.html,http://localhost:7777/apps/dialer/dialer.html,http://localhost:7777/apps/homescreen/homescreen.html");
+
+pref("b2g.privileged.domains", "http://browser.gaiamobile.org,
+	                            http://calculator.gaiamobile.org,
+	                            http://contacts.gaiamobile.org,
+	                            http://camera.gaiamobile.org,
+	                            http://clock.gaiamobile.org,
+	                            http://crystalskull.gaiamobile.org,
+	                            http://cubevid.gaiamobile.org,
+	                            http://dialer.gaiamobile.org,
+	                            http://gallery.gaiamobile.org,
+	                            http://homescreen.gaiamobile.org,
+	                            http://maps.gaiamobile.org,
+	                            http://market.gaiamobile.org,
+	                            http://music.gaiamobile.org,
+	                            http://penguinpop.gaiamobile.org,
+	                            http://settings.gaiamobile.org,
+	                            http://sms.gaiamobile.org,
+	                            http://towerjelly.gaiamobile.org,
+	                            http://video.gaiamobile.org");
+
+
+pref("dom.telephony.app.phone.url", "http://dialer.gaiamobile.org,http://homescreen.gaiamobile.org");
 
 
 pref("browser.viewport.scaleRatio", -1);
@@ -55,9 +76,11 @@ pref("browser.viewport.scaleRatio", -1);
 pref("browser.ignoreNativeFrameTextSelection", true);
 
 
+#ifdef MOZ_WIDGET_GONK
 pref("browser.cache.disk.enable", true);
 pref("browser.cache.disk.capacity", 55000); 
 pref("browser.cache.disk.parent_directory", "/cache");
+#endif
 pref("browser.cache.disk.smart_size.enabled", false);
 pref("browser.cache.disk.smart_size.first_run", false);
 
@@ -69,7 +92,8 @@ pref("image.cache.size", 1048576);
 
 
 pref("browser.offline-apps.notify", false);
-pref("browser.cache.offline.enable", false);
+pref("browser.cache.offline.enable", true);
+pref("offline-apps.allow_by_default", true);
 
 
 pref("network.protocol-handler.warn-external.tel", false);
@@ -391,7 +415,7 @@ pref("layers.acceleration.force-enabled", true);
 
 pref("dom.screenEnabledProperty.enabled", true);
 pref("dom.screenBrightnessProperty.enabled", true);
-pref("dom.mozScreenWhitelist", "http://localhost:7777");
+pref("dom.mozScreenWhitelist", "http://homescreen.gaiamobile.org,http://settings.gaiamobile.org");
 
 
 
@@ -404,15 +428,15 @@ pref("browser.link.open_newwindow.restriction", 0);
 
 
 pref("dom.mozBrowserFramesEnabled", true);
-pref("dom.mozBrowserFramesWhitelist", "http://localhost:7777");
+pref("dom.mozBrowserFramesWhitelist", "http://homescreen.gaiamobile.org,http://browser.gaiamobile.org");
 
 
 pref("dom.sms.enabled", true);
-pref("dom.sms.whitelist", "file://,http://localhost:7777");
+pref("dom.sms.whitelist", "file://,http://homescreen.gaiamobile.org,http://sms.gaiamobile.org");
 
 
 pref("dom.mozContacts.enabled", true);
-pref("dom.mozContacts.whitelist", "http://localhost:7777");
+pref("dom.mozContacts.whitelist", "http://dialer.gaiamobile.org,http://sms.gaiamobile.org");
 
 
 pref("b2g.ignoreXFrameOptions", true);
@@ -440,7 +464,7 @@ pref("b2g.keys.search.enabled", false);
 
 
 pref("power.screen.timeout", 60);
-pref("dom.power.whitelist", "http://localhost:7777");
+pref("dom.power.whitelist", "http://homescreen.gaiamobile.org,http://settings.gaiamobile.org");
 
 pref("full-screen-api.enabled", true);
 
