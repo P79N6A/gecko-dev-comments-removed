@@ -65,10 +65,6 @@ var Feedback = {
       let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
       Feedback._device = sysInfo.get("device");
       Feedback._manufacturer = sysInfo.get("manufacturer");
-
-      
-      Services.console.logStringMessage("Device: " + Feedback._device);
-      Services.console.logStringMessage("Manufacturer: " + Feedback._manufacturer);
     }, false);
   },
 
