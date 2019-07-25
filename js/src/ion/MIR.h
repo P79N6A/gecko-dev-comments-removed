@@ -313,6 +313,10 @@ class MInstruction
         return false;
     }
 
+    virtual bool isControlInstruction() {
+        return false;
+    }
+
     
     
     
