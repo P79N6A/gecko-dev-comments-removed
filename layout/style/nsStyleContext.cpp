@@ -467,6 +467,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
 
   maxHint = nsChangeHint(NS_STYLE_HINT_REFLOW | NS_STYLE_HINT_UPDATE_OVERFLOW);
   DO_STRUCT_DIFFERENCE(Border);
+  DO_STRUCT_DIFFERENCE(TextReset);
       
   
   maxHint = nsChangeHint(NS_STYLE_HINT_REFLOW | nsChangeHint_SyncFrameView);
@@ -482,7 +483,6 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   DO_STRUCT_DIFFERENCE(Font);
   DO_STRUCT_DIFFERENCE(Margin);
   DO_STRUCT_DIFFERENCE(Padding);
-  DO_STRUCT_DIFFERENCE(TextReset);
 
   
   maxHint = NS_STYLE_HINT_UPDATE_OVERFLOW;
