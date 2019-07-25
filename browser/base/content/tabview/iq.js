@@ -348,16 +348,14 @@ iQClass.prototype = {
   
   
   width: function iQClass_width() {
-    let bounds = this.bounds();
-    return bounds.width;
+    return Math.floor(this[0].offsetWidth);
   },
 
   
   
   
   height: function iQClass_height() {
-    let bounds = this.bounds();
-    return bounds.height;
+    return Math.floor(this[0].offsetHeight);
   },
 
   
