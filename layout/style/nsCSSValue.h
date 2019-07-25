@@ -56,6 +56,7 @@
 class imgIRequest;
 class nsIDocument;
 class nsIPrincipal;
+class nsPresContext;
 
 
 #define NS_CSS_DELETE_LIST_MEMBER(type_, ptr_, member_)                        \
@@ -156,7 +157,6 @@ enum nsCSSUnit {
   eCSSUnit_Centimeter   = 208,    
 
   
-  eCSSUnit_Point        = 300,    
   eCSSUnit_Pica         = 301,    
 
   
@@ -167,7 +167,8 @@ enum nsCSSUnit {
   eCSSUnit_RootEM       = 803,    
 
   
-  eCSSUnit_Pixel        = 900,    
+  eCSSUnit_Point        = 900,    
+  eCSSUnit_Pixel        = 901,    
 
   
   eCSSUnit_Degree       = 1000,    
@@ -230,10 +231,29 @@ public:
   nsCSSUnit GetUnit() const { return mUnit; }
   PRBool    IsLengthUnit() const
     { return eCSSUnit_Inch <= mUnit && mUnit <= eCSSUnit_Pixel; }
+  
+
+
+
+
   PRBool    IsFixedLengthUnit() const  
     { return eCSSUnit_Inch <= mUnit && mUnit <= eCSSUnit_Pica; }
+  
+
+
+
+
+
+
+
+
   PRBool    IsRelativeLengthUnit() const  
-    { return eCSSUnit_EM <= mUnit && mUnit <= eCSSUnit_Pixel; }
+    { return eCSSUnit_EM <= mUnit && mUnit <= eCSSUnit_RootEM; }
+  
+
+
+  PRBool    IsPixelLengthUnit() const
+    { return eCSSUnit_Point <= mUnit && mUnit <= eCSSUnit_Pixel; }
   PRBool    IsAngularUnit() const  
     { return eCSSUnit_Degree <= mUnit && mUnit <= eCSSUnit_Radian; }
   PRBool    IsFrequencyUnit() const  
@@ -343,7 +363,8 @@ public:
   
   imgIRequest* GetImageValue() const;
 
-  nscoord GetLengthTwips() const;
+  nscoord GetFixedLength(nsPresContext* aPresContext) const;
+  nscoord GetPixelLength() const;
 
   void Reset()  
   {

@@ -619,9 +619,9 @@ public:
                    AppUnitsToGfxUnits(aAppRect.width),
                    AppUnitsToGfxUnits(aAppRect.height)); }
 
-  nscoord TwipsToAppUnits(PRInt32 aTwips) const
-  { return NSCoordSaturatingMultiply(mDeviceContext->AppUnitsPerInch(),
-                                     NS_TWIPS_TO_INCHES(aTwips)); }
+  nscoord TwipsToAppUnits(float aTwips) const
+  { return NSToCoordRoundWithClamp(
+      mDeviceContext->AppUnitsPerInch() * NS_TWIPS_TO_INCHES(aTwips)); }
 
   
   nsMargin TwipsToAppUnits(const nsIntMargin &marginInTwips) const
