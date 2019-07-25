@@ -348,8 +348,9 @@ XPCWrappedNative::WrapNewGlobal(XPCCallContext &ccx, xpcObjectHelper &nativeHelp
 
     
     
-    XPCNativeScriptableInfo *si = XPCNativeScriptableInfo::Construct(ccx, &sciWrapper);
-    MOZ_ASSERT(si);
+    AutoMarkingNativeScriptableInfoPtr
+        si(ccx, XPCNativeScriptableInfo::Construct(ccx, &sciWrapper));
+    MOZ_ASSERT(si.get());
 
     
     JSClass *clasp = si->GetJSClass();
