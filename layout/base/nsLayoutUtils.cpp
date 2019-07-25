@@ -786,13 +786,20 @@ nsLayoutUtils::GetActiveScrolledRootFor(nsIFrame* aFrame,
 
 nsIFrame*
 nsLayoutUtils::GetActiveScrolledRootFor(nsDisplayItem* aItem,
-                                        nsDisplayListBuilder* aBuilder)
+                                        nsDisplayListBuilder* aBuilder,
+                                        PRBool* aShouldFixToViewport)
 {
   nsIFrame* f = aItem->GetUnderlyingFrame();
+  if (aShouldFixToViewport) {
+    *aShouldFixToViewport = PR_FALSE;
+  }
   if (!f) {
     return nsnull;
   }
   if (aItem->ShouldFixToViewport(aBuilder)) {
+    if (aShouldFixToViewport) {
+      *aShouldFixToViewport = PR_TRUE;
+    }
     
     
     
@@ -1087,13 +1094,8 @@ nsLayoutUtils::MatrixTransformPoint(const nsPoint &aPoint,
                  NSFloatPixelsToAppUnits(float(image.y), aFactor));
 }
 
-
-
-
-
-
-
-static gfxMatrix GetCTMAt(nsIFrame *aFrame)
+gfxMatrix nsLayoutUtils::GetTransformToAncestor(nsIFrame *aFrame,
+                                                nsIFrame* aStopAtAncestor)
 {
   gfxMatrix ctm;
 
@@ -1103,8 +1105,10 @@ static gfxMatrix GetCTMAt(nsIFrame *aFrame)
 
 
 
-  while (aFrame)
+  while (aFrame && aFrame != aStopAtAncestor) {
     ctm *= aFrame->GetTransformMatrix(&aFrame);
+  }
+  NS_ASSERTION(aFrame == aStopAtAncestor, "How did we manage to miss the ancestor?");
   return ctm;
 }
 
@@ -1117,7 +1121,7 @@ nsLayoutUtils::InvertTransformsToRoot(nsIFrame *aFrame,
   
 
 
-  gfxMatrix ctm = GetCTMAt(aFrame);
+  gfxMatrix ctm = GetTransformToAncestor(aFrame);
 
   
   if (ctm.IsSingular())
@@ -1447,7 +1451,7 @@ nsLayoutUtils::PaintFrame(nsRenderingContext* aRenderingContext, nsIFrame* aFram
   nsDisplayListBuilder builder(aFrame, nsDisplayListBuilder::PAINTING,
 		                       !(aFlags & PAINT_HIDE_CARET));
   if (usingDisplayPort) {
-    builder.SetHasDisplayPort();
+    builder.SetDisplayPort(displayport);
   }
 
   nsDisplayList list;
