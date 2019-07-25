@@ -661,13 +661,6 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
         return NS_OK;
     }
 
-#ifdef XPC_IDISPATCH_SUPPORT
-    
-    if(nsXPConnect::IsIDispatchEnabled() && aIID.Equals(NSID_IDISPATCH))
-    {
-        return XPCIDispatchExtension::IDispatchQIWrappedJS(self, aInstancePtr);
-    }
-#endif
     if(aIID.Equals(NS_GET_IID(nsIPropertyBag)))
     {
         

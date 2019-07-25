@@ -356,20 +356,7 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
     NS_ASSERTION(!Scope->GetRuntime()->GetThreadRunningGC(), 
                  "XPCWrappedNative::GetNewOrUsed called during GC");
 
-    nsISupports *identity;
-#ifdef XPC_IDISPATCH_SUPPORT
-    
-    
-    
-    
-    
-    PRBool isIDispatch = Interface &&
-                         Interface->GetIID()->Equals(NSID_IDISPATCH);
-    if(isIDispatch)
-        identity = helper.Object();
-    else
-#endif
-        identity = helper.GetCanonical();
+    nsISupports *identity = helper.GetCanonical();
 
     if(!identity)
     {
@@ -434,18 +421,6 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
                          Interface->GetIID()->Equals(NS_GET_IID(nsIClassInfo));
 
     nsIClassInfo *info = helper.GetClassInfo();
-
-#ifdef XPC_IDISPATCH_SUPPORT
-    
-    
-    nsCOMPtr<nsIClassInfo> dispatchInfo;
-    if(isIDispatch && !info)
-    {
-        dispatchInfo = dont_AddRef(static_cast<nsIClassInfo*>
-                                      (XPCIDispatchClassInfo::GetSingleton()));
-        info = dispatchInfo;
-    }
-#endif
 
     XPCNativeScriptableCreateInfo sciProto;
     XPCNativeScriptableCreateInfo sci;
@@ -845,14 +820,7 @@ XPCWrappedNative::GetUsedOnly(XPCCallContext& ccx,
     }
     else
     {
-        nsCOMPtr<nsISupports> identity;
-#ifdef XPC_IDISPATCH_SUPPORT
-        
-        if(Interface->GetIID()->Equals(NSID_IDISPATCH))
-            identity = Object;
-        else
-#endif
-            identity = do_QueryInterface(Object);
+        nsCOMPtr<nsISupports> identity = do_QueryInterface(Object);
 
         if(!identity)
         {
@@ -1466,10 +1434,6 @@ XPCWrappedNative::SystemIsBeingShutDown(JSContext* cx)
             if(to->GetJSObject())
             {
                 JS_SetPrivate(cx, to->GetJSObject(), nsnull);
-#ifdef XPC_IDISPATCH_SUPPORT
-                if(to->IsIDispatch())
-                    delete to->GetIDispatchInfo();
-#endif
                 to->SetJSObject(nsnull);
             }
             
@@ -2174,13 +2138,6 @@ XPCWrappedNative::InitTearOff(XPCCallContext& ccx,
 
     aTearOff->SetInterface(aInterface);
     aTearOff->SetNative(obj);
-#ifdef XPC_IDISPATCH_SUPPORT
-    
-    if(iid->Equals(NSID_IDISPATCH))
-    {
-        aTearOff->SetIDispatch(ccx);
-    }  
-#endif
     if(needJSObject && !InitTearOffJSObject(ccx, aTearOff))
         return NS_ERROR_OUT_OF_MEMORY;
 
