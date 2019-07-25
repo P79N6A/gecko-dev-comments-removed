@@ -59,6 +59,7 @@ static NS_DEFINE_CID(kCharsetConverterManagerCID, NS_ICHARSETCONVERTERMANAGER_CI
 
 #define JIS0212_INDEX gJIS0212Index
 #define SJIS_UNMAPPED	0x30fb
+#define UNICODE_REPLACEMENT_CHARACTER 0xfffd
 
 NS_IMETHODIMP nsShiftJISToUnicode::Convert(
    const char * aSrc, PRInt32 * aSrcLen,
@@ -169,10 +170,17 @@ NS_IMETHODIMP nsShiftJISToUnicode::Convert(
           case 1: 
           {
             PRUint8 off = sbIdx[*src];
+
+            
+            
+            
+            
+            
             if(0xFF == off) {
+               src--;
                if (mErrBehavior == kOnError_Signal)
                  goto error_invalidchar;
-               *dest++ = SJIS_UNMAPPED;
+               *dest++ = UNICODE_REPLACEMENT_CHARACTER;
             } else {
                PRUnichar ch = gJapaneseMap[mData+off];
                if(ch == 0xfffd) {
@@ -191,11 +199,14 @@ NS_IMETHODIMP nsShiftJISToUnicode::Convert(
           case 2: 
           {
             PRUint8 off = sbIdx[*src];
+
+            
             if(0xFF == off) {
+               src--;
                if (mErrBehavior == kOnError_Signal)
                  goto error_invalidchar;
 
-               *dest++ = SJIS_UNMAPPED;
+               *dest++ = UNICODE_REPLACEMENT_CHARACTER;
             } else {
                *dest++ = mData + off;
             }
