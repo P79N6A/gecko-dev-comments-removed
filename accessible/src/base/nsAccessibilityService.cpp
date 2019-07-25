@@ -16,6 +16,7 @@
 #include "FocusManager.h"
 #include "HTMLElementAccessibles.h"
 #include "HTMLImageMapAccessible.h"
+#include "HTMLLinkAccessible.h"
 #include "HTMLListAccessible.h"
 #include "HyperTextAccessibleWrap.h"
 #include "nsAccessiblePivot.h"
@@ -23,7 +24,6 @@
 #include "nsARIAMap.h"
 #include "nsIAccessibleProvider.h"
 #include "nsHTMLCanvasAccessible.h"
-#include "nsHTMLLinkAccessible.h"
 #include "nsHTMLSelectAccessible.h"
 #include "nsHTMLTableAccessibleWrap.h"
 #include "nsXFormsFormControlsAccessible.h"
@@ -1189,7 +1189,7 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   
   
   
-  if (!newAcc && content->Tag() != nsGkAtoms::body && content->GetParent() && 
+  if (!newAcc && content->Tag() != nsGkAtoms::body && content->GetParent() &&
       ((weakFrame.GetFrame() && weakFrame.GetFrame()->IsFocusable()) ||
        (isHTML && nsCoreUtils::HasClickListener(content)) ||
        HasUniversalAriaProperty(content) || roleMapEntry ||
@@ -1633,7 +1633,7 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
       return accessible;
     }
 
-    Accessible* accessible = new nsHTMLLinkAccessible(aContent, aDoc);
+    Accessible* accessible = new HTMLLinkAccessible(aContent, aDoc);
     NS_IF_ADDREF(accessible);
     return accessible;
   }
