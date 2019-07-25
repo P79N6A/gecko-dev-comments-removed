@@ -521,16 +521,20 @@ nsBlockFrame::InvalidateInternal(const nsRect& aDamageRect,
 {
   
   
-  const nsStyleDisplay* disp = GetStyleDisplay();
-  nsRect absPosClipRect;
-  if (GetAbsPosClipRect(disp, &absPosClipRect, GetSize())) {
-    
-    
-    nsRect r;
-    if (r.IntersectRect(aDamageRect, absPosClipRect - nsPoint(aX, aY))) {
-      nsBlockFrameSuper::InvalidateInternal(r, aX, aY, this, aFlags);
+  
+  
+  if (aForChild) {
+    const nsStyleDisplay* disp = GetStyleDisplay();
+    nsRect absPosClipRect;
+    if (GetAbsPosClipRect(disp, &absPosClipRect, GetSize())) {
+      
+      
+      nsRect r;
+      if (r.IntersectRect(aDamageRect, absPosClipRect - nsPoint(aX, aY))) {
+        nsBlockFrameSuper::InvalidateInternal(r, aX, aY, this, aFlags);
+      }
+      return;
     }
-    return;
   }
 
   nsBlockFrameSuper::InvalidateInternal(aDamageRect, aX, aY, this, aFlags);

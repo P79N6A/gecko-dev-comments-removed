@@ -494,13 +494,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
   }
 
   if (oldRect.TopLeft() != rect.TopLeft() || 
-      (aDelegatingFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) ||
-      (kidDesiredSize.mOverflowArea + rect.TopLeft() != oldOverflowRect &&
-        (kidDesiredSize.mOverflowArea + rect.TopLeft() != rect || oldRect != oldOverflowRect))) {
-    
-    
-    
-    
+      (aDelegatingFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
     
     aKidFrame->GetParent()->Invalidate(oldOverflowRect);
     aKidFrame->GetParent()->Invalidate(kidDesiredSize.mOverflowArea +

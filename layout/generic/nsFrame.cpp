@@ -5866,26 +5866,6 @@ IsInlineFrame(nsIFrame *aFrame)
          type == nsGkAtoms::positionedInlineFrame;
 }
 
-nsRect
-nsIFrame::GetAdditionalOverflow(const nsRect& aOverflowArea,
-                                const nsSize& aNewSize,
-                                PRBool* aHasOutlineOrEffects)
-{
-  nsRect overflowRect =
-    ComputeOutlineAndEffectsRect(this, aHasOutlineOrEffects,
-                                 aOverflowArea, aNewSize, PR_TRUE);
-
-  
-  PRBool hasAbsPosClip;
-  nsRect absPosClipRect;
-  hasAbsPosClip = GetAbsPosClipRect(GetStyleDisplay(), &absPosClipRect, aNewSize);
-  if (hasAbsPosClip) {
-    overflowRect.IntersectRect(overflowRect, absPosClipRect);
-  }
-
-  return overflowRect;
-}
-
 void 
 nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
 {
@@ -5931,8 +5911,20 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
   }
   
   PRBool hasOutlineOrEffects;
-  *aOverflowArea = GetAdditionalOverflow(*aOverflowArea, aNewSize,
-      &hasOutlineOrEffects);
+  *aOverflowArea =
+    ComputeOutlineAndEffectsRect(this, &hasOutlineOrEffects,
+                                 *aOverflowArea, aNewSize, PR_TRUE);
+
+  
+  PRBool didHaveAbsPosClip = (GetStateBits() & NS_FRAME_HAS_CLIP) != 0;
+  nsRect absPosClipRect;
+  PRBool hasAbsPosClip = GetAbsPosClipRect(disp, &absPosClipRect, aNewSize);
+  if (hasAbsPosClip) {
+    aOverflowArea->IntersectRect(*aOverflowArea, absPosClipRect);
+    AddStateBits(NS_FRAME_HAS_CLIP);
+  } else {
+    RemoveStateBits(NS_FRAME_HAS_CLIP);
+  }
 
   
   PRBool hasTransform = IsTransformed();
@@ -5962,19 +5954,46 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
     }
   }
 
-  if (overflowChanged && (hasOutlineOrEffects || hasTransform)) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    Invalidate(*aOverflowArea);
+  if (overflowChanged) {
+    if (hasOutlineOrEffects) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      Invalidate(*aOverflowArea);
+    } else if (hasAbsPosClip || didHaveAbsPosClip) {
+      
+      
+      
+      
+      
+      
+      Invalidate(*aOverflowArea);
+    } else if (hasTransform) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      InvalidateLayer(*aOverflowArea, nsDisplayItem::TYPE_TRANSFORM);
+    }
   }
 }
 

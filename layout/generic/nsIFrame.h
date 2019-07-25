@@ -267,6 +267,9 @@ typedef PRUint64 nsFrameState;
 #define NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT     NS_FRAME_STATE_BIT(34)
 
 
+#define NS_FRAME_HAS_CLIP                           NS_FRAME_STATE_BIT(35)
+
+
 
 #define NS_FRAME_RESERVED                           ~NS_FRAME_IMPL_RESERVED
 
@@ -2518,13 +2521,6 @@ protected:
 
 
   void InvalidateRoot(const nsRect& aDamageRect, PRUint32 aFlags);
-
-  
-
-
-
-  nsRect GetAdditionalOverflow(const nsRect& aOverflowArea, const nsSize& aNewSize,
-                               PRBool* aHasOutlineOrEffects);
 
   
 
