@@ -1194,6 +1194,7 @@ mjit::Compiler::jsop_setelem_dense()
     stubcc.rejoin(Changes(2));
 }
 
+#ifdef JS_METHODJIT_TYPED_ARRAY
 void
 mjit::Compiler::convertForTypedArray(int atype, ValueRemat *vr, bool *allocated)
 {
@@ -1248,11 +1249,24 @@ mjit::Compiler::convertForTypedArray(int atype, ValueRemat *vr, bool *allocated)
 
 
 
+
+
+
+
             MaybeRegisterID reg;
             bool needsByteReg = (atype == TypedArray::TYPE_INT8 ||
                                  atype == TypedArray::TYPE_UINT8 ||
                                  atype == TypedArray::TYPE_UINT8_CLAMPED);
-            if (!value->isType(JSVAL_TYPE_INT32) || atype == TypedArray::TYPE_UINT8_CLAMPED) {
+            FrameEntry *id = frame.peek(-2);
+            if (!value->isType(JSVAL_TYPE_INT32) || atype == TypedArray::TYPE_UINT8_CLAMPED ||
+                (needsByteReg && frame.haveSameBacking(id, value))) {
+                
+                MaybeRegisterID dataReg;
+                if (value->mightBeType(JSVAL_TYPE_INT32) && !frame.haveSameBacking(id, value)) {
+                    dataReg = frame.tempRegForData(value);
+                    frame.pinReg(dataReg.reg());
+                }
+
                 
                 
                 
@@ -1261,6 +1275,8 @@ mjit::Compiler::convertForTypedArray(int atype, ValueRemat *vr, bool *allocated)
                 else
                     reg = frame.allocReg();
                 *allocated = true;
+                if (dataReg.isSet())
+                    frame.unpinReg(dataReg.reg());
             } else {
                 if (needsByteReg)
                     reg = frame.tempRegInMaskForData(value, Registers::SingleByteRegs).reg();
@@ -1326,6 +1342,7 @@ mjit::Compiler::convertForTypedArray(int atype, ValueRemat *vr, bool *allocated)
         }
     }
 }
+
 void
 mjit::Compiler::jsop_setelem_typed(int atype)
 {
@@ -1347,20 +1364,14 @@ mjit::Compiler::jsop_setelem_typed(int atype)
     }
 
     
-    
-    
-    MaybeRegisterID dataReg;
-    if (value->mightBeType(JSVAL_TYPE_INT32) && !value->isConstant()) {
-        dataReg = frame.tempRegForData(value);
-        frame.pinReg(dataReg.reg());
-    }
+    ValueRemat vr;
+    frame.pinEntry(value, vr,  false);
 
     
     Int32Key key = id->isConstant()
                  ? Int32Key::FromConstant(id->getValue().toInt32())
                  : Int32Key::FromRegister(frame.tempRegForData(id));
 
-    JS_ASSERT_IF(frame.haveSameBacking(id, value), dataReg.isSet());
     bool pinKey = !key.isConstant() && !frame.haveSameBacking(id, value);
     if (pinKey)
         frame.pinReg(key.reg());
@@ -1378,11 +1389,18 @@ mjit::Compiler::jsop_setelem_typed(int atype)
     masm.loadPtr(Address(objReg, js::TypedArray::dataOffset()), objReg);
 
     
+    
+    frame.unpinEntry(vr);
+
+    
+    if (frame.haveSameBacking(id, value)) {
+        frame.pinReg(key.reg());
+        pinKey = true;
+    }
+    JS_ASSERT(pinKey == !id->isConstant());
+
     bool allocated;
-    ValueRemat vr;
     convertForTypedArray(atype, &vr, &allocated);
-    if (dataReg.isSet())
-        frame.unpinReg(dataReg.reg());
 
     
     masm.storeToTypedArray(atype, objReg, key, vr);
@@ -1402,6 +1420,7 @@ mjit::Compiler::jsop_setelem_typed(int atype)
     frame.shimmy(2);
     stubcc.rejoin(Changes(2));
 }
+#endif 
 
 bool
 mjit::Compiler::jsop_setelem(bool popGuaranteed)
@@ -1428,6 +1447,8 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
             jsop_setelem_dense();
             return true;
         }
+
+#ifdef JS_METHODJIT_TYPED_ARRAY
         if (!types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_TYPED_ARRAY) &&
             (value->mightBeType(JSVAL_TYPE_INT32) || value->mightBeType(JSVAL_TYPE_DOUBLE))) {
             
@@ -1438,6 +1459,7 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
                 return true;
             }
         }
+#endif
     }
 
     SetElementICInfo ic = SetElementICInfo(JSOp(*PC));
@@ -1814,6 +1836,7 @@ mjit::Compiler::jsop_getelem_args()
     finishBarrier(barrier, REJOIN_FALLTHROUGH, 0);
 }
 
+#ifdef JS_METHODJIT_TYPED_ARRAY
 void
 mjit::Compiler::jsop_getelem_typed(int atype)
 {
@@ -1910,6 +1933,7 @@ mjit::Compiler::jsop_getelem_typed(int atype)
 
     finishBarrier(barrier, REJOIN_FALLTHROUGH, 0);
 }
+#endif 
 
 bool
 mjit::Compiler::jsop_getelem(bool isCall)
@@ -1934,6 +1958,7 @@ mjit::Compiler::jsop_getelem(bool isCall)
             jsop_getelem_args();
             return true;
         }
+
         if (obj->mightBeType(JSVAL_TYPE_OBJECT) &&
             !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY) &&
             !arrayPrototypeHasIndexedProperty()) {
@@ -1942,6 +1967,8 @@ mjit::Compiler::jsop_getelem(bool isCall)
             jsop_getelem_dense(packed);
             return true;
         }
+
+#ifdef JS_METHODJIT_TYPED_ARRAY
         if (obj->mightBeType(JSVAL_TYPE_OBJECT) &&
             !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_TYPED_ARRAY)) {
             
@@ -1952,6 +1979,7 @@ mjit::Compiler::jsop_getelem(bool isCall)
                 return true;
             }
         }
+#endif
     }
 
     frame.forgetMismatchedObject(obj);

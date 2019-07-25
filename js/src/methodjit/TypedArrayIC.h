@@ -49,7 +49,7 @@
 namespace js {
 namespace mjit {
 
-#ifdef JS_POLYIC_TYPED_ARRAY
+#ifdef JS_METHODJIT_TYPED_ARRAY
 
 typedef JSC::MacroAssembler::RegisterID RegisterID;
 typedef JSC::MacroAssembler::FPRegisterID FPRegisterID;

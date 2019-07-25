@@ -864,6 +864,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
             loadDynamicSlot(objReg, obj->dynamicSlotIndex(shape->slot), typeReg, dataReg);
     }
 
+#ifdef JS_METHODJIT_TYPED_ARRAY
     
     
     
@@ -1105,6 +1106,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         done2.linkTo(label(), this);
         done3.linkTo(label(), this);
     }
+#endif 
 
     Address objPropAddress(JSObject *obj, RegisterID objReg, uint32 slot)
     {

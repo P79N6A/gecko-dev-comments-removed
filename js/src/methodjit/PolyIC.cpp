@@ -2425,7 +2425,7 @@ GetElementIC::attachGetProp(VMFrame &f, JSContext *cx, JSObject *obj, const Valu
     return Lookup_Cacheable;
 }
 
-#if defined JS_POLYIC_TYPED_ARRAY
+#if defined JS_METHODJIT_TYPED_ARRAY
 LookupStatus
 GetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, const Value &v, jsid id, Value *vp)
 {
@@ -2516,7 +2516,7 @@ GetElementIC::update(VMFrame &f, JSContext *cx, JSObject *obj, const Value &v, j
     if (v.isString())
         return attachGetProp(f, cx, obj, v, id, vp);
 
-#if defined JS_POLYIC_TYPED_ARRAY
+#if defined JS_METHODJIT_TYPED_ARRAY
     
 
 
@@ -2783,7 +2783,7 @@ SetElementIC::attachHoleStub(JSContext *cx, JSObject *obj, int32 keyval)
     return Lookup_Cacheable;
 }
 
-#if defined JS_POLYIC_TYPED_ARRAY
+#if defined JS_METHODJIT_TYPED_ARRAY
 LookupStatus
 SetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, int32 key)
 {
@@ -2887,7 +2887,7 @@ SetElementIC::update(JSContext *cx, const Value &objval, const Value &idval)
     if (obj->isDenseArray())
         return attachHoleStub(cx, obj, key);
 
-#if defined JS_POLYIC_TYPED_ARRAY
+#if defined JS_METHODJIT_TYPED_ARRAY
     
     if (!cx->typeInferenceEnabled() && js_IsTypedArray(obj))
         return attachTypedArray(cx, obj, key);
