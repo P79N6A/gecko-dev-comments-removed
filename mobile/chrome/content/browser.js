@@ -994,8 +994,12 @@ const gXPInstallObserver = {
             popup: null,
             callback: function() {
               
-              CommandUpdater.doCommand("cmd_addons");
+              
+              
+              BrowserUI.show(UIMODE_PANEL);
+              BrowserUI.switchPane("addons-container");
 
+              
               var mgr = Cc["@mozilla.org/xpinstall/install-manager;1"].createInstance(Ci.nsIXPInstallManager);
               mgr.initManagerWithInstallInfo(installInfo);
               return false;
