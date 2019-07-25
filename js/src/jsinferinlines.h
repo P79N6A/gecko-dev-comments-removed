@@ -224,9 +224,31 @@ JSContext::markTypeCallerUnexpected(js::types::jstype type)
 {
     if (!typeInferenceEnabled())
         return true;
+
+    
+
+
+
+
+
+
+
+
     JSStackFrame *caller = js_GetScriptedCaller(this, NULL);
     if (!caller)
         return true;
+
+    switch ((JSOp)*caller->pc(this)) {
+      case JSOP_CALL:
+      case JSOP_EVAL:
+      case JSOP_FUNCALL:
+      case JSOP_FUNAPPLY:
+      case JSOP_NEW:
+        break;
+      default:
+        return true;
+    }
+
     return caller->script()->typeMonitorResult(this, caller->pc(this), type);
 }
 
