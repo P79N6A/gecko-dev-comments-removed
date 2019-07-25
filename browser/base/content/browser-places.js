@@ -992,7 +992,12 @@ var PlacesStarButton = {
         return;
       }
 
-      this._itemIds = aItemIds;
+      
+      
+      
+      this._itemIds = this._itemIds.filter(
+        function (id) aItemIds.indexOf(id) == -1
+      ).concat(aItemIds);
       this._updateStateInternal();
 
       
