@@ -1,42 +1,42 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=99 ft=cpp:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
+ * June 12, 2009.
+ *
+ * The Initial Developer of the Original Code is
+ *   the Mozilla Corporation.
+ *
+ * Contributor(s):
+ *   Luke Wagner <lw@mozilla.com>
+ *   Nicholas Nethercote <nnethercote@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jsvector_h_
 #define jsvector_h_
@@ -45,7 +45,7 @@
 #include "jstl.h"
 #include "jsprvtd.h"
 
-
+/* Silence dire "bugs in previous versions of MSVC have been fixed" warnings */
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4345)
@@ -53,51 +53,51 @@
 
 namespace js {
 
-
-
-
-
+/*
+ * This template class provides a default implementation for vector operations
+ * when the element type is not known to be a POD, as judged by IsPodType.
+ */
 template <class T, size_t N, class AP, bool IsPod>
 struct VectorImpl
 {
-    
+    /* Destroys constructed objects in the range [begin, end). */
     static inline void destroy(T *begin, T *end) {
         for (T *p = begin; p != end; ++p)
             p->~T();
     }
 
-    
+    /* Constructs objects in the uninitialized range [begin, end). */
     static inline void initialize(T *begin, T *end) {
         for (T *p = begin; p != end; ++p)
             new(p) T();
     }
 
-    
-
-
-
+    /*
+     * Copy-constructs objects in the uninitialized range
+     * [dst, dst+(srcend-srcbeg)) from the range [srcbeg, srcend).
+     */
     template <class U>
     static inline void copyConstruct(T *dst, const U *srcbeg, const U *srcend) {
         for (const U *p = srcbeg; p != srcend; ++p, ++dst)
             new(dst) T(*p);
     }
 
-    
-
-
-
+    /*
+     * Copy-constructs objects in the uninitialized range [dst, dst+n) from the
+     * same object u.
+     */
     template <class U>
     static inline void copyConstructN(T *dst, size_t n, const U &u) {
         for (T *end = dst + n; dst != end; ++dst)
             new(dst) T(u);
     }
 
-    
-
-
-
-
-
+    /*
+     * Grows the given buffer to have capacity newcap, preserving the objects
+     * constructed in the range [begin, end) and updating v. Assumes that (1)
+     * newcap has not overflowed, and (2) multiplying newcap by sizeof(T) will
+     * not overflow.
+     */
     static inline bool growTo(Vector<T,N,AP> &v, size_t newcap) {
         JS_ASSERT(!v.usingInlineStorage());
         T *newbuf = reinterpret_cast<T *>(v.malloc_(newcap * sizeof(T)));
@@ -108,44 +108,44 @@ struct VectorImpl
         VectorImpl::destroy(v.beginNoCheck(), v.endNoCheck());
         v.free_(v.mBegin);
         v.mBegin = newbuf;
-        
+        /* v.mLength is unchanged. */
         v.mCapacity = newcap;
         return true;
     }
 };
 
-
-
-
-
-
+/*
+ * This partial template specialization provides a default implementation for
+ * vector operations when the element type is known to be a POD, as judged by
+ * IsPodType.
+ */
 template <class T, size_t N, class AP>
 struct VectorImpl<T, N, AP, true>
 {
     static inline void destroy(T *, T *) {}
 
     static inline void initialize(T *begin, T *end) {
-        
-
-
-
-
-
-
-
+        /*
+         * You would think that memset would be a big win (or even break even)
+         * when we know T is a POD. But currently it's not. This is probably
+         * because |append| tends to be given small ranges and memset requires
+         * a function call that doesn't get inlined.
+         *
+         * memset(begin, 0, sizeof(T) * (end-begin));
+         */
         for (T *p = begin; p != end; ++p)
             new(p) T();
     }
 
     template <class U>
     static inline void copyConstruct(T *dst, const U *srcbeg, const U *srcend) {
-        
-
-
-
-
-
-
+        /*
+         * See above memset comment. Also, notice that copyConstruct is
+         * currently templated (T != U), so memcpy won't work without
+         * requiring T == U.
+         *
+         * memcpy(dst, srcbeg, sizeof(T) * (srcend - srcbeg));
+         */
         for (const U *p = srcbeg; p != srcend; ++p, ++dst)
             *dst = *p;
     }
@@ -163,34 +163,34 @@ struct VectorImpl<T, N, AP, true>
         if (!newbuf)
             return false;
         v.mBegin = newbuf;
-        
+        /* v.mLength is unchanged. */
         v.mCapacity = newcap;
         return true;
     }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * JS-friendly, STL-like container providing a short-lived, dynamic buffer.
+ * Vector calls the constructors/destructors of all elements stored in
+ * its internal buffer, so non-PODs may be safely used. Additionally,
+ * Vector will store the first N elements in-place before resorting to
+ * dynamic allocation.
+ *
+ * T requirements:
+ *  - default and copy constructible, assignable, destructible
+ *  - operations do not throw
+ * N requirements:
+ *  - any value, however, N is clamped to min/max values
+ * AllocPolicy:
+ *  - see "Allocation policies" in jsalloc.h (default js::TempAllocPolicy)
+ *
+ * N.B: Vector is not reentrant: T member functions called during Vector member
+ *      functions must not call back into the same object.
+ */
 template <class T, size_t N, class AllocPolicy>
 class Vector : private AllocPolicy
 {
-    
+    /* utilities */
 
     static const bool sElemIsPod = tl::IsPodType<T>::result;
     typedef VectorImpl<T, N, AllocPolicy, sElemIsPod> Impl;
@@ -203,21 +203,21 @@ class Vector : private AllocPolicy
 
     template <bool InitNewElems> inline bool growByImpl(size_t inc);
 
-    
+    /* magic constants */
 
     static const int sMaxInlineBytes = 1024;
 
-    
+    /* compute constants */
 
-    
-
-
-
-
-
-
-
-
+    /*
+     * Consider element size to be 1 for buffer sizing if there are
+     * 0 inline elements. This allows us to compile when the definition
+     * of the element type is not visible here.
+     *
+     * Explicit specialization is only allowed at namespace scope, so
+     * in order to keep everything here, we use a dummy template
+     * parameter with partial specialization.
+     */
     template <int M, int Dummy>
     struct ElemSize {
         static const size_t result = sizeof(T);
@@ -230,24 +230,24 @@ class Vector : private AllocPolicy
     static const size_t sInlineCapacity =
         tl::Min<N, sMaxInlineBytes / ElemSize<N, 0>::result>::result;
 
-    
+    /* Calculate inline buffer size; avoid 0-sized array. */
     static const size_t sInlineBytes =
         tl::Max<1, sInlineCapacity * ElemSize<N, 0>::result>::result;
 
-    
+    /* member data */
 
-    
-
-
-
-
-
-
+    /*
+     * Pointer to the buffer, be it inline or heap-allocated. Only [mBegin,
+     * mBegin + mLength) hold valid constructed T objects. The range [mBegin +
+     * mLength, mBegin + mCapacity) holds uninitialized memory. The range
+     * [mBegin + mLength, mBegin + mReserved) also holds uninitialized memory
+     * previously allocated by a call to reserve().
+     */
     T *mBegin;
-    size_t mLength;     
-    size_t mCapacity;   
+    size_t mLength;     /* Number of elements in the Vector. */
+    size_t mCapacity;   /* Max number of elements storable in the Vector without resizing. */
 #ifdef DEBUG
-    size_t mReserved;   
+    size_t mReserved;   /* Max elements of reserved or used space in this vector. */
 #endif
 
     AlignedStorage<sInlineBytes> storage;
@@ -260,7 +260,7 @@ class Vector : private AllocPolicy
     Vector(const Vector &);
     Vector &operator=(const Vector &);
 
-    
+    /* private accessors */
 
     bool usingInlineStorage() const {
         return mBegin == (T *)storage.addr();
@@ -286,7 +286,7 @@ class Vector : private AllocPolicy
     }
 #endif
 
-    
+    /* Append operations guaranteed to succeed due to pre-reserved space. */
     void internalAppend(const T &t);
     void internalAppendN(const T &t, size_t n);
     template <class U> void internalAppend(const U *begin, size_t length);
@@ -300,9 +300,13 @@ class Vector : private AllocPolicy
     Vector(AllocPolicy = AllocPolicy());
     ~Vector();
 
-    
+    /* accessors */
 
     const AllocPolicy &allocPolicy() const {
+        return *this;
+    }
+
+    AllocPolicy &allocPolicy() {
         return *this;
     }
 
@@ -355,44 +359,44 @@ class Vector : private AllocPolicy
         return *(end() - 1);
     }
 
-    
+    /* mutators */
 
-    
+    /* If reserve(length() + N) succeeds, the N next appends are guaranteed to succeed. */
     bool reserve(size_t capacity);
 
-    
-
-
-
+    /*
+     * Destroy elements in the range [end() - incr, end()). Does not deallocate
+     * or unreserve storage for those elements.
+     */
     void shrinkBy(size_t incr);
 
-    
+    /* Grow the vector by incr elements. */
     bool growBy(size_t incr);
 
-    
+    /* Call shrinkBy or growBy based on whether newSize > length(). */
     bool resize(size_t newLength);
 
-    
+    /* Leave new elements as uninitialized memory. */
     bool growByUninitialized(size_t incr);
     bool resizeUninitialized(size_t newLength);
 
-    
+    /* Shorthand for shrinkBy(length()). */
     void clear();
 
-    
+    /* Clears and releases any heap-allocated storage. */
     void clearAndFree();
 
-    
+    /* Potentially fallible append operations. */
     bool append(const T &t);
     bool appendN(const T &t, size_t n);
     template <class U> bool append(const U *begin, const U *end);
     template <class U> bool append(const U *begin, size_t length);
     template <class U, size_t O, class BP> bool append(const Vector<U,O,BP> &other);
 
-    
-
-
-
+    /*
+     * Guaranteed-infallible append operations for use upon vectors whose
+     * memory has been pre-reserved.
+     */
     void infallibleAppend(const T &t) {
         internalAppend(t);
     }
@@ -413,37 +417,37 @@ class Vector : private AllocPolicy
 
     T popCopy();
 
-    
-
-
-
-
-
-
-
+    /*
+     * Transfers ownership of the internal buffer used by Vector to the caller.
+     * After this call, the Vector is empty. Since the returned buffer may need
+     * to be allocated (if the elements are currently stored in-place), the
+     * call can fail, returning NULL.
+     *
+     * N.B. Although a T*, only the range [0, length()) is constructed.
+     */
     T *extractRawBuffer();
 
-    
-
-
-
-
+    /*
+     * Transfer ownership of an array of objects into the Vector.
+     * N.B. This call assumes that there are no uninitialized elements in the
+     *      passed array.
+     */
     void replaceRawBuffer(T *p, size_t length);
 
-    
-
-
-
+    /*
+     * Places |val| at position |p|, shifting existing elements
+     * from |p| onward one position higher.
+     */
     bool insert(T *p, const T &val);
 
-    
-
-
-
+    /*
+     * Removes the element |t|, which must fall in the bounds [begin, end),
+     * shifting existing elements from |t + 1| onward one position lower.
+     */
     void erase(T *t);
 };
 
-
+/* This does the re-entrancy check plus several other sanity checks. */
 #define REENTRANCY_GUARD_ET_AL \
     ReentrancyGuard g(*this); \
     JS_ASSERT_IF(usingInlineStorage(), mCapacity == sInlineCapacity); \
@@ -451,7 +455,7 @@ class Vector : private AllocPolicy
     JS_ASSERT(mLength <= reserved()); \
     JS_ASSERT(mLength <= mCapacity)
 
-
+/* Vector Implementation */
 
 template <class T, size_t N, class AllocPolicy>
 JS_ALWAYS_INLINE
@@ -473,10 +477,10 @@ Vector<T,N,AP>::~Vector()
         this->free_(beginNoCheck());
 }
 
-
-
-
-
+/*
+ * Calculate a new capacity that is at least lengthInc greater than
+ * curLength and check for overflow.
+ */
 template <class T, size_t N, class AP>
 STATIC_POSTCONDITION(!return || newCap >= curLength + lengthInc)
 inline bool
@@ -485,23 +489,23 @@ Vector<T,N,AP>::calculateNewCapacity(size_t curLength, size_t lengthInc,
 {
     size_t newMinCap = curLength + lengthInc;
 
-    
-
-
-
+    /*
+     * Check for overflow in the above addition, below CEILING_LOG2, and later
+     * multiplication by sizeof(T).
+     */
     if (newMinCap < curLength ||
         newMinCap & tl::MulOverflowMask<2 * sizeof(T)>::result) {
         this->reportAllocOverflow();
         return false;
     }
 
-    
+    /* Round up to next power of 2. */
     newCap = RoundUpPow2(newMinCap);
 
-    
-
-
-
+    /*
+     * Do not allow a buffer large enough that the expression ((char *)end() -
+     * (char *)begin()) overflows ptrdiff_t. See Bug 510319.
+     */
     if (newCap & tl::UnsafeRangeSizeMask<T>::result) {
         this->reportAllocOverflow();
         return false;
@@ -509,10 +513,10 @@ Vector<T,N,AP>::calculateNewCapacity(size_t curLength, size_t lengthInc,
     return true;
 }
 
-
-
-
-
+/*
+ * This function will grow the current heap capacity to have capacity
+ * (mLength + lengthInc) and fail on OOM or integer overflow.
+ */
 template <class T, size_t N, class AP>
 JS_ALWAYS_INLINE bool
 Vector<T,N,AP>::growHeapStorageBy(size_t lengthInc)
@@ -523,11 +527,11 @@ Vector<T,N,AP>::growHeapStorageBy(size_t lengthInc)
            Impl::growTo(*this, newCap);
 }
 
-
-
-
-
-
+/*
+ * This function will create a new heap buffer with capacity (mLength +
+ * lengthInc()), move all elements in the inline buffer to this new buffer,
+ * and fail on OOM or integer overflow.
+ */
 template <class T, size_t N, class AP>
 inline bool
 Vector<T,N,AP>::convertToHeapStorage(size_t lengthInc)
@@ -537,18 +541,18 @@ Vector<T,N,AP>::convertToHeapStorage(size_t lengthInc)
     if (!calculateNewCapacity(mLength, lengthInc, newCap))
         return false;
 
-    
+    /* Allocate buffer. */
     T *newBuf = reinterpret_cast<T *>(this->malloc_(newCap * sizeof(T)));
     if (!newBuf)
         return false;
 
-    
+    /* Copy inline elements into heap buffer. */
     Impl::copyConstruct(newBuf, beginNoCheck(), endNoCheck());
     Impl::destroy(beginNoCheck(), endNoCheck());
 
-    
+    /* Switch in heap buffer. */
     mBegin = newBuf;
-    
+    /* mLength is unchanged. */
     mCapacity = newCap;
     return true;
 }
@@ -738,7 +742,7 @@ Vector<T,N,AP>::insert(T *p, const T &val)
         return append(val);
     {
         T oldBack = back();
-        if (!append(oldBack)) 
+        if (!append(oldBack)) /* Dup the last element. */
             return false;
     }
     for (size_t i = oldLength; i > pos; --i)
@@ -842,7 +846,7 @@ Vector<T,N,AP>::extractRawBuffer()
             return NULL;
         Impl::copyConstruct(ret, beginNoCheck(), endNoCheck());
         Impl::destroy(beginNoCheck(), endNoCheck());
-        
+        /* mBegin, mCapacity are unchanged. */
         mLength = 0;
     } else {
         ret = mBegin;
@@ -862,18 +866,18 @@ Vector<T,N,AP>::replaceRawBuffer(T *p, size_t length)
 {
     REENTRANCY_GUARD_ET_AL;
 
-    
+    /* Destroy what we have. */
     Impl::destroy(beginNoCheck(), endNoCheck());
     if (!usingInlineStorage())
         this->free_(beginNoCheck());
 
-    
+    /* Take in the new buffer. */
     if (length <= sInlineCapacity) {
-        
-
-
-
-
+        /*
+         * We convert to inline storage if possible, even though p might
+         * otherwise be acceptable.  Maybe this behaviour should be
+         * specifiable with an argument to this function.
+         */
         mBegin = (T *)storage.addr();
         mLength = length;
         mCapacity = sInlineCapacity;
@@ -890,10 +894,10 @@ Vector<T,N,AP>::replaceRawBuffer(T *p, size_t length)
 #endif
 }
 
-}  
+}  /* namespace js */
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-#endif 
+#endif /* jsvector_h_ */
