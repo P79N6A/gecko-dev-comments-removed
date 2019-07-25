@@ -144,9 +144,6 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface)
     , mPendingPluginCall(false)
     , mDoAlphaExtraction(false)
     , mSurfaceDifferenceRect(0,0,0,0)
-#ifdef MOZ_X11
-    , mFlash10Quirks(false)
-#endif
 #if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
     , mMaemoImageRendering(PR_FALSE)
 #endif
@@ -171,7 +168,9 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface)
                            &description);
     if (description) {
         NS_NAMED_LITERAL_CSTRING(flash10Head, "Shockwave Flash 10.");
-        mFlash10Quirks = StringBeginsWith(nsDependentCString(description), flash10Head);
+        if (StringBeginsWith(nsDependentCString(description), flash10Head)) {
+          PluginModuleChild::current()->AddQuirk(PluginModuleChild::QUIRK_FLASH_EXPOSE_COORD_TRANSLATION);
+        }
     }
 #endif
 }
@@ -2599,7 +2598,7 @@ PluginInstanceChild::PaintRectToSurface(const nsIntRect& aRect,
     nsIntRect plPaintRect(aRect);
     nsRefPtr<gfxASurface> renderSurface = aSurface;
 #ifdef MOZ_X11
-    if (mIsTransparent && mFlash10Quirks) {
+    if (mIsTransparent && (GetQuirks() & PluginModuleChild::QUIRK_FLASH_EXPOSE_COORD_TRANSLATION)) {
         
         
         

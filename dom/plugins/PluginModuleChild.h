@@ -221,6 +221,10 @@ public:
         QUIRK_FLASH_THROTTLE_WMUSER_EVENTS              = 1 << 2,
         
         QUIRK_FLASH_HOOK_SETLONGPTR                     = 1 << 3,
+        
+        
+        
+        QUIRK_FLASH_EXPOSE_COORD_TRANSLATION            = 1 << 4,
     };
 
     int GetQuirks() { return mQuirks; }
