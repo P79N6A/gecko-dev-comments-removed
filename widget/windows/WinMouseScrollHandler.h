@@ -53,7 +53,9 @@ private:
 
 
 
-  static nsModifierKeyState GetModifierKeyState();
+
+
+  static nsModifierKeyState GetModifierKeyState(UINT aMessage);
 
   
 
@@ -69,6 +71,22 @@ private:
                                UINT aMessage,
                                WPARAM aWParam,
                                LPARAM aLParam);
+
+  
+
+
+
+
+
+
+
+
+
+
+  void HandleScrollMessageAsMouseWheelMessage(nsWindow* aWindow,
+                                              UINT aMessage,
+                                              WPARAM aWParam,
+                                              LPARAM aLParam);
 
   class EventInfo;
   

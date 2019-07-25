@@ -5062,13 +5062,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       result = OnScroll(msg, wParam, lParam);
       break;
 
-    case MOZ_WM_HSCROLL:
-    case MOZ_WM_VSCROLL:
-      *aRetValue = 0;
-      OnScrollInternal(WinUtils::GetNativeMessage(msg), wParam, lParam);
-      
-      return true;
-
     
     
     
@@ -7216,43 +7209,6 @@ nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
   
   DispatchWindowEvent(&command);
   return true;
-}
-
-
-
-
-
-
-
-void
-nsWindow::OnScrollInternal(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
-{
-  nsMouseScrollEvent scrollevent(true, NS_MOUSE_SCROLL, this);
-  scrollevent.scrollFlags = (aMsg == WM_VSCROLL) 
-                            ? nsMouseScrollEvent::kIsVertical
-                            : nsMouseScrollEvent::kIsHorizontal;
-  switch (LOWORD(aWParam)) {
-    case SB_PAGEDOWN:
-      scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-    case SB_LINEDOWN:
-      scrollevent.delta = 1;
-      break;
-    case SB_PAGEUP:
-      scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-    case SB_LINEUP:
-      scrollevent.delta = -1;
-      break;
-    default:
-      return;
-  }
-  scrollevent.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
-  scrollevent.isControl = IS_VK_DOWN(NS_VK_CONTROL);
-  scrollevent.isMeta    = false;
-  scrollevent.isAlt     = IS_VK_DOWN(NS_VK_ALT);
-  InitEvent(scrollevent);
-  if (mEventCallback) {
-    DispatchWindowEvent(&scrollevent);
-  }
 }
 
 
