@@ -151,6 +151,8 @@ class nsChildContentList;
 class nsIdentifierMapEntry : public nsISupportsHashKey
 {
 public:
+  typedef mozilla::dom::Element Element;
+  
   nsIdentifierMapEntry(const nsISupports* aKey) :
     nsISupportsHashKey(aKey), mNameContentList(nsnull)
   {
@@ -164,8 +166,8 @@ public:
 
   void SetInvalidName();
   PRBool IsInvalidName();
-  void AddNameElement(mozilla::dom::Element* aElement);
-  void RemoveNameElement(mozilla::dom::Element* aElement);
+  void AddNameElement(Element* aElement);
+  void RemoveNameElement(Element* aElement);
   PRBool HasNameContentList() {
     return mNameContentList != nsnull;
   }
@@ -178,7 +180,7 @@ public:
 
 
 
-  mozilla::dom::Element* GetIdElement();
+  Element* GetIdElement();
   
 
 
@@ -188,12 +190,12 @@ public:
 
 
 
-  PRBool AddIdElement(mozilla::dom::Element* aElement);
+  PRBool AddIdElement(Element* aElement);
   
 
 
 
-  PRBool RemoveIdElement(mozilla::dom::Element* aElement);
+  PRBool RemoveIdElement(Element* aElement);
 
   PRBool HasContentChangeCallback() { return mChangeCallbacks != nsnull; }
   void AddContentChangeCallback(nsIDocument::IDTargetObserver aCallback, void* aData);
@@ -236,8 +238,7 @@ public:
   };
 
 private:
-  void FireChangeCallbacks(mozilla::dom::Element* aOldElement,
-                           mozilla::dom::Element* aNewElement);
+  void FireChangeCallbacks(Element* aOldElement, Element* aNewElement);
 
   
   
@@ -562,8 +563,8 @@ public:
 
   virtual void RemoveCharSetObserver(nsIObserver* aObserver);
 
-  virtual nsIContent* AddIDTargetObserver(nsIAtom* aID,
-                                          IDTargetObserver aObserver, void* aData);
+  virtual Element* AddIDTargetObserver(nsIAtom* aID, IDTargetObserver aObserver,
+                                       void* aData);
   virtual void RemoveIDTargetObserver(nsIAtom* aID,
                                       IDTargetObserver aObserver, void* aData);
 
@@ -589,7 +590,7 @@ public:
                                      nsIDocument* aSubDoc);
   virtual nsIDocument* GetSubDocumentFor(nsIContent *aContent) const;
   virtual nsIContent* FindContentForSubDocument(nsIDocument *aDocument) const;
-  virtual mozilla::dom::Element* GetRootElementInternal() const;
+  virtual Element* GetRootElementInternal() const;
 
   
 
@@ -934,10 +935,10 @@ protected:
   friend class nsNodeUtils;
   void RegisterNamedItems(nsIContent *aContent);
   void UnregisterNamedItems(nsIContent *aContent);
-  void UpdateNameTableEntry(mozilla::dom::Element *aElement);
-  void UpdateIdTableEntry(mozilla::dom::Element *aElement);
-  void RemoveFromNameTable(mozilla::dom::Element *aElement);
-  void RemoveFromIdTable(mozilla::dom::Element *aElement);
+  void UpdateNameTableEntry(Element *aElement);
+  void UpdateIdTableEntry(Element *aElement);
+  void RemoveFromNameTable(Element *aElement);
+  void RemoveFromIdTable(Element *aElement);
 
   
 

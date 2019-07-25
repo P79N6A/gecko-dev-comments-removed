@@ -137,6 +137,11 @@ public:
   
 
 
+  nsINodeList* GetAnonymousNodesFor(nsIContent* aContent);
+
+  
+
+
 
   nsresult SetAnonymousNodesFor(nsIContent* aContent,
                                 nsInsertionPointList* aList);

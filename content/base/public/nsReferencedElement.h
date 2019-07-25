@@ -39,7 +39,7 @@
 #ifndef NSREFERENCEDELEMENT_H_
 #define NSREFERENCEDELEMENT_H_
 
-#include "nsIContent.h"
+#include "mozilla/dom/Element.h"
 #include "nsIAtom.h"
 #include "nsIDocument.h"
 #include "nsThreadUtils.h"
@@ -67,6 +67,8 @@ class nsCycleCollectionCallback;
 
 class nsReferencedElement {
 public:
+  typedef mozilla::dom::Element Element;
+
   nsReferencedElement() {}
   ~nsReferencedElement() {
     Unlink();
@@ -75,7 +77,7 @@ public:
   
 
 
-  nsIContent* get() { return mContent; }
+  Element* get() { return mElement; }
 
   
 
@@ -115,8 +117,8 @@ protected:
 
 
 
-  virtual void ContentChanged(nsIContent* aFrom, nsIContent* aTo) {
-    mContent = aTo;
+  virtual void ElementChanged(Element* aFrom, Element* aTo) {
+    mElement = aTo;
   }
 
   
@@ -133,12 +135,12 @@ protected:
                        const nsString& aRef);
   
 private:
-  static PRBool Observe(nsIContent* aOldContent,
-                        nsIContent* aNewContent, void* aData);
+  static PRBool Observe(Element* aOldElement,
+                        Element* aNewElement, void* aData);
 
   class Notification : public nsISupports {
   public:
-    virtual void SetTo(nsIContent* aTo) = 0;
+    virtual void SetTo(Element* aTo) = 0;
     virtual void Clear() { mTarget = nsnull; }
     virtual ~Notification() {}
   protected:
@@ -154,7 +156,8 @@ private:
                              public Notification
   {
   public:
-    ChangeNotification(nsReferencedElement* aTarget, nsIContent* aFrom, nsIContent* aTo)
+    ChangeNotification(nsReferencedElement* aTarget,
+                       Element* aFrom, Element* aTo)
       : Notification(aTarget), mFrom(aFrom), mTo(aTo)
     {}
     virtual ~ChangeNotification() {}
@@ -163,18 +166,18 @@ private:
     NS_IMETHOD Run() {
       if (mTarget) {
         mTarget->mPendingNotification = nsnull;
-        mTarget->ContentChanged(mFrom, mTo);
+        mTarget->ElementChanged(mFrom, mTo);
       }
       return NS_OK;
     }
-    virtual void SetTo(nsIContent* aTo) { mTo = aTo; }
+    virtual void SetTo(Element* aTo) { mTo = aTo; }
     virtual void Clear()
     {
       Notification::Clear(); mFrom = nsnull; mTo = nsnull;
     }
   protected:
-    nsCOMPtr<nsIContent> mFrom;
-    nsCOMPtr<nsIContent> mTo;
+    nsCOMPtr<Element> mFrom;
+    nsCOMPtr<Element> mTo;
   };
   friend class ChangeNotification;
 
@@ -195,7 +198,7 @@ private:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIOBSERVER
   private:
-    virtual void SetTo(nsIContent* aTo) { }
+    virtual void SetTo(Element* aTo) { }
 
     nsString mRef;
   };
@@ -203,7 +206,7 @@ private:
   
   nsCOMPtr<nsIAtom>      mWatchID;
   nsCOMPtr<nsIDocument>  mWatchDocument;
-  nsCOMPtr<nsIContent>   mContent;
+  nsCOMPtr<Element> mElement;
   nsRefPtr<Notification> mPendingNotification;
 };
 

@@ -109,8 +109,8 @@ protected:
     
     
     
-    virtual void ContentChanged(nsIContent* aFrom, nsIContent* aTo) {
-      nsReferencedElement::ContentChanged(aFrom, aTo);
+    virtual void ElementChanged(Element* aFrom, Element* aTo) {
+      nsReferencedElement::ElementChanged(aFrom, aTo);
       mAnimationElement->AnimationNeedsResample();
     }
 

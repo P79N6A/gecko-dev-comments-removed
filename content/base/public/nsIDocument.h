@@ -136,6 +136,8 @@ class Element;
 class nsIDocument : public nsINode
 {
 public:
+  typedef mozilla::dom::Element Element;
+
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IDOCUMENT_IID)
   NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
 
@@ -303,8 +305,8 @@ public:
 
 
 
-  typedef PRBool (* IDTargetObserver)(nsIContent* aOldContent,
-                                      nsIContent* aNewContent, void* aData);
+  typedef PRBool (* IDTargetObserver)(Element* aOldElement,
+                                      Element* aNewelement, void* aData);
 
   
 
@@ -313,8 +315,8 @@ public:
 
 
 
-  virtual nsIContent* AddIDTargetObserver(nsIAtom* aID,
-                                          IDTargetObserver aObserver, void* aData) = 0;
+  virtual Element* AddIDTargetObserver(nsIAtom* aID, IDTargetObserver aObserver,
+                                       void* aData) = 0;
   
 
 
@@ -480,31 +482,31 @@ public:
   
 
 
-  mozilla::dom::Element *GetRootElement() const
+  Element *GetRootElement() const
   {
     return (mCachedRootElement &&
             mCachedRootElement->GetNodeParent() == this) ?
-           reinterpret_cast<mozilla::dom::Element*>(mCachedRootElement.get()) :
+           reinterpret_cast<Element*>(mCachedRootElement.get()) :
            GetRootElementInternal();
   }
 protected:
-  virtual mozilla::dom::Element *GetRootElementInternal() const = 0;
+  virtual Element *GetRootElementInternal() const = 0;
 
 public:
   
   
-  mozilla::dom::Element* GetHtmlElement();
+  Element* GetHtmlElement();
   
   
-  mozilla::dom::Element* GetHtmlChildElement(nsIAtom* aTag);
+  Element* GetHtmlChildElement(nsIAtom* aTag);
   
   
-  mozilla::dom::Element* GetBodyElement() {
+  Element* GetBodyElement() {
     return GetHtmlChildElement(nsGkAtoms::body);
   }
   
   
-  mozilla::dom::Element* GetHeadElement() {
+  Element* GetHeadElement() {
     return GetHtmlChildElement(nsGkAtoms::head);
   }
   
@@ -1377,7 +1379,7 @@ protected:
   virtual void MutationEventDispatched(nsINode* aTarget) = 0;
   friend class mozAutoSubtreeModified;
 
-  virtual mozilla::dom::Element* GetNameSpaceElement()
+  virtual Element* GetNameSpaceElement()
   {
     return GetRootElement();
   }

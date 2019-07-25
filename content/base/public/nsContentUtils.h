@@ -172,6 +172,8 @@ struct nsShortcutCandidate {
 
 class nsContentUtils
 {
+  typedef mozilla::dom::Element Element;
+
 public:
   static nsresult Init();
 
@@ -314,14 +316,12 @@ public:
 
 
 
-  static nsIContent* MatchElementId(nsIContent *aContent,
-                                    const nsAString& aId);
+  static Element* MatchElementId(nsIContent *aContent, const nsAString& aId);
 
   
 
 
-  static nsIContent* MatchElementId(nsIContent *aContent,
-                                    nsIAtom* aId);
+  static Element* MatchElementId(nsIContent *aContent, nsIAtom* aId);
 
   
 
@@ -1349,7 +1349,7 @@ public:
 
 
 
-  static nsIAtom* IsNamedItem(mozilla::dom::Element* aElement);
+  static nsIAtom* IsNamedItem(Element* aElement);
 
   
 
