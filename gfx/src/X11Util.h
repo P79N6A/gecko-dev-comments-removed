@@ -137,13 +137,6 @@ public:
 
 
     bool SyncAndGetError(Display *dpy, XErrorEvent *ev = nullptr);
-
-    
-
-
-
-
-    bool GetError(XErrorEvent *ev = nullptr);
 };
 
 } 
