@@ -3310,8 +3310,10 @@ function BrowserCustomizeToolbar()
 
   if (gCustomizeSheet) {
     var sheetFrame = document.getElementById("customizeToolbarSheetIFrame");
+    var panel = document.getElementById("customizeToolbarSheetPopup");
     sheetFrame.hidden = false;
     sheetFrame.toolbox = gNavToolbox;
+    sheetFrame.panel = panel;
 
     
     
@@ -3321,9 +3323,14 @@ function BrowserCustomizeToolbar()
     else
       sheetFrame.setAttribute("src", customizeURL);
 
-    document.getElementById("customizeToolbarSheetPopup")
-            .openPopup(gNavToolbox, "after_start", 0, 0);
-
+    
+    
+    panel.style.visibility = "hidden";
+    gNavToolbox.addEventListener("beforecustomization", function () {
+      gNavToolbox.removeEventListener("beforecustomization", arguments.callee, false);
+      panel.style.removeProperty("visibility");
+    }, false);
+    panel.openPopup(gNavToolbox, "after_start", 0, 0);
     return sheetFrame.contentWindow;
   } else {
     return window.openDialog(customizeURL,
