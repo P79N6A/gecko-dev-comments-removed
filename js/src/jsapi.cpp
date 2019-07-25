@@ -4267,7 +4267,7 @@ prop_iter_trace(JSTracer *trc, JSObject *obj)
 
         Shape *tmp = (Shape *)pdata;
         MarkShapeUnbarriered(trc, &tmp, "prop iter shape");
-        obj->setPrivate(tmp);
+        JS_ASSERT(tmp == pdata);
     } else {
         
         JSIdArray *ida = (JSIdArray *) pdata;
