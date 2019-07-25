@@ -429,7 +429,17 @@ SyncEngine.prototype = {
   __proto__: Engine.prototype,
   _recordObj: CryptoWrapper,
   version: 1,
+  
+  
+  
   downloadLimit: null,
+  
+  
+  
+  guidFetchBatchSize: DEFAULT_GUID_FETCH_BATCH_SIZE,
+  mobileGUIDFetchBatchSize: DEFAULT_MOBILE_GUID_FETCH_BATCH_SIZE,
+  
+  
   applyIncomingBatchSize: DEFAULT_STORE_BATCH_SIZE,
 
   get storageURL() Svc.Prefs.get("clusterURL") + Svc.Prefs.get("storageAPI") +
@@ -598,7 +608,9 @@ SyncEngine.prototype = {
     
     let batchSize = Infinity;
     let newitems = new Collection(this.engineURL, this._recordObj);
-    if (Svc.Prefs.get("client.type") == "mobile") {
+    let isMobile = (Svc.Prefs.get("client.type") == "mobile");
+
+    if (isMobile) {
       batchSize = MOBILE_BATCH_SIZE;
     }
     newitems.newer = this.lastSync;
@@ -751,6 +763,11 @@ SyncEngine.prototype = {
     }
 
     
+    
+    
+    batchSize = isMobile ? this.mobileGUIDFetchBatchSize :
+                           this.guidFetchBatchSize;
+
     while (fetchBatch.length) {
       
       
