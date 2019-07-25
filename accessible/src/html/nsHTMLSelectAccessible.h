@@ -134,16 +134,10 @@ private:
   
   
 
- 
-  nsAccessible* GetSelect() const
-  {
-    if (mParent && mParent->IsListControl()) {
-      nsAccessible* combobox = mParent->Parent();
-      return combobox && combobox->IsCombobox() ? combobox : mParent;
-    }
 
-    return nsnull;
-  }
+
+ 
+  nsIContent* GetSelectState(PRUint64* aState);
 
   
 
@@ -152,7 +146,7 @@ private:
   {
     if (mParent && mParent->IsListControl()) {
       nsAccessible* combobox = mParent->Parent();
-      return combobox && combobox->IsCombobox() ? combobox : nsnull;
+      return combobox->IsCombobox() ? combobox : nsnull;
     }
 
     return nsnull;
