@@ -26,6 +26,7 @@
 #include "nsIObserver.h"
 #include "nsIBaseWindow.h"
 #include "mozilla/css/Loader.h"
+#include "mozilla/css/ImageLoader.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIScriptRuntime.h"
@@ -61,7 +62,7 @@
 #include "nsIServiceManager.h"
 
 #include "nsContentCID.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsIJSON.h"
@@ -129,6 +130,7 @@
 #include "nsIDocumentLoaderFactory.h"
 #include "nsIContentViewer.h"
 #include "nsIXMLContentSink.h"
+#include "nsContentErrors.h"
 #include "nsIXULDocument.h"
 #include "nsIPrompt.h"
 #include "nsIPropertyBag2.h"
@@ -1645,6 +1647,11 @@ nsDocument::~nsDocument()
     mCSSLoader->DropDocumentReference();
   }
 
+  if (mStyleImageLoader) {
+    mStyleImageLoader->DropDocumentReference();
+    NS_RELEASE(mStyleImageLoader);
+  }
+
   delete mHeaderData;
 
   if (mBoxObjectTable) {
@@ -1975,7 +1982,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 nsresult
 nsDocument::Init()
 {
-  if (mCSSLoader || mNodeInfoManager || mScriptLoader) {
+  if (mCSSLoader || mStyleImageLoader || mNodeInfoManager || mScriptLoader) {
     return NS_ERROR_ALREADY_INITIALIZED;
   }
 
@@ -1999,8 +2006,11 @@ nsDocument::Init()
   
   mCSSLoader->SetCompatibilityMode(eCompatibility_FullStandards);
 
+  mStyleImageLoader = new mozilla::css::ImageLoader(this);
+  NS_ADDREF(mStyleImageLoader);
+
   mNodeInfoManager = new nsNodeInfoManager();
-  nsresult  rv = mNodeInfoManager->Init(this);
+  nsresult rv = mNodeInfoManager->Init(this);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -9115,7 +9125,7 @@ nsDocument::RequestFullScreen(Element* aElement,
   
   if (!mIsApprovedForFullscreen) {
     mIsApprovedForFullscreen =
-      NodePrincipal()->GetAppStatus() >= nsIPrincipal::APP_STATUS_INSTALLED ||
+      GetWindow()->IsInAppOrigin() ||
       nsContentUtils::IsSitePermAllow(NodePrincipal(), "fullscreen");
   }
 

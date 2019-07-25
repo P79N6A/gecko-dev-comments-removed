@@ -84,7 +84,7 @@
 #include "nsIObserverService.h"
 #include "nsIDocShell.h"        
 #include "nsIBaseWindow.h"
-#include "nsError.h"
+#include "nsLayoutErrors.h"
 #include "nsLayoutUtils.h"
 #include "nsCSSRendering.h"
   
@@ -172,6 +172,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 #include "sampler.h"
+#include "mozilla/css/ImageLoader.h"
 
 #include "Layers.h"
 #include "nsAsyncDOMEvent.h"
@@ -1956,11 +1957,10 @@ PresShell::FireResizeEvent()
 void
 PresShell::SetIgnoreFrameDestruction(bool aIgnore)
 {
-  if (mPresContext) {
+  if (mDocument) {
     
     
-    
-    mPresContext->DestroyImageLoaders();
+    mDocument->StyleImageLoader()->ClearAll();
   }
   mIgnoreFrameDestruction = aIgnore;
 }
@@ -1973,7 +1973,7 @@ PresShell::NotifyDestroyingFrame(nsIFrame* aFrame)
   mPresContext->ForgetUpdatePluginGeometryFrame(aFrame);
 
   if (!mIgnoreFrameDestruction) {
-    mPresContext->StopImagesFor(aFrame);
+    mDocument->StyleImageLoader()->DropRequestsForFrame(aFrame);
 
     mFrameConstructor->NotifyDestroyingFrame(aFrame);
 
@@ -5249,8 +5249,9 @@ private:
 
 void
 PresShell::Paint(nsIView*           aViewToPaint,
+                 nsIWidget*         aWidgetToPaint,
                  const nsRegion&    aDirtyRegion,
-                 PaintType          aType,
+                 const nsIntRegion& aIntDirtyRegion,
                  bool               aWillSendDidPaint)
 {
 #ifdef NS_FUNCTION_TIMER
@@ -5267,6 +5268,7 @@ PresShell::Paint(nsIView*           aViewToPaint,
   SAMPLE_LABEL("Paint", "PresShell::Paint");
   NS_ASSERTION(!mIsDestroying, "painting a destroyed PresShell");
   NS_ASSERTION(aViewToPaint, "null view");
+  NS_ASSERTION(aWidgetToPaint, "Can't paint without a widget");
 
   nsAutoNotifyDidPaint notifyDidPaint(aWillSendDidPaint);
 
@@ -5277,13 +5279,14 @@ PresShell::Paint(nsIView*           aViewToPaint,
 
   bool isRetainingManager;
   LayerManager* layerManager =
-    aViewToPaint->GetWidget()->GetLayerManager(&isRetainingManager);
+    aWidgetToPaint->GetLayerManager(&isRetainingManager);
   NS_ASSERTION(layerManager, "Must be in paint event");
 
   if (mIsFirstPaint) {
     layerManager->SetIsFirstPaint();
     mIsFirstPaint = false;
   }
+  layerManager->BeginTransaction();
 
   if (frame && isRetainingManager) {
     
@@ -5292,39 +5295,21 @@ PresShell::Paint(nsIView*           aViewToPaint,
     
     
     
-    if (aType == PaintType_Composite) {
-      if (layerManager->HasShadowManager()) {
-        return;
-      }
-      layerManager->BeginTransaction();
+    if (!(frame->GetStateBits() & NS_FRAME_UPDATE_LAYER_TREE)) {
       if (layerManager->EndEmptyTransaction()) {
-        return;
-      }
-      NS_WARNING("Must complete empty transaction when compositing!");
-    } else  if (!(frame->GetStateBits() & NS_FRAME_UPDATE_LAYER_TREE)) {
-      layerManager->BeginTransaction();
-      if (layerManager->EndEmptyTransaction(LayerManager::END_NO_COMPOSITE)) {
         frame->UpdatePaintCountForPaintedPresShells();
         presContext->NotifyDidPaintForSubtree();
         return;
       }
-    } else {
-      layerManager->BeginTransaction();
     }
 
     frame->RemoveStateBits(NS_FRAME_UPDATE_LAYER_TREE);
-  } else {
-    layerManager->BeginTransaction();
   }
   if (frame) {
     frame->ClearPresShellsFromLastPaint();
   }
 
   nscolor bgcolor = ComputeBackstopColor(aViewToPaint);
-  PRUint32 flags = nsLayoutUtils::PAINT_WIDGET_LAYERS | nsLayoutUtils::PAINT_EXISTING_TRANSACTION;
-  if (aType == PaintType_NoComposite) {
-    flags |= nsLayoutUtils::PAINT_NO_COMPOSITE;
-  }
 
   if (frame) {
     
@@ -5334,12 +5319,12 @@ PresShell::Paint(nsIView*           aViewToPaint,
     frame->BeginDeferringInvalidatesForDisplayRoot(aDirtyRegion);
 
     
-    nsLayoutUtils::PaintFrame(nullptr, frame, aDirtyRegion, bgcolor, flags);
+    nsLayoutUtils::PaintFrame(nullptr, frame, aDirtyRegion, bgcolor,
+                              nsLayoutUtils::PAINT_WIDGET_LAYERS |
+                              nsLayoutUtils::PAINT_EXISTING_TRANSACTION);
 
     frame->EndDeferringInvalidatesForDisplayRoot();
-    if (aType != PaintType_Composite) {
-      presContext->NotifyDidPaintForSubtree();
-    }
+    presContext->NotifyDidPaintForSubtree();
     return;
   }
 
@@ -5353,13 +5338,9 @@ PresShell::Paint(nsIView*           aViewToPaint,
     root->SetVisibleRegion(bounds);
     layerManager->SetRoot(root);
   }
-  layerManager->EndTransaction(NULL, NULL, aType == PaintType_NoComposite ?
-                                             LayerManager::END_NO_COMPOSITE :
-                                             LayerManager::END_DEFAULT);
+  layerManager->EndTransaction(NULL, NULL);
 
-  if (aType != PaintType_Composite) {
-    presContext->NotifyDidPaintForSubtree();
-  }
+  presContext->NotifyDidPaintForSubtree();
 }
 
 

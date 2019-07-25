@@ -73,7 +73,8 @@
 #include "imgIRequest.h"
 #include "nsLayoutCID.h"
 #include "nsUnicharUtils.h"
-#include "nsError.h"
+#include "nsLayoutErrors.h"
+#include "nsContentErrors.h"
 #include "nsContainerFrame.h"
 #include "nsBoxLayoutState.h"
 #include "nsBlockFrame.h"
@@ -96,10 +97,12 @@
 
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
+#include "mozilla/css/ImageLoader.h"
 
 using namespace mozilla;
 using namespace mozilla::layers;
 using namespace mozilla::layout;
+using namespace mozilla::css;
 
 
 struct nsBoxLayoutMetrics
@@ -697,27 +700,50 @@ EqualImages(imgIRequest *aOldImage, imgIRequest *aNewImage)
  void
 nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
-  if (aOldStyleContext) {
-    
-    
-    
-    
-    
-    
-    
-    
-    const nsStyleBackground *oldBG = aOldStyleContext->GetStyleBackground();
-    const nsStyleBackground *newBG = GetStyleBackground();
+  ImageLoader* imageLoader = PresContext()->Document()->StyleImageLoader();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  const nsStyleBackground *oldBG = aOldStyleContext ?
+                                   aOldStyleContext->GetStyleBackground() :
+                                   nullptr;
+  const nsStyleBackground *newBG = GetStyleBackground();
+  if (oldBG) {
     NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, oldBG) {
+      
       if (i >= newBG->mImageCount ||
           oldBG->mLayers[i].mImage != newBG->mLayers[i].mImage) {
-        
-        PresContext()->SetImageLoaders(this,
-          nsPresContext::BACKGROUND_IMAGE, nullptr);
-        break;
-      }
-    }
+        const nsStyleImage& oldImage = oldBG->mLayers[i].mImage;
+        if (oldImage.GetType() != eStyleImageType_Image) {
+          continue;
+        }
 
+        imageLoader->DisassociateRequestFromFrame(oldImage.GetImageData(),
+                                                  this);
+      }          
+    }
+  }
+
+  NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, newBG) {
+    
+    if (!oldBG || i >= oldBG->mImageCount ||
+        newBG->mLayers[i].mImage != oldBG->mLayers[i].mImage) {
+      const nsStyleImage& newImage = newBG->mLayers[i].mImage;
+      if (newImage.GetType() != eStyleImageType_Image) {
+        continue;
+      }
+
+      imageLoader->AssociateRequestToFrame(newImage.GetImageData(), this);
+    }          
+  }
+
+  if (aOldStyleContext) {
     
     
     
@@ -756,6 +782,7 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   imgIRequest *oldBorderImage = aOldStyleContext
     ? aOldStyleContext->GetStyleBorder()->GetBorderImage()
     : nullptr;
+  imgIRequest *newBorderImage = GetStyleBorder()->GetBorderImage();
   
   
   
@@ -770,9 +797,14 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   
   
   
-  if (!EqualImages(oldBorderImage, GetStyleBorder()->GetBorderImage())) {
+  if (!EqualImages(oldBorderImage, newBorderImage)) {
     
-    PresContext()->SetupBorderImageLoaders(this, GetStyleBorder());
+    if (oldBorderImage) {
+      imageLoader->DisassociateRequestFromFrame(oldBorderImage, this);
+    }
+    if (newBorderImage) {
+      imageLoader->AssociateRequestToFrame(newBorderImage, this);
+    }
   }
 
   
@@ -4661,6 +4693,11 @@ nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
       !(aFlags & INVALIDATE_NO_THEBES_LAYERS)) {
     
     
+    
+    
+    
+    
+    
     FrameLayerBuilder::InvalidateThebesLayerContents(this,
         aDamageRect + nsPoint(aX, aY));
     
@@ -5057,10 +5094,6 @@ nsIFrame::GetPreEffectsVisualOverflowRect() const
  bool
 nsFrame::UpdateOverflow()
 {
-  MOZ_ASSERT(!(mState & NS_FRAME_SVG_LAYOUT) ||
-             !(mState & NS_STATE_SVG_NONDISPLAY_CHILD),
-             "Non-display SVG do not maintain visual overflow rects");
-
   nsRect rect(nsPoint(0, 0), GetSize());
   nsOverflowAreas overflowAreas(rect, rect);
 
@@ -5361,11 +5394,6 @@ nsFrame::MakeFrameName(const nsAString& aType, nsAString& aResult) const
   if (mContent && !mContent->IsNodeOfType(nsINode::eTEXT)) {
     nsAutoString buf;
     mContent->Tag()->ToString(buf);
-    if (GetType() == nsGkAtoms::subDocumentFrame) {
-      nsAutoString src;
-      mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::src, src);
-      buf.Append(NS_LITERAL_STRING(" src=") + src);
-    }
     aResult.Append(NS_LITERAL_STRING("(") + buf + NS_LITERAL_STRING(")"));
   }
   char buf[40];

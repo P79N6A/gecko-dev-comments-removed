@@ -32,7 +32,6 @@
 #include "mozilla/TimeStamp.h"
 #include "prclist.h"
 
-class nsImageLoader;
 #ifdef IBMBIDI
 class nsBidiPresUtils;
 #endif 
@@ -359,49 +358,6 @@ public:
   PRUint8 FocusRingWidth() const { return mFocusRingWidth; }
   bool GetFocusRingOnAnything() const { return mFocusRingOnAnything; }
   PRUint8 GetFocusRingStyle() const { return mFocusRingStyle; }
-
-  
-
-
-
-  enum ImageLoadType {
-    BACKGROUND_IMAGE,
-    BORDER_IMAGE,
-    IMAGE_LOAD_TYPE_COUNT
-  };
-
-  
-
-
-
-
-
-  NS_HIDDEN_(void) SetImageLoaders(nsIFrame* aTargetFrame,
-                                   ImageLoadType aType,
-                                   nsImageLoader* aImageLoaders);
-
-  
-
-
-
-
-  NS_HIDDEN_(void) SetupBackgroundImageLoaders(nsIFrame* aFrame,
-                                               const nsStyleBackground*
-                                                 aStyleBackground);
-
-  
-
-
-
-
-  NS_HIDDEN_(void) SetupBorderImageLoaders(nsIFrame* aFrame,
-                                           const nsStyleBorder* aStyleBorder);
-
-  
-
-
-
-  NS_HIDDEN_(void) StopImagesFor(nsIFrame* aTargetFrame);
 
   NS_HIDDEN_(void) SetContainer(nsISupports* aContainer);
 
@@ -933,8 +889,6 @@ public:
   }
   inline void ForgetUpdatePluginGeometryFrame(nsIFrame* aFrame);
 
-  void DestroyImageLoaders();
-
   bool GetContainsUpdatePluginGeometryFrame()
   {
     return mContainsUpdatePluginGeometryFrame;
@@ -1106,9 +1060,6 @@ public:
 
 protected:
 
-  nsRefPtrHashtable<nsPtrHashKey<nsIFrame>, nsImageLoader>
-                        mImageLoaders[IMAGE_LOAD_TYPE_COUNT];
-
   nsWeakPtr             mContainer;
 
   PRCList               mDOMMediaQueryLists;
@@ -1276,13 +1227,13 @@ public:
 
 
 
-  void RegisterPluginForGeometryUpdates(nsIContent* aPlugin);
+  void RegisterPluginForGeometryUpdates(nsObjectFrame* aPlugin);
   
 
 
 
 
-  void UnregisterPluginForGeometryUpdates(nsIContent* aPlugin);
+  void UnregisterPluginForGeometryUpdates(nsObjectFrame* aPlugin);
 
   
 
@@ -1386,7 +1337,7 @@ protected:
 
   nsCOMPtr<nsITimer> mNotifyDidPaintTimer;
   nsCOMPtr<nsITimer> mUpdatePluginGeometryTimer;
-  nsTHashtable<nsRefPtrHashKey<nsIContent> > mRegisteredPlugins;
+  nsTHashtable<nsPtrHashKey<nsObjectFrame> > mRegisteredPlugins;
   
   
   
