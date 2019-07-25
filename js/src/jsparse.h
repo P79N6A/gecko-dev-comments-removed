@@ -274,6 +274,17 @@ JS_BEGIN_EXTERN_C
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 typedef enum JSParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -531,6 +542,35 @@ public:
         return (pn_pos.begin.lineno == pn_pos.end.lineno &&
                 pn_pos.begin.index + str->length() + 2 == pn_pos.end.index);
     }
+
+#ifdef JS_HAS_GENERATOR_EXPRS
+    
+
+
+    bool isGeneratorExpr() const {
+        if (PN_TYPE(this) == js::TOK_LP) {
+            JSParseNode *callee = this->pn_head;
+            if (PN_TYPE(callee) == js::TOK_FUNCTION) {
+                JSParseNode *body = (PN_TYPE(callee->pn_body) == js::TOK_UPVARS)
+                                    ? callee->pn_body->pn_tree
+                                    : callee->pn_body;
+                if (PN_TYPE(body) == js::TOK_LEXICALSCOPE)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    JSParseNode *generatorExpr() const {
+        JS_ASSERT(isGeneratorExpr());
+        JSParseNode *callee = this->pn_head;
+        JSParseNode *body = PN_TYPE(callee->pn_body) == js::TOK_UPVARS
+            ? callee->pn_body->pn_tree
+            : callee->pn_body;
+        JS_ASSERT(PN_TYPE(body) == js::TOK_LEXICALSCOPE);
+        return body->pn_expr;
+    }
+#endif
 
     
 
@@ -958,6 +998,11 @@ struct Parser : private js::AutoGCRooter
               FILE *fp, const char *filename, uintN lineno);
 
     void setPrincipals(JSPrincipals *prin);
+
+    const char *getFilename()
+    {
+        return tokenStream.getFilename();
+    }
 
     
 

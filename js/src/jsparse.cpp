@@ -2890,7 +2890,6 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
 
 
-
     if (prolog) {
         if (body->pn_arity != PN_LIST) {
             JSParseNode *block;
@@ -7881,10 +7880,9 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 
 
                 pnexp = pn->last();
-                JS_ASSERT(pn->pn_count == 1 || pn->pn_count == 2);
-                pn->pn_tail = (--pn->pn_count == 1)
-                              ? &pn->pn_head->pn_next
-                              : &pn->pn_head;
+                JS_ASSERT(pn->pn_count == 1);
+                pn->pn_count = 0;
+                pn->pn_tail = &pn->pn_head;
                 *pn->pn_tail = NULL;
 
                 pntop = comprehensionTail(pnexp, pn->pn_blockid,
