@@ -1,3 +1,4 @@
+
 var BrowserSearch = {
   get _popup() {
     delete this._popup;
