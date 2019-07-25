@@ -80,7 +80,10 @@ public:
 
     
     
-    void TakePixmap();
+    void TakePixmap() {
+        NS_ASSERTION(!mPixmapTaken, "I already own the Pixmap!");
+        mPixmapTaken = PR_TRUE;
+    }
 
 protected:
     
