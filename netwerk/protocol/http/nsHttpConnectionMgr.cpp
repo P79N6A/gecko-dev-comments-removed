@@ -1221,9 +1221,10 @@ nsHttpConnectionMgr::nsHalfOpenSocket::~nsHalfOpenSocket()
     LOG(("Destroying nsHalfOpenSocket [this=%p]\n", this));
     
     if (mEnt) {
-        PRInt32 index = mEnt->mHalfOpens.IndexOf(this);
-        NS_ABORT_IF_FALSE(index != -1, "half open complete but no item");
-        mEnt->mHalfOpens.RemoveElementAt(index);
+        
+        
+        
+        mEnt->mHalfOpens.RemoveElement(this);
     }
 }
 
