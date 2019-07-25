@@ -1898,16 +1898,6 @@ class CGMethodCall(CGThing):
             
             
             
-            pickFirstSignature("%s.isObject() && IsArrayLike(cx, &%s.toObject()" %
-                               (distinguishingArg, distinguishingArg),
-                               lambda s:
-                                   (s[1][distinguishingIndex].type.isArray() or
-                                    s[1][distinguishingIndex].type.isSequence() or
-                                    s[1][distinguishingIndex].type.isObject()))
-
-            
-            
-            
             
             
             pickFirstSignature("%s.isObject() && JS_IsArrayBufferObject(&%s.toObject())" %
@@ -1992,6 +1982,16 @@ class CGMethodCall(CGThing):
                     caseBody.append(CGIndenter(CGGeneric("} while (0);")))
 
                 caseBody.append(CGGeneric("}"))
+
+            
+            
+            
+            pickFirstSignature("%s.isObject() && IsArrayLike(cx, &%s.toObject()" %
+                               (distinguishingArg, distinguishingArg),
+                               lambda s:
+                                   (s[1][distinguishingIndex].type.isArray() or
+                                    s[1][distinguishingIndex].type.isSequence() or
+                                    s[1][distinguishingIndex].type.isObject()))
 
             
             

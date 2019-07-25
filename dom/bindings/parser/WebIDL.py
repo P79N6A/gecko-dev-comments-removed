@@ -859,10 +859,7 @@ class IDLSequenceType(IDLType):
     def isDistinguishableFrom(self, other):
         return (other.isPrimitive() or other.isString() or other.isEnum() or
                 other.isDictionary() or other.isDate() or
-                
-                
-                (other.isInterface() and not other.isCallback() and
-                 not other.isArrayBuffer()))
+                (other.isInterface() and not other.isCallback()))
 
 class IDLArrayType(IDLType):
     def __init__(self, location, parameterType):
@@ -935,10 +932,7 @@ class IDLArrayType(IDLType):
     def isDistinguishableFrom(self, other):
         return (other.isPrimitive() or other.isString() or other.isEnum() or
                 other.isDictionary() or other.isDate() or
-                
-                
-                (other.isInterface() and not other.isCallback() and
-                 not other.isArrayBuffer()))
+                (other.isInterface() and not other.isCallback()))
 
 class IDLTypedefType(IDLType, IDLObjectWithIdentifier):
     def __init__(self, location, innerType, name):
@@ -1068,8 +1062,6 @@ class IDLWrapperType(IDLType):
         if other.isDictionary() or other.isCallback():
             return not self.isCallback()
         if other.isSequence() or other.isArray():
-            
-            
             return not self.isCallback()
 
 class IDLBuiltinType(IDLType):
@@ -1169,11 +1161,9 @@ class IDLBuiltinType(IDLType):
         
         assert self.isArrayBuffer()
         
-        
-        
-        
         return (other.isPrimitive() or other.isString() or other.isEnum() or
-                other.isCallback() or other.isDictionary() or other.isDate() or
+                other.isCallback() or other.isDictionary() or
+                other.isSequence() or other.isArray() or other.isDate() or
                 (other.isInterface() and not other.isArrayBuffer()))
 
 BuiltinTypes = {
