@@ -1261,7 +1261,7 @@ MediaStreamGraphImpl::RunThread()
     {
       
       
-      mMonitor.Lock();
+      MonitorAutoLock lock(mMonitor);
       PrepareUpdatesToMainThreadState();
       if (mForceShutDown || (IsEmpty() && mMessageQueue.IsEmpty())) {
         
@@ -1271,16 +1271,6 @@ MediaStreamGraphImpl::RunThread()
         mLifecycleState = LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP;
         
         
-        nsTArray<nsRefPtr<MediaStream> > streams;
-        mStreams.SwapElements(streams);
-
-        mMonitor.Unlock();
-        
-        
-        
-        for (PRUint32 i = 0; i < streams.Length(); ++i) {
-          streams[i]->DestroyImpl();
-        }
         return;
       }
 
@@ -1308,8 +1298,6 @@ MediaStreamGraphImpl::RunThread()
       mWaitState = WAITSTATE_RUNNING;
       mNeedAnotherIteration = false;
       messageQueue.SwapElements(mMessageQueue);
-
-      mMonitor.Unlock();
     }
   }
 }
