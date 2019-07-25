@@ -151,7 +151,7 @@ struct PICInfo {
     JSC::CodeLocationLabel storeBack;
 
     
-    uint8 callReturn;
+    uint16 callReturn : 9;
 
     
     JSC::CodeLocationLabel slowPathStart;
