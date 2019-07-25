@@ -458,6 +458,20 @@ function test()
     check(function () Object.getPrototypeOf(view) == Int8Array.prototype);
 
     
+    check(function () !Object.getOwnPropertyDescriptor(simple, 'byteLength'));
+    check(function () Object.getOwnPropertyDescriptor(Int8Array.prototype, 'byteLength'));
+
+    
+    
+    
+    if (false) {
+        check(function () simple.byteLength == 12);
+        getter = Object.getOwnPropertyDescriptor(Int8Array.prototype, 'byteLength').get;
+        Object.defineProperty(Int8Array.prototype, 'byteLength', { get: function () { return 1 + getter.apply(this) } });
+        check(function () simple.byteLength == 13);
+    }
+
+    
     var numbers = [ 0, 1, 2, 3, 4, 5, 6, 7, 8 ];
 
     function tastring(tarray) {

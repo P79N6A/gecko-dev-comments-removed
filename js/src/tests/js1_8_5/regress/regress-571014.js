@@ -4,7 +4,12 @@ var F, o;
 F = function () {};
 F.prototype = new ArrayBuffer(1);
 o = new F();
-assertEq(o.byteLength, 1); 
+try {
+    o.byteLength;
+} catch (ex) {
+    
+    assertEq(ex instanceof TypeError, true);
+}
 
 o = {};
 o.__proto__ = new Int32Array(1);
