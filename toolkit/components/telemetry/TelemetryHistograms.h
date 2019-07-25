@@ -398,6 +398,14 @@ HISTOGRAM_BOOLEAN(MULTIPART_XHR_RESPONSE, "XMLHttpRequest response was of type m
 
 
 
+HISTOGRAM(PRIVATE_BROWSING_TRANSITION_ENTER_PREPARATION_MS, 1, 3000, 10, EXPONENTIAL, "Time spent on private browsing enter transition, excluding session restore (ms)")
+HISTOGRAM(PRIVATE_BROWSING_TRANSITION_ENTER_TOTAL_MS, 1, 10000, 50, EXPONENTIAL, "Time spent on private browsing enter transition, including session restore (ms)")
+HISTOGRAM(PRIVATE_BROWSING_TRANSITION_EXIT_PREPARATION_MS, 1, 3000, 10, EXPONENTIAL, "Time spent on private browsing exit transition, excluding session restore (ms)")
+HISTOGRAM(PRIVATE_BROWSING_TRANSITION_EXIT_TOTAL_MS, 1, 10000, 50, EXPONENTIAL, "Time spent on private browsing exit transition, including session restore (ms)")
+
+
+
+
 HISTOGRAM(DOM_TIMERS_FIRED_PER_NATIVE_TIMEOUT, 1, 3000, 10, EXPONENTIAL, "DOM: Timer handlers called per native timer expiration")
 HISTOGRAM(DOM_TIMERS_RECENTLY_SET, 1, 3000, 10, EXPONENTIAL, "DOM: setTimeout/setInterval calls recently (last 30s or more)")
 HISTOGRAM_BOOLEAN(DOM_RANGE_DETACHED, "DOM: Ranges that are detached on destruction (bug 702948)")

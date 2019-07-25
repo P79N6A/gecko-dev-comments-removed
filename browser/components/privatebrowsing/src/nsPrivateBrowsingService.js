@@ -134,6 +134,10 @@ PrivateBrowsingService.prototype = {
   _lastChangedByCommandLine: false,
 
   
+  _enterTimestamps: {},
+  _exitTimestamps: {},
+
+  
   classID: Components.ID("{c31f4883-839b-45f6-82ad-a6a9bc5ad599}"),
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIPrivateBrowsingService, 
@@ -308,6 +312,7 @@ PrivateBrowsingService.prototype = {
         
         this._currentStatus = STATE_IDLE;
         this._obs.notifyObservers(null, "private-browsing-transition-complete", "");
+        this._recordTransitionTime("completed");
         break;
       case STATE_WAITING_FOR_RESTORE:
         
@@ -321,6 +326,51 @@ PrivateBrowsingService.prototype = {
                        this._currentStatus);
         break;
     }
+  },
+
+  _recordTransitionTime: function PBS__recordTransitionTime(aPhase) {
+    
+    
+    
+    
+    if (this._inPrivateBrowsing) {
+      this._enterTimestamps[aPhase] = Date.now();
+    } else {
+      if (this._quitting) {
+        
+        
+        return;
+      }
+      this._exitTimestamps[aPhase] = Date.now();
+      if (aPhase == "completed") {
+        
+        
+        this._reportTelemetry();
+      }
+    }
+  },
+
+  _reportTelemetry: function PBS__reportTelemetry() {
+    function reportTelemetryEntry(aHistogramId, aValue) {
+      try {
+        Services.telemetry.getHistogramById(aHistogramId).add(aValue);
+      } catch (ex) {
+        Cu.reportError(ex);
+      }
+    }
+
+    reportTelemetryEntry(
+          "PRIVATE_BROWSING_TRANSITION_ENTER_PREPARATION_MS",
+          this._enterTimestamps.prepared - this._enterTimestamps.started);
+    reportTelemetryEntry(
+          "PRIVATE_BROWSING_TRANSITION_ENTER_TOTAL_MS",
+          this._enterTimestamps.completed - this._enterTimestamps.started);
+    reportTelemetryEntry(
+          "PRIVATE_BROWSING_TRANSITION_EXIT_PREPARATION_MS",
+          this._exitTimestamps.prepared - this._exitTimestamps.started);
+    reportTelemetryEntry(
+          "PRIVATE_BROWSING_TRANSITION_EXIT_TOTAL_MS",
+          this._exitTimestamps.completed - this._exitTimestamps.started);
   },
 
   _canEnterPrivateBrowsingMode: function PBS__canEnterPrivateBrowsingMode() {
@@ -537,6 +587,8 @@ PrivateBrowsingService.prototype = {
       this._autoStarted = this._prefs.getBoolPref("browser.privatebrowsing.autostart");
       this._inPrivateBrowsing = val != false;
 
+      this._recordTransitionTime("started");
+
       let data = val ? "enter" : "exit";
 
       let quitting = Cc["@mozilla.org/supports-PRBool;1"].
@@ -550,6 +602,8 @@ PrivateBrowsingService.prototype = {
       this._onBeforePrivateBrowsingModeChange();
 
       this._obs.notifyObservers(quitting, "private-browsing", data);
+
+      this._recordTransitionTime("prepared");
 
       
       this._onAfterPrivateBrowsingModeChange();
