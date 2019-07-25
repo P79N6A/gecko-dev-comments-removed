@@ -413,6 +413,8 @@ public:
     NS_IMETHOD SetIsIPC(PRBool isIPC);
     
     NS_IMETHOD Redraw(const gfxRect &r);
+    
+    NS_IMETHOD RedrawUser(const gfxRect &r);
 
     
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -503,7 +505,13 @@ protected:
 
 
 
-    PRBool mIsEntireFrameInvalid;
+    PRPackedBool mIsEntireFrameInvalid;
+    
+
+
+
+
+    PRPackedBool mPredictManyRedrawCalls;
 
     
 
@@ -821,7 +829,8 @@ nsCanvasRenderingContext2D::nsCanvasRenderingContext2D()
     : mValid(PR_FALSE), mOpaque(PR_FALSE), mResetLayer(PR_TRUE)
     , mIPC(PR_FALSE)
     , mCanvasElement(nsnull)
-    , mSaveCount(0), mIsEntireFrameInvalid(PR_FALSE), mInvalidateCount(0)
+    , mSaveCount(0), mIsEntireFrameInvalid(PR_FALSE)
+    , mPredictManyRedrawCalls(PR_FALSE), mInvalidateCount(0)
     , mLastStyle(STYLE_MAX), mStyleStack(20)
 {
     sNumLivingContexts++;
@@ -851,6 +860,7 @@ nsCanvasRenderingContext2D::Reset()
     mThebes = nsnull;
     mValid = PR_FALSE;
     mIsEntireFrameInvalid = PR_FALSE;
+    mPredictManyRedrawCalls = PR_FALSE;
     return NS_OK;
 }
 
@@ -1014,6 +1024,10 @@ nsCanvasRenderingContext2D::ApplyStyle(Style aWhichStyle,
 nsresult
 nsCanvasRenderingContext2D::Redraw()
 {
+    if (mIsEntireFrameInvalid)
+        return NS_OK;
+    mIsEntireFrameInvalid = PR_TRUE;
+
     if (!mCanvasElement) {
         NS_ASSERTION(mDocShell, "Redraw with no canvas element or docshell!");
         return NS_OK;
@@ -1022,11 +1036,6 @@ nsCanvasRenderingContext2D::Redraw()
 #ifdef MOZ_SVG
     nsSVGEffects::InvalidateDirectRenderingObservers(HTMLCanvasElement());
 #endif
-
-    if (mIsEntireFrameInvalid)
-        return NS_OK;
-
-    mIsEntireFrameInvalid = PR_TRUE;
 
     HTMLCanvasElement()->InvalidateFrame();
 
@@ -1036,8 +1045,15 @@ nsCanvasRenderingContext2D::Redraw()
 NS_IMETHODIMP
 nsCanvasRenderingContext2D::Redraw(const gfxRect& r)
 {
+    ++mInvalidateCount;
+
     if (mIsEntireFrameInvalid)
         return NS_OK;
+
+    if (mPredictManyRedrawCalls ||
+        mInvalidateCount > kCanvasMaxInvalidateCount) {
+        return Redraw();
+    }
 
     if (!mCanvasElement) {
         NS_ASSERTION(mDocShell, "Redraw with no canvas element or docshell!");
@@ -1048,12 +1064,20 @@ nsCanvasRenderingContext2D::Redraw(const gfxRect& r)
     nsSVGEffects::InvalidateDirectRenderingObservers(HTMLCanvasElement());
 #endif
 
-    if (++mInvalidateCount > kCanvasMaxInvalidateCount)
-        return Redraw();
-
     HTMLCanvasElement()->InvalidateFrame(&r);
 
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCanvasRenderingContext2D::RedrawUser(const gfxRect& r)
+{
+    if (mIsEntireFrameInvalid) {
+        ++mInvalidateCount;
+        return NS_OK;
+    }
+
+    return Redraw(mThebes->UserToDevice(r));
 }
 
 NS_IMETHODIMP
@@ -1914,8 +1938,6 @@ nsCanvasRenderingContext2D::DrawPath(Style style, gfxRect *dirtyRect)
             
             *dirtyRect = mThebes->GetClipExtents();
         }
-
-        *dirtyRect = mThebes->UserToDevice(*dirtyRect);
     }
 
     return NS_OK;
@@ -1939,8 +1961,7 @@ nsCanvasRenderingContext2D::ClearRect(float x, float y, float w, float h)
     mThebes->Rectangle(gfxRect(x, y, w, h));
     mThebes->Fill();
 
-    gfxRect dirty = mThebes->UserToDevice(mThebes->GetUserPathExtent());
-    return Redraw(dirty);
+    return RedrawUser(mThebes->GetUserPathExtent());
 }
 
 nsresult
@@ -1959,7 +1980,7 @@ nsCanvasRenderingContext2D::DrawRect(const gfxRect& rect, Style style)
     if (NS_FAILED(rv))
         return rv;
 
-    return Redraw(dirty);
+    return RedrawUser(dirty);
 }
 
 NS_IMETHODIMP
@@ -1999,7 +2020,7 @@ nsCanvasRenderingContext2D::Fill()
     nsresult rv = DrawPath(STYLE_FILL, &dirty);
     if (NS_FAILED(rv))
         return rv;
-    return Redraw(dirty);
+    return RedrawUser(dirty);
 }
 
 NS_IMETHODIMP
@@ -2009,7 +2030,7 @@ nsCanvasRenderingContext2D::Stroke()
     nsresult rv = DrawPath(STYLE_STROKE, &dirty);
     if (NS_FAILED(rv))
         return rv;
-    return Redraw(dirty);
+    return RedrawUser(dirty);
 }
 
 NS_IMETHODIMP
@@ -2848,7 +2869,7 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
         mThebes->Paint(CurrentState().StyleIsColor(STYLE_FILL) ? 1.0 : CurrentState().globalAlpha);
 
     if (aOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_FILL && !doDrawShadow)
-        return Redraw(mThebes->UserToDevice(boundingBox));
+        return RedrawUser(boundingBox);
 
     return Redraw();
 }
@@ -3511,10 +3532,7 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
             mThebes->Paint(CurrentState().globalAlpha);
         }
 
-        if (!mIsEntireFrameInvalid) {
-            gfxRect dirty = mThebes->UserToDevice(clip);
-            Redraw(dirty);
-        }
+        RedrawUser(clip);
     }
 
 FINISH:
@@ -3669,9 +3687,7 @@ nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, float aX, float aY
     
     
     
-    gfxRect damageRect = mThebes->UserToDevice(gfxRect(0, 0, aW, aH));
-
-    Redraw(damageRect);
+    RedrawUser(gfxRect(0, 0, aW, aH));
 
     return rv;
 }
@@ -4107,6 +4123,9 @@ nsCanvasRenderingContext2D::GetCanvasLayer(CanvasLayer *aOldLayer,
 void
 nsCanvasRenderingContext2D::MarkContextClean()
 {
+    if (mInvalidateCount > 0) {
+        mPredictManyRedrawCalls = mInvalidateCount > kCanvasMaxInvalidateCount;
+    }
     mIsEntireFrameInvalid = PR_FALSE;
     mInvalidateCount = 0;
 }
