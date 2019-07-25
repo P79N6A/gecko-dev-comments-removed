@@ -97,12 +97,19 @@ Store.prototype = {
     fn.async(this, onComplete, record);
   },
 
-  
-  itemExists: function Store_itemExists(GUID) {
-    if (GUID in this._lookup)
+  itemExists: function Store_itemExists(id) {
+    if (!this._itemCache)
+      return this._itemExists(id);
+
+    if (id in this._itemCache)
       return true;
     else
       return false;
+  },
+
+  
+  _itemExists: function Store__itemExists(id) {
+    return false;
   },
 
   cacheItemsHint: function Store_cacheItemsHint() {
