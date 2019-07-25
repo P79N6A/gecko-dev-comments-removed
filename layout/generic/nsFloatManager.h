@@ -170,10 +170,9 @@ public:
 
 
 
-
   enum BandInfoType { BAND_FROM_POINT, WIDTH_WITHIN_HEIGHT };
   nsFlowAreaRect GetFlowArea(nscoord aY, BandInfoType aInfoType,
-                             nscoord aHeight, nscoord aContentAreaWidth,
+                             nscoord aHeight, nsRect aContentArea,
                              SavedState* aState) const;
 
   

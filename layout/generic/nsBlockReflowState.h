@@ -75,8 +75,6 @@ public:
                      PRBool aTopMarginRoot, PRBool aBottomMarginRoot,
                      PRBool aBlockNeedsFloatManager);
 
-  ~nsBlockReflowState();
-
   
 
 
@@ -225,7 +223,10 @@ public:
   
   
   
-  nsSize mContentArea;
+  
+  
+  
+  nsRect mContentArea;
 
   
   

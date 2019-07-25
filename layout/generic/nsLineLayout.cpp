@@ -813,25 +813,16 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   
   
-  nscoord x = pfd->mBounds.x;
-  nscoord y = pfd->mBounds.y;
-
   aFrame->WillReflow(mPresContext);
 
-  
-  
-  
-  
-  
-  
   
   nsHTMLReflowMetrics metrics;
 #ifdef DEBUG
   metrics.width = nscoord(0xdeadbeef);
   metrics.height = nscoord(0xdeadbeef);
 #endif
-  nscoord tx = x - psd->mReflowState->mComputedBorderPadding.left;
-  nscoord ty = y - psd->mReflowState->mComputedBorderPadding.top;
+  nscoord tx = pfd->mBounds.x;
+  nscoord ty = pfd->mBounds.y;
   mFloatManager->Translate(tx, ty);
 
   nsIAtom* frameType = aFrame->GetType();

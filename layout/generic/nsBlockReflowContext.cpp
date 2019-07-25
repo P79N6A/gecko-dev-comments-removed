@@ -278,24 +278,11 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
     
     
 
-    nscoord x = mSpace.x + aFrameRS.mComputedMargin.left;
-    nscoord y = mSpace.y + mTopMargin.get() + aClearance;
+    mX = tx = mSpace.x + aFrameRS.mComputedMargin.left;
+    mY = ty = mSpace.y + mTopMargin.get() + aClearance;
 
     if ((mFrame->GetStateBits() & NS_BLOCK_FLOAT_MGR) == 0)
-      aFrameRS.mBlockDelta = mOuterReflowState.mBlockDelta + y - aLine->mBounds.y;
-
-    mX = x;
-    mY = y;
-
-    
-    
-    
-    
-    
-    
-    
-    tx = x - mOuterReflowState.mComputedBorderPadding.left;
-    ty = y - mOuterReflowState.mComputedBorderPadding.top;
+      aFrameRS.mBlockDelta = mOuterReflowState.mBlockDelta + ty - aLine->mBounds.y;
   }
 
   

@@ -3486,8 +3486,7 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
          this, aFloatAvailableSpace.mHasFloats);
 #endif
 
-  const nsMargin& borderPadding = aState.BorderPadding();
-  nscoord x = aFloatAvailableSpace.mRect.x + borderPadding.left;
+  nscoord x = aFloatAvailableSpace.mRect.x;
   nscoord availWidth = aFloatAvailableSpace.mRect.width;
   nscoord availHeight;
   if (aState.GetFlag(BRS_UNCONSTRAINEDHEIGHT)) {
@@ -5557,11 +5556,9 @@ nsBlockFrame::AdjustFloatAvailableSpace(nsBlockReflowState& aState,
     availWidth = aFloatAvailableSpace.width;
   }
 
-  
-  nscoord contentYOffset = aState.mY - aState.BorderPadding().top;
   nscoord availHeight = NS_UNCONSTRAINEDSIZE == aState.mContentArea.height
                         ? NS_UNCONSTRAINEDSIZE
-                        : NS_MAX(0, aState.mContentArea.height - contentYOffset);
+                        : NS_MAX(0, aState.mContentArea.YMost() - aState.mY);
 
 #ifdef DISABLE_FLOAT_BREAKING_IN_COLUMNS
   if (availHeight != NS_UNCONSTRAINEDSIZE &&
@@ -5574,8 +5571,8 @@ nsBlockFrame::AdjustFloatAvailableSpace(nsBlockReflowState& aState,
   }
 #endif
 
-  return nsRect(aState.BorderPadding().left,
-                aState.BorderPadding().top,
+  return nsRect(aState.mContentArea.x,
+                aState.mContentArea.y,
                 availWidth, availHeight);
 }
 
@@ -6610,7 +6607,7 @@ nsBlockFrame::ReflowBullet(nsBlockReflowState& aState,
   
   nsSize availSize;
   
-  availSize.width = rs.ComputedWidth();
+  availSize.width = aState.mContentArea.width;
   availSize.height = NS_UNCONSTRAINEDSIZE;
 
   
@@ -6647,23 +6644,19 @@ nsBlockFrame::ReflowBullet(nsBlockReflowState& aState,
     
     
     
-    
-    
-    x = floatAvailSpace.x - reflowState.mComputedMargin.right - aMetrics.width;
+    x = floatAvailSpace.x - rs.mComputedBorderPadding.left
+        - reflowState.mComputedMargin.right - aMetrics.width;
   } else {
     
     
     
-    
-    x = NS_MIN(rs.ComputedWidth(), floatAvailSpace.XMost())
-        + rs.mComputedBorderPadding.LeftRight()
+    x = floatAvailSpace.XMost() + rs.mComputedBorderPadding.right
         + reflowState.mComputedMargin.left;
   }
 
   
   
-  const nsMargin& bp = aState.BorderPadding();
-  nscoord y = bp.top;
+  nscoord y = aState.mContentArea.y;
   mBullet->SetRect(nsRect(x, y, aMetrics.width, aMetrics.height));
   mBullet->DidReflow(aState.mPresContext, &aState.mReflowState, NS_FRAME_REFLOW_FINISHED);
 }
