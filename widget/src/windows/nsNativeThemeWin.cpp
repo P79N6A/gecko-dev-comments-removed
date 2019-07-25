@@ -350,6 +350,8 @@ static CaptionButtonPadding buttonData[3] = {
 
 static const PRInt32 kProgressDeterminedXPOverflow = 11;
 
+static const PRInt32 kProgressDeterminedVistaOverflow = 4;
+
 
 static void AddPaddingRect(nsIntSize* aSize, CaptionButton button) {
   if (!aSize)
@@ -665,7 +667,7 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
       return NS_OK;
     }
     case NS_THEME_PROGRESSBAR_CHUNK: {
-      aPart = PP_CHUNK;
+      aPart = nsUXThemeData::sIsVistaOrLater ? PP_FILL : PP_CHUNK;
       aState = TS_NORMAL;
       return NS_OK;
     }
@@ -1297,7 +1299,9 @@ RENDER_AGAIN:
   else if (aWidgetType == NS_THEME_WINDOW_BUTTON_CLOSE) {
     OffsetBackgroundRect(widgetRect, CAPTIONBUTTON_CLOSE);
   } else if (aWidgetType == NS_THEME_PROGRESSBAR_CHUNK) {
-    widgetRect.bottom -= kProgressDeterminedXPOverflow;
+    widgetRect.bottom -= nsUXThemeData::sIsVistaOrLater
+                           ? kProgressDeterminedVistaOverflow
+                           : kProgressDeterminedXPOverflow;
   }
 
   
