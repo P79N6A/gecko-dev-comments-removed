@@ -99,10 +99,5 @@ void GetMigrateDataFromArray(MigrationData* aDataArray,
 
 void GetProfilePath(nsIProfileStartup* aStartup, nsCOMPtr<nsIFile>& aProfileDir);
 
-
-
-
-nsresult ImportDefaultBookmarks();
-
 #endif
 

@@ -58,7 +58,7 @@ function run_test() {
 
 
   
-  var importer = Cc["@mozilla.org/browser/places/import-export-service;1"].getService(Ci.nsIPlacesImportExportService);
+  Cu.import("resource://gre/modules/BookmarkHTMLUtils.jsm");
 
   
   Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch).
@@ -83,8 +83,14 @@ function run_test() {
   
   
   try {
-    importer.importHTMLFromFile(bookmarksFileOld, true);
+    BookmarkHTMLUtils.importFromFile(bookmarksFileOld, true, after_import);
   } catch(ex) { do_throw("couldn't import legacy bookmarks file: " + ex); }
+}
+
+function after_import(success) {
+  if (!success) {
+    do_throw("Couldn't import legacy bookmarks file.");
+  }
   populate();
   validate();
 
@@ -95,6 +101,8 @@ function run_test() {
     
     
     try {
+      var jsonFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
+      jsonFile.append("bookmarks.exported.json");
       PlacesUtils.backups.saveBookmarksToJSONFile(jsonFile);
     } catch(ex) { do_throw("couldn't export to file: " + ex); }
     LOG("exported json");
