@@ -3163,9 +3163,8 @@ var bookmarksButtonObserver = {
                                        , hiddenRows: [ "description"
                                                      , "location"
                                                      , "loadInSidebar"
-                                                     , "folderPicker"
                                                      , "keyword" ]
-                                       });
+                                       }, window);
     } catch(ex) { }
   },
 
@@ -3913,14 +3912,36 @@ var FullScreen = {
   },
 
   enterDomFullScreen : function(event) {
-    
-    
-    
-    
-    
-    if (!document.mozFullScreen || event.target.ownerDocument != document) {
+    if (!document.mozFullScreen) {
       return;
     }
+
+    
+    
+    
+    
+    
+    let targetDoc = event.target.ownerDocument ? event.target.ownerDocument : event.target;
+    if (targetDoc != document) {
+      
+      
+      
+      
+      
+      if (targetDoc.defaultView.top != gBrowser.contentWindow) {
+        document.mozCancelFullScreen();
+      }
+      return;
+    }
+
+    let focusManger = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+    if (focusManger.activeWindow != window) {
+      
+      
+      document.mozCancelFullScreen();
+      return;
+    }
+
     this.showWarning(true);
 
     
@@ -4564,7 +4585,7 @@ var XULBrowserWindow = {
     }
   },
 
-  onLocationChange: function (aWebProgress, aRequest, aLocationURI) {
+  onLocationChange: function (aWebProgress, aRequest, aLocationURI, aFlags) {
     var location = aLocationURI ? aLocationURI.spec : "";
     this._hostChanged = true;
 
@@ -5030,7 +5051,8 @@ var TabsProgressListener = {
     }
   },
 
-  onLocationChange: function (aBrowser, aWebProgress, aRequest, aLocationURI) {
+  onLocationChange: function (aBrowser, aWebProgress, aRequest, aLocationURI,
+                              aFlags) {
     
     if (aBrowser.contentWindow == aWebProgress.DOMWindow)
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
@@ -5769,9 +5791,8 @@ function contentAreaClick(event, isPanelClick)
                                        , loadBookmarkInSidebar: true
                                        , hiddenRows: [ "description"
                                                      , "location"
-                                                     , "folderPicker"
                                                      , "keyword" ]
-                                       });
+                                       }, window);
       event.preventDefault();
       return true;
     }
@@ -6816,9 +6837,10 @@ function AddKeywordForSearchField() {
                                    , postData: postData
                                    , charSet: charset
                                    , hiddenRows: [ "location"
-                                                 , "loadInSidebar"
-                                                 , "folderPicker" ]
-                                   });
+                                                 , "description"
+                                                 , "tags"
+                                                 , "loadInSidebar" ]
+                                   }, window);
 }
 
 function SwitchDocumentDirection(aWindow) {

@@ -122,7 +122,7 @@ protected:
     static nsresult resolveQName(const nsAString& aQName, nsIAtom** aPrefix,
                                  txIParseContext* aContext,
                                  nsIAtom** aLocalName, PRInt32& aNamespace,
-                                 bool aIsNameTest = MB_FALSE);
+                                 bool aIsNameTest = false);
 
     
 

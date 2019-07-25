@@ -92,11 +92,17 @@ struct Arena;
 
 
 
-const size_t MAX_BACKGROUND_FINALIZE_KINDS = FINALIZE_LIMIT - (FINALIZE_OBJECT_LAST + 1) / 2;
+const size_t MAX_BACKGROUND_FINALIZE_KINDS = FINALIZE_LIMIT - FINALIZE_OBJECT_LIMIT / 2;
 
 const size_t ArenaShift = 12;
 const size_t ArenaSize = size_t(1) << ArenaShift;
 const size_t ArenaMask = ArenaSize - 1;
+
+
+
+
+
+const static uint32 MaxFreeCommittedArenas = (32 << 20) / ArenaSize;
 
 
 
@@ -746,14 +752,14 @@ struct Chunk {
     static inline void release(JSRuntime *rt, Chunk *chunk);
 
   private:
-    inline void init();
+    inline void init(JSRuntime *rt);
 
     
     jsuint findDecommittedArenaOffset();
     ArenaHeader* fetchNextDecommittedArena();
 
     
-    inline ArenaHeader* fetchNextFreeArena();
+    inline ArenaHeader* fetchNextFreeArena(JSRuntime *rt);
 };
 
 JS_STATIC_ASSERT(sizeof(Chunk) == ChunkSize);
@@ -1327,7 +1333,10 @@ extern void
 js_UnlockGCThingRT(JSRuntime *rt, void *thing);
 
 extern JS_FRIEND_API(bool)
-IsAboutToBeFinalized(JSContext *cx, const void *thing);
+IsAboutToBeFinalized(JSContext *cx, const js::gc::Cell *thing);
+
+extern bool
+IsAboutToBeFinalized(JSContext *cx, const js::Value &value);
 
 extern JS_FRIEND_API(bool)
 js_GCThingIsMarked(void *thing, uintN color);
@@ -1490,6 +1499,10 @@ class GCHelperThread {
 
     void disableBackgroundAllocation() {
         backgroundAllocation = false;
+    }
+
+    PRThread *getThread() const {
+        return thread;
     }
 
     
@@ -1781,6 +1794,25 @@ NewCompartment(JSContext *cx, JSPrincipals *principals);
 
 void
 RunDebugGC(JSContext *cx);
+
+const int ZealPokeThreshold = 1;
+const int ZealAllocThreshold = 2;
+const int ZealVerifierThreshold = 4;
+
+#ifdef JS_GC_ZEAL
+
+
+void
+VerifyBarriers(JSContext *cx, bool always = false);
+
+#else
+
+static inline void
+VerifyBarriers(JSContext *cx, bool always = false)
+{
+}
+
+#endif
 
 } 
 

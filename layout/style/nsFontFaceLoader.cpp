@@ -221,7 +221,10 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
     
     
     
-    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel);
+    nsCOMPtr<nsIRequest> request;
+    nsCOMPtr<nsIHttpChannel> httpChannel;
+    aLoader->GetRequest(getter_AddRefs(request));
+    httpChannel = do_QueryInterface(request);
     if (httpChannel) {
       bool succeeded;
       nsresult rv = httpChannel->GetRequestSucceeded(&succeeded);

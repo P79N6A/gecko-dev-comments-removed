@@ -107,7 +107,7 @@ public:
 
 
 
-    virtual MBool booleanValue()          = 0;
+    virtual bool booleanValue()          = 0;
 
     
 
@@ -131,12 +131,12 @@ private:
 class BooleanResult : public txAExprResult {
 
 public:
-    BooleanResult(MBool aValue);
+    BooleanResult(bool aValue);
 
     TX_DECL_EXPRRESULT
 
 private:
-    MBool value;
+    bool value;
 };
 
 class NumberResult : public txAExprResult {

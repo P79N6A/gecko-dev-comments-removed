@@ -1,44 +1,44 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * A class for managing namespace IDs and mapping back and forth
+ * between namespace IDs and namespace URIs.
+ */
 
 #include "nscore.h"
 #include "nsINameSpaceManager.h"
@@ -146,7 +146,7 @@ nsresult NameSpaceManagerImpl::Init()
   rv = AddNameSpace(NS_LITERAL_STRING(uri), id); \
   NS_ENSURE_SUCCESS(rv, rv)
 
-  
+  // Need to be ordered according to ID.
   REGISTER_NAMESPACE(kXMLNSNameSpaceURI, kNameSpaceID_XMLNS);
   REGISTER_NAMESPACE(kXMLNameSpaceURI, kNameSpaceID_XML);
   REGISTER_NAMESPACE(kXHTMLNameSpaceURI, kNameSpaceID_XHTML);
@@ -169,14 +169,14 @@ NameSpaceManagerImpl::RegisterNameSpace(const nsAString& aURI,
                                         PRInt32& aNameSpaceID)
 {
   if (aURI.IsEmpty()) {
-    aNameSpaceID = kNameSpaceID_None; 
+    aNameSpaceID = kNameSpaceID_None; // xmlns="", see bug 75700 for details
 
     return NS_OK;
   }
 
   nsresult rv = NS_OK;
   if (!mURIToIDTable.Get(&aURI, &aNameSpaceID)) {
-    aNameSpaceID = mURIArray.Length() + 1; 
+    aNameSpaceID = mURIArray.Length() + 1; // id is index + 1
 
     rv = AddNameSpace(aURI, aNameSpaceID);
     if (NS_FAILED(rv)) {
@@ -194,7 +194,7 @@ NameSpaceManagerImpl::GetNameSpaceURI(PRInt32 aNameSpaceID, nsAString& aURI)
 {
   NS_PRECONDITION(aNameSpaceID >= 0, "Bogus namespace ID");
   
-  PRInt32 index = aNameSpaceID - 1; 
+  PRInt32 index = aNameSpaceID - 1; // id is index + 1
   if (index < 0 || index >= PRInt32(mURIArray.Length())) {
     aURI.Truncate();
 
@@ -210,7 +210,7 @@ PRInt32
 NameSpaceManagerImpl::GetNameSpaceID(const nsAString& aURI)
 {
   if (aURI.IsEmpty()) {
-    return kNameSpaceID_None; 
+    return kNameSpaceID_None; // xmlns="", see bug 75700 for details
   }
 
   PRInt32 nameSpaceID;
@@ -224,28 +224,29 @@ NameSpaceManagerImpl::GetNameSpaceID(const nsAString& aURI)
 }
 
 nsresult
-NS_NewElement(nsIContent** aResult, PRInt32 aElementType,
+NS_NewElement(nsIContent** aResult,
               already_AddRefed<nsINodeInfo> aNodeInfo, FromParser aFromParser)
 {
-  if (aElementType == kNameSpaceID_XHTML) {
+  PRInt32 ns = aNodeInfo.get()->NamespaceID();
+  if (ns == kNameSpaceID_XHTML) {
     return NS_NewHTMLElement(aResult, aNodeInfo, aFromParser);
   }
 #ifdef MOZ_XUL
-  if (aElementType == kNameSpaceID_XUL) {
+  if (ns == kNameSpaceID_XUL) {
     return NS_NewXULElement(aResult, aNodeInfo);
   }
 #endif
-  if (aElementType == kNameSpaceID_MathML) {
+  if (ns == kNameSpaceID_MathML) {
     return NS_NewMathMLElement(aResult, aNodeInfo);
   }
-  if (aElementType == kNameSpaceID_SVG) {
+  if (ns == kNameSpaceID_SVG) {
     return NS_NewSVGElement(aResult, aNodeInfo, aFromParser);
   }
-  if (aElementType == kNameSpaceID_XMLEvents) {
+  if (ns == kNameSpaceID_XMLEvents) {
     return NS_NewXMLEventsElement(aResult, aNodeInfo);
   }
 #ifdef MOZ_XTF
-  if (aElementType > kNameSpaceID_LastBuiltin) {
+  if (ns > kNameSpaceID_LastBuiltin) {
     nsIXTFService* xtfService = nsContentUtils::GetXTFService();
     NS_ASSERTION(xtfService, "could not get xtf service");
     if (xtfService &&
@@ -273,7 +274,7 @@ nsresult NameSpaceManagerImpl::AddNameSpace(const nsAString& aURI,
                                             const PRInt32 aNameSpaceID)
 {
   if (aNameSpaceID < 0) {
-    
+    // We've wrapped...  Can't do anything else here; just bail.
     return NS_ERROR_OUT_OF_MEMORY;
   }
   

@@ -649,14 +649,13 @@ array_length_setter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value 
 
 
         jsuint oldcap = obj->getDenseArrayCapacity();
+        jsuint oldinit = obj->getDenseArrayInitializedLength();
+        if (oldinit > newlen)
+            obj->setDenseArrayInitializedLength(newlen);
         if (oldcap > newlen)
             obj->shrinkDenseArrayElements(cx, newlen);
-        jsuint oldinit = obj->getDenseArrayInitializedLength();
-        if (oldinit > newlen) {
-            obj->setDenseArrayInitializedLength(newlen);
-            if (!cx->typeInferenceEnabled())
-                obj->backfillDenseArrayHoles(cx);
-        }
+        if (oldinit > newlen && !cx->typeInferenceEnabled())
+            obj->backfillDenseArrayHoles(cx);
     } else if (oldlen - newlen < (1 << 24)) {
         do {
             --oldlen;
@@ -1340,8 +1339,11 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
     
     gc::AllocKind kind = getAllocKind();
-    if (!InitScopeForObject(cx, this, &SlowArrayClass, getProto()->getNewType(cx), kind))
+    js::EmptyShape *empty = InitScopeForObject(cx, this, &SlowArrayClass,
+                                               getProto()->getNewType(cx), kind);
+    if (!empty)
         return false;
+    setMap(empty);
 
     backfillDenseArrayHoles(cx);
 
@@ -1367,10 +1369,10 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
 
 
-    AutoValueArray autoArray(cx, slots, arrayInitialized);
+    AutoValueArray autoArray(cx, Valueify(slots), arrayInitialized);
 
     
-    initializedLength = 0;
+    initializedLength() = 0;
     JS_ASSERT(newType == NULL);
 
     
@@ -1380,7 +1382,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     if (!AddLengthProperty(cx, this)) {
         setMap(oldMap);
         capacity = arrayCapacity;
-        initializedLength = arrayInitialized;
+        initializedLength() = arrayInitialized;
         clasp = &ArrayClass;
         return false;
     }
@@ -1398,12 +1400,21 @@ JSObject::makeDenseArraySlow(JSContext *cx)
         if (slots[i].isMagic(JS_ARRAY_HOLE))
             continue;
 
-        setSlot(next, slots[i]);
+        
+
+
+
+
+
+
+
+
+        initSlotUnchecked(next, slots[i]);
 
         if (!addDataProperty(cx, id, next, JSPROP_ENUMERATE)) {
             setMap(oldMap);
             capacity = arrayCapacity;
-            initializedLength = arrayInitialized;
+            initializedLength() = arrayInitialized;
             clasp = &ArrayClass;
             return false;
         }
@@ -2151,8 +2162,7 @@ sort_compare(void *arg, const void *a, const void *b, int *result)
     if (!ag.pushed() && !cx->stack.pushInvokeArgs(cx, 2, &ag))
         return JS_FALSE;
         
-    ag.calleeHasBeenReset();
-    ag.calleev() = ca->fval;
+    ag.setCallee(ca->fval);
     ag.thisv() = UndefinedValue();
     ag[0] = *av;
     ag[1] = *bv;
@@ -2498,7 +2508,7 @@ NewbornArrayPushImpl(JSContext *cx, JSObject *obj, const Value &v)
     if (cx->typeInferenceEnabled())
         obj->setDenseArrayInitializedLength(length + 1);
     obj->setDenseArrayLength(length + 1);
-    obj->setDenseArrayElementWithType(cx, length, v);
+    obj->initDenseArrayElementWithType(cx, length, v);
     return true;
 }
 
@@ -2895,14 +2905,14 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
             obj->moveDenseArrayElements(targetIndex, sourceIndex, len - sourceIndex);
 
             
-            obj->shrinkDenseArrayElements(cx, finalLength);
-
-            
 
 
 
             if (cx->typeInferenceEnabled())
                 obj->setDenseArrayInitializedLength(finalLength);
+
+            
+            obj->shrinkDenseArrayElements(cx, finalLength);
 
             
             if (!js_SuppressDeletedElements(cx, obj, finalLength, len))
@@ -3020,10 +3030,12 @@ mjit::stubs::ArrayConcatTwoArrays(VMFrame &f)
     if (!result->ensureSlots(f.cx, len))
         THROW();
 
-    result->copyDenseArrayElements(0, obj1->getDenseArrayElements(), initlen1);
-    result->copyDenseArrayElements(initlen1, obj2->getDenseArrayElements(), initlen2);
-
+    JS_ASSERT(!result->getDenseArrayInitializedLength());
     result->setDenseArrayInitializedLength(len);
+
+    result->initDenseArrayElements(0, obj1->getDenseArrayElements(), initlen1);
+    result->initDenseArrayElements(initlen1, obj2->getDenseArrayElements(), initlen2);
+
     result->setDenseArrayLength(len);
 }
 #endif 
@@ -3280,255 +3292,418 @@ array_lastIndexOf(JSContext *cx, uintN argc, Value *vp)
 }
 
 
-typedef enum ArrayExtraMode {
-    FOREACH,
-    REDUCE,
-    REDUCE_RIGHT,
-    MAP,
-    FILTER,
-    SOME,
-    EVERY
-} ArrayExtraMode;
-
-#define REDUCE_MODE(mode) ((mode) == REDUCE || (mode) == REDUCE_RIGHT)
-
-static JSBool
-array_extra(JSContext *cx, ArrayExtraMode mode, CallArgs &args)
+class ArrayForEachBehavior
 {
+  public:
+    static bool shouldExit(Value &callval, Value *rval) { return false; }
+    static Value lateExitValue() { return UndefinedValue(); }
+};
+
+class ArrayEveryBehavior
+{
+  public:
+    static bool shouldExit(Value &callval, Value *rval)
+    {
+        if (!js_ValueToBoolean(callval)) {
+            *rval = BooleanValue(false);
+            return true;
+        }
+        return false;
+    }
+    static Value lateExitValue() { return BooleanValue(true); }
+};
+
+class ArraySomeBehavior
+{
+  public:
+    static bool shouldExit(Value &callval, Value *rval)
+    {
+        if (js_ValueToBoolean(callval)) {
+            *rval = BooleanValue(true);
+            return true;
+        }
+        return false;
+    }
+    static Value lateExitValue() { return BooleanValue(false); }
+};
+
+template <class Behavior>
+static inline bool
+array_readonlyCommon(JSContext *cx, CallArgs &args)
+{
+    
     JSObject *obj = ToObject(cx, &args.thisv());
     if (!obj)
         return false;
 
-    jsuint length;
-    if (!js_GetLengthProperty(cx, obj, &length))
-        return JS_FALSE;
+    
+    uint32 len;
+    if (!js_GetLengthProperty(cx, obj, &len))
+        return false;
 
     
-
-
-
     if (args.length() == 0) {
         js_ReportMissingArg(cx, args.calleev(), 0);
-        return JS_FALSE;
+        return false;
     }
     JSObject *callable = js_ValueToCallableObject(cx, &args[0], JSV2F_SEARCH_STACK);
     if (!callable)
-        return JS_FALSE;
+        return false;
 
     
-
-
-
-    jsuint newlen;
-    JSObject *newarr;
-    TypeObject *newtype = NULL;
-#ifdef __GNUC__ 
-    newlen = 0;
-    newarr = NULL;
-#endif
-    jsuint start = 0, end = length;
-    jsint step = 1;
-
-    switch (mode) {
-      case REDUCE_RIGHT:
-        start = length - 1, end = -1, step = -1;
-        
-      case REDUCE:
-        if (length == 0 && args.length() == 1) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                 JSMSG_EMPTY_ARRAY_REDUCE);
-            return JS_FALSE;
-        }
-        if (args.length() >= 2) {
-            args.rval() = args[1];
-        } else {
-            JSBool hole;
-            do {
-                if (!GetElement(cx, obj, start, &hole, &args.rval()))
-                    return JS_FALSE;
-                start += step;
-            } while (hole && start != end);
-
-            if (hole && start == end) {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                     JSMSG_EMPTY_ARRAY_REDUCE);
-                return JS_FALSE;
-            }
-        }
-        break;
-      case MAP:
-      case FILTER:
-        newlen = (mode == MAP) ? length : 0;
-        newarr = NewDenseAllocatedArray(cx, newlen);
-        if (!newarr)
-            return JS_FALSE;
-        newtype = GetTypeCallerInitObject(cx, JSProto_Array);
-        if (!newtype)
-            return JS_FALSE;
-        newarr->setType(newtype);
-        args.rval().setObject(*newarr);
-        break;
-      case SOME:
-        args.rval().setBoolean(false);
-        break;
-      case EVERY:
-        args.rval().setBoolean(true);
-        break;
-      case FOREACH:
-        args.rval().setUndefined();
-        break;
-    }
-
-    if (length == 0)
-        return JS_TRUE;
-
-    Value thisv = (args.length() > 1 && !REDUCE_MODE(mode)) ? args[1] : UndefinedValue();
+    Value thisv = args.length() >= 2 ? args[1] : UndefinedValue();
 
     
+    uint32 k = 0;
 
-
-
-    uintN agArgc = 3 + REDUCE_MODE(mode);
-
-    MUST_FLOW_THROUGH("out");
-    JSBool ok = JS_TRUE;
-    JSBool cond;
-
-    Value objv = ObjectValue(*obj);
-    AutoValueRooter tvr(cx);
+    
     InvokeArgsGuard ag;
-    for (jsuint i = start; i != end; i += step) {
-        JSBool hole;
-        ok = JS_CHECK_OPERATION_LIMIT(cx) &&
-             GetElement(cx, obj, i, &hole, tvr.addr());
-        if (!ok)
-            goto out;
-        if (hole)
-            continue;
-
-        if (!ag.pushed() && !cx->stack.pushInvokeArgs(cx, agArgc, &ag))
+    while (k < len) {
+        if (!JS_CHECK_OPERATION_LIMIT(cx))
             return false;
 
         
-
-
-
-        ag.calleeHasBeenReset();
-        ag.calleev() = ObjectValue(*callable);
-        ag.thisv() = thisv;
-        uintN argi = 0;
-        if (REDUCE_MODE(mode))
-            ag[argi++] = args.rval();
-        ag[argi++] = tvr.value();
-        ag[argi++] = Int32Value(i);
-        ag[argi]   = objv;
+        Value kValue;
+        JSBool kNotPresent;
+        if (!GetElement(cx, obj, k, &kNotPresent, &kValue))
+            return false;
 
         
-        ok = Invoke(cx, ag);
-        if (!ok)
-            break;
+        if (!kNotPresent) {
+            if (!ag.pushed() && !cx->stack.pushInvokeArgs(cx, 3, &ag))
+                return false;
+            ag.setCallee(ObjectValue(*callable));
+            ag.thisv() = thisv;
+            ag[0] = kValue;
+            ag[1] = NumberValue(k);
+            ag[2] = ObjectValue(*obj);
+            if (!Invoke(cx, ag))
+                return false;
 
-        const Value &rval = ag.rval();
-
-        if (mode > MAP)
-            cond = js_ValueToBoolean(rval);
-#ifdef __GNUC__ 
-        else
-            cond = JS_FALSE;
-#endif
-
-        switch (mode) {
-          case FOREACH:
-            break;
-          case REDUCE:
-          case REDUCE_RIGHT:
-            args.rval() = rval;
-            break;
-          case MAP:
-            if (!ok)
-                goto out;
-            ok = SetArrayElement(cx, newarr, i, rval);
-            if (!ok)
-                goto out;
-            break;
-          case FILTER:
-            if (!cond)
-                break;
-            
-            if (!ok)
-                goto out;
-            ok = SetArrayElement(cx, newarr, newlen++, tvr.value());
-            if (!ok)
-                goto out;
-            break;
-          case SOME:
-            if (cond) {
-                args.rval().setBoolean(true);
-                goto out;
-            }
-            break;
-          case EVERY:
-            if (!cond) {
-                args.rval().setBoolean(false);
-                goto out;
-            }
-            break;
+            if (Behavior::shouldExit(ag.rval(), &args.rval()))
+                return true;
         }
+
+        
+        k++;
     }
 
-  out:
-    if (ok && mode == FILTER)
-        ok = js_SetLengthProperty(cx, newarr, newlen);
-    return ok;
-}
-
-static JSBool
-array_forEach(JSContext *cx, uintN argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    return array_extra(cx, FOREACH, args);
-}
-
-static JSBool
-array_map(JSContext *cx, uintN argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    return array_extra(cx, MAP, args);
-}
-
-static JSBool
-array_reduce(JSContext *cx, uintN argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    return array_extra(cx, REDUCE, args);
-}
-
-static JSBool
-array_reduceRight(JSContext *cx, uintN argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    return array_extra(cx, REDUCE_RIGHT, args);
-}
-
-static JSBool
-array_filter(JSContext *cx, uintN argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    return array_extra(cx, FILTER, args);
-}
-
-static JSBool
-array_some(JSContext *cx, uintN argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    return array_extra(cx, SOME, args);
-}
+    
+    args.rval() = Behavior::lateExitValue();
+    return true;
+ }
+ 
 
 static JSBool
 array_every(JSContext *cx, uintN argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    return array_extra(cx, EVERY, args);
+    return array_readonlyCommon<ArrayEveryBehavior>(cx, args);
+}
+
+
+static JSBool
+array_some(JSContext *cx, uintN argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return array_readonlyCommon<ArraySomeBehavior>(cx, args);
+}
+
+
+static JSBool
+array_forEach(JSContext *cx, uintN argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return array_readonlyCommon<ArrayForEachBehavior>(cx, args);
+}
+
+
+static JSBool
+array_map(JSContext *cx, uintN argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    
+    JSObject *obj = ToObject(cx, &args.thisv());
+    if (!obj)
+        return false;
+
+    
+    uint32 len;
+    if (!js_GetLengthProperty(cx, obj, &len))
+        return false;
+
+    
+    if (args.length() == 0) {
+        js_ReportMissingArg(cx, args.calleev(), 0);
+        return false;
+    }
+    JSObject *callable = js_ValueToCallableObject(cx, &args[0], JSV2F_SEARCH_STACK);
+    if (!callable)
+        return false;
+
+    
+    Value thisv = args.length() >= 2 ? args[1] : UndefinedValue();
+
+    
+    JSObject *arr = NewDenseAllocatedArray(cx, len);
+    if (!arr)
+        return false;
+    TypeObject *newtype = GetTypeCallerInitObject(cx, JSProto_Array);
+    if (!newtype)
+        return false;
+    arr->setType(newtype);
+
+    
+    uint32 k = 0;
+
+    
+    InvokeArgsGuard ag;
+    while (k < len) {
+        if (!JS_CHECK_OPERATION_LIMIT(cx))
+            return false;
+
+        
+        JSBool kNotPresent;
+        Value kValue;
+        if (!GetElement(cx, obj, k, &kNotPresent, &kValue))
+            return false;
+
+        
+        if (!kNotPresent) {
+            if (!ag.pushed() && !cx->stack.pushInvokeArgs(cx, 3, &ag))
+                return false;
+            ag.setCallee(ObjectValue(*callable));
+            ag.thisv() = thisv;
+            ag[0] = kValue;
+            ag[1] = NumberValue(k);
+            ag[2] = ObjectValue(*obj);
+            if (!Invoke(cx, ag))
+                return false;
+            if(!SetArrayElement(cx, arr, k, ag.rval()))
+                return false;
+        }
+
+        
+        k++;
+    }
+
+    
+    args.rval().setObject(*arr);
+    return true;
+}
+
+
+static JSBool
+array_filter(JSContext *cx, uintN argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    
+    JSObject *obj = ToObject(cx, &args.thisv());
+    if (!obj)
+        return false;
+
+    
+    uint32 len;
+    if (!js_GetLengthProperty(cx, obj, &len))
+        return false;
+
+    
+    if (args.length() == 0) {
+        js_ReportMissingArg(cx, args.calleev(), 0);
+        return false;
+    }
+    JSObject *callable = js_ValueToCallableObject(cx, &args[0], JSV2F_SEARCH_STACK);
+    if (!callable)
+        return false;
+
+    
+    Value thisv = args.length() >= 2 ? args[1] : UndefinedValue();
+
+    
+    JSObject *arr = NewDenseAllocatedArray(cx, 0);
+    if (!arr)
+        return false;
+    TypeObject *newtype = GetTypeCallerInitObject(cx, JSProto_Array);
+    if (!newtype)
+        return false;
+    arr->setType(newtype);
+
+    
+    uint32 k = 0;
+
+    
+    uint32 to = 0;
+
+    
+    InvokeArgsGuard ag;
+    while (k < len) {
+        if (!JS_CHECK_OPERATION_LIMIT(cx))
+            return false;
+
+        
+        JSBool kNotPresent;
+        Value kValue;
+        if (!GetElement(cx, obj, k, &kNotPresent, &kValue))
+            return false;
+
+        
+        if (!kNotPresent) {
+            if (!ag.pushed() && !cx->stack.pushInvokeArgs(cx, 3, &ag))
+                return false;
+            ag.setCallee(ObjectValue(*callable));
+            ag.thisv() = thisv;
+            ag[0] = kValue;
+            ag[1] = NumberValue(k);
+            ag[2] = ObjectValue(*obj);
+            if (!Invoke(cx, ag))
+                return false;
+
+            if (js_ValueToBoolean(ag.rval())) {
+                if(!SetArrayElement(cx, arr, to, kValue))
+                    return false;
+                to++;
+            }
+        }
+
+        
+        k++;
+    }
+
+    
+    args.rval().setObject(*arr);
+    return true;
+}
+
+
+class ArrayReduceBehavior
+{
+  public:
+    static void initialize(uint32 len, uint32 *start, uint32 *end, int32 *step)
+    {
+        *start = 0;
+        *step = 1;
+        *end = len;
+    }
+};
+
+class ArrayReduceRightBehavior
+{
+  public:
+    static void initialize(uint32 len, uint32 *start, uint32 *end, int32 *step)
+    {
+        *start = len - 1;
+        *step = -1;
+        
+
+
+
+        *end = (uint32)-1;
+    }
+};
+
+template<class Behavior>
+static inline bool
+array_reduceCommon(JSContext *cx, CallArgs &args)
+{
+    
+    JSObject *obj = ToObject(cx, &args.thisv());
+    if (!obj)
+        return false;
+
+    
+    uint32 len;
+    if (!js_GetLengthProperty(cx, obj, &len))
+        return false;
+
+    
+    if (args.length() == 0) {
+        js_ReportMissingArg(cx, args.calleev(), 0);
+        return false;
+    }
+    JSObject *callable = js_ValueToCallableObject(cx, &args[0], JSV2F_SEARCH_STACK);
+    if (!callable)
+        return false;
+
+    
+    if (len == 0 && args.length() < 2) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_EMPTY_ARRAY_REDUCE);
+        return false;
+    }
+
+    
+    uint32 k, end;
+    int32 step;
+    Behavior::initialize(len, &k, &end, &step);
+
+    
+    Value accumulator;
+    if (args.length() >= 2) {
+        accumulator = args[1];
+    } else {
+        JSBool kNotPresent = true;
+        while (kNotPresent && k != end) {
+            if (!GetElement(cx, obj, k, &kNotPresent, &accumulator))
+                return false;
+            k += step;
+        }
+        if (kNotPresent) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_EMPTY_ARRAY_REDUCE);
+            return false;
+        }
+    }
+
+    
+    InvokeArgsGuard ag;
+    while (k != end) {
+        if (!JS_CHECK_OPERATION_LIMIT(cx))
+            return false;
+
+        
+        JSBool kNotPresent;
+        Value kValue;
+        if (!GetElement(cx, obj, k, &kNotPresent, &kValue))
+            return false;
+
+        
+        if (!kNotPresent) {
+            if (!ag.pushed() && !cx->stack.pushInvokeArgs(cx, 4, &ag))
+                return false;
+            ag.setCallee(ObjectValue(*callable));
+            ag.thisv() = UndefinedValue();
+            ag[0] = accumulator;
+            ag[1] = kValue;
+            ag[2] = NumberValue(k);
+            ag[3] = ObjectValue(*obj);
+            if (!Invoke(cx, ag))
+                return false;
+            accumulator = ag.rval();
+        }
+
+        
+        k += step;
+    }
+
+    
+    args.rval() = accumulator;
+    return true;
+}
+
+
+static JSBool
+array_reduce(JSContext *cx, uintN argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return array_reduceCommon<ArrayReduceBehavior>(cx, args);
+}
+
+
+static JSBool
+array_reduceRight(JSContext *cx, uintN argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    return array_reduceCommon<ArrayReduceRightBehavior>(cx, args);
 }
 
 static JSBool
@@ -3758,7 +3933,7 @@ NewDenseCopiedArray(JSContext *cx, uint32 length, const Value *vp, JSObject *pro
         obj->setDenseArrayInitializedLength(vp ? length : 0);
 
     if (vp)
-        obj->copyDenseArrayElements(0, vp, length);
+        obj->initDenseArrayElements(0, vp, length);
 
     return obj;
 }

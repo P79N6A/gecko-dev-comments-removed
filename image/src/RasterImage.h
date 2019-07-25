@@ -71,6 +71,7 @@
 #endif
 
 class imgIDecoder;
+class imgIContainerObserver;
 class nsIInputStream;
 
 #define NS_RASTERIMAGE_CID \
@@ -80,6 +81,24 @@ class nsIInputStream;
      0x418a,                                         \
     {0xb1, 0x43, 0x33, 0x40, 0xc0, 0x01, 0x12, 0xf7} \
 }
+
+
+
+
+
+#define UINT64_MAX_VAL PRUint64(-1)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -145,13 +164,16 @@ class nsIInputStream;
 
 
 namespace mozilla {
+namespace layers {
+class LayerManager;
+class ImageContainer;
+}
 namespace imagelib {
 
 class imgDecodeWorker;
 class Decoder;
 
 class RasterImage : public Image
-                  , public nsITimerCallback
                   , public nsIProperties
                   , public nsSupportsWeakReference
 #ifdef DEBUG
@@ -160,7 +182,6 @@ class RasterImage : public Image
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSIPROPERTIES
 #ifdef DEBUG
   NS_DECL_IMGICONTAINERDEBUG
@@ -175,6 +196,7 @@ public:
   NS_SCRIPTABLE NS_IMETHOD GetAnimated(bool *aAnimated);
   NS_SCRIPTABLE NS_IMETHOD GetCurrentFrameIsOpaque(bool *aCurrentFrameIsOpaque);
   NS_IMETHOD GetFrame(PRUint32 aWhichFrame, PRUint32 aFlags, gfxASurface **_retval NS_OUTPARAM);
+  NS_IMETHOD GetImageContainer(mozilla::layers::LayerManager* aManager, mozilla::layers::ImageContainer **_retval NS_OUTPARAM);
   NS_IMETHOD CopyFrame(PRUint32 aWhichFrame, PRUint32 aFlags, gfxImageSurface **_retval NS_OUTPARAM);
   NS_IMETHOD ExtractFrame(PRUint32 aWhichFrame, const nsIntRect & aRect, PRUint32 aFlags, imgIContainer **_retval NS_OUTPARAM);
   NS_IMETHOD Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter, const gfxMatrix & aUserSpaceToImageSpace, const gfxRect & aFill, const nsIntRect & aSubimage, const nsIntSize & aViewportSize, PRUint32 aFlags);
@@ -183,6 +205,7 @@ public:
   NS_SCRIPTABLE NS_IMETHOD LockImage(void);
   NS_SCRIPTABLE NS_IMETHOD UnlockImage(void);
   NS_SCRIPTABLE NS_IMETHOD ResetAnimation(void);
+  NS_IMETHOD_(void) RequestRefresh(const mozilla::TimeStamp& aTime);
   
 
   RasterImage(imgStatusTracker* aStatusTracker = nsnull);
@@ -334,6 +357,10 @@ private:
     
     nsIntRect                  firstFrameRefreshArea;
     PRUint32                   currentAnimationFrameIndex; 
+
+    
+    TimeStamp                  currentAnimationFrameTime;
+
     
     PRInt32                    lastCompositedFrameIndex;
     
@@ -352,22 +379,32 @@ private:
 
 
     nsAutoPtr<imgFrame>        compositingPrevFrame;
-    
-    nsCOMPtr<nsITimer>         timer;
 
     Anim() :
       firstFrameRefreshArea(),
       currentAnimationFrameIndex(0),
-      lastCompositedFrameIndex(-1)
-    {
-      ;
-    }
-    ~Anim()
-    {
-      if (timer)
-        timer->Cancel();
-    }
+      lastCompositedFrameIndex(-1) {}
+    ~Anim() {}
   };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool AdvanceFrame(mozilla::TimeStamp aTime, nsIntRect* aDirtyRect);
 
   
 
@@ -385,6 +422,7 @@ private:
   imgFrame* GetCurrentImgFrame();
   imgFrame* GetCurrentDrawableImgFrame();
   PRUint32 GetCurrentImgFrameIndex() const;
+  mozilla::TimeStamp GetCurrentImgFrameEndTime() const;
   
   inline void EnsureAnimExists()
   {
@@ -403,9 +441,12 @@ private:
       
       
       LockImage();
+
+      
+      mStatusTracker->RecordImageIsAnimated();
     }
   }
-  
+
   
 
 
@@ -417,7 +458,7 @@ private:
                        imgFrame* aPrevFrame,
                        imgFrame* aNextFrame,
                        PRInt32 aNextFrameIndex);
-  
+
   
 
 
@@ -425,7 +466,7 @@ private:
 
 
   static void ClearFrame(imgFrame* aFrame);
-  
+
   
   static void ClearFrame(imgFrame* aFrame, nsIntRect &aRect);
   
@@ -505,6 +546,9 @@ private:
   
   
   PRInt32                        mDecodeCount;
+
+  
+  nsRefPtr<mozilla::layers::ImageContainer> mImageContainer;
 
 #ifdef DEBUG
   PRUint32                       mFramesNotified;

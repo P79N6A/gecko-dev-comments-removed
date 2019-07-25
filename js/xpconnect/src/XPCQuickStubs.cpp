@@ -36,7 +36,6 @@
 
 
 
-
 #include "mozilla/Util.h"
 
 #include "jsapi.h"
@@ -1001,7 +1000,7 @@ xpc_qsJsvalToCharStr(JSContext *cx, jsval v, JSAutoByteString *bytes)
 }
 
 JSBool
-xpc_qsJsvalToWcharStr(JSContext *cx, jsval v, jsval *pval, PRUnichar **pstr)
+xpc_qsJsvalToWcharStr(JSContext *cx, jsval v, jsval *pval, const PRUnichar **pstr)
 {
     JSString *str;
 
@@ -1020,8 +1019,7 @@ xpc_qsJsvalToWcharStr(JSContext *cx, jsval v, jsval *pval, PRUnichar **pstr)
     if (!chars)
         return JS_FALSE;
 
-    
-    *pstr = const_cast<jschar *>(chars);
+    *pstr = static_cast<const PRUnichar *>(chars);
     return JS_TRUE;
 }
 

@@ -73,7 +73,7 @@ public:
   nsresult InitTargetObjects(nsXBLPrototypeBinding* aBinding, nsIScriptContext* aContext, 
                              nsIContent* aBoundElement, 
                              nsIXPConnectJSObjectHolder** aScriptObjectHolder,
-                             void** aTargetClassObject);
+                             JSObject** aTargetClassObject);
   nsresult CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding);
 
   void SetMemberList(nsXBLProtoImplMember* aMemberList)
@@ -131,8 +131,8 @@ public:
   nsCString mClassName; 
 
 protected:
-  void* mClassObject;   
-                        
+  JSObject* mClassObject; 
+                          
 
   nsXBLProtoImplMember* mMembers; 
 

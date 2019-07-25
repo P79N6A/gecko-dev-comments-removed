@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+// vim:set et sw=2 sts=2 cin:
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "mozilla/Util.h"
 
@@ -69,16 +69,16 @@ public:
                       mozilla::dom::FromParser aFromParser = mozilla::dom::NOT_FROM_PARSER);
   virtual ~nsHTMLObjectElement();
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIDOMNode
   NS_FORWARD_NSIDOMNODE(nsGenericHTMLFormElement::)
 
-  
+  // nsIDOMElement
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLFormElement::)
 
-  
+  // nsIDOMHTMLElement
   NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(nsGenericHTMLFormElement::)
   NS_SCRIPTABLE NS_IMETHOD Click() {
     return nsGenericHTMLFormElement::Click();
@@ -98,10 +98,10 @@ public:
     return nsGenericHTMLFormElement::SetInnerHTML(aInnerHTML);
   }
 
-  
+  // nsIDOMHTMLObjectElement
   NS_DECL_NSIDOMHTMLOBJECTELEMENT
 
-  
+  // nsIDOMGetSVGDocument
   NS_DECL_NSIDOMGETSVGDOCUMENT
 
   virtual nsresult BindToTree(nsIDocument *aDocument, nsIContent *aParent,
@@ -118,7 +118,7 @@ public:
   virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32 *aTabIndex);
   virtual PRUint32 GetDesiredIMEState();
 
-  
+  // Overriden nsIFormControl methods
   NS_IMETHOD_(PRUint32) GetType() const
   {
     return NS_FORM_OBJECT;
@@ -129,7 +129,7 @@ public:
 
   virtual bool IsDisabled() const { return false; }
 
-  virtual nsresult DoneAddingChildren(bool aHaveNotified);
+  virtual void DoneAddingChildren(bool aHaveNotified);
   virtual bool IsDoneAddingChildren();
 
   virtual bool ParseAttribute(PRInt32 aNamespaceID,
@@ -141,7 +141,7 @@ public:
   virtual nsEventStates IntrinsicState() const;
   virtual void DestroyContent();
 
-  
+  // nsObjectLoadingContent
   virtual PRUint32 GetCapabilities() const;
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
@@ -155,15 +155,15 @@ public:
 
   virtual nsXPCClassInfo* GetClassInfo();
 private:
-  
-
-
+  /**
+   * Calls LoadObject with the correct arguments to start the plugin load.
+   */
   NS_HIDDEN_(void) StartObjectLoad(bool aNotify);
 
-  
-
-
-
+  /**
+   * Returns if the element is currently focusable regardless of it's tabindex
+   * value. This is used to know the default tabindex value.
+   */
   bool IsFocusableForTabIndex();
 
   bool mIsDoneAddingChildren;
@@ -181,10 +181,10 @@ nsHTMLObjectElement::nsHTMLObjectElement(already_AddRefed<nsINodeInfo> aNodeInfo
   RegisterFreezableElement();
   SetIsNetworkCreated(aFromParser == FROM_PARSER_NETWORK);
 
-  
+  // <object> is always barred from constraint validation.
   SetBarredFromConstraintValidation(true);
 
-  
+  // By default we're in the loading state
   AddStatesSilently(NS_EVENT_STATE_LOADING);
 }
 
@@ -200,17 +200,16 @@ nsHTMLObjectElement::IsDoneAddingChildren()
   return mIsDoneAddingChildren;
 }
 
-nsresult
+void
 nsHTMLObjectElement::DoneAddingChildren(bool aHaveNotified)
 {
   mIsDoneAddingChildren = true;
 
-  
-  
+  // If we're already in a document, we need to trigger the load
+  // Otherwise, BindToTree takes care of that.
   if (IsInDoc()) {
     StartObjectLoad(aHaveNotified);
   }
-  return NS_OK;
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsHTMLObjectElement)
@@ -245,7 +244,7 @@ NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLObjectElement)
 
 NS_IMPL_ELEMENT_CLONE(nsHTMLObjectElement)
 
-
+// nsIConstraintValidation
 NS_IMPL_NSICONSTRAINTVALIDATION(nsHTMLObjectElement)
 
 NS_IMETHODIMP
@@ -265,7 +264,7 @@ nsHTMLObjectElement::BindToTree(nsIDocument *aDocument,
                                                      aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // If we already have all the children, start the load.
   if (mIsDoneAddingChildren) {
     void (nsHTMLObjectElement::*start)() = &nsHTMLObjectElement::StartObjectLoad;
     nsContentUtils::AddScriptRunner(NS_NewRunnableMethod(this, start));
@@ -289,15 +288,15 @@ nsHTMLObjectElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom *aName,
                              nsIAtom *aPrefix, const nsAString &aValue,
                              bool aNotify)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // If we plan to call LoadObject, we want to do it first so that the
+  // object load kicks off _before_ the reflow triggered by the SetAttr.  But if
+  // aNotify is false, we are coming from the parser or some such place; we'll
+  // get bound after all the attributes have been set, so we'll do the
+  // object load from BindToTree/DoneAddingChildren.
+  // Skip the LoadObject call in that case.
+  // We also don't want to start loading the object when we're not yet in
+  // a document, just in case that the caller wants to set additional
+  // attributes before inserting the node into the document.
   if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
       aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::data) {
     nsAutoString type;
@@ -336,8 +335,8 @@ bool
 nsHTMLObjectElement::IsHTMLFocusable(bool aWithMouse,
                                      bool *aIsFocusable, PRInt32 *aTabIndex)
 {
-  
-  
+  // TODO: this should probably be managed directly by IsHTMLFocusable.
+  // See bug 597242.
   nsIDocument *doc = GetCurrentDoc();
   if (!doc || doc->HasFlag(NODE_IS_EDITABLE)) {
     if (aTabIndex) {
@@ -349,12 +348,12 @@ nsHTMLObjectElement::IsHTMLFocusable(bool aWithMouse,
     return false;
   }
 
-  
-  
+  // This method doesn't call nsGenericHTMLFormElement intentionally.
+  // TODO: It should probably be changed when bug 597242 will be fixed.
   if (Type() == eType_Plugin || IsEditableRoot() ||
       (Type() == eType_Document && nsContentUtils::IsSubDocumentTabbable(this))) {
-    
-    
+    // Has plugin content: let the plugin decide what to do in terms of
+    // internal focus from mouse clicks
     if (aTabIndex) {
       GetIntAttr(nsGkAtoms::tabindex, 0, aTabIndex);
     }
@@ -364,8 +363,8 @@ nsHTMLObjectElement::IsHTMLFocusable(bool aWithMouse,
     return false;
   }
 
-  
-  
+  // TODO: this should probably be managed directly by IsHTMLFocusable.
+  // See bug 597242.
   const nsAttrValue* attrVal = mAttrsAndChildren.GetAttr(nsGkAtoms::tabindex);
 
   *aIsFocusable = attrVal && attrVal->Type() == nsAttrValue::eInteger;
@@ -398,7 +397,7 @@ nsHTMLObjectElement::SubmitNamesValues(nsFormSubmission *aFormSubmission)
 {
   nsAutoString name;
   if (!GetAttr(kNameSpaceID_None, nsGkAtoms::name, name)) {
-    
+    // No name, don't submit.
 
     return NS_OK;
   }
@@ -407,7 +406,7 @@ nsHTMLObjectElement::SubmitNamesValues(nsFormSubmission *aFormSubmission)
 
   nsIObjectFrame *objFrame = do_QueryFrame(frame);
   if (!objFrame) {
-    
+    // No frame, nothing to submit.
 
     return NS_OK;
   }
@@ -454,7 +453,7 @@ nsHTMLObjectElement::GetContentDocument(nsIDOMDocument **aContentDocument)
     return NS_OK;
   }
 
-  
+  // XXXbz should this use GetCurrentDoc()?  sXBL/XBL2 issue!
   nsIDocument *sub_doc = OwnerDoc()->GetSubDocumentFor(this);
   if (!sub_doc) {
     return NS_OK;
@@ -531,9 +530,9 @@ nsHTMLObjectElement::StartObjectLoad(bool aNotify)
     LoadObject(uri, aNotify, ctype);
   }
   else {
-    
-    
-    
+    // Be sure to call the nsIURI version if we have no attribute
+    // That handles the case where no URI is specified. An empty string would
+    // get interpreted as the page itself, instead of absence of URI.
     LoadObject(nsnull, aNotify, ctype);
   }
   SetIsNetworkCreated(false);

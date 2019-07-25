@@ -94,8 +94,6 @@ public:
   virtual void DidChangeString(PRUint8 aAttrEnum);
 
   
-  virtual nsresult DoneAddingChildren(bool aHaveNotified);
-  virtual bool IsDoneAddingChildren();
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers);
@@ -273,25 +271,6 @@ nsSVGScriptElement::GetStringInfo()
 
 
 
-
-nsresult
-nsSVGScriptElement::DoneAddingChildren(bool aHaveNotified)
-{
-  mDoneAddingChildren = true;
-  nsresult rv = MaybeProcessScript();
-  if (!mAlreadyStarted) {
-    
-    
-    LoseParserInsertedness();
-  }
-  return rv;
-}
-
-bool
-nsSVGScriptElement::IsDoneAddingChildren()
-{
-  return mDoneAddingChildren;
-}
 
 nsresult
 nsSVGScriptElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,

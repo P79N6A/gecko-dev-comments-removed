@@ -164,14 +164,14 @@ public:
 
 
 
-    MBool  hasNext();
+    bool  hasNext();
 
     
 
 
 
 
-    MBool  hasPrevious();
+    bool  hasPrevious();
 
     
 
@@ -218,7 +218,7 @@ private:
    txList* list;
 
    
-   MBool atEndOfList;
+   bool atEndOfList;
 };
 
 typedef txList List;

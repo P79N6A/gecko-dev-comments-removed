@@ -58,6 +58,169 @@ namespace js {
 
 
 
+enum ParseNodeKind {
+    PNK_SEMI,
+    PNK_COMMA,
+    PNK_HOOK,
+    PNK_COLON,
+    PNK_OR,
+    PNK_AND,
+    PNK_BITOR,
+    PNK_BITXOR,
+    PNK_BITAND,
+    PNK_PLUS,
+    PNK_MINUS,
+    PNK_STAR,
+    PNK_DIV,
+    PNK_MOD,
+    PNK_INC,
+    PNK_DEC,
+    PNK_DOT,
+    PNK_LB,
+    PNK_RB,
+    PNK_LC,
+    PNK_RC,
+    PNK_LP,
+    PNK_RP,
+    PNK_NAME,
+    PNK_NUMBER,
+    PNK_STRING,
+    PNK_REGEXP,
+    PNK_TRUE,
+    PNK_FALSE,
+    PNK_NULL,
+    PNK_THIS,
+    PNK_FUNCTION,
+    PNK_IF,
+    PNK_ELSE,
+    PNK_SWITCH,
+    PNK_CASE,
+    PNK_DEFAULT,
+    PNK_WHILE,
+    PNK_DO,
+    PNK_FOR,
+    PNK_BREAK,
+    PNK_CONTINUE,
+    PNK_IN,
+    PNK_VAR,
+    PNK_WITH,
+    PNK_RETURN,
+    PNK_NEW,
+    PNK_DELETE,
+    PNK_DEFSHARP,
+    PNK_USESHARP,
+    PNK_TRY,
+    PNK_CATCH,
+    PNK_CATCHLIST,
+    PNK_FINALLY,
+    PNK_THROW,
+    PNK_INSTANCEOF,
+    PNK_DEBUGGER,
+    PNK_XMLSTAGO,
+    PNK_XMLETAGO,
+    PNK_XMLPTAGC,
+    PNK_XMLTAGC,
+    PNK_XMLNAME,
+    PNK_XMLATTR,
+    PNK_XMLSPACE,
+    PNK_XMLTEXT,
+    PNK_XMLCOMMENT,
+    PNK_XMLCDATA,
+    PNK_XMLPI,
+    PNK_XMLUNARY,
+    PNK_AT,
+    PNK_DBLCOLON,
+    PNK_ANYNAME,
+    PNK_DBLDOT,
+    PNK_FILTER,
+    PNK_XMLELEM,
+    PNK_XMLLIST,
+    PNK_YIELD,
+    PNK_ARRAYCOMP,
+    PNK_ARRAYPUSH,
+    PNK_LEXICALSCOPE,
+    PNK_LET,
+    PNK_SEQ,
+    PNK_FORHEAD,
+    PNK_ARGSBODY,
+    PNK_UPVARS,
+
+    
+
+
+
+
+    
+    PNK_STRICTEQ,
+    PNK_EQ,
+    PNK_STRICTNE,
+    PNK_NE,
+
+    
+    PNK_TYPEOF,
+    PNK_VOID,
+    PNK_NOT,
+    PNK_BITNOT,
+
+    
+    PNK_LT,
+    PNK_LE,
+    PNK_GT,
+    PNK_GE,
+
+    
+    PNK_LSH,
+    PNK_RSH,
+    PNK_URSH,
+
+    
+    PNK_ASSIGN,
+    PNK_ASSIGNMENT_START = PNK_ASSIGN,
+    PNK_ADDASSIGN,
+    PNK_SUBASSIGN,
+    PNK_BITORASSIGN,
+    PNK_BITXORASSIGN,
+    PNK_BITANDASSIGN,
+    PNK_LSHASSIGN,
+    PNK_RSHASSIGN,
+    PNK_URSHASSIGN,
+    PNK_MULASSIGN,
+    PNK_DIVASSIGN,
+    PNK_MODASSIGN,
+    PNK_ASSIGNMENT_LAST = PNK_MODASSIGN,
+
+    PNK_LIMIT 
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -315,10 +478,11 @@ struct ParseNode {
                         pn_defn   : 1;  
 
   public:
-    ParseNode(TokenKind type, JSOp op, ParseNodeArity arity)
-      : pn_type(type), pn_op(op), pn_arity(arity), pn_parens(0), pn_used(0), pn_defn(0),
+    ParseNode(ParseNodeKind kind, JSOp op, ParseNodeArity arity)
+      : pn_type(kind), pn_op(op), pn_arity(arity), pn_parens(0), pn_used(0), pn_defn(0),
         pn_offset(0), pn_next(NULL), pn_link(NULL)
     {
+        JS_ASSERT(kind < PNK_LIMIT);
         pn_pos.begin.index = 0;
         pn_pos.begin.lineno = 0;
         pn_pos.end.index = 0;
@@ -326,22 +490,51 @@ struct ParseNode {
         memset(&pn_u, 0, sizeof pn_u);
     }
 
-    ParseNode(TokenKind type, JSOp op, ParseNodeArity arity, const TokenPos &pos)
-      : pn_type(type), pn_op(op), pn_arity(arity), pn_parens(0), pn_used(0), pn_defn(0),
+    ParseNode(ParseNodeKind kind, JSOp op, ParseNodeArity arity, const TokenPos &pos)
+      : pn_type(kind), pn_op(op), pn_arity(arity), pn_parens(0), pn_used(0), pn_defn(0),
         pn_pos(pos), pn_offset(0), pn_next(NULL), pn_link(NULL)
     {
+        JS_ASSERT(kind < PNK_LIMIT);
         memset(&pn_u, 0, sizeof pn_u);
     }
 
     JSOp getOp() const                     { return JSOp(pn_op); }
     void setOp(JSOp op)                    { pn_op = op; }
     bool isOp(JSOp op) const               { return getOp() == op; }
-    TokenKind getKind() const              { return TokenKind(pn_type); }
-    void setKind(TokenKind kind)           { pn_type = kind; }
-    bool isKind(TokenKind kind) const      { return getKind() == kind; }
+
+    ParseNodeKind getKind() const {
+        JS_ASSERT(pn_type < PNK_LIMIT);
+        return ParseNodeKind(pn_type);
+    }
+    void setKind(ParseNodeKind kind) {
+        JS_ASSERT(kind < PNK_LIMIT);
+        pn_type = kind;
+    }
+    bool isKind(ParseNodeKind kind) const  { return getKind() == kind; }
+
     ParseNodeArity getArity() const        { return ParseNodeArity(pn_arity); }
     bool isArity(ParseNodeArity a) const   { return getArity() == a; }
     void setArity(ParseNodeArity a)        { pn_arity = a; }
+
+    bool isXMLNameOp() const {
+        ParseNodeKind kind = getKind();
+        return kind == PNK_ANYNAME || kind == PNK_AT || kind == PNK_DBLCOLON;
+    }
+    bool isAssignment() const {
+        ParseNodeKind kind = getKind();
+        return PNK_ASSIGNMENT_START <= kind && kind <= PNK_ASSIGNMENT_LAST;
+    }
+
+    bool isXMLPropertyIdentifier() const {
+        ParseNodeKind kind = getKind();
+        return kind == PNK_ANYNAME || kind == PNK_AT || kind == PNK_DBLCOLON;
+    }
+
+    bool isXMLItem() const {
+        ParseNodeKind kind = getKind();
+        return kind == PNK_XMLCOMMENT || kind == PNK_XMLCDATA || kind == PNK_XMLPI ||
+               kind == PNK_XMLELEM || kind == PNK_XMLLIST;
+    }
 
     
     bool isInParens() const                { return pn_parens; }
@@ -456,11 +649,24 @@ struct ParseNode {
         pn_next = pn_link = NULL;
     }
 
-    static ParseNode *create(ParseNodeArity arity, TreeContext *tc);
+    static ParseNode *create(ParseNodeKind kind, ParseNodeArity arity, TreeContext *tc);
 
   public:
-    static ParseNode *newBinaryOrAppend(TokenKind tt, JSOp op, ParseNode *left, ParseNode *right,
-                                        TreeContext *tc);
+    
+
+
+
+    static ParseNode *
+    append(ParseNodeKind tt, JSOp op, ParseNode *left, ParseNode *right);
+
+    
+
+
+
+
+    static ParseNode *
+    newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
+                      TreeContext *tc);
 
     
 
@@ -504,11 +710,11 @@ struct ParseNode {
 #define PND_USE2DEF_FLAGS (PND_ASSIGNED | PND_FUNARG | PND_CLOSED)
 
 
-#define PNX_STRCAT      0x01            /* TOK_PLUS list has string term */
-#define PNX_CANTFOLD    0x02            /* TOK_PLUS list has unfoldable term */
-#define PNX_POPVAR      0x04            /* TOK_VAR last result needs popping */
-#define PNX_FORINVAR    0x08            /* TOK_VAR is left kid of TOK_IN node,
-                                           which is left kid of TOK_FOR */
+#define PNX_STRCAT      0x01            /* PNK_PLUS list has string term */
+#define PNX_CANTFOLD    0x02            /* PNK_PLUS list has unfoldable term */
+#define PNX_POPVAR      0x04            /* PNK_VAR last result needs popping */
+#define PNX_FORINVAR    0x08            /* PNK_VAR is left kid of PNK_IN node,
+                                           which is left kid of PNK_FOR */
 #define PNX_ENDCOMMA    0x10            /* array literal has comma at end */
 #define PNX_XMLROOT     0x20            /* top-most node in XML literal tree */
 #define PNX_GROUPINIT   0x40            /* var [a, b] = [c, d]; unit list */
@@ -568,9 +774,11 @@ struct ParseNode {
 
     
     bool isLiteral() const {
-        return isKind(TOK_NUMBER) ||
-               isKind(TOK_STRING) ||
-               (isKind(TOK_PRIMARY) && !isOp(JSOP_THIS));
+        return isKind(PNK_NUMBER) ||
+               isKind(PNK_STRING) ||
+               isKind(PNK_TRUE) ||
+               isKind(PNK_FALSE) ||
+               isKind(PNK_NULL);
     }
 
     
@@ -589,10 +797,10 @@ struct ParseNode {
 
 
     bool isStringExprStatement() const {
-        if (getKind() == TOK_SEMI) {
+        if (getKind() == PNK_SEMI) {
             JS_ASSERT(pn_arity == PN_UNARY);
             ParseNode *kid = pn_kid;
-            return kid && kid->getKind() == TOK_STRING && !kid->pn_parens;
+            return kid && kid->getKind() == PNK_STRING && !kid->pn_parens;
         }
         return false;
     }
@@ -603,14 +811,14 @@ struct ParseNode {
 
 
     bool isEscapeFreeStringLiteral() const {
-        JS_ASSERT(pn_type == TOK_STRING && !pn_parens);
-        JSString *str = pn_atom;
+        JS_ASSERT(isKind(PNK_STRING) && !pn_parens);
 
         
 
 
 
 
+        JSString *str = pn_atom;
         return (pn_pos.begin.lineno == pn_pos.end.lineno &&
                 pn_pos.begin.index + str->length() + 2 == pn_pos.end.index);
     }
@@ -623,13 +831,13 @@ struct ParseNode {
 
 
     bool isGeneratorExpr() const {
-        if (getKind() == TOK_LP) {
+        if (getKind() == PNK_LP) {
             ParseNode *callee = this->pn_head;
-            if (callee->getKind() == TOK_FUNCTION) {
-                ParseNode *body = (callee->pn_body->getKind() == TOK_UPVARS)
+            if (callee->getKind() == PNK_FUNCTION) {
+                ParseNode *body = (callee->pn_body->getKind() == PNK_UPVARS)
                                   ? callee->pn_body->pn_tree
                                   : callee->pn_body;
-                if (body->getKind() == TOK_LEXICALSCOPE)
+                if (body->getKind() == PNK_LEXICALSCOPE)
                     return true;
             }
         }
@@ -639,10 +847,10 @@ struct ParseNode {
     ParseNode *generatorExpr() const {
         JS_ASSERT(isGeneratorExpr());
         ParseNode *callee = this->pn_head;
-        ParseNode *body = callee->pn_body->getKind() == TOK_UPVARS
+        ParseNode *body = callee->pn_body->getKind() == PNK_UPVARS
                           ? callee->pn_body->pn_tree
                           : callee->pn_body;
-        JS_ASSERT(body->getKind() == TOK_LEXICALSCOPE);
+        JS_ASSERT(body->getKind() == PNK_LEXICALSCOPE);
         return body->pn_expr;
     }
 #endif
@@ -687,46 +895,46 @@ struct ParseNode {
 };
 
 struct NullaryNode : public ParseNode {
-    static inline NullaryNode *create(TreeContext *tc) {
-        return (NullaryNode *)ParseNode::create(PN_NULLARY, tc);
+    static inline NullaryNode *create(ParseNodeKind kind, TreeContext *tc) {
+        return (NullaryNode *)ParseNode::create(kind, PN_NULLARY, tc);
     }
 };
 
 struct UnaryNode : public ParseNode {
-    UnaryNode(TokenKind type, JSOp op, const TokenPos &pos, ParseNode *kid)
-      : ParseNode(type, op, PN_UNARY, pos)
+    UnaryNode(ParseNodeKind kind, JSOp op, const TokenPos &pos, ParseNode *kid)
+      : ParseNode(kind, op, PN_UNARY, pos)
     {
         pn_kid = kid;
     }
 
-    static inline UnaryNode *create(TreeContext *tc) {
-        return (UnaryNode *)ParseNode::create(PN_UNARY, tc);
+    static inline UnaryNode *create(ParseNodeKind kind, TreeContext *tc) {
+        return (UnaryNode *)ParseNode::create(kind, PN_UNARY, tc);
     }
 };
 
 struct BinaryNode : public ParseNode {
-    BinaryNode(TokenKind type, JSOp op, const TokenPos &pos, ParseNode *left, ParseNode *right)
-      : ParseNode(type, op, PN_BINARY, pos)
+    BinaryNode(ParseNodeKind kind, JSOp op, const TokenPos &pos, ParseNode *left, ParseNode *right)
+      : ParseNode(kind, op, PN_BINARY, pos)
     {
         pn_left = left;
         pn_right = right;
     }
 
-    BinaryNode(TokenKind type, JSOp op, ParseNode *left, ParseNode *right)
-      : ParseNode(type, op, PN_BINARY, TokenPos::box(left->pn_pos, right->pn_pos))
+    BinaryNode(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right)
+      : ParseNode(kind, op, PN_BINARY, TokenPos::box(left->pn_pos, right->pn_pos))
     {
         pn_left = left;
         pn_right = right;
     }
 
-    static inline BinaryNode *create(TreeContext *tc) {
-        return (BinaryNode *)ParseNode::create(PN_BINARY, tc);
+    static inline BinaryNode *create(ParseNodeKind kind, TreeContext *tc) {
+        return (BinaryNode *)ParseNode::create(kind, PN_BINARY, tc);
     }
 };
 
 struct TernaryNode : public ParseNode {
-    TernaryNode(TokenKind type, JSOp op, ParseNode *kid1, ParseNode *kid2, ParseNode *kid3)
-      : ParseNode(type, op, PN_TERNARY,
+    TernaryNode(ParseNodeKind kind, JSOp op, ParseNode *kid1, ParseNode *kid2, ParseNode *kid3)
+      : ParseNode(kind, op, PN_TERNARY,
                   TokenPos::make((kid1 ? kid1 : kid2 ? kid2 : kid3)->pn_pos.begin,
                                  (kid3 ? kid3 : kid2 ? kid2 : kid1)->pn_pos.end))
     {
@@ -735,38 +943,38 @@ struct TernaryNode : public ParseNode {
         pn_kid3 = kid3;
     }
 
-    static inline TernaryNode *create(TreeContext *tc) {
-        return (TernaryNode *)ParseNode::create(PN_TERNARY, tc);
+    static inline TernaryNode *create(ParseNodeKind kind, TreeContext *tc) {
+        return (TernaryNode *)ParseNode::create(kind, PN_TERNARY, tc);
     }
 };
 
 struct ListNode : public ParseNode {
-    static inline ListNode *create(TreeContext *tc) {
-        return (ListNode *)ParseNode::create(PN_LIST, tc);
+    static inline ListNode *create(ParseNodeKind kind, TreeContext *tc) {
+        return (ListNode *)ParseNode::create(kind, PN_LIST, tc);
     }
 };
 
 struct FunctionNode : public ParseNode {
-    static inline FunctionNode *create(TreeContext *tc) {
-        return (FunctionNode *)ParseNode::create(PN_FUNC, tc);
+    static inline FunctionNode *create(ParseNodeKind kind, TreeContext *tc) {
+        return (FunctionNode *)ParseNode::create(kind, PN_FUNC, tc);
     }
 };
 
 struct NameNode : public ParseNode {
-    static NameNode *create(JSAtom *atom, TreeContext *tc);
+    static NameNode *create(ParseNodeKind kind, JSAtom *atom, TreeContext *tc);
 
     inline void initCommon(TreeContext *tc);
 };
 
 struct NameSetNode : public ParseNode {
-    static inline NameSetNode *create(TreeContext *tc) {
-        return (NameSetNode *)ParseNode::create(PN_NAMESET, tc);
+    static inline NameSetNode *create(ParseNodeKind kind, TreeContext *tc) {
+        return (NameSetNode *)ParseNode::create(kind, PN_NAMESET, tc);
     }
 };
 
 struct LexicalScopeNode : public ParseNode {
-    static inline LexicalScopeNode *create(TreeContext *tc) {
-        return (LexicalScopeNode *)ParseNode::create(PN_NAME, tc);
+    static inline LexicalScopeNode *create(ParseNodeKind kind, TreeContext *tc) {
+        return (LexicalScopeNode *)ParseNode::create(kind, PN_NAME, tc);
     }
 };
 
@@ -907,7 +1115,7 @@ struct Definition : public ParseNode
     Definition *resolve() {
         ParseNode *pn = this;
         while (!pn->isDefn()) {
-            if (pn->getKind() == TOK_ASSIGN) {
+            if (pn->isAssignment()) {
                 pn = pn->pn_left;
                 continue;
             }
@@ -933,9 +1141,9 @@ struct Definition : public ParseNode
     static const char *kindString(Kind kind);
 
     Kind kind() {
-        if (getKind() == TOK_FUNCTION)
+        if (getKind() == PNK_FUNCTION)
             return FUNCTION;
-        JS_ASSERT(getKind() == TOK_NAME);
+        JS_ASSERT(getKind() == PNK_NAME);
         if (isOp(JSOP_NOP))
             return UNKNOWN;
         if (isOp(JSOP_GETARG))

@@ -853,11 +853,11 @@ NS_IMETHODIMP nsWebBrowser::OnProgressChange(nsIWebProgress *aWebProgress, nsIRe
 }
 
 
-NS_IMETHODIMP nsWebBrowser::OnLocationChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, nsIURI *location)
+NS_IMETHODIMP nsWebBrowser::OnLocationChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, nsIURI *location, PRUint32 aFlags)
 {
     if (mProgressListener)
     {
-        return mProgressListener->OnLocationChange(aWebProgress, aRequest, location);
+        return mProgressListener->OnLocationChange(aWebProgress, aRequest, location, aFlags);
     }
     return NS_OK;
 }

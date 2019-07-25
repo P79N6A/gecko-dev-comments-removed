@@ -168,6 +168,7 @@ public:
     virtual bool RecvCycleCollect();
 
     virtual bool RecvAppInfo(const nsCString& version, const nsCString& buildID);
+    virtual bool RecvSetID(const PRUint64 &id);
 
 #ifdef ANDROID
     gfxIntSize GetScreenSize() { return mScreenSize; }
@@ -176,6 +177,8 @@ public:
     
     
     nsString &GetIndexedDBPath();
+
+    PRUint64 GetID() { return mID; }
 
 private:
     NS_OVERRIDE
@@ -197,6 +200,15 @@ private:
 #endif
 
     AppInfo mAppInfo;
+
+    
+
+
+
+
+
+
+    PRUint64 mID;
 
     static ContentChild* sSingleton;
 

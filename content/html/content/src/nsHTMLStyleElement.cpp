@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Daniel Glazman <glazman@netscape.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 #include "nsIDOMHTMLStyleElement.h"
 #include "nsIDOMLinkStyle.h"
 #include "nsIDOMEventTarget.h"
@@ -60,16 +60,16 @@ public:
   nsHTMLStyleElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLStyleElement();
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIDOMNode
   NS_FORWARD_NSIDOMNODE(nsGenericHTMLElement::)
 
-  
+  // nsIDOMElement
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
 
-  
+  // nsIDOMHTMLElement
   NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(nsGenericHTMLElement::)
   NS_SCRIPTABLE NS_IMETHOD Click() {
     return nsGenericHTMLElement::Click();
@@ -89,7 +89,7 @@ public:
   NS_SCRIPTABLE NS_IMETHOD GetInnerHTML(nsAString& aInnerHTML);
   NS_SCRIPTABLE NS_IMETHOD SetInnerHTML(const nsAString& aInnerHTML);
 
-  
+  // nsIDOMHTMLStyleElement
   NS_DECL_NSIDOMHTMLSTYLEELEMENT
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -110,7 +110,7 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
-  
+  // nsIMutationObserver
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
@@ -123,11 +123,11 @@ protected:
                          nsAString& aType,
                          nsAString& aMedia,
                          bool* aIsAlternate);
-  
-
-
-
-
+  /**
+   * Common method to call from the various mutation observer methods.
+   * aContent is a content node that's either the one that changed or its
+   * parent; we should only respond to the change if aContent is non-anonymous.
+   */
   void ContentChanged(nsIContent* aContent);
 };
 
@@ -152,7 +152,7 @@ NS_IMPL_RELEASE_INHERITED(nsHTMLStyleElement, nsGenericElement)
 
 DOMCI_NODE_DATA(HTMLStyleElement, nsHTMLStyleElement)
 
-
+// QueryInterface implementation for nsHTMLStyleElement
 NS_INTERFACE_TABLE_HEAD(nsHTMLStyleElement)
   NS_HTML_CONTENT_INTERFACE_TABLE4(nsHTMLStyleElement,
                                    nsIDOMHTMLStyleElement,
@@ -170,36 +170,24 @@ NS_IMPL_ELEMENT_CLONE(nsHTMLStyleElement)
 NS_IMETHODIMP
 nsHTMLStyleElement::GetDisabled(bool* aDisabled)
 {
-  nsresult result = NS_OK;
-  
-  if (GetStyleSheet()) {
-    nsCOMPtr<nsIDOMStyleSheet> ss(do_QueryInterface(GetStyleSheet()));
-
-    if (ss) {
-      result = ss->GetDisabled(aDisabled);
-    }
-  }
-  else {
+  nsCOMPtr<nsIDOMStyleSheet> ss = do_QueryInterface(GetStyleSheet());
+  if (!ss) {
     *aDisabled = false;
+    return NS_OK;
   }
 
-  return result;
+  return ss->GetDisabled(aDisabled);
 }
 
 NS_IMETHODIMP 
 nsHTMLStyleElement::SetDisabled(bool aDisabled)
 {
-  nsresult result = NS_OK;
-  
-  if (GetStyleSheet()) {
-    nsCOMPtr<nsIDOMStyleSheet> ss(do_QueryInterface(GetStyleSheet()));
-
-    if (ss) {
-      result = ss->SetDisabled(aDisabled);
-    }
+  nsCOMPtr<nsIDOMStyleSheet> ss = do_QueryInterface(GetStyleSheet());
+  if (!ss) {
+    return NS_OK;
   }
 
-  return result;
+  return ss->SetDisabled(aDisabled);
 }
 
 NS_IMPL_STRING_ATTR(nsHTMLStyleElement, Media, media)
@@ -353,7 +341,7 @@ nsHTMLStyleElement::GetStyleSheetInfo(nsAString& aTitle,
   aTitle.Assign(title);
 
   GetAttr(kNameSpaceID_None, nsGkAtoms::media, aMedia);
-  ToLowerCase(aMedia); 
+  ToLowerCase(aMedia); // HTML4.0 spec is inconsistent, make it case INSENSITIVE
 
   GetAttr(kNameSpaceID_None, nsGkAtoms::type, aType);
 
@@ -364,9 +352,7 @@ nsHTMLStyleElement::GetStyleSheetInfo(nsAString& aTitle,
     return;
   }
 
-  
-  
+  // If we get here we assume that we're loading a css file, so set the
+  // type to 'text/css'
   aType.AssignLiteral("text/css");
-
-  return;
 }

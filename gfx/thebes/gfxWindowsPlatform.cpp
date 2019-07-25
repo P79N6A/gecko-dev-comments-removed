@@ -140,9 +140,9 @@ NS_MEMORY_REPORTER_IMPLEMENT(
 
 
 typedef HRESULT (WINAPI*DWriteCreateFactoryFunc)(
-  __in   DWRITE_FACTORY_TYPE factoryType,
-  __in   REFIID iid,
-  __out  IUnknown **factory
+  DWRITE_FACTORY_TYPE factoryType,
+  REFIID iid,
+  IUnknown **factory
 );
 #endif
 

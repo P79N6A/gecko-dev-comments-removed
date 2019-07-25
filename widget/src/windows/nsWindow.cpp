@@ -129,7 +129,6 @@
 #include "imgIContainer.h"
 #include "nsIFile.h"
 #include "nsIRollupListener.h"
-#include "nsIMenuRollup.h"
 #include "nsIServiceManager.h"
 #include "nsIClipboard.h"
 #include "nsIMM32Handler.h"
@@ -206,6 +205,8 @@
 #include "nsCrashOnException.h"
 #include "nsIXULRuntime.h"
 
+#include "nsIContent.h"
+
 using namespace mozilla::widget;
 using namespace mozilla::layers;
 using namespace mozilla;
@@ -253,7 +254,6 @@ UINT            nsWindow::sHookTimerId            = 0;
 
 
 nsIRollupListener* nsWindow::sRollupListener      = nsnull;
-nsIMenuRollup*  nsWindow::sMenuRollup             = nsnull;
 nsIWidget*      nsWindow::sRollupWidget           = nsnull;
 bool            nsWindow::sRollupConsumeEvent     = false;
 
@@ -331,6 +331,9 @@ bool            gDisableNativeTheme               = false;
 
 
 static bool     gWindowsVisible                   = false;
+
+
+static bool     gIsSleepMode                      = false;
 
 static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
 
@@ -3077,7 +3080,6 @@ NS_METHOD nsWindow::CaptureMouse(bool aCapture)
 
 
 NS_IMETHODIMP nsWindow::CaptureRollupEvents(nsIRollupListener * aListener,
-                                            nsIMenuRollup * aMenuRollup,
                                             bool aDoCapture,
                                             bool aConsumeRollupEvent)
 {
@@ -3088,10 +3090,7 @@ NS_IMETHODIMP nsWindow::CaptureRollupEvents(nsIRollupListener * aListener,
     NS_ASSERTION(!sRollupWidget, "rollup widget reassigned before release");
     sRollupConsumeEvent = aConsumeRollupEvent;
     NS_IF_RELEASE(sRollupWidget);
-    NS_IF_RELEASE(sMenuRollup);
     sRollupListener = aListener;
-    sMenuRollup = aMenuRollup;
-    NS_IF_ADDREF(aMenuRollup);
     sRollupWidget = this;
     NS_ADDREF(this);
     if (!sMsgFilterHook && !sCallProcHook && !sCallMouseHook) {
@@ -3100,7 +3099,6 @@ NS_IMETHODIMP nsWindow::CaptureRollupEvents(nsIRollupListener * aListener,
     sProcessHook = true;
   } else {
     sRollupListener = nsnull;
-    NS_IF_RELEASE(sMenuRollup);
     NS_IF_RELEASE(sRollupWidget);
     sProcessHook = false;
     UnregisterSpecialDropdownHooks();
@@ -3288,7 +3286,7 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
       }
 
 #ifdef MOZ_ENABLE_D3D10_LAYER
-      if (!prefs.mPreferD3D9) {
+      if (!prefs.mPreferD3D9 && !prefs.mPreferOpenGL) {
         nsRefPtr<mozilla::layers::LayerManagerD3D10> layerManager =
           new mozilla::layers::LayerManagerD3D10(this);
         if (layerManager->Initialize()) {
@@ -4871,20 +4869,16 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     break;
 
     case WM_POWERBROADCAST:
-      
-      
-      if (mWindowType == eWindowType_invisible) {
-        switch (wParam)
-        {
-          case PBT_APMSUSPEND:
-            PostSleepWakeNotification("sleep_notification");
-            break;
-          case PBT_APMRESUMEAUTOMATIC:
-          case PBT_APMRESUMECRITICAL:
-          case PBT_APMRESUMESUSPEND:
-            PostSleepWakeNotification("wake_notification");
-            break;
-        }
+      switch (wParam)
+      {
+        case PBT_APMSUSPEND:
+          PostSleepWakeNotification(true);
+          break;
+        case PBT_APMRESUMEAUTOMATIC:
+        case PBT_APMRESUMECRITICAL:
+        case PBT_APMRESUMESUSPEND:
+          PostSleepWakeNotification(false);
+          break;
       }
       break;
 
@@ -5271,7 +5265,11 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       break;
 
     case WM_KILLFOCUS:
-      if (sJustGotDeactivate) {
+      if (sJustGotDeactivate || !wParam) {
+        
+        
+        
+        
         result = DispatchFocusToTopLevelWindow(NS_DEACTIVATE);
       }
       break;
@@ -5722,12 +5720,18 @@ nsWindow::ClientMarginHitTestPoint(PRInt32 mx, PRInt32 my)
   return testResult;
 }
 
-void nsWindow::PostSleepWakeNotification(const char* aNotification)
+void nsWindow::PostSleepWakeNotification(const bool aIsSleepMode)
 {
+  if (aIsSleepMode == gIsSleepMode)
+    return;
+
+  gIsSleepMode = aIsSleepMode;
+
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
   if (observerService)
-    observerService->NotifyObservers(nsnull, aNotification, nsnull);
+    observerService->NotifyObservers(nsnull,
+      aIsSleepMode ? "sleep_notification" : "wake_notification", nsnull);
 }
 
 
@@ -7409,8 +7413,8 @@ void nsWindow::OnDestroy()
   
   if ( this == sRollupWidget ) {
     if ( sRollupListener )
-      sRollupListener->Rollup(nsnull, nsnull);
-    CaptureRollupEvents(nsnull, nsnull, false, true);
+      sRollupListener->Rollup(0);
+    CaptureRollupEvents(nsnull, false, true);
   }
 
   
@@ -8713,7 +8717,7 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
 
       if (rollup && (inMsg == WM_MOUSEWHEEL || inMsg == WM_MOUSEHWHEEL))
       {
-        sRollupListener->ShouldRollupOnMouseWheelEvent(&rollup);
+        rollup = sRollupListener->ShouldRollupOnMouseWheelEvent();
         *outResult = true;
       }
 
@@ -8721,9 +8725,9 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
       
       PRUint32 popupsToRollup = PR_UINT32_MAX;
       if (rollup) {
-        if ( sMenuRollup ) {
+        if ( sRollupListener ) {
           nsAutoTArray<nsIWidget*, 5> widgetChain;
-          PRUint32 sameTypeCount = sMenuRollup->GetSubmenuWidgetChain(&widgetChain);
+          PRUint32 sameTypeCount = sRollupListener->GetSubmenuWidgetChain(&widgetChain);
           for ( PRUint32 i = 0; i < widgetChain.Length(); ++i ) {
             nsIWidget* widget = widgetChain[i];
             if ( nsWindow::EventIsInsideWindow(inMsg, (nsWindow*)widget) ) {
@@ -8759,7 +8763,7 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
           {
             
             
-            sRollupListener->ShouldRollupOnMouseActivate(&rollup);
+            rollup = sRollupListener->ShouldRollupOnMouseActivate();
             if (!rollup)
             {
               *outResult = MA_NOACTIVATE;
@@ -8774,7 +8778,9 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
         
         bool consumeRollupEvent = sRollupConsumeEvent;
         
-        sRollupListener->Rollup(popupsToRollup, inMsg == WM_LBUTTONDOWN ? &mLastRollup : nsnull);
+        NS_ASSERTION(!mLastRollup, "mLastRollup is null");
+        mLastRollup = sRollupListener->Rollup(popupsToRollup, inMsg == WM_LBUTTONDOWN);
+        NS_IF_ADDREF(mLastRollup);
 
         
         sProcessHook = false;

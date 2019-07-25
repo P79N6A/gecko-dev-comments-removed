@@ -118,11 +118,6 @@ const CAPABILITIES = [
 ];
 
 
-
-const INTERNAL_KEYS = ["_tabStillLoading", "_hosts", "_formDataSaved",
-                       "_shouldRestore", "_host", "_scheme"];
-
-
 const TAB_EVENTS = ["TabOpen", "TabClose", "TabSelect", "TabShow", "TabHide",
                     "TabPinned", "TabUnpinned"];
 
@@ -215,6 +210,9 @@ SessionStoreService.prototype = {
 
   
   _windows: {},
+
+  
+  _internalWindows: {},
 
   
   _closedWindows: [],
@@ -379,6 +377,11 @@ SessionStoreService.prototype = {
           
           if (this._initialState.windows[0].sizemode == "minimized")
             this._initialState.windows[0].sizemode = "normal";
+          
+          
+          this._initialState.windows.forEach(function(aWindow) {
+            delete aWindow.__lastSessionWindowID;
+          });
         }
       }
       catch (ex) { debug("The session file is invalid: " + ex); }
@@ -550,6 +553,9 @@ SessionStoreService.prototype = {
       this._forEachBrowserWindow(function(aWindow) {
         Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
           delete aTab.linkedBrowser.__SS_data;
+          delete aTab.linkedBrowser.__SS_tabStillLoading;
+          delete aTab.linkedBrowser.__SS_formDataSaved;
+          delete aTab.linkedBrowser.__SS_hostSchemeData;
           if (aTab.linkedBrowser.__SS_restoreState)
             this._resetTabRestoringState(aTab);
         });
@@ -557,10 +563,13 @@ SessionStoreService.prototype = {
       });
       
       for (let ix in this._windows) {
-        if (ix in openWindows)
+        if (ix in openWindows) {
           this._windows[ix]._closedTabs = [];
-        else
+        }
+        else {
           delete this._windows[ix];
+          delete this._internalWindows[ix];
+        }
       }
       
       this._closedWindows = [];
@@ -797,6 +806,10 @@ SessionStoreService.prototype = {
 
     
     this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [], busy: false };
+
+    
+    this._internalWindows[aWindow.__SSi] = { hosts: {} }
+
     if (!this._isWindowLoaded(aWindow))
       this._windows[aWindow.__SSi]._restoring = true;
     if (!aWindow.toolbar.visible)
@@ -968,7 +981,9 @@ SessionStoreService.prototype = {
         winData.title = aWindow.content.document.title || tabbrowser.selectedTab.label;
         winData.title = this._replaceLoadingTitle(winData.title, tabbrowser,
                                                   tabbrowser.selectedTab);
-        this._updateCookies([winData]);
+        let windows = {};
+        windows[aWindow.__SSi] = winData;
+        this._updateCookies(windows);
       }
 
 #ifndef XP_MACOSX
@@ -989,6 +1004,7 @@ SessionStoreService.prototype = {
       
       
       delete this._windows[aWindow.__SSi];
+      delete this._internalWindows[aWindow.__SSi];
       
       
       this.saveStateDelayed();
@@ -1046,6 +1062,9 @@ SessionStoreService.prototype = {
     browser.removeEventListener("DOMAutoComplete", this, true);
 
     delete browser.__SS_data;
+    delete browser.__SS_tabStillLoading;
+    delete browser.__SS_formDataSaved;
+    delete browser.__SS_hostSchemeData;
 
     
     
@@ -1125,6 +1144,8 @@ SessionStoreService.prototype = {
     }
     
     delete aBrowser.__SS_data;
+    delete aBrowser.__SS_tabStillLoading;
+    delete aBrowser.__SS_formDataSaved;
     this.saveStateDelayed(aWindow);
     
     
@@ -1139,9 +1160,9 @@ SessionStoreService.prototype = {
 
 
   onTabInput: function sss_onTabInput(aWindow, aBrowser) {
-    if (aBrowser.__SS_data)
-      delete aBrowser.__SS_data._formDataSaved;
     
+    delete aBrowser.__SS_formDataSaved;
+
     this.saveStateDelayed(aWindow, 3000);
   },
 
@@ -1708,7 +1729,7 @@ SessionStoreService.prototype = {
     if (!browser || !browser.currentURI)
       
       return tabData;
-    else if (browser.__SS_data && browser.__SS_data._tabStillLoading) {
+    else if (browser.__SS_data && browser.__SS_tabStillLoading) {
       
       tabData = browser.__SS_data;
       if (aTab.pinned)
@@ -1743,10 +1764,11 @@ SessionStoreService.prototype = {
       tabData.index = history.index + 1;
     }
     else if (history && history.count > 0) {
+      browser.__SS_hostSchemeData = [];
       try {
         for (var j = 0; j < history.count; j++) {
           let entry = this._serializeHistoryEntry(history.getEntryAtIndex(j, false),
-                                                  aFullData, aTab.pinned);
+                                                  aFullData, aTab.pinned, browser.__SS_hostSchemeData);
           tabData.entries.push(entry);
         }
         
@@ -1837,13 +1859,14 @@ SessionStoreService.prototype = {
 
 
 
+
+
   _serializeHistoryEntry:
-    function sss_serializeHistoryEntry(aEntry, aFullData, aIsPinned) {
+    function sss_serializeHistoryEntry(aEntry, aFullData, aIsPinned, aHostSchemeData) {
     var entry = { url: aEntry.URI.spec };
 
     try {
-      entry._host = aEntry.URI.host;
-      entry._scheme = aEntry.URI.scheme;
+      aHostSchemeData.push({ host: aEntry.URI.host, scheme: aEntry.URI.scheme });
     }
     catch (ex) {
       
@@ -1946,7 +1969,7 @@ SessionStoreService.prototype = {
         var child = aEntry.GetChildAt(i);
         if (child) {
           entry.children.push(this._serializeHistoryEntry(child, aFullData,
-                                                          aIsPinned));
+                                                          aIsPinned, aHostSchemeData));
         }
         else { 
           entry.children.push({ url: "about:blank" });
@@ -2044,7 +2067,7 @@ SessionStoreService.prototype = {
     var browsers = aWindow.gBrowser.browsers;
     this._windows[aWindow.__SSi].tabs.forEach(function (tabData, i) {
       if (browsers[i].__SS_data &&
-          browsers[i].__SS_data._tabStillLoading)
+          browsers[i].__SS_tabStillLoading)
         return; 
       try {
         this._updateTextAndScrollDataForTab(aWindow, browsers[i], tabData);
@@ -2081,9 +2104,9 @@ SessionStoreService.prototype = {
     
     this._updateTextAndScrollDataForFrame(aWindow, aBrowser.contentWindow,
                                           aTabData.entries[tabIndex],
-                                          !aTabData._formDataSaved, aFullData,
+                                          !aBrowser.__SS_formDataSaved, aFullData,
                                           !!aTabData.pinned);
-    aTabData._formDataSaved = true;
+    aBrowser.__SS_formDataSaved = true;
     if (aBrowser.currentURI.spec == "about:config")
       aTabData.entries[tabIndex].formdata = {
         "#textbox": aBrowser.contentDocument.getElementById("textbox").value
@@ -2260,8 +2283,8 @@ SessionStoreService.prototype = {
 
 
 
-  _extractHostsForCookies:
-    function sss__extractHostsForCookies(aEntry, aHosts, aCheckPrivacy, aIsPinned) {
+  _extractHostsForCookiesFromEntry:
+    function sss__extractHostsForCookiesFromEntry(aEntry, aHosts, aCheckPrivacy, aIsPinned) {
 
     let host = aEntry._host,
         scheme = aEntry._scheme;
@@ -2275,27 +2298,45 @@ SessionStoreService.prototype = {
         let uri = this._getURIFromString(aEntry.url);
         host = uri.host;
         scheme = uri.scheme;
+        this._extractHostsForCookiesFromHostScheme(host, scheme, aHosts, aCheckPrivacy, aIsPinned);
       }
       catch(ex) { }
     }
 
-    
-    
-    if (/https?/.test(scheme) && !aHosts[host] &&
-        (!aCheckPrivacy ||
-         this._checkPrivacyLevel(scheme == "https", aIsPinned))) {
-      
-      
-      aHosts[host] = aIsPinned;
-    }
-    else if (scheme == "file") {
-      aHosts[host] = true;
-    }
-
     if (aEntry.children) {
       aEntry.children.forEach(function(entry) {
-        this._extractHostsForCookies(entry, aHosts, aCheckPrivacy, aIsPinned);
+        this._extractHostsForCookiesFromEntry(entry, aHosts, aCheckPrivacy, aIsPinned);
       }, this);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _extractHostsForCookiesFromHostScheme:
+    function sss__extractHostsForCookiesFromHostScheme(aHost, aScheme, aHosts, aCheckPrivacy, aIsPinned) {
+    
+    
+    if (/https?/.test(aScheme) && !aHosts[aHost] &&
+        (!aCheckPrivacy ||
+         this._checkPrivacyLevel(aScheme == "https", aIsPinned))) {
+      
+      
+      aHosts[aHost] = aIsPinned;
+    }
+    else if (aScheme == "file") {
+      aHosts[aHost] = true;
     }
   },
 
@@ -2305,16 +2346,24 @@ SessionStoreService.prototype = {
 
 
   _updateCookieHosts: function sss_updateCookieHosts(aWindow) {
-    var hosts = this._windows[aWindow.__SSi]._hosts = {};
+    var hosts = this._internalWindows[aWindow.__SSi].hosts = {};
 
-    this._windows[aWindow.__SSi].tabs.forEach(function(aTabData) {
-      aTabData.entries.forEach(function(entry) {
-        this._extractHostsForCookies(entry, hosts, true, !!aTabData.pinned);
-      }, this);
-    }, this);
+    
+    
+    
+    for (let i = 0; i < aWindow.gBrowser.tabs.length; i++) {
+      let tab = aWindow.gBrowser.tabs[i];
+      let hostSchemeData = tab.linkedBrowser.__SS_hostSchemeData || [];
+      for (let j = 0; j < hostSchemeData.length; j++) {
+        this._extractHostsForCookiesFromHostScheme(hostSchemeData[j].host,
+                                                   hostSchemeData[j].scheme,
+                                                   hosts, true, tab.pinned);
+      }
+    }
   },
 
   
+
 
 
 
@@ -2330,18 +2379,17 @@ SessionStoreService.prototype = {
       aHash[aHost][aPath][aName] = aCookie;
     }
 
-    
-    for (var i = 0; i < aWindows.length; i++)
-      aWindows[i].cookies = [];
-
     var jscookies = {};
     var _this = this;
     
     var MAX_EXPIRY = Math.pow(2, 62);
-    aWindows.forEach(function(aWindow) {
-      if (!aWindow._hosts)
+
+    for (let [id, window] in Iterator(aWindows)) {
+      window.cookies = [];
+      let internalWindow = this._internalWindows[id];
+      if (!internalWindow.hosts)
         return;
-      for (var [host, isPinned] in Iterator(aWindow._hosts)) {
+      for (var [host, isPinned] in Iterator(internalWindow.hosts)) {
         let list;
         try {
           list = CookieSvc.getCookiesFromHost(host);
@@ -2370,16 +2418,15 @@ SessionStoreService.prototype = {
 
               addCookieToHash(jscookies, cookie.host, cookie.path, cookie.name, jscookie);
             }
-            aWindow.cookies.push(jscookies[cookie.host][cookie.path][cookie.name]);
+            window.cookies.push(jscookies[cookie.host][cookie.path][cookie.name]);
           }
         }
       }
-    });
 
-    
-    for (i = 0; i < aWindows.length; i++)
-      if (aWindows[i].cookies.length == 0)
-        delete aWindows[i].cookies;
+      
+      if (!window.cookies.length)
+        delete window.cookies;
+    }
   },
 
   
@@ -2438,18 +2485,19 @@ SessionStoreService.prototype = {
     }
     
     
-    var total = [], windows = [];
+    var total = [], windows = {}, ids = [];
     var nonPopupCount = 0;
     var ix;
     for (ix in this._windows) {
       if (this._windows[ix]._restoring) 
         continue;
       total.push(this._windows[ix]);
-      windows.push(ix);
+      ids.push(ix);
+      windows[ix] = this._windows[ix];
       if (!this._windows[ix].isPopup)
         nonPopupCount++;
     }
-    this._updateCookies(total);
+    this._updateCookies(windows);
 
     
     for (ix in this._statesToRestore) {
@@ -2500,7 +2548,7 @@ SessionStoreService.prototype = {
     if (activeWindow) {
       this.activeWindowSSiCache = activeWindow.__SSi || "";
     }
-    ix = windows.indexOf(this.activeWindowSSiCache);
+    ix = ids.indexOf(this.activeWindowSSiCache);
     
     
     if (ix != -1 && total[ix] && total[ix].sizemode == "minimized")
@@ -2539,10 +2587,12 @@ SessionStoreService.prototype = {
       this._collectWindowData(aWindow);
     }
     
-    var total = [this._windows[aWindow.__SSi]];
-    this._updateCookies(total);
+    var winData = this._windows[aWindow.__SSi];
+    let windows = {};
+    windows[aWindow.__SSi] = winData;
+    this._updateCookies(windows);
     
-    return { windows: total };
+    return { windows: [winData] };
   },
 
   _collectWindowData: function sss_collectWindowData(aWindow) {
@@ -2864,7 +2914,7 @@ SessionStoreService.prototype = {
       for (let name in tabData.attributes)
         this.xulAttributes[name] = true;
 
-      tabData._tabStillLoading = true;
+      browser.__SS_tabStillLoading = true;
 
       
       
@@ -2931,7 +2981,7 @@ SessionStoreService.prototype = {
   restoreHistory:
     function sss_restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap) {
     var _this = this;
-    while (aTabs.length > 0 && (!aTabData[0]._tabStillLoading || !aTabs[0].parentNode)) {
+    while (aTabs.length > 0 && (!aTabs[0].linkedBrowser.__SS_tabStillLoading || !aTabs[0].parentNode)) {
       aTabs.shift(); 
       aTabData.shift();
     }
@@ -3327,31 +3377,53 @@ SessionStoreService.prototype = {
         if (!node)
           continue;
 
+        let eventType;
         let value = aData[key];
         if (typeof value == "string" && node.type != "file") {
           if (node.value == value)
             continue; 
 
           node.value = value;
-
-          let event = aDocument.createEvent("UIEvents");
-          event.initUIEvent("input", true, true, aDocument.defaultView, 0);
-          node.dispatchEvent(event);
+          eventType = "input";
         }
-        else if (typeof value == "boolean")
+        else if (typeof value == "boolean") {
+          if (node.checked == value)
+            continue; 
+
           node.checked = value;
-        else if (typeof value == "number")
+          eventType = "change";
+        }
+        else if (typeof value == "number") {
+          
+          
+          if (node.selectedIndex == value)
+            continue;
+
           try {
             node.selectedIndex = value;
+            eventType = "change";
           } catch (ex) {  }
-        else if (value && value.fileList && value.type == "file" && node.type == "file")
+        }
+        else if (value && value.fileList && value.type == "file" && node.type == "file") {
           node.mozSetFileNameArray(value.fileList, value.fileList.length);
+          eventType = "input";
+        }
         else if (value && typeof value.indexOf == "function" && node.options) {
           Array.forEach(node.options, function(aOpt, aIx) {
             aOpt.selected = value.indexOf(aIx) > -1;
+
+            
+            if (!aOpt.defaultSelected)
+              eventType = "change";
           });
         }
+
         
+        if (eventType) {
+          let event = aDocument.createEvent("UIEvents");
+          event.initUIEvent(eventType, true, true, aDocument.defaultView, 0);
+          node.dispatchEvent(event);
+        }
       }
     }
 
@@ -3563,6 +3635,7 @@ SessionStoreService.prototype = {
     while (oState._closedWindows.length) {
       let i = oState._closedWindows.length - 1;
       if (oState._closedWindows[i]._shouldRestore) {
+        delete oState._closedWindows[i]._shouldRestore;
         oState.windows.unshift(oState._closedWindows.pop());
       }
       else {
@@ -4031,7 +4104,7 @@ SessionStoreService.prototype = {
     let cookieHosts = {};
     aTargetWinState.tabs.forEach(function(tab) {
       tab.entries.forEach(function(entry) {
-        this._extractHostsForCookies(entry, cookieHosts, false)
+        this._extractHostsForCookiesFromEntry(entry, cookieHosts, false);
       }, this);
     }, this);
 
@@ -4062,18 +4135,7 @@ SessionStoreService.prototype = {
 
 
   _toJSONString: function sss_toJSONString(aJSObject) {
-    
-    
-    let internalKeys = INTERNAL_KEYS;
-    if (this._loadState == STATE_QUITTING) {
-      internalKeys = internalKeys.slice();
-      internalKeys.push("__lastSessionWindowID");
-    }
-    function exclude(key, value) {
-      
-      return internalKeys.indexOf(key) == -1 ? value : undefined;
-    }
-    return JSON.stringify(aJSObject, exclude);
+    return JSON.stringify(aJSObject);
   },
 
   _sendRestoreCompletedNotifications: function sss_sendRestoreCompletedNotifications() {

@@ -47,13 +47,11 @@
 
 #include "mozIStorageProgressHandler.h"
 #include "nsIRunnable.h"
-#include "nsIThread.h"
 
 #include "nsDOMEvent.h"
 
-#include "mozilla/TimeStamp.h"
-
 class mozIStorageConnection;
+class nsIEventTarget;
 
 BEGIN_INDEXEDDB_NAMESPACE
 
@@ -152,14 +150,6 @@ protected:
   
 
 
-  void SetTimeoutMS(PRUint32 aTimeoutMS)
-  {
-    mTimeoutDuration = TimeDuration::FromMilliseconds(aTimeoutMS);
-  }
-
-  
-
-
 
 
   virtual nsresult Init();
@@ -219,10 +209,6 @@ protected:
 
 private:
   nsCOMPtr<mozIStorageProgressHandler> mOldProgressHandler;
-
-  mozilla::TimeStamp mStartTime;
-  mozilla::TimeDuration mTimeoutDuration;
-
   nsresult mResultCode;
   bool mDispatched;
 };

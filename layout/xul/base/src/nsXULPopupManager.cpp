@@ -137,9 +137,8 @@ void nsMenuChainItem::Detach(nsMenuChainItem** aRoot)
   }
 }
 
-NS_IMPL_ISUPPORTS4(nsXULPopupManager,
+NS_IMPL_ISUPPORTS3(nsXULPopupManager,
                    nsIDOMEventListener,
-                   nsIMenuRollup,
                    nsITimerCallback,
                    nsIObserver)
 
@@ -207,15 +206,14 @@ nsXULPopupManager::GetInstance()
   return sInstance;
 }
 
-NS_IMETHODIMP
-nsXULPopupManager::Rollup(PRUint32 aCount, nsIContent** aLastRolledUp)
+nsIContent*
+nsXULPopupManager::Rollup(PRUint32 aCount, bool aGetLastRolledUp)
 {
-  if (aLastRolledUp)
-    *aLastRolledUp = nsnull;
+  nsIContent* lastRolledUpPopup = nsnull;
 
   nsMenuChainItem* item = GetTopVisibleMenu();
   if (item) {
-    if (aLastRolledUp) {
+    if (aGetLastRolledUp) {
       
       
       
@@ -227,7 +225,7 @@ nsXULPopupManager::Rollup(PRUint32 aCount, nsIContent** aLastRolledUp)
       nsMenuChainItem* first = item;
       while (first->GetParent())
         first = first->GetParent();
-      NS_ADDREF(*aLastRolledUp = first->Content());
+      lastRolledUpPopup = first->Content();
     }
 
     
@@ -245,35 +243,33 @@ nsXULPopupManager::Rollup(PRUint32 aCount, nsIContent** aLastRolledUp)
 
     HidePopup(item->Content(), true, true, false, lastPopup);
   }
-  return NS_OK;
+
+  return lastRolledUpPopup;
 }
 
 
-NS_IMETHODIMP nsXULPopupManager::ShouldRollupOnMouseWheelEvent(bool *aShouldRollup) 
+bool nsXULPopupManager::ShouldRollupOnMouseWheelEvent()
 {
   
   
 
-  *aShouldRollup = false;
   nsMenuChainItem* item = GetTopVisibleMenu();
   if (!item)
-    return NS_OK;
+    return false;
 
   nsIContent* content = item->Frame()->GetContent();
-  if (content) {
-    nsAutoString value;
-    content->GetAttr(kNameSpaceID_None, nsGkAtoms::type, value);
-    *aShouldRollup = StringBeginsWith(value, NS_LITERAL_STRING("autocomplete"));
-  }
+  if (!content)
+    return false;
 
-  return NS_OK;
+  nsAutoString value;
+  content->GetAttr(kNameSpaceID_None, nsGkAtoms::type, value);
+  return StringBeginsWith(value, NS_LITERAL_STRING("autocomplete"));
 }
 
 
-NS_IMETHODIMP nsXULPopupManager::ShouldRollupOnMouseActivate(bool *aShouldRollup) 
+bool nsXULPopupManager::ShouldRollupOnMouseActivate()
 {
-  *aShouldRollup = false;
-  return NS_OK;
+  return false;
 }
 
 PRUint32
@@ -1620,7 +1616,7 @@ nsXULPopupManager::SetCaptureState(nsIContent* aOldPopup)
     return;
 
   if (mWidget) {
-    mWidget->CaptureRollupEvents(this, this, false, false);
+    mWidget->CaptureRollupEvents(this, false, false);
     mWidget = nsnull;
   }
 
@@ -1629,8 +1625,7 @@ nsXULPopupManager::SetCaptureState(nsIContent* aOldPopup)
     nsCOMPtr<nsIWidget> widget;
     popup->GetWidget(getter_AddRefs(widget));
     if (widget) {
-      widget->CaptureRollupEvents(this, this, true,
-                                  popup->ConsumeOutsideClicks());
+      widget->CaptureRollupEvents(this, true, popup->ConsumeOutsideClicks());
       mWidget = widget;
       popup->AttachedDismissalListener();
     }
@@ -2182,7 +2177,7 @@ nsXULPopupManager::KeyDown(nsIDOMKeyEvent* aKeyEvent)
         
         
         if (mPopups)
-          Rollup(nsnull, nsnull);
+          Rollup(0);
         else if (mActiveMenuBar)
           mActiveMenuBar->MenuClosed();
       }
@@ -2261,7 +2256,7 @@ nsXULPopupManager::KeyPress(nsIDOMKeyEvent* aKeyEvent)
   ) {
     
     if (item)
-      Rollup(nsnull, nsnull);
+      Rollup(0);
     else if (mActiveMenuBar)
       mActiveMenuBar->MenuClosed();
   }
@@ -2379,14 +2374,5 @@ nsXULMenuCommandEvent::Run()
   if (popup && mCloseMenuMode != CloseMenuMode_None)
     pm->HidePopup(popup, mCloseMenuMode == CloseMenuMode_Auto, true, false);
 
-  return NS_OK;
-}
-
-nsresult
-NS_NewXULPopupManager(nsISupports** aResult)
-{
-  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  NS_IF_ADDREF(pm);
-  *aResult = static_cast<nsIMenuRollup *>(pm);
   return NS_OK;
 }

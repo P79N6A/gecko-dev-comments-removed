@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * the Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Ms2ger <ms2ger@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "ContentChild.h"
 #include "ContentParent.h"
@@ -51,6 +51,10 @@
 #include "nsIScriptError.h"
 #include "nsIConsoleService.h"
 #include "nsIProtocolHandler.h"
+
+#ifdef ANDROID
+#include <android/log.h>
+#endif
 
 static bool
 IsChromeProcess()
@@ -93,14 +97,14 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsFrameMessageManager)
                                          static_cast<nsIChromeFrameMessageManager*>(this)) :
                                        static_cast<nsIFrameMessageManager*>(
                                          static_cast<nsIContentFrameMessageManager*>(this))))
-  
+  /* nsIContentFrameMessageManager is accessible only in TabChildGlobal. */
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIContentFrameMessageManager,
                                      !mChrome && !mIsProcessManager)
-  
+  /* Message managers in child process support nsISyncMessageSender. */
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsISyncMessageSender, !mChrome)
-  
+  /* Message managers in chrome process support nsITreeItemFrameMessageManager. */
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsITreeItemFrameMessageManager, mChrome)
-  
+  /* Process message manager doesn't support nsIChromeFrameMessageManager. */
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIChromeFrameMessageManager,
                                      mChrome && !mIsProcessManager)
 NS_INTERFACE_MAP_END
@@ -149,10 +153,10 @@ nsFrameMessageManager::LoadFrameScript(const nsAString& aURL,
 {
   if (aAllowDelayedLoad) {
     if (IsGlobal() || IsWindowLevel()) {
-      
+      // Cache for future windows or frames
       mPendingScripts.AppendElement(aURL);
     } else if (!mCallbackData) {
-      
+      // We're frame message manager, which isn't connected yet.
       mPendingScripts.AppendElement(aURL);
       return NS_OK;
     }
@@ -169,8 +173,8 @@ nsFrameMessageManager::LoadFrameScript(const nsAString& aURL,
     nsRefPtr<nsFrameMessageManager> mm =
       static_cast<nsFrameMessageManager*>(mChildManagers[i]);
     if (mm) {
-      
-      
+      // Use false here, so that child managers don't cache the script, which
+      // is already cached in the parent.
       mm->LoadFrameScript(aURL, false);
     }
   }
@@ -279,6 +283,9 @@ nsFrameMessageManager::SendAsyncMessage(const nsAString& aMessageName,
 NS_IMETHODIMP
 nsFrameMessageManager::Dump(const nsAString& aStr)
 {
+#ifdef ANDROID
+  __android_log_print(ANDROID_LOG_INFO, "Gecko", NS_ConvertUTF16toUTF8(aStr).get());
+#endif
   fputs(NS_ConvertUTF16toUTF8(aStr).get(), stdout);
   fflush(stdout);
   return NS_OK;
@@ -373,7 +380,7 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
         if (!ac.enter(ctx, object))
           return NS_ERROR_FAILURE;
 
-        
+        // The parameter for the listener function.
         JSObject* param = JS_NewObject(ctx, NULL, NULL, NULL);
         NS_ENSURE_TRUE(param, NS_ERROR_OUT_OF_MEMORY);
 
@@ -382,11 +389,11 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
                                    JS_GetGlobalForObject(ctx, object),
                                    aTarget, &targetv, nsnull, true);
 
-        
-        
+        // To keep compatibility with e10s message manager,
+        // define empty objects array.
         if (!aObjectsArray) {
-          
-          
+          // Because we want JS messages to have always the same properties,
+          // create array even if len == 0.
           aObjectsArray = JS_NewArrayObject(ctx, 0, NULL);
           if (!aObjectsArray) {
             return NS_ERROR_OUT_OF_MEMORY;
@@ -422,11 +429,11 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
 
         jsval funval = JSVAL_VOID;
         if (JS_ObjectIsCallable(ctx, object)) {
-          
+          // If the listener is a JS function:
           funval = OBJECT_TO_JSVAL(object);
 
-          
-          
+          // A small hack to get 'this' value right on content side where
+          // messageManager is wrapped in TabChildGlobal.
           nsCOMPtr<nsISupports> defaultThisValue;
           if (mChrome) {
             defaultThisValue = do_QueryObject(this);
@@ -437,7 +444,7 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
                                      JS_GetGlobalForObject(ctx, object),
                                      defaultThisValue, &thisValue, nsnull, true);
         } else {
-          
+          // If the listener is a JS object which has receiveMessage function:
           NS_ENSURE_STATE(JS_GetProperty(ctx, object, "receiveMessage",
                                          &funval) &&
                           JSVAL_IS_OBJECT(funval) &&
@@ -488,9 +495,9 @@ nsFrameMessageManager::AddChildManager(nsFrameMessageManager* aManager,
   if (aLoadScripts) {
     nsRefPtr<nsFrameMessageManager> kungfuDeathGrip = this;
     nsRefPtr<nsFrameMessageManager> kungfuDeathGrip2 = aManager;
-    
-    
-    
+    // We have parent manager if we're a window message manager.
+    // In that case we want to load the pending scripts from global
+    // message manager.
     if (mParentManager) {
       nsRefPtr<nsFrameMessageManager> globalMM = mParentManager;
       for (PRUint32 i = 0; i < globalMM->mPendingScripts.Length(); ++i) {
@@ -508,7 +515,7 @@ nsFrameMessageManager::SetCallbackData(void* aData, bool aLoadScripts)
 {
   if (aData && mCallbackData != aData) {
     mCallbackData = aData;
-    
+    // First load global scripts by adding this to parent manager.
     if (mParentManager) {
       mParentManager->AddChildManager(this, aLoadScripts);
     }
@@ -594,8 +601,8 @@ ContentScriptErrorReporter(JSContext* aCx,
   }
 
 #ifdef DEBUG
-  
-  
+  // Print it to stderr as well, for the benefit of those invoking
+  // mozilla with -console.
   nsCAutoString error;
   error.Assign("JavaScript ");
   if (JSREPORT_IS_STRICT(flags)) {
@@ -670,7 +677,7 @@ CachedScriptUnrooter(const nsAString& aKey,
   return PL_DHASH_REMOVE;
 }
 
-
+// static
 void
 nsFrameScriptExecutor::Shutdown()
 {
@@ -706,8 +713,8 @@ nsFrameScriptExecutor::LoadFrameScriptInternal(const nsAString& aURL)
   if (holder) {
     nsContentUtils::ThreadJSContextStack()->Push(mCx);
     {
-      
-      
+      // Need to scope JSAutoRequest to happen after Push but before Pop,
+      // at least for now. See bug 584673.
       JSAutoRequest ar(mCx);
       JSObject* global = nsnull;
       mGlobal->GetJSObject(&global);
@@ -758,8 +765,8 @@ nsFrameScriptExecutor::LoadFrameScriptInternal(const nsAString& aURL)
   if (!dataString.IsEmpty()) {
     nsContentUtils::ThreadJSContextStack()->Push(mCx);
     {
-      
-      
+      // Need to scope JSAutoRequest to happen after Push but before Pop,
+      // at least for now. See bug 584673.
       JSAutoRequest ar(mCx);
       JSObject* global = nsnull;
       mGlobal->GetJSObject(&global);
@@ -781,18 +788,18 @@ nsFrameScriptExecutor::LoadFrameScriptInternal(const nsAString& aURL)
         if (script) {
           nsCAutoString scheme;
           uri->GetScheme(scheme);
-          
+          // We don't cache data: scripts!
           if (!scheme.EqualsLiteral("data")) {
             nsFrameJSScriptExecutorHolder* holder =
               new nsFrameJSScriptExecutorHolder(script);
-            
+            // Root the object also for caching.
             JS_AddNamedScriptRoot(mCx, &(holder->mScript),
                                   "Cached message manager script");
             sCachedScripts->Put(aURL, holder);
           }
           (void) JS_ExecuteScript(mCx, global, script, nsnull);
         }
-        
+        //XXX Argh, JSPrincipals are manually refcounted!
         JSPRINCIPALS_DROP(mCx, jsprin);
       }
     } 
@@ -801,7 +808,7 @@ nsFrameScriptExecutor::LoadFrameScriptInternal(const nsAString& aURL)
   }
 }
 
-
+// static
 void
 nsFrameScriptExecutor::Traverse(nsFrameScriptExecutor *tmp,
                                 nsCycleCollectionTraversalCallback &cb)
@@ -944,7 +951,7 @@ bool SendAsyncMessageToSameProcessParent(void* aCallbackData,
   return true;
 }
 
-
+// This creates the global parent process message manager.
 nsresult
 NS_NewParentProcessMessageManager(nsIFrameMessageManager** aResult)
 {
@@ -962,7 +969,7 @@ NS_NewParentProcessMessageManager(nsIFrameMessageManager** aResult)
                                                                  true);
   NS_ENSURE_TRUE(mm, NS_ERROR_OUT_OF_MEMORY);
   nsFrameMessageManager::sParentProcessManager = mm;
-  nsFrameMessageManager::NewProcessMessageManager(nsnull); 
+  nsFrameMessageManager::NewProcessMessageManager(nsnull); // Create same process message manager.
   return CallQueryInterface(mm, aResult);
 }
 

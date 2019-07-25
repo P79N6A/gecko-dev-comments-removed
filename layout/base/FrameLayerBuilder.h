@@ -442,6 +442,9 @@ protected:
   friend class LayerManagerData;
 
   
+  static void FlashPaint(gfxContext *aContext);
+
+  
 
 
 

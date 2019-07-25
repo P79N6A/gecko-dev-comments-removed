@@ -295,9 +295,7 @@ class nsParser : public nsIParser,
     
 
 
-
-
-    NS_IMETHOD GetStreamListener(nsIStreamListener** aListener);
+    virtual nsIStreamListener* GetStreamListener();
 
     
 

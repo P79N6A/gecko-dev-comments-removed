@@ -1,46 +1,46 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2011
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *    Boris Zbarsky <bzbarsky@mit.edu> (original author)
- *    L. David Baron <dbaron@dbaron.org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/*
- * A class that computes and caches the indices used for :nth-* pseudo-class
- * matching.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsNthIndexCache.h"
 #include "nsIContent.h"
@@ -86,11 +86,11 @@ nsNthIndexCache::IndexDeterminedFromPreviousSibling(nsIContent* aSibling,
       NS_ASSERTION(siblingIndex != 0,
                    "How can a non-anonymous node have an anonymous sibling?");
       if (siblingIndex > 0) {
-        // At this point, aResult is a count of how many elements matching
-        // aChild we have seen after aSibling, including aChild itself.
-        // |siblingIndex| is the index of aSibling.
-        // So if aIsFromEnd, we want |aResult = siblingIndex - aResult| and
-        // otherwise we want |aResult = siblingIndex + aResult|.
+        
+        
+        
+        
+        
         NS_ABORT_IF_FALSE(aIsFromEnd == 0 || aIsFromEnd == 1,
                           "Bogus bool value");
         aResult = siblingIndex + aResult * (1 - 2 * aIsFromEnd);
@@ -117,15 +117,15 @@ nsNthIndexCache::GetNthIndex(Element* aChild, bool aIsOfType,
   Cache &cache = mCaches[aIsOfType][aIsFromEnd];
 
   if (!cache.initialized() && !cache.init()) {
-    // Give up and just don't match.
+    
     return 0;
   }
 
   Cache::AddPtr entry = cache.lookupForAdd(aChild);
 
-  // Default the value to -2 when adding
+  
   if (!entry && !cache.add(entry, aChild, -2)) {
-    // No good; don't match.
+    
     return 0;
   }
 
@@ -136,8 +136,8 @@ nsNthIndexCache::GetNthIndex(Element* aChild, bool aIsOfType,
   
   PRInt32 result = 1;
   if (aCheckEdgeOnly) {
-    // The caller only cares whether or not the result is 1, so we can
-    // stop as soon as we see any other elements that match us.
+    
+    
     if (aIsFromEnd) {
       for (nsIContent *cur = aChild->GetNextSibling();
            cur;
@@ -158,8 +158,8 @@ nsNthIndexCache::GetNthIndex(Element* aChild, bool aIsOfType,
       }
     }
   } else {
-    // In the common case, we already have a cached index for one of
-    // our previous siblings, so check that first.
+    
+    
     for (nsIContent *cur = aChild->GetPreviousSibling();
          cur;
          cur = cur->GetPreviousSibling()) {
@@ -170,11 +170,11 @@ nsNthIndexCache::GetNthIndex(Element* aChild, bool aIsOfType,
       }
     }
 
-    // Now if aIsFromEnd we lose: need to actually compute our index,
-    // since looking at previous siblings wouldn't have told us
-    // anything about it.  Note that it doesn't make sense to do cache
-    // lookups on our following siblings, since chances are the cache
-    // is not primed for them.
+    
+    
+    
+    
+    
     if (aIsFromEnd) {
       result = 1;
       for (nsIContent *cur = aChild->GetNextSibling();

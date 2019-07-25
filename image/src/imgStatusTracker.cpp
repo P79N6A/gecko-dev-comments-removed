@@ -254,6 +254,14 @@ imgStatusTracker::SyncNotify(imgRequestProxy* proxy)
       if (mState & stateFrameStopped)
         proxy->OnStopFrame(frame);
     }
+
+    
+    bool isAnimated = false;
+
+    nsresult rv = mImage->GetAnimated(&isAnimated);
+    if (NS_SUCCEEDED(rv) && isAnimated) {
+      proxy->OnImageIsAnimated();
+    }
   }
 
   
@@ -449,6 +457,24 @@ imgStatusTracker::RecordDiscard()
   PRUint32 statusBitsToClear = imgIRequest::STATUS_FRAME_COMPLETE
                                | imgIRequest::STATUS_DECODE_COMPLETE;
   mImageStatus &= ~statusBitsToClear;
+}
+
+void
+imgStatusTracker::SendImageIsAnimated(imgRequestProxy* aProxy)
+{
+  if (!aProxy->NotificationsDeferred())
+    aProxy->OnImageIsAnimated();
+}
+
+void
+imgStatusTracker::RecordImageIsAnimated()
+{
+  NS_ABORT_IF_FALSE(mImage,
+                    "RecordImageIsAnimated called before we have an Image");
+  
+  
+  
+  
 }
 
 void

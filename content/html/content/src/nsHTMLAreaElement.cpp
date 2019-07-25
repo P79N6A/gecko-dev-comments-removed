@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set tw=80 expandtab softtabstop=2 ts=2 sw=2: */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 #include "nsIDOMHTMLAreaElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
@@ -58,16 +58,16 @@ public:
   nsHTMLAreaElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLAreaElement();
 
-  
+  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIDOMNode
   NS_FORWARD_NSIDOMNODE(nsGenericHTMLElement::)
 
-  
+  // nsIDOMElement
   NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
 
-  
+  // nsIDOMHTMLElement
   NS_FORWARD_NSIDOMHTMLELEMENT_BASIC(nsGenericHTMLElement::)
   NS_SCRIPTABLE NS_IMETHOD Click() {
     return nsGenericHTMLElement::Click();
@@ -87,10 +87,10 @@ public:
     return nsGenericHTMLElement::SetInnerHTML(aInnerHTML);
   }
 
-  
+  // nsIDOMHTMLAreaElement
   NS_DECL_NSIDOMHTMLAREAELEMENT
 
-  
+  // nsILink
   NS_IMETHOD LinkAdded() { return NS_OK; }
   NS_IMETHOD LinkRemoved() { return NS_OK; }
 
@@ -99,7 +99,6 @@ public:
   virtual bool IsLink(nsIURI** aURI) const;
   virtual void GetLinkTarget(nsAString& aTarget);
   virtual nsLinkState GetLinkState() const;
-  virtual void RequestLinkStateUpdate();
   virtual already_AddRefed<nsIURI> GetHrefURI() const;
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -144,7 +143,7 @@ NS_IMPL_RELEASE_INHERITED(nsHTMLAreaElement, nsGenericElement)
 
 DOMCI_NODE_DATA(HTMLAreaElement, nsHTMLAreaElement)
 
-
+// QueryInterface implementation for nsHTMLAreaElement
 NS_INTERFACE_TABLE_HEAD(nsHTMLAreaElement)
   NS_HTML_CONTENT_INTERFACE_TABLE3(nsHTMLAreaElement,
                                    nsIDOMHTMLAreaElement,
@@ -213,7 +212,10 @@ nsHTMLAreaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               bool aCompileEventHandlers)
 {
   Link::ResetLinkState(false);
-
+  if (aDocument) {
+    aDocument->RegisterPendingLinkUpdate(this);
+  }
+  
   return nsGenericHTMLElement::BindToTree(aDocument, aParent,
                                                  aBindingParent,
                                                  aCompileEventHandlers);
@@ -222,9 +224,14 @@ nsHTMLAreaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 nsHTMLAreaElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
-  
-  
+  // If this link is ever reinserted into a document, it might
+  // be under a different xml:base, so forget the cached state now.
   Link::ResetLinkState(false);
+  
+  nsIDocument* doc = GetCurrentDoc();
+  if (doc) {
+    doc->UnregisterPendingLinkUpdate(this);
+  }
 
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
@@ -237,11 +244,11 @@ nsHTMLAreaElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
   nsresult rv =
     nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix, aValue, aNotify);
 
-  
-  
-  
-  
-  
+  // The ordering of the parent class's SetAttr call and Link::ResetLinkState
+  // is important here!  The attribute is not set until SetAttr returns, and
+  // we will need the updated attribute value because notifying the document
+  // that content states have changed will call IntrinsicState, which will try
+  // to get updated information about the visitedness from Link.
   if (aName == nsGkAtoms::href && aNameSpaceID == kNameSpaceID_None) {
     Link::ResetLinkState(!!aNotify);
   }
@@ -256,11 +263,11 @@ nsHTMLAreaElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
   nsresult rv = nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aAttribute,
                                                 aNotify);
 
-  
-  
-  
-  
-  
+  // The ordering of the parent class's UnsetAttr call and Link::ResetLinkState
+  // is important here!  The attribute is not unset until UnsetAttr returns, and
+  // we will need the updated attribute value because notifying the document
+  // that content states have changed will call IntrinsicState, which will try
+  // to get updated information about the visitedness from Link.
   if (aAttribute == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
     Link::ResetLinkState(!!aNotify);
   }
@@ -312,12 +319,6 @@ nsLinkState
 nsHTMLAreaElement::GetLinkState() const
 {
   return Link::GetLinkState();
-}
-
-void
-nsHTMLAreaElement::RequestLinkStateUpdate()
-{
-  UpdateLinkState(Link::LinkState());
 }
 
 already_AddRefed<nsIURI>

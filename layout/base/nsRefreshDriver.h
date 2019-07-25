@@ -50,10 +50,13 @@
 #include "nsTObserverArray.h"
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
+#include "nsTHashtable.h"
+#include "nsHashKeys.h"
 
 class nsPresContext;
 class nsIPresShell;
 class nsIDocument;
+class imgIRequest;
 
 
 
@@ -127,6 +130,24 @@ public:
                             mozFlushType aFlushType);
   bool RemoveRefreshObserver(nsARefreshObserver *aObserver,
                                mozFlushType aFlushType);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool AddImageRequest(imgIRequest* aRequest);
+  void RemoveImageRequest(imgIRequest* aRequest);
+  void ClearAllImageRequests();
 
   
 
@@ -218,10 +239,15 @@ public:
 
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
+  typedef nsTHashtable<nsISupportsHashKey> RequestTable;
 
   void EnsureTimerStarted(bool aAdjustingTimer);
   void StopTimer();
+
   PRUint32 ObserverCount() const;
+  PRUint32 ImageRequestCount() const;
+  static PLDHashOperator ImageRequestEnumerator(nsISupportsHashKey* aEntry,
+                                          void* aUserArg);
   void UpdateMostRecentRefresh();
   ObserverArray& ArrayFor(mozFlushType aFlushType);
   
@@ -252,6 +278,8 @@ private:
 
   
   ObserverArray mObservers[3];
+  RequestTable mRequests;
+
   nsAutoTArray<nsIPresShell*, 16> mStyleFlushObservers;
   nsAutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
   
@@ -262,6 +290,11 @@ private:
   
   
   mutable PRInt32 mLastTimerInterval;
+
+  
+  struct ImageRequestParameters {
+      mozilla::TimeStamp ts;
+  };
 };
 
 #endif 

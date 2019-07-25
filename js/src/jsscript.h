@@ -49,6 +49,8 @@
 #include "jsclist.h"
 #include "jsinfer.h"
 
+#include "gc/Barrier.h"
+
 
 
 
@@ -132,7 +134,7 @@ typedef struct JSTryNoteArray {
 } JSTryNoteArray;
 
 typedef struct JSObjectArray {
-    JSObject        **vector;   
+    js::HeapPtrObject *vector;  
     uint32          length;     
 } JSObjectArray;
 
@@ -142,7 +144,7 @@ typedef struct JSUpvarArray {
 } JSUpvarArray;
 
 typedef struct JSConstArray {
-    js::Value       *vector;    
+    js::HeapValue   *vector;    
     uint32          length;
 } JSConstArray;
 
@@ -168,17 +170,15 @@ enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT, UPVAR };
 
 
 class Bindings {
-    js::Shape *lastBinding;
+    HeapPtr<Shape> lastBinding;
     uint16 nargs;
     uint16 nvars;
     uint16 nupvars;
     bool hasExtensibleParents;
 
   public:
-    inline Bindings(JSContext *cx)
-        : lastBinding(NULL), nargs(0), nvars(0), nupvars(0), hasExtensibleParents(false)
-    {
-    }
+    inline Bindings(JSContext *cx);
+    inline ~Bindings();
 
     
 
@@ -391,50 +391,31 @@ namespace ion {
 }
 #endif
 
-namespace js { namespace analyze { class ScriptAnalysis; } }
+namespace js {
 
-class JSPCCounters {
-    size_t numBytecodes;
-    double *counts;
+namespace analyze { class ScriptAnalysis; }
+
+class ScriptOpcodeCounts
+{
+    friend struct ::JSScript;
+    OpcodeCounts *counts;
 
  public:
 
-    enum {
-        INTERP = 0,
-        TRACEJIT,
-        METHODJIT,
-        METHODJIT_STUBS,
-        METHODJIT_CODE,
-        METHODJIT_PICS,
-        NUM_COUNTERS
-    };
-
-    JSPCCounters() : numBytecodes(0), counts(NULL) {
+    ScriptOpcodeCounts() : counts(NULL) {
     }
 
-    ~JSPCCounters() {
+    ~ScriptOpcodeCounts() {
         JS_ASSERT(!counts);
     }
-
-    bool init(JSContext *cx, size_t numBytecodes);
-    void destroy(JSContext *cx);
 
     
     operator void*() const {
         return counts;
     }
-
-    double *get(int runmode) {
-        JS_ASSERT(runmode >= 0 && runmode < NUM_COUNTERS);
-        return counts ? &counts[numBytecodes * runmode] : NULL;
-    }
-
-    double& get(int runmode, size_t offset) {
-        JS_ASSERT(offset < numBytecodes);
-        JS_ASSERT(counts);
-        return get(runmode)[offset];
-    }
 };
+
+} 
 
 static const uint32 JS_SCRIPT_COOKIE = 0xc00cee;
 
@@ -551,10 +532,8 @@ struct JSScript : public js::gc::Cell {
 
 
 
-#if JS_BITS_PER_WORD == 64
 #define JS_SCRIPT_INLINE_DATA_LIMIT 4
     uint8           inlineData[JS_SCRIPT_INLINE_DATA_LIMIT];
-#endif
 
     const char      *filename;  
     JSAtom          **atoms;    
@@ -568,8 +547,7 @@ struct JSScript : public js::gc::Cell {
     JSPrincipals    *principals;
     jschar          *sourceMap; 
 
-    union {
-        
+    
 
 
 
@@ -580,16 +558,15 @@ struct JSScript : public js::gc::Cell {
 
 
 
-        js::GlobalObject    *globalObject;
+    js::HeapPtr<js::GlobalObject, JSScript*> globalObject;
 
-        
-        JSScript            *evalHashLink;
-    } u;
+    
+    JSScript        *&evalHashLink() { return *globalObject.unsafeGetUnioned(); }
 
     uint32          *closedSlots; 
 
     
-    JSPCCounters    pcCounters;
+    js::ScriptOpcodeCounts pcCounters;
 
 #ifdef JS_ION
     js::ion::IonScript *ion;          
@@ -653,7 +630,7 @@ struct JSScript : public js::gc::Cell {
 
     
     js::GlobalObject *getGlobalObjectOrNull() const {
-        return isCachedEval ? NULL : u.globalObject;
+        return isCachedEval ? NULL : globalObject.get();
     }
 
   private:
@@ -705,6 +682,15 @@ struct JSScript : public js::gc::Cell {
     JS_FRIEND_API(size_t) jitDataSize(JSUsableSizeFun usf);
 
 #endif
+
+    
+    js::OpcodeCounts getCounts(jsbytecode *pc) {
+        JS_ASSERT(unsigned(pc - code) < length);
+        return pcCounters.counts[pc - code];
+    }
+
+    bool initCounts(JSContext *cx);
+    void destroyCounts(JSContext *cx);
 
     jsbytecode *main() {
         return code + mainOffset;
@@ -837,6 +823,9 @@ struct JSScript : public js::gc::Cell {
 #endif
 
     void finalize(JSContext *cx);
+
+    static inline void writeBarrierPre(JSScript *script);
+    static inline void writeBarrierPost(JSScript *script, void *addr);
 };
 
 JS_STATIC_ASSERT(sizeof(JSScript) % js::gc::Cell::CellSize == 0);

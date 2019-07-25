@@ -1853,6 +1853,9 @@ nsHttpChannel::ProcessNotModified()
     rv = UpdateExpirationTime();
     if (NS_FAILED(rv)) return rv;
 
+    rv = AddCacheEntryHeaders(mCacheEntry);
+    if (NS_FAILED(rv)) return rv;
+
     
     
     gHttpHandler->OnExamineMergedResponse(this);

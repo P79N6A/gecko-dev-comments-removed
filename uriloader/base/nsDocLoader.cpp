@@ -1391,7 +1391,8 @@ void nsDocLoader::DoFireOnStateChange(nsIWebProgress * const aProgress,
 void
 nsDocLoader::FireOnLocationChange(nsIWebProgress* aWebProgress,
                                   nsIRequest* aRequest,
-                                  nsIURI *aUri)
+                                  nsIURI *aUri,
+                                  PRUint32 aFlags)
 {
   
 
@@ -1418,14 +1419,14 @@ nsDocLoader::FireOnLocationChange(nsIWebProgress* aWebProgress,
       continue;
     }
 
-    listener->OnLocationChange(aWebProgress, aRequest, aUri);
+    listener->OnLocationChange(aWebProgress, aRequest, aUri, aFlags);
   }
 
   mListenerInfoList.Compact();
 
   
   if (mParent) {
-    mParent->FireOnLocationChange(aWebProgress, aRequest, aUri);
+    mParent->FireOnLocationChange(aWebProgress, aRequest, aUri, aFlags);
   }
 }
 

@@ -123,11 +123,11 @@ nsStorageStream::GetOutputStream(PRInt32 aStartingOffset,
     
     
     if (mLastSegmentNum >= 0)
-        mSegmentedBuffer->ReallocLastSegment(mSegmentSize);
-
-    
-    rv = Seek(aStartingOffset);
-    if (NS_FAILED(rv)) return rv;
+        if (mSegmentedBuffer->ReallocLastSegment(mSegmentSize)) {
+            
+            rv = Seek(aStartingOffset);
+            if (NS_FAILED(rv)) return rv;
+        }
 
     NS_ADDREF(this);
     *aOutputStream = static_cast<nsIOutputStream*>(this);

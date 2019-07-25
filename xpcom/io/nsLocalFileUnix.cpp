@@ -113,7 +113,7 @@ static nsresult MacErrorMapper(OSErr inErr);
 #include <libosso.h>
 #endif
 
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
 #include "nsIMIMEService.h"
 #include <linux/magic.h>
@@ -1885,7 +1885,7 @@ nsLocalFile::Launch()
     }
 
     return NS_ERROR_FAILURE;
-#elif defined(ANDROID)
+#elif defined(MOZ_WIDGET_ANDROID)
     
     nsresult rv;
     nsCAutoString type;

@@ -310,10 +310,10 @@ nsPrintingPromptService::OnProgressChange(nsIWebProgress *aWebProgress, nsIReque
 
 
 NS_IMETHODIMP 
-nsPrintingPromptService::OnLocationChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, nsIURI *location)
+nsPrintingPromptService::OnLocationChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, nsIURI *location, PRUint32 aFlags)
 {
   if (mWebProgressListener) {
-    return mWebProgressListener->OnLocationChange(aWebProgress, aRequest, location);
+    return mWebProgressListener->OnLocationChange(aWebProgress, aRequest, location, aFlags);
   }
   return NS_OK;
 }

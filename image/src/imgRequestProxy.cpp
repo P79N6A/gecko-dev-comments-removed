@@ -709,6 +709,16 @@ void imgRequestProxy::OnDiscard()
   }
 }
 
+void imgRequestProxy::OnImageIsAnimated()
+{
+  LOG_FUNC(gImgLog, "imgRequestProxy::OnImageIsAnimated");
+  if (mListener && !mCanceled) {
+    
+    nsCOMPtr<imgIDecoderObserver> kungFuDeathGrip(mListener);
+    mListener->OnImageIsAnimated(this);
+  }
+}
+
 void imgRequestProxy::OnStartRequest()
 {
 #ifdef PR_LOGGING

@@ -106,6 +106,8 @@
 
 #ifdef ANDROID
 #include "gfxAndroidPlatform.h"
+#endif
+#ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
 #endif
 
@@ -161,6 +163,9 @@ MemoryReportRequestParent::~MemoryReportRequestParent()
 }
 
 nsTArray<ContentParent*>* ContentParent::gContentParents;
+
+
+static PRUint64 gContentChildID = 1;
 
 ContentParent*
 ContentParent::GetNewOrUsed()
@@ -424,6 +429,7 @@ ContentParent::ContentParent()
     mSubprocess = new GeckoChildProcessHost(GeckoProcessType_Content);
     mSubprocess->AsyncLaunch();
     Open(mSubprocess->GetChannel(), mSubprocess->GetChildProcessHandle());
+    unused << SendSetID(gContentChildID++);
 
     nsCOMPtr<nsIChromeRegistry> registrySvc = nsChromeRegistry::GetService();
     nsChromeRegistryChrome* chromeRegistry =
@@ -632,7 +638,7 @@ ContentParent::RecvClipboardHasText(bool* hasText)
 bool
 ContentParent::RecvGetSystemColors(const PRUint32& colorsCount, InfallibleTArray<PRUint32>* colors)
 {
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
     NS_ASSERTION(AndroidBridge::Bridge() != nsnull, "AndroidBridge is not available");
     if (AndroidBridge::Bridge() == nsnull) {
         
@@ -651,7 +657,7 @@ ContentParent::RecvGetSystemColors(const PRUint32& colorsCount, InfallibleTArray
 bool
 ContentParent::RecvGetIconForExtension(const nsCString& aFileExt, const PRUint32& aIconSize, InfallibleTArray<PRUint8>* bits)
 {
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
     NS_ASSERTION(AndroidBridge::Bridge() != nsnull, "AndroidBridge is not available");
     if (AndroidBridge::Bridge() == nsnull) {
         
@@ -670,7 +676,7 @@ ContentParent::RecvGetShowPasswordSetting(bool* showPassword)
 {
     
     *showPassword = true;
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
     NS_ASSERTION(AndroidBridge::Bridge() != nsnull, "AndroidBridge is not available");
     if (AndroidBridge::Bridge() != nsnull)
         *showPassword = AndroidBridge::Bridge()->GetShowPasswordSetting();

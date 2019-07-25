@@ -121,7 +121,7 @@ DocumentFunctionCall::evaluate(txIEvalContext* aContext,
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsAutoString baseURI;
-    MBool baseURISet = MB_FALSE;
+    bool baseURISet = false;
 
     if (mParams.Length() == 2) {
         
@@ -134,7 +134,7 @@ DocumentFunctionCall::evaluate(txIEvalContext* aContext,
         
         
         
-        baseURISet = MB_TRUE;
+        baseURISet = true;
 
         if (!nodeSet2->isEmpty()) {
             txXPathNodeUtils::getBaseURI(nodeSet2->get(0), baseURI);

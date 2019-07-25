@@ -55,6 +55,17 @@
 
 namespace js {
 
+inline
+Bindings::Bindings(JSContext *cx)
+    : nargs(0), nvars(0), nupvars(0), hasExtensibleParents(false)
+{
+}
+
+inline
+Bindings::~Bindings()
+{
+}
+
 inline void
 Bindings::transfer(JSContext *cx, Bindings *bindings)
 {
@@ -213,6 +224,26 @@ JSScript::clearNesting()
         js::Foreground::delete_(nesting);
         types->nesting = NULL;
     }
+}
+
+inline void
+JSScript::writeBarrierPre(JSScript *script)
+{
+#ifdef JSGC_INCREMENTAL
+    if (!script)
+        return;
+
+    JSCompartment *comp = script->compartment();
+    if (comp->needsBarrier()) {
+        JS_ASSERT(!comp->rt->gcRunning);
+        MarkScriptUnbarriered(comp->barrierTracer(), script, "write barrier");
+    }
+#endif
+}
+
+inline void
+JSScript::writeBarrierPost(JSScript *script, void *addr)
+{
 }
 
 #endif 

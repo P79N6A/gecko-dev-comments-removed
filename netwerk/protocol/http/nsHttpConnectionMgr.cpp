@@ -1491,6 +1491,9 @@ nsHttpConnectionMgr::nsHalfOpenSocket::Abandon()
 {
     LOG(("nsHalfOpenSocket::Abandon [this=%p ent=%s]",
          this, mEnt->mConnInfo->Host()));
+
+    NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+
     nsRefPtr<nsHalfOpenSocket> deleteProtector(this);
 
     if (mStreamOut) {
@@ -1628,7 +1631,13 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
     case nsISocketTransport::STATUS_CONNECTING_TO:
         
         
-        if (!mBackupTransport && !mSynTimer)
+        
+        
+        
+        
+        
+        
+        if (mEnt && !mBackupTransport && !mSynTimer)
             SetupBackupTimer();
         break;
 

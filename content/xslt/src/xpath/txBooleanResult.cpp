@@ -80,7 +80,7 @@ BooleanResult::stringValuePointer()
     return nsnull;
 }
 
-MBool BooleanResult::booleanValue() {
+bool BooleanResult::booleanValue() {
    return this->value;
 } 
 

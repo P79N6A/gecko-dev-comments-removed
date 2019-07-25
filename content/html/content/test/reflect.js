@@ -468,22 +468,12 @@ function reflectInt(aParameters)
   }
 
   function stringToInteger(value, nonNegative, defaultValue) {
-    if (nonNegative === false) {
-      
-      var result = /^[ \t\n\f\r]*([\+\-]?[0-9]+)/.exec(value);
-      if (result) {
-        if (-0x80000000 <= result[1] && result[1] <= 0x7FFFFFFF) {
-          
-          return result[1];
-        }
-      }
-    } else {
-      var result = /^[ \t\n\f\r]*(\+?[0-9]+)/.exec(value);
-      if (result) {
-        if (0 <= result[1] && result[1] <= 0x7FFFFFFF) {
-          
-          return result[1];
-        }
+    
+    var result = /^[ \t\n\f\r]*([\+\-]?[0-9]+)/.exec(value);
+    if (result) {
+      if ((nonNegative ? 0:-0x80000000) <= result[1] && result[1] <= 0x7FFFFFFF) {
+        
+        return result[1];
       }
     }
     return defaultValue;
@@ -551,10 +541,6 @@ function reflectInt(aParameters)
       
       todo_is(element[attr], intValue, "Bug 586761: " + element.localName +
         ".setAttribute(value, " + v + "), " + element.localName + "[" + attr + "] ");
-    } else if ((v === "-0" || v == "-0xABCDEF") && nonNegative) {
-      
-      todo_is(element[attr], intValue, "Bug 688093: " + element.localName +
-        ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");
     } else {
       is(element[attr], intValue, element.localName +
         ".setAttribute(" + attr + ", " + v + "), " + element.localName + "[" + attr + "] ");

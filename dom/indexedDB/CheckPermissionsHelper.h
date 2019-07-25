@@ -64,10 +64,14 @@ public:
 
   CheckPermissionsHelper(OpenDatabaseHelper* aHelper,
                          nsIDOMWindow* aWindow,
-                         const nsACString& aASCIIOrigin)
+                         const nsACString& aASCIIOrigin,
+                         bool aForDeletion)
   : mHelper(aHelper),
     mWindow(aWindow),
     mASCIIOrigin(aASCIIOrigin),
+    
+    
+    mPromptAllowed(!aForDeletion),
     mHasPrompted(false),
     mPromptResult(0)
   {
@@ -80,6 +84,7 @@ private:
   nsRefPtr<OpenDatabaseHelper> mHelper;
   nsCOMPtr<nsIDOMWindow> mWindow;
   nsCString mASCIIOrigin;
+  bool mPromptAllowed;
   bool mHasPrompted;
   PRUint32 mPromptResult;
 };
