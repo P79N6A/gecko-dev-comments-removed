@@ -41,6 +41,7 @@
 #include "prprf.h"
 #include "nsString.h"
 #include "nsStreamUtils.h"
+#include "gfxColor.h"
 
 #include <setjmp.h>
 #include "jerror.h"
@@ -186,7 +187,7 @@ NS_IMETHODIMP nsJPEGEncoder::InitFromData(const PRUint8* aData,
   } else if (aInputFormat == INPUT_FORMAT_RGBA) {
     PRUint8* row = new PRUint8[aWidth * 3];
     while (cinfo.next_scanline < cinfo.image_height) {
-      StripAlpha(&aData[cinfo.next_scanline * aStride], row, aWidth);
+      ConvertRGBARow(&aData[cinfo.next_scanline * aStride], row, aWidth);
       jpeg_write_scanlines(&cinfo, &row, 1);
     }
     delete[] row;
@@ -357,17 +358,18 @@ NS_IMETHODIMP nsJPEGEncoder::CloseWithStatus(nsresult aStatus)
 
 
 
+
 void
 nsJPEGEncoder::ConvertHostARGBRow(const PRUint8* aSrc, PRUint8* aDest,
-                                 PRUint32 aPixelWidth)
+                                  PRUint32 aPixelWidth)
 {
-  for (PRUint32 x = 0; x < aPixelWidth; x ++) {
+  for (PRUint32 x = 0; x < aPixelWidth; x++) {
     const PRUint32& pixelIn = ((const PRUint32*)(aSrc))[x];
     PRUint8 *pixelOut = &aDest[x * 3];
 
-    pixelOut[0] = (((pixelIn & 0xff0000) >> 16));
-    pixelOut[1] = (((pixelIn & 0x00ff00) >>  8));
-    pixelOut[2] = (((pixelIn & 0x0000ff) >>  0));
+    pixelOut[0] = (pixelIn & 0xff0000) >> 16;
+    pixelOut[1] = (pixelIn & 0x00ff00) >>  8;
+    pixelOut[2] = (pixelIn & 0x0000ff) >>  0;
   }
 }
 
@@ -377,18 +379,19 @@ nsJPEGEncoder::ConvertHostARGBRow(const PRUint8* aSrc, PRUint8* aDest,
 
 
 void
-nsJPEGEncoder::StripAlpha(const PRUint8* aSrc, PRUint8* aDest,
-                          PRUint32 aPixelWidth)
+nsJPEGEncoder::ConvertRGBARow(const PRUint8* aSrc, PRUint8* aDest,
+                              PRUint32 aPixelWidth)
 {
-  for (PRUint32 x = 0; x < aPixelWidth; x ++) {
+  for (PRUint32 x = 0; x < aPixelWidth; x++) {
     const PRUint8* pixelIn = &aSrc[x * 4];
     PRUint8* pixelOut = &aDest[x * 3];
-    pixelOut[0] = pixelIn[0];
-    pixelOut[1] = pixelIn[1];
-    pixelOut[2] = pixelIn[2];
+
+    PRUint8 alpha = pixelIn[3];
+    pixelOut[0] = GFX_PREMULTIPLY(pixelIn[0], alpha);
+    pixelOut[1] = GFX_PREMULTIPLY(pixelIn[1], alpha);
+    pixelOut[2] = GFX_PREMULTIPLY(pixelIn[2], alpha);
   }
 }
-
 
 
 
