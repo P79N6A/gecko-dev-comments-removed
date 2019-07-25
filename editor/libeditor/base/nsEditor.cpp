@@ -141,7 +141,6 @@ extern nsIParserService *sParserService;
 nsEditor::nsEditor()
 :  mModCount(0)
 ,  mFlags(0)
-,  mPresShellWeak(nsnull)
 ,  mUpdateCount(0)
 ,  mSpellcheckCheckboxState(eTriUnset)
 ,  mPlaceHolderTxn(nsnull)
@@ -241,7 +240,6 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIPresShell* aPresShell, nsIContent *aRoot
   NS_ASSERTION(NS_SUCCEEDED(rv), "SetFlags() failed");
 
   mDocWeak = do_GetWeakReference(aDoc);  
-  mPresShellWeak = do_GetWeakReference(aPresShell);   
   
   
   
@@ -254,9 +252,6 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIPresShell* aPresShell, nsIContent *aRoot
   }
   NS_ASSERTION(selCon, "Selection controller should be available at this point");
 
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  NS_ENSURE_TRUE(ps, NS_ERROR_NOT_INITIALIZED);
-  
   
   if (aRoot)
     mRootElement = do_QueryInterface(aRoot);
@@ -274,7 +269,7 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIPresShell* aPresShell, nsIContent *aRoot
 
   selCon->SetSelectionFlags(nsISelectionDisplay::DISPLAY_ALL);
 
-  NS_POSTCONDITION(mDocWeak && mPresShellWeak, "bad state");
+  NS_POSTCONDITION(mDocWeak, "bad state");
 
   
   mDidPreDestroy = PR_FALSE;
@@ -536,10 +531,12 @@ nsEditor::GetPresShell(nsIPresShell **aPS)
 {
   NS_ENSURE_TRUE(aPS, NS_ERROR_NULL_POINTER);
   *aPS = nsnull; 
-  NS_PRECONDITION(mPresShellWeak, "bad state, null mPresShellWeak");
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  NS_ENSURE_TRUE(ps, NS_ERROR_NOT_INITIALIZED);
-  NS_ADDREF(*aPS = ps);
+  NS_PRECONDITION(mDocWeak, "bad state, null mDocWeak");
+  nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocWeak);
+  NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
+  *aPS = doc->GetShell();
+  NS_ENSURE_TRUE(*aPS, NS_ERROR_NOT_INITIALIZED);
+  NS_ADDREF(*aPS);
   return NS_OK;
 }
 

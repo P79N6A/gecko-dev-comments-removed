@@ -724,8 +724,7 @@ protected:
 
   PRUint32        mModCount;		
   PRUint32        mFlags;		
-  
-  nsWeakPtr       mPresShellWeak;   
+
   nsWeakPtr       mSelConWeak;   
   PRInt32         mUpdateCount;
   nsIViewManager::UpdateViewBatch mBatch;
