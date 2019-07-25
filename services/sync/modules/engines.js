@@ -570,13 +570,16 @@ Engine.prototype = {
   },
 
   _share: function Engine__share(guid, username) {
+    let self = yield;
     
 
 
-    return;
+    self.done();
   },
 
   
+
+
 
   sync: function Engine_sync(onComplete) {
     return this._sync.async(this, onComplete);
@@ -586,7 +589,7 @@ Engine.prototype = {
     return this._share.async(this, onComplete, guid, username);
   },
 
-  resetServer: function Engine_resetServer(onComplete) {
+  resetServer: function Engimne_resetServer(onComplete) {
     this._notify("reset-server", this._resetServer).async(this, onComplete);
   },
 
