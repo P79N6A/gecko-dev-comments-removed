@@ -158,8 +158,6 @@ protected:
   
   nsRefPtr<nsComposerCommandsUpdater> mStateMaintainer;
   
-  nsWeakPtr       mWindowToBeEdited;
-
   
   nsCString       mEditorType; 
   PRUint32        mEditorFlags;
