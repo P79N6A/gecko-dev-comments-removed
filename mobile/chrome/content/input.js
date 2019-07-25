@@ -52,9 +52,6 @@ const kDoubleClickRadius = 100;
 const kLongTapWait = 500;
 
 
-const kTapRadius = Services.prefs.getIntPref("ui.dragThresholdX");
-
-
 const kAxisLockRevertThreshold = 200;
 
 
@@ -91,7 +88,7 @@ const kStateActive = 0x00000001;
 
 
 function MouseModule() {
-  this._dragData = new DragData(kTapRadius);
+  this._dragData = new DragData();
 
   this._dragger = null;
   this._inputField = null;
@@ -302,6 +299,13 @@ MouseModule.prototype = {
         }
       }
     }
+    else if (!dragData.dragging && this._downUpEvents.length) {
+      let oldEvent = this._downUpEvents[0];
+      dragData._isPan = ScrollUtils.isPan(new Point(oldEvent.clientX, oldEvent.clientY),
+                                          new Point(aEvent.clientX, aEvent.clientY));
+      if (dragData.isPan())
+        this._longClickTimeout.clear();
+    }
   },
 
   
@@ -498,6 +502,12 @@ MouseModule.prototype = {
 
 var ScrollUtils = {
   
+  get tapRadius() {
+    delete this.tapRadius;
+    return this.tapRadius = Services.prefs.getIntPref("ui.dragThresholdX");
+  },
+
+  
 
 
 
@@ -536,6 +546,17 @@ var ScrollUtils = {
  }
     }
     return [scrollbox, qinterface, (scrollbox ? (scrollbox.customDragger || this._defaultDragger) : null)];
+  },
+
+  
+
+
+
+
+  isPan: function isPan(aPoint, aPoint2) {
+    let distanceSquared = (Math.pow(aPoint.x - aPoint2.x, 2) +
+                           Math.pow(aPoint.y - aPoint2.y, 2));
+    return distanceSquared > Math.pow(this.tapRadius, 2);
   },
 
   
@@ -583,8 +604,7 @@ var ScrollUtils = {
 
 
 
-function DragData(dragRadius) {
-  this._dragRadius = dragRadius;
+function DragData() {
   this._domUtils = Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
   this.reset();
 };
@@ -622,8 +642,7 @@ DragData.prototype = {
   setDragPosition: function setDragPosition(sX, sY) {
     
     if (!this._isPan) {
-      let distanceSquared = (Math.pow(sX - this._originX, 2) + Math.pow(sY - this._originY, 2));
-      this._isPan = (distanceSquared > Math.pow(this._dragRadius, 2));
+      this._isPan = ScrollUtils.isPan(new Point(this._originX, this._originY), new Point(sX, sY));
       if (this._isPan)
         this._resetActive();
     }
