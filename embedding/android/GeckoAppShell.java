@@ -134,10 +134,6 @@ class GeckoAppShell
             Log.i("GeckoApp", "env"+ c +": "+ env);
         }
 
-        
-        if (android.os.Build.MODEL.equals("Nexus S") == true)
-            GeckoAppShell.putenv("MALLOC_OPTIONS=o");
-
         File f = new File("/data/data/" + 
                           GeckoApp.mAppContext.getPackageName() + "/tmp");
         if (!f.exists())
