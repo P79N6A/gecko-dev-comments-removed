@@ -240,9 +240,6 @@ JS_STATIC_ASSERT(sizeof(JSFunction) % GC_CELL_SIZE == 0);
 JS_STATIC_ASSERT(sizeof(JSXML) % GC_CELL_SIZE == 0);
 #endif
 
-JS_STATIC_ASSERT(GC_CELL_SIZE == sizeof(jsdouble));
-const size_t DOUBLES_PER_ARENA = GC_CELLS_PER_ARENA;
-
 struct JSGCArenaInfo {
     
 
@@ -571,9 +568,8 @@ GCArenaIndexToThing(JSGCArena *a, JSGCArenaInfo *ainfo, size_t index)
 
 
 
-union JSGCThing {
+struct JSGCThing {
     JSGCThing   *link;
-    double      asDouble;
 };
 
 static inline JSGCThing *
@@ -881,25 +877,6 @@ js_IsAboutToBeFinalized(void *thing)
         return false;
 
     return !IsMarkedGCThing(thing);
-}
-
-static void
-MarkDelayedChildren(JSTracer *trc);
-
-
-JS_FRIEND_API(uint32)
-js_SetMarkColor(JSTracer *trc, uint32 color)
-{
-    JSGCTracer *gctracer = trc->context->runtime->gcMarkingTracer;
-    if (trc != gctracer)
-        return color;
-
-    
-    MarkDelayedChildren(trc);
-
-    uint32 oldColor = gctracer->color;
-    gctracer->color = color;
-    return oldColor;
 }
 
 JS_FRIEND_API(bool)
@@ -1903,6 +1880,8 @@ JS_TraceChildren(JSTracer *trc, void *thing, uint32 kind)
     }
 }
 
+namespace js {
+
 
 
 
@@ -1943,11 +1922,12 @@ ThingsPerUnmarkedBit(unsigned thingSize)
     return JS_HOWMANY(ThingsPerArena(thingSize), JS_BITS_PER_WORD);
 }
 
-static void
-DelayMarkingChildren(JSRuntime *rt, void *thing)
+void
+GCMarker::delayMarkingChildren(void *thing)
 {
+    JS_ASSERT(this == context->runtime->gcMarkingTracer);
     JS_ASSERT(IsMarkedGCThing(thing));
-    METER(rt->gcStats.unmarked++);
+    METER(context->runtime->gcStats.unmarked++);
 
     JSGCArena *a = JSGCArena::fromGCThing(thing);
     JSGCArenaInfo *ainfo = a->getInfo();
@@ -1960,7 +1940,7 @@ DelayMarkingChildren(JSRuntime *rt, void *thing)
 
     jsuword bit = jsuword(1) << unmarkedBitIndex;
     if (markingDelay->unmarkedChildren != 0) {
-        JS_ASSERT(rt->gcUnmarkedArenaStackTop);
+        JS_ASSERT(unmarkedArenaStackTop);
         if (markingDelay->unmarkedChildren & bit) {
             
             return;
@@ -1981,36 +1961,31 @@ DelayMarkingChildren(JSRuntime *rt, void *thing)
 
         markingDelay->unmarkedChildren = bit;
         if (!markingDelay->link) {
-            if (!rt->gcUnmarkedArenaStackTop) {
+            if (!unmarkedArenaStackTop) {
                 
                 markingDelay->link = a;
             } else {
-                JS_ASSERT(rt->gcUnmarkedArenaStackTop->getMarkingDelay()->link);
-                markingDelay->link = rt->gcUnmarkedArenaStackTop;
+                JS_ASSERT(unmarkedArenaStackTop->getMarkingDelay()->link);
+                markingDelay->link = unmarkedArenaStackTop;
             }
-            rt->gcUnmarkedArenaStackTop = a;
+            unmarkedArenaStackTop = a;
         }
-        JS_ASSERT(rt->gcUnmarkedArenaStackTop);
+        JS_ASSERT(unmarkedArenaStackTop);
     }
 #ifdef DEBUG
-    rt->gcMarkLaterCount += ThingsPerUnmarkedBit(ainfo->list->thingSize);
-    METER_UPDATE_MAX(rt->gcStats.maxunmarked, rt->gcMarkLaterCount);
+    markLaterCount += ThingsPerUnmarkedBit(ainfo->list->thingSize);
+    METER_UPDATE_MAX(context->runtime->gcStats.maxunmarked, markLaterCount);
 #endif
 }
 
-static void
-MarkDelayedChildren(JSTracer *trc)
+JS_FRIEND_API(void)
+GCMarker::markDelayedChildren()
 {
-    JSRuntime *rt;
-    JSGCArena *a, *aprev;
-    unsigned thingSize, traceKind;
-    unsigned thingsPerUnmarkedBit;
-    unsigned unmarkedBitIndex, thingIndex, indexLimit, endIndex;
+    JS_ASSERT(this == context->runtime->gcMarkingTracer);
 
-    rt = trc->context->runtime;
-    a = rt->gcUnmarkedArenaStackTop;
+    JSGCArena *a = unmarkedArenaStackTop;
     if (!a) {
-        JS_ASSERT(rt->gcMarkLaterCount == 0);
+        JS_ASSERT(markLaterCount == 0);
         return;
     }
 
@@ -2024,11 +1999,11 @@ MarkDelayedChildren(JSTracer *trc)
         JSGCArenaInfo *ainfo = a->getInfo();
         JSGCMarkingDelay *markingDelay = a->getMarkingDelay();
         JS_ASSERT(markingDelay->link);
-        JS_ASSERT(rt->gcUnmarkedArenaStackTop->getMarkingDelay()->link);
-        thingSize = ainfo->list->thingSize;
-        traceKind = GetFinalizableArenaTraceKind(ainfo);
-        indexLimit = ThingsPerArena(thingSize);
-        thingsPerUnmarkedBit = ThingsPerUnmarkedBit(thingSize);
+        JS_ASSERT(unmarkedArenaStackTop->getMarkingDelay()->link);
+        unsigned thingSize = ainfo->list->thingSize;
+        unsigned traceKind = GetFinalizableArenaTraceKind(ainfo);
+        unsigned indexLimit = ThingsPerArena(thingSize);
+        unsigned thingsPerUnmarkedBit = ThingsPerUnmarkedBit(thingSize);
 
         
 
@@ -2036,14 +2011,14 @@ MarkDelayedChildren(JSTracer *trc)
 
 
         while (markingDelay->unmarkedChildren != 0) {
-            unmarkedBitIndex = JS_FLOOR_LOG2W(markingDelay->unmarkedChildren);
+            unsigned unmarkedBitIndex = JS_FLOOR_LOG2W(markingDelay->unmarkedChildren);
             markingDelay->unmarkedChildren &= ~(jsuword(1) << unmarkedBitIndex);
 #ifdef DEBUG
-            JS_ASSERT(rt->gcMarkLaterCount >= thingsPerUnmarkedBit);
-            rt->gcMarkLaterCount -= thingsPerUnmarkedBit;
+            JS_ASSERT(markLaterCount >= thingsPerUnmarkedBit);
+            markLaterCount -= thingsPerUnmarkedBit;
 #endif
-            thingIndex = unmarkedBitIndex * thingsPerUnmarkedBit;
-            endIndex = thingIndex + thingsPerUnmarkedBit;
+            unsigned thingIndex = unmarkedBitIndex * thingsPerUnmarkedBit;
+            unsigned endIndex = thingIndex + thingsPerUnmarkedBit;
 
             
 
@@ -2056,7 +2031,7 @@ MarkDelayedChildren(JSTracer *trc)
             do {
                 JS_ASSERT(thing < end);
                 if (IsMarkedGCThing(thing))
-                    JS_TraceChildren(trc, thing, traceKind);
+                    JS_TraceChildren(this, thing, traceKind);
                 thing += thingSize;
             } while (thing != end);
         }
@@ -2070,8 +2045,8 @@ MarkDelayedChildren(JSTracer *trc)
 
 
 
-        if (a == rt->gcUnmarkedArenaStackTop) {
-            aprev = markingDelay->link;
+        if (a == unmarkedArenaStackTop) {
+            JSGCArena *aprev = markingDelay->link;
             markingDelay->link = NULL;
             if (a == aprev) {
                 
@@ -2080,95 +2055,95 @@ MarkDelayedChildren(JSTracer *trc)
 
                 break;
             }
-            rt->gcUnmarkedArenaStackTop = a = aprev;
+            unmarkedArenaStackTop = a = aprev;
         } else {
-            a = rt->gcUnmarkedArenaStackTop;
+            a = unmarkedArenaStackTop;
         }
     }
-    JS_ASSERT(rt->gcUnmarkedArenaStackTop);
-    JS_ASSERT(!rt->gcUnmarkedArenaStackTop->getMarkingDelay()->link);
-    rt->gcUnmarkedArenaStackTop = NULL;
-    JS_ASSERT(rt->gcMarkLaterCount == 0);
+    JS_ASSERT(unmarkedArenaStackTop);
+    JS_ASSERT(!unmarkedArenaStackTop->getMarkingDelay()->link);
+    unmarkedArenaStackTop = NULL;
+    JS_ASSERT(markLaterCount == 0);
 }
 
-namespace js {
+void
+GCMarker::slowifyArrays()
+{
+    while (!arraysToSlowify.empty()) {
+        JSObject *obj = arraysToSlowify.back();
+        arraysToSlowify.popBack();
+        if (IsMarkedGCThing(obj))
+            obj->makeDenseArraySlow(context);
+    }
+}
 
 void
 Mark(JSTracer *trc, void *thing, uint32 kind)
 {
-    JSContext *cx;
-    JSRuntime *rt;
-
     JS_ASSERT(thing);
     JS_ASSERT(JS_IS_VALID_TRACE_KIND(kind));
     JS_ASSERT(trc->debugPrinter || trc->debugPrintArg);
+    JS_ASSERT_IF(!JSString::isStatic(thing), kind == GetFinalizableThingTraceKind(thing));
+#ifdef DEBUG
+    if (IS_GC_MARKING_TRACER(trc)) {
+        JSRuntime *rt = trc->context->runtime;
+        JS_ASSERT(rt->gcMarkingTracer == trc);
+        JS_ASSERT(rt->gcRunning);
+    }
+#endif
 
     if (!IS_GC_MARKING_TRACER(trc)) {
         trc->callback(trc, thing, kind);
-        goto out;
-    }
+    } else {
+        GCMarker *gcmarker = static_cast<GCMarker *>(trc);
 
-    cx = trc->context;
-    rt = cx->runtime;
-    JS_ASSERT(rt->gcMarkingTracer == trc);
-    JS_ASSERT(rt->gcRunning);
-
-    
+        if (kind == JSTRACE_STRING) {
+            
 
 
 
-    if (kind == JSTRACE_STRING) {
-        
 
 
 
-        JSRopeNodeIterator iter((JSString *) thing);
-        JSString *str = iter.init();
-        do {
-            for (;;) {
-                if (JSString::isStatic(str))
-                    break;
-                JS_ASSERT(kind == GetFinalizableThingTraceKind(str));
-                if (!MarkIfUnmarkedGCThing(str))
-                    break;
-                if (!str->isDependent())
-                    break;
-                str = str->dependentBase();
-            }
-            str = iter.next();
-        } while (str);
-        goto out;
-        
-    }
-
-    JS_ASSERT(kind == GetFinalizableThingTraceKind(thing));
-    if (!MarkIfUnmarkedGCThing(thing, reinterpret_cast<JSGCTracer *>(trc)->color))
-        goto out;
-
-    
+            JSRopeNodeIterator iter((JSString *) thing);
+            JSString *str = iter.init();
+            do {
+                for (;;) {
+                    if (JSString::isStatic(str))
+                        break;
+                    JS_ASSERT(kind == GetFinalizableThingTraceKind(str));
+                    if (!MarkIfUnmarkedGCThing(str))
+                        break;
+                    if (!str->isDependent())
+                        break;
+                    str = str->dependentBase();
+                }
+                str = iter.next();
+            } while (str);
+           
+        } else if (MarkIfUnmarkedGCThing(thing, gcmarker->getMarkColor())) {
+            
 
 
 
 
 #ifdef JS_GC_ASSUME_LOW_C_STACK
-# define RECURSION_TOO_DEEP() JS_TRUE
+# define RECURSION_TOO_DEEP() true
 #else
-    int stackDummy;
-# define RECURSION_TOO_DEEP() (!JS_CHECK_STACK_SIZE(cx, stackDummy))
+            int stackDummy;
+# define RECURSION_TOO_DEEP() (!JS_CHECK_STACK_SIZE(trc->context, stackDummy))
 #endif
-
-    if (RECURSION_TOO_DEEP()) {
-        DelayMarkingChildren(rt, thing);
-    } else {
-        JS_TraceChildren(trc, thing, kind);
+            if (RECURSION_TOO_DEEP())
+                gcmarker->delayMarkingChildren(thing);
+            else
+                JS_TraceChildren(trc, thing, kind);
+        }
     }
 
-  out:
 #ifdef DEBUG
     trc->debugPrinter = NULL;
     trc->debugPrintArg = NULL;
 #endif
-    return;     
 }
 
 void
@@ -2467,6 +2442,19 @@ js_TraceRuntime(JSTracer *trc)
 
     if (rt->gcExtraRootsTraceOp)
         rt->gcExtraRootsTraceOp(trc, rt->gcExtraRootsData);
+
+#ifdef DEBUG
+    if (rt->functionMeterFilename) {
+        for (int k = 0; k < 2; k++) {
+            typedef JSRuntime::FunctionCountMap HM;
+            HM &h = (k == 0) ? rt->methodReadBarrierCountMap : rt->unjoinedFunctionCountMap;
+            for (HM::Range r = h.all(); !r.empty(); r.popFront()) {
+                JSFunction *fun = r.front().key;
+                JS_CALL_OBJECT_TRACER(trc, fun, "FunctionCountMap key");
+            }
+        }
+    }
+#endif
 }
 
 void
@@ -2821,15 +2809,6 @@ struct GCTimer {
 # define GCTIMER_END(last)  ((void) 0)
 #endif
 
-static inline bool
-HasMarkedDoubles(JSGCArena *a)
-{
-    JS_STATIC_ASSERT(GC_MARK_BITMAP_SIZE == 8 * sizeof(uint64));
-    uint64 *markBitmap = (uint64 *) a->getMarkBitmap();
-    return !!(markBitmap[0] | markBitmap[1] | markBitmap[2] | markBitmap[3] |
-              markBitmap[4] | markBitmap[5] | markBitmap[6] | markBitmap[7]);
-}
-
 #ifdef JS_THREADSAFE
 
 namespace js {
@@ -2959,29 +2938,25 @@ GC(JSContext *cx  GCTIMER_PARAM)
 {
     JSRuntime *rt = cx->runtime;
     rt->gcNumber++;
-    JS_ASSERT(!rt->gcUnmarkedArenaStackTop);
-    JS_ASSERT(rt->gcMarkLaterCount == 0);
 
     
 
 
-    JSGCTracer trc;
-    JS_TRACER_INIT(&trc, cx, NULL);
-    trc.color = BLACK;
-    rt->gcMarkingTracer = &trc;
-    JS_ASSERT(IS_GC_MARKING_TRACER(&trc));
-
+    GCMarker gcmarker(cx);
+    JS_ASSERT(IS_GC_MARKING_TRACER(&gcmarker));
+    JS_ASSERT(gcmarker.getMarkColor() == BLACK);
+    rt->gcMarkingTracer = &gcmarker;
+             
     for (JSGCChunkInfo **i = rt->gcChunks.begin(); i != rt->gcChunks.end(); ++i)
         (*i)->clearMarkBitmap();
-    js_TraceRuntime(&trc);
+    js_TraceRuntime(&gcmarker);
     js_MarkScriptFilenames(rt);
 
     
 
 
 
-    MarkDelayedChildren(&trc);
-    JS_ASSERT(rt->gcMarkLaterCount == 0);
+    gcmarker.markDelayedChildren();
 
     rt->gcMarkingTracer = NULL;
 
@@ -3020,7 +2995,6 @@ GC(JSContext *cx  GCTIMER_PARAM)
 #endif
 
     
-
 
 
 
@@ -3066,14 +3040,7 @@ GC(JSContext *cx  GCTIMER_PARAM)
     js_SweepScriptFilenames(rt);
 
     
-
-
-    while (!trc.arraysToSlowify.empty()) {
-        JSObject *obj = trc.arraysToSlowify.back();
-        trc.arraysToSlowify.popBack();
-        if (IsMarkedGCThing(obj))
-            obj->makeDenseArraySlow(cx);
-    }
+    gcmarker.slowifyArrays();
 
     
 

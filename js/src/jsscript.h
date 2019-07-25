@@ -209,6 +209,9 @@ struct JSScript {
     bool            strictModeCode:1; 
     bool            compileAndGo:1;   
     bool            usesEval:1;       
+    bool            warnedAboutTwoArgumentEval:1; 
+
+
 
     jsbytecode      *main;      
     JSAtomMap       atomMap;    

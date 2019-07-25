@@ -168,16 +168,6 @@ js_IndexToId(JSContext *cx, jsuint index, jsid *idp);
 
 
 
-
-
-
-
-extern JSBool
-js_IsArrayLike(JSContext *cx, JSObject *obj, JSBool *answerp, jsuint *lengthp);
-
-
-
-
 typedef JSBool (*JSComparator)(void *arg, const void *a, const void *b,
                                int *result);
 
@@ -199,6 +189,15 @@ enum JSMergeSortElemType {
 extern bool
 js_MergeSort(void *vec, size_t nel, size_t elsize, JSComparator cmp,
              void *arg, void *tmp, JSMergeSortElemType elemType);
+
+
+
+
+
+namespace js {
+extern JSBool
+array_sort(JSContext *cx, uintN argc, js::Value *vp);
+}
 
 #ifdef DEBUG_ARRAYS
 extern JSBool
