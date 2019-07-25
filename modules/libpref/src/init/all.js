@@ -788,6 +788,7 @@ pref("network.IDN.whitelist.es", true);
 pref("network.IDN.whitelist.fi", true);
 pref("network.IDN.whitelist.gr", true);
 pref("network.IDN.whitelist.hu", true);
+pref("network.IDN.whitelist.il", true);
 pref("network.IDN.whitelist.io", true);
 pref("network.IDN.whitelist.ir", true);
 pref("network.IDN.whitelist.is", true);
@@ -821,6 +822,8 @@ pref("network.IDN.whitelist.xn--mgba3a4f16a", true);
 pref("network.IDN.whitelist.xn--mgba3a4fra", true);
 
 pref("network.IDN.whitelist.xn--mgbayh7gpa", true);
+
+pref("network.IDN.whitelist.xn--wgbl6a", true);
 
 pref("network.IDN.whitelist.xn--p1ai", true);
 
