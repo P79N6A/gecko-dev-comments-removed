@@ -787,8 +787,13 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
     
     
     EVENT_CALLBACK eventHandler = mInnerView->AttachWidgetEventHandler(mWidget);
-    mWidget->Create(parentWidget, nsnull, nsIntRect(0,0,0,0),
-                    eventHandler, dx, nsnull, nsnull, &initData);
+    rv = mWidget->Create(parentWidget, nsnull, nsIntRect(0,0,0,0),
+                         eventHandler, dx, nsnull, nsnull, &initData);
+    if (NS_FAILED(rv)) {
+      mWidget->Destroy();
+      mWidget = nsnull;
+      return rv;
+    }
 
     mWidget->EnableDragDrop(PR_TRUE);
 
