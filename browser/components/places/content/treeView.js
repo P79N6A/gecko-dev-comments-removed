@@ -2,6 +2,13 @@
 
 
 
+Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
+
+const PTV_interfaces = [Ci.nsITreeView,
+                        Ci.nsINavHistoryResultObserver,
+                        Ci.nsINavHistoryResultTreeViewer,
+                        Ci.nsISupportsWeakReference];
+
 function PlacesTreeView(aFlatList, aOnOpenFlatContainer, aController) {
   this._tree = null;
   this._result = null;
@@ -39,15 +46,17 @@ PlacesTreeView.prototype = {
     return this.__dateService;
   },
 
-  QueryInterface: function PTV_QueryInterface(aIID) {
-    if (aIID.equals(Ci.nsITreeView) ||
-        aIID.equals(Ci.nsINavHistoryResultObserver) ||
-        aIID.equals(Ci.nsINavHistoryResultTreeViewer) ||
-        aIID.equals(Ci.nsISupportsWeakReference) ||
-        aIID.equals(Ci.nsISupports))
-      return this;
-    throw Cr.NS_ERROR_NO_INTERFACE;
-  },
+  QueryInterface: XPCOMUtils.generateQI(PTV_interfaces),
+
+  
+  
+  
+  
+  
+  
+  
+  
+  classInfo: XPCOMUtils.generateCI({ interfaces: PTV_interfaces }),
 
   
 
