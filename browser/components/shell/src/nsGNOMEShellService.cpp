@@ -46,6 +46,7 @@
 #include "nsStringAPI.h"
 #include "nsIGConfService.h"
 #include "nsIGIOService.h"
+#include "nsIGSettingsService.h"
 #include "nsIStringBundle.h"
 #include "nsIOutputStream.h"
 #include "nsIProcess.h"
@@ -101,6 +102,12 @@ static const char kDesktopOptionsKey[] = DG_BACKGROUND "/picture_options";
 static const char kDesktopDrawBGKey[] = DG_BACKGROUND "/draw_background";
 static const char kDesktopColorKey[] = DG_BACKGROUND "/primary_color";
 
+static const char kDesktopBGSchema[] = "org.gnome.desktop.background";
+static const char kDesktopImageGSKey[] = "picture-uri";
+static const char kDesktopOptionGSKey[] = "picture-options";
+static const char kDesktopDrawBGGSKey[] = "draw-background";
+static const char kDesktopColorGSKey[] = "primary-color";
+
 nsresult
 nsGNOMEShellService::Init()
 {
@@ -112,8 +119,10 @@ nsGNOMEShellService::Init()
   nsCOMPtr<nsIGConfService> gconf = do_GetService(NS_GCONFSERVICE_CONTRACTID);
   nsCOMPtr<nsIGIOService> giovfs =
     do_GetService(NS_GIOSERVICE_CONTRACTID);
+  nsCOMPtr<nsIGSettingsService> gsettings =
+    do_GetService(NS_GSETTINGSSERVICE_CONTRACTID);
 
-  if (!gconf && !giovfs)
+  if (!gconf && !giovfs && !gsettings)
     return NS_ERROR_NOT_AVAILABLE;
 
   
@@ -413,6 +422,15 @@ nsGNOMEShellService::SetDesktopBackground(nsIDOMElement* aElement,
   if (!container) return rv;
 
   
+  nsCAutoString options;
+  if (aPosition == BACKGROUND_TILE)
+    options.Assign("wallpaper");
+  else if (aPosition == BACKGROUND_STRETCH)
+    options.Assign("stretched");
+  else
+    options.Assign("centered");
+
+  
   nsCAutoString filePath(PR_GetEnv("HOME"));
 
   
@@ -437,19 +455,38 @@ nsGNOMEShellService::SetDesktopBackground(nsIDOMElement* aElement,
 
   
   rv = WriteImage(filePath, container);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  nsCOMPtr<nsIGSettingsService> gsettings = 
+    do_GetService(NS_GSETTINGSSERVICE_CONTRACTID);
+  if (gsettings) {
+    nsCOMPtr<nsIGSettingsCollection> background_settings;
+    gsettings->GetCollectionForSchema(
+      NS_LITERAL_CSTRING(kDesktopBGSchema), getter_AddRefs(background_settings));
+    if (background_settings) {
+      gchar *file_uri = g_filename_to_uri(filePath.get(), NULL, NULL);
+      if (!file_uri)
+         return NS_ERROR_FAILURE;
+
+      background_settings->SetString(NS_LITERAL_CSTRING(kDesktopOptionGSKey),
+                                     options);
+
+      background_settings->SetString(NS_LITERAL_CSTRING(kDesktopImageGSKey),
+                                     nsDependentCString(file_uri));
+      g_free(file_uri);
+      background_settings->SetBoolean(NS_LITERAL_CSTRING(kDesktopDrawBGGSKey),
+                                      PR_TRUE);
+      return rv;
+    }
+  }
 
   
   nsCOMPtr<nsIGConfService> gconf = do_GetService(NS_GCONFSERVICE_CONTRACTID);
 
   if (gconf) {
-    nsCAutoString options;
-    if (aPosition == BACKGROUND_TILE)
-      options.Assign("wallpaper");
-    else if (aPosition == BACKGROUND_STRETCH)
-      options.Assign("stretched");
-    else
-      options.Assign("centered");
-
     gconf->SetString(NS_LITERAL_CSTRING(kDesktopOptionsKey), options);
 
     
@@ -471,11 +508,24 @@ nsGNOMEShellService::SetDesktopBackground(nsIDOMElement* aElement,
 NS_IMETHODIMP
 nsGNOMEShellService::GetDesktopBackgroundColor(PRUint32 *aColor)
 {
-  nsCOMPtr<nsIGConfService> gconf = do_GetService(NS_GCONFSERVICE_CONTRACTID);
-
+  nsCOMPtr<nsIGSettingsService> gsettings = 
+    do_GetService(NS_GSETTINGSSERVICE_CONTRACTID);
+  nsCOMPtr<nsIGSettingsCollection> background_settings;
   nsCAutoString background;
-  if (gconf) {
-    gconf->GetString(NS_LITERAL_CSTRING(kDesktopColorKey), background);
+
+  if (gsettings) {
+    gsettings->GetCollectionForSchema(
+      NS_LITERAL_CSTRING(kDesktopBGSchema), getter_AddRefs(background_settings));
+    if (background_settings) {
+      background_settings->GetString(NS_LITERAL_CSTRING(kDesktopColorGSKey),
+                                     background);
+    }
+  }
+
+  if (!background_settings) {
+    nsCOMPtr<nsIGConfService> gconf = do_GetService(NS_GCONFSERVICE_CONTRACTID);
+    if (gconf)
+      gconf->GetString(NS_LITERAL_CSTRING(kDesktopColorKey), background);
   }
 
   if (background.IsEmpty()) {
@@ -513,12 +563,25 @@ NS_IMETHODIMP
 nsGNOMEShellService::SetDesktopBackgroundColor(PRUint32 aColor)
 {
   NS_ASSERTION(aColor <= 0xffffff, "aColor has extra bits");
+  nsCAutoString colorString;
+  ColorToCString(aColor, colorString);
+
+  nsCOMPtr<nsIGSettingsService> gsettings =
+    do_GetService(NS_GSETTINGSSERVICE_CONTRACTID);
+  if (gsettings) {
+    nsCOMPtr<nsIGSettingsCollection> background_settings;
+    gsettings->GetCollectionForSchema(
+      NS_LITERAL_CSTRING(kDesktopBGSchema), getter_AddRefs(background_settings));
+    if (background_settings) {
+      background_settings->SetString(NS_LITERAL_CSTRING(kDesktopColorGSKey),
+                                     colorString);
+      return NS_OK;
+    }
+  }
+
   nsCOMPtr<nsIGConfService> gconf = do_GetService(NS_GCONFSERVICE_CONTRACTID);
 
   if (gconf) {
-    nsCAutoString colorString;
-    ColorToCString(aColor, colorString);
-
     gconf->SetString(NS_LITERAL_CSTRING(kDesktopColorKey), colorString);
   }
 
