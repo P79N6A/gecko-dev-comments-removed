@@ -51,7 +51,6 @@
 #include "nsFrameList.h"
 #include "nsGkAtoms.h"
 #include "nsMenuParent.h"
-#include "nsIMenuFrame.h"
 #include "nsXULPopupManager.h"
 #include "nsITimer.h"
 #include "nsIDOMText.h"
@@ -73,6 +72,12 @@ enum nsMenuType {
   
   
   eMenuType_Radio = 2
+};
+
+enum nsMenuListType {
+  eNotMenuList,      
+  eReadonlyMenuList, 
+  eEditableMenuList  
 };
 
 class nsMenuFrame;
@@ -101,12 +106,12 @@ private:
   nsMenuFrame* mFrame;
 };
 
-class nsMenuFrame : public nsBoxFrame, 
-                    public nsIMenuFrame
+class nsMenuFrame : public nsBoxFrame
 {
 public:
   nsMenuFrame(nsIPresShell* aShell, nsStyleContext* aContext);
 
+  NS_DECL_QUERYFRAME_TARGET(nsMenuFrame)
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
@@ -185,11 +190,11 @@ public:
 
   
 
-  virtual PRBool IsOnMenuBar() { return mMenuParent && mMenuParent->IsMenuBar(); }
-  virtual PRBool IsOnActiveMenuBar() { return IsOnMenuBar() && mMenuParent->IsActive(); }
+  PRBool IsOnMenuBar() { return mMenuParent && mMenuParent->IsMenuBar(); }
+  PRBool IsOnActiveMenuBar() { return IsOnMenuBar() && mMenuParent->IsActive(); }
   virtual PRBool IsOpen();
   virtual PRBool IsMenu();
-  virtual nsMenuListType GetParentMenuListType();
+  nsMenuListType GetParentMenuListType();
   PRBool IsDisabled();
   void ToggleMenuState();
 

@@ -67,7 +67,7 @@
 #include "nsIDocument.h"
 #include "nsEventListenerManager.h"
 #include "nsIFrame.h"
-#include "nsIMenuFrame.h"
+#include "nsMenuFrame.h"
 #include "nsIHTMLDocument.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsISelectionPrivate.h"
@@ -688,16 +688,13 @@ nsRootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
         return; 
       }
 #endif
-      nsIFrame* menuFrame = accessible->GetFrame();
-      if (!menuFrame)
-        return;
 
-      nsIMenuFrame* imenuFrame = do_QueryFrame(menuFrame);
-      if (imenuFrame)
+      nsMenuFrame* menuFrame = do_QueryFrame(accessible->GetFrame());
+      if (menuFrame)
         fireFocus = PR_TRUE;
       
-      if (imenuFrame && imenuFrame->IsOnMenuBar() &&
-                       !imenuFrame->IsOnActiveMenuBar()) {
+      if (menuFrame && menuFrame->IsOnMenuBar() &&
+                       !menuFrame->IsOnActiveMenuBar()) {
         
         
         return;
