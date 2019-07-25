@@ -2171,7 +2171,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 .alltabs-item[tabIsVisible] {
   
-  box-shadow: inset 0 0 0 2em hsla(0,0%,50%,.15);
+  box-shadow: inset -5px 0 ThreeDShadow;
 }
 
 
