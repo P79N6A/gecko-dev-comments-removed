@@ -3346,6 +3346,9 @@ pref("alerts.slideIncrement", 1);
 pref("alerts.slideIncrementTime", 10);
 pref("alerts.totalOpenTime", 4000);
 pref("alerts.disableSlidingEffect", false);
+
+
+pref("full-screen-api.enabled", false);
  
 
 pref("layout.3d-transforms.enabled", false);

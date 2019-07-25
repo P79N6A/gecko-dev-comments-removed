@@ -1544,6 +1544,7 @@ nsDOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
 nsDocument::nsDocument(const char* aContentType)
   : nsIDocument()
   , mAnimatingImages(PR_TRUE)
+  , mIsFullScreen(PR_FALSE)
 {
   SetContentTypeInternal(nsDependentCString(aContentType));
   
@@ -1871,6 +1872,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsDocument)
                                                        nsIDOMNodeList)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mOriginalDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCachedEncoder)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mFullScreenElement)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mStateObjectCached)
 
   
@@ -1927,6 +1929,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mImageMaps)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mOriginalDocument)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mCachedEncoder)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFullScreenElement)
 
   tmp->mParentDocument = nsnull;
 
@@ -5875,12 +5878,6 @@ nsDocument::GetUserData(const nsAString & key,
 }
 
 NS_IMETHODIMP
-nsDocument::Contains(nsIDOMNode* aOther, PRBool* aReturn)
-{
-  return nsINode::Contains(aOther, aReturn);
-}
-
-NS_IMETHODIMP
 nsDocument::GetInputEncoding(nsAString& aInputEncoding)
 {
   if (mHaveInputEncoding) {
@@ -8463,6 +8460,173 @@ nsIDocument::SizeOf() const
   }
 
   return size;
+}
+
+
+static nsIDocument*
+GetRootDocument(nsIDocument* aDoc)
+{
+  if (!aDoc) {
+    return nsnull;
+  }
+  nsCOMPtr<nsIPresShell> shell = aDoc->GetShell();
+  if (!shell) {
+    return nsnull;
+  }
+  nsPresContext* ctx = shell->GetPresContext();
+  if (!ctx) {
+    return nsnull;
+  }
+  nsRootPresContext* rpc = ctx->GetRootPresContext();
+  if (!rpc) {
+    return nsnull;
+  }
+  return rpc->Document();
+}
+
+void
+nsDocument::UpdateFullScreenStatus(PRBool aIsFullScreen)
+{
+  mIsFullScreen = aIsFullScreen;
+  if (!mIsFullScreen) {
+    
+    
+    
+    ResetFullScreenElement();
+  }
+}
+
+static PRBool
+UpdateFullScreenStatus(nsIDocument* aDocument, void* aData)
+{
+  aDocument->UpdateFullScreenStatus(*static_cast<PRBool*>(aData));
+  aDocument->EnumerateSubDocuments(UpdateFullScreenStatus, aData);
+  return PR_TRUE;
+}
+
+static void
+UpdateFullScreenStatusInDocTree(nsIDocument* aDoc, PRBool aIsFullScreen)
+{
+  nsIDocument* root = GetRootDocument(aDoc);
+  if (root) {
+    UpdateFullScreenStatus(root, static_cast<void*>(&aIsFullScreen));
+  }
+}
+
+void
+nsDocument::ResetFullScreenElement()
+{
+  mFullScreenElement = nsnull;
+}
+
+static PRBool
+ResetFullScreenElement(nsIDocument* aDocument, void* aData)
+{
+  aDocument->ResetFullScreenElement();
+  aDocument->EnumerateSubDocuments(ResetFullScreenElement, aData);
+  return PR_TRUE;
+}
+
+static void
+ResetFullScreenElementInDocTree(nsIDocument* aDoc)
+{
+  nsIDocument* root = GetRootDocument(aDoc);
+  if (root) {
+    ResetFullScreenElement(root, nsnull);
+  }
+}
+
+NS_IMETHODIMP
+nsDocument::MozCancelFullScreen()
+{
+  if (!nsContentUtils::IsFullScreenApiEnabled() ||
+      !IsFullScreenDoc() ||
+      !GetWindow()) {
+    return NS_OK;
+  }
+
+  
+  UpdateFullScreenStatusInDocTree(this, PR_FALSE);
+
+  
+  GetWindow()->SetFullScreen(PR_FALSE);
+
+  return NS_OK;
+}
+
+PRBool
+nsDocument::IsFullScreenDoc()
+{
+  return nsContentUtils::IsFullScreenApiEnabled() && mIsFullScreen;
+}
+
+void
+nsDocument::RequestFullScreen(Element* aElement)
+{
+  if (!aElement || !nsContentUtils::IsFullScreenApiEnabled() || !GetWindow()) {
+    return;
+  }
+
+  
+  
+  ResetFullScreenElementInDocTree(this);
+  
+  if (aElement->IsInDoc()) {
+    
+    
+    
+    
+    mFullScreenElement = aElement;
+    nsIDocument* child = this;
+    nsIDocument* parent;
+    while (parent = child->GetParentDocument()) {
+      nsIContent* content = parent->FindContentForSubDocument(child);
+      nsCOMPtr<Element> element(do_QueryInterface(content));
+      static_cast<nsDocument*>(parent)->mFullScreenElement = element;
+      child = parent;
+    }
+  }
+
+  
+  UpdateFullScreenStatusInDocTree(this, PR_TRUE);
+
+  
+  
+  
+  
+  
+  GetWindow()->SetFullScreen(PR_TRUE);
+}
+
+NS_IMETHODIMP
+nsDocument::GetMozFullScreenElement(nsIDOMHTMLElement **aFullScreenElement)
+{
+  NS_ENSURE_ARG_POINTER(aFullScreenElement);
+  if (!nsContentUtils::IsFullScreenApiEnabled() || !IsFullScreenDoc()) {
+    *aFullScreenElement = nsnull;
+    return NS_OK;
+  }
+  nsCOMPtr<nsIDOMHTMLElement> e(do_QueryInterface(GetFullScreenElement()));
+  NS_IF_ADDREF(*aFullScreenElement = e);
+  return NS_OK;
+}
+
+Element*
+nsDocument::GetFullScreenElement()
+{
+  if (!nsContentUtils::IsFullScreenApiEnabled() ||
+      (mFullScreenElement && !mFullScreenElement->IsInDoc())) {
+    return nsnull;
+  }
+  return mFullScreenElement;
+}
+
+NS_IMETHODIMP
+nsDocument::GetMozFullScreen(PRBool *aFullScreen)
+{
+  NS_ENSURE_ARG_POINTER(aFullScreen);
+  *aFullScreen = nsContentUtils::IsFullScreenApiEnabled() && IsFullScreenDoc();
+  return NS_OK;
 }
 
 PRInt64

@@ -941,6 +941,12 @@ public:
 
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName);
 
+  virtual void ResetFullScreenElement();
+  virtual Element* GetFullScreenElement();
+  virtual void RequestFullScreen(Element* aElement);
+  virtual void UpdateFullScreenStatus(PRBool aIsFullScreen);
+  virtual PRBool IsFullScreenDoc();
+
 protected:
   friend class nsNodeUtils;
 
@@ -1079,6 +1085,9 @@ protected:
   mozilla::TimeStamp mLoadingTimeStamp;
 
   
+  nsCOMPtr<Element> mFullScreenElement;
+
+  
   PRPackedBool mIsGoingAway:1;
   
   PRPackedBool mInDestructor:1;
@@ -1109,6 +1118,9 @@ protected:
 
   
   PRPackedBool mAnimatingImages:1;
+
+  
+  PRPackedBool mIsFullScreen:1;
 
   PRUint8 mXMLDeclarationBits;
 

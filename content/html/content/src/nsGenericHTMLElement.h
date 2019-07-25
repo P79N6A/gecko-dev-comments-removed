@@ -139,6 +139,7 @@ public:
   virtual nsresult InsertAdjacentHTML(const nsAString& aPosition,
                                       const nsAString& aText);
   nsresult ScrollIntoView(PRBool aTop, PRUint8 optional_argc);
+  nsresult MozRequestFullScreen();
   
   
   

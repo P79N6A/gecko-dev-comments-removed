@@ -127,8 +127,8 @@ class Element;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x455e4d79, 0x756b, 0x4f73,  \
- { 0x95, 0xea, 0x3f, 0xf6, 0x0c, 0x6a, 0x8c, 0xa6 } }
+{ 0x15d92ce2, 0x472a, 0x4ea7,  \
+ { 0xaf, 0x29, 0x47, 0x7b, 0xac, 0x98, 0xa0, 0x43 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -741,6 +741,37 @@ public:
   virtual void RemoveFromIdTable(Element* aElement, nsIAtom* aId) = 0;
   virtual void AddToNameTable(Element* aElement, nsIAtom* aName) = 0;
   virtual void RemoveFromNameTable(Element* aElement, nsIAtom* aName) = 0;
+
+  
+
+
+  virtual void ResetFullScreenElement() = 0;
+
+  
+
+
+
+
+  virtual Element* GetFullScreenElement() = 0;
+
+  
+
+
+
+  virtual void RequestFullScreen(Element* aElement) = 0;
+
+  
+
+
+
+
+
+  virtual void UpdateFullScreenStatus(PRBool aIsFullScreen) = 0;
+
+  
+
+
+  virtual PRBool IsFullScreenDoc() = 0;
 
   
 
