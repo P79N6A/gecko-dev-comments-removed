@@ -823,6 +823,10 @@ mjit::ReleaseScriptCode(JSContext *cx, JSScript *script)
     }
 
     cx->free(script->jit);
+    
+    
+    
+    script->jit = NULL;
 }
 
 #ifdef JS_METHODJIT_PROFILE_STUBS
