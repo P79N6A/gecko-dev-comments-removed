@@ -406,9 +406,9 @@ var BrowserUI = {
 
     
     
-    messageManager.addMessageListener("pageshow", function() {
+    messageManager.addMessageListener("DOMContentLoaded", function() {
       
-      messageManager.removeMessageListener("pageshow", arguments.callee, true);
+      messageManager.removeMessageListener("DOMContentLoaded", arguments.callee, true);
 
       
       Elements.panelUI.hidden = false;
