@@ -1062,7 +1062,7 @@ xpc_qsJsvalToWcharStr(JSContext *cx, jsval v, jsval *pval, PRUnichar **pstr)
 }
 
 JSBool
-xpc_qsStringToJsval(JSContext *cx, const nsAString &str, jsval *rval)
+xpc_qsStringToJsval(JSContext *cx, nsString &str, jsval *rval)
 {
     
     if(str.IsVoid())
@@ -1071,10 +1071,18 @@ xpc_qsStringToJsval(JSContext *cx, const nsAString &str, jsval *rval)
         return JS_TRUE;
     }
 
-    jsval jsstr = XPCStringConvert::ReadableToJSVal(cx, str);
-    if(JSVAL_IS_NULL(jsstr))
+    PRBool isShared = PR_FALSE;
+    jsval jsstr =
+        XPCStringConvert::ReadableToJSVal(cx, str, PR_TRUE, &isShared);
+    if (JSVAL_IS_NULL(jsstr))
         return JS_FALSE;
     *rval = jsstr;
+    if (isShared)
+    {
+        
+        
+        str.ForgetSharedBuffer();
+    }
     return JS_TRUE;
 }
 

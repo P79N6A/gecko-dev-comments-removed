@@ -214,7 +214,7 @@
 #include "nsIDOMDOMImplementation.h"
 #include "nsIDOMDocumentFragment.h"
 #include "nsIDOMDocumentEvent.h"
-#include "nsIDOMAttr.h"
+#include "nsDOMAttribute.h"
 #include "nsIDOMText.h"
 #include "nsIDOM3Text.h"
 #include "nsIDOMComment.h"
@@ -476,6 +476,8 @@
 #include "nsIEventListenerService.h"
 #include "nsIFrameMessageManager.h"
 #include "mozilla/dom/Element.h"
+#include "nsHTMLSelectElement.h"
+#include "nsHTMLLegendElement.h"
 
 using namespace mozilla::dom;
 
@@ -7419,9 +7421,8 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
                   hasHadScriptHandlingObject ||
                   IsPrivilegedScript());
 
-  nsISupports *native_parent;
+  nsINode *native_parent;
 
-  PRBool slimWrappers = PR_TRUE;
   PRBool nodeIsElement = node->IsElement();
   if (nodeIsElement && node->AsElement()->IsXUL()) {
     
@@ -7444,23 +7445,21 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
         nsCOMPtr<nsIFormControl> form_control(do_QueryInterface(node));
 
         if (form_control) {
-          nsCOMPtr<nsIDOMHTMLFormElement> form;
-          form_control->GetForm(getter_AddRefs(form));
+          Element *form = form_control->GetFormElement();
 
           if (form) {
             
             native_parent = form;
           }
         }
-      
-      
-      } else if (node->AsElement()->IsHTML() &&
-                 node->AsElement()->Tag() == nsGkAtoms::legend) {
-        nsCOMPtr<nsIDOMHTMLLegendElement> legend(do_QueryInterface(node));
-
+      }
+      else {
+        
+        
+        nsHTMLLegendElement *legend =
+          nsHTMLLegendElement::FromContent(node->AsElement());
         if (legend) {
-          nsCOMPtr<nsIDOMHTMLFormElement> form;
-          legend->GetForm(getter_AddRefs(form));
+          Element *form = legend->GetFormElement();
 
           if (form) {
             native_parent = form;
@@ -7473,19 +7472,27 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
     
 
     
-    native_parent = doc->GetScopeObject();
+    nsISupports *scope = doc->GetScopeObject();
 
-    if (!native_parent) {
+    if (scope) {
+        jsval v;
+        nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
+        nsresult rv = WrapNative(cx, globalObj, scope, nsnull, PR_FALSE, &v,
+                                 getter_AddRefs(holder));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        holder->GetJSObject(parentObj);
+    }
+    else {
       
       
 
       *parentObj = globalObj;
-
-      return node->IsInNativeAnonymousSubtree() ?
-        NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
     }
 
-    slimWrappers = PR_FALSE;
+    
+    return node->IsInNativeAnonymousSubtree() ?
+      NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
   }
 
   
@@ -7493,22 +7500,12 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
   
   
 
-  if (native_parent == doc && (*parentObj = doc->GetWrapper()))
-    return node->IsInNativeAnonymousSubtree() ?
-      NS_SUCCESS_CHROME_ACCESS_ONLY :
-      (slimWrappers ? NS_SUCCESS_ALLOW_SLIM_WRAPPERS : NS_OK);
-
-  jsval v;
-  nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-  nsresult rv = WrapNative(cx, globalObj, native_parent, PR_FALSE, &v,
-                           getter_AddRefs(holder));
+  nsresult rv = WrapNativeParent(cx, globalObj, native_parent, native_parent,
+                                 parentObj);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  *parentObj = JSVAL_TO_OBJECT(v);
-
   return node->IsInNativeAnonymousSubtree() ?
-    NS_SUCCESS_CHROME_ACCESS_ONLY :
-    (slimWrappers ? NS_SUCCESS_ALLOW_SLIM_WRAPPERS : NS_OK);
+    NS_SUCCESS_CHROME_ACCESS_ONLY : NS_SUCCESS_ALLOW_SLIM_WRAPPERS;
 }
 
 NS_IMETHODIMP
@@ -8301,7 +8298,8 @@ nsNamedNodeMapSH::GetItemAt(nsISupports *aNative, PRUint32 aIndex,
 {
   nsDOMAttributeMap* map = nsDOMAttributeMap::FromSupports(aNative);
 
-  return map->GetItemAt(aIndex, aResult);
+  nsINode *attr = map->GetItemAt(aIndex, aResult);
+  return attr;
 }
 
 nsISupports*
@@ -8310,7 +8308,8 @@ nsNamedNodeMapSH::GetNamedItem(nsISupports *aNative, const nsAString& aName,
 {
   nsDOMAttributeMap* map = nsDOMAttributeMap::FromSupports(aNative);
 
-  return map->GetNamedItem(aName, aResult);
+  nsINode *attr = map->GetNamedItem(aName, aResult);
+  return attr;
 }
 
 
@@ -9459,15 +9458,13 @@ nsHTMLSelectElementSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
 
   nsresult rv = NS_OK;
   if (n >= 0) {
-    nsCOMPtr<nsIDOMHTMLSelectElement> s = do_QueryWrappedNative(wrapper, obj);
+    nsHTMLSelectElement *s =
+      nsHTMLSelectElement::FromSupports(GetNative(wrapper, obj));
 
-    nsCOMPtr<nsIDOMHTMLOptionsCollection> options;
-    s->GetOptions(getter_AddRefs(options));
+    nsHTMLOptionCollection *options = s->GetOptions();
 
     if (options) {
-      nsCOMPtr<nsIDOMNode> node;
-
-      options->Item(n, getter_AddRefs(node));
+      nsISupports *node = options->GetNodeAt(n, &rv);
 
       rv = WrapNative(cx, obj, node, &NS_GET_IID(nsIDOMNode), PR_TRUE, vp);
       if (NS_SUCCEEDED(rv)) {
