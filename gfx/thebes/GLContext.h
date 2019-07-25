@@ -737,7 +737,7 @@ protected:
     
     
     
-    static GLContext* sCurrentGLContext;
+    static THEBES_API GLContext* sCurrentGLContext;
 #endif
 
     void UpdateActualFormat();
