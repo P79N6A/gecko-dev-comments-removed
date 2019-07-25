@@ -174,7 +174,7 @@ ScriptScope(JSContext *cx, JSScript *script, JSObject *holder)
         if (i.fp()->maybeScript() == script)
             return &i.fp()->scopeChain();
     }
-    JS_NOT_REACHED("ScriptScope: live eval script not on stack");
+    JS_NOT_REACHED("ScriptScope: live non-held script not on stack");
 }
 
 bool
@@ -369,7 +369,7 @@ Debugger::init(JSContext *cx)
                objects.init() &&
                debuggees.init() &&
                heldScripts.init() &&
-               evalScripts.init());
+               nonHeldScripts.init());
     if (!ok)
         js_ReportOutOfMemory(cx);
     return ok;
@@ -912,7 +912,7 @@ Debugger::trace(JSTracer *trc)
     heldScripts.trace(trc);
 
     
-    for (ScriptMap::Range r = evalScripts.all(); !r.empty(); r.popFront()) {
+    for (ScriptMap::Range r = nonHeldScripts.all(); !r.empty(); r.popFront()) {
         JSObject *scriptobj = r.front().value;
 
         
@@ -1521,14 +1521,14 @@ Debugger::wrapJSAPIScript(JSContext *cx, JSObject *obj)
 }
 
 JSObject *
-Debugger::wrapEvalScript(JSContext *cx, JSScript *script)
+Debugger::wrapNonHeldScript(JSContext *cx, JSScript *script)
 {
     JS_ASSERT(cx->compartment != script->compartment);
-    ScriptMap::AddPtr p = evalScripts.lookupForAdd(script);
+    ScriptMap::AddPtr p = nonHeldScripts.lookupForAdd(script);
     if (!p) {
         JSObject *scriptobj = newDebuggerScript(cx, script, NULL);
         
-        if (!scriptobj || !evalScripts.relookupOrAdd(p, script, scriptobj))
+        if (!scriptobj || !nonHeldScripts.relookupOrAdd(p, script, scriptobj))
             return NULL;
     }
 
@@ -1544,18 +1544,18 @@ Debugger::slowPathOnDestroyScript(JSScript *script)
     for (GlobalObjectSet::Range r = debuggees->all(); !r.empty(); r.popFront()) {
         GlobalObject::DebuggerVector *debuggers = r.front()->getDebuggers();
         for (Debugger **p = debuggers->begin(); p != debuggers->end(); p++)
-            (*p)->destroyEvalScript(script);
+            (*p)->destroyNonHeldScript(script);
     }
 }
 
 void
-Debugger::destroyEvalScript(JSScript *script)
+Debugger::destroyNonHeldScript(JSScript *script)
 {
-    ScriptMap::Ptr p = evalScripts.lookup(script);
+    ScriptMap::Ptr p = nonHeldScripts.lookup(script);
     if (p) {
         JS_ASSERT(GetScriptReferent(p->value) == script);
         ClearScriptReferent(p->value);
-        evalScripts.remove(p);
+        nonHeldScripts.remove(p);
     }
 }
 
@@ -2280,25 +2280,18 @@ DebuggerFrame_getScript(JSContext *cx, uintN argc, Value *vp)
                 return false;
         }
     } else if (fp->isScriptFrame()) {
+        
+        
+        
+        
+        
+        
         JSScript *script = fp->script();
-        
-        
-        
-        
-        
-        
-        
-        if (script->u.object) {
-            JS_ASSERT(!fp->isEvalFrame());
-            scriptObject = debug->wrapJSAPIScript(cx, script->u.object);
-            if (!scriptObject)
-                return false;
-        } else {
-            JS_ASSERT(fp->isEvalFrame());
-            scriptObject = debug->wrapEvalScript(cx, script);
-            if (!scriptObject)
-                return false;
-        }
+        scriptObject = (script->u.object)
+                       ? debug->wrapJSAPIScript(cx, script->u.object)
+                       : debug->wrapNonHeldScript(cx, script);
+        if (!scriptObject)
+            return false;
     }
     vp->setObjectOrNull(scriptObject);
     return true;

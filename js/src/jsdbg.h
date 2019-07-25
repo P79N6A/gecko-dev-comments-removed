@@ -86,9 +86,11 @@ class Debugger {
     ObjectWeakMap objects;
 
     
+    
     typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CrossCompartmentMarkPolicy>
         ScriptWeakMap;
 
+    
     
     
     
@@ -103,7 +105,8 @@ class Debugger {
     
     
     
-    ScriptMap evalScripts;
+    
+    ScriptMap nonHeldScripts;
 
     bool addDebuggeeGlobal(JSContext *cx, GlobalObject *obj);
     void removeDebuggeeGlobal(JSContext *cx, GlobalObject *global,
@@ -163,7 +166,7 @@ class Debugger {
     JSObject *wrapHeldScript(JSContext *cx, JSScript *script, JSObject *obj);
 
     
-    void destroyEvalScript(JSScript *script);
+    void destroyNonHeldScript(JSScript *script);
 
     static inline Debugger *fromLinks(JSCList *links);
     inline Breakpoint *firstBreakpoint() const;
@@ -251,6 +254,7 @@ class Debugger {
     
     
     
+    
     JSObject *wrapFunctionScript(JSContext *cx, JSFunction *fun);
 
     
@@ -262,7 +266,7 @@ class Debugger {
     
     
     
-    JSObject *wrapEvalScript(JSContext *cx, JSScript *script);
+    JSObject *wrapNonHeldScript(JSContext *cx, JSScript *script);
 
   private:
     
