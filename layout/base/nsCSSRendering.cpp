@@ -2121,7 +2121,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
     }
     gradientPattern = new gfxPattern(lineStart.x, lineStart.y, innerRadius,
                                      lineStart.x, lineStart.y, outerRadius);
-    if (gradientPattern && radiusX != radiusY) {
+    if (radiusX != radiusY) {
       
       
       
@@ -2134,7 +2134,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
       gradientPattern->SetMatrix(matrix);
     }
   }
-  if (!gradientPattern || gradientPattern->CairoStatus())
+  if (gradientPattern->CairoStatus())
     return;
 
   
