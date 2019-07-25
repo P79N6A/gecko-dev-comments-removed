@@ -123,7 +123,7 @@ public:
 
   PRBool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const
   {
-    EntryType* ent = this->GetEntry(aKey);
+    EntryType* ent = GetEntry(aKey);
 
     if (!ent)
       return PR_FALSE;
@@ -145,7 +145,7 @@ public:
 
   UserDataType Get(KeyType aKey) const
   {
-    EntryType* ent = this->GetEntry(aKey);
+    EntryType* ent = GetEntry(aKey);
     if (!ent)
       return NULL;
 
@@ -160,7 +160,7 @@ public:
 
   PRBool Put(KeyType aKey, UserDataType aData)
   {
-    EntryType* ent = this->PutEntry(aKey);
+    EntryType* ent = PutEntry(aKey);
 
     if (!ent)
       return PR_FALSE;
@@ -174,7 +174,7 @@ public:
 
 
 
-  void Remove(KeyType aKey) { this->RemoveEntry(aKey); }
+  void Remove(KeyType aKey) { RemoveEntry(aKey); }
 
   
 
