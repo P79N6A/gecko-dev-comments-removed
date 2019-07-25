@@ -3114,7 +3114,7 @@ Parser::forStatement()
 
 
 
-            tc->sc->flags |= TCF_IN_FOR_INIT;
+            tc->sc->inForInit = true;
             if (tt == TOK_VAR || tt == TOK_CONST) {
                 forDecl = true;
                 tokenStream.consumeKnownToken(tt);
@@ -3137,7 +3137,7 @@ Parser::forStatement()
             else {
                 pn1 = expr();
             }
-            tc->sc->flags &= ~TCF_IN_FOR_INIT;
+            tc->sc->inForInit = false;
             if (!pn1)
                 return NULL;
         }
@@ -4217,7 +4217,7 @@ Parser::variables(ParseNodeKind kind, StaticBlockObject *blockObj, VarContext va
             if (!CheckDestructuring(context, &data, pn2, this))
                 return NULL;
             bool ignored;
-            if ((tc->sc->flags & TCF_IN_FOR_INIT) && matchInOrOf(&ignored)) {
+            if (tc->sc->inForInit && matchInOrOf(&ignored)) {
                 tokenStream.ungetToken();
                 pn->append(pn2);
                 continue;
@@ -4420,13 +4420,12 @@ RelationalTokenToParseNodeKind(const Token &token)
 
 BEGIN_EXPR_PARSER(relExpr1)
 {
-    unsigned inForInitFlag = tc->sc->flags & TCF_IN_FOR_INIT;
-
     
 
 
 
-    tc->sc->flags &= ~TCF_IN_FOR_INIT;
+    bool oldInForInit = tc->sc->inForInit;
+    tc->sc->inForInit = false;
 
     ParseNode *pn = shiftExpr1i();
     while (pn &&
@@ -4435,14 +4434,14 @@ BEGIN_EXPR_PARSER(relExpr1)
 
 
 
-            (inForInitFlag == 0 && tokenStream.isCurrentTokenType(TOK_IN)) ||
+            (oldInForInit == 0 && tokenStream.isCurrentTokenType(TOK_IN)) ||
             tokenStream.isCurrentTokenType(TOK_INSTANCEOF))) {
         ParseNodeKind kind = RelationalTokenToParseNodeKind(tokenStream.currentToken());
         JSOp op = tokenStream.currentToken().t_op;
         pn = ParseNode::newBinaryOrAppend(kind, op, pn, shiftExpr1n(), this);
     }
     
-    tc->sc->flags |= inForInitFlag;
+    tc->sc->inForInit |= oldInForInit;
 
     return pn;
 }
@@ -4536,10 +4535,12 @@ Parser::condExpr1()
 
 
 
-    unsigned oldflags = tc->sc->flags;
-    tc->sc->flags &= ~TCF_IN_FOR_INIT;
+    uint32_t oldflags = tc->sc->flags;
+    bool oldInForInit = tc->sc->inForInit;
+    tc->sc->inForInit = false;
     ParseNode *thenExpr = assignExpr();
     tc->sc->flags = oldflags | (tc->sc->flags & TCF_FUN_FLAGS);
+    tc->sc->inForInit = oldInForInit;
     if (!thenExpr)
         return NULL;
 
@@ -5803,18 +5804,17 @@ Parser::memberExpr(JSBool allowCallSyntax)
 ParseNode *
 Parser::bracketedExpr()
 {
-    unsigned oldflags;
-    ParseNode *pn;
-
     
 
 
 
 
-    oldflags = tc->sc->flags;
-    tc->sc->flags &= ~TCF_IN_FOR_INIT;
-    pn = expr();
+    uint32_t oldflags = tc->sc->flags;
+    bool oldInForInit = tc->sc->inForInit;
+    tc->sc->inForInit = false;
+    ParseNode *pn = expr();
     tc->sc->flags = oldflags | (tc->sc->flags & TCF_FUN_FLAGS);
+    tc->sc->inForInit = oldInForInit;
     return pn;
 }
 
