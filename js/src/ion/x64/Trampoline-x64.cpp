@@ -49,26 +49,6 @@
 using namespace js;
 using namespace js::ion;
 
-static void
-GenerateReturn(MacroAssembler &masm, int returnCode)
-{
-    
-#if defined(_WIN64)
-    masm.pop(rsi);
-    masm.pop(rdi);
-#endif
-    masm.pop(r15);
-    masm.pop(r14);
-    masm.pop(r13);
-    masm.pop(r12);
-    masm.pop(rbx);
-
-    
-    masm.pop(rbp);
-    masm.movl(Imm32(returnCode), rax);
-    masm.ret();
-}
-
 
 
 
@@ -154,8 +134,8 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
 
     masm.subq(rsp, r14);
-    
-    masm.orl(Imm32(0x1), r14); 
+    masm.shlq(Imm32(FRAMETYPE_BITS), r14);
+    masm.orl(Imm32(IonFrame_Entry), r14);
     masm.push(r14);
 
     
@@ -163,7 +143,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
     
     masm.pop(r14);              
-    masm.xorl(Imm32(0x1), r14); 
+    masm.shrq(Imm32(FRAMETYPE_BITS), r14);
     masm.addq(r14, rsp);        
 
     
@@ -172,7 +152,20 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.pop(r12); 
     masm.storeValue(JSReturnOperand, Operand(r12, 0));
 
-    GenerateReturn(masm, JS_TRUE);
+    
+#if defined(_WIN64)
+    masm.pop(rsi);
+    masm.pop(rdi);
+#endif
+    masm.pop(r15);
+    masm.pop(r14);
+    masm.pop(r13);
+    masm.pop(r12);
+    masm.pop(rbx);
+
+    
+    masm.pop(rbp);
+    masm.ret();
 
     Linker linker(masm);
     return linker.newCode(cx);
@@ -188,8 +181,6 @@ IonCompartment::generateReturnError(JSContext *cx)
     masm.addq(r14, rsp);        
     masm.pop(r11);              
 
-    GenerateReturn(masm, JS_FALSE);
-    
     Linker linker(masm);
     return linker.newCode(cx);
 }
@@ -204,7 +195,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     JS_ASSERT(ArgumentsRectifierReg == r8);
 
     
-    masm.movq(Operand(rsp, offsetof(IonFrameData, calleeToken_)), rax);
+    masm.movq(Operand(rsp, IonJSFrameLayout::offsetOfCalleeToken()), rax);
     masm.load16(Operand(rax, offsetof(JSFunction, nargs)), rcx);
     masm.subq(r8, rcx);
 
@@ -229,7 +220,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     masm.shlq(Imm32(3), r9); 
 
     masm.movq(rbp, rcx);
-    masm.addq(Imm32(sizeof(IonFrameData)), rcx);
+    masm.addq(Imm32(sizeof(IonRectifierFrameLayout)), rcx);
     masm.addq(r9, rcx);
 
     
@@ -252,8 +243,8 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 
     
     masm.subq(rsp, rbp);
-    masm.shll(Imm32(IonFramePrefix::FrameTypeBits), rbp);
-    masm.orl(Imm32(IonFramePrefix::RectifierFrame), rbp);
+    masm.shlq(Imm32(FRAMETYPE_BITS), rbp);
+    masm.orq(Imm32(IonFrame_Rectifier), rbp);
 
     
     masm.push(rax); 
@@ -269,7 +260,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 
     
     masm.pop(rbp);            
-    masm.shrl(Imm32(IonFramePrefix::FrameTypeBits), rbp); 
+    masm.shrq(Imm32(FRAMETYPE_BITS), rbp);
     masm.pop(r11);            
     masm.addq(rbp, rsp);      
 
@@ -280,7 +271,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 }
 
 static void
-GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
+GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32 frameClass)
 {
     
     masm.reserveStack(Registers::Total * sizeof(void *));
@@ -305,11 +296,43 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     
     
     
-    uint32 bailoutFrameSize = sizeof(void *) * Registers::Total +
-                              sizeof(double) * FloatRegisters::Total;
-    masm.addq(Imm32(bailoutFrameSize), rsp);
+    
+    
+    static const uint32 BailoutDataSize = sizeof(void *) * Registers::Total +
+                                          sizeof(double) * FloatRegisters::Total;
+    masm.addq(Imm32(BailoutDataSize), rsp);
     masm.pop(rcx);
     masm.lea(Operand(rsp, rcx, TimesOne, sizeof(void *)), rsp);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    Label frameFixupDone;
+    masm.movq(Operand(rsp, IonCommonFrameLayout::offsetOfDescriptor()), rcx);
+    masm.movq(rcx, rdx);
+    masm.andl(Imm32(FRAMETYPE_BITS), rdx);
+    masm.cmpl(rdx, Imm32(IonFrame_JS));
+    masm.j(Assembler::NotEqual, &frameFixupDone);
+    {
+        JS_STATIC_ASSERT(sizeof(IonJSFrameLayout) >= sizeof(IonExitFrameLayout));
+        ptrdiff_t difference = sizeof(IonJSFrameLayout) - sizeof(IonExitFrameLayout);
+        masm.addq(Imm32(difference << FRAMETYPE_BITS), rcx);
+        masm.movq(rcx, Operand(esp, IonCommonFrameLayout::offsetOfDescriptor()));
+    }
+    masm.bind(&frameFixupDone);
+
+    
+    
+
+    masm.movq(ImmWord(JS_THREAD_DATA(cx)), rdx);
+    masm.movq(rsp, Operand(rdx, offsetof(ThreadData, ionTop)));
 
     Label exception;
 
@@ -318,18 +341,12 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     masm.j(Assembler::NonZero, &exception);
 
     
-    
-    
-    masm.movq(rsp, rax);
-
-    
     masm.subq(Imm32(sizeof(Value)), rsp);
     masm.movq(rsp, rcx);
 
     
-    masm.setupUnalignedABICall(2, rdx);
-    masm.setABIArg(0, rax);
-    masm.setABIArg(1, rcx);
+    masm.setupUnalignedABICall(1, rdx);
+    masm.setABIArg(0, rcx);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
 
     
@@ -343,17 +360,7 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     masm.ret();
 
     masm.bind(&exception);
-
-
-    
-    masm.movq(rsp, rax);
-    masm.setupUnalignedABICall(1, rcx);
-    masm.setABIArg(0, rax);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, HandleException));
-
-    
-    masm.addq(rax, rsp);
-    masm.ret();
+    masm.handleException();
 }
 
 IonCode *
@@ -368,7 +375,7 @@ IonCompartment::generateBailoutHandler(JSContext *cx)
 {
     MacroAssembler masm;
 
-    GenerateBailoutThunk(masm, NO_FRAME_SIZE_CLASS_ID);
+    GenerateBailoutThunk(cx, masm, NO_FRAME_SIZE_CLASS_ID);
 
     Linker linker(masm);
     return linker.newCode(cx);
