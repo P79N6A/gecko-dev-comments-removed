@@ -3913,6 +3913,16 @@ function JSTermHelper(aJSTerm)
   
 
 
+  aJSTerm.sandbox.help = function JSTH_help()
+  {
+    aJSTerm._window.open(
+        "https://developer.mozilla.org/AppLinks/WebConsoleHelp?locale=" +
+        aJSTerm._window.navigator.language, "help", "");
+  };
+
+  
+
+
 
 
 
@@ -4052,6 +4062,10 @@ JSTerm.prototype = {
 
   evalInSandbox: function JST_evalInSandbox(aString)
   {
+    
+    if (aString.trim() === "help" || aString.trim() === "?") {
+      aString = "help()";
+    }
     return Cu.evalInSandbox(aString, this.sandbox, "1.8", "Web Console", 1);
   },
 
