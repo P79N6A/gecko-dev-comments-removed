@@ -879,7 +879,6 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
 
   
   nsCOMPtr<nsIDocument> doc = docInfo->GetDocument();
-  PRBool allowScripts = docInfo->GetScriptAccess();
 
   nsXBLPrototypeBinding* protoBinding = docInfo->GetPrototypeBinding(ref);
 
