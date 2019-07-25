@@ -1528,9 +1528,6 @@ WrapPreserve3DList(nsIFrame *aFrame, nsDisplayListBuilder *aBuilder, nsDisplayLi
     if (childFrame->GetParent()->Preserves3DChildren()) {
       switch (item->GetType()) {
         case nsDisplayItem::TYPE_TRANSFORM: {
-          
-          
-          NS_ASSERTION(childFrame->Preserves3D(), "Child transform frame must preserve 3d!");
           break;
         }
         case nsDisplayItem::TYPE_WRAP_LIST: {
