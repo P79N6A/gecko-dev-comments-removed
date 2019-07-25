@@ -3259,8 +3259,7 @@ END_CASE(JSOP_PICK)
             (shape)->slot != SHAPE_INVALID_SLOT &&                            \
             !(obj)->brandedOrHasMethodBarrier()) {                            \
                   \
-            (obj)->nativeSetSlot((shape)->slot, *vp);                         \
-            cx->addTypePropertyId(obj->getType(), shape->propid, *vp);        \
+            (obj)->nativeSetSlotWithType(cx, shape, *vp);                     \
         } else {                                                              \
             if (!js_NativeSet(cx, obj, shape, false, strict, vp))             \
                 goto error;                                                   \
@@ -4392,7 +4391,7 @@ BEGIN_CASE(JSOP_SETMETHOD)
 
 
                     TRACE_1(AddProperty, obj);
-                    obj->nativeSetSlot(slot, rval);
+                    obj->nativeSetSlotWithType(cx, shape, rval);
 
                     
 
@@ -5953,8 +5952,7 @@ BEGIN_CASE(JSOP_INITMETHOD)
 
 
         TRACE_1(AddProperty, obj);
-        cx->addTypePropertyId(obj->getType(), shape->propid, rval);
-        obj->nativeSetSlot(slot, rval);
+        obj->nativeSetSlotWithType(cx, shape, rval);
     } else {
         PCMETER(JS_PROPERTY_CACHE(cx).inipcmisses++);
 

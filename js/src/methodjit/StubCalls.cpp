@@ -2196,8 +2196,7 @@ InitPropOrMethod(VMFrame &f, JSAtom *atom, JSOp op)
 
 
 
-        cx->addTypePropertyId(obj->getType(), ATOM_TO_JSID(atom), rval);
-        obj->nativeSetSlot(slot, rval);
+        obj->nativeSetSlotWithType(cx, shape, rval);
     } else {
         PCMETER(JS_PROPERTY_CACHE(cx).inipcmisses++);
 
