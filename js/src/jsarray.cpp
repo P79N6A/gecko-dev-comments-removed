@@ -490,17 +490,20 @@ js_EnsureDenseArrayCapacity(JSContext *cx, JSObject *obj, jsint i)
     Class *origObjClasp = obj->clasp; 
 #endif
     jsuint u = jsuint(i);
-    JSBool ret = (obj->ensureDenseArrayElements(cx, u, 1) == JSObject::ED_OK);
+    if (obj->ensureDenseArrayElements(cx, u, 1) != JSObject::ED_OK)
+        return false;
 
     
 
 
 
     obj->setDenseArrayElement(i, UndefinedValue());
+    if (u >= obj->getArrayLength())
+        obj->setArrayLength(cx, u + 1);
 
     
     JS_ASSERT(obj->clasp == origObjClasp);
-    return ret;
+    return true;
 }
 
 JS_DEFINE_CALLINFO_3(extern, BOOL, js_EnsureDenseArrayCapacity, CONTEXT, OBJECT, INT32,
