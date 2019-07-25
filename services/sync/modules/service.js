@@ -35,6 +35,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ['Weave'];
 
 const Cc = Components.classes;
@@ -532,8 +533,14 @@ WeaveSvc.prototype = {
         this._log.debug("Verifying passphrase");
         this.username = username;
         ID.get("WeaveID").setTempPassword(password);
-        let pubkey = PubKeys.getDefaultKey();
-        let privkey = PrivKeys.get(pubkey.privateKeyUri);
+        
+        try {
+          let pubkey = PubKeys.getDefaultKey();
+          let privkey = PrivKeys.get(pubkey.privateKeyUri);
+        } catch (e) {
+          
+          return true;
+        }
 
         return Svc.Crypto.verifyPassphrase(
           privkey.payload.keyData, passphrase,
