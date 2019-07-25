@@ -76,7 +76,6 @@
 #include "nsIWebBrowserChrome.h"
 #include "nsReadableUtils.h"
 #include "nsRootAccessible.h"
-#include "nsIDOMNSEventTarget.h"
 #include "nsIPrivateDOMEvent.h"
 #include "nsFocusManager.h"
 
@@ -255,7 +254,7 @@ nsresult nsRootAccessible::AddEventListeners()
   
   
   
-  nsCOMPtr<nsIDOMNSEventTarget> nstarget(do_QueryInterface(mDocument));
+  nsCOMPtr<nsIDOMEventTarget> nstarget(do_QueryInterface(mDocument));
 
   if (nstarget) {
     for (const char* const* e = docEvents,

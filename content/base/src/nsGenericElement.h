@@ -51,7 +51,6 @@
 #include "nsIDOMDocumentFragment.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOM3EventTarget.h"
-#include "nsIDOMNSEventTarget.h"
 #include "nsIDOMNSElement.h"
 #include "nsILinkHandler.h"
 #include "nsContentUtils.h"
@@ -212,8 +211,7 @@ private:
 
 
 
-class nsDOMEventRTTearoff : public nsIDOM3EventTarget,
-                            public nsIDOMNSEventTarget
+class nsDOMEventRTTearoff : public nsIDOM3EventTarget
 {
 private:
   
@@ -256,11 +254,7 @@ public:
   
   NS_DECL_NSIDOM3EVENTTARGET
 
-  
-  NS_DECL_NSIDOMNSEVENTTARGET
-
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMEventRTTearoff,
-                                           nsIDOM3EventTarget)
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsDOMEventRTTearoff)
 
 private:
   
@@ -311,16 +305,6 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
   NS_DECL_NSIDOMEVENTTARGET
-
-  nsresult AddEventListener(const nsAString& aType,
-                            nsIDOMEventListener *aListener,
-                            PRBool aUseCapture,
-                            PRBool aWantsUntrusted,
-                            PRUint8 optional_argc)
-  {
-    return nsINode::AddEventListener(aType, aListener, aUseCapture,
-                                     aWantsUntrusted, optional_argc);
-  }
 
   
 
