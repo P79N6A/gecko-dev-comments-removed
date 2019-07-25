@@ -109,8 +109,10 @@ RPCChannel::~RPCChannel()
     
 }
 
+#ifdef OS_WIN
 
 int RPCChannel::sInnerEventLoopDepth = 0;
+#endif
 
 bool
 RPCChannel::Call(Message* msg, Message* reply)
