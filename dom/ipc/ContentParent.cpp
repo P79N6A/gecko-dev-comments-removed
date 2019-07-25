@@ -686,9 +686,10 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
     , mGeolocationWatchID(-1)
     , mRunToCompletionDepth(0)
     , mShouldCallUnblockChild(false)
+    , mAppManifestURL(aAppManifestURL)
     , mIsAlive(true)
     , mSendPermissionUpdates(false)
-    , mAppManifestURL(aAppManifestURL)
+    , mIsForBrowser(aIsForBrowser)
 {
     
     
@@ -707,8 +708,6 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
         mSubprocess->AsyncLaunch();
     }
     Open(mSubprocess->GetChannel(), mSubprocess->GetChildProcessHandle());
-    unused << SendSetProcessAttributes(gContentChildID++,
-                                       IsForApp(), aIsForBrowser);
 
     
     
@@ -1085,6 +1084,18 @@ ContentParent::AllocPImageBridge(mozilla::ipc::Transport* aTransport,
                                  base::ProcessId aOtherProcess)
 {
     return ImageBridgeParent::Create(aTransport, aOtherProcess);
+}
+
+bool
+ContentParent::RecvGetProcessAttributes(uint64_t* aId, bool* aStartBackground,
+                                        bool* aIsForApp, bool* aIsForBrowser)
+{
+    *aId = gContentChildID++;
+    *aStartBackground =
+        (mAppManifestURL == MAGIC_PREALLOCATED_APP_MANIFEST_URL);
+    *aIsForApp = IsForApp();
+    *aIsForBrowser = mIsForBrowser;
+    return true;
 }
 
 PBrowserParent*
