@@ -404,7 +404,8 @@ let DownloadUtils = {
 
     
     
-    aBytes = aBytes.toFixed((aBytes > 0) && (aBytes < 100) ? 1 : 0);
+    
+    aBytes = aBytes.toFixed((aBytes > 0) && (aBytes < 100) && (unitIndex != 0) ? 1 : 0);
 
     if (gDecimalSymbol != ".")
       aBytes = aBytes.replace(".", gDecimalSymbol);
