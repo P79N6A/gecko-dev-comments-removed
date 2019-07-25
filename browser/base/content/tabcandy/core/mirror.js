@@ -410,12 +410,6 @@ TabMirror.prototype = {
 
   
   
-  _createEl: function(tab){
-    new Mirror(tab, this); 
-  },
-
-  
-  
   update: function(tab){
     this.link(tab);
 
@@ -431,7 +425,7 @@ TabMirror.prototype = {
       return false;
 
     
-    this._createEl(tab);
+    new Mirror(tab, this); 
     return true;
   },
 
