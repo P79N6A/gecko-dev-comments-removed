@@ -9237,7 +9237,7 @@ nsCSSFrameConstructor::sPseudoParentData[eParentTypeCount] = {
 
 
 
-nsresult
+void
 nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
                                                 FrameConstructionItemList& aItems,
                                                 nsIFrame* aParentFrame)
@@ -9245,14 +9245,14 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
   ParentType ourParentType = GetParentType(aParentFrame);
   if (aItems.AllWantParentType(ourParentType)) {
     
-    return NS_OK;
+    return;
   }
 
   FCItemIterator iter(aItems);
   do {
     if (iter.SkipItemsWantingParentType(ourParentType)) {
       
-      return NS_OK;
+      return;
     }
 
     
@@ -9434,8 +9434,6 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
     
     
   } while (!iter.IsDone());
-
-  return NS_OK;
 }
 
 inline nsresult
@@ -9446,8 +9444,7 @@ nsCSSFrameConstructor::ConstructFramesFromItemList(nsFrameConstructorState& aSta
 {
   aItems.SetTriedConstructingFrames();
 
-  nsresult rv = CreateNeededTablePseudos(aState, aItems, aParentFrame);
-  NS_ENSURE_SUCCESS(rv, rv);
+  CreateNeededTablePseudos(aState, aItems, aParentFrame);
 
 #ifdef DEBUG
   for (FCItemIterator iter(aItems); !iter.IsDone(); iter.Next()) {
@@ -9457,7 +9454,7 @@ nsCSSFrameConstructor::ConstructFramesFromItemList(nsFrameConstructorState& aSta
 #endif
 
   for (FCItemIterator iter(aItems); !iter.IsDone(); iter.Next()) {
-    rv = ConstructFramesFromItem(aState, iter, aParentFrame, aFrameItems);
+    nsresult rv = ConstructFramesFromItem(aState, iter, aParentFrame, aFrameItems);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
