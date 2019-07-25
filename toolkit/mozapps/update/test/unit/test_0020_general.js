@@ -87,7 +87,7 @@ function callHandleEvent() {
     gXHR.responseXML = null;
   }
   var e = { target: gXHR };
-  gXHR.onload.handleEvent(e);
+  gXHR.onload(e);
 }
 
 
