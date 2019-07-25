@@ -192,9 +192,13 @@
   margin-right: -17px; 
 }
 
+#tool-panel-open:not([disabled="true"]):active:hover {
+  list-style-image: url("chrome://browser/skin/images/settings-active-36.png");
+}
+
 
 #tool-panel-close {
-  list-style-image: url("chrome://browser/skin/images/settings-active-36.png");
+  list-style-image: url("chrome://browser/skin/images/settings-open-36.png");
   margin-left: -17px; 
 }
 
