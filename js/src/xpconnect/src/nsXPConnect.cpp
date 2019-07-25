@@ -334,51 +334,6 @@ nsXPConnect::GetInfoForName(const char * name, nsIInterfaceInfo** info)
     return FindInfo(NameTester, name, mInterfaceInfoManager, info);
 }
 
-static JSGCCallback gOldJSGCCallback;
-
-static PRBool gDidCollection;
-
-static PRBool gInCollection;
-
-static PRBool gCollected;
-
-static JSBool
-XPCCycleCollectGCCallback(JSContext *cx, JSGCStatus status)
-{
-    
-    switch(status)
-    {
-      case JSGC_BEGIN:
-        nsXPConnect::GetRuntimeInstance()->ClearWeakRoots();
-        break;
-
-      case JSGC_MARK_END:
-        
-        
-        if(!gDidCollection)
-        {
-            NS_ASSERTION(!gInCollection, "Recursing?");
-
-            gDidCollection = PR_TRUE;
-            gInCollection = nsCycleCollector_beginCollection();
-        }
-        break;
-
-      case JSGC_END:
-        if(gInCollection)
-        {
-            gInCollection = PR_FALSE;
-            gCollected = nsCycleCollector_finishCollection();
-        }
-        break;
-
-      default:
-        break;
-    }
-
-    return gOldJSGCCallback ? gOldJSGCCallback(cx, status) : JS_TRUE;
-}
-
 PRBool
 nsXPConnect::Collect()
 {
@@ -430,12 +385,10 @@ nsXPConnect::Collect()
 
     mCycleCollecting = PR_TRUE;
     mCycleCollectionContext = &cycleCollectionContext;
-    gDidCollection = PR_FALSE;
-    gInCollection = PR_FALSE;
-    gCollected = PR_FALSE;
+
+    nsXPConnect::GetRuntimeInstance()->ClearWeakRoots();
 
     JSContext *cx = mCycleCollectionContext->GetJSContext();
-    gOldJSGCCallback = JS_SetGCCallback(cx, XPCCycleCollectGCCallback);
 
     
     
@@ -454,13 +407,15 @@ nsXPConnect::Collect()
         JS_GC(cx);
         JS_THREAD_DATA(cx)->conservativeGC.enable();
     }
-    JS_SetGCCallback(cx, gOldJSGCCallback);
-    gOldJSGCCallback = nsnull;
+
+    
+    PRBool ok = nsCycleCollector_beginCollection() &&
+                nsCycleCollector_finishCollection();
 
     mCycleCollectionContext = nsnull;
     mCycleCollecting = PR_FALSE;
 
-    return gCollected;
+    return ok;
 }
 
 
