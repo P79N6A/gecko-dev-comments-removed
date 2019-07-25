@@ -37,14 +37,15 @@
 
 package org.mozilla.gecko;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import android.content.ContentResolver;
-import android.graphics.drawable.*;
 import android.util.Log;
-
-import org.json.JSONObject;
-import org.json.JSONException;
 
 public class Tabs implements GeckoEventListener {
     private static final String LOGTAG = "GeckoTabs";
@@ -144,8 +145,25 @@ public class Tabs implements GeckoEventListener {
         if (tab == null || nextTab == null)
             return;
 
+        
+        
         GeckoAppShell.sendEventToGecko(new GeckoEvent("Tab:Select", String.valueOf(nextTab.getId())));
-        GeckoAppShell.sendEventToGecko(new GeckoEvent("Tab:Close", String.valueOf(tab.getId())));
+
+        int tabId = tab.getId();
+        removeTab(tabId);
+        tab.removeAllDoorHangers();
+
+        final Tab closedTab = tab;
+        GeckoApp.mAppContext.mMainHandler.post(new Runnable() { 
+            public void run() {
+                GeckoApp.mAppContext.onTabsChanged(closedTab);
+                GeckoApp.mBrowserToolbar.updateTabs(Tabs.getInstance().getCount());
+                GeckoApp.mDoorHangerPopup.updatePopup();
+            }
+        });
+
+        
+        GeckoAppShell.sendEventToGecko(new GeckoEvent("Tab:Closed", String.valueOf(tabId)));
     }
 
     

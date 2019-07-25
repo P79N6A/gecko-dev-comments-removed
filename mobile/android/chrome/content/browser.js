@@ -208,7 +208,7 @@ var BrowserApp = {
     Services.obs.addObserver(this, "Tab:Add", false);
     Services.obs.addObserver(this, "Tab:Load", false);
     Services.obs.addObserver(this, "Tab:Select", false);
-    Services.obs.addObserver(this, "Tab:Close", false);
+    Services.obs.addObserver(this, "Tab:Closed", false);
     Services.obs.addObserver(this, "Tab:Screenshot", false);
     Services.obs.addObserver(this, "Session:Back", false);
     Services.obs.addObserver(this, "Session:Forward", false);
@@ -472,7 +472,27 @@ var BrowserApp = {
     return newTab;
   },
 
+  
+  
+  
   closeTab: function closeTab(aTab) {
+    if (!aTab) {
+      Cu.reportError("Error trying to close tab (tab doesn't exist)");
+      return;
+    }
+
+    let message = {
+      gecko: {
+        type: "Tab:Close",
+        tabID: aTab.id
+      }
+    };
+    sendMessageToJava(message);
+  },
+
+  
+  
+  _handleTabClosed: function _handleTabClosed(aTab) {
     if (aTab == this.selectedTab)
       this.selectedTab = null;
 
@@ -841,8 +861,8 @@ var BrowserApp = {
         this.loadURI(url, browser, params);
     } else if (aTopic == "Tab:Select") {
       this.selectTab(this.getTabForId(parseInt(aData)));
-    } else if (aTopic == "Tab:Close") {
-      this.closeTab(this.getTabForId(parseInt(aData)));
+    } else if (aTopic == "Tab:Closed") {
+      this._handleTabClosed(this.getTabForId(parseInt(aData)));
     } else if (aTopic == "Tab:Screenshot") {
       this.screenshotTab(aData);
     } else if (aTopic == "Browser:Quit") {
@@ -1422,14 +1442,6 @@ Tab.prototype = {
     this.browser = null;
     this.vbox = null;
     this.documentIdForCurrentViewport = null;
-    let message = {
-      gecko: {
-        type: "Tab:Closed",
-        tabID: this.id
-      }
-    };
-
-    sendMessageToJava(message);
   },
 
   set active(aActive) {
