@@ -336,6 +336,7 @@ PuppetWidget::IMEEndComposition(PRBool aCancel)
   nsEventStatus status;
   nsTextEvent textEvent(PR_TRUE, NS_TEXT_TEXT, this);
   InitEvent(textEvent, nsnull);
+  textEvent.seqno = mIMELastReceivedSeqno;
   
   
   if (!mTabChild ||
@@ -350,6 +351,7 @@ PuppetWidget::IMEEndComposition(PRBool aCancel)
 
   nsCompositionEvent compEvent(PR_TRUE, NS_COMPOSITION_END, this);
   InitEvent(compEvent, nsnull);
+  compEvent.seqno = mIMELastReceivedSeqno;
   DispatchEvent(&compEvent, status);
   return NS_OK;
 }
