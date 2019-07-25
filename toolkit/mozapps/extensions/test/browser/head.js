@@ -529,7 +529,7 @@ MockAddon.prototype = {
 
 
 
-function MockInstall(aName, aType) {
+function MockInstall(aName, aType, aAddonToInstall) {
   this.name = aName || "";
   this.type = aType || "extension";
   this.version = "1.0";
@@ -545,6 +545,7 @@ function MockInstall(aName, aType) {
   this.certName = "";
   this.existingAddon = null;
   this.addon = null;
+  this._addonToInstall = aAddonToInstall;
   this.listeners = [];
 
   
@@ -568,7 +569,8 @@ MockInstall.prototype = {
         }
 
         
-        this.addon = new MockAddon("", this.name, this.type);
+        this.addon = this._addonToInstall ||
+                     new MockAddon("", this.name, this.type);
         this.state = AddonManager.STATE_INSTALLED;
         this.callListeners("onInstallEnded");
         break;
