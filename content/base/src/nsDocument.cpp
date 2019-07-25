@@ -9125,7 +9125,7 @@ nsDocument::RequestFullScreen(Element* aElement,
   
   if (!mIsApprovedForFullscreen) {
     mIsApprovedForFullscreen =
-      GetWindow()->IsInAppOrigin() ||
+      NodePrincipal()->GetAppStatus() >= nsIPrincipal::APP_STATUS_INSTALLED ||
       nsContentUtils::IsSitePermAllow(NodePrincipal(), "fullscreen");
   }
 
