@@ -895,8 +895,11 @@ nsHTMLTableAccessible::GetCellAt(PRInt32 aRow, PRInt32 aColumn,
   nsCOMPtr<nsIContent> cellContent(do_QueryInterface(cellElement));
   nsAccessible *cell =
     GetAccService()->GetAccessibleInWeakShell(cellContent, mWeakShell);
-  if (cell)
-    CallQueryInterface(cell, aTableCellAccessible);
+  if (cell && cell != this) {
+    
+    
+    NS_ADDREF(*aTableCellAccessible = cell);
+  }
 
   return NS_OK;
 }
