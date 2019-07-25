@@ -1366,103 +1366,6 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
     return obj;
 }
 
-
-
-
-
-
-
-
-
-JS_FRIEND_API(JSObject *)
-js_TransplantObjectWithWrapper(JSContext *cx,
-                               JSObject *origobj,
-                               JSObject *origwrapper,
-                               JSObject *targetobj,
-                               JSObject *targetwrapper)
-{
-    JSObject *obj;
-    JSCompartment *destination = targetobj->getCompartment();
-    WrapperMap &map = destination->crossCompartmentWrappers;
-
-    
-    
-    Value origv = ObjectValue(*origobj);
-
-    
-    
-    if (WrapperMap::Ptr p = map.lookup(origv)) {
-        
-        
-        obj = &p->value.toObject();
-        map.remove(p);
-        if (!obj->swap(cx, targetwrapper))
-            return NULL;
-    } else {
-        
-        
-        obj = targetwrapper;
-    }
-
-    
-    
-    
-    
-    Value targetv = ObjectValue(*targetobj);
-    WrapperVector &vector = cx->runtime->compartments;
-    AutoValueVector toTransplant(cx);
-    toTransplant.reserve(vector.length());
-
-    for (JSCompartment **p = vector.begin(), **end = vector.end(); p != end; ++p) {
-        WrapperMap &pmap = (*p)->crossCompartmentWrappers;
-        if (WrapperMap::Ptr wp = pmap.lookup(origv)) {
-            
-            toTransplant.append(wp->value);
-        }
-    }
-
-    for (Value *begin = toTransplant.begin(), *end = toTransplant.end(); begin != end; ++begin) {
-        JSObject *wobj = &begin->toObject();
-        JSCompartment *wcompartment = wobj->compartment();
-        WrapperMap &pmap = wcompartment->crossCompartmentWrappers;
-        JS_ASSERT(pmap.lookup(origv));
-        pmap.remove(origv);
-
-        
-        
-        AutoCompartment ac(cx, wobj);
-
-        JSObject *tobj = targetobj;
-        if (!ac.enter() || !wcompartment->wrap(cx, &tobj))
-            return NULL;
-
-        
-        
-        
-        
-        JS_ASSERT(tobj != wobj);
-        if (!wobj->swap(cx, tobj))
-            return NULL;
-        pmap.put(targetv, ObjectValue(*wobj));
-    }
-
-    
-    
-    
-    {
-        AutoCompartment ac(cx, origobj);
-        JSObject *tobj = obj;
-        if (!ac.enter() || !JS_WrapObject(cx, &tobj))
-            return NULL;
-        if (!origwrapper->swap(cx, tobj))
-            return NULL;
-        origwrapper->getCompartment()->crossCompartmentWrappers.put(targetv,
-                                                                    ObjectValue(*origwrapper));
-    }
-
-    return obj;
-}
-
 JS_PUBLIC_API(JSObject *)
 JS_GetGlobalObject(JSContext *cx)
 {
@@ -3062,8 +2965,8 @@ JS_NewGlobalObject(JSContext *cx, JSClass *clasp)
     
     JSObject *res = regexp_statics_construct(cx, obj);
     if (!res ||
-        !js_SetReservedSlot(cx, obj, JSRESERVED_GLOBAL_REGEXP_STATICS, ObjectValue(*res)) ||
-        !js_SetReservedSlot(cx, obj, JSRESERVED_GLOBAL_FLAGS, Int32Value(0))) {
+        !js_SetReservedSlot(cx, obj, JSRESERVED_GLOBAL_REGEXP_STATICS,
+                            ObjectValue(*res))) {
         return NULL;
     }
 
@@ -3937,25 +3840,11 @@ JS_ClearScope(JSContext *cx, JSObject *obj)
 
     
     if (obj->isGlobal()) {
-        
-        obj->unbrand(cx);
-
         for (int key = JSProto_Null; key < JSProto_LIMIT * 3; key++)
             JS_SetReservedSlot(cx, obj, key, JSVAL_VOID);
 
         
-        RegExpStatics::extractFrom(obj)->clear();
-
-        
         JS_SetReservedSlot(cx, obj, JSRESERVED_GLOBAL_EVAL_ALLOWED, JSVAL_VOID);
-
-        
-
-
-
-        int32 flags = obj->getReservedSlot(JSRESERVED_GLOBAL_FLAGS).toInt32();
-        flags |= JSGLOBAL_FLAGS_CLEARED;
-        JS_SetReservedSlot(cx, obj, JSRESERVED_GLOBAL_FLAGS, Jsvalify(Int32Value(flags)));
     }
 
     js_InitRandom(cx);
