@@ -3307,6 +3307,10 @@ nsHTMLDocument::EditingStateChanged()
       editorss->AddOverrideStyleSheet(NS_LITERAL_STRING("resource://gre/res/designmode.css"));
 
       
+      
+      FlushPendingNotifications(Flush_Style);
+
+      
       rv = editSession->DisableJSAndPlugins(window);
       NS_ENSURE_SUCCESS(rv, rv);
 
