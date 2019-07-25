@@ -36,6 +36,7 @@
 #include "mozilla/layers/LayersSurfaces.h"
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "GonkIOSurfaceImage.h"
+#include "CameraCommon.h"
 
 namespace android {
 
@@ -49,6 +50,7 @@ public:
 class GonkNativeWindow : public EGLNativeBase<ANativeWindow, GonkNativeWindow, RefBase>
 {
     typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
+
 public:
     enum { MIN_UNDEQUEUED_BUFFERS = 2 };
     enum { MIN_BUFFER_SLOTS = MIN_UNDEQUEUED_BUFFERS };
@@ -229,25 +231,32 @@ private:
 
 
 
-class CameraGraphicBuffer : public mozilla::layers::GraphicBufferLocked {
+class CameraGraphicBuffer : public mozilla::layers::GraphicBufferLocked
+{
     typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
+
 public:
     CameraGraphicBuffer(GonkNativeWindow* aNativeWindow,
                         uint32_t aIndex,
                         uint32_t aGeneration,
                         SurfaceDescriptor aBuffer)
         : GraphicBufferLocked(aBuffer)
-          , mNativeWindow(aNativeWindow)
-          , mIndex(aIndex)
-          , mGeneration(aGeneration)
-          , mLocked(true)
-    {}
+        , mNativeWindow(aNativeWindow)
+        , mIndex(aIndex)
+        , mGeneration(aGeneration)
+        , mLocked(true)
+    {
+        DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
+    }
 
-    virtual ~CameraGraphicBuffer() {}
+    virtual ~CameraGraphicBuffer()
+    {
+        DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
+    }
 
     
     
-    virtual void Unlock()  MOZ_OVERRIDE
+    virtual void Unlock() MOZ_OVERRIDE
     {
         if (mLocked) {
             

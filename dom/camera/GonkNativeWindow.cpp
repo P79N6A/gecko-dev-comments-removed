@@ -25,14 +25,13 @@
 #include "nsDebug.h"
 
 
-#define CNW_DEBUG 0
-#if CNW_DEBUG
-#define CNW_LOGD(...) {(void)printf_stderr(__VA_ARGS__);}
-#else
-#define CNW_LOGD(...) ((void)0)
-#endif
 
-#define CNW_LOGE(...) {(void)printf_stderr(__VA_ARGS__);}
+
+
+
+
+#define CNW_LOGD(...)   DOM_CAMERA_LOGI(__VA_ARGS__)
+#define CNW_LOGE(...)   {(void)printf_stderr(__VA_ARGS__);}
 
 using namespace android;
 using namespace mozilla::layers;
