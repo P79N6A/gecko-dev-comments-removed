@@ -51,6 +51,12 @@ function testOpenUI(aTestReopen)
       },
       successFn: function()
       {
+        
+        let cssNode = hud.outputNode.querySelector(".webconsole-msg-cssparser");
+        ok(cssNode, "CSS warning message element");
+        isnot(cssNode.textContent.indexOf("cssColorBug611032"), -1,
+              "CSS warning message element content is correct");
+
         closeConsole(gBrowser.selectedTab, function() {
           aTestReopen && info("will reopen the Web Console");
           executeSoon(aTestReopen ? testOpenUI : finishTest);
