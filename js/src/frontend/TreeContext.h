@@ -301,11 +301,6 @@ enum StmtType {
     STMT_LIMIT
 };
 
-inline bool
-STMT_TYPE_IN_RANGE(uint16_t type, StmtType begin, StmtType end)
-{
-    return begin <= type && type <= end;
-}
 
 
 
@@ -326,23 +321,10 @@ STMT_TYPE_IN_RANGE(uint16_t type, StmtType begin, StmtType end)
 
 
 
-#define STMT_TYPE_MAYBE_SCOPE(type)                                           \
-    (type != STMT_WITH &&                                                     \
-     STMT_TYPE_IN_RANGE(type, STMT_BLOCK, STMT_SUBROUTINE))
 
-#define STMT_TYPE_LINKS_SCOPE(type)                                           \
-    STMT_TYPE_IN_RANGE(type, STMT_WITH, STMT_CATCH)
-
-#define STMT_TYPE_IS_TRYING(type)                                             \
-    STMT_TYPE_IN_RANGE(type, STMT_TRY, STMT_SUBROUTINE)
-
-#define STMT_TYPE_IS_LOOP(type) ((type) >= STMT_DO_LOOP)
-
-#define STMT_MAYBE_SCOPE(stmt)  STMT_TYPE_MAYBE_SCOPE((stmt)->type)
-#define STMT_LINKS_SCOPE(stmt)  (STMT_TYPE_LINKS_SCOPE((stmt)->type) ||       \
-                                 ((stmt)->flags & SIF_SCOPE))
-#define STMT_IS_TRYING(stmt)    STMT_TYPE_IS_TRYING((stmt)->type)
-#define STMT_IS_LOOP(stmt)      STMT_TYPE_IS_LOOP((stmt)->type)
+#define SIF_SCOPE        0x0001     /* statement has its own lexical scope */
+#define SIF_BODY_BLOCK   0x0002     /* STMT_BLOCK type is a function body */
+#define SIF_FOR_BLOCK    0x0004     /* for (let ...) induced block scope */
 
 
 
@@ -356,6 +338,22 @@ struct StmtInfoBase {
     Rooted<StaticBlockObject *> blockObj; 
 
     StmtInfoBase(JSContext *cx) : label(cx), blockObj(cx) {}
+
+    bool maybeScope() const {
+        return STMT_BLOCK <= type && type <= STMT_SUBROUTINE && type != STMT_WITH;
+    }
+
+    bool linksScope() const {
+        return (STMT_WITH <= type && type <= STMT_CATCH) || (flags & SIF_SCOPE);
+    }
+
+    bool isLoop() const {
+        return type >= STMT_DO_LOOP;
+    }
+
+    bool isTrying() const {
+        return STMT_TRY <= type && type <= STMT_SUBROUTINE;
+    }
 };
 
 struct StmtInfoTC : public StmtInfoBase {
@@ -377,10 +375,6 @@ struct StmtInfoBCE : public StmtInfoBase {
 
     StmtInfoBCE(JSContext *cx) : StmtInfoBase(cx) {}
 };
-
-#define SIF_SCOPE        0x0001     /* statement has its own lexical scope */
-#define SIF_BODY_BLOCK   0x0002     /* STMT_BLOCK type is a function body */
-#define SIF_FOR_BLOCK    0x0004     /* for (let ...) induced block scope */
 
 namespace frontend {
 
