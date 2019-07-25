@@ -117,6 +117,19 @@ let MetadataCollector = {
       accessibilities.push({ name: prefName, value: prefValue });
     }
 
+    
+
+    let enabled;
+    try {
+      enabled = Components.manager.QueryInterface(Ci.nsIServiceManager)
+                  .isServiceInstantiatedByContractID(
+                    "@mozilla.org/accessibilityService;1",
+                    Ci.nsISupports);
+    } catch (ex) {
+      enabled = false;
+    }
+    accessibilities.push({name: "isInstantiated", value: enabled});
+
     return accessibilities;
   },
 
