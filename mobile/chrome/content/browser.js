@@ -104,7 +104,18 @@ var Browser = {
     this._content.tabList = document.getElementById("tab-list");
     this._content.newTab(true);
 
-    SpatialNavigation.init(this.content);
+    var deckbrowser = this.content;
+    function panCallback(aElement) {
+      
+      
+      deckbrowser.browser.contentWindow.scrollTo(0, 0);
+
+      if (!aElement)
+        return;
+
+      deckbrowser.ensureElementIsVisible(aElement);
+    }
+    SpatialNavigation.init(this.content, panCallback);
 
     this.setupGeolocationPrompt();
 
