@@ -1208,6 +1208,13 @@ nsINode::Trace(nsINode *tmp, TraceCallback cb, void *closure)
 }
 
 static bool
+IsBlackNode(nsINode* aNode)
+{
+  JSObject* o = aNode->GetWrapperPreserveColor();
+  return o && !xpc_IsGrayGCThing(o);
+}
+
+static bool
 IsXBL(nsINode* aNode)
 {
   return aNode->IsElement() &&
@@ -1226,7 +1233,7 @@ nsINode::Traverse(nsINode *tmp, nsCycleCollectionTraversalCallback &cb)
 
   if (nsCCUncollectableMarker::sGeneration) {
     
-    if (tmp->IsBlack()) {
+    if (IsBlackNode(tmp)) {
       return false;
     }
 
@@ -1239,13 +1246,13 @@ nsINode::Traverse(nsINode *tmp, nsCycleCollectionTraversalCallback &cb)
 
     if (!tmp->HasFlag(problematicFlags) && !IsXBL(tmp)) {
       
-      if ((currentDoc && currentDoc->IsBlack())) {
+      if ((currentDoc && IsBlackNode(currentDoc))) {
         return false;
       }
       
       
       nsIContent* parent = tmp->GetParent();
-      if (parent && !IsXBL(parent) && parent->IsBlack()) {
+      if (parent && !IsXBL(parent) && IsBlackNode(parent)) {
         NS_ABORT_IF_FALSE(parent->IndexOf(tmp) >= 0, "Parent doesn't own us?");
         return false;
       }
@@ -2129,7 +2136,8 @@ nsGenericElement::GetBoundingClientRect(nsIDOMClientRect** aResult)
   }
 
   nsRect r = nsLayoutUtils::GetAllInFlowRectsUnion(frame,
-          nsLayoutUtils::GetContainingBlockForClientRect(frame));
+          nsLayoutUtils::GetContainingBlockForClientRect(frame),
+          nsLayoutUtils::RECTS_ACCOUNT_FOR_TRANSFORMS);
   rect->SetLayoutRect(r);
   return NS_OK;
 }
@@ -2157,7 +2165,8 @@ nsGenericElement::GetClientRects(nsIDOMClientRectList** aResult)
 
   nsLayoutUtils::RectListBuilder builder(rectList);
   nsLayoutUtils::GetAllInFlowRects(frame,
-          nsLayoutUtils::GetContainingBlockForClientRect(frame), &builder);
+          nsLayoutUtils::GetContainingBlockForClientRect(frame), &builder,
+          nsLayoutUtils::RECTS_ACCOUNT_FOR_TRANSFORMS);
   if (NS_FAILED(builder.mRV))
     return builder.mRV;
   *aResult = rectList.forget().get();
