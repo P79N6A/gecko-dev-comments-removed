@@ -52,6 +52,7 @@
 #include "nsNativeWidget.h"
 #include "nsWidgetInitData.h"
 #include "nsTArray.h"
+#include "nsXULAppAPI.h"
 
 
 class   nsIAppShell;
@@ -92,7 +93,6 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 #define NS_NATIVE_WINDOW      0
 #define NS_NATIVE_GRAPHIC     1
-#define NS_NATIVE_TMP_WINDOW  2
 #define NS_NATIVE_WIDGET      3
 #define NS_NATIVE_DISPLAY     4
 #define NS_NATIVE_REGION      5
@@ -1238,7 +1238,30 @@ class nsIWidget : public nsISupports {
                                               PRBool aIsHorizontal,
                                               PRInt32 &aOverriddenDelta) = 0;
 
+#ifdef MOZ_IPC
     
+
+
+
+
+
+    static bool
+    UsePuppetWidgets()
+    { return XRE_GetProcessType() == GeckoProcessType_Content; }
+
+    
+
+
+
+
+
+
+
+
+
+    static already_AddRefed<nsIWidget>
+    CreatePuppetWidget();
+#endif
 
 protected:
     
