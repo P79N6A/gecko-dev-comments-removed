@@ -255,10 +255,13 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
       nsSVGUtils::SetClipRect(ctx, GetCanvasTM(), clipRect);
     }
 
+    nscoord appUnitsPerDevPx = PresContext()->AppUnitsPerDevPixel();
+    gfxFloat pageZoomFactor =
+      nsPresContext::AppUnitsToFloatCSSPixels(appUnitsPerDevPx);
+
     
     
-    
-    ctx->Multiply(GetImageTransform());
+    ctx->Multiply(GetImageTransform().Scale(pageZoomFactor, pageZoomFactor));
 
     
     
@@ -274,7 +277,7 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
 
     nsRect dirtyRect; 
     if (aDirtyRect) {
-      dirtyRect = aDirtyRect->ToAppUnits(PresContext()->AppUnitsPerDevPixel());
+      dirtyRect = aDirtyRect->ToAppUnits(appUnitsPerDevPx);
       
       dirtyRect.MoveBy(-mRect.TopLeft());
     }
