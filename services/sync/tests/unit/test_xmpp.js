@@ -9,6 +9,10 @@ var timer = Cc["@mozilla.org/timer;1"].createInstance( Ci.nsITimer );
 var threadManager = Cc["@mozilla.org/thread-manager;1"].getService();
 
 function run_test() {
+
+  
+  return;
+
   
   var transport = new HTTPPollingTransport( serverUrl,
 					    false,
@@ -28,7 +32,7 @@ function run_test() {
 
 
 
-  
+
   
   var testIsOver = false;
   var sometext = "bla bla how you doin bla";
@@ -46,7 +50,7 @@ function run_test() {
   };
   timer.initWithCallback( timerResponder, 10000, timer.TYPE_ONE_SHOT );
 
-  
+
   
   var aliceMessageHandler = {
   handle: function( msgText, from ) {
