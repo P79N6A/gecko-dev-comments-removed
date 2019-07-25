@@ -41,9 +41,8 @@ const Ci = Components.interfaces;
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
-
 const ELLIPSIS = Services.prefs.getComplexValue("intl.ellipsis",
-                                               Ci.nsIPrefLocalizedString).data;
+                                                Ci.nsIPrefLocalizedString).data;
 
 
 
