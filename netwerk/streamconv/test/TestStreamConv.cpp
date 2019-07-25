@@ -178,12 +178,12 @@ main(int argc, char* argv[])
 
         nsCOMPtr<nsICategoryManager> catman =
             do_GetService(NS_CATEGORYMANAGER_CONTRACTID, &rv);
-        if (NS_FAILED(rv)) return rv;
+        if (NS_FAILED(rv)) return -1;
         nsCString previous;
 
         nsCOMPtr<nsIStreamConverterService> StreamConvService =
                  do_GetService(kStreamConverterServiceCID, &rv);
-        if (NS_FAILED(rv)) return rv;
+        if (NS_FAILED(rv)) return -1;
 
         
         static const char fromStr[] = "a/foo";
@@ -201,14 +201,14 @@ main(int argc, char* argv[])
         nsCOMPtr<nsIChannel> channel;
         nsCOMPtr<nsIURI> dummyURI;
         rv = NS_NewURI(getter_AddRefs(dummyURI), "http://meaningless");
-        if (NS_FAILED(rv)) return rv;
+        if (NS_FAILED(rv)) return -1;
 
         rv = NS_NewInputStreamChannel(getter_AddRefs(channel),
                                       dummyURI,
                                       nullptr,   
                                       "text/plain", 
                                       -1);      
-        if (NS_FAILED(rv)) return rv;
+        if (NS_FAILED(rv)) return -1;
 
         nsCOMPtr<nsIRequest> request(do_QueryInterface(channel));
 #endif
@@ -227,7 +227,7 @@ main(int argc, char* argv[])
         nsIStreamListener *converterListener = nullptr;
         rv = StreamConvService->AsyncConvertData(fromStr, toStr,
                                                  dataReceiver, nullptr, &converterListener);
-        if (NS_FAILED(rv)) return rv;
+        if (NS_FAILED(rv)) return -1;
         NS_RELEASE(dataReceiver);
 
         
@@ -235,17 +235,17 @@ main(int argc, char* argv[])
         
         
         rv = converterListener->OnStartRequest(request, nullptr);
-        if (NS_FAILED(rv)) return rv;
+        if (NS_FAILED(rv)) return -1;
 
         rv = SEND_DATA("aaa");
-        if (NS_FAILED(rv)) return rv;
+        if (NS_FAILED(rv)) return -1;
 
         rv = SEND_DATA("aaa");
-        if (NS_FAILED(rv)) return rv;
+        if (NS_FAILED(rv)) return -1;
 
         
         rv = converterListener->OnStopRequest(request, nullptr, rv);
-        if (NS_FAILED(rv)) return rv;
+        if (NS_FAILED(rv)) return -1;
 
         NS_RELEASE(converterListener);
 #else
@@ -253,7 +253,7 @@ main(int argc, char* argv[])
         nsCOMPtr<nsIInputStream> convertedData;
         rv = StreamConvService->Convert(inputData, fromStr, toStr,
                                         nullptr, getter_AddRefs(convertedData));
-        if (NS_FAILED(rv)) return rv;
+        if (NS_FAILED(rv)) return -1;
 #endif
 
         
@@ -264,5 +264,5 @@ main(int argc, char* argv[])
     } 
     
     NS_ShutdownXPCOM(nullptr);
-    return rv;
+    return 0;
 }

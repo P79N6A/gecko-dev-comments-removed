@@ -85,5 +85,5 @@ int main(int argc, char **argv)
   } 
   
   NS_ShutdownXPCOM(nullptr);
-  return rv;
+  return 0;
 }
