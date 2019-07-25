@@ -458,7 +458,7 @@ nsHTMLTableAccessible::CacheChildren()
   
   
   
-  nsAccTreeWalker walker(mWeakShell, mContent, GetAllowsAnonChildAccessibles());
+  nsAccTreeWalker walker(mWeakShell, mContent, CanHaveAnonChildren());
 
   nsAccessible* child = nsnull;
   while ((child = walker.NextChild())) {

@@ -401,7 +401,7 @@ public:
   
 
 
-  virtual bool GetAllowsAnonChildAccessibles();
+  virtual bool CanHaveAnonChildren();
 
   
 

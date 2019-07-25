@@ -90,7 +90,7 @@ public:
 
   
   
-  virtual bool GetAllowsAnonChildAccessibles();
+  virtual bool CanHaveAnonChildren();
 
 protected:
   
@@ -131,7 +131,7 @@ public:
 
   
   
-  virtual bool GetAllowsAnonChildAccessibles();
+  virtual bool CanHaveAnonChildren();
 };
 
 
