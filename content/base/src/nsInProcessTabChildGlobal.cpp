@@ -116,6 +116,15 @@ nsInProcessTabChildGlobal::Init()
                                               this,
                                               nsnull,
                                               mCx);
+
+  
+  
+  JSObject *global;
+  nsIURI* docURI = mOwner->OwnerDoc()->GetDocumentURI();
+  if (mGlobal && NS_SUCCEEDED(mGlobal->GetJSObject(&global)) && docURI) {
+    xpc::SetLocationForGlobal(global, docURI);
+  }
+
   return NS_OK;
 }
 
