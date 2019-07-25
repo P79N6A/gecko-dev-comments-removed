@@ -161,6 +161,9 @@ pref("media.ogg.enabled", true);
 #ifdef MOZ_WAVE
 pref("media.wave.enabled", true);
 #endif
+#ifdef MOZ_WEBM
+pref("media.webm.enabled", true);
+#endif
 
 
 pref("media.autoplay.enabled", true);

@@ -61,6 +61,12 @@ class nsHTMLMediaElement : public nsGenericHTMLElement,
   typedef mozilla::layers::ImageContainer ImageContainer;
 
 public:
+  enum CanPlayStatus {
+    CANPLAY_NO,
+    CANPLAY_MAYBE,
+    CANPLAY_YES
+  };
+
   nsHTMLMediaElement(nsINodeInfo *aNodeInfo, PRBool aFromParser = PR_FALSE);
   virtual ~nsHTMLMediaElement();
 
@@ -230,8 +236,13 @@ public:
   
   
   
-  static PRBool CanHandleMediaType(const char* aMIMEType,
-                                   const char*** aSupportedCodecs);
+  
+  static CanPlayStatus CanHandleMediaType(const char* aMIMEType,
+                                          const char*** aSupportedCodecs);
+
+  
+  
+  static CanPlayStatus GetCanPlay(const nsAString& aType);
 
   
   
