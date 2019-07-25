@@ -8527,8 +8527,6 @@ void nsWindow::RegisterSpecialDropdownHooks()
   DISPLAY_NMM_PRT("***************** Installing Msg Hooks ***************\n");
 
   
-
-  
   if (!sMsgFilterHook) {
     DISPLAY_NMM_PRT("***** Hooking sMsgFilterHook!\n");
     sMsgFilterHook = SetWindowsHookEx(WH_MSGFILTER, MozSpecialMsgFilter, NULL, GetCurrentThreadId());
