@@ -9262,10 +9262,18 @@ nsGlobalWindow::SuspendTimeouts(PRUint32 aIncrease,
         nsGlobalWindow *win =
           static_cast<nsGlobalWindow*>
                      (static_cast<nsPIDOMWindow*>(pWin));
-        win->SuspendTimeouts(aIncrease, aFreezeChildren);
-
         NS_ASSERTION(win->IsOuterWindow(), "Expected outer window");
         nsGlobalWindow* inner = win->GetCurrentInnerWindowInternal();
+
+        
+        
+        nsCOMPtr<nsIContent> frame = do_QueryInterface(pWin->GetFrameElementInternal());
+        if (!mDoc || !frame || mDoc != frame->GetOwnerDoc() || !inner) {
+          continue;
+        }
+
+        win->SuspendTimeouts(aIncrease, aFreezeChildren);
+
         if (inner && aFreezeChildren) {
           inner->Freeze();
         }
@@ -9359,6 +9367,14 @@ nsGlobalWindow::ResumeTimeouts(PRBool aThawChildren)
 
         NS_ASSERTION(win->IsOuterWindow(), "Expected outer window");
         nsGlobalWindow* inner = win->GetCurrentInnerWindowInternal();
+
+        
+        
+        nsCOMPtr<nsIContent> frame = do_QueryInterface(pWin->GetFrameElementInternal());
+        if (!mDoc || !frame || mDoc != frame->GetOwnerDoc() || !inner) {
+          continue;
+        }
+
         if (inner && aThawChildren) {
           inner->Thaw();
         }
