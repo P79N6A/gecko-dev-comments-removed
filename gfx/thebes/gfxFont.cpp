@@ -3411,6 +3411,8 @@ gfxFontGroup::InitTextRun(gfxContext *aContext,
                           const T *aString,
                           PRUint32 aLength)
 {
+    NS_ASSERTION(aLength > 0, "don't call InitTextRun for a zero-length run");
+
     
     
     PRInt32 numOption = gfxPlatform::GetPlatform()->GetBidiNumeralOption();
@@ -3527,6 +3529,9 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
                             PRUint32 aScriptRunEnd,
                             PRInt32 aRunScript)
 {
+    NS_ASSERTION(aScriptRunEnd > aScriptRunStart,
+                 "don't call InitScriptRun for a zero-length run");
+
     gfxFont *mainFont = GetFontAt(0);
 
     PRUint32 runStart = aScriptRunStart;
@@ -3763,14 +3768,12 @@ void gfxFontGroup::ComputeRanges(nsTArray<gfxTextRange>& aRanges,
                                  const T *aString, PRUint32 aLength,
                                  PRInt32 aRunScript)
 {
-    aRanges.Clear();
-
-    if (aLength == 0) {
-        return;
-    }
+    NS_ASSERTION(aRanges.Length() == 0, "aRanges must be initially empty");
+    NS_ASSERTION(aLength > 0, "don't call ComputeRanges for zero-length text");
 
     PRUint32 prevCh = 0;
     PRUint8 matchType = 0;
+    PRInt32 lastRangeIndex = -1;
 
     
     
@@ -3803,18 +3806,20 @@ void gfxFontGroup::ComputeRanges(nsTArray<gfxTextRange>& aRanges,
 
         prevCh = ch;
 
-        if (aRanges.Length() == 0) {
+        if (lastRangeIndex == -1) {
             
             aRanges.AppendElement(gfxTextRange(0, 1, font, matchType));
+            lastRangeIndex++;
             prevFont = font;
         } else {
             
-            gfxTextRange& prevRange = aRanges[aRanges.Length() - 1];
+            gfxTextRange& prevRange = aRanges[lastRangeIndex];
             if (prevRange.font != font || prevRange.matchType != matchType) {
                 
                 prevRange.end = origI;
                 aRanges.AppendElement(gfxTextRange(origI, i + 1,
                                                    font, matchType));
+                lastRangeIndex++;
 
                 
                 
@@ -3827,7 +3832,8 @@ void gfxFontGroup::ComputeRanges(nsTArray<gfxTextRange>& aRanges,
             }
         }
     }
-    aRanges[aRanges.Length() - 1].end = aLength;
+
+    aRanges[lastRangeIndex].end = aLength;
 }
 
 gfxUserFontSet* 
