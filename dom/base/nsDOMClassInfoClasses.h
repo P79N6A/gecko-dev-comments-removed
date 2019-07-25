@@ -55,7 +55,6 @@ DOMCI_CLASS(DocumentType)
 DOMCI_CLASS(DOMImplementation)
 DOMCI_CLASS(DOMException)
 DOMCI_CLASS(DOMTokenList)
-DOMCI_CLASS(DOMSettableTokenList)
 DOMCI_CLASS(DocumentFragment)
 DOMCI_CLASS(Element)
 DOMCI_CLASS(Attr)
@@ -84,12 +83,12 @@ DOMCI_CLASS(HTMLOptionsCollection)
 DOMCI_CLASS(HTMLCollection)
 
 
-DOMCI_CLASS(HTMLElement)
 DOMCI_CLASS(HTMLAnchorElement)
 DOMCI_CLASS(HTMLAppletElement)
 DOMCI_CLASS(HTMLAreaElement)
 DOMCI_CLASS(HTMLBRElement)
 DOMCI_CLASS(HTMLBaseElement)
+DOMCI_CLASS(HTMLBaseFontElement)
 DOMCI_CLASS(HTMLBodyElement)
 DOMCI_CLASS(HTMLButtonElement)
 DOMCI_CLASS(HTMLDListElement)
@@ -122,7 +121,6 @@ DOMCI_CLASS(HTMLOListElement)
 DOMCI_CLASS(HTMLObjectElement)
 DOMCI_CLASS(HTMLOptGroupElement)
 DOMCI_CLASS(HTMLOptionElement)
-DOMCI_CLASS(HTMLOutputElement)
 DOMCI_CLASS(HTMLParagraphElement)
 DOMCI_CLASS(HTMLParamElement)
 DOMCI_CLASS(HTMLPreElement)
@@ -142,6 +140,7 @@ DOMCI_CLASS(HTMLTextAreaElement)
 DOMCI_CLASS(HTMLTitleElement)
 DOMCI_CLASS(HTMLUListElement)
 DOMCI_CLASS(HTMLUnknownElement)
+DOMCI_CLASS(HTMLWBRElement)
 
 
 DOMCI_CLASS(CSSStyleRule)
@@ -231,12 +230,9 @@ DOMCI_CLASS(SVGDocument)
 
 
 DOMCI_CLASS(SVGAElement)
-DOMCI_CLASS(SVGAltGlyphElement)
 #ifdef MOZ_SMIL
 DOMCI_CLASS(SVGAnimateElement)
 DOMCI_CLASS(SVGAnimateTransformElement)
-DOMCI_CLASS(SVGAnimateMotionElement)
-DOMCI_CLASS(SVGMpathElement)
 DOMCI_CLASS(SVGSetElement)
 #endif 
 DOMCI_CLASS(SVGCircleElement)
@@ -389,6 +385,11 @@ DOMCI_CLASS(XMLHttpRequest)
 DOMCI_CLASS(ClientRect)
 DOMCI_CLASS(ClientRectList)
 
+
+
+
+
+
 #ifdef MOZ_SVG
 DOMCI_CLASS(SVGForeignObjectElement)
 #endif
@@ -423,13 +424,11 @@ DOMCI_CLASS(GeoPositionError)
 DOMCI_CLASS(CSSFontFaceRule)
 DOMCI_CLASS(CSSFontFaceStyleDecl)
 
-#if defined(MOZ_MEDIA)
 
 DOMCI_CLASS(HTMLVideoElement)
 DOMCI_CLASS(HTMLSourceElement)
 DOMCI_CLASS(HTMLMediaError)
 DOMCI_CLASS(HTMLAudioElement)
-#endif
 
 DOMCI_CLASS(ProgressEvent)
 
@@ -449,7 +448,6 @@ DOMCI_CLASS(MathMLElement)
 #endif
 
 DOMCI_CLASS(Worker)
-DOMCI_CLASS(ChromeWorker)
 
 
 DOMCI_CLASS(CanvasRenderingContextWebGL)
@@ -459,7 +457,6 @@ DOMCI_CLASS(WebGLProgram)
 DOMCI_CLASS(WebGLShader)
 DOMCI_CLASS(WebGLFramebuffer)
 DOMCI_CLASS(WebGLRenderbuffer)
-DOMCI_CLASS(WebGLUniformLocation)
 
 
 DOMCI_CLASS(PaintRequest)
@@ -474,19 +471,3 @@ DOMCI_CLASS(TransitionEvent)
 DOMCI_CLASS(ContentFrameMessageManager)
 
 DOMCI_CLASS(FormData)
-
-
-DOMCI_CLASS(WebSocket)
-DOMCI_CLASS(CloseEvent)
-
-DOMCI_CLASS(IDBFactory)
-DOMCI_CLASS(IDBRequest)
-DOMCI_CLASS(IDBDatabase)
-DOMCI_CLASS(IDBErrorEvent)
-DOMCI_CLASS(IDBSuccessEvent)
-DOMCI_CLASS(IDBTransactionEvent)
-DOMCI_CLASS(IDBObjectStore)
-DOMCI_CLASS(IDBTransaction)
-DOMCI_CLASS(IDBCursor)
-DOMCI_CLASS(IDBKeyRange)
-DOMCI_CLASS(IDBIndex)
