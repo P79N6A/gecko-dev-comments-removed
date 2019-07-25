@@ -131,6 +131,11 @@
 - (void)invalidateChildren;
 
 
+
+
+- (void)appendChild:(nsAccessible*)aAccessible;
+
+
 - (void)invalidateParent;
 
 

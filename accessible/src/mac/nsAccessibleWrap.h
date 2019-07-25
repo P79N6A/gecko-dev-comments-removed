@@ -61,34 +61,46 @@
 
 class nsAccessibleWrap : public nsAccessible
 {
-  public: 
-    nsAccessibleWrap(nsIContent *aContent, nsIWeakReference *aShell);
-    virtual ~nsAccessibleWrap();
+public: 
+  nsAccessibleWrap(nsIContent* aContent, nsIWeakReference* aShell);
+  virtual ~nsAccessibleWrap();
     
-    
-    NS_IMETHOD GetNativeInterface (void **aOutAccessible);
-    
-    
-    
-    
-    virtual Class GetNativeType ();
+  
 
-    virtual void Shutdown ();
-    virtual void InvalidateChildren();
 
-    virtual nsresult HandleAccEvent(AccEvent* aEvent);
+  NS_IMETHOD GetNativeInterface (void** aOutAccessible);
+  
+  
 
-    
-    
-    bool IsIgnored();
-    
-    bool HasPopup () {
-      return (NativeState() & mozilla::a11y::states::HASPOPUP);
-    }
-    
-    
-    void GetUnignoredChildren(nsTArray<nsRefPtr<nsAccessibleWrap> > &aChildrenArray);
-    virtual already_AddRefed<nsIAccessible> GetUnignoredParent();
+
+
+
+  virtual Class GetNativeType ();
+
+  virtual void Shutdown ();
+  virtual void InvalidateChildren();
+
+  virtual bool AppendChild(nsAccessible* aAccessible);
+  virtual bool RemoveChild(nsAccessible* aAccessible);
+
+  virtual nsresult HandleAccEvent(AccEvent* aEvent);
+
+  
+
+
+
+
+  bool IsIgnored();
+  
+  inline bool HasPopup () 
+    { return (NativeState() & mozilla::a11y::states::HASPOPUP); }
+  
+  
+
+
+
+  void GetUnignoredChildren(nsTArray<nsRefPtr<nsAccessibleWrap> >& aChildrenArray);
+  virtual already_AddRefed<nsIAccessible> GetUnignoredParent();
     
 protected:
 
@@ -111,6 +123,7 @@ protected:
 private:
 
   
+
 
 
 
