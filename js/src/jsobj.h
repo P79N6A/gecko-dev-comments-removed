@@ -676,6 +676,8 @@ struct JSObject {
         return map->ops->typeOf(cx, this);
     }
 
+    JSObject *wrappedObject(JSContext *cx) const;
+
     
     JSObject *thisObject(JSContext *cx) {
         return map->ops->thisObject ? map->ops->thisObject(cx, this) : this;
