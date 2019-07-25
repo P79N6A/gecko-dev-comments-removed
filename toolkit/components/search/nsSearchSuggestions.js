@@ -401,6 +401,26 @@ SuggestAutoComplete.prototype = {
 
     
     
+    if (Services.search.isInitialized) {
+      this._triggerSearch(searchString, searchParam, listener);
+      return;
+    }
+
+    Services.search.init((function startSearch_cb(aResult) {
+      if (!Components.isSuccessCode(aResult)) {
+        Cu.reportError("Could not initialize search service, bailing out: " + aResult);
+        return;
+      }
+      this._triggerSearch(searchString, searchParam, listener);
+    }).bind(this));
+  },
+
+  
+
+
+  _triggerSearch: function(searchString, searchParam, listener) {
+    
+    
     
     
     
