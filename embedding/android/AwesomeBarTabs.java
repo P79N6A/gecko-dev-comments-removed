@@ -43,6 +43,9 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.LightingColorFilter;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.provider.Browser;
@@ -79,12 +82,56 @@ public class AwesomeBarTabs extends TabHost {
 
     private static final String LOG_NAME = "AwesomeBarTabs";
 
+    private static final LightingColorFilter tabColorFilter;
+
     private Context mContext;
     private OnUrlOpenListener mUrlOpenListener;
 
     private SimpleCursorAdapter mAllPagesAdapter;
     private SimpleCursorAdapter mBookmarksAdapter;
     private SimpleExpandableListAdapter mHistoryAdapter;
+
+    static {
+        
+        
+        
+
+        Resources resources = GeckoApp.mAppContext.getResources();
+
+        
+        Drawable listBackground =
+                resources.getDrawable(android.R.drawable.list_selector_background);
+
+        
+        
+        listBackground.setState(new int[] { android.R.attr.state_pressed,
+                                            android.R.attr.state_window_focused,
+                                            android.R.attr.state_enabled });
+
+        
+        
+        int imageBounds = 40;
+
+        
+        
+        Drawable current = listBackground.getCurrent();
+        current.setBounds(0, 0, imageBounds, imageBounds);
+
+        Bitmap bitmap =
+                Bitmap.createBitmap(imageBounds, imageBounds, Bitmap.Config.ARGB_8888);
+
+        
+        Canvas canvas = new Canvas(bitmap);
+        current.draw(canvas);
+
+        
+        int tabColor = bitmap.getPixel(imageBounds / 2, imageBounds / 2);
+
+        
+        bitmap.recycle();
+
+        tabColorFilter = new LightingColorFilter(Color.WHITE, tabColor);
+    }
 
     
     
@@ -453,6 +500,9 @@ public class AwesomeBarTabs extends TabHost {
                 (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
         View indicatorView = inflater.inflate(R.layout.awesomebar_tab_indicator, null);
+        Drawable background = indicatorView.getBackground();
+        background.setColorFilter(tabColorFilter);
+
         TextView title = (TextView) indicatorView.findViewById(R.id.title);
         title.setText(titleId);
 
