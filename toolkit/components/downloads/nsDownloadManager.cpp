@@ -2192,6 +2192,15 @@ nsDownload::SetState(DownloadState aState)
     case nsIDownloadManager::DOWNLOAD_DIRTY:
     case nsIDownloadManager::DOWNLOAD_CANCELED:
     case nsIDownloadManager::DOWNLOAD_FAILED:
+#ifdef ANDROID
+      
+      bool tempExists;
+      if (mTempFile && NS_SUCCEEDED(mTempFile->Exists(&tempExists)) && tempExists) {
+        nsresult rv = mTempFile->Remove(false);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+#endif
+
       
       Finalize();
       break;
