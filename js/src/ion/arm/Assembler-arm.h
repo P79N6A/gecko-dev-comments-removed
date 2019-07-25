@@ -1019,8 +1019,8 @@ public:
     void writeRelocation(BufferOffset src) {
         jumpRelocations_.writeUnsigned(src.getOffset());
     }
-    void writeDataRelocation(size_t offs) {
-        dataRelocations_.writeUnsigned(offs);
+    void writeDataRelocation(BufferOffset offs) {
+        dataRelocations_.writeUnsigned(offs.getOffset());
     }
     
     static uint32 * getCF32Target(Instruction *jump);

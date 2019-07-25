@@ -219,9 +219,8 @@ MacroAssemblerARM::ma_mov(Imm32 imm, Register dest,
 void
 MacroAssemblerARM::ma_mov(const ImmGCPtr &ptr, Register dest)
 {
-    
+    writeDataRelocation(nextOffset());
     ma_mov(Imm32(ptr.value), dest);
-    
 }
 
     
@@ -538,6 +537,7 @@ MacroAssemblerARM::ma_cmp(Register src1, Imm32 imm, Condition c)
 void
 MacroAssemblerARM::ma_cmp(Register src1, ImmGCPtr ptr, Condition c)
 {
+    writeDataRelocation(nextOffset());
     ma_alu(src1, Imm32(ptr.value), InvalidReg, op_cmp, SetCond, c);
 }
 void
@@ -922,6 +922,52 @@ MacroAssemblerARM::ma_vxfer(FloatRegister src, Register dest)
 {
     as_vxfer(dest, InvalidReg, VFPRegister(src).singleOverlay(), FloatToCore);
 }
+void
+MacroAssemblerARM::ma_vdtr(LoadStore ls, Operand &addr, FloatRegister rt, Condition cc)
+{
+    int off = addr.disp();
+    JS_ASSERT((off & 3) == 0);
+    Register base = Register::FromCode(addr.base());
+    if (off > -1024 && off < 1024) {
+        as_vdtr(ls, rt, addr.toVFPAddr(), cc);
+        return;
+    }
+    
+    
+    int bottom = off & (0xff << 2);
+    int neg_bottom = (0x100 << 2) - bottom;
+    
+    
+    if (off < 0) {
+        Operand2 sub_off = Imm8(-(off-bottom)); 
+        if (!sub_off.invalid) {
+            as_sub(ScratchRegister, base, sub_off, NoSetCond, cc); 
+            as_vdtr(ls, rt, VFPAddr(ScratchRegister, VFPOffImm(bottom)), cc);
+            return;
+        }
+        sub_off = Imm8(-(off+neg_bottom));
+        if (!sub_off.invalid) {
+            as_sub(ScratchRegister, base, sub_off, NoSetCond, cc); 
+            as_vdtr(ls, rt, VFPAddr(ScratchRegister, VFPOffImm(-neg_bottom)), cc);
+            return;
+        }
+    } else {
+        Operand2 sub_off = Imm8(off-bottom); 
+        if (!sub_off.invalid) {
+            as_add(ScratchRegister, base, sub_off, NoSetCond, cc); 
+            as_vdtr(ls, rt, VFPAddr(ScratchRegister, VFPOffImm(bottom)), cc);
+            return;
+        }
+        sub_off = Imm8(off+neg_bottom);
+        if (!sub_off.invalid) {
+            as_add(ScratchRegister, base, sub_off, NoSetCond,  cc); 
+            as_vdtr(ls, rt, VFPAddr(ScratchRegister, VFPOffImm(-neg_bottom)), cc);
+            return;
+        }
+    }
+    JS_NOT_REACHED("TODO: implement bigger offsets :(");
+
+}
 
 void
 MacroAssemblerARM::ma_vldr(VFPAddr addr, FloatRegister dest)
@@ -931,6 +977,7 @@ MacroAssemblerARM::ma_vldr(VFPAddr addr, FloatRegister dest)
 void
 MacroAssemblerARM::ma_vldr(const Operand &addr, FloatRegister dest)
 {
+    JS_ASSERT(addr.disp() < 1024 && addr.disp() > - 1024);
     as_vdtr(IsLoad, dest, VFPAddr(Register::FromCode(addr.base()), VFPOffImm(addr.disp())));
 }
 
@@ -943,7 +990,11 @@ MacroAssemblerARM::ma_vstr(FloatRegister src, VFPAddr addr)
 void
 MacroAssemblerARM::ma_vstr(FloatRegister src, const Operand &addr)
 {
-    as_vdtr(IsStore, src, VFPAddr(Register::FromCode(addr.base()), VFPOffImm(addr.disp())));
+    if (addr.disp() < 1024 && addr.disp() > - 1024) {
+        as_vdtr(IsStore, src, VFPAddr(Register::FromCode(addr.base()), VFPOffImm(addr.disp())));
+        return;
+    }
+    
 }
 
 void
@@ -969,6 +1020,7 @@ MacroAssemblerARM::movePtr(ImmWord imm, const Register dest)
 void
 MacroAssemblerARM::movePtr(ImmGCPtr imm, const Register dest)
 {
+    writeDataRelocation(nextOffset());
     ma_mov(imm, dest);
 }
 
@@ -1198,6 +1250,24 @@ Operand ToType(Operand base) {
                    base.disp() + sizeof(void *));
 }
 
+Operand payloadOf(const Address &address) {
+    return Operand(address.base, address.offset);
+}
+Operand tagOf(const Address &address) {
+    return Operand(address.base, address.offset + 4);
+}
+Register
+MacroAssemblerARMCompat::extractObject(const Address &address, Register scratch)
+{
+    ma_ldr(payloadOf(address), scratch);
+    return scratch;
+}
+Register
+MacroAssemblerARMCompat::extractTag(const Address &address, Register scratch)
+{
+    ma_ldr(tagOf(address), scratch);
+    return scratch;
+}
 void
 MacroAssemblerARMCompat::moveValue(const Value &val, Register type, Register data) {
     jsval_layout jv = JSVAL_TO_IMPL(val);
@@ -1249,12 +1319,11 @@ void
 MacroAssemblerARMCompat::storePayload(const Value &val, Operand dest) {
     jsval_layout jv = JSVAL_TO_IMPL(val);
     if (val.isMarkable()) {
-        JS_NOT_REACHED("why do we do all of these things?");
-        
+        ma_mov(ImmGCPtr((gc::Cell *)jv.s.payload.ptr), ScratchRegister);
     } else {
         ma_mov(Imm32(jv.s.payload.i32), ScratchRegister);
-        ma_str(ScratchRegister, ToPayload(dest));
     }
+    ma_str(ScratchRegister, ToPayload(dest));
 }
 void
 MacroAssemblerARMCompat::storePayload(Register src, Operand dest) {

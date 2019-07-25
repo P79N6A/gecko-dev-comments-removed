@@ -531,8 +531,18 @@ Assembler::processDeferredData(IonCode *code, uint8 *data)
 {
     
     
-
+    
+    
+    
+    
     JS_ASSERT(dataSize() == 0);
+
+    for (size_t i = 0; i < data_.length(); i++) {
+        DeferredData *deferred = data_[i];
+        
+        deferred->copy(code, data + deferred->offset());
+    }
+
 }
 
 
