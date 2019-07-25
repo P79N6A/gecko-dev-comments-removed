@@ -64,8 +64,8 @@ enum nsStyleUnit {
   
   
   
-  
-  
+  eStyleUnit_Calc         = 39,     
+                                    
   eStyleUnit_Calc_Plus    = 40,     
   eStyleUnit_Calc_Minus   = 41,     
   eStyleUnit_Calc_Times_L = 42,     
@@ -121,7 +121,7 @@ public:
   }
 
   PRBool IsCalcUnit() const {
-    return eStyleUnit_Calc_Plus <= mUnit && mUnit <= eStyleUnit_Calc_Maximum;
+    return eStyleUnit_Calc <= mUnit && mUnit <= eStyleUnit_Calc_Maximum;
   }
 
   PRBool IsArrayValue() const {
