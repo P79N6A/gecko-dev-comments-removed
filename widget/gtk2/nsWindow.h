@@ -195,8 +195,7 @@ public:
 
 
 
-
-    static guint32     GetCurrentEventTime();
+    static guint32     GetLastUserInputTime();
 
     
     
