@@ -443,7 +443,7 @@ CookieSyncCore.prototype = {
       this.__cookieManager = Cc["@mozilla.org/cookiemanager;1"].
                              getService(Ci.nsICookieManager2);
     
-    
+
     return this.__cookieManager
   },
 
@@ -489,11 +489,11 @@ CookieSyncCore.prototype = {
 
   _commandLike: function CSC_commandLike(a, b) {
     
-    
-    
-    
-    
-    
+
+
+
+
+
     return false;
   }
 };

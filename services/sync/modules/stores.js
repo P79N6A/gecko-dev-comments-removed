@@ -777,113 +777,113 @@ CookieStore.prototype = {
   },
 
   _createCommand: function HistStore__createCommand(command) {
-	
-        
+    
 
-	this._log.info("CookieStore got createCommand: " + command );
-        
-	this._cookieManager.add( command.data.host,
-                                 command.data.path,
-                                 command.data.name,
-                                 command.data.value,
-                                 command.data.isSecure,
-				 command.data.isHttpOnly,
-                                 command.data.isSession,
-                                 command.data.expiry );
+
+    this._log.info("CookieStore got createCommand: " + command );
+    
+    this._cookieManager.add( command.data.host,
+			     command.data.path,
+			     command.data.name,
+			     command.data.value,
+			     command.data.isSecure,
+			     command.data.isHttpOnly,
+			     command.data.isSession,
+			     command.data.expiry );
   },
 
   _removeCommand: function CookieStore__removeCommand(command) {
-	
-        
-        
-        
     
-        this._log.info("CookieStore got removeCommand: " + command );
 
-        
-        
-        
-	
-	this._cookieManager.remove( command.data.host,
-                                    command.data.name,
-				    command.data.path,
-                                    false );
+
+
+    
+    this._log.info("CookieStore got removeCommand: " + command );
+
+    
+
+
+
+    this._cookieManager.remove( command.data.host,
+				command.data.name,
+				command.data.path,
+				false );
   },
 
   _editCommand: function CookieStore__editCommand(command) {
-        
-        
     
-	
-        
-        
-        
 
-        
-        
-        
-        this._log.info("CookieStore got editCommand: " + command );
 
-	this._log.debug( "Info on command object passed in: " );
-	for ( var x in command )
-	  {
-	    this._log.debug( "Command." + x + " = " + command[x] );
-	  }
-	for ( var y in command.data )
-	  {
-	    this._log.debug( "Command.data." + y + " = " + command.data[y] );
-	  }
+
+
+
+
+
+    
+
+
+    this._log.info("CookieStore got editCommand: " + command );
+
+    this._log.debug( "Info on command object passed in: " );
+    for ( var x in command )
+      {
+	this._log.debug( "Command." + x + " = " + command[x] );
+      }
+    for ( var y in command.data )
+      {
+	this._log.debug( "Command.data." + y + " = " + command.data[y] );
+      }
   },
 
   wrap: function CookieStore_wrap() {
+    
+
+
+
+    let items = {};
+    var iter = this._cookieManager.enumerator;
+    while (iter.hasMoreElements()){
+      var cookie = iter.getNext();
+      if (cookie instanceof Ci.nsICookie){
 	
-        
-        
+	
+	let key = cookie.host + ":" + cookie.path + ":" + cookie.name
+	  items[ key ] = { parentGUID: '',
+			   name: cookie.name,
+			   value: cookie.value,
+			   isDomain: cookie.isDomain,
+			   host: cookie.host,
+			   path: cookie.path,
+			   isSecure: cookie.isSecure,
+			   
+			   rawHost: cookie.rawHost,
+			   isSession: cookie.isSession,
+			   expiry: cookie.expiry,
+			   isHttpOnly: cookie.isHttpOnly }
+	
+	
 
-	let items = {};
-	var iter = this._cookieManager.enumerator;
-	while (iter.hasMoreElements()){
-	    var cookie = iter.getNext();
-	    if (cookie instanceof Ci.nsICookie){
-                
-		
-                let key = cookie.host + ":" + cookie.path + ":" + cookie.name
-		items[ key ] = { parentGUID: '',
-				 name: cookie.name,
-				 value: cookie.value,
-				 isDomain: cookie.isDomain,
-				 host: cookie.host,
-				 path: cookie.path,
-				 isSecure: cookie.isSecure,
-                                 
-				 rawHost: cookie.rawHost,
-				 isSession: cookie.isSession,
-				 expiry: cookie.expiry,
-				 isHttpOnly: cookie.isHttpOnly }
 
-		
-		
-		
-
-	    }
-	}
+	
+      }
+    }
     return items;
   },
 
   wipe: function CookieStore_wipe() {
-	
-        
-        
-        
-        this._cookieManager.removeAll()
+    
+
+
+
+    this._cookieManager.removeAll()
   },
 
   resetGUIDs: function CookieStore_resetGUIDs() {
-      
-      
-      
-      
-      
+    
+
+
+
+
   }
 };
 CookieStore.prototype.__proto__ = new Store();
