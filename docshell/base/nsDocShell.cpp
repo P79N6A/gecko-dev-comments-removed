@@ -41,7 +41,6 @@
 
 
 
-#include "mozilla/dom/ContentChild.h"
 #include "mozilla/Util.h"
 
 #ifdef MOZ_LOGGING
@@ -107,7 +106,6 @@
 #include "nsIScriptChannel.h"
 #include "nsIOfflineCacheUpdate.h"
 #include "nsITimedChannel.h"
-#include "nsIPrivacyTransitionObserver.h"
 #include "nsCPrefetchService.h"
 #include "nsJSON.h"
 #include "IHistory.h"
@@ -717,35 +715,15 @@ ConvertLoadTypeToNavigationType(PRUint32 aLoadType)
 static nsISHEntry* GetRootSHEntry(nsISHEntry *entry);
 
 static void
-IncreasePrivateDocShellCount()
-{
-    gNumberOfPrivateDocShells++;
-    if (gNumberOfPrivateDocShells > 1 ||
-        XRE_GetProcessType() != GeckoProcessType_Content) {
-        return;
-    }
-
-    mozilla::dom::ContentChild* cc = mozilla::dom::ContentChild::GetSingleton();
-    cc->SendPrivateDocShellsExist(true);
-}
-
-static void
 DecreasePrivateDocShellCount()
 {
     MOZ_ASSERT(gNumberOfPrivateDocShells > 0);
     gNumberOfPrivateDocShells--;
     if (!gNumberOfPrivateDocShells)
     {
-        if (XRE_GetProcessType() == GeckoProcessType_Content) {
-            mozilla::dom::ContentChild* cc = mozilla::dom::ContentChild::GetSingleton();
-            cc->SendPrivateDocShellsExist(false);
-            return;
-        }
-
         nsCOMPtr<nsIObserverService> obsvc = mozilla::services::GetObserverService();
-        if (obsvc) {
+        if (obsvc)
             obsvc->NotifyObservers(nsnull, "last-pb-context-exited", nsnull);
-        }
     }
 }
 
@@ -2042,11 +2020,10 @@ nsDocShell::GetUsePrivateBrowsing(bool* aUsePrivateBrowsing)
 NS_IMETHODIMP
 nsDocShell::SetUsePrivateBrowsing(bool aUsePrivateBrowsing)
 {
-    bool changed = aUsePrivateBrowsing != mInPrivateBrowsing;
-    if (changed) {
+    if (aUsePrivateBrowsing != mInPrivateBrowsing) {
         mInPrivateBrowsing = aUsePrivateBrowsing;
         if (aUsePrivateBrowsing) {
-            IncreasePrivateDocShellCount();
+            gNumberOfPrivateDocShells++;
         } else {
             DecreasePrivateDocShellCount();
         }
@@ -2059,30 +2036,7 @@ nsDocShell::SetUsePrivateBrowsing(bool aUsePrivateBrowsing)
             shell->SetUsePrivateBrowsing(aUsePrivateBrowsing);
         }
     }
-
-    if (changed) {
-        nsTObserverArray<nsWeakPtr>::ForwardIterator iter(mPrivacyObservers);
-        while (iter.HasMore()) {
-            nsWeakPtr ref = iter.GetNext();
-            nsCOMPtr<nsIPrivacyTransitionObserver> obs = do_QueryReferent(ref);
-            if (!obs) {
-                mPrivacyObservers.RemoveElement(ref);
-            } else {
-                obs->PrivateModeChanged(aUsePrivateBrowsing);
-            }
-        }
-    }
     return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::AddWeakPrivacyTransitionObserver(nsIPrivacyTransitionObserver* aObserver)
-{
-    nsWeakPtr weakObs = do_GetWeakReference(aObserver);
-    if (!weakObs) {
-        return NS_ERROR_NOT_AVAILABLE;
-    }
-    return mPrivacyObservers.AppendElement(weakObs) ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP nsDocShell::GetAllowMetaRedirects(bool * aReturn)
@@ -7505,18 +7459,34 @@ nsDocShell::CreateContentViewer(const char *aContentType,
         mLoadType = mFailedLoadType;
 
         nsCOMPtr<nsIChannel> failedChannel = mFailedChannel;
-        nsCOMPtr<nsIURI> failedURI = mFailedURI;
+
+        
+        nsCOMPtr<nsIURI> failedURI;
+        if (failedChannel) {
+            NS_GetFinalChannelURI(failedChannel, getter_AddRefs(failedURI));
+        }
+
+        if (!failedURI) {
+            failedURI = mFailedURI;
+        }
+
+        
+        
+        MOZ_ASSERT(failedURI, "We don't have a URI for history APIs.");
+
         mFailedChannel = nsnull;
         mFailedURI = nsnull;
 
         
-        if (failedChannel) {
-            mURIResultedInDocument = true;
-            OnLoadingSite(failedChannel, true, false);
-        } else if (failedURI) {
-            mURIResultedInDocument = true;
-            OnNewURI(failedURI, nsnull, nsnull, mLoadType, true, false,
+        if (failedURI) {
+#ifdef DEBUG
+            bool errorOnLocationChangeNeeded =
+#endif
+            OnNewURI(failedURI, failedChannel, nsnull, mLoadType, true, false,
                      false);
+
+            MOZ_ASSERT(!errorOnLocationChangeNeeded,
+                       "We have to fire onLocationChange again.");
         }
 
         
@@ -7532,9 +7502,6 @@ nsDocShell::CreateContentViewer(const char *aContentType,
                                              getter_AddRefs(entry));
             mLSHE = do_QueryInterface(entry);
         }
-
-        
-        SetCurrentURI(failedURI);
 
         mLoadType = LOAD_ERROR_PAGE;
     }
