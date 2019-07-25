@@ -4978,14 +4978,13 @@ JSObject::allocSlot(JSContext *cx, uint32 *slotp)
 void
 JSObject::freeSlot(JSContext *cx, uint32 slot)
 {
-    uint32 limit = slotSpan();
-    JS_ASSERT(slot < limit);
+    JS_ASSERT(slot < slotSpan());
 
     if (inDictionaryMode()) {
         uint32 &last = lastProp->getTable()->freelist;
 
         
-        JS_ASSERT_IF(last != SHAPE_INVALID_SLOT, last < limit && last != slot);
+        JS_ASSERT_IF(last != SHAPE_INVALID_SLOT, last < slotSpan() && last != slot);
 
         
 
