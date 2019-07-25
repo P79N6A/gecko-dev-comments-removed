@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsContextMenuInfo.h"
 
 #include "nsIImageLoadingContent.h"
@@ -50,7 +51,9 @@
 #include "nsIDOMHTMLImageElement.h"
 #include "nsIDOMHTMLAreaElement.h"
 #include "nsIDOMHTMLLinkElement.h"
-#include "nsIDOMWindow.h"
+#include "nsIDOMDocumentView.h"
+#include "nsIDOMAbstractView.h"
+#include "nsIDOMViewCSS.h"
 #include "nsIDOMCSSStyleDeclaration.h"
 #include "nsIDOMCSSValue.h"
 #include "nsIDOMCSSPrimitiveValue.h"
@@ -290,10 +293,13 @@ nsContextMenuInfo::GetBackgroundImageRequestInternal(nsIDOMNode *aDOMNode, imgIR
 
   nsCOMPtr<nsIDOMDocument> document;
   domNode->GetOwnerDocument(getter_AddRefs(document));
-  NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIDOMDocumentView> docView(do_QueryInterface(document));
+  NS_ENSURE_TRUE(docView, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIDOMWindow> window;
-  document->GetDefaultView(getter_AddRefs(window));
+  nsCOMPtr<nsIDOMAbstractView> defaultView;
+  docView->GetDefaultView(getter_AddRefs(defaultView));
+  nsCOMPtr<nsIDOMViewCSS> defaultCSSView(do_QueryInterface(defaultView));
+  NS_ENSURE_TRUE(defaultCSSView, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIDOMCSSPrimitiveValue> primitiveValue;
   nsAutoString bgStringValue;
@@ -321,8 +327,8 @@ nsContextMenuInfo::GetBackgroundImageRequestInternal(nsIDOMNode *aDOMNode, imgIR
       break;
     
     nsCOMPtr<nsIDOMCSSStyleDeclaration> computedStyle;
-    window->GetComputedStyle(domElement, EmptyString(),
-                             getter_AddRefs(computedStyle));
+    defaultCSSView->GetComputedStyle(domElement, EmptyString(),
+                                     getter_AddRefs(computedStyle));
     if (computedStyle) {
       nsCOMPtr<nsIDOMCSSValue> cssValue;
       computedStyle->GetPropertyCSSValue(NS_LITERAL_STRING("background-image"),
