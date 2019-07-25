@@ -256,7 +256,7 @@ nsUnicharStreamLoader::WriteSegmentFun(nsIInputStream *,
       ++consumed;
       
       
-      consumed = PR_MAX(consumed, 0);
+      consumed = NS_MAX<PRUint32>(consumed, 0);
       self->mDecoder->Reset();
     }
   } while (consumed < aCount);

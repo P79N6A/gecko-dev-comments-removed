@@ -56,6 +56,7 @@
 
 
 
+#include "nsAlgorithm.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsIContent.h"
@@ -623,7 +624,7 @@ StackArena::Allocate(size_t aSize)
 
   
   
-  aSize = PR_ROUNDUP(aSize, 8);
+  aSize = NS_ROUNDUP<size_t>(aSize, 8);
 
   
   if (mPos + aSize >= BLOCK_INCREMENT)

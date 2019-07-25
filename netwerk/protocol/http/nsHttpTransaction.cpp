@@ -1090,8 +1090,7 @@ nsHttpTransaction::HandleContent(char *buf,
         
         if (mConnection->IsPersistent() || mPreserveStream) {
             PRInt64 remaining = mContentLength - mContentRead;
-            PRInt64 count64 = count;
-            *contentRead = PR_MIN(count64, remaining);
+            *contentRead = PRUint32(NS_MIN<PRInt64>(count, remaining));
             *contentRemaining = count - *contentRead;
         }
         else {

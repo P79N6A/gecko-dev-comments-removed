@@ -175,7 +175,7 @@ TestListener::OnDataAvailable( nsIChannel *aChannel,
         unsigned int bytesRead;
         
         rv = aStream->Read( buffer,
-                            PR_MIN( sizeof( buffer ), bytesRemaining ),
+                            NS_MIN( sizeof( buffer ), bytesRemaining ),
                             &bytesRead );
         if ( NS_SUCCEEDED( rv ) ) {
             
