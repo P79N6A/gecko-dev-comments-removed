@@ -3,6 +3,7 @@ from devicemanager import DeviceManager, DMError
 import re
 import os
 import sys
+import tempfile
 
 class DeviceManagerADB(DeviceManager):
 
@@ -13,6 +14,7 @@ class DeviceManagerADB(DeviceManager):
     self.retries = 0
     self._sock = None
     self.useRunAs = False
+    self.useZip = False
     self.packageName = None
     if packageName == None:
       if os.getenv('USER'):
@@ -30,6 +32,10 @@ class DeviceManagerADB(DeviceManager):
     except:
       self.useRunAs = False
       self.packageName = None
+    try:
+      self.verifyZip()
+    except:
+      self.useZip = False
     try:
       
       files = self.listFiles("/data/data")
@@ -104,30 +110,40 @@ class DeviceManagerADB(DeviceManager):
     
     
     
+    
     try:
-      if (not self.dirExists(remoteDir)):
-        self.mkDirs(remoteDir+"/x")
-      for root, dirs, files in os.walk(localDir, followlinks='true'):
-        relRoot = os.path.relpath(root, localDir)
-        for file in files:
-          localFile = os.path.join(root, file)
-          remoteFile = remoteDir + "/"
-          if (relRoot!="."):
-            remoteFile = remoteFile + relRoot + "/"
-          remoteFile = remoteFile + file
-          self.pushFile(localFile, remoteFile)
-        for dir in dirs:
-          targetDir = remoteDir + "/"
-          if (relRoot!="."):
-            targetDir = targetDir + relRoot + "/"
-          targetDir = targetDir + dir
-          if (not self.dirExists(targetDir)):
-            self.mkDir(targetDir)
+      if (self.useZip):
+        localZip = tempfile.mktemp()+".zip"
+        remoteZip = remoteDir + "/adbdmtmp.zip"
+        subprocess.check_output(["zip", "-r", localZip, '.'], cwd=localDir)
+        self.pushFile(localZip, remoteZip)
+        os.remove(localZip)
+        self.checkCmdAs(["shell", "unzip", "-o", remoteZip, "-d", remoteDir])
+        self.checkCmdAs(["shell", "rm", remoteZip])
+      else:
+        if (not self.dirExists(remoteDir)):
+          self.mkDirs(remoteDir+"/x")
+        for root, dirs, files in os.walk(localDir, followlinks='true'):
+          relRoot = os.path.relpath(root, localDir)
+          for file in files:
+            localFile = os.path.join(root, file)
+            remoteFile = remoteDir + "/"
+            if (relRoot!="."):
+              remoteFile = remoteFile + relRoot + "/"
+            remoteFile = remoteFile + file
+            self.pushFile(localFile, remoteFile)
+          for dir in dirs:
+            targetDir = remoteDir + "/"
+            if (relRoot!="."):
+              targetDir = targetDir + relRoot + "/"
+            targetDir = targetDir + dir
+            if (not self.dirExists(targetDir)):
+              self.mkDir(targetDir)
       self.checkCmdAs(["shell", "chmod", "777", remoteDir])
-      return True
+      return remoteDir
     except:
       print "pushing " + localDir + " to " + remoteDir + " failed"
-      return False
+      return None
 
   
   
@@ -241,11 +257,25 @@ class DeviceManagerADB(DeviceManager):
     acmd = ["shell", "am","start"]
     cmd = ' '.join(cmd).strip()
     i = cmd.find(" ")
+    
+    re_url = re.compile('^[http|file|chrome|about].*')
+    last = cmd.rfind(" ")
+    uri = ""
+    args = ""
+    if re_url.match(cmd[last:].strip()):
+      args = cmd[i:last].strip()
+      uri = cmd[last:].strip()
+    else:
+      args = cmd[i:].strip()
     acmd.append("-n")
     acmd.append(cmd[0:i] + "/.App")
     acmd.append("--es")
-    acmd.append("args")
-    acmd.append(cmd[i:])
+    if args != "":
+      acmd.append("args")
+      acmd.append(args)
+    if uri != "":
+      acmd.append("-d")
+      acmd.append(''.join(['\'',uri, '\'']));
     print acmd
     self.checkCmd(acmd)
     return outputFile;
@@ -578,3 +608,25 @@ class DeviceManagerADB(DeviceManager):
       self.checkCmd(["shell", "rm", devroot + "/tmp/tmpfile"])
       self.checkCmd(["shell", "run-as", packageName, "rm", "-r", devroot + "/sanity"])
       
+  def isUnzipAvailable(self):
+    data = self.runCmd(["shell", "unzip"]).stdout.read()
+    if (re.search('Usage', data)):
+      return True
+    else:
+      return False
+
+  def isLocalZipAvailable(self):
+    try:
+      subprocess.check_call(["zip", "-?"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except:
+      return False
+    return True
+
+  def verifyZip(self):
+    
+    
+    
+    self.useZip = False
+    if (self.isUnzipAvailable() and self.isLocalZipAvailable()):
+      print "will use zip to push directories"
+      self.useZip = True

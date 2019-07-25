@@ -110,19 +110,40 @@ def _extract(path, extdir=None, delete=False):
     If delete is set to True, deletes the bundle at path
     Returns the list of top level files that were extracted
     """
+    assert not os.path.isfile(extdir), "extdir cannot be a file"
+    if extdir is None:
+        extdir = os.path.dirname(path)
+    elif not os.path.isdir(extdir):
+        os.makedirs(extdir)
     if zipfile.is_zipfile(path):
         bundle = zipfile.ZipFile(path)
         namelist = bundle.namelist()
+        if hasattr(bundle, 'extractall'):
+            bundle.extractall(path=extdir)
+        
+        else:
+            for name in namelist:
+                filename = os.path.realpath(os.path.join(extdir, name))
+                if name.endswith("/"):
+                    os.makedirs(filename)
+                else:
+                    path = os.path.dirname(filename)
+                    if not os.path.isdir(path):
+                        os.makedirs(path)
+                    dest = open(filename, "wb")
+                    dest.write(bundle.read(name))
+                    dest.close()
     elif tarfile.is_tarfile(path):
         bundle = tarfile.open(path)
         namelist = bundle.getnames()
+        if hasattr(bundle, 'extractall'):
+            bundle.extractall(path=extdir)
+        
+        else:
+            for name in namelist:
+                bundle.extract(name, path=extdir)
     else:
         return
-    if extdir is None:
-        extdir = os.path.dirname(path)
-    elif not os.path.exists(extdir):
-        os.makedirs(extdir)
-    bundle.extractall(path=extdir)
     bundle.close()
     if delete:
         os.remove(path)
@@ -130,11 +151,10 @@ def _extract(path, extdir=None, delete=False):
     top_level_files = [os.path.join(extdir, name) for name in namelist
                              if len(name.rstrip('/').split('/')) == 1]
     
-    if mozinfo.isWin:
-        for name in namelist:
-            root = name[:name.find('/')]
-            if root not in top_level_files:
-                top_level_files.append(root)
+    for name in namelist:
+        root = os.path.join(extdir, name[:name.find('/')])
+        if root not in top_level_files:
+            top_level_files.append(root)
     return top_level_files
 
 def _install_dmg(src, dest):
