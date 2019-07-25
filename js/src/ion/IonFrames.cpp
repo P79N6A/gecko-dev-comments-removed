@@ -178,14 +178,14 @@ IonFrameIterator::checkInvalidation(IonScript **ionScriptOut) const
     
     
     IonScript *currentIonScript = script->ion;
-    bool invalidated = !currentIonScript || !currentIonScript->containsCodeAddress(returnAddr);
+    bool invalidated = !currentIonScript || !currentIonScript->containsReturnAddress(returnAddr);
     if (!invalidated)
         return false;
 
     int32 invalidationDataOffset = ((int32 *) returnAddr)[-1];
     uint8 *ionScriptDataOffset = returnAddr + invalidationDataOffset;
     IonScript *ionScript = (IonScript *) Assembler::getPointer(ionScriptDataOffset);
-    JS_ASSERT(ionScript->containsCodeAddress(returnAddr));
+    JS_ASSERT(ionScript->containsReturnAddress(returnAddr));
     *ionScriptOut = ionScript;
     return true;
 }
