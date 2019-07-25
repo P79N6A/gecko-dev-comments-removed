@@ -53,7 +53,7 @@ JS_BEGIN_EXTERN_C
 
 
 
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__xlc__) || defined(__xlC__)
 # define JSVAL_ALIGNMENT        __attribute__((aligned (8)))
 #elif defined(_MSC_VER)
   
@@ -62,6 +62,8 @@ JS_BEGIN_EXTERN_C
 
 # define JSVAL_ALIGNMENT
 #elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+# define JSVAL_ALIGNMENT
+#elif defined(__HP_cc) || defined(__HP_aCC)
 # define JSVAL_ALIGNMENT
 #endif
 
@@ -74,7 +76,7 @@ JS_BEGIN_EXTERN_C
 
 
 
-#if defined(__cplusplus) && !defined(__SUNPRO_CC)
+#if defined(__cplusplus) && !defined(__SUNPRO_CC) && !defined(__xlC__)
 
 #if defined(_MSC_VER)
 # define JS_ENUM_HEADER(id, type)              enum id : type
