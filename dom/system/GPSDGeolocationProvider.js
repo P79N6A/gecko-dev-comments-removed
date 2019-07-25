@@ -179,12 +179,7 @@ GPSDProvider.prototype = {
     LOG("watch called\n");    
     try {
         
-        
-        var bufferOption = "J=1\n";
-        this.outputStream.write(bufferOption, bufferOption.length);
-        
-        
-        var mode = "w\n";
+        var mode = '?WATCH={"enable":true,"json":true}';
         this.outputStream.write(mode, mode.length);
     } catch (e) { return; }
 
@@ -196,54 +191,57 @@ GPSDProvider.prototype = {
         var sInputStream = Cc["@mozilla.org/scriptableinputstream;1"].createInstance(Ci.nsIScriptableInputStream);
         sInputStream.init(inputStream);
 
-        var s = sInputStream.read(count);
+        var responseSentence = sInputStream.read(count);
         
-        var response = s.split('=');
+        var response = null; 
+        try {
+          response = JSON.parse(responseSentence);
+          } catch (e) { return; }
         
-        var header = response[0];
-        var info = response[1];
         
+        if (response.class != 'TPV') {
+          
+          return;
+        }
+
         
-        if (header != 'GPSD,O') {
+        if (response.mode == '1') {
           
           return;
         }
         
-        
-        if (info == '?') {
-          
-          return;
-        }
-    
-        
-        var fields = info.split(' ');
+        LOG("Got info: " + responseSentence);
+ 
         
         
-        if (fields[0] != 'RMC') {
-          return;
-        }
+        if (response.time && response.lat && response.lon
+            && response.epx && response.epy) {
+        var timestamp = response.time; 
+        var latitude = response.lat; 
+        var longitude = response.lon; 
+        var horizontalError = Math.max(response.epx,response.epy); } 
+        else { return; }
+        
+        
+        var altitude = null;
+        var verticalError = null; 
+        if (response.alt && response.epv) {
+          altitude = response.alt; 
+          verticalError = response.epv; 
+        } 
 
-        LOG("Got info: " + info);
-
-        for (var i = 0; i < fields.length; i++) {
-          if (fields[i] == '?') {
-            fields[i] = null;
-          }
-        }
-        
-        var timestamp = fields[1]; 
-        var timeError = fields[2]; 
-        var latitude = fields[3]; 
-        var longitude = fields[4]; 
-        var altitude = fields[5]; 
-        var horizontalError = fields[6]; 
-        var verticalError = fields[7]; 
-        var course = fields[8]; 
-        var speed = fields[9]; 
+        var speed = null;
+        if (response.speed) { var speed = response.speed; } 
+         
+        var course = null;
+        if (response.track) { var course = response.track; } 
         
         var geoPos = new GeoPositionObject(latitude, longitude, altitude, horizontalError, verticalError, course, speed, timestamp);
         
         c.update(geoPos);
+        LOG("Position updated:" + timestamp + "," + latitude + "," + longitude + ","
+             + horizontalError + "," + altitude + "," + verticalError + "," + course 
+             + "," + speed);
     
       }
       
