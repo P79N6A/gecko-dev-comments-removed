@@ -3361,6 +3361,18 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       return 1;
     }
 
+#if defined(HAVE_DESKTOP_STARTUP_ID) && defined(MOZ_WIDGET_GTK2)
+    
+    
+    if (!desktopStartupID.IsEmpty()) {
+      nsCAutoString desktopStartupEnv;
+      desktopStartupEnv.AssignLiteral("DESKTOP_STARTUP_ID=");
+      desktopStartupEnv.Append(desktopStartupID);
+      
+      PR_SetEnv(ToNewCString(desktopStartupEnv));
+    }
+#endif
+
 #if defined(MOZ_UPDATER) && !defined(ANDROID)
     
     nsCOMPtr<nsIFile> updRoot;
@@ -3702,6 +3714,9 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
           if (toolkit && !desktopStartupID.IsEmpty()) {
             toolkit->SetDesktopStartupID(desktopStartupID);
           }
+          
+          
+          g_unsetenv ("DESKTOP_STARTUP_ID");
 #endif
 
 #ifdef XP_MACOSX
@@ -3816,16 +3831,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
         static char kEnvVar[MAXPATHLEN];
         sprintf(kEnvVar, "XRE_BINARY_PATH=%s", gBinaryPath);
         PR_SetEnv(kEnvVar);
-      }
-#endif
-
-#if defined(HAVE_DESKTOP_STARTUP_ID) && defined(MOZ_WIDGET_GTK2)
-      if (!desktopStartupID.IsEmpty()) {
-        nsCAutoString desktopStartupEnv;
-        desktopStartupEnv.AssignLiteral("DESKTOP_STARTUP_ID=");
-        desktopStartupEnv.Append(desktopStartupID);
-        
-        PR_SetEnv(ToNewCString(desktopStartupEnv));
       }
 #endif
 
