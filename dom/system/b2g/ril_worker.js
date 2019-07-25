@@ -2493,6 +2493,9 @@ let GsmPDUHelper = {
           }
         } else if (septet == PDU_NL_EXTENDED_ESCAPE) {
           escapeFound = true;
+
+          
+          --length;
         } else {
           ret += langTable[septet];
         }
@@ -2500,6 +2503,22 @@ let GsmPDUHelper = {
     } while (byteLength);
 
     if (ret.length != length) {
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       ret = ret.slice(0, length);
     }
     return ret;
