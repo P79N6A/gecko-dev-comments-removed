@@ -5962,8 +5962,7 @@ nsGlobalWindow::GetFrames(nsIDOMWindow** aFrames)
   return NS_OK;
 }
 
-nsGlobalWindow*
-nsGlobalWindow::CallerInnerWindow()
+JSObject* nsGlobalWindow::CallerGlobal()
 {
   JSContext *cx = nsContentUtils::GetCurrentJSContext();
   if (!cx) {
@@ -5987,6 +5986,21 @@ nsGlobalWindow::CallerInnerWindow()
 
   if (!scope)
     scope = JS_GetGlobalForScopeChain(cx);
+
+  return scope;
+}
+
+nsGlobalWindow*
+nsGlobalWindow::CallerInnerWindow()
+{
+  JSContext *cx = nsContentUtils::GetCurrentJSContext();
+  if (!cx) {
+    NS_ERROR("Please don't call this method from C++!");
+
+    return nsnull;
+  }
+
+  JSObject *scope = CallerGlobal();
 
   JSAutoEnterCompartment ac;
   if (!ac.enter(cx, scope))
@@ -6310,21 +6324,30 @@ nsGlobalWindow::PostMessageMoz(const jsval& aMessage,
 
   
   nsRefPtr<nsGlobalWindow> callerInnerWin = CallerInnerWindow();
-  if (!callerInnerWin)
-    return NS_OK;
-  NS_ABORT_IF_FALSE(callerInnerWin->IsInnerWindow(),
-                    "should have gotten an inner window here");
+  nsIPrincipal* callerPrin;
+  if (callerInnerWin) {
+    NS_ABORT_IF_FALSE(callerInnerWin->IsInnerWindow(),
+                      "should have gotten an inner window here");
 
-  
-  
-  
-  
-  
-  
-  nsIPrincipal* callerPrin = callerInnerWin->GetPrincipal();
+    
+    
+    
+    
+    
+    
+    callerPrin = callerInnerWin->GetPrincipal();
+  }
+  else {
+    
+    
+    JSObject *global = CallerGlobal();
+    NS_ASSERTION(global, "Why is there no global object?");
+    JSCompartment *compartment = js::GetObjectCompartment(global);
+    callerPrin = xpc::GetCompartmentPrincipal(compartment);
+  }
   if (!callerPrin)
     return NS_OK;
-  
+
   nsCOMPtr<nsIURI> callerOuterURI;
   if (NS_FAILED(callerPrin->GetURI(getter_AddRefs(callerOuterURI))))
     return NS_OK;
@@ -6334,14 +6357,19 @@ nsGlobalWindow::PostMessageMoz(const jsval& aMessage,
     
     nsContentUtils::GetUTFOrigin(callerPrin, origin);
   }
-  else {
+  else if (callerInnerWin) {
     
-    nsCOMPtr<nsIDocument> doc = do_QueryInterface(callerInnerWin->mDocument);
+    nsCOMPtr<nsIDocument> doc = do_QueryInterface(callerInnerWin->GetExtantDocument());
     if (!doc)
       return NS_OK;
     callerOuterURI = doc->GetDocumentURI();
     
     nsContentUtils::GetUTFOrigin(callerOuterURI, origin);
+  }
+  else {
+    
+    if (!nsContentUtils::IsSystemPrincipal(callerPrin))
+      return NS_OK;
   }
 
   
@@ -6358,7 +6386,7 @@ nsGlobalWindow::PostMessageMoz(const jsval& aMessage,
   
   
   nsRefPtr<PostMessageEvent> event =
-    new PostMessageEvent(nsContentUtils::IsCallerChrome()
+    new PostMessageEvent(nsContentUtils::IsCallerChrome() || !callerInnerWin
                          ? nsnull
                          : callerInnerWin->GetOuterWindowInternal(),
                          origin,
