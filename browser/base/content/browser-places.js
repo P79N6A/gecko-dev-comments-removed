@@ -576,13 +576,13 @@ HistoryMenu.prototype = {
 
   toggleRecentlyClosedTabs: function HM_toggleRecentlyClosedTabs() {
     
-    var undoPopup = document.getElementById("historyUndoPopup");
+    var undoMenu = this._rootElt.getElementsByClassName("recentlyClosedTabsMenu")[0];
 
     
     if (this._ss.getClosedTabCount(window) == 0)
-      undoPopup.parentNode.setAttribute("disabled", true);
+      undoMenu.setAttribute("disabled", true);
     else
-      undoPopup.parentNode.removeAttribute("disabled");
+      undoMenu.removeAttribute("disabled");
   },
 
   
@@ -603,7 +603,8 @@ HistoryMenu.prototype = {
 
 
   populateUndoSubmenu: function PHM_populateUndoSubmenu() {
-    var undoPopup = document.getElementById("historyUndoPopup");
+    var undoMenu = this._rootElt.getElementsByClassName("recentlyClosedTabsMenu")[0];
+    var undoPopup = undoMenu.firstChild;
 
     
     while (undoPopup.hasChildNodes())
@@ -611,12 +612,12 @@ HistoryMenu.prototype = {
 
     
     if (this._ss.getClosedTabCount(window) == 0) {
-      undoPopup.parentNode.setAttribute("disabled", true);
+      undoMenu.setAttribute("disabled", true);
       return;
     }
 
     
-    undoPopup.parentNode.removeAttribute("disabled");
+    undoMenu.removeAttribute("disabled");
 
     
     var undoItems = eval("(" + this._ss.getClosedTabData(window) + ")");
@@ -661,20 +662,21 @@ HistoryMenu.prototype = {
 
   toggleRecentlyClosedWindows: function PHM_toggleRecentlyClosedWindows() {
     
-    let undoPopup = document.getElementById("historyUndoWindowPopup");
+    var undoMenu = this._rootElt.getElementsByClassName("recentlyClosedWindowsMenu")[0];
 
     
     if (this._ss.getClosedWindowCount() == 0)
-      undoPopup.parentNode.setAttribute("disabled", true);
+      undoMenu.setAttribute("disabled", true);
     else
-      undoPopup.parentNode.removeAttribute("disabled");
+      undoMenu.removeAttribute("disabled");
   },
 
   
 
 
   populateUndoWindowSubmenu: function PHM_populateUndoWindowSubmenu() {
-    let undoPopup = document.getElementById("historyUndoWindowPopup");
+    let undoMenu = this._rootElt.getElementsByClassName("recentlyClosedWindowsMenu")[0];
+    let undoPopup = undoMenu.firstChild;
     let menuLabelString = gNavigatorBundle.getString("menuUndoCloseWindowLabel");
     let menuLabelStringSingleTab =
       gNavigatorBundle.getString("menuUndoCloseWindowSingleTabLabel");
@@ -685,12 +687,12 @@ HistoryMenu.prototype = {
 
     
     if (this._ss.getClosedWindowCount() == 0) {
-      undoPopup.parentNode.setAttribute("disabled", true);
+      undoMenu.setAttribute("disabled", true);
       return;
     }
 
     
-    undoPopup.parentNode.removeAttribute("disabled");
+    undoMenu.removeAttribute("disabled");
 
     
     let undoItems = JSON.parse(this._ss.getClosedWindowData());
