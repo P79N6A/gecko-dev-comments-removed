@@ -2033,7 +2033,12 @@ SessionStoreService.prototype = {
 
 #ifndef XP_MACOSX
     
-    if (nonPopupCount == 0 && lastClosedWindowsCopy.length > 0) {
+    
+    
+    
+    
+    if (nonPopupCount == 0 && lastClosedWindowsCopy.length > 0 &&
+        this._loadState == STATE_QUITTING) {
       
       
       do {
