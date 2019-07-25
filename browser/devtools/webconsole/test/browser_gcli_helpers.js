@@ -5,7 +5,9 @@
 
 
 
-Components.utils.import("resource:///modules/gcli.jsm");
+let tmp = {};
+Components.utils.import("resource:///modules/gcli.jsm", tmp);
+let gcli = tmp.gcli;
 
 let hud;
 let gcliterm;
