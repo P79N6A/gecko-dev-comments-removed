@@ -46,6 +46,13 @@ registerCleanupFunction(function() {
   }
 
   
+  var windows = Services.wm.getEnumerator("Addons:Manager");
+  if (windows.hasMoreElements())
+    ok(false, "Found unexpected add-ons manager window still open");
+  while (windows.hasMoreElements())
+    windows.getNext().QueryInterface(Ci.nsIDOMWindow).close();
+
+  
   
   AddonManager.getAllInstalls(function(aInstalls) {
     aInstalls.forEach(function(aInstall) {
