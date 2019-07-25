@@ -38,6 +38,7 @@
 
 
 class gfxASurface;
+class nsIntRegion;
 class nsIntSize;
 
 namespace mozilla {
@@ -72,7 +73,8 @@ void Close();
 gfxASurface* BackBuffer();
 
 
-void Present();
+
+void Present(const nsIntRegion& aUpdated);
 
 } 
 
