@@ -162,11 +162,48 @@ JS_Assert(const char* s, const char* file, int ln);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef DEBUG
-#  define MOZ_ASSERT(expr_)                                      \
-     ((expr_) ? ((void)0) : JS_Assert(#expr_, __FILE__, __LINE__))
+   
+#  define MOZ_ASSERT_HELPER1(expr) \
+     ((expr) ? ((void)0) : JS_Assert(#expr, __FILE__, __LINE__))
+   
+#  define MOZ_ASSERT_HELPER2(expr, explain) \
+     ((expr) ? ((void)0) : JS_Assert(#expr " (" explain ")", __FILE__, __LINE__))
+   
+   
+#  define MOZ_COUNT_ASSERT_ARGS(...) \
+     MOZ_COUNT_ASSERT_ARGS_IMPL(__VA_ARGS__, 2, 1, 0)
+#  define MOZ_COUNT_ASSERT_ARGS_IMPL(_1, _2, count, ...) \
+     count
+   
+#  define MOZ_ASSERT_VAHELP2(count, ...) MOZ_ASSERT_HELPER##count(__VA_ARGS__)
+#  define MOZ_ASSERT_VAHELP(count, ...) MOZ_ASSERT_VAHELP2(count, __VA_ARGS__)
+   
+#  define MOZ_ASSERT(...) \
+     MOZ_ASSERT_VAHELP(MOZ_COUNT_ASSERT_ARGS(__VA_ARGS__), __VA_ARGS__)
 #else
-#  define MOZ_ASSERT(expr_) ((void)0)
+#  define MOZ_ASSERT(...) ((void)0)
 #endif 
 
 
