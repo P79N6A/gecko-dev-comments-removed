@@ -92,6 +92,26 @@ Decoder::Finish()
   return FinishInternal();
 }
 
+void
+Decoder::FlushInvalidations()
+{
+  
+  if (mInvalidRect.IsEmpty())
+    return;
+
+  
+  mImage->FrameUpdated(mFrameCount - 1, mInvalidRect);
+
+  
+  if (mObserver) {
+    PRBool isCurrentFrame = mImage->GetCurrentFrameIndex() == (mFrameCount - 1);
+    mObserver->OnDataAvailable(nsnull, isCurrentFrame, &mInvalidRect);
+  }
+
+  
+  mInvalidRect.Empty();
+}
+
 
 
 
@@ -126,6 +146,11 @@ Decoder::PostFrameStart()
   NS_ABORT_IF_FALSE(!mInFrame, "Starting new frame but not done with old one!");
 
   
+  
+  NS_ABORT_IF_FALSE(mInvalidRect.IsEmpty(),
+                    "Start image frame with non-empty invalidation region!");
+
+  
   mFrameCount++;
   mInFrame = true;
 
@@ -152,6 +177,19 @@ Decoder::PostFrameStop()
   
   if (mObserver)
     mObserver->OnStopFrame(nsnull, mFrameCount - 1); 
+}
+
+void
+Decoder::PostInvalidation(nsIntRect& aRect)
+{
+  
+  NS_ABORT_IF_FALSE(mInFrame, "Can't invalidate when not mid-frame!");
+
+  
+  mInvalidRect.UnionRect(mInvalidRect, aRect);
+
+  
+  FlushInvalidations();
 }
 
 } 

@@ -87,6 +87,11 @@ public:
   nsresult Finish();
 
   
+
+
+  void FlushInvalidations();
+
+  
   NS_INLINE_DECL_REFCOUNTING(Decoder)
 
   
@@ -130,6 +135,9 @@ protected:
   void PostFrameStart();
   void PostFrameStop();
 
+  
+  
+  void PostInvalidation(nsIntRect& aRect);
 
   
 
@@ -140,6 +148,8 @@ protected:
   nsCOMPtr<imgIDecoderObserver> mObserver;
 
   PRUint32 mFrameCount; 
+
+  nsIntRect mInvalidRect; 
 
   bool mInitialized;
   bool mSizeDecode;
