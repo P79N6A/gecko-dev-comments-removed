@@ -97,10 +97,6 @@ public:
   nsHTMLAreaAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
-
-  NS_IMETHOD GetBounds(PRInt32 *x, PRInt32 *y, PRInt32 *width, PRInt32 *height);
-
-  
   virtual bool IsPrimaryForNode() const;
 
   
@@ -118,6 +114,7 @@ protected:
 
   
   virtual void CacheChildren();
+  virtual void GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame);
 };
 
 #endif  

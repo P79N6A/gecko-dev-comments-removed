@@ -494,7 +494,9 @@ function ensureImageMapTree(aID)
   
   
   
-  synthesizeMouse(getNode(aID), 10, 10, { type: "mousemove" });
+  var image = getNode(aID);
+  synthesizeMouse(image, 10, 10, { type: "mousemove" },
+                  image.ownerDocument.defaultView);
 
   
   
