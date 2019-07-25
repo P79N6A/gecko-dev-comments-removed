@@ -245,8 +245,9 @@ var Browser = {
       let { x: x2, y: y2 } = Browser.getScrollboxPosition(Browser.pageScrollboxScroller);
       let [,, leftWidth, rightWidth] = Browser.computeSidebarVisibility();
 
-      let shouldHideSidebars = Browser.controlsPosition ? Browser.controlsPosition.hideSidebars : true;
-      Browser.controlsPosition = { x: x1, y: y2, hideSidebars: shouldHideSidebars,
+      
+      let hiddenSidebars = Browser.controlsPosition ? Browser.controlsPosition.hiddenSidebars : 0;
+      Browser.controlsPosition = { x: x1, y: y2, hiddenSidebars: hiddenSidebars,
                                    leftSidebar: leftWidth, rightSidebar: rightWidth };
     }, true);
 
@@ -276,8 +277,12 @@ var Browser = {
       ViewableAreaObserver.update();
 
       
-      let restorePosition = Browser.controlsPosition || { hideSidebars: true };
-      if (restorePosition.hideSidebars) {
+      let restorePosition = Browser.controlsPosition || { hiddenSidebars: 0 };
+
+      
+      
+      
+      if (restorePosition.hiddenSidebars < 2) {
         
         
         let x = {}, y = {};
@@ -285,7 +290,7 @@ var Browser = {
         Browser.controlsScrollboxScroller.getPosition(x, y);
         if (x.value > 0) {
           
-          restorePosition.hideSidebars = false;
+          restorePosition.hiddenSidebars++;
           restorePosition.x = x.value;
         }
       } else {
