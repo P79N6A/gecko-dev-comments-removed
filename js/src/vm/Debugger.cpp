@@ -261,28 +261,6 @@ BreakpointSite::BreakpointSite(JSScript *script, jsbytecode *pc)
     JS_INIT_CLIST(&breakpoints);
 }
 
-
-
-
-
-static GlobalObject *
-ScriptGlobal(JSContext *cx, JSScript *script, GlobalObject *scriptGlobal)
-{
-    if (scriptGlobal)
-        return scriptGlobal;
-
-    
-
-
-
-    for (AllFramesIter i(cx->stack.space()); ; ++i) {
-        JS_ASSERT(!i.done());
-        if (i.fp()->maybeScript() == script)
-            return &i.fp()->global();
-    }
-    JS_NOT_REACHED("ScriptGlobal: live non-held script not on stack");
-}
-
 void
 BreakpointSite::recompile(FreeOp *fop)
 {
@@ -1137,6 +1115,18 @@ Debugger::onTrap(JSContext *cx, Value *vp)
         
         if (!site || !site->hasBreakpoint(bp))
             continue;
+
+
+        
+
+
+
+
+
+
+
+
+
 
         Debugger *dbg = bp->debugger;
         if (dbg->enabled && dbg->debuggees.lookup(scriptGlobal)) {
@@ -2832,6 +2822,26 @@ DebuggerScript_getLineOffsets(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+bool
+Debugger::observesScript(JSScript *script) const
+{
+    if (!enabled)
+        return false;
+
+    
+    if (GlobalObject *global = script->getGlobalObjectOrNull())
+        return observesGlobal(global);
+
+    
+    JSCompartment *comp = script->compartment();
+    for (GlobalObjectSet::Range r = debuggees.all(); !r.empty(); r.popFront()) {
+        if (r.front()->compartment() == comp)
+            return true;
+    }
+
+    return false;
+}
+
 static JSBool
 DebuggerScript_setBreakpoint(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -2839,8 +2849,7 @@ DebuggerScript_setBreakpoint(JSContext *cx, unsigned argc, Value *vp)
     THIS_DEBUGSCRIPT_SCRIPT(cx, argc, vp, "setBreakpoint", args, obj, script);
     Debugger *dbg = Debugger::fromChildJSObject(obj);
 
-    RootedVar<GlobalObject*> scriptGlobal(cx, script->getGlobalObjectOrNull());
-    if (!dbg->observesGlobal(ScriptGlobal(cx, script, scriptGlobal))) {
+    if (!dbg->observesScript(script)) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_DEBUGGING);
         return false;
     }
@@ -2854,6 +2863,7 @@ DebuggerScript_setBreakpoint(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     jsbytecode *pc = script->code + offset;
+    RootedVar<GlobalObject *> scriptGlobal(cx, script->getGlobalObjectOrNull());
     BreakpointSite *site = script->getOrCreateBreakpointSite(cx, pc, scriptGlobal);
     if (!site)
         return false;

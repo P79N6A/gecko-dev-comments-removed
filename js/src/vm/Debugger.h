@@ -283,6 +283,7 @@ class Debugger {
     inline bool observesNewScript() const;
     inline bool observesGlobal(GlobalObject *global) const;
     inline bool observesFrame(StackFrame *fp) const;
+    bool observesScript(JSScript *script) const;
 
     
 
