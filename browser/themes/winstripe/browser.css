@@ -896,7 +896,7 @@ toolbar[mode=full] .toolbarbutton-1 > .toolbarbutton-menubutton-button {
 
 @conditionalForwardWithUrlbar@ > #forward-button > .toolbarbutton-icon {
   
-  mask: url(chrome://browser/content/browser.xul#winstripe-keyhole-forward-mask);
+  clip-path: url(chrome://browser/content/browser.xul#winstripe-keyhole-forward-clip-path);
   -moz-margin-start: -6px !important;
   border-left-style: none;
   border-radius: 0;
@@ -1258,7 +1258,7 @@ toolbar[mode=full] .toolbarbutton-1 > .toolbarbutton-menubutton-button {
 }
 
 @conditionalForwardWithUrlbar@[forwarddisabled] + #urlbar-container {
-  mask: url("chrome://browser/content/browser.xul#winstripe-urlbar-back-button-mask");
+  clip-path: url("chrome://browser/content/browser.xul#winstripe-urlbar-back-button-clip-path");
 }
 
 @conditionalForwardWithUrlbar@[forwarddisabled] + #urlbar-container > #urlbar {
