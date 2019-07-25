@@ -360,6 +360,16 @@ protected:
 
 
 
+
+  void ReportLoadError(const char* aMsg,
+                       const PRUnichar** aParams = nsnull,
+                       PRUint32 aParamCount = 0);
+
+  
+
+
+
+
   void SetPlayedOrSeeked(bool aValue);
 
   
