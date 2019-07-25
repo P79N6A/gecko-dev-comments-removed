@@ -1356,17 +1356,18 @@ WeaveSvc.prototype = {
 
 
 
-  wipeServer: function WeaveSvc_wipeServer(engines)
+  wipeServer: function WeaveSvc_wipeServer(collections)
     this._catch(this._notify("wipe-server", "", function() {
-      
-      let info = new Resource(this.infoURL).get();
-      for (let name in info.obj) {
+      if (!collections) {
+        collections = [];
+        let info = new Resource(this.infoURL).get();
+        for (let name in info.obj)
+          collections.push(name);
+      }
+      for each (let name in collections) {
         try {
-          
-          if (engines && engines.indexOf(name) == -1)
-            continue;
-
           new Resource(this.storageURL + name).delete();
+          new Resource(this.storageURL + "crypto/" + name).delete();
         }
         catch(ex) {
           this._log.debug("Exception on wipe of '" + name + "': " + Utils.exceptionStr(ex));
