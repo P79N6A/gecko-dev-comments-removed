@@ -1,0 +1,97 @@
+
+
+
+
+
+
+#ifndef mozilla_dom_file_domarchivereader_h__
+#define mozilla_dom_file_domarchivereader_h__
+
+#include "nsIDOMArchiveReader.h"
+#include "nsIJSNativeInitializer.h"
+
+#include "FileCommon.h"
+
+#include "nsCOMArray.h"
+#include "nsIChannel.h"
+#include "nsIDOMFile.h"
+
+
+BEGIN_FILE_NAMESPACE
+
+class ArchiveRequest;
+
+class ArchiveReader : public nsIDOMArchiveReader,
+                      public nsIJSNativeInitializer
+{
+public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+
+  NS_DECL_NSIDOMARCHIVEREADER
+
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(ArchiveReader,
+                                           nsIDOMArchiveReader)
+
+  ArchiveReader();
+
+  
+  NS_IMETHOD Initialize(nsISupports* aOwner,
+                        JSContext* aCx,
+                        JSObject* aObj,
+                        PRUint32 aArgc,
+                        jsval* aArgv);
+
+  nsresult GetInputStream(nsIInputStream** aInputStream);
+  nsresult GetSize(PRUint64* aSize);
+
+public: 
+  nsresult RegisterRequest(ArchiveRequest* aRequest);
+
+public: 
+  void Ready(nsTArray<nsCOMPtr<nsIDOMFile> >& aFileList,
+             nsresult aStatus);
+
+private:
+  ~ArchiveReader();
+
+  already_AddRefed<ArchiveRequest> GenerateArchiveRequest();
+
+  nsresult OpenArchive();
+
+  void RequestReady(ArchiveRequest* aRequest);
+
+protected:
+  
+  nsCOMPtr<nsIDOMBlob> mBlob;
+
+  
+  nsCOMPtr<nsIDOMWindow> mWindow;
+
+  
+  enum {
+    NOT_STARTED = 0,
+    WORKING,
+    READY
+  } mStatus;
+
+  
+  enum {
+    Header, 
+    Name,   
+    Data,   
+    Search  
+  } mReadStatus;
+
+  
+  nsTArray<nsRefPtr<ArchiveRequest> > mRequests;
+
+  
+  struct {
+    nsTArray<nsCOMPtr<nsIDOMFile> > fileList;
+    nsresult status;
+  } mData;
+};
+
+END_FILE_NAMESPACE
+
+#endif 

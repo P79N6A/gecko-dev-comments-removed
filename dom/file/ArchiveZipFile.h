@@ -1,0 +1,69 @@
+
+
+
+
+
+
+#ifndef mozilla_dom_file_domarchivefile_h__
+#define mozilla_dom_file_domarchivefile_h__
+
+#include "nsDOMFile.h"
+
+#include "ArchiveReader.h"
+
+#include "FileCommon.h"
+#include "zipstruct.h"
+
+BEGIN_FILE_NAMESPACE
+
+class ArchiveZipFile : public nsDOMFileCC
+{
+public:
+  ArchiveZipFile(const nsAString& aName,
+                 const nsAString& aContentType,
+                 PRUint64 aLength,
+                 ZipCentral& aCentral,
+                 ArchiveReader* aReader)
+  : nsDOMFileCC(aName, aContentType, aLength),
+    mCentral(aCentral),
+    mArchiveReader(aReader),
+    mFilename(aName)
+  {
+    NS_ASSERTION(mArchiveReader, "must have a reader");
+  }
+
+  ArchiveZipFile(const nsAString& aName,
+                 const nsAString& aContentType,
+                 PRUint64 aStart,
+                 PRUint64 aLength,
+                 ZipCentral& aCentral,
+                 ArchiveReader* aReader)
+  : nsDOMFileCC(aContentType, aStart, aLength),
+    mCentral(aCentral),
+    mArchiveReader(aReader),
+    mFilename(aName)
+  {
+    NS_ASSERTION(mArchiveReader, "must have a reader");
+  }
+
+  
+  NS_IMETHOD GetInternalStream(nsIInputStream**);
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(ArchiveZipFile, nsIDOMFile)
+
+protected:
+  virtual already_AddRefed<nsIDOMBlob> CreateSlice(PRUint64 aStart,
+                                                   PRUint64 aLength,
+                                                   const nsAString& aContentType);
+
+private: 
+  ZipCentral mCentral;
+  nsRefPtr<ArchiveReader> mArchiveReader;
+
+  nsString mFilename;
+};
+
+END_FILE_NAMESPACE
+
+#endif 
