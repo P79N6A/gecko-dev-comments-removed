@@ -82,7 +82,7 @@ function readBytesFromInputStream(inputStream, count) {
 
 
 
-function ServerWBO(id, initialPayload) {
+function ServerWBO(id, initialPayload, modified) {
   if (!id) {
     throw "No ID for ServerWBO!";
   }
@@ -95,7 +95,7 @@ function ServerWBO(id, initialPayload) {
     initialPayload = JSON.stringify(initialPayload);
   }
   this.payload = initialPayload;
-  this.modified = new_timestamp();
+  this.modified = modified || new_timestamp();
 }
 ServerWBO.prototype = {
 
@@ -273,8 +273,10 @@ ServerCollection.prototype = {
 
 
 
-  insert: function insert(id, payload) {
-    return this.insertWBO(new ServerWBO(id, payload));
+
+
+  insert: function insert(id, payload, modified) {
+    return this.insertWBO(new ServerWBO(id, payload, modified));
   },
 
   _inResultSet: function(wbo, options) {
@@ -612,6 +614,14 @@ SyncServer.prototype = {
   
 
 
+
+
+
+
+
+
+
+
   registerUser: function registerUser(username, password) {
     if (username in this.users) {
       throw new Error("User already exists.");
@@ -620,6 +630,7 @@ SyncServer.prototype = {
       password: password,
       collections: {}
     };
+    return this.user(username);
   },
 
   userExists: function userExists(username) {
