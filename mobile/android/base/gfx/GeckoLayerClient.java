@@ -69,6 +69,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
     private IntSize mScreenSize;
     private IntSize mWindowSize;
     private RectF mDisplayPort;
+    private RectF mReturnDisplayPort;
 
     private VirtualLayer mRootLayer;
 
@@ -102,6 +103,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
         mLayerRenderer = new LayerRenderer(view);
 
         GeckoAppShell.registerGeckoEventListener("Viewport:Update", this);
+        GeckoAppShell.registerGeckoEventListener("Viewport:CalculateDisplayPort", this);
 
         view.setListener(this);
         view.setLayerRenderer(mLayerRenderer);
@@ -187,11 +189,9 @@ public class GeckoLayerClient implements GeckoEventResponder,
         GeckoAppShell.viewSizeChanged();
     }
 
-    private void updateDisplayPort() {
+    private static RectF calculateDisplayPort(ImmutableViewportMetrics metrics) {
         float desiredXMargins = 2 * DEFAULT_DISPLAY_PORT_MARGIN;
         float desiredYMargins = 2 * DEFAULT_DISPLAY_PORT_MARGIN;
-
-        ImmutableViewportMetrics metrics = mLayerController.getViewportMetrics(); 
 
         
         
@@ -244,11 +244,10 @@ public class GeckoLayerClient implements GeckoEventResponder,
         
         
         
-
-        mDisplayPort.left = metrics.viewportRectLeft - leftMargin;
-        mDisplayPort.top = metrics.viewportRectTop - topMargin;
-        mDisplayPort.right = metrics.viewportRectRight + rightMargin;
-        mDisplayPort.bottom = metrics.viewportRectBottom + bottomMargin;
+        return new RectF(metrics.viewportRectLeft - leftMargin,
+                         metrics.viewportRectTop - topMargin,
+                         metrics.viewportRectRight + rightMargin,
+                         metrics.viewportRectBottom + bottomMargin);
     }
 
     private void adjustViewport() {
@@ -257,14 +256,14 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
         viewportMetrics.setViewport(viewportMetrics.getClampedViewport());
 
-        updateDisplayPort();
+        mDisplayPort = calculateDisplayPort(mLayerController.getViewportMetrics());
         GeckoAppShell.sendEventToGecko(GeckoEvent.createViewportEvent(viewportMetrics, mDisplayPort));
     }
 
     
     public void handleMessage(String event, JSONObject message) {
-        if ("Viewport:Update".equals(event)) {
-            try {
+        try {
+            if ("Viewport:Update".equals(event)) {
                 ViewportMetrics newMetrics = new ViewportMetrics(message);
                 synchronized (mLayerController) {
                     
@@ -272,10 +271,15 @@ public class GeckoLayerClient implements GeckoEventResponder,
                     newMetrics.setSize(oldMetrics.getSize());
                     mLayerController.setViewportMetrics(newMetrics);
                     mLayerController.abortPanZoomAnimation(false);
+                    mDisplayPort = calculateDisplayPort(mLayerController.getViewportMetrics());
+                    mReturnDisplayPort = mDisplayPort;
                 }
-            } catch (JSONException e) {
-                Log.e(LOGTAG, "Unable to create viewport metrics in " + event + " handler", e);
+            } else if ("Viewport:CalculateDisplayPort".equals(event)) {
+                ImmutableViewportMetrics newMetrics = new ImmutableViewportMetrics(new ViewportMetrics(message));
+                mReturnDisplayPort = calculateDisplayPort(newMetrics);
             }
+        } catch (JSONException e) {
+            Log.e(LOGTAG, "Unable to create viewport metrics in " + event + " handler", e);
         }
     }
 
@@ -285,8 +289,15 @@ public class GeckoLayerClient implements GeckoEventResponder,
         
         
         
-        updateDisplayPort();
-        return RectUtils.toJSON(mDisplayPort);
+        
+        if (mReturnDisplayPort == null) {
+            return "";
+        }
+        try {
+            return RectUtils.toJSON(mReturnDisplayPort);
+        } finally {
+            mReturnDisplayPort = null;
+        }
     }
 
     void geometryChanged() {

@@ -1664,12 +1664,22 @@ Tab.prototype = {
   },
 
   sendViewportUpdate: function() {
-    if (BrowserApp.selectedTab != this)
-      return;
-    if (!BrowserApp.isBrowserContentDocumentDisplayed())
-      return;
-    let message = this.getViewport();
-    message.type = "Viewport:Update";
+    let message;
+    if (BrowserApp.selectedTab == this) {
+      
+      
+      if (!BrowserApp.isBrowserContentDocumentDisplayed())
+        return;
+      message = this.getViewport();
+      message.type = "Viewport:Update";
+    } else {
+      
+      
+      
+      
+      message = this.getViewport();
+      message.type = "Viewport:CalculateDisplayPort";
+    }
     let displayPort = sendMessageToJava({ gecko: message });
     if (displayPort != null)
       this.setDisplayPort(message.x, message.y, JSON.parse(displayPort));
