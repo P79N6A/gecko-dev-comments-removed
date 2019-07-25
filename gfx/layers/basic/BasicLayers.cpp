@@ -1267,22 +1267,22 @@ TransformIntRect(nsIntRect& aRect, const gfxMatrix& aMatrix,
 
 
 
+enum {
+    ALLOW_OPAQUE = 0x01,
+};
 static void
-MarkLeafLayersHidden(Layer* aLayer, const nsIntRect& aClipRect,
-                     const nsIntRect& aDirtyRect,
-                     nsIntRegion& aOpaqueRegion)
+MarkLayersHidden(Layer* aLayer, const nsIntRect& aClipRect,
+                 const nsIntRect& aDirtyRect,
+                 nsIntRegion& aOpaqueRegion,
+                 PRUint32 aFlags)
 {
-  Layer* child = aLayer->GetLastChild();
-  BasicImplData* data = ToData(aLayer);
-  data->SetHidden(PR_FALSE);
-
   nsIntRect newClipRect(aClipRect);
+  PRUint32 newFlags = aFlags;
 
-  
   
   
   if (aLayer->GetOpacity() != 1.0f) {
-    newClipRect.SetRect(0, 0, 0, 0);
+    newFlags &= ~ALLOW_OPAQUE;
   }
 
   {
@@ -1305,9 +1305,12 @@ MarkLeafLayersHidden(Layer* aLayer, const nsIntRect& aClipRect,
     }
   }
 
+  BasicImplData* data = ToData(aLayer);
+  Layer* child = aLayer->GetLastChild();
   if (!child) {
     gfxMatrix transform;
     if (!aLayer->GetEffectiveTransform().Is2D(&transform)) {
+      data->SetHidden(PR_FALSE);
       return;
     }
 
@@ -1319,24 +1322,26 @@ MarkLeafLayersHidden(Layer* aLayer, const nsIntRect& aClipRect,
 
     
     
-    if (!(aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE)) {
-      return;
-    }
+    if ((aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
+        (newFlags & ALLOW_OPAQUE)) {
+      nsIntRegionRectIterator it(region);
+      while (const nsIntRect* sr = it.Next()) {
+        r = *sr;
+        TransformIntRect(r, transform, ToInsideIntRect);
 
-    nsIntRegionRectIterator it(region);
-    while (const nsIntRect* sr = it.Next()) {
-      r = *sr;
-      TransformIntRect(r, transform, ToInsideIntRect);
-
-      r.IntersectRect(r, newClipRect);
-      if (!r.IsEmpty()) {
+        r.IntersectRect(r, newClipRect);
         aOpaqueRegion.Or(aOpaqueRegion, r);
       }
     }
   } else {
+    PRBool allHidden = PR_TRUE;
     for (; child; child = child->GetPrevSibling()) {
-      MarkLeafLayersHidden(child, newClipRect, aDirtyRect, aOpaqueRegion);
+      MarkLayersHidden(child, newClipRect, aDirtyRect, aOpaqueRegion, newFlags);
+      if (!ToData(child)->IsHidden()) {
+        allHidden = PR_FALSE;
+      }
     }
+    data->SetHidden(allHidden);
   }
 }
 
@@ -1388,7 +1393,7 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
     
     if (IsRetained()) {
       nsIntRegion region;
-      MarkLeafLayersHidden(mRoot, clipRect, clipRect, region);
+      MarkLayersHidden(mRoot, clipRect, clipRect, region, ALLOW_OPAQUE);
     }
 
     nsRefPtr<gfxContext> finalTarget = mTarget;
