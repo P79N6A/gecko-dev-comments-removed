@@ -758,10 +758,10 @@ nsSMILTimedElement::Rewind()
                     mSeekState == SEEK_BACKWARD_FROM_ACTIVE,
                     "Rewind in the middle of a forwards seek?");
 
-  ClearIntervals();
   
   
   mElementState = STATE_STARTUP;
+  ClearIntervals();
 
   UnsetBeginSpec(RemoveNonDynamic);
   UnsetEndSpec(RemoveNonDynamic);
@@ -784,6 +784,8 @@ nsSMILTimedElement::Rewind()
 
   mPrevRegisteredMilestone = sMaxMilestone;
   RegisterMilestone();
+  NS_ABORT_IF_FALSE(!mCurrentInterval,
+                    "Current interval is set at end of rewind");
 }
 
 namespace
@@ -1332,7 +1334,9 @@ nsSMILTimedElement::ClearSpecs(TimeValueSpecList& aSpecs,
 void
 nsSMILTimedElement::ClearIntervals()
 {
-  mElementState = STATE_POSTACTIVE;
+  if (mElementState != STATE_STARTUP) {
+    mElementState = STATE_POSTACTIVE;
+  }
   mCurrentRepeatIteration = 0;
   ResetCurrentInterval();
 
@@ -1690,8 +1694,9 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
       
       
       
+      
       PRBool openEndedIntervalOk = mEndSpecs.IsEmpty() ||
-                                   mEndInstances.IsEmpty() ||
+                                   !HaveResolvedEndTimes() ||
                                    EndHasEventConditions();
       if (!tempEnd && !openEndedIntervalOk)
         return PR_FALSE; 
@@ -2246,6 +2251,17 @@ nsSMILTimedElement::GetPreviousInterval() const
   return mOldIntervals.IsEmpty()
     ? nsnull
     : mOldIntervals[mOldIntervals.Length()-1].get();
+}
+
+PRBool
+nsSMILTimedElement::HaveResolvedEndTimes() const
+{
+  if (mEndInstances.IsEmpty())
+    return PR_FALSE;
+
+  
+  
+  return mEndInstances[0]->Time().IsResolved();
 }
 
 PRBool

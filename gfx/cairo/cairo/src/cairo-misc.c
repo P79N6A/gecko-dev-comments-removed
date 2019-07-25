@@ -483,7 +483,7 @@ _cairo_operator_bounded_by_either (cairo_operator_t op)
 
 }
 
-#if DISABLE_SOME_FLOATING_POINT
+#if DISABLE_SOME_FLOATING_POINT || __STDC_VERSION__ < 199901L
 
 
 

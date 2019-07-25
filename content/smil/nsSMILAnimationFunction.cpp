@@ -478,6 +478,21 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
   if (calcMode == CALC_DISCRETE || NS_FAILED(rv)) {
     double scaledSimpleProgress =
       ScaleSimpleProgress(simpleProgress, CALC_DISCRETE);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    static const double kFloatingPointFudgeFactor = 1.0e-16;
+    if (scaledSimpleProgress + kFloatingPointFudgeFactor <= 1.0) {
+      scaledSimpleProgress += kFloatingPointFudgeFactor;
+    }
+
     if (IsToAnimation()) {
       
       
