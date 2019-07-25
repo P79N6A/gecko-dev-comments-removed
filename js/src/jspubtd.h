@@ -162,10 +162,11 @@ typedef struct JSCompartment     JSCompartment;
 
 
 
+#if defined(__cplusplus) || !defined(_MSC_VER)
 typedef enum JSValueMask16 
-#if defined(_MSC_VER)
+# if defined(_MSC_VER)
                            : uint16
-#endif
+# endif
 {
     JSVAL_MASK16_NULL      = (uint16)0x0001,
     JSVAL_MASK16_UNDEFINED = (uint16)0x0002,
@@ -188,10 +189,30 @@ typedef enum JSValueMask16
 
     JSVAL_NANBOX_PATTERN   = ((uint16)0xFFFF)
 }
-#if defined(__GNUC__)
+# if defined(__GNUC__)
 __attribute__((packed))
-#endif
+# endif
 JSValueMask16;
+#else
+
+
+typedef uint16 JSValueMask16;
+
+#define JSVAL_MASK16_NULL      ((uint16)0x0001)
+#define JSVAL_MASK16_UNDEFINED ((uint16)0x0002)
+#define JSVAL_MASK16_INT32     ((uint16)0x0004)
+#define JSVAL_MASK16_STRING    ((uint16)0x0008)
+#define JSVAL_MASK16_NONFUNOBJ ((uint16)0x0010)
+#define JSVAL_MASK16_FUNOBJ    ((uint16)0x0020)
+#define JSVAL_MASK16_BOOLEAN   ((uint16)0x0040)
+#define JSVAL_MASK16_MAGIC     ((uint16)0x0080)
+#define JSVAL_MASK16_SINGLETON (JSVAL_MASK16_NULL | JSVAL_MASK16_UNDEFINED)
+#define JSVAL_MASK16_OBJECT    (JSVAL_MASK16_NONFUNOBJ | JSVAL_MASK16_FUNOBJ)
+#define JSVAL_MASK16_OBJORNULL (JSVAL_MASK16_OBJECT | JSVAL_MASK16_NULL)
+#define JSVAL_MASK16_GCTHING   (JSVAL_MASK16_OBJECT | JSVAL_MASK16_STRING)
+#define JSVAL_NANBOX_PATTERN   ((uint16)0xFFFF)
+
+#endif
 
 #define JSVAL_MASK32_CLEAR      ((uint32)0xFFFF0000)
 
@@ -1130,14 +1151,14 @@ static inline JSEqualityOp     Jsvalify(EqualityOp f);
 }  
 
 typedef js::Class JSFunctionClassType;
+extern "C" JS_FRIEND_DATA(JSFunctionClassType) js_FunctionClass;
 
 #else  
 
 typedef JSClass JSFunctionClassType;
+extern JS_FRIEND_DATA(JSFunctionClassType) js_FunctionClass;
 
 #endif 
-
-extern JS_FRIEND_DATA(JSFunctionClassType) js_FunctionClass;
 
 typedef struct JSPretendObject
 {
