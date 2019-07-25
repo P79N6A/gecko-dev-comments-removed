@@ -223,6 +223,22 @@ AddonSearchResult.prototype = {
   
 
 
+  purchaseURL: null,
+
+  
+
+
+
+  purchaseAmount: null,
+
+  
+
+
+  purchaseDisplayAmount: null,
+
+  
+
+
   averageRating: null,
 
   
@@ -281,6 +297,12 @@ AddonSearchResult.prototype = {
 
 
   isCompatible: true,
+
+  
+
+
+
+  isPlatformCompatible: true,
 
   
 
@@ -928,6 +950,17 @@ var AddonRepository = {
             addon.contributionAmount = suggestedAmount;
           }
           break
+        case "payment_data":
+          let link = this._getDescendantTextContent(node, "link");
+          let amountTag = this._getUniqueDescendant(node, "amount");
+          let amount = parseFloat(amountTag.getAttribute("amount"));
+          let displayAmount = this._getTextContent(amountTag);
+          if (link != null && amount != null && displayAmount != null) {
+            addon.purchaseURL = link;
+            addon.purchaseAmount = amount;
+            addon.purchaseDisplayAmount = displayAmount;
+          }
+          break
         case "rating":
           let averageRating = parseInt(this._getTextContent(node));
           if (averageRating >= 0)
@@ -945,6 +978,13 @@ var AddonRepository = {
           let repositoryStatus = parseInt(node.getAttribute("id"));
           if (!isNaN(repositoryStatus))
             addon.repositoryStatus = repositoryStatus;
+          break;
+        case "all_compatible_os":
+          let nodes = node.getElementsByTagName("os");
+          addon.isPlatformCompatible = Array.some(nodes, function(aNode) {
+            let text = aNode.textContent.toLowerCase().trim();
+            return text == "all" || text == Services.appinfo.OS.toLowerCase();
+          });
           break;
         case "install":
           
@@ -1031,7 +1071,12 @@ var AddonRepository = {
         continue;
 
       
-      if (!result.xpiURL)
+      if (!result.addon.isPlatformCompatible)
+        continue;
+
+      
+      
+      if (!result.xpiURL && !result.addon.purchaseURL)
         continue;
 
       results.push(result);
@@ -1057,9 +1102,14 @@ var AddonRepository = {
           self._reportSuccess(results, aTotalResults);
       }
 
-      AddonManager.getInstallForURL(aResult.xpiURL, callback,
-                                    "application/x-xpinstall", aResult.xpiHash,
-                                    addon.name, addon.iconURL, addon.version);
+      if (aResult.xpiURL) {
+        AddonManager.getInstallForURL(aResult.xpiURL, callback,
+                                      "application/x-xpinstall", aResult.xpiHash,
+                                      addon.name, addon.iconURL, addon.version);
+      }
+      else {
+        callback(null);
+      }
     });
   },
 
