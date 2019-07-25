@@ -6,6 +6,7 @@
 #define nsHtml5Atom_h_
 
 #include "nsIAtom.h"
+#include "mozilla/Attributes.h"
 
 
 
@@ -14,7 +15,7 @@
 
 
 
-class nsHtml5Atom : public nsIAtom
+class nsHtml5Atom MOZ_FINAL : public nsIAtom
 {
   public:
     NS_DECL_ISUPPORTS
