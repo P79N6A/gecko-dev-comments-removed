@@ -98,6 +98,9 @@ let gBrowserThumbnails = {
   },
 
   _shouldCapture: function Thumbnails_shouldCapture(aBrowser) {
+    if (gPrivateBrowsingUI.privateBrowsingEnabled)
+      return false;
+
     let doc = aBrowser.contentDocument;
 
     
