@@ -251,8 +251,9 @@ struct PropertyTable {
 
 
 
-    bool            init(JSContext *cx, js::Shape *lastProp);
-    bool            change(JSContext *cx, int change);
+
+    bool            init(js::Shape *lastProp, JSContext *cx);
+    bool            change(int log2Delta, JSContext *cx);
     js::Shape       **search(jsid id, bool adding);
 };
 
