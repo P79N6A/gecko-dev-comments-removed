@@ -711,8 +711,11 @@ NS_METHOD nsWindow::Destroy()
   
   
   
-  if (PR_FALSE == mOnDestroyCalled)
+  if (PR_FALSE == mOnDestroyCalled) {
+    LRESULT result;
+    mWindowHook.Notify(mWnd, WM_DESTROY, 0, 0, &result);
     OnDestroy();
+  }
 
   return NS_OK;
 }
