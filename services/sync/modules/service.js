@@ -70,7 +70,9 @@ Cu.import("resource://weave/constants.js");
 Cu.import("resource://weave/util.js");
 Cu.import("resource://weave/wrap.js");
 Cu.import("resource://weave/faultTolerance.js");
-Cu.import("resource://weave/crypto.js");
+Cu.import("resource://weave/auth.js");
+Cu.import("resource://weave/resource.js");
+Cu.import("resource://weave/base_records/keys.js");
 Cu.import("resource://weave/engines.js");
 Cu.import("resource://weave/oauth.js");
 Cu.import("resource://weave/identity.js");
@@ -92,7 +94,9 @@ Cu.import("resource://weave/constants.js", Weave);
 Cu.import("resource://weave/util.js", Weave);
 Cu.import("resource://weave/async.js", Weave);
 Cu.import("resource://weave/faultTolerance.js", Weave);
-Cu.import("resource://weave/crypto.js", Weave);
+Cu.import("resource://weave/auth.js", Weave);
+Cu.import("resource://weave/resource.js", Weave);
+Cu.import("resource://weave/base_records/keys.js", Weave);
 Cu.import("resource://weave/notifications.js", Weave);
 Cu.import("resource://weave/identity.js", Weave);
 Cu.import("resource://weave/clientData.js", Weave);
@@ -116,23 +120,7 @@ Utils.lazy(Weave, 'Service', WeaveSvc);
 
 
 
-function WeaveSvc() {
-  this._initLogs();
-  this._log.info("Weave Sync Service Initializing");
-
-  
-  ID.set('WeaveID', new Identity('Mozilla Services Password', this.username));
-  ID.set('WeaveCryptoID',
-         new Identity('Mozilla Services Encryption Passphrase', this.username));
-
-  
-  Utils.prefs.addObserver("", this, false);
-  this._os.addObserver(this, "quit-application", true);
-  FaultTolerance.Service; 
-
-  if (!this.enabled)
-    this._log.info("Weave Sync disabled");
-}
+function WeaveSvc() {}
 WeaveSvc.prototype = {
 
   _notify: Wrap.notify,
@@ -194,10 +182,19 @@ WeaveSvc.prototype = {
   get passphrase() { return ID.get('WeaveCryptoID').password; },
   set passphrase(value) { ID.get('WeaveCryptoID').password = value; },
 
+  get baseURL() {
+    let url = Utils.prefs.getCharPref("serverURL");
+    if (url && url[url.length-1] != '/')
+      url = url + '/';
+    return url;
+  },
+  set baseURL(value) {
+    Utils.prefs.setCharPref("serverURL", value);
+  },
+
   get userPath() { return ID.get('WeaveID').username; },
 
   get isLoggedIn() this._loggedIn,
-  get isInitialized() this._initialized,
 
   get isQuitting() this._isQuitting,
   set isQuitting(value) { this._isQuitting = value; },
@@ -214,9 +211,6 @@ WeaveSvc.prototype = {
   },
 
   onWindowOpened: function Weave__onWindowOpened() {
-    if (Utils.prefs.getBoolPref("autoconnect") &&
-        this.username && this.username != 'nobody')
-      this._initialLoginAndSync.async(this);
   },
 
   get locked() this._locked,
@@ -228,12 +222,6 @@ WeaveSvc.prototype = {
   },
   unlock: function Svc_unlock() {
     this._locked = false;
-  },
-
-  _initialLoginAndSync: function Weave__initialLoginAndSync() {
-    let self = yield;
-    yield this.loginAndInit(self.cb); 
-    yield this.sync(self.cb);
   },
 
   _setSchedule: function Weave__setSchedule(schedule) {
@@ -274,13 +262,52 @@ WeaveSvc.prototype = {
   _onSchedule: function WeaveSvc__onSchedule() {
     if (this.enabled) {
       if (this.locked) {
-        this._log.info("Skipping scheduled sync; local operation in progress")
+        this._log.info("Skipping scheduled sync; local operation in progress");
       } else {
         this._log.info("Running scheduled sync");
         this._notify("sync", "",
                      this._catchAll(this._localLock(this._syncAsNeeded))).async(this);
       }
     }
+  },
+
+  
+  
+  
+  _onStartup: function WeaveSvc__onStartup() {
+    let self = yield;
+    this._initLogs();
+    this._log.info("Weave Service Initializing");
+
+    Utils.prefs.addObserver("", this, false);
+    this._os.addObserver(this, "quit-application", true);
+    FaultTolerance.Service; 
+
+    if (!this.enabled)
+      this._log.info("Weave Sync disabled");
+
+    this._setSchedule(this.schedule);
+
+    
+    ID.set('WeaveID', new Identity('Mozilla Services Password', this.username));
+    Auth.defaultAuthenticator = new BasicAuthenticator(ID.get('WeaveID'));
+
+    ID.set('WeaveCryptoID',
+           new Identity('Mozilla Services Encryption Passphrase', this.username));
+
+    let url = this.baseURL + this.username;
+    PubKeys.defaultKeyUri = url + "keys/pubkey";
+
+    if (Utils.prefs.getBoolPref("autoconnect") &&
+        this.username && this.username != 'nobody')
+      try {
+        yield this.login(self.cb);
+        yield this.sync(self.cb);
+      } catch (e) {}
+    self.done();
+  },
+  onStartup: function WeaveSvc_onStartup() {
+    this._onStartup.async(this);
   },
 
   _initLogs: function WeaveSvc__initLogs() {
@@ -326,12 +353,6 @@ WeaveSvc.prototype = {
     this._debugApp.clear();
   },
 
-
-
-
-
-
-
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference]),
 
@@ -354,40 +375,46 @@ WeaveSvc.prototype = {
   },
 
   _onQuitApplication: function WeaveSvc__onQuitApplication() {
-    if (!this.enabled || !this._loggedIn)
-      return;
 
-    
-    
-    var prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                                        getService(Ci.nsIPrefBranch);
-    
-    try {
-      if(prefBranch.getBoolPref("browser.sessionstore.resume_session_once"))
-        return;
-    } catch (ex) {}
 
-    this.isQuitting = true;
 
-    let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-             getService(Ci.nsIWindowWatcher);
 
-    
-    
-    let window = ww.openWindow(null,
-                               "chrome://weave/content/status.xul",
-                               "Weave:Status",
-                               "chrome,centerscreen,modal,close=0",
-                               null);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   },
 
   
 
-  verifyPassphrase: function WeaveSvc_verifyPassphrase(onComplete, username,
-                                                       password, passphrase) {
-    this._localLock(this._notify("verify-passphrase", "", this._verifyPassphrase,
-                                 username, password, passphrase)).
-      async(this, onComplete);
+  _verifyLogin: function WeaveSvc__verifyLogin(username, password) {
+    let self = yield;
+    this._log.debug("Verifying login for user " + username);
+    let res = new Resource(this.baseURL + username);
+    yield res.get(self.cb);
+  },
+  verifyLogin: function WeaveSvc_verifyLogin(onComplete, username, password) {
+    this._localLock(this._notify("verify-login", "", this._verifyLogin,
+                                 username, password)).async(this, onComplete);
   },
 
   _verifyPassphrase: function WeaveSvc__verifyPassphrase(username, password,
@@ -402,96 +429,18 @@ WeaveSvc.prototype = {
     let id = new Identity('Passphrase Verification', username);
     id.setTempPassword(passphrase);
 
-    
+    let pubkey = yield PubKeys.getDefaultKey(self.cb);
+    let privkey = yield PrivKeys.get(self.cb, pubkey.PrivKeyUri);
 
     
-    
-    
-    
-
-    this.username = username;
-    ID.get('WeaveID').setTempPassword(password);
-
-    let privkeyResp = yield DAV.GET("private/privkey", self.cb);
-    let pubkeyResp = yield DAV.GET("public/pubkey", self.cb);
-
-    
-    
-    
-    
-    if (privkeyResp.status == 404 || pubkeyResp.status == 404)
-      return;
-
-    Utils.ensureStatus(privkeyResp.status, "Could not download private key");
-    Utils.ensureStatus(privkeyResp.status, "Could not download public key");
-
-    let privkey = this._json.decode(privkeyResp.responseText);
-    let pubkey = this._json.decode(pubkeyResp.responseText);
-
-    if (!privkey || !pubkey)
-      throw "Bad keypair JSON";
-    if (privkey.version != 1 || pubkey.version != 1)
-      throw "Unexpected keypair data version";
-    if (privkey.algorithm != "RSA" || pubkey.algorithm != "RSA")
-      throw "Only RSA keys currently supported";
-    if (!privkey.privkey)
-      throw "Private key does not contain private key data!";
-    if (!pubkey.pubkey)
-      throw "Public key does not contain public key data!";
-
-    id.keypairAlg = privkey.algorithm;
-    id.privkey = privkey.privkey;
-    id.privkeyWrapIV = privkey.privkeyIV;
-    id.passphraseSalt = privkey.privkeySalt;
-    id.pubkey = pubkey.pubkey;
-
-    if (!(yield Crypto.isPassphraseValid.async(Crypto, self.cb, id)))
-      throw new Error("Passphrase is not valid.");
   },
-
-  verifyLogin: function WeaveSvc_verifyLogin(onComplete, username, password) {
-    this._localLock(this._notify("verify-login", "", this._verifyLogin,
-                                 username, password)).async(this, onComplete);
-  },
-
-  _verifyLogin: function WeaveSvc__verifyLogin(username, password) {
-    let self = yield;
-
-    this._log.debug("Verifying login for user " + username);
-
-    DAV.baseURL = Utils.prefs.getCharPref("serverURL");
-    DAV.defaultPrefix = "user/" + username;
-
-    this._log.config("Using server URL: " + DAV.baseURL + DAV.defaultPrefix);
-
-    let status = yield DAV.checkLogin.async(DAV, self.cb, username, password);
-    Utils.ensureStatus(status, "Login verification failed");
-  },
-
-  loginAndInit: function WeaveSvc_loginAndInit(onComplete,
-                                               username, password, passphrase) {
-    this._localLock(this._notify("login", "", this._loginAndInit,
+  verifyPassphrase: function WeaveSvc_verifyPassphrase(onComplete, username,
+                                                       password, passphrase) {
+    this._localLock(this._notify("verify-passphrase", "", this._verifyPassphrase,
                                  username, password, passphrase)).
       async(this, onComplete);
   },
-  _loginAndInit: function WeaveSvc__loginAndInit(username, password, passphrase) {
-    let self = yield;
-    try {
-      yield this._login.async(this, self.cb, username, password, passphrase);
-    } catch (e) {
-      
-      
-      yield this._initialize.async(this, self.cb);
-      yield this._login.async(this, self.cb, username, password, passphrase);
-    }
-    yield this._initialize.async(this, self.cb);
-  },
 
-  login: function WeaveSvc_login(onComplete, username, password, passphrase) {
-    this._localLock(
-      this._notify("login", "", this._login,
-                   username, password, passphrase)).async(this, onComplete);
-  },
   _login: function WeaveSvc__login(username, password, passphrase) {
     let self = yield;
 
@@ -514,47 +463,16 @@ WeaveSvc.prototype = {
     this._loggedIn = true;
     self.done(true);
   },
-
-  initialize: function WeaveSvc_initialize() {
+  login: function WeaveSvc_login(onComplete, username, password, passphrase) {
     this._localLock(
-      this._notify("initialize", "", this._initialize)).async(this, onComplete);
-  },
-
-  _initialize: function WeaveSvc__initialize() {
-    let self = yield;
-
-    this._log.info("Making sure server is initialized...");
-
-    
-    this._log.debug("Caching keys");
-    let privkeyResp = yield DAV.GET("private/privkey", self.cb);
-    let pubkeyResp = yield DAV.GET("public/pubkey", self.cb);
-
-    if (privkeyResp.status == 404 || pubkeyResp.status == 404) {
-      yield this._generateKeys.async(this, self.cb);
-      privkeyResp = yield DAV.GET("private/privkey", self.cb);
-      pubkeyResp = yield DAV.GET("public/pubkey", self.cb);
-    }
-
-    Utils.ensureStatus(privkeyResp.status, "Cannot initialize privkey");
-    Utils.ensureStatus(pubkeyResp.status, "Cannot initialize pubkey");
-
-    this._keyPair['private'] = this._json.decode(privkeyResp.responseText);
-    this._keyPair['public'] = this._json.decode(pubkeyResp.responseText);
-
-    yield this._getKeypair.async(this, self.cb); 
-
-    this._setSchedule(this.schedule);
-
-    this._initialized = true;
-    self.done(true);
+      this._notify("login", "", this._login,
+                   username, password, passphrase)).async(this, onComplete);
   },
 
   logout: function WeaveSvc_logout() {
     this._log.info("Logging out");
     this._disableSchedule();
     this._loggedIn = false;
-    this._initialized = false;
     this._keyPair = {};
     ID.get('WeaveID').setTempPassword(null); 
     ID.get('WeaveCryptoID').setTempPassword(null); 
@@ -564,40 +482,19 @@ WeaveSvc.prototype = {
   serverWipe: function WeaveSvc_serverWipe(onComplete) {
     let cb = function WeaveSvc_serverWipeCb() {
       let self = yield;
-      this._serverWipe.async(this, self.cb);
-      yield;
+      this._log.error("Server wipe not supported");
       this.logout();
-      self.done();
     };
     this._notify("server-wipe", "", this._localLock(cb)).async(this, onComplete);
-  },
-  _serverWipe: function WeaveSvc__serverWipe() {
-    let self = yield;
-
-    this._keyPair = {};
-    DAV.listFiles.async(DAV, self.cb);
-    let names = yield;
-
-    for (let i = 0; i < names.length; i++) {
-      if (names[i].match(/\.htaccess$/))
-        continue;
-      DAV.DELETE(names[i], self.cb);
-      let resp = yield;
-      this._log.debug(resp.status);
-    }
   },
 
   
 
-  sync: function WeaveSvc_sync(onComplete) {
-    this._notify("sync", "",
-                 this._catchAll(this._localLock(this._sync))).async(this, onComplete);
-  },
-
   _sync: function WeaveSvc__sync() {
     let self = yield;
 
-    yield ClientData.refresh(self.cb);
+    
+    
 
     let engines = Engines.getAll();
     for (let i = 0; i < engines.length; i++) {
@@ -607,6 +504,7 @@ WeaveSvc.prototype = {
       if (!engines[i].enabled)
         continue;
 
+      this._log.debug("Syncing engine " + engines[i].name);
       yield this._notify(engines[i].name + "-engine:sync", "",
                          this._syncEngine, engines[i]).async(this, self.cb);
     }
@@ -615,6 +513,10 @@ WeaveSvc.prototype = {
       this._syncError = false;
       throw "Some engines did not sync correctly";
     }
+  },
+  sync: function WeaveSvc_sync(onComplete) {
+    this._notify("sync", "",
+                 this._catchAll(this._localLock(this._sync))).async(this, onComplete);
   },
 
   
@@ -686,10 +588,6 @@ WeaveSvc.prototype = {
     }
   },
 
-  resetServer: function WeaveSvc_resetServer(onComplete) {
-    this._notify("reset-server", "",
-                 this._localLock(this._resetServer)).async(this, onComplete);
-  },
   _resetServer: function WeaveSvc__resetServer() {
     let self = yield;
 
@@ -701,11 +599,11 @@ WeaveSvc.prototype = {
       yield;
     }
   },
-
-  resetClient: function WeaveSvc_resetClient(onComplete) {
-    this._localLock(this._notify("reset-client", "",
-                                 this._resetClient)).async(this, onComplete);
+  resetServer: function WeaveSvc_resetServer(onComplete) {
+    this._notify("reset-server", "",
+                 this._localLock(this._resetServer)).async(this, onComplete);
   },
+
   _resetClient: function WeaveSvc__resetClient() {
     let self = yield;
     let engines = Engines.getAll();
@@ -716,13 +614,10 @@ WeaveSvc.prototype = {
       yield;
     }
   },
-
-  shareData: function WeaveSvc_shareData(dataType,
-					 isShareEnabled,
-                                         onComplete,
-                                         guid,
-                                         username) {
-    
+  resetClient: function WeaveSvc_resetClient(onComplete) {
+    this._localLock(this._notify("reset-client", "",
+                                 this._resetClient)).async(this, onComplete);
+  } 
 
 
 
@@ -733,68 +628,76 @@ WeaveSvc.prototype = {
 
 
 
-    let messageName = "share-" + dataType;
-    
 
 
 
 
-    let self = this;
-    let saved_dataType = dataType;
-    let saved_onComplete = onComplete;
-    let saved_guid = guid;
-    let saved_username = username;
-    let saved_isShareEnabled = isShareEnabled;
-    let successMsg = "weave:service:global:success";
-    let errorMsg = "weave:service:global:error";
-    let os = Cc["@mozilla.org/observer-service;1"].
-                      getService(Ci.nsIObserverService);
 
-    let observer = {
-      observe: function(subject, topic, data) {
-	if (!Weave.DAV.locked) {
-          self._notify(messageName, "", self._lock(self._shareData,
-					saved_dataType,
-					saved_isShareEnabled,
-                                        saved_guid,
-                                    saved_username)).async(self,
-							   saved_onComplete);
-	  os.removeObserver(observer, successMsg);
-	  os.removeObserver(observer, errorMsg);
-	}
-      },
-      QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver])
-    };
 
-    if (Weave.DAV.locked) {
-      
-      dump( "DAV is locked, gonna set up observer to do it later.\n");
-      os.addObserver( observer, successMsg, true );
-      os.addObserver( observer, errorMsg, true );
-    } else {
-      
-      dump( "DAV not locked, doing it now.\n");
-      observer.observe();
-    }
-  },
 
-  _shareData: function WeaveSvc__shareData(dataType,
-					   isShareEnabled,
-                                           guid,
-                                           username) {
-    let self = yield;
-    let ret;
-    if (Engines.get(dataType).enabled) {
-      if (isShareEnabled) {
-        Engines.get(dataType).share(self.cb, guid, username);
-      } else {
-        Engines.get(dataType).stopSharing(self.cb, guid, username);
-      }
-      ret = yield;
-    } else {
-      this._log.warn( "Can't share disabled data type: " + dataType );
-      ret = false;
-    }
-    self.done(ret);
-  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 };
