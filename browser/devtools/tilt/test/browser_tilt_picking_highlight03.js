@@ -23,8 +23,8 @@ function test() {
         presenter = instance.presenter;
         Services.obs.addObserver(whenHighlighting, HIGHLIGHTING, false);
 
-        presenter._onSetupMesh = function() {
-          presenter.highlightNodeFor(5); 
+        presenter._onInitializationFinished = function() {
+          presenter.highlightNodeFor(3); 
         };
       }
     });
