@@ -3222,6 +3222,7 @@ public:
     }
 };
 
+#if 0
 static JS_REQUIRES_STACK void
 BuildNativeFrame(JSContext *cx, JSObject *globalObj, unsigned callDepth,
                  unsigned ngslots, uint16 *gslots,
@@ -3231,6 +3232,7 @@ BuildNativeFrame(JSContext *cx, JSObject *globalObj, unsigned callDepth,
     VisitSlots(visitor, cx, globalObj, callDepth, ngslots, gslots);
     debug_only_print0(LC_TMTracer, "\n");
 }
+#endif
 
 class FlushNativeGlobalFrameVisitor : public SlotVisitorBase
 {
@@ -12084,6 +12086,7 @@ TraceRecorder::record_JSOP_GETPROP()
     return getProp(stackval(-1));
 }
 
+#if 0
 
 
 
@@ -12114,6 +12117,7 @@ SafeLookup(JSContext *cx, JSObject* obj, jsid id, JSObject** pobjp, const Shape*
     *shapep = NULL;
     return true;
 }
+#endif
 
 
 
