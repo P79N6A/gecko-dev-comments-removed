@@ -53,6 +53,7 @@ using mozilla::unused;
 #include "nsIdleService.h"
 #include "nsWindow.h"
 #include "nsIObserverService.h"
+#include "nsFocusManager.h"
 
 #include "nsRenderingContext.h"
 #include "nsIDOMSimpleGestureEvent.h"
@@ -555,7 +556,14 @@ nsWindow::SetFocus(bool aRaise)
 void
 nsWindow::BringToFront()
 {
-    if (FindTopLevel() == TopWindow())
+    
+    
+    
+    
+    nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+    nsCOMPtr<nsIDOMWindow> existingTopWindow;
+    fm->GetActiveWindow(getter_AddRefs(existingTopWindow));
+    if (existingTopWindow && FindTopLevel() == TopWindow())
         return;
 
     if (!IsTopLevel()) {
