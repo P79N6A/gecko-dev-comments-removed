@@ -835,15 +835,6 @@ nsPrefetchNode::GetStatus(uint16_t *aStatus)
     uint32_t httpStatus;
     rv = httpChannel->GetResponseStatus(&httpStatus);
     if (rv == NS_ERROR_NOT_AVAILABLE) {
-        
-        
-        
-        
-        if (mState >= nsIDOMLoadStatus::RECEIVING) {
-            *aStatus = NS_ERROR_NOT_AVAILABLE;
-            return NS_OK;
-        }
-
         *aStatus = 0;
         return NS_OK;
     }
