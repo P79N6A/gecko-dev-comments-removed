@@ -596,14 +596,11 @@ class CGAddPropertyHook(CGAbstractClassHook):
                                      'JSBool', args)
 
     def generate_code(self):
-        return """
-  JSCompartment* compartment = js::GetObjectCompartment(obj);
-  xpc::CompartmentPrivate* priv =
-    static_cast<xpc::CompartmentPrivate*>(JS_GetCompartmentPrivate(compartment));
-  if (!priv->RegisterDOMExpandoObject(obj)) {
-    return false;
-  }
-  self->SetPreservingWrapper(true);
+        
+        
+        
+        assert self.descriptor.nativeIsISupports
+        return """  nsContentUtils::PreserveWrapper(reinterpret_cast<nsISupports*>(self), self);
   return true;"""
 
 class CGClassFinalizeHook(CGAbstractClassHook):
