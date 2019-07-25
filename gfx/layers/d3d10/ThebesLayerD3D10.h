@@ -99,18 +99,7 @@ private:
   
   void CopyRegion(ID3D10Texture2D* aSrc, const nsIntPoint &aSrcOffset,
                   ID3D10Texture2D* aDest, const nsIntPoint &aDestOffset,
-                  const nsIntRegion &aCopyRegion, nsIntRegion* aValidRegion,
-                  float aXRes, float aYRes);
-
-  
-
-
-
-
-  void GetDesiredResolutions(float& aXRes, float& aYRes);
-
-  
-  bool ResolutionChanged(float aXRes, float aYRes);
+                  const nsIntRegion &aCopyRegion, nsIntRegion* aValidRegion);
 };
 
 } 
