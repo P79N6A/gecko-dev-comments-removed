@@ -275,6 +275,7 @@ public:
 
 
 
+
   virtual nsIWidget* GetNearestWidget(nsPoint* aOffset) const;
 
   
