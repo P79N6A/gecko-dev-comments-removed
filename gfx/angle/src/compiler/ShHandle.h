@@ -16,11 +16,12 @@
 
 #include "GLSLANG/ShaderLang.h"
 
+#include "compiler/ExtensionBehavior.h"
 #include "compiler/InfoSink.h"
 #include "compiler/SymbolTable.h"
+#include "compiler/VariableInfo.h"
 
 class TCompiler;
-class TIntermNode;
 
 
 
@@ -38,27 +39,44 @@ public:
 
 class TCompiler : public TShHandleBase {
 public:
-    TCompiler(EShLanguage l, EShSpec s) : language(l), spec(s) { }
-    virtual ~TCompiler() { }
-
-    EShLanguage getLanguage() const { return language; }
-    EShSpec getSpec() const { return spec; }
-    TSymbolTable& getSymbolTable() { return symbolTable; }
-    TInfoSink& getInfoSink() { return infoSink; }
-
-    virtual bool compile(TIntermNode* root) = 0;
-
+    TCompiler(ShShaderType type, ShShaderSpec spec);
+    virtual ~TCompiler();
     virtual TCompiler* getAsCompiler() { return this; }
 
+    bool Init(const ShBuiltInResources& resources);
+    bool compile(const char* const shaderStrings[],
+                 const int numStrings,
+                 int compileOptions);
+
+    
+    TInfoSink& getInfoSink() { return infoSink; }
+    const TVariableInfoList& getAttribs() const { return attribs; }
+    const TVariableInfoList& getUniforms() const { return uniforms; }
+
 protected:
-    EShLanguage language;
-    EShSpec spec;
+    
+    bool InitBuiltInSymbolTable(const ShBuiltInResources& resources);
+    
+    void clearResults();
+    
+    void collectAttribsUniforms(TIntermNode* root);
+    
+    virtual void translate(TIntermNode* root) = 0;
+
+private:
+    ShShaderType shaderType;
+    ShShaderSpec shaderSpec;
 
     
     
     TSymbolTable symbolTable;
     
-    TInfoSink infoSink;
+    TExtensionBehavior extensionBehavior;
+
+    
+    TInfoSink infoSink;  
+    TVariableInfoList attribs;  
+    TVariableInfoList uniforms;  
 };
 
 
@@ -70,7 +88,7 @@ protected:
 
 
 
-TCompiler* ConstructCompiler(EShLanguage, EShSpec);
+TCompiler* ConstructCompiler(ShShaderType type, ShShaderSpec spec);
 void DeleteCompiler(TCompiler*);
 
 #endif 

@@ -11,9 +11,9 @@
 
 
 
-TCompiler* ConstructCompiler(EShLanguage language, EShSpec spec)
+TCompiler* ConstructCompiler(ShShaderType type, ShShaderSpec spec)
 {
-    return new TranslatorGLSL(language, spec);
+    return new TranslatorGLSL(type, spec);
 }
 
 

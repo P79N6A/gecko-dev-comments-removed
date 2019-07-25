@@ -6,24 +6,6 @@
 #ifndef _COMPILER_INTERFACE_INCLUDED_
 #define _COMPILER_INTERFACE_INCLUDED_
 
-#include "nscore.h"
-
-#include "ResourceLimits.h"
-
-#ifdef WIN32
-# if !defined(MOZ_ENABLE_LIBXUL) && !defined(MOZ_STATIC_BUILD)
-#  ifdef ANGLE_BUILD
-#   define ANGLE_API NS_EXPORT
-#  else
-#   define ANGLE_API NS_IMPORT
-#  endif
-# else
-#  define ANGLE_API
-# endif
-#else
-# define ANGLE_API NS_EXTERNAL_VIS
-#endif
-
 
 
 
@@ -35,44 +17,97 @@ extern "C" {
 
 
 
-
-ANGLE_API int ShInitialize();
-
+#define SH_VERSION 101
 
 
-ANGLE_API int ShFinalize();
-
-
-
-typedef enum {
-    EShLangVertex,
-    EShLangFragment,
-    EShLangCount
-} EShLanguage;
 
 
 
 
 
 typedef enum {
-    EShSpecGLES2,
-    EShSpecWebGL
-} EShSpec;
+  SH_FRAGMENT_SHADER = 0x8B30,
+  SH_VERTEX_SHADER   = 0x8B31
+} ShShaderType;
 
+typedef enum {
+  SH_GLES2_SPEC = 0x8B40,
+  SH_WEBGL_SPEC = 0x8B41
+} ShShaderSpec;
 
+typedef enum {
+  SH_NONE           = 0,
+  SH_INT            = 0x1404,
+  SH_FLOAT          = 0x1406,
+  SH_FLOAT_VEC2     = 0x8B50,
+  SH_FLOAT_VEC3     = 0x8B51,
+  SH_FLOAT_VEC4     = 0x8B52,
+  SH_INT_VEC2       = 0x8B53,
+  SH_INT_VEC3       = 0x8B54,
+  SH_INT_VEC4       = 0x8B55,
+  SH_BOOL           = 0x8B56,
+  SH_BOOL_VEC2      = 0x8B57,
+  SH_BOOL_VEC3      = 0x8B58,
+  SH_BOOL_VEC4      = 0x8B59,
+  SH_FLOAT_MAT2     = 0x8B5A,
+  SH_FLOAT_MAT3     = 0x8B5B,
+  SH_FLOAT_MAT4     = 0x8B5C,
+  SH_SAMPLER_2D     = 0x8B5E,
+  SH_SAMPLER_CUBE   = 0x8B60
+} ShDataType;
+
+typedef enum {
+  SH_INFO_LOG_LENGTH             =  0x8B84,
+  SH_OBJECT_CODE_LENGTH          =  0x8B88,  
+  SH_ACTIVE_UNIFORMS             =  0x8B86,
+  SH_ACTIVE_UNIFORM_MAX_LENGTH   =  0x8B87,
+  SH_ACTIVE_ATTRIBUTES           =  0x8B89,
+  SH_ACTIVE_ATTRIBUTE_MAX_LENGTH =  0x8B8A
+} ShShaderInfo;
 
 
 typedef enum {
-    EShOptNoGeneration,
-    EShOptNone,
-    EShOptSimple,       
-    EShOptFull          
-} EShOptimizationLevel;
+  SH_VALIDATE            = 0,
+  SH_INTERMEDIATE_TREE   = 0x001,
+  SH_OBJECT_CODE         = 0x002,
+  SH_ATTRIBUTES_UNIFORMS = 0x004
+} ShCompileOptions;
 
-enum TDebugOptions {
-    EDebugOpNone               = 0x000,
-    EDebugOpIntermediate       = 0x001   
-};
+
+
+
+
+int ShInitialize();
+
+
+
+int ShFinalize();
+
+
+
+
+
+typedef struct
+{
+    
+    int MaxVertexAttribs;
+    int MaxVertexUniformVectors;
+    int MaxVaryingVectors;
+    int MaxVertexTextureImageUnits;
+    int MaxCombinedTextureImageUnits;
+    int MaxTextureImageUnits;
+    int MaxFragmentUniformVectors;
+    int MaxDrawBuffers;
+
+    
+    
+    int OES_standard_derivatives;
+} ShBuiltInResources;
+
+
+
+
+void ShInitBuiltInResources(ShBuiltInResources* resources);
 
 
 
@@ -86,8 +121,15 @@ typedef void* ShHandle;
 
 
 
-ANGLE_API ShHandle ShConstructCompiler(EShLanguage, EShSpec, const TBuiltInResource*);
-ANGLE_API void ShDestruct(ShHandle);
+
+
+
+
+
+
+ShHandle ShConstructCompiler(ShShaderType type, ShShaderSpec spec,
+                             const ShBuiltInResources* resources);
+void ShDestruct(ShHandle handle);
 
 
 
@@ -96,20 +138,106 @@ ANGLE_API void ShDestruct(ShHandle);
 
 
 
-ANGLE_API int ShCompile(
-    const ShHandle,
+
+
+
+
+
+
+
+
+
+
+
+int ShCompile(
+    const ShHandle handle,
     const char* const shaderStrings[],
     const int numStrings,
-    const EShOptimizationLevel,
-    int debugOptions
+    int compileOptions
     );
 
 
 
 
 
-ANGLE_API const char* ShGetInfoLog(const ShHandle);
-ANGLE_API const char* ShGetObjectCode(const ShHandle);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void ShGetInfo(const ShHandle handle, ShShaderInfo pname, int* params);
+
+
+
+
+
+
+
+
+
+void ShGetInfoLog(const ShHandle handle, char* infoLog);
+
+
+
+
+
+
+
+
+
+void ShGetObjectCode(const ShHandle handle, char* objCode);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void ShGetActiveAttrib(const ShHandle handle,
+                       int index,
+                       int* length,
+                       int* size,
+                       ShDataType* type,
+                       char* name);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void ShGetActiveUniform(const ShHandle handle,
+                        int index,
+                        int* length,
+                        int* size,
+                        ShDataType* type,
+                        char* name);
 
 #ifdef __cplusplus
 }

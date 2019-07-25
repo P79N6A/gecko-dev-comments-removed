@@ -170,7 +170,7 @@ static void str_ungetch(StringInputSrc *in, int ch, yystypepp *type) {
     }
 } 
 
-int ScanFromString(char *s)
+int ScanFromString(const char *s)
 {
     
 	StringInputSrc *in = malloc(sizeof(StringInputSrc));

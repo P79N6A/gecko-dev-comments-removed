@@ -73,7 +73,7 @@ typedef struct InputSrc {
 } InputSrc;
 
 int InitScanner(CPPStruct *cpp);   
-int ScanFromString(char *);      
+int ScanFromString(const char *);      
 int check_EOF(int);              
 void CPPErrorToInfoLog(char *);   
 void SetLineNumber(int);

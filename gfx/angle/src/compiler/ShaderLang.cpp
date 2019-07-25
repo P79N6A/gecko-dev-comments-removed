@@ -11,78 +11,55 @@
 
 #include "GLSLANG/ShaderLang.h"
 
-#include "compiler/Initialize.h"
 #include "compiler/InitializeDll.h"
-#include "compiler/ParseHelper.h"
 #include "compiler/ShHandle.h"
-#include "compiler/SymbolTable.h"
 
-static bool InitializeSymbolTable(
-        const TBuiltInStrings& builtInStrings,
-        EShLanguage language, EShSpec spec, const TBuiltInResource& resources,
-        TInfoSink& infoSink, TSymbolTable& symbolTable)
+
+
+
+
+
+static int getVariableMaxLength(const TVariableInfoList& varList)
 {
-    TIntermediate intermediate(infoSink);
-    TParseContext parseContext(symbolTable, intermediate, language, spec, infoSink);
-
-    GlobalParseContext = &parseContext;
-
-    setInitialState();
-
-    assert(symbolTable.isEmpty());       
-    
-    
-    
-    
-    
-    
-    
-    
-    symbolTable.push();
-    
-    
-    if (InitPreprocessor())
+    TString::size_type maxLen = 0;
+    for (TVariableInfoList::const_iterator i = varList.begin();
+         i != varList.end(); ++i)
     {
-        infoSink.info.message(EPrefixInternalError,  "Unable to intialize the Preprocessor");
-        return false;
+        maxLen = std::max(maxLen, i->name.size());
     }
-
-    for (TBuiltInStrings::const_iterator i = builtInStrings.begin(); i != builtInStrings.end(); ++i)
-    {
-        const char* builtInShaders[1];
-        int builtInLengths[1];
-
-        builtInShaders[0] = (*i).c_str();
-        builtInLengths[0] = (int) (*i).size();
-
-        if (PaParseStrings(const_cast<char**>(builtInShaders), builtInLengths, 1, parseContext) != 0)
-        {
-            infoSink.info.message(EPrefixInternalError, "Unable to parse built-ins");
-            return false;
-        }
-    }
-
-    IdentifyBuiltIns(language, spec, resources, symbolTable);
-
-    FinalizePreprocessor();
-
-    return true;
+    
+    return static_cast<int>(maxLen) + 1;
 }
 
-static bool GenerateBuiltInSymbolTable(
-        EShLanguage language, EShSpec spec, const TBuiltInResource& resources,
-        TInfoSink& infoSink, TSymbolTable& symbolTable)
+static void getVariableInfo(ShShaderInfo varType,
+                            const ShHandle handle,
+                            int index,
+                            int* length,
+                            int* size,
+                            ShDataType* type,
+                            char* name)
 {
-    TBuiltIns builtIns;
+    if (!handle || !size || !type || !name)
+        return;
+    ASSERT((varType == SH_ACTIVE_ATTRIBUTES) ||
+           (varType == SH_ACTIVE_UNIFORMS));
 
-    builtIns.initialize(language, spec, resources);
-    return InitializeSymbolTable(builtIns.getBuiltInStrings(), language, spec, resources, infoSink, symbolTable);
+    TShHandleBase* base = reinterpret_cast<TShHandleBase*>(handle);
+    TCompiler* compiler = base->getAsCompiler();
+    if (compiler == 0)
+        return;
+
+    const TVariableInfoList& varList = varType == SH_ACTIVE_ATTRIBUTES ?
+        compiler->getAttribs() : compiler->getUniforms();
+    if (index < 0 || index >= static_cast<int>(varList.size()))
+        return;
+
+    const TVariableInfo& varInfo = varList[index];
+    if (length) *length = varInfo.name.size();
+    *size = varInfo.size;
+    *type = varInfo.type;
+    strcpy(name, varInfo.name.c_str());
 }
-
-
-
-
-
 
 
 
@@ -99,19 +76,49 @@ int ShInitialize()
 
 
 
+int ShFinalize()
+{
+    if (!DetachProcess())
+        return 0;
 
-ShHandle ShConstructCompiler(EShLanguage language, EShSpec spec, const TBuiltInResource* resources)
+    return 1;
+}
+
+
+
+
+void ShInitBuiltInResources(ShBuiltInResources* resources)
+{
+    
+    resources->MaxVertexAttribs = 8;
+    resources->MaxVertexUniformVectors = 128;
+    resources->MaxVaryingVectors = 8;
+    resources->MaxVertexTextureImageUnits = 0;
+    resources->MaxCombinedTextureImageUnits = 8;
+    resources->MaxTextureImageUnits = 8;
+    resources->MaxFragmentUniformVectors = 16;
+    resources->MaxDrawBuffers = 1;
+
+    
+    resources->OES_standard_derivatives = 0;
+}
+
+
+
+
+ShHandle ShConstructCompiler(ShShaderType type, ShShaderSpec spec,
+                             const ShBuiltInResources* resources)
 {
     if (!InitThread())
         return 0;
 
-    TShHandleBase* base = static_cast<TShHandleBase*>(ConstructCompiler(language, spec));
+    TShHandleBase* base = static_cast<TShHandleBase*>(ConstructCompiler(type, spec));
     TCompiler* compiler = base->getAsCompiler();
     if (compiler == 0)
         return 0;
 
     
-    if (!GenerateBuiltInSymbolTable(language, spec, *resources, compiler->getInfoSink(), compiler->getSymbolTable())) {
+    if (!compiler->Init(*resources)) {
         ShDestruct(base);
         return 0;
     }
@@ -133,17 +140,6 @@ void ShDestruct(ShHandle handle)
 
 
 
-int ShFinalize()
-{
-    if (!DetachProcess())
-        return 0;
-
-    return 1;
-}
-
-
-
-
 
 
 
@@ -152,9 +148,7 @@ int ShCompile(
     const ShHandle handle,
     const char* const shaderStrings[],
     const int numStrings,
-    const EShOptimizationLevel optLevel,
-    int debugOptions
-    )
+    int compileOptions)
 {
     if (!InitThread())
         return 0;
@@ -166,83 +160,11 @@ int ShCompile(
     TCompiler* compiler = base->getAsCompiler();
     if (compiler == 0)
         return 0;
-    
+
     GlobalPoolAllocator.push();
-    TInfoSink& infoSink = compiler->getInfoSink();
-    infoSink.info.erase();
-    infoSink.debug.erase();
-    infoSink.obj.erase();
 
-    if (numStrings == 0)
-        return 1;
+    bool success = compiler->compile(shaderStrings, numStrings, compileOptions);
 
-    TIntermediate intermediate(infoSink);
-    TSymbolTable& symbolTable = compiler->getSymbolTable();
-
-    TParseContext parseContext(symbolTable, intermediate, compiler->getLanguage(), compiler->getSpec(), infoSink);
-    parseContext.initializeExtensionBehavior();
-    GlobalParseContext = &parseContext;
- 
-    setInitialState();
-
-    InitPreprocessor();
-    
-    
-    
-    
-    
-    bool success = true;
-
-    symbolTable.push();
-    if (!symbolTable.atGlobalLevel())
-        parseContext.infoSink.info.message(EPrefixInternalError, "Wrong symbol table level");
-
-    int ret = PaParseStrings(const_cast<char**>(shaderStrings), 0, numStrings, parseContext);
-    if (ret)
-        success = false;
-
-    if (success && parseContext.treeRoot) {
-        if (optLevel == EShOptNoGeneration)
-            parseContext.infoSink.info.message(EPrefixNone, "No errors.  No code generation was requested.");
-        else {
-            success = intermediate.postProcess(parseContext.treeRoot, parseContext.language);
-
-            if (success) {
-
-                if (debugOptions & EDebugOpIntermediate)
-                    intermediate.outputTree(parseContext.treeRoot);
-
-                
-                
-                
-                if (!compiler->compile(parseContext.treeRoot))
-                    success = false;
-            }
-        }
-    } else if (!success) {
-        parseContext.infoSink.info.prefix(EPrefixError);
-        parseContext.infoSink.info << parseContext.numErrors << " compilation errors.  No code generated.\n\n";
-        success = false;
-        if (debugOptions & EDebugOpIntermediate)
-            intermediate.outputTree(parseContext.treeRoot);
-    } else if (!parseContext.treeRoot) {
-        parseContext.error(1, "Unexpected end of file.", "", "");
-        parseContext.infoSink.info << parseContext.numErrors << " compilation errors.  No code generated.\n\n";
-        success = false;
-        if (debugOptions & EDebugOpIntermediate)
-            intermediate.outputTree(parseContext.treeRoot);
-    }
-
-    intermediate.remove(parseContext.treeRoot);
-
-    
-    
-    
-    
-    while (!symbolTable.atBuiltInLevel())
-        symbolTable.pop();
-
-    FinalizePreprocessor();
     
     
     
@@ -251,43 +173,91 @@ int ShCompile(
     return success ? 1 : 0;
 }
 
-
-
-
-const char* ShGetInfoLog(const ShHandle handle)
+void ShGetInfo(const ShHandle handle, ShShaderInfo pname, int* params)
 {
-    if (!InitThread())
-        return 0;
-
-    if (handle == 0)
-        return 0;
+    if (!handle || !params)
+        return;
 
     TShHandleBase* base = static_cast<TShHandleBase*>(handle);
-    TInfoSink* infoSink = 0;
+    TCompiler* compiler = base->getAsCompiler();
+    if (!compiler) return;
 
-    if (base->getAsCompiler())
-        infoSink = &(base->getAsCompiler()->getInfoSink());
+    switch(pname)
+    {
+    case SH_INFO_LOG_LENGTH:
+        *params = compiler->getInfoSink().info.size() + 1;
+        break;
+    case SH_OBJECT_CODE_LENGTH:
+        *params = compiler->getInfoSink().obj.size() + 1;
+        break;
+    case SH_ACTIVE_UNIFORMS:
+        *params = compiler->getUniforms().size();
+        break;
+    case SH_ACTIVE_UNIFORM_MAX_LENGTH:
+        *params = getVariableMaxLength(compiler->getUniforms());
+        break;
+    case SH_ACTIVE_ATTRIBUTES:
+        *params = compiler->getAttribs().size();
+        break;
+    case SH_ACTIVE_ATTRIBUTE_MAX_LENGTH:
+        *params = getVariableMaxLength(compiler->getAttribs());
+        break;
 
-    infoSink->info << infoSink->debug.c_str();
-    return infoSink->info.c_str();
+    default: UNREACHABLE();
+    }
 }
 
 
 
 
-const char* ShGetObjectCode(const ShHandle handle)
+void ShGetInfoLog(const ShHandle handle, char* infoLog)
 {
-    if (!InitThread())
-        return 0;
-
-    if (handle == 0)
-        return 0;
+    if (!handle || !infoLog)
+        return;
 
     TShHandleBase* base = static_cast<TShHandleBase*>(handle);
-    TInfoSink* infoSink;
+    TCompiler* compiler = base->getAsCompiler();
+    if (!compiler) return;
 
-    if (base->getAsCompiler())
-        infoSink = &(base->getAsCompiler()->getInfoSink());
-
-    return infoSink->obj.c_str();
+    TInfoSink& infoSink = compiler->getInfoSink();
+    strcpy(infoLog, infoSink.info.c_str());
 }
+
+
+
+
+void ShGetObjectCode(const ShHandle handle, char* objCode)
+{
+    if (!handle || !objCode)
+        return;
+
+    TShHandleBase* base = static_cast<TShHandleBase*>(handle);
+    TCompiler* compiler = base->getAsCompiler();
+    if (!compiler) return;
+
+    TInfoSink& infoSink = compiler->getInfoSink();
+    strcpy(objCode, infoSink.obj.c_str());
+}
+
+void ShGetActiveAttrib(const ShHandle handle,
+                       int index,
+                       int* length,
+                       int* size,
+                       ShDataType* type,
+                       char* name)
+{
+    getVariableInfo(SH_ACTIVE_ATTRIBUTES,
+                    handle, index, length, size, type, name);
+}
+
+void ShGetActiveUniform(const ShHandle handle,
+                        int index,
+                        int* length,
+                        int* size,
+                        ShDataType* type,
+                        char* name)
+{
+    getVariableInfo(SH_ACTIVE_UNIFORMS,
+                    handle, index, length, size, type, name);
+}
+

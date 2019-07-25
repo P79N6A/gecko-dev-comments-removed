@@ -223,6 +223,12 @@ typedef void* GLeglImageOES;
 #endif
 
 
+#ifndef GL_EXT_texture_compression_dxt1
+#define GL_COMPRESSED_RGB_S3TC_DXT1_EXT                         0x83F0
+#define GL_COMPRESSED_RGBA_S3TC_DXT1_EXT                        0x83F1
+#endif
+
+
 
 
 
@@ -348,6 +354,25 @@ typedef void* GLeglImageOES;
 #define GL_MULTISAMPLE_BUFFER_BIT5_QCOM                         0x20000000
 #define GL_MULTISAMPLE_BUFFER_BIT6_QCOM                         0x40000000
 #define GL_MULTISAMPLE_BUFFER_BIT7_QCOM                         0x80000000
+#endif
+
+
+
+
+
+
+#ifndef GL_ANGLE_framebuffer_blit
+#define GL_READ_FRAMEBUFFER_ANGLE         0x8CA8
+#define GL_DRAW_FRAMEBUFFER_ANGLE         0x8CA9
+#define GL_DRAW_FRAMEBUFFER_BINDING_ANGLE 0x8CA6 // alias GL_FRAMEBUFFER_BINDING
+#define GL_READ_FRAMEBUFFER_BINDING_ANGLE 0x8CAA
+#endif
+
+
+#ifndef GL_ANGLE_framebuffer_multisample
+#define GL_RENDERBUFFER_SAMPLES_ANGLE                   0x8CAB
+#define GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE_ANGLE     0x8D56
+#define GL_MAX_SAMPLES_ANGLE                            0x8D57
 #endif
 
 
@@ -624,6 +649,11 @@ typedef void (GL_APIENTRYP PFNGLMULTIDRAWELEMENTSEXTPROC) (GLenum mode, const GL
 #endif
 
 
+#ifndef GL_EXT_texture_compression_dxt1
+#define GL_EXT_texture_compression_dxt1 1
+#endif
+
+
 
 
 
@@ -764,6 +794,34 @@ GL_APICALL void GL_APIENTRY glEndTilingQCOM (GLbitfield preserveMask);
 #endif
 typedef void (GL_APIENTRYP PFNGLSTARTTILINGQCOMPROC) (GLuint x, GLuint y, GLuint width, GLuint height, GLbitfield preserveMask);
 typedef void (GL_APIENTRYP PFNGLENDTILINGQCOMPROC) (GLbitfield preserveMask);
+#endif
+
+
+
+
+
+
+#ifndef GL_ANGLE_framebuffer_blit
+#define GL_ANGLE_framebuffer_blit 1
+#ifdef GL_GLEXT_PROTOTYPES
+GL_APICALL void GL_APIENTRY glBlitFramebufferANGLE (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+                                                    GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                                                    GLbitfield mask, GLenum filter);
+#endif
+typedef void (GL_APIENTRYP PFNGLBLITFRAMEBUFFERANGLEPROC) (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+                                                           GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                                                           GLbitfield mask, GLenum filter);
+#endif
+
+
+#ifndef GL_ANGLE_framebuffer_multisample
+#define GL_ANGLE_framebuffer_multisample 1
+#ifdef GL_GLEXT_PROTOTYPES
+GL_APICALL void GL_APIENTRY glRenderbufferStorageMultisampleANGLE (GLenum target, GLsizei samples, GLenum internalformat, 
+                                                                   GLsizei width, GLsizei height);
+#endif
+typedef void (GL_APIENTRYP PFNGLRENDERBUFFERSTORAGEMULTISAMPLEANGLEPROC) (GLenum target, GLsizei samples, GLenum internalformat,
+                                                                          GLsizei width, GLsizei height);
 #endif
 
 #ifdef __cplusplus

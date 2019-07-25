@@ -89,10 +89,10 @@ struct CPPStruct_Rec {
     
     
     
-    int    PaWhichStr;            
-    int*   PaStrLen;              
-    int    PaArgc;                
-    char** PaArgv;                
+    int PaWhichStr;             
+    const int* PaStrLen;        
+    int PaArgc;                 
+    const char* const* PaArgv;  
     unsigned int tokensBeforeEOF : 1;
 };
 
