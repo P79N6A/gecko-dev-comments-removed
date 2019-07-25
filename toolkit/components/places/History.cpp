@@ -62,9 +62,6 @@
 
 #define VISIT_OBSERVERS_INITIAL_CACHE_SIZE 128
 
-
-#define TOPIC_UPDATEPLACES_COMPLETE "places-updatePlaces-complete"
-
 using namespace mozilla::dom;
 
 namespace mozilla {
@@ -586,6 +583,44 @@ private:
   mozIVisitInfoCallback* mCallback;
   VisitData mPlace;
   const nsresult mResult;
+};
+
+
+
+
+class NotifyCompletion : public nsRunnable
+{
+public:
+  NotifyCompletion(mozIVisitInfoCallback* aCallback)
+  : mCallback(aCallback)
+  {
+    NS_PRECONDITION(aCallback, "Must pass a non-null callback!");
+  }
+
+  NS_IMETHOD Run()
+  {
+    if (NS_IsMainThread()) {
+      (void)mCallback->HandleCompletion();
+    }
+    else {
+      (void)NS_DispatchToMainThread(this);
+
+      
+      
+      nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+      (void)NS_ProxyRelease(mainThread, mCallback, PR_TRUE);
+    }
+    return NS_OK;
+  }
+
+private:
+  
+
+
+
+
+
+  mozIVisitInfoCallback* mCallback;
 };
 
 
@@ -1975,11 +2010,19 @@ History::UpdatePlaces(const jsval& aPlaceInfos,
   
   
   
-  nsCOMPtr<nsIEventTarget> backgroundThread = do_GetInterface(dbConn);
-  NS_ENSURE_TRUE(backgroundThread, NS_ERROR_UNEXPECTED);
-  nsRefPtr<PlacesEvent> completeEvent =
-    new PlacesEvent(TOPIC_UPDATEPLACES_COMPLETE, true);
-  (void)backgroundThread->Dispatch(completeEvent, 0);
+  
+  if (aCallback) {
+    
+    
+    
+    
+    NS_ADDREF(aCallback);
+
+    nsCOMPtr<nsIEventTarget> backgroundThread = do_GetInterface(dbConn);
+    NS_ENSURE_TRUE(backgroundThread, NS_ERROR_UNEXPECTED);
+    nsCOMPtr<nsIRunnable> event = new NotifyCompletion(aCallback);
+    (void)backgroundThread->Dispatch(event, NS_DISPATCH_NORMAL);
+  }
 
   return NS_OK;
 }
