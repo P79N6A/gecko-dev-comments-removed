@@ -91,12 +91,11 @@ public:
   virtual bool HasScriptContent();
 
   
-  virtual void DidChangeString(PRUint8 aAttrEnum);
-
-  
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers);
+  virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                const nsAString* aValue, bool aNotify);
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
@@ -252,16 +251,6 @@ nsSVGScriptElement::HasScriptContent()
 
 
 
-void
-nsSVGScriptElement::DidChangeString(PRUint8 aAttrEnum)
-{
-  nsSVGScriptElementBase::DidChangeString(aAttrEnum);
-
-  if (aAttrEnum == HREF) {
-    MaybeProcessScript();
-  }
-}
-
 nsSVGElement::StringAttributesInfo
 nsSVGScriptElement::GetStringInfo()
 {
@@ -289,3 +278,13 @@ nsSVGScriptElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   return NS_OK;
 }
 
+nsresult
+nsSVGScriptElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                 const nsAString* aValue, bool aNotify)
+{
+  if (aNamespaceID == kNameSpaceID_XLink && aName == nsGkAtoms::href) {
+    MaybeProcessScript();
+  }
+  return nsSVGScriptElementBase::AfterSetAttr(aNamespaceID, aName,
+                                              aValue, aNotify);
+}
