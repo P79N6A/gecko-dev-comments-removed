@@ -53,8 +53,8 @@ public:
   
   
   bool IsSafePath();
-  
-  nsresult Write(nsIDOMBlob* blob);
+
+  nsresult Write(nsIInputStream* aInputStream);
   nsresult Write(InfallibleTArray<PRUint8>& bits);
   void CollectFiles(nsTArray<nsRefPtr<DeviceStorageFile> > &aFiles, PRUint64 aSince = 0);
   void collectFilesInternal(nsTArray<nsRefPtr<DeviceStorageFile> > &aFiles, PRUint64 aSince, nsAString& aRootPath);
