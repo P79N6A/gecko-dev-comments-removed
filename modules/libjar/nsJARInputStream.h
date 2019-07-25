@@ -10,13 +10,14 @@
 #include "nsIInputStream.h"
 #include "nsJAR.h"
 #include "nsTArray.h"
+#include "mozilla/Attributes.h"
 
 
 
 
 
 
-class nsJARInputStream : public nsIInputStream
+class nsJARInputStream MOZ_FINAL : public nsIInputStream
 {
   public:
     nsJARInputStream() : 
