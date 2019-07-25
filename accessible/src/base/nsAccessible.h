@@ -607,9 +607,6 @@ protected:
   
 
   
-  PRBool CheckVisibilityInParentChain(nsIDocument* aDocument, nsIView* aView);
-
-  
 
 
 

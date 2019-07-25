@@ -367,6 +367,12 @@ public:
     return aContent->NodeInfo()->Equals(nsAccessibilityAtoms::th) ||
       aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::scope);
   }
+
+  
+
+
+  static bool CheckVisibilityInParentChain(nsIFrame* aFrame);
+
 };
 
 
