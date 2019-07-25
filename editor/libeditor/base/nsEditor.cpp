@@ -4212,20 +4212,14 @@ nsresult nsEditor::EndUpdateViewBatch()
     GetFlags(&flags);
 
     
-    nsCOMPtr<nsIViewManager> viewManager;
-    if (presShell)
-      viewManager = presShell->GetViewManager();
-    if (viewManager)
-    {
-      PRUint32 updateFlag = NS_VMREFRESH_IMMEDIATE;
+    PRUint32 updateFlag = NS_VMREFRESH_IMMEDIATE;
 
-      
-      
-      if (flags & nsIPlaintextEditor::eEditorUseAsyncUpdatesMask) {
-        updateFlag = NS_VMREFRESH_DEFERRED;
-      }
-      mBatch.EndUpdateViewBatch(updateFlag);
+    
+    
+    if (flags & nsIPlaintextEditor::eEditorUseAsyncUpdatesMask) {
+      updateFlag = NS_VMREFRESH_DEFERRED;
     }
+    mBatch.EndUpdateViewBatch(updateFlag);
 
     
 
