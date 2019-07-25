@@ -88,6 +88,27 @@ public:
 
     typedef PRUint32 Modifiers;
 
+    
+
+
+
+
+
+
+
+    static guint GetCurrentModifierState();
+
+    
+
+
+
+
+
+
+
+
+    static bool AreModifiersCurrentlyActive(Modifiers aModifiers);
+
 protected:
 
     
@@ -158,6 +179,20 @@ protected:
 #ifdef PR_LOGGING
     static const char* GetModifierName(Modifier aModifier);
 #endif 
+
+    
+
+
+
+
+
+
+
+
+
+
+    bool AreModifiersActive(Modifiers aModifiers,
+                            guint aModifierState) const;
 
     
 
