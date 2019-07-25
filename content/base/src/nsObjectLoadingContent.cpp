@@ -1169,6 +1169,7 @@ nsObjectLoadingContent::UpdateObjectParameters()
   nsCOMPtr<nsIURI> newURI;
   nsCOMPtr<nsIURI> newBaseURI;
   ObjectType newType;
+  bool isJava = false;
   
   bool stateInvalid = false;
   
@@ -1189,11 +1190,13 @@ nsObjectLoadingContent::UpdateObjectParameters()
   
   if (thisContent->NodeInfo()->Equals(nsGkAtoms::applet)) {
     newMime.AssignLiteral("application/x-java-vm");
+    isJava = true;
   } else {
     nsAutoString typeAttr;
     thisContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, typeAttr);
     if (!typeAttr.IsEmpty()) {
       CopyUTF16toUTF8(typeAttr, newMime);
+      isJava = nsPluginHost::IsJavaMIMEType(newMime.get());
     }
   }
 
@@ -1201,13 +1204,17 @@ nsObjectLoadingContent::UpdateObjectParameters()
   
   
 
-  bool usingClassID = false;
   if (caps & eSupportClassID) {
     nsAutoString classIDAttr;
     thisContent->GetAttr(kNameSpaceID_None, nsGkAtoms::classid, classIDAttr);
     if (!classIDAttr.IsEmpty()) {
-      usingClassID = true;
-      if (NS_FAILED(TypeForClassID(classIDAttr, newMime))) {
+      
+      rv = IsPluginEnabledForType(NS_LITERAL_CSTRING("application/x-java-vm"));
+      if (NS_SUCCEEDED(rv) &&
+          StringBeginsWith(classIDAttr, NS_LITERAL_STRING("java:"))) {
+        newMime.Assign("application/x-java-vm");
+        isJava = true;
+      } else {
         
         
         
@@ -1261,13 +1268,16 @@ nsObjectLoadingContent::UpdateObjectParameters()
 
   nsAutoString uriStr;
   
-  if (thisContent->NodeInfo()->Equals(nsGkAtoms::object)) {
+  if (isJava) {
+    
+    
+    
+  } else if (thisContent->NodeInfo()->Equals(nsGkAtoms::object)) {
     thisContent->GetAttr(kNameSpaceID_None, nsGkAtoms::data, uriStr);
   } else if (thisContent->NodeInfo()->Equals(nsGkAtoms::embed)) {
     thisContent->GetAttr(kNameSpaceID_None, nsGkAtoms::src, uriStr);
-  } else if (thisContent->NodeInfo()->Equals(nsGkAtoms::applet)) {
-    
   } else {
+    
     NS_NOTREACHED("Unrecognized plugin-loading tag");
   }
 
@@ -1369,28 +1379,24 @@ nsObjectLoadingContent::UpdateObjectParameters()
       mChannel->SetContentType(newMime);
     } else {
       newMime = channelType;
+      if (nsPluginHost::IsJavaMIMEType(newMime.get())) {
+        
+        
+        
+        
+        LOG(("OBJLC [%p]: Refusing to load with channel with java MIME",
+             this));
+        stateInvalid = true;
+      }
     }
   }
 
-  bool isJava = nsPluginHost::IsJavaMIMEType(newMime.get());
-  if (useChannel && (!mChannel || isJava)) {
-    
-    
-    
-    
-    
-    
-    
+  if (useChannel && !mChannel) {
     
     
     stateInvalid = true;
   }
 
-  
-  
-  
-  
-  
   
   
   
@@ -1421,7 +1427,7 @@ nsObjectLoadingContent::UpdateObjectParameters()
       
       newType = GetTypeOfContent(newMime);
       LOG(("OBJLC [%p]: Using channel type", this));
-  } else if (((caps & eAllowPluginSkipChannel) || !newURI || usingClassID) &&
+  } else if (((caps & eAllowPluginSkipChannel) || !newURI) &&
              (GetTypeOfContent(newMime) == eType_Plugin)) {
     newType = eType_Plugin;
     LOG(("OBJLC [%p]: Skipping loading channel, type plugin", this));
@@ -2049,34 +2055,6 @@ nsObjectLoadingContent::GetTypeOfContent(const nsCString& aMIMEType)
   }
 
   return eType_Null;
-}
-
-nsresult
-nsObjectLoadingContent::TypeForClassID(const nsAString& aClassID,
-                                       nsACString& aType)
-{
-  if (StringBeginsWith(aClassID, NS_LITERAL_STRING("java:"))) {
-    
-    aType.AssignLiteral("application/x-java-vm");
-    nsresult rv = IsPluginEnabledForType(NS_LITERAL_CSTRING("application/x-java-vm"));
-    return NS_SUCCEEDED(rv) ? NS_OK : NS_ERROR_NOT_AVAILABLE;
-  }
-
-  
-  if (StringBeginsWith(aClassID, NS_LITERAL_STRING("clsid:"), nsCaseInsensitiveStringComparator())) {
-    
-
-    if (NS_SUCCEEDED(IsPluginEnabledForType(NS_LITERAL_CSTRING("application/x-oleobject")))) {
-      aType.AssignLiteral("application/x-oleobject");
-      return NS_OK;
-    }
-    if (NS_SUCCEEDED(IsPluginEnabledForType(NS_LITERAL_CSTRING("application/oleobject")))) {
-      aType.AssignLiteral("application/oleobject");
-      return NS_OK;
-    }
-  }
-
-  return NS_ERROR_NOT_AVAILABLE;
 }
 
 nsObjectFrame*

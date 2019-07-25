@@ -366,16 +366,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-
-
-
-
-    nsresult TypeForClassID(const nsAString& aClassID, nsACString& aType);
-
-    
-
-
-
     nsObjectFrame* GetExistingFrame();
 
     
