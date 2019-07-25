@@ -3570,10 +3570,8 @@ AdoptNodeIntoOwnerDoc(nsINode *aParent, nsINode *aNode)
   rv = domDoc->AdoptNode(node, getter_AddRefs(adoptedNode));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (doc != aParent->GetOwnerDoc()) {
-    return NS_ERROR_DOM_WRONG_DOCUMENT_ERR;
-  }
-
+  NS_ASSERTION(aParent->GetOwnerDoc() == doc,
+               "ownerDoc chainged while adopting");
   NS_ASSERTION(adoptedNode == node, "Uh, adopt node changed nodes?");
   NS_ASSERTION(aParent->HasSameOwnerDoc(aNode),
                "ownerDocument changed again after adopting!");
@@ -3589,10 +3587,18 @@ nsINode::doInsertChildAt(nsIContent* aKid, PRUint32 aIndex,
                   "Inserting node that already has parent");
   nsresult rv;
 
+  
+  
+  nsMutationGuard::DidMutate();
+
+  
+  nsIDocument* doc = GetCurrentDoc();
+  mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, aNotify);
+
   if (!HasSameOwnerDoc(aKid)) {
     nsCOMPtr<nsIDOMNode> kid = do_QueryInterface(aKid, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
- 
+
     PRUint16 nodeType = 0;
     rv = kid->GetNodeType(&nodeType);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -3606,14 +3612,6 @@ nsINode::doInsertChildAt(nsIContent* aKid, PRUint32 aIndex,
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
-
-  
-  
-  nsMutationGuard::DidMutate();
-
-  
-  nsIDocument* doc = GetCurrentDoc();
-  mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, aNotify);
 
   PRUint32 childCount = aChildArray.ChildCount();
   NS_ENSURE_TRUE(aIndex <= childCount, NS_ERROR_ILLEGAL_VALUE);
