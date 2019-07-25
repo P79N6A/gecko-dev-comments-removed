@@ -14894,16 +14894,6 @@ TraceRecorder::record_JSOP_MOREITER()
     return ARECORD_CONTINUE;
 }
 
-JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_JSOP_ITERNEXT()
-{
-    LIns* v_ins;
-    Value &iterobj_val = stackval(-GET_INT8(cx->regs().pc));
-    CHECK_STATUS_A(unboxNextValue(iterobj_val, v_ins));
-    stack(0, v_ins);
-    return ARECORD_CONTINUE;
-}
-
 static JSBool FASTCALL
 CloseIterator(JSContext *cx, JSObject *iterobj)
 {
@@ -14953,8 +14943,9 @@ TraceRecorder::storeMagic(JSWhyMagic why, Address addr)
 #endif
 
 JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::unboxNextValue(Value &iterobj_val, LIns* &v_ins)
+TraceRecorder::unboxNextValue(LIns* &v_ins)
 {
+    Value &iterobj_val = stackval(-1);
     JSObject *iterobj = &iterobj_val.toObject();
     LIns* iterobj_ins = get(&iterobj_val);
 
@@ -15010,6 +15001,60 @@ TraceRecorder::unboxNextValue(Value &iterobj_val, LIns* &v_ins)
     v_ins = unbox_value(cx->iterValue, iterValueAddr, snapshot(BRANCH_EXIT));
     storeMagic(JS_NO_ITER_VALUE, iterValueAddr);
 
+    return ARECORD_CONTINUE;
+}
+
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::record_JSOP_FORNAME()
+{
+    Value* vp;
+    LIns* x_ins;
+    NameResult nr;
+    CHECK_STATUS_A(name(vp, x_ins, nr));
+    if (!nr.tracked)
+        RETURN_STOP_A("forname on non-tracked value not supported");
+    LIns* v_ins;
+    CHECK_STATUS_A(unboxNextValue(v_ins));
+    set(vp, v_ins);
+    return ARECORD_CONTINUE;
+}
+
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::record_JSOP_FORGNAME()
+{
+    return record_JSOP_FORNAME();
+}
+
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::record_JSOP_FORPROP()
+{
+    return ARECORD_STOP;
+}
+
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::record_JSOP_FORELEM()
+{
+    LIns* v_ins;
+    CHECK_STATUS_A(unboxNextValue(v_ins));
+    stack(0, v_ins);
+    return ARECORD_CONTINUE;
+}
+
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::record_JSOP_FORARG()
+{
+    LIns* v_ins;
+    CHECK_STATUS_A(unboxNextValue(v_ins));
+    arg(GET_ARGNO(cx->regs().pc), v_ins);
+    return ARECORD_CONTINUE;
+}
+
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::record_JSOP_FORLOCAL()
+{
+    LIns* v_ins;
+    CHECK_STATUS_A(unboxNextValue(v_ins));
+    var(GET_SLOTNO(cx->regs().pc), v_ins);
     return ARECORD_CONTINUE;
 }
 
