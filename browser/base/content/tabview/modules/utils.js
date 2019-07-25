@@ -162,7 +162,7 @@ Rect.prototype = {
   
   
   
-  contains: function(rect){
+  contains: function(rect) {
     return(rect.left > this.left
          && rect.right < this.right
          && rect.top > this.top
@@ -245,7 +245,7 @@ Rect.prototype = {
   
   
   
-  union: function(a){
+  union: function(a) {
     var newLeft = Math.min(a.left, this.left);
     var newTop = Math.min(a.top, this.top);
     var newWidth = Math.max(a.right, this.right) - newLeft;
@@ -344,7 +344,7 @@ Range.prototype = {
       
       
       
-      function tanh(x){
+      function tanh(x) {
         var e = Math.exp(x);
         return (e - 1/e) / (e + 1/e);
       }

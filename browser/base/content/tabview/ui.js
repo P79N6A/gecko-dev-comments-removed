@@ -89,7 +89,7 @@ var UIManager = {
   
   init: function() {
     var self = this;
-    Profile.checkpoint(); 
+    Profile.checkpoint();
     Storage.onReady(function() {
       self._delayInit();
     });
@@ -108,7 +108,7 @@ var UIManager = {
       let data = Storage.readUIData(gWindow);
       this._storageSanity(data);
       this._pageBounds = data.pageBounds;
-      
+
       
       this._setBrowserKeyHandlers();
 
@@ -121,7 +121,7 @@ var UIManager = {
         this._stopZoomPreparation = true;
 
         this.showTabView();
-        
+
         
         
         
@@ -132,8 +132,8 @@ var UIManager = {
     } catch(e) {
       Utils.log(e);
     }
-  }, 
-  
+  },
+
   
   
   
@@ -149,8 +149,8 @@ var UIManager = {
 
       
       
-      iQ(gTabViewFrame.contentDocument).mousedown(function(e){
-        if ( e.originalTarget.id == "content" )
+      iQ(gTabViewFrame.contentDocument).mousedown(function(e) {
+        if (e.originalTarget.id == "content")
           self._createGroupOnDrag(e)
       });
 
@@ -225,7 +225,7 @@ var UIManager = {
       TabItems.init();
 
       
-      if (this._pageBounds) 
+      if (this._pageBounds)
         this._resize(true);
       else
         this._pageBounds = Items.getPageBounds();
@@ -306,10 +306,10 @@ var UIManager = {
   
   showTabView: function(zoomOut) {
     var self = this;
-    
-    if (!this._frameInitalized) 
+
+    if (!this._frameInitalized)
       this._initFrame();
-      
+
     var currentTab = this._currentTab;
     var item = null;
 
@@ -396,7 +396,7 @@ var UIManager = {
   _addTabActionHandlers: function() {
     var self = this;
 
-    Tabs.onClose(function(){
+    Tabs.onClose(function() {
       if (this.ownerDocument.defaultView != gWindow)
         return;
 
@@ -588,7 +588,7 @@ var UIManager = {
   
   
   
-  _setTabViewFrameKeyHandlers: function(){
+  _setTabViewFrameKeyHandlers: function() {
     var self = this;
 
     iQ(window).keyup(function(event) {
@@ -608,7 +608,7 @@ var UIManager = {
         return;
       }
 
-      function getClosestTabBy(norm){
+      function getClosestTabBy(norm) {
         var centers =
           [[item.bounds.center(), item] for each(item in TabItems.getItems())];
         var myCenter = self.getActiveTab().bounds.center();
@@ -617,7 +617,7 @@ var UIManager = {
           .sort(function(a,b){
             return myCenter.distance(a[0]) - myCenter.distance(b[0]);
           });
-        if ( matches.length > 0 )
+        if (matches.length > 0)
           return matches[0][1];
         return null;
       }
@@ -703,7 +703,7 @@ var UIManager = {
   
   
   
-  _createGroupOnDrag: function(e){
+  _createGroupOnDrag: function(e) {
     const minSize = 60;
     const minMinSize = 15;
 
@@ -731,7 +731,7 @@ var UIManager = {
       setZ: function FauxItem_setZ(z) {
         this.container.css("z-index", z);
       },
-      setOpacity: function FauxItem_setOpacity( opacity ) {
+      setOpacity: function FauxItem_setOpacity(opacity) {
         this.container.css("opacity", opacity);
       },
       
@@ -742,7 +742,7 @@ var UIManager = {
 
     var dragOutInfo = new Drag(item, e, true); 
 
-    function updateSize(e){
+    function updateSize(e) {
       var box = new Rect();
       box.left = Math.min(startPos.x, e.clientX);
       box.right = Math.max(startPos.x, e.clientX);
@@ -866,8 +866,8 @@ var UIManager = {
 
     var wScale;
     var hScale;
-    if ( Math.abs(newPageBounds.width - this._pageBounds.width)
-         > Math.abs(newPageBounds.height - this._pageBounds.height) ) {
+    if (Math.abs(newPageBounds.width - this._pageBounds.width)
+         > Math.abs(newPageBounds.height - this._pageBounds.height)) {
       wScale = newPageBounds.width / this._pageBounds.width;
       hScale = newPageBounds.height / itemBounds.height;
     } else {
@@ -968,10 +968,10 @@ var UIManager = {
       var count = commands.length;
       var a;
       for (a = 0; a < count; a++) {
-        commands[a].element = ( iQ("<option>")
+        commands[a].element = (iQ("<option>")
           .val(a)
           .html(commands[a].name)
-          .appendTo($select) )[0];
+          .appendTo($select))[0];
       }
     } catch(e) {
       Utils.log(e);
@@ -1072,8 +1072,8 @@ var UIManager = {
       } else
         leftovers.push(set[0]);
     }
-    
-    if(leftovers.length)
+
+    if (leftovers.length)
       putInGroup(leftovers, "mixed");
 
     Groups.arrange();

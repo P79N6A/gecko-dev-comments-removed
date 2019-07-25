@@ -145,10 +145,10 @@ window.Item.prototype = {
   
   
   _init: function(container) {
-    Utils.assert( 'Subclass must implement the Subscribable interface',
+    Utils.assert('Subclass must implement the Subscribable interface',
       typeof(this.addSubscriber) == 'function' &&
       typeof(this.removeSubscriber) == 'function' &&
-      typeof(this._sendToSubscribers) == 'function' );
+      typeof(this._sendToSubscribers) == 'function');
     Utils.assert('container must be a DOM element', Utils.isDOMElement(container));
     Utils.assert('Subclass must provide setBounds', typeof(this.setBounds) == 'function');
     Utils.assert('Subclass must provide setZ', typeof(this.setZ) == 'function');
@@ -189,8 +189,8 @@ window.Item.prototype = {
 
     
     this.dropOptions = {
-      over: function(){},
-      out: function(){
+      over: function() {},
+      out: function() {
         var group = drag.info.item.parent;
         if (group) {
           group.remove(drag.info.$el, {dontClose: true});
@@ -198,7 +198,7 @@ window.Item.prototype = {
 
         iQ(this.container).removeClass("acceptsDrop");
       },
-      drop: function(event){
+      drop: function(event) {
         iQ(this.container).removeClass("acceptsDrop");
       },
       
@@ -216,14 +216,14 @@ window.Item.prototype = {
       aspectRatio: self.keepProportional,
       minWidth: 90,
       minHeight: 90,
-      start: function(e,ui){
+      start: function(e,ui) {
         resizeInfo = new Drag(this, e, true); 
       },
-      resize: function(e,ui){
+      resize: function(e,ui) {
         
         resizeInfo.snap('topleft', false, self.keepProportional);
       },
-      stop: function(){
+      stop: function() {
         self.setUserSize();
         self.pushAway();
         resizeInfo.stop();
@@ -320,7 +320,7 @@ window.Item.prototype = {
   
   
   pushAway: function() {
-    var buffer = Math.floor( Items.defaultGutter / 2 );
+    var buffer = Math.floor(Items.defaultGutter / 2);
 
     var items = Items.getTopLevelItems();
     
@@ -439,7 +439,7 @@ window.Item.prototype = {
 
         var pusher = data.pusher;
         if (pusher) {
-          var newPosStep = new Point( posStep.x + posStep2.x, posStep.y + posStep2.y );
+          var newPosStep = new Point(posStep.x + posStep2.x, posStep.y + posStep2.y);
           apply(pusher, newPosStep, posStep2, sizeStep);
         }
       }
@@ -854,7 +854,7 @@ window.Items = {
   
   
   
-  getPageBounds: function( dontCountNewTabGroup ) {
+  getPageBounds: function(dontCountNewTabGroup) {
     var bottom = dontCountNewTabGroup ? 0 : TabItems.tabHeight + Items.defaultGutter;
     var width = Math.max(100, window.innerWidth);
     var height = Math.max(100, window.innerHeight - bottom);
@@ -864,7 +864,7 @@ window.Items = {
   
   
   
-  getSafeWindowBounds: function( dontCountNewTabGroup ) {
+  getSafeWindowBounds: function(dontCountNewTabGroup) {
     
     var gutter = Items.defaultGutter;
     var newTabGroupBounds = Groups.getBoundsForNewTabGroup();
@@ -873,10 +873,10 @@ window.Items = {
     
     var topGutter = 5;
     if (dontCountNewTabGroup)
-      return new Rect( gutter, topGutter,
-        window.innerWidth - 2 * gutter, window.innerHeight - gutter - topGutter );
-    return new Rect( gutter, topGutter,
-      window.innerWidth - 2 * gutter, newTabGroupBounds.top -  gutter - topGutter );
+      return new Rect(gutter, topGutter,
+        window.innerWidth - 2 * gutter, window.innerHeight - gutter - topGutter);
+    return new Rect(gutter, topGutter,
+      window.innerWidth - 2 * gutter, newTabGroupBounds.top -  gutter - topGutter);
 
   },
 

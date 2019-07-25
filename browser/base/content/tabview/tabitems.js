@@ -101,22 +101,22 @@ window.TabItem = function(tab) {
   
   
   
-  this.dropOptions.drop = function(e){
+  this.dropOptions.drop = function(e) {
     var $target = iQ(this.container);
     this.isDropTarget = false;
 
     var phantom = $target.data("phantomGroup");
 
     var group = drag.info.item.parent;
-    if ( group ) {
-      group.add( drag.info.$el );
+    if (group) {
+      group.add(drag.info.$el);
     } else {
       phantom.removeClass("phantom acceptsDrop");
       new Group([$target, drag.info.$el], {container:phantom, bounds:phantom.bounds()});
     }
   };
 
-  this.dropOptions.over = function(e){
+  this.dropOptions.over = function(e) {
     var $target = iQ(this.container);
     this.isDropTarget = true;
 
@@ -125,7 +125,7 @@ window.TabItem = function(tab) {
     var phantomMargin = 40;
 
     var groupBounds = this.getBoundsWithTitle();
-    groupBounds.inset( -phantomMargin, -phantomMargin );
+    groupBounds.inset(-phantomMargin, -phantomMargin);
 
     iQ(".phantom").remove();
     var phantom = iQ("<div>")
@@ -154,11 +154,11 @@ window.TabItem = function(tab) {
     $target.data("phantomGroup", phantom);
   };
 
-  this.dropOptions.out = function(e){
+  this.dropOptions.out = function(e) {
     this.isDropTarget = false;
     var phantom = iQ(this.container).data("phantomGroup");
     if (phantom) {
-      phantom.fadeOut(function(){
+      phantom.fadeOut(function() {
         iQ(this).remove();
       });
     }
@@ -302,7 +302,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       var data = this.getStorageData(saveImageData);
       if (TabItems.storageSanity(data))
         Storage.saveTab(this.tab, data);
-    }catch(e){
+    } catch(e) {
       Utils.log("Error in saving tab value: "+e);
     }
   },
@@ -365,7 +365,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       
       
       
-      if (immediately || (!this._hasBeenDrawn) ) {
+      if (immediately || (!this._hasBeenDrawn)) {
   
         $container.css(css);
       } else {
@@ -381,7 +381,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       }
 
       if (css.fontSize && !this.inStack()) {
-        if (css.fontSize < fontSizeRange.min )
+        if (css.fontSize < fontSizeRange.min)
           $title.fadeOut();
         else
           $title.fadeIn();
@@ -400,7 +400,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
           widthRange = new Range(60, 70);
           proportion = widthRange.proportion(css.width); 
           $close.show().css({opacity:proportion});
-          if ( proportion <= .1 )
+          if (proportion <= .1)
             $close.hide()
         }
 
@@ -437,13 +437,13 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     var b = this.getBounds();
     var $container = iQ(this.container);
     var $title = iQ('.tab-title', $container);
-    return new Rect( b.left, b.top, b.width, b.height + $title.height() );
+    return new Rect(b.left, b.top, b.width, b.height + $title.height());
   },
 
   
   
   
-  inStack: function(){
+  inStack: function() {
     return iQ(this.container).hasClass("stacked");
   },
 
@@ -484,7 +484,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  setResizable: function(value){
+  setResizable: function(value) {
     var $resizer = iQ('.expander', this.container);
 
     this.resizeOptions.minWidth = TabItems.minTabWidth;
@@ -502,7 +502,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  makeActive: function(){
+  makeActive: function() {
    iQ(this.container).find("canvas").addClass("focus");
    iQ(this.container).find("img.cached-thumb").addClass("focus");
 
@@ -511,7 +511,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  makeDeactive: function(){
+  makeDeactive: function() {
    iQ(this.container).find("canvas").removeClass("focus");
    iQ(this.container).find("img.cached-thumb").removeClass("focus");
   },
@@ -539,7 +539,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       var tab = this.tab;
 
-      function onZoomDone(){
+      function onZoomDone() {
         TabItems.resumePainting();
         
         if (gBrowser.selectedTab == tab) {
@@ -559,14 +559,14 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
         
         
-        if ( self.parent ){
+        if (self.parent) {
           var gID = self.parent.id;
           var group = Groups.group(gID);
-          Groups.setActiveGroup( group );
-          group.setActiveTab( self );
+          Groups.setActiveGroup(group);
+          group.setActiveTab(self);
         }
         else
-          Groups.setActiveGroup( null );
+          Groups.setActiveGroup(null);
 
         if (childHitResult.callback)
           childHitResult.callback();
@@ -716,7 +716,7 @@ window.TabItems = {
     });
 
     
-    Tabs.onClose( function(){
+    Tabs.onClose(function() {
       if (this.ownerDocument.defaultView != gWindow)
         return;
 
@@ -727,7 +727,7 @@ window.TabItems = {
     });
 
     
-    Tabs.allTabs.forEach(function(tab){
+    Tabs.allTabs.forEach(function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
@@ -741,12 +741,12 @@ window.TabItems = {
   
   
   
-  update: function(tab){
+  update: function(tab) {
     try {
       Utils.assertThrow("must already be linked", tab.tabItem);
-      
+
       let tabItem = tab.tabItem;
-  
+
       let iconUrl = tab.image;
       if (iconUrl == null)
         iconUrl = "chrome://mozapps/skin/places/defaultFavicon.png";
@@ -804,7 +804,7 @@ window.TabItems = {
   
   
   
-  unlink: function(tab){
+  unlink: function(tab) {
     try {
       Utils.assertThrow("should already be linked", tab.tabItem);
 
@@ -949,7 +949,7 @@ window.TabItems = {
         item.reconnected = item.tab.linkedBrowser.currentURI.spec != 'about:blank';
 
       item.save();
-    }catch(e){
+    } catch(e) {
       Utils.log(e);
     }
 
@@ -961,14 +961,14 @@ window.TabItems = {
 
 
 
-var TabCanvas = function(tab, canvas){
+var TabCanvas = function(tab, canvas) {
   this.init(tab, canvas);
 };
 
 TabCanvas.prototype = {
   
   
-  init: function(tab, canvas){
+  init: function(tab, canvas) {
     this.tab = tab;
     this.canvas = canvas;
 
@@ -981,7 +981,7 @@ TabCanvas.prototype = {
 
   
   
-  paint: function(evt){
+  paint: function(evt) {
     var ctx = this.canvas.getContext("2d");
 
     var w = this.canvas.width;
@@ -1002,8 +1002,8 @@ TabCanvas.prototype = {
     ctx.save();
     ctx.scale(scaler, scaler);
     try{
-      ctx.drawWindow( fromWin, fromWin.scrollX, fromWin.scrollY, w/scaler, h/scaler, "#fff" );
-    } catch(e){
+      ctx.drawWindow(fromWin, fromWin.scrollX, fromWin.scrollY, w/scaler, h/scaler, "#fff");
+    } catch(e) {
       Utils.error('paint', e);
     }
 
