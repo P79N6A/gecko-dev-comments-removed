@@ -1297,9 +1297,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   shouldStack: function GroupItem_shouldStack(count) {
-    if (count <= 1)
-      return false;
-
     let bb = this.getContentBounds();
     let options = {
       return: 'widthAndColumns',
