@@ -569,14 +569,16 @@ Debug::mark(GCMarker *trc, JSCompartment *comp, JSGCInvocationKind gckind)
                     
                     
                     
-                    if (!comp || obj->compartment() == comp) {
+                    
+                    
+                    
+                    if (obj->isMarked() && (!comp || obj->compartment() == comp)) {
                         for (ObjectMap::Range r = dbg->objects.all(); !r.empty(); r.popFront()) {
                             
                             
                             
                             if (!r.front().value->isMarked() &&
-                                (comp || r.front().key->unwrap()->isMarked()))
-                            {
+                                (comp || r.front().key->unwrap()->isMarked())) {
                                 MarkObject(trc, *r.front().value,
                                            "Debug.Object with live referent");
                                 markedAny = true;
