@@ -295,8 +295,8 @@ function SyncEngine(name) {
 }
 SyncEngine.prototype = {
   __proto__: Engine.prototype,
-
   _recordObj: CryptoWrapper,
+  version: 1,
 
   get storageURL() Svc.Prefs.get("clusterURL") + Svc.Prefs.get("storageAPI") +
     "/" + ID.get("WeaveID").username + "/storage/",
@@ -304,6 +304,17 @@ SyncEngine.prototype = {
   get engineURL() this.storageURL + this.name,
 
   get cryptoMetaURL() this.storageURL + "crypto/" + this.name,
+
+  get metaURL() this.storageURL + "meta/global",
+
+  get syncID() {
+    
+    let syncID = Svc.Prefs.get(this.name + ".syncID", "");
+    return syncID == "" ? this.syncID = Utils.makeGUID() : syncID;
+  },
+  set syncID(value) {
+    Svc.Prefs.set(this.name + ".syncID", value);
+  },
 
   get lastSync() {
     return parseFloat(Svc.Prefs.get(this.name + ".lastSync", "0"));
@@ -347,6 +358,42 @@ SyncEngine.prototype = {
     this._log.trace("Ensuring server crypto records are there");
 
     
+    let wipeServerData = false;
+    let metaGlobal = Records.get(this.metaURL);
+    let engines = metaGlobal.payload.engines || {};
+    let engineData = engines[this.name] || {};
+
+    
+    if ((engineData.version || 0) < this.version) {
+      this._log.debug("Old engine data: " + [engineData.version, this.version]);
+
+      
+      wipeServerData = true;
+      this.syncID = "";
+
+      
+      engineData.version = this.version;
+      engineData.syncID = this.syncID;
+
+      
+      engines[this.name] = engineData;
+      metaGlobal.payload.engines = engines;
+      metaGlobal.changed = true;
+    }
+    
+    else if (engineData.version > this.version) {
+      let error = new String("New data: " + [engineData.version, this.version]);
+      error.failureCode = VERSION_OUT_OF_DATE;
+      throw error;
+    }
+    
+    else if (engineData.syncID != this.syncID) {
+      this._log.debug("Engine syncIDs: " + [engineData.syncID, this.syncID]);
+      this.syncID = engineData.syncID;
+      this._resetClient();
+    };
+
+    
     let meta = CryptoMetas.get(this.cryptoMetaURL);
     if (meta) {
       try {
@@ -359,10 +406,14 @@ SyncEngine.prototype = {
         this._log.debug("Purging bad data after failed unwrap crypto: " + ex);
         CryptoMetas.del(this.cryptoMetaURL);
         meta = null;
-
-        
-        new Resource(this.engineURL).delete();
+        wipeServerData = true;
       }
+    }
+
+    
+    if (wipeServerData) {
+      new Resource(this.engineURL).delete();
+      this._resetClient();
     }
 
     

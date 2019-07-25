@@ -1172,6 +1172,11 @@ WeaveSvc.prototype = {
         }
       }
 
+      
+      let meta = Records.get(this.metaURL);
+      if (meta.changed)
+        new Resource(meta.uri).put(meta);
+
       if (this._syncError)
         throw "Some engines did not sync correctly";
       else {
@@ -1246,6 +1251,7 @@ WeaveSvc.prototype = {
     let resp = new Resource(meta.uri).put(meta);
     if (!resp.success)
       throw resp;
+    Records.set(meta.uri, meta);
 
     
     let collections = [Clients].concat(Engines.getAll()).map(function(engine) {
