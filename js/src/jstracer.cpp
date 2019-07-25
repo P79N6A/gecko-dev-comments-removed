@@ -4307,7 +4307,7 @@ TraceRecorder::guard(bool expected, LIns* cond, VMSideExit* exit,
 
 
 
-        JS_ASSERT(0);
+        JS_NOT_REACHED("unexpected constantly false guard detected");
     }
 
     
@@ -12793,9 +12793,10 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
         CHECK_STATUS_A(makeNumberInt32(idx_ins, &idx_ins));
 
         
-        guard(true,
-              w.ltui(idx_ins, w.ldiConstTypedArrayLength(priv_ins)),
-              OVERFLOW_EXIT);
+        CHECK_STATUS_A(guard(true,
+                             w.name(w.ltui(idx_ins, w.ldiConstTypedArrayLength(priv_ins)),
+                                    "inRange"),
+                             OVERFLOW_EXIT, true));
 
         
         LIns* data_ins = w.ldpConstTypedArrayData(priv_ins);
@@ -13847,7 +13848,7 @@ TraceRecorder::typedArrayElement(Value& oval, Value& ival, Value*& vp, LIns*& v_
 
 
     guard(true,
-          w.ltui(idx_ins, w.ldiConstTypedArrayLength(priv_ins)),
+          w.name(w.ltui(idx_ins, w.ldiConstTypedArrayLength(priv_ins)), "inRange"),
           BRANCH_EXIT);
 
     
