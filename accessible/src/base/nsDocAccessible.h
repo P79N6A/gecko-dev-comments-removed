@@ -144,6 +144,11 @@ public:
   
 
 
+  virtual void* GetNativeWindow() const;
+
+  
+
+
   nsDocAccessible* ParentDocument() const
     { return mParent ? mParent->GetDocAccessible() : nsnull; }
 
@@ -363,7 +368,6 @@ protected:
 
   nsAccessibleHashtable mAccessibleCache;
 
-    void *mWnd;
     nsCOMPtr<nsIDocument> mDocument;
     nsCOMPtr<nsITimer> mScrollWatchTimer;
     PRUint16 mScrollPositionChangedTicks; 

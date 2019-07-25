@@ -71,10 +71,7 @@ class nsAccessibleWrap : public nsAccessible
     
     
     virtual objc_class* GetNativeType ();
-    
-    
-    void GetNativeWindow (void **aOutNativeWindow);
-    
+
     virtual void Shutdown ();
     virtual void InvalidateChildren();
 

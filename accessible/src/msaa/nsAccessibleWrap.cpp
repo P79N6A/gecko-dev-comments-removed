@@ -42,6 +42,7 @@
 #include "nsAccUtils.h"
 #include "nsCoreUtils.h"
 #include "nsRelUtils.h"
+#include "nsWinUtils.h"
 
 #include "nsIAccessibleDocument.h"
 #include "nsIAccessibleEvent.h"
@@ -193,58 +194,23 @@ STDMETHODIMP nsAccessibleWrap::get_accParent( IDispatch __RPC_FAR *__RPC_FAR *pp
 {
 __try {
   *ppdispParent = NULL;
-  if (!mWeakShell)
-    return E_FAIL;  
 
-  nsIFrame *frame = GetFrame();
-  HWND hwnd = 0;
-  if (frame) {
-    nsIView *view = frame->GetViewExternal();
-    if (view) {
-      
-      
-      
-      
-      
-      nsIWidget *widget = view->GetWidget();
-      if (widget) {
-        hwnd = (HWND)widget->GetNativeData(NS_NATIVE_WINDOW);
-        NS_ASSERTION(hwnd, "No window handle for window");
+  if (IsDefunct())
+    return E_FAIL;
 
-        nsIViewManager* viewManager = view->GetViewManager();
-        if (!viewManager)
-          return E_UNEXPECTED;
-
-        nsIView *rootView;
-        viewManager->GetRootView(rootView);
-        if (rootView == view) {
-          
-          
-          
-          
-          
-          
-          HWND parenthwnd = ::GetParent(hwnd);
-          if (parenthwnd)
-            hwnd = parenthwnd;
-
-          NS_ASSERTION(hwnd, "No window handle for window");
-        }
+  nsRefPtr<nsDocAccessible> doc(do_QueryObject(this));
+  if (doc) {
+    
+    
+    if (!doc->ParentDocument() ||
+        nsWinUtils::IsWindowEmulationEnabled() &&
+        nsWinUtils::IsTabDocument(doc->GetDocumentNode())) {
+      HWND hwnd = static_cast<HWND>(doc->GetNativeWindow());
+      if (hwnd && SUCCEEDED(AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
+                                                       IID_IAccessible,
+                                                       (void**)ppdispParent))) {
+        return S_OK;
       }
-      else {
-        
-        
-        nsIScrollableFrame *scrollFrame = do_QueryFrame(frame);
-        if (scrollFrame) {
-          hwnd = (HWND)scrollFrame->GetScrolledFrame()->GetNearestWidget()->GetNativeData(NS_NATIVE_WINDOW);
-          NS_ASSERTION(hwnd, "No window handle for window");
-        }
-      }
-    }
-
-    if (hwnd && SUCCEEDED(AccessibleObjectFromWindow(hwnd, OBJID_WINDOW, IID_IAccessible,
-                                              (void**)ppdispParent))) {
-      return S_OK;
     }
   }
 
@@ -1668,45 +1634,11 @@ PRInt32 nsAccessibleWrap::GetChildIDFor(nsIAccessible* aAccessible)
 HWND
 nsAccessibleWrap::GetHWNDFor(nsAccessible *aAccessible)
 {
-  HWND hWnd = 0;
   if (!aAccessible)
-    return hWnd;
+    return 0;
 
-  nsIFrame *frame = aAccessible->GetFrame();
-  if (frame) {
-    nsIWidget *window = frame->GetNearestWidget();
-    PRBool isVisible;
-    window->IsVisible(isVisible);
-    if (isVisible) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      hWnd = (HWND)frame->GetNearestWidget()->GetNativeData(NS_NATIVE_WINDOW);
-    }
-  }
-
-  if (!hWnd) {
-    void* handle = nsnull;
-    nsDocAccessible *accessibleDoc = aAccessible->GetDocAccessible();
-    if (!accessibleDoc)
-      return 0;
-
-    accessibleDoc->GetWindowHandle(&handle);
-    hWnd = (HWND)handle;
-  }
-
-  return hWnd;
+  nsDocAccessible* document = aAccessible->GetDocAccessible();
+  return document ? static_cast<HWND>(document->GetNativeWindow()) : 0;
 }
 
 HRESULT
