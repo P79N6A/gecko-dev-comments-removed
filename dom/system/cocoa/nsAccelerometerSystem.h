@@ -34,19 +34,19 @@
 
 
 
-#ifndef nsAccelerometerX_h
-#define nsAccelerometerX_h
+#ifndef nsAccelerometerSystem_h
+#define nsAccelerometerSystem_h
 
 #include <IOKit/IOKitLib.h>
 #include <mach/mach_port.h>
 
 #include "nsAccelerometer.h"
 
-class nsAccelerometerX : public nsAccelerometer
+class nsAccelerometerSystem : public nsAccelerometer
 {
  public:
-  nsAccelerometerX();
-  ~nsAccelerometerX();
+  nsAccelerometerSystem();
+  ~nsAccelerometerSystem();
 
   void Startup();
   void Shutdown();

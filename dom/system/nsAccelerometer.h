@@ -42,6 +42,12 @@
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
 
+#define NS_ACCELEROMETER_CID \
+{ 0xecba5203, 0x77da, 0x465a, \
+{ 0x86, 0x5e, 0x78, 0xb7, 0xaf, 0x10, 0xd8, 0xf7 } }
+
+#define NS_ACCELEROMETER_CONTRACTID "@mozilla.org/accelerometer;1"
+
 class nsIDOMWindow;
 
 class nsAccelerometer : public nsIAccelerometer

@@ -35,7 +35,7 @@
 
 
 
-#include "nsAccelerometerWin.h"
+#include "nsAccelerometerSystem.h"
 #include "nsIServiceManager.h"
 #include "windows.h"
 
@@ -91,7 +91,7 @@ PRBool
 HTCSensor::Startup()
 {
   HMODULE hSensorLib = LoadLibraryW(L"HTCSensorSDK.dll");
-  
+
   if (!hSensorLib)
     return PR_FALSE;
 
@@ -450,13 +450,13 @@ ThinkPadSensor::GetValues(double *x, double *y, double *z)
 
 #endif
 
-nsAccelerometerWin::nsAccelerometerWin(){}
-nsAccelerometerWin::~nsAccelerometerWin(){}
+nsAccelerometerSystem::nsAccelerometerSystem(){}
+nsAccelerometerSystem::~nsAccelerometerSystem(){}
 
 void
-nsAccelerometerWin::UpdateHandler(nsITimer *aTimer, void *aClosure)
+nsAccelerometerSystem::UpdateHandler(nsITimer *aTimer, void *aClosure)
 {
-  nsAccelerometerWin *self = reinterpret_cast<nsAccelerometerWin *>(aClosure);
+  nsAccelerometerSystem *self = reinterpret_cast<nsAccelerometerSystem *>(aClosure);
   if (!self || !self->mSensor) {
     NS_ERROR("no self or sensor");
     return;
@@ -466,7 +466,7 @@ nsAccelerometerWin::UpdateHandler(nsITimer *aTimer, void *aClosure)
   self->AccelerationChanged(x, y, z);
 }
 
-void nsAccelerometerWin::Startup()
+void nsAccelerometerSystem::Startup()
 {
   NS_ASSERTION(!mSensor, "mSensor should be null.  Startup called twice?");
 
@@ -499,7 +499,7 @@ void nsAccelerometerWin::Startup()
     started = mSensor->Startup();
 
 #endif
-  
+
   if (!started)
     return;
 
@@ -511,7 +511,7 @@ void nsAccelerometerWin::Startup()
                                        nsITimer::TYPE_REPEATING_SLACK);
 }
 
-void nsAccelerometerWin::Shutdown()
+void nsAccelerometerSystem::Shutdown()
 {
   if (mUpdateTimer) {
     mUpdateTimer->Cancel();
