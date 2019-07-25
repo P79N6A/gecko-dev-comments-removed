@@ -93,6 +93,7 @@
 #include "nsAbsoluteContainingBlock.h"
 #include "nsFontInflationData.h"
 #include "nsAnimationManager.h"
+#include "nsTransitionManager.h"
 
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
@@ -940,14 +941,16 @@ nsIFrame::IsTransformed() const
           (GetStyleDisplay()->HasTransform() ||
            IsSVGTransformed() ||
            (mContent &&
-            nsAnimationManager::GetAnimationsForCompositor(mContent, eCSSProperty_transform))));
+            nsLayoutUtils::HasAnimationsForCompositor(mContent,
+                                                      eCSSProperty_transform))));
 }
 
 bool
 nsIFrame::HasOpacity() const
 {
   return GetStyleDisplay()->mOpacity < 1.0f || (mContent &&
-           nsAnimationManager::GetAnimationsForCompositor(mContent, eCSSProperty_opacity));
+           nsLayoutUtils::HasAnimationsForCompositor(mContent,
+                                                     eCSSProperty_opacity));
 }
 
 bool
@@ -1775,8 +1778,11 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   const nsStyleDisplay* disp = GetStyleDisplay();
   
   
-  if (disp->mOpacity == 0.0 && aBuilder->IsForPainting())
+  if (disp->mOpacity == 0.0 && aBuilder->IsForPainting() &&
+      !nsLayoutUtils::HasAnimationsForCompositor(mContent,
+                                                 eCSSProperty_opacity)) {
     return NS_OK;
+  }
 
   bool applyClipPropClipping =
       ApplyClipPropClipping(aBuilder, disp, this, &clipPropClip);
@@ -1791,7 +1797,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
       
       
       
-        
+
       
       nsRect overflow = GetVisualOverflowRectRelativeToSelf();
       nsPoint offset = aBuilder->ToReferenceFrame(this);
@@ -1921,7 +1927,6 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     
     resultList.AppendToTop(item);
   }
-
   
 
 
