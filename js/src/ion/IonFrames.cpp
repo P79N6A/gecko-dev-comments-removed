@@ -51,6 +51,37 @@
 #include "IonMacroAssembler.h"
 #include "jsgcmark.h"
 
+namespace js {
+namespace ion {
+
+
+
+class InlineFrameReverseIterator
+{
+    FrameRecovery fr_;
+    SnapshotIterator si_;
+    JSScript *script_;
+    jsbytecode *pc_;
+
+  public:
+    InlineFrameReverseIterator(const IonFrameIterator &bottom);
+
+    inline JSScript *script() const {
+        return script_;
+    }
+    inline jsbytecode *pc() const {
+        return pc_;
+    }
+
+    InlineFrameReverseIterator &operator++();
+    inline bool more() const {
+        return si_.moreFrames();
+    }
+};
+
+}
+}
+
 using namespace js;
 using namespace js::ion;
 
@@ -132,11 +163,9 @@ FrameRecovery::FromSnapshot(uint8 *fp, uint8 *sp, const MachineState &machine,
 }
 
 FrameRecovery
-FrameRecovery::FromTop(JSContext *cx)
+FrameRecovery::FromIterator(const IonFrameIterator &it)
 {
-    IonFrameIterator it(cx->runtime->ionTop);
-    ++it;
-
+    JS_ASSERT(it.isScripted());
     MachineState noRegs;
     FrameRecovery frame(it.fp(), it.fp() - it.frameSize(), noRegs);
 
@@ -159,10 +188,71 @@ FrameRecovery::FromTop(JSContext *cx)
     return frame;
 }
 
+FrameRecovery
+FrameRecovery::FromTop(JSContext *cx)
+{
+    IonFrameIterator it(cx->runtime->ionTop);
+    ++it;
+
+    return FrameRecovery::FromIterator(it);
+}
+
 IonScript *
 FrameRecovery::ionScript() const
 {
     return ionScript_ ? ionScript_ : script_->ion;
+}
+
+InlineFrameReverseIterator::InlineFrameReverseIterator(const IonFrameIterator &bottom)
+  : fr_(FrameRecovery::FromIterator(bottom)),
+    si_(fr_),
+    script_(fr_.script()),
+    pc_(script_->code + si_.pcOffset())
+{
+}
+
+InlineFrameReverseIterator &
+InlineFrameReverseIterator::operator++()
+{
+    JS_ASSERT(more());
+    JS_ASSERT(JSOp(*pc_) == JSOP_CALL);
+
+    
+    int callerArgc = GET_ARGC(pc_);
+    uint32 funSlot = (si_.slots() - 1) - callerArgc - 1;
+
+    
+    while (funSlot--) {
+        JS_ASSERT(si_.more());
+        si_.skip(si_.readSlot());
+    }
+
+    
+    
+    Value funValue = si_.read();
+    while (si_.more())
+        si_.skip(si_.readSlot());
+
+    
+    script_ = funValue.toObject().toFunction()->script();
+    si_.readFrame();
+    pc_ = script_->code + si_.pcOffset();
+
+    return *this;
+}
+
+size_t
+InlineFrameIterator::getInlinedFrame(size_t n)
+{
+    size_t frameCount = 0;
+    InlineFrameReverseIterator bit(*bottom_);
+    while (frameCount != n && bit.more()) {
+        ++bit;
+        ++frameCount;
+    }
+    script_ = bit.script();
+    pc_ = bit.pc();
+    return frameCount;
 }
 
 bool
@@ -195,20 +285,13 @@ IonFrameIterator::checkInvalidation(IonScript **ionScriptOut) const
 CalleeToken
 IonFrameIterator::calleeToken() const
 {
-    JS_ASSERT(type_ == IonFrame_JS);
     return ((IonJSFrameLayout *) current_)->calleeToken();
-}
-
-bool
-IonFrameIterator::hasScript() const
-{
-    return type_ == IonFrame_JS;
 }
 
 JSScript *
 IonFrameIterator::script() const
 {
-    JS_ASSERT(hasScript());
+    JS_ASSERT(isScripted());
     JSScript *script = MaybeScriptFromCalleeToken(calleeToken());
     JS_ASSERT(script);
     return script;
@@ -419,46 +502,17 @@ ion::GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
     JS_ASSERT(cx->fp()->runningInIon());
     IonSpew(IonSpew_Snapshots, "Recover PC & Script from the last frame.");
 
-    FrameRecovery fr = FrameRecovery::FromTop(cx);
+    
+    IonFrameIterator it(cx->runtime->ionTop);
+    ++it;
+    InlineFrameReverseIterator bit(it);
+    while (bit.more())
+        ++bit;
 
     
-    
-    
-    SnapshotIterator si(fr);
-
-    
-    JSFunction *fun = fr.callee();
-    JSScript *script = fr.script();
-    jsbytecode *pc = script->code + si.pcOffset();
-
-    
-    while (si.moreFrames()) {
-        JS_ASSERT(JSOp(*pc) == JSOP_CALL);
-
-        
-        int callerArgc = GET_ARGC(pc);
-        uint32 funSlot = (si.slots() - 1) - callerArgc - 1;
-
-        
-        while (funSlot--) {
-            JS_ASSERT(si.more());
-            si.skip(si.readSlot());
-        }
-        Value funValue = si.read();
-        while (si.more())
-            si.skip(si.readSlot());
-
-        
-        fun = funValue.toObject().toFunction();
-        script = fun->script();
-        si.readFrame();
-        pc = script->code + si.pcOffset();
-    }
-
-    
-    *scriptRes = script;
+    *scriptRes = bit.script();
     if (pcRes)
-        *pcRes = pc;
+        *pcRes = bit.pc();
 }
 
 void
