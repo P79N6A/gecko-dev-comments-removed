@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsJPEGDecoder.h"
 #include "ImageLogging.h"
 
@@ -72,6 +73,7 @@ ycc_rgb_convert_argb (j_decompress_ptr cinfo,
 }
 
 static void cmyk_convert_rgb(JSAMPROW row, JDIMENSION width);
+static void cmyk_convert_rgb_inverted(JSAMPROW row, JDIMENSION width);
 
 namespace mozilla {
 namespace imagelib {
@@ -97,6 +99,32 @@ GetICCProfile(struct jpeg_decompress_struct &info)
   }
 
   return profile;
+}
+
+#define JPEG_EMBED_MARKER (JPEG_APP0 + 12)
+
+
+
+
+
+
+
+static bool IsEmbedMarkerPresent(struct jpeg_decompress_struct *info)
+{
+  jpeg_saved_marker_ptr marker;
+  
+  for (marker = info->marker_list; marker != NULL; marker = marker->next) {
+    if (marker->marker == JPEG_EMBED_MARKER &&
+        marker->data_length == 6 &&
+        marker->data[0] == 0x45 &&
+        marker->data[1] == 0x4D &&
+        marker->data[2] == 0x42 &&
+        marker->data[3] == 0x45 &&
+        marker->data[4] == 0x44 &&
+        marker->data[5] == 0x00)
+    return true;
+  }
+  return false;
 }
 
 METHODDEF(void) init_source (j_decompress_ptr jd);
@@ -297,13 +325,14 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
         if (profileSpace == icSigRgbData)
           mInfo.out_color_space = JCS_RGB;
         else
-	  
+          
           mismatch = true;
         break;
       case JCS_CMYK:
       case JCS_YCCK:
-	  
-          mismatch = true;
+        
+        mInvertedCMYK = !IsEmbedMarkerPresent(&mInfo);
+        mismatch = true;
         break;
       default:
         mState = JPEG_ERROR;
@@ -371,6 +400,7 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
       case JCS_YCCK:
         
         mInfo.out_color_space = JCS_CMYK;
+        mInvertedCMYK = !IsEmbedMarkerPresent(&mInfo);
         break;
       default:
         mState = JPEG_ERROR;
@@ -626,7 +656,12 @@ nsJPEGDecoder::OutputScanlines(bool* suspend)
           
           
           
-          cmyk_convert_rgb((JSAMPROW)imageRow, mInfo.output_width);
+          
+          if (mInvertedCMYK) {
+            cmyk_convert_rgb_inverted((JSAMPROW)imageRow, mInfo.output_width);
+          } else {
+            cmyk_convert_rgb((JSAMPROW)imageRow, mInfo.output_width);
+          }
           sampleRow += mInfo.output_width;
         }
         if (mCMSMode == eCMSMode_All) {
@@ -1175,7 +1210,7 @@ ycc_rgb_convert_argb (j_decompress_ptr cinfo,
 
 
 
-static void cmyk_convert_rgb(JSAMPROW row, JDIMENSION width)
+static void cmyk_convert_rgb_inverted(JSAMPROW row, JDIMENSION width)
 {
   
   JSAMPROW in = row + width*4;
@@ -1208,6 +1243,35 @@ static void cmyk_convert_rgb(JSAMPROW row, JDIMENSION width)
     const PRUint32 iM = in[1];
     const PRUint32 iY = in[2];
     const PRUint32 iK = in[3];
+    out[0] = iC*iK/255;   
+    out[1] = iM*iK/255;   
+    out[2] = iY*iK/255;   
+  }
+}
+
+
+
+
+
+
+
+
+static void cmyk_convert_rgb(JSAMPROW row, JDIMENSION width)
+{
+  
+  JSAMPROW in = row + width*4;
+  JSAMPROW out = in;
+
+  for (PRUint32 i = width; i > 0; i--) {
+    in -= 4;
+    out -= 3;
+  
+    
+    
+    const PRUint32 iC = 255 - in[0];
+    const PRUint32 iM = 255 - in[1];
+    const PRUint32 iY = 255 - in[2];
+    const PRUint32 iK = 255 - in[3];
     out[0] = iC*iK/255;   
     out[1] = iM*iK/255;   
     out[2] = iY*iK/255;   
