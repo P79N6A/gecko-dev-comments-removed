@@ -837,13 +837,22 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
     desc->obj = NULL;
 
     unsigned flags = (set ? JSRESOLVE_ASSIGNING : 0) | JSRESOLVE_QUALIFIED;
-    JSObject *expando = GetExpandoObject(holder);
+    JSObject *target = GetWrappedNativeObjectFromHolder(holder);
+    JSObject *expando = LookupExpandoObject(target, wrapper);
 
     
-    if (expando && !JS_GetPropertyDescriptorById(cx, expando, id, flags, desc)) {
-        return false;
+    
+    if (expando) {
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, expando) ||
+            !JS_GetPropertyDescriptorById(cx, expando, id, flags, desc))
+        {
+            return false;
+        }
     }
     if (desc->obj) {
+        if (!JS_WrapPropertyDescriptor(cx, desc))
+            return false;
         
         desc->obj = wrapper;
         return true;
@@ -901,24 +910,42 @@ XPCWrappedNativeXrayTraits::defineProperty(JSContext *cx, JSObject *wrapper, jsi
                                      desc->attrs);
     }
 
-    JSObject *expando = EnsureExpandoObject(cx, holder);
-    if (!expando)
+    
+    
+    JSObject *target = GetWrappedNativeObjectFromHolder(holder);
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, target))
         return false;
 
-    return JS_DefinePropertyById(cx, expando, id, desc->value, desc->getter, desc->setter,
-                                 desc->attrs);
+    
+    JSObject *expandoObject = EnsureExpandoObject(cx, wrapper, target);
+    if (!expandoObject)
+        return false;
+
+    
+    PropertyDescriptor wrappedDesc = *desc;
+    if (!JS_WrapPropertyDescriptor(cx, &wrappedDesc))
+        return false;
+
+    return JS_DefinePropertyById(cx, expandoObject, id, wrappedDesc.value,
+                                 wrappedDesc.getter, wrappedDesc.setter,
+                                 wrappedDesc.attrs);
 }
 
 bool
 XPCWrappedNativeXrayTraits::delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
     JSObject *holder = getHolderObject(wrapper);
-    JSObject *expando = GetExpandoObject(holder);
+    JSObject *target = GetWrappedNativeObjectFromHolder(holder);
+    JSObject *expando = LookupExpandoObject(target, wrapper);
+    JSAutoEnterCompartment ac;
     JSBool b = true;
     jsval v;
     if (expando &&
-        (!JS_DeletePropertyById2(cx, expando, id, &v) ||
-         !JS_ValueToBoolean(cx, v, &b))) {
+        (!ac.enter(cx, expando) ||
+         !JS_DeletePropertyById2(cx, expando, id, &v) ||
+         !JS_ValueToBoolean(cx, v, &b)))
+    {
         return false;
     }
 
@@ -933,8 +960,18 @@ XPCWrappedNativeXrayTraits::enumerateNames(JSContext *cx, JSObject *wrapper, uns
     JSObject *holder = getHolderObject(wrapper);
 
     
-    JSObject *expando = GetExpandoObject(holder);
-    if (expando && !js::GetPropertyNames(cx, expando, flags, &props))
+    
+    JSObject *target = GetWrappedNativeObjectFromHolder(holder);
+    JSObject *expando = LookupExpandoObject(target, wrapper);
+    if (expando) {
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, expando) ||
+            !js::GetPropertyNames(cx, expando, flags, &props))
+        {
+            return false;
+        }
+    }
+    if (!JS_WrapAutoIdVector(cx, props))
         return false;
 
     
