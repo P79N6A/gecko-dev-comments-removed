@@ -229,7 +229,7 @@ static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_PRIMITIVE(jsval v)
 {
     jsval_layout l = { v };
-    return (l.s.mask32 & JSVAL_MASK32_OBJECT) == JSVAL_MASK32_CLEAR;
+    return (l.s.mask32 & JSVAL_MASK32_OBJECT) <= JSVAL_MASK32_CLEAR;
 }
 
 static JS_ALWAYS_INLINE JSBool
@@ -755,8 +755,6 @@ JS_StringToVersion(const char *string);
                                                    (see JS_GetGlobalObject),
                                                    leaving that up to the
                                                    embedding. */
-
-#define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
 
 extern JS_PUBLIC_API(uint32)
 JS_GetOptions(JSContext *cx);
@@ -1568,8 +1566,10 @@ struct JSExtendedClass {
 
 
 
+
+
 #define JSCLASS_GLOBAL_FLAGS \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 2))
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
