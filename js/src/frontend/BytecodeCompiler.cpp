@@ -34,6 +34,13 @@ MarkInnerAndOuterFunctions(JSContext *cx, JSScript* script_)
         JSScript *outer = worklist.back();
         worklist.popBack();
 
+        
+
+
+
+        if (outer->funHasExtensibleScope)
+            continue;
+
         if (outer->hasObjects()) {
             ObjectArray *arr = outer->objects();
 
