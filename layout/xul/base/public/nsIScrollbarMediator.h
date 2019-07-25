@@ -42,7 +42,7 @@
 
 #include "nsQueryFrame.h"
 
-class nsIScrollbarFrame;
+class nsScrollbarFrame;
 
 class nsIScrollbarMediator
 {
@@ -50,11 +50,8 @@ public:
   NS_DECL_QUERYFRAME_TARGET(nsIScrollbarMediator)
 
   
-  
-  
-
-  NS_IMETHOD PositionChanged(nsIScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32& aNewIndex) = 0;
-  NS_IMETHOD ScrollbarButtonPressed(nsIScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32 aNewIndex) = 0;
+  NS_IMETHOD PositionChanged(nsScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32& aNewIndex) = 0;
+  NS_IMETHOD ScrollbarButtonPressed(nsScrollbarFrame* aScrollbar, PRInt32 aOldIndex, PRInt32 aNewIndex) = 0;
 
   NS_IMETHOD VisibilityChanged(PRBool aVisible) = 0;
 };
