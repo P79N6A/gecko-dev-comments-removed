@@ -1089,8 +1089,6 @@ WeaveSvc.prototype = {
       return;
     }
 
-    fullSync = true; 
-
     
     let reason = this._checkSync();
     if (reason) {
