@@ -86,7 +86,6 @@
 #include "nsSerializationHelper.h"
 #include "nsIFrame.h"
 #include "nsIView.h"
-#include "nsIEventListenerManager.h"
 #include "nsGeolocation.h"
 
 #ifdef MOZ_WIDGET_QT
@@ -510,11 +509,6 @@ TabChild::~TabChild()
     }
     if (mCx) {
       DestroyCx();
-    }
-    
-    nsIEventListenerManager* elm = mTabChildGlobal->GetListenerManager(PR_FALSE);
-    if (elm) {
-      elm->Disconnect();
     }
     mTabChildGlobal->mTabChild = nsnull;
 }
