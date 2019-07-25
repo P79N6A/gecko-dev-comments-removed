@@ -209,7 +209,7 @@ protected:
 
   
   
-  nsresult JSObjectFromInterface(nsISupports *aSup, void *aScript, 
+  nsresult JSObjectFromInterface(nsISupports *aSup, JSObject *aScript,
                                  JSObject **aRet);
 
   
