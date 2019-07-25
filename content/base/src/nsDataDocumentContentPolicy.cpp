@@ -42,6 +42,8 @@
 
 
 #include "nsDataDocumentContentPolicy.h"
+#include "nsNetUtil.h"
+#include "nsScriptSecurityManager.h"
 #include "nsIDocument.h"
 #include "nsINode.h"
 #include "nsIDOMWindow.h"
@@ -81,6 +83,32 @@ nsDataDocumentContentPolicy::ShouldLoad(PRUint32 aContentType,
   
   if (doc->IsLoadedAsData()) {
     *aDecision = nsIContentPolicy::REJECT_TYPE;
+    return NS_OK;
+  }
+
+  
+  
+  if (doc->IsBeingUsedAsImage()) {
+    PRBool hasFlags;
+    nsresult rv = NS_URIChainHasFlags(aContentLocation,
+                                      nsIProtocolHandler::URI_IS_LOCAL_RESOURCE,
+                                      &hasFlags);
+    if (NS_FAILED(rv) || !hasFlags) {
+      
+      *aDecision = nsIContentPolicy::REJECT_TYPE;
+
+      
+      if (node) {
+        nsIPrincipal* requestingPrincipal = node->NodePrincipal();
+        nsRefPtr<nsIURI> principalURI;
+        rv = requestingPrincipal->GetURI(getter_AddRefs(principalURI));
+        if (NS_SUCCEEDED(rv) && principalURI) {
+          nsScriptSecurityManager::ReportError(
+            nsnull, NS_LITERAL_STRING("CheckSameOriginError"), principalURI,
+            aContentLocation);
+        }
+      }
+    }
     return NS_OK;
   }
 
