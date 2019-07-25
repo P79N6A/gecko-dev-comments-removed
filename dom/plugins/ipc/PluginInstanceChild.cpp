@@ -2930,7 +2930,7 @@ PluginInstanceChild::ShowPluginFrame()
     
     
     nsIntRect rect = mAccumulatedInvalidRect;
-    mAccumulatedInvalidRect.Empty();
+    mAccumulatedInvalidRect.SetEmpty();
 
     
     

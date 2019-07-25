@@ -1636,7 +1636,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       
       
       
-      dirty.Empty();
+      dirty.SetEmpty();
     }
     pseudoStackingContext = PR_TRUE;
   } else if (aBuilder->GetSelectedFramesOnly() &&

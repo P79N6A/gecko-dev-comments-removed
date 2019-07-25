@@ -175,7 +175,7 @@ Decoder::FlushInvalidations()
   }
 
   
-  mInvalidRect.Empty();
+  mInvalidRect.SetEmpty();
 }
 
 

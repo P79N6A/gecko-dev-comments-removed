@@ -1094,7 +1094,7 @@ nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
     mCaretRect.x -= mCaretRect.width;
 
 #ifdef IBMBIDI
-  mHookRect.Empty();
+  mHookRect.SetEmpty();
 
   
   PRBool isCaretRTL = PR_FALSE;

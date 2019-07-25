@@ -2951,7 +2951,7 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
 
   
   
-  mWindowlessRect.Empty();
+  mWindowlessRect.SetEmpty();
 
   PRBool oldVal = mPreventInstantiation;
   mPreventInstantiation = PR_TRUE;

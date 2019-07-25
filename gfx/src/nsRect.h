@@ -83,7 +83,7 @@ struct NS_GFX nsRect {
   PRBool IsEmpty() const {
     return (PRBool) ((height <= 0) || (width <= 0));
   }
-  void   Empty() {width = height = 0;}
+  void SetEmpty() {width = height = 0;}
 
   
   
@@ -121,7 +121,7 @@ struct NS_GFX nsRect {
   
   
   void UnionRectEdges(const nsRect& aRect1, const nsRect& aRect2);
-  
+
   
   void SetRect(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight) {
     x = aX; y = aY; width = aWidth; height = aHeight;
