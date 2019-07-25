@@ -4853,8 +4853,6 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const Value &valu
 
 
 
-
-
 static JSBool
 CallResolveOp(JSContext *cx, JSObject *start, JSObject *obj, jsid id, uintN flags,
               JSObject **objp, JSProperty **propp, bool *recursedp)
@@ -4885,63 +4883,45 @@ CallResolveOp(JSContext *cx, JSObject *start, JSObject *obj, jsid id, uintN flag
     *propp = NULL;
 
     JSBool ok;
-    const Shape *shape = NULL;
     if (clasp->flags & JSCLASS_NEW_RESOLVE) {
-        JSNewResolveOp newresolve = (JSNewResolveOp)resolve;
+        JSNewResolveOp newresolve = reinterpret_cast<JSNewResolveOp>(resolve);
         if (flags == JSRESOLVE_INFER)
             flags = js_InferFlags(cx, 0);
         JSObject *obj2 = (clasp->flags & JSCLASS_NEW_RESOLVE_GETS_START) ? start : NULL;
-
-        {
-            
-            AutoKeepAtoms keep(cx->runtime);
-            ok = newresolve(cx, obj, id, flags, &obj2);
-        }
+        ok = newresolve(cx, obj, id, flags, &obj2);
         if (!ok)
             goto cleanup;
 
-        if (obj2) {
-            
-            if (!obj2->isNative()) {
-                
-                JS_ASSERT(obj2 != obj);
-                ok = obj2->lookupProperty(cx, id, objp, propp);
-                if (!ok || *propp)
-                    goto cleanup;
-            } else {
-                
-
-
-
-
-
-
-                if (!obj2->nativeEmpty())
-                    shape = obj2->nativeLookup(id);
-            }
-            if (shape) {
-                JS_ASSERT(!obj2->nativeEmpty());
-                obj = obj2;
-            }
-        }
-    } else {
         
 
 
 
+
+
+        if (!obj2)
+            goto cleanup;
+
+        if (!obj2->isNative()) {
+            
+            JS_ASSERT(obj2 != obj);
+            ok = obj2->lookupProperty(cx, id, objp, propp);
+            goto cleanup;
+        }
+        obj = obj2;
+    } else {
         ok = resolve(cx, obj, id);
         if (!ok)
             goto cleanup;
-        JS_ASSERT(obj->isNative());
-        if (!obj->nativeEmpty())
-            shape = obj->nativeLookup(id);
     }
 
-cleanup:
-    if (ok && shape) {
-        *objp = obj;
-        *propp = (JSProperty *) shape;
+    if (!obj->nativeEmpty()) {
+        if (const Shape *shape = obj->nativeLookup(id)) {
+            *objp = obj;
+            *propp = (JSProperty *) shape;
+        }
     }
+
+  cleanup:
     js_StopResolving(cx, &key, JSRESFLAG_LOOKUP, entry, generation);
     return ok;
 }
