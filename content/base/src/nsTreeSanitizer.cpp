@@ -1293,6 +1293,7 @@ nsTreeSanitizer::SanitizeAttributes(mozilla::dom::Element* aElement,
     i = ac; 
   }
 
+#ifdef MOZ_MEDIA
   
   
   if (aElement->IsHTML(nsGkAtoms::video) ||
@@ -1302,6 +1303,7 @@ nsTreeSanitizer::SanitizeAttributes(mozilla::dom::Element* aElement,
                       EmptyString(),
                       PR_FALSE);
   }
+#endif
 }
 
 PRBool
