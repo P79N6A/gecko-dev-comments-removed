@@ -3031,6 +3031,12 @@ JavascriptType.prototype.parse = function(arg) {
 
   
   
+  if (beginning.state === ParseState.COMPLEX) {
+    return new Conversion(typed, arg);
+  }
+
+  
+  
   if (beginning.state !== ParseState.NORMAL) {
     return new Conversion(typed, arg, Status.INCOMPLETE, '');
   }
@@ -3068,7 +3074,7 @@ JavascriptType.prototype.parse = function(arg) {
         
         
         
-        return new Conversion(typed, arg, Status.INCOMPLETE, '');
+        return new Conversion(typed, arg, Status.VALID, '');
       }
     }
   }
@@ -3246,8 +3252,26 @@ function isVendorPrefixed(name) {
 
 
 var ParseState = {
+  
+
+
+
   NORMAL: 0,
+
+  
+
+
+
+  COMPLEX: 1,
+
+  
+
+
   QUOTE: 2,
+
+  
+
+
   DQUOTE: 3
 };
 
@@ -3258,6 +3282,12 @@ var OPEN_CLOSE_BODY = {
   '[': ']',
   '(': ')'
 };
+
+
+
+
+
+var simpleChars = /[a-zA-Z0-9.]/;
 
 
 
@@ -3277,8 +3307,13 @@ JavascriptType.prototype._findCompletionBeginning = function(text) {
   var state = ParseState.NORMAL;
   var start = 0;
   var c;
+  var complex = false;
+
   for (var i = 0; i < text.length; i++) {
     c = text[i];
+    if (!simpleChars.test(c)) {
+      complex = true;
+    }
 
     switch (state) {
       
@@ -3342,6 +3377,10 @@ JavascriptType.prototype._findCompletionBeginning = function(text) {
         }
         break;
     }
+  }
+
+  if (state === ParseState.NORMAL && complex) {
+    state = ParseState.COMPLEX;
   }
 
   return {
@@ -4338,7 +4377,6 @@ Requisition.prototype.toCanonicalString = function() {
   }, this);
 
   
-  var command = this.commandAssignment.getValue();
   if (cmd === '{') {
     if (this.getAssignment(0).getArg().suffix.indexOf('}') === -1) {
       line.push(' }');
@@ -6136,7 +6174,7 @@ Completer.prototype.update = function(input) {
   if (unclosedJs) {
     var close = dom.createElement(document, 'span');
     close.classList.add('gcli-in-closebrace');
-    close.appendChild(document.createTextNode('}'));
+    close.appendChild(document.createTextNode(' }'));
     this.element.appendChild(close);
   }
 };
