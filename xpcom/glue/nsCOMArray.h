@@ -121,6 +121,16 @@ public:
                            : true;
     }
 
+    
+    
+    
+    size_t SizeOfExcludingThis(
+             nsVoidArraySizeOfElementIncludingThisFunc aSizeOfElementIncludingThis,
+             nsMallocSizeOfFun aMallocSizeOf, void* aData = NULL) const {
+        return mArray.SizeOfExcludingThis(aSizeOfElementIncludingThis,
+                                          aMallocSizeOf, aData);
+    }
+    
 private:
     
     
@@ -274,6 +284,20 @@ class nsCOMArray : public nsCOMArray_base
     
     bool RemoveObjectsAt(PRInt32 aIndex, PRInt32 aCount) {
         return nsCOMArray_base::RemoveObjectsAt(aIndex, aCount);
+    }
+
+    
+    
+    
+    typedef size_t (* nsCOMArraySizeOfElementIncludingThisFunc)
+        (T* aElement, nsMallocSizeOfFun aMallocSizeOf, void *aData);
+    
+    size_t SizeOfExcludingThis(
+             nsCOMArraySizeOfElementIncludingThisFunc aSizeOfElementIncludingThis, 
+             nsMallocSizeOfFun aMallocSizeOf, void *aData = NULL) const {
+        return nsCOMArray_base::SizeOfExcludingThis(
+                 nsVoidArraySizeOfElementIncludingThisFunc(aSizeOfElementIncludingThis),
+                 aMallocSizeOf, aData);
     }
 
 private:

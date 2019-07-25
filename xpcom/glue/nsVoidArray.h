@@ -47,6 +47,12 @@ typedef int (* nsVoidArrayComparatorFunc)
 
 
 typedef bool (* nsVoidArrayEnumFunc)(void* aElement, void *aData);
+typedef bool (* nsVoidArrayEnumFuncConst)(const void* aElement, void *aData);
+
+
+typedef size_t (* nsVoidArraySizeOfElementIncludingThisFunc)(const void* aElement,
+                                                             nsMallocSizeOfFun aMallocSizeOf,
+                                                             void *aData);
 
 
 class NS_COM_GLUE nsVoidArray {
@@ -127,7 +133,15 @@ public:
   void Sort(nsVoidArrayComparatorFunc aFunc, void* aData);
 
   bool EnumerateForwards(nsVoidArrayEnumFunc aFunc, void* aData);
+  bool EnumerateForwards(nsVoidArrayEnumFuncConst aFunc, void* aData) const;
   bool EnumerateBackwards(nsVoidArrayEnumFunc aFunc, void* aData);
+
+  
+  
+  
+  size_t SizeOfExcludingThis(
+           nsVoidArraySizeOfElementIncludingThisFunc aSizeOfElementIncludingThis,
+           nsMallocSizeOfFun aMallocSizeOf, void* aData = NULL) const;
 
 protected:
   bool GrowArrayBy(PRInt32 aGrowBy);
