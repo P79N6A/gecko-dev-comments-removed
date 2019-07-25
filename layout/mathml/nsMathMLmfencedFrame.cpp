@@ -138,9 +138,8 @@ nsMathMLmfencedFrame::CreateFencesAndSeparators(nsPresContext* aPresContext)
   if (!GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::open,
                     value)) {
     value = PRUnichar('('); 
-  }
-  else {
-    value.Trim(" ");
+  } else {
+    value.CompressWhitespace();
   }
 
   if (!value.IsEmpty()) {
@@ -155,9 +154,8 @@ nsMathMLmfencedFrame::CreateFencesAndSeparators(nsPresContext* aPresContext)
   if(!GetAttribute(mContent, mPresentationData.mstyle,
                     nsGkAtoms::close, value)) {
     value = PRUnichar(')'); 
-  }
-  else {
-    value.Trim(" ");
+  } else {
+    value.CompressWhitespace();
   }
 
   if (!value.IsEmpty()) {
@@ -169,11 +167,10 @@ nsMathMLmfencedFrame::CreateFencesAndSeparators(nsPresContext* aPresContext)
 
   
   
-  if(!GetAttribute(mContent, mPresentationData.mstyle, 
-                   nsGkAtoms::separators_, value)) {
+  if (!GetAttribute(mContent, mPresentationData.mstyle, 
+                    nsGkAtoms::separators_, value)) {
     value = PRUnichar(','); 
-  }
-  else {
+  } else {
     value.StripWhitespace();
   }
 
