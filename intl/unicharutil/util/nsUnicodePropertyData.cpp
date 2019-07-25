@@ -75,7 +75,7 @@
 
 
 #include "mozilla/StandardInteger.h"
-#include "harfbuzz/hb-common.h"
+#include "harfbuzz/hb.h"
 
 static const PRUint32 sScriptCodeToTag[] = {
   HB_TAG('Z','y','y','y'),

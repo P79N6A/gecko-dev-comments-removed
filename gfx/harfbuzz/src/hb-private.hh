@@ -33,7 +33,10 @@
 #include "config.h"
 #endif
 
-#include "hb-common.h"
+#include "hb.h"
+#include "hb-ot.h"
+#define HB_H_IN
+#define HB_OT_H_IN
 
 #include <stdlib.h>
 #include <stddef.h>
@@ -436,6 +439,14 @@ static inline uint16_t hb_be_uint16 (const uint16_t v)
   const uint8_t *V = (const uint8_t *) &v;
   return (uint16_t) (V[0] << 8) + V[1];
 }
+
+
+
+
+
+
+
+
 
 #define hb_be_uint16_put(v,V)	HB_STMT_START { v[0] = (V>>8); v[1] = (V); } HB_STMT_END
 #define hb_be_uint16_get(v)	(uint16_t) ((v[0] << 8) + v[1])

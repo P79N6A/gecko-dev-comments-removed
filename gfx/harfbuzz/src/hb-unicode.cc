@@ -271,3 +271,58 @@ hb_unicode_decompose (hb_unicode_funcs_t *ufuncs,
   return ufuncs->func.decompose (ufuncs, ab, a, b, ufuncs->user_data.decompose);
 }
 
+
+
+unsigned int
+_hb_unicode_modified_combining_class (hb_unicode_funcs_t *ufuncs,
+				      hb_codepoint_t      unicode)
+{
+  int c = hb_unicode_combining_class (ufuncs, unicode);
+
+  if (unlikely (hb_in_range<int> (c, 27, 33)))
+  {
+    
+
+
+
+    c = c == 33 ? 27 : c + 1;
+  }
+  else if (unlikely (hb_in_range<int> (c, 10, 25)))
+  {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    static const int permuted_hebrew_classes[25 - 10 + 1] = {
+              22,
+        15,
+        16,
+       17,
+              23,
+              18,
+              19,
+              20,
+             21,
+              14,
+             24,
+             12,
+              25,
+               13,
+           10,
+            11,
+    };
+    c = permuted_hebrew_classes[c - 10];
+  }
+
+  return c;
+}
+

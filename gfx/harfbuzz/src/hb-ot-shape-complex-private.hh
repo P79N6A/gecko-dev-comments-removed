@@ -30,6 +30,7 @@
 #include "hb-private.hh"
 
 #include "hb-ot-map-private.hh"
+#include "hb-ot-shape-normalize-private.hh"
 
 
 
@@ -49,7 +50,9 @@
 #define HB_COMPLEX_SHAPERS_IMPLEMENT_SHAPERS \
   HB_COMPLEX_SHAPER_IMPLEMENT (default) /* should be first */ \
   HB_COMPLEX_SHAPER_IMPLEMENT (arabic) \
+  HB_COMPLEX_SHAPER_IMPLEMENT (hangul) \
   HB_COMPLEX_SHAPER_IMPLEMENT (indic) \
+  HB_COMPLEX_SHAPER_IMPLEMENT (thai) \
   /* ^--- Add new shapers here */
 
 enum hb_ot_complex_shaper_t {
@@ -68,12 +71,37 @@ hb_ot_shape_complex_categorize (const hb_segment_properties_t *props)
     default:
       return hb_ot_complex_shaper_default;
 
+
+    
     case HB_SCRIPT_ARABIC:
-    case HB_SCRIPT_MANDAIC:
     case HB_SCRIPT_MONGOLIAN:
-    case HB_SCRIPT_NKO:
     case HB_SCRIPT_SYRIAC:
+
+    
+    case HB_SCRIPT_NKO:
+
+    
+    case HB_SCRIPT_MANDAIC:
+
       return hb_ot_complex_shaper_arabic;
+
+
+    
+    case HB_SCRIPT_HANGUL:
+
+      return hb_ot_complex_shaper_hangul;
+
+
+    
+    case HB_SCRIPT_THAI:
+    case HB_SCRIPT_LAO:
+
+      return hb_ot_complex_shaper_thai;
+
+
+
+    
+
 
 #if 0
     
@@ -85,56 +113,105 @@ hb_ot_shape_complex_categorize (const hb_segment_properties_t *props)
 
 
 
+
+
+
     
-    case HB_SCRIPT_BATAK:
-    case HB_SCRIPT_BRAHMI:
+
+    
+    case HB_SCRIPT_BUHID:
     case HB_SCRIPT_HANUNOO:
-    case HB_SCRIPT_MEETEI_MAYEK:
+
+    
     case HB_SCRIPT_SAURASHTRA:
 
     
-    case HB_SCRIPT_KAYAH_LI:
+    case HB_SCRIPT_MEETEI_MAYEK:
+
+    
+    case HB_SCRIPT_BATAK:
+    case HB_SCRIPT_BRAHMI:
+
+
+    
+
+    
+    
     case HB_SCRIPT_LAO:
-    case HB_SCRIPT_LIMBU:
-    case HB_SCRIPT_PHAGS_PA:
-    case HB_SCRIPT_SYLOTI_NAGRI:
-    case HB_SCRIPT_TAGALOG:
-    case HB_SCRIPT_TAGBANWA:
-    case HB_SCRIPT_TAI_LE:
-    case HB_SCRIPT_TAI_VIET:
     case HB_SCRIPT_THAI:
+
+    
     case HB_SCRIPT_TIBETAN:
 
     
+    case HB_SCRIPT_TAGALOG:
+    case HB_SCRIPT_TAGBANWA:
+
+    
+    case HB_SCRIPT_LIMBU:
+    case HB_SCRIPT_TAI_LE:
+
+    
+    case HB_SCRIPT_SYLOTI_NAGRI:
+
+    
+    case HB_SCRIPT_PHAGS_PA:
+
+    
+    case HB_SCRIPT_KAYAH_LI:
+
+    
+    case HB_SCRIPT_TAI_VIET:
+
+
+    
+
+    
     case HB_SCRIPT_MYANMAR:
+
+
 #endif
 
-    case HB_SCRIPT_BALINESE:
+    
     case HB_SCRIPT_BENGALI:
-    case HB_SCRIPT_BUGINESE:
-    case HB_SCRIPT_BUHID:
-    case HB_SCRIPT_CHAM:
     case HB_SCRIPT_DEVANAGARI:
     case HB_SCRIPT_GUJARATI:
     case HB_SCRIPT_GURMUKHI:
-    case HB_SCRIPT_JAVANESE:
-    case HB_SCRIPT_KAITHI:
     case HB_SCRIPT_KANNADA:
-    case HB_SCRIPT_KHAROSHTHI:
-    case HB_SCRIPT_KHMER:
-    case HB_SCRIPT_LEPCHA:
     case HB_SCRIPT_MALAYALAM:
-    case HB_SCRIPT_NEW_TAI_LUE:
     case HB_SCRIPT_ORIYA:
-    case HB_SCRIPT_REJANG:
-    case HB_SCRIPT_SINHALA:
-    case HB_SCRIPT_SUNDANESE:
-    case HB_SCRIPT_TAI_THAM:
     case HB_SCRIPT_TAMIL:
     case HB_SCRIPT_TELUGU:
-      return hb_ot_complex_shaper_indic;
 
     
+    case HB_SCRIPT_KHMER:
+    case HB_SCRIPT_SINHALA:
+
+    
+    case HB_SCRIPT_BUGINESE:
+    case HB_SCRIPT_KHAROSHTHI:
+    case HB_SCRIPT_NEW_TAI_LUE:
+
+    
+    case HB_SCRIPT_BALINESE:
+
+    
+    case HB_SCRIPT_CHAM:
+    case HB_SCRIPT_LEPCHA:
+    case HB_SCRIPT_REJANG:
+    case HB_SCRIPT_SUNDANESE:
+
+    
+    case HB_SCRIPT_JAVANESE:
+    case HB_SCRIPT_KAITHI:
+    case HB_SCRIPT_TAI_THAM:
+
+    
+    case HB_SCRIPT_CHAKMA:
+    case HB_SCRIPT_SHARADA:
+    case HB_SCRIPT_TAKRI:
+
+      return hb_ot_complex_shaper_indic;
   }
 }
 
@@ -177,19 +254,19 @@ hb_ot_shape_complex_collect_features (hb_ot_complex_shaper_t shaper,
 
 
 
-typedef bool hb_ot_shape_complex_prefer_decomposed_func_t (void);
+typedef hb_ot_shape_normalization_mode_t hb_ot_shape_complex_normalization_preference_func_t (void);
 #define HB_COMPLEX_SHAPER_IMPLEMENT(name) \
-  HB_INTERNAL hb_ot_shape_complex_prefer_decomposed_func_t _hb_ot_shape_complex_prefer_decomposed_##name;
+  HB_INTERNAL hb_ot_shape_complex_normalization_preference_func_t _hb_ot_shape_complex_normalization_preference_##name;
   HB_COMPLEX_SHAPERS_IMPLEMENT_SHAPERS
 #undef HB_COMPLEX_SHAPER_IMPLEMENT
 
-static inline bool
-hb_ot_shape_complex_prefer_decomposed (hb_ot_complex_shaper_t shaper)
+static inline hb_ot_shape_normalization_mode_t
+hb_ot_shape_complex_normalization_preference (hb_ot_complex_shaper_t shaper)
 {
   switch (shaper) {
     default:
 #define HB_COMPLEX_SHAPER_IMPLEMENT(name) \
-    case hb_ot_complex_shaper_##name:	return _hb_ot_shape_complex_prefer_decomposed_##name ();
+    case hb_ot_complex_shaper_##name:	return _hb_ot_shape_complex_normalization_preference_##name ();
     HB_COMPLEX_SHAPERS_IMPLEMENT_SHAPERS
 #undef HB_COMPLEX_SHAPER_IMPLEMENT
   }
@@ -203,7 +280,7 @@ hb_ot_shape_complex_prefer_decomposed (hb_ot_complex_shaper_t shaper)
 
 
 
-typedef void hb_ot_shape_complex_setup_masks_func_t (hb_ot_map_t *map, hb_buffer_t *buffer);
+typedef void hb_ot_shape_complex_setup_masks_func_t (hb_ot_map_t *map, hb_buffer_t *buffer, hb_font_t *font);
 #define HB_COMPLEX_SHAPER_IMPLEMENT(name) \
   HB_INTERNAL hb_ot_shape_complex_setup_masks_func_t _hb_ot_shape_complex_setup_masks_##name;
   HB_COMPLEX_SHAPERS_IMPLEMENT_SHAPERS
@@ -212,12 +289,13 @@ typedef void hb_ot_shape_complex_setup_masks_func_t (hb_ot_map_t *map, hb_buffer
 static inline void
 hb_ot_shape_complex_setup_masks (hb_ot_complex_shaper_t shaper,
 				 hb_ot_map_t *map,
-				 hb_buffer_t *buffer)
+				 hb_buffer_t *buffer,
+				 hb_font_t *font)
 {
   switch (shaper) {
     default:
 #define HB_COMPLEX_SHAPER_IMPLEMENT(name) \
-    case hb_ot_complex_shaper_##name:	_hb_ot_shape_complex_setup_masks_##name (map, buffer); return;
+    case hb_ot_complex_shaper_##name:	_hb_ot_shape_complex_setup_masks_##name (map, buffer, font); return;
     HB_COMPLEX_SHAPERS_IMPLEMENT_SHAPERS
 #undef HB_COMPLEX_SHAPER_IMPLEMENT
   }

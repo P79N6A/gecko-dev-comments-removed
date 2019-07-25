@@ -80,7 +80,7 @@ hb_direction_from_string (const char *str, int len)
   char c = TOLOWER (str[0]);
   for (unsigned int i = 0; i < ARRAY_LENGTH (direction_strings); i++)
     if (c == direction_strings[i][0])
-      return (hb_direction_t) i;
+      return (hb_direction_t) (HB_DIRECTION_LTR + i);
 
   return HB_DIRECTION_INVALID;
 }
@@ -88,8 +88,9 @@ hb_direction_from_string (const char *str, int len)
 const char *
 hb_direction_to_string (hb_direction_t direction)
 {
-  if (likely ((unsigned int) direction < ARRAY_LENGTH (direction_strings)))
-    return direction_strings[direction];
+  if (likely ((unsigned int) (direction - HB_DIRECTION_LTR)
+	      < ARRAY_LENGTH (direction_strings)))
+    return direction_strings[direction - HB_DIRECTION_LTR];
 
   return "invalid";
 }
@@ -264,10 +265,14 @@ hb_script_to_iso15924_tag (hb_script_t script)
 hb_direction_t
 hb_script_get_horizontal_direction (hb_script_t script)
 {
+  
   switch ((hb_tag_t) script)
   {
+    
     case HB_SCRIPT_ARABIC:
     case HB_SCRIPT_HEBREW:
+
+    
     case HB_SCRIPT_SYRIAC:
     case HB_SCRIPT_THAANA:
 
@@ -275,8 +280,14 @@ hb_script_get_horizontal_direction (hb_script_t script)
     case HB_SCRIPT_CYPRIOT:
 
     
+    case HB_SCRIPT_KHAROSHTHI:
+
+    
     case HB_SCRIPT_PHOENICIAN:
     case HB_SCRIPT_NKO:
+
+    
+    case HB_SCRIPT_LYDIAN:
 
     
     case HB_SCRIPT_AVESTAN:
@@ -289,6 +300,10 @@ hb_script_get_horizontal_direction (hb_script_t script)
 
     
     case HB_SCRIPT_MANDAIC:
+
+    
+    case HB_SCRIPT_MEROITIC_CURSIVE:
+    case HB_SCRIPT_MEROITIC_HIEROGLYPHS:
 
       return HB_DIRECTION_RTL;
   }

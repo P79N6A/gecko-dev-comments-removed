@@ -24,6 +24,10 @@
 
 
 
+#ifndef HB_H_IN
+#error "Include <hb.h> instead."
+#endif
+
 #ifndef HB_BLOB_H
 #define HB_BLOB_H
 

@@ -27,6 +27,10 @@
 
 
 
+#ifndef HB_H_IN
+#error "Include <hb.h> instead."
+#endif
+
 #ifndef HB_BUFFER_H
 #define HB_BUFFER_H
 
