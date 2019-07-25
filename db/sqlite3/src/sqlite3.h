@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.7.1"
-#define SQLITE_VERSION_NUMBER 3007001
-#define SQLITE_SOURCE_ID      "2010-08-21 16:01:46 3613b0695a5e990905ab146fadcab34dd04d5874"
+#define SQLITE_VERSION        "3.7.3"
+#define SQLITE_VERSION_NUMBER 3007003
+#define SQLITE_SOURCE_ID      "2010-10-08 02:34:02 2677848087c9c090efb17c1893e77d6136a9111d"
 
 
 
@@ -859,6 +859,12 @@ typedef struct sqlite3_mutex sqlite3_mutex;
 
 
 
+
+
+
+
+
+
 typedef struct sqlite3_vfs sqlite3_vfs;
 struct sqlite3_vfs {
   int iVersion;            
@@ -1374,8 +1380,6 @@ struct sqlite3_mem_methods {
 
 
 
-
-
 #define SQLITE_CONFIG_SINGLETHREAD  1  /* nil */
 #define SQLITE_CONFIG_MULTITHREAD   2  /* nil */
 #define SQLITE_CONFIG_SERIALIZED    3  /* nil */
@@ -1392,6 +1396,12 @@ struct sqlite3_mem_methods {
 #define SQLITE_CONFIG_PCACHE       14  /* sqlite3_pcache_methods* */
 #define SQLITE_CONFIG_GETPCACHE    15  /* sqlite3_pcache_methods* */
 #define SQLITE_CONFIG_LOG          16  /* xFunc, void* */
+
+
+
+
+
+
 
 
 
@@ -1792,6 +1802,9 @@ SQLITE_API int sqlite3_busy_timeout(sqlite3*, int ms);
 
 
 
+
+
+
 SQLITE_API int sqlite3_get_table(
   sqlite3 *db,          
   const char *zSql,     
@@ -1897,6 +1910,8 @@ SQLITE_API void sqlite3_free_table(char **result);
 SQLITE_API char *sqlite3_mprintf(const char*,...);
 SQLITE_API char *sqlite3_vmprintf(const char*, va_list);
 SQLITE_API char *sqlite3_snprintf(int,char*,const char*, ...);
+
+
 
 
 
@@ -2216,6 +2231,17 @@ SQLITE_API SQLITE_EXPERIMENTAL void *sqlite3_profile(sqlite3*,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 SQLITE_API void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 
 
@@ -2420,7 +2446,13 @@ typedef struct sqlite3_stmt sqlite3_stmt;
 
 
 
+
+
+
+
+
 SQLITE_API int sqlite3_limit(sqlite3*, int id, int newVal);
+
 
 
 
@@ -2822,6 +2854,8 @@ SQLITE_API int sqlite3_clear_bindings(sqlite3_stmt*);
 
 
 
+
+
 SQLITE_API int sqlite3_column_count(sqlite3_stmt *pStmt);
 
 
@@ -3007,6 +3041,12 @@ SQLITE_API const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
 
 
 SQLITE_API int sqlite3_step(sqlite3_stmt*);
+
+
+
+
+
+
 
 
 
@@ -3202,6 +3242,14 @@ SQLITE_API int sqlite3_data_count(sqlite3_stmt *pStmt);
 
 
 
+
+
+
+
+
+
+
+
 SQLITE_API const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
 SQLITE_API int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
 SQLITE_API int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
@@ -3212,6 +3260,15 @@ SQLITE_API const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
 SQLITE_API const void *sqlite3_column_text16(sqlite3_stmt*, int iCol);
 SQLITE_API int sqlite3_column_type(sqlite3_stmt*, int iCol);
 SQLITE_API sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3337,6 +3394,11 @@ SQLITE_API int sqlite3_reset(sqlite3_stmt *pStmt);
 
 
 
+
+
+
+
+
 SQLITE_API int sqlite3_create_function(
   sqlite3 *db,
   const char *zFunctionName,
@@ -3356,6 +3418,17 @@ SQLITE_API int sqlite3_create_function16(
   void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
   void (*xStep)(sqlite3_context*,int,sqlite3_value**),
   void (*xFinal)(sqlite3_context*)
+);
+SQLITE_API int sqlite3_create_function_v2(
+  sqlite3 *db,
+  const char *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void *pApp,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*),
+  void(*xDestroy)(void*)
 );
 
 
@@ -3746,18 +3819,42 @@ SQLITE_API void sqlite3_result_zeroblob(sqlite3_context*, int n);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 SQLITE_API int sqlite3_create_collation(
   sqlite3*, 
   const char *zName, 
   int eTextRep, 
-  void*,
+  void *pArg,
   int(*xCompare)(void*,int,const void*,int,const void*)
 );
 SQLITE_API int sqlite3_create_collation_v2(
   sqlite3*, 
   const char *zName, 
   int eTextRep, 
-  void*,
+  void *pArg,
   int(*xCompare)(void*,int,const void*,int,const void*),
   void(*xDestroy)(void*)
 );
@@ -3765,7 +3862,7 @@ SQLITE_API int sqlite3_create_collation16(
   sqlite3*, 
   const void *zName,
   int eTextRep, 
-  void*,
+  void *pArg,
   int(*xCompare)(void*,int,const void*,int,const void*)
 );
 
@@ -3850,6 +3947,9 @@ SQLITE_API void sqlite3_activate_cerod(
   const char *zPassPhrase        
 );
 #endif
+
+
+
 
 
 
@@ -4086,6 +4186,8 @@ SQLITE_API int sqlite3_enable_shared_cache(int);
 
 
 
+
+
 SQLITE_API int sqlite3_release_memory(int);
 
 
@@ -4118,7 +4220,38 @@ SQLITE_API int sqlite3_release_memory(int);
 
 
 
-SQLITE_API void sqlite3_soft_heap_limit(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_API sqlite3_int64 sqlite3_soft_heap_limit64(sqlite3_int64 N);
+
+
+
+
+
+
+
+
+
+
+SQLITE_API SQLITE_DEPRECATED void sqlite3_soft_heap_limit(int N);
+
 
 
 
@@ -4260,10 +4393,23 @@ SQLITE_API int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 SQLITE_API int sqlite3_auto_extension(void (*xEntryPoint)(void));
-
-
-
 
 
 
@@ -5105,7 +5251,8 @@ SQLITE_API int sqlite3_test_control(int op, ...);
 #define SQLITE_TESTCTRL_OPTIMIZATIONS           15
 #define SQLITE_TESTCTRL_ISKEYWORD               16
 #define SQLITE_TESTCTRL_PGHDRSZ                 17
-#define SQLITE_TESTCTRL_LAST                    17
+#define SQLITE_TESTCTRL_SCRATCHMALLOC           18
+#define SQLITE_TESTCTRL_LAST                    18
 
 
 
@@ -5248,6 +5395,9 @@ SQLITE_API int sqlite3_status(int op, int *pCurrent, int *pHighwater, int resetF
 
 
 
+
+
+
 SQLITE_API int sqlite3_db_status(sqlite3*, int op, int *pCur, int *pHiwtr, int resetFlg);
 
 
@@ -5365,6 +5515,18 @@ SQLITE_API int sqlite3_stmt_status(sqlite3_stmt*, int op,int resetFlg);
 
 
 typedef struct sqlite3_pcache sqlite3_pcache;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -5959,5 +6121,61 @@ SQLITE_API int sqlite3_wal_checkpoint(sqlite3 *db, const char *zDb);
 #ifdef __cplusplus
 }  
 #endif
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _SQLITE3RTREE_H_
+#define _SQLITE3RTREE_H_
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct sqlite3_rtree_geometry sqlite3_rtree_geometry;
+
+
+
+
+
+
+
+SQLITE_API int sqlite3_rtree_geometry_callback(
+  sqlite3 *db,
+  const char *zGeom,
+  int (*xGeom)(sqlite3_rtree_geometry *, int nCoord, double *aCoord, int *pRes),
+  void *pContext
+);
+
+
+
+
+
+
+struct sqlite3_rtree_geometry {
+  void *pContext;                 
+  int nParam;                     
+  double *aParam;                 
+  void *pUser;                    
+  void (*xDelUser)(void *);       
+};
+
+
+#ifdef __cplusplus
+}  
+#endif
+
 #endif
 
