@@ -914,7 +914,13 @@ protected:
 
   
   nsRefPtr<nsEventListenerManager> mListenerManager;
+  
+  
+  
+  
   PRCList                       mTimeouts;
+  
+  
   
   nsTimeout*                    mTimeoutInsertionPoint;
   PRUint32                      mTimeoutPublicIdCounter;

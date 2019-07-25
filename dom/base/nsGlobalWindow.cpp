@@ -9089,6 +9089,8 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   dummy_timeout.AddRef();
 
   last_insertion_point = mTimeoutInsertionPoint;
+  
+  
   mTimeoutInsertionPoint = &dummy_timeout;
 
   for (timeout = FirstTimeout();
@@ -9426,7 +9428,16 @@ nsresult nsGlobalWindow::ResetTimersForNonBackgroundWindow()
 
   TimeStamp now = TimeStamp::Now();
 
-  for (nsTimeout *timeout = FirstTimeout(); IsTimeout(timeout); ) {
+  
+  
+  
+  
+  
+  
+  
+  for (nsTimeout *timeout = mTimeoutInsertionPoint ?
+         mTimeoutInsertionPoint->Next() : FirstTimeout();
+       IsTimeout(timeout); ) {
     
     
     
