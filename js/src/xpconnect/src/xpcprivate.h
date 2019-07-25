@@ -669,7 +669,6 @@ public:
         IDX_ITEM                    ,
         IDX_PROTO                   ,
         IDX_ITERATOR                ,
-        IDX_PARENT                  ,
         IDX_EXPOSEDPROPS            ,
         IDX_TOTAL_COUNT 
     };
@@ -3050,7 +3049,6 @@ public:
 
 
 
-
     static JSBool NativeInterface2JSObject(XPCCallContext& ccx,
                                            jsval* d,
                                            nsIXPConnectJSObjectHolder** dest,
@@ -3092,7 +3090,6 @@ public:
     static JSBool GetISupportsFromJSObject(JSObject* obj, nsISupports** iface);
 
     
-
 
 
 
@@ -4271,7 +4268,6 @@ public:
     XPCVariant(XPCCallContext& ccx, jsval aJSVal);
 
     
-
 
 
 

@@ -594,7 +594,6 @@ XPC_COW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
   }
 
   if (interned_id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_PROTO) ||
-      interned_id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_PARENT) ||
       interned_id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_EXPOSEDPROPS)) {
     
     return ThrowException(NS_ERROR_INVALID_ARG, cx); 

@@ -3336,7 +3336,6 @@ BEGIN_CASE(JSOP_INITMETHOD)
 
 
 
-
     if (CX_OWNS_OBJECT_TITLE(cx, obj) &&
         JS_PROPERTY_CACHE(cx).testForInit(rt, regs.pc, obj, scope, &sprop, &entry) &&
         sprop->hasDefaultSetter() &&

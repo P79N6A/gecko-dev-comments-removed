@@ -147,7 +147,6 @@ const char *const js_common_atom_names[] = {
     js_name_str,                
     js_next_str,                
     js_noSuchMethod_str,        
-    js_parent_str,              
     js_proto_str,               
     js_set_str,                 
     js_stack_str,               
@@ -220,7 +219,6 @@ const char js_name_str[]            = "name";
 const char js_next_str[]            = "next";
 const char js_noSuchMethod_str[]    = "__noSuchMethod__";
 const char js_object_str[]          = "object";
-const char js_parent_str[]          = "__parent__";
 const char js_proto_str[]           = "__proto__";
 const char js_setter_str[]          = "setter";
 const char js_set_str[]             = "set";

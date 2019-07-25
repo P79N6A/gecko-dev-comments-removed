@@ -836,7 +836,6 @@ struct JSRuntime {
 
 
 
-
     JSSetSlotRequest    *setSlotRequests;
 
     

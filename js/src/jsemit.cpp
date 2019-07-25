@@ -2692,7 +2692,6 @@ EmitSpecialPropOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg)
 
 
 
-
     JSAtomListElement *ale = cg->atomList.add(cg->parser, pn->pn_atom);
     if (!ale)
         return JS_FALSE;
@@ -2715,8 +2714,7 @@ EmitPropOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg,
 
     
     if ((op == JSOP_GETPROP || op == JSOP_CALLPROP) &&
-        (pn->pn_atom == cx->runtime->atomState.protoAtom ||
-         pn->pn_atom == cx->runtime->atomState.parentAtom)) {
+        pn->pn_atom == cx->runtime->atomState.protoAtom) {
         if (pn2 && !js_EmitTree(cx, cg, pn2))
             return JS_FALSE;
         return EmitSpecialPropOp(cx, pn, callContext ? JSOP_CALLELEM : JSOP_GETELEM, cg);
@@ -2803,12 +2801,7 @@ EmitPropOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg,
             }
 
             
-
-
-
-            if (pndot->pn_arity == PN_NAME &&
-                (pndot->pn_atom == cx->runtime->atomState.protoAtom ||
-                 pndot->pn_atom == cx->runtime->atomState.parentAtom)) {
+            if (pndot->pn_arity == PN_NAME && pndot->pn_atom == cx->runtime->atomState.protoAtom) {
                 if (!EmitSpecialPropOp(cx, pndot, JSOP_GETELEM, cg))
                     return JS_FALSE;
             } else if (!EmitAtomOp(cx, pndot, PN_OP(pndot), cg)) {
@@ -7369,7 +7362,6 @@ js_FinishTakingTryNotes(JSCodeGenerator *cg, JSTryNoteArray *array)
     } while ((tryNode = tryNode->prev) != NULL);
     JS_ASSERT(tn == array->vector);
 }
-
 
 
 

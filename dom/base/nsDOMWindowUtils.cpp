@@ -1266,3 +1266,55 @@ nsDOMWindowUtils::GetVisitedDependentComputedStyle(
 
   return rv;
 }
+
+NS_IMETHODIMP
+nsDOMWindowUtils::GetParent()
+{
+  
+  if (!IsUniversalXPConnectCapable()) {
+    return NS_ERROR_DOM_SECURITY_ERR;
+  }
+
+  nsCOMPtr<nsIXPConnect> xpc = nsContentUtils::XPConnect();
+
+  
+  nsAXPCNativeCallContext *cc = nsnull;
+  xpc->GetCurrentNativeCallContext(&cc);
+  if(!cc)
+    return NS_ERROR_FAILURE;
+
+  
+  JSContext* cx;
+  nsresult rv = cc->GetJSContext(&cx);
+  if(NS_FAILED(rv) || !cx)
+    return NS_ERROR_FAILURE;
+
+  
+  jsval *rval = nsnull;
+  rv = cc->GetRetValPtr(&rval);
+  if(NS_FAILED(rv) || !rval)
+    return NS_ERROR_FAILURE;
+
+  
+  PRUint32 argc;
+  rv = cc->GetArgc(&argc);
+  if(NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+
+  if(argc != 1)
+    return NS_ERROR_XPC_NOT_ENOUGH_ARGS;
+
+  jsval* argv;
+  rv = cc->GetArgvPtr(&argv);
+  if(NS_FAILED(rv) || !argv)
+    return NS_ERROR_FAILURE;
+
+  
+  if(JSVAL_IS_PRIMITIVE(argv[0]))
+    return NS_ERROR_XPC_BAD_CONVERT_JS;
+
+  *rval = OBJECT_TO_JSVAL(JS_GetParent(cx, JSVAL_TO_OBJECT(argv[0])));
+  cc->SetReturnValueWasSet(PR_TRUE);
+  return NS_OK;
+}
+
