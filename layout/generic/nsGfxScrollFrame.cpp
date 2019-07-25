@@ -1829,6 +1829,10 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                         scrollParts, createLayersForScrollbars);
   }
 
+  nsIPresShell* presShell = mOuter->PresContext()->GetPresShell();
+  nsRect scrollPort = (mIsRoot && presShell->UsingDisplayPort()) ?
+                      (presShell->GetDisplayPort()) : mScrollPort;
+
   
   
   
@@ -1838,12 +1842,14 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  dirtyRect.IntersectRect(aDirtyRect, mScrollPort);
+  dirtyRect.IntersectRect(aDirtyRect, scrollPort);
 
   nsDisplayListCollection set;
   rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
   NS_ENSURE_SUCCESS(rv, rv);
-  nsRect clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
+  nsRect clip;
+  clip = scrollPort + aBuilder->ToReferenceFrame(mOuter);
+
   nscoord radii[8];
   
   

@@ -6010,9 +6010,28 @@ void PresShell::SetRenderingState(const RenderingState& aState)
   mXResolution = aState.mXResolution;
   mYResolution = aState.mYResolution;
 
-  nsIFrame* rootFrame = FrameManager()->GetRootFrame();
-  if (rootFrame) {
-    rootFrame->InvalidateFrameSubtree();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsPresContext* rootPresContext = mPresContext->GetRootPresContext();
+  if (rootPresContext) {
+    nsIPresShell* rootPresShell = rootPresContext->GetPresShell();
+    nsIFrame* rootFrame = rootPresShell->FrameManager()->GetRootFrame();
+    if (rootFrame) {
+      rootFrame->InvalidateFrameSubtree();
+    }
   }
 }
 
