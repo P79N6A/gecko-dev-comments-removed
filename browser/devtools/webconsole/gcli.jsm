@@ -1038,6 +1038,14 @@ canon.Parameter = Parameter;
 
 
 canon.addCommand = function addCommand(commandSpec) {
+  if (commands[commandSpec.name] != null) {
+    
+    delete commands[commandSpec.name];
+    commandNames = commandNames.filter(function(test) {
+      return test !== commandSpec.name;
+    });
+  }
+
   var command = new Command(commandSpec);
   commands[commandSpec.name] = command;
   commandNames.push(commandSpec.name);
@@ -1055,6 +1063,8 @@ canon.removeCommand = function removeCommand(commandOrName) {
   var name = typeof commandOrName === 'string' ?
           commandOrName :
           commandOrName.name;
+
+  
   delete commands[name];
   commandNames = commandNames.filter(function(test) {
     return test !== name;
