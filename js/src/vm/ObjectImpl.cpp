@@ -583,6 +583,73 @@ js::GetOwnElement(JSContext *cx, Handle<ObjectImpl*> obj, uint32_t index, unsign
 }
 
 bool
+js::GetProperty(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver,
+                Handle<PropertyId> pid, unsigned resolveFlags, MutableHandle<Value> vp)
+{
+    NEW_OBJECT_REPRESENTATION_ONLY();
+
+    MOZ_ASSERT(receiver);
+
+    Rooted<ObjectImpl*> current(cx, obj);
+
+    do {
+        MOZ_ASSERT(obj);
+
+        if (Downcast(current)->isProxy()) {
+            MOZ_NOT_REACHED("NYI: proxy [[GetP]]");
+            return false;
+        }
+
+        PropDesc desc;
+        if (!GetOwnProperty(cx, current, pid, resolveFlags, &desc))
+            return false;
+
+        
+        if (desc.isUndefined()) {
+            current = current->getProto();
+            if (current)
+                continue;
+
+            vp.setUndefined();
+            return true;
+        }
+
+        
+        if (desc.isDataDescriptor()) {
+            vp.set(desc.value());
+            return true;
+        }
+
+        
+        if (desc.isAccessorDescriptor()) {
+            Rooted<Value> get(cx, desc.getterValue());
+            if (get.isUndefined()) {
+                vp.setUndefined();
+                return true;
+            }
+
+            InvokeArgsGuard args;
+            if (!cx->stack.pushInvokeArgs(cx, 0, &args))
+                return false;
+
+            args.setCallee(get);
+            args.setThis(ObjectValue(*receiver));
+
+            bool ok = Invoke(cx, args);
+            vp.set(args.rval());
+            return ok;
+        }
+
+        
+        MOZ_NOT_REACHED("NYI: handle PropertyOp'd properties here");
+        return false;
+    } while (false);
+
+    MOZ_NOT_REACHED("buggy control flow");
+    return false;
+}
+
+bool
 js::GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver, uint32_t index,
                unsigned resolveFlags, Value *vp)
 {
@@ -821,6 +888,8 @@ js::SetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
     NEW_OBJECT_REPRESENTATION_ONLY();
 
     Rooted<ObjectImpl*> current(cx, obj);
+
+    MOZ_ASSERT(receiver);
 
     do {
         MOZ_ASSERT(current);
