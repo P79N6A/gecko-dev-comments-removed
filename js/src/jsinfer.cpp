@@ -268,16 +268,26 @@ types::TypeHasProperty(JSContext *cx, TypeObject *obj, jsid id, const Value &val
 void
 types::TypeFailure(JSContext *cx, const char *fmt, ...)
 {
+    char msgbuf[1024]; 
+    char errbuf[1024];
+
     va_list ap;
     va_start(ap, fmt);
-    fprintf(stderr, "[infer failure] ");
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
+    JS_vsnprintf(errbuf, sizeof(errbuf), fmt, ap);
     va_end(ap);
+
+    JS_snprintf(msgbuf, sizeof(msgbuf), "[infer failure] %s", errbuf);
+
+    
+
+
+
 
     cx->compartment->types.print(cx, cx->compartment);
 
-    fflush(stderr);
+    
+    JS_Assert(msgbuf, __FILE__, __LINE__);
+    
     *((int*)NULL) = 0;  
 }
 
@@ -3945,7 +3955,9 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         break;
 
       default:
-        TypeFailure(cx, "Unknown bytecode at #%u:%05u", script->id(), offset);
+        
+        fprintf(stderr, "Unknown bytecode %02x at #%u:%05u\n", op, script->id(), offset);
+        TypeFailure(cx, "Unknown bytecode %02x", op);
     }
 
     return true;
@@ -5098,8 +5110,10 @@ JSScript::typeCheckBytecode(JSContext *cx, const jsbytecode *pc, const js::Value
         jstype type = GetValueType(cx, val);
 
         if (!TypeMatches(cx, types, type)) {
-            TypeFailure(cx, "Missing type at #%u:%05u pushed %u: %s",
-                                   id(), pc - code, i, TypeString(type));
+            
+            fprintf(stderr, "Missing type at #%u:%05u pushed %u: %s\n", 
+                    id(), pc - code, i, TypeString(type));
+            TypeFailure(cx, "Missing type pushed %u: %s", i, TypeString(type));
         }
 
         if (TypeIsObject(type)) {
@@ -5116,9 +5130,12 @@ JSScript::typeCheckBytecode(JSContext *cx, const jsbytecode *pc, const js::Value
             JS_ASSERT_IF(packed, dense);
             if (dense) {
                 if (!obj->isDenseArray() || (packed && !obj->isPackedDenseArray())) {
-                    TypeFailure(cx, "Object not %s array at #%u:%05u popped %u: %s",
-                        packed ? "packed" : "dense",
-                        id(), pc - code, i, object->name());
+                    
+                    fprintf(stderr, "Object not %s array at #%u:%05u popped %u: %s\n",
+                            packed ? "packed" : "dense",
+                            id(), pc - code, i, object->name());
+                    TypeFailure(cx, "Object not %s array, popped %u: %s",
+                                packed ? "packed" : "dense", i, object->name());
                 }
             }
         }
