@@ -3,7 +3,7 @@ load("fake_login_manager.js");
 var loginMgr = new FakeLoginManager(fakeSampleLogins);
 
 
-var passwords = loadInSandbox("resource://weave/engines/passwords.js");
+var passwords = loadInSandbox("resource://services-sync/engines/passwords.js");
 
 function test_hashLoginInfo_works() {
   var pwStore = new passwords.PasswordStore();
