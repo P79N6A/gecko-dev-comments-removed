@@ -60,7 +60,7 @@ richlistitem .prefvalue {
   min-width: 200px;
   pointer-events: none;
   -moz-box-flex: 4;
-  text-align: right;
+  text-align: end;
   color: grey;
 }
 
@@ -112,6 +112,14 @@ richlistitem .prefvalue {
 
 #editor-setting[type="string"] .setting-input > textbox {
   -moz-box-flex: 1;
+}
+
+
+
+
+#editor-setting[type="string"] .setting-input > textbox:-moz-locale-dir(rtl) {
+  direction: ltr;
+  text-align: right;
 }
 
 #editor-buttons {
