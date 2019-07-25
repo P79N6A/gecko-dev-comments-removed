@@ -98,6 +98,11 @@ pref("dom.indexedDB.enabled", true);
 pref("dom.indexedDB.warningQuota", 50);
 
 
+pref("dom.workers.enabled", true);
+
+pref("dom.workers.maxPerDomain", 20);
+
+
 pref("dom.enable_performance", true);
 
 
@@ -199,7 +204,7 @@ pref("gfx.downloadable_fonts.sanitize", true);
 
 #ifdef XP_MACOSX
 
-pref("gfx.font_rendering.harfbuzz.scripts", 7);
+pref("gfx.font_rendering.harfbuzz.scripts", 71);
 #else
 
 pref("gfx.font_rendering.harfbuzz.scripts", 3);
@@ -1115,6 +1120,8 @@ pref("intl.hyphenation-alias.da-*", "da");
 pref("intl.hyphenation-alias.eo-*", "eo");
 pref("intl.hyphenation-alias.es-*", "es");
 pref("intl.hyphenation-alias.et-*", "et");
+pref("intl.hyphenation-alias.fi-*", "fi");
+pref("intl.hyphenation-alias.fr-*", "fr");
 pref("intl.hyphenation-alias.gl-*", "gl");
 pref("intl.hyphenation-alias.hr-*", "hr");
 pref("intl.hyphenation-alias.hsb-*", "hsb");
@@ -1122,9 +1129,11 @@ pref("intl.hyphenation-alias.ia-*", "ia");
 pref("intl.hyphenation-alias.is-*", "is");
 pref("intl.hyphenation-alias.kmr-*", "kmr");
 pref("intl.hyphenation-alias.la-*", "la");
+pref("intl.hyphenation-alias.lt-*", "lt");
 pref("intl.hyphenation-alias.mn-*", "mn");
 pref("intl.hyphenation-alias.nl-*", "nl");
 pref("intl.hyphenation-alias.pt-*", "pt");
+pref("intl.hyphenation-alias.ru-*", "ru");
 pref("intl.hyphenation-alias.sl-*", "sl");
 pref("intl.hyphenation-alias.sv-*", "sv");
 pref("intl.hyphenation-alias.uk-*", "uk");
@@ -1144,6 +1153,13 @@ pref("intl.hyphenation-alias.bs", "sh");
 pref("intl.hyphenation-alias.sh-*", "sh");
 pref("intl.hyphenation-alias.sr-*", "sh");
 pref("intl.hyphenation-alias.bs-*", "sh");
+
+
+
+pref("intl.hyphenation-alias.no", "nb");
+pref("intl.hyphenation-alias.no-*", "nb");
+pref("intl.hyphenation-alias.nb-*", "nb");
+pref("intl.hyphenation-alias.nn-*", "nn");
 
 pref("font.mathfont-family", "STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, Standard Symbols L, DejaVu Sans, Cambria Math");
 
