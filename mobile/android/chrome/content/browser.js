@@ -722,7 +722,7 @@ var BrowserApp = {
         return;
       }
 
-      ViewportHandler.updateMetadata(tab);
+      ViewportHandler.resetMetadata(tab);
 
       
       
