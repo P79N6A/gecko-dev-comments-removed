@@ -51,7 +51,6 @@
 #include "nsIScriptGlobalObject.h"
 #include "nsIXPConnect.h"
 #include "nsServiceManagerUtils.h"
-#include "nsIScriptEventHandler.h"
 #include "nsIDOMDocument.h"
 #include "nsContentErrors.h"
 #include "nsIArray.h"
@@ -59,250 +58,6 @@
 #include "nsDOMJSUtils.h"
 
 using namespace mozilla::dom;
-
-
-
-
-
-class nsHTMLScriptEventHandler : public nsIScriptEventHandler
-{
-public:
-  nsHTMLScriptEventHandler(nsIDOMHTMLScriptElement *aOuter);
-  virtual ~nsHTMLScriptEventHandler() {}
-
-  
-  NS_DECL_ISUPPORTS
-
-  
-  NS_DECL_NSISCRIPTEVENTHANDLER
-
-  
-  nsresult ParseEventString(const nsAString &aValue);
-
-protected:
-  
-  nsIDOMHTMLScriptElement *mOuter;
-
-  
-  nsTArray<nsCString> mArgNames;
-
-  
-  nsString mEventName;
-};
-
-
-nsHTMLScriptEventHandler::nsHTMLScriptEventHandler(nsIDOMHTMLScriptElement *aOuter)
-{
-
-  
-  mOuter = aOuter;
-}
-
-
-
-
-NS_IMPL_ADDREF (nsHTMLScriptEventHandler)
-NS_IMPL_RELEASE(nsHTMLScriptEventHandler)
-
-NS_INTERFACE_MAP_BEGIN(nsHTMLScriptEventHandler)
-
-NS_INTERFACE_MAP_END_AGGREGATED(mOuter)
-
-
-
-
-
-nsresult nsHTMLScriptEventHandler::ParseEventString(const nsAString &aValue)
-{
-  nsAutoString eventSig(aValue);
-  nsAutoString::const_iterator start, next, end;
-
-  
-  mArgNames.Clear();
-
-  
-  eventSig.StripWhitespace();
-
-  
-  eventSig.BeginReading(start);
-  eventSig.EndReading(end);
-
-  next = start;
-  if (FindCharInReadable('(', next, end)) {
-    mEventName = Substring(start, next);
-  } else {
-    
-    return NS_ERROR_FAILURE;
-  }
-
-  ++next;  
-  --end;   
-  if (*end != ')') {
-    
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  NS_LossyConvertUTF16toASCII sig(Substring(next, end));
-
-  
-  ParseString(sig, ',', mArgNames);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHTMLScriptEventHandler::IsSameEvent(const nsAString &aObjectName,
-                                      const nsAString &aEventName,
-                                      PRUint32 aArgCount,
-                                      PRBool *aResult)
-{
-  *aResult = PR_FALSE;
-
-  
-  
-  
-  if (aEventName.Equals(mEventName, nsCaseInsensitiveStringComparator())) {
-    nsAutoString id;
-
-    
-    mOuter->GetHtmlFor(id);
-    if (aObjectName.Equals(id)) {
-      *aResult = PR_TRUE;
-    }
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHTMLScriptEventHandler::Invoke(nsISupports *aTargetObject,
-                                 void *aArgs,
-                                 PRUint32 aArgCount)
-{
-  nsresult rv;
-  nsAutoString scriptBody;
-
-  
-  
-  
-  
-  
-  if (!aTargetObject || (aArgCount && !aArgs) ) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  rv = mOuter->GetText(scriptBody);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  
-  PRUint32 lineNumber = 0;
-  nsCOMPtr<nsIScriptElement> sele(do_QueryInterface(mOuter));
-  if (sele) {
-    lineNumber = sele->GetScriptLineNumber();
-  }
-
-  
-  nsCOMPtr<nsIDOMDocument> domdoc;
-  nsCOMPtr<nsIScriptContext> scriptContext;
-  nsIScriptGlobalObject *sgo = nsnull;
-
-  mOuter->GetOwnerDocument(getter_AddRefs(domdoc));
-
-  nsCOMPtr<nsIDocument> doc(do_QueryInterface(domdoc));
-  if (doc) {
-    sgo = doc->GetScriptGlobalObject();
-    if (sgo) {
-      scriptContext = sgo->GetContext();
-    }
-  }
-  
-  if (!scriptContext) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  JSContext *cx = (JSContext *)scriptContext->GetNativeContext();
-  JSObject *scope = sgo->GetGlobalJSObject();
-
-  nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-  jsval v;
-  rv = nsContentUtils::WrapNative(cx, scope, aTargetObject, &v,
-                                  getter_AddRefs(holder));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  const int kMaxArgsOnStack = 10;
-
-  PRInt32 argc, i;
-  const char** args;
-  const char*  stackArgs[kMaxArgsOnStack];
-
-  args = stackArgs;
-  argc = PRInt32(mArgNames.Length());
-
-  
-  
-  if (argc >= kMaxArgsOnStack) {
-    args = new const char*[argc+1];
-    if (!args) return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  for(i=0; i<argc; i++) {
-    args[i] = mArgNames[i].get();
-  }
-
-  
-  args[i] = nsnull;
-
-  
-  void* funcObject = nsnull;
-  NS_NAMED_LITERAL_CSTRING(funcName, "anonymous");
-
-  rv = scriptContext->CompileFunction(JSVAL_TO_OBJECT(v),
-                                      funcName,   
-                                      argc,       
-                                      args,       
-                                      scriptBody, 
-                                      nsnull,     
-                                      lineNumber, 
-                                      JSVERSION_DEFAULT, 
-                                      PR_FALSE,   
-                                      &funcObject);
-  
-  if (args != stackArgs) {
-    delete [] args;
-  }
-
-  
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  
-  
-  nsCOMPtr<nsIArray> argarray;
-  rv = NS_CreateJSArgv(cx, aArgCount, (jsval *)aArgs, getter_AddRefs(argarray));
-  if (NS_FAILED(rv))
-    return rv;
-
-  
-  nsCOMPtr<nsIVariant> ret;
-  return scriptContext->CallEventHandler(aTargetObject, scope, funcObject,
-                                         argarray, getter_AddRefs(ret));
-}
-
 
 class nsHTMLScriptElement : public nsGenericHTMLElement,
                             public nsIDOMHTMLScriptElement,
@@ -356,10 +111,6 @@ public:
 protected:
   PRBool IsOnloadEventForWindow();
 
-
-  
-  nsCOMPtr<nsHTMLScriptEventHandler> mScriptEventHandler;
-
   
   virtual PRBool HasScriptContent();
   virtual nsresult MaybeProcessScript();
@@ -396,10 +147,6 @@ NS_INTERFACE_TABLE_HEAD(nsHTMLScriptElement)
                                    nsIMutationObserver)
   NS_HTML_CONTENT_INTERFACE_TABLE_TO_MAP_SEGUE(nsHTMLScriptElement,
                                                nsGenericHTMLElement)
-  if (mScriptEventHandler && aIID.Equals(NS_GET_IID(nsIScriptEventHandler)))
-    foundInterface = static_cast<nsIScriptEventHandler*>
-                                (mScriptEventHandler);
-  else
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(HTMLScriptElement)
 NS_HTML_CONTENT_INTERFACE_MAP_END
 
@@ -584,22 +331,9 @@ nsresult
 nsHTMLScriptElement::MaybeProcessScript()
 {
   nsresult rv = nsScriptElement::MaybeProcessScript();
-  if (rv == NS_CONTENT_SCRIPT_IS_EVENTHANDLER) {
+  if (rv == NS_CONTENT_SCRIPT_IS_EVENTHANDLER)
     
-    rv = NS_OK;
-
-    
-    
-    NS_ASSERTION(mAlreadyStarted, "should have set mIsEvaluated already");
-    NS_ASSERTION(!mScriptEventHandler, "how could we have an SEH already?");
-
-    mScriptEventHandler = new nsHTMLScriptEventHandler(this);
-    NS_ENSURE_TRUE(mScriptEventHandler, NS_ERROR_OUT_OF_MEMORY);
-
-    nsAutoString event_val;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::event, event_val);
-    mScriptEventHandler->ParseEventString(event_val);
-  }
+    rv = NS_ERROR_DOM_NOT_SUPPORTED_ERR;
 
   return rv;
 }
