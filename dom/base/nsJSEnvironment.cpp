@@ -2314,19 +2314,11 @@ nsresult
 nsJSContext::SetOuterObject(JSObject* aOuterObject)
 {
   
+  
   JS_SetGlobalObject(mContext, aOuterObject);
 
   
   JSObject *inner = JS_GetParent(aOuterObject);
-
-  nsIXPConnect *xpc = nsContentUtils::XPConnect();
-  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
-  nsresult rv = xpc->GetWrappedNativeOfJSObject(mContext, inner,
-                                                getter_AddRefs(wrapper));
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ABORT_IF_FALSE(wrapper, "bad wrapper");
-
-  wrapper->FinishInitForWrappedGlobal();
   JS_SetPrototype(mContext, aOuterObject, JS_GetPrototype(inner));
 
   return NS_OK;
