@@ -1389,7 +1389,7 @@ nsHttpConnectionMgr::IsUnderPressure(nsConnectionEntry *ent,
     
     PRInt32 currentConns = ent->mActiveConns.Length();
     PRInt32 maxConns =
-        (ent->mConnInfo->UsingHttpProxy() && !ent->mConnInfo->UsingSSL()) ?
+        (ent->mConnInfo->UsingHttpProxy() && !ent->mConnInfo->UsingConnect()) ?
         mMaxPersistConnsPerProxy : mMaxPersistConnsPerHost;
 
     
