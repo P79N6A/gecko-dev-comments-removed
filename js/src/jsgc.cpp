@@ -2983,6 +2983,10 @@ SweepCompartments(JSContext *cx)
     JSCompartment **read = rt->compartments.begin();
     JSCompartment **end = rt->compartments.end();
     JSCompartment **write = read;
+    
+    
+    rt->defaultCompartment->marked = true;
+    
     while (read < end) {
         JSCompartment *compartment = (*read++);
         if (compartment->marked) {

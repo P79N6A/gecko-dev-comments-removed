@@ -412,6 +412,8 @@ WrapObject(JSContext *cx, JSObject *parent, jsval *vp, XPCWrappedNative* wn)
     return JS_TRUE;
   }
 
+  CheckWindow(wn);
+
   
   parent = JS_GetGlobalForObject(cx, parent);
   OBJ_TO_INNER_OBJECT(cx, parent);

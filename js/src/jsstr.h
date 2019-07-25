@@ -1125,6 +1125,12 @@ str_replace(JSContext *cx, uintN argc, js::Value *vp);
 extern JSBool
 js_str_toString(JSContext *cx, uintN argc, js::Value *vp);
 
+extern JSBool
+js_str_charAt(JSContext *cx, uintN argc, js::Value *vp);
+
+extern JSBool
+js_str_charCodeAt(JSContext *cx, uintN argc, js::Value *vp);
+
 
 
 
