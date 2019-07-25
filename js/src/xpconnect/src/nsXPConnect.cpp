@@ -639,7 +639,7 @@ UnmarkGrayChildren(JSTracer *trc, void *thing, JSGCTraceKind kind)
         return;
 
     
-    static_cast<js::gc::Cell *>(thing)->unmark(XPC_GC_COLOR_GRAY);
+    static_cast<js::gc::Cell *>(thing)->unmark(js::gc::GRAY);
 
     
     JS_TraceChildren(trc, thing, kind);
@@ -651,7 +651,7 @@ xpc_UnmarkGrayObjectRecursive(JSObject *obj)
     NS_ASSERTION(obj, "Don't pass me null!");
 
     
-    obj->unmark(XPC_GC_COLOR_GRAY);
+    obj->unmark(js::gc::GRAY);
 
     
     JSContext *cx;

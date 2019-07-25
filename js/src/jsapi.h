@@ -2614,7 +2614,7 @@ JS_UnlockGCThingRT(JSRuntime *rt, void *thing);
 
 
 extern JS_PUBLIC_API(void)
-JS_SetExtraGCRoots(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
+JS_SetExtraGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
 
 
 

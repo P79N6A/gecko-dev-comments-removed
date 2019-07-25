@@ -85,7 +85,9 @@ const size_t FINALIZE_LIMIT = FINALIZE_LAST + 1;
 
 
 
+
 static const uint32 BLACK = 0;
+static const uint32 GRAY = 1;
 
 
 

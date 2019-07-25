@@ -1586,9 +1586,18 @@ struct GCMarker : public JSTracer {
         return color;
     }
 
+    
+
+
+
+
+
+
+
+
+
     void setMarkColor(uint32 newColor) {
         
-        drainMarkStack();
         color = newColor;
     }
 
@@ -1604,7 +1613,7 @@ struct GCMarker : public JSTracer {
                largeStack.isEmpty();
     }
 
-    JS_FRIEND_API(void) drainMarkStack();
+    void drainMarkStack();
 
     void pushObject(JSObject *obj) {
         if (!objStack.push(obj))

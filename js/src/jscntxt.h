@@ -517,8 +517,12 @@ struct JSRuntime {
 
 
 
-    JSTraceDataOp       gcExtraRootsTraceOp;
-    void                *gcExtraRootsData;
+
+
+    JSTraceDataOp       gcBlackRootsTraceOp;
+    void                *gcBlackRootsData;
+    JSTraceDataOp       gcGrayRootsTraceOp;
+    void                *gcGrayRootsData;
 
     
     js::Value           NaNValue;

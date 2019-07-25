@@ -1649,7 +1649,7 @@ namespace js {
 
 
 GCMarker::GCMarker(JSContext *cx)
-  : color(0),
+  : color(BLACK),
     unmarkedArenaStackTop(NULL),
     objStack(cx->runtime->gcMarkStackObjs, sizeof(cx->runtime->gcMarkStackObjs)),
     ropeStack(cx->runtime->gcMarkStackRopes, sizeof(cx->runtime->gcMarkStackRopes)),
@@ -1971,11 +1971,14 @@ MarkRuntime(JSTracer *trc)
         i.threadData()->mark(trc);
 
     
+    if (JSTraceDataOp op = rt->gcBlackRootsTraceOp)
+        (*op)(trc, rt->gcBlackRootsData);
 
-
-
-    if (rt->gcExtraRootsTraceOp)
-        rt->gcExtraRootsTraceOp(trc, rt->gcExtraRootsData);
+    if (!IS_GC_MARKING_TRACER(trc)) {
+        
+        if (JSTraceDataOp op = rt->gcGrayRootsTraceOp)
+            (*op)(trc, rt->gcGrayRootsData);
+    }
 }
 
 void
@@ -2391,6 +2394,13 @@ static void
 EndMarkPhase(JSContext *cx, GCMarker *gcmarker, JSGCInvocationKind gckind GCTIMER_PARAM)
 {
     JSRuntime *rt = cx->runtime;
+
+    gcmarker->setMarkColor(GRAY);
+    if (JSTraceDataOp op = rt->gcGrayRootsTraceOp)
+        (*op)(gcmarker, rt->gcGrayRootsData);
+    gcmarker->drainMarkStack();
+    gcmarker->setMarkColor(BLACK);
+
     
 
 
