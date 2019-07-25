@@ -996,7 +996,7 @@ nsComputedDOMStyle::DoGetTransform()
   
 
 
-  if (!display->HasTransform()) {
+  if (!display->mSpecifiedTransform) {
     nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
 
     
