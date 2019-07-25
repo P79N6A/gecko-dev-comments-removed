@@ -89,33 +89,8 @@ JS_BEGIN_EXTERN_C
 # define JS_THREADSAFE_ASSERT(expr) ((void) 0)
 #endif
 
-
-
-
-
-
-
-#ifdef __SUNPRO_CC
-
-
-
-
-
-
-
-# define JS_STATIC_ASSERT(cond) extern char js_static_assert[(cond) ? 1 : -1]
-#else
-# ifdef __COUNTER__
-#  define JS_STATIC_ASSERT_GLUE1(x,y) x##y
-#  define JS_STATIC_ASSERT_GLUE(x,y) JS_STATIC_ASSERT_GLUE1(x,y)
-#  define JS_STATIC_ASSERT(cond)                                            \
-        typedef int JS_STATIC_ASSERT_GLUE(js_static_assert, __COUNTER__)[(cond) ? 1 : -1]
-# else
-#  define JS_STATIC_ASSERT(cond) extern void js_static_assert(int arg[(cond) ? 1 : -1])
-# endif
-#endif
-
-#define JS_STATIC_ASSERT_IF(cond, expr) JS_STATIC_ASSERT(!(cond) || (expr))
+#define JS_STATIC_ASSERT(cond)           MOZ_STATIC_ASSERT(cond, "JS_STATIC_ASSERT")
+#define JS_STATIC_ASSERT_IF(cond, expr)  MOZ_STATIC_ASSERT_IF(cond, expr, "JS_STATIC_ASSERT_IF")
 
 
 
