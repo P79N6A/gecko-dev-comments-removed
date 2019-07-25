@@ -471,6 +471,7 @@
 
 
 
+
 .addon[status="uninstalled"] {
   border: none;
 }
@@ -774,6 +775,10 @@
 #updates-installed, #updates-downloaded {
   color: #00BB00;
   font-weight: bold;
+}
+
+#update-selected {
+  margin: 12px;
 }
 
 
