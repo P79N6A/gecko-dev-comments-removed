@@ -57,12 +57,12 @@ class NS_STACK_CLASS nsAutoSelectionReset
 {
   private:
     
-    nsCOMPtr<nsISelection> mSel;
+    nsRefPtr<mozilla::Selection> mSel;
     nsEditor *mEd;  
 
   public:
     
-    nsAutoSelectionReset(nsISelection *aSel, nsEditor *aEd);
+    nsAutoSelectionReset(mozilla::Selection* aSel, nsEditor* aEd);
     
     
     ~nsAutoSelectionReset();

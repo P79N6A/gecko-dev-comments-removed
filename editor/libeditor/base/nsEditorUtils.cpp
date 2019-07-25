@@ -3,7 +3,7 @@
 
 
 
-
+#include "mozilla/Selection.h"
 #include "nsCOMArray.h"
 #include "nsComponentManagerUtils.h"
 #include "nsEditorUtils.h"
@@ -18,24 +18,23 @@
 #include "nsIDocument.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsINode.h"
-#include "nsISelection.h"
 #include "nsISimpleEnumerator.h"
 
 class nsIDOMRange;
 class nsISupports;
 
+using namespace mozilla;
 
 
 
 
 
-nsAutoSelectionReset::nsAutoSelectionReset(nsISelection *aSel, nsEditor *aEd) : 
-mSel(nsnull)
-,mEd(nsnull)
+nsAutoSelectionReset::nsAutoSelectionReset(Selection* aSel, nsEditor* aEd)
+  : mSel(nsnull), mEd(nsnull)
 { 
   if (!aSel || !aEd) return;    
   if (aEd->ArePreservingSelection()) return;   
-  mSel = do_QueryInterface(aSel);
+  mSel = aSel;
   mEd = aEd;
   if (mSel)
   {
