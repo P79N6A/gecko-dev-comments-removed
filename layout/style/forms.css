@@ -625,10 +625,9 @@ input[type="file"] > input[type="text"] {
 
 
 
-
-
-
-
+:not(output):-moz-ui-invalid {
+  box-shadow: 0 0 1.5px 1px red;
+}
 
 output:invalid {
   color: red;
