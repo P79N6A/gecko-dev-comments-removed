@@ -323,9 +323,6 @@ public:
                            size_t *aPresContextSize);
   size_t SizeOfTextRuns(nsMallocSizeOfFun aMallocSizeOf) const;
 
-  virtual void AddInvalidateHiddenPresShellObserver(nsRefreshDriver *aDriver);
-
-
   
   
   struct ScrollIntoViewData {
