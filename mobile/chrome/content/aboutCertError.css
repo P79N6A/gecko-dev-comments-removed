@@ -1,0 +1,59 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#technicalContentText {
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+#technicalContent > h2, #expertContent > h2 {
+  cursor: pointer;
+  padding-left: 20px;
+  position: relative;
+  left: -20px;
+}
+
+div[collapsed] > p,
+div[collapsed] > div {
+  display: none;
+}

@@ -346,3 +346,6 @@ pref("plugin.default_plugin_disabled", true);
 
 pref("app.releaseNotesURL", "http://www.mozilla.com/%LOCALE%/%APP%/%VERSION%/releasenotes/");
 pref("app.support.baseURL", "http://support.mozilla.com/1/%APP%/%VERSION%/%OS%/%LOCALE%/");
+
+
+pref("security.alternate_certificate_error_page", "certerror");

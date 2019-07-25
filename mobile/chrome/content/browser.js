@@ -839,8 +839,9 @@ var Browser = {
 
     
     
-    if (/^about:neterror\?e=nssBadCert/.test(errorDoc.documentURI)) {
-      if (ot == errorDoc.getElementById('exceptionDialogButton')) {
+    if (/^about:certerror\?e=nssBadCert/.test(errorDoc.documentURI)) {
+      if (ot == errorDoc.getElementById("temporaryExceptionButton") ||
+          ot == errorDoc.getElementById("permanentExceptionButton")) {
         var params = { exceptionAdded : false };
 
         try {
