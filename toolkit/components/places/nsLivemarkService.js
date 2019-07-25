@@ -1003,7 +1003,9 @@ Livemark.prototype = {
 
   terminate: function LM_terminate()
   {
-    delete this._resultObserversList;
+    
+    
+    this._resultObserversList = [];
     this.abort();
   },
 
