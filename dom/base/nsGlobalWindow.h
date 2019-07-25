@@ -363,6 +363,16 @@ public:
     return FromSupports(wrapper->Native());
   }
 
+  
+
+
+
+
+  nsresult GetTop(nsIDOMWindow **aWindow)
+  {
+    return nsIDOMWindow::GetTop(aWindow);
+  }
+
   inline nsGlobalWindow *GetTop()
   {
     nsCOMPtr<nsIDOMWindow> top;
@@ -791,6 +801,9 @@ protected:
 
   void SetIsApp(bool aValue);
   nsresult SetApp(const nsAString& aManifestURL);
+
+  
+  nsresult GetTopImpl(nsIDOMWindow **aWindow, bool aScriptable);
 
   
   
