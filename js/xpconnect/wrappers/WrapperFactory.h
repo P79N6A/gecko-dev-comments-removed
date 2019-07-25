@@ -110,6 +110,12 @@ class WrapperFactory {
 
     
     static JSObject *WrapSOWObject(JSContext *cx, JSObject *obj);
+
+    
+    static bool IsComponentsObject(JSObject *obj);
+
+    
+    static JSObject *WrapComponentsObject(JSContext *cx, JSObject *obj);
 };
 
 extern js::Wrapper WaiveXrayWrapperWrapper;
