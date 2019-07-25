@@ -517,9 +517,19 @@ public:
 
   
 
-  static nsRect TransformRectToBoundsInAncestor(nsIFrame* aFrame,
-                                                const nsRect& aRect,
-                                                nsIFrame* aStopAtAncestor);
+
+
+  static nsRect TransformAncestorRectToFrame(nsIFrame* aFrame,
+                                             const nsRect& aRect,
+                                             nsIFrame* aAncestor);
+
+  
+
+
+
+  static nsRect TransformFrameRectToAncestor(nsIFrame* aFrame,
+                                             const nsRect& aRect,
+                                             nsIFrame* aAncestor);
 
   
 
@@ -530,8 +540,8 @@ public:
 
 
 
-  static nsPoint InvertTransformsToRoot(nsIFrame* aFrame,
-                                        const nsPoint &aPt);
+  static nsPoint TransformRootPointToFrame(nsIFrame* aFrame,
+                                           const nsPoint &aPt);
 
   
 
