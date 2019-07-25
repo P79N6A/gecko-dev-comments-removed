@@ -934,6 +934,12 @@ SourceScripts.prototype = {
     
     else if (!DebuggerView.Scripts.selected) {
       DebuggerView.Scripts.selectIndex(0);
+      
+      
+      
+      
+      
+      DebuggerView.Scripts.preferredScriptUrl = preferredScriptUrl;
     }
 
     

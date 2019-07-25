@@ -970,6 +970,12 @@ ScriptsView.prototype = {
 
 
 
+  set preferredScriptUrl(value) this._preferredScriptUrl = value,
+
+  
+
+
+
 
 
 
