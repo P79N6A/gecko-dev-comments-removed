@@ -58,6 +58,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 
 #include "nsXULDocument.h"
 
@@ -3052,7 +3054,7 @@ nsXULDocument::ResumeWalk()
                     nsContentUtils::ReportToConsole(
                                         nsContentUtils::eXUL_PROPERTIES,
                                         "PINotInProlog",
-                                        params, NS_ARRAY_LENGTH(params),
+                                        params, ArrayLength(params),
                                         overlayURI,
                                         EmptyString(), 
                                         0, 
@@ -3349,7 +3351,7 @@ nsXULDocument::ReportMissingOverlay(nsIURI* aURI)
     const PRUnichar* params[] = { utfSpec.get() };
     nsContentUtils::ReportToConsole(nsContentUtils::eXUL_PROPERTIES,
                                     "MissingOverlay",
-                                    params, NS_ARRAY_LENGTH(params),
+                                    params, ArrayLength(params),
                                     nsnull,
                                     EmptyString(), 
                                     0, 

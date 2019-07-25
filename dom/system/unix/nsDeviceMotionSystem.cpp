@@ -36,8 +36,13 @@
 
 
 #include <unistd.h>
+
+#include "mozilla/Util.h"
+
 #include "nsDeviceMotionSystem.h"
 #include "nsIServiceManager.h"
+
+using namespace mozilla;
 
 typedef struct {
   const char* mPosition;
@@ -194,7 +199,7 @@ void nsDeviceMotionSystem::Startup()
 {
   
   
-  for (unsigned int i = 0; i < NS_ARRAY_LENGTH(gAccelerometers); i++) {
+  for (unsigned int i = 0; i < ArrayLength(gAccelerometers); i++) {
     if (!(mPositionFile = fopen(gAccelerometers[i].mPosition, "r")))
       continue;
 

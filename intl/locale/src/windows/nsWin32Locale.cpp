@@ -35,6 +35,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #include "nscore.h"
 #include "nsString.h"
 #include "nsXPCOMStrings.h"
@@ -44,6 +46,8 @@
 #include "prprf.h"
 #include <windows.h>
 #include "nsCRT.h"
+
+using namespace mozilla;
 
 struct iso_pair 
 {
@@ -516,7 +520,7 @@ iso_map iso_list[] =
 	}
 };
 
-#define LENGTH_MAPPING_LIST		NS_ARRAY_LENGTH(iso_list)
+#define LENGTH_MAPPING_LIST		ArrayLength(iso_list)
 	
 
 

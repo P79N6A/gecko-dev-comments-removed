@@ -36,6 +36,9 @@
 
 
 #include <math.h>
+
+#include "mozilla/Util.h"
+
 #include "nsStyleUtil.h"
 #include "nsCRT.h"
 #include "nsStyleConsts.h"
@@ -50,6 +53,8 @@
 #include "nsContentUtils.h"
 #include "nsTextFormatter.h"
 #include "nsCSSProps.h"
+
+using namespace mozilla;
 
 
 
@@ -389,7 +394,7 @@ void nsStyleUtil::AppendEscapedCSSString(const nsString& aString,
 
 
      PRUnichar buf[5];
-     nsTextFormatter::snprintf(buf, NS_ARRAY_LENGTH(buf), NS_LITERAL_STRING("\\%hX ").get(), *in);
+     nsTextFormatter::snprintf(buf, ArrayLength(buf), NS_LITERAL_STRING("\\%hX ").get(), *in);
      aReturn.Append(buf);
    
     } else switch (*in) {
@@ -445,7 +450,7 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsString& aIdent, nsAString& aReturn)
 
 
       PRUnichar buf[5];
-      nsTextFormatter::snprintf(buf, NS_ARRAY_LENGTH(buf),
+      nsTextFormatter::snprintf(buf, ArrayLength(buf),
                                 NS_LITERAL_STRING("\\%hX ").get(), *in);
       aReturn.Append(buf);
     } else {

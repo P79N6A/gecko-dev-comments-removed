@@ -41,6 +41,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #ifdef MOZ_LOGGING
 
 #define FORCE_PR_LOG 1
@@ -3976,8 +3978,6 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
         case NS_ERROR_DOCUMENT_NOT_CACHED:
             
             
-            error.AssignLiteral("notCached");
-            break;
         case NS_ERROR_OFFLINE:
             
             error.AssignLiteral("netOffline");
@@ -6372,17 +6372,109 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
                  aStatus == NS_ERROR_PHISHING_URI ||
                  aStatus == NS_ERROR_UNSAFE_CONTENT_TYPE ||
                  aStatus == NS_ERROR_REMOTE_XUL ||
-                 aStatus == NS_ERROR_OFFLINE ||
                  NS_ERROR_GET_MODULE(aStatus) == NS_ERROR_MODULE_SECURITY) {
             DisplayLoadError(aStatus, url, nsnull, aChannel);
         }
         else if (aStatus == NS_ERROR_DOCUMENT_NOT_CACHED) {
             
-            
-            
-            if (!(mLoadType & LOAD_CMD_HISTORY))
-                aStatus = NS_ERROR_OFFLINE;
-            DisplayLoadError(aStatus, url, nsnull, aChannel);
+
+
+
+
+
+
+            nsCAutoString method;
+            if (httpChannel)
+                httpChannel->GetRequestMethod(method);
+            if (method.Equals("POST") && !NS_IsOffline()) {
+                bool repost;
+                rv = ConfirmRepost(&repost);
+                if (NS_FAILED(rv)) return rv;
+                
+                
+                if (!repost)
+                    return NS_OK;
+
+                
+                
+                
+                
+                
+                nsCOMPtr<nsISHistory> rootSH=mSessionHistory;
+                if (!mSessionHistory) {
+                    nsCOMPtr<nsIDocShellTreeItem> root;
+                    
+                    GetSameTypeRootTreeItem(getter_AddRefs(root));
+                    if (root) {
+                        
+                        nsCOMPtr<nsIWebNavigation> rootAsWebnav =
+                            do_QueryInterface(root);
+                        if (rootAsWebnav) {
+                            
+                            rootAsWebnav->GetSessionHistory(getter_AddRefs(rootSH));
+                        }
+                    }
+                }  
+
+                if (rootSH && (mLoadType & LOAD_CMD_HISTORY)) {
+                    nsCOMPtr<nsISHistoryInternal> shInternal =
+                        do_QueryInterface(rootSH);
+                    if (shInternal) {
+                        rootSH->GetIndex(&mPreviousTransIndex);
+                        shInternal->UpdateIndex();
+                        rootSH->GetIndex(&mLoadedTransIndex);
+#ifdef DEBUG_PAGE_CACHE
+                        printf("Previous index: %d, Loaded index: %d\n\n",
+                               mPreviousTransIndex, mLoadedTransIndex);
+#endif
+                    }
+                }
+
+                
+                
+                
+                
+                
+                
+                
+                SetHistoryEntry(&mOSHE, loadingSHE);
+
+                
+                
+
+                
+                nsCOMPtr<nsIInputStream> inputStream;
+                nsCOMPtr<nsIURI> referrer;
+                if (httpChannel) {
+                    httpChannel->GetReferrer(getter_AddRefs(referrer));
+                    nsCOMPtr<nsIUploadChannel> uploadChannel =
+                        do_QueryInterface(aChannel);
+                    if (uploadChannel) {
+                        uploadChannel->GetUploadStream(getter_AddRefs(inputStream));
+                    }
+                }
+                nsCOMPtr<nsISeekableStream> postDataSeekable =
+                    do_QueryInterface(inputStream);
+                if (postDataSeekable) {
+                    postDataSeekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
+                }
+                InternalLoad(url,                               
+                             referrer,                          
+                             nsnull,                            
+                             INTERNAL_LOAD_FLAGS_INHERIT_OWNER, 
+                             nsnull,                            
+                             nsnull,                            
+                             inputStream,                       
+                             nsnull,                            
+                             LOAD_RELOAD_BYPASS_PROXY_AND_CACHE,
+                             nsnull,                            
+                             PR_TRUE,                           
+                             nsnull,                            
+                             nsnull);                           
+            }
+            else {
+                DisplayLoadError(aStatus, url, nsnull, aChannel);
+            }
         }
   } 
 
@@ -10663,7 +10755,7 @@ nsDocShell::ConfirmRepost(bool * aRepost)
     
     const PRUnichar *formatStrings[] = { brandName.get() };
     rv = appBundle->FormatStringFromName(NS_LITERAL_STRING("confirmRepostPrompt").get(),
-                                         formatStrings, NS_ARRAY_LENGTH(formatStrings),
+                                         formatStrings, ArrayLength(formatStrings),
                                          getter_Copies(msgString));
   }
   if (NS_FAILED(rv)) return rv;

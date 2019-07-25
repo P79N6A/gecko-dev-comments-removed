@@ -79,7 +79,7 @@ int main(int argc, char** argv)
   
   
 
-  for (PRUint32 index = 0 ; index < NS_ARRAY_LENGTH(kColorNames); index++) {
+  for (PRUint32 index = 0 ; index < ArrayLength(kColorNames); index++) {
     
     nsCString tagName(kColorNames[index]);
 
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
   }
 
   
-  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(kJunkNames); i++) {
+  for (PRUint32 i = 0; i < ArrayLength(kJunkNames); i++) {
     nsCString tag(kJunkNames[i]);
     if (NS_ColorNameToRGB(NS_ConvertASCIItoUTF16(tag), &rgb)) {
       fail("found '%s'", kJunkNames[i] ? kJunkNames[i] : "(null)");

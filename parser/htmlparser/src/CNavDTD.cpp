@@ -36,6 +36,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #include "nsDebug.h"
 #include "nsIAtom.h"
 #include "CNavDTD.h"
@@ -64,6 +66,8 @@
 #ifdef NS_DEBUG
 #include "nsLoggingSink.h"
 #endif
+
+using namespace mozilla;
 
 
 
@@ -579,7 +583,7 @@ CNavDTD::HandleToken(CToken* aToken)
 
     eHTMLTags theParentTag = mBodyContext->Last();
     if (FindTagInSet(theTag, gLegalElements,
-                     NS_ARRAY_LENGTH(gLegalElements)) ||
+                     ArrayLength(gLegalElements)) ||
         (gHTMLElements[theParentTag].CanContain(theTag, mDTDMode) &&
          
          
@@ -595,7 +599,7 @@ CNavDTD::HandleToken(CToken* aToken)
           theTag == eHTMLTag_script)) ||
         (theTag == eHTMLTag_input && theType == eToken_start &&
          FindTagInSet(theParentTag, gLegalElements,
-                      NS_ARRAY_LENGTH(gLegalElements)) &&
+                      ArrayLength(gLegalElements)) &&
          IsHiddenInput(theToken, mTokenizer))) {
       
       
@@ -853,7 +857,7 @@ CanBeContained(eHTMLTags aChildTag, nsDTDContext& aContext)
               break;
             }
           } else if (FindTagInSet(theParentTag, gTableElements,
-                                  NS_ARRAY_LENGTH(gTableElements))) {
+                                  ArrayLength(gTableElements))) {
             
             result = PR_TRUE;
             break;
@@ -900,7 +904,7 @@ CNavDTD::HandleDefaultStartToken(CToken* aToken, eHTMLTags aChildTag,
       bool isHiddenInputInsideTableElement = false;
       if (aChildTag == eHTMLTag_input &&
           FindTagInSet(theParentTag, sTableElements,
-                       NS_ARRAY_LENGTH(sTableElements))) {
+                       ArrayLength(sTableElements))) {
         PRInt32 attrCount = aNode->GetAttributeCount();
         for (PRInt32 attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
           const nsAString& key = aNode->GetKeyAt(attrIndex);
@@ -1659,7 +1663,7 @@ CNavDTD::HandleEndToken(CToken* aToken)
             };
 
             if (!FindTagInSet(theParentTag, gBarriers,
-                              NS_ARRAY_LENGTH(gBarriers)) &&
+                              ArrayLength(gBarriers)) &&
                 nsHTMLElement::IsResidualStyleTag(theChildTag)) {
               
               mBodyContext->RemoveStyle(theChildTag);
@@ -2968,7 +2972,7 @@ CNavDTD::AddHeadContent(nsIParserNode *aNode)
   
   
   if (eHTMLTag_meta == theTag || eHTMLTag_script == theTag) {
-    if (HasOpenContainer(gNoXTags, NS_ARRAY_LENGTH(gNoXTags))) {
+    if (HasOpenContainer(gNoXTags, ArrayLength(gNoXTags))) {
       return result;
     }
   }

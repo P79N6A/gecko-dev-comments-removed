@@ -41,6 +41,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #include "prprf.h"
 
 #include "nsDirIndexParser.h"
@@ -55,6 +57,8 @@
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefLocalizedString.h"
+
+using namespace mozilla;
 
 NS_IMPL_ISUPPORTS3(nsDirIndexParser,
                    nsIRequestObserver,
@@ -190,7 +194,7 @@ nsDirIndexParser::ParseFormat(const char* aFormatStr) {
     ++num;
     
     
-    if (num > (2 * NS_ARRAY_LENGTH(gFieldTable)))
+    if (num > (2 * ArrayLength(gFieldTable)))
       return NS_ERROR_UNEXPECTED;
 
     if (! *pos)
