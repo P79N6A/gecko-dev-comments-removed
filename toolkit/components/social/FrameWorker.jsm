@@ -16,14 +16,14 @@
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 
-const EXPORTED_SYMBOLS = ["FrameWorker"];
+const EXPORTED_SYMBOLS = ["getFrameWorkerHandle"];
 
 var workerCache = {}; 
 var _nextPortId = 1;
 
 
 
-function FrameWorker(url, clientWindow, name) {
+function getFrameWorkerHandle(url, clientWindow, name) {
   
   
   let portid = _nextPortId++;
@@ -32,7 +32,7 @@ function FrameWorker(url, clientWindow, name) {
   let existingWorker = workerCache[url];
   if (!existingWorker) {
     
-    let worker = new FrameWorkerObject(url, clientWindow, name);
+    let worker = new FrameWorker(url, clientWindow, name);
     worker.pendingPorts.push(clientPort);
     existingWorker = workerCache[url] = worker;
   } else {
@@ -62,7 +62,7 @@ function FrameWorker(url, clientWindow, name) {
 
 
 
-function FrameWorkerObject(url, name) {
+function FrameWorker(url, name) {
   this.url = url;
   this.name = name || url;
   this.ports = {};
@@ -87,7 +87,7 @@ function FrameWorkerObject(url, name) {
   this.frame.setAttribute("src", url);
 }
 
-FrameWorkerObject.prototype = {
+FrameWorker.prototype = {
   createSandbox: function createSandbox() {
     let workerWindow = this.frame.contentWindow;
     let sandbox = new Cu.Sandbox(workerWindow);
