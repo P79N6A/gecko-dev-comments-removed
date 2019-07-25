@@ -1916,10 +1916,11 @@ _cairo_quartz_surface_finish (void *abstract_surface)
     }
 
     if (surface->imageSurfaceEquiv) {
-	_cairo_image_surface_assume_ownership_of_data (surface->imageSurfaceEquiv);
+        if (surface->ownsData)
+            _cairo_image_surface_assume_ownership_of_data (surface->imageSurfaceEquiv);
 	cairo_surface_destroy (surface->imageSurfaceEquiv);
 	surface->imageSurfaceEquiv = NULL;
-    } else if (surface->imageData) {
+    } else if (surface->imageData && surface->ownsData) {
         free (surface->imageData);
     }
 
@@ -2927,6 +2928,7 @@ _cairo_quartz_surface_create_internal (CGContextRef cgContext,
     surface->imageSurfaceEquiv = NULL;
     surface->bitmapContextImage = NULL;
     surface->cgLayer = NULL;
+    surface->ownsData = TRUE;
 
     return surface;
 }
@@ -3071,13 +3073,93 @@ cairo_quartz_surface_create (cairo_format_t format,
 			     unsigned int width,
 			     unsigned int height)
 {
+    int stride;
+    unsigned char *data;
+
+    if (!_cairo_quartz_verify_surface_size(width, height))
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_SIZE));
+
+    if (width == 0 || height == 0) {
+	return (cairo_surface_t*) _cairo_quartz_surface_create_internal (NULL, _cairo_content_from_format (format),
+									 width, height);
+    }
+
+    if (format == CAIRO_FORMAT_ARGB32 ||
+	format == CAIRO_FORMAT_RGB24)
+    {
+	stride = width * 4;
+    } else if (format == CAIRO_FORMAT_A8) {
+	stride = width;
+    } else if (format == CAIRO_FORMAT_A1) {
+	
+
+
+
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
+    } else {
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
+    }
+
+    
+
+
+
+    stride = (stride + 15) & ~15;
+
+    data = _cairo_malloc_ab (height, stride);
+    if (!data) {
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+    }
+
+    
+    memset (data, 0, height * stride);
+
+    cairo_quartz_surface_t *surf;
+    surf = (cairo_quartz_surface_t *) cairo_quartz_surface_create_for_data
+                                           (data, format, width, height, stride);
+    if (surf->base.status) {
+        free (data);
+        return (cairo_surface_t *) surf;
+    }
+
+    
+    surf->ownsData = TRUE;
+
+    return (cairo_surface_t *) surf;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_surface_t *
+cairo_quartz_surface_create_for_data (unsigned char *data,
+				      cairo_format_t format,
+				      unsigned int width,
+				      unsigned int height,
+				      unsigned int stride)
+{
     cairo_quartz_surface_t *surf;
     CGContextRef cgc;
     CGColorSpaceRef cgColorspace;
     CGBitmapInfo bitinfo;
-    void *imageData;
-    int stride;
+    void *imageData = data;
     int bitsPerComponent;
+    unsigned int i;
 
     
     if (!_cairo_quartz_verify_surface_size(width, height))
@@ -3098,10 +3180,8 @@ cairo_quartz_surface_create (cairo_format_t format,
 	else
 	    bitinfo |= kCGImageAlphaNoneSkipFirst;
 	bitsPerComponent = 8;
-	stride = width * 4;
     } else if (format == CAIRO_FORMAT_A8) {
 	cgColorspace = NULL;
-	stride = width;
 	bitinfo = kCGImageAlphaOnly;
 	bitsPerComponent = 8;
     } else if (format == CAIRO_FORMAT_A1) {
@@ -3113,21 +3193,6 @@ cairo_quartz_surface_create (cairo_format_t format,
     } else {
 	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_FORMAT));
     }
-
-    
-
-
-
-    stride = (stride + 15) & ~15;
-
-    imageData = _cairo_malloc_ab (height, stride);
-    if (!imageData) {
-	CGColorSpaceRelease (cgColorspace);
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
-    }
-
-    
-    memset (imageData, 0, height * stride);
 
     cgc = CGBitmapContextCreate (imageData,
 				 width,
@@ -3168,6 +3233,7 @@ cairo_quartz_surface_create (cairo_format_t format,
         surf->imageSurfaceEquiv = NULL;
     } else {
         surf->imageSurfaceEquiv = tmpImageSurfaceEquiv;
+        surf->ownsData = FALSE;
     }
 
     return (cairo_surface_t *) surf;
