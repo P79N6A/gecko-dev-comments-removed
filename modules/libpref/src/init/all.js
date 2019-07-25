@@ -181,6 +181,9 @@ pref("media.navigator.enabled", true);
 #endif
 
 
+pref("media.webaudio.enabled", false);
+
+
 pref("media.autoplay.enabled", true);
 
 
