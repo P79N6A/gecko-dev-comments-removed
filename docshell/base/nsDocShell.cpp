@@ -8810,7 +8810,9 @@ nsDocShell::GetInheritedPrincipal(bool aConsiderCurrentDocument)
         inheritedFromCurrent = true;
     }
 
-    if (!document) {
+    
+    
+    if (!document && !mIsBrowserFrame) {
         nsCOMPtr<nsIDocShellTreeItem> parentItem;
         GetSameTypeParent(getter_AddRefs(parentItem));
         if (parentItem) {
