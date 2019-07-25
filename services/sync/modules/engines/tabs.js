@@ -181,6 +181,29 @@ TabStore.prototype = {
   },
 
   
+
+
+
+
+
+
+  validateVirtualTab: function TabStore__validateVirtualTab(tab) {
+    if (!tab.state || !tab.state.entries || !tab.state.index) {
+      this._log.warn("invalid virtual tab state: " + this._json.encode(tab));
+      return false;
+    }
+
+    let currentEntry = tab.state.entries[tab.state.index - 1];
+
+    if (!currentEntry || !currentEntry.url) {
+      this._log.warn("no current entry or no URL: " + this._json.encode(tab));
+      return false;
+    }
+
+    return true;
+  },
+
+  
   get _file() {
     let file = this._dirSvc.get("ProfD", Ci.nsILocalFile);
     file.append("weave");
@@ -269,6 +292,13 @@ TabStore.prototype = {
       throw "trying to create a tab that already exists; id: " + command.GUID;
 
     
+    
+    if (!this.validateVirtualTab(command.data)) {
+      this._log.warn("could not create command " + command.GUID + "; invalid");
+      return;
+    }
+
+    
     this._virtualTabs[command.GUID] = command.data;
     this._os.notifyObservers(null, "weave:store:tabs:virtual:created", null);
   },
@@ -287,6 +317,13 @@ TabStore.prototype = {
 
   _editCommand: function TabStore__editCommand(command) {
     this._log.debug("_editCommand: " + command.GUID);
+
+    
+    
+    if (!this.validateVirtualTab(command.data)) {
+      this._log.warn("could not edit command " + command.GUID + "; invalid");
+      return;
+    }
 
     
     
