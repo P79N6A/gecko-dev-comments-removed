@@ -253,8 +253,15 @@ extern JSBool
 js_ArrayInfo(JSContext *cx, uintN argc, jsval *vp);
 #endif
 
+
+
+
+
+
+
+
 extern JSBool
-js_ArrayCompPush(JSContext *cx, JSObject *obj, const js::Value &vp);
+js_NewbornArrayPush(JSContext *cx, JSObject *obj, const js::Value &v);
 
 JSBool
 js_PrototypeHasIndexedProperties(JSContext *cx, JSObject *obj);
