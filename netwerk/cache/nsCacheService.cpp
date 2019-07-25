@@ -1163,31 +1163,42 @@ nsCacheService::EvictEntriesForSession(nsCacheSession * session)
                                  session->StoragePolicy());
 }
 
+namespace {
+
+class EvictionNotifierRunnable : public nsRunnable
+{
+public:
+    EvictionNotifierRunnable(nsISupports* aSubject)
+        : mSubject(aSubject)
+    { }
+
+    NS_DECL_NSIRUNNABLE
+
+private:
+    nsCOMPtr<nsISupports> mSubject;
+};
+
+NS_IMETHODIMP
+EvictionNotifierRunnable::Run()
+{
+    nsCOMPtr<nsIObserverService> obsSvc =
+        mozilla::services::GetObserverService();
+    if (obsSvc) {
+        obsSvc->NotifyObservers(mSubject,
+                                NS_CACHESERVICE_EMPTYCACHE_TOPIC_ID,
+                                nsnull);
+    }
+    return NS_OK;
+}
+
+} 
 
 nsresult
 nsCacheService::EvictEntriesForClient(const char *          clientID,
                                       nsCacheStoragePolicy  storagePolicy)
 {
-    if (this == nsnull) return NS_ERROR_NOT_AVAILABLE; 
-
-    nsCOMPtr<nsIObserverService> obsSvc =
-        mozilla::services::GetObserverService();
-    if (obsSvc) {
-        
-        
-        
-
-        nsCOMPtr<nsIObserverService> obsProxy;
-        NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
-                             NS_GET_IID(nsIObserverService), obsSvc,
-                             NS_PROXY_ASYNC, getter_AddRefs(obsProxy));
-
-        if (obsProxy) {
-            obsProxy->NotifyObservers(this,
-                                      NS_CACHESERVICE_EMPTYCACHE_TOPIC_ID,
-                                      nsnull);
-        }
-    }
+    nsRefPtr<EvictionNotifierRunnable> r = new EvictionNotifierRunnable(this);
+    NS_DispatchToMainThread(r);
 
     nsCacheServiceAutoLock lock;
     nsresult res = NS_OK;
