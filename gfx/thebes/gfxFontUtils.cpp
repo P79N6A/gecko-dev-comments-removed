@@ -1024,6 +1024,45 @@ ValidateKernTable(const PRUint8 *aKernTable, PRUint32 aKernLength)
     return PR_FALSE;
 }
 
+static PRBool
+ValidateLocaTable(const PRUint8* aLocaTable, PRUint32 aLocaLen,
+                  PRUint32 aGlyfLen, PRInt16 aLocaFormat, PRUint16 aNumGlyphs)
+{
+    if (aLocaFormat == 0) {
+        if (aLocaLen < PRUint32(aNumGlyphs + 1) * sizeof(PRUint16)) {
+            return PR_FALSE;
+        }
+        const AutoSwap_PRUint16 *p =
+            reinterpret_cast<const AutoSwap_PRUint16*>(aLocaTable);
+        PRUint32 prev = 0;
+        for (PRUint32 i = 0; i <= aNumGlyphs; ++i) {
+            PRUint32 current = PRUint16(*p++) * 2;
+            if (current < prev || current > aGlyfLen) {
+                return PR_FALSE;
+            }
+            prev = current;
+        }
+        return PR_TRUE;
+    }
+    if (aLocaFormat == 1) {
+        if (aLocaLen < (aNumGlyphs + 1) * sizeof(PRUint32)) {
+            return PR_FALSE;
+        }
+        const AutoSwap_PRUint32 *p =
+            reinterpret_cast<const AutoSwap_PRUint32*>(aLocaTable);
+        PRUint32 prev = 0;
+        for (PRUint32 i = 0; i <= aNumGlyphs; ++i) {
+            PRUint32 current = *p++;
+            if (current < prev || current > aGlyfLen) {
+                return PR_FALSE;
+            }
+            prev = current;
+        }
+        return PR_TRUE;
+    }
+    return PR_FALSE;
+}
+
 gfxUserFontType
 gfxFontUtils::DetermineFontDataType(const PRUint8 *aFontData, PRUint32 aFontDataLength)
 {
@@ -1075,7 +1114,9 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
     
     PRBool foundHead = PR_FALSE, foundOS2 = PR_FALSE, foundName = PR_FALSE;
     PRBool foundGlyphs = PR_FALSE, foundCFF = PR_FALSE, foundKern = PR_FALSE;
-    PRUint32 headOffset, headLen, nameOffset, nameLen, kernOffset, kernLen;
+    PRBool foundLoca = PR_FALSE, foundMaxp = PR_FALSE;
+    PRUint32 headOffset, headLen, nameOffset, nameLen, kernOffset, kernLen,
+             glyfLen, locaOffset, locaLen, maxpOffset, maxpLen;
     PRUint32 i, numTables;
 
     numTables = sfntHeader->numTables;
@@ -1139,6 +1180,23 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
 
         case TRUETYPE_TAG('g','l','y','f'):  
             foundGlyphs = PR_TRUE;
+            glyfLen = dirEntry->length;
+            break;
+
+        case TRUETYPE_TAG('l','o','c','a'):  
+            foundLoca = PR_TRUE;
+            locaOffset = dirEntry->offset;
+            locaLen = dirEntry->length;
+            break;
+
+        case TRUETYPE_TAG('m','a','x','p'):  
+            foundMaxp = PR_TRUE;
+            maxpOffset = dirEntry->offset;
+            maxpLen = dirEntry->length;
+            if (maxpLen < sizeof(MaxpTableHeader)) {
+                NS_WARNING("invalid font (maxp table length)");
+                return PR_FALSE;
+            }
             break;
 
         case TRUETYPE_TAG('C','F','F',' '):  
@@ -1154,8 +1212,8 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
     
     
     
-    if (!foundHead || !foundName) {
-        NS_WARNING("invalid font (missing head/name table)");
+    if (!foundHead || !foundName || !foundMaxp) {
+        NS_WARNING("invalid font (missing head/name/maxp table)");
         return PR_FALSE;
     }
     
@@ -1190,8 +1248,18 @@ gfxFontUtils::ValidateSFNTHeaders(const PRUint8 *aFontData,
             return PR_FALSE;
         }
     } else {
-        if (!foundGlyphs) {
-            NS_WARNING("invalid font (missing glyf table)");
+        if (!foundGlyphs || !foundLoca) {
+            NS_WARNING("invalid font (missing glyf or loca table)");
+            return PR_FALSE;
+        }
+
+        
+        const MaxpTableHeader *maxpData =
+            reinterpret_cast<const MaxpTableHeader*>(aFontData + maxpOffset);
+        if (!ValidateLocaTable(aFontData + locaOffset, locaLen, glyfLen,
+                               headData->indexToLocFormat,
+                               maxpData->numGlyphs)) {
+            NS_WARNING("invalid font (loca table offsets)");
             return PR_FALSE;
         }
     }
