@@ -192,6 +192,16 @@ void GetCurrentNetworkInformation(hal::NetworkInformation* aNetworkInfo);
 
 void NotifyNetworkChange(const hal::NetworkInformation& aNetworkInfo);
 
+
+
+
+void Reboot();
+
+
+
+
+void PowerOff();
+
 } 
 } 
 

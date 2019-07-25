@@ -173,6 +173,14 @@ GetCurrentNetworkInformation(hal::NetworkInformation* aNetworkInfo)
   bridge->GetCurrentNetworkInformation(aNetworkInfo);
 }
 
+void
+Reboot()
+{}
+
+void
+PowerOff()
+{}
+
 } 
 } 
 
