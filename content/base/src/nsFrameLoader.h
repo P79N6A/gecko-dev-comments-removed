@@ -138,6 +138,9 @@ public:
                                nsRefPtr<nsFrameLoader>& aFirstToSwap,
                                nsRefPtr<nsFrameLoader>& aSecondToSwap);
 
+  
+  void DestroyChild();
+
 #ifdef MOZ_IPC
   mozilla::dom::PIFrameEmbeddingParent* GetChildProcess();
 #endif
