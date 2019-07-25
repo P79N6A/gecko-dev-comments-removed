@@ -666,6 +666,8 @@ class DeviceManagerADB(DeviceManager):
   
   
   
+  
+  
   def getInfo(self, directive="all"):
     ret = {}
     if (directive == "id" or directive == "all"):
