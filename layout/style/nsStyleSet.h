@@ -60,9 +60,7 @@
 
 class nsIURI;
 class nsCSSFontFaceRule;
-#ifdef MOZ_CSS_ANIMATIONS
 class nsCSSKeyframesRule;
-#endif
 class nsRuleWalker;
 struct RuleProcessorData;
 struct TreeMatchContext;
@@ -174,12 +172,10 @@ class nsStyleSet
   PRBool AppendFontFaceRules(nsPresContext* aPresContext,
                              nsTArray<nsFontFaceRuleContainer>& aArray);
 
-#ifdef MOZ_CSS_ANIMATIONS
   
   
   PRBool AppendKeyframesRules(nsPresContext* aPresContext,
                               nsTArray<nsCSSKeyframesRule*>& aArray);
-#endif
 
   
   
@@ -243,9 +239,7 @@ class nsStyleSet
     eDocSheet, 
     eStyleAttrSheet,
     eOverrideSheet, 
-#ifdef MOZ_CSS_ANIMATIONS
     eAnimationSheet,
-#endif
     eTransitionSheet,
     eSheetTypeCount
     

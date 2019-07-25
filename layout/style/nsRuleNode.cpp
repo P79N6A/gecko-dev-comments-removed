@@ -3610,7 +3610,6 @@ static const TransitionPropInfo transitionPropInfo[4] = {
     &nsStyleDisplay::mTransitionTimingFunctionCount },
 };
 
-#ifdef MOZ_CSS_ANIMATIONS
 
 
 static const TransitionPropInfo animationPropInfo[8] = {
@@ -3631,7 +3630,6 @@ static const TransitionPropInfo animationPropInfo[8] = {
   { eCSSProperty_animation_iteration_count,
     &nsStyleDisplay::mAnimationIterationCountCount },
 };
-#endif
 
 
 
@@ -3927,7 +3925,6 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
     }
   }
 
-#ifdef MOZ_CSS_ANIMATIONS
   
   
   TransitionPropData animationPropData[8];
@@ -4171,7 +4168,6 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
       }
     }
   }
-#endif
 
   
   SetFactor(*aRuleData->ValueForOpacity(), display->mOpacity, canStoreInRuleTree,

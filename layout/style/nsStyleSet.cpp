@@ -59,9 +59,7 @@
 #include "nsContentUtils.h"
 #include "nsRuleProcessorData.h"
 #include "nsTransitionManager.h"
-#ifdef MOZ_CSS_ANIMATIONS
 #include "nsAnimationManager.h"
-#endif
 #include "nsEventStates.h"
 #include "mozilla/dom/Element.h"
 
@@ -120,9 +118,7 @@ nsStyleSet::Init(nsPresContext *aPresContext)
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-#ifdef MOZ_CSS_ANIMATIONS
   GatherRuleProcessors(eAnimationSheet);
-#endif
   GatherRuleProcessors(eTransitionSheet);
 
   return NS_OK;
@@ -203,7 +199,6 @@ nsStyleSet::GatherRuleProcessors(sheetType aType)
     
     return NS_OK;
   }
-#ifdef MOZ_CSS_ANIMATIONS
   if (aType == eAnimationSheet) {
     
     
@@ -211,7 +206,6 @@ nsStyleSet::GatherRuleProcessors(sheetType aType)
     mRuleProcessors[aType] = PresContext()->AnimationManager();
     return NS_OK;
   }
-#endif
   if (aType == eTransitionSheet) {
     
     
@@ -588,7 +582,6 @@ nsStyleSet::GetContext(nsStyleContext* aParentContext,
     NS_ASSERTION(result->GetPseudo() == aPseudoTag, "Unexpected pseudo");
   }
 
-#ifdef MOZ_CSS_ANIMATIONS
   if (aDoAnimations) {
     
     
@@ -616,7 +609,6 @@ nsStyleSet::GetContext(nsStyleContext* aParentContext,
                           aPseudoTag, aPseudoType, PR_FALSE, nsnull);
     }
   }
-#endif
 
   if (aElementForAnimation && aElementForAnimation->IsHTML(nsGkAtoms::body) &&
       aPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement &&
@@ -782,11 +774,9 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   }
 #endif
 
-#ifdef MOZ_CSS_ANIMATIONS
   
   aRuleWalker->SetLevel(eAnimationSheet, PR_FALSE, PR_FALSE);
   (*aCollectorFunc)(mRuleProcessors[eAnimationSheet], aData);
-#endif
 
 #ifdef DEBUG
   AssertNoCSSRules(lastPresHintRN, lastUserRN);
@@ -860,9 +850,7 @@ nsStyleSet::WalkRuleProcessors(nsIStyleRuleProcessor::EnumFunc aFunc,
     (*aFunc)(mRuleProcessors[eStyleAttrSheet], aData);
   if (mRuleProcessors[eOverrideSheet])
     (*aFunc)(mRuleProcessors[eOverrideSheet], aData);
-#ifdef MOZ_CSS_ANIMATIONS
   (*aFunc)(mRuleProcessors[eAnimationSheet], aData);
-#endif
   (*aFunc)(mRuleProcessors[eTransitionSheet], aData);
 }
 
@@ -1219,7 +1207,6 @@ nsStyleSet::AppendFontFaceRules(nsPresContext* aPresContext,
   return PR_TRUE;
 }
 
-#ifdef MOZ_CSS_ANIMATIONS
 PRBool
 nsStyleSet::AppendKeyframesRules(nsPresContext* aPresContext,
                                  nsTArray<nsCSSKeyframesRule*>& aArray)
@@ -1234,7 +1221,6 @@ nsStyleSet::AppendKeyframesRules(nsPresContext* aPresContext,
   }
   return PR_TRUE;
 }
-#endif
 
 void
 nsStyleSet::BeginShutdown(nsPresContext* aPresContext)

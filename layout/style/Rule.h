@@ -98,10 +98,8 @@ public:
     MEDIA_RULE,
     FONT_FACE_RULE,
     PAGE_RULE,
-#ifdef MOZ_CSS_ANIMATIONS
     KEYFRAME_RULE,
     KEYFRAMES_RULE,
-#endif
     DOCUMENT_RULE
   };
 
@@ -139,4 +137,4 @@ protected:
 } 
 } 
 
-#endif
+#endif 
