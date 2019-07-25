@@ -850,6 +850,7 @@ public:
   
   bool EnsureSafeToHandOutCSSRules();
 
+  void NotifyInvalidation(PRUint32 aFlags);
   void NotifyInvalidation(const nsRect& aRect, PRUint32 aFlags);
   
   void NotifyInvalidation(const nsIntRect& aRect, PRUint32 aFlags);
@@ -863,6 +864,7 @@ public:
   bool IsDOMPaintEventPending();
   void ClearMozAfterPaintEvents() {
     mInvalidateRequests.mRequests.Clear();
+    mAllInvalidated = false;
   }
 
   bool IsProcessingRestyles() const {
@@ -1225,6 +1227,7 @@ protected:
   unsigned              mPendingMediaFeatureValuesChanged : 1;
   unsigned              mPrefChangePendingNeedsReflow : 1;
   unsigned              mMayHaveFixedBackgroundFrames : 1;
+  unsigned              mAllInvalidated : 1;
 
   
   unsigned              mUserFontSetDirty : 1;

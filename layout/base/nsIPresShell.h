@@ -1265,6 +1265,10 @@ public:
     return mFontSizeInflationLineThreshold;
   }
 
+  virtual void AddInvalidateHiddenPresShellObserver(nsRefreshDriver *aDriver) = 0;
+
+  void InvalidatePresShellIfHidden();
+
   
 
 
@@ -1335,6 +1339,7 @@ protected:
   
   nsFrameManagerBase*       mFrameManager;
   nsWeakPtr                 mForwardingContainer;
+  nsRefreshDriver*          mHiddenInvalidationObserverRefreshDriver;
 
 #ifdef DEBUG
   nsIFrame*                 mDrawEventTargetFrame;
