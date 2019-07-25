@@ -128,7 +128,7 @@ AccEvent::CaptureIsFromUserInput(EIsFromUserInput aIsFromUserInput)
     
     
     ApplicationAccessible* applicationAcc =
-      ApplicationAcc();
+      nsAccessNode::GetApplicationAccessible();
 
     if (mAccessible != static_cast<nsIAccessible*>(applicationAcc))
       NS_ASSERTION(targetNode, "There should always be a DOM node for an event");

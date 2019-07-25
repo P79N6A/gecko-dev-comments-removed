@@ -20,17 +20,11 @@ class nsITreeView;
 
 namespace mozilla {
 namespace a11y {
-  class ApplicationAccessible;
 
 
 
 
 FocusManager* FocusMgr();
-
-
-
-
-ApplicationAccessible* ApplicationAcc();
 
 enum EPlatformDisabledState {
   ePlatformIsForceEnabled = -1,
@@ -260,11 +254,6 @@ private:
   
 
 
-	static mozilla::a11y::ApplicationAccessible* gApplicationAccessible;
-
-  
-
-
   static bool gIsShutdown;
 
   
@@ -278,7 +267,6 @@ private:
 
   friend nsAccessibilityService* GetAccService();
   friend mozilla::a11y::FocusManager* mozilla::a11y::FocusMgr();
-  friend mozilla::a11y::ApplicationAccessible* mozilla::a11y::ApplicationAcc();
 
   friend nsresult NS_GetAccessibilityService(nsIAccessibilityService** aResult);
 };
