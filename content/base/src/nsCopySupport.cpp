@@ -81,6 +81,10 @@
 
 #include "mozilla/dom/Element.h"
 
+#include "mozilla/Preferences.h"
+
+using namespace mozilla;
+
 nsresult NS_NewDomSelection(nsISelection **aDomSelection);
 
 static NS_DEFINE_CID(kCClipboardCID,           NS_CLIPBOARD_CID);
@@ -727,14 +731,16 @@ nsCopySupport::FireClipboardEvent(PRInt32 aType, nsIPresShell* aPresShell, nsISe
     return false;
 
   
-  nsEventStatus status = nsEventStatus_eIgnore;
-  nsEvent evt(true, aType);
-  nsEventDispatcher::Dispatch(content, presShell->GetPresContext(), &evt, nsnull,
-                              &status);
+  if (Preferences::GetBool("dom.event.clipboardevents.enabled", true)) {
+    nsEventStatus status = nsEventStatus_eIgnore;
+    nsEvent evt(true, aType);
+    nsEventDispatcher::Dispatch(content, presShell->GetPresContext(), &evt, nsnull,
+                                &status);
+    
+    if (status == nsEventStatus_eConsumeNoDefault)
+      return false;
+  }
   
-  if (status == nsEventStatus_eConsumeNoDefault)
-    return false;
-
   if (presShell->IsDestroying())
     return false;
 

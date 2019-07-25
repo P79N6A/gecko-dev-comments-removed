@@ -141,7 +141,7 @@ nsCacheMetaData::UnflattenMetaData(const char * data, PRUint32 size)
         
         
         bool odd = false;
-        for (int i = 0; i < size; i++) {
+        for (PRUint32 i = 0; i < size; i++) {
             if (data[i] == '\0') 
                 odd = !odd;
         }

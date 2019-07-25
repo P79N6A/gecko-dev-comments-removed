@@ -182,6 +182,9 @@ TelemetryPing.prototype = {
   
   
   _uuid: generateUUID(),
+  
+  _startupHistogramRegex: /SQLITE|HTTP|SPDY|CACHE|DNS/,
+  _slowSQLStartup: {},
 
   
 
@@ -381,17 +384,28 @@ TelemetryPing.prototype = {
       this.addValue(mr.path, id, val);
     }
   },
+
+  
+
+
+
+  isInterestingStartupHistogram: function isInterestingStartupHistogram(name) {
+    return this._startupHistogramRegex.test(name);
+  },
   
   
 
 
-  gatherStartupSqlite: function gatherStartupSqlite() {
+  gatherStartupInformation: function gatherStartupInformation() {
     let info = Telemetry.registeredHistograms;
-    let sqlite_re = /SQLITE/;
+    let snapshots = Telemetry.histogramSnapshots;
     for (let name in info) {
-      if (sqlite_re.test(name))
+      
+      if (this.isInterestingStartupHistogram(name) && name in snapshots) {
         Telemetry.histogramFrom("STARTUP_" + name, name);
+      }
     }
+    this._slowSQLStartup = Telemetry.slowSQL;
   },
 
   getSessionPayloadAndSlug: function getSessionPayloadAndSlug(reason) {
@@ -404,6 +418,10 @@ TelemetryPing.prototype = {
       histograms: this.getHistograms(),
       slowSQL: Telemetry.slowSQL
     };
+    if (Object.keys(this._slowSQLStartup.mainThread).length
+	|| Object.keys(this._slowSQLStartup.otherThreads).length) {
+      payloadObj.slowSQLStartup = this._slowSQLStartup;
+    }
 
     return { slug: slug, payload: JSON.stringify(payloadObj) };
   },
@@ -546,7 +564,7 @@ TelemetryPing.prototype = {
       }
       break;
     case "sessionstore-windows-restored":
-      this.gatherStartupSqlite();
+      this.gatherStartupInformation();
       break;
     case "idle-daily":
       
@@ -561,6 +579,7 @@ TelemetryPing.prototype = {
       break;
     case "get-payload":
       this.gatherMemory();
+      this.gatherStartupInformation();
       let data = this.getSessionPayloadAndSlug("gather-payload");
 
       aSubject.QueryInterface(Ci.nsISupportsString).data = data.payload;

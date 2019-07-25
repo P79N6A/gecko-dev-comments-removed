@@ -435,7 +435,14 @@ class StackFrame
                           const Value &thisv, JSObject &scopeChain, ExecuteType type);
 
     
-    void stealFrameAndSlots(Value *vp, StackFrame *otherfp, Value *othervp, Value *othersp);
+    enum TriggerPostBarriers {
+        DoPostBarrier = true,
+        NoPostBarrier = false
+    };
+    template <class T, class U, TriggerPostBarriers doPostBarrier>
+    void stealFrameAndSlots(StackFrame *fp, T *vp, StackFrame *otherfp, U *othervp,
+                            Value *othersp);
+    void writeBarrierPost();
 
     
     void initDummyFrame(JSContext *cx, JSObject &chain);
@@ -992,6 +999,10 @@ class StackFrame
     }
 
     
+
+    bool hasReturnValue() const {
+        return !!(flags_ & HAS_RVAL);
+    }
 
     const Value &returnValue() {
         if (!(flags_ & HAS_RVAL))

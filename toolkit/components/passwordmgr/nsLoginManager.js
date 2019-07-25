@@ -155,7 +155,6 @@ LoginManager.prototype = {
 
         
         this._prefBranch = Services.prefs.getBranch("signon.");
-        this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
         this._prefBranch.addObserver("", this._observer, false);
 
         

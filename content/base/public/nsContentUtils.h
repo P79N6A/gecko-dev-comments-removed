@@ -950,6 +950,26 @@ public:
                                        bool aCanBubble,
                                        bool aCancelable,
                                        bool *aDefaultAction = nsnull);
+                                       
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult DispatchUntrustedEvent(nsIDocument* aDoc,
+                                         nsISupports* aTarget,
+                                         const nsAString& aEventName,
+                                         bool aCanBubble,
+                                         bool aCancelable,
+                                         bool *aDefaultAction = nsnull);
 
   
 
@@ -1945,6 +1965,14 @@ private:
                              const nsIID* aIID, jsval *vp,
                              nsIXPConnectJSObjectHolder** aHolder,
                              bool aAllowWrapping);
+                            
+  static nsresult DispatchEvent(nsIDocument* aDoc,
+                                nsISupports* aTarget,
+                                const nsAString& aEventName,
+                                bool aCanBubble,
+                                bool aCancelable,
+                                bool aTrusted,
+                                bool *aDefaultAction = nsnull);
 
   static void InitializeModifierStrings();
 

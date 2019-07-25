@@ -73,7 +73,6 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPREFSERVICE
   NS_FORWARD_NSIPREFBRANCH(sRootBranch->)
-  NS_FORWARD_NSIPREFBRANCH2(sRootBranch->)
   NS_DECL_NSIOBSERVER
 
   Preferences();
@@ -110,7 +109,7 @@ public:
 
 
 
-  static nsIPrefBranch2* GetRootBranch()
+  static nsIPrefBranch* GetRootBranch()
   {
     NS_ENSURE_TRUE(InitStaticMembers(), nsnull);
     return sRootBranch;
@@ -345,7 +344,6 @@ public:
                                     void** aResult);
 
   
-  static nsresult ReadExtensionPrefs(nsIFile *aFile);
   static void MirrorPreferences(nsTArray<PrefTuple,
                                 nsTArrayInfallibleAllocator> *aArray);
   static bool MirrorPreference(const char *aPref, PrefTuple *aTuple);
@@ -366,8 +364,7 @@ private:
   nsCOMPtr<nsIFile>        mCurrentFile;
 
   static Preferences*      sPreferences;
-  static nsIPrefBranch2*   sRootBranch;
-  
+  static nsIPrefBranch*    sRootBranch;
   static nsIPrefBranch*    sDefaultRootBranch;
   static bool              sShutdown;
 
