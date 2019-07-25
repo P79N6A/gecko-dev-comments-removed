@@ -49,9 +49,7 @@ MoveEmitterX86::MoveEmitterX86(MacroAssembler &masm)
     masm(masm),
     pushedAtCycle_(-1),
     pushedAtSpill_(-1),
-    pushedAtDoubleSpill_(-1),
-    spilledReg_(InvalidReg),
-    spilledFloatReg_(InvalidFloatReg)
+    spilledReg_(InvalidReg)
 {
     pushedAtStart_ = masm.framePushed();
 }
@@ -84,12 +82,6 @@ Operand
 MoveEmitterX86::spillSlot() const
 {
     return Operand(StackPointer, masm.framePushed() - pushedAtSpill_);
-}
-
-Operand
-MoveEmitterX86::doubleSpillSlot() const
-{
-    return Operand(StackPointer, masm.framePushed() - pushedAtDoubleSpill_);
 }
 
 Operand
@@ -129,23 +121,6 @@ MoveEmitterX86::tempReg()
     return spilledReg_;
 }
 
-FloatRegister
-MoveEmitterX86::tempFloatReg()
-{
-    if (spilledFloatReg_ != InvalidFloatReg)
-        return spilledFloatReg_;
-
-    
-    
-    spilledFloatReg_ = FloatRegister::FromCode(7);
-    if (pushedAtDoubleSpill_ == -1) {
-        masm.reserveStack(sizeof(double));
-        pushedAtDoubleSpill_ = masm.framePushed();
-    }
-    masm.movsd(spilledFloatReg_, doubleSpillSlot());
-    return spilledFloatReg_;
-}
-
 void
 MoveEmitterX86::breakCycle(const MoveOperand &from, const MoveOperand &to, Move::Kind kind)
 {
@@ -155,11 +130,10 @@ MoveEmitterX86::breakCycle(const MoveOperand &from, const MoveOperand &to, Move:
     
     
     
-    if (to.isDouble()) {
+    if (kind == Move::DOUBLE) {
         if (to.isMemory()) {
-            FloatRegister temp = tempFloatReg();
-            masm.movsd(toOperand(to), temp);
-            masm.movsd(temp, cycleSlot());
+            masm.movsd(toOperand(to), ScratchFloatReg);
+            masm.movsd(ScratchFloatReg, cycleSlot());
         } else {
             masm.movsd(to.floatReg(), cycleSlot());
         }
@@ -185,9 +159,8 @@ MoveEmitterX86::completeCycle(const MoveOperand &from, const MoveOperand &to, Mo
     
     if (kind == Move::DOUBLE) {
         if (to.isMemory()) {
-            FloatRegister temp = tempFloatReg();
-            masm.movsd(cycleSlot(), temp);
-            masm.movsd(temp, toOperand(to));
+            masm.movsd(cycleSlot(), ScratchFloatReg);
+            masm.movsd(ScratchFloatReg, toOperand(to));
         } else {
             masm.movsd(cycleSlot(), to.floatReg());
         }
@@ -232,25 +205,13 @@ void
 MoveEmitterX86::emitDoubleMove(const MoveOperand &from, const MoveOperand &to)
 {
     if (from.isFloatReg()) {
-        if (from.floatReg() == spilledFloatReg_) {
-            
-            
-            masm.movsd(doubleSpillSlot(), spilledFloatReg_);
-            spilledFloatReg_ = InvalidFloatReg;
-        }
         masm.movsd(from.floatReg(), toOperand(to));
     } else if (to.isFloatReg()) {
-        if (to.floatReg() == spilledFloatReg_) {
-            
-            
-            spilledFloatReg_ = InvalidFloatReg;
-        }
         masm.movsd(toOperand(from), to.floatReg());
     } else {
         
-        FloatRegister reg = tempFloatReg();
-        masm.movsd(toOperand(from), reg);
-        masm.movsd(reg, toOperand(to));
+        masm.movsd(toOperand(from), ScratchFloatReg);
+        masm.movsd(ScratchFloatReg, toOperand(to));
     }
 }
 
@@ -288,8 +249,6 @@ MoveEmitterX86::finish()
 {
     assertDone();
 
-    if (pushedAtDoubleSpill_ != -1 && spilledFloatReg_ != InvalidFloatReg)
-        masm.movsd(doubleSpillSlot(), spilledFloatReg_);
     if (pushedAtSpill_ != -1 && spilledReg_ != InvalidReg)
         masm.mov(spillSlot(), spilledReg_);
 

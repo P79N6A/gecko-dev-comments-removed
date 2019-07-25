@@ -66,20 +66,16 @@ class MoveEmitterX86
     
     int32 pushedAtCycle_;
     int32 pushedAtSpill_;
-    int32 pushedAtDoubleSpill_;
 
     
     
     
     Register spilledReg_;
-    FloatRegister spilledFloatReg_;
 
     void assertDone();
     Register tempReg();
-    FloatRegister tempFloatReg();
     Operand cycleSlot() const;
     Operand spillSlot() const;
-    Operand doubleSpillSlot() const;
     Operand toOperand(const MoveOperand &operand) const;
 
     void emitMove(const MoveOperand &from, const MoveOperand &to);
