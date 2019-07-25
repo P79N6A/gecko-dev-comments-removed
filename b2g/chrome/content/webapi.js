@@ -76,21 +76,6 @@ XPCOMUtils.defineLazyGetter(Services, 'fm', function() {
 })();
 
 
-function updateApplicationCache(window) {
-  try {
-    var cache = window.applicationCache;
-    cache.update();
-
-    cache.addEventListener('updateready', function updateReady(evt) {
-      
-      
-      cache.swapCache();
-      window.document.location.reload();
-    });
-  } catch (e) {}
-}
-
-
 (function VirtualKeyboardManager() {
   let activeElement = null;
   let isKeyboardOpened = false;
