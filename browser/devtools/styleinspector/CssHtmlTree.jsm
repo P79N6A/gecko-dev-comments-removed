@@ -328,6 +328,34 @@ CssHtmlTree.prototype = {
     CssHtmlTree.propertyNames.push.apply(CssHtmlTree.propertyNames,
       mozProps.sort());
   },
+
+  
+
+
+  destroy: function CssHtmlTree_destroy()
+  {
+    delete this.viewedElement;
+
+    
+    delete this.root;
+    delete this.path;
+    delete this.templateRoot;
+    delete this.templatePath;
+    delete this.propertyContainer;
+    delete this.templateProperty;
+    delete this.panel;
+
+    
+    delete this.styleDocument;
+
+    
+    delete this.propertyViews;
+    delete this.getRTLAttr;
+    delete this.styleWin;
+    delete this.cssLogic;
+    delete this.doc;
+    delete this.win;
+  },
 };
 
 
