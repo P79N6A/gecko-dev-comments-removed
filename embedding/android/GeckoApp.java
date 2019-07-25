@@ -151,6 +151,7 @@ abstract public class GeckoApp
     @Override
     public void onPause()
     {
+        GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.ACTIVITY_PAUSING));
         
         
         
