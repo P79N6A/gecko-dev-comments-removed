@@ -375,7 +375,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
         new (aBuilder) nsDisplayZoom(aBuilder, subdocRootFrame, &childItems,
                                      subdocAPD, parentAPD);
       childItems.AppendToTop(zoomItem);
-    } else if (!nsContentUtils::IsChildOfSameType(presShell->GetDocument())) {
+    } else if (presContext->IsRootContentDocument()) {
       
       
       

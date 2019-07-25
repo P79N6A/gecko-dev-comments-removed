@@ -1580,8 +1580,7 @@ PRBool nsGfxScrollFrameInner::IsAlwaysActive() const
   
   
   
-  return mIsRoot &&
-    !nsContentUtils::IsChildOfSameType(mOuter->GetContent()->GetCurrentDoc());
+  return mIsRoot && mOuter->PresContext()->IsRootContentDocument();
 }
 
 PRBool nsGfxScrollFrameInner::IsScrollingActive() const
@@ -1754,7 +1753,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   PRBool createLayersForScrollbars = mIsRoot &&
-      !nsContentUtils::IsChildOfSameType(mOuter->GetContent()->GetCurrentDoc());
+    mOuter->PresContext()->IsRootContentDocument();
   for (nsIFrame* kid = mOuter->GetFirstChild(nsnull); kid; kid = kid->GetNextSibling()) {
     if (kid != mScrolledFrame) {
       if (kid == mScrollCornerBox && hasResizer) {
