@@ -62,7 +62,7 @@ CameraContent.prototype = {
     let perm = principal == secMan.getSystemPrincipal() ? Ci.nsIPermissionManager.ALLOW_ACTION : Services.perms.testExactPermission(principal.URI, "content-camera");
 
     
-    this.hasPrivileges = perm == Ci.nsIPermissionManager.ALLOW_ACTION || from.schemeIs("chrome");
+    this.hasPrivileges = perm == Ci.nsIPermissionManager.ALLOW_ACTION;
 
     Services.obs.addObserver(this, "inner-window-destroyed", false);
     let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
