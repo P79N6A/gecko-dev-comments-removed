@@ -541,6 +541,12 @@ class StackFrame
         return slots()[i];
     }
 
+    Value &localSlot(uintN i) {
+        
+        JS_ASSERT(i < script()->nslots);
+        return slots()[i];
+    }
+
     
 
 
