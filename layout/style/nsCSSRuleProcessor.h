@@ -103,13 +103,15 @@ public:
 
 
 
-  static nsEventStates GetContentState(mozilla::dom::Element* aElement);
+  static nsEventStates GetContentState(mozilla::dom::Element* aElement,
+                                       const TreeMatchContext& aTreeMatchContext);
 
   
 
 
   static nsEventStates GetContentStateForVisitedHandling(
              mozilla::dom::Element* aElement,
+             const TreeMatchContext& aTreeMatchContext,
              nsRuleWalker::VisitedHandlingType aVisitedHandling,
              bool aIsRelevantLink);
 
