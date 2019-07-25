@@ -38,7 +38,6 @@
 
 
 
-
 #include "nanojit.h"
 
 #ifdef UNDER_CE
@@ -272,13 +271,6 @@ Assembler::asm_add_imm(Register rd, Register rn, int32_t imm, int stat )
 
     
     
-    
-    if ((imm == 0) && (stat == 0) && (rd == rn)) {
-        return;
-    }
-
-    
-    
     if (encOp2Imm(imm, &op2imm)) {
         ADDis(rd, rn, op2imm, stat);
     } else if (encOp2Imm(-imm, &op2imm)) {
@@ -317,13 +309,6 @@ Assembler::asm_sub_imm(Register rd, Register rn, int32_t imm, int stat )
     NanoAssert(IsGpReg(rd));
     NanoAssert(IsGpReg(rn));
     NanoAssert((stat & 1) == stat);
-    
-    
-    
-    
-    if ((imm == 0) && (stat == 0) && (rd == rn)) {
-        return;
-    }
 
     
     
@@ -786,7 +771,7 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
         if (!_config.arm_vfp || !isF64) {
             NanoAssert(IsGpReg(rr));
 
-            asm_str(rr, SP, stkd);
+            STR(rr, SP, stkd);
         } else {
             
             
@@ -809,7 +794,7 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
         
         int d = findMemFor(arg);
         if (!isF64) {
-            asm_str(IP, SP, stkd);
+            STR(IP, SP, stkd);
             if (arg->isop(LIR_allocp)) {
                 asm_add_imm(IP, FP, d);
             } else {
@@ -821,9 +806,9 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
             NanoAssert((stkd & 7) == 0);
 #endif
 
-            asm_str(IP, SP, stkd+4);
+            STR(IP, SP, stkd+4);
             LDR(IP, FP, d+4);
-            asm_str(IP, SP, stkd);
+            STR(IP, SP, stkd);
             LDR(IP, FP, d);
         }
     }
@@ -891,8 +876,8 @@ Assembler::asm_call(LInsp ins)
 
                 
                 
-                asm_str(R0, FP, d+0);
-                asm_str(R1, FP, d+4);
+                STR(R0, FP, d+0);
+                STR(R1, FP, d+4);
             } else {
                 NanoAssert(IsFpReg(rr));
 
@@ -1199,11 +1184,11 @@ Assembler::asm_qjoin(LIns *ins)
     LIns* hi = ins->oprnd2();
 
     Register r = findRegFor(hi, GpRegs);
-    asm_str(r, FP, d+4);
+    STR(r, FP, d+4);
 
     
     r = findRegFor(lo, GpRegs);
-    asm_str(r, FP, d);
+    STR(r, FP, d);
     deprecated_freeRsrcOf(ins);     
 }
 
@@ -1272,11 +1257,6 @@ Assembler::canRemat(LIns* ins)
 void
 Assembler::asm_restore(LInsp i, Register r)
 {
-    
-    NanoAssert(r != PC);
-    NanoAssert(r != IP);
-    NanoAssert(r != SP);
-
     if (i->isop(LIR_allocp)) {
         asm_add_imm(r, FP, deprecated_disp(i));
     } else if (i->isImmI()) {
@@ -1329,9 +1309,7 @@ Assembler::asm_spill(Register rr, int d, bool pop, bool quad)
     (void) quad;
     NanoAssert(d);
     
-    NanoAssert(rr != PC);
-    NanoAssert(rr != IP);
-    NanoAssert(rr != SP);
+    
     if (_config.arm_vfp && IsFpReg(rr)) {
         if (isS8(d >> 2)) {
             FSTD(rr, FP, d);
@@ -1341,20 +1319,17 @@ Assembler::asm_spill(Register rr, int d, bool pop, bool quad)
         }
     } else {
         NIns merged;
+        STR(rr, FP, d);
         
         
-        if (asm_str(rr, FP, d)) {
-            
-            
-            if (
-                    does_next_instruction_exist(_nIns, codeStart, codeEnd,
-                        exitStart, exitEnd)
-                    && 
-                    do_peep_2_1(&merged, _nIns[0], _nIns[1])) {
-                _nIns[1] = merged;
-                _nIns++;
-                verbose_only( asm_output("merge next into STMDB"); )
-            }
+        if (
+            does_next_instruction_exist(_nIns, codeStart, codeEnd,
+                                               exitStart, exitEnd)
+            && 
+               do_peep_2_1(&merged, _nIns[0], _nIns[1])) {
+            _nIns[1] = merged;
+            _nIns++;
+            verbose_only( asm_output("merge next into STMDB"); )
         }
     }
 }
@@ -1457,9 +1432,9 @@ Assembler::asm_store64(LOpcode op, LInsp value, int dr, LInsp base)
                     underrunProtect(LD32_size*2 + 8);
 
                     
-                    asm_str(IP, rb, dr);
+                    STR(IP, rb, dr);
                     asm_ld_imm(IP, value->immDlo(), false);
-                    asm_str(IP, rb, dr+4);
+                    STR(IP, rb, dr+4);
                     asm_ld_imm(IP, value->immDhi(), false);
 
                     return;
@@ -1506,9 +1481,9 @@ Assembler::asm_store64(LOpcode op, LInsp value, int dr, LInsp base)
                     underrunProtect(LD32_size*2 + 8);
 
                     
-                    asm_str(IP, rb, dr);
+                    STR(IP, rb, dr);
                     asm_ld_imm(IP, value->immDlo(), false);
-                    asm_str(IP, rb, dr+4);
+                    STR(IP, rb, dr+4);
                     asm_ld_imm(IP, value->immDhi(), false);
 
                     return;
@@ -1580,6 +1555,8 @@ Assembler::asm_immd_nochk(Register rr, int32_t immDlo, int32_t immDhi)
 void
 Assembler::asm_immd(LInsp ins)
 {
+    
+
     int d = deprecated_disp(ins);
     Register rr = ins->deprecated_getReg();
 
@@ -1593,12 +1570,17 @@ Assembler::asm_immd(LInsp ins)
         asm_immd_nochk(rr, ins->immDlo(), ins->immDhi());
     } else {
         NanoAssert(d);
+        
+        
+        
 
-        asm_str(IP, FP, d+4);
+        STR(IP, FP, d+4);
         asm_ld_imm(IP, ins->immDhi());
-        asm_str(IP, FP, d);
+        STR(IP, FP, d);
         asm_ld_imm(IP, ins->immDlo());
     }
+
+    
 }
 
 void
@@ -1656,9 +1638,6 @@ Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
     
     
     
-    
-    
-    
 
     
     
@@ -1669,40 +1648,8 @@ Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
 
     
     
-    NanoAssert(rs != IP);
-    NanoAssert(rd != IP);
-
-    
-    
     
     RegisterMask    free = _allocator.free & AllowableFlagRegs;
-
-    
-    
-    
-    
-    
-
-    int32_t dd_adj = 0;
-    int32_t ds_adj = 0;
-
-    if ((dd+4) >= 0x1000) {
-        dd_adj = ((dd+4) & ~0xfff);
-    } else if (dd <= -0x1000) {
-        dd_adj = -((-dd) & ~0xfff);
-    }
-    if ((ds+4) >= 0x1000) {
-        ds_adj = ((ds+4) & ~0xfff);
-    } else if (ds <= -0x1000) {
-        ds_adj = -((-ds) & ~0xfff);
-    }
-
-    
-    asm_sub_imm(rd, rd, dd_adj);
-    asm_sub_imm(rs, rs, ds_adj);
-
-    ds -= ds_adj;
-    dd -= dd_adj;
 
     if (free) {
         
@@ -1722,6 +1669,7 @@ Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
         NanoAssert((free & rmask(FP)) == 0);
 
         
+
         STR(IP, rd, dd+4);
         STR(rr, rd, dd);
         LDR(IP, rs, ds+4);
@@ -1733,10 +1681,6 @@ Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
         STR(IP, rd, dd);
         LDR(IP, rs, ds);
     }
-
-    
-    asm_add_imm(rd, rd, dd_adj);
-    asm_add_imm(rs, rs, ds_adj);
 }
 
 
@@ -1982,72 +1926,6 @@ Assembler::asm_ldr_chk(Register d, Register b, int32_t off, bool chk)
     }
 
     asm_output("ldr %s, [%s, #%d]",gpn(d),gpn(b),(off));
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int32_t
-Assembler::asm_str(Register rt, Register rr, int32_t offset)
-{
-    
-    
-    
-    
-    NanoAssert(rr != PC);
-    NanoAssert(rt != PC);
-    if (offset >= 0) {
-        
-        if (isU12(offset)) {
-            STR(rt, rr, offset);
-            return 1;
-        }
-
-        if (rt != IP) {
-            STR(rt, IP, offset & 0xfff);
-            asm_add_imm(IP, rr, offset & ~0xfff);
-        } else {
-            int32_t adj = offset & ~0xfff;
-            asm_sub_imm(rr, rr, adj);
-            STR(rt, rr, offset-adj);
-            asm_add_imm(rr, rr, adj);
-        }
-    } else {
-        
-        if (isU12(-offset)) {
-            STR(rt, rr, offset);
-            return 1;
-        }
-
-        if (rt != IP) {
-            STR(rt, IP, -((-offset) & 0xfff));
-            asm_sub_imm(IP, rr, (-offset) & ~0xfff);
-        } else {
-            int32_t adj = -((-offset) & 0xfff);
-            asm_add_imm(IP, rr, adj);
-            STR(rt, rr, offset-adj);
-            asm_sub_imm(rr, rr, adj);
-        }
-    }
-
-    return 0;
 }
 
 
@@ -2391,7 +2269,7 @@ Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ)
     return at;
 }
 
-NIns* Assembler::asm_branch_ov(LOpcode op, NIns* target)
+void Assembler::asm_branch_xov(LOpcode op, NIns* target)
 {
     
     
@@ -2400,7 +2278,6 @@ NIns* Assembler::asm_branch_ov(LOpcode op, NIns* target)
 
     
     B_cond(cc, target);
-    return _nIns;
 }
 
 void

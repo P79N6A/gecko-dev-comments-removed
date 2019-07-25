@@ -954,7 +954,6 @@ namespace nanojit
                 
                 switch (op) {
                 case LIR_addxovi:
-                case LIR_addjovi:
                     SLT(AT, rr, ra);
                     ADDIU(rr, ra, rhsc);
                     goto done;
@@ -962,7 +961,6 @@ namespace nanojit
                     ADDIU(rr, ra, rhsc);
                     goto done;
                 case LIR_subxovi:
-                case LIR_subjovi:
                     if (isS16(-rhsc)) {
                         SLT(AT, ra, rr);
                         ADDIU(rr, ra, -rhsc);
@@ -976,7 +974,6 @@ namespace nanojit
                     }
                     break;
                 case LIR_mulxovi:
-                case LIR_muljovi:
                 case LIR_muli:
                     
                     
@@ -1027,7 +1024,6 @@ namespace nanojit
 
         switch (op) {
             case LIR_addxovi:
-            case LIR_addjovi:
                 SLT(AT, rr, ra);
                 ADDU(rr, ra, rb);
                 break;
@@ -1044,7 +1040,6 @@ namespace nanojit
                 XOR(rr, ra, rb);
                 break;
             case LIR_subxovi:
-            case LIR_subjovi:
                 SLT(AT,ra,rr);
                 SUBU(rr, ra, rb);
                 break;
@@ -1064,7 +1059,6 @@ namespace nanojit
                 ANDI(rb, rb, 31);
                 break;
             case LIR_mulxovi:
-            case LIR_muljovi:
                 t = registerAllocTmp(allow);
                 
                 
@@ -1487,15 +1481,14 @@ namespace nanojit
         return patch;
     }
 
-    NIns* Assembler::asm_branch_ov(LOpcode op, NIns* target)
+    void Assembler::asm_branch_xov(LOpcode op, NIns* target)
     {
         USE(op);
         NanoAssert(target != NULL);
 
-        NIns* patch = asm_bxx(true, LIR_eqi, AT, ZERO, target);
+        (void) asm_bxx(true, LIR_eqi, AT, ZERO, target);
 
-        TAG("asm_branch_ov(op=%s, target=%p)", lirNames[op], target);
-        return patch;
+        TAG("asm_branch_xov(op=%s, target=%p)", lirNames[op], target);
     }
 
     NIns* Assembler::asm_branch(bool branchOnFalse, LIns *cond, NIns * const targ)
