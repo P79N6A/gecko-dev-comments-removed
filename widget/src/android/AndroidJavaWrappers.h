@@ -46,8 +46,10 @@
 #include "nsRect.h"
 #include "nsString.h"
 
+
+
 #ifndef ALOG
-#ifdef DEBUG
+#if defined(DEBUG) || defined(FORCE_ALOG)
 #define ALOG(args...)  __android_log_print(ANDROID_LOG_INFO, "Gecko" , ## args)
 #else
 #define ALOG(args...)
@@ -168,11 +170,17 @@ public:
     int BeginDrawing();
     unsigned char *GetSoftwareDrawBuffer(int *cap);
     void EndDrawing();
+
+    
+    
+    jobject GetSurfaceHolder();
+
 protected:
     static jclass jGeckoSurfaceViewClass;
     static jmethodID jBeginDrawingMethod;
     static jmethodID jEndDrawingMethod;
     static jmethodID jGetSoftwareDrawBufferMethod;
+    static jmethodID jGetHolderMethod;
 };
 
 class AndroidKeyEvent

@@ -75,6 +75,8 @@ class LayerOGL;
 
 
 class THEBES_API LayerManagerOGL : public LayerManager {
+  typedef mozilla::gl::GLContext GLContext;
+
 public:
   LayerManagerOGL(nsIWidget *aWidget);
   virtual ~LayerManagerOGL();
@@ -87,7 +89,10 @@ public:
 
 
 
-  PRBool Initialize();
+
+
+
+  PRBool Initialize(GLContext *aExistingContext = nsnull);
 
   
 
@@ -166,8 +171,6 @@ public:
       return static_cast<ColorTextureLayerProgram*>(mPrograms[RGBARectLayerProgramType]);
     return static_cast<ColorTextureLayerProgram*>(mPrograms[RGBALayerProgramType]);
   }
-
-  typedef mozilla::gl::GLContext GLContext;
 
   GLContext *gl() const { return mGLContext; }
 

@@ -101,6 +101,15 @@ AndroidBridge::Init(JNIEnv *jEnv,
     jOpenUriExternal = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "openUriExternal", "(Ljava/lang/String;Ljava/lang/String;)Z");
     jGetMimeTypeFromExtension = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "getMimeTypeFromExtension", "(Ljava/lang/String;)Ljava/lang/String;");
     jMoveTaskToBack = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "moveTaskToBack", "()V");
+
+
+    jEGLContextClass = (jclass) jEnv->NewGlobalRef(jEnv->FindClass("javax/microedition/khronos/egl/EGLContext"));
+    jEGL10Class = (jclass) jEnv->NewGlobalRef(jEnv->FindClass("javax/microedition/khronos/egl/EGL10"));
+    jEGLSurfaceImplClass = (jclass) jEnv->NewGlobalRef(jEnv->FindClass("com/google/android/gles_jni/EGLSurfaceImpl"));
+    jEGLContextImplClass = (jclass) jEnv->NewGlobalRef(jEnv->FindClass("com/google/android/gles_jni/EGLContextImpl"));
+    jEGLConfigImplClass = (jclass) jEnv->NewGlobalRef(jEnv->FindClass("com/google/android/gles_jni/EGLConfigImpl"));
+    jEGLDisplayImplClass = (jclass) jEnv->NewGlobalRef(jEnv->FindClass("com/google/android/gles_jni/EGLDisplayImpl"));
+
     InitAndroidJavaWrappers(jEnv);
 
     
@@ -273,6 +282,50 @@ AndroidBridge::SetSurfaceView(jobject obj)
     mSurfaceView.Init(obj);
 }
 
+void *
+AndroidBridge::CallEglCreateWindowSurface(void *dpy, void *config, AndroidGeckoSurfaceView &sview)
+{
+    AutoLocalJNIFrame jniFrame;
+
+    
+
+
+
+
+
+
+
+
+
+
+    jobject surfaceHolder = sview.GetSurfaceHolder();
+    if (!surfaceHolder)
+        return nsnull;
+
+    
+    jmethodID constructConfig = mJNIEnv->GetMethodID(jEGLConfigImplClass, "<init>", "(I)V");
+    jmethodID constructDisplay = mJNIEnv->GetMethodID(jEGLDisplayImplClass, "<init>", "(I)V");
+
+    jmethodID getEgl = mJNIEnv->GetStaticMethodID(jEGLContextClass, "getEGL", "()Ljavax/microedition/khronos/egl/EGL;");
+    jmethodID createWindowSurface = mJNIEnv->GetMethodID(jEGL10Class, "eglCreateWindowSurface", "(Ljavax/microedition/khronos/egl/EGLDisplay;Ljavax/microedition/khronos/egl/EGLConfig;Ljava/lang/Object;[I)Ljavax/microedition/khronos/egl/EGLSurface;");
+
+    jobject egl = mJNIEnv->CallStaticObjectMethod(jEGLContextClass, getEgl);
+
+    jobject jdpy = mJNIEnv->NewObject(jEGLDisplayImplClass, constructDisplay, (int) dpy);
+    jobject jconf = mJNIEnv->NewObject(jEGLConfigImplClass, constructConfig, (int) config);
+
+    
+    jobject surf = mJNIEnv->CallObjectMethod(egl, createWindowSurface, jdpy, jconf, surfaceHolder, NULL);
+    if (!surf)
+        return nsnull;
+
+    jfieldID sfield = mJNIEnv->GetFieldID(jEGLSurfaceImplClass, "mEGLSurface", "I");
+
+    jint realSurface = mJNIEnv->GetIntField(surf, sfield);
+
+    return (void*) realSurface;
+}
+
 
 PRBool
 mozilla_AndroidBridge_SetMainThread(void *thr)
@@ -296,4 +349,3 @@ extern "C" JNIEnv * GetJNIForThread()
 {
   return mozilla::AndroidBridge::JNIForThread();
 }
-
