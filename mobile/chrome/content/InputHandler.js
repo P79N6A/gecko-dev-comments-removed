@@ -76,11 +76,14 @@ function getScrollboxFromElement(elem) {
 
 
 function InputHandler() {
+  
+  window.addEventListener("mouseout", this, true);
+
   let stack = document.getElementById("browser-container");
   stack.addEventListener("DOMMouseScroll", this, true);
 
   
-  stack.addEventListener("mouseout", this, true);
+  
   stack.addEventListener("mousedown", this, true);
   stack.addEventListener("mouseup", this, true);
   stack.addEventListener("mousemove", this, true);
@@ -117,8 +120,6 @@ InputHandler.prototype = {
 
   ungrab: function ungrab(obj) {
     this._grabbed = null;
-    
-    
   },
 
   startListening: function startListening() {
@@ -132,6 +133,15 @@ InputHandler.prototype = {
   handleEvent: function handleEvent(aEvent) {
     if (this._ignoreEvents)
       return;
+
+    
+    
+    
+    
+    if (aEvent.type == "mouseout" && !aEvent.relatedTarget) {
+      this.grab(null);
+      return;
+    }
 
     if (this._grabbed) {
       this._grabbed.handleEvent(aEvent);
@@ -707,9 +717,6 @@ ContentClickingModule.prototype = {
           clearTimeout(this._clickTimeout);
           this._sendDoubleClick();
         }
-        break;
-      case "mouseout":
-        this._reset();
         break;
     }
   },
