@@ -2091,17 +2091,6 @@ nsJSContext::InitContext()
 }
 
 nsresult
-nsJSContext::InitOuterWindow()
-{
-  JSObject *global = JS_ObjectToInnerObject(mContext, JS_GetGlobalObject(mContext));
-
-  nsresult rv = InitClasses(global); 
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-nsresult
 nsJSContext::InitializeExternalClasses()
 {
   nsScriptNameSpaceManager *nameSpaceManager = nsJSRuntime::GetNameSpaceManager();

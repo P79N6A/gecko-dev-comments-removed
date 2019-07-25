@@ -45,8 +45,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0xec973091, 0x809b, 0x4796, \
-  { 0x80, 0xd7, 0x4f, 0xfb, 0x64, 0xa4, 0x8e, 0x66 } }
+{ 0x9a4df96d, 0xa231, 0x4108, \
+  { 0xb5, 0xbc, 0xaf, 0x67, 0x7a, 0x36, 0xa7, 0x44 } }
 
 
 
@@ -263,12 +263,6 @@ public:
 
 
   virtual nsresult InitContext() = 0;
-
-  
-
-
-
-  virtual nsresult InitOuterWindow() = 0;
 
   
 
