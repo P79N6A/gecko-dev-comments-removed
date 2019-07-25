@@ -486,7 +486,7 @@ GetTextNode(nsISelection *selection, nsEditor *editor) {
     
     NS_ENSURE_TRUE(node, nsnull);
     
-    nsNodeIterator iter(node, nsIDOMNodeFilter::SHOW_TEXT, nsnull, true);
+    nsNodeIterator iter(node, nsIDOMNodeFilter::SHOW_TEXT, nsnull);
     while (!editor->IsTextNode(selNode)) {
       if (NS_FAILED(res = iter.NextNode(getter_AddRefs(selNode))) || !selNode) {
         return nsnull;
