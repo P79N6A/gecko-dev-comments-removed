@@ -43,6 +43,7 @@
 #include "nsIObserverService.h"
 #include "nsIAppStartup.h"
 #include "nsIGeolocationProvider.h"
+#include "nsIPrefService.h"
 
 #include "mozilla/Services.h"
 #include "prenv.h"
@@ -242,7 +243,6 @@ nsAppShell::ProcessNextNativeEvent(PRBool mayWait)
         NS_NAMED_LITERAL_STRING(context, "shutdown-persist");
         obsServ->NotifyObservers(nsnull, "quit-application-granted", nsnull);
         obsServ->NotifyObservers(nsnull, "quit-application-forced", nsnull);
-        obsServ->NotifyObservers(nsnull, "quit-application", nsnull);
         obsServ->NotifyObservers(nsnull, "profile-change-net-teardown", context.get());
         obsServ->NotifyObservers(nsnull, "profile-change-teardown", context.get());
         obsServ->NotifyObservers(nsnull, "profile-before-change", context.get());
@@ -253,9 +253,12 @@ nsAppShell::ProcessNextNativeEvent(PRBool mayWait)
     }
 
     case AndroidGeckoEvent::ACTIVITY_PAUSING: {
-        nsCOMPtr<nsIObserverService> obsServ =
-          mozilla::services::GetObserverService();
-        obsServ->NotifyObservers(nsnull, "profile-before-change", nsnull);
+        
+        
+        
+        nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+        if (prefs)
+            prefs->SavePrefFile(nsnull);
 
         
         
