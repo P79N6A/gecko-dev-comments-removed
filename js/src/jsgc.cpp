@@ -1446,6 +1446,14 @@ GCMarker::markDelayedChildren()
 
 
         MarkingDelay *markingDelay = a->getMarkingDelay();
+        unmarkedArenaStackTop = (markingDelay->link != a)
+            ? markingDelay->link
+            : NULL;
+        markingDelay->link = NULL;
+#ifdef DEBUG
+        markLaterCount -= Arena<FreeCell>::ThingsPerArena;
+#endif
+
         switch (a->header()->thingKind) {
             case FINALIZE_OBJECT:
                 reinterpret_cast<Arena<JSObject> *>(a)->markDelayedChildren(this);
@@ -1473,22 +1481,7 @@ GCMarker::markDelayedChildren()
                 break;
 #endif
             default:
-                JS_ASSERT(false);
-        }
-
-        
-
-
-
-
-        if (unmarkedArenaStackTop == a) {
-            unmarkedArenaStackTop = (markingDelay->link != a)
-                ? markingDelay->link
-                : NULL;
-            markingDelay->link = NULL;
-#ifdef DEBUG
-            markLaterCount -= Arena<FreeCell>::ThingsPerArena;
-#endif
+                JS_NOT_REACHED("wrong thingkind");
         }
     }
     JS_ASSERT(markLaterCount == 0);
