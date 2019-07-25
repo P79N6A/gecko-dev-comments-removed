@@ -239,7 +239,7 @@ private:
     bool ResponseWouldVary() const;
     bool MustValidateBasedOnQueryUrl() const;
     nsresult SetupByteRangeRequest(PRUint32 partialLen);
-    nsresult StartBufferingCachedEntity();
+    nsresult OpenCacheInputStream(bool startBuffering);
 
     nsCOMPtr<nsICacheListener> mChannel;
     const bool mHasQueryString;
@@ -266,7 +266,7 @@ private:
     friend class nsHttpChannel;
      nsHttpRequestHead mRequestHead;
      nsAutoPtr<nsTArray<nsCString> > mRedirectedCachekeys;
-     AutoClose<nsIAsyncInputStream> mCacheAsyncInputStream;
+     AutoClose<nsIInputStream> mCacheInputStream;
      nsAutoPtr<nsHttpResponseHead> mCachedResponseHead;
      nsCOMPtr<nsISupports> mCachedSecurityInfo;
      bool mCachedContentIsValid;
@@ -1181,7 +1181,7 @@ nsHttpChannel::ProcessResponse()
 
     MOZ_ASSERT(!mCachedContentIsValid);
     if (httpStatus != 304 && httpStatus != 206) {
-        mCacheAsyncInputStream.CloseAndRelease();
+        mCacheInputStream.CloseAndRelease();
     }
 
     
@@ -1230,7 +1230,7 @@ nsHttpChannel::ProcessResponse()
         if (mCachedContentIsPartial) 
             rv = ProcessPartialContent();
         else {
-            mCacheAsyncInputStream.CloseAndRelease();
+            mCacheInputStream.CloseAndRelease();
             rv = ProcessNormal();
         }
         break;
@@ -1265,7 +1265,7 @@ nsHttpChannel::ProcessResponse()
         rv = ProcessNotModified();
         if (NS_FAILED(rv)) {
             LOG(("ProcessNotModified failed [rv=%x]\n", rv));
-            mCacheAsyncInputStream.CloseAndRelease();
+            mCacheInputStream.CloseAndRelease();
             rv = ProcessNormal();
         }
         else {
@@ -2974,7 +2974,7 @@ HttpCacheQuery::CheckCache()
          (mCacheAccess == nsICache::ACCESS_READ &&
           !(mLoadFlags & nsIRequest::INHIBIT_CACHING)) ||
          mFallbackChannel)) {
-        rv = StartBufferingCachedEntity();
+        rv = OpenCacheInputStream(true);
         if (NS_SUCCEEDED(rv)) {
             mCachedContentIsValid = true;
             
@@ -3023,7 +3023,7 @@ HttpCacheQuery::CheckCache()
                     rv = SetupByteRangeRequest(size);
                     mCachedContentIsPartial = NS_SUCCEEDED(rv);
                     if (mCachedContentIsPartial) {
-                        rv = StartBufferingCachedEntity();
+                        rv = OpenCacheInputStream(false);
                     } else {
                         
                         mRequestHead.ClearHeader(nsHttp::Range);
@@ -3201,13 +3201,8 @@ HttpCacheQuery::CheckCache()
         }
     }
 
-    
-    
-    
-    
-    
     if (mCachedContentIsValid || mDidReval) {
-        rv = StartBufferingCachedEntity();
+        rv = OpenCacheInputStream(mCachedContentIsValid);
         if (NS_FAILED(rv)) {
             
             
@@ -3307,7 +3302,7 @@ nsHttpChannel::ShouldUpdateOfflineCacheEntry()
 }
 
 nsresult
-HttpCacheQuery::StartBufferingCachedEntity()
+HttpCacheQuery::OpenCacheInputStream(bool startBuffering)
 {
     AssertOnCacheThread();
 
@@ -3362,29 +3357,43 @@ HttpCacheQuery::StartBufferingCachedEntity()
 
     
     
-    
-    
-    
-
-    nsCOMPtr<nsIInputStream> wrapper;
-
     nsCOMPtr<nsIInputStream> stream;
+    rv = mCacheEntry->OpenInputStream(0, getter_AddRefs(stream));
+
+    if (NS_FAILED(rv)) {
+        LOG(("Failed to open cache input stream [channel=%p, "
+             "mCacheEntry=%p]", mChannel.get(), mCacheEntry.get()));
+        return rv;
+    }
+
+    if (!startBuffering) {
+        
+        
+        
+        
+        
+        
+        LOG(("Opened cache input stream without buffering [channel=%p, "
+              "mCacheEntry=%p, stream=%p]", mChannel.get(),
+              mCacheEntry.get(), stream.get()));
+        mCacheInputStream.takeOver(stream);
+        return rv;
+    }
+
+    
+    
+    
     nsCOMPtr<nsITransport> transport;
+    nsCOMPtr<nsIInputStream> wrapper;
 
     nsCOMPtr<nsIStreamTransportService> sts =
         do_GetService(kStreamTransportServiceCID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = mCacheEntry->OpenInputStream(0, getter_AddRefs(stream));
     if (NS_SUCCEEDED(rv)) {
         rv = sts->CreateInputTransport(stream, PRInt64(-1), PRInt64(-1),
                                         true, getter_AddRefs(transport));
     }
     if (NS_SUCCEEDED(rv)) {
         rv = transport->OpenInputStream(0, 0, 0, getter_AddRefs(wrapper));
-    }
-    if (NS_SUCCEEDED(rv)) {
-        mCacheAsyncInputStream = do_QueryInterface(wrapper, &rv);
     }
     if (NS_SUCCEEDED(rv)) {
         LOG(("Opened cache input stream [channel=%p, wrapper=%p, "
@@ -3394,14 +3403,14 @@ HttpCacheQuery::StartBufferingCachedEntity()
         LOG(("Failed to open cache input stream [channel=%p, "
               "wrapper=%p, transport=%p, stream=%p]", this,
               wrapper.get(), transport.get(), stream.get()));
-
-        if (wrapper)
-            wrapper->Close();
-        if (stream)
-            stream->Close();
+    
+        stream->Close();
+        return rv;
     }
 
-    return rv;
+    mCacheInputStream.takeOver(wrapper);
+
+    return NS_OK;
 }
 
 
@@ -3445,7 +3454,7 @@ nsHttpChannel::ReadFromCache(bool alreadyMarkedValid)
     if (WillRedirect(mResponseHead)) {
         
         
-        MOZ_ASSERT(!mCacheAsyncInputStream);
+        MOZ_ASSERT(!mCacheInputStream);
         LOG(("Skipping skip read of cached redirect entity\n"));
         return AsyncCall(&nsHttpChannel::HandleAsyncRedirect);
     }
@@ -3454,7 +3463,7 @@ nsHttpChannel::ReadFromCache(bool alreadyMarkedValid)
         if (!mCacheForOfflineUse) {
             LOG(("Skipping read from cache based on LOAD_ONLY_IF_MODIFIED "
                  "load flag\n"));
-            MOZ_ASSERT(!mCacheAsyncInputStream);
+            MOZ_ASSERT(!mCacheInputStream);
             
             
             return AsyncCall(&nsHttpChannel::HandleAsyncNotModified);
@@ -3463,22 +3472,22 @@ nsHttpChannel::ReadFromCache(bool alreadyMarkedValid)
         if (!ShouldUpdateOfflineCacheEntry()) {
             LOG(("Skipping read from cache based on LOAD_ONLY_IF_MODIFIED "
                  "load flag (mCacheForOfflineUse case)\n"));
-            mCacheAsyncInputStream.CloseAndRelease();
+            mCacheInputStream.CloseAndRelease();
             
             
             return AsyncCall(&nsHttpChannel::HandleAsyncNotModified);
         }
     }
 
-    MOZ_ASSERT(mCacheAsyncInputStream);
-    if (!mCacheAsyncInputStream) {
-        NS_ERROR("mCacheAsyncInputStream is null but we're expecting to "
+    MOZ_ASSERT(mCacheInputStream);
+    if (!mCacheInputStream) {
+        NS_ERROR("mCacheInputStream is null but we're expecting to "
                         "be able to read from it.");
         return NS_ERROR_UNEXPECTED;
     }
 
 
-    nsCOMPtr<nsIAsyncInputStream> inputStream = mCacheAsyncInputStream.forget();
+    nsCOMPtr<nsIInputStream> inputStream = mCacheInputStream.forget();
  
     rv = nsInputStreamPump::Create(getter_AddRefs(mCachePump), inputStream,
                                    PRInt64(-1), PRInt64(-1), 0, 0, true);
@@ -3504,7 +3513,7 @@ void
 nsHttpChannel::CloseCacheEntry(bool doomOnFailure)
 {
     mCacheQuery = nsnull;
-    mCacheAsyncInputStream.CloseAndRelease();
+    mCacheInputStream.CloseAndRelease();
 
     if (!mCacheEntry)
         return;
@@ -4253,7 +4262,7 @@ nsHttpChannel::Cancel(nsresult status)
     if (mTransactionPump)
         mTransactionPump->Cancel(status);
     mCacheQuery = nsnull;
-    mCacheAsyncInputStream.CloseAndRelease();
+    mCacheInputStream.CloseAndRelease();
     if (mCachePump)
         mCachePump->Cancel(status);
     if (mAuthProvider)
@@ -5442,7 +5451,7 @@ nsHttpChannel::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
     if (mCacheQuery) {
         mRequestHead = mCacheQuery->mRequestHead;
         mRedirectedCachekeys = mCacheQuery->mRedirectedCachekeys.forget();
-        mCacheAsyncInputStream.takeOver(mCacheQuery->mCacheAsyncInputStream);
+        mCacheInputStream.takeOver(mCacheQuery->mCacheInputStream);
         mCachedResponseHead = mCacheQuery->mCachedResponseHead.forget();
         mCachedSecurityInfo = mCacheQuery->mCachedSecurityInfo.forget();
         mCachedContentIsValid = mCacheQuery->mCachedContentIsValid;
@@ -5456,7 +5465,7 @@ nsHttpChannel::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
     
     
     if (!mIsPending) {
-        mCacheAsyncInputStream.CloseAndRelease();
+        mCacheInputStream.CloseAndRelease();
         return NS_OK;
     }
 
