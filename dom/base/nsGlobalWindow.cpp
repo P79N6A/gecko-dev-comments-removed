@@ -86,8 +86,7 @@
 #include "nsCanvasFrame.h"
 #include "nsIWidget.h"
 #include "nsIBaseWindow.h"
-#include "nsIAccelerometer.h"
-#include "nsWidgetsCID.h"
+#include "nsAccelerometer.h"
 #include "nsIContent.h"
 #include "nsIContentViewerEdit.h"
 #include "nsIDocShell.h"
@@ -216,7 +215,7 @@
 #endif
 #include "prlog.h"
 
-#include "mozilla/dom/indexedDB/IndexedDatabaseRequest.h"
+#include "mozilla/dom/indexedDB/IDBFactory.h"
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo* gDOMLeakPRLog;
@@ -5377,7 +5376,7 @@ PostMessageEvent::Run()
   
   
 
-  nsIPresShell *shell = targetWindow->mDoc->GetPrimaryShell();
+  nsIPresShell *shell = targetWindow->mDoc->GetShell();
   nsRefPtr<nsPresContext> presContext;
   if (shell)
     presContext = shell->GetPresContext();
@@ -6561,7 +6560,7 @@ nsGlobalWindow::DispatchEvent(nsIDOMEvent* aEvent, PRBool* _retval)
   }
 
   
-  nsIPresShell *shell = mDoc->GetPrimaryShell();
+  nsIPresShell *shell = mDoc->GetShell();
   nsRefPtr<nsPresContext> presContext;
   if (shell) {
     
@@ -7157,7 +7156,7 @@ nsGlobalWindow::DispatchSyncPopState()
   }
 
   
-  nsIPresShell *shell = mDoc->GetPrimaryShell();
+  nsIPresShell *shell = mDoc->GetShell();
   nsRefPtr<nsPresContext> presContext;
   if (shell) {
     presContext = shell->GetPresContext();
@@ -7454,14 +7453,14 @@ nsGlobalWindow::GetLocalStorage(nsIDOMStorage ** aLocalStorage)
 }
 
 NS_IMETHODIMP
-nsGlobalWindow::GetMoz_indexedDB(nsIIndexedDatabaseRequest** _retval)
+nsGlobalWindow::GetMoz_indexedDB(nsIIDBFactory** _retval)
 {
   if (!mIndexedDB) {
-    mIndexedDB = mozilla::dom::indexedDB::IndexedDatabaseRequest::Create();
+    mIndexedDB = mozilla::dom::indexedDB::IDBFactory::Create();
     NS_ENSURE_TRUE(mIndexedDB, NS_ERROR_FAILURE);
   }
 
-  nsCOMPtr<nsIIndexedDatabaseRequest> request(mIndexedDB);
+  nsCOMPtr<nsIIDBFactory> request(mIndexedDB);
   request.forget(_retval);
   return NS_OK;
 }

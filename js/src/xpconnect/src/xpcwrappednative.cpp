@@ -2148,6 +2148,7 @@ class CallMethodHelper
     const jsid mIdxValueId;
 
     nsAutoTArray<nsXPTCVariant, 8> mDispatchParams;
+    uint8 mJSContextIndex; 
     uint8 mOptArgcIndex; 
 
     
@@ -2197,6 +2198,8 @@ class CallMethodHelper
     nsXPTCVariant*
     GetDispatchParam(uint8 paramIndex)
     {
+        if (paramIndex >= mJSContextIndex)
+            paramIndex += 1;
         if (paramIndex >= mOptArgcIndex)
             paramIndex += 1;
         return &mDispatchParams[paramIndex];
@@ -2223,6 +2226,7 @@ public:
         , mCallee(ccx.GetTearOff()->GetNative())
         , mVTableIndex(ccx.GetMethodIndex())
         , mIdxValueId(ccx.GetRuntime()->GetStringID(XPCJSRuntime::IDX_VALUE))
+        , mJSContextIndex(PR_UINT8_MAX)
         , mOptArgcIndex(PR_UINT8_MAX)
         , mArgv(ccx.GetArgv())
         , mArgc(ccx.GetArgc())
@@ -2684,12 +2688,17 @@ JSBool
 CallMethodHelper::InitializeDispatchParams()
 {
     const uint8 wantsOptArgc = mMethodInfo->WantsOptArgc() ? 1 : 0;
+    const uint8 wantsJSContext = mMethodInfo->WantsContext() ? 1 : 0;
     const uint8 paramCount = mMethodInfo->GetParamCount();
     uint8 requiredArgs = paramCount;
+    uint8 hasRetval = 0;
 
     
     if(paramCount && mMethodInfo->GetParam(paramCount-1).IsRetval())
+    {
+        hasRetval = 1;
         requiredArgs--;
+    }
 
     if(mArgc < requiredArgs || wantsOptArgc)
     {
@@ -2706,12 +2715,29 @@ CallMethodHelper::InitializeDispatchParams()
         }
     }
 
+    if(wantsJSContext)
+    {
+        if(wantsOptArgc)
+            
+            mJSContextIndex = mOptArgcIndex++;
+        else
+            mJSContextIndex = paramCount - hasRetval;
+    }
+
     
-    for(uint8 i = 0; i < paramCount + wantsOptArgc; i++)
+    for(uint8 i = 0; i < paramCount + wantsJSContext + wantsOptArgc; i++)
     {
         nsXPTCVariant* dp = mDispatchParams.AppendElement();
         dp->ClearFlags();
         dp->val.p = nsnull;
+    }
+
+    
+    if(wantsJSContext)
+    {
+        nsXPTCVariant* dp = &mDispatchParams[mJSContextIndex];
+        dp->type = nsXPTType::T_VOID;
+        dp->val.p = mCallContext;
     }
 
     
