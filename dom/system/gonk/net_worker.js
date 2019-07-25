@@ -169,6 +169,13 @@ function runDHCPAndSetDefaultRouteAndDNS(options) {
 
 
 
+function removeDefaultRoute(options) {
+  libnetutils.ifc_remove_default_route(options.ifname);
+}
+
+
+
+
 function addHostRoute(options) {
   libnetutils.ifc_add_route(options.ifname, options.dns1, 32, options.gateway);
   libnetutils.ifc_add_route(options.ifname, options.dns2, 32, options.gateway);
