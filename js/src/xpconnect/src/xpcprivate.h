@@ -1373,10 +1373,10 @@ DebugCheckWrapperClass(JSObject* obj)
 
 #define IS_WN_WRAPPER_OBJECT(obj)                                             \
     (DebugCheckWrapperClass(obj) &&                                           \
-     obj->getSlot(JSSLOT_START(obj->getClass())).isUndefined())
+     obj->getSlot(0).isUndefined())
 #define IS_SLIM_WRAPPER_OBJECT(obj)                                           \
     (DebugCheckWrapperClass(obj) &&                                           \
-     !obj->getSlot(JSSLOT_START(obj->getClass())).isUndefined())
+     !obj->getSlot(0).isUndefined())
 
 
 
@@ -2284,7 +2284,7 @@ extern JSBool MorphSlimWrapper(JSContext *cx, JSObject *obj);
 static inline XPCWrappedNativeProto*
 GetSlimWrapperProto(JSObject *obj)
 {
-  const js::Value &v = obj->getSlot(JSSLOT_START(obj->getClass()));
+  const js::Value &v = obj->getSlot(0);
   return static_cast<XPCWrappedNativeProto*>(v.toPrivate());
 }
 
