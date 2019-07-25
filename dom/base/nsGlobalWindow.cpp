@@ -3967,6 +3967,14 @@ nsGlobalWindow::MatchMedia(const nsAString& aMediaQueryList,
 
   *aResult = nsnull;
 
+  
+  
+  
+  nsGlobalWindow *parent = static_cast<nsGlobalWindow*>(GetPrivateParent());
+  if (parent) {
+    parent->FlushPendingNotifications(Flush_Frames);
+  }
+
   if (!mDocShell)
     return NS_OK;
 
