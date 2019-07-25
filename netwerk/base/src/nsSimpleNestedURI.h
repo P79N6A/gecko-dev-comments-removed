@@ -60,7 +60,6 @@ public:
     
     
     nsSimpleNestedURI()
-        : nsSimpleURI(nsnull)
     {
     }
 
