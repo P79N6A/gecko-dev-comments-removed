@@ -508,6 +508,9 @@ NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
             data.pcs = (void**) _alloca(data.pc_count * sizeof(void*));
             data.pc_size = data.pc_count;
             data.pc_count = 0;
+            data.sps = (void**) _alloca(data.sp_count * sizeof(void*));
+            data.sp_size = data.sp_count;
+            data.sp_count = 0;
             WalkStackMain64(&data);
         }
     } else {
@@ -544,9 +547,6 @@ NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
 
     for (PRUint32 i = 0; i < data.pc_count; ++i)
         (*aCallback)(data.pcs[i], data.sps[i], aClosure);
-
-    if (data.sp_size > ArrayLength(local_sps))
-        free(data.sps);
 
     return NS_OK;
 }
@@ -1099,8 +1099,10 @@ FramePointerStackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
 #if (defined(__ppc__) && defined(XP_MACOSX)) || defined(__powerpc64__)
     
     void *pc = *(bp+2);
+    bp += 3;
 #else 
     void *pc = *(bp+1);
+    bp += 2;
 #endif
     if (IsCriticalAddress(pc)) {
       printf("Aborting stack trace, PC is critical\n");
@@ -1111,7 +1113,7 @@ FramePointerStackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
       
       
       
-      (*aCallback)(pc, (bp), aClosure);
+      (*aCallback)(pc, bp, aClosure);
     }
     bp = next;
   }
