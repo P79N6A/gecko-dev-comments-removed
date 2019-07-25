@@ -43,6 +43,10 @@ function run_test()
 {
   
   
+  return;
+
+  
+  
   if (!("@mozilla.org/browser/nav-history-service;1" in Cc))
     return;
 
