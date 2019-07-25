@@ -967,6 +967,10 @@ nsNSSSocketInfo::SetCertVerificationWaiting()
   mCertVerificationStarted = PR_IntervalNow();
 }
 
+
+
+
+
 void
 nsNSSSocketInfo::SetCertVerificationResult(PRErrorCode errorCode,
                                            SSLErrorMessageType errorMessageType)

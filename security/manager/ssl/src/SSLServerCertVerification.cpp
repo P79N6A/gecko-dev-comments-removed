@@ -599,12 +599,9 @@ SSLServerCertVerificationJob::Dispatch(const void * fdForLogging,
                                        CERTCertificate * serverCert)
 {
   
-
   if (!socketInfo || !serverCert) {
     NS_ERROR("Invalid parameters for SSL server cert validation");
-    socketInfo->SetCertVerificationResult(PR_INVALID_STATE_ERROR,
-                                          PlainErrorMessage);
-    PR_SetError(PR_INVALID_STATE_ERROR, 0);
+    PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
     return SECFailure;
   }
   
@@ -619,10 +616,16 @@ SSLServerCertVerificationJob::Dispatch(const void * fdForLogging,
     nrv = gCertVerificationThreadPool->Dispatch(job, NS_DISPATCH_NORMAL);
   }
   if (NS_FAILED(nrv)) {
+    
+    
+    
+    
+    
+    
+    
     PRErrorCode error = nrv == NS_ERROR_OUT_OF_MEMORY
                       ? SEC_ERROR_NO_MEMORY
                       : PR_INVALID_STATE_ERROR;
-    socketInfo->SetCertVerificationResult(error, PlainErrorMessage);
     PORT_SetError(error);
     return SECFailure;
   }
