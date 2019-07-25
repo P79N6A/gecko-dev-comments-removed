@@ -560,6 +560,15 @@ class SetPropCompiler : public PICStubCompiler
             if (obj->numDynamicSlots() != slots)
                 return disable("insufficient slot capacity");
 
+#ifdef JSGC_INCREMENTAL_MJ
+            
+
+
+
+            if (cx->compartment->needsBarrier())
+                return disable("ADDPROP write barrier required");
+#endif
+
             if (pic.typeMonitored && !updateMonitoredTypes())
                 return Lookup_Uncacheable;
 
