@@ -2233,11 +2233,13 @@ let GroupItems = {
   
   
   groupItemStorageSanity: function GroupItems_groupItemStorageSanity(groupItemData) {
-    
-    
-    var sane = true;
-    if (!Utils.isRect(groupItemData.bounds)) {
+    let sane = true;
+    if (!groupItemData.bounds || !Utils.isRect(groupItemData.bounds)) {
       Utils.log('GroupItems.groupItemStorageSanity: bad bounds', groupItemData.bounds);
+      sane = false;
+    } else if ((groupItemData.userSize && 
+               !Utils.isPoint(groupItemData.userSize)) ||
+               !groupItemData.id) {
       sane = false;
     }
 
