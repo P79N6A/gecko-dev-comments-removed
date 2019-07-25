@@ -347,3 +347,12 @@ datalist {
   display: inline;
 }
 
+
+
+
+
+input > .anonymous-div:after {
+  content: "";
+  margin: 16px;
+}
+
