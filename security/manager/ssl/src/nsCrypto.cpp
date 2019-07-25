@@ -686,6 +686,11 @@ cryptojs_generateOneKeyPair(JSContext *cx, nsKeyPairInfo *keyPairInfo,
                             PK11SlotInfo *slot, bool willEscrow)
                             
 {
+  const PK11AttrFlags sensitiveFlags = (PK11_ATTR_SENSITIVE | PK11_ATTR_PRIVATE);
+  const PK11AttrFlags temporarySessionFlags = PK11_ATTR_SESSION;
+  const PK11AttrFlags permanentTokenFlags = PK11_ATTR_TOKEN;
+  const PK11AttrFlags extractableFlags = PK11_ATTR_EXTRACTABLE;
+  
   nsIGeneratingKeypairInfoDialogs * dialogs;
   nsKeygenThread *KeygenRunnable = 0;
   nsCOMPtr<nsIKeygenThread> runnable;
@@ -695,7 +700,7 @@ cryptojs_generateOneKeyPair(JSContext *cx, nsKeyPairInfo *keyPairInfo,
                                                      (params) ? strlen(params):0, 
                                                      keySize, keyPairInfo);
 
-  if (!keyGenParams) {
+  if (!keyGenParams || !slot) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -709,7 +714,13 @@ cryptojs_generateOneKeyPair(JSContext *cx, nsKeyPairInfo *keyPairInfo,
   if (PK11_Authenticate(slot, true, uiCxt) != SECSuccess)
     return NS_ERROR_FAILURE;
  
-
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -723,17 +734,15 @@ cryptojs_generateOneKeyPair(JSContext *cx, nsKeyPairInfo *keyPairInfo,
   PK11SlotInfo *intSlot = nsnull;
   PK11SlotInfoCleaner siCleaner(intSlot);
   
-  PK11SlotInfo *origSlot = nsnull;
-  bool isPerm;
-
   if (willEscrow && !PK11_IsInternal(slot)) {
     intSlot = PK11_GetInternalSlot();
     NS_ASSERTION(intSlot,"Couldn't get the internal slot");
-    isPerm = false;
-    origSlot = slot;
-    slot = intSlot;
-  } else {
-    isPerm = true;
+    
+    if (!PK11_DoesMechanism(intSlot, mechanism)) {
+      
+      PK11_FreeSlot(intSlot);
+      intSlot = nsnull;
+    }
   }
 
   rv = getNSSDialogs((void**)&dialogs,
@@ -746,14 +755,66 @@ cryptojs_generateOneKeyPair(JSContext *cx, nsKeyPairInfo *keyPairInfo,
       NS_ADDREF(KeygenRunnable);
     }
   }
+  
+  
+  
+  
+  PK11SlotInfo *firstAttemptSlot = NULL;
+  PK11AttrFlags firstAttemptFlags = 0;
 
+  PK11SlotInfo *secondAttemptSlot = slot;
+  PK11AttrFlags secondAttemptFlags = sensitiveFlags | permanentTokenFlags;
+  
+  if (willEscrow) {
+    secondAttemptFlags |= extractableFlags;
+  }
+  
+  if (!intSlot || PK11_IsInternal(slot)) {
+    
+    
+    firstAttemptSlot = secondAttemptSlot;
+    firstAttemptFlags = secondAttemptFlags;
+    secondAttemptSlot = NULL;
+    secondAttemptFlags = 0;
+  }
+  else {
+    firstAttemptSlot = intSlot;
+    firstAttemptFlags = sensitiveFlags | temporarySessionFlags;
+    
+    
+    
+    firstAttemptFlags |= extractableFlags;
+  }
+
+  bool mustMoveKey = false;
+  
   if (NS_FAILED(rv) || !KeygenRunnable) {
+    
     rv = NS_OK;
-    keyPairInfo->privKey = PK11_GenerateKeyPair(slot, mechanism, keyGenParams,
-                                                &keyPairInfo->pubKey, isPerm, 
-                                                isPerm, uiCxt);
+    
+    keyPairInfo->privKey = 
+      PK11_GenerateKeyPairWithFlags(firstAttemptSlot, mechanism,
+                                    keyGenParams, &keyPairInfo->pubKey,
+                                    firstAttemptFlags, uiCxt);
+    
+    if (keyPairInfo->privKey) {
+      
+      if (secondAttemptSlot) {
+        mustMoveKey = true;
+      }
+    }
+    else {
+      keyPairInfo->privKey = 
+        PK11_GenerateKeyPairWithFlags(secondAttemptSlot, mechanism,
+                                      keyGenParams, &keyPairInfo->pubKey,
+                                      secondAttemptFlags, uiCxt);
+    }
+    
   } else {
-    KeygenRunnable->SetParams( slot, mechanism, keyGenParams, isPerm, isPerm, uiCxt );
+    
+    KeygenRunnable->SetParams( firstAttemptSlot, firstAttemptFlags,
+                               secondAttemptSlot, secondAttemptFlags,
+                               mechanism, keyGenParams, uiCxt );
 
     runnable = do_QueryInterface(KeygenRunnable);
 
@@ -773,11 +834,24 @@ cryptojs_generateOneKeyPair(JSContext *cx, nsKeyPairInfo *keyPairInfo,
 
       NS_RELEASE(dialogs);
       if (NS_SUCCEEDED(rv)) {
-        rv = KeygenRunnable->GetParams(&keyPairInfo->privKey, &keyPairInfo->pubKey);
+        PK11SlotInfo *used_slot = NULL;
+        rv = KeygenRunnable->ConsumeResult(&used_slot, 
+                                           &keyPairInfo->privKey, &keyPairInfo->pubKey);
+
+        if (NS_SUCCEEDED(rv)) {
+          if ((used_slot == firstAttemptSlot) && (secondAttemptSlot != NULL)) {
+            mustMoveKey = true;
+          }
+        
+          PK11_FreeSlot(used_slot);
+        }
       }
     }
   }
 
+  firstAttemptSlot = NULL;
+  secondAttemptSlot = NULL;
+  
   nsFreeKeyGenParams(mechanism, keyGenParams);
 
   if (KeygenRunnable) {
@@ -788,11 +862,10 @@ cryptojs_generateOneKeyPair(JSContext *cx, nsKeyPairInfo *keyPairInfo,
     return NS_ERROR_FAILURE;
   }
  
-
   
   
-  if (willEscrow && intSlot) {
-    SECKEYPrivateKey *newPrivKey = PK11_LoadPrivKey(origSlot, 
+  if (mustMoveKey) {
+    SECKEYPrivateKey *newPrivKey = PK11_LoadPrivKey(slot, 
                                                     keyPairInfo->privKey,
                                                     keyPairInfo->pubKey,
                                                     true, true);
