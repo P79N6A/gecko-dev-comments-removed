@@ -431,7 +431,9 @@ nsSelectionIterator::IsDone()
 {
   PRInt32 cnt = mDomSelection->mRanges.Length();
   if (mIndex >= 0 && mIndex < cnt) {
-    return NS_ENUMERATOR_FALSE;
+    
+    
+    return (nsresult)NS_ENUMERATOR_FALSE;
   }
   return NS_OK;
 }

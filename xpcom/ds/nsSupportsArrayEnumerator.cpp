@@ -69,8 +69,10 @@ nsSupportsArrayEnumerator::IsDone()
   PRUint32 cnt;
   nsresult rv = mArray->Count(&cnt);
   if (NS_FAILED(rv)) return rv;
+  
+  
   return (mCursor >= 0 && mCursor < (PRInt32)cnt)
-    ? NS_ENUMERATOR_FALSE : NS_OK;
+    ? (nsresult)NS_ENUMERATOR_FALSE : NS_OK;
 }
 
 
