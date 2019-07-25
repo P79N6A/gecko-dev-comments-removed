@@ -2694,7 +2694,8 @@ struct SetFontSizeCalcOps : public mozilla::css::BasicCoordCalcOps,
       
       
       
-      size = NSToCoordRound(mParentSize * aValue.GetPercentValue());
+      
+      size = NSCoordSaturatingMultiply(mParentSize, aValue.GetPercentValue());
     } else {
       NS_ABORT_IF_FALSE(PR_FALSE, "unexpected value");
       size = mParentSize;
