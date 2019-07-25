@@ -50,7 +50,6 @@
 
 class nsStyleContext;
 struct PLDHashTable;
-class nsILanguageAtomService;
 struct nsRuleData;
 class nsIStyleRule;
 struct nsCSSValueList;
@@ -416,7 +415,6 @@ public:
   
   void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW;
   void Destroy() { DestroyInternal(nsnull); }
-  static nsILanguageAtomService* gLangService;
 
   
   inline void AddRef();
