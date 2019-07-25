@@ -749,20 +749,6 @@ public:
 
 
 
-  static nsresult PrefixChanged(nsINodeInfo *aNodeInfo, nsIAtom *aPrefix,
-                                nsINodeInfo** aResult)
-  {
-    nsNodeInfoManager *niMgr = aNodeInfo->NodeInfoManager();
-
-    *aResult = niMgr->GetNodeInfo(aNodeInfo->NameAtom(), aPrefix,
-                                  aNodeInfo->NamespaceID()).get();
-    return *aResult ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  
-
-
-
 
 
   static void GetEventArgNames(PRInt32 aNameSpaceID, nsIAtom *aEventName,
