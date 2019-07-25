@@ -71,4 +71,13 @@ public class VirtualLayer extends Layer {
         mPosition = newPosition;
         mResolution = newResolution;
     }
+
+    @Override
+    public void setDisplayPort(Rect displayPort) {
+        
+        
+        
+        
+        mDisplayPort = displayPort;
+    }
 }

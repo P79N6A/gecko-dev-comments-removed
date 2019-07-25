@@ -76,6 +76,18 @@ public class GeckoLayerClient implements GeckoEventResponder,
     
     private ViewportMetrics mGeckoViewport;
 
+    
+
+
+
+    private Rect mGeckoDisplayPort;
+
+    
+
+
+
+    private ImmutableViewportMetrics mFrameMetrics;
+
     private String mLastCheckerboardColor;
 
     
@@ -90,6 +102,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
         mScreenSize = new IntSize(0, 0);
         mWindowSize = new IntSize(0, 0);
         mDisplayPort = new RectF();
+        mGeckoDisplayPort = new Rect();
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
     }
 
@@ -369,13 +382,24 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
 
 
-    public ViewTransform getViewTransform() {
+
+    public ViewTransform syncViewportInfo(int x, int y, int width, int height) {
         
         
-        ImmutableViewportMetrics viewportMetrics = mLayerController.getViewportMetrics();
-        mCurrentViewTransform.x = viewportMetrics.viewportRectLeft;
-        mCurrentViewTransform.y = viewportMetrics.viewportRectTop;
-        mCurrentViewTransform.scale = viewportMetrics.zoomFactor;
+        
+        
+        
+        
+        
+        mFrameMetrics = mLayerController.getViewportMetrics();
+
+        mCurrentViewTransform.x = mFrameMetrics.viewportRectLeft;
+        mCurrentViewTransform.y = mFrameMetrics.viewportRectTop;
+        mCurrentViewTransform.scale = mFrameMetrics.zoomFactor;
+
+        mGeckoDisplayPort.set(x, y, x + width, y + height);
+        mRootLayer.setDisplayPort(mGeckoDisplayPort);
+
         return mCurrentViewTransform;
     }
 
@@ -389,7 +413,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
         }
 
         
-        Layer.RenderContext pageContext = mLayerRenderer.createPageContext();
+        Layer.RenderContext pageContext = mLayerRenderer.createPageContext(mFrameMetrics);
         Layer.RenderContext screenContext = mLayerRenderer.createScreenContext();
         return mLayerRenderer.createFrame(pageContext, screenContext);
     }
