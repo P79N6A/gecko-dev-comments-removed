@@ -118,6 +118,9 @@ const char* gShorthandPropertiesWithDOMProp[] = {
 const char *gInaccessibleProperties[] = {
     
     
+    "-x-cols",
+    "-x-lang",
+    "-x-span",
     "-x-system-font",
     "border-end-color-value",
     "border-end-style-value",

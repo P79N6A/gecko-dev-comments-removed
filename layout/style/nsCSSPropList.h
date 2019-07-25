@@ -3257,18 +3257,23 @@ CSS_PROP_SVG(
     offsetof(nsStyleSVG, mTextRendering),
     eStyleAnimType_EnumU8)
 
+#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
 
 
 
 
 
 
-#ifdef CSS_PROP_INCLUDE_NOT_CSS
+#ifdef CSS_PROP_STUB_NOT_CSS
+CSS_PROP_STUB_NOT_CSS
+CSS_PROP_STUB_NOT_CSS
+CSS_PROP_STUB_NOT_CSS
+#else
 CSS_PROP_VISIBILITY(
-    X,
-    X,
+    -x-lang,
+    _x_lang,
     Lang,
-    CSS_PROPERTY_PARSE_VALUE,
+    CSS_PROPERTY_PARSE_INACCESSIBLE,
     Display,
     mLang,
     0,
@@ -3276,10 +3281,10 @@ CSS_PROP_VISIBILITY(
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
 CSS_PROP_TABLE(
-    X,
-    X,
+    -x-cols,
+    _x_cols,
     Cols,
-    CSS_PROPERTY_PARSE_VALUE,
+    CSS_PROPERTY_PARSE_INACCESSIBLE,
     Table,
     mCols,
     0,
@@ -3287,16 +3292,17 @@ CSS_PROP_TABLE(
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
 CSS_PROP_TABLE(
-    X,
-    X,
+    -x-span,
+    _x_span,
     Span,
-    CSS_PROPERTY_PARSE_VALUE,
+    CSS_PROPERTY_PARSE_INACCESSIBLE,
     Table,
     mSpan,
     0,
     nsnull,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
+#endif 
 #endif 
 
 #ifdef USED_CSS_PROP

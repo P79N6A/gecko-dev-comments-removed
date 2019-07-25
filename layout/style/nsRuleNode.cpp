@@ -1308,6 +1308,8 @@ struct PropertyCheckData {
   size_t offset;
   
   
+  
+  
   PRUint32 flags;
 };
 
@@ -1424,10 +1426,6 @@ CheckTextCallback(const nsRuleDataStruct& aData,
 
   return aResult;
 }
-
-
-
-#define CSS_PROP_INCLUDE_NOT_CSS
 
 #define CHECK_DATA_FOR_PROPERTY(name_, id_, method_, flags_, datastruct_,     \
                                 member_, parsevariant_, kwtable_,             \
@@ -1572,7 +1570,6 @@ static const PropertyCheckData ColumnCheckProperties[] = {
 #undef CSS_PROP_COLUMN
 };
 
-#undef CSS_PROP_INCLUDE_NOT_CSS
 #undef CHECK_DATA_FOR_PROPERTY
 
 static const StructCheckData gCheckProperties[] = {
