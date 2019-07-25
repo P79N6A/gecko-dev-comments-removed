@@ -1008,7 +1008,7 @@ JS_FRIEND_API(Class) ObjectProxyClass = {
     EnumerateStub,
     ResolveStub,
     ConvertStub,
-    NULL,                 
+    proxy_Finalize,       
     NULL,                 
     NULL,                 
     NULL,                 
@@ -1030,7 +1030,7 @@ JS_FRIEND_API(Class) ObjectProxyClass = {
         proxy_TraceObject,
         NULL,             
         NULL,             
-        proxy_Finalize,   
+        NULL,             
     }
 };
 
@@ -1044,7 +1044,7 @@ JS_FRIEND_API(Class) OuterWindowProxyClass = {
     EnumerateStub,
     ResolveStub,
     ConvertStub,
-    NULL,                 
+    proxy_Finalize,       
     NULL,                 
     NULL,                 
     NULL,                 
@@ -1071,7 +1071,7 @@ JS_FRIEND_API(Class) OuterWindowProxyClass = {
         proxy_TraceObject,
         NULL,             
         NULL,             
-        proxy_Finalize,   
+        NULL,             
     }
 };
 
