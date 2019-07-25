@@ -344,6 +344,15 @@ static const PRInt32 kGlassMarginAdjustment = 2;
 
 
 
+#define MAX_ACCELERATED_DIMENSION 8192
+
+
+
+
+
+
+
+
 
 
 
@@ -3230,6 +3239,9 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
   }
 #endif
 
+  RECT windowRect;
+  ::GetClientRect(mWnd, &windowRect);
+
   if (!mLayerManager ||
       (!sAllowD3D9 && aPersistence == LAYER_MANAGER_PERSISTENT &&
         mLayerManager->GetBackendType() == 
@@ -3243,7 +3255,9 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
 
 
     if (eTransparencyTransparent == mTransparencyMode ||
-        prefs.mDisableAcceleration)
+        prefs.mDisableAcceleration ||
+        windowRect.right - windowRect.left > MAX_ACCELERATED_DIMENSION ||
+        windowRect.bottom - windowRect.top > MAX_ACCELERATED_DIMENSION)
       mUseAcceleratedRendering = false;
     else if (prefs.mAccelerateByDefault)
       mUseAcceleratedRendering = true;
