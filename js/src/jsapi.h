@@ -2869,6 +2869,10 @@ JS_DumpHeap(JSContext *cx, FILE *fp, void* startThing, JSGCTraceKind kind,
 
 
 
+
+
+
+
 extern JS_PUBLIC_API(void)
 JS_RegisterReference(void **ref);
 
@@ -2877,6 +2881,9 @@ JS_ModifyReference(void **ref, void *newval);
 
 extern JS_PUBLIC_API(void)
 JS_UnregisterReference(void **ref);
+
+extern JS_PUBLIC_API(void)
+JS_UnregisterReferenceRT(JSRuntime *rt, void **ref);
 
 
 extern JS_PUBLIC_API(void)
@@ -2887,6 +2894,9 @@ JS_ModifyValue(jsval *val, jsval newval);
 
 extern JS_PUBLIC_API(void)
 JS_UnregisterValue(jsval *val);
+
+extern JS_PUBLIC_API(void)
+JS_UnregisterValueRT(JSRuntime *rt, jsval *val);
 
 extern JS_PUBLIC_API(JSTracer *)
 JS_GetIncrementalGCTracer(JSRuntime *rt);
@@ -2905,7 +2915,14 @@ class HeapPtrObject
 
     HeapPtrObject(JSObject *obj) : value(obj) { JS_RegisterReference((void **) &value); }
 
-    ~HeapPtrObject() { JS_UnregisterReference((void **) &value); }
+    
+    ~HeapPtrObject() { JS_ASSERT(!value); }
+
+    void finalize(JSRuntime *rt) {
+        JS_UnregisterReferenceRT(rt, (void **) &value);
+        value = NULL;
+    }
+    void finalize(JSContext *cx) { finalize(JS_GetRuntime(cx)); }
 
     void init(JSObject *obj) { value = obj; }
 

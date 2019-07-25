@@ -53,6 +53,8 @@
 #include "WrapperFactory.h"
 #include "dombindings.h"
 
+#include "mozilla/Util.h"
+
 bool
 xpc_OkToHandOutWrapper(nsWrapperCache *cache)
 {
@@ -860,6 +862,8 @@ XPCWrappedNative::~XPCWrappedNative()
     Destroy();
 }
 
+static const PRWord WRAPPER_WORD_POISON = 0xa8a8a8a8;
+
 void
 XPCWrappedNative::Destroy()
 {
@@ -899,9 +903,20 @@ XPCWrappedNative::Destroy()
         }
     }
 
-    mMaybeScope = nsnull;
+    
 
-    JS_UnregisterReference((void **) &mWrapperWord);
+
+
+
+
+    if (XPCJSRuntime *rt = GetRuntime()) {
+        JS_UnregisterReferenceRT(rt->GetJSRuntime(), (void **) &mWrapperWord);
+        mWrapperWord = WRAPPER_WORD_POISON;
+    } else {
+        MOZ_ASSERT(mWrapperWord == WRAPPER_WORD_POISON);
+    }
+
+    mMaybeScope = nsnull;
 }
 
 void
