@@ -487,8 +487,17 @@ MouseModule.prototype = {
       this._doDragStart(evInfo.event);
     }
 
-    if (this._targetIsContent(evInfo.event))
+    if (this._targetIsContent(evInfo.event)) {
       this._recordEvent(evInfo);
+    }
+    else if(targetScrollInterface) {
+      
+      let cX = {}, cY = {};
+      targetScrollInterface.getScrolledSize(cX, cY);
+      let rect = targetScrollbox.getBoundingClientRect();
+    
+      this._dragData.alreadyLocked = ((cX.value > rect.width) != (cY.value > rect.height));
+    }
   },
 
   
@@ -869,7 +878,7 @@ DragData.prototype = {
       
       return [this.sX, this.sY];      
     }
-     
+    
     
 
     
