@@ -85,7 +85,18 @@ public:
   NS_IMETHOD GetEventTarget(nsIFrame **aFrame) = 0;
   NS_IMETHOD GetEventTargetContent(nsEvent* aEvent, nsIContent** aContent) = 0;
 
-  virtual PRInt32 GetContentState(nsIContent *aContent) = 0;
+  
+
+
+
+
+
+
+
+
+
+  virtual PRInt32 GetContentState(nsIContent *aContent,
+                                  PRBool aFollowLabels = PR_FALSE) = 0;
 
   
 
