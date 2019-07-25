@@ -42,7 +42,6 @@
 #define mozilla_ipc_Shmem_h
 
 #include "base/basictypes.h"
-#include "base/process.h"
 
 #include "nscore.h"
 #include "nsDebug.h"
@@ -87,6 +86,7 @@
 namespace mozilla {
 namespace ipc {
 
+
 class NS_FINAL_CLASS Shmem
 {
   friend struct IPC::ParamTraits<mozilla::ipc::Shmem>;
@@ -95,7 +95,7 @@ public:
   typedef int32 id_t;
   
   typedef mozilla::ipc::SharedMemory SharedMemory;
-  typedef SharedMemory::SharedMemoryType SharedMemoryType;
+  typedef SharedMemory::SharedMemoryHandle SharedMemoryHandle;
   struct IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead {};
 
   Shmem() :
@@ -145,33 +145,6 @@ public:
     return *this;
   }
 
-  bool operator==(const Shmem& aRhs) const
-  {
-    
-    
-    
-    
-    
-    
-    return mSegment == aRhs.mSegment && mId == aRhs.mId;
-  }
-
-  
-  
-  bool
-  IsWritable() const
-  {
-    return mSegment != NULL;
-  }
-
-  
-  
-  bool
-  IsReadable() const
-  {
-    return mSegment != NULL;
-  }
-
   
   template<typename T>
   T*
@@ -197,24 +170,15 @@ public:
     return mSize / sizeof(T);
   }
 
-  int GetSysVID() const;
-
   
-  id_t Id(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead) const {
+  id_t Id(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead) {
     return mId;
   }
 
-  SharedMemory* Segment(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead) const {
-    return mSegment;
-  }
-
-#ifndef DEBUG
   void RevokeRights(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead)
   {
+    Protect(mSegment);
   }
-#else
-  void RevokeRights(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead);
-#endif
 
   void forget(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead)
   {
@@ -227,35 +191,15 @@ public:
   static SharedMemory*
   Alloc(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
         size_t aNBytes,
-        SharedMemoryType aType,
         bool aProtect=false);
 
   
   
   
-  
-  IPC::Message*
-  ShareTo(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
-          base::ProcessHandle aProcess,
-          int32 routingId);
-
-  
-  
-  
-  
-  IPC::Message*
-  UnshareFrom(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
-              base::ProcessHandle aProcess,
-              int32 routingId);
-
-  
-  
-  
-  
   static SharedMemory*
   OpenExisting(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
-               const IPC::Message& aDescriptor,
-               id_t* aId,
+               SharedMemoryHandle aHandle,
+               size_t aNBytes,
                bool aProtect=false);
 
   static void
@@ -273,6 +217,10 @@ private:
 #if !defined(DEBUG)
   void AssertInvariants() const
   { }
+  static void Unprotect(SharedMemory* aSegment)
+  { }
+  static void Protect(SharedMemory* aSegment)
+  { }
 
   static size_t*
   PtrToSize(SharedMemory* aSegment)
@@ -284,7 +232,20 @@ private:
 
 #else
   void AssertInvariants() const;
+
+  static void Unprotect(SharedMemory* aSegment);
+  static void Protect(SharedMemory* aSegment);
 #endif
+
+  static SharedMemory*
+  CreateSegment(size_t aNBytes,
+                SharedMemoryHandle aHandle=SharedMemory::NULLHandle());
+
+  static void
+  DestroySegment(SharedMemory* aSegment);
+
+  static size_t
+  PageAlignedSize(size_t aSize);
 
   SharedMemory* mSegment;
   void* mData;
@@ -308,14 +269,13 @@ struct ParamTraits<mozilla::ipc::Shmem>
 {
   typedef mozilla::ipc::Shmem paramType;
 
-  
-  
-  
-
   static void Write(Message* aMsg, const paramType& aParam)
   {
     WriteParam(aMsg, aParam.mId);
   }
+
+  
+  
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
   {
