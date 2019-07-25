@@ -40,45 +40,34 @@
 #include "Logging.h"
 #include "assembler/jit/ExecutableAllocator.h"
 #include "jstracer.h"
-#include "jsgcmark.h"
 #include "BaseAssembler.h"
-#include "Compiler.h"
 #include "MonoIC.h"
 #include "PolyIC.h"
 #include "TrampolineCompiler.h"
 #include "jscntxtinlines.h"
-#include "jscompartment.h"
-#include "jsscope.h"
-
-#include "jsgcinlines.h"
-#include "jsinterpinlines.h"
 
 using namespace js;
 using namespace js::mjit;
 
 
-js::mjit::CompilerAllocPolicy::CompilerAllocPolicy(JSContext *cx, Compiler &compiler)
-: TempAllocPolicy(cx),
-  oomFlag(&compiler.oomInVector)
-{
-}
-void
-StackFrame::methodjitStaticAsserts()
-{
-        
-#if defined(JS_CPU_X86)
-        JS_STATIC_ASSERT(offsetof(StackFrame, rval_)     == 0x18);
-        JS_STATIC_ASSERT(offsetof(StackFrame, rval_) + 4 == 0x1C);
-        JS_STATIC_ASSERT(offsetof(StackFrame, ncode_)    == 0x14);
-        
-        JS_STATIC_ASSERT(offsetof(StackFrame, rval_)     == 24);
-        JS_STATIC_ASSERT(offsetof(StackFrame, rval_) + 4 == 28);
-        JS_STATIC_ASSERT(offsetof(StackFrame, ncode_)    == 20);
-#elif defined(JS_CPU_X64)
-        JS_STATIC_ASSERT(offsetof(StackFrame, rval_)     == 0x30);
-        JS_STATIC_ASSERT(offsetof(StackFrame, ncode_)    == 0x28);
-#endif
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -114,46 +103,46 @@ static const size_t STUB_CALLS_FOR_OP_COUNT = 255;
 static uint32 StubCallsForOp[STUB_CALLS_FOR_OP_COUNT];
 #endif
 
-extern "C" void JaegerTrampolineReturn();
-
 extern "C" void JS_FASTCALL
 PushActiveVMFrame(VMFrame &f)
 {
-    f.entryfp->script()->compartment->jaegerCompartment()->pushActiveFrame(&f);
-    f.regs.fp()->setNativeReturnAddress(JS_FUNC_TO_DATA_PTR(void*, JaegerTrampolineReturn));
+    f.previous = JS_METHODJIT_DATA(f.cx).activeFrame;
+    JS_METHODJIT_DATA(f.cx).activeFrame = &f;
 }
 
 extern "C" void JS_FASTCALL
 PopActiveVMFrame(VMFrame &f)
 {
-    f.entryfp->script()->compartment->jaegerCompartment()->popActiveFrame();
+    JS_ASSERT(JS_METHODJIT_DATA(f.cx).activeFrame);
+    JS_METHODJIT_DATA(f.cx).activeFrame = JS_METHODJIT_DATA(f.cx).activeFrame->previous;    
 }
 
 extern "C" void JS_FASTCALL
 SetVMFrameRegs(VMFrame &f)
 {
-    
-    f.cx->stack.repointRegs(&f.regs);
+    f.oldRegs = f.cx->regs;
+    f.cx->setCurrentRegs(&f.regs);
 }
 
-#if defined(__APPLE__) || (defined(XP_WIN) && !defined(JS_CPU_X64)) || defined(XP_OS2)
+extern "C" void JS_FASTCALL
+UnsetVMFrameRegs(VMFrame &f)
+{
+    *f.oldRegs = f.regs;
+    f.cx->setCurrentRegs(f.oldRegs);
+}
+
+#if defined(__APPLE__) || defined(XP_WIN)
 # define SYMBOL_STRING(name) "_" #name
 #else
 # define SYMBOL_STRING(name) #name
 #endif
 
-JS_STATIC_ASSERT(offsetof(FrameRegs, sp) == 0);
+JS_STATIC_ASSERT(offsetof(JSFrameRegs, sp) == 0);
 
 #if defined(__linux__) && defined(JS_CPU_X64)
 # define SYMBOL_STRING_RELOC(name) #name "@plt"
 #else
 # define SYMBOL_STRING_RELOC(name) SYMBOL_STRING(name)
-#endif
-
-#if (defined(XP_WIN) || defined(XP_OS2)) && defined(JS_CPU_X86)
-# define SYMBOL_STRING_VMFRAME(name) "@" #name "@4"
-#else
-# define SYMBOL_STRING_VMFRAME(name) SYMBOL_STRING_RELOC(name)
 #endif
 
 #if defined(XP_MACOSX)
@@ -164,7 +153,7 @@ JS_STATIC_ASSERT(offsetof(FrameRegs, sp) == 0);
 # define HIDE_SYMBOL(name)
 #endif
 
-#if defined(__GNUC__) && !defined(_WIN64)
+#if defined(__GNUC__)
 
 
 #ifdef JS_CPU_ARM
@@ -181,12 +170,12 @@ JS_STATIC_ASSERT(sizeof(VMFrame) % 16 == 0);
 
 
 JS_STATIC_ASSERT(offsetof(VMFrame, savedRBX) == 0x58);
-JS_STATIC_ASSERT(VMFrame::offsetOfFp == 0x38);
+JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) == 0x38);
 
 JS_STATIC_ASSERT(JSVAL_TAG_MASK == 0xFFFF800000000000LL);
 JS_STATIC_ASSERT(JSVAL_PAYLOAD_MASK == 0x00007FFFFFFFFFFFLL);
 
-asm (
+asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerTrampoline) "\n"
 SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
@@ -220,27 +209,26 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
     "subq  $0x28, %rsp"                  "\n"
 
     
+
+
+
     "pushq %r8"                          "\n"
 
     
     "pushq %rdx"                         "\n"
     "movq  %rsp, %rdi"                   "\n"
-    "call " SYMBOL_STRING_VMFRAME(SetVMFrameRegs) "\n"
+    "call " SYMBOL_STRING_RELOC(SetVMFrameRegs) "\n"
     "movq  %rsp, %rdi"                   "\n"
-    "call " SYMBOL_STRING_VMFRAME(PushActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_RELOC(PushActiveVMFrame) "\n"
 
     
-    "jmp *0(%rsp)"                      "\n"
-);
 
-asm (
-".text\n"
-".globl " SYMBOL_STRING(JaegerTrampolineReturn) "\n"
-SYMBOL_STRING(JaegerTrampolineReturn) ":"       "\n"
-    "or   %rdx, %rcx"                    "\n"
-    "movq %rcx, 0x30(%rbx)"              "\n"
+
+    "call *0(%rsp)"                      "\n"
     "movq %rsp, %rdi"                    "\n"
-    "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
+    "movq %rsp, %rdi"                    "\n"
+    "call " SYMBOL_STRING_RELOC(UnsetVMFrameRegs) "\n"
 
     "addq $0x58, %rsp"                   "\n"
     "popq %rbx"                          "\n"
@@ -253,7 +241,7 @@ SYMBOL_STRING(JaegerTrampolineReturn) ":"       "\n"
     "ret"                                "\n"
 );
 
-asm (
+asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerThrowpoline)  "\n"
 SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
@@ -264,7 +252,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "jmp  *%rax"                            "\n"
   "throwpoline_exit:"                       "\n"
     "movq %rsp, %rdi"                       "\n"
-    "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
     "addq $0x58, %rsp"                      "\n"
     "popq %rbx"                             "\n"
     "popq %r15"                             "\n"
@@ -274,6 +262,34 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "popq %rbp"                             "\n"
     "xorq %rax,%rax"                        "\n"
     "ret"                                   "\n"
+);
+
+JS_STATIC_ASSERT(offsetof(JSStackFrame, ncode) == 0x60);
+JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) == 0x38);
+
+asm volatile (
+".text\n"
+".globl " SYMBOL_STRING(SafePointTrampoline)   "\n"
+SYMBOL_STRING(SafePointTrampoline) ":"         "\n"
+    "popq %rax"                             "\n"
+    "movq %rax, 0x60(%rbx)"                 "\n"
+    "jmp  *8(%rsp)"                         "\n"
+);
+
+asm volatile (
+".text\n"
+".globl " SYMBOL_STRING(InjectJaegerReturn)   "\n"
+SYMBOL_STRING(InjectJaegerReturn) ":"         "\n"
+    "movq 0x40(%rbx), %rcx"                 "\n" 
+    "movq 0x60(%rbx), %rax"                 "\n" 
+
+    
+    "movq %r14, %rdx"                       "\n" 
+    "andq %rcx, %rdx"                       "\n"
+    "xorq %rdx, %rcx"                       "\n"
+
+    "movq 0x38(%rsp), %rbx"                 "\n" 
+    "jmp *%rax"                             "\n" 
 );
 
 # elif defined(JS_CPU_X86)
@@ -286,9 +302,9 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 
 
 JS_STATIC_ASSERT(offsetof(VMFrame, savedEBX) == 0x2c);
-JS_STATIC_ASSERT((VMFrame::offsetOfFp) == 0x1C);
+JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) == 0x1C);
 
-asm (
+asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerTrampoline) "\n"
 SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
@@ -311,21 +327,15 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
 
     
     "movl  %esp, %ecx"                   "\n"
-    "call " SYMBOL_STRING_VMFRAME(SetVMFrameRegs) "\n"
+    "call " SYMBOL_STRING_RELOC(SetVMFrameRegs) "\n"
     "movl  %esp, %ecx"                   "\n"
-    "call " SYMBOL_STRING_VMFRAME(PushActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_RELOC(PushActiveVMFrame) "\n"
 
-    "jmp *16(%ebp)"                      "\n"
-);
-
-asm (
-".text\n"
-".globl " SYMBOL_STRING(JaegerTrampolineReturn) "\n"
-SYMBOL_STRING(JaegerTrampolineReturn) ":" "\n"
-    "movl  %edx, 0x18(%ebx)"             "\n"
-    "movl  %ecx, 0x1C(%ebx)"             "\n"
+    "call  *16(%ebp)"                    "\n"
     "movl  %esp, %ecx"                   "\n"
-    "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
+    "movl  %esp, %ecx"                   "\n"
+    "call " SYMBOL_STRING_RELOC(UnsetVMFrameRegs) "\n"
 
     "addl $0x2C, %esp"                   "\n"
     "popl %ebx"                          "\n"
@@ -336,7 +346,7 @@ SYMBOL_STRING(JaegerTrampolineReturn) ":" "\n"
     "ret"                                "\n"
 );
 
-asm (
+asm volatile (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerThrowpoline)  "\n"
 SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
@@ -355,7 +365,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "jmp  *%eax"                         "\n"
   "throwpoline_exit:"                    "\n"
     "movl %esp, %ecx"                    "\n"
-    "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
+    "call " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
     "addl $0x2c, %esp"                   "\n"
     "popl %ebx"                          "\n"
     "popl %edi"                          "\n"
@@ -365,36 +375,85 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "ret"                                "\n"
 );
 
+JS_STATIC_ASSERT(offsetof(JSStackFrame, ncode) == 0x3C);
+JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) == 0x1C);
+
+asm volatile (
+".text\n"
+".globl " SYMBOL_STRING(InjectJaegerReturn)   "\n"
+SYMBOL_STRING(InjectJaegerReturn) ":"         "\n"
+    "movl 0x28(%ebx), %edx"                 "\n" 
+    "movl 0x2C(%ebx), %ecx"                 "\n" 
+    "movl 0x3C(%ebx), %eax"                 "\n" 
+    "movl 0x1C(%esp), %ebx"                 "\n" 
+    "pushl %eax"                            "\n"
+    "ret"                                   "\n"
+);
+
+
+
+
+
+asm volatile (
+".text\n"
+".globl " SYMBOL_STRING(SafePointTrampoline)   "\n"
+SYMBOL_STRING(SafePointTrampoline) ":"         "\n"
+    "popl %eax"                             "\n"
+    "movl %eax, 0x3C(%ebx)"                 "\n"
+    "jmp  *24(%ebp)"                        "\n"
+);
+
 # elif defined(JS_CPU_ARM)
 
 JS_STATIC_ASSERT(sizeof(VMFrame) == 80);
 JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) ==          (4*19));
-JS_STATIC_ASSERT(offsetof(VMFrame, entryfp) ==          (4*10));
+JS_STATIC_ASSERT(offsetof(VMFrame, entryFp) ==          (4*10));
 JS_STATIC_ASSERT(offsetof(VMFrame, stackLimit) ==       (4*9));
 JS_STATIC_ASSERT(offsetof(VMFrame, cx) ==               (4*8));
-JS_STATIC_ASSERT(VMFrame::offsetOfFp ==                 (4*7));
-JS_STATIC_ASSERT(offsetof(VMFrame, unused) ==           (4*4));
+JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) ==          (4*7));
+JS_STATIC_ASSERT(offsetof(VMFrame, oldRegs) ==          (4*4));
 JS_STATIC_ASSERT(offsetof(VMFrame, previous) ==         (4*3));
+JS_STATIC_ASSERT(offsetof(JSStackFrame, ncode) == 60);
 
 JS_STATIC_ASSERT(JSFrameReg == JSC::ARMRegisters::r11);
 JS_STATIC_ASSERT(JSReturnReg_Data == JSC::ARMRegisters::r1);
 JS_STATIC_ASSERT(JSReturnReg_Type == JSC::ARMRegisters::r2);
 
-#ifdef MOZ_THUMB2
-#define FUNCTION_HEADER_EXTRA \
-  ".align 2\n" \
-  ".thumb\n" \
-  ".thumb_func\n"
-#else
-#define FUNCTION_HEADER_EXTRA
-#endif
-
-asm (
+asm volatile (
 ".text\n"
-FUNCTION_HEADER_EXTRA
+".globl " SYMBOL_STRING(InjectJaegerReturn) "\n"
+SYMBOL_STRING(InjectJaegerReturn) ":"       "\n"
+    
+    "ldr lr, [r11, #60]"                    "\n" 
+    "ldr r1, [r11, #40]"                    "\n" 
+    "ldr r2, [r11, #44]"                    "\n" 
+    "ldr r11, [sp, #28]"                    "\n" 
+    "bx  lr"                                "\n"
+);
+
+asm volatile (
+".text\n"
+".globl " SYMBOL_STRING(SafePointTrampoline)  "\n"
+SYMBOL_STRING(SafePointTrampoline) ":"
+    
+
+
+
+
+    "ldr    ip, [sp, #80]"                  "\n"
+    
+    "str    lr, [r11, #60]"                 "\n"
+    
+
+    "bx     ip"                             "\n"
+);
+
+asm volatile (
+".text\n"
 ".globl " SYMBOL_STRING(JaegerTrampoline)   "\n"
 SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
     
+
 
 
 
@@ -440,25 +499,18 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
 "   mov     r11, r1"                            "\n"
 
 "   mov     r0, sp"                             "\n"
-"   blx  " SYMBOL_STRING_VMFRAME(SetVMFrameRegs)   "\n"
+"   bl  " SYMBOL_STRING_RELOC(SetVMFrameRegs)   "\n"
 "   mov     r0, sp"                             "\n"
-"   blx  " SYMBOL_STRING_VMFRAME(PushActiveVMFrame)"\n"
+"   bl  " SYMBOL_STRING_RELOC(PushActiveVMFrame)"\n"
 
     
-"   bx     r4"                                  "\n"
-);
-
-asm (
-".text\n"
-FUNCTION_HEADER_EXTRA
-".globl " SYMBOL_STRING(JaegerTrampolineReturn)   "\n"
-SYMBOL_STRING(JaegerTrampolineReturn) ":"         "\n"
-"   str r1, [r11, #24]"                    "\n" 
-"   str r2, [r11, #28]"                    "\n" 
+"   blx     r4"                                 "\n"
 
     
 "   mov     r0, sp"                             "\n"
-"   blx  " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
+"   bl  " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
+"   mov     r0, sp"                             "\n"
+"   bl  " SYMBOL_STRING_RELOC(UnsetVMFrameRegs) "\n"
 
     
 "   add     sp, sp, #(4*7 + 4*4)"               "\n"
@@ -468,16 +520,15 @@ SYMBOL_STRING(JaegerTrampolineReturn) ":"         "\n"
 "   pop     {r4-r11,pc}"                    "\n"
 );
 
-asm (
+asm volatile (
 ".text\n"
-FUNCTION_HEADER_EXTRA
 ".globl " SYMBOL_STRING(JaegerThrowpoline)  "\n"
 SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     
 "   mov     r0, sp"                         "\n"
 
     
-"   blx  " SYMBOL_STRING_RELOC(js_InternalThrow) "\n"
+"   bl  " SYMBOL_STRING_RELOC(js_InternalThrow) "\n"
     
     
 
@@ -487,15 +538,14 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 
     
 "   mov     r0, sp"                             "\n"
-"   blx  " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
+"   bl  " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
 "   add     sp, sp, #(4*7 + 4*4)"               "\n"
 "   mov     r0, #0"                         "\n"
 "   pop     {r4-r11,pc}"                    "\n"
 );
 
-asm (
+asm volatile (
 ".text\n"
-FUNCTION_HEADER_EXTRA
 ".globl " SYMBOL_STRING(JaegerStubVeneer)   "\n"
 SYMBOL_STRING(JaegerStubVeneer) ":"         "\n"
     
@@ -508,11 +558,12 @@ SYMBOL_STRING(JaegerStubVeneer) ":"         "\n"
 "   pop     {ip,pc}"                        "\n"
 );
 
-# elif defined(JS_CPU_SPARC)
 # else
 #  error "Unsupported CPU!"
 # endif
-#elif defined(_MSC_VER) && defined(JS_CPU_X86)
+#elif defined(_MSC_VER)
+
+#if defined(JS_CPU_X86)
 
 
 
@@ -522,12 +573,33 @@ SYMBOL_STRING(JaegerStubVeneer) ":"         "\n"
 
 
 JS_STATIC_ASSERT(offsetof(VMFrame, savedEBX) == 0x2c);
-JS_STATIC_ASSERT(VMFrame::offsetOfFp == 0x1C);
+JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) == 0x1C);
 
 extern "C" {
 
-    __declspec(naked) JSBool JaegerTrampoline(JSContext *cx, StackFrame *fp, void *code,
-                                              Value *stackLimit)
+    __declspec(naked) void InjectJaegerReturn()
+    {
+        __asm {
+            mov edx, [ebx + 0x28];
+            mov ecx, [ebx + 0x2C];
+            mov eax, [ebx + 0x3C];
+            mov ebx, [esp + 0x1C];
+            push eax;
+            ret;
+        }
+    }
+
+    __declspec(naked) void SafePointTrampoline()
+    {
+        __asm {
+            pop eax;
+            mov [ebx + 0x3C], eax;
+            jmp [ebp + 24];
+        }
+    }
+
+    __declspec(naked) JSBool JaegerTrampoline(JSContext *cx, JSStackFrame *fp, void *code,
+                                              Value *stackLimit, void *safePoint)
     {
         __asm {
             
@@ -553,17 +625,11 @@ extern "C" {
             mov  ecx, esp;
             call PushActiveVMFrame;
 
-            jmp dword ptr [ebp + 16];
-        }
-    }
-
-    __declspec(naked) void JaegerTrampolineReturn()
-    {
-        __asm {
-            mov [ebx + 0x18], edx;
-            mov [ebx + 0x1C], ecx;
+            call [ebp + 16];
             mov  ecx, esp;
             call PopActiveVMFrame;
+            mov  ecx, esp;
+            call UnsetVMFrameRegs;
 
             add esp, 0x2C;
 
@@ -607,9 +673,7 @@ extern "C" {
     }
 }
 
-
-
-#elif defined(_WIN64)
+#elif defined(JS_CPU_X64)
 
 
 
@@ -617,23 +681,29 @@ extern "C" {
 
 
 JS_STATIC_ASSERT(offsetof(VMFrame, savedRBX) == 0x58);
-JS_STATIC_ASSERT(VMFrame::offsetOfFp == 0x38);
+JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) == 0x38);
+JS_STATIC_ASSERT(offsetof(JSStackFrame, ncode) == 0x60);
 JS_STATIC_ASSERT(JSVAL_TAG_MASK == 0xFFFF800000000000LL);
 JS_STATIC_ASSERT(JSVAL_PAYLOAD_MASK == 0x00007FFFFFFFFFFFLL);
+
+
+
+#else
+#  error "Unsupported CPU!"
+#endif
 
 #endif                   
 
 bool
-JaegerCompartment::Initialize()
+ThreadData::Initialize()
 {
-    execAlloc_ = js::OffTheBooks::new_<JSC::ExecutableAllocator>();
-    if (!execAlloc_)
+    execPool = new JSC::ExecutableAllocator();
+    if (!execPool)
         return false;
     
-    TrampolineCompiler tc(execAlloc_, &trampolines);
+    TrampolineCompiler tc(execPool, &trampolines);
     if (!tc.compile()) {
-        js::Foreground::delete_(execAlloc_);
-        execAlloc_ = NULL;
+        delete execPool;
         return false;
     }
 
@@ -642,16 +712,16 @@ JaegerCompartment::Initialize()
         StubCallsForOp[i] = 0;
 #endif
 
-    activeFrame_ = NULL;
+    activeFrame = NULL;
 
     return true;
 }
 
 void
-JaegerCompartment::Finish()
+ThreadData::Finish()
 {
     TrampolineCompiler::release(&trampolines);
-    Foreground::delete_(execAlloc_);
+    delete execPool;
 #ifdef JS_METHODJIT_PROFILE_STUBS
     FILE *fp = fopen("/tmp/stub-profiling", "wt");
 # define OPDEF(op,val,name,image,length,nuses,ndefs,prec,format) \
@@ -662,40 +732,48 @@ JaegerCompartment::Finish()
 #endif
 }
 
-extern "C" JSBool
-JaegerTrampoline(JSContext *cx, StackFrame *fp, void *code, Value *stackLimit);
+extern "C" JSBool JaegerTrampoline(JSContext *cx, JSStackFrame *fp, void *code,
+                                   Value *stackLimit, void *safePoint);
+extern "C" void SafePointTrampoline();
 
-JSBool
-mjit::EnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, Value *stackLimit)
+static inline JSBool
+EnterMethodJIT(JSContext *cx, JSStackFrame *fp, void *code, void *safePoint)
 {
+    JS_ASSERT(cx->regs);
+    JS_CHECK_RECURSION(cx, return JS_FALSE;);
+
 #ifdef JS_METHODJIT_SPEW
     Profiler prof;
-    JSScript *script = fp->script();
+    JSScript *script = fp->getScript();
 
-    JaegerSpew(JSpew_Prof, "%s jaeger script, line %d\n",
+    JaegerSpew(JSpew_Prof, "%s jaeger script: %s, line %d\n",
+               safePoint ? "dropping" : "entering",
                script->filename, script->lineno);
     prof.start();
 #endif
 
-    JS_ASSERT(cx->fp() == fp);
-    FrameRegs &oldRegs = cx->regs();
+#ifdef DEBUG
+    JSStackFrame *checkFp = fp;
+#endif
 
-    JSBool ok;
-    {
-        AssertCompartmentUnchanged pcc(cx);
-        JSAutoResolveFlags rf(cx, RESOLVE_INFER);
-        ok = JaegerTrampoline(cx, fp, code, stackLimit);
+    Value *fpAsVp = reinterpret_cast<Value*>(fp);
+    StackSpace &stack = cx->stack();
+    Value *stackLimit = stack.makeStackLimit(fpAsVp);
+
+    
+
+
+
+    if (fpAsVp + VALUES_PER_STACK_FRAME >= stackLimit &&
+        !stack.ensureSpace(cx, fpAsVp, cx->regs->sp, stackLimit, 0)) {
+        js_ReportOutOfScriptQuota(cx);
+        return false;
     }
 
-    
-    cx->stack.repointRegs(&oldRegs);
-    JS_ASSERT(fp == cx->fp());
+    JSAutoResolveFlags rf(cx, JSRESOLVE_INFER);
+    JSBool ok = JaegerTrampoline(cx, fp, code, stackLimit, safePoint);
 
-    
-    fp->markReturnValue();
-
-    
-    fp->markActivationObjectsAsPut();
+    JS_ASSERT(checkFp == cx->fp());
 
 #ifdef JS_METHODJIT_SPEW
     prof.stop();
@@ -705,33 +783,21 @@ mjit::EnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, Value *stackLimi
     return ok;
 }
 
-static inline JSBool
-CheckStackAndEnterMethodJIT(JSContext *cx, StackFrame *fp, void *code)
-{
-    JS_CHECK_RECURSION(cx, return false);
-
-    Value *stackLimit = cx->stack.space().getStackLimit(cx, REPORT_ERROR);
-    if (!stackLimit)
-        return false;
-
-    return EnterMethodJIT(cx, fp, code, stackLimit);
-}
-
 JSBool
 mjit::JaegerShot(JSContext *cx)
 {
-    StackFrame *fp = cx->fp();
-    JSScript *script = fp->script();
-    JITScript *jit = script->getJIT(fp->isConstructing());
+    JSScript *script = cx->fp()->getScript();
+
+    JS_ASSERT(script->ncode && script->ncode != JS_UNJITTABLE_METHOD);
 
 #ifdef JS_TRACER
     if (TRACE_RECORDER(cx))
         AbortRecording(cx, "attempt to enter method JIT while recording");
 #endif
 
-    JS_ASSERT(cx->regs().pc == script->code);
+    JS_ASSERT(cx->regs->pc == script->code);
 
-    return CheckStackAndEnterMethodJIT(cx, cx->fp(), jit->invokeEntry);
+    return EnterMethodJIT(cx, cx->fp(), script->jit->invoke, NULL);
 }
 
 JSBool
@@ -741,108 +807,9 @@ js::mjit::JaegerShotAtSafePoint(JSContext *cx, void *safePoint)
     JS_ASSERT(!TRACE_RECORDER(cx));
 #endif
 
-    return CheckStackAndEnterMethodJIT(cx, cx->fp(), safePoint);
-}
+    void *code = JS_FUNC_TO_DATA_PTR(void *, SafePointTrampoline);
 
-NativeMapEntry *
-JITScript::nmap() const
-{
-    return (NativeMapEntry *)((char*)this + sizeof(JITScript));
-}
-
-char *
-JITScript::nmapSectionLimit() const
-{
-    return (char *)&nmap()[nNmapPairs];
-}
-
-#ifdef JS_MONOIC
-ic::GetGlobalNameIC *
-JITScript::getGlobalNames() const
-{
-    return (ic::GetGlobalNameIC *)nmapSectionLimit();
-}
-
-ic::SetGlobalNameIC *
-JITScript::setGlobalNames() const
-{
-    return (ic::SetGlobalNameIC *)((char *)nmapSectionLimit() +
-            sizeof(ic::GetGlobalNameIC) * nGetGlobalNames);
-}
-
-ic::CallICInfo *
-JITScript::callICs() const
-{
-    return (ic::CallICInfo *)&setGlobalNames()[nSetGlobalNames];
-}
-
-ic::EqualityICInfo *
-JITScript::equalityICs() const
-{
-    return (ic::EqualityICInfo *)&callICs()[nCallICs];
-}
-
-ic::TraceICInfo *
-JITScript::traceICs() const
-{
-    return (ic::TraceICInfo *)&equalityICs()[nEqualityICs];
-}
-
-char *
-JITScript::monoICSectionsLimit() const
-{
-    return (char *)&traceICs()[nTraceICs];
-}
-#else   
-char *
-JITScript::monoICSectionsLimit() const
-{
-    return nmapSectionLimit();
-}
-#endif  
-
-#ifdef JS_POLYIC
-ic::GetElementIC *
-JITScript::getElems() const
-{
-    return (ic::GetElementIC *)monoICSectionsLimit();
-}
-
-ic::SetElementIC *
-JITScript::setElems() const
-{
-    return (ic::SetElementIC *)((char *)getElems() + sizeof(ic::GetElementIC) * nGetElems);
-}
-
-ic::PICInfo *
-JITScript::pics() const
-{
-    return (ic::PICInfo *)((char *)setElems() + sizeof(ic::SetElementIC) * nSetElems);
-}
-
-char *
-JITScript::polyICSectionsLimit() const
-{
-    return (char *)pics() + sizeof(ic::PICInfo) * nPICs;
-}
-#else   
-char *
-JITScript::polyICSectionsLimit() const
-{
-    return monoICSectionsLimit();
-}
-#endif  
-
-js::mjit::CallSite *
-JITScript::callSites() const
-{
-    return (js::mjit::CallSite *)polyICSectionsLimit();
-}
-
-JSObject **
-JITScript::rootedObjects() const
-{
-    return (JSObject **)&callSites()[nCallSites];
+    return EnterMethodJIT(cx, cx->fp(), code, safePoint);
 }
 
 template <typename T>
@@ -851,106 +818,60 @@ static inline void Destroy(T &t)
     t.~T();
 }
 
-mjit::JITScript::~JITScript()
-{
-    code.release();
-
-#if defined JS_POLYIC
-    ic::GetElementIC *getElems_ = getElems();
-    ic::SetElementIC *setElems_ = setElems();
-    ic::PICInfo *pics_ = pics();
-    for (uint32 i = 0; i < nGetElems; i++)
-        Destroy(getElems_[i]);
-    for (uint32 i = 0; i < nSetElems; i++)
-        Destroy(setElems_[i]);
-    for (uint32 i = 0; i < nPICs; i++)
-        Destroy(pics_[i]);
-#endif
-
-#if defined JS_MONOIC
-    for (JSC::ExecutablePool **pExecPool = execPools.begin();
-         pExecPool != execPools.end();
-         ++pExecPool)
-    {
-        (*pExecPool)->release();
-    }
-    
-    ic::CallICInfo *callICs_ = callICs();
-    for (uint32 i = 0; i < nCallICs; i++)
-        callICs_[i].releasePools();
-#endif
-}
-
-void
-mjit::JITScript::trace(JSTracer *trc)
-{
-    for (uint32 i = 0; i < nRootedObjects; ++i)
-        MarkObject(trc, *rootedObjects()[i], "mjit rooted object");
-}
-
-size_t
-JSScript::jitDataSize()
-{
-    size_t n = 0;
-    if (jitNormal)
-        n += jitNormal->scriptDataSize(); 
-    if (jitCtor)
-        n += jitCtor->scriptDataSize(); 
-    return n;
-}
-
-
-size_t
-mjit::JITScript::scriptDataSize()
-{
-    return sizeof(JITScript) +
-        sizeof(NativeMapEntry) * nNmapPairs +
-#if defined JS_MONOIC
-        sizeof(ic::GetGlobalNameIC) * nGetGlobalNames +
-        sizeof(ic::SetGlobalNameIC) * nSetGlobalNames +
-        sizeof(ic::CallICInfo) * nCallICs +
-        sizeof(ic::EqualityICInfo) * nEqualityICs +
-        sizeof(ic::TraceICInfo) * nTraceICs +
-#endif
-#if defined JS_POLYIC
-        sizeof(ic::PICInfo) * nPICs +
-        sizeof(ic::GetElementIC) * nGetElems +
-        sizeof(ic::SetElementIC) * nSetElems +
-#endif
-        sizeof(CallSite) * nCallSites;
-}
-
 void
 mjit::ReleaseScriptCode(JSContext *cx, JSScript *script)
 {
-    
-    
-    
-    JITScript *jscr;
+    if (script->jit) {
+#if defined DEBUG && (defined JS_CPU_X86 || defined JS_CPU_X64) 
+        memset(script->jit->invoke, 0xcc, script->jit->inlineLength +
+               script->jit->outOfLineLength);
+#endif
+        script->jit->execPool->release();
+        script->jit->execPool = NULL;
 
-    if ((jscr = script->jitNormal)) {
-        jscr->~JITScript();
-        cx->free_(jscr);
-        script->jitNormal = NULL;
-        script->jitArityCheckNormal = NULL;
-    }
+        
+        script->ncode = NULL;
 
-    if ((jscr = script->jitCtor)) {
-        jscr->~JITScript();
-        cx->free_(jscr);
-        script->jitCtor = NULL;
-        script->jitArityCheckCtor = NULL;
+#if defined JS_POLYIC
+        for (uint32 i = 0; i < script->jit->nPICs; i++) {
+            script->pics[i].releasePools();
+            Destroy(script->pics[i].execPools);
+        }
+#endif
+
+#if defined JS_MONOIC
+        for (uint32 i = 0; i < script->jit->nCallICs; i++)
+            script->callICs[i].releasePools();
+#endif
+
+        cx->free(script->jit);
+
+        
+        
+        
+        script->jit = NULL;
     }
 }
 
 void
-mjit::TraceScript(JSTracer *trc, JSScript *script)
+mjit::TraceScriptCache(JSTracer *trc, JSScript *script)
 {
-    if (JITScript *jit = script->jitNormal)
-        jit->trace(trc);
-
-    if (JITScript *jit = script->jitCtor)
-        jit->trace(trc);
+#ifdef JS_MONOIC
+    uint32 numCallICs = script->jit->nCallICs;
+    for (uint32 i = 0; i < numCallICs; i++) {
+        ic::CallICInfo &ic = script->callICs[i];
+        if (ic.fastGuardedObject) {
+            JS_SET_TRACING_NAME(trc, "callIC fun");
+            Mark(trc, ic.fastGuardedObject, JSTRACE_OBJECT);
+        }
+        if (ic.fastGuardedNative) {
+            JS_SET_TRACING_NAME(trc, "callIC native");
+            Mark(trc, ic.fastGuardedNative, JSTRACE_OBJECT);
+        }
+        if (ic.isConstantThis)
+            MarkValue(trc, ic.constantThis, "callIC this");
+    }
+#endif
 }
 
 #ifdef JS_METHODJIT_PROFILE_STUBS
@@ -962,82 +883,10 @@ mjit::ProfileStubCall(VMFrame &f)
 }
 #endif
 
-#ifdef JS_POLYIC
-static int
-PICPCComparator(const void *key, const void *entry)
+bool
+VMFrame::slowEnsureSpace(uint32 nslots)
 {
-    const jsbytecode *pc = (const jsbytecode *)key;
-    const ic::PICInfo *pic = (const ic::PICInfo *)entry;
-
-    if (ic::PICInfo::CALL != pic->kind)
-        return ic::PICInfo::CALL - pic->kind;
-
-    
-
-
-
-
-
-    if (pc < pic->pc)
-        return -1;
-    else if (pc == pic->pc)
-        return 0;
-    else
-        return 1;
+    return cx->stack().ensureSpace(cx, reinterpret_cast<Value*>(entryFp), regs.sp,
+                                   stackLimit, nslots + VALUES_PER_STACK_FRAME);
 }
 
-uintN
-mjit::GetCallTargetCount(JSScript *script, jsbytecode *pc)
-{
-    ic::PICInfo *pic;
-    
-    if (mjit::JITScript *jit = script->getJIT(false)) {
-        pic = (ic::PICInfo *)bsearch(pc, jit->pics(), jit->nPICs, sizeof(ic::PICInfo),
-                                     PICPCComparator);
-        if (pic)
-            return pic->stubsGenerated + 1; 
-    }
-    
-    if (mjit::JITScript *jit = script->getJIT(true)) {
-        pic = (ic::PICInfo *)bsearch(pc, jit->pics(), jit->nPICs, sizeof(ic::PICInfo),
-                                     PICPCComparator);
-        if (pic)
-            return pic->stubsGenerated + 1; 
-    }
-
-    return 1;
-}
-#else
-uintN
-mjit::GetCallTargetCount(JSScript *script, jsbytecode *pc)
-{
-    return 1;
-}
-#endif
-
-jsbytecode *
-JITScript::nativeToPC(void *returnAddress) const
-{
-    size_t low = 0;
-    size_t high = nCallICs;
-    js::mjit::ic::CallICInfo *callICs_ = callICs();
-    while (high > low + 1) {
-        
-        size_t mid = (high + low) / 2;
-        void *entry = callICs_[mid].funGuard.executableAddress();
-
-        
-
-
-
-        if (entry >= returnAddress)
-            high = mid;
-        else
-            low = mid;
-    }
-
-    js::mjit::ic::CallICInfo &ic = callICs_[low];
-
-    JS_ASSERT((uint8*)ic.funGuard.executableAddress() + ic.joinPointOffset == returnAddress);
-    return ic.pc;
-}

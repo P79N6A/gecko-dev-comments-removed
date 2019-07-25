@@ -73,7 +73,7 @@ namespace js {
 
 
 
-class UpvarCookie
+class UpvarCookie 
 {
     uint32 value;
 
@@ -102,7 +102,7 @@ class UpvarCookie
     bool isFree() const { return value == FREE_VALUE; }
     uint32 asInteger() const { return value; }
     
-    uint16 level() const { JS_ASSERT(!isFree()); return uint16(value >> 16); }
+    uint16 level() const { JS_ASSERT(!isFree()); return value >> 16; }
     uint16 slot() const { JS_ASSERT(!isFree()); return uint16(value); }
 
     void set(const UpvarCookie &other) { set(other.level(), other.slot()); }
@@ -145,8 +145,6 @@ typedef struct JSConstArray {
     uint32          length;
 } JSConstArray;
 
-struct JSArenaPool;
-
 namespace js {
 
 struct GlobalSlotArray {
@@ -156,201 +154,6 @@ struct GlobalSlotArray {
     };
     Entry           *vector;
     uint32          length;
-};
-
-struct Shape;
-
-enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT, UPVAR };
-
-
-
-
-
-
-
-class Bindings {
-    js::Shape *lastBinding;
-    uint16 nargs;
-    uint16 nvars;
-    uint16 nupvars;
-    bool hasExtensibleParents;
-
-  public:
-    inline Bindings(JSContext *cx, EmptyShape *emptyCallShape);
-
-    
-
-
-
-
-    inline void transfer(JSContext *cx, Bindings *bindings);
-
-    
-
-
-
-
-    inline void clone(JSContext *cx, Bindings *bindings);
-
-    uint16 countArgs() const { return nargs; }
-    uint16 countVars() const { return nvars; }
-    uint16 countUpvars() const { return nupvars; }
-
-    uintN countArgsAndVars() const { return nargs + nvars; }
-
-    uintN countLocalNames() const { return nargs + nvars + nupvars; }
-
-    bool hasUpvars() const { return nupvars > 0; }
-    bool hasLocalNames() const { return countLocalNames() > 0; }
-
-    
-    inline js::Shape *lastShape() const;
-
-    enum {
-        
-
-
-
-        BINDING_COUNT_LIMIT = 0xFFFF
-    };
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool add(JSContext *cx, JSAtom *name, BindingKind kind);
-
-    
-    bool addVariable(JSContext *cx, JSAtom *name) {
-        return add(cx, name, VARIABLE);
-    }
-    bool addConstant(JSContext *cx, JSAtom *name) {
-        return add(cx, name, CONSTANT);
-    }
-    bool addUpvar(JSContext *cx, JSAtom *name) {
-        return add(cx, name, UPVAR);
-    }
-    bool addArgument(JSContext *cx, JSAtom *name, uint16 *slotp) {
-        JS_ASSERT(name != NULL); 
-        *slotp = nargs;
-        return add(cx, name, ARGUMENT);
-    }
-    bool addDestructuring(JSContext *cx, uint16 *slotp) {
-        *slotp = nargs;
-        return add(cx, NULL, ARGUMENT);
-    }
-
-    
-
-
-
-
-
-    BindingKind lookup(JSContext *cx, JSAtom *name, uintN *indexp) const;
-
-    
-    bool hasBinding(JSContext *cx, JSAtom *name) const {
-        return lookup(cx, name, NULL) != NONE;
-    }
-
-    
-
-
-
-
-
-
-
-
-    bool getLocalNameArray(JSContext *cx, Vector<JSAtom *> *namesp);
-
-    
-
-
-
-    int sharpSlotBase(JSContext *cx);
-
-    
-
-
-
-
-    void makeImmutable();
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    void setExtensibleParents() { hasExtensibleParents = true; }
-    bool extensibleParents() const { return hasExtensibleParents; }
-
-    
-
-
-
-
-
-
-
-
-    const js::Shape *lastArgument() const;
-    const js::Shape *lastVariable() const;
-    const js::Shape *lastUpvar() const;
-
-    void trace(JSTracer *trc);
 };
 
 } 
@@ -366,98 +169,33 @@ class Bindings {
 namespace JSC {
     class ExecutablePool;
 }
-
-#define JS_UNJITTABLE_SCRIPT (reinterpret_cast<void*>(1))
-
-enum JITScriptStatus {
-    JITScript_None,
-    JITScript_Invalid,
-    JITScript_Valid
-};
-
 namespace js {
 namespace mjit {
 
 struct JITScript;
 
+namespace ic {
+# if defined JS_POLYIC
+    struct PICInfo;
+# endif
+# if defined JS_MONOIC
+    struct MICInfo;
+    struct CallICInfo;
+# endif
+}
+struct CallSite;
 }
 }
 #endif
 
-class JSPCCounters {
-    size_t numBytecodes;
-    int *counts;
-
- public:
-    JSPCCounters() : numBytecodes(0), counts(NULL) {
-    }
-
-    ~JSPCCounters() {
-        JS_ASSERT(!counts);
-    }
-
-    bool init(JSContext *cx, size_t numBytecodes);
-    void destroy(JSContext *cx);
-
-    
-    operator void*() const {
-        return counts;
-    }
-
-    int *get(int runmode) {
-        JS_ASSERT(runmode >= 0 && runmode < JSRUNMODE_COUNT);
-        return counts ? &counts[numBytecodes * runmode] : NULL;
-    }
-
-    int& get(int runmode, size_t offset) {
-        JS_ASSERT(offset < numBytecodes);
-        JS_ASSERT(counts);
-        return get(runmode)[offset];
-    }
-
-    size_t numRunmodes() const {
-        return JSRUNMODE_COUNT;
-    }
-};
-
 struct JSScript {
-    
-
-
-
-
-
-
-
-
-
-
-    static JSScript *NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
-                               uint32 nobjects, uint32 nupvars, uint32 nregexps,
-                               uint32 ntrynotes, uint32 nconsts, uint32 nglobals,
-                               uint16 nClosedArgs, uint16 nClosedVars, JSVersion version);
-
-    static JSScript *NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
-
     
     JSCList         links;      
     jsbytecode      *code;      
     uint32          length;     
-
-  private:
     uint16          version;    
-
-  public:
     uint16          nfixed;     
 
-  private:
-    size_t          callCount_; 
-
-    
-
-
-
-  public:
     uint8           objectsOffset;  
 
 
@@ -466,7 +204,9 @@ struct JSScript {
     uint8           regexpsOffset;  
 
     uint8           trynotesOffset; 
+
     uint8           globalsOffset;  
+
     uint8           constOffset;    
 
     bool            noScriptRval:1; 
@@ -476,27 +216,19 @@ struct JSScript {
     bool            strictModeCode:1; 
     bool            compileAndGo:1;   
     bool            usesEval:1;       
-    bool            usesArguments:1;  
     bool            warnedAboutTwoArgumentEval:1; 
 
 
-    bool            hasSingletons:1;  
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
-    bool            singleStepMode:1; 
 #endif
 
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
-    JSCompartment   *compartment; 
     const char      *filename;  
     uint32          lineno;     
     uint16          nslots;     
     uint16          staticLevel;
-    uint16          nClosedArgs; 
-    uint16          nClosedVars; 
-    js::Bindings    bindings;   
-
     JSPrincipals    *principals;
     union {
         
@@ -518,91 +250,57 @@ struct JSScript {
         JSObject    *object;
         JSScript    *nextToGC;  
     } u;
-
 #ifdef CHECK_SCRIPT_OWNER
     JSThread        *owner;     
 #endif
-
-    uint32          *closedSlots; 
-
-    
-    JSPCCounters    pcCounters;
-
-  public:
 #ifdef JS_METHODJIT
     
     
-    
-    
-    void *jitArityCheckNormal;
-    void *jitArityCheckCtor;
+    void            *ncode;     
+    void            **nmap;     
+    js::mjit::JITScript *jit;   
+# if defined JS_POLYIC
+    js::mjit::ic::PICInfo *pics; 
+# endif
+# if defined JS_MONOIC
+    js::mjit::ic::MICInfo *mics; 
+    js::mjit::ic::CallICInfo *callICs; 
+# endif
 
-    js::mjit::JITScript *jitNormal;   
-    js::mjit::JITScript *jitCtor;     
-
-    bool hasJITCode() {
-        return jitNormal || jitCtor;
-    }
-
-    
-    inline void **nativeMap(bool constructing);
-    inline void *maybeNativeCodeForPC(bool constructing, jsbytecode *pc);
-    inline void *nativeCodeForPC(bool constructing, jsbytecode *pc);
-
-    js::mjit::JITScript *getJIT(bool constructing) {
-        return constructing ? jitCtor : jitNormal;
-    }
-
-    size_t callCount() const  { return callCount_; }
-    size_t incCallCount() { return ++callCount_; }
-
-    JITScriptStatus getJITStatus(bool constructing) {
-        void *addr = constructing ? jitArityCheckCtor : jitArityCheckNormal;
-        if (addr == NULL)
-            return JITScript_None;
-        if (addr == JS_UNJITTABLE_SCRIPT)
-            return JITScript_Invalid;
-        return JITScript_Valid;
-    }
+    bool isValidJitCode(void *jcode);
 #endif
-
-    JS_FRIEND_API(size_t) totalSize();  
-    uint32 numNotes();                  
 
     
     jssrcnote *notes() { return (jssrcnote *)(code + length); }
 
-    static const uint8 INVALID_OFFSET = 0xFF;
-    static bool isValidOffset(uint8 offset) { return offset != INVALID_OFFSET; }
-
     JSObjectArray *objects() {
-        JS_ASSERT(isValidOffset(objectsOffset));
-        return reinterpret_cast<JSObjectArray *>(uintptr_t(this + 1) + objectsOffset);
+        JS_ASSERT(objectsOffset != 0);
+        return (JSObjectArray *)((uint8 *) this + objectsOffset);
     }
 
     JSUpvarArray *upvars() {
-        JS_ASSERT(isValidOffset(upvarsOffset));
-        return reinterpret_cast<JSUpvarArray *>(uintptr_t(this + 1) + upvarsOffset);
+        JS_ASSERT(upvarsOffset != 0);
+        return (JSUpvarArray *) ((uint8 *) this + upvarsOffset);
     }
 
     JSObjectArray *regexps() {
-        JS_ASSERT(isValidOffset(regexpsOffset));
-        return reinterpret_cast<JSObjectArray *>(uintptr_t(this + 1) + regexpsOffset);
+        JS_ASSERT(regexpsOffset != 0);
+        return (JSObjectArray *) ((uint8 *) this + regexpsOffset);
     }
 
     JSTryNoteArray *trynotes() {
-        JS_ASSERT(isValidOffset(trynotesOffset));
-        return reinterpret_cast<JSTryNoteArray *>(uintptr_t(this + 1) + trynotesOffset);
+        JS_ASSERT(trynotesOffset != 0);
+        return (JSTryNoteArray *) ((uint8 *) this + trynotesOffset);
     }
 
     js::GlobalSlotArray *globals() {
-        JS_ASSERT(isValidOffset(globalsOffset));
-        return reinterpret_cast<js::GlobalSlotArray *>(uintptr_t(this + 1) + globalsOffset);
+        JS_ASSERT(globalsOffset != 0);
+        return (js::GlobalSlotArray *) ((uint8 *)this + globalsOffset);
     }
 
     JSConstArray *consts() {
-        JS_ASSERT(isValidOffset(constOffset));
-        return reinterpret_cast<JSConstArray *>(uintptr_t(this + 1) + constOffset);
+        JS_ASSERT(constOffset != 0);
+        return (JSConstArray *) ((uint8 *) this + constOffset);
     }
 
     JSAtom *getAtom(size_t index) {
@@ -628,12 +326,7 @@ struct JSScript {
         return getAtom(arr->vector[index].atomIndex);
     }
 
-    JSVersion getVersion() const {
-        return JSVersion(version);
-    }
-
     inline JSFunction *getFunction(size_t index);
-    inline JSFunction *getCallerFunction();
 
     inline JSObject *getRegExp(size_t index);
 
@@ -648,19 +341,38 @@ struct JSScript {
 
 
 
+
+
     inline bool isEmpty() const;
 
-    uint32 getClosedArg(uint32 index) {
-        JS_ASSERT(index < nClosedArgs);
-        return closedSlots[index];
+    
+
+
+
+    static JSScript *emptyScript() {
+        return const_cast<JSScript *>(&emptyScriptConst);
     }
 
-    uint32 getClosedVar(uint32 index) {
-        JS_ASSERT(index < nClosedVars);
-        return closedSlots[nClosedArgs + index];
-    }
+#ifdef JS_METHODJIT
+    
 
-    void copyClosedSlotsTo(JSScript *other);
+
+    void *pcToNative(jsbytecode *pc) {
+        JS_ASSERT(nmap);
+        JS_ASSERT(nmap[pc - code]);
+        return nmap[pc - code];
+    }
+#endif
+
+  private:
+    
+
+
+
+
+
+
+    static const JSScript emptyScriptConst;
 };
 
 #define SHARP_NSLOTS            2       /* [#array, #depth] slots if the script
@@ -682,7 +394,7 @@ StackDepth(JSScript *script)
         if ((pc_) < (script_)->code ||                                        \
             (script_)->code + (script_)->length <= (pc_)) {                   \
             JS_ASSERT((size_t)(index) < js_common_atom_count);                \
-            (atom) = cx->runtime->atomState.commonAtomsStart()[index];        \
+            (atom) = COMMON_ATOMS_START(&cx->runtime->atomState)[index];      \
         } else {                                                              \
             (atom) = script_->getAtom(index);                                 \
         }                                                                     \
@@ -693,10 +405,12 @@ extern JS_FRIEND_DATA(js::Class) js_ScriptClass;
 extern JSObject *
 js_InitScriptClass(JSContext *cx, JSObject *obj);
 
-namespace js {
 
-extern bool
-InitRuntimeScriptState(JSRuntime *rt);
+
+
+
+extern JSBool
+js_InitRuntimeScriptState(JSRuntime *rt);
 
 
 
@@ -705,9 +419,16 @@ InitRuntimeScriptState(JSRuntime *rt);
 
 
 extern void
-FreeRuntimeScriptState(JSRuntime *rt);
+js_FreeRuntimeScriptState(JSRuntime *rt);
 
-} 
+extern const char *
+js_SaveScriptFilename(JSContext *cx, const char *filename);
+
+extern const char *
+js_SaveScriptFilenameRT(JSRuntime *rt, const char *filename, uint32 flags);
+
+extern uint32
+js_GetScriptFilenameFlags(const char *filename);
 
 extern void
 js_MarkScriptFilename(const char *filename);
@@ -724,35 +445,44 @@ js_SweepScriptFilenames(JSRuntime *rt);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+extern JSScript *
+js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
+             uint32 nobjects, uint32 nupvars, uint32 nregexps,
+             uint32 ntrynotes, uint32 nconsts, uint32 nglobals);
+
+extern JSScript *
+js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
+
+
+
+
+
+
+
 extern JS_FRIEND_API(void)
 js_CallNewScriptHook(JSContext *cx, JSScript *script, JSFunction *fun);
 
-extern void
+extern JS_FRIEND_API(void)
 js_CallDestroyScriptHook(JSContext *cx, JSScript *script);
-
-
-
-
 
 extern void
 js_DestroyScript(JSContext *cx, JSScript *script);
 
 extern void
-js_DestroyScriptFromGC(JSContext *cx, JSScript *script);
-
-
-
-
-
-
-
-extern void
-js_DestroyCachedScript(JSContext *cx, JSScript *script);
-
-extern void
 js_TraceScript(JSTracer *trc, JSScript *script);
 
-extern JSObject *
+extern JSBool
 js_NewScriptObject(JSContext *cx, JSScript *script);
 
 
@@ -771,7 +501,7 @@ js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
 extern uintN
-js_FramePCToLineNumber(JSContext *cx, js::StackFrame *fp, jsbytecode *pc);
+js_FramePCToLineNumber(JSContext *cx, JSStackFrame *fp);
 
 extern uintN
 js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc);
@@ -782,30 +512,6 @@ js_LineNumberToPC(JSScript *script, uintN lineno);
 extern JS_FRIEND_API(uintN)
 js_GetScriptLineExtent(JSScript *script);
 
-namespace js {
-
-extern uintN
-CurrentLine(JSContext *cx);
-
-
-
-
-
-
-
-
-
-
-enum LineOption {
-    CALLED_FROM_JSOP_EVAL,
-    NOT_CALLED_FROM_JSOP_EVAL
-};
-
-inline const char *
-CurrentScriptFileAndLine(JSContext *cx, uintN *linenop, LineOption = NOT_CALLED_FROM_JSOP_EVAL);
-
-}
-
 static JS_INLINE JSOp
 js_GetOpcode(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
@@ -815,8 +521,16 @@ js_GetOpcode(JSContext *cx, JSScript *script, jsbytecode *pc)
     return op;
 }
 
-extern JSScript *
-js_CloneScript(JSContext *cx, JSScript *script);
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -824,19 +538,7 @@ js_CloneScript(JSContext *cx, JSScript *script);
 
 
 extern JSBool
-js_XDRScript(JSXDRState *xdr, JSScript **scriptp);
-
-inline bool
-JSObject::isScript() const
-{
-    return getClass() == &js_ScriptClass;
-}
-
-inline JSScript *
-JSObject::getScript() const
-{
-    JS_ASSERT(isScript());
-    return static_cast<JSScript *>(getPrivate());
-}
+js_XDRScript(JSXDRState *xdr, JSScript **scriptp, bool needMutableScript,
+             JSBool *hasMagic);
 
 #endif 

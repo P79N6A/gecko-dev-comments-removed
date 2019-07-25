@@ -48,17 +48,13 @@
 namespace js {
 namespace mjit {
 
-struct AdjustedFrame {
-    AdjustedFrame(uint32 baseOffset)
-     : baseOffset(baseOffset)
-    { }
 
-    uint32 baseOffset;
 
-    JSC::MacroAssembler::Address addrOf(uint32 offset) {
-        return JSC::MacroAssembler::Address(JSFrameReg, baseOffset + offset);
-    }
-};
+
+
+
+
+
 
 
 
@@ -71,10 +67,12 @@ class InlineFrameAssembler {
     typedef JSC::MacroAssembler::Address Address;
     typedef JSC::MacroAssembler::Imm32 Imm32;
     typedef JSC::MacroAssembler::ImmPtr ImmPtr;
-    typedef JSC::MacroAssembler::DataLabelPtr DataLabelPtr;
 
     Assembler &masm;
-    FrameSize  frameSize;       
+    bool       isConstantThis;  
+    Value      constantThis;    
+    uint32     frameDepth;      
+    uint32     argc;            
     RegisterID funObjReg;       
     jsbytecode *pc;             
     uint32     flags;           
@@ -86,66 +84,81 @@ class InlineFrameAssembler {
 
     Registers  tempRegs;
 
-    InlineFrameAssembler(Assembler &masm, ic::CallICInfo &ic, uint32 flags)
-      : masm(masm), pc(ic.pc), flags(flags)
+    InlineFrameAssembler(Assembler &masm, JSContext *cx, ic::CallICInfo &ic, uint32 flags)
+      : masm(masm), flags(flags)
     {
-        frameSize = ic.frameSize;
+        isConstantThis = ic.isConstantThis;
+        constantThis = ic.constantThis;
+        frameDepth = ic.frameDepth;
+        argc = ic.argc;
         funObjReg = ic.funObjReg;
+        pc = cx->regs->pc;
         tempRegs.takeReg(ic.funPtrReg);
         tempRegs.takeReg(funObjReg);
     }
 
-    InlineFrameAssembler(Assembler &masm, Compiler::CallGenInfo &gen, uint32 flags)
-      : masm(masm), pc(gen.pc), flags(flags)
+    InlineFrameAssembler(Assembler &masm, Compiler::CallGenInfo &gen, jsbytecode *pc, uint32 flags)
+      : masm(masm), pc(pc), flags(flags)
     {
-        frameSize = gen.frameSize;
+        isConstantThis = gen.isConstantThis;
+        constantThis = gen.constantThis;
+        frameDepth = gen.frameDepth;
+        argc = gen.argc;
         funObjReg = gen.funObjReg;
         tempRegs.takeReg(funObjReg);
     }
 
-    DataLabelPtr assemble(void *ncode)
+    void assemble()
     {
-        JS_ASSERT((flags & ~StackFrame::CONSTRUCTING) == 0);
+        struct AdjustedFrame {
+            AdjustedFrame(uint32 baseOffset)
+             : baseOffset(baseOffset)
+            { }
+
+            uint32 baseOffset;
+
+            Address addrOf(uint32 offset) {
+                return Address(JSFrameReg, baseOffset + offset);
+            }
+        };
+
+        RegisterID t0 = tempRegs.takeAnyReg();
 
         
+        masm.storePtr(ImmPtr(pc), Address(JSFrameReg, offsetof(JSStackFrame, savedPC)));
 
-        DataLabelPtr ncodePatch;
-        if (frameSize.isStatic()) {
-            uint32 frameDepth = frameSize.staticLocalSlots();
-            AdjustedFrame newfp(sizeof(StackFrame) + frameDepth * sizeof(Value));
+        AdjustedFrame adj(sizeof(JSStackFrame) + frameDepth * sizeof(Value));
+        masm.store32(Imm32(argc), adj.addrOf(offsetof(JSStackFrame, argc)));
+        masm.store32(Imm32(flags), adj.addrOf(offsetof(JSStackFrame, flags)));
+        masm.loadPtr(Address(funObjReg, offsetof(JSObject, parent)), t0);
+        masm.storePtr(t0, adj.addrOf(JSStackFrame::offsetScopeChain()));
+        masm.addPtr(Imm32(adj.baseOffset - (argc * sizeof(Value))), JSFrameReg, t0);
+        masm.storePtr(t0, adj.addrOf(offsetof(JSStackFrame, argv)));
 
-            Address flagsAddr = newfp.addrOf(StackFrame::offsetOfFlags());
-            masm.store32(Imm32(StackFrame::FUNCTION | flags), flagsAddr);
-            Address prevAddr = newfp.addrOf(StackFrame::offsetOfPrev());
-            masm.storePtr(JSFrameReg, prevAddr);
-            Address ncodeAddr = newfp.addrOf(StackFrame::offsetOfNcode());
-            ncodePatch = masm.storePtrWithPatch(ImmPtr(ncode), ncodeAddr);
-
-            masm.addPtr(Imm32(sizeof(StackFrame) + frameDepth * sizeof(Value)), JSFrameReg);
+        Address targetThis = adj.addrOf(JSStackFrame::offsetThisValue());
+        if (isConstantThis) {
+            masm.storeValue(constantThis, targetThis);
         } else {
-            
-
-
-
-
-
-
-
-            RegisterID newfp = tempRegs.takeAnyReg();
-            masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.sp)), newfp);
-
-            Address flagsAddr(newfp, StackFrame::offsetOfFlags());
-            masm.store32(Imm32(StackFrame::FUNCTION | flags), flagsAddr);
-            Address prevAddr(newfp, StackFrame::offsetOfPrev());
-            masm.storePtr(JSFrameReg, prevAddr);
-            Address ncodeAddr(newfp, StackFrame::offsetOfNcode());
-            ncodePatch = masm.storePtrWithPatch(ImmPtr(ncode), ncodeAddr);
-
-            masm.move(newfp, JSFrameReg);
-            tempRegs.putReg(newfp);
+            Address thisvAddr = Address(t0, -int32(sizeof(Value) * 1));
+#ifdef JS_NUNBOX32
+            RegisterID t1 = tempRegs.takeAnyReg();
+            masm.loadPayload(thisvAddr, t1);
+            masm.storePayload(t1, targetThis);
+            masm.loadTypeTag(thisvAddr, t1);
+            masm.storeTypeTag(t1, targetThis);
+            tempRegs.putReg(t1);
+#elif JS_PUNBOX64
+            masm.loadPtr(thisvAddr, t0);
+            masm.storePtr(t0, targetThis);
+#endif
         }
 
-        return ncodePatch;
+        masm.storePtr(JSFrameReg, adj.addrOf(offsetof(JSStackFrame, down)));
+
+        
+        masm.addPtr(Imm32(sizeof(JSStackFrame) + sizeof(Value) * frameDepth), JSFrameReg);
+
+        tempRegs.putReg(t0);
     }
 };
 

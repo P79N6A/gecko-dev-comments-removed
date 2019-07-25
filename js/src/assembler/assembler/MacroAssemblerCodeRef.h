@@ -146,9 +146,7 @@ public:
         ASSERT_VALID_CODE_POINTER(m_value);
     }
 
-    void* executableAddress() const {
-        return m_value;
-    }
+    void* executableAddress() const { return m_value; }
 #if WTF_CPU_ARM_THUMB2
     
     void* dataLocation() const { ASSERT_VALID_CODE_POINTER(m_value); return reinterpret_cast<char*>(m_value) - 1; }
@@ -180,8 +178,7 @@ private:
 class MacroAssemblerCodeRef {
 public:
     MacroAssemblerCodeRef()
-        : m_executablePool(NULL),
-          m_size(0)
+        : m_size(0)
     {
     }
 
@@ -190,20 +187,6 @@ public:
         , m_executablePool(executablePool)
         , m_size(size)
     {
-    }
-
-    
-    void release()
-    {
-        if (!m_executablePool)
-            return;
-
-#if defined DEBUG && (defined WTF_CPU_X86 || defined WTF_CPU_X86_64) 
-        void *addr = m_code.executableAddress();
-        memset(addr, 0xcc, m_size);
-#endif
-        m_executablePool->release();
-        m_executablePool = NULL;
     }
 
     MacroAssemblerCodePtr m_code;
