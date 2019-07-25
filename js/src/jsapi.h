@@ -545,6 +545,9 @@ JS_GetPositiveInfinityValue(JSContext *cx);
 extern JS_PUBLIC_API(jsval)
 JS_GetEmptyStringValue(JSContext *cx);
 
+extern JS_PUBLIC_API(JSString *)
+JS_GetEmptyString(JSRuntime *rt);
+
 
 
 
@@ -2343,17 +2346,6 @@ JS_GetFunctionObject(JSFunction *fun);
 
 
 
-extern JS_PUBLIC_API(const char *)
-JS_GetFunctionName(JSFunction *fun);
-
-
-
-
-
-
-
-
-
 
 
 extern JS_PUBLIC_API(JSString *)
@@ -2953,12 +2945,6 @@ class JSAutoByteString {
 
     ~JSAutoByteString() {
         js_free(mBytes);
-    }
-
-    
-    void initBytes(char *bytes) {
-        JS_ASSERT(!mBytes);
-        mBytes = bytes;
     }
 
     char *encode(JSContext *cx, JSString *str) {

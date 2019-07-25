@@ -3294,12 +3294,6 @@ __attribute__ ((aligned (8)))
 
 #undef R
 
-#define R(c) FROM_SMALL_CHAR((c) >> 6), FROM_SMALL_CHAR((c) & 0x3f), 0x00
-
-const char JSString::deflatedLength2StringTable[] = { R12(0) };
-
-#undef R
-
 
 
 
@@ -3350,16 +3344,6 @@ const JSString *const JSString::intStringTable[] = { R8(0) };
 #pragma pack(pop)
 #endif
 
-#define R(c) ((c) / 100) + '0', ((c) / 10 % 10) + '0', ((c) % 10) + '0', 0x00
-
-const char JSString::deflatedIntStringTable[] = {
-    R7(100), 
-    R4(100 + (1 << 7)), 
-    R3(100 + (1 << 7) + (1 << 4)), 
-    R2(100 + (1 << 7) + (1 << 4) + (1 << 3)) 
-};
-
-#undef R
 #undef R2
 #undef R4
 #undef R6
@@ -3369,18 +3353,6 @@ const char JSString::deflatedIntStringTable[] = {
 
 #undef R3
 #undef R7
-
-
-#define U8(c)   char(((c) >> 6) | 0xc0), char(((c) & 0x3f) | 0x80), 0
-#define U(c)    U8(c), U8(c+1), U8(c+2), U8(c+3), U8(c+4), U8(c+5), U8(c+6), U8(c+7)
-
-const char JSString::deflatedUnitStringTable[] = {
-    U(0x80), U(0x88), U(0x90), U(0x98), U(0xa0), U(0xa8), U(0xb0), U(0xb8),
-    U(0xc0), U(0xc8), U(0xd0), U(0xd8), U(0xe0), U(0xe8), U(0xf0), U(0xf8)
-};
-
-#undef U
-#undef U8
 
 JSBool
 js_String(JSContext *cx, uintN argc, Value *vp)
@@ -4298,152 +4270,6 @@ bufferTooSmall:
                              JSMSG_BUFFER_TOO_SMALL);
     }
     return JS_FALSE;
-}
-
-namespace js {
-
-DeflatedStringCache::DeflatedStringCache()
-{
-#ifdef JS_THREADSAFE
-    lock = NULL;
-#endif
-}
-
-bool
-DeflatedStringCache::init()
-{
-#ifdef JS_THREADSAFE
-    JS_ASSERT(!lock);
-    lock = JS_NEW_LOCK();
-    if (!lock)
-        return false;
-#endif
-
-    
-
-
-
-    return map.init(2048);
-}
-
-DeflatedStringCache::~DeflatedStringCache()
-{
-#ifdef JS_THREADSAFE
-    if (lock)
-        JS_DESTROY_LOCK(lock);
-#endif
-}
-
-void
-DeflatedStringCache::sweep(JSContext *cx)
-{
-    
-
-
-
-    JS_ACQUIRE_LOCK(lock);
-
-    for (Map::Enum e(map); !e.empty(); e.popFront()) {
-        JSString *str = e.front().key;
-        if (IsAboutToBeFinalized(str)) {
-            char *bytes = e.front().value;
-            e.removeFront();
-
-            
-
-
-
-
-
-            js_free(bytes);
-        }
-    }
-
-    JS_RELEASE_LOCK(lock);
-}
-
-char *
-DeflatedStringCache::getBytes(JSString *str)
-{
-    JS_ACQUIRE_LOCK(lock);
-    Map::AddPtr p = map.lookupForAdd(str);
-    char *bytes = p ? p->value : NULL;
-    JS_RELEASE_LOCK(lock);
-
-    if (bytes)
-        return bytes;
-
-    bytes = js_DeflateString(NULL, str->chars(), str->length());
-    if (!bytes)
-        return NULL;
-
-    
-
-
-
-
-
-    char *bytesToFree = NULL;
-    JSBool ok;
-#ifdef JS_THREADSAFE
-    JS_ACQUIRE_LOCK(lock);
-    ok = map.relookupOrAdd(p, str, bytes);
-    if (ok && p->value != bytes) {
-        
-        JS_ASSERT(!strcmp(p->value, bytes));
-        bytesToFree = bytes;
-        bytes = p->value;
-    }
-    JS_RELEASE_LOCK(lock);
-#else  
-    ok = map.add(p, str, bytes);
-#endif
-    if (!ok) {
-        bytesToFree = bytes;
-        bytes = NULL;
-    }
-
-    if (bytesToFree)
-        js_free(bytesToFree);
-    return bytes;
-}
-
-} 
-
-const char *
-js_GetStringBytes(JSAtom *atom)
-{
-    JSString *str = ATOM_TO_STRING(atom);
-    if (JSString::isUnitString(str)) {
-        char *bytes;
-#ifdef IS_LITTLE_ENDIAN
-        
-        bytes = (char *)str->chars();
-#else
-        
-        bytes = (char *)str->chars() + 1;
-#endif
-        return ((*bytes & 0x80) && js_CStringsAreUTF8)
-               ? JSString::deflatedUnitStringTable + ((*bytes & 0x7f) * 3)
-               : bytes;
-    }
-
-    
-
-
-
-    if (JSString::isLength2String(str))
-        return JSString::deflatedLength2StringTable + ((str - JSString::length2StringTable) * 3);
-
-    if (JSString::isHundredString(str)) {
-        
-
-
-
-        return JSString::deflatedIntStringTable + ((str - JSString::hundredStringTable) * 4);
-    }
-
-    return GetGCThingRuntime(str)->deflatedStringCache->getBytes(str);
 }
 
 

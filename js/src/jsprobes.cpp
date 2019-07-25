@@ -109,9 +109,6 @@ jsprobes_jsvaltovoid(JSContext *cx, const js::Value &argval)
     if (argval.isBoolean())
         return (void *)argval.toBoolean();
 
-    if (argval.isString())
-        return (void *)js_GetStringBytes(cx, argval.toString());
-
     if (argval.isNumber()) {
         if (argval.isInt32())
             return (void *)argval.toInt32();

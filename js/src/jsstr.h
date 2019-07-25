@@ -514,9 +514,6 @@ struct JSString {
 
 
     static const JSString *const intStringTable[];
-    static const char deflatedIntStringTable[];
-    static const char deflatedUnitStringTable[];
-    static const char deflatedLength2StringTable[];
 
     static JSString *unitString(jschar c);
     static JSString *getUnitString(JSContext *cx, JSString *str, size_t index);
@@ -1147,13 +1144,6 @@ js_DeflateStringToUTF8Buffer(JSContext *cx, const jschar *chars,
                              size_t charsLength, char *bytes, size_t *length);
 
 
-
-
-
-extern const char *
-js_GetStringBytes(JSAtom *atom);
-
-
 extern JSBool
 js_str_escape(JSContext *cx, JSObject *obj, uintN argc, js::Value *argv,
               js::Value *rval);
@@ -1222,55 +1212,5 @@ FileEscapedString(FILE *fp, JSString *str, uint32 quote)
 
 extern JSBool
 js_String(JSContext *cx, uintN argc, js::Value *vp);
-
-namespace js {
-
-class DeflatedStringCache {
-  public:
-    DeflatedStringCache();
-    bool init();
-    ~DeflatedStringCache();
-
-    void sweep(JSContext *cx);
-
-  private:
-    struct StringPtrHasher
-    {
-        typedef JSString *Lookup;
-
-        static HashNumber hash(JSString *str) {
-            
-
-
-
-
-            const jsuword ALIGN_LOG = tl::FloorLog2<sizeof(JSString)>::result;
-            JS_STATIC_ASSERT(sizeof(JSString) == (size_t(1) << ALIGN_LOG));
-
-            jsuword ptr = reinterpret_cast<jsuword>(str);
-            jsuword key = ptr >> ALIGN_LOG;
-            JS_ASSERT((key << ALIGN_LOG) == ptr);
-            return HashNumber(key);
-        }
-
-        static bool match(JSString *s1, JSString *s2) {
-            return s1 == s2;
-        }
-    };
-
-    typedef HashMap<JSString *, char *, StringPtrHasher, SystemAllocPolicy> Map;
-
-    char *getBytes(JSString *str);
-
-    friend const char *
-    ::js_GetStringBytes(JSAtom *atom);
-
-    Map                 map;
-#ifdef JS_THREADSAFE
-    JSLock              *lock;
-#endif
-};
-
-} 
 
 #endif 

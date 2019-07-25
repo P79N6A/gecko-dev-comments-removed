@@ -2203,12 +2203,6 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind GCTIMER_PARAM)
     }
     TIMESTAMP(sweepObjectEnd);
 
-    
-
-
-
-    rt->deflatedStringCache->sweep(cx);
-
     for (JSCompartment **comp = rt->compartments.begin(); comp != rt->compartments.end(); comp++) {
         FinalizeArenaList<JSShortString>(*comp, cx, FINALIZE_SHORT_STRING);
         FinalizeArenaList<JSString>(*comp, cx, FINALIZE_STRING);
