@@ -35,7 +35,7 @@
 
 
 const EXPORTED_SYMBOLS = ['Tracker',
-                          'FormsTracker', 'TabTracker'];
+                          'TabTracker'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -93,75 +93,6 @@ Tracker.prototype = {
     this._score = 0;
   }
 };
-
-function FormsTracker() {
-  this._init();
-}
-FormsTracker.prototype = {
-  _logName: "FormsTracker",
-
-  __formDB: null,
-  get _formDB() {
-    if (!this.__formDB) {
-      var file = Cc["@mozilla.org/file/directory_service;1"].
-      getService(Ci.nsIProperties).
-      get("ProfD", Ci.nsIFile);
-      file.append("formhistory.sqlite");
-      var stor = Cc["@mozilla.org/storage/service;1"].
-      getService(Ci.mozIStorageService);
-      this.__formDB = stor.openDatabase(file);
-    }
-
-    return this.__formDB;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  _rowCount: 0,
-  get score() {
-    var stmnt = this._formDB.createStatement("SELECT COUNT(fieldname) FROM moz_formhistory");
-    stmnt.executeStep();
-    var count = stmnt.getInt32(0);
-    stmnt.reset();
-
-    this._score = Math.abs(this._rowCount - count) * 2;
-
-    if (this._score >= 100)
-      return 100;
-    else
-      return this._score;
-  },
-
-  resetScore: function FormsTracker_resetScore() {
-    var stmnt = this._formDB.createStatement("SELECT COUNT(fieldname) FROM moz_formhistory");
-    stmnt.executeStep();
-    this._rowCount = stmnt.getInt32(0);
-    stmnt.reset();
-    this._score = 0;
-  },
-
-  _init: function FormsTracker__init() {
-    this._log = Log4Moz.Service.getLogger("Service." + this._logName);
-    this._score = 0;
-
-    var stmnt = this._formDB.createStatement("SELECT COUNT(fieldname) FROM moz_formhistory");
-    stmnt.executeStep();
-    this._rowCount = stmnt.getInt32(0);
-    stmnt.reset();
-  }
-}
-FormsTracker.prototype.__proto__ = new Tracker();
 
 function TabTracker(engine) {
   this._engine = engine;
