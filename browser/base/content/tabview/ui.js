@@ -441,6 +441,13 @@ let UI = {
   
   
   
+  clearActiveTab: function UI_clearActiveTab() {
+    this._setActiveTab(null);
+  },
+
+  
+  
+  
   isTabViewVisible: function UI_isTabViewVisible() {
     return gTabViewDeck.selectedPanel == gTabViewFrame;
   },
@@ -470,7 +477,6 @@ let UI = {
 
     var self = this;
     var currentTab = this._currentTab;
-    var item = null;
 
     this._reorderTabItemsOnShow.forEach(function(groupItem) {
       groupItem.reorderTabItemsBasedOnTabOrder();
@@ -495,7 +501,7 @@ let UI = {
     Storage.saveVisibilityData(gWindow, "true");
 
     if (zoomOut && currentTab && currentTab._tabViewTabItem) {
-      item = currentTab._tabViewTabItem;
+      let item = currentTab._tabViewTabItem;
       
       
       
@@ -516,6 +522,7 @@ let UI = {
         TabItems.resumePainting();
       });
     } else {
+      self.clearActiveTab();
       dispatchEvent(event);
 
       
