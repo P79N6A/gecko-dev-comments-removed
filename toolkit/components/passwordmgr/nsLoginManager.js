@@ -206,7 +206,7 @@ LoginManager.prototype = {
     _observer : {
         _pwmgr : null,
 
-        QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver, 
+        QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver,
                                                 Ci.nsIFormSubmitObserver,
                                                 Ci.nsISupportsWeakReference]),
 
@@ -235,7 +235,7 @@ LoginManager.prototype = {
                 this._pwmgr.log("got change to " + prefName + " preference");
 
                 if (prefName == "debug") {
-                    this._pwmgr._debug = 
+                    this._pwmgr._debug =
                         this._pwmgr._prefBranch.getBoolPref("debug");
                 } else if (prefName == "rememberSignons") {
                     this._pwmgr._remember =
@@ -916,7 +916,7 @@ LoginManager.prototype = {
             
             if (!login.username && formLogin.username) {
                 var restoreMe = formLogin.username;
-                formLogin.username = ""; 
+                formLogin.username = "";
                 same = formLogin.matches(login, false);
                 formLogin.username = restoreMe;
             } else if (!formLogin.username && login.username) {
@@ -1112,7 +1112,7 @@ LoginManager.prototype = {
 
         
         if (foundLogins == null) {
-            var formOrigin = 
+            var formOrigin =
                 this._getPasswordOrigin(form.ownerDocument.documentURI);
             var actionOrigin = this._getActionOrigin(form);
             foundLogins = this.findLogins({}, formOrigin, actionOrigin, null);
