@@ -533,6 +533,12 @@ nsHtml5Parser::ParseHtml5Fragment(const nsAString& aSourceBuffer,
       lastWasCR = PR_FALSE;
       if (buffer.hasMore()) {
         lastWasCR = mTokenizer->tokenizeBuffer(&buffer);
+        if (mTreeBuilder->HasScript()) {
+          
+          
+          mTreeBuilder->Flush(); 
+          mExecutor->FlushDocumentWrite(); 
+        }
       }
     }
   }
