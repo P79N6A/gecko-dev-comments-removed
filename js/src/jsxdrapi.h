@@ -115,6 +115,7 @@ struct JSXDRState {
     void        *reghash;
     void        *userdata;
     JSScript    *script;
+    const char  *filename;
 };
 
 extern JS_PUBLIC_API(void)
@@ -205,7 +206,7 @@ JS_XDRFindClassById(JSXDRState *xdr, uint32 id);
 
 
 
-#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 83)
+#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 84)
 
 
 
