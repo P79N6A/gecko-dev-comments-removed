@@ -546,6 +546,9 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
     
     
     
+    if (!mPendingEvents.IsEmpty()) {
+      mPresContext->Document()->SetNeedStyleFlush();
+    }
   }
 
   return GetAnimationRule(aElement, aStyleContext->GetPseudoType());

@@ -1677,6 +1677,7 @@ nsPresContext::PostMediaFeatureValuesChangedEvent()
       NS_NewRunnableMethod(this, &nsPresContext::HandleMediaFeatureValuesChangedEvent);
     if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
       mPendingMediaFeatureValuesChanged = true;
+      mDocument->SetNeedStyleFlush();
     }
   }
 }
@@ -1886,6 +1887,7 @@ nsPresContext::RebuildUserFontSet()
   }
 
   mUserFontSetDirty = true;
+  mDocument->SetNeedStyleFlush();
 
   
   

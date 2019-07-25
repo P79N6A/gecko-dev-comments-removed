@@ -1601,6 +1601,20 @@ public:
 
   virtual void PostVisibilityUpdateEvent() = 0;
 
+  void SetNeedLayoutFlush() {
+    mNeedLayoutFlush = true;
+    if (mDisplayDocument) {
+      mDisplayDocument->SetNeedLayoutFlush();
+    }
+  }
+
+  void SetNeedStyleFlush() {
+    mNeedStyleFlush = true;
+    if (mDisplayDocument) {
+      mDisplayDocument->SetNeedStyleFlush();
+    }
+  }
+
 private:
   PRUint64 mWarnedAbout;
 
@@ -1764,6 +1778,12 @@ protected:
 
   
   bool mHasLinksToUpdate;
+
+  
+  bool mNeedLayoutFlush;
+
+  
+  bool mNeedStyleFlush;
 
   
   

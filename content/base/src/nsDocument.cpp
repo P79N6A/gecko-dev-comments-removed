@@ -6267,9 +6267,28 @@ nsDocument::FlushPendingNotifications(mozFlushType aType)
     mParentDocument->FlushPendingNotifications(parentType);
   }
 
-  nsCOMPtr<nsIPresShell> shell = GetShell();
-  if (shell) {
-    shell->FlushPendingNotifications(aType);
+  
+  
+  
+  
+  
+  
+  if (mNeedStyleFlush ||
+      (mNeedLayoutFlush && aType >= Flush_InterruptibleLayout) ||
+      aType >= Flush_Display ||
+      mInFlush) {
+    nsCOMPtr<nsIPresShell> shell = GetShell();
+    if (shell) {
+      mNeedStyleFlush = false;
+      mNeedLayoutFlush = mNeedLayoutFlush && (aType < Flush_InterruptibleLayout);
+      
+      
+      
+      bool oldInFlush = mInFlush;
+      mInFlush = true;
+      shell->FlushPendingNotifications(aType);
+      mInFlush = oldInFlush;
+    }
   }
 }
 
@@ -6759,7 +6778,7 @@ nsDocument::CreateElem(const nsAString& aName, nsIAtom *aPrefix, PRInt32 aNamesp
 bool
 nsDocument::IsSafeToFlush() const
 {
-  nsCOMPtr<nsIPresShell> shell = GetShell();
+  nsIPresShell* shell = GetShell();
   if (!shell)
     return true;
 

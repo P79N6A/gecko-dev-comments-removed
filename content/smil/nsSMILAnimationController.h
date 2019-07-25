@@ -96,9 +96,13 @@ public:
   
   
   void Resample() { DoSample(false); }
+
   void SetResampleNeeded()
   {
     if (!mRunningSample) {
+      if (!mResampleNeeded) {
+        FlagDocumentNeedsFlush();
+      }
       mResampleNeeded = true;
     }
   }
@@ -197,6 +201,8 @@ protected:
   
   virtual nsresult AddChild(nsSMILTimeContainer& aChild);
   virtual void     RemoveChild(nsSMILTimeContainer& aChild);
+
+  void FlagDocumentNeedsFlush();
 
   
   nsAutoRefCnt mRefCnt;

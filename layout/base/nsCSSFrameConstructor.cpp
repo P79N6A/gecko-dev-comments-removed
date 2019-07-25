@@ -11703,6 +11703,11 @@ nsCSSFrameConstructor::PostRestyleEventInternal(bool aForLazyConstruction)
     mObservingRefreshDriver = mPresShell->GetPresContext()->RefreshDriver()->
       AddStyleFlushObserver(mPresShell);
   }
+
+  
+  
+  
+  mPresShell->GetDocument()->SetNeedStyleFlush();
 }
 
 void

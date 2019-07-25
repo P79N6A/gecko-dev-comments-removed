@@ -2183,6 +2183,7 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
         NS_NewRunnableMethod(this, &PresShell::FireResizeEvent);
       if (NS_SUCCEEDED(NS_DispatchToCurrentThread(resizeEvent))) {
         mResizeEvent = resizeEvent;
+        mDocument->SetNeedStyleFlush();
       }
     }
   }
@@ -2864,6 +2865,7 @@ PresShell::FrameNeedsReflow(nsIFrame *aFrame, IntrinsicDirty aIntrinsicDirty,
         
         if (!wasDirty) {
           mDirtyRoots.AppendElement(f);
+          mDocument->SetNeedLayoutFlush();
         }
 #ifdef DEBUG
         else {
@@ -3444,6 +3446,7 @@ PresShell::ScrollContentIntoView(nsIContent* aContent,
   mContentToScrollToFlags = aFlags;
 
   
+  currentDoc->SetNeedLayoutFlush();
   currentDoc->FlushPendingNotifications(Flush_InterruptibleLayout);
 
   
@@ -3966,6 +3969,12 @@ PresShell::IsSafeToFlush() const
 void
 PresShell::FlushPendingNotifications(mozFlushType aType)
 {
+  
+
+
+
+
+
 #ifdef NS_FUNCTION_TIMER
   NS_TIME_FUNCTION_DECLARE_DOCURL;
   static const char *flushTypeNames[] = {
@@ -4100,6 +4109,11 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
                                 mContentToScrollToFlags);
         mContentToScrollTo = nsnull;
       }
+    } else if (!mIsDestroying && mSuppressInterruptibleReflows &&
+               aType == Flush_InterruptibleLayout) {
+      
+      
+      mDocument->SetNeedLayoutFlush();
     }
 
     if (aType >= Flush_Layout) {
@@ -7343,6 +7357,7 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
     mFramesToDirty.EnumerateEntries(&MarkFramesDirtyToRoot, target);
     NS_ASSERTION(NS_SUBTREE_DIRTY(target), "Why is the target not dirty?");
     mDirtyRoots.AppendElement(target);
+    mDocument->SetNeedLayoutFlush();
 
     
     
@@ -7465,8 +7480,11 @@ PresShell::ProcessReflowCommands(bool aInterruptible)
       
       
       
-      if (!mDirtyRoots.IsEmpty())
+      if (!mDirtyRoots.IsEmpty()) {
         MaybeScheduleReflow();
+        
+        mDocument->SetNeedLayoutFlush();
+      }
     }
   }
 
