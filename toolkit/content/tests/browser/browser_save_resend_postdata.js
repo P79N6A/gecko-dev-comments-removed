@@ -34,6 +34,9 @@
 
 
 
+Components.utils.import("resource://mochikit/MockFilePicker.jsm");
+MockFilePicker.reset();
+
 
 
 
@@ -110,10 +113,11 @@ function test() {
 
       
       var destDir = createTemporarySaveDirectory();
+      var file = destDir.clone();
+      file.append("no_default_file_name");
+      MockFilePicker.returnFiles = [file];
       try {
         
-        mockFilePickerSettings.destDir = destDir;
-        mockFilePickerSettings.filterIndex = 1; 
         callSaveWithMockObjects(function() {
           var docToSave = innerFrame.contentDocument;
           
@@ -130,7 +134,7 @@ function test() {
           throw "Unexpected failure, the inner frame couldn't be saved!";
 
         
-        var fileContents = readShortFile(mockFilePickerResults.selectedFile);
+        var fileContents = readShortFile(file);
 
         
         ok(fileContents.indexOf("inputfield=outer") === -1,

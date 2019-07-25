@@ -56,7 +56,6 @@ void(function (scriptScope) {
     "testRunner.js",
 
     
-    "mockFilePicker.js",
     "mockTransferForContinuing.js",
     "toolkitFunctions.js",
   ];
