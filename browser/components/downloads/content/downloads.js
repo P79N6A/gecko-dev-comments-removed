@@ -580,7 +580,8 @@ const DownloadsView = {
   onDownloadClick: function DV_onDownloadClick(aEvent)
   {
     
-    if (aEvent.button == 0) {
+    if (aEvent.button == 0 &&
+        !aEvent.originalTarget.hasAttribute("oncommand")) {
       goDoCommand("downloadsCmd_open");
     }
   },
