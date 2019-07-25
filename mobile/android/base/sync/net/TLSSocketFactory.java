@@ -43,19 +43,59 @@ import java.net.Socket;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 
+import android.util.Log;
+
 import ch.boye.httpclientandroidlib.conn.ssl.SSLSocketFactory;
 import ch.boye.httpclientandroidlib.params.HttpParams;
 
 public class TLSSocketFactory extends SSLSocketFactory {
+  private static final String LOG_TAG = "TLSSocketFactory";
+  private static final String[] DEFAULT_CIPHER_SUITES = new String[] {
+    "SSL_RSA_WITH_RC4_128_SHA",        
+  };
+  private static final String[] DEFAULT_PROTOCOLS = new String[] {
+    "SSLv3",
+    "TLSv1"
+  };
+
+  
+  private static String[] cipherSuites = DEFAULT_CIPHER_SUITES;
+
   public TLSSocketFactory(SSLContext sslContext) {
     super(sslContext);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  public static synchronized void setEnabledCipherSuites(SSLSocket socket) {
+    try {
+      socket.setEnabledCipherSuites(cipherSuites);
+    } catch (IllegalArgumentException e) {
+      cipherSuites = socket.getSupportedCipherSuites();
+      Log.d(LOG_TAG, "Setting enabled cipher suites failed: " + e.getMessage());
+      Log.d(LOG_TAG, "Using " + cipherSuites.length + " supported suites.");
+      socket.setEnabledCipherSuites(cipherSuites);
+    }
   }
 
   @Override
   public Socket createSocket(HttpParams params) throws IOException {
     SSLSocket socket = (SSLSocket) super.createSocket(params);
-    socket.setEnabledProtocols(new String[] { "SSLv3", "TLSv1" });
-    socket.setEnabledCipherSuites(new String[] { "SSL_RSA_WITH_RC4_128_SHA" });
+    socket.setEnabledProtocols(DEFAULT_PROTOCOLS);
+    setEnabledCipherSuites(socket);
     return socket;
   }
 
