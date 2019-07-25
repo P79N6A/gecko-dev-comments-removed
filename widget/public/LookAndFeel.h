@@ -35,8 +35,8 @@
 
 
 
-#ifndef __nsILookAndFeel
-#define __nsILookAndFeel
+#ifndef __LookAndFeel
+#define __LookAndFeel
 
 #ifndef MOZILLA_INTERNAL_API
 #error "This header is only usable from within libxul (MOZILLA_INTERNAL_API)."
