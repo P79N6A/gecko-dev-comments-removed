@@ -44,6 +44,8 @@
 #include <X11/extensions/Xrender.h>
 #include <X11/Xlib.h>
 
+#include "GLXLibrary.h"
+
 class THEBES_API gfxXlibSurface : public gfxASurface {
 public:
     
@@ -104,6 +106,8 @@ public:
     
     virtual gfxASurface::MemoryLocation GetMemoryLocation() const;
 
+    GLXPixmap GetGLXPixmap();
+
 protected:
     
     PRBool mPixmapTaken;
@@ -114,6 +118,8 @@ protected:
     void DoSizeQuery();
 
     gfxIntSize mSize;
+
+    GLXPixmap mGLXPixmap;
 };
 
 #endif 
