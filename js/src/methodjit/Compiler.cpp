@@ -767,6 +767,7 @@ mjit::Compiler::generateMethod()
 
           BEGIN_CASE(JSOP_INCGNAME)
             jsop_gnameinc(op, stubs::IncGlobalName, fullAtomIndex(PC));
+            break;
           END_CASE(JSOP_INCGNAME)
 
           BEGIN_CASE(JSOP_INCPROP)
@@ -785,6 +786,7 @@ mjit::Compiler::generateMethod()
 
           BEGIN_CASE(JSOP_DECGNAME)
             jsop_gnameinc(op, stubs::DecGlobalName, fullAtomIndex(PC));
+            break;
           END_CASE(JSOP_DECGNAME)
 
           BEGIN_CASE(JSOP_DECPROP)
@@ -803,6 +805,7 @@ mjit::Compiler::generateMethod()
 
           BEGIN_CASE(JSOP_GNAMEINC)
             jsop_gnameinc(op, stubs::GlobalNameInc, fullAtomIndex(PC));
+            break;
           END_CASE(JSOP_GNAMEINC)
 
           BEGIN_CASE(JSOP_PROPINC)
@@ -821,6 +824,7 @@ mjit::Compiler::generateMethod()
 
           BEGIN_CASE(JSOP_GNAMEDEC)
             jsop_gnameinc(op, stubs::GlobalNameDec, fullAtomIndex(PC));
+            break;
           END_CASE(JSOP_GNAMEDEC)
 
           BEGIN_CASE(JSOP_PROPDEC)
@@ -2947,10 +2951,88 @@ void
 mjit::Compiler::jsop_gnameinc(JSOp op, VoidStubAtom stub, uint32 index)
 {
     JSAtom *atom = script->getAtom(index);
+#if defined JS_MONOIC
+    jsbytecode *next = &PC[JSOP_GNAMEINC_LENGTH];
+    bool pop = (JSOp(*next) == JSOP_POP) && !analysis[next].nincoming;
+    int amt = (op == JSOP_GNAMEINC || op == JSOP_INCGNAME) ? -1 : 1;
+
+    if (pop || (op == JSOP_INCGNAME || op == JSOP_DECGNAME)) {
+        
+
+        jsop_getgname(index);
+        
+
+        frame.push(Int32Value(amt));
+        
+
+        
+        jsop_binary(JSOP_SUB, stubs::Sub);
+        
+
+        jsop_bindgname();
+        
+
+        frame.dup2();
+        
+
+        frame.shift(-3);
+        
+
+        frame.shift(-1);
+        
+
+        jsop_setgname(index);
+        
+
+        if (pop)
+            frame.pop();
+    } else {
+        
+
+        jsop_getgname(index);
+        
+
+        jsop_pos();
+        
+
+        frame.dup();
+        
+
+        frame.push(Int32Value(-amt));
+        
+
+        jsop_binary(JSOP_ADD, stubs::Add);
+        
+
+        jsop_bindgname();
+        
+
+        frame.dup2();
+        
+
+        frame.shift(-3);
+        
+
+        frame.shift(-1);
+        
+
+        jsop_setgname(index);
+        
+
+        frame.pop();
+        
+    }
+
+    if (pop)
+        PC += JSOP_POP_LENGTH;
+#else
     prepareStubCall(Uses(0));
     masm.move(ImmPtr(atom), Registers::ArgReg1);
     stubCall(stub);
     frame.pushSynced();
+#endif
+
+    PC += JSOP_GNAMEINC_LENGTH;
 }
 
 void

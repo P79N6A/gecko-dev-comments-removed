@@ -139,6 +139,12 @@ ic::SetGlobalName(VMFrame &f, uint32 index)
     JSAtom *atom = f.fp()->getScript()->getAtom(GET_INDEX(f.regs.pc));
     jsid id = ATOM_TO_JSID(atom);
 
+    
+    
+    VoidStubAtom stub = js_CodeSpec[*f.regs.pc].format & (JOF_INC | JOF_DEC)
+                      ? stubs::SetGlobalNameDumb
+                      : stubs::SetGlobalName;
+
     JS_ASSERT(mic.kind == ic::MICInfo::SET);
 
     JS_LOCK_OBJ(f.cx, obj);
@@ -152,7 +158,7 @@ ic::SetGlobalName(VMFrame &f, uint32 index)
         JS_UNLOCK_SCOPE(f.cx, scope);
         if (sprop)
             PatchSetFallback(f, mic);
-        stubs::SetGlobalName(f, atom);
+        stub(f, atom);
         return;
     }
     uint32 shape = obj->shape();
@@ -189,7 +195,7 @@ ic::SetGlobalName(VMFrame &f, uint32 index)
 #endif
 
     
-    stubs::SetGlobalName(f, atom);
+    stub(f, atom);
 }
 
 #ifdef JS_CPU_X86
