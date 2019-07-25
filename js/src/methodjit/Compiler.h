@@ -368,6 +368,7 @@ class Compiler : public BaseCompiler
     Rooted<GlobalObject*> globalObj;
     const HeapSlot *globalSlots;  
 
+    SPSInstrumentation sps;
     Assembler masm;
     FrameState frame;
 
