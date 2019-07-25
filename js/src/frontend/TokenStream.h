@@ -600,6 +600,22 @@ class TokenStream
         return sm;
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool checkForKeyword(const jschar *s, size_t length, TokenKind *ttp, JSOp *topp);
+
   private:
     
 
