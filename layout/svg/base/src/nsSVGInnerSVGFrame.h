@@ -56,10 +56,6 @@ public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
-  
-  
-  
-
 #ifdef DEBUG
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
@@ -79,6 +75,10 @@ public:
     return MakeFrameName(NS_LITERAL_STRING("SVGInnerSVG"), aResult);
   }
 #endif
+
+  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
+                               nsIAtom*        aAttribute,
+                               PRInt32         aModType);
 
   
   NS_IMETHOD PaintSVG(nsSVGRenderState *aContext, const nsIntRect *aDirtyRect);
