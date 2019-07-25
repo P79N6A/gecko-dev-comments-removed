@@ -302,6 +302,8 @@ PRBool          nsWindow::sUseElantechGestureHacks = PR_FALSE;
 
 bool            nsWindow::sAllowD3D9              = false;
 
+TriStateBool nsWindow::sHasBogusPopupsDropShadowOnMultiMonitor = TRI_UNKNOWN;
+
 #ifdef ACCESSIBILITY
 BOOL            nsWindow::sIsAccessibilityOn      = FALSE;
 
@@ -1231,8 +1233,7 @@ NS_METHOD nsWindow::Show(PRBool bState)
     
     
     
-    if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
-        gfxWindowsPlatform::RENDER_DIRECT2D &&
+    if (HasBogusPopupsDropShadowOnMultiMonitor() &&
         GetMonitorCount() > 1 &&
         !nsUXThemeData::CheckForCompositor())
     {
@@ -8101,6 +8102,36 @@ nsWindow::StartAllowingD3D9(bool aReinitialize)
   } else {
     EnumAllWindows(AllowD3D9Callback);
   }
+}
+
+bool
+nsWindow::HasBogusPopupsDropShadowOnMultiMonitor() {
+  if (sHasBogusPopupsDropShadowOnMultiMonitor == TRI_UNKNOWN) {
+    
+    
+    
+    sHasBogusPopupsDropShadowOnMultiMonitor =
+      gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
+        gfxWindowsPlatform::RENDER_DIRECT2D ? TRI_TRUE : TRI_FALSE;
+    if (!sHasBogusPopupsDropShadowOnMultiMonitor) {
+      
+      LayerManagerPrefs prefs;
+      GetLayerManagerPrefs(&prefs);
+      if (!prefs.mDisableAcceleration && !prefs.mPreferOpenGL) {
+        nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
+        if (gfxInfo) {
+          PRInt32 status;
+          if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DIRECT3D_9_LAYERS, &status))) {
+            if (status == nsIGfxInfo::FEATURE_NO_INFO || prefs.mForceAcceleration)
+            {
+              sHasBogusPopupsDropShadowOnMultiMonitor = TRI_TRUE;
+            }
+          }
+        }
+      }
+    }
+  }
+  return !!sHasBogusPopupsDropShadowOnMultiMonitor;
 }
 
 
