@@ -46,8 +46,9 @@
 using namespace js;
 using namespace js::ion;
 
-ValueNumberer::ValueNumberer(MIRGraph &graph)
-  : graph_(graph)
+ValueNumberer::ValueNumberer(MIRGraph &graph, bool pessimistic)
+  : graph_(graph),
+    pessimisticPass_(pessimistic)
 { }
 
 
@@ -85,6 +86,11 @@ ValueNumberer::computeValueNumbers()
     
     
     
+    
+    
+    
+    
+    
 
     IonSpew(IonSpew_GVN, "Numbering instructions");
 
@@ -92,6 +98,18 @@ ValueNumberer::computeValueNumbers()
 
     if (!values.init())
         return false;
+
+    
+    
+    
+    if (pessimisticPass_) {
+        for (size_t i = 0; i < graph_.numBlocks(); i++) {
+            MBasicBlock *block = graph_.getBlock(i);
+
+            for (MDefinitionIterator iter(block); iter.more(); iter.next())
+                iter->setValueNumber(iter->id());
+        }
+    }
 
     bool changed = true;
 
@@ -119,6 +137,11 @@ ValueNumberer::computeValueNumbers()
             }
         }
         values.clear();
+
+        
+        
+        if (pessimisticPass_)
+            break;
     }
     return true;
 }
