@@ -80,6 +80,23 @@ let AsyncTests = {
   }
 };
 
+let gCurrentTest = null;
+let gTests = [];
+
+
+function runNextTest() {
+  
+  if (gTests.length > 0) {
+    gCurrentTest = gTests.shift();
+    info(gCurrentTest.desc);
+    gCurrentTest.run();
+  }
+  else {
+    finish();
+  }
+}
+
+let serverRoot = "http://example.com/browser/mobile/chrome/tests/";
 let chromeRoot = getRootDirectory(gTestPath);
 
 

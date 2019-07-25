@@ -1224,7 +1224,6 @@ Browser.MainDragger.prototype = {
     let bcr = browser.getBoundingClientRect();
     this._contentView = browser.getViewAt(clientX - bcr.left, clientY - bcr.top);
     this._stopAtSidebar = 0;
-    this._hitSidebar = false;
     if (this._sidebarTimeout) {
       clearTimeout(this._sidebarTimeout);
       this._sidebarTimeout = null;
@@ -1254,13 +1253,10 @@ Browser.MainDragger.prototype = {
     if (!this.contentMouseCapture)
       this._panContent(doffset);
 
-    if (this._hitSidebar && aIsKinetic)
-      return false; 
+    if (aIsKinetic && doffset.x != 0)
+      return false;
 
-    
-    
-    if (!this.contentMouseCapture || sidebarOffset.x != 0 || sidebarOffset.y > 0)
-      this._panChrome(doffset, sidebarOffset);
+    this._panChrome(doffset, sidebarOffset);
 
     this._updateScrollbars();
 
@@ -1318,17 +1314,21 @@ Browser.MainDragger.prototype = {
     this._panContentView(getBrowser().getRootView(), aOffset);
   },
 
-  _panChrome: function md_panSidebars(aOffset, aSidebarOffset) {
+  _panChrome: function md_panChrome(aOffset, aSidebarOffset) {
+    
+    
+    
+    
+    
     
     let offsetX = aOffset.x;
-    if ((this._stopAtSidebar > 0 && offsetX > 0) ||
-        (this._stopAtSidebar < 0 && offsetX < 0)) {
-      if (offsetX != aSidebarOffset.x)
-        this._hitSidebar = true;
+    if (this.contentMouseCapture)
+      aOffset.set(aSidebarOffset);
+    else if ((this._stopAtSidebar > 0 && offsetX > 0) ||
+             (this._stopAtSidebar < 0 && offsetX < 0))
       aOffset.x = aSidebarOffset.x;
-    } else {
+    else
       aOffset.add(aSidebarOffset);
-    }
 
     Browser.tryFloatToolbar(aOffset.x, 0);
 
