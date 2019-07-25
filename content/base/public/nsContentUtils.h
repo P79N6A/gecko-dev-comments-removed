@@ -468,6 +468,8 @@ public:
 
   static nsresult CheckSameOrigin(nsINode* aTrustedNode,
                                   nsIDOMNode* aUnTrustedNode);
+  static nsresult CheckSameOrigin(nsINode* aTrustedNode,
+                                  nsINode* unTrustedNode);
 
   
   static bool CanCallerAccess(nsIDOMNode *aNode);
