@@ -624,7 +624,7 @@ void IdentifyBuiltIns(ShShaderType type, ShShaderSpec spec,
     switch(type) {
     case SH_FRAGMENT_SHADER: {
             
-            TType fragData(EbtFloat, EbpMedium, EvqFragColor,   4, false, true);
+            TType fragData(EbtFloat, EbpMedium, EvqFragData, 4, false, true);
             fragData.setArraySize(resources.MaxDrawBuffers);
             symbolTable.insert(*new TVariable(NewPoolTString("gl_FragData"),    fragData));
         }
