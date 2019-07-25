@@ -39,7 +39,7 @@
 
 
 
-#include "nsIChannel.h"
+#include "nsISupports.h"
 #include "mozilla/net/ChannelEventQueue.h"
 
 namespace mozilla {
@@ -51,7 +51,7 @@ ChannelEventQueue::FlushQueue()
   
   
   
-  nsCOMPtr<nsIChannel> kungFuDeathGrip(mOwner);
+  nsCOMPtr<nsISupports> kungFuDeathGrip(mOwner);
 
   
   mFlushing = true;
