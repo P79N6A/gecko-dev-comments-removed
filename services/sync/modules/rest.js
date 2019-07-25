@@ -412,42 +412,7 @@ RESTRequest.prototype = {
     }
     this.status = this.COMPLETED;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    let requestStatus = Cr.NS_ERROR_UNEXPECTED;
     let statusSuccess = Components.isSuccessCode(statusCode);
-    try {
-      
-      requestStatus = channel.status;
-      this._log.trace("Request status is " + requestStatus);
-    } catch (ex) {
-      this._log.warn("Got exception " + Utils.exceptionStr(ex) +
-                     " fetching channel.status.");
-    }
-    if (statusSuccess && (statusCode != requestStatus)) {
-      this._log.error("Request status " + requestStatus +
-                      " does not match status arg " + statusCode);
-      try {
-        channel.responseStatus;
-      } catch (ex) {
-        this._log.error("... and we got " + Utils.exceptionStr(ex) +
-                        " retrieving responseStatus.");
-      }
-    }
-
-    let requestStatusSuccess = Components.isSuccessCode(requestStatus);
-
     let uri = channel && channel.URI && channel.URI.spec || "<unknown>";
     this._log.trace("Channel for " + channel.requestMethod + " " + uri +
                     " returned status code " + statusCode);
@@ -455,7 +420,7 @@ RESTRequest.prototype = {
     
     
     
-    if (!statusSuccess || !requestStatusSuccess) {
+    if (!statusSuccess) {
       let message = Components.Exception("", statusCode).name;
       let error = Components.Exception(message, statusCode);
       this.onComplete(error);

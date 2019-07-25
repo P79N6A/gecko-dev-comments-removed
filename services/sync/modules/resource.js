@@ -538,45 +538,10 @@ ChannelListener.prototype = {
     
     this.abortTimer.clear();
 
-    
-
-
-
-
-
-
-
-
-
-
-    let requestStatus = Cr.NS_ERROR_UNEXPECTED;
     let statusSuccess = Components.isSuccessCode(status);
-    try {
-      
-      requestStatus = channel.status;
-      this._log.trace("Request status is " + requestStatus);
-    } catch (ex) {
-      this._log.warn("Got exception " + Utils.exceptionStr(ex) +
-                     " fetching channel.status.");
-    }
-    if (statusSuccess && (status != requestStatus)) {
-      this._log.error("Request status " + requestStatus +
-                      " does not match status arg " + status);
-      try {
-        channel.responseStatus;
-      } catch (ex) {
-        this._log.error("... and we got " + Utils.exceptionStr(ex) +
-                        " retrieving responseStatus.");
-      }
-    }
-
-    let requestStatusSuccess = Components.isSuccessCode(requestStatus);
-
     let uri = channel && channel.URI && channel.URI.spec || "<unknown>";
     this._log.trace("Channel for " + channel.requestMethod + " " + uri + ": " +
-                    "isSuccessCode(" + status + ")? " + statusSuccess + ", " +
-                    "isSuccessCode(" + requestStatus + ")? " +
-                    requestStatusSuccess);
+                    "isSuccessCode(" + status + ")? " + statusSuccess);
 
     if (this._data == '') {
       this._data = null;
@@ -585,14 +550,9 @@ ChannelListener.prototype = {
     
     
     
-    
-    
-    
-    if (!statusSuccess || !requestStatusSuccess) {
-      
-      let code    = statusSuccess ? requestStatus : status;
-      let message = Components.Exception("", code).name;
-      let error   = Components.Exception(message, code);
+    if (!statusSuccess) {
+      let message = Components.Exception("", status).name;
+      let error   = Components.Exception(message, status);
       this._onComplete(error, undefined, channel);
       return;
     }
