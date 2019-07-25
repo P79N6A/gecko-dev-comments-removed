@@ -22,6 +22,8 @@ struct nsTransition;
 
 struct ElementPropertyTransition
 {
+  ElementPropertyTransition() {}
+
   nsCSSProperty mProperty;
   nsStyleAnimation::Value mStartValue, mEndValue;
   mozilla::TimeStamp mStartTime; 
@@ -29,7 +31,7 @@ struct ElementPropertyTransition
   
   mozilla::TimeDuration mDuration;
   mozilla::css::ComputedTimingFunction mTimingFunction;
-  
+
   
   
   
@@ -46,24 +48,27 @@ struct ElementPropertyTransition
   
   
   double mReversePortion;
-  
+
   
   
   
   double ValuePortionFor(mozilla::TimeStamp aRefreshTime) const;
-  
+
   bool IsRemovedSentinel() const
   {
     return mStartTime.IsNull();
   }
-  
+
   void SetRemovedSentinel()
   {
     
     mStartTime = mozilla::TimeStamp();
   }
+
+  bool CanPerformOnCompositor(mozilla::dom::Element* aElement,
+                              mozilla::TimeStamp aTime) const;
 };
-  
+
 struct ElementTransitions : public mozilla::css::CommonElementAnimationData
 {
   ElementTransitions(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
@@ -71,11 +76,13 @@ struct ElementTransitions : public mozilla::css::CommonElementAnimationData
 
   void EnsureStyleRuleFor(mozilla::TimeStamp aRefreshTime);
 
+
+  bool HasTransitionOfProperty(nsCSSProperty aProperty) const;
   
-  
+  bool CanPerformOnCompositorThread() const;
   
   nsTArray<ElementPropertyTransition> mPropertyTransitions;
-  
+
   
   
   
@@ -95,6 +102,26 @@ public:
   nsTransitionManager(nsPresContext *aPresContext)
     : mozilla::css::CommonAnimationManager(aPresContext)
   {
+  }
+
+  static ElementTransitions* GetTransitions(nsIContent* aContent) {
+    return static_cast<ElementTransitions*>
+      (aContent->GetProperty(nsGkAtoms::transitionsProperty));
+  }
+
+  static ElementTransitions*
+    GetTransitionsForCompositor(nsIContent* aContent,
+                                nsCSSProperty aProperty)
+  {
+    if (!aContent->MayHaveAnimations())
+      return nsnull;
+    ElementTransitions* transitions = GetTransitions(aContent);
+    if (!transitions ||
+        !transitions->HasTransitionOfProperty(aProperty) ||
+        !transitions->CanPerformOnCompositorThread()) {
+      return nsnull;
+    }
+    return transitions;
   }
 
   
