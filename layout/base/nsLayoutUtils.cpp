@@ -1240,6 +1240,12 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
     visibleRegion = aDirtyRegion;
   }
 
+  
+  
+  
+  PRBool willFlushLayers = aFlags & (PAINT_IGNORE_VIEWPORT_SCROLLING |
+                                     PAINT_HIDE_CARET);
+
   nsDisplayListBuilder builder(aFrame, PR_FALSE, !(aFlags & PAINT_HIDE_CARET));
   nsDisplayList list;
   if (aFlags & PAINT_IN_TRANSFORM) {
@@ -1251,8 +1257,9 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
   if (aFlags & PAINT_WIDGET_LAYERS) {
     builder.SetPaintingToWindow(PR_TRUE);
   }
-  if (aFlags & PAINT_IGNORE_SUPPRESSION) {
+  if ((aFlags & PAINT_IGNORE_SUPPRESSION) && builder.IsBackgroundOnly()) {
     builder.SetBackgroundOnly(PR_FALSE);
+    willFlushLayers = PR_TRUE;
   }
   nsRect canvasArea(nsPoint(0, 0), aFrame->GetSize());
   if (aFlags & PAINT_IGNORE_VIEWPORT_SCROLLING) {
@@ -1321,13 +1328,6 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
                                                             frameDirty, &list);
     }
   }
-
-  
-  
-  
-  PRBool willFlushLayers = aFlags & (PAINT_IGNORE_SUPPRESSION |
-                                     PAINT_IGNORE_VIEWPORT_SCROLLING |
-                                     PAINT_HIDE_CARET);
 
   
   
