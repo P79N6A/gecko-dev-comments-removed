@@ -720,7 +720,12 @@ WidgetStack.prototype = {
     this._viewingRect.width = width;
     this._viewingRect.height = height;
 
+    
+    
+    
+    this.beginUpdateBatch();
     this._adjustViewingRect();
+    this.endUpdateBatch();
   },
 
   beginUpdateBatch: function startUpdate() {
