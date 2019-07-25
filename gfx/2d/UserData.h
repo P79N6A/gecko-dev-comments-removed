@@ -35,6 +35,8 @@
 
 
 
+#ifndef MOZILLA_GFX_USERDATA_H_
+#define MOZILLA_GFX_USERDATA_H_
 
 #include <stdlib.h>
 #include "mozilla/mozalloc.h"
@@ -58,6 +60,9 @@ public:
   {
     
     
+
+    
+    
     
     
     entries = static_cast<Entry*>(moz_xrealloc(entries, sizeof(Entry)*(count+1)));
@@ -70,6 +75,21 @@ public:
   }
 
   
+  void* Remove(UserDataKey *key)
+  {
+    for (int i=0; i<count; i++) {
+      if (key == entries[i].key) {
+        void *userData = entries[i].userData;
+        
+        --count;
+        for (;i<count; i++) {
+          entries[i] = entries[i+1];
+        }
+        return userData;
+      }
+    }
+    return NULL;
+  }
 
   
   void *Get(UserDataKey *key)
@@ -105,4 +125,4 @@ private:
 }
 }
 
-
+#endif 

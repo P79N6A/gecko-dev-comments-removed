@@ -47,6 +47,7 @@
 #include "gfxFont.h"
 #include "nsTextFragment.h"
 
+class nsRenderingContext;
 class nsSVGTextFrame;
 class nsSVGTextPathFrame;
 class nsSVGGlyphFrame;
@@ -172,7 +173,7 @@ public:
 
   
   
-  NS_IMETHOD PaintSVG(nsSVGRenderState *aContext,
+  NS_IMETHOD PaintSVG(nsRenderingContext *aContext,
                       const nsIntRect *aDirtyRect);
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
   NS_IMETHOD UpdateCoveredRegion();
