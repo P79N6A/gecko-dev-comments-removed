@@ -84,6 +84,7 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     FrameSizeClass frameClass_;
 
+    
     inline int32 ArgToStackOffset(int32 slot) const {
         JS_ASSERT(slot >= 0);
         return masm.framePushed() + ION_FRAME_PREFIX_SIZE + slot;
@@ -91,7 +92,18 @@ class CodeGeneratorShared : public LInstructionVisitor
 
     inline int32 SlotToStackOffset(int32 slot) const {
         JS_ASSERT(slot > 0 && slot <= int32(graph.localSlotCount()));
-        int32 offset = masm.framePushed() - slot * STACK_SLOT_SIZE;
+        int32 offset = masm.framePushed() - (slot * STACK_SLOT_SIZE);
+        JS_ASSERT(offset >= 0);
+        return offset;
+    }
+
+    
+    inline int32 StackOffsetOfPassedArg(int32 slot) const {
+        
+        JS_ASSERT(slot >= 0 && slot <= int32(graph.argumentSlotCount()));
+        int32 offset = masm.framePushed() -
+                       (graph.localSlotCount() * STACK_SLOT_SIZE) -
+                       (slot * sizeof(Value));
         JS_ASSERT(offset >= 0);
         return offset;
     }

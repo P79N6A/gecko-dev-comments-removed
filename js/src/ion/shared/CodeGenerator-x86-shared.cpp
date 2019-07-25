@@ -628,6 +628,88 @@ CodeGeneratorX86Shared::visitTableSwitch(LTableSwitch *ins)
 }
 
 bool
+CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
+{
+    
+    const LAllocation *obj = call->getFunction();
+    Register objreg  = ToRegister(obj);
+
+    
+    const LAllocation *tok = call->getToken();
+    Register tokreg  = ToRegister(tok);
+
+    
+    const LAllocation *nargs = call->getNargsReg();
+    Register nargsreg = ToRegister(nargs);
+
+    uint32 callargslot  = call->argslot();
+    uint32 unused_stack = StackOffsetOfPassedArg(callargslot);
+
+
+    
+    masm.movePtr(Operand(objreg, JSObject::offsetOfClassPointer()), tokreg);
+    masm.cmpPtr(tokreg, ImmWord(&js::FunctionClass));
+    if (!bailoutIf(Assembler::NotEqual, call->snapshot()))
+        return false;
+
+    
+    
+    masm.movl(Operand(objreg, offsetof(JSFunction, flags)), tokreg);
+    masm.andl(Imm32(JSFUN_KINDMASK), tokreg);
+    masm.cmpl(tokreg, Imm32(JSFUN_INTERPRETED));
+    if (!bailoutIf(Assembler::Below, call->snapshot()))
+        return false;
+
+    
+    masm.mov(objreg, tokreg);
+
+    
+    masm.movePtr(Operand(objreg, offsetof(JSFunction, u.i.script)), objreg);
+    masm.movePtr(Operand(objreg, offsetof(JSScript, ion)), objreg);
+
+    
+    masm.testPtr(objreg, objreg);
+    if (!bailoutIf(Assembler::Zero, call->snapshot()))
+        return false;
+
+    
+    uint32 stack_size = masm.framePushed() - unused_stack;
+    
+    uint32 size_descriptor = stack_size << 1;
+
+    
+    
+    masm.load16(Operand(tokreg, offsetof(JSFunction, nargs)), nargsreg);
+    masm.cmpl(nargsreg, Imm32(call->nargs()));
+    if (!bailoutIf(Assembler::NotEqual, call->snapshot()))
+        return false;
+
+    
+    if (unused_stack)
+        masm.addPtr(Imm32(unused_stack), StackPointer);
+
+    
+    masm.push(tokreg);
+    masm.push(Imm32(size_descriptor));
+
+    
+    masm.movePtr(Operand(objreg, offsetof(IonScript, method_)), objreg);
+    masm.movePtr(Operand(objreg, IonCode::OffsetOfCode()), objreg);
+    masm.call(objreg);
+
+    
+    int prefix_garbage = 2 * sizeof(void *);
+    int restore_diff = prefix_garbage - unused_stack;
+    
+    if (restore_diff > 0)
+        masm.addPtr(Imm32(restore_diff), StackPointer);
+    else if (restore_diff < 0)
+        masm.subPtr(Imm32(-restore_diff), StackPointer);
+
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitMathD(LMathD *math)
 {
     const LAllocation *input = math->getOperand(1);

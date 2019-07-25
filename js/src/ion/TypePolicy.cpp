@@ -285,3 +285,30 @@ TableSwitchPolicy::adjustInputs(MInstruction *ins)
     return true;
 }
 
+void
+CallPolicy::specializeInputs(MInstruction *ins, TypeAnalysis *analysis)
+{
+    analysis->preferType(ins->getOperand(0), MIRType_Object);
+}
+
+bool
+CallPolicy::adjustInputs(MInstruction *ins)
+{
+    MCall *call = ins->toCall();
+
+    MDefinition *func = call->getFunction();
+    if (func->type() == MIRType_Object)
+        return true;
+
+    
+    
+    if (func->type() != MIRType_Value)
+        func = boxAt(call, func);
+
+    MInstruction *unbox = MUnbox::New(func, MIRType_Object);
+    call->block()->insertBefore(call, unbox);
+    call->replaceFunction(unbox);
+
+    return true;
+}
+

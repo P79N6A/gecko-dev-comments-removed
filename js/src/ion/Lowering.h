@@ -67,9 +67,15 @@ class LIRGenerator : public LIRGeneratorSpecific
     void updateResumeState(MInstruction *ins);
     void updateResumeState(MBasicBlock *block);
 
+    
+    uint32 argslots_;
+    
+    uint32 maxargslots_;
+
   public:
     LIRGenerator(MIRGenerator *gen, MIRGraph &graph, LIRGraph &lirGraph)
-      : LIRGeneratorSpecific(gen, graph, lirGraph)
+      : LIRGeneratorSpecific(gen, graph, lirGraph),
+        argslots_(0), maxargslots_(0)
     { }
 
     bool generate();
@@ -80,6 +86,15 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool precreatePhi(LBlock *block, MPhi *phi);
     bool definePhis();
 
+    
+    void allocateArguments(uint32 argc);
+    
+    
+    uint32 getArgumentSlot(uint32 argnum);
+    uint32 getArgumentSlotForCall() { return argslots_; }
+    
+    void freeArguments(uint32 argc);
+
   public:
     bool visitInstruction(MInstruction *ins);
     bool visitBlock(MBasicBlock *block);
@@ -89,6 +104,9 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitParameter(MParameter *param);
     bool visitTableSwitch(MTableSwitch *tableswitch);
     bool visitGoto(MGoto *ins);
+    bool visitPrepareCall(MPrepareCall *ins);
+    bool visitPassArg(MPassArg *arg);
+    bool visitCall(MCall *call);
     bool visitTest(MTest *test);
     bool visitCompare(MCompare *comp);
     bool visitBitNot(MBitNot *ins);

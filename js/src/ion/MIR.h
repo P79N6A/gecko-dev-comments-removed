@@ -795,6 +795,96 @@ class MReturn
     }
 };
 
+
+
+
+class MPrepareCall : public MAryInstruction<0>
+{
+  public:
+    INSTRUCTION_HEADER(PrepareCall);
+
+    MPrepareCall()
+    { }
+
+    
+    uint32 argc() const;
+};
+
+class MVariadicInstruction : public MInstruction
+{
+    FixedList<MDefinition *> operands_;
+
+  protected:
+    bool init(size_t length) {
+        return operands_.init(length);
+    }
+
+  public:
+    
+    MDefinition *getOperand(size_t index) const {
+        return operands_[index];
+    }
+    size_t numOperands() const {
+        return operands_.length();
+    }
+    void setOperand(size_t index, MDefinition *operand) {
+        operands_[index] = operand;
+    }
+};
+
+class MCall
+  : public MVariadicInstruction,
+    public CallPolicy
+{
+  private:
+    
+    
+    static const size_t PrepareCallOperandIndex  = 0;
+    static const size_t FunctionOperandIndex   = 1;
+    static const size_t NumNonArgumentOperands = 2;
+
+  protected:
+    MCall()
+    {
+        setResultType(MIRType_Value);
+    }
+
+  public:
+    INSTRUCTION_HEADER(Call);
+    static MCall *New(size_t argc);
+
+    void initPrepareCall(MDefinition *start) {
+        JS_ASSERT(start->isPrepareCall());
+        return initOperand(PrepareCallOperandIndex, start);
+    }
+    void initFunction(MDefinition *func) {
+        JS_ASSERT(!func->isPassArg());
+        return initOperand(FunctionOperandIndex, func);
+    }
+
+    MDefinition *getFunction() const {
+        return getOperand(FunctionOperandIndex);
+    }
+    void replaceFunction(MInstruction *newfunc) {
+        replaceOperand(FunctionOperandIndex, newfunc);
+    }
+
+    void addArg(size_t argnum, MPassArg *arg);
+
+    MDefinition *getArg(uint32 index) const {
+        return getOperand(NumNonArgumentOperands + index);
+    }
+
+    
+    uint32 argc() const {
+        return numOperands() - NumNonArgumentOperands;
+    }
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
+};
+
 class MUnaryInstruction : public MAryInstruction<1>
 {
   protected:
@@ -939,6 +1029,49 @@ class MUnbox : public MUnaryInstruction
     static MUnbox *New(MDefinition *ins, MIRType type)
     {
         return new MUnbox(ins, type);
+    }
+};
+
+
+
+
+
+
+class MPassArg
+  : public MUnaryInstruction,
+    public BoxInputsPolicy
+{
+    int32 argnum_;
+
+  private:
+    MPassArg(MDefinition *def)
+      : MUnaryInstruction(def), argnum_(-1) 
+    {
+        setResultType(MIRType_Value);
+    }
+
+  public:
+    INSTRUCTION_HEADER(PassArg);
+    static MPassArg *New(MDefinition *def)
+    {
+        return new MPassArg(def);
+    }
+
+    MDefinition *getArgument() const {
+        return getOperand(0);
+    }
+
+    
+    void setArgnum(uint32 argnum) {
+        argnum_ = argnum;
+    }
+    uint32 getArgnum() const {
+        JS_ASSERT(argnum_ >= 0);
+        return (uint32)argnum_;
+    }
+
+    TypePolicy *typePolicy() {
+        return this;
     }
 };
 

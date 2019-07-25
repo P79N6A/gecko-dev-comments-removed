@@ -117,6 +117,9 @@ class Registers {
         (1 << JSC::X86Registers::r11);      
 
     static const uint32 AllocatableMask = AllMask & ~NonAllocatableMask;
+
+    static const uint32 JSCallClobberMask =
+        AllocatableMask & ~(1 << JSC::X86Registers::ecx);
 };
 
 class FloatRegisters {
@@ -157,6 +160,8 @@ class FloatRegisters {
         (1 << JSC::X86Registers::xmm15);    
 
     static const uint32 AllocatableMask = AllMask & ~NonAllocatableMask;
+
+    static const uint32 JSCallClobberMask = AllocatableMask;
 };
 
 } 

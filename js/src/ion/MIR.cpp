@@ -356,6 +356,15 @@ MParameter::congruentTo(MDefinition * const &ins) const
     return ins->toParameter()->index() == index_;
 }
 
+MCall *
+MCall::New(size_t argc)
+{
+    MCall *ins = new MCall;
+    if (!ins->init(argc + NumNonArgumentOperands))
+        return NULL;
+    return ins;
+}
+
 MCopy *
 MCopy::New(MDefinition *ins)
 {
@@ -452,6 +461,23 @@ MReturn *
 MReturn::New(MDefinition *ins)
 {
     return new MReturn(ins);
+}
+
+uint32
+MPrepareCall::argc() const
+{
+    JS_ASSERT(useCount() == 1);
+    MCall *call = usesBegin()->node()->toDefinition()->toCall();
+    return call->argc();
+}
+
+void
+MCall::addArg(size_t argnum, MPassArg *arg)
+{
+    
+    
+    arg->setArgnum(argnum);
+    return MNode::initOperand(argnum + NumNonArgumentOperands, arg->toDefinition());
 }
 
 void

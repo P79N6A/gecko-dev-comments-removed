@@ -240,6 +240,9 @@ class Assembler : public AssemblerX86Shared
         masm.movl_i32r(label->prev(), dest.code());
         label->setPrev(masm.size());
     }
+    void mov(const Register &src, const Register &dest) {
+        movl(src, dest);
+    }
     void lea(const Operand &src, const Register &dest) {
         switch (src.kind()) {
           case Operand::REG_DISP:
