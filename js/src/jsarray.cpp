@@ -2595,6 +2595,12 @@ array_concat(JSContext *cx, uintN argc, Value *vp)
             }
         }
 
+        
+
+
+
+        cx->addTypePropertyId(ntype, JSID_VOID, v);
+
         if (!SetArrayElement(cx, nobj, length, v))
             return false;
         length++;
