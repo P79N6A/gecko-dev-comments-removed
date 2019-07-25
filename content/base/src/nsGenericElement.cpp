@@ -542,6 +542,96 @@ nsINode::RemoveChild(nsIDOMNode* aOldChild, nsIDOMNode** aReturn)
 }
 
 nsresult
+nsINode::Normalize()
+{
+  
+  nsAutoTArray<nsCOMPtr<nsIContent>, 50> nodes;
+
+  PRBool canMerge = PR_FALSE;
+  for (nsIContent* node = this->GetFirstChild();
+       node;
+       node = node->GetNextNode(this)) {
+    if (node->NodeType() != nsIDOMNode::TEXT_NODE) {
+      canMerge = PR_FALSE;
+      continue;
+    }
+
+    if (canMerge || node->TextLength() == 0) {
+      
+      
+      nodes.AppendElement(node);
+    }
+    else {
+      canMerge = PR_TRUE;
+    }
+
+    
+    
+    canMerge = canMerge && !!node->GetNextSibling();
+  }
+
+  if (nodes.IsEmpty()) {
+    return NS_OK;
+  }
+
+  
+  nsIDocument* doc = GetOwnerDoc();
+
+  
+  mozAutoSubtreeModified subtree(doc, nsnull);
+
+  
+  
+  PRBool hasRemoveListeners = nsContentUtils::
+      HasMutationListeners(doc, NS_EVENT_BITS_MUTATION_NODEREMOVED);
+  if (hasRemoveListeners) {
+    for (PRUint32 i = 0; i < nodes.Length(); ++i) {
+      nsContentUtils::MaybeFireNodeRemoved(nodes[i], nodes[i]->GetNodeParent(),
+                                           doc);
+    }
+  }
+
+  mozAutoDocUpdate batch(doc, UPDATE_CONTENT_MODEL, PR_TRUE);
+
+  
+  nsAutoString tmpStr;
+  for (PRUint32 i = 0; i < nodes.Length(); ++i) {
+    nsIContent* node = nodes[i];
+    
+    const nsTextFragment* text = node->GetText();
+    if (text->GetLength()) {
+      nsIContent* target = node->GetPreviousSibling();
+      NS_ASSERTION((target && target->NodeType() == nsIDOMNode::TEXT_NODE) ||
+                   hasRemoveListeners,
+                   "Should always have a previous text sibling unless "
+                   "mutation events messed us up");
+      if (!hasRemoveListeners ||
+          (target && target->NodeType() == nsIDOMNode::TEXT_NODE)) {
+        if (text->Is2b()) {
+          target->AppendText(text->Get2b(), text->GetLength(), PR_TRUE);
+        }
+        else {
+          tmpStr.Truncate();
+          text->AppendTo(tmpStr);
+          target->AppendText(tmpStr.get(), tmpStr.Length(), PR_TRUE);
+        }
+      }
+    }
+
+    
+    nsINode* parent = node->GetNodeParent();
+    NS_ASSERTION(parent || hasRemoveListeners,
+                 "Should always have a parent unless "
+                 "mutation events messed us up");
+    if (parent) {
+      parent->RemoveChildAt(parent->IndexOf(node), PR_TRUE);
+    }
+  }
+
+  return NS_OK;
+}
+
+nsresult
 nsINode::GetDOMBaseURI(nsAString &aURI) const
 {
   nsCOMPtr<nsIURI> baseURI = GetBaseURI();
@@ -2617,103 +2707,6 @@ nsGenericElement::HasAttributeNS(const nsAString& aNamespaceURI,
   *aReturn = HasAttr(nsid, name);
 
   return NS_OK;
-}
-
-nsresult
-nsGenericElement::JoinTextNodes(nsIContent* aFirst,
-                                nsIContent* aSecond)
-{
-  nsresult rv = NS_OK;
-  nsCOMPtr<nsIDOMText> firstText(do_QueryInterface(aFirst, &rv));
-
-  if (NS_SUCCEEDED(rv)) {
-    nsCOMPtr<nsIDOMText> secondText(do_QueryInterface(aSecond, &rv));
-
-    if (NS_SUCCEEDED(rv)) {
-      nsAutoString str;
-
-      rv = secondText->GetData(str);
-      if (NS_SUCCEEDED(rv)) {
-        rv = firstText->AppendData(str);
-      }
-    }
-  }
-
-  return rv;
-}
-
-nsresult
-nsGenericElement::Normalize()
-{
-  
-  nsIDocument* doc = GetOwnerDoc();
-
-  
-  mozAutoSubtreeModified subtree(doc, nsnull);
-
-  bool hasRemoveListeners = nsContentUtils::
-    HasMutationListeners(doc, NS_EVENT_BITS_MUTATION_NODEREMOVED);
-
-  nsresult result = NS_OK;
-  PRUint32 index, count = GetChildCount();
-
-  for (index = 0; (index < count) && (NS_OK == result); index++) {
-    nsIContent *child = GetChildAt(index);
-
-    switch (child->NodeType()) {
-      case nsIDOMNode::TEXT_NODE:
-
-        
-        if (0 == child->TextLength()) {
-          if (hasRemoveListeners) {
-            nsContentUtils::MaybeFireNodeRemoved(child, this, doc);
-          }
-          result = RemoveChildAt(index, PR_TRUE);
-          if (NS_FAILED(result)) {
-            return result;
-          }
-
-          count--;
-          index--;
-          break;
-        }
-
-        if (index+1 < count) {
-          
-          
-          
-          nsCOMPtr<nsIContent> sibling = GetChildAt(index + 1);
-
-          if (sibling->NodeType() == nsIDOMNode::TEXT_NODE) {
-            if (hasRemoveListeners) {
-              nsContentUtils::MaybeFireNodeRemoved(sibling, this, doc);
-            }
-            result = RemoveChildAt(index+1, PR_TRUE);
-            if (NS_FAILED(result)) {
-              return result;
-            }
-
-            result = JoinTextNodes(child, sibling);
-            if (NS_FAILED(result)) {
-              return result;
-            }
-            count--;
-            index--;
-          }
-        }
-        break;
-
-      case nsIDOMNode::ELEMENT_NODE:
-        nsCOMPtr<nsIDOMElement> element = do_QueryInterface(child);
-
-        if (element) {
-          result = element->Normalize();
-        }
-        break;
-    }
-  }
-
-  return result;
 }
 
 static nsXBLBinding*
