@@ -459,6 +459,27 @@ nsIOService::GetProtocolHandler(const char* scheme, nsIProtocolHandler* *result)
         
         
 
+        rv = CallGetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX"moz-gio",
+                            result);
+        if (NS_SUCCEEDED(rv)) {
+            nsCAutoString spec(scheme);
+            spec.Append(':');
+
+            nsIURI *uri;
+            rv = (*result)->NewURI(spec, nsnull, nsnull, &uri);
+            if (NS_SUCCEEDED(rv)) {
+                NS_RELEASE(uri);
+                return rv;
+            }
+
+            NS_RELEASE(*result);
+        }
+
+        
+        
+        
+        
+
         
         
 
