@@ -203,20 +203,15 @@ static const uint32_t TCF_FUN_FLAGS = TCF_FUN_HEAVYWEIGHT |
                                       TCF_ARGUMENTS_HAS_LOCAL_BINDING |
                                       TCF_DEFINITELY_NEEDS_ARGS_OBJ;
 
-typedef HashSet<JSAtom *> FuncStmtSet;
 
-struct Parser;
 struct StmtInfo;
 
-struct TreeContext {                
+struct SharedContext {
     JSContext       *context;
 
     uint32_t        flags;          
     uint32_t        bodyid;         
     uint32_t        blockidGen;     
-    uint32_t        parenDepth;     
-
-    uint32_t        yieldCount;     
 
     StmtInfo        *topStmt;       
     StmtInfo        *topScopeStmt;  
@@ -224,25 +219,44 @@ struct TreeContext {
                                     
 
 
-    ParseNode       *blockNode;     
-
-    AtomDecls       decls;          
-    ParseNode       *yieldNode;     
-
-
-    ParseNode       *argumentsNode; 
-
-
 
   private:
-    TreeContext     **parserTC;      
-
-
     RootedVarFunction fun_;         
 
     RootedVarObject   scopeChain_;  
 
   public:
+    unsigned        staticLevel;    
+
+    FunctionBox     *funbox;        
+
+
+    FunctionBox     *functionList;
+
+    Bindings        bindings;       
+
+    Bindings::StackRoot bindingsRoot; 
+
+    inline SharedContext(JSContext *cx);
+
+    bool inFunction()                  const { return flags & TCF_IN_FUNCTION; }
+    bool compileAndGo()                const { return flags & TCF_COMPILE_N_GO; }
+    bool inStrictMode()                const { return flags & TCF_STRICT_MODE_CODE; }
+    bool bindingsAccessedDynamically() const { return flags & TCF_BINDINGS_ACCESSED_DYNAMICALLY; }
+    bool mightAliasLocals()            const { return flags & TCF_FUN_MIGHT_ALIAS_LOCALS; }
+    bool hasExtensibleScope()          const { return flags & TCF_FUN_EXTENSIBLE_SCOPE; }
+    bool argumentsHasLocalBinding()    const { return flags & TCF_ARGUMENTS_HAS_LOCAL_BINDING; }
+    bool definitelyNeedsArgsObj()      const { return flags & TCF_DEFINITELY_NEEDS_ARGS_OBJ; }
+
+    void noteMightAliasLocals()             { flags |= TCF_FUN_MIGHT_ALIAS_LOCALS; }
+    void noteBindingsAccessedDynamically()  { flags |= TCF_BINDINGS_ACCESSED_DYNAMICALLY; }
+    void noteHasExtensibleScope()           { flags |= TCF_FUN_EXTENSIBLE_SCOPE; }
+    void noteArgumentsHasLocalBinding()     { flags |= TCF_ARGUMENTS_HAS_LOCAL_BINDING; }
+    void noteDefinitelyNeedsArgsObj()       { JS_ASSERT(argumentsHasLocalBinding());
+                                              flags |= TCF_DEFINITELY_NEEDS_ARGS_OBJ; }
+
+    unsigned argumentsLocalSlot() const;
+
     JSFunction *fun() const {
         JS_ASSERT(inFunction());
         return fun_;
@@ -260,49 +274,6 @@ struct TreeContext {
         scopeChain_ = scopeChain;
     }
 
-    OwnedAtomDefnMapPtr lexdeps;    
-
-    TreeContext     *parent;        
-
-    unsigned        staticLevel;    
-
-    FunctionBox     *funbox;        
-
-
-    FunctionBox     *functionList;
-
-    ParseNode       *innermostWith; 
-
-    Bindings        bindings;       
-
-    Bindings::StackRoot bindingsRoot; 
-
-    FuncStmtSet *funcStmts;         
-
-
-
-    void trace(JSTracer *trc);
-
-    inline TreeContext(Parser *prs);
-    inline ~TreeContext();
-
-    
-    
-    
-    
-    enum InitBehavior {
-        USED_AS_TREE_CONTEXT,
-        USED_AS_CODE_GENERATOR
-    };
-
-    bool init(JSContext *cx, InitBehavior ib = USED_AS_TREE_CONTEXT) {
-        if (cx->hasRunOption(JSOPTION_STRICT_MODE))
-            flags |= TCF_STRICT_MODE_CODE;
-        if (ib == USED_AS_CODE_GENERATOR)
-            return true;
-        return decls.init() && lexdeps.ensureMap(cx);
-    }
-
     unsigned blockid();
 
     
@@ -314,59 +285,53 @@ struct TreeContext {
     
     bool atBodyLevel();
 
-    bool inStrictMode() const {
-        return flags & TCF_STRICT_MODE_CODE;
-    }
-
     
     
     inline bool needStrictChecks();
+};
 
-    bool compileAndGo() const { return flags & TCF_COMPILE_N_GO; }
-    bool inFunction() const { return flags & TCF_IN_FUNCTION; }
+typedef HashSet<JSAtom *> FuncStmtSet;
+struct Parser;
+ 
+struct TreeContext {                
+    SharedContext   *sc;            
+ 
+    uint32_t        parenDepth;     
 
-    void noteBindingsAccessedDynamically() {
-        flags |= TCF_BINDINGS_ACCESSED_DYNAMICALLY;
-    }
+    uint32_t        yieldCount;     
 
-    bool bindingsAccessedDynamically() const {
-        return flags & TCF_BINDINGS_ACCESSED_DYNAMICALLY;
-    }
+    ParseNode       *blockNode;     
 
-    void noteMightAliasLocals() {
-        flags |= TCF_FUN_MIGHT_ALIAS_LOCALS;
-    }
+    AtomDecls       decls;          
+    ParseNode       *yieldNode;     
 
-    bool mightAliasLocals() const {
-        return flags & TCF_FUN_MIGHT_ALIAS_LOCALS;
-    }
 
-    void noteArgumentsHasLocalBinding() {
-        flags |= TCF_ARGUMENTS_HAS_LOCAL_BINDING;
-    }
+    ParseNode       *argumentsNode; 
 
-    bool argumentsHasLocalBinding() const {
-        return flags & TCF_ARGUMENTS_HAS_LOCAL_BINDING;
-    }
 
-    unsigned argumentsLocalSlot() const;
 
-    void noteDefinitelyNeedsArgsObj() {
-        JS_ASSERT(argumentsHasLocalBinding());
-        flags |= TCF_DEFINITELY_NEEDS_ARGS_OBJ;
-    }
+  private:
+    TreeContext     **parserTC;     
 
-    bool definitelyNeedsArgsObj() const {
-        return flags & TCF_DEFINITELY_NEEDS_ARGS_OBJ;
-    }
 
-    void noteHasExtensibleScope() {
-        flags |= TCF_FUN_EXTENSIBLE_SCOPE;
-    }
 
-    bool hasExtensibleScope() const {
-        return flags & TCF_FUN_EXTENSIBLE_SCOPE;
-    }
+  public:
+    OwnedAtomDefnMapPtr lexdeps;    
+
+    TreeContext     *parent;        
+
+    ParseNode       *innermostWith; 
+
+    FuncStmtSet *funcStmts;         
+
+
+
+    void trace(JSTracer *trc);
+
+    inline TreeContext(Parser *prs, SharedContext *sc);
+    inline ~TreeContext();
+
+    inline bool init(JSContext *cx);
 };
 
 
@@ -465,31 +430,31 @@ struct StmtInfo {
 namespace frontend {
 
 bool
-SetStaticLevel(TreeContext *tc, unsigned staticLevel);
+SetStaticLevel(SharedContext *sc, unsigned staticLevel);
 
 bool
-GenerateBlockId(TreeContext *tc, uint32_t &blockid);
+GenerateBlockId(SharedContext *sc, uint32_t &blockid);
 
 
 
 
 void
-PushStatement(TreeContext *tc, StmtInfo *stmt, StmtType type, ptrdiff_t top);
+PushStatement(SharedContext *sc, StmtInfo *stmt, StmtType type, ptrdiff_t top);
 
-
-
-
-
-
-void
-PushBlockScope(TreeContext *tc, StmtInfo *stmt, StaticBlockObject &blockObj, ptrdiff_t top);
 
 
 
 
 
 void
-PopStatementTC(TreeContext *tc);
+PushBlockScope(SharedContext *sc, StmtInfo *stmt, StaticBlockObject &blockObj, ptrdiff_t top);
+
+
+
+
+
+void
+PopStatementSC(SharedContext *sc);
 
 
 
@@ -506,7 +471,7 @@ PopStatementTC(TreeContext *tc);
 
 
 StmtInfo *
-LexicalLookup(TreeContext *tc, JSAtom *atom, int *slotp, StmtInfo *stmt = NULL);
+LexicalLookup(SharedContext *sc, JSAtom *atom, int *slotp, StmtInfo *stmt = NULL);
 
 } 
 

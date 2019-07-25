@@ -890,7 +890,7 @@ ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, ParseNode *pn, unsigned
 
 
 bool
-ReportStrictModeError(JSContext *cx, TokenStream *ts, TreeContext *tc, ParseNode *pn,
+ReportStrictModeError(JSContext *cx, TokenStream *ts, SharedContext *sc, ParseNode *pn,
                       unsigned errorNumber, ...);
 
 } 
