@@ -1683,12 +1683,7 @@ abstract public class GeckoApp
 
 
             mLayerController = new LayerController(this);
-            View v = mLayerController.getView();
-
-            
-            v.setBackgroundColor(Color.WHITE);
-
-            mGeckoLayout.addView(v, 0);
+            mLayerController.setView((LayerView)findViewById(R.id.layer_view));
         }
 
         mPluginContainer = (AbsoluteLayout) findViewById(R.id.plugin_container);
