@@ -225,6 +225,8 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 - (void)lockFocus;
 - (void) _surfaceNeedsUpdate:(NSNotification*)notification;
 
+- (BOOL)isPluginView;
+
 
 
 
