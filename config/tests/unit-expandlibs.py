@@ -1,0 +1,247 @@
+from __future__ import with_statement
+import subprocess
+import unittest
+import sys
+import os
+import imp
+from tempfile import mkdtemp
+from shutil import rmtree
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+from UserString import UserString
+
+config_win = {
+    'AR_EXTRACT': '',
+    'DLL_PREFIX': '',
+    'LIB_PREFIX': '',
+    'OBJ_SUFFIX': '.obj',
+    'LIB_SUFFIX': '.lib',
+    'DLL_SUFFIX': '.dll',
+    'IMPORT_LIB_SUFFIX': '.lib',
+    'LIBS_DESC_SUFFIX': '.desc',
+    'EXPAND_LIBS_LIST_STYLE': 'list',
+}
+config_unix = {
+    'AR_EXTRACT': 'ar -x',
+    'DLL_PREFIX': 'lib',
+    'LIB_PREFIX': 'lib',
+    'OBJ_SUFFIX': '.o',
+    'LIB_SUFFIX': '.a',
+    'DLL_SUFFIX': '.so',
+    'IMPORT_LIB_SUFFIX': '',
+    'LIBS_DESC_SUFFIX': '.desc',
+    'EXPAND_LIBS_LIST_STYLE': 'linkerscript',
+}
+
+config = sys.modules['expandlibs_config'] = imp.new_module('expandlibs_config')
+
+from expandlibs import LibDescriptor, ExpandArgs
+from expandlibs_gen import generate
+from expandlibs_exec import ExpandArgsMore
+
+def Lib(name):
+    return config.LIB_PREFIX + name + config.LIB_SUFFIX
+
+def Obj(name):
+    return name + config.OBJ_SUFFIX
+
+def Dll(name):
+    return config.DLL_PREFIX + name + config.DLL_SUFFIX
+
+def ImportLib(name):
+    if not len(config.IMPORT_LIB_SUFFIX): return Dll(name)
+    return config.LIB_PREFIX + name + config.IMPORT_LIB_SUFFIX
+
+class TestLibDescriptor(unittest.TestCase):
+    def test_serialize(self):
+        '''Test LibDescriptor's serialization'''
+        desc = LibDescriptor()
+        desc[LibDescriptor.KEYS[0]] = ['a', 'b']
+        self.assertEqual(str(desc), "%s = a b" % LibDescriptor.KEYS[0])
+        desc['unsupported-key'] = ['a']
+        self.assertEqual(str(desc), "%s = a b" % LibDescriptor.KEYS[0])
+        desc[LibDescriptor.KEYS[1]] = ['c', 'd', 'e']
+        self.assertEqual(str(desc), "%s = a b\n%s = c d e" % (LibDescriptor.KEYS[0], LibDescriptor.KEYS[1]))
+        desc[LibDescriptor.KEYS[0]] = []
+        self.assertEqual(str(desc), "%s = c d e" % (LibDescriptor.KEYS[1]))
+
+    def test_read(self):
+        '''Test LibDescriptor's initialization'''
+        desc_list = ["# Comment",
+                     "%s = a b" % LibDescriptor.KEYS[1],
+                     "", 
+                     "foo = bar", 
+                     "%s = c d e" % LibDescriptor.KEYS[0]]
+        desc = LibDescriptor(desc_list)
+        self.assertEqual(desc[LibDescriptor.KEYS[1]], ['a', 'b'])
+        self.assertEqual(desc[LibDescriptor.KEYS[0]], ['c', 'd', 'e'])
+        self.assertEqual(False, 'foo' in desc)
+
+def wrap_method(conf, wrapped_method):
+    '''Wrapper used to call a test with a specific configuration'''
+    def _method(self):
+        for key in conf:
+            setattr(config, key, conf[key])
+        self.init()
+        wrapped_method(self)
+        self.cleanup()
+    return _method
+
+class ReplicateTests(type):
+    '''Replicates tests for unix and windows variants'''
+    def __new__(cls, clsName, bases, dict):
+        for name in [key for key in dict if key.startswith('test_')]:
+            dict[name + '_unix'] = wrap_method(config_unix, dict[name])
+            dict[name + '_unix'].__doc__ = dict[name].__doc__ + ' (unix)'
+            dict[name + '_win'] = wrap_method(config_win, dict[name])
+            dict[name + '_win'].__doc__ = dict[name].__doc__ + ' (win)'
+            del dict[name]
+        return type.__new__(cls, clsName, bases, dict)
+
+class TestCaseWithTmpDir(unittest.TestCase):
+    __metaclass__ = ReplicateTests
+    def init(self):
+        self.tmpdir = mkdtemp()
+
+    def cleanup(self):
+        rmtree(self.tmpdir)
+
+    def touch(self, files):
+        for f in files:
+            open(f, 'w').close()
+
+    def tmpfile(self, *args):
+        return os.path.join(self.tmpdir, *args)
+
+class TestExpandLibsGen(TestCaseWithTmpDir):
+    def test_generate(self):
+        '''Test library descriptor generation'''
+        files = [self.tmpfile(f) for f in
+                 [Lib('a'), Obj('b'), Lib('c'), Obj('d'), Obj('e'), Lib('f')]]
+        self.touch(files[:-1])
+        self.touch([files[-1] + config.LIBS_DESC_SUFFIX])
+
+        desc = generate(files)
+        self.assertEqual(desc['OBJS'], [self.tmpfile(Obj(s)) for s in ['b', 'd', 'e']])
+        self.assertEqual(desc['LIBS'], [self.tmpfile(Lib(s)) for s in ['a', 'c', 'f']])
+
+class TestExpandInit(TestCaseWithTmpDir):
+    def init(self):
+        ''' Initializes test environment for library expansion tests'''
+        super(TestExpandInit, self).init()
+        
+        
+        os.mkdir(self.tmpfile('libx'))
+        os.mkdir(self.tmpfile('liby'))
+        self.libx_files = [self.tmpfile('libx', Obj(f)) for f in ['g', 'h', 'i']]
+        self.liby_files = [self.tmpfile('liby', Obj(f)) for f in ['j', 'k', 'l']] + [self.tmpfile('liby', Lib('z'))]
+        self.touch(self.libx_files + self.liby_files)
+        with open(self.tmpfile('libx', Lib('x') + config.LIBS_DESC_SUFFIX), 'w') as f:
+            f.write(str(generate(self.libx_files)))
+        with open(self.tmpfile('liby', Lib('y') + config.LIBS_DESC_SUFFIX), 'w') as f:
+            f.write(str(generate(self.liby_files + [self.tmpfile('libx', Lib('x'))])))
+
+        
+        self.arg_files = [self.tmpfile(f) for f in [Lib('a'), Obj('b'), Obj('c'), Lib('d'), Obj('e')]]
+        
+        
+        self.files = self.arg_files + [self.tmpfile(ImportLib('f'))]
+        self.arg_files += [self.tmpfile(Lib('f'))]
+        self.touch(self.files)
+
+class TestExpandArgs(TestExpandInit):
+    def test_expand(self):
+        '''Test library expansion'''
+        
+        
+        
+        args = ExpandArgs(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))])
+        self.assertEqual(args, ['foo', '-bar'] + self.files + self.liby_files + self.libx_files) 
+
+        
+        
+        self.touch([self.tmpfile('libx', Lib('x'))])
+        args = ExpandArgs(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))])
+        self.assertEqual(args, ['foo', '-bar'] + self.files + self.liby_files + [self.tmpfile('libx', Lib('x'))]) 
+
+        self.touch([self.tmpfile('liby', Lib('y'))])
+        args = ExpandArgs(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))])
+        self.assertEqual(args, ['foo', '-bar'] + self.files + [self.tmpfile('liby', Lib('y'))])
+
+class TestExpandArgsMore(TestExpandInit):
+    def test_makelist(self):
+        '''Test grouping object files in lists'''
+        
+        with ExpandArgsMore(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))]) as args:
+            self.assertEqual(args, ['foo', '-bar'] + self.files + self.liby_files + self.libx_files) 
+
+            
+            args.makelist()
+            
+            self.assertEqual(args[:3], ['foo', '-bar'] + self.files[:1])
+            self.assertEqual(args[4:], [self.files[3]] + self.files[5:] + [self.tmpfile('liby', Lib('z'))])
+
+            
+            objs = [f for f in self.files + self.liby_files + self.libx_files if f.endswith(config.OBJ_SUFFIX)]
+            if config.EXPAND_LIBS_LIST_STYLE == "linkerscript":
+                self.assertNotEqual(args[3][0], '@')
+                filename = args[3]
+                content = ["INPUT(%s)" % f for f in objs]
+            elif config.EXPAND_LIBS_LIST_STYLE == "list":
+                self.assertEqual(args[3][0], '@')
+                filename = args[3][1:]
+                content = objs
+
+            with open(filename, 'r') as f:
+                self.assertEqual([l.strip() for l in f.readlines() if len(l.strip())], content)
+
+            tmp = args.tmp
+        
+        self.assertEqual(True, all([not os.path.exists(f) for f in tmp]))
+
+    def test_extract(self):
+        '''Test library extraction'''
+        
+        subprocess_call = subprocess.call
+        extracted = {}
+        def call(args, **kargs):
+            
+            ar_extract = config.AR_EXTRACT.split()
+            self.assertEqual(args[:len(ar_extract)], ar_extract)
+            
+            self.assertEqual([os.path.splitext(arg)[1] for arg in args[len(ar_extract):]], [config.LIB_SUFFIX])
+            
+            lib = os.path.splitext(os.path.basename(args[len(ar_extract)]))[0]
+            extracted[lib] = os.path.join(kargs['cwd'], "%s" % Obj(lib))
+            self.touch([extracted[lib]])
+        subprocess.call = call
+
+        
+        self.touch([self.tmpfile('liby', Lib('y'))])
+        with ExpandArgsMore(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))]) as args:
+            self.assertEqual(args, ['foo', '-bar'] + self.files + [self.tmpfile('liby', Lib('y'))])
+
+            
+            
+            args.extract()
+
+            files = self.files + self.liby_files + self.libx_files
+            if not len(config.AR_EXTRACT):
+                
+                
+                
+                self.assertEqual(args, ['foo', '-bar'] + files)
+            else:
+                
+                
+                self.assertEqual(args, ['foo', '-bar'] + [extracted[os.path.splitext(os.path.basename(f))[0]] if f.endswith(config.LIB_SUFFIX) else f for f in files])
+
+            tmp = args.tmp
+        
+        self.assertEqual(True, all([not os.path.exists(f) for f in tmp]))
+
+        
+        subprocess.call = subprocess_call
+
+if __name__ == '__main__':
+    unittest.main()
