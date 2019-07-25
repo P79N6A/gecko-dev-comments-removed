@@ -232,16 +232,17 @@ static int _vds_shared_init(vorbis_dsp_state *v,vorbis_info *vi,int encp){
     v->analysisp=1;
   }else{
     
-    if(!ci->fullbooks)
+    if(!ci->fullbooks){
       ci->fullbooks=_ogg_calloc(ci->books,sizeof(*ci->fullbooks));
-    for(i=0;i<ci->books;i++){
-      if(ci->book_param[i]==NULL)
-        goto abort_books;
-      if(vorbis_book_init_decode(ci->fullbooks+i,ci->book_param[i]))
-        goto abort_books;
+      for(i=0;i<ci->books;i++){
+        if(ci->book_param[i]==NULL)
+          goto abort_books;
+        if(vorbis_book_init_decode(ci->fullbooks+i,ci->book_param[i]))
+          goto abort_books;
         
-      vorbis_staticbook_destroy(ci->book_param[i]);
-      ci->book_param[i]=NULL;
+        vorbis_staticbook_destroy(ci->book_param[i]);
+        ci->book_param[i]=NULL;
+      }
     }
   }
 
@@ -859,6 +860,15 @@ int vorbis_synthesis_blockin(vorbis_dsp_state *v,vorbis_block *vb){
       if(b->sample_count>v->granulepos){
         
 
+       long extra=b->sample_count-vb->granulepos;
+
+        
+
+
+
+        if(extra<0)
+          extra=0;
+
         if(vb->eofflag){
           
           
@@ -866,10 +876,16 @@ int vorbis_synthesis_blockin(vorbis_dsp_state *v,vorbis_block *vb){
           
 
 
-          v->pcm_current-=(b->sample_count-v->granulepos)>>hs;
+          
+
+
+          if(extra > (v->pcm_current - v->pcm_returned)<<hs)
+            extra = (v->pcm_current - v->pcm_returned)<<hs;
+
+          v->pcm_current-=extra>>hs;
         }else{
           
-          v->pcm_returned+=(b->sample_count-v->granulepos)>>hs;
+          v->pcm_returned+=extra>>hs;
           if(v->pcm_returned>v->pcm_current)
             v->pcm_returned=v->pcm_current;
         }
@@ -887,6 +903,20 @@ int vorbis_synthesis_blockin(vorbis_dsp_state *v,vorbis_block *vb){
         if(extra)
           if(vb->eofflag){
             
+
+            
+
+
+            if(extra > (v->pcm_current - v->pcm_returned)<<hs)
+              extra = (v->pcm_current - v->pcm_returned)<<hs;
+
+            
+
+
+
+            if(extra<0)
+              extra=0;
+
             v->pcm_current-=extra>>hs;
           } 
 

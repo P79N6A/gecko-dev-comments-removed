@@ -1160,14 +1160,22 @@ void _vp_couple_quantize_normalize(int blobno,
 
 
 
-                float derate = (1.0 - de*((float)(j-limit+i) / (float)(n-limit)));
+                
+
+
+
+
+
+
 
                 
                 if(reM[j]+reA[j]<0){
-                  reM[j] = - (qeM[j] = (fabs(reM[j])+fabs(reA[j]))*derate*derate);
+                  reM[j] = - (qeM[j] = fabs(reM[j])+fabs(reA[j]));
                 }else{
-                  reM[j] =   (qeM[j] = (fabs(reM[j])+fabs(reA[j]))*derate*derate);
+                  reM[j] =   (qeM[j] = fabs(reM[j])+fabs(reA[j]));
                 }
+
+
               }
               reA[j]=qeA[j]=0.f;
               fA[j]=1;
