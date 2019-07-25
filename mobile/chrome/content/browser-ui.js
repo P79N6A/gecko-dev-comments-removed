@@ -309,15 +309,13 @@ var BrowserUI = {
     var container = document.getElementById("browser-container");
 
     
-    sidebar.left = toolbar.width = container.boxObject.width;
-    sidebar.height = tablist.height = container.boxObject.height - toolbar.boxObject.height;
+    sidebar.left = container.boxObject.width;
+    sidebar.height = tablist.height = container.boxObject.height;
 
     if (aMode == PANELMODE_URLVIEW || aMode == PANELMODE_SIDEBAR ||
         aMode == PANELMODE_TABLIST || aMode == PANELMODE_FULL)
     {
       toolbar.setAttribute("mode", "view");
-      toolbar.top = 0;
-
       this._edit.hidden = true;
       this._edit.reallyClosePopup();
       this._caption.hidden = false;
@@ -335,7 +333,6 @@ var BrowserUI = {
     }
     else if (aMode == PANELMODE_URLEDIT) {
       toolbar.setAttribute("mode", "edit");
-      toolbar.top = 0;
       this._caption.hidden = true;
       this._edit.hidden = false;
       this._edit.focus();
@@ -346,7 +343,6 @@ var BrowserUI = {
       tablist.left = -tablist.boxObject.width;
     }
     else if (aMode == PANELMODE_BOOKMARK) {
-      toolbar.top = 0;
       toolbar.setAttribute("mode", "view");
       this._edit.hidden = true;
       this._edit.reallyClosePopup();
@@ -360,7 +356,6 @@ var BrowserUI = {
       bookmark.width = container.boxObject.width;
     }
     else if (aMode == PANELMODE_BOOKMARKLIST) {
-      toolbar.top = 0;
       toolbar.setAttribute("mode", "view");
       this._edit.hidden = true;
       this._edit.reallyClosePopup();
@@ -372,10 +367,9 @@ var BrowserUI = {
 
       urllist.hidden = false;
       urllist.width = container.boxObject.width;
-      urllist.height = container.boxObject.height - toolbar.boxObject.height;
+      urllist.height = container.boxObject.height;
     }
     else if (aMode == PANELMODE_NONE) {
-      toolbar.top = -toolbar.boxObject.height;
       sidebar.left = toolbar.boxObject.width;
       tablist.left = -tablist.boxObject.width;
 
@@ -472,24 +466,20 @@ var BrowserUI = {
       case "error":
         this._favicon.setAttribute("src", "chrome://browser/skin/images/default-favicon.png");
         break;
-      case "pan": {
+      case "overpan": {
         
         let mode = PANELMODE_NONE;
+
         
-        if (Browser.content.scrollY == 0)
-          mode = PANELMODE_URLVIEW
+        if (aEvent.detail == 2 && this.mode == PANELMODE_NONE)
+          mode = PANELMODE_SIDEBAR;
+        
+        else if (aEvent.detail == 1 && this.mode == PANELMODE_NONE)
+          mode = PANELMODE_TABLIST;
 
         this.show(mode);
         break;
       }
-      case "overpan":
-        
-        if (aEvent.detail == 2)
-          this.show(PANELMODE_SIDEBAR);
-        
-        else if (aEvent.detail == 1)
-          this.show(PANELMODE_TABLIST);
-        break;
     }
   },
 
