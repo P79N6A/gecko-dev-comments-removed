@@ -50,16 +50,28 @@ Vibrate(const nsTArray<uint32> &pattern, const WindowIdentifier &)
   
   
 
+  
+  
+  
+  bool allZero = true;
+  for (uint32 i = 0; i < pattern.Length(); i++) {
+    if (pattern[i] != 0) {
+      allZero = false;
+      break;
+    }
+  }
+
+  if (allZero) {
+    hal_impl::CancelVibrate(WindowIdentifier());
+    return;
+  }
+
   AndroidBridge* b = AndroidBridge::Bridge();
   if (!b) {
     return;
   }
 
-  if (pattern.Length() == 0) {
-    b->CancelVibrate();
-  } else {
-    b->Vibrate(pattern);
-  }
+  b->Vibrate(pattern);
 }
 
 void
