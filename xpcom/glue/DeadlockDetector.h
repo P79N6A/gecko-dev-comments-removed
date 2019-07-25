@@ -225,9 +225,11 @@ private:
             mFirstSeen(CallStack::kNone),
             mOrderedLT()        
         {                       
+          MOZ_COUNT_CTOR(OrderingEntry);
         }
         ~OrderingEntry()
         {
+          MOZ_COUNT_DTOR(OrderingEntry);
         }
 
         CallStack mFirstSeen; 
@@ -367,6 +369,7 @@ public:
         mLock = PR_NewLock();
         if (!mLock)
             NS_RUNTIMEABORT("couldn't allocate deadlock detector lock");
+        MOZ_COUNT_CTOR(DeadlockDetector);
     }
 
     
@@ -378,6 +381,7 @@ public:
     {
         PL_HashTableDestroy(mOrdering);
         PR_DestroyLock(mLock);
+        MOZ_COUNT_DTOR(DeadlockDetector);
     }
 
     
