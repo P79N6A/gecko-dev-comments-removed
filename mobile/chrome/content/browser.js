@@ -2571,6 +2571,10 @@ ProgressController.prototype = {
 
   
   onLocationChange: function onLocationChange(aWebProgress, aRequest, aLocationURI) {
+    
+    if (aWebProgress.DOMWindow != this._tab.browser.contentWindow)
+      return;
+
     let location = aLocationURI ? aLocationURI.spec : "";
 
     this._hostChanged = true;
