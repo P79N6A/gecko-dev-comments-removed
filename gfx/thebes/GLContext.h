@@ -176,8 +176,7 @@ public:
 
 
 
-
-    virtual gfxContext* BeginUpdate(nsIntRegion& aRegion) = 0;
+    virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion) = 0;
     
 
 
@@ -295,7 +294,7 @@ public:
         , mUpdateOffset(0, 0)
     {}
 
-    virtual gfxContext* BeginUpdate(nsIntRegion& aRegion);
+    virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion);
     virtual PRBool EndUpdate();
     virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion);
 
@@ -311,14 +310,14 @@ public:
     
     virtual void FinishedSurfaceUpload();
 
-    virtual PRBool InUpdate() const { return !!mUpdateContext; }
+    virtual PRBool InUpdate() const { return !!mUpdateSurface; }
 
     virtual void Resize(const nsIntSize& aSize);
 protected:
 
     PRBool mTextureInited;
     GLContext* mGLContext;
-    nsRefPtr<gfxContext> mUpdateContext;
+    nsRefPtr<gfxASurface> mUpdateSurface;
     nsIntRegion mUpdateRegion;
 
     

@@ -465,7 +465,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType)
   result.mRegionToDraw.MoveBy(offset);
   
   
-  result.mContext = mTexImage->BeginUpdate(result.mRegionToDraw);
+  result.mContext = new gfxContext(mTexImage->BeginUpdate(result.mRegionToDraw));
   if (!result.mContext) {
     NS_WARNING("unable to get context for update");
     return result;
