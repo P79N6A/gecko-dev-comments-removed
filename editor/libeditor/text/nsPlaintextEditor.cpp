@@ -868,51 +868,48 @@ NS_IMETHODIMP nsPlaintextEditor::InsertLineBreak()
   if (!cancel && !handled)
   {
     
-    nsCOMPtr<nsIDOMNode> newNode;
-    res = DeleteSelectionAndCreateNode(NS_LITERAL_STRING("br"), getter_AddRefs(newNode));
-    if (!newNode) res = NS_ERROR_NULL_POINTER; 
+    nsCOMPtr<nsIDOMNode> selNode;
+    PRInt32 selOffset;
+    res = GetStartNodeAndOffset(selection, getter_AddRefs(selNode), &selOffset);
+    NS_ENSURE_SUCCESS(res, res);
+
+    
+    if (!IsTextNode(selNode) && !CanContainTag(selNode, NS_LITERAL_STRING("#text")))
+      return NS_ERROR_FAILURE;
+
+    
+    nsCOMPtr<nsIDOMDocument> doc;
+    res = GetDocument(getter_AddRefs(doc));
+    NS_ENSURE_SUCCESS(res, res);
+    NS_ENSURE_TRUE(doc, NS_ERROR_NULL_POINTER);
+
+    
+    nsAutoTxnsConserveSelection dontSpazMySelection(this);
+
+    
+    res = InsertTextImpl(NS_LITERAL_STRING("\n"), address_of(selNode),
+                         &selOffset, doc);
+    if (!selNode) res = NS_ERROR_NULL_POINTER; 
     if (NS_SUCCEEDED(res))
     {
       
-      nsCOMPtr<nsIDOMNode>parent;
-      res = newNode->GetParentNode(getter_AddRefs(parent));
-      if (!parent) res = NS_ERROR_NULL_POINTER; 
+      res = selection->Collapse(selNode, selOffset);
+
       if (NS_SUCCEEDED(res))
       {
-        PRInt32 offsetInParent=-1;  
-        nsCOMPtr<nsIDOMNode>nextNode;
-        newNode->GetNextSibling(getter_AddRefs(nextNode));
-        if (nextNode)
-        {
-          nsCOMPtr<nsIDOMCharacterData>nextTextNode = do_QueryInterface(nextNode);
-          if (!nextTextNode) {
-            nextNode = do_QueryInterface(newNode); 
-          }
-          else { 
-            offsetInParent=0; 
-          }
-        }
-        else {
-          nextNode = do_QueryInterface(newNode); 
-        }
+        
+        nsCOMPtr<nsIDOMNode> endNode;
+        PRInt32 endOffset;
+        res = GetEndNodeAndOffset(selection, getter_AddRefs(endNode), &endOffset);
 
-        if (-1==offsetInParent) 
+        if (NS_SUCCEEDED(res) && endNode == selNode && endOffset == selOffset)
         {
-          nextNode->GetParentNode(getter_AddRefs(parent));
-          res = GetChildOffset(nextNode, parent, offsetInParent);
-          if (NS_SUCCEEDED(res)) {
-            
-            
-            
-            
-            nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(selection));
-            selPriv->SetInterlinePosition(PR_TRUE);
-            res = selection->Collapse(parent, offsetInParent+1);  
-          }
-        }
-        else
-        {
-          res = selection->Collapse(nextNode, offsetInParent);
+          
+          
+          
+          
+          nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(selection));
+          selPriv->SetInterlinePosition(PR_TRUE);
         }
       }
     }
