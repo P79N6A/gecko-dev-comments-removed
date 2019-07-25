@@ -4750,6 +4750,10 @@ js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
     return entry;
 }
 
+
+
+
+
 JS_FRIEND_API(JSBool)
 js_FindProperty(JSContext *cx, jsid id, JSObject **objp, JSObject **pobjp,
                 JSProperty **propp)
