@@ -129,7 +129,7 @@ SimpleTest._logResult = function(test, passString, failString) {
     }
 };
 
-SimpleTest._logInfo = function(name, message) {
+SimpleTest.info = function(name, message) {
     this._logResult({result:true, name:name, diag:message}, "TEST-INFO");
 };
 
@@ -334,7 +334,7 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     childTargetWindow = childTargetWindow.value;
 
     function info(msg) {
-        SimpleTest._logInfo("", msg);
+        SimpleTest.info(msg);
     }
 
     function debugFocusLog(prefix) {
@@ -554,6 +554,9 @@ SimpleTest.executeSoon = function(aFunc) {
 
 
 SimpleTest.finish = function () {
+    if (SimpleTest._expectingUncaughtException) {
+        SimpleTest.ok(false, "expectUncaughtException was called but no uncaught exception was detected!");
+    }
     if (parentRunner) {
         
         parentRunner.testFinished(SimpleTest._tests);
@@ -571,6 +574,14 @@ SimpleTest.expectChildProcessCrash = function () {
     if (parentRunner) {
         parentRunner.expectChildProcessCrash();
     }
+};
+
+
+
+
+
+SimpleTest.expectUncaughtException = function () {
+    SimpleTest._expectingUncaughtException = true;
 };
 
 
@@ -786,11 +797,11 @@ var todo = SimpleTest.todo;
 var todo_is = SimpleTest.todo_is;
 var todo_isnot = SimpleTest.todo_isnot;
 var isDeeply = SimpleTest.isDeeply;
+var info = SimpleTest.info;
 
 var gOldOnError = window.onerror;
 window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
     var funcIdentifier = "[SimpleTest/SimpleTest.js, window.onerror]";
-    var isPlainMochitest = window.location.protocol != "chrome:";
 
     
     
@@ -798,14 +809,15 @@ window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
     
     
     
-    function logError(message) {
-        if (isPlainMochitest) {
-            SimpleTest.ok(false, funcIdentifier, message);
-        } else {
-            dump(funcIdentifier + " " + message + "\n");
-        }
+    var message = "An error occurred: " + errorMsg + " at " + url + ":" + lineNumber;
+    var isPlainMochitest = window.location.protocol != "chrome:";
+    var isExpected = !!SimpleTest._expectingUncaughtException;
+    if (isPlainMochitest) {
+        SimpleTest.ok(isExpected, funcIdentifier, message);
+        SimpleTest._expectingUncaughtException = false;
+    } else {
+        SimpleTest.info(funcIdentifier + " " + message);
     }
-    logError("An error occurred: " + errorMsg + " at " + url + ":" + lineNumber);
     
 
     
@@ -815,15 +827,15 @@ window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
             gOldOnError(errorMsg, url, lineNumber);
         } catch (e) {
             
-            logError("Exception thrown by gOldOnError(): " + e);
+            SimpleTest.info("Exception thrown by gOldOnError(): " + e);
             
             if (e.stack) {
-                logError("JavaScript error stack:\n" + e.stack);
+                SimpleTest.info("JavaScript error stack:\n" + e.stack);
             }
         }
     }
 
-    if (!SimpleTest._stopOnLoad) {
+    if (!SimpleTest._stopOnLoad && !isExpected) {
         
         SimpleTest.executeSoon(SimpleTest.finish);
     }
