@@ -183,6 +183,10 @@ struct JSFunction : public JSObject
     bool setTypeForScriptedFunction(JSContext *cx, bool singleton = false);
 
   private:
+    static void staticAsserts() {
+        MOZ_STATIC_ASSERT(sizeof(JSFunction) == sizeof(js::shadow::Function),
+                          "shadow interface must match actual interface");
+    }
     
 
 
