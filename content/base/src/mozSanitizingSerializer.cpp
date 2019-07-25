@@ -329,7 +329,7 @@ NS_IMETHODIMP
 mozSanitizingHTMLSerializer::SetDocumentCharset(nsACString& aCharset)
 {
   
-  Write(NS_LITERAL_STRING("\n<meta http-equiv=\"Context-Type\" content=\"text/html; charset=")
+  Write(NS_LITERAL_STRING("\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=")
         
 
         + nsAdoptingString(escape(NS_ConvertASCIItoUTF16(aCharset)))
