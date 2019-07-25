@@ -1009,7 +1009,7 @@ var Browser = {
 
     
 
-    let zoomLevel = BrowserView.Util.clampZoomLevel((vrWidth + (2 * margin)) / elWidth);
+    let zoomLevel = BrowserView.Util.clampZoomLevel((vrWidth - (2 * margin)) / elWidth);
     let oldZoomLevel = bv.getZoomLevel();
 
     
