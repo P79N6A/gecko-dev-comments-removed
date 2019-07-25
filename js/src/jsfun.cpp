@@ -1290,102 +1290,6 @@ JS_PUBLIC_DATA(Class) js_CallClass = {
     JS_CLASS_TRACE(args_or_call_trace)
 };
 
-bool
-JSStackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
-{
-    if (!fun) {
-        *vp = argv ? argv[-2] : UndefinedValue();
-        return true;
-    }
-
-    
-
-
-
-
-
-    if (fun->needsWrapper()) {
-        JSObject *wrapper = WrapEscapingClosure(cx, this, fun, fun);
-        if (!wrapper)
-            return false;
-        vp->setObject(*wrapper);
-        return true;
-    }
-
-    JSObject *funobj = &calleeObject();
-    vp->setObject(*funobj);
-
-    
-
-
-
-
-    if (thisv.isObject()) {
-        JS_ASSERT(GET_FUNCTION_PRIVATE(cx, funobj) == fun);
-
-        if (fun == funobj && fun->methodAtom()) {
-            JSObject *thisp = &thisv.toObject();
-            JS_ASSERT(thisp->canHaveMethodBarrier());
-
-            JSScope *scope = thisp->scope();
-            if (scope->hasMethodBarrier()) {
-                JSScopeProperty *sprop = scope->lookup(ATOM_TO_JSID(fun->methodAtom()));
-
-                
-
-
-
-
-
-
-
-
-
-
-
-                if (sprop) {
-                    if (sprop->isMethod() && &sprop->methodObject() == funobj) {
-                        if (!scope->methodReadBarrier(cx, sprop, vp))
-                            return false;
-                        setCalleeObject(vp->toObject());
-                        return true;
-                    }
-                    if (sprop->hasSlot()) {
-                        Value v = thisp->getSlot(sprop->slot);
-                        JSObject *clone;
-
-                        if (IsFunctionObject(v, &clone) &&
-                            GET_FUNCTION_PRIVATE(cx, clone) == fun &&
-                            clone->hasMethodObj(*thisp)) {
-                            JS_ASSERT(clone != funobj);
-                            *vp = v;
-                            setCalleeObject(*clone);
-                            return true;
-                        }
-                    }
-                }
-
-                
-
-
-
-
-
-
-
-                funobj = CloneFunctionObject(cx, fun, fun->getParent());
-                if (!funobj)
-                    return false;
-                funobj->setMethodObj(*thisp);
-                setCalleeObject(*funobj);
-                return true;
-            }
-        }
-    }
-
-    return true;
-}
-
 
 enum {
     FUN_ARGUMENTS   = -1,       
@@ -1399,7 +1303,7 @@ static JSBool
 fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
     if (!JSID_IS_INT(id))
-        return true;
+        return JS_TRUE;
 
     jsint slot = JSID_TO_INT(id);
 
@@ -1427,10 +1331,10 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     while (!(fun = (JSFunction *)
                    GetInstancePrivate(cx, obj, &js_FunctionClass, NULL))) {
         if (slot != FUN_LENGTH)
-            return true;
+            return JS_TRUE;
         obj = obj->getProto();
         if (!obj)
-            return true;
+            return JS_TRUE;
     }
 
     
@@ -1449,11 +1353,11 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
                                           js_GetErrorMessage, NULL,
                                           JSMSG_DEPRECATED_USAGE,
                                           js_arguments_str)) {
-            return false;
+            return JS_FALSE;
         }
         if (fp) {
             if (!js_GetArgsValue(cx, fp, vp))
-                return false;
+                return JS_FALSE;
         } else {
             vp->setNull();
         }
@@ -1470,12 +1374,30 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
         break;
 
       case FUN_CALLER:
-        vp->setNull();
-        if (fp && fp->down && !fp->down->getValidCalleeObject(cx, vp))
-            return false;
-
-        if (vp->isObject()) {
+        if (fp && fp->down && fp->down->fun) {
+            JSFunction *caller = fp->down->fun;
             
+
+
+
+
+
+            if (caller->needsWrapper()) {
+                JSObject *wrapper = WrapEscapingClosure(cx, fp->down, FUN_OBJECT(caller), caller);
+                if (!wrapper)
+                    return JS_FALSE;
+                vp->setObject(*wrapper);
+                return JS_TRUE;
+            }
+
+            JS_ASSERT(fp->down->argv);
+            *vp = fp->down->calleeValue();
+        } else {
+            vp->setNull();
+        }
+
+        
+        if (vp->isObject()) {
             if (vp->toObject().getCompartment(cx) != cx->compartment)
                 vp->setNull();
         }
@@ -1488,7 +1410,7 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
         break;
     }
 
-    return true;
+    return JS_TRUE;
 }
 
 struct LazyFunctionProp {
@@ -1920,8 +1842,7 @@ JSFunction::countInterpretedReservedSlots() const
 
 JS_PUBLIC_DATA(Class) js_FunctionClass = {
     js_Function_str,
-    JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE |
-    JSCLASS_HAS_RESERVED_SLOTS(JSObject::FUN_FIXED_RESERVED_SLOTS) |
+    JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE | JSCLASS_HAS_RESERVED_SLOTS(2) |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_Function),
     PropertyStub,   
     PropertyStub,   
@@ -2261,7 +2182,8 @@ Function(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *rval)
 
 
     if (!js_CheckContentSecurityPolicy(cx)) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CSP_BLOCKED_FUNCTION);
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, 
+                             JSMSG_CSP_BLOCKED_FUNCTION);
         return JS_FALSE;
     }
 

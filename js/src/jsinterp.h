@@ -181,25 +181,6 @@ struct JSStackFrame
         return argv[-2];
     }
 
-    
-    JSObject &calleeObject() const {
-        JS_ASSERT(argv);
-        return argv[-2].toObject();
-    }
-
-    
-
-
-
-
-
-    bool getValidCalleeObject(JSContext *cx, js::Value *vp);
-
-    void setCalleeObject(JSObject &callable) {
-        JS_ASSERT(argv);
-        argv[-2].setObject(callable);
-    }
-
     JSObject *callee() {
         return argv ? &argv[-2].toObject() : NULL;
     }

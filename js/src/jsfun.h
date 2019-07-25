@@ -45,8 +45,6 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsobj.h"
-#include "jsatom.h"
-#include "jsstr.h"
 
 typedef struct JSLocalNameMap JSLocalNameMap;
 
@@ -96,10 +94,6 @@ typedef union JSLocalNames {
 
 
 
-
-#define JSFUN_JOINABLE      0x0001  /* function is null closure that does not
-                                       appear to call itself via its own name
-                                       or arguments.callee */
 
 #define JSFUN_EXPR_CLOSURE  0x1000  /* expression closure: function(x) x*x */
 #define JSFUN_TRCINFO       0x2000  /* when set, u.n.trcinfo is non-null,
@@ -207,44 +201,6 @@ struct JSFunction : public JSObject
 
     bool mightEscape() const {
         return FUN_INTERPRETED(this) && (FUN_FLAT_CLOSURE(this) || u.i.nupvars == 0);
-    }
-
-    bool joinable() const {
-        return flags & JSFUN_JOINABLE;
-    }
-
-  private:
-    
-
-
-
-
-
-    enum {
-        METHOD_ATOM_SLOT  = JSSLOT_FUN_METHOD_ATOM
-    };
-
-  public:
-    void setJoinable() {
-        JS_ASSERT(FUN_INTERPRETED(this));
-        fslots[METHOD_ATOM_SLOT].setNull();
-        flags |= JSFUN_JOINABLE;
-    }
-
-    
-
-
-
-
-    JSAtom *methodAtom() const {
-        return (joinable() && fslots[METHOD_ATOM_SLOT].isString())
-               ? STRING_TO_ATOM(fslots[METHOD_ATOM_SLOT].toString())
-               : NULL;
-    }
-
-    void setMethodAtom(JSAtom *atom) {
-        JS_ASSERT(joinable());
-        fslots[METHOD_ATOM_SLOT].setString(ATOM_TO_STRING(atom));
     }
 };
 
@@ -558,4 +514,4 @@ extern JSString *
 fun_toStringHelper(JSContext *cx, JSObject *obj, uintN indent);
 
 }
-#endif
+#endif 
