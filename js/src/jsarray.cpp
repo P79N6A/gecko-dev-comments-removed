@@ -687,6 +687,16 @@ array_length_setter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value 
 }
 
 
+static inline bool
+IsDenseArrayIndex(JSObject *obj, uint32 index)
+{
+    JS_ASSERT(obj->isDenseArray());
+
+    return index < obj->getDenseArrayInitializedLength() &&
+           !obj->getDenseArrayElement(index).isMagic(JS_ARRAY_HOLE);
+}
+
+
 
 
 
@@ -697,8 +707,7 @@ IsDenseArrayId(JSContext *cx, JSObject *obj, jsid id)
 
     uint32 i;
     return JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom) ||
-           (js_IdIsIndex(id, &i) && i < obj->getDenseArrayInitializedLength() &&
-            !obj->getDenseArrayElement(i).isMagic(JS_ARRAY_HOLE));
+           (js_IdIsIndex(id, &i) && IsDenseArrayIndex(obj, i));
 }
 
 static JSBool
@@ -727,10 +736,21 @@ static JSBool
 array_lookupElement(JSContext *cx, JSObject *obj, uint32 index, JSObject **objp,
                     JSProperty **propp)
 {
-    jsid id;
-    if (!IndexToId(cx, index, &id))
-        return false;
-    return array_lookupProperty(cx, obj, id, objp, propp);
+    if (!obj->isDenseArray())
+        return js_LookupElement(cx, obj, index, objp, propp);
+
+    if (IsDenseArrayIndex(obj, index)) {
+        *propp = (JSProperty *) 1;  
+        *objp = obj;
+        return true;
+    }
+
+    if (JSObject *proto = obj->getProto())
+        return proto->lookupElement(cx, index, objp, propp);
+
+    *objp = NULL;
+    *propp = NULL;
+    return true;
 }
 
 JSBool
