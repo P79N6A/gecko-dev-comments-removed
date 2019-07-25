@@ -198,6 +198,9 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "jstypedarray.h"
 #include "xpcprivate.h"
 #include "nsScriptSecurityManager.h"
+#include "nsIChannelPolicy.h"
+#include "nsChannelPolicy.h"
+#include "nsIContentSecurityPolicy.h"
 
 using namespace mozilla::dom;
 
@@ -2328,10 +2331,21 @@ nsContentUtils::LoadImage(nsIURI* aURI, nsIDocument* aLoadingDocument,
   nsIURI *documentURI = aLoadingDocument->GetDocumentURI();
 
   
+  
+  nsCOMPtr<nsIChannelPolicy> channelPolicy;
+  nsCOMPtr<nsIContentSecurityPolicy> csp;
+  if (aLoadingPrincipal) {
+    nsresult rv = aLoadingPrincipal->GetCsp(getter_AddRefs(csp));
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (csp) {
+      channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
+      channelPolicy->SetContentSecurityPolicy(csp);
+      channelPolicy->SetLoadType(nsIContentPolicy::TYPE_IMAGE);
+    }
+  }
+    
+  
   NS_TryToSetImmutable(aURI);
-
-  
-  
 
   
   
@@ -2344,6 +2358,7 @@ nsContentUtils::LoadImage(nsIURI* aURI, nsIDocument* aLoadingDocument,
                                aLoadFlags,           
                                nsnull,               
                                nsnull,               
+                               channelPolicy,        
                                aRequest);
 }
 
