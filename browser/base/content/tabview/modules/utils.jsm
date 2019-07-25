@@ -358,7 +358,31 @@ var Utils = {
     
     return null;
   },
+
+  
+  
+  
+  
+  getCurrentWindow: function() {
+    var wm = Cc["@mozilla.org/appshell/window-mediator;1"]
+             .getService(Ci.nsIWindowMediator);
+    var browserEnumerator = wm.getEnumerator("navigator:browser");
+    while (browserEnumerator.hasMoreElements()) {
+      var browserWin = browserEnumerator.getNext();
+      var tabbrowser = browserWin.gBrowser;
+  
+      
+      var numTabs = tabbrowser.browsers.length;
+      for (var index = 0; index < numTabs; index++) {
+        var currentBrowser = tabbrowser.getBrowserAtIndex(index);
+        if(currentBrowser.contentWindow == window)
+          return browserWin;
+      }
+    }
     
+    return null;
+  },
+
   
   getInstallDirectory: function(id, callback) { 
     if (Cc["@mozilla.org/extensions/manager;1"]) {
@@ -443,6 +467,7 @@ var Utils = {
   
   log: function() { 
     var text = this.expandArgumentsForLog(arguments);
+
     consoleService.logStringMessage(text);
   }, 
   
