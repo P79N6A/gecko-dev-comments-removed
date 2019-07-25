@@ -130,7 +130,7 @@ var FullZoom = {
 
     this._siteSpecificPref =
       gPrefService.getBoolPref("browser.zoom.siteSpecific");
-    this.updateBackgroundTabs = 
+    this.updateBackgroundTabs =
       gPrefService.getBoolPref("browser.zoom.updateBackgroundTabs");
     
     
