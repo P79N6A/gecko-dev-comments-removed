@@ -279,6 +279,19 @@ nsTelephonyWorker.prototype = {
     gAudioManager.setForceUse(Ci.nsIAudioManager.USE_COMMUNICATION, force);
   },
 
+  getNumberOfMessagesForText: function getNumberOfMessagesForText(text) {
+    
+    
+    
+    return Math.ceil(text.length / 160);
+  },
+
+  sendSMS: function sendSMS(number, message) {
+    this.worker.postMessage({type: "sendSMS",
+                             number: number,
+                             body: message});
+  },
+
   _callbacks: null,
 
   registerCallback: function registerCallback(callback) {
