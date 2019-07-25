@@ -23,6 +23,12 @@
 #include "CameraCommon.h"
 
 namespace mozilla {
+namespace layers {
+class GraphicBufferLocked;
+} 
+} 
+
+namespace mozilla {
 
 class GonkCameraPreview : public CameraPreview
 {
@@ -34,7 +40,7 @@ public:
     , mFormat(GonkCameraHardware::PREVIEW_FORMAT_UNKNOWN)
   { }
 
-  void ReceiveFrame(PRUint8 *aData, PRUint32 aLength);
+  void ReceiveFrame(layers::GraphicBufferLocked* aBuffer);
 
   nsresult StartImpl();
   nsresult StopImpl();

@@ -15,6 +15,8 @@
 
 
 
+
+
 #ifndef DOM_CAMERA_GONKNATIVEWINDOW_H
 #define DOM_CAMERA_GONKNATIVEWINDOW_H
 
@@ -31,16 +33,29 @@
 #include <utils/String8.h>
 #include <utils/threads.h>
 
+#include "mozilla/layers/LayersSurfaces.h"
+#include "mozilla/layers/ImageBridgeChild.h"
+#include "GonkIOSurfaceImage.h"
+
 namespace android {
+
+
+
+class GonkNativeWindowNewFrameCallback {
+public:
+    virtual void OnNewFrame() = 0;
+};
 
 class GonkNativeWindow : public EGLNativeBase<ANativeWindow, GonkNativeWindow, RefBase>
 {
+    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
 public:
     enum { MIN_UNDEQUEUED_BUFFERS = 2 };
     enum { MIN_BUFFER_SLOTS = MIN_UNDEQUEUED_BUFFERS };
     enum { NUM_BUFFER_SLOTS = 32 };
 
     GonkNativeWindow();
+    GonkNativeWindow(GonkNativeWindowNewFrameCallback* aCallback);
     ~GonkNativeWindow(); 
 
     
@@ -51,6 +66,17 @@ public:
     static int hook_query(const ANativeWindow* window, int what, int* value);
     static int hook_queueBuffer(ANativeWindow* window, ANativeWindowBuffer* buffer);
     static int hook_setSwapInterval(ANativeWindow* window, int interval);
+
+    
+    
+    already_AddRefed<GraphicBufferLocked> getCurrentBuffer();
+
+    
+    
+    void returnBuffer(uint32_t index);
+
+    
+    void abandon();
 
 protected:
     virtual int cancelBuffer(ANativeWindowBuffer* buffer);
@@ -104,6 +130,9 @@ private:
         sp<GraphicBuffer> mGraphicBuffer;
 
         
+        SurfaceDescriptor mSurfaceDescriptor;
+
+        
         
         enum BufferState {
             
@@ -131,6 +160,12 @@ private:
             
             
             QUEUED = 2,
+
+            
+            
+            
+            
+            RENDERING = 3,
         };
 
         
@@ -185,6 +220,50 @@ private:
 
     
     uint64_t mFrameCounter;
+
+    GonkNativeWindowNewFrameCallback* mNewFrameCallback;
+};
+
+
+
+class CameraGraphicBuffer : public mozilla::layers::GraphicBufferLocked {
+    typedef mozilla::layers::SurfaceDescriptor SurfaceDescriptor;
+public:
+    CameraGraphicBuffer(GonkNativeWindow* aNativeWindow,
+                        uint32_t aIndex,
+                        SurfaceDescriptor aBuffer)
+        : GraphicBufferLocked(aBuffer)
+          , mNativeWindow(aNativeWindow)
+          , mIndex(aIndex)
+          , mLocked(true)
+    {}
+
+    virtual ~CameraGraphicBuffer() {}
+
+    
+    
+    virtual void Unlock()  MOZ_OVERRIDE
+    {
+        if (mLocked) {
+            
+            
+            sp<GonkNativeWindow> window = mNativeWindow.promote();
+            if (window.get()) {
+                window->returnBuffer(mIndex);
+                mLocked = false;
+            } else {
+                
+                
+                ImageBridgeChild *ibc = ImageBridgeChild::GetSingleton();
+                ibc->DeallocSurfaceDescriptorGralloc(mSurfaceDescriptor);
+            }
+        }
+    }
+
+protected:
+    wp<GonkNativeWindow> mNativeWindow;
+    uint32_t mIndex;
+    bool mLocked;
 };
 
 }; 

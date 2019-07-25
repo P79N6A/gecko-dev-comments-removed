@@ -186,7 +186,12 @@ private:
   gl::TextureImage::TextureShareType mShareType;
   bool mInverted;
   GLuint mTexture;
+
   
+  
+  
+  GLTexture mExternalBufferTexture;
+
   GLTexture mYUVTexture[3];
   gfxIntSize mSize;
   gfxIntSize mCbCrSize;

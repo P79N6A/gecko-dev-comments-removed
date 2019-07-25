@@ -192,6 +192,16 @@ protected:
 private:
   PRUint64 mImageContainerID;
   nsTArray<SharedImage*> mSharedImagePool;
+
+  
+
+
+
+
+
+
+  nsTArray<nsRefPtr<Image> > mImageQueue;
+
   int mActiveImageCount;
   bool mStop;
   bool mDispatchedDestroy;

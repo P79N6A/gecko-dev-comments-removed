@@ -23,6 +23,14 @@ public:
   ImageBridgeParent(MessageLoop* aLoop);
   ~ImageBridgeParent();
 
+
+  virtual PGrallocBufferParent*
+  AllocPGrallocBuffer(const gfxIntSize&, const uint32_t&, const uint32_t&,
+                      MaybeMagicGrallocBufferHandle*) MOZ_OVERRIDE;
+
+  virtual bool
+  DeallocPGrallocBuffer(PGrallocBufferParent* actor) MOZ_OVERRIDE;
+
   
   PImageContainerParent* AllocPImageContainer(PRUint64* aID) MOZ_OVERRIDE;
   

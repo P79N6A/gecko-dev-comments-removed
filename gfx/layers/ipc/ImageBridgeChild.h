@@ -159,6 +159,52 @@ public:
 
 
   already_AddRefed<ImageContainerChild> CreateImageContainerChildNow();
+
+  virtual PGrallocBufferChild*
+  AllocPGrallocBuffer(const gfxIntSize&, const uint32_t&, const uint32_t&,
+                      MaybeMagicGrallocBufferHandle*) MOZ_OVERRIDE;
+
+  virtual bool
+  DeallocPGrallocBuffer(PGrallocBufferChild* actor) MOZ_OVERRIDE;
+
+  
+
+
+  bool
+  AllocSurfaceDescriptorGralloc(const gfxIntSize& aSize,
+                                const uint32_t& aFormat,
+                                const uint32_t& aUsage,
+                                SurfaceDescriptor* aBuffer);
+
+  
+
+
+
+
+
+
+  bool
+  AllocSurfaceDescriptorGrallocNow(const gfxIntSize& aSize,
+                                   const uint32_t& aContent,
+                                   const uint32_t& aUsage,
+                                   SurfaceDescriptor* aBuffer);
+
+  
+
+
+  bool
+  DeallocSurfaceDescriptorGralloc(const SurfaceDescriptor& aBuffer);
+
+  
+
+
+
+
+
+
+  bool
+  DeallocSurfaceDescriptorGrallocNow(const SurfaceDescriptor& aBuffer);
+
 protected:
   
   ImageBridgeChild() {};
