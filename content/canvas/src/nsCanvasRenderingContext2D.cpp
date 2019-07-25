@@ -553,6 +553,19 @@ protected:
 
 
 
+
+    PRBool OperatorAffectsUncoveredAreas(gfxContext::GraphicsOperator op) const
+    {
+        return op == gfxContext::OPERATOR_IN ||
+               op == gfxContext::OPERATOR_OUT ||
+               op == gfxContext::OPERATOR_DEST_IN ||
+               op == gfxContext::OPERATOR_DEST_ATOP;
+    }
+
+    
+
+
+
     PRBool NeedToDrawShadow()
     {
         ContextState& state = CurrentState();
@@ -562,6 +575,22 @@ protected:
         return state.StyleIsColor(STYLE_SHADOW) &&
                NS_GET_A(state.colorStyles[STYLE_SHADOW]) > 0 &&
                (state.shadowOffset != gfxPoint(0, 0) || state.shadowBlur != 0);
+    }
+
+    
+
+
+
+
+
+    PRBool NeedToUseIntermediateSurface()
+    {
+        
+        
+        return OperatorAffectsUncoveredAreas(mThebes->CurrentOperator());
+
+        
+        
     }
 
     
@@ -1932,7 +1961,8 @@ nsCanvasRenderingContext2D::DrawPath(Style style, gfxRect *dirtyRect)
 
 
 
-    PRBool doUseIntermediateSurface = NeedIntermediateSurfaceToHandleGlobalAlpha(style);
+    PRBool doUseIntermediateSurface = NeedToUseIntermediateSurface() ||
+                                      NeedIntermediateSurfaceToHandleGlobalAlpha(style);
 
     PRBool doDrawShadow = NeedToDrawShadow();
 
@@ -2751,7 +2781,7 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     
     PRBool doDrawShadow = aOp == TEXT_DRAW_OPERATION_FILL && NeedToDrawShadow();
     PRBool doUseIntermediateSurface = aOp == TEXT_DRAW_OPERATION_FILL &&
-        NeedIntermediateSurfaceToHandleGlobalAlpha(STYLE_FILL);
+        (NeedToUseIntermediateSurface() || NeedIntermediateSurfaceToHandleGlobalAlpha(STYLE_FILL));
 
     
     ClearSurfaceForUnboundedSource();
@@ -3559,11 +3589,25 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
             }
         }
 
+        PRBool doUseIntermediateSurface = NeedToUseIntermediateSurface();
+
         mThebes->SetPattern(pattern);
         DirtyAllStyles();
 
-        
-        if (CurrentState().globalAlpha == 1.0f && mThebes->CurrentOperator() == gfxContext::OPERATOR_OVER) {
+        if (doUseIntermediateSurface) {
+            
+            mThebes->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+            mThebes->Clip(clip);
+
+            
+            mThebes->SetOperator(gfxContext::OPERATOR_SOURCE);
+
+            mThebes->Paint();
+            mThebes->PopGroupToSource();
+            mThebes->Paint(CurrentState().globalAlpha);
+        } else if (CurrentState().globalAlpha == 1.0f &&
+                   mThebes->CurrentOperator() == gfxContext::OPERATOR_OVER) {
+            
             mThebes->NewPath();
             mThebes->Rectangle(clip);
             mThebes->Fill();
