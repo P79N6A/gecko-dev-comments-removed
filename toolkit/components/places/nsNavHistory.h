@@ -110,9 +110,6 @@
 
 #define TOPIC_PLACES_WILL_CLOSE_CONNECTION "places-will-close-connection"
 
-
-#define TOPIC_PLACES_CONNECTION_CLOSING "places-connection-closing"
-
 #define TOPIC_PLACES_CONNECTION_CLOSED "places-connection-closed"
 
 

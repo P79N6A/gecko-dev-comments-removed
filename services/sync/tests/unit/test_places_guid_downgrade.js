@@ -25,7 +25,7 @@ function removePlacesDatabase() {
   try {
     file.remove(false);
   } catch (ex) {
-    // Windows is awesome. NOT.
+    
   }
 }
 
@@ -34,25 +34,25 @@ Svc.Obs.add("places-shutdown", function () {
 });
 
 
-// Verify initial database state. Function borrowed from places tests.
+
 function test_initial_state() {
-  // Mostly sanity checks our starting DB to make sure it's setup as we expect
-  // it to be.
+  
+  
   let dbFile = gProfD.clone();
   dbFile.append(kDBName);
   let db = storageSvc.openUnsharedDatabase(dbFile);
 
   let stmt = db.createStatement("PRAGMA journal_mode");
   do_check_true(stmt.executeStep());
-  // WAL journal mode should have been unset this database when it was migrated
-  // down to v10.
+  
+  
   do_check_neq(stmt.getString(0).toLowerCase(), "wal");
   stmt.finalize();
 
   do_check_true(db.indexExists("moz_bookmarks_guid_uniqueindex"));
   do_check_true(db.indexExists("moz_places_guid_uniqueindex"));
 
-  // There should be a non-zero amount of bookmarks without a guid.
+  
   stmt = db.createStatement(
     "SELECT COUNT(1) "
   + "FROM moz_bookmarks "
@@ -62,7 +62,7 @@ function test_initial_state() {
   do_check_neq(stmt.getInt32(0), 0);
   stmt.finalize();
 
-  // There should be a non-zero amount of places without a guid.
+  
   stmt = db.createStatement(
     "SELECT COUNT(1) "
   + "FROM moz_places "
@@ -72,7 +72,7 @@ function test_initial_state() {
   do_check_neq(stmt.getInt32(0), 0);
   stmt.finalize();
 
-  // Check our schema version to make sure it is actually at 10.
+  
   do_check_eq(db.schemaVersion, 10);
 
   db.close();
@@ -87,7 +87,7 @@ function test_history_guids() {
   PlacesUtils.history.addPageWithDetails(tburi, "Get Thunderbird!",
                                          Date.now() * 1000);
 
-  // Hack: flush the places db by adding a random bookmark.
+  
   let uri = Utils.makeURI("http://mozilla.com/");
   let fxid = PlacesUtils.bookmarks.insertBookmark(
     PlacesUtils.bookmarks.toolbarFolder,
@@ -111,6 +111,7 @@ function test_history_guids() {
   stmt.params.guid = tbguid;
   result = Async.querySpinningly(stmt, ["id"]);
   do_check_eq(result.length, 1);
+  stmt.finalize();
 
   _("History: Verify GUIDs weren't added to annotations.");
   stmt = PlacesUtils.history.DBConnection.createAsyncStatement(
@@ -123,6 +124,7 @@ function test_history_guids() {
   stmt.params.guid = tbguid;
   result = Async.querySpinningly(stmt, ["guid"]);
   do_check_eq(result.length, 0);
+  stmt.finalize();
 }
 
 function test_bookmark_guids() {
@@ -156,6 +158,7 @@ function test_bookmark_guids() {
   result = Async.querySpinningly(stmt, ["id"]);
   do_check_eq(result.length, 1);
   do_check_eq(result[0].id, tbid);
+  stmt.finalize();
 
   _("Bookmarks: Verify GUIDs weren't added to annotations.");
   stmt = PlacesUtils.history.DBConnection.createAsyncStatement(
@@ -168,6 +171,7 @@ function test_bookmark_guids() {
   stmt.params.guid = tbguid;
   result = Async.querySpinningly(stmt, ["guid"]);
   do_check_eq(result.length, 0);
+  stmt.finalize();
 }
 
 function run_test() {
