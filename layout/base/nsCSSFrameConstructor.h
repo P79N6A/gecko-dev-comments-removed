@@ -1308,8 +1308,8 @@ private:
   nsresult FlushAccumulatedBlock(nsFrameConstructorState& aState,
                                  nsIContent* aContent,
                                  nsIFrame* aParentFrame,
-                                 nsFrameItems* aBlockItems,
-                                 nsFrameItems* aNewItems);
+                                 nsFrameItems& aBlockItems,
+                                 nsFrameItems& aNewItems);
 
   
   

@@ -3770,24 +3770,26 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
 
     if (NS_SUCCEEDED(rv) && (bits & FCDATA_WRAP_KIDS_IN_BLOCKS)) {
       nsFrameItems newItems;
-      nsFrameItems currentBlock;
+      nsFrameItems currentBlockItems;
       nsIFrame* f;
       while ((f = childItems.FirstChild()) != nsnull) {
         bool wrapFrame = IsInlineFrame(f) || IsFrameSpecial(f);
         if (!wrapFrame) {
-          rv = FlushAccumulatedBlock(aState, content, newFrame, &currentBlock, &newItems);
+          rv = FlushAccumulatedBlock(aState, content, newFrame,
+                                     currentBlockItems, newItems);
           if (NS_FAILED(rv))
             break;
         }
 
         childItems.RemoveFrame(f);
         if (wrapFrame) {
-          currentBlock.AddChild(f);
+          currentBlockItems.AddChild(f);
         } else {
           newItems.AddChild(f);
         }
       }
-      rv = FlushAccumulatedBlock(aState, content, newFrame, &currentBlock, &newItems);
+      rv = FlushAccumulatedBlock(aState, content, newFrame,
+                                 currentBlockItems, newItems);
 
       if (childItems.NotEmpty()) {
         
@@ -4569,39 +4571,42 @@ nsresult
 nsCSSFrameConstructor::FlushAccumulatedBlock(nsFrameConstructorState& aState,
                                              nsIContent* aContent,
                                              nsIFrame* aParentFrame,
-                                             nsFrameItems* aBlockItems,
-                                             nsFrameItems* aNewItems)
+                                             nsFrameItems& aBlockItems,
+                                             nsFrameItems& aNewItems)
 {
-  if (aBlockItems->IsEmpty()) {
+  if (aBlockItems.IsEmpty()) {
     
     return NS_OK;
   }
 
+  nsIAtom* anonPseudo = nsCSSAnonBoxes::mozMathMLAnonymousBlock;
+
   nsStyleContext* parentContext =
     nsFrame::CorrectStyleParentFrame(aParentFrame,
-                                     nsCSSAnonBoxes::mozMathMLAnonymousBlock)->GetStyleContext(); 
-  nsStyleSet *styleSet = mPresShell->StyleSet();
+                                     anonPseudo)->GetStyleContext();
+  nsStyleSet* styleSet = mPresShell->StyleSet();
   nsRefPtr<nsStyleContext> blockContext;
   blockContext = styleSet->
-    ResolveAnonymousBoxStyle(nsCSSAnonBoxes::mozMathMLAnonymousBlock,
-                             parentContext);
+    ResolveAnonymousBoxStyle(anonPseudo, parentContext);
+
 
   
   
   
-  nsIFrame* blockFrame = NS_NewMathMLmathBlockFrame(mPresShell, blockContext,
-                          NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
+  nsIFrame* blockFrame =
+      NS_NewMathMLmathBlockFrame(mPresShell, blockContext,
+                                 NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
   if (NS_UNLIKELY(!blockFrame))
     return NS_ERROR_OUT_OF_MEMORY;
 
   InitAndRestoreFrame(aState, aContent, aParentFrame, nsnull, blockFrame);
-  ReparentFrames(this, blockFrame, *aBlockItems);
+  ReparentFrames(this, blockFrame, aBlockItems);
   
   
-  blockFrame->SetInitialChildList(kPrincipalList, *aBlockItems);
-  NS_ASSERTION(aBlockItems->IsEmpty(), "What happened?");
-  aBlockItems->Clear();
-  aNewItems->AddChild(blockFrame);
+  blockFrame->SetInitialChildList(kPrincipalList, aBlockItems);
+  NS_ASSERTION(aBlockItems.IsEmpty(), "What happened?");
+  aBlockItems.Clear();
+  aNewItems.AddChild(blockFrame);
   return NS_OK;
 }
 
