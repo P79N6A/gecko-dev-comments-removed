@@ -44,6 +44,7 @@
 
 #include "jsapi.h"
 #include "jsclist.h"
+#include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsgc.h"
 #include "jshashtable.h"
@@ -81,7 +82,7 @@ class Debugger {
     
     
     
-    typedef HashMap<StackFrame *, JSObject *, DefaultHasher<StackFrame *>, SystemAllocPolicy>
+    typedef HashMap<StackFrame *, JSObject *, DefaultHasher<StackFrame *>, RuntimeAllocPolicy>
         FrameMap;
     FrameMap frames;
 
@@ -103,7 +104,7 @@ class Debugger {
 
     
     
-    typedef HashMap<JSScript *, JSObject *, DefaultHasher<JSScript *>, SystemAllocPolicy>
+    typedef HashMap<JSScript *, JSObject *, DefaultHasher<JSScript *>, RuntimeAllocPolicy>
         ScriptMap;
 
     
@@ -202,7 +203,7 @@ class Debugger {
     inline Breakpoint *firstBreakpoint() const;
 
   public:
-    Debugger(JSObject *dbg, JSObject *hooks);
+    Debugger(JSContext *cx, JSObject *dbg, JSObject *hooks);
     ~Debugger();
 
     bool init(JSContext *cx);
