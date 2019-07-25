@@ -74,13 +74,6 @@ Navbar = {
 
 var Tabbar = {
   
-  
-  
-  
-  
-  _hidden: false, 
-  
-  
   get el() {
     return window.Tabs[0].raw.parentNode; 
   },
@@ -172,10 +165,6 @@ window.Page = {
   startX: 30, 
   startY: 70,
   
-  show: function(){
-    this.hideChrome();
-  },
-
   isTabCandyVisible: function(){
     return (Utils.getCurrentWindow().document.getElementById("tab-candy-deck").
              selectedIndex == 1);
@@ -322,23 +311,27 @@ window.Page = {
     this.setupKeyHandlers();
         
     Tabs.onClose(function(){
-      iQ.timeout(function() { 
-        Page.setCloseButtonOnTabs();        
+      if (!self.isTabCandyVisible()) {
+        iQ.timeout(function() { 
+          Page.setCloseButtonOnTabs();        
+            
           
-        
-        
-        var group = Groups.getActiveGroup();
-        if( group && group._children.length == 0 )
-          Page.show();
-  
-        
-        
-        
-        if( group == null && Tabbar.getVisibleTabs().length == 0){
-          Page.show();
-        }
-      }, 1);
-
+          
+          var group = Groups.getActiveGroup();
+          if( group && group._children.length == 0 ) {
+            self.hideChrome();
+            self.showTabCandy();
+          }
+    
+          
+          
+          
+          if( group == null && Tabbar.getVisibleTabs().length == 0){
+            self.hideChrome();
+            self.showTabCandy();
+          }
+        }, 1);
+      }
       return false;
     });
     
