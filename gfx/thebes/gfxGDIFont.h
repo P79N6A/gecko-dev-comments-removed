@@ -54,7 +54,7 @@ class gfxGDIFont : public gfxFont
 public:
     gfxGDIFont(GDIFontEntry *aFontEntry,
                const gfxFontStyle *aFontStyle,
-               bool aNeedsBold,
+               PRBool aNeedsBold,
                AntialiasOption anAAOption = kAntialiasDefault);
 
     virtual ~gfxGDIFont();
@@ -71,7 +71,7 @@ public:
 
     virtual PRUint32 GetSpaceGlyph();
 
-    virtual bool SetupCairoFont(gfxContext *aContext);
+    virtual PRBool SetupCairoFont(gfxContext *aContext);
 
     
     virtual RunMetrics Measure(gfxTextRun *aTextRun,
@@ -83,7 +83,7 @@ public:
     
     virtual gfxFont* CopyWithAntialiasOption(AntialiasOption anAAOption);
 
-    virtual bool ProvidesGlyphWidths() { return true; }
+    virtual PRBool ProvidesGlyphWidths() { return PR_TRUE; }
 
     
     virtual PRInt32 GetGlyphWidth(gfxContext *aCtx, PRUint16 aGID);
@@ -92,13 +92,13 @@ protected:
     virtual void CreatePlatformShaper();
 
     
-    virtual bool InitTextRun(gfxContext *aContext,
+    virtual PRBool InitTextRun(gfxContext *aContext,
                                gfxTextRun *aTextRun,
                                const PRUnichar *aString,
                                PRUint32 aRunStart,
                                PRUint32 aRunLength,
                                PRInt32 aRunScript,
-                               bool aPreferPlatformShaping = false);
+                               PRBool aPreferPlatformShaping = PR_FALSE);
 
     void Initialize(); 
 
@@ -115,7 +115,7 @@ protected:
     Metrics              *mMetrics;
     PRUint32              mSpaceGlyph;
 
-    bool                  mNeedsBold;
+    PRBool                mNeedsBold;
 
     
     nsDataHashtable<nsUint32HashKey,PRInt32>    mGlyphWidths;

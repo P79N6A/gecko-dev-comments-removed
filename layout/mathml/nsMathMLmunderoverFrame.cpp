@@ -262,7 +262,7 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
     }
   }
 
-  bool subsupDisplay =
+  PRBool subsupDisplay =
     NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
     !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags);
 
@@ -336,7 +336,7 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
 
  nsresult
 nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
-                               bool                 aPlaceOrigin,
+                               PRBool               aPlaceOrigin,
                                nsHTMLReflowMetrics& aDesiredSize)
 {
   nsIAtom* tag = mContent->Tag();

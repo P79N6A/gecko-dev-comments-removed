@@ -169,7 +169,7 @@ LayerManagerOGL::CreateContext()
   return context.forget();
 }
 
-bool
+PRBool
 LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext)
 {
   ScopedGfxFeatureReporter reporter("GL Layers");
@@ -402,8 +402,7 @@ LayerManagerOGL::EndEmptyTransaction()
 
 void
 LayerManagerOGL::EndTransaction(DrawThebesLayerCallback aCallback,
-                                void* aCallbackData,
-                                EndTransactionFlags aFlags)
+                                void* aCallbackData)
 {
 #ifdef MOZ_LAYERS_HAVE_LOG
   MOZ_LAYERS_LOG(("  ----- (beginning paint)"));
@@ -415,7 +414,7 @@ LayerManagerOGL::EndTransaction(DrawThebesLayerCallback aCallback,
     return;
   }
 
-  if (mRoot && !(aFlags & END_NO_IMMEDIATE_REDRAW)) {
+  if (mRoot) {
     
     
     mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
@@ -541,7 +540,7 @@ LayerManagerOGL::RootLayer() const
   return static_cast<LayerOGL*>(mRoot->ImplData());
 }
 
-bool LayerManagerOGL::sDrawFPS = false;
+PRBool LayerManagerOGL::sDrawFPS = PR_FALSE;
 
 
 

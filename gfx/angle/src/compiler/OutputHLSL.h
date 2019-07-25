@@ -31,8 +31,7 @@ class OutputHLSL : public TIntermTraverser
     static TString qualifierString(TQualifier qualifier);
     static TString arrayString(const TType &type);
     static TString initializer(const TType &type);
-    static TString decorate(const TString &string);                      
-    static TString decorateUniform(const TString &string, bool array);
+    static TString decorate(const TString &string);   
 
   protected:
     void header();

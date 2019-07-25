@@ -62,14 +62,14 @@ public:
     char* AppendNewSegment();   
 
     
-    bool DeleteFirstSegment();  
+    PRBool DeleteFirstSegment();  
 
     
-    bool DeleteLastSegment();  
+    PRBool DeleteLastSegment();  
 
     
     
-    bool ReallocLastSegment(size_t newSize);
+    PRBool ReallocLastSegment(size_t newSize);
 
     void Empty();               
 
@@ -98,7 +98,7 @@ protected:
         return result;
     }
 
-   inline bool IsFull() {
+   inline PRBool IsFull() {
         return ModSegArraySize(mLastSegmentIndex + 1) == mFirstSegmentIndex;
     }
 

@@ -111,7 +111,7 @@ FixedTableLayoutStrategy::GetMinWidth(nsRenderingContext* aRenderingContext)
 
             
             
-            bool originates;
+            PRBool originates;
             PRInt32 colSpan;
             nsTableCellFrame *cellFrame =
                 cellMap->GetCellInfoAt(0, col, &originates, &colSpan);
@@ -149,7 +149,7 @@ FixedTableLayoutStrategy::GetMinWidth(nsRenderingContext* aRenderingContext)
 
  nscoord
 FixedTableLayoutStrategy::GetPrefWidth(nsRenderingContext* aRenderingContext,
-                                       bool aComputingSize)
+                                       PRBool aComputingSize)
 {
     
     
@@ -258,7 +258,7 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
 
             
             
-            bool originates;
+            PRBool originates;
             PRInt32 colSpan;
             nsTableCellFrame *cellFrame =
                 cellMap->GetCellInfoAt(0, col, &originates, &colSpan);

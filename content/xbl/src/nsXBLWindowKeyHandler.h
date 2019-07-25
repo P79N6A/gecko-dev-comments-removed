@@ -73,21 +73,21 @@ protected:
                                 nsXBLPrototypeHandler* aHandler);
 
   
-  bool WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType,
+  PRBool WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType,
                                 nsXBLPrototypeHandler* aHandler,
-                                PRUint32 aCharCode, bool aIgnoreShiftKey);
+                                PRUint32 aCharCode, PRBool aIgnoreShiftKey);
 
   
   
-  nsresult EnsureHandlers(bool *aIsEditor);
+  nsresult EnsureHandlers(PRBool *aIsEditor);
 
   
-  bool EventMatched(nsXBLPrototypeHandler* inHandler, nsIAtom* inEventType,
+  PRBool EventMatched(nsXBLPrototypeHandler* inHandler, nsIAtom* inEventType,
                       nsIDOMKeyEvent* inEvent, PRUint32 aCharCode,
-                      bool aIgnoreShiftKey);
+                      PRBool aIgnoreShiftKey);
 
   
-  bool IsEditor() ;
+  PRBool IsEditor() ;
 
   
   

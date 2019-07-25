@@ -66,7 +66,7 @@ public:
 
 
 
-    nsresult PrettyPrint(nsIDocument* aDocument, bool* aDidPrettyPrint);
+    nsresult PrettyPrint(nsIDocument* aDocument, PRBool* aDidPrettyPrint);
 
     
 
@@ -83,7 +83,7 @@ private:
 
     nsIDocument* mDocument; 
     PRUint32 mUpdateDepth;
-    bool mUnhookPending;
+    PRPackedBool mUnhookPending;
 };
 
 nsresult NS_NewXMLPrettyPrinter(nsXMLPrettyPrinter** aPrinter);

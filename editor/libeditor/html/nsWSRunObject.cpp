@@ -47,9 +47,9 @@
 
 const PRUnichar nbsp = 160;
 
-static bool IsBlockNode(nsIDOMNode* node)
+static PRBool IsBlockNode(nsIDOMNode* node)
 {
-  bool isBlock (false);
+  PRBool isBlock (PR_FALSE);
   nsHTMLEditor::NodeIsBlockStatic(node, &isBlock);
   return isBlock;
 }
@@ -411,7 +411,7 @@ nsWSRunObject::InsertText(const nsAString& aStringToInsert,
   
   
   PRUint32 j;
-  bool prevWS = false;
+  PRBool prevWS = PR_FALSE;
   for (j=0; j<=lastCharIndex; j++)
   {
     if (nsCRT::IsAsciiSpace(theString[j]))
@@ -1600,7 +1600,7 @@ nsWSRunObject::DeleteChars(nsIDOMNode *aStartNode, PRInt32 aStartOffset,
         res = range->SetEnd(aEndNode, aEndOffset);
         NS_ENSURE_SUCCESS(res, res);
       }
-      bool nodeBefore, nodeAfter;
+      PRBool nodeBefore, nodeAfter;
       nsCOMPtr<nsIContent> content (do_QueryInterface(node));
       res = mHTMLEditor->sRangeHelper->CompareNodeToRange(content, range, &nodeBefore, &nodeAfter);
       NS_ENSURE_SUCCESS(res, res);
@@ -1851,7 +1851,7 @@ nsWSRunObject::GetAsciiWSBounds(PRInt16 aDir, nsIDOMNode *aNode, PRInt32 aOffset
 }
 
 nsresult
-nsWSRunObject::FindRun(nsIDOMNode *aNode, PRInt32 aOffset, WSFragment **outRun, bool after)
+nsWSRunObject::FindRun(nsIDOMNode *aNode, PRInt32 aOffset, WSFragment **outRun, PRBool after)
 {
   
   NS_ENSURE_TRUE(aNode && outRun, NS_ERROR_NULL_POINTER);
@@ -2031,9 +2031,9 @@ nsWSRunObject::CheckTrailingNBSPOfRun(WSFragment *aRun)
   
   NS_ENSURE_TRUE(aRun, NS_ERROR_NULL_POINTER);
   WSPoint thePoint;
-  bool leftCheck = false;
-  bool spaceNBSP = false;
-  bool rightCheck = false;
+  PRBool leftCheck = PR_FALSE;
+  PRBool spaceNBSP = PR_FALSE;
+  PRBool rightCheck = PR_FALSE;
   
   
   if (aRun->mType != eNormalWS) return NS_ERROR_FAILURE;
@@ -2146,7 +2146,7 @@ nsWSRunObject::CheckTrailingNBSP(WSFragment *aRun, nsIDOMNode *aNode, PRInt32 aO
   
   NS_ENSURE_TRUE(aRun && aNode, NS_ERROR_NULL_POINTER);
   WSPoint thePoint;
-  bool canConvert = false;
+  PRBool canConvert = PR_FALSE;
   nsresult res = GetCharBefore(aNode, aOffset, &thePoint);
   if (NS_SUCCEEDED(res) && thePoint.mTextNode && thePoint.mChar == nbsp)
   {
@@ -2185,7 +2185,7 @@ nsWSRunObject::CheckLeadingNBSP(WSFragment *aRun, nsIDOMNode *aNode, PRInt32 aOf
   
   
   WSPoint thePoint;
-  bool canConvert = false;
+  PRBool canConvert = PR_FALSE;
   nsresult res = GetCharAfter(aNode, aOffset, &thePoint);
   if (NS_SUCCEEDED(res) && thePoint.mChar == nbsp)
   {

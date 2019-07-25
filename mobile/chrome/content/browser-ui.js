@@ -117,18 +117,16 @@ var BrowserUI = {
 
   _titleChanged: function(aBrowser) {
     let url = this.getDisplayURI(aBrowser);
-    let contentTitle = aBrowser.contentTitle;
-    let caption = contentTitle || url;
-    let tabCaption = contentTitle || (Util.isURLEmpty(url) ? "" : url);
+    let caption = aBrowser.contentTitle || url;
 
-    if (contentTitle == "" && !Util.isURLEmpty(aBrowser.userTypedValue))
-      caption = tabCaption = aBrowser.userTypedValue;
+    if (aBrowser.contentTitle == "" && !Util.isURLEmpty(aBrowser.userTypedValue))
+      caption = aBrowser.userTypedValue;
     else if (Util.isURLEmpty(url))
       caption = "";
 
     let tab = Browser.getTabForBrowser(aBrowser);
     if (tab)
-      tab.chromeTab.updateTitle(tabCaption);
+      tab.chromeTab.updateTitle(caption);
 
     let browser = Browser.selectedBrowser;
     if (browser && aBrowser != browser)
@@ -493,7 +491,6 @@ var BrowserUI = {
       FullScreenVideo.init();
       NewTabPopup.init();
       WebappsUI.init();
-      CapturePickerUI.init();
 
       
       let addonIDs = AddonManager.getStartupChanges("disabled");
@@ -715,10 +712,9 @@ var BrowserUI = {
 
     let engine = Services.search.getEngineByName(aName);
     let submission = engine.getSubmission(searchValue, null);
+    Browser.selectedBrowser.userTypedValue = submission.uri.spec;
     Browser.loadURI(submission.uri.spec, { postData: submission.postData });
 
-    
-    Browser.selectedBrowser.userTypedValue = submission.uri.spec;
     this._titleChanged(Browser.selectedBrowser);
   },
 
@@ -945,10 +941,6 @@ var BrowserUI = {
         break;
       
       case "keypress":
-        
-        
-        if (aEvent.target.localName == "browser")
-          break;
         if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE)
           this.handleEscape(aEvent);
         break;
@@ -1250,10 +1242,7 @@ var BrowserUI = {
         AppMenu.toggle();
         break;
       case "cmd_showTabs":
-        if (Util.isPortrait())
-          TabsPopup.toggle();
-        else
-          TabletSidebar.toggle();
+        TabsPopup.toggle();
         break;
       case "cmd_newTab":
         this.newTab();

@@ -152,7 +152,7 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
                                       nsIAppShell* aShell, nsIURI* aUrl,
                                       PRInt32 aInitialWidth,
                                       PRInt32 aInitialHeight,
-                                      bool aIsHiddenWindow,
+                                      PRBool aIsHiddenWindow,
                                       nsWidgetInitData& widgetInitData)
 {
   nsresult rv;
@@ -735,7 +735,7 @@ void nsWebShellWindow::LoadContentAreas() {
 
 
 
-bool nsWebShellWindow::ExecuteCloseHandler()
+PRBool nsWebShellWindow::ExecuteCloseHandler()
 {
   
 

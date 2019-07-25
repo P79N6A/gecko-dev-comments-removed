@@ -108,7 +108,7 @@ public:
   GetKeyValue(DOMStorageImpl* aStorage,
               const nsAString& aKey,
               nsAString& aValue,
-              bool* aSecure);
+              PRBool* aSecure);
 
   
 
@@ -117,9 +117,9 @@ public:
   SetKey(DOMStorageImpl* aStorage,
          const nsAString& aKey,
          const nsAString& aValue,
-         bool aSecure,
+         PRBool aSecure,
          PRInt32 aQuota,
-         bool aExcludeOfflineFromUsage,
+         PRBool aExcludeOfflineFromUsage,
          PRInt32* aNewUsage);
 
   
@@ -129,7 +129,7 @@ public:
   nsresult
   SetSecure(DOMStorageImpl* aStorage,
             const nsAString& aKey,
-            const bool aSecure);
+            const PRBool aSecure);
 
   
 
@@ -137,7 +137,7 @@ public:
   nsresult
   RemoveKey(DOMStorageImpl* aStorage,
             const nsAString& aKey,
-            bool aExcludeOfflineFromUsage,
+            PRBool aExcludeOfflineFromUsage,
             PRInt32 aKeyUsage);
 
   
@@ -162,7 +162,7 @@ public:
 
 
   nsresult
-  RemoveOwner(const nsACString& aOwner, bool aIncludeSubDomains);
+  RemoveOwner(const nsACString& aOwner, PRBool aIncludeSubDomains);
 
   
 
@@ -170,7 +170,7 @@ public:
 
   nsresult
   RemoveOwners(const nsTArray<nsString>& aOwners,
-               bool aIncludeSubDomains, bool aMatch);
+               PRBool aIncludeSubDomains, PRBool aMatch);
 
   
 
@@ -182,13 +182,13 @@ public:
 
 
   nsresult
-  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, PRInt32 *aUsage);
+  GetUsage(DOMStorageImpl* aStorage, PRBool aExcludeOfflineFromUsage, PRInt32 *aUsage);
 
   
 
 
   nsresult
-  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, PRInt32 *aUsage);
+  GetUsage(const nsACString& aDomain, PRBool aIncludeSubDomains, PRInt32 *aUsage);
 
   
 
@@ -229,7 +229,7 @@ public:
 
 
   static nsresult CreateQuotaDomainDBKey(const nsACString& aAsciiDomain,
-                                         bool aIncludeSubDomains, bool aETLDplus1Only,
+                                         PRBool aIncludeSubDomains, PRBool aETLDplus1Only,
                                          nsACString& aKey);
 
   static nsresult GetDomainFromScopeKey(const nsACString& aScope,

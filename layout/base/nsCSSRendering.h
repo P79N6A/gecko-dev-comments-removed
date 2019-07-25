@@ -149,7 +149,7 @@ struct nsCSSRendering {
   
 
 
-  static bool IsCanvasFrame(nsIFrame* aFrame);
+  static PRBool IsCanvasFrame(nsIFrame* aFrame);
 
   
 
@@ -157,7 +157,7 @@ struct nsCSSRendering {
 
 
 
-  static bool FindBackground(nsPresContext* aPresContext,
+  static PRBool FindBackground(nsPresContext* aPresContext,
                                nsIFrame* aForFrame,
                                nsStyleContext** aBackgroundSC);
 
@@ -203,7 +203,7 @@ struct nsCSSRendering {
 
   static nsIFrame*
   FindNonTransparentBackgroundFrame(nsIFrame* aFrame,
-                                    bool aStartAtParent = false);
+                                    PRBool aStartAtParent = PR_FALSE);
 
   
 

@@ -91,7 +91,7 @@ protected:
   uintN mJSAttributes;          
 
 #ifdef DEBUG
-  bool mIsCompiled;
+  PRBool mIsCompiled;
 #endif
 };
 

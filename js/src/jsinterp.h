@@ -46,6 +46,7 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsopcode.h"
+#include "jsscript.h"
 
 #include "vm/Stack.h"
 
@@ -72,6 +73,24 @@ GetScopeChain(JSContext *cx, StackFrame *fp);
 
 extern JSObject *
 GetScopeChainFast(JSContext *cx, StackFrame *fp, JSOp op, size_t oplen);
+
+
+
+
+
+void
+ReportIncompatibleMethod(JSContext *cx, Value *vp, Class *clasp);
+
+
+
+
+
+
+
+
+
+template <typename T>
+bool GetPrimitiveThis(JSContext *cx, Value *vp, T *v);
 
 
 
@@ -135,7 +154,7 @@ enum MaybeConstruct {
 
 
 extern bool
-InvokeKernel(JSContext *cx, CallArgs args, MaybeConstruct construct = NO_CONSTRUCT);
+InvokeKernel(JSContext *cx, const CallArgs &args, MaybeConstruct construct = NO_CONSTRUCT);
 
 
 
@@ -302,7 +321,10 @@ class InterpreterFrames {
     ~InterpreterFrames();
 
     
-    inline void enableInterruptsIfRunning(JSScript *script);
+    void enableInterruptsIfRunning(JSScript *script) {
+        if (script == regs->fp()->script())
+            enabler.enableInterrupts();
+    }
 
     InterpreterFrames *older;
 
@@ -326,6 +348,81 @@ extern bool
 IsActiveWithOrBlock(JSContext *cx, JSObject &obj, int stackDepth);
 
 
+
+static JS_ALWAYS_INLINE void
+ClearValueRange(Value *vec, uintN len, bool useHoles)
+{
+    if (useHoles) {
+        for (uintN i = 0; i < len; i++)
+            vec[i].setMagic(JS_ARRAY_HOLE);
+    } else {
+        for (uintN i = 0; i < len; i++)
+            vec[i].setUndefined();
+    }
+}
+
+static JS_ALWAYS_INLINE void
+MakeRangeGCSafe(Value *vec, size_t len)
+{
+    PodZero(vec, len);
+}
+
+static JS_ALWAYS_INLINE void
+MakeRangeGCSafe(Value *beg, Value *end)
+{
+    PodZero(beg, end - beg);
+}
+
+static JS_ALWAYS_INLINE void
+MakeRangeGCSafe(jsid *beg, jsid *end)
+{
+    for (jsid *id = beg; id != end; ++id)
+        *id = INT_TO_JSID(0);
+}
+
+static JS_ALWAYS_INLINE void
+MakeRangeGCSafe(jsid *vec, size_t len)
+{
+    MakeRangeGCSafe(vec, vec + len);
+}
+
+static JS_ALWAYS_INLINE void
+MakeRangeGCSafe(const Shape **beg, const Shape **end)
+{
+    PodZero(beg, end - beg);
+}
+
+static JS_ALWAYS_INLINE void
+MakeRangeGCSafe(const Shape **vec, size_t len)
+{
+    PodZero(vec, len);
+}
+
+static JS_ALWAYS_INLINE void
+SetValueRangeToUndefined(Value *beg, Value *end)
+{
+    for (Value *v = beg; v != end; ++v)
+        v->setUndefined();
+}
+
+static JS_ALWAYS_INLINE void
+SetValueRangeToUndefined(Value *vec, size_t len)
+{
+    SetValueRangeToUndefined(vec, vec + len);
+}
+
+static JS_ALWAYS_INLINE void
+SetValueRangeToNull(Value *beg, Value *end)
+{
+    for (Value *v = beg; v != end; ++v)
+        v->setNull();
+}
+
+static JS_ALWAYS_INLINE void
+SetValueRangeToNull(Value *vec, size_t len)
+{
+    SetValueRangeToNull(vec, vec + len);
+}
 
 
 

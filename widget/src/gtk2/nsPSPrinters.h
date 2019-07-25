@@ -54,7 +54,7 @@ class nsPSPrinterList {
 
 
 
-        bool Enabled();
+        PRBool Enabled();
 
         
 

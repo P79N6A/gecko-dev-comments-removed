@@ -67,8 +67,8 @@ public:
   
   NS_IMETHOD GetData(nsITransferable * aTransferable, PRUint32 anItem);
   NS_IMETHOD GetNumDropItems(PRUint32 * aNumItems);
-  NS_IMETHOD IsDataFlavorSupported(const char *aDataFlavor, bool *_retval);
-  NS_IMETHOD EndDragSession(bool aDoneDrag);
+  NS_IMETHOD IsDataFlavorSupported(const char *aDataFlavor, PRBool *_retval);
+  NS_IMETHOD EndDragSession(PRBool aDoneDrag);
 
   
   NS_IMETHOD SetIDataObject(IDataObject * aDataObj);
@@ -83,20 +83,20 @@ protected:
 
   
   
-  bool IsCollectionObject(IDataObject* inDataObj);
+  PRBool IsCollectionObject(IDataObject* inDataObj);
 
   
   PRUint64 GetShellVersion();
 
   
-  bool CreateDragImage(nsIDOMNode *aDOMNode,
+  PRBool CreateDragImage(nsIDOMNode *aDOMNode,
                          nsIScriptableRegion *aRegion,
                          SHDRAGIMAGE *psdi);
 
   IDropSource * mNativeDragSrc;
   nsNativeDragTarget * mNativeDragTarget;
   IDataObject * mDataObject;
-  bool mSentLocalDropEvent;
+  PRPackedBool mSentLocalDropEvent;
 };
 
 #endif 

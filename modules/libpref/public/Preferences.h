@@ -127,9 +127,9 @@ public:
 
 
 
-  static bool GetBool(const char* aPref, bool aDefault = false)
+  static PRBool GetBool(const char* aPref, PRBool aDefault = PR_FALSE)
   {
-    bool result = aDefault;
+    PRBool result = aDefault;
     GetBool(aPref, &result);
     return result;
   }
@@ -181,7 +181,7 @@ public:
 
 
 
-  static nsresult GetBool(const char* aPref, bool* aResult);
+  static nsresult GetBool(const char* aPref, PRBool* aResult);
   static nsresult GetInt(const char* aPref, PRInt32* aResult);
   static nsresult GetUint(const char* aPref, PRUint32* aResult)
   {
@@ -211,7 +211,7 @@ public:
   
 
 
-  static nsresult SetBool(const char* aPref, bool aValue);
+  static nsresult SetBool(const char* aPref, PRBool aValue);
   static nsresult SetInt(const char* aPref, PRInt32 aValue);
   static nsresult SetUint(const char* aPref, PRUint32 aValue)
   {
@@ -233,7 +233,7 @@ public:
   
 
 
-  static bool HasUserValue(const char* aPref);
+  static PRBool HasUserValue(const char* aPref);
 
   
 
@@ -272,9 +272,9 @@ public:
 
 
 
-  static nsresult AddBoolVarCache(bool* aVariable,
+  static nsresult AddBoolVarCache(PRBool* aVariable,
                                   const char* aPref,
-                                  bool aDefault = false);
+                                  PRBool aDefault = PR_FALSE);
   static nsresult AddIntVarCache(PRInt32* aVariable,
                                  const char* aPref,
                                  PRInt32 aDefault = 0);
@@ -288,7 +288,7 @@ public:
 
 
 
-  static nsresult GetDefaultBool(const char* aPref, bool* aResult);
+  static nsresult GetDefaultBool(const char* aPref, PRBool* aResult);
   static nsresult GetDefaultInt(const char* aPref, PRInt32* aResult);
   static nsresult GetDefaultUint(const char* aPref, PRUint32* aResult)
   {
@@ -301,9 +301,9 @@ public:
 
 
 
-  static bool GetDefaultBool(const char* aPref, bool aFailedResult)
+  static PRBool GetDefaultBool(const char* aPref, PRBool aFailedResult)
   {
-    bool result;
+    PRBool result;
     return NS_SUCCEEDED(GetDefaultBool(aPref, &result)) ? result :
                                                           aFailedResult;
   }
@@ -358,12 +358,12 @@ private:
   static nsIPrefBranch2*   sRootBranch;
   
   static nsIPrefBranch*    sDefaultRootBranch;
-  static bool              sShutdown;
+  static PRBool            sShutdown;
 
   
 
 
-  static bool InitStaticMembers(bool aForService = false);
+  static PRBool InitStaticMembers(PRBool aForService = PR_FALSE);
 };
 
 } 

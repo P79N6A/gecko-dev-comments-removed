@@ -138,7 +138,7 @@ NS_InitLineBuffer (nsLineBuffer<CharT> ** aBufferPtr) {
 template<typename CharT, class StreamType, class StringType>
 nsresult
 NS_ReadLine (StreamType* aStream, nsLineBuffer<CharT> * aBuffer,
-             StringType & aLine, bool *more)
+             StringType & aLine, PRBool *more)
 {
   CharT eolchar = 0; 
 

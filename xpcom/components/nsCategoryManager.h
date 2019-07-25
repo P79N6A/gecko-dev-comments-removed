@@ -136,7 +136,7 @@ public:
 
 
 
-  NS_METHOD SuppressNotifications(bool aSuppress);
+  NS_METHOD SuppressNotifications(PRBool aSuppress);
 
   void AddCategoryEntry(const char* aCategory,
                         const char* aKey,
@@ -163,7 +163,7 @@ private:
   PLArenaPool mArena;
   nsClassHashtable<nsDepCharHashKey, CategoryNode> mTable;
   mozilla::Mutex mLock;
-  bool mSuppressNotifications;
+  PRBool mSuppressNotifications;
 };
 
 #endif

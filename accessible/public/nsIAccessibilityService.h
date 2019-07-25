@@ -83,7 +83,7 @@ public:
 
 
   virtual nsAccessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
-                                                  bool aCanCreate) = 0;
+                                                  PRBool aCanCreate) = 0;
 
   
 

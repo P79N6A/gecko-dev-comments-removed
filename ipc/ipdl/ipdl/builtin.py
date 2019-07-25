@@ -61,6 +61,8 @@ Types = (
     'ssize_t',
 
     
+    'PRBool',
+    'PRPackedBool',
     'PRInt8',
     'PRUint8',
     'PRInt16',

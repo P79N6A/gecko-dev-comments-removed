@@ -429,39 +429,6 @@ nsCOMPtr_base
   {
     public:
 
-      template <class T>
-      class
-        NS_FINAL_CLASS
-        NS_STACK_CLASS
-      nsDerivedSafe : public T
-          
-
-
-
-
-
-
-        {
-          private:
-            using T::AddRef;
-            using T::Release;
-            
-            ~nsDerivedSafe(); 
-            
-
-
-
-
-
-
-          protected:
-            nsDerivedSafe(); 
-              
-
-
-
-        };
-
       nsCOMPtr_base( nsISupports* rawPtr = 0 )
           : mRawPtr(rawPtr)
         {
@@ -836,11 +803,11 @@ nsCOMPtr
           return get();
         }
 
-      nsCOMPtr_base::nsDerivedSafe<T>*
+      T*
       operator->() const
         {
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator->().");
-          return reinterpret_cast<nsCOMPtr_base::nsDerivedSafe<T>*> (get());
+          return get();
         }
 
       nsCOMPtr<T>*
@@ -1143,11 +1110,11 @@ class nsCOMPtr<nsISupports>
           return get();
         }
 
-      nsDerivedSafe<nsISupports>*
+      nsISupports*
       operator->() const
         {
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsCOMPtr with operator->().");
-          return reinterpret_cast<nsCOMPtr_base::nsDerivedSafe<nsISupports>*> (get());
+          return get();
         }
 
       nsCOMPtr<nsISupports>*

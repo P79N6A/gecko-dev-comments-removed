@@ -68,7 +68,7 @@ static nsZipArchive *sReader[2];
 
 
 
-static bool sInitialized;
+static PRPackedBool sInitialized;
 
 public:
 enum Type {
@@ -80,7 +80,7 @@ enum Type {
 
 
 
-static inline bool
+static inline PRPackedBool
 IsInitialized()
 {
     return sInitialized;
@@ -117,7 +117,7 @@ GetPath(Type aType)
 
 
 
-static inline bool
+static inline PRBool
 HasOmnijar(Type aType)
 {
     NS_ABORT_IF_FALSE(IsInitialized(), "Omnijar not initialized");

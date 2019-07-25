@@ -58,7 +58,7 @@ public:
                                  uScanClassID aScanClass,
                                  uShiftInTable * aShiftInTable,
                                  uMappingTable  * aMappingTable,
-                                 bool aErrorSignal = false);
+                                 PRBool aErrorSignal = PR_FALSE);
 
   
 
@@ -66,14 +66,14 @@ public:
   static nsresult ConvertByMultiTable(const char * aSrc, PRInt32 * aSrcLength,
       PRUnichar * aDest, PRInt32 * aDestLength, PRInt32 aTableCount, 
       const uRange * aRangeArray, uScanClassID * aScanClassArray,
-      uMappingTable ** aMappingTable, bool aErrorSignal = false);
+      uMappingTable ** aMappingTable, PRBool aErrorSignal = PR_FALSE);
 
   
 
 
   static nsresult ConvertByFastTable(const char * aSrc, PRInt32 * aSrcLength, 
       PRUnichar * aDest, PRInt32 * aDestLength, const PRUnichar * aFastTable, 
-      PRInt32 aTableSize, bool aErrorSignal);
+      PRInt32 aTableSize, PRBool aErrorSignal);
 
   
 

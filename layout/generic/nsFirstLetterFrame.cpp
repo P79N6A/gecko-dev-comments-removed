@@ -121,7 +121,7 @@ nsFirstLetterFrame::SetInitialChildList(ChildListID  aListID,
 
 NS_IMETHODIMP
 nsFirstLetterFrame::GetChildFrameContainingOffset(PRInt32 inContentOffset,
-                                                  bool inHint,
+                                                  PRBool inHint,
                                                   PRInt32* outFrameContentOffset,
                                                   nsIFrame **outChildFrame)
 {
@@ -170,7 +170,7 @@ nsFirstLetterFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 nsFirstLetterFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                 nsSize aCBSize, nscoord aAvailableWidth,
                                 nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                                bool aShrinkWrap)
+                                PRBool aShrinkWrap)
 {
   if (GetPrevInFlow()) {
     
@@ -234,7 +234,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
   else {
     
     nsLineLayout* ll = aReflowState.mLineLayout;
-    bool          pushedFrame;
+    PRBool        pushedFrame;
 
     ll->SetInFirstLetter(
       mStyleContext->GetPseudo() == nsCSSPseudoElements::firstLetter);
@@ -305,7 +305,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
   return rv;
 }
 
- bool
+ PRBool
 nsFirstLetterFrame::CanContinueTextRun() const
 {
   
@@ -316,7 +316,7 @@ nsresult
 nsFirstLetterFrame::CreateContinuationForFloatingParent(nsPresContext* aPresContext,
                                                         nsIFrame* aChild,
                                                         nsIFrame** aContinuation,
-                                                        bool aIsFluid)
+                                                        PRBool aIsFluid)
 {
   NS_ASSERTION(GetStyleDisplay()->IsFloating(),
                "can only call this on floating first letter frames");

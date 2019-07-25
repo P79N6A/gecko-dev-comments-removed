@@ -113,7 +113,7 @@ class nsHtml5AtomTable
 
 
 
-    inline bool Init() {
+    inline PRBool Init() {
       return mTable.Init();
     }
     

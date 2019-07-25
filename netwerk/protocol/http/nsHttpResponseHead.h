@@ -69,8 +69,8 @@ public:
     PRInt64               ContentLength()  { return mContentLength; }
     const nsAFlatCString &ContentType()    { return mContentType; }
     const nsAFlatCString &ContentCharset() { return mContentCharset; }
-    bool                  NoStore()        { return mCacheControlNoStore; }
-    bool                  NoCache()        { return (mCacheControlNoCache || mPragmaNoCache); }
+    PRBool                NoStore()        { return mCacheControlNoStore; }
+    PRBool                NoCache()        { return (mCacheControlNoCache || mPragmaNoCache); }
     
 
 
@@ -79,13 +79,13 @@ public:
     PRInt64               TotalEntitySize();
 
     const char *PeekHeader(nsHttpAtom h)            { return mHeaders.PeekHeader(h); }
-    nsresult SetHeader(nsHttpAtom h, const nsACString &v, bool m=false);
+    nsresult SetHeader(nsHttpAtom h, const nsACString &v, PRBool m=PR_FALSE);
     nsresult GetHeader(nsHttpAtom h, nsACString &v) { return mHeaders.GetHeader(h, v); }
     void     ClearHeader(nsHttpAtom h)              { mHeaders.ClearHeader(h); }
     void     ClearHeaders()                         { mHeaders.Clear(); }
 
     const char *FindHeaderValue(nsHttpAtom h, const char *v) { return mHeaders.FindHeaderValue(h, v); }
-    bool        HasHeaderValue(nsHttpAtom h, const char *v) { return mHeaders.HasHeaderValue(h, v); }
+    PRBool      HasHeaderValue(nsHttpAtom h, const char *v) { return mHeaders.HasHeaderValue(h, v); }
 
     void     SetContentType(const nsACString &s)    { mContentType = s; }
     void     SetContentCharset(const nsACString &s) { mContentCharset = s; }
@@ -94,7 +94,7 @@ public:
     
     
     
-    void     Flatten(nsACString &, bool pruneTransients);
+    void     Flatten(nsACString &, PRBool pruneTransients);
 
     
     
@@ -109,15 +109,15 @@ public:
     
     nsresult ComputeFreshnessLifetime(PRUint32 *);
     nsresult ComputeCurrentAge(PRUint32 now, PRUint32 requestTime, PRUint32 *result);
-    bool     MustValidate();
-    bool     MustValidateIfExpired();
+    PRBool   MustValidate();
+    PRBool   MustValidateIfExpired();
 
     
-    bool     IsResumable();
+    PRBool   IsResumable();
 
     
     
-    bool     ExpiresInPast();
+    PRBool   ExpiresInPast();
 
     
     nsresult UpdateHeaders(nsHttpHeaderArray &headers); 
@@ -146,9 +146,9 @@ private:
     PRInt64           mContentLength;
     nsCString         mContentType;
     nsCString         mContentCharset;
-    bool              mCacheControlNoStore;
-    bool              mCacheControlNoCache;
-    bool              mPragmaNoCache;
+    PRPackedBool      mCacheControlNoStore;
+    PRPackedBool      mCacheControlNoCache;
+    PRPackedBool      mPragmaNoCache;
 
     friend struct IPC::ParamTraits<nsHttpResponseHead>;
 };

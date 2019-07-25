@@ -82,7 +82,7 @@ public:
 
 
 
-    bool
+    PRBool
     SyncAssignments(nsIRDFResource* aSubject,
                     nsIRDFResource* aPredicate,
                     nsIRDFNode* aTarget);
@@ -91,7 +91,7 @@ public:
 
 
 
-    bool
+    PRBool
     HasMemoryElement(const MemoryElement& aMemoryElement);
 
 protected:

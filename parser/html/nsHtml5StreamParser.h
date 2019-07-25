@@ -138,7 +138,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    bool internalEncodingDeclaration(nsString* aEncoding);
+    PRBool internalEncodingDeclaration(nsString* aEncoding);
 
     
 
@@ -171,7 +171,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
     void ContinueAfterScripts(nsHtml5Tokenizer* aTokenizer, 
                               nsHtml5TreeBuilder* aTreeBuilder,
-                              bool aLastWasCR);
+                              PRBool aLastWasCR);
 
     
 
@@ -188,8 +188,8 @@ class nsHtml5StreamParser : public nsIStreamListener,
   private:
 
 #ifdef DEBUG
-    bool IsParserThread() {
-      bool ret;
+    PRBool IsParserThread() {
+      PRBool ret;
       mThread->IsOnCurrentThread(&ret);
       return ret;
     }
@@ -226,12 +226,12 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
     void DoDataAvailable(PRUint8* aBuffer, PRUint32 aLength);
 
-    bool IsTerminatedOrInterrupted() {
+    PRBool IsTerminatedOrInterrupted() {
       mozilla::MutexAutoLock autoLock(mTerminatedMutex);
       return mTerminated || mInterrupted;
     }
 
-    bool IsTerminated() {
+    PRBool IsTerminated() {
       mozilla::MutexAutoLock autoLock(mTerminatedMutex);
       return mTerminated;
     }
@@ -239,7 +239,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    inline bool HasDecoder() {
+    inline PRBool HasDecoder() {
       return !!mUnicodeDecoder;
     }
 
@@ -377,7 +377,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    bool                          mReparseForbidden;
+    PRBool                        mReparseForbidden;
 
     
     
@@ -425,7 +425,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    bool                          mLastWasCR;
+    PRBool                        mLastWasCR;
 
     
 
@@ -435,12 +435,12 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    bool                          mSpeculating;
+    PRBool                        mSpeculating;
 
     
 
 
-    bool                          mAtEOF;
+    PRBool                        mAtEOF;
 
     
 
@@ -454,8 +454,8 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    bool                          mTerminated;
-    bool                          mInterrupted;
+    PRBool                        mTerminated;
+    PRBool                        mInterrupted;
     mozilla::Mutex                mTerminatedMutex;
     
     
@@ -475,7 +475,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    bool                          mFeedChardet;
+    PRBool                        mFeedChardet;
 
     
 
@@ -486,12 +486,12 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-    bool                          mFlushTimerArmed;
+    PRBool                        mFlushTimerArmed;
 
     
 
 
-    bool                          mFlushTimerEverFired;
+    PRBool                        mFlushTimerEverFired;
 
     
 

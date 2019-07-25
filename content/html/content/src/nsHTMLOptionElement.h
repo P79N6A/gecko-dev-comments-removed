@@ -91,9 +91,9 @@ public:
                                               PRInt32 aModType) const;
 
   virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
-                                 const nsAString* aValue, bool aNotify);
+                                 const nsAString* aValue, PRBool aNotify);
   
-  void SetSelectedInternal(bool aValue, bool aNotify);
+  void SetSelectedInternal(PRBool aValue, PRBool aNotify);
 
   
   virtual nsEventStates IntrinsicState() const;
@@ -111,12 +111,12 @@ protected:
 
   nsHTMLSelectElement* GetSelect();
 
-  bool mSelectedChanged;
-  bool mIsSelected;
+  PRPackedBool mSelectedChanged;
+  PRPackedBool mIsSelected;
 
   
   
-  bool mIsInSetDefaultSelected;
+  PRPackedBool mIsInSetDefaultSelected;
 };
 
 #endif

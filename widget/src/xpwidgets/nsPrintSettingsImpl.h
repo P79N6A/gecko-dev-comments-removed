@@ -93,17 +93,17 @@ protected:
   PRInt32       mStartPageNum; 
   PRInt32       mEndPageNum;
   double        mScaling;
-  bool          mPrintBGColors;  
-  bool          mPrintBGImages;  
+  PRBool        mPrintBGColors;  
+  PRBool        mPrintBGImages;  
 
   PRInt16       mPrintFrameTypeUsage;
   PRInt16       mPrintFrameType;
   PRInt16       mHowToEnableFrameUI;
-  bool          mIsCancelled;
-  bool          mPrintSilent;
-  bool          mPrintPreview;
-  bool          mShrinkToFit;
-  bool          mShowPrintProgress;
+  PRBool        mIsCancelled;
+  PRBool        mPrintSilent;
+  PRBool        mPrintPreview;
+  PRBool        mShrinkToFit;
+  PRBool        mShowPrintProgress;
   PRInt32       mPrintPageDelay;
 
   nsString      mTitle;
@@ -120,20 +120,20 @@ protected:
   double        mPaperHeight;
   PRInt16       mPaperSizeUnit;
 
-  bool          mPrintReversed;
-  bool          mPrintInColor; 
+  PRBool        mPrintReversed;
+  PRBool        mPrintInColor; 
   PRInt32       mOrientation;  
   nsString      mColorspace;
   nsString      mResolutionName;
-  bool          mDownloadFonts;
+  PRBool        mDownloadFonts;
   nsString      mPrintCommand;
   PRInt32       mNumCopies;
   nsXPIDLString mPrinter;
-  bool          mPrintToFile;
+  PRBool        mPrintToFile;
   nsString      mToFileName;
   PRInt16       mOutputFormat;
-  bool          mIsInitedFromPrinter;
-  bool          mIsInitedFromPrefs;
+  PRPackedBool  mIsInitedFromPrinter;
+  PRPackedBool  mIsInitedFromPrefs;
 
 };
 

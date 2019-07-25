@@ -61,10 +61,10 @@ class nsPresContext;
 
 struct nsFlowAreaRect {
   nsRect mRect;
-  bool mHasFloats;
+  PRPackedBool mHasFloats;
 
   nsFlowAreaRect(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight,
-                 bool aHasFloats)
+                 PRBool aHasFloats)
     : mRect(aX, aY, aWidth, aHeight), mHasFloats(aHasFloats) {}
 };
 
@@ -110,10 +110,10 @@ public:
   private:
     PRUint32 mFloatInfoCount;
     nscoord mX, mY;
-    bool mPushedLeftFloatPastBreak;
-    bool mPushedRightFloatPastBreak;
-    bool mSplitLeftFloatAcrossBreak;
-    bool mSplitRightFloatAcrossBreak;
+    PRPackedBool mPushedLeftFloatPastBreak;
+    PRPackedBool mPushedRightFloatPastBreak;
+    PRPackedBool mSplitLeftFloatAcrossBreak;
+    PRPackedBool mSplitRightFloatAcrossBreak;
 
     friend class nsFloatManager;
   };
@@ -219,13 +219,13 @@ private:
   struct FloatInfo;
 public:
 
-  bool HasAnyFloats() const { return !mFloats.IsEmpty(); }
+  PRBool HasAnyFloats() const { return !mFloats.IsEmpty(); }
 
   
 
 
 
-  bool HasFloatDamage() const
+  PRBool HasFloatDamage() const
   {
     return !mFloatDamage.IsEmpty();
   }
@@ -235,7 +235,7 @@ public:
     mFloatDamage.IncludeInterval(aIntervalBegin + mY, aIntervalEnd + mY);
   }
 
-  bool IntersectsDamage(nscoord aIntervalBegin, nscoord aIntervalEnd) const
+  PRBool IntersectsDamage(nscoord aIntervalBegin, nscoord aIntervalEnd) const
   {
     return mFloatDamage.Intersects(aIntervalBegin + mY, aIntervalEnd + mY);
   }
@@ -283,7 +283,7 @@ public:
 
 
 
-  bool ClearContinues(PRUint8 aBreakType) const;
+  PRBool ClearContinues(PRUint8 aBreakType) const;
 
   void AssertStateMatches(SavedState *aState) const
   {
@@ -332,14 +332,14 @@ private:
   
   
   
-  bool mPushedLeftFloatPastBreak;
-  bool mPushedRightFloatPastBreak;
+  PRPackedBool mPushedLeftFloatPastBreak;
+  PRPackedBool mPushedRightFloatPastBreak;
 
   
   
   
-  bool mSplitLeftFloatAcrossBreak;
-  bool mSplitRightFloatAcrossBreak;
+  PRPackedBool mSplitLeftFloatAcrossBreak;
+  PRPackedBool mSplitRightFloatAcrossBreak;
 
   static PRInt32 sCachedFloatManagerCount;
   static void* sCachedFloatManagers[NS_FLOAT_MANAGER_CACHE_SIZE];

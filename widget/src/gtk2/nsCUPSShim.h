@@ -92,13 +92,13 @@ class nsCUPSShim {
 
 
 
-        bool Init();
+        PRBool Init();
 
         
 
 
 
-        bool IsInitialized() { return nsnull != mCupsLib; }
+        PRBool IsInitialized() { return nsnull != mCupsLib; }
 
         
 

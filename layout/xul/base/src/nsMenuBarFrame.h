@@ -60,8 +60,6 @@ nsIFrame* NS_NewMenuBarFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 class nsMenuBarFrame : public nsBoxFrame, public nsMenuParent
 {
 public:
-  NS_DECL_QUERYFRAME_TARGET(nsMenuBarFrame)
-  NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
   nsMenuBarFrame(nsIPresShell* aShell, nsStyleContext* aContext);
@@ -70,17 +68,17 @@ public:
   virtual nsMenuFrame* GetCurrentMenuItem();
   NS_IMETHOD SetCurrentMenuItem(nsMenuFrame* aMenuItem);
   virtual void CurrentMenuIsBeingDestroyed();
-  NS_IMETHOD ChangeMenuItem(nsMenuFrame* aMenuItem, bool aSelectFirstItem);
+  NS_IMETHOD ChangeMenuItem(nsMenuFrame* aMenuItem, PRBool aSelectFirstItem);
 
-  NS_IMETHOD SetActive(bool aActiveFlag); 
+  NS_IMETHOD SetActive(PRBool aActiveFlag); 
 
-  virtual bool IsMenuBar() { return true; }
-  virtual bool IsContextMenu() { return false; }
-  virtual bool IsActive() { return mIsActive; }
-  virtual bool IsMenu() { return false; }
-  virtual bool IsOpen() { return true; } 
+  virtual PRBool IsMenuBar() { return PR_TRUE; }
+  virtual PRBool IsContextMenu() { return PR_FALSE; }
+  virtual PRBool IsActive() { return mIsActive; }
+  virtual PRBool IsMenu() { return PR_FALSE; }
+  virtual PRBool IsOpen() { return PR_TRUE; } 
 
-  bool IsMenuOpen() { return mCurrentMenu && mCurrentMenu->IsOpen(); }
+  PRBool IsMenuOpen() { return mCurrentMenu && mCurrentMenu->IsOpen(); }
 
   void InstallKeyboardNavigator();
   void RemoveKeyboardNavigator();
@@ -93,24 +91,24 @@ public:
 
   virtual nsIAtom* GetType() const { return nsGkAtoms::menuBarFrame; }
 
-  virtual void LockMenuUntilClosed(bool aLock) {}
-  virtual bool IsMenuLocked() { return false; }
+  virtual void LockMenuUntilClosed(PRBool aLock) {}
+  virtual PRBool IsMenuLocked() { return PR_FALSE; }
 
 
 
   void
-  SetStayActive(bool aStayActive) { mStayActive = aStayActive; }
+  SetStayActive(PRBool aStayActive) { mStayActive = aStayActive; }
 
   
   
   nsMenuFrame* ToggleMenuActiveState();
 
-  bool IsActiveByKeyboard() { return mActiveByKeyboard; }
+  PRBool IsActiveByKeyboard() { return mActiveByKeyboard; }
   void SetActiveByKeyboard() { mActiveByKeyboard = PR_TRUE; }
 
   
   
-  virtual bool MenuClosed();
+  virtual PRBool MenuClosed();
 
   
   
@@ -119,7 +117,7 @@ public:
   
   nsMenuFrame* FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent);
 
-  virtual bool IsFrameOfType(PRUint32 aFlags) const
+  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
   {
     
     if (aFlags & (nsIFrame::eReplacedContainsBlock | nsIFrame::eReplaced))
@@ -139,12 +137,12 @@ protected:
 
   
   
-  bool mStayActive;
+  PRPackedBool mStayActive;
 
-  bool mIsActive; 
+  PRPackedBool mIsActive; 
 
   
-  bool mActiveByKeyboard;
+  PRPackedBool mActiveByKeyboard;
 
   
   

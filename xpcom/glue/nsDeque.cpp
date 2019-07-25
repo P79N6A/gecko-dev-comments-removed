@@ -169,7 +169,7 @@ nsDeque& nsDeque::Erase() {
 
 
 
-bool nsDeque::GrowCapacity() {
+PRBool nsDeque::GrowCapacity() {
   PRInt32 theNewSize=mCapacity<<2;
   NS_ASSERTION(theNewSize>mCapacity, "Overflow");
   if (theNewSize<=mCapacity)
@@ -469,8 +469,8 @@ nsDequeIterator& nsDequeIterator::operator=(const nsDequeIterator& aCopy) {
 
 
 
-bool nsDequeIterator::operator!=(nsDequeIterator& aIter) {
-  return bool(!this->operator==(aIter));
+PRBool nsDequeIterator::operator!=(nsDequeIterator& aIter) {
+  return PRBool(!this->operator==(aIter));
 }
 
 
@@ -481,8 +481,8 @@ bool nsDequeIterator::operator!=(nsDequeIterator& aIter) {
 
 
 
-bool nsDequeIterator::operator<(nsDequeIterator& aIter) {
-  return bool(((mIndex<aIter.mIndex) && (&mDeque==&aIter.mDeque)));
+PRBool nsDequeIterator::operator<(nsDequeIterator& aIter) {
+  return PRBool(((mIndex<aIter.mIndex) && (&mDeque==&aIter.mDeque)));
 }
 
 
@@ -491,8 +491,8 @@ bool nsDequeIterator::operator<(nsDequeIterator& aIter) {
 
 
 
-bool nsDequeIterator::operator==(nsDequeIterator& aIter) {
-  return bool(((mIndex==aIter.mIndex) && (&mDeque==&aIter.mDeque)));
+PRBool nsDequeIterator::operator==(nsDequeIterator& aIter) {
+  return PRBool(((mIndex==aIter.mIndex) && (&mDeque==&aIter.mDeque)));
 }
 
 
@@ -503,8 +503,8 @@ bool nsDequeIterator::operator==(nsDequeIterator& aIter) {
 
 
 
-bool nsDequeIterator::operator>=(nsDequeIterator& aIter) {
-  return bool(((mIndex>=aIter.mIndex) && (&mDeque==&aIter.mDeque)));
+PRBool nsDequeIterator::operator>=(nsDequeIterator& aIter) {
+  return PRBool(((mIndex>=aIter.mIndex) && (&mDeque==&aIter.mDeque)));
 }
 
 

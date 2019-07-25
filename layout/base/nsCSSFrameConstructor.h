@@ -129,7 +129,7 @@ private:
 
   
   
-  bool MaybeConstructLazily(Operation aOperation,
+  PRBool MaybeConstructLazily(Operation aOperation,
                               nsIContent* aContainer,
                               nsIContent* aChild);
 
@@ -138,7 +138,7 @@ private:
   void IssueSingleInsertNofications(nsIContent* aContainer,
                                     nsIContent* aStartChild,
                                     nsIContent* aEndChild,
-                                    bool aAllowLazyConstruction);
+                                    PRBool aAllowLazyConstruction);
   
   
   
@@ -149,10 +149,10 @@ private:
                                    nsIFrame* aParentFrame,
                                    nsIContent* aStartChild,
                                    nsIContent* aEndChild,
-                                   bool aAllowLazyConstruction);
+                                   PRBool aAllowLazyConstruction);
 
   
-  bool MaybeRecreateForFrameset(nsIFrame* aParentFrame,
+  PRBool MaybeRecreateForFrameset(nsIFrame* aParentFrame,
                                   nsIContent* aStartChild,
                                   nsIContent* aEndChild);
 
@@ -205,14 +205,14 @@ public:
   
   nsresult ContentAppended(nsIContent* aContainer,
                            nsIContent* aFirstNewContent,
-                           bool        aAllowLazyConstruction);
+                           PRBool      aAllowLazyConstruction);
 
   
   
   nsresult ContentInserted(nsIContent*            aContainer,
                            nsIContent*            aChild,
                            nsILayoutHistoryState* aFrameState,
-                           bool                   aAllowLazyConstruction);
+                           PRBool                 aAllowLazyConstruction);
 
   
   
@@ -224,14 +224,14 @@ public:
                                 nsIContent*            aStartChild,
                                 nsIContent*            aEndChild,
                                 nsILayoutHistoryState* aFrameState,
-                                bool                   aAllowLazyConstruction);
+                                PRBool                 aAllowLazyConstruction);
 
   enum RemoveFlags { REMOVE_CONTENT, REMOVE_FOR_RECONSTRUCTION };
   nsresult ContentRemoved(nsIContent* aContainer,
                           nsIContent* aChild,
                           nsIContent* aOldNextSibling,
                           RemoveFlags aFlags,
-                          bool*     aDidReconstruct);
+                          PRBool*     aDidReconstruct);
 
   nsresult CharacterDataChanged(nsIContent* aContent,
                                 CharacterDataChangeInfo* aInfo);
@@ -350,8 +350,8 @@ private:
   void PostRestyleEventCommon(Element* aElement,
                               nsRestyleHint aRestyleHint,
                               nsChangeHint aMinChangeHint,
-                              bool aForAnimation);
-  void PostRestyleEventInternal(bool aForLazyConstruction);
+                              PRBool aForAnimation);
+  void PostRestyleEventInternal(PRBool aForLazyConstruction);
 public:
 
   
@@ -371,7 +371,7 @@ public:
                                  nsIFrame*       aFrame,
                                  nsIFrame*       aParentFrame,
                                  nsIFrame**      aContinuingFrame,
-                                 bool            aIsFluid = true);
+                                 PRBool          aIsFluid = PR_TRUE);
 
   
   nsresult ReplicateFixedFrames(nsPageContentFrame* aParentFrame);
@@ -380,15 +380,15 @@ public:
   nsresult GetInsertionPoint(nsIFrame*     aParentFrame,
                              nsIContent*   aChildContent,
                              nsIFrame**    aInsertionPoint,
-                             bool*       aMultiple = nsnull);
+                             PRBool*       aMultiple = nsnull);
 
   nsresult CreateListBoxContent(nsPresContext* aPresContext,
                                 nsIFrame*       aParentFrame,
                                 nsIFrame*       aPrevFrame,
                                 nsIContent*     aChild,
                                 nsIFrame**      aResult,
-                                bool            aIsAppend,
-                                bool            aIsScrollbar,
+                                PRBool          aIsAppend,
+                                PRBool          aIsScrollbar,
                                 nsILayoutHistoryState* aFrameState);
 
   
@@ -421,14 +421,14 @@ private:
                       nsIFrame*       aPrimaryFrame,
                       nsChangeHint    aMinHint,
                       RestyleTracker& aRestyleTracker,
-                      bool            aRestyleDescendants);
+                      PRBool          aRestyleDescendants);
 
   nsresult InitAndRestoreFrame (const nsFrameConstructorState& aState,
                                 nsIContent*                    aContent,
                                 nsIFrame*                      aParentFrame,
                                 nsIFrame*                      aPrevInFlow,
                                 nsIFrame*                      aNewFrame,
-                                bool                           aAllowCounters = true);
+                                PRBool                         aAllowCounters = PR_TRUE);
 
   
   
@@ -456,7 +456,7 @@ private:
   
   void AddFrameConstructionItems(nsFrameConstructorState& aState,
                                  nsIContent*              aContent,
-                                 bool                     aSuppressWhiteSpaceOptimizations,
+                                 PRBool                   aSuppressWhiteSpaceOptimizations,
                                  nsIFrame*                aParentFrame,
                                  FrameConstructionItemList& aItems);
 
@@ -534,7 +534,7 @@ private:
                         nsIFrame*                      aParentFrame,
                         nsFrameItems&                  aFrameList,
                         nsIFrame*                      aPrevSibling,
-                        bool                           aIsRecursiveCall = false);
+                        PRBool                         aIsRecursiveCall = PR_FALSE);
 
   
   
@@ -825,19 +825,19 @@ private:
       
     }
 
-    void SetLineBoundaryAtStart(bool aBoundary) { mLineBoundaryAtStart = aBoundary; }
-    void SetLineBoundaryAtEnd(bool aBoundary) { mLineBoundaryAtEnd = aBoundary; }
-    void SetParentHasNoXBLChildren(bool aHasNoXBLChildren) {
+    void SetLineBoundaryAtStart(PRBool aBoundary) { mLineBoundaryAtStart = aBoundary; }
+    void SetLineBoundaryAtEnd(PRBool aBoundary) { mLineBoundaryAtEnd = aBoundary; }
+    void SetParentHasNoXBLChildren(PRBool aHasNoXBLChildren) {
       mParentHasNoXBLChildren = aHasNoXBLChildren;
     }
-    bool HasLineBoundaryAtStart() { return mLineBoundaryAtStart; }
-    bool HasLineBoundaryAtEnd() { return mLineBoundaryAtEnd; }
-    bool ParentHasNoXBLChildren() { return mParentHasNoXBLChildren; }
-    bool IsEmpty() const { return PR_CLIST_IS_EMPTY(&mItems); }
-    bool AnyItemsNeedBlockParent() const { return mLineParticipantCount != 0; }
-    bool AreAllItemsInline() const { return mInlineCount == mItemCount; }
-    bool AreAllItemsBlock() const { return mBlockCount == mItemCount; }
-    bool AllWantParentType(ParentType aDesiredParentType) const {
+    PRBool HasLineBoundaryAtStart() { return mLineBoundaryAtStart; }
+    PRBool HasLineBoundaryAtEnd() { return mLineBoundaryAtEnd; }
+    PRBool ParentHasNoXBLChildren() { return mParentHasNoXBLChildren; }
+    PRBool IsEmpty() const { return PR_CLIST_IS_EMPTY(&mItems); }
+    PRBool AnyItemsNeedBlockParent() const { return mLineParticipantCount != 0; }
+    PRBool AreAllItemsInline() const { return mInlineCount == mItemCount; }
+    PRBool AreAllItemsBlock() const { return mBlockCount == mItemCount; }
+    PRBool AllWantParentType(ParentType aDesiredParentType) const {
       return mDesiredParentCounts[aDesiredParentType] == mItemCount;
     }
 
@@ -850,7 +850,7 @@ private:
                                       PRInt32 aNameSpaceID,
                                       PendingBinding* aPendingBinding,
                                       already_AddRefed<nsStyleContext> aStyleContext,
-                                      bool aSuppressWhiteSpaceOptimizations)
+                                      PRBool aSuppressWhiteSpaceOptimizations)
     {
       FrameConstructionItem* item =
         new FrameConstructionItem(aFCData, aContent, aTag, aNameSpaceID,
@@ -882,11 +882,11 @@ private:
         mList(aOther.mList)
       {}
 
-      bool operator==(const Iterator& aOther) const {
+      PRBool operator==(const Iterator& aOther) const {
         NS_ASSERTION(mEnd == aOther.mEnd, "Iterators for different lists?");
         return mCurrent == aOther.mCurrent;
       }
-      bool operator!=(const Iterator& aOther) const {
+      PRBool operator!=(const Iterator& aOther) const {
         return !(*this == aOther);
       }
       Iterator& operator=(const Iterator& aOther) {
@@ -906,8 +906,8 @@ private:
       FrameConstructionItem& item() {
         return *FrameConstructionItemList::ToItem(mCurrent);
       }
-      bool IsDone() const { return mCurrent == mEnd; }
-      bool AtStart() const { return mCurrent == PR_NEXT_LINK(mEnd); }
+      PRBool IsDone() const { return mCurrent == mEnd; }
+      PRBool AtStart() const { return mCurrent == PR_NEXT_LINK(mEnd); }
       void Next() {
         NS_ASSERTION(!IsDone(), "Should have checked IsDone()!");
         mCurrent = PR_NEXT_LINK(mCurrent);
@@ -921,12 +921,12 @@ private:
       
       
       
-      inline bool SkipItemsWantingParentType(ParentType aParentType);
+      inline PRBool SkipItemsWantingParentType(ParentType aParentType);
 
       
       
       
-      inline bool SkipWhitespace(nsFrameConstructorState& aState);
+      inline PRBool SkipWhitespace(nsFrameConstructorState& aState);
 
       
       
@@ -980,12 +980,12 @@ private:
     PRUint32 mDesiredParentCounts[eParentTypeCount];
     
     
-    bool mLineBoundaryAtStart;
+    PRPackedBool mLineBoundaryAtStart;
     
     
-    bool mLineBoundaryAtEnd;
+    PRPackedBool mLineBoundaryAtEnd;
     
-    bool mParentHasNoXBLChildren;
+    PRPackedBool mParentHasNoXBLChildren;
   };
 
   typedef FrameConstructionItemList::Iterator FCItemIterator;
@@ -1003,7 +1003,7 @@ private:
                           PRInt32 aNameSpaceID,
                           PendingBinding* aPendingBinding,
                           already_AddRefed<nsStyleContext> aStyleContext,
-                          bool aSuppressWhiteSpaceOptimizations) :
+                          PRBool aSuppressWhiteSpaceOptimizations) :
       mFCData(aFCData), mContent(aContent), mTag(aTag),
       mNameSpaceID(aNameSpaceID),
       mPendingBinding(aPendingBinding), mStyleContext(aStyleContext),
@@ -1027,9 +1027,9 @@ private:
     
     
     
-    bool IsWhitespace(nsFrameConstructorState& aState) const;
+    PRBool IsWhitespace(nsFrameConstructorState& aState) const;
 
-    bool IsLineBoundary() const {
+    PRBool IsLineBoundary() const {
       return mIsBlock || (mFCData->mBits & FCDATA_IS_LINE_BREAK);
     }
 
@@ -1054,35 +1054,35 @@ private:
     nsRefPtr<nsStyleContext> mStyleContext;
     
     
-    bool mSuppressWhiteSpaceOptimizations;
+    PRPackedBool mSuppressWhiteSpaceOptimizations;
     
-    bool mIsText;
-    
-    
-    bool mIsGeneratedContent;
-    
-    bool mIsRootPopupgroup;
+    PRPackedBool mIsText;
     
     
+    PRPackedBool mIsGeneratedContent;
     
-    
-    bool mIsAllInline;
+    PRPackedBool mIsRootPopupgroup;
     
     
     
     
-    
-    bool mIsBlock;
-    
+    PRPackedBool mIsAllInline;
     
     
     
-    bool mHasInlineEnds;
     
     
-    bool mIsPopup;
+    PRPackedBool mIsBlock;
     
-    bool mIsLineParticipant;
+    
+    
+    
+    PRPackedBool mHasInlineEnds;
+    
+    
+    PRPackedBool mIsPopup;
+    
+    PRPackedBool mIsLineParticipant;
 
     
     FrameConstructionItemList mChildItems;
@@ -1234,7 +1234,7 @@ private:
                                          nsIFrame*                aParentFrame,
                                          nsIAtom*                 aTag,
                                          PRInt32                  aNameSpaceID,
-                                         bool                     aSuppressWhiteSpaceOptimizations,
+                                         PRBool                   aSuppressWhiteSpaceOptimizations,
                                          nsStyleContext*          aStyleContext,
                                          PRUint32                 aFlags,
                                          FrameConstructionItemList& aItems);
@@ -1251,7 +1251,7 @@ private:
                                    FCItemIterator& aItem,
                                    nsIFrame* aParentFrame,
                                    nsFrameItems& aFrameItems);
-  static bool AtLineBoundary(FCItemIterator& aIter);
+  static PRBool AtLineBoundary(FCItemIterator& aIter);
 
   nsresult CreateAnonymousFrames(nsFrameConstructorState& aState,
                                  nsIContent*              aParent,
@@ -1390,9 +1390,9 @@ private:
                            nsIContent*              aContent,
                            nsStyleContext*          aStyleContext,
                            nsIFrame*                aFrame,
-                           const bool               aCanHaveGeneratedContent,
+                           const PRBool             aCanHaveGeneratedContent,
                            nsFrameItems&            aFrameItems,
-                           const bool               aAllowBlockStyles,
+                           const PRBool             aAllowBlockStyles,
                            PendingBinding*          aPendingBinding);
 
   nsIFrame* GetFrameFor(nsIContent* aContent);
@@ -1431,7 +1431,7 @@ private:
                            nsStyleContext*          aContentStyle,
                            nsIFrame*                aParentFrame,
                            nsIAtom*                 aScrolledPseudo,
-                           bool                     aIsRoot,
+                           PRBool                   aIsRoot,
                            nsIFrame*&               aNewFrame);
 
   
@@ -1450,7 +1450,7 @@ private:
                         nsIContent*              aContent,
                         nsIFrame*                aParentFrame,
                         nsStyleContext*          aStyleContext,
-                        bool                     aBuildCombobox,
+                        PRBool                   aBuildCombobox,
                         PendingBinding*          aPendingBinding,
                         nsFrameItems&            aFrameItems);
 
@@ -1458,7 +1458,7 @@ private:
 
   
   
-  nsresult RecreateFramesForContent(nsIContent* aContent, bool aAsyncInsert);
+  nsresult RecreateFramesForContent(nsIContent* aContent, PRBool aAsyncInsert);
 
   
   
@@ -1469,7 +1469,7 @@ private:
   
   
   
-  bool MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
+  PRBool MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
                                                nsresult* aResult);
 
   nsresult CreateContinuingOuterTableFrame(nsIPresShell*    aPresShell, 
@@ -1500,20 +1500,20 @@ private:
   GetFirstLineStyle(nsIContent*      aContent,
                     nsStyleContext*  aStyleContext);
 
-  bool ShouldHaveFirstLetterStyle(nsIContent*      aContent,
+  PRBool ShouldHaveFirstLetterStyle(nsIContent*      aContent,
                                     nsStyleContext*  aStyleContext);
 
   
   
-  bool HasFirstLetterStyle(nsIFrame* aBlockFrame);
+  PRBool HasFirstLetterStyle(nsIFrame* aBlockFrame);
 
-  bool ShouldHaveFirstLineStyle(nsIContent*      aContent,
+  PRBool ShouldHaveFirstLineStyle(nsIContent*      aContent,
                                   nsStyleContext*  aStyleContext);
 
   void ShouldHaveSpecialBlockStyle(nsIContent*      aContent,
                                    nsStyleContext*  aStyleContext,
-                                   bool*          aHaveFirstLetterStyle,
-                                   bool*          aHaveFirstLineStyle);
+                                   PRBool*          aHaveFirstLetterStyle,
+                                   PRBool*          aHaveFirstLineStyle);
 
   
   
@@ -1536,7 +1536,7 @@ private:
                           nsStyleContext*          aStyleContext,
                           nsIFrame**               aNewFrame,
                           nsFrameItems&            aFrameItems,
-                          bool                     aAbsPosContainer,
+                          PRBool                   aAbsPosContainer,
                           PendingBinding*          aPendingBinding);
 
   nsresult ConstructInline(nsFrameConstructorState& aState,
@@ -1566,7 +1566,7 @@ private:
 
   void CreateIBSiblings(nsFrameConstructorState& aState,
                         nsIFrame* aInitialInline,
-                        bool aIsPositioned,
+                        PRBool aIsPositioned,
                         nsFrameItems& aChildItems,
                         nsFrameItems& aSiblings);
 
@@ -1587,11 +1587,11 @@ private:
   
   
   
-  bool WipeContainingBlock(nsFrameConstructorState& aState,
+  PRBool WipeContainingBlock(nsFrameConstructorState& aState,
                              nsIFrame*                aContainingBlock,
                              nsIFrame*                aFrame,
                              FrameConstructionItemList& aItems,
-                             bool                     aIsAppend,
+                             PRBool                   aIsAppend,
                              nsIFrame*                aPrevSibling);
 
   nsresult ReframeContainingBlock(nsIFrame* aFrame);
@@ -1651,7 +1651,7 @@ private:
                                         nsIFrame**    aTextFrame,
                                         nsIFrame**    aPrevFrame,
                                         nsFrameItems& aLetterFrames,
-                                        bool*       aStopLooking);
+                                        PRBool*       aStopLooking);
 
   nsresult RecoverLetterFrames(nsIFrame* aBlockFrame);
 
@@ -1667,14 +1667,14 @@ private:
                                    nsFrameManager*  aFrameManager,
                                    nsIFrame*        aFrame,
                                    nsIFrame*        aBlockFrame,
-                                   bool*          aStopLooking);
+                                   PRBool*          aStopLooking);
 
   
   nsresult RemoveFloatingFirstLetterFrames(nsPresContext*  aPresContext,
                                            nsIPresShell*    aPresShell,
                                            nsFrameManager*  aFrameManager,
                                            nsIFrame*        aBlockFrame,
-                                           bool*          aStopLooking);
+                                           PRBool*          aStopLooking);
 
   
   
@@ -1726,7 +1726,7 @@ private:
   nsIFrame* FindFrameForContentSibling(nsIContent* aContent,
                                        nsIContent* aTargetContent,
                                        PRUint8& aTargetContentDisplay,
-                                       bool aPrevSibling);
+                                       PRBool aPrevSibling);
 
   
   
@@ -1758,8 +1758,8 @@ private:
   nsIFrame* GetInsertionPrevSibling(nsIFrame*& aParentFrame, 
                                     nsIContent* aContainer,
                                     nsIContent* aChild,
-                                    bool* aIsAppend,
-                                    bool* aIsRangeInsertSafe,
+                                    PRBool* aIsAppend,
+                                    PRBool* aIsRangeInsertSafe,
                                     nsIContent* aStartSkipChild = nsnull,
                                     nsIContent *aEndSkipChild = nsnull);
 
@@ -1767,7 +1767,7 @@ private:
   
   
   
-  bool IsValidSibling(nsIFrame*              aSibling,
+  PRBool IsValidSibling(nsIFrame*              aSibling,
                         nsIContent*            aContent,
                         PRUint8&               aDisplay);
   
@@ -1808,16 +1808,16 @@ private:
   nsQuoteList         mQuoteList;
   nsCounterManager    mCounterManager;
   PRUint16            mUpdateCount;
-  bool                mQuotesDirty : 1;
-  bool                mCountersDirty : 1;
-  bool                mIsDestroyingFrameTree : 1;
-  bool                mRebuildAllStyleData : 1;
+  PRPackedBool        mQuotesDirty : 1;
+  PRPackedBool        mCountersDirty : 1;
+  PRPackedBool        mIsDestroyingFrameTree : 1;
+  PRPackedBool        mRebuildAllStyleData : 1;
   
-  bool                mHasRootAbsPosContainingBlock : 1;
+  PRPackedBool        mHasRootAbsPosContainingBlock : 1;
   
-  bool                mObservingRefreshDriver : 1;
+  PRPackedBool        mObservingRefreshDriver : 1;
   
-  bool                mInStyleRefresh : 1;
+  PRPackedBool        mInStyleRefresh : 1;
   PRUint32            mHoverGeneration;
   nsChangeHint        mRebuildAllExtraHint;
 

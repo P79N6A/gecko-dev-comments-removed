@@ -85,11 +85,11 @@ enum nsViewVisibility {
 #define NS_VIEW_FLAG_TOPMOST              0x0010
 
 struct nsViewZIndex {
-  bool mIsAuto;
+  PRBool mIsAuto;
   PRInt32 mZIndex;
-  bool mIsTopmost;
+  PRBool mIsTopmost;
   
-  nsViewZIndex(bool aIsAuto, PRInt32 aZIndex, bool aIsTopmost)
+  nsViewZIndex(PRBool aIsAuto, PRInt32 aZIndex, PRBool aIsTopmost)
     : mIsAuto(aIsAuto), mZIndex(aZIndex), mIsTopmost(aIsTopmost) {}
 };
 
@@ -255,7 +255,7 @@ public:
 
 
 
-  bool GetFloating() const { return (mVFlags & NS_VIEW_FLAG_FLOATING) != 0; }
+  PRBool GetFloating() const { return (mVFlags & NS_VIEW_FLAG_FLOATING) != 0; }
 
   
 
@@ -314,8 +314,8 @@ public:
 
 
   nsresult CreateWidget(nsWidgetInitData *aWidgetInitData = nsnull,
-                        bool aEnableDragDrop = true,
-                        bool aResetVisibility = true);
+                        PRBool aEnableDragDrop = PR_TRUE,
+                        PRBool aResetVisibility = PR_TRUE);
 
   
 
@@ -324,8 +324,8 @@ public:
 
   nsresult CreateWidgetForParent(nsIWidget* aParentWidget,
                                  nsWidgetInitData *aWidgetInitData = nsnull,
-                                 bool aEnableDragDrop = true,
-                                 bool aResetVisibility = true);
+                                 PRBool aEnableDragDrop = PR_TRUE,
+                                 PRBool aResetVisibility = PR_TRUE);
 
   
 
@@ -336,8 +336,8 @@ public:
 
   nsresult CreateWidgetForPopup(nsWidgetInitData *aWidgetInitData,
                                 nsIWidget* aParentWidget = nsnull,
-                                bool aEnableDragDrop = true,
-                                bool aResetVisibility = true);
+                                PRBool aEnableDragDrop = PR_TRUE,
+                                PRBool aResetVisibility = PR_TRUE);
 
   
 
@@ -364,7 +364,7 @@ public:
 
 
 
-  bool IsAttachedToTopLevel() const { return mWidgetIsTopLevel; }
+  PRBool IsAttachedToTopLevel() const { return mWidgetIsTopLevel; }
 
   
 
@@ -378,7 +378,7 @@ public:
   
 
 
-  bool HasWidget() const { return mWindow != nsnull; }
+  PRBool HasWidget() const { return mWindow != nsnull; }
 
   
 
@@ -404,15 +404,15 @@ public:
   
 
 
-  bool IsRoot() const;
+  PRBool IsRoot() const;
 
-  virtual bool ExternalIsRoot() const;
+  virtual PRBool ExternalIsRoot() const;
 
   void SetDeletionObserver(nsWeakView* aDeletionObserver);
 
   nsIntRect CalcWidgetBounds(nsWindowType aType);
 
-  bool IsEffectivelyVisible();
+  PRBool IsEffectivelyVisible();
 
   
   
@@ -439,7 +439,7 @@ protected:
   float             mOpacity;
   PRUint32          mVFlags;
   nsWeakView*       mDeletionObserver;
-  bool              mWidgetIsTopLevel;
+  PRBool            mWidgetIsTopLevel;
 
   virtual ~nsIView() {}
 
@@ -473,7 +473,7 @@ public:
     }
   }
 
-  bool IsAlive() { return !!mView; }
+  PRBool IsAlive() { return !!mView; }
 
   nsIView* GetView() { return mView; }
 

@@ -89,14 +89,14 @@ public:
     static nsresult  OpenCacheEntry(nsCacheSession *           session,
                                     const nsACString &         key,
                                     nsCacheAccessMode          accessRequested,
-                                    bool                       blockingMode,
+                                    PRBool                     blockingMode,
                                     nsICacheListener *         listener,
                                     nsICacheEntryDescriptor ** result);
 
     static nsresult  EvictEntriesForSession(nsCacheSession *   session);
 
     static nsresult  IsStorageEnabledForPolicy(nsCacheStoragePolicy  storagePolicy,
-                                               bool *              result);
+                                               PRBool *              result);
 
     
 
@@ -136,7 +136,7 @@ public:
     
     static nsresult  DoomEntry(nsCacheEntry * entry);
 
-    static bool      IsStorageEnabledForPolicy_Locked(nsCacheStoragePolicy policy);
+    static PRBool    IsStorageEnabledForPolicy_Locked(nsCacheStoragePolicy policy);
 
     
     
@@ -157,10 +157,10 @@ public:
     
 
 
-    static void      OnProfileShutdown(bool cleanse);
+    static void      OnProfileShutdown(PRBool cleanse);
     static void      OnProfileChanged();
 
-    static void      SetDiskCacheEnabled(bool    enabled);
+    static void      SetDiskCacheEnabled(PRBool  enabled);
     
     static void      SetDiskCacheCapacity(PRInt32  capacity);
     
@@ -170,7 +170,7 @@ public:
     
     static void      SetMemoryCacheMaxEntrySize(PRInt32  maxSize);
 
-    static void      SetOfflineCacheEnabled(bool    enabled);
+    static void      SetOfflineCacheEnabled(PRBool  enabled);
     
     static void      SetOfflineCacheCapacity(PRInt32  capacity);
 
@@ -205,12 +205,12 @@ private:
     nsresult         CreateRequest(nsCacheSession *   session,
                                    const nsACString & clientKey,
                                    nsCacheAccessMode  accessRequested,
-                                   bool               blockingMode,
+                                   PRBool             blockingMode,
                                    nsICacheListener * listener,
                                    nsCacheRequest **  request);
 
     nsresult         DoomEntry_Internal(nsCacheEntry * entry,
-                                        bool doProcessPendingRequests);
+                                        PRBool doProcessPendingRequests);
 
     nsresult         EvictEntriesForClient(const char *          clientID,
                                            nsCacheStoragePolicy  storagePolicy);
@@ -229,12 +229,12 @@ private:
 
     nsCacheDevice *  EnsureEntryHasDevice(nsCacheEntry * entry);
 
-    nsCacheEntry *   SearchCacheDevices(nsCString * key, nsCacheStoragePolicy policy, bool *collision);
+    nsCacheEntry *   SearchCacheDevices(nsCString * key, nsCacheStoragePolicy policy, PRBool *collision);
 
     void             DeactivateEntry(nsCacheEntry * entry);
 
     nsresult         ProcessRequest(nsCacheRequest *           request,
-                                    bool                       calledFromOpenCacheEntry,
+                                    PRBool                     calledFromOpenCacheEntry,
                                     nsICacheEntryDescriptor ** result);
 
     nsresult         ProcessPendingRequests(nsCacheEntry * entry);
@@ -273,11 +273,11 @@ private:
 
     nsTArray<nsISupports*>          mDoomedObjects;
     
-    bool                            mInitialized;
+    PRBool                          mInitialized;
     
-    bool                            mEnableMemoryDevice;
-    bool                            mEnableDiskDevice;
-    bool                            mEnableOfflineDevice;
+    PRBool                          mEnableMemoryDevice;
+    PRBool                          mEnableDiskDevice;
+    PRBool                          mEnableOfflineDevice;
 
     nsMemoryCacheDevice *           mMemoryDevice;
     nsDiskCacheDevice *             mDiskDevice;

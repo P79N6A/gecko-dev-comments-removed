@@ -51,7 +51,7 @@ class nsCCUncollectableMarker : public nsIObserver
   
 
 
-  static bool InGeneration(nsCycleCollectionTraversalCallback &cb,
+  static PRBool InGeneration(nsCycleCollectionTraversalCallback &cb,
                              PRUint32 aGeneration) {
     return !cb.WantAllTraces() &&
            aGeneration &&

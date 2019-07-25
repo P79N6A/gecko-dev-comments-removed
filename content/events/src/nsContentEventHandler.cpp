@@ -129,7 +129,7 @@ nsContentEventHandler::Init(nsQueryContentEvent* aEvent)
 
   aEvent->mReply.mContentsRoot = mRootContent.get();
 
-  bool isCollapsed;
+  PRBool isCollapsed;
   rv = mSelection->GetIsCollapsed(&isCollapsed);
   NS_ENSURE_SUCCESS(rv, NS_ERROR_NOT_AVAILABLE);
   aEvent->mReply.mHasSelection = !isCollapsed;
@@ -163,7 +163,7 @@ nsContentEventHandler::Init(nsSelectionEvent* aEvent)
 
 
 
-static bool IsContentBR(nsIContent* aContent)
+static PRBool IsContentBR(nsIContent* aContent)
 {
   return aContent->IsHTML() &&
          aContent->Tag() == nsGkAtoms::br &&
@@ -330,7 +330,7 @@ static nsresult GenerateFlatTextContent(nsIRange* aRange,
 
 nsresult
 nsContentEventHandler::ExpandToClusterBoundary(nsIContent* aContent,
-                                                    bool aForward,
+                                                    PRBool aForward,
                                                     PRUint32* aXPOffset)
 {
   
@@ -377,7 +377,7 @@ nsContentEventHandler::SetRangeFromFlatTextOffset(
                               nsIRange* aRange,
                               PRUint32 aNativeOffset,
                               PRUint32 aNativeLength,
-                              bool aExpandToClusterBoundaries)
+                              PRBool aExpandToClusterBoundaries)
 {
   nsCOMPtr<nsIContentIterator> iter;
   nsresult rv = NS_NewContentIterator(getter_AddRefs(iter));
@@ -560,7 +560,7 @@ static nsINode* AdjustTextRectNode(nsINode* aNode,
 
 static nsresult GetFrameForTextRect(nsINode* aNode,
                                     PRInt32 aOffset,
-                                    bool aHint,
+                                    PRBool aHint,
                                     nsIFrame** aReturnFrame)
 {
   NS_ENSURE_TRUE(aNode && aNode->IsNodeOfType(nsINode::eCONTENT),
@@ -705,7 +705,7 @@ nsContentEventHandler::OnQueryCaretRect(nsQueryContentEvent* aEvent)
 
   
   
-  bool selectionIsCollapsed;
+  PRBool selectionIsCollapsed;
   rv = mSelection->GetIsCollapsed(&selectionIsCollapsed);
   NS_ENSURE_SUCCESS(rv, rv);
 

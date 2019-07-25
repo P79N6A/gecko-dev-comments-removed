@@ -118,7 +118,7 @@ protected:
 
 
 
-    NS_HIDDEN_(nsresult) ConfigureFromPAC(const nsCString &pacURI, bool forceReload);
+    NS_HIDDEN_(nsresult) ConfigureFromPAC(const nsCString &pacURI, PRBool forceReload);
 
     
 
@@ -176,7 +176,7 @@ protected:
 
 
 
-    NS_HIDDEN_(bool) IsProxyDisabled(nsProxyInfo *pi);
+    NS_HIDDEN_(PRBool) IsProxyDisabled(nsProxyInfo *pi);
 
     
 
@@ -242,7 +242,7 @@ protected:
     NS_HIDDEN_(nsresult) Resolve_Internal(nsIURI *uri,
                                           const nsProtocolInfo &info,
                                           PRUint32 flags,
-                                          bool *usePAC, 
+                                          PRBool *usePAC, 
                                           nsIProxyInfo **result);
 
     
@@ -302,7 +302,7 @@ protected:
 
 
 
-    NS_HIDDEN_(bool) CanUseProxy(nsIURI *uri, PRInt32 defaultPort);
+    NS_HIDDEN_(PRBool) CanUseProxy(nsIURI *uri, PRInt32 defaultPort);
 
 public:
     
@@ -324,7 +324,7 @@ protected:
 
     
     struct HostInfo {
-        bool    is_ipaddr;
+        PRBool  is_ipaddr;
         PRInt32 port;
         union {
             HostInfoIP   ip;
@@ -354,7 +354,7 @@ protected:
     };
 
     
-    bool mFilterLocalHosts;
+    PRBool mFilterLocalHosts;
 
     
     nsTArray<nsAutoPtr<HostInfo> > mHostFiltersArray;
@@ -377,7 +377,7 @@ protected:
     nsCString                    mSOCKSProxyHost;
     PRInt32                      mSOCKSProxyPort;
     PRInt32                      mSOCKSProxyVersion;
-    bool                         mSOCKSProxyRemoteDNS;
+    PRBool                       mSOCKSProxyRemoteDNS;
 
     nsRefPtr<nsPACMan>           mPACMan;  
     nsCOMPtr<nsISystemProxySettings> mSystemProxySettings;

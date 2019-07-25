@@ -70,7 +70,7 @@ public:
   nsCOMPtr<nsIAtom> mAtom;
   nsAtomList*       mNext;
 private: 
-  nsAtomList* Clone(bool aDeep) const;
+  nsAtomList* Clone(PRBool aDeep) const;
 
   
   nsAtomList(const nsAtomList& aCopy);
@@ -107,7 +107,7 @@ public:
   nsCSSPseudoClasses::Type mType;
   nsPseudoClassList* mNext;
 private: 
-  nsPseudoClassList* Clone(bool aDeep) const;
+  nsPseudoClassList* Clone(PRBool aDeep) const;
 
   
   nsPseudoClassList(const nsPseudoClassList& aCopy);
@@ -126,10 +126,10 @@ struct nsAttrSelector {
 public:
   nsAttrSelector(PRInt32 aNameSpace, const nsString& aAttr);
   nsAttrSelector(PRInt32 aNameSpace, const nsString& aAttr, PRUint8 aFunction, 
-                 const nsString& aValue, bool aCaseSensitive);
+                 const nsString& aValue, PRBool aCaseSensitive);
   nsAttrSelector(PRInt32 aNameSpace, nsIAtom* aLowercaseAttr, 
                  nsIAtom* aCasedAttr, PRUint8 aFunction, 
-                 const nsString& aValue, bool aCaseSensitive);
+                 const nsString& aValue, PRBool aCaseSensitive);
   ~nsAttrSelector(void);
 
   
@@ -141,10 +141,10 @@ public:
   nsCOMPtr<nsIAtom> mCasedAttr;
   PRInt32         mNameSpace;
   PRUint8         mFunction;
-  bool            mCaseSensitive; 
+  PRPackedBool    mCaseSensitive; 
                                   
 private: 
-  nsAttrSelector* Clone(bool aDeep) const;
+  nsAttrSelector* Clone(PRBool aDeep) const;
 
   
   nsAttrSelector(const nsAttrSelector& aCopy);
@@ -172,14 +172,14 @@ public:
                       nsCSSSelectorList* aSelectorList);
   void AddAttribute(PRInt32 aNameSpace, const nsString& aAttr);
   void AddAttribute(PRInt32 aNameSpace, const nsString& aAttr, PRUint8 aFunc, 
-                    const nsString& aValue, bool aCaseSensitive);
+                    const nsString& aValue, PRBool aCaseSensitive);
   void SetOperator(PRUnichar aOperator);
 
-  inline bool HasTagSelector() const {
+  inline PRBool HasTagSelector() const {
     return !!mCasedTag;
   }
 
-  inline bool IsPseudoElement() const {
+  inline PRBool IsPseudoElement() const {
     return mLowercaseTag && !mCasedTag;
   }
 
@@ -187,22 +187,22 @@ public:
   PRInt32 CalcWeight() const;
 
   void ToString(nsAString& aString, nsCSSStyleSheet* aSheet,
-                bool aAppend = false) const;
+                PRBool aAppend = PR_FALSE) const;
 
 private:
   void AddPseudoClassInternal(nsPseudoClassList *aPseudoClass);
-  nsCSSSelector* Clone(bool aDeepNext, bool aDeepNegations) const;
+  nsCSSSelector* Clone(PRBool aDeepNext, PRBool aDeepNegations) const;
 
   void AppendToStringWithoutCombinators(nsAString& aString,
                                         nsCSSStyleSheet* aSheet) const;
   void AppendToStringWithoutCombinatorsOrNegations(nsAString& aString,
                                                    nsCSSStyleSheet* aSheet,
-                                                   bool aIsNegated)
+                                                   PRBool aIsNegated)
                                                         const;
   
   
   
-  bool CanBeNamespaced(bool aIsNegated) const;
+  PRBool CanBeNamespaced(PRBool aIsNegated) const;
   
   
   PRInt32 CalcWeightWithoutNegations() const;
@@ -275,7 +275,7 @@ struct nsCSSSelectorList {
   PRInt32            mWeight;
   nsCSSSelectorList* mNext;
 private: 
-  nsCSSSelectorList* Clone(bool aDeep) const;
+  nsCSSSelectorList* Clone(PRBool aDeep) const;
 
   
   nsCSSSelectorList(const nsCSSSelectorList& aCopy);
@@ -352,7 +352,7 @@ public:
 
 
   already_AddRefed<StyleRule>
-  DeclarationChanged(Declaration* aDecl, bool aHandleContainer);
+  DeclarationChanged(Declaration* aDecl, PRBool aHandleContainer);
 
   nsIStyleRule* GetImportantRule() const { return mImportantRule; }
 

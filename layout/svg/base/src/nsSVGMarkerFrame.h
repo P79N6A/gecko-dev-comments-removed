@@ -95,12 +95,6 @@ public:
   nsRect RegionMark(nsSVGPathGeometryFrame *aMarkedFrame,
                     const nsSVGMark *aMark, float aStrokeWidth);
 
-  gfxRect GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                  PRUint32 aFlags,
-                                  nsSVGPathGeometryFrame *aMarkedFrame,
-                                  const nsSVGMark *aMark,
-                                  float aStrokeWidth);
-
 private:
   
   nsSVGPathGeometryFrame *mMarkedFrame;
@@ -128,10 +122,10 @@ private:
   void SetParentCoordCtxProvider(nsSVGSVGElement *aContext);
 
   
-  bool mInUse;
+  PRPackedBool mInUse;
 
   
-  bool mInUse2;
+  PRPackedBool mInUse2;
 };
 
 #endif

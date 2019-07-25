@@ -105,7 +105,7 @@ class nsRecyclingAllocator {
     
     
     
-    bool mTouched;
+    PRBool mTouched;
 
 #ifdef DEBUG
     
@@ -129,7 +129,7 @@ class nsRecyclingAllocator {
     nsresult Init(PRUint32 nbucket, PRUint32 recycleAfter, const char *id);
 
     
-    void* Malloc(PRSize size, bool zeroit = false);
+    void* Malloc(PRSize size, PRBool zeroit = PR_FALSE);
     void  Free(void *ptr);
 
     void* Calloc(PRUint32 items, PRSize size)

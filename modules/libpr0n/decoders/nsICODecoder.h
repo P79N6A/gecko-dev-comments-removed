@@ -58,7 +58,7 @@ class nsICODecoder : public Decoder
 {
 public:
 
-  nsICODecoder(RasterImage *aImage, imgIDecoderObserver* aObserver);
+  nsICODecoder();
   virtual ~nsICODecoder();
 
   
@@ -82,7 +82,7 @@ private:
   
   void SetHotSpotIfCursor();
   
-  bool FillBitmapFileHeaderBuffer(PRInt8 *bfh);
+  PRBool FillBitmapFileHeaderBuffer(PRInt8 *bfh);
   
   void FillBitmapInformationBufferHeight(PRInt8 *bih);
   
@@ -112,9 +112,9 @@ private:
   
   char mBIHraw[40];
   
-  bool mIsCursor;
+  PRPackedBool mIsCursor;
   
-  bool mIsPNG;
+  PRPackedBool mIsPNG;
 };
 
 } 

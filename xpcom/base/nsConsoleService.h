@@ -74,14 +74,14 @@ private:
     PRUint32 mCurrent;
 
     
-    bool mFull;
+    PRBool mFull;
 
     
     nsSupportsHashtable mListeners;
 
     
     
-    bool mListening;
+    PRBool mListening;
 
     
     mozilla::Mutex mLock;

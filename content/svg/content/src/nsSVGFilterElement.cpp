@@ -178,7 +178,7 @@ nsSVGFilterElement::GetHref(nsIDOMSVGAnimatedString * *aHref)
 
 
 
-NS_IMETHODIMP_(bool)
+NS_IMETHODIMP_(PRBool)
 nsSVGFilterElement::IsAttributeMapped(const nsIAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {

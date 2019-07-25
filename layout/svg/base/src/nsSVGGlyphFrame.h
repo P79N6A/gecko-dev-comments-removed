@@ -90,11 +90,11 @@ public:
 
 
 
-  float GetAdvance(bool aForceGlobalTransform);
+  float GetAdvance(PRBool aForceGlobalTransform);
 
-  void SetGlyphPosition(gfxPoint *aPosition, bool aForceGlobalTransform);
+  void SetGlyphPosition(gfxPoint *aPosition, PRBool aForceGlobalTransform);
   nsSVGTextPathFrame* FindTextPathParent();
-  bool IsStartOfChunk(); 
+  PRBool IsStartOfChunk(); 
 
   void GetXY(mozilla::SVGUserUnitList *aX, mozilla::SVGUserUnitList *aY);
   void SetStartIndex(PRUint32 aStartIndex);
@@ -118,28 +118,28 @@ public:
   void GetEffectiveRotate(PRInt32 strLength,
                           nsTArray<float> &aRotate);
   PRUint16 GetTextAnchor();
-  bool IsAbsolutelyPositioned();
-  bool IsTextEmpty() const {
+  PRBool IsAbsolutelyPositioned();
+  PRBool IsTextEmpty() const {
     return mContent->GetText()->GetLength() == 0;
   }
-  void SetTrimLeadingWhitespace(bool aTrimLeadingWhitespace) {
+  void SetTrimLeadingWhitespace(PRBool aTrimLeadingWhitespace) {
     mTrimLeadingWhitespace = aTrimLeadingWhitespace;
   }
-  void SetTrimTrailingWhitespace(bool aTrimTrailingWhitespace) {
+  void SetTrimTrailingWhitespace(PRBool aTrimTrailingWhitespace) {
     mTrimTrailingWhitespace = aTrimTrailingWhitespace;
   }
-  bool EndsWithWhitespace() const;
-  bool IsAllWhitespace() const;
+  PRBool EndsWithWhitespace() const;
+  PRBool IsAllWhitespace() const;
 
   
   NS_IMETHOD  CharacterDataChanged(CharacterDataChangeInfo* aInfo);
 
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
-  virtual void SetSelected(bool          aSelected,
+  virtual void SetSelected(PRBool        aSelected,
                            SelectionType aType);
-  NS_IMETHOD  GetSelected(bool *aSelected) const;
-  NS_IMETHOD  IsSelectable(bool* aIsSelectable, PRUint8* aSelectStyle) const;
+  NS_IMETHOD  GetSelected(PRBool *aSelected) const;
+  NS_IMETHOD  IsSelectable(PRBool* aIsSelectable, PRUint8* aSelectStyle) const;
 
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
@@ -152,7 +152,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(PRUint32 aFlags) const
+  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
   {
     
     
@@ -173,16 +173,15 @@ public:
                       const nsIntRect *aDirtyRect);
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
   NS_IMETHOD UpdateCoveredRegion();
-  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      PRUint32 aFlags);
+  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace);
 
   NS_IMETHOD_(nsRect) GetCoveredRegion();
   NS_IMETHOD InitialUpdate();
   virtual void NotifySVGChanged(PRUint32 aFlags);
   NS_IMETHOD NotifyRedrawSuspended();
   NS_IMETHOD NotifyRedrawUnsuspended();
-  NS_IMETHOD_(bool) IsDisplayContainer() { return false; }
-  NS_IMETHOD_(bool) HasValidCoveredRect() { return true; }
+  NS_IMETHOD_(PRBool) IsDisplayContainer() { return PR_FALSE; }
+  NS_IMETHOD_(PRBool) HasValidCoveredRect() { return PR_TRUE; }
 
   
   gfxMatrix GetCanvasTM();
@@ -195,7 +194,7 @@ public:
   virtual PRInt32 GetCharNumAtPosition(nsIDOMSVGPoint *point);
   NS_IMETHOD_(nsSVGGlyphFrame *) GetFirstGlyphFrame();
   NS_IMETHOD_(nsSVGGlyphFrame *) GetNextGlyphFrame();
-  NS_IMETHOD_(void) SetWhitespaceCompression(bool aCompressWhitespace) {
+  NS_IMETHOD_(void) SetWhitespaceCompression(PRBool aCompressWhitespace) {
     mCompressWhitespace = aCompressWhitespace;
   }
 
@@ -217,12 +216,12 @@ protected:
 
 
 
-  bool EnsureTextRun(float *aDrawScale, float *aMetricsScale,
-                       bool aForceGlobalTransform);
+  PRBool EnsureTextRun(float *aDrawScale, float *aMetricsScale,
+                       PRBool aForceGlobalTransform);
   void ClearTextRun();
 
-  bool GetCharacterData(nsAString & aCharacterData);
-  bool GetCharacterPositions(nsTArray<CharacterPosition>* aCharacterPositions,
+  PRBool GetCharacterData(nsAString & aCharacterData);
+  PRBool GetCharacterPositions(nsTArray<CharacterPosition>* aCharacterPositions,
                                float aMetricsScale);
   PRUint32 GetTextRunFlags(PRUint32 strLength);
 
@@ -234,7 +233,7 @@ protected:
                       gfxContext *aContext);
 
   void NotifyGlyphMetricsChange();
-  bool GetGlobalTransform(gfxMatrix *aMatrix);
+  PRBool GetGlobalTransform(gfxMatrix *aMatrix);
   void SetupGlobalTransform(gfxContext *aContext);
   nsresult GetHighlight(PRUint32 *charnum, PRUint32 *nchars,
                         nscolor *foreground, nscolor *background);
@@ -254,10 +253,10 @@ protected:
   gfxPoint mPosition;
   
   PRUint32 mStartIndex;
-  bool mCompressWhitespace;
-  bool mTrimLeadingWhitespace;
-  bool mTrimTrailingWhitespace;
-  bool mPropagateTransform;
+  PRPackedBool mCompressWhitespace;
+  PRPackedBool mTrimLeadingWhitespace;
+  PRPackedBool mTrimTrailingWhitespace;
+  PRPackedBool mPropagateTransform;
 };
 
 #endif

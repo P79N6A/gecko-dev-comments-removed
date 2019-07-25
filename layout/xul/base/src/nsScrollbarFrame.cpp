@@ -102,6 +102,14 @@ nsScrollbarFrame::Reflow(nsPresContext*          aPresContext,
   return NS_OK;
 }
 
+ PRBool
+nsScrollbarFrame::IsContainingBlock() const
+{
+  
+  
+  return PR_TRUE;
+}
+
 nsIAtom*
 nsScrollbarFrame::GetType() const
 {
@@ -141,7 +149,7 @@ NS_IMETHODIMP
 nsScrollbarFrame::HandleMultiplePress(nsPresContext* aPresContext, 
                                       nsGUIEvent*     aEvent,
                                       nsEventStatus*  aEventStatus,
-                                      bool aControlHeld)
+                                      PRBool aControlHeld)
 {
   return NS_OK;
 }

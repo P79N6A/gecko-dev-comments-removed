@@ -156,15 +156,8 @@ struct TokenPos;
 struct TokenPtr;
 class UpvarCookie;
 
-class Proxy;
-class ProxyHandler;
-class Wrapper;
-class CrossCompartmentWrapper;
-
 class TempAllocPolicy;
 class RuntimeAllocPolicy;
-
-class GlobalObject;
 
 template <class T,
           size_t MinInlineCapacity = 0,
@@ -189,8 +182,6 @@ template <typename K,
           typename V,
           size_t InlineElems>
 class InlineMap;
-
-class LifoAlloc;
 
 class PropertyCache;
 struct PropertyCacheEntry;
@@ -218,26 +209,6 @@ typedef JSNative             Native;
 typedef JSPropertyOp         PropertyOp;
 typedef JSStrictPropertyOp   StrictPropertyOp;
 typedef JSPropertyDescriptor PropertyDescriptor;
-
-namespace analyze {
-
-struct LifetimeVariable;
-class LoopAnalysis;
-class ScriptAnalysis;
-class SlotValue;
-class SSAValue;
-class SSAUseChain;
-
-} 
-
-namespace types {
-
-class TypeSet;
-struct TypeCallsite;
-struct TypeObject;
-struct TypeCompartment;
-
-} 
 
 } 
 
@@ -398,6 +369,13 @@ typedef JSObject *
 #else
 extern JSBool js_CStringsAreUTF8;
 #endif
+
+
+
+
+
+extern JS_FRIEND_API(JSObject *)
+js_ObjectToOuterObject(JSContext *cx, JSObject *obj);
 
 JS_END_EXTERN_C
 

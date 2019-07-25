@@ -100,7 +100,7 @@ public:
   ~nsAttrHashKey() {}
 
   KeyType GetKey() const { return mKey; }
-  bool KeyEquals(KeyTypePointer aKey) const
+  PRBool KeyEquals(KeyTypePointer aKey) const
     {
       return mKey.mLocalName == aKey->mLocalName &&
              mKey.mNamespaceID == aKey->mNamespaceID;
@@ -133,7 +133,7 @@ public:
   
 
 
-  bool Init();
+  PRBool Init();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
@@ -214,7 +214,7 @@ private:
 
   nsresult SetNamedItemInternal(nsIDOMNode *aNode,
                                 nsIDOMNode **aReturn,
-                                bool aWithNS);
+                                PRBool aWithNS);
 
   
 
@@ -223,9 +223,9 @@ private:
   nsresult GetNamedItemNSInternal(const nsAString& aNamespaceURI,
                                   const nsAString& aLocalName,
                                   nsIDOMNode** aReturn,
-                                  bool aRemove = false);
+                                  PRBool aRemove = PR_FALSE);
 
-  nsDOMAttribute* GetAttribute(nsINodeInfo* aNodeInfo, bool aNsAware);
+  nsDOMAttribute* GetAttribute(nsINodeInfo* aNodeInfo, PRBool aNsAware);
 
   
 

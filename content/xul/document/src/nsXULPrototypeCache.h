@@ -80,7 +80,7 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIOBSERVER
 
-    bool IsCached(nsIURI* aURI) {
+    PRBool IsCached(nsIURI* aURI) {
         return GetPrototype(aURI) != nsnull;
     }
     void AbortCaching();
@@ -89,7 +89,7 @@ public:
     
 
 
-    bool IsEnabled();
+    PRBool IsEnabled();
 
     
 
@@ -145,7 +145,7 @@ public:
     nsresult FinishInputStream(nsIURI* aURI);
     nsresult GetOutputStream(nsIURI* aURI, nsIObjectOutputStream** objectOutput);
     nsresult FinishOutputStream(nsIURI* aURI);
-    nsresult HasData(nsIURI* aURI, bool* exists);
+    nsresult HasData(nsIURI* aURI, PRBool* exists);
 
     static StartupCache* GetStartupCache();
 

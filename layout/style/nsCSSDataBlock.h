@@ -107,9 +107,9 @@ public:
 
 
 
-    bool TryReplaceValue(nsCSSProperty aProperty,
+    PRBool TryReplaceValue(nsCSSProperty aProperty,
                            nsCSSExpandedDataBlock& aFromBlock,
-                           bool* aChanged);
+                           PRBool* aChanged);
 
     
 
@@ -232,11 +232,11 @@ public:
 
 
 
-    bool TransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
+    PRBool TransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
                              nsCSSProperty aPropID,
-                             bool aIsImportant,
-                             bool aOverrideImportant,
-                             bool aMustCallValueAppended,
+                             PRBool aIsImportant,
+                             PRBool aOverrideImportant,
+                             PRBool aMustCallValueAppended,
                              mozilla::css::Declaration* aDeclaration);
 
     void AssertInitialState() {
@@ -255,16 +255,16 @@ private:
     };
     ComputeSizeResult ComputeSize();
 
-    void DoExpand(nsCSSCompressedDataBlock *aBlock, bool aImportant);
+    void DoExpand(nsCSSCompressedDataBlock *aBlock, PRBool aImportant);
 
     
 
 
-    bool DoTransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
+    PRBool DoTransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
                                nsCSSProperty aPropID,
-                               bool aIsImportant,
-                               bool aOverrideImportant,
-                               bool aMustCallValueAppended,
+                               PRBool aIsImportant,
+                               PRBool aOverrideImportant,
+                               PRBool aMustCallValueAppended,
                                mozilla::css::Declaration* aDeclaration);
 
 #ifdef DEBUG
@@ -302,7 +302,7 @@ private:
         mPropertiesSet.RemoveProperty(aProperty);
     }
 
-    bool HasPropertyBit(nsCSSProperty aProperty) {
+    PRBool HasPropertyBit(nsCSSProperty aProperty) {
         return mPropertiesSet.HasProperty(aProperty);
     }
 
@@ -314,7 +314,7 @@ private:
         mPropertiesImportant.RemoveProperty(aProperty);
     }
 
-    bool HasImportantBit(nsCSSProperty aProperty) {
+    PRBool HasImportantBit(nsCSSProperty aProperty) {
         return mPropertiesImportant.HasProperty(aProperty);
     }
 

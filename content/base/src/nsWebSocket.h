@@ -89,15 +89,15 @@ public:
   
   NS_IMETHOD AddEventListener(const nsAString& aType,
                               nsIDOMEventListener *aListener,
-                              bool aUseCapture,
-                              bool aWantsUntrusted,
+                              PRBool aUseCapture,
+                              PRBool aWantsUntrusted,
                               PRUint8 optional_argc);
   NS_IMETHOD RemoveEventListener(const nsAString& aType,
                                  nsIDOMEventListener* aListener,
-                                 bool aUseCapture);
+                                 PRBool aUseCapture);
 
   
-  static bool PrefEnabled();
+  static PRBool PrefEnabled();
 
   const PRUint64 InnerWindowID() const { return mInnerWindowID; }
   const nsCString& GetScriptFile() const { return mScriptFile; }
@@ -109,7 +109,7 @@ protected:
 
   nsresult CreateAndDispatchSimpleEvent(const nsString& aName);
   nsresult CreateAndDispatchMessageEvent(const nsACString& aData);
-  nsresult CreateAndDispatchCloseEvent(bool aWasClean, PRUint16 aCode,
+  nsresult CreateAndDispatchCloseEvent(PRBool aWasClean, PRUint16 aCode,
                                        const nsString &aReason);
 
   
@@ -130,12 +130,12 @@ protected:
 
   
   nsString mOriginalURL;
-  bool mSecure; 
+  PRPackedBool mSecure; 
                         
 
-  bool mKeepingAlive;
-  bool mCheckMustKeepAlive;
-  bool mTriggeredCloseEvent;
+  PRPackedBool mKeepingAlive;
+  PRPackedBool mCheckMustKeepAlive;
+  PRPackedBool mTriggeredCloseEvent;
 
   nsCString mClientReason;
   PRUint16  mClientReasonCode;

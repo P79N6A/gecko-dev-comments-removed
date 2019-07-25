@@ -232,7 +232,7 @@
 
 class nsAudioStream;
 
-static inline bool IsCurrentThread(nsIThread* aThread) {
+static inline PRBool IsCurrentThread(nsIThread* aThread) {
   return NS_GetCurrentThread() == aThread;
 }
 
@@ -286,10 +286,10 @@ public:
 
   
   
-  virtual bool OnDecodeThread() const = 0;
+  virtual PRBool OnDecodeThread() const = 0;
 
   
-  virtual bool OnStateMachineThread() const = 0;
+  virtual PRBool OnStateMachineThread() const = 0;
 
   virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus() = 0;
 
@@ -314,12 +314,12 @@ public:
   
   
   
-  virtual void SetSeekable(bool aSeekable) = 0;
+  virtual void SetSeekable(PRBool aSeekable) = 0;
 
   
   
   
-  virtual bool IsSeekable() = 0;
+  virtual PRBool IsSeekable() = 0;
 
   
   
@@ -371,7 +371,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   nsBuiltinDecoder();
   ~nsBuiltinDecoder();
   
-  virtual bool Init(nsHTMLMediaElement* aElement);
+  virtual PRBool Init(nsHTMLMediaElement* aElement);
 
   
   
@@ -398,8 +398,8 @@ class nsBuiltinDecoder : public nsMediaDecoder
   virtual void SetVolume(double aVolume);
   virtual double GetDuration();
 
-  virtual void SetInfinite(bool aInfinite);
-  virtual bool IsInfinite();
+  virtual void SetInfinite(PRBool aInfinite);
+  virtual PRBool IsInfinite();
 
   virtual nsMediaStream* GetCurrentStream();
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
@@ -421,11 +421,11 @@ class nsBuiltinDecoder : public nsMediaDecoder
 
   
   
-  virtual bool IsSeeking() const;
+  virtual PRBool IsSeeking() const;
 
   
   
-  virtual bool IsEnded() const;
+  virtual PRBool IsEnded() const;
 
   
   
@@ -433,10 +433,10 @@ class nsBuiltinDecoder : public nsMediaDecoder
   virtual void SetDuration(double aDuration);
 
   
-  virtual void SetSeekable(bool aSeekable);
+  virtual void SetSeekable(PRBool aSeekable);
 
   
-  virtual bool IsSeekable();
+  virtual PRBool IsSeekable();
 
   virtual nsresult GetSeekable(nsTimeRanges* aSeekable);
 
@@ -454,7 +454,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   
   
-  virtual void Resume(bool aForceBuffering);
+  virtual void Resume(PRBool aForceBuffering);
 
   
   virtual void MoveLoadsToBackground();
@@ -465,9 +465,9 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   void DurationChanged();
 
-  bool OnStateMachineThread() const;
+  PRBool OnStateMachineThread() const;
 
-  bool OnDecodeThread() const {
+  PRBool OnDecodeThread() const {
     return mDecoderStateMachine->OnDecodeThread();
   }
 
@@ -529,7 +529,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   void UpdatePlaybackRate();
 
   
-  double ComputePlaybackRate(bool* aReliable);
+  double ComputePlaybackRate(PRPackedBool* aReliable);
 
   
   
@@ -659,7 +659,7 @@ public:
 
   
   
-  bool mSeekable;
+  PRPackedBool mSeekable;
 
   
 
@@ -695,17 +695,17 @@ public:
   
   
   
-  bool mResourceLoaded;
+  PRPackedBool mResourceLoaded;
 
   
   
   
   
   
-  bool mIgnoreProgressData;
+  PRPackedBool mIgnoreProgressData;
 
   
-  bool mInfiniteStream;
+  PRPackedBool mInfiniteStream;
 };
 
 #endif

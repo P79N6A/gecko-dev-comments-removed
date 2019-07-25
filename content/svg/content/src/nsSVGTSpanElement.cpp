@@ -67,7 +67,7 @@ public:
   NS_FORWARD_NSIDOMSVGTEXTPOSITIONINGELEMENT(nsSVGTSpanElementBase::)
 
   
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
+  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
@@ -75,7 +75,7 @@ public:
 protected:
 
   
-  virtual bool IsEventName(nsIAtom* aName);
+  virtual PRBool IsEventName(nsIAtom* aName);
 };
 
 
@@ -123,7 +123,7 @@ NS_IMPL_ELEMENT_CLONE_WITH_INIT(nsSVGTSpanElement)
 
 
 
-NS_IMETHODIMP_(bool)
+NS_IMETHODIMP_(PRBool)
 nsSVGTSpanElement::IsAttributeMapped(const nsIAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {
@@ -141,7 +141,7 @@ nsSVGTSpanElement::IsAttributeMapped(const nsIAtom* name) const
 
 
 
-bool
+PRBool
 nsSVGTSpanElement::IsEventName(nsIAtom* aName)
 {
   return nsContentUtils::IsEventAttributeName(aName, EventNameType_SVGGraphic);

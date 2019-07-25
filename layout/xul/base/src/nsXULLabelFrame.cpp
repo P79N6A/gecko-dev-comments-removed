@@ -58,7 +58,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsXULLabelFrame)
 
 
 nsresult
-nsXULLabelFrame::RegUnregAccessKey(bool aDoReg)
+nsXULLabelFrame::RegUnregAccessKey(PRBool aDoReg)
 {
   
   if (!mContent)

@@ -92,7 +92,7 @@ protected:
 
 private:
     
-    bool mExpectAbsLoc;
+    PRBool mExpectAbsLoc;
     nsString mEscapedEllipsis;
 };
 

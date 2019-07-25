@@ -142,7 +142,7 @@ enum EscapeMask {
 
 
 
-bool NS_EscapeURL(const char *str,
+PRBool NS_EscapeURL(const char *str,
                            PRInt32 len,
                            PRUint32 flags,
                            nsACString &result);
@@ -158,7 +158,7 @@ bool NS_EscapeURL(const char *str,
 
 
 
-bool NS_UnescapeURL(const char *str,
+PRBool NS_UnescapeURL(const char *str,
                              PRInt32 len,
                              PRUint32 flags,
                              nsACString &result);
@@ -188,7 +188,7 @@ NS_UnescapeURL(const nsCSubstring &str, PRUint32 flags, nsCSubstring &result) {
 
 
 
-inline bool
+inline PRBool
 NS_Escape(const nsCString& aOriginal, nsCString& aEscaped,
           nsEscapeMask aMask)
 {

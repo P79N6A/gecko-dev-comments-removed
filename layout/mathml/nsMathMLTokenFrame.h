@@ -84,7 +84,7 @@ public:
 
   virtual nsresult
   Place(nsRenderingContext& aRenderingContext,
-        bool                 aPlaceOrigin,
+        PRBool               aPlaceOrigin,
         nsHTMLReflowMetrics& aDesiredSize);
 
   virtual void MarkIntrinsicWidthsDirty();
@@ -112,10 +112,10 @@ protected:
 
   
   
-  bool SetTextStyle();
+  PRBool SetTextStyle();
 
   
-  void SetQuotes(bool aNotify);
+  void SetQuotes(PRBool aNotify);
 };
 
 #endif 

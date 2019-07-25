@@ -76,7 +76,7 @@ AccIterator::Next()
       continue;
     }
 
-    bool isComplying = mFilterFunc(child);
+    PRBool isComplying = mFilterFunc(child);
     if (isComplying)
       return child;
 
@@ -152,10 +152,10 @@ RelatedAccIterator::Next()
 
 
 HTMLLabelIterator::
-  HTMLLabelIterator(nsDocAccessible* aDocument, const nsAccessible* aAccessible,
+  HTMLLabelIterator(nsDocAccessible* aDocument, nsIContent* aElement,
                     LabelFilter aFilter) :
-  mRelIter(aDocument, aAccessible->GetContent(), nsGkAtoms::_for),
-  mAcc(aAccessible), mLabelFilter(aFilter)
+  mRelIter(aDocument, aElement, nsGkAtoms::_for),
+  mElement(aElement), mLabelFilter(aFilter)
 {
 }
 
@@ -170,28 +170,20 @@ HTMLLabelIterator::Next()
       return label;
   }
 
-  
-  if (mLabelFilter == eSkipAncestorLabel || !mAcc->IsWidget())
+  if (mLabelFilter == eSkipAncestorLabel)
     return nsnull;
 
   
   
-  
-  nsAccessible* walkUp = mAcc->Parent();
-  while (walkUp && !walkUp->IsDoc()) {
-    nsIContent* walkUpElm = walkUp->GetContent();
-    if (walkUpElm->IsHTML()) {
-      if (walkUpElm->Tag() == nsGkAtoms::label &&
-          !walkUpElm->HasAttr(kNameSpaceID_None, nsGkAtoms::_for)) {
-        mLabelFilter = eSkipAncestorLabel; 
-        return walkUp;
-      }
-
-      if (walkUpElm->Tag() == nsGkAtoms::form)
-        break;
+  nsIContent* walkUpContent = mElement;
+  while ((walkUpContent = walkUpContent->GetParent()) &&
+         walkUpContent->Tag() != nsGkAtoms::form &&
+         walkUpContent->Tag() != nsGkAtoms::body) {
+    if (walkUpContent->Tag() == nsGkAtoms::label) {
+      
+      mLabelFilter = eSkipAncestorLabel;
+      return GetAccService()->GetAccessible(walkUpContent);
     }
-
-    walkUp = walkUp->Parent();
   }
 
   return nsnull;

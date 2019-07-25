@@ -222,7 +222,7 @@ public:
 
 
   nsRootPresContext* GetRootPresContext();
-  virtual bool IsRoot() { return false; }
+  virtual PRBool IsRoot() { return PR_FALSE; }
 
   nsIDocument* Document() const
   {
@@ -257,7 +257,7 @@ public:
 
   void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint);
 
-  void MediaFeatureValuesChanged(bool aCallerWillRebuildStyleData);
+  void MediaFeatureValuesChanged(PRBool aCallerWillRebuildStyleData);
   void PostMediaFeatureValuesChangedEvent();
   NS_HIDDEN_(void) HandleMediaFeatureValuesChangedEvent();
   void FlushPendingMediaFeatureValuesChanged() {
@@ -337,7 +337,7 @@ public:
 
   
   
-  bool GetCachedBoolPref(nsPresContext_CachedBoolPrefType aPrefType) const
+  PRBool GetCachedBoolPref(nsPresContext_CachedBoolPrefType aPrefType) const
   {
     
     
@@ -392,9 +392,9 @@ public:
   const nscolor BodyTextColor() const { return mBodyTextColor; }
   void SetBodyTextColor(nscolor aColor) { mBodyTextColor = aColor; }
 
-  bool GetUseFocusColors() const { return mUseFocusColors; }
+  PRBool GetUseFocusColors() const { return mUseFocusColors; }
   PRUint8 FocusRingWidth() const { return mFocusRingWidth; }
-  bool GetFocusRingOnAnything() const { return mFocusRingOnAnything; }
+  PRBool GetFocusRingOnAnything() const { return mFocusRingOnAnything; }
   PRUint8 GetFocusRingStyle() const { return mFocusRingStyle; }
 
   
@@ -481,19 +481,19 @@ public:
 
 
 
-  bool IsPaginated() const { return mPaginated; }
+  PRBool IsPaginated() const { return mPaginated; }
   
   
 
 
 
-  NS_HIDDEN_(void) SetPaginatedScrolling(bool aResult);
+  NS_HIDDEN_(void) SetPaginatedScrolling(PRBool aResult);
 
   
 
 
 
-  bool HasPaginatedScrolling() const { return mCanPaginatedScroll; }
+  PRBool HasPaginatedScrolling() const { return mCanPaginatedScroll; }
 
   
 
@@ -506,8 +506,8 @@ public:
 
 
 
-  bool IsRootPaginatedDocument() { return mIsRootPaginatedDocument; }
-  void SetIsRootPaginatedDocument(bool aIsRootPaginatedDocument)
+  PRBool IsRootPaginatedDocument() { return mIsRootPaginatedDocument; }
+  void SetIsRootPaginatedDocument(PRBool aIsRootPaginatedDocument)
     { mIsRootPaginatedDocument = aIsRootPaginatedDocument; }
 
   
@@ -652,10 +652,10 @@ public:
     PRUint8 mHorizontal, mVertical;
     ScrollbarStyles(PRUint8 h, PRUint8 v) : mHorizontal(h), mVertical(v) {}
     ScrollbarStyles() {}
-    bool operator==(const ScrollbarStyles& aStyles) const {
+    PRBool operator==(const ScrollbarStyles& aStyles) const {
       return aStyles.mHorizontal == mHorizontal && aStyles.mVertical == mVertical;
     }
-    bool operator!=(const ScrollbarStyles& aStyles) const {
+    PRBool operator!=(const ScrollbarStyles& aStyles) const {
       return aStyles.mHorizontal != mHorizontal || aStyles.mVertical != mVertical;
     }
   };
@@ -672,15 +672,17 @@ public:
   
 
 
-  bool GetBackgroundImageDraw() const { return mDrawImageBackground; }
-  void   SetBackgroundImageDraw(bool aCanDraw)
+  PRBool GetBackgroundImageDraw() const { return mDrawImageBackground; }
+  void   SetBackgroundImageDraw(PRBool aCanDraw)
   {
+    NS_ASSERTION(!(aCanDraw & ~1), "Value must be true or false");
     mDrawImageBackground = aCanDraw;
   }
 
-  bool GetBackgroundColorDraw() const { return mDrawColorBackground; }
-  void   SetBackgroundColorDraw(bool aCanDraw)
+  PRBool GetBackgroundColorDraw() const { return mDrawColorBackground; }
+  void   SetBackgroundColorDraw(PRBool aCanDraw)
   {
+    NS_ASSERTION(!(aCanDraw & ~1), "Value must be true or false");
     mDrawColorBackground = aCanDraw;
   }
 
@@ -692,12 +694,12 @@ public:
 
 
 
-  virtual bool BidiEnabledExternal() const { return BidiEnabledInternal(); }
-  bool BidiEnabledInternal() const { return Document()->GetBidiEnabled(); }
+  virtual PRBool BidiEnabledExternal() const { return BidiEnabledInternal(); }
+  PRBool BidiEnabledInternal() const { return Document()->GetBidiEnabled(); }
 #ifdef _IMPL_NS_LAYOUT
-  bool BidiEnabled() const { return BidiEnabledInternal(); }
+  PRBool BidiEnabled() const { return BidiEnabledInternal(); }
 #else
-  bool BidiEnabled() const { return BidiEnabledExternal(); }
+  PRBool BidiEnabled() const { return BidiEnabledExternal(); }
 #endif
 
   
@@ -721,8 +723,9 @@ public:
 
 
 
-  void SetVisualMode(bool aIsVisual)
+  void SetVisualMode(PRBool aIsVisual)
   {
+    NS_ASSERTION(!(aIsVisual & ~1), "Value must be true or false");
     mIsVisual = aIsVisual;
   }
 
@@ -731,7 +734,7 @@ public:
 
 
 
-  bool IsVisualMode() const { return mIsVisual; }
+  PRBool IsVisualMode() const { return mIsVisual; }
 
 
 
@@ -739,7 +742,7 @@ public:
 
   
   NS_HIDDEN_(void) SetBidi(PRUint32 aBidiOptions,
-                           bool aForceRestyle = false);
+                           PRBool aForceRestyle = PR_FALSE);
 
   
 
@@ -752,14 +755,15 @@ public:
   
 
 
-  void SetIsRenderingOnlySelection(bool aResult)
+  void SetIsRenderingOnlySelection(PRBool aResult)
   {
+    NS_ASSERTION(!(aResult & ~1), "Value must be true or false");
     mIsRenderingOnlySelection = aResult;
   }
 
-  bool IsRenderingOnlySelection() const { return mIsRenderingOnlySelection; }
+  PRBool IsRenderingOnlySelection() const { return mIsRenderingOnlySelection; }
 
-  NS_HIDDEN_(bool) IsTopLevelWindowInactive();
+  NS_HIDDEN_(PRBool) IsTopLevelWindowInactive();
 
   
 
@@ -791,7 +795,7 @@ public:
 
 
 
-  NS_HIDDEN_(bool) EnsureVisible();
+  NS_HIDDEN_(PRBool) EnsureVisible();
   
 #ifdef MOZ_REFLOW_PERF
   NS_HIDDEN_(void) CountReflows(const char * aName,
@@ -804,13 +808,13 @@ public:
 
   const nscoord* GetBorderWidthTable() { return mBorderWidthTable; }
 
-  bool IsDynamic() { return (mType == eContext_PageLayout || mType == eContext_Galley); }
-  bool IsScreen() { return (mMedium == nsGkAtoms::screen ||
+  PRBool IsDynamic() { return (mType == eContext_PageLayout || mType == eContext_Galley); }
+  PRBool IsScreen() { return (mMedium == nsGkAtoms::screen ||
                               mType == eContext_PageLayout ||
                               mType == eContext_PrintPreview); }
 
   
-  bool IsChrome() const
+  PRBool IsChrome() const
   {
     return mIsChromeIsCached ? mIsChrome : IsChromeSlow();
   }
@@ -826,14 +830,14 @@ public:
 #endif
 
   
-  virtual bool HasAuthorSpecifiedRules(nsIFrame *aFrame, PRUint32 ruleTypeMask) const;
+  virtual PRBool HasAuthorSpecifiedRules(nsIFrame *aFrame, PRUint32 ruleTypeMask) const;
 
   
-  bool UseDocumentColors() const {
+  PRBool UseDocumentColors() const {
     return GetCachedBoolPref(kPresContext_UseDocumentColors) || IsChrome();
   }
 
-  bool             SupressingResizeReflow() const { return mSupressResizeReflow; }
+  PRBool           SupressingResizeReflow() const { return mSupressResizeReflow; }
   
   virtual NS_HIDDEN_(gfxUserFontSet*) GetUserFontSetExternal();
   NS_HIDDEN_(gfxUserFontSet*) GetUserFontSetInternal();
@@ -855,35 +859,35 @@ public:
   
   
   
-  bool EnsureSafeToHandOutCSSRules();
+  PRBool EnsureSafeToHandOutCSSRules();
 
   void NotifyInvalidation(const nsRect& aRect, PRUint32 aFlags);
   void NotifyDidPaintForSubtree();
   void FireDOMPaintEvent();
 
-  bool IsDOMPaintEventPending() {
+  PRBool IsDOMPaintEventPending() {
     return !mInvalidateRequests.mRequests.IsEmpty();
   }
   void ClearMozAfterPaintEvents() {
     mInvalidateRequests.mRequests.Clear();
   }
 
-  bool IsProcessingRestyles() const {
+  PRBool IsProcessingRestyles() const {
     return mProcessingRestyles;
   }
 
-  void SetProcessingRestyles(bool aProcessing) {
-    NS_ASSERTION(aProcessing != bool(mProcessingRestyles),
+  void SetProcessingRestyles(PRBool aProcessing) {
+    NS_ASSERTION(aProcessing != PRBool(mProcessingRestyles),
                  "should never nest");
     mProcessingRestyles = aProcessing;
   }
 
-  bool IsProcessingAnimationStyleChange() const {
+  PRBool IsProcessingAnimationStyleChange() const {
     return mProcessingAnimationStyleChange;
   }
 
-  void SetProcessingAnimationStyleChange(bool aProcessing) {
-    NS_ASSERTION(aProcessing != bool(mProcessingAnimationStyleChange),
+  void SetProcessingAnimationStyleChange(PRBool aProcessing) {
+    NS_ASSERTION(aProcessing != PRBool(mProcessingAnimationStyleChange),
                  "should never nest");
     mProcessingAnimationStyleChange = aProcessing;
   }
@@ -897,7 +901,7 @@ public:
 
 
 
-  void ReflowStarted(bool aInterruptible);
+  void ReflowStarted(PRBool aInterruptible);
 
   
 
@@ -921,8 +925,8 @@ public:
 
   private:
     nsPresContext* mCtx;
-    bool mInterruptsEnabled;
-    bool mHasPendingInterrupt;
+    PRBool mInterruptsEnabled;
+    PRBool mHasPendingInterrupt;
   };
     
   
@@ -933,12 +937,12 @@ public:
 
 
 
-  bool CheckForInterrupt(nsIFrame* aFrame);
+  PRBool CheckForInterrupt(nsIFrame* aFrame);
   
 
 
 
-  bool HasPendingInterrupt() { return mHasPendingInterrupt; }
+  PRBool HasPendingInterrupt() { return mHasPendingInterrupt; }
 
   
 
@@ -963,17 +967,17 @@ public:
 
   void DestroyImageLoaders();
 
-  bool GetContainsUpdatePluginGeometryFrame()
+  PRBool GetContainsUpdatePluginGeometryFrame()
   {
     return mContainsUpdatePluginGeometryFrame;
   }
 
-  void SetContainsUpdatePluginGeometryFrame(bool aValue)
+  void SetContainsUpdatePluginGeometryFrame(PRBool aValue)
   {
     mContainsUpdatePluginGeometryFrame = aValue;
   }
 
-  bool MayHaveFixedBackgroundFrames() { return mMayHaveFixedBackgroundFrames; }
+  PRBool MayHaveFixedBackgroundFrames() { return mMayHaveFixedBackgroundFrames; }
   void SetHasFixedBackgroundFrame() { mMayHaveFixedBackgroundFrames = PR_TRUE; }
 
   PRUint32 EstimateMemoryUsed() {
@@ -984,7 +988,7 @@ public:
     return result;
   }
 
-  bool IsRootContentDocument();
+  PRBool IsRootContentDocument();
 
 protected:
   friend class nsRunnableMethod<nsPresContext>;
@@ -1012,19 +1016,19 @@ protected:
   void InvalidateThebesLayers();
   void AppUnitsPerDevPixelChanged();
 
-  bool MayHavePaintEventListener();
+  PRBool MayHavePaintEventListener();
 
   void HandleRebuildUserFontSet() {
     mPostedFlushUserFontSet = PR_FALSE;
     FlushUserFontSet();
   }
 
-  bool HavePendingInputEvent();
+  PRBool HavePendingInputEvent();
 
   
-  bool HasCachedStyleData();
+  PRBool HasCachedStyleData();
 
-  bool IsChromeSlow() const;
+  PRBool IsChromeSlow() const;
 
   
   
@@ -1172,7 +1176,7 @@ protected:
   mutable unsigned      mIsChrome : 1;
 
 #ifdef DEBUG
-  bool                  mInitialized;
+  PRBool                mInitialized;
 #endif
 
 
@@ -1261,7 +1265,7 @@ public:
 
   void DidApplyPluginGeometryUpdates();
 
-  virtual bool IsRoot() { return true; }
+  virtual PRBool IsRoot() { return PR_TRUE; }
 
   
 
@@ -1312,7 +1316,7 @@ private:
   
   nsIFrame* mUpdatePluginGeometryForFrame;
   PRUint32 mDOMGeneration;
-  bool mNeedsToUpdatePluginGeometry;
+  PRPackedBool mNeedsToUpdatePluginGeometry;
 };
 
 inline void

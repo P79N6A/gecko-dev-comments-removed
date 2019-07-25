@@ -80,7 +80,7 @@ nsXULTemplateResultXML::nsXULTemplateResultXML(nsXMLQuery* aQuery,
 }
 
 NS_IMETHODIMP
-nsXULTemplateResultXML::GetIsContainer(bool* aIsContainer)
+nsXULTemplateResultXML::GetIsContainer(PRBool* aIsContainer)
 {
     
     if (mNode)
@@ -91,15 +91,14 @@ nsXULTemplateResultXML::GetIsContainer(bool* aIsContainer)
 }
 
 NS_IMETHODIMP
-nsXULTemplateResultXML::GetIsEmpty(bool* aIsEmpty)
+nsXULTemplateResultXML::GetIsEmpty(PRBool* aIsEmpty)
 {
     
     nsCOMPtr<nsIContent> content = do_QueryInterface(mNode);
     if (content) {
-        for (nsIContent* child = content->GetFirstChild();
-             child;
-             child = child->GetNextSibling()) {
-            if (child->IsElement()) {
+        PRUint32 count = content->GetChildCount();
+        for (PRUint32 c = 0; c < count; c++) {
+            if (content->GetChildAt(c)->IsElement()) {
                 *aIsEmpty = PR_FALSE;
                 return NS_OK;
             }
@@ -111,7 +110,7 @@ nsXULTemplateResultXML::GetIsEmpty(bool* aIsEmpty)
 }
 
 NS_IMETHODIMP
-nsXULTemplateResultXML::GetMayProcessChildren(bool* aMayProcessChildren)
+nsXULTemplateResultXML::GetMayProcessChildren(PRBool* aMayProcessChildren)
 {
     *aMayProcessChildren = PR_TRUE;
     return NS_OK;

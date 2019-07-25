@@ -59,7 +59,7 @@ public:
 
     
     virtual nsresult Propagate(InstantiationSet& aInstantiations,
-                               bool aIsUpdate, bool& aMatched);
+                               PRBool aIsUpdate, PRBool& aMatched);
 
 protected:
 

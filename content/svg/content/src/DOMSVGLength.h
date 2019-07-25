@@ -137,7 +137,7 @@ public:
     return copy;
   }
 
-  bool IsInList() const {
+  PRBool IsInList() const {
     return !!mList;
   }
 
@@ -145,7 +145,7 @@ public:
 
 
 
-  bool HasOwner() const {
+  PRBool HasOwner() const {
     return !!mList;
   }
 
@@ -212,7 +212,7 @@ private:
   SVGLength& InternalItem();
 
 #ifdef DEBUG
-  bool IndexIsValid();
+  PRBool IndexIsValid();
 #endif
 
   nsRefPtr<DOMSVGLengthList> mList;

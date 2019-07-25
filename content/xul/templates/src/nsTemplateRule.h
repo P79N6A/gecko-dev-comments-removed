@@ -78,21 +78,21 @@ public:
     nsTemplateCondition(nsIAtom* aSourceVariable,
                         const nsAString& aRelation,
                         nsIAtom* aTargetVariable,
-                        bool mIgnoreCase,
-                        bool mNegate);
+                        PRBool mIgnoreCase,
+                        PRBool mNegate);
 
     nsTemplateCondition(nsIAtom* aSourceVariable,
                         const nsAString& aRelation,
                         const nsAString& aTargets,
-                        bool mIgnoreCase,
-                        bool mNegate,
-                        bool aIsMultiple);
+                        PRBool mIgnoreCase,
+                        PRBool mNegate,
+                        PRBool aIsMultiple);
 
     nsTemplateCondition(const nsAString& aSource,
                         const nsAString& aRelation,
                         nsIAtom* aTargetVariable,
-                        bool mIgnoreCase,
-                        bool mNegate);
+                        PRBool mIgnoreCase,
+                        PRBool mNegate);
 
     ~nsTemplateCondition() { MOZ_COUNT_DTOR(nsTemplateCondition); }
 
@@ -101,10 +101,10 @@ public:
 
     void SetRelation(const nsAString& aRelation);
 
-    bool
+    PRBool
     CheckMatch(nsIXULTemplateResult* aResult);
 
-    bool
+    PRBool
     CheckMatchStrings(const nsAString& aLeftString,
                       const nsAString& aRightString);
 protected:
@@ -114,8 +114,8 @@ protected:
     ConditionRelation   mRelation;
     nsCOMPtr<nsIAtom>   mTargetVariable;
     nsTArray<nsString>  mTargetList;
-    bool                mIgnoreCase;
-    bool                mNegate;
+    PRPackedBool        mIgnoreCase;
+    PRPackedBool        mNegate;
 
    nsTemplateCondition* mNext;
 };
@@ -193,13 +193,13 @@ public:
 
 
 
-    bool
+    PRBool
     CheckMatch(nsIXULTemplateResult* aResult) const;
 
     
 
 
-    bool
+    PRBool
     HasBinding(nsIAtom* aSourceVariable,
                nsAString& aExpr,
                nsIAtom* aTargetVariable) const;

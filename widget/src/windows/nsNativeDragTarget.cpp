@@ -62,9 +62,8 @@ static POINTL gDragLastPoint;
 
 nsNativeDragTarget::nsNativeDragTarget(nsIWidget * aWnd)
   : m_cRef(0), 
-    mEffectsAllowed(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK),
-    mEffectsPreferred(DROPEFFECT_NONE),
-    mTookOwnRef(false), mWindow(aWnd), mDropTargetHelper(nsnull)
+    mEffectsAllowed(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK), 
+    mTookOwnRef(PR_FALSE), mWindow(aWnd), mDropTargetHelper(nsnull)
 {
   mHWnd = (HWND)mWindow->GetNativeData(NS_NATIVE_WINDOW);
 
@@ -130,54 +129,46 @@ nsNativeDragTarget::GetGeckoDragAction(DWORD grfKeyState, LPDWORD pdwEffect,
 {
   
   
-  bool isEnabled;
+  PRBool isEnabled;
   if (NS_SUCCEEDED(mWindow->IsEnabled(&isEnabled)) && !isEnabled) {
     *pdwEffect = DROPEFFECT_NONE;
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_NONE;
-    return;
   }
-
   
   
-  DWORD desiredEffect = DROPEFFECT_NONE;
-  if ((grfKeyState & MK_CONTROL) && (grfKeyState & MK_SHIFT)) {
-    desiredEffect = DROPEFFECT_LINK;
-  } else if (grfKeyState & MK_SHIFT) {
-    desiredEffect = DROPEFFECT_MOVE;
-  } else if (grfKeyState & MK_CONTROL) {
-    desiredEffect = DROPEFFECT_COPY;
-  }
-
-  
-  if (!(desiredEffect &= mEffectsAllowed)) {
-    
-    
-    desiredEffect = mEffectsPreferred & mEffectsAllowed;
-    if (!desiredEffect) {
-      
-      desiredEffect = mEffectsAllowed;
-    }
-  }
-
-  
-  
-  if (desiredEffect & DROPEFFECT_MOVE) {
-    *pdwEffect = DROPEFFECT_MOVE;
-    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_MOVE;
-  } else if (desiredEffect & DROPEFFECT_COPY) {
-    *pdwEffect = DROPEFFECT_COPY;
-    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_COPY;
-  } else if (desiredEffect & DROPEFFECT_LINK) {
+  else if (!mMovePreferred && (grfKeyState & MK_CONTROL) && 
+      (grfKeyState & MK_SHIFT) && (mEffectsAllowed & DROPEFFECT_LINK)) {
     *pdwEffect = DROPEFFECT_LINK;
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_LINK;
-  } else {
-    *pdwEffect = DROPEFFECT_NONE;
-    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_NONE;
-  } 
+  }
+  
+  else if ((mEffectsAllowed & DROPEFFECT_MOVE) && 
+           (mMovePreferred || (grfKeyState & MK_SHIFT))) {
+    *pdwEffect = DROPEFFECT_MOVE;
+    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_MOVE;
+  }
+  
+  else if ((mEffectsAllowed & DROPEFFECT_COPY) && (grfKeyState & MK_CONTROL)) {
+    *pdwEffect = DROPEFFECT_COPY;
+    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_COPY;
+  }
+  
+  else if (mEffectsAllowed & DROPEFFECT_MOVE) {
+    *pdwEffect = DROPEFFECT_MOVE;
+    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_MOVE;
+  }
+  else if (mEffectsAllowed & DROPEFFECT_COPY) {
+    *pdwEffect = DROPEFFECT_COPY;
+    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_COPY;
+  }
+  else if (mEffectsAllowed & DROPEFFECT_LINK) {
+    *pdwEffect = DROPEFFECT_LINK;
+    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_LINK;
+  }
 }
 
 inline
-bool
+PRBool
 IsKeyDown(char key)
 {
   return GetKeyState(key) < 0;
@@ -187,7 +178,7 @@ void
 nsNativeDragTarget::DispatchDragDropEvent(PRUint32 aEventType, POINTL aPT)
 {
   nsEventStatus status;
-  nsDragEvent event(true, aEventType, mWindow);
+  nsDragEvent event(PR_TRUE, aEventType, mWindow);
 
   nsWindow * win = static_cast<nsWindow *>(mWindow);
   win->InitEvent(event);
@@ -207,7 +198,7 @@ nsNativeDragTarget::DispatchDragDropEvent(PRUint32 aEventType, POINTL aPT)
 
   event.isShift   = IsKeyDown(NS_VK_SHIFT);
   event.isControl = IsKeyDown(NS_VK_CONTROL);
-  event.isMeta    = false;
+  event.isMeta    = PR_FALSE;
   event.isAlt     = IsKeyDown(NS_VK_ALT);
   event.inputSource = static_cast<nsBaseDragService*>(mDragService)->GetInputSource();
 
@@ -239,7 +230,7 @@ nsNativeDragTarget::ProcessDrag(PRUint32     aEventType,
   if (aEventType != NS_DRAGDROP_DROP) {
     
     
-    bool canDrop;
+    PRBool canDrop;
     currSession->GetCanDrop(&canDrop);
     if (!canDrop) {
       *pdwEffect = DROPEFFECT_NONE;
@@ -247,7 +238,7 @@ nsNativeDragTarget::ProcessDrag(PRUint32     aEventType,
   }
 
   
-  currSession->SetCanDrop(false);
+  currSession->SetCanDrop(PR_FALSE);
 }
 
 
@@ -273,7 +264,7 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   
   NS_ASSERTION(!mTookOwnRef, "own ref already taken!");
   this->AddRef();
-  mTookOwnRef = true;
+  mTookOwnRef = PR_TRUE;
 
   
   
@@ -284,11 +275,15 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   nsresult loadResult = nsClipboard::GetNativeDataOffClipboard(
       pIDataSource, 0, ::RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT), nsnull, &tempOutData, &tempDataLen);
   if (NS_SUCCEEDED(loadResult) && tempOutData) {
-    mEffectsPreferred = *((DWORD*)tempOutData);
+    NS_ASSERTION(tempDataLen == 2, "Expected word size");
+    WORD preferredEffect = *((WORD*)tempOutData);
+
+    
+    mMovePreferred = (preferredEffect & DROPEFFECT_MOVE) != 0;
+
     nsMemory::Free(tempOutData);
   } else {
-    
-    mEffectsPreferred = DROPEFFECT_NONE;
+    mMovePreferred = PR_FALSE;
   }
 
   
@@ -382,7 +377,7 @@ nsNativeDragTarget::DragLeave()
       
       
       
-      mDragService->EndDragSession(false);
+      mDragService->EndDragSession(PR_FALSE);
     }
   }
 
@@ -390,7 +385,7 @@ nsNativeDragTarget::DragLeave()
   NS_ASSERTION(mTookOwnRef, "want to release own ref, but not taken!");
   if (mTookOwnRef) {
     this->Release();
-    mTookOwnRef = false;
+    mTookOwnRef = PR_FALSE;
   }
 
   return S_OK;
@@ -405,10 +400,10 @@ nsNativeDragTarget::DragCancel()
       mDropTargetHelper->DragLeave();
     }
     if (mDragService) {
-      mDragService->EndDragSession(false);
+      mDragService->EndDragSession(PR_FALSE);
     }
     this->Release(); 
-    mTookOwnRef = false;
+    mTookOwnRef = PR_FALSE;
   }
 }
 
@@ -466,13 +461,13 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
   cpos.x = GET_X_LPARAM(pos);
   cpos.y = GET_Y_LPARAM(pos);
   winDragService->SetDragEndPoint(nsIntPoint(cpos.x, cpos.y));
-  serv->EndDragSession(true);
+  serv->EndDragSession(PR_TRUE);
 
   
   NS_ASSERTION(mTookOwnRef, "want to release own ref, but not taken!");
   if (mTookOwnRef) {
     this->Release();
-    mTookOwnRef = false;
+    mTookOwnRef = PR_FALSE;
   }
 
   return S_OK;

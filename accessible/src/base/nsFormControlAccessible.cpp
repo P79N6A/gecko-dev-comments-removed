@@ -79,16 +79,6 @@ ProgressMeterAccessible<Max>::NativeRole()
 
 
 template<int Max>
-bool
-ProgressMeterAccessible<Max>::IsWidget() const
-{
-  return true;
-}
-
-
-
-
-template<int Max>
 NS_IMETHODIMP
 ProgressMeterAccessible<Max>::GetValue(nsAString& aValue)
 {
@@ -232,11 +222,3 @@ nsRadioButtonAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_RADIOBUTTON;
 }
 
-
-
-
-bool
-nsRadioButtonAccessible::IsWidget() const
-{
-  return true;
-}

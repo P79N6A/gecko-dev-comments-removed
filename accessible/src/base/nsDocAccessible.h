@@ -104,7 +104,7 @@ public:
   NS_DECL_NSIDOCUMENTOBSERVER
 
   
-  virtual bool Init();
+  virtual PRBool Init();
   virtual void Shutdown();
   virtual nsIFrame* GetFrame() const;
   virtual bool IsDefunct() const;
@@ -132,7 +132,7 @@ public:
   
 
 
-  bool IsContentLoaded() const
+  PRBool IsContentLoaded() const
   {
     
     
@@ -305,7 +305,7 @@ public:
 
 
 
-  bool IsDependentID(const nsAString& aID) const
+  PRBool IsDependentID(const nsAString& aID) const
     { return mDependentIDsHash.Get(aID, nsnull); }
 
   
@@ -455,11 +455,6 @@ protected:
 
 
     void ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute);
-
-  
-
-
-  void ARIAActiveDescendantChanged(nsIContent* aElm);
 
   
 

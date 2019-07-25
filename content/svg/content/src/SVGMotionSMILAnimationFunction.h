@@ -56,11 +56,11 @@ class SVGMotionSMILAnimationFunction : public nsSMILAnimationFunction
 {
 public:
   SVGMotionSMILAnimationFunction();
-  NS_OVERRIDE virtual bool SetAttr(nsIAtom* aAttribute,
+  NS_OVERRIDE virtual PRBool SetAttr(nsIAtom* aAttribute,
                                      const nsAString& aValue,
                                      nsAttrValue& aResult,
                                      nsresult* aParseResult = nsnull);
-  NS_OVERRIDE virtual bool UnsetAttr(nsIAtom* aAttribute);
+  NS_OVERRIDE virtual PRBool UnsetAttr(nsIAtom* aAttribute);
 
   
   
@@ -86,7 +86,7 @@ protected:
                                          nsSMILValueArray& aResult);
   NS_OVERRIDE virtual void CheckValueListDependentAttrs(PRUint32 aNumValues);
 
-  NS_OVERRIDE virtual bool IsToAnimation() const;
+  NS_OVERRIDE virtual PRBool IsToAnimation() const;
 
   void     CheckKeyPoints();
   nsresult SetKeyPoints(const nsAString& aKeyPoints, nsAttrValue& aResult);
@@ -100,8 +100,8 @@ protected:
   void     RebuildPathAndVerticesFromMpathElem(nsSVGMpathElement* aMpathElem);
   void     RebuildPathAndVerticesFromPathAttr();
   void     RebuildPathAndVerticesFromBasicAttrs(const nsIContent* aContextElem);
-  bool     GenerateValuesForPathAndPoints(gfxFlattenedPath* aPath,
-                                          bool aIsKeyPoints,
+  PRBool   GenerateValuesForPathAndPoints(gfxFlattenedPath* aPath,
+                                          PRBool aIsKeyPoints,
                                           nsTArray<double>& aPointDistances,
                                           nsTArray<nsSMILValue>& aResult);
 
@@ -116,7 +116,7 @@ protected:
   nsRefPtr<gfxFlattenedPath> mPath;           
   nsTArray<double>           mPathVertices; 
 
-  bool                       mIsPathStale;
+  PRPackedBool               mIsPathStale;
 };
 
 } 

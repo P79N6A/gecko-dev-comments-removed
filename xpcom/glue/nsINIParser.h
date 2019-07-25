@@ -81,7 +81,7 @@ public:
 
 
 
-    typedef bool
+    typedef PRBool
     (* INISectionCallback)(const char *aSection, void *aClosure);
 
     
@@ -93,7 +93,7 @@ public:
 
 
 
-    typedef bool
+    typedef PRBool
     (* INIStringCallback)(const char *aString, const char *aValue,
                           void *aClosure);
 

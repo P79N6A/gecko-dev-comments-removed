@@ -176,7 +176,7 @@ nsEffectiveTLDService::GetBaseDomainInternal(nsCString  &aHostname,
     return NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS;
 
   
-  bool trailingDot = aHostname.Last() == '.';
+  PRBool trailingDot = aHostname.Last() == '.';
   if (trailingDot)
     aHostname.Truncate(aHostname.Length() - 1);
 

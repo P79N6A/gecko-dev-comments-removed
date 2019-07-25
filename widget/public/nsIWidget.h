@@ -221,12 +221,12 @@ struct nsIMEUpdatePreference {
     : mWantUpdates(PR_FALSE), mWantHints(PR_FALSE)
   {
   }
-  nsIMEUpdatePreference(bool aWantUpdates, bool aWantHints)
+  nsIMEUpdatePreference(PRBool aWantUpdates, PRBool aWantHints)
     : mWantUpdates(aWantUpdates), mWantHints(aWantHints)
   {
   }
-  bool mWantUpdates;
-  bool mWantHints;
+  PRPackedBool mWantUpdates;
+  PRPackedBool mWantHints;
 };
 
 
@@ -250,11 +250,11 @@ struct IMEContext {
     FOCUS_FROM_CONTENT_PROCESS = 0x0100
   };
 
-  bool FocusMovedByUser() const {
+  PRBool FocusMovedByUser() const {
     return (mReason & FOCUS_MOVED_BY_MOUSE) || (mReason & FOCUS_MOVED_BY_KEY);
   };
 
-  bool FocusMovedInContentProcess() const {
+  PRBool FocusMovedInContentProcess() const {
     return (mReason & FOCUS_FROM_CONTENT_PROCESS);
   };
 
@@ -364,7 +364,7 @@ class nsIWidget : public nsISupports {
                 nsIAppShell      *aAppShell = nsnull,
                 nsIToolkit       *aToolkit = nsnull,
                 nsWidgetInitData *aInitData = nsnull,
-                bool             aForceUseIWidgetParent = false) = 0;
+                PRBool           aForceUseIWidgetParent = PR_FALSE) = 0;
 
     
 
@@ -507,19 +507,19 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD Show(bool aState) = 0;
+    NS_IMETHOD Show(PRBool aState) = 0;
 
     
 
 
 
-    NS_IMETHOD SetModal(bool aModal) = 0;
+    NS_IMETHOD SetModal(PRBool aModal) = 0;
 
     
 
 
 
-    NS_IMETHOD IsVisible(bool & aState) = 0;
+    NS_IMETHOD IsVisible(PRBool & aState) = 0;
 
     
 
@@ -536,7 +536,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD ConstrainPosition(bool aAllowSlop,
+    NS_IMETHOD ConstrainPosition(PRBool aAllowSlop,
                                  PRInt32 *aX,
                                  PRInt32 *aY) = 0;
 
@@ -562,7 +562,7 @@ class nsIWidget : public nsISupports {
 
     NS_IMETHOD Resize(PRInt32 aWidth,
                       PRInt32 aHeight,
-                      bool     aRepaint) = 0;
+                      PRBool   aRepaint) = 0;
 
     
 
@@ -578,7 +578,7 @@ class nsIWidget : public nsISupports {
                       PRInt32 aY,
                       PRInt32 aWidth,
                       PRInt32 aHeight,
-                      bool     aRepaint) = 0;
+                      PRBool   aRepaint) = 0;
 
     
 
@@ -594,7 +594,7 @@ class nsIWidget : public nsISupports {
                             PRInt32 aY,
                             PRInt32 aWidth,
                             PRInt32 aHeight,
-                            bool    aRepaint) = 0;
+                            PRBool  aRepaint) = 0;
 
     
 
@@ -618,7 +618,7 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
-                           nsIWidget *aWidget, bool aActivate) = 0;
+                           nsIWidget *aWidget, PRBool aActivate) = 0;
 
     
 
@@ -638,13 +638,13 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD Enable(bool aState) = 0;
+    NS_IMETHOD Enable(PRBool aState) = 0;
 
     
 
 
 
-    NS_IMETHOD IsEnabled(bool *aState) = 0;
+    NS_IMETHOD IsEnabled(PRBool *aState) = 0;
 
     
 
@@ -657,7 +657,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetFocus(bool aRaise = false) = 0;
+    NS_IMETHOD SetFocus(PRBool aRaise = PR_FALSE) = 0;
 
     
 
@@ -859,19 +859,19 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void SetShowsToolbarButton(bool aShow) = 0;
+    virtual void SetShowsToolbarButton(PRBool aShow) = 0;
 
     
 
 
 
-    NS_IMETHOD HideWindowChrome(bool aShouldHide) = 0;
+    NS_IMETHOD HideWindowChrome(PRBool aShouldHide) = 0;
 
     
 
 
 
-    NS_IMETHOD MakeFullScreen(bool aFullScreen) = 0;
+    NS_IMETHOD MakeFullScreen(PRBool aFullScreen) = 0;
 
     
 
@@ -880,7 +880,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD Invalidate(const nsIntRect & aRect, bool aIsSynchronous) = 0;
+    NS_IMETHOD Invalidate(const nsIntRect & aRect, PRBool aIsSynchronous) = 0;
 
     
 
@@ -1025,14 +1025,14 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD EnableDragDrop(bool aEnable) = 0;
+    NS_IMETHOD EnableDragDrop(PRBool aEnable) = 0;
    
     
 
 
 
 
-    NS_IMETHOD CaptureMouse(bool aCapture) = 0;
+    NS_IMETHOD CaptureMouse(PRBool aCapture) = 0;
 
     
 
@@ -1048,7 +1048,7 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD CaptureRollupEvents(nsIRollupListener * aListener, nsIMenuRollup * aMenuRollup,
-                                   bool aDoCapture, bool aConsumeRollupEvent) = 0;
+                                   PRBool aDoCapture, PRBool aConsumeRollupEvent) = 0;
 
     
 
@@ -1067,7 +1067,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual bool HasPendingInputEvent() = 0;
+    virtual PRBool HasPendingInputEvent() = 0;
 
     
 
@@ -1103,7 +1103,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetWindowTitlebarColor(nscolor aColor, bool aActive) = 0;
+    NS_IMETHOD SetWindowTitlebarColor(nscolor aColor, PRBool aActive) = 0;
 
     
 
@@ -1116,7 +1116,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void SetDrawsInTitlebar(bool aState) = 0;
+    virtual void SetDrawsInTitlebar(PRBool aState) = 0;
 
     
 
@@ -1127,7 +1127,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual bool ShowsResizeIndicator(nsIntRect* aResizerRect) = 0;
+    virtual PRBool ShowsResizeIndicator(nsIntRect* aResizerRect) = 0;
 
     
 
@@ -1263,14 +1263,14 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetIMEOpenState(bool aState) = 0;
+    NS_IMETHOD SetIMEOpenState(PRBool aState) = 0;
 
     
 
 
 
 
-    NS_IMETHOD GetIMEOpenState(bool* aState) = 0;
+    NS_IMETHOD GetIMEOpenState(PRBool* aState) = 0;
 
     
 
@@ -1338,7 +1338,7 @@ class nsIWidget : public nsISupports {
     
 
 
-    NS_IMETHOD SetAcceleratedRendering(bool aEnabled) = 0;
+    NS_IMETHOD SetAcceleratedRendering(PRBool aEnabled) = 0;
 
     
 
@@ -1349,7 +1349,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetToggledKeyState(PRUint32 aKeyCode, bool* aLEDState) = 0;
+    NS_IMETHOD GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState) = 0;
 
     
 
@@ -1363,7 +1363,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD OnIMEFocusChange(bool aFocus) = 0;
+    NS_IMETHOD OnIMEFocusChange(PRBool aFocus) = 0;
 
     
 
@@ -1411,7 +1411,7 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD OverrideSystemMouseScrollSpeed(PRInt32 aOriginalDelta,
-                                              bool aIsHorizontal,
+                                              PRBool aIsHorizontal,
                                               PRInt32 &aOverriddenDelta) = 0;
 
     

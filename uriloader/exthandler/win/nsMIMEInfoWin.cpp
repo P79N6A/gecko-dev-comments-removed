@@ -73,7 +73,7 @@ nsMIMEInfoWin::LaunchDefaultWithFile(nsIFile* aFile)
   if (!local)
     return NS_ERROR_FAILURE;
 
-  bool executable = true;
+  PRBool executable = PR_TRUE;
   local->IsExecutable(&executable);
   if (executable)
     return NS_ERROR_FAILURE;
@@ -183,7 +183,7 @@ nsMIMEInfoWin::LaunchWithFile(nsIFile* aFile)
 }
 
 NS_IMETHODIMP
-nsMIMEInfoWin::GetHasDefaultHandler(bool * _retval)
+nsMIMEInfoWin::GetHasDefaultHandler(PRBool * _retval)
 {
   
   
@@ -329,7 +329,7 @@ nsMIMEInfoWin::LoadUriInternal(nsIURI * aURL)
 }
 
 
-bool nsMIMEInfoWin::GetLocalHandlerApp(const nsAString& aCommandHandler,
+PRBool nsMIMEInfoWin::GetLocalHandlerApp(const nsAString& aCommandHandler,
                                          nsCOMPtr<nsILocalHandlerApp>& aApp)
 {
   nsCOMPtr<nsILocalFile> locfile;
@@ -348,9 +348,9 @@ bool nsMIMEInfoWin::GetLocalHandlerApp(const nsAString& aCommandHandler,
 
 
 
-bool nsMIMEInfoWin::GetAppsVerbCommandHandler(const nsAString& appExeName,
+PRBool nsMIMEInfoWin::GetAppsVerbCommandHandler(const nsAString& appExeName,
                                                 nsAString& applicationPath,
-                                                bool edit)
+                                                PRBool edit)
 {
   nsCOMPtr<nsIWindowsRegKey> appKey = 
     do_CreateInstance("@mozilla.org/windows-registry-key;1");
@@ -415,10 +415,10 @@ bool nsMIMEInfoWin::GetAppsVerbCommandHandler(const nsAString& appExeName,
 
 
 
-bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
+PRBool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
                                        nsILocalFile * aFile,
                                        nsAString& args,
-                                       bool edit)
+                                       PRBool edit)
 {
   if (!aDll || !aFile) 
     return PR_FALSE;
@@ -524,9 +524,9 @@ bool nsMIMEInfoWin::GetDllLaunchInfo(nsIFile * aDll,
 
 
 
-bool nsMIMEInfoWin::GetProgIDVerbCommandHandler(const nsAString& appProgIDName,
+PRBool nsMIMEInfoWin::GetProgIDVerbCommandHandler(const nsAString& appProgIDName,
                                                   nsAString& applicationPath,
-                                                  bool edit)
+                                                  PRBool edit)
 {
   nsCOMPtr<nsIWindowsRegKey> appKey =
     do_CreateInstance("@mozilla.org/windows-registry-key;1");
@@ -589,7 +589,7 @@ void nsMIMEInfoWin::ProcessPath(nsCOMPtr<nsIMutableArray>& appList,
 
 
 
-static bool IsPathInList(nsAString& appPath,
+static PRBool IsPathInList(nsAString& appPath,
                            nsTArray<nsString>& trackList)
 {
   
@@ -642,7 +642,7 @@ nsMIMEInfoWin::GetPossibleLocalHandlers(nsIArray **_retval)
 
   nsAutoString workingRegistryPath;
 
-  bool extKnown = false;
+  PRBool extKnown = PR_FALSE;
   if (fileExt.IsEmpty()) {
     extKnown = PR_TRUE;
     

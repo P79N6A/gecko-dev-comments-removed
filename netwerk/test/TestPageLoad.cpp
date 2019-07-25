@@ -317,7 +317,7 @@ nsresult auxLoad(char *uriBuf)
     }
 
     
-    bool equal;
+    PRBool equal;
     for(PRInt32 i = 0; i < uriList.Count(); i++) {
       uri->Equals(uriList[i], &equal);
       if(equal) {

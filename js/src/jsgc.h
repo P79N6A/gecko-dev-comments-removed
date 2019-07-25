@@ -51,11 +51,11 @@
 #include "jsdhash.h"
 #include "jsbit.h"
 #include "jsgcchunk.h"
-#include "jshashtable.h"
-#include "jslock.h"
 #include "jsutil.h"
 #include "jsvector.h"
 #include "jsversion.h"
+#include "jsobj.h"
+#include "jsfun.h"
 #include "jsgcstats.h"
 #include "jscell.h"
 
@@ -1618,10 +1618,12 @@ void
 RunDebugGC(JSContext *cx);
 
 } 
-
-static inline JSCompartment *
-GetObjectCompartment(JSObject *obj) { return reinterpret_cast<js::gc::Cell *>(obj)->compartment(); }
-
 } 
+
+inline JSCompartment *
+JSObject::getCompartment() const
+{
+    return compartment();
+}
 
 #endif 

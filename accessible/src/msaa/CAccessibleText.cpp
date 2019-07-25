@@ -518,7 +518,7 @@ __try {
 
 
 HRESULT
-CAccessibleText::GetModifiedText(bool aGetInsertedText,
+CAccessibleText::GetModifiedText(PRBool aGetInsertedText,
                                  IA2TextSegment *aText)
 {
   PRUint32 startOffset = 0, endOffset = 0;

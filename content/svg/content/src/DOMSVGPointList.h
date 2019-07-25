@@ -104,7 +104,7 @@ public:
   static already_AddRefed<DOMSVGPointList>
   GetDOMWrapper(void *aList,
                 nsSVGElement *aElement,
-                bool aIsAnimValList);
+                PRBool aIsAnimValList);
 
   
 
@@ -150,7 +150,7 @@ public:
 
 
 
-  bool AttrIsAnimating() const;
+  PRBool AttrIsAnimating() const;
 
 private:
 
@@ -158,7 +158,7 @@ private:
 
 
 
-  DOMSVGPointList(nsSVGElement *aElement, bool aIsAnimValList)
+  DOMSVGPointList(nsSVGElement *aElement, PRBool aIsAnimValList)
     : mElement(aElement)
     , mIsAnimValList(aIsAnimValList)
   {
@@ -172,7 +172,7 @@ private:
   }
 
   
-  bool IsAnimValList() const {
+  PRBool IsAnimValList() const {
     return mIsAnimValList;
   }
 
@@ -202,7 +202,7 @@ private:
   
   nsRefPtr<nsSVGElement> mElement;
 
-  bool mIsAnimValList;
+  PRPackedBool mIsAnimValList;
 };
 
 } 

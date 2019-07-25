@@ -57,7 +57,7 @@ public:
 
 private:
   HMODULE mHMod; 
-  bool mInitialized; 
+  PRBool mInitialized; 
 
 protected:
   bool UsePollMode();

@@ -66,7 +66,7 @@ struct CharacterDataChangeInfo
   
 
 
-  bool mAppend;
+  PRBool mAppend;
 
   
 

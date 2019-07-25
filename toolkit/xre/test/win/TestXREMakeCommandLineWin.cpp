@@ -76,13 +76,13 @@
 static int
 verifyCmdLineCreation(PRUnichar *inCmdLine,
                       PRUnichar *compareCmdLine,
-                      bool passes, int testNum)
+                      PRBool passes, int testNum)
 {
   int rv = 0;
   int i;
   int inArgc;
   int outArgc;
-  bool isEqual;
+  PRBool isEqual;
 
   
   

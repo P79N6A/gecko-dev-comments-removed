@@ -67,7 +67,6 @@ class SurfaceDescriptor;
 class ThebesBuffer;
 class Transaction;
 class SharedImage;
-class CanvasSurface;
 
 
 
@@ -160,6 +159,17 @@ public:
                            const nsIntRegion& aFrontValidRegion,
                            const nsIntRect& aBufferRect,
                            const SurfaceDescriptor& aInitialFrontBuffer);
+  
+
+
+
+  void CreatedImageBuffer(ShadowableLayer* aImage,
+                          nsIntSize aSize,
+                          const SharedImage& aInitialFrontImage);
+  void CreatedCanvasBuffer(ShadowableLayer* aCanvas,
+                           nsIntSize aSize,
+                           const SurfaceDescriptor& aInitialFrontSurface,
+                           bool aNeedYFlip);
 
   
 
@@ -171,6 +181,9 @@ public:
 
   void DestroyedThebesBuffer(ShadowableLayer* aThebes,
                              const SurfaceDescriptor& aBackBufferToDestroy);
+  void DestroyedImageBuffer(ShadowableLayer* aImage);
+  void DestroyedCanvasBuffer(ShadowableLayer* aCanvas);
+
 
   
 
@@ -215,7 +228,6 @@ public:
   void PaintedImage(ShadowableLayer* aImage,
                     const SharedImage& aNewFrontImage);
   void PaintedCanvas(ShadowableLayer* aCanvas,
-                     bool aNeedYFlip,
                      const SurfaceDescriptor& aNewFrontSurface);
 
   
@@ -223,7 +235,7 @@ public:
 
 
 
-  bool EndTransaction(InfallibleTArray<EditReply>* aReplies);
+  PRBool EndTransaction(InfallibleTArray<EditReply>* aReplies);
 
   
 
@@ -241,7 +253,7 @@ public:
   
 
 
-  bool HasShadowManager() const { return !!mShadowManager; }
+  PRBool HasShadowManager() const { return !!mShadowManager; }
   PLayersChild* GetShadowManager() const { return mShadowManager; }
 
   
@@ -284,13 +296,13 @@ public:
 
 
 
-  bool AllocDoubleBuffer(const gfxIntSize& aSize,
+  PRBool AllocDoubleBuffer(const gfxIntSize& aSize,
                            gfxASurface::gfxContentType aContent,
                            gfxSharedImageSurface** aFrontBuffer,
                            gfxSharedImageSurface** aBackBuffer);
   void DestroySharedSurface(gfxSharedImageSurface* aSurface);
 
-  bool AllocBuffer(const gfxIntSize& aSize,
+  PRBool AllocBuffer(const gfxIntSize& aSize,
                      gfxASurface::gfxContentType aContent,
                      gfxSharedImageSurface** aBuffer);
 
@@ -298,12 +310,12 @@ public:
 
 
 
-  bool AllocDoubleBuffer(const gfxIntSize& aSize,
+  PRBool AllocDoubleBuffer(const gfxIntSize& aSize,
                            gfxASurface::gfxContentType aContent,
                            SurfaceDescriptor* aFrontBuffer,
                            SurfaceDescriptor* aBackBuffer);
 
-  bool AllocBuffer(const gfxIntSize& aSize,
+  PRBool AllocBuffer(const gfxIntSize& aSize,
                      gfxASurface::gfxContentType aContent,
                      SurfaceDescriptor* aBuffer);
 
@@ -335,19 +347,19 @@ protected:
   PLayersChild* mShadowManager;
 
 private:
-  bool PlatformAllocDoubleBuffer(const gfxIntSize& aSize,
+  PRBool PlatformAllocDoubleBuffer(const gfxIntSize& aSize,
                                    gfxASurface::gfxContentType aContent,
                                    SurfaceDescriptor* aFrontBuffer,
                                    SurfaceDescriptor* aBackBuffer);
 
-  bool PlatformAllocBuffer(const gfxIntSize& aSize,
+  PRBool PlatformAllocBuffer(const gfxIntSize& aSize,
                              gfxASurface::gfxContentType aContent,
                              SurfaceDescriptor* aBuffer);
 
   static already_AddRefed<gfxASurface>
   PlatformOpenDescriptor(const SurfaceDescriptor& aDescriptor);
 
-  bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
+  PRBool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
 
   static void PlatformSyncBeforeUpdate();
 
@@ -385,7 +397,7 @@ public:
 protected:
   ShadowLayerManager() {}
 
-  bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
+  PRBool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
 };
 
 
@@ -406,7 +418,7 @@ public:
   
 
 
-  bool HasShadow() { return !!mShadow; }
+  PRBool HasShadow() { return !!mShadow; }
 
   
 
@@ -420,17 +432,6 @@ protected:
   PLayerChild* mShadow;
 };
 
-
-
-
-class ISurfaceDeAllocator
-{
-public:
-  virtual void DestroySharedSurface(gfxSharedImageSurface* aSurface) = 0;
-  virtual void DestroySharedSurface(SurfaceDescriptor* aSurface) = 0;
-protected:
-  ~ISurfaceDeAllocator() {};
-};
 
 
 
@@ -448,15 +449,11 @@ public:
   
 
 
-
-
-  virtual void SetAllocator(ISurfaceDeAllocator* aAllocator)
+  void SetAllocator(PLayersParent* aAllocator)
   {
-    NS_ASSERTION(!mAllocator || mAllocator == aAllocator, "Stomping allocator?");
+    NS_ABORT_IF_FALSE(!mAllocator, "Stomping allocator?");
     mAllocator = aAllocator;
   }
-
-  virtual void DestroyFrontBuffer() { };
 
   
 
@@ -494,11 +491,11 @@ protected:
     , mUseShadowClipRect(PR_FALSE)
   {}
 
-  ISurfaceDeAllocator* mAllocator;
+  PLayersParent* mAllocator;
   nsIntRegion mShadowVisibleRegion;
   gfx3DMatrix mShadowTransform;
   nsIntRect mShadowClipRect;
-  bool mUseShadowClipRect;
+  PRPackedBool mUseShadowClipRect;
 };
 
 
@@ -578,6 +575,7 @@ class ShadowCanvasLayer : public ShadowLayer,
                           public CanvasLayer
 {
 public:
+
   
 
 
@@ -585,8 +583,24 @@ public:
 
 
 
-  virtual void Swap(const CanvasSurface& aNewFront, bool needYFlip,
-                    CanvasSurface* aNewBack) = 0;
+
+  virtual void Init(const SurfaceDescriptor& front, const nsIntSize& aSize, bool needYFlip) = 0;
+
+  
+
+
+
+
+
+
+  virtual void Swap(const SurfaceDescriptor& aNewFront, SurfaceDescriptor* aNewBack) = 0;
+
+  
+
+
+
+
+  virtual void DestroyFrontBuffer() = 0;
 
   virtual ShadowLayer* AsShadowLayer() { return this; }
 
@@ -607,8 +621,24 @@ public:
 
 
 
-  virtual void Swap(const SharedImage& aFront,
-                    SharedImage* aNewBack) = 0;
+
+
+
+
+  virtual PRBool Init(const SharedImage& front, const nsIntSize& aSize) = 0;
+
+  
+
+
+
+  virtual void Swap(const SharedImage& aFront, SharedImage* aNewBack) = 0;
+
+  
+
+
+
+
+  virtual void DestroyFrontBuffer() = 0;
 
   virtual ShadowLayer* AsShadowLayer() { return this; }
 
@@ -635,7 +665,7 @@ protected:
   {}
 };
 
-bool IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface);
+PRBool IsSurfaceDescriptorValid(const SurfaceDescriptor& aSurface);
 
 } 
 } 

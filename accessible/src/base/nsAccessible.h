@@ -280,9 +280,9 @@ public:
   
 
 
-  virtual bool AppendChild(nsAccessible* aChild);
-  virtual bool InsertChildAt(PRUint32 aIndex, nsAccessible* aChild);
-  virtual bool RemoveChild(nsAccessible* aChild);
+  virtual PRBool AppendChild(nsAccessible* aChild);
+  virtual PRBool InsertChildAt(PRUint32 aIndex, nsAccessible* aChild);
+  virtual PRBool RemoveChild(nsAccessible* aChild);
 
   
   
@@ -315,7 +315,7 @@ public:
   
 
 
-  bool HasChildren() { return !!GetChildAt(0); }
+  PRBool HasChildren() { return !!GetChildAt(0); }
 
   
 
@@ -380,7 +380,7 @@ public:
   
 
 
-  virtual bool GetAllowsAnonChildAccessibles();
+  virtual PRBool GetAllowsAnonChildAccessibles();
 
   
 
@@ -406,12 +406,6 @@ public:
 
   inline bool IsApplication() const { return mFlags & eApplicationAccessible; }
 
-  bool IsAutoComplete() const { return mFlags & eAutoCompleteAccessible; }
-
-  inline bool IsAutoCompletePopup() const { return mFlags & eAutoCompletePopupAccessible; }
-
-  inline bool IsCombobox() const { return mFlags & eComboboxAccessible; }
-
   inline bool IsDoc() const { return mFlags & eDocAccessible; }
   nsDocAccessible* AsDoc();
 
@@ -420,12 +414,6 @@ public:
 
   inline bool IsHTMLListItem() const { return mFlags & eHTMLListItemAccessible; }
   nsHTMLLIAccessible* AsHTMLListItem();
-
-  inline bool IsListControl() const { return mFlags & eListControlAccessible; }
-
-  inline bool IsMenuButton() const { return mFlags & eMenuButtonAccessible; }
-
-  inline bool IsMenuPopup() const { return mFlags & eMenuPopupAccessible; }
 
   inline bool IsRoot() const { return mFlags & eRootAccessible; }
   nsRootAccessible* AsRoot();
@@ -487,7 +475,12 @@ public:
   
 
 
-  bool IsLinkSelected();
+  inline bool IsLinkSelected()
+  {
+    NS_PRECONDITION(IsLink(),
+                    "IsLinkSelected() called on something that is not a hyper link!");
+    return gLastFocusedNode == GetNode();
+  }
 
   
 
@@ -553,38 +546,6 @@ public:
 
   virtual bool UnselectAll();
 
-  
-  
-
-  
-
-
-
-
-  virtual bool IsWidget() const;
-
-  
-
-
-  virtual bool IsActiveWidget() const;
-
-  
-
-
-
-  virtual bool AreItemsOperable() const;
-
-  
-
-
-
-  virtual nsAccessible* CurrentItem();
-
-  
-
-
-  virtual nsAccessible* ContainerWidget() const;
-
 protected:
 
   
@@ -634,17 +595,11 @@ protected:
 
   enum AccessibleTypes {
     eApplicationAccessible = 1 << 2,
-    eAutoCompleteAccessible = 1 << 3,
-    eAutoCompletePopupAccessible = 1 << 4,
-    eComboboxAccessible = 1 << 5,
-    eDocAccessible = 1 << 6,
-    eHyperTextAccessible = 1 << 7,
-    eHTMLListItemAccessible = 1 << 8,
-    eListControlAccessible = 1 << 9,
-    eMenuButtonAccessible = 1 << 10,
-    eMenuPopupAccessible = 1 << 11,
-    eRootAccessible = 1 << 12,
-    eTextLeafAccessible = 1 << 13
+    eDocAccessible = 1 << 3,
+    eHyperTextAccessible = 1 << 4,
+    eHTMLListItemAccessible = 1 << 5,
+    eRootAccessible = 1 << 6,
+    eTextLeafAccessible = 1 << 7
   };
 
   
@@ -657,7 +612,7 @@ protected:
 
   virtual nsIFrame* GetBoundsFrame();
   virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
-  bool IsVisible(bool *aIsOffscreen); 
+  PRBool IsVisible(PRBool *aIsOffscreen); 
 
   
   

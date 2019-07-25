@@ -82,7 +82,7 @@ struct nsGenConNode : public PRCList {
 
 
 
-  virtual bool InitTextFrame(nsGenConList* aList, nsIFrame* aPseudoFrame,
+  virtual PRBool InitTextFrame(nsGenConList* aList, nsIFrame* aPseudoFrame,
                                nsIFrame* aTextFrame)
   {
     mPseudoFrame = aPseudoFrame;
@@ -128,14 +128,14 @@ public:
   }
   void Insert(nsGenConNode* aNode);
   
-  bool DestroyNodesFor(nsIFrame* aFrame); 
+  PRBool DestroyNodesFor(nsIFrame* aFrame); 
 
   
-  static bool NodeAfter(const nsGenConNode* aNode1,
+  static PRBool NodeAfter(const nsGenConNode* aNode1,
                           const nsGenConNode* aNode2);
 
   void Remove(nsGenConNode* aNode) { PR_REMOVE_LINK(aNode); mSize--; }
-  bool IsLast(nsGenConNode* aNode) { return (Next(aNode) == mFirstNode); }
+  PRBool IsLast(nsGenConNode* aNode) { return (Next(aNode) == mFirstNode); }
 };
 
 #endif 

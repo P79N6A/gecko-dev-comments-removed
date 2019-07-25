@@ -78,7 +78,7 @@ nsHTMLFrameSetElement::SetAttr(PRInt32 aNameSpaceID,
                                nsIAtom* aAttribute,
                                nsIAtom* aPrefix,
                                const nsAString& aValue,
-                               bool aNotify)
+                               PRBool aNotify)
 {
   nsresult rv;
   
@@ -182,7 +182,7 @@ nsHTMLFrameSetElement::GetColSpec(PRInt32 *aNumValues,
 }
 
 
-bool
+PRBool
 nsHTMLFrameSetElement::ParseAttribute(PRInt32 aNamespaceID,
                                       nsIAtom* aAttribute,
                                       const nsAString& aValue,
@@ -258,7 +258,7 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   }
 
   
-  bool isInQuirks = InNavQuirksMode(GetOwnerDoc());
+  PRBool isInQuirks = InNavQuirksMode(GetOwnerDoc());
       
   
 

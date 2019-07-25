@@ -187,7 +187,7 @@ using namespace mozilla;
 nsIRollupListener*  gRollupListener           = 0;
 nsIMenuRollup*      gMenuRollup               = 0;
 nsIWidget*          gRollupWidget             = 0;
-bool                gRollupConsumeRollupEvent = false;
+PRBool              gRollupConsumeRollupEvent = PR_FALSE;
 
 
 PRUint32            gOS2Flags = 0;
@@ -312,7 +312,7 @@ void nsWindow::InitGlobals()
   
   
   
-  if (Preferences::GetBool("os2.trackpoint", false)) {
+  if (Preferences::GetBool("os2.trackpoint", PR_FALSE)) {
     gOS2Flags |= kIsTrackPoint;
   }
 }
@@ -531,7 +531,7 @@ inline nsWindow* nsWindow::GetNSWindowPtr(HWND aWnd)
 
 
 
-inline bool nsWindow::SetNSWindowPtr(HWND aWnd, nsWindow* aPtr)
+inline PRBool nsWindow::SetNSWindowPtr(HWND aWnd, nsWindow* aPtr)
 {
   return WinSetWindowPtr(aWnd, QWL_NSWINDOWPTR, aPtr);
 }
@@ -552,7 +552,7 @@ nsIWidget* nsWindow::GetParent()
 
 
 
-NS_METHOD nsWindow::Enable(bool aState)
+NS_METHOD nsWindow::Enable(PRBool aState)
 {
   HWND hMain = GetMainWindow();
   if (hMain) {
@@ -563,7 +563,7 @@ NS_METHOD nsWindow::Enable(bool aState)
 
 
 
-NS_METHOD nsWindow::IsEnabled(bool* aState)
+NS_METHOD nsWindow::IsEnabled(PRBool* aState)
 {
   NS_ENSURE_ARG_POINTER(aState);
   HWND hMain = GetMainWindow();
@@ -573,7 +573,7 @@ NS_METHOD nsWindow::IsEnabled(bool* aState)
 
 
 
-NS_METHOD nsWindow::Show(bool aState)
+NS_METHOD nsWindow::Show(PRBool aState)
 {
   if (mFrame) {
     return mFrame->Show(aState);
@@ -583,7 +583,7 @@ NS_METHOD nsWindow::Show(bool aState)
       
       
       if (CheckDragStatus(ACTION_SHOW, 0)) {
-        bool isVisible;
+        PRBool isVisible;
         IsVisible(isVisible);
         if (!isVisible) {
           PlaceBehind(eZPlacementTop, 0, PR_FALSE);
@@ -600,7 +600,7 @@ NS_METHOD nsWindow::Show(bool aState)
 
 
 
-NS_METHOD nsWindow::IsVisible(bool& aState)
+NS_METHOD nsWindow::IsVisible(PRBool& aState)
 {
   aState = WinIsWindowVisible(GetMainWindow()) ? PR_TRUE : PR_FALSE;
   return NS_OK;
@@ -608,7 +608,7 @@ NS_METHOD nsWindow::IsVisible(bool& aState)
 
 
 
-NS_METHOD nsWindow::SetFocus(bool aRaise)
+NS_METHOD nsWindow::SetFocus(PRBool aRaise)
 {
   
   if (mWnd) {
@@ -624,7 +624,7 @@ NS_METHOD nsWindow::SetFocus(bool aRaise)
 
 
 
-NS_METHOD nsWindow::Invalidate(const nsIntRect& aRect, bool aIsSynchronous)
+NS_METHOD nsWindow::Invalidate(const nsIntRect& aRect, PRBool aIsSynchronous)
 {
   if (mWnd) {
     RECTL rcl = {aRect.x, aRect.y, aRect.x + aRect.width, aRect.y + aRect.height};
@@ -737,7 +737,7 @@ void nsWindow::FreeNativeData(void* data, PRUint32 aDataType)
 
 
 
-NS_METHOD nsWindow::CaptureMouse(bool aCapture)
+NS_METHOD nsWindow::CaptureMouse(PRBool aCapture)
 {
   if (aCapture) {
     WinSetCapture(HWND_DESKTOP, mWnd);
@@ -749,7 +749,7 @@ NS_METHOD nsWindow::CaptureMouse(bool aCapture)
 
 
 
-bool nsWindow::HasPendingInputEvent()
+PRBool nsWindow::HasPendingInputEvent()
 {
   return (WinQueryQueueStatus(HWND_DESKTOP) & (QS_KEY | QS_MOUSE)) != 0;
 }
@@ -838,7 +838,7 @@ NS_METHOD nsWindow::Move(PRInt32 aX, PRInt32 aY)
 
 
 
-NS_METHOD nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, bool aRepaint)
+NS_METHOD nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, PRBool aRepaint)
 {
   if (mFrame) {
     return mFrame->Resize(aWidth, aHeight, aRepaint);
@@ -850,7 +850,7 @@ NS_METHOD nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, bool aRepaint)
 
 
 NS_METHOD nsWindow::Resize(PRInt32 aX, PRInt32 aY,
-                           PRInt32 aWidth, PRInt32 aHeight, bool aRepaint)
+                           PRInt32 aWidth, PRInt32 aHeight, PRBool aRepaint)
 {
   if (mFrame) {
     return mFrame->Resize(aX, aY, aWidth, aHeight, aRepaint);
@@ -897,7 +897,7 @@ NS_METHOD nsWindow::Resize(PRInt32 aX, PRInt32 aY,
 
 
 NS_METHOD nsWindow::PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
-                                nsIWidget* aWidget, bool aActivate)
+                                nsIWidget* aWidget, PRBool aActivate)
 {
   HWND hBehind = HWND_TOP;
 
@@ -938,7 +938,7 @@ NS_METHOD nsWindow::SetZIndex(PRInt32 aZIndex)
 void nsWindow::ActivatePlugin(HWND aWnd)
 {
   
-  static bool inPluginActivate = FALSE;
+  static PRBool inPluginActivate = FALSE;
   if (inPluginActivate) {
     return;
   }
@@ -1153,7 +1153,7 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode)
   return mFrame->SetSizeMode(aMode);
 }
 
-NS_IMETHODIMP nsWindow::HideWindowChrome(bool aShouldHide)
+NS_IMETHODIMP nsWindow::HideWindowChrome(PRBool aShouldHide)
 {
   NS_ENSURE_TRUE(mFrame, NS_ERROR_UNEXPECTED);
   return mFrame->HideWindowChrome(aShouldHide);
@@ -1171,7 +1171,7 @@ NS_METHOD nsWindow::SetIcon(const nsAString& aIconSpec)
   return mFrame->SetIcon(aIconSpec);
 }
 
-NS_METHOD nsWindow::ConstrainPosition(bool aAllowSlop,
+NS_METHOD nsWindow::ConstrainPosition(PRBool aAllowSlop,
                                       PRInt32* aX, PRInt32* aY)
 {
   NS_ENSURE_TRUE(mFrame, NS_ERROR_UNEXPECTED);
@@ -1542,8 +1542,8 @@ HBITMAP nsWindow::CreateTransparencyMask(gfxASurface::gfxImageFormat format,
 
 NS_IMETHODIMP nsWindow::CaptureRollupEvents(nsIRollupListener* aListener,
                                             nsIMenuRollup* aMenuRollup,
-                                            bool aDoCapture,
-                                            bool aConsumeRollupEvent)
+                                            PRBool aDoCapture,
+                                            PRBool aConsumeRollupEvent)
 {
   
   
@@ -1570,7 +1570,7 @@ NS_IMETHODIMP nsWindow::CaptureRollupEvents(nsIRollupListener* aListener,
 
 
 
-bool nsWindow::EventIsInsideWindow(nsWindow* aWindow)
+PRBool nsWindow::EventIsInsideWindow(nsWindow* aWindow)
 {
   RECTL  rcl;
   POINTL ptl;
@@ -1593,7 +1593,7 @@ bool nsWindow::EventIsInsideWindow(nsWindow* aWindow)
 
 
 
-bool nsWindow::RollupOnButtonDown(ULONG aMsg)
+PRBool nsWindow::RollupOnButtonDown(ULONG aMsg)
 {
   
   if (EventIsInsideWindow((nsWindow*)gRollupWidget)) {
@@ -1708,7 +1708,7 @@ MRESULT EXPENTRY fnwpNSWindow(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 MRESULT nsWindow::ProcessMessage(ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-  bool    isDone = false;
+  PRBool  isDone = PR_FALSE;
   MRESULT mresult = 0;
 
   switch (msg) {
@@ -1948,9 +1948,9 @@ void nsWindow::OnDestroy()
 
 
 
-bool nsWindow::OnReposition(PSWP pSwp)
+PRBool nsWindow::OnReposition(PSWP pSwp)
 {
-  bool result = false;
+  PRBool result = PR_FALSE;
 
   if (pSwp->fl & SWP_MOVE && !(pSwp->fl & SWP_MINIMIZE)) {
     HWND hParent = mParent ? mParent->mWnd : WinQueryWindow(mWnd, QW_PARENT);
@@ -1984,7 +1984,7 @@ bool nsWindow::OnReposition(PSWP pSwp)
 
 
 
-bool nsWindow::OnPaint()
+PRBool nsWindow::OnPaint()
 {
   HPS    hPS;
   HPS    hpsDrag;
@@ -2153,7 +2153,7 @@ do {
 
 
 
-bool nsWindow::OnMouseChord(MPARAM mp1, MPARAM mp2)
+PRBool nsWindow::OnMouseChord(MPARAM mp1, MPARAM mp2)
 {
   if (!isKeyDown(VK_BUTTON1) || !isKeyDown(VK_BUTTON2)) {
     return PR_FALSE;
@@ -2161,7 +2161,7 @@ bool nsWindow::OnMouseChord(MPARAM mp1, MPARAM mp2)
 
   
   
-  bool isCopy = false;
+  PRBool isCopy = PR_FALSE;
   if (abs(XFROMMP(mp1) - sLastButton1Down.x) >
         (WinQuerySysValue(HWND_DESKTOP, SV_CXMOTIONSTART) / 2) ||
       abs(YFROMMP(mp1) - sLastButton1Down.y) >
@@ -2226,7 +2226,7 @@ bool nsWindow::OnMouseChord(MPARAM mp1, MPARAM mp2)
 
 
 
-bool nsWindow::OnDragDropMsg(ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT& mr)
+PRBool nsWindow::OnDragDropMsg(ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT& mr)
 {
   nsresult rv;
   PRUint32 eventType = 0;
@@ -2305,10 +2305,10 @@ bool nsWindow::OnDragDropMsg(ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT& mr)
 
 
 
-bool nsWindow::CheckDragStatus(PRUint32 aAction, HPS* aHps)
+PRBool nsWindow::CheckDragStatus(PRUint32 aAction, HPS* aHps)
 {
-  bool rtn    = true;
-  bool getHps = false;
+  PRBool rtn    = PR_TRUE;
+  PRBool getHps = PR_FALSE;
 
   switch (aAction) {
 
@@ -2367,7 +2367,7 @@ bool nsWindow::CheckDragStatus(PRUint32 aAction, HPS* aHps)
 
 
 
-bool nsWindow::ReleaseIfDragHPS(HPS aHps)
+PRBool nsWindow::ReleaseIfDragHPS(HPS aHps)
 {
   if (mDragHps && aHps == mDragHps) {
     DrgReleasePS(mDragHps);
@@ -2384,7 +2384,7 @@ bool nsWindow::ReleaseIfDragHPS(HPS aHps)
 
 
 
-NS_IMETHODIMP nsWindow::GetToggledKeyState(PRUint32 aKeyCode, bool* aLEDState)
+NS_IMETHODIMP nsWindow::GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState)
 {
   PRUint32  vkey;
 
@@ -2412,7 +2412,7 @@ NS_IMETHODIMP nsWindow::GetToggledKeyState(PRUint32 aKeyCode, bool* aLEDState)
 
 
 
-bool nsWindow::OnTranslateAccelerator(PQMSG pQmsg)
+PRBool nsWindow::OnTranslateAccelerator(PQMSG pQmsg)
 {
   if (pQmsg->msg != WM_CHAR) {
     return PR_FALSE;
@@ -2458,7 +2458,7 @@ bool nsWindow::OnTranslateAccelerator(PQMSG pQmsg)
 
 
 
-bool nsWindow::DispatchKeyEvent(MPARAM mp1, MPARAM mp2)
+PRBool nsWindow::DispatchKeyEvent(MPARAM mp1, MPARAM mp2)
 {
   nsKeyEvent pressEvent(PR_TRUE, 0, nsnull);
   USHORT fsFlags = SHORT1FROMMP(mp1);
@@ -2518,7 +2518,7 @@ bool nsWindow::DispatchKeyEvent(MPARAM mp1, MPARAM mp2)
   }
 
   pressEvent = event;
-  bool rc = DispatchWindowEvent(&event);
+  PRBool rc = DispatchWindowEvent(&event);
 
   
   if (fsFlags & KC_KEYUP) {
@@ -2782,21 +2782,21 @@ NS_IMETHODIMP nsWindow::ReparentNativeWidget(nsIWidget* aNewParent)
 
 
 
-bool nsWindow::DispatchWindowEvent(nsGUIEvent* event)
+PRBool nsWindow::DispatchWindowEvent(nsGUIEvent* event)
 {
   nsEventStatus status;
   DispatchEvent(event, status);
   return (status == nsEventStatus_eConsumeNoDefault);
 }
 
-bool nsWindow::DispatchWindowEvent(nsGUIEvent*event, nsEventStatus &aStatus) {
+PRBool nsWindow::DispatchWindowEvent(nsGUIEvent*event, nsEventStatus &aStatus) {
   DispatchEvent(event, aStatus);
   return (aStatus == nsEventStatus_eConsumeNoDefault);
 }
 
 
 
-bool nsWindow::DispatchCommandEvent(PRUint32 aEventCommand)
+PRBool nsWindow::DispatchCommandEvent(PRUint32 aEventCommand)
 {
   nsCOMPtr<nsIAtom> command;
 
@@ -2824,7 +2824,7 @@ bool nsWindow::DispatchCommandEvent(PRUint32 aEventCommand)
 
 
 
-bool nsWindow::DispatchDragDropEvent(PRUint32 aMsg)
+PRBool nsWindow::DispatchDragDropEvent(PRUint32 aMsg)
 {
   nsDragEvent event(PR_TRUE, aMsg, this);
   InitEvent(event);
@@ -2839,7 +2839,7 @@ bool nsWindow::DispatchDragDropEvent(PRUint32 aMsg)
 
 
 
-bool nsWindow::DispatchMoveEvent(PRInt32 aX, PRInt32 aY)
+PRBool nsWindow::DispatchMoveEvent(PRInt32 aX, PRInt32 aY)
 {
   
   nsGUIEvent event(PR_TRUE, NS_MOVE, this);
@@ -2850,7 +2850,7 @@ bool nsWindow::DispatchMoveEvent(PRInt32 aX, PRInt32 aY)
 
 
 
-bool nsWindow::DispatchResizeEvent(PRInt32 aX, PRInt32 aY)
+PRBool nsWindow::DispatchResizeEvent(PRInt32 aX, PRInt32 aY)
 {
   nsSizeEvent event(PR_TRUE, NS_SIZE, this);
   nsIntRect   rect(0, 0, aX, aY);
@@ -2866,8 +2866,8 @@ bool nsWindow::DispatchResizeEvent(PRInt32 aX, PRInt32 aY)
 
 
 
-bool nsWindow::DispatchMouseEvent(PRUint32 aEventType, MPARAM mp1, MPARAM mp2,
-                                    bool aIsContextMenuKey, PRInt16 aButton)
+PRBool nsWindow::DispatchMouseEvent(PRUint32 aEventType, MPARAM mp1, MPARAM mp2,
+                                    PRBool aIsContextMenuKey, PRInt16 aButton)
 {
   NS_ENSURE_TRUE(aEventType, PR_FALSE);
 
@@ -3007,7 +3007,7 @@ bool nsWindow::DispatchMouseEvent(PRUint32 aEventType, MPARAM mp1, MPARAM mp2,
 
 
 
-bool nsWindow::DispatchActivationEvent(PRUint32 aEventType)
+PRBool nsWindow::DispatchActivationEvent(PRUint32 aEventType)
 {
   nsGUIEvent event(PR_TRUE, aEventType, this);
 
@@ -3035,7 +3035,7 @@ bool nsWindow::DispatchActivationEvent(PRUint32 aEventType)
 
 
 
-bool nsWindow::DispatchScrollEvent(ULONG msg, MPARAM mp1, MPARAM mp2)
+PRBool nsWindow::DispatchScrollEvent(ULONG msg, MPARAM mp1, MPARAM mp2)
 {
   nsMouseScrollEvent scrollEvent(PR_TRUE, NS_MOUSE_SCROLL, this);
   InitEvent(scrollEvent);

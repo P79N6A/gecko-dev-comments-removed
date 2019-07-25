@@ -170,7 +170,7 @@ public:
   }
 
   
-  bool IsEmpty() const {
+  PRBool IsEmpty() const {
     return Length() == 0;
   }
 
@@ -196,7 +196,7 @@ protected:
   
   
   
-  bool EnsureCapacity(size_type capacity, size_type elemSize);
+  PRBool EnsureCapacity(size_type capacity, size_type elemSize);
 
   
   
@@ -226,12 +226,12 @@ protected:
   
   
   
-  bool InsertSlotsAt(index_type index, size_type count,
+  PRBool InsertSlotsAt(index_type index, size_type count,
                        size_type elementSize);
 
 protected:
   template<class Allocator>
-  bool SwapArrayElements(nsTArray_base<Allocator>& other,
+  PRBool SwapArrayElements(nsTArray_base<Allocator>& other,
                            size_type elemSize);
 
   
@@ -242,15 +242,15 @@ protected:
 
     private:
       nsTArray_base<Alloc> &mArray;
-      bool mIsAuto;
+      PRBool mIsAuto;
   };
 
   
   
-  bool EnsureNotUsingAutoArrayBuffer(size_type elemSize);
+  PRBool EnsureNotUsingAutoArrayBuffer(size_type elemSize);
 
   
-  bool IsAutoArray() {
+  PRBool IsAutoArray() {
     return mHdr->mIsAutoArray;
   }
 
@@ -275,7 +275,7 @@ protected:
 
   
   
-  bool UsesAutoArrayBuffer() {
+  PRBool UsesAutoArrayBuffer() {
     return mHdr->mIsAutoArray && mHdr == GetAutoArrayBuffer();
   }
 
@@ -347,10 +347,10 @@ template<class A, class B>
 class nsDefaultComparator
 {
 public:
-  bool Equals(const A& a, const B& b) const {
+  PRBool Equals(const A& a, const B& b) const {
     return a == b;
   }
-  bool LessThan(const A& a, const B& b) const {
+  PRBool LessThan(const A& a, const B& b) const {
     return a < b;
   }
 };
@@ -557,7 +557,7 @@ public:
   
   
   template<class Item, class Comparator>
-  bool Contains(const Item& item, const Comparator& comp) const {
+  PRBool Contains(const Item& item, const Comparator& comp) const {
     return IndexOf(item, 0, comp) != NoIndex;
   }
 
@@ -567,7 +567,7 @@ public:
   
   
   template<class Item>
-  bool Contains(const Item& item) const {
+  PRBool Contains(const Item& item) const {
     return IndexOf(item) != NoIndex;
   }
 
@@ -750,7 +750,7 @@ public:
   
   
   template<class Item, class Comparator>
-  bool
+  PRBool
   GreatestIndexLtEq(const Item& item,
                     const Comparator& comp,
                     index_type* idx NS_OUTPARAM) const {
@@ -789,7 +789,7 @@ public:
 
   
   template<class Item, class Comparator>
-  bool
+  PRBool
   GreatestIndexLtEq(const Item& item,
                     index_type& idx,
                     const Comparator& comp) const {
@@ -798,7 +798,7 @@ public:
 
   
   template<class Item>
-  bool
+  PRBool
   GreatestIndexLtEq(const Item& item,
                     index_type& idx) const {
     return GreatestIndexLtEq(item, nsDefaultComparator<elem_type, Item>(), &idx);
@@ -911,7 +911,7 @@ public:
   
   
   template<class Item, class Comparator>
-  bool RemoveElement(const Item& item, const Comparator& comp) {
+  PRBool RemoveElement(const Item& item, const Comparator& comp) {
     index_type i = IndexOf(item, 0, comp);
     if (i == NoIndex)
       return PR_FALSE;
@@ -923,7 +923,7 @@ public:
   
   
   template<class Item>
-  bool RemoveElement(const Item& item) {
+  PRBool RemoveElement(const Item& item) {
     return RemoveElement(item, nsDefaultComparator<elem_type, Item>());
   }
 
@@ -934,9 +934,9 @@ public:
   
   
   template<class Item, class Comparator>
-  bool RemoveElementSorted(const Item& item, const Comparator& comp) {
+  PRBool RemoveElementSorted(const Item& item, const Comparator& comp) {
     index_type index;
-    bool found = GreatestIndexLtEq(item, comp, &index);
+    PRBool found = GreatestIndexLtEq(item, comp, &index);
     if (found)
       RemoveElementAt(index);
     return found;
@@ -944,14 +944,14 @@ public:
 
   
   template<class Item>
-  bool RemoveElementSorted(const Item& item) {
+  PRBool RemoveElementSorted(const Item& item) {
     return RemoveElementSorted(item, nsDefaultComparator<elem_type, Item>());
   }
 
   
   
   template<class Allocator>
-  bool SwapElements(nsTArray<E, Allocator>& other) {
+  PRBool SwapElements(nsTArray<E, Allocator>& other) {
     return this->SwapArrayElements(other, sizeof(elem_type));
   }
 
@@ -965,7 +965,7 @@ public:
   
   
   
-  bool SetCapacity(size_type capacity) {
+  PRBool SetCapacity(size_type capacity) {
     return this->EnsureCapacity(capacity, sizeof(elem_type));
   }
 
@@ -977,7 +977,7 @@ public:
   
   
   
-  bool SetLength(size_type newLen) {
+  PRBool SetLength(size_type newLen) {
     size_type oldLen = Length();
     if (newLen > oldLen) {
       return InsertElementsAt(oldLen, newLen - oldLen) != nsnull;
@@ -1006,7 +1006,7 @@ public:
   
   
   
-  bool EnsureLengthAtLeast(size_type minLen) {
+  PRBool EnsureLengthAtLeast(size_type minLen) {
     size_type oldLen = Length();
     if (minLen > oldLen) {
       return InsertElementsAt(oldLen, minLen - oldLen) != nsnull;

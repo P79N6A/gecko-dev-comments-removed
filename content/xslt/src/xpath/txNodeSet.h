@@ -163,7 +163,7 @@ public:
 
 
 
-    bool contains(const txXPathNode& aNode) const
+    PRBool contains(const txXPathNode& aNode) const
     {
         return indexOf(aNode) >= 0;
     }
@@ -179,7 +179,7 @@ public:
 
 
 
-    bool isEmpty() const
+    PRBool isEmpty() const
     {
         return mStart ? mStart == mEnd : PR_TRUE;
     }
@@ -201,7 +201,7 @@ private:
 
 
 
-    bool ensureGrowSize(PRInt32 aSize);
+    PRBool ensureGrowSize(PRInt32 aSize);
 
     
 
@@ -219,7 +219,7 @@ private:
 
     txXPathNode* findPosition(const txXPathNode& aNode, 
                               txXPathNode* aFirst,
-                              txXPathNode* aLast, bool& aDupe) const;
+                              txXPathNode* aLast, PRBool& aDupe) const;
 
     static void copyElements(txXPathNode* aDest, const txXPathNode* aStart,
                              const txXPathNode* aEnd);
@@ -244,7 +244,7 @@ private:
     txXPathNode *mStart, *mEnd, *mStartBuffer, *mEndBuffer;
     PRInt32 mDirection;
     
-    bool* mMarks;
+    PRPackedBool* mMarks;
 };
 
 #endif

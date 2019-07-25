@@ -109,7 +109,7 @@ private:
   };
 
   filters::FilterFuncPtr mFilterFunc;
-  bool mIsDeep;
+  PRBool mIsDeep;
   IteratorState *mState;
 };
 
@@ -165,7 +165,7 @@ public:
     eSkipAncestorLabel
   };
 
-  HTMLLabelIterator(nsDocAccessible* aDocument, const nsAccessible* aAccessible,
+  HTMLLabelIterator(nsDocAccessible* aDocument, nsIContent* aElement,
                     LabelFilter aFilter = eAllLabels);
 
   virtual ~HTMLLabelIterator() { }
@@ -181,9 +181,7 @@ private:
   HTMLLabelIterator& operator = (const HTMLLabelIterator&);
 
   RelatedAccIterator mRelIter;
-  
-  
-  const nsAccessible* mAcc;
+  nsIContent* mElement;
   LabelFilter mLabelFilter;
 };
 

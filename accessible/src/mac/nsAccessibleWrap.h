@@ -64,7 +64,7 @@ class nsAccessibleWrap : public nsAccessible
     virtual ~nsAccessibleWrap();
     
     
-    virtual bool Init ();
+    virtual PRBool Init ();
     
     
     NS_IMETHOD GetNativeInterface (void **aOutAccessible);
@@ -81,11 +81,11 @@ class nsAccessibleWrap : public nsAccessible
 
     
     
-    bool IsIgnored();
+    PRBool IsIgnored();
     
-    PRInt32 GetUnignoredChildCount(bool aDeepCount);
+    PRInt32 GetUnignoredChildCount(PRBool aDeepCount);
     
-    bool HasPopup () {
+    PRBool HasPopup () {
       return (NativeState() & mozilla::a11y::states::HASPOPUP);
     }
     
@@ -100,7 +100,7 @@ class nsAccessibleWrap : public nsAccessible
   
 
 
-  bool AncestorIsFlat();
+  PRBool AncestorIsFlat();
 
     
     AccessibleWrapper *mNativeWrapper;

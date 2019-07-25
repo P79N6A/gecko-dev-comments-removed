@@ -44,7 +44,7 @@
 
 #include <stdlib.h>
 
-#include "EndianMacros.h"
+#include "Endian.h"
 #include "nsICODecoder.h"
 
 #include "nsIInputStream.h"
@@ -99,8 +99,7 @@ nsICODecoder::GetNumColors()
 }
 
 
-nsICODecoder::nsICODecoder(RasterImage *aImage, imgIDecoderObserver* aObserver)
- : Decoder(aImage, aObserver)
+nsICODecoder::nsICODecoder()
 {
   mPos = mImageOffset = mCurrIcon = mNumIcons = mBPP = mRowBytes = 0;
   mIsPNG = PR_FALSE;
@@ -134,7 +133,7 @@ nsICODecoder::FinishInternal()
 
 
 
-bool nsICODecoder::FillBitmapFileHeaderBuffer(PRInt8 *bfh) 
+PRBool nsICODecoder::FillBitmapFileHeaderBuffer(PRInt8 *bfh) 
 {
   memset(bfh, 0, 14);
   bfh[0] = 'B';
@@ -318,8 +317,8 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
     mIsPNG = !memcmp(mSignature, nsPNGDecoder::pngSignatureBytes, 
                      PNGSIGNATURESIZE);
     if (mIsPNG) {
-      mContainedDecoder = new nsPNGDecoder(mImage, mObserver);
-      mContainedDecoder->InitSharedDecoder();
+      mContainedDecoder = new nsPNGDecoder();
+      mContainedDecoder->InitSharedDecoder(mImage, mObserver);
       mContainedDecoder->Write(mSignature, PNGSIGNATURESIZE);
       mDataError = mContainedDecoder->HasDataError();
       if (mContainedDecoder->HasDataError()) {
@@ -387,11 +386,11 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
     
     
     
-    nsBMPDecoder *bmpDecoder = new nsBMPDecoder(mImage, mObserver); 
+    nsBMPDecoder *bmpDecoder = new nsBMPDecoder(); 
     mContainedDecoder = bmpDecoder;
     bmpDecoder->SetUseAlphaData(PR_TRUE);
     mContainedDecoder->SetSizeDecode(IsSizeDecode());
-    mContainedDecoder->InitSharedDecoder();
+    mContainedDecoder->InitSharedDecoder(mImage, mObserver);
 
     
     

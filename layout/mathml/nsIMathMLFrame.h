@@ -68,7 +68,7 @@ public:
   NS_DECL_QUERYFRAME_TARGET(nsIMathMLFrame)
 
   
-  virtual bool IsSpaceLike() = 0;
+  virtual PRBool IsSpaceLike() = 0;
 
  
  

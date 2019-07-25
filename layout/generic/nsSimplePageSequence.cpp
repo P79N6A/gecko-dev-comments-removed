@@ -400,7 +400,7 @@ nsSimplePageSequenceFrame::GetNumPages(PRInt32* aNumPages)
 }
 
 NS_IMETHODIMP
-nsSimplePageSequenceFrame::IsDoingPrintRange(bool* aDoing)
+nsSimplePageSequenceFrame::IsDoingPrintRange(PRBool* aDoing)
 {
   NS_ENSURE_ARG_POINTER(aDoing);
 
@@ -421,7 +421,7 @@ nsSimplePageSequenceFrame::GetPrintRange(PRInt32* aFromPage, PRInt32* aToPage)
 
 
 void 
-nsSimplePageSequenceFrame::SetPageNumberFormat(const char* aPropName, const char* aDefPropVal, bool aPageNumOnly)
+nsSimplePageSequenceFrame::SetPageNumberFormat(const char* aPropName, const char* aDefPropVal, PRBool aPageNumOnly)
 {
   
   nsXPIDLString pageNumberFormat;
@@ -535,7 +535,7 @@ nsSimplePageSequenceFrame::PrintNextPage()
     return NS_ERROR_FAILURE;
   }
 
-  bool printEvenPages, printOddPages;
+  PRBool printEvenPages, printOddPages;
   mPageData->mPrintSettings->GetPrintOptions(nsIPrintSettings::kPrintEvenPages, &printEvenPages);
   mPageData->mPrintSettings->GetPrintOptions(nsIPrintSettings::kPrintOddPages, &printOddPages);
 
@@ -581,7 +581,7 @@ nsSimplePageSequenceFrame::PrintNextPage()
     
     
     
-    bool    continuePrinting = true;
+    PRBool  continuePrinting = PR_TRUE;
     nscoord width, height;
     width = PresContext()->GetPageSize().width;
     height = PresContext()->GetPageSize().height;
@@ -720,7 +720,7 @@ nsSimplePageSequenceFrame::GetType() const
 
 
 void
-nsSimplePageSequenceFrame::SetPageNumberFormat(PRUnichar * aFormatStr, bool aForPageNumOnly)
+nsSimplePageSequenceFrame::SetPageNumberFormat(PRUnichar * aFormatStr, PRBool aForPageNumOnly)
 { 
   NS_ASSERTION(aFormatStr != nsnull, "Format string cannot be null!");
   NS_ASSERTION(mPageData != nsnull, "mPageData string cannot be null!");

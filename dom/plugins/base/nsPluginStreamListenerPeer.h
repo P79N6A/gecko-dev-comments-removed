@@ -104,7 +104,7 @@ public:
   void
   MakeByteRangeString(NPByteRange* aRangeList, nsACString &string, PRInt32 *numRequests);
   
-  bool UseExistingPluginCacheFile(nsPluginStreamListenerPeer* psi);
+  PRBool UseExistingPluginCacheFile(nsPluginStreamListenerPeer* psi);
   
   
   nsresult Initialize(nsIURI *aURL,
@@ -134,7 +134,7 @@ private:
   nsRefPtr<nsNPAPIPluginStreamListener> mPStreamListener;
 
   
-  bool                    mRequestFailed;
+  PRPackedBool            mRequestFailed;
   
   
 
@@ -142,8 +142,8 @@ private:
 
 
 
-  bool              mStartBinding;
-  bool              mHaveFiredOnStartRequest;
+  PRPackedBool      mStartBinding;
+  PRPackedBool      mHaveFiredOnStartRequest;
   
   PRUint32                mLength;
   PRInt32                 mStreamType;
@@ -155,14 +155,14 @@ private:
   nsHashtable             *mDataForwardToRequest;
   
   nsCString mContentType;
-  bool mSeekable;
+  PRBool mSeekable;
   PRUint32 mModified;
   nsRefPtr<nsNPAPIPluginInstance> mPluginInstance;
   PRInt32 mStreamOffset;
-  bool mStreamComplete;
+  PRBool mStreamComplete;
   
 public:
-  bool                    mAbort;
+  PRBool                  mAbort;
   PRInt32                 mPendingRequests;
   nsWeakPtr               mWeakPtrChannelCallbacks;
   nsWeakPtr               mWeakPtrChannelLoadGroup;

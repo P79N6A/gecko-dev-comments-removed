@@ -46,7 +46,7 @@
 
 
 
-BooleanResult::BooleanResult(bool boolean)
+BooleanResult::BooleanResult(PRBool boolean)
     : txAExprResult(nsnull)
 {
     this->value = boolean;

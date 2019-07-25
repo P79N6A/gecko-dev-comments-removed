@@ -348,7 +348,7 @@ namespace test_observer_topic_dispatched_helpers {
       
       nsCOMPtr<nsIURI> notifiedURI(do_QueryInterface(aSubject));
       do_check_true(notifiedURI);
-      bool isOurURI;
+      PRBool isOurURI;
       nsresult rv = notifiedURI->Equals(mURI, &isOurURI);
       do_check_success(rv);
       if (!isOurURI) {
@@ -391,7 +391,7 @@ test_observer_topic_dispatched()
   
   nsCOMPtr<nsIURI> visitedURI(new_test_uri());
   nsCOMPtr<nsIURI> notVisitedURI(new_test_uri());
-  bool urisEqual;
+  PRBool urisEqual;
   nsresult rv = visitedURI->Equals(notVisitedURI, &urisEqual);
   do_check_success(rv);
   do_check_false(urisEqual);
@@ -399,8 +399,7 @@ test_observer_topic_dispatched()
 
   
   nsCOMPtr<Link> visitedLink(new mock_Link(expect_visit, false));
-  nsCOMPtr<Link> visitedLinkCopy = visitedLink;
-  visitedLinkCopy.forget(); 
+  NS_ADDREF(visitedLink); 
   nsCOMPtr<Link> notVisitedLink(new mock_Link(expect_no_visit));
 
   

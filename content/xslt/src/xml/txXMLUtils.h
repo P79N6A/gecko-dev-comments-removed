@@ -83,7 +83,7 @@ public:
         mLocalName = nsnull;
     }
 
-    bool isNull()
+    PRBool isNull()
     {
         return mNamespaceID == kNameSpaceID_None && !mLocalName;
     }
@@ -134,7 +134,7 @@ public:
     
 
 
-    static bool isWhitespace(const nsAFlatString& aText);
+    static PRBool isWhitespace(const nsAFlatString& aText);
 
     
 
@@ -144,7 +144,7 @@ public:
     
 
 
-    static bool isValidQName(const nsAFlatString& aQName,
+    static PRBool isValidQName(const nsAFlatString& aQName,
                                const PRUnichar** aColon)
     {
         nsIParserService* ps = nsContentUtils::GetParserService();
@@ -154,7 +154,7 @@ public:
     
 
 
-    static bool isLetter(PRUnichar aChar)
+    static PRBool isLetter(PRUnichar aChar)
     {
         nsIParserService* ps = nsContentUtils::GetParserService();
         return ps && ps->IsXMLLetter(aChar);
@@ -163,7 +163,7 @@ public:
     
 
 
-    static bool isNCNameChar(PRUnichar aChar)
+    static PRBool isNCNameChar(PRUnichar aChar)
     {
         nsIParserService* ps = nsContentUtils::GetParserService();
         return ps && ps->IsXMLNCNameChar(aChar);

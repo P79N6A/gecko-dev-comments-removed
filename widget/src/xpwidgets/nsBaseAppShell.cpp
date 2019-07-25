@@ -114,7 +114,7 @@ nsBaseAppShell::NativeEventCallback()
   
 
   nsIThread *thread = NS_GetCurrentThread();
-  bool prevBlockNativeEvent = mBlockNativeEvent;
+  PRBool prevBlockNativeEvent = mBlockNativeEvent;
   if (mEventloopNestingState == eEventloopOther) {
     if (!NS_HasPendingEvents(thread))
       return;
@@ -150,8 +150,8 @@ nsBaseAppShell::DoProcessMoreGeckoEvents()
 
 
 
-bool
-nsBaseAppShell::DoProcessNextNativeEvent(bool mayWait)
+PRBool
+nsBaseAppShell::DoProcessNextNativeEvent(PRBool mayWait)
 {
   
   
@@ -168,7 +168,7 @@ nsBaseAppShell::DoProcessNextNativeEvent(bool mayWait)
   mEventloopNestingState = eEventloopXPCOM;
 
   ++mEventloopNestingLevel;
-  bool result = ProcessNextNativeEvent(mayWait);
+  PRBool result = ProcessNextNativeEvent(mayWait);
   --mEventloopNestingLevel;
 
   mEventloopNestingState = prevVal;
@@ -205,7 +205,7 @@ nsBaseAppShell::Exit(void)
 }
 
 NS_IMETHODIMP
-nsBaseAppShell::FavorPerformanceHint(bool favorPerfOverStarvation,
+nsBaseAppShell::FavorPerformanceHint(PRBool favorPerfOverStarvation,
                                      PRUint32 starvationDelay)
 {
   mStarvationDelay = PR_MillisecondsToInterval(starvationDelay);
@@ -264,7 +264,7 @@ nsBaseAppShell::OnDispatchedEvent(nsIThreadInternal *thr)
 
 
 NS_IMETHODIMP
-nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
+nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, PRBool mayWait,
                                    PRUint32 recursionDepth)
 {
   if (mBlockNativeEvent) {
@@ -286,13 +286,13 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
   if (mBlockedWait)
     *mBlockedWait = PR_FALSE;
 
-  bool *oldBlockedWait = mBlockedWait;
+  PRBool *oldBlockedWait = mBlockedWait;
   mBlockedWait = &mayWait;
 
   
   
   
-  bool needEvent = mayWait;
+  PRBool needEvent = mayWait;
   
   
   mProcessedGeckoEvents = PR_FALSE;
@@ -300,7 +300,7 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, bool mayWait,
   if (mFavorPerf <= 0 && start > mSwitchTime + mStarvationDelay) {
     
     PRIntervalTime now = start;
-    bool keepGoing;
+    PRBool keepGoing;
     do {
       mLastNativeEventTime = now;
       keepGoing = DoProcessNextNativeEvent(PR_FALSE);

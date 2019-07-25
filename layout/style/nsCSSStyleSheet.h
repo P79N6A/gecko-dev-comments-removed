@@ -108,10 +108,10 @@ private:
   
   
   nsRefPtr<nsCSSStyleSheet> mFirstChild;
-  bool                   mComplete;
+  PRBool                 mComplete;
 
 #ifdef DEBUG
-  bool                   mPrincipalSet;
+  PRBool                 mPrincipalSet;
 #endif
 };
 
@@ -146,10 +146,10 @@ public:
   virtual nsIURI* GetBaseURI() const;
   virtual void GetTitle(nsString& aTitle) const;
   virtual void GetType(nsString& aType) const;
-  virtual bool HasRules() const;
-  virtual bool IsApplicable() const;
-  virtual void SetEnabled(bool aEnabled);
-  virtual bool IsComplete() const;
+  virtual PRBool HasRules() const;
+  virtual PRBool IsApplicable() const;
+  virtual void SetEnabled(PRBool aEnabled);
+  virtual PRBool IsComplete() const;
   virtual void SetComplete();
   virtual nsIStyleSheet* GetParentSheet() const;  
   virtual nsIDocument* GetOwningDocument() const;  
@@ -209,7 +209,7 @@ public:
                                           nsIDocument* aCloneDocument,
                                           nsIDOMNode* aCloneOwningNode) const;
 
-  bool IsModified() const { return mDirty; }
+  PRBool IsModified() const { return mDirty; }
 
   void SetModifiedByChildRule() {
     NS_ASSERTION(mDirty,
@@ -231,7 +231,7 @@ public:
   virtual nsIURI* GetOriginalURI() const;
 
   
-  NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet, bool aWasAlternate,
+  NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet* aSheet, PRBool aWasAlternate,
                               nsresult aStatus);
 
   enum EnsureUniqueInnerResult {
@@ -247,9 +247,9 @@ public:
 
   
   
-  bool AppendAllChildSheets(nsTArray<nsCSSStyleSheet*>& aArray);
+  PRBool AppendAllChildSheets(nsTArray<nsCSSStyleSheet*>& aArray);
 
-  bool UseForPresentation(nsPresContext* aPresContext,
+  PRBool UseForPresentation(nsPresContext* aPresContext,
                             nsMediaQueryResultCacheKey& aKey) const;
 
   
@@ -260,7 +260,7 @@ public:
 
   
   
-  static bool RebuildChildList(mozilla::css::Rule* aRule, void* aBuilder);
+  static PRBool RebuildChildList(mozilla::css::Rule* aRule, void* aBuilder);
 
 private:
   nsCSSStyleSheet(const nsCSSStyleSheet& aCopy,
@@ -299,8 +299,8 @@ protected:
   CSSRuleListImpl*      mRuleCollection;
   nsIDocument*          mDocument; 
   nsIDOMNode*           mOwningNode; 
-  bool                  mDisabled;
-  bool                  mDirty; 
+  PRPackedBool          mDisabled;
+  PRPackedBool          mDirty; 
 
   nsCSSStyleSheetInner* mInner;
 

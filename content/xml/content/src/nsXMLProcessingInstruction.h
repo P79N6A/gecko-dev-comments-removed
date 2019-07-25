@@ -70,14 +70,14 @@ public:
                                               nsGenericDOMDataNode)
 
   
-  virtual bool IsNodeOfType(PRUint32 aFlags) const;
+  virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
 
   virtual nsGenericDOMDataNode* CloneDataNode(nsINodeInfo *aNodeInfo,
-                                              bool aCloneText) const;
+                                              PRBool aCloneText) const;
 
 #ifdef DEBUG
   virtual void List(FILE* out, PRInt32 aIndent) const;
-  virtual void DumpContent(FILE* out, PRInt32 aIndent, bool aDumpAll) const;
+  virtual void DumpContent(FILE* out, PRInt32 aIndent, PRBool aDumpAll) const;
 #endif
 
   virtual nsXPCClassInfo* GetClassInfo();
@@ -92,7 +92,7 @@ protected:
 
 
 
-  bool GetAttrValue(nsIAtom *aName, nsAString& aValue);
+  PRBool GetAttrValue(nsIAtom *aName, nsAString& aValue);
 };
 
 #endif 

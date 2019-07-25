@@ -85,8 +85,8 @@ protected:
 
   
   
-  bool mFindBackward;
-  bool mCaseSensitive;
+  PRPackedBool mFindBackward;
+  PRPackedBool mCaseSensitive;
 
   nsCOMPtr<nsIWordBreaker> mWordBreaker;
   nsCOMPtr<nsIParserService> mParserService;
@@ -99,15 +99,15 @@ protected:
   nsresult GetBlockParent(nsIDOMNode* aNode, nsIDOMNode** aParent);
 
   
-  bool IsTextNode(nsIDOMNode* aNode);
-  bool IsBlockNode(nsIContent* aNode);
-  bool SkipNode(nsIContent* aNode);
-  bool IsVisibleNode(nsIDOMNode *aNode);
+  PRBool IsTextNode(nsIDOMNode* aNode);
+  PRBool IsBlockNode(nsIContent* aNode);
+  PRBool SkipNode(nsIContent* aNode);
+  PRBool IsVisibleNode(nsIDOMNode *aNode);
 
   
   nsresult NextNode(nsIDOMRange* aSearchRange,
                     nsIDOMRange* aStartPoint, nsIDOMRange* aEndPoint,
-                    bool aContinueOk);
+                    PRBool aContinueOk);
 
   
   void ResetAll();

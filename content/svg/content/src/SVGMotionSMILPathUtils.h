@@ -74,26 +74,26 @@ public:
     
     
     void   MoveToOrigin();
-    bool MoveToAbsolute(const nsAString& aCoordPairStr);
-    bool LineToAbsolute(const nsAString& aCoordPairStr,
+    PRBool MoveToAbsolute(const nsAString& aCoordPairStr);
+    PRBool LineToAbsolute(const nsAString& aCoordPairStr,
                           double& aSegmentDistance);
-    bool LineToRelative(const nsAString& aCoordPairStr,
+    PRBool LineToRelative(const nsAString& aCoordPairStr,
                           double& aSegmentDistance);
 
     
-    inline bool HaveReceivedCommands() { return mHaveReceivedCommands; }
+    inline PRBool HaveReceivedCommands() { return mHaveReceivedCommands; }
     
     already_AddRefed<gfxFlattenedPath> GetResultingPath();
 
   protected:
     
-    bool ParseCoordinatePair(const nsAString& aStr,
+    PRBool ParseCoordinatePair(const nsAString& aStr,
                                float& aXVal, float& aYVal);
 
     
     const nsSVGElement* mSVGElement; 
     gfxContext    mGfxContext;
-    bool          mHaveReceivedCommands;
+    PRPackedBool  mHaveReceivedCommands;
   };
 
   

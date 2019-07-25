@@ -64,9 +64,9 @@ public:
 
   
   nsresult Init(nsIDocShell* aDocShell, nsIDOMDocument* aDoc,
-                bool aPrintPreview);
+                PRBool aPrintPreview);
 
-  bool IsPrintable()  { return !mDontPrint; }
+  PRBool IsPrintable()  { return !mDontPrint; }
   void   DestroyPresentation();
 
   
@@ -83,13 +83,13 @@ public:
   
   nsTArray<nsPrintObject*> mKids;
   nsPrintObject*   mParent;
-  bool             mHasBeenPrinted;
-  bool             mDontPrint;
-  bool             mPrintAsIs;
-  bool             mSharedPresShell;
-  bool             mInvisible;        
-  bool             mPrintPreview;
-  bool             mDidCreateDocShell;
+  PRPackedBool     mHasBeenPrinted;
+  PRPackedBool     mDontPrint;
+  PRPackedBool     mPrintAsIs;
+  PRPackedBool     mSharedPresShell;
+  PRPackedBool     mInvisible;        
+  PRPackedBool     mPrintPreview;
+  PRPackedBool     mDidCreateDocShell;
   float            mShrinkRatio;
   float            mZoomRatio;
 

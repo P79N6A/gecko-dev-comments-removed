@@ -47,6 +47,7 @@
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsRenderingContext.h"
+#include "nsAbsoluteContainingBlock.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsAutoPtr.h"
 #include "nsFrameManager.h"
@@ -91,14 +92,14 @@ nsInlineFrame::GetType() const
   return nsGkAtoms::inlineFrame;
 }
 
-static inline bool
+static inline PRBool
 IsMarginZero(const nsStyleCoord &aCoord)
 {
   return aCoord.GetUnit() == eStyleUnit_Auto ||
          nsLayoutUtils::IsMarginZero(aCoord);
 }
 
- bool
+ PRBool
 nsInlineFrame::IsSelfEmpty()
 {
 #if 0
@@ -114,17 +115,17 @@ nsInlineFrame::IsSelfEmpty()
   
   
   
-  bool haveRight =
+  PRBool haveRight =
     border->GetActualBorderWidth(NS_SIDE_RIGHT) != 0 ||
     !nsLayoutUtils::IsPaddingZero(padding->mPadding.GetRight()) ||
     !IsMarginZero(margin->mMargin.GetRight());
-  bool haveLeft =
+  PRBool haveLeft =
     border->GetActualBorderWidth(NS_SIDE_LEFT) != 0 ||
     !nsLayoutUtils::IsPaddingZero(padding->mPadding.GetLeft()) ||
     !IsMarginZero(margin->mMargin.GetLeft());
   if (haveLeft || haveRight) {
     if (GetStateBits() & NS_FRAME_IS_SPECIAL) {
-      bool haveStart, haveEnd;
+      PRBool haveStart, haveEnd;
       if (NS_STYLE_DIRECTION_LTR == GetStyleVisibility()->mDirection) {
         haveStart = haveLeft;
         haveEnd = haveRight;
@@ -148,7 +149,7 @@ nsInlineFrame::IsSelfEmpty()
   return PR_TRUE;
 }
 
-bool
+PRBool
 nsInlineFrame::IsEmpty()
 {
   if (!IsSelfEmpty()) {
@@ -163,9 +164,9 @@ nsInlineFrame::IsEmpty()
   return PR_TRUE;
 }
 
-bool
-nsInlineFrame::PeekOffsetCharacter(bool aForward, PRInt32* aOffset,
-                                   bool aRespectClusters)
+PRBool
+nsInlineFrame::PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset,
+                                   PRBool aRespectClusters)
 {
   
   NS_ASSERTION (aOffset && *aOffset <= 1, "aOffset out of range");
@@ -219,7 +220,7 @@ nsInlineFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
 nsInlineFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                            nsSize aCBSize, nscoord aAvailableWidth,
                            nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                           bool aShrinkWrap)
+                           PRBool aShrinkWrap)
 {
   
   return nsSize(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
@@ -238,7 +239,7 @@ nsInlineFrame::ComputeTightBounds(gfxContext* aContext) const
 void
 nsInlineFrame::ReparentFloatsForInlineChild(nsIFrame* aOurLineContainer,
                                             nsIFrame* aFrame,
-                                            bool aReparentSiblings)
+                                            PRBool aReparentSiblings)
 {
   
   
@@ -268,7 +269,7 @@ nsInlineFrame::ReparentFloatsForInlineChild(nsIFrame* aOurLineContainer,
   NS_ASSERTION(frameBlock, "ancestor not a block");
 
   const nsFrameList& blockChildren(ancestor->PrincipalChildList());
-  bool isOverflow = !blockChildren.ContainsFrame(ancestorBlockChild);
+  PRBool isOverflow = !blockChildren.ContainsFrame(ancestorBlockChild);
 
   while (PR_TRUE) {
     ourBlock->ReparentFloats(aFrame, frameBlock, isOverflow, PR_FALSE);
@@ -316,7 +317,7 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
     return NS_ERROR_INVALID_ARG;
   }
 
-  bool    lazilySetParentPointer = false;
+  PRBool  lazilySetParentPointer = PR_FALSE;
 
   nsIFrame* lineContainer = aReflowState.mLineLayout->GetLineContainerFrame();
 
@@ -408,14 +409,12 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
   if (mFrames.IsEmpty()) {
     
     
-    bool complete;
+    PRBool complete;
     (void) PullOneFrame(aPresContext, irs, &complete);
   }
 
   rv = ReflowFrames(aPresContext, aReflowState, irs, aMetrics, aStatus);
-
-  ReflowAbsoluteFrames(aPresContext, aMetrics, aReflowState, aStatus);
-
+  
   
   
 
@@ -423,7 +422,7 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
   return rv;
 }
 
- bool
+ PRBool
 nsInlineFrame::CanContinueTextRun() const
 {
   
@@ -457,9 +456,9 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   aStatus = NS_FRAME_COMPLETE;
 
   nsLineLayout* lineLayout = aReflowState.mLineLayout;
-  bool inFirstLine = aReflowState.mLineLayout->GetInFirstLine();
+  PRBool inFirstLine = aReflowState.mLineLayout->GetInFirstLine();
   nsFrameManager* frameManager = aPresContext->FrameManager();
-  bool ltr = (NS_STYLE_DIRECTION_LTR == aReflowState.mStyleVisibility->mDirection);
+  PRBool ltr = (NS_STYLE_DIRECTION_LTR == aReflowState.mStyleVisibility->mDirection);
   nscoord leftEdge = 0;
   
   
@@ -480,13 +479,13 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
 
   
   nsIFrame* frame = mFrames.FirstChild();
-  bool done = false;
+  PRBool done = PR_FALSE;
   while (nsnull != frame) {
-    bool reflowingFirstLetter = lineLayout->GetFirstLetterStyleOK();
+    PRBool reflowingFirstLetter = lineLayout->GetFirstLetterStyleOK();
 
     
     if (irs.mSetParentPointer) {
-      bool havePrevBlock =
+      PRBool havePrevBlock =
         irs.mLineContainer && irs.mLineContainer->GetPrevContinuation();
       
       
@@ -575,8 +574,8 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   if (!done && (nsnull != GetNextInFlow())) {
     while (!done) {
-      bool reflowingFirstLetter = lineLayout->GetFirstLetterStyleOK();
-      bool isComplete;
+      PRBool reflowingFirstLetter = lineLayout->GetFirstLetterStyleOK();
+      PRBool isComplete;
       if (!frame) { 
                     
         frame = PullOneFrame(aPresContext, irs, &isComplete);
@@ -691,8 +690,8 @@ nsInlineFrame::ReflowInlineFrame(nsPresContext* aPresContext,
                                  nsReflowStatus& aStatus)
 {
   nsLineLayout* lineLayout = aReflowState.mLineLayout;
-  bool reflowingFirstLetter = lineLayout->GetFirstLetterStyleOK();
-  bool pushedFrame;
+  PRBool reflowingFirstLetter = lineLayout->GetFirstLetterStyleOK();
+  PRBool pushedFrame;
   nsresult rv =
     lineLayout->ReflowFrame(aFrame, aStatus, nsnull, pushedFrame);
   
@@ -775,9 +774,9 @@ nsInlineFrame::ReflowInlineFrame(nsPresContext* aPresContext,
 nsIFrame*
 nsInlineFrame::PullOneFrame(nsPresContext* aPresContext,
                             InlineReflowState& irs,
-                            bool* aIsComplete)
+                            PRBool* aIsComplete)
 {
-  bool isComplete = true;
+  PRBool isComplete = PR_TRUE;
 
   nsIFrame* frame = nsnull;
   nsInlineFrame* nextInFlow = irs.mNextInFlow;
@@ -894,7 +893,7 @@ nsInlineFrame::GetSkipSides() const
     
     
     
-    bool ltr = (NS_STYLE_DIRECTION_LTR == GetStyleVisibility()->mDirection);
+    PRBool ltr = (NS_STYLE_DIRECTION_LTR == GetStyleVisibility()->mDirection);
     PRIntn startBit = (1 << (ltr ? NS_SIDE_LEFT : NS_SIDE_RIGHT));
     PRIntn endBit = (1 << (ltr ? NS_SIDE_RIGHT : NS_SIDE_LEFT));
     if (((startBit | endBit) & skip) != (startBit | endBit)) {
@@ -917,13 +916,6 @@ nscoord
 nsInlineFrame::GetBaseline() const
 {
   return mBaseline;
-}
-
-void
-nsInlineFrame::DestroyFrom(nsIFrame* aDestructRoot)
-{
-  DestroyAbsoluteFrames(aDestructRoot);
-  nsInlineFrameSuper::DestroyFrom(aDestructRoot);
 }
 
 #ifdef ACCESSIBILITY
@@ -983,7 +975,7 @@ nsFirstLineFrame::GetType() const
 
 nsIFrame*
 nsFirstLineFrame::PullOneFrame(nsPresContext* aPresContext, InlineReflowState& irs,
-                               bool* aIsComplete)
+                               PRBool* aIsComplete)
 {
   nsIFrame* frame = nsInlineFrame::PullOneFrame(aPresContext, irs, aIsComplete);
   if (frame && !GetPrevInFlow()) {
@@ -1043,11 +1035,11 @@ nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
   irs.mNextInFlow = (nsInlineFrame*) GetNextInFlow();
 
   nsresult rv;
-  bool wasEmpty = mFrames.IsEmpty();
+  PRBool wasEmpty = mFrames.IsEmpty();
   if (wasEmpty) {
     
     
-    bool complete;
+    PRBool complete;
     PullOneFrame(aPresContext, irs, &complete);
   }
 
@@ -1060,7 +1052,7 @@ nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
     
     irs.mPrevFrame = mFrames.LastChild();
     for (;;) {
-      bool complete;
+      PRBool complete;
       nsIFrame* frame = PullOneFrame(aPresContext, irs, &complete);
       if (!frame) {
         break;
@@ -1105,8 +1097,6 @@ nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
   rv = ReflowFrames(aPresContext, aReflowState, irs, aMetrics, aStatus);
   aReflowState.mLineLayout->SetInFirstLine(PR_FALSE);
 
-  ReflowAbsoluteFrames(aPresContext, aMetrics, aReflowState, aStatus);
-
   
 
   return rv;
@@ -1127,3 +1117,160 @@ nsFirstLineFrame::PullOverflowsFromPrevInFlow()
   }
 }
 
+
+
+nsIFrame*
+NS_NewPositionedInlineFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
+{
+  return new (aPresShell) nsPositionedInlineFrame(aContext);
+}
+
+NS_IMPL_FRAMEARENA_HELPERS(nsPositionedInlineFrame)
+
+void
+nsPositionedInlineFrame::DestroyFrom(nsIFrame* aDestructRoot)
+{
+  mAbsoluteContainer.DestroyFrames(this, aDestructRoot);
+  nsInlineFrame::DestroyFrom(aDestructRoot);
+}
+
+NS_IMETHODIMP
+nsPositionedInlineFrame::SetInitialChildList(ChildListID     aListID,
+                                             nsFrameList&    aChildList)
+{
+  nsresult  rv;
+
+  if (kAbsoluteList == aListID) {
+    rv = mAbsoluteContainer.SetInitialChildList(this, aListID, aChildList);
+  } else {
+    rv = nsInlineFrame::SetInitialChildList(aListID, aChildList);
+  }
+
+  return rv;
+}
+
+NS_IMETHODIMP
+nsPositionedInlineFrame::AppendFrames(ChildListID     aListID,
+                                      nsFrameList&    aFrameList)
+{
+  nsresult  rv;
+  
+  if (kAbsoluteList == aListID) {
+    rv = mAbsoluteContainer.AppendFrames(this, aListID, aFrameList);
+  } else {
+    rv = nsInlineFrame::AppendFrames(aListID, aFrameList);
+  }
+
+  return rv;
+}
+  
+NS_IMETHODIMP
+nsPositionedInlineFrame::InsertFrames(ChildListID     aListID,
+                                      nsIFrame*       aPrevFrame,
+                                      nsFrameList&    aFrameList)
+{
+  nsresult  rv;
+
+  if (kAbsoluteList == aListID) {
+    rv = mAbsoluteContainer.InsertFrames(this, aListID, aPrevFrame,
+                                         aFrameList);
+  } else {
+    rv = nsInlineFrame::InsertFrames(aListID, aPrevFrame, aFrameList);
+  }
+
+  return rv;
+}
+  
+NS_IMETHODIMP
+nsPositionedInlineFrame::RemoveFrame(ChildListID     aListID,
+                                     nsIFrame*       aOldFrame)
+{
+  nsresult  rv;
+
+  if (kAbsoluteList == aListID) {
+    mAbsoluteContainer.RemoveFrame(this, aListID, aOldFrame);
+    rv = NS_OK;
+  } else {
+    rv = nsInlineFrame::RemoveFrame(aListID, aOldFrame);
+  }
+
+  return rv;
+}
+
+NS_IMETHODIMP
+nsPositionedInlineFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                                          const nsRect&           aDirtyRect,
+                                          const nsDisplayListSet& aLists)
+{
+  aBuilder->MarkFramesForDisplayList(this, mAbsoluteContainer.GetChildList(),
+				     aDirtyRect);
+  return nsHTMLContainerFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
+}
+
+nsFrameList
+nsPositionedInlineFrame::GetChildList(ChildListID aListID) const
+{
+  if (kAbsoluteList == aListID)
+    return mAbsoluteContainer.GetChildList();
+
+  return nsInlineFrame::GetChildList(aListID);
+}
+
+void
+nsPositionedInlineFrame::GetChildLists(nsTArray<ChildList>* aLists) const
+{
+  nsInlineFrame::GetChildLists(aLists);
+  mAbsoluteContainer.AppendChildList(aLists, kAbsoluteList);
+}
+
+nsIAtom*
+nsPositionedInlineFrame::GetType() const
+{
+  return nsGkAtoms::positionedInlineFrame;
+}
+
+NS_IMETHODIMP
+nsPositionedInlineFrame::Reflow(nsPresContext*          aPresContext,
+                                nsHTMLReflowMetrics&     aDesiredSize,
+                                const nsHTMLReflowState& aReflowState,
+                                nsReflowStatus&          aStatus)
+{
+  nsresult  rv = NS_OK;
+
+  
+  
+
+  
+  rv = nsInlineFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (NS_SUCCEEDED(rv) &&
+      mAbsoluteContainer.HasAbsoluteFrames()) {
+    
+    nsMargin computedBorder =
+      aReflowState.mComputedBorderPadding - aReflowState.mComputedPadding;
+    nscoord containingBlockWidth =
+      aDesiredSize.width - computedBorder.LeftRight();
+    nscoord containingBlockHeight =
+      aDesiredSize.height - computedBorder.TopBottom();
+
+    
+    
+    
+    
+    rv = mAbsoluteContainer.Reflow(this, aPresContext, aReflowState, aStatus,
+                                   containingBlockWidth, containingBlockHeight,
+                                   PR_TRUE, PR_TRUE, PR_TRUE, 
+                                   &aDesiredSize.mOverflowAreas);
+  }
+
+  return rv;
+}

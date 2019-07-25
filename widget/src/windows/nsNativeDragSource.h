@@ -77,7 +77,7 @@ public:
   
   STDMETHODIMP QueryContinueDrag(BOOL fESC, DWORD grfKeyState);
 
-  bool UserCancelled() { return mUserCancelled; }
+  PRPackedBool UserCancelled() { return mUserCancelled; }
 
 protected:
   
@@ -90,7 +90,7 @@ protected:
   HCURSOR m_hCursor;
 
   
-  bool mUserCancelled;
+  PRPackedBool mUserCancelled;
 };
 
 #endif 

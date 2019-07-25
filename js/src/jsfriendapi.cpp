@@ -40,7 +40,6 @@
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsfriendapi.h"
-#include "jswrapper.h"
 
 #include "jsobjinlines.h"
 
@@ -62,7 +61,7 @@ JS_FindCompilationScope(JSContext *cx, JSObject *obj)
 
 
     if (obj->isWrapper())
-        obj = UnwrapObject(obj);
+        obj = obj->unwrap();
     
     
 
@@ -73,12 +72,10 @@ JS_FindCompilationScope(JSContext *cx, JSObject *obj)
     return obj;
 }
 
-JS_FRIEND_API(JSFunction *)
-JS_GetObjectFunction(JSObject *obj)
+JS_FRIEND_API(JSObject *)
+JS_UnwrapObject(JSObject *obj)
 {
-    if (obj->isFunction())
-        return obj->getFunctionPrivate();
-    return NULL;
+    return obj->unwrap();
 }
 
 JS_FRIEND_API(JSObject *)
@@ -171,15 +168,6 @@ AutoSwitchCompartment::~AutoSwitchCompartment()
     
     cx->compartment = oldCompartment;
 }
-
-#ifdef DEBUG
-JS_FRIEND_API(void)
-js::CheckReservedSlot(const JSObject *obj, size_t slot)
-{
-    JS_ASSERT(slot < obj->numSlots());
-    JS_ASSERT(slot < JSSLOT_FREE(obj->getClass()));
-}
-#endif
 
 
 

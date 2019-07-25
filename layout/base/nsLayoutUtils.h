@@ -174,7 +174,7 @@ public:
 
 
 
-  static bool IsGeneratedContentFor(nsIContent* aContent, nsIFrame* aFrame,
+  static PRBool IsGeneratedContentFor(nsIContent* aContent, nsIFrame* aFrame,
                                       nsIAtom* aPseudoElement);
 
 #ifdef DEBUG
@@ -295,7 +295,7 @@ public:
 
 
 
-  static bool IsProperAncestorFrame(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
+  static PRBool IsProperAncestorFrame(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
                                       nsIFrame* aCommonAncestor = nsnull);
 
   
@@ -304,7 +304,7 @@ public:
 
 
 
-  static bool IsProperAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
+  static PRBool IsProperAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
                                               nsIFrame* aCommonAncestor = nsnull);
 
   
@@ -317,7 +317,7 @@ public:
 
 
 
-  static bool IsAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
+  static PRBool IsAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
                                         nsIFrame* aCommonAncestor = nsnull);
 
   
@@ -332,9 +332,9 @@ public:
 
   static nsIFrame* GetActiveScrolledRootFor(nsDisplayItem* aItem,
                                             nsDisplayListBuilder* aBuilder,
-                                            bool* aShouldFixToViewport = nsnull);
+                                            PRBool* aShouldFixToViewport = nsnull);
 
-  static bool ScrolledByViewportScrolling(nsIFrame* aActiveScrolledRoot,
+  static PRBool ScrolledByViewportScrolling(nsIFrame* aActiveScrolledRoot,
                                             nsDisplayListBuilder* aBuilder);
 
   
@@ -388,7 +388,7 @@ public:
 
 
 
-  static bool HasPseudoStyle(nsIContent* aContent,
+  static PRBool HasPseudoStyle(nsIContent* aContent,
                                nsStyleContext* aStyleContext,
                                nsCSSPseudoElements::Type aPseudoElement,
                                nsPresContext* aPresContext);
@@ -478,7 +478,7 @@ public:
   static nsresult GetRemoteContentIds(nsIFrame* aFrame,
                                      const nsRect& aTarget,
                                      nsTArray<ViewID> &aOutIDs,
-                                     bool aIgnoreRootScrollFrame);
+                                     PRBool aIgnoreRootScrollFrame);
 
   
 
@@ -491,8 +491,8 @@ public:
 
 
   static nsIFrame* GetFrameForPoint(nsIFrame* aFrame, nsPoint aPt,
-                                    bool aShouldIgnoreSuppression = false,
-                                    bool aIgnoreRootScrollFrame = false);
+                                    PRBool aShouldIgnoreSuppression = PR_FALSE,
+                                    PRBool aIgnoreRootScrollFrame = PR_FALSE);
 
   
 
@@ -507,8 +507,8 @@ public:
 
   static nsresult GetFramesForArea(nsIFrame* aFrame, const nsRect& aRect,
                                    nsTArray<nsIFrame*> &aOutFrames,
-                                   bool aShouldIgnoreSuppression = false,
-                                   bool aIgnoreRootScrollFrame = false);
+                                   PRBool aShouldIgnoreSuppression = PR_FALSE,
+                                   PRBool aIgnoreRootScrollFrame = PR_FALSE);
 
   
 
@@ -659,7 +659,7 @@ public:
 
 
 
-  static bool
+  static PRBool
   BinarySearchForPosition(nsRenderingContext* acx,
                           const PRUnichar* aText,
                           PRInt32    aBaseWidth,
@@ -691,7 +691,7 @@ public:
   struct RectAccumulator : public RectCallback {
     nsRect       mResultRect;
     nsRect       mFirstRect;
-    bool mSeenFirstRect;
+    PRPackedBool mSeenFirstRect;
 
     RectAccumulator();
 
@@ -783,13 +783,6 @@ public:
   
 
 
-  static bool IsNonWrapperBlock(nsIFrame* aFrame) {
-    return GetAsBlock(aFrame) && !aFrame->IsBlockWrapper();
-  }
-
-  
-
-
 
   static nsIFrame* GetParentOrPlaceholderFor(nsFrameManager* aFrameManager,
                                              nsIFrame* aFrame);
@@ -814,7 +807,7 @@ public:
 
 
 
-  static bool IsViewportScrollbarFrame(nsIFrame* aFrame);
+  static PRBool IsViewportScrollbarFrame(nsIFrame* aFrame);
 
   
 
@@ -881,7 +874,7 @@ public:
     return result;
   }
 
-  static bool IsAutoHeight(const nsStyleCoord &aCoord, nscoord aCBHeight)
+  static PRBool IsAutoHeight(const nsStyleCoord &aCoord, nscoord aCBHeight)
   {
     nsStyleUnit unit = aCoord.GetUnit();
     return unit == eStyleUnit_Auto ||  
@@ -889,7 +882,7 @@ public:
            (aCBHeight == NS_AUTOHEIGHT && aCoord.HasPercent());
   }
 
-  static bool IsPaddingZero(const nsStyleCoord &aCoord)
+  static PRBool IsPaddingZero(const nsStyleCoord &aCoord)
   {
     return (aCoord.GetUnit() == eStyleUnit_Coord &&
             aCoord.GetCoordValue() == 0) ||
@@ -901,7 +894,7 @@ public:
             nsRuleNode::ComputeCoordPercentCalc(aCoord, 0) <= 0);
   }
 
-  static bool IsMarginZero(const nsStyleCoord &aCoord)
+  static PRBool IsMarginZero(const nsStyleCoord &aCoord)
   {
     return (aCoord.GetUnit() == eStyleUnit_Coord &&
             aCoord.GetCoordValue() == 0) ||
@@ -994,7 +987,7 @@ public:
 
 
 
-  static bool GetFirstLineBaseline(const nsIFrame* aFrame, nscoord* aResult);
+  static PRBool GetFirstLineBaseline(const nsIFrame* aFrame, nscoord* aResult);
 
   
 
@@ -1014,7 +1007,7 @@ public:
       return result;
     }
   };
-  static bool GetFirstLinePosition(const nsIFrame* aFrame,
+  static PRBool GetFirstLinePosition(const nsIFrame* aFrame,
                                      LinePosition* aResult);
 
 
@@ -1026,7 +1019,7 @@ public:
 
 
 
-  static bool GetLastLineBaseline(const nsIFrame* aFrame, nscoord* aResult);
+  static PRBool GetLastLineBaseline(const nsIFrame* aFrame, nscoord* aResult);
 
   
 
@@ -1231,13 +1224,13 @@ public:
 
 
 
-  static bool HasNonZeroCorner(const nsStyleCorners& aCorners);
+  static PRBool HasNonZeroCorner(const nsStyleCorners& aCorners);
 
   
 
 
 
-  static bool HasNonZeroCornerOnSide(const nsStyleCorners& aCorners,
+  static PRBool HasNonZeroCornerOnSide(const nsStyleCorners& aCorners,
                                        mozilla::css::Side aSide);
 
   
@@ -1257,7 +1250,7 @@ public:
 
 
 
-  static bool IsPopup(nsIFrame* aFrame);
+  static PRBool IsPopup(nsIFrame* aFrame);
 
   
 
@@ -1299,13 +1292,13 @@ public:
 
 
 
-  static bool IsReallyFixedPos(nsIFrame* aFrame);
+  static PRBool IsReallyFixedPos(nsIFrame* aFrame);
 
   
 
 
 
-  static bool FrameIsNonFirstInIBSplit(const nsIFrame* aFrame) {
+  static PRBool FrameIsNonFirstInIBSplit(const nsIFrame* aFrame) {
     return (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
       aFrame->GetFirstContinuation()->
         Properties().Get(nsIFrame::IBSplitSpecialPrevSibling());
@@ -1315,7 +1308,7 @@ public:
 
 
 
-  static bool FrameIsNonLastInIBSplit(const nsIFrame* aFrame) {
+  static PRBool FrameIsNonLastInIBSplit(const nsIFrame* aFrame) {
     return (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
       aFrame->GetFirstContinuation()->
         Properties().Get(nsIFrame::IBSplitSpecialSibling());
@@ -1370,12 +1363,12 @@ public:
     
     nsCOMPtr<imgIRequest> mImageRequest;
     
-    bool mIsWriteOnly;
+    PRPackedBool mIsWriteOnly;
     
 
-    bool mIsStillLoading;
+    PRPackedBool mIsStillLoading;
     
-    bool mCORSUsed;
+    PRPackedBool mCORSUsed;
   };
 
   static SurfaceFromElementResult SurfaceFromElement(nsIDOMElement *aElement,
@@ -1408,7 +1401,7 @@ public:
 
 
 
-  static bool NeedsPrintPreviewBackground(nsPresContext* aPresContext) {
+  static PRBool NeedsPrintPreviewBackground(nsPresContext* aPresContext) {
     return aPresContext->IsRootPaginatedDocument() &&
       (aPresContext->Type() == nsPresContext::eContext_PrintPreview ||
        aPresContext->Type() == nsPresContext::eContext_PageLayout);
@@ -1430,72 +1423,15 @@ public:
   static nsresult GetFontFacesForText(nsIFrame* aFrame,
                                       PRInt32 aStartOffset,
                                       PRInt32 aEndOffset,
-                                      bool aFollowContinuations,
+                                      PRBool aFollowContinuations,
                                       nsFontFaceList* aFontFaceList);
 
   
 
 
-  static bool Are3DTransformsEnabled();
+  static PRBool Are3DTransformsEnabled();
 
   static void Shutdown();
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static void RegisterImageRequest(nsPresContext* aPresContext,
-                                   imgIRequest* aRequest,
-                                   bool* aRequestRegistered);
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static void DeregisterImageRequest(nsPresContext* aPresContext,
-                                     imgIRequest* aRequest,
-                                     bool* aRequestRegistered);
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static void DeregisterImageRequestIfNotAnimated(nsPresContext* aPresContext,
-                                                  imgIRequest* aRequest,
-                                                  bool* aRequestRegistered);
 
 #ifdef DEBUG
   

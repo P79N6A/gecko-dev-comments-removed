@@ -119,7 +119,7 @@ nsSMILAnimationController::Pause(PRUint32 aType)
 void
 nsSMILAnimationController::Resume(PRUint32 aType)
 {
-  bool wasPaused = (mPauseState != 0);
+  PRBool wasPaused = (mPauseState != 0);
   
   
   mCurrentSampleTime = mozilla::TimeStamp::Now();
@@ -387,7 +387,7 @@ nsSMILAnimationController::DoSample()
 }
 
 void
-nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
+nsSMILAnimationController::DoSample(PRBool aSkipUnchangedContainers)
 {
   if (!mDocument) {
     NS_ERROR("Shouldn't be sampling after document has disconnected");
@@ -483,7 +483,7 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
 void
 nsSMILAnimationController::RewindElements()
 {
-  bool rewindNeeded = false;
+  PRBool rewindNeeded = PR_FALSE;
   mChildContainerTable.EnumerateEntries(RewindNeeded, &rewindNeeded);
   if (!rewindNeeded)
     return;
@@ -498,7 +498,7 @@ nsSMILAnimationController::RewindNeeded(TimeContainerPtrKey* aKey,
 {
   NS_ABORT_IF_FALSE(aData,
       "Null data pointer during time container enumeration");
-  bool* rewindNeeded = static_cast<bool*>(aData);
+  PRBool* rewindNeeded = static_cast<PRBool*>(aData);
 
   nsSMILTimeContainer* container = aKey->GetKey();
   if (container->NeedsRewind()) {
@@ -623,7 +623,7 @@ nsSMILAnimationController::GetNextMilestone(TimeContainerPtrKey* aKey,
     return PL_DHASH_NEXT;
 
   nsSMILMilestone thisMilestone;
-  bool didGetMilestone =
+  PRBool didGetMilestone =
     container->GetNextMilestoneInParentTime(thisMilestone);
   if (didGetMilestone && thisMilestone < *nextMilestone) {
     *nextMilestone = thisMilestone;
@@ -761,7 +761,7 @@ nsSMILAnimationController::AddAnimationToCompositorTable(
 
 
 
- bool
+ PRBool
 nsSMILAnimationController::GetTargetIdentifierForAnimation(
     nsISMILAnimationElement* aAnimElem, nsSMILTargetIdentifier& aResult)
 {
@@ -787,7 +787,7 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   
   
   
-  bool isCSS = false;
+  PRBool isCSS = PR_FALSE;
   if (attributeType == eSMILTargetAttrType_auto) {
     if (attributeNamespaceID == kNameSpaceID_None) {
       nsCSSProperty prop =

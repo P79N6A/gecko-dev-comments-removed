@@ -107,7 +107,7 @@ txExprLexer::addToken(Token* aToken)
 
 
 
-bool
+PRBool
 txExprLexer::nextIsOperatorToken(Token* aToken)
 {
   if (!aToken || aToken->mType == Token::NULL_TOKEN) {
@@ -136,7 +136,7 @@ txExprLexer::parse(const nsASingleFragmentString& aPattern)
   Token::Type defType;
   Token* newToken = nsnull;
   Token* prevToken = &nullToken;
-  bool isToken;
+  PRBool isToken;
 
   while (mPosition < end) {
 

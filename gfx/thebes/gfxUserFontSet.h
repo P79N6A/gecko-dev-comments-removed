@@ -55,10 +55,10 @@ class gfxMixedFontFamily;
 
 
 struct gfxFontFaceSrc {
-    bool                   mIsLocal;       
+    PRPackedBool           mIsLocal;       
 
     
-    bool                   mUseOriginPrincipal;
+    PRPackedBool           mUseOriginPrincipal;
 
     
     
@@ -142,7 +142,7 @@ public:
     }
 
     
-    bool AllLoaded() 
+    PRBool AllLoaded() 
     {
         PRUint32 numFonts = mAvailableFonts.Length();
         for (PRUint32 i = 0; i < numFonts; i++) {
@@ -206,7 +206,7 @@ public:
     void AddFontFace(const nsAString& aFamilyName, gfxFontEntry* aFontEntry);
 
     
-    bool HasFamily(const nsAString& aFamilyName) const
+    PRBool HasFamily(const nsAString& aFamilyName) const
     {
         return GetFamily(aFamilyName) != nsnull;
     }
@@ -214,9 +214,9 @@ public:
     
     gfxFontEntry *FindFontEntry(const nsAString& aName,
                                 const gfxFontStyle& aFontStyle,
-                                bool& aFoundFamily,
-                                bool& aNeedsBold,
-                                bool& aWaitForUserFont);
+                                PRBool& aFoundFamily,
+                                PRBool& aNeedsBold,
+                                PRBool& aWaitForUserFont);
                                 
     
     
@@ -229,7 +229,7 @@ public:
     
     
     
-    bool OnLoadComplete(gfxProxyFontEntry *aProxy,
+    PRBool OnLoadComplete(gfxProxyFontEntry *aProxy,
                           const PRUint8 *aFontData, PRUint32 aLength,
                           nsresult aDownloadStatus);
 
@@ -284,7 +284,7 @@ public:
 
     virtual ~gfxProxyFontEntry();
 
-    virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold);
+    virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, PRBool aNeedsBold);
 
     
     enum LoadingState {

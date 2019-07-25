@@ -113,8 +113,8 @@ protected:
   ULONG            m_cRef;      
   HWND             mHWnd;
   DWORD            mEffectsAllowed;
-  DWORD            mEffectsPreferred;
-  bool             mTookOwnRef;
+  PRBool           mMovePreferred;
+  PRBool           mTookOwnRef;
 
   
   nsIWidget      * mWindow;

@@ -68,7 +68,7 @@ public:
     nsresult UpdateFontList();
     nsresult ResolveFontName(const nsAString& aFontName,
                              FontResolverCallback aCallback,
-                             void *aClosure, bool& aAborted);
+                             void *aClosure, PRBool& aAborted);
     nsresult GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
 
     gfxFontGroup *CreateFontGroup(const nsAString &aFamilies,
@@ -82,7 +82,7 @@ public:
     already_AddRefed<gfxOS2Font> FindFontForChar(PRUint32 aCh, gfxOS2Font *aFont);
 
     
-    bool noFontWithChar(PRUint32 aCh) {
+    PRBool noFontWithChar(PRUint32 aCh) {
         return mCodepointsWithNoFonts.test(aCh);
     }
 

@@ -118,7 +118,7 @@ public:
 
 
 
-  virtual bool GetWidgetPadding(nsDeviceContext* aContext,
+  virtual PRBool GetWidgetPadding(nsDeviceContext* aContext,
                                   nsIFrame* aFrame,
                                   PRUint8 aWidgetType,
                                   nsIntMargin* aResult) = 0;
@@ -137,7 +137,7 @@ public:
 
 
 
-  virtual bool GetWidgetOverflow(nsDeviceContext* aContext,
+  virtual PRBool GetWidgetOverflow(nsDeviceContext* aContext,
                                    nsIFrame* aFrame,
                                    PRUint8 aWidgetType,
                                     nsRect* aOverflowRect)
@@ -153,7 +153,7 @@ public:
                                   nsIFrame* aFrame,
                                   PRUint8 aWidgetType,
                                   nsIntSize* aResult,
-                                  bool* aIsOverridable)=0;
+                                  PRBool* aIsOverridable)=0;
 
 
   enum Transparency {
@@ -169,30 +169,30 @@ public:
   { return eUnknownTransparency; }
 
   NS_IMETHOD WidgetStateChanged(nsIFrame* aFrame, PRUint8 aWidgetType, 
-                                nsIAtom* aAttribute, bool* aShouldRepaint)=0;
+                                nsIAtom* aAttribute, PRBool* aShouldRepaint)=0;
 
   NS_IMETHOD ThemeChanged()=0;
 
   
 
 
-  virtual bool ThemeSupportsWidget(nsPresContext* aPresContext,
+  virtual PRBool ThemeSupportsWidget(nsPresContext* aPresContext,
                                      nsIFrame* aFrame,
                                      PRUint8 aWidgetType)=0;
 
-  virtual bool WidgetIsContainer(PRUint8 aWidgetType)=0;
+  virtual PRBool WidgetIsContainer(PRUint8 aWidgetType)=0;
 
   
 
 
-  virtual bool ThemeDrawsFocusForWidget(nsPresContext* aPresContext,
+  virtual PRBool ThemeDrawsFocusForWidget(nsPresContext* aPresContext,
                                           nsIFrame* aFrame,
                                           PRUint8 aWidgetType)=0;
   
   
 
 
-  virtual bool ThemeNeedsComboboxDropmarker()=0;
+  virtual PRBool ThemeNeedsComboboxDropmarker()=0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsITheme, NS_ITHEME_IID)

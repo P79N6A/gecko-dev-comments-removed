@@ -47,7 +47,7 @@
 
 
 
-static bool
+static PRBool
 ServerIsNES3x(nsIHttpChannel *httpChannel)
 {
     nsCAutoString server;
@@ -182,7 +182,7 @@ nsURIChecker::Init(nsIURI *aURI)
             
             
             
-            bool isReallyHTTP = false;
+            PRBool isReallyHTTP = PR_FALSE;
             aURI->SchemeIs("http", &isReallyHTTP);
             if (!isReallyHTTP)
                 aURI->SchemeIs("https", &isReallyHTTP);
@@ -242,7 +242,7 @@ nsURIChecker::GetName(nsACString &aName)
 }
 
 NS_IMETHODIMP
-nsURIChecker::IsPending(bool *aPendingRet)
+nsURIChecker::IsPending(PRBool *aPendingRet)
 {
     *aPendingRet = mIsPending;
     return NS_OK;

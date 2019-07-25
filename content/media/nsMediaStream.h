@@ -80,19 +80,19 @@ public:
     mLastStartTime = TimeStamp();
     mAccumulatedTime = TimeDuration(0);
     mAccumulatedBytes = 0;
-    mIsStarted = false;
+    mIsStarted = PR_FALSE;
   }
   void Start(TimeStamp aNow) {
     if (mIsStarted)
       return;
     mLastStartTime = aNow;
-    mIsStarted = true;
+    mIsStarted = PR_TRUE;
   }
   void Stop(TimeStamp aNow) {
     if (!mIsStarted)
       return;
     mAccumulatedTime += aNow - mLastStartTime;
-    mIsStarted = false;
+    mIsStarted = PR_FALSE;
   }
   void AddBytes(PRInt64 aBytes) {
     if (!mIsStarted) {
@@ -102,14 +102,14 @@ public:
     }
     mAccumulatedBytes += aBytes;
   }
-  double GetRateAtLastStop(bool* aReliable) {
+  double GetRateAtLastStop(PRPackedBool* aReliable) {
     double seconds = mAccumulatedTime.ToSeconds();
     *aReliable = seconds >= 1.0;
     if (seconds <= 0.0)
       return 0.0;
     return static_cast<double>(mAccumulatedBytes)/seconds;
   }
-  double GetRate(TimeStamp aNow, bool* aReliable) {
+  double GetRate(TimeStamp aNow, PRPackedBool* aReliable) {
     TimeDuration time = mAccumulatedTime;
     if (mIsStarted) {
       time += aNow - mLastStartTime;
@@ -124,7 +124,7 @@ private:
   PRInt64      mAccumulatedBytes;
   TimeDuration mAccumulatedTime;
   TimeStamp    mLastStartTime;
-  bool mIsStarted;
+  PRPackedBool mIsStarted;
 };
 
 
@@ -139,7 +139,7 @@ public:
     NS_ASSERTION(mStart < mEnd, "Range should end after start!");
   }
 
-  bool IsNull() const {
+  PRBool IsNull() const {
     return mStart == 0 && mEnd == 0;
   }
 
@@ -179,7 +179,7 @@ public:
   
   
   
-  virtual void Suspend(bool aCloseImmediately) = 0;
+  virtual void Suspend(PRBool aCloseImmediately) = 0;
   
   virtual void Resume() = 0;
   
@@ -245,7 +245,7 @@ public:
   
   
   
-  virtual double GetDownloadRate(bool* aIsReliable) = 0;
+  virtual double GetDownloadRate(PRPackedBool* aIsReliable) = 0;
   
   
   
@@ -261,15 +261,15 @@ public:
   virtual PRInt64 GetCachedDataEnd(PRInt64 aOffset) = 0;
   
   
-  virtual bool IsDataCachedToEndOfStream(PRInt64 aOffset) = 0;
+  virtual PRBool IsDataCachedToEndOfStream(PRInt64 aOffset) = 0;
   
   
   
   
   
-  virtual bool IsSuspendedByCache() = 0;
+  virtual PRBool IsSuspendedByCache() = 0;
   
-  virtual bool IsSuspended() = 0;
+  virtual PRBool IsSuspended() = 0;
   
   
   
@@ -304,7 +304,7 @@ protected:
     mDecoder(aDecoder),
     mChannel(aChannel),
     mURI(aURI),
-    mLoadInBackground(false)
+    mLoadInBackground(PR_FALSE)
   {
     MOZ_COUNT_CTOR(nsMediaStream);
   }
@@ -329,7 +329,7 @@ protected:
 
   
   
-  bool mLoadInBackground;
+  PRPackedBool mLoadInBackground;
 };
 
 
@@ -366,7 +366,7 @@ public:
   
   
   
-  nsresult CacheClientSeek(PRInt64 aOffset, bool aResume);
+  nsresult CacheClientSeek(PRInt64 aOffset, PRBool aResume);
   
   nsresult CacheClientSuspend();
   
@@ -375,11 +375,11 @@ public:
   
   virtual nsresult Open(nsIStreamListener** aStreamListener);
   virtual nsresult Close();
-  virtual void     Suspend(bool aCloseImmediately);
+  virtual void     Suspend(PRBool aCloseImmediately);
   virtual void     Resume();
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
   
-  bool IsClosed() const { return mCacheStream.IsClosed(); }
+  PRBool IsClosed() const { return mCacheStream.IsClosed(); }
   virtual nsMediaStream* CloneData(nsMediaDecoder* aDecoder);
   virtual nsresult ReadFromCache(char* aBuffer, PRInt64 aOffset, PRUint32 aCount);
 
@@ -393,13 +393,13 @@ public:
   
   virtual void    Pin();
   virtual void    Unpin();
-  virtual double  GetDownloadRate(bool* aIsReliable);
+  virtual double  GetDownloadRate(PRPackedBool* aIsReliable);
   virtual PRInt64 GetLength();
   virtual PRInt64 GetNextCachedData(PRInt64 aOffset);
   virtual PRInt64 GetCachedDataEnd(PRInt64 aOffset);
-  virtual bool    IsDataCachedToEndOfStream(PRInt64 aOffset);
-  virtual bool    IsSuspendedByCache();
-  virtual bool    IsSuspended();
+  virtual PRBool  IsDataCachedToEndOfStream(PRInt64 aOffset);
+  virtual PRBool  IsSuspendedByCache();
+  virtual PRBool  IsSuspended();
 
   class Listener : public nsIStreamListener,
                    public nsIInterfaceRequestor,
@@ -467,10 +467,10 @@ protected:
   PRUint32           mSuspendCount;
   
   
-  bool               mReopenOnError;
+  PRPackedBool       mReopenOnError;
   
   
-  bool               mIgnoreClose;
+  PRPackedBool       mIgnoreClose;
 
   
   nsMediaCacheStream mCacheStream;
@@ -483,7 +483,7 @@ protected:
   
   
   
-  bool mIgnoreResume;
+  PRPackedBool mIgnoreResume;
 };
 
 #endif

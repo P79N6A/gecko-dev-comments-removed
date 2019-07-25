@@ -59,7 +59,7 @@
 nsTreeWalker::nsTreeWalker(nsINode *aRoot,
                            PRUint32 aWhatToShow,
                            nsIDOMNodeFilter *aFilter,
-                           bool aExpandEntityReferences) :
+                           PRBool aExpandEntityReferences) :
     nsTraversal(aRoot, aWhatToShow, aFilter, aExpandEntityReferences),
     mCurrentNode(aRoot)
 {
@@ -125,7 +125,7 @@ NS_IMETHODIMP nsTreeWalker::GetFilter(nsIDOMNodeFilter * *aFilter)
 
 
 NS_IMETHODIMP
-nsTreeWalker::GetExpandEntityReferences(bool *aExpandEntityReferences)
+nsTreeWalker::GetExpandEntityReferences(PRBool *aExpandEntityReferences)
 {
     *aExpandEntityReferences = mExpandEntityReferences;
     return NS_OK;
@@ -330,7 +330,7 @@ NS_IMETHODIMP nsTreeWalker::NextNode(nsIDOMNode **_retval)
 
 
 
-nsresult nsTreeWalker::FirstChildInternal(bool aReversed, nsIDOMNode **_retval)
+nsresult nsTreeWalker::FirstChildInternal(PRBool aReversed, nsIDOMNode **_retval)
 {
     nsresult rv;
     PRInt16 filtered;
@@ -392,7 +392,7 @@ nsresult nsTreeWalker::FirstChildInternal(bool aReversed, nsIDOMNode **_retval)
 
 
 
-nsresult nsTreeWalker::NextSiblingInternal(bool aReversed, nsIDOMNode **_retval)
+nsresult nsTreeWalker::NextSiblingInternal(PRBool aReversed, nsIDOMNode **_retval)
 {
     nsresult rv;
     PRInt16 filtered;

@@ -107,7 +107,7 @@ public:
   
 
 
-  bool IsWriteOnly();
+  PRBool IsWriteOnly();
 
   
 
@@ -136,7 +136,7 @@ public:
 
 
 
-  bool GetIsOpaque();
+  PRBool GetIsOpaque();
 
   
 
@@ -144,7 +144,7 @@ public:
   NS_IMETHOD_(nsIntSize) GetSizeExternal();
   NS_IMETHOD RenderContextsExternal(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter);
 
-  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+  virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -153,13 +153,13 @@ public:
   
   
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, bool aNotify)
+                   const nsAString& aValue, PRBool aNotify)
   {
     return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
-                           bool aNotify);
+                           PRBool aNotify);
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
@@ -173,7 +173,7 @@ public:
   
   
   
-  bool ShouldForceInactiveLayer(LayerManager *aManager);
+  PRBool ShouldForceInactiveLayer(LayerManager *aManager);
 
   
   
@@ -197,7 +197,7 @@ protected:
                             const nsAString& aType,
                             nsIDOMFile** aResult);
   nsresult GetContextHelper(const nsAString& aContextId,
-                            bool aForceThebes,
+                            PRBool aForceThebes,
                             nsICanvasRenderingContextInternal **aContext);
 
   nsString mCurrentContextId;
@@ -208,7 +208,7 @@ public:
   
   
   
-  bool                     mWriteOnly;
+  PRPackedBool             mWriteOnly;
 };
 
 #endif 

@@ -55,7 +55,7 @@ public:
   virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
-                                 nsSize aPadding, bool aShrinkWrap);
+                                 nsSize aPadding, PRBool aShrinkWrap);
 
   virtual nsIFrame* GetParentStyleContextFrame();
 
@@ -98,6 +98,8 @@ public:
   
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
+  
+  virtual PRBool IsContainingBlock() const;
 
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
@@ -138,7 +140,7 @@ public:
   virtual nsSize ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aCBSize, nscoord aAvailableWidth,
                                  nsSize aMargin, nsSize aBorder,
-                                 nsSize aPadding, bool aShrinkWrap);
+                                 nsSize aPadding, PRBool aShrinkWrap);
 
   
 
@@ -161,7 +163,7 @@ public:
 
   
 
-  void SetSelected(bool aSelected,
+  void SetSelected(PRBool aSelected,
                    SelectionType aType);
 
   virtual nsIFrame* GetParentStyleContextFrame();
@@ -174,7 +176,7 @@ public:
                            PRInt32& aStartRowIndex, PRInt32& aStartColIndex, 
                            PRInt32& aRowSpan, PRInt32& aColSpan,
                            PRInt32& aActualRowSpan, PRInt32& aActualColSpan,
-                           bool& aIsSelected);
+                           PRBool& aIsSelected);
 
   
   NS_IMETHOD GetTableSize(PRInt32& aRowCount, PRInt32& aColCount);
@@ -198,7 +200,7 @@ protected:
 
   PRUint8 GetCaptionSide(); 
 
-  bool HasSideCaption() {
+  PRBool HasSideCaption() {
     PRUint8 captionSide = GetCaptionSide();
     return captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
            captionSide == NS_STYLE_CAPTION_SIDE_RIGHT;

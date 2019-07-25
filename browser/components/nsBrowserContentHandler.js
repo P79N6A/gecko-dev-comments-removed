@@ -4,7 +4,7 @@
 # The contents of this file are subject to the Mozilla Public License Version
 # 1.1 (the "License"); you may not use this file except in compliance with
 # the License. You may obtain a copy of the License at
-# http:
+# http://www.mozilla.org/MPL/
 #
 # Software distributed under the License is distributed on an "AS IS" basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
@@ -98,8 +98,8 @@ function resolveURIInternal(aCmdLine, aArgument) {
     Components.utils.reportError(e);
   }
 
-  
-  
+  // We have interpreted the argument as a relative file URI, but the file
+  // doesn't exist. Try URI fixup heuristics: see bug 290782.
  
   try {
     var urifixup = Components.classes["@mozilla.org/docshell/urifixup;1"]
@@ -118,16 +118,16 @@ const OVERRIDE_NONE        = 0;
 const OVERRIDE_NEW_PROFILE = 1;
 const OVERRIDE_NEW_MSTONE  = 2;
 const OVERRIDE_NEW_BUILD_ID = 3;
-
-
-
-
-
-
-
-
-
-
+/**
+ * Determines whether a home page override is needed.
+ * Returns:
+ *  OVERRIDE_NEW_PROFILE if this is the first run with a new profile.
+ *  OVERRIDE_NEW_MSTONE if this is the first run with a build with a different
+ *                      Gecko milestone (i.e. right after an upgrade).
+ *  OVERRIDE_NEW_BUILD_ID if this is the first run with a new build ID of the
+ *                        same Gecko milestone (i.e. after a nightly upgrade).
+ *  OVERRIDE_NONE otherwise.
+ */
 function needHomepageOverride(prefb) {
   var savedmstone = null;
   try {
@@ -149,10 +149,10 @@ function needHomepageOverride(prefb) {
                            .getService(nsIXULAppInfo).platformBuildID;
 
   if (mstone != savedmstone) {
-    
-    
-    
-    
+    // Bug 462254. Previous releases had a default pref to suppress the EULA
+    // agreement if the platform's installer had already shown one. Now with
+    // about:rights we've removed the EULA stuff and default pref, but we need
+    // a way to make existing profiles retain the default that we removed.
     if (savedmstone)
       prefb.setBoolPref("browser.rights.3.shown", true);
     
@@ -169,42 +169,42 @@ function needHomepageOverride(prefb) {
   return OVERRIDE_NONE;
 }
 
-
-
-
-
-
-
-
+/**
+ * Gets the override page for the first run after the application has been
+ * updated.
+ * @param  defaultOverridePage
+ *         The default override page.
+ * @return The override page.
+ */
 function getPostUpdateOverridePage(defaultOverridePage) {
   var um = Components.classes["@mozilla.org/updates/update-manager;1"]
                      .getService(Components.interfaces.nsIUpdateManager);
   try {
-    
+    // If the updates.xml file is deleted then getUpdateAt will throw.
     var update = um.getUpdateAt(0)
                    .QueryInterface(Components.interfaces.nsIPropertyBag);
   } catch (e) {
-    
+    // This should never happen.
     Components.utils.reportError("Unable to find update: " + e);
     return defaultOverridePage;
   }
 
   let actions = update.getProperty("actions");
-  
-  
+  // When the update doesn't specify actions fallback to the original behavior
+  // of displaying the default override page.
   if (!actions)
     return defaultOverridePage;
 
-  
-  
+  // The existence of silent or the non-existence of showURL in the actions both
+  // mean that an override page should not be displayed.
   if (actions.indexOf("silent") != -1 || actions.indexOf("showURL") == -1)
     return "";
 
   return update.getProperty("openURL") || defaultOverridePage;
 }
 
-
-
+// Copies a pref override file into the user's profile pref-override folder,
+// and then tells the pref service to reload its default prefs.
 function copyPrefOverride() {
   try {
     var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
@@ -213,13 +213,13 @@ function copyPrefOverride() {
     var prefOverride = fileLocator.get(NS_APP_EXISTING_PREF_OVERRIDE,
                                        Components.interfaces.nsIFile);
     if (!prefOverride.exists())
-      return; 
+      return; // nothing to do
 
     const NS_APP_PREFS_OVERRIDE_DIR     = "PrefDOverride";
     var prefOverridesDir = fileLocator.get(NS_APP_PREFS_OVERRIDE_DIR,
                                            Components.interfaces.nsIFile);
 
-    
+    // Check for any existing pref overrides, and remove them if present
     var existingPrefOverridesFile = prefOverridesDir.clone();
     existingPrefOverridesFile.append(prefOverride.leafName);
     if (existingPrefOverridesFile.exists())
@@ -227,8 +227,8 @@ function copyPrefOverride() {
 
     prefOverride.copyTo(prefOverridesDir, null);
 
-    
-    
+    // Now that we've installed the new-profile pref override file,
+    // re-read the default prefs.
     var prefSvcObs = Components.classes["@mozilla.org/preferences-service;1"]
                                .getService(Components.interfaces.nsIObserver);
     prefSvcObs.observe(null, "reload-default-prefs", null);
@@ -237,7 +237,7 @@ function copyPrefOverride() {
   }
 }
 
-
+// Flag used to indicate that the arguments to openWindow can be passed directly.
 const NO_EXTERNAL_URIS = 1;
 
 function openWindow(parent, url, target, features, args, noExternalArgs) {
@@ -245,7 +245,7 @@ function openWindow(parent, url, target, features, args, noExternalArgs) {
                          .getService(nsIWindowWatcher);
 
   if (noExternalArgs == NO_EXTERNAL_URIS) {
-    
+    // Just pass in the defaultArgs directly
     var argstring;
     if (args) {
       argstring = Components.classes["@mozilla.org/supports-string;1"]
@@ -256,19 +256,19 @@ function openWindow(parent, url, target, features, args, noExternalArgs) {
     return wwatch.openWindow(parent, url, target, features, argstring);
   }
   
-  
+  // Pass an array to avoid the browser "|"-splitting behavior.
   var argArray = Components.classes["@mozilla.org/supports-array;1"]
                     .createInstance(Components.interfaces.nsISupportsArray);
 
-  
+  // add args to the arguments array
   var stringArgs = null;
-  if (args instanceof Array) 
+  if (args instanceof Array) // array
     stringArgs = args;
-  else if (args) 
+  else if (args) // string
     stringArgs = [args];
 
   if (stringArgs) {
-    
+    // put the URIs into argArray
     var uriArray = Components.classes["@mozilla.org/supports-array;1"]
                        .createInstance(Components.interfaces.nsISupportsArray);
     stringArgs.forEach(function (uri) {
@@ -282,13 +282,13 @@ function openWindow(parent, url, target, features, args, noExternalArgs) {
     argArray.AppendElement(null);
   }
 
-  
-  
-  
-  argArray.AppendElement(null); 
-  argArray.AppendElement(null); 
-  argArray.AppendElement(null); 
-  argArray.AppendElement(null); 
+  // Pass these as null to ensure that we always trigger the "single URL"
+  // behavior in browser.js's BrowserStartup (which handles the window
+  // arguments)
+  argArray.AppendElement(null); // charset
+  argArray.AppendElement(null); // referer
+  argArray.AppendElement(null); // postData
+  argArray.AppendElement(null); // allowThirdPartyFixup
 
   return wwatch.openWindow(parent, url, target, features, argArray);
 }
@@ -311,7 +311,7 @@ function getMostRecentWindow(aType) {
   return wm.getMostRecentWindow(aType);
 }
 
-
+// this returns the most recent non-popup browser window
 function getMostRecentBrowserWindow() {
   var browserGlue = Components.classes["@mozilla.org/browser/browserglue;1"]
                               .getService(Components.interfaces.nsIBrowserGlue);
@@ -324,7 +324,7 @@ function doSearch(searchTerm, cmdLine) {
 
   var submission = ss.defaultEngine.getSubmission(searchTerm);
 
-  
+  // fill our nsISupportsArray with uri-as-wstring, null, null, postData
   var sa = Components.classes["@mozilla.org/supports-array;1"]
                      .createInstance(Components.interfaces.nsISupportsArray);
 
@@ -337,8 +337,8 @@ function doSearch(searchTerm, cmdLine) {
   sa.AppendElement(null);
   sa.AppendElement(submission.postData);
 
-  
-  
+  // XXXbsmedberg: use handURIToExistingBrowser to obey tabbed-browsing
+  // preferences, but need nsIBrowserDOMWindow extensions
 
   var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                          .getService(nsIWindowWatcher);
@@ -363,7 +363,7 @@ nsBrowserContentHandler.prototype = {
     }
   },
 
-  
+  /* helper functions */
 
   mChromeURL : null,
 
@@ -379,16 +379,16 @@ nsBrowserContentHandler.prototype = {
     return this.mChromeURL;
   },
 
-  
+  /* nsISupports */
   QueryInterface : XPCOMUtils.generateQI([nsICommandLineHandler,
                                           nsIBrowserHandler,
                                           nsIContentHandler,
                                           nsICommandLineValidator]),
 
-  
+  /* nsICommandLineHandler */
   handle : function bch_handle(cmdLine) {
     if (cmdLine.handleFlag("browser", false)) {
-      
+      // Passing defaultArgs, so use NO_EXTERNAL_URIS
       openWindow(null, this.chromeURL, "_blank",
                  "chrome,dialog=no,all" + this.getFeatures(cmdLine),
                  this.defaultArgs, NO_EXTERNAL_URIS);
@@ -421,12 +421,12 @@ nsBrowserContentHandler.prototype = {
         switch (remoteVerb) {
         case "openurl":
         case "openfile":
-          
-          
-          
+          // openURL(<url>)
+          // openURL(<url>,new-window)
+          // openURL(<url>,new-tab)
 
-          
-          
+          // First param is the URL, second param (if present) is the "target"
+          // (tab, window)
           var url = remoteParams[0];
           var target = nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW;
           if (remoteParams[1]) {
@@ -437,8 +437,8 @@ nsBrowserContentHandler.prototype = {
             else if (targetParam == "new-window")
               target = nsIBrowserDOMWindow.OPEN_NEWWINDOW;
             else {
-              
-              
+              // The "target" param isn't one of our supported values, so
+              // assume it's part of a URL that contains commas.
               url += "," + remoteParams[1];
             }
           }
@@ -448,19 +448,19 @@ nsBrowserContentHandler.prototype = {
           break;
 
         case "xfedocommand":
-          
+          // xfeDoCommand(openBrowser)
           if (remoteParams[0].toLowerCase() != "openbrowser")
             throw NS_ERROR_ABORT;
 
-          
+          // Passing defaultArgs, so use NO_EXTERNAL_URIS
           openWindow(null, this.chromeURL, "_blank",
                      "chrome,dialog=no,all" + this.getFeatures(cmdLine),
                      this.defaultArgs, NO_EXTERNAL_URIS);
           break;
 
         default:
-          
-          
+          // Somebody sent us a remote command we don't know how to process:
+          // just abort.
           throw "Unknown remote command.";
         }
 
@@ -468,9 +468,9 @@ nsBrowserContentHandler.prototype = {
       }
       catch (e) {
         Components.utils.reportError(e);
-        
-        
-        
+        // If we had a -remote flag but failed to process it, throw
+        // NS_ERROR_ABORT so that the xremote code knows to return a failure
+        // back to the handling code.
         throw NS_ERROR_ABORT;
       }
     }
@@ -505,12 +505,12 @@ nsBrowserContentHandler.prototype = {
     var chromeParam = cmdLine.handleFlagWithParam("chrome", false);
     if (chromeParam) {
 
-      
+      // Handle the old preference dialog URL separately (bug 285416)
       if (chromeParam == "chrome://browser/content/pref/pref.xul") {
         openPreferences();
         cmdLine.preventDefault = true;
       } else try {
-        
+        // only load URIs which do not inherit chrome privs
         var features = "chrome,dialog=no,all" + this.getFeatures(cmdLine);
         var uri = resolveURIInternal(cmdLine, chromeParam);
         var netutil = Components.classes["@mozilla.org/network/util;1"]
@@ -552,7 +552,7 @@ nsBrowserContentHandler.prototype = {
     }
 
 #ifdef XP_WIN
-    
+    // Handle "? searchterm" for Windows Vista start menu integration
     for (var i = cmdLine.length - 1; i >= 0; --i) {
       var param = cmdLine.getArgument(i);
       if (param.match(/^\? /)) {
@@ -576,7 +576,7 @@ nsBrowserContentHandler.prototype = {
 #endif
              "  -search     <term> Search <term> with your default search engine.\n",
 
-  
+  /* nsIBrowserHandler */
 
   get defaultArgs() {
     var prefb = Components.classes["@mozilla.org/preferences-service;1"]
@@ -587,21 +587,21 @@ nsBrowserContentHandler.prototype = {
     try {
       let override = needHomepageOverride(prefb);
       if (override != OVERRIDE_NONE) {
-        
+        // Setup the default search engine to about:home page.
         AboutHomeUtils.loadDefaultSearchEngine();
         AboutHomeUtils.loadSnippetsURL();
 
         switch (override) {
           case OVERRIDE_NEW_PROFILE:
-            
+            // New profile.
             overridePage = Services.urlFormatter.formatURLPref("startup.homepage_welcome_url");
             break;
           case OVERRIDE_NEW_MSTONE:
-            
+            // Existing profile, new milestone build.
             copyPrefOverride();
 
-            
-            
+            // Check whether we have a session to restore. If we do, we assume
+            // that this is an "update" session.
             var ss = Components.classes["@mozilla.org/browser/sessionstartup;1"]
                                .getService(Components.interfaces.nsISessionStartup);
             haveUpdateSession = ss.doRestore();
@@ -612,15 +612,15 @@ nsBrowserContentHandler.prototype = {
         }
       }
       else {
-        
-        
+        // No need to override homepage, but update snippets url if the pref has
+        // been manually changed.
         if (Services.prefs.prefHasUserValue(AboutHomeUtils.SNIPPETS_URL_PREF)) {
           AboutHomeUtils.loadSnippetsURL();
         }
       }
     } catch (ex) {}
 
-    
+    // formatURLPref might return "about:blank" if getting the pref fails
     if (overridePage == "about:blank")
       overridePage = "";
 
@@ -640,7 +640,7 @@ nsBrowserContentHandler.prototype = {
     if (startPage == "about:blank")
       startPage = "";
 
-    
+    // Only show the startPage if we're not restoring an update session.
     if (overridePage && startPage && !haveUpdateSession)
       return overridePage + "|" + startPage;
 
@@ -648,13 +648,36 @@ nsBrowserContentHandler.prototype = {
   },
 
   get startPage() {
-    var uri = Services.prefs.getComplexValue("browser.startup.homepage",
-                                             nsIPrefLocalizedString).data;
+    var prefb = Components.classes["@mozilla.org/preferences-service;1"]
+                          .getService(nsIPrefBranch);
+
+    var uri = prefb.getComplexValue("browser.startup.homepage",
+                                    nsIPrefLocalizedString).data;
+
     if (!uri) {
-      Services.prefs.clearUserPref("browser.startup.homepage");
-      uri = Services.prefs.getComplexValue("browser.startup.homepage",
-                                           nsIPrefLocalizedString).data;
+      prefb.clearUserPref("browser.startup.homepage");
+      uri = prefb.getComplexValue("browser.startup.homepage",
+                                  nsIPrefLocalizedString).data;
     }
+                                
+    var count;
+    try {
+      count = prefb.getIntPref("browser.startup.homepage.count");
+    }
+    catch (e) {
+      return uri;
+    }
+
+    for (var i = 1; i < count; ++i) {
+      try {
+        var page = prefb.getComplexValue("browser.startup.homepage." + i,
+                                         nsIPrefLocalizedString).data;
+        uri += "\n" + page;
+      }
+      catch (e) {
+      }
+    }
+
     return uri;
   },
 
@@ -680,7 +703,7 @@ nsBrowserContentHandler.prototype = {
     return this.mFeatures;
   },
 
-  
+  /* nsIContentHandler */
 
   handleContent : function bch_handleContent(contentType, context, request) {
     try {
@@ -699,10 +722,10 @@ nsBrowserContentHandler.prototype = {
     request.cancel(NS_BINDING_ABORTED);
   },
 
-  
+  /* nsICommandLineValidator */
   validate : function bch_validate(cmdLine) {
-    
-    
+    // Other handlers may use osint so only handle the osint flag if the url
+    // flag is also present and the command line is valid.
     var osintFlagIdx = cmdLine.findFlag("osint", false);
     var urlFlagIdx = cmdLine.findFlag("url", false);
     if (urlFlagIdx > -1 && (osintFlagIdx > -1 ||
@@ -723,7 +746,7 @@ function handURIToExistingBrowser(uri, location, cmdLine)
 
   var navWin = getMostRecentBrowserWindow();
   if (!navWin) {
-    
+    // if we couldn't load it in an existing window, open a new one
     openWindow(null, gBrowserContentHandler.chromeURL, "_blank",
                "chrome,dialog=no,all" + gBrowserContentHandler.getFeatures(cmdLine),
                uri.spec);
@@ -746,7 +769,7 @@ function nsDefaultCommandLineHandler() {
 nsDefaultCommandLineHandler.prototype = {
   classID: Components.ID("{47cd0651-b1be-4a0f-b5c4-10e5a573ef71}"),
 
-  
+  /* nsISupports */
   QueryInterface : function dch_QI(iid) {
     if (!iid.equals(nsISupports) &&
         !iid.equals(nsICommandLineHandler))
@@ -755,28 +778,28 @@ nsDefaultCommandLineHandler.prototype = {
     return this;
   },
 
-  
-  
-  
+  // List of uri's that were passed via the command line without the app
+  // running and have already been handled. This is compared against uri's
+  // opened using DDE on Win32 so we only open one of the requests.
   _handledURIs: [ ],
 #ifdef XP_WIN
   _haveProfile: false,
 #endif
 
-  
+  /* nsICommandLineHandler */
   handle : function dch_handle(cmdLine) {
     var urilist = [];
 
 #ifdef XP_WIN
-    
-    
-    
-    
-    
-    
+    // If we don't have a profile selected yet (e.g. the Profile Manager is
+    // displayed) we will crash if we open an url and then select a profile. To
+    // prevent this handle all url command line flags and set the command line's
+    // preventDefault to true to prevent the display of the ui. The initial
+    // command line will be retained when nsAppRunner calls LaunchChild though
+    // urls launched after the initial launch will be lost.
     if (!this._haveProfile) {
       try {
-        
+        // This will throw when a profile has not been selected.
         var fl = Components.classes["@mozilla.org/file/directory_service;1"]
                            .getService(Components.interfaces.nsIProperties);
         var dir = fl.get("ProfD", Components.interfaces.nsILocalFile);
@@ -794,7 +817,7 @@ nsDefaultCommandLineHandler.prototype = {
       while ((ar = cmdLine.handleFlagWithParam("url", false))) {
         var found = false;
         var uri = resolveURIInternal(cmdLine, ar);
-        
+        // count will never be greater than zero except on Win32.
         var count = this._handledURIs.length;
         for (var i = 0; i < count; ++i) {
           if (this._handledURIs[i].spec == uri.spec) {
@@ -806,7 +829,7 @@ nsDefaultCommandLineHandler.prototype = {
         }
         if (!found) {
           urilist.push(uri);
-          
+          // The requestpending command line flag is only used on Win32.
           if (cmdLine.handleFlag("requestpending", false) &&
               cmdLine.state == nsICommandLine.STATE_INITIAL_LAUNCH)
             this._handledURIs.push(uri)
@@ -823,8 +846,8 @@ nsDefaultCommandLineHandler.prototype = {
       var curarg = cmdLine.getArgument(i);
       if (curarg.match(/^-/)) {
         Components.utils.reportError("Warning: unrecognized command line flag " + curarg + "\n");
-        
-        
+        // To emulate the pre-nsICommandLine behavior, we ignore
+        // the argument after an unrecognized flag.
         ++i;
       } else {
         try {
@@ -839,8 +862,8 @@ nsDefaultCommandLineHandler.prototype = {
     if (urilist.length) {
       if (cmdLine.state != nsICommandLine.STATE_INITIAL_LAUNCH &&
           urilist.length == 1) {
-        
-        
+        // Try to find an existing window and load our URI into the
+        // current tab, new tab, or new window as prefs determine.
         try {
           handURIToExistingBrowser(urilist[0], nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW, cmdLine);
           return;
@@ -858,7 +881,7 @@ nsDefaultCommandLineHandler.prototype = {
 
     }
     else if (!cmdLine.preventDefault) {
-      
+      // Passing defaultArgs, so use NO_EXTERNAL_URIS
       openWindow(null, gBrowserContentHandler.chromeURL, "_blank",
                  "chrome,dialog=no,all" + gBrowserContentHandler.getFeatures(cmdLine),
                  gBrowserContentHandler.defaultArgs, NO_EXTERNAL_URIS);

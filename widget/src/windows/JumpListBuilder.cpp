@@ -69,7 +69,7 @@ static NS_DEFINE_CID(kJumpListShortcutCID, NS_WIN_JUMPLISTSHORTCUT_CID);
 
 extern const wchar_t *gMozillaJumpListIDGeneric;
 
-bool JumpListBuilder::sBuildingList = false;
+PRPackedBool JumpListBuilder::sBuildingList = PR_FALSE;
 const char kPrefTaskbarEnabled[] = "browser.taskbar.lists.enabled";
 
 NS_IMPL_ISUPPORTS2(JumpListBuilder, nsIJumpListBuilder, nsIObserver)
@@ -80,7 +80,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(AsyncDeleteAllFaviconsFromDisk, nsIRunnable)
 
 JumpListBuilder::JumpListBuilder() :
   mMaxItems(0),
-  mHasCommit(false)
+  mHasCommit(PR_FALSE)
 {
   ::CoInitialize(NULL);
   
@@ -102,16 +102,16 @@ JumpListBuilder::~JumpListBuilder()
 
 NS_IMETHODIMP JumpListBuilder::GetAvailable(PRInt16 *aAvailable)
 {
-  *aAvailable = false;
+  *aAvailable = PR_FALSE;
 
   if (mJumpListMgr)
-    *aAvailable = true;
+    *aAvailable = PR_TRUE;
 
   return NS_OK;
 }
 
 
-NS_IMETHODIMP JumpListBuilder::GetIsListCommitted(bool *aCommit)
+NS_IMETHODIMP JumpListBuilder::GetIsListCommitted(PRBool *aCommit)
 {
   *aCommit = mHasCommit;
 
@@ -145,11 +145,11 @@ NS_IMETHODIMP JumpListBuilder::GetMaxListItems(PRInt16 *aMaxItems)
 }
 
 
-NS_IMETHODIMP JumpListBuilder::InitListBuild(nsIMutableArray *removedItems, bool *_retval)
+NS_IMETHODIMP JumpListBuilder::InitListBuild(nsIMutableArray *removedItems, PRBool *_retval)
 {
   NS_ENSURE_ARG_POINTER(removedItems);
 
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   if (!mJumpListMgr)
     return NS_ERROR_NOT_AVAILABLE;
@@ -167,8 +167,8 @@ NS_IMETHODIMP JumpListBuilder::InitListBuild(nsIMutableArray *removedItems, bool
 
     RemoveIconCacheForItems(removedItems);
 
-    sBuildingList = true;
-    *_retval = true;
+    sBuildingList = PR_TRUE;
+    *_retval = PR_TRUE;
     return NS_OK;
   }
 
@@ -244,7 +244,7 @@ nsresult JumpListBuilder::RemoveIconCacheForAllItems()
   
   
   do {
-    bool hasMore = false;
+    PRBool hasMore = PR_FALSE;
     if (NS_FAILED(entries->HasMoreElements(&hasMore)) || !hasMore)
       break;
 
@@ -260,12 +260,12 @@ nsresult JumpListBuilder::RemoveIconCacheForAllItems()
     PRInt32 len = path.Length();
     if (StringTail(path, 4).LowerCaseEqualsASCII(".ico")) {
       
-      bool exists;
+      PRBool exists;
       if (NS_FAILED(currFile->Exists(&exists)) || !exists)
         continue;
 
       
-      currFile->Remove(false);
+      currFile->Remove(PR_FALSE);
     }
   } while(true);
 
@@ -273,11 +273,11 @@ nsresult JumpListBuilder::RemoveIconCacheForAllItems()
 }
 
 
-NS_IMETHODIMP JumpListBuilder::AddListToBuild(PRInt16 aCatType, nsIArray *items, const nsAString &catName, bool *_retval)
+NS_IMETHODIMP JumpListBuilder::AddListToBuild(PRInt16 aCatType, nsIArray *items, const nsAString &catName, PRBool *_retval)
 {
   nsresult rv;
 
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   if (!mJumpListMgr)
     return NS_ERROR_NOT_AVAILABLE;
@@ -327,21 +327,21 @@ NS_IMETHODIMP JumpListBuilder::AddListToBuild(PRInt16 aCatType, nsIArray *items,
       
       hr = mJumpListMgr->AddUserTasks(pArray);
       if (SUCCEEDED(hr))
-        *_retval = true;
+        *_retval = PR_TRUE;
       return NS_OK;
     }
     break;
     case nsIJumpListBuilder::JUMPLIST_CATEGORY_RECENT:
     {
       if (SUCCEEDED(mJumpListMgr->AppendKnownCategory(KDC_RECENT)))
-        *_retval = true;
+        *_retval = PR_TRUE;
       return NS_OK;
     }
     break;
     case nsIJumpListBuilder::JUMPLIST_CATEGORY_FREQUENT:
     {
       if (SUCCEEDED(mJumpListMgr->AppendKnownCategory(KDC_FREQUENT)))
-        *_retval = true;
+        *_retval = PR_TRUE;
       return NS_OK;
     }
     break;
@@ -408,7 +408,7 @@ NS_IMETHODIMP JumpListBuilder::AddListToBuild(PRInt16 aCatType, nsIArray *items,
       
       hr = mJumpListMgr->AppendCategory(catName.BeginReading(), pArray);
       if (SUCCEEDED(hr))
-        *_retval = true;
+        *_retval = PR_TRUE;
       return NS_OK;
     }
     break;
@@ -423,35 +423,35 @@ NS_IMETHODIMP JumpListBuilder::AbortListBuild()
     return NS_ERROR_NOT_AVAILABLE;
 
   mJumpListMgr->AbortList();
-  sBuildingList = false;
+  sBuildingList = PR_FALSE;
 
   return NS_OK;
 }
 
 
-NS_IMETHODIMP JumpListBuilder::CommitListBuild(bool *_retval)
+NS_IMETHODIMP JumpListBuilder::CommitListBuild(PRBool *_retval)
 {
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   if (!mJumpListMgr)
     return NS_ERROR_NOT_AVAILABLE;
 
   HRESULT hr = mJumpListMgr->CommitList();
-  sBuildingList = false;
+  sBuildingList = PR_FALSE;
 
   
   if (SUCCEEDED(hr)) {
-    *_retval = true;
-    mHasCommit = true;
+    *_retval = PR_TRUE;
+    mHasCommit = PR_TRUE;
   }
 
   return NS_OK;
 }
 
 
-NS_IMETHODIMP JumpListBuilder::DeleteActiveList(bool *_retval)
+NS_IMETHODIMP JumpListBuilder::DeleteActiveList(PRBool *_retval)
 {
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   if (!mJumpListMgr)
     return NS_ERROR_NOT_AVAILABLE;
@@ -464,23 +464,23 @@ NS_IMETHODIMP JumpListBuilder::DeleteActiveList(bool *_retval)
     return NS_OK;
 
   if (SUCCEEDED(mJumpListMgr->DeleteList(uid.get())))
-    *_retval = true;
+    *_retval = PR_TRUE;
 
   return NS_OK;
 }
 
 
 
-bool JumpListBuilder::IsSeparator(nsCOMPtr<nsIJumpListItem>& item)
+PRBool JumpListBuilder::IsSeparator(nsCOMPtr<nsIJumpListItem>& item)
 {
   PRInt16 type;
   item->GetType(&type);
   if (NS_FAILED(item->GetType(&type)))
-    return false;
+    return PR_FALSE;
     
   if (type == nsIJumpListItem::JUMPLIST_ITEM_SEPARATOR)
-    return true;
-  return false;
+    return PR_TRUE;
+  return PR_FALSE;
 }
 
 
@@ -524,7 +524,7 @@ nsresult JumpListBuilder::TransferIObjectArrayToIMutableArray(IObjectArray *objA
       pItem->Release();
 
     if (NS_SUCCEEDED(rv)) {
-      removedItems->AppendElement(item, false);
+      removedItems->AppendElement(item, PR_FALSE);
     }
   }
   return NS_OK;
@@ -535,7 +535,7 @@ NS_IMETHODIMP JumpListBuilder::Observe(nsISupports* aSubject,
                                         const PRUnichar* aData)
 {
   if (nsDependentString(aData).EqualsASCII(kPrefTaskbarEnabled)) {
-    bool enabled = Preferences::GetBool(kPrefTaskbarEnabled, true);
+    PRBool enabled = Preferences::GetBool(kPrefTaskbarEnabled, true);
     if (!enabled) {
       
       nsCOMPtr<nsIRunnable> event = new AsyncDeleteAllFaviconsFromDisk();
@@ -691,19 +691,19 @@ NS_IMETHODIMP AsyncDeleteIconFromDisk::Run()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  bool exists;
+  PRBool exists;
   rv = icoFile->Exists(&exists);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   if (StringTail(mIconPath, 4).LowerCaseEqualsASCII(".ico")) {
     
-    bool exists;
+    PRBool exists;
     if (NS_FAILED(icoFile->Exists(&exists)) || !exists)
       return NS_ERROR_FAILURE;
 
     
-    icoFile->Remove(false);
+    icoFile->Remove(PR_FALSE);
   }
 
   return NS_OK;
@@ -732,7 +732,7 @@ NS_IMETHODIMP AsyncDeleteAllFaviconsFromDisk::Run()
 
   
   do {
-    bool hasMore = false;
+    PRBool hasMore = PR_FALSE;
     if (NS_FAILED(entries->HasMoreElements(&hasMore)) || !hasMore)
       break;
 
@@ -748,12 +748,12 @@ NS_IMETHODIMP AsyncDeleteAllFaviconsFromDisk::Run()
     PRInt32 len = path.Length();
     if (StringTail(path, 4).LowerCaseEqualsASCII(".ico")) {
       
-      bool exists;
+      PRBool exists;
       if (NS_FAILED(currFile->Exists(&exists)) || !exists)
         continue;
 
       
-      currFile->Remove(false);
+      currFile->Remove(PR_FALSE);
     }
   } while(true);
 

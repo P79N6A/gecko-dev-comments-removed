@@ -113,7 +113,7 @@ public:
   virtual nsresult GetEncodedSubmission(nsIURI* aURI,
                                         nsIInputStream** aPostDataStream);
 
-  virtual bool SupportsIsindexSubmission()
+  virtual PRBool SupportsIsindexSubmission()
   {
     return PR_TRUE;
   }
@@ -146,7 +146,7 @@ private:
   nsCOMPtr<nsIDocument> mDocument;
 
   
-  bool mWarnedFileControl;
+  PRBool mWarnedFileControl;
 };
 
 nsresult
@@ -215,8 +215,8 @@ static void
 HandleMailtoSubject(nsCString& aPath) {
 
   
-  bool hasSubject = false;
-  bool hasParams = false;
+  PRBool hasSubject = PR_FALSE;
+  PRBool hasParams = PR_FALSE;
   PRInt32 paramSep = aPath.FindChar('?');
   while (paramSep != kNotFound && paramSep < (PRInt32)aPath.Length()) {
     hasParams = PR_TRUE;
@@ -288,7 +288,7 @@ nsFSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
 
   if (mMethod == NS_FORM_METHOD_POST) {
 
-    bool isMailto = false;
+    PRBool isMailto = PR_FALSE;
     aURI->SchemeIs("mailto", &isMailto);
     if (isMailto) {
 
@@ -338,7 +338,7 @@ nsFSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
 
   } else {
     
-    bool schemeIsJavaScript;
+    PRBool schemeIsJavaScript;
     rv = aURI->SchemeIs("javascript", &schemeIsJavaScript);
     NS_ENSURE_SUCCESS(rv, rv);
     if (schemeIsJavaScript) {
@@ -650,7 +650,7 @@ nsFSTextPlain::GetEncodedSubmission(nsIURI* aURI,
   
   
   
-  bool isMailto = false;
+  PRBool isMailto = PR_FALSE;
   aURI->SchemeIs("mailto", &isMailto);
   if (isMailto) {
     nsCAutoString path;

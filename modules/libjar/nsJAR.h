@@ -113,7 +113,7 @@ class nsJAR : public nsIZipReader
         return mReleaseTime;
     }
     
-    bool IsReleased() {
+    PRBool IsReleased() {
         return mReleaseTime != PR_INTERVAL_NO_TIMEOUT;
     }
 
@@ -135,7 +135,7 @@ class nsJAR : public nsIZipReader
     nsCString                mOuterZipEntry;  
     nsAutoPtr<nsZipArchive>  mZip;            
     nsObjectHashtable        mManifestData;   
-    bool                     mParsedManifest; 
+    PRBool                   mParsedManifest; 
     nsCOMPtr<nsIPrincipal>   mPrincipal;      
     PRInt16                  mGlobalStatus;   
     PRIntervalTime           mReleaseTime;    
@@ -143,11 +143,11 @@ class nsJAR : public nsIZipReader
     mozilla::Mutex           mLock;	
     PRInt64                  mMtime;
     PRInt32                  mTotalItemsInManifest;
-    bool                     mOpened;
+    PRBool                   mOpened;
 
     nsresult ParseManifest();
     void     ReportError(const char* aFilename, PRInt16 errorCode);
-    nsresult LoadEntry(const nsACString &aFilename, char** aBuf, 
+    nsresult LoadEntry(const char* aFilename, char** aBuf, 
                        PRUint32* aBufLen = nsnull);
     PRInt32  ReadLine(const char** src); 
     nsresult ParseOneFile(const char* filebuf, PRInt16 aFileType);
@@ -182,8 +182,8 @@ private:
     PRUint32     mCrc32;
     PRTime       mLastModTime;
     PRUint16     mCompression;
-    bool mIsDirectory; 
-    bool mIsSynthetic;
+    PRPackedBool mIsDirectory; 
+    PRPackedBool mIsSynthetic;
 };
 
 

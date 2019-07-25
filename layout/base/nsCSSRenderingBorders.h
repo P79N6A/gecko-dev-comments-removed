@@ -135,16 +135,16 @@ struct nsCSSBorderRenderer {
   nscolor mBackgroundColor;
 
   
-  bool mOneUnitBorder;
-  bool mNoBorderRadius;
-  bool mAvoidStroke;
+  PRPackedBool mOneUnitBorder;
+  PRPackedBool mNoBorderRadius;
+  PRPackedBool mAvoidStroke;
 
   
   
-  bool AreBorderSideFinalStylesSame(PRUint8 aSides);
+  PRBool AreBorderSideFinalStylesSame(PRUint8 aSides);
 
   
-  bool IsSolidCornerStyle(PRUint8 aStyle, mozilla::css::Corner aCorner);
+  PRBool IsSolidCornerStyle(PRUint8 aStyle, mozilla::css::Corner aCorner);
 
   
   BorderColorStyle BorderColorStyleForSolidCorner(PRUint8 aStyle, mozilla::css::Corner aCorner);

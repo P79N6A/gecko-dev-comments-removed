@@ -99,7 +99,7 @@ struct DCFromContext {
     }
 
     HDC dc;
-    bool needsRelease;
+    PRBool needsRelease;
 };
 
 
@@ -165,7 +165,7 @@ public:
 
 
 
-    void VerifyD2DDevice(bool aAttemptForce);
+    void VerifyD2DDevice(PRBool aAttemptForce);
 
     HDC GetScreenDC() { return mScreenDC; }
 
@@ -177,7 +177,7 @@ public:
 
     nsresult ResolveFontName(const nsAString& aFontName,
                              FontResolverCallback aCallback,
-                             void *aClosure, bool& aAborted);
+                             void *aClosure, PRBool& aAborted);
 
     nsresult GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
 
@@ -201,21 +201,21 @@ public:
     
 
 
-    virtual bool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags);
+    virtual PRBool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags);
 
     
     gfxFontFamily *FindFontFamily(const nsAString& aName);
     gfxFontEntry *FindFontEntry(const nsAString& aName, const gfxFontStyle& aFontStyle);
 
-    bool GetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> > *array);
+    PRBool GetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> > *array);
     void SetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> >& array);
 
     void ClearPrefFonts() { mPrefFonts.Clear(); }
 
     
     
-    bool UseClearTypeForDownloadableFonts();
-    bool UseClearTypeAlways();
+    PRBool UseClearTypeForDownloadableFonts();
+    PRBool UseClearTypeAlways();
 
     
     
@@ -241,10 +241,10 @@ public:
 
 #ifdef CAIRO_HAS_DWRITE_FONT
     IDWriteFactory *GetDWriteFactory() { return mDWriteFactory; }
-    inline bool DWriteEnabled() { return mUseDirectWrite; }
+    inline PRBool DWriteEnabled() { return mUseDirectWrite; }
     inline DWRITE_MEASURING_MODE DWriteMeasuringMode() { return mMeasuringMode; }
 #else
-    inline bool DWriteEnabled() { return false; }
+    inline PRBool DWriteEnabled() { return PR_FALSE; }
 #endif
 #ifdef CAIRO_HAS_D2D_SURFACE
     cairo_device_t *GetD2DDevice() { return mD2DDevice; }
@@ -256,15 +256,15 @@ public:
 protected:
     RenderMode mRenderMode;
 
-    PRInt8 mUseClearTypeForDownloadableFonts;
-    PRInt8 mUseClearTypeAlways;
+    PRBool mUseClearTypeForDownloadableFonts;
+    PRBool mUseClearTypeAlways;
     HDC mScreenDC;
 
 private:
     void Init();
 
-    bool mUseDirectWrite;
-    bool mUsingGDIFonts;
+    PRBool mUseDirectWrite;
+    PRBool mUsingGDIFonts;
 
 #ifdef CAIRO_HAS_DWRITE_FONT
     nsRefPtr<IDWriteFactory> mDWriteFactory;

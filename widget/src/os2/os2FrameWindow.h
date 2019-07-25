@@ -68,20 +68,20 @@ public:
                                           nsBorderStyle aBorderStyle);
   PRUint32              GetFCFlags(nsWindowType aWindowType,
                                    nsBorderStyle aBorderStyle);
-  nsresult              Show(bool aState);
-  void                  SetWindowListVisibility(bool aState);
+  nsresult              Show(PRBool aState);
+  void                  SetWindowListVisibility(PRBool aState);
   nsresult              GetBounds(nsIntRect& aRect);
   nsresult              Move(PRInt32 aX, PRInt32 aY);
   nsresult              Resize(PRInt32 aWidth, PRInt32 aHeight,
-                               bool aRepaint);
+                               PRBool aRepaint);
   nsresult              Resize(PRInt32 aX, PRInt32 aY, PRInt32 w, PRInt32 h,
-                               bool aRepaint);
+                               PRBool aRepaint);
   void                  ActivateTopLevelWidget();
   nsresult              SetSizeMode(PRInt32 aMode);
-  nsresult              HideWindowChrome(bool aShouldHide);
+  nsresult              HideWindowChrome(PRBool aShouldHide);
   nsresult              SetTitle(const nsAString& aTitle); 
   nsresult              SetIcon(const nsAString& aIconSpec); 
-  nsresult              ConstrainPosition(bool aAllowSlop,
+  nsresult              ConstrainPosition(PRBool aAllowSlop,
                                           PRInt32* aX, PRInt32* aY);
   MRESULT               ProcessFrameMessage(ULONG msg, MPARAM mp1, MPARAM mp2);
   HWND                  GetFrameWnd()       {return mFrameWnd;}
@@ -97,8 +97,8 @@ protected:
   HWND          mMinMax;            
   PRUint32      mSavedStyle;        
   HPOINTER      mFrameIcon;         
-  bool          mChromeHidden;      
-  bool          mNeedActivation;    
+  PRBool        mChromeHidden;      
+  PRBool        mNeedActivation;    
   PFNWP         mPrevFrameProc;     
   nsIntRect     mFrameBounds;       
 };

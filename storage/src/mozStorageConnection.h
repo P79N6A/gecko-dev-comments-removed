@@ -191,7 +191,7 @@ private:
 
   nsresult databaseElementExists(enum DatabaseElementType aElementType,
                                  const nsACString& aElementName,
-                                 bool *_exists);
+                                 PRBool *_exists);
 
   bool findFunctionByInstance(nsISupports *aInstance);
 
@@ -224,7 +224,7 @@ private:
 
 
 
-  bool mTransactionInProgress;
+  PRBool mTransactionInProgress;
 
   
 

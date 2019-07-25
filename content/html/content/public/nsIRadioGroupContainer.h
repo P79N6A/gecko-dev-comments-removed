@@ -66,7 +66,7 @@ public:
 
   NS_IMETHOD WalkRadioGroup(const nsAString& aName,
                             nsIRadioVisitor* aVisitor,
-                            bool aFlushContent) = 0;
+                            PRBool aFlushContent) = 0;
 
   
 
@@ -92,7 +92,7 @@ public:
 
 
   NS_IMETHOD GetNextRadioButton(const nsAString& aName,
-                                const bool aPrevious,
+                                const PRBool aPrevious,
                                 nsIDOMHTMLInputElement*  aFocusedRadio,
                                 nsIDOMHTMLInputElement** aRadio) = 0;
 

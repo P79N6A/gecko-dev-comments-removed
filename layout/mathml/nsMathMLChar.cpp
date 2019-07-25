@@ -183,16 +183,16 @@ public:
 
   
   
-  bool Has(nsPresContext* aPresContext, nsMathMLChar* aChar);
+  PRBool Has(nsPresContext* aPresContext, nsMathMLChar* aChar);
 
   
-  bool HasVariantsOf(nsPresContext* aPresContext, nsMathMLChar* aChar);
+  PRBool HasVariantsOf(nsPresContext* aPresContext, nsMathMLChar* aChar);
 
   
-  bool HasPartsOf(nsPresContext* aPresContext, nsMathMLChar* aChar);
+  PRBool HasPartsOf(nsPresContext* aPresContext, nsMathMLChar* aChar);
 
   
-  bool IsComposite(nsPresContext* aPresContext, nsMathMLChar* aChar);
+  PRBool IsComposite(nsPresContext* aPresContext, nsMathMLChar* aChar);
 
   
   PRInt32 ChildCountOf(nsPresContext* aPresContext, nsMathMLChar* aChar);
@@ -410,7 +410,7 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
   return ch.code[0] == PRUnichar(0xFFFD) ? kNullGlyph : ch;
 }
 
-bool
+PRBool
 nsGlyphTable::IsComposite(nsPresContext* aPresContext, nsMathMLChar* aChar)
 {
   
@@ -433,20 +433,20 @@ nsGlyphTable::ChildCountOf(nsPresContext* aPresContext, nsMathMLChar* aChar)
   return 1 + mGlyphCache.CountChar(kSpaceCh);
 }
 
-bool
+PRBool
 nsGlyphTable::Has(nsPresContext* aPresContext, nsMathMLChar* aChar)
 {
   return HasVariantsOf(aPresContext, aChar) || HasPartsOf(aPresContext, aChar);
 }
 
-bool
+PRBool
 nsGlyphTable::HasVariantsOf(nsPresContext* aPresContext, nsMathMLChar* aChar)
 {
   
   return BigOf(aPresContext, aChar, 1).Exists();
 }
 
-bool
+PRBool
 nsGlyphTable::HasPartsOf(nsPresContext* aPresContext, nsMathMLChar* aChar)
 {
   return GlueOf(aPresContext, aChar).Exists() ||
@@ -516,7 +516,7 @@ NS_IMPL_ISUPPORTS1(nsGlyphTableList, nsIObserver)
 
 static nsGlyphTableList* gGlyphTableList = nsnull;
 
-static bool gInitialized = false;
+static PRBool gInitialized = PR_FALSE;
 
 
 NS_IMETHODIMP
@@ -612,7 +612,7 @@ nsGlyphTableList::GetGlyphTableFor(const nsAString& aFamily)
 
 
 
-static bool
+static PRBool
 GetFontExtensionPref(PRUnichar aChar,
                      nsMathfontPrefExtension aExtension, nsString& aValue)
 {
@@ -668,8 +668,8 @@ GetFontExtensionPref(PRUnichar aChar,
 }
 
 
-static bool
-MathFontEnumCallback(const nsString& aFamily, bool aGeneric, void *aData)
+static PRBool
+MathFontEnumCallback(const nsString& aFamily, PRBool aGeneric, void *aData)
 {
   if (!gGlyphTableList->AddGlyphTable(aFamily))
     return PR_FALSE; 
@@ -875,41 +875,41 @@ nsMathMLChar::SetData(nsPresContext* aPresContext,
 #define NS_MATHML_DELIMITER_FACTOR             0.901f
 #define NS_MATHML_DELIMITER_SHORTFALL_POINTS   5.0f
 
-static bool
+static PRBool
 IsSizeOK(nsPresContext* aPresContext, nscoord a, nscoord b, PRUint32 aHint)
 {
   
   
   
   
-  bool isNormal =
+  PRBool isNormal =
     (aHint & NS_STRETCH_NORMAL)
-    && bool(float(NS_ABS(a - b))
+    && PRBool(float(NS_ABS(a - b))
               < (1.0f - NS_MATHML_DELIMITER_FACTOR) * float(b));
   
   
   
-  bool isNearer = false;
+  PRBool isNearer = PR_FALSE;
   if (aHint & (NS_STRETCH_NEARER | NS_STRETCH_LARGEOP)) {
     float c = NS_MAX(float(b) * NS_MATHML_DELIMITER_FACTOR,
                      float(b) - nsPresContext::CSSPointsToAppUnits(NS_MATHML_DELIMITER_SHORTFALL_POINTS));
-    isNearer = bool(float(NS_ABS(b - a)) <= (float(b) - c));
+    isNearer = PRBool(float(NS_ABS(b - a)) <= (float(b) - c));
   }
   
   
-  bool isSmaller =
+  PRBool isSmaller =
     (aHint & NS_STRETCH_SMALLER)
-    && bool((float(a) >= (NS_MATHML_DELIMITER_FACTOR * float(b)))
+    && PRBool((float(a) >= (NS_MATHML_DELIMITER_FACTOR * float(b)))
               && (a <= b));
   
   
-  bool isLarger =
+  PRBool isLarger =
     (aHint & (NS_STRETCH_LARGER | NS_STRETCH_LARGEOP))
-    && bool(a >= b);
+    && PRBool(a >= b);
   return (isNormal || isSmaller || isNearer || isLarger);
 }
 
-static bool
+static PRBool
 IsSizeBetter(nscoord a, nscoord olda, nscoord b, PRUint32 aHint)
 {
   if (0 == olda)
@@ -1072,7 +1072,7 @@ public:
                      PRUint32             aStretchHint,
                      nsBoundingMetrics&   aStretchedMetrics,
                      const nsAString&     aFamilies,
-                     bool&              aGlyphFound)
+                     PRBool&              aGlyphFound)
     : mChar(aChar),
       mPresContext(aPresContext),
       mRenderingContext(aRenderingContext),
@@ -1085,15 +1085,15 @@ public:
       mTryParts(PR_TRUE),
       mGlyphFound(aGlyphFound) {}
 
-  static bool
-  EnumCallback(const nsString& aFamily, bool aGeneric, void *aData);
+  static PRBool
+  EnumCallback(const nsString& aFamily, PRBool aGeneric, void *aData);
 
 private:
-  static bool
+  static PRBool
   ResolverCallback (const nsAString& aFamily, void *aData);
 
-  bool TryVariants(nsGlyphTable* aGlyphTable, const nsAString& aFamily);
-  bool TryParts(nsGlyphTable* aGlyphTable, const nsAString& aFamily);
+  PRBool TryVariants(nsGlyphTable* aGlyphTable, const nsAString& aFamily);
+  PRBool TryParts(nsGlyphTable* aGlyphTable, const nsAString& aFamily);
 
   nsMathMLChar* mChar;
   nsPresContext* mPresContext;
@@ -1106,20 +1106,20 @@ private:
   const nsAString& mFamilies;
 
 public:
-  bool mTryVariants;
-  bool mTryParts;
+  PRPackedBool mTryVariants;
+  PRPackedBool mTryParts;
 
 private:
   nsAutoTArray<nsGlyphTable*,16> mTablesTried;
   nsGlyphTable* mGlyphTable; 
-  bool&       mGlyphFound;
+  PRBool&       mGlyphFound;
 };
 
 
 
 
 
-bool
+PRBool
 nsMathMLChar::StretchEnumContext::TryVariants(nsGlyphTable*    aGlyphTable,
                                               const nsAString& aFamily)
 {
@@ -1129,16 +1129,16 @@ nsMathMLChar::StretchEnumContext::TryVariants(nsGlyphTable*    aGlyphTable,
   
   font.name.Truncate();
 
-  bool isVertical = (mDirection == NS_STRETCH_DIRECTION_VERTICAL);
-  bool largeop = (NS_STRETCH_LARGEOP & mStretchHint) != 0;
-  bool largeopOnly =
+  PRBool isVertical = (mDirection == NS_STRETCH_DIRECTION_VERTICAL);
+  PRBool largeop = (NS_STRETCH_LARGEOP & mStretchHint) != 0;
+  PRBool largeopOnly =
     largeop && (NS_STRETCH_VARIABLE_MASK & mStretchHint) == 0;
-  bool maxWidth = (NS_STRETCH_MAXWIDTH & mStretchHint) != 0;
+  PRBool maxWidth = (NS_STRETCH_MAXWIDTH & mStretchHint) != 0;
 
   nscoord bestSize =
     isVertical ? mBoundingMetrics.ascent + mBoundingMetrics.descent
                : mBoundingMetrics.rightBearing - mBoundingMetrics.leftBearing;
-  bool haveBetter = false;
+  PRBool haveBetter = PR_FALSE;
 
   
   PRInt32 size = 1;
@@ -1210,7 +1210,7 @@ nsMathMLChar::StretchEnumContext::TryVariants(nsGlyphTable*    aGlyphTable,
 
 
 
-bool
+PRBool
 nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
                                            const nsAString& aFamily)
 {
@@ -1254,8 +1254,8 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
   nscoord sizedata[4];
   nsGlyphCode glue = aGlyphTable->GlueOf(mPresContext, mChar);
 
-  bool isVertical = (mDirection == NS_STRETCH_DIRECTION_VERTICAL);
-  bool maxWidth = (NS_STRETCH_MAXWIDTH & mStretchHint) != 0;
+  PRBool isVertical = (mDirection == NS_STRETCH_DIRECTION_VERTICAL);
+  PRBool maxWidth = (NS_STRETCH_MAXWIDTH & mStretchHint) != 0;
 
   for (PRInt32 i = 0; i < 4; i++) {
     nsGlyphCode ch;
@@ -1372,7 +1372,7 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
 
 
 
-bool
+PRBool
 nsMathMLChar::StretchEnumContext::ResolverCallback (const nsAString& aFamily,
                                                     void *aData)
 {
@@ -1389,13 +1389,13 @@ nsMathMLChar::StretchEnumContext::ResolverCallback (const nsAString& aFamily,
     context->mFamilies : aFamily;
 
   if(context->mTryVariants) {
-    bool isOK = context->TryVariants(glyphTable, family);
+    PRBool isOK = context->TryVariants(glyphTable, family);
     if (isOK)
       return PR_FALSE; 
   }
 
   if(context->mTryParts) {
-    bool isOK = context->TryParts(glyphTable, family);
+    PRBool isOK = context->TryParts(glyphTable, family);
     if (isOK)
       return PR_FALSE; 
   }
@@ -1403,9 +1403,9 @@ nsMathMLChar::StretchEnumContext::ResolverCallback (const nsAString& aFamily,
 }
 
 
-bool
+PRBool
 nsMathMLChar::StretchEnumContext::EnumCallback(const nsString& aFamily,
-                                               bool aGeneric, void *aData)
+                                               PRBool aGeneric, void *aData)
 {
   StretchEnumContext* context = static_cast<StretchEnumContext*>(aData);
 
@@ -1422,7 +1422,7 @@ nsMathMLChar::StretchEnumContext::EnumCallback(const nsString& aFamily,
   if (aGeneric)
     return ResolverCallback(aFamily, aData);
 
-  bool aborted;
+  PRBool aborted;
   gfxPlatform *pf = gfxPlatform::GetPlatform();
   nsresult rv =
     pf->ResolveFontName(aFamily, ResolverCallback, aData, aborted);
@@ -1439,7 +1439,7 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
                               
                               
                               float                    aMaxSize,
-                              bool                     aMaxSizeIsAbsolute)
+                              PRBool                   aMaxSizeIsAbsolute)
 {
   
   
@@ -1458,7 +1458,7 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   }
 
   
-  bool maxWidth = (NS_STRETCH_MAXWIDTH & aStretchHint) != 0;
+  PRBool maxWidth = (NS_STRETCH_MAXWIDTH & aStretchHint) != 0;
   if (!maxWidth) {
     
     
@@ -1495,11 +1495,11 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   }
 
   
-  bool largeop = (NS_STRETCH_LARGEOP & aStretchHint) != 0;
-  bool stretchy = (NS_STRETCH_VARIABLE_MASK & aStretchHint) != 0;
-  bool largeopOnly = largeop && !stretchy;
+  PRBool largeop = (NS_STRETCH_LARGEOP & aStretchHint) != 0;
+  PRBool stretchy = (NS_STRETCH_VARIABLE_MASK & aStretchHint) != 0;
+  PRBool largeopOnly = largeop && !stretchy;
 
-  bool isVertical = (direction == NS_STRETCH_DIRECTION_VERTICAL);
+  PRBool isVertical = (direction == NS_STRETCH_DIRECTION_VERTICAL);
 
   nscoord targetSize =
     isVertical ? aContainerSize.ascent + aContainerSize.descent
@@ -1548,7 +1548,7 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
     isVertical ? initialSize.ascent + initialSize.descent
     : initialSize.rightBearing - initialSize.leftBearing;
 
-  bool done = (mGlyphTable ? false : true);
+  PRBool done = (mGlyphTable ? PR_FALSE : PR_TRUE);
 
   if (!done && !maxWidth && !largeop) {
     
@@ -1563,7 +1563,7 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   
   
 
-  bool glyphFound = false;
+  PRBool glyphFound = PR_FALSE;
   nsAutoString cssFamilies;
 
   if (!done) {
@@ -1739,7 +1739,7 @@ nscoord
 nsMathMLChar::GetMaxWidth(nsPresContext* aPresContext,
                           nsRenderingContext& aRenderingContext,
                           PRUint32 aStretchHint,
-                          float aMaxSize, bool aMaxSizeIsAbsolute)
+                          float aMaxSize, PRBool aMaxSizeIsAbsolute)
 {
   nsBoundingMetrics bm;
   nsStretchDirection direction = NS_STRETCH_DIRECTION_VERTICAL;
@@ -1896,7 +1896,7 @@ class nsDisplayMathMLCharForeground : public nsDisplayItem {
 public:
   nsDisplayMathMLCharForeground(nsDisplayListBuilder* aBuilder,
                                 nsIFrame* aFrame, nsMathMLChar* aChar,
-				                        bool aIsSelected)
+				                        PRBool aIsSelected)
     : nsDisplayItem(aBuilder, aFrame), mChar(aChar), mIsSelected(aIsSelected) {
     MOZ_COUNT_CTOR(nsDisplayMathMLCharForeground);
   }
@@ -1932,7 +1932,7 @@ public:
 
 private:
   nsMathMLChar* mChar;
-  bool          mIsSelected;
+  PRPackedBool  mIsSelected;
 };
 
 #ifdef NS_DEBUG
@@ -2041,7 +2041,7 @@ void
 nsMathMLChar::PaintForeground(nsPresContext* aPresContext,
                               nsRenderingContext& aRenderingContext,
                               nsPoint aPt,
-                              bool aIsSelected)
+                              PRBool aIsSelected)
 {
   nsStyleContext* parentContext = mStyleContext->GetParent();
   nsStyleContext* styleContext = mStyleContext;

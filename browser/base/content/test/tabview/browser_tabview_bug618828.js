@@ -52,7 +52,7 @@ function onTabViewWindowLoaded(win, tab) {
   let testClickOnOtherSearchResult = function () {
     
     searchbox.setAttribute('value', 'other');
-    contentWindow.Search.perform();
+    contentWindow.performSearch();
 
     
     window.addEventListener('focus', function onFocus() {

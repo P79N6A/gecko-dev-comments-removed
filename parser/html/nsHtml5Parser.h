@@ -157,12 +157,12 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    NS_IMETHOD_(bool) IsParserEnabled();
+    NS_IMETHOD_(PRBool) IsParserEnabled();
 
     
 
 
-    NS_IMETHOD_(bool) IsComplete();
+    NS_IMETHOD_(PRBool) IsComplete();
 
     
 
@@ -189,7 +189,7 @@ class nsHtml5Parser : public nsIParser,
     NS_IMETHOD Parse(const nsAString& aSourceBuffer,
                      void* aKey,
                      const nsACString& aContentType,
-                     bool aLastCall,
+                     PRBool aLastCall,
                      nsDTDMode aMode = eDTDMode_autodetect);
 
     
@@ -226,12 +226,12 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    virtual bool CanInterrupt();
+    virtual PRBool CanInterrupt();
 
     
 
 
-    virtual bool IsInsertionPointDefined();
+    virtual PRBool IsInsertionPointDefined();
 
     
 
@@ -252,7 +252,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    virtual bool IsScriptCreated();
+    virtual PRBool IsScriptCreated();
 
     
 
@@ -272,8 +272,8 @@ class nsHtml5Parser : public nsIParser,
                                 nsIContent* aTargetNode,
                                 nsIAtom* aContextLocalName,
                                 PRInt32 aContextNamespace,
-                                bool aQuirks,
-                                bool aPreventScriptExecution);
+                                PRBool aQuirks,
+                                PRBool aPreventScriptExecution);
 
     
     
@@ -301,7 +301,7 @@ class nsHtml5Parser : public nsIParser,
       }
     }
     
-    void StartTokenizer(bool aScriptingEnabled);
+    void StartTokenizer(PRBool aScriptingEnabled);
     
     void ContinueAfterFailedCharsetSwitch();
 
@@ -321,28 +321,28 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    bool                          mLastWasCR;
+    PRBool                        mLastWasCR;
 
     
 
 
 
-    bool                          mDocWriteSpeculativeLastWasCR;
+    PRBool                        mDocWriteSpeculativeLastWasCR;
 
     
 
 
-    bool                          mFragmentMode;
+    PRBool                        mFragmentMode;
 
     
 
 
-    bool                          mBlocked;
+    PRBool                        mBlocked;
 
     
 
 
-    bool                          mDocWriteSpeculatorActive;
+    PRBool                        mDocWriteSpeculatorActive;
     
     
 
@@ -352,7 +352,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    bool                          mDocumentClosed;
+    PRBool                        mDocumentClosed;
 
     
     void*                         mRootContextKey;
@@ -407,7 +407,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    bool                                mReturnToStreamParserPermitted;
+    PRBool                              mReturnToStreamParserPermitted;
 
     
 

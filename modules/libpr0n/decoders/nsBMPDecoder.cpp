@@ -44,7 +44,7 @@
 
 #include <stdlib.h>
 
-#include "EndianMacros.h"
+#include "Endian.h"
 #include "nsBMPDecoder.h"
 
 #include "nsIInputStream.h"
@@ -63,18 +63,17 @@ PRLogModuleInfo *gBMPLog = PR_NewLogModule("BMPDecoder");
 #define LINE(row) ((mBIH.height < 0) ? (-mBIH.height - (row)) : ((row) - 1))
 #define PIXEL_OFFSET(row, col) (LINE(row) * mBIH.width + col)
 
-nsBMPDecoder::nsBMPDecoder(RasterImage *aImage, imgIDecoderObserver* aObserver)
- : Decoder(aImage, aObserver)
+nsBMPDecoder::nsBMPDecoder()
 {
-  mColors = nsnull;
-  mRow = nsnull;
-  mImageData = nsnull;
-  mCurPos = mPos = mNumColors = mRowBytes = 0;
-  mOldLine = mCurLine = 1; 
-  mState = eRLEStateInitial;
-  mStateData = 0;
-  mLOH = WIN_HEADER_LENGTH;
-  mUseAlphaData = mHaveAlphaData = PR_FALSE;
+    mColors = nsnull;
+    mRow = nsnull;
+    mImageData = nsnull;
+    mCurPos = mPos = mNumColors = mRowBytes = 0;
+    mOldLine = mCurLine = 1; 
+    mState = eRLEStateInitial;
+    mStateData = 0;
+    mLOH = WIN_HEADER_LENGTH;
+    mUseAlphaData = mHaveAlphaData = PR_FALSE;
 }
 
 nsBMPDecoder::~nsBMPDecoder()
@@ -87,7 +86,7 @@ nsBMPDecoder::~nsBMPDecoder()
 
 
 void 
-nsBMPDecoder::SetUseAlphaData(bool useAlphaData) 
+nsBMPDecoder::SetUseAlphaData(PRBool useAlphaData) 
 {
   mUseAlphaData = useAlphaData;
 }
@@ -145,7 +144,7 @@ nsBMPDecoder::GetCompressedImageSize() const
 
 
 
-bool 
+PRBool 
 nsBMPDecoder::HasAlphaData() const 
 {
   return mHaveAlphaData;
@@ -181,7 +180,7 @@ static void calcBitmask(PRUint32 aMask, PRUint8& aBegin, PRUint8& aLength)
 {
     
     PRUint8 pos;
-    bool started = false;
+    PRBool started = PR_FALSE;
     aBegin = aLength = 0;
     for (pos = 0; pos <= 31; pos++) {
         if (!started && (aMask & (1 << pos))) {

@@ -69,7 +69,7 @@ public:
                   nsIFrame* aParent,
                   nsIFrame* aPrevInFlow);
 
-  virtual bool IsFrameOfType(PRUint32 aFlags) const
+  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsSVGGeometryFrameBase::IsFrameOfType(aFlags & ~(nsIFrame::eSVG | nsIFrame::eSVGGeometry));
   }
@@ -84,11 +84,11 @@ public:
 
 
 
-  bool SetupCairoFill(gfxContext *aContext);
+  PRBool SetupCairoFill(gfxContext *aContext);
   
 
 
-  bool HasStroke();
+  PRBool HasStroke();
   
 
 
@@ -101,7 +101,7 @@ public:
 
 
 
-  bool SetupCairoStroke(gfxContext *aContext);
+  PRBool SetupCairoStroke(gfxContext *aContext);
 
 protected:
   nsSVGPaintServerFrame *GetPaintServer(const nsStyleSVGPaint *aPaint,

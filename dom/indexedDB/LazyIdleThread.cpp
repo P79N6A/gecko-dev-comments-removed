@@ -231,7 +231,7 @@ LazyIdleThread::ScheduleTimer()
 {
   ASSERT_OWNING_THREAD();
 
-  bool shouldSchedule;
+  PRBool shouldSchedule;
   {
     MutexAutoLock lock(mMutex);
 
@@ -416,7 +416,7 @@ LazyIdleThread::Dispatch(nsIRunnable* aEvent,
 }
 
 NS_IMETHODIMP
-LazyIdleThread::IsOnCurrentThread(bool* aIsOnCurrentThread)
+LazyIdleThread::IsOnCurrentThread(PRBool* aIsOnCurrentThread)
 {
   if (mThread) {
     return mThread->IsOnCurrentThread(aIsOnCurrentThread);
@@ -455,7 +455,7 @@ LazyIdleThread::Shutdown()
 }
 
 NS_IMETHODIMP
-LazyIdleThread::HasPendingEvents(bool* aHasPendingEvents)
+LazyIdleThread::HasPendingEvents(PRBool* aHasPendingEvents)
 {
   
   
@@ -464,8 +464,8 @@ LazyIdleThread::HasPendingEvents(bool* aHasPendingEvents)
 }
 
 NS_IMETHODIMP
-LazyIdleThread::ProcessNextEvent(bool aMayWait,
-                                 bool* aEventWasProcessed)
+LazyIdleThread::ProcessNextEvent(PRBool aMayWait,
+                                 PRBool* aEventWasProcessed)
 {
   
   
@@ -503,7 +503,7 @@ LazyIdleThread::OnDispatchedEvent(nsIThreadInternal* )
 
 NS_IMETHODIMP
 LazyIdleThread::OnProcessNextEvent(nsIThreadInternal* ,
-                                   bool ,
+                                   PRBool ,
                                    PRUint32 )
 {
   return NS_OK;
@@ -513,7 +513,7 @@ NS_IMETHODIMP
 LazyIdleThread::AfterProcessNextEvent(nsIThreadInternal* ,
                                       PRUint32 )
 {
-  bool shouldNotifyIdle;
+  PRBool shouldNotifyIdle;
   {
     MutexAutoLock lock(mMutex);
 

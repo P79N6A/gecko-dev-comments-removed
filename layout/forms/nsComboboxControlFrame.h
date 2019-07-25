@@ -125,7 +125,7 @@ public:
   
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(PRUint32 aFlags) const
+  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsBlockFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
@@ -157,14 +157,14 @@ public:
 
 
 
-  virtual void SetFocus(bool aOn, bool aRepaint);
+  virtual void SetFocus(PRBool aOn, PRBool aRepaint);
 
   
-  virtual bool IsDroppedDown() { return mDroppedDown; }
+  virtual PRBool IsDroppedDown() { return mDroppedDown; }
   
 
 
-  virtual void ShowDropDown(bool aDoDropDown);
+  virtual void ShowDropDown(PRBool aDoDropDown);
   virtual nsIFrame* GetDropDown();
   virtual void SetDropDown(nsIFrame* aDropDownFrame);
   
@@ -183,8 +183,8 @@ public:
   
   NS_IMETHOD AddOption(PRInt32 index);
   NS_IMETHOD RemoveOption(PRInt32 index);
-  NS_IMETHOD DoneAddingChildren(bool aIsDone);
-  NS_IMETHOD OnOptionSelected(PRInt32 aIndex, bool aSelected);
+  NS_IMETHOD DoneAddingChildren(PRBool aIsDone);
+  NS_IMETHOD OnOptionSelected(PRInt32 aIndex, PRBool aSelected);
   NS_IMETHOD OnSetSelectedIndex(PRInt32 aOldIndex, PRInt32 aNewIndex);
 
   
@@ -197,21 +197,21 @@ public:
 
 
 
-  NS_IMETHOD ShouldRollupOnMouseWheelEvent(bool *aShouldRollup)
+  NS_IMETHOD ShouldRollupOnMouseWheelEvent(PRBool *aShouldRollup)
     { *aShouldRollup = PR_TRUE; return NS_OK;}
 
   
 
 
 
-  NS_IMETHOD ShouldRollupOnMouseActivate(bool *aShouldRollup)
+  NS_IMETHOD ShouldRollupOnMouseActivate(PRBool *aShouldRollup)
     { *aShouldRollup = PR_FALSE; return NS_OK;}
 
   
   NS_IMETHOD SaveState(SpecialStateID aStateID, nsPresState** aState);
   NS_IMETHOD RestoreState(nsPresState* aState);
 
-  static bool ToolkitHasNativePopup();
+  static PRBool ToolkitHasNativePopup();
 
 protected:
 
@@ -239,7 +239,7 @@ protected:
 
 
 
-  void ShowPopup(bool aShowPopup);
+  void ShowPopup(PRBool aShowPopup);
 
   
 
@@ -247,12 +247,12 @@ protected:
 
 
 
-  bool ShowList(bool aShowList);
+  PRBool ShowList(PRBool aShowList);
   void CheckFireOnChange();
   void FireValueChangeEvent();
   nsresult RedisplayText(PRInt32 aIndex);
   void HandleRedisplayTextEvent();
-  void ActuallyDisplayText(bool aNotify);
+  void ActuallyDisplayText(PRBool aNotify);
 
 private:
   
@@ -272,8 +272,8 @@ protected:
   
   nscoord mDisplayWidth;
   
-  bool                  mDroppedDown;             
-  bool                  mInRedisplayText;
+  PRPackedBool          mDroppedDown;             
+  PRPackedBool          mInRedisplayText;
 
   nsRevocableEventPtr<RedisplayTextEvent> mRedisplayTextEvent;
 

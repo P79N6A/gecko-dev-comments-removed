@@ -86,7 +86,7 @@ public:
                 mBlocks[i] = new Block(*block);
         }
     }
-    bool test(PRUint32 aIndex) const {
+    PRBool test(PRUint32 aIndex) const {
         NS_ASSERTION(mBlocks.DebugGetHeader(), "mHdr is null, this is bad");
         PRUint32 blockIndex = aIndex/BLOCK_SIZE_BITS;
         if (blockIndex >= mBlocks.Length())
@@ -97,7 +97,7 @@ public:
         return ((block->mBits[(aIndex>>3) & (BLOCK_SIZE - 1)]) & (1 << (aIndex & 0x7))) != 0;
     }
 
-    bool TestRange(PRUint32 aStart, PRUint32 aEnd) {
+    PRBool TestRange(PRUint32 aStart, PRUint32 aEnd) {
         PRUint32 startBlock, endBlock, blockLen;
         
         
@@ -107,7 +107,7 @@ public:
         
         
         PRUint32 blockIndex;
-        bool hasBlocksInRange = false;
+        PRBool hasBlocksInRange = PR_FALSE;
 
         endBlock = aEnd >> BLOCK_INDEX_SHIFT;
         blockIndex = startBlock;
@@ -172,7 +172,7 @@ public:
         block->mBits[(aIndex>>3) & (BLOCK_SIZE - 1)] |= 1 << (aIndex & 0x7);
     }
 
-    void set(PRUint32 aIndex, bool aValue) {
+    void set(PRUint32 aIndex, PRBool aValue) {
         if (aValue)
             set(aIndex);
         else
@@ -196,7 +196,7 @@ public:
 
             Block *block = mBlocks[i];
             if (!block) {
-                bool fullBlock = false;
+                PRBool fullBlock = PR_FALSE;
                 if (aStart <= blockFirstBit && aEnd >= blockLastBit)
                     fullBlock = PR_TRUE;
 
@@ -663,13 +663,13 @@ public:
     static PRUint32
     FindPreferredSubtable(const PRUint8 *aBuf, PRUint32 aBufLength,
                           PRUint32 *aTableOffset, PRUint32 *aUVSTableOffset,
-                          bool *aSymbolEncoding);
+                          PRBool *aSymbolEncoding);
 
     static nsresult
     ReadCMAP(const PRUint8 *aBuf, PRUint32 aBufLength,
              gfxSparseBitSet& aCharacterMap,
              PRUint32& aUVSOffset,
-             bool& aUnicodeFont, bool& aSymbolFont);
+             PRPackedBool& aUnicodeFont, PRPackedBool& aSymbolFont);
 
     static PRUint32
     MapCharToGlyphFormat4(const PRUint8 *aBuf, PRUnichar aCh);
@@ -696,8 +696,8 @@ public:
 
     
     
-    static bool
-    IsCffFont(const PRUint8* aFontData, bool& hasVertical);
+    static PRBool
+    IsCffFont(const PRUint8* aFontData, PRBool& hasVertical);
 
 #endif
 
@@ -710,7 +710,7 @@ public:
     
     
     
-    static bool
+    static PRBool
     ValidateSFNTHeaders(const PRUint8 *aFontData, PRUint32 aFontDataLength);
     
     
@@ -746,7 +746,7 @@ public:
     
     
     
-    static bool
+    static PRBool
     DecodeFontName(const PRUint8 *aBuf, PRInt32 aLength, 
                    PRUint32 aPlatformCode, PRUint32 aScriptCode,
                    PRUint32 aLangCode, nsAString& dest);
@@ -789,7 +789,7 @@ public:
         kUnicodeRLO = 0x202E
     };
 
-    static inline bool PotentialRTLChar(PRUnichar aCh) {
+    static inline PRBool PotentialRTLChar(PRUnichar aCh) {
         if (aCh >= kUnicodeBidiScriptsStart && aCh <= kUnicodeBidiScriptsEnd)
             
             return PR_TRUE;
@@ -925,7 +925,7 @@ protected:
     virtual void InitLoader() = 0;
 
     
-    virtual bool RunLoader() = 0;
+    virtual PRBool RunLoader() = 0;
 
     
     virtual void FinishLoader() = 0;
@@ -942,7 +942,7 @@ protected:
             mTimer->SetDelay(mInterval);
         }
 
-        bool done = RunLoader();
+        PRBool done = RunLoader();
         if (done) {
             CancelLoader();
         }

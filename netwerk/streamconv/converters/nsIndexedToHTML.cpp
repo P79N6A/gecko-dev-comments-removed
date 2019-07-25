@@ -207,8 +207,8 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
     
     
 
-    bool isScheme = false;
-    bool isSchemeFile = false;
+    PRBool isScheme = PR_FALSE;
+    PRBool isSchemeFile = PR_FALSE;
     if (NS_SUCCEEDED(uri->SchemeIs("ftp", &isScheme)) && isScheme) {
 
         
@@ -610,7 +610,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
     nsCOMPtr<nsIXULChromeRegistry> reg =
       mozilla::services::GetXULChromeRegistryService();
     if (reg) {
-      bool isRTL = false;
+      PRBool isRTL = PR_FALSE;
       reg->IsLocaleRTL(NS_LITERAL_CSTRING("global"), &isRTL);
       if (isRTL) {
         direction.AssignLiteral("rtl");

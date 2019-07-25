@@ -65,7 +65,7 @@ class mozStorageTransaction
 {
 public:
   mozStorageTransaction(mozIStorageConnection* aConnection,
-                        bool aCommitOnComplete,
+                        PRBool aCommitOnComplete,
                         PRInt32 aType = mozIStorageConnection::TRANSACTION_DEFERRED)
     : mConnection(aConnection),
       mHasTransaction(PR_FALSE),
@@ -137,7 +137,7 @@ public:
 
 
 
-  bool HasTransaction()
+  PRBool HasTransaction()
   {
     return mHasTransaction;
   }
@@ -146,16 +146,16 @@ public:
 
 
 
-  void SetDefaultAction(bool aCommitOnComplete)
+  void SetDefaultAction(PRBool aCommitOnComplete)
   {
     mCommitOnComplete = aCommitOnComplete;
   }
 
 protected:
   nsCOMPtr<mozIStorageConnection> mConnection;
-  bool mHasTransaction;
-  bool mCommitOnComplete;
-  bool mCompleted;
+  PRBool mHasTransaction;
+  PRBool mCommitOnComplete;
+  PRBool mCompleted;
 };
 
 

@@ -96,7 +96,7 @@ public:
   GetPresShellForContent(nsIContent* aContent);
 
   
-  void SetExposeVisitedStyle(bool aExpose) {
+  void SetExposeVisitedStyle(PRBool aExpose) {
     NS_ASSERTION(aExpose != mExposeVisitedStyle, "should always be changing");
     mExposeVisitedStyle = aExpose;
   }
@@ -104,7 +104,7 @@ public:
   
   
   
-  virtual mozilla::css::Declaration* GetCSSDeclaration(bool);
+  virtual mozilla::css::Declaration* GetCSSDeclaration(PRBool);
   virtual nsresult SetCSSDeclaration(mozilla::css::Declaration*);
   virtual nsIDocument* DocToUpdate();
   virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv);
@@ -128,7 +128,7 @@ private:
 
   nsIDOMCSSValue* GetEllipseRadii(const nsStyleCorners& aRadius,
                                   PRUint8 aFullCorner,
-                                  bool aIsBorder); 
+                                  PRBool aIsBorder); 
 
   nsIDOMCSSValue* GetOffsetWidthFor(mozilla::css::Side aSide);
 
@@ -150,13 +150,13 @@ private:
 
   nsIDOMCSSValue* GetMarginWidthFor(mozilla::css::Side aSide);
 
-  nsIDOMCSSValue* GetSVGPaintFor(bool aFill);
+  nsIDOMCSSValue* GetSVGPaintFor(PRBool aFill);
 
-  bool GetLineHeightCoord(nscoord& aCoord);
+  PRBool GetLineHeightCoord(nscoord& aCoord);
 
   nsIDOMCSSValue* GetCSSShadowArray(nsCSSShadowArray* aArray,
                                     const nscolor& aDefaultColor,
-                                    bool aIsBoxShadow);
+                                    PRBool aIsBoxShadow);
 
   nsIDOMCSSValue* GetBackgroundList(PRUint8 nsStyleBackground::Layer::* aMember,
                                     PRUint32 nsStyleBackground::* aCount,
@@ -425,7 +425,7 @@ private:
   nsIDOMCSSValue* DoGetMask();
 
   nsROCSSPrimitiveValue* GetROCSSPrimitiveValue();
-  nsDOMCSSValueList* GetROCSSValueList(bool aCommaDelimited);
+  nsDOMCSSValueList* GetROCSSValueList(PRBool aCommaDelimited);
   void SetToRGBAColor(nsROCSSPrimitiveValue* aValue, nscolor aColor);
   void SetValueToStyleImage(const nsStyleImage& aStyleImage,
                             nsROCSSPrimitiveValue* aValue);
@@ -434,7 +434,7 @@ private:
 
 
 
-  typedef bool (nsComputedDOMStyle::*PercentageBaseGetter)(nscoord&);
+  typedef PRBool (nsComputedDOMStyle::*PercentageBaseGetter)(nscoord&);
 
   
 
@@ -452,7 +452,7 @@ private:
 
   void SetValueToCoord(nsROCSSPrimitiveValue* aValue,
                        const nsStyleCoord& aCoord,
-                       bool aClampNegativeCalc,
+                       PRBool aClampNegativeCalc,
                        PercentageBaseGetter aPercentageBaseGetter = nsnull,
                        const PRInt32 aTable[] = nsnull,
                        nscoord aMinAppUnits = nscoord_MIN,
@@ -467,14 +467,14 @@ private:
   nscoord StyleCoordToNSCoord(const nsStyleCoord& aCoord,
                               PercentageBaseGetter aPercentageBaseGetter,
                               nscoord aDefaultValue,
-                              bool aClampNegativeCalc);
+                              PRBool aClampNegativeCalc);
 
-  bool GetCBContentWidth(nscoord& aWidth);
-  bool GetCBContentHeight(nscoord& aWidth);
-  bool GetFrameBoundsWidthForTransform(nscoord &aWidth);
-  bool GetFrameBoundsHeightForTransform(nscoord &aHeight);
-  bool GetFrameBorderRectWidth(nscoord& aWidth);
-  bool GetFrameBorderRectHeight(nscoord& aHeight);
+  PRBool GetCBContentWidth(nscoord& aWidth);
+  PRBool GetCBContentHeight(nscoord& aWidth);
+  PRBool GetFrameBoundsWidthForTransform(nscoord &aWidth);
+  PRBool GetFrameBoundsHeightForTransform(nscoord &aHeight);
+  PRBool GetFrameBorderRectWidth(nscoord& aWidth);
+  PRBool GetFrameBorderRectHeight(nscoord& aHeight);
 
   struct ComputedStyleMapEntry
   {
@@ -483,7 +483,7 @@ private:
 
     nsCSSProperty mProperty;
     ComputeMethod mGetter;
-    bool mNeedsLayoutFlush;
+    PRBool mNeedsLayoutFlush;
   };
 
   static const ComputedStyleMapEntry* GetQueryablePropertyMap(PRUint32* aLength);
@@ -520,10 +520,10 @@ private:
 
   nsIPresShell* mPresShell;
 
-  bool mExposeVisitedStyle;
+  PRPackedBool mExposeVisitedStyle;
 
 #ifdef DEBUG
-  bool mFlushedPendingReflows;
+  PRBool mFlushedPendingReflows;
 #endif
 };
 

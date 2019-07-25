@@ -413,7 +413,7 @@ public:
 
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
     if (httpChannel) {
-      bool requestSucceeded;
+      PRBool requestSucceeded;
       rv = httpChannel->GetRequestSucceeded(&requestSucceeded);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -484,7 +484,7 @@ public:
       
       
       if (!nsContentUtils::IsSystemPrincipal(channelPrincipal)) {
-        bool isResource;
+        PRBool isResource;
         rv = NS_URIChainHasFlags(finalURI,
                                  nsIProtocolHandler::URI_IS_UI_RESOURCE,
                                  &isResource);

@@ -60,7 +60,7 @@ protected:
 
 
 protected:
-   bool           mPersist;
+   PRBool         mPersist;
 
 	nsISHTransaction * mPrev; 
 	nsCOMPtr<nsISHTransaction> mNext;

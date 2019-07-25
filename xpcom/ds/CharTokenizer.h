@@ -56,7 +56,7 @@ public:
     
 
 
-    bool hasMoreTokens()
+    PRBool hasMoreTokens()
     {
       return mIter != mEnd;
     }
@@ -95,7 +95,7 @@ public:
     
 
 
-    bool hasMoreTokens()
+    PRBool hasMoreTokens()
     {
       return mIter != mEnd;
     }

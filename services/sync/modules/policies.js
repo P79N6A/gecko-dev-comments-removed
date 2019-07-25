@@ -37,9 +37,8 @@
 
 
 
-const EXPORTED_SYMBOLS = ["SyncScheduler",
-                          "ErrorHandler",
-                          "SendCredentialsController"];
+
+const EXPORTED_SYMBOLS = ["SyncScheduler", "ErrorHandler"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
@@ -122,6 +121,7 @@ let SyncScheduler = {
       case "weave:service:sync:start":
         
         this.clearSyncTriggers();
+        this.nextSync = 0;
 
         
         
@@ -130,8 +130,9 @@ let SyncScheduler = {
         this.globalScore = 0;
         break;
       case "weave:service:sync:finish":
-        this.nextSync = 0;
         this.adjustSyncInterval();
+
+        let sync_interval;
 
         if (Status.service == SYNC_FAILED_PARTIAL && this.requiresBackoff) {
           this.requiresBackoff = false;
@@ -139,7 +140,6 @@ let SyncScheduler = {
           return;
         }
 
-        let sync_interval;
         this._syncErrors = 0;
         if (Status.sync == NO_SYNC_NODE_FOUND) {
           this._log.trace("Scheduling a sync at interval NO_SYNC_NODE_FOUND.");
@@ -181,15 +181,12 @@ let SyncScheduler = {
         
         this.updateClientMode();
         this.adjustSyncInterval();
-        this.nextSync = 0;
         this.handleSyncError();
         break;
       case "weave:service:backoff:interval":
-        let requested_interval = subject * 1000;
-        
-        let interval = requested_interval * (1 + Math.random() * 0.25);
+        let interval = (data + Math.random() * data * 0.25) * 1000; 
         Status.backoffInterval = interval;
-        Status.minimumNextSync = Date.now() + requested_interval;
+        Status.minimumNextSync = Date.now() + data;
         break;
       case "weave:service:ready":
         
@@ -209,13 +206,8 @@ let SyncScheduler = {
          Svc.Idle.addIdleObserver(this, Svc.Prefs.get("scheduler.idleTime"));
          break;
       case "weave:service:start-over":
+         Svc.Idle.removeIdleObserver(this, Svc.Prefs.get("scheduler.idleTime"));
          SyncScheduler.setDefaults();
-         try {
-           Svc.Idle.removeIdleObserver(this, Svc.Prefs.get("scheduler.idleTime"));
-         } catch (ex if (ex.result == Cr.NS_ERROR_FAILURE)) {
-           
-           
-         }
          break;
       case "idle":
         this._log.trace("We're idle.");
@@ -226,21 +218,12 @@ let SyncScheduler = {
         this.adjustSyncInterval();
         break;
       case "back":
-        this._log.trace("Received notification that we're back from idle.");
+        this._log.trace("We're no longer idle.");
         this.idle = false;
-        Utils.namedTimer(function onBack() {
-          if (this.idle) {
-            this._log.trace("... and we're idle again. " +
-                            "Ignoring spurious back notification.");
-            return;
-          }
-
-          this._log.trace("Genuine return from idle. Syncing.");
-          
-          if (this.numClients > 1) {
-            this.scheduleNextSync(0);
-          }
-        }, IDLE_OBSERVER_BACK_DELAY, this, "idleDebouncerTimer");
+        
+        if (this.numClients > 1) {
+          Utils.nextTick(Weave.Service.sync, Weave.Service);
+        }
         break;
     }
   },
@@ -351,22 +334,13 @@ let SyncScheduler = {
 
   scheduleNextSync: function scheduleNextSync(interval) {
     
-    if (interval == null) {
-      interval = this.syncInterval;
-    }
-
-    
-    if (Status.backoffInterval && interval < Status.backoffInterval) {
-      interval = Status.backoffInterval;
-    }
-
-    if (this.nextSync != 0) {
+    if (interval == null || interval == undefined) {
       
+      if (this.nextSync != 0)
+        interval = Math.min(this.syncInterval, (this.nextSync - Date.now()));
       
-      let currentInterval = this.nextSync - Date.now();
-      if (currentInterval < interval) {
-        return;
-      }
+      else
+        interval = Math.max(this.syncInterval, Status.backoffInterval);
     }
 
     
@@ -756,96 +730,4 @@ let ErrorHandler = {
         break;
     }
   },
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function SendCredentialsController(jpakeclient) {
-  this._log = Log4Moz.repository.getLogger("Sync.SendCredentialsController");
-  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.service.main")];
-
-  this._log.trace("Loading.");
-  this.jpakeclient = jpakeclient;
-
-  
-  
-  
-  
-  Services.obs.addObserver(this, "weave:service:sync:finish", false);
-  Services.obs.addObserver(this, "weave:service:sync:error",  false);
-  Services.obs.addObserver(this, "weave:service:start-over",  false);
-}
-SendCredentialsController.prototype = {
-
-  unload: function unload() {
-    this._log.trace("Unloading.");
-    try {
-      Services.obs.removeObserver(this, "weave:service:sync:finish");
-      Services.obs.removeObserver(this, "weave:service:sync:error");
-      Services.obs.removeObserver(this, "weave:service:start-over");
-    } catch (ex) {
-      
-    }
-  },
-
-  observe: function observe(subject, topic, data) {
-    switch (topic) {
-      case "weave:service:sync:finish":
-      case "weave:service:sync:error":
-        Utils.nextTick(this.sendCredentials, this);
-        break;
-      case "weave:service:start-over":
-        
-        this.jpakeclient.abort();
-        break;
-    }
-  },
-
-  sendCredentials: function sendCredentials() {
-    this._log.trace("Sending credentials.");
-    let credentials = {account:   Weave.Service.account,
-                       password:  Weave.Service.password,
-                       synckey:   Weave.Service.passphrase,
-                       serverURL: Weave.Service.serverURL};
-    this.jpakeclient.sendAndComplete(credentials);
-  },
-
-  
-
-  onComplete: function onComplete() {
-    this._log.debug("Exchange was completed successfully!");
-    this.unload();
-
-    
-    
-    SyncScheduler.scheduleNextSync(SyncScheduler.activeInterval);
-  },
-
-  onAbort: function onAbort(error) {
-    
-    
-    this._log.debug("Exchange was aborted with error: " + error);
-    this.unload();
-  },
-
-  
-  displayPIN: function displayPIN() {},
-  onPairingStart: function onPairingStart() {},
-  onPaired: function onPaired() {}
 };

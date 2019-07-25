@@ -91,7 +91,7 @@ public:
 
 
 
-    virtual void Uninit(bool aIsFinal);
+    virtual void Uninit(PRBool aIsFinal);
 
     
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -145,7 +145,7 @@ public:
     nsresult
     ComputeContainmentProperties();
 
-    static bool
+    static PRBool
     IsTemplateElement(nsIContent* aContent);
 
     virtual nsresult
@@ -157,7 +157,7 @@ public:
 
       nsCOMPtr<nsIDocument> doc = mRoot ? mRoot->GetDocument() : nsnull;
       if (doc) {
-        bool shouldDelay;
+        PRBool shouldDelay;
         LoadDataSources(doc, &shouldDelay);
         if (!shouldDelay) {
           Rebuild();
@@ -201,9 +201,9 @@ public:
     nsresult
     CompileTemplate(nsIContent* aTemplate,
                     nsTemplateQuerySet* aQuerySet,
-                    bool aIsQuerySet,
+                    PRBool aIsQuerySet,
                     PRInt32* aPriority,
-                    bool* aCanUseTemplate);
+                    PRBool* aCanUseTemplate);
 
     
 
@@ -243,7 +243,7 @@ public:
     nsresult 
     CompileSimpleQuery(nsIContent* aRuleElement,
                        nsTemplateQuerySet* aQuerySet,
-                       bool* aCanUseTemplate);
+                       PRBool* aCanUseTemplate);
 
     
 
@@ -302,7 +302,7 @@ public:
 
 
     nsresult
-    LoadDataSources(nsIDocument* aDoc, bool* shouldDelayBuilding);
+    LoadDataSources(nsIDocument* aDoc, PRBool* shouldDelayBuilding);
 
     
 
@@ -314,8 +314,8 @@ public:
     nsresult
     LoadDataSourceUrls(nsIDocument* aDocument,
                        const nsAString& aDataSources,
-                       bool aIsRDFQuery,
-                       bool* aShouldDelayBuilding);
+                       PRBool aIsRDFQuery,
+                       PRBool* aShouldDelayBuilding);
 
     nsresult
     InitHTMLTemplateRoot();
@@ -360,7 +360,7 @@ public:
     SubstituteTextReplaceVariable(nsXULTemplateBuilder* aThis, const nsAString& aVariable, void* aClosure);    
 
     nsresult 
-    IsSystemPrincipal(nsIPrincipal *principal, bool *result);
+    IsSystemPrincipal(nsIPrincipal *principal, PRBool *result);
 
     
 
@@ -399,7 +399,7 @@ protected:
     
 
 
-    bool          mQueriesCompiled;
+    PRBool        mQueriesCompiled;
 
     
 
@@ -471,7 +471,7 @@ protected:
     
 
 
-    bool
+    PRBool
     IsActivated(nsIRDFResource *aResource);
 
     
@@ -483,7 +483,7 @@ protected:
 
 
 
-    virtual bool
+    virtual PRBool
     GetInsertionLocations(nsIXULTemplateResult* aResult,
                           nsCOMArray<nsIContent>** aLocations) = 0;
 
@@ -520,7 +520,7 @@ protected:
     void
     OutputMatchToLog(nsIRDFResource* aId,
                      nsTemplateMatch* aMatch,
-                     bool aIsNew);
+                     PRBool aIsNew);
 
     virtual void Traverse(nsCycleCollectionTraversalCallback &cb) const
     {

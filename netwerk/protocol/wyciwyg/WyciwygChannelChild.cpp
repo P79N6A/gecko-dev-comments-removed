@@ -357,7 +357,7 @@ WyciwygChannelChild::GetName(nsACString & aName)
 
 
 NS_IMETHODIMP
-WyciwygChannelChild::IsPending(bool *aIsPending)
+WyciwygChannelChild::IsPending(PRBool *aIsPending)
 {
   *aIsPending = mIsPending;
   return NS_OK;

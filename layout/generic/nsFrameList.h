@@ -175,7 +175,7 @@ public:
 
 
 
-  bool RemoveFrameIfPresent(nsIFrame* aFrame);
+  PRBool RemoveFrameIfPresent(nsIFrame* aFrame);
 
   
 
@@ -202,7 +202,7 @@ public:
 
 
 
-  bool DestroyFrameIfPresent(nsIFrame* aFrame);
+  PRBool DestroyFrameIfPresent(nsIFrame* aFrame);
 
   
 
@@ -253,15 +253,15 @@ public:
   nsIFrame* FrameAt(PRInt32 aIndex) const;
   PRInt32 IndexOf(nsIFrame* aFrame) const;
 
-  bool IsEmpty() const {
+  PRBool IsEmpty() const {
     return nsnull == mFirstChild;
   }
 
-  bool NotEmpty() const {
+  PRBool NotEmpty() const {
     return nsnull != mFirstChild;
   }
 
-  bool ContainsFrame(const nsIFrame* aFrame) const;
+  PRBool ContainsFrame(const nsIFrame* aFrame) const;
 
   PRInt32 GetLength() const;
 
@@ -374,7 +374,7 @@ public:
       mEnd(aOther.mEnd)
     {}
 
-    bool AtEnd() const {
+    PRBool AtEnd() const {
       
       
       
@@ -465,7 +465,7 @@ public:
       Enumerator::Next();
     }
 
-    bool AtEnd() const { return Enumerator::AtEnd(); }
+    PRBool AtEnd() const { return Enumerator::AtEnd(); }
 
     nsIFrame* PrevFrame() const { return mPrev; }
     nsIFrame* NextFrame() const { return mFrame; }

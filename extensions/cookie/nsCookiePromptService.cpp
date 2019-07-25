@@ -63,8 +63,8 @@ nsCookiePromptService::CookieDialog(nsIDOMWindow *aParent,
                                     nsICookie *aCookie,
                                     const nsACString &aHostname,
                                     PRInt32 aCookiesFromHost,
-                                    bool aChangingCookie,
-                                    bool *aRememberDecision,
+                                    PRBool aChangingCookie,
+                                    PRBool *aRememberDecision,
                                     PRInt32 *aAccept)
 {
   nsresult rv;

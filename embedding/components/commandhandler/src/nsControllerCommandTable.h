@@ -61,7 +61,7 @@ public:
 protected:
 
   nsSupportsHashtable   mCommandsTable;   
-  bool                  mMutable;         
+  PRBool                mMutable;         
 };
 
 

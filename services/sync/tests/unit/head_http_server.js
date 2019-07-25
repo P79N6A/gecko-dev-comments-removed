@@ -1,9 +1,4 @@
 
-Cu.import("resource://services-sync/log4moz.js");
-const SYNC_HTTP_LOGGER = "Sync.Test.Server";
-const SYNC_API_VERSION = "1.1";
-
-
 
 
 function new_timestamp() {
@@ -82,7 +77,7 @@ function readBytesFromInputStream(inputStream, count) {
 
 
 
-function ServerWBO(id, initialPayload, modified) {
+function ServerWBO(id, initialPayload) {
   if (!id) {
     throw "No ID for ServerWBO!";
   }
@@ -95,7 +90,7 @@ function ServerWBO(id, initialPayload, modified) {
     initialPayload = JSON.stringify(initialPayload);
   }
   this.payload = initialPayload;
-  this.modified = modified || new_timestamp();
+  this.modified = new_timestamp();
 }
 ServerWBO.prototype = {
 
@@ -143,7 +138,6 @@ ServerWBO.prototype = {
         case "PUT":
           self.put(readBytesFromInputStream(request.bodyInputStream));
           body = JSON.stringify(self.modified);
-          response.setHeader("Content-Type", "application/json");
           response.newModified = self.modified;
           break;
 
@@ -151,7 +145,6 @@ ServerWBO.prototype = {
           self.delete();
           let ts = new_timestamp();
           body = JSON.stringify(ts);
-          response.setHeader("Content-Type", "application/json");
           response.newModified = ts;
           break;
       }
@@ -174,110 +167,11 @@ ServerWBO.prototype = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-function ServerCollection(wbos, acceptNew, timestamp) {
-  this._wbos = wbos || {};
+function ServerCollection(wbos, acceptNew) {
+  this.wbos = wbos || {};
   this.acceptNew = acceptNew || false;
-
-  
-
-
-
-
-  this.timestamp = timestamp || new_timestamp();
-  this._log = Log4Moz.repository.getLogger(SYNC_HTTP_LOGGER);
 }
 ServerCollection.prototype = {
-
-  
-
-
-
-
-
-
-
-
-
-  keys: function keys(filter) {
-    return [id for ([id, wbo] in Iterator(this._wbos))
-               if (wbo.payload &&
-                   (!filter || filter(id, wbo)))];
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  wbos: function wbos(filter) {
-    let os = [wbo for ([id, wbo] in Iterator(this._wbos))
-              if (wbo.payload)];
-    if (filter) {
-      return os.filter(filter);
-    }
-    return os;
-  },
-
-  
-
-
-
-
-  payloads: function () {
-    return this.wbos().map(function (wbo) {
-      return JSON.parse(JSON.parse(wbo.payload).ciphertext);
-    });
-  },
-
-  
-  wbo: function wbo(id) {
-    return this._wbos[id];
-  },
-
-  payload: function payload(id) {
-    return this.wbo(id).payload;
-  },
-
-  
-
-
-
-
-  insertWBO: function insertWBO(wbo) {
-    return this._wbos[wbo.id] = wbo;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  insert: function insert(id, payload, modified) {
-    return this.insertWBO(new ServerWBO(id, payload, modified));
-  },
 
   _inResultSet: function(wbo, options) {
     return wbo.payload
@@ -288,7 +182,7 @@ ServerCollection.prototype = {
   count: function(options) {
     options = options || {};
     let c = 0;
-    for (let [id, wbo] in Iterator(this._wbos)) {
+    for (let [id, wbo] in Iterator(this.wbos)) {
       if (wbo.modified && this._inResultSet(wbo, options)) {
         c++;
       }
@@ -299,7 +193,7 @@ ServerCollection.prototype = {
   get: function(options) {
     let result;
     if (options.full) {
-      let data = [wbo.get() for ([id, wbo] in Iterator(this._wbos))
+      let data = [wbo.get() for ([id, wbo] in Iterator(this.wbos))
                             
                             if (wbo.modified &&
                                 this._inResultSet(wbo, options))];
@@ -308,17 +202,13 @@ ServerCollection.prototype = {
       }
       
       result = data.join("\n") + "\n";
-
-      
-      options.recordCount = data.length;
     } else {
-      let data = [id for ([id, wbo] in Iterator(this._wbos))
+      let data = [id for ([id, wbo] in Iterator(this.wbos))
                      if (this._inResultSet(wbo, options))];
       if (options.limit) {
         data = data.slice(0, options.limit);
       }
       result = JSON.stringify(data);
-      options.recordCount = data.length;
     }
     return result;
   },
@@ -331,12 +221,11 @@ ServerCollection.prototype = {
     
     
     for each (let record in input) {
-      let wbo = this.wbo(record.id);
+      let wbo = this.wbos[record.id];
       if (!wbo && this.acceptNew) {
-        this._log.debug("Creating WBO " + JSON.stringify(record.id) +
-                        " on the fly.");
+        _("Creating WBO " + JSON.stringify(record.id) + " on the fly.");
         wbo = new ServerWBO(record.id);
-        this.insertWBO(wbo);
+        this.wbos[record.id] = wbo;
       }
       if (wbo) {
         wbo.payload = record.payload;
@@ -352,15 +241,12 @@ ServerCollection.prototype = {
   },
 
   delete: function(options) {
-    let deleted = [];
-    for (let [id, wbo] in Iterator(this._wbos)) {
+    for (let [id, wbo] in Iterator(this.wbos)) {
       if (this._inResultSet(wbo, options)) {
-        this._log.debug("Deleting " + JSON.stringify(wbo));
-        deleted.push(wbo.id);
+        _("Deleting " + JSON.stringify(wbo));
         wbo.delete();
       }
     }
-    return deleted;
   },
 
   
@@ -399,14 +285,6 @@ ServerCollection.prototype = {
       switch(request.method) {
         case "GET":
           body = self.get(options);
-          
-          
-          
-          let records = options.recordCount;
-          self._log.info("Records: " + records);
-          if (records != null) {
-            response.setHeader("X-Weave-Records", "" + records);
-          }
           break;
 
         case "POST":
@@ -416,12 +294,10 @@ ServerCollection.prototype = {
           break;
 
         case "DELETE":
-          self._log.debug("Invoking ServerCollection.DELETE.");
-          let deleted = self.delete(options);
+          self.delete(options);
           let ts = new_timestamp();
           body = JSON.stringify(ts);
           response.newModified = ts;
-          response.deleted = deleted;
           break;
       }
       response.setHeader("X-Weave-Timestamp",
@@ -429,14 +305,6 @@ ServerCollection.prototype = {
                          false);
       response.setStatusLine(request.httpVersion, statusCode, status);
       response.bodyOutputStream.write(body, body.length);
-
-      
-      
-      if (request.method != "GET") {
-        this.timestamp = (response.newModified >= 0) ?
-                         response.newModified :
-                         new_timestamp();
-      }
     };
   }
 
@@ -510,436 +378,4 @@ function track_collections_helper() {
           "handler": info_collections,
           "with_updated_collection": with_updated_collection,
           "update_collection": update_collection};
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-let SyncServerCallback = {
-  onCollectionDeleted: function onCollectionDeleted(user, collection) {},
-  onItemDeleted: function onItemDeleted(user, collection, wboID) {}
-};
-
-
-
-
-
-function SyncServer(callback) {
-  this.callback = callback || {__proto__: SyncServerCallback};
-  this.server   = new nsHttpServer();
-  this.started  = false;
-  this.users    = {};
-  this._log     = Log4Moz.repository.getLogger(SYNC_HTTP_LOGGER);
-
-  
-  
-  let handler = this.server._handler;
-  handler._handleDefault = this.handleDefault.bind(this, handler);
-}
-SyncServer.prototype = {
-  port:   8080,
-  server: null,    
-  users:  null,    
-
-  
-
-
-
-
-
-
-
-
-
-  start: function start(port, cb) {
-    if (this.started) {
-      this._log.warn("Warning: server already started on " + this.port);
-      return;
-    }
-    if (port) {
-      this.port = port;
-    }
-    try {
-      this.server.start(this.port);
-      this.started = true;
-      if (cb) {
-        cb();
-      }
-    } catch (ex) {
-      _("==========================================");
-      _("Got exception starting Sync HTTP server on port " + this.port);
-      _("Error: " + Utils.exceptionStr(ex));
-      _("Is there a process already listening on port " + this.port + "?");
-      _("==========================================");
-      do_throw(ex);
-    }
-  },
-
-  
-
-
-
-
-
-
-  stop: function stop(cb) {
-    if (!this.started) {
-      this._log.warn("SyncServer: Warning: server not running. Can't stop me now!");
-      return;
-    }
-
-    this.server.stop(cb);
-    this.started = false;
-  },
-
-  
-
-
-
-
-  timestamp: function timestamp() {
-    return Math.round(Date.now() / 10) / 100;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  registerUser: function registerUser(username, password) {
-    if (username in this.users) {
-      throw new Error("User already exists.");
-    }
-    this.users[username] = {
-      password: password,
-      collections: {}
-    };
-    return this.user(username);
-  },
-
-  userExists: function userExists(username) {
-    return username in this.users;
-  },
-
-  getCollection: function getCollection(username, collection) {
-    return this.users[username].collections[collection];
-  },
-
-  _insertCollection: function _insertCollection(collections, collection, wbos) {
-    let coll = new ServerCollection(wbos, true);
-    coll.collectionHandler = coll.handler();
-    collections[collection] = coll;
-    return coll;
-  },
-
-  createCollection: function createCollection(username, collection, wbos) {
-    if (!(username in this.users)) {
-      throw new Error("Unknown user.");
-    }
-    let collections = this.users[username].collections;
-    if (collection in collections) {
-      throw new Error("Collection already exists.");
-    }
-    return this._insertCollection(collections, collection, wbos);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  createContents: function createContents(username, collections) {
-    if (!(username in this.users)) {
-      throw new Error("Unknown user.");
-    }
-    let userCollections = this.users[username].collections;
-    for (let [id, contents] in Iterator(collections)) {
-      let coll = userCollections[id] ||
-                 this._insertCollection(userCollections, id);
-      for (let [wboID, payload] in Iterator(contents)) {
-        coll.insert(wboID, payload);
-      }
-    }
-  },
-
-  
-
-
-  insertWBO: function insertWBO(username, collection, wbo) {
-    if (!(username in this.users)) {
-      throw new Error("Unknown user.");
-    }
-    let userCollections = this.users[username].collections;
-    if (!(collection in userCollections)) {
-      throw new Error("Unknown collection.");
-    }
-    userCollections[collection].insertWBO(wbo);
-    return wbo;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  user: function user(username) {
-    let collection       = this.getCollection.bind(this, username);
-    let createCollection = this.createCollection.bind(this, username);
-    let createContents   = this.createContents.bind(this, username);
-    let modified         = function (collectionName) {
-      return collection(collectionName).timestamp;
-    }
-    return {
-      collection:       collection,
-      createCollection: createCollection,
-      createContents:   createContents,
-      modified:         modified
-    };
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  pathRE: /^\/([0-9]+(?:\.[0-9]+)?)\/([-._a-zA-Z0-9]+)\/([^\/]+)\/(.*)$/,
-  storageRE: /^([-_a-zA-Z0-9]+)(?:\/([-_a-zA-Z0-9]+)\/?)?$/,
-
-  defaultHeaders: {},
-
-  
-
-
-  respond: function respond(req, resp, code, status, body, headers) {
-    resp.setStatusLine(req.httpVersion, code, status);
-    for each (let [header, value] in Iterator(headers || this.defaultHeaders)) {
-      resp.setHeader(header, value);
-    }
-    resp.setHeader("X-Weave-Timestamp", "" + this.timestamp(), false);
-    resp.bodyOutputStream.write(body, body.length);
-  },
-
-  
-
-
-
-
-
-
-
-  handleDefault: function handleDefault(handler, req, resp) {
-    this._log.debug("SyncServer: Handling request: " + req.method + " " + req.path);
-    let parts = this.pathRE.exec(req.path);
-    if (!parts) {
-      this._log.debug("SyncServer: Unexpected request: bad URL " + req.path);
-      throw HTTP_404;
-    }
-
-    let [all, version, username, first, rest] = parts;
-    if (version != SYNC_API_VERSION) {
-      this._log.debug("SyncServer: Unknown version.");
-      throw HTTP_404;
-    }
-
-    if (!this.userExists(username)) {
-      this._log.debug("SyncServer: Unknown user.");
-      throw HTTP_401;
-    }
-
-    
-    if (first in this.toplevelHandlers) {
-      let handler = this.toplevelHandlers[first];
-      return handler.call(this, handler, req, resp, version, username, rest);
-    }
-    this._log.debug("SyncServer: Unknown top-level " + first);
-    throw HTTP_404;
-  },
-
-  
-
-
-  infoCollections: function infoCollections(username) {
-    let responseObject = {};
-    let colls = this.users[username].collections;
-    for (let coll in colls) {
-      responseObject[coll] = colls[coll].timestamp;
-    }
-    this._log.trace("SyncServer: info/collections returning " +
-                    JSON.stringify(responseObject));
-    return responseObject;
-  },
-
-  
-
-
-  toplevelHandlers: {
-    "storage": function handleStorage(handler, req, resp, version, username, rest) {
-      let match = this.storageRE.exec(rest);
-      if (!match) {
-        this._log.warn("SyncServer: Unknown storage operation " + rest);
-        throw HTTP_404;
-      }
-      let [all, collection, wboID] = match;
-      let coll = this.getCollection(username, collection);
-      let respond = this.respond.bind(this, req, resp);
-      switch (req.method) {
-        case "GET":
-          if (!coll) {
-            
-            respond(200, "OK", "[]");
-            return;
-          }
-          if (!wboID) {
-            return coll.collectionHandler(req, resp);
-          }
-          let wbo = coll.wbo(wboID);
-          if (!wbo) {
-            respond(404, "Not found", "Not found");
-            return;
-          }
-          return wbo.handler()(req, resp);
-
-        
-        case "DELETE":
-          if (!coll) {
-            respond(200, "OK", "{}");
-            return;
-          }
-          if (wboID) {
-            let wbo = coll.wbo(wboID);
-            if (wbo) {
-              wbo.delete();
-            }
-            respond(200, "OK", "{}");
-            this.callback.onItemDeleted(username, collectin, wboID);
-            return;
-          }
-          coll.collectionHandler(req, resp);
-
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          if (-1 == req.queryString.indexOf("ids=")) {
-            
-            this._log.debug("Deleting entire collection.");
-            delete this.users[username].collections[collection];
-            this.callback.onCollectionDeleted(username, collection);
-          }
-
-          
-          let deleted = resp.deleted || [];
-          for (let i = 0; i < deleted.length; ++i) {
-            this.callback.onItemDeleted(username, collection, deleted[i]);
-          }
-          return;
-        case "POST":
-        case "PUT":
-          if (!coll) {
-            coll = this.createCollection(username, collection);
-          }
-          if (wboID) {
-            let wbo = coll.wbo(wboID);
-            if (!wbo) {
-              this._log.trace("SyncServer: creating WBO " + collection + "/" + wboID);
-              wbo = coll.insert(wboID);
-            }
-            
-            
-            wbo.handler()(req, resp);
-            coll.timestamp = resp.newModified;
-            return resp;
-          }
-          return coll.collectionHandler(req, resp);
-        default:
-          throw "Request method " + req.method + " not implemented.";
-      }
-    },
-
-    "info": function handleInfo(handler, req, resp, version, username, rest) {
-      switch (rest) {
-        case "collections":
-          let body = JSON.stringify(this.infoCollections(username));
-          this.respond(req, resp, 200, "OK", body, {
-            "Content-Type": "application/json"
-          });
-          return;
-        case "collection_usage":
-        case "collection_counts":
-        case "quota":
-          
-          this.respond(req, resp, 200, "OK", "TODO");
-          return;
-        default:
-          
-          this._log.warn("SyncServer: Unknown info operation " + rest);
-          throw HTTP_404;
-      }
-    }
-  }
-};
-
-
-
-
-function serverForUsers(users, contents, callback) {
-  let server = new SyncServer(callback);
-  for (let [user, pass] in Iterator(users)) {
-    server.registerUser(user, pass);
-    server.createContents(user, contents);
-  }
-  server.start();
-  return server;
 }

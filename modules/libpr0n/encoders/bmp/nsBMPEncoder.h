@@ -109,7 +109,7 @@ protected:
   
   PRUint32 mImageBufferReadPoint;
   
-  bool mFinished;
+  PRPackedBool mFinished;
 
   nsCOMPtr<nsIInputStreamCallback> mCallback;
   nsCOMPtr<nsIEventTarget> mCallbackTarget;

@@ -88,9 +88,9 @@ protected:
 
   PRUint32 mCanvasFramebuffer;
 
-  bool mDataIsPremultiplied;
-  bool mNeedsYFlip;
-  bool mHasAlpha;
+  PRPackedBool mDataIsPremultiplied;
+  PRPackedBool mNeedsYFlip;
+  PRPackedBool mHasAlpha;
 };
 
 
@@ -105,13 +105,14 @@ public:
 
   
   virtual void Initialize(const Data& aData);
+  virtual void Init(const SurfaceDescriptor& aNewFront, const nsIntSize& aSize, bool needYFlip);
+
   
   virtual void Updated(const nsIntRect&) {}
 
   
-  virtual void Swap(const CanvasSurface& aNewFront,
-                    bool needYFlip,
-                    CanvasSurface* aNewBack);
+  virtual void Swap(const SurfaceDescriptor& aNewFront,
+                    SurfaceDescriptor* aNewBack);
   virtual void DestroyFrontBuffer();
   virtual void Disconnect();
 
@@ -124,9 +125,7 @@ public:
   virtual void LayerManagerDestroyed();
 
 private:
-  virtual void Init(bool needYFlip);
-
-  bool mNeedsYFlip;
+  PRPackedBool mNeedsYFlip;
   nsRefPtr<ShadowBufferD3D9> mBuffer;
 };
 

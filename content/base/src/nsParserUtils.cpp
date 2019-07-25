@@ -61,7 +61,7 @@
     ++(iter);                                                     \
   }
 
-bool
+PRBool
 nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
                                        nsAString& aValue)
 {
@@ -173,7 +173,7 @@ nsParserUtils::GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
 
 
 
-bool
+PRBool
 nsParserUtils::IsJavaScriptLanguage(const nsString& aName, PRUint32 *aFlags)
 {
   JSVersion version = JSVERSION_UNKNOWN;

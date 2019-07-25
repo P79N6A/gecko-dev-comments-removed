@@ -61,7 +61,7 @@ public:
 
   
   Layer* GetLayer();
-  virtual bool IsEmpty();
+  virtual PRBool IsEmpty();
   virtual void RenderLayer() { RenderThebesLayer(nsnull); }
   virtual void CleanResources();
   virtual void LayerManagerDestroyed();
@@ -133,7 +133,7 @@ public:
 
   
   Layer* GetLayer();
-  virtual bool IsEmpty();
+  virtual PRBool IsEmpty();
   virtual void RenderLayer() { RenderThebesLayer(); }
   virtual void CleanResources();
   virtual void LayerManagerDestroyed();

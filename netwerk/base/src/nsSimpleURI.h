@@ -83,7 +83,7 @@ protected:
     
     virtual nsresult EqualsInternal(nsIURI* other,
                                     RefHandlingEnum refHandlingMode,
-                                    bool* result);
+                                    PRBool* result);
 
     
     
@@ -102,8 +102,8 @@ protected:
     nsCString mScheme;
     nsCString mPath; 
     nsCString mRef;  
-    bool mMutable;
-    bool mIsRefValid; 
+    PRPackedBool mMutable;
+    PRPackedBool mIsRefValid; 
 };
 
 #endif

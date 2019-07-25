@@ -89,16 +89,16 @@ private:
     nsresult ReadSystemPref(const char *aPrefName);
     nsresult SaveMozDefaultPref(const char *aPrefName,
                                 MozPrefValue *aPrefVal,
-                                bool *aLocked);
+                                PRBool *aLocked);
 
     
     nsresult UseMozillaPrefs();
     nsresult RestoreMozDefaultPref(const char *aPrefName,
                                    MozPrefValue *aPrefVal,
-                                   bool aLocked);
+                                   PRBool aLocked);
 
     nsCOMPtr<nsIPrefBranch2>  mSysPrefService;
-    bool mEnabled;  
+    PRBool mEnabled;  
     SysPrefItem *mSysPrefs;
 };
 

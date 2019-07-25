@@ -73,10 +73,10 @@ public:
                                nsIDOMNode* aPreviousNode, PRInt32 aPreviousOffset,
                                nsIDOMNode* aStartNode, PRInt32 aStartOffset,
                                nsIDOMNode* aEndNode, PRInt32 aEndOffset);
-  nsresult InitForNavigation(bool aForceCheck, PRInt32 aNewPositionOffset,
+  nsresult InitForNavigation(PRBool aForceCheck, PRInt32 aNewPositionOffset,
                              nsIDOMNode* aOldAnchorNode, PRInt32 aOldAnchorOffset,
                              nsIDOMNode* aNewAnchorNode, PRInt32 aNewAnchorOffset,
-                             bool* aContinue);
+                             PRBool* aContinue);
   nsresult InitForSelection();
   nsresult InitForRange(nsIDOMRange* aRange);
 
@@ -126,7 +126,7 @@ public:
   
   
   
-  bool mForceNavigationWordCheck;
+  PRBool mForceNavigationWordCheck;
 
   
   PRInt32 mNewNavigationPositionOffset;
@@ -179,7 +179,7 @@ private:
 
   
   
-  bool mNeedsCheckAfterNavigation;
+  PRBool mNeedsCheckAfterNavigation;
 
   
   
@@ -230,7 +230,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(mozInlineSpellChecker, nsIDOMEventListener)
 
   
-  static bool CanEnableInlineSpellChecking();
+  static PRBool CanEnableInlineSpellChecking();
   
   static void UpdateCanEnableInlineSpellChecking();
 
@@ -251,7 +251,7 @@ public:
   
   
   nsresult SkipSpellCheckForNode(nsIEditor* aEditor,
-                                 nsIDOMNode *aNode, bool * aCheckSpelling);
+                                 nsIDOMNode *aNode, PRBool * aCheckSpelling);
 
   nsresult SpellCheckAfterChange(nsIDOMNode* aCursorNode, PRInt32 aCursorOffset,
                                  nsIDOMNode* aPreviousNode, PRInt32 aPreviousOffset,
@@ -267,7 +267,7 @@ public:
   nsresult DoSpellCheck(mozInlineSpellWordUtil& aWordUtil,
                         nsISelection *aSpellCheckSelection,
                         mozInlineSpellStatus* aStatus,
-                        bool* aDoneChecking);
+                        PRBool* aDoneChecking);
 
   
   nsresult IsPointInSelection(nsISelection *aSelection,
@@ -279,7 +279,7 @@ public:
 
   nsresult RemoveRange(nsISelection *aSpellCheckSelection, nsIDOMRange * aRange);
   nsresult AddRange(nsISelection *aSpellCheckSelection, nsIDOMRange * aRange);
-  bool     SpellCheckSelectionIsFull() { return mNumWordsInSpellSelection >= mMaxNumWordsInSpellSelection; }
+  PRBool   SpellCheckSelectionIsFull() { return mNumWordsInSpellSelection >= mMaxNumWordsInSpellSelection; }
 
   nsresult MakeSpellCheckRange(nsIDOMNode* aStartNode, PRInt32 aStartOffset,
                                nsIDOMNode* aEndNode, PRInt32 aEndOffset,
@@ -288,7 +288,7 @@ public:
   
   nsresult RegisterEventListeners();
   nsresult UnregisterEventListeners();
-  nsresult HandleNavigationEvent(bool aForceWordSpellCheck, PRInt32 aNewPositionOffset = 0);
+  nsresult HandleNavigationEvent(PRBool aForceWordSpellCheck, PRInt32 aNewPositionOffset = 0);
 
   nsresult GetSpellCheckSelection(nsISelection ** aSpellCheckSelection);
   nsresult SaveCurrentSelectionPosition();

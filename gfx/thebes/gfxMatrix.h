@@ -103,7 +103,7 @@ public:
 
     const gfxMatrix& Reset();
 
-    bool IsIdentity() const {
+    PRBool IsIdentity() const {
        return xx == 1.0 && yx == 0.0 &&
               xy == 0.0 && yy == 1.0 &&
               x0 == 0.0 && y0 == 0.0;
@@ -121,7 +121,7 @@ public:
     
 
 
-    bool IsSingular() const {
+    PRBool IsSingular() const {
         
         return (xx * yy) == (yx * xy);
     }
@@ -192,7 +192,7 @@ public:
 
 
 
-    bool HasNonIntegerTranslation() const {
+    PRBool HasNonIntegerTranslation() const {
         return HasNonTranslation() ||
             !FuzzyEqual(x0, floor(x0 + 0.5)) ||
             !FuzzyEqual(y0, floor(y0 + 0.5));
@@ -202,7 +202,7 @@ public:
 
 
 
-    bool HasNonTranslation() const {
+    PRBool HasNonTranslation() const {
         return !FuzzyEqual(xx, 1.0) || !FuzzyEqual(yy, 1.0) ||
                !FuzzyEqual(xy, 0.0) || !FuzzyEqual(yx, 0.0);
     }
@@ -210,7 +210,7 @@ public:
     
 
 
-    bool HasOnlyIntegerTranslation() const {
+    PRBool HasOnlyIntegerTranslation() const {
         return !HasNonIntegerTranslation();
     }
 
@@ -218,7 +218,7 @@ public:
 
 
 
-    bool HasNonTranslationOrFlip() const {
+    PRBool HasNonTranslationOrFlip() const {
         return !FuzzyEqual(xx, 1.0) ||
                (!FuzzyEqual(yy, 1.0) && !FuzzyEqual(yy, -1.0)) ||
                !FuzzyEqual(xy, 0.0) || !FuzzyEqual(yx, 0.0);
@@ -229,7 +229,7 @@ public:
 
 
 
-    bool HasNonAxisAlignedTransform() const {
+    PRBool HasNonAxisAlignedTransform() const {
         return !FuzzyEqual(xy, 0.0) || !FuzzyEqual(yx, 0.0);
     }
 
@@ -245,7 +245,7 @@ public:
 
 
 
-    gfxSize ScaleFactors(bool xMajor) const {
+    gfxSize ScaleFactors(PRBool xMajor) const {
         double det = Determinant();
 
         if (det == 0.0)
@@ -282,7 +282,7 @@ public:
 
 
 
-    bool PreservesAxisAlignedRectangles() const {
+    PRBool PreservesAxisAlignedRectangles() const {
         return ((FuzzyEqual(xx, 0.0) && FuzzyEqual(yy, 0.0))
             || (FuzzyEqual(xy, 0.0) && FuzzyEqual(yx, 0.0)));
     }
@@ -290,13 +290,13 @@ public:
     
 
 
-    bool HasNonIntegerScale() const {
+    PRBool HasNonIntegerScale() const {
         return !FuzzyEqual(xx, floor(xx + 0.5)) ||
                !FuzzyEqual(yy, floor(yy + 0.5));
     }
 
 private:
-    static bool FuzzyEqual(gfxFloat aV1, gfxFloat aV2) {
+    static PRBool FuzzyEqual(gfxFloat aV1, gfxFloat aV2) {
         return fabs(aV2 - aV1) < 1e-6;
     }
 };

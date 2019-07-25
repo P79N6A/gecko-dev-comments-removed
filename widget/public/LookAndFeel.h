@@ -493,7 +493,7 @@ public:
 
 
 
-  static bool GetEchoPassword();
+  static PRBool GetEchoPassword();
 
   
 

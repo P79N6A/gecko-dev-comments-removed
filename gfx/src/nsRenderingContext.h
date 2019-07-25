@@ -120,7 +120,7 @@ public:
     void SetFont(nsFontMetrics *aFontMetrics);
     nsFontMetrics *FontMetrics() { return mFontMetrics; } 
 
-    void SetTextRunRTL(bool aIsRTL);
+    void SetTextRunRTL(PRBool aIsRTL);
 
     nscoord GetWidth(char aC);
     nscoord GetWidth(PRUnichar aC);

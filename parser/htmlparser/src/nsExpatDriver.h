@@ -83,7 +83,7 @@ public:
   nsresult HandleStartDoctypeDecl(const PRUnichar* aDoctypeName,
                                   const PRUnichar* aSysid,
                                   const PRUnichar* aPubid,
-                                  bool aHasInternalSubset);
+                                  PRBool aHasInternalSubset);
   nsresult HandleEndDoctypeDecl();
   nsresult HandleStartNamespaceDecl(const PRUnichar* aPrefix,
                                     const PRUnichar* aUri);
@@ -124,13 +124,13 @@ private:
 
 
 
-  void ParseBuffer(const PRUnichar *aBuffer, PRUint32 aLength, bool aIsFinal,
+  void ParseBuffer(const PRUnichar *aBuffer, PRUint32 aLength, PRBool aIsFinal,
                    PRUint32 *aConsumed);
   nsresult HandleError();
 
   void MaybeStopParser(nsresult aState);
 
-  bool BlockedOrInterrupted()
+  PRBool BlockedOrInterrupted()
   {
     return mInternalState == NS_ERROR_HTMLPARSER_BLOCK ||
            mInternalState == NS_ERROR_HTMLPARSER_INTERRUPTED;
@@ -144,14 +144,14 @@ private:
   nsString         mSystemID;
   nsString         mPublicID;
   nsString         mInternalSubset;
-  bool             mInCData;
-  bool             mInInternalSubset;
-  bool             mInExternalDTD;
-  bool             mMadeFinalCallToExpat;
+  PRPackedBool     mInCData;
+  PRPackedBool     mInInternalSubset;
+  PRPackedBool     mInExternalDTD;
+  PRPackedBool     mMadeFinalCallToExpat;
 
   
   
-  bool             mIsFinalChunk;
+  PRPackedBool     mIsFinalChunk;
 
   nsresult         mInternalState;
 

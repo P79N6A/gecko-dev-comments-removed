@@ -76,7 +76,7 @@ public:
   
 
 
-  bool IsEmpty() const
+  PRBool IsEmpty() const
   {
     return mElements.IsEmpty();
   }
@@ -107,7 +107,7 @@ public:
 
 
 
-  bool Push(const T& aElement)
+  PRBool Push(const T& aElement)
   {
     T* elem = mElements.AppendElement(aElement);
     if (!elem)

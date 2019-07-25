@@ -148,10 +148,10 @@ protected:
         PRUint32     mAppUnitsPerDevUnit;
         PRUint32     mStringHash;
         PRUint64     mUserFontSetGeneration;
-        bool mIsDoubleByteText;
-        bool mIsRTL;
-        bool mEnabledOptionalLigatures;
-        bool mOptimizeSpeed;
+        PRPackedBool mIsDoubleByteText;
+        PRPackedBool mIsRTL;
+        PRPackedBool mEnabledOptionalLigatures;
+        PRPackedBool mOptimizeSpeed;
         
         CacheHashKey(gfxTextRun *aBaseTextRun, void *aFontOrGroup,
                      PRUint32 aStart, PRUint32 aLength, PRUint32 aHash)
@@ -180,7 +180,7 @@ protected:
         CacheHashEntry(const CacheHashEntry& toCopy) { NS_ERROR("Should not be called"); }
         ~CacheHashEntry() { }
 
-        bool KeyEquals(const KeyTypePointer aKey) const;
+        PRBool KeyEquals(const KeyTypePointer aKey) const;
         static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
         static PLDHashNumber HashKey(const KeyTypePointer aKey);
         enum { ALLOW_MEMMOVE = PR_TRUE };
@@ -206,13 +206,13 @@ protected:
         PRUint32    mHash;
     };
     
-    bool LookupWord(gfxTextRun *aTextRun, gfxFont *aFirstFont,
+    PRBool LookupWord(gfxTextRun *aTextRun, gfxFont *aFirstFont,
                       PRUint32 aStart, PRUint32 aEnd, PRUint32 aHash,
                       nsTArray<DeferredWord>* aDeferredWords);
     void FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
                        const gfxFontGroup::Parameters *aParams,
                        const nsTArray<DeferredWord>& aDeferredWords,
-                       bool aSuccessful);
+                       PRBool aSuccessful);
     void RemoveWord(gfxTextRun *aTextRun, PRUint32 aStart,
                     PRUint32 aEnd, PRUint32 aHash);
     void Uninit();
@@ -308,13 +308,13 @@ static void *GetWordFontOrGroup(gfxTextRun *aTextRun, PRUint32 aOffset,
 
 
 
-static bool
+static PRBool
 IsBoundarySpace(PRUnichar aChar)
 {
     return aChar == ' ' || aChar == UNICODE_NBSP;
 }
 
-static bool
+static PRBool
 IsWordBoundary(PRUnichar aChar)
 {
     return IsBoundarySpace(aChar) || gfxFontGroup::IsInvalidChar(aChar);
@@ -341,7 +341,7 @@ IsWordBoundary(PRUnichar aChar)
 
 
 
-bool
+PRBool
 TextRunWordCache::LookupWord(gfxTextRun *aTextRun, gfxFont *aFirstFont,
                              PRUint32 aStart, PRUint32 aEnd, PRUint32 aHash,
                              nsTArray<DeferredWord>* aDeferredWords)
@@ -351,7 +351,7 @@ TextRunWordCache::LookupWord(gfxTextRun *aTextRun, gfxFont *aFirstFont,
         
     gfxFontGroup *fontGroup = aTextRun->GetFontGroup();
 
-    bool useFontGroup = (fontGroup->GetUserFontSet() != nsnull);
+    PRBool useFontGroup = (fontGroup->GetUserFontSet() != nsnull);
     CacheHashKey key(aTextRun, (useFontGroup ? (void*)fontGroup : (void*)aFirstFont), aStart, aEnd - aStart, aHash);
     CacheHashEntry *fontEntry = mCache.PutEntry(key);
     if (!fontEntry)
@@ -419,7 +419,7 @@ void
 TextRunWordCache::FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
                                 const gfxFontGroup::Parameters *aParams,
                                 const nsTArray<DeferredWord>& aDeferredWords,
-                                bool aSuccessful)
+                                PRBool aSuccessful)
 {
     aTextRun->SetFlagBits(gfxTextRunWordCache::TEXT_IN_CACHE);
 
@@ -429,7 +429,7 @@ TextRunWordCache::FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
     
     
     
-    bool useFontGroup = (fontGroup->GetUserFontSet() != nsnull);
+    PRBool useFontGroup = (fontGroup->GetUserFontSet() != nsnull);
 
     
     for (i = 0; i < aDeferredWords.Length(); ++i) {
@@ -440,8 +440,8 @@ TextRunWordCache::FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
         }
         
         
-        bool wordStartsInsideCluster;
-        bool wordStartsInsideLigature;
+        PRBool wordStartsInsideCluster;
+        PRBool wordStartsInsideLigature;
         if (aSuccessful) {
             wordStartsInsideCluster =
                 !source->IsClusterStart(word->mSourceOffset);
@@ -453,7 +453,7 @@ TextRunWordCache::FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
             
             
             
-            bool removeFontKey = !aSuccessful ||
+            PRBool removeFontKey = !aSuccessful ||
                 wordStartsInsideCluster || wordStartsInsideLigature ||
                 (!useFontGroup && font != GetWordFontOrGroup(aNewRun,
                                                              word->mSourceOffset,
@@ -613,8 +613,8 @@ TextRunWordCache::MakeTextRun(const PRUnichar *aText, PRUint32 aLength,
     PRUint32 i;
     PRUint32 wordStart = 0;
     PRUint32 hash = 0;
-    bool seenDigitToModify = false;
-    bool needsNumeralProcessing =
+    PRBool seenDigitToModify = PR_FALSE;
+    PRBool needsNumeralProcessing =
         mBidiNumeral != IBMBIDI_NUMERAL_NOMINAL;
     for (i = 0; i <= aLength; ++i) {
         PRUnichar ch = i < aLength ? aText[i] : ' ';
@@ -664,7 +664,7 @@ TextRunWordCache::MakeTextRun(const PRUnichar *aText, PRUint32 aLength,
 
             if (!seenDigitToModify) {
                 
-                bool hit = LookupWord(textRun, font, wordStart, i, hash,
+                PRBool hit = LookupWord(textRun, font, wordStart, i, hash,
                                         deferredWords.Length() == 0 ? nsnull : &deferredWords);
                 if (!hit) {
                     
@@ -757,8 +757,8 @@ TextRunWordCache::MakeTextRun(const PRUint8 *aText, PRUint32 aLength,
     PRUint32 i;
     PRUint32 wordStart = 0;
     PRUint32 hash = 0;
-    bool seenDigitToModify = false;
-    bool needsNumeralProcessing =
+    PRBool seenDigitToModify = PR_FALSE;
+    PRBool needsNumeralProcessing =
         mBidiNumeral != IBMBIDI_NUMERAL_NOMINAL;
     for (i = 0; i <= aLength; ++i) {
         PRUint8 ch = i < aLength ? aText[i] : ' ';
@@ -797,7 +797,7 @@ TextRunWordCache::MakeTextRun(const PRUint8 *aText, PRUint32 aLength,
             }
 
             if (!seenDigitToModify) {
-                bool hit = LookupWord(textRun, font, wordStart, i, hash,
+                PRBool hit = LookupWord(textRun, font, wordStart, i, hash,
                                         deferredWords.Length() == 0 ? nsnull : &deferredWords);
                 if (!hit) {
                     if (tempString.Length() > 0) {
@@ -907,7 +907,7 @@ TextRunWordCache::RemoveTextRun(gfxTextRun *aTextRun)
 #endif
 }
 
-static bool
+static PRBool
 CompareDifferentWidthStrings(const PRUint8 *aStr1, const PRUnichar *aStr2,
                              PRUint32 aLength)
 {
@@ -919,7 +919,7 @@ CompareDifferentWidthStrings(const PRUint8 *aStr1, const PRUnichar *aStr2,
     return PR_TRUE;
 }
 
-static bool
+static PRBool
 IsWordEnd(gfxTextRun *aTextRun, PRUint32 aOffset)
 {
     PRUint32 runLength = aTextRun->GetLength();
@@ -931,14 +931,14 @@ IsWordEnd(gfxTextRun *aTextRun, PRUint32 aOffset)
 }
 
 static void *
-GetFontOrGroup(gfxFontGroup *aFontGroup, bool aUseFont)
+GetFontOrGroup(gfxFontGroup *aFontGroup, PRBool aUseFont)
 {
     return aUseFont
         ? static_cast<void *>(aFontGroup->GetFontAt(0))
         : static_cast<void *>(aFontGroup);
 }
 
-bool
+PRBool
 TextRunWordCache::CacheHashEntry::KeyEquals(const KeyTypePointer aKey) const
 {
     if (!mTextRun)

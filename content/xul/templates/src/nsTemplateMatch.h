@@ -103,10 +103,10 @@ public:
 
     static void Destroy(nsFixedSizeAllocator& aPool,
                         nsTemplateMatch*& aMatch,
-                        bool aRemoveResult);
+                        PRBool aRemoveResult);
 
     
-    bool IsActive() {
+    PRBool IsActive() {
         return mRuleIndex >= 0;
     }
 

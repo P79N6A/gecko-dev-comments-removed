@@ -89,7 +89,7 @@ public:
 
 
 
-  virtual bool SupportsIsindexSubmission()
+  virtual PRBool SupportsIsindexSubmission()
   {
     return PR_FALSE;
   }

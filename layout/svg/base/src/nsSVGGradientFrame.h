@@ -40,6 +40,7 @@
 #define __NS_SVGGRADIENTFRAME_H__
 
 #include "nsSVGPaintServerFrame.h"
+#include "nsWeakReference.h"
 #include "nsSVGElement.h"
 #include "gfxPattern.h"
 
@@ -133,10 +134,10 @@ private:
   
   
   
-  bool                                   mLoopFlag;
+  PRPackedBool                           mLoopFlag;
   
   
-  bool                                   mNoHRefURI;
+  PRPackedBool                           mNoHRefURI;
 };
 
 

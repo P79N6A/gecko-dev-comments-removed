@@ -238,7 +238,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
   PRInt32 mUcs4 = this->mUcs4;
   PRUint8 mState = this->mState;
   PRUint8 mBytes = this->mBytes;
-  bool mFirst = this->mFirst;
+  PRPackedBool mFirst = this->mFirst;
 
   
   

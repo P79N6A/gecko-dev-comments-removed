@@ -125,7 +125,7 @@ public:
 
 
 
-  bool HasContentListFor(nsIContent* aContent);
+  PRBool HasContentListFor(nsIContent* aContent);
 
   
 
@@ -181,12 +181,12 @@ public:
 
 
   nsIContent* GetSingleInsertionPoint(nsIContent* aParent, PRUint32* aIndex,
-                                      bool* aMultipleInsertionPoints);
+                                      PRBool* aMultipleInsertionPoints);
 
   nsIContent* GetNestedInsertionPoint(nsIContent* aParent,
                                       const nsIContent* aChild);
   nsIContent* GetNestedSingleInsertionPoint(nsIContent* aParent,
-                                            bool* aMultipleInsertionPoints);
+                                            PRBool* aMultipleInsertionPoints);
 
   nsresult AddLayeredBinding(nsIContent* aContent, nsIURI* aURL,
                              nsIPrincipal* aOriginPrincipal);
@@ -214,7 +214,7 @@ public:
   
   nsresult WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc,
                      RuleProcessorData* aData,
-                     bool* aCutOffInheritance);
+                     PRBool* aCutOffInheritance);
 
   void WalkAllRules(nsIStyleRuleProcessor::EnumFunc aFunc,
                     RuleProcessorData* aData);
@@ -224,7 +224,7 @@ public:
 
 
   nsresult MediumFeaturesChanged(nsPresContext* aPresContext,
-                                 bool* aRulesChanged);
+                                 PRBool* aRulesChanged);
 
   void AppendAllSheets(nsTArray<nsCSSStyleSheet*>& aArray);
 
@@ -246,16 +246,16 @@ protected:
   nsresult SetWrappedJS(nsIContent* aContent, nsIXPConnectWrappedJS* aResult);
 
   nsINodeList* GetXBLChildNodesInternal(nsIContent* aContent,
-                                        bool* aIsAnonymousContentList);
+                                        PRBool* aIsAnonymousContentList);
   nsINodeList* GetAnonymousNodesInternal(nsIContent* aContent,
-                                         bool* aIsAnonymousContentList);
+                                         PRBool* aIsAnonymousContentList);
 
   
   
   
   
   void HandleChildInsertion(nsIContent* aContainer, nsIContent* aChild,
-                            PRUint32 aIndexInContainer, bool aAppend);
+                            PRUint32 aIndexInContainer, PRBool aAppend);
 
   
   
@@ -328,8 +328,8 @@ protected:
 
   
   nsBindingList mAttachedStack;
-  bool mProcessingAttachedStack;
-  bool mDestroyed;
+  PRPackedBool mProcessingAttachedStack;
+  PRPackedBool mDestroyed;
   PRUint32 mAttachedStackSizeOnOutermost;
 
   

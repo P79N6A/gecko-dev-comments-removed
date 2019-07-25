@@ -216,7 +216,7 @@ NS_IMETHODIMP WebBrowserChrome::ShowAsModal(void)
   return NS_OK;
 }
 
-NS_IMETHODIMP WebBrowserChrome::IsWindowModal(bool *_retval)
+NS_IMETHODIMP WebBrowserChrome::IsWindowModal(PRBool *_retval)
 {
     *_retval = PR_FALSE;
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -278,7 +278,7 @@ NS_IMETHODIMP WebBrowserChrome::OnLocationChange(nsIWebProgress* aWebProgress,
                                                  nsIRequest* aRequest,
                                                  nsIURI *location)
 {
-  bool isSubFrameLoad = false; 
+  PRBool isSubFrameLoad = PR_FALSE; 
   if (aWebProgress) {
     nsCOMPtr<nsIDOMWindow>  domWindow;
     nsCOMPtr<nsIDOMWindow>  topDomWindow;
@@ -325,7 +325,7 @@ WebBrowserChrome::OnHistoryNewEntry(nsIURI * aNewURI)
 }
 
 NS_IMETHODIMP
-WebBrowserChrome::OnHistoryGoBack(nsIURI * aBackURI, bool * aContinue)
+WebBrowserChrome::OnHistoryGoBack(nsIURI * aBackURI, PRBool * aContinue)
 {
     
     *aContinue = PR_TRUE;
@@ -334,7 +334,7 @@ WebBrowserChrome::OnHistoryGoBack(nsIURI * aBackURI, bool * aContinue)
 
 
 NS_IMETHODIMP
-WebBrowserChrome::OnHistoryGoForward(nsIURI * aForwardURI, bool * aContinue)
+WebBrowserChrome::OnHistoryGoForward(nsIURI * aForwardURI, PRBool * aContinue)
 {
     
     *aContinue = PR_TRUE;
@@ -343,7 +343,7 @@ WebBrowserChrome::OnHistoryGoForward(nsIURI * aForwardURI, bool * aContinue)
 
 
 NS_IMETHODIMP
-WebBrowserChrome::OnHistoryGotoIndex(PRInt32 aIndex, nsIURI * aGotoURI, bool * aContinue)
+WebBrowserChrome::OnHistoryGotoIndex(PRInt32 aIndex, nsIURI * aGotoURI, PRBool * aContinue)
 {
     
     *aContinue = PR_TRUE;
@@ -351,7 +351,7 @@ WebBrowserChrome::OnHistoryGotoIndex(PRInt32 aIndex, nsIURI * aGotoURI, bool * a
 }
 
 NS_IMETHODIMP
-WebBrowserChrome::OnHistoryReload(nsIURI * aURI, PRUint32 aReloadFlags, bool * aContinue)
+WebBrowserChrome::OnHistoryReload(nsIURI * aURI, PRUint32 aReloadFlags, PRBool * aContinue)
 {
     
     *aContinue = PR_TRUE;
@@ -359,7 +359,7 @@ WebBrowserChrome::OnHistoryReload(nsIURI * aURI, PRUint32 aReloadFlags, bool * a
 }
 
 NS_IMETHODIMP
-WebBrowserChrome::OnHistoryPurge(PRInt32 aNumEntries, bool *aContinue)
+WebBrowserChrome::OnHistoryPurge(PRInt32 aNumEntries, PRBool *aContinue)
 {
     
     *aContinue = PR_FALSE;
@@ -508,13 +508,13 @@ NS_IMETHODIMP WebBrowserChrome::SetTitle(const PRUnichar * aTitle)
 }
 
 
-NS_IMETHODIMP WebBrowserChrome::GetVisibility(bool * aVisibility)
+NS_IMETHODIMP WebBrowserChrome::GetVisibility(PRBool * aVisibility)
 {
     NS_ENSURE_ARG_POINTER(aVisibility);
     *aVisibility = PR_TRUE;
     return NS_OK;
 }
-NS_IMETHODIMP WebBrowserChrome::SetVisibility(bool aVisibility)
+NS_IMETHODIMP WebBrowserChrome::SetVisibility(PRBool aVisibility)
 {
     return NS_OK;
 }

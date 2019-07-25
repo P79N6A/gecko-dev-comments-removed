@@ -73,7 +73,7 @@ public:
   
   NS_DECL_ISUPPORTS
 
-  static bool IsAccessKeyPressed(nsIDOMKeyEvent* event);
+  static PRBool IsAccessKeyPressed(nsIDOMKeyEvent* event);
 
 protected:
   static void InitAccessKey();
@@ -86,10 +86,10 @@ protected:
 
   nsMenuBarFrame* mMenuBarFrame; 
   
-  bool mAccessKeyDown;
+  PRPackedBool mAccessKeyDown;
   
-  bool mAccessKeyDownCanceled;
-  static bool mAccessKeyFocuses; 
+  PRPackedBool mAccessKeyDownCanceled;
+  static PRBool mAccessKeyFocuses; 
   static PRInt32 mAccessKey;     
   static PRUint32 mAccessKeyMask;
 };

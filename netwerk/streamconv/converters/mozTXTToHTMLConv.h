@@ -124,7 +124,7 @@ private:
 
 
 
-  bool ItMatchesDelimited(const PRUnichar * aInString, PRInt32 aInLength,
+  PRBool ItMatchesDelimited(const PRUnichar * aInString, PRInt32 aInLength,
       const PRUnichar * rep, PRInt32 aRepLen, LIMTYPE before, LIMTYPE after);
 
 
@@ -145,12 +145,12 @@ private:
 
 
   void EscapeChar(const PRUnichar ch, nsString& aStringToAppendto,
-                  bool inAttribute);
+                  PRBool inAttribute);
 
 
 
 
-  void EscapeStr(nsString& aInString, bool inAttribute);
+  void EscapeStr(nsString& aInString, PRBool inAttribute);
 
 
 
@@ -185,7 +185,7 @@ private:
 
 
 
-  bool FindURL(const PRUnichar * aInString, PRInt32 aInLength, const PRUint32 pos,
+  PRBool FindURL(const PRUnichar * aInString, PRInt32 aInLength, const PRUint32 pos,
           const PRUint32 whathasbeendone,
           nsString& outputHTML, PRInt32& replaceBefore, PRInt32& replaceAfter);
 
@@ -219,7 +219,7 @@ private:
 
 
 
-  bool FindURLStart(const PRUnichar * aInString, PRInt32 aInLength, const PRUint32 pos,
+  PRBool FindURLStart(const PRUnichar * aInString, PRInt32 aInLength, const PRUint32 pos,
             	               const modetype check, PRUint32& start);
 
 
@@ -229,7 +229,7 @@ private:
 
 
 
-  bool FindURLEnd(const PRUnichar * aInString, PRInt32 aInStringLength, const PRUint32 pos,
+  PRBool FindURLEnd(const PRUnichar * aInString, PRInt32 aInStringLength, const PRUint32 pos,
            const modetype check, const PRUint32 start, PRUint32& end);
 
 
@@ -253,7 +253,7 @@ private:
 
 
 
-  bool CheckURLAndCreateHTML(
+  PRBool CheckURLAndCreateHTML(
        const nsString& txtURL, const nsString& desc, const modetype mode,
        nsString& outputHTML);
 
@@ -275,7 +275,7 @@ private:
 
 
 
-  bool StructPhraseHit(const PRUnichar * aInString, PRInt32 aInStringLength, bool col0,
+  PRBool StructPhraseHit(const PRUnichar * aInString, PRInt32 aInStringLength, PRBool col0,
      const PRUnichar* tagTXT,
      PRInt32 aTagTxtLen, 
      const char* tagHTML, const char* attributeHTML,
@@ -288,8 +288,8 @@ private:
 
 
 
-  bool
-         SmilyHit(const PRUnichar * aInString, PRInt32 aLength, bool col0,
+  PRBool
+         SmilyHit(const PRUnichar * aInString, PRInt32 aLength, PRBool col0,
          const char* tagTXT, const char* imageName,
          nsString& outputHTML, PRInt32& glyphTextLen);
 
@@ -308,14 +308,14 @@ private:
 
 
 
-  bool GlyphHit(const PRUnichar * aInString, PRInt32 aInLength, bool col0,
+  PRBool GlyphHit(const PRUnichar * aInString, PRInt32 aInLength, PRBool col0,
        nsString& aOutString, PRInt32& glyphTextLen);
 
 
 
 
 
-  bool ShouldLinkify(const nsCString& aURL);
+  PRBool ShouldLinkify(const nsCString& aURL);
 };
 
 

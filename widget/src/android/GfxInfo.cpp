@@ -53,19 +53,19 @@ using namespace mozilla::widget;
 
 
 nsresult
-GfxInfo::GetD2DEnabled(bool *aEnabled)
+GfxInfo::GetD2DEnabled(PRBool *aEnabled)
 {
   return NS_ERROR_FAILURE;
 }
 
 nsresult
-GfxInfo::GetDWriteEnabled(bool *aEnabled)
+GfxInfo::GetDWriteEnabled(PRBool *aEnabled)
 {
   return NS_ERROR_FAILURE;
 }
 
 nsresult
-GfxInfo::GetAzureEnabled(bool *aEnabled)
+GfxInfo::GetAzureEnabled(PRBool *aEnabled)
 {
   return NS_ERROR_FAILURE;
 }
@@ -210,7 +210,7 @@ GfxInfo::GetAdapterDeviceID2(PRUint32 *aAdapterDeviceID)
 
 
 NS_IMETHODIMP
-GfxInfo::GetIsGPU2Active(bool* aIsGPU2Active)
+GfxInfo::GetIsGPU2Active(PRBool* aIsGPU2Active)
 {
   return NS_ERROR_FAILURE;
 }

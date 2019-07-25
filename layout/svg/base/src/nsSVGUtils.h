@@ -125,14 +125,14 @@ class Element;
 #define SVG_WSP_DELIM       "\x20\x9\xD\xA"
 #define SVG_COMMA_WSP_DELIM "," SVG_WSP_DELIM
 
-inline bool
+inline PRBool
 IsSVGWhitespace(char aChar)
 {
   return aChar == '\x20' || aChar == '\x9' ||
          aChar == '\xD'  || aChar == '\xA';
 }
 
-inline bool
+inline PRBool
 IsSVGWhitespace(PRUnichar aChar)
 {
   return aChar == PRUnichar('\x20') || aChar == PRUnichar('\x9') ||
@@ -144,7 +144,7 @@ IsSVGWhitespace(PRUnichar aChar)
 
 
 
-bool NS_SMILEnabled();
+PRBool NS_SMILEnabled();
 #endif 
 
 
@@ -174,16 +174,16 @@ public:
   void SetRenderMode(RenderMode aMode) { mRenderMode = aMode; }
   RenderMode GetRenderMode() { return mRenderMode; }
 
-  void SetPaintingToWindow(bool aPaintingToWindow) {
+  void SetPaintingToWindow(PRBool aPaintingToWindow) {
     mPaintingToWindow = aPaintingToWindow;
   }
-  bool IsPaintingToWindow() { return mPaintingToWindow; }
+  PRBool IsPaintingToWindow() { return mPaintingToWindow; }
 
 private:
   RenderMode                    mRenderMode;
   nsRefPtr<nsRenderingContext> mRenderingContext;
   nsRefPtr<gfxContext>          mGfxContext;
-  bool                          mPaintingToWindow;
+  PRPackedBool                  mPaintingToWindow;
 };
 
 class nsAutoSVGRenderMode
@@ -293,13 +293,13 @@ public:
                             nsSVGElement *aContent,
                             const nsStyleCoord &aCoord);
 
-  static gfxMatrix GetCTM(nsSVGElement *aElement, bool aScreenCTM);
+  static gfxMatrix GetCTM(nsSVGElement *aElement, PRBool aScreenCTM);
 
   
 
 
 
-  static bool EstablishesViewport(nsIContent *aContent);
+  static PRBool EstablishesViewport(nsIContent *aContent);
 
   static already_AddRefed<nsIDOMSVGElement>
   GetNearestViewportElement(nsIContent *aContent);
@@ -404,7 +404,7 @@ public:
 
   
 
-  static bool
+  static PRBool
   HitTestClip(nsIFrame *aFrame, const nsPoint &aPoint);
   
   
@@ -450,12 +450,12 @@ public:
 
 
   static gfxIntSize ConvertToSurfaceSize(const gfxSize& aSize,
-                                         bool *aResultOverflows);
+                                         PRBool *aResultOverflows);
 
   
 
 
-  static bool
+  static PRBool
   HitTestRect(const gfxMatrix &aMatrix,
               float aRX, float aRY, float aRWidth, float aRHeight,
               float aX, float aY);
@@ -494,7 +494,7 @@ public:
 
 
 
-  static bool
+  static PRBool
   CanOptimizeOpacity(nsIFrame *aFrame);
 
   
@@ -514,19 +514,11 @@ public:
                        nsSVGEnum *aUnits,
                        nsIFrame *aFrame);
 
-  enum BBoxFlags {
-    eBBoxIncludeFill          = 1 << 0,
-    eBBoxIgnoreFillIfNone     = 1 << 1,
-    eBBoxIncludeStroke        = 1 << 2,
-    eBBoxIgnoreStrokeIfNone   = 1 << 3,
-    eBBoxIncludeMarkers       = 1 << 4
-  };
   
 
 
 
-  static gfxRect GetBBox(nsIFrame *aFrame, PRUint32 aFlags = eBBoxIncludeFill);
-
+  static gfxRect GetBBox(nsIFrame *aFrame);
   
 
 
@@ -587,7 +579,7 @@ public:
 
 
 
-  static bool RootSVGElementHasViewbox(const nsIContent *aRootSVGElem);
+  static PRBool RootSVGElementHasViewbox(const nsIContent *aRootSVGElem);
 };
 
 #endif

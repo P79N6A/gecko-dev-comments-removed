@@ -90,14 +90,14 @@ static const char gIDFormat2[] =
 
 
 
-bool nsID::Parse(const char *aIDStr)
+PRBool nsID::Parse(const char *aIDStr)
 {
   
   if(!aIDStr) {
     return PR_FALSE;
   }
 
-  bool expectFormat1 = (aIDStr[0] == '{');
+  PRBool expectFormat1 = (aIDStr[0] == '{');
   if(expectFormat1) aIDStr++;
 
   PARSE_CHARS_TO_NUM(aIDStr, m0, 8);

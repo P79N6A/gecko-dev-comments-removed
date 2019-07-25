@@ -123,7 +123,7 @@ class PrefCallback : public PLDHashEntryHdr {
       MOZ_COUNT_DTOR(PrefCallback);
     }
 
-    bool KeyEquals(const PrefCallback *aKey) const
+    PRBool KeyEquals(const PrefCallback *aKey) const
     {
       
       
@@ -158,8 +158,10 @@ class PrefCallback : public PLDHashEntryHdr {
     already_AddRefed<nsIObserver> GetObserver() const
     {
       if (!IsWeak()) {
-        nsCOMPtr<nsIObserver> copy = mStrongRef;
-        return copy.forget();
+        NS_IF_ADDREF(mStrongRef);
+        
+        
+        return mStrongRef.get();
       }
 
       nsCOMPtr<nsIObserver> observer = do_QueryReferent(mWeakRef);
@@ -177,7 +179,7 @@ class PrefCallback : public PLDHashEntryHdr {
     }
 
     
-    bool IsExpired() const
+    PRBool IsExpired() const
     {
       if (!IsWeak())
         return PR_FALSE;
@@ -199,7 +201,7 @@ class PrefCallback : public PLDHashEntryHdr {
     
     nsISupports          *mCanonical;
 
-    bool IsWeak() const
+    PRBool IsWeak() const
     {
       return !!mWeakRef;
     }
@@ -215,7 +217,7 @@ public:
   NS_DECL_NSIPREFBRANCH2
   NS_DECL_NSIOBSERVER
 
-  nsPrefBranch(const char *aPrefRoot, bool aDefaultBranch);
+  nsPrefBranch(const char *aPrefRoot, PRBool aDefaultBranch);
   virtual ~nsPrefBranch();
 
   PRInt32 GetRootLength() { return mPrefRootLength; }
@@ -241,9 +243,9 @@ protected:
 private:
   PRInt32               mPrefRootLength;
   nsCString             mPrefRoot;
-  bool                  mIsDefault;
+  PRBool                mIsDefault;
 
-  bool                  mFreeingObserverList;
+  PRBool                mFreeingObserverList;
   nsClassHashtable<PrefCallback, PrefCallback> mObservers;
 };
 

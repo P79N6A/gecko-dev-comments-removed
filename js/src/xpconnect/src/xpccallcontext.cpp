@@ -341,7 +341,7 @@ XPCCallContext::~XPCCallContext()
 {
     
 
-    bool shouldReleaseXPC = false;
+    PRBool shouldReleaseXPC = PR_FALSE;
 
     if(mXPCContext)
     {
@@ -532,13 +532,13 @@ XPCCallContext::GetRetValPtr(jsval * *aRetValPtr)
 
 
 NS_IMETHODIMP
-XPCCallContext::GetReturnValueWasSet(bool *aReturnValueWasSet)
+XPCCallContext::GetReturnValueWasSet(PRBool *aReturnValueWasSet)
 {
     *aReturnValueWasSet = mReturnValueWasSet;
     return NS_OK;
 }
 NS_IMETHODIMP
-XPCCallContext::SetReturnValueWasSet(bool aReturnValueWasSet)
+XPCCallContext::SetReturnValueWasSet(PRBool aReturnValueWasSet)
 {
     mReturnValueWasSet = aReturnValueWasSet;
     return NS_OK;

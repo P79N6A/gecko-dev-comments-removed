@@ -294,7 +294,7 @@ nsDirIndexParser::ParseData(nsIDirIndex *aIdx, char* aDataStr) {
       
       filename = value;
       
-      bool    success = false;
+      PRBool  success = PR_FALSE;
       
       nsAutoString entryuri;
       

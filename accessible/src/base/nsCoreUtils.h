@@ -64,7 +64,7 @@ public:
 
 
 
-  static bool HasClickListener(nsIContent *aContent);
+  static PRBool HasClickListener(nsIContent *aContent);
 
   
 
@@ -86,7 +86,7 @@ public:
 
 
 
-  static bool DispatchMouseEvent(PRUint32 aEventType,
+  static PRBool DispatchMouseEvent(PRUint32 aEventType,
                                    nsIPresShell *aPresShell,
                                    nsIContent *aContent);
 
@@ -153,7 +153,7 @@ public:
 
 
 
-   static bool IsAncestorOf(nsINode *aPossibleAncestorNode,
+   static PRBool IsAncestorOf(nsINode *aPossibleAncestorNode,
                               nsINode *aPossibleDescendantNode,
                               nsINode *aRootNode = nsnull);
 
@@ -224,12 +224,12 @@ public:
   
 
 
-  static bool IsRootDocument(nsIDocument *aDocument);
+  static PRBool IsRootDocument(nsIDocument *aDocument);
 
   
 
 
-  static bool IsContentDocument(nsIDocument *aDocument);
+  static PRBool IsContentDocument(nsIDocument *aDocument);
 
   
 
@@ -239,7 +239,7 @@ public:
   
 
 
-  static bool IsErrorPage(nsIDocument *aDocument);
+  static PRBool IsErrorPage(nsIDocument *aDocument);
 
   
 
@@ -247,7 +247,7 @@ public:
 
 
 
-  static bool IsCorrectFrameType(nsIFrame* aFrame, nsIAtom* aAtom);
+  static PRBool IsCorrectFrameType(nsIFrame* aFrame, nsIAtom* aAtom);
 
   
 
@@ -276,13 +276,13 @@ public:
 
 
 
-  static bool GetID(nsIContent *aContent, nsAString& aID);
+  static PRBool GetID(nsIContent *aContent, nsAString& aID);
 
   
 
 
 
-  static bool GetUIntAttr(nsIContent *aContent, nsIAtom *aAttr,
+  static PRBool GetUIntAttr(nsIContent *aContent, nsIAtom *aAttr,
                             PRInt32 *aUInt);
 
   
@@ -291,7 +291,7 @@ public:
 
 
 
-  static bool IsXLink(nsIContent *aContent);
+  static PRBool IsXLink(nsIContent *aContent);
 
   
 
@@ -360,12 +360,12 @@ public:
   
 
 
-  static bool IsColumnHidden(nsITreeColumn *aColumn);
+  static PRBool IsColumnHidden(nsITreeColumn *aColumn);
 
   
 
 
-  static bool IsHTMLTableHeader(nsIContent *aContent)
+  static PRBool IsHTMLTableHeader(nsIContent *aContent)
   {
     return aContent->NodeInfo()->Equals(nsGkAtoms::th) ||
       aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::scope);
@@ -391,7 +391,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMDOMSTRINGLIST
 
-  bool Add(const nsAString& aName) {
+  PRBool Add(const nsAString& aName) {
     return mNames.AppendElement(aName) != nsnull;
   }
 

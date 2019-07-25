@@ -54,7 +54,7 @@ class nsAccTreeWalker
 {
 public:
   nsAccTreeWalker(nsIWeakReference *aShell, nsIContent *aNode, 
-                  bool aWalkAnonymousContent, bool aWalkCache = false);
+                  PRBool aWalkAnonymousContent, bool aWalkCache = false);
   virtual ~nsAccTreeWalker();
 
   
@@ -86,7 +86,7 @@ private:
 
 
 
-  bool PushState(nsIContent *aNode);
+  PRBool PushState(nsIContent *aNode);
 
   
 

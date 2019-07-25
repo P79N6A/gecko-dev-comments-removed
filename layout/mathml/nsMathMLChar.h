@@ -75,16 +75,16 @@ struct nsGlyphCode {
   PRInt32   font;
 
   PRInt32 Length() { return (code[1] == PRUnichar('\0') ? 1 : 2); }
-  bool Exists() const
+  PRBool Exists() const
   {
     return (code[0] != 0);
   }
-  bool operator==(const nsGlyphCode& other) const
+  PRBool operator==(const nsGlyphCode& other) const
   {
     return (other.code[0] == code[0] && other.code[1] == code[1] && 
             other.font == font);
   }
-  bool operator!=(const nsGlyphCode& other) const
+  PRBool operator!=(const nsGlyphCode& other) const
   {
     return ! operator==(other);
   }
@@ -135,7 +135,7 @@ public:
   void PaintForeground(nsPresContext* aPresContext,
                        nsRenderingContext& aRenderingContext,
                        nsPoint aPt,
-                       bool aIsSelected);
+                       PRBool aIsSelected);
 
   
   
@@ -209,7 +209,7 @@ public:
               
               
               
-              bool aMaxSizeIsAbsolute = false);
+              PRBool aMaxSizeIsAbsolute = PR_FALSE);
 
   
   
@@ -257,7 +257,7 @@ private:
   
   float              mScaleX, mScaleY;
   
-  bool               mDrawNormal;
+  PRPackedBool       mDrawNormal;
 
   class StretchEnumContext;
   friend class StretchEnumContext;
@@ -271,7 +271,7 @@ private:
                   nsBoundingMetrics&       aDesiredStretchSize,
                   PRUint32                 aStretchHint,
                   float           aMaxSize = NS_MATHML_OPERATOR_SIZE_INFINITY,
-                  bool            aMaxSizeIsAbsolute = false);
+                  PRBool          aMaxSizeIsAbsolute = PR_FALSE);
 
   nsresult
   ComposeChildren(nsPresContext*       aPresContext,

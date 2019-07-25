@@ -117,7 +117,7 @@ private:
   nsCString                 *mDigest;
   nsCString::const_iterator *mDigestIterator;
 
-  bool        mTokenSet;
+  PRBool      mTokenSet;
 
   
   static SECStatus PR_CALLBACK digest_open(void *, PRBool);

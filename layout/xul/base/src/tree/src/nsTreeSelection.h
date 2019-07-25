@@ -73,7 +73,7 @@ protected:
   
   nsCOMPtr<nsITreeBoxObject> mTree; 
 
-  bool mSuppressed; 
+  PRBool mSuppressed; 
   PRInt32 mCurrentIndex; 
   nsCOMPtr<nsITreeColumn> mCurrentColumn;
   PRInt32 mShiftSelectPivot; 

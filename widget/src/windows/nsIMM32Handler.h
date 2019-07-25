@@ -81,7 +81,7 @@ public:
     return mIMC;
   }
 
-  bool IsValid() const
+  PRBool IsValid() const
   {
     return !!mIMC;
   }
@@ -112,47 +112,47 @@ public:
   
   
   
-  static bool ProcessMessage(nsWindow* aWindow, UINT msg,
+  static PRBool ProcessMessage(nsWindow* aWindow, UINT msg,
                                WPARAM &wParam, LPARAM &lParam,
-                               LRESULT *aRetValue, bool &aEatMessage);
-  static bool IsComposing()
+                               LRESULT *aRetValue, PRBool &aEatMessage);
+  static PRBool IsComposing()
   {
     return IsComposingOnOurEditor() || IsComposingOnPlugin();
   }
-  static bool IsComposingOn(nsWindow* aWindow)
+  static PRBool IsComposingOn(nsWindow* aWindow)
   {
     return IsComposing() && IsComposingWindow(aWindow);
   }
-  static bool IsStatusChanged() { return sIsStatusChanged; }
+  static PRBool IsStatusChanged() { return sIsStatusChanged; }
 
-  static bool IsDoingKakuteiUndo(HWND aWnd);
+  static PRBool IsDoingKakuteiUndo(HWND aWnd);
 
-  static void NotifyEndStatusChange() { sIsStatusChanged = false; }
+  static void NotifyEndStatusChange() { sIsStatusChanged = PR_FALSE; }
 
-  static bool CanOptimizeKeyAndIMEMessages(MSG *aNextKeyOrIMEMessage);
+  static PRBool CanOptimizeKeyAndIMEMessages(MSG *aNextKeyOrIMEMessage);
 
 #ifdef DEBUG
   
 
 
 
-  static bool IsIMEAvailable() { return sIsIME; }
+  static PRBool IsIMEAvailable() { return sIsIME; }
 #endif
 
   
   
   
-  static void CommitComposition(nsWindow* aWindow, bool aForce = false);
-  static void CancelComposition(nsWindow* aWindow, bool aForce = false);
+  static void CommitComposition(nsWindow* aWindow, PRBool aForce = PR_FALSE);
+  static void CancelComposition(nsWindow* aWindow, PRBool aForce = PR_FALSE);
 
 protected:
   static void EnsureHandlerInstance();
 
-  static bool IsComposingOnOurEditor();
-  static bool IsComposingOnPlugin();
-  static bool IsComposingWindow(nsWindow* aWindow);
+  static PRBool IsComposingOnOurEditor();
+  static PRBool IsComposingOnPlugin();
+  static PRBool IsComposingWindow(nsWindow* aWindow);
 
-  static bool ShouldDrawCompositionStringOurselves();
+  static PRBool ShouldDrawCompositionStringOurselves();
   static void InitKeyboardLayout(HKL aKeyboardLayout);
   static UINT GetKeyboardCodePage();
 
@@ -161,67 +161,67 @@ protected:
 
 
 
-  static bool IsTopLevelWindowOfComposition(nsWindow* aWindow);
+  static PRBool IsTopLevelWindowOfComposition(nsWindow* aWindow);
 
-  static bool ProcessInputLangChangeMessage(nsWindow* aWindow,
+  static PRBool ProcessInputLangChangeMessage(nsWindow* aWindow,
                                               WPARAM wParam,
                                               LPARAM lParam,
                                               LRESULT *aRetValue,
-                                              bool &aEatMessage);
-  static bool ProcessMessageForPlugin(nsWindow* aWindow, UINT msg,
+                                              PRBool &aEatMessage);
+  static PRBool ProcessMessageForPlugin(nsWindow* aWindow, UINT msg,
                                         WPARAM &wParam, LPARAM &lParam,
                                         LRESULT *aRetValue,
-                                        bool &aEatMessage);
+                                        PRBool &aEatMessage);
 
   nsIMM32Handler();
   ~nsIMM32Handler();
 
   
   
-  bool OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction);
-  static bool OnKeyDownEvent(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
-                               bool &aEatMessage);
+  PRBool OnMouseEvent(nsWindow* aWindow, LPARAM lParam, int aAction);
+  static PRBool OnKeyDownEvent(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
+                               PRBool &aEatMessage);
 
   
-  bool OnIMEStartComposition(nsWindow* aWindow);
-  bool OnIMEStartCompositionOnPlugin(nsWindow* aWindow,
+  PRBool OnIMEStartComposition(nsWindow* aWindow);
+  PRBool OnIMEStartCompositionOnPlugin(nsWindow* aWindow,
                                        WPARAM wParam, LPARAM lParam);
-  bool OnIMEComposition(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
-  bool OnIMECompositionOnPlugin(nsWindow* aWindow,
+  PRBool OnIMEComposition(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  PRBool OnIMECompositionOnPlugin(nsWindow* aWindow,
                                   WPARAM wParam, LPARAM lParam);
-  bool OnIMEEndComposition(nsWindow* aWindow);
-  bool OnIMEEndCompositionOnPlugin(nsWindow* aWindow,
+  PRBool OnIMEEndComposition(nsWindow* aWindow);
+  PRBool OnIMEEndCompositionOnPlugin(nsWindow* aWindow,
                                      WPARAM wParam, LPARAM lParam);
-  bool OnIMERequest(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
+  PRBool OnIMERequest(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                       LRESULT *aResult);
-  bool OnIMECharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
-  bool OnChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
-  bool OnCharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
-  bool OnInputLangChange(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  PRBool OnIMECharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  PRBool OnChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  PRBool OnCharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  PRBool OnInputLangChange(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
 
   
   
-  static bool OnIMEChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
-  static bool OnIMESetContext(nsWindow* aWindow,
+  static PRBool OnIMEChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  static PRBool OnIMESetContext(nsWindow* aWindow,
                                 WPARAM wParam, LPARAM lParam,
                                 LRESULT *aResult);
-  static bool OnIMESetContextOnPlugin(nsWindow* aWindow,
+  static PRBool OnIMESetContextOnPlugin(nsWindow* aWindow,
                                         WPARAM wParam, LPARAM lParam,
                                         LRESULT *aResult);
-  static bool OnIMECompositionFull(nsWindow* aWindow);
-  static bool OnIMENotify(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
-  static bool OnIMESelect(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  static PRBool OnIMECompositionFull(nsWindow* aWindow);
+  static PRBool OnIMENotify(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
+  static PRBool OnIMESelect(nsWindow* aWindow, WPARAM wParam, LPARAM lParam);
 
   
   void HandleStartComposition(nsWindow* aWindow,
                               const nsIMEContext &aIMEContext);
-  bool HandleComposition(nsWindow* aWindow, const nsIMEContext &aIMEContext,
+  PRBool HandleComposition(nsWindow* aWindow, const nsIMEContext &aIMEContext,
                            LPARAM lParam);
   void HandleEndComposition(nsWindow* aWindow);
-  bool HandleReconvert(nsWindow* aWindow, LPARAM lParam, LRESULT *oResult);
-  bool HandleQueryCharPosition(nsWindow* aWindow, LPARAM lParam,
+  PRBool HandleReconvert(nsWindow* aWindow, LPARAM lParam, LRESULT *oResult);
+  PRBool HandleQueryCharPosition(nsWindow* aWindow, LPARAM lParam,
                                  LRESULT *oResult);
-  bool HandleDocumentFeed(nsWindow* aWindow, LPARAM lParam, LRESULT *oResult);
+  PRBool HandleDocumentFeed(nsWindow* aWindow, LPARAM lParam, LRESULT *oResult);
 
   
 
@@ -232,7 +232,7 @@ protected:
 
 
 
-  bool CommitCompositionOnPreviousWindow(nsWindow* aWindow);
+  PRBool CommitCompositionOnPreviousWindow(nsWindow* aWindow);
 
   
 
@@ -254,16 +254,16 @@ protected:
                           nsIWidget* aNewOriginWidget,
                           nsIntRect& aOutRect);
 
-  bool ConvertToANSIString(const nsAFlatString& aStr,
+  PRBool ConvertToANSIString(const nsAFlatString& aStr,
                              UINT aCodePage,
                              nsACString& aANSIStr);
 
-  bool SetIMERelatedWindowsPos(nsWindow* aWindow,
+  PRBool SetIMERelatedWindowsPos(nsWindow* aWindow,
                                  const nsIMEContext &aIMEContext);
-  bool GetCharacterRectOfSelectedTextAt(nsWindow* aWindow,
+  PRBool GetCharacterRectOfSelectedTextAt(nsWindow* aWindow,
                                           PRUint32 aOffset,
                                           nsIntRect &aCharRect);
-  bool GetCaretRect(nsWindow* aWindow, nsIntRect &aCaretRect);
+  PRBool GetCaretRect(nsWindow* aWindow, nsIntRect &aCaretRect);
   void GetCompositionString(const nsIMEContext &aIMEContext, DWORD aIndex);
   
 
@@ -277,9 +277,9 @@ protected:
 
 
 
-  bool GetTargetClauseRange(PRUint32 *aOffset, PRUint32 *aLength = nsnull);
+  PRBool GetTargetClauseRange(PRUint32 *aOffset, PRUint32 *aLength = nsnull);
   void DispatchTextEvent(nsWindow* aWindow, const nsIMEContext &aIMEContext,
-                         bool aCheckAttr = true);
+                         PRBool aCheckAttr = PR_TRUE);
   void SetTextRangeList(nsTArray<nsTextRange> &aTextRangeList);
 
   nsresult EnsureClauseArray(PRInt32 aCount);
@@ -297,7 +297,7 @@ protected:
 
   nsTArray<MSG> mPassedIMEChar;
 
-  bool IsIMECharRecordsEmpty()
+  PRBool IsIMECharRecordsEmpty()
   {
     return mPassedIMEChar.IsEmpty();
   }
@@ -329,13 +329,13 @@ protected:
   PRInt32 mCursorPosition;
   PRUint32 mCompositionStart;
 
-  bool mIsComposing;
-  bool mIsComposingOnPlugin;
-  bool mNativeCaretIsCreated;
+  PRPackedBool mIsComposing;
+  PRPackedBool mIsComposingOnPlugin;
+  PRPackedBool mNativeCaretIsCreated;
 
-  static bool sIsStatusChanged;
-  static bool sIsIME;
-  static bool sIsIMEOpening;
+  static PRPackedBool sIsStatusChanged;
+  static PRPackedBool sIsIME;
+  static PRPackedBool sIsIMEOpening;
 
   static UINT sCodePage;
   static DWORD sIMEProperty;

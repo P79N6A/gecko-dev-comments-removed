@@ -88,10 +88,10 @@ public:
 
 
 
-    nsresult                Unlock(bool aFatalSignal = false);
+    nsresult                Unlock(PRBool aFatalSignal = PR_FALSE);
         
 private:
-    bool                    mHaveLock;
+    PRPackedBool            mHaveLock;
 
 #if defined (XP_WIN)
     HANDLE                  mLockFileHandle;
@@ -106,7 +106,7 @@ private:
         }
     };
 
-    static void             RemovePidLockFiles(bool aFatalSignal);
+    static void             RemovePidLockFiles(PRBool aFatalSignal);
     static void             FatalSignalHandler(int signo
 #ifdef SA_SIGINFO
                                                , siginfo_t *info, void *context
@@ -120,7 +120,7 @@ private:
 
 
 
-    nsresult                LockWithSymlink(const nsACString& lockFilePath, bool aHaveFcntlLock);
+    nsresult                LockWithSymlink(const nsACString& lockFilePath, PRBool aHaveFcntlLock);
 
     char*                   mPidLockFileName;
     int                     mLockFileDesc;

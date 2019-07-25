@@ -125,7 +125,7 @@ public:
 
   nsresult ClearAllStorages();
 
-  bool InPrivateBrowsingMode() { return mInPrivateBrowsing; }
+  PRBool InPrivateBrowsingMode() { return mInPrivateBrowsing; }
 
   static nsresult Initialize();
   static nsDOMStorageManager* GetInstance();
@@ -134,14 +134,14 @@ public:
   
 
 
-  bool UnflushedDataExists();
+  PRBool UnflushedDataExists();
 
   static nsDOMStorageManager* gStorageManager;
 
 protected:
 
   nsTHashtable<nsDOMStorageEntry> mStorages;
-  bool mInPrivateBrowsing;
+  PRBool mInPrivateBrowsing;
 };
 
 class DOMStorageBase : public nsISupports
@@ -171,7 +171,7 @@ public:
   
   
   
-  bool UseDB() {
+  PRBool UseDB() {
     return mUseDB;
   }
 
@@ -179,7 +179,7 @@ public:
   virtual nsresult
   GetDBValue(const nsAString& aKey,
              nsAString& aValue,
-             bool* aSecure) = 0;
+             PRBool* aSecure) = 0;
 
   
   
@@ -187,11 +187,11 @@ public:
   virtual nsresult
   SetDBValue(const nsAString& aKey,
              const nsAString& aValue,
-             bool aSecure) = 0;
+             PRBool aSecure) = 0;
 
   
   virtual nsresult
-  SetSecure(const nsAString& aKey, bool aSecure) = 0;
+  SetSecure(const nsAString& aKey, PRBool aSecure) = 0;
 
   virtual nsresult
   CloneFrom(bool aCallerSecure, DOMStorageBase* aThat) = 0;
@@ -203,7 +203,7 @@ public:
 
   
   
-  nsCString& GetQuotaDomainDBKey(bool aOfflineAllowed)
+  nsCString& GetQuotaDomainDBKey(PRBool aOfflineAllowed)
   {
     return aOfflineAllowed ? mQuotaDomainDBKey : mQuotaETLDplus1DomainDBKey;
   }
@@ -217,14 +217,14 @@ protected:
   nsPIDOMStorage::nsDOMStorageType mStorageType;
   
   
-  bool mUseDB;
+  PRPackedBool mUseDB;
 
   
   
   
   
   
-  bool mSessionOnly;
+  PRPackedBool mSessionOnly;
 
   
   nsCString mDomain;
@@ -253,7 +253,7 @@ public:
   virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist);
   virtual void InitAsGlobalStorage(const nsACString& aDomainDemanded);
 
-  bool SessionOnly() {
+  PRBool SessionOnly() {
     return mSessionOnly;
   }
 
@@ -283,13 +283,13 @@ public:
   nsresult
   GetCachedValue(const nsAString& aKey,
                  nsAString& aValue,
-                 bool* aSecure);
+                 PRBool* aSecure);
 
   
   virtual nsresult
   GetDBValue(const nsAString& aKey,
              nsAString& aValue,
-             bool* aSecure);
+             PRBool* aSecure);
 
   
   
@@ -297,11 +297,11 @@ public:
   virtual nsresult
   SetDBValue(const nsAString& aKey,
              const nsAString& aValue,
-             bool aSecure);
+             PRBool aSecure);
 
   
   virtual nsresult
-  SetSecure(const nsAString& aKey, bool aSecure);
+  SetSecure(const nsAString& aKey, PRBool aSecure);
 
   
   void ClearAll();
@@ -365,10 +365,10 @@ public:
   virtual nsresult InitAsGlobalStorage(const nsACString &aDomainDemanded);
   virtual already_AddRefed<nsIDOMStorage> Clone();
   virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
-  virtual bool IsForkOf(nsIDOMStorage* aThat);
+  virtual PRBool IsForkOf(nsIDOMStorage* aThat);
   virtual nsTArray<nsString> *GetKeys();
   virtual nsIPrincipal* Principal();
-  virtual bool CanAccess(nsIPrincipal *aPrincipal);
+  virtual PRBool CanAccess(nsIPrincipal *aPrincipal);
   virtual nsDOMStorageType StorageType();
   virtual void BroadcastChangeNotification(const nsSubstring &aKey,
                                            const nsSubstring &aOldValue,
@@ -376,18 +376,18 @@ public:
 
   
   
-  static bool
-  CanUseStorage(bool* aSessionOnly);
+  static PRBool
+  CanUseStorage(PRPackedBool* aSessionOnly);
 
   
   
   
-  static bool
+  static PRBool
   URICanUseChromePersist(nsIURI* aURI);
   
   
   
-  bool
+  PRBool
   CacheStoragePermissions();
 
   nsIDOMStorageItem* GetNamedItem(const nsAString& aKey, nsresult* aResult);
@@ -397,7 +397,7 @@ public:
     return static_cast<nsDOMStorage*>(static_cast<nsIDOMStorageObsolete*>(aSupports));
   }
 
-  nsresult SetSecure(const nsAString& aKey, bool aSecure)
+  nsresult SetSecure(const nsAString& aKey, PRBool aSecure)
   {
     return mStorageImpl->SetSecure(aKey, aSecure);
   }
@@ -410,7 +410,7 @@ public:
 
   nsRefPtr<DOMStorageBase> mStorageImpl;
 
-  bool CanAccessSystem(nsIPrincipal *aPrincipal);
+  PRBool CanAccessSystem(nsIPrincipal *aPrincipal);
 
   
   nsString mDocumentURI;
@@ -445,10 +445,10 @@ public:
   virtual nsresult InitAsGlobalStorage(const nsACString &aDomainDemanded);
   virtual already_AddRefed<nsIDOMStorage> Clone();
   virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
-  virtual bool IsForkOf(nsIDOMStorage* aThat);
+  virtual PRBool IsForkOf(nsIDOMStorage* aThat);
   virtual nsTArray<nsString> *GetKeys();
   virtual nsIPrincipal* Principal();
-  virtual bool CanAccess(nsIPrincipal *aPrincipal);
+  virtual PRBool CanAccess(nsIPrincipal *aPrincipal);
   virtual nsDOMStorageType StorageType();
   virtual void BroadcastChangeNotification(const nsSubstring &aKey,
                                            const nsSubstring &aOldValue,
@@ -490,7 +490,7 @@ public:
   
 
 
-  static bool
+  static PRBool
   CanAccessDomain(const nsACString& aRequestedDomain,
                   const nsACString& aCurrentDomain);
 
@@ -509,13 +509,13 @@ protected:
   nsIDOMStorageObsolete*
   GetStorageForDomain(const nsACString& aRequestedDomain,
                       const nsACString& aCurrentDomain,
-                      bool aNoCurrentDomainCheck,
+                      PRBool aNoCurrentDomainCheck,
                       nsresult* aResult);
 
   
 
 
-  static bool
+  static PRBool
   ConvertDomainToArray(const nsACString& aDomain,
                        nsTArray<nsCString>* aArray);
 
@@ -529,7 +529,7 @@ public:
   nsDOMStorageItem(DOMStorageBase* aStorage,
                    const nsAString& aKey,
                    const nsAString& aValue,
-                   bool aSecure);
+                   PRBool aSecure);
   virtual ~nsDOMStorageItem();
 
   
@@ -542,12 +542,12 @@ public:
   
   NS_DECL_NSIDOMTOSTRING
 
-  bool IsSecure()
+  PRBool IsSecure()
   {
     return mSecure;
   }
 
-  void SetSecureInternal(bool aSecure)
+  void SetSecureInternal(PRBool aSecure)
   {
     mSecure = aSecure;
   }
@@ -570,7 +570,7 @@ public:
 protected:
 
   
-  bool mSecure;
+  PRBool mSecure;
 
   
   nsString mKey;
@@ -645,7 +645,7 @@ NS_NewDOMStorageList(nsIDOMStorageList** aResult);
 PRUint32
 GetOfflinePermission(const nsACString &aDomain);
 
-bool
+PRBool
 IsOfflineAllowed(const nsACString &aDomain);
 
 #endif 

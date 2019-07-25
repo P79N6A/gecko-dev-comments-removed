@@ -121,7 +121,7 @@ protected:
   nsresult SetRangeFromFlatTextOffset(nsIRange* aRange,
                                       PRUint32 aNativeOffset,
                                       PRUint32 aNativeLength,
-                                      bool aExpandToClusterBoundaries);
+                                      PRBool aExpandToClusterBoundaries);
   
   
   nsresult GetStartFrameAndOffset(nsIRange* aRange,
@@ -132,7 +132,7 @@ protected:
                                            nsRect& aRect);
   
   
-  nsresult ExpandToClusterBoundary(nsIContent* aContent, bool aForward,
+  nsresult ExpandToClusterBoundary(nsIContent* aContent, PRBool aForward,
                                    PRUint32* aXPOffset);
 };
 

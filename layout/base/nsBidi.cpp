@@ -215,7 +215,7 @@ void nsBidi::Init()
 
 
 
-bool nsBidi::GetMemory(void **aMemory, PRSize *aSize, bool aMayAllocate, PRSize aSizeNeeded)
+PRBool nsBidi::GetMemory(void **aMemory, PRSize *aSize, PRBool aMayAllocate, PRSize aSizeNeeded)
 {
   
   if(*aMemory==NULL) {
@@ -1475,7 +1475,7 @@ nsresult nsBidi::GetVisualRun(PRInt32 aRunIndex, PRInt32 *aLogicalStart, PRInt32
 
 
 
-bool nsBidi::GetRuns()
+PRBool nsBidi::GetRuns()
 {
   if(mDirection!=NSBIDI_MIXED) {
     
@@ -1811,7 +1811,7 @@ nsresult nsBidi::ReorderVisual(const nsBidiLevel *aLevels, PRInt32 aLength, PRIn
   return NS_OK;
 }
 
-bool nsBidi::PrepareReorder(const nsBidiLevel *aLevels, PRInt32 aLength,
+PRBool nsBidi::PrepareReorder(const nsBidiLevel *aLevels, PRInt32 aLength,
                 PRInt32 *aIndexMap,
                 nsBidiLevel *aMinLevel, nsBidiLevel *aMaxLevel)
 {

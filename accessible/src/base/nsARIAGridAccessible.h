@@ -62,17 +62,17 @@ protected:
   
 
 
-  bool IsValidRow(PRInt32 aRow);
+  PRBool IsValidRow(PRInt32 aRow);
 
   
 
 
-  bool IsValidColumn(PRInt32 aColumn);
+  PRBool IsValidColumn(PRInt32 aColumn);
 
   
 
 
-  bool IsValidRowNColumn(PRInt32 aRow, PRInt32 aColumn);
+  PRBool IsValidRowNColumn(PRInt32 aRow, PRInt32 aColumn);
 
   
 
@@ -92,8 +92,8 @@ protected:
 
 
 
-  nsresult SetARIASelected(nsAccessible *aAccessible, bool aIsSelected,
-                           bool aNotify = true);
+  nsresult SetARIASelected(nsAccessible *aAccessible, PRBool aIsSelected,
+                           PRBool aNotify = PR_TRUE);
 
   
 

@@ -63,7 +63,7 @@ nsPagePrintTimer::~nsPagePrintTimer()
 }
 
 nsresult 
-nsPagePrintTimer::StartTimer(bool aUseDelay)
+nsPagePrintTimer::StartTimer(PRBool aUseDelay)
 {
   nsresult result;
   mTimer = do_CreateInstance("@mozilla.org/timer;1", &result);
@@ -91,13 +91,13 @@ NS_IMETHODIMP
 nsPagePrintTimer::Notify(nsITimer *timer)
 {
   if (mDocViewerPrint) {
-    bool initNewTimer = true;
+    PRPackedBool initNewTimer = PR_TRUE;
     
     
-    bool inRange;
+    PRBool inRange;
     
     
-    bool donePrinting = mPrintEngine->PrintPage(mPrintObj, inRange);
+    PRBool donePrinting = mPrintEngine->PrintPage(mPrintObj, inRange);
     if (donePrinting) {
       
       if (mPrintEngine->DonePrintingPages(mPrintObj, NS_OK)) {

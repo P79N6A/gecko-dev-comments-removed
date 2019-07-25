@@ -138,7 +138,7 @@ public:
   virtual nsresult SetInnerHTML(const nsAString& aInnerHTML);
   virtual nsresult InsertAdjacentHTML(const nsAString& aPosition,
                                       const nsAString& aText);
-  nsresult ScrollIntoView(bool aTop, PRUint8 optional_argc);
+  nsresult ScrollIntoView(PRBool aTop, PRUint8 optional_argc);
   nsresult MozRequestFullScreen();
   
   
@@ -148,17 +148,17 @@ public:
   NS_IMETHOD Click();
   NS_IMETHOD GetTabIndex(PRInt32 *aTabIndex);
   NS_IMETHOD SetTabIndex(PRInt32 aTabIndex);
-  NS_IMETHOD GetHidden(bool* aHidden);
-  NS_IMETHOD SetHidden(bool aHidden);
-  NS_IMETHOD GetSpellcheck(bool* aSpellcheck);
-  NS_IMETHOD SetSpellcheck(bool aSpellcheck);
-  NS_IMETHOD GetDraggable(bool* aDraggable);
-  NS_IMETHOD SetDraggable(bool aDraggable);
+  NS_IMETHOD GetHidden(PRBool* aHidden);
+  NS_IMETHOD SetHidden(PRBool aHidden);
+  NS_IMETHOD GetSpellcheck(PRBool* aSpellcheck);
+  NS_IMETHOD SetSpellcheck(PRBool aSpellcheck);
+  NS_IMETHOD GetDraggable(PRBool* aDraggable);
+  NS_IMETHOD SetDraggable(PRBool aDraggable);
   NS_IMETHOD GetAccessKey(nsAString &aAccessKey);
   NS_IMETHOD SetAccessKey(const nsAString& aAccessKey);
   NS_IMETHOD GetAccessKeyLabel(nsAString& aLabel);
   nsresult GetContentEditable(nsAString& aContentEditable);
-  nsresult GetIsContentEditable(bool* aContentEditable);
+  nsresult GetIsContentEditable(PRBool* aContentEditable);
   nsresult SetContentEditable(const nsAString &aContentEditable);
   nsresult GetDataset(nsIDOMDOMStringMap** aDataset);
   
@@ -168,22 +168,22 @@ public:
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              bool aCompileEventHandlers);
-  virtual void UnbindFromTree(bool aDeep = true,
-                              bool aNullParent = true);
+                              PRBool aCompileEventHandlers);
+  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
+                              PRBool aNullParent = PR_TRUE);
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, bool aNotify)
+                   const nsAString& aValue, PRBool aNotify)
   {
     return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
-                           bool aNotify);
+                           PRBool aNotify);
   virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                             bool aNotify);
-  virtual bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false)
+                             PRBool aNotify);
+  virtual PRBool IsFocusable(PRInt32 *aTabIndex = nsnull, PRBool aWithMouse = PR_FALSE)
   {
-    bool isFocusable = false;
+    PRBool isFocusable = PR_FALSE;
     IsHTMLFocusable(aWithMouse, &isFocusable, aTabIndex);
     return isFocusable;
   }
@@ -191,38 +191,38 @@ public:
 
 
 
-  virtual bool IsHTMLFocusable(bool aWithMouse,
-                                 bool *aIsFocusable,
+  virtual PRBool IsHTMLFocusable(PRBool aWithMouse,
+                                 PRBool *aIsFocusable,
                                  PRInt32 *aTabIndex);
-  virtual void PerformAccesskey(bool aKeyCausesActivation,
-                                bool aIsTrustedEvent);
+  virtual void PerformAccesskey(PRBool aKeyCausesActivation,
+                                PRBool aIsTrustedEvent);
 
   
 
 
 
-  bool CheckHandleEventForAnchorsPreconditions(nsEventChainVisitor& aVisitor);
+  PRBool CheckHandleEventForAnchorsPreconditions(nsEventChainVisitor& aVisitor);
   nsresult PreHandleEventForAnchors(nsEventChainPreVisitor& aVisitor);
   nsresult PostHandleEventForAnchors(nsEventChainPostVisitor& aVisitor);
-  bool IsHTMLLink(nsIURI** aURI) const;
+  PRBool IsHTMLLink(nsIURI** aURI) const;
 
   
   void Compact() { mAttrsAndChildren.Compact(); }
 
-  virtual void UpdateEditableState(bool aNotify);
+  virtual void UpdateEditableState(PRBool aNotify);
 
   
-  void DoSetEditableFlag(bool aEditable, bool aNotify) {
+  void DoSetEditableFlag(PRBool aEditable, bool aNotify) {
     SetEditableFlag(aEditable);
     UpdateState(aNotify);
   }
 
-  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+  virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
 
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
+  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
 
   
@@ -242,7 +242,7 @@ public:
 
 
 
-  nsIFormControlFrame* GetFormControlFrame(bool aFlushFrames);
+  nsIFormControlFrame* GetFormControlFrame(PRBool aFlushFrames);
 
   
 
@@ -253,7 +253,7 @@ public:
 
 
 
-  static bool ParseAlignValue(const nsAString& aString,
+  static PRBool ParseAlignValue(const nsAString& aString,
                                 nsAttrValue& aResult);
 
   
@@ -263,7 +263,7 @@ public:
 
 
 
-  static bool ParseDivAlignValue(const nsAString& aString,
+  static PRBool ParseDivAlignValue(const nsAString& aString,
                                    nsAttrValue& aResult);
 
   
@@ -273,7 +273,7 @@ public:
 
 
 
-  static bool ParseTableHAlignValue(const nsAString& aString,
+  static PRBool ParseTableHAlignValue(const nsAString& aString,
                                       nsAttrValue& aResult);
 
   
@@ -283,7 +283,7 @@ public:
 
 
 
-  static bool ParseTableCellHAlignValue(const nsAString& aString,
+  static PRBool ParseTableCellHAlignValue(const nsAString& aString,
                                           nsAttrValue& aResult);
 
   
@@ -294,7 +294,7 @@ public:
 
 
 
-  static bool ParseTableVAlignValue(const nsAString& aString,
+  static PRBool ParseTableVAlignValue(const nsAString& aString,
                                       nsAttrValue& aResult);
 
   
@@ -305,7 +305,7 @@ public:
 
 
 
-  static bool ParseImageAttribute(nsIAtom* aAttribute,
+  static PRBool ParseImageAttribute(nsIAtom* aAttribute,
                                     const nsAString& aString,
                                     nsAttrValue& aResult);
   
@@ -315,7 +315,7 @@ public:
 
 
 
-  static bool ParseFrameborderValue(const nsAString& aString,
+  static PRBool ParseFrameborderValue(const nsAString& aString,
                                       nsAttrValue& aResult);
 
   
@@ -325,7 +325,7 @@ public:
 
 
 
-  static bool ParseScrollingValue(const nsAString& aString,
+  static PRBool ParseScrollingValue(const nsAString& aString,
                                     nsAttrValue& aResult);
 
   
@@ -469,7 +469,7 @@ public:
 
 
   static nsresult GetLayoutHistoryAndKey(nsGenericHTMLElement* aContent,
-                                         bool aRead,
+                                         PRBool aRead,
                                          nsILayoutHistoryState** aState,
                                          nsACString& aKey);
   
@@ -481,7 +481,7 @@ public:
 
 
 
-  static bool RestoreFormControlState(nsGenericHTMLElement* aContent,
+  static PRBool RestoreFormControlState(nsGenericHTMLElement* aContent,
                                         nsIFormControl* aControl);
 
   
@@ -508,7 +508,7 @@ public:
 
 
 
-  static bool InNavQuirksMode(nsIDocument* aDoc);
+  static PRBool InNavQuirksMode(nsIDocument* aDoc);
 
   
 
@@ -536,7 +536,7 @@ public:
     return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
   }
 
-  bool IsHidden() const
+  PRBool IsHidden() const
   {
     return HasAttr(kNameSpaceID_None, nsGkAtoms::hidden);
   }
@@ -593,7 +593,7 @@ private:
                                           nsIContent* aDest,
                                           PRInt32 aOldChildCount);
 
-  void RegUnRegAccessKey(bool aDoReg);
+  void RegUnRegAccessKey(PRBool aDoReg);
 
 protected:
   
@@ -601,13 +601,13 @@ protected:
 
 
 
-  bool IsEventName(nsIAtom* aName);
+  PRBool IsEventName(nsIAtom* aName);
 
   virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
-                                const nsAString* aValue, bool aNotify);
+                                const nsAString* aValue, PRBool aNotify);
 
   virtual nsEventListenerManager*
-    GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer);
+    GetEventListenerManagerForAttr(PRBool* aDefer);
 
   virtual const nsAttrName* InternalGetExistingAttrNameFromQName(const nsAString& aStr) const;
 
@@ -642,7 +642,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) GetBoolAttr(nsIAtom* aAttr, bool* aValue) const;
+  NS_HIDDEN_(nsresult) GetBoolAttr(nsIAtom* aAttr, PRBool* aValue) const;
 
   
 
@@ -652,7 +652,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) SetBoolAttr(nsIAtom* aAttr, bool aValue);
+  NS_HIDDEN_(nsresult) SetBoolAttr(nsIAtom* aAttr, PRBool aValue);
 
   
 
@@ -727,7 +727,7 @@ protected:
 
 
 
-  NS_HIDDEN_(bool) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsIURI** aURI) const;
+  NS_HIDDEN_(PRBool) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsIURI** aURI) const;
 
   
 
@@ -778,7 +778,7 @@ protected:
   
 
 
-  bool IsCurrentBodyElement();
+  PRBool IsCurrentBodyElement();
 
   
 
@@ -826,7 +826,7 @@ protected:
 
 
 
-  bool IsEditableRoot() const;
+  PRBool IsEditableRoot() const;
 
 private:
   void ChangeEditableState(PRInt32 aChange);
@@ -852,13 +852,13 @@ public:
 
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
 
-  virtual bool IsNodeOfType(PRUint32 aFlags) const;
+  virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
   virtual void SaveSubtreeState();
 
   
   virtual mozilla::dom::Element* GetFormElement();
   virtual void SetForm(nsIDOMHTMLFormElement* aForm);
-  virtual void ClearForm(bool aRemoveFromForm);
+  virtual void ClearForm(PRBool aRemoveFromForm);
 
   nsresult GetForm(nsIDOMHTMLFormElement** aForm);
 
@@ -867,11 +867,11 @@ public:
     return NS_OK;
   }
   
-  virtual bool RestoreState(nsPresState* aState)
+  virtual PRBool RestoreState(nsPresState* aState)
   {
     return PR_FALSE;
   }
-  virtual bool AllowDrop()
+  virtual PRBool AllowDrop()
   {
     return PR_TRUE;
   }
@@ -879,9 +879,9 @@ public:
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              bool aCompileEventHandlers);
-  virtual void UnbindFromTree(bool aDeep = true,
-                              bool aNullParent = true);
+                              PRBool aCompileEventHandlers);
+  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
+                              PRBool aNullParent = PR_TRUE);
   virtual PRUint32 GetDesiredIMEState();
   virtual nsEventStates IntrinsicState() const;
 
@@ -898,9 +898,9 @@ public:
 
 
 
-  virtual void FieldSetDisabledChanged(bool aNotify);
+  virtual void FieldSetDisabledChanged(PRBool aNotify);
 
-  void FieldSetFirstLegendChanged(bool aNotify) {
+  void FieldSetFirstLegendChanged(PRBool aNotify) {
     UpdateFieldSet(aNotify);
   }
 
@@ -916,19 +916,19 @@ public:
   
 
 
-  bool CanBeDisabled() const;
+  PRBool CanBeDisabled() const;
 
-  virtual bool IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
+  virtual PRBool IsHTMLFocusable(PRBool aWithMouse, PRBool* aIsFocusable,
                                  PRInt32* aTabIndex);
 
 protected:
   virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                                 const nsAString* aValue, bool aNotify);
+                                 const nsAString* aValue, PRBool aNotify);
 
   virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                                const nsAString* aValue, bool aNotify);
+                                const nsAString* aValue, PRBool aNotify);
 
-  void UpdateEditableFormControlState(bool aNotify);
+  void UpdateEditableFormControlState(PRBool aNotify);
 
   
 
@@ -946,7 +946,7 @@ protected:
   
 
 
-  void UpdateFieldSet(bool aNotify);
+  void UpdateFieldSet(PRBool aNotify);
 
   
 
@@ -966,11 +966,11 @@ protected:
 
 
 
-  static bool FormIdUpdated(Element* aOldElement, Element* aNewElement,
+  static PRBool FormIdUpdated(Element* aOldElement, Element* aNewElement,
                               void* aData);
 
   
-  virtual bool IsElementDisabledForEvents(PRUint32 aMessage, nsIFrame* aFrame);
+  virtual PRBool IsElementDisabledForEvents(PRUint32 aMessage, nsIFrame* aFrame);
 
   
   
@@ -1041,20 +1041,20 @@ public:
   NS_DECL_NSIFRAMELOADEROWNER
 
   
-  virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32 *aTabIndex);
+  virtual PRBool IsHTMLFocusable(PRBool aWithMouse, PRBool *aIsFocusable, PRInt32 *aTabIndex);
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              bool aCompileEventHandlers);
-  virtual void UnbindFromTree(bool aDeep = true,
-                              bool aNullParent = true);
+                              PRBool aCompileEventHandlers);
+  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
+                              PRBool aNullParent = PR_TRUE);
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, bool aNotify)
+                   const nsAString& aValue, PRBool aNotify)
   {
     return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
-                           bool aNotify);
+                           PRBool aNotify);
   virtual void DestroyContent();
 
   nsresult CopyInnerTo(nsGenericElement* aDest) const;
@@ -1077,7 +1077,7 @@ protected:
   
   
   
-  bool                    mNetworkCreated;
+  PRPackedBool            mNetworkCreated;
 };
 
 
@@ -1125,12 +1125,12 @@ protected:
 
 #define NS_IMPL_BOOL_ATTR(_class, _method, _atom)                     \
   NS_IMETHODIMP                                                       \
-  _class::Get##_method(bool* aValue)                                \
+  _class::Get##_method(PRBool* aValue)                                \
   {                                                                   \
     return GetBoolAttr(nsGkAtoms::_atom, aValue);                   \
   }                                                                   \
   NS_IMETHODIMP                                                       \
-  _class::Set##_method(bool aValue)                                 \
+  _class::Set##_method(PRBool aValue)                                 \
   {                                                                   \
     return SetBoolAttr(nsGkAtoms::_atom, aValue);                   \
   }

@@ -51,7 +51,7 @@ public:
 	
 
 
-	static bool IsPluginFile(nsIFile* file);
+	static PRBool IsPluginFile(nsIFile* file);
 };
 
 struct PRLibrary;

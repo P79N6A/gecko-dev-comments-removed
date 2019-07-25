@@ -61,10 +61,10 @@ public:
   NS_DECL_NSITEXTSERVICESFILTER
 
   
-  void Init(bool aIsForMail) { mIsForMail = aIsForMail; }
+  void Init(PRBool aIsForMail) { mIsForMail = aIsForMail; }
 
 protected:
-  bool              mIsForMail;
+  PRBool            mIsForMail;
   nsCOMPtr<nsIAtom> mBlockQuoteAtom;
   nsCOMPtr<nsIAtom> mPreAtom;          
   nsCOMPtr<nsIAtom> mSpanAtom;         

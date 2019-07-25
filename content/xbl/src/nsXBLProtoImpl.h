@@ -95,13 +95,13 @@ public:
 
   
   
-  bool ResolveAllFields(JSContext *cx, JSObject *obj) const;
+  PRBool ResolveAllFields(JSContext *cx, JSObject *obj) const;
 
   
   
   void UndefineFields(JSContext* cx, JSObject* obj) const;
 
-  bool CompiledMembers() const {
+  PRBool CompiledMembers() const {
     return mClassObject != nsnull;
   }
 

@@ -223,14 +223,14 @@ void AppendUnicodeTo( const nsAString::const_iterator& aSrcStart,
 
 
 
-bool IsASCII( const nsAString& aString );
+PRBool IsASCII( const nsAString& aString );
 
   
 
 
 
 
-bool IsASCII( const nsACString& aString );
+PRBool IsASCII( const nsACString& aString );
 
   
 
@@ -263,9 +263,9 @@ bool IsASCII( const nsACString& aString );
 
 
 
-bool IsUTF8( const nsACString& aString, bool aRejectNonChar = true );
+PRBool IsUTF8( const nsACString& aString, PRBool aRejectNonChar = PR_TRUE );
 
-bool ParseString(const nsACString& aAstring, char aDelimiter, 
+PRBool ParseString(const nsACString& aAstring, char aDelimiter, 
                           nsTArray<nsCString>& aArray);
 
   
@@ -296,12 +296,12 @@ void ToLowerCase( const nsACString& aSource, nsACString& aDest );
 
 
 
-bool FindInReadable( const nsAString& aPattern, nsAString::const_iterator&, nsAString::const_iterator&, const nsStringComparator& = nsDefaultStringComparator() );
-bool FindInReadable( const nsACString& aPattern, nsACString::const_iterator&, nsACString::const_iterator&, const nsCStringComparator& = nsDefaultCStringComparator() );
+PRBool FindInReadable( const nsAString& aPattern, nsAString::const_iterator&, nsAString::const_iterator&, const nsStringComparator& = nsDefaultStringComparator() );
+PRBool FindInReadable( const nsACString& aPattern, nsACString::const_iterator&, nsACString::const_iterator&, const nsCStringComparator& = nsDefaultCStringComparator() );
 
 
 
-inline bool FindInReadable( const nsAString& aPattern, const nsAString& aSource, const nsStringComparator& compare = nsDefaultStringComparator() )
+inline PRBool FindInReadable( const nsAString& aPattern, const nsAString& aSource, const nsStringComparator& compare = nsDefaultStringComparator() )
 {
   nsAString::const_iterator start, end;
   aSource.BeginReading(start);
@@ -309,7 +309,7 @@ inline bool FindInReadable( const nsAString& aPattern, const nsAString& aSource,
   return FindInReadable(aPattern, start, end, compare);
 }
 
-inline bool FindInReadable( const nsACString& aPattern, const nsACString& aSource, const nsCStringComparator& compare = nsDefaultCStringComparator() )
+inline PRBool FindInReadable( const nsACString& aPattern, const nsACString& aSource, const nsCStringComparator& compare = nsDefaultCStringComparator() )
 {
   nsACString::const_iterator start, end;
   aSource.BeginReading(start);
@@ -318,7 +318,7 @@ inline bool FindInReadable( const nsACString& aPattern, const nsACString& aSourc
 }
 
 
-bool CaseInsensitiveFindInReadable( const nsACString& aPattern, nsACString::const_iterator&, nsACString::const_iterator& );
+PRBool CaseInsensitiveFindInReadable( const nsACString& aPattern, nsACString::const_iterator&, nsACString::const_iterator& );
 
   
 
@@ -326,8 +326,8 @@ bool CaseInsensitiveFindInReadable( const nsACString& aPattern, nsACString::cons
 
 
 
-bool RFindInReadable( const nsAString& aPattern, nsAString::const_iterator&, nsAString::const_iterator&, const nsStringComparator& = nsDefaultStringComparator() );
-bool RFindInReadable( const nsACString& aPattern, nsACString::const_iterator&, nsACString::const_iterator&, const nsCStringComparator& = nsDefaultCStringComparator() );
+PRBool RFindInReadable( const nsAString& aPattern, nsAString::const_iterator&, nsAString::const_iterator&, const nsStringComparator& = nsDefaultStringComparator() );
+PRBool RFindInReadable( const nsACString& aPattern, nsACString::const_iterator&, nsACString::const_iterator&, const nsCStringComparator& = nsDefaultCStringComparator() );
 
    
 
@@ -337,8 +337,8 @@ bool RFindInReadable( const nsACString& aPattern, nsACString::const_iterator&, n
 
 
 
-bool FindCharInReadable( PRUnichar aChar, nsAString::const_iterator& aSearchStart, const nsAString::const_iterator& aSearchEnd );
-bool FindCharInReadable( char aChar, nsACString::const_iterator& aSearchStart, const nsACString::const_iterator& aSearchEnd );
+PRBool FindCharInReadable( PRUnichar aChar, nsAString::const_iterator& aSearchStart, const nsAString::const_iterator& aSearchEnd );
+PRBool FindCharInReadable( char aChar, nsACString::const_iterator& aSearchStart, const nsACString::const_iterator& aSearchEnd );
 
     
 
@@ -348,19 +348,19 @@ PRUint32 CountCharInReadable( const nsAString& aStr,
 PRUint32 CountCharInReadable( const nsACString& aStr,
                                      char aChar );
 
-bool
+PRBool
 StringBeginsWith( const nsAString& aSource, const nsAString& aSubstring,
                   const nsStringComparator& aComparator =
                                               nsDefaultStringComparator() );
-bool
+PRBool
 StringBeginsWith( const nsACString& aSource, const nsACString& aSubstring,
                   const nsCStringComparator& aComparator =
                                                nsDefaultCStringComparator() );
-bool
+PRBool
 StringEndsWith( const nsAString& aSource, const nsAString& aSubstring,
                 const nsStringComparator& aComparator =
                                             nsDefaultStringComparator() );
-bool
+PRBool
 StringEndsWith( const nsACString& aSource, const nsACString& aSubstring,
                 const nsCStringComparator& aComparator =
                                              nsDefaultCStringComparator() );
@@ -384,7 +384,7 @@ void
 AppendUCS4ToUTF16(const PRUint32 aSource, nsAString& aDest);
 
 template<class T>
-inline bool EnsureStringLength(T& aStr, PRUint32 aLen)
+inline PRBool EnsureStringLength(T& aStr, PRUint32 aLen)
 {
     aStr.SetLength(aLen);
     return (aStr.Length() == aLen);

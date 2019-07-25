@@ -41,13 +41,11 @@
 #ifndef jsanalyze_h___
 #define jsanalyze_h___
 
+#include "jsarena.h"
 #include "jscompartment.h"
 #include "jscntxt.h"
 #include "jsinfer.h"
 #include "jsscript.h"
-#include "jstl.h"
-
-#include "ds/LifoAlloc.h"
 
 struct JSScript;
 
@@ -84,6 +82,11 @@ namespace analyze {
 
 
 
+
+class SSAValue;
+struct SSAUseChain;
+struct LoopAnalysis;
+struct SlotValue;
 
 
 class Bytecode
@@ -1095,9 +1098,6 @@ class ScriptAnalysis
         return getValueTypes(poppedValue(pc, which));
     }
 
-    
-    bool integerOperation(JSContext *cx, jsbytecode *pc);
-
     bool trackUseChain(const SSAValue &v) {
         JS_ASSERT_IF(v.kind() == SSAValue::VAR, trackSlot(v.varSlot()));
         return v.kind() != SSAValue::EMPTY &&
@@ -1368,18 +1368,6 @@ class CrossScriptSSA
 #ifdef DEBUG
 void PrintBytecode(JSContext *cx, JSScript *script, jsbytecode *pc);
 #endif
-
-} 
-} 
-
-namespace js {
-namespace tl {
-
-template <> struct IsPodType<js::analyze::LifetimeVariable> { static const bool result = true; };
-template <> struct IsPodType<js::analyze::LoopAnalysis>     { static const bool result = true; };
-template <> struct IsPodType<js::analyze::SlotValue>        { static const bool result = true; };
-template <> struct IsPodType<js::analyze::SSAValue>         { static const bool result = true; };
-template <> struct IsPodType<js::analyze::SSAUseChain>      { static const bool result = true; };
 
 } 
 } 

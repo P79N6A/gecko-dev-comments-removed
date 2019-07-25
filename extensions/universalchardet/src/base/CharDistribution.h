@@ -76,7 +76,7 @@ public:
   float GetConfidence(void);
 
   
-  void      Reset(bool aIsPreferredLanguage) 
+  void      Reset(PRBool aIsPreferredLanguage) 
   {
     mDone = PR_FALSE;
     mTotalChars = 0;
@@ -90,7 +90,7 @@ public:
 
   
   
-  bool GotEnoughData() {return mTotalChars > ENOUGH_DATA_THRESHOLD;}
+  PRBool GotEnoughData() {return mTotalChars > ENOUGH_DATA_THRESHOLD;}
 
 protected:
   
@@ -99,7 +99,7 @@ protected:
   virtual PRInt32 GetOrder(const char* str) {return -1;}
   
   
-  bool     mDone;
+  PRBool   mDone;
 
   
   PRUint32 mFreqChars;

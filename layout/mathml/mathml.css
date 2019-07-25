@@ -242,7 +242,7 @@ mtable[frame="dashed"] {
   border: dashed thin;
 }
 
-mtr, mlabeledtr {
+mtr {
   display: table-row;
   vertical-align: baseline;
 }
@@ -256,15 +256,8 @@ mtd {
 
 
 :not(mtable) > mtr,
-:not(mtable) > mlabeledtr,
-:not(mtr):not(mlabeledtr) > mtd {
+:not(mtr) > mtd {
   display: none !important;
-}
-
-
-
-mlabeledtr > mtd:first-child {
-    display: none;
 }
 
 

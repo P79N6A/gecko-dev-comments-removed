@@ -189,7 +189,7 @@ public:
         return mCurrentItem;
     }
     void pushBack();
-    bool hasMoreTokens()
+    PRBool hasMoreTokens()
     {
         return (mCurrentItem->mType != Token::END);
     }
@@ -241,13 +241,13 @@ private:
 
 
 
-    bool nextIsOperatorToken(Token* aToken);
+    PRBool nextIsOperatorToken(Token* aToken);
 
     
 
 
 
-    static bool isXPathDigit(PRUnichar ch)
+    static PRBool isXPathDigit(PRUnichar ch)
     {
         return (ch >= '0' && ch <= '9');
     }

@@ -279,7 +279,7 @@ txNodeSorter::compareNodes(const void* aIndexA, const void* aIndexB,
 }
 
 
-bool
+PRBool
 txNodeSorter::calcSortValue(TxObject*& aSortValue, SortKey* aKey,
                             SortData* aSortData, PRUint32 aNodeIndex)
 {

@@ -93,11 +93,11 @@ private:
     
     
     
-    bool mRequestIsPartial;
-    bool mResponseIsPartial;
+    PRPackedBool mRequestIsPartial;
+    PRPackedBool mResponseIsPartial;
 
     
-    bool mClosed;
+    PRPackedBool mClosed;
 
     
     nsAHttpSegmentReader *mReader;

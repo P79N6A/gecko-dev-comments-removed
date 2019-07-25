@@ -223,7 +223,7 @@ txXSLTNumber::getValueList(Expr* aValueExpr, txPattern* aCountPattern,
         
         
         if (aFromPattern && aValues.getLength()) {
-            bool hasParent;
+            PRBool hasParent;
             while ((hasParent = walker.moveToParent())) {
                 if (aFromPattern->matches(walker.getCurrentPosition(), aContext)) {
                     break;
@@ -438,7 +438,7 @@ txXSLTNumber::getSiblingCount(txXPathTreeWalker& aWalker,
     return value;
 }
 
-bool
+PRBool
 txXSLTNumber::getPrevInDocumentOrder(txXPathTreeWalker& aWalker)
 {
     if (aWalker.moveToPreviousSibling()) {

@@ -166,7 +166,7 @@ public:
 
 
 
-  static nsresult Clone(nsINode *aNode, bool aDeep,
+  static nsresult Clone(nsINode *aNode, PRBool aDeep,
                         nsNodeInfoManager *aNewNodeInfoManager,
                         nsCOMArray<nsINode> &aNodesWithProperties,
                         nsIDOMNode **aResult)
@@ -224,7 +224,7 @@ public:
 
   static nsresult CallUserDataHandlers(nsCOMArray<nsINode> &aNodesWithProperties,
                                        nsIDocument *aOwnerDocument,
-                                       PRUint16 aOperation, bool aCloned);
+                                       PRUint16 aOperation, PRBool aCloned);
 
   
 
@@ -245,8 +245,8 @@ public:
 
 
 
-  static nsresult CloneNodeImpl(nsINode *aNode, bool aDeep,
-                                bool aCallUserDataHandlers,
+  static nsresult CloneNodeImpl(nsINode *aNode, PRBool aDeep,
+                                PRBool aCallUserDataHandlers,
                                 nsIDOMNode **aResult);
 
   
@@ -285,7 +285,7 @@ private:
 
 
 
-  static nsresult CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
+  static nsresult CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
                                 nsNodeInfoManager *aNewNodeInfoManager,
                                 JSContext *aCx, JSObject *aNewScope,
                                 nsCOMArray<nsINode> &aNodesWithProperties,
@@ -313,7 +313,7 @@ private:
 
 
 
-  static nsresult CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
+  static nsresult CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
                                 nsNodeInfoManager *aNewNodeInfoManager,
                                 JSContext *aCx, JSObject *aNewScope,
                                 nsCOMArray<nsINode> &aNodesWithProperties,

@@ -187,7 +187,7 @@ nsStorageStream::Write(const char *aBuffer, PRUint32 aCount, PRUint32 *aNumWritt
     
     
     
-    bool firstTime = mSegmentedBuffer->GetSegmentCount() == 0;
+    PRBool firstTime = mSegmentedBuffer->GetSegmentCount() == 0;
     while (remaining || NS_UNLIKELY(firstTime)) {
         firstTime = PR_FALSE;
         availableInSegment = mSegmentEnd - mWriteCursor;
@@ -236,7 +236,7 @@ nsStorageStream::WriteSegments(nsReadSegmentFun reader, void * closure, PRUint32
 }
 
 NS_IMETHODIMP 
-nsStorageStream::IsNonBlocking(bool *aNonBlocking)
+nsStorageStream::IsNonBlocking(PRBool *aNonBlocking)
 {
     *aNonBlocking = PR_TRUE;
     return NS_OK;
@@ -277,7 +277,7 @@ nsStorageStream::SetLength(PRUint32 aLength)
 }
 
 NS_IMETHODIMP
-nsStorageStream::GetWriteInProgress(bool *aWriteInProgress)
+nsStorageStream::GetWriteInProgress(PRBool *aWriteInProgress)
 {
     NS_ENSURE_ARG(aWriteInProgress);
 
@@ -461,7 +461,7 @@ nsStorageInputStream::ReadSegments(nsWriteSegmentFun writer, void * closure, PRU
  out:
     *aNumRead = aCount - remainingCapacity;
 
-    bool isWriteInProgress = false;
+    PRBool isWriteInProgress = PR_FALSE;
     if (NS_FAILED(mStorageStream->GetWriteInProgress(&isWriteInProgress)))
         isWriteInProgress = PR_FALSE;
 
@@ -472,7 +472,7 @@ nsStorageInputStream::ReadSegments(nsWriteSegmentFun writer, void * closure, PRU
 }
 
 NS_IMETHODIMP 
-nsStorageInputStream::IsNonBlocking(bool *aNonBlocking)
+nsStorageInputStream::IsNonBlocking(PRBool *aNonBlocking)
 {
     
     

@@ -98,9 +98,9 @@ public:
                                                
 
   void AddToLoadGroup();
-  void RemoveFromLoadGroup(bool releaseLoadGroup);
+  void RemoveFromLoadGroup(PRBool releaseLoadGroup);
 
-  inline bool HasObserver() const {
+  inline PRBool HasObserver() const {
     return mListener != nsnull;
   }
 
@@ -119,11 +119,11 @@ public:
 
   
   
-  bool NotificationsDeferred() const
+  PRBool NotificationsDeferred() const
   {
     return mDeferNotifications;
   }
-  void SetNotificationsDeferred(bool aDeferNotifications)
+  void SetNotificationsDeferred(PRBool aDeferNotifications)
   {
     mDeferNotifications = aDeferNotifications;
   }
@@ -171,7 +171,7 @@ protected:
   void OnStartDecode   ();
   void OnStartContainer(imgIContainer *aContainer);
   void OnStartFrame    (PRUint32 aFrame);
-  void OnDataAvailable (bool aCurrentFrame, const nsIntRect * aRect);
+  void OnDataAvailable (PRBool aCurrentFrame, const nsIntRect * aRect);
   void OnStopFrame     (PRUint32 aFrame);
   void OnStopContainer (imgIContainer *aContainer);
   void OnStopDecode    (nsresult status, const PRUnichar *statusArg); 
@@ -183,7 +183,7 @@ protected:
 
   
   void OnStartRequest();
-  void OnStopRequest(bool aLastPart);
+  void OnStopRequest(PRBool aLastPart);
 
   
   void DoCancel(nsresult status);
@@ -242,18 +242,18 @@ private:
   nsLoadFlags mLoadFlags;
   PRUint32    mLockCount;
   PRUint32    mAnimationConsumers;
-  bool mCanceled;
-  bool mIsInLoadGroup;
-  bool mListenerIsStrongRef;
-  bool mDecodeRequested;
+  PRPackedBool mCanceled;
+  PRPackedBool mIsInLoadGroup;
+  PRPackedBool mListenerIsStrongRef;
+  PRPackedBool mDecodeRequested;
 
   
   
-  bool mDeferNotifications;
+  PRPackedBool mDeferNotifications;
 
   
   
-  bool mSentStartContainer;
+  PRPackedBool mSentStartContainer;
 };
 
 #endif 

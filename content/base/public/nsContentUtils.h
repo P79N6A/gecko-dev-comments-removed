@@ -178,12 +178,12 @@ struct EventNameMapping
 };
 
 struct nsShortcutCandidate {
-  nsShortcutCandidate(PRUint32 aCharCode, bool aIgnoreShift) :
+  nsShortcutCandidate(PRUint32 aCharCode, PRBool aIgnoreShift) :
     mCharCode(aCharCode), mIgnoreShift(aIgnoreShift)
   {
   }
   PRUint32 mCharCode;
-  bool     mIgnoreShift;
+  PRBool   mIgnoreShift;
 };
 
 class nsContentUtils
@@ -222,17 +222,17 @@ public:
                                                  nsIScriptGlobalObject *aOldScope,
                                                  nsIScriptGlobalObject *aNewScope);
 
-  static bool     IsCallerChrome();
+  static PRBool   IsCallerChrome();
 
-  static bool     IsCallerTrustedForRead();
+  static PRBool   IsCallerTrustedForRead();
 
-  static bool     IsCallerTrustedForWrite();
+  static PRBool   IsCallerTrustedForWrite();
 
   
 
 
 
-  static bool     IsCallerTrustedForCapability(const char* aCapability);
+  static PRBool   IsCallerTrustedForCapability(const char* aCapability);
 
   
 
@@ -252,13 +252,13 @@ public:
 
 
 
-  static bool ContentIsDescendantOf(const nsINode* aPossibleDescendant,
+  static PRBool ContentIsDescendantOf(const nsINode* aPossibleDescendant,
                                       const nsINode* aPossibleAncestor);
 
   
 
 
-  static bool ContentIsCrossDocDescendantOf(nsINode* aPossibleDescendant,
+  static PRBool ContentIsCrossDocDescendantOf(nsINode* aPossibleDescendant,
                                               nsINode* aPossibleAncestor);
 
   
@@ -302,7 +302,7 @@ public:
 
 
 
-  static bool PositionIsBefore(nsINode* aNode1,
+  static PRBool PositionIsBefore(nsINode* aNode1,
                                  nsINode* aNode2)
   {
     return (aNode2->CompareDocPosition(aNode1) &
@@ -322,7 +322,7 @@ public:
 
   static PRInt32 ComparePoints(nsINode* aParent1, PRInt32 aOffset1,
                                nsINode* aParent2, PRInt32 aOffset2,
-                               bool* aDisconnected = nsnull);
+                               PRBool* aDisconnected = nsnull);
 
   
 
@@ -351,7 +351,7 @@ public:
                                                  PRUint32 aSrcOffset,
                                                  PRUnichar* aDest,
                                                  PRUint32 aLength,
-                                                 bool& aLastCharCR);
+                                                 PRBool& aLastCharCR);
 
   static PRUint32 CopyNewlineNormalizedUnicodeTo(nsReadingIterator<PRUnichar>& aSrcStart, const nsReadingIterator<PRUnichar>& aSrcEnd, nsAString& aDest);
 
@@ -361,21 +361,21 @@ public:
   static const nsDependentSubstring TrimCharsInSet(const char* aSet,
                                                    const nsAString& aValue);
 
-  template<bool IsWhitespace(PRUnichar)>
+  template<PRBool IsWhitespace(PRUnichar)>
   static const nsDependentSubstring TrimWhitespace(const nsAString& aStr,
-                                                   bool aTrimTrailing = true);
+                                                   PRBool aTrimTrailing = PR_TRUE);
 
   
 
 
-  static bool IsPunctuationMark(PRUint32 aChar);
-  static bool IsPunctuationMarkAt(const nsTextFragment* aFrag, PRUint32 aOffset);
+  static PRBool IsPunctuationMark(PRUint32 aChar);
+  static PRBool IsPunctuationMarkAt(const nsTextFragment* aFrag, PRUint32 aOffset);
  
   
 
 
-  static bool IsAlphanumeric(PRUint32 aChar);
-  static bool IsAlphanumericAt(const nsTextFragment* aFrag, PRUint32 aOffset);
+  static PRBool IsAlphanumeric(PRUint32 aChar);
+  static PRBool IsAlphanumericAt(const nsTextFragment* aFrag, PRUint32 aOffset);
 
   
 
@@ -385,7 +385,7 @@ public:
 
 
 
-  static bool IsHTMLWhitespace(PRUnichar aChar);
+  static PRBool IsHTMLWhitespace(PRUnichar aChar);
 
   
 
@@ -395,7 +395,7 @@ public:
 
 
 
-  static bool ParseIntMarginValue(const nsAString& aString, nsIntMargin& aResult);
+  static PRBool ParseIntMarginValue(const nsAString& aString, nsIntMargin& aResult);
 
   static void Shutdown();
 
@@ -406,11 +406,11 @@ public:
                                   nsIDOMNode* aUnTrustedNode);
 
   
-  static bool CanCallerAccess(nsIDOMNode *aNode);
+  static PRBool CanCallerAccess(nsIDOMNode *aNode);
 
   
   
-  static bool CanCallerAccess(nsPIDOMWindow* aWindow);
+  static PRBool CanCallerAccess(nsPIDOMWindow* aWindow);
 
   
 
@@ -453,7 +453,7 @@ public:
 
   
   
-  static bool InProlog(nsINode *aNode);
+  static PRBool InProlog(nsINode *aNode);
 
   static nsIParserService* GetParserService();
 
@@ -524,8 +524,8 @@ public:
 
 
 
-  static bool CheckForBOM(const unsigned char* aBuffer, PRUint32 aLength,
-                            nsACString& aCharset, bool *bigEndian = nsnull);
+  static PRBool CheckForBOM(const unsigned char* aBuffer, PRUint32 aLength,
+                            nsACString& aCharset, PRBool *bigEndian = nsnull);
 
 
   
@@ -536,11 +536,11 @@ public:
 
 
 
-  static bool BelongsInForm(nsIContent *aForm,
+  static PRBool BelongsInForm(nsIContent *aForm,
                               nsIContent *aContent);
 
   static nsresult CheckQName(const nsAString& aQualifiedName,
-                             bool aNamespaceAware = true);
+                             PRBool aNamespaceAware = PR_TRUE);
 
   static nsresult SplitQName(const nsIContent* aNamespaceResolver,
                              const nsAFlatString& aQName,
@@ -558,7 +558,7 @@ public:
   
   
   
-  static bool IsSitePermAllow(nsIURI* aURI, const char* aType);
+  static PRBool IsSitePermAllow(nsIURI* aURI, const char* aType);
 
   static nsILineBreaker* LineBreaker()
   {
@@ -586,7 +586,7 @@ public:
 
 
 
-  static bool HasNonEmptyAttr(const nsIContent* aContent, PRInt32 aNameSpaceID,
+  static PRBool HasNonEmptyAttr(const nsIContent* aContent, PRInt32 aNameSpaceID,
                                 nsIAtom* aName);
 
   
@@ -614,7 +614,7 @@ public:
 
 
 
-  static bool CanLoadImage(nsIURI* aURI,
+  static PRBool CanLoadImage(nsIURI* aURI,
                              nsISupports* aContext,
                              nsIDocument* aLoadingDocument,
                              nsIPrincipal* aLoadingPrincipal,
@@ -643,7 +643,7 @@ public:
   
 
 
-  static bool IsImageInCache(nsIURI* aURI);
+  static PRBool IsImageInCache(nsIURI* aURI);
 
   
 
@@ -665,7 +665,7 @@ public:
 
 
 
-  static bool ContentIsDraggable(nsIContent* aContent);
+  static PRBool ContentIsDraggable(nsIContent* aContent);
 
   
 
@@ -673,7 +673,7 @@ public:
 
 
 
-  static bool IsDraggableImage(nsIContent* aContent);
+  static PRBool IsDraggableImage(nsIContent* aContent);
 
   
 
@@ -681,7 +681,7 @@ public:
 
 
 
-  static bool IsDraggableLink(const nsIContent* aContent);
+  static PRBool IsDraggableLink(const nsIContent* aContent);
 
   
 
@@ -722,7 +722,7 @@ public:
 
 
 
-  static bool IsInSameAnonymousTree(const nsINode* aNode, const nsIContent* aContent);
+  static PRBool IsInSameAnonymousTree(const nsINode* aNode, const nsIContent* aContent);
 
   
 
@@ -821,12 +821,12 @@ public:
   
 
 
-  static bool IsChromeDoc(nsIDocument *aDocument);
+  static PRBool IsChromeDoc(nsIDocument *aDocument);
 
   
 
 
-  static bool IsChildOfSameType(nsIDocument* aDoc);
+  static PRBool IsChildOfSameType(nsIDocument* aDoc);
 
   
 
@@ -837,7 +837,7 @@ public:
 
 
 
-  static bool GetWrapperSafeScriptFilename(nsIDocument *aDocument,
+  static PRBool GetWrapperSafeScriptFilename(nsIDocument *aDocument,
                                              nsIURI *aURI,
                                              nsACString& aScriptURI);
 
@@ -847,7 +847,7 @@ public:
 
 
 
-  static bool IsInChromeDocshell(nsIDocument *aDocument);
+  static PRBool IsInChromeDocshell(nsIDocument *aDocument);
 
   
 
@@ -867,7 +867,7 @@ public:
 
 
 
-  static bool HasMutationListeners(nsINode* aNode,
+  static PRBool HasMutationListeners(nsINode* aNode,
                                      PRUint32 aType,
                                      nsINode* aTargetForSubtreeModified);
 
@@ -882,7 +882,7 @@ public:
 
 
 
-  static bool HasMutationListeners(nsIDocument* aDocument,
+  static PRBool HasMutationListeners(nsIDocument* aDocument,
                                      PRUint32 aType);
   
 
@@ -915,9 +915,9 @@ public:
   static nsresult DispatchTrustedEvent(nsIDocument* aDoc,
                                        nsISupports* aTarget,
                                        const nsAString& aEventName,
-                                       bool aCanBubble,
-                                       bool aCancelable,
-                                       bool *aDefaultAction = nsnull);
+                                       PRBool aCanBubble,
+                                       PRBool aCancelable,
+                                       PRBool *aDefaultAction = nsnull);
 
   
 
@@ -937,9 +937,9 @@ public:
   static nsresult DispatchChromeEvent(nsIDocument* aDoc,
                                       nsISupports* aTarget,
                                       const nsAString& aEventName,
-                                      bool aCanBubble,
-                                      bool aCancelable,
-                                      bool *aDefaultAction = nsnull);
+                                      PRBool aCanBubble,
+                                      PRBool aCancelable,
+                                      PRBool *aDefaultAction = nsnull);
 
   
 
@@ -949,7 +949,7 @@ public:
 
 
 
-  static bool IsEventAttributeName(nsIAtom* aName, PRInt32 aType);
+  static PRBool IsEventAttributeName(nsIAtom* aName, PRInt32 aType);
 
   
 
@@ -1005,7 +1005,7 @@ public:
 
 
   static nsEventListenerManager* GetListenerManager(nsINode* aNode,
-                                                    bool aCreateIfNotFound);
+                                                    PRBool aCreateIfNotFound);
 
   
 
@@ -1014,7 +1014,7 @@ public:
 
   static void RemoveListenerManager(nsINode *aNode);
 
-  static bool IsInitialized()
+  static PRBool IsInitialized()
   {
     return sInitialized;
   }
@@ -1028,7 +1028,7 @@ public:
 
 
 
-  static bool IsValidNodeName(nsIAtom *aLocalName, nsIAtom *aPrefix,
+  static PRBool IsValidNodeName(nsIAtom *aLocalName, nsIAtom *aPrefix,
                                 PRInt32 aNamespaceID);
 
   
@@ -1047,7 +1047,7 @@ public:
 
   static nsresult CreateContextualFragment(nsINode* aContextNode,
                                            const nsAString& aFragment,
-                                           bool aPreventScriptExecution,
+                                           PRBool aPreventScriptExecution,
                                            nsIDOMDocumentFragment** aReturn);
 
   
@@ -1066,8 +1066,8 @@ public:
                                 nsIContent* aTargetNode,
                                 nsIAtom* aContextLocalName,
                                 PRInt32 aContextNamespace,
-                                bool aQuirks,
-                                bool aPreventScriptExecution);
+                                PRBool aQuirks,
+                                PRBool aPreventScriptExecution);
 
   
 
@@ -1081,7 +1081,7 @@ public:
   static nsresult ParseFragmentXML(const nsAString& aSourceBuffer,
                                    nsIDocument* aDocument,
                                    nsTArray<nsString>& aTagStack,
-                                   bool aPreventScriptExecution,
+                                   PRBool aPreventScriptExecution,
                                    nsIDOMDocumentFragment** aReturn);
 
   
@@ -1126,7 +1126,7 @@ public:
 
   static nsresult SetNodeTextContent(nsIContent* aContent,
                                      const nsAString& aValue,
-                                     bool aTryReuse);
+                                     PRBool aTryReuse);
 
   
 
@@ -1142,7 +1142,7 @@ public:
 
 
 
-  static void GetNodeTextContent(nsINode* aNode, bool aDeep,
+  static void GetNodeTextContent(nsINode* aNode, PRBool aDeep,
                                  nsAString& aResult)
   {
     aResult.Truncate();
@@ -1152,7 +1152,7 @@ public:
   
 
 
-  static void AppendNodeTextContent(nsINode* aNode, bool aDeep,
+  static void AppendNodeTextContent(nsINode* aNode, PRBool aDeep,
                                     nsAString& aResult);
 
   
@@ -1161,7 +1161,7 @@ public:
 
 
 
-  static bool HasNonEmptyTextContent(nsINode* aNode);
+  static PRBool HasNonEmptyTextContent(nsINode* aNode);
 
   
 
@@ -1202,7 +1202,7 @@ public:
 
   static nsresult HoldScriptObject(PRUint32 aLangID, void* aScriptObjectHolder,
                                    nsScriptObjectTracer* aTracer,
-                                   void* aNewObject, bool aWasHoldingObjects)
+                                   void* aNewObject, PRBool aWasHoldingObjects)
   {
     if (aLangID == nsIProgrammingLanguage::JAVASCRIPT) {
       return aWasHoldingObjects ? NS_OK :
@@ -1300,7 +1300,7 @@ public:
 
 
 
-  static void NotifyInstalledMenuKeyboardListener(bool aInstalling);
+  static void NotifyInstalledMenuKeyboardListener(PRBool aInstalling);
 
   
 
@@ -1328,7 +1328,7 @@ public:
   static nsresult CheckSecurityBeforeLoad(nsIURI* aURIToLoad,
                                           nsIPrincipal* aLoadingPrincipal,
                                           PRUint32 aCheckLoadFlags,
-                                          bool aAllowData,
+                                          PRBool aAllowData,
                                           PRUint32 aContentPolicyType,
                                           nsISupports* aContext,
                                           const nsACString& aMimeGuess = EmptyCString(),
@@ -1337,7 +1337,7 @@ public:
   
 
 
-  static bool IsSystemPrincipal(nsIPrincipal* aPrincipal);
+  static PRBool IsSystemPrincipal(nsIPrincipal* aPrincipal);
 
   
 
@@ -1358,8 +1358,8 @@ public:
 
   static void TriggerLink(nsIContent *aContent, nsPresContext *aPresContext,
                           nsIURI *aLinkURI, const nsString& aTargetSpec,
-                          bool aClick, bool aIsUserTriggered,
-                          bool aIsTrusted);
+                          PRBool aClick, PRBool aIsUserTriggered,
+                          PRBool aIsTrusted);
 
   
 
@@ -1377,9 +1377,9 @@ public:
 
 
   static nsEvent* GetNativeEvent(nsIDOMEvent* aDOMEvent);
-  static bool DOMEventToNativeKeyEvent(nsIDOMKeyEvent* aKeyEvent,
+  static PRBool DOMEventToNativeKeyEvent(nsIDOMKeyEvent* aKeyEvent,
                                          nsNativeKeyEvent* aNativeEvent,
-                                         bool aGetCharCode);
+                                         PRBool aGetCharCode);
 
   
 
@@ -1424,7 +1424,7 @@ public:
   
 
 
-  static bool URIIsLocalFile(nsIURI *aURI);
+  static PRBool URIIsLocalFile(nsIURI *aURI);
 
   
 
@@ -1447,12 +1447,12 @@ public:
   
 
 
-  static bool OfflineAppAllowed(nsIURI *aURI);
+  static PRBool OfflineAppAllowed(nsIURI *aURI);
 
   
 
 
-  static bool OfflineAppAllowed(nsIPrincipal *aPrincipal);
+  static PRBool OfflineAppAllowed(nsIPrincipal *aPrincipal);
 
   
 
@@ -1489,7 +1489,7 @@ public:
 
 
 
-  static bool AddScriptRunner(nsIRunnable* aRunnable);
+  static PRBool AddScriptRunner(nsIRunnable* aRunnable);
 
   
 
@@ -1497,7 +1497,7 @@ public:
 
 
 
-  static bool IsSafeToRunScript() {
+  static PRBool IsSafeToRunScript() {
     return sScriptBlockerCount == 0;
   }
 
@@ -1519,7 +1519,7 @@ public:
 
 
 
-  static bool EqualsIgnoreASCIICase(const nsAString& aStr1,
+  static PRBool EqualsIgnoreASCIICase(const nsAString& aStr1,
                                       const nsAString& aStr2);
 
   
@@ -1571,13 +1571,13 @@ public:
 
 
   static nsresult DispatchXULCommand(nsIContent* aTarget,
-                                     bool aTrusted,
+                                     PRBool aTrusted,
                                      nsIDOMEvent* aSourceEvent = nsnull,
                                      nsIPresShell* aShell = nsnull,
-                                     bool aCtrl = false,
-                                     bool aAlt = false,
-                                     bool aShift = false,
-                                     bool aMeta = false);
+                                     PRBool aCtrl = PR_FALSE,
+                                     PRBool aAlt = PR_FALSE,
+                                     PRBool aShift = PR_FALSE,
+                                     PRBool aMeta = PR_FALSE);
 
   
 
@@ -1589,21 +1589,21 @@ public:
   static already_AddRefed<nsIDocument>
   GetDocumentFromScriptContext(nsIScriptContext *aScriptContext);
 
-  static bool CheckMayLoad(nsIPrincipal* aPrincipal, nsIChannel* aChannel);
+  static PRBool CheckMayLoad(nsIPrincipal* aPrincipal, nsIChannel* aChannel);
 
   
 
 
 
 
-  static bool CanAccessNativeAnon();
+  static PRBool CanAccessNativeAnon();
 
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
                              nsISupports *native, const nsIID* aIID, jsval *vp,
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull,
-                             bool aAllowWrapping = false)
+                             PRBool aAllowWrapping = PR_FALSE)
   {
     return WrapNative(cx, scope, native, nsnull, aIID, vp, aHolder,
                       aAllowWrapping);
@@ -1615,7 +1615,7 @@ public:
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull,
-                             bool aAllowWrapping = false)
+                             PRBool aAllowWrapping = PR_FALSE)
   {
     return WrapNative(cx, scope, native, nsnull, nsnull, vp, aHolder,
                       aAllowWrapping);
@@ -1626,7 +1626,7 @@ public:
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull,
-                             bool aAllowWrapping = false)
+                             PRBool aAllowWrapping = PR_FALSE)
   {
     return WrapNative(cx, scope, native, cache, nsnull, vp, aHolder,
                       aAllowWrapping);
@@ -1646,12 +1646,12 @@ public:
 
   static void PlatformToDOMLineBreaks(nsString &aString);
 
-  static bool IsHandlingKeyBoardEvent()
+  static PRBool IsHandlingKeyBoardEvent()
   {
     return sIsHandlingKeyBoardEvent;
   }
 
-  static void SetIsHandlingKeyBoardEvent(bool aHandling)
+  static void SetIsHandlingKeyBoardEvent(PRBool aHandling)
   {
     sIsHandlingKeyBoardEvent = aHandling;
   }
@@ -1700,27 +1700,27 @@ public:
 
 
 
-  static bool IsFocusedContent(const nsIContent *aContent);
+  static PRBool IsFocusedContent(const nsIContent *aContent);
 
   
 
 
-  static bool IsFullScreenApiEnabled();
-
-  
-
-
-
-
-
-  static bool IsRequestFullScreenAllowed();
+  static PRBool IsFullScreenApiEnabled();
 
   
 
 
 
 
-  static bool IsFullScreenKeyInputRestricted();
+
+  static PRBool IsRequestFullScreenAllowed();
+
+  
+
+
+
+
+  static PRBool IsFullScreenKeyInputRestricted();
 
   
 
@@ -1792,7 +1792,7 @@ public:
 
 
 
-  static bool IsPatternMatching(nsAString& aValue, nsAString& aPattern,
+  static PRBool IsPatternMatching(nsAString& aValue, nsAString& aPattern,
                                   nsIDocument* aDocument);
 
   
@@ -1805,7 +1805,7 @@ public:
 
 
 
-  static nsresult URIInheritsSecurityContext(nsIURI *aURI, bool *aResult);
+  static nsresult URIInheritsSecurityContext(nsIURI *aURI, PRBool *aResult);
 
   
 
@@ -1819,7 +1819,7 @@ public:
   static bool SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
                                 nsIChannel* aChannel,
                                 nsIURI* aURI,
-                                bool aSetUpForAboutBlank);
+                                PRBool aSetUpForAboutBlank);
 
   static nsresult Btoa(const nsAString& aBinaryData,
                        nsAString& aAsciiBase64String);
@@ -1828,7 +1828,7 @@ public:
                        nsAString& aBinaryData);
   
 private:
-  static bool InitializeEventTable();
+  static PRBool InitializeEventTable();
 
   static nsresult EnsureStringBundle(PropertiesFile aFile);
 
@@ -1837,14 +1837,14 @@ private:
   static nsresult HoldScriptObject(PRUint32 aLangID, void* aObject);
   static void DropScriptObject(PRUint32 aLangID, void *aObject, void *aClosure);
 
-  static bool CanCallerAccess(nsIPrincipal* aSubjectPrincipal,
+  static PRBool CanCallerAccess(nsIPrincipal* aSubjectPrincipal,
                                 nsIPrincipal* aPrincipal);
 
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
                              nsISupports *native, nsWrapperCache *cache,
                              const nsIID* aIID, jsval *vp,
                              nsIXPConnectJSObjectHolder** aHolder,
-                             bool aAllowWrapping);
+                             PRBool aAllowWrapping);
 
   static void InitializeModifierStrings();
 
@@ -1885,7 +1885,7 @@ private:
   static nsIStringBundle* sStringBundles[PropertiesFile_COUNT];
 
   static nsIContentPolicy* sContentPolicyService;
-  static bool sTriedToGetContentPolicy;
+  static PRBool sTriedToGetContentPolicy;
 
   static nsILineBreaker* sLineBreaker;
   static nsIWordBreaker* sWordBreaker;
@@ -1899,7 +1899,7 @@ private:
   static nsIBidiKeyboard* sBidiKeyboard;
 #endif
 
-  static bool sInitialized;
+  static PRBool sInitialized;
   static PRUint32 sScriptBlockerCount;
 #ifdef DEBUG
   static PRUint32 sDOMNodeRemovedSuppressCount;
@@ -1911,11 +1911,11 @@ private:
 
   static nsIInterfaceRequestor* sSameOriginChecker;
 
-  static bool sIsHandlingKeyBoardEvent;
-  static bool sAllowXULXBL_for_file;
-  static bool sIsFullScreenApiEnabled;
-  static bool sTrustedFullScreenOnly;
-  static bool sFullScreenKeyInputRestricted;
+  static PRBool sIsHandlingKeyBoardEvent;
+  static PRBool sAllowXULXBL_for_file;
+  static PRBool sIsFullScreenApiEnabled;
+  static PRBool sTrustedFullScreenOnly;
+  static PRBool sFullScreenKeyInputRestricted;
   static PRUint32 sHandlingInputTimeout;
 
   static nsHtml5Parser* sHTMLFragmentParser;
@@ -1944,15 +1944,15 @@ public:
   ~nsCxPusher(); 
 
   
-  bool Push(nsIDOMEventTarget *aCurrentTarget);
+  PRBool Push(nsIDOMEventTarget *aCurrentTarget);
   
   
-  bool RePush(nsIDOMEventTarget *aCurrentTarget);
+  PRBool RePush(nsIDOMEventTarget *aCurrentTarget);
   
   
-  bool Push(JSContext *cx, bool aRequiresScriptContext = true);
+  PRBool Push(JSContext *cx, PRBool aRequiresScriptContext = PR_TRUE);
   
-  bool PushNull();
+  PRBool PushNull();
 
   
   void Pop();
@@ -1960,11 +1960,11 @@ public:
   nsIScriptContext* GetCurrentScriptContext() { return mScx; }
 private:
   
-  bool DoPush(JSContext* cx);
+  PRBool DoPush(JSContext* cx);
 
   nsCOMPtr<nsIScriptContext> mScx;
-  bool mScriptIsRunning;
-  bool mPushedSomething;
+  PRBool mScriptIsRunning;
+  PRBool mPushedSomething;
 #ifdef DEBUG
   JSContext* mPushedContext;
 #endif
@@ -2151,6 +2151,23 @@ public:
 private:
   NS_ConvertUTF16toUTF8 mString;
   nsIMIMEHeaderParam*   mService;
+};
+
+class nsDocElementCreatedNotificationRunner : public nsRunnable
+{
+public:
+    nsDocElementCreatedNotificationRunner(nsIDocument* aDoc)
+        : mDoc(aDoc)
+    {
+    }
+
+    NS_IMETHOD Run()
+    {
+        nsContentSink::NotifyDocElementCreated(mDoc);
+        return NS_OK;
+    }
+
+    nsCOMPtr<nsIDocument> mDoc;
 };
 
 #endif

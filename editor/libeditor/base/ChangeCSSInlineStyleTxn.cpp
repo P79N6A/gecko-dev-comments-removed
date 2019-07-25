@@ -65,11 +65,11 @@ NS_INTERFACE_MAP_END_INHERITING(EditTxn)
 
 
 
-bool
-ChangeCSSInlineStyleTxn::ValueIncludes(const nsAString &aValueList, const nsAString &aValue, bool aCaseSensitive)
+PRBool
+ChangeCSSInlineStyleTxn::ValueIncludes(const nsAString &aValueList, const nsAString &aValue, PRBool aCaseSensitive)
 {
   nsAutoString  valueList(aValueList);
-  bool result = false;
+  PRBool result = PR_FALSE;
 
   valueList.Append(kNullCh);  
 
@@ -152,7 +152,7 @@ NS_IMETHODIMP ChangeCSSInlineStyleTxn::Init(nsIEditor      *aEditor,
                                             nsIDOMElement  *aElement,
                                             nsIAtom        *aProperty,
                                             const nsAString& aValue,
-                                            bool aRemoveProperty)
+                                            PRBool aRemoveProperty)
 {
   NS_ASSERTION(aEditor && aElement, "bad arg");
   if (!aEditor || !aElement) { return NS_ERROR_NULL_POINTER; }
@@ -197,7 +197,7 @@ NS_IMETHODIMP ChangeCSSInlineStyleTxn::DoTransaction(void)
 
   
   
-  bool multiple = AcceptsMoreThanOneValue(mProperty);
+  PRBool multiple = AcceptsMoreThanOneValue(mProperty);
   
   if (mRemoveProperty) {
     nsAutoString returnString;
@@ -260,7 +260,7 @@ NS_IMETHODIMP ChangeCSSInlineStyleTxn::DoTransaction(void)
   return cssDecl->GetPropertyValue(propertyNameString, mRedoValue);
 }
 
-nsresult ChangeCSSInlineStyleTxn::SetStyle(bool aAttributeWasSet,
+nsresult ChangeCSSInlineStyleTxn::SetStyle(PRBool aAttributeWasSet,
                                            nsAString & aValue)
 {
   NS_ASSERTION(mEditor && mElement, "bad state");
@@ -323,7 +323,7 @@ NS_IMETHODIMP ChangeCSSInlineStyleTxn::GetTxnDescription(nsAString& aString)
 }
 
 
-bool
+PRBool
 ChangeCSSInlineStyleTxn::AcceptsMoreThanOneValue(nsIAtom *aCSSProperty)
 {
   return aCSSProperty == nsGkAtoms::text_decoration;

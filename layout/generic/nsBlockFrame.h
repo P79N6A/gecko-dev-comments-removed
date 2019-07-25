@@ -181,7 +181,8 @@ public:
   virtual nscoord GetCaretBaseline() const;
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
   virtual nsSplittableType GetSplittableType() const;
-  virtual bool IsFloatContainingBlock() const;
+  virtual PRBool IsContainingBlock() const;
+  virtual PRBool IsFloatContainingBlock() const;
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
@@ -189,7 +190,7 @@ public:
                                   nscoord aX, nscoord aY, nsIFrame* aForChild,
                                   PRUint32 aFlags);
   virtual nsIAtom* GetType() const;
-  virtual bool IsFrameOfType(PRUint32 aFlags) const
+  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsContainerFrame::IsFrameOfType(aFlags &
              ~(nsIFrame::eCanContainOverflowContainers |
@@ -232,16 +233,16 @@ public:
   void SetupLineCursor();
 
   virtual void ChildIsDirty(nsIFrame* aChild);
-  virtual bool IsVisibleInSelection(nsISelection* aSelection);
+  virtual PRBool IsVisibleInSelection(nsISelection* aSelection);
 
-  virtual bool IsEmpty();
-  virtual bool CachedIsEmpty();
-  virtual bool IsSelfEmpty();
+  virtual PRBool IsEmpty();
+  virtual PRBool CachedIsEmpty();
+  virtual PRBool IsSelfEmpty();
 
   
   
   
-  bool BulletIsEmpty() const;
+  PRBool BulletIsEmpty() const;
 
   
 
@@ -270,30 +271,30 @@ public:
 
   virtual nsresult StealFrame(nsPresContext* aPresContext,
                               nsIFrame*      aChild,
-                              bool           aForceNormal = false);
+                              PRBool         aForceNormal = PR_FALSE);
 
   virtual void DeleteNextInFlowChild(nsPresContext* aPresContext,
                                      nsIFrame*      aNextInFlow,
-                                     bool           aDeletingEmptyFrames);
+                                     PRBool         aDeletingEmptyFrames);
 
   
 
 
 
 
-  bool CheckForCollapsedBottomMarginFromClearanceLine();
+  PRBool CheckForCollapsedBottomMarginFromClearanceLine();
 
   static nsresult GetCurrentLine(nsBlockReflowState *aState, nsLineBox **aOutCurrentLine);
 
-  static bool BlockIsMarginRoot(nsIFrame* aBlock);
-  static bool BlockNeedsFloatManager(nsIFrame* aBlock);
+  static PRBool BlockIsMarginRoot(nsIFrame* aBlock);
+  static PRBool BlockNeedsFloatManager(nsIFrame* aBlock);
 
   
 
 
 
 
-  static bool BlockCanIntersectFloats(nsIFrame* aFrame);
+  static PRBool BlockCanIntersectFloats(nsIFrame* aFrame);
 
   
 
@@ -333,6 +334,7 @@ protected:
     : nsHTMLContainerFrame(aContext)
     , mMinWidth(NS_INTRINSIC_WIDTH_UNKNOWN)
     , mPrefWidth(NS_INTRINSIC_WIDTH_UNKNOWN)
+    , mAbsoluteContainer(kAbsoluteList)
   {
 #ifdef DEBUG
   InitDebugFlags();
@@ -355,14 +357,14 @@ protected:
   void TryAllLines(nsLineList::iterator* aIterator,
                    nsLineList::iterator* aStartIterator,
                    nsLineList::iterator* aEndIterator,
-                   bool* aInOverflowLines);
+                   PRBool* aInOverflowLines);
 
   void SetFlags(nsFrameState aFlags) {
     mState &= ~NS_BLOCK_FLAGS_MASK;
     mState |= aFlags;
   }
 
-  bool HaveOutsideBullet() const {
+  PRBool HaveOutsideBullet() const {
 #if defined(DEBUG) && !defined(DEBUG_rods)
     if(mState & NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET) {
       NS_ASSERTION(mBullet,"NS_BLOCK_FRAME_HAS_OUTSIDE_BULLET flag set and no mBullet");
@@ -411,7 +413,7 @@ protected:
 
 
 
-  bool IsVisualFormControl(nsPresContext* aPresContext);
+  PRBool IsVisualFormControl(nsPresContext* aPresContext);
 #endif
 
 public:
@@ -432,8 +434,8 @@ public:
   nsresult DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags);
 
   void ReparentFloats(nsIFrame* aFirstFrame,
-                      nsBlockFrame* aOldParent, bool aFromOverflow,
-                      bool aReparentSiblings);
+                      nsBlockFrame* aOldParent, PRBool aFromOverflow,
+                      PRBool aReparentSiblings);
 
   
 
@@ -449,7 +451,7 @@ protected:
 
 
 
-  bool DrainOverflowLines(nsBlockReflowState& aState);
+  PRBool DrainOverflowLines(nsBlockReflowState& aState);
 
   
 
@@ -478,7 +480,7 @@ protected:
   line_iterator RemoveFloat(nsIFrame* aFloat);
 
   void CollectFloats(nsIFrame* aFrame, nsFrameList& aList,
-                     bool aFromOverflow, bool aCollectFromSiblings);
+                     PRBool aFromOverflow, PRBool aCollectFromSiblings);
   
   static void DoRemoveOutOfFlowFrame(nsIFrame* aFrame);
 
@@ -504,18 +506,18 @@ protected:
 
   nsresult ReflowLine(nsBlockReflowState& aState,
                       line_iterator aLine,
-                      bool* aKeepReflowGoing);
+                      PRBool* aKeepReflowGoing);
 
   
   
   
-  bool PlaceLine(nsBlockReflowState& aState,
+  PRBool PlaceLine(nsBlockReflowState& aState,
                    nsLineLayout&       aLineLayout,
                    line_iterator       aLine,
                    nsFloatManager::SavedState* aFloatStateBeforeLine,
                    nsRect&             aFloatAvailableSpace, 
                    nscoord&            aAvailableSpaceHeight, 
-                   bool*             aKeepReflowGoing);
+                   PRBool*             aKeepReflowGoing);
 
   
 
@@ -530,7 +532,7 @@ protected:
                          const nsLineList* aLineList = nsnull);
 
   
-  bool ShouldJustifyLine(nsBlockReflowState& aState,
+  PRBool ShouldJustifyLine(nsBlockReflowState& aState,
                            line_iterator aLine);
 
   void DeleteLine(nsBlockReflowState& aState,
@@ -540,16 +542,16 @@ protected:
   
   
 
-  bool ShouldApplyTopMargin(nsBlockReflowState& aState,
+  PRBool ShouldApplyTopMargin(nsBlockReflowState& aState,
                               nsLineBox* aLine);
 
   nsresult ReflowBlockFrame(nsBlockReflowState& aState,
                             line_iterator aLine,
-                            bool* aKeepGoing);
+                            PRBool* aKeepGoing);
 
   nsresult ReflowInlineFrames(nsBlockReflowState& aState,
                               line_iterator aLine,
-                              bool* aKeepLineGoing);
+                              PRBool* aKeepLineGoing);
 
   nsresult DoReflowInlineFrames(nsBlockReflowState& aState,
                                 nsLineLayout& aLineLayout,
@@ -558,9 +560,9 @@ protected:
                                 nscoord& aAvailableSpaceHeight,
                                 nsFloatManager::SavedState*
                                   aFloatStateBeforeLine,
-                                bool* aKeepReflowGoing,
+                                PRBool* aKeepReflowGoing,
                                 LineReflowStatus* aLineReflowStatus,
-                                bool aAllowPullUp);
+                                PRBool aAllowPullUp);
 
   nsresult ReflowInlineFrame(nsBlockReflowState& aState,
                              nsLineLayout& aLineLayout,
@@ -587,7 +589,7 @@ protected:
                        
                        
                        
-                       bool                aFloatPushedDown,
+                       PRBool              aFloatPushedDown,
                        nsReflowStatus&     aReflowStatus);
 
   
@@ -605,13 +607,13 @@ protected:
   virtual nsresult CreateContinuationFor(nsBlockReflowState& aState,
                                          nsLineBox*          aLine,
                                          nsIFrame*           aFrame,
-                                         bool&             aMadeNewFrame);
+                                         PRBool&             aMadeNewFrame);
 
   
   
   void PushTruncatedLine(nsBlockReflowState& aState,
                          line_iterator       aLine,
-                         bool&             aKeepReflowGoing);
+                         PRBool&             aKeepReflowGoing);
 
   nsresult SplitLine(nsBlockReflowState& aState,
                      nsLineLayout& aLineLayout,
@@ -642,7 +644,7 @@ protected:
   nsIFrame* PullFrameFrom(nsBlockReflowState&  aState,
                           nsLineBox*           aLine,
                           nsBlockFrame*        aFromContainer,
-                          bool                 aFromOverflowLine,
+                          PRBool               aFromOverflowLine,
                           nsLineList::iterator aFromLine);
 
   void PushLines(nsBlockReflowState& aState,
@@ -661,16 +663,16 @@ protected:
   
   
   
-  bool RenumberLists(nsPresContext* aPresContext);
+  PRBool RenumberLists(nsPresContext* aPresContext);
 
-  static bool RenumberListsInBlock(nsPresContext* aPresContext,
+  static PRBool RenumberListsInBlock(nsPresContext* aPresContext,
                                      nsBlockFrame* aBlockFrame,
                                      PRInt32* aOrdinal,
                                      PRInt32 aDepth);
 
-  static bool RenumberListsFor(nsPresContext* aPresContext, nsIFrame* aKid, PRInt32* aOrdinal, PRInt32 aDepth);
+  static PRBool RenumberListsFor(nsPresContext* aPresContext, nsIFrame* aKid, PRInt32* aOrdinal, PRInt32 aDepth);
 
-  static bool FrameStartsCounterScope(nsIFrame* aFrame);
+  static PRBool FrameStartsCounterScope(nsIFrame* aFrame);
 
   void ReflowBullet(nsBlockReflowState& aState,
                     nsHTMLReflowMetrics& aMetrics,
@@ -730,7 +732,7 @@ protected:
   nsFrameList* RemovePushedFloats();
 
 #ifdef NS_DEBUG
-  void VerifyLines(bool aFinalCheckOK);
+  void VerifyLines(PRBool aFinalCheckOK);
   void VerifyOverflowSituation();
   PRInt32 GetDepth() const;
 #endif
@@ -749,18 +751,22 @@ protected:
   friend class nsBlockReflowState;
   friend class nsBlockInFlowLineIterator;
 
+private:
+  nsAbsoluteContainingBlock mAbsoluteContainer;
+
+
 #ifdef DEBUG
 public:
-  static bool gLamePaintMetrics;
-  static bool gLameReflowMetrics;
-  static bool gNoisy;
-  static bool gNoisyDamageRepair;
-  static bool gNoisyIntrinsic;
-  static bool gNoisyReflow;
-  static bool gReallyNoisyReflow;
-  static bool gNoisyFloatManager;
-  static bool gVerifyLines;
-  static bool gDisableResizeOpt;
+  static PRBool gLamePaintMetrics;
+  static PRBool gLameReflowMetrics;
+  static PRBool gNoisy;
+  static PRBool gNoisyDamageRepair;
+  static PRBool gNoisyIntrinsic;
+  static PRBool gNoisyReflow;
+  static PRBool gReallyNoisyReflow;
+  static PRBool gNoisyFloatManager;
+  static PRBool gVerifyLines;
+  static PRBool gDisableResizeOpt;
 
   static PRInt32 gNoiseIndent;
 
@@ -774,7 +780,7 @@ protected:
 #ifdef DEBUG
 class AutoNoisyIndenter {
 public:
-  AutoNoisyIndenter(bool aDoIndent) : mIndented(aDoIndent) {
+  AutoNoisyIndenter(PRBool aDoIndent) : mIndented(aDoIndent) {
     if (mIndented) {
       nsBlockFrame::gNoiseIndent++;
     }
@@ -785,7 +791,7 @@ public:
     }
   }
 private:
-  bool mIndented;
+  PRBool mIndented;
 };
 #endif
 
@@ -795,14 +801,14 @@ private:
 class nsBlockInFlowLineIterator {
 public:
   typedef nsBlockFrame::line_iterator line_iterator;
-  nsBlockInFlowLineIterator(nsBlockFrame* aFrame, line_iterator aLine, bool aInOverflow);
+  nsBlockInFlowLineIterator(nsBlockFrame* aFrame, line_iterator aLine, PRBool aInOverflow);
   
 
 
 
 
 
-  nsBlockInFlowLineIterator(nsBlockFrame* aFrame, bool* aFoundValidLine);
+  nsBlockInFlowLineIterator(nsBlockFrame* aFrame, PRBool* aFoundValidLine);
   
 
 
@@ -812,12 +818,12 @@ public:
 
 
   nsBlockInFlowLineIterator(nsBlockFrame* aFrame, nsIFrame* aFindFrame,
-                            bool* aFoundValidLine);
+                            PRBool* aFoundValidLine);
 
   line_iterator GetLine() { return mLine; }
-  bool IsLastLineInList();
+  PRBool IsLastLineInList();
   nsBlockFrame* GetContainer() { return mFrame; }
-  bool GetInOverflow() { return mInOverflowLines != nsnull; }
+  PRBool GetInOverflow() { return mInOverflowLines != nsnull; }
 
   
 
@@ -834,12 +840,12 @@ public:
 
 
 
-  bool Next();
+  PRBool Next();
   
 
 
 
-  bool Prev();
+  PRBool Prev();
 
 private:
   nsBlockFrame* mFrame;
@@ -850,7 +856,7 @@ private:
 
 
 
-  bool FindValidLine();
+  PRBool FindValidLine();
 };
 
 #endif 

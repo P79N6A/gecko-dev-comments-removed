@@ -1754,6 +1754,9 @@ var XPIProvider = {
       Services.appinfo.annotateCrashReport("Add-ons", data);
     }
     catch (e) { }
+    
+    const TelemetryPing = Cc["@mozilla.org/base/telemetry-ping;1"].getService(Ci.nsIObserver);
+    TelemetryPing.observe(null, "Add-ons", data);
   },
 
   
@@ -1971,24 +1974,12 @@ var XPIProvider = {
         aManifests[aLocation.name][id] = null;
         let existingAddonID = id;
 
+        
+        
         let jsonfile = stagingDir.clone();
         jsonfile.append(id + ".json");
-
-        try {
-          aManifests[aLocation.name][id] = loadManifestFromFile(stageDirEntry);
-        }
-        catch (e) {
-          ERROR("Unable to read add-on manifest from " + stageDirEntry.path, e);
-          
-          seenFiles.push(stageDirEntry.leafName);
-          seenFiles.push(jsonfile.leafName);
-          continue;
-        }
-
-        
-        
         if (jsonfile.exists()) {
-          LOG("Found updated metadata for " + id + " in " + aLocation.name);
+          LOG("Found updated manifest for " + id + " in " + aLocation.name);
           let fis = Cc["@mozilla.org/network/file-input-stream;1"].
                        createInstance(Ci.nsIFileInputStream);
           let json = Cc["@mozilla.org/dom/json;1"].
@@ -1996,14 +1987,13 @@ var XPIProvider = {
 
           try {
             fis.init(jsonfile, -1, 0, 0);
-            let metadata = json.decodeFromStream(fis, jsonfile.fileSize);
-            aManifests[aLocation.name][id].importMetadata(metadata);
+            let addonObj = json.decodeFromStream(fis, jsonfile.fileSize);
+            aManifests[aLocation.name][id] = new AddonInternal();
+            aManifests[aLocation.name][id].fromJSON(addonObj);
+            existingAddonID = aManifests[aLocation.name][id].existingAddonID || id;
           }
           catch (e) {
-            
-            
-            
-            ERROR("Unable to read metadata from " + jsonfile.path, e);
+            ERROR("Unable to read add-on manifest from " + jsonfile.path, e);
           }
           finally {
             fis.close();
@@ -2011,7 +2001,19 @@ var XPIProvider = {
         }
         seenFiles.push(jsonfile.leafName);
 
-        existingAddonID = aManifests[aLocation.name][id].existingAddonID || id;
+        
+        if (!aManifests[aLocation.name][id]) {
+          try {
+            aManifests[aLocation.name][id] = loadManifestFromFile(stageDirEntry);
+            existingAddonID = aManifests[aLocation.name][id].existingAddonID || id;
+          }
+          catch (e) {
+            ERROR("Unable to read add-on manifest from " + stageDirEntry.path, e);
+            
+            seenFiles.push(stageDirEntry.leafName);
+            continue;
+          }
+        }
 
         var oldBootstrap = null;
         LOG("Processing install of " + id + " in " + aLocation.name);
@@ -6920,19 +6922,9 @@ AddonInternal.prototype = {
 
 
 
-
-  importMetadata: function(aObj) {
-    ["targetApplications", "userDisabled", "softDisabled", "existingAddonID",
-     "sourceURI", "releaseNotesURI", "installDate", "updateDate",
-     "applyBackgroundUpdates"].forEach(function(aProp) {
-      if (!(aProp in aObj))
-        return;
-
-      this[aProp] = aObj[aProp];
-    }, this);
-
-    
-    this.appDisabled = !isUsableAddon(this);
+  fromJSON: function(aObj) {
+    for (let prop in aObj)
+      this[prop] = aObj[prop];
   }
 };
 

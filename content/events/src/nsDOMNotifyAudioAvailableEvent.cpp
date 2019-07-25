@@ -136,12 +136,12 @@ nsDOMNotifyAudioAvailableEvent::GetTime(float *aRetVal)
 
 NS_IMETHODIMP
 nsDOMNotifyAudioAvailableEvent::InitAudioAvailableEvent(const nsAString& aType,
-                                                        bool aCanBubble,
-                                                        bool aCancelable,
+                                                        PRBool aCanBubble,
+                                                        PRBool aCancelable,
                                                         float* aFrameBuffer,
                                                         PRUint32 aFrameBufferLength,
                                                         float aTime,
-                                                        bool aAllowAudioData)
+                                                        PRBool aAllowAudioData)
 {
   
   

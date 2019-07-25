@@ -39,7 +39,6 @@
 
 
 
-
 const Cu = Components.utils;
 const FILTER_CHANGED_TIMEOUT = 300;
 

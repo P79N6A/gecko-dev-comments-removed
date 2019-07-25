@@ -19,7 +19,7 @@
 
 class MapLongVariableNames : public TIntermTraverser {
 public:
-    MapLongVariableNames(std::map<std::string, std::string>& varyingLongNameMap);
+    MapLongVariableNames(TMap<TString, TString>& varyingLongNameMap);
 
     virtual void visitSymbol(TIntermSymbol*);
     virtual bool visitLoop(Visit, TIntermLoop*);
@@ -27,7 +27,7 @@ public:
 private:
     TString mapVaryingLongName(const TString& name);
 
-    std::map<std::string, std::string>& mVaryingLongNameMap;
+    TMap<TString, TString>& mVaryingLongNameMap;
 };
 
 #endif  

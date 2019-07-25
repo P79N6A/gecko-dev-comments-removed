@@ -61,11 +61,11 @@ public:
 
 
 
-  static bool
+  static PRBool
   GetQuotedAttributeValue(const nsString& aSource, nsIAtom *aName,
                           nsAString& aValue);
 
-  static bool
+  static PRBool
   IsJavaScriptLanguage(const nsString& aName, PRUint32 *aVerFlags);
 
   static void

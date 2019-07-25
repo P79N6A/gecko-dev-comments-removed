@@ -201,7 +201,7 @@ class nsParser : public nsIParser,
     NS_IMETHOD Parse(const nsAString& aSourceBuffer,
                      void* aKey,
                      const nsACString& aContentType,
-                     bool aLastCall,
+                     PRBool aLastCall,
                      nsDTDMode aMode = eDTDMode_autodetect);
 
     NS_IMETHOD_(void *) GetRootContextKey();
@@ -231,7 +231,7 @@ class nsParser : public nsIParser,
 
 
 
-    NS_IMETHOD_(bool) IsParserEnabled();
+    NS_IMETHOD_(PRBool) IsParserEnabled();
 
     
 
@@ -239,7 +239,7 @@ class nsParser : public nsIParser,
 
 
 
-    NS_IMETHOD_(bool) IsComplete();
+    NS_IMETHOD_(PRBool) IsComplete();
 
     
 
@@ -258,9 +258,9 @@ class nsParser : public nsIParser,
 
 
 
-    virtual nsresult ResumeParse(bool allowIteration = true, 
-                                 bool aIsFinalChunk = false,
-                                 bool aCanInterrupt = true);
+    virtual nsresult ResumeParse(PRBool allowIteration = PR_TRUE, 
+                                 PRBool aIsFinalChunk = PR_FALSE,
+                                 PRBool aCanInterrupt = PR_TRUE);
 
      
       
@@ -303,7 +303,7 @@ class nsParser : public nsIParser,
 
 
 
-    bool DetectMetaTag(const char* aBytes, 
+    PRBool DetectMetaTag(const char* aBytes, 
                          PRInt32 aLen, 
                          nsCString& oCharset, 
                          PRInt32& oCharsetSource);
@@ -323,12 +323,12 @@ class nsParser : public nsIParser,
 
 
 
-    virtual bool CanInterrupt();
+    virtual PRBool CanInterrupt();
 
     
 
 
-    virtual bool IsInsertionPointDefined();
+    virtual PRBool IsInsertionPointDefined();
 
     
 
@@ -348,14 +348,14 @@ class nsParser : public nsIParser,
     
 
 
-    virtual bool IsScriptCreated();
+    virtual PRBool IsScriptCreated();
 
     
 
 
 
 
-    void SetCanInterrupt(bool aCanInterrupt);
+    void SetCanInterrupt(PRBool aCanInterrupt);
 
     
 
@@ -390,17 +390,17 @@ class nsParser : public nsIParser,
       return sSpeculativeThreadPool;
     }
 
-    bool IsScriptExecuting() {
+    PRBool IsScriptExecuting() {
       return mSink && mSink->IsScriptExecuting();
     }
 
-    bool IsOkToProcessNetworkData() {
+    PRBool IsOkToProcessNetworkData() {
       return !IsScriptExecuting() && !mProcessingNetworkData;
     }
 
  protected:
 
-    void Initialize(bool aConstructor = false);
+    void Initialize(PRBool aConstructor = PR_FALSE);
     void Cleanup();
 
     
@@ -436,7 +436,7 @@ private:
 
 
 
-    bool WillTokenize(bool aIsFinalChunk = false);
+    PRBool WillTokenize(PRBool aIsFinalChunk = PR_FALSE);
 
    
     
@@ -447,7 +447,7 @@ private:
 
 
 
-    nsresult Tokenize(bool aIsFinalChunk = false);
+    nsresult Tokenize(PRBool aIsFinalChunk = PR_FALSE);
 
     
 
@@ -458,7 +458,7 @@ private:
 
 
 
-    bool DidTokenize(bool aIsFinalChunk = false);
+    PRBool DidTokenize(PRBool aIsFinalChunk = PR_FALSE);
 
 protected:
     
@@ -487,7 +487,7 @@ protected:
     nsCString           mCharset;
     nsCString           mCommandStr;
 
-    bool                mProcessingNetworkData;
+    PRBool              mProcessingNetworkData;
 
     static nsICharsetAlias*            sCharsetAliasService;
     static nsICharsetConverterManager* sCharsetConverterManager;

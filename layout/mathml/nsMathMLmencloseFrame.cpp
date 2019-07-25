@@ -333,7 +333,7 @@ nsMathMLmencloseFrame::MeasureForWidth(nsRenderingContext& aRenderingContext,
 
  nsresult
 nsMathMLmencloseFrame::Place(nsRenderingContext& aRenderingContext,
-                             bool                 aPlaceOrigin,
+                             PRBool               aPlaceOrigin,
                              nsHTMLReflowMetrics& aDesiredSize)
 {
   return PlaceInternal(aRenderingContext, aPlaceOrigin, aDesiredSize, PR_FALSE);
@@ -341,9 +341,9 @@ nsMathMLmencloseFrame::Place(nsRenderingContext& aRenderingContext,
 
  nsresult
 nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
-                                     bool                 aPlaceOrigin,
+                                     PRBool               aPlaceOrigin,
                                      nsHTMLReflowMetrics& aDesiredSize,
-                                     bool                 aWidthOnly)
+                                     PRBool               aWidthOnly)
 {
   
   

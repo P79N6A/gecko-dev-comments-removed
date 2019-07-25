@@ -186,9 +186,6 @@ let UI = {
       this._pageBounds = data.pageBounds;
 
       
-      Search.init();
-
-      
       this._currentTab = gBrowser.selectedTab;
 
       
@@ -720,7 +717,7 @@ let UI = {
         }
       } else if (topic == "private-browsing-change-granted") {
         if (data == "enter" || data == "exit") {
-          Search.hide();
+          hideSearch();
           self._privateBrowsing.transitionMode = data;
 
           
@@ -1137,7 +1134,7 @@ let UI = {
         }
       }
       if ((iQ(":focus").length > 0 && iQ(":focus")[0].nodeName == "INPUT") ||
-          Search.isEnabled() || self.ignoreKeypressForSearch) {
+          isSearchEnabled() || self.ignoreKeypressForSearch) {
         self.ignoreKeypressForSearch = false;
         processBrowserKeys(event);
         return;
@@ -1250,9 +1247,9 @@ let UI = {
   
   
   enableSearch: function UI_enableSearch() {
-    if (!Search.isEnabled()) {
-      Search.ensureShown();
-      Search.switchToInMode();
+    if (!isSearchEnabled()) {
+      ensureSearchShown();
+      SearchEventHandler.switchToInMode();
     }
   },
 
@@ -1519,15 +1516,15 @@ let UI = {
     let self = this;
     let zoomedIn = false;
 
-    if (Search.isEnabled()) {
-      let matcher = Search.createSearchTabMatcher();
+    if (isSearchEnabled()) {
+      let matcher = createSearchTabMacher();
       let matches = matcher.matched();
 
       if (matches.length > 0) {
         matches[0].zoomIn();
         zoomedIn = true;
       }
-      Search.hide();
+      hideSearch();
     }
 
     if (!zoomedIn) {

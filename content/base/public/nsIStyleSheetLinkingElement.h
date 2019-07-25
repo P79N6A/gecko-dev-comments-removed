@@ -77,7 +77,7 @@ public:
 
 
 
-  NS_IMETHOD InitStyleLinkElement(bool aDontLoadStyle) = 0;
+  NS_IMETHOD InitStyleLinkElement(PRBool aDontLoadStyle) = 0;
 
   
 
@@ -94,8 +94,8 @@ public:
 
 
   NS_IMETHOD UpdateStyleSheet(nsICSSLoaderObserver* aObserver,
-                              bool *aWillNotify,
-                              bool *aIsAlternate) = 0;
+                              PRBool *aWillNotify,
+                              PRBool *aIsAlternate) = 0;
 
   
 
@@ -103,7 +103,7 @@ public:
 
 
 
-  NS_IMETHOD SetEnableUpdates(bool aEnableUpdates) = 0;
+  NS_IMETHOD SetEnableUpdates(PRBool aEnableUpdates) = 0;
 
   
 

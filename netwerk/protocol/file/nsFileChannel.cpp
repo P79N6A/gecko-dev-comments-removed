@@ -192,7 +192,7 @@ class nsFileUploadContentStream : public nsBaseContentStream {
 public:
   NS_DECL_ISUPPORTS_INHERITED
 
-  nsFileUploadContentStream(bool nonBlocking,
+  nsFileUploadContentStream(PRBool nonBlocking,
                             nsIOutputStream *dest,
                             nsIInputStream *source,
                             PRInt64 len,
@@ -202,7 +202,7 @@ public:
     , mSink(sink) {
   }
 
-  bool IsInitialized() {
+  PRBool IsInitialized() {
     return mCopyEvent != nsnull;
   }
 
@@ -279,7 +279,7 @@ nsFileChannel::MakeFileInputStream(nsIFile *file,
                                    nsCString &contentType)
 {
   
-  bool isDir;
+  PRBool isDir;
   nsresult rv = file->IsDirectory(&isDir);
   if (NS_FAILED(rv)) {
     
@@ -306,7 +306,7 @@ nsFileChannel::MakeFileInputStream(nsIFile *file,
 }
 
 nsresult
-nsFileChannel::OpenContentStream(bool async, nsIInputStream **result,
+nsFileChannel::OpenContentStream(PRBool async, nsIInputStream **result,
                                  nsIChannel** channel)
 {
   

@@ -74,8 +74,8 @@ public:
 
 
 
-  virtual void SetDimensions(const nsRect &aRect, bool aPaint = true,
-                             bool aResizeWidget = true);
+  virtual void SetDimensions(const nsRect &aRect, PRBool aPaint = PR_TRUE,
+                             PRBool aResizeWidget = PR_TRUE);
   void SetInvalidationDimensions(const nsRect* aRect);
 
   
@@ -94,7 +94,7 @@ public:
 
 
 
-  void SetZIndex(bool aAuto, PRInt32 aZIndex, bool aTopMost);
+  void SetZIndex(PRBool aAuto, PRInt32 aZIndex, PRBool aTopMost);
 
   
 
@@ -104,7 +104,7 @@ public:
 
 
 
-  NS_IMETHOD  SetFloating(bool aFloatingView);
+  NS_IMETHOD  SetFloating(PRBool aFloatingView);
 
   
   static nsView* GetViewFor(nsIWidget* aWidget) {
@@ -118,20 +118,20 @@ public:
 public:
   
   nsresult CreateWidget(nsWidgetInitData *aWidgetInitData,
-                        bool aEnableDragDrop,
-                        bool aResetVisibility);
+                        PRBool aEnableDragDrop,
+                        PRBool aResetVisibility);
 
   
   nsresult CreateWidgetForParent(nsIWidget* aParentWidget,
                                  nsWidgetInitData *aWidgetInitData,
-                                 bool aEnableDragDrop,
-                                 bool aResetVisibility);
+                                 PRBool aEnableDragDrop,
+                                 PRBool aResetVisibility);
 
   
   nsresult CreateWidgetForPopup(nsWidgetInitData *aWidgetInitData,
                                 nsIWidget* aParentWidget,
-                                bool aEnableDragDrop,
-                                bool aResetVisibility);
+                                PRBool aEnableDragDrop,
+                                PRBool aResetVisibility);
 
   
   void DestroyWidget();
@@ -145,7 +145,7 @@ public:
   nsViewManager* GetViewManager() const { return mViewManager; }
   
   PRInt32 GetZIndex() const { return mZIndex; }
-  bool GetZIndexIsAuto() const { return (mVFlags & NS_VIEW_FLAG_AUTO_ZINDEX) != 0; }
+  PRBool GetZIndexIsAuto() const { return (mVFlags & NS_VIEW_FLAG_AUTO_ZINDEX) != 0; }
   
   nsRect GetBoundsInParentUnits() const;
 
@@ -156,7 +156,7 @@ public:
   
   
 
-  bool HasNonEmptyDirtyRegion() {
+  PRBool HasNonEmptyDirtyRegion() {
     return mDirtyRegion && !mDirtyRegion->IsEmpty();
   }
   nsRegion* GetDirtyRegion() {
@@ -178,14 +178,14 @@ public:
   PRUint32 GetViewFlags() const { return mVFlags; }
   void SetViewFlags(PRUint32 aFlags) { mVFlags = aFlags; }
 
-  void SetTopMost(bool aTopMost) { aTopMost ? mVFlags |= NS_VIEW_FLAG_TOPMOST : mVFlags &= ~NS_VIEW_FLAG_TOPMOST; }
-  bool IsTopMost() { return((mVFlags & NS_VIEW_FLAG_TOPMOST) != 0); }
+  void SetTopMost(PRBool aTopMost) { aTopMost ? mVFlags |= NS_VIEW_FLAG_TOPMOST : mVFlags &= ~NS_VIEW_FLAG_TOPMOST; }
+  PRBool IsTopMost() { return((mVFlags & NS_VIEW_FLAG_TOPMOST) != 0); }
 
-  void ResetWidgetBounds(bool aRecurse, bool aMoveOnly, bool aInvalidateChangedSize);
+  void ResetWidgetBounds(PRBool aRecurse, PRBool aMoveOnly, PRBool aInvalidateChangedSize);
   void SetPositionIgnoringChildWidgets(nscoord aX, nscoord aY);
   void AssertNoWindow();
 
-  void NotifyEffectiveVisibilityChanged(bool aEffectivelyVisible);
+  void NotifyEffectiveVisibilityChanged(PRBool aEffectivelyVisible);
 
   
   
@@ -203,7 +203,7 @@ public:
 protected:
   
   
-  void DoResetWidgetBounds(bool aMoveOnly, bool aInvalidateChangedSize);
+  void DoResetWidgetBounds(PRBool aMoveOnly, PRBool aInvalidateChangedSize);
 
   nsRegion*    mDirtyRegion;
   
@@ -212,10 +212,10 @@ protected:
   
   
   nsRect       mInvalidationDimensions;
-  bool mHaveInvalidationDimensions;
+  PRPackedBool mHaveInvalidationDimensions;
 
 private:
-  void InitializeWindow(bool aEnableDragDrop, bool aResetVisibility);
+  void InitializeWindow(PRBool aEnableDragDrop, PRBool aResetVisibility);
 };
 
 #endif

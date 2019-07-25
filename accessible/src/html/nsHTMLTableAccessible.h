@@ -186,7 +186,7 @@ protected:
 
   nsresult RemoveRowsOrColumnsFromSelection(PRInt32 aIndex,
                                             PRUint32 aTarget,
-                                            bool aIsOuter);
+                                            PRBool aIsOuter);
 
   
 
@@ -195,7 +195,7 @@ protected:
 
 
 
-  bool HasDescendant(const nsAString& aTagName, bool aAllowEmpty = true);
+  PRBool HasDescendant(const nsAString& aTagName, PRBool aAllowEmpty = PR_TRUE);
 
 #ifdef SHOW_LAYOUT_HEURISTIC
   nsString mLayoutHeuristic;

@@ -100,7 +100,6 @@ public:
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
-  virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
   
 
@@ -120,7 +119,7 @@ private:
   gfxMatrix GetRasterImageTransform(PRInt32 aNativeWidth,
                                     PRInt32 aNativeHeight);
   gfxMatrix GetVectorImageTransform();
-  bool      TransformContextForPainting(gfxContext* aGfxContext);
+  PRBool    TransformContextForPainting(gfxContext* aGfxContext);
 
   nsCOMPtr<imgIDecoderObserver> mListener;
 
@@ -179,10 +178,6 @@ nsSVGImageFrame::Init(nsIContent* aContent,
 
   
   
-  imageLoader->FrameCreated(this);
-
-  
-  
   
   nsCxPusher pusher;
   pusher.PushNull();
@@ -190,19 +185,6 @@ nsSVGImageFrame::Init(nsIContent* aContent,
   imageLoader->AddObserver(mListener);
 
   return NS_OK; 
-}
-
- void
-nsSVGImageFrame::DestroyFrom(nsIFrame* aDestructRoot)
-{
-  nsCOMPtr<nsIImageLoadingContent> imageLoader =
-    do_QueryInterface(nsFrame::mContent);
-
-  if (imageLoader) {
-    imageLoader->FrameDestroyed(this);
-  }
-
-  nsFrame::DestroyFrom(aDestructRoot);
 }
 
 
@@ -257,7 +239,7 @@ nsSVGImageFrame::GetVectorImageTransform()
   return gfxMatrix().Translate(gfxPoint(x, y)) * GetCanvasTM();
 }
 
-bool
+PRBool
 nsSVGImageFrame::TransformContextForPainting(gfxContext* aGfxContext)
 {
   gfxMatrix imageTransform;

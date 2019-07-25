@@ -124,16 +124,16 @@ public:
                   nsReflowStatus&          aReflowStatus,
                   nscoord                  aContainingBlockWidth,
                   nscoord                  aContainingBlockHeight,
-                  bool                     aConstrainHeight,
-                  bool                     aCBWidthChanged,
-                  bool                     aCBHeightChanged,
+                  PRBool                   aConstrainHeight,
+                  PRBool                   aCBWidthChanged,
+                  PRBool                   aCBHeightChanged,
                   nsOverflowAreas*         aOverflowAreas);
 
 
   void DestroyFrames(nsIFrame* aDelegatingFrame,
                      nsIFrame* aDestructRoot);
 
-  bool    HasAbsoluteFrames() {return mAbsoluteFrames.NotEmpty();}
+  PRBool  HasAbsoluteFrames() {return mAbsoluteFrames.NotEmpty();}
 
   
   
@@ -146,15 +146,15 @@ protected:
   
   
   
-  bool FrameDependsOnContainer(nsIFrame* f, bool aCBWidthChanged,
-                                 bool aCBHeightChanged);
+  PRBool FrameDependsOnContainer(nsIFrame* f, PRBool aCBWidthChanged,
+                                 PRBool aCBHeightChanged);
 
   nsresult ReflowAbsoluteFrame(nsIFrame*                aDelegatingFrame,
                                nsPresContext*          aPresContext,
                                const nsHTMLReflowState& aReflowState,
                                nscoord                  aContainingBlockWidth,
                                nscoord                  aContainingBlockHeight,
-                               bool                     aConstrainHeight,
+                               PRBool                   aConstrainHeight,
                                nsIFrame*                aKidFrame,
                                nsReflowStatus&          aStatus,
                                nsOverflowAreas*         aOverflowAreas);
@@ -162,7 +162,7 @@ protected:
   
   
   
-  void DoMarkFramesDirty(bool aMarkAllDirty);
+  void DoMarkFramesDirty(PRBool aMarkAllDirty);
 
 protected:
   nsFrameList mAbsoluteFrames;  

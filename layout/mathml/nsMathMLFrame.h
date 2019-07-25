@@ -59,7 +59,7 @@ public:
 
   
 
-  virtual bool
+  virtual PRBool
   IsSpaceLike() {
     return NS_MATHML_IS_SPACE_LIKE(mPresentationData.flags);
   }
@@ -135,7 +135,7 @@ public:
                          nsIContent*      aContent,
                          nsStyleContext*  aParenStyleContext,
                          nsMathMLChar*    aMathMLChar,
-                         bool             aIsMutableChar);
+                         PRBool           aIsMutableChar);
 
   
   
@@ -161,7 +161,7 @@ public:
   static void
   GetPresentationDataFrom(nsIFrame*           aFrame,
                           nsPresentationData& aPresentationData,
-                          bool                aClimbTree = true);
+                          PRBool              aClimbTree = PR_TRUE);
 
   
   static void
@@ -172,7 +172,7 @@ public:
   
   
   
-  static bool
+  static PRBool
   GetAttribute(nsIContent* aContent,
                nsIFrame*   aMathMLmstyleFrame,          
                nsIAtom*    aAttributeAtom,
@@ -180,7 +180,7 @@ public:
 
   
   
-  static bool
+  static PRBool
   ParseNumericValue(const nsString& aString,
                     nsCSSValue&     aCSSValue) {
     return nsMathMLElement::ParseNumericValue(aString, aCSSValue,
@@ -193,7 +193,7 @@ public:
              nsStyleContext*   aStyleContext,
              const nsCSSValue& aCSSValue);
 
-  static bool
+  static PRBool
   ParseNamedSpaceValue(nsIFrame*   aMathMLmstyleFrame,
                        nsString&   aString,
                        nsCSSValue& aCSSValue);

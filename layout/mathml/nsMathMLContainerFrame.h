@@ -105,12 +105,12 @@ public:
   
   
   void
-  SetIncrementScriptLevel(PRInt32 aChildIndex, bool aIncrement);
+  SetIncrementScriptLevel(PRInt32 aChildIndex, PRBool aIncrement);
 
   
   
 
-  virtual bool IsFrameOfType(PRUint32 aFlags) const
+  virtual PRBool IsFrameOfType(PRUint32 aFlags) const
   {
     return !(aFlags & nsIFrame::eLineParticipant) &&
       nsHTMLContainerFrame::IsFrameOfType(aFlags &
@@ -228,7 +228,7 @@ protected:
 
   virtual nsresult
   Place(nsRenderingContext& aRenderingContext,
-        bool                 aPlaceOrigin,
+        PRBool               aPlaceOrigin,
         nsHTMLReflowMetrics& aDesiredSize);
 
   
@@ -453,7 +453,7 @@ public:
     return rv;
   }
 
-  virtual bool IsFrameOfType(PRUint32 aFlags) const {
+  virtual PRBool IsFrameOfType(PRUint32 aFlags) const {
     return nsBlockFrame::IsFrameOfType(aFlags &
               ~(nsIFrame::eMathML | nsIFrame::eExcludesIgnorableWhitespace));
   }
@@ -523,7 +523,7 @@ public:
     return rv;
   }
 
-  virtual bool IsFrameOfType(PRUint32 aFlags) const {
+  virtual PRBool IsFrameOfType(PRUint32 aFlags) const {
       return nsInlineFrame::IsFrameOfType(aFlags &
                 ~(nsIFrame::eMathML | nsIFrame::eExcludesIgnorableWhitespace));
   }

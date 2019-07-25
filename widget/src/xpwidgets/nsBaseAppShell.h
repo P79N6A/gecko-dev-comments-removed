@@ -100,13 +100,13 @@ protected:
 
 
 
-  virtual bool ProcessNextNativeEvent(bool mayWait) = 0;
+  virtual PRBool ProcessNextNativeEvent(PRBool mayWait) = 0;
 
   PRInt32 mSuspendNativeCount;
   PRUint32 mEventloopNestingLevel;
 
 private:
-  bool DoProcessNextNativeEvent(bool mayWait);
+  PRBool DoProcessNextNativeEvent(PRBool mayWait);
 
   
 
@@ -120,7 +120,7 @@ private:
 
 
 
-  bool *mBlockedWait;
+  PRBool *mBlockedWait;
   PRInt32 mFavorPerf;
   PRInt32 mNativeEventPending;
   PRIntervalTime mStarvationDelay;
@@ -133,8 +133,8 @@ private:
   };
   EventloopNestingState mEventloopNestingState;
   nsCOMArray<nsIRunnable> mSyncSections;
-  bool mRunning;
-  bool mExiting;
+  PRPackedBool mRunning;
+  PRPackedBool mExiting;
   
 
 
@@ -144,7 +144,7 @@ private:
 
 
 
-  bool mBlockNativeEvent;
+  PRPackedBool mBlockNativeEvent;
   
 
 
@@ -160,7 +160,7 @@ private:
 
 
 
-  bool mProcessedGeckoEvents;
+  PRPackedBool mProcessedGeckoEvents;
 };
 
 #endif 

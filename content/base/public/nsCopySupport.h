@@ -56,8 +56,8 @@ class nsCopySupport
   public:
     static nsresult HTMLCopy(nsISelection *aSel, nsIDocument *aDoc, PRInt16 aClipboardID);
     static nsresult DoHooks(nsIDocument *aDoc, nsITransferable *aTrans,
-                            bool *aDoPutOnClipboard);
-    static nsresult IsPlainTextContext(nsISelection *aSel, nsIDocument *aDoc, bool *aIsPlainTextContext);
+                            PRBool *aDoPutOnClipboard);
+    static nsresult IsPlainTextContext(nsISelection *aSel, nsIDocument *aDoc, PRBool *aIsPlainTextContext);
 
     
     
@@ -90,7 +90,7 @@ class nsCopySupport
 
 
 
-    static bool CanCopy(nsIDocument* aDocument);
+    static PRBool CanCopy(nsIDocument* aDocument);
 
     
 
@@ -113,7 +113,7 @@ class nsCopySupport
 
 
 
-    static bool FireClipboardEvent(PRInt32 aType,
+    static PRBool FireClipboardEvent(PRInt32 aType,
                                      nsIPresShell* aPresShell,
                                      nsISelection* aSelection);
 };

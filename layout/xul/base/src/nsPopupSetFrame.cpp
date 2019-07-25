@@ -231,7 +231,7 @@ nsPopupSetFrame::List(FILE* out, PRInt32 aIndent) const
   }
 
   
-  bool outputOneList = false;
+  PRBool outputOneList = PR_FALSE;
   ChildListIterator lists(this);
   for (; !lists.IsDone(); lists.Next()) {
     if (outputOneList) {

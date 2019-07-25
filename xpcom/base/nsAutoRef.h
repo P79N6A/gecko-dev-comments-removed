@@ -548,7 +548,7 @@ protected:
     
     
     
-    bool HaveResource() const
+    PRBool HaveResource() const
     {
         return mRawRef != Traits::Void();
     }

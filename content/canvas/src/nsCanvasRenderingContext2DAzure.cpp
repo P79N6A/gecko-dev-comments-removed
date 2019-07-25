@@ -306,8 +306,8 @@ public:
   nsCanvasPatternAzure(SourceSurface* aSurface,
                        RepeatMode aRepeat,
                        nsIPrincipal* principalForSecurityCheck,
-                       bool forceWriteOnly,
-                       bool CORSUsed)
+                       PRBool forceWriteOnly,
+                       PRBool CORSUsed)
     : mSurface(aSurface)
     , mRepeat(aRepeat)
     , mPrincipal(principalForSecurityCheck)
@@ -321,8 +321,8 @@ public:
   RefPtr<SourceSurface> mSurface;
   const RepeatMode mRepeat;
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  const bool mForceWriteOnly;
-  const bool mCORSUsed;
+  const PRPackedBool mForceWriteOnly;
+  const PRPackedBool mCORSUsed;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsCanvasPatternAzure, NS_CANVASPATTERNAZURE_PRIVATE_IID)
@@ -413,13 +413,13 @@ public:
   TemporaryRef<SourceSurface> GetSurfaceSnapshot()
   { return mTarget ? mTarget->Snapshot() : nsnull; }
 
-  NS_IMETHOD SetIsOpaque(bool isOpaque);
+  NS_IMETHOD SetIsOpaque(PRBool isOpaque);
   NS_IMETHOD Reset();
   already_AddRefed<CanvasLayer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                                 CanvasLayer *aOldLayer,
                                                 LayerManager *aManager);
   void MarkContextClean();
-  NS_IMETHOD SetIsIPC(bool isIPC);
+  NS_IMETHOD SetIsIPC(PRBool isIPC);
   
   void Redraw(const mgfx::Rect &r);
   NS_IMETHOD Redraw(const gfxRect &r) { Redraw(ToRect(r)); return NS_OK; }
@@ -506,18 +506,18 @@ protected:
   
   
   
-  bool mValid;
+  PRPackedBool mValid;
   
   
-  bool mZero;
+  PRPackedBool mZero;
 
-  bool mOpaque;
+  PRPackedBool mOpaque;
 
   
   
-  bool mResetLayer;
+  PRPackedBool mResetLayer;
   
-  bool mIPC;
+  PRPackedBool mIPC;
 
   
   nsCOMPtr<nsIDOMHTMLCanvasElement> mCanvasElement;
@@ -532,13 +532,13 @@ protected:
 
 
 
-  bool mIsEntireFrameInvalid;
+  PRPackedBool mIsEntireFrameInvalid;
   
 
 
 
 
-  bool mPredictManyRedrawCalls;
+  PRPackedBool mPredictManyRedrawCalls;
 
   
   
@@ -584,7 +584,7 @@ protected:
 
 
 
-  bool NeedToDrawShadow()
+  PRBool NeedToDrawShadow()
   {
     const ContextState& state = CurrentState();
 
@@ -721,7 +721,7 @@ protected:
       
 
 
-      bool StyleIsColor(Style whichStyle) const
+      PRBool StyleIsColor(Style whichStyle) const
       {
           return !(patternStyles[whichStyle] ||
                     gradientStyles[whichStyle]);
@@ -755,7 +755,7 @@ protected:
       CapStyle lineCap;
       JoinStyle lineJoin;
 
-      bool imageSmoothingEnabled;
+      PRPackedBool imageSmoothingEnabled;
   };
 
   class GeneralPattern
@@ -1319,7 +1319,7 @@ nsCanvasRenderingContext2DAzure::InitializeWithTarget(DrawTarget *target, PRInt3
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2DAzure::SetIsOpaque(bool isOpaque)
+nsCanvasRenderingContext2DAzure::SetIsOpaque(PRBool isOpaque)
 {
   if (isOpaque == mOpaque)
     return NS_OK;
@@ -1337,7 +1337,7 @@ nsCanvasRenderingContext2DAzure::SetIsOpaque(bool isOpaque)
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2DAzure::SetIsIPC(bool isIPC)
+nsCanvasRenderingContext2DAzure::SetIsIPC(PRBool isIPC)
 {
   if (isIPC == mIPC)
       return NS_OK;
@@ -2448,7 +2448,7 @@ NS_IMETHODIMP
 nsCanvasRenderingContext2DAzure::Arc(float x, float y,
                                      float r,
                                      float startAngle, float endAngle,
-                                     bool ccw)
+                                     PRBool ccw)
 {
   if (!FloatValidate(x, y, r, startAngle, endAngle)) {
     return NS_OK;
@@ -2672,7 +2672,7 @@ CreateFontStyleRule(const nsAString& aFont,
                     StyleRule** aResult)
 {
   nsRefPtr<StyleRule> rule;
-  bool changed;
+  PRBool changed;
 
   nsIPrincipal* principal = aNode->NodePrincipal();
   nsIDocument* document = aNode->GetOwnerDoc();
@@ -2814,7 +2814,7 @@ nsCanvasRenderingContext2DAzure::SetFont(const nsAString& font)
   
   const nscoord fontSize = nsStyleFont::UnZoomText(parentContext->PresContext(), fontStyle->mFont.size);
 
-  bool printerFont = (presShell->GetPresContext()->Type() == nsPresContext::eContext_PrintPreview ||
+  PRBool printerFont = (presShell->GetPresContext()->Type() == nsPresContext::eContext_PrintPreview ||
                         presShell->GetPresContext()->Type() == nsPresContext::eContext_Print);
 
   gfxFontStyle style(fontStyle->mFont.style,
@@ -3191,7 +3191,7 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
   gfxRect mBoundingBox;
 
   
-  bool mDoMeasureBoundingBox;
+  PRBool mDoMeasureBoundingBox;
 };
 
 nsresult
@@ -3231,7 +3231,7 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
   TextReplaceWhitespaceCharacters(textToDraw);
 
   
-  bool isRTL = false;
+  PRBool isRTL = PR_FALSE;
 
   if (content && content->IsInDoc()) {
     
@@ -3252,7 +3252,7 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
   const ContextState &state = CurrentState();
 
   
-  bool doDrawShadow = aOp == TEXT_DRAW_OPERATION_FILL && NeedToDrawShadow();
+  PRBool doDrawShadow = aOp == TEXT_DRAW_OPERATION_FILL && NeedToDrawShadow();
 
   nsCanvasBidiProcessorAzure processor;
 
@@ -3600,7 +3600,7 @@ nsCanvasRenderingContext2DAzure::GetMozDashOffset(float* offset)
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2DAzure::IsPointInPath(float x, float y, bool *retVal)
+nsCanvasRenderingContext2DAzure::IsPointInPath(float x, float y, PRBool *retVal)
 {
   if (!FloatValidate(x,y)) {
     *retVal = PR_FALSE;
@@ -3680,27 +3680,6 @@ nsCanvasRenderingContext2DAzure::DrawImage(nsIDOMElement *imgElt, float a1,
     
     srcSurf = mTarget->Snapshot();
     imgSize = gfxIntSize(mWidth, mHeight);
-  }
-
-  
-  if (canvas) {
-    if (canvas->CountContexts() == 1) {
-      nsICanvasRenderingContextInternal *srcCanvas = canvas->GetContextAtIndex(0);
-
-      
-      if (srcCanvas) {
-        srcSurf = srcCanvas->GetSurfaceSnapshot();
-
-        if (srcSurf && mCanvasElement) {
-          
-          CanvasUtils::DoDrawImageSecurityCheck(HTMLCanvasElement(),
-                                                content->NodePrincipal(), canvas->IsWriteOnly(),
-                                                false);
-
-          imgSize = gfxIntSize(srcSurf->GetSize().width, srcSurf->GetSize().height);
-        }
-      }
-    }
   }
 
   if (!srcSurf) {
@@ -3998,7 +3977,7 @@ nsCanvasRenderingContext2DAzure::AsyncDrawXULElement(nsIDOMXULElement* aElem,
     if (!gfxASurface::CheckSurfaceSize(gfxIntSize(aW, aH), 0xffff))
         return NS_ERROR_FAILURE;
 
-    bool flush =
+    PRBool flush =
         (flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH) == 0;
 
     PRUint32 renderDocFlags = nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING;
@@ -4202,7 +4181,7 @@ nsCanvasRenderingContext2DAzure::PutImageData()
 NS_IMETHODIMP
 nsCanvasRenderingContext2DAzure::PutImageData_explicit(PRInt32 x, PRInt32 y, PRUint32 w, PRUint32 h,
                                                        unsigned char *aData, PRUint32 aDataLen,
-                                                       bool hasDirtyRect, PRInt32 dirtyX, PRInt32 dirtyY,
+                                                       PRBool hasDirtyRect, PRInt32 dirtyX, PRInt32 dirtyY,
                                                        PRInt32 dirtyWidth, PRInt32 dirtyHeight)
 {
   if (!mValid) {
@@ -4334,8 +4313,8 @@ nsCanvasRenderingContext2DAzure::GetThebesSurface(gfxASurface **surface)
     mTarget->Flush();
   }
 
+  mThebesSurface->AddRef();
   *surface = mThebesSurface;
-  NS_ADDREF(*surface);
 
   return NS_OK;
 }
@@ -4348,14 +4327,14 @@ nsCanvasRenderingContext2DAzure::CreateImageData()
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2DAzure::GetMozImageSmoothingEnabled(bool *retVal)
+nsCanvasRenderingContext2DAzure::GetMozImageSmoothingEnabled(PRBool *retVal)
 {
   *retVal = CurrentState().imageSmoothingEnabled;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2DAzure::SetMozImageSmoothingEnabled(bool val)
+nsCanvasRenderingContext2DAzure::SetMozImageSmoothingEnabled(PRBool val)
 {
   if (val != CurrentState().imageSmoothingEnabled) {
       CurrentState().imageSmoothingEnabled = val;

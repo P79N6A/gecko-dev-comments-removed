@@ -186,7 +186,7 @@ NS_ProcessPendingEvents(nsIThread *thread,
 
 
 
-extern NS_COM_GLUE bool
+extern NS_COM_GLUE PRBool
 NS_HasPendingEvents(nsIThread *thread = nsnull);
 
 
@@ -206,8 +206,8 @@ NS_HasPendingEvents(nsIThread *thread = nsnull);
 
 
 
-extern NS_COM_GLUE bool
-NS_ProcessNextEvent(nsIThread *thread = nsnull, bool mayWait = true);
+extern NS_COM_GLUE PRBool
+NS_ProcessNextEvent(nsIThread *thread = nsnull, PRBool mayWait = PR_TRUE);
 
 
 
@@ -452,7 +452,7 @@ public:
     mEvent = nsnull;
   }
 
-  bool IsPending() {
+  PRBool IsPending() {
     return mEvent != nsnull;
   }
   

@@ -92,11 +92,11 @@ extern nsXREDirProvider* gDirServiceProvider;
 
 
 extern const nsXREAppData* gAppData;
-extern bool gSafeMode;
+extern PRBool gSafeMode;
 
 extern int    gArgc;
 extern char **gArgv;
-extern bool gLogConsoleErrors;
+extern PRBool gLogConsoleErrors;
 
 
 

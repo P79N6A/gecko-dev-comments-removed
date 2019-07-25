@@ -123,7 +123,7 @@ public:
 
 
   void* Get(const nsIFrame* aFrame, const FramePropertyDescriptor* aProperty,
-            bool* aFoundResult = nsnull);
+            PRBool* aFoundResult = nsnull);
   
 
 
@@ -136,7 +136,7 @@ public:
 
 
   void* Remove(nsIFrame* aFrame, const FramePropertyDescriptor* aProperty,
-               bool* aFoundResult = nsnull);
+               PRBool* aFoundResult = nsnull);
   
 
 
@@ -164,7 +164,7 @@ protected:
     PropertyValue(const FramePropertyDescriptor* aProperty, void* aValue)
       : mProperty(aProperty), mValue(aValue) {}
 
-    bool IsArray() { return !mProperty && mValue; }
+    PRBool IsArray() { return !mProperty && mValue; }
     nsTArray<PropertyValue>* ToArray()
     {
       NS_ASSERTION(IsArray(), "Must be array");
@@ -189,13 +189,13 @@ protected:
 
   class PropertyComparator {
   public:
-    bool Equals(const PropertyValue& a, const PropertyValue& b) const {
+    PRBool Equals(const PropertyValue& a, const PropertyValue& b) const {
       return a.mProperty == b.mProperty;
     }
-    bool Equals(const FramePropertyDescriptor* a, const PropertyValue& b) const {
+    PRBool Equals(const FramePropertyDescriptor* a, const PropertyValue& b) const {
       return a == b.mProperty;
     }
-    bool Equals(const PropertyValue& a, const FramePropertyDescriptor* b) const {
+    PRBool Equals(const PropertyValue& a, const FramePropertyDescriptor* b) const {
       return a.mProperty == b;
     }
   };
@@ -237,12 +237,12 @@ public:
     mTable->Set(mFrame, aProperty, aValue);
   }
   void* Get(const FramePropertyDescriptor* aProperty,
-            bool* aFoundResult = nsnull) const
+            PRBool* aFoundResult = nsnull) const
   {
     return mTable->Get(mFrame, aProperty, aFoundResult);
   }
   void* Remove(const FramePropertyDescriptor* aProperty,
-               bool* aFoundResult = nsnull) const
+               PRBool* aFoundResult = nsnull) const
   {
     return mTable->Remove(mFrame, aProperty, aFoundResult);
   }

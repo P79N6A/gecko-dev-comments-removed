@@ -162,7 +162,7 @@ nsTableCellFrame::NotifyPercentHeight(const nsHTMLReflowState& aReflowState)
 }
 
 
-bool
+PRBool
 nsTableCellFrame::NeedsToObserve(const nsHTMLReflowState& aReflowState)
 {
   const nsHTMLReflowState *rs = aReflowState.parentReflowState;
@@ -450,7 +450,7 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       (NS_STYLE_TABLE_EMPTY_CELLS_HIDE != emptyCellStyle)) {
 
 
-    bool isRoot = aBuilder->IsAtRootOfPseudoStackingContext();
+    PRBool isRoot = aBuilder->IsAtRootOfPseudoStackingContext();
     if (!isRoot) {
       nsDisplayTableItem* currentItem = aBuilder->GetCurrentTableItem();
       if (currentItem) {
@@ -459,7 +459,7 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
 
     
-    bool hasBoxShadow = !!(GetStyleBorder()->mBoxShadow);
+    PRBool hasBoxShadow = !!(GetStyleBorder()->mBoxShadow);
     if (hasBoxShadow) {
       nsresult rv = aLists.BorderBackground()->AppendNewToTop(
           new (aBuilder) nsDisplayBoxShadowOuter(aBuilder, this));
@@ -496,7 +496,7 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
 
     
-    bool isSelected =
+    PRBool isSelected =
       (GetStateBits() & NS_FRAME_SELECTED_CONTENT) == NS_FRAME_SELECTED_CONTENT;
     if (isSelected) {
       nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
@@ -639,7 +639,7 @@ nsTableCellFrame::GetVerticalAlign() const
   return NS_STYLE_VERTICAL_ALIGN_BASELINE;
 }
 
-bool
+PRBool
 nsTableCellFrame::CellHasVisibleContent(nscoord       height,
                                         nsTableFrame* tableFrame,
                                         nsIFrame*     kidFrame)
@@ -898,7 +898,7 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   nsPoint kidOrigin(leftInset, topInset);
   nsRect origRect = firstKid->GetRect();
   nsRect origVisualOverflow = firstKid->GetVisualOverflowRect();
-  bool firstReflow = (firstKid->GetStateBits() & NS_FRAME_FIRST_REFLOW) != 0;
+  PRBool firstReflow = (firstKid->GetStateBits() & NS_FRAME_FIRST_REFLOW) != 0;
 
   ReflowChild(firstKid, aPresContext, kidSize, kidReflowState,
               kidOrigin.x, kidOrigin.y, NS_FRAME_INVALIDATE_ON_MOVE, aStatus);
@@ -921,7 +921,7 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*           aPresContext,
   
   
   nsIFrame* prevInFlow = GetPrevInFlow();
-  bool isEmpty;
+  PRBool isEmpty;
   if (prevInFlow) {
     isEmpty = static_cast<nsTableCellFrame*>(prevInFlow)->GetContentEmpty();
   } else {
@@ -1020,7 +1020,7 @@ nsTableCellFrame::GetCellIndexes(PRInt32 &aRowIndex, PRInt32 &aColIndex)
 nsIFrame*
 NS_NewTableCellFrame(nsIPresShell*   aPresShell,
                      nsStyleContext* aContext,
-                     bool            aIsBorderCollapse)
+                     PRBool          aIsBorderCollapse)
 {
   if (aIsBorderCollapse)
     return new (aPresShell) nsBCTableCellFrame(aContext);
@@ -1041,6 +1041,12 @@ nsIAtom*
 nsTableCellFrame::GetType() const
 {
   return nsGkAtoms::tableCellFrame;
+}
+
+ PRBool
+nsTableCellFrame::IsContainingBlock() const
+{
+  return PR_TRUE;
 }
 
 #ifdef DEBUG
@@ -1077,7 +1083,7 @@ nsBCTableCellFrame::GetUsedBorder() const
   return result;
 }
 
- bool
+ PRBool
 nsBCTableCellFrame::GetBorderRadii(nscoord aRadii[8]) const
 {
   NS_FOR_CSS_HALF_CORNERS(corner) {

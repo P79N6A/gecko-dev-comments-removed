@@ -81,7 +81,7 @@
 
 
 nsDragService::nsDragService()
-  : mNativeDragSrc(nsnull), mNativeDragTarget(nsnull), mDataObject(nsnull), mSentLocalDropEvent(false)
+  : mNativeDragSrc(nsnull), mNativeDragTarget(nsnull), mDataObject(nsnull), mSentLocalDropEvent(PR_FALSE)
 {
 }
 
@@ -97,17 +97,17 @@ nsDragService::~nsDragService()
   NS_IF_RELEASE(mDataObject);
 }
 
-bool
+PRBool
 nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
                                nsIScriptableRegion *aRegion,
                                SHDRAGIMAGE *psdi)
 {
   if (!psdi)
-    return false;
+    return PR_FALSE;
 
   memset(psdi, 0, sizeof(SHDRAGIMAGE));
   if (!aDOMNode) 
-    return false;
+    return PR_FALSE;
 
   
   nsIntRect dragRect;
@@ -117,12 +117,12 @@ nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
            mScreenX, mScreenY,
            &dragRect, getter_AddRefs(surface), &pc);
   if (!surface)
-    return false;
+    return PR_FALSE;
 
   PRUint32 bmWidth = dragRect.width, bmHeight = dragRect.height;
 
   if (bmWidth == 0 || bmHeight == 0)
-    return false;
+    return PR_FALSE;
 
   psdi->crColorKey = CLR_NONE;
 
@@ -130,11 +130,11 @@ nsDragService::CreateDragImage(nsIDOMNode *aDOMNode,
     gfxIntSize(bmWidth, bmHeight), 
     gfxImageSurface::ImageFormatARGB32);
   if (!imgSurface)
-    return false;
+    return PR_FALSE;
 
   nsRefPtr<gfxContext> context = new gfxContext(imgSurface);
   if (!context)
-    return false;
+    return PR_FALSE;
 
   context->SetOperator(gfxContext::OPERATOR_SOURCE);
   context->SetSource(surface);
@@ -298,7 +298,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   
   
   mDragAction = aActionType;
-  mSentLocalDropEvent = false;
+  mSentLocalDropEvent = PR_FALSE;
 
   
   StartDragSession();
@@ -351,9 +351,9 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   cpos.x = GET_X_LPARAM(pos);
   cpos.y = GET_Y_LPARAM(pos);
   SetDragEndPoint(nsIntPoint(cpos.x, cpos.y));
-  EndDragSession(true);
+  EndDragSession(PR_TRUE);
 
-  mDoingDrag = false;
+  mDoingDrag = PR_FALSE;
 
   return DRAGDROP_S_DROP == res ? NS_OK : NS_ERROR_FAILURE;
 }
@@ -485,13 +485,13 @@ nsDragService::SetDroppedLocal()
 {
   
   
-  mSentLocalDropEvent = true;
+  mSentLocalDropEvent = PR_TRUE;
   return;
 }
 
 
 NS_IMETHODIMP
-nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
+nsDragService::IsDataFlavorSupported(const char *aDataFlavor, PRBool *_retval)
 {
   if (!aDataFlavor || !mDataObject || !_retval)
     return NS_ERROR_FAILURE;
@@ -501,7 +501,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
     NS_WARNING("DO NOT USE THE text/plain DATA FLAVOR ANY MORE. USE text/unicode INSTEAD");
 #endif
 
-  *_retval = false;
+  *_retval = PR_FALSE;
 
   FORMATETC fe;
   UINT format = 0;
@@ -520,7 +520,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
       for (PRUint32 i=0;i<cnt;++i) {
         IDataObject * dataObj = dataObjCol->GetDataObjectAt(i);
         if (S_OK == dataObj->QueryGetData(&fe))
-          *_retval = true;             
+          *_retval = PR_TRUE;             
       }
     }
   } 
@@ -533,7 +533,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
     SET_FORMATETC(fe, format, 0, DVASPECT_CONTENT, -1,
                   TYMED_HGLOBAL | TYMED_FILE | TYMED_GDI);
     if (mDataObject->QueryGetData(&fe) == S_OK)
-      *_retval = true;                 
+      *_retval = PR_TRUE;                 
     else {
       
       
@@ -546,7 +546,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
         SET_FORMATETC(fe, format, 0, DVASPECT_CONTENT, -1,
                       TYMED_HGLOBAL | TYMED_FILE | TYMED_GDI);
         if (mDataObject->QueryGetData(&fe) == S_OK)
-          *_retval = true;                 
+          *_retval = PR_TRUE;                 
       }
       else if (strcmp(aDataFlavor, kURLMime) == 0) {
         
@@ -556,7 +556,7 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
         SET_FORMATETC(fe, format, 0, DVASPECT_CONTENT, -1,
                       TYMED_HGLOBAL | TYMED_FILE | TYMED_GDI);
         if (mDataObject->QueryGetData(&fe) == S_OK)
-          *_retval = true;                 
+          *_retval = PR_TRUE;                 
       }
     } 
   }
@@ -572,10 +572,10 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor, bool *_retval)
 
 
 
-bool
+PRBool
 nsDragService::IsCollectionObject(IDataObject* inDataObj)
 {
-  bool isCollection = false;
+  PRBool isCollection = PR_FALSE;
 
   
   
@@ -589,7 +589,7 @@ nsDragService::IsCollectionObject(IDataObject* inDataObj)
   
   
   if (inDataObj->QueryGetData(&sFE) == S_OK)
-    isCollection = true;
+    isCollection = PR_TRUE;
 
   return isCollection;
 
@@ -604,7 +604,7 @@ nsDragService::IsCollectionObject(IDataObject* inDataObj)
 
 
 NS_IMETHODIMP
-nsDragService::EndDragSession(bool aDoneDrag)
+nsDragService::EndDragSession(PRBool aDoneDrag)
 {
   nsBaseDragService::EndDragSession(aDoneDrag);
   NS_IF_RELEASE(mDataObject);

@@ -145,15 +145,15 @@ private:
   
   
   PRUint8               mType;
-  bool                  mFiring;
+  PRPackedBool          mFiring;
 
 
   
   
   
   
-  bool                  mArmed;
-  bool                  mCanceled;
+  PRBool                mArmed;
+  PRBool                mCanceled;
 
   
   

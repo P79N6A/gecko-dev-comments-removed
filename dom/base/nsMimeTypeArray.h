@@ -100,7 +100,7 @@ protected:
   
   
   nsCOMArray<nsIDOMMimeType> mMimeTypeArray;
-  bool mInited;
+  PRBool mInited;
 };
 
 class nsMimeType : public nsIDOMMimeType

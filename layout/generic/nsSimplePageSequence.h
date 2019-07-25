@@ -111,13 +111,13 @@ public:
   NS_IMETHOD PrintNextPage();
   NS_IMETHOD GetCurrentPageNum(PRInt32* aPageNum);
   NS_IMETHOD GetNumPages(PRInt32* aNumPages);
-  NS_IMETHOD IsDoingPrintRange(bool* aDoing);
+  NS_IMETHOD IsDoingPrintRange(PRBool* aDoing);
   NS_IMETHOD GetPrintRange(PRInt32* aFromPage, PRInt32* aToPage);
   NS_IMETHOD DoPageEnd();
 
   
   
-  virtual bool HonorPrintBackgroundSettings() { return false; }
+  virtual PRBool HonorPrintBackgroundSettings() { return PR_FALSE; }
 
   
 
@@ -138,11 +138,11 @@ protected:
   nsSimplePageSequenceFrame(nsStyleContext* aContext);
   virtual ~nsSimplePageSequenceFrame();
 
-  void SetPageNumberFormat(const char* aPropName, const char* aDefPropVal, bool aPageNumOnly);
+  void SetPageNumberFormat(const char* aPropName, const char* aDefPropVal, PRBool aPageNumOnly);
 
   
   void SetDateTimeStr(PRUnichar * aDateTimeStr);
-  void SetPageNumberFormat(PRUnichar * aFormatStr, bool aForPageNumOnly);
+  void SetPageNumberFormat(PRUnichar * aFormatStr, PRBool aForPageNumOnly);
 
   
   
@@ -171,10 +171,10 @@ protected:
   nscoord      mYSelOffset;
 
   
-  bool mPrintThisPage;
-  bool mDoingPageRange;
+  PRPackedBool mPrintThisPage;
+  PRPackedBool mDoingPageRange;
 
-  bool mIsPrintingSelection;
+  PRPackedBool mIsPrintingSelection;
 };
 
 #endif 

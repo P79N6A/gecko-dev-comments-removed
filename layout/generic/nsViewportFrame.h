@@ -45,8 +45,10 @@
 
 #include "nsContainerFrame.h"
 #include "nsGkAtoms.h"
+#include "nsAbsoluteContainingBlock.h"
 
 class nsPresContext;
+
 
 
 
@@ -61,6 +63,7 @@ public:
 
   ViewportFrame(nsStyleContext* aContext)
     : nsContainerFrame(aContext)
+    , mFixedContainer(kFixedList)
   {}
   virtual ~ViewportFrame() { } 
 
@@ -83,6 +86,9 @@ public:
   NS_IMETHOD RemoveFrame(ChildListID     aListID,
                          nsIFrame*       aOldFrame);
 
+  virtual nsFrameList GetChildList(ChildListID aListID) const;
+  virtual void GetChildLists(nsTArray<ChildList>* aLists) const;
+
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
@@ -100,6 +106,8 @@ public:
 
 
   virtual nsIAtom* GetType() const;
+  
+  virtual PRBool IsContainingBlock() const;
 
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aX, nscoord aY, nsIFrame* aForChild,
@@ -109,11 +117,12 @@ public:
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
 #endif
 
-private:
-  virtual mozilla::layout::FrameChildListID GetAbsoluteListID() const { return kFixedList; }
-
 protected:
   nsPoint AdjustReflowStateForScrollbars(nsHTMLReflowState* aReflowState) const;
+
+  
+  
+  nsAbsoluteContainingBlock mFixedContainer;
 };
 
 

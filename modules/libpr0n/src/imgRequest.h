@@ -102,7 +102,7 @@ public:
   nsresult AddProxy(imgRequestProxy *proxy);
 
   
-  nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, bool aNotify);
+  nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, PRBool aNotify);
 
   void SniffMimeType(const char *buf, PRUint32 len);
 
@@ -178,11 +178,11 @@ private:
   void SetCacheEntry(imgCacheEntry *entry);
 
   
-  bool HasCacheEntry() const;
+  PRBool HasCacheEntry() const;
 
   
   
-  bool HaveProxyWithObserver(imgRequestProxy* aProxyToIgnore) const;
+  PRBool HaveProxyWithObserver(imgRequestProxy* aProxyToIgnore) const;
 
   
   
@@ -193,12 +193,12 @@ private:
   void AdjustPriority(imgRequestProxy *aProxy, PRInt32 aDelta);
 
   
-  bool HasTransferredData() const { return mGotData; }
+  PRBool HasTransferredData() const { return mGotData; }
 
   
   
   
-  void SetIsInCache(bool cacheable);
+  void SetIsInCache(PRBool cacheable);
 
   
   void UpdateCacheEntrySize();
@@ -257,11 +257,11 @@ private:
 
   
   
-  bool mDecodeRequested : 1;
+  PRPackedBool mDecodeRequested : 1;
 
-  bool mIsMultiPartChannel : 1;
-  bool mGotData : 1;
-  bool mIsInCache : 1;
+  PRPackedBool mIsMultiPartChannel : 1;
+  PRPackedBool mGotData : 1;
+  PRPackedBool mIsInCache : 1;
 };
 
 #endif

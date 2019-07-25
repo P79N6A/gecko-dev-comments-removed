@@ -2825,7 +2825,6 @@ SessionStoreService.prototype = {
       
       browser.__SS_data = tabData;
       browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
-      tab.setAttribute("pending", "true");
 
       
       
@@ -3008,7 +3007,6 @@ SessionStoreService.prototype = {
 
     
     browser.__SS_restoreState = TAB_STATE_RESTORING;
-    aTab.removeAttribute("pending");
 
     
     this._removeSHistoryListener(aTab);

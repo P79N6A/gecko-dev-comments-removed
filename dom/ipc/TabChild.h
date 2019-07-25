@@ -98,15 +98,10 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TabChildGlobal, nsDOMEventTargetHelper)
   NS_FORWARD_SAFE_NSIFRAMEMESSAGEMANAGER(mMessageManager)
-  NS_IMETHOD SendSyncMessage(const nsAString& aMessageName,
-                             const jsval& aObject,
-                             JSContext* aCx,
-                             PRUint8 aArgc,
-                             jsval* aRetval)
+  NS_IMETHOD SendSyncMessage()
   {
-    return mMessageManager
-      ? mMessageManager->SendSyncMessage(aMessageName, aObject, aCx, aArgc, aRetval)
-      : NS_ERROR_NULL_POINTER;
+    return mMessageManager ? mMessageManager->SendSyncMessage()
+                           : NS_ERROR_NULL_POINTER;
   }
   NS_IMETHOD GetContent(nsIDOMWindow** aContent);
   NS_IMETHOD GetDocShell(nsIDocShell** aDocShell);
@@ -122,7 +117,7 @@ public:
 
   NS_IMETHOD AddEventListener(const nsAString& aType,
                               nsIDOMEventListener* aListener,
-                              bool aUseCapture)
+                              PRBool aUseCapture)
   {
     
     return nsDOMEventTargetHelper::AddEventListener(aType, aListener,
@@ -130,7 +125,7 @@ public:
   }
   NS_IMETHOD AddEventListener(const nsAString& aType,
                               nsIDOMEventListener* aListener,
-                              bool aUseCapture, bool aWantsUntrusted,
+                              PRBool aUseCapture, PRBool aWantsUntrusted,
                               PRUint8 optional_argc)
   {
     return nsDOMEventTargetHelper::AddEventListener(aType, aListener,

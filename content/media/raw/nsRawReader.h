@@ -41,7 +41,51 @@
 #define nsRawReader_h_
 
 #include "nsBuiltinDecoderReader.h"
-#include "nsRawStructs.h"
+
+struct nsRawVideo_PRUint24 {
+  operator PRUint32() const { return value[2] << 16 | value[1] << 8 | value[0]; }
+private:
+  PRUint8 value[3];
+};
+
+struct nsRawPacketHeader {
+  typedef nsRawVideo_PRUint24 PRUint24;
+  PRUint8 packetID;
+  PRUint24 codecID;
+};
+
+
+struct nsRawVideoHeader {
+  typedef nsRawVideo_PRUint24 PRUint24;
+  PRUint8 headerPacketID;          
+  PRUint24 codecID;                
+  PRUint8 majorVersion;            
+  PRUint8 minorVersion;            
+  PRUint16 options;                
+                                   
+                                   
+                                   
+                                   
+                                   
+                                   
+                                   
+                                   
+                                   
+                                   
+
+  PRUint8 alphaChannelBpp;
+  PRUint8 lumaChannelBpp;
+  PRUint8 chromaChannelBpp;
+  PRUint8 colorspace;
+
+  PRUint24 frameWidth;
+  PRUint24 frameHeight;
+  PRUint24 aspectNumerator;
+  PRUint24 aspectDenominator;
+
+  PRUint32 framerateNumerator;
+  PRUint32 framerateDenominator;
+};
 
 class nsRawReader : public nsBuiltinDecoderReader
 {
@@ -51,19 +95,19 @@ public:
 
   virtual nsresult Init(nsBuiltinDecoderReader* aCloneDonor);
   virtual nsresult ResetDecode();
-  virtual bool DecodeAudioData();
+  virtual PRBool DecodeAudioData();
 
-  virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
+  virtual PRBool DecodeVideoFrame(PRBool &aKeyframeSkip,
                                   PRInt64 aTimeThreshold);
 
-  virtual bool HasAudio()
+  virtual PRBool HasAudio()
   {
-    return false;
+    return PR_FALSE;
   }
 
-  virtual bool HasVideo()
+  virtual PRBool HasVideo()
   {
-    return true;
+    return PR_TRUE;
   }
 
   virtual nsresult ReadMetadata(nsVideoInfo* aInfo);
@@ -71,7 +115,7 @@ public:
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime);
 
 private:
-  bool ReadFromStream(nsMediaStream *aStream, PRUint8 *aBuf,
+  PRBool ReadFromStream(nsMediaStream *aStream, PRUint8 *aBuf,
                         PRUint32 aLength);
 
   nsRawVideoHeader mMetadata;

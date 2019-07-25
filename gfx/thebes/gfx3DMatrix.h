@@ -106,8 +106,8 @@ public:
 
 
 
-  bool Is2D(gfxMatrix* aMatrix) const;
-  bool Is2D() const;
+  PRBool Is2D(gfxMatrix* aMatrix) const;
+  PRBool Is2D() const;
 
   
 
@@ -118,27 +118,15 @@ public:
 
 
 
-  bool CanDraw2D(gfxMatrix* aMatrix = nsnull) const;
+  PRBool CanDraw2D(gfxMatrix* aMatrix = nsnull) const;
 
   
 
 
 
-  bool IsIdentity() const;
+  PRBool IsIdentity() const;
 
   
-
-
-
-
-
-
-
-  
-
-
-
-
 
 
 
@@ -150,92 +138,13 @@ public:
 
 
 
+  void TranslatePost(const gfxPoint3D& aPoint);
 
-
-
-
-  void SkewXY(double aXSkew, double aYSkew);
-  
-  void SkewXY(double aSkew);
-  void SkewXZ(double aSkew);
-  void SkewYZ(double aSkew);
-
-  
-
-
-
-
-
-
-
+  void SkewXY(float aSkew);
+  void SkewXZ(float aSkew);
+  void SkewYZ(float aSkew);
 
   void Scale(float aX, float aY, float aZ);
-
-  
-
-
-
-
-
-
-
-
-  void RotateX(double aTheta);
-  
-  
-
-
-
-
-
-
-
-
-  void RotateY(double aTheta);
-  
-  
-
-
-
-
-
-
-
-
-  void RotateZ(double aTheta);
-
-  
-
-
-
-
-
-
-
-
-  void Perspective(float aDepth);
-
-  
-
-
-
-  void PreMultiply(const gfx3DMatrix& aOther);
-  void PreMultiply(const gfxMatrix& aOther);
-
-  
-
-
-
-
-
-
-  
-  
-
-
-
-
-  void TranslatePost(const gfxPoint3D& aPoint);
 
   
 
@@ -299,7 +208,7 @@ public:
   
 
 
-  bool IsSingular() const;
+  PRBool IsSingular() const;
 
   
 

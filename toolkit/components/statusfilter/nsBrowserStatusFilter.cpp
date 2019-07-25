@@ -108,7 +108,7 @@ nsBrowserStatusFilter::GetDOMWindow(nsIDOMWindow **aResult)
 }
 
 NS_IMETHODIMP
-nsBrowserStatusFilter::GetIsLoadingDocument(bool *aIsLoadingDocument)
+nsBrowserStatusFilter::GetIsLoadingDocument(PRBool *aIsLoadingDocument)
 {
     NS_NOTREACHED("nsBrowserStatusFilter::GetIsLoadingDocument");
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -168,7 +168,7 @@ nsBrowserStatusFilter::OnStateChange(nsIWebProgress *aWebProgress,
 
     
     
-    bool isLoadingDocument = false;
+    PRBool isLoadingDocument = PR_FALSE;
     if ((aStateFlags & nsIWebProgressListener::STATE_IS_NETWORK ||
          (aStateFlags & nsIWebProgressListener::STATE_IS_REQUEST &&
           mFinishedRequests == mTotalRequests &&
@@ -295,8 +295,8 @@ NS_IMETHODIMP
 nsBrowserStatusFilter::OnRefreshAttempted(nsIWebProgress *aWebProgress,
                                           nsIURI *aUri,
                                           PRInt32 aDelay,
-                                          bool aSameUri,
-                                          bool *allowRefresh)
+                                          PRBool aSameUri,
+                                          PRBool *allowRefresh)
 {
     nsCOMPtr<nsIWebProgressListener2> listener =
         do_QueryInterface(mListener);

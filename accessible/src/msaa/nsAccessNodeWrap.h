@@ -159,7 +159,7 @@ public:
 
     static int FilterA11yExceptions(unsigned int aCode, EXCEPTION_POINTERS *aExceptionInfo);
 
-    static bool IsOnlyMsaaCompatibleJawsPresent();
+    static PRBool IsOnlyMsaaCompatibleJawsPresent();
 
     static void TurnOffNewTabSwitchingForJawsAndWE();
 
@@ -186,7 +186,7 @@ protected:
 
 
 
-     static bool gIsIA2Disabled;
+     static PRBool gIsIA2Disabled;
 
     
 

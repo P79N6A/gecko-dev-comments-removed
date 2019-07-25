@@ -66,7 +66,7 @@ protected:
   
 
 
-  inline bool GetValidityState(nsIConstraintValidation::ValidityStateType aState) const
+  inline PRBool GetValidityState(nsIConstraintValidation::ValidityStateType aState) const
   {
     return mConstraintValidation &&
            mConstraintValidation->GetValidityState(aState);

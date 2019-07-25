@@ -1022,7 +1022,7 @@ int ParseFTPList(const char *line, struct list_state *state,
 
 
     
-      bool is_old_Hellsoft = false;
+      PRBool is_old_Hellsoft = PR_FALSE;
     
       if (numtoks >= 6)
       {

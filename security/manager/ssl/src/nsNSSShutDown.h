@@ -65,17 +65,17 @@ public:
   void leaveBlockingUIState();
   
   
-  bool isBlockingUIActive();
+  PRBool isBlockingUIActive();
 
   
-  bool isUIForbidden();
+  PRBool isUIForbidden();
   
   
   
   
   
   enum RealOrTesting {test_only, do_it_for_real};
-  bool ifPossibleDisallowUI(RealOrTesting rot);
+  PRBool ifPossibleDisallowUI(RealOrTesting rot);
 
   
   
@@ -106,7 +106,7 @@ private:
   int mBlockingUICounter;
 
   
-  bool mIsUIForbidden;
+  PRBool mIsUIForbidden;
 
   
   
@@ -128,7 +128,7 @@ public:
   nsPSMUITracker();
   ~nsPSMUITracker();
   
-  bool isUIForbidden();
+  PRBool isUIForbidden();
 };
 
 
@@ -153,15 +153,15 @@ public:
   
   static void trackSSLSocketCreate();
   static void trackSSLSocketClose();
-  static bool areSSLSocketsActive();
+  static PRBool areSSLSocketsActive();
   
   
   
-  bool isUIActive();
+  PRBool isUIActive();
 
   
   
-  bool ifPossibleDisallowUI();
+  PRBool ifPossibleDisallowUI();
 
   
   void allowUI();
@@ -297,12 +297,12 @@ public:
     }
   }
   
-  bool isAlreadyShutDown() { return mAlreadyShutDown; }
+  PRBool isAlreadyShutDown() { return mAlreadyShutDown; }
 
 protected:
   virtual void virtualDestroyNSSReference() = 0;
 private:
-  volatile bool mAlreadyShutDown;
+  volatile PRBool mAlreadyShutDown;
 };
 
 class nsOnPK11LogoutCancelObject
@@ -329,13 +329,13 @@ public:
     mIsLoggedOut = PR_TRUE;
   }
   
-  bool isPK11LoggedOut()
+  PRBool isPK11LoggedOut()
   {
     return mIsLoggedOut;
   }
 
 private:
-  volatile bool mIsLoggedOut;
+  volatile PRBool mIsLoggedOut;
 };
 
 #endif

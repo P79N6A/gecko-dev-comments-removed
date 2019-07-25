@@ -75,9 +75,9 @@ public:
   }
 
   float GetConfidence(void);
-  void      Reset(bool aIsPreferredLanguage);
+  void      Reset(PRBool aIsPreferredLanguage);
   void      SetOpion(){}
-  bool GotEnoughData() {return mTotalRel > ENOUGH_REL_THRESHOLD;}
+  PRBool GotEnoughData() {return mTotalRel > ENOUGH_REL_THRESHOLD;}
 
 protected:
   virtual PRInt32 GetOrder(const char* str, PRUint32 *charLen) = 0;
@@ -100,7 +100,7 @@ protected:
   PRUint32 mNeedToSkipCharNum;
 
   
-  bool     mDone;
+  PRBool   mDone;
 };
 
 

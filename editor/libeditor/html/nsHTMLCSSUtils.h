@@ -96,8 +96,8 @@ public:
     const char * defaultValue;
     const char * prependValue;
     const char * appendValue;
-    bool gettable;
-    bool caseSensitiveValue;
+    PRBool gettable;
+    PRBool caseSensitiveValue;
   };
 
   
@@ -108,7 +108,7 @@ public:
 
 
 
-  bool        IsCSSEditableProperty(nsIDOMNode * aNode, nsIAtom * aProperty, const nsAString * aAttribute);
+  PRBool      IsCSSEditableProperty(nsIDOMNode * aNode, nsIAtom * aProperty, const nsAString * aAttribute);
 
   
 
@@ -120,11 +120,11 @@ public:
 
   nsresult    SetCSSProperty(nsIDOMElement * aElement, nsIAtom * aProperty,
                              const nsAString & aValue,
-                             bool aSuppressTransaction);
+                             PRBool aSuppressTransaction);
   nsresult    SetCSSPropertyPixels(nsIDOMElement *aElement, nsIAtom *aProperty,
-                                   PRInt32 aIntValue, bool aSuppressTxn);
+                                   PRInt32 aIntValue, PRBool aSuppressTxn);
   nsresult    RemoveCSSProperty(nsIDOMElement * aElement, nsIAtom * aProperty,
-                                const nsAString & aPropertyValue, bool aSuppressTransaction);
+                                const nsAString & aPropertyValue, PRBool aSuppressTransaction);
 
   
 
@@ -171,7 +171,7 @@ public:
 
 
 
-  bool        IsCSSInvertable(nsIAtom * aProperty, const nsAString * aAttribute);
+  PRBool      IsCSSInvertable(nsIAtom * aProperty, const nsAString * aAttribute);
 
   
 
@@ -190,7 +190,7 @@ public:
 
 
 
-  nsresult    HasClassOrID(nsIDOMElement * aElement, bool & aReturn);
+  nsresult    HasClassOrID(nsIDOMElement * aElement, PRBool & aReturn);
 
   
 
@@ -222,7 +222,7 @@ public:
   nsresult    IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
                                                   nsIAtom * aHTMLProperty,
                                                   const nsAString * aAttribute,
-                                                  bool & aIsSet,
+                                                  PRBool & aIsSet,
                                                   nsAString & aValueString,
                                                   PRUint8 aStyleType);
 
@@ -242,7 +242,7 @@ public:
                                           const nsAString * aAttribute,
                                           const nsAString * aValue,
                                           PRInt32 * aCount,
-                                          bool aSuppressTransaction);
+                                          PRBool aSuppressTransaction);
 
   
 
@@ -257,7 +257,7 @@ public:
                                              nsIAtom *aHTMLProperty,
                                              const nsAString *aAttribute,
                                              const nsAString *aValue,
-                                             bool aSuppressTransaction);
+                                             PRBool aSuppressTransaction);
 
   
 
@@ -274,14 +274,14 @@ public:
 
 
 
-  nsresult    SetCSSEnabled(bool aIsCSSPrefChecked);
+  nsresult    SetCSSEnabled(PRBool aIsCSSPrefChecked);
 
   
 
 
 
 
-  bool        IsCSSPrefChecked();
+  PRBool      IsCSSPrefChecked();
 
   
 
@@ -291,7 +291,7 @@ public:
 
 
 
-  bool ElementsSameStyle(nsIDOMNode *aFirstNode, nsIDOMNode *aSecondNode);
+  PRBool ElementsSameStyle(nsIDOMNode *aFirstNode, nsIDOMNode *aSecondNode);
 
   
 
@@ -344,7 +344,7 @@ private:
                                  nsTArray<nsString> & cssValueArray,
                                  const CSSEquivTable * aEquivTable,
                                  const nsAString * aValue,
-                                 bool aGetOrRemoveRequest);
+                                 PRBool aGetOrRemoveRequest);
 
   
 
@@ -365,7 +365,7 @@ private:
                                                  const nsAString *aValue,
                                                  nsTArray<nsIAtom*> & aPropertyArray,
                                                  nsTArray<nsString> & aValueArray,
-                                                 bool aGetOrRemoveRequest);
+                                                 PRBool aGetOrRemoveRequest);
 
   
 
@@ -379,7 +379,7 @@ private:
                                    nsIAtom * aProperty,
                                    const nsAString & aValue,
                                    ChangeCSSInlineStyleTxn ** aTxn,
-                                   bool aRemoveProperty);
+                                   PRBool aRemoveProperty);
 
   
 
@@ -398,7 +398,7 @@ private:
 
 private:
   nsHTMLEditor            *mHTMLEditor;
-  bool                    mIsCSSPrefChecked; 
+  PRBool                  mIsCSSPrefChecked; 
 };
 
 #define NS_EDITOR_INDENT_INCREMENT_IN        0.4134f

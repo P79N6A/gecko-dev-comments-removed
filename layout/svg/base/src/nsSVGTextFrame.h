@@ -94,8 +94,7 @@ public:
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint & aPoint);
   NS_IMETHOD UpdateCoveredRegion();
   NS_IMETHOD InitialUpdate();
-  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      PRUint32 aFlags);
+  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace);
   
   
   virtual gfxMatrix GetCanvasTM();
@@ -120,7 +119,7 @@ private:
 
 
 
-  void UpdateGlyphPositioning(bool aForceGlobalTransform);
+  void UpdateGlyphPositioning(PRBool aForceGlobalTransform);
 
   void SetWhitespaceHandling(nsSVGGlyphFrame *aFrame);
 
@@ -129,7 +128,7 @@ private:
   enum UpdateState { unsuspended, suspended };
   UpdateState mMetricsState;
 
-  bool mPositioningDirty;
+  PRPackedBool mPositioningDirty;
 };
 
 #endif

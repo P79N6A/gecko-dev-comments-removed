@@ -281,7 +281,7 @@ private:
     void SetupFlashMsgThrottle();
     void UnhookWinlessFlashThrottle();
     void HookSetWindowLongPtr();
-    static inline bool SetWindowLongHookCheck(HWND hWnd,
+    static inline PRBool SetWindowLongHookCheck(HWND hWnd,
                                                 int nIndex,
                                                 LONG_PTR newLong);
     void FlashThrottleMessage(HWND, UINT, WPARAM, LPARAM, bool);
@@ -594,7 +594,7 @@ private:
 #if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
     
     
-    bool                  mMaemoImageRendering;
+    PRPackedBool          mMaemoImageRendering;
 #endif
 };
 

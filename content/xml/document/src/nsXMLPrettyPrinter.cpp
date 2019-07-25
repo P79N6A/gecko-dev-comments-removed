@@ -74,7 +74,7 @@ nsXMLPrettyPrinter::~nsXMLPrettyPrinter()
 
 nsresult
 nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
-                                bool* aDidPrettyPrint)
+                                PRBool* aDidPrettyPrint)
 {
     *aDidPrettyPrint = PR_FALSE;
     
@@ -116,7 +116,7 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
     }
 
     
-    if (!Preferences::GetBool("layout.xml.prettyprint", true)) {
+    if (!Preferences::GetBool("layout.xml.prettyprint", PR_TRUE)) {
         return NS_OK;
     }
 
@@ -198,7 +198,7 @@ nsXMLPrettyPrinter::MaybeUnhook(nsIContent* aContent)
 {
     
     
-    if ((!aContent || !aContent->GetBindingParent()) && !mUnhookPending) {
+    if (!aContent || !aContent->GetBindingParent() && !mUnhookPending) {
         
         
         

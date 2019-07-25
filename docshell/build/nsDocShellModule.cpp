@@ -73,7 +73,7 @@
 
 #include "nsDownloadHistory.h"
 
-static bool gInitialized = false;
+static PRBool gInitialized = PR_FALSE;
 
 
 static nsresult

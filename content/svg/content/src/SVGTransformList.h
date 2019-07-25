@@ -70,7 +70,7 @@ public:
   
   void GetValueAsString(nsAString& aValue) const;
 
-  bool IsEmpty() const {
+  PRBool IsEmpty() const {
     return mItems.IsEmpty();
   }
 
@@ -82,11 +82,11 @@ public:
     return mItems[aIndex];
   }
 
-  bool operator==(const SVGTransformList& rhs) const {
+  PRBool operator==(const SVGTransformList& rhs) const {
     return mItems == rhs.mItems;
   }
 
-  bool SetCapacity(PRUint32 size) {
+  PRBool SetCapacity(PRUint32 size) {
     return mItems.SetCapacity(size);
   }
 
@@ -120,7 +120,7 @@ protected:
 
 
 
-  bool SetLength(PRUint32 aNumberOfItems) {
+  PRBool SetLength(PRUint32 aNumberOfItems) {
     return mItems.SetLength(aNumberOfItems);
   }
 
@@ -136,7 +136,7 @@ private:
     mItems.Clear();
   }
 
-  bool InsertItem(PRUint32 aIndex, const SVGTransform& aTransform) {
+  PRBool InsertItem(PRUint32 aIndex, const SVGTransform& aTransform) {
     if (aIndex >= mItems.Length()) {
       aIndex = mItems.Length();
     }
@@ -155,7 +155,7 @@ private:
     mItems.RemoveElementAt(aIndex);
   }
 
-  bool AppendItem(const SVGTransform& aTransform) {
+  PRBool AppendItem(const SVGTransform& aTransform) {
     return !!mItems.AppendElement(aTransform);
   }
 

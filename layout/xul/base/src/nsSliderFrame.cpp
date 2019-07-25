@@ -74,7 +74,7 @@
 
 using namespace mozilla;
 
-bool nsSliderFrame::gMiddlePref = false;
+PRBool nsSliderFrame::gMiddlePref = PR_FALSE;
 PRInt32 nsSliderFrame::gSnapMultiplier;
 
 
@@ -116,7 +116,7 @@ nsSliderFrame::Init(nsIContent*      aContent,
 {
   nsresult rv = nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
 
-  static bool gotPrefs = false;
+  static PRBool gotPrefs = PR_FALSE;
   if (!gotPrefs) {
     gotPrefs = PR_TRUE;
 
@@ -145,7 +145,7 @@ nsSliderFrame::InsertFrames(ChildListID     aListID,
                             nsIFrame*       aPrevFrame,
                             nsFrameList&    aFrameList)
 {
-  bool wasEmpty = mFrames.IsEmpty();
+  PRBool wasEmpty = mFrames.IsEmpty();
   nsresult rv = nsBoxFrame::InsertFrames(aListID, aPrevFrame, aFrameList);
   if (wasEmpty)
     AddListener();
@@ -159,7 +159,7 @@ nsSliderFrame::AppendFrames(ChildListID     aListID,
 {
   
   
-  bool wasEmpty = mFrames.IsEmpty();
+  PRBool wasEmpty = mFrames.IsEmpty();
   nsresult rv = nsBoxFrame::AppendFrames(aListID, aFrameList);
   if (wasEmpty)
     AddListener();
@@ -219,7 +219,7 @@ public:
   nsValueChangedRunnable(nsISliderListener* aListener,
                          nsIAtom* aWhich,
                          PRInt32 aValue,
-                         bool aUserChanged)
+                         PRBool aUserChanged)
   : mListener(aListener), mWhich(aWhich),
     mValue(aValue), mUserChanged(aUserChanged)
   {}
@@ -233,14 +233,14 @@ public:
   nsCOMPtr<nsISliderListener> mListener;
   nsCOMPtr<nsIAtom> mWhich;
   PRInt32 mValue;
-  bool mUserChanged;
+  PRBool mUserChanged;
 };
 
 class nsDragStateChangedRunnable : public nsRunnable
 {
 public:
   nsDragStateChangedRunnable(nsISliderListener* aListener,
-                             bool aDragBeginning)
+                             PRBool aDragBeginning)
   : mListener(aListener),
     mDragBeginning(aDragBeginning)
   {}
@@ -251,7 +251,7 @@ public:
   }
 
   nsCOMPtr<nsISliderListener> mListener;
-  bool mDragBeginning;
+  PRBool mDragBeginning;
 };
 
 NS_IMETHODIMP
@@ -427,7 +427,7 @@ nsSliderFrame::DoLayout(nsBoxLayoutState& aState)
   
   
   
-  bool reverse = mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::dir,
+  PRBool reverse = mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::dir,
                                          nsGkAtoms::reverse, eCaseMatters);
   nscoord pos = reverse ? (maxPos - curPos) : (curPos - minPos);
 
@@ -466,7 +466,7 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
   nsIBox* scrollbarBox = GetScrollbar();
   nsCOMPtr<nsIContent> scrollbar;
   scrollbar = GetContentOfBox(scrollbarBox);
-  bool isHorizontal = IsHorizontal();
+  PRBool isHorizontal = IsHorizontal();
 
   if (isDraggingThumb())
   {
@@ -493,7 +493,7 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
 
       
       pos -= mDragStart;
-      bool isMouseOutsideThumb = false;
+      PRBool isMouseOutsideThumb = PR_FALSE;
       if (gSnapMultiplier) {
         nsSize thumbSize = thumbFrame->GetSize();
         if (isHorizontal) {
@@ -596,7 +596,7 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
 
 
 
-bool
+PRBool
 nsSliderFrame::GetScrollToClick()
 {
   
@@ -608,7 +608,7 @@ nsSliderFrame::GetScrollToClick()
                                    nsGkAtoms::_false, eCaseMatters);
  
   
-  bool scrollToClick = false;
+  PRBool scrollToClick = PR_FALSE;
   PRInt32 scrollToClickMetric;
   nsresult rv = LookAndFeel::GetInt(LookAndFeel::eIntID_ScrollToClick,
                                     &scrollToClickMetric);
@@ -669,7 +669,7 @@ nsSliderFrame::PageUpDown(nscoord change)
 
 nsresult
 nsSliderFrame::CurrentPositionChanged(nsPresContext* aPresContext,
-                                      bool aImmediateRedraw)
+                                      PRBool aImmediateRedraw)
 {
   nsIBox* scrollbarBox = GetScrollbar();
   nsCOMPtr<nsIContent> scrollbar;
@@ -702,7 +702,7 @@ nsSliderFrame::CurrentPositionChanged(nsPresContext* aPresContext,
   
   nsRect newThumbRect(thumbRect);
 
-  bool reverse = mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::dir,
+  PRBool reverse = mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::dir,
                                          nsGkAtoms::reverse, eCaseMatters);
   nscoord pos = reverse ? (maxPos - curPos) : (curPos - minPos);
 
@@ -732,7 +732,7 @@ nsSliderFrame::CurrentPositionChanged(nsPresContext* aPresContext,
   return NS_OK;
 }
 
-static void UpdateAttribute(nsIContent* aScrollbar, nscoord aNewPos, bool aNotify, bool aIsSmooth) {
+static void UpdateAttribute(nsIContent* aScrollbar, nscoord aNewPos, PRBool aNotify, PRBool aIsSmooth) {
   nsAutoString str;
   str.AppendInt(aNewPos);
   
@@ -750,7 +750,7 @@ static void UpdateAttribute(nsIContent* aScrollbar, nscoord aNewPos, bool aNotif
 
 void
 nsSliderFrame::SetCurrentThumbPosition(nsIContent* aScrollbar, nscoord aNewThumbPos,
-                                       bool aIsSmooth, bool aImmediateRedraw, bool aMaySnap)
+                                       PRBool aIsSmooth, PRBool aImmediateRedraw, PRBool aMaySnap)
 {
   nsRect crect;
   GetClientRect(crect);
@@ -774,7 +774,7 @@ nsSliderFrame::SetCurrentThumbPosition(nsIContent* aScrollbar, nscoord aNewThumb
 
 void
 nsSliderFrame::SetCurrentPosition(nsIContent* aScrollbar, PRInt32 aNewPos,
-                                  bool aIsSmooth, bool aImmediateRedraw)
+                                  PRBool aIsSmooth, PRBool aImmediateRedraw)
 {
    
   PRInt32 minpos = GetMinPosition(aScrollbar);
@@ -799,8 +799,8 @@ nsSliderFrame::SetCurrentPosition(nsIContent* aScrollbar, PRInt32 aNewPos,
 
 void
 nsSliderFrame::SetCurrentPositionInternal(nsIContent* aScrollbar, PRInt32 aNewPos,
-                                          bool aIsSmooth,
-                                          bool aImmediateRedraw)
+                                          PRBool aIsSmooth,
+                                          PRBool aImmediateRedraw)
 {
   nsCOMPtr<nsIContent> scrollbar = aScrollbar;
   nsIBox* scrollbarBox = GetScrollbar();
@@ -883,9 +883,9 @@ nsSliderFrame::MouseDown(nsIDOMEvent* aMouseEvent)
   if (!(button == 0 || (button == 1 && gMiddlePref)))
     return NS_OK;
 
-  bool isHorizontal = IsHorizontal();
+  PRBool isHorizontal = IsHorizontal();
 
-  bool scrollToClick = false;
+  PRBool scrollToClick = PR_FALSE;
 #ifndef XP_MACOSX
   
   mouseEvent->GetShiftKey(&scrollToClick);
@@ -944,7 +944,7 @@ nsSliderFrame::MouseDown(nsIDOMEvent* aMouseEvent)
 }
 
 void
-nsSliderFrame::DragThumb(bool aGrabMouseEvents)
+nsSliderFrame::DragThumb(PRBool aGrabMouseEvents)
 {
   
   nsIFrame* parent = GetParent();
@@ -960,7 +960,7 @@ nsSliderFrame::DragThumb(bool aGrabMouseEvents)
                                     aGrabMouseEvents ? CAPTURE_IGNOREALLOWED : 0);
 }
 
-bool
+PRBool
 nsSliderFrame::isDraggingThumb()
 {
   return (nsIPresShell::GetCapturingContent() == GetContent());
@@ -1084,7 +1084,7 @@ nsSliderFrame::EnsureOrient()
 {
   nsIBox* scrollbarBox = GetScrollbar();
 
-  bool isHorizontal = (scrollbarBox->GetStateBits() & NS_STATE_IS_HORIZONTAL) != 0;
+  PRBool isHorizontal = (scrollbarBox->GetStateBits() & NS_STATE_IS_HORIZONTAL) != 0;
   if (isHorizontal)
       mState |= NS_STATE_IS_HORIZONTAL;
   else
@@ -1094,7 +1094,7 @@ nsSliderFrame::EnsureOrient()
 
 void nsSliderFrame::Notify(void)
 {
-    bool stop = false;
+    PRBool stop = PR_FALSE;
 
     nsIFrame* thumbFrame = mFrames.FirstChild();
     if (!thumbFrame) {
@@ -1103,7 +1103,7 @@ void nsSliderFrame::Notify(void)
     }
     nsRect thumbRect = thumbFrame->GetRect();
 
-    bool isHorizontal = IsHorizontal();
+    PRBool isHorizontal = IsHorizontal();
 
     
     

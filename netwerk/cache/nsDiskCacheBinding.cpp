@@ -62,7 +62,7 @@ HashKey( PLDHashTable *table, const void *key)
 }
 
 
-static bool
+static PRBool
 MatchEntry(PLDHashTable *              ,
             const PLDHashEntryHdr *       header,
             const void *                  key)
@@ -278,7 +278,7 @@ nsDiskCacheBindery::AddBinding(nsDiskCacheBinding * binding)
     
     
     nsDiskCacheBinding * p  = hashEntry->mBinding;
-    bool     calcGeneration = (binding->mGeneration == 0);  
+    PRBool   calcGeneration = (binding->mGeneration == 0);  
     if (calcGeneration)  binding->mGeneration = 1;          
     while (1) {
     
@@ -367,7 +367,7 @@ ActiveBinding(PLDHashTable *    table,
     nsDiskCacheBinding * head = binding;
     do {   
         if (binding->IsActive()) {
-           *((bool *)arg) = true;
+           *((PRBool *)arg) = PR_TRUE;
             return PL_DHASH_STOP;
         }
 
@@ -381,13 +381,13 @@ ActiveBinding(PLDHashTable *    table,
 
 
 
-bool
+PRBool
 nsDiskCacheBindery::ActiveBindings()
 {
     NS_ASSERTION(initialized, "nsDiskCacheBindery not initialized");
     if (!initialized) return PR_FALSE;
 
-    bool    activeBinding = false;
+    PRBool  activeBinding = PR_FALSE;
     PL_DHashTableEnumerate(&table, ActiveBinding, &activeBinding);
 
     return activeBinding;

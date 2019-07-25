@@ -184,7 +184,7 @@ public:
 
 
   void AddCoords(nscoord aMinCoord, nscoord aPrefCoord,
-                 bool aHasSpecifiedCoord) {
+                 PRBool aHasSpecifiedCoord) {
     NS_ASSERTION(aMinCoord <= aPrefCoord, "intrinsic widths out of order");
 
     if (aHasSpecifiedCoord && !mHasSpecifiedCoord) {
@@ -227,7 +227,7 @@ public:
 
 
 
-  bool GetHasSpecifiedCoord() const { return mHasSpecifiedCoord; }
+  PRBool GetHasSpecifiedCoord() const { return mHasSpecifiedCoord; }
 
   
 
@@ -240,7 +240,7 @@ public:
 
 
   void AddSpanCoords(nscoord aSpanMinCoord, nscoord aSpanPrefCoord,
-                     bool aSpanHasSpecifiedCoord) {
+                     PRBool aSpanHasSpecifiedCoord) {
     NS_ASSERTION(aSpanMinCoord <= aSpanPrefCoord,
                  "intrinsic widths out of order");
 
@@ -324,7 +324,7 @@ protected:
   BCPixelSize mRightContBorderWidth;
   BCPixelSize mBottomContBorderWidth;
 
-  bool mHasSpecifiedCoord;
+  PRPackedBool mHasSpecifiedCoord;
 };
 
 inline PRInt32 nsTableColFrame::GetColIndex() const

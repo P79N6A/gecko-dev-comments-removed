@@ -67,8 +67,8 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   NS_DECL_ISUPPORTS
 
   NS_IMETHOD Init(PRUint32 flags, PRUint32 aWrapColumn,
-                  const char* aCharSet, bool aIsCopying,
-                  bool aRewriteEncodingDeclaration);
+                  const char* aCharSet, PRBool aIsCopying,
+                  PRBool aRewriteEncodingDeclaration);
 
   NS_IMETHOD AppendText(nsIContent* aText, PRInt32 aStartOffset,
                         PRInt32 aEndOffset, nsAString& aStr);
@@ -155,7 +155,7 @@ class nsXMLContentSerializer : public nsIContentSerializer {
           nsASingleFragmentString::const_char_iterator &aPos,
           const nsASingleFragmentString::const_char_iterator aEnd,
           const nsASingleFragmentString::const_char_iterator aSequenceStart,
-          bool &aMayIgnoreStartOfLineWhitespaceSequence,
+          PRBool &aMayIgnoreStartOfLineWhitespaceSequence,
           nsAString &aOutputStr);
 
   
@@ -163,8 +163,8 @@ class nsXMLContentSerializer : public nsIContentSerializer {
           nsASingleFragmentString::const_char_iterator &aPos,
           const nsASingleFragmentString::const_char_iterator aEnd,
           const nsASingleFragmentString::const_char_iterator aSequenceStart,
-          bool &aMayIgnoreStartOfLineWhitespaceSequence,
-          bool &aSequenceStartAfterAWhiteSpace,
+          PRBool &aMayIgnoreStartOfLineWhitespaceSequence,
+          PRBool &aSequenceStartAfterAWhiteSpace,
           nsAString &aOutputStr);
 
   
@@ -189,7 +189,7 @@ class nsXMLContentSerializer : public nsIContentSerializer {
                           PRInt32 aStartOffset,
                           PRInt32 aEndOffset,
                           nsAString& aStr,
-                          bool aTranslateEntities);
+                          PRBool aTranslateEntities);
 
   virtual nsresult PushNameSpaceDecl(const nsAString& aPrefix,
                                      const nsAString& aURI,
@@ -214,10 +214,10 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
 
 
-  bool ConfirmPrefix(nsAString& aPrefix,
+  PRBool ConfirmPrefix(nsAString& aPrefix,
                        const nsAString& aURI,
                        nsIContent* aElement,
-                       bool aIsAttribute);
+                       PRBool aIsAttribute);
   
 
 
@@ -234,15 +234,15 @@ class nsXMLContentSerializer : public nsIContentSerializer {
                                    nsIAtom* aTagName,
                                    nsAString& aStr,
                                    PRUint32 aSkipAttr,
-                                   bool aAddNSAttr);
+                                   PRBool aAddNSAttr);
 
   void SerializeAttr(const nsAString& aPrefix,
                      const nsAString& aName,
                      const nsAString& aValue,
                      nsAString& aStr,
-                     bool aDoEscapeEntities);
+                     PRBool aDoEscapeEntities);
 
-  bool IsJavaScript(nsIContent * aContent,
+  PRBool IsJavaScript(nsIContent * aContent,
                       nsIAtom* aAttrNameAtom,
                       PRInt32 aAttrNamespaceID,
                       const nsAString& aValueString);
@@ -255,8 +255,8 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
 
 
-  virtual bool CheckElementStart(nsIContent * aContent,
-                                   bool & aForceFormat,
+  virtual PRBool CheckElementStart(nsIContent * aContent,
+                                   PRBool & aForceFormat,
                                    nsAString& aStr);
 
   
@@ -285,8 +285,8 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
 
 
-  virtual bool CheckElementEnd(nsIContent * aContent,
-                                 bool & aForceFormat,
+  virtual PRBool CheckElementEnd(nsIContent * aContent,
+                                 PRBool & aForceFormat,
                                  nsAString& aStr);
 
   
@@ -300,22 +300,22 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   
 
 
-  virtual bool LineBreakBeforeOpen(PRInt32 aNamespaceID, nsIAtom* aName);
+  virtual PRBool LineBreakBeforeOpen(PRInt32 aNamespaceID, nsIAtom* aName);
 
   
 
 
-  virtual bool LineBreakAfterOpen(PRInt32 aNamespaceID, nsIAtom* aName);
+  virtual PRBool LineBreakAfterOpen(PRInt32 aNamespaceID, nsIAtom* aName);
 
   
 
 
-  virtual bool LineBreakBeforeClose(PRInt32 aNamespaceID, nsIAtom* aName);
+  virtual PRBool LineBreakBeforeClose(PRInt32 aNamespaceID, nsIAtom* aName);
 
   
 
 
-  virtual bool LineBreakAfterClose(PRInt32 aNamespaceID, nsIAtom* aName);
+  virtual PRBool LineBreakAfterClose(PRInt32 aNamespaceID, nsIAtom* aName);
 
   
 
@@ -357,14 +357,14 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   PRUint32   mColPos;
 
   
-  bool mDoFormat;
+  PRPackedBool mDoFormat;
 
   
   
-  bool mDoRaw;
+  PRPackedBool mDoRaw;
 
   
-  bool mDoWrap;
+  PRPackedBool mDoWrap;
 
   
   PRUint32   mMaxColumn;
@@ -377,28 +377,28 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   PRInt32    mIndentOverflow;
 
   
-  bool mIsIndentationAddedOnCurrentLine;
+  PRPackedBool mIsIndentationAddedOnCurrentLine;
 
   
-  bool mInAttribute;
-
-  
-  
-  
-  bool mAddNewlineForRootNode;
+  PRPackedBool mInAttribute;
 
   
   
   
-  
-  bool          mAddSpace;
+  PRPackedBool mAddNewlineForRootNode;
 
   
   
   
-  bool          mMayIgnoreLineBreakSequence;
+  
+  PRPackedBool  mAddSpace;
 
-  bool          mBodyOnly;
+  
+  
+  
+  PRPackedBool  mMayIgnoreLineBreakSequence;
+
+  PRPackedBool  mBodyOnly;
   PRInt32       mInBody;
 
   

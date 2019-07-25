@@ -119,7 +119,7 @@ nsHTMLCheckboxAccessible::NativeState()
   PRUint64 state = nsFormControlAccessible::NativeState();
 
   state |= states::CHECKABLE;
-  bool checkState = false;   
+  PRBool checkState = PR_FALSE;   
 
   nsCOMPtr<nsIDOMHTMLInputElement> htmlCheckboxElement =
     do_QueryInterface(mContent);
@@ -142,16 +142,6 @@ nsHTMLCheckboxAccessible::NativeState()
 
 
 
-bool
-nsHTMLCheckboxAccessible::IsWidget() const
-{
-  return true;
-}
-
-
-
-
-
 
 nsHTMLRadioButtonAccessible::
   nsHTMLRadioButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
@@ -166,7 +156,7 @@ nsHTMLRadioButtonAccessible::NativeState()
 
   state |= states::CHECKABLE;
   
-  bool checked = false;   
+  PRBool checked = PR_FALSE;   
 
   nsCOMPtr<nsIDOMHTMLInputElement> htmlRadioElement =
     do_QueryInterface(mContent);
@@ -278,8 +268,8 @@ nsHTMLButtonAccessible::NativeState()
 {
   PRUint64 state = nsHyperTextAccessibleWrap::NativeState();
 
-  nsEventStates elmState = mContent->AsElement()->State();
-  if (elmState.HasState(NS_EVENT_STATE_DEFAULT))
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                            nsGkAtoms::submit, eIgnoreCase))
     state |= states::DEFAULT;
 
   return state;
@@ -322,15 +312,6 @@ nsHTMLButtonAccessible::GetNameInternal(nsAString& aName)
   aName = name;
 
   return NS_OK;
-}
-
-
-
-
-bool
-nsHTMLButtonAccessible::IsWidget() const
-{
-  return true;
 }
 
 
@@ -382,20 +363,11 @@ nsHTML4ButtonAccessible::NativeState()
 
   state |= states::FOCUSABLE;
 
-  nsEventStates elmState = mContent->AsElement()->State();
-  if (elmState.HasState(NS_EVENT_STATE_DEFAULT))
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                            nsGkAtoms::submit, eIgnoreCase))
     state |= states::DEFAULT;
 
   return state;
-}
-
-
-
-
-bool
-nsHTML4ButtonAccessible::IsWidget() const
-{
-  return true;
 }
 
 
@@ -491,29 +463,40 @@ nsHTMLTextFieldAccessible::NativeState()
                             nsGkAtoms::password, eIgnoreCase)) {
     state |= states::PROTECTED;
   }
+  else {
+    nsAccessible* parent = Parent();
+    if (parent && parent->Role() == nsIAccessibleRole::ROLE_AUTOCOMPLETE)
+      state |= states::HASPOPUP;
+  }
 
   if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::readonly)) {
     state |= states::READONLY;
   }
 
-  
   nsCOMPtr<nsIDOMHTMLInputElement> htmlInput(do_QueryInterface(mContent));
-  state |= htmlInput ? states::SINGLE_LINE : states::MULTI_LINE;
-
-  if (!(state & states::EDITABLE) ||
-      (state & (states::PROTECTED | states::MULTI_LINE)))
-    return state;
-
   
-  nsAccessible* widget = ContainerWidget();
-  if (widget && widget-IsAutoComplete()) {
-    state |= states::HASPOPUP | states::SUPPORTS_AUTOCOMPLETION;
-    return state;
+  if (htmlInput) {
+    state |= states::SINGLE_LINE;
+  }
+  else {
+    state |= states::MULTI_LINE;
   }
 
-  
-  
-  if (mParent && gIsFormFillEnabled) {
+  if (!(state & states::EDITABLE))
+    return state;
+
+  nsCOMPtr<nsIContent> bindingContent = mContent->GetBindingParent();
+  if (bindingContent &&
+      bindingContent->NodeInfo()->Equals(nsGkAtoms::textbox,
+                                         kNameSpaceID_XUL)) {
+     if (bindingContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                                     nsGkAtoms::autocomplete,
+                                     eIgnoreCase)) {
+       
+       
+       state |= states::SUPPORTS_AUTOCOMPLETION;
+     }
+  } else if (gIsFormFillEnabled && htmlInput && !(state & states::PROTECTED)) {
     
     
     
@@ -578,7 +561,7 @@ NS_IMETHODIMP nsHTMLTextFieldAccessible::GetAssociatedEditor(nsIEditor **aEditor
   
   nsCOMPtr<nsIJSContextStack> stack =
     do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-  bool pushed = stack && NS_SUCCEEDED(stack->Push(nsnull));
+  PRBool pushed = stack && NS_SUCCEEDED(stack->Push(nsnull));
 
   nsCOMPtr<nsIEditor> editor;
   nsresult rv = editableElt->GetEditor(aEditor);
@@ -591,23 +574,6 @@ NS_IMETHODIMP nsHTMLTextFieldAccessible::GetAssociatedEditor(nsIEditor **aEditor
 
   return rv;
 }
-
-
-
-
-bool
-nsHTMLTextFieldAccessible::IsWidget() const
-{
-  return true;
-}
-
-nsAccessible*
-nsHTMLTextFieldAccessible::ContainerWidget() const
-{
-  return mParent && mParent->Role() == nsIAccessibleRole::ROLE_AUTOCOMPLETE ?
-    mParent : nsnull;
-}
-
 
 
 

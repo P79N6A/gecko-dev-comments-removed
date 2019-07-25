@@ -64,7 +64,7 @@ public:
   typedef mozilla::dom::Element Element;
   nsDOMCSSAttributeDeclaration(Element* aContent
 #ifdef MOZ_SMIL
-                               , bool aIsSMILOverride
+                               , PRBool aIsSMILOverride
 #endif 
                                );
   ~nsDOMCSSAttributeDeclaration();
@@ -75,7 +75,7 @@ public:
 
   
   
-  virtual mozilla::css::Declaration* GetCSSDeclaration(bool aAllocate);
+  virtual mozilla::css::Declaration* GetCSSDeclaration(PRBool aAllocate);
   virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv);
   NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent);
 
@@ -92,7 +92,7 @@ protected:
 
 
 
-  const bool mIsSMILOverride;
+  const PRBool mIsSMILOverride;
 #endif 
 };
 

@@ -65,23 +65,23 @@ public:
   virtual ~nsOSHelperAppService();
 
   
-  nsresult OSProtocolHandlerExists(const char * aProtocolScheme, bool * aHandlerExists);
+  nsresult OSProtocolHandlerExists(const char * aProtocolScheme, PRBool * aHandlerExists);
   nsresult LoadUriInternal(nsIURI * aURL);
   NS_IMETHOD GetApplicationDescription(const nsACString& aScheme, nsAString& _retval);
 
   
-  already_AddRefed<nsIMIMEInfo> GetMIMEInfoFromOS(const nsACString& aMIMEType, const nsACString& aFileExt, bool *aFound);
+  already_AddRefed<nsIMIMEInfo> GetMIMEInfoFromOS(const nsACString& aMIMEType, const nsACString& aFileExt, PRBool *aFound);
   NS_IMETHOD GetProtocolHandlerInfoFromOS(const nsACString &aScheme, 
-                                          bool *found,
+                                          PRBool *found,
                                           nsIHandlerInfo **_retval);
 
   
 
 
-  static bool GetValueString(HKEY hKey, const PRUnichar* pValueName, nsAString& result);
+  static PRBool GetValueString(HKEY hKey, const PRUnichar* pValueName, nsAString& result);
 
   
-  static bool CleanupCmdHandlerPath(nsAString& aCommandHandler);
+  static PRBool CleanupCmdHandlerPath(nsAString& aCommandHandler);
 
 protected:
   nsresult GetDefaultAppInfo(const nsAString& aTypeName, nsAString& aDefaultDescription, nsIFile** aDefaultApplication);
@@ -91,7 +91,7 @@ protected:
 
   static nsresult GetMIMEInfoFromRegistry(const nsAFlatString& fileType, nsIMIMEInfo *pInfo);
   
-  static bool typeFromExtEquals(const PRUnichar* aExt, const char *aType);
+  static PRBool typeFromExtEquals(const PRUnichar* aExt, const char *aType);
 
 private:
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN

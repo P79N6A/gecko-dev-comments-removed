@@ -102,7 +102,7 @@ public:
     Drawable ReleasePixmap();
 
     
-    bool GetColormapAndVisual(Colormap* colormap, Visual **visual);
+    PRBool GetColormapAndVisual(Colormap* colormap, Visual **visual);
 
     
     
@@ -114,7 +114,7 @@ public:
 
 protected:
     
-    bool mPixmapTaken;
+    PRBool mPixmapTaken;
     
     Display *mDisplay;
     Drawable mDrawable;

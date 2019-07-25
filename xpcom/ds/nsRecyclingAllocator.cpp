@@ -106,7 +106,7 @@ nsRecyclingAllocator::~nsRecyclingAllocator()
 
 
 void*
-nsRecyclingAllocator::Malloc(PRSize bytes, bool zeroit)
+nsRecyclingAllocator::Malloc(PRSize bytes, PRBool zeroit)
 {
     
     
@@ -315,14 +315,14 @@ nsRecyclingAllocatorImpl::Init(size_t nbuckets, size_t recycleAfter, const char 
 }
 
 NS_IMETHODIMP
-nsRecyclingAllocatorImpl::HeapMinimize(bool immediate)
+nsRecyclingAllocatorImpl::HeapMinimize(PRBool immediate)
 {
     
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-nsRecyclingAllocatorImpl::IsLowMemory(bool *lowmemoryb_ptr)
+nsRecyclingAllocatorImpl::IsLowMemory(PRBool *lowmemoryb_ptr)
 {
     
     return NS_ERROR_NOT_IMPLEMENTED;

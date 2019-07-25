@@ -58,7 +58,6 @@ class nsIContent;
 class nsIDocument;
 class nsCSSParser;
 class nsMediaList;
-class nsIStyleSheetLinkingElement;
 
 namespace mozilla {
 
@@ -93,7 +92,7 @@ public:
   }
   const URIAndPrincipalHashKey* GetKeyPointer() const { return this; }
 
-  bool KeyEquals(const URIAndPrincipalHashKey* aKey) const {
+  PRBool KeyEquals(const URIAndPrincipalHashKey* aKey) const {
     if (!nsURIHashKey::KeyEquals(aKey->mKey)) {
       return PR_FALSE;
     }
@@ -103,7 +102,7 @@ public:
       return PR_FALSE;
     }
 
-    bool eq;
+    PRBool eq;
     return !mPrincipal ||
       (NS_SUCCEEDED(mPrincipal->Equals(aKey->mPrincipal, &eq)) && eq);
   }
@@ -183,8 +182,8 @@ public:
                            const nsAString& aTitle,
                            const nsAString& aMedia,
                            nsICSSLoaderObserver* aObserver,
-                           bool* aCompleted,
-                           bool* aIsAlternate);
+                           PRBool* aCompleted,
+                           PRBool* aIsAlternate);
 
   
 
@@ -209,9 +208,9 @@ public:
                          nsIURI* aURL,
                          const nsAString& aTitle,
                          const nsAString& aMedia,
-                         bool aHasAlternateRel,
+                         PRBool aHasAlternateRel,
                          nsICSSLoaderObserver* aObserver,
-                         bool* aIsAlternate);
+                         PRBool* aIsAlternate);
 
   
 
@@ -261,8 +260,8 @@ public:
 
 
 
-  nsresult LoadSheetSync(nsIURI* aURL, bool aEnableUnsafeRules,
-                         bool aUseSystemPrincipal,
+  nsresult LoadSheetSync(nsIURI* aURL, PRBool aEnableUnsafeRules,
+                         PRBool aUseSystemPrincipal,
                          nsCSSStyleSheet** aSheet);
 
   
@@ -326,8 +325,8 @@ public:
 
 
 
-  bool GetEnabled() { return mEnabled; }
-  void SetEnabled(bool aEnabled) { mEnabled = aEnabled; }
+  PRBool GetEnabled() { return mEnabled; }
+  void SetEnabled(PRBool aEnabled) { mEnabled = aEnabled; }
 
   
 
@@ -344,7 +343,7 @@ public:
 
 
 
-  bool HasPendingLoads();
+  PRBool HasPendingLoads();
 
   
 
@@ -367,7 +366,7 @@ public:
 
   
   
-  bool IsAlternate(const nsAString& aTitle, bool aHasAlternateRel);
+  PRBool IsAlternate(const nsAString& aTitle, PRBool aHasAlternateRel);
 
   typedef nsTArray<nsRefPtr<SheetLoadData> > LoadDataArray;
 
@@ -387,7 +386,7 @@ private:
   nsresult CreateSheet(nsIURI* aURI,
                        nsIContent* aLinkingContent,
                        nsIPrincipal* aLoaderPrincipal,
-                       bool aSyncLoad,
+                       PRBool aSyncLoad,
                        StyleSheetState& aSheetState,
                        nsCSSStyleSheet** aSheet);
 
@@ -399,8 +398,8 @@ private:
                         const nsAString& aTitle,
                         const nsAString& aMediaString,
                         nsMediaList* aMediaList,
-                        bool aHasAlternateRel = false,
-                        bool *aIsAlternate = nsnull);
+                        PRBool aHasAlternateRel = PR_FALSE,
+                        PRBool *aIsAlternate = nsnull);
 
   nsresult InsertSheetInDoc(nsCSSStyleSheet* aSheet,
                             nsIContent* aLinkingContent,
@@ -411,8 +410,8 @@ private:
                             ImportRule* aParentRule);
 
   nsresult InternalLoadNonDocumentSheet(nsIURI* aURL,
-                                        bool aAllowUnsafeRules,
-                                        bool aUseSystemPrincipal,
+                                        PRBool aAllowUnsafeRules,
+                                        PRBool aUseSystemPrincipal,
                                         nsIPrincipal* aOriginPrincipal,
                                         const nsCString& aCharset,
                                         nsCSSStyleSheet** aSheet,
@@ -424,12 +423,10 @@ private:
   
   
   
-  
   nsresult PostLoadEvent(nsIURI* aURI,
                          nsCSSStyleSheet* aSheet,
                          nsICSSLoaderObserver* aObserver,
-                         bool aWasAlternate,
-                         nsIStyleSheetLinkingElement* aElement);
+                         PRBool aWasAlternate);
 
   
   void StartAlternateLoads();
@@ -447,7 +444,7 @@ private:
   
   nsresult ParseSheet(const nsAString& aInput,
                       SheetLoadData* aLoadData,
-                      bool& aCompleted);
+                      PRBool& aCompleted);
 
   
   
@@ -475,7 +472,6 @@ private:
   LoadDataArray     mPostedEvents;
 
   
-  
   nsTObserverArray<nsCOMPtr<nsICSSLoaderObserver> > mObservers;
 
   
@@ -494,10 +490,10 @@ private:
   nsCompatibility   mCompatMode;
   nsString          mPreferredSheet;  
 
-  bool              mEnabled; 
+  PRPackedBool      mEnabled; 
 
 #ifdef DEBUG
-  bool              mSyncCallback;
+  PRPackedBool      mSyncCallback;
 #endif
 };
 

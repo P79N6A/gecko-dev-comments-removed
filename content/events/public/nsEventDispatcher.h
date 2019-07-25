@@ -132,7 +132,7 @@ public:
                          nsEvent* aEvent,
                          nsIDOMEvent* aDOMEvent,
                          nsEventStatus aEventStatus,
-                         bool aIsInAnon)
+                         PRBool aIsInAnon)
   : nsEventChainVisitor(aPresContext, aEvent, aDOMEvent, aEventStatus),
     mCanHandle(PR_TRUE), mForceContentDispatch(PR_FALSE),
     mRelatedTargetIsInAnon(PR_FALSE), mOriginalTargetIsInAnon(aIsInAnon),
@@ -156,38 +156,38 @@ public:
 
 
 
-  bool                  mCanHandle;
+  PRPackedBool          mCanHandle;
 
   
 
 
 
 
-  bool                  mForceContentDispatch;
+  PRPackedBool          mForceContentDispatch;
 
   
 
 
 
-  bool                  mRelatedTargetIsInAnon;
+  PRPackedBool          mRelatedTargetIsInAnon;
 
   
 
 
 
-  bool                  mOriginalTargetIsInAnon;
+  PRPackedBool          mOriginalTargetIsInAnon;
 
   
 
 
 
-  bool                  mWantsWillHandleEvent;
+  PRPackedBool          mWantsWillHandleEvent;
 
   
 
 
 
-  bool                  mMayHaveListenerManager;
+  PRPackedBool          mMayHaveListenerManager;
 
   
 

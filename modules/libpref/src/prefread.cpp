@@ -99,7 +99,7 @@ static const char kFalse[] = "false";
 
 
 
-static bool
+static PRBool
 pref_GrowBuf(PrefParseState *ps)
 {
     int bufLen, curPos, valPos;
@@ -139,7 +139,7 @@ pref_GrowBuf(PrefParseState *ps)
 
 
 
-static bool
+static PRBool
 pref_DoCallback(PrefParseState *ps)
 {
     PrefValue  value;
@@ -201,7 +201,7 @@ PREF_FinalizeParseState(PrefParseState *ps)
 
 
 
-bool
+PRBool
 PREF_ParseBuf(PrefParseState *ps, const char *buf, int bufLen)
 {
     const char *end;
@@ -590,7 +590,7 @@ pref_reader(void       *closure,
             const char *pref,
             PrefValue   val,
             PrefType    type,
-            bool        defPref)
+            PRBool      defPref)
 {
     printf("%spref(\"%s\", ", defPref ? "" : "user_", pref);
     switch (type) {

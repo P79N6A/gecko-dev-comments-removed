@@ -91,15 +91,15 @@ public:
   nsIContent* GetBoundElement() { return mBoundElement; }
   void SetBoundElement(nsIContent *aElement);
 
-  bool IsStyleBinding() const { return mIsStyleBinding; }
-  void SetIsStyleBinding(bool aIsStyle) { mIsStyleBinding = aIsStyle; }
+  PRBool IsStyleBinding() const { return mIsStyleBinding; }
+  void SetIsStyleBinding(PRBool aIsStyle) { mIsStyleBinding = aIsStyle; }
 
   void MarkForDeath();
-  bool MarkedForDeath() const { return mMarkedForDeath; }
+  PRBool MarkedForDeath() const { return mMarkedForDeath; }
 
-  bool HasStyleSheets() const;
-  bool InheritsStyle() const;
-  bool ImplementsInterface(REFNSIID aIID) const;
+  PRBool HasStyleSheets() const;
+  PRBool InheritsStyle() const;
+  PRBool ImplementsInterface(REFNSIID aIID) const;
 
   void GenerateAnonymousContent();
   void InstallAnonymousContent(nsIContent* aAnonParent, nsIContent* aElement);
@@ -118,7 +118,7 @@ public:
 
   
   
-  bool ResolveAllFields(JSContext *cx, JSObject *obj) const;
+  PRBool ResolveAllFields(JSContext *cx, JSObject *obj) const;
 
   
   
@@ -132,10 +132,10 @@ public:
   nsIContent* GetInsertionPoint(const nsIContent* aChild, PRUint32* aIndex);
 
   nsIContent* GetSingleInsertionPoint(PRUint32* aIndex,
-                                      bool* aMultipleInsertionPoints);
+                                      PRBool* aMultipleInsertionPoints);
 
   void AttributeChanged(nsIAtom* aAttribute, PRInt32 aNameSpaceID,
-                        bool aRemoveFlag, bool aNotify);
+                        PRBool aRemoveFlag, PRBool aNotify);
 
   void ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocument);
 
@@ -148,10 +148,10 @@ public:
                                 nsXBLPrototypeBinding* aProtoBinding,
                                 void **aClassObject);
 
-  bool AllowScripts();  
+  PRBool AllowScripts();  
 
   void RemoveInsertionParent(nsIContent* aParent);
-  bool HasInsertionParent(nsIContent* aParent);
+  PRBool HasInsertionParent(nsIContent* aParent);
 
 
 protected:
@@ -165,8 +165,8 @@ protected:
   
   nsClassHashtable<nsISupportsHashKey, nsInsertionPointList>* mInsertionPointTable;
 
-  bool mIsStyleBinding;
-  bool mMarkedForDeath;
+  PRPackedBool mIsStyleBinding;
+  PRPackedBool mMarkedForDeath;
 };
 
 #endif 

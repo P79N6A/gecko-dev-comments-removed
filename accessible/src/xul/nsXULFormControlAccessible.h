@@ -77,19 +77,13 @@ public:
   
   virtual PRUint8 ActionCount();
 
-  
-  virtual bool IsWidget() const;
-  virtual bool IsActiveWidget() const;
-  virtual bool AreItemsOperable() const;
-  virtual nsAccessible* ContainerWidget() const;
-
 protected:
 
   
   virtual void CacheChildren();
 
   
-  bool ContainsMenu();
+  PRBool ContainsMenu();
 };
 
 
@@ -135,7 +129,7 @@ public:
   virtual PRUint8 ActionCount();
 
 private:
-  bool DropmarkerOpen(bool aToggleOpen);
+  PRBool DropmarkerOpen(PRBool aToggleOpen);
 };
 
 
@@ -165,9 +159,6 @@ public:
   virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
                                           PRInt32 *aSetSize);
   virtual PRUint64 NativeState();
-
-  
-  virtual nsAccessible* ContainerWidget() const;
 };
 
 
@@ -181,11 +172,6 @@ public:
   
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
-
-  
-  virtual bool IsWidget() const;
-  virtual bool IsActiveWidget() const;
-  virtual bool AreItemsOperable() const;
 };
 
 
@@ -213,7 +199,7 @@ public:
                                           PRInt32 *aSetSize);
 
   
-  static bool IsSeparator(nsAccessible *aAccessible);
+  static PRBool IsSeparator(nsAccessible *aAccessible);
 };
 
 
@@ -267,7 +253,7 @@ public:
   virtual void ApplyARIAState(PRUint64* aState);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
-  virtual bool GetAllowsAnonChildAccessibles();
+  virtual PRBool GetAllowsAnonChildAccessibles();
 
   
   virtual PRUint8 ActionCount();

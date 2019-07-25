@@ -110,15 +110,15 @@ protected:
   
   
   nsresult        StartDocumentLoad(nsIWebProgress *aWebProgress,
-                                    bool isToBeMadeEditable);
+                                    PRBool isToBeMadeEditable);
   nsresult        EndDocumentLoad(nsIWebProgress *aWebProgress, 
                                   nsIChannel* aChannel, nsresult aStatus,
-                                  bool isToBeMadeEditable);
+                                  PRBool isToBeMadeEditable);
   nsresult        StartPageLoad(nsIChannel *aChannel);
   nsresult        EndPageLoad(nsIWebProgress *aWebProgress, 
                               nsIChannel* aChannel, nsresult aStatus);
   
-  bool            IsProgressForTargetDocument(nsIWebProgress *aWebProgress);
+  PRBool          IsProgressForTargetDocument(nsIWebProgress *aWebProgress);
 
   void            RemoveEditorControllers(nsIDOMWindow *aWindow);
   void            RemoveWebProgressListener(nsIDOMWindow *aWindow);
@@ -128,28 +128,28 @@ protected:
 
 protected:
 
-  bool            mDoneSetup;    
+  PRPackedBool    mDoneSetup;    
 
   
   
   
   
-  bool            mCanCreateEditor; 
+  PRPackedBool    mCanCreateEditor; 
 
-  bool            mInteractive;
-  bool            mMakeWholeDocumentEditable;
+  PRPackedBool    mInteractive;
+  PRPackedBool    mMakeWholeDocumentEditable;
 
-  bool            mDisabledJSAndPlugins;
-
-  
-  
-  bool            mScriptsEnabled;
+  PRPackedBool    mDisabledJSAndPlugins;
 
   
   
-  bool            mPluginsEnabled;
+  PRPackedBool    mScriptsEnabled;
 
-  bool            mProgressListenerRegistered;
+  
+  
+  PRPackedBool    mPluginsEnabled;
+
+  PRPackedBool    mProgressListenerRegistered;
 
   
   PRUint16        mImageAnimationMode;

@@ -87,21 +87,21 @@ private:
   ~TimerThread();
 
   PRInt32 mInitInProgress;
-  bool    mInitialized;
+  PRBool  mInitialized;
 
   
   
   
   PRInt32 AddTimerInternal(nsTimerImpl *aTimer);
-  bool    RemoveTimerInternal(nsTimerImpl *aTimer);
+  PRBool  RemoveTimerInternal(nsTimerImpl *aTimer);
   void    ReleaseTimerInternal(nsTimerImpl *aTimer);
 
   nsCOMPtr<nsIThread> mThread;
   Monitor mMonitor;
 
-  bool mShutdown;
-  bool mWaiting;
-  bool mSleeping;
+  PRPackedBool mShutdown;
+  PRPackedBool mWaiting;
+  PRPackedBool mSleeping;
   
   nsTArray<nsTimerImpl*> mTimers;
 

@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is The Browser Profile Migrator.
+ *
+ * The Initial Developer of the Original Code is Ben Goodger.
+ * Portions created by the Initial Developer are Copyright (C) 2004
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *  Ben Goodger <ben@bengoodger.com>
+ *  Asaf Romano <mozilla.mano@sent.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "nsBrowserProfileMigratorUtils.h"
 #include "nsINavBookmarksService.h"
@@ -80,7 +80,7 @@ void SetProxyPref(const nsAString& aHostPort, const char* aPref,
   nsCAutoString host;
   PRInt32 portValue;
 
-  
+  // try parsing it as a URI first
   if (NS_SUCCEEDED(NS_NewURI(getter_AddRefs(uri), aHostPort))
       && NS_SUCCEEDED(uri->GetHost(host))
       && !host.IsEmpty()
@@ -106,10 +106,10 @@ void SetProxyPref(const nsAString& aHostPort, const char* aPref,
 
 void ParseOverrideServers(const nsAString& aServers, nsIPrefBranch* aBranch)
 {
-  
-  
-  
-  
+  // Windows (and Opera) formats its proxy override list in the form:
+  // server;server;server where server is a server name or ip address, 
+  // or "<local>". Mozilla's format is server,server,server, and <local>
+  // must be translated to "localhost,127.0.0.1"
   nsAutoString override(aServers);
   PRInt32 left = 0, right = 0;
   for (;;) {
@@ -127,17 +127,17 @@ void ParseOverrideServers(const nsAString& aServers, nsIPrefBranch* aBranch)
 }
 
 void GetMigrateDataFromArray(MigrationData* aDataArray, PRInt32 aDataArrayLength, 
-                             bool aReplace, nsIFile* aSourceProfile, 
+                             PRBool aReplace, nsIFile* aSourceProfile, 
                              PRUint16* aResult)
 {
   nsCOMPtr<nsIFile> sourceFile; 
-  bool exists;
+  PRBool exists;
   MigrationData* cursor;
   MigrationData* end = aDataArray + aDataArrayLength;
   for (cursor = aDataArray; cursor < end && cursor->fileName; ++cursor) {
-    
-    
-    
+    // When in replace mode, all items can be imported. 
+    // When in non-replace mode, only items that do not require file replacement
+    // can be imported.
     if (aReplace || !cursor->replaceOnly) {
       aSourceProfile->Clone(getter_AddRefs(sourceFile));
       sourceFile->Append(nsDependentString(cursor->fileName));
@@ -187,7 +187,7 @@ AnnotatePersonalToolbarFolder(nsIFile* aSourceBookmarksFile,
 
   nsCAutoString sourceBuffer;
   nsCAutoString targetBuffer;
-  bool moreData = false;
+  PRBool moreData = PR_FALSE;
   PRUint32 bytesWritten = 0;
   do {
     lineInputStream->ReadLine(sourceBuffer, &moreData);
@@ -196,8 +196,8 @@ AnnotatePersonalToolbarFolder(nsIFile* aSourceBookmarksFile,
 
     PRInt32 nameOffset = sourceBuffer.Find(aToolbarFolderName);
     if (nameOffset >= 0) {
-      
-      
+      // Found the personal toolbar name on a line, check to make sure it's
+      // actually a folder. 
       NS_NAMED_LITERAL_CSTRING(folderPrefix, "<DT><H3 ");
       PRInt32 folderPrefixOffset = sourceBuffer.Find(folderPrefix);
       if (folderPrefixOffset >= 0)
@@ -219,8 +219,8 @@ AnnotatePersonalToolbarFolder(nsIFile* aSourceBookmarksFile,
 
 nsresult
 ImportBookmarksHTML(nsIFile* aBookmarksFile, 
-                    bool aImportIntoRoot,
-                    bool aOverwriteDefaults,
+                    PRBool aImportIntoRoot,
+                    PRBool aOverwriteDefaults,
                     const PRUnichar* aImportSourceNameKey)
 {
   nsresult rv;
@@ -230,14 +230,14 @@ ImportBookmarksHTML(nsIFile* aBookmarksFile,
   nsCOMPtr<nsIPlacesImportExportService> importer = do_GetService(NS_PLACESIMPORTEXPORTSERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Import file directly into the bookmarks root folder.
   if (aImportIntoRoot) {
     rv = importer->ImportHTMLFromFile(localFile, aOverwriteDefaults);
     NS_ENSURE_SUCCESS(rv, rv);
     return NS_OK;
   }
 
-  
+  // Get the source application name.
   nsCOMPtr<nsIStringBundleService> bundleService =
     do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -257,12 +257,12 @@ ImportBookmarksHTML(nsIFile* aBookmarksFile,
                                     getter_Copies(importedBookmarksTitle));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Get the bookmarks service.
   nsCOMPtr<nsINavBookmarksService> bms =
     do_GetService(NS_NAVBOOKMARKSSERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Create an imported bookmarks folder under the bookmarks menu.
   PRInt64 root;
   rv = bms->GetBookmarksMenuFolder(&root);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -272,7 +272,7 @@ ImportBookmarksHTML(nsIFile* aBookmarksFile,
                          nsINavBookmarksService::DEFAULT_INDEX, &folder);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Import the bookmarks into the folder.
   return importer->ImportHTMLFromFileToFolder(localFile, folder, PR_FALSE);
 }
 

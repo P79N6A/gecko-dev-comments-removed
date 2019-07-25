@@ -80,41 +80,41 @@ GfxInfo::GfxInfo()
     mAdapterVendorID2(0),
     mAdapterDeviceID2(0),
     mWindowsVersion(0),
-    mHasDualGPU(false),
-    mIsGPU2Active(false)
+    mHasDualGPU(PR_FALSE),
+    mIsGPU2Active(PR_FALSE)
 {
 }
 
 
 
 nsresult
-GfxInfo::GetD2DEnabled(bool *aEnabled)
+GfxInfo::GetD2DEnabled(PRBool *aEnabled)
 {
   *aEnabled = gfxWindowsPlatform::GetPlatform()->GetRenderMode() == gfxWindowsPlatform::RENDER_DIRECT2D;
   return NS_OK;
 }
 
 nsresult
-GfxInfo::GetDWriteEnabled(bool *aEnabled)
+GfxInfo::GetDWriteEnabled(PRBool *aEnabled)
 {
   *aEnabled = gfxWindowsPlatform::GetPlatform()->DWriteEnabled();
   return NS_OK;
 }
 
 nsresult
-GfxInfo::GetAzureEnabled(bool *aEnabled)
+GfxInfo::GetAzureEnabled(PRBool *aEnabled)
 {
-  *aEnabled = false;
+  *aEnabled = PR_FALSE;
 
-  bool d2dEnabled = 
+  PRBool d2dEnabled = 
     gfxWindowsPlatform::GetPlatform()->GetRenderMode() == gfxWindowsPlatform::RENDER_DIRECT2D;
 
   if (d2dEnabled) {
-    bool azure = false;
+    PRBool azure = PR_FALSE;
     nsresult rv = mozilla::Preferences::GetBool("gfx.canvas.azure.enabled", &azure);
 
     if (NS_SUCCEEDED(rv) && azure) {
-      *aEnabled = true;
+      *aEnabled = PR_TRUE;
     }
   }
 
@@ -439,7 +439,7 @@ GfxInfo::Init()
               }
               result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, driverKey.BeginReading(), 0, KEY_QUERY_VALUE, &key);
               if (result == ERROR_SUCCESS) {
-                mHasDualGPU = true;
+                mHasDualGPU = PR_TRUE;
                 mDeviceKey2 = driverKey;
                 dwcbData = sizeof(value);
                 result = RegQueryValueExW(key, L"DriverVersion", NULL, NULL, (LPBYTE)value, &dwcbData);
@@ -488,12 +488,12 @@ GfxInfo::Init()
      PR_sscanf(spoofedVendor, "%x", &mAdapterVendorID);
   }
 
-  mHasDriverVersionMismatch = false;
+  mHasDriverVersionMismatch = PR_FALSE;
   if (mAdapterVendorID == vendorIntel) {
     
     
     
-    bool is64bitApp = sizeof(void*) == 8;
+    PRBool is64bitApp = sizeof(void*) == 8;
     const PRUnichar *dllFileName = is64bitApp
                                  ? L"igd10umd64.dll"
                                  : L"igd10umd32.dll";
@@ -508,7 +508,7 @@ GfxInfo::Init()
     
     
     if (dllNumericVersion != driverNumericVersion)
-      mHasDriverVersionMismatch = true;
+      mHasDriverVersionMismatch = PR_TRUE;
   }
 
   const char *spoofedDevice = PR_GetEnv("MOZ_GFX_SPOOF_DEVICE_ID");
@@ -646,7 +646,7 @@ GfxInfo::GetAdapterDeviceID2(PRUint32 *aAdapterDeviceID)
 
 
 NS_IMETHODIMP
-GfxInfo::GetIsGPU2Active(bool* aIsGPU2Active)
+GfxInfo::GetIsGPU2Active(PRBool* aIsGPU2Active)
 {
   *aIsGPU2Active = mIsGPU2Active;
   return NS_OK;
@@ -972,7 +972,7 @@ nsresult
 GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aSuggestedDriverVersion, GfxDriverInfo* aDriverInfo )
 {
   *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
-  aSuggestedDriverVersion.SetIsVoid(true);
+  aSuggestedDriverVersion.SetIsVoid(PR_TRUE);
 
   PRInt32 status = nsIGfxInfo::FEATURE_NO_INFO;
 

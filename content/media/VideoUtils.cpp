@@ -41,16 +41,16 @@
 
 
 
-bool AddOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult) {
+PRBool AddOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult) {
   PRUint64 rl = static_cast<PRUint64>(a) + static_cast<PRUint64>(b);
   if (rl > PR_UINT32_MAX) {
-    return false;
+    return PR_FALSE;
   }
   aResult = static_cast<PRUint32>(rl);
   return true;
 }
 
-bool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult)
+PRBool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult)
 {
   
   
@@ -59,30 +59,30 @@ bool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult)
   PRUint64 b64 = b;
   PRUint64 r64 = a64 * b64;
   if (r64 > PR_UINT32_MAX)
-     return false;
+     return PR_FALSE;
   aResult = static_cast<PRUint32>(r64);
-  return true;
+  return PR_TRUE;
 }
 
 
 
-bool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
+PRBool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
   if (b < 1) {
     if (PR_INT64_MIN - b <= a) {
       aResult = a + b;
-      return true;
+      return PR_TRUE;
     }
   } else if (PR_INT64_MAX - b >= a) {
     aResult = a + b;
-    return true;
+    return PR_TRUE;
   }
-  return false;
+  return PR_FALSE;
 }
 
 
 
 
-bool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
+PRBool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
   
   
   
@@ -113,9 +113,9 @@ bool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
     NS_ASSERTION(a == PR_INT64_MIN, "How else can this happen?");
     if (b == 0 || b == 1) {
       aResult = a * b;
-      return true;
+      return PR_TRUE;
     } else {
-      return false;
+      return PR_FALSE;
     }
   }
 
@@ -123,9 +123,9 @@ bool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
     NS_ASSERTION(b == PR_INT64_MIN, "How else can this happen?");
     if (a == 0 || a == 1) {
       aResult = a * b;
-      return true;
+      return PR_TRUE;
     } else {
-      return false;
+      return PR_FALSE;
     }
   }
 
@@ -143,7 +143,7 @@ bool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
   
   
   if (a_hi != 0 && b_hi != 0) {
-    return false;
+    return PR_FALSE;
   }
 
   
@@ -156,46 +156,46 @@ bool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult) {
   PRInt64 q = a_hi * b_lo + a_lo * b_hi;
   if (q > PR_INT32_MAX) {
     
-    return false;
+    return PR_FALSE;
   }
   q <<= 32;
 
   
   PRUint64 lo = a_lo * b_lo;
   if (lo > PR_INT64_MAX) {
-    return false;
+    return PR_FALSE;
   }
 
   
   if (!AddOverflow(q, static_cast<PRInt64>(lo), aResult)) {
-    return false;
+    return PR_FALSE;
   }
 
   aResult *= sign;
   NS_ASSERTION(a * b == aResult, "We didn't overflow, but result is wrong!");
-  return true;
+  return PR_TRUE;
 }
 
 
 
-bool FramesToUsecs(PRInt64 aFrames, PRUint32 aRate, PRInt64& aOutUsecs)
+PRBool SamplesToUsecs(PRInt64 aSamples, PRUint32 aRate, PRInt64& aOutUsecs)
 {
   PRInt64 x;
-  if (!MulOverflow(aFrames, USECS_PER_S, x))
-    return false;
+  if (!MulOverflow(aSamples, USECS_PER_S, x))
+    return PR_FALSE;
   aOutUsecs = x / aRate;
-  return true;
+  return PR_TRUE;
 }
 
 
 
-bool UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutFrames)
+PRBool UsecsToSamples(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutSamples)
 {
   PRInt64 x;
   if (!MulOverflow(aUsecs, aRate, x))
-    return false;
-  aOutFrames = x / USECS_PER_S;
-  return true;
+    return PR_FALSE;
+  aOutSamples = x / USECS_PER_S;
+  return PR_TRUE;
 }
 
 static PRInt32 ConditionDimension(float aValue)

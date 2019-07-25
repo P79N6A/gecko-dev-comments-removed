@@ -154,7 +154,7 @@ private:
 
 
 
-  bool UseRunnableQueue() {
+  PRBool UseRunnableQueue() {
     return !!mQueuedRunnables;
   }
 
@@ -222,18 +222,18 @@ private:
 
 
 
-  bool mShutdown;
+  PRPackedBool mShutdown;
 
   
 
 
 
-  bool mThreadIsShuttingDown;
+  PRPackedBool mThreadIsShuttingDown;
 
   
 
 
-  bool mIdleTimeoutEnabled;
+  PRPackedBool mIdleTimeoutEnabled;
 };
 
 END_INDEXEDDB_NAMESPACE

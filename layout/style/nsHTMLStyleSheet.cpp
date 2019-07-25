@@ -153,7 +153,7 @@ MappedAttrTable_ClearEntry(PLDHashTable *table, PLDHashEntryHdr *hdr)
   memset(entry, 0, sizeof(MappedAttrTableEntry));
 }
 
-static bool
+static PRBool
 MappedAttrTable_MatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
                            const void *key)
 {
@@ -262,7 +262,7 @@ nsHTMLStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
   return nsRestyleHint(0);
 }
 
- bool
+ PRBool
 nsHTMLStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
 {
   return PR_FALSE;
@@ -305,7 +305,7 @@ nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
   return nsRestyleHint(0);
 }
 
- bool
+ PRBool
 nsHTMLStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
 {
   return PR_FALSE;
@@ -359,24 +359,24 @@ nsHTMLStyleSheet::GetType(nsString& aType) const
   aType.AssignLiteral("text/html");
 }
 
- bool
+ PRBool
 nsHTMLStyleSheet::HasRules() const
 {
   return PR_TRUE; 
 }
 
- bool
+ PRBool
 nsHTMLStyleSheet::IsApplicable() const
 {
   return PR_TRUE;
 }
 
  void
-nsHTMLStyleSheet::SetEnabled(bool aEnabled)
+nsHTMLStyleSheet::SetEnabled(PRBool aEnabled)
 { 
 }
 
- bool
+ PRBool
 nsHTMLStyleSheet::IsComplete() const
 {
   return PR_TRUE;
@@ -482,7 +482,7 @@ already_AddRefed<nsMappedAttributes>
 nsHTMLStyleSheet::UniqueMappedAttributes(nsMappedAttributes* aMapped)
 {
   if (!mMappedAttrTable.ops) {
-    bool res = PL_DHashTableInit(&mMappedAttrTable, &MappedAttrTable_Ops,
+    PRBool res = PL_DHashTableInit(&mMappedAttrTable, &MappedAttrTable_Ops,
                                    nsnull, sizeof(MappedAttrTableEntry), 16);
     if (!res) {
       mMappedAttrTable.ops = nsnull;

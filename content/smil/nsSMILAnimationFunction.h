@@ -89,7 +89,7 @@ public:
 
 
 
-  virtual bool SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
+  virtual PRBool SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
                          nsAttrValue& aResult, nsresult* aParseResult = nsnull);
 
   
@@ -98,7 +98,7 @@ public:
 
 
 
-  virtual bool UnsetAttr(nsIAtom* aAttribute);
+  virtual PRBool UnsetAttr(nsIAtom* aAttribute);
 
   
 
@@ -144,7 +144,7 @@ public:
 
 
 
-  void Inactivate(bool aIsFrozen);
+  void Inactivate(PRBool aIsFrozen);
 
   
 
@@ -182,7 +182,7 @@ public:
 
 
 
-  bool IsActiveOrFrozen() const
+  PRBool IsActiveOrFrozen() const
   {
     
 
@@ -201,7 +201,7 @@ public:
 
 
 
-  virtual bool WillReplace() const;
+  virtual PRBool WillReplace() const;
 
   
 
@@ -214,7 +214,7 @@ public:
 
 
 
-  bool HasChanged() const;
+  PRBool HasChanged() const;
 
   
 
@@ -245,16 +245,16 @@ public:
 
 
 
-  bool UpdateCachedTarget(const nsSMILTargetIdentifier& aNewTarget);
+  PRBool UpdateCachedTarget(const nsSMILTargetIdentifier& aNewTarget);
 
   
   class Comparator {
     public:
-      bool Equals(const nsSMILAnimationFunction* aElem1,
+      PRBool Equals(const nsSMILAnimationFunction* aElem1,
                     const nsSMILAnimationFunction* aElem2) const {
         return (aElem1->CompareTo(aElem2) == 0);
       }
-      bool LessThan(const nsSMILAnimationFunction* aElem1,
+      PRBool LessThan(const nsSMILAnimationFunction* aElem1,
                       const nsSMILAnimationFunction* aElem2) const {
         return (aElem1->CompareTo(aElem2) < 0);
       }
@@ -277,8 +277,8 @@ protected:
   nsSMILTime GetBeginTime() const { return mBeginTime; }
 
   
-  bool                   GetAccumulate() const;
-  bool                   GetAdditive() const;
+  PRBool                 GetAccumulate() const;
+  PRBool                 GetAdditive() const;
   virtual nsSMILCalcMode GetCalcMode() const;
 
   
@@ -322,14 +322,14 @@ protected:
 
   
   
-  virtual bool               HasAttr(nsIAtom* aAttName) const;
+  virtual PRBool             HasAttr(nsIAtom* aAttName) const;
   virtual const nsAttrValue* GetAttr(nsIAtom* aAttName) const;
-  virtual bool               GetAttr(nsIAtom* aAttName,
+  virtual PRBool             GetAttr(nsIAtom* aAttName,
                                      nsAString& aResult) const;
 
-  bool     ParseAttr(nsIAtom* aAttName, const nsISMILAttr& aSMILAttr,
+  PRBool   ParseAttr(nsIAtom* aAttName, const nsISMILAttr& aSMILAttr,
                      nsSMILValue& aResult,
-                     bool& aPreventCachingOfSandwich) const;
+                     PRBool& aPreventCachingOfSandwich) const;
 
   virtual nsresult GetValues(const nsISMILAttr& aSMILAttr,
                              nsSMILValueArray& aResult);
@@ -338,7 +338,7 @@ protected:
   void         CheckKeyTimes(PRUint32 aNumValues);
   void         CheckKeySplines(PRUint32 aNumValues);
 
-  virtual bool IsToAnimation() const {
+  virtual PRBool IsToAnimation() const {
     return !HasAttr(nsGkAtoms::values) &&
             HasAttr(nsGkAtoms::to) &&
            !HasAttr(nsGkAtoms::from);
@@ -346,9 +346,9 @@ protected:
 
   
   
-  virtual bool IsValueFixedForSimpleDuration() const;
+  virtual PRBool IsValueFixedForSimpleDuration() const;
 
-  inline bool IsAdditive() const {
+  inline PRBool IsAdditive() const {
     
 
 
@@ -357,7 +357,7 @@ protected:
 
 
 
-    bool isByAnimation = (!HasAttr(nsGkAtoms::values) &&
+    PRBool isByAnimation = (!HasAttr(nsGkAtoms::values) &&
                              HasAttr(nsGkAtoms::by) &&
                             !HasAttr(nsGkAtoms::from));
     return !IsToAnimation() && (GetAdditive() || isByAnimation);
@@ -376,26 +376,26 @@ protected:
     BF_KEY_POINTS  = 5 
   };
 
-  inline void SetAccumulateErrorFlag(bool aNewValue) {
+  inline void SetAccumulateErrorFlag(PRBool aNewValue) {
     SetErrorFlag(BF_ACCUMULATE, aNewValue);
   }
-  inline void SetAdditiveErrorFlag(bool aNewValue) {
+  inline void SetAdditiveErrorFlag(PRBool aNewValue) {
     SetErrorFlag(BF_ADDITIVE, aNewValue);
   }
-  inline void SetCalcModeErrorFlag(bool aNewValue) {
+  inline void SetCalcModeErrorFlag(PRBool aNewValue) {
     SetErrorFlag(BF_CALC_MODE, aNewValue);
   }
-  inline void SetKeyTimesErrorFlag(bool aNewValue) {
+  inline void SetKeyTimesErrorFlag(PRBool aNewValue) {
     SetErrorFlag(BF_KEY_TIMES, aNewValue);
   }
-  inline void SetKeySplinesErrorFlag(bool aNewValue) {
+  inline void SetKeySplinesErrorFlag(PRBool aNewValue) {
     SetErrorFlag(BF_KEY_SPLINES, aNewValue);
   }
-  inline void SetKeyPointsErrorFlag(bool aNewValue) {
+  inline void SetKeyPointsErrorFlag(PRBool aNewValue) {
     SetErrorFlag(BF_KEY_POINTS, aNewValue);
   }
   
-  inline void SetErrorFlag(AnimationAttributeIdx aField, bool aValue) {
+  inline void SetErrorFlag(AnimationAttributeIdx aField, PRBool aValue) {
     if (aValue) {
       mErrorFlags |=  (0x01 << aField);
     } else {
@@ -466,12 +466,12 @@ protected:
   nsSMILWeakTargetIdentifier    mLastTarget;
 
   
-  bool                          mIsActive:1;
-  bool                          mIsFrozen:1;
-  bool                          mLastValue:1;
-  bool                          mHasChanged:1;
-  bool                          mValueNeedsReparsingEverySample:1;
-  bool                          mPrevSampleWasSingleValueAnimation:1;
+  PRPackedBool                  mIsActive:1;
+  PRPackedBool                  mIsFrozen:1;
+  PRPackedBool                  mLastValue:1;
+  PRPackedBool                  mHasChanged:1;
+  PRPackedBool                  mValueNeedsReparsingEverySample:1;
+  PRPackedBool                  mPrevSampleWasSingleValueAnimation:1;
 };
 
 #endif 

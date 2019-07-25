@@ -156,7 +156,7 @@ nsPartChannel::GetName(nsACString &aResult)
 }
 
 NS_IMETHODIMP
-nsPartChannel::IsPending(bool *aResult)
+nsPartChannel::IsPending(PRBool *aResult)
 {
     
     
@@ -313,7 +313,7 @@ nsPartChannel::GetContentType(nsACString &aContentType)
 NS_IMETHODIMP
 nsPartChannel::SetContentType(const nsACString &aContentType)
 {
-    bool dummy;
+    PRBool dummy;
     net_ParseContentType(aContentType, mContentType, mContentCharset, &dummy);
     return NS_OK;
 }
@@ -384,7 +384,7 @@ nsPartChannel::GetPartID(PRUint32 *aPartID)
 }
 
 NS_IMETHODIMP
-nsPartChannel::GetIsLastPart(bool *aIsLastPart)
+nsPartChannel::GetIsLastPart(PRBool *aIsLastPart)
 {
     *aIsLastPart = mIsLastPart;
     return NS_OK;
@@ -395,7 +395,7 @@ nsPartChannel::GetIsLastPart(bool *aIsLastPart)
 
 
 NS_IMETHODIMP 
-nsPartChannel::GetIsByteRangeRequest(bool *aIsByteRangeRequest)
+nsPartChannel::GetIsByteRangeRequest(PRBool *aIsByteRangeRequest)
 {
     *aIsByteRangeRequest = mIsByteRangeRequest;
 
@@ -546,7 +546,7 @@ nsMultiMixedConv::OnDataAvailable(nsIRequest *request, nsISupports *context,
         
         
         
-        bool done = false;
+        PRBool done = PR_FALSE;
         rv = ParseHeaders(channel, cursor, bufLen, &done);
         if (NS_FAILED(rv)) ERR_OUT
 
@@ -584,7 +584,7 @@ nsMultiMixedConv::OnDataAvailable(nsIRequest *request, nsISupports *context,
             
             mNewPart = PR_FALSE;
             cursor = token;
-            bool done = false; 
+            PRBool done = PR_FALSE; 
             rv = ParseHeaders(channel, cursor, bufLen, &done);
             if (NS_FAILED(rv)) ERR_OUT
             if (done) {
@@ -919,13 +919,13 @@ nsMultiMixedConv::PushOverLine(char *&aPtr, PRUint32 &aLen) {
 
 nsresult
 nsMultiMixedConv::ParseHeaders(nsIChannel *aChannel, char *&aPtr, 
-                               PRUint32 &aLen, bool *_retval) {
+                               PRUint32 &aLen, PRBool *_retval) {
     
     
     nsresult rv = NS_OK;
     char *cursor = aPtr, *newLine = nsnull;
     PRUint32 cursorLen = aLen;
-    bool done = false;
+    PRBool done = PR_FALSE;
     PRUint32 lineFeedIncrement = 1;
     
     mContentLength = LL_MAXUINT; 

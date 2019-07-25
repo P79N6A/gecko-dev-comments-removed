@@ -113,7 +113,7 @@ nsGfxRadioControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (IsThemed())
     return NS_OK; 
 
-  bool checked = true;
+  PRBool checked = PR_TRUE;
   GetCurrentCheckState(&checked); 
   if (!checked)
     return NS_OK;

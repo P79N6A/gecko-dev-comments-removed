@@ -62,7 +62,7 @@ public:
     
     
     
-    nsXULPopupListener(nsIDOMElement *aElement, bool aIsContext);
+    nsXULPopupListener(nsIDOMElement *aElement, PRBool aIsContext);
     virtual ~nsXULPopupListener(void);
 
     
@@ -91,7 +91,7 @@ private:
     nsCOMPtr<nsIContent> mPopupContent; 
 
     
-    bool mIsContext;
+    PRBool mIsContext;
 };
 
 #endif 

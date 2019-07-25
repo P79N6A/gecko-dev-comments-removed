@@ -66,11 +66,11 @@ public:
                                      nsILoadGroup*       aLoadGroup,
                                      nsISupports*        aContainer,
                                      nsIStreamListener** aDocListener,
-                                     bool                aReset = true,
+                                     PRBool              aReset = PR_TRUE,
                                      nsIContentSink*     aSink = nsnull);
 
   virtual void SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject);
-  virtual bool CanSavePresentation(nsIRequest *aNewRequest);
+  virtual PRBool CanSavePresentation(nsIRequest *aNewRequest);
 
   const nsCString& GetType() const { return mMimeType; }
   nsIContent*      GetPluginContent() { return mPluginContent; }
@@ -92,7 +92,7 @@ protected:
   
   
   
-  bool                                     mWillHandleInstantiation;
+  PRBool                                   mWillHandleInstantiation;
 };
 
 class PluginStreamListener : public MediaDocumentStreamListener
@@ -221,7 +221,7 @@ PluginDocument::SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject
 }
 
 
-bool
+PRBool
 PluginDocument::CanSavePresentation(nsIRequest *aNewRequest)
 {
   
@@ -236,14 +236,14 @@ PluginDocument::StartDocumentLoad(const char*         aCommand,
                                   nsILoadGroup*       aLoadGroup,
                                   nsISupports*        aContainer,
                                   nsIStreamListener** aDocListener,
-                                  bool                aReset,
+                                  PRBool              aReset,
                                   nsIContentSink*     aSink)
 {
   
   
   nsCOMPtr<nsIDocShellTreeItem> dsti (do_QueryInterface(aContainer));
   if (dsti) {
-    bool isMsgPane = false;
+    PRBool isMsgPane = PR_FALSE;
     dsti->NameEquals(NS_LITERAL_STRING("messagepane").get(), &isMsgPane);
     if (isMsgPane) {
       return NS_ERROR_FAILURE;
@@ -372,7 +372,7 @@ PluginDocument::Print()
 }
 
 NS_IMETHODIMP
-PluginDocument::GetWillHandleInstantiation(bool* aWillHandle)
+PluginDocument::GetWillHandleInstantiation(PRBool* aWillHandle)
 {
   *aWillHandle = mWillHandleInstantiation;
   return NS_OK;

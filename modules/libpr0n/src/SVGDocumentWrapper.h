@@ -94,7 +94,7 @@ public:
 
 
 
-  bool      GetWidthOrHeight(Dimension aDimension, PRInt32& aResult);
+  PRBool    GetWidthOrHeight(Dimension aDimension, PRInt32& aResult);
 
   
 
@@ -127,7 +127,7 @@ public:
 
 
 
-  inline bool      ParsedSuccessfully()  { return !!GetRootSVGElem(); }
+  inline PRBool    ParsedSuccessfully()  { return !!GetRootSVGElem(); }
 
   
 
@@ -152,7 +152,7 @@ public:
 
 
 
-  bool      IsAnimated();
+  PRBool    IsAnimated();
 
   
 
@@ -160,7 +160,7 @@ public:
 
 
 
-  bool ShouldIgnoreInvalidation() { return mIgnoreInvalidation; }
+  PRBool ShouldIgnoreInvalidation() { return mIgnoreInvalidation; }
 
   
 
@@ -182,8 +182,8 @@ private:
   nsCOMPtr<nsIDocumentViewer> mViewer;
   nsCOMPtr<nsILoadGroup>      mLoadGroup;
   nsCOMPtr<nsIStreamListener> mListener;
-  bool                        mIgnoreInvalidation;
-  bool                        mRegisteredForXPCOMShutdown;
+  PRPackedBool                mIgnoreInvalidation;
+  PRPackedBool                mRegisteredForXPCOMShutdown;
 
   
   

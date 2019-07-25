@@ -70,7 +70,7 @@ protected:
   
 
 
-  virtual bool HasScriptContent() = 0;
+  virtual PRBool HasScriptContent() = 0;
 
   
 

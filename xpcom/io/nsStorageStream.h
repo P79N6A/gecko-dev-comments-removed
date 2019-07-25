@@ -83,7 +83,7 @@ private:
     PRUint32           mSegmentSize;       
                                            
     PRUint32           mSegmentSizeLog2;   
-    bool               mWriteInProgress;   
+    PRBool             mWriteInProgress;   
     PRInt32            mLastSegmentNum;    
     char*              mWriteCursor;       
     char*              mSegmentEnd;        

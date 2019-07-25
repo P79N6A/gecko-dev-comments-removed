@@ -91,7 +91,7 @@ nsMathMLmfracFrame::TransmitAutomaticData()
   
   
   
-  bool increment = !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags);
+  PRBool increment = !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags);
   SetIncrementScriptLevel(0, increment);
   SetIncrementScriptLevel(1, increment);
 
@@ -206,7 +206,7 @@ nsMathMLmfracFrame::FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize)
 
  nsresult
 nsMathMLmfracFrame::Place(nsRenderingContext& aRenderingContext,
-                          bool                 aPlaceOrigin,
+                          PRBool               aPlaceOrigin,
                           nsHTMLReflowMetrics& aDesiredSize)
 {
   return PlaceInternal(aRenderingContext,
@@ -217,9 +217,9 @@ nsMathMLmfracFrame::Place(nsRenderingContext& aRenderingContext,
 
 nsresult
 nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
-                                  bool                 aPlaceOrigin,
+                                  PRBool               aPlaceOrigin,
                                   nsHTMLReflowMetrics& aDesiredSize,
-                                  bool                 aWidthOnly)
+                                  PRBool               aWidthOnly)
 {
   
   

@@ -125,7 +125,10 @@ public:
   
   NS_HIDDEN_(nsresult) AppendFrames(nsIFrame*       aParentFrame,
                                     ChildListID     aListID,
-                                    nsFrameList&    aFrameList);
+                                    nsFrameList&    aFrameList)
+  {
+    return aParentFrame->AppendFrames(aListID, aFrameList);
+  }
 
   NS_HIDDEN_(nsresult) InsertFrames(nsIFrame*       aParentFrame,
                                     ChildListID     aListID,
@@ -161,7 +164,7 @@ public:
                           nsStyleChangeList* aChangeList,
                           nsChangeHint aMinChange,
                           RestyleTracker& aRestyleTracker,
-                          bool aRestyleDescendants);
+                          PRBool aRestyleDescendants);
 
   
 

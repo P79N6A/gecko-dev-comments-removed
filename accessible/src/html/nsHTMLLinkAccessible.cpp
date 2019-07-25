@@ -178,7 +178,7 @@ nsHTMLLinkAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
 
 
 
-bool
+PRBool
 nsHTMLLinkAccessible::IsLinked()
 {
   if (IsDefunct())

@@ -42,7 +42,7 @@
 #include "plstr.h"
 #include "nsReadableUtils.h"
 
-static bool
+static PRBool
 ParseLocaleString(const char* locale_string, char* language, char* country, char* extra, char separator);
 
 nsresult 
@@ -129,7 +129,7 @@ nsPosixLocale::GetXPLocale(const char* posixLocale, nsAString& locale)
 
 
 
-static bool
+static PRBool
 ParseLocaleString(const char* locale_string, char* language, char* country, char* extra, char separator)
 {
   const char *src = locale_string;

@@ -67,6 +67,15 @@ public:
 
   NS_DECL_NSICSSDECLARATION
 
+  NS_IMETHOD GetMozPerspective(nsAString_internal&);
+  NS_IMETHOD SetMozPerspective(const nsAString_internal&);
+  NS_IMETHOD GetMozPerspectiveOrigin(nsAString_internal&);
+  NS_IMETHOD SetMozPerspectiveOrigin(const nsAString_internal&);
+  NS_IMETHOD GetMozBackfaceVisibility(nsAString_internal&);
+  NS_IMETHOD SetMozBackfaceVisibility(const nsAString_internal&);
+  NS_IMETHOD GetMozTransformStyle(nsAString_internal&);
+  NS_IMETHOD SetMozTransformStyle(const nsAString_internal&);
+
   
   
   NS_IMETHOD GetCssText(nsAString & aCssText);
@@ -93,7 +102,7 @@ protected:
   
   
   
-  virtual mozilla::css::Declaration* GetCSSDeclaration(bool aAllocate) = 0;
+  virtual mozilla::css::Declaration* GetCSSDeclaration(PRBool aAllocate) = 0;
   virtual nsresult SetCSSDeclaration(mozilla::css::Declaration* aDecl) = 0;
   
   
@@ -126,7 +135,7 @@ protected:
 
   nsresult ParsePropertyValue(const nsCSSProperty aPropID,
                               const nsAString& aPropValue,
-                              bool aIsImportant);
+                              PRBool aIsImportant);
 
   
   

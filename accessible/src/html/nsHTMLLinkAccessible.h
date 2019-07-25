@@ -72,7 +72,7 @@ protected:
   
 
 
-  bool IsLinked();
+  PRBool IsLinked();
 };
 
 #endif  

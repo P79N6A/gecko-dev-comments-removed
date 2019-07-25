@@ -64,7 +64,7 @@ gfxSharedImageSurface::~gfxSharedImageSurface()
     MOZ_COUNT_DTOR(gfxSharedImageSurface);
 }
 
- bool
+ PRBool
 gfxSharedImageSurface::IsSharedImage(gfxASurface* aSurface)
 {
     return (aSurface

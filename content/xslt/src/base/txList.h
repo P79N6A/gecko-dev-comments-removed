@@ -77,7 +77,7 @@ public:
     
 
 
-    inline bool isEmpty()
+    inline PRBool isEmpty()
     {
         return itemCount == 0;
     }

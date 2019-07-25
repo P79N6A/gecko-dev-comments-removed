@@ -86,17 +86,17 @@ class nsGeolocationRequest
                        nsIDOMGeoPositionCallback* callback,
                        nsIDOMGeoPositionErrorCallback* errorCallback,
                        nsIDOMGeoPositionOptions* options,
-                       bool watchPositionRequest = false);
+                       PRBool watchPositionRequest = PR_FALSE);
   nsresult Init();
   void Shutdown();
 
   
-  bool Update(nsIDOMGeoPosition* aPosition);
+  void Update(nsIDOMGeoPosition* aPosition);
 
   void SendLocation(nsIDOMGeoPosition* location);
   void MarkCleared();
-  bool IsActive() {return !mCleared;}
-  bool Allowed() {return mAllowed;}
+  PRBool IsActive() {return !mCleared;}
+  PRBool Allowed() {return mAllowed;}
   void SetTimeoutTimer();
 
   ~nsGeolocationRequest();
@@ -107,9 +107,9 @@ class nsGeolocationRequest
  private:
 
   void NotifyError(PRInt16 errorCode);
-  bool mAllowed;
-  bool mCleared;
-  bool mIsWatchPositionRequest;
+  PRPackedBool mAllowed;
+  PRPackedBool mCleared;
+  PRPackedBool mIsWatchPositionRequest;
 
   nsCOMPtr<nsITimer> mTimeoutTimer;
   nsCOMPtr<nsIDOMGeoPositionCallback> mCallback;
@@ -199,7 +199,7 @@ public:
   void Update(nsIDOMGeoPosition* aPosition);
 
   
-  bool HasActiveCallbacks();
+  PRBool HasActiveCallbacks();
 
   
   void RemoveRequest(nsGeolocationRequest* request);
@@ -214,7 +214,7 @@ public:
   nsIWeakReference* GetOwner() { return mOwner; }
 
   
-  bool WindowOwnerStillExists();
+  PRBool WindowOwnerStillExists();
 
 private:
 

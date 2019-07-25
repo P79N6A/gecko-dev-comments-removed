@@ -72,7 +72,7 @@ public:
   ~nsStringCaseInsensitiveHashKey() { }
 
   KeyType GetKey() const { return mStr; }
-  bool KeyEquals(const KeyTypePointer aKey) const
+  PRBool KeyEquals(const KeyTypePointer aKey) const
   {
     return mStr.Equals(*aKey,nsCaseInsensitiveStringComparator());
   }
@@ -136,11 +136,11 @@ public:
                                 PRInt32 *aPositionIndex,
                                 PRInt32 *aItemsInGroup);
   NS_IMETHOD GetNextRadioButton(const nsAString& aName,
-                                const bool aPrevious,
+                                const PRBool aPrevious,
                                 nsIDOMHTMLInputElement*  aFocusedRadio,
                                 nsIDOMHTMLInputElement** aRadioOut);
   NS_IMETHOD WalkRadioGroup(const nsAString& aName, nsIRadioVisitor* aVisitor,
-                            bool aFlushContent);
+                            PRBool aFlushContent);
   NS_IMETHOD AddToRadioGroup(const nsAString& aName,
                              nsIFormControl* aRadio);
   NS_IMETHOD RemoveFromRadioGroup(const nsAString& aName,
@@ -152,7 +152,7 @@ public:
   virtual void SetValueMissingState(const nsAString& aName, bool aValue);
 
   
-  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+  virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -162,19 +162,19 @@ public:
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              bool aCompileEventHandlers);
-  virtual void UnbindFromTree(bool aDeep = true,
-                              bool aNullParent = true);
+                              PRBool aCompileEventHandlers);
+  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
+                              PRBool aNullParent = PR_TRUE);
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, bool aNotify)
+                   const nsAString& aValue, PRBool aNotify)
   {
     return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
-                           bool aNotify);
+                           PRBool aNotify);
   virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                                const nsAString* aValue, bool aNotify);
+                                const nsAString* aValue, PRBool aNotify);
 
   
 
@@ -219,7 +219,7 @@ public:
 
 
   nsresult AddElement(nsGenericHTMLFormElement* aElement, bool aUpdateValidity,
-                      bool aNotify);
+                      PRBool aNotify);
 
   
 
@@ -236,7 +236,7 @@ public:
 
 
 
-  bool HasSingleTextControl() const;
+  PRBool HasSingleTextControl() const;
 
   
 
@@ -245,7 +245,7 @@ public:
 
 
 
-  bool IsDefaultSubmitElement(const nsIFormControl* aControl) const;
+  PRBool IsDefaultSubmitElement(const nsIFormControl* aControl) const;
 
   
 
@@ -267,7 +267,7 @@ public:
 
 
 
-  void UpdateValidity(bool aElementValidityState);
+  void UpdateValidity(PRBool aElementValidityState);
 
   
 
@@ -276,7 +276,7 @@ public:
 
 
 
-  bool GetValidity() const { return !mInvalidElementsCount; }
+  PRBool GetValidity() const { return !mInvalidElementsCount; }
 
   
 
@@ -369,13 +369,13 @@ protected:
 
 
 
-  nsresult NotifySubmitObservers(nsIURI* aActionURL, bool* aCancelSubmit,
-                                 bool aEarlyNotify);
+  nsresult NotifySubmitObservers(nsIURI* aActionURL, PRBool* aCancelSubmit,
+                                 PRBool aEarlyNotify);
 
   
 
 
-  already_AddRefed<nsISupports> DoResolveName(const nsAString& aName, bool aFlushContent);
+  already_AddRefed<nsISupports> DoResolveName(const nsAString& aName, PRBool aFlushContent);
 
   
 
@@ -394,7 +394,7 @@ protected:
 
 
 
-  bool CheckFormValidity(nsIMutableArray* aInvalidElements) const;
+  PRBool CheckFormValidity(nsIMutableArray* aInvalidElements) const;
 
 public:
   
@@ -418,21 +418,21 @@ protected:
   
   nsDataHashtable<nsStringCaseInsensitiveHashKey,bool> mValueMissingRadioGroups;
   
-  bool mGeneratingSubmit;
+  PRPackedBool mGeneratingSubmit;
   
-  bool mGeneratingReset;
+  PRPackedBool mGeneratingReset;
   
-  bool mIsSubmitting;
+  PRPackedBool mIsSubmitting;
   
-  bool mDeferSubmission;
+  PRPackedBool mDeferSubmission;
   
-  bool mNotifiedObservers;
+  PRPackedBool mNotifiedObservers;
   
-  bool mNotifiedObserversResult;
+  PRPackedBool mNotifiedObserversResult;
   
   PopupControlState mSubmitPopupState;
   
-  bool mSubmitInitiatedFromUserInput;
+  PRBool mSubmitInitiatedFromUserInput;
 
   
   nsAutoPtr<nsFormSubmission> mPendingSubmission;
@@ -465,9 +465,9 @@ protected:
 
 protected:
   
-  static bool gFirstFormSubmitted;
+  static PRBool gFirstFormSubmitted;
   
-  static bool gPasswordManagerInitialized;
+  static PRBool gPasswordManagerInitialized;
 };
 
 #endif 

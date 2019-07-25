@@ -90,7 +90,7 @@ public:
   virtual PRUint64 NativeState();
 
   virtual void InvalidateChildren();
-  virtual bool RemoveChild(nsAccessible* aAccessible);
+  virtual PRBool RemoveChild(nsAccessible* aAccessible);
 
   
 
@@ -169,7 +169,7 @@ public:
   nsAccessible *DOMPointToHypertextOffset(nsINode *aNode,
                                           PRInt32 aNodeOffset,
                                           PRInt32 *aHypertextOffset,
-                                          bool aIsEndOffset = false);
+                                          PRBool aIsEndOffset = PR_FALSE);
 
   
 
@@ -233,7 +233,7 @@ public:
 
 
   PRInt32 GetChildOffset(nsAccessible* aChild,
-                         bool aInvalidateAfter = false)
+                         PRBool aInvalidateAfter = PR_FALSE)
   {
     PRInt32 index = GetIndexOf(aChild);
     return index == -1 ? -1 : GetChildOffset(index, aInvalidateAfter);
@@ -243,7 +243,7 @@ public:
 
 
   PRInt32 GetChildOffset(PRUint32 aChildIndex,
-                         bool aInvalidateAfter = false);
+                         PRBool aInvalidateAfter = PR_FALSE);
 
   
 
@@ -313,7 +313,7 @@ protected:
   PRInt32 GetRelativeOffset(nsIPresShell *aPresShell, nsIFrame *aFromFrame,
                             PRInt32 aFromOffset, nsAccessible *aFromAccessible,
                             nsSelectionAmount aAmount, nsDirection aDirection,
-                            bool aNeedsStart);
+                            PRBool aNeedsStart);
 
   
 
@@ -397,8 +397,8 @@ protected:
 
 
   nsresult DOMRangeBoundToHypertextOffset(nsIDOMRange *aRange,
-                                          bool aIsStartBound,
-                                          bool aIsStartOffset,
+                                          PRBool aIsStartBound,
+                                          PRBool aIsStartOffset,
                                           PRInt32 *aHTOffset);
 
   

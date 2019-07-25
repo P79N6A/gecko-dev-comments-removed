@@ -103,7 +103,7 @@ gfxCoreTextShaper::~gfxCoreTextShaper()
     }
 }
 
-bool
+PRBool
 gfxCoreTextShaper::InitTextRun(gfxContext *aContext,
                                gfxTextRun *aTextRun,
                                const PRUnichar *aString,
@@ -114,15 +114,15 @@ gfxCoreTextShaper::InitTextRun(gfxContext *aContext,
     
     
 
-    bool disableLigatures = (aTextRun->GetFlags() & gfxTextRunFactory::TEXT_DISABLE_OPTIONAL_LIGATURES) != 0;
+    PRBool disableLigatures = (aTextRun->GetFlags() & gfxTextRunFactory::TEXT_DISABLE_OPTIONAL_LIGATURES) != 0;
 
     
 
-    bool isRTL = aTextRun->IsRightToLeft();
+    PRBool isRTL = aTextRun->IsRightToLeft();
 
     
     
-    bool bidiWrap = isRTL;
+    PRBool bidiWrap = isRTL;
     if (!bidiWrap && (aTextRun->GetFlags() & gfxTextRunFactory::TEXT_IS_8BIT) == 0) {
         PRUint32 i;
         for (i = aRunStart; i < aRunStart + aRunLength; ++i) {
@@ -203,7 +203,7 @@ gfxCoreTextShaper::InitTextRun(gfxContext *aContext,
     
     
     
-    bool success = true;
+    PRBool success = PR_TRUE;
     for (PRUint32 runIndex = 0; runIndex < numRuns; runIndex++) {
         CTRunRef aCTRun = (CTRunRef)::CFArrayGetValueAtIndex(glyphRuns, runIndex);
         if (SetGlyphsFromRun(aTextRun, aCTRun, startOffset,
@@ -235,7 +235,7 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxTextRun *aTextRun,
     
     
 
-    bool isLTR = !aTextRun->IsRightToLeft();
+    PRBool isLTR = !aTextRun->IsRightToLeft();
     PRInt32 direction = isLTR ? 1 : -1;
 
     PRInt32 numGlyphs = ::CTRunGetGlyphCount(aCTRun);
@@ -362,7 +362,7 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxTextRun *aTextRun,
 
     while (glyphStart < numGlyphs) { 
 
-        bool inOrder = true;
+        PRBool inOrder = PR_TRUE;
         PRInt32 charEnd = glyphToChar[glyphStart] - stringRange.location;
         NS_ASSERTION(charEnd >= 0 && charEnd < stringRange.length,
                      "glyph-to-char mapping points outside string range");
@@ -402,7 +402,7 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxTextRun *aTextRun,
             
             
             
-            bool allGlyphsAreWithinCluster = true;
+            PRBool allGlyphsAreWithinCluster = PR_TRUE;
             PRInt32 prevGlyphCharIndex = charStart;
             for (PRInt32 i = glyphStart; i < glyphEnd; ++i) {
                 PRInt32 glyphCharIndex = glyphToChar[i] - stringRange.location;

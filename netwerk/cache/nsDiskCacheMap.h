@@ -147,7 +147,7 @@ public:
     {
     }
     
-    bool    ValidRecord()
+    PRBool  ValidRecord()
     {
         if ((mDataLocation & eReservedMask) || (mMetaLocation & eReservedMask))
             return PR_FALSE;
@@ -163,7 +163,7 @@ public:
     void      SetEvictionRank( PRUint32 rank)   { mEvictionRank = rank ? rank : 1; }
 
     
-    bool      DataLocationInitialized() const { return 0 != (mDataLocation & eLocationInitializedMask); }
+    PRBool    DataLocationInitialized() const { return 0 != (mDataLocation & eLocationInitializedMask); }
     void      ClearDataLocation()       { mDataLocation = 0; }
     
     PRUint32  DataFile() const
@@ -230,7 +230,7 @@ public:
     }
 
     
-    bool      MetaLocationInitialized() const { return 0 != (mMetaLocation & eLocationInitializedMask); }
+    PRBool    MetaLocationInitialized() const { return 0 != (mMetaLocation & eLocationInitializedMask); }
     void      ClearMetaLocation()             { mMetaLocation = 0; }   
     PRUint32  MetaLocation() const            { return mMetaLocation; }
     
@@ -432,11 +432,11 @@ public:
 
 
     nsresult  Open( nsILocalFile *  cacheDirectory);
-    nsresult  Close(bool flush);
+    nsresult  Close(PRBool flush);
     nsresult  Trim();
 
     nsresult  FlushHeader();
-    nsresult  FlushRecords( bool unswap);
+    nsresult  FlushRecords( PRBool unswap);
 
     void      NotifyCapacityChange(PRUint32 capacity);
 
@@ -456,13 +456,13 @@ public:
     nsresult    DeleteStorage( nsDiskCacheRecord *  record);
 
     nsresult    GetFileForDiskCacheRecord( nsDiskCacheRecord * record,
-                                           bool                meta,
-                                           bool                createPath,
+                                           PRBool              meta,
+                                           PRBool              createPath,
                                            nsIFile **          result);
                                           
     nsresult    GetLocalFileForDiskCacheRecord( nsDiskCacheRecord *  record,
-                                                bool                 meta,
-                                                bool                 createPath,
+                                                PRBool               meta,
+                                                PRBool               createPath,
                                                 nsILocalFile **      result);
 
     
@@ -473,7 +473,7 @@ public:
     
     nsresult    ReadDataCacheBlocks(nsDiskCacheBinding * binding, char * buffer, PRUint32 size);
     nsresult    WriteDataCacheBlocks(nsDiskCacheBinding * binding, char * buffer, PRUint32 size);
-    nsresult    DeleteStorage( nsDiskCacheRecord * record, bool metaData);
+    nsresult    DeleteStorage( nsDiskCacheRecord * record, PRBool metaData);
     
     
 
@@ -514,8 +514,8 @@ private:
 
 
     nsresult    OpenBlockFiles();
-    nsresult    CloseBlockFiles(bool flush);
-    bool        CacheFilesExist();
+    nsresult    CloseBlockFiles(PRBool flush);
+    PRBool      CacheFilesExist();
 
     nsresult    CreateCacheSubDirectories();
 

@@ -38,10 +38,10 @@ function run_test()
 
   
   let async = createXHR(true);
-  async.addEventListener("readystatechange", function(event) {
+  async.onreadystatechange = function(event) {
     if (checkResults(async))
       httpserver.stop(do_test_finished);
-  }, false);
+  };
   async.send(null);
   do_test_pending();
 }

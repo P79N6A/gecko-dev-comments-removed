@@ -207,7 +207,7 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
 
  nsresult
 nsMathMLTokenFrame::Place(nsRenderingContext& aRenderingContext,
-                          bool                 aPlaceOrigin,
+                          PRBool               aPlaceOrigin,
                           nsHTMLReflowMetrics& aDesiredSize)
 {
   mBoundingMetrics = nsBoundingMetrics();
@@ -314,7 +314,7 @@ nsMathMLTokenFrame::ProcessTextData()
 
 
 
-bool
+PRBool
 nsMathMLTokenFrame::SetTextStyle()
 {
   if (mContent->Tag() != nsGkAtoms::mi_)
@@ -331,7 +331,7 @@ nsMathMLTokenFrame::SetTextStyle()
     return PR_FALSE;
 
   nsAutoString fontstyle;
-  bool isSingleCharacter =
+  PRBool isSingleCharacter =
     length == 1 ||
     (length == 2 && NS_IS_HIGH_SURROGATE(data[0]));
   if (isSingleCharacter &&
@@ -399,7 +399,7 @@ nsMathMLTokenFrame::SetTextStyle()
 
 
 static void
-SetQuote(nsIFrame* aFrame, nsString& aValue, bool aNotify)
+SetQuote(nsIFrame* aFrame, nsString& aValue, PRBool aNotify)
 {
   if (!aFrame)
     return;
@@ -416,7 +416,7 @@ SetQuote(nsIFrame* aFrame, nsString& aValue, bool aNotify)
 }
 
 void
-nsMathMLTokenFrame::SetQuotes(bool aNotify)
+nsMathMLTokenFrame::SetQuotes(PRBool aNotify)
 {
   if (mContent->Tag() != nsGkAtoms::ms_)
     return;

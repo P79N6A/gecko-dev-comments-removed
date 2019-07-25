@@ -110,7 +110,7 @@ public:
   NS_IMETHOD Reset();
   NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission);
   NS_IMETHOD SaveState();
-  bool RestoreState(nsPresState* aState);
+  PRBool RestoreState(nsPresState* aState);
 
   nsEventStates IntrinsicState() const;
 
@@ -118,16 +118,16 @@ public:
 
 
   virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                                 const nsAString* aValue, bool aNotify);
+                                 const nsAString* aValue, PRBool aNotify);
   
 
 
   nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
-                        const nsAString* aValue, bool aNotify);
+                        const nsAString* aValue, PRBool aNotify);
   
   
-  virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32 *aTabIndex);
-  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+  virtual PRBool IsHTMLFocusable(PRBool aWithMouse, PRBool *aIsFocusable, PRInt32 *aTabIndex);
+  virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -136,9 +136,9 @@ public:
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              bool aCompileEventHandlers);
-  virtual void UnbindFromTree(bool aDeep = true,
-                              bool aNullParent = true);
+                              PRBool aCompileEventHandlers);
+  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
+                              PRBool aNullParent = PR_TRUE);
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual void DoneCreatingElement();
@@ -146,9 +146,9 @@ public:
 
 protected:
   PRUint8 mType;
-  bool mDisabledChanged;
-  bool mInInternalActivate;
-  bool mInhibitStateRestoration;
+  PRPackedBool mDisabledChanged;
+  PRPackedBool mInInternalActivate;
+  PRPackedBool mInhibitStateRestoration;
 
 private:
   
@@ -231,8 +231,8 @@ NS_IMPL_STRING_ATTR(nsHTMLButtonElement, Value, value)
 NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLButtonElement, Type, type,
                                 kButtonDefaultType->tag)
 
-bool
-nsHTMLButtonElement::IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32 *aTabIndex)
+PRBool
+nsHTMLButtonElement::IsHTMLFocusable(PRBool aWithMouse, PRBool *aIsFocusable, PRInt32 *aTabIndex)
 {
   if (nsGenericHTMLFormElement::IsHTMLFocusable(aWithMouse, aIsFocusable, aTabIndex)) {
     return PR_TRUE;
@@ -247,7 +247,7 @@ nsHTMLButtonElement::IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt3
   return PR_FALSE;
 }
 
-bool
+PRBool
 nsHTMLButtonElement::ParseAttribute(PRInt32 aNamespaceID,
                                     nsIAtom* aAttribute,
                                     const nsAString& aValue,
@@ -257,7 +257,7 @@ nsHTMLButtonElement::ParseAttribute(PRInt32 aNamespaceID,
     if (aAttribute == nsGkAtoms::type) {
       
       
-      bool success = aResult.ParseEnumValue(aValue, kButtonTypeTable, false);
+      PRBool success = aResult.ParseEnumValue(aValue, kButtonTypeTable, PR_FALSE);
       if (success) {
         mType = aResult.GetEnumValue();
       } else {
@@ -297,7 +297,7 @@ nsHTMLButtonElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   
   
   
-  bool outerActivateEvent =
+  PRBool outerActivateEvent =
     (NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) ||
      (aVisitor.mEvent->message == NS_UI_ACTIVATE &&
       !mInInternalActivate));
@@ -490,7 +490,7 @@ nsHTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 nsresult
 nsHTMLButtonElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                 nsIContent* aBindingParent,
-                                bool aCompileEventHandlers)
+                                PRBool aCompileEventHandlers)
 {
   nsresult rv = nsGenericHTMLFormElement::BindToTree(aDocument, aParent,
                                                      aBindingParent,
@@ -504,7 +504,7 @@ nsHTMLButtonElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 }
 
 void
-nsHTMLButtonElement::UnbindFromTree(bool aDeep, bool aNullParent)
+nsHTMLButtonElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
   nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
 
@@ -585,7 +585,7 @@ nsHTMLButtonElement::DoneCreatingElement()
 
 nsresult
 nsHTMLButtonElement::BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                                   const nsAString* aValue, bool aNotify)
+                                   const nsAString* aValue, PRBool aNotify)
 {
   if (aNotify && aName == nsGkAtoms::disabled &&
       aNameSpaceID == kNameSpaceID_None) {
@@ -598,7 +598,7 @@ nsHTMLButtonElement::BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
 
 nsresult
 nsHTMLButtonElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                                  const nsAString* aValue, bool aNotify)
+                                  const nsAString* aValue, PRBool aNotify)
 {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::type) {
@@ -632,7 +632,7 @@ nsHTMLButtonElement::SaveState()
   return rv;
 }
 
-bool
+PRBool
 nsHTMLButtonElement::RestoreState(nsPresState* aState)
 {
   if (aState && aState->IsDisabledSet()) {

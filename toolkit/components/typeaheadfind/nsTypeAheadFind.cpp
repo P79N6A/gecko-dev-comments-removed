@@ -160,7 +160,7 @@ nsTypeAheadFind::PrefsReset()
   prefBranch->GetBoolPref("accessibility.typeaheadfind.startlinksonly",
                           &mStartLinksOnlyPref);
 
-  bool isSoundEnabled = true;
+  PRBool isSoundEnabled = PR_TRUE;
   prefBranch->GetBoolPref("accessibility.typeaheadfind.enablesound",
                            &isSoundEnabled);
   nsXPIDLCString soundStr;
@@ -176,14 +176,14 @@ nsTypeAheadFind::PrefsReset()
 }
 
 NS_IMETHODIMP
-nsTypeAheadFind::SetCaseSensitive(bool isCaseSensitive)
+nsTypeAheadFind::SetCaseSensitive(PRBool isCaseSensitive)
 {
   mFind->SetCaseSensitive(isCaseSensitive);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsTypeAheadFind::GetCaseSensitive(bool* isCaseSensitive)
+nsTypeAheadFind::GetCaseSensitive(PRBool* isCaseSensitive)
 {
   mFind->GetCaseSensitive(isCaseSensitive);
   return NS_OK;
@@ -297,8 +297,8 @@ nsTypeAheadFind::PlayNotFoundSound()
 }
 
 nsresult
-nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
-                           bool aIsFirstVisiblePreferred, bool aFindPrev,
+nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, PRBool aIsLinksOnly,
+                           PRBool aIsFirstVisiblePreferred, PRBool aFindPrev,
                            PRUint16* aResult)
 {
   *aResult = FIND_NOTFOUND;
@@ -368,7 +368,7 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
 
   
   
-  bool hasMoreDocShells;
+  PRBool hasMoreDocShells;
 
   while (NS_SUCCEEDED(docShellEnumerator->HasMoreElements(&hasMoreDocShells)) && hasMoreDocShells) {
     docShellEnumerator->GetNext(getter_AddRefs(currentContainer));
@@ -393,7 +393,7 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
   PRInt16 rangeCompareResult = 0;
   mStartPointRange->CompareBoundaryPoints(nsIDOMRange::START_TO_START, mSearchRange, &rangeCompareResult);
   
-  bool hasWrapped = (rangeCompareResult < 0);
+  PRBool hasWrapped = (rangeCompareResult < 0);
 
   if (mTypeAheadBuffer.IsEmpty())
     return NS_ERROR_FAILURE;
@@ -409,7 +409,7 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
         break;  
 
       
-      bool isInsideLink = false, isStartingLink = false;
+      PRBool isInsideLink = PR_FALSE, isStartingLink = PR_FALSE;
 
       if (aIsLinksOnly) {
         
@@ -417,7 +417,7 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
                               &isStartingLink);
       }
 
-      bool usesIndependentSelection;
+      PRBool usesIndependentSelection;
       if (!IsRangeVisible(presShell, presContext, returnRange,
                           aIsFirstVisiblePreferred, PR_FALSE,
                           getter_AddRefs(mStartPointRange), 
@@ -463,7 +463,7 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
         
 
 
-        bool shouldFocusEditableElement = false;
+        PRBool shouldFocusEditableElement = false;
         if (fm) {
           nsCOMPtr<nsIDOMWindow> focusedWindow;
           nsresult rv = fm->GetFocusedWindow(getter_AddRefs(focusedWindow));
@@ -572,7 +572,7 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
     
 
     
-    bool hasTriedFirstDoc = false;
+    PRBool hasTriedFirstDoc = PR_FALSE;
     do {
       
       if (NS_SUCCEEDED(docShellEnumerator->HasMoreElements(&hasMoreDocShells))
@@ -594,7 +594,7 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
       hasTriedFirstDoc = PR_TRUE;      
     } while (docShellEnumerator);  
 
-    bool continueLoop = false;
+    PRBool continueLoop = PR_FALSE;
     if (currentDocShell != startingDocShell)
       continueLoop = PR_TRUE;  
     else if (!hasWrapped || aIsFirstVisiblePreferred) {
@@ -671,8 +671,8 @@ nsTypeAheadFind::GetCurrentWindow(nsIDOMWindow** aCurrentWindow)
 nsresult
 nsTypeAheadFind::GetSearchContainers(nsISupports *aContainer,
                                      nsISelectionController *aSelectionController,
-                                     bool aIsFirstVisiblePreferred,
-                                     bool aFindPrev,
+                                     PRBool aIsFirstVisiblePreferred,
+                                     PRBool aFindPrev,
                                      nsIPresShell **aPresShell,
                                      nsPresContext **aPresContext)
 {
@@ -776,8 +776,8 @@ nsTypeAheadFind::GetSearchContainers(nsISupports *aContainer,
 void
 nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
                                        nsIPresShell *aPresShell,
-                                       bool *aIsInsideLink,
-                                       bool *aIsStartingLink)
+                                       PRBool *aIsInsideLink,
+                                       PRBool *aIsStartingLink)
 {
   *aIsInsideLink = PR_FALSE;
   *aIsStartingLink = PR_TRUE;
@@ -876,7 +876,7 @@ nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
 
 
 NS_IMETHODIMP
-nsTypeAheadFind::FindAgain(bool aFindBackwards, bool aLinksOnly,
+nsTypeAheadFind::FindAgain(PRBool aFindBackwards, PRBool aLinksOnly,
                            PRUint16* aResult)
 
 {
@@ -891,7 +891,7 @@ nsTypeAheadFind::FindAgain(bool aFindBackwards, bool aLinksOnly,
 }
 
 NS_IMETHODIMP
-nsTypeAheadFind::Find(const nsAString& aSearchString, bool aLinksOnly,
+nsTypeAheadFind::Find(const nsAString& aSearchString, PRBool aLinksOnly,
                       PRUint16* aResult)
 {
   *aResult = FIND_NOTFOUND;
@@ -931,7 +931,7 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, bool aLinksOnly,
     return NS_OK;
   }
 
-  bool atEnd = false;    
+  PRBool atEnd = PR_FALSE;    
   if (mTypeAheadBuffer.Length()) {
     const nsAString& oldStr = Substring(mTypeAheadBuffer, 0, mTypeAheadBuffer.Length());
     const nsAString& newStr = Substring(aSearchString, 0, mTypeAheadBuffer.Length());
@@ -969,14 +969,14 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, bool aLinksOnly,
 
   mTypeAheadBuffer = aSearchString;
 
-  bool isFirstVisiblePreferred = false;
+  PRBool isFirstVisiblePreferred = PR_FALSE;
 
   
   if (bufferLength == 0) {
     
     
     
-    bool isSelectionCollapsed = true;
+    PRBool isSelectionCollapsed = PR_TRUE;
     if (selection)
       selection->GetIsCollapsed(&isSelectionCollapsed);
 
@@ -1070,13 +1070,13 @@ nsTypeAheadFind::GetSelection(nsIPresShell *aPresShell,
 }
 
 
-bool
+PRBool
 nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
                                 nsPresContext *aPresContext,
-                                nsIDOMRange *aRange, bool aMustBeInViewPort,
-                                bool aGetTopVisibleLeaf,
+                                nsIDOMRange *aRange, PRBool aMustBeInViewPort,
+                                PRBool aGetTopVisibleLeaf,
                                 nsIDOMRange **aFirstVisibleRange,
-                                bool *aUsesIndependentSelection)
+                                PRBool *aUsesIndependentSelection)
 {
   NS_ASSERTION(aPresShell && aPresContext && aRange && aFirstVisibleRange, 
                "params are invalid");

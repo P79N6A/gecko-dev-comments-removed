@@ -141,12 +141,12 @@ struct nsWidgetInitData {
   nsPopupType   mPopupHint;
   nsPopupLevel  mPopupLevel;
   
-  bool          clipChildren, clipSiblings, mDropShadow;
-  bool          mListenForResizes;
-  bool          mUnicode;
-  bool          mRTL;
-  bool          mNoAutoHide; 
-  bool          mIsDragPopup;  
+  PRPackedBool  clipChildren, clipSiblings, mDropShadow;
+  PRPackedBool  mListenForResizes;
+  PRPackedBool  mUnicode;
+  PRPackedBool  mRTL;
+  PRPackedBool  mNoAutoHide; 
+  PRPackedBool  mIsDragPopup;  
 };
 
 #endif 

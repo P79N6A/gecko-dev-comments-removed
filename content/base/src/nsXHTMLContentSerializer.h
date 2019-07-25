@@ -59,8 +59,8 @@ class nsXHTMLContentSerializer : public nsXMLContentSerializer {
   virtual ~nsXHTMLContentSerializer();
 
   NS_IMETHOD Init(PRUint32 flags, PRUint32 aWrapColumn,
-                  const char* aCharSet, bool aIsCopying,
-                  bool aRewriteEncodingDeclaration);
+                  const char* aCharSet, PRBool aIsCopying,
+                  PRBool aRewriteEncodingDeclaration);
 
   NS_IMETHOD AppendText(nsIContent* aText,
                         PRInt32 aStartOffset,
@@ -73,8 +73,8 @@ class nsXHTMLContentSerializer : public nsXMLContentSerializer {
  protected:
 
 
-  virtual bool CheckElementStart(nsIContent * aContent,
-                          bool & aForceFormat,
+  virtual PRBool CheckElementStart(nsIContent * aContent,
+                          PRBool & aForceFormat,
                           nsAString& aStr);
 
   virtual void AppendEndOfElementStart(nsIContent *aOriginalElement,
@@ -86,19 +86,19 @@ class nsXHTMLContentSerializer : public nsXMLContentSerializer {
                          nsIContent *aOriginalElement,
                          nsAString& aStr);
 
-  virtual bool CheckElementEnd(nsIContent * aContent,
-                          bool & aForceFormat,
+  virtual PRBool CheckElementEnd(nsIContent * aContent,
+                          PRBool & aForceFormat,
                           nsAString& aStr);
 
   virtual void AfterElementEnd(nsIContent * aContent,
                                nsAString& aStr);
 
-  virtual bool LineBreakBeforeOpen(PRInt32 aNamespaceID, nsIAtom* aName);
-  virtual bool LineBreakAfterOpen(PRInt32 aNamespaceID, nsIAtom* aName);
-  virtual bool LineBreakBeforeClose(PRInt32 aNamespaceID, nsIAtom* aName);
-  virtual bool LineBreakAfterClose(PRInt32 aNamespaceID, nsIAtom* aName);
+  virtual PRBool LineBreakBeforeOpen(PRInt32 aNamespaceID, nsIAtom* aName);
+  virtual PRBool LineBreakAfterOpen(PRInt32 aNamespaceID, nsIAtom* aName);
+  virtual PRBool LineBreakBeforeClose(PRInt32 aNamespaceID, nsIAtom* aName);
+  virtual PRBool LineBreakAfterClose(PRInt32 aNamespaceID, nsIAtom* aName);
 
-  bool HasLongLines(const nsString& text, PRInt32& aLastNewlineOffset);
+  PRBool HasLongLines(const nsString& text, PRInt32& aLastNewlineOffset);
 
   
   virtual void MaybeEnterInPreContent(nsIContent* aNode);
@@ -111,13 +111,13 @@ class nsXHTMLContentSerializer : public nsXMLContentSerializer {
                            nsIAtom* aTagName,
                            nsAString& aStr,
                            PRUint32 aSkipAttr,
-                           bool aAddNSAttr);
+                           PRBool aAddNSAttr);
 
-  bool IsFirstChildOfOL(nsIContent* aElement);
+  PRBool IsFirstChildOfOL(nsIContent* aElement);
 
   void SerializeLIValueAttribute(nsIContent* aElement,
                                  nsAString& aStr);
-  bool IsShorthandAttr(const nsIAtom* aAttrName,
+  PRBool IsShorthandAttr(const nsIAtom* aAttrName,
                          const nsIAtom* aElementName);
   virtual void AppendAndTranslateEntities(const nsAString& aStr,
                                           nsAString& aOutputStr);
@@ -131,10 +131,10 @@ class nsXHTMLContentSerializer : public nsXMLContentSerializer {
 
 
 
-  bool          mIsHTMLSerializer;
+  PRPackedBool  mIsHTMLSerializer;
 
-  bool          mDoHeader;
-  bool          mIsCopying; 
+  PRPackedBool  mDoHeader;
+  PRPackedBool  mIsCopying; 
 
   
 
@@ -149,14 +149,14 @@ class nsXHTMLContentSerializer : public nsXMLContentSerializer {
 
   
   
-  bool          mRewriteEncodingDeclaration;
+  PRPackedBool  mRewriteEncodingDeclaration;
 
   
-  bool          mIsFirstChildOfOL;
+  PRPackedBool  mIsFirstChildOfOL;
 
   
   struct olState {
-    olState(PRInt32 aStart, bool aIsFirst)
+    olState(PRInt32 aStart, PRBool aIsFirst)
       : startVal(aStart),
         isFirstListItem(aIsFirst)
     {
@@ -173,13 +173,13 @@ class nsXHTMLContentSerializer : public nsXMLContentSerializer {
 
     
     
-    bool isFirstListItem;
+    PRBool isFirstListItem;
   };
 
   
   nsAutoTArray<olState, 8> mOLStateStack;
 
-  bool HasNoChildren(nsIContent* aContent);
+  PRBool HasNoChildren(nsIContent* aContent);
 };
 
 nsresult

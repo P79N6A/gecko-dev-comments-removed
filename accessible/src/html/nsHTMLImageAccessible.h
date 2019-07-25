@@ -78,7 +78,7 @@ private:
 
 
 
-  bool HasLongDesc();
+  PRBool HasLongDesc();
   
   
 
@@ -89,7 +89,7 @@ private:
 
 
 
-  bool IsValidLongDescIndex(PRUint8 aIndex);
+  PRBool IsValidLongDescIndex(PRUint8 aIndex);
 };
 
 #endif

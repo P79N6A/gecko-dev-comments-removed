@@ -45,9 +45,9 @@ NS_IMPL_THREADSAFE_ADDREF(AudioChild);
 NS_IMPL_THREADSAFE_RELEASE(AudioChild);
 
 AudioChild::AudioChild()
-  : mLastPosition(-1),
-    mLastPositionTimestamp(0),
-    mMinWriteSize(-2),
+  : mLastSampleOffset(-1),
+    mLastSampleOffsetTime(0),
+    mMinWriteSample(-2),
     mAudioReentrantMonitor("AudioChild.mReentrantMonitor"),
     mIPCOpen(PR_TRUE),
     mDrained(PR_FALSE)
@@ -67,11 +67,11 @@ AudioChild::ActorDestroy(ActorDestroyReason aWhy)
 }
 
 bool
-AudioChild::RecvPositionInFramesUpdate(const PRInt64& position,
-                                       const PRInt64& time)
+AudioChild::RecvSampleOffsetUpdate(const PRInt64& offset,
+                                   const PRInt64& time)
 {
-  mLastPosition = position;
-  mLastPositionTimestamp = time;
+  mLastSampleOffset = offset;
+  mLastSampleOffsetTime = time;
   return true;
 }
 
@@ -85,21 +85,20 @@ AudioChild::RecvDrainDone()
 }
 
 PRInt32
-AudioChild::WaitForMinWriteSize()
+AudioChild::WaitForMinWriteSample()
 {
   ReentrantMonitorAutoEnter mon(mAudioReentrantMonitor);
   
-  while (mMinWriteSize == -2 && mIPCOpen) {
+  while (mMinWriteSample == -2 && mIPCOpen)
     mAudioReentrantMonitor.Wait();
-  }
-  return mMinWriteSize;
+  return mMinWriteSample;
 }
 
 bool
-AudioChild::RecvMinWriteSizeDone(const PRInt32& minFrames)
+AudioChild::RecvMinWriteSampleDone(const PRInt32& minSamples)
 {
   ReentrantMonitorAutoEnter mon(mAudioReentrantMonitor);
-  mMinWriteSize = minFrames;
+  mMinWriteSample = minSamples;
   mAudioReentrantMonitor.NotifyAll();
   return true;
 }
@@ -114,15 +113,15 @@ AudioChild::WaitForDrain()
 }
 
 PRInt64
-AudioChild::GetLastKnownPosition()
+AudioChild::GetLastKnownSampleOffset()
 {
-  return mLastPosition;
+  return mLastSampleOffset;
 }
 
 PRInt64
-AudioChild::GetLastKnownPositionTimestamp()
+AudioChild::GetLastKnownSampleOffsetTime()
 {
-  return mLastPositionTimestamp;
+  return mLastSampleOffsetTime;
 }
 
 } 

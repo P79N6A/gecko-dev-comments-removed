@@ -86,7 +86,7 @@ public:
   NS_DECL_NSIURICLASSIFIER
   NS_DECL_NSIOBSERVER
 
-  bool GetCompleter(const nsACString& tableName,
+  PRBool GetCompleter(const nsACString& tableName,
                       nsIUrlClassifierHashCompleter** completer);
   nsresult CacheCompletions(nsTArray<nsUrlClassifierLookupResult> *results);
 
@@ -100,14 +100,14 @@ private:
   nsUrlClassifierDBService(nsUrlClassifierDBService&);
 
   nsresult LookupURI(nsIURI* uri, nsIUrlClassifierCallback* c,
-                     bool forceCheck, bool *didCheck);
+                     PRBool forceCheck, PRBool *didCheck);
 
   
   nsresult Shutdown();
 
   
   nsresult CheckClean(const nsACString &lookupKey,
-                      bool *clean);
+                      PRBool *clean);
 
   nsCOMPtr<nsUrlClassifierDBServiceWorker> mWorker;
   nsCOMPtr<nsIUrlClassifierDBServiceWorker> mWorkerProxy;
@@ -116,17 +116,17 @@ private:
 
   
   
-  bool mCheckMalware;
+  PRBool mCheckMalware;
 
   
   
-  bool mCheckPhishing;
+  PRBool mCheckPhishing;
 
   
   
   
   
-  bool mInUpdate;
+  PRBool mInUpdate;
 
   
   nsTArray<nsCString> mGethashWhitelist;

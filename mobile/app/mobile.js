@@ -383,6 +383,9 @@ pref("plugins.force.wmode", "opaque");
 pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");
 
 
+pref("geo.wifi.uri", "https://maps.googleapis.com/maps/api/browserlocation/json");
+
+
 pref("geo.enabled", true);
 
 
@@ -675,7 +678,3 @@ pref("browser.firstrun.show.localepicker", true);
 
 
 pref("browser.dom.window.dump.enabled", false);
-
-
-pref("device.camera.enabled", true);
-pref("media.realtime_decoder.enabled", true);

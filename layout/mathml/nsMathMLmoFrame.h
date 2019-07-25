@@ -107,7 +107,7 @@ protected:
   float            mMinSize;
   float            mMaxSize;
 
-  bool UseMathMLChar();
+  PRBool UseMathMLChar();
 
   
   virtual void ProcessTextData();
@@ -119,7 +119,7 @@ protected:
   ProcessOperatorData();
 
   
-  bool
+  PRBool
   IsFrameInSelection(nsIFrame* aFrame);
 };
 

@@ -99,9 +99,9 @@ protected:
   
   nsDOMDataTransfer(PRUint32 aEventType,
                     const PRUint32 aEffectAllowed,
-                    bool aCursorState,
-                    bool aIsExternal,
-                    bool aUserCancelled,
+                    PRBool aCursorState,
+                    PRBool aIsExternal,
+                    PRBool aUserCancelled,
                     nsTArray<nsTArray<TransferItem> >& aItems,
                     nsIDOMElement* aDragImage,
                     PRUint32 aDragImageX,
@@ -127,7 +127,7 @@ public:
 
   
   
-  bool ConvertFromVariant(nsIVariant* aVariant,
+  PRBool ConvertFromVariant(nsIVariant* aVariant,
                             nsISupports** aSupports,
                             PRUint32* aLength);
 
@@ -175,18 +175,18 @@ protected:
   PRUint32 mEffectAllowed;
 
   
-  bool mCursorState;
+  PRPackedBool mCursorState;
 
   
   
-  bool mReadOnly;
+  PRPackedBool mReadOnly;
 
   
   
-  bool mIsExternal;
+  PRPackedBool mIsExternal;
 
   
-  bool mUserCancelled;
+  PRPackedBool mUserCancelled;
 
   
   nsTArray<nsTArray<TransferItem> > mItems;

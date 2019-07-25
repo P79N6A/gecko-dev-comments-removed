@@ -74,7 +74,7 @@ public:
                          const PRUnichar* aTargetSpec,
                          nsIInputStream* aPostDataStream,
                          nsIInputStream* aHeadersDataStream,
-                         bool aIsTrusted) = 0;
+                         PRBool aIsTrusted) = 0;
 
   
 

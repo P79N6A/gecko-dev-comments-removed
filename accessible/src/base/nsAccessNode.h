@@ -110,6 +110,11 @@ public:
   
 
 
+  static nsINode *gLastFocusedNode;
+
+  
+
+
 
 
 
@@ -118,7 +123,7 @@ public:
   
 
 
-  virtual bool Init();
+  virtual PRBool Init();
 
   
 
@@ -157,7 +162,7 @@ public:
   
 
 
-  bool IsContent() const
+  PRBool IsContent() const
   {
     return GetNode() && GetNode()->IsNodeOfType(nsINode::eCONTENT);
   }
@@ -206,12 +211,12 @@ protected:
     
 
 
-    static void NotifyA11yInitOrShutdown(bool aIsInit);
+    static void NotifyA11yInitOrShutdown(PRBool aIsInit);
 
     
     static nsIStringBundle *gStringBundle;
 
-    static bool gIsFormFillEnabled;
+    static PRBool gIsFormFillEnabled;
 
 private:
   static nsApplicationAccessible *gApplicationAccessible;

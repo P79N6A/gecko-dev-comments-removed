@@ -56,13 +56,13 @@
 
 
 
-static bool
+static PRBool
 HttpRequestSucceeded(nsIStreamLoader *loader)
 {
   nsCOMPtr<nsIRequest> request;
   loader->GetRequest(getter_AddRefs(request));
 
-  bool result = true;  
+  PRBool result = PR_TRUE;  
 
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
   if (httpChannel)

@@ -94,7 +94,7 @@ private:
     PRUint32   mNumThreads;     
     PRUint32   mNumIdleThreads; 
     PRCList    mEventQ;         
-    bool       mShutdown;       
+    PRBool     mShutdown;       
 };
 
 NS_IMPL_THREADSAFE_ISUPPORTS2(nsIOThreadPool, nsIEventTarget, nsIObserver)
@@ -209,7 +209,7 @@ nsIOThreadPool::PostEvent(PLEvent *event)
 }
 
 NS_IMETHODIMP
-nsIOThreadPool::IsOnCurrentThread(bool *result)
+nsIOThreadPool::IsOnCurrentThread(PRBool *result)
 {
     
     

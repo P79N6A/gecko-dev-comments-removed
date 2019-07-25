@@ -125,7 +125,7 @@ public:
 
   virtual already_AddRefed<nsIMIMEInfo> GetMIMEInfoFromOS(const nsACString& aMIMEType,
                                                           const nsACString& aFileExt,
-                                                          bool       * aFound) = 0;
+                                                          PRBool     * aFound) = 0;
 
   
 
@@ -145,13 +145,13 @@ public:
                                        nsIFile ** aFile);
 
   virtual NS_HIDDEN_(nsresult) OSProtocolHandlerExists(const char *aScheme,
-                                                       bool *aExists) = 0;
+                                                       PRBool *aExists) = 0;
 
   
 
 
 
-  bool InPrivateBrowsing() const { return mInPrivateBrowsing; }
+  PRBool InPrivateBrowsing() const { return mInPrivateBrowsing; }
 
 protected:
   
@@ -181,7 +181,7 @@ protected:
 
 
 
-  NS_HIDDEN_(bool) GetTypeFromExtras(const nsACString& aExtension,
+  NS_HIDDEN_(PRBool) GetTypeFromExtras(const nsACString& aExtension,
                                        nsACString& aMIMEType);
 
   
@@ -231,7 +231,7 @@ protected:
   
 
 
-  bool mInPrivateBrowsing;
+  PRBool mInPrivateBrowsing;
 };
 
 
@@ -267,7 +267,7 @@ public:
   nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo, const nsCSubstring& aFileExtension,
                        nsIInterfaceRequestor * aWindowContext,
                        const nsAString& aFilename,
-                       PRUint32 aReason, bool aForceSave);
+                       PRUint32 aReason, PRBool aForceSave);
 
   ~nsExternalAppHandler();
 
@@ -301,30 +301,30 @@ protected:
 
 
 
-  bool mForceSave;
+  PRPackedBool mForceSave;
   
   
 
 
 
-  bool mCanceled;
+  PRPackedBool mCanceled;
 
   
 
 
 
 
-  bool mShouldCloseWindow;
+  PRPackedBool mShouldCloseWindow;
 
   
 
 
 
-  bool mReceivedDispositionInfo;
-  bool mStopRequestIssued; 
-  bool mProgressListenerInitialized;
+  PRPackedBool mReceivedDispositionInfo;
+  PRPackedBool mStopRequestIssued; 
+  PRPackedBool mProgressListenerInitialized;
 
-  bool mIsFileChannel;
+  PRPackedBool mIsFileChannel;
 
   
 
@@ -336,7 +336,7 @@ protected:
   
 
 
-  bool mTempFileIsExecutable;
+  PRBool mTempFileIsExecutable;
 
   PRTime mTimeDownloadStarted;
   PRInt64 mContentLength;
@@ -404,7 +404,7 @@ protected:
   
 
 
-  bool GetNeverAskFlagFromPref(const char * prefName, const char * aContentType);
+  PRBool GetNeverAskFlagFromPref(const char * prefName, const char * aContentType);
 
   
 
@@ -439,7 +439,7 @@ protected:
 
 
 
-  bool mKeepRequestAlive;
+  PRBool mKeepRequestAlive;
 
   
 

@@ -476,7 +476,7 @@ cairo_scaled_font_t *gfxOS2Font::CairoScaledFont()
     return mScaledFont;
 }
 
-bool gfxOS2Font::SetupCairoFont(gfxContext *aContext)
+PRBool gfxOS2Font::SetupCairoFont(gfxContext *aContext)
 {
 #ifdef DEBUG_thebes_2
     printf("gfxOS2Font[%#x]::SetupCairoFont(%#x)\n",
@@ -584,7 +584,7 @@ gfxFontGroup *gfxOS2FontGroup::Copy(const gfxFontStyle *aStyle)
 
 
 
-static PRInt32 AppendDirectionalIndicatorUTF8(bool aIsRTL, nsACString& aString)
+static PRInt32 AppendDirectionalIndicatorUTF8(PRBool aIsRTL, nsACString& aString)
 {
     static const PRUnichar overrides[2][2] = { { 0x202d, 0 }, { 0x202e, 0 }}; 
     AppendUTF16toUTF8(overrides[aIsRTL], aString);
@@ -636,7 +636,7 @@ gfxTextRun *gfxOS2FontGroup::MakeTextRun(const PRUint8* aString, PRUint32 aLengt
     mEnableKerning = !(aFlags & gfxTextRunFactory::TEXT_OPTIMIZE_SPEED);
 
     const char *chars = reinterpret_cast<const char *>(aString);
-    bool isRTL = textRun->IsRightToLeft();
+    PRBool isRTL = textRun->IsRightToLeft();
     if ((aFlags & TEXT_IS_ASCII) && !isRTL) {
         
         
@@ -716,7 +716,7 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
     
     FT_Face face0 = cairo_ft_scaled_font_lock_face(font0->CairoScaledFont());
     while (p < aUTF8 + aUTF8Length) {
-        bool glyphFound = false;
+        PRBool glyphFound = PR_FALSE;
         
         PRUint8 chLen;
         PRUint32 ch = getUTF8CharAndNext(p, &chLen);
@@ -872,9 +872,9 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
 }
 
 
-bool gfxOS2FontGroup::FontCallback(const nsAString& aFontName,
+PRBool gfxOS2FontGroup::FontCallback(const nsAString& aFontName,
                                      const nsACString& aGenericName,
-                                     bool aUseFontSet,
+                                     PRBool aUseFontSet,
                                      void *aClosure)
 {
     nsTArray<nsString> *sa = static_cast<nsTArray<nsString>*>(aClosure);

@@ -86,15 +86,15 @@ public:
               nsIAppShell      *aAppShell = nsnull,
               nsIToolkit       *aToolkit = nsnull,
               nsWidgetInitData *aInitData = nsnull,
-              bool             aForceUseIWidgetParent = false);
+              PRBool           aForceUseIWidgetParent = PR_FALSE);
 
   NS_IMETHOD Destroy();
 
-  NS_IMETHOD Show(bool aState);
-  NS_IMETHOD IsVisible(bool& aState)
+  NS_IMETHOD Show(PRBool aState);
+  NS_IMETHOD IsVisible(PRBool& aState)
   { aState = mVisible; return NS_OK; }
 
-  NS_IMETHOD ConstrainPosition(bool     ,
+  NS_IMETHOD ConstrainPosition(PRBool   ,
                                PRInt32* aX,
                                PRInt32* aY)
   { *aX = kMaxDimension;  *aY = kMaxDimension;  return NS_OK; }
@@ -105,29 +105,29 @@ public:
 
   NS_IMETHOD Resize(PRInt32 aWidth,
                     PRInt32 aHeight,
-                    bool    aRepaint);
+                    PRBool  aRepaint);
   NS_IMETHOD Resize(PRInt32 aX,
                     PRInt32 aY,
                     PRInt32 aWidth,
                     PRInt32 aHeight,
-                    bool    aRepaint)
+                    PRBool  aRepaint)
   
   { return Resize(aWidth, aHeight, aRepaint); }
 
   
   
-  NS_IMETHOD Enable(bool aState)
+  NS_IMETHOD Enable(PRBool aState)
   { mEnabled = aState;  return NS_OK; }
-  NS_IMETHOD IsEnabled(bool *aState)
+  NS_IMETHOD IsEnabled(PRBool *aState)
   { *aState = mEnabled;  return NS_OK; }
 
-  NS_IMETHOD SetFocus(bool aRaise = false);
+  NS_IMETHOD SetFocus(PRBool aRaise = PR_FALSE);
 
   
   virtual nsresult ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
   { return NS_OK; }
 
-  NS_IMETHOD Invalidate(const nsIntRect& aRect, bool aIsSynchronous);
+  NS_IMETHOD Invalidate(const nsIntRect& aRect, PRBool aIsSynchronous);
 
   NS_IMETHOD Update();
 
@@ -155,7 +155,7 @@ public:
   NS_IMETHOD DispatchEvent(nsGUIEvent* event, nsEventStatus& aStatus);
 
   NS_IMETHOD CaptureRollupEvents(nsIRollupListener* aListener, nsIMenuRollup* aMenuRollup,
-                                 bool aDoCapture, bool aConsumeRollupEvent)
+                                 PRBool aDoCapture, PRBool aConsumeRollupEvent)
   { return NS_ERROR_UNEXPECTED; }
 
   
@@ -172,12 +172,12 @@ public:
   virtual gfxASurface*      GetThebesSurface();
 
   NS_IMETHOD ResetInputState();
-  NS_IMETHOD SetIMEOpenState(bool aState);
-  NS_IMETHOD GetIMEOpenState(bool *aState);
+  NS_IMETHOD SetIMEOpenState(PRBool aState);
+  NS_IMETHOD GetIMEOpenState(PRBool *aState);
   NS_IMETHOD SetInputMode(const IMEContext& aContext);
   NS_IMETHOD GetInputMode(IMEContext& aContext);
   NS_IMETHOD CancelComposition();
-  NS_IMETHOD OnIMEFocusChange(bool aFocus);
+  NS_IMETHOD OnIMEFocusChange(PRBool aFocus);
   NS_IMETHOD OnIMETextChange(PRUint32 aOffset, PRUint32 aEnd,
                              PRUint32 aNewEnd);
   NS_IMETHOD OnIMESelectionChange(void);
@@ -196,7 +196,7 @@ private:
 
   void SetChild(PuppetWidget* aChild);
 
-  nsresult IMEEndComposition(bool aCancel);
+  nsresult IMEEndComposition(PRBool aCancel);
 
   class PaintTask : public nsRunnable {
   public:
@@ -219,14 +219,14 @@ private:
   nsRefPtr<PuppetWidget> mChild;
   nsIntRegion mDirtyRegion;
   nsRevocableEventPtr<PaintTask> mPaintTask;
-  bool mEnabled;
-  bool mVisible;
+  PRPackedBool mEnabled;
+  PRPackedBool mVisible;
   
   
   nsRefPtr<gfxASurface> mSurface;
   
   nsIMEUpdatePreference mIMEPreference;
-  bool mIMEComposing;
+  PRPackedBool mIMEComposing;
   
   PRUint32 mIMELastReceivedSeqno;
   

@@ -192,8 +192,8 @@ nsSVGRectElement::ConstructPath(gfxContext *aCtx)
 
   
 
-  bool hasRx = mLengthAttributes[RX].IsExplicitlySet();
-  bool hasRy = mLengthAttributes[RY].IsExplicitlySet();
+  PRBool hasRx = mLengthAttributes[RX].IsExplicitlySet();
+  PRBool hasRy = mLengthAttributes[RY].IsExplicitlySet();
   if (hasRx && !hasRy)
     ry = rx;
   else if (hasRy && !hasRx)

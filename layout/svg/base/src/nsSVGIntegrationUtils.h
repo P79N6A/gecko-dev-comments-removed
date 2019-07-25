@@ -57,7 +57,7 @@ public:
   
 
 
-  static bool
+  static PRBool
   UsingEffectsForFrame(const nsIFrame* aFrame);
 
   
@@ -90,7 +90,7 @@ public:
 
 
 
-  static bool
+  static PRBool
   HitTestFrameForEffects(nsIFrame* aFrame, const nsPoint& aPt);
 
   

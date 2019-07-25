@@ -148,7 +148,7 @@ nsSVGImageElement::GetHref(nsIDOMSVGAnimatedString * *aHref)
 
 
 nsresult
-nsSVGImageElement::LoadSVGImage(bool aForce, bool aNotify)
+nsSVGImageElement::LoadSVGImage(PRBool aForce, PRBool aNotify)
 {
   
   nsCOMPtr<nsIURI> baseURI = GetBaseURI();
@@ -168,7 +168,7 @@ nsSVGImageElement::LoadSVGImage(bool aForce, bool aNotify)
 
 nsresult
 nsSVGImageElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
-                                const nsAString* aValue, bool aNotify)
+                                const nsAString* aValue, PRBool aNotify)
 {
   if (aNamespaceID == kNameSpaceID_XLink && aName == nsGkAtoms::href) {
     
@@ -201,7 +201,7 @@ nsSVGImageElement::MaybeLoadSVGImage()
 nsresult
 nsSVGImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
-                              bool aCompileEventHandlers)
+                              PRBool aCompileEventHandlers)
 {
   nsresult rv = nsSVGImageElementBase::BindToTree(aDocument, aParent,
                                                   aBindingParent,
@@ -227,7 +227,7 @@ nsSVGImageElement::IntrinsicState() const
     nsImageLoadingContent::ImageState();
 }
 
-NS_IMETHODIMP_(bool)
+NS_IMETHODIMP_(PRBool)
 nsSVGImageElement::IsAttributeMapped(const nsIAtom* name) const
 {
   static const MappedAttributeEntry* const map[] = {

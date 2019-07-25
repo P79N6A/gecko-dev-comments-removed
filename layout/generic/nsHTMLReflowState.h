@@ -49,7 +49,6 @@ class nsRenderingContext;
 class nsFloatManager;
 class nsLineLayout;
 class nsIPercentHeightObserver;
-class nsPlaceholderFrame;
 
 struct nsStyleDisplay;
 struct nsStyleVisibility;
@@ -171,7 +170,7 @@ public:
     : frame(aFrame)
     , rendContext(aRenderingContext)
   {
-    InitOffsets(aContainingBlockWidth, frame->GetType());
+    InitOffsets(aContainingBlockWidth);
   }
 
 #ifdef DEBUG
@@ -193,19 +192,18 @@ private:
 
 
 
-  bool ComputeMargin(nscoord aContainingBlockWidth);
+  PRBool ComputeMargin(nscoord aContainingBlockWidth);
   
   
 
 
 
 
-   bool ComputePadding(nscoord aContainingBlockWidth, nsIAtom* aFrameType);
+   PRBool ComputePadding(nscoord aContainingBlockWidth);
 
 protected:
 
   void InitOffsets(nscoord aContainingBlockWidth,
-                   nsIAtom* aFrameType,
                    const nsMargin *aBorder = nsnull,
                    const nsMargin *aPadding = nsnull);
 
@@ -392,7 +390,7 @@ public:
                     
                     nscoord                  aContainingBlockWidth = -1,
                     nscoord                  aContainingBlockHeight = -1,
-                    bool                     aInit = true);
+                    PRBool                   aInit = PR_TRUE);
 
   
   
@@ -406,6 +404,13 @@ public:
 
   static nscoord
     GetContainingBlockContentWidth(const nsHTMLReflowState* aReflowState);
+
+  
+
+
+
+
+  static nsIFrame* GetContainingBlockFor(const nsIFrame* aFrame);
 
   
 
@@ -437,7 +442,7 @@ public:
 
   void ApplyMinMaxConstraints(nscoord* aContentWidth, nscoord* aContentHeight) const;
 
-  bool ShouldReflowAllKids() const {
+  PRBool ShouldReflowAllKids() const {
     
     
     
@@ -468,7 +473,7 @@ public:
 
   void SetTruncated(const nsHTMLReflowMetrics& aMetrics, nsReflowStatus* aStatus) const;
 
-  bool WillReflowAgainForClearance() const {
+  PRBool WillReflowAgainForClearance() const {
     return mDiscoveredClearance && *mDiscoveredClearance;
   }
 
@@ -492,16 +497,15 @@ public:
 #endif
 
 protected:
-  void InitFrameType(nsIAtom* aFrameType);
+  void InitFrameType();
   void InitCBReflowState();
-  void InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameType);
+  void InitResizeFlags(nsPresContext* aPresContext);
 
   void InitConstraints(nsPresContext* aPresContext,
                        nscoord         aContainingBlockWidth,
                        nscoord         aContainingBlockHeight,
                        const nsMargin* aBorder,
-                       const nsMargin* aPadding,
-                       nsIAtom*        aFrameType);
+                       const nsMargin* aPadding);
 
   
   
@@ -512,19 +516,17 @@ protected:
                                         nscoord& aCBWidth);
 
   void CalculateHypotheticalBox(nsPresContext*    aPresContext,
-                                nsPlaceholderFrame* aPlaceholderFrame,
+                                nsIFrame*         aPlaceholderFrame,
                                 nsIFrame*         aContainingBlock,
                                 nscoord           aBlockLeftContentEdge,
                                 nscoord           aBlockContentWidth,
                                 const nsHTMLReflowState* cbrs,
-                                nsHypotheticalBox& aHypotheticalBox,
-                                nsIAtom*          aFrameType);
+                                nsHypotheticalBox& aHypotheticalBox);
 
   void InitAbsoluteConstraints(nsPresContext* aPresContext,
                                const nsHTMLReflowState* cbrs,
                                nscoord aContainingBlockWidth,
-                               nscoord aContainingBlockHeight,
-                               nsIAtom* aFrameType);
+                               nscoord aContainingBlockHeight);
 
   void ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
                               nscoord aContainingBlockWidth,
@@ -543,8 +545,7 @@ protected:
                                          nscoord* aOutsideBoxSizing);
 
   void CalculateBlockSideMargins(nscoord aAvailWidth,
-                                 nscoord aComputedWidth,
-                                 nsIAtom* aFrameType);
+                                 nscoord aComputedWidth);
 };
 
 #endif 

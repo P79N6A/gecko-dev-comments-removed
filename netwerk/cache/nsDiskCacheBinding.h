@@ -72,14 +72,14 @@ public:
     virtual ~nsDiskCacheBinding();
 
     nsresult EnsureStreamIO();
-    bool     IsActive() { return mCacheEntry != nsnull;}
+    PRBool   IsActive() { return mCacheEntry != nsnull;}
 
 
 public:
     nsCacheEntry*           mCacheEntry;    
     nsDiskCacheRecord       mRecord;
     nsDiskCacheStreamIO*    mStreamIO;      
-    bool                    mDoomed;        
+    PRBool                  mDoomed;        
     PRUint8                 mGeneration;    
 
     
@@ -138,7 +138,7 @@ public:
 
     nsDiskCacheBinding *    FindActiveBinding(PRUint32  hashNumber);
     void                    RemoveBinding(nsDiskCacheBinding * binding);
-    bool                    ActiveBindings();
+    PRBool                  ActiveBindings();
     
 private:
     nsresult                AddBinding(nsDiskCacheBinding * binding);
@@ -146,7 +146,7 @@ private:
     
     static PLDHashTableOps ops;
     PLDHashTable           table;
-    bool                   initialized;
+    PRBool                 initialized;
 };
 
 #endif 

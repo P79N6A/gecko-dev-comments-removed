@@ -264,7 +264,7 @@ AsyncStatement::~AsyncStatement()
 
   
   
-  bool onCallingThread = false;
+  PRBool onCallingThread = PR_FALSE;
   (void)mDBConnection->threadOpenedOn->IsOnCurrentThread(&onCallingThread);
   if (!onCallingThread) {
     
@@ -326,7 +326,7 @@ AsyncStatement::getAsyncStatement(sqlite3_stmt **_stmt)
 {
 #ifdef DEBUG
   
-  bool onOpenedThread = false;
+  PRBool onOpenedThread = PR_FALSE;
   (void)mDBConnection->threadOpenedOn->IsOnCurrentThread(&onOpenedThread);
   NS_ASSERTION(!onOpenedThread,
                "We should only be called on the async thread!");

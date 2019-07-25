@@ -69,15 +69,15 @@ public:
                                   nsIScriptableRegion * aRegion,
                                   PRUint32 aActionType);
     NS_IMETHOD StartDragSession();
-    NS_IMETHOD EndDragSession(bool aDoneDrag);
+    NS_IMETHOD EndDragSession(PRBool aDoneDrag);
 
     
-    NS_IMETHOD SetCanDrop            (bool             aCanDrop);
-    NS_IMETHOD GetCanDrop            (bool            *aCanDrop);
+    NS_IMETHOD SetCanDrop            (PRBool           aCanDrop);
+    NS_IMETHOD GetCanDrop            (PRBool          *aCanDrop);
     NS_IMETHOD GetNumDropItems       (PRUint32 * aNumItems);
     NS_IMETHOD GetData               (nsITransferable * aTransferable,
                                       PRUint32 aItemIndex);
-    NS_IMETHOD IsDataFlavorSupported (const char *aDataFlavor, bool *_retval);
+    NS_IMETHOD IsDataFlavorSupported (const char *aDataFlavor, PRBool *_retval);
 
     
 
@@ -123,14 +123,14 @@ private:
     GdkDragContext *mTargetDragContext;
     guint           mTargetTime;
     
-    bool            mCanDrop;
+    PRBool          mCanDrop;
     
-    bool            mTargetDragDataReceived;
+    PRBool          mTargetDragDataReceived;
     
     void           *mTargetDragData;
     PRUint32        mTargetDragDataLen;
     
-    bool           IsTargetContextList(void);
+    PRBool         IsTargetContextList(void);
     
     
     void           GetTargetDragData(GdkAtom aFlavor);
@@ -153,7 +153,7 @@ private:
 
     
     
-    bool SetAlphaPixmap(gfxASurface     *aPixbuf,
+    PRBool SetAlphaPixmap(gfxASurface     *aPixbuf,
                           GdkDragContext  *aContext,
                           PRInt32          aXOffset,
                           PRInt32          aYOffset,

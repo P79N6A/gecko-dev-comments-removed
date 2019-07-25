@@ -99,7 +99,7 @@ public:
     PRInt32 GetDataSize() const { return mStride*mSize.height; }
 
     
-    bool CopyFrom (gfxImageSurface *other);
+    PRBool CopyFrom (gfxImageSurface *other);
 
     
 
@@ -122,10 +122,8 @@ protected:
 
     static long ComputeStride(const gfxIntSize&, gfxImageFormat);
 
-    void MakeInvalid();
-
     gfxIntSize mSize;
-    bool mOwnsData;
+    PRBool mOwnsData;
     unsigned char *mData;
     gfxImageFormat mFormat;
     long mStride;

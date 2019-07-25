@@ -45,7 +45,7 @@
 
 
 
-bool
+PRBool
 RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
                                txAExprResult* aRight)
 {
@@ -105,7 +105,7 @@ RelationalExpr::compareResults(txIEvalContext* aContext, txAExprResult* aLeft,
 
     
     if (mOp == EQUAL || mOp == NOT_EQUAL) {
-        bool result;
+        PRBool result;
         const nsString *lString, *rString;
 
         
@@ -197,7 +197,7 @@ RelationalExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 
 TX_IMPL_EXPR_STUBS_2(RelationalExpr, BOOLEAN_RESULT, mLeftExpr, mRightExpr)
 
-bool
+PRBool
 RelationalExpr::isSensitiveTo(ContextSensitivity aContext)
 {
     return mLeftExpr->isSensitiveTo(aContext) ||

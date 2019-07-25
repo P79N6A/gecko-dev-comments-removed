@@ -190,15 +190,6 @@ const DO_NOT_FINISH_TEST = 1;
 
 
 
-
-
-
-
-
-
-
-
-
 function eventQueue(aEventType)
 {
   
@@ -325,7 +316,7 @@ function eventQueue(aEventType)
     }
 
     
-    window.setTimeout(function(aQueue) { aQueue.processNextInvoker(); }, 100,
+    window.setTimeout(function(aQueue) { aQueue.processNextInvoker(); }, 500,
                       this);
   }
 
@@ -353,11 +344,11 @@ function eventQueue(aEventType)
     var idx = 0;
     for (; idx < this.mEventSeq.length; idx++) {
       if (this.isEventExpected(idx) && (invoker.wasCaught[idx] == true) &&
-          this.isSameEvent(idx, aEvent)) {
+          this.isAlreadyCaught(idx, aEvent)) {
 
         var msg = "Doubled event { event type: " +
           this.getEventTypeAsString(idx) + ", target: " +
-          this.getEventTargetDescr(idx) + "} in test with ID = '" +
+          prettyName(this.getEventTarget(idx)) + "} in test with ID = '" +
           this.getEventID(idx) + "'.";
         ok(false, msg);
       }
@@ -460,43 +451,10 @@ function eventQueue(aEventType)
       aInvoker.eventSeq :
       [ new invokerChecker(this.mDefEventType, aInvoker.DOMNode) ];
 
-    var len = this.mEventSeq.length;
-    for (var idx = 0; idx < len; idx++) {
-      var seqItem = this.mEventSeq[idx];
-      
-      if (!("unexpected" in this.mEventSeq[idx]))
-        seqItem.unexpected = false;
-
+    for (var idx = 0; idx < this.mEventSeq.length; idx++) {
+      this.mEventSeq[idx].unexpected = false;
       if (!("async" in this.mEventSeq[idx]))
-        seqItem.async = false;
-
-      
-      
-      
-      
-      if (("unique" in seqItem) && seqItem.unique) {
-        var uniquenessChecker = {
-          type: seqItem.type,
-          unexpected: true,
-          match: function uniquenessChecker_match(aEvent)
-          {
-            
-            
-            var matched = true;
-            for (var idx = 0; idx < this.queue.mEventSeq.length; idx++) {
-              if (this.queue.isEventExpected(idx) &&
-                  this.queue.compareEvents(idx, aEvent)) {
-                matched = false;
-                break;
-              }
-            }
-            return matched;
-          },
-          targetDescr: "any target different from expected events",
-          queue: this
-        };
-        this.mEventSeq.push(uniquenessChecker);
-      }
+        this.mEventSeq[idx].async = false;
     }
 
     var unexpectedSeq = aInvoker.unexpectedEventSeq;
@@ -525,7 +483,7 @@ function eventQueue(aEventType)
             msg += " unexpected";
 
           msg += ": event type: " + this.getEventTypeAsString(idx) +
-            ", target: " + this.getEventTargetDescr(idx, true);
+            ", target: " + this.getEventTargetDescr(idx);
 
           gLogger.logToConsole(msg);
           gLogger.logToDOM(msg, true);
@@ -534,10 +492,6 @@ function eventQueue(aEventType)
         if (typeof eventType == "string") {
           
           var target = this.getEventTarget(idx);
-          if (!target) {
-            ok(false, "no target for DOM event!");
-            return;
-          }
           var phase = this.getEventPhase(idx);
           target.ownerDocument.addEventListener(eventType, this, phase);
 
@@ -586,19 +540,10 @@ function eventQueue(aEventType)
     return this.mEventSeq[aIdx].target;
   }
 
-  this.getEventTargetDescr =
-    function eventQueue_getEventTargetDescr(aIdx, aDontForceTarget)
+  this.getEventTargetDescr = function eventQueue_getEventTargetDescr(aIdx)
   {
     var descr = this.mEventSeq[aIdx].targetDescr;
-    if (descr)
-      return descr;
-
-    if (aDontForceTarget)
-      return "no target description";
-
-    var target = ("target" in this.mEventSeq[aIdx]) ?
-      this.mEventSeq[aIdx].target : null;
-    return prettyName(target);
+    return descr ? descr : "no target description";
   }
 
   this.getEventPhase = function eventQueue_getEventPhase(aIdx)
@@ -629,24 +574,15 @@ function eventQueue(aEventType)
     return !this.mEventSeq[aIdx].unexpected;
   }
 
-  this.compareEventTypes = function eventQueue_compareEventTypes(aIdx, aEvent)
+  this.compareEvents = function eventQueue_compareEvents(aIdx, aEvent)
   {
     var eventType1 = this.getEventType(aIdx);
+
     var eventType2 = (aEvent instanceof nsIDOMEvent) ?
       aEvent.type : aEvent.eventType;
 
-    return eventType1 == eventType2;
-  }
-
-  this.compareEvents = function eventQueue_compareEvents(aIdx, aEvent)
-  {
-    if (!this.compareEventTypes(aIdx, aEvent))
+    if (eventType1 != eventType2)
       return false;
-
-    
-    
-    if ("match" in this.mEventSeq[aIdx])
-      return this.mEventSeq[aIdx].match(aEvent);
 
     var target1 = this.getEventTarget(aIdx);
     if (target1 instanceof nsIAccessible) {
@@ -663,7 +599,7 @@ function eventQueue(aEventType)
     return target1 == target2;
   }
 
-  this.isSameEvent = function eventQueue_isSameEvent(aIdx, aEvent)
+  this.isAlreadyCaught = function eventQueue_isAlreadyCaught(aIdx, aEvent)
   {
     
     
@@ -726,11 +662,11 @@ function eventQueue(aEventType)
     var emphText = "matched ";
 
     var currType = this.getEventTypeAsString(aExpectedEventIdx);
-    var currTargetDescr = this.getEventTargetDescr(aExpectedEventIdx);
+    var currTarget = this.getEventTarget(aExpectedEventIdx);
     var consoleMsg = "*****\nEQ matched: " + currType + "\n*****";
     gLogger.logToConsole(consoleMsg);
 
-    msg += " event, type: " + currType + ", target: " + currTargetDescr;
+    msg += " event, type: " + currType + ", target: " + prettyName(currTarget);
 
     gLogger.logToDOM(msg, true, emphText);
   }
@@ -810,34 +746,21 @@ function sequence()
 
 
 
-function synthClick(aNodeOrID, aCheckerOrEventSeq, aArgs)
+
+
+
+
+function synthClick(aNodeOrID, aCheckerOrEventSeq, aEventType)
 {
-  this.__proto__ = new synthAction(aNodeOrID, aCheckerOrEventSeq);
+  this.__proto__ = new synthAction(aNodeOrID, aCheckerOrEventSeq, aEventType);
 
   this.invoke = function synthClick_invoke()
   {
-    var targetNode = this.DOMNode;
-    if (targetNode instanceof nsIDOMDocument) {
-      targetNode =
-        this.DOMNode.body ? this.DOMNode.body : this.DOMNode.documentElement;
-    }
-
     
-    if (targetNode instanceof nsIDOMNSHTMLElement) {
-      targetNode.scrollIntoView(true);
-    } else if (targetNode instanceof nsIDOMXULElement) {
-      var targetAcc = getAccessible(targetNode);
-      targetAcc.scrollTo(SCROLL_TYPE_ANYWHERE);
-    }
+    if (this.DOMNode instanceof nsIDOMNSHTMLElement)
+      this.DOMNode.scrollIntoView(true);
 
-    var x = 1, y = 1;
-    if (aArgs && ("where" in aArgs) && aArgs.where == "right") {
-      if (targetNode instanceof nsIDOMNSHTMLElement)
-        x = targetNode.offsetWidth - 1;
-      else if (targetNode instanceof nsIDOMXULElement)
-        x = targetNode.boxObject.width - 1;
-    }
-    synthesizeMouse(targetNode, x, y, aArgs ? aArgs : {});
+    synthesizeMouse(this.DOMNode, 1, 1, {});
   }
 
   this.finalCheck = function synthClick_finalCheck()
@@ -848,16 +771,16 @@ function synthClick(aNodeOrID, aCheckerOrEventSeq, aArgs)
 
   this.getID = function synthClick_getID()
   {
-    return prettyName(aNodeOrID) + " click";
+    return prettyName(aNodeOrID) + " click"; 
   }
 }
 
 
 
 
-function synthMouseMove(aID, aCheckerOrEventSeq)
+function synthMouseMove(aNodeOrID, aCheckerOrEventSeq, aEventType)
 {
-  this.__proto__ = new synthAction(aID, aCheckerOrEventSeq);
+  this.__proto__ = new synthAction(aNodeOrID, aCheckerOrEventSeq, aEventType);
 
   this.invoke = function synthMouseMove_invoke()
   {
@@ -867,163 +790,111 @@ function synthMouseMove(aID, aCheckerOrEventSeq)
 
   this.getID = function synthMouseMove_getID()
   {
-    return prettyName(aID) + " mouse move";
+    return prettyName(aNodeOrID) + " mouse move"; 
   }
 }
 
 
 
 
-function synthKey(aNodeOrID, aKey, aArgs, aCheckerOrEventSeq)
+function synthKey(aNodeOrID, aKey, aArgs, aCheckerOrEventSeq, aEventType)
 {
-  this.__proto__ = new synthAction(aNodeOrID, aCheckerOrEventSeq);
+  this.__proto__ = new synthAction(aNodeOrID, aCheckerOrEventSeq, aEventType);
 
   this.invoke = function synthKey_invoke()
   {
-    synthesizeKey(this.mKey, this.mArgs, this.mWindow);
+    synthesizeKey(this.mKey, this.mArgs);
   }
 
   this.getID = function synthKey_getID()
   {
-    var key = this.mKey;
-    switch (this.mKey) {
-      case "VK_TAB":
-        key = "tab";
-        break;
-      case "VK_DOWN":
-        key = "down";
-        break;
-      case "VK_UP":
-        key = "up";
-        break;
-      case "VK_LEFT":
-        key = "left";
-        break;
-      case "VK_RIGHT":
-        key = "right";
-        break;
-      case "VK_HOME":
-        key = "home";
-        break;
-      case "VK_ESCAPE":
-        key = "escape";
-        break;
-      case "VK_RETURN":
-        key = "enter";
-        break;
-    }
-    if (aArgs) {
-      if (aArgs.shiftKey)
-        key += " shift";
-      if (aArgs.ctrlKey)
-        key += " ctrl";
-      if (aArgs.altKey)
-        key += " alt";
-    }
-    return prettyName(aNodeOrID) + " '" + key + " ' key";
+    return prettyName(aNodeOrID) + " '" + this.mKey + "' key"; 
   }
 
   this.mKey = aKey;
   this.mArgs = aArgs ? aArgs : {};
-  this.mWindow = aArgs ? aArgs.window : null;
 }
 
 
 
 
-function synthTab(aNodeOrID, aCheckerOrEventSeq, aWindow)
+function synthTab(aNodeOrID, aCheckerOrEventSeq, aEventType)
 {
-  this.__proto__ = new synthKey(aNodeOrID, "VK_TAB",
-                                { shiftKey: false, window: aWindow },
-                                aCheckerOrEventSeq);
-}
+  this.__proto__ = new synthKey(aNodeOrID, "VK_TAB", { shiftKey: false },
+                                aCheckerOrEventSeq, aEventType);
 
-
-
-
-function synthShiftTab(aNodeOrID, aCheckerOrEventSeq)
-{
-  this.__proto__ = new synthKey(aNodeOrID, "VK_TAB", { shiftKey: true },
-                                aCheckerOrEventSeq);
-}
-
-
-
-
-function synthEscapeKey(aNodeOrID, aCheckerOrEventSeq)
-{
-  this.__proto__ = new synthKey(aNodeOrID, "VK_ESCAPE", null,
-                                aCheckerOrEventSeq);
-}
-
-
-
-
-function synthDownKey(aNodeOrID, aCheckerOrEventSeq, aArgs)
-{
-  this.__proto__ = new synthKey(aNodeOrID, "VK_DOWN", aArgs,
-                                aCheckerOrEventSeq);
-}
-
-
-
-
-function synthUpKey(aNodeOrID, aCheckerOrEventSeq, aArgs)
-{
-  this.__proto__ = new synthKey(aNodeOrID, "VK_UP", aArgs,
-                                aCheckerOrEventSeq);
-}
-
-
-
-
-function synthRightKey(aNodeOrID, aCheckerOrEventSeq)
-{
-  this.__proto__ = new synthKey(aNodeOrID, "VK_RIGHT", null, aCheckerOrEventSeq);
-}
-
-
-
-
-function synthHomeKey(aNodeOrID, aCheckerOrEventSeq)
-{
-  this.__proto__ = new synthKey(aNodeOrID, "VK_HOME", null, aCheckerOrEventSeq);
-}
-
-
-
-
-function synthEnterKey(aID, aCheckerOrEventSeq)
-{
-  this.__proto__ = new synthKey(aID, "VK_RETURN", null, aCheckerOrEventSeq);
-}
-
-
-
-
-function synthOpenComboboxKey(aID, aCheckerOrEventSeq)
-{
-  this.__proto__ = new synthDownKey(aID, aCheckerOrEventSeq, { altKey: true });
-
-  this.getID = function synthOpenComboboxKey_getID()
-  {
-    return "open combobox (atl + down arrow) " + prettyName(aID);
+  this.getID = function synthTab_getID() 
+  { 
+    return prettyName(aNodeOrID) + " tab";
   }
 }
 
 
 
 
-function synthFocus(aNodeOrID, aCheckerOrEventSeq)
+function synthShiftTab(aNodeOrID, aCheckerOrEventSeq, aEventType)
 {
-  var checkerOfEventSeq =
-    aCheckerOrEventSeq ? aCheckerOrEventSeq : new focusChecker(aNodeOrID);
-  this.__proto__ = new synthAction(aNodeOrID, checkerOfEventSeq);
+  this.__proto__ = new synthKey(aNodeOrID, "VK_TAB", { shiftKey: true },
+                                aCheckerOrEventSeq, aEventType);
+
+  this.getID = function synthTabTest_getID() 
+  { 
+    return prettyName(aNodeOrID) + " shift tab";
+  }
+}
+
+
+
+
+function synthDownKey(aNodeOrID, aCheckerOrEventSeq, aEventType)
+{
+  this.__proto__ = new synthKey(aNodeOrID, "VK_DOWN", null, aCheckerOrEventSeq,
+                                aEventType);
+
+  this.getID = function synthDownKey_getID()
+  {
+    return prettyName(aNodeOrID) + " key down";
+  }
+}
+
+
+
+
+function synthRightKey(aNodeOrID, aCheckerOrEventSeq, aEventType)
+{
+  this.__proto__ = new synthKey(aNodeOrID, "VK_RIGHT", null, aCheckerOrEventSeq,
+                                aEventType);
+
+  this.getID = function synthRightKey_getID()
+  {
+    return prettyName(aNodeOrID) + " key right";
+  }
+}
+
+
+
+
+function synthHomeKey(aNodeOrID, aCheckerOrEventSeq, aEventType)
+{
+  this.__proto__ = new synthKey(aNodeOrID, "VK_HOME", null, aCheckerOrEventSeq,
+                                aEventType);
+  
+  this.getID = function synthHomeKey_getID()
+  {
+    return prettyName(aNodeOrID) + " key home";
+  }
+}
+
+
+
+
+function synthFocus(aNodeOrID, aCheckerOrEventSeq, aEventType)
+{
+  this.__proto__ = new synthAction(aNodeOrID, aCheckerOrEventSeq, aEventType);
 
   this.invoke = function synthFocus_invoke()
   {
-    if (this.DOMNode instanceof Components.interfaces.nsIDOMNSEditableElement &&
-        this.DOMNode.editor ||
+    if (this.DOMNode instanceof Components.interfaces.nsIDOMNSEditableElement ||
         this.DOMNode instanceof Components.interfaces.nsIDOMXULTextBoxElement) {
       this.DOMNode.selectionStart = this.DOMNode.selectionEnd = this.DOMNode.value.length;
     }
@@ -1039,18 +910,16 @@ function synthFocus(aNodeOrID, aCheckerOrEventSeq)
 
 
 
-function synthFocusOnFrame(aNodeOrID, aCheckerOrEventSeq)
+function synthFocusOnFrame(aNodeOrID, aCheckerOrEventSeq, aEventType)
 {
-  var frameDoc = getNode(aNodeOrID).contentDocument;
-  var checkerOrEventSeq =
-    aCheckerOrEventSeq ? aCheckerOrEventSeq : new focusChecker(frameDoc);
-  this.__proto__ = new synthAction(frameDoc, checkerOrEventSeq);
-
+  this.__proto__ = new synthAction(getNode(aNodeOrID).contentDocument,
+                                   aCheckerOrEventSeq, aEventType);
+  
   this.invoke = function synthFocus_invoke()
   {
     this.DOMNode.body.focus();
   }
-
+  
   this.getID = function synthFocus_getID() 
   { 
     return prettyName(aNodeOrID) + " frame document focus";
@@ -1060,143 +929,9 @@ function synthFocusOnFrame(aNodeOrID, aCheckerOrEventSeq)
 
 
 
-function changeCurrentItem(aID, aItemID)
+function synthSelectAll(aNodeOrID, aCheckerOrEventSeq, aEventType)
 {
-  this.eventSeq = [ new nofocusChecker() ];
-
-  this.invoke = function changeCurrentItem_invoke()
-  {
-    var controlNode = getNode(aID);
-    var itemNode = getNode(aItemID);
-
-    
-    if (controlNode.localName == "input") {
-      if (controlNode.checked)
-        this.reportError();
-
-      controlNode.checked = true;
-      return;
-    }
-
-    if (controlNode.localName == "select") {
-      if (controlNode.selectedIndex == itemNode.index)
-        this.reportError();
-
-      controlNode.selectedIndex = itemNode.index;
-      return;
-    }
-
-    
-    if (controlNode.localName == "tree") {
-      if (controlNode.currentIndex == aItemID)
-        this.reportError();
-
-      controlNode.currentIndex = aItemID;
-      return;
-    }
-
-    if (controlNode.localName == "menulist") {
-      if (controlNode.selectedItem == itemNode)
-        this.reportError();
-
-      controlNode.selectedItem = itemNode;
-      return;
-    }
-
-    if (controlNode.currentItem == itemNode)
-      ok(false, "Error in test: proposed current item is already current" + prettyName(aID));
-
-    controlNode.currentItem = itemNode;
-  }
-
-  this.getID = function changeCurrentItem_getID()
-  {
-    return "current item change for " + prettyName(aID);
-  }
-
-  this.reportError = function changeCurrentItem_reportError()
-  {
-    ok(false,
-       "Error in test: proposed current item '" + aItemID + "' is already current");
-  }
-}
-
-
-
-
-function toggleTopMenu(aID, aCheckerOrEventSeq)
-{
-  this.__proto__ = new synthKey(aID, "VK_ALT", null,
-                                aCheckerOrEventSeq);
-
-  this.getID = function toggleTopMenu_getID()
-  {
-    return "toggle top menu on " + prettyName(aID);
-  }
-}
-
-
-
-
-function synthContextMenu(aID, aCheckerOrEventSeq)
-{
-  this.__proto__ = new synthClick(aID, aCheckerOrEventSeq,
-                                  { button: 0, type: "contextmenu" });
-
-  this.getID = function synthContextMenu_getID()
-  {
-    return "context menu on " + prettyName(aID);
-  }
-}
-
-
-
-
-function openCombobox(aComboboxID)
-{
-  this.eventSeq = [
-    new stateChangeChecker(STATE_EXPANDED, false, true, aComboboxID)
-  ];
-
-  this.invoke = function openCombobox_invoke()
-  {
-    getNode(aComboboxID).focus();
-    synthesizeKey("VK_DOWN", { altKey: true });
-  }
-
-  this.getID = function openCombobox_getID()
-  {
-    return "open combobox " + prettyName(aComboboxID);
-  }
-}
-
-
-
-
-function closeCombobox(aComboboxID)
-{
-  this.eventSeq = [
-    new stateChangeChecker(STATE_EXPANDED, false, false, aComboboxID)
-  ];
-
-  this.invoke = function closeCombobox_invoke()
-  {
-    synthesizeKey("VK_ESCAPE", { });
-  }
-
-  this.getID = function closeCombobox_getID()
-  {
-    return "close combobox " + prettyName(aComboboxID);
-  }
-}
-
-
-
-
-
-function synthSelectAll(aNodeOrID, aCheckerOrEventSeq)
-{
-  this.__proto__ = new synthAction(aNodeOrID, aCheckerOrEventSeq);
+  this.__proto__ = new synthAction(aNodeOrID, aCheckerOrEventSeq, aEventType);
 
   this.invoke = function synthSelectAll_invoke()
   {
@@ -1235,8 +970,6 @@ function invokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg, aIsAsync)
   {
     if (typeof this.mTarget == "function")
       return this.mTarget.call(null, this.mTargetFuncArg);
-    if (typeof this.mTarget == "string")
-      return getNode(this.mTarget);
 
     return this.mTarget;
   }
@@ -1270,25 +1003,6 @@ function asyncInvokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg)
                                       aTargetFuncArg, true);
 }
 
-function focusChecker(aTargetOrFunc, aTargetFuncArg)
-{
-  this.__proto__ = new invokerChecker(EVENT_FOCUS, aTargetOrFunc,
-                                      aTargetFuncArg, false);
-
-  this.unique = true; 
-
-  this.check = function focusChecker_check(aEvent)
-  {
-    testStates(aEvent.accessible, STATE_FOCUSED);
-  }
-}
-
-function nofocusChecker(aID)
-{
-  this.__proto__ = new focusChecker(aID);
-  this.unexpected = true;
-}
-
 
 
 
@@ -1318,11 +1032,8 @@ function textChangeChecker(aID, aStart, aEnd, aTextOrFunc, aIsInserted)
 
 
 
-function caretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg)
+function caretMoveChecker(aCaretOffset)
 {
-  this.__proto__ = new invokerChecker(EVENT_TEXT_CARET_MOVED,
-                                      aTargetOrFunc, aTargetFuncArg);
-
   this.check = function caretMoveChecker_check(aEvent)
   {
     is(aEvent.QueryInterface(nsIAccessibleCaretMoveEvent).caretOffset,
@@ -1657,18 +1368,28 @@ function sequenceItem(aProcessor, aEventType, aTarget, aItemID)
 
 
 
-function synthAction(aNodeOrID, aCheckerOrEventSeq)
+function synthAction(aNodeOrID, aCheckerOrEventSeq, aEventType)
 {
   this.DOMNode = getNode(aNodeOrID);
 
+  this.checker = null;
   if (aCheckerOrEventSeq) {
     if (aCheckerOrEventSeq instanceof Array) {
       this.eventSeq = aCheckerOrEventSeq;
     } else {
-      this.eventSeq = [ aCheckerOrEventSeq ];
+      this.checker = aCheckerOrEventSeq;
+      this.checker.target = this.DOMNode;
     }
   }
 
-  this.getID = function synthAction_getID()
-    { return prettyName(aNodeOrID) + " action"; }
+  if (aEventType)
+    this.eventSeq = [ new invokerChecker(aEventType, this.DOMNode) ];
+
+  this.check = function synthAction_check(aEvent)
+  {
+    if (this.checker)
+      this.checker.check(aEvent);
+  }
+
+  this.getID = function synthAction_getID() { return aNodeOrID + " action"; }
 }

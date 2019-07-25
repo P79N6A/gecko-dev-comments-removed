@@ -82,8 +82,8 @@ public:
                               const char* aGrantedList,
                               const char* aDeniedList,
                               nsISupports* aCert,
-                              bool aIsCert,
-                              bool aTrusted);
+                              PRBool aIsCert,
+                              PRBool aTrusted);
 
   
   
@@ -132,7 +132,7 @@ protected:
                           nsISupports* aCert);
 
   
-  bool CertificateEquals(nsIPrincipal *aOther);
+  PRBool CertificateEquals(nsIPrincipal *aOther);
 
   
   
@@ -144,11 +144,11 @@ protected:
   nsCOMPtr<nsIContentSecurityPolicy> mCSP;
   nsCOMPtr<nsIURI> mCodebase;
   nsCOMPtr<nsIURI> mDomain;
-  bool mTrusted;
-  bool mInitialized;
+  PRPackedBool mTrusted;
+  PRPackedBool mInitialized;
   
-  bool mCodebaseImmutable;
-  bool mDomainImmutable;
+  PRPackedBool mCodebaseImmutable;
+  PRPackedBool mDomainImmutable;
 };
 
 

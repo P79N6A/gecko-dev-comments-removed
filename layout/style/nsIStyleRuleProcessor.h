@@ -81,7 +81,7 @@ public:
 
   
   
-  typedef bool (* EnumFunc)(nsIStyleRuleProcessor*, void*);
+  typedef PRBool (* EnumFunc)(nsIStyleRuleProcessor*, void*);
 
   
 
@@ -115,7 +115,7 @@ public:
 
 
 
-  virtual bool
+  virtual PRBool
     HasDocumentStateDependentStyle(StateRuleProcessorData* aData) = 0;
 
   
@@ -153,7 +153,7 @@ public:
 
 
 
-  virtual bool MediumFeaturesChanged(nsPresContext* aPresContext) = 0;
+  virtual PRBool MediumFeaturesChanged(nsPresContext* aPresContext) = 0;
 
   
 

@@ -80,7 +80,7 @@ public:
   ~nsTrimInt64HashKey() { }
 
   KeyType GetKey() const { return mValue; }
-  bool KeyEquals(KeyTypePointer aKey) const { return *aKey == mValue; }
+  PRBool KeyEquals(KeyTypePointer aKey) const { return *aKey == mValue; }
 
   static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
   static PLDHashNumber HashKey(KeyTypePointer aKey)
@@ -169,15 +169,15 @@ public:
   
   
   
-  bool mNeedsToApplySortingMode;
+  PRBool mNeedsToApplySortingMode;
 
   
   nsCString mSortingAnnotation;
 
   
-  bool mIsHistoryObserver;
-  bool mIsBookmarkFolderObserver;
-  bool mIsAllBookmarksObserver;
+  PRBool mIsHistoryObserver;
+  PRBool mIsBookmarkFolderObserver;
+  PRBool mIsAllBookmarksObserver;
 
   typedef nsTArray< nsRefPtr<nsNavHistoryQueryResultNode> > QueryObserverList;
   QueryObserverList mHistoryObservers;
@@ -185,19 +185,19 @@ public:
 
   typedef nsTArray< nsRefPtr<nsNavHistoryFolderResultNode> > FolderObserverList;
   nsDataHashtable<nsTrimInt64HashKey, FolderObserverList*> mBookmarkFolderObservers;
-  FolderObserverList* BookmarkFolderObserversForId(PRInt64 aFolderId, bool aCreate);
+  FolderObserverList* BookmarkFolderObserversForId(PRInt64 aFolderId, PRBool aCreate);
 
   typedef nsTArray< nsRefPtr<nsNavHistoryContainerResultNode> > ContainerObserverList;
 
   void RecursiveExpandCollapse(nsNavHistoryContainerResultNode* aContainer,
-                               bool aExpand);
+                               PRBool aExpand);
 
   void InvalidateTree();
   
-  bool mBatchInProgress;
+  PRBool mBatchInProgress;
 
   nsMaybeWeakPtrArray<nsINavHistoryResultObserver> mObservers;
-  bool mSuppressNotifications;
+  PRBool mSuppressNotifications;
 
   ContainerObserverList mRefreshParticipants;
   void requestRefresh(nsNavHistoryContainerResultNode* aContainer);
@@ -293,7 +293,7 @@ public:
   
   NS_IMETHOD OnItemChanged(PRInt64 aItemId,
                            const nsACString &aProperty,
-                           bool aIsAnnotationProperty,
+                           PRBool aIsAnnotationProperty,
                            const nsACString &aValue,
                            PRTime aNewLastModified,
                            PRUint16 aItemType,
@@ -309,59 +309,59 @@ public:
   
   
   
-  bool IsTypeContainer(PRUint32 type) {
+  PRBool IsTypeContainer(PRUint32 type) {
     return (type == nsINavHistoryResultNode::RESULT_TYPE_DYNAMIC_CONTAINER ||
             type == nsINavHistoryResultNode::RESULT_TYPE_QUERY ||
             type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER ||
             type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER_SHORTCUT);
   }
-  bool IsContainer() {
+  PRBool IsContainer() {
     PRUint32 type;
     GetType(&type);
     return IsTypeContainer(type);
   }
-  bool IsDynamicContainer() {
+  PRBool IsDynamicContainer() {
     PRUint32 type;
     GetType(&type);
     return (type == nsINavHistoryResultNode::RESULT_TYPE_DYNAMIC_CONTAINER);
   }
-  static bool IsTypeURI(PRUint32 type) {
+  static PRBool IsTypeURI(PRUint32 type) {
     return (type == nsINavHistoryResultNode::RESULT_TYPE_URI ||
             type == nsINavHistoryResultNode::RESULT_TYPE_VISIT ||
             type == nsINavHistoryResultNode::RESULT_TYPE_FULL_VISIT);
   }
-  bool IsURI() {
+  PRBool IsURI() {
     PRUint32 type;
     GetType(&type);
     return IsTypeURI(type);
   }
-  static bool IsTypeVisit(PRUint32 type) {
+  static PRBool IsTypeVisit(PRUint32 type) {
     return (type == nsINavHistoryResultNode::RESULT_TYPE_VISIT ||
             type == nsINavHistoryResultNode::RESULT_TYPE_FULL_VISIT);
   }
-  bool IsVisit() {
+  PRBool IsVisit() {
     PRUint32 type;
     GetType(&type);
     return IsTypeVisit(type);
   }
-  static bool IsTypeFolder(PRUint32 type) {
+  static PRBool IsTypeFolder(PRUint32 type) {
     return (type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER ||
             type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER_SHORTCUT);
   }
-  bool IsFolder() {
+  PRBool IsFolder() {
     PRUint32 type;
     GetType(&type);
     return IsTypeFolder(type);
   }
-  static bool IsTypeQuery(PRUint32 type) {
+  static PRBool IsTypeQuery(PRUint32 type) {
     return (type == nsINavHistoryResultNode::RESULT_TYPE_QUERY);
   }
-  bool IsQuery() {
+  PRBool IsQuery() {
     PRUint32 type;
     GetType(&type);
     return IsTypeQuery(type);
   }
-  bool IsSeparator() {
+  PRBool IsSeparator() {
     PRUint32 type;
     GetType(&type);
     return (type == nsINavHistoryResultNode::RESULT_TYPE_SEPARATOR);
@@ -478,9 +478,9 @@ public:
 #define NS_FORWARD_CONTAINERNODE_EXCEPT_HASCHILDREN_AND_READONLY \
   NS_IMETHOD GetState(PRUint16* _state) \
     { return nsNavHistoryContainerResultNode::GetState(_state); } \
-  NS_IMETHOD GetContainerOpen(bool *aContainerOpen) \
+  NS_IMETHOD GetContainerOpen(PRBool *aContainerOpen) \
     { return nsNavHistoryContainerResultNode::GetContainerOpen(aContainerOpen); } \
-  NS_IMETHOD SetContainerOpen(bool aContainerOpen) \
+  NS_IMETHOD SetContainerOpen(PRBool aContainerOpen) \
     { return nsNavHistoryContainerResultNode::SetContainerOpen(aContainerOpen); } \
   NS_IMETHOD GetChildCount(PRUint32 *aChildCount) \
     { return nsNavHistoryContainerResultNode::GetChildCount(aChildCount); } \
@@ -489,7 +489,7 @@ public:
   NS_IMETHOD GetChildIndex(nsINavHistoryResultNode* aNode, PRUint32* _retval) \
     { return nsNavHistoryContainerResultNode::GetChildIndex(aNode, _retval); } \
   NS_IMETHOD FindNodeByDetails(const nsACString& aURIString, PRTime aTime, \
-                               PRInt64 aItemId, bool aRecursive, \
+                               PRInt64 aItemId, PRBool aRecursive, \
                                nsINavHistoryResultNode** _retval) \
     { return nsNavHistoryContainerResultNode::FindNodeByDetails(aURIString, aTime, aItemId, \
                                                                 aRecursive, _retval); } \
@@ -522,13 +522,13 @@ public:
   nsNavHistoryContainerResultNode(
     const nsACString& aURI, const nsACString& aTitle,
     const nsACString& aIconURI, PRUint32 aContainerType,
-    bool aReadOnly, const nsACString& aDynamicContainerType,
+    PRBool aReadOnly, const nsACString& aDynamicContainerType,
     nsNavHistoryQueryOptions* aOptions);
   nsNavHistoryContainerResultNode(
     const nsACString& aURI, const nsACString& aTitle,
     PRTime aTime,
     const nsACString& aIconURI, PRUint32 aContainerType,
-    bool aReadOnly, const nsACString& aDynamicContainerType,
+    PRBool aReadOnly, const nsACString& aDynamicContainerType,
     nsNavHistoryQueryOptions* aOptions);
 
   virtual nsresult Refresh();
@@ -549,11 +549,11 @@ public:
 
   virtual void OnRemoving();
 
-  bool AreChildrenVisible();
+  PRBool AreChildrenVisible();
 
   
   virtual nsresult OpenContainer();
-  nsresult CloseContainer(bool aSuppressNotifications = false);
+  nsresult CloseContainer(PRBool aSuppressNotifications = PR_FALSE);
 
   virtual nsresult OpenContainerAsync();
 
@@ -569,12 +569,12 @@ public:
 
   
   
-  bool mExpanded;
+  PRBool mExpanded;
 
   
   nsCOMArray<nsNavHistoryResultNode> mChildren;
 
-  bool mChildrenReadOnly;
+  PRBool mChildrenReadOnly;
 
   nsCOMPtr<nsNavHistoryQueryOptions> mOptions;
 
@@ -593,8 +593,8 @@ public:
   virtual void RecursiveSort(const char* aData,
                              SortComparator aComparator);
   PRUint32 FindInsertionPoint(nsNavHistoryResultNode* aNode, SortComparator aComparator,
-                              const char* aData, bool* aItemExists);
-  bool DoesChildNeedResorting(PRUint32 aIndex, SortComparator aComparator,
+                              const char* aData, PRBool* aItemExists);
+  PRBool DoesChildNeedResorting(PRUint32 aIndex, SortComparator aComparator,
                                 const char* aData);
 
   static PRInt32 SortComparison_StringLess(const nsAString& a, const nsAString& b);
@@ -680,25 +680,25 @@ public:
     { return mChildren.IndexOf(aNode); }
 
   nsresult InsertChildAt(nsNavHistoryResultNode* aNode, PRInt32 aIndex,
-                         bool aIsTemporary = false);
+                         PRBool aIsTemporary = PR_FALSE);
   nsresult InsertSortedChild(nsNavHistoryResultNode* aNode,
-                             bool aIsTemporary = false,
-                             bool aIgnoreDuplicates = false);
-  bool EnsureItemPosition(PRUint32 aIndex);
+                             PRBool aIsTemporary = PR_FALSE,
+                             PRBool aIgnoreDuplicates = PR_FALSE);
+  PRBool EnsureItemPosition(PRUint32 aIndex);
   void MergeResults(nsCOMArray<nsNavHistoryResultNode>* aNodes);
   nsresult ReplaceChildURIAt(PRUint32 aIndex, nsNavHistoryResultNode* aNode);
-  nsresult RemoveChildAt(PRInt32 aIndex, bool aIsTemporary = false);
+  nsresult RemoveChildAt(PRInt32 aIndex, PRBool aIsTemporary = PR_FALSE);
 
-  void RecursiveFindURIs(bool aOnlyOne,
+  void RecursiveFindURIs(PRBool aOnlyOne,
                          nsNavHistoryContainerResultNode* aContainer,
                          const nsCString& aSpec,
                          nsCOMArray<nsNavHistoryResultNode>* aMatches);
-  nsresult UpdateURIs(bool aRecursive, bool aOnlyOne, bool aUpdateSort,
+  nsresult UpdateURIs(PRBool aRecursive, PRBool aOnlyOne, PRBool aUpdateSort,
                       const nsCString& aSpec,
                       nsresult (*aCallback)(nsNavHistoryResultNode*,void*, nsNavHistoryResult*),
                       void* aClosure);
   nsresult ChangeTitles(nsIURI* aURI, const nsACString& aNewTitle,
-                        bool aRecursive, bool aOnlyOne);
+                        PRBool aRecursive, PRBool aOnlyOne);
 
 protected:
 
@@ -706,7 +706,7 @@ protected:
     NOT_CANCELED, CANCELED, CANCELED_RESTART_NEEDED
   };
 
-  void CancelAsyncOpen(bool aRestart);
+  void CancelAsyncOpen(PRBool aRestart);
   nsresult NotifyOnStateChange(PRUint16 aOldState);
 
   nsCOMPtr<mozIStoragePendingStatement> mAsyncPendingStmt;
@@ -747,13 +747,13 @@ public:
     { *type = nsNavHistoryResultNode::RESULT_TYPE_QUERY; return NS_OK; }
   NS_IMETHOD GetUri(nsACString& aURI); 
   NS_FORWARD_CONTAINERNODE_EXCEPT_HASCHILDREN_AND_READONLY
-  NS_IMETHOD GetHasChildren(bool* aHasChildren);
-  NS_IMETHOD GetChildrenReadOnly(bool *aChildrenReadOnly)
+  NS_IMETHOD GetHasChildren(PRBool* aHasChildren);
+  NS_IMETHOD GetChildrenReadOnly(PRBool *aChildrenReadOnly)
     { return nsNavHistoryContainerResultNode::GetChildrenReadOnly(aChildrenReadOnly); }
   NS_DECL_NSINAVHISTORYQUERYRESULTNODE
 
-  bool CanExpand();
-  bool IsContainersQuery();
+  PRBool CanExpand();
+  PRBool IsContainersQuery();
 
   virtual nsresult OpenContainer();
 
@@ -769,7 +769,7 @@ public:
   
   nsCOMArray<nsNavHistoryQuery> mQueries;
   PRUint32 mLiveUpdate; 
-  bool mHasSearchTerms;
+  PRBool mHasSearchTerms;
   nsresult VerifyQueriesParsed();
 
   
@@ -777,10 +777,10 @@ public:
 
   
   
-  bool mContentsValid;
+  PRBool mContentsValid;
 
   nsresult FillChildren();
-  void ClearChildren(bool unregister);
+  void ClearChildren(PRBool unregister);
   nsresult Refresh();
 
   virtual PRUint16 GetSortType();
@@ -824,8 +824,8 @@ public:
   }
   NS_IMETHOD GetUri(nsACString& aURI);
   NS_FORWARD_CONTAINERNODE_EXCEPT_HASCHILDREN_AND_READONLY
-  NS_IMETHOD GetHasChildren(bool* aHasChildren);
-  NS_IMETHOD GetChildrenReadOnly(bool *aChildrenReadOnly);
+  NS_IMETHOD GetHasChildren(PRBool* aHasChildren);
+  NS_IMETHOD GetChildrenReadOnly(PRBool *aChildrenReadOnly);
   NS_IMETHOD GetItemId(PRInt64 *aItemId);
   NS_DECL_NSINAVHISTORYQUERYRESULTNODE
 
@@ -843,17 +843,17 @@ public:
 
   
   
-  bool mContentsValid;
+  PRBool mContentsValid;
 
   
   
   PRInt64 mQueryItemId;
 
   nsresult FillChildren();
-  void ClearChildren(bool aUnregister);
+  void ClearChildren(PRBool aUnregister);
   nsresult Refresh();
 
-  bool StartIncrementalUpdate();
+  PRBool StartIncrementalUpdate();
   void ReindexRange(PRInt32 aStartIndex, PRInt32 aEndIndex, PRInt32 aDelta);
 
   nsNavHistoryResultNode* FindChildById(PRInt64 aItemId,
@@ -865,7 +865,7 @@ private:
   void EnsureRegisteredAsFolderObserver();
   nsresult FillChildrenAsync();
 
-  bool mIsRegisteredFolderObserver;
+  PRBool mIsRegisteredFolderObserver;
   PRInt32 mAsyncBookmarkIndex;
 };
 

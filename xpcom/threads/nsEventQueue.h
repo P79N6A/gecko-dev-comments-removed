@@ -56,7 +56,7 @@ public:
   
   
   
-  bool PutEvent(nsIRunnable *event);
+  PRBool PutEvent(nsIRunnable *event);
 
   
   
@@ -64,20 +64,20 @@ public:
   
   
   
-  bool GetEvent(bool mayWait, nsIRunnable **event);
+  PRBool GetEvent(PRBool mayWait, nsIRunnable **event);
 
   
-  bool HasPendingEvent() {
+  PRBool HasPendingEvent() {
     return GetEvent(PR_FALSE, nsnull);
   }
 
   
-  bool GetPendingEvent(nsIRunnable **runnable) {
+  PRBool GetPendingEvent(nsIRunnable **runnable) {
     return GetEvent(PR_FALSE, runnable);
   }
 
   
-  bool WaitPendingEvent(nsIRunnable **runnable) {
+  PRBool WaitPendingEvent(nsIRunnable **runnable) {
     return GetEvent(PR_TRUE, runnable);
   }
 
@@ -88,7 +88,7 @@ public:
 
 private:
 
-  bool IsEmpty() {
+  PRBool IsEmpty() {
     return !mHead || (mHead == mTail && mOffsetHead == mOffsetTail);
   }
 

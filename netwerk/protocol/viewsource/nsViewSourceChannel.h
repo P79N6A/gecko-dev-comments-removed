@@ -89,8 +89,8 @@ protected:
     nsCOMPtr<nsIStreamListener> mListener;
     nsCOMPtr<nsIURI>            mOriginalURI;
     nsCString                   mContentType;
-    bool                        mIsDocument; 
-    bool                        mOpened;
+    PRBool                      mIsDocument; 
+    PRBool                      mOpened;
 };
 
 #endif 

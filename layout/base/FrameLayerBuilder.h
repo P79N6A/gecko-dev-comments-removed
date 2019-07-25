@@ -316,7 +316,7 @@ public:
 
 
 
-  static bool NeedToInvalidateFixedDisplayItem(nsDisplayListBuilder* aBuilder,
+  static PRBool NeedToInvalidateFixedDisplayItem(nsDisplayListBuilder* aBuilder,
                                                  nsDisplayItem* aItem);
 
   
@@ -325,7 +325,7 @@ public:
 
 
 
-  static bool HasRetainedLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
+  static PRBool HasRetainedLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
 
   
 
@@ -367,7 +367,7 @@ public:
     };
     nsRect mClipRect;
     nsTArray<RoundedRect> mRoundedClipRects;
-    bool mHaveClipRect;
+    PRPackedBool mHaveClipRect;
 
     Clip() : mHaveClipRect(PR_FALSE) {}
 
@@ -423,7 +423,7 @@ protected:
 
   static void InternalDestroyDisplayItemData(nsIFrame* aFrame,
                                              void* aPropertyValue,
-                                             bool aRemoveFromFramesWithLayers);
+                                             PRBool aRemoveFromFramesWithLayers);
   static void DestroyDisplayItemData(nsIFrame* aFrame, void* aPropertyValue);
 
   
@@ -448,7 +448,7 @@ protected:
       NS_ERROR("Should never be called, since we ALLOW_MEMMOVE");
     }
 
-    bool HasNonEmptyContainerLayer();
+    PRBool HasNonEmptyContainerLayer();
 
     nsTArray<DisplayItemData> mData;
 
@@ -473,7 +473,7 @@ protected:
 
     nsDisplayItem* mItem;
     Clip mClip;
-    bool mInactiveLayer;
+    PRPackedBool mInactiveLayer;
   };
 
   
@@ -496,7 +496,7 @@ protected:
     
     
     nsIntPoint mLastPaintOffset;
-    bool mHasExplicitLastPaintOffset;
+    PRPackedBool mHasExplicitLastPaintOffset;
 
     enum { ALLOW_MEMMOVE = PR_TRUE };
   };
@@ -513,7 +513,7 @@ protected:
 
 
 
-  bool CheckDOMModified();
+  PRBool CheckDOMModified();
 
   
 
@@ -542,12 +542,12 @@ protected:
 
 
 
-  bool                                mDetectedDOMModification;
+  PRPackedBool                        mDetectedDOMModification;
   
 
 
 
-  bool                                mInvalidateAllLayers;
+  PRPackedBool                        mInvalidateAllLayers;
 };
 
 }

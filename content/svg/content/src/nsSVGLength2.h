@@ -79,7 +79,7 @@ public:
 
   nsresult SetBaseValueString(const nsAString& aValue,
                               nsSVGElement *aSVGElement,
-                              bool aDoSetAttr);
+                              PRBool aDoSetAttr);
   void GetBaseValueString(nsAString& aValue);
   void GetAnimValueString(nsAString& aValue);
 
@@ -92,7 +92,7 @@ public:
 
   PRUint8 GetCtxType() const { return mCtxType; }
   PRUint8 GetSpecifiedUnitType() const { return mSpecifiedUnitType; }
-  bool IsPercentage() const
+  PRBool IsPercentage() const
     { return mSpecifiedUnitType == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE; }
   float GetAnimValInSpecifiedUnits() const { return mAnimVal; }
   float GetBaseValInSpecifiedUnits() const { return mBaseVal; }
@@ -107,7 +107,7 @@ public:
   
   
   
-  bool IsExplicitlySet() const
+  PRBool IsExplicitlySet() const
     { return mIsAnimated || mIsBaseSet; }
   
   nsresult ToDOMAnimatedLength(nsIDOMSVGAnimatedLength **aResult,
@@ -124,8 +124,8 @@ private:
   PRUint8 mSpecifiedUnitType;
   PRUint8 mAttrEnum; 
   PRUint8 mCtxType; 
-  bool mIsAnimated:1;
-  bool mIsBaseSet:1;
+  PRPackedBool mIsAnimated:1;
+  PRPackedBool mIsBaseSet:1;
   
   static float GetMMPerPixel() { return MM_PER_INCH_FLOAT / 96; }
   float GetAxisLength(nsIFrame *aNonSVGFrame) const;
@@ -308,7 +308,7 @@ public:
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement* aSrcElement,
                                      nsSMILValue &aValue,
-                                     bool& aPreventCachingOfSandwich) const;
+                                     PRBool& aPreventCachingOfSandwich) const;
     virtual nsSMILValue GetBaseValue() const;
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);

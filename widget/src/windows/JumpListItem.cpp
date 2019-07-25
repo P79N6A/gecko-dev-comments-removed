@@ -106,11 +106,11 @@ NS_IMETHODIMP JumpListItem::GetType(PRInt16 *aType)
 }
 
 
-NS_IMETHODIMP JumpListItem::Equals(nsIJumpListItem *aItem, bool *aResult)
+NS_IMETHODIMP JumpListItem::Equals(nsIJumpListItem *aItem, PRBool *aResult)
 {
   NS_ENSURE_ARG_POINTER(aItem);
 
-  *aResult = false;
+  *aResult = PR_FALSE;
 
   PRInt16 theType = nsIJumpListItem::JUMPLIST_ITEM_EMPTY;
   if (NS_FAILED(aItem->GetType(&theType)))
@@ -120,7 +120,7 @@ NS_IMETHODIMP JumpListItem::Equals(nsIJumpListItem *aItem, bool *aResult)
   if (Type() != theType)
     return NS_OK;
 
-  *aResult = true;
+  *aResult = PR_TRUE;
 
   return NS_OK;
 }
@@ -167,7 +167,7 @@ NS_IMETHODIMP JumpListLink::GetUriHash(nsACString& aUriHash)
 }
 
 
-NS_IMETHODIMP JumpListLink::CompareHash(nsIURI *aUri, bool *aResult)
+NS_IMETHODIMP JumpListLink::CompareHash(nsIURI *aUri, PRBool *aResult)
 {
   nsresult rv;
 
@@ -191,13 +191,13 @@ NS_IMETHODIMP JumpListLink::CompareHash(nsIURI *aUri, bool *aResult)
 }
 
 
-NS_IMETHODIMP JumpListLink::Equals(nsIJumpListItem *aItem, bool *aResult)
+NS_IMETHODIMP JumpListLink::Equals(nsIJumpListItem *aItem, PRBool *aResult)
 {
   NS_ENSURE_ARG_POINTER(aItem);
 
   nsresult rv;
 
-  *aResult = false;
+  *aResult = PR_FALSE;
 
   PRInt16 theType = nsIJumpListItem::JUMPLIST_ITEM_EMPTY;
   if (NS_FAILED(aItem->GetType(&theType)))
@@ -219,15 +219,15 @@ NS_IMETHODIMP JumpListLink::Equals(nsIJumpListItem *aItem, bool *aResult)
 
   
   nsCOMPtr<nsIURI> theUri;
-  bool equals = false;
+  PRBool equals = PR_FALSE;
   if (NS_SUCCEEDED(link->GetUri(getter_AddRefs(theUri)))) {
     if (!theUri) {
       if (!mURI)
-        *aResult = true;
+        *aResult = PR_TRUE;
       return NS_OK;
     }
     if (NS_SUCCEEDED(theUri->Equals(mURI, &equals)) && equals) {
-      *aResult = true;
+      *aResult = PR_TRUE;
     }
   }
 
@@ -285,13 +285,13 @@ NS_IMETHODIMP JumpListShortcut::SetFaviconPageUri(nsIURI *aFaviconPageURI)
 }
 
 
-NS_IMETHODIMP JumpListShortcut::Equals(nsIJumpListItem *aItem, bool *aResult)
+NS_IMETHODIMP JumpListShortcut::Equals(nsIJumpListItem *aItem, PRBool *aResult)
 {
   NS_ENSURE_ARG_POINTER(aItem);
 
   nsresult rv;
 
-  *aResult = false;
+  *aResult = PR_FALSE;
 
   PRInt16 theType = nsIJumpListItem::JUMPLIST_ITEM_EMPTY;
   if (NS_FAILED(aItem->GetType(&theType)))
@@ -314,15 +314,15 @@ NS_IMETHODIMP JumpListShortcut::Equals(nsIJumpListItem *aItem, bool *aResult)
 
   
   nsCOMPtr<nsILocalHandlerApp> theApp;
-  bool equals = false;
+  PRBool equals = PR_FALSE;
   if (NS_SUCCEEDED(shortcut->GetApp(getter_AddRefs(theApp)))) {
     if (!theApp) {
       if (!mHandlerApp)
-        *aResult = true;
+        *aResult = PR_TRUE;
       return NS_OK;
     }
     if (NS_SUCCEEDED(theApp->Equals(mHandlerApp, &equals)) && equals) {
-      *aResult = true;
+      *aResult = PR_TRUE;
     }
   }
 
@@ -371,7 +371,7 @@ static PRInt32 GetICOCacheSecondsTimeout() {
   
   
   const PRInt32 kSecondsPerDay = 86400;
-  static bool alreadyObtained = false;
+  static PRBool alreadyObtained = PR_FALSE;
   static PRInt32 icoReCacheSecondsTimeout = kSecondsPerDay;
   if (alreadyObtained) {
     return icoReCacheSecondsTimeout;
@@ -381,7 +381,7 @@ static PRInt32 GetICOCacheSecondsTimeout() {
   const char PREF_ICOTIMEOUT[]  = "browser.taskbar.lists.icoTimeoutInSeconds";
   icoReCacheSecondsTimeout = Preferences::GetInt(PREF_ICOTIMEOUT, 
                                                  kSecondsPerDay);
-  alreadyObtained = true;
+  alreadyObtained = PR_TRUE;
   return icoReCacheSecondsTimeout;
 }
 
@@ -399,7 +399,7 @@ nsresult JumpListShortcut::ObtainCachedIconFile(nsCOMPtr<nsIURI> aFaviconPageURI
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  bool exists;
+  PRBool exists;
   rv = icoFile->Exists(&exists);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -553,14 +553,14 @@ nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item,
   handlerApp->GetName(appTitle);
   handlerApp->GetDetailedDescription(appDescription);
 
-  bool useUriIcon = false; 
-  bool usedUriIcon = false; 
+  PRBool useUriIcon = PR_FALSE; 
+  PRBool usedUriIcon = PR_FALSE; 
   shortcut->GetIconIndex(&appIconIndex);
   
   nsCOMPtr<nsIURI> iconUri;
   rv = shortcut->GetFaviconPageUri(getter_AddRefs(iconUri));
   if (NS_SUCCEEDED(rv) && iconUri) {
-    useUriIcon = true;
+    useUriIcon = PR_TRUE;
   }
 
   
@@ -592,7 +592,7 @@ nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item,
       
       
       psl->SetIconLocation(icoFilePath.get(), 0);
-      usedUriIcon = true;
+      usedUriIcon = PR_TRUE;
     }
   }
 
@@ -609,12 +609,12 @@ nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item,
 
 
 static nsresult IsPathInOurIconCache(nsCOMPtr<nsIJumpListShortcut>& aShortcut, 
-                                     PRUnichar *aPath, bool *aSame)
+                                     PRUnichar *aPath, PRBool *aSame)
 {
   NS_ENSURE_ARG_POINTER(aPath);
   NS_ENSURE_ARG_POINTER(aSame);
  
-  *aSame = false;
+  *aSame = PR_FALSE;
 
   
   nsCOMPtr<nsIFile> jumpListCache;
@@ -662,7 +662,7 @@ nsresult JumpListShortcut::GetJumpListShortcut(IShellLinkW *pLink, nsCOMPtr<nsIJ
 
   nsCOMPtr<nsILocalFile> file;
   nsDependentString filepath(buf);
-  rv = NS_NewLocalFile(filepath, false, getter_AddRefs(file));
+  rv = NS_NewLocalFile(filepath, PR_FALSE, getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = handlerApp->SetExecutable(file);
@@ -698,7 +698,7 @@ nsresult JumpListShortcut::GetJumpListShortcut(IShellLinkW *pLink, nsCOMPtr<nsIJ
 
     
     
-    bool isInOurCache;
+    PRBool isInOurCache;
     if (NS_SUCCEEDED(IsPathInOurIconCache(aShortcut, buf, &isInOurCache)) && 
         isInOurCache) {
       nsCOMPtr<nsIURI> iconUri;
@@ -808,21 +808,21 @@ nsresult JumpListLink::GetJumpListLink(IShellItem *pItem, nsCOMPtr<nsIJumpListLi
 }
 
 
-bool JumpListShortcut::ExecutableExists(nsCOMPtr<nsILocalHandlerApp>& handlerApp)
+PRBool JumpListShortcut::ExecutableExists(nsCOMPtr<nsILocalHandlerApp>& handlerApp)
 {
   nsresult rv;
 
   if (!handlerApp)
-    return false;
+    return PR_FALSE;
 
   nsCOMPtr<nsIFile> executable;
   rv = handlerApp->GetExecutable(getter_AddRefs(executable));
   if (NS_SUCCEEDED(rv) && executable) {
-    bool exists;
+    PRBool exists;
     executable->Exists(&exists);
     return exists;
   }
-  return false;
+  return PR_FALSE;
 }
 
 
@@ -846,7 +846,7 @@ nsresult JumpListItem::HashURI(nsCOMPtr<nsICryptoHash> &aCryptoHash,
   rv = aCryptoHash->Update(reinterpret_cast<const PRUint8*>(spec.BeginReading()), 
                                                             spec.Length());
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = aCryptoHash->Finish(true, aUriHash);
+  rv = aCryptoHash->Finish(PR_TRUE, aUriHash);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

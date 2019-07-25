@@ -88,23 +88,23 @@ protected:
   
   
   
-  bool AllowSniffing(nsIRequest* aRequest);
+  PRBool AllowSniffing(nsIRequest* aRequest);
   
   
   
-  bool TryContentSniffers(nsIRequest* aRequest);
-  bool SniffForHTML(nsIRequest* aRequest);
-  bool SniffForXML(nsIRequest* aRequest);
+  PRBool TryContentSniffers(nsIRequest* aRequest);
+  PRBool SniffForHTML(nsIRequest* aRequest);
+  PRBool SniffForXML(nsIRequest* aRequest);
 
   
   
-  bool SniffURI(nsIRequest* aRequest);
+  PRBool SniffURI(nsIRequest* aRequest);
 
   
   
   
   
-  bool LastDitchSniff(nsIRequest* aRequest);
+  PRBool LastDitchSniff(nsIRequest* aRequest);
 
   
 
@@ -115,7 +115,7 @@ protected:
 
 
   struct nsSnifferEntry {
-    typedef bool (nsUnknownDecoder::*TypeSniffFunc)(nsIRequest* aRequest);
+    typedef PRBool (nsUnknownDecoder::*TypeSniffFunc)(nsIRequest* aRequest);
     
     const char* mBytes;
     PRUint32 mByteLen;
@@ -136,7 +136,7 @@ protected:
   
   char *mBuffer;
   PRUint32 mBufferLen;
-  bool mRequireHTMLsuffix;
+  PRBool mRequireHTMLsuffix;
 
   nsCString mContentType;
 

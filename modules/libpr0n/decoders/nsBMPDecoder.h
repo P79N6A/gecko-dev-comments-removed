@@ -59,13 +59,13 @@ class nsBMPDecoder : public Decoder
 {
 public:
 
-    nsBMPDecoder(RasterImage *aImage, imgIDecoderObserver* aObserver);
+    nsBMPDecoder();
     ~nsBMPDecoder();
 
     
     
     
-    void SetUseAlphaData(bool useAlphaData);
+    void SetUseAlphaData(PRBool useAlphaData);
     
     PRInt32 GetBitsPerPixel() const;
     
@@ -78,7 +78,7 @@ public:
     PRInt32 GetCompressedImageSize() const;
     
     
-    bool HasAlphaData() const;
+    PRBool HasAlphaData() const;
 
     virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
     virtual void FinishInternal();
@@ -127,9 +127,9 @@ private:
     
     
     
-    bool mUseAlphaData;
+    PRPackedBool mUseAlphaData;
     
-    bool mHaveAlphaData;
+    PRPackedBool mHaveAlphaData;
 };
 
 

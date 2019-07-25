@@ -130,8 +130,6 @@ class nsMenuPopupFrame;
 class nsMenuPopupFrame : public nsBoxFrame, public nsMenuParent
 {
 public:
-  NS_DECL_QUERYFRAME_TARGET(nsMenuPopupFrame)
-  NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
   nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContext);
@@ -140,16 +138,16 @@ public:
   virtual nsMenuFrame* GetCurrentMenuItem();
   NS_IMETHOD SetCurrentMenuItem(nsMenuFrame* aMenuItem);
   virtual void CurrentMenuIsBeingDestroyed();
-  NS_IMETHOD ChangeMenuItem(nsMenuFrame* aMenuItem, bool aSelectFirstItem);
+  NS_IMETHOD ChangeMenuItem(nsMenuFrame* aMenuItem, PRBool aSelectFirstItem);
 
   
   
   nsPopupState PopupState() { return mPopupState; }
   void SetPopupState(nsPopupState aPopupState) { mPopupState = aPopupState; }
 
-  NS_IMETHOD SetActive(bool aActiveFlag) { return NS_OK; } 
-  virtual bool IsActive() { return false; }
-  virtual bool IsMenuBar() { return false; }
+  NS_IMETHOD SetActive(PRBool aActiveFlag) { return NS_OK; } 
+  virtual PRBool IsActive() { return PR_FALSE; }
+  virtual PRBool IsMenuBar() { return PR_FALSE; }
 
   
 
@@ -167,14 +165,14 @@ public:
 
 
 
-  bool ConsumeOutsideClicks();
+  PRBool ConsumeOutsideClicks();
 
-  virtual bool IsContextMenu() { return mIsContextMenu; }
+  virtual PRBool IsContextMenu() { return mIsContextMenu; }
 
-  virtual bool MenuClosed() { return true; }
+  virtual PRBool MenuClosed() { return PR_TRUE; }
 
-  virtual void LockMenuUntilClosed(bool aLock);
-  virtual bool IsMenuLocked() { return mIsMenuLocked; }
+  virtual void LockMenuUntilClosed(PRBool aLock);
+  virtual PRBool IsMenuLocked() { return mIsMenuLocked; }
 
   NS_IMETHOD GetWidget(nsIWidget **aWidget);
 
@@ -198,7 +196,7 @@ public:
 
   
   
-  bool IsNoAutoHide() const;
+  PRBool IsNoAutoHide() const;
 
   nsPopupLevel PopupLevel() const
   {
@@ -213,10 +211,10 @@ public:
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
 
-  virtual bool IsLeaf() const;
+  virtual PRBool IsLeaf() const;
 
   
-  void LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, bool aSizedToPopup);
+  void LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, PRBool aSizedToPopup);
 
   nsIView* GetRootViewForPopup(nsIFrame* aStartFrame);
 
@@ -225,9 +223,9 @@ public:
   
   
   
-  nsresult SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove);
+  nsresult SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove);
 
-  bool HasGeneratedChildren() { return mGeneratedChildren; }
+  PRBool HasGeneratedChildren() { return mGeneratedChildren; }
   void SetGeneratedChildren() { mGeneratedChildren = PR_TRUE; }
 
   
@@ -239,10 +237,10 @@ public:
   nsMenuFrame* Enter(nsGUIEvent* aEvent);
 
   nsPopupType PopupType() const { return mPopupType; }
-  bool IsMenu() { return mPopupType == ePopupTypeMenu; }
-  bool IsOpen() { return mPopupState == ePopupOpen || mPopupState == ePopupOpenAndVisible; }
+  PRBool IsMenu() { return mPopupType == ePopupTypeMenu; }
+  PRBool IsOpen() { return mPopupState == ePopupOpen || mPopupState == ePopupOpenAndVisible; }
 
-  bool IsDragPopup() { return mIsDragPopup; }
+  PRBool IsDragPopup() { return mIsDragPopup; }
 
   
   nsMenuFrame* GetParentMenu() {
@@ -258,7 +256,7 @@ public:
 
   
   
-  bool IsInContentShell() { return mInContentShell; }
+  PRBool IsInContentShell() { return mInContentShell; }
 
   
   
@@ -266,7 +264,7 @@ public:
                        nsIContent* aTriggerContent,
                        const nsAString& aPosition,
                        PRInt32 aXPos, PRInt32 aYPos,
-                       bool aAttributesOverride);
+                       PRBool aAttributesOverride);
 
   
 
@@ -275,7 +273,7 @@ public:
 
   void InitializePopupAtScreen(nsIContent* aTriggerContent,
                                PRInt32 aXPos, PRInt32 aYPos,
-                               bool aIsContextMenu);
+                               PRBool aIsContextMenu);
 
   void InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
                                       nsAString& aAnchor,
@@ -283,10 +281,10 @@ public:
                                       PRInt32 aXPos, PRInt32 aYPos);
 
   
-  void ShowPopup(bool aIsContextMenu, bool aSelectFirstItem);
+  void ShowPopup(PRBool aIsContextMenu, PRBool aSelectFirstItem);
   
   
-  void HidePopup(bool aDeselectMenu, nsPopupState aNewState);
+  void HidePopup(PRBool aDeselectMenu, nsPopupState aNewState);
 
   
   
@@ -294,7 +292,7 @@ public:
   
   
   
-  nsMenuFrame* FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction);
+  nsMenuFrame* FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doAction);
 
   void ClearIncrementalString() { mIncrementalString.Truncate(); }
 
@@ -313,10 +311,10 @@ public:
   
   
   
-  void MoveTo(PRInt32 aLeft, PRInt32 aTop, bool aUpdateAttrs);
+  void MoveTo(PRInt32 aLeft, PRInt32 aTop, PRBool aUpdateAttrs);
 
-  bool GetAutoPosition();
-  void SetAutoPosition(bool aShouldAutoPosition);
+  PRBool GetAutoPosition();
+  void SetAutoPosition(PRBool aShouldAutoPosition);
   void SetConsumeRollupEvent(PRUint32 aConsumeMode);
 
   nsIScrollableFrame* GetScrollFrame(nsIFrame* aStart);
@@ -341,7 +339,7 @@ public:
   void CanAdjustEdges(PRInt8 aHorizontalSide, PRInt8 aVerticalSide, nsIntPoint& aChange);
 
   
-  bool IsAnchored() const { return mScreenXPos == -1 && mScreenYPos == -1; }
+  PRBool IsAnchored() const { return mScreenXPos == -1 && mScreenYPos == -1; }
 
   
   nsIContent* GetAnchor() const { return mAnchorContent; }
@@ -355,7 +353,7 @@ public:
 protected:
 
   
-  nsPopupLevel PopupLevel(bool aIsNoAutoHide) const;
+  nsPopupLevel PopupLevel(PRBool aIsNoAutoHide) const;
 
   
   virtual void GetLayoutFlags(PRUint32& aFlags);
@@ -389,7 +387,7 @@ protected:
                        nscoord aAnchorBegin, nscoord aAnchorEnd,
                        nscoord aMarginBegin, nscoord aMarginEnd,
                        nscoord aOffsetForContextMenu, FlipStyle aFlip,
-                       bool* aFlipSide);
+                       PRPackedBool* aFlipSide);
 
   
   void MoveToAttributePosition();
@@ -444,23 +442,23 @@ protected:
   PRInt8 mPopupAnchor;
   
   PRInt8 mConsumeRollupEvent;
-  bool mFlipBoth; 
+  PRPackedBool mFlipBoth; 
 
-  bool mIsOpenChanged; 
-  bool mIsContextMenu; 
+  PRPackedBool mIsOpenChanged; 
+  PRPackedBool mIsContextMenu; 
   
-  bool mAdjustOffsetForContextMenu;
-  bool mGeneratedChildren; 
+  PRPackedBool mAdjustOffsetForContextMenu;
+  PRPackedBool mGeneratedChildren; 
 
-  bool mMenuCanOverlapOSBar;    
-  bool mShouldAutoPosition; 
-  bool mInContentShell; 
-  bool mIsMenuLocked; 
-  bool mIsDragPopup; 
+  PRPackedBool mMenuCanOverlapOSBar;    
+  PRPackedBool mShouldAutoPosition; 
+  PRPackedBool mInContentShell; 
+  PRPackedBool mIsMenuLocked; 
+  PRPackedBool mIsDragPopup; 
 
   
-  bool mHFlip;
-  bool mVFlip;
+  PRPackedBool mHFlip;
+  PRPackedBool mVFlip;
 
   static PRInt8 sDefaultLevelIsTop;
 }; 

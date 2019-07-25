@@ -111,7 +111,7 @@ private:
   
   
   
-  virtual nsresult OpenContentStream(bool async, nsIInputStream **stream,
+  virtual nsresult OpenContentStream(PRBool async, nsIInputStream **stream,
                                      nsIChannel** channel) = 0;
 
   
@@ -122,7 +122,7 @@ private:
   
   
   
-  virtual bool GetStatusArg(nsresult status, nsString &statusArg) {
+  virtual PRBool GetStatusArg(nsresult status, nsString &statusArg) {
     return PR_FALSE;
   }
 
@@ -142,13 +142,13 @@ public:
   
   
   nsresult Redirect(nsIChannel *newChannel, PRUint32 redirectFlags,
-                    bool openNewChannel);
+                    PRBool openNewChannel);
 
   
   
   
   
-  bool HasContentTypeHint() const;
+  PRBool HasContentTypeHint() const;
 
   
   
@@ -176,12 +176,12 @@ public:
   }
 
   
-  bool HasLoadFlag(PRUint32 flag) {
+  PRBool HasLoadFlag(PRUint32 flag) {
     return (mLoadFlags & flag) != 0;
   }
 
   
-  bool IsPending() const {
+  PRBool IsPending() const {
     return mPump || mWaitingOnAsyncRedirect;
   }
 
@@ -208,7 +208,7 @@ public:
   
   
   
-  void EnableSynthesizedProgressEvents(bool enable) {
+  void EnableSynthesizedProgressEvents(PRBool enable) {
     mSynthProgressEvents = enable;
   }
 
@@ -229,7 +229,7 @@ public:
   
   
   nsresult PushStreamConverter(const char *fromType, const char *toType,
-                               bool invalidatesContentLength = true,
+                               PRBool invalidatesContentLength = PR_TRUE,
                                nsIStreamListener **converter = nsnull);
 
 private:
@@ -287,11 +287,11 @@ private:
   nsCString                           mContentType;
   nsCString                           mContentCharset;
   PRUint32                            mLoadFlags;
-  bool                                mQueriedProgressSink;
-  bool                                mSynthProgressEvents;
-  bool                                mWasOpened;
-  bool                                mWaitingOnAsyncRedirect;
-  bool                                mOpenRedirectChannel;
+  PRPackedBool                        mQueriedProgressSink;
+  PRPackedBool                        mSynthProgressEvents;
+  PRPackedBool                        mWasOpened;
+  PRPackedBool                        mWaitingOnAsyncRedirect;
+  PRPackedBool                        mOpenRedirectChannel;
   PRUint32                            mRedirectFlags;
 
 protected:

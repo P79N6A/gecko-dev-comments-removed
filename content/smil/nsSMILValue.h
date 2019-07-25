@@ -67,12 +67,12 @@ public:
 
   
   
-  bool operator==(const nsSMILValue& aVal) const;
-  bool operator!=(const nsSMILValue& aVal) const {
+  PRBool operator==(const nsSMILValue& aVal) const;
+  PRBool operator!=(const nsSMILValue& aVal) const {
     return !(*this == aVal);
   }
 
-  bool IsNull() const
+  PRBool IsNull() const
   {
     return (mType == &nsSMILNullType::sSingleton);
   }
@@ -88,7 +88,7 @@ public:
                        nsSMILValue& aResult) const;
 
   union {
-    bool mBool;
+    PRBool mBool;
     PRUint64 mUint;
     PRInt64 mInt;
     double mDouble;

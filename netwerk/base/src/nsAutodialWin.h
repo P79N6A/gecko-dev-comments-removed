@@ -101,7 +101,7 @@ private:
     
 
     
-    bool IsAutodialServiceRunning();
+    PRBool IsAutodialServiceRunning();
 
     
     int NumRASEntries();
@@ -113,19 +113,19 @@ private:
     nsresult GetFirstEntryName(PRUnichar* entryName, int bufferSize);
 
     
-    bool IsRASConnected();
+    PRBool IsRASConnected();
 
     
     int QueryAutodialBehavior();
 
     
-    bool AddAddressToAutodialDirectory(const PRUnichar* hostName);
+    PRBool AddAddressToAutodialDirectory(const PRUnichar* hostName);
 
     
     int GetCurrentLocation();
 
     
-    bool IsAutodialServiceEnabled(int location);
+    PRBool IsAutodialServiceEnabled(int location);
 
     
     
@@ -167,8 +167,8 @@ private:
     static tRASGETAUTODIALENABLE mpRasGetAutodialEnable;
     static tRASGETAUTODIALPARAM mpRasGetAutodialParam;
 
-    bool LoadRASapi32DLL();
-    bool LoadRASdlgDLL();
+    PRBool LoadRASapi32DLL();
+    PRBool LoadRASdlgDLL();
 
 
 public:
@@ -187,7 +187,7 @@ public:
     nsresult DialDefault(const PRUnichar* hostName);
 
     
-    bool ShouldDialOnNetworkError();
+    PRBool ShouldDialOnNetworkError();
 };
 
 #endif 

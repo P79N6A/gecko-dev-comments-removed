@@ -125,10 +125,6 @@ SCORE_UPDATE_DELAY:                    100,
 
 
 
-IDLE_OBSERVER_BACK_DELAY:              100,
-
-
-
 
 MAX_UPLOAD_RECORDS:                    100,
 MAX_HISTORY_UPLOAD:                    5000,
@@ -189,7 +185,6 @@ JPAKE_ERROR_NODATA:                    "jpake.error.nodata",
 JPAKE_ERROR_KEYMISMATCH:               "jpake.error.keymismatch",
 JPAKE_ERROR_WRONGMESSAGE:              "jpake.error.wrongmessage",
 JPAKE_ERROR_USERABORT:                 "jpake.error.userabort",
-JPAKE_ERROR_DELAYUNSUPPORTED:          "jpake.error.delayunsupported",
 
 
 INFO_COLLECTIONS:                      "collections",

@@ -157,13 +157,13 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
   PaintState result;
   
   
-  bool canHaveRotation = !(aFlags & PAINT_WILL_RESAMPLE);
+  PRBool canHaveRotation = !(aFlags & PAINT_WILL_RESAMPLE);
 
   nsIntRegion validRegion = aLayer->GetValidRegion();
 
   ContentType contentType;
   nsIntRegion neededRegion;
-  bool canReuseBuffer;
+  PRBool canReuseBuffer;
   nsIntRect destBufferRect;
 
   while (PR_TRUE) {
@@ -279,7 +279,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
 
   
   
-  bool isClear = mBuffer == nsnull;
+  PRBool isClear = mBuffer == nsnull;
 
   if (destBuffer) {
     if (mBuffer) {

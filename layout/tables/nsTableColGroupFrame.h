@@ -129,7 +129,7 @@ public:
 
 
   void RemoveChild(nsTableColFrame& aChild,
-                   bool             aResetSubsequentColIndices);
+                   PRBool           aResetSubsequentColIndices);
 
   
 
@@ -141,6 +141,10 @@ public:
                     nsHTMLReflowMetrics&     aDesiredSize,
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus&          aStatus);
+
+  
+
+  virtual PRBool IsContainingBlock() const;
 
   
 
@@ -164,7 +168,7 @@ public:
 
 
   nsresult AddColsToTable(PRInt32                   aFirstColIndex,
-                          bool                      aResetSubsequentColIndices,
+                          PRBool                    aResetSubsequentColIndices,
                           const nsFrameList::Slice& aCols);
 
 #ifdef DEBUG

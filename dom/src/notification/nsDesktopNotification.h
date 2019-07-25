@@ -125,7 +125,7 @@ public:
 
   void PostDesktopNotification();
 
-  void SetAllow(bool aAllow);
+  void SetAllow(PRBool aAllow);
 
   
 
@@ -145,8 +145,8 @@ protected:
 
   nsRefPtr<AlertServiceObserver> mObserver;
   nsCOMPtr<nsIURI> mURI;
-  bool mAllow;
-  bool mShowHasBeenCalled;
+  PRBool mAllow;
+  PRBool mShowHasBeenCalled;
 };
 
 

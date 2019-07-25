@@ -47,7 +47,7 @@
 
 
 
-typedef bool (*nsFontFamilyEnumFunc)(const nsString& aFamily, bool aGeneric, void *aData);
+typedef PRBool (*nsFontFamilyEnumFunc)(const nsString& aFamily, PRBool aGeneric, void *aData);
 
 
 
@@ -126,13 +126,13 @@ struct NS_GFX nsFont {
   nsFont();
   ~nsFont();
 
-  bool operator==(const nsFont& aOther) const {
+  PRBool operator==(const nsFont& aOther) const {
     return Equals(aOther);
   }
 
-  bool Equals(const nsFont& aOther) const ;
+  PRBool Equals(const nsFont& aOther) const ;
   
-  bool BaseEquals(const nsFont& aOther) const;
+  PRBool BaseEquals(const nsFont& aOther) const;
 
   nsFont& operator=(const nsFont& aOther);
 
@@ -140,7 +140,7 @@ struct NS_GFX nsFont {
   
   
   
-  bool EnumerateFamilies(nsFontFamilyEnumFunc aFunc, void* aData) const;
+  PRBool EnumerateFamilies(nsFontFamilyEnumFunc aFunc, void* aData) const;
   void GetFirstFamily(nsString& aFamily) const;
 
   

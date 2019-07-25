@@ -55,7 +55,7 @@ public:
 
 
 
-  static bool
+  static PRBool
   HaveFeature(nsISupports* aObject, const nsAString& aFeature);
 
   
@@ -91,7 +91,7 @@ public:
 
 
 
-  static bool
+  static PRBool
   PassesConditionalProcessingTests(nsIContent *aContent,
                                    const nsString *aAcceptLangs = nsnull);
 
@@ -104,7 +104,7 @@ private:
 
 
 
-  static bool
+  static PRBool
   HaveFeatures(nsISupports* aObject, const nsSubstring& aFeatures);
 
   
@@ -113,7 +113,7 @@ private:
 
 
 
-  static bool
+  static PRBool
   HaveExtension(const nsAString& aExtension);
 
   
@@ -122,7 +122,7 @@ private:
 
 
 
-  static bool
+  static PRBool
   HaveExtensions(const nsSubstring& aExtensions);
 
   
@@ -134,7 +134,7 @@ private:
 
 
 
-  static bool
+  static PRBool
   MatchesLanguagePreferences(const nsSubstring& aAttribute,
                              const nsSubstring& aAcceptLangs); 
 
@@ -147,7 +147,7 @@ private:
 
 
 
-  static bool
+  static PRBool
   ElementSupportsAttributes(const nsIAtom *aTagName, PRUint16 aAttr);
 };
 

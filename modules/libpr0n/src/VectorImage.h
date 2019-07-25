@@ -42,7 +42,6 @@
 #include "Image.h"
 #include "nsIStreamListener.h"
 #include "nsWeakReference.h"
-#include "mozilla/TimeStamp.h"
 
 class imgIDecoderObserver;
 
@@ -66,8 +65,8 @@ public:
   NS_SCRIPTABLE NS_IMETHOD GetHeight(PRInt32 *aHeight);
   NS_SCRIPTABLE NS_IMETHOD GetType(PRUint16 *aType);
   NS_IMETHOD_(PRUint16) GetType(void);
-  NS_SCRIPTABLE NS_IMETHOD GetAnimated(bool *aAnimated);
-  NS_SCRIPTABLE NS_IMETHOD GetCurrentFrameIsOpaque(bool *aCurrentFrameIsOpaque);
+  NS_SCRIPTABLE NS_IMETHOD GetAnimated(PRBool *aAnimated);
+  NS_SCRIPTABLE NS_IMETHOD GetCurrentFrameIsOpaque(PRBool *aCurrentFrameIsOpaque);
   NS_IMETHOD GetFrame(PRUint32 aWhichFrame, PRUint32 aFlags, gfxASurface **_retval NS_OUTPARAM);
   NS_IMETHOD CopyFrame(PRUint32 aWhichFrame, PRUint32 aFlags, gfxImageSurface **_retval NS_OUTPARAM);
   NS_IMETHOD ExtractFrame(PRUint32 aWhichFrame, const nsIntRect & aRect, PRUint32 aFlags, imgIContainer **_retval NS_OUTPARAM);
@@ -77,7 +76,6 @@ public:
   NS_SCRIPTABLE NS_IMETHOD LockImage(void);
   NS_SCRIPTABLE NS_IMETHOD UnlockImage(void);
   NS_SCRIPTABLE NS_IMETHOD ResetAnimation(void);
-  NS_IMETHOD_(void) RequestRefresh(const mozilla::TimeStamp& aTime);
   
 
   VectorImage(imgStatusTracker* aStatusTracker = nsnull);
@@ -118,12 +116,12 @@ private:
                                           
                                           
 
-  bool           mIsInitialized:1;        
-  bool           mIsFullyLoaded:1;        
-  bool           mIsDrawing:1;            
-  bool           mHaveAnimations:1;       
+  PRPackedBool   mIsInitialized:1;        
+  PRPackedBool   mIsFullyLoaded:1;        
+  PRPackedBool   mIsDrawing:1;            
+  PRPackedBool   mHaveAnimations:1;       
                                           
-  bool           mHaveRestrictedRegion:1; 
+  PRPackedBool   mHaveRestrictedRegion:1; 
                                           
 };
 

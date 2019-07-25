@@ -114,7 +114,7 @@ public:
     GraphicsFilter Filter() const;
 
     
-    bool GetSolidColor(gfxRGBA& aColor);
+    PRBool GetSolidColor(gfxRGBA& aColor);
 
     already_AddRefed<gfxASurface> GetSurface();
 

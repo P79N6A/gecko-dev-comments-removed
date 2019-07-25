@@ -55,7 +55,7 @@ GetAuthKey(const char *scheme, const char *host, PRInt32 port, nsCString &key)
 
 
 
-static bool
+static PRBool
 StrEquivalent(const PRUnichar *a, const PRUnichar *b)
 {
     static const PRUnichar emptyStr[] = {0};
@@ -320,7 +320,7 @@ nsHttpAuthIdentity::Clear()
     }
 }
 
-bool
+PRBool
 nsHttpAuthIdentity::Equals(const nsHttpAuthIdentity &ident) const
 {
     

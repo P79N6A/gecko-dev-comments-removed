@@ -53,7 +53,7 @@ public:
     TX_DECL_TXAXMLEVENTHANDLER
 
 private:
-    nsresult createHandlerAndFlush(bool aHTMLRoot,
+    nsresult createHandlerAndFlush(PRBool aHTMLRoot,
                                    const nsSubstring& aName,
                                    const PRInt32 aNsID);
 
@@ -66,7 +66,7 @@ private:
 
     
     
-    bool mFlushed;
+    PRBool mFlushed;
 };
 
 #endif 

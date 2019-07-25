@@ -60,9 +60,9 @@ PRLogModuleInfo *MCD;
 
 extern nsresult EvaluateAdminConfigScript(const char *js_buffer, size_t length,
                                           const char *filename, 
-                                          bool bGlobalContext, 
-                                          bool bCallbacks, 
-                                          bool skipFirstLine);
+                                          PRBool bGlobalContext, 
+                                          PRBool bCallbacks, 
+                                          PRBool skipFirstLine);
 
 
 
@@ -244,7 +244,7 @@ nsresult nsAutoConfig::downloadAutoConfig()
     nsresult rv;
     nsCAutoString emailAddr;
     nsXPIDLCString urlName;
-    static bool firstTime = true;
+    static PRBool firstTime = PR_TRUE;
     
     if (mConfigURL.IsEmpty()) {
         PR_LOG(MCD, PR_LOG_DEBUG, ("global config url is empty - did you set autoadmin.global_config_url?\n"));
@@ -281,13 +281,13 @@ nsresult nsAutoConfig::downloadAutoConfig()
     if (NS_FAILED(rv)) 
         return rv;
     
-    bool offline;
+    PRBool offline;
     rv = ios->GetOffline(&offline);
     if (NS_FAILED(rv)) 
         return rv;
     
     if (offline) {
-        bool offlineFailover;
+        PRBool offlineFailover;
         rv = mPrefBranch->GetBoolPref("autoadmin.offline_failover", 
                                       &offlineFailover);
         
@@ -300,7 +300,7 @@ nsresult nsAutoConfig::downloadAutoConfig()
 
 
 
-    bool appendMail;
+    PRBool appendMail;
     rv = mPrefBranch->GetBoolPref("autoadmin.append_emailaddr", &appendMail);
     if (NS_SUCCEEDED(rv) && appendMail) {
         rv = getEmailAddr(emailAddr);
@@ -392,7 +392,7 @@ nsresult nsAutoConfig::readOfflineFile()
 
     mLoaded = PR_TRUE; 
 
-    bool failCache;
+    PRBool failCache;
     rv = mPrefBranch->GetBoolPref("autoadmin.failover_to_cached", &failCache);
     if (NS_SUCCEEDED(rv) && !failCache) {
         
@@ -402,7 +402,7 @@ nsresult nsAutoConfig::readOfflineFile()
         if (NS_FAILED(rv)) 
             return rv;
         
-        bool offline;
+        PRBool offline;
         rv = ios->GetOffline(&offline);
         if (NS_FAILED(rv)) 
             return rv;
@@ -556,9 +556,9 @@ nsresult nsAutoConfig::PromptForEMailAddress(nsACString &emailAddress)
     nsXPIDLString err;
     rv = bundle->GetStringFromName(NS_LITERAL_STRING("emailPromptMsg").get(), getter_Copies(err));
     NS_ENSURE_SUCCESS(rv, rv);
-    bool check = false;
+    PRBool check = PR_FALSE;
     nsXPIDLString emailResult;
-    bool success;
+    PRBool success;
     rv = promptService->Prompt(nsnull, title.get(), err.get(), getter_Copies(emailResult), nsnull, &check, &success);
     if (!success)
       return NS_ERROR_FAILURE;

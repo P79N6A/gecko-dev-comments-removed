@@ -83,13 +83,13 @@ struct nsFrameContinuationState : public nsVoidPtrHashKey
 
 
 
-  bool mHasContOnPrevLines;
+  PRPackedBool mHasContOnPrevLines;
 
   
 
 
 
-  bool mHasContOnNextLines;
+  PRPackedBool mHasContOnNextLines;
 };
 
 
@@ -202,7 +202,7 @@ public:
                                     PRUnichar*      aText,
                                     PRInt32&        aTextLength,
                                     nsCharType      aCharType,
-                                    bool            aIsOddLevel);
+                                    PRBool          aIsOddLevel);
 
   
 
@@ -257,7 +257,7 @@ public:
 
 
 
-  static bool CheckLineOrder(nsIFrame*  aFirstFrameOnLine,
+  static PRBool CheckLineOrder(nsIFrame*  aFirstFrameOnLine,
                                PRInt32    aNumFramesOnLine,
                                nsIFrame** aLeftmost,
                                nsIFrame** aRightmost);
@@ -343,7 +343,7 @@ public:
   static void CopyLogicalToVisual(const nsAString& aSource,
                                   nsAString& aDest,
                                   nsBidiLevel aBaseDirection,
-                                  bool aOverride);
+                                  PRBool aOverride);
 
 private:
   static nsresult
@@ -387,7 +387,7 @@ private:
 
 
   static void RepositionFrame(nsIFrame*              aFrame,
-                              bool                   aIsOddLevel,
+                              PRBool                 aIsOddLevel,
                               nscoord&               aLeft,
                               nsContinuationStates*  aContinuationStates);
 
@@ -419,8 +419,8 @@ private:
 
    static void IsLeftOrRightMost(nsIFrame*              aFrame,
                                  nsContinuationStates*  aContinuationStates,
-                                 bool&                aIsLeftMost ,
-                                 bool&                aIsRightMost );
+                                 PRBool&                aIsLeftMost ,
+                                 PRBool&                aIsRightMost );
 
   
 
@@ -488,7 +488,7 @@ private:
   static void StripBidiControlCharacters(PRUnichar* aText,
                                          PRInt32&   aTextLength);
 
-  static bool WriteLogicalToVisual(const PRUnichar* aSrc,
+  static PRBool WriteLogicalToVisual(const PRUnichar* aSrc,
                                      PRUint32 aSrcLength,
                                      PRUnichar* aDest,
                                      nsBidiLevel aBaseDirection,

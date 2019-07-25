@@ -75,7 +75,7 @@ public:
   }
  
   KeyType GetKey() const { return mKey; }
-  bool KeyEquals(KeyTypePointer aKey) const { return !nsCRT::strcmp(mKey, aKey); }
+  PRBool KeyEquals(KeyTypePointer aKey) const { return !nsCRT::strcmp(mKey, aKey); }
   static KeyTypePointer KeyToPointer(KeyType aKey) { return aKey; }
 
   static PLDHashNumber HashKey(KeyTypePointer aKey) { return nsCRT::HashCode(aKey); }
@@ -103,7 +103,7 @@ public:
   nsresult Init();
 
 protected:
-  bool           mDirty;       
+  PRBool         mDirty;       
   nsTHashtable<nsUniCharEntry> mDictionaryTable;
   nsTHashtable<nsUniCharEntry> mIgnoreTable;
   nsCOMPtr<nsIUnicodeEncoder>  mEncoder; 
