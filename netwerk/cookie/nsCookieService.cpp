@@ -1550,11 +1550,7 @@ nsCookieService::SetCookieStringInternal(nsIURI          *aHostURI,
   
   nsDependentCString cookieHeader(aCookieHeader);
   while (SetCookieInternal(aHostURI, baseDomain, requireHostMatch,
-                           cookieStatus, cookieHeader, serverTime, aFromHttp)) {
-    
-    if (!aFromHttp)
-      break;
-  }
+                           cookieStatus, cookieHeader, serverTime, aFromHttp));
 }
 
 
