@@ -2195,6 +2195,10 @@ private:
     PRUint32          mCharacterCount;
     PRUint32          mHashCode;
     PRUint64          mUserFontSetGeneration; 
+
+    PRBool            mSkipDrawing; 
+                                    
+                                    
 };
 
 class THEBES_API gfxFontGroup : public gfxTextRunFactory {
@@ -2322,6 +2326,10 @@ public:
     
     virtual void UpdateFontList();
 
+    PRBool ShouldSkipDrawing() const {
+        return mSkipDrawing;
+    }
+
 protected:
     nsString mFamilies;
     gfxFontStyle mStyle;
@@ -2335,8 +2343,12 @@ protected:
     nsRefPtr<gfxFontFamily> mLastPrefFamily;
     nsRefPtr<gfxFont>       mLastPrefFont;
     eFontPrefLang           mLastPrefLang;       
-    PRBool                  mLastPrefFirstFont;  
     eFontPrefLang           mPageLang;
+    PRPackedBool            mLastPrefFirstFont;  
+
+    PRPackedBool            mSkipDrawing; 
+                                          
+                                          
 
     
     

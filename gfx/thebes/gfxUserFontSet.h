@@ -190,7 +190,8 @@ public:
     
     gfxFontEntry *FindFontEntry(const nsAString& aName, 
                                 const gfxFontStyle& aFontStyle, 
-                                PRBool& aNeedsBold);
+                                PRBool& aNeedsBold,
+                                PRBool& aWaitForUserFont);
                                 
     
     
@@ -211,13 +212,13 @@ public:
     
     PRUint64 GetGeneration() { return mGeneration; }
 
+    
+    void IncrementGeneration();
+
 protected:
     
     
     LoadStatus LoadNext(gfxProxyFontEntry *aProxyEntry);
-
-    
-    void IncrementGeneration();
 
     gfxMixedFontFamily *GetFamily(const nsAString& aName) const;
 
@@ -249,9 +250,19 @@ public:
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, PRBool aNeedsBold);
 
-    PRPackedBool                           mIsLoading;
-    nsTArray<gfxFontFaceSrc>               mSrcList;
-    PRUint32                               mSrcIndex; 
+    
+    enum LoadingState {
+        NOT_LOADING = 0,     
+        LOADING_STARTED,     
+        LOADING_ALMOST_DONE, 
+                             
+        LOADING_SLOWLY       
+                             
+    };
+    LoadingState             mLoadingState;
+
+    nsTArray<gfxFontFaceSrc> mSrcList;
+    PRUint32                 mSrcIndex; 
 };
 
 

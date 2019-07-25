@@ -73,7 +73,8 @@ gfxProxyFontEntry::gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSr
              const nsTArray<gfxFontFeature>& aFeatureSettings,
              PRUint32 aLanguageOverride,
              gfxSparseBitSet *aUnicodeRanges)
-    : gfxFontEntry(NS_LITERAL_STRING("Proxy"), aFamily), mIsLoading(PR_FALSE)
+    : gfxFontEntry(NS_LITERAL_STRING("Proxy"), aFamily),
+      mLoadingState(NOT_LOADING)
 {
     mIsProxy = PR_TRUE;
     mSrcList = aFontFaceSrcList;
@@ -162,25 +163,32 @@ gfxUserFontSet::AddFontFace(const nsAString& aFamilyName,
 gfxFontEntry*
 gfxUserFontSet::FindFontEntry(const nsAString& aName, 
                               const gfxFontStyle& aFontStyle, 
-                              PRBool& aNeedsBold)
+                              PRBool& aNeedsBold,
+                              PRBool& aWaitForUserFont)
 {
+    aWaitForUserFont = PR_FALSE;
     gfxMixedFontFamily *family = GetFamily(aName);
 
     
-    if (!family)
+    if (!family) {
         return nsnull;
+    }
 
     gfxFontEntry* fe = family->FindFontForStyle(aFontStyle, aNeedsBold);
 
     
-    if (!fe->mIsProxy)
+    if (!fe->mIsProxy) {
         return fe;
+    }
 
     gfxProxyFontEntry *proxyEntry = static_cast<gfxProxyFontEntry*> (fe);
 
     
-    if (proxyEntry->mIsLoading)
+    if (proxyEntry->mLoadingState > gfxProxyFontEntry::NOT_LOADING) {
+        aWaitForUserFont =
+            (proxyEntry->mLoadingState < gfxProxyFontEntry::LOADING_SLOWLY);
         return nsnull;
+    }
 
     
     LoadStatus status;
@@ -189,10 +197,13 @@ gfxUserFontSet::FindFontEntry(const nsAString& aName,
 
     
     
-    if (status == STATUS_LOADED)
+    if (status == STATUS_LOADED) {
         return family->FindFontForStyle(aFontStyle, aNeedsBold);
+    }
 
     
+    aWaitForUserFont =
+        (proxyEntry->mLoadingState < gfxProxyFontEntry::LOADING_SLOWLY);
     return nsnull;
 }
 
@@ -568,14 +579,12 @@ gfxUserFontSet::OnLoadComplete(gfxFontEntry *aFontToLoad,
     LoadStatus status;
 
     status = LoadNext(pe);
-    if (status == STATUS_LOADED) {
-        
-        
-        IncrementGeneration();
-        return PR_TRUE;
-    }
 
-    return PR_FALSE;
+    
+    
+    
+    IncrementGeneration();
+    return PR_TRUE;
 }
 
 
@@ -586,10 +595,13 @@ gfxUserFontSet::LoadNext(gfxProxyFontEntry *aProxyEntry)
 
     NS_ASSERTION(aProxyEntry->mSrcIndex < numSrc, "already at the end of the src list for user font");
 
-    if (aProxyEntry->mIsLoading) {
-        aProxyEntry->mSrcIndex++;
+    if (aProxyEntry->mLoadingState == gfxProxyFontEntry::NOT_LOADING) {
+        aProxyEntry->mLoadingState = gfxProxyFontEntry::LOADING_STARTED;
     } else {
-        aProxyEntry->mIsLoading = PR_TRUE;
+        
+        
+        
+        aProxyEntry->mSrcIndex++;
     }
 
     

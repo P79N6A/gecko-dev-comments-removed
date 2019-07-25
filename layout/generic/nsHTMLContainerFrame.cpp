@@ -337,7 +337,15 @@ nsHTMLContainerFrame::DisplayTextDecorations(nsDisplayListBuilder* aBuilder,
     return NS_OK;
   if (!IsVisibleForPainting(aBuilder))
     return NS_OK;
+
   
+  nsCOMPtr<nsIFontMetrics> fm;
+  nsresult rv = nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsIThebesFontMetrics* tfm = static_cast<nsIThebesFontMetrics*>(fm.get());
+  if (tfm->GetThebesFontGroup()->ShouldSkipDrawing())
+    return NS_OK;
+
   
   
   
@@ -353,25 +361,25 @@ nsHTMLContainerFrame::DisplayTextDecorations(nsDisplayListBuilder* aBuilder,
   
   
   if (GetStyleText()->mTextShadow) {
-    nsresult rv = aBelowTextDecorations->AppendNewToTop(new (aBuilder)
+    rv = aBelowTextDecorations->AppendNewToTop(new (aBuilder)
       nsDisplayTextShadow(aBuilder, this, decorations, aLine));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   if (decorations & NS_STYLE_TEXT_DECORATION_UNDERLINE) {
-    nsresult rv = aBelowTextDecorations->AppendNewToTop(new (aBuilder)
+    rv = aBelowTextDecorations->AppendNewToTop(new (aBuilder)
       nsDisplayTextDecoration(aBuilder, this, NS_STYLE_TEXT_DECORATION_UNDERLINE,
                               underColor, aLine));
     NS_ENSURE_SUCCESS(rv, rv);
   }
   if (decorations & NS_STYLE_TEXT_DECORATION_OVERLINE) {
-    nsresult rv = aBelowTextDecorations->AppendNewToTop(new (aBuilder)
+    rv = aBelowTextDecorations->AppendNewToTop(new (aBuilder)
       nsDisplayTextDecoration(aBuilder, this, NS_STYLE_TEXT_DECORATION_OVERLINE,
                               overColor, aLine));
     NS_ENSURE_SUCCESS(rv, rv);
   }
   if (decorations & NS_STYLE_TEXT_DECORATION_LINE_THROUGH) {
-    nsresult rv = aAboveTextDecorations->AppendNewToTop(new (aBuilder)
+    rv = aAboveTextDecorations->AppendNewToTop(new (aBuilder)
       nsDisplayTextDecoration(aBuilder, this, NS_STYLE_TEXT_DECORATION_LINE_THROUGH,
                               strikeColor, aLine));
     NS_ENSURE_SUCCESS(rv, rv);
