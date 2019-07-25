@@ -109,7 +109,9 @@ nsHTTPDownloadEvent::Run()
   ios->NewChannel(mRequestSession->mURL, nsnull, nsnull, getter_AddRefs(chan));
   NS_ENSURE_STATE(chan);
 
-  chan->SetLoadFlags(nsIRequest::LOAD_ANONYMOUS);
+  
+  
+  
 
   
   
