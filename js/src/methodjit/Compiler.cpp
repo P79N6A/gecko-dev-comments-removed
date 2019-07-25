@@ -2259,12 +2259,12 @@ mjit::Compiler::generateMethod()
 
           BEGIN_CASE(JSOP_PICK)
           {
-            int32_t amt = GET_INT8(PC);
+            uint32_t amt = GET_UINT8(PC);
 
             
             
             
-            frame.dupAt(-(amt + 1));
+            frame.dupAt(-int32_t(amt + 1));
 
             
             
@@ -2272,7 +2272,7 @@ mjit::Compiler::generateMethod()
             
             
             
-            for (int32_t i = -amt; i < 0; i++) {
+            for (int32_t i = -int32_t(amt); i < 0; i++) {
                 frame.dupAt(i - 1);
                 frame.shift(i - 2);
             }
@@ -2731,7 +2731,7 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_STRICTEQ)
 
           BEGIN_CASE(JSOP_ITER)
-            if (!iter(PC[1]))
+            if (!iter(GET_UINT8(PC)))
                 return Compile_Error;
           END_CASE(JSOP_ITER)
 
@@ -6777,7 +6777,7 @@ mjit::Compiler::jsop_newinit()
     JSObject *baseobj = NULL;
     switch (*PC) {
       case JSOP_NEWINIT:
-        isArray = (PC[1] == JSProto_Array);
+        isArray = (GET_UINT8(PC) == JSProto_Array);
         break;
       case JSOP_NEWARRAY:
         isArray = true;

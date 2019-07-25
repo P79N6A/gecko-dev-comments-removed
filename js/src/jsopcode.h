@@ -151,6 +151,18 @@ typedef enum JSOp {
 
 
 
+static JS_ALWAYS_INLINE uint8_t
+GET_UINT8(jsbytecode *pc)
+{
+    return (uint8_t) pc[1];
+}
+
+static JS_ALWAYS_INLINE void
+SET_UINT8(jsbytecode *pc, uint8_t u)
+{
+    pc[1] = (jsbytecode) u;
+}
+
 
 #define UINT16_LEN              2
 #define UINT16_HI(i)            ((jsbytecode)((i) >> 8))
