@@ -387,6 +387,17 @@ var tests = [
 
   
 
+  ['attachment; filename=basic; filename*0="foo"; filename*1="\\b\\a\\r.html"', 
+   "attachment", "foobar.html",
+   "attachment", "basic"],
+
+  
+  ['attachment; filename=basic; filename*0="foo"; filename*1="\\b\\a\\', 
+   "attachment", "fooba\\",
+   "attachment", "basic"],
+
+  
+
   ["attachment; extension=bla filename=foo", 
    "attachment", "foo"], 
 ];

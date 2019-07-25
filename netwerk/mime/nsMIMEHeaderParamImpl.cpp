@@ -144,22 +144,25 @@ void RemoveQuotedStringEscapes(char *src)
 class Continuation {
   public:
     Continuation(const char *aValue, PRUint32 aLength,
-                 bool aNeedsPercentDecoding) {
+                 bool aNeedsPercentDecoding, bool aWasQuotedString) {
       value = aValue;
       length = aLength;
       needsPercentDecoding = aNeedsPercentDecoding;
+      wasQuotedString = aWasQuotedString;
     }
     Continuation() {
       
       value = 0L;
       length = 0;
       needsPercentDecoding = false;
+      wasQuotedString = false;
     }
     ~Continuation() {}
 
     const char *value;
     PRUint32 length;
     bool needsPercentDecoding;
+    bool wasQuotedString;
 };
 
 
@@ -192,6 +195,9 @@ char *combineContinuations(nsTArray<Continuation>& aArray)
       if (cont.needsPercentDecoding) {
         nsUnescape(c);
       }
+      if (cont.wasQuotedString) {
+        RemoveQuotedStringEscapes(c);
+      }
     }
 
     
@@ -210,7 +216,7 @@ char *combineContinuations(nsTArray<Continuation>& aArray)
 
 bool addContinuation(nsTArray<Continuation>& aArray, PRUint32 aIndex,
                      const char *aValue, PRUint32 aLength,
-                     bool aNeedsPercentDecoding)
+                     bool aNeedsPercentDecoding, bool aWasQuotedString)
 {
   if (aIndex < aArray.Length() && aArray[aIndex].value) {
     NS_WARNING("duplicate RC2231 continuation segment #\n");
@@ -222,7 +228,12 @@ bool addContinuation(nsTArray<Continuation>& aArray, PRUint32 aIndex,
     return false;
   }
 
-  Continuation cont (aValue, aLength, aNeedsPercentDecoding);
+  if (aNeedsPercentDecoding && aWasQuotedString) {
+    NS_WARNING("RC2231 continuation segment can't use percent encoding and quoted string form at the same time\n");
+    return false;
+  }
+
+  Continuation cont(aValue, aLength, aNeedsPercentDecoding, aWasQuotedString);
 
   if (aArray.Length() <= aIndex) {
     aArray.SetLength(aIndex + 1);
@@ -578,7 +589,8 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
           } else {
             
             bool added = addContinuation(segments, 0, rawValStart,
-                                         rawValLength, needExtDecoding);
+                                         rawValLength, needExtDecoding,
+                                         isQuotedString);
 
             if (!added) {
               
@@ -593,7 +605,8 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
         PRUint32 valueLength = valueEnd - valueStart;
 
         bool added = addContinuation(segments, segmentNumber, valueStart,
-                                     valueLength, needExtDecoding);
+                                     valueLength, needExtDecoding,
+                                     isQuotedString);
 
         if (!added) {
           
