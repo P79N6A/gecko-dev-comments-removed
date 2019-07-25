@@ -97,13 +97,12 @@
 #include "nsXPIDLString.h"
 #include "nsAutoJSValHolder.h"
 #include "mozilla/AutoRestore.h"
-#include "mozilla/ReentrantMonitor.h"
+#include "mozilla/Monitor.h"
 #include "mozilla/Mutex.h"
 #include "nsDataHashtable.h"
 
 #include "nsThreadUtils.h"
 #include "nsIJSContextStack.h"
-#include "nsIJSEngineTelemetryStats.h"
 #include "nsDeque.h"
 
 #include "nsIConsoleService.h"
@@ -130,6 +129,13 @@
 #include "nsISecurityCheckedComponent.h"
 
 #include "nsIThreadInternal.h"
+
+#ifdef XPC_IDISPATCH_SUPPORT
+
+
+#include <atlbase.h>
+#include "oaidl.h"
+#endif
 
 #ifdef XP_WIN
 
@@ -241,20 +247,17 @@ class PtrAndPrincipalHashKey : public PLDHashEntryHdr
     typedef const PtrAndPrincipalHashKey *KeyTypePointer;
 
     PtrAndPrincipalHashKey(const PtrAndPrincipalHashKey *aKey)
-      : mPtr(aKey->mPtr), mPrincipal(aKey->mPrincipal),
-        mSavedHash(aKey->mSavedHash)
+      : mPtr(aKey->mPtr), mURI(aKey->mURI), mSavedHash(aKey->mSavedHash)
     {
         MOZ_COUNT_CTOR(PtrAndPrincipalHashKey);
     }
 
-    PtrAndPrincipalHashKey(nsISupports *aPtr, nsIPrincipal *aPrincipal)
-      : mPtr(aPtr), mPrincipal(aPrincipal)
+    PtrAndPrincipalHashKey(nsISupports *aPtr, nsIURI *aURI)
+      : mPtr(aPtr), mURI(aURI)
     {
         MOZ_COUNT_CTOR(PtrAndPrincipalHashKey);
-        nsCOMPtr<nsIURI> uri;
-        aPrincipal->GetURI(getter_AddRefs(uri));
-        mSavedHash = uri
-                     ? NS_SecurityHashURI(uri)
+        mSavedHash = mURI
+                     ? NS_SecurityHashURI(mURI)
                      : (NS_PTR_TO_UINT32(mPtr.get()) >> 2);
     }
 
@@ -282,7 +285,7 @@ class PtrAndPrincipalHashKey : public PLDHashEntryHdr
 
   protected:
     nsCOMPtr<nsISupports> mPtr;
-    nsCOMPtr<nsIPrincipal> mPrincipal;
+    nsCOMPtr<nsIURI> mURI;
 
     
     
@@ -332,7 +335,7 @@ typedef nsDataHashtable<xpc::PtrAndPrincipalHashKey, JSCompartment *> XPCCompart
 #pragma warning(disable : 4355) // OK to pass "this" in member initializer
 #endif
 
-typedef mozilla::ReentrantMonitor XPCLock;
+typedef mozilla::Monitor XPCLock;
 
 static inline void xpc_Wait(XPCLock* lock) 
     {
@@ -360,7 +363,7 @@ class NS_STACK_CLASS XPCAutoLock {
 public:
 
     static XPCLock* NewLock(const char* name)
-                        {return new mozilla::ReentrantMonitor(name);}
+                        {return new mozilla::Monitor(name);}
     static void     DestroyLock(XPCLock* lock)
                         {delete lock;}
 
@@ -462,8 +465,7 @@ class nsXPConnect : public nsIXPConnect,
                     public nsCycleCollectionJSRuntime,
                     public nsCycleCollectionParticipant,
                     public nsIJSRuntimeService,
-                    public nsIThreadJSContextStack,
-                    public nsIJSEngineTelemetryStats
+                    public nsIThreadJSContextStack
 {
 public:
     
@@ -473,7 +475,6 @@ public:
     NS_DECL_NSIJSRUNTIMESERVICE
     NS_DECL_NSIJSCONTEXTSTACK
     NS_DECL_NSITHREADJSCONTEXTSTACK
-    NS_DECL_NSIJSENGINETELEMETRYSTATS
 
     
 public:
@@ -515,8 +516,6 @@ public:
 
     JSBool IsShuttingDown() const {return mShuttingDown;}
 
-    void EnsureGCBeforeCC() { mNeedGCBeforeCC = JS_TRUE; }
-
     nsresult GetInfoForIID(const nsIID * aIID, nsIInterfaceInfo** info);
     nsresult GetInfoForName(const char * name, nsIInterfaceInfo** info);
 
@@ -546,16 +545,11 @@ public:
                         nsCycleCollectionTraversalCallback &cb);
     
     
-    virtual void NotifyLeaveMainThread();
-    virtual void NotifyEnterCycleCollectionThread();
-    virtual void NotifyLeaveCycleCollectionThread();
-    virtual void NotifyEnterMainThread();
     virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb,
                                           bool explainExpectedLiveGarbage);
     virtual nsresult FinishTraverse();
     virtual nsresult FinishCycleCollection();
     virtual nsCycleCollectionParticipant *ToParticipant(void *p);
-    virtual bool NeedCollect();
     virtual void Collect();
 #ifdef DEBUG_CC
     virtual void PrintAllReferencesTo(void *p);
@@ -585,6 +579,10 @@ public:
       return gReportAllJSExceptions > 0;
     }
 
+#ifdef XPC_IDISPATCH_SUPPORT
+public:
+    static PRBool IsIDispatchEnabled();
+#endif
 protected:
     nsXPConnect();
 
@@ -601,7 +599,6 @@ private:
     nsIXPCSecurityManager*   mDefaultSecurityManager;
     PRUint16                 mDefaultSecurityManagerFlags;
     JSBool                   mShuttingDown;
-    JSBool                   mNeedGCBeforeCC;
 #ifdef DEBUG_CC
     PLDHashTable             mJSRoots;
 #endif
@@ -661,7 +658,6 @@ public:
 
     JSRuntime*     GetJSRuntime() const {return mJSRuntime;}
     nsXPConnect*   GetXPConnect() const {return mXPConnect;}
-    JSContext*     GetJSCycleCollectionContext();
 
     JSObject2WrappedJSMap*     GetWrappedJSMap()        const
         {return mWrappedJSMap;}
@@ -762,6 +758,8 @@ public:
     nsresult AddJSHolder(void* aHolder, nsScriptObjectTracer* aTracer);
     nsresult RemoveJSHolder(void* aHolder);
 
+    void ClearWeakRoots();
+
     static void SuspectWrappedNative(JSContext *cx, XPCWrappedNative *wrapper,
                                      nsCycleCollectionTraversalCallback &cb);
 
@@ -793,7 +791,7 @@ public:
     void AddGCCallback(JSGCCallback cb);
     void RemoveGCCallback(JSGCCallback cb);
 
-    static void ActivityCallback(void *arg, JSBool active);
+    static void ActivityCallback(void *arg, PRBool active);
 
 private:
     XPCJSRuntime(); 
@@ -808,9 +806,8 @@ private:
     jsid mStrIDs[IDX_TOTAL_COUNT];
     jsval mStrJSVals[IDX_TOTAL_COUNT];
 
-    nsXPConnect*             mXPConnect;
-    JSRuntime*               mJSRuntime;
-    JSContext*               mJSCycleCollectionContext;
+    nsXPConnect* mXPConnect;
+    JSRuntime*  mJSRuntime;
     JSObject2WrappedJSMap*   mWrappedJSMap;
     IID2WrappedJSClassMap*   mWrappedJSClassMap;
     IID2NativeInterfaceMap*  mIID2NativeInterfaceMap;
@@ -1043,6 +1040,7 @@ public:
     inline XPCPerThreadData*            GetThreadData() const ;
     inline XPCContext*                  GetXPCContext() const ;
     inline JSContext*                   GetJSContext() const ;
+    inline JSContext*                   GetSafeJSContext() const ;
     inline JSBool                       GetContextPopRequired() const ;
     inline XPCContext::LangType         GetCallerLanguage() const ;
     inline XPCContext::LangType         GetPrevCallerLanguage() const ;
@@ -1109,6 +1107,15 @@ public:
     XPCReadableJSStringWrapper *NewStringWrapper(const PRUnichar *str, PRUint32 len);
     void DeleteString(nsAString *string);
 
+#ifdef XPC_IDISPATCH_SUPPORT
+    
+
+
+
+
+    void SetIDispatchInfo(XPCNativeInterface* iface, void * member);
+    void* GetIDispatchMember() const { return mIDispatchMember; }
+#endif
 private:
 
     
@@ -1197,6 +1204,9 @@ private:
     jsval*                          mRetVal;
 
     JSBool                          mReturnValueWasSet;
+#ifdef XPC_IDISPATCH_SUPPORT
+    void*                           mIDispatchMember;
+#endif
     PRUint16                        mMethodIndex;
 
 #define XPCCCX_STRING_CACHE_SIZE 2
@@ -1430,6 +1440,10 @@ XPC_WN_JSOp_ThisObject(JSContext *cx, JSObject *obj);
      (clazz) == &XPC_WN_NoMods_NoCall_Proto_JSClass ||                        \
      (clazz) == &XPC_WN_ModsAllowed_WithCall_Proto_JSClass ||                 \
      (clazz) == &XPC_WN_ModsAllowed_NoCall_Proto_JSClass)
+
+
+extern void
+xpc_TraceForValidWrapper(JSTracer *trc, XPCWrappedNative* wrapper);
 
 
 
@@ -2347,6 +2361,16 @@ public:
     void Unmark()     {mJSObject = (JSObject*)(((jsword)mJSObject) & ~1);}
     JSBool IsMarked() const {return (JSBool)(((jsword)mJSObject) & 1);}
 
+#ifdef XPC_IDISPATCH_SUPPORT
+    enum JSObject_flags
+    {
+        IDISPATCH_BIT = 2,
+        JSOBJECT_MASK = 3
+    };
+    void                SetIDispatch(JSContext* cx);
+    JSBool              IsIDispatch() const;
+    XPCDispInterface*   GetIDispatchInfo() const;
+#endif
 private:
     XPCWrappedNativeTearOff(const XPCWrappedNativeTearOff& r); 
     XPCWrappedNativeTearOff& operator= (const XPCWrappedNativeTearOff& r); 
@@ -2552,8 +2576,6 @@ public:
                 XPCNativeInterface* Interface,
                 XPCWrappedNative** wrapper);
 
-    
-    
     
     
     static XPCWrappedNative*
@@ -3338,6 +3360,11 @@ public:
     static void Throw(nsresult rv, XPCCallContext& ccx);
     static void ThrowBadResult(nsresult rv, nsresult result, XPCCallContext& ccx);
     static void ThrowBadParam(nsresult rv, uintN paramNum, XPCCallContext& ccx);
+#ifdef XPC_IDISPATCH_SUPPORT
+    static void ThrowCOMError(JSContext* cx, unsigned long COMErrorCode, 
+                              nsresult rv = NS_ERROR_XPC_COM_ERROR,
+                              const EXCEPINFO * exception = nsnull);
+#endif
     static JSBool SetVerbosity(JSBool state)
         {JSBool old = sVerbose; sVerbose = state; return old;}
 
@@ -3529,13 +3556,14 @@ private:
 struct XPCJSContextInfo {
     XPCJSContextInfo(JSContext* aCx) :
         cx(aCx),
-        savedFrameChain(false),
+        frame(nsnull),
         suspendDepth(0)
     {}
     JSContext* cx;
 
     
-    bool savedFrameChain;
+    
+    JSStackFrame* frame;
 
     
     jsrefcount suspendDepth;
@@ -3560,6 +3588,9 @@ public:
 private:
     nsAutoTArray<XPCJSContextInfo, 16> mStack;
     JSContext*  mSafeJSContext;
+
+    
+    
     JSContext*  mOwnSafeJSContext;
 };
 
@@ -4376,7 +4407,7 @@ GetRTStringByIndex(JSContext *cx, uintN index);
 
 inline JSObject*
 xpc_NewSystemInheritingJSObject(JSContext *cx, JSClass *clasp, JSObject *proto,
-                                JSObject *parent);
+                                bool uniqueType, JSObject *parent);
 
 inline JSBool
 xpc_SameScope(XPCWrappedNativeScope *objectscope,
@@ -4398,7 +4429,6 @@ struct CompartmentPrivate
           waiverWrapperMap(nsnull),
           expandoMap(nsnull)
     {
-        MOZ_COUNT_CTOR(xpc::CompartmentPrivate);
     }
 
     CompartmentPrivate(nsISupports *ptr, bool wantXrays, bool cycleCollectionEnabled)
@@ -4409,7 +4439,6 @@ struct CompartmentPrivate
           waiverWrapperMap(nsnull),
           expandoMap(nsnull)
     {
-        MOZ_COUNT_CTOR(xpc::CompartmentPrivate);
     }
 
     ~CompartmentPrivate();
@@ -4472,6 +4501,11 @@ ParticipatesInCycleCollection(JSContext *cx, js::gc::Cell *cell)
 }
 
 }
+
+#ifdef XPC_IDISPATCH_SUPPORT
+
+#include "XPCDispPrivate.h"
+#endif
 
 
 

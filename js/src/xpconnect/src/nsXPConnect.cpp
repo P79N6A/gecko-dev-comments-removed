@@ -57,6 +57,7 @@
 #include "nsIURI.h"
 #include "nsJSEnvironment.h"
 #include "plbase64.h"
+#include "jstypedarray.h"
 
 #include "XrayWrapper.h"
 #include "WrapperFactory.h"
@@ -100,7 +101,6 @@ nsXPConnect::nsXPConnect()
         mDefaultSecurityManager(nsnull),
         mDefaultSecurityManagerFlags(0),
         mShuttingDown(JS_FALSE),
-        mNeedGCBeforeCC(JS_TRUE),
         mCycleCollectionContext(nsnull)
 {
     mRuntime = XPCJSRuntime::newXPCJSRuntime(this);
@@ -339,12 +339,6 @@ nsXPConnect::GetInfoForName(const char * name, nsIInterfaceInfo** info)
     return FindInfo(NameTester, name, mInterfaceInfoManager, info);
 }
 
-bool
-nsXPConnect::NeedCollect()
-{
-    return !!mNeedGCBeforeCC;
-}
-
 void
 nsXPConnect::Collect()
 {
@@ -391,11 +385,11 @@ nsXPConnect::Collect()
     
     
 
-    mNeedGCBeforeCC = JS_FALSE;
-
     XPCCallContext ccx(NATIVE_CALLER);
     if(!ccx.IsValid())
         return;
+
+    nsXPConnect::GetRuntimeInstance()->ClearWeakRoots();
 
     JSContext *cx = ccx.GetJSContext();
 
@@ -423,11 +417,7 @@ nsXPConnect::GarbageCollect()
 
 
 
-inline bool
-AddToCCKind(uint32 kind)
-{
-    return kind == JSTRACE_OBJECT || kind == JSTRACE_XML;
-}
+#define ADD_TO_CC(_kind)    ((_kind) == JSTRACE_OBJECT || (_kind) == JSTRACE_XML)
 
 #ifdef DEBUG_CC
 struct NoteJSRootTracer : public JSTracer
@@ -445,7 +435,7 @@ struct NoteJSRootTracer : public JSTracer
 static void
 NoteJSRoot(JSTracer *trc, void *thing, uint32 kind)
 {
-    if(AddToCCKind(kind))
+    if(ADD_TO_CC(kind))
     {
         NoteJSRootTracer *tracer = static_cast<NoteJSRootTracer*>(trc);
         PLDHashEntryHdr *entry = PL_DHashTableOperate(tracer->mObjects, thing,
@@ -543,7 +533,7 @@ nsXPConnect::FinishCycleCollection()
 nsCycleCollectionParticipant *
 nsXPConnect::ToParticipant(void *p)
 {
-    if (!AddToCCKind(js_GetGCThingTraceKind(p)))
+    if (!ADD_TO_CC(js_GetGCThingTraceKind(p)))
         return NULL;
     return this;
 }
@@ -579,44 +569,11 @@ nsXPConnect::Unroot(void *p)
     return NS_OK;
 }
 
-JSBool
-xpc_GCThingIsGrayCCThing(void *thing)
-{
-    return AddToCCKind(js_GetGCThingTraceKind(thing)) &&
-           xpc_IsGrayGCThing(thing);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static void
 UnmarkGrayChildren(JSTracer *trc, void *thing, uint32 kind)
 {
-    int stackDummy;
-    if (!JS_CHECK_STACK_SIZE(trc->context->stackLimit, &stackDummy)) {
-        
-
-
-
-        nsXPConnect* xpc = nsXPConnect::GetXPConnect();
-        xpc->EnsureGCBeforeCC();
-        return;
-    }
-
     
-    if(!AddToCCKind(kind) || !xpc_IsGrayGCThing(thing))
+    if(!ADD_TO_CC(kind) || !xpc_IsGrayGCThing(thing))
         return;
 
     
@@ -660,7 +617,7 @@ struct TraversalTracer : public JSTracer
 static void
 NoteJSChild(JSTracer *trc, void *thing, uint32 kind)
 {
-    if(AddToCCKind(kind))
+    if(ADD_TO_CC(kind))
     {
         TraversalTracer *tracer = static_cast<TraversalTracer*>(trc);
 
@@ -746,7 +703,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
         }
     }
 
-    PRBool isMarked;
+    CCNodeType type;
 
 #ifdef DEBUG_CC
     
@@ -764,13 +721,15 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
         
         PLDHashEntryHdr* entry =
             PL_DHashTableOperate(&mJSRoots, p, PL_DHASH_LOOKUP);
-        isMarked = markJSObject || PL_DHASH_ENTRY_IS_BUSY(entry);
+        type = markJSObject || PL_DHASH_ENTRY_IS_BUSY(entry) ? GCMarked :
+                                                               GCUnmarked;
     }
     else
 #endif
     {
         
-        isMarked = markJSObject || !xpc_IsGrayGCThing(p);
+        NS_ASSERTION(xpc_IsGrayGCThing(p), "Tried to traverse a non-gray object.");
+        type = markJSObject ? GCMarked : GCUnmarked;
     }
 
     if (cb.WantDebugInfo()) {
@@ -843,19 +802,19 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
             char fullname[100];
             JS_snprintf(fullname, sizeof(fullname),
                         "%s (global=%p)", name, global);
-            cb.DescribeGCedNode(isMarked, sizeof(JSObject), fullname);
+            cb.DescribeNode(type, 0, sizeof(JSObject), fullname);
         } else {
-            cb.DescribeGCedNode(isMarked, sizeof(JSObject), name);
+            cb.DescribeNode(type, 0, sizeof(JSObject), name);
         }
     } else {
-        cb.DescribeGCedNode(isMarked, sizeof(JSObject), "JS Object");
+        cb.DescribeNode(type, 0, sizeof(JSObject), "JS Object");
     }
 
     
     
     
     
-    if(!cb.WantAllTraces() && isMarked)
+    if(!cb.WantAllTraces() && type == GCMarked)
         return NS_OK;
 
     TraversalTracer trc(cb);
@@ -930,7 +889,8 @@ public:
         
         
         unsigned refCount = nsXPConnect::GetXPConnect()->GetOutstandingRequests(cx) + 1;
-        NS_IMPL_CYCLE_COLLECTION_DESCRIBE(JSContext, refCount)
+
+        cb.DescribeNode(RefCounted, refCount, sizeof(JSContext), "JSContext");
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "[global object]");
         if (cx->globalObject) {
             cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT,
@@ -967,6 +927,23 @@ inline nsresult UnexpectedFailure(nsresult rv)
     NS_ERROR("This is not supposed to fail!");
     return rv;
 }
+
+class SaveFrame
+{
+public:
+    SaveFrame(JSContext *cx)
+        : mJSContext(cx) {
+        mFrame = JS_SaveFrameChain(mJSContext);
+    }
+
+    ~SaveFrame() {
+        JS_RestoreFrameChain(mJSContext, mFrame);
+    }
+
+private:
+    JSContext *mJSContext;
+    JSStackFrame *mFrame;
+};
 
 
 NS_IMETHODIMP
@@ -1056,12 +1033,17 @@ xpc_CreateGlobalObject(JSContext *cx, JSClass *clasp,
     NS_ABORT_IF_FALSE(NS_IsMainThread(), "using a principal off the main thread?");
     NS_ABORT_IF_FALSE(principal, "bad key");
 
+    nsCOMPtr<nsIURI> uri;
+    nsresult rv = principal->GetURI(getter_AddRefs(uri));
+    if(NS_FAILED(rv))
+        return UnexpectedFailure(rv);
+
     XPCCompartmentMap& map = nsXPConnect::GetRuntimeInstance()->GetCompartmentMap();
-    xpc::PtrAndPrincipalHashKey key(ptr, principal);
+    xpc::PtrAndPrincipalHashKey key(ptr, uri);
     if(!map.Get(&key, compartment))
     {
         xpc::PtrAndPrincipalHashKey *priv_key =
-            new xpc::PtrAndPrincipalHashKey(ptr, principal);
+            new xpc::PtrAndPrincipalHashKey(ptr, uri);
         xpc::CompartmentPrivate *priv =
             new xpc::CompartmentPrivate(priv_key, wantXrays, NS_IsMainThread());
         if(!CreateNewCompartment(cx, clasp, principal, priv,
@@ -1228,7 +1210,7 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
     {
         if(protoJSObject != globalJSObj)
             JS_SetParent(aJSContext, protoJSObject, globalJSObj);
-        JS_SetPrototype(aJSContext, protoJSObject, scope->GetPrototypeJSObject());
+        JS_SplicePrototype(aJSContext, protoJSObject, scope->GetPrototypeJSObject());
     }
 
     if(!(aFlags & nsIXPConnect::OMIT_COMPONENTS_OBJECT)) {
@@ -2176,6 +2158,7 @@ nsXPConnect::ReleaseJSContext(JSContext * aJSContext, PRBool noGC)
                    (void *)aJSContext);
 #endif
             ccx->SetDestroyJSContextInDestructor(JS_TRUE);
+            JS_ClearNewbornRoots(aJSContext);
             return NS_OK;
         }
         
@@ -2559,8 +2542,18 @@ nsXPConnect::CheckForDebugMode(JSRuntime *rt) {
 
             
             if (xpc::CompartmentParticipatesInCycleCollection(cx, comp)) {
-                if (!JS_SetDebugModeForCompartment(cx, comp, gDesiredDebugMode))
-                    goto fail;
+                if (gDesiredDebugMode) {
+                    if (!JS_SetDebugModeForCompartment(cx, comp, JS_TRUE))
+                        goto fail;
+                } else {
+                    
+
+
+
+
+
+                    comp->debugMode = JS_FALSE;
+                }
             }
         }
     }

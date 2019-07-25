@@ -2549,7 +2549,21 @@ TypeObject::getFromPrototypes(JSContext *cx, Property *base)
 void
 TypeObject::splicePrototype(JSContext *cx, JSObject *proto)
 {
-    JS_ASSERT(!this->proto);
+    
+
+
+
+
+
+    JS_ASSERT(singleton);
+
+    if (this->proto) {
+        
+        TypeObject **plist = &this->proto->getType()->instanceList;
+        while (*plist != this)
+            plist = &(*plist)->instanceNext;
+        *plist = this->instanceNext;
+    }
 
     
 
