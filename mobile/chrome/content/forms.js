@@ -108,7 +108,7 @@ FormAssistant.prototype = {
 
     if (this._isVisibleElement(element)) {
       this._currentIndex = aIndex;
-      gFocusManager.setFocus(element, Ci.nsIFocusManager.FLAG_NOSCROLL | Ci.nsIFocusManager.FLAG_BYMOUSE);
+      gFocusManager.setFocus(element, Ci.nsIFocusManager.FLAG_NOSCROLL);
 
       
       
@@ -162,14 +162,15 @@ FormAssistant.prototype = {
 
     
     
-    if (aElement instanceof HTMLInputElement && aElement.mozIsTextField(false) && !Util.isKeyboardOpened) {
-      aElement.blur();
-      gFocusManager.setFocus(aElement, Ci.nsIFocusManager.FLAG_NOSCROLL | Ci.nsIFocusManager.FLAG_BYMOUSE);
-    }
-
-    
-    
     if (this._open && aElement == this.currentElement) {
+      
+      
+      let utils = Util.getWindowUtils(content);
+      if (utils.IMEStatus == utils.IME_STATUS_DISABLED && aElement instanceof HTMLInputElement && aElement.mozIsTextField(false)) {
+        aElement.blur();
+        aElement.focus();
+      }
+
       
       
       

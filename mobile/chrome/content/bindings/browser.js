@@ -6,6 +6,8 @@ let Cu = Components.utils;
 Cu.import("resource://gre/modules/Services.jsm");
 
 let WebProgressListener = {
+  _lastLocation: null,
+
   init: function() {
     let flags = Ci.nsIWebProgress.NOTIFY_LOCATION |
                 Ci.nsIWebProgress.NOTIFY_SECURITY |
@@ -55,6 +57,10 @@ let WebProgressListener = {
 
     this._firstPaint = false;
     let self = this;
+
+    
+    this.hashChanged = (location == this._lastLocation);
+    this._lastLocation = location;
 
     
     addEventListener("MozAfterPaint", function(aEvent) {
@@ -444,6 +450,15 @@ let DOMEvents =  {
           windowId: util.outerWindowID,
           persisted: aEvent.persisted
         };
+
+        
+        
+        
+        let contentWindowID = content.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
+        if (!WebProgressListener.hashChanged && contentWindowID == util.currentInnerWindowID) {
+          let focusManager = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+          focusManager.clearFocus(content);
+        }
 
         sendAsyncMessage(aEvent.type, json);
         break;

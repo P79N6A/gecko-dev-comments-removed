@@ -672,9 +672,6 @@ pref("browser.firstrun.show.uidiscovery", true);
 pref("browser.firstrun.show.localepicker", true);
 
 
-pref("content.ime.strict_policy", true);
-
-
 
 
 
