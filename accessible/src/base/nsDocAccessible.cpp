@@ -1851,10 +1851,6 @@ nsDocAccessible::ProcessContentInserted(nsAccessible* aContainer,
   
   aContainer->InvalidateChildren();
 
-  nsAccessible* directContainer =
-    GetAccService()->GetContainerAccessible(aInsertedContent->ElementAt(0),
-                                            mWeakShell);
-
   
   
   
@@ -1863,8 +1859,15 @@ nsDocAccessible::ProcessContentInserted(nsAccessible* aContainer,
   
   
   
-  for (PRUint32 idx = 0; idx < aInsertedContent->Length(); idx++)
-    UpdateTree(directContainer, aInsertedContent->ElementAt(idx), PR_TRUE);
+  
+  
+  for (PRUint32 idx = 0; idx < aInsertedContent->Length(); idx++) {
+    nsAccessible* directContainer =
+      GetAccService()->GetContainerAccessible(aInsertedContent->ElementAt(idx),
+                                              mWeakShell);
+    if (directContainer)
+      UpdateTree(directContainer, aInsertedContent->ElementAt(idx), PR_TRUE);
+  }
 }
 
 void
