@@ -71,8 +71,7 @@ struct sa_stream {
   pthread_mutex_t   mutex;
   bool              playing;
   int64_t           bytes_played;
-  int64_t           total_bytes_played;
-  int64_t           bytes_underrun_inserted;
+  int64_t           bytes_played_last;
 
   
   unsigned int      rate;
@@ -156,8 +155,7 @@ sa_stream_create_pcm(
   s->output_unit  = NULL;
   s->playing      = FALSE;
   s->bytes_played = 0;
-  s->total_bytes_played = 0;
-  s->bytes_underrun_inserted = 0;
+  s->bytes_played_last = 0;
   s->rate         = rate;
   s->n_channels   = n_channels;
   s->bytes_per_ch = 2;
@@ -412,7 +410,6 @@ sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
   return result;
 }
 
-
 static OSStatus
 audio_callback(
   void                        * arg,
@@ -441,13 +438,8 @@ audio_callback(
   unsigned int      bytes_per_frame = s->n_channels * s->bytes_per_ch;
   unsigned int      bytes_to_copy   = n_frames * bytes_per_frame;
 
-  
-
-
-
-
-  assert(time_stamp->mFlags & kAudioTimeStampSampleTimeValid);
-  s->bytes_played = (int64_t)time_stamp->mSampleTime * bytes_per_frame;
+  s->bytes_played += s->bytes_played_last;
+  s->bytes_played_last = 0;
 
   
 
@@ -463,6 +455,7 @@ audio_callback(
 
       memcpy(dst, s->bl_head->data + s->bl_head->start, bytes_to_copy);
       s->bl_head->start += bytes_to_copy;
+      s->bytes_played_last += bytes_to_copy;
       break;
 
     } else {
@@ -474,6 +467,7 @@ audio_callback(
       s->bl_head->start += avail;
       dst += avail;
       bytes_to_copy -= avail;
+      s->bytes_played_last += avail;
 
       
 
@@ -486,7 +480,6 @@ audio_callback(
         printf("!");  
 #endif
         memset(dst, 0, bytes_to_copy);
-        s->bytes_underrun_inserted += bytes_to_copy;
         break;
       }
       free(s->bl_head);
@@ -543,11 +536,7 @@ sa_stream_get_position(sa_stream_t *s, sa_position_t position, int64_t *pos) {
 
   pthread_mutex_lock(&s->mutex);
 
-  int64_t bytes_played_wo_underrun = s->bytes_played - s->bytes_underrun_inserted;
-  *pos = s->total_bytes_played;
-  if (bytes_played_wo_underrun > 0) {
-    *pos += bytes_played_wo_underrun;
-  }
+  *pos = s->bytes_played;
 
   pthread_mutex_unlock(&s->mutex);
   return SA_SUCCESS;
@@ -582,20 +571,6 @@ sa_stream_resume(sa_stream_t *s) {
   if (s == NULL || s->output_unit == NULL) {
     return SA_ERROR_NO_INIT;
   }
-
-  pthread_mutex_lock(&s->mutex);
-  
-
-
-
-  int64_t bytes_played_wo_underrun = s->bytes_played - s->bytes_underrun_inserted;
-  if (bytes_played_wo_underrun > 0) {
-    s->total_bytes_played += bytes_played_wo_underrun;
-  }
-  s->bytes_played = 0;
-  s->bytes_underrun_inserted = 0;
-
-  pthread_mutex_unlock(&s->mutex);
 
   
 
