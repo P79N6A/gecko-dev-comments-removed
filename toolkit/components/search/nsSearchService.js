@@ -2868,7 +2868,7 @@ SearchService.prototype = {
       try {
         let chromeURI = gChromeReg.convertChromeURL(makeURI(root));
         let fileURI = chromeURI; 
-        if (fileURI instanceof Ci.nsIJARURI)
+        while (fileURI instanceof Ci.nsIJARURI)
           fileURI = fileURI.JARFile; 
         fileURI.QueryInterface(Ci.nsIFileURL);
         chromeFile = fileURI.file;
