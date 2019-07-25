@@ -78,12 +78,16 @@ function isBuiltinToken(tokenName) {
 
 
 
-function BadCertHandler() {
+function BadCertHandler(aAllowNonBuiltInCerts) {
+  this.allowNonBuiltInCerts = aAllowNonBuiltInCerts;
 }
 BadCertHandler.prototype = {
 
   
   onChannelRedirect: function(oldChannel, newChannel, flags) {
+    if (this.allowNonBuiltInCerts)
+      return;
+
     
     
     
