@@ -899,6 +899,14 @@ public:
   bool IsRootContentDocument();
   bool IsCrossProcessRootContentDocument();
 
+  bool IsGlyph() const {
+    return mIsGlyph;
+  }
+
+  void SetIsGlyph(bool aValue) {
+    mIsGlyph = aValue;
+  }
+
 protected:
   friend class nsRunnableMethod<nsPresContext>;
   NS_HIDDEN_(void) ThemeChangedInternal();
@@ -1131,6 +1139,9 @@ protected:
   unsigned              mPendingMediaFeatureValuesChanged : 1;
   unsigned              mPrefChangePendingNeedsReflow : 1;
   unsigned              mMayHaveFixedBackgroundFrames : 1;
+
+  
+  unsigned              mIsGlyph : 1;
 
   
   unsigned              mUserFontSetDirty : 1;
