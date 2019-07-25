@@ -34,8 +34,8 @@
 
 
 
-const EXPORTED_SYMBOLS = ['SyncCore', 'BookmarksSyncCore', 'HistorySyncCore',
-                          'CookieSyncCore', 'PasswordSyncCore', 'FormSyncCore',
+const EXPORTED_SYMBOLS = ['SyncCore', 'HistorySyncCore',
+                          'PasswordSyncCore', 'FormSyncCore',
                           'TabSyncCore'];
 
 const Cc = Components.classes;
@@ -313,104 +313,6 @@ SyncCore.prototype = {
   }
 };
 
-function BookmarksSyncCore() {
-  this._init();
-}
-BookmarksSyncCore.prototype = {
-  _logName: "BMSync",
-
-  __bms: null,
-  get _bms() {
-    if (!this.__bms)
-      this.__bms = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-                   getService(Ci.nsINavBookmarksService);
-    return this.__bms;
-  },
-
-  _itemExists: function BSC__itemExists(GUID) {
-    return this._bms.getItemIdForGUID(GUID) >= 0;
-  },
-
-  _getEdits: function BSC__getEdits(a, b) {
-    
-    
-    let ret = SyncCore.prototype._getEdits.call(this, a, b);
-    ret.props.type = a.type;
-    return ret;
-  },
-
-  
-  
-  
-  
-  _comp: function BSC__comp(a, b, prop) {
-    return (!a.data[prop] && !b.data[prop]) ||
-      (a.data[prop] && b.data[prop] && (a.data[prop] == b.data[prop]));
-  },
-
-  _commandLike: function BSC__commandLike(a, b) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (!a || !b ||
-        a.action != b.action ||
-        a.action != "create" ||
-        a.data.type != b.data.type ||
-        a.data.parentGUID != b.data.parentGUID ||
-        a.GUID == b.GUID)
-      return false;
-
-    
-    
-    
-    switch (a.data.type) {
-    case "bookmark":
-      if (this._comp(a, b, 'URI') &&
-          this._comp(a, b, 'title'))
-        return true;
-      return false;
-    case "query":
-      if (this._comp(a, b, 'URI') &&
-          this._comp(a, b, 'title'))
-        return true;
-      return false;
-    case "microsummary":
-      if (this._comp(a, b, 'URI') &&
-          this._comp(a, b, 'generatorURI'))
-        return true;
-      return false;
-    case "folder":
-      if (this._comp(a, b, 'title'))
-        return true;
-      return false;
-    case "livemark":
-      if (this._comp(a, b, 'title') &&
-          this._comp(a, b, 'siteURI') &&
-          this._comp(a, b, 'feedURI'))
-        return true;
-      return false;
-    case "separator":
-      if (this._comp(a, b, 'index'))
-        return true;
-      return false;
-    default:
-      let json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
-      this._log.error("commandLike: Unknown item type: " + json.encode(a));
-      return false;
-    }
-  }
-};
-BookmarksSyncCore.prototype.__proto__ = new SyncCore();
-
 function HistorySyncCore() {
   this._init();
 }
@@ -431,76 +333,6 @@ HistorySyncCore.prototype = {
   }
 };
 HistorySyncCore.prototype.__proto__ = new SyncCore();
-
-
-function CookieSyncCore() {
-  this._init();
-}
-CookieSyncCore.prototype = {
-  _logName: "CookieSync",
-
-  __cookieManager: null,
-  get _cookieManager() {
-    if (!this.__cookieManager)
-      this.__cookieManager = Cc["@mozilla.org/cookiemanager;1"].
-                             getService(Ci.nsICookieManager2);
-    
-
-    return this.__cookieManager;
-  },
-
-
-  _itemExists: function CSC__itemExists(GUID) {
-    
-
-
-
-
-
-    
-
-
-
-    let cookieArray = GUID.split( ":" );
-    let cookieHost = cookieArray[0];
-    let cookiePath = cookieArray[1];
-    let cookieName = cookieArray[2];
-
-    
-
-
-
-    let enumerator = this._cookieManager.enumerator;
-    while (enumerator.hasMoreElements())
-      {
-	let aCookie = enumerator.getNext();
-	if (aCookie.host == cookieHost &&
-	    aCookie.path == cookiePath &&
-	    aCookie.name == cookieName ) {
-	  return true;
-	}
-      }
-    return false;
-    
-
-
-
-
-
-  },
-
-  _commandLike: function CSC_commandLike(a, b) {
-    
-
-
-
-
-
-    return false;
-  }
-};
-CookieSyncCore.prototype.__proto__ = new SyncCore();
-
 
 function PasswordSyncCore() {
   this._init();

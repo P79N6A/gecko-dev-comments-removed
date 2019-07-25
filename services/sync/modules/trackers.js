@@ -34,8 +34,8 @@
 
 
 
-const EXPORTED_SYMBOLS = ['Tracker', 'BookmarksTracker', 'HistoryTracker',
-                          'FormsTracker', 'CookieTracker', 'TabTracker'];
+const EXPORTED_SYMBOLS = ['Tracker', 'HistoryTracker',
+                          'FormsTracker', 'TabTracker'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -94,60 +94,6 @@ Tracker.prototype = {
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-function BookmarksTracker() {
-  this._init();
-}
-BookmarksTracker.prototype = {
-  _logName: "BMTracker",
-
-  
-  onBeginUpdateBatch: function BMT_onBeginUpdateBatch() {
-
-  },
-  onEndUpdateBatch: function BMT_onEndUpdateBatch() {
-
-  },
-  onItemVisited: function BMT_onItemVisited() {
-
-  },
-
-  
-
-
-
-  onItemAdded: function BMT_onEndUpdateBatch() {
-    this._score += 4;
-  },
-  onItemRemoved: function BMT_onItemRemoved() {
-    this._score += 4;
-  },
-  
-  onItemChanged: function BMT_onItemChanged() {
-    this._score += 2;
-  },
-
-  _init: function BMT__init() {
-    this._log = Log4Moz.Service.getLogger("Service." + this._logName);
-    this._score = 0;
-
-    Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-    getService(Ci.nsINavBookmarksService).
-    addObserver(this, false);
-  }
-}
-BookmarksTracker.prototype.__proto__ = new Tracker();
-
 function HistoryTracker() {
   this._init();
 }
@@ -196,41 +142,6 @@ HistoryTracker.prototype = {
   }
 }
 HistoryTracker.prototype.__proto__ = new Tracker();
-
-function CookieTracker() {
-  this._init();
-}
-CookieTracker.prototype = {
-  _logName: "CookieTracker",
-
-  _init: function CT__init() {
-    this._log = Log4Moz.Service.getLogger("Service." + this._logName);
-    this._score = 0;
-    
-
-
-    let observerService = Cc["@mozilla.org/observer-service;1"].
-            getService(Ci.nsIObserverService);
-    observerService.addObserver( this, 'cookie-changed', false );
-  },
-
-  
-  observe: function ( aSubject, aTopic, aData ) {
-    
-
-
-
-    var newCookie = aSubject.QueryInterface( Ci.nsICookie2 );
-    if ( newCookie ) {
-      if ( !newCookie.isSession ) {
-	
-
-	this._score += 10;
-      }
-    }
-  }
-}
-CookieTracker.prototype.__proto__ = new Tracker();
 
 function FormsTracker() {
   this._init();
