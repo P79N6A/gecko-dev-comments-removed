@@ -163,8 +163,6 @@ var gSnifferTests = [
   { name:"seek.webm", type:"video/webm", duration:3.966, size:215529 },
   { name:"short.mp4", type:"video/mp4", duration:0.2, size:29435},
   
-  { name:"notags.mp3", type:"audio/mpeg", duration:0.28, size:2506},
-  
   { name:"id3tags.mp3", type:"audio/mpeg", duration:0.28, size:3530},
   { name:"bogus.duh", type:"bogus/duh" }
 ];

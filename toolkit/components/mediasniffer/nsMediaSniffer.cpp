@@ -28,8 +28,6 @@ nsMediaSniffer::nsMediaSnifferEntry nsMediaSniffer::sSnifferEntries[] = {
   
   PATTERN_ENTRY("\xFF\xFF\xFF\xFF", "\x1A\x45\xDF\xA3", VIDEO_WEBM),
   
-  PATTERN_ENTRY("\xFF\xFB", "\xFF\xFA", AUDIO_MP3),
-  
   PATTERN_ENTRY("\xFF\xFF\xFF", "ID3", AUDIO_MP3)
 };
 
