@@ -499,10 +499,10 @@ PlacesViewBase.prototype = {
       
       
       
-      elt.label = PlacesUIUtils.getBestTitle(aPlacesNode);
+      elt.setAttribute("label", PlacesUIUtils.getBestTitle(aPlacesNode));
     }
     else {
-      elt.label = aNewTitle;
+      elt.setAttribute("label", aNewTitle);
     }
   },
 
