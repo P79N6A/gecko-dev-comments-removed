@@ -49,6 +49,7 @@
 #include "XPCWrapper.h"
 #include "nsJSPrincipals.h"
 #include "nsWrapperCache.h"
+#include "WrapperFactory.h"
 
 
 #ifdef STRICT_CHECK_OF_UNICODE
@@ -1345,6 +1346,30 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
     JSObject *original = flat;
     if(!JS_WrapObject(ccx, &flat))
         return JS_FALSE;
+
+    
+    
+    
+    if(original == flat)
+    {
+        if(xpc::WrapperFactory::IsLocationObject(flat))
+        {
+            JSObject *locationWrapper = wrapper->GetWrapper();
+            if(!locationWrapper)
+            {
+                locationWrapper = xpc::WrapperFactory::WrapLocationObject(cx, flat);
+                if(!locationWrapper)
+                    return JS_FALSE;
+
+                
+                
+                wrapper->SetWrapper(locationWrapper);
+            }
+
+            flat = locationWrapper;
+        }
+    }
+
     *d = OBJECT_TO_JSVAL(flat);
 
     if(dest)

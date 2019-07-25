@@ -50,6 +50,10 @@ JS_BEGIN_EXTERN_C
 
 class JSWrapper : public js::JSProxyHandler {
     uintN mFlags;
+  protected:
+    
+    
+    JS_FRIEND_API(JSWrapper(void *family));
   public:
     uintN flags() const { return mFlags; }
 

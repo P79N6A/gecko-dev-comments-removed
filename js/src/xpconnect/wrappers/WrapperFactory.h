@@ -59,6 +59,12 @@ class WrapperFactory {
                             JSObject *wrappedProto,
                             JSObject *parent,
                             uintN flags);
+
+    
+    static bool IsLocationObject(JSObject *obj);
+
+    
+    static JSObject *WrapLocationObject(JSContext *cx, JSObject *obj);
 };
 
 }
