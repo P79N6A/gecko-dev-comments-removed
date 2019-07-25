@@ -796,7 +796,7 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
         
 
         
-        JS_CHECK_RECURSION(cx, return JS_FALSE);
+        JS_CHECK_RECURSION(cx, return false);
         stackLimit_ = stack.getStackLimit(cx);
         if (!stackLimit_)
             return false;
@@ -891,7 +891,7 @@ ExternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
 
 
 
-    JS_CHECK_RECURSION(cx, return JS_FALSE);
+    JS_CHECK_RECURSION(cx, return false);
 
     return ExternalInvoke(cx, ObjectValue(*obj), fval, argc, argv, rval);
 }
@@ -2622,7 +2622,7 @@ Interpret(JSContext *cx, JSStackFrame *entryFrame, uintN inlineCallCount, JSInte
         } while (0););
 #endif
 #else
-    JS_CHECK_RECURSION(cx, return JS_FALSE);
+    JS_CHECK_RECURSION(cx, goto error);
 #endif
 
 #if JS_THREADED_INTERP
