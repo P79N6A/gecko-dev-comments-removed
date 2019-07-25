@@ -430,16 +430,6 @@ enum CClosureSlot {
   CCLOSURE_SLOTS
 };
 
-enum CDataFinalizerSlot {
-  
-  
-  SLOT_DATAFINALIZER_VALTYPE           = 0,
-  
-  
-  SLOT_DATAFINALIZER_CODETYPE          = 1,
-  CDATAFINALIZER_SLOTS
-};
-
 enum TypeCtorSlot {
   SLOT_FN_CTORPROTO = 0 
   
