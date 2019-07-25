@@ -210,7 +210,7 @@ let UI = {
       var observer = {
         observe : function(subject, topic, data) {
           if (topic == "quit-application-requested") {
-            if (self._isTabViewVisible()) {
+            if (self.isTabViewVisible()) {
               GroupItems.removeHiddenGroups();
               TabItems.saveAll(true);
             }
@@ -381,7 +381,7 @@ let UI = {
   
   
   
-  _isTabViewVisible: function UI__isTabViewVisible() {
+  isTabViewVisible: function UI_isTabViewVisible() {
     return gTabViewDeck.selectedIndex == 1;
   },
 
@@ -402,7 +402,7 @@ let UI = {
   
   
   showTabView: function UI_showTabView(zoomOut) {
-    if (this._isTabViewVisible())
+    if (this.isTabViewVisible())
       return;
 
     
@@ -468,7 +468,7 @@ let UI = {
   
   
   hideTabView: function UI_hideTabView() {
-    if (!this._isTabViewVisible())
+    if (!this.isTabViewVisible())
       return;
 
     
@@ -567,8 +567,8 @@ let UI = {
         self._privateBrowsing.transitionStage = 3;
         if (aData == "enter") {
           
-          self._privateBrowsing.wasInTabView = self._isTabViewVisible();
-          if (self._isTabViewVisible())
+          self._privateBrowsing.wasInTabView = self.isTabViewVisible();
+          if (self.isTabViewVisible())
             self.goToTab(gBrowser.selectedTab);
         }
       } else if (aTopic == "private-browsing-change-granted") {
@@ -606,7 +606,7 @@ let UI = {
       if (tab.pinned)
         GroupItems.removeAppTab(tab);
         
-      if (self._isTabViewVisible()) {
+      if (self.isTabViewVisible()) {
         
         if (self._currentTab == tab)
           self._closedSelectedTabInTabView = true;
@@ -719,7 +719,7 @@ let UI = {
     this._currentTab = tab;
 
     
-    if (this._isTabViewVisible() &&
+    if (this.isTabViewVisible() &&
         (this._closedLastVisibleTab || this._closedSelectedTabInTabView)) {
       this._closedLastVisibleTab = false;
       this._closedSelectedTabInTabView = false;
@@ -731,7 +731,7 @@ let UI = {
 
     
     
-    if (this._isTabViewVisible())
+    if (this.isTabViewVisible())
       this.hideTabView();
 
     
@@ -789,7 +789,7 @@ let UI = {
   
   
   setReorderTabsOnHide: function UI_setReorderTabsOnHide(groupItem) {
-    if (this._isTabViewVisible()) {
+    if (this.isTabViewVisible()) {
       var index = this._reorderTabsOnHide.indexOf(groupItem);
       if (index == -1)
         this._reorderTabsOnHide.push(groupItem);
@@ -803,7 +803,7 @@ let UI = {
   
   
   setReorderTabItemsOnShow: function UI_setReorderTabItemsOnShow(groupItem) {
-    if (!this._isTabViewVisible()) {
+    if (!this.isTabViewVisible()) {
       var index = this._reorderTabItemsOnShow.indexOf(groupItem);
       if (index == -1)
         this._reorderTabItemsOnShow.push(groupItem);
@@ -1083,7 +1083,7 @@ let UI = {
 
     
     
-    if (!force && !this._isTabViewVisible())
+    if (!force && !this.isTabViewVisible())
       return;
 
     var oldPageBounds = new Rect(this._pageBounds);
