@@ -115,7 +115,7 @@ NS_IMPL_ISUPPORTS1(nsComboButtonListener,
                    nsIDOMEventListener)
 
 
-nsComboboxControlFrame * nsComboboxControlFrame::mFocused = nsnull;
+nsComboboxControlFrame* nsComboboxControlFrame::sFocused = nsnull;
 
 nsIFrame*
 NS_NewComboboxControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aStateFlags)
@@ -329,7 +329,7 @@ nsComboboxControlFrame::SetFocus(bool aOn, bool aRepaint)
   nsWeakFrame weakFrame(this);
   if (aOn) {
     nsListControlFrame::ComboboxFocusSet();
-    mFocused = this;
+    sFocused = this;
     if (mDelayedShowDropDown) {
       ShowDropDown(true); 
       if (!weakFrame.IsAlive()) {
@@ -337,7 +337,7 @@ nsComboboxControlFrame::SetFocus(bool aOn, bool aRepaint)
       }
     }
   } else {
-    mFocused = nsnull;
+    sFocused = nsnull;
     mDelayedShowDropDown = false;
     if (mDroppedDown) {
       mListControlFrame->ComboboxFinish(mDisplayedIndex); 
@@ -968,7 +968,7 @@ nsComboboxControlFrame::ShowDropDown(bool aDoDropDown)
   }
 
   if (!mDroppedDown && aDoDropDown) {
-    if (mFocused == this) {
+    if (sFocused == this) {
       DropDownPositionState state = AbsolutelyPositionDropDown();
       if (state == eDropDownPositionFinal) {
         ShowList(aDoDropDown); 
@@ -1612,7 +1612,7 @@ void nsComboboxControlFrame::PaintFocus(nsRenderingContext& aRenderingContext,
 {
   
   nsEventStates eventStates = mContent->AsElement()->State();
-  if (eventStates.HasState(NS_EVENT_STATE_DISABLED) || mFocused != this)
+  if (eventStates.HasState(NS_EVENT_STATE_DISABLED) || sFocused != this)
     return;
 
   aRenderingContext.PushState();

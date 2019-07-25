@@ -281,7 +281,7 @@ protected:
 
   
   
-  static nsComboboxControlFrame * mFocused;
+  static nsComboboxControlFrame* sFocused;
 
 #ifdef DO_REFLOW_COUNTER
   PRInt32 mReflowId;
