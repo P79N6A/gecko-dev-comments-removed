@@ -190,10 +190,10 @@ nsMemoryCacheDevice::DeactivateEntry(nsCacheEntry * entry)
 nsresult
 nsMemoryCacheDevice::BindEntry(nsCacheEntry * entry)
 {
-	if (!entry->IsDoomed()) {
- 	    NS_ASSERTION(PR_CLIST_IS_EMPTY(entry),"entry is already on a list!");
-	
-		
+    if (!entry->IsDoomed()) {
+        NS_ASSERTION(PR_CLIST_IS_EMPTY(entry),"entry is already on a list!");
+
+        
         PR_APPEND_LINK(entry, &mEvictionList[EvictionList(entry, 0)]);
 
         
@@ -202,15 +202,15 @@ nsMemoryCacheDevice::BindEntry(nsCacheEntry * entry)
             PR_REMOVE_AND_INIT_LINK(entry);
             return rv;
         }
-	}
 
-    
-    ++mEntryCount;
-    if (mMaxEntryCount < mEntryCount) mMaxEntryCount = mEntryCount;
+        
+        ++mEntryCount;
+        if (mMaxEntryCount < mEntryCount) mMaxEntryCount = mEntryCount;
 
-    mTotalSize += entry->Size();
-    EvictEntriesIfNecessary();
-    
+        mTotalSize += entry->Size();
+        EvictEntriesIfNecessary();
+    }
+
     return NS_OK;
 }
 
