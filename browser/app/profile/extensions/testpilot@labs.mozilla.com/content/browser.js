@@ -175,6 +175,15 @@ var TestPilotMenuUtils;
         return;
       }
       let firefoxnav = window.document.getElementById("nav-bar");
+      
+
+      if (!firefoxnav) {
+        return;
+      }
+      
+      
+      
+
       let curSet = firefoxnav.currentSet;
 
       if (-1 == curSet.indexOf("feedback-menu-button")) {
