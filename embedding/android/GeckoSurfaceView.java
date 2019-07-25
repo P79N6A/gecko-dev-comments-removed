@@ -580,10 +580,47 @@ class GeckoSurfaceView
         GeckoAppShell.sendEventToGecko(new GeckoEvent(event));
     }
 
+    private class GeocoderTask extends AsyncTask<Location, Void, Void> {
+        protected Void doInBackground(Location... location) {
+            try {
+                List<Address> addresses = mGeocoder.getFromLocation(location[0].getLatitude(),
+                                                                    location[0].getLongitude(), 1);
+                
+                
+                
+                mLastGeoAddress = addresses.get(0);
+                GeckoAppShell.sendEventToGecko(new GeckoEvent(location[0], mLastGeoAddress));
+            } catch (Exception e) {
+                Log.w(LOG_FILE_NAME, "GeocoderTask "+e);
+            }
+            return null;
+        }
+    }
+
     
     public void onLocationChanged(Location location)
     {
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(location));
+        if (mGeocoder == null)
+            mGeocoder = new Geocoder(getContext(), Locale.getDefault());
+
+        if (mLastGeoAddress == null) {
+            new GeocoderTask().execute(location);
+        }
+        else {
+            float[] results = new float[1];
+            Location.distanceBetween(location.getLatitude(),
+                                     location.getLongitude(),
+                                     mLastGeoAddress.getLatitude(),
+                                     mLastGeoAddress.getLongitude(),
+                                     results);
+            
+            
+            
+            if (results[0] > 100)
+                new GeocoderTask().execute(location);
+        }
+
+        GeckoAppShell.sendEventToGecko(new GeckoEvent(location, mLastGeoAddress));
     }
 
     public void onProviderDisabled(String provider)
@@ -787,6 +824,9 @@ class GeckoSurfaceView
     Bitmap mSoftwareBitmap;
     ByteBuffer mSoftwareBuffer;
     Bitmap mSoftwareBufferCopy;
+
+    Geocoder mGeocoder;
+    Address  mLastGeoAddress;
 
     final SynchronousQueue<Object> mSyncDraws = new SynchronousQueue<Object>();
 }

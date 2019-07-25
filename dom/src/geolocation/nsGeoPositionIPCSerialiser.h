@@ -41,10 +41,97 @@
 #include "nsGeoPosition.h"
 #include "nsIDOMGeoPosition.h"
 
+typedef nsIDOMGeoPositionAddress  *GeoPositionAddress;
 typedef nsGeoPositionCoords       *GeoPositionCoords;
 typedef nsIDOMGeoPosition         *GeoPosition;
 
 namespace IPC {
+
+template <>
+struct ParamTraits<GeoPositionAddress>
+{
+  typedef GeoPositionAddress paramType;
+
+  
+  static void Write(Message *aMsg, const paramType& aParam)
+  {
+    bool isNull = !aParam;
+    WriteParam(aMsg, isNull);
+    
+    if (isNull) return;
+
+    nsString addressLine;
+
+    aParam->GetStreetNumber(addressLine);
+    WriteParam(aMsg, addressLine);
+
+    aParam->GetStreet(addressLine);
+    WriteParam(aMsg, addressLine);
+
+    aParam->GetPremises(addressLine);
+    WriteParam(aMsg, addressLine);
+
+    aParam->GetCity(addressLine);
+    WriteParam(aMsg, addressLine);
+
+    aParam->GetCounty(addressLine);
+    WriteParam(aMsg, addressLine);
+
+    aParam->GetRegion(addressLine);
+    WriteParam(aMsg, addressLine);
+
+    aParam->GetCountry(addressLine);
+    WriteParam(aMsg, addressLine);
+
+    aParam->GetPostalCode(addressLine);
+    WriteParam(aMsg, addressLine);
+  }
+
+  
+  static bool Read(const Message* aMsg, void **aIter, paramType* aResult)
+  {
+    
+    bool isNull;
+    if (!ReadParam(aMsg, aIter, &isNull)) return false;
+
+    if (isNull) {
+      *aResult = 0;
+      return true;
+    }
+
+    
+    nsString streetNumber;
+    nsString street;
+    nsString premises;
+    nsString city;
+    nsString county;
+    nsString region;
+    nsString country;
+    nsString postalCode;
+
+    
+    if (!(ReadParam(aMsg, aIter, &streetNumber) &&
+          ReadParam(aMsg, aIter, &street      ) &&
+          ReadParam(aMsg, aIter, &premises    ) &&
+          ReadParam(aMsg, aIter, &city        ) &&
+          ReadParam(aMsg, aIter, &county      ) &&
+          ReadParam(aMsg, aIter, &region      ) &&
+          ReadParam(aMsg, aIter, &country     ) &&
+          ReadParam(aMsg, aIter, &postalCode  ))) return false;
+
+    
+    *aResult = new nsGeoPositionAddress(streetNumber, 
+                                        street,       
+                                        premises,     
+                                        city,         
+                                        county,       
+                                        region,       
+                                        country,      
+                                        postalCode    
+                                       );
+    return true;
+  }
+} ;
 
 template <>
 struct ParamTraits<GeoPositionCoords>
@@ -148,6 +235,11 @@ struct ParamTraits<GeoPosition>
     aParam->GetCoords(getter_AddRefs(coords));
     GeoPositionCoords simpleCoords = static_cast<GeoPositionCoords>(coords.get());
     WriteParam(aMsg, simpleCoords);
+
+    nsCOMPtr<nsIDOMGeoPositionAddress> address;
+    aParam->GetAddress(getter_AddRefs(address));
+    GeoPositionAddress simpleAddress = address.get();
+    WriteParam(aMsg, simpleAddress);
   }
 
   
@@ -164,17 +256,20 @@ struct ParamTraits<GeoPosition>
 
     DOMTimeStamp timeStamp;
     GeoPositionCoords coords = nsnull;
+    GeoPositionAddress address;
 
     
     if (!(   ReadParam(aMsg, aIter, &timeStamp)
-          && ReadParam(aMsg, aIter, &coords   ))) {
+          && ReadParam(aMsg, aIter, &coords   )
+          && ReadParam(aMsg, aIter, &address  ))) {
+          
           
           
           delete coords;
           return false;
       }
 
-    *aResult = new nsGeoPosition(coords, timeStamp);
+    *aResult = new nsGeoPosition(coords, address, timeStamp);
 
     return true;
   };
