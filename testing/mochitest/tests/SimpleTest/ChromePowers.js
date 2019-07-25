@@ -36,13 +36,13 @@
 
 
 function ChromePowers(window) {
-  this.window = window;
+  this.window = Components.utils.getWeakReference(window);
 
   
   
   if (typeof(window) == "ChromeWindow" && typeof(content.window) == "Window") {
     this.DOMWindowUtils = bindDOMWindowUtils(content.window);
-    this.window = content.window
+    this.window = Components.utils.getWeakReference(content.window);
   } else {
     this.DOMWindowUtils = bindDOMWindowUtils(window);
   }
