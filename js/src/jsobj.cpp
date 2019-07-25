@@ -3797,20 +3797,21 @@ DefineConstructorAndPrototype(JSContext *cx, JSObject *obj, JSProtoKey key, JSAt
 
         ctor = proto;
     } else {
-        JSFunction *fun = js_NewFunction(cx, NULL, constructor, nargs, JSFUN_CONSTRUCTOR, obj, atom);
-        if (!fun)
-            goto bad;
-
-        AutoValueRooter tvr2(cx, ObjectValue(*fun));
-        if (!DefineStandardSlot(cx, obj, key, atom, tvr2.value(), 0, named))
-            goto bad;
-
         
 
 
 
 
+
+        JSFunction *fun =
+            js_NewFunction(cx, NULL, constructor, nargs, JSFUN_CONSTRUCTOR, obj, atom);
+        if (!fun)
+            goto bad;
         FUN_CLASP(fun) = clasp;
+
+        AutoValueRooter tvr2(cx, ObjectValue(*fun));
+        if (!DefineStandardSlot(cx, obj, key, atom, tvr2.value(), 0, named))
+            goto bad;
 
         
 
