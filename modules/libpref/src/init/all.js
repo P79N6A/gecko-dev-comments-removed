@@ -2814,9 +2814,6 @@ pref("middlemouse.contentLoadURL", true);
 pref("middlemouse.openNewWindow", true);
 pref("middlemouse.scrollbarPosition", true);
 
-
-pref("clipboard.autocopy", true);
-
 pref("browser.urlbar.clickSelectsAll", false);
 
 
