@@ -529,6 +529,8 @@ protected:
       sInstance = nullptr;
     }
 
+    bool IsInTransaction() { return mHandlingDeltaMode != PR_UINT32_MAX; }
+
     
 
 
@@ -543,15 +545,30 @@ protected:
 
     void Reset();
 
+    
+
+
+
+    nsIntPoint ComputeScrollAmountForDefaultAction(
+                 mozilla::widget::WheelEvent* aEvent,
+                 const nsIntSize& aScrollAmountInDevPixels);
+
   private:
     DeltaAccumulator() :
-      mX(0.0), mY(0.0), mHandlingDeltaMode(PR_UINT32_MAX),
-      mHandlingPixelOnlyDevice(false)
+      mX(0.0), mY(0.0), mPendingScrollAmountX(0.0), mPendingScrollAmountY(0.0),
+      mHandlingDeltaMode(PR_UINT32_MAX), mHandlingPixelOnlyDevice(false)
     {
     }
 
     double mX;
     double mY;
+
+    
+    
+    
+    double mPendingScrollAmountX;
+    double mPendingScrollAmountY;
+
     TimeStamp mLastTime;
 
     PRUint32 mHandlingDeltaMode;
