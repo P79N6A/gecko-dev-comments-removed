@@ -56,16 +56,14 @@
 #include "nsJSUtils.h"
 #include "mozJSComponentLoader.h"
 #include "nsContentUtils.h"
-#include "jsgc.h"
 
-using namespace js;
 
 
 
 static nsresult ThrowAndFail(uintN errNum, JSContext* cx, bool* retval)
 {
     XPCThrower::Throw(errNum, cx);
-    *retval = false;
+    *retval = JS_FALSE;
     return NS_OK;
 }
 
@@ -82,9 +80,9 @@ JSValIsInterfaceOfType(JSContext *cx, jsval v, REFNSIID iid)
                                                      getter_AddRefs(wn))) && wn &&
         NS_SUCCEEDED(wn->Native()->QueryInterface(iid, (void**)&iface)) && iface) {
         NS_RELEASE(iface);
-        return true;
+        return JS_TRUE;
     }
-    return false;
+    return JS_FALSE;
 }
 
 char* xpc_CloneAllAccess()
@@ -1625,7 +1623,7 @@ nsXPCComponents_ID::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
             xpcc->GetAppropriateSecurityManager(nsIXPCSecurityManager::HOOK_CREATE_INSTANCE);
     if (sm && NS_FAILED(sm->CanCreateInstance(cx, nsJSID::GetCID()))) {
         
-        *_retval = false;
+        *_retval = JS_FALSE;
         return NS_OK;
     }
 
@@ -1845,7 +1843,7 @@ nsXPCComponents_Exception::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
             xpcc->GetAppropriateSecurityManager(nsIXPCSecurityManager::HOOK_CREATE_INSTANCE);
     if (sm && NS_FAILED(sm->CanCreateInstance(cx, nsXPCException::GetCID()))) {
         
-        *_retval = false;
+        *_retval = JS_FALSE;
         return NS_OK;
     }
 
@@ -2177,7 +2175,7 @@ nsXPCConstructor::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
     if (!JS_CallFunctionName(cx, cidObj, "createInstance", 1, ctorArgs, &val) ||
         JSVAL_IS_PRIMITIVE(val)) {
         
-        *_retval = false;
+        *_retval = JS_FALSE;
         return NS_OK;
     }
 
@@ -2199,7 +2197,7 @@ nsXPCConstructor::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
 
         if (!JS_CallFunctionValue(cx, newObj, fun, argc, argv, &ignored)) {
             
-            *_retval = false;
+            *_retval = JS_FALSE;
             return NS_OK;
         }
     }
@@ -2401,7 +2399,7 @@ nsXPCComponents_Constructor::CallOrConstruct(nsIXPConnectWrappedNative *wrapper,
             xpcc->GetAppropriateSecurityManager(nsIXPCSecurityManager::HOOK_CREATE_INSTANCE);
     if (sm && NS_FAILED(sm->CanCreateInstance(cx, nsXPCConstructor::GetCID()))) {
         
-        *_retval = false;
+        *_retval = JS_FALSE;
         return NS_OK;
     }
 
@@ -2719,6 +2717,7 @@ nsXPCComponents_Utils::LookupMethod()
         return NS_ERROR_XPC_BAD_CONVERT_JS;
 
     jsval funval;
+    JSFunction *oldfunction;
 
     
     if (!member->NewFunctionObject(inner_cc, iface,
@@ -2726,8 +2725,8 @@ nsXPCComponents_Utils::LookupMethod()
                                    &funval))
         return NS_ERROR_XPC_BAD_CONVERT_JS;
 
-    NS_ASSERTION(JS_ValueToFunction(inner_cc, funval),
-                 "Function is not a function");
+    oldfunction = JS_ValueToFunction(inner_cc, funval);
+    NS_ASSERTION(oldfunction, "Function is not a function");
 
     
     *retval = funval;
@@ -2876,21 +2875,21 @@ SandboxDump(JSContext *cx, uintN argc, jsval *vp)
 {
     JSString *str;
     if (!argc)
-        return true;
+        return JS_TRUE;
 
     str = JS_ValueToString(cx, JS_ARGV(cx, vp)[0]);
     if (!str)
-        return false;
+        return JS_FALSE;
 
     size_t length;
     const jschar *chars = JS_GetStringCharsZAndLength(cx, str, &length);
     if (!chars)
-        return false;
+        return JS_FALSE;
 
     nsDependentString wstr(chars, length);
     char *cstr = ToNewUTF8String(wstr);
     if (!cstr)
-        return false;
+        return JS_FALSE;
 
 #if defined(XP_MACOSX)
     
@@ -2906,7 +2905,7 @@ SandboxDump(JSContext *cx, uintN argc, jsval *vp)
     fflush(stderr);
     NS_Free(cstr);
     JS_SET_RVAL(cx, vp, JSVAL_TRUE);
-    return true;
+    return JS_TRUE;
 }
 
 static JSBool
@@ -2915,7 +2914,7 @@ SandboxDebug(JSContext *cx, uintN argc, jsval *vp)
 #ifdef DEBUG
     return SandboxDump(cx, argc, vp);
 #else
-    return true;
+    return JS_TRUE;
 #endif
 }
 
@@ -2924,12 +2923,12 @@ SandboxImport(JSContext *cx, uintN argc, jsval *vp)
 {
     JSObject *thisobj = JS_THIS_OBJECT(cx, vp);
     if (!thisobj)
-        return false;
+        return JS_FALSE;
 
     jsval *argv = JS_ARGV(cx, vp);
     if (argc < 1 || JSVAL_IS_PRIMITIVE(argv[0])) {
         XPCThrower::Throw(NS_ERROR_INVALID_ARG, cx);
-        return false;
+        return JS_FALSE;
     }
 
     JSString *funname;
@@ -2937,7 +2936,7 @@ SandboxImport(JSContext *cx, uintN argc, jsval *vp)
         
         funname = JS_ValueToString(cx, argv[1]);
         if (!funname)
-            return false;
+            return JS_FALSE;
         argv[1] = STRING_TO_JSVAL(funname);
     } else {
         
@@ -2948,26 +2947,26 @@ SandboxImport(JSContext *cx, uintN argc, jsval *vp)
 
         JSAutoEnterCompartment ac;
         if (!ac.enter(cx, funobj)) {
-            return false;
+            return JS_FALSE;
         }
 
         JSFunction *fun = JS_ValueToFunction(cx, OBJECT_TO_JSVAL(funobj));
         if (!fun) {
             XPCThrower::Throw(NS_ERROR_INVALID_ARG, cx);
-            return false;
+            return JS_FALSE;
         }
 
         
         funname = JS_GetFunctionId(fun);
         if (!funname) {
             XPCThrower::Throw(NS_ERROR_INVALID_ARG, cx);
-            return false;
+            return JS_FALSE;
         }
     }
 
     jsid id;
     if (!JS_ValueToId(cx, STRING_TO_JSVAL(funname), &id))
-        return false;
+        return JS_FALSE;
 
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
     return JS_SetPropertyById(cx, thisobj, id, &argv[0]);
@@ -2999,7 +2998,7 @@ sandbox_convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
 {
     if (type == JSTYPE_OBJECT) {
         *vp = OBJECT_TO_JSVAL(obj);
-        return true;
+        return JS_TRUE;
     }
 
     return JS_ConvertStub(cx, obj, type, vp);
@@ -3065,7 +3064,7 @@ NS_IMPL_ISUPPORTS0(Identity)
 
 nsresult
 xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop, JSObject *proto,
-                        bool wantXrays, const nsACString &sandboxName, nsISupports *identityPtr)
+                        bool wantXrays, const nsACString &sandboxName)
 {
     
     nsresult rv;
@@ -3102,13 +3101,8 @@ xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop, JSOb
     JSCompartment *compartment;
     JSObject *sandbox;
 
-    nsRefPtr<Identity> identity;
-    if (!identityPtr) {
-      identity = new Identity();
-      identityPtr = identity;
-    }
-
-    rv = xpc_CreateGlobalObject(cx, &SandboxClass, principal, identityPtr,
+    nsRefPtr<Identity> identity = new Identity();
+    rv = xpc_CreateGlobalObject(cx, &SandboxClass, principal, identity,
                                 wantXrays, &sandbox, &compartment);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3218,7 +3212,6 @@ nsXPCComponents_utils_Sandbox::CallOrConstruct(nsIXPConnectWrappedNative *wrappe
     nsCOMPtr<nsIScriptObjectPrincipal> sop;
     nsCOMPtr<nsIPrincipal> principal;
     nsISupports *prinOrSop = nsnull;
-    nsISupports *identity = nsnull;
     if (JSVAL_IS_STRING(argv[0])) {
         JSString *codebaseStr = JSVAL_TO_STRING(argv[0]);
         size_t codebaseLength;
@@ -3323,30 +3316,9 @@ nsXPCComponents_utils_Sandbox::CallOrConstruct(nsIXPConnectWrappedNative *wrappe
 
             sandboxName.Adopt(tmp, strlen(tmp));
         }
-
-        
-        if (!JS_HasProperty(cx, optionsObject, "sameGroupAs", &found))
-            return NS_ERROR_INVALID_ARG;
-
-        if (found) {
-            if (!JS_GetProperty(cx, optionsObject, "sameGroupAs", &option) ||
-                JSVAL_IS_PRIMITIVE(option)) {
-                    return ThrowAndFail(NS_ERROR_INVALID_ARG, cx, _retval);
-            }
-
-            void* privateValue =
-                JS_GetCompartmentPrivate(cx,GetObjectCompartment(JSVAL_TO_OBJECT(option)));
-            xpc::CompartmentPrivate *compartmentPrivate =
-                static_cast<xpc::CompartmentPrivate*>(privateValue);
-
-            if (!compartmentPrivate || !compartmentPrivate->key)
-                return ThrowAndFail(NS_ERROR_INVALID_ARG, cx, _retval);
-
-            identity = compartmentPrivate->key->GetPtr();
-        }
     }
 
-    rv = xpc_CreateSandboxObject(cx, vp, prinOrSop, proto, wantXrays, sandboxName, identity);
+    rv = xpc_CreateSandboxObject(cx, vp, prinOrSop, proto, wantXrays, sandboxName);
 
     if (NS_FAILED(rv)) {
         return ThrowAndFail(rv, cx, _retval);
@@ -3410,7 +3382,7 @@ ContextHolder::ContextHolderOperationCallback(JSContext *cx)
 
     JSContext *origCx = thisObject->mOrigCx;
     JSOperationCallback callback = JS_GetOperationCallback(origCx);
-    JSBool ok = true;
+    JSBool ok = JS_TRUE;
     if (callback)
         ok = callback(origCx);
     return ok;
@@ -3518,8 +3490,6 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
                   const char *filename, PRInt32 lineNo,
                   JSVersion jsVersion, bool returnStringOnly, jsval *rval)
 {
-    JS_AbortIfWrongThread(JS_GetRuntime(cx));
-
 #ifdef DEBUG
     
     {
@@ -3899,16 +3869,11 @@ nsXPCComponents_Utils::CreateObjectIn(const jsval &vobj, JSContext *cx, jsval *r
 JSBool
 FunctionWrapper(JSContext *cx, uintN argc, jsval *vp)
 {
-    jsval v;
-    if (!JS_GetReservedSlot(cx, JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)), 0, &v))
-        return false;
+    jsval v = js::GetFunctionNativeReserved(JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)), 0);
     NS_ASSERTION(JSVAL_IS_OBJECT(v), "weird function");
 
-    JSObject *obj = JS_THIS_OBJECT(cx, vp);
-    if (!obj) {
-        return JS_FALSE;
-    }
-    return JS_CallFunctionValue(cx, obj, v, argc, JS_ARGV(cx, vp), vp);
+    return JS_CallFunctionValue(cx, JS_THIS_OBJECT(cx, vp), v,
+                                argc, JS_ARGV(cx, vp), vp);
 }
 
 JSBool
@@ -3917,13 +3882,12 @@ WrapCallable(JSContext *cx, JSObject *obj, jsid id, JSObject *propobj, jsval *vp
     JSFunction *fun = JS_NewFunctionById(cx, FunctionWrapper, 0, 0,
                                          JS_GetGlobalForObject(cx, obj), id);
     if (!fun)
-        return false;
+        return JS_FALSE;
 
     JSObject *funobj = JS_GetFunctionObject(fun);
-    if (!JS_SetReservedSlot(cx, funobj, 0, OBJECT_TO_JSVAL(propobj)))
-        return false;
+    js::SetFunctionNativeReserved(funobj, 0, OBJECT_TO_JSVAL(propobj));
     *vp = OBJECT_TO_JSVAL(funobj);
-    return true;
+    return JS_TRUE;
 }
 
 
@@ -4002,87 +3966,6 @@ nsXPCComponents_Utils::CanSetProperty(const nsIID * iid, const PRUnichar *proper
 {
     
     *_retval = nsnull;
-    return NS_OK;
-}
-
-nsresult
-GetBoolOption(JSContext* cx, uint32 aOption, bool* aValue)
-{
-    *aValue = !!(JS_GetOptions(cx) & aOption);
-    return NS_OK;
-}
-
-nsresult
-SetBoolOption(JSContext* cx, uint32 aOption, bool aValue)
-{
-    uint32 options = JS_GetOptions(cx);
-    if (aValue) {
-        options |= aOption;
-    } else {
-        options &= ~aOption;
-    }
-    JS_SetOptions(cx, options & JSALLOPTION_MASK);
-    return NS_OK;
-}
-
-
-nsresult
-GetCurrentJSContext(JSContext** aCx)
-{
-    nsresult rv;
-
-    nsCOMPtr<nsIXPConnect> xpc(do_GetService(nsIXPConnect::GetCID(), &rv));
-    if(NS_FAILED(rv))
-        return rv;
-
-    
-    nsAXPCNativeCallContext *cc = nsnull;
-    xpc->GetCurrentNativeCallContext(&cc);
-    if(!cc)
-        return NS_ERROR_FAILURE;
-
-    
-    JSContext* cx;
-    rv = cc->GetJSContext(&cx);
-    if(NS_FAILED(rv) || !cx)
-        return NS_ERROR_FAILURE;
-
-    *aCx = cx;
-    return NS_OK;
-}
-
-#define GENERATE_JSOPTION_GETTER_SETTER(_attr, _flag)                   \
-    NS_IMETHODIMP                                                       \
-    nsXPCComponents_Utils::Get## _attr(bool* aValue)                    \
-    {                                                                   \
-        JSContext* cx;                                                  \
-        nsresult rv = GetCurrentJSContext(&cx);                         \
-        return NS_FAILED(rv) ? rv : GetBoolOption(cx, _flag, aValue);   \
-    }                                                                   \
-    NS_IMETHODIMP                                                       \
-    nsXPCComponents_Utils::Set## _attr(bool aValue)                     \
-    {                                                                   \
-        JSContext* cx;                                                  \
-        nsresult rv = GetCurrentJSContext(&cx);                         \
-        return NS_FAILED(rv) ? rv : SetBoolOption(cx, _flag, aValue);   \
-    }
-
-GENERATE_JSOPTION_GETTER_SETTER(Strict, JSOPTION_STRICT)
-GENERATE_JSOPTION_GETTER_SETTER(Werror, JSOPTION_WERROR)
-GENERATE_JSOPTION_GETTER_SETTER(Atline, JSOPTION_ATLINE)
-GENERATE_JSOPTION_GETTER_SETTER(Xml, JSOPTION_XML)
-GENERATE_JSOPTION_GETTER_SETTER(Relimit, JSOPTION_RELIMIT)
-GENERATE_JSOPTION_GETTER_SETTER(Methodjit, JSOPTION_METHODJIT)
-GENERATE_JSOPTION_GETTER_SETTER(Methodjit_always, JSOPTION_METHODJIT_ALWAYS)
-
-#undef GENERATE_JSOPTION_GETTER_SETTER
-
-NS_IMETHODIMP
-nsXPCComponents_Utils::SetGCZeal(PRInt32 aValue, JSContext* cx)
-{
-#ifdef JS_GC_ZEAL
-    JS_SetGCZeal(cx, PRUint8(aValue), JS_DEFAULT_ZEAL_FREQ, false);
-#endif
     return NS_OK;
 }
 
@@ -4328,15 +4211,15 @@ nsXPCComponents::GetProperty(nsIXPConnectWrappedNative *wrapper,
     if (!xpcc)
         return NS_ERROR_FAILURE;
 
-    bool doResult = false;
+    bool doResult = JS_FALSE;
     nsresult res;
     XPCJSRuntime* rt = xpcc->GetRuntime();
     if (id == rt->GetStringID(XPCJSRuntime::IDX_LAST_RESULT)) {
         res = xpcc->GetLastResult();
-        doResult = true;
+        doResult = JS_TRUE;
     } else if (id == rt->GetStringID(XPCJSRuntime::IDX_RETURN_CODE)) {
         res = xpcc->GetPendingResult();
-        doResult = true;
+        doResult = JS_TRUE;
     }
 
     nsresult rv = NS_OK;
@@ -4383,11 +4266,11 @@ nsXPCComponents::AttachNewComponentsObject(XPCCallContext& ccx,
                                            JSObject* aGlobal)
 {
     if (!aGlobal)
-        return false;
+        return JS_FALSE;
 
     nsXPCComponents* components = new nsXPCComponents();
     if (!components)
-        return false;
+        return JS_FALSE;
 
     nsCOMPtr<nsIXPCComponents> cholder(components);
 
@@ -4395,14 +4278,14 @@ nsXPCComponents::AttachNewComponentsObject(XPCCallContext& ccx,
     iface = XPCNativeInterface::GetNewOrUsed(ccx, &NS_GET_IID(nsIXPCComponents));
 
     if (!iface)
-        return false;
+        return JS_FALSE;
 
     nsCOMPtr<XPCWrappedNative> wrapper;
     xpcObjectHelper helper(cholder);
     XPCWrappedNative::GetNewOrUsed(ccx, helper, aScope, iface,
                                    OBJ_IS_NOT_GLOBAL, getter_AddRefs(wrapper));
     if (!wrapper)
-        return false;
+        return JS_FALSE;
 
     aScope->SetComponents(components);
 

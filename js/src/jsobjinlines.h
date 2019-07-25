@@ -692,69 +692,6 @@ JSObject::setDateUTCTime(const js::Value &time)
     setFixedSlot(JSSLOT_DATE_UTC_TIME, time);
 }
 
-inline js::Value *
-JSObject::getFlatClosureUpvars() const
-{
-#ifdef DEBUG
-    const JSFunction *fun = toFunction();
-    JS_ASSERT(fun->isFlatClosure());
-    JS_ASSERT(fun->script()->bindings.countUpvars() == fun->script()->upvars()->length);
-#endif
-    const js::Value &slot = getFixedSlot(JSSLOT_FLAT_CLOSURE_UPVARS);
-    return (js::Value *) (slot.isUndefined() ? NULL : slot.toPrivate());
-}
-
-inline void
-JSObject::finalizeUpvarsIfFlatClosure()
-{
-    
-
-
-
-
-
-
-
-
-
-
-
-    if (toFunction()->isFlatClosure()) {
-        const js::Value &v = getSlot(JSSLOT_FLAT_CLOSURE_UPVARS);
-        if (v.isDouble())
-            js::Foreground::free_(v.toPrivate());
-    }
-}
-
-inline js::Value
-JSObject::getFlatClosureUpvar(uint32 i) const
-{
-    JS_ASSERT(i < toFunction()->script()->bindings.countUpvars());
-    return getFlatClosureUpvars()[i];
-}
-
-inline const js::Value &
-JSObject::getFlatClosureUpvar(uint32 i)
-{
-    JS_ASSERT(i < toFunction()->script()->bindings.countUpvars());
-    return getFlatClosureUpvars()[i];
-}
-
-inline void
-JSObject::setFlatClosureUpvar(uint32 i, const js::Value &v)
-{
-    JS_ASSERT(i < toFunction()->script()->bindings.countUpvars());
-    getFlatClosureUpvars()[i] = v;
-}
-
-inline void
-JSObject::setFlatClosureUpvars(js::Value *upvars)
-{
-    JS_ASSERT(isFunction());
-    JS_ASSERT(toFunction()->isFlatClosure());
-    setFixedSlot(JSSLOT_FLAT_CLOSURE_UPVARS, js::PrivateValue(upvars));
-}
-
 inline js::NativeIterator *
 JSObject::getNativeIterator() const
 {
@@ -1477,7 +1414,7 @@ static inline bool
 CanBeFinalizedInBackground(gc::AllocKind kind, Class *clasp)
 {
 #ifdef JS_THREADSAFE
-    JS_ASSERT(kind <= gc::FINALIZE_FUNCTION);
+    JS_ASSERT(kind <= gc::FINALIZE_OBJECT_LAST);
     
 
 
@@ -1668,7 +1605,8 @@ NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent,
 
 
 
-    JS_ASSERT((clasp == &FunctionClass) == (kind == gc::FINALIZE_FUNCTION));
+    JS_ASSERT_IF(clasp == &FunctionClass,
+                 kind == JSFunction::FinalizeKind || kind == JSFunction::ExtendedFinalizeKind);
 
     if (CanBeFinalizedInBackground(kind, clasp))
         kind = GetBackgroundAllocKind(kind);
@@ -1706,10 +1644,9 @@ NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent)
 }
 
 static JS_ALWAYS_INLINE JSFunction *
-NewFunction(JSContext *cx, JSObject *parent)
+NewFunction(JSContext *cx, JSObject *parent, gc::AllocKind kind)
 {
-    JSObject *obj = NewObject<WithProto::Class>(cx, &FunctionClass, NULL, parent,
-                                                gc::FINALIZE_FUNCTION);
+    JSObject *obj = NewObject<WithProto::Class>(cx, &FunctionClass, NULL, parent, kind);
     return static_cast<JSFunction *>(obj);
 }
 

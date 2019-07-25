@@ -167,7 +167,8 @@ class GlobalObject : public ::JSObject {
 
 
     JSFunction *
-    createConstructor(JSContext *cx, JSNative ctor, Class *clasp, JSAtom *name, uintN length);
+    createConstructor(JSContext *cx, JSNative ctor, Class *clasp, JSAtom *name, uintN length,
+                      gc::AllocKind kind = JSFunction::FinalizeKind);
 
     
 

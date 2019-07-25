@@ -135,7 +135,6 @@ const uint32 Arena::ThingSizes[] = {
     sizeof(JSObject_Slots12),   
     sizeof(JSObject_Slots16),   
     sizeof(JSObject_Slots16),   
-    sizeof(JSFunction),         
     sizeof(JSScript),           
     sizeof(Shape),              
     sizeof(BaseShape),          
@@ -163,7 +162,6 @@ const uint32 Arena::FirstThingOffsets[] = {
     OFFSET(JSObject_Slots12),   
     OFFSET(JSObject_Slots16),   
     OFFSET(JSObject_Slots16),   
-    OFFSET(JSFunction),         
     OFFSET(JSScript),           
     OFFSET(Shape),              
     OFFSET(BaseShape),          
@@ -388,7 +386,6 @@ FinalizeArenas(JSContext *cx, ArenaLists::ArenaList *al, AllocKind thingKind, bo
       case FINALIZE_OBJECT12_BACKGROUND:
       case FINALIZE_OBJECT16:
       case FINALIZE_OBJECT16_BACKGROUND:
-      case FINALIZE_FUNCTION:
         FinalizeTypedArenas<JSObject>(cx, al, thingKind, background);
         break;
       case FINALIZE_SCRIPT:
@@ -1380,7 +1377,6 @@ ArenaLists::finalizeLater(JSContext *cx, AllocKind thingKind)
               thingKind == FINALIZE_OBJECT8_BACKGROUND  ||
               thingKind == FINALIZE_OBJECT12_BACKGROUND ||
               thingKind == FINALIZE_OBJECT16_BACKGROUND ||
-              thingKind == FINALIZE_FUNCTION            ||
               thingKind == FINALIZE_SHORT_STRING        ||
               thingKind == FINALIZE_STRING);
 
@@ -1483,13 +1479,6 @@ ArenaLists::finalizeObjects(JSContext *cx)
     finalizeLater(cx, FINALIZE_OBJECT12_BACKGROUND);
     finalizeLater(cx, FINALIZE_OBJECT16_BACKGROUND);
 #endif
-
-    
-
-
-
-
-    finalizeLater(cx, FINALIZE_FUNCTION);
 
 #if JS_HAS_XML_SUPPORT
     finalizeNow(cx, FINALIZE_XML);

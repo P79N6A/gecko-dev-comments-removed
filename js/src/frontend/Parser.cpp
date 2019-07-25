@@ -1097,7 +1097,6 @@ FindFunArgs(JSFunctionBox *funbox, int level, JSFunctionBoxQueue *queue)
     do {
         JSParseNode *fn = funbox->node;
         JS_ASSERT(fn->isArity(PN_FUNC));
-        JSFunction *fun = funbox->function();
         int fnlevel = level;
 
         
@@ -1181,9 +1180,7 @@ FindFunArgs(JSFunctionBox *funbox, int level, JSFunctionBoxQueue *queue)
 
 
 
-
         if (skipmin != UpvarCookie::FREE_LEVEL) {
-            fun->u.i.skipmin = skipmin;
             if (skipmin < allskipmin)
                 allskipmin = skipmin;
         }

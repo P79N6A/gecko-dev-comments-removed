@@ -873,7 +873,6 @@ MapAllocToTraceKind(AllocKind thingKind)
         JSTRACE_OBJECT,     
         JSTRACE_OBJECT,     
         JSTRACE_OBJECT,     
-        JSTRACE_OBJECT,     
         JSTRACE_SCRIPT,     
         JSTRACE_SHAPE,      
         JSTRACE_BASE_SHAPE, 
