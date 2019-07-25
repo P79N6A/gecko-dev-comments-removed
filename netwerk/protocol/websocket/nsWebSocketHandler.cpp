@@ -951,7 +951,7 @@ nsWebSocketHandler::ApplyMask(PRUint32 mask, PRUint8 *data, PRUint64 len)
     
     
 
-    while (len && ((unsigned long) data & 3)) {
+    while (len && (reinterpret_cast<PRUptrdiff>(data) & 3)) {
         *data ^= mask >> 24;
         mask = PR_ROTATE_LEFT32(mask, 8);
         data++;
