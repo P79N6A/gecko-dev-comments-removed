@@ -2,7 +2,6 @@ toolkit.jar:
 +  skin/classic/global/autocomplete.css
 +  skin/classic/global/button.css
 +  skin/classic/global/checkbox.css
-+  skin/classic/global/commonDialog.css
 +  skin/classic/global/dropmarker.css
 +  skin/classic/global/filefield.css
 +  skin/classic/global/filepicker.css
@@ -45,6 +44,6 @@ toolkit.jar:
 +  skin/classic/global/icons/notloading_16.png                 (icons/notloading_16.png)
 +  skin/classic/global/icons/resizer.png                       (icons/resizer.png)
 +  skin/classic/global/icons/sslWarning.png                    (icons/sslWarning.png)
-+  skin/classic/global/icons/webconsole.png                    (icons/webconsole.png)
 +  skin/classic/global/icons/wrap.png                          (icons/wrap.png)
 +  skin/classic/global/toolbar/spring.png                      (toolbar/spring.png)
++  skin/classic/global/aboutStartup.css
