@@ -87,18 +87,9 @@ function test() {
             
             contextmenu.hidePopup();
             
-            function closeObserver(aSubject, aTopic, aData) {
-              if (aTopic != "domwindowclosed")
-                return;
-              ww.unregisterNotification(closeObserver);
-              SimpleTest.waitForFocus(function() {
-                
-                funcNext();
-              });
-            }
-            ww.registerNotification(closeObserver);
-            
             organizer.close();
+            
+            funcNext();
           }, false);
           
           var x = {}, y = {}, width = {}, height = {};
