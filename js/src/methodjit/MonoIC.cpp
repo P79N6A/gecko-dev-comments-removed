@@ -1076,19 +1076,51 @@ ic::SplatApplyArgs(VMFrame &f)
 
 
     if (f.u.call.lazyArgsObj) {
-        
-        
-        unsigned length = f.regs.fp()->numActualArgs();
-        JS_ASSERT(length <= StackSpace::ARGS_LENGTH_MAX);
+        Value *vp = f.regs.sp - 3;
+        JS_ASSERT(JS_CALLEE(cx, vp).toObject().toFunction()->u.n.native == js_fun_apply);
 
-        if (!BumpStack(f, length))
-            THROWV(false);
+        StackFrame *fp = f.regs.fp();
+        unsigned n;
 
         
-        f.regs.fp()->forEachCanonicalActualArg(CopyTo(f.regs.sp));
+        JS_ASSERT(fp->hasArgsObj());
 
-        f.regs.sp += length;
-        f.u.call.dynamicArgc = length;
+        if (!fp->hasArgsObj()) {
+            
+            n = fp->numActualArgs();
+            if (!BumpStack(f, n))
+                THROWV(false);
+            Value *argv = JS_ARGV(cx, vp + 1 );
+            f.regs.sp += n;
+            fp->forEachCanonicalActualArg(CopyTo(argv));
+        } else {
+            
+            JSObject *aobj = &fp->argsObj();
+
+            
+            unsigned length;
+            if (!js_GetLengthProperty(cx, aobj, &length))
+                THROWV(false);
+
+            
+            if (length > StackSpace::ARGS_LENGTH_MAX) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_TOO_MANY_FUN_APPLY_ARGS);
+                THROWV(false);
+            }
+
+            n = length;
+            if (!BumpStack(f, n))
+                THROWV(false);
+
+            
+            Value *argv = JS_ARGV(cx, &vp[1]);  
+            f.regs.sp += n;  
+            if (!GetElements(cx, aobj, n, argv))
+                THROWV(false);
+        }
+
+        f.u.call.dynamicArgc = n;
         return true;
     }
 

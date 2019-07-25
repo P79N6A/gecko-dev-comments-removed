@@ -2223,7 +2223,6 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_IFNE)
 
           BEGIN_CASE(JSOP_ARGUMENTS)
-          {
             
 
 
@@ -2231,40 +2230,21 @@ mjit::Compiler::generateMethod()
 
 
 
-            if (!script->needsArgsObj()) {
-                if (canUseApplyTricks()) {
-                    
+            if (canUseApplyTricks()) {
+                
 
 
 
-                    interruptCheckHelper();
+                interruptCheckHelper();
 
-                    applyTricks = LazyArgsObj;
-                    pushSyncedEntry(0);
-                } else {
-                    
-
-
-
-
-
-
-
-                    if (SpeculateApplyOptimization(PC)) {
-                        if (!script->applySpeculationFailed(cx))
-                            return Compile_Error;
-
-                        
-                        return Compile_Retry;
-                    }
-
-                    frame.push(MagicValue(JS_OPTIMIZED_ARGUMENTS));
-                }
-            } else {
+                applyTricks = LazyArgsObj;
+                pushSyncedEntry(0);
+            } else if (script->needsArgsObj()) {
                 jsop_arguments(REJOIN_FALLTHROUGH);
                 pushSyncedEntry(0);
+            } else {
+                frame.push(MagicValue(JS_OPTIMIZED_ARGUMENTS));
             }
-          }
           END_CASE(JSOP_ARGUMENTS)
 
           BEGIN_CASE(JSOP_ITERNEXT)
@@ -4091,7 +4071,6 @@ bool
 mjit::Compiler::canUseApplyTricks()
 {
     JS_ASSERT(*PC == JSOP_ARGUMENTS);
-    JS_ASSERT(!script->needsArgsObj());
     jsbytecode *nextpc = PC + JSOP_ARGUMENTS_LENGTH;
     return *nextpc == JSOP_FUNAPPLY &&
            IsLowerableFunCallOrApply(nextpc) &&
