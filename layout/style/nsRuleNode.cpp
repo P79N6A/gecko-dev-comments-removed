@@ -6426,6 +6426,12 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
 
 #ifdef MOZ_FLEXBOX
   
+  SetDiscrete(*aRuleData->ValueForAlignItems(),
+              pos->mAlignItems, canStoreInRuleTree,
+              SETDSC_ENUMERATED, parentPos->mAlignItems,
+              NS_STYLE_ALIGN_ITEMS_INITIAL_VALUE, 0, 0, 0, 0);
+
+  
   SetDiscrete(*aRuleData->ValueForFlexDirection(),
               pos->mFlexDirection, canStoreInRuleTree,
               SETDSC_ENUMERATED, parentPos->mFlexDirection,
