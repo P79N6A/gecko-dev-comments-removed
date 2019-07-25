@@ -2162,8 +2162,78 @@ nsDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
 
   mChannel = aChannel;
   
-  nsresult rv = InitCSP();
+  nsresult rv = CheckFrameOptions();
   NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = InitCSP();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+
+nsresult nsDocument::CheckFrameOptions()
+{
+  nsAutoString xfoHeaderValue;
+  this->GetHeaderData(nsGkAtoms::headerXFO, xfoHeaderValue);
+
+  
+  if (!xfoHeaderValue.LowerCaseEqualsLiteral("deny") &&
+      !xfoHeaderValue.LowerCaseEqualsLiteral("sameorigin"))
+    return NS_OK;
+
+  nsCOMPtr<nsIDocShell> docShell = do_QueryReferent(mDocumentContainer);
+
+  if (docShell) {
+    PRBool framingAllowed = true;
+
+    
+    
+    
+    
+    nsCOMPtr<nsIDOMWindow> thisWindow = do_GetInterface(docShell);
+    nsCOMPtr<nsIDOMWindow> topWindow;
+    thisWindow->GetTop(getter_AddRefs(topWindow));
+
+    
+    if (thisWindow == topWindow)
+      return NS_OK;
+
+    
+    
+    if (xfoHeaderValue.LowerCaseEqualsLiteral("deny")) {
+      framingAllowed = false;
+    }
+
+    else if (xfoHeaderValue.LowerCaseEqualsLiteral("sameorigin")) {
+      
+      
+      nsCOMPtr<nsIURI> uri = static_cast<nsIDocument*>(this)->GetDocumentURI();
+      nsCOMPtr<nsIDOMDocument> topDOMDoc;
+      topWindow->GetDocument(getter_AddRefs(topDOMDoc));
+      nsCOMPtr<nsIDocument> topDoc = do_QueryInterface(topDOMDoc);
+      if (topDoc) {
+        nsCOMPtr<nsIURI> topUri = topDoc->GetDocumentURI();
+        nsresult rv = nsContentUtils::GetSecurityManager()->
+          CheckSameOriginURI(uri, topUri, PR_TRUE);
+
+        if (NS_FAILED(rv)) {
+          framingAllowed = false;
+        }
+      }
+    }
+
+    if (!framingAllowed) {
+      
+      mChannel->Cancel(NS_BINDING_ABORTED);
+      nsCOMPtr<nsIWebNavigation> webNav(do_QueryInterface(docShell));
+      if (webNav) {
+        webNav->LoadURI(NS_LITERAL_STRING("about:blank").get(),
+                        0, nsnull, nsnull, nsnull);
+      }
+      return NS_ERROR_CONTENT_BLOCKED;
+    }
+  }
 
   return NS_OK;
 }
@@ -6438,6 +6508,7 @@ nsDocument::RetrieveRelevantHeaders(nsIChannel *aChannel)
       "x-dns-prefetch-control",
       "x-content-security-policy",
       "x-content-security-policy-report-only",
+      "x-frame-options",
       
       
       
