@@ -204,6 +204,8 @@ InitDialog(HWND hDlg)
 
   ReleaseDC(hWndInfo, hDCInfo);
 
+  CenterDialog(hDlg);  
+
   SetTimer(hDlg, TIMER_ID, TIMER_INTERVAL, NULL);
 }
 
