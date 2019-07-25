@@ -109,11 +109,16 @@ StubCompiler::syncExitAndJump(Uses uses)
 
 
 
-void
+
+
+
+
+JSC::MacroAssembler::Label
 StubCompiler::linkExit(Jump j, Uses uses)
 {
     Label l = syncExit(uses);
     linkExitDirect(j, l);
+    return l;
 }
 
 
