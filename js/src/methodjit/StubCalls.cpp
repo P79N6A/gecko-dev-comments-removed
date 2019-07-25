@@ -940,14 +940,15 @@ stubs::DefFun(VMFrame &f, JSFunction *fun)
 
 
 
-    doSet = (attrs == JSPROP_ENUMERATE);
-    JS_ASSERT_IF(doSet, fp->isEvalFrame());
+    doSet = false;
     if (prop) {
-        if (parent == pobj &&
-            parent->isCall() &&
-            (old = ((Shape *) prop)->attributes(),
-             !(old & (JSPROP_GETTER|JSPROP_SETTER)) &&
-             (old & (JSPROP_ENUMERATE|JSPROP_PERMANENT)) == attrs)) {
+        JS_ASSERT((attrs == JSPROP_PERMANENT) == fp->isEvalFrame());
+        if (attrs == JSPROP_ENUMERATE ||
+            (parent == pobj &&
+             parent->isCall() &&
+             (old = ((Shape *) prop)->attributes(),
+              !(old & (JSPROP_GETTER|JSPROP_SETTER)) &&
+              (old & (JSPROP_ENUMERATE|JSPROP_PERMANENT)) == attrs))) {
             
 
 

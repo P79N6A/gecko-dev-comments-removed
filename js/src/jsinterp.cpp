@@ -5376,15 +5376,16 @@ BEGIN_CASE(JSOP_DEFFUN)
 
 
 
-    uint32 old;
-    bool doSet = (attrs == JSPROP_ENUMERATE);
-    JS_ASSERT_IF(doSet, regs.fp->isEvalFrame());
+    bool doSet = false;
     if (prop) {
-        if (parent == pobj &&
-            parent->isCall() &&
-            (old = ((Shape *) prop)->attributes(),
-             !(old & (JSPROP_GETTER|JSPROP_SETTER)) &&
-             (old & (JSPROP_ENUMERATE|JSPROP_PERMANENT)) == attrs)) {
+        JS_ASSERT((attrs == JSPROP_ENUMERATE) == regs.fp->isEvalFrame());
+        uint32 old;
+        if (attrs == JSPROP_ENUMERATE ||
+            (parent == pobj &&
+             parent->isCall() &&
+             (old = ((Shape *) prop)->attributes(),
+              !(old & (JSPROP_GETTER|JSPROP_SETTER)) &&
+              (old & (JSPROP_ENUMERATE|JSPROP_PERMANENT)) == attrs))) {
             
 
 
