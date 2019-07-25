@@ -442,6 +442,15 @@ const nsHTMLElement gHTMLElements[] = {
                 &gInTable,&gColgroupKids,
   },
   {
+                                 eHTMLTag_datalist,
+                    eHTMLTag_unknown, eHTMLTag_unknown,
+              &gRootTags,&gRootTags,
+     0,0,0,0,
+              kSpecial, (kInlineEntity|kSelf|kFlowEntity), kNone,
+           0,kDefaultPropRange,
+                0,0,
+  },
+  {
                                  eHTMLTag_dd,
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gRootTags,&gRootTags,

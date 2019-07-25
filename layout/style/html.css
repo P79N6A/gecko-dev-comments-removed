@@ -691,7 +691,7 @@ ul:-moz-focusring, var:-moz-focusring {
 }
 
 
-base, basefont, head, meta, script, style, title,
+base, basefont, datalist, head, meta, script, style, title,
 noembed, param {
    display: none;
 }
