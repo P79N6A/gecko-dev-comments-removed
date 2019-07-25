@@ -87,6 +87,7 @@ class MIRGenerator
     
     
     bool abort(const char *message, ...);
+    bool abortFmt(const char *message, va_list ap);
 
     bool errored() const {
         return error_;
