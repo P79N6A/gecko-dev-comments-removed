@@ -67,9 +67,13 @@ function run_test() {
   
   PlacesDBUtils._telemetry();
 
+  waitForAsyncUpdates(continue_test);
+}
+
+function continue_test() {
   
   for (let i = 0; i < 2; i++) {
-    PlacesUtils.history.addVisit(NetUtil.newURI("http://" +  i + ".moz.org/"),
+    PlacesUtils.history.addVisit(NetUtil.newURI("http:
                                  Date.now(), null,
                                  PlacesUtils.history.TRANSITION_TYPED, false, 0);
   }
