@@ -272,10 +272,19 @@ TabStore.prototype = {
       let title = tab.browser.contentDocument.title;
       let url = tab.browser.contentWindow.location.toString();
       let urlHistory = [url];
+
+      
+      
+
+      
+      
+
+      
+      let lastUsedTimestamp = "0";
+
       this._log.debug("Wrapping a tab with title " + title);
-      
-      
-      record.addTab(title, urlHistory);
+      this._log.debug("And timestamp " + lastUsedTimestamp);
+      record.addTab(title, urlHistory, lastUsedTimestamp);
       
     }
   },
@@ -396,6 +405,7 @@ TabTracker.prototype = {
       return;
     }
     
+    dump("Tab listeners registered!\n");
     let container = browser.tabContainer;
     container.addEventListener("TabOpen", this.onTabOpened, false);
     container.addEventListener("TabClose", this.onTabClosed, false);
@@ -431,6 +441,7 @@ TabTracker.prototype = {
   onTabOpened: function TabTracker_onTabOpened(event) {
     
     
+    dump("Tab opened.\n");
     event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
     
     this._score += 50;
@@ -443,6 +454,7 @@ TabTracker.prototype = {
 
   onTabSelected: function TabTracker_onTabSelected(event) {
     
+    dump("Tab selected.\n");
     
     event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
     
