@@ -8,14 +8,53 @@
 #include "VolumeManagerLog.h"
 #include "nsXULAppAPI.h"
 
+#include <vold/ResponseCode.h>
+
 namespace mozilla {
 namespace system {
 
+
+
 Volume::Volume(const nsCSubstring &aName)
-  : mState(STATE_INIT),
+  : mMediaPresent(true),
+    mState(STATE_INIT),
     mName(aName)
 {
   DBG("Volume %s: created", NameStr());
+}
+
+void
+Volume::SetMediaPresent(bool aMediaPresent)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (mMediaPresent != aMediaPresent) {
+    LOG("Volume: %s media %s", NameStr(), aMediaPresent ? "inserted" : "removed");
+    mMediaPresent = aMediaPresent;
+    
+    
+  }
 }
 
 void
@@ -28,6 +67,10 @@ Volume::SetState(Volume::STATE aNewState)
       NameStr(), StateStr(mState),
       StateStr(aNewState), mEventObserverList.Length());
 
+  if (aNewState == STATE_NOMEDIA) {
+    
+    mMediaPresent = false;
+  }
   mState = aNewState;
   mEventObserverList.Broadcast(this);
 }
@@ -88,6 +131,58 @@ Volume::UnregisterObserver(Volume::EventObserver *aObserver)
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   mEventObserverList.RemoveObserver(aObserver);
+}
+
+void
+Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer &aTokenizer)
+{
+  
+  
+  switch (aResponseCode) {
+    case ResponseCode::VolumeListResult: {
+      
+      
+      
+      
+      nsDependentCSubstring mntPoint(aTokenizer.nextToken());
+      SetMountPoint(mntPoint);
+      PRInt32 errCode;
+      nsCString state(aTokenizer.nextToken());
+      SetState((STATE)state.ToInteger(&errCode));
+      break;
+    }
+
+    case ResponseCode::VolumeStateChange: {
+      
+      
+      
+      
+      
+      while (aTokenizer.hasMoreTokens()) {
+        nsCAutoString token(aTokenizer.nextToken());
+        if (token.Equals("to")) {
+          PRInt32 errCode;
+          token = aTokenizer.nextToken();
+          SetState((STATE)token.ToInteger(&errCode));
+          break;
+        }
+      }
+      break;
+    }
+
+    case ResponseCode::VolumeDiskInserted:
+      SetMediaPresent(true);
+      break;
+
+    case ResponseCode::VolumeDiskRemoved: 
+    case ResponseCode::VolumeBadRemoval:
+      SetMediaPresent(false);
+      break;
+
+    default:
+      LOG("Volume: %s unrecognized reponse code (ignored)", NameStr());
+      break;
+  }
 }
 
 } 
