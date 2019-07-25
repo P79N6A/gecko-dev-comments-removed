@@ -2593,8 +2593,8 @@ function importDialog(aParent, aSrc, aArguments) {
 
   
   
-  let menulistContainer = document.getElementById("menulist-container");
-  let parentNode = menulistContainer.parentNode;
+  let contentMenuContainer = document.getElementById("context-container");
+  let parentNode = contentMenuContainer.parentNode;
 
   
   let event = document.createEvent("Events");
@@ -2606,7 +2606,7 @@ function importDialog(aParent, aSrc, aArguments) {
   let back = document.createElement("box");
   back.setAttribute("class", "modal-block");
   dialog = back.appendChild(document.importNode(doc, true));
-  parentNode.insertBefore(back, menulistContainer);
+  parentNode.insertBefore(back, contentMenuContainer);
 
   dialog.arguments = aArguments;
   dialog.parent = aParent;
