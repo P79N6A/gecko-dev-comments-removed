@@ -1,12 +1,12 @@
 pref("startup.homepage_override_url","http://www.mozilla.org/projects/%APP%/%VERSION%/whatsnew/");
 pref("startup.homepage_welcome_url","http://www.mozilla.org/projects/%APP%/%VERSION%/firstrun/");
 
-pref("app.update.interval", 7200); 
+pref("app.update.interval", 3600); 
 
 
 pref("app.update.download.backgroundInterval", 60);
 
-pref("app.update.promptWaitTime", 43200);
+pref("app.update.promptWaitTime", 3600);
 
 
 pref("app.update.url.manual", "http://nightly.mozilla.org/");
