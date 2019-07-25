@@ -489,6 +489,21 @@ function testDefunctAccessible(aAcc, aNodeOrId)
 
 
 
+function ensureImageMapTree(aID)
+{
+  
+  
+  
+  synthesizeMouse(getNode(aID), 10, 10, { type: "mousemove" });
+
+  
+  
+  
+  todo(false, "Need to remove this image map workaround.");
+}
+
+
+
 
 function roleToString(aRole)
 {

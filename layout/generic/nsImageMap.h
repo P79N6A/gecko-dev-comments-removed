@@ -66,6 +66,16 @@ public:
 
   nsIContent* GetArea(nscoord aX, nscoord aY) const;
 
+  
+
+
+  PRUint32 AreaCount() const { return mAreas.Length(); }
+
+  
+
+
+  nsIContent* GetAreaAt(PRUint32 aIndex) const;
+
   void Draw(nsIFrame* aFrame, nsRenderingContext& aRC);
   
   
