@@ -487,21 +487,6 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, b
     nsRect rect = GetRect();
     rect.x = rect.y = 0;
 
-    
-    
-    
-    
-    
-    if (mPopupType == ePopupTypePanel && view) {
-      nsIWidget* widget = view->GetWidget();
-      if (widget) {
-        nsIntSize popupSize = nsIntSize(pc->AppUnitsToDevPixels(rect.width),
-                                        pc->AppUnitsToDevPixels(rect.height));
-        popupSize = widget->ClientToWindowSize(popupSize);
-        rect.width = pc->DevPixelsToAppUnits(popupSize.width);
-        rect.height = pc->DevPixelsToAppUnits(popupSize.height);
-      }
-    }
     viewManager->ResizeView(view, rect);
 
     viewManager->SetViewVisibility(view, nsViewVisibility_kShow);
@@ -1319,8 +1304,6 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
 
   nsIView* view = GetView();
   NS_ASSERTION(view, "popup with no view");
-  presContext->GetPresShell()->GetViewManager()->
-    MoveViewTo(view, viewPoint.x, viewPoint.y);
 
   
   
@@ -1332,6 +1315,9 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
     viewPoint.x += presContext->DevPixelsToAppUnits(mLastClientOffset.x);
     viewPoint.y += presContext->DevPixelsToAppUnits(mLastClientOffset.y);
   }
+
+  presContext->GetPresShell()->GetViewManager()->
+    MoveViewTo(view, viewPoint.x, viewPoint.y);
 
   
   nsBoxFrame::SetPosition(viewPoint - GetParent()->GetOffsetTo(rootFrame));
