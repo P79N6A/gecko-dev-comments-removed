@@ -6451,6 +6451,9 @@ nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   
   PRBool dispatchPixelScrollEvent = PR_FALSE;
   PRInt32 pixelsPerUnit = 0;
+  
+  PRInt32 computedScrollAmount = isPageScroll ? 1 :
+    (isVertical ? sMouseWheelScrollLines : sMouseWheelScrollChars);
 
   if (sEnablePixelScrolling) {
     nsMouseScrollEvent testEvent(PR_TRUE, NS_MOUSE_SCROLL, this);
@@ -6462,7 +6465,12 @@ nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
     testEvent.isControl   = scrollEvent.isControl;
     testEvent.isMeta      = scrollEvent.isMeta;
     testEvent.isAlt       = scrollEvent.isAlt;
-    testEvent.delta = sLastMouseWheelDeltaIsPositive ? -1 : 1;
+
+    testEvent.delta       = computedScrollAmount;
+    if ((isVertical && sLastMouseWheelDeltaIsPositive) ||
+        (!isVertical && !sLastMouseWheelDeltaIsPositive)) {
+      testEvent.delta *= -1;
+    }
     nsQueryContentEvent queryEvent(PR_TRUE, NS_QUERY_SCROLL_TARGET_INFO, this);
     InitEvent(queryEvent);
     queryEvent.InitForQueryScrollTargetInfo(&testEvent);
@@ -6479,7 +6487,14 @@ nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
       } else {
         pixelsPerUnit = queryEvent.mReply.mLineHeight;
       }
-      dispatchPixelScrollEvent = (pixelsPerUnit > 0);
+      
+      
+      computedScrollAmount = queryEvent.mReply.mComputedScrollAmount;
+      if (testEvent.delta < 0) {
+        computedScrollAmount *= -1;
+      }
+      dispatchPixelScrollEvent =
+        (pixelsPerUnit > 0) && (computedScrollAmount > 0);
     }
   }
 
@@ -6490,6 +6505,8 @@ nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
 
   PRInt32 nativeDeltaForScroll = nativeDelta + sRemainingDeltaForScroll;
 
+  
+  
   if (isPageScroll) {
     scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
     if (isVertical) {
@@ -6542,17 +6559,8 @@ nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
 
   PRInt32 nativeDeltaForPixel = nativeDelta + sRemainingDeltaForPixel;
 
-  double deltaPerPixel;
-  if (isPageScroll) {
-    deltaPerPixel = (double)WHEEL_DELTA / pixelsPerUnit;
-  } else {
-    if (isVertical) {
-      deltaPerPixel = (double)WHEEL_DELTA / sMouseWheelScrollLines;
-    } else {
-      deltaPerPixel = (double)WHEEL_DELTA / sMouseWheelScrollChars;
-    }
-    deltaPerPixel /= pixelsPerUnit;
-  }
+  double deltaPerPixel =
+    (double)WHEEL_DELTA / computedScrollAmount / pixelsPerUnit;
   pixelEvent.delta =
     RoundDelta((double)nativeDeltaForPixel * orienter / deltaPerPixel);
   PRInt32 recomputedNativeDelta =

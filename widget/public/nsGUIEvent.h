@@ -1346,6 +1346,13 @@ public:
     PRInt32 mLineHeight;
     PRInt32 mPageWidth;
     PRInt32 mPageHeight;
+    
+    
+    
+    
+    
+    
+    PRInt32 mComputedScrollAmount;
   } mReply;
 
   enum {

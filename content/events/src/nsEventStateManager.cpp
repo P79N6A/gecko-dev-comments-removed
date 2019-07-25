@@ -390,7 +390,8 @@ public:
   static PRUint32 GetTimeoutTime();
   static PRInt32 AccelerateWheelDelta(PRInt32 aScrollLines,
                    PRBool aIsHorizontal, PRBool aAllowScrollSpeedOverride,
-                   nsIScrollableFrame::ScrollUnit *aScrollQuantity);
+                   nsIScrollableFrame::ScrollUnit *aScrollQuantity,
+                   PRBool aLimitToMaxOnePageScroll = PR_TRUE);
   static PRBool IsAccelerationEnabled();
 
   enum {
@@ -662,7 +663,8 @@ PRInt32
 nsMouseWheelTransaction::AccelerateWheelDelta(PRInt32 aScrollLines,
                            PRBool aIsHorizontal,
                            PRBool aAllowScrollSpeedOverride,
-                           nsIScrollableFrame::ScrollUnit *aScrollQuantity)
+                           nsIScrollableFrame::ScrollUnit *aScrollQuantity,
+                           PRBool aLimitToMaxOnePageScroll)
 {
   if (aAllowScrollSpeedOverride) {
     aScrollLines = OverrideSystemScrollSpeed(aScrollLines, aIsHorizontal);
@@ -679,7 +681,8 @@ nsMouseWheelTransaction::AccelerateWheelDelta(PRInt32 aScrollLines,
 
   
   
-  return LimitToOnePageScroll(aScrollLines, aIsHorizontal, aScrollQuantity);
+  return !aLimitToMaxOnePageScroll ? aScrollLines :
+    LimitToOnePageScroll(aScrollLines, aIsHorizontal, aScrollQuantity);
 }
 
 PRInt32
@@ -2703,6 +2706,27 @@ nsEventStateManager::DoScrollText(nsIFrame* aTargetFrame,
   }
 
   if (!passToParent && frameToScroll) {
+    if (aScrollQuantity == nsIScrollableFrame::LINES) {
+      
+      
+      
+      numLines =
+        nsMouseWheelTransaction::AccelerateWheelDelta(numLines, isHorizontal,
+                                                      aAllowScrollSpeedOverride,
+                                                      &aScrollQuantity,
+                                                      !aQueryEvent);
+    }
+#ifdef DEBUG
+    else {
+      NS_ASSERTION(!aAllowScrollSpeedOverride,
+        "aAllowScrollSpeedOverride is true but the quantity isn't by-line scrolling.");
+    }
+#endif
+
+    if (aScrollQuantity == nsIScrollableFrame::PAGES) {
+      numLines = (numLines > 0) ? 1 : -1;
+    }
+
     if (aQueryEvent) {
       
       
@@ -2718,34 +2742,23 @@ nsEventStateManager::DoScrollText(nsIFrame* aTargetFrame,
         frameToScroll->GetPageScrollAmount().height / appUnitsPerDevPixel;
       aQueryEvent->mReply.mPageWidth =
         frameToScroll->GetPageScrollAmount().width / appUnitsPerDevPixel;
+
+      
+      
+      aQueryEvent->mReply.mComputedScrollAmount = numLines;
+
       aQueryEvent->mSucceeded = PR_TRUE;
       return NS_OK;
     }
 
-    if (aScrollQuantity == nsIScrollableFrame::LINES) {
-      numLines =
-        nsMouseWheelTransaction::AccelerateWheelDelta(numLines, isHorizontal,
-                                                      aAllowScrollSpeedOverride,
-                                                      &aScrollQuantity);
-    }
-#ifdef DEBUG
-    else {
-      NS_ASSERTION(!aAllowScrollSpeedOverride,
-        "aAllowScrollSpeedOverride is true but the quantity isn't by-line scrolling.");
-    }
-#endif
-
     PRInt32 scrollX = 0;
     PRInt32 scrollY = numLines;
 
-    if (aScrollQuantity == nsIScrollableFrame::PAGES)
-      scrollY = (scrollY > 0) ? 1 : -1;
-      
     if (isHorizontal) {
       scrollX = scrollY;
       scrollY = 0;
     }
-    
+
     nsIScrollableFrame::ScrollMode mode;
     if (aMouseEvent->scrollFlags & nsMouseScrollEvent::kNoDefer) {
       mode = nsIScrollableFrame::INSTANT;
@@ -2756,6 +2769,8 @@ nsEventStateManager::DoScrollText(nsIFrame* aTargetFrame,
     } else {
       mode = nsIScrollableFrame::NORMAL;
     }
+
+    
 
     nsIntPoint overflow;
     frameToScroll->ScrollBy(nsIntPoint(scrollX, scrollY), aScrollQuantity,
