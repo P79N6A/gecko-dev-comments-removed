@@ -129,6 +129,7 @@ MoveResolver::resolve()
     
     
     
+    
     while (!pending_.empty()) {
         PendingMove *pm = pending_.popBack();
 
@@ -146,11 +147,9 @@ MoveResolver::resolve()
                     
                     pm->setInCycle();
                     blocking->setInCycle();
-                    if (!orderedMoves_.append(*blocking))
-                        return false;
                     hasCycles_ = true;
                     pending_.remove(blocking);
-                    movePool_.free(blocking);
+                    stack.pushBack(blocking);
                 } else {
                     
                     
