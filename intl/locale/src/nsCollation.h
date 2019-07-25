@@ -11,11 +11,12 @@
 #include "nsICollation.h"
 #include "nsICharsetConverterManager.h"
 #include "nsCOMPtr.h"
+#include "mozilla/Attributes.h"
 
 
 
 
-class nsCollationFactory: public nsICollationFactory {
+class nsCollationFactory MOZ_FINAL : public nsICollationFactory {
 
 public: 
   NS_DECL_ISUPPORTS 
