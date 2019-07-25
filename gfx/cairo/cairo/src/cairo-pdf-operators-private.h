@@ -82,6 +82,7 @@ typedef struct _cairo_pdf_operators {
     double cur_y;
     int hex_width;
     int num_glyphs;
+    double glyph_buf_x_pos;
     cairo_pdf_glyph_t glyphs[PDF_GLYPH_BUFFER_SIZE];
 
     
@@ -132,16 +133,16 @@ _cairo_pdf_operators_clip (cairo_pdf_operators_t 	*pdf_operators,
 			   cairo_fill_rule_t		 fill_rule);
 
 cairo_private cairo_int_status_t
-_cairo_pdf_operators_emit_stroke_style (cairo_pdf_operators_t	*pdf_operators,
-					cairo_stroke_style_t	*style,
-					double			 scale);
+_cairo_pdf_operators_emit_stroke_style (cairo_pdf_operators_t		*pdf_operators,
+					const cairo_stroke_style_t	*style,
+					double				 scale);
 
 cairo_private cairo_int_status_t
-_cairo_pdf_operators_stroke (cairo_pdf_operators_t 	*pdf_operators,
+_cairo_pdf_operators_stroke (cairo_pdf_operators_t	*pdf_operators,
 			     cairo_path_fixed_t		*path,
-			     cairo_stroke_style_t	*style,
-			     cairo_matrix_t		*ctm,
-			     cairo_matrix_t		*ctm_inverse);
+			     const cairo_stroke_style_t	*style,
+			     const cairo_matrix_t	*ctm,
+			     const cairo_matrix_t	*ctm_inverse);
 
 cairo_private cairo_int_status_t
 _cairo_pdf_operators_fill (cairo_pdf_operators_t 	*pdf_operators,
@@ -149,12 +150,12 @@ _cairo_pdf_operators_fill (cairo_pdf_operators_t 	*pdf_operators,
 			   cairo_fill_rule_t	 	fill_rule);
 
 cairo_private cairo_int_status_t
-_cairo_pdf_operators_fill_stroke (cairo_pdf_operators_t 	*pdf_operators,
+_cairo_pdf_operators_fill_stroke (cairo_pdf_operators_t		*pdf_operators,
 				  cairo_path_fixed_t		*path,
-				  cairo_fill_rule_t	 	 fill_rule,
-				  cairo_stroke_style_t	        *style,
-				  cairo_matrix_t		*ctm,
-				  cairo_matrix_t		*ctm_inverse);
+				  cairo_fill_rule_t		 fill_rule,
+				  const cairo_stroke_style_t	*style,
+				  const cairo_matrix_t		*ctm,
+				  const cairo_matrix_t		*ctm_inverse);
 
 cairo_private cairo_int_status_t
 _cairo_pdf_operators_show_text_glyphs (cairo_pdf_operators_t	  *pdf_operators,

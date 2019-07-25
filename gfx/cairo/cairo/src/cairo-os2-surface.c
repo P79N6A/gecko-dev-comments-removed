@@ -39,6 +39,7 @@
 #include "cairoint.h"
 
 #include "cairo-os2-private.h"
+#include "cairo-error-private.h"
 
 #if CAIRO_HAS_FC_FONT
 #include <fontconfig/fontconfig.h>
@@ -782,7 +783,7 @@ cairo_os2_surface_create (HPS hps_client_window,
                            0,
                            FALSE))
     {
-        status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
+        status = _cairo_error (CAIRO_STATUS_DEVICE_ERROR);
         goto error_exit;
     }
 
@@ -791,7 +792,7 @@ cairo_os2_surface_create (HPS hps_client_window,
                            0,
                            FALSE))
     {
-        status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
+        status = _cairo_error (CAIRO_STATUS_DEVICE_ERROR);
         goto error_exit;
     }
 
@@ -829,6 +830,7 @@ cairo_os2_surface_create (HPS hps_client_window,
     
     _cairo_surface_init (&local_os2_surface->base,
                          &cairo_os2_surface_backend,
+                         NULL, 
                          _cairo_content_from_format (CAIRO_FORMAT_ARGB32));
 
     

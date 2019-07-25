@@ -41,6 +41,7 @@
 #include "cairo.h"
 
 #include "cairo-types-private.h"
+#include "cairo-list-private.h"
 #include "cairo-reference-count-private.h"
 #include "cairo-clip-private.h"
 
@@ -48,6 +49,7 @@ typedef void (*cairo_surface_func_t) (cairo_surface_t *);
 
 struct _cairo_surface {
     const cairo_surface_backend_t *backend;
+    cairo_device_t *device;
 
     
 
@@ -63,6 +65,7 @@ struct _cairo_surface {
     unsigned finished : 1;
     unsigned is_clear : 1;
     unsigned has_font_options : 1;
+    unsigned owns_device : 1;
     unsigned permit_subpixel_antialiasing : 1;
 
     cairo_user_data_array_t user_data;
@@ -70,6 +73,7 @@ struct _cairo_surface {
 
     cairo_matrix_t device_transform;
     cairo_matrix_t device_transform_inverse;
+    cairo_list_t device_transform_observers;
 
     
     double x_resolution;
@@ -86,7 +90,9 @@ struct _cairo_surface {
     cairo_surface_t *snapshot_of;
     cairo_surface_func_t snapshot_detach;
     
-    cairo_array_t snapshots;
+    cairo_list_t snapshots;
+    
+    cairo_list_t snapshot;
 
     
 

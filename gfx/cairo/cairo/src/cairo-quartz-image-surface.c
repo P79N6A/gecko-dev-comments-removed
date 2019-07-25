@@ -39,6 +39,8 @@
 #include "cairo-quartz-image.h"
 #include "cairo-quartz-private.h"
 
+#include "cairo-error-private.h"
+
 #define SURFACE_ERROR_NO_MEMORY (_cairo_surface_create_in_error(_cairo_error(CAIRO_STATUS_NO_MEMORY)))
 #define SURFACE_ERROR_TYPE_MISMATCH (_cairo_surface_create_in_error(_cairo_error(CAIRO_STATUS_SURFACE_TYPE_MISMATCH)))
 #define SURFACE_ERROR_INVALID_SIZE (_cairo_surface_create_in_error(_cairo_error(CAIRO_STATUS_INVALID_SIZE)))
@@ -260,6 +262,7 @@ cairo_quartz_image_surface_create (cairo_surface_t *surface)
 
     _cairo_surface_init (&qisurf->base,
 			 &cairo_quartz_image_surface_backend,
+			 NULL, 
 			 _cairo_content_from_format (format));
 
     qisurf->extents.x = qisurf->extents.y = 0;

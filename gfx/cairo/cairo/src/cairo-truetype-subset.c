@@ -42,6 +42,7 @@
 
 #define _BSD_SOURCE
 #include "cairoint.h"
+#include "cairo-error-private.h"
 
 #if CAIRO_HAS_FONT_SUBSET
 

@@ -49,6 +49,9 @@
 
 #define WIN32_FONT_LOGICAL_SCALE 1
 
+
+CAIRO_BEGIN_DECLS
+
 typedef struct _cairo_win32_surface {
     cairo_surface_t base;
 
@@ -235,7 +238,6 @@ inline BOOL ModifyWorldTransform(HDC hdc, CONST XFORM * lpxf, DWORD mode) { retu
 #endif
 
 #ifdef CAIRO_HAS_DWRITE_FONT
-CAIRO_BEGIN_DECLS
 
 cairo_int_status_t
 _cairo_dwrite_show_glyphs_on_surface(void			*surface,
@@ -250,6 +252,6 @@ cairo_int_status_t
 _cairo_dwrite_scaled_font_create_win32_scaled_font(cairo_scaled_font_t *scaled_font,
                                                    cairo_scaled_font_t **new_font);
 
-CAIRO_END_DECLS
 #endif 
+CAIRO_END_DECLS
 #endif 
