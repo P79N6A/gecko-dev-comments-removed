@@ -4079,7 +4079,7 @@ var tests = {
 		['falsé', 'foo[bar]baz'],
 	],
 	
-	quasit: ['!foo[bar]baz'],
+	quasit: ['foo[bar]baz'],
 	multitest: [
 	
 		
