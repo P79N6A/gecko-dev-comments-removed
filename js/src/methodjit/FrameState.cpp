@@ -52,9 +52,7 @@ FrameState::FrameState(JSContext *cx, mjit::Compiler &cc,
                        Assembler &masm, StubCompiler &stubcc)
   : cx(cx),
     masm(masm), cc(cc), stubcc(stubcc),
-    a(NULL), script(NULL), entries(NULL),
-    callee_(NULL), this_(NULL), args(NULL), locals(NULL),
-    spBase(NULL), sp(NULL), PC(NULL),
+    a(NULL), entries(NULL), nentries(0), freeRegs(Registers::AvailAnyRegs),
     loop(NULL), inTryBlock(false)
 {
 }
@@ -64,179 +62,95 @@ FrameState::~FrameState()
     while (a) {
         ActiveFrame *parent = a->parent;
         a->script->analysis(cx)->clearAllocations();
-#if defined JS_NUNBOX32
-        a->reifier.~ImmutableSync();
-#endif
         cx->free_(a);
         a = parent;
     }
+    cx->free_(entries);
 }
 
 void
-FrameState::getUnsyncedEntries(uint32 *pdepth, Vector<UnsyncedEntry> *unsyncedEntries)
+FrameState::pruneDeadEntries()
 {
-    *pdepth = totalDepth() + VALUES_PER_STACK_FRAME;
-
-    
-    for (uint32 i = 0; i < a->tracker.nentries; i++) {
-        FrameEntry *fe = a->tracker[i];
-        if (fe >= sp)
-            continue;
-        if (fe->type.synced() && fe->data.synced())
-            continue;
-        if (fe->inlined)
-            continue;
-
-        UnsyncedEntry entry;
-        PodZero(&entry);
-
-        entry.offset = frameOffset(fe);
-
-        if (fe->isCopy()) {
-            FrameEntry *nfe = fe->copyOf();
-            entry.copy = true;
-            entry.u.copiedOffset = frameOffset(nfe);
-        } else if (fe->isConstant()) {
-            entry.constant = true;
-            entry.u.value = fe->getValue();
-        } else if (fe->isTypeKnown() && !fe->isType(JSVAL_TYPE_DOUBLE) && !fe->type.synced()) {
-            entry.knownType = true;
-            entry.u.type = fe->getKnownType();
-        } else {
-            
-
-
-
-
-            continue;
+    unsigned shift = 0;
+    for (unsigned i = 0; i < tracker.nentries; i++) {
+        FrameEntry *fe = tracker[i];
+        if (deadEntry(fe)) {
+            fe->untrack();
+            shift++;
+        } else if (shift) {
+            fe->index_ -= shift;
+            tracker.entries[fe->index_] = fe;
         }
-
-        unsyncedEntries->append(entry);
     }
+    tracker.nentries -= shift;
 }
 
 bool
 FrameState::pushActiveFrame(JSScript *script, uint32 argc)
 {
-    uint32 depth = a ? totalDepth() : 0;
-    uint32 nentries = feLimit(script);
+    if (!a) {
+        this->nentries = analyze::TotalSlots(script) + (script->nslots - script->nfixed) +
+            StackSpace::STACK_EXTRA - VALUES_PER_STACK_FRAME;
+        size_t totalBytes = sizeof(FrameEntry) * nentries +       
+                            sizeof(FrameEntry *) * nentries +     
+                            sizeof(StackEntryExtra) * nentries;   
+        uint8 *cursor = (uint8 *)cx->calloc_(totalBytes);
+        if (!cursor)
+            return false;
 
-    size_t totalBytes = sizeof(ActiveFrame) +
-                        sizeof(FrameEntry) * nentries +              
-                        sizeof(FrameEntry *) * nentries +            
-                        sizeof(StackEntryExtra) * script->nslots;    
+        this->entries = (FrameEntry *) cursor;
+        cursor += sizeof(FrameEntry) * nentries;
 
-    uint8 *cursor = (uint8 *)cx->calloc_(totalBytes);
-    if (!cursor)
-        return false;
+        this->tracker.entries = (FrameEntry **)cursor;
+        cursor += sizeof(FrameEntry *) * nentries;
 
-    ActiveFrame *newa = (ActiveFrame *) cursor;
-    cursor += sizeof(ActiveFrame);
+        this->extraArray = (StackEntryExtra *)cursor;
+        cursor += sizeof(StackEntryExtra) * nentries;
+
+        JS_ASSERT(reinterpret_cast<uint8 *>(this->entries) + totalBytes == cursor);
 
 #if defined JS_NUNBOX32
-    if (!newa->reifier.init(cx, *this, nentries)) {
-        cx->free_(newa);
-        return false;
-    }
+        if (!reifier.init(cx, *this, nentries)) {
+            cx->free_(this->entries);
+            return false;
+        }
 #endif
 
+        this->temporaries = this->temporariesTop = this->entries + nentries - TEMPORARY_LIMIT;
+    }
+
+    
+    JS_ASSERT_IF(a, argc == script->fun->nargs);
+
+    ActiveFrame *newa = cx->new_<ActiveFrame>();
     newa->parent = a;
-    newa->parentPC = PC;
-    newa->parentSP = sp;
-    newa->parentArgc = argc;
+    newa->depth = a ? (totalDepth() + VALUES_PER_STACK_FRAME) : 0;
+
     newa->script = script;
-    newa->freeRegs = Registers(Registers::AvailAnyRegs);
+    newa->PC = script->code;
+    newa->analysis = script->analysis(cx);
 
-    newa->entries = (FrameEntry *)cursor;
-    cursor += sizeof(FrameEntry) * nentries;
+    
 
-    newa->callee_ = newa->entries;
-    newa->this_ = newa->entries + 1;
-    newa->args = newa->entries + 2;
-    newa->locals = newa->args + (script->fun ? script->fun->nargs : 0);
 
-    newa->tracker.entries = (FrameEntry **)cursor;
-    cursor += sizeof(FrameEntry *) * nentries;
 
-    newa->extraArray = (StackEntryExtra *)cursor;
-    cursor += sizeof(StackEntryExtra) * script->nslots;
-
-    JS_ASSERT(reinterpret_cast<uint8 *>(newa) + totalBytes == cursor);
+    FrameEntry *entriesStart = a ? a->sp - (argc + 2) : entries;
+    newa->callee_ = entriesStart + analyze::CalleeSlot();
+    newa->this_   = entriesStart + analyze::ThisSlot();
+    newa->args    = entriesStart + analyze::ArgSlot(0);
+    newa->locals  = entriesStart + analyze::LocalSlot(script, 0);
+    newa->spBase  = entriesStart + analyze::TotalSlots(script);
+    newa->sp      = newa->spBase;
 
     this->a = newa;
-    updateActiveFrame();
-
-    if (a->parent && script->analysis(cx)->inlineable(argc)) {
-        a->depth = depth + VALUES_PER_STACK_FRAME;
-
-        
-        a->parentRegs = 0;
-        Registers regs(Registers::AvailAnyRegs);
-        while (!regs.empty()) {
-            AnyRegisterID reg = regs.takeAnyReg();
-            if (a->parent->parentRegs.hasReg(reg) || !a->parent->freeRegs.hasReg(reg))
-                a->parentRegs.putReg(reg);
-        }
-
-        JS_ASSERT(argc == script->fun->nargs);
-
-        syncInlinedEntry(getCallee(), a->parentSP - (argc + 2));
-        syncInlinedEntry(getThis(), a->parentSP - (argc + 1));
-        for (unsigned i = 0; i < argc; i++)
-            syncInlinedEntry(getArg(i), a->parentSP - (argc - i));
-    }
 
     return true;
 }
 
 void
-FrameState::syncInlinedEntry(FrameEntry *fe, const FrameEntry *parent)
-{
-    
-
-
-
-
-    
-
-
-
-
-
-
-
-    JS_ASSERT(fe->type.synced() && fe->data.synced());
-    parent = parent->backing();
-    if (!parent->type.synced())
-        fe->type.unsync();
-    if (!parent->data.synced())
-        fe->data.unsync();
-
-    fe->inlined = true;
-
-    if (parent->isConstant()) {
-        fe->setConstant(Jsvalify(parent->getValue()));
-        return;
-    }
-
-    if (parent->isCopy())
-        parent = parent->copyOf();
-
-    if (parent->isTypeKnown())
-        fe->setType(parent->getKnownType());
-
-    if (parent->type.inRegister())
-        associateReg(fe, RematInfo::TYPE, parent->type.reg());
-    if (parent->data.inRegister())
-        associateReg(fe, RematInfo::DATA, parent->data.reg());
-    if (parent->data.inFPRegister())
-        associateReg(fe, RematInfo::DATA, parent->data.fpreg());
-}
-
-void
 FrameState::associateReg(FrameEntry *fe, RematInfo::RematType type, AnyRegisterID reg)
 {
-    a->freeRegs.takeReg(reg);
+    freeRegs.takeReg(reg);
 
     if (type == RematInfo::TYPE)
         fe->type.setRegister(reg.reg());
@@ -250,160 +164,34 @@ FrameState::associateReg(FrameEntry *fe, RematInfo::RematType type, AnyRegisterI
 void
 FrameState::popActiveFrame()
 {
-    jsbytecode *parentPC = a->parentPC;
-    FrameEntry *parentSP = a->parentSP;
-    ActiveFrame *parent = a->parent;
+    a->analysis->clearAllocations();
 
-    analysis->clearAllocations();
-
-#if defined JS_NUNBOX32
-    a->reifier.~ImmutableSync();
-#endif
-    cx->free_(a);
-
-    a = parent;
-    updateActiveFrame();
-    PC = parentPC;
-    sp = parentSP;
-}
-
-void
-FrameState::updateActiveFrame()
-{
-    script = a->script;
-    analysis = script->analysis(cx);
-    entries = a->entries;
-    callee_ = a->callee_;
-    this_ = a->this_;
-    args = a->args;
-    locals = a->locals;
-    spBase = locals + script->nfixed;
-    sp = spBase;
-    temporaries = locals + script->nslots;
-    temporariesTop = temporaries;
-}
-
-void
-FrameState::discardLocalRegisters()
-{
-    
-    a->freeRegs = Registers::AvailAnyRegs;
-}
-
-void
-FrameState::evictInlineModifiedRegisters(Registers regs)
-{
-    JS_ASSERT(cx->typeInferenceEnabled());
-    a->parentRegs.freeMask &= ~regs.freeMask;
-
-    while (!regs.empty()) {
-        AnyRegisterID reg = regs.takeAnyReg();
-        if (a->freeRegs.hasReg(reg))
-            continue;
-
-        FrameEntry *fe = regstate(reg).fe();
-        JS_ASSERT(fe);
-        if (regstate(reg).type() == RematInfo::TYPE) {
-            if (!fe->type.synced())
-                fe->type.sync();
-            fe->type.setMemory();
-        } else {
-            if (!fe->data.synced())
-                fe->data.sync();
-            if (fe->isType(JSVAL_TYPE_DOUBLE) && !fe->type.synced())
-                fe->type.sync();
-            fe->data.setMemory();
-        }
-
-        regstate(reg).forget();
-        a->freeRegs.putReg(reg);
-    }
-}
-
-void
-FrameState::tryCopyRegister(FrameEntry *fe, FrameEntry *callStart)
-{
-    JS_ASSERT(cx->typeInferenceEnabled());
-    JS_ASSERT(!fe->isCopied() || !isEntryCopied(fe));
-
-    if (!fe->isCopy())
-        return;
-
-    
-
-
-
-
-
-    FrameEntry *uncopyfe = NULL;
-    for (FrameEntry *nfe = callStart; !uncopyfe && nfe < fe; nfe++) {
-        if (!nfe->isTracked())
-            continue;
-        if (nfe->backing() == fe->copyOf())
-            uncopyfe = nfe;
-    }
-
-    if (uncopyfe) {
-        JSValueType type = fe->isTypeKnown() ? fe->getKnownType() : JSVAL_TYPE_UNKNOWN;
-        if (type == JSVAL_TYPE_UNKNOWN)
-            syncType(fe);
-        fe->resetUnsynced();
-        if (type == JSVAL_TYPE_UNKNOWN) {
-            fe->type.sync();
-            fe->type.setMemory();
-        } else {
-            fe->setType(type);
-        }
-        if (type == JSVAL_TYPE_DOUBLE) {
-            FPRegisterID fpreg = allocFPReg();
-            masm.moveDouble(tempFPRegForData(uncopyfe), fpreg);
-            fe->data.setFPRegister(fpreg);
-            regstate(fpreg).associate(fe, RematInfo::DATA);
-        } else {
-            RegisterID reg = allocReg();
-            masm.move(tempRegForData(uncopyfe), reg);
-            fe->data.setRegister(reg);
-            regstate(reg).associate(fe, RematInfo::DATA);
-        }
-    } else {
+    if (a->parent) {
         
-        fe = fe->copyOf();
-        if (fe->isType(JSVAL_TYPE_DOUBLE))
-            tempFPRegForData(fe);
-        else
-            tempRegForData(fe);
-    }
-}
-
-Registers
-FrameState::getTemporaryCallRegisters(FrameEntry *callStart) const
-{
-    JS_ASSERT(cx->typeInferenceEnabled());
-
-    
-
-
-
-    Registers regs(Registers::AvailAnyRegs & ~a->freeRegs.freeMask);
-    Registers result = 0;
-    while (!regs.empty()) {
-        AnyRegisterID reg = regs.takeAnyReg();
-        FrameEntry *fe = regstate(reg).usedBy();
-        JS_ASSERT(fe);
-
-        if (fe >= callStart)
-            result.putReg(reg);
+        Registers regs(Registers::AvailAnyRegs);
+        while (!regs.empty()) {
+            AnyRegisterID reg = regs.takeAnyReg();
+            if (!freeRegs.hasReg(reg)) {
+                FrameEntry *fe = regstate(reg).usedBy();
+                if (fe >= a->locals && !isTemporary(fe)) {
+                    syncAndForgetFe(fe);
+                    fe->clear();
+                }
+            }
+        }
     }
 
-    return result;
+    ActiveFrame *parent = a->parent;
+    cx->delete_(a);
+    a = parent;
 }
 
 void
 FrameState::takeReg(AnyRegisterID reg)
 {
     modifyReg(reg);
-    if (a->freeRegs.hasReg(reg)) {
-        a->freeRegs.takeReg(reg);
+    if (freeRegs.hasReg(reg)) {
+        freeRegs.takeReg(reg);
         JS_ASSERT(!regstate(reg).usedBy());
     } else {
         JS_ASSERT(regstate(reg).fe());
@@ -416,24 +204,32 @@ FrameState::takeReg(AnyRegisterID reg)
 const char *
 FrameState::entryName(const FrameEntry *fe) const
 {
-    if (fe == this_)
-        return "'this'";
-    if (fe == callee_)
-        return "callee";
-
     static char bufs[4][50];
     static unsigned which = 0;
     which = (which + 1) & 3;
     char *buf = bufs[which];
 
-    if (isArg(fe))
-        JS_snprintf(buf, 50, "arg%d", fe - args);
-    else if (isLocal(fe))
-        JS_snprintf(buf, 50, "local%d", fe - locals);
-    else if (isTemporary(fe))
+    if (isTemporary(fe)) {
         JS_snprintf(buf, 50, "temp%d", fe - temporaries);
+        return buf;
+    }
+
+    if (fe < a->callee_)
+        return "parent";
+
+    JS_ASSERT(fe >= a->callee_ && fe < a->sp);
+
+    if (fe == a->callee_)
+        return "callee";
+    if (fe == a->this_)
+        return "'this'";
+
+    if (isArg(fe))
+        JS_snprintf(buf, 50, "arg%d", fe - a->args);
+    else if (isLocal(fe))
+        JS_snprintf(buf, 50, "local%d", fe - a->locals);
     else
-        JS_snprintf(buf, 50, "slot%d", fe - spBase);
+        JS_snprintf(buf, 50, "slot%d", fe - a->spBase);
     return buf;
 }
 #endif
@@ -461,10 +257,10 @@ inline Lifetime *
 FrameState::variableLive(FrameEntry *fe, jsbytecode *pc) const
 {
     JS_ASSERT(cx->typeInferenceEnabled());
-    JS_ASSERT(fe < spBase && fe != callee_);
+    JS_ASSERT(fe > a->callee_ && fe < a->spBase);
 
-    uint32 offset = pc - script->code;
-    return analysis->liveness(indexOfFe(fe)).live(offset);
+    uint32 offset = pc - a->script->code;
+    return a->analysis->liveness(entrySlot(fe)).live(offset);
 }
 
 bool
@@ -476,8 +272,8 @@ FrameState::isEntryCopied(FrameEntry *fe) const
 
     JS_ASSERT(fe->isCopied());
 
-    for (uint32 i = fe->trackerIndex() + 1; i < a->tracker.nentries; i++) {
-        FrameEntry *nfe = a->tracker[i];
+    for (uint32 i = fe->trackerIndex() + 1; i < tracker.nentries; i++) {
+        FrameEntry *nfe = tracker[i];
         if (!deadEntry(nfe) && nfe->isCopy() && nfe->copyOf() == fe)
             return true;
     }
@@ -517,13 +313,12 @@ FrameState::bestEvictReg(uint32 mask, bool includePinned) const
 
 
 
-        if (fe == callee_) {
-            JS_ASSERT(fe->inlined || (fe->data.synced() && fe->type.synced()));
+        if (fe == a->callee_) {
             JaegerSpew(JSpew_Regalloc, "result: %s is callee\n", reg.name());
             return reg;
         }
 
-        if (fe >= spBase && !isTemporary(fe)) {
+        if (fe >= a->spBase && !isTemporary(fe)) {
             if (!fallback.isSet()) {
                 fallback = reg;
                 fallbackOffset = 0;
@@ -546,28 +341,24 @@ FrameState::bestEvictReg(uint32 mask, bool includePinned) const
             continue;
         }
 
-        if (isTemporary(fe)) {
+        if (isTemporary(fe) || fe < a->callee_) {
             
 
 
 
-            JS_ASSERT(loop);
-            if (!fallback.isSet() || loop->backedgeOffset() > fallbackOffset) {
+
+
+            uint32 offset = a->parent ? a->script->length : loop->backedgeOffset();
+            if (!fallback.isSet() || offset > fallbackOffset) {
                 fallback = reg;
-                fallbackOffset = loop->backedgeOffset();
+                fallbackOffset = offset;
             }
             JaegerSpew(JSpew_Regalloc, "    %s is a loop temporary\n", reg.name());
             continue;
         }
 
         
-
-
-
-
-
-
-        Lifetime *lifetime = variableLive(fe, PC);
+        Lifetime *lifetime = variableLive(fe, a->PC);
         if (!lifetime) {
             
 
@@ -661,18 +452,58 @@ FrameState::evictSomeReg(uint32 mask)
 void
 FrameState::resetInternalState()
 {
-    for (uint32 i = 0; i < a->tracker.nentries; i++)
-        a->tracker[i]->untrack();
+    for (uint32 i = 0; i < tracker.nentries; i++)
+        tracker[i]->untrack();
 
-    a->tracker.reset();
-    a->freeRegs = Registers(Registers::AvailAnyRegs);
+    tracker.reset();
+    freeRegs = Registers(Registers::AvailAnyRegs);
 }
 
 void
 FrameState::discardFrame()
 {
     resetInternalState();
-    PodArrayZero(a->regstate_);
+    PodArrayZero(regstate_);
+}
+
+FrameEntry *
+FrameState::snapshotState()
+{
+    
+    FrameEntry *snapshot = cx->array_new<FrameEntry>(nentries);
+    if (!snapshot)
+        return NULL;
+    PodCopy(snapshot, entries, nentries);
+    return snapshot;
+}
+
+void
+FrameState::restoreFromSnapshot(FrameEntry *snapshot)
+{
+    discardFrame();
+    PodCopy(entries, snapshot, nentries);
+
+    for (unsigned i = 0; i < nentries; i++) {
+        FrameEntry *fe = entries + i;
+        if (!fe->isTracked())
+            continue;
+        tracker.entries[fe->index_] = fe;
+        tracker.nentries = Max(tracker.nentries, fe->index_ + 1);
+        if (fe->isCopy())
+            continue;
+        if (fe->type.inRegister()) {
+            freeRegs.takeReg(fe->type.reg());
+            regstate(fe->type.reg()).associate(fe, RematInfo::TYPE);
+        }
+        if (fe->data.inRegister()) {
+            freeRegs.takeReg(fe->data.reg());
+            regstate(fe->data.reg()).associate(fe, RematInfo::DATA);
+        }
+        if (fe->data.inFPRegister()) {
+            freeRegs.takeReg(fe->data.fpreg());
+            regstate(fe->data.fpreg()).associate(fe, RematInfo::DATA);
+        }
+    }
 }
 
 void
@@ -696,14 +527,9 @@ FrameState::dumpAllocation(RegisterAllocation *alloc)
     for (unsigned i = 0; i < Registers::TotalAnyRegisters; i++) {
         AnyRegisterID reg = AnyRegisterID::fromRaw(i);
         if (alloc->assigned(reg)) {
-            printf(" (%s: %s%s)", reg.name(), entryName(entries + alloc->slot(reg)),
+            printf(" (%s: %s%s)", reg.name(), entryName(entries + alloc->index(reg)),
                    alloc->synced(reg) ? "" : " unsynced");
         }
-    }
-    Registers regs = alloc->getParentRegs();
-    while (!regs.empty()) {
-        AnyRegisterID reg = regs.takeAnyReg();
-        printf(" (%s: parent)", reg.name());
     }
     printf("\n");
 }
@@ -717,44 +543,38 @@ FrameState::computeAllocation(jsbytecode *target)
     if (!alloc)
         return NULL;
 
-    if (analysis->getCode(target).exceptionEntry || analysis->getCode(target).switchTarget ||
+    if (a->analysis->getCode(target).exceptionEntry || a->analysis->getCode(target).switchTarget ||
         JSOp(*target) == JSOP_TRAP) {
         
 #ifdef DEBUG
         if (IsJaegerSpewChannelActive(JSpew_Regalloc)) {
-            JaegerSpew(JSpew_Regalloc, "allocation at %u:", target - script->code);
+            JaegerSpew(JSpew_Regalloc, "allocation at %u:", target - a->script->code);
             dumpAllocation(alloc);
         }
 #endif
         return alloc;
     }
 
-    alloc->setParentRegs(a->parentRegs);
-
     
 
 
 
-    Registers regs = Registers::AvailRegs;
+    Registers regs = Registers::AvailAnyRegs;
     while (!regs.empty()) {
         AnyRegisterID reg = regs.takeAnyReg();
-        if (a->freeRegs.hasReg(reg) || regstate(reg).type() == RematInfo::TYPE)
+        if (freeRegs.hasReg(reg) || regstate(reg).type() == RematInfo::TYPE)
             continue;
         FrameEntry *fe = regstate(reg).fe();
-        if (fe == callee_)
-            continue;
-        if (fe < spBase && !variableLive(fe, target))
-            continue;
-        if (fe >= spBase && !isTemporary(fe))
-            continue;
-        if (isTemporary(fe) && uint32(target - script->code) > loop->backedgeOffset())
-            continue;
-        alloc->set(reg, indexOfFe(fe), fe->data.synced());
+        if (fe < a->callee_ ||
+            (fe > a->callee_ && fe < a->spBase && variableLive(fe, target)) ||
+            (isTemporary(fe) && (a->parent || uint32(target - a->script->code) <= loop->backedgeOffset()))) {
+            alloc->set(reg, fe - entries, fe->data.synced());
+        }
     }
 
 #ifdef DEBUG
     if (IsJaegerSpewChannelActive(JSpew_Regalloc)) {
-        JaegerSpew(JSpew_Regalloc, "allocation at %u:", target - script->code);
+        JaegerSpew(JSpew_Regalloc, "allocation at %u:", target - a->script->code);
         dumpAllocation(alloc);
     }
 #endif
@@ -774,7 +594,7 @@ FrameState::relocateReg(AnyRegisterID reg, RegisterAllocation *alloc, Uses uses)
 
 
 
-    JS_ASSERT(!a->freeRegs.hasReg(reg));
+    JS_ASSERT(!freeRegs.hasReg(reg));
 
     for (unsigned i = 0; i < uses.nuses; i++) {
         FrameEntry *fe = peek(-1 - i);
@@ -791,7 +611,7 @@ FrameState::relocateReg(AnyRegisterID reg, RegisterAllocation *alloc, Uses uses)
             regstate(reg).forget();
             regstate(nreg).associate(fe, RematInfo::DATA);
             fe->data.setRegister(nreg);
-            a->freeRegs.putReg(reg);
+            freeRegs.putReg(reg);
             return;
         }
     }
@@ -799,7 +619,7 @@ FrameState::relocateReg(AnyRegisterID reg, RegisterAllocation *alloc, Uses uses)
     JaegerSpew(JSpew_Regalloc, "could not relocate %s\n", reg.name());
 
     takeReg(reg);
-    a->freeRegs.putReg(reg);
+    freeRegs.putReg(reg);
 }
 
 bool
@@ -810,7 +630,7 @@ FrameState::syncForBranch(jsbytecode *target, Uses uses)
     Registers checkRegs(Registers::AvailAnyRegs);
     while (!checkRegs.empty()) {
         AnyRegisterID reg = checkRegs.takeAnyReg();
-        JS_ASSERT_IF(!a->freeRegs.hasReg(reg), regstate(reg).fe());
+        JS_ASSERT_IF(!freeRegs.hasReg(reg), regstate(reg).fe());
     }
 #endif
 
@@ -819,31 +639,46 @@ FrameState::syncForBranch(jsbytecode *target, Uses uses)
         return true;
     }
 
-    Registers regs = 0;
-
-    RegisterAllocation *&alloc = analysis->getAllocation(target);
+    RegisterAllocation *&alloc = a->analysis->getAllocation(target);
     if (!alloc) {
         alloc = computeAllocation(target);
         if (!alloc)
             return false;
     }
 
+    syncForAllocation(alloc, false, uses);
+
+    return true;
+}
+
+void
+FrameState::syncForAllocation(RegisterAllocation *alloc, bool inlineReturn, Uses uses)
+{
     
 
 
 
 
-    for (uint32 i = a->tracker.nentries - 1; i < a->tracker.nentries; i--) {
-        FrameEntry *fe = a->tracker[i];
 
-        if (deadEntry(fe, uses.nuses)) {
+    FrameEntry *topEntry;
+    if (inlineReturn)
+        topEntry = a->parent->sp - (GET_ARGC(a->parent->PC) + 2);
+    else
+        topEntry = a->sp - uses.nuses;
+
+    for (uint32 i = tracker.nentries - 1; i < tracker.nentries; i--) {
+        FrameEntry *fe = tracker[i];
+
+        if (deadEntry(fe))
+            continue;
+        if (!isTemporary(fe) && fe >= topEntry) {
             
             continue;
         }
 
         
-        if (isLocal(fe) && !analysis->slotEscapes(indexOfFe(fe))) {
-            Lifetime *lifetime = variableLive(fe, PC);
+        if (isLocal(fe) && !a->analysis->slotEscapes(entrySlot(fe))) {
+            Lifetime *lifetime = variableLive(fe, a->PC);
             if (!lifetime) {
                 if (!fe->data.synced())
                     fe->data.sync();
@@ -852,8 +687,7 @@ FrameState::syncForBranch(jsbytecode *target, Uses uses)
             }
         }
 
-        unsigned index = indexOfFe(fe);
-        if (!fe->isCopy() && alloc->hasAnyReg(index)) {
+        if (!fe->isCopy() && alloc->hasAnyReg(fe - entries)) {
             
             if (!fe->isType(JSVAL_TYPE_DOUBLE))
                 syncType(fe);
@@ -864,20 +698,18 @@ FrameState::syncForBranch(jsbytecode *target, Uses uses)
         }
     }
 
-    syncParentRegistersInMask(masm, a->parentRegs.freeMask & ~alloc->getParentRegs().freeMask, true);
-
     
 
 
 
 
 
-    regs = Registers(Registers::AvailAnyRegs);
+    Registers regs = Registers(Registers::AvailAnyRegs);
     while (!regs.empty()) {
         AnyRegisterID reg = regs.takeAnyReg();
         if (!alloc->assigned(reg))
             continue;
-        FrameEntry *fe = getOrTrack(alloc->slot(reg));
+        FrameEntry *fe = getOrTrack(alloc->index(reg));
         JS_ASSERT(!fe->isCopy());
 
         JS_ASSERT_IF(!fe->isType(JSVAL_TYPE_DOUBLE), fe->type.synced());
@@ -887,7 +719,7 @@ FrameState::syncForBranch(jsbytecode *target, Uses uses)
         if (fe->dataInRegister(reg))
             continue;
 
-        if (!a->freeRegs.hasReg(reg))
+        if (!freeRegs.hasReg(reg))
             relocateReg(reg, alloc, uses);
 
         
@@ -902,7 +734,11 @@ FrameState::syncForBranch(jsbytecode *target, Uses uses)
             forgetAllRegs(fe);
             fe->resetSynced();
         }
-        JS_ASSERT_IF(!reg.isReg(), fe->isType(JSVAL_TYPE_DOUBLE));
+        if (!reg.isReg()) {
+            JS_ASSERT(!fe->isNotType(JSVAL_TYPE_DOUBLE));
+            if (!fe->isTypeKnown())
+                learnType(fe, JSVAL_TYPE_DOUBLE, false);
+        }
 
         if (reg.isReg()) {
             RegisterID nreg = reg.reg();
@@ -913,7 +749,7 @@ FrameState::syncForBranch(jsbytecode *target, Uses uses)
             } else {
                 JS_ASSERT(fe->data.inRegister() && fe->data.reg() != nreg);
                 masm.move(fe->data.reg(), nreg);
-                a->freeRegs.putReg(fe->data.reg());
+                freeRegs.putReg(fe->data.reg());
                 regstate(fe->data.reg()).forget();
             }
             fe->data.setRegister(nreg);
@@ -926,47 +762,26 @@ FrameState::syncForBranch(jsbytecode *target, Uses uses)
             } else {
                 JS_ASSERT(fe->data.inFPRegister() && fe->data.fpreg() != nreg);
                 masm.moveDouble(fe->data.fpreg(), nreg);
-                a->freeRegs.putReg(fe->data.fpreg());
+                freeRegs.putReg(fe->data.fpreg());
                 regstate(fe->data.fpreg()).forget();
             }
             fe->data.setFPRegister(nreg);
         }
 
-        a->freeRegs.takeReg(reg);
+        freeRegs.takeReg(reg);
         regstate(reg).associate(fe, RematInfo::DATA);
-
-        
-
-
-
-        if (alloc->getParentRegs().hasReg(reg))
-            a->parentRegs.putReg(reg);
     }
-
-    
-    Registers parents(alloc->getParentRegs().freeMask & ~a->parentRegs.freeMask);
-    while (!parents.empty()) {
-        AnyRegisterID reg = parents.takeAnyReg();
-        if (!a->freeRegs.hasReg(reg))
-            relocateReg(reg, alloc, uses);
-        a->parentRegs.putReg(reg);
-        restoreParentRegister(masm, reg);
-    }
-
-    return true;
 }
 
 bool
-FrameState::discardForJoin(jsbytecode *target, uint32 stackDepth)
+FrameState::discardForJoin(RegisterAllocation *&alloc, uint32 stackDepth)
 {
     if (!cx->typeInferenceEnabled()) {
         resetInternalState();
-        PodArrayZero(a->regstate_);
-        sp = spBase + stackDepth;
+        PodArrayZero(regstate_);
+        a->sp = a->spBase + stackDepth;
         return true;
     }
-
-    RegisterAllocation *&alloc = analysis->getAllocation(target);
 
     if (!alloc) {
         
@@ -979,18 +794,16 @@ FrameState::discardForJoin(jsbytecode *target, uint32 stackDepth)
     }
 
     resetInternalState();
-    PodArrayZero(a->regstate_);
-
-    a->parentRegs = alloc->getParentRegs();
+    PodArrayZero(regstate_);
 
     Registers regs(Registers::AvailAnyRegs);
     while (!regs.empty()) {
         AnyRegisterID reg = regs.takeAnyReg();
         if (!alloc->assigned(reg))
             continue;
-        FrameEntry *fe = getOrTrack(alloc->slot(reg));
+        FrameEntry *fe = getOrTrack(alloc->index(reg));
 
-        a->freeRegs.takeReg(reg);
+        freeRegs.takeReg(reg);
 
         
 
@@ -1008,10 +821,10 @@ FrameState::discardForJoin(jsbytecode *target, uint32 stackDepth)
             fe->data.unsync();
     }
 
-    sp = spBase + stackDepth;
+    a->sp = a->spBase + stackDepth;
 
     for (unsigned i = 0; i < stackDepth; i++)
-        a->extraArray[i].reset();
+        extraArray[a->spBase + i - entries].reset();
 
     return true;
 }
@@ -1020,7 +833,7 @@ bool
 FrameState::consistentRegisters(jsbytecode *target)
 {
     if (!cx->typeInferenceEnabled()) {
-        JS_ASSERT(a->freeRegs.freeMask == Registers::AvailAnyRegs);
+        JS_ASSERT(freeRegs.freeMask == Registers::AvailAnyRegs);
         return true;
     }
 
@@ -1030,15 +843,15 @@ FrameState::consistentRegisters(jsbytecode *target)
 
 
 
-    RegisterAllocation *alloc = analysis->getAllocation(target);
+    RegisterAllocation *alloc = a->analysis->getAllocation(target);
     JS_ASSERT(alloc);
 
     Registers regs(Registers::AvailAnyRegs);
     while (!regs.empty()) {
         AnyRegisterID reg = regs.takeAnyReg();
         if (alloc->assigned(reg)) {
-            FrameEntry *needed = getOrTrack(alloc->slot(reg));
-            if (!a->freeRegs.hasReg(reg)) {
+            FrameEntry *needed = getOrTrack(alloc->index(reg));
+            if (!freeRegs.hasReg(reg)) {
                 FrameEntry *fe = regstate(reg).fe();
                 if (fe != needed)
                     return false;
@@ -1047,9 +860,6 @@ FrameState::consistentRegisters(jsbytecode *target)
             }
         }
     }
-
-    if (!a->parentRegs.hasAllRegs(alloc->getParentRegs().freeMask))
-        return false;
 
     return true;
 }
@@ -1062,7 +872,7 @@ FrameState::prepareForJump(jsbytecode *target, Assembler &masm, bool synced)
 
     JS_ASSERT_IF(!synced, !consistentRegisters(target));
 
-    RegisterAllocation *alloc = analysis->getAllocation(target);
+    RegisterAllocation *alloc = a->analysis->getAllocation(target);
     JS_ASSERT(alloc);
 
     Registers regs = 0;
@@ -1073,7 +883,7 @@ FrameState::prepareForJump(jsbytecode *target, Assembler &masm, bool synced)
         if (!alloc->assigned(reg))
             continue;
 
-        const FrameEntry *fe = getOrTrack(alloc->slot(reg));
+        const FrameEntry *fe = getOrTrack(alloc->index(reg));
         if (synced || !fe->backing()->dataInRegister(reg)) {
             JS_ASSERT_IF(!synced, fe->data.synced());
             if (reg.isReg())
@@ -1081,13 +891,6 @@ FrameState::prepareForJump(jsbytecode *target, Assembler &masm, bool synced)
             else
                 masm.loadDouble(addressOf(fe), reg.fpreg());
         }
-    }
-
-    regs = Registers(alloc->getParentRegs());
-    while (!regs.empty()) {
-        AnyRegisterID reg = regs.takeAnyReg();
-        if (synced || !a->parentRegs.hasReg(reg))
-            restoreParentRegister(masm, reg);
     }
 }
 
@@ -1102,7 +905,7 @@ FrameState::storeTo(FrameEntry *fe, Address address, bool popped)
     if (fe->isCopy())
         fe = fe->copyOf();
 
-    JS_ASSERT(!a->freeRegs.hasReg(address.base));
+    JS_ASSERT(!freeRegs.hasReg(address.base));
 
     
     JS_ASSERT_IF((fe->type.inMemory() || fe->data.inMemory()),
@@ -1336,8 +1139,8 @@ FrameState::assertValidRegisterState() const
 {
     Registers checkedFreeRegs(Registers::AvailAnyRegs);
 
-    for (uint32 i = 0; i < a->tracker.nentries; i++) {
-        FrameEntry *fe = a->tracker[i];
+    for (uint32 i = 0; i < tracker.nentries; i++) {
+        FrameEntry *fe = tracker[i];
         if (deadEntry(fe))
             continue;
 
@@ -1368,19 +1171,19 @@ FrameState::assertValidRegisterState() const
         }
     }
 
-    JS_ASSERT(checkedFreeRegs == a->freeRegs);
+    JS_ASSERT(checkedFreeRegs == freeRegs);
 
     for (uint32 i = 0; i < Registers::TotalRegisters; i++) {
         AnyRegisterID reg = (RegisterID) i;
         JS_ASSERT(!regstate(reg).isPinned());
-        JS_ASSERT_IF(regstate(reg).fe(), !a->freeRegs.hasReg(reg));
+        JS_ASSERT_IF(regstate(reg).fe(), !freeRegs.hasReg(reg));
         JS_ASSERT_IF(regstate(reg).fe(), regstate(reg).fe()->isTracked());
     }
 
     for (uint32 i = 0; i < Registers::TotalFPRegisters; i++) {
         AnyRegisterID reg = (FPRegisterID) i;
         JS_ASSERT(!regstate(reg).isPinned());
-        JS_ASSERT_IF(regstate(reg).fe(), !a->freeRegs.hasReg(reg));
+        JS_ASSERT_IF(regstate(reg).fe(), !freeRegs.hasReg(reg));
         JS_ASSERT_IF(regstate(reg).fe(), regstate(reg).fe()->isTracked());
         JS_ASSERT_IF(regstate(reg).fe(), regstate(reg).type() == RematInfo::DATA);
     }
@@ -1392,60 +1195,20 @@ void
 FrameState::syncFancy(Assembler &masm, Registers avail, FrameEntry *resumeAt,
                       FrameEntry *bottom) const
 {
-    a->reifier.reset(&masm, avail, resumeAt, bottom);
+    reifier.reset(&masm, avail, resumeAt, bottom);
 
     for (FrameEntry *fe = resumeAt; fe >= bottom; fe--) {
         if (!fe->isTracked())
             continue;
 
-        a->reifier.sync(fe);
+        reifier.sync(fe);
     }
 }
+
 #endif
-
-void
-FrameState::syncParentRegister(Assembler &masm, AnyRegisterID reg) const
-{
-    ActiveFrame *which = a->parent;
-    while (which->freeRegs.hasReg(reg))
-        which = which->parent;
-
-    FrameEntry *fe = which->regstate(reg).usedBy();
-    Address address = addressOf(fe, which);
-
-    if (reg.isReg() && fe->type.inRegister() && fe->type.reg() == reg.reg()) {
-        if (!fe->type.synced())
-            masm.storeTypeTag(reg.reg(), address);
-    } else if (reg.isReg()) {
-        JS_ASSERT(fe->data.inRegister() && fe->data.reg() == reg.reg());
-        if (!fe->data.synced())
-            masm.storePayload(reg.reg(), address);
-    } else {
-        JS_ASSERT(fe->data.inFPRegister() && fe->data.fpreg() == reg.fpreg());
-        if (!fe->data.synced())
-            masm.storeDouble(reg.fpreg(), address);
-    }
-}
-
-void
-FrameState::syncParentRegistersInMask(Assembler &masm, uint32 mask, bool update) const
-{
-    JS_ASSERT((a->parentRegs.freeMask & mask) == mask);
-
-    Registers parents(mask);
-    while (!parents.empty()) {
-        AnyRegisterID reg = parents.takeAnyReg();
-        if (update)
-            a->parentRegs.takeReg(reg);
-        syncParentRegister(masm, reg);
-    }
-}
-
 void
 FrameState::sync(Assembler &masm, Uses uses) const
 {
-    syncParentRegistersInMask(masm, a->parentRegs.freeMask, false);
-
     if (!entries)
         return;
 
@@ -1486,12 +1249,12 @@ FrameState::sync(Assembler &masm, Uses uses) const
 
 
 
-    Registers avail(a->freeRegs.freeMask & Registers::AvailRegs);
+    Registers avail(freeRegs.freeMask & Registers::AvailRegs);
     Registers temp(Registers::TempAnyRegs);
 
-    FrameEntry *bottom = cx->typeInferenceEnabled() ? entries : sp - uses.nuses;
+    FrameEntry *bottom = cx->typeInferenceEnabled() ? entries : a->sp - uses.nuses;
 
-    for (FrameEntry *fe = sp - 1; fe >= bottom; fe--) {
+    for (FrameEntry *fe = a->sp - 1; fe >= bottom; fe--) {
         if (!fe->isTracked())
             continue;
 
@@ -1566,9 +1329,6 @@ FrameState::sync(Assembler &masm, Uses uses) const
 void
 FrameState::syncAndKill(Registers kill, Uses uses, Uses ignore)
 {
-    syncParentRegistersInMask(masm, a->parentRegs.freeMask, true);
-    JS_ASSERT(a->parentRegs.empty());
-
     if (loop) {
         
 
@@ -1578,7 +1338,7 @@ FrameState::syncAndKill(Registers kill, Uses uses, Uses ignore)
     }
 
     
-    Registers search(kill.freeMask & ~a->freeRegs.freeMask);
+    Registers search(kill.freeMask & ~freeRegs.freeMask);
     while (!search.empty()) {
         AnyRegisterID reg = search.takeAnyReg();
         FrameEntry *fe = regstate(reg).usedBy();
@@ -1622,10 +1382,10 @@ FrameState::syncAndKill(Registers kill, Uses uses, Uses ignore)
 #endif
     }
 
-    uint32 maxvisits = a->tracker.nentries;
-    FrameEntry *bottom = cx->typeInferenceEnabled() ? entries : sp - uses.nuses;
+    uint32 maxvisits = tracker.nentries;
+    FrameEntry *bottom = cx->typeInferenceEnabled() ? entries : a->sp - uses.nuses;
 
-    for (FrameEntry *fe = sp - 1; fe >= bottom && maxvisits; fe--) {
+    for (FrameEntry *fe = a->sp - 1; fe >= bottom && maxvisits; fe--) {
         if (!fe->isTracked())
             continue;
 
@@ -1658,7 +1418,7 @@ FrameState::syncAndKill(Registers kill, Uses uses, Uses ignore)
 
 
 
-    search = Registers(kill.freeMask & ~a->freeRegs.freeMask);
+    search = Registers(kill.freeMask & ~freeRegs.freeMask);
     while (!search.empty()) {
         AnyRegisterID reg = search.takeAnyReg();
         FrameEntry *fe = regstate(reg).usedBy();
@@ -1682,43 +1442,6 @@ FrameState::syncAndKill(Registers kill, Uses uses, Uses ignore)
 }
 
 void
-FrameState::restoreParentRegister(Assembler &masm, AnyRegisterID reg) const
-{
-    ActiveFrame *which = a->parent;
-    while (which->freeRegs.hasReg(reg))
-        which = which->parent;
-
-    FrameEntry *fe = which->regstate(reg).usedBy();
-    Address address = addressOf(fe, which);
-
-    if (reg.isReg() && fe->type.inRegister() && fe->type.reg() == reg.reg()) {
-        masm.loadTypeTag(address, reg.reg());
-    } else if (reg.isReg()) {
-        JS_ASSERT(fe->data.inRegister() && fe->data.reg() == reg.reg());
-        masm.loadPayload(address, reg.reg());
-    } else {
-        JS_ASSERT(fe->data.inFPRegister() && fe->data.fpreg() == reg.fpreg());
-        masm.loadDouble(address, reg.fpreg());
-    }
-}
-
-void
-FrameState::restoreParentRegistersInMask(Assembler &masm, uint32 mask, bool update) const
-{
-    JS_ASSERT_IF(update, (a->parentRegs.freeMask & mask) == 0);
-
-    Registers parents(mask);
-    while (!parents.empty()) {
-        AnyRegisterID reg = parents.takeAnyReg();
-        if (update) {
-            JS_ASSERT(a->freeRegs.hasReg(reg));
-            a->parentRegs.putReg(reg);
-        }
-        restoreParentRegister(masm, reg);
-    }
-}
-
-void
 FrameState::merge(Assembler &masm, Changes changes) const
 {
     
@@ -1727,8 +1450,6 @@ FrameState::merge(Assembler &masm, Changes changes) const
 
 
 
-    restoreParentRegistersInMask(masm, a->parentRegs.freeMask, false);
-
     
 
 
@@ -1736,12 +1457,12 @@ FrameState::merge(Assembler &masm, Changes changes) const
 
 
     for (unsigned i = 0; i < changes.nchanges; i++) {
-        FrameEntry *fe = sp - 1 - i;
+        FrameEntry *fe = a->sp - 1 - i;
         if (fe->isTracked() && fe->isType(JSVAL_TYPE_DOUBLE))
             masm.ensureInMemoryDouble(addressOf(fe));
     }
 
-    uint32 mask = Registers::AvailAnyRegs & ~a->freeRegs.freeMask;
+    uint32 mask = Registers::AvailAnyRegs & ~freeRegs.freeMask;
     Registers search(mask);
 
     while (!search.empty(mask)) {
@@ -1794,7 +1515,7 @@ FrameState::copyDataIntoReg(FrameEntry *fe, RegisterID hint)
 
     RegisterID reg = fe->data.reg();
     if (reg == hint) {
-        if (a->freeRegs.empty(Registers::AvailRegs)) {
+        if (freeRegs.empty(Registers::AvailRegs)) {
             ensureDataSynced(fe, masm);
             fe->data.setMemory();
         } else {
@@ -1824,7 +1545,7 @@ FrameState::copyDataIntoReg(Assembler &masm, FrameEntry *fe)
 
     if (fe->data.inRegister()) {
         RegisterID reg = fe->data.reg();
-        if (a->freeRegs.empty(Registers::AvailRegs)) {
+        if (freeRegs.empty(Registers::AvailRegs)) {
             ensureDataSynced(fe, masm);
             fe->data.setMemory();
             regstate(reg).forget();
@@ -1839,7 +1560,7 @@ FrameState::copyDataIntoReg(Assembler &masm, FrameEntry *fe)
 
     RegisterID reg = allocReg();
 
-    if (!a->freeRegs.empty(Registers::AvailRegs))
+    if (!freeRegs.empty(Registers::AvailRegs))
         masm.move(tempRegForData(fe), reg);
     else
         masm.loadPayload(addressOf(fe),reg);
@@ -1857,7 +1578,7 @@ FrameState::copyTypeIntoReg(FrameEntry *fe)
 
     if (fe->type.inRegister()) {
         RegisterID reg = fe->type.reg();
-        if (a->freeRegs.empty(Registers::AvailRegs)) {
+        if (freeRegs.empty(Registers::AvailRegs)) {
             ensureTypeSynced(fe, masm);
             fe->type.setMemory();
             regstate(reg).forget();
@@ -1872,7 +1593,7 @@ FrameState::copyTypeIntoReg(FrameEntry *fe)
 
     RegisterID reg = allocReg();
 
-    if (!a->freeRegs.empty(Registers::AvailRegs))
+    if (!freeRegs.empty(Registers::AvailRegs))
         masm.move(tempRegForType(fe), reg);
     else
         masm.loadTypeTag(addressOf(fe), reg);
@@ -1913,7 +1634,7 @@ FrameState::ownRegForType(FrameEntry *fe)
             tempRegForType(backing);
         }
 
-        if (a->freeRegs.empty(Registers::AvailRegs)) {
+        if (freeRegs.empty(Registers::AvailRegs)) {
             
             ensureTypeSynced(backing, masm);
             reg = backing->type.reg();
@@ -1959,7 +1680,7 @@ FrameState::ownRegForData(FrameEntry *fe)
             tempRegForData(backing);
         }
 
-        if (a->freeRegs.empty(Registers::AvailRegs)) {
+        if (freeRegs.empty(Registers::AvailRegs)) {
             
             ensureDataSynced(backing, masm);
             reg = backing->data.reg();
@@ -2044,8 +1765,8 @@ FrameState::ensureDouble(FrameEntry *fe)
         fe->clear();
     } else if (fe->isCopied()) {
         
-        for (uint32 i = fe->trackerIndex() + 1; i < a->tracker.nentries; i++) {
-            FrameEntry *nfe = a->tracker[i];
+        for (uint32 i = fe->trackerIndex() + 1; i < tracker.nentries; i++) {
+            FrameEntry *nfe = tracker[i];
             if (!deadEntry(nfe) && nfe->isCopy() && nfe->copyOf() == fe) {
                 syncFe(nfe);
                 nfe->resetSynced();
@@ -2090,18 +1811,8 @@ FrameState::ensureInteger(FrameEntry *fe)
 
     JS_ASSERT(!fe->isCopy() && !fe->isCopied());
 
-    if (!fe->isType(JSVAL_TYPE_DOUBLE)) {
-        
-
-
-
-        if (fe->data.inRegister()) {
-            syncFe(fe);
-            forgetReg(fe->data.reg());
-            fe->data.setMemory();
-        }
+    if (!fe->isType(JSVAL_TYPE_DOUBLE))
         learnType(fe, JSVAL_TYPE_DOUBLE, false);
-    }
 
     RegisterID reg = allocReg();
     FPRegisterID fpreg = tempFPRegForData(fe);
@@ -2122,8 +1833,8 @@ void
 FrameState::ensureInMemoryDoubles(Assembler &masm)
 {
     JS_ASSERT(!a->parent);
-    for (uint32 i = 0; i < a->tracker.nentries; i++) {
-        FrameEntry *fe = a->tracker[i];
+    for (uint32 i = 0; i < tracker.nentries; i++) {
+        FrameEntry *fe = tracker[i];
         if (!deadEntry(fe) && fe->isType(JSVAL_TYPE_DOUBLE) &&
             !fe->isCopy() && !fe->isConstant()) {
             masm.ensureInMemoryDouble(addressOf(fe));
@@ -2132,9 +1843,9 @@ FrameState::ensureInMemoryDoubles(Assembler &masm)
 }
 
 void
-FrameState::pushCopyOf(uint32 index)
+FrameState::pushCopyOf(FrameEntry *backing)
 {
-    FrameEntry *backing = entryFor(index);
+    JS_ASSERT(backing->isTracked());
     FrameEntry *fe = rawPush();
     fe->resetUnsynced();
     if (backing->isConstant()) {
@@ -2166,8 +1877,8 @@ FrameState::walkTrackerForUncopy(FrameEntry *original)
     uint32 firstCopy = InvalidIndex;
     FrameEntry *bestFe = NULL;
     uint32 ncopies = 0;
-    for (uint32 i = original->trackerIndex() + 1; i < a->tracker.nentries; i++) {
-        FrameEntry *fe = a->tracker[i];
+    for (uint32 i = original->trackerIndex() + 1; i < tracker.nentries; i++) {
+        FrameEntry *fe = tracker[i];
         if (deadEntry(fe))
             continue;
         if (fe->isCopy() && fe->copyOf() == original) {
@@ -2195,9 +1906,9 @@ FrameState::walkTrackerForUncopy(FrameEntry *original)
     bestFe->setCopyOf(NULL);
     if (ncopies > 1) {
         bestFe->setCopied();
-        for (uint32 i = firstCopy; i < a->tracker.nentries; i++) {
-            FrameEntry *other = a->tracker[i];
-            if (other >= sp || other == bestFe)
+        for (uint32 i = firstCopy; i < tracker.nentries; i++) {
+            FrameEntry *other = tracker[i];
+            if (deadEntry(other) || other == bestFe)
                 continue;
 
             
@@ -2232,9 +1943,9 @@ FrameState::walkFrameForUncopy(FrameEntry *original)
     uint32 ncopies = 0;
 
     
-    uint32 maxvisits = a->tracker.nentries;
+    uint32 maxvisits = tracker.nentries;
 
-    for (FrameEntry *fe = original + 1; fe < sp && maxvisits; fe++) {
+    for (FrameEntry *fe = original + 1; fe < a->sp && maxvisits; fe++) {
         if (!fe->isTracked())
             continue;
 
@@ -2288,7 +1999,7 @@ FrameState::uncopy(FrameEntry *original)
 
 
     FrameEntry *fe;
-    if ((a->tracker.nentries - original->trackerIndex()) * 2 > uint32(sp - original))
+    if ((tracker.nentries - original->trackerIndex()) * 2 > uint32(a->sp - original))
         fe = walkFrameForUncopy(original);
     else
         fe = walkTrackerForUncopy(original);
@@ -2342,8 +2053,8 @@ FrameState::hasOnlyCopy(FrameEntry *backing, FrameEntry *fe)
 {
     JS_ASSERT(backing->isCopied() && fe->copyOf() == backing);
 
-    for (uint32 i = backing->trackerIndex() + 1; i < a->tracker.nentries; i++) {
-        FrameEntry *nfe = a->tracker[i];
+    for (uint32 i = backing->trackerIndex() + 1; i < tracker.nentries; i++) {
+        FrameEntry *nfe = tracker[i];
         if (nfe != fe && !deadEntry(nfe) && nfe->isCopy() && nfe->copyOf() == backing)
             return false;
     }
@@ -2354,7 +2065,7 @@ FrameState::hasOnlyCopy(FrameEntry *backing, FrameEntry *fe)
 void
 FrameState::separateBinaryEntries(FrameEntry *lhs, FrameEntry *rhs)
 {
-    JS_ASSERT(lhs == sp - 2 && rhs == sp - 1);
+    JS_ASSERT(lhs == a->sp - 2 && rhs == a->sp - 1);
     if (rhs->isCopy() && rhs->copyOf() == lhs) {
         syncAndForgetFe(rhs);
         syncAndForgetFe(lhs);
@@ -2367,7 +2078,7 @@ FrameState::storeLocal(uint32 n, bool popGuaranteed, bool fixedType)
 {
     FrameEntry *local = getLocal(n);
 
-    if (analysis->slotEscapes(indexOfFe(local))) {
+    if (a->analysis->slotEscapes(entrySlot(local))) {
         JS_ASSERT(local->data.inMemory());
         storeTo(peek(-1), addressOf(local), popGuaranteed);
         return;
@@ -2389,7 +2100,7 @@ FrameState::storeArg(uint32 n, bool popGuaranteed)
     
     FrameEntry *arg = getArg(n);
 
-    if (analysis->slotEscapes(indexOfFe(arg))) {
+    if (a->analysis->slotEscapes(entrySlot(arg))) {
         JS_ASSERT(arg->data.inMemory());
         storeTo(peek(-1), addressOf(arg), popGuaranteed);
         return;
@@ -2414,8 +2125,7 @@ FrameState::forgetEntry(FrameEntry *fe)
         forgetAllRegs(fe);
     }
 
-    if (fe >= spBase && fe < sp)
-        a->extraArray[fe - spBase].reset();
+    extraArray[fe - entries].reset();
 }
 
 void
@@ -2501,8 +2211,8 @@ FrameState::storeTop(FrameEntry *target, bool popGuaranteed)
 
 
 
-        for (uint32 i = backing->trackerIndex() + 1; i < a->tracker.nentries; i++) {
-            FrameEntry *fe = a->tracker[i];
+        for (uint32 i = backing->trackerIndex() + 1; i < tracker.nentries; i++) {
+            FrameEntry *fe = tracker[i];
             if (deadEntry(fe))
                 continue;
             if (fe->isCopy() && fe->copyOf() == backing) {
@@ -2574,7 +2284,7 @@ FrameState::storeTop(FrameEntry *target, bool popGuaranteed)
 void
 FrameState::shimmy(uint32 n)
 {
-    JS_ASSERT(sp - n >= spBase);
+    JS_ASSERT(a->sp - n >= a->spBase);
     int32 depth = 0 - int32(n);
     storeTop(peek(depth - 1), true);
     popn(n);
@@ -2584,7 +2294,7 @@ void
 FrameState::shift(int32 n)
 {
     JS_ASSERT(n < 0);
-    JS_ASSERT(sp + n - 1 >= spBase);
+    JS_ASSERT(a->sp + n - 1 >= a->spBase);
     storeTop(peek(n - 1), true);
     pop();
 }
@@ -2705,7 +2415,7 @@ FrameState::allocForSameBinary(FrameEntry *fe, JSOp op, BinaryAlloc &alloc)
 
     alloc.lhsData = tempRegForData(fe);
 
-    if (!a->freeRegs.empty(Registers::AvailRegs)) {
+    if (!freeRegs.empty(Registers::AvailRegs)) {
         alloc.result = allocReg();
         masm.move(alloc.lhsData.reg(), alloc.result);
         alloc.lhsNeedsRemat = false;
@@ -2777,26 +2487,26 @@ FrameState::binaryEntryLive(FrameEntry *fe) const
     if (deadEntry(fe, 2))
         return false;
 
-    switch (JSOp(*PC)) {
+    switch (JSOp(*a->PC)) {
       case JSOP_INCLOCAL:
       case JSOP_DECLOCAL:
       case JSOP_LOCALINC:
       case JSOP_LOCALDEC:
-        if (fe - locals == (int) GET_SLOTNO(PC))
+        if (fe - a->locals == (int) GET_SLOTNO(a->PC))
             return false;
       case JSOP_INCARG:
       case JSOP_DECARG:
       case JSOP_ARGINC:
       case JSOP_ARGDEC:
-        if (fe - args == (int) GET_SLOTNO(PC))
+        if (fe - a->args == (int) GET_SLOTNO(a->PC))
             return false;
       default:;
     }
 
-    JS_ASSERT(fe != callee_);
+    JS_ASSERT(fe != a->callee_);
 
     
-    return fe >= spBase || variableLive(fe, PC);
+    return fe >= a->spBase || fe < a->callee_ || variableLive(fe, a->PC);
 }
 
 void
@@ -2927,7 +2637,7 @@ FrameState::allocForBinary(FrameEntry *lhs, FrameEntry *rhs, JSOp op, BinaryAllo
         goto skip;
     }
 
-    if (!a->freeRegs.empty(Registers::AvailRegs)) {
+    if (!freeRegs.empty(Registers::AvailRegs)) {
         
         alloc.result = allocReg();
         if (!alloc.lhsData.isSet()) {
@@ -3077,6 +2787,8 @@ FrameState::allocTemporary()
 void
 FrameState::clearTemporaries()
 {
+    JS_ASSERT(!a->parent);
+
     for (FrameEntry *fe = temporaries; fe < temporariesTop; fe++) {
         if (!fe->isTracked())
             continue;
@@ -3090,18 +2802,19 @@ FrameState::clearTemporaries()
 Vector<TemporaryCopy> *
 FrameState::getTemporaryCopies()
 {
+    
     Vector<TemporaryCopy> *res = NULL;
 
     for (FrameEntry *fe = temporaries; fe < temporariesTop; fe++) {
         if (!fe->isTracked())
             continue;
         if (fe->isCopied()) {
-            for (uint32 i = fe->trackerIndex() + 1; i < a->tracker.nentries; i++) {
-                FrameEntry *nfe = a->tracker[i];
+            for (uint32 i = fe->trackerIndex() + 1; i < tracker.nentries; i++) {
+                FrameEntry *nfe = tracker[i];
                 if (!deadEntry(nfe) && nfe->isCopy() && nfe->copyOf() == fe) {
                     if (!res)
                         res = cx->new_< Vector<TemporaryCopy> >(cx);
-                    res->append(TemporaryCopy(addressOf(nfe), addressOf(fe)));  
+                    res->append(TemporaryCopy(addressOf(nfe), addressOf(fe)));
                 }
             }
         }

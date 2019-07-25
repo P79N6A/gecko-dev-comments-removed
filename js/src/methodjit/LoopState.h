@@ -90,8 +90,10 @@ struct TemporaryCopy;
 class LoopState : public MacroAssemblerTypedefs
 {
     JSContext *cx;
-    JSScript *script;
-    analyze::ScriptAnalysis *analysis;
+    analyze::CrossScriptSSA *ssa;
+    JSScript *outerScript;
+    analyze::ScriptAnalysis *outerAnalysis;
+
     Compiler &cc;
     FrameState &frame;
 
@@ -100,6 +102,12 @@ class LoopState : public MacroAssemblerTypedefs
 
     
     RegisterAllocation *alloc;
+
+    
+
+
+
+    bool reachedEntryPoint;
 
     
 
@@ -137,6 +145,7 @@ class LoopState : public MacroAssemblerTypedefs
         Jump jump;
         Label label;
         bool ool;
+        bool entry;
 
         
         unsigned patchIndex;
@@ -216,16 +225,22 @@ class LoopState : public MacroAssemblerTypedefs
     LoopState *outer;
 
     
-    jsbytecode *PC;
+    uint32 temporariesStart;
 
-    LoopState(JSContext *cx, JSScript *script,
+    LoopState(JSContext *cx, analyze::CrossScriptSSA *ssa,
               Compiler *cc, FrameState *frame);
     bool init(jsbytecode *head, Jump entry, jsbytecode *entryTarget);
+
+    void setOuterPC(jsbytecode *pc)
+    {
+        if (uint32(pc - outerScript->code) == lifetime->entry && lifetime->entry != lifetime->head)
+            reachedEntryPoint = true;
+    }
 
     bool generatingInvariants() { return !skipAnalysis; }
 
     
-    void addInvariantCall(Jump jump, Label label, bool ool, unsigned patchIndex, bool patchCall);
+    void addInvariantCall(Jump jump, Label label, bool ool, bool entry, unsigned patchIndex, bool patchCall);
 
     uint32 headOffset() { return lifetime->head; }
     uint32 getLoopRegs() { return loopRegs.freeMask; }
@@ -235,7 +250,7 @@ class LoopState : public MacroAssemblerTypedefs
     uint32 backedgeOffset() { return lifetime->backedge; }
 
     
-    bool carriesLoopReg(FrameEntry *fe) { return alloc->hasAnyReg(frame.indexOfFe(fe)); }
+    bool carriesLoopReg(FrameEntry *fe) { return alloc->hasAnyReg(frame.entrySlot(fe)); }
 
     void setLoopReg(AnyRegisterID reg, FrameEntry *fe);
 
@@ -262,20 +277,20 @@ class LoopState : public MacroAssemblerTypedefs
 
 
 
-    bool hoistArrayLengthCheck(const FrameEntry *obj, types::TypeSet *objTypes,
-                               unsigned indexPopped);
-    FrameEntry *invariantSlots(const FrameEntry *obj);
-    FrameEntry *invariantLength(const FrameEntry *obj, types::TypeSet *objTypes);
-    FrameEntry *invariantProperty(const FrameEntry *obj, types::TypeSet *objTypes, jsid id);
+    bool hoistArrayLengthCheck(const analyze::CrossSSAValue &obj,
+                               const analyze::CrossSSAValue &index);
+    FrameEntry *invariantSlots(const analyze::CrossSSAValue &obj);
+    FrameEntry *invariantLength(const analyze::CrossSSAValue &obj);
+    FrameEntry *invariantProperty(const analyze::CrossSSAValue &obj, jsid id);
 
     
-    bool cannotIntegerOverflow();
+    bool cannotIntegerOverflow(const analyze::CrossSSAValue &pushed);
 
     
 
 
 
-    bool ignoreIntegerOverflow();
+    bool ignoreIntegerOverflow(const analyze::CrossSSAValue &pushed);
 
   private:
     
@@ -292,13 +307,6 @@ class LoopState : public MacroAssemblerTypedefs
     uint32 testRHS;
     int32 testConstant;
     bool testLessEqual;
-
-    
-
-
-
-    bool testLength;
-    bool testLengthKnownObject;
 
     
 
@@ -336,10 +344,9 @@ class LoopState : public MacroAssemblerTypedefs
 
     void analyzeLoopTest();
     void analyzeLoopIncrements();
-    void analyzeLoopBody();
-    bool definiteArrayAccess(const analyze::SSAValue &obj, const analyze::SSAValue &index);
-    void markBitwiseOperand(const analyze::SSAValue &v);
+    bool analyzeLoopBody(unsigned frame);
 
+    bool definiteArrayAccess(const analyze::SSAValue &obj, const analyze::SSAValue &index);
     bool getLoopTestAccess(const analyze::SSAValue &v, uint32 *pslot, int32 *pconstant);
 
     bool addGrowArray(types::TypeObject *object);
@@ -351,8 +358,8 @@ class LoopState : public MacroAssemblerTypedefs
     uint32 getIncrement(uint32 slot);
     int32 adjustConstantForIncrement(jsbytecode *pc, uint32 slot);
 
-    bool getEntryValue(const analyze::SSAValue &v, uint32 *pslot, int32 *pconstant);
-    bool computeInterval(const analyze::SSAValue &v, int32 *pmin, int32 *pmax);
+    bool getEntryValue(const analyze::CrossSSAValue &v, uint32 *pslot, int32 *pconstant);
+    bool computeInterval(const analyze::CrossSSAValue &v, int32 *pmin, int32 *pmax);
     bool valueFlowsToBitops(const analyze::SSAValue &v);
 };
 

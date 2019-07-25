@@ -452,6 +452,9 @@ class Compiler : public BaseCompiler
     JSScript *outerScript;
     bool isConstructing;
 
+    
+    analyze::CrossScriptSSA ssa;
+
     JSObject *globalObj;
     Value *globalSlots;
 
@@ -467,31 +470,35 @@ class Compiler : public BaseCompiler
 
 
 
-
-
-
-
     struct ActiveFrame {
         ActiveFrame *parent;
         jsbytecode *parentPC;
         JSScript *script;
-        uint32 inlineIndex;
         Label *jumpMap;
-        uint32 depth;
-        Vector<UnsyncedEntry> unsyncedEntries; 
+
+        
+
+
+
+        uint32 inlineIndex;
 
         
         VarType *varTypes;
 
         
-        bool needReturnValue;
-        bool syncReturnValue;
-        bool returnValueDouble;
-        bool returnSet;
-        AnyRegisterID returnRegister;
-        Registers returnParentRegs;
-        Registers temporaryParentRegs;
+        bool needReturnValue;          
+        bool syncReturnValue;          
+        bool returnValueDouble;        
+        bool returnSet;                
+        AnyRegisterID returnRegister;  
+        const FrameEntry *returnEntry; 
         Vector<Jump, 4, CompilerAllocPolicy> *returnJumps;
+
+        
+
+
+
+        RegisterAllocation *exitState;
 
         ActiveFrame(JSContext *cx);
         ~ActiveFrame();
@@ -540,7 +547,7 @@ class Compiler : public BaseCompiler
 #endif
     bool debugMode_;
     bool addTraceHints;
-    bool inlining;
+    bool inlining_;
     bool hasGlobalReallocation;
     bool oomInVector;       
     enum { NoApplyTricks, LazyArgsObj } applyTricks;
@@ -564,6 +571,7 @@ class Compiler : public BaseCompiler
     bool loadOldTraps(const Vector<CallSite> &site);
 
     bool debugMode() { return debugMode_; }
+    bool inlining() { return inlining_; }
 
 #ifdef DEBUG
     void checkRejoinSite(uint32 nCallSites, uint32 nRejoinSites, void *stub);
@@ -611,6 +619,16 @@ class Compiler : public BaseCompiler
 
     bool arrayPrototypeHasIndexedProperty();
 
+    bool activeFrameHasMultipleExits() {
+        ActiveFrame *na = a;
+        while (na->parent) {
+            if (na->exitState)
+                return true;
+            na = na->parent;
+        }
+        return false;
+    }
+
   private:
     CompileStatus performCompilation(JITScript **jitp);
     CompileStatus generatePrologue();
@@ -633,6 +651,9 @@ class Compiler : public BaseCompiler
     bool monitored(jsbytecode *pc);
     bool testSingletonProperty(JSObject *obj, jsid id);
     bool testSingletonPropertyTypes(FrameEntry *top, jsid id, bool *testObject);
+    CompileStatus addInlineFrame(JSScript *script, uint32 depth, uint32 parent, jsbytecode *parentpc);
+    CompileStatus scanInlineCalls(uint32 index, uint32 depth);
+    CompileStatus checkAnalysis(JSScript *script);
 
     
     void pushSyncedEntry(uint32 pushed);

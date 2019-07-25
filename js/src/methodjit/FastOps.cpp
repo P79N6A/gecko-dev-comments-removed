@@ -1116,11 +1116,12 @@ mjit::Compiler::jsop_setelem_dense()
     
     
     RegisterID slotsReg;
-    bool hoisted = loop && !a->parent &&
-        loop->hoistArrayLengthCheck(obj, frame.extra(obj).types, 1);
+    analyze::CrossSSAValue objv(a->inlineIndex, analysis->poppedValue(PC, 2));
+    analyze::CrossSSAValue indexv(a->inlineIndex, analysis->poppedValue(PC, 1));
+    bool hoisted = loop && loop->hoistArrayLengthCheck(objv, indexv);
 
     if (hoisted) {
-        FrameEntry *slotsFe = loop->invariantSlots(obj);
+        FrameEntry *slotsFe = loop->invariantSlots(objv);
         slotsReg = frame.tempRegForData(slotsFe);
 
         frame.unpinEntry(vr);
@@ -1441,14 +1442,15 @@ mjit::Compiler::jsop_getelem_dense(bool isPacked)
     
     bool allowUndefined = mayPushUndefined(0);
 
-    bool hoisted = loop && !a->parent &&
-        loop->hoistArrayLengthCheck(obj, frame.extra(obj).types, 0);
+    analyze::CrossSSAValue objv(a->inlineIndex, analysis->poppedValue(PC, 1));
+    analyze::CrossSSAValue indexv(a->inlineIndex, analysis->poppedValue(PC, 0));
+    bool hoisted = loop && loop->hoistArrayLengthCheck(objv, indexv);
 
     
     
     RegisterID baseReg;
     if (hoisted) {
-        FrameEntry *slotsFe = loop->invariantSlots(obj);
+        FrameEntry *slotsFe = loop->invariantSlots(objv);
         baseReg = frame.tempRegForData(slotsFe);
     } else {
         baseReg = frame.tempRegForData(obj);

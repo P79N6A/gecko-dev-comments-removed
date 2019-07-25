@@ -2914,10 +2914,13 @@ stubs::InvariantFailure(VMFrame &f, void *rval)
     *frameAddr = repatchCode;
 
     
-    JS_ASSERT(!f.script()->failedBoundsCheck);
-    f.script()->failedBoundsCheck = true;
+    JSScript *script = f.fp()->script();
+    JS_ASSERT(!script->failedBoundsCheck);
+    script->failedBoundsCheck = true;
 
-    Recompiler recompiler(f.cx, f.script());
+    ExpandInlineFrames(f.cx, true);
+
+    Recompiler recompiler(f.cx, script);
     if (!recompiler.recompile())
         THROWV(NULL);
 

@@ -538,22 +538,6 @@ void
 ExpandInlineFrames(JSContext *cx, bool all);
 
 
-struct UnsyncedEntry
-{
-    
-    int32 offset;
-
-    bool copy : 1;
-    bool constant : 1;
-    bool knownType : 1;
-    union {
-        int32 copiedOffset;
-        Value value;
-        JSValueType type;
-    } u;
-};
-
-
 struct InlineFrame
 {
     InlineFrame *parent;
@@ -563,16 +547,6 @@ struct InlineFrame
     
     
     uint32 depth;
-
-    
-    
-    
-    
-    
-    
-    
-    uint32 nUnsyncedEntries;
-    UnsyncedEntry *unsyncedEntries;
 };
 
 struct CallSite
