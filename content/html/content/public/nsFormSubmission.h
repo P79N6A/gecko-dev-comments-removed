@@ -239,7 +239,7 @@ private:
 
 
 nsresult GetSubmissionFromForm(nsGenericHTMLElement* aForm,
-                               nsIContent* aOriginatingElement,
+                               nsGenericHTMLElement* aOriginatingElement,
                                nsFormSubmission** aFormSubmission);
 
 #endif 
