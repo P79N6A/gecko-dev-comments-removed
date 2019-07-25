@@ -699,7 +699,17 @@ XRE_ShutdownChildProcess()
   
   
   
-  MessageLoop::current()->Quit(); 
+  MessageLoop::current()->Quit();
+#if defined(XP_MACOSX)
+  nsCOMPtr<nsIAppShell> appShell(do_GetService(kAppShellCID));
+  if (appShell) {
+      
+      
+      
+      
+      appShell->Exit();
+  }
+#endif 
 }
 
 namespace {
