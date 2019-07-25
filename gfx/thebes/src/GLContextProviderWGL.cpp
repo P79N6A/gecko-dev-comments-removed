@@ -207,8 +207,17 @@ public:
 
     PRBool MakeCurrent()
     {
-        BOOL succeeded = sWGLLibrary.fMakeCurrent(mDC, mContext);
-        NS_ASSERTION(succeeded, "Failed to make GL context current!");
+        BOOL succeeded = PR_TRUE;
+
+        
+        
+        
+        
+        if (sWGLLibrary.fGetCurrentContext() != mContext) {
+            succeeded = sWGLLibrary.fMakeCurrent(mDC, mContext);
+            NS_ASSERTION(succeeded, "Failed to make GL context current!");
+        }
+
         return succeeded;
     }
 
