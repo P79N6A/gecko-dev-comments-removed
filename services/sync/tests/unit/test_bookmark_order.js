@@ -39,9 +39,6 @@ function check(expected) {
 }
 
 function run_test() {
-  
-  return;
-
   _("Starting with a clean slate of no bookmarks");
   let store = new (new BookmarksEngine())._storeObj();
   store.wipe();
