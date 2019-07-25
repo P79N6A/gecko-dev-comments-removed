@@ -122,8 +122,6 @@ abstract public class GeckoApp
     private static LaunchState sLaunchState = LaunchState.Launching;
 
     abstract public int getLayout();
-    abstract public boolean isBrowserToolbarSupported();
-    abstract public View getBrowserToolbar();
     abstract protected String getDefaultProfileName();
 
     public static boolean checkLaunchState(LaunchState checkState) {
@@ -1720,10 +1718,6 @@ abstract public class GeckoApp
         
         mGeckoLayout = (RelativeLayout) findViewById(R.id.gecko_layout);
         mMainLayout = (LinearLayout) findViewById(R.id.main_layout);
-
-        
-        if (isBrowserToolbarSupported())
-            mMainLayout.addView(getBrowserToolbar(), 0);
 
         
         mTabsPanel = (TabsPanel) findViewById(R.id.tabs_panel);
