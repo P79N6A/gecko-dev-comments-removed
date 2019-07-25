@@ -36,19 +36,53 @@
 
 
 
+#include "base/process_util.h"
+
+#include "mozilla/ipc/SyncChannel.h"
 #include "mozilla/plugins/PluginModuleParent.h"
 #include "mozilla/plugins/BrowserStreamParent.h"
 
+#include "nsContentUtils.h"
 #include "nsCRT.h"
 #include "nsNPAPIPlugin.h"
 
-using mozilla::PluginLibrary;
+using base::KillProcess;
 
+using mozilla::PluginLibrary;
 using mozilla::ipc::NPRemoteIdentifier;
+using mozilla::ipc::SyncChannel;
 
 using namespace mozilla::plugins;
 
+static const char kTimeoutPref[] = "dom.ipc.plugins.timeoutSecs";
+
 PR_STATIC_ASSERT(sizeof(NPIdentifier) == sizeof(void*));
+
+template<>
+struct RunnableMethodTraits<mozilla::plugins::PluginModuleParent>
+{
+    typedef mozilla::plugins::PluginModuleParent Class;
+    static void RetainCallee(Class* obj) { }
+    static void ReleaseCallee(Class* obj) { }
+};
+
+class PluginCrashed : public nsRunnable
+{
+public:
+    PluginCrashed(nsNPAPIPlugin* plugin,
+                  const nsString& dumpID)
+        : mDumpID(dumpID),
+          mPlugin(plugin) { }
+
+    NS_IMETHOD Run() {
+        mPlugin->PluginCrashed(mDumpID);
+        return NS_OK;
+    }
+
+private:
+    nsNPAPIPlugin* mPlugin;
+    nsString mDumpID;
+};
 
 
 PluginLibrary*
@@ -61,6 +95,8 @@ PluginModuleParent::LoadModule(const char* aFilePath)
     parent->mSubprocess->Launch();
     parent->Open(parent->mSubprocess->GetChannel(),
                  parent->mSubprocess->GetChildProcessHandle());
+
+    TimeoutChanged(kTimeoutPref, parent);
 
     return parent;
 }
@@ -78,6 +114,8 @@ PluginModuleParent::PluginModuleParent(const char* aFilePath)
     if (!mValidIdentifiers.Init()) {
         NS_ERROR("Out of memory");
     }
+
+    nsContentUtils::RegisterPrefCallback(kTimeoutPref, TimeoutChanged, this);
 }
 
 PluginModuleParent::~PluginModuleParent()
@@ -93,6 +131,8 @@ PluginModuleParent::~PluginModuleParent()
         mSubprocess->Delete();
         mSubprocess = nsnull;
     }
+
+    nsContentUtils::UnregisterPrefCallback(kTimeoutPref, TimeoutChanged, this);
 }
 
 void
@@ -149,7 +189,61 @@ PluginModuleParent::WriteExtraDataForMinidump(nsIFile* dumpFile)
                         pluginFile.substr(filePos).c_str());
     
     
+    WriteExtraDataEntry(stream, "PluginName", "");
+    WriteExtraDataEntry(stream, "PluginVersion", "");
     stream->Close();
+}
+
+int
+PluginModuleParent::TimeoutChanged(const char* aPref, void* aModule)
+{
+    AssertPluginThread();
+    NS_ABORT_IF_FALSE(!strcmp(aPref, kTimeoutPref),
+                      "unexpected pref callback");
+
+    PRInt32 timeoutSecs = nsContentUtils::GetIntPref(kTimeoutPref, 0);
+    int32 timeoutMs = (timeoutSecs > 0) ? (1000 * timeoutSecs) :
+                      SyncChannel::kNoTimeout;
+
+    static_cast<PluginModuleParent*>(aModule)->SetReplyTimeoutMs(timeoutMs);
+    return 0;
+}
+
+void
+PluginModuleParent::CleanupFromTimeout()
+{
+    if (!mShutdown)
+        Close();
+}
+
+bool
+PluginModuleParent::ShouldContinueFromReplyTimeout()
+{
+    
+    bool waitMoar = false;
+
+    if (!waitMoar) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        MessageLoop::current()->PostTask(
+            FROM_HERE,
+            NewRunnableMethod(this, &PluginModuleParent::CleanupFromTimeout));
+
+        
+        
+        
+        KillProcess(ChildProcessHandle(), 1, false);
+    }
+    
+
+    return waitMoar;
 }
 
 void
@@ -158,8 +252,13 @@ PluginModuleParent::ActorDestroy(ActorDestroyReason why)
     switch (why) {
     case AbnormalShutdown: {
         nsCOMPtr<nsIFile> dump;
+        nsAutoString dumpID;
         if (GetMinidump(getter_AddRefs(dump))) {
             WriteExtraDataForMinidump(dump);
+            if (NS_SUCCEEDED(dump->GetLeafName(dumpID))) {
+                dumpID.Replace(dumpID.Length() - 4, 4,
+                               NS_LITERAL_STRING(""));
+            }
         }
         else {
             NS_WARNING("[PluginModuleParent::ActorDestroy] abnormal shutdown without minidump!");
@@ -170,8 +269,7 @@ PluginModuleParent::ActorDestroy(ActorDestroyReason why)
         
         if (mPlugin) {
             nsCOMPtr<nsIRunnable> r =
-                new nsRunnableMethod<nsNPAPIPlugin>(
-                    mPlugin, &nsNPAPIPlugin::PluginCrashed);
+                new PluginCrashed(mPlugin, dumpID);
             NS_DispatchToMainThread(r);
         }
         break;
@@ -647,11 +745,11 @@ PluginModuleParent::NP_Shutdown(NPError* error)
 }
 
 nsresult
-PluginModuleParent::NP_GetMIMEDescription(char** mimeDesc)
+PluginModuleParent::NP_GetMIMEDescription(const char** mimeDesc)
 {
     PLUGIN_LOG_DEBUG_METHOD;
 
-    *mimeDesc = (char*)"application/x-foobar";
+    *mimeDesc = "application/x-foobar";
     return NS_OK;
 }
 
