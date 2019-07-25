@@ -743,11 +743,11 @@ NS_IMETHODIMP nsPlaintextEditor::DeleteSelection(nsIEditor::EDirection aAction)
 
   nsresult result;
 
+  FireTrustedInputEvent trusted(this, aAction != eNone);
+
   
   nsAutoPlaceHolderBatch batch(this, nsGkAtoms::DeleteTxnName);
   nsAutoRules beginRulesSniffing(this, kOpDeleteSelection, aAction);
-
-  FireTrustedInputEvent trusted(this, aAction != eNone);
 
   
   nsCOMPtr<nsISelection> selection;
@@ -1215,9 +1215,9 @@ nsPlaintextEditor::Undo(PRUint32 aCount)
   
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
-  nsAutoUpdateViewBatch beginViewBatching(this);
-
   FireTrustedInputEvent trusted(this);
+
+  nsAutoUpdateViewBatch beginViewBatching(this);
 
   ForceCompositionEnd();
 
@@ -1244,9 +1244,9 @@ nsPlaintextEditor::Redo(PRUint32 aCount)
   
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
-  nsAutoUpdateViewBatch beginViewBatching(this);
-
   FireTrustedInputEvent trusted(this);
+
+  nsAutoUpdateViewBatch beginViewBatching(this);
 
   ForceCompositionEnd();
 
