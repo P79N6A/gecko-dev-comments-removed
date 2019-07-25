@@ -1615,7 +1615,7 @@ function test() {
     
     var av = Object.create(alien_view);
     checkThrowTODO(function () av.getUint8(4), alien.TypeError);
-    checkThrow(function () av.buffer, alien.TypeError);
+    checkThrowTODO(function () av.buffer, alien.TypeError);
 
     
     

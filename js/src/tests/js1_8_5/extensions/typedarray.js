@@ -448,6 +448,11 @@ function test()
     check(function () isProxy(view)); 
 
     
+    check(function () alien_buffer.byteLength == 7);
+    check(function () alien_view.byteLength == 7);
+    check(function () view.byteLength == 7);
+
+    
     simple = new Int8Array(12);
     check(function () Object.getPrototypeOf(view) == Object.getPrototypeOf(simple));
     check(function () Object.getPrototypeOf(view) == Int8Array.prototype);
