@@ -838,7 +838,9 @@ js_watch_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
             }
 
             {
-                Conditionally<AutoShapeRooter> tvr(needMethodSlotWrite, cx, needMethodSlotWrite);
+                LazilyConstructed<AutoShapeRooter> tvr;
+                if (needMethodSlotWrite)
+                    tvr.construct(cx, needMethodSlotWrite);
 
                 
 
