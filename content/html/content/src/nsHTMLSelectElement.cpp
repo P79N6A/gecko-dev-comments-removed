@@ -72,7 +72,6 @@
 #include "nsEventDispatcher.h"
 #include "mozilla/dom/Element.h"
 #include "mozAutoDocUpdate.h"
-#include "nsHTMLFormElement.h"
 
 using namespace mozilla::dom;
 
@@ -151,6 +150,8 @@ nsHTMLSelectElement::nsHTMLSelectElement(already_AddRefed<nsINodeInfo> aNodeInfo
     mInhibitStateRestoration(!!(aFromParser & FROM_PARSER_FRAGMENT)),
     mSelectionHasChanged(PR_FALSE),
     mDefaultSelectionSet(PR_FALSE),
+    mCanShowInvalidUI(PR_TRUE),
+    mCanShowValidUI(PR_TRUE),
     mNonOptionChildren(0),
     mOptGroupCount(0),
     mSelectedIndex(-1)
@@ -1565,6 +1566,35 @@ nsHTMLSelectElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   return nsGenericHTMLFormElement::PreHandleEvent(aVisitor);
 }
 
+nsresult
+nsHTMLSelectElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
+{
+  if (aVisitor.mEvent->message == NS_FOCUS_CONTENT) {
+    
+    
+    mCanShowInvalidUI = !IsValid() && ShouldShowInvalidUI();
+
+    
+    
+    mCanShowValidUI = ShouldShowValidUI();
+
+    
+    
+  } else if (aVisitor.mEvent->message == NS_BLUR_CONTENT) {
+    mCanShowInvalidUI = PR_TRUE;
+    mCanShowValidUI = PR_TRUE;
+
+    nsIDocument* doc = GetCurrentDoc();
+    if (doc) {
+      MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
+      doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_MOZ_UI_VALID |
+                                              NS_EVENT_STATE_MOZ_UI_INVALID);
+    }
+  }
+
+  return nsGenericHTMLFormElement::PostHandleEvent(aVisitor);
+}
+
 nsEventStates
 nsHTMLSelectElement::IntrinsicState() const
 {
@@ -1573,18 +1603,25 @@ nsHTMLSelectElement::IntrinsicState() const
   if (IsCandidateForConstraintValidation()) {
     if (IsValid()) {
       state |= NS_EVENT_STATE_VALID;
-
-      if ((mForm && mForm->HasEverTriedInvalidSubmit()) ||
-          mSelectionHasChanged) {
-        state |= NS_EVENT_STATE_MOZ_UI_VALID;
-      }
     } else {
       state |= NS_EVENT_STATE_INVALID;
 
-      if ((mForm && mForm->HasEverTriedInvalidSubmit()) ||
-          mSelectionHasChanged || GetValidityState(VALIDITY_STATE_CUSTOM_ERROR)) {
+      if (mCanShowInvalidUI && ShouldShowInvalidUI()) {
         state |= NS_EVENT_STATE_MOZ_UI_INVALID;
       }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    if (mCanShowValidUI &&
+        (IsValid() || !mCanShowInvalidUI) &&
+        ShouldShowValidUI()) {
+      state |= NS_EVENT_STATE_MOZ_UI_VALID;
     }
   }
 

@@ -61,6 +61,7 @@
 #include "nsCheapSets.h"
 #include "nsLayoutErrors.h"
 #include "nsHTMLOptionElement.h"
+#include "nsHTMLFormElement.h"
 
 class nsHTMLSelectElement;
 
@@ -267,6 +268,7 @@ public:
 
   
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
+  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor);
 
   virtual PRBool IsHTMLFocusable(PRBool aWithMouse, PRBool *aIsFocusable, PRInt32 *aTabIndex);
   virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
@@ -514,6 +516,39 @@ protected:
   void SetSelectionChanged(PRBool aValue, PRBool aNotify);
 
   
+
+
+
+
+
+
+  bool ShouldShowInvalidUI() const {
+    NS_ASSERTION(!IsValid(), "You should not call ShouldShowInvalidUI if the "
+                             "element is valid!");
+
+    
+
+
+
+
+
+
+    return mSelectionHasChanged ||
+           (mForm && mForm->HasEverTriedInvalidSubmit()) ||
+           GetValidityState(VALIDITY_STATE_CUSTOM_ERROR);
+  }
+
+  
+
+
+
+
+
+  bool ShouldShowValidUI() const {
+    return mSelectionHasChanged ||
+           (mForm && mForm->HasEverTriedInvalidSubmit());
+  }
+  
   nsRefPtr<nsHTMLOptionCollection> mOptions;
   
   PRPackedBool    mIsDoneAddingChildren;
@@ -535,6 +570,14 @@ protected:
 
 
   PRPackedBool    mDefaultSelectionSet;
+  
+
+
+  PRPackedBool    mCanShowInvalidUI;
+  
+
+
+  PRPackedBool    mCanShowValidUI;
 
   
   PRUint32  mNonOptionChildren;
