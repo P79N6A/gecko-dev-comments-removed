@@ -750,21 +750,6 @@ public class PanZoomController
 
         
         public void advanceFling() {
-            switch (mFlingState) {
-            case FLINGING:
-                scroll();
-                return;
-            case WAITING_TO_SNAP:
-                
-                return;
-            case SNAPPING:
-                snap();
-                return;
-            }
-        }
-
-        
-        private void scroll() {
             
             float excess = getExcess();
             if (disableSnap || FloatUtils.fuzzyEquals(excess, 0.0f)) {
@@ -787,46 +772,6 @@ public class PanZoomController
                 velocity = 0.0f;
                 setFlingState(FlingStates.WAITING_TO_SNAP);
             }
-        }
-
-        
-        public void startSnap() {
-            switch (getOverscroll()) {
-            case MINUS:
-                mSnapFrame = 0;
-                mSnapEndPos = getExcess();
-                break;
-            case PLUS:
-                mSnapFrame = 0;
-                mSnapEndPos = -getExcess();
-                break;
-            default:
-                
-                setFlingState(FlingStates.STOPPED);
-                return;
-            }
-
-            displacement = 0;
-            mSnapPos = 0.0f;
-            setFlingState(FlingStates.SNAPPING);
-        }
-
-        
-        private void snap() {
-            mSnapFrame++;
-            if (mSnapFrame == EASE_OUT_ANIMATION_FRAMES.length) {
-                mSnapFrame = -1;
-                displacement += mSnapEndPos - mSnapPos;
-                mSnapPos = mSnapEndPos;
-
-                setFlingState(FlingStates.STOPPED);
-                return;
-            }
-
-            float t = EASE_OUT_ANIMATION_FRAMES[mSnapFrame];
-            float newSnapPos = FloatUtils.interpolate(0.0f, mSnapEndPos, t);
-            displacement += newSnapPos - mSnapPos;
-            mSnapPos = newSnapPos;
         }
 
         
