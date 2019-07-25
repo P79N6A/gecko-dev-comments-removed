@@ -63,8 +63,11 @@ class nsIDOMCSSStyleDeclaration;
 namespace mozilla {
 namespace css {
 class StyleRule;
-}
-}
+} 
+namespace widget {
+struct IMEState;
+} 
+} 
 
 enum nsLinkState {
   eLinkState_Unknown    = 0,
@@ -75,8 +78,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID \
-{ 0x3128b3a0, 0xb609, 0x44e3, \
-  { 0xad, 0x91, 0xdc, 0xf1, 0x4a, 0x3f, 0xf6, 0xa0 } }
+{ 0xed40a3e5, 0xd7ed, 0x473e, \
+ { 0x85, 0xe3, 0x82, 0xc3, 0xf0, 0x41, 0xdb, 0x52 } }
 
 
 
@@ -84,6 +87,8 @@ enum nsLinkState {
 
 class nsIContent : public nsINode {
 public:
+  typedef mozilla::widget::IMEState IMEState;
+
 #ifdef MOZILLA_INTERNAL_API
   
   
@@ -615,29 +620,7 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-  enum {
-    IME_STATUS_NONE     = 0x0000,
-    IME_STATUS_ENABLE   = 0x0001,
-    IME_STATUS_DISABLE  = 0x0002,
-    IME_STATUS_PASSWORD = 0x0004,
-    IME_STATUS_PLUGIN   = 0x0008,
-    IME_STATUS_OPEN     = 0x0010,
-    IME_STATUS_CLOSE    = 0x0020
-  };
-  enum {
-    IME_STATUS_MASK_ENABLED = IME_STATUS_ENABLE | IME_STATUS_DISABLE |
-                              IME_STATUS_PASSWORD | IME_STATUS_PLUGIN,
-    IME_STATUS_MASK_OPENED  = IME_STATUS_OPEN | IME_STATUS_CLOSE
-  };
-  virtual PRUint32 GetDesiredIMEState();
+  virtual IMEState GetDesiredIMEState();
 
   
 

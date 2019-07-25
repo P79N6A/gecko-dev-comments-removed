@@ -95,18 +95,18 @@ public:
   
   
   
-  
-  
-  static void UpdateIMEState(PRUint32 aNewIMEState, nsIContent* aContent);
+  static void UpdateIMEState(const IMEState &aNewIMEState,
+                             nsIContent* aContent);
 
 protected:
   static nsresult OnChangeFocusInternal(nsPresContext* aPresContext,
                                         nsIContent* aContent,
                                         InputContextAction aAction);
-  static void SetIMEState(PRUint32 aState, nsIContent* aContent,
+  static void SetIMEState(const IMEState &aState,
+                          nsIContent* aContent,
                           nsIWidget* aWidget,
                           InputContextAction aAction);
-  static PRUint32 GetNewIMEState(nsPresContext* aPresContext,
+  static IMEState GetNewIMEState(nsPresContext* aPresContext,
                                  nsIContent* aContent);
 
   static nsIWidget* GetWidget(nsPresContext* aPresContext);

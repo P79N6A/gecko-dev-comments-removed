@@ -84,6 +84,12 @@ class nsIRangeUtils;
 class nsILinkHandler;
 struct PropItem;
 
+namespace mozilla {
+namespace widget {
+struct IMEState;
+} 
+} 
+
 
 
 
@@ -161,7 +167,7 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
   
-  NS_IMETHOD GetPreferredIMEState(PRUint32 *aState);
+  NS_IMETHOD GetPreferredIMEState(mozilla::widget::IMEState *aState);
 
   
 
