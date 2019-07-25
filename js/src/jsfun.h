@@ -432,6 +432,21 @@ GetFunctionNameBytes(JSContext *cx, JSFunction *fun, JSAutoByteString *bytes)
 extern JS_FRIEND_API(bool)
 IsBuiltinFunctionConstructor(JSFunction *fun);
 
+
+
+
+
+
+
+
+
+
+
+
+
+const Shape *
+LookupInterpretedFunctionPrototype(JSContext *cx, JSObject *funobj);
+
 } 
 
 extern JSString *

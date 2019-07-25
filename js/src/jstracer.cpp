@@ -10483,13 +10483,6 @@ TraceRecorder::record_EnterFrame()
         RETURN_STOP_A("recursion started inlining");
     }
 
-    if (fp->isConstructing()) {
-        LIns* args[] = { callee_ins, w.nameImmpNonGC(&js_ObjectClass), cx_ins };
-        LIns* tv_ins = w.call(&js_CreateThisFromTrace_ci, args);
-        guard(false, w.eqp0(tv_ins), OOM_EXIT);
-        set(&fp->thisValue(), tv_ins);
-    }
-
     return ARECORD_CONTINUE;
 }
 
@@ -11440,7 +11433,8 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
 
     Value* vp = &stackval(0 - (2 + argc));
     JSObject* funobj = &vp[0].toObject();
-    JSFunction* fun = GET_FUNCTION_PRIVATE(cx, funobj);
+    JSFunction* fun = funobj->getFunctionPrivate();
+    JS_ASSERT(fun->isNative());
     Native native = fun->u.n.native;
 
     switch (argc) {
@@ -11625,30 +11619,15 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
         if (!clasp->isNative())
             RETURN_STOP("new with non-native ops");
 
-        if (fun->isConstructor()) {
-            vp[1].setMagicWithObjectOrNullPayload(NULL);
-            newobj_ins = w.immpMagicNull();
+        
+        if (!fun->isConstructor())
+            RETURN_STOP("new with non-constructor native function");
 
-            
-            mode = JSOP_CALL;
-        } else {
-            args[0] = w.immpObjGC(funobj);
-            args[1] = w.immpNonGC(clasp);
-            args[2] = cx_ins;
-            newobj_ins = w.call(&js_CreateThisFromTrace_ci, args);
-            guard(false, w.eqp0(newobj_ins), OOM_EXIT);
+        vp[1].setMagicWithObjectOrNullPayload(NULL);
+        newobj_ins = w.immpMagicNull();
 
-            
-
-
-
-
-
-
-
-
-            vp[1].setObject(*globalObj);
-        }
+        
+        mode = JSOP_CALL;
         this_ins = newobj_ins;
     } else {
         this_ins = get(&vp[1]);
@@ -13742,6 +13721,42 @@ TraceRecorder::guardArguments(JSObject *obj, LIns* obj_ins, unsigned *depthp)
 }
 
 JS_REQUIRES_STACK RecordingStatus
+TraceRecorder::createThis(JSObject& ctor, LIns* ctor_ins, LIns** thisobj_insp)
+{
+    JS_ASSERT(ctor.getFunctionPrivate()->isInterpreted());
+    if (ctor.getFunctionPrivate()->isFunctionPrototype())
+        RETURN_STOP("new Function.prototype");
+    if (ctor.isBoundFunction())
+        RETURN_STOP("new applied to bound function");
+
+    
+    
+    jsid id = ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom);
+    const Shape *shape = LookupInterpretedFunctionPrototype(cx, &ctor);
+    if (!shape)
+        RETURN_ERROR("new f: error resolving f.prototype");
+
+    
+    
+    
+    
+    
+    
+    
+    if (!ctor_ins->isImmP())
+        guardShape(ctor_ins, &ctor, ctor.shape(), "ctor_shape", snapshot(MISMATCH_EXIT));
+
+    
+    
+    
+    uintN protoSlot = shape->slot;
+    LIns* args[] = { w.nameImmw(protoSlot), ctor_ins, cx_ins };
+    *thisobj_insp = w.call(&js_CreateThisFromTrace_ci, args);
+    guard(false, w.eqp0(*thisobj_insp), OOM_EXIT);
+    return RECORD_CONTINUE;
+}
+
+JS_REQUIRES_STACK RecordingStatus
 TraceRecorder::interpretedFunctionCall(Value& fval, JSFunction* fun, uintN argc, bool constructing)
 {
     
@@ -13752,14 +13767,10 @@ TraceRecorder::interpretedFunctionCall(Value& fval, JSFunction* fun, uintN argc,
 
     if (fun->script()->isEmpty()) {
         LIns* rval_ins;
-        if (constructing) {
-            LIns* args[] = { get(&fval), w.nameImmpNonGC(&js_ObjectClass), cx_ins };
-            LIns* tv_ins = w.call(&js_CreateThisFromTrace_ci, args);
-            guard(false, w.eqp0(tv_ins), OOM_EXIT);
-            rval_ins = tv_ins;
-        } else {
+        if (constructing)
+            CHECK_STATUS(createThis(fval.toObject(), get(&fval), &rval_ins));
+        else
             rval_ins = w.immiUndefined();
-        }
         stack(-2 - argc, rval_ins);
         return RECORD_CONTINUE;
     }
@@ -13768,6 +13779,12 @@ TraceRecorder::interpretedFunctionCall(Value& fval, JSFunction* fun, uintN argc,
         RETURN_STOP("JSOP_CALL or JSOP_NEW crosses global scopes");
 
     JSStackFrame* const fp = cx->fp();
+
+    if (constructing) {
+        LIns* thisobj_ins;
+        CHECK_STATUS(createThis(fval.toObject(), get(&fval), &thisobj_ins));
+        stack(-argc - 1, thisobj_ins);
+    }
 
     
     unsigned stackSlots = NativeStackSlots(cx, 0 );

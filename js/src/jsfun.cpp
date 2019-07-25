@@ -1704,6 +1704,46 @@ fun_enumerate(JSContext *cx, JSObject *obj)
     return true;
 }
 
+static JSObject *
+ResolveInterpretedFunctionPrototype(JSContext *cx, JSObject *obj)
+{
+    JSFunction *fun = obj->getFunctionPrivate();
+    JS_ASSERT(fun->isInterpreted());
+    JS_ASSERT(!fun->isFunctionPrototype());
+
+    
+
+
+
+
+    JS_ASSERT(!IsInternalFunctionObject(obj));
+    JS_ASSERT(!obj->isBoundFunction());
+
+    
+
+
+
+    JSObject *parent = obj->getParent();
+    JSObject *proto;
+    if (!js_GetClassPrototype(cx, parent, JSProto_Object, &proto))
+        return NULL;
+    proto = NewNativeClassInstance(cx, &js_ObjectClass, proto, parent);
+    if (!proto)
+        return NULL;
+
+    
+
+
+
+
+
+
+
+    if (!js_SetClassPrototype(cx, obj, proto, JSPROP_PERMANENT))
+        return NULL;
+    return proto;
+}
+
 static JSBool
 fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
             JSObject **objp)
@@ -1730,36 +1770,8 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         if (fun->isNative() || fun->isFunctionPrototype())
             return true;
 
-        
-
-
-
-
-        JS_ASSERT(!IsInternalFunctionObject(obj));
-        JS_ASSERT(!obj->isBoundFunction());
-
-        
-
-
-
-        JSObject *parent = obj->getParent();
-        JSObject *proto;
-        if (!js_GetClassPrototype(cx, parent, JSProto_Object, &proto))
+        if (!ResolveInterpretedFunctionPrototype(cx, obj))
             return false;
-        proto = NewNativeClassInstance(cx, &js_ObjectClass, proto, parent);
-        if (!proto)
-            return false;
-
-        
-
-
-
-
-
-
-        if (!js_SetClassPrototype(cx, obj, proto, JSPROP_PERMANENT))
-            return false;
-
         *objp = obj;
         return true;
     }
@@ -2628,6 +2640,28 @@ JS_FRIEND_API(bool)
 IsBuiltinFunctionConstructor(JSFunction *fun)
 {
     return fun->maybeNative() == Function;
+}
+
+const Shape *
+LookupInterpretedFunctionPrototype(JSContext *cx, JSObject *funobj)
+{
+    JSFunction *fun = funobj->getFunctionPrivate();
+    JS_ASSERT(fun->isInterpreted());
+    JS_ASSERT(!fun->isFunctionPrototype());
+    JS_ASSERT(!funobj->isBoundFunction());
+
+    jsid id = ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom);
+    const Shape *shape = funobj->nativeLookup(id);
+    if (!shape) {
+        if (!ResolveInterpretedFunctionPrototype(cx, funobj))
+            return false;
+        shape = funobj->nativeLookup(id);
+    }
+    JS_ASSERT(!shape->configurable());
+    JS_ASSERT(shape->isDataDescriptor());
+    JS_ASSERT(shape->hasSlot());
+    JS_ASSERT(!shape->isMethod());
+    return shape;
 }
 
 }
