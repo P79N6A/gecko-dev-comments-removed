@@ -766,6 +766,10 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   if (!gExceptionHandler)
     return NS_ERROR_OUT_OF_MEMORY;
 
+#ifdef XP_WIN
+  gExceptionHandler->set_handle_debug_exceptions(true);
+#endif
+
   
   char timeString[32];
   time_t startupTime = time(NULL);
@@ -1864,6 +1868,9 @@ SetRemoteExceptionHandler(const nsACString& crashPipe)
                      MiniDumpNormal,
                      NS_ConvertASCIItoUTF16(crashPipe).BeginReading(),
                      NULL);
+#ifdef XP_WIN
+  gExceptionHandler->set_handle_debug_exceptions(true);
+#endif
 
   
   return gExceptionHandler->IsOutOfProcess();
