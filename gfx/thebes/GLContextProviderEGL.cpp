@@ -1643,7 +1643,6 @@ public:
         }
 
         mBackingSurface = xsurface;
-        mIsRGBFormat = PR_TRUE;
 #endif
 
         return mBackingSurface != nsnull;
