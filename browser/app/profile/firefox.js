@@ -89,6 +89,11 @@ pref("app.update.timer", 600000);
 
 
 
+
+
+pref("app.update.altwindowtype", "Browser:About");
+
+
 pref("app.update.log", false);
 
 

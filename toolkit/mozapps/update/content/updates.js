@@ -1728,15 +1728,21 @@ var gFinishedPage = {
     gUpdates.wiz.getButton("extra1").disabled = true;
 
     
-    var os = CoC["@mozilla.org/observer-service;1"].
-             getService(CoI.nsIObserverService);
     var cancelQuit = CoC["@mozilla.org/supports-PRBool;1"].
                      createInstance(CoI.nsISupportsPRBool);
-    os.notifyObservers(cancelQuit, "quit-application-requested", "restart");
+    Services.obs.notifyObservers(cancelQuit, "quit-application-requested",
+                                 "restart");
 
     
     if (cancelQuit.data)
       return;
+
+    
+    if (Services.appinfo.inSafeMode) {
+      let env = CoC["@mozilla.org/process/environment;1"].
+                getService(CoI.nsIEnvironment);
+      env.set("MOZ_SAFE_MODE_RESTART", "1");
+    }
 
     
     CoC["@mozilla.org/toolkit/app-startup;1"].getService(CoI.nsIAppStartup).
