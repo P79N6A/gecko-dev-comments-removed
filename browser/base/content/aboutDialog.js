@@ -371,6 +371,15 @@ appUpdater.prototype =
       aAddons.forEach(function(aAddon) {
         
         
+        if (!("isCompatibleWith" in aAddon) || !("findUpdates" in aAddon)) {
+          let errMsg = "Add-on doesn't implement either the isCompatibleWith " +
+                       "or the findUpdates method!";
+          if (aAddon.id)
+            errMsg += " Add-on ID: " + aAddon.id;
+          Components.utils.reportError(errMsg);
+          return;
+        }
+
         
         
         
@@ -378,13 +387,20 @@ appUpdater.prototype =
         
         
         
-        if (aAddon.type != "plugin" &&
-            !aAddon.appDisabled && !aAddon.userDisabled &&
-            aAddon.scope != AddonManager.SCOPE_APPLICATION &&
-            aAddon.isCompatible &&
-            !aAddon.isCompatibleWith(self.update.appVersion,
-                                     self.update.platformVersion))
-          self.addons.push(aAddon);
+        
+        
+        try {
+          if (aAddon.type != "plugin" &&
+              !aAddon.appDisabled && !aAddon.userDisabled &&
+              aAddon.scope != AddonManager.SCOPE_APPLICATION &&
+              aAddon.isCompatible &&
+              !aAddon.isCompatibleWith(self.update.appVersion,
+                                       self.update.platformVersion))
+            self.addons.push(aAddon);
+        }
+        catch (e) {
+          Components.utils.reportError(e);
+        }
       });
       self.addonsTotalCount = self.addons.length;
       if (self.addonsTotalCount == 0) {

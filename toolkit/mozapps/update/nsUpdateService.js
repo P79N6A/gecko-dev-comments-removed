@@ -1517,6 +1517,15 @@ UpdateService.prototype = {
       addons.forEach(function(addon) {
         
         
+        if (!("isCompatibleWith" in addon) || !("findUpdates" in addon)) {
+          let errMsg = "Add-on doesn't implement either the isCompatibleWith " +
+                       "or the findUpdates method!";
+          if (addon.id)
+            errMsg += " Add-on ID: " + addon.id;
+          Components.utils.reportError(errMsg);
+          return;
+        }
+
         
         
         
@@ -1524,13 +1533,20 @@ UpdateService.prototype = {
         
         
         
-        if (addon.type != "plugin" &&
-            !addon.appDisabled && !addon.userDisabled &&
-            addon.scope != AddonManager.SCOPE_APPLICATION &&
-            addon.isCompatible &&
-            !addon.isCompatibleWith(self._update.appVersion,
-                                    self._update.platformVersion))
-          self._incompatibleAddons.push(addon);
+        
+        
+        try {
+          if (addon.type != "plugin" &&
+              !addon.appDisabled && !addon.userDisabled &&
+              addon.scope != AddonManager.SCOPE_APPLICATION &&
+              addon.isCompatible &&
+              !addon.isCompatibleWith(self._update.appVersion,
+                                      self._update.platformVersion))
+            self._incompatibleAddons.push(addon);
+        }
+        catch (e) {
+          Components.utils.reportError(e);
+        }
       });
 
       if (self._incompatibleAddons.length > 0) {

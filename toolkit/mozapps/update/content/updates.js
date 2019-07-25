@@ -527,6 +527,15 @@ var gUpdates = {
       addons.forEach(function(addon) {
         
         
+        if (!("isCompatibleWith" in addon) || !("findUpdates" in addon)) {
+          let errMsg = "Add-on doesn't implement either the isCompatibleWith " +
+                       "or the findUpdates method!";
+          if (addon.id)
+            errMsg += " Add-on ID: " + addon.id;
+          Components.utils.reportError(errMsg);
+          return;
+        }
+
         
         
         
@@ -534,13 +543,20 @@ var gUpdates = {
         
         
         
-        if (addon.type != "plugin" &&
-            !addon.appDisabled && !addon.userDisabled &&
-            addon.scope != AddonManager.SCOPE_APPLICATION &&
-            addon.isCompatible &&
-            !addon.isCompatibleWith(self.update.appVersion,
-                                    self.update.platformVersion))
-          self.addons.push(addon);
+        
+        
+        try {
+          if (addon.type != "plugin" &&
+              !addon.appDisabled && !addon.userDisabled &&
+              addon.scope != AddonManager.SCOPE_APPLICATION &&
+              addon.isCompatible &&
+              !addon.isCompatibleWith(self.update.appVersion,
+                                      self.update.platformVersion))
+            self.addons.push(addon);
+        }
+        catch (e) {
+          Components.utils.reportError(e);
+        }
       });
 
       aCallback(self.addons.length != 0);
