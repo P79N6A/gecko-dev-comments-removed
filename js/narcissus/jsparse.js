@@ -43,10 +43,15 @@
 
 
 
+
+
 function CompilerContext(inFunction) {
     this.inFunction = inFunction;
+    
+    
     this.stmtStack = [];
     this.funDecls = [];
+    
     this.varDecls = [];
 }
 
@@ -59,11 +64,15 @@ CompilerContext.prototype = {
     inForLoopInit: false,
 };
 
+
+
 function Script(t, x) {
     var n = Statements(t, x);
     n.type = SCRIPT;
     n.funDecls = x.funDecls;
-    n.varDecls = x.varDecls;
+    
+    n.varDecls = n.varDecls || [];
+    Array.prototype.push.apply(n.varDecls, x.varDecls);
     return n;
 }
 
@@ -73,18 +82,21 @@ defineProperty(Array.prototype, "top",
                    return this.length && this[this.length-1];
                }, false, false, true);
 
+
 function Node(t, type) {
     var token = t.token;
     if (token) {
         this.type = type || token.type;
         this.value = token.value;
         this.lineno = token.lineno;
+        
         this.start = token.start;
         this.end = token.end;
     } else {
         this.type = type;
         this.lineno = t.lineno;
     }
+    
     this.tokenizer = t;
 
     for (var i = 2; i < arguments.length; i++)
@@ -97,10 +109,12 @@ Np.toSource = Object.prototype.toSource;
 
 
 Np.push = function (kid) {
-    if (kid.start < this.start)
-        this.start = kid.start;
-    if (this.end < kid.end)
-        this.end = kid.end;
+    if (kid !== null) { 
+        if (kid.start < this.start)
+            this.start = kid.start;
+        if (this.end < kid.end)
+            this.end = kid.end;
+    }
     return Array.prototype.push.call(this, kid);
 }
 
@@ -154,6 +168,8 @@ function nest(t, x, node, func, end) {
     return n;
 }
 
+
+
 function Statements(t, x) {
     var n = new Node(t, BLOCK);
     x.stmtStack.push(n);
@@ -172,13 +188,28 @@ function Block(t, x) {
 
 const DECLARED_FORM = 0, EXPRESSED_FORM = 1, STATEMENT_FORM = 2;
 
+
+
 function Statement(t, x) {
     var i, label, n, n2, ss, tt = t.get();
 
     
     
     switch (tt) {
+      case LET:
+        n = LetForm(t, x, STATEMENT_FORM);
+        if (n.type === LET_STM)
+            return n;
+        if (n.type === LET_EXP) {
+            n2 = new Node(t, SEMICOLON);
+            n2.expression = n;
+            n = n2;
+            n.end = n.expression.end;
+        }
+        break;
+
       case FUNCTION:
+        
         return FunctionDefinition(t, x, true,
                                   (x.stmtStack.length > 1)
                                   ? STATEMENT_FORM
@@ -199,10 +230,10 @@ function Statement(t, x) {
         return n;
 
       case SWITCH:
+        
         n = new Node(t);
-        t.mustMatch(LEFT_PAREN);
-        n.discriminant = Expression(t, x);
-        t.mustMatch(RIGHT_PAREN);
+
+        n.discriminant = ParenExpression(t, x);
         n.cases = [];
         n.defaultIndex = -1;
         x.stmtStack.push(n);
@@ -235,34 +266,51 @@ function Statement(t, x) {
       case FOR:
         n = new Node(t);
         n.isLoop = true;
+        if (t.match(IDENTIFIER)) {
+            if (t.token.value !== "each")
+                throw t.newSyntaxError("Illegal identifier after for");
+            else
+                n.foreach = true;
+        }
         t.mustMatch(LEFT_PAREN);
         if ((tt = t.peek()) != SEMICOLON) {
             x.inForLoopInit = true;
-            if (tt == VAR || tt == CONST) {
+            switch (tt) {
+              case VAR: case CONST:
                 t.get();
                 n2 = Variables(t, x);
-            } else {
+                break;
+              case LET:
+                t.get();
+                n2 = Variables(t, x, "local decls");
+                
+                n.varDecls = [];
+                for (var i = 0, len = n2.length, vdecls = n.varDecls; i < len; i++)
+                    vdecls.push(n2[i]);
+                break;
+              default:
                 n2 = Expression(t, x);
+                break;
             }
             x.inForLoopInit = false;
         }
-        if (n2 && t.match(IN)) {
+        if (n2 && t.match(IN)) { 
+            var n2t = n2.type,
+                se = t.newSyntaxError("Invalid for..in left-hand side");
             n.type = FOR_IN;
-            if (n2.type == VAR) {
-                if (n2.length != 1) {
-                    throw new SyntaxError("Invalid for..in left-hand side",
-                                          t.filename, n2.lineno);
-                }
-
-                
+            if (n2t === VAR || n2t === LET) {
+                if (n2.length != 1) throw se;
                 n.iterator = n2[0];
                 n.varDecl = n2;
+            } else if (n2t !== IDENTIFIER) {
+                throw se;
             } else {
                 n.iterator = n2;
                 n.varDecl = null;
             }
             n.object = Expression(t, x);
-        } else {
+        } else { 
+            if (n.foreach) throw t.newSyntaxError("Illegal for-each syntax");
             n.setup = n2 || null;
             t.mustMatch(SEMICOLON);
             n.condition = (t.peek() == SEMICOLON) ? null : Expression(t, x);
@@ -316,7 +364,6 @@ function Statement(t, x) {
 
 
 
-
             while (i < ss.length - 1 && ss[i+1].type == LABEL)
                 i++;
             if (i < ss.length - 1 && ss[i+1].isLoop)
@@ -332,7 +379,7 @@ function Statement(t, x) {
                 }
             } while (!ss[i].isLoop && !(tt == BREAK && ss[i].type == SWITCH));
         }
-        n.target = ss[i];
+        n.target = ss[i]; 
         break;
 
       case TRY:
@@ -386,7 +433,8 @@ function Statement(t, x) {
         n.body = nest(t, x, n, Statement);
         return n;
 
-      case VAR:
+
+      case VAR: 
       case CONST:
         n = Variables(t, x);
         break;
@@ -406,6 +454,7 @@ function Statement(t, x) {
             t.scanOperand = false;
             tt = t.peek();
             t.scanOperand = true;
+            
             if (tt == COLON) {
                 label = t.token.value;
                 ss = x.stmtStack;
@@ -420,7 +469,8 @@ function Statement(t, x) {
                 return n;
             }
         }
-
+        
+        
         n = new Node(t, SEMICOLON);
         t.unget();
         n.expression = Expression(t, x);
@@ -428,6 +478,7 @@ function Statement(t, x) {
         break;
     }
 
+    
     if (t.lineno == t.token.lineno) {
         tt = t.peekOnSameLine();
         if (tt != END && tt != NEWLINE && tt != SEMICOLON && tt != RIGHT_CURLY)
@@ -436,6 +487,8 @@ function Statement(t, x) {
     t.match(SEMICOLON);
     return n;
 }
+
+
 
 function FunctionDefinition(t, x, requireName, functionForm) {
     var f = new Node(t);
@@ -457,10 +510,13 @@ function FunctionDefinition(t, x, requireName, functionForm) {
             t.mustMatch(COMMA);
     }
 
-    t.mustMatch(LEFT_CURLY);
-    var x2 = new CompilerContext(true);
-    f.body = Script(t, x2);
-    t.mustMatch(RIGHT_CURLY);
+    if (t.match(LEFT_CURLY)) {
+        var x2 = new CompilerContext(true);
+        f.body = Script(t, x2);
+        t.mustMatch(RIGHT_CURLY);
+    } else { 
+        f.body = Expression(t, x, COMMA);
+    }
     f.end = t.token.end;
 
     f.functionForm = functionForm;
@@ -469,12 +525,19 @@ function FunctionDefinition(t, x, requireName, functionForm) {
     return f;
 }
 
+
+
 function Variables(t, x) {
-    var n = new Node(t);
+    var n = new Node(t), tt, n2;
     do {
-        t.mustMatch(IDENTIFIER);
-        var n2 = new Node(t);
-        n2.name = n2.value;
+        tt = t.peek();
+        if (tt === LEFT_CURLY || tt === LEFT_BRACKET) {
+            n2 = Expression(t, x); 
+        } else {
+            t.mustMatch(IDENTIFIER);
+            n2 = new Node(t);
+            n2.name = n2.value;
+        }
         if (t.match(ASSIGN)) {
             if (t.token.assignOp)
                 throw t.newSyntaxError("Invalid variable initialization");
@@ -482,10 +545,51 @@ function Variables(t, x) {
         }
         n2.readOnly = (n.type == CONST);
         n.push(n2);
-        x.varDecls.push(n2);
+        
+        if (arguments[2] !== "local decls") x.varDecls.push(n2);
     } while (t.match(COMMA));
     return n;
 }
+
+
+
+function LetForm(t, x, form) {
+    var i, n, n2, s, ss, hasLeftParen;
+
+    n = new Node(t);
+    hasLeftParen = t.match(LEFT_PAREN);
+    n2 = Variables(t, x, "local decls");
+    if (hasLeftParen) {
+        t.mustMatch(RIGHT_PAREN);
+        n.varDecls = [];
+        for (i = 0; i < n2.length; i++)
+            n.varDecls.push(n2[i]);
+        if (form === STATEMENT_FORM && t.peek() === RIGHT_CURLY) {
+            n.type = LET_STM;
+            n.body = nest(t, x, n, Block);
+        } else {
+            n.type = LET_EXP;
+            n.body = Expression(t, x, COMMA);
+        }
+    } else if (form === EXPRESSED_FORM) {
+        throw t.newSyntaxError("Let-definition used as expression.");
+    } else {
+        n.type = LET_DEF;
+        
+        ss = x.stmtStack;
+        i = ss.length;
+        while (ss[--i].type !== BLOCK) ; 
+        s = ss[i];
+        s.varDecls = s.varDecls || [];
+        n.varDecls = [];
+        for (i = 0; i < n2.length; i++) {
+            s.varDecls.push(n2[i]); 
+            n.varDecls.push(n2[i]); 
+        }
+    }
+    return n;
+}
+
 
 function ParenExpression(t, x) {
     t.mustMatch(LEFT_PAREN);
@@ -545,11 +649,18 @@ var opArity = {
 for (i in opArity)
     opArity[tokenIds[i]] = opArity[i];
 
+
+
+
 function Expression(t, x, stop) {
     var n, id, tt, operators = [], operands = [];
     var bl = x.bracketLevel, cl = x.curlyLevel, pl = x.parenLevel,
         hl = x.hookLevel;
 
+    
+    
+    
+    
     function reduce() {
         var n = operators.pop();
         var op = n.type;
@@ -578,7 +689,12 @@ function Expression(t, x, stop) {
         return n;
     }
 
-loop:
+    
+    
+    
+    
+
+    loop: 
     while ((tt = t.get()) != END) {
         if (tt == stop &&
             x.bracketLevel == bl && x.curlyLevel == cl && x.parenLevel == pl &&
@@ -592,11 +708,23 @@ loop:
             
             break loop;
 
+          case LET: 
+            
+            if (!t.scanOperand) break loop;
+            operands.push(LetForm(t, x, EXPRESSED_FORM));
+            t.scanOperand = false;
+            break;
+
           case ASSIGN:
+          
+          
+          
           case HOOK:
           case COLON:
             if (t.scanOperand)
                 break loop;
+
+            
             
             while (opPrecedence[operators.top().type] > opPrecedence[tt] ||
                    (tt == COLON && operators.top().type == ASSIGN)) {
@@ -655,11 +783,14 @@ loop:
             }
             break;
 
+          case YIELD:
+            if (!x.inFunction) throw t.newSyntaxError("yield not in function");
+            
+
           case DELETE: case VOID: case TYPEOF:
           case NOT: case BITWISE_NOT: case UNARY_PLUS: case UNARY_MINUS:
           case NEW:
-            if (!t.scanOperand)
-                break loop;
+            if (!t.scanOperand) break loop;
             operators.push(new Node(t));
             break;
 
@@ -683,16 +814,20 @@ loop:
             break;
 
           case FUNCTION:
-            if (!t.scanOperand)
-                break loop;
+            if (!t.scanOperand) break loop;
             operands.push(FunctionDefinition(t, x, false, EXPRESSED_FORM));
             t.scanOperand = false;
             break;
 
-          case NULL: case THIS: case TRUE: case FALSE:
-          case IDENTIFIER: case NUMBER: case STRING: case REGEXP:
-            if (!t.scanOperand)
-                break loop;
+          case NULL:
+          case THIS:
+          case TRUE:
+          case FALSE:
+          case IDENTIFIER:
+          case NUMBER:
+          case STRING:
+          case REGEXP:
+            if (!t.scanOperand) break loop;
             operands.push(new Node(t));
             t.scanOperand = false;
             break;
@@ -701,16 +836,43 @@ loop:
             if (t.scanOperand) {
                 
                 
+                var fi, iter, elms, x2;
                 n = new Node(t, ARRAY_INIT);
+                elms = 0
                 while ((tt = t.peek()) != RIGHT_BRACKET) {
+                    elms++;
                     if (tt == COMMA) {
                         t.get();
                         n.push(null);
                         continue;
                     }
                     n.push(Expression(t, x, COMMA));
-                    if (!t.match(COMMA))
+                    if (t.match(FOR)) { 
+                        if (elms !== 1)
+                            throw t.newSyntaxError("Invalid comprehension");
+                        fi = new Node(t, FOR_IN);
+                        if (t.match(IDENTIFIER)) {
+                            if (t.token.value !== "each")
+                                throw t.newSyntaxError("Invalid comprehension");
+                            else
+                                n.foreach = true;
+                        }
+                        t.mustMatch(LEFT_PAREN);
+                        
+                        
+                        x2 = new CompilerContext(x.inFunction);
+                        x2.inForLoopInit = true;
+                        iter = Expression(t, x2);
+                        if (iter.type !== IDENTIFIER)
+                            throw t.newSyntaxError("Invalid comprehension");
+                        fi.iterator = iter;
+                        t.mustMatch(IN);
+                        fi.object = Expression(t, x);
+                        t.mustMatch(RIGHT_PAREN);
+                        if (t.match(IF)) fi.condition = Expression(t, x);
                         break;
+                    }
+                    if (!t.match(COMMA)) break;
                 }
                 t.mustMatch(RIGHT_BRACKET);
                 operands.push(n);
@@ -732,8 +894,7 @@ loop:
             break;
 
           case LEFT_CURLY:
-            if (!t.scanOperand)
-                break loop;
+            if (!t.scanOperand) break loop;
             
             
             ++x.curlyLevel;
@@ -827,9 +988,9 @@ loop:
             --x.parenLevel;
             break;
 
-          
-          
-          
+            
+            
+            
           default:
             break loop;
         }
@@ -852,6 +1013,7 @@ loop:
     return operands.pop();
 }
 
+
 function parse(s, f, l) {
     var t = new Tokenizer(s, f, l);
     var x = new CompilerContext(false);
@@ -860,3 +1022,4 @@ function parse(s, f, l) {
         throw t.newSyntaxError("Syntax error");
     return n;
 }
+
