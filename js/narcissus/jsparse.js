@@ -927,6 +927,16 @@ Narcissus.parser = (function() {
 
 
     function Statements(t, x) {
+        
+
+
+
+
+
+
+
+
+
         var b = x.builder;
         var n = b.BLOCK$build(t, x.blockId++);
         b.BLOCK$hoistLets(n);
@@ -938,6 +948,9 @@ Narcissus.parser = (function() {
         if (n.needsHoisting) {
             b.setHoists(n.id, n.varDecls);
             
+
+
+
             x.needsHoisting = true;
         }
         return n;
@@ -1380,7 +1393,6 @@ Narcissus.parser = (function() {
 
 
 
-
             x2.blockId = x.blockId;
         }
 
@@ -1418,20 +1430,52 @@ Narcissus.parser = (function() {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         if (x2.needsHoisting) {
+
             
+
+
+
             b.setHoists(f.body.id, x2.varDecls.concat(x2.funDecls));
 
             if (x.inFunction) {
                 
+
+
+
                 x.needsHoisting = true;
             } else {
                 
-                var x3 = x2;
                 x2 = new StaticContext(true, b);
                 t.rewind(rp);
                 
-                
+
+
+
                 b.secondPass = true;
                 b.FUNCTION$hoistVars(f.body.id, true);
                 b.FUNCTION$setBody(f, Script(t, x2));
