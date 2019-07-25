@@ -53,6 +53,8 @@ WeaveService.prototype = {
         getService(Components.interfaces.nsIObserverService);
       os.addObserver(this, "profile-after-change", true);
       break;
+   
+
     case "profile-after-change":
       Components.utils.import("resource://weave/service.js");
       Weave.Service.onStartup();
