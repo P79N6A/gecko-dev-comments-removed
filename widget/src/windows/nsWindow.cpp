@@ -6292,6 +6292,11 @@ void nsWindow::OnDestroy()
   nsWindowCE::ResetSoftKB(mWnd);
 #endif
 
+#if !defined(WINCE)
+  
+  mGesture.PanFeedbackFinalize(mWnd, PR_TRUE);
+#endif
+
   
   mWnd = NULL;
 }
