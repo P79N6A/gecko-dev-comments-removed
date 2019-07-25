@@ -43,27 +43,6 @@ Cu.import("resource://weave/engines.js");
 Cu.import("resource://weave/syncCores.js");
 Cu.import("resource://weave/stores.js");
 
-
-
-
-
-
-
-
-
-
-function _hashLoginInfo(aLogin) {
-  var loginKey = aLogin.hostname      + ":" +
-                 aLogin.formSubmitURL + ":" +
-                 aLogin.httpRealm     + ":" +
-                 aLogin.username      + ":" +
-                 aLogin.password      + ":" +
-                 aLogin.usernameField + ":" +
-                 aLogin.passwordField;
-
-  return Utils.sha1(loginKey);
-}
-
 function PasswordEngine() {
   this._init();
 }
@@ -72,50 +51,29 @@ PasswordEngine.prototype = {
   get logName() { return "PasswordEngine"; },
   get serverPrefix() { return "user-data/passwords/"; },
 
-  __core: null,
-  get _core() {
-    if (!this.__core)
-      this.__core = new PasswordSyncCore();
-    return this.__core;
-  },
-
   __store: null,
   get _store() {
     if (!this.__store)
       this.__store = new PasswordStore();
     return this.__store;
+  },
+  
+  __core: null,
+  get _core() {
+    if (!this.__core)
+      this.__core = new PasswordSyncCore(this._store);
+    return this.__core;
   }
 };
 PasswordEngine.prototype.__proto__ = new Engine();
 
-function PasswordSyncCore() {
+function PasswordSyncCore(store) {
+  this._store = store;
   this._init();
 }
 PasswordSyncCore.prototype = {
   _logName: "PasswordSync",
-
-  __loginManager : null,
-  get _loginManager() {
-    if (!this.__loginManager)
-      this.__loginManager = Utils.getLoginManager();
-    return this.__loginManager;
-  },
-
-  _itemExists: function PSC__itemExists(GUID) {
-    var found = false;
-    var logins = this._loginManager.getAllLogins({});
-
-    
-    
-    
-    for (var i = 0; i < logins.length && !found; i++) {
-        var hash = _hashLoginInfo(logins[i]);
-        if (hash == GUID)
-            found = true;;
-    }
-
-    return found;
-  },
+  _store: null,
 
   _commandLike: function PSC_commandLike(a, b) {
     
@@ -129,19 +87,41 @@ function PasswordStore() {
 }
 PasswordStore.prototype = {
   _logName: "PasswordStore",
+  _lookup: null,
 
-  __loginManager : null,
+  __loginManager: null,
   get _loginManager() {
     if (!this.__loginManager)
       this.__loginManager = Utils.getLoginManager();
     return this.__loginManager;
   },
 
-  __nsLoginInfo : null,
+  __nsLoginInfo: null,
   get _nsLoginInfo() {
     if (!this.__nsLoginInfo)
       this.__nsLoginInfo = Utils.makeNewLoginInfo();
     return this.__nsLoginInfo;
+  },
+  
+  
+
+
+
+
+
+
+
+
+   _hashLoginInfo: function PasswordStore__hashLoginInfo(aLogin) {
+    var loginKey = aLogin.hostname      + ":" +
+                   aLogin.formSubmitURL + ":" +
+                   aLogin.httpRealm     + ":" +
+                   aLogin.username      + ":" +
+                   aLogin.password      + ":" +
+                   aLogin.usernameField + ":" +
+                   aLogin.passwordField;
+
+    return Utils.sha1(loginKey);
   },
 
   _createCommand: function PasswordStore__createCommand(command) {
@@ -160,16 +140,20 @@ PasswordStore.prototype = {
 
   _removeCommand: function PasswordStore__removeCommand(command) {
     this._log.info("PasswordStore got removeCommand: " + command );
-
-    var login = new this._nsLoginInfo(command.data.hostname,
-                                      command.data.formSubmitURL,
-                                      command.data.httpRealm,
-                                      command.data.username,
-                                      command.data.password,
-                                      command.data.usernameField,
-                                      command.data.passwordField);
-
-    this._loginManager.removeLogin(login);
+    
+    if (command.GUID in this._lookup) {
+      var data  = this._lookup[command.GUID];
+      var login = new this._nsLoginInfo(data.hostname,
+                                        data.formSubmitURL,
+                                        data.httpRealm,
+                                        data.username,
+                                        data.password,
+                                        data.usernameField,
+                                        data.passwordField);
+      this._loginManager.removeLogin(login);
+    } else {
+      this._log.warn("Invalid GUID for remove, ignoring request!");
+    }
   },
 
   _editCommand: function PasswordStore__editCommand(command) {
@@ -180,13 +164,12 @@ PasswordStore.prototype = {
   wrap: function PasswordStore_wrap() {
     
     var items = {};
-
     var logins = this._loginManager.getAllLogins({});
 
     for (var i = 0; i < logins.length; i++) {
       var login = logins[i];
 
-      var key = _hashLoginInfo(login);
+      var key = this._hashLoginInfo(login);
 
       items[key] = { hostname      : login.hostname,
                      formSubmitURL : login.formSubmitURL,
@@ -197,6 +180,7 @@ PasswordStore.prototype = {
                      passwordField : login.passwordField };
     }
 
+    this._lookup = items;
     return items;
   },
 
