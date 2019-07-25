@@ -549,6 +549,16 @@ struct MaskLayerUserData : public LayerUserData
 
 
 
+struct LayerOwnerUserData : public LayerUserData
+{
+  LayerOwnerUserData(nsIFrame* aOwnerFrame) : mOwnerFrame(aOwnerFrame) {}
+
+  nsIFrame* mOwnerFrame;
+};
+
+
+
+
 
 
 
@@ -580,6 +590,12 @@ uint8_t gLayerManagerUserData;
 
 
 uint8_t gMaskLayerUserData;
+
+
+
+
+
+uint8_t gLayerOwnerUserData;
 
 
 
@@ -695,28 +711,37 @@ FrameLayerBuilder::DidBeginRetainedLayerTransaction(LayerManager* aManager)
 
 
 void
-FrameLayerBuilder::RemoveThebesItemsForLayerSubtree(Layer* aLayer)
+FrameLayerBuilder::RemoveThebesItemsAndOwnerDataForLayerSubtree(Layer* aLayer,
+                                                                bool aRemoveThebesItems,
+                                                                bool aRemoveOwnerData)
 {
+  if (aRemoveOwnerData) {
+    
+    
+    aLayer->RemoveUserData(&gLayerOwnerUserData);
+  }
+
   ThebesLayer* thebes = aLayer->AsThebesLayer();
   if (thebes) {
-    mThebesLayerItems.RemoveEntry(thebes);
+    if (aRemoveThebesItems) {
+      mThebesLayerItems.RemoveEntry(thebes);
+    }
     return;
   }
 
   for (Layer* child = aLayer->GetFirstChild(); child;
        child = child->GetNextSibling()) {
-    RemoveThebesItemsForLayerSubtree(child);
+    RemoveThebesItemsAndOwnerDataForLayerSubtree(child, aRemoveThebesItems,
+                                                 aRemoveOwnerData);
   }
 }
 
 void
 FrameLayerBuilder::DidEndTransaction(LayerManager* aManager)
 {
-  if (aManager != mRetainingManager) {
-    Layer* root = aManager->GetRoot();
-    if (root) {
-      RemoveThebesItemsForLayerSubtree(root);
-    }
+  Layer* root = aManager->GetRoot();
+  if (root) {
+    RemoveThebesItemsAndOwnerDataForLayerSubtree(root, aManager != mRetainingManager, true);
   }
 
   GetMaskLayerImageCache()->Sweep();
@@ -896,8 +921,13 @@ FrameLayerBuilder::GetOldLayerForFrame(nsIFrame* aFrame, uint32_t aDisplayItemKe
   for (uint32_t i = 0; i < array->Length(); ++i) {
     if (array->ElementAt(i).mDisplayItemKey == aDisplayItemKey) {
       Layer* layer = array->ElementAt(i).mLayer;
-      if (layer->Manager() == mRetainingManager)
-        return layer;
+      if (layer->Manager() == mRetainingManager) {
+        LayerOwnerUserData* layerOwner = static_cast<LayerOwnerUserData*>
+          (layer->GetUserData(&gLayerOwnerUserData));
+        if (!layerOwner || layerOwner->mOwnerFrame == aFrame) {
+          return layer;
+        }
+      }
     }
   }
   return nullptr;
@@ -2351,6 +2381,12 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     if (!containerLayer)
       return nullptr;
   }
+
+  
+  
+  
+  containerLayer->SetUserData(&gLayerOwnerUserData,
+                              new LayerOwnerUserData(aContainerFrame));
 
   if (aContainerItem &&
       aContainerItem->GetLayerState(aBuilder, aManager, aParameters) == LAYER_ACTIVE_EMPTY) {
