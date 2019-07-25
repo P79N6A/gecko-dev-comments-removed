@@ -86,8 +86,10 @@ public class LayerController {
     private boolean mForceRedraw;
 
     
-    public static final int TILE_WIDTH = 1024;
-    public static final int TILE_HEIGHT = 2048;
+
+
+
+    public static final IntSize MIN_BUFFER = new IntSize(512, 1024);
 
     
 
@@ -293,8 +295,12 @@ public class LayerController {
     }
 
     private RectF getTileRect() {
+        if (mRootLayer == null)
+            return new RectF();
+
         float x = mRootLayer.getOrigin().x, y = mRootLayer.getOrigin().y;
-        return new RectF(x, y, x + TILE_WIDTH, y + TILE_HEIGHT);
+        IntSize layerSize = mRootLayer.getSize();
+        return new RectF(x, y, x + layerSize.width, y + layerSize.height);
     }
 
     public RectF restrictToPageSize(RectF aRect) {
