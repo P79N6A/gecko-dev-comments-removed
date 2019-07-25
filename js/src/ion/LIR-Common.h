@@ -615,10 +615,20 @@ class LCompareDAndBranch : public LInstructionHelper<0, 2, 0>
 
 
 
-class LBitNot : public LInstructionHelper<1, 1, 0>
+class LBitNotI : public LInstructionHelper<1, 1, 0>
 {
   public:
-    LIR_HEADER(BitNot);
+    LIR_HEADER(BitNotI);
+};
+
+
+class LBitNotV : public LCallInstructionHelper<1, BOX_PIECES, 0>
+{
+  public:
+    LIR_HEADER(BitNotV);
+    BOX_OUTPUT_ACCESSORS();
+
+    static const size_t Input = 0;
 };
 
 
