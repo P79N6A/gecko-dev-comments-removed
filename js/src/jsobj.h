@@ -1564,10 +1564,6 @@ extern JSBool
 js_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key,
                   JSObject **objp);
 
-extern JSBool
-js_SetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key,
-                  JSObject *cobj, JSObject *prototype);
-
 
 
 
