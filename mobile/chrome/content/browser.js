@@ -1262,8 +1262,13 @@ Browser.MainDragger.prototype = {
       
       let x = 0;
       if (Browser.floatedWhileDragging) {
-        let [leftVis,,leftW,] = Browser.computeSidebarVisibility();
-        x = Math.round(Math.max(0, leftW * leftVis));
+        
+        let [leftVis, rightVis, leftW, rightW] = Browser.computeSidebarVisibility();
+        let [leftSidebar, rightSidebar] = [Elements.tabs.getBoundingClientRect(), Elements.controls.getBoundingClientRect()];
+        if (leftSidebar.left > rightSidebar.left)
+          x = Math.round(Math.max(0, rightW * rightVis));
+        else
+          x = Math.round(Math.max(0, leftW * leftVis));
       }
 
       this._verticalScrollbar.style.MozTransform = "translate(" + x + "px," + y + "px)";
