@@ -101,7 +101,9 @@ LIRGeneratorShared::defineFixed(LInstructionHelper<1, X, Y> *lir, MDefinition *m
     LDefinition def(type, LDefinition::PRESET);
     def.setOutput(output);
 
-    return define(lir, mir, def);
+    
+    
+    return define(lir, mir, def) && add(new LNop);
 }
 
 template <size_t Ops, size_t Temps> bool
@@ -184,7 +186,7 @@ LIRGeneratorShared::defineVMReturn(LInstructionHelper<Defs, Ops, Temps> *lir, MD
 
     mir->setVirtualRegister(vreg);
     lir->setMir(mir);
-    return add(lir);
+    return add(lir) && add(new LNop);
 }
 
 
