@@ -152,10 +152,12 @@ SessionStartup.prototype = {
       this._sessionType = Ci.nsISessionStartup.RECOVER_SESSION;
     else if (!lastSessionCrashed && doResumeSession)
       this._sessionType = Ci.nsISessionStartup.RESUME_SESSION;
+    else if (initialState)
+      this._sessionType = Ci.nsISessionStartup.DEFER_SESSION;
     else
       this._iniString = null; 
 
-    if (this._sessionType != Ci.nsISessionStartup.NO_SESSION) {
+    if (this.doRestore()) {
       
 
       
@@ -252,7 +254,8 @@ SessionStartup.prototype = {
 
 
   doRestore: function sss_doRestore() {
-    return this._sessionType != Ci.nsISessionStartup.NO_SESSION;
+    return this._sessionType == Ci.nsISessionStartup.RECOVER_SESSION ||
+           this._sessionType == Ci.nsISessionStartup.RESUME_SESSION;
   },
 
   
