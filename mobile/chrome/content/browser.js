@@ -212,15 +212,18 @@ var Browser = {
     this.contentScrollbox = Elements.browsers;
     this.contentScrollboxScroller = {
       scrollBy: function(aDx, aDy) {
-        getBrowser().scrollBy(aDx, aDy);
+        let view = getBrowser().getRootView();
+        view.scrollBy(aDx, aDy);
       },
 
       scrollTo: function(aX, aY) {
-        getBrowser().scrollTo(aX, aY);
+        let view = getBrowser().getRootView();
+        view.scrollTo(aX, aY);
       },
 
       getPosition: function(aScrollX, aScrollY) {
-        let scroll = getBrowser().getPosition();
+        let view = getBrowser().getRootView();
+        let scroll = view.getPosition();
         aScrollX.value = scroll.x;
         aScrollY.value = scroll.y;
       }
@@ -1027,8 +1030,13 @@ var Browser = {
     this.hideSidebars();
     this.hideTitlebar();
 
+    
     browser.scale = this.selectedTab.clampZoomLevel(zoomLevel);
-    browser.scrollTo(scrollX, scrollY);
+    let view = browser.getRootView();
+    if (view._contentView) {
+      view._contentView.scrollTo(scrollX, scrollY);
+      view._updateCacheViewport();
+    }
   },
 
   zoomToPoint: function zoomToPoint(cX, cY, aRect) {
@@ -1159,6 +1167,9 @@ Browser.MainDragger.prototype = {
   },
 
   dragStart: function dragStart(clientX, clientY, target, scroller) {
+    let browser = getBrowser();
+    let bcr = browser.getBoundingClientRect();
+    this._contentView = browser.getViewsAt(clientX - bcr.left, clientY - bcr.top);
   },
 
   dragStop: function dragStop(dx, dy, scroller) {
@@ -1169,11 +1180,17 @@ Browser.MainDragger.prototype = {
   dragMove: function dragMove(dx, dy, scroller) {
     let doffset = new Point(dx, dy);
 
+    if (!this._contentView.isRoot()) {
+      this._panContentView(this._contentView, doffset);
+      
+      
+    }
+
     
     let panOffset = this._panControlsAwayOffset(doffset);
 
     
-    this._panScroller(Browser.contentScrollboxScroller, doffset);
+    this._panContentView(getBrowser().getRootView(), doffset);
 
     
     
@@ -1238,6 +1255,14 @@ Browser.MainDragger.prototype = {
 
     doffset.subtract(x, y);
     return new Point(x, y);
+  },
+
+  
+  _panContentView: function _panContentView(contentView, doffset) {
+    let pos0 = contentView.getPosition();
+    contentView.scrollBy(doffset.x, doffset.y);
+    let pos1 = contentView.getPosition();
+    doffset.subtract(pos1.x - pos0.x, pos1.y - pos0.y);
   },
 
   
@@ -2499,7 +2524,8 @@ Tab.prototype = {
 
   restoreViewportPosition: function restoreViewportPosition(aOldWidth, aNewWidth) {
     let browser = this._browser;
-    let pos = browser.getPosition();
+    let view = browser.getRootView();
+    let pos = view.getPosition();
 
     
     let oldScale = browser.scale;
@@ -2508,7 +2534,7 @@ Tab.prototype = {
 
     
     let scaleRatio = newScale / oldScale;
-    browser.scrollTo(pos.x * scaleRatio, pos.y * scaleRatio);
+    view.scrollTo(pos.x * scaleRatio, pos.y * scaleRatio);
   },
 
   startLoading: function startLoading() {

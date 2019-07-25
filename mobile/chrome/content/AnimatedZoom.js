@@ -79,7 +79,7 @@ const AnimatedZoom = {
   getStartRect: function getStartRect() {
     let browser = getBrowser();
     let bcr = browser.getBoundingClientRect();
-    let scroll = browser.getPosition();
+    let scroll = browser.getRootView().getPosition();
     return new Rect(scroll.x, scroll.y, bcr.width, bcr.height);
   },
 
@@ -92,8 +92,10 @@ const AnimatedZoom = {
     
     
     
-    getBrowser()._contentViewManager.rootContentView.setScale(zoomLevel, zoomLevel);
-    getBrowser()._contentViewManager.rootContentView.scrollTo(nextRect.left * zoomRatio, nextRect.top * zoomRatio);
+    
+    let contentView = getBrowser()._contentViewManager.rootContentView;
+    contentView.setScale(zoomLevel, zoomLevel);
+    contentView.scrollTo(nextRect.left * zoomRatio, nextRect.top * zoomRatio);
     this.zoomRect = nextRect;
   },
 
