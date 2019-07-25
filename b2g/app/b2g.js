@@ -55,8 +55,9 @@ pref("browser.viewport.scaleRatio", -1);
 pref("browser.ignoreNativeFrameTextSelection", true);
 
 
-pref("browser.cache.disk.enable", false);
-pref("browser.cache.disk.capacity", 0); 
+pref("browser.cache.disk.enable", true);
+pref("browser.cache.disk.capacity", 55000); 
+pref("browser.cache.disk.parent_directory", "/cache");
 pref("browser.cache.disk.smart_size.enabled", false);
 pref("browser.cache.disk.smart_size.first_run", false);
 
