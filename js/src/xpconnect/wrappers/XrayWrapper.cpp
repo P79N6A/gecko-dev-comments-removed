@@ -236,7 +236,7 @@ ResolveNativeProperty(JSContext *cx, JSObject *wrapper, JSObject *holder, jsid i
     desc->attrs = JSPROP_ENUMERATE;
     desc->getter = NULL;
     desc->setter = NULL;
-    desc->shortid = NULL;
+    desc->shortid = 0;
     desc->value = JSVAL_VOID;
 
     jsval fval = JSVAL_VOID;
@@ -647,6 +647,11 @@ EnumerateNames(JSContext *cx, JSObject *wrapper, uintN flags, js::AutoIdVector &
             return false;
 
         return js::GetPropertyNames(cx, wnObject, flags, &props);
+    }
+
+    if (WrapperFactory::IsPartiallyTransparent(wrapper)) {
+        JS_ReportError(cx, "Not allowed to enumerate cross origin objects");
+        return false;
     }
 
     
