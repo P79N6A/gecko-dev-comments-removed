@@ -4809,7 +4809,9 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
 
   
   
-  if (mDocument->GetScriptGlobalObject()) {
+  PRBool hasHadScriptObject;
+  if (mDocument->GetScriptHandlingObject(hasHadScriptObject) ||
+      hasHadScriptObject) {
     isSafeToFlush = isSafeToFlush && nsContentUtils::IsSafeToRunScript();
   }
 
