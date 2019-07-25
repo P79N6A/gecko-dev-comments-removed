@@ -1005,11 +1005,7 @@ nsAccessible::GetBounds(PRInt32* aX, PRInt32* aY,
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  
-  
-  
   nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-  presShell->FlushPendingNotifications(Flush_Layout);
 
   
   
@@ -1524,14 +1520,6 @@ NS_IMETHODIMP
 nsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
   NS_ENSURE_ARG_POINTER(aState);
-
-  if (!IsDefunct()) {
-    
-    
-    
-    nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-    presShell->FlushPendingNotifications(Flush_Layout);
-  }
 
   nsresult rv = GetStateInternal(aState, aExtraState);
   NS_ENSURE_A11Y_SUCCESS(rv, rv);
