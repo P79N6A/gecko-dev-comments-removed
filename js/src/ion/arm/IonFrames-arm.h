@@ -135,7 +135,9 @@ class IonBailedRectifierFrameLayout : public IonJSFrameLayout
   public:
     static inline size_t Size() {
         
-        return sizeof(IonBailedRectifierFrameLayout) + sizeof(void *);
+        
+        
+        return sizeof(IonBailedRectifierFrameLayout);
     }
 };
 
