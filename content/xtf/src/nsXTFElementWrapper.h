@@ -187,7 +187,7 @@ protected:
 
 
 
-  PRInt32 mIntrinsicState;
+  PRUint64 mIntrinsicState;
 
   
   nsAttrName mTmpAttrName;
