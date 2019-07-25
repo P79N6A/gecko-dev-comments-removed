@@ -63,6 +63,7 @@
 
 #include "nsIDOMDocument.h"
 #include "nsIDocument.h"
+#include "nsPresContext.h"
 
 static NS_DEFINE_CID(kThisImplCID, NS_THIS_DOCLOADER_IMPL_CID);
 
@@ -750,13 +751,24 @@ void nsDocLoader::DocLoaderIsEmpty(PRBool aFlushLayout)
     NS_ASSERTION(!mIsFlushingLayout, "Someone screwed up");
 
     
-    
     if (aFlushLayout && !mDontFlushLayout) {
       nsCOMPtr<nsIDOMDocument> domDoc = do_GetInterface(GetAsSupports(this));
       nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
       if (doc) {
+        
+        
+        
+        mozFlushType flushType = Flush_Style;
+        nsIPresShell* shell = doc->GetShell();
+        if (shell) {
+          
+          nsPresContext* presContext = shell->GetPresContext();
+          if (presContext && presContext->GetUserFontSet()) {
+            flushType = Flush_Layout;
+          }
+        }
         mDontFlushLayout = mIsFlushingLayout = PR_TRUE;
-        doc->FlushPendingNotifications(Flush_Layout);
+        doc->FlushPendingNotifications(flushType);
         mDontFlushLayout = mIsFlushingLayout = PR_FALSE;
       }
     }
