@@ -918,8 +918,6 @@ public:
 
 
 
-
-
   static nsIFrame* GetClosestLayer(nsIFrame* aFrame);
 
   

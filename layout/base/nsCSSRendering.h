@@ -87,9 +87,6 @@ struct nsCSSRendering {
 
 
 
-
-
-
   static void PaintBorder(nsPresContext* aPresContext,
                           nsIRenderingContext& aRenderingContext,
                           nsIFrame* aForFrame,
@@ -113,9 +110,6 @@ struct nsCSSRendering {
 
 
   
-
-
-
 
 
 
@@ -225,9 +219,6 @@ struct nsCSSRendering {
                            nsIFrame* aFrame);
 
   
-
-
-
 
 
 
