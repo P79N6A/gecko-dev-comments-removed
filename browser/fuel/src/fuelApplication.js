@@ -40,6 +40,9 @@ const Cc = Components.classes;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
+const APPLICATION_CID = Components.ID("fe74cf80-aa2d-11db-abbd-0800200c9a66");
+const APPLICATION_CONTRACTID = "@mozilla.org/fuel/application;1";
+
 
 
 var Utilities = {
@@ -668,21 +671,22 @@ function Application() {
 
 Application.prototype = {
   
-  classID:          Components.ID("fe74cf80-aa2d-11db-abbd-0800200c9a66"),
+  classID:          APPLICATION_CID,
 
   
   _xpcom_factory: ApplicationFactory,
 
   
   QueryInterface : XPCOMUtils.generateQI([Ci.fuelIApplication, Ci.extIApplication,
-                                          Ci.nsIObserver, Ci.nsIClassInfo]),
+                                          Ci.nsIObserver]),
 
-  getInterfaces : function app_gi(aCount) {
-    var interfaces = [Ci.fuelIApplication, Ci.extIApplication, Ci.nsIObserver,
-                      Ci.nsIClassInfo];
-    aCount.value = interfaces.length;
-    return interfaces;
-  },
+  
+  classInfo: XPCOMUtils.generateCI({classID: APPLICATION_CID,
+                                    contractID: APPLICATION_CONTRACTID,
+                                    interfaces: [Ci.fuelIApplication,
+                                                 Ci.extIApplication,
+                                                 Ci.nsIObserver],
+                                    flags: Ci.nsIClassInfo.SINGLETON}),
 
   
   observe: function app_observe(aSubject, aTopic, aData) {

@@ -109,6 +109,19 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 var EXPORTED_SYMBOLS = [ "XPCOMUtils" ];
 
 const Cc = Components.classes;
@@ -123,9 +136,41 @@ var XPCOMUtils = {
 
 
 
+
+
+
   generateQI: function XPCU_generateQI(interfaces) {
     
     return makeQI([Ci[i].name for each (i in interfaces) if (Ci[i])]);
+  },
+
+  
+
+
+
+
+
+
+
+  generateCI: function XPCU_generateCI(classInfo)
+  {
+    if (QueryInterface in classInfo)
+      throw Error("In generateCI, don't use a component for generating classInfo");
+    
+    var _interfaces = [Ci[i] for each (i in classInfo.interfaces) if (Ci[i])];
+    return {
+      getInterfaces: function XPCU_getInterfaces(countRef) {
+        countRef.value = _interfaces.length;
+        return _interfaces;
+      },
+      getHelperForLanguage: function XPCU_getHelperForLanguage(language) null,
+      contractID: classInfo.contractID,
+      classDescription: classInfo.classDescription,
+      classID: classInfo.classID,
+      implementationLanguage: Ci.nsIProgrammingLanguage.JAVASCRIPT,
+      flags: classInfo.flags,
+      QueryInterface: this.generateQI([Ci.nsIClassInfo])
+    };
   },
 
   
@@ -281,6 +326,8 @@ function makeQI(interfaceNames) {
   return function XPCOMUtils_QueryInterface(iid) {
     if (iid.equals(Ci.nsISupports))
       return this;
+    if (iid.equals(Ci.nsIClassInfo) && "classInfo" in this)
+      return this.classInfo;
     for each(let interfaceName in interfaceNames) {
       if (Ci[interfaceName].equals(iid))
         return this;
