@@ -75,7 +75,7 @@ private:
 
 
 inline nsHTMLImageAccessible*
-nsAccessible::AsImage()
+Accessible::AsImage()
 {
   return IsImage() ?
     static_cast<nsHTMLImageAccessible*>(this) : nsnull;

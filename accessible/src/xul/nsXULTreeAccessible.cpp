@@ -33,7 +33,7 @@ using namespace mozilla::a11y;
 
 nsXULTreeAccessible::
   nsXULTreeAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  nsAccessibleWrap(aContent, aDoc)
+  AccessibleWrap(aContent, aDoc)
 {
   mFlags |= eXULTreeAccessible;
 
@@ -63,22 +63,22 @@ nsXULTreeAccessible::
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsXULTreeAccessible)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsXULTreeAccessible,
-                                                  nsAccessible)
+                                                  Accessible)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mTree)
   CycleCollectorTraverseCache(tmp->mAccessibleCache, &cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsXULTreeAccessible,
-                                                nsAccessible)
+                                                Accessible)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mTree)
   ClearCache(tmp->mAccessibleCache);
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsXULTreeAccessible)
-NS_INTERFACE_MAP_END_INHERITING(nsAccessible)
+NS_INTERFACE_MAP_END_INHERITING(Accessible)
 
-NS_IMPL_ADDREF_INHERITED(nsXULTreeAccessible, nsAccessible)
-NS_IMPL_RELEASE_INHERITED(nsXULTreeAccessible, nsAccessible)
+NS_IMPL_ADDREF_INHERITED(nsXULTreeAccessible, Accessible)
+NS_IMPL_RELEASE_INHERITED(nsXULTreeAccessible, Accessible)
 
 
 
@@ -87,7 +87,7 @@ PRUint64
 nsXULTreeAccessible::NativeState()
 {
   
-  PRUint64 state = nsAccessible::NativeState();
+  PRUint64 state = Accessible::NativeState();
 
   
   state |= states::READONLY;
@@ -154,7 +154,7 @@ nsXULTreeAccessible::Shutdown()
   mTree = nsnull;
   mTreeView = nsnull;
 
-  nsAccessibleWrap::Shutdown();
+  AccessibleWrap::Shutdown();
 }
 
 
@@ -178,7 +178,7 @@ nsXULTreeAccessible::NativeRole()
 
 
 
-nsAccessible*
+Accessible*
 nsXULTreeAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                   EWhichChildAtPoint aWhichChild)
 {
@@ -206,14 +206,14 @@ nsXULTreeAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
   
   
   if (row == -1 || !column)
-    return nsAccessibleWrap::ChildAtPoint(aX, aY, aWhichChild);
+    return AccessibleWrap::ChildAtPoint(aX, aY, aWhichChild);
 
-  nsAccessible *child = GetTreeItemAccessible(row);
+  Accessible* child = GetTreeItemAccessible(row);
   if (aWhichChild == eDeepestChild && child) {
     
     nsRefPtr<nsXULTreeItemAccessibleBase> treeitem = do_QueryObject(child);
 
-    nsAccessible *cell = treeitem->GetCellAccessible(column);
+    Accessible* cell = treeitem->GetCellAccessible(column);
     if (cell)
       child = cell;
   }
@@ -230,7 +230,7 @@ nsXULTreeAccessible::IsSelect()
   return true;
 }
 
-nsAccessible*
+Accessible*
 nsXULTreeAccessible::CurrentItem()
 {
   if (!mTreeView)
@@ -249,7 +249,7 @@ nsXULTreeAccessible::CurrentItem()
 }
 
 void
-nsXULTreeAccessible::SetCurrentItem(nsAccessible* aItem)
+nsXULTreeAccessible::SetCurrentItem(Accessible* aItem)
 {
   NS_ERROR("nsXULTreeAccessible::SetCurrentItem not implemented");
 }
@@ -373,7 +373,7 @@ nsXULTreeAccessible::UnselectAll()
   return true;
 }
 
-nsAccessible*
+Accessible*
 nsXULTreeAccessible::GetSelectedItem(PRUint32 aIndex)
 {
   if (!mTreeView)
@@ -425,12 +425,12 @@ nsXULTreeAccessible::SelectAll()
 
 
 
-nsAccessible*
+Accessible*
 nsXULTreeAccessible::GetChildAt(PRUint32 aIndex)
 {
-  PRUint32 childCount = nsAccessible::ChildCount();
+  PRUint32 childCount = Accessible::ChildCount();
   if (aIndex < childCount)
-    return nsAccessible::GetChildAt(aIndex);
+    return Accessible::GetChildAt(aIndex);
 
   return GetTreeItemAccessible(aIndex - childCount);
 }
@@ -439,7 +439,7 @@ PRUint32
 nsXULTreeAccessible::ChildCount() const
 {
   
-  PRUint32 childCount = nsAccessible::ChildCount();
+  PRUint32 childCount = Accessible::ChildCount();
   if (!mTreeView)
     return childCount;
 
@@ -491,7 +491,7 @@ nsXULTreeAccessible::AreItemsOperable() const
   return true;
 }
 
-nsAccessible*
+Accessible*
 nsXULTreeAccessible::ContainerWidget() const
 {
   if (IsAutoCompletePopup()) {
@@ -507,7 +507,7 @@ nsXULTreeAccessible::ContainerWidget() const
       if (inputElm) {
         nsCOMPtr<nsINode> inputNode = do_QueryInterface(inputElm);
         if (inputNode) {
-          nsAccessible* input = 
+          Accessible* input = 
             mDoc->GetAccessible(inputNode);
           return input ? input->ContainerWidget() : nsnull;
         }
@@ -520,7 +520,7 @@ nsXULTreeAccessible::ContainerWidget() const
 
 
 
-nsAccessible*
+Accessible*
 nsXULTreeAccessible::GetTreeItemAccessible(PRInt32 aRow)
 {
   if (aRow < 0 || IsDefunct() || !mTreeView)
@@ -532,11 +532,11 @@ nsXULTreeAccessible::GetTreeItemAccessible(PRInt32 aRow)
     return nsnull;
 
   void *key = reinterpret_cast<void*>(aRow);
-  nsAccessible* cachedTreeItem = mAccessibleCache.GetWeak(key);
+  Accessible* cachedTreeItem = mAccessibleCache.GetWeak(key);
   if (cachedTreeItem)
     return cachedTreeItem;
 
-  nsRefPtr<nsAccessible> treeItem = CreateTreeItemAccessible(aRow);
+  nsRefPtr<Accessible> treeItem = CreateTreeItemAccessible(aRow);
   if (treeItem) {
     mAccessibleCache.Put(key, treeItem);
     if (Document()->BindToDocument(treeItem, nsnull))
@@ -564,7 +564,7 @@ nsXULTreeAccessible::InvalidateCache(PRInt32 aRow, PRInt32 aCount)
   for (PRInt32 rowIdx = aRow; rowIdx < aRow - aCount; rowIdx++) {
 
     void* key = reinterpret_cast<void*>(rowIdx);
-    nsAccessible* treeItem = mAccessibleCache.GetWeak(key);
+    Accessible* treeItem = mAccessibleCache.GetWeak(key);
 
     if (treeItem) {
       nsRefPtr<AccEvent> event =
@@ -590,7 +590,7 @@ nsXULTreeAccessible::InvalidateCache(PRInt32 aRow, PRInt32 aCount)
   for (PRInt32 rowIdx = newRowCount; rowIdx < oldRowCount; ++rowIdx) {
 
     void *key = reinterpret_cast<void*>(rowIdx);
-    nsAccessible* treeItem = mAccessibleCache.GetWeak(key);
+    Accessible* treeItem = mAccessibleCache.GetWeak(key);
 
     if (treeItem) {
       
@@ -638,7 +638,7 @@ nsXULTreeAccessible::TreeViewInvalidated(PRInt32 aStartRow, PRInt32 aEndRow,
   for (PRInt32 rowIdx = aStartRow; rowIdx <= endRow; ++rowIdx) {
 
     void *key = reinterpret_cast<void*>(rowIdx);
-    nsAccessible *accessible = mAccessibleCache.GetWeak(key);
+    Accessible* accessible = mAccessibleCache.GetWeak(key);
 
     if (accessible) {
       nsRefPtr<nsXULTreeItemAccessibleBase> treeitemAcc = do_QueryObject(accessible);
@@ -672,10 +672,10 @@ nsXULTreeAccessible::TreeViewChanged(nsITreeView* aView)
 
 
 
-already_AddRefed<nsAccessible>
+already_AddRefed<Accessible>
 nsXULTreeAccessible::CreateTreeItemAccessible(PRInt32 aRow)
 {
-  nsRefPtr<nsAccessible> accessible =
+  nsRefPtr<Accessible> accessible =
     new nsXULTreeItemAccessible(mContent, mDoc, this, mTree, mTreeView,
                                 aRow);
 
@@ -688,9 +688,9 @@ nsXULTreeAccessible::CreateTreeItemAccessible(PRInt32 aRow)
 
 nsXULTreeItemAccessibleBase::
   nsXULTreeItemAccessibleBase(nsIContent* aContent, DocAccessible* aDoc,
-                              nsAccessible* aParent, nsITreeBoxObject* aTree,
+                              Accessible* aParent, nsITreeBoxObject* aTree,
                               nsITreeView* aTreeView, PRInt32 aRow) :
-  nsAccessibleWrap(aContent, aDoc),
+  AccessibleWrap(aContent, aDoc),
   mTree(aTree), mTreeView(aTreeView), mRow(aRow)
 {
   mParent = aParent;
@@ -702,26 +702,26 @@ nsXULTreeItemAccessibleBase::
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsXULTreeItemAccessibleBase)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsXULTreeItemAccessibleBase,
-                                                  nsAccessible)
+                                                  Accessible)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mTree)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsXULTreeItemAccessibleBase,
-                                                nsAccessible)
+                                                Accessible)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mTree)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsXULTreeItemAccessibleBase)
   NS_INTERFACE_TABLE_INHERITED1(nsXULTreeItemAccessibleBase,
                                 nsXULTreeItemAccessibleBase)
-NS_INTERFACE_TABLE_TAIL_INHERITING(nsAccessible)
-NS_IMPL_ADDREF_INHERITED(nsXULTreeItemAccessibleBase, nsAccessible)
-NS_IMPL_RELEASE_INHERITED(nsXULTreeItemAccessibleBase, nsAccessible)
+NS_INTERFACE_TABLE_TAIL_INHERITING(Accessible)
+NS_IMPL_ADDREF_INHERITED(nsXULTreeItemAccessibleBase, Accessible)
+NS_IMPL_RELEASE_INHERITED(nsXULTreeItemAccessibleBase, Accessible)
 
 
 
 
-nsAccessible*
+Accessible*
 nsXULTreeItemAccessibleBase::FocusedChild()
 {
   return FocusMgr()->FocusedAccessible() == this ? this : nsnull;
@@ -804,7 +804,7 @@ nsXULTreeItemAccessibleBase::TakeFocus()
     selection->SetCurrentIndex(mRow);
 
   
-  return nsAccessible::TakeFocus();
+  return Accessible::TakeFocus();
 }
 
 Relation
@@ -884,7 +884,7 @@ nsXULTreeItemAccessibleBase::Shutdown()
   mTreeView = nsnull;
   mRow = -1;
 
-  nsAccessibleWrap::Shutdown();
+  AccessibleWrap::Shutdown();
 }
 
 bool
@@ -1005,7 +1005,7 @@ nsXULTreeItemAccessibleBase::IndexInParent() const
 
 
 
-nsAccessible*
+Accessible*
 nsXULTreeItemAccessibleBase::ContainerWidget() const
 {
   return mParent;
@@ -1043,7 +1043,7 @@ nsXULTreeItemAccessibleBase::DispatchClickEvent(nsIContent *aContent,
     nsCoreUtils::DispatchClickEvent(mTree, mRow, column, pseudoElm);
 }
 
-nsAccessible*
+Accessible*
 nsXULTreeItemAccessibleBase::GetSiblingAtOffset(PRInt32 aOffset,
                                                 nsresult* aError) const
 {
@@ -1109,7 +1109,7 @@ nsXULTreeItemAccessibleBase::GetCellName(nsITreeColumn* aColumn,
 
 nsXULTreeItemAccessible::
   nsXULTreeItemAccessible(nsIContent* aContent, DocAccessible* aDoc,
-                          nsAccessible* aParent, nsITreeBoxObject* aTree,
+                          Accessible* aParent, nsITreeBoxObject* aTree,
                           nsITreeView* aTreeView, PRInt32 aRow) :
   nsXULTreeItemAccessibleBase(aContent, aDoc, aParent, aTree, aTreeView, aRow)
 {
@@ -1216,18 +1216,18 @@ nsXULTreeItemAccessible::CacheChildren()
 
 
 
-nsXULTreeColumnsAccessible::
-  nsXULTreeColumnsAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  nsXULColumnsAccessible(aContent, aDoc)
+nsXULTreeColumAccessible::
+  nsXULTreeColumAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+  nsXULColumAccessible(aContent, aDoc)
 {
 }
 
-nsAccessible*
-nsXULTreeColumnsAccessible::GetSiblingAtOffset(PRInt32 aOffset,
-                                               nsresult* aError) const
+Accessible*
+nsXULTreeColumAccessible::GetSiblingAtOffset(PRInt32 aOffset,
+                                             nsresult* aError) const
 {
   if (aOffset < 0)
-    return nsXULColumnsAccessible::GetSiblingAtOffset(aOffset, aError);
+    return nsXULColumAccessible::GetSiblingAtOffset(aOffset, aError);
 
   if (aError)
     *aError =  NS_OK; 

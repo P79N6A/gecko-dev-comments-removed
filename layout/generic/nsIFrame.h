@@ -65,7 +65,7 @@ class nsBoxLayoutState;
 class nsBoxLayout;
 class nsILineIterator;
 #ifdef ACCESSIBILITY
-class nsAccessible;
+class Accessible;
 #endif
 class nsDisplayListBuilder;
 class nsDisplayListSet;
@@ -2414,7 +2414,7 @@ public:
 
 
 #ifdef ACCESSIBILITY
-  virtual already_AddRefed<nsAccessible> CreateAccessible() = 0;
+  virtual already_AddRefed<Accessible> CreateAccessible() = 0;
 #endif
 
   

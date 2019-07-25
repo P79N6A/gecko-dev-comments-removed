@@ -16,7 +16,7 @@ class Relation;
 
 
 
-class nsAccessibleRelation: public nsIAccessibleRelation
+class nsAccessibleRelation : public nsIAccessibleRelation
 {
 public:
   nsAccessibleRelation(PRUint32 aType, Relation* aRel);

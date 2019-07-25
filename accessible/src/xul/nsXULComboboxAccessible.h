@@ -11,7 +11,7 @@
 
 
 
-class nsXULComboboxAccessible : public nsAccessibleWrap
+class nsXULComboboxAccessible : public AccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };

@@ -64,7 +64,7 @@ nsXULTextAccessible::RelationByType(PRUint32 aType)
     
     nsIContent *parent = mContent->GetParent();
     if (parent && parent->Tag() == nsGkAtoms::caption) {
-      nsAccessible* parent = Parent();
+      Accessible* parent = Parent();
       if (parent && parent->Role() == roles::GROUPING)
         rel.AppendTarget(parent);
     }
@@ -198,16 +198,16 @@ nsXULLinkAccessible::StartOffset()
   
   
   
-  if (nsAccessible::IsLink())
-    return nsAccessible::StartOffset();
+  if (Accessible::IsLink())
+    return Accessible::StartOffset();
   return IndexInParent();
 }
 
 PRUint32
 nsXULLinkAccessible::EndOffset()
 {
-  if (nsAccessible::IsLink())
-    return nsAccessible::EndOffset();
+  if (Accessible::IsLink())
+    return Accessible::EndOffset();
   return IndexInParent() + 1;
 }
 

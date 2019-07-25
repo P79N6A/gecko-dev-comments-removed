@@ -3,7 +3,7 @@
 
 
 
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 
 #import <Cocoa/Cocoa.h>
 
@@ -28,7 +28,7 @@ GetObjectOrRepresentedView(id <mozAccessible> aObject)
   
 
 
-  nsAccessibleWrap* mGeckoAccessible;
+  AccessibleWrap* mGeckoAccessible;
   
   
 
@@ -55,7 +55,7 @@ GetObjectOrRepresentedView(id <mozAccessible> aObject)
 }
 
 
-- (id)initWithAccessible:(nsAccessibleWrap*)geckoParent;
+- (id)initWithAccessible:(AccessibleWrap*)geckoParent;
 
 
 - (id <mozAccessible>)parent;
@@ -116,7 +116,7 @@ GetObjectOrRepresentedView(id <mozAccessible> aObject)
 
 
 
-- (void)appendChild:(nsAccessible*)aAccessible;
+- (void)appendChild:(Accessible*)aAccessible;
 
 
 

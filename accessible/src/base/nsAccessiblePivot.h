@@ -13,7 +13,7 @@
 #include "nsTObserverArray.h"
 #include "nsCycleCollectionParticipant.h"
 
-class nsAccessible;
+class Accessible;
 class nsIAccessibleTraversalRule;
 
 
@@ -26,7 +26,7 @@ NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_GENERAL, 0x26)
 class nsAccessiblePivot: public nsIAccessiblePivot
 {
 public:
-  nsAccessiblePivot(nsAccessible* aRoot);
+  nsAccessiblePivot(Accessible* aRoot);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsAccessiblePivot, nsIAccessiblePivot)
@@ -36,7 +36,7 @@ public:
   
 
 
-  nsAccessible* Position() { return mPosition; }
+  Accessible* Position() { return mPosition; }
 
 private:
   nsAccessiblePivot() MOZ_DELETE;
@@ -46,45 +46,45 @@ private:
   
 
 
-  void NotifyPivotChanged(nsAccessible* aOldAccessible,
+  void NotifyPivotChanged(Accessible* aOldAccessible,
                           PRInt32 aOldStart, PRInt32 aOldEnd);
 
   
 
 
-  bool IsRootDescendant(nsAccessible* aAccessible);
+  bool IsRootDescendant(Accessible* aAccessible);
 
 
   
 
 
-  nsAccessible* SearchForward(nsAccessible* aAccessible,
-                              nsIAccessibleTraversalRule* aRule,
-                              bool aSearchCurrent,
-                              nsresult* aResult);
+  Accessible* SearchForward(Accessible* aAccessible,
+                            nsIAccessibleTraversalRule* aRule,
+                            bool aSearchCurrent,
+                            nsresult* aResult);
 
   
 
 
-  nsAccessible* SearchBackward(nsAccessible* aAccessible,
-                               nsIAccessibleTraversalRule* aRule,
-                               bool aSearchCurrent,
-                               nsresult* aResult);
+  Accessible* SearchBackward(Accessible* aAccessible,
+                             nsIAccessibleTraversalRule* aRule,
+                             bool aSearchCurrent,
+                             nsresult* aResult);
 
   
 
 
-  void MovePivotInternal(nsAccessible* aPosition);
+  void MovePivotInternal(Accessible* aPosition);
 
   
 
 
-  nsRefPtr<nsAccessible> mRoot;
+  nsRefPtr<Accessible> mRoot;
 
   
 
 
-  nsRefPtr<nsAccessible> mPosition;
+  nsRefPtr<Accessible> mPosition;
 
   
 

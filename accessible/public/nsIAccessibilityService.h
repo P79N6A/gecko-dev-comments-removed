@@ -12,7 +12,7 @@
 
 #include "nsAutoPtr.h"
 
-class nsAccessible;
+class Accessible;
 class nsINode;
 class nsIContent;
 class nsIDocument;
@@ -37,8 +37,8 @@ public:
 
 
 
-  virtual nsAccessible* GetAccessible(nsINode* aNode,
-                                      nsIPresShell* aPresShell) = 0;
+  virtual Accessible* GetAccessible(nsINode* aNode,
+                                    nsIPresShell* aPresShell) = 0;
 
   
 
@@ -48,15 +48,15 @@ public:
 
 
 
-  virtual nsAccessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
-                                                  bool aCanCreate) = 0;
+  virtual Accessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
+                                                bool aCanCreate) = 0;
 
    
 
 
 
-  virtual nsAccessible* AddNativeRootAccessible(void* aAtkAccessible) = 0;
-  virtual void RemoveNativeRootAccessible(nsAccessible* aRootAccessible) = 0;
+  virtual Accessible* AddNativeRootAccessible(void* aAtkAccessible) = 0;
+  virtual void RemoveNativeRootAccessible(Accessible* aRootAccessible) = 0;
 
   
 
@@ -91,7 +91,7 @@ public:
 
 
 
-  virtual void FireAccessibleEvent(PRUint32 aEvent, nsAccessible* aTarget) = 0;
+  virtual void FireAccessibleEvent(PRUint32 aEvent, Accessible* aTarget) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIAccessibilityService,

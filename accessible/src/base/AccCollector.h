@@ -17,7 +17,7 @@
 class AccCollector
 {
 public:
-  AccCollector(nsAccessible* aRoot, filters::FilterFuncPtr aFilterFunc);
+  AccCollector(Accessible* aRoot, filters::FilterFuncPtr aFilterFunc);
   virtual ~AccCollector();
 
   
@@ -28,34 +28,34 @@ public:
   
 
 
-  nsAccessible* GetAccessibleAt(PRUint32 aIndex);
+  Accessible* GetAccessibleAt(PRUint32 aIndex);
 
   
 
 
-  virtual PRInt32 GetIndexAt(nsAccessible* aAccessible);
+  virtual PRInt32 GetIndexAt(Accessible* aAccessible);
 
 protected:
   
 
 
-  nsAccessible* EnsureNGetObject(PRUint32 aIndex);
+  Accessible* EnsureNGetObject(PRUint32 aIndex);
 
   
 
 
-  PRInt32 EnsureNGetIndex(nsAccessible* aAccessible);
+  PRInt32 EnsureNGetIndex(Accessible* aAccessible);
 
   
 
 
-  virtual void AppendObject(nsAccessible* aAccessible);
+  virtual void AppendObject(Accessible* aAccessible);
 
   filters::FilterFuncPtr mFilterFunc;
-  nsAccessible* mRoot;
+  Accessible* mRoot;
   PRUint32 mRootChildIdx;
 
-  nsTArray<nsAccessible*> mObjects;
+  nsTArray<Accessible*> mObjects;
 
 private:
   AccCollector();
@@ -73,16 +73,16 @@ public:
   virtual ~EmbeddedObjCollector() { };
 
 public:
-  virtual PRInt32 GetIndexAt(nsAccessible* aAccessible);
+  virtual PRInt32 GetIndexAt(Accessible* aAccessible);
 
 protected:
   
-  EmbeddedObjCollector(nsAccessible* aRoot) :
+  EmbeddedObjCollector(Accessible* aRoot) :
     AccCollector(aRoot, filters::GetEmbeddedObject) { }
 
-  virtual void AppendObject(nsAccessible* aAccessible);
+  virtual void AppendObject(Accessible* aAccessible);
 
-  friend class nsAccessible;
+  friend class Accessible;
 };
 
 #endif

@@ -13,7 +13,7 @@
 #include "nsWeakReference.h"
 #include "nsIPresShell.h"
 
-class nsAccessible;
+class Accessible;
 class DocAccessible;
 
 
@@ -47,7 +47,7 @@ public:
 
 
 
-  nsAccessible* FindAccessibleInCache(nsINode* aNode) const;
+  Accessible* FindAccessibleInCache(nsINode* aNode) const;
 
   
 
@@ -126,7 +126,7 @@ private:
 
   struct nsSearchAccessibleInCacheArg
   {
-    nsAccessible *mAccessible;
+    Accessible* mAccessible;
     nsINode* mNode;
   };
 

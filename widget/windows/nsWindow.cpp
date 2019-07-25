@@ -3905,7 +3905,7 @@ bool nsWindow::DispatchMouseEvent(PRUint32 aEventType, WPARAM wParam,
 
 
 #ifdef ACCESSIBILITY
-nsAccessible*
+Accessible*
 nsWindow::DispatchAccessibleEvent(PRUint32 aEventType)
 {
   if (nsnull == mEventCallback) {
@@ -5080,7 +5080,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       
       DWORD objId = static_cast<DWORD>(lParam);
       if (objId == OBJID_CLIENT) { 
-        nsAccessible *rootAccessible = GetRootAccessible(); 
+        Accessible* rootAccessible = GetRootAccessible(); 
         if (rootAccessible) {
           IAccessible *msaaAccessible = NULL;
           rootAccessible->GetNativeInterface((void**)&msaaAccessible); 
@@ -7225,7 +7225,7 @@ bool nsWindow::AssociateDefaultIMC(bool aAssociate)
 
 #ifdef DEBUG_WMGETOBJECT
 #define NS_LOG_WMGETOBJECT_WNDACC(aWnd)                                        \
-  nsAccessible* acc = aWnd ?                                                   \
+  Accessible* acc = aWnd ?                                                   \
     aWnd->DispatchAccessibleEvent(NS_GETACCESSIBLE) : nsnull;                  \
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS, ("     acc: %p", acc));                   \
   if (acc) {                                                                   \
@@ -7264,7 +7264,7 @@ bool nsWindow::AssociateDefaultIMC(bool aAssociate)
 #define NS_LOG_WMGETOBJECT_WND(aMsg, aHwnd)
 #endif 
 
-nsAccessible*
+Accessible*
 nsWindow::GetRootAccessible()
 {
   

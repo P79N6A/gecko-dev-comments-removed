@@ -6,12 +6,12 @@
 #ifndef _nsXULColorPickerAccessible_H_
 #define _nsXULColorPickerAccessible_H_
 
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 
 
 
 
-class nsXULColorPickerTileAccessible : public nsAccessibleWrap
+class nsXULColorPickerTileAccessible : public AccessibleWrap
 {
 public:
   nsXULColorPickerTileAccessible(nsIContent* aContent,
@@ -23,7 +23,7 @@ public:
   virtual PRUint64 NativeState();
 
   
-  virtual nsAccessible* ContainerWidget() const;
+  virtual Accessible* ContainerWidget() const;
 };
 
 

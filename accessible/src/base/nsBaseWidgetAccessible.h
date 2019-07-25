@@ -6,7 +6,7 @@
 #ifndef _nsBaseWidgetAccessible_H_
 #define _nsBaseWidgetAccessible_H_
 
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 #include "nsHyperTextAccessibleWrap.h"
 #include "nsIContent.h"
 
@@ -19,7 +19,7 @@
 
 
 
-class nsLeafAccessible : public nsAccessibleWrap
+class nsLeafAccessible : public AccessibleWrap
 {
 public:
 
@@ -29,8 +29,8 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  virtual nsAccessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
-                                     EWhichChildAtPoint aWhichChild);
+  virtual Accessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
+                                   EWhichChildAtPoint aWhichChild);
 
 protected:
 
@@ -44,7 +44,7 @@ protected:
 
 
 
-class nsLinkableAccessible : public nsAccessibleWrap
+class nsLinkableAccessible : public AccessibleWrap
 {
 public:
   enum { eAction_Jump = 0 };
@@ -74,13 +74,13 @@ public:
 
 protected:
   
-  virtual void BindToParent(nsAccessible* aParent, PRUint32 aIndexInParent);
+  virtual void BindToParent(Accessible* aParent, PRUint32 aIndexInParent);
   virtual void UnbindFromParent();
 
   
 
 
-  nsAccessible* mActionAcc;
+  Accessible* mActionAcc;
   bool mIsLink;
   bool mIsOnclick;
 };
@@ -88,7 +88,7 @@ protected:
 
 
  
-class nsEnumRoleAccessible : public nsAccessibleWrap
+class nsEnumRoleAccessible : public AccessibleWrap
 {
 public:
   nsEnumRoleAccessible(nsIContent* aContent, DocAccessible* aDoc,

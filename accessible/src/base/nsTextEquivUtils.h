@@ -8,7 +8,7 @@
 #ifndef _nsTextEquivUtils_H_
 #define _nsTextEquivUtils_H_
 
-#include "nsAccessible.h"
+#include "Accessible.h"
 
 #include "nsIContent.h"
 #include "nsIStringBundle.h"
@@ -48,7 +48,7 @@ public:
 
 
 
-  static nsresult GetNameFromSubtree(nsAccessible *aAccessible,
+  static nsresult GetNameFromSubtree(Accessible* aAccessible,
                                      nsAString& aName);
 
   
@@ -59,7 +59,7 @@ public:
 
 
 
-  static nsresult GetTextEquivFromIDRefs(nsAccessible *aAccessible,
+  static nsresult GetTextEquivFromIDRefs(Accessible* aAccessible,
                                          nsIAtom *aIDRefsAttr,
                                          nsAString& aTextEquiv);
 
@@ -74,7 +74,7 @@ public:
 
 
 
-  static nsresult AppendTextEquivFromContent(nsAccessible *aInitiatorAcc,
+  static nsresult AppendTextEquivFromContent(Accessible* aInitiatorAcc,
                                              nsIContent *aContent,
                                              nsAString *aString);
 
@@ -93,20 +93,20 @@ private:
 
 
 
-  static nsresult AppendFromAccessibleChildren(nsAccessible *aAccessible,
+  static nsresult AppendFromAccessibleChildren(Accessible* aAccessible,
                                                nsAString *aString);
   
   
 
 
 
-  static nsresult AppendFromAccessible(nsAccessible *aAccessible,
+  static nsresult AppendFromAccessible(Accessible* aAccessible,
                                        nsAString *aString);
 
   
 
 
-  static nsresult AppendFromValue(nsAccessible *aAccessible,
+  static nsresult AppendFromValue(Accessible* aAccessible,
                                   nsAString *aString);
   
 
@@ -149,7 +149,7 @@ private:
 
 
 
-  static nsRefPtr<nsAccessible> gInitiatorAcc;
+  static nsRefPtr<Accessible> gInitiatorAcc;
 };
 
 #endif

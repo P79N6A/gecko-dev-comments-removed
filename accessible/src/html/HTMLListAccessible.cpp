@@ -85,7 +85,7 @@ NS_IMETHODIMP
 HTMLLIAccessible::GetBounds(PRInt32* aX, PRInt32* aY,
                             PRInt32* aWidth, PRInt32* aHeight)
 {
-  nsresult rv = nsAccessibleWrap::GetBounds(aX, aY, aWidth, aHeight);
+  nsresult rv = AccessibleWrap::GetBounds(aX, aY, aWidth, aHeight);
   if (NS_FAILED(rv) || !mBullet || mBullet->IsInside())
     return rv;
 
@@ -135,7 +135,7 @@ HTMLLIAccessible::CacheChildren()
     AppendChild(mBullet);
 
   
-  nsAccessibleWrap::CacheChildren();
+  AccessibleWrap::CacheChildren();
 }
 
 

@@ -6,14 +6,14 @@
 #ifndef _nsXULMenuAccessible_H_
 #define _nsXULMenuAccessible_H_
 
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 #include "nsIDOMXULSelectCntrlEl.h"
 #include "XULSelectControlAccessible.h"
 
 
 
 
-class nsXULMenuitemAccessible : public nsAccessibleWrap
+class nsXULMenuitemAccessible : public AccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };
@@ -41,7 +41,7 @@ public:
   
   virtual bool IsActiveWidget() const;
   virtual bool AreItemsOperable() const;
-  virtual nsAccessible* ContainerWidget() const;
+  virtual Accessible* ContainerWidget() const;
 };
 
 
@@ -84,13 +84,13 @@ public:
   virtual bool IsActiveWidget() const;
   virtual bool AreItemsOperable() const;
 
-  virtual nsAccessible* ContainerWidget() const;
+  virtual Accessible* ContainerWidget() const;
 };
 
 
 
 
-class nsXULMenubarAccessible : public nsAccessibleWrap
+class nsXULMenubarAccessible : public AccessibleWrap
 {
 public:
   nsXULMenubarAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -103,8 +103,8 @@ public:
   
   virtual bool IsActiveWidget() const;
   virtual bool AreItemsOperable() const;
-  virtual nsAccessible* CurrentItem();
-  virtual void SetCurrentItem(nsAccessible* aItem);
+  virtual Accessible* CurrentItem();
+  virtual void SetCurrentItem(Accessible* aItem);
 };
 
 #endif

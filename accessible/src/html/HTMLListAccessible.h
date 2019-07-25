@@ -103,7 +103,7 @@ public:
 
 
 inline mozilla::a11y::HTMLLIAccessible*
-nsAccessible::AsHTMLListItem()
+Accessible::AsHTMLListItem()
 {
   return mFlags & eHTMLListItemAccessible ?
     static_cast<mozilla::a11y::HTMLLIAccessible*>(this) : nsnull;

@@ -30,7 +30,7 @@ class nsIMutableArray;
 
 
 
-class nsHTMLSelectListAccessible : public nsAccessibleWrap
+class nsHTMLSelectListAccessible : public AccessibleWrap
 {
 public:
   
@@ -50,8 +50,8 @@ public:
   virtual bool IsWidget() const;
   virtual bool IsActiveWidget() const;
   virtual bool AreItemsOperable() const;
-  virtual nsAccessible* CurrentItem();
-  virtual void SetCurrentItem(nsAccessible* aItem);
+  virtual Accessible* CurrentItem();
+  virtual void SetCurrentItem(Accessible* aItem);
 
 protected:
 
@@ -94,17 +94,17 @@ public:
   virtual PRUint8 ActionCount();
 
   
-  virtual nsAccessible* ContainerWidget() const;
+  virtual Accessible* ContainerWidget() const;
 
 private:
   
   
 
  
-  nsAccessible* GetSelect() const
+  Accessible* GetSelect() const
   {
     if (mParent && mParent->IsListControl()) {
-      nsAccessible* combobox = mParent->Parent();
+      Accessible* combobox = mParent->Parent();
       return combobox && combobox->IsCombobox() ? combobox : mParent.get();
     }
 
@@ -114,10 +114,10 @@ private:
   
 
 
-  nsAccessible* GetCombobox() const
+  Accessible* GetCombobox() const
   {
     if (mParent && mParent->IsListControl()) {
-      nsAccessible* combobox = mParent->Parent();
+      Accessible* combobox = mParent->Parent();
       return combobox && combobox->IsCombobox() ? combobox : nsnull;
     }
 
@@ -160,7 +160,7 @@ class nsHTMLComboboxListAccessible;
 
 
 
-class nsHTMLComboboxAccessible : public nsAccessibleWrap
+class nsHTMLComboboxAccessible : public AccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };
@@ -189,8 +189,8 @@ public:
   virtual bool IsWidget() const;
   virtual bool IsActiveWidget() const;
   virtual bool AreItemsOperable() const;
-  virtual nsAccessible* CurrentItem();
-  virtual void SetCurrentItem(nsAccessible* aItem);
+  virtual Accessible* CurrentItem();
+  virtual void SetCurrentItem(Accessible* aItem);
 
 protected:
   
@@ -199,7 +199,7 @@ protected:
   
 
 
-  nsAccessible* SelectedOption() const;
+  Accessible* SelectedOption() const;
 
 private:
   nsRefPtr<nsHTMLComboboxListAccessible> mListAccessible;

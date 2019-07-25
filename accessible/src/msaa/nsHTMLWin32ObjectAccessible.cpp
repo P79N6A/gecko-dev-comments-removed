@@ -17,7 +17,7 @@ using namespace mozilla::a11y;
 nsHTMLWin32ObjectOwnerAccessible::
   nsHTMLWin32ObjectOwnerAccessible(nsIContent* aContent,
                                    DocAccessible* aDoc, void* aHwnd) :
-  nsAccessibleWrap(aContent, aDoc), mHwnd(aHwnd)
+  AccessibleWrap(aContent, aDoc), mHwnd(aHwnd)
 {
   
   mNativeAccessible = new nsHTMLWin32ObjectAccessible(mHwnd);
@@ -29,7 +29,7 @@ nsHTMLWin32ObjectOwnerAccessible::
 void
 nsHTMLWin32ObjectOwnerAccessible::Shutdown()
 {
-  nsAccessibleWrap::Shutdown();
+  AccessibleWrap::Shutdown();
   mNativeAccessible = nsnull;
 }
 
@@ -47,7 +47,7 @@ nsHTMLWin32ObjectOwnerAccessible::NativeState()
 {
   
   
-  return mHwnd ? nsAccessibleWrap::NativeState() : states::UNAVAILABLE;
+  return mHwnd ? AccessibleWrap::NativeState() : states::UNAVAILABLE;
 }
 
 
@@ -85,7 +85,7 @@ nsLeafAccessible(nsnull, nsnull)
   }
 }
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsHTMLWin32ObjectAccessible, nsAccessible)
+NS_IMPL_ISUPPORTS_INHERITED0(nsHTMLWin32ObjectAccessible, Accessible)
 
 NS_IMETHODIMP 
 nsHTMLWin32ObjectAccessible::GetNativeInterface(void** aNativeAccessible)

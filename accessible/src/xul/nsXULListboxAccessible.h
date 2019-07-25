@@ -19,10 +19,10 @@ class nsIWeakReference;
 
 
 
-class nsXULColumnsAccessible : public nsAccessibleWrap
+class nsXULColumAccessible : public AccessibleWrap
 {
 public:
-  nsXULColumnsAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXULColumAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
@@ -72,7 +72,7 @@ public:
   
   virtual PRUint32 ColCount();
   virtual PRUint32 RowCount();
-  virtual nsAccessible* CellAt(PRUint32 aRowIndex, PRUint32 aColumnIndex);
+  virtual Accessible* CellAt(PRUint32 aRowIndex, PRUint32 aColumnIndex);
   virtual void UnselectRow(PRUint32 aRowIdx);
 
   
@@ -89,7 +89,7 @@ public:
   virtual bool IsActiveWidget() const;
   virtual bool AreItemsOperable() const;
 
-  virtual nsAccessible* ContainerWidget() const;
+  virtual Accessible* ContainerWidget() const;
 
 protected:
   bool IsMulticolumn();
@@ -120,13 +120,13 @@ public:
   virtual bool CanHaveAnonChildren();
 
   
-  virtual nsAccessible* ContainerWidget() const;
+  virtual Accessible* ContainerWidget() const;
 
 protected:
   
 
 
-  nsAccessible *GetListAccessible();
+  Accessible* GetListAccessible();
 
 private:
   bool mIsCheckbox;

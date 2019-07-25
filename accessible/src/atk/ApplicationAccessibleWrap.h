@@ -27,8 +27,8 @@ public:
 
   
   virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
-  virtual bool AppendChild(nsAccessible* aChild);
-  virtual bool RemoveChild(nsAccessible* aChild);
+  virtual bool AppendChild(Accessible* aChild);
+  virtual bool RemoveChild(Accessible* aChild);
 
   
 

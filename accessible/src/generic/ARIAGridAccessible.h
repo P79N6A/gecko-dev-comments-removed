@@ -18,7 +18,7 @@ namespace a11y {
 
 
 
-class ARIAGridAccessible : public nsAccessibleWrap,
+class ARIAGridAccessible : public AccessibleWrap,
                            public xpcAccessibleTable,
                            public nsIAccessibleTable,
                            public TableAccessible
@@ -41,7 +41,7 @@ public:
   
   virtual PRUint32 ColCount();
   virtual PRUint32 RowCount();
-  virtual nsAccessible* CellAt(PRUint32 aRowIndex, PRUint32 aColumnIndex);
+  virtual Accessible* CellAt(PRUint32 aRowIndex, PRUint32 aColumnIndex);
   virtual void UnselectCol(PRUint32 aColIdx);
   virtual void UnselectRow(PRUint32 aRowIdx);
 
@@ -64,12 +64,12 @@ protected:
   
 
 
-  nsAccessible *GetRowAt(PRInt32 aRow);
+  Accessible* GetRowAt(PRInt32 aRow);
 
   
 
 
-  nsAccessible *GetCellInRowAt(nsAccessible *aRow, PRInt32 aColumn);
+  Accessible* GetCellInRowAt(Accessible* aRow, PRInt32 aColumn);
 
   
 
@@ -79,7 +79,7 @@ protected:
 
 
 
-  nsresult SetARIASelected(nsAccessible *aAccessible, bool aIsSelected,
+  nsresult SetARIASelected(Accessible* aAccessible, bool aIsSelected,
                            bool aNotify = true);
 
   

@@ -37,7 +37,7 @@ public:
 
   Relation(AccIterable* aIter) : mFirstIter(aIter), mLastIter(aIter) { }
 
-  Relation(nsAccessible* aAcc) :
+  Relation(Accessible* aAcc) :
     mFirstIter(nsnull), mLastIter(nsnull)
     { AppendTarget(aAcc); }
 
@@ -77,7 +77,7 @@ public:
   
 
 
-  inline void AppendTarget(nsAccessible* aAcc)
+  inline void AppendTarget(Accessible* aAcc)
   {
     if (aAcc)
       AppendIter(new SingleAccIterator(aAcc));
@@ -96,9 +96,9 @@ public:
   
 
 
-  inline nsAccessible* Next()
+  inline Accessible* Next()
   {
-    nsAccessible* target = nsnull;
+    Accessible* target = nsnull;
 
     
     while (mFirstIter && !(target = mFirstIter->Next()))

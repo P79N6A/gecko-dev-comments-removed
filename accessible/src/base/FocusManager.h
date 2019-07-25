@@ -9,7 +9,7 @@
 #include "mozilla/dom/Element.h"
 
 class AccEvent;
-class nsAccessible;
+class Accessible;
 class DocAccessible;
 
 namespace mozilla {
@@ -26,18 +26,18 @@ public:
   
 
 
-  nsAccessible* FocusedAccessible() const;
+  Accessible* FocusedAccessible() const;
 
   
 
 
-  bool IsFocused(const nsAccessible* aAccessible) const;
+  bool IsFocused(const Accessible* aAccessible) const;
 
   
 
 
 
-  inline bool IsActiveItem(const nsAccessible* aAccessible)
+  inline bool IsActiveItem(const Accessible* aAccessible)
     { return aAccessible == mActiveItem; }
 
   
@@ -49,7 +49,7 @@ public:
   
 
 
-  bool IsFocusWithin(const nsAccessible* aContainer) const;
+  bool IsFocusWithin(const Accessible* aContainer) const;
 
   
 
@@ -61,7 +61,7 @@ public:
     eContainsFocus,
     eContainedByFocus
   };
-  FocusDisposition IsInOrContainsFocus(const nsAccessible* aAccessible) const;
+  FocusDisposition IsInOrContainsFocus(const Accessible* aAccessible) const;
 
   
   
@@ -80,7 +80,7 @@ public:
 
 
 
-  void ActiveItemChanged(nsAccessible* aItem, bool aCheckIfActive = true);
+  void ActiveItemChanged(Accessible* aItem, bool aCheckIfActive = true);
 
   
 
@@ -90,7 +90,7 @@ public:
   
 
 
-  void DispatchFocusEvent(DocAccessible* aDocument, nsAccessible* aTarget);
+  void DispatchFocusEvent(DocAccessible* aDocument, Accessible* aTarget);
 
   
 
@@ -121,8 +121,8 @@ private:
   nsIDocument* FocusedDOMDocument() const;
 
 private:
-  nsRefPtr<nsAccessible> mActiveItem;
-  nsRefPtr<nsAccessible> mActiveARIAMenubar;
+  nsRefPtr<Accessible> mActiveItem;
+  nsRefPtr<Accessible> mActiveARIAMenubar;
 };
 
 } 

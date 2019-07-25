@@ -7,7 +7,7 @@
 #define MOZILLA_A11Y_XULFormControlAccessible_H_
 
 
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 #include "FormControlAccessible.h"
 #include "nsHyperTextAccessibleWrap.h"
 #include "XULSelectControlAccessible.h"
@@ -26,7 +26,7 @@ typedef ProgressMeterAccessible<100> XULProgressMeterAccessible;
 
 
 
-class XULButtonAccessible : public nsAccessibleWrap
+class XULButtonAccessible : public AccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };
@@ -50,7 +50,7 @@ public:
   virtual bool IsWidget() const;
   virtual bool IsActiveWidget() const;
   virtual bool AreItemsOperable() const;
-  virtual nsAccessible* ContainerWidget() const;
+  virtual Accessible* ContainerWidget() const;
 
 protected:
 
@@ -110,7 +110,7 @@ private:
 
 
 
-class XULGroupboxAccessible : public nsAccessibleWrap
+class XULGroupboxAccessible : public AccessibleWrap
 {
 public:
   XULGroupboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -134,7 +134,7 @@ public:
   virtual PRUint64 NativeState();
 
   
-  virtual nsAccessible* ContainerWidget() const;
+  virtual Accessible* ContainerWidget() const;
 };
 
 
@@ -158,7 +158,7 @@ public:
 
 
 
-class XULStatusBarAccessible : public nsAccessibleWrap
+class XULStatusBarAccessible : public AccessibleWrap
 {
 public:
   XULStatusBarAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -180,13 +180,13 @@ public:
                                           PRInt32 *aSetSize);
 
   
-  static bool IsSeparator(nsAccessible *aAccessible);
+  static bool IsSeparator(Accessible* aAccessible);
 };
 
 
 
 
-class XULToolbarAccessible : public nsAccessibleWrap
+class XULToolbarAccessible : public AccessibleWrap
 {
 public:
   XULToolbarAccessible(nsIContent* aContent, DocAccessible* aDoc);

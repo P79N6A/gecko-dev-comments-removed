@@ -8,7 +8,7 @@
 #ifndef mozilla_a11y_ApplicationAccessible_h__
 #define mozilla_a11y_ApplicationAccessible_h__
 
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 #include "nsIAccessibleApplication.h"
 
 #include "nsIMutableArray.h"
@@ -27,7 +27,7 @@ namespace a11y {
 
 
 
-class ApplicationAccessible: public nsAccessibleWrap,
+class ApplicationAccessible : public AccessibleWrap,
                              public nsIAccessibleApplication
 {
 public:
@@ -77,9 +77,9 @@ public:
   virtual PRUint64 NativeState();
   virtual Relation RelationByType(PRUint32 aRelType);
 
-  virtual nsAccessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
-                                     EWhichChildAtPoint aWhichChild);
-  virtual nsAccessible* FocusedChild();
+  virtual Accessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
+                                   EWhichChildAtPoint aWhichChild);
+  virtual Accessible* FocusedChild();
 
   virtual void InvalidateChildren();
 
@@ -91,8 +91,8 @@ protected:
 
   
   virtual void CacheChildren();
-  virtual nsAccessible* GetSiblingAtOffset(PRInt32 aOffset,
-                                           nsresult *aError = nsnull) const;
+  virtual Accessible* GetSiblingAtOffset(PRInt32 aOffset,
+                                         nsresult *aError = nsnull) const;
 
 private:
   nsCOMPtr<nsIXULAppInfo> mAppInfo;

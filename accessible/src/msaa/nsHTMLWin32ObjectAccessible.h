@@ -10,7 +10,7 @@
 
 struct IAccessible;
 
-class nsHTMLWin32ObjectOwnerAccessible : public nsAccessibleWrap
+class nsHTMLWin32ObjectOwnerAccessible : public AccessibleWrap
 {
 public:
   
@@ -36,7 +36,7 @@ protected:
   virtual void CacheChildren();
 
   void* mHwnd;
-  nsRefPtr<nsAccessible> mNativeAccessible;
+  nsRefPtr<Accessible> mNativeAccessible;
 };
 
 

@@ -6,14 +6,14 @@
 #ifndef _nsXULSliderAccessible_H_
 #define _nsXULSliderAccessible_H_
 
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 
 #include "nsIDOMElement.h"
 
 
 
 
-class nsXULSliderAccessible : public nsAccessibleWrap
+class nsXULSliderAccessible : public AccessibleWrap
 {
 public:
   nsXULSliderAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -57,7 +57,7 @@ private:
 
 
 
-class nsXULThumbAccessible : public nsAccessibleWrap
+class nsXULThumbAccessible : public AccessibleWrap
 {
 public:
   nsXULThumbAccessible(nsIContent* aContent, DocAccessible* aDoc);

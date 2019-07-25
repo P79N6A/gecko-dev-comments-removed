@@ -7,7 +7,7 @@
 #ifndef _AtkSocketAccessible_H_
 #define _AtkSocketAccessible_H_
 
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 
 
 
@@ -21,7 +21,7 @@ extern "C" typedef void (*AtkSocketEmbedType) (void*, void*);
 
 
 
-class AtkSocketAccessible: public nsAccessibleWrap
+class AtkSocketAccessible : public AccessibleWrap
 {
 public:
 

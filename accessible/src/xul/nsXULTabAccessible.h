@@ -14,7 +14,7 @@
 
 
 
-class nsXULTabAccessible : public nsAccessibleWrap
+class nsXULTabAccessible : public AccessibleWrap
 {
 public:
   enum { eAction_Switch = 0 };
@@ -56,7 +56,7 @@ public:
 
 
 
-class nsXULTabpanelsAccessible : public nsAccessibleWrap
+class nsXULTabpanelsAccessible : public AccessibleWrap
 {
 public:
   nsXULTabpanelsAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -76,7 +76,7 @@ public:
 
 
 
-class nsXULTabpanelAccessible : public nsAccessibleWrap
+class nsXULTabpanelAccessible : public AccessibleWrap
 {
 public:
   nsXULTabpanelAccessible(nsIContent* aContent, DocAccessible* aDoc);

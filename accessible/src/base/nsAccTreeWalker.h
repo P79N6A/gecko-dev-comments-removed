@@ -9,7 +9,7 @@
 #include "nsAutoPtr.h"
 #include "nsIContent.h"
 
-class nsAccessible;
+class Accessible;
 class DocAccessible;
 struct WalkState;
 
@@ -30,7 +30,7 @@ public:
 
 
 
-  inline nsAccessible* NextChild()
+  Accessible* NextChild()
   {
     return NextChildInternal(false);
   }
@@ -44,7 +44,7 @@ private:
 
 
 
-  nsAccessible* NextChildInternal(bool aNoWalkUp);
+  Accessible* NextChildInternal(bool aNoWalkUp);
 
   
 

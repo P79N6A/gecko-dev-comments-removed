@@ -28,7 +28,7 @@ public:
 
 
 
-  static void FireEvent(PRUint32 aEventType, nsAccessible *aAccessible,
+  static void FireEvent(PRUint32 aEventType, Accessible* aAccessible,
                         EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
   

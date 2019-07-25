@@ -46,7 +46,7 @@ protected:
 
 
 inline mozilla::a11y::TextLeafAccessible*
-nsAccessible::AsTextLeaf()
+Accessible::AsTextLeaf()
 {
   return mFlags & eTextLeafAccessible ?
     static_cast<mozilla::a11y::TextLeafAccessible*>(this) : nsnull;

@@ -123,7 +123,7 @@ public:
 
   
   virtual bool IsWidget() const;
-  virtual nsAccessible* ContainerWidget() const;
+  virtual Accessible* ContainerWidget() const;
 };
 
 

@@ -41,7 +41,7 @@ class DocAccessible : public nsHyperTextAccessibleWrap,
                       public nsIAccessiblePivotObserver
 {
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DocAccessible, nsAccessible)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DocAccessible, Accessible)
 
   NS_DECL_NSIACCESSIBLEDOCUMENT
 
@@ -52,7 +52,6 @@ class DocAccessible : public nsHyperTextAccessibleWrap,
   NS_DECL_NSIACCESSIBLEPIVOTOBSERVER
 
 public:
-  using nsAccessible::GetParent;
 
   DocAccessible(nsIDocument* aDocument, nsIContent* aRootContent,
                 nsIPresShell* aPresShell);
@@ -79,7 +78,7 @@ public:
   
   virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
   virtual void Description(nsString& aDescription);
-  virtual nsAccessible* FocusedChild();
+  virtual Accessible* FocusedChild();
   virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual void ApplyARIAState(PRUint64* aState) const;
@@ -186,7 +185,7 @@ public:
   
 
 
-  inline void MaybeNotifyOfValueChange(nsAccessible* aAccessible)
+  void MaybeNotifyOfValueChange(Accessible* aAccessible)
   {
     mozilla::a11y::role role = aAccessible->Role();
     if (role == mozilla::a11y::roles::ENTRY ||
@@ -201,16 +200,16 @@ public:
   
 
 
-  inline nsAccessible* AnchorJump()
+  Accessible* AnchorJump()
     { return GetAccessibleOrContainer(mAnchorJumpElm); }
 
-  inline void SetAnchorJump(nsIContent* aTargetNode)
+  void SetAnchorJump(nsIContent* aTargetNode)
     { mAnchorJumpElm = aTargetNode; }
 
   
 
 
-  inline void BindChildDocument(DocAccessible* aDocument)
+  void BindChildDocument(DocAccessible* aDocument)
   {
     mNotificationController->ScheduleChildDocBinding(aDocument);
   }
@@ -223,7 +222,7 @@ public:
 
 
   template<class Class, class Arg>
-  inline void HandleNotification(Class* aInstance,
+  void HandleNotification(Class* aInstance,
                                  typename TNotification<Class, Arg>::Callback aMethod,
                                  Arg* aArg)
   {
@@ -239,20 +238,20 @@ public:
 
 
 
-  nsAccessible* GetAccessible(nsINode* aNode) const;
+  Accessible* GetAccessible(nsINode* aNode) const;
 
   
 
 
-  inline bool HasAccessible(nsINode* aNode) const
+  bool HasAccessible(nsINode* aNode) const
     { return GetAccessible(aNode); }
 
   
 
 
-  inline bool IsInDocument(nsAccessible* aAccessible) const
+  bool IsInDocument(Accessible* aAccessible) const
   {
-    nsAccessible* acc = aAccessible;
+    Accessible* acc = aAccessible;
     while (acc && !acc->IsPrimaryForNode())
       acc = acc->Parent();
 
@@ -266,7 +265,7 @@ public:
 
 
 
-  inline nsAccessible* GetAccessibleByUniqueID(void* aUniqueID)
+  Accessible* GetAccessibleByUniqueID(void* aUniqueID)
   {
     return UniqueID() == aUniqueID ?
       this : mAccessibleCache.GetWeak(aUniqueID);
@@ -276,18 +275,18 @@ public:
 
 
 
-  nsAccessible* GetAccessibleByUniqueIDInSubtree(void* aUniqueID);
+  Accessible* GetAccessibleByUniqueIDInSubtree(void* aUniqueID);
 
   
 
 
 
-  nsAccessible* GetAccessibleOrContainer(nsINode* aNode);
+  Accessible* GetAccessibleOrContainer(nsINode* aNode);
 
   
 
 
-  inline nsAccessible* GetContainerAccessible(nsINode* aNode)
+  Accessible* GetContainerAccessible(nsINode* aNode)
   {
     return aNode ? GetAccessibleOrContainer(aNode->GetNodeParent()) : nsnull;
   }
@@ -309,12 +308,12 @@ public:
 
 
 
-  bool BindToDocument(nsAccessible* aAccessible, nsRoleMapEntry* aRoleMapEntry);
+  bool BindToDocument(Accessible* aAccessible, nsRoleMapEntry* aRoleMapEntry);
 
   
 
 
-  void UnbindFromDocument(nsAccessible* aAccessible);
+  void UnbindFromDocument(Accessible* aAccessible);
 
   
 
@@ -331,7 +330,7 @@ public:
   
 
 
-  inline void UpdateText(nsIContent* aTextNode)
+  void UpdateText(nsIContent* aTextNode)
   {
     NS_ASSERTION(mNotificationController, "The document was shut down!");
 
@@ -359,7 +358,7 @@ protected:
   
 
 
-  inline void NotifyOfLoad(PRUint32 aLoadEventType)
+  void NotifyOfLoad(PRUint32 aLoadEventType)
   {
     mLoadState |= eDOMLoaded;
     mLoadEventType = aLoadEventType;
@@ -410,7 +409,7 @@ protected:
 
 
 
-  void AddDependentIDsFor(nsAccessible* aRelProvider,
+  void AddDependentIDsFor(Accessible* aRelProvider,
                           nsIAtom* aRelAttr = nsnull);
 
   
@@ -421,7 +420,7 @@ protected:
 
 
 
-  void RemoveDependentIDsFor(nsAccessible* aRelProvider,
+  void RemoveDependentIDsFor(Accessible* aRelProvider,
                              nsIAtom* aRelAttr = nsnull);
 
   
@@ -465,7 +464,7 @@ protected:
   
 
 
-  void ProcessContentInserted(nsAccessible* aContainer,
+  void ProcessContentInserted(Accessible* aContainer,
                               const nsTArray<nsCOMPtr<nsIContent> >* aInsertedContent);
 
   
@@ -480,7 +479,7 @@ protected:
   
 
 
-  void UpdateTree(nsAccessible* aContainer, nsIContent* aChildNode,
+  void UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
                   bool aIsInsert);
 
   
@@ -493,17 +492,17 @@ protected:
     eAlertAccessible = 2
   };
 
-  PRUint32 UpdateTreeInternal(nsAccessible* aChild, bool aIsInsert);
+  PRUint32 UpdateTreeInternal(Accessible* aChild, bool aIsInsert);
 
   
 
 
-  void CacheChildrenInSubtree(nsAccessible* aRoot);
+  void CacheChildrenInSubtree(Accessible* aRoot);
 
   
 
 
-  void UncacheChildrenInSubtree(nsAccessible* aRoot);
+  void UncacheChildrenInSubtree(Accessible* aRoot);
 
   
 
@@ -511,7 +510,7 @@ protected:
 
 
 
-  void ShutdownChildrenInSubtree(nsAccessible *aAccessible);
+  void ShutdownChildrenInSubtree(Accessible* aAccessible);
 
   
 
@@ -544,8 +543,8 @@ protected:
   
 
 
-  nsAccessibleHashtable mAccessibleCache;
-  nsDataHashtable<nsPtrHashKey<const nsINode>, nsAccessible*>
+  AccessibleHashtable mAccessibleCache;
+  nsDataHashtable<nsPtrHashKey<const nsINode>, Accessible*>
     mNodeToAccessibleMap;
 
     nsCOMPtr<nsIDocument> mDocument;
@@ -631,7 +630,7 @@ private:
 };
 
 inline DocAccessible*
-nsAccessible::AsDoc()
+Accessible::AsDoc()
 {
   return mFlags & eDocAccessible ?
     static_cast<DocAccessible*>(this) : nsnull;

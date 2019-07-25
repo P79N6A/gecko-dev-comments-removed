@@ -7,11 +7,11 @@
 
 
 
-#ifndef _nsAccessibleWrap_H_
-#define _nsAccessibleWrap_H_
+#ifndef _AccessibleWrap_H_
+#define _AccessibleWrap_H_
 
 #include "nsCOMPtr.h"
-#include "nsAccessible.h"
+#include "Accessible.h"
 #include "Accessible2.h"
 #include "ia2AccessibleComponent.h"
 #include "CAccessibleHyperlink.h"
@@ -63,16 +63,16 @@ Class::QueryInterface(REFIID iid, void** ppv)                                 \
   IMPL_IUNKNOWN_QUERY_TAIL                                                    \
 
 
-class nsAccessibleWrap : public nsAccessible,
-                         public ia2AccessibleComponent,
-                         public CAccessibleHyperlink,
-                         public CAccessibleValue,
-                         public IAccessible2
+class AccessibleWrap : public Accessible,
+                       public ia2AccessibleComponent,
+                       public CAccessibleHyperlink,
+                       public CAccessibleValue,
+                       public IAccessible2
 {
 public: 
-  nsAccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
-    nsAccessible(aContent, aDoc) { }
-  virtual ~nsAccessibleWrap() { }
+  AccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
+    Accessible(aContent, aDoc) { }
+  virtual ~AccessibleWrap() { }
 
     
     NS_DECL_ISUPPORTS_INHERITED
@@ -258,8 +258,8 @@ public:
   virtual nsresult HandleAccEvent(AccEvent* aEvent);
 
   
-  static PRInt32 GetChildIDFor(nsAccessible* aAccessible);
-  static HWND GetHWNDFor(nsAccessible *aAccessible);
+  static PRInt32 GetChildIDFor(Accessible* aAccessible);
+  static HWND GetHWNDFor(Accessible* aAccessible);
   static HRESULT ConvertToIA2Attributes(nsIPersistentProperties *aAttributes,
                                         BSTR *aIA2Attributes);
 
@@ -275,7 +275,7 @@ public:
   
 
 
-  nsAccessible* GetXPAccessibleFor(const VARIANT& aVarChild);
+  Accessible* GetXPAccessibleFor(const VARIANT& aVarChild);
 
   NS_IMETHOD GetNativeInterface(void **aOutAccessible);
 

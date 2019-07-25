@@ -201,7 +201,7 @@ DocAccessibleWrap::get_accValue(
   
   *pszValue = NULL;
   
-  HRESULT hr = nsAccessibleWrap::get_accValue(varChild, pszValue);
+  HRESULT hr = AccessibleWrap::get_accValue(varChild, pszValue);
   if (FAILED(hr) || *pszValue || varChild.lVal != CHILDID_SELF)
     return hr;
   

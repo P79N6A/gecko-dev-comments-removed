@@ -910,7 +910,7 @@ nsInlineFrame::DestroyFrom(nsIFrame* aDestructRoot)
 }
 
 #ifdef ACCESSIBILITY
-already_AddRefed<nsAccessible>
+already_AddRefed<Accessible>
 nsInlineFrame::CreateAccessible()
 {
   

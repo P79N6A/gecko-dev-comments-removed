@@ -11,7 +11,7 @@
 #include "nsAString.h"
 
 class AccEvent;
-class nsAccessible;
+class Accessible;
 class DocAccessible;
 class nsIDocument;
 class nsIRequest;
@@ -75,7 +75,7 @@ void Text(const char* aText);
 
 
 
-void Address(const char* aDescr, nsAccessible* aAcc);
+void Address(const char* aDescr, Accessible* aAcc);
 
 
 

@@ -5,7 +5,7 @@
 
 
 #include <atk/atk.h>
-#include "nsAccessibleWrap.h"
+#include "AccessibleWrap.h"
 
 
 

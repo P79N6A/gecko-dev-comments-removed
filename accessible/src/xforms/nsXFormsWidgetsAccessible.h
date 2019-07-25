@@ -37,7 +37,7 @@ public:
 
 
 
-class nsXFormsCalendarWidgetAccessible : public nsAccessibleWrap
+class nsXFormsCalendarWidgetAccessible : public AccessibleWrap
 {
 public:
   nsXFormsCalendarWidgetAccessible(nsIContent* aContent,
