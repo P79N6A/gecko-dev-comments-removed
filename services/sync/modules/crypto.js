@@ -229,4 +229,44 @@ CryptoSvc.prototype = {
                                               identity.privkeyWrapIV);
     self.done(ret);
   },
+
+  
+  
+  isPassphraseValid: function Crypto_isPassphraseValid(identity) {
+    var self = yield;
+
+    
+    
+    
+    
+    
+
+    
+    var idTemp = {realm: "Temporary passphrase validation"};
+
+    
+    this.randomKeyGen.async(Crypto, self.cb, idTemp);
+    yield;
+
+    
+    this.wrapKey.async(Crypto, self.cb, idTemp.bulkKey, identity);
+    let wrappedKey = yield;
+    let unwrappedKey;
+
+    
+    try {
+      this.unwrapKey.async(Crypto, self.cb, wrappedKey, identity);
+      unwrappedKey = yield;
+    } catch (e) {
+      self.done(false);
+      return;
+    }
+
+    
+    
+    if (unwrappedKey != idTemp.bulkKey)
+      throw new Error("Unwrapped key is not identical to original key.");
+
+    self.done(true);
+  }
 };
