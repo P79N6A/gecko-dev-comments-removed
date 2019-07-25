@@ -190,30 +190,6 @@ struct CallSite;
 
 struct JSScript {
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static JSScript *NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
-                               uint32 nobjects, uint32 nupvars, uint32 nregexps,
-                               uint32 ntrynotes, uint32 nconsts, uint32 nglobals,
-                               uint32 nClosedArgs, uint32 nClosedVars);
-
-    static JSScript *NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
-
-    
     JSCList         links;      
     jsbytecode      *code;      
     uint32          length;     
@@ -240,7 +216,6 @@ struct JSScript {
     bool            strictModeCode:1; 
     bool            compileAndGo:1;   
     bool            usesEval:1;       
-    bool            usesArguments:1;  
     bool            warnedAboutTwoArgumentEval:1; 
 
 
@@ -254,8 +229,6 @@ struct JSScript {
     uint32          lineno;     
     uint16          nslots;     
     uint16          staticLevel;
-    uint16          nClosedArgs; 
-    uint16          nClosedVars; 
     JSPrincipals    *principals;
     union {
         
@@ -280,10 +253,6 @@ struct JSScript {
 #ifdef CHECK_SCRIPT_OWNER
     JSThread        *owner;     
 #endif
-
-    uint32          *closedSlots; 
-
-  public:
 #ifdef JS_METHODJIT
     
     
@@ -404,18 +373,6 @@ struct JSScript {
     }
 #endif
 
-    uint32 getClosedArg(uint32 index) {
-        JS_ASSERT(index < nClosedArgs);
-        return closedSlots[index];
-    }
-
-    uint32 getClosedVar(uint32 index) {
-        JS_ASSERT(index < nClosedVars);
-        return closedSlots[nClosedArgs + index];
-    }
-
-    void copyClosedSlotsTo(JSScript *other);
-
   private:
     
 
@@ -490,6 +447,31 @@ js_MarkScriptFilenames(JSRuntime *rt);
 
 extern void
 js_SweepScriptFilenames(JSRuntime *rt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JSScript *
+js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
+             uint32 nobjects, uint32 nupvars, uint32 nregexps,
+             uint32 ntrynotes, uint32 nconsts, uint32 nglobals);
+
+extern JSScript *
+js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
 
 
 

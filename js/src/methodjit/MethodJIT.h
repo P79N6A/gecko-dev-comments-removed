@@ -178,6 +178,8 @@ struct JITScript {
 #endif
     void            *invoke;         
     void            *arityCheck;     
+    uint32          *escaping;       
+    uint32          nescaping;       
 };
 
 
