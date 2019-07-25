@@ -89,7 +89,6 @@
 #include "nsIDOMNSEvent.h"
 #include "nsIDOMNSUIEvent.h"
 
-#include "nsIDOMFocusListener.h" 
 #include "nsIDOMCharacterData.h" 
 #include "nsIDOMNodeList.h" 
 #include "nsIDOMRange.h" 
@@ -105,7 +104,6 @@
 #include "nsIDOMText.h" 
 #include "nsNodeInfoManager.h"
 #include "nsContentCreatorFunctions.h"
-#include "nsIDOMKeyListener.h"
 #include "nsINativeKeyBindings.h"
 #include "nsIJSContextStack.h"
 #include "nsFocusManager.h"

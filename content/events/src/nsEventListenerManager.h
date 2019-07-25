@@ -97,10 +97,6 @@ public:
 
 
 
-  nsresult AddEventListenerByIID(nsIDOMEventListener *aListener,
-                                 const nsIID& aIID, PRInt32 aFlags);
-  void RemoveEventListenerByIID(nsIDOMEventListener *aListener,
-                                const nsIID& aIID, PRInt32 aFlags);
   nsresult AddEventListenerByType(nsIDOMEventListener *aListener,
                                   const nsAString& type,
                                   PRInt32 aFlags);
