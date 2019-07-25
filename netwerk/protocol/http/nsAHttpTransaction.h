@@ -96,6 +96,11 @@ public:
     
     
     virtual nsHttpRequestHead *RequestHead() = 0;
+
+    
+    
+    
+    virtual PRUint32 Http1xTransactionCount() = 0;
 };
 
 #define NS_DECL_NSAHTTPTRANSACTION \
@@ -112,7 +117,8 @@ public:
     nsresult WriteSegments(nsAHttpSegmentWriter *, PRUint32, PRUint32 *); \
     void     Close(nsresult reason);                                    \
     void     SetSSLConnectFailed();                                     \
-    nsHttpRequestHead *RequestHead();
+    nsHttpRequestHead *RequestHead();                                   \
+    PRUint32 Http1xTransactionCount();
 
 
 
