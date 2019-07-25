@@ -3401,7 +3401,7 @@ nsresult nsGenericHTMLElement::Click()
   
   nsMouseEvent event(nsContentUtils::IsCallerChrome(),
                      NS_MOUSE_CLICK, nsnull, nsMouseEvent::eReal);
-  event.inputSource = nsIDOMNSMouseEvent::MOZ_SOURCE_UNKNOWN;
+  event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
 
   nsEventDispatcher::Dispatch(this, context, &event);
 
@@ -3507,7 +3507,7 @@ nsGenericHTMLElement::PerformAccesskey(PRBool aKeyCausesActivation,
     
     nsMouseEvent event(aIsTrustedEvent, NS_MOUSE_CLICK,
                        nsnull, nsMouseEvent::eReal);
-    event.inputSource = nsIDOMNSMouseEvent::MOZ_SOURCE_KEYBOARD;
+    event.inputSource = nsIDOMMouseEvent::MOZ_SOURCE_KEYBOARD;
 
     nsAutoPopupStatePusher popupStatePusher(aIsTrustedEvent ?
                                             openAllowed : openAbused);
