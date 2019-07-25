@@ -322,7 +322,7 @@ public:
     return NS_OK;
   }
 private:
-  nsCOMPtr<Connection> mConnection;
+  nsRefPtr<Connection> mConnection;
   nsCOMPtr<nsIEventTarget> mCallingThread;
   nsCOMPtr<nsIRunnable> mCallbackEvent;
 };
@@ -352,9 +352,10 @@ Connection::~Connection()
   (void)Close();
 }
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(
+NS_IMPL_THREADSAFE_ISUPPORTS2(
   Connection,
-  mozIStorageConnection
+  mozIStorageConnection,
+  nsIInterfaceRequestor
 )
 
 nsIEventTarget *
@@ -423,9 +424,8 @@ Connection::initialize(nsIFile *aDatabaseFile,
 #endif
   
   sqlite3_stmt *stmt;
-  nsCAutoString pageSizeQuery(NS_LITERAL_CSTRING("PRAGMA page_size = "));
-  pageSizeQuery.AppendInt(DEFAULT_PAGE_SIZE);
-  srv = prepareStmt(mDBConn, pageSizeQuery, &stmt);
+  srv = prepareStmt(mDBConn, NS_LITERAL_CSTRING("PRAGMA page_size = 32768"),
+                    &stmt);
   if (srv == SQLITE_OK) {
     (void)stepStmt(stmt);
     (void)::sqlite3_finalize(stmt);
@@ -640,6 +640,22 @@ Connection::getFilename()
     (void)mDatabaseFile->GetNativeLeafName(leafname);
   }
   return leafname;
+}
+
+
+
+
+NS_IMETHODIMP
+Connection::GetInterface(const nsIID &aIID,
+                         void **_result)
+{
+  if (aIID.Equals(NS_GET_IID(nsIEventTarget))) {
+    nsIEventTarget *background = getAsyncExecutionTarget();
+    NS_IF_ADDREF(background);
+    *_result = background;
+    return NS_OK;
+  }
+  return NS_ERROR_NO_INTERFACE;
 }
 
 
@@ -1110,15 +1126,10 @@ Connection::RemoveProgressHandler(mozIStorageProgressHandler **_oldHandler)
 NS_IMETHODIMP
 Connection::SetGrowthIncrement(PRInt32 aChunkSize, const nsACString &aDatabaseName)
 {
-  
-  
-  
-#if !defined(ANDROID) && !defined(MOZ_PLATFORM_MAEMO)
   (void)::sqlite3_file_control(mDBConn,
                                aDatabaseName.Length() ? nsPromiseFlatCString(aDatabaseName).get() : NULL,
                                SQLITE_FCNTL_CHUNK_SIZE,
                                &aChunkSize);
-#endif
   return NS_OK;
 }
 

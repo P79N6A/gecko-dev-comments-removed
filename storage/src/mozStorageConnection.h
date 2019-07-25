@@ -38,12 +38,13 @@
 
 
 
-#ifndef MOZSTORAGECONNECTION_H
-#define MOZSTORAGECONNECTION_H
+#ifndef mozilla_storage_Connection_h
+#define mozilla_storage_Connection_h
 
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "mozilla/Mutex.h"
+#include "nsIInterfaceRequestor.h"
 
 #include "nsString.h"
 #include "nsDataHashtable.h"
@@ -65,10 +66,12 @@ namespace mozilla {
 namespace storage {
 
 class Connection : public mozIStorageConnection
+                 , public nsIInterfaceRequestor
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_MOZISTORAGECONNECTION
+  NS_DECL_NSIINTERFACEREQUESTOR
 
   
 
