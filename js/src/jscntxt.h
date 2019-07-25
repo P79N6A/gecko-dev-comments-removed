@@ -453,7 +453,6 @@ struct JSRuntime
 #ifdef JS_THREADSAFE
     
     PRLock              *gcLock;
-    uint32_t            requestCount;
 
     js::GCHelperThread  gcHelperThread;
 #endif 
@@ -1363,14 +1362,6 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode);
 
 extern JSContext *
 js_ContextIterator(JSRuntime *rt, JSBool unlocked, JSContext **iterp);
-
-
-
-
-
-
-extern JS_FRIEND_API(JSContext *)
-js_NextActiveContext(JSRuntime *, JSContext *);
 
 #ifdef va_start
 extern JSBool
