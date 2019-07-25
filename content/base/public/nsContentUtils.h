@@ -2019,6 +2019,12 @@ public:
 
   static bool IsJavaScriptLanguage(const nsString& aName, PRUint32 *aVerFlags);
 
+  
+
+
+
+  static JSVersion ParseJavascriptVersion(const nsAString& aVersionStr);
+
   static void SplitMimeType(const nsAString& aValue, nsString& aType,
                             nsString& aParams);
 
