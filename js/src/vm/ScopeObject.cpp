@@ -219,33 +219,6 @@ CallObject::createForFunction(JSContext *cx, StackFrame *fp)
     return callobj;
 }
 
-void
-CallObject::copyUnaliasedValues(StackFrame *fp)
-{
-    JS_ASSERT(fp->script() == callee().script());
-    JSScript *script = fp->script();
-
-    
-    if (script->bindingsAccessedDynamically)
-        return;
-
-    
-    for (unsigned i = 0; i < script->bindings.numArgs(); ++i) {
-        if (!script->formalLivesInCallObject(i)) {
-            if (script->argsObjAliasesFormals() && fp->hasArgsObj())
-                setFormal(i, fp->argsObj().arg(i), DONT_CHECK_ALIASING);
-            else
-                setFormal(i, fp->unaliasedFormal(i, DONT_CHECK_ALIASING), DONT_CHECK_ALIASING);
-        }
-    }
-
-    
-    for (unsigned i = 0; i < script->bindings.numVars(); ++i) {
-        if (!script->varIsAliased(i))
-            setVar(i, fp->unaliasedLocal(i), DONT_CHECK_ALIASING);
-    }
-}
-
 CallObject *
 CallObject::createForStrictEval(JSContext *cx, StackFrame *fp)
 {
@@ -1086,6 +1059,7 @@ namespace js {
 
 
 
+
 class DebugScopeProxy : public BaseProxyHandler
 {
     enum Action { SET, GET };
@@ -1100,8 +1074,24 @@ class DebugScopeProxy : public BaseProxyHandler
 
 
 
-    bool handleUnaliasedAccess(JSContext *cx, Handle<ScopeObject*> scope, jsid id, Action action, Value *vp)
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool handleUnaliasedAccess(JSContext *cx, Handle<DebugScopeObject*> debugScope, Handle<ScopeObject*> scope,
+                               jsid id, Action action, Value *vp)
     {
+        JS_ASSERT(&debugScope->scope() == scope);
+
         Shape *shape = scope->lastProperty()->search(cx, id);
         if (!shape)
             return false;
@@ -1129,11 +1119,15 @@ class DebugScopeProxy : public BaseProxyHandler
                         *vp = maybefp->unaliasedVar(i);
                     else
                         maybefp->unaliasedVar(i) = *vp;
-                } else {
+                } else if (JSObject *snapshot = debugScope->maybeSnapshot()) {
                     if (action == GET)
-                        *vp = callobj.var(i, DONT_CHECK_ALIASING);
+                        *vp = snapshot->getDenseArrayElement(bindings.numArgs() + i);
                     else
-                        callobj.setVar(i, *vp, DONT_CHECK_ALIASING);
+                        snapshot->setDenseArrayElement(bindings.numArgs() + i, *vp);
+                } else {
+                    
+                    if (action == GET)
+                        *vp = UndefinedValue();
                 }
 
                 if (action == SET)
@@ -1159,11 +1153,15 @@ class DebugScopeProxy : public BaseProxyHandler
                         else
                             maybefp->unaliasedFormal(i, DONT_CHECK_ALIASING) = *vp;
                     }
-                } else {
+                } else if (JSObject *snapshot = debugScope->maybeSnapshot()) {
                     if (action == GET)
-                        *vp = callobj.formal(i, DONT_CHECK_ALIASING);
+                        *vp = snapshot->getDenseArrayElement(i);
                     else
-                        callobj.setFormal(i, *vp, DONT_CHECK_ALIASING);
+                        snapshot->setDenseArrayElement(i, *vp);
+                } else {
+                    
+                    if (action == GET)
+                        *vp = UndefinedValue();
                 }
 
                 if (action == SET)
@@ -1266,11 +1264,12 @@ class DebugScopeProxy : public BaseProxyHandler
         return getOwnPropertyDescriptor(cx, proxy, id, set, desc);
     }
 
-    bool getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id_, bool set,
+    bool getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid idArg, bool set,
                                   PropertyDescriptor *desc) MOZ_OVERRIDE
     {
-        Rooted<ScopeObject*> scope(cx, &proxy->asDebugScope().scope());
-        RootedId id(cx, id_);
+        Rooted<DebugScopeObject*> debugScope(cx, &proxy->asDebugScope());
+        Rooted<ScopeObject*> scope(cx, &debugScope->scope());
+        RootedId id(cx, idArg);
 
         ArgumentsObject *maybeArgsObj;
         if (!checkForMissingArguments(cx, id, *scope, &maybeArgsObj))
@@ -1278,16 +1277,16 @@ class DebugScopeProxy : public BaseProxyHandler
 
         if (maybeArgsObj) {
             PodZero(desc);
-            desc->obj = proxy;
+            desc->obj = debugScope;
             desc->attrs = JSPROP_READONLY | JSPROP_ENUMERATE | JSPROP_PERMANENT;
             desc->value = ObjectValue(*maybeArgsObj);
             return true;
         }
 
         Value v;
-        if (handleUnaliasedAccess(cx, scope, id, GET, &v)) {
+        if (handleUnaliasedAccess(cx, debugScope, scope, id, GET, &v)) {
             PodZero(desc);
-            desc->obj = proxy;
+            desc->obj = debugScope;
             desc->attrs = JSPROP_READONLY | JSPROP_ENUMERATE | JSPROP_PERMANENT;
             desc->value = v;
             return true;
@@ -1296,10 +1295,11 @@ class DebugScopeProxy : public BaseProxyHandler
         return JS_GetPropertyDescriptorById(cx, scope, id, JSRESOLVE_QUALIFIED, desc);
     }
 
-    bool get(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id_, Value *vp) MOZ_OVERRIDE
+    bool get(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid idArg, Value *vp) MOZ_OVERRIDE
     {
+        Rooted<DebugScopeObject*> debugScope(cx, &proxy->asDebugScope());
         Rooted<ScopeObject*> scope(cx, &proxy->asDebugScope().scope());
-        RootedId id(cx, id_);
+        RootedId id(cx, idArg);
 
         ArgumentsObject *maybeArgsObj;
         if (!checkForMissingArguments(cx, id, *scope, &maybeArgsObj))
@@ -1310,7 +1310,7 @@ class DebugScopeProxy : public BaseProxyHandler
             return true;
         }
 
-        if (handleUnaliasedAccess(cx, scope, id, GET, vp))
+        if (handleUnaliasedAccess(cx, debugScope, scope, id, GET, vp))
             return true;
 
         RootedValue value(cx);
@@ -1321,13 +1321,14 @@ class DebugScopeProxy : public BaseProxyHandler
         return true;
     }
 
-    bool set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id_, bool strict,
+    bool set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid idArg, bool strict,
                      Value *vp) MOZ_OVERRIDE
     {
+        Rooted<DebugScopeObject*> debugScope(cx, &proxy->asDebugScope());
         Rooted<ScopeObject*> scope(cx, &proxy->asDebugScope().scope());
-        RootedId id(cx, id_);
+        RootedId id(cx, idArg);
 
-        if (handleUnaliasedAccess(cx, scope, id, SET, vp))
+        if (handleUnaliasedAccess(cx, debugScope, scope, id, SET, vp))
             return true;
 
         RootedValue value(cx, *vp);
@@ -1338,10 +1339,10 @@ class DebugScopeProxy : public BaseProxyHandler
         return true;
     }
 
-    bool defineProperty(JSContext *cx, JSObject *proxy, jsid id_, PropertyDescriptor *desc) MOZ_OVERRIDE
+    bool defineProperty(JSContext *cx, JSObject *proxy, jsid idArg, PropertyDescriptor *desc) MOZ_OVERRIDE
     {
         Rooted<ScopeObject*> scope(cx, &proxy->asDebugScope().scope());
-        RootedId id(cx, id_);
+        RootedId id(cx, idArg);
 
         bool found;
         if (!has(cx, proxy, id, &found))
@@ -1424,6 +1425,7 @@ DebugScopeObject::create(JSContext *cx, ScopeObject &scope, HandleObject enclosi
 
     JS_ASSERT(!enclosing->isScope());
     SetProxyExtra(obj, ENCLOSING_EXTRA, ObjectValue(*enclosing));
+    SetProxyExtra(obj, SNAPSHOT_EXTRA, NullValue());
 
     return &obj->asDebugScope();
 }
@@ -1438,6 +1440,20 @@ JSObject &
 DebugScopeObject::enclosingScope() const
 {
     return GetProxyExtra(const_cast<DebugScopeObject*>(this), ENCLOSING_EXTRA).toObject();
+}
+
+JSObject *
+DebugScopeObject::maybeSnapshot() const
+{
+    JS_ASSERT(!scope().asCall().isForEval());
+    return GetProxyExtra(const_cast<DebugScopeObject*>(this), SNAPSHOT_EXTRA).toObjectOrNull();
+}
+
+void
+DebugScopeObject::initSnapshot(JSObject &o)
+{
+    JS_ASSERT(maybeSnapshot() == NULL);
+    SetProxyExtra(this, SNAPSHOT_EXTRA, ObjectValue(o));
 }
 
 bool
@@ -1600,24 +1616,73 @@ void
 DebugScopes::onPopCall(StackFrame *fp, JSContext *cx)
 {
     JS_ASSERT(!fp->isYielding());
+
+    DebugScopeObject *debugScope = NULL;
+
     if (fp->fun()->isHeavyweight()) {
         
 
 
 
-        if (fp->hasCallObj()) {
-            CallObject &callobj = fp->scopeChain()->asCall();
-            callobj.copyUnaliasedValues(fp);
-            liveScopes.remove(&callobj);
-        }
+        if (!fp->hasCallObj())
+            return;
+
+        CallObject &callobj = fp->scopeChain()->asCall();
+        liveScopes.remove(&callobj);
+        if (ObjectWeakMap::Ptr p = proxiedScopes.lookup(&callobj))
+            debugScope = &p->value->asDebugScope();
     } else {
         ScopeIter si(fp, cx);
         if (MissingScopeMap::Ptr p = missingScopes.lookup(si)) {
-            CallObject &callobj = p->value->scope().asCall();
-            callobj.copyUnaliasedValues(fp);
-            liveScopes.remove(&callobj);
+            debugScope = p->value;
+            liveScopes.remove(&debugScope->scope().asCall());
             missingScopes.remove(p);
         }
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    if (debugScope) {
+        
+
+
+
+
+        StackFrame::CopyVector vec;
+        if (!fp->copyRawFrameSlots(&vec) || vec.length() == 0)
+            return;
+
+        
+
+
+
+        JSScript *script = fp->script();
+        if (script->needsArgsObj() && fp->hasArgsObj()) {
+            for (unsigned i = 0; i < fp->numFormalArgs(); ++i) {
+                if (script->formalLivesInArgumentsObject(i))
+                    vec[i] = fp->argsObj().arg(i);
+            }
+        }
+
+        
+
+
+
+        JSObject *snapshot = NewDenseCopiedArray(cx, vec.length(), vec.begin());
+        if (!snapshot) {
+            cx->clearPendingException();
+            return;
+        }
+
+        debugScope->initSnapshot(*snapshot);
     }
 }
 
@@ -1806,6 +1871,11 @@ GetDebugScopeForMissing(JSContext *cx, const ScopeIter &si)
         return NULL;
 
     
+
+
+
+
+
 
 
 
