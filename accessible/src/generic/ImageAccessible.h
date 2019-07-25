@@ -3,24 +3,27 @@
 
 
 
-#ifndef _nsHTMLImageAccessible_H_
-#define _nsHTMLImageAccessible_H_
+#ifndef mozilla_a11y_ImageAccessible_h__
+#define mozilla_a11y_ImageAccessible_h__
 
 #include "nsBaseWidgetAccessible.h"
 #include "nsIAccessibleImage.h"
 
 class nsGenericHTMLElement;
 
+namespace mozilla {
+namespace a11y {
 
 
 
 
 
-class nsHTMLImageAccessible : public nsLinkableAccessible,
-                              public nsIAccessibleImage
+
+class ImageAccessible : public nsLinkableAccessible,
+                        public nsIAccessibleImage
 {
 public:
-  nsHTMLImageAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  ImageAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -34,7 +37,7 @@ public:
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
@@ -71,14 +74,17 @@ private:
 
 };
 
+} 
+} 
 
 
 
-inline nsHTMLImageAccessible*
+
+inline mozilla::a11y::ImageAccessible*
 Accessible::AsImage()
 {
   return IsImage() ?
-    static_cast<nsHTMLImageAccessible*>(this) : nsnull;
+    static_cast<mozilla::a11y::ImageAccessible*>(this) : nsnull;
 }
 
 #endif
