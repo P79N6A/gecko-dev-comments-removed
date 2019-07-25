@@ -391,6 +391,27 @@ XRE_API(nsresult,
 
 
 
+XRE_API(nsresult,
+        XRE_AddJarManifestLocation, (NSLocationType aType,
+                                     nsILocalFile* aLocation))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
