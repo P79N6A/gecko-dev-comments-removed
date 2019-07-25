@@ -119,8 +119,9 @@ Readability.prototype = {
 
       
       if (uri[0] == "/")
-        return prePath + "/" + uri;
+        return prePath + uri;
 
+      
       
       return pathBase + uri;
     }
