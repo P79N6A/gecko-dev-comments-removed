@@ -2750,21 +2750,12 @@ CallMethodHelper::ConvertDependentParam(uint8 i)
         dp->SetIndirect();
 
     
-    if (isArray) {
-        
-        if (datum_type.IsPointer())
-            dp->SetValNeedsCleanup();
-
-    } else if (isSizedString) {
-        
+    
+    
+    
+    
+    if (!datum_type.IsArithmetic())
         dp->SetValNeedsCleanup();
-
-    } else {
-        
-        NS_ABORT_IF_FALSE(type.TagPart() == nsXPTType::T_INTERFACE_IS,
-                          "Unknown dependent type.");
-        dp->SetValNeedsCleanup();
-    }
 
     
     
