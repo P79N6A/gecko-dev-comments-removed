@@ -331,7 +331,6 @@ GeckoInputDispatcher::dispatchOnce()
 
     switch (data.type) {
     case UserInputData::MOTION_DATA: {
-        
         nsEventStatus status = sendTouchEvent(data);
         if (status == nsEventStatus_eConsumeNoDefault)
             break;
