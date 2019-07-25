@@ -1041,6 +1041,16 @@ GestureModule.prototype = {
       let consume = false;
       switch (aEvent.type) {
         case "MozSwipeGesture":
+
+          
+          
+          let event = document.createEvent("Events");
+          event.initEvent("CancelTouchSequence", true, true);
+          let success = aEvent.target.dispatchEvent(event);
+      
+          if (!success)
+            return;
+
           let gesture = Ci.nsIDOMSimpleGestureEvent;
           switch (aEvent.direction) {
             case gesture.DIRECTION_UP:
