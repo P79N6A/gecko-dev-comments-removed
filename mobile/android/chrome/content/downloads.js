@@ -139,21 +139,6 @@ var Downloads = {
       NativeWindow.toast.show(Strings.browser.GetStringFromName("alertDownloadsToast"), "long");
     } else if (aTopic == "dl-done") {
       msgKey = "alertDownloadsDone";
-
-      
-      
-      setTimeout(function() {
-        let message = {
-          gecko: {
-            type: "Downloads:Done",
-            displayName: download.displayName,
-            path: download.targetFile.path,
-            size: download.targetFile.fileSize,
-            mimeType: download.MIMEInfo ? download.MIMEInfo.type : ""
-          }
-        };
-        sendMessageToJava(message);
-      }, 0);
     }
 
     if (msgKey)
