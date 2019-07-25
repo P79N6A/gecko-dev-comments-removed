@@ -140,6 +140,13 @@ DOMSVGPathSegList::InternalListWillChangeTo(const SVGPathData& aNewValue)
 
   PRUint32 newSegType;
 
+  nsRefPtr<DOMSVGPathSegList> kungFuDeathGrip;
+  if (length && aNewValue.IsEmpty()) {
+    
+    
+    kungFuDeathGrip = this;
+  }
+
   while (index < length && dataIndex < dataLength) {
     newSegType = SVGPathSegUtils::DecodeType(aNewValue.mData[dataIndex]);
     if (ItemAt(index) && ItemAt(index)->Type() != newSegType) {
@@ -540,7 +547,9 @@ DOMSVGPathSegList::
     return;
   }
 
-  DOMSVGPathSegList *animVal =
+  
+  
+  nsRefPtr<DOMSVGPathSegList> animVal =
     GetDOMWrapperIfExists(InternalAList().GetAnimValKey());
   if (!animVal) {
     

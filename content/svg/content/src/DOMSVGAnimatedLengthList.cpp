@@ -122,7 +122,13 @@ DOMSVGAnimatedLengthList::InternalBaseValListWillChangeTo(const SVGLengthList& a
   
   
 
+  nsRefPtr<DOMSVGAnimatedLengthList> kungFuDeathGrip;
   if (mBaseVal) {
+    if (!aNewValue.Length()) {
+      
+      
+      kungFuDeathGrip = this;
+    }
     mBaseVal->InternalListLengthWillChange(aNewValue.Length());
   }
 

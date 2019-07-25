@@ -103,6 +103,13 @@ DOMSVGNumberList::InternalListLengthWillChange(PRUint32 aNewLength)
     aNewLength = DOMSVGNumber::MaxListIndex();
   }
 
+  nsRefPtr<DOMSVGNumberList> kungFuDeathGrip;
+  if (oldLength && !aNewLength) {
+    
+    
+    kungFuDeathGrip = this;
+  }
+
   
   for (PRUint32 i = aNewLength; i < oldLength; ++i) {
     if (mItems[i]) {
@@ -393,7 +400,9 @@ DOMSVGNumberList::MaybeRemoveItemFromAnimValListAt(PRUint32 aIndex)
 {
   NS_ABORT_IF_FALSE(!IsAnimValList(), "call from baseVal to animVal");
 
-  DOMSVGNumberList* animVal = mAList->mAnimVal;
+  
+  
+  nsRefPtr<DOMSVGNumberList> animVal = mAList->mAnimVal;
 
   if (!animVal || mAList->IsAnimating()) {
     

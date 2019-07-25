@@ -132,6 +132,13 @@ DOMSVGPointList::InternalListWillChangeTo(const SVGPointList& aNewValue)
     newLength = DOMSVGPoint::MaxListIndex();
   }
 
+  nsRefPtr<DOMSVGPointList> kungFuDeathGrip;
+  if (oldLength && !newLength) {
+    
+    
+    kungFuDeathGrip = this;
+  }
+
   
   for (PRUint32 i = newLength; i < oldLength; ++i) {
     if (mItems[i]) {
@@ -455,7 +462,9 @@ DOMSVGPointList::MaybeRemoveItemFromAnimValListAt(PRUint32 aIndex)
     return;
   }
 
-  DOMSVGPointList *animVal =
+  
+  
+  nsRefPtr<DOMSVGPointList> animVal =
     GetDOMWrapperIfExists(InternalAList().GetAnimValKey());
   if (!animVal) {
     
