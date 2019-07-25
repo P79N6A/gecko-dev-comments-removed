@@ -518,9 +518,6 @@ struct JSRuntime {
 #endif
 
     
-    JSCList             watchPointList;
-
-    
 
 
 
@@ -547,13 +544,6 @@ struct JSRuntime {
 
     
     PRCondVar           *stateChange;
-
-    
-
-
-
-
-    PRLock              *debuggerLock;
 
     JSThread::Map       threads;
 #endif 

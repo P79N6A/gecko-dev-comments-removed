@@ -196,8 +196,8 @@ GlobalObject::isRuntimeCodeGenEnabled(JSContext *cx)
 
 
 
-        v.setBoolean((!callbacks || !callbacks->contentSecurityPolicyAllows) ||
-                     callbacks->contentSecurityPolicyAllows(cx));
+        v = BooleanValue((!callbacks || !callbacks->contentSecurityPolicyAllows) ||
+                         callbacks->contentSecurityPolicyAllows(cx));
     }
     return !v.isFalse();
 }
