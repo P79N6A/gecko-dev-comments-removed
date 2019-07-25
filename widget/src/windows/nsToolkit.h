@@ -36,8 +36,8 @@
 
 
 
-#ifndef TOOLKIT_H      
-#define TOOLKIT_H
+#ifndef nsToolkit_h__
+#define nsToolkit_h__
 
 #include "nsdefs.h"
 
@@ -54,9 +54,6 @@
 #define GET_Y_LPARAM(pt) (short(HIWORD(pt)))
 #endif
 
-class nsIEventQueue;
-class MouseTrailer;
-
 
 
 
@@ -65,55 +62,6 @@ class MouseTrailer;
 
 #define FILE_BUFFER_SIZE 4096 
 
-
-
-
-
-
- 
-
-class nsToolkit
-{
-
-  public:
-                            nsToolkit();
-            void            CreateInternalWindow(PRThread *aThread);
-
-private:
-                            ~nsToolkit();
-            void            CreateUIThread(void);
-
-public:
-
-    static nsToolkit* GetToolkit();
-
-    
-    static LRESULT CALLBACK WindowProc(HWND hWnd, 
-                                        UINT Msg, 
-                                        WPARAM WParam, 
-                                        LPARAM lParam);
-
-protected:
-    static nsToolkit* gToolkit;
-
-    
-    HWND        mDispatchWnd;
-    
-    PRThread    *mGuiThread;
-    nsCOMPtr<nsITimer> mD3D9Timer;
-
-public:
-    static HINSTANCE mDllInstance;
-    
-    static bool      mIsWinXP;
-
-    static bool InitVersionInfo();
-    static void Startup(HINSTANCE hModule);
-    static void Shutdown();
-    static void StartAllowingD3D9();
-
-    static MouseTrailer *gMouseTrailer;
-};
 
 
 
@@ -148,6 +96,37 @@ private:
     bool                  mIsInCaptureMode;
     bool                  mEnabled;
     nsCOMPtr<nsITimer>    mTimer;
+};
+
+
+
+
+
+ 
+
+class nsToolkit
+{
+public:
+    nsToolkit();
+
+private:
+    ~nsToolkit();
+
+public:
+    static nsToolkit* GetToolkit();
+
+    static HINSTANCE mDllInstance;
+    static MouseTrailer *gMouseTrailer;
+
+    static void Startup(HMODULE hModule);
+    static void Shutdown();
+    static void StartAllowingD3D9();
+
+protected:
+    static nsToolkit* gToolkit;
+
+    nsCOMPtr<nsITimer> mD3D9Timer;
+    MouseTrailer mMouseTrailer;
 };
 
 #endif  

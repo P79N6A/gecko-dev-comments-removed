@@ -523,8 +523,10 @@ WeaveSvc.prototype = {
           return this.serverURL;
         case 0:
         case 200:
-          if (node == "null")
+          if (node == "null") {
             node = null;
+          }
+          this._log.trace("_findCluster successfully returning " + node);
           return node;
         default:
           ErrorHandler.checkServerError(node);
@@ -702,8 +704,11 @@ WeaveSvc.prototype = {
         return true;
       }
 
-    } catch (e) {
+    } catch (ex) {
       
+      this._log.debug("Failed to fetch and verify keys: "
+                      + Utils.exceptionStr(ex));
+      ErrorHandler.checkServerError(ex);
       return false;
     }
   },
@@ -826,6 +831,7 @@ WeaveSvc.prototype = {
     let uploadRes = wbo.upload(this.cryptoKeysURL);
     if (uploadRes.status != 200) {
       this._log.warn("Got status " + uploadRes.status + " uploading new keys. What to do? Throw!");
+      ErrorHandler.checkServerError(uploadRes);
       throw new Error("Unable to upload symmetric keys.");
     }
     this._log.info("Got status " + uploadRes.status + " uploading keys.");
@@ -915,6 +921,7 @@ WeaveSvc.prototype = {
     }))(),
 
   startOver: function() {
+    this._log.trace("Invoking Service.startOver.");
     Svc.Obs.notify("weave:engine:stop-tracking");
     Status.resetSync();
 
@@ -1367,7 +1374,14 @@ WeaveSvc.prototype = {
     }
 
     
-    this._updateEnabledEngines();
+    try {
+      this._updateEnabledEngines();
+    } catch (ex) {
+      this._log.debug("Updating enabled engines failed: " +
+                      Utils.exceptionStr(ex));
+      ErrorHandler.checkServerError(ex);
+      throw ex;
+    }
 
     try {
       for each (let engine in Engines.getEnabled()) {
@@ -1480,22 +1494,18 @@ WeaveSvc.prototype = {
   _syncEngine: function WeaveSvc__syncEngine(engine) {
     try {
       engine.sync();
-      return true;
     }
     catch(e) {
-      
       if (e.status == 401) {
         
         
         
         
-        this.logout();
-        Svc.Prefs.reset("clusterURL");
-        Utils.nextTick(this.sync, this);
+        
         return false;
       }
-      return true;
     }
+    return true;
   },
 
   
@@ -1555,22 +1565,34 @@ WeaveSvc.prototype = {
     CollectionKeys.clear();
     this.upgradeSyncKey(this.syncID);
 
+    
+    let wipeTimestamp = this.wipeServer();
+
+    
     let meta = new WBORecord("meta", "global");
     meta.payload.syncID = this.syncID;
     meta.payload.storageVersion = STORAGE_VERSION;
     meta.isNew = true;
 
     this._log.debug("New metadata record: " + JSON.stringify(meta.payload));
-    let resp = new Resource(this.metaURL).put(meta);
-    if (!resp.success)
+    let res = new Resource(this.metaURL);
+    
+    
+    
+    
+    let resp = res.put(meta);
+    if (!resp.success) {
+      
+      
+      
       throw resp;
+    }
     Records.set(this.metaURL, meta);
 
     
     let collections = [Clients].concat(Engines.getAll()).map(function(engine) {
       return engine.name;
     });
-    this.wipeServer(collections);
 
     
     
@@ -1586,31 +1608,46 @@ WeaveSvc.prototype = {
 
 
 
-
-
-
-
-
-
-
-  wipeServer: function wipeServer(collections, includeKeyPairs)
+  wipeServer: function wipeServer(collections)
     this._notify("wipe-server", "", function() {
+      let response;
       if (!collections) {
-        collections = [];
-        let info = new Resource(this.infoURL).get();
-        for (let name in info.obj) {
-          if (includeKeyPairs || (name != "keys"))
-            collections.push(name);
+        
+        let res = new Resource(this.storageURL.slice(0, -1));
+        res.setHeader("X-Confirm-Delete", "1");
+        try {
+          response = res.delete();
+        } catch (ex) {
+          this._log.debug("Failed to wipe server: " + Utils.exceptionStr(ex));
+          throw ex;
         }
+        if (response.status != 200 && response.status != 404) {
+          this._log.debug("Aborting wipeServer. Server responded with " +
+                          response.status + " response for " + this.storageURL);
+          throw response;
+        }
+        return response.headers["x-weave-timestamp"];
       }
+      let timestamp;
       for each (let name in collections) {
         let url = this.storageURL + name;
-        let response = new Resource(url).delete();
+        try {
+          response = new Resource(url).delete();
+        } catch (ex) {
+          this._log.debug("Failed to wipe '" + name + "' collection: " +
+                          Utils.exceptionStr(ex));
+          throw ex;
+        }
         if (response.status != 200 && response.status != 404) {
-          throw "Aborting wipeServer. Server responded with "
-                + response.status + " response for " + url;
+          this._log.debug("Aborting wipeServer. Server responded with " +
+                          response.status + " response for " + url);
+          throw response;
+        }
+        if ("x-weave-timestamp" in response.headers) {
+          timestamp = response.headers["x-weave-timestamp"];
         }
       }
+      return timestamp;
     })(),
 
   
@@ -1620,7 +1657,7 @@ WeaveSvc.prototype = {
 
 
   wipeClient: function WeaveSvc_wipeClient(engines)
-    this._catch(this._notify("wipe-client", "", function() {
+    this._notify("wipe-client", "", function() {
       
       if (!engines) {
         
@@ -1639,7 +1676,7 @@ WeaveSvc.prototype = {
 
       
       this.persistLogin();
-    }))(),
+    })(),
 
   
 
@@ -1648,8 +1685,8 @@ WeaveSvc.prototype = {
 
 
 
-  wipeRemote: function WeaveSvc_wipeRemote(engines)
-    this._catch(this._notify("wipe-remote", "", function() {
+  wipeRemote: function wipeRemote(engines) {
+    try {
       
       this.resetClient(engines);
 
@@ -1667,7 +1704,11 @@ WeaveSvc.prototype = {
 
       
       Clients.sync();
-    }))(),
+    } catch (ex) {
+      ErrorHandler.checkServerError(ex);
+      throw ex;
+    }
+  },
 
   
 
@@ -1678,7 +1719,6 @@ WeaveSvc.prototype = {
 
       
       this.syncID = "";
-      Svc.Prefs.reset("lastSync");
       Records.clearCache();
     }))(),
 

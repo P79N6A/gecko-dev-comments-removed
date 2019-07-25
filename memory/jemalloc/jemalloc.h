@@ -81,6 +81,9 @@ size_t	malloc_usable_size(const void *ptr);
 void	jemalloc_stats(jemalloc_stats_t *stats);
 
 
+size_t	je_malloc_usable_size_in_advance(size_t size);
+
+
 
 
 

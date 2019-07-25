@@ -566,6 +566,8 @@ nsXBLContentSink::ConstructBinding(PRUint32 aLineNumber)
   NS_ConvertUTF16toUTF8 cid(id);
 
   nsresult rv = NS_OK;
+
+  
   
   if (!cid.IsEmpty()) {
     mBinding = new nsXBLPrototypeBinding();
@@ -893,6 +895,8 @@ nsXBLContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
                                            aAppendContent, aFromParser);
 #ifdef MOZ_XUL
   }
+
+  
 
   *aAppendContent = true;
   nsRefPtr<nsXULPrototypeElement> prototype = new nsXULPrototypeElement();

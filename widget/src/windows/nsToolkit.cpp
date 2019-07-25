@@ -56,8 +56,6 @@
 nsToolkit* nsToolkit::gToolkit = nsnull;
 
 HINSTANCE nsToolkit::mDllInstance = 0;
-bool      nsToolkit::mIsWinXP     = false;
-static bool dummy = nsToolkit::InitVersionInfo();
 
 static const unsigned long kD3DUsageDelay = 5000;
 
@@ -67,40 +65,7 @@ StartAllowingD3D9(nsITimer *aTimer, void *aClosure)
   nsWindow::StartAllowingD3D9(true);
 }
 
-
-
-
-bool gThreadState = false;
-
-struct ThreadInitInfo {
-    PRMonitor *monitor;
-    nsToolkit *toolkit;
-};
-
 MouseTrailer*       nsToolkit::gMouseTrailer;
-
-void RunPump(void* arg)
-{
-    ThreadInitInfo *info = (ThreadInitInfo*)arg;
-    ::PR_EnterMonitor(info->monitor);
-
-    
-    info->toolkit->CreateInternalWindow(PR_GetCurrentThread());
-
-    gThreadState = true;
-
-    ::PR_Notify(info->monitor);
-    ::PR_ExitMonitor(info->monitor);
-
-    delete info;
-
-    
-    MSG msg;
-    while (::GetMessageW(&msg, NULL, 0, 0)) {
-        TranslateMessage(&msg);
-        ::DispatchMessageW(&msg);
-    }
-}
 
 
 
@@ -110,24 +75,12 @@ void RunPump(void* arg)
 nsToolkit::nsToolkit()  
 {
     MOZ_COUNT_CTOR(nsToolkit);
-    mGuiThread  = NULL;
-    mDispatchWnd = 0;
 
 #if defined(MOZ_STATIC_COMPONENT_LIBS)
     nsToolkit::Startup(GetModuleHandle(NULL));
 #endif
 
-    gMouseTrailer = new MouseTrailer();
-
-    
-    
-    PRThread* thread = PR_GetCurrentThread();
-    if (NULL != thread) {
-      CreateInternalWindow(thread);
-    } else {
-      
-      CreateUIThread();
-    }
+    gMouseTrailer = &mMouseTrailer;
 
     mD3D9Timer = do_CreateInstance("@mozilla.org/timer;1");
     mD3D9Timer->InitWithFuncCallback(::StartAllowingD3D9,
@@ -145,55 +98,19 @@ nsToolkit::nsToolkit()
 nsToolkit::~nsToolkit()
 {
     MOZ_COUNT_DTOR(nsToolkit);
-    NS_PRECONDITION(::IsWindow(mDispatchWnd), "Invalid window handle");
-
-    
-    ::DestroyWindow(mDispatchWnd);
-    mDispatchWnd = NULL;
-
-    if (gMouseTrailer) {
-      gMouseTrailer->DestroyTimer();
-      delete gMouseTrailer;
-      gMouseTrailer = nsnull;
-    }
+    gMouseTrailer = nsnull;
 }
 
 void
 nsToolkit::Startup(HMODULE hModule)
 {
     nsToolkit::mDllInstance = hModule;
-
-    
-    
-    
-    WNDCLASSW wc;
-    wc.style            = CS_GLOBALCLASS;
-    wc.lpfnWndProc      = nsToolkit::WindowProc;
-    wc.cbClsExtra       = 0;
-    wc.cbWndExtra       = 0;
-    wc.hInstance        = nsToolkit::mDllInstance;
-    wc.hIcon            = NULL;
-    wc.hCursor          = NULL;
-    wc.hbrBackground    = NULL;
-    wc.lpszMenuName     = NULL;
-    wc.lpszClassName    = L"nsToolkitClass";
-    VERIFY(::RegisterClassW(&wc) || 
-           GetLastError() == ERROR_CLASS_ALREADY_EXISTS);
-
     nsUXThemeData::Initialize();
 }
-
 
 void
 nsToolkit::Shutdown()
 {
-#if defined (MOZ_STATIC_COMPONENT_LIBS)
-    
-    
-    
-    ::UnregisterClassW(L"nsToolkitClass", nsToolkit::mDllInstance);
-#endif
-
     delete gToolkit;
     gToolkit = nsnull;
 }
@@ -204,99 +121,6 @@ nsToolkit::StartAllowingD3D9()
   nsToolkit::GetToolkit()->mD3D9Timer->Cancel();
   nsWindow::StartAllowingD3D9(false);
 }
-
-
-
-
-
-
-void nsToolkit::CreateInternalWindow(PRThread *aThread)
-{
-    
-    NS_PRECONDITION(aThread, "null thread");
-    mGuiThread  = aThread;
-
-    
-    
-    
-
-    mDispatchWnd = ::CreateWindowW(L"nsToolkitClass",
-                                   L"NetscapeDispatchWnd",
-                                  WS_DISABLED,
-                                  -50, -50,
-                                  10, 10,
-                                  NULL,
-                                  NULL,
-                                  nsToolkit::mDllInstance,
-                                  NULL);
-
-    VERIFY(mDispatchWnd);
-}
-
-
-
-
-
-
-
-void nsToolkit::CreateUIThread()
-{
-    PRMonitor *monitor = ::PR_NewMonitor();
-
-    ::PR_EnterMonitor(monitor);
-
-    ThreadInitInfo *ti = new ThreadInitInfo();
-    ti->monitor = monitor;
-    ti->toolkit = this;
-
-    
-    mGuiThread = ::PR_CreateThread(PR_SYSTEM_THREAD,
-                                    RunPump,
-                                    (void*)ti,
-                                    PR_PRIORITY_NORMAL,
-                                    PR_LOCAL_THREAD,
-                                    PR_UNJOINABLE_THREAD,
-                                    0);
-
-    
-    while(!gThreadState) {
-        ::PR_Wait(monitor, PR_INTERVAL_NO_TIMEOUT);
-    }
-
-    
-    ::PR_ExitMonitor(monitor);
-    ::PR_DestroyMonitor(monitor);
-}
-
-
-
-
-
-
-
-LRESULT CALLBACK nsToolkit::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, 
-                                       LPARAM lParam)
-{
-    switch (msg) {
-        case WM_SYSCOLORCHANGE:
-        {
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          nsWindow::GlobalMsgWindowProc(hWnd, msg, wParam, lParam);
-        }
-    }
-
-    return ::DefWindowProcW(hWnd, msg, wParam, lParam);
-}
-
-
 
 
 
@@ -314,27 +138,6 @@ nsToolkit* nsToolkit::GetToolkit()
   return gToolkit;
 }
 
-
-bool nsToolkit::InitVersionInfo()
-{
-  static bool isInitialized = false;
-
-  if (!isInitialized)
-  {
-    isInitialized = true;
-
-    OSVERSIONINFO osversion;
-    osversion.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-
-    ::GetVersionEx(&osversion);
-
-    if (osversion.dwMajorVersion == 5)  { 
-      nsToolkit::mIsWinXP = (osversion.dwMinorVersion == 1);
-    }
-  }
-
-  return true;
-}
 
 
 

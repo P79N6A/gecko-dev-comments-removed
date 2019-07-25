@@ -174,6 +174,12 @@ public:
   
 
 
+  const nsSmallVoidArray* GetIdElements() const {
+    return &mIdContentList;
+  }
+  
+
+
 
   Element* GetImageIdElement();
   
@@ -887,6 +893,10 @@ public:
   }
 
   void SetLoadedAsData(bool aLoadedAsData) { mLoadedAsData = aLoadedAsData; }
+  void SetLoadedAsInteractiveData(bool aLoadedAsInteractiveData)
+  {
+    mLoadedAsInteractiveData = aLoadedAsInteractiveData;
+  }
 
   nsresult CloneDocHelper(nsDocument* clone) const;
 
@@ -926,6 +936,7 @@ public:
                            const nsAString& aLocalName);
 
   virtual Element *GetElementById(const nsAString& aElementId);
+  virtual const nsSmallVoidArray* GetAllElementsForId(const nsAString& aElementId) const;
 
   virtual Element *LookupImageElement(const nsAString& aElementId);
 
@@ -940,13 +951,15 @@ public:
 
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName);
 
-  virtual void ResetFullScreenElement();
   virtual Element* GetFullScreenElement();
   virtual void RequestFullScreen(Element* aElement);
   virtual void CancelFullScreen();
-  virtual void UpdateFullScreenStatus(bool aIsFullScreen);
   virtual bool IsFullScreenDoc();
 
+  
+  
+  bool SetFullScreenState(Element* aElement, bool aIsFullScreen);
+ 
   
   
   void UpdateVisibilityState();
@@ -1065,6 +1078,17 @@ protected:
   
   
   nsWeakPtr mScopeObject;
+
+  
+  
+  static nsWeakPtr sFullScreenDoc;
+
+  
+  
+  
+  
+  
+  static nsWeakPtr sFullScreenRootDoc;
 
   nsRefPtr<nsEventListenerManager> mListenerManager;
   nsCOMPtr<nsIDOMStyleSheetList> mDOMStyleSheets;

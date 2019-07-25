@@ -474,6 +474,8 @@ nsRootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
 
   if (treeItemAccessible && eventType.EqualsLiteral("select")) {
     
+    
+    
     if (FocusMgr()->HasDOMFocus(targetNode)) {
       nsCOMPtr<nsIDOMXULMultiSelectControlElement> multiSel =
         do_QueryInterface(targetNode);

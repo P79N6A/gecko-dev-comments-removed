@@ -252,7 +252,7 @@ void TCompiler::mapLongVariableNames(TIntermNode* root)
 
 int TCompiler::getMappedNameMaxLength() const
 {
-    return MAX_IDENTIFIER_NAME_SIZE + 1;
+    return MAX_SHORTENED_IDENTIFIER_SIZE + 1;
 }
 
 const TExtensionBehavior& TCompiler::getExtensionBehavior() const

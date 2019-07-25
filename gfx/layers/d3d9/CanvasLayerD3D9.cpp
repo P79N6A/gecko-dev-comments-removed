@@ -278,16 +278,22 @@ CanvasLayerD3D9::LayerManagerDestroyed()
 void
 CanvasLayerD3D9::CreateTexture()
 {
+  HRESULT hr;
   if (mD3DManager->deviceManager()->HasDynamicTextures()) {
-    device()->CreateTexture(mBounds.width, mBounds.height, 1, D3DUSAGE_DYNAMIC,
-                            D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT,
-                            getter_AddRefs(mTexture), NULL);    
+    hr = device()->CreateTexture(mBounds.width, mBounds.height, 1, D3DUSAGE_DYNAMIC,
+                                 D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT,
+                                 getter_AddRefs(mTexture), NULL);
   } else {
     
     
-    device()->CreateTexture(mBounds.width, mBounds.height, 1, 0,
-                            D3DFMT_A8R8G8B8, D3DPOOL_MANAGED,
-                            getter_AddRefs(mTexture), NULL);
+    hr = device()->CreateTexture(mBounds.width, mBounds.height, 1, 0,
+                                 D3DFMT_A8R8G8B8, D3DPOOL_MANAGED,
+                                 getter_AddRefs(mTexture), NULL);
+  }
+  if (FAILED(hr)) {
+    mD3DManager->ReportFailure(NS_LITERAL_CSTRING("CanvasLayerD3D9::CreateTexture() failed"),
+                                 hr);
+    return;
   }
 }
 

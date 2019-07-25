@@ -253,9 +253,9 @@ private:
   
 
 
-
-  void CoalesceReorderEventsFromSameTree(AccEvent* aAccEvent,
-                                         AccEvent* aDescendantAccEvent);
+  void CoalesceSelChangeEvents(AccSelChangeEvent* aTailEvent,
+                               AccSelChangeEvent* aThisEvent,
+                               PRInt32 aThisIndex);
 
   
 

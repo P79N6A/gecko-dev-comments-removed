@@ -140,6 +140,11 @@ XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
   return NetUtil;
 });
 
+XPCOMUtils.defineLazyGetter(this, "ScratchpadManager", function() {
+  Cu.import("resource:///modules/devtools/scratchpad-manager.jsm");
+  return ScratchpadManager;
+});
+
 XPCOMUtils.defineLazyServiceGetter(this, "CookieSvc",
   "@mozilla.org/cookiemanager;1", "nsICookieManager2");
 
@@ -1582,6 +1587,10 @@ SessionStoreService.prototype = {
       this._capClosedWindows();
     }
 
+    if (lastSessionState.scratchpads) {
+      ScratchpadManager.restoreSession(lastSessionState.scratchpads);
+    }
+
     
     this._recentCrashes = lastSessionState.session &&
                           lastSessionState.session.recentCrashes || 0;
@@ -2254,17 +2263,33 @@ SessionStoreService.prototype = {
   _extractHostsForCookies:
     function sss__extractHostsForCookies(aEntry, aHosts, aCheckPrivacy, aIsPinned) {
 
+    let host = aEntry._host,
+        scheme = aEntry._scheme;
+
     
     
-    if (/https?/.test(aEntry._scheme) && !aHosts[aEntry._host] &&
-        (!aCheckPrivacy ||
-         this._checkPrivacyLevel(aEntry._scheme == "https", aIsPinned))) {
-      
-      
-      aHosts[aEntry._host] = aIsPinned;
+    
+    
+    if (!host && !scheme) {
+      try {
+        let uri = this._getURIFromString(aEntry.url);
+        host = uri.host;
+        scheme = uri.scheme;
+      }
+      catch(ex) { }
     }
-    else if (aEntry._scheme == "file") {
-      aHosts[aEntry._host] = true;
+
+    
+    
+    if (/https?/.test(scheme) && !aHosts[host] &&
+        (!aCheckPrivacy ||
+         this._checkPrivacyLevel(scheme == "https", aIsPinned))) {
+      
+      
+      aHosts[host] = aIsPinned;
+    }
+    else if (scheme == "file") {
+      aHosts[host] = true;
     }
 
     if (aEntry.children) {
@@ -2487,12 +2512,16 @@ SessionStoreService.prototype = {
       startTime: this._sessionStartTime,
       recentCrashes: this._recentCrashes
     };
+    
+    
+    var scratchpads = ScratchpadManager.getSessionState();
 
     return {
       windows: total,
       selectedWindow: ix + 1,
       _closedWindows: lastClosedWindowsCopy,
-      session: session
+      session: session,
+      scratchpads: scratchpads
     };
   },
 
@@ -2699,6 +2728,10 @@ SessionStoreService.prototype = {
     
     this.restoreHistoryPrecursor(aWindow, tabs, winData.tabs,
       (aOverwriteTabs ? (parseInt(winData.selected) || 1) : 0), 0, 0);
+
+    if (aState.scratchpads) {
+      ScratchpadManager.restoreSession(aState.scratchpads);
+    }
 
     
     
@@ -3192,6 +3225,7 @@ SessionStoreService.prototype = {
       shEntry.postData = stream;
     }
 
+    let childDocIdents = {};
     if (aEntry.docIdentifier) {
       
       
@@ -3199,10 +3233,12 @@ SessionStoreService.prototype = {
       
       let matchingEntry = aDocIdentMap[aEntry.docIdentifier];
       if (!matchingEntry) {
-        aDocIdentMap[aEntry.docIdentifier] = shEntry;
+        matchingEntry = {shEntry: shEntry, childDocIdents: childDocIdents};
+        aDocIdentMap[aEntry.docIdentifier] = matchingEntry;
       }
       else {
-        shEntry.adoptBFCacheEntry(matchingEntry);
+        shEntry.adoptBFCacheEntry(matchingEntry.shEntry);
+        childDocIdents = matchingEntry.childDocIdents;
       }
     }
 
@@ -3224,8 +3260,24 @@ SessionStoreService.prototype = {
         
         if (!aEntry.children[i].url)
           continue;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
         shEntry.AddChild(this._deserializeHistoryEntry(aEntry.children[i], aIdMap,
-                                                       aDocIdentMap), i);
+                                                       childDocIdents), i);
       }
     }
     
@@ -3986,6 +4038,9 @@ SessionStoreService.prototype = {
     
     
     let hosts = Object.keys(cookieHosts).join("|").replace("\\.", "\\.", "g");
+    
+    if (!hosts.length)
+      return;
     let cookieRegex = new RegExp(".*(" + hosts + ")");
     for (let cIndex = 0; cIndex < aWinState.cookies.length;) {
       if (cookieRegex.test(aWinState.cookies[cIndex].host)) {

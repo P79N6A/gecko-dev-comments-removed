@@ -202,6 +202,7 @@
 #include "mozilla/Telemetry.h"
 
 #include "Layers.h"
+#include "nsPLDOMEvent.h"
 
 #ifdef NS_FUNCTION_TIMER
 #define NS_TIME_FUNCTION_DECLARE_DOCURL                \
@@ -3655,21 +3656,40 @@ PresShell::DispatchSynthMouseMove(nsGUIEvent *aEvent,
 NS_IMETHODIMP_(void)
 PresShell::ClearMouseCapture(nsIView* aView)
 {
-  if (!aView) {
-    nsIPresShell::ClearMouseCapture(static_cast<nsIFrame*>(nsnull));
-    return;
+  if (gCaptureInfo.mContent) {
+    if (aView) {
+      
+      
+      nsIFrame* frame = gCaptureInfo.mContent->GetPrimaryFrame();
+      if (frame) {
+        nsIView* view = frame->GetClosestView();
+        
+        
+        if (view) {
+          do {
+            if (view == aView) {
+              NS_RELEASE(gCaptureInfo.mContent);
+              
+              
+              gCaptureInfo.mAllowed = false;
+              break;
+            }
+
+            view = view->GetParent();
+          } while (view);
+          
+          return;
+        }
+      }
+    }
+
+    NS_RELEASE(gCaptureInfo.mContent);
   }
 
-  nsIFrame* frame = nsnull;
-  nsIView* view = aView;
-  while (!frame && view) {
-    frame = static_cast<nsIFrame*>(view->GetClientData());
-    view = view->GetParent();
-  }
-
-  if (frame) {
-    nsIPresShell::ClearMouseCapture(frame);
-  }
+  
+  
+  
+  gCaptureInfo.mAllowed = false;
 }
 
 void
@@ -6284,21 +6304,30 @@ IsFullScreenAndRestrictedKeyEvent(nsIContent* aTarget, const nsEvent* aEvent)
 
   
   
-  
-  
-  
-  
-  int key = static_cast<const nsKeyEvent*>(aEvent)->keyCode;
-  if ((key >= NS_VK_CANCEL && key <= NS_VK_CAPS_LOCK) ||
-      (key >= NS_VK_SPACE && key <= NS_VK_DELETE) ||
-      (key >= NS_VK_SEMICOLON && key <= NS_VK_EQUALS) ||
-      (key >= NS_VK_MULTIPLY && key <= NS_VK_META)) {
-    return false;
+  const nsKeyEvent* keyEvent = static_cast<const nsKeyEvent*>(aEvent);
+  int key = keyEvent->keyCode ? keyEvent->keyCode : keyEvent->charCode;
+  switch (key) {
+    case NS_VK_TAB:
+    case NS_VK_SPACE:
+    case NS_VK_PAGE_UP:
+    case NS_VK_PAGE_DOWN:
+    case NS_VK_END:
+    case NS_VK_HOME:
+    case NS_VK_LEFT:
+    case NS_VK_UP:
+    case NS_VK_RIGHT:
+    case NS_VK_DOWN:
+    case NS_VK_SHIFT:
+    case NS_VK_CONTROL:
+    case NS_VK_ALT:
+    case NS_VK_META:
+      
+      return false;
+    default:
+      
+      
+      return true;
   }
-
-  
-  
-  return true;
 }
 
 nsresult
@@ -6344,17 +6373,38 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
       switch (aEvent->message) {
       case NS_KEY_PRESS:
       case NS_KEY_DOWN:
-      case NS_KEY_UP:
-        if (IsFullScreenAndRestrictedKeyEvent(mCurrentEventContent, aEvent) &&
-            aEvent->message == NS_KEY_DOWN) {
+      case NS_KEY_UP: {
+        nsIDocument *doc = mCurrentEventContent ?
+                           mCurrentEventContent->OwnerDoc() : nsnull;
+        if (doc &&
+            doc->IsFullScreenDoc() &&
+            static_cast<const nsKeyEvent*>(aEvent)->keyCode == NS_VK_ESCAPE) {
           
           
-          NS_DispatchToCurrentThread(
-            NS_NewRunnableMethod(mCurrentEventContent->OwnerDoc(),
-                                 &nsIDocument::CancelFullScreen));
+          
+          
+          aEvent->flags |= (NS_EVENT_FLAG_NO_DEFAULT |
+                            NS_EVENT_FLAG_ONLY_CHROME_DISPATCH);
+
+          if (aEvent->message == NS_KEY_UP) {
+           
+           
+           NS_DispatchToCurrentThread(
+             NS_NewRunnableMethod(mCurrentEventContent->OwnerDoc(),
+                                  &nsIDocument::CancelFullScreen));
+          }
+        } else if (IsFullScreenAndRestrictedKeyEvent(mCurrentEventContent, aEvent)) {
+          
+          
+          
+          nsRefPtr<nsPLDOMEvent> e =
+            new nsPLDOMEvent(doc, NS_LITERAL_STRING("MozShowFullScreenWarning"),
+                             true, true);
+          e->PostDOMEvent();
         }
         
         
+      }
       case NS_MOUSE_BUTTON_DOWN:
       case NS_MOUSE_BUTTON_UP:
         isHandlingUserInput = true;

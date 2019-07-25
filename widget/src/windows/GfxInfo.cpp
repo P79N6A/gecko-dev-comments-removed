@@ -64,14 +64,6 @@ NS_IMPL_ISUPPORTS_INHERITED1(GfxInfo, GfxInfoBase, nsIGfxInfoDebug)
 #endif
 
 static const PRUint32 allWindowsVersions = 0xffffffff;
-static const PRUint64 allDriverVersions = 0xffffffffffffffffULL;
-
-static const PRUint32 vendorIntel = 0x8086;
-
-static const PRUint32 vendorNVIDIA = 0x10de;
-
-static const PRUint32 vendorAMD = 0x1022;
-static const PRUint32 vendorATI = 0x1002;
 
 #define V(a,b,c,d) GFX_DRIVER_VERSION(a,b,c,d)
 
@@ -491,7 +483,7 @@ GfxInfo::Init()
   }
 
   mHasDriverVersionMismatch = false;
-  if (mAdapterVendorID == vendorIntel) {
+  if (mAdapterVendorID == GfxDriverInfo::vendorIntel) {
     
     
     
@@ -731,112 +723,6 @@ GfxInfo::AddCrashReportAnnotations()
 #endif
 }
 
-#define V(a,b,c,d) GFX_DRIVER_VERSION(a,b,c,d)
-
-static const PRUint32 deviceFamilyIntelGMA500[] = {
-    0x8108, 
-    0x8109, 
-    0
-};
-
-static const PRUint32 deviceFamilyIntelGMA900[] = {
-    0x2582, 
-    0x2782, 
-    0x2592, 
-    0x2792, 
-    0
-};
-
-static const PRUint32 deviceFamilyIntelGMA950[] = {
-    0x2772, 
-    0x2776, 
-    0x27A2, 
-    0x27A6, 
-    0x27AE, 
-    0
-};
-
-static const PRUint32 deviceFamilyIntelGMA3150[] = {
-    0xA001, 
-    0xA002, 
-    0xA011, 
-    0xA012, 
-    0
-};
-
-static const PRUint32 deviceFamilyIntelGMAX3000[] = {
-    0x2972, 
-    0x2973, 
-    0x2982, 
-    0x2983, 
-    0x2992, 
-    0x2993, 
-    0x29A2, 
-    0x29A3, 
-    0x29B2, 
-    0x29B3, 
-    0x29C2, 
-    0x29C3, 
-    0x29D2, 
-    0x29D3, 
-    0x2A02, 
-    0x2A03, 
-    0x2A12, 
-    0x2A13, 
-    0
-};
-
-static const PRUint32 deviceFamilyIntelGMAX4500HD[] = {
-    0x2A42, 
-    0x2A43, 
-    0x2E42, 
-    0x2E43, 
-    0x2E92, 
-    0x2E93, 
-    0x2E32, 
-    0x2E33, 
-    0x2E22, 
-    0x2E23, 
-    0x2E12, 
-    0x2E13, 
-    0x0042, 
-    0x0046, 
-    0x0102, 
-    0x0106, 
-    0x0112, 
-    0x0116, 
-    0x0122, 
-    0x0126, 
-    0x010A, 
-    0x0080, 
-    0
-};
-
-
-static const PRUint32 deviceFamilyNvidiaBlockD3D9Layers[] = {
-    0x00f3, 
-    0x0146, 
-    0x014f, 
-    0x0161, 
-    0x0162, 
-    0x0163, 
-    0x0164, 
-    0x0167, 
-    0x0168, 
-    0x0169, 
-    0x0222, 
-    0x0240, 
-    0x0241, 
-    0x0244, 
-    0x0245, 
-    0x0247, 
-    0x03d0, 
-    0x03d1, 
-    0x03d2, 
-    0x03d5, 
-    0
-};
-
 static const GfxDriverInfo gDriverInfo[] = {
   
 
@@ -846,15 +732,15 @@ static const GfxDriverInfo gDriverInfo[] = {
 
 
   GfxDriverInfo( DRIVER_OS_WINDOWS_XP,
-    vendorNVIDIA, GfxDriverInfo::allDevices,
+    GfxDriverInfo::vendorNVIDIA, GfxDriverInfo::allDevices,
     GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
     DRIVER_LESS_THAN, V(6,14,12,5721), "257.21" ),
   GfxDriverInfo( DRIVER_OS_WINDOWS_VISTA,
-    vendorNVIDIA, GfxDriverInfo::allDevices,
+    GfxDriverInfo::vendorNVIDIA, GfxDriverInfo::allDevices,
     GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
     DRIVER_LESS_THAN, V(8,17,12,5721), "257.21" ),
   GfxDriverInfo( DRIVER_OS_WINDOWS_7,
-    vendorNVIDIA, GfxDriverInfo::allDevices,
+    GfxDriverInfo::vendorNVIDIA, GfxDriverInfo::allDevices,
     GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
     DRIVER_LESS_THAN, V(8,17,12,5721), "257.21" ),
 
@@ -862,19 +748,19 @@ static const GfxDriverInfo gDriverInfo[] = {
 
 
   GfxDriverInfo( DRIVER_OS_ALL,
-    vendorNVIDIA, (GfxDeviceFamily) deviceFamilyNvidiaBlockD3D9Layers,
+    GfxDriverInfo::vendorNVIDIA, (GfxDeviceFamily) deviceFamilyNvidiaBlockD3D9Layers,
     nsIGfxInfo::FEATURE_DIRECT3D_9_LAYERS, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-    DRIVER_LESS_THAN, allDriverVersions ),
+    DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions ),
 
   
 
 
   GfxDriverInfo( DRIVER_OS_ALL,
-    vendorATI, GfxDriverInfo::allDevices,
+    GfxDriverInfo::vendorATI, GfxDriverInfo::allDevices,
     GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
     DRIVER_LESS_THAN, V(8,741,0,0), "10.6" ),
   GfxDriverInfo( DRIVER_OS_ALL,
-    vendorAMD, GfxDriverInfo::allDevices,
+    GfxDriverInfo::vendorAMD, GfxDriverInfo::allDevices,
     GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
     DRIVER_LESS_THAN, V(8,741,0,0), "10.6" ),
 
@@ -885,21 +771,21 @@ static const GfxDriverInfo gDriverInfo[] = {
 
 
   GfxDriverInfo( DRIVER_OS_ALL,
-    vendorATI, GfxDriverInfo::allDevices,
+    GfxDriverInfo::vendorATI, GfxDriverInfo::allDevices,
     nsIGfxInfo::FEATURE_OPENGL_LAYERS, nsIGfxInfo::FEATURE_DISCOURAGED,
-    DRIVER_LESS_THAN, allDriverVersions ),
+    DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions ),
   GfxDriverInfo( DRIVER_OS_ALL,
-    vendorATI, GfxDriverInfo::allDevices,
+    GfxDriverInfo::vendorATI, GfxDriverInfo::allDevices,
     nsIGfxInfo::FEATURE_WEBGL_OPENGL, nsIGfxInfo::FEATURE_DISCOURAGED,
-    DRIVER_LESS_THAN, allDriverVersions ),
+    DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions ),
   GfxDriverInfo( DRIVER_OS_ALL,
-    vendorAMD, GfxDriverInfo::allDevices,
+    GfxDriverInfo::vendorAMD, GfxDriverInfo::allDevices,
     nsIGfxInfo::FEATURE_OPENGL_LAYERS, nsIGfxInfo::FEATURE_DISCOURAGED,
-    DRIVER_LESS_THAN, allDriverVersions ),
+    DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions ),
   GfxDriverInfo( DRIVER_OS_ALL,
-    vendorAMD, GfxDriverInfo::allDevices,
+    GfxDriverInfo::vendorAMD, GfxDriverInfo::allDevices,
     nsIGfxInfo::FEATURE_WEBGL_OPENGL, nsIGfxInfo::FEATURE_DISCOURAGED,
-    DRIVER_LESS_THAN, allDriverVersions ),
+    DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions ),
 
   
 
@@ -909,11 +795,11 @@ static const GfxDriverInfo gDriverInfo[] = {
 
 
 
-#define IMPLEMENT_INTEL_DRIVER_BLOCKLIST(winVer, devFamily, driverVer) \
-  GfxDriverInfo( winVer,                                               \
-    vendorIntel, (GfxDeviceFamily) devFamily,                          \
-    GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,           \
-    DRIVER_LESS_THAN, driverVer ),
+  #define IMPLEMENT_INTEL_DRIVER_BLOCKLIST(winVer, devFamily, driverVer) \
+    GfxDriverInfo( winVer,                                               \
+      GfxDriverInfo::vendorIntel, (GfxDeviceFamily) devFamily,                          \
+      GfxDriverInfo::allFeatures, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,           \
+      DRIVER_LESS_THAN, driverVer ),
 
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_XP, deviceFamilyIntelGMA500,   V(6,14,11,1018))
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_XP, deviceFamilyIntelGMA900,   V(6,14,10,4764))
@@ -923,28 +809,28 @@ static const GfxDriverInfo gDriverInfo[] = {
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_XP, deviceFamilyIntelGMAX4500HD, V(6,14,10,5284))
 
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_VISTA, deviceFamilyIntelGMA500,   V(7,14,10,1006))
-  IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_VISTA, deviceFamilyIntelGMA900,   allDriverVersions)
+  IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_VISTA, deviceFamilyIntelGMA900,   GfxDriverInfo::allDriverVersions)
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_VISTA, deviceFamilyIntelGMA950,   V(7,14,10,1504))
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_VISTA, deviceFamilyIntelGMA3150,  V(7,14,10,2124))
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_VISTA, deviceFamilyIntelGMAX3000, V(7,15,10,1666))
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_VISTA, deviceFamilyIntelGMAX4500HD, V(8,15,10,2202))
 
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_7, deviceFamilyIntelGMA500,   V(5,0,0,2026))
-  IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_7, deviceFamilyIntelGMA900,   allDriverVersions)
+  IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_7, deviceFamilyIntelGMA900,   GfxDriverInfo::allDriverVersions)
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_7, deviceFamilyIntelGMA950,   V(8,15,10,1930))
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_7, deviceFamilyIntelGMA3150,  V(8,14,10,2117))
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_7, deviceFamilyIntelGMAX3000, V(8,15,10,1930))
   IMPLEMENT_INTEL_DRIVER_BLOCKLIST(DRIVER_OS_WINDOWS_7, deviceFamilyIntelGMAX4500HD, V(8,15,10,2202))
 
-  
+   
   GfxDriverInfo( DRIVER_OS_ALL,
-    vendorIntel, GfxDriverInfo::allDevices,
+    GfxDriverInfo::vendorIntel, GfxDriverInfo::allDevices,
     nsIGfxInfo::FEATURE_OPENGL_LAYERS, nsIGfxInfo::FEATURE_DISCOURAGED,
-    DRIVER_LESS_THAN, allDriverVersions ),
+    DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions ),
   GfxDriverInfo( DRIVER_OS_ALL,
-    vendorIntel, GfxDriverInfo::allDevices,
+    GfxDriverInfo::vendorIntel, GfxDriverInfo::allDevices,
     nsIGfxInfo::FEATURE_WEBGL_OPENGL, nsIGfxInfo::FEATURE_DISCOURAGED,
-    DRIVER_LESS_THAN, allDriverVersions ),
+    DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions ),
 
   GfxDriverInfo()
 };
@@ -969,8 +855,18 @@ WindowsVersionToOperatingSystem(PRInt32 aWindowsVersion)
     };
 }
 
+const GfxDriverInfo*
+GfxInfo::GetGfxDriverInfo()
+{
+  return &gDriverInfo[0];
+}
+
 nsresult
-GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aSuggestedDriverVersion, GfxDriverInfo* aDriverInfo )
+GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, 
+                              PRInt32 *aStatus, 
+                              nsAString & aSuggestedDriverVersion, 
+                              GfxDriverInfo* aDriverInfo , 
+                              OperatingSystem* aOS )
 {
   *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
   aSuggestedDriverVersion.SetIsVoid(true);
@@ -987,10 +883,10 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aS
     return NS_ERROR_FAILURE;
   }
 
-  if (adapterVendor != vendorIntel &&
-      adapterVendor != vendorNVIDIA &&
-      adapterVendor != vendorAMD &&
-      adapterVendor != vendorATI &&
+  if (adapterVendor != GfxDriverInfo::vendorIntel &&
+      adapterVendor != GfxDriverInfo::vendorNVIDIA &&
+      adapterVendor != GfxDriverInfo::vendorAMD &&
+      adapterVendor != GfxDriverInfo::vendorATI &&
       
       
       
@@ -1047,111 +943,11 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aS
     }
   }
 
-  
-  
-  
-  if (os == DRIVER_OS_WINDOWS_XP &&
-      adapterVendor == vendorNVIDIA &&
-      adapterDeviceID == 0x0861 && 
-      driverVersion == V(6,14,11,7756))
-  {
-    return NS_OK;
-  }
-
-  while (info->mOperatingSystem) {
-
-    if (info->mOperatingSystem != DRIVER_OS_ALL &&
-        info->mOperatingSystem != os)
-    {
-      info++;
-      continue;
-    }
-
-    if (info->mAdapterVendor != GfxDriverInfo::allAdapterVendors &&
-        info->mAdapterVendor != adapterVendor) {
-      info++;
-      continue;
-    }
-
-    if (info->mDevices != GfxDriverInfo::allDevices) {
-        bool deviceMatches = false;
-        for (const PRUint32 *devices = info->mDevices; *devices; ++devices) {
-            if (*devices == adapterDeviceID) {
-                deviceMatches = true;
-                break;
-            }
-        }
-
-        if (!deviceMatches) {
-            info++;
-            continue;
-        }
-    }
-
-    bool match = false;
-
-    switch (info->mComparisonOp) {
-    case DRIVER_LESS_THAN:
-      match = driverVersion < info->mDriverVersion;
-      break;
-    case DRIVER_LESS_THAN_OR_EQUAL:
-      match = driverVersion <= info->mDriverVersion;
-      break;
-    case DRIVER_GREATER_THAN:
-      match = driverVersion > info->mDriverVersion;
-      break;
-    case DRIVER_GREATER_THAN_OR_EQUAL:
-      match = driverVersion >= info->mDriverVersion;
-      break;
-    case DRIVER_EQUAL:
-      match = driverVersion == info->mDriverVersion;
-      break;
-    case DRIVER_NOT_EQUAL:
-      match = driverVersion != info->mDriverVersion;
-      break;
-    case DRIVER_BETWEEN_EXCLUSIVE:
-      match = driverVersion > info->mDriverVersion && driverVersion < info->mDriverVersionMax;
-      break;
-    case DRIVER_BETWEEN_INCLUSIVE:
-      match = driverVersion >= info->mDriverVersion && driverVersion <= info->mDriverVersionMax;
-      break;
-    case DRIVER_BETWEEN_INCLUSIVE_START:
-      match = driverVersion >= info->mDriverVersion && driverVersion < info->mDriverVersionMax;
-      break;
-    default:
-      NS_WARNING("Bogus op in GfxDriverInfo");
-      break;
-    }
-
-    if (match) {
-      if (info->mFeature == GfxDriverInfo::allFeatures ||
-          info->mFeature == aFeature)
-      {
-        status = info->mFeatureStatus;
-        break;
-      }
-    }
-
-    info++;
-  }
-
   *aStatus = status;
+  if (aOS)
+    *aOS = os;
 
-  if (status == FEATURE_BLOCKED_DRIVER_VERSION) {
-      if (info->mSuggestedVersion) {
-          aSuggestedDriverVersion.AppendPrintf("%s", info->mSuggestedVersion);
-      } else if (info->mComparisonOp == DRIVER_LESS_THAN &&
-                 info->mDriverVersion != allDriverVersions)
-      {
-          aSuggestedDriverVersion.AppendPrintf("%lld.%lld.%lld.%lld",
-                                               (info->mDriverVersion & 0xffff000000000000) >> 48,
-                                               (info->mDriverVersion & 0x0000ffff00000000) >> 32,
-                                               (info->mDriverVersion & 0x00000000ffff0000) >> 16,
-                                               (info->mDriverVersion & 0x000000000000ffff));
-      }
-  }
-  
-  return NS_OK;
+  return GfxInfoBase::GetFeatureStatusImpl(aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo, &os);
 }
 
 #ifdef DEBUG

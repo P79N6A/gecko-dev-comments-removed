@@ -1037,8 +1037,11 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
     const int stencil = mCreationFormat.stencil;
     int samples = mCreationFormat.samples;
 
-    if (!SupportsFramebufferMultisample() || aDisableAA)
-        samples = 0;
+    GLint maxSamples = 0;
+    if (SupportsFramebufferMultisample() && !aDisableAA)
+        fGetIntegerv(LOCAL_GL_MAX_SAMPLES, &maxSamples);
+
+    samples = NS_MIN(samples, maxSamples);
 
     const bool useDrawMSFBO = (samples > 0);
 
@@ -2430,14 +2433,14 @@ GLContext::SetBlitFramebufferForDestTexture(GLuint aTexture)
                           aTexture,
                           0);
 
-    if (aTexture) {
-        DebugOnly<GLenum> status = fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
+    if (aTexture && (fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) !=
+                     LOCAL_GL_FRAMEBUFFER_COMPLETE)) {
 
         
         
         
         
-        NS_ASSERTION(status == LOCAL_GL_FRAMEBUFFER_COMPLETE, "Framebuffer not complete!");
+        NS_RUNTIMEABORT("Error setting up framebuffer --- framebuffer not complete!");
     }
 }
 

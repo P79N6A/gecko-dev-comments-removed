@@ -60,6 +60,9 @@ NewObjectOutputWrappedStorageStream(nsIObjectOutputStream **wrapperStream,
                                     nsIStorageStream** stream,
                                     bool wantDebugStream);
 
+
+
+
 NS_EXPORT nsresult
 NewBufferFromStorageStream(nsIStorageStream *storageStream, 
                            char** buffer, PRUint32* len);

@@ -602,6 +602,12 @@ private:
     void truncateDoubleToInt32(FrameEntry *fe, Uses uses);
 
     
+
+
+
+    void tryConvertInteger(FrameEntry *fe, Uses uses);
+
+    
     bool jumpAndTrace(Jump j, jsbytecode *target, Jump *slow = NULL, bool *trampoline = NULL);
     bool startLoop(jsbytecode *head, Jump entry, jsbytecode *entryTarget);
     bool finishLoop(jsbytecode *head);
@@ -776,6 +782,8 @@ private:
 
     enum GetCharMode { GetChar, GetCharCode };
     CompileStatus compileGetChar(FrameEntry *thisValue, FrameEntry *arg, GetCharMode mode);
+    
+    CompileStatus compileStringFromCode(FrameEntry *arg);
 
     void prepareStubCall(Uses uses);
     Call emitStubCall(void *ptr, DataLabelPtr *pinline);

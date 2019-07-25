@@ -6716,6 +6716,8 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 
 
                 tokenStream.ungetToken();
+                if (!tokenStream.checkForKeyword(atom->charsZ(), atom->length(), NULL, NULL))
+                    return NULL;
                 pn->pn_xflags |= PNX_DESTRUCT | PNX_NONCONST;
                 pnval = pn3;
                 if (pnval->isKind(TOK_NAME)) {

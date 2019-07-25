@@ -126,8 +126,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x3d24831e, 0x2a2b, 0x42f4, \
-  { 0x9d, 0x98, 0x17, 0x60, 0x18, 0xab, 0x6e, 0xfb } }
+{ 0xc3e40e8e, 0x8b91, 0x424c, \
+  { 0xbe, 0x9c, 0x9c, 0xc1, 0x76, 0xa7, 0xf7, 0x24 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -739,10 +739,6 @@ public:
   
 
 
-  virtual void ResetFullScreenElement() = 0;
-
-  
-
 
 
 
@@ -759,14 +755,6 @@ public:
 
 
   virtual void CancelFullScreen() = 0;
-
-  
-
-
-
-
-
-  virtual void UpdateFullScreenStatus(bool aIsFullScreen) = 0;
 
   
 
@@ -1515,6 +1503,13 @@ public:
 
 
 
+  virtual const nsSmallVoidArray* GetAllElementsForId(const nsAString& aElementId) const = 0;
+
+  
+
+
+
+
 
 
   virtual Element* LookupImageElement(const nsAString& aElementId) = 0;
@@ -1883,6 +1878,15 @@ NS_NewDOMDocument(nsIDOMDocument** aInstancePtrResult,
                   bool aLoadedAsData,
                   nsIScriptGlobalObject* aEventObject,
                   bool aSVGDocument);
+
+
+
+nsresult
+NS_NewXBLDocument(nsIDOMDocument** aInstancePtrResult,
+                  nsIURI* aDocumentURI,
+                  nsIURI* aBaseURI,
+                  nsIPrincipal* aPrincipal);
+
 nsresult
 NS_NewPluginDocument(nsIDocument** aInstancePtrResult);
 

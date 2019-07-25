@@ -161,6 +161,7 @@
 #include "nsPrintfCString.h"
 #include "mozilla/Preferences.h"
 #include "nsISound.h"
+#include "WinTaskbar.h"
 
 #ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
@@ -422,6 +423,12 @@ nsWindow::nsWindow() : nsBaseWidget()
 
   
   if (!sInstanceCount) {
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
+    
+    
+    mozilla::widget::WinTaskbar::RegisterAppUserModelID();
+#endif
+
     gKbdLayout.LoadLayout(::GetKeyboardLayout(0));
 
     
@@ -4663,12 +4670,17 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       break;
 
     case WM_SYSCOLORCHANGE:
-      
-      
-      
-      
-      
-      DispatchStandardEvent(NS_SYSCOLORCHANGED);
+      if (mWindowType == eWindowType_invisible) {
+        ::EnumThreadWindows(GetCurrentThreadId(), nsWindow::BroadcastMsg, msg);
+      }
+      else {
+        
+        
+        
+        
+        
+        DispatchStandardEvent(NS_SYSCOLORCHANGED);
+      }
       break;
 
     case WM_NOTIFY:
@@ -5599,26 +5611,6 @@ BOOL CALLBACK nsWindow::BroadcastMsg(HWND aTopWindow, LPARAM aMsg)
   
   ::EnumChildWindows(aTopWindow, nsWindow::BroadcastMsgToChildren, aMsg);
   return TRUE;
-}
-
-
-
-void nsWindow::GlobalMsgWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  switch (msg) {
-    case WM_SYSCOLORCHANGE:
-      
-      
-      
-      
-      
-      
-      
-      
-      
-     ::EnumThreadWindows(GetCurrentThreadId(), nsWindow::BroadcastMsg, msg);
-    break;
-  }
 }
 
 
@@ -9030,12 +9022,15 @@ HasRegistryKey(HKEY aRoot, PRUnichar* aName)
 
 
 
-static bool
-GetRegistryKey(HKEY aRoot, PRUnichar* aKeyName, PRUnichar* aValueName, PRUnichar* aBuffer, DWORD aBufferLength)
+bool
+nsWindow::GetRegistryKey(HKEY aRoot,
+                         const PRUnichar* aKeyName,
+                         const PRUnichar* aValueName,
+                         PRUnichar* aBuffer,
+                         DWORD aBufferLength)
 {
-  if (!aKeyName) {
+  if (!aKeyName)
     return false;
-  }
 
   HKEY key;
   LONG result = ::RegOpenKeyExW(aRoot, aKeyName, NULL, KEY_READ | KEY_WOW64_32KEY, &key);
@@ -9058,11 +9053,11 @@ static bool
 IsObsoleteSynapticsDriver()
 {
   PRUnichar buf[40];
-  bool foundKey = GetRegistryKey(HKEY_LOCAL_MACHINE,
-                                   L"Software\\Synaptics\\SynTP\\Install",
-                                   L"DriverVersion",
-                                   buf,
-                                   sizeof buf);
+  bool foundKey = nsWindow::GetRegistryKey(HKEY_LOCAL_MACHINE,
+                                           L"Software\\Synaptics\\SynTP\\Install",
+                                           L"DriverVersion",
+                                           buf,
+                                           sizeof buf);
   if (!foundKey)
     return false;
 
@@ -9080,17 +9075,17 @@ GetElantechDriverMajorVersion()
 {
   PRUnichar buf[40];
   
-  bool foundKey = GetRegistryKey(HKEY_CURRENT_USER,
-                                   L"Software\\Elantech\\MainOption",
-                                   L"DriverVersion",
-                                   buf,
-                                   sizeof buf);
+  bool foundKey = nsWindow::GetRegistryKey(HKEY_CURRENT_USER,
+                                           L"Software\\Elantech\\MainOption",
+                                           L"DriverVersion",
+                                           buf,
+                                           sizeof buf);
   if (!foundKey)
-    foundKey = GetRegistryKey(HKEY_CURRENT_USER,
-                              L"Software\\Elantech",
-                              L"DriverVersion",
-                              buf,
-                              sizeof buf);
+    foundKey = nsWindow::GetRegistryKey(HKEY_CURRENT_USER,
+                                        L"Software\\Elantech",
+                                        L"DriverVersion",
+                                        buf,
+                                        sizeof buf);
 
   if (!foundKey)
     return false;

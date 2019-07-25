@@ -55,6 +55,10 @@ pref("browser.hiddenWindowChromeURL", "chrome://browser/content/hiddenWindow.xul
 pref("extensions.logging.enabled", false);
 
 
+
+pref("extensions.strictCompatibility", true);
+
+
 pref("extensions.getAddons.cache.enabled", true);
 pref("extensions.getAddons.maxResults", 15);
 pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/guid:%IDS%?src=firefox&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%");

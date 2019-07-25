@@ -117,6 +117,7 @@
 #include "mozilla/dom/Element.h"
 #include "nsHTMLFieldSetElement.h"
 #include "nsHTMLMenuElement.h"
+#include "nsPLDOMEvent.h"
 
 #include "mozilla/Preferences.h"
 
@@ -3403,26 +3404,35 @@ nsresult nsGenericHTMLElement::MozRequestFullScreen()
   
   
   
-  if (!nsContentUtils::IsRequestFullScreenAllowed()) {
+  nsIDocument* doc = OwnerDoc();
+  if (!nsContentUtils::IsRequestFullScreenAllowed() ||
+      !IsInDoc()) {
+    nsRefPtr<nsPLDOMEvent> e =
+      new nsPLDOMEvent(this,
+                       NS_LITERAL_STRING("mozfullscreenerror"),
+                       true,
+                       false);
+    e->PostDOMEvent();
     return NS_OK;
   }
 
-  nsIDocument* doc = OwnerDoc();
   nsCOMPtr<nsIDOMDocument> domDocument(do_QueryInterface(doc));
   NS_ENSURE_STATE(domDocument);
   bool fullScreenEnabled;
   domDocument->GetMozFullScreenEnabled(&fullScreenEnabled);
   if (!fullScreenEnabled) {
+    nsRefPtr<nsPLDOMEvent> e =
+      new nsPLDOMEvent(this,
+                       NS_LITERAL_STRING("mozfullscreenerror"),
+                       true,
+                       false);
+    e->PostDOMEvent();
     return NS_OK;
   }
 
   doc->RequestFullScreen(this);
 #ifdef DEBUG
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(doc->GetWindow());
-  NS_ENSURE_STATE(window);
   bool fullscreen;
-  window->GetFullScreen(&fullscreen);
-  NS_ASSERTION(fullscreen, "Windows should report fullscreen");
   domDocument->GetMozFullScreen(&fullscreen);
   NS_ASSERTION(fullscreen, "Document should report fullscreen");
   NS_ASSERTION(doc->IsFullScreenDoc(), "Should be in full screen state!");

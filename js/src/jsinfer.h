@@ -1022,10 +1022,10 @@ class TypeScript
     
     js::GlobalObject *global;
 
+  public:
+
     
     TypeScriptNesting *nesting;
-
-  public:
 
     
     TypeResult *dynamicList;

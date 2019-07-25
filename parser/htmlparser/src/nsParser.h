@@ -343,7 +343,7 @@ class nsParser : public nsIParser,
     
 
 
-    virtual void MarkAsNotScriptCreated();
+    virtual void MarkAsNotScriptCreated(const char* aCommand);
 
     
 

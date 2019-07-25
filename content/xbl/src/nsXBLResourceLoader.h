@@ -91,6 +91,8 @@ public:
 
   void NotifyBoundElements();
 
+  nsresult Write(nsIObjectOutputStream* aStream);
+
 
   nsXBLPrototypeBinding* mBinding; 
   nsXBLPrototypeResources* mResources; 

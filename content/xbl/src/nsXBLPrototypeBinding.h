@@ -47,6 +47,7 @@
 #include "nsWeakReference.h"
 #include "nsIContent.h"
 #include "nsHashtable.h"
+#include "nsClassHashtable.h"
 #include "nsXBLDocumentInfo.h"
 #include "nsCOMArray.h"
 #include "nsXBLProtoImpl.h"
@@ -64,6 +65,34 @@ class nsCSSStyleSheet;
 
 
 
+struct InsertionItem {
+  PRUint32 insertionIndex;
+  nsIAtom* tag;
+  nsIContent* defaultContent;
+
+  InsertionItem(PRUint32 aInsertionIndex, nsIAtom* aTag, nsIContent* aDefaultContent)
+    : insertionIndex(aInsertionIndex), tag(aTag), defaultContent(aDefaultContent) { }
+
+  bool operator<(const InsertionItem& item) const
+  {
+    NS_ASSERTION(insertionIndex != item.insertionIndex || defaultContent == item.defaultContent,
+                 "default content is different for same index");
+    return insertionIndex < item.insertionIndex;
+  }
+
+  bool operator==(const InsertionItem& item) const
+  {
+    NS_ASSERTION(insertionIndex != item.insertionIndex || defaultContent == item.defaultContent,
+                 "default content is different for same index");
+    return insertionIndex == item.insertionIndex;
+  }
+};
+
+typedef nsClassHashtable<nsISupportsHashKey, nsAutoTArray<InsertionItem, 1> > ArrayOfInsertionPointsByContent;
+
+
+
+
 
 
 
@@ -76,6 +105,7 @@ public:
   nsIURI* BindingURI() const { return mBindingURI; }
   nsIURI* AlternateBindingURI() const { return mAlternateBindingURI; }
   nsIURI* DocURI() const { return mXBLDocInfoWeak->DocumentURI(); }
+  nsIURI* GetBaseBindingURI() const { return mBaseBindingURI; }
 
   
   
@@ -143,9 +173,6 @@ public:
   nsXBLDocumentInfo* XBLDocumentInfo() const { return mXBLDocInfoWeak; }
   bool IsChrome() { return mXBLDocInfoWeak->IsChrome(); }
   
-  bool HasBasePrototype() { return mHasBaseProto; }
-  void SetHasBasePrototype(bool aHasBase) { mHasBaseProto = aHasBase; }
-
   void SetInitialAttributes(nsIContent* aBoundElement, nsIContent* aAnonymousContent);
 
   nsIStyleRuleProcessor* GetRuleProcessor();
@@ -181,6 +208,8 @@ public:
 
   void Initialize();
 
+  nsresult ResolveBaseBinding();
+
   const nsCOMArray<nsXBLKeyEventHandler>* GetKeyEventHandlers()
   {
     if (!mKeyHandlersRegistered) {
@@ -190,6 +219,84 @@ public:
 
     return &mKeyHandlers;
   }
+
+  
+
+
+
+
+
+
+  nsresult Read(nsIObjectInputStream* aStream,
+                nsXBLDocumentInfo* aDocInfo,
+                nsIDocument* aDocument,
+                PRUint8 aFlags);
+
+  
+
+
+  nsresult Write(nsIObjectOutputStream* aStream);
+
+  
+
+
+
+
+  nsresult ReadContentNode(nsIObjectInputStream* aStream,
+                           nsIDocument* aDocument,
+                           nsNodeInfoManager* aNim,
+                           nsIContent** aChild);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult WriteContentNode(nsIObjectOutputStream* aStream,
+                            nsIContent* aNode,
+                            ArrayOfInsertionPointsByContent& aInsertionPointsByContent);
+
+  
+
+
+
+
+
+  nsresult ReadNamespace(nsIObjectInputStream* aStream, PRInt32& aNameSpaceID);
+  nsresult WriteNamespace(nsIObjectOutputStream* aStream, PRInt32 aNameSpaceID);
 
 public:
   nsXBLPrototypeBinding();
@@ -228,7 +335,13 @@ public:
                              nsIContent* aCopyRoot,
                              nsIContent* aTemplChild);
 
-protected:  
+protected:
+  
+  void EnsureAttributeTable();
+  
+  void AddToAttributeTable(PRInt32 aSourceNamespaceID, nsIAtom* aSourceTag,
+                           PRInt32 aDestNamespaceID, nsIAtom* aDestTag,
+                           nsIContent* aContent);
   void ConstructAttributeTable(nsIContent* aElement);
   void ConstructInsertionTable(nsIContent* aElement);
   void GetNestedChildren(nsIAtom* aTag, PRInt32 aNamespace,
@@ -236,43 +349,22 @@ protected:
                          nsCOMArray<nsIContent> & aList);
   void CreateKeyHandlers();
 
-protected:
-  
-  class nsIIDKey : public nsHashKey {
-    protected:
-      nsIID mKey;
-  
-    public:
-      nsIIDKey(REFNSIID key) : mKey(key) {}
-      ~nsIIDKey(void) {}
-
-      PRUint32 HashCode(void) const {
-        
-        return mKey.m0;
-      }
-
-      bool Equals(const nsHashKey *aKey) const {
-        return mKey.Equals( ((nsIIDKey*) aKey)->mKey);
-      }
-
-      nsHashKey *Clone(void) const {
-        return new nsIIDKey(mKey);
-      }
-  };
-
 
 protected:
   nsCOMPtr<nsIURI> mBindingURI;
   nsCOMPtr<nsIURI> mAlternateBindingURI; 
   nsCOMPtr<nsIContent> mBinding; 
   nsAutoPtr<nsXBLPrototypeHandler> mPrototypeHandler; 
+
   
+  nsCOMPtr<nsIURI> mBaseBindingURI;
+
   nsXBLProtoImpl* mImplementation; 
                                    
 
   nsXBLPrototypeBinding* mBaseBinding; 
   bool mInheritStyle;
-  bool mHasBaseProto;
+  bool mCheckedBaseProto;
   bool mKeyHandlersRegistered;
  
   nsXBLPrototypeResources* mResources; 
@@ -295,4 +387,3 @@ protected:
 };
 
 #endif
-

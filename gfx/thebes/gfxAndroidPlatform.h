@@ -67,6 +67,9 @@ public:
                            gfxASurface::gfxContentType contentType);
 
     virtual gfxImageFormat GetOffscreenFormat() { return gfxASurface::ImageFormatRGB16_565; }
+    
+    mozilla::RefPtr<mozilla::gfx::ScaledFont>
+      GetScaledFontForFont(gfxFont *aFont);
 
     
     void GetFontList(InfallibleTArray<FontListEntry>* retValue);

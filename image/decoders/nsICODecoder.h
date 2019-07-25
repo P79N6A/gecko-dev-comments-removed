@@ -84,7 +84,13 @@ private:
   
   bool FillBitmapFileHeaderBuffer(PRInt8 *bfh);
   
-  void FillBitmapInformationBufferHeight(PRInt8 *bih);
+  
+  
+  
+  bool FixBitmapHeight(PRInt8 *bih);
+  
+  
+  bool FixBitmapWidth(PRInt8 *bih);
   
   PRInt32 ExtractBIHSizeFromBitmap(PRInt8 *bih);
   

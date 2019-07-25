@@ -40,7 +40,7 @@
 #define __mozinlinespellchecker_h__
 
 #include "nsAutoPtr.h"
-#include "nsIDOMRange.h"
+#include "nsIRange.h"
 #include "nsIEditorSpellCheck.h"
 #include "nsIEditActionListener.h"
 #include "nsIInlineSpellChecker.h"
@@ -78,9 +78,14 @@ public:
                              nsIDOMNode* aNewAnchorNode, PRInt32 aNewAnchorOffset,
                              bool* aContinue);
   nsresult InitForSelection();
-  nsresult InitForRange(nsIDOMRange* aRange);
+  nsresult InitForRange(nsIRange* aRange);
 
   nsresult FinishInitOnEvent(mozInlineSpellWordUtil& aWordUtil);
+
+  
+  bool IsFullSpellCheck() const {
+    return mOp == eOpChange && !mRange;
+  }
 
   nsRefPtr<mozInlineSpellChecker> mSpellChecker;
 
@@ -99,14 +104,14 @@ public:
 
   
   
-  nsCOMPtr<nsIDOMRange> mRange;
+  nsCOMPtr<nsIRange> mRange;
 
   
   
   nsCOMPtr<nsIDOMRange> mCreatedRange;
 
   
-  nsCOMPtr<nsIDOMRange> mNoCheckRange;
+  nsCOMPtr<nsIRange> mNoCheckRange;
 
   
   
@@ -180,6 +185,10 @@ private:
   
   
   bool mNeedsCheckAfterNavigation;
+
+  
+  
+  bool mFullSpellCheckScheduled;
 
   
   
@@ -283,7 +292,7 @@ public:
 
   nsresult MakeSpellCheckRange(nsIDOMNode* aStartNode, PRInt32 aStartOffset,
                                nsIDOMNode* aEndNode, PRInt32 aEndOffset,
-                               nsIDOMRange** aRange);
+                               nsIRange** aRange);
 
   
   nsresult RegisterEventListeners();

@@ -60,6 +60,10 @@ class nsWindow;
 
 namespace mozilla {
 
+namespace hal {
+class BatteryInformation;
+} 
+
 
 
 typedef struct AndroidSystemColors {
@@ -287,6 +291,10 @@ public:
 
     void CloseCamera();
 
+    void EnableBatteryNotifications();
+    void DisableBatteryNotifications();
+    void GetCurrentBatteryInformation(hal::BatteryInformation* aBatteryInfo);
+
 protected:
     static AndroidBridge *sBridge;
 
@@ -358,6 +366,9 @@ protected:
     jmethodID jPostToJavaThread;
     jmethodID jInitCamera;
     jmethodID jCloseCamera;
+    jmethodID jEnableBatteryNotifications;
+    jmethodID jDisableBatteryNotifications;
+    jmethodID jGetCurrentBatteryInformation;
 
     
     jclass jEGLSurfaceImplClass;

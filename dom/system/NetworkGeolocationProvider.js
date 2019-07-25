@@ -217,7 +217,7 @@ WifiGeoPositionProvider.prototype = {
     };
 
     if (accessPoints) {
-        accessPoints.sort(sort).map(encode).join("");
+        providerUrl = providerUrl + accessPoints.sort(sort).map(encode).join("");
         
         let x = providerUrl.length - 2000;
         if (x >= 0) {

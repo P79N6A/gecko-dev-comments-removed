@@ -829,6 +829,11 @@ nsObjectFrame::CallSetWindow(bool aCheckIsHidden)
 
   
   
+  nsRefPtr<nsPluginInstanceOwner> instanceOwnerRef(mInstanceOwner);
+
+  
+  
+  
   if (mInstanceOwner->UseAsyncRendering()) {
     rv = pi->AsyncSetWindow(window);
   }
@@ -836,7 +841,8 @@ nsObjectFrame::CallSetWindow(bool aCheckIsHidden)
     rv = window->CallSetWindow(pi);
   }
 
-  mInstanceOwner->ReleasePluginPort(window->window);
+  instanceOwnerRef->ReleasePluginPort(window->window);
+
   return rv;
 }
 

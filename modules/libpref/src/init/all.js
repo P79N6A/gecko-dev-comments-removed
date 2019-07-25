@@ -791,7 +791,7 @@ pref("network.http.connection-retry-timeout", 250);
 
 
 
-pref("network.http.fast-fallback-to-IPv4", false);
+pref("network.http.fast-fallback-to-IPv4", true);
 
 
 
@@ -3290,6 +3290,7 @@ pref("webgl.prefer-native-gl", false);
 pref("webgl.min_capability_mode", false);
 pref("webgl.disable-extensions", false);
 pref("webgl.msaa-level", 2);
+pref("webgl.msaa-force", false);
 
 #ifdef XP_WIN
 
@@ -3373,3 +3374,6 @@ pref("dom.event.handling-user-input-time-limit", 1000);
  
 
 pref("layout.3d-transforms.enabled", true);
+
+
+pref("dom.battery.enabled", true);

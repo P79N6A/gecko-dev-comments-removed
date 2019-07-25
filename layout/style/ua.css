@@ -241,15 +241,38 @@
 }
 
 *|*:-moz-full-screen {
-  position:fixed;
-  top:0;
-  left:0;
-  right:0;
-  bottom:0;
-  z-index:2147483647;
-  background:black;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 2147483647 !important;
+  background: black;
   width: 100% !important;
   height: 100% !important;
+}
+
+
+
+*|*:root:-moz-full-screen-ancestor {
+  overflow: hidden !important;
+}
+
+*|*:-moz-full-screen-ancestor {
+  
+
+  z-index:auto !important;
+  
+
+
+
+  opacity:1 !important;
+  
+
+
+  mask:none !important;
+  clip:none !important;
+  filter:none !important;
 }
 
 
