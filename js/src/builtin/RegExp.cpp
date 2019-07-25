@@ -39,7 +39,6 @@
 
 
 #include "jsinfer.h"
-#include "jstl.h"
 
 #include "builtin/RegExp.h"
 

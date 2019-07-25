@@ -37,7 +37,6 @@
 
 
 #include "jsstdint.h"
-#include "jsbit.h"
 #include "jsutil.h"
 
 
@@ -54,31 +53,6 @@ JS_STATIC_ASSERT_IF(JS_BYTES_PER_WORD == 4,
 JS_STATIC_ASSERT_IF(JS_BYTES_PER_WORD == 8,
                     sizeof(unsigned long long) == sizeof(JSUword));
 #endif
-
-
-
-
-JS_PUBLIC_API(JSIntn)
-JS_CeilingLog2(JSUint32 n)
-{
-    JSIntn log2;
-
-    JS_CEILING_LOG2(log2, n);
-    return log2;
-}
-
-
-
-
-
-JS_PUBLIC_API(JSIntn)
-JS_FloorLog2(JSUint32 n)
-{
-    JSIntn log2;
-
-    JS_FLOOR_LOG2(log2, n);
-    return log2;
-}
 
 
 

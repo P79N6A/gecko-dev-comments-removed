@@ -44,616 +44,232 @@
 #ifndef jsutil_h___
 #define jsutil_h___
 
-#include "jstypes.h"
-#include "mozilla/Util.h"
-#include <stdlib.h>
-#include <string.h>
+#include "jsstaticcheck.h"
+
+#include "js/Utility.h"
+
+
+struct JSContext;
 
 #ifdef __cplusplus
-
-
-namespace JS {}
-
-
-namespace mozilla {}
-
-
 namespace js {
 
-
-using namespace JS;
-using namespace mozilla;
-
-}  
-
-#endif  
-
-JS_BEGIN_EXTERN_C
-
-#define JS_UPTRDIFF(a_, b_) (uintptr_t(a_) - uintptr_t(b_))
-
-#define JS_CRASH_UNLESS(__cond)                                                 \
-    JS_BEGIN_MACRO                                                              \
-        if (!(__cond)) {                                                        \
-            *(int *)(uintptr_t)0xccadbeef = 0;                                  \
-            ((void(*)())0)(); /* More reliable, but doesn't say CCADBEEF */     \
-        }                                                                       \
-    JS_END_MACRO
-
-#define JS_FREE_PATTERN 0xDA
-
-#ifdef DEBUG
-#define JS_CRASH_DIAGNOSTICS 1
-#endif
-
-#ifdef JS_CRASH_DIAGNOSTICS
-
-#define JS_POISON(p, val, size) memset((p), (val), (size))
-
-#define JS_OPT_ASSERT(expr)                                                   \
-    ((expr) ? (void)0 : JS_Assert(#expr, __FILE__, __LINE__))
-
-#define JS_OPT_ASSERT_IF(cond, expr)                                          \
-    ((!(cond) || (expr)) ? (void)0 : JS_Assert(#expr, __FILE__, __LINE__))
-
-#else
-
-#define JS_POISON(p, val, size) ((void) 0)
-#define JS_OPT_ASSERT(expr) ((void) 0)
-#define JS_OPT_ASSERT_IF(cond, expr) ((void) 0)
-
-#endif 
-
-#ifdef DEBUG
-
-#define JS_ASSERT(expr)                                                       \
-    ((expr) ? (void)0 : JS_Assert(#expr, __FILE__, __LINE__))
-
-#define JS_ASSERT_IF(cond, expr)                                              \
-    ((!(cond) || (expr)) ? (void)0 : JS_Assert(#expr, __FILE__, __LINE__))
-
-#define JS_NOT_REACHED(reason)                                                \
-    JS_Assert(reason, __FILE__, __LINE__)
-
-#define JS_ALWAYS_TRUE(expr) JS_ASSERT(expr)
-
-#define JS_ALWAYS_FALSE(expr) JS_ASSERT(!(expr))
-
-# ifdef JS_THREADSAFE
-# define JS_THREADSAFE_ASSERT(expr) JS_ASSERT(expr) 
-# else
-# define JS_THREADSAFE_ASSERT(expr) ((void) 0)
-# endif
-
-#else
-
-#define JS_ASSERT(expr)         ((void) 0)
-#define JS_ASSERT_IF(cond,expr) ((void) 0)
-#define JS_NOT_REACHED(reason)
-#define JS_ALWAYS_TRUE(expr)    ((void) (expr))
-#define JS_ALWAYS_FALSE(expr)    ((void) (expr))
-#define JS_THREADSAFE_ASSERT(expr) ((void) 0)
-
-#endif 
-
-
-
-
-
-
-
-#ifdef __SUNPRO_CC
-
-
-
-
-
-
-
-#define JS_STATIC_ASSERT(cond) extern char js_static_assert[(cond) ? 1 : -1]
-#else
-#ifdef __COUNTER__
-    #define JS_STATIC_ASSERT_GLUE1(x,y) x##y
-    #define JS_STATIC_ASSERT_GLUE(x,y) JS_STATIC_ASSERT_GLUE1(x,y)
-    #define JS_STATIC_ASSERT(cond)                                            \
-        typedef int JS_STATIC_ASSERT_GLUE(js_static_assert, __COUNTER__)[(cond) ? 1 : -1]
-#else
-    #define JS_STATIC_ASSERT(cond) extern void js_static_assert(int arg[(cond) ? 1 : -1])
-#endif
-#endif
-
-#define JS_STATIC_ASSERT_IF(cond, expr) JS_STATIC_ASSERT(!(cond) || (expr))
-
-
-
-
-
-
-extern JS_PUBLIC_API(void) JS_Abort(void);
-
-#ifdef DEBUG
-# define JS_BASIC_STATS 1
-#endif
-
-#ifdef JS_BASIC_STATS
-
-#include <stdio.h>
-
-typedef struct JSBasicStats {
-    uint32      num;
-    uint32      max;
-    double      sum;
-    double      sqsum;
-    uint32      logscale;           
-    uint32      hist[11];
-} JSBasicStats;
-
-#define JS_INIT_STATIC_BASIC_STATS  {0,0,0,0,0,{0,0,0,0,0,0,0,0,0,0,0}}
-#define JS_BASIC_STATS_INIT(bs)     memset((bs), 0, sizeof(JSBasicStats))
-
-#define JS_BASIC_STATS_ACCUM(bs,val)                                          \
-    JS_BasicStatsAccum(bs, val)
-
-#define JS_MeanAndStdDevBS(bs,sigma)                                          \
-    JS_MeanAndStdDev((bs)->num, (bs)->sum, (bs)->sqsum, sigma)
-
-extern void
-JS_BasicStatsAccum(JSBasicStats *bs, uint32 val);
-
-extern double
-JS_MeanAndStdDev(uint32 num, double sum, double sqsum, double *sigma);
-
-extern void
-JS_DumpBasicStats(JSBasicStats *bs, const char *title, FILE *fp);
-
-extern void
-JS_DumpHistogram(JSBasicStats *bs, FILE *fp);
-
-#else
-
-#define JS_BASIC_STATS_ACCUM(bs,val)
-
-#endif 
-
-
-#if defined(DEBUG_notme) && defined(XP_UNIX)
-
-typedef struct JSCallsite JSCallsite;
-
-struct JSCallsite {
-    uint32      pc;
-    char        *name;
-    const char  *library;
-    int         offset;
-    JSCallsite  *parent;
-    JSCallsite  *siblings;
-    JSCallsite  *kids;
-    void        *handy;
-};
-
-extern JS_FRIEND_API(JSCallsite *)
-JS_Backtrace(int skip);
-
-extern JS_FRIEND_API(void)
-JS_DumpBacktrace(JSCallsite *trace);
-#endif
-
-#if defined JS_USE_CUSTOM_ALLOCATOR
-
-#include "jscustomallocator.h"
-
-#else
-
-#ifdef DEBUG
-
-
-
-
-extern JS_PUBLIC_DATA(JSUint32) OOM_maxAllocations; 
-extern JS_PUBLIC_DATA(JSUint32) OOM_counter; 
-#define JS_OOM_POSSIBLY_FAIL() \
-    do \
-    { \
-        if (OOM_counter++ >= OOM_maxAllocations) { \
-            return NULL; \
-        } \
-    } while (0)
-
-#else
-#define JS_OOM_POSSIBLY_FAIL() do {} while(0)
-#endif
-
-
-
-
-
-
-static JS_INLINE void* js_malloc(size_t bytes) {
-    JS_OOM_POSSIBLY_FAIL();
-    return malloc(bytes);
-}
-
-static JS_INLINE void* js_calloc(size_t bytes) {
-    JS_OOM_POSSIBLY_FAIL();
-    return calloc(bytes, 1);
-}
-
-static JS_INLINE void* js_realloc(void* p, size_t bytes) {
-    JS_OOM_POSSIBLY_FAIL();
-    return realloc(p, bytes);
-}
-
-static JS_INLINE void js_free(void* p) {
-    free(p);
-}
-#endif
-
-
-
-
-
-
-typedef size_t(*JSUsableSizeFun)(void *p);
-
-JS_END_EXTERN_C
-
-
-
-#ifdef __cplusplus
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define JS_NEW_BODY(allocator, t, parms)                                       \
-    void *memory = allocator(sizeof(t));                                       \
-    return memory ? new(memory) t parms : NULL;
-
-
-
-
-
-
-
-
-
-
-#define JS_DECLARE_NEW_METHODS(ALLOCATOR, QUALIFIERS)\
-    template <class T>\
-    QUALIFIERS T *new_() {\
-        JS_NEW_BODY(ALLOCATOR, T, ())\
-    }\
-\
-    template <class T, class P1>\
-    QUALIFIERS T *new_(P1 p1) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1))\
-    }\
-\
-    template <class T, class P1, class P2>\
-    QUALIFIERS T *new_(P1 p1, P2 p2) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1, p2))\
-    }\
-\
-    template <class T, class P1, class P2, class P3>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3))\
-    }\
-\
-    template <class T, class P1, class P2, class P3, class P4>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4))\
-    }\
-\
-    template <class T, class P1, class P2, class P3, class P4, class P5>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5))\
-    }\
-\
-    template <class T, class P1, class P2, class P3, class P4, class P5, class P6>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6))\
-    }\
-\
-    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7))\
-    }\
-\
-    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8))\
-    }\
-\
-    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9))\
-    }\
-\
-    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9, P10 p10) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10))\
-    }\
-\
-    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10, class P11>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9, P10 p10, P11 p11) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11))\
-    }\
-\
-    template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10, class P11, class P12>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9, P10 p10, P11 p11, P12 p12) {\
-        JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12))\
-    }\
-    static const int JSMinAlignment = 8;\
-    template <class T>\
-    QUALIFIERS T *array_new(size_t n) {\
-        /* The length is stored just before the vector memory. */\
-        uint64 numBytes64 = uint64(JSMinAlignment) + uint64(sizeof(T)) * uint64(n);\
-        size_t numBytes = size_t(numBytes64);\
-        if (numBytes64 != numBytes) {\
-            JS_ASSERT(0);   /* we want to know if this happens in debug builds */\
-            return NULL;\
-        }\
-        void *memory = ALLOCATOR(numBytes);\
-        if (!memory)\
-            return NULL;\
-        *(size_t *)memory = n;\
-        memory = (void*)(uintptr_t(memory) + JSMinAlignment);\
-        return new(memory) T[n];\
-    }\
-
-
-#define JS_DECLARE_DELETE_METHODS(DEALLOCATOR, QUALIFIERS)\
-    template <class T>\
-    QUALIFIERS void delete_(T *p) {\
-        if (p) {\
-            p->~T();\
-            DEALLOCATOR(p);\
-        }\
-    }\
-\
-    template <class T>\
-    QUALIFIERS void array_delete(T *p) {\
-        if (p) {\
-            void* p0 = (void *)(uintptr_t(p) - js::OffTheBooks::JSMinAlignment);\
-            size_t n = *(size_t *)p0;\
-            for (size_t i = 0; i < n; i++)\
-                (p + i)->~T();\
-            DEALLOCATOR(p0);\
-        }\
-    }
-
-
-
-
-
-
-
-
-namespace js {
-
-class OffTheBooks {
-public:
-    JS_DECLARE_NEW_METHODS(::js_malloc, JS_ALWAYS_INLINE static)
-
-    static JS_INLINE void* malloc_(size_t bytes) {
-        return ::js_malloc(bytes);
-    }
-
-    static JS_INLINE void* calloc_(size_t bytes) {
-        return ::js_calloc(bytes);
-    }
-
-    static JS_INLINE void* realloc_(void* p, size_t bytes) {
-        return ::js_realloc(p, bytes);
-    }
-};
-
-
-
-
-
-class Foreground {
-public:
-    
-    static JS_ALWAYS_INLINE void free_(void* p) {
-        ::js_free(p);
-    }
-
-    JS_DECLARE_DELETE_METHODS(::js_free, JS_ALWAYS_INLINE static)
-};
-
-class UnwantedForeground : public Foreground {
-};
-
-} 
-
-
-
-
-
-#define JS_DECLARE_ALLOCATION_FRIENDS_FOR_PRIVATE_CONSTRUCTOR \
-    friend class js::OffTheBooks;\
-    friend class js::Foreground;\
-    friend class js::UnwantedForeground;\
-    friend struct ::JSContext;\
-    friend struct ::JSRuntime
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#ifdef DEBUG
-class JS_FRIEND_API(JSGuardObjectNotifier)
+template <class T>
+class AlignedPtrAndFlag
 {
-private:
-    bool* mStatementDone;
-public:
-    JSGuardObjectNotifier() : mStatementDone(NULL) {}
+    uintptr_t bits;
 
-    ~JSGuardObjectNotifier() {
-        *mStatementDone = true;
+  public:
+    AlignedPtrAndFlag(T *t, bool flag) {
+        JS_ASSERT((uintptr_t(t) & 1) == 0);
+        bits = uintptr_t(t) | uintptr_t(flag);
     }
 
-    void setStatementDone(bool *aStatementDone) {
-        mStatementDone = aStatementDone;
+    T *ptr() const {
+        return (T *)(bits & ~uintptr_t(1));
+    }
+
+    bool flag() const {
+        return (bits & 1) != 0;
+    }
+
+    void setPtr(T *t) {
+        JS_ASSERT((uintptr_t(t) & 1) == 0);
+        bits = uintptr_t(t) | uintptr_t(flag());
+    }
+
+    void setFlag() {
+        bits |= 1;
+    }
+
+    void unsetFlag() {
+        bits &= ~uintptr_t(1);
+    }
+
+    void set(T *t, bool flag) {
+        JS_ASSERT((uintptr_t(t) & 1) == 0);
+        bits = uintptr_t(t) | flag;
     }
 };
 
-class JS_FRIEND_API(JSGuardObjectNotificationReceiver)
+template <class T>
+static inline void
+Reverse(T *beg, T *end)
 {
-private:
-    bool mStatementDone;
-public:
-    JSGuardObjectNotificationReceiver() : mStatementDone(false) {}
+    while (beg != end) {
+        if (--end == beg)
+            return;
+        T tmp = *beg;
+        *beg = *end;
+        *end = tmp;
+        ++beg;
+    }
+}
 
-    ~JSGuardObjectNotificationReceiver() {
-        
+template <class T>
+static inline T *
+Find(T *beg, T *end, const T &v)
+{
+    for (T *p = beg; p != end; ++p) {
+        if (*p == v)
+            return p;
+    }
+    return end;
+}
+
+template <class Container>
+static inline typename Container::ElementType *
+Find(Container &c, const typename Container::ElementType &v)
+{
+    return Find(c.begin(), c.end(), v);
+}
+
+template <typename InputIterT, typename CallableT>
+void
+ForEach(InputIterT begin, InputIterT end, CallableT f)
+{
+    for (; begin != end; ++begin)
+        f(*begin);
+}
+
+template <class T>
+static inline T
+Min(T t1, T t2)
+{
+    return t1 < t2 ? t1 : t2;
+}
+
+template <class T>
+static inline T
+Max(T t1, T t2)
+{
+    return t1 > t2 ? t1 : t2;
+}
 
 
+template <class T>
+static T&
+InitConst(const T &t)
+{
+    return const_cast<T &>(t);
+}
 
+template <class T, class U>
+JS_ALWAYS_INLINE T &
+ImplicitCast(U &u)
+{
+    T &t = u;
+    return t;
+}
 
+template<typename T>
+class AutoScopedAssign
+{
+  private:
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+    T *addr;
+    T old;
 
-        JS_ASSERT(mStatementDone);
+  public:
+    AutoScopedAssign(T *addr, const T &value JS_GUARD_OBJECT_NOTIFIER_PARAM)
+        : addr(addr), old(*addr)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+        *addr = value;
     }
 
-    void Init(const JSGuardObjectNotifier &aNotifier) {
-        
-
-
-
-        const_cast<JSGuardObjectNotifier&>(aNotifier).
-            setStatementDone(&mStatementDone);
-    }
+    ~AutoScopedAssign() { *addr = old; }
 };
 
-#define JS_DECL_USE_GUARD_OBJECT_NOTIFIER \
-    JSGuardObjectNotificationReceiver _mCheckNotUsedAsTemporary;
-#define JS_GUARD_OBJECT_NOTIFIER_PARAM \
-    , const JSGuardObjectNotifier& _notifier = JSGuardObjectNotifier()
-#define JS_GUARD_OBJECT_NOTIFIER_PARAM_NO_INIT \
-    , const JSGuardObjectNotifier& _notifier
-#define JS_GUARD_OBJECT_NOTIFIER_PARAM0 \
-    const JSGuardObjectNotifier& _notifier = JSGuardObjectNotifier()
-#define JS_GUARD_OBJECT_NOTIFIER_INIT \
-    JS_BEGIN_MACRO _mCheckNotUsedAsTemporary.Init(_notifier); JS_END_MACRO
+template <class RefCountable>
+class AlreadyIncRefed
+{
+    typedef RefCountable *****ConvertibleToBool;
 
-#else 
+    RefCountable *obj;
 
-#define JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-#define JS_GUARD_OBJECT_NOTIFIER_PARAM
-#define JS_GUARD_OBJECT_NOTIFIER_PARAM_NO_INIT
-#define JS_GUARD_OBJECT_NOTIFIER_PARAM0
-#define JS_GUARD_OBJECT_NOTIFIER_INIT JS_BEGIN_MACRO JS_END_MACRO
+  public:
+    explicit AlreadyIncRefed(RefCountable *obj) : obj(obj) {}
 
-#endif 
+    bool null() const { return obj == NULL; }
+    operator ConvertibleToBool() const { return (ConvertibleToBool)obj; }
 
-namespace js {
+    RefCountable *operator->() const { JS_ASSERT(!null()); return obj; }
+    RefCountable &operator*() const { JS_ASSERT(!null()); return *obj; }
+    RefCountable *get() const { return obj; }
+};
+
+template <class RefCountable>
+class NeedsIncRef
+{
+    typedef RefCountable *****ConvertibleToBool;
+
+    RefCountable *obj;
+
+  public:
+    explicit NeedsIncRef(RefCountable *obj) : obj(obj) {}
+
+    bool null() const { return obj == NULL; }
+    operator ConvertibleToBool() const { return (ConvertibleToBool)obj; }
+
+    RefCountable *operator->() const { JS_ASSERT(!null()); return obj; }
+    RefCountable &operator*() const { JS_ASSERT(!null()); return *obj; }
+    RefCountable *get() const { return obj; }
+};
+
+template <class RefCountable>
+class AutoRefCount
+{
+    typedef RefCountable *****ConvertibleToBool;
+
+    JSContext *const cx;
+    RefCountable *obj;
+
+    AutoRefCount(const AutoRefCount &);
+    void operator=(const AutoRefCount &);
+
+  public:
+    explicit AutoRefCount(JSContext *cx)
+      : cx(cx), obj(NULL)
+    {}
+
+    AutoRefCount(JSContext *cx, NeedsIncRef<RefCountable> aobj)
+      : cx(cx), obj(aobj.get())
+    {
+        if (obj)
+            obj->incref(cx);
+    }
+
+    AutoRefCount(JSContext *cx, AlreadyIncRefed<RefCountable> aobj)
+      : cx(cx), obj(aobj.get())
+    {}
+
+    ~AutoRefCount() {
+        if (obj)
+            obj->decref(cx);
+    }
+
+    void reset(NeedsIncRef<RefCountable> aobj) {
+        if (obj)
+            obj->decref(cx);
+        obj = aobj.get();
+        if (obj)
+            obj->incref(cx);
+    }
+
+    void reset(AlreadyIncRefed<RefCountable> aobj) {
+        if (obj)
+            obj->decref(cx);
+        obj = aobj.get();
+    }
+
+    bool null() const { return obj == NULL; }
+    operator ConvertibleToBool() const { return (ConvertibleToBool)obj; }
+
+    RefCountable *operator->() const { JS_ASSERT(!null()); return obj; }
+    RefCountable &operator*() const { JS_ASSERT(!null()); return *obj; }
+    RefCountable *get() const { return obj; }
+};
 
 template <class T>
 JS_ALWAYS_INLINE static void
@@ -718,6 +334,11 @@ PodEqual(T *one, T *two, size_t len)
     return !memcmp(one, two, len * sizeof(T));
 }
 
+JS_ALWAYS_INLINE static size_t
+UnsignedPtrDiff(const void *bigger, const void *smaller)
+{
+    return size_t(bigger) - size_t(smaller);
+}
 
 
 
@@ -728,6 +349,8 @@ PodEqual(T *one, T *two, size_t len)
 
 enum MaybeReportError { REPORT_ERROR = true, DONT_REPORT_ERROR = false };
 
+}  
+#endif  
 
 
 
@@ -740,127 +363,94 @@ enum MaybeReportError { REPORT_ERROR = true, DONT_REPORT_ERROR = false };
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<typename T>
-class MoveRef {
-  public:
-    typedef T Referent;
-    explicit MoveRef(T &t) : pointer(&t) { }
-    T &operator*()  const { return *pointer; }
-    T *operator->() const { return  pointer; }
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-    
-
-
-
-
-
-
-
-
-    operator T&& ()  const { return static_cast<T&&>(*pointer); }
+#if defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_AMD64) || \
+    defined(_M_X64))
+#include <stdlib.h>
+#pragma intrinsic(_rotl)
+#define JS_ROTATE_LEFT32(a, bits) _rotl(a, bits)
 #else
-    operator T& ()   const { return *pointer; }
+#define JS_ROTATE_LEFT32(a, bits) (((a) << (bits)) | ((a) >> (32 - (bits))))
 #endif
-  private:
-    T *pointer;
-};
 
-template<typename T>
-MoveRef<T> Move(T &t) { return MoveRef<T>(t); }
 
-template<typename T>
-MoveRef<T> Move(const T &t) { return MoveRef<T>(const_cast<T &>(t)); }
+#ifdef NS_STATIC_CHECKING
 
-} 
+inline __attribute__ ((unused)) void MUST_FLOW_THROUGH(const char *label) {}
 
-#endif 
+
+# define MUST_FLOW_LABEL(label) goto label; label:
+
+inline JS_FORCES_STACK void VOUCH_DOES_NOT_REQUIRE_STACK() {}
+
+inline JS_FORCES_STACK void
+JS_ASSERT_NOT_ON_TRACE(JSContext *cx)
+{
+    JS_ASSERT(!JS_ON_TRACE(cx));
+}
+#else
+# define MUST_FLOW_THROUGH(label)            ((void) 0)
+# define MUST_FLOW_LABEL(label)
+# define VOUCH_DOES_NOT_REQUIRE_STACK()      ((void) 0)
+# define JS_ASSERT_NOT_ON_TRACE(cx)          JS_ASSERT(!JS_ON_TRACE(cx))
+#endif
+
+
+#ifdef DEBUG
+# define JS_CRASH_DIAGNOSTICS 1
+#endif
+#ifdef JS_CRASH_DIAGNOSTICS
+# define JS_POISON(p, val, size) memset((p), (val), (size))
+# define JS_OPT_ASSERT(expr)                                                  \
+    ((expr) ? (void)0 : JS_Assert(#expr, __FILE__, __LINE__))
+# define JS_OPT_ASSERT_IF(cond, expr)                                         \
+    ((!(cond) || (expr)) ? (void)0 : JS_Assert(#expr, __FILE__, __LINE__))
+#else
+# define JS_POISON(p, val, size) ((void) 0)
+# define JS_OPT_ASSERT(expr) ((void) 0)
+# define JS_OPT_ASSERT_IF(cond, expr) ((void) 0)
+#endif
+
+
+#ifdef DEBUG
+# define JS_BASIC_STATS 1
+#endif
+#ifdef JS_BASIC_STATS
+# include <stdio.h>
+typedef struct JSBasicStats {
+    uint32      num;
+    uint32      max;
+    double      sum;
+    double      sqsum;
+    uint32      logscale;           
+    uint32      hist[11];
+} JSBasicStats;
+# define JS_INIT_STATIC_BASIC_STATS  {0,0,0,0,0,{0,0,0,0,0,0,0,0,0,0,0}}
+# define JS_BASIC_STATS_INIT(bs)     memset((bs), 0, sizeof(JSBasicStats))
+# define JS_BASIC_STATS_ACCUM(bs,val)                                         \
+    JS_BasicStatsAccum(bs, val)
+# define JS_MeanAndStdDevBS(bs,sigma)                                         \
+    JS_MeanAndStdDev((bs)->num, (bs)->sum, (bs)->sqsum, sigma)
+extern void
+JS_BasicStatsAccum(JSBasicStats *bs, uint32 val);
+extern double
+JS_MeanAndStdDev(uint32 num, double sum, double sqsum, double *sigma);
+extern void
+JS_DumpBasicStats(JSBasicStats *bs, const char *title, FILE *fp);
+extern void
+JS_DumpHistogram(JSBasicStats *bs, FILE *fp);
+#else
+# define JS_BASIC_STATS_ACCUM(bs,val)
+#endif
+
+
+typedef size_t jsbitmap;
+#define JS_TEST_BIT(_map,_bit)  ((_map)[(_bit)>>JS_BITS_PER_WORD_LOG2] &      \
+                                 ((jsbitmap)1<<((_bit)&(JS_BITS_PER_WORD-1))))
+#define JS_SET_BIT(_map,_bit)   ((_map)[(_bit)>>JS_BITS_PER_WORD_LOG2] |=     \
+                                 ((jsbitmap)1<<((_bit)&(JS_BITS_PER_WORD-1))))
+#define JS_CLEAR_BIT(_map,_bit) ((_map)[(_bit)>>JS_BITS_PER_WORD_LOG2] &=     \
+                                 ~((jsbitmap)1<<((_bit)&(JS_BITS_PER_WORD-1))))
+
+#define VOUCH_HAVE_STACK                    VOUCH_DOES_NOT_REQUIRE_STACK
 
 #endif 

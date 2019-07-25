@@ -41,10 +41,8 @@
 #ifndef jsvector_h_
 #define jsvector_h_
 
-#include "jsalloc.h"
-#include "jstl.h"
-#include "jsprvtd.h"
-#include "jsutil.h"
+#include "TemplateLib.h"
+#include "Utility.h"
 
 
 #ifdef _MSC_VER
@@ -53,6 +51,9 @@
 #endif
 
 namespace js {
+
+template <class T, size_t N, class AllocPolicy>
+class Vector;
 
 
 

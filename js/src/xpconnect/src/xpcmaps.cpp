@@ -41,7 +41,6 @@
 
 
 #include "xpcprivate.h"
-#include "jsbit.h"
 
 
 

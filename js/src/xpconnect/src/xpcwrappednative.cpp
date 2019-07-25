@@ -46,7 +46,6 @@
 #include "XPCWrapper.h"
 #include "nsWrapperCacheInlines.h"
 #include "xpclog.h"
-#include "jstl.h"
 #include "nsINode.h"
 #include "xpcquickstubs.h"
 #include "jsproxy.h"
@@ -2776,7 +2775,7 @@ CallMethodHelper::InitializeDispatchParams()
     {
         nsXPTCVariant* dp = &mDispatchParams[mOptArgcIndex];
         dp->type = nsXPTType::T_U8;
-        dp->val.u8 = NS_MIN<PRUint32>(mArgc, paramCount) - requiredArgs;
+        dp->val.u8 = mArgc - requiredArgs;
     }
 
     return JS_TRUE;
