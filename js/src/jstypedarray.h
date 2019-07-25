@@ -57,7 +57,9 @@ namespace js {
 
 
 
-struct ArrayBufferObject : public JSObject {
+class ArrayBufferObject : public JSObject
+{
+  public:
     static Class protoClass;
     static JSPropertySpec jsprops[];
     static JSFunctionSpec jsfuncs[];

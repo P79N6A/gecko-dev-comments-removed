@@ -564,18 +564,19 @@ ElementsHeader::asArrayBufferElements()
     return *static_cast<ArrayBufferElementsHeader *>(this);
 }
 
-
-
-
-
-
-
 class ArrayBufferObject;
+
+
+
+
+
+
+
 class ObjectElements
 {
     friend struct ::JSObject;
     friend class ObjectImpl;
-    friend struct js::ArrayBufferObject;
+    friend class ArrayBufferObject;
 
     
     uint32_t capacity;
