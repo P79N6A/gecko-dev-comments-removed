@@ -69,8 +69,10 @@ NS_IMETHODIMP Decoder::Flush()
 }
 
 Decoder::Decoder()
-  : mInitialized(false)
+  : mFrameCount(0)
+  , mInitialized(false)
   , mSizeDecode(false)
+  , mInFrame(false)
 {
 }
 
@@ -124,6 +126,7 @@ Decoder::Shutdown(PRUint32 aFlags)
   mImage = nsnull;
   mObserver = nsnull;
 
+  NS_ABORT_IF_FALSE(!mInFrame, "Shutting down mid-frame!");
   return rv;
 }
 
@@ -153,6 +156,41 @@ Decoder::PostSize(PRInt32 aWidth, PRInt32 aHeight)
   
   if (mObserver)
     mObserver->OnStartContainer(nsnull, mImage);
+}
+
+void
+Decoder::PostFrameStart()
+{
+  
+  NS_ABORT_IF_FALSE(!mInFrame, "Starting new frame but not done with old one!");
+
+  
+  mFrameCount++;
+  mInFrame = true;
+
+  
+  
+  
+  NS_ABORT_IF_FALSE(mFrameCount == mImage->GetNumFrames(),
+                    "Decoder frame count doesn't match image's!");
+
+  
+  if (mObserver)
+    mObserver->OnStartFrame(nsnull, mFrameCount - 1); 
+}
+
+void
+Decoder::PostFrameStop()
+{
+  
+  NS_ABORT_IF_FALSE(mInFrame, "Stopping frame when we didn't start one!");
+
+  
+  mInFrame = false;
+
+  
+  if (mObserver)
+    mObserver->OnStopFrame(nsnull, mFrameCount - 1); 
 }
 
 } 

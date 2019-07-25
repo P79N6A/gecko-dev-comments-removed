@@ -99,10 +99,13 @@ nsBMPDecoder::ShutdownInternal(PRUint32 aFlags)
     PR_LOG(gBMPLog, PR_LOG_DEBUG, ("nsBMPDecoder::Close()\n"));
 
     
+    NS_ABORT_IF_FALSE(GetFrameCount() <= 1, "Multiple BMP frames?");
+
+    
     if (!IsSizeDecode() &&
-        !mError && !(aFlags & CLOSE_FLAG_DONTNOTIFY)) {
-        if (mObserver)
-            mObserver->OnStopFrame(nsnull, 0);
+        !mError && !(aFlags & CLOSE_FLAG_DONTNOTIFY) &&
+        (GetFrameCount() == 1)) {
+        PostFrameStop();
         mImage->DecodingComplete();
         if (mObserver) {
             mObserver->OnStopContainer(nsnull, mImage);
@@ -280,10 +283,8 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
             memset(mImageData, 0, imageLength);
         }
 
-        if (mObserver) {
-            mObserver->OnStartFrame(nsnull, 0);
-            NS_ENSURE_SUCCESS(rv, rv);
-        }
+        
+        PostFrameStart();
     }
     PRUint8 bpc; 
     bpc = (mBFH.bihsize == OS2_BIH_LENGTH) ? 3 : 4; 
