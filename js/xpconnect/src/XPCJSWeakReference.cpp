@@ -123,16 +123,14 @@ xpcJSWeakReference::Get()
         wrappedObj) {
         JSObject *obj;
         wrappedObj->GetJSObject(&obj);
-        if (obj)
-        {
+        if (obj) {
             
             
             
             
             
 
-            if (!JS_WrapObject(cx, &obj))
-            {
+            if (!JS_WrapObject(cx, &obj)) {
                 return NS_ERROR_FAILURE;
             }
 
