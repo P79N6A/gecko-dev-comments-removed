@@ -159,13 +159,7 @@ let UI = {
       this._initPageDirection();
 
       
-      ThumbnailStorage.init();
-
-      
       Storage.init();
-
-      
-      StoragePolicy.init();
 
       if (Storage.readWindowBusyState(gWindow))
         this.storageBusy();
@@ -277,7 +271,6 @@ let UI = {
           GroupItems.removeHiddenGroups();
 
         TabItems.saveAll();
-        TabItems.saveAllThumbnails({synchronously: true});
 
         self._save();
       }, false);
@@ -319,7 +312,6 @@ let UI = {
     GroupItems.uninit();
     FavIcons.uninit();
     Storage.uninit();
-    StoragePolicy.uninit();
 
     this._removeTabActionHandlers();
     this._currentTab = null;
@@ -717,11 +709,6 @@ let UI = {
         if (data == "enter" || data == "exit") {
           Search.hide();
           self._privateBrowsing.transitionMode = data;
-
-          
-          
-          if (data == "enter")
-            TabItems.saveAllThumbnails({synchronously: true});
         }
       } else if (topic == "private-browsing-transition-complete") {
         
