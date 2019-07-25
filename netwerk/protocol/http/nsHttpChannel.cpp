@@ -303,12 +303,15 @@ nsHttpChannel::DoNotifyListener()
     
     
     
-    mIsPending = PR_FALSE;
     if (mListener) {
         mListener->OnStartRequest(this, mListenerContext);
+        mIsPending = PR_FALSE;
         mListener->OnStopRequest(this, mListenerContext, mStatus);
         mListener = 0;
         mListenerContext = 0;
+    }
+    else {
+        mIsPending = PR_FALSE;
     }
     
     mCallbacks = nsnull;
