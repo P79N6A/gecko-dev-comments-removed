@@ -349,7 +349,6 @@ nsCRLManager::RescheduleCRLAutoUpdate(void)
 
 
 
-
 NS_IMETHODIMP 
 nsCRLManager::GetCrls(nsIArray ** aCrls)
 {
