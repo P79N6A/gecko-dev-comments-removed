@@ -4626,6 +4626,9 @@ nsCanvasRenderingContext2DAzure::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                                 LayerManager *aManager)
 {
   if (!mValid) {
+    
+    
+    MarkContextClean();
     return nullptr;
   }
 
@@ -4646,6 +4649,9 @@ nsCanvasRenderingContext2DAzure::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
   nsRefPtr<CanvasLayer> canvasLayer = aManager->CreateCanvasLayer();
   if (!canvasLayer) {
     NS_WARNING("CreateCanvasLayer returned null!");
+    
+    
+    MarkContextClean();
     return nullptr;
   }
   CanvasRenderingContext2DUserDataAzure *userData = nullptr;

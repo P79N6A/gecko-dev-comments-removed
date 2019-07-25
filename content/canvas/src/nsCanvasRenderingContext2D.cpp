@@ -4321,6 +4321,9 @@ nsCanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
     
     if (!mValid || !mSurface || mSurface->CairoStatus() || !mThebes ||
         !mSurfaceCreated) {
+        
+        
+        MarkContextClean();
         return nullptr;
     }
 
@@ -4337,6 +4340,9 @@ nsCanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
     nsRefPtr<CanvasLayer> canvasLayer = aManager->CreateCanvasLayer();
     if (!canvasLayer) {
         NS_WARNING("CreateCanvasLayer returned null!");
+        
+        
+        MarkContextClean();
         return nullptr;
     }
     CanvasRenderingContext2DUserData *userData = nullptr;
