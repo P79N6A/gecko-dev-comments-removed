@@ -106,7 +106,11 @@ let gDrag = {
 
   isValid: function Drag_isValid(aEvent) {
     let dt = aEvent.dataTransfer;
-    return dt && dt.types.contains("text/x-moz-url");
+    let mimeType = "text/x-moz-url";
+
+    
+    
+    return dt && dt.types.contains(mimeType) && dt.getData(mimeType);
   },
 
   
