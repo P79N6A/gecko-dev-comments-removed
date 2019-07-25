@@ -43,10 +43,21 @@
 namespace xpc {
 
 class WrapperFactory {
+  public:
+    enum { WAIVE_XRAY_WRAPPER_FLAG = (1<<0) };
+
     
-    static JSCrossCompartmentWrapper *select(JSContext *cx,
-                                             JSCompartment *subject,
-                                             JSCompartment *object);
+    bool HasWrapperFlag(JSObject *wrapper, uintN flag) {
+        uintN flags = 0;
+        wrapper->unwrap(&flags);
+        return !!(flags & flag);
+    }
+
+    
+    static JSObject *Rewrap(JSContext *cx,
+                            JSObject *obj,
+                            JSObject *wrappedProto,
+                            uintN flags);
 };
 
 }
