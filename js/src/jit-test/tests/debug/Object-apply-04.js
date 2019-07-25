@@ -10,6 +10,7 @@ dbg.hooks = {
         var proxy = frame.arguments[0];
         assertEq(proxy.name, undefined);
         assertEq(proxy.apply(null, [33]).return, 34);
+        assertEq(proxy.call(null, 33).return, 34);
         hits++;
     }
 };
