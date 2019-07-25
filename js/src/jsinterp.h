@@ -803,9 +803,6 @@ GetBlockChain(JSContext *cx, JSStackFrame *fp);
 extern JSObject *
 GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
 
-extern JSObject *
-GetScopeChain(JSContext *cx);
-
 
 
 
@@ -837,7 +834,7 @@ ReportIncompatibleMethod(JSContext *cx, Value *vp, Class *clasp);
 template <typename T>
 bool GetPrimitiveThis(JSContext *cx, Value *vp, T *v);
 
-void
+inline void
 PutActivationObjects(JSContext *cx, JSStackFrame *fp);
 
 

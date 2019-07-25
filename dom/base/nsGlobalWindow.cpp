@@ -183,6 +183,7 @@
 #include "nsIXULAppInfo.h"
 #include "nsNetUtil.h"
 #include "nsFocusManager.h"
+#include "nsIJSON.h"
 #include "nsIXULWindow.h"
 #include "nsEventStateManager.h"
 #ifdef MOZ_XUL
@@ -5803,30 +5804,17 @@ nsGlobalWindow::CallerInnerWindow()
     return nsnull;
   }
 
-  JSObject *scope = nsnull;
-  JSStackFrame *fp = nsnull;
-  JS_FrameIterator(cx, &fp);
-  if (fp) {
-    while (fp->isDummyFrame()) {
-      if (!JS_FrameIterator(cx, &fp))
-        break;
-    }
-
-    if (fp)
-      scope = &fp->scopeChain();
-  }
-
-  if (!scope)
-    scope = JS_GetScopeChain(cx);
+  JSObject *callerGlobal;
+  if (!::JS_GetGlobalForCallingScript(cx, &callerGlobal) || !callerGlobal)
+      return nsnull;
 
   JSAutoEnterCompartment ac;
-  if (!ac.enter(cx, scope))
+  if (!ac.enter(cx, callerGlobal))
     return nsnull;
 
   nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
   nsContentUtils::XPConnect()->
-    GetWrappedNativeOfJSObject(cx, ::JS_GetGlobalForObject(cx, scope),
-                               getter_AddRefs(wrapper));
+    GetWrappedNativeOfJSObject(cx, callerGlobal, getter_AddRefs(wrapper));
   if (!wrapper)
     return nsnull;
 
@@ -6469,8 +6457,7 @@ nsGlobalWindow::LeaveModalState(nsIDOMWindow *aCallerWin)
   if (aCallerWin) {
     nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryInterface(aCallerWin));
     nsIScriptContext *scx = sgo->GetContext();
-    if (scx)
-      scx->LeaveModalState();
+    scx->LeaveModalState();
   }
 
   if (mContext) {
@@ -7718,16 +7705,59 @@ nsGlobalWindow::DispatchSyncPopState(PRBool aIsInitial)
   }
 
   
-  
-  
-  nsCOMPtr<nsIVariant> stateObj;
-  nsCOMPtr<nsIDOMNSDocument_MOZILLA_2_0_BRANCH> doc2 = do_QueryInterface(mDoc);
-  if (!doc2) {
+  if (!mDoc) {
     return NS_OK;
   }
+
+  nsIDocument::ReadyState readyState = mDoc->GetReadyStateEnum();
+  if (readyState != nsIDocument::READYSTATE_COMPLETE) {
+    return NS_OK;
+  }
+
   
-  rv = doc2->GetMozCurrentStateObject(getter_AddRefs(stateObj));
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  
+  nsAString& stateObjJSON = mDoc->GetPendingStateObject();
+
+  nsCOMPtr<nsIVariant> stateObj;
+  
+  if (!stateObjJSON.IsEmpty()) {
+    
+    
+    nsCOMPtr<nsIDocument> document = do_QueryInterface(mDocument);
+    NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
+
+    
+    
+    nsIScriptGlobalObject *sgo = document->GetScopeObject();
+    NS_ENSURE_TRUE(sgo, NS_ERROR_FAILURE);
+
+    nsIScriptContext *scx = sgo->GetContext();
+    NS_ENSURE_TRUE(scx, NS_ERROR_FAILURE);
+
+    JSContext *cx = (JSContext*) scx->GetNativeContext();
+
+    
+    JSAutoRequest ar(cx);
+
+    
+    
+    nsCxPusher cxPusher;
+
+    jsval jsStateObj = JSVAL_NULL;
+
+    
+    nsCOMPtr<nsIJSON> json = do_GetService("@mozilla.org/dom/json;1");
+    NS_ENSURE_TRUE(cxPusher.Push(cx), NS_ERROR_FAILURE);
+    rv = json->DecodeToJSVal(stateObjJSON, cx, &jsStateObj);
+    NS_ENSURE_SUCCESS(rv, rv);
+    cxPusher.Pop();
+
+    nsCOMPtr<nsIXPConnect> xpconnect = do_GetService(nsIXPConnect::GetCID());
+    NS_ENSURE_TRUE(xpconnect, NS_ERROR_FAILURE);
+    rv = xpconnect->JSValToVariant(cx, &jsStateObj, getter_AddRefs(stateObj));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   nsIPresShell *shell = mDoc->GetShell();
