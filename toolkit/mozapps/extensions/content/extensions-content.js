@@ -235,15 +235,6 @@ InstallTriggerManager.prototype = {
   handleEvent: function handleEvent(aEvent) {
     var window = aEvent.target.defaultView;
 
-    
-    
-    
-    
-    var uri = window.document.documentURIObject;
-    if (uri.scheme === "chrome" || uri.spec.split(":")[0] == "about") {
-      return;
-    }
-
     window.wrappedJSObject.__defineGetter__("InstallTrigger", function() {
       
       
