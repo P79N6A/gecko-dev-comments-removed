@@ -64,6 +64,7 @@
 #include "nsIAccessibilityService.h"
 #endif
 
+using namespace mozilla;
 using namespace mozilla::layers;
 
 nsIFrame*
@@ -379,10 +380,19 @@ public:
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager)
   {
+    if (aManager->GetBackendType() != LayerManager::LAYERS_BASIC) {
+      
+      
+      
+      
+      
+      
+      
+      return LAYER_ACTIVE;
+    }
     nsHTMLMediaElement* elem =
       static_cast<nsHTMLMediaElement*>(mFrame->GetContent());
-    return elem->IsPotentiallyPlaying() ? mozilla::LAYER_ACTIVE :
-      mozilla::LAYER_INACTIVE;
+    return elem->IsPotentiallyPlaying() ? LAYER_ACTIVE : LAYER_INACTIVE;
   }
 };
 
