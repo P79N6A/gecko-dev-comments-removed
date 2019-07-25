@@ -171,9 +171,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void addPhi(MPhi *phi);
 
     
-    MPhiIterator removePhiAt(MPhiIterator &at);
-
-    
     
     
     bool addPredecessor(MBasicBlock *pred);
@@ -192,11 +189,19 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     void insertBefore(MInstruction *at, MInstruction *ins);
     void insertAfter(MInstruction *at, MInstruction *ins);
-    void remove(MInstruction *ins);
-    MInstructionIterator removeAt(MInstructionIterator &iter);
-    MInstructionReverseIterator removeAt(MInstructionReverseIterator &iter);
 
-    MDefinitionIterator removeDefAt(MDefinitionIterator &iter);
+    
+    
+    void remove(MInstruction *ins);
+
+    
+    MInstructionIterator discardAt(MInstructionIterator &iter);
+    MInstructionReverseIterator discardAt(MInstructionReverseIterator &iter);
+    MDefinitionIterator discardDefAt(MDefinitionIterator &iter);
+
+    
+    MPhiIterator discardPhiAt(MPhiIterator &at);
+
     
     
     
