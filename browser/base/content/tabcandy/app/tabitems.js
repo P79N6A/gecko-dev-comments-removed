@@ -100,8 +100,8 @@ window.TabItem = function(container, tab) {
 
     $target.removeClass("acceptsDrop");
 
-    var groupBounds = Groups.getBoundingBox( [drag.info.$el, $target] );
-    groupBounds.inset( -20, -20 );
+    var groupBounds = this.getBoundsWithTitle();
+    groupBounds.inset( -40, -40 );
 
     iQ(".phantom").remove();
     var phantom = iQ("<div>")
@@ -279,7 +279,8 @@ window.TabItem.prototype = iQ.extend(new Item(), {
         
         
         
-        css.fontSize = minFontSize + (maxFontSize-minFontSize)*(.5+.5*Math.tanh(2*scale-2))
+        css.fontSize = Math.round(minFontSize + (maxFontSize-minFontSize)*(.5+.5*Math.tanh(2*scale-2)));
+        css.fontSize += 'px';
       }
 
       if (rect.height != this.bounds.height || options.force)
@@ -385,6 +386,16 @@ window.TabItem.prototype = iQ.extend(new Item(), {
       this.setTrenches(rect);
 
     this.save();
+  },
+
+  
+  
+  
+  getBoundsWithTitle: function() {
+    var b = this.getBounds();
+    var $container = iQ(this.container);
+    var $title = iQ('.tab-title', $container);
+    return new Rect( b.left, b.top, b.width, b.height + $title.height() );
   },
 
   
