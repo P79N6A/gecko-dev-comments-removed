@@ -3232,7 +3232,8 @@ nsHTMLDocument::EditingStateChanged()
   }
 
   
-  nsPIDOMWindow *window = GetWindow();
+  
+  nsCOMPtr<nsPIDOMWindow> window = GetWindow();
   if (!window)
     return NS_ERROR_FAILURE;
 
