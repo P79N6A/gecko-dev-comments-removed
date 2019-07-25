@@ -1700,6 +1700,17 @@ extern JS_PUBLIC_DATA(jsid) JSID_EMPTY;
 
 
 
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_CallOnce(JSCallOnceType *once, JSInitCallback func);
+
+
+
+
+
 extern JS_PUBLIC_API(int64)
 JS_Now(void);
 
