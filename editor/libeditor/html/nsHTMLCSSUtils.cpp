@@ -1002,26 +1002,6 @@ nsHTMLCSSUtils::RemoveCSSEquivalentToHTMLStyle(nsIDOMNode * aNode,
 }
 
 
-nsresult
-nsHTMLCSSUtils::HasClassOrID(nsIDOMElement * aElement, bool & aReturn)
-{
-  nsAutoString classVal, idVal;
-  bool isClassSet, isIdSet;
-  aReturn = false;
-
-  nsresult res = mHTMLEditor->GetAttributeValue(aElement,  NS_LITERAL_STRING("class"), classVal, &isClassSet);
-  NS_ENSURE_SUCCESS(res, res);
-  res = mHTMLEditor->GetAttributeValue(aElement,  NS_LITERAL_STRING("id"), idVal, &isIdSet);
-  NS_ENSURE_SUCCESS(res, res);
-
-  
-  
-  aReturn = ((isClassSet && !classVal.IsEmpty()) ||
-             (isIdSet    && !idVal.IsEmpty()));
-  return NS_OK;
-}
-
-
 
 
 

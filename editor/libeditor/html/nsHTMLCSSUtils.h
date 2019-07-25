@@ -188,13 +188,6 @@ public:
 
 
 
-  nsresult    HasClassOrID(nsIDOMElement * aElement, bool & aReturn);
-
-  
-
-
-
-
 
 
 
