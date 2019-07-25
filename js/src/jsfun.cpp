@@ -2655,14 +2655,33 @@ js_ReportIsNotFunction(JSContext *cx, const Value *vp, uintN flags)
     AutoValueRooter tvr(cx);
     uintN error = (flags & JSV2F_CONSTRUCT) ? JSMSG_NOT_CONSTRUCTOR : JSMSG_NOT_FUNCTION;
     LeaveTrace(cx);
+
+    
+
+
+
+
+
+
+
+
+
+    ptrdiff_t spindex = 0;
+
     FrameRegsIter i(cx);
     while (!i.done() && !i.pc())
         ++i;
 
-    ptrdiff_t spindex =
-        (!i.done() && i.fp()->base() <= vp && vp < i.sp())
-        ? vp - i.sp()
-        : ((flags & JSV2F_SEARCH_STACK) ? JSDVG_SEARCH_STACK : JSDVG_IGNORE_STACK);
+    if (!i.done()) {
+        uintN depth = js_ReconstructStackDepth(cx, i.fp()->script, i.pc());
+        Value *simsp = i.fp()->base() + depth;
+        JS_ASSERT(simsp <= i.sp());
+        if (i.fp()->base() <= vp && vp < simsp)
+            spindex = vp - simsp;
+    }
+
+    if (!spindex)
+        spindex = ((flags & JSV2F_SEARCH_STACK) ? JSDVG_SEARCH_STACK : JSDVG_IGNORE_STACK);
 
     js_ReportValueError3(cx, error, spindex, *vp, NULL, name, source);
 }
