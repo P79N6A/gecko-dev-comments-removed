@@ -641,14 +641,15 @@ SessionStoreService.prototype = {
         if (quitting) {
           
           
+          
+          
+          
           if ("_stateBackup" in this) {
             var oState = this._stateBackup;
             oState.session = { state: STATE_STOPPED_STR };
 
             this._saveStateObject(oState);
           }
-          
-          this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
         }
         else
           this._inPrivateBrowsing = false;
