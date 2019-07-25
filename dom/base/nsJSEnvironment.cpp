@@ -105,12 +105,6 @@
 #include "WrapperFactory.h"
 #include "nsGlobalWindow.h"
 
-#ifdef XP_MACOSX
-
-#undef check
-#endif
-#include "AccessCheck.h"
-
 #ifdef MOZ_JSDEBUGGER
 #include "jsdIDebuggerService.h"
 #endif
@@ -382,13 +376,10 @@ public:
                    const nsAString& aErrorMsg,
                    const nsAString& aFileName,
                    const nsAString& aSourceLine,
-                   PRBool aDispatchEvent,
-                   PRUint64 aWindowID)
+                   PRBool aDispatchEvent)
   : mScriptGlobal(aScriptGlobal), mLineNr(aLineNr), mColumn(aColumn),
     mFlags(aFlags), mErrorMsg(aErrorMsg), mFileName(aFileName),
-    mSourceLine(aSourceLine), mDispatchEvent(aDispatchEvent),
-    mWindowID(aWindowID)
-  {}
+    mSourceLine(aSourceLine), mDispatchEvent(aDispatchEvent) {}
 
   NS_IMETHOD Run()
   {
@@ -475,18 +466,10 @@ public:
           ? "chrome javascript"
           : "content javascript";
 
-        nsCOMPtr<nsIScriptError2> error2(do_QueryInterface(errorObject));
-        if (error2) {
-          rv = error2->InitWithWindowID(mErrorMsg.get(), mFileName.get(),
-                                        mSourceLine.get(),
-                                        mLineNr, mColumn, mFlags,
-                                        category, mWindowID);
-        } else {
-          rv = errorObject->Init(mErrorMsg.get(), mFileName.get(),
-                                 mSourceLine.get(),
-                                 mLineNr, mColumn, mFlags,
-                                 category);
-        }
+        rv = errorObject->Init(mErrorMsg.get(), mFileName.get(),
+                               mSourceLine.get(),
+                               mLineNr, mColumn, mFlags,
+                               category);
 
         if (NS_SUCCEEDED(rv)) {
           nsCOMPtr<nsIConsoleService> consoleService =
@@ -509,7 +492,6 @@ public:
   nsString                        mFileName;
   nsString                        mSourceLine;
   PRBool                          mDispatchEvent;
-  PRUint64                        mWindowID;
 
   static PRBool sHandlingScriptError;
 };
@@ -589,14 +571,11 @@ NS_ScriptErrorReporter(JSContext *cx,
 
       nsAutoString sourceLine;
       sourceLine.Assign(reinterpret_cast<const PRUnichar*>(report->uclinebuf));
-      nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(globalObject);
-      PRUint64 windowID = win ? win->WindowID() : 0;
       nsContentUtils::AddScriptRunner(
         new ScriptErrorEvent(globalObject, report->lineno,
                              report->uctokenptr - report->uclinebuf,
                              report->flags, msg, fileName, sourceLine,
-                             report->errorNumber != JSMSG_OUT_OF_MEMORY,
-                             windowID));
+                             report->errorNumber != JSMSG_OUT_OF_MEMORY));
     }
   }
 
@@ -953,9 +932,8 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
 
   
   
-  JSObject* global = ::JS_GetGlobalForScopeChain(cx);
   PRBool isTrackingChromeCodeTime =
-    global && xpc::AccessCheck::isChrome(global->getCompartment());
+    ::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx));
   if (duration < (isTrackingChromeCodeTime ?
                   sMaxChromeScriptRunTime : sMaxScriptRunTime)) {
     return JS_TRUE;
@@ -1197,6 +1175,8 @@ static const char js_tracejit_content_str[]   = JS_OPTIONS_DOT_STR "tracejit.con
 static const char js_tracejit_chrome_str[]    = JS_OPTIONS_DOT_STR "tracejit.chrome";
 static const char js_methodjit_content_str[]   = JS_OPTIONS_DOT_STR "methodjit.content";
 static const char js_methodjit_chrome_str[]    = JS_OPTIONS_DOT_STR "methodjit.chrome";
+static const char js_profiling_content_str[]   = JS_OPTIONS_DOT_STR "jitprofiling.content";
+static const char js_profiling_chrome_str[]    = JS_OPTIONS_DOT_STR "jitprofiling.chrome";
 
 int
 nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
@@ -1222,6 +1202,9 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
   PRBool useMethodJIT = nsContentUtils::GetBoolPref(chromeWindow ?
                                                     js_methodjit_chrome_str :
                                                     js_methodjit_content_str);
+  PRBool useProfiling = nsContentUtils::GetBoolPref(chromeWindow ?
+                                                    js_profiling_chrome_str :
+                                                    js_profiling_content_str);
   nsCOMPtr<nsIXULRuntime> xr = do_GetService(XULRUNTIME_SERVICE_CONTRACTID);
   if (xr) {
     PRBool safeMode = PR_FALSE;
@@ -1229,11 +1212,9 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
     if (safeMode) {
       useTraceJIT = PR_FALSE;
       useMethodJIT = PR_FALSE;
+      useProfiling = PR_FALSE;
     }
   }    
-
-  if (!chromeWindow)
-    newDefaultJSOptions |= JSOPTION_ROPES;
 
   if (useTraceJIT)
     newDefaultJSOptions |= JSOPTION_JIT;
@@ -1244,6 +1225,11 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
     newDefaultJSOptions |= JSOPTION_METHODJIT;
   else
     newDefaultJSOptions &= ~JSOPTION_METHODJIT;
+
+  if (useProfiling)
+    newDefaultJSOptions |= JSOPTION_PROFILING;
+  else
+    newDefaultJSOptions &= ~JSOPTION_PROFILING;
 
 #ifdef DEBUG
   
@@ -3094,23 +3080,8 @@ static JSClass OptionsClass = {
 #include "nsTraceMalloc.h"
 
 static JSBool
-CheckUniversalXPConnectForTraceMalloc(JSContext *cx)
-{
-    PRBool hasCap = PR_FALSE;
-    nsresult rv = nsContentUtils::GetSecurityManager()->
-                    IsCapabilityEnabled("UniversalXPConnect", &hasCap);
-    if (NS_SUCCEEDED(rv) && hasCap)
-        return JS_TRUE;
-    JS_ReportError(cx, "trace-malloc functions require UniversalXPConnect");
-    return JS_FALSE;
-}
-
-static JSBool
 TraceMallocDisable(JSContext *cx, uintN argc, jsval *vp)
 {
-    if (!CheckUniversalXPConnectForTraceMalloc(cx))
-        return JS_FALSE;
-
     NS_TraceMallocDisable();
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
     return JS_TRUE;
@@ -3119,9 +3090,6 @@ TraceMallocDisable(JSContext *cx, uintN argc, jsval *vp)
 static JSBool
 TraceMallocEnable(JSContext *cx, uintN argc, jsval *vp)
 {
-    if (!CheckUniversalXPConnectForTraceMalloc(cx))
-        return JS_FALSE;
-
     NS_TraceMallocEnable();
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
     return JS_TRUE;
@@ -3133,9 +3101,6 @@ TraceMallocOpenLogFile(JSContext *cx, uintN argc, jsval *vp)
     int fd;
     JSString *str;
     char *filename;
-
-    if (!CheckUniversalXPConnectForTraceMalloc(cx))
-        return JS_FALSE;
 
     if (argc == 0) {
         fd = -1;
@@ -3159,9 +3124,6 @@ TraceMallocChangeLogFD(JSContext *cx, uintN argc, jsval *vp)
 {
     int32 fd, oldfd;
 
-    if (!CheckUniversalXPConnectForTraceMalloc(cx))
-        return JS_FALSE;
-
     if (argc == 0) {
         oldfd = -1;
     } else {
@@ -3182,9 +3144,6 @@ TraceMallocCloseLogFD(JSContext *cx, uintN argc, jsval *vp)
 {
     int32 fd;
 
-    if (!CheckUniversalXPConnectForTraceMalloc(cx))
-        return JS_FALSE;
-
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
     if (argc == 0)
         return JS_TRUE;
@@ -3200,9 +3159,6 @@ TraceMallocLogTimestamp(JSContext *cx, uintN argc, jsval *vp)
     JSString *str;
     const char *caption;
 
-    if (!CheckUniversalXPConnectForTraceMalloc(cx))
-        return JS_FALSE;
-
     str = JS_ValueToString(cx, argc ? JS_ARGV(cx, vp)[0] : JSVAL_VOID);
     if (!str)
         return JS_FALSE;
@@ -3217,9 +3173,6 @@ TraceMallocDumpAllocations(JSContext *cx, uintN argc, jsval *vp)
 {
     JSString *str;
     const char *pathname;
-
-    if (!CheckUniversalXPConnectForTraceMalloc(cx))
-        return JS_FALSE;
 
     str = JS_ValueToString(cx, argc ? JS_ARGV(cx, vp)[0] : JSVAL_VOID);
     if (!str)

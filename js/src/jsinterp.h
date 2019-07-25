@@ -63,7 +63,8 @@ enum JSInterpMode
 {
     JSINTERP_NORMAL            =     0, 
     JSINTERP_RECORD            =     1, 
-    JSINTERP_SAFEPOINT         =     2  
+    JSINTERP_SAFEPOINT         =     2, 
+    JSINTERP_PROFILE           =     3  
 };
 
 

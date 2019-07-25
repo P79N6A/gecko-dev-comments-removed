@@ -810,6 +810,7 @@ typedef enum JSSrcNoteType {
     SRC_WHILE       = 4,        
 
 
+    SRC_TRACE       = 4,        
     SRC_CONTINUE    = 5,        
 
 

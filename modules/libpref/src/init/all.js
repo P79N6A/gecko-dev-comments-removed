@@ -592,6 +592,8 @@ pref("javascript.options.tracejit.content",  true);
 pref("javascript.options.tracejit.chrome",   true);
 pref("javascript.options.methodjit.content", true);
 pref("javascript.options.methodjit.chrome",  false);
+pref("javascript.options.jitprofiling.content", true);
+pref("javascript.options.jitprofiling.chrome",  false);
 
 
 
@@ -786,7 +788,6 @@ pref("network.IDN.whitelist.es", true);
 pref("network.IDN.whitelist.fi", true);
 pref("network.IDN.whitelist.gr", true);
 pref("network.IDN.whitelist.hu", true);
-pref("network.IDN.whitelist.il", true);
 pref("network.IDN.whitelist.io", true);
 pref("network.IDN.whitelist.ir", true);
 pref("network.IDN.whitelist.is", true);
@@ -816,12 +817,7 @@ pref("network.IDN.whitelist.xn--fiqs8s", true);
 
 pref("network.IDN.whitelist.xn--j6w193g", true);
 
-pref("network.IDN.whitelist.xn--mgba3a4f16a", true);
-pref("network.IDN.whitelist.xn--mgba3a4fra", true);
-
 pref("network.IDN.whitelist.xn--mgbayh7gpa", true);
-
-pref("network.IDN.whitelist.xn--wgbl6a", true);
 
 pref("network.IDN.whitelist.xn--p1ai", true);
 
@@ -1324,12 +1320,6 @@ pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 0);
-#endif
-
-#ifdef XP_WIN
-
-
-pref("dom.ipc.plugins.java.enabled", false);
 #endif
 
 #ifndef ANDROID
@@ -3247,7 +3237,7 @@ pref("gfx.direct2d.disabled", false);
 pref("gfx.direct2d.force-enabled", false);
 
 pref("layers.prefer-opengl", false);
-pref("layers.prefer-d3d9", false);
+pref("layers.use-d3d10", false);
 #endif
 #endif
 
