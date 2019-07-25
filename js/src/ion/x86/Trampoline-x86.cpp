@@ -468,30 +468,6 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32 frameClass)
         masm.addl(Imm32(BailoutDataSize + sizeof(void *) + frameSize), esp);
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    Label frameFixupDone;
-    masm.movl(Operand(esp, IonCommonFrameLayout::offsetOfDescriptor()), ecx);
-    masm.movl(ecx, edx);
-    masm.andl(Imm32(FRAMETYPE_BITS), edx);
-    masm.cmpl(edx, Imm32(IonFrame_JS));
-    masm.j(Assembler::NotEqual, &frameFixupDone);
-    {
-        JS_STATIC_ASSERT(sizeof(IonJSFrameLayout) >= sizeof(IonExitFrameLayout));
-        ptrdiff_t difference = sizeof(IonJSFrameLayout) - sizeof(IonExitFrameLayout);
-        masm.addl(Imm32(difference << FRAMETYPE_BITS), ecx);
-        masm.movl(ecx, Operand(esp, IonCommonFrameLayout::offsetOfDescriptor()));
-    }
-    masm.bind(&frameFixupDone);
-
     GenerateBailoutTail(masm);
 }
 
