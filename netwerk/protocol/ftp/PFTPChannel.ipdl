@@ -18,11 +18,12 @@
  *
  * The Initial Developer of the Original Code is
  *  The Mozilla Foundation
- * Portions created by the Initial Developer are Copyright (C) 2009
+ * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *   Jason Duell <jduell.mcbugs@gmail.com>
+ *   Alon Zakai <azakai@mozilla.com>
+ *   Josh Matthews <josh@joshmatthews.net>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -38,39 +39,38 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-include protocol PContent;
-include protocol PHttpChannel;
-include protocol PCookieService;
-include protocol PBrowser;
-include protocol PWyciwygChannel;
-include protocol PFTPChannel;
+include protocol PNecko;
+
+include "mozilla/net/NeckoMessageUtils.h";
+
+using IPC::URI;
+using IPC::InputStream;
+using PRTime;
 
 namespace mozilla {
 namespace net {
 
-
-//-------------------------------------------------------------------
-sync protocol PNecko
+async protocol PFTPChannel
 {
-  manager PContent;
-  manages PHttpChannel;
-  manages PCookieService;
-  manages PWyciwygChannel;
-  manages PFTPChannel;
+  manager PNecko;
 
 parent:
   __delete__();
 
-  PCookieService();
-  PWyciwygChannel();
-  PFTPChannel();
+  AsyncOpen(URI uri, PRUint64 startPos, nsCString entityID,
+            InputStream uploadStream);
+  Cancel(nsresult status);
+  Suspend();
+  Resume();
 
-  HTMLDNSPrefetch(nsString hostname, PRUint16 flags);
-
-both:
-  PHttpChannel(nullable PBrowser browser);
+child:
+  OnStartRequest(PRInt32 aContentLength, nsCString aContentType,
+                 PRTime aLastModified, nsCString aEntityID, URI aURI);
+  OnDataAvailable(nsCString data, PRUint32 offset, PRUint32 count);
+  OnStopRequest(nsresult statusCode);
+  CancelEarly(nsresult statusCode);
 };
-
 
 } // namespace net
 } // namespace mozilla
+
