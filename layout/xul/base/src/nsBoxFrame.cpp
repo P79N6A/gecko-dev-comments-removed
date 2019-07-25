@@ -1307,54 +1307,27 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                              const nsRect&           aDirtyRect,
                              const nsDisplayListSet& aLists)
 {
-  
-  PRBool forceLayer =
-    GetContent()->HasAttr(kNameSpaceID_None, nsGkAtoms::layer) &&
-    GetContent()->IsXUL();
-
-  nsDisplayListCollection tempLists;
-  const nsDisplayListSet& destination = forceLayer ? tempLists : aLists;
-
-  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, destination);
+  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef DEBUG_LAYOUT
+  
   if (mState & NS_STATE_CURRENTLY_IN_DEBUG) {
-    rv = destination.BorderBackground()->AppendNewToTop(new (aBuilder)
+    rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
         nsDisplayGeneric(aBuilder, this, PaintXULDebugBackground,
                          "XULDebugBackground"));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = destination.Outlines()->AppendNewToTop(new (aBuilder)
+    rv = aLists.Outlines()->AppendNewToTop(new (aBuilder)
         nsDisplayXULDebug(aBuilder, this));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 #endif
 
-  rv = BuildDisplayListForChildren(aBuilder, aDirtyRect, destination);
+  rv = BuildDisplayListForChildren(aBuilder, aDirtyRect, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = DisplaySelectionOverlay(aBuilder, destination);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (forceLayer) {
-    
-    
-    
-    
-    nsDisplayList masterList;
-    masterList.AppendToTop(tempLists.BorderBackground());
-    masterList.AppendToTop(tempLists.BlockBorderBackgrounds());
-    masterList.AppendToTop(tempLists.Floats());
-    masterList.AppendToTop(tempLists.Content());
-    masterList.AppendToTop(tempLists.PositionedDescendants());
-    masterList.AppendToTop(tempLists.Outlines());
-    
-    rv = aLists.Content()->AppendNewToTop(new (aBuilder)
-        nsDisplayOwnLayer(aBuilder, this, &masterList));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  return NS_OK;
+  return DisplaySelectionOverlay(aBuilder, aLists);
 }
 
 NS_IMETHODIMP

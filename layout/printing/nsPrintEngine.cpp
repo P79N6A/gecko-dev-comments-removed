@@ -155,7 +155,6 @@ static const char kPrintingPromptService[] = "@mozilla.org/embedcomp/printingpro
 #include "nsIDOMHTMLImageElement.h"
 #include "nsIContentViewerContainer.h"
 #include "nsIContentViewer.h"
-#include "nsIDocumentViewer.h"
 #include "nsIDocumentViewerPrint.h"
 
 #include "nsPIDOMWindow.h"
@@ -266,6 +265,7 @@ nsPrintEngine::nsPrintEngine() :
   mPrt(nsnull),
   mPagePrintTimer(nsnull),
   mPageSeqFrame(nsnull),
+  mParentWidget(nsnull),
   mPrtPreview(nsnull),
   mOldPrtPreview(nsnull),
   mDebugFile(nsnull)
@@ -320,6 +320,7 @@ nsresult nsPrintEngine::Initialize(nsIDocumentViewerPrint* aDocViewerPrint,
                                    nsISupports*            aContainer,
                                    nsIDocument*            aDocument,
                                    float                   aScreenDPI,
+                                   nsIWidget*              aParentWidget,
                                    FILE*                   aDebugFile)
 {
   NS_ENSURE_ARG_POINTER(aDocViewerPrint);
@@ -330,6 +331,7 @@ nsresult nsPrintEngine::Initialize(nsIDocumentViewerPrint* aDocViewerPrint,
   mContainer      = aContainer;      
   mDocument       = aDocument;
   mScreenDPI      = aScreenDPI;
+  mParentWidget   = aParentWidget;    
 
   mDebugFile      = aDebugFile;      
 
@@ -1882,14 +1884,12 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
 
   nsSize adjSize;
   PRBool documentIsTopLevel;
+  nsIFrame* frame = nsnull;
   if (!aPO->IsPrintable())
     return NS_OK;
 
-  PRBool canCreateScrollbars = PR_TRUE;
-  nsIView* parentView = nsnull;
-
   if (aPO->mParent && aPO->mParent->IsPrintable()) {
-    nsIFrame* frame = aPO->mContent->GetPrimaryFrame();
+    frame = aPO->mContent->GetPrimaryFrame();
     
     
     if (!frame) {
@@ -1903,16 +1903,6 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
     adjSize = frame->GetContentRect().Size();
     documentIsTopLevel = PR_FALSE;
     
-
-    
-    if (frame && frame->GetType() == nsGkAtoms::subDocumentFrame) {
-      nsIView* view = frame->GetView();
-      NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
-      view = view->GetFirstChild();
-      NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
-      parentView = view;
-      canCreateScrollbars = PR_FALSE;
-    }
   } else {
     nscoord pageWidth, pageHeight;
     mPrt->mPrintDC->GetDeviceSurfaceDimensions(pageWidth, pageHeight);
@@ -1931,17 +1921,31 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
     adjSize = nsSize(pageWidth, pageHeight);
 #endif 
     documentIsTopLevel = PR_TRUE;
+  }
 
-    nsCOMPtr<nsIDocumentViewer> dv = do_QueryInterface(mDocViewerPrint);
-    if (dv) {
-      parentView = dv->FindContainerView();
-    }
+  
+  
+  
+  
+  
+  
+  
+  PRBool canCreateScrollbars = PR_TRUE;
+  nsIView* parentView = nsnull;
+  
+  if (frame && frame->GetType() == nsGkAtoms::subDocumentFrame) {
+    nsIView* view = frame->GetView();
+    NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
+    view = view->GetFirstChild();
+    NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
+    parentView = view;
+    canCreateScrollbars = PR_FALSE;
   }
 
   NS_ASSERTION(!aPO->mPresContext, "Recreating prescontext");
 
   
-  aPO->mPresContext = new nsPresContext(aPO->mDocument,
+  aPO->mPresContext = new nsRootPresContext(aPO->mDocument,
     mIsCreatingPrintPreview ? nsPresContext::eContext_PrintPreview:
                               nsPresContext::eContext_Print);
   NS_ENSURE_TRUE(aPO->mPresContext, NS_ERROR_OUT_OF_MEMORY);
@@ -1987,7 +1991,21 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
   nsIView* rootView = aPO->mViewManager->CreateView(tbounds, parentView);
   NS_ENSURE_TRUE(rootView, NS_ERROR_OUT_OF_MEMORY);
 
+  
+  
+  
   if (mIsCreatingPrintPreview && documentIsTopLevel) {
+    nsIWidget* widget = nsnull;
+    if (!frame)
+      widget = mParentWidget;
+    rv = widget ? rootView->CreateWidgetForParent(widget, nsnull,
+                                                  PR_TRUE, PR_TRUE,
+                                                  eContentTypeContent)
+                : rootView->CreateWidget(nsnull,
+                                         PR_TRUE, PR_TRUE,
+                                         eContentTypeContent);
+    NS_ENSURE_SUCCESS(rv, rv);
+    aPO->mWindow = rootView->GetWidget();
     aPO->mPresContext->SetPaginatedScrolling(canCreateScrollbars);
   }
 
@@ -2010,7 +2028,8 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
   aPO->mPresContext->SetPrintPreviewScale(mScreenDPI / printDPI);
 
   if (mIsCreatingPrintPreview && documentIsTopLevel) {
-    mDocViewerPrint->SetPrintPreviewPresentation(aPO->mViewManager,
+    mDocViewerPrint->SetPrintPreviewPresentation(aPO->mWindow,
+                                                 aPO->mViewManager,
                                                  aPO->mPresContext,
                                                  aPO->mPresShell);
   }

@@ -5221,7 +5221,9 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
   case WM_GESTURENOTIFY:
     {
       if (mWindowType != eWindowType_invisible &&
-          mWindowType != eWindowType_plugin) {
+          mWindowType != eWindowType_plugin &&
+          mWindowType != eWindowType_toplevel) {
+        
         
         
         

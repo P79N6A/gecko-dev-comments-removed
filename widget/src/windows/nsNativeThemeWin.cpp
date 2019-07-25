@@ -2048,17 +2048,6 @@ nsNativeThemeWin::ThemeNeedsComboboxDropmarker()
 nsITheme::Transparency
 nsNativeThemeWin::GetWidgetTransparency(nsIFrame* aFrame, PRUint8 aWidgetType)
 {
-  switch (aWidgetType) {
-  case NS_THEME_SCROLLBAR_SMALL:
-  case NS_THEME_SCROLLBAR:
-  case NS_THEME_STATUSBAR:
-    
-    
-    
-    
-    return eOpaque;
-  }
-
   HANDLE theme = GetTheme(aWidgetType);
   
   if (!theme)
