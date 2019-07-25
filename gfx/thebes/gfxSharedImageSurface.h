@@ -39,14 +39,6 @@
 #ifndef GFX_SHARED_IMAGESURFACE_H
 #define GFX_SHARED_IMAGESURFACE_H
 
-#if ANDROID
- 
- 
- #define MOZ_IMG_MEM_ALIGN 64
-#else
- #define MOZ_IMG_MEM_ALIGN 1
-#endif
-
 #include "mozilla/ipc/Shmem.h"
 #include "mozilla/ipc/SharedMemory.h"
 
@@ -122,14 +114,6 @@ private:
         Shmem shmem;
         long stride = ComputeStride(aSize, aFormat);
         size_t size = GetAlignedSize(aSize, stride);
-
-        int w = aSize.width;
-        int h = aSize.height;
-        if ((aSize.width%MOZ_IMG_MEM_ALIGN) != 0)
-          w = aSize.width + MOZ_IMG_MEM_ALIGN - (aSize.width%MOZ_IMG_MEM_ALIGN);
-        stride = ComputeStride(gfxIntSize(w, h), aFormat);
-        size = GetAlignedSize(aSize, stride);
-
         if (!Unsafe) {
             if (!aAllocator->AllocShmem(size, aShmType, &shmem))
                 return nsnull;
