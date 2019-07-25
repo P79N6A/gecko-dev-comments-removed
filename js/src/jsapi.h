@@ -1411,19 +1411,6 @@ typedef JSBool
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef JSBool
 (* JSNewResolveOp)(JSContext *cx, JSHandleObject obj, JSHandleId id, unsigned flags,
                    JSObject **objp);
@@ -3661,12 +3648,9 @@ struct JSClass {
 #define JSCLASS_NEW_ENUMERATE           (1<<1)  /* has JSNewEnumerateOp hook */
 #define JSCLASS_NEW_RESOLVE             (1<<2)  /* has JSNewResolveOp hook */
 #define JSCLASS_PRIVATE_IS_NSISUPPORTS  (1<<3)  /* private is (nsISupports *) */
-#define JSCLASS_NEW_RESOLVE_GETS_START  (1<<4)  /* JSNewResolveOp gets starting
-                                                   object in prototype chain
-                                                   passed in via *objp in/out
-                                                   parameter */
-#define JSCLASS_IMPLEMENTS_BARRIERS     (1<<5)  
 
+#define JSCLASS_IMPLEMENTS_BARRIERS     (1<<5)  /* Correctly implements GC read
+                                                   and write barriers */
 #define JSCLASS_DOCUMENT_OBSERVER       (1<<6)  /* DOM document observer */
 #define JSCLASS_USERBIT1                (1<<7)  /* Reserved for embeddings. */
 
