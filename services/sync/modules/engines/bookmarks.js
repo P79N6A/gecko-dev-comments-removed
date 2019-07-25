@@ -302,9 +302,7 @@ BookmarksSharingManager.prototype = {
 
 
     let self = yield;
-    
-
-
+    let mounts = this._engine._store.findIncomingShares();
     for (let i = 0; i < mounts.length; i++) {
       try {
 	this._log.trace("Update incoming share from " + mounts[i].serverPath);
