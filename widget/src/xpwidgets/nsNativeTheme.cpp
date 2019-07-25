@@ -228,8 +228,28 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
                               PRUint8 aWidgetType)
 {
   
-  return aFrame &&
-         (aWidgetType == NS_THEME_BUTTON ||
+  if (!aFrame)
+    return PR_FALSE;
+
+  
+  
+  
+  
+  
+  if (aWidgetType == NS_THEME_RESIZER) {
+    nsIFrame* parentFrame = aFrame->GetParent();
+    if (parentFrame && parentFrame->GetType() == nsWidgetAtoms::scrollFrame) {
+      
+      
+      parentFrame = parentFrame->GetParent();
+      if (parentFrame) {
+        return IsWidgetStyled(aPresContext, parentFrame,
+                              parentFrame->GetStyleDisplay()->mAppearance);
+      }
+    }
+  }
+
+  return (aWidgetType == NS_THEME_BUTTON ||
           aWidgetType == NS_THEME_TEXTFIELD ||
           aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
           aWidgetType == NS_THEME_LISTBOX ||
