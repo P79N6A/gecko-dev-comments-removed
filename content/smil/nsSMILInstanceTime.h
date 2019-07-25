@@ -109,8 +109,7 @@ public:
     mTime = aNewTime;
   }
 
-  PRBool IsDependent(const nsSMILInstanceTime& aOther,
-                     PRUint32 aRecursionDepth = 0) const;
+  PRBool IsDependent(const nsSMILInstanceTime& aOther) const;
 
   PRBool SameTimeAndBase(const nsSMILInstanceTime& aOther) const
   {
@@ -126,7 +125,6 @@ public:
 
 protected:
   void SetBaseInterval(nsSMILInterval* aBaseInterval);
-  void BreakPotentialCycle(const nsSMILInstanceTime* aNewTail) const;
   const nsSMILInstanceTime* GetBaseTime() const;
 
   nsSMILTimeValue mTime;
@@ -155,8 +153,11 @@ protected:
   PRUint32      mSerial; 
                          
                          
-  PRPackedBool  mVisited;
-  PRPackedBool  mChainEnd;
+  PRPackedBool  mVisited; 
+  PRPackedBool  mChainEnd; 
+                           
+                           
+                           
 
   nsSMILTimeValueSpec* mCreator; 
                                  
