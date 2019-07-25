@@ -1009,7 +1009,7 @@ struct JSThreadData {
 
 
 
-    volatile int32      interruptFlags;
+    volatile jsword     interruptFlags;
 
     JSGCFreeLists       gcFreeLists;
 
