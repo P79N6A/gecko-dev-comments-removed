@@ -1050,3 +1050,5 @@ pref("devtools.inspector.enabled", false);
 
 pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
 
+
+pref("browser.panorama.animate_zoom", true);
