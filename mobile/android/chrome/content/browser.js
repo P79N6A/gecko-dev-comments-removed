@@ -1628,23 +1628,6 @@ var SelectionHandler = {
   
   moveSelection: function sh_moveSelection(aIsStartHandle, aX, aY) {
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
     let leftTop = "left:" + (aX + this._view.scrollX - this._viewOffset.left) + "px;" +
                   "top:" + (aY + this._view.scrollY - this._viewOffset.top) + "px;";
     if (aIsStartHandle)
@@ -1716,11 +1699,7 @@ var SelectionHandler = {
   },
 
   _sendMouseEvents: function sh_sendMouseEvents(cwu, useShift, x, y) {
-    let contentWindow = BrowserApp.selectedBrowser.contentWindow;
-    let element = ElementTouchHelper.elementFromPoint(contentWindow, x, y);
-    if (!element)
-      element = ElementTouchHelper.anyElementFromPoint(contentWindow, x, y);
-
+    let element = cwu.elementFromPoint(x, y, false, false);
     
     if (element instanceof Ci.nsIDOMHTMLHtmlElement)
       return;
@@ -1752,11 +1731,7 @@ var SelectionHandler = {
 
     
     if (selectedText.length) {
-      let contentWindow = BrowserApp.selectedBrowser.contentWindow;
-      let element = ElementTouchHelper.elementFromPoint(contentWindow, aX, aY);
-      if (!element)
-        element = ElementTouchHelper.anyElementFromPoint(contentWindow, aX, aY);
-
+      let element = ElementTouchHelper.anyElementFromPoint(BrowserApp.selectedBrowser.contentWindow, aX, aY);
       
       if (element.ownerDocument.defaultView == this._view) {
         let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
