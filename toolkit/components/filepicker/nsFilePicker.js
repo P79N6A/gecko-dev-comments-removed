@@ -156,6 +156,10 @@ nsFilePicker.prototype = {
   get filterIndex() { return this.mFilterIndex; },
 
   
+  set addToRecentDocs(a) {},
+  get addToRecentDocs()  { return false; },
+
+  
   mFilesEnumerator: undefined,
   mParentWindow: null,
 
