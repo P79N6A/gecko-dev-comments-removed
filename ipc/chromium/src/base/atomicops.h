@@ -45,7 +45,11 @@ typedef int64 Atomic64;
 
 
 
+#if defined(OS_OPENBSD) && !defined(ARCH_CPU_64_BITS)
+typedef Atomic32 AtomicWord;
+#else
 typedef intptr_t AtomicWord;
+#endif
 
 
 
