@@ -74,7 +74,6 @@
 #include "nsNetUtil.h"
 #include "nsDOMFile.h"
 #include "jsxdrapi.h"
-#include "jscompartment.h"
 #include "jsprf.h"
 
 #include "nsIScriptError.h"
@@ -752,8 +751,8 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
     JSCLContextHelper cx(this);
 
     
-    js::PreserveCompartment pc(cx);
-    
+    JS::AutoPreserveCompartment pc(cx);
+
     rv = mSystemPrincipal->GetJSPrincipals(cx, &jsPrincipals);
     NS_ENSURE_SUCCESS(rv, rv);
 
