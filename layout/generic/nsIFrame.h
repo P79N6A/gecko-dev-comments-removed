@@ -1563,7 +1563,6 @@ public:
 
 
 
-
   struct IntrinsicSize {
     nsStyleCoord width, height;
 
