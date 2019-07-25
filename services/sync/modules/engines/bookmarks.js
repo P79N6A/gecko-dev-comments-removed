@@ -821,22 +821,6 @@ BookmarksStore.prototype = {
                                                       query);
   },
 
-  __haveGUIDColumn: null,
-  get _haveGUIDColumn() {
-    if (this.__haveGUIDColumn !== null) {
-      return this.__haveGUIDColumn;
-    }
-    let stmt;
-    try {
-      stmt = this._hsvc.DBConnection.createStatement(
-        "SELECT guid FROM moz_places");
-      stmt.finalize();
-      return this.__haveGUIDColumn = true;
-    } catch(ex) {
-      return this.__haveGUIDColumn = false;
-    }
-  },
-
   get _frecencyStm() {
     return this._getStmt(
         "SELECT frecency " +
@@ -883,12 +867,13 @@ BookmarksStore.prototype = {
 
     
     let stmt;
-    if (this._haveGUIDColumn) {
+    try {
       stmt = this._getStmt(
         "UPDATE moz_bookmarks " +
         "SET guid = :guid " +
         "WHERE id = :item_id");
-    } else {
+    }
+    catch (e) {
       stmt = false;
     }
     return this.__setGUIDStm = stmt;
@@ -951,12 +936,13 @@ BookmarksStore.prototype = {
     
     
     let stmt;
-    if (this._haveGUIDColumn) {
+    try {
       stmt = this._getStmt(
         "SELECT guid " +
         "FROM moz_bookmarks " +
         "WHERE id = :item_id");
-    } else {
+    }
+    catch (e) {
       stmt = this._getStmt(
         "SELECT a.content AS guid " +
         "FROM moz_items_annos a " +
@@ -997,12 +983,13 @@ BookmarksStore.prototype = {
     
     
     let stmt;
-    if (this._haveGUIDColumn) {
+    try {
       stmt = this._getStmt(
         "SELECT id AS item_id " +
         "FROM moz_bookmarks " +
         "WHERE guid = :guid");
-    } else {
+    }
+    catch (e) {
       stmt = this._getStmt(
         "SELECT a.item_id AS item_id " +
         "FROM moz_items_annos a " +

@@ -114,27 +114,11 @@ HistoryStore.prototype = {
       "WHERE name IN ('moz_places_temp', 'moz_historyvisits_temp')");
   },
 
-  __haveTempTables: null,
   get _haveTempTables() {
-    if (this.__haveTempTables === null)
+    if (this.__haveTempTables == null)
       this.__haveTempTables = !!Utils.queryAsync(this._haveTempTablesStm,
                                                  ["name"]).length;
     return this.__haveTempTables;
-  },
-
-  __haveGUIDColumn: null,
-  get _haveGUIDColumn() {
-    if (this.__haveGUIDColumn !== null) {
-      return this.__haveGUIDColumn;
-    }
-    let stmt;
-    try {
-      stmt = this._db.createStatement("SELECT guid FROM moz_places");
-      stmt.finalize();
-      return this.__haveGUIDColumn = true;
-    } catch(ex) {
-      return this.__haveGUIDColumn = false;
-    }
   },
 
   get _addGUIDAnnotationNameStm() {
@@ -178,12 +162,13 @@ HistoryStore.prototype = {
 
     
     let stmt;
-    if (this._haveGUIDColumn) {
+    try {
       stmt = this._getStmt(
         "UPDATE moz_places " +
         "SET guid = :guid " +
         "WHERE url = :page_url");
-    } else {
+    }
+    catch (e) {
       stmt = false;
     }
 
@@ -250,12 +235,13 @@ HistoryStore.prototype = {
     
     
     let stmt;
-    if (this._haveGUIDColumn) {
+    try {
       stmt = this._getStmt(
         "SELECT guid " +
         "FROM moz_places " +
         "WHERE url = :page_url");
-    } else {
+    }
+    catch (e) {
       stmt = this._getStmt(
         "SELECT a.content AS guid " +
         "FROM moz_annos a " +
@@ -318,12 +304,13 @@ HistoryStore.prototype = {
     
     
     let stmt;
-    if (this._haveGUIDColumn) {
+    try {
       stmt = this._getStmt(
         "SELECT url, title, frecency " +
         "FROM moz_places " +
         "WHERE guid = :guid");
-    } else {
+    }
+    catch (e) {
       let where =
         "WHERE id = (" +
           "SELECT place_id " +
