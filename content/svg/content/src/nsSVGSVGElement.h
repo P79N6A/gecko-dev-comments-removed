@@ -210,6 +210,10 @@ public:
     return mHasChildrenOnlyTransform;
   }
 
+  enum ChildrenOnlyTransformChangedFlags {
+    eDuringReflow = 1
+  };
+
   
 
 
@@ -220,7 +224,7 @@ public:
 
 
 
-  void ChildrenOnlyTransformChanged();
+  void ChildrenOnlyTransformChanged(PRUint32 aFlags = 0);
 
   
   

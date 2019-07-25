@@ -934,7 +934,7 @@ nsSVGSVGElement::GetViewBoxTransform() const
 }
 
 void
-nsSVGSVGElement::ChildrenOnlyTransformChanged()
+nsSVGSVGElement::ChildrenOnlyTransformChanged(PRUint32 aFlags)
 {
   
   NS_ABORT_IF_FALSE(!(GetPrimaryFrame()->GetStateBits() &
@@ -957,7 +957,15 @@ nsSVGSVGElement::ChildrenOnlyTransformChanged()
                    nsChangeHint_ChildrenOnlyTransform);
   }
 
-  nsLayoutUtils::PostRestyleEvent(this, nsRestyleHint(0), changeHint);
+  
+  
+  
+  
+  
+  if ((changeHint & nsChangeHint_ReconstructFrame) ||
+      !(aFlags & eDuringReflow)) {
+    nsLayoutUtils::PostRestyleEvent(this, nsRestyleHint(0), changeHint);
+  }
 
   mHasChildrenOnlyTransform = hasChildrenOnlyTransform;
 }
