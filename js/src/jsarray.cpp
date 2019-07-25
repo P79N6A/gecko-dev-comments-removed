@@ -2565,8 +2565,26 @@ js::array_pop(JSContext *cx, uintN argc, Value *vp)
     return array_pop_slowly(cx, obj, vp);
 }
 
-static JSBool
-array_shift(JSContext *cx, uintN argc, Value *vp)
+#ifdef JS_METHODJIT
+void FASTCALL
+mjit::stubs::ArrayShift(VMFrame &f)
+{
+    JSObject *obj = &f.regs.sp[-1].toObject();
+    JS_ASSERT(obj->isDenseArray());
+    JS_ASSERT(!js_PrototypeHasIndexedProperties(f.cx, obj));
+
+    
+
+
+
+
+    uint32 initlen = obj->getDenseArrayInitializedLength();
+    obj->moveDenseArrayElements(0, 1, initlen);
+}
+#endif 
+
+JSBool
+js::array_shift(JSContext *cx, uintN argc, Value *vp)
 {
     JSObject *obj = ToObject(cx, &vp[1]);
     if (!obj)
