@@ -2900,8 +2900,8 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
   
   
   if (!hidden) {
-    NotifyOnVisit(aURI, *aVisitID, aTime, aSessionID, referringVisitID,
-                  aTransitionType);
+     FireOnVisit(aURI, *aVisitID, aTime, aSessionID, referringVisitID,
+                 aTransitionType);
   }
 
   
