@@ -693,23 +693,47 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject     * aDataObject,
 PRBool
 nsClipboard :: FindPlatformHTML ( IDataObject* inDataObject, UINT inIndex, void** outData, PRUint32* outDataLen )
 {
-  PRBool dataFound = PR_FALSE;
+  
+  
+  
+  
+  
+  
+  
 
-  if ( outData && *outData ) {
-    
-    
-    
-    
-    float vers = 0.0;
-    PRUint32 startOfData = 0;
-    sscanf((char*)*outData, "Version:%f\nStartHTML:%u\nEndHTML:%u", &vers, &startOfData, outDataLen);
-    NS_ASSERTION(startOfData && *outDataLen, "Couldn't parse CF_HTML description header");
- 
-    if ( *outDataLen )
-      dataFound = PR_TRUE;
+  if (!outData || !*outData) {
+    return PR_FALSE;
   }
 
-  return dataFound;
+  float vers = 0.0;
+  PRInt32 startOfData = 0;
+  PRInt32 endOfData = 0;
+  int numFound = sscanf((char*)*outData, "Version:%f\nStartHTML:%d\nEndHTML:%d", 
+                        &vers, &startOfData, &endOfData);
+
+  if (numFound != 3 || startOfData < -1 || endOfData < -1) {
+    return PR_FALSE;
+  }
+
+  
+  if (startOfData == -1) {
+    startOfData = 0;
+  }
+  if (endOfData == -1) {
+    endOfData = *outDataLen;
+  }
+
+  
+  if (!endOfData || startOfData >= endOfData || 
+      endOfData > *outDataLen) {
+    return PR_FALSE;
+  }
+  
+  
+  
+  
+  *outDataLen = endOfData;
+  return PR_TRUE;
 }
 
 
