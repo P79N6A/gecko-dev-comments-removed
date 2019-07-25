@@ -4862,10 +4862,17 @@ function toggleSidebar(commandID, forceOpen) {
 
   if (sidebarBroadcaster.getAttribute("checked") == "true") {
     if (!forceOpen) {
+      
+      
+      
+      
+      
+      sidebar.setAttribute("src", "about:blank");
+      sidebar.docShell.createAboutBlankContentViewer(null);
+
       sidebarBroadcaster.removeAttribute("checked");
       sidebarBox.setAttribute("sidebarcommand", "");
       sidebarTitle.value = "";
-      sidebar.setAttribute("src", "about:blank");
       sidebarBox.hidden = true;
       sidebarSplitter.hidden = true;
       content.focus();
