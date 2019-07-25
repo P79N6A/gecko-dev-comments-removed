@@ -40,27 +40,16 @@ function run_test()
               PlacesUtils.history.DATABASE_STATUS_CREATE);
 
   
-  let bg = Cc["@mozilla.org/browser/browserglue;1"].
-           getService(Ci.nsIBrowserGlue);
-
-  Services.obs.addObserver(function(aSubject, aTopic, aData) {
-    Services.obs.removeObserver(arguments.callee,
-                                PlacesUtils.TOPIC_INIT_COMPLETE);
-    do_execute_soon(onPlacesInitComplete);
-  }, PlacesUtils.TOPIC_INIT_COMPLETE, false);
-}
-
-function onPlacesInitComplete()
-{
-  
-  bg.QueryInterface(Ci.nsIObserver).observe(null,
-                                            TOPIC_BROWSERGLUE_TEST,
-                                            TOPICDATA_DISTRIBUTION_CUSTOMIZATION);
+  Cc["@mozilla.org/browser/browserglue;1"].
+  getService(Ci.nsIObserver).observe(null,
+                                     TOPIC_BROWSERGLUE_TEST,
+                                     TOPICDATA_DISTRIBUTION_CUSTOMIZATION);
 
   
   Services.obs.addObserver(function(aSubject, aTopic, aData) {
     Services.obs.removeObserver(arguments.callee,
-                                TOPIC_CUSTOMIZATION_COMPLETE);
+                                TOPIC_CUSTOMIZATION_COMPLETE,
+                                false);
     do_execute_soon(onCustomizationComplete);
   }, TOPIC_CUSTOMIZATION_COMPLETE, false);
 }
