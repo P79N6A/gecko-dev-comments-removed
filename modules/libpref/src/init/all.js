@@ -3524,6 +3524,7 @@ pref("profiler.entries", 100000);
 
 pref("dom.network.enabled", true);
 pref("dom.network.metered", false);
+
 #ifdef XP_WIN
 
 
@@ -3542,3 +3543,8 @@ pref("memory.low_physical_memory_threshold_mb", 0);
 
 pref("memory.low_memory_notification_interval_ms", 10000);
 #endif
+
+
+
+
+pref("memory.ghost_window_timeout_seconds", 60);
