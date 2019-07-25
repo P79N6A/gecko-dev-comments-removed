@@ -1354,7 +1354,7 @@ nsContentSink::WillResumeImpl()
 nsresult
 nsContentSink::DidProcessATokenImpl()
 {
-  if (!mCanInterruptParser || !mParser || !mParser->CanInterrupt()) {
+  if (!mCanInterruptParser || !mParser) {
     return NS_OK;
   }
 
@@ -1483,7 +1483,7 @@ nsContentSink::DropParserAndPerfHint(void)
   
   
   
-  nsCOMPtr<nsIParser> kungFuDeathGrip(mParser.forget());
+  nsRefPtr<nsParserBase> kungFuDeathGrip(mParser.forget());
 
   if (mDynamicLowerValue) {
     

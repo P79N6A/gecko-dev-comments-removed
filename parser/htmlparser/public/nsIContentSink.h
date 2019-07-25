@@ -54,7 +54,7 @@
 #include "mozFlushType.h"
 #include "nsIDTD.h"
 
-class nsIParser;
+class nsParserBase;
 
 #define NS_ICONTENT_SINK_IID \
 { 0xcf9a7cbb, 0xfcbc, 0x4e13, \
@@ -122,7 +122,7 @@ public:
 
 
 
-  NS_IMETHOD SetParser(nsIParser* aParser)=0;
+  NS_IMETHOD SetParser(nsParserBase* aParser)=0;
 
   
 

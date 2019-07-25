@@ -312,14 +312,6 @@ class nsParser : public nsIParser,
     
 
 
-
-
-
-    virtual bool CanInterrupt();
-
-    
-
-
     virtual bool IsInsertionPointDefined();
 
     

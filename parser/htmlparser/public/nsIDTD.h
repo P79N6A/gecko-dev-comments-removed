@@ -59,9 +59,8 @@
 #include "nsITokenizer.h"
 
 #define NS_IDTD_IID \
-{ 0xcc374204, 0xcea2, 0x41a2, \
-  { 0xb2, 0x7f, 0x83, 0x75, 0xe2, 0xcf, 0x97, 0xcf } }
-
+{ 0x3de05873, 0xefa7, 0x410d, \
+  { 0xa4, 0x61, 0x80, 0x33, 0xaf, 0xd9, 0xe3, 0x26 } }
 
 enum eAutoDetectResult {
     eUnknownDetect,
@@ -115,10 +114,7 @@ public:
 
 
 
-
-
     NS_IMETHOD BuildModel(nsITokenizer* aTokenizer,
-                          bool aCanInterrupt,
                           bool aCountLines,
                           const nsCString* aCharsetPtr) = 0;
 
@@ -169,7 +165,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIDTD, NS_IDTD_IID)
 #define NS_DECL_NSIDTD \
     NS_IMETHOD WillBuildModel(  const CParserContext& aParserContext, nsITokenizer* aTokenizer, nsIContentSink* aSink);\
     NS_IMETHOD DidBuildModel(nsresult anErrorCode);\
-    NS_IMETHOD BuildModel(nsITokenizer* aTokenizer, bool aCanInterrupt, bool aCountLines, const nsCString* aCharsetPtr);\
+    NS_IMETHOD BuildModel(nsITokenizer* aTokenizer, bool aCountLines, const nsCString* aCharsetPtr);\
     NS_IMETHOD_(bool) CanContain(PRInt32 aParent,PRInt32 aChild) const;\
     NS_IMETHOD_(bool) IsContainer(PRInt32 aTag) const;\
     NS_IMETHOD_(void)  Terminate();\

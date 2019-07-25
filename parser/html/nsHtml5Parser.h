@@ -254,25 +254,6 @@ class nsHtml5Parser : public nsIParser,
     
 
     
-
-
-
-
-
-
-
-
-
-
-
-    nsresult ParseHtml5Fragment(const nsAString& aSourceBuffer,
-                                nsIContent* aTargetNode,
-                                nsIAtom* aContextLocalName,
-                                PRInt32 aContextNamespace,
-                                bool aQuirks,
-                                bool aPreventScriptExecution);
-
-    
     
 
   public:

@@ -225,7 +225,6 @@ CNavDTD::WillBuildModel(const CParserContext& aParserContext,
 
 NS_IMETHODIMP
 CNavDTD::BuildModel(nsITokenizer* aTokenizer,
-                    bool aCanInterrupt,
                     bool aCountLines,
                     const nsCString*)
 {
@@ -312,9 +311,7 @@ CNavDTD::BuildModel(nsITokenizer* aTokenizer,
       
       
       
-      
-      
-      if (aCanInterrupt && NS_SUCCEEDED(result)) {
+      if (NS_SUCCEEDED(result)) {
         result = NS_ERROR_HTMLPARSER_INTERRUPTED;
         break;
       }
@@ -341,9 +338,7 @@ CNavDTD::BuildNeglectedTarget(eHTMLTags aTarget,
   
   
   
-  
-  
-  return BuildModel(mTokenizer, false, mCountLines, 0);
+  return BuildModel(mTokenizer, mCountLines, 0);
 }
 
 NS_IMETHODIMP

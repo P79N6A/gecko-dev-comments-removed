@@ -207,7 +207,7 @@ nsXMLContentSink::WillBuildModel(nsDTDMode aDTDMode)
   
   if (mPrettyPrintXML) {
     nsCAutoString command;
-    mParser->GetCommand(command);
+    GetParser()->GetCommand(command);
     if (!command.EqualsLiteral("view")) {
       mPrettyPrintXML = false;
     }
@@ -473,7 +473,7 @@ nsXMLContentSink::WillResume(void)
 }
 
 NS_IMETHODIMP
-nsXMLContentSink::SetParser(nsIParser* aParser)
+nsXMLContentSink::SetParser(nsParserBase* aParser)
 {
   NS_PRECONDITION(aParser, "Should have a parser here!");
   mParser = aParser;
@@ -502,7 +502,7 @@ nsXMLContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
     ) {
     nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(content);
     sele->SetScriptLineNumber(aLineNumber);
-    sele->SetCreatorParser(mParser);
+    sele->SetCreatorParser(GetParser());
     mConstrainSize = false;
   }
 
@@ -604,7 +604,7 @@ nsXMLContentSink::CloseElement(nsIContent* aContent)
     
     if (mParser && !mParser->IsParserEnabled()) {
       
-      mParser->BlockParser();
+      GetParser()->BlockParser();
       block = true;
     }
 
@@ -727,7 +727,7 @@ nsXMLContentSink::ProcessStyleLink(nsIContent* aElement,
 
   nsCAutoString cmd;
   if (mParser)
-    mParser->GetCommand(cmd);
+    GetParser()->GetCommand(cmd);
   if (cmd.EqualsASCII(kLoadAsData))
     return NS_OK; 
 
@@ -1680,7 +1680,7 @@ void
 nsXMLContentSink::ContinueInterruptedParsingIfEnabled()
 {
   if (mParser && mParser->IsParserEnabled()) {
-    mParser->ContinueInterruptedParsing();
+    GetParser()->ContinueInterruptedParsing();
   }
 }
 
@@ -1693,3 +1693,8 @@ nsXMLContentSink::ContinueInterruptedParsingAsync()
   NS_DispatchToCurrentThread(ev);
 }
 
+nsIParser*
+nsXMLContentSink::GetParser()
+{
+  return static_cast<nsIParser*>(mParser.get());
+}
