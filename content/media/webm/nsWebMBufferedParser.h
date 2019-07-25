@@ -40,10 +40,10 @@
 
 #include "nsISupportsImpl.h"
 #include "nsTArray.h"
-#include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 
 class nsTimeRanges;
-using mozilla::Monitor;
+using mozilla::ReentrantMonitor;
 
 
 
@@ -83,7 +83,7 @@ struct nsWebMBufferedParser
   
   void Append(const unsigned char* aBuffer, PRUint32 aLength,
               nsTArray<nsWebMTimeDataOffset>& aMapping,
-              Monitor& aMonitor);
+              ReentrantMonitor& aReentrantMonitor);
 
   bool operator==(PRInt64 aOffset) const {
     return mCurrentOffset == aOffset;
@@ -216,7 +216,7 @@ class nsWebMBufferedState
   NS_INLINE_DECL_REFCOUNTING(nsWebMBufferedState)
 
 public:
-  nsWebMBufferedState() : mMonitor("nsWebMBufferedState") {
+  nsWebMBufferedState() : mReentrantMonitor("nsWebMBufferedState") {
     MOZ_COUNT_CTOR(nsWebMBufferedState);
   }
 
@@ -232,7 +232,7 @@ public:
 
 private:
   
-  Monitor mMonitor;
+  ReentrantMonitor mReentrantMonitor;
 
   
   

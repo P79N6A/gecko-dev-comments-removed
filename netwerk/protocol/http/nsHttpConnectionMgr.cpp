@@ -81,7 +81,7 @@ InsertTransactionSorted(nsTArray<nsHttpTransaction*> &pendingQ, nsHttpTransactio
 
 nsHttpConnectionMgr::nsHttpConnectionMgr()
     : mRef(0)
-    , mMonitor("nsHttpConnectionMgr.mMonitor")
+    , mReentrantMonitor("nsHttpConnectionMgr.mReentrantMonitor")
     , mMaxConns(0)
     , mMaxConnsPerHost(0)
     , mMaxConnsPerProxy(0)
@@ -115,7 +115,7 @@ nsHttpConnectionMgr::EnsureSocketThreadTargetIfOnline()
         }
     }
 
-    MonitorAutoEnter mon(mMonitor);
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
     
     if (mSocketThreadTarget || mIsShuttingDown)
@@ -138,7 +138,7 @@ nsHttpConnectionMgr::Init(PRUint16 maxConns,
     LOG(("nsHttpConnectionMgr::Init\n"));
 
     {
-        MonitorAutoEnter mon(mMonitor);
+        ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
         mMaxConns = maxConns;
         mMaxConnsPerHost = maxConnsPerHost;
@@ -159,7 +159,7 @@ nsHttpConnectionMgr::Shutdown()
 {
     LOG(("nsHttpConnectionMgr::Shutdown\n"));
 
-    MonitorAutoEnter mon(mMonitor);
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
     
     if (!mSocketThreadTarget)
@@ -192,7 +192,7 @@ nsHttpConnectionMgr::PostEvent(nsConnEventHandler handler, PRInt32 iparam, void 
     
     EnsureSocketThreadTargetIfOnline();
 
-    MonitorAutoEnter mon(mMonitor);
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
     nsresult rv;
     if (!mSocketThreadTarget) {
@@ -317,7 +317,7 @@ nsHttpConnectionMgr::GetSocketThreadTarget(nsIEventTarget **target)
     
     EnsureSocketThreadTargetIfOnline();
 
-    MonitorAutoEnter mon(mMonitor);
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     NS_IF_ADDREF(*target = mSocketThreadTarget);
     return NS_OK;
 }
@@ -920,7 +920,7 @@ nsHttpConnectionMgr::OnMsgShutdown(PRInt32, void *)
     mCT.Reset(ShutdownPassCB, this);
 
     
-    MonitorAutoEnter mon(mMonitor);
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     mon.Notify();
 }
 

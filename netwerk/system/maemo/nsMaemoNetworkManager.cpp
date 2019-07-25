@@ -37,7 +37,7 @@
 
 
 #include "nsMaemoNetworkManager.h"
-#include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib-lowlevel.h>
@@ -70,7 +70,7 @@ static PRBool gConnectionCallbackInvoked = PR_FALSE;
 
 using namespace mozilla;
 
-static Monitor* gMonitor = nsnull;
+static ReentrantMonitor* gReentrantMonitor = nsnull;
 
 static void NotifyNetworkLinkObservers()
 {
@@ -88,7 +88,7 @@ connection_event_callback(ConIcConnection *aConnection,
 {
   ConIcConnectionStatus status = con_ic_connection_event_get_status(aEvent);
   {
-    MonitorAutoEnter mon(*gMonitor);
+    ReentrantMonitorAutoEnter mon(*gReentrantMonitor);
 
     
     gInternalState = (CON_IC_STATUS_CONNECTED == status ?
@@ -110,7 +110,7 @@ nsMaemoNetworkManager::OpenConnectionSync()
   
   
   
-  MonitorAutoEnter mon(*gMonitor);
+  ReentrantMonitorAutoEnter mon(*gReentrantMonitor);
 
   gConnectionCallbackInvoked = PR_FALSE;
 
@@ -153,8 +153,8 @@ nsMaemoNetworkManager::Startup()
   if (gConnection)
     return PR_TRUE;
 
-  gMonitor = new Monitor("MaemoAutodialer");
-  if (!gMonitor)
+  gReentrantMonitor = new ReentrantMonitor("MaemoAutodialer");
+  if (!gReentrantMonitor)
     return PR_FALSE;
 
   DBusError error;
@@ -169,8 +169,8 @@ nsMaemoNetworkManager::Startup()
   gConnection = con_ic_connection_new();
   NS_ASSERTION(gConnection, "Error when creating connection");
   if (!gConnection) {
-    delete gMonitor;
-    gMonitor = nsnull;
+    delete gReentrantMonitor;
+    gReentrantMonitor = nsnull;
     return PR_FALSE;
   }
 
@@ -191,9 +191,9 @@ nsMaemoNetworkManager::Shutdown()
 {
   gConnection = nsnull;
 
-  if (gMonitor) {
+  if (gReentrantMonitor) {
     
-    MonitorAutoEnter mon(*gMonitor);
+    ReentrantMonitorAutoEnter mon(*gReentrantMonitor);
     gInternalState = InternalState_Invalid;    
     mon.Notify();
   }

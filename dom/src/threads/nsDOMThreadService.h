@@ -47,7 +47,7 @@
 
 
 #include "jsapi.h"
-#include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsDataHashtable.h"
@@ -185,7 +185,7 @@ private:
 
   
   
-  mozilla::Monitor mMonitor;
+  mozilla::ReentrantMonitor mReentrantMonitor;
 
   
   nsRefPtrHashtable<nsVoidPtrHashKey, nsDOMWorkerRunnable> mWorkersInProgress;

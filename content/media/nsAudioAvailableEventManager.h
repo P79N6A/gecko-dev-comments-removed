@@ -106,7 +106,8 @@ private:
   nsTArray< nsCOMPtr<nsIRunnable> > mPendingEvents;
 
   
-  Monitor mMonitor;
+  
+  ReentrantMonitor mReentrantMonitor;
 };
 
 #endif

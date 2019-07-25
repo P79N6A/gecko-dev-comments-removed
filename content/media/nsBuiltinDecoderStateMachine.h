@@ -118,7 +118,7 @@
 #include "nsBuiltinDecoderReader.h"
 #include "nsAudioAvailableEventManager.h"
 #include "nsHTMLMediaElement.h"
-#include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 
 
 
@@ -140,7 +140,7 @@
 class nsBuiltinDecoderStateMachine : public nsDecoderStateMachine
 {
 public:
-  typedef mozilla::Monitor Monitor;
+  typedef mozilla::ReentrantMonitor ReentrantMonitor;
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
 
@@ -151,7 +151,7 @@ public:
   virtual nsresult Init(nsDecoderStateMachine* aCloneDonor);
   State GetState()
   { 
-    mDecoder->GetMonitor().AssertCurrentThreadIn();
+    mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mState; 
   }
   virtual void SetVolume(double aVolume);
@@ -183,14 +183,14 @@ public:
   
   
   PRBool HasAudio() const {
-    mDecoder->GetMonitor().AssertCurrentThreadIn();
+    mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mInfo.mHasAudio;
   }
 
   
   
   PRBool HasVideo() const {
-    mDecoder->GetMonitor().AssertCurrentThreadIn();
+    mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mInfo.mHasVideo;
   }
 
@@ -199,14 +199,14 @@ public:
 
   
   PRBool IsBuffering() const {
-    mDecoder->GetMonitor().AssertCurrentThreadIn();
+    mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
     return mState == nsBuiltinDecoderStateMachine::DECODER_STATE_BUFFERING;
   }
 
   
   PRBool IsSeeking() const {
-    mDecoder->GetMonitor().AssertCurrentThreadIn();
+    mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
     return mState == nsBuiltinDecoderStateMachine::DECODER_STATE_SEEKING;
   }
@@ -243,7 +243,7 @@ public:
   }
 
   PRInt64 GetEndMediaTime() const {
-    mDecoder->GetMonitor().AssertCurrentThreadIn();
+    mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mEndTime;
   }
 
@@ -389,7 +389,7 @@ protected:
   
   
   PRInt64 GetMediaTime() const {
-    mDecoder->GetMonitor().AssertCurrentThreadIn();
+    mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
     return mStartTime + mCurrentFrameTime;
   }
 
@@ -406,7 +406,7 @@ protected:
   
   
   
-  Monitor mAudioMonitor;
+  ReentrantMonitor mAudioReentrantMonitor;
 
   
   

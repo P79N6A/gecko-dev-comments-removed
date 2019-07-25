@@ -35,7 +35,7 @@
 
 
 
-#include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 
 #include "ImageLayers.h"
 #include "BasicLayers.h"
@@ -52,7 +52,7 @@
 
 #include "gfxPlatform.h"
 
-using mozilla::Monitor;
+using mozilla::ReentrantMonitor;
 
 namespace mozilla {
 namespace layers {
@@ -379,7 +379,7 @@ BasicImageContainer::CreateImage(const Image::Format* aFormats,
   if (FormatInList(aFormats, aNumFormats, Image::CAIRO_SURFACE)) {
     image = new BasicCairoImage();
   } else if (FormatInList(aFormats, aNumFormats, Image::PLANAR_YCBCR)) {
-    MonitorAutoEnter mon(mMonitor);
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     image = new BasicPlanarYCbCrImage(mScaleHint);
     static_cast<BasicPlanarYCbCrImage*>(image.get())->SetOffscreenFormat(mOffscreenFormat);
   }
@@ -389,7 +389,7 @@ BasicImageContainer::CreateImage(const Image::Format* aFormats,
 void
 BasicImageContainer::SetCurrentImage(Image* aImage)
 {
-  MonitorAutoEnter mon(mMonitor);
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
   mImage = aImage;
   CurrentImageChanged();
 }
@@ -397,7 +397,7 @@ BasicImageContainer::SetCurrentImage(Image* aImage)
 already_AddRefed<Image>
 BasicImageContainer::GetCurrentImage()
 {
-  MonitorAutoEnter mon(mMonitor);
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
   nsRefPtr<Image> image = mImage;
   return image.forget();
 }
@@ -413,7 +413,7 @@ BasicImageContainer::GetCurrentAsSurface(gfxIntSize* aSizeResult)
 {
   NS_PRECONDITION(NS_IsMainThread(), "Must be called on main thread");
 
-  MonitorAutoEnter mon(mMonitor);
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
   if (!mImage) {
     return nsnull;
   }
@@ -424,13 +424,13 @@ BasicImageContainer::GetCurrentAsSurface(gfxIntSize* aSizeResult)
 gfxIntSize
 BasicImageContainer::GetCurrentSize()
 {
-  MonitorAutoEnter mon(mMonitor);
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
   return !mImage ? gfxIntSize(0,0) : ToImageData(mImage)->GetSize();
 }
 
 void BasicImageContainer::SetScaleHint(const gfxIntSize& aScaleHint)
 {
-  MonitorAutoEnter mon(mMonitor);
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
   mScaleHint = aScaleHint;
 }
 

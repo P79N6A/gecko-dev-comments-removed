@@ -75,7 +75,7 @@ class NS_COM_GLUE BlockingResourceBase
 {
 public:
     
-    enum BlockingResourceType { eMutex, eMonitor, eCondVar };
+    enum BlockingResourceType { eMutex, eReentrantMonitor, eCondVar };
 
     
 

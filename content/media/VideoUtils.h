@@ -39,7 +39,7 @@
 #ifndef VideoUtils_h
 #define VideoUtils_h
 
-#include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 
 
 
@@ -70,7 +70,7 @@ namespace mozilla {
 
 
  
-class NS_STACK_CLASS MonitorAutoExit
+class NS_STACK_CLASS ReentrantMonitorAutoExit
 {
 public:
     
@@ -82,28 +82,27 @@ public:
 
 
 
-
-    MonitorAutoExit(mozilla::Monitor &aMonitor) :
-        mMonitor(&aMonitor)
+    ReentrantMonitorAutoExit(ReentrantMonitor& aReentrantMonitor) :
+        mReentrantMonitor(&aReentrantMonitor)
     {
-        NS_ASSERTION(mMonitor, "null monitor");
-        mMonitor->AssertCurrentThreadIn();
-        mMonitor->Exit();
+        NS_ASSERTION(mReentrantMonitor, "null monitor");
+        mReentrantMonitor->AssertCurrentThreadIn();
+        mReentrantMonitor->Exit();
     }
     
-    ~MonitorAutoExit(void)
+    ~ReentrantMonitorAutoExit(void)
     {
-        mMonitor->Enter();
+        mReentrantMonitor->Enter();
     }
  
 private:
-    MonitorAutoExit();
-    MonitorAutoExit(const MonitorAutoExit&);
-    MonitorAutoExit& operator =(const MonitorAutoExit&);
+    ReentrantMonitorAutoExit();
+    ReentrantMonitorAutoExit(const ReentrantMonitorAutoExit&);
+    ReentrantMonitorAutoExit& operator =(const ReentrantMonitorAutoExit&);
     static void* operator new(size_t) CPP_THROW_NEW;
     static void operator delete(void*);
 
-    mozilla::Monitor* mMonitor;
+    ReentrantMonitor* mReentrantMonitor;
 };
 
 } 

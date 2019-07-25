@@ -43,7 +43,7 @@
 #include "gfxPattern.h"
 #include "nsThreadUtils.h"
 #include "nsCoreAnimationSupport.h"
-#include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 #include "mozilla/TimeStamp.h"
 
 namespace mozilla {
@@ -134,7 +134,7 @@ class THEBES_API ImageContainer {
 
 public:
   ImageContainer() :
-    mMonitor("ImageContainer"),
+    mReentrantMonitor("ImageContainer.mReentrantMonitor"),
     mPaintCount(0),
     mPreviousImagePainted(PR_FALSE)
   {}
@@ -239,7 +239,7 @@ public:
 
 
   TimeStamp GetPaintTime() {
-    MonitorAutoEnter mon(mMonitor);
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return mPaintTime;
   }
 
@@ -248,7 +248,7 @@ public:
 
 
   PRUint32 GetPaintCount() {
-    MonitorAutoEnter mon(mMonitor);
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return mPaintCount;
   }
 
@@ -258,7 +258,7 @@ public:
 
 
   void NotifyPaintedImage(Image* aPainted) {
-    MonitorAutoEnter mon(mMonitor);
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     nsRefPtr<Image> current = GetCurrentImage();
     if (aPainted == current) {
       if (mPaintTime.IsNull()) {
@@ -275,16 +275,16 @@ public:
   }
 
 protected:
-  typedef mozilla::Monitor Monitor;
+  typedef mozilla::ReentrantMonitor ReentrantMonitor;
   LayerManager* mManager;
 
   
   
-  Monitor mMonitor;
+  ReentrantMonitor mReentrantMonitor;
 
   ImageContainer(LayerManager* aManager) :
     mManager(aManager),
-    mMonitor("ImageContainer"),
+    mReentrantMonitor("ImageContainer.mReentrantMonitor"),
     mPaintCount(0),
     mPreviousImagePainted(PR_FALSE)
   {}
@@ -293,7 +293,7 @@ protected:
   
   
   void CurrentImageChanged() {
-    mMonitor.AssertCurrentThreadIn();
+    mReentrantMonitor.AssertCurrentThreadIn();
     mPreviousImagePainted = !mPaintTime.IsNull();
     mPaintTime = TimeStamp();
   }

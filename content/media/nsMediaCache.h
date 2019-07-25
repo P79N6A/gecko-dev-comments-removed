@@ -45,7 +45,7 @@
 
 class nsByteRange;
 namespace mozilla {
-class MonitorAutoEnter;
+class ReentrantMonitorAutoEnter;
 }
 
 
@@ -211,7 +211,7 @@ class nsMediaChannelStream;
 
 
 class nsMediaCacheStream {
-  typedef mozilla::MonitorAutoEnter MonitorAutoEnter;
+  typedef mozilla::ReentrantMonitorAutoEnter ReentrantMonitorAutoEnter;
 
 public:
   enum {
@@ -433,7 +433,7 @@ private:
   
   
   
-  void CloseInternal(MonitorAutoEnter& aMonitor);
+  void CloseInternal(ReentrantMonitorAutoEnter& aReentrantMonitor);
   
   void UpdatePrincipal(nsIPrincipal* aPrincipal);
 

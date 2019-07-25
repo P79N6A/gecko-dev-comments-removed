@@ -212,7 +212,7 @@
 #include "nsMediaStream.h"
 #include "nsMediaDecoder.h"
 #include "nsHTMLMediaElement.h"
-#include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 
 class nsAudioStream;
 
@@ -319,7 +319,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   NS_DECL_NSIOBSERVER
 
  public:
-  typedef mozilla::Monitor Monitor;
+  typedef mozilla::ReentrantMonitor ReentrantMonitor;
 
   
   enum PlayState {
@@ -434,8 +434,8 @@ class nsBuiltinDecoder : public nsMediaDecoder
 
   
   
-  Monitor& GetMonitor() { 
-    return mMonitor; 
+  ReentrantMonitor& GetReentrantMonitor() { 
+    return mReentrantMonitor; 
   }
 
   
@@ -625,7 +625,7 @@ public:
   
   
   
-  Monitor mMonitor;
+  ReentrantMonitor mReentrantMonitor;
 
   
   

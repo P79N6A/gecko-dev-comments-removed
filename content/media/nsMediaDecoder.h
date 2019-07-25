@@ -47,7 +47,7 @@
 #include "gfxRect.h"
 #include "nsITimer.h"
 #include "ImageLayers.h"
-#include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 #include "mozilla/Mutex.h"
 
 class nsHTMLMediaElement;
@@ -89,7 +89,7 @@ public:
   typedef mozilla::TimeDuration TimeDuration;
   typedef mozilla::layers::ImageContainer ImageContainer;
   typedef mozilla::layers::Image Image;
-  typedef mozilla::Monitor Monitor;
+  typedef mozilla::ReentrantMonitor ReentrantMonitor;
   typedef mozilla::Mutex Mutex;
 
   nsMediaDecoder();
@@ -190,7 +190,7 @@ public:
   public:
     
     FrameStatistics() :
-        mMonitor("nsMediaDecoder::FrameStats"),
+        mReentrantMonitor("nsMediaDecoder::FrameStats"),
         mParsedFrames(0),
         mDecodedFrames(0),
         mPresentedFrames(0) {}
@@ -198,14 +198,14 @@ public:
     
     
     PRUint32 GetParsedFrames() {
-      mozilla::MonitorAutoEnter mon(mMonitor);
+      mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       return mParsedFrames;
     }
 
     
     
     PRUint32 GetDecodedFrames() {
-      mozilla::MonitorAutoEnter mon(mMonitor);
+      mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       return mDecodedFrames;
     }
 
@@ -213,7 +213,7 @@ public:
     
     
     PRUint32 GetPresentedFrames() {
-      mozilla::MonitorAutoEnter mon(mMonitor);
+      mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       return mPresentedFrames;
     }
 
@@ -222,7 +222,7 @@ public:
     void NotifyDecodedFrames(PRUint32 aParsed, PRUint32 aDecoded) {
       if (aParsed == 0 && aDecoded == 0)
         return;
-      mozilla::MonitorAutoEnter mon(mMonitor);
+      mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       mParsedFrames += aParsed;
       mDecodedFrames += aDecoded;
     }
@@ -230,14 +230,14 @@ public:
     
     
     void NotifyPresentedFrame() {
-      mozilla::MonitorAutoEnter mon(mMonitor);
+      mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       ++mPresentedFrames;
     }
 
   private:
 
     
-    Monitor mMonitor;
+    ReentrantMonitor mReentrantMonitor;
 
     
     

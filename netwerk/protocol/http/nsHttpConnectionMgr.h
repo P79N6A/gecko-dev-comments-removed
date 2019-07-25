@@ -46,7 +46,7 @@
 #include "nsThreadUtils.h"
 #include "nsHashtable.h"
 #include "nsAutoPtr.h"
-#include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 #include "nsISocketTransportService.h"
 
 #include "nsIObserver.h"
@@ -232,7 +232,7 @@ private:
     
 
     PRInt32                      mRef;
-    mozilla::Monitor             mMonitor;
+    mozilla::ReentrantMonitor    mReentrantMonitor;
     nsCOMPtr<nsIEventTarget>     mSocketThreadTarget;
 
     

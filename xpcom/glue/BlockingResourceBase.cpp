@@ -43,7 +43,7 @@
 #include "nsAutoPtr.h"
 
 #include "mozilla/CondVar.h"
-#include "mozilla/Monitor.h"
+#include "mozilla/ReentrantMonitor.h"
 #include "mozilla/Mutex.h"
 #endif 
 
@@ -56,7 +56,7 @@ namespace mozilla {
 const char* const BlockingResourceBase::kResourceTypeName[] =
 {
     
-    "Mutex", "Monitor", "CondVar"
+    "Mutex", "ReentrantMonitor", "CondVar"
 };
 
 #ifdef DEBUG
@@ -274,7 +274,7 @@ Mutex::Unlock()
 
 
 void
-Monitor::Enter()
+ReentrantMonitor::Enter()
 {
     BlockingResourceBase* chainFront = ResourceChainFront();
 
@@ -282,7 +282,7 @@ Monitor::Enter()
 
     if (this == chainFront) {
         
-        PR_EnterMonitor(mMonitor);
+        PR_EnterMonitor(mReentrantMonitor);
         ++mEntryCount;
         return;
     }
@@ -297,14 +297,14 @@ Monitor::Enter()
              br = ResourceChainPrev(br)) {
             if (br == this) {
                 NS_WARNING(
-                    "Re-entering Monitor after acquiring other resources.\n"
+                    "Re-entering ReentrantMonitor after acquiring other resources.\n"
                     "At calling context\n");
                 GetAcquisitionContext().Print(stderr);
 
                 
                 CheckAcquire(callContext);
 
-                PR_EnterMonitor(mMonitor);
+                PR_EnterMonitor(mReentrantMonitor);
                 ++mEntryCount;
                 return;
             }
@@ -312,23 +312,23 @@ Monitor::Enter()
     }
 
     CheckAcquire(callContext);
-    PR_EnterMonitor(mMonitor);
-    NS_ASSERTION(0 == mEntryCount, "Monitor isn't free!");
+    PR_EnterMonitor(mReentrantMonitor);
+    NS_ASSERTION(0 == mEntryCount, "ReentrantMonitor isn't free!");
     Acquire(callContext);       
     mEntryCount = 1;
 }
 
 void
-Monitor::Exit()
+ReentrantMonitor::Exit()
 {
     if (0 == --mEntryCount)
         Release();              
-    PRStatus status = PR_ExitMonitor(mMonitor);
-    NS_ASSERTION(PR_SUCCESS == status, "bad Monitor::Exit()");
+    PRStatus status = PR_ExitMonitor(mReentrantMonitor);
+    NS_ASSERTION(PR_SUCCESS == status, "bad ReentrantMonitor::Exit()");
 }
 
 nsresult
-Monitor::Wait(PRIntervalTime interval)
+ReentrantMonitor::Wait(PRIntervalTime interval)
 {
     AssertCurrentThreadIn();
 
@@ -342,7 +342,7 @@ Monitor::Wait(PRIntervalTime interval)
 
     
     nsresult rv =
-        PR_Wait(mMonitor, interval) == PR_SUCCESS ?
+        PR_Wait(mReentrantMonitor, interval) == PR_SUCCESS ?
             NS_OK : NS_ERROR_FAILURE;
     
     
