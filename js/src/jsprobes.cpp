@@ -55,9 +55,7 @@
 #include "jsscript.h"
 #include "jsstr.h"
 
-#ifdef JS_METHODJIT
-# include "methodjit/Compiler.h"
-#endif
+#include "methodjit/Compiler.h"
 
 #include "jsobjinlines.h"
 
@@ -118,6 +116,7 @@ Probes::JITGranularityRequested()
     return want;
 }
 
+#ifdef JS_METHODJIT
 
 
 
@@ -217,7 +216,6 @@ Probes::JITWatcher::CollectNativeRegions(RegionVector &regions,
     return true;
 }
 
-#ifdef JS_METHODJIT
 void
 Probes::registerMJITCode(JSContext *cx, js::mjit::JITScript *jscr,
                          js::mjit::JSActiveFrame *outerFrame,
