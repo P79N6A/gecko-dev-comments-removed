@@ -337,6 +337,22 @@ nsFocusManager::GetRedirectedFocus(nsIContent* aContent)
   return nsnull;
 }
 
+
+PRUint32
+nsFocusManager::GetFocusMoveReason(PRUint32 aFlags)
+{
+  PRUint32 reason = IMEContext::FOCUS_MOVED_UNKNOWN;
+  if (aFlags & nsIFocusManager::FLAG_BYMOUSE) {
+    reason = IMEContext::FOCUS_MOVED_BY_MOUSE;
+  } else if (aFlags & nsIFocusManager::FLAG_BYKEY) {
+    reason = IMEContext::FOCUS_MOVED_BY_KEY;
+  } else if (aFlags & nsIFocusManager::FLAG_BYMOVEFOCUS) {
+    reason = IMEContext::FOCUS_MOVED_BY_MOVEFOCUS;
+  }
+
+  return reason;
+}
+
 NS_IMETHODIMP
 nsFocusManager::GetActiveWindow(nsIDOMWindow** aWindow)
 {
@@ -943,7 +959,7 @@ nsFocusManager::WindowHidden(nsIDOMWindow* aWindow)
 
   nsIMEStateManager::OnTextStateBlur(nsnull, nsnull);
   if (presShell) {
-    nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nsnull);
+    nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nsnull, IMEContext::FOCUS_REMOVED);
     SetCaretVisible(presShell, PR_FALSE, nsnull);
   }
 
@@ -1484,7 +1500,7 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
   
   nsIMEStateManager::OnTextStateBlur(nsnull, nsnull);
   if (mActiveWindow)
-    nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nsnull);
+    nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nsnull, IMEContext::FOCUS_REMOVED);
 
   
   
@@ -1727,7 +1743,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
           objectFrameWidget->SetFocus(PR_FALSE);
       }
 
-      nsIMEStateManager::OnChangeFocus(presContext, aContent);
+      PRUint32 reason = GetFocusMoveReason(aFlags);
+      nsIMEStateManager::OnChangeFocus(presContext, aContent, reason);
 
       
       
@@ -1743,7 +1760,7 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
       nsIMEStateManager::OnTextStateFocus(presContext, aContent);
     } else {
       nsIMEStateManager::OnTextStateBlur(presContext, nsnull);
-      nsIMEStateManager::OnChangeFocus(presContext, nsnull);
+      nsIMEStateManager::OnChangeFocus(presContext, nsnull, IMEContext::FOCUS_REMOVED);
       if (!aWindowRaised) {
         aWindow->UpdateCommands(NS_LITERAL_STRING("focus"));
       }
@@ -1766,7 +1783,7 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
 
     nsPresContext* presContext = presShell->GetPresContext();
     nsIMEStateManager::OnTextStateBlur(presContext, nsnull);
-    nsIMEStateManager::OnChangeFocus(presContext, nsnull);
+    nsIMEStateManager::OnChangeFocus(presContext, nsnull, IMEContext::FOCUS_REMOVED);
 
     if (!aWindowRaised)
       aWindow->UpdateCommands(NS_LITERAL_STRING("focus"));
