@@ -44,7 +44,6 @@
 
 
 #include "jstypes.h"
-#include "jscompat.h"
 
 
 
