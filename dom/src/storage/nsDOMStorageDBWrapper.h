@@ -148,19 +148,13 @@ public:
 
 
   nsresult
-  RemoveAll();
-
-  
-
-
-  nsresult
   GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, PRInt32 *aUsage);
 
   
 
 
   nsresult
-  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, PRInt32 *aUsage);
+  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, PRInt32 *aUsage, bool aPrivate);
 
   
 
