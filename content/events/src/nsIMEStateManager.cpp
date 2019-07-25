@@ -65,6 +65,9 @@
 #include "nsContentEventHandler.h"
 #include "nsIObserverService.h"
 #include "mozilla/Services.h"
+#include "nsIFormControl.h"
+#include "nsIForm.h"
+#include "nsHTMLFormElement.h"
 
 
 
@@ -282,6 +285,25 @@ nsIMEStateManager::SetIMEState(PRUint32 aState,
                         context.mHTMLInputType);
       aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::moz_action_hint,
                         context.mActionHint);
+
+      
+      if (context.mActionHint.IsEmpty() && aContent->Tag() == nsGkAtoms::input) {
+        PRBool willSubmit = PR_FALSE;
+        nsCOMPtr<nsIFormControl> control(do_QueryInterface(aContent));
+        mozilla::dom::Element* formElement = control->GetFormElement();
+        nsCOMPtr<nsIForm> form;
+        if (control) {
+          
+          if ((form = do_QueryInterface(formElement)) && form->GetDefaultSubmitElement()) {
+            willSubmit = PR_TRUE;
+          
+          } else if (formElement && formElement->Tag() == nsGkAtoms::form && formElement->IsHTML() &&
+                     static_cast<nsHTMLFormElement*>(formElement)->HasSingleTextControl()) {
+            willSubmit = PR_TRUE;
+          }
+        }
+        context.mActionHint.Assign(willSubmit ? NS_LITERAL_STRING("go") : NS_LITERAL_STRING("next"));
+      }
     }
 
     widget2->SetInputMode(context);
