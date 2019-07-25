@@ -36,11 +36,14 @@
 
 
 
-#ifndef _nsHTMLFormControlAccessible_H_
-#define _nsHTMLFormControlAccessible_H_
+#ifndef MOZILLA_A11Y_HTMLFormControlAccessible_H_
+#define MOZILLA_A11Y_HTMLFormControlAccessible_H_
 
-#include "nsFormControlAccessible.h"
+#include "FormControlAccessible.h"
 #include "nsHyperTextAccessibleWrap.h"
+
+namespace mozilla {
+namespace a11y {
 
 
 
@@ -50,13 +53,13 @@ typedef ProgressMeterAccessible<1> HTMLProgressMeterAccessible;
 
 
 
-class nsHTMLCheckboxAccessible : public nsFormControlAccessible
+class HTMLCheckboxAccessible : public nsLeafAccessible
 {
 
 public:
   enum { eAction_Click = 0 };
 
-  nsHTMLCheckboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  HTMLCheckboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
@@ -77,11 +80,11 @@ public:
 
 
 
-class nsHTMLRadioButtonAccessible : public nsRadioButtonAccessible
+class HTMLRadioButtonAccessible : public RadioButtonAccessible
 {
 
 public:
-  nsHTMLRadioButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  HTMLRadioButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual PRUint64 NativeState();
@@ -94,13 +97,13 @@ public:
 
 
 
-class nsHTMLButtonAccessible : public nsHyperTextAccessibleWrap
+class HTMLButtonAccessible : public nsHyperTextAccessibleWrap
 {
 
 public:
   enum { eAction_Click = 0 };
 
-  nsHTMLButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  HTMLButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
@@ -123,13 +126,13 @@ public:
 
 
 
-class nsHTMLTextFieldAccessible : public nsHyperTextAccessibleWrap
+class HTMLTextFieldAccessible : public nsHyperTextAccessibleWrap
 {
 
 public:
   enum { eAction_Click = 0 };
 
-  nsHTMLTextFieldAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  HTMLTextFieldAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -160,10 +163,10 @@ public:
 
 
 
-class nsHTMLFileInputAccessible : public nsHyperTextAccessibleWrap
+class HTMLFileInputAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  nsHTMLFileInputAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  HTMLFileInputAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
@@ -173,10 +176,10 @@ public:
 
 
 
-class nsHTMLGroupboxAccessible : public nsHyperTextAccessibleWrap
+class HTMLGroupboxAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  nsHTMLGroupboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  HTMLGroupboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
@@ -191,10 +194,10 @@ protected:
 
 
 
-class nsHTMLLegendAccessible : public nsHyperTextAccessibleWrap
+class HTMLLegendAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  nsHTMLLegendAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  HTMLLegendAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
@@ -204,10 +207,10 @@ public:
 
 
 
-class nsHTMLFigureAccessible : public nsHyperTextAccessibleWrap
+class HTMLFigureAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  nsHTMLFigureAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  HTMLFigureAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual nsresult GetAttributesInternal(nsIPersistentProperties* aAttributes);
@@ -223,14 +226,17 @@ protected:
 
 
 
-class nsHTMLFigcaptionAccessible : public nsHyperTextAccessibleWrap
+class HTMLFigcaptionAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  nsHTMLFigcaptionAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  HTMLFigcaptionAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
   virtual Relation RelationByType(PRUint32 aType);
 };
+
+} 
+} 
 
 #endif

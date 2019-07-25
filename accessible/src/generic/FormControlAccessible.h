@@ -36,22 +36,23 @@
 
 
 
-#ifndef _nsFormControlAccessible_H_
-#define _nsFormControlAccessible_H_
+#ifndef MOZILLA_A11Y_FormControlAccessible_H_
+#define MOZILLA_A11Y_FormControlAccessible_H_
 
 #include "nsBaseWidgetAccessible.h"
 
-typedef nsLeafAccessible nsFormControlAccessible;
+namespace mozilla {
+namespace a11y {
 
 
 
 
 template<int Max>
-class ProgressMeterAccessible: public nsFormControlAccessible
+class ProgressMeterAccessible : public nsLeafAccessible
 {
 public:
   ProgressMeterAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
-    nsFormControlAccessible(aContent, aDoc)
+    nsLeafAccessible(aContent, aDoc)
   {
   }
 
@@ -70,11 +71,11 @@ public:
 
 
 
-class nsRadioButtonAccessible : public nsFormControlAccessible
+class RadioButtonAccessible : public nsLeafAccessible
 {
 
 public:
-  nsRadioButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  RadioButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
@@ -92,6 +93,8 @@ public:
   virtual bool IsWidget() const;
 };
 
+} 
+} 
 
 #endif
 

@@ -37,14 +37,17 @@
 
 
 
-#ifndef _nsXULFormControlAccessible_H_
-#define _nsXULFormControlAccessible_H_
+#ifndef MOZILLA_A11Y_XULFormControlAccessible_H_
+#define MOZILLA_A11Y_XULFormControlAccessible_H_
 
 
 #include "nsAccessibleWrap.h"
-#include "nsFormControlAccessible.h"
+#include "FormControlAccessible.h"
 #include "nsHyperTextAccessibleWrap.h"
 #include "XULSelectControlAccessible.h"
+
+namespace mozilla {
+namespace a11y {
 
 
 
@@ -57,11 +60,11 @@ typedef ProgressMeterAccessible<100> XULProgressMeterAccessible;
 
 
 
-class nsXULButtonAccessible : public nsAccessibleWrap
+class XULButtonAccessible : public nsAccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };
-  nsXULButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  XULButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -96,11 +99,11 @@ protected:
 
 
 
-class nsXULCheckboxAccessible : public nsFormControlAccessible
+class XULCheckboxAccessible : public nsLeafAccessible
 {
 public:
   enum { eAction_Click = 0 };
-  nsXULCheckboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  XULCheckboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
@@ -117,11 +120,11 @@ public:
 
 
 
-class nsXULDropmarkerAccessible : public nsFormControlAccessible
+class XULDropmarkerAccessible : public nsLeafAccessible
 {
 public:
   enum { eAction_Click = 0 };
-  nsXULDropmarkerAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  XULDropmarkerAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
@@ -141,10 +144,10 @@ private:
 
 
 
-class nsXULGroupboxAccessible : public nsAccessibleWrap
+class XULGroupboxAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULGroupboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  XULGroupboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
@@ -155,11 +158,11 @@ public:
 
 
 
-class nsXULRadioButtonAccessible : public nsRadioButtonAccessible
+class XULRadioButtonAccessible : public RadioButtonAccessible
 {
 
 public:
-  nsXULRadioButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  XULRadioButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual PRUint64 NativeState();
@@ -171,10 +174,10 @@ public:
 
 
 
-class nsXULRadioGroupAccessible : public XULSelectControlAccessible
+class XULRadioGroupAccessible : public XULSelectControlAccessible
 {
 public:
-  nsXULRadioGroupAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  XULRadioGroupAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
@@ -189,10 +192,10 @@ public:
 
 
 
-class nsXULStatusBarAccessible : public nsAccessibleWrap
+class XULStatusBarAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULStatusBarAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  XULStatusBarAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
@@ -201,10 +204,10 @@ public:
 
 
 
-class nsXULToolbarButtonAccessible : public nsXULButtonAccessible
+class XULToolbarButtonAccessible : public XULButtonAccessible
 {
 public:
-  nsXULToolbarButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  XULToolbarButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
@@ -217,10 +220,10 @@ public:
 
 
 
-class nsXULToolbarAccessible : public nsAccessibleWrap
+class XULToolbarAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULToolbarAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  XULToolbarAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
@@ -230,10 +233,10 @@ public:
 
 
 
-class nsXULToolbarSeparatorAccessible : public nsLeafAccessible
+class XULToolbarSeparatorAccessible : public nsLeafAccessible
 {
 public:
-  nsXULToolbarSeparatorAccessible(nsIContent* aContent,
+  XULToolbarSeparatorAccessible(nsIContent* aContent,
                                   nsDocAccessible* aDoc);
 
   
@@ -244,12 +247,12 @@ public:
 
 
 
-class nsXULTextFieldAccessible : public nsHyperTextAccessibleWrap
+class XULTextFieldAccessible : public nsHyperTextAccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };
 
-  nsXULTextFieldAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  XULTextFieldAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -281,6 +284,8 @@ protected:
   already_AddRefed<nsIContent> GetInputField() const;
 };
 
+} 
+} 
 
 #endif
 
