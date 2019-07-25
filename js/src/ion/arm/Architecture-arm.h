@@ -64,7 +64,11 @@ static const int32 INVALID_STACK_SLOT       = -1;
 
 
 
-static const uint32 BAILOUT_TABLE_ENTRY_SIZE    = 8;
+
+
+
+
+static const uint32 BAILOUT_TABLE_ENTRY_SIZE    = 4;
 
 class Registers
 {
@@ -112,6 +116,7 @@ class Registers
     static const uint32 NonAllocatableMask =
         (1 << JSC::ARMRegisters::sp) |
         (1 << JSC::ARMRegisters::r12) | 
+        (1 << JSC::ARMRegisters::lr) |
         (1 << JSC::ARMRegisters::pc);
 
     
@@ -150,7 +155,7 @@ class FloatRegisters
 
     static const uint32 NonAllocatableMask =
         
-        (1 << JSC::ARMRegisters::SD0);
+        (1 << JSC::ARMRegisters::d0);
 
     
     static const uint32 TempMask = VolatileMask & ~NonAllocatableMask;

@@ -66,14 +66,7 @@ public:
     { }
 
 
-    void convertInt32ToDouble(const Register &src, const FloatRegister &dest) {
-        
-        as_vxfer(src, InvalidReg, VFPRegister(dest, VFPRegister::Single),
-                 CoreToFloat);
-        as_vcvt(VFPRegister(dest, VFPRegister::Double),
-                VFPRegister(dest, VFPRegister::Single));
-    }
-
+    void convertInt32ToDouble(const Register &src, const FloatRegister &dest);
 
 
     uint32 framePushed() const {
@@ -86,133 +79,13 @@ public:
     
     
     
-
+  private:
     bool alu_dbl(Register src1, Imm32 imm, Register dest, ALUOp op,
-                 SetCond_ sc, Condition c)
-    {
-        if ((sc == SetCond && ! condsAreSafe(op)) || !can_dbl(op)) {
-            return false;
-        }
-        ALUOp interop = getDestVariant(op);
-        Imm8::TwoImm8mData both = Imm8::encodeTwoImms(imm.value);
-        if (both.fst.invalid) {
-            return false;
-        }
-        
-        
-        
-        
-        
-        
-        
-        as_alu(ScratchRegister, src1, both.fst, interop, NoSetCond, c);
-        as_alu(ScratchRegister, ScratchRegister, both.snd, op, sc, c);
-        
-        return true;
-    }
-
+                 SetCond_ sc, Condition c);
+  public:
     void ma_alu(Register src1, Imm32 imm, Register dest,
                 ALUOp op,
-                SetCond_ sc =  NoSetCond, Condition c = Always)
-    {
-        
-        
-        Imm8 imm8 = Imm8(imm.value);
-        
-        
-        if (!imm8.invalid) {
-            as_alu(dest, src1, imm8, op, sc, c);
-            return;
-        }
-        
-        Imm32 negImm = imm;
-        ALUOp negOp = ALUNeg(op, &negImm);
-        Imm8 negImm8 = Imm8(negImm.value);
-        if (negOp != op_invalid && !negImm8.invalid) {
-            as_alu(dest, src1, negImm8, negOp, sc, c);
-            return;
-        }
-        if (hasMOVWT()) {
-            
-            
-            
-            
-            if (sc == NoSetCond && (op == op_mov || op == op_mvn)) {
-                
-                
-                
-                
-                
-                if (op == op_mov && imm.value <= 0xffff) {
-                    JS_ASSERT(src1 == InvalidReg);
-                    as_movw(dest, (uint16)imm.value, c);
-                    return;
-                }
-                
-                
-                if (op == op_mvn && ~imm.value <= 0xffff) {
-                    JS_ASSERT(src1 == InvalidReg);
-                    as_movw(dest, (uint16)-imm.value, c);
-                    return;
-                }
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                if (op == op_mvn)
-                    imm.value = ~imm.value;
-                as_movw(dest, imm.value & 0xffff, c);
-                as_movt(dest, (imm.value >> 16) & 0xffff, c);
-                return;
-            }
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-        }
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (alu_dbl(src1, imm, dest, op, sc, c))
-            return;
-        
-        if (negOp != op_invalid &&
-            alu_dbl(src1, negImm, dest, negOp, sc, c))
-            return;
-        
-        
-        if (hasMOVWT()) {
-            
-            
-            as_movw(ScratchRegister, imm.value & 0xffff, c);
-            as_movt(ScratchRegister, (imm.value >> 16) & 0xffff, c);
-        } else {
-            JS_NOT_REACHED("non-ARMv7 loading of immediates NYI.");
-        }
-        as_alu(dest, src1, O2Reg(ScratchRegister), op, sc, c);
-        
-    }
+                SetCond_ sc =  NoSetCond, Condition c = Always);
 
     void ma_alu(Register src1, Operand op2, Register dest, ALUOp op,
                 SetCond_ sc = NoSetCond, Condition c = Always)
@@ -256,6 +129,23 @@ public:
     }
     void ma_rol(Imm32 shift, Register src, Register dst) {
         as_mov(dst, rol(src, shift.value));
+    }
+    
+    void ma_lsl(Register shift, Register src, Register dst) {
+        as_mov(dst, lsl(src, shift));
+    }
+    void ma_lsr(Register shift, Register src, Register dst) {
+        as_mov(dst, lsr(src, shift));
+    }
+    void ma_asr(Register shift, Register src, Register dst) {
+        as_mov(dst, asr(src, shift));
+    }
+    void ma_ror(Register shift, Register src, Register dst) {
+        as_mov(dst, ror(src, shift));
+    }
+    void ma_rol(Register shift, Register src, Register dst) {
+        ma_rsb(shift, Imm32(32), ScratchRegister);
+        as_mov(dst, ror(src, ScratchRegister));
     }
 
     
@@ -395,6 +285,12 @@ public:
     void ma_sub(Register src1, Register src2, Register dest) {
         ma_alu(src1, Operand(O2Reg(src2)), dest, op_sub);
     }
+    void ma_sub(Register src1, Operand op, Register dest) {
+        ma_alu(src1, op, dest, op_sub);
+    }
+    void ma_sub(Register src1, Imm32 op, Register dest) {
+        ma_alu(src1, op, dest, op_sub);
+    }
 
     
     void ma_rsb(Imm32 imm, Register dest) {
@@ -406,8 +302,8 @@ public:
     void ma_rsb(Register src1, Register src2, Register dest) {
         as_alu(dest, src1, O2Reg(dest), op_rsc);
     }
-    void ma_rsb(Register src1, Imm32 src2, Register dest) {
-        JS_NOT_REACHED("Feature NYI");
+    void ma_rsb(Register src1, Imm32 op2, Register dest) {
+        ma_alu(src1, op2, dest, op_rsb);
     }
 
     
@@ -435,19 +331,18 @@ public:
 
     
     void ma_cmp(Imm32 imm, Register src1) {
-        ma_alu(src1, imm, InvalidReg, op_cmp);
+        ma_alu(src1, imm, InvalidReg, op_cmp, SetCond);
     }
     void ma_cmp(Register src1, Operand op) {
-        JS_NOT_REACHED("Feature NYI");
+        as_cmp(src1, op.toOp2());
     }
     void ma_cmp(Register src1, Register src2) {
         as_cmp(src2, O2Reg(src1));
-        JS_NOT_REACHED("Feature NYI");
     }
 
     
     void ma_teq(Imm32 imm, Register src1) {
-        ma_alu(src1, imm, InvalidReg, op_teq);
+        ma_alu(src1, imm, InvalidReg, op_teq, SetCond);
     }
     void ma_teq(Register src2, Register src1) {
         as_tst(src2, O2Reg(src1));
@@ -484,8 +379,11 @@ public:
         datastore::Imm8mData imm = Imm8::encodeImm(off & (~0xfff));
         if (!imm.invalid) {
             as_add(ScratchRegister, rn, imm);
+            as_dtr(ls, 32, mode, rt, DTRAddr(ScratchRegister, DtrOffImm(off & 0xfff)), cc);
+        } else {
+            ma_mov(offset, ScratchRegister);
+            as_dtr(ls, 32, mode, rt, DTRAddr(rn, DtrRegImmShift(ScratchRegister, LSL, 0)));
         }
-        JS_NOT_REACHED("Feature NYI");
     }
     void ma_dtr(LoadStore ls, Register rn, Register rm, Register rt,
                 Index mode = Offset, Condition cc = Always)
@@ -531,7 +429,15 @@ public:
     }
     void ma_b(void *target, Condition c, Relocation::Kind reloc)
     {
-        JS_NOT_REACHED("Feature NYI");
+        
+        
+        
+        
+        uint32 trg = (uint32)target;
+        as_movw(ScratchRegister, Imm16(trg & 0xffff), c);
+        as_movt(ScratchRegister, Imm16(trg >> 16), c);
+        
+        as_bx(ScratchRegister, c);
     }
     
     
@@ -543,15 +449,15 @@ public:
     
     void ma_vadd(FloatRegister src1, FloatRegister src2, FloatRegister dst)
     {
-        JS_NOT_REACHED("Feature NYI");
+        as_vadd(VFPRegister(dst), VFPRegister(src1), VFPRegister(src2));
     }
     void ma_vmul(FloatRegister src1, FloatRegister src2, FloatRegister dst)
     {
-        JS_NOT_REACHED("Feature NYI");
+        as_vmul(VFPRegister(dst), VFPRegister(src1), VFPRegister(src2));
     }
     void ma_vcmp_F64(FloatRegister src1, FloatRegister src2)
     {
-        JS_NOT_REACHED("Feature NYI");
+        as_vcmp(VFPRegister(src1), VFPRegister(src2));
     }
     void ma_vcvt_F64_I32(FloatRegister src, FloatRegister dest)
     {
@@ -564,14 +470,15 @@ public:
     void ma_vmov(FloatRegister src, Register dest)
     {
         JS_NOT_REACHED("Feature NYI");
+        
     }
     void ma_vldr(VFPAddr addr, FloatRegister dest)
     {
-        JS_NOT_REACHED("Feature NYI");
+        as_vdtr(IsLoad, dest, addr);
     }
     void ma_vstr(FloatRegister src, VFPAddr addr)
     {
-        JS_NOT_REACHED("Feature NYI");
+        as_vdtr(IsStore, src, addr);
     }
   protected:
     uint32 alignStackForCall(uint32 stackForArgs) {
@@ -663,7 +570,6 @@ public:
     }
     Condition testDouble(Condition cond, const ValueOperand &value) {
         JS_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
-        JS_NOT_REACHED("Codegen for testDouble NYI");
         Condition actual = (cond == Equal)
                            ? Below
                            : AboveOrEqual;
@@ -729,7 +635,7 @@ public:
     void unboxDouble(const ValueOperand &operand, const FloatRegister &dest) {
         JS_ASSERT(dest != ScratchFloatReg);
         as_vxfer(operand.payloadReg(), operand.typeReg(),
-                VFPRegister(dest), FloatToCore);
+                VFPRegister(dest), CoreToFloat);
     }
 
     

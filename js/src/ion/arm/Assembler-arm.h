@@ -56,24 +56,24 @@ namespace ion {
 
 
 
-static const Register r0 = { JSC::ARMRegisters::r0 };
-static const Register r1 = { JSC::ARMRegisters::r1 };
-static const Register r2 = { JSC::ARMRegisters::r2 };
-static const Register r3 = { JSC::ARMRegisters::r3 };
-static const Register r4 = { JSC::ARMRegisters::r4 };
-static const Register r5 = { JSC::ARMRegisters::r5 };
-static const Register r6 = { JSC::ARMRegisters::r6 };
-static const Register r7 = { JSC::ARMRegisters::r7 };
-static const Register r8 = { JSC::ARMRegisters::r8 };
-static const Register r9 = { JSC::ARMRegisters::r9 };
+static const Register r0  = { JSC::ARMRegisters::r0 };
+static const Register r1  = { JSC::ARMRegisters::r1 };
+static const Register r2  = { JSC::ARMRegisters::r2 };
+static const Register r3  = { JSC::ARMRegisters::r3 };
+static const Register r4  = { JSC::ARMRegisters::r4 };
+static const Register r5  = { JSC::ARMRegisters::r5 };
+static const Register r6  = { JSC::ARMRegisters::r6 };
+static const Register r7  = { JSC::ARMRegisters::r7 };
+static const Register r8  = { JSC::ARMRegisters::r8 };
+static const Register r9  = { JSC::ARMRegisters::r9 };
 static const Register r10 = { JSC::ARMRegisters::r10 };
 static const Register r11 = { JSC::ARMRegisters::r11 };
 static const Register r12 = { JSC::ARMRegisters::ip };
-static const Register ip = { JSC::ARMRegisters::ip };
-static const Register sp = { JSC::ARMRegisters::sp };
+static const Register ip  = { JSC::ARMRegisters::ip };
+static const Register sp  = { JSC::ARMRegisters::sp };
 static const Register r14 = { JSC::ARMRegisters::lr };
-static const Register lr = { JSC::ARMRegisters::lr };
-static const Register pc = { JSC::ARMRegisters::pc };
+static const Register lr  = { JSC::ARMRegisters::lr };
+static const Register pc  = { JSC::ARMRegisters::pc };
 
 static const Register ScratchRegister = {JSC::ARMRegisters::ip};
 
@@ -103,11 +103,16 @@ static const FloatRegister d13 = {JSC::ARMRegisters::d13};
 static const FloatRegister d14 = {JSC::ARMRegisters::d14};
 static const FloatRegister d15 = {JSC::ARMRegisters::d15};
 
-int RM(Register r);
-int RS(Register r);
-int RD(Register r);
-int RT(Register r);
-int RN(Register r);
+uint32 RM(Register r);
+uint32 RS(Register r);
+uint32 RD(Register r);
+uint32 RT(Register r);
+uint32 RN(Register r);
+
+class VFPRegister;
+uint32 VD(VFPRegister vr);
+uint32 VN(VFPRegister vr);
+uint32 VM(VFPRegister vr);
 
 class VFPRegister
 {
@@ -131,22 +136,34 @@ class VFPRegister
     
     
     int _code:5;
+    bool _isInvalid:1;
+    bool _isMissing:1;
     VFPRegister(int  r, RegType k)
-        : kind(k), _code (r) {}
-
+        : kind(k), _code (r), _isInvalid(false), _isMissing(false) {}
   public:
+    VFPRegister()
+        : _isInvalid(true), _isMissing(false) {}
+    VFPRegister(bool b)
+        : _isMissing(b), _isInvalid(false) {}
+    VFPRegister(FloatRegister fr)
+        : kind(Double), _code(fr.code()), _isInvalid(false), _isMissing(false)
+    {
+        JS_ASSERT(_code == fr.code());
+    }
+    VFPRegister(FloatRegister fr, RegType k)
+        : kind(k), _code (fr.code())
+    {
+        JS_ASSERT(_code == fr.code());
+    }
     bool isDouble() { return kind == Double; }
     bool isSingle() { return kind == Single; }
-    bool isFloat()  { return (kind == Double) || (kind == Single); }
-    bool isInt()    { return (kind == UInt) || (kind == Int); }
+    bool isFloat() { return (kind == Double) || (kind == Single); }
+    bool isInt() { return (kind == UInt) || (kind == Int); }
     bool isSInt()   { return kind == Int; }
     bool isUInt()   { return kind == UInt; }
     bool equiv(VFPRegister other) { return other.kind == kind; }
-    VFPRegister(FloatRegister r)
-        : kind(Double), _code (r.code()) {}
-    VFPRegister(FloatRegister r, RegType k)
-        : kind(k), _code (r.code()) {}
     VFPRegister doubleOverlay() {
+        JS_ASSERT(!_isInvalid);
         if (kind != Double) {
             return VFPRegister(_code >> 1, Double);
         } else {
@@ -154,6 +171,7 @@ class VFPRegister
         }
     }
     VFPRegister singleOverlay() {
+        JS_ASSERT(!_isInvalid);
         if (kind == Double) {
             
             ASSERT(_code < 16);
@@ -163,6 +181,7 @@ class VFPRegister
         }
     }
     VFPRegister intOverlay() {
+        JS_ASSERT(!_isInvalid);
         if (kind == Double) {
             
             ASSERT(_code < 16);
@@ -171,8 +190,35 @@ class VFPRegister
             return VFPRegister(_code, Int);
         }
     }
+    bool isInvalid() {
+        return _isInvalid;
+    }
+    bool isMissing() {
+        JS_ASSERT(!_isInvalid);
+        return _isMissing;
+    }
+    struct VFPRegIndexSplit;
+    VFPRegIndexSplit encode();
+    
+    struct VFPRegIndexSplit {
+        const uint32 block : 4;
+        const uint32 bit : 1;
+      private:
+        friend VFPRegIndexSplit js::ion::VFPRegister::encode();
+        VFPRegIndexSplit (uint32 block_, uint32 bit_)
+            : block(block_), bit(bit_)
+        {
+            JS_ASSERT (block == block_);
+            JS_ASSERT(bit == bit_);
+        }
+    };
+    uint32 code() {
+        return _code;
+    }
 };
 
+
+extern VFPRegister NoVFPRegister;
 struct ImmTag : public Imm32
 {
     ImmTag(JSValueTag mask)
@@ -294,6 +340,15 @@ enum BranchTag {
 
 
 enum VFPOp {
+    opv_mul  = 0x2 << 20,
+    opv_add  = 0x3 << 20,
+    opv_sub  = 0x3 << 20 | 0x1 << 6,
+    opv_div  = 0x8 << 20,
+    opv_mov  = 0xB << 20 | 0x1 << 6,
+    opv_abs  = 0xB << 20 | 0x3 << 6,
+    opv_neg  = 0xB << 20 | 0x1 << 6 | 0x1 << 16,
+    opv_sqrt = 0xB << 20 | 0x3 << 6 | 0x1 << 16,
+    opv_cmp  = 0xB << 20 | 0x1 << 6 | 0x4 << 16
 };
 
 ALUOp ALUNeg(ALUOp op, Imm32 *imm);
@@ -393,7 +448,7 @@ struct Imm8Data
     uint32 toInt() {
         return imm4L | (imm4H << 8);
     };
-    Imm8Data(uint32 imm) : imm4L(imm&0xf), imm4H(imm>>4){
+    Imm8Data(uint32 imm) : imm4L(imm&0xf), imm4H(imm>>4) {
         JS_ASSERT(imm <= 0xff);
     }
 };
@@ -408,7 +463,7 @@ struct Imm8VFPOffData
         return data;
     };
     Imm8VFPOffData(uint32 imm) : data (imm) {
-        JS_ASSERT((imm & ~(0xff<<2)) == 0);
+        JS_ASSERT((imm & ~(0xff)) == 0);
     }
 };
 
@@ -419,11 +474,15 @@ struct Imm8VFPImmData
     uint32 imm4L : 4;
     uint32 pad : 12;
     uint32 imm4H : 4;
+    int32 isInvalid : 12;
   public:
-    uint32 toInt() {
+    uint32 encode() {
+        if (isInvalid != 0)
+            return -1;
         return imm4L | (imm4H << 16);
     };
-    Imm8VFPImmData(uint32 imm) : imm4L(imm&0xf), imm4H(imm>>4){
+    Imm8VFPImmData() : imm4L(-1), imm4H(-1), isInvalid(-1) {}
+    Imm8VFPImmData(uint32 imm) : imm4L(imm&0xf), imm4H(imm>>4), isInvalid(0) {
         JS_ASSERT(imm <= 0xff);
     }
 };
@@ -466,7 +525,10 @@ class Operand2
   protected:
     friend class MacroAssemblerARM;
     Operand2(datastore::Imm8mData base)
-        : oper(base.toInt() | (uint32)IsImmOp2), invalid(base.invalid)  {}
+        : oper(base.invalid ? -1 : (base.toInt() | (uint32)IsImmOp2)),
+          invalid(base.invalid)
+    {
+    }
     Operand2(datastore::Reg base) : oper(base.toInt() | (uint32)IsNotImmOp2) {}
   private:
     friend class Operand;
@@ -548,6 +610,11 @@ O2RegImmShift asr (Register r, int amt);
 O2RegImmShift rol (Register r, int amt);
 O2RegImmShift ror (Register r, int amt);
 
+O2RegRegShift lsl (Register r, Register amt);
+O2RegRegShift lsr (Register r, Register amt);
+O2RegRegShift asr (Register r, Register amt);
+O2RegRegShift ror (Register r, Register amt);
+
 
 
 
@@ -557,9 +624,10 @@ class DtrOff
 {
     uint32 data;
   protected:
-    DtrOff(datastore::Imm12Data immdata, bool isAdd)
-        : data(immdata.toInt() | (uint32)IsImmDTR | (((uint32)isAdd) << 23)) {}
-    DtrOff(datastore::Reg reg) : data(reg.toInt() | (uint32) IsNotImmDTR) {}
+    DtrOff(datastore::Imm12Data immdata, IsUp_ iu)
+    : data(immdata.toInt() | (uint32)IsImmDTR | ((uint32)iu)) {}
+    DtrOff(datastore::Reg reg, IsUp_ iu = IsUp)
+        : data(reg.toInt() | (uint32) IsNotImmDTR | iu) {}
   public:
     uint32 toInt() { return data; }
 };
@@ -567,7 +635,8 @@ class DtrOff
 class DtrOffImm : public DtrOff
 {
   public:
-    DtrOffImm(int32 imm) : DtrOff(datastore::Imm12Data(abs(imm)), imm > 0)
+    DtrOffImm(int32 imm)
+        : DtrOff(datastore::Imm12Data(abs(imm)), imm >= 0 ? IsUp : IsDown)
     { JS_ASSERT((imm < 4096) && (imm > -4096)); }
 };
 
@@ -616,8 +685,10 @@ class EDtrOff
 {
   protected:
     uint32 data;
-    EDtrOff(datastore::Imm8Data imm8) : data(imm8.toInt() | IsImmEDTR) {}
-    EDtrOff(Register rm) : data(rm.code() | IsNotImmEDTR) {}
+    EDtrOff(datastore::Imm8Data imm8, IsUp_ iu = IsUp)
+        : data(imm8.toInt() | IsImmEDTR | (uint32)iu) {}
+    EDtrOff(Register rm, IsUp_ iu = IsUp)
+        : data(rm.code() | IsNotImmEDTR | iu) {}
   public:
     uint32 toInt() { return data; }
 };
@@ -625,7 +696,8 @@ class EDtrOff
 class EDtrOffImm : public EDtrOff
 {
   public:
-    EDtrOffImm(uint32 imm) : EDtrOff(datastore::Imm8Data(imm)) {}
+    EDtrOffImm(uint32 imm)
+        : EDtrOff(datastore::Imm8Data(abs(imm)), (imm >= 0) ? IsUp : IsDown) {}
 };
 
 
@@ -651,12 +723,15 @@ class VFPOff
   protected:
     VFPOff(datastore::Imm8VFPOffData imm, IsUp_ isup)
         : data(imm.toInt() | (uint32)isup) {}
+  public:
+    uint32 encode() { return data; }
 };
 
 class VFPOffImm : public VFPOff
 {
+  public:
     VFPOffImm(uint32 imm)
-        : VFPOff(datastore::Imm8VFPOffData(imm), imm < 0 ? IsDown : IsUp) {}
+        : VFPOff(datastore::Imm8VFPOffData(imm >> 2), imm < 0 ? IsDown : IsUp) {}
 };
 class VFPAddr
 {
@@ -664,10 +739,19 @@ class VFPAddr
     friend class Operand;
     VFPAddr(uint32 blob) : data(blob) {}
   public:
-    VFPAddr(Register base, VFPOff off) {
-        JS_NOT_REACHED("implement me!");
+    VFPAddr(Register base, VFPOff off)
+        : data(RN(base) | off.encode())
+    {
     }
     uint32 toInt() { return data; }
+};
+
+class VFPImm {
+    uint32 data;
+  public:
+    VFPImm(uint32 top);
+    uint32 encode() { return data; }
+    bool isValid() { return data != -1; }
 };
 
 class BOffImm
@@ -679,8 +763,8 @@ class BOffImm
     }
     BOffImm(int offset) : data (offset >> 2 & 0x00ffffff) {
         JS_ASSERT ((offset & 0x3) == 0);
-        JS_ASSERT (offset <= -33554432);
-        JS_ASSERT (offset >= 33554428);
+        JS_ASSERT (offset >= -33554432);
+        JS_ASSERT (offset <= 33554428);
     }
 };
 class Imm16
@@ -734,8 +818,8 @@ class Operand
     Operand (VFPAddr addr) : Tag(VDTR), data(addr.toInt()) {}
     Tag_ getTag() { return Tag; }
     Operand2 toOp2() { return Operand2(data); }
-    DTRAddr toDTRAddr() {return DTRAddr(data); }
-    VFPAddr toVFPAddr() {return VFPAddr(data); }
+    DTRAddr toDTRAddr() {JS_ASSERT(Tag == DTR); return DTRAddr(data); }
+    VFPAddr toVFPAddr() {JS_ASSERT(Tag == VDTR); return VFPAddr(data); }
 };
 
 class Assembler
@@ -747,7 +831,7 @@ class Assembler
         Above = JSC::ARMAssembler::HI,
         AboveOrEqual = JSC::ARMAssembler::CS,
         Below = JSC::ARMAssembler::CC,
-        BelowOrEqual = JSC::ARMAssembler::LE,
+        BelowOrEqual = JSC::ARMAssembler::LS,
         GreaterThan = JSC::ARMAssembler::GT,
         GreaterThanOrEqual = JSC::ARMAssembler::GE,
         LessThan = JSC::ARMAssembler::LT,
@@ -769,30 +853,6 @@ class Assembler
         return (Condition) (0xf0000000 & inst);
     }
   protected:
-    struct RelativePatch {
-        int32 offset;
-        void *target;
-        Relocation::Kind kind;
-
-        RelativePatch(int32 offset, void *target, Relocation::Kind kind)
-            : offset(offset),
-              target(target),
-              kind(kind)
-        { }
-    };
-
-    js::Vector<DeferredData *, 0, SystemAllocPolicy> data_;
-    js::Vector<CodeLabel *, 0, SystemAllocPolicy> codeLabels_;
-    js::Vector<RelativePatch, 8, SystemAllocPolicy> jumps_;
-    CompactBufferWriter jumpRelocations_;
-    CompactBufferWriter dataRelocations_;
-    size_t dataBytesNeeded_;
-
-    bool enoughMemory_;
-  protected:
-    typedef JSC::AssemblerBufferWithConstantPool<2048, 4, 4, JSC::ARMAssembler> ARMBuffer;
-    ARMBuffer m_buffer;
-
 
     class BufferOffset;
     BufferOffset nextOffset () {
@@ -805,6 +865,8 @@ class Assembler
     uint32 * editSrc (BufferOffset bo) {
         return (uint32*)(((char*)m_buffer.data()) + bo.getOffset());
     }
+    
+    
     class BufferOffset
     {
         int offset;
@@ -825,17 +887,47 @@ class Assembler
         bool assigned() { return offset != INT_MIN; };
     };
 
-  public:
+    
+    
+    struct RelativePatch {
+        
+        
+        BufferOffset offset;
+        void *target;
+        Relocation::Kind kind;
+
+        RelativePatch(BufferOffset offset, void *target, Relocation::Kind kind)
+          : offset(offset),
+            target(target),
+            kind(kind)
+        { }
+    };
+
+    js::Vector<DeferredData *, 0, SystemAllocPolicy> data_;
+    js::Vector<CodeLabel *, 0, SystemAllocPolicy> codeLabels_;
+    js::Vector<RelativePatch, 8, SystemAllocPolicy> jumps_;
+    CompactBufferWriter jumpRelocations_;
+    CompactBufferWriter dataRelocations_;
+    CompactBufferWriter relocations_;
+    size_t dataBytesNeeded_;
+
+    bool enoughMemory_;
+
+    typedef JSC::AssemblerBufferWithConstantPool<2048, 4, 4, JSC::ARMAssembler> ARMBuffer;
+    ARMBuffer m_buffer;
+
+
+
+public:
     Assembler()
-        : dataBytesNeeded_(0),
-          enoughMemory_(true),
-          dtmActive(false),
-          dtmCond(Always)
+      : dataBytesNeeded_(0),
+        enoughMemory_(true),
+        dtmActive(false),
+        dtmCond(Always)
 
     {
     }
-
-    static Condition inverseCondition(Condition cond);
+    static Condition InvertCondition(Condition cond);
 
     
     void trace(JSTracer *trc);
@@ -1035,7 +1127,9 @@ class Assembler
     void as_dtm(LoadStore ls, Register rn, uint32 mask,
                 DTMMode mode, DTMWriteBack wb, Condition c = Always)
     {
-        JS_NOT_REACHED("Feature NYI");
+        writeBlob(0x08000000 | RN(rn) | ls |
+                  mode | mask | c | wb);
+
         return;
     }
 
@@ -1124,30 +1218,46 @@ class Assembler
     }
 
     
+    enum vfp_size {
+        isDouble = 1 << 8,
+        isSingle = 0 << 8
+    };
     
     
     void as_vfp_float(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                       VFPOp op, Condition c = Always)
     {
+        
         JS_ASSERT(vd.equiv(vn) && vd.equiv(vm));
-        JS_NOT_REACHED("Feature NYI");
+        vfp_size sz = isDouble;
+        if (!vd.isDouble()) {
+            sz = isSingle;
+        }
+        writeBlob(VD(vd) | VN(vn) | VM(vm) | op | c | sz | 0x0e000a00);
     }
 
     void as_vadd(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                  Condition c = Always)
     {
-        JS_NOT_REACHED("Feature NYI");
+        as_vfp_float(vd, vn, vm, opv_add, c);
+    }
+
+    void as_vdiv(VFPRegister vd, VFPRegister vn, VFPRegister vm,
+                 Condition c = Always)
+    {
+        as_vfp_float(vd, vn, vm, opv_mul, c);
     }
 
     void as_vmul(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                  Condition c = Always)
     {
-        JS_NOT_REACHED("Feature NYI");
+        as_vfp_float(vd, vn, vm, opv_mul, c);
     }
 
     void as_vnmul(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                   Condition c = Always)
     {
+        as_vfp_float(vd, vn, vm, opv_mul, c);
         JS_NOT_REACHED("Feature NYI");
     }
 
@@ -1165,36 +1275,74 @@ class Assembler
 
     void as_vneg(VFPRegister vd, VFPRegister vm, Condition c = Always)
     {
-        JS_NOT_REACHED("Feature NYI");
+        as_vfp_float(vd, NoVFPRegister, vm, opv_neg, c);
+    }
+
+    void as_vsqrt(VFPRegister vd, VFPRegister vm, Condition c = Always)
+    {
+        as_vfp_float(vd, NoVFPRegister, vm, opv_sqrt, c);
+    }
+
+    void as_vabs(VFPRegister vd, VFPRegister vm, Condition c = Always)
+    {
+        as_vfp_float(vd, NoVFPRegister, vm, opv_abs, c);
     }
 
     void as_vsub(VFPRegister vd, VFPRegister vn, VFPRegister vm,
                  Condition c = Always)
     {
-        JS_NOT_REACHED("Feature NYI");
+        as_vfp_float(vd, vn, vm, opv_sub, c);
+    }
+
+    void as_vcmp(VFPRegister vd, VFPRegister vm,
+                 Condition c = Always)
+    {
+        as_vfp_float(vd, NoVFPRegister, vm, opv_sub, c);
     }
 
     
     void as_vmov(VFPRegister vd, VFPRegister vsrc, Condition c = Always)
     {
-        JS_NOT_REACHED("Feature NYI");
+        as_vfp_float(vd, NoVFPRegister, vsrc, opv_mov, c);
     }
     
     enum FloatToCore_ {
-        FloatToCore,
-        CoreToFloat
+        FloatToCore = 1 << 20,
+        CoreToFloat = 0 << 20
     };
+
+    enum VFPXferSize {
+        WordTransfer   = 0x0E000A10,
+        DoubleTransfer = 0x0C400A10
+    };
+
+    
+    
+    
+    
     
 
-
-
-
-
-    void as_vxfer(Register vt1, Register vt2, VFPRegister vn, FloatToCore_ f2c,
+    void as_vxfer(Register vt1, Register vt2, VFPRegister vm, FloatToCore_ f2c,
                   Condition c = Always)
     {
-        
-        JS_NOT_REACHED("Feature NYI");
+        vfp_size sz = isSingle;
+        if (vm.isDouble()) {
+            
+            
+            
+            
+            
+            
+            JS_ASSERT(vt2 != InvalidReg);
+            sz = isDouble;
+        }
+        VFPXferSize xfersz = WordTransfer;
+        if (vt2 != InvalidReg) {
+            
+            xfersz = DoubleTransfer;
+        }
+        writeBlob(xfersz | f2c | c | sz |
+                 RT(vt1) | ((vt2 != InvalidReg) ? RN(vt2) : 0) | VM(vm));
     }
 
     
@@ -1203,24 +1351,47 @@ class Assembler
                  Condition c = Always)
     {
         JS_NOT_REACHED("Feature NYI");
-        
     }
     
     void as_vdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,
                  Condition c = Always ) {
-        JS_NOT_REACHED("Feature NYI");
-    }
-    
+        vfp_size sz = isDouble;
+        if (!vd.isDouble()) {
+            sz = isSingle;
+        }
 
+        writeBlob(0x0D000A00 | addr.toInt() | VD(vd) | sz | c);
+    }
+
+    
+    
 
     void as_vdtm(LoadStore st, Register rn, VFPRegister vd, int length,
                  Condition c = Always)
     {
-        JS_NOT_REACHED("Feature NYI");
+        JS_ASSERT(length <= 16 && length >= 0);
+        vfp_size sz = isDouble;
+        if (!vd.isDouble()) {
+            sz = isSingle;
+        } else {
+            length *= 2;
+        }
+        writeBlob(dtmLoadStore | RN(rn) | VD(vd) |
+                  length |
+                  dtmMode | dtmUpdate | dtmCond |
+                  0x0C000B00 | sz);
     }
-    void as_vimm(VFPRegister vd )
+
+    void as_vimm(VFPRegister vd, VFPImm imm, Condition c = Always)
     {
-        JS_NOT_REACHED("Feature NYI");
+        vfp_size sz = isDouble;
+        if (!vd.isDouble()) {
+            
+            sz = isSingle;
+            JS_NOT_REACHED("non-double immediate");
+        }
+        writeBlob(c | sz | imm.encode() | VD(vd) | 0x0EB00A00);
+
     }
 
     bool nextLink(BufferOffset b, BufferOffset *next)
@@ -1300,107 +1471,6 @@ class Assembler
         writeBlob(0xe1200070);
     }
 
-#if 0
-    void unpcklps(const FloatRegister &src, const FloatRegister &dest) {
-        masm.unpcklps_rr(src.code(), dest.code());
-    }
-
-    void pinsrd(const Register &src, const FloatRegister &dest) {
-
-        masm.pinsrd_rr(src.code(), dest.code());
-
-    }
-
-    void pinsrd(const Operand &src, const FloatRegister &dest) {
-        switch (src.kind()) {
-          case Operand::REG:
-            masm.pinsrd_rr(src.reg(), dest.code());
-            break;
-          case Operand::REG_DISP:
-            masm.pinsrd_mr(src.disp(), src.base(), dest.code());
-            break;
-          default:
-            JS_NOT_REACHED("unexpected operand kind");
-        }
-    }
-
-    void psrlq(Imm32 shift, const FloatRegister &dest) {
-        masm.psrldq_rr(dest.code(), shift.value);
-    }
-
-    void cvtsi2sd(const Operand &src, const FloatRegister &dest) {
-
-        switch (src.kind()) {
-          case Operand::REG:
-            masm.cvtsi2sd_rr(src.reg(), dest.code());
-            break;
-          case Operand::REG_DISP:
-            masm.cvtsi2sd_mr(src.disp(), src.base(), dest.code());
-            break;
-          default:
-            JS_NOT_REACHED("unexpected operand kind");
-        }
-    }
-
-    void cvttsd2si(const FloatRegister &src, const Register &dest) {
-        JS_NOT_REACHED("cvttsd2si NYI");
-
-        masm.cvttsd2si_rr(src.code(), dest.code());
-
-    }
-    void cvtsi2sd(const Register &src, const FloatRegister &dest) {
-        JS_NOT_REACHED("cvtsi2sd cvtsi2sd NYI");
-
-        masm.cvtsi2sd_rr(src.code(), dest.code());
-
-    }
-    void movmskpd(const FloatRegister &src, const Register &dest) {
-        JS_NOT_REACHED("movmskpd NYI");
-
-        masm.movmskpd_rr(src.code(), dest.code());
-
-    }
-    void ptest(const FloatRegister &lhs, const FloatRegister &rhs) {
-        JS_NOT_REACHED("ptest NYI");
-
-        JS_ASSERT(HasSSE41());
-        masm.ptest_rr(rhs.code(), lhs.code());
-
-    }
-    void ucomisd(const FloatRegister &lhs, const FloatRegister &rhs) {
-        JS_NOT_REACHED("ucomisd NYI");
-        masm.ucomisd_rr(rhs.code(), lhs.code());
-    }
-    void movd(const Register &src, const FloatRegister &dest) {
-        JS_NOT_REACHED("movd NYI");
-        masm.movd_rr(src.code(), dest.code());
-    }
-    void movd(const FloatRegister &src, const Register &dest) {
-        JS_NOT_REACHED("movd NYI");
-        masm.movd_rr(src.code(), dest.code());
-    }
-    void addsd(const FloatRegister &src, const FloatRegister &dest) {
-        JS_NOT_REACHED("addsd NYI");
-        masm.addsd_rr(src.code(), dest.code());
-    }
-    void mulsd(const FloatRegister &src, const FloatRegister &dest) {
-        JS_NOT_REACHED("mulsd NYI");
-        masm.mulsd_rr(src.code(), dest.code());
-    }
-    void xorpd(const FloatRegister &src, const FloatRegister &dest) {
-        JS_NOT_REACHED("xorpd NYI");
-        masm.xorpd_rr(src.code(), dest.code());
-    }
-
-    void writeRelocation(JmpSrc src) {
-        relocations_.writeUnsigned(src.offset());
-    }
-    void addPendingJump(JmpSrc src, void *target, Relocation::Kind kind) {
-        enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), target, kind));
-        if (kind == Relocation::CODE)
-            writeRelocation(src);
-    }
-#endif
   public:
     static void TraceJumpRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
     static void TraceDataRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
@@ -1419,18 +1489,20 @@ class Assembler
     }
 
     void as_b(void *target, Relocation::Kind reloc) {
+        JS_NOT_REACHED("feature NYI");
 #if 0
         JmpSrc src = masm.branch();
         addPendingJump(src, target, reloc);
 #endif
     }
     void as_b(Condition cond, void *target, Relocation::Kind reloc) {
+        JS_NOT_REACHED("feature NYI");
 #if 0
         JmpSrc src = masm.branch(cond);
         addPendingJump(src, target, reloc);
 #endif
     }
-
+#if 0
     void movsd(const double *dp, const FloatRegister &dest) {
     }
     void movsd(AbsoluteLabel *label, const FloatRegister &dest) {
@@ -1438,7 +1510,7 @@ class Assembler
         
         
     }
-
+#endif
     
     
     void startDataTransferM(LoadStore ls, Register rm,
@@ -1466,17 +1538,43 @@ class Assembler
     }
     void finishDataTransfer() {
         dtmActive = false;
-        writeBlob(0x08000000 | RN(dtmBase) | dtmLoadStore |
-                  dtmMode | dtmRegBitField | dtmCond | dtmUpdate);
+        as_dtm(dtmLoadStore, dtmBase, dtmRegBitField, dtmMode, dtmUpdate, dtmCond);
     }
 
-    void startFloatTransferM(LoadStore ls, Register rm, bool update = false) {}
-    void transferFloatReg(FloatRegister rn) {}
-    void finishFloatTransfer() {}
-  private:
+    void startFloatTransferM(LoadStore ls, Register rm,
+                             DTMMode mode, DTMWriteBack update = NoWriteBack,
+                             Condition c = Always)
+    {
+        JS_ASSERT(!dtmActive);
+        dtmActive = true;
+        dtmUpdate = update;
+        dtmLoadStore = ls;
+        dtmBase = rm;
+        dtmCond = c;
+        dtmLastReg = -1;
+    }
+    void transferFloatReg(VFPRegister rn)
+    {
+        if (dtmLastReg == -1) {
+            vdtmFirstReg = rn;
+        } else {
+            JS_ASSERT(rn.code() == dtmLastReg + 1);
+        }
+        dtmLastReg = rn.code();
+    }
+    void finishFloatTransfer() {
+        JS_ASSERT(dtmActive);
+        dtmActive = false;
+        JS_ASSERT(dtmLastReg != -1);
+        
+        int len = dtmLastReg - vdtmFirstReg.code() + 1;
+        as_vdtm(dtmLoadStore, dtmBase, vdtmFirstReg, len, dtmCond);
+    }
+private:
     int dtmRegBitField;
     int dtmLastReg;
     Register dtmBase;
+    VFPRegister vdtmFirstReg;
     DTMWriteBack dtmUpdate;
     DTMMode dtmMode;
     LoadStore dtmLoadStore;
@@ -1506,6 +1604,56 @@ GetArgReg(uint32 arg, Register *out)
         return false;
     }
 }
+
+class DoubleEncoder {
+    uint32 rep(bool b, uint32 count) {
+        uint ret = 0;
+        for (int i = 0; i < count; i++)
+            ret = (ret << 1) | b;
+        return ret;
+    }
+    uint32 encode(uint8 value) {
+        
+        
+        
+        
+        bool a = value >> 7;
+        bool b = value >> 6 & 1;
+        bool B = !b;
+        uint32 cdefgh = value & 0x3f;
+        return a << 31 |
+            B << 30 |
+            rep(b, 8) << 22 |
+            cdefgh << 16;
+    }
+    struct DoubleEntry {
+        uint32 dblTop;
+        datastore::Imm8VFPImmData data;
+        DoubleEntry(uint32 dblTop_, datastore::Imm8VFPImmData data_)
+            : dblTop(dblTop_), data(data_) {}
+        DoubleEntry() :dblTop(-1) {}
+    };
+    DoubleEntry table [256];
+    
+    static DoubleEncoder _this;
+    DoubleEncoder()
+    {
+        for (int i = 0; i < 256; i++) {
+            table[i] = DoubleEntry(encode(i), datastore::Imm8VFPImmData(i));
+        }
+    }
+
+  public:
+    static bool lookup(uint32 top, datastore::Imm8VFPImmData *ret) {
+        for (int i = 0; i < 256; i++) {
+            if (_this.table[i].dblTop == top) {
+                *ret = _this.table[i].data;
+                return true;
+            }
+        }
+        return false;
+    }
+};
 
 } 
 } 

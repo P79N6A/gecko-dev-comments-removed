@@ -197,11 +197,13 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
         masm.transferReg(Register::FromCode(i));
     masm.finishDataTransfer();
     
-    masm.startFloatTransferM(IsStore, sp, true);
+    masm.startFloatTransferM(IsStore, sp, DB, WriteBack);
     for (uint32 i = 0; i < FloatRegisters::Total; i++)
         masm.transferFloatReg(FloatRegister::FromCode(i));
     masm.finishFloatTransfer();
 
+    
+    
     
     
     
@@ -213,7 +215,11 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     
     
     
-    masm.as_dtr(IsStore, 32, PreIndex, r4, DTRAddr(sp, DtrOffImm(-4)));
+    masm.startDataTransferM(IsStore, sp, DB, WriteBack);
+    masm.transferReg(r4);
+    masm.transferReg(lr);
+    masm.finishDataTransfer();
+
     
     
     
@@ -221,13 +227,14 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
 
     
     
-    masm.as_mov(r0, O2Reg(sp));
+    
 
     
-    masm.as_sub(sp, sp, Imm8(4));
+    
+    
 
     
-    masm.setABIArg(0, r0);
+    masm.setABIArg(0, sp);
 
     
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Bailout));
@@ -244,7 +251,10 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
         masm.as_add(sp, sp, O2Reg(r4));
     } else {
         uint32 frameSize = FrameSizeClass::FromClass(frameClass).frameSize();
-        masm.ma_add(Imm32(frameSize), sp);
+        masm.ma_add(Imm32(frameSize 
+                          + sizeof(void*) 
+                          + bailoutFrameSize) 
+                    , sp);
     }
 
     Label exception;
