@@ -188,13 +188,23 @@ ContentSecurityPolicy.prototype = {
     if (!aChannel)
       return;
     
-    var internalChannel = aChannel.QueryInterface(Ci.nsIHttpChannelInternal);
-    var reqMaj = {};
-    var reqMin = {};
-    var reqVersion = internalChannel.getRequestVersion(reqMaj, reqMin);
-    this._request = aChannel.requestMethod + " " 
-                  + aChannel.URI.asciiSpec
-                  + " HTTP/" + reqMaj.value + "." + reqMin.value;
+    var internalChannel = null;
+    try {
+      internalChannel = aChannel.QueryInterface(Ci.nsIHttpChannelInternal);
+    } catch (e) {
+      CSPdebug("No nsIHttpChannelInternal for " + aChannel.URI.asciiSpec);
+    }
+
+    this._request = aChannel.requestMethod + " " + aChannel.URI.asciiSpec;
+
+    
+    
+    if (internalChannel) {
+      var reqMaj = {};
+      var reqMin = {};
+      var reqVersion = internalChannel.getRequestVersion(reqMaj, reqMin);
+      this._request += " HTTP/" + reqMaj.value + "." + reqMin.value;
+    }
 
     
     var self = this;
@@ -216,6 +226,13 @@ ContentSecurityPolicy.prototype = {
   function csp_refinePolicy(aPolicy, selfURI) {
     CSPdebug("REFINE POLICY: " + aPolicy);
     CSPdebug("         SELF: " + selfURI.asciiSpec);
+    
+    
+    
+    if (selfURI instanceof Ci.nsINestedURI) {
+      CSPdebug("        INNER: " + selfURI.innermostURI.asciiSpec);
+      selfURI = selfURI.innermostURI;
+    }
 
     
     this._isInitialized = false;
@@ -379,7 +396,8 @@ ContentSecurityPolicy.prototype = {
                           aExtra) {
 
     
-    if (aContentLocation.scheme === 'chrome') {
+    if (aContentLocation.scheme === 'chrome' ||
+        aContentLocation.scheme === 'resource') {
       return Ci.nsIContentPolicy.ACCEPT;
     }
 
