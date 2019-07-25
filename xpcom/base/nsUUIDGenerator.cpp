@@ -131,22 +131,7 @@ nsUUIDGenerator::GenerateUUIDInPlace(nsID* id)
     
     MutexAutoLock lock(mLock);
 
-#if defined(WINCE)
-    
-    
-
-    if (!CeGenRandom(sizeof(nsID), (BYTE*) id))
-        return NS_ERROR_FAILURE;
-
-    
-    id->m2 &= 0x0fff;
-    id->m2 |= 0x4000;
-
-    
-    id->m3[0] &= 0x3f;
-    id->m3[0] |= 0x80;
-
-#elif defined(XP_WIN)
+#if defined(XP_WIN)
     HRESULT hr = CoCreateGuid((GUID*)id);
     if (NS_FAILED(hr))
         return NS_ERROR_FAILURE;

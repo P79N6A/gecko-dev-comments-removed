@@ -42,7 +42,7 @@
 
 #include "nsStackWalk.h"
 
-#if defined(_WIN32) && (defined(_M_IX86) || defined(_M_AMD64) || defined(_M_IA64)) && !defined(WINCE) 
+#if defined(_WIN32) && (defined(_M_IX86) || defined(_M_AMD64) || defined(_M_IA64)) 
 
 #include "nscore.h"
 #include <windows.h>

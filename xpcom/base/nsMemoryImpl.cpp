@@ -164,17 +164,6 @@ nsMemoryImpl::RunFlushers(const PRUnichar* aReason)
         }
     }
 
-    
-#ifdef WINCE_WINDOWS_MOBILE
-
-    
-    
-    
-
-    SHCloseApps(1024 * 1024 * 4);
-
-#endif
-
     sIsFlushing = 0;
     return NS_OK;
 }
