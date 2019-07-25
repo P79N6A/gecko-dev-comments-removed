@@ -32,6 +32,11 @@ const STORAGE_STREAM_SEGMENT_SIZE = 4096;
 
 const HTTP_STATUS_OK = 200;
 
+const CONFIG_SEND_REPORT_NEVER       = 0;
+const CONFIG_SEND_REPORT_DEFAULT_NO  = 1;
+const CONFIG_SEND_REPORT_DEFAULT_YES = 2;
+const CONFIG_SEND_REPORT_ALWAYS      = 3;
+
 XPCOMUtils.defineLazyServiceGetter(this, "gpps",
                                    "@mozilla.org/network/protocol-proxy-service;1",
                                    "nsIProtocolProxyService");
@@ -57,11 +62,35 @@ MmsService.prototype = {
                                          Ci.nsIObserver,
                                          Ci.nsIProtocolProxyFilter]),
 
+  
+
+
+
+  confSendDeliveryReport: CONFIG_SEND_REPORT_DEFAULT_YES,
+
   proxyInfo: null,
   MMSC: null,
 
   
   proxyFilterRefCount: 0,
+
+  
+
+
+
+
+
+
+
+  getReportAllowed: function getReportAllowed(config, wish) {
+    if ((config == CONFIG_SEND_REPORT_DEFAULT_NO)
+        || (config == CONFIG_SEND_REPORT_DEFAULT_YES)) {
+      if (wish != null) {
+        config += (wish ? 1 : -1);
+      }
+    }
+    return config >= CONFIG_SEND_REPORT_DEFAULT_YES;
+  },
 
   
 
@@ -178,8 +207,11 @@ MmsService.prototype = {
 
 
 
-  sendNotificationResponse: function sendNotificationResponse(tid, status) {
-    debug("sendNotificationResponse: tid = " + tid + ", status = " + status);
+
+
+  sendNotificationResponse: function sendNotificationResponse(tid, status, ra) {
+    debug("sendNotificationResponse: tid = " + tid + ", status = " + status
+          + ", reportAllowed = " + ra);
 
     let headers = {};
 
@@ -189,7 +221,7 @@ MmsService.prototype = {
     headers["x-mms-mms-version"] = MMS.MMS_VERSION;
     headers["x-mms-status"] = status;
     
-    headers["x-mms-report-allowed"] = true;
+    headers["x-mms-report-allowed"] = ra;
 
     let istream = MMS.PduHelper.compose(null, {headers: headers});
     this.sendMmsRequest("POST", this.MMSC, istream);
@@ -308,7 +340,17 @@ MmsService.prototype = {
   handleNotificationIndication: function handleNotificationIndication(msg) {
     function callback(status, retr) {
       let tid = msg.headers["x-mms-transaction-id"];
-      this.sendNotificationResponse(tid, status);
+
+      
+      let wish = msg.headers["x-mms-delivery-report"];
+      
+      
+      if ((wish == null) && retr) {
+        wish = retr.headers["x-mms-delivery-report"];
+      }
+      let ra = this.getReportAllowed(this.confSendDeliveryReport, wish);
+
+      this.sendNotificationResponse(tid, status, ra);
     }
 
     function retrCallback(error, retr) {
@@ -338,6 +380,11 @@ MmsService.prototype = {
       if (callback) {
         callback(status, msg)
       }
+    }
+
+    
+    if (msg.headers["x-mms-delivery-report"] == null) {
+      msg.headers["x-mms-delivery-report"] = false;
     }
 
     let status = msg.headers["x-mms-retrieve-status"];
