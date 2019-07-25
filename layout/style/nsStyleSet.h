@@ -243,10 +243,10 @@ class nsStyleSet
     eDocSheet, 
     eStyleAttrSheet,
     eOverrideSheet, 
-    eTransitionSheet,
 #ifdef MOZ_CSS_ANIMATIONS
     eAnimationSheet,
 #endif
+    eTransitionSheet,
     eSheetTypeCount
     
     
