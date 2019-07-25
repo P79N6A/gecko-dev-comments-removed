@@ -59,6 +59,9 @@
 #include "nsCRT.h"
 #include "nsString.h"
 #include "nsToolkit.h"
+#include "WinUtils.h"
+
+using namespace mozilla::widget;
 
 PRUnichar *nsFilePicker::mLastUsedUnicodeDirectory;
 char nsFilePicker::mLastUsedDirectory[MAX_PATH+1] = { 0 };
@@ -706,7 +709,7 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   
   
   
-  if (nsWindow::GetWindowsVersion() < VISTA_VERSION) {
+  if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION) {
     ofn.lpfnHook = FilePickerHook;
     ofn.Flags |= OFN_ENABLEHOOK;
   }
@@ -765,7 +768,7 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
       
       
       
-      if (nsWindow::GetWindowsVersion() < VISTA_VERSION) {
+      if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION) {
         ofn.lpfnHook = MultiFilePickerHook;
         fileBuffer.forget();
         result = FilePickerWrapper(&ofn, PICKER_TYPE_OPEN);
@@ -1053,7 +1056,7 @@ nsFilePicker::ShowW(PRInt16 *aReturnVal)
   bool result = false;
    if (mMode == modeGetFolder) {
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
-    if (nsWindow::GetWindowsVersion() >= VISTA_VERSION)
+    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION)
       result = ShowFolderPicker(initialDir);
     else
       result = ShowXPFolderPicker(initialDir);
@@ -1062,7 +1065,7 @@ nsFilePicker::ShowW(PRInt16 *aReturnVal)
 #endif  
    } else {
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
-    if (nsWindow::GetWindowsVersion() >= VISTA_VERSION)
+    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION)
       result = ShowFilePicker(initialDir);
     else
       result = ShowXPFilePicker(initialDir);
@@ -1259,7 +1262,7 @@ NS_IMETHODIMP
 nsFilePicker::AppendFilter(const nsAString& aTitle, const nsAString& aFilter)
 {
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
-  if (nsWindow::GetWindowsVersion() >= VISTA_VERSION) {
+  if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
     mComFilterList.Append(aTitle, aFilter);
   } else {
     AppendXPFilter(aTitle, aFilter);
@@ -1340,12 +1343,15 @@ nsFilePicker::IsDefaultPathHtml()
 void
 nsFilePicker::ComDlgFilterSpec::Append(const nsAString& aTitle, const nsAString& aFilter)
 {
-  COMDLG_FILTERSPEC* pSpecForward = mSpecList.AppendElement();
-  if (!pSpecForward) {
+  PRUint32 size = sizeof(COMDLG_FILTERSPEC);
+  PRUint32 hdrLen = size * (mLength + 1);
+  mSpecList = (COMDLG_FILTERSPEC*)realloc(mSpecList, hdrLen);
+  if (!mSpecList) {
     NS_WARNING("mSpecList realloc failed.");
     return;
   }
-  memset(pSpecForward, 0, sizeof(*pSpecForward));
+  COMDLG_FILTERSPEC* pSpecForward = (COMDLG_FILTERSPEC*)(mSpecList + mLength);
+  memset(pSpecForward, 0, size);
   nsString* pStr = mStrings.AppendElement(aTitle);
   if (!pStr) {
     NS_WARNING("mStrings.AppendElement failed.");
@@ -1357,12 +1363,6 @@ nsFilePicker::ComDlgFilterSpec::Append(const nsAString& aTitle, const nsAString&
     NS_WARNING("mStrings.AppendElement failed.");
     return;
   }
-  if (aFilter.EqualsLiteral("..apps"))
-    pStr->AssignLiteral("*.exe;*.com");
-  else {
-    pStr->StripWhitespace();
-    if (pStr->EqualsLiteral("*"))
-      pStr->AppendLiteral(".*");
-  }
   pSpecForward->pszSpec = pStr->get();
+  mLength++;
 }
