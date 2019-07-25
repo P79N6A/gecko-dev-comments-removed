@@ -885,7 +885,9 @@ PropertiesView.prototype = {
 
 
 
-  _addVar: function DVP__addVar(aScope, aName, aId) {
+
+
+  _addVar: function DVP__addVar(aScope, aName, aFlags, aId) {
     
     if (!aScope) {
       return null;
@@ -926,6 +928,21 @@ PropertiesView.prototype = {
 
       
       valueLabel.className = "value plain";
+
+      if (aFlags) {
+        
+        let tooltip = [];
+
+        !aFlags.configurable ? element.setAttribute("non-configurable", "")
+                             : tooltip.push("configurable");
+        !aFlags.enumerable   ? element.setAttribute("non-enumerable", "")
+                             : tooltip.push("enumerable");
+        !aFlags.writable     ? element.setAttribute("non-writable", "")
+                             : tooltip.push("writable");
+
+        element.setAttribute("tooltiptext", tooltip.join(", "));
+      }
+      if (aName === "this") { element.setAttribute("self", ""); }
 
       
       valueLabel.addEventListener("click", this._activateElementInputMode.bind({
@@ -1139,15 +1156,7 @@ PropertiesView.prototype = {
 
       if ("undefined" !== typeof pKey) {
         
-        let className = "";
-        if (aFlags) {
-          if (aFlags.configurable === false) { className += "non-configurable "; }
-          if (aFlags.enumerable === false) { className += "non-enumerable "; }
-          if (aFlags.writable === false) { className += "non-writable "; }
-        }
-        if (pKey === "__proto__ ") { className += "proto "; }
-
-        nameLabel.className = className + "key plain";
+        nameLabel.className = "key plain";
         nameLabel.setAttribute("value", pKey.trim());
         title.appendChild(nameLabel);
       }
@@ -1163,6 +1172,21 @@ PropertiesView.prototype = {
         title.appendChild(separatorLabel);
         title.appendChild(valueLabel);
       }
+
+      if (aFlags) {
+        
+        let tooltip = [];
+
+        !aFlags.configurable ? element.setAttribute("non-configurable", "")
+                             : tooltip.push("configurable");
+        !aFlags.enumerable   ? element.setAttribute("non-enumerable", "")
+                             : tooltip.push("enumerable");
+        !aFlags.writable     ? element.setAttribute("non-writable", "")
+                             : tooltip.push("writable");
+
+        element.setAttribute("tooltiptext", tooltip.join(", "));
+      }
+      if (pKey === "__proto__ ") { element.setAttribute("proto", ""); }
 
       
       valueLabel.addEventListener("click", this._activateElementInputMode.bind({
