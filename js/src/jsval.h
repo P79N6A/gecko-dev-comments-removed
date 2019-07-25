@@ -310,7 +310,7 @@ typedef union jsval_layout
     } s;
     double asDouble;
     void *asPtr;
-} jsval_layout;
+} JSVAL_ALIGNMENT jsval_layout;
 # elif JS_BITS_PER_WORD == 64
 typedef union jsval_layout
 {
@@ -332,7 +332,7 @@ typedef union jsval_layout
     double asDouble;
     void *asPtr;
     size_t asWord;
-} jsval_layout;
+} JSVAL_ALIGNMENT jsval_layout;
 # endif  
 #else   
 # if JS_BITS_PER_WORD == 32
@@ -354,7 +354,7 @@ typedef union jsval_layout
     } s;
     double asDouble;
     void *asPtr;
-} jsval_layout;
+} JSVAL_ALIGNMENT jsval_layout;
 # elif JS_BITS_PER_WORD == 64
 typedef union jsval_layout
 {
@@ -374,7 +374,7 @@ typedef union jsval_layout
     double asDouble;
     void *asPtr;
     size_t asWord;
-} jsval_layout;
+} JSVAL_ALIGNMENT jsval_layout;
 # endif 
 #endif  
 
