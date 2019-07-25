@@ -805,7 +805,7 @@ namespace js {
 
 
 
-bool
+void
 ReportIncompatibleMethod(JSContext *cx, Value *vp, Class *clasp);
 
 
