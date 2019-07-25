@@ -220,23 +220,23 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
     
     if (tag == nsGkAtoms::a) {
       if (mLinkRule || mVisitedRule || mActiveRule) {
-        PRUint32 state = aData->GetContentStateForVisitedHandling(
+        nsEventStates state = aData->GetContentStateForVisitedHandling(
                                   ruleWalker->VisitedHandling(),
                                   
                                   
                                   aData->IsLink());
-        if (mLinkRule && (state & NS_EVENT_STATE_UNVISITED)) {
+        if (mLinkRule && state.HasState(NS_EVENT_STATE_UNVISITED)) {
           ruleWalker->Forward(mLinkRule);
           ruleWalker->SetHaveRelevantLink();
         }
-        else if (mVisitedRule && (state & NS_EVENT_STATE_VISITED)) {
+        else if (mVisitedRule && state.HasState(NS_EVENT_STATE_VISITED)) {
           ruleWalker->Forward(mVisitedRule);
           ruleWalker->SetHaveRelevantLink();
         }
 
         
         if (mActiveRule && aData->IsLink() &&
-            (state & NS_EVENT_STATE_ACTIVE)) {
+            state.HasState(NS_EVENT_STATE_ACTIVE)) {
           ruleWalker->Forward(mActiveRule);
         }
       } 
@@ -275,9 +275,9 @@ nsHTMLStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
   if (aData->mIsHTMLContent &&
       aData->mContentTag == nsGkAtoms::a &&
       aData->IsLink() &&
-      ((mActiveRule && (aData->mStateMask & NS_EVENT_STATE_ACTIVE)) ||
-       (mLinkRule && (aData->mStateMask & NS_EVENT_STATE_VISITED)) ||
-       (mVisitedRule && (aData->mStateMask & NS_EVENT_STATE_VISITED)))) {
+      ((mActiveRule && aData->mStateMask.HasState(NS_EVENT_STATE_ACTIVE)) ||
+       (mLinkRule && aData->mStateMask.HasState(NS_EVENT_STATE_VISITED)) ||
+       (mVisitedRule && aData->mStateMask.HasState(NS_EVENT_STATE_VISITED)))) {
     return eRestyle_Self;
   }
   

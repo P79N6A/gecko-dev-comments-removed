@@ -106,13 +106,13 @@ private:
   }
 public:
   const nsString* GetLang();
-  PRUint32 ContentState();
-  PRUint32 DocumentState();
+  nsEventStates ContentState();
+  nsEventStates DocumentState();
   PRBool IsLink();
 
-  PRUint32 GetContentStateForVisitedHandling(
-             nsRuleWalker::VisitedHandlingType aVisitedHandling,
-             PRBool aIsRelevantLink);
+  nsEventStates GetContentStateForVisitedHandling(
+                  nsRuleWalker::VisitedHandlingType aVisitedHandling,
+                  PRBool aIsRelevantLink);
 
   
   
@@ -155,10 +155,11 @@ private:
   PRInt32 mNthIndices[2][2];
 
   
-  PRInt32 mContentState;  
-                          
-                          
-                          
+  nsEventStates mContentState;  
+                                
+                                
+                                
+                                
   PRPackedBool mGotContentState;
 };
 
@@ -234,14 +235,14 @@ struct XULTreeRuleProcessorData : public RuleProcessorData {
 struct StateRuleProcessorData : public RuleProcessorData {
   StateRuleProcessorData(nsPresContext* aPresContext,
                          mozilla::dom::Element* aElement,
-                         PRInt32 aStateMask)
+                         nsEventStates aStateMask)
     : RuleProcessorData(aPresContext, aElement, nsnull),
       mStateMask(aStateMask)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
   }
-  const PRInt32 mStateMask; 
-                            
+  const nsEventStates mStateMask; 
+                                  
 };
 
 struct AttributeRuleProcessorData : public RuleProcessorData {

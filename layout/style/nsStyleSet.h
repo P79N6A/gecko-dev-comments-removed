@@ -185,12 +185,12 @@ class nsStyleSet
   
   PRBool HasDocumentStateDependentStyle(nsPresContext* aPresContext,
                                         nsIContent*    aContent,
-                                        PRInt32        aStateMask);
+                                        nsEventStates  aStateMask);
 
   
   nsRestyleHint HasStateDependentStyle(nsPresContext* aPresContext,
                                        mozilla::dom::Element* aElement,
-                                       PRInt32 aStateMask);
+                                       nsEventStates aStateMask);
 
   
   nsRestyleHint HasAttributeDependentStyle(nsPresContext* aPresContext,

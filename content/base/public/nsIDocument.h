@@ -65,6 +65,7 @@
 #include "nsIScriptGlobalObject.h"
 #include "nsIDocumentEncoder.h"
 #include "nsIAnimationFrameListener.h"
+#include "nsEventStates.h"
 
 class nsIContent;
 class nsPresContext;
@@ -120,8 +121,8 @@ class Element;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x73d79167, 0xacba, 0x46eb, \
-  { 0xad, 0x45, 0xa3, 0x4b, 0x92, 0xf6, 0x01, 0x5b } }
+{ 0x7fb1e97d, 0xbd2c, 0x47cf, \
+  { 0xa3, 0x05, 0x5b, 0x31, 0xd4, 0x1d, 0x3a, 0x52 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -129,9 +130,9 @@ class Element;
 
 
 
-#define NS_DOCUMENT_STATE_RTL_LOCALE              (1 << 0)
+#define NS_DOCUMENT_STATE_RTL_LOCALE              NS_DEFINE_EVENT_STATE_MACRO(0)
 
-#define NS_DOCUMENT_STATE_WINDOW_INACTIVE         (1 << 1)
+#define NS_DOCUMENT_STATE_WINDOW_INACTIVE         NS_DEFINE_EVENT_STATE_MACRO(1)
 
 
 
@@ -723,12 +724,12 @@ public:
   
   virtual void ContentStatesChanged(nsIContent* aContent1,
                                     nsIContent* aContent2,
-                                    PRInt32 aStateMask) = 0;
+                                    nsEventStates aStateMask) = 0;
 
   
   
   
-  virtual void DocumentStatesChanged(PRInt32 aStateMask) = 0;
+  virtual void DocumentStatesChanged(nsEventStates aStateMask) = 0;
 
   
   
@@ -1415,7 +1416,7 @@ public:
 
 
 
-  virtual PRInt32 GetDocumentState() = 0;
+  virtual nsEventStates GetDocumentState() = 0;
 
   virtual nsISupports* GetCurrentContentSink() = 0;
 

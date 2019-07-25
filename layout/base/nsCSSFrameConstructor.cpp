@@ -1883,7 +1883,7 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
   nsIContent* const content = aItem.mContent;
   nsStyleContext* const styleContext = aItem.mStyleContext;
   const PRUint32 nameSpaceID = aItem.mNameSpaceID;
-  
+
   nsresult rv = NS_OK;
 
   
@@ -3650,9 +3650,9 @@ nsCSSFrameConstructor::FindObjectData(nsIContent* aContent,
   
   
   PRUint32 type;
-  if (aContent->IntrinsicState() &
-      (NS_EVENT_STATE_BROKEN | NS_EVENT_STATE_USERDISABLED |
-       NS_EVENT_STATE_SUPPRESSED)) {
+  if (aContent->IntrinsicState().HasAtLeastOneOfStates(NS_EVENT_STATE_BROKEN |
+                                                       NS_EVENT_STATE_USERDISABLED |
+                                                       NS_EVENT_STATE_SUPPRESSED)) {
     type = nsIObjectLoadingContent::TYPE_NULL;
   } else {
     nsCOMPtr<nsIObjectLoadingContent> objContent(do_QueryInterface(aContent));
@@ -8035,7 +8035,7 @@ nsCSSFrameConstructor::RestyleElement(Element        *aElement,
 nsresult
 nsCSSFrameConstructor::ContentStatesChanged(nsIContent* aContent1,
                                             nsIContent* aContent2,
-                                            PRInt32 aStateMask) 
+                                            nsEventStates aStateMask)
 {
   
   
@@ -8050,7 +8050,7 @@ nsCSSFrameConstructor::ContentStatesChanged(nsIContent* aContent1,
 
 void
 nsCSSFrameConstructor::DoContentStateChanged(Element* aElement,
-                                             PRInt32 aStateMask) 
+                                             nsEventStates aStateMask)
 {
   nsStyleSet *styleSet = mPresShell->StyleSet();
   nsPresContext *presContext = mPresShell->GetPresContext();
@@ -8067,8 +8067,10 @@ nsCSSFrameConstructor::DoContentStateChanged(Element* aElement,
   if (primaryFrame) {
     
     if (!primaryFrame->IsGeneratedContentFrame() &&
-        (aStateMask & (NS_EVENT_STATE_BROKEN | NS_EVENT_STATE_USERDISABLED |
-                       NS_EVENT_STATE_SUPPRESSED | NS_EVENT_STATE_LOADING))) {
+        aStateMask.HasAtLeastOneOfStates(NS_EVENT_STATE_BROKEN |
+                                  NS_EVENT_STATE_USERDISABLED |
+                                  NS_EVENT_STATE_SUPPRESSED |
+                                  NS_EVENT_STATE_LOADING)) {
       hint = nsChangeHint_ReconstructFrame;
     } else {
       PRUint8 app = primaryFrame->GetStyleDisplay()->mAppearance;
@@ -8089,11 +8091,11 @@ nsCSSFrameConstructor::DoContentStateChanged(Element* aElement,
   nsRestyleHint rshint = 
     styleSet->HasStateDependentStyle(presContext, aElement, aStateMask);
       
-  if ((aStateMask & NS_EVENT_STATE_HOVER) && rshint != 0) {
+  if (aStateMask.HasState(NS_EVENT_STATE_HOVER) && rshint != 0) {
     ++mHoverGeneration;
   }
 
-  if (aStateMask & NS_EVENT_STATE_VISITED) {
+  if (aStateMask.HasState(NS_EVENT_STATE_VISITED)) {
     
     
     

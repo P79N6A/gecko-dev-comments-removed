@@ -2730,13 +2730,13 @@ nsGenericHTMLFormElement::IsSubmittableControl() const
          type & NS_FORM_INPUT_ELEMENT;
 }
 
-PRInt32
+nsEventStates
 nsGenericHTMLFormElement::IntrinsicState() const
 {
   
   
   
-  PRInt32 state = nsGenericHTMLElement::IntrinsicState();
+  nsEventStates state = nsGenericHTMLElement::IntrinsicState();
 
   if (CanBeDisabled()) {
     
@@ -2949,7 +2949,7 @@ nsGenericHTMLFormElement::UpdateFieldSet()
 }
 
 void
-nsGenericHTMLFormElement::FieldSetDisabledChanged(PRInt32 aStates, PRBool aNotify)
+nsGenericHTMLFormElement::FieldSetDisabledChanged(nsEventStates aStates, PRBool aNotify)
 {
   if (!aNotify) {
     return;
@@ -3457,7 +3457,7 @@ nsGenericHTMLElement::IsEditableRoot() const
 static void
 MakeContentDescendantsEditable(nsIContent *aContent, nsIDocument *aDocument)
 {
-  PRInt32 stateBefore = aContent->IntrinsicState();
+  nsEventStates stateBefore = aContent->IntrinsicState();
 
   aContent->UpdateEditableState();
 

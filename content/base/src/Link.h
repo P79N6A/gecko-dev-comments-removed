@@ -68,7 +68,7 @@ public:
 
 
 
-  PRInt32 LinkState() const;
+  nsEventStates LinkState() const;
 
   
 

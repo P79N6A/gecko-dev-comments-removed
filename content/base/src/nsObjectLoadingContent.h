@@ -132,7 +132,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    PRInt32 ObjectState() const;
+    nsEventStates ObjectState() const;
 
     void SetIsNetworkCreated(PRBool aNetworkCreated)
     {
@@ -259,7 +259,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    void NotifyStateChanged(ObjectType aOldType, PRInt32 aOldState,
+    void NotifyStateChanged(ObjectType aOldType, nsEventStates aOldState,
                             PRBool aSync);
 
     

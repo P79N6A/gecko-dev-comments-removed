@@ -96,7 +96,7 @@ protected:
 
 
 
-  PRInt32 ImageState() const;
+  nsEventStates ImageState() const;
 
   
 
@@ -315,7 +315,7 @@ private:
 
 
 
-  PRInt32 mForcedImageState;
+  nsEventStates mForcedImageState;
 
   PRInt16 mImageBlockingStatus;
   PRPackedBool mLoadingEnabled : 1;

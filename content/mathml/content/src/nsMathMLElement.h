@@ -90,7 +90,7 @@ public:
                                       nsRuleData* aRuleData);
   
   nsresult Clone(nsINodeInfo*, nsINode**) const;
-  virtual PRInt32 IntrinsicState() const;
+  virtual nsEventStates IntrinsicState() const;
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
 
   

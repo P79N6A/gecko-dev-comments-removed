@@ -359,7 +359,7 @@ class AutoNotifier {
     nsObjectLoadingContent*            mContent;
     PRBool                             mNotify;
     nsObjectLoadingContent::ObjectType mOldType;
-    PRInt32                            mOldState;
+    nsEventStates                      mOldState;
 };
 
 
@@ -1043,7 +1043,7 @@ nsObjectLoadingContent::AsyncOnChannelRedirect(nsIChannel *aOldChannel,
 }
 
 
-PRInt32
+nsEventStates
 nsObjectLoadingContent::ObjectState() const
 {
   switch (mType) {
@@ -1056,7 +1056,7 @@ nsObjectLoadingContent::ObjectState() const
       
       
       
-      return 0;
+      return nsEventStates();
     case eType_Null:
       if (mSuppressed)
         return NS_EVENT_STATE_SUPPRESSED;
@@ -1064,7 +1064,7 @@ nsObjectLoadingContent::ObjectState() const
         return NS_EVENT_STATE_USERDISABLED;
 
       
-      PRInt32 state = NS_EVENT_STATE_BROKEN;
+      nsEventStates state = NS_EVENT_STATE_BROKEN;
       switch (mFallbackReason) {
         case ePluginDisabled:
           state |= NS_EVENT_STATE_HANDLER_DISABLED;
@@ -1083,7 +1083,7 @@ nsObjectLoadingContent::ObjectState() const
   };
   NS_NOTREACHED("unknown type?");
   
-  return 0;
+  return nsEventStates();
 }
 
 
@@ -1634,11 +1634,11 @@ nsObjectLoadingContent::UnloadContent()
 
 void
 nsObjectLoadingContent::NotifyStateChanged(ObjectType aOldType,
-                                          PRInt32 aOldState,
-                                          PRBool aSync)
+                                          nsEventStates aOldState, PRBool aSync)
 {
-  LOG(("OBJLC [%p]: Notifying about state change: (%u, %x) -> (%u, %x) (sync=%i)\n",
-       this, aOldType, aOldState, mType, ObjectState(), aSync));
+  LOG(("OBJLC [%p]: Notifying about state change: (%u, %lx) -> (%u, %lx) (sync=%i)\n",
+       this, aOldType, aOldState.GetInternalValue(), mType,
+       ObjectState().GetInternalValue(), aSync));
 
   nsCOMPtr<nsIContent> thisContent = 
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
@@ -1649,12 +1649,12 @@ nsObjectLoadingContent::NotifyStateChanged(ObjectType aOldType,
     return; 
   }
 
-  PRInt32 newState = ObjectState();
+  nsEventStates newState = ObjectState();
 
   if (newState != aOldState) {
     
     NS_ASSERTION(thisContent->IsInDoc(), "Something is confused");
-    PRInt32 changedBits = aOldState ^ newState;
+    nsEventStates changedBits = aOldState ^ newState;
 
     {
       mozAutoDocUpdate upd(doc, UPDATE_CONTENT_STATE, PR_TRUE);

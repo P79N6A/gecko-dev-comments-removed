@@ -681,8 +681,8 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  PRInt32 eventStates = mContent->IntrinsicState();
-  if ((eventStates & NS_EVENT_STATE_DISABLED) && IsVisibleForPainting(aBuilder)) {
+  nsEventStates eventStates = mContent->IntrinsicState();
+  if (eventStates.HasState(NS_EVENT_STATE_DISABLED) && IsVisibleForPainting(aBuilder)) {
     rv = aLists.Content()->AppendNewToTop(
         new (aBuilder) nsDisplayEventReceiver(aBuilder, this));
     if (NS_FAILED(rv))

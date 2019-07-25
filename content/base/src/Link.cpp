@@ -84,7 +84,7 @@ Link::SetLinkState(nsLinkState aState)
                "Setting state to the currently set state!");
 
   
-  PRInt32 oldLinkState = LinkState();
+  nsEventStates oldLinkState = LinkState();
 
   
   mLinkState = aState;
@@ -96,7 +96,7 @@ Link::SetLinkState(nsLinkState aState)
   nsIContent *content = Content();
   nsIDocument *doc = content->GetCurrentDoc();
   NS_ASSERTION(doc, "Registered but we have no document?!");
-  PRInt32 newLinkState = LinkState();
+  nsEventStates newLinkState = LinkState();
   NS_ASSERTION(newLinkState == NS_EVENT_STATE_VISITED ||
                newLinkState == NS_EVENT_STATE_UNVISITED,
                "Unexpected state obtained from LinkState()!");
@@ -104,7 +104,7 @@ Link::SetLinkState(nsLinkState aState)
   doc->ContentStatesChanged(content, nsnull, oldLinkState ^ newLinkState);
 }
 
-PRInt32
+nsEventStates
 Link::LinkState() const
 {
   
@@ -124,7 +124,7 @@ Link::LinkState() const
     nsCOMPtr<nsIURI> hrefURI(GetURI());
     if (!hrefURI) {
       self->mLinkState = eLinkState_NotLink;
-      return 0;
+      return nsEventStates();
     }
 
     
@@ -153,7 +153,7 @@ Link::LinkState() const
     return NS_EVENT_STATE_UNVISITED;
   }
 
-  return 0;
+  return nsEventStates();
 }
 
 already_AddRefed<nsIURI>
@@ -491,7 +491,7 @@ Link::ResetLinkState(bool aNotify)
   
   
   if (aNotify && doc) {
-    PRUint32 changedState = NS_EVENT_STATE_VISITED ^ NS_EVENT_STATE_UNVISITED;
+    nsEventStates changedState = NS_EVENT_STATE_VISITED ^ NS_EVENT_STATE_UNVISITED;
     MOZ_AUTO_DOC_UPDATE(doc, UPDATE_STYLE, aNotify);
     doc->ContentStatesChanged(content, nsnull, changedState);
   }

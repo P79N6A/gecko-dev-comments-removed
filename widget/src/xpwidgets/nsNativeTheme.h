@@ -46,6 +46,7 @@
 #include "nsMargin.h"
 #include "nsILookAndFeel.h"
 #include "nsWidgetAtoms.h"
+#include "nsEventStates.h"
 
 class nsIFrame;
 class nsIPresShell;
@@ -70,7 +71,7 @@ class nsNativeTheme
   nsNativeTheme();
 
   
-  PRInt32 GetContentState(nsIFrame* aFrame, PRUint8 aWidgetType);
+  nsEventStates GetContentState(nsIFrame* aFrame, PRUint8 aWidgetType);
 
   
   
@@ -80,7 +81,7 @@ class nsNativeTheme
 
   
 
-  bool IsDisabled(nsIFrame* aFrame, PRInt32 aEventStates);
+  bool IsDisabled(nsIFrame* aFrame, nsEventStates aEventStates);
 
   
   PRBool IsFrameRTL(nsIFrame* aFrame);
