@@ -948,7 +948,9 @@ nsCanvasRenderingContext2D::StyleColorToString(const nscolor& aColor, nsAString&
                                         NS_GET_G(aColor),
                                         NS_GET_B(aColor)),
                         aStr);
-        aStr.AppendFloat(nsStyleUtil::ColorComponentToFloat(NS_GET_A(aColor)));
+        nsString tmp;
+        tmp.AppendFloat(nsStyleUtil::ColorComponentToFloat(NS_GET_A(aColor)));
+        aStr.Append(tmp);
         aStr.Append(')');
     }
 }
@@ -2800,10 +2802,8 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     gfxContextPathAutoSaveRestore pathSR(mThebes, PR_FALSE);
 
     
-    if (aOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_STROKE) {
+    if (aOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_STROKE)
         pathSR.Save();
-        mThebes->NewPath();
-    }
     
     else {
         if (doUseIntermediateSurface) {

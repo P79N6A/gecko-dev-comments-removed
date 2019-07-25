@@ -51,6 +51,7 @@
 #include "nsCRT.h"
 #include "nsUTF8Utils.h"
 #include "prdtoa.h"
+#include "prprf.h"
 
 
 
@@ -799,6 +800,99 @@ RFindCharInSet( const CharT* data, PRUint32 dataLen, const SetCharT* set )
     return kNotFound;
   }
 
+
+
+
+
+
+
+void 
+Modified_cnvtf(char *buf, int bufsz, int prcsn, double fval)
+{
+  PRIntn decpt, sign, numdigits;
+  char *num, *nump;
+  char *bufp = buf;
+  char *endnum;
+
+  
+  num = (char*)malloc(bufsz);
+  if (num == NULL) {
+    buf[0] = '\0';
+    return;
+  }
+  if (PR_dtoa(fval, 2, prcsn, &decpt, &sign, &endnum, num, bufsz)
+      == PR_FAILURE) {
+    buf[0] = '\0';
+    goto done;
+  }
+  numdigits = endnum - num;
+  nump = num;
+
+  
+
+
+
+
+
+  if (sign && fval < 0.0f) {
+    *bufp++ = '-';
+  }
+
+  if (decpt == 9999) {
+    while ((*bufp++ = *nump++) != 0) {} 
+    goto done;
+  }
+
+  if (decpt > (prcsn+1) || decpt < -(prcsn-1) || decpt < -5) {
+    *bufp++ = *nump++;
+    if (numdigits != 1) {
+      *bufp++ = '.';
+    }
+
+    while (*nump != '\0') {
+      *bufp++ = *nump++;
+    }
+    *bufp++ = 'e';
+    PR_snprintf(bufp, bufsz - (bufp - buf), "%+d", decpt-1);
+  }
+  else if (decpt >= 0) {
+    if (decpt == 0) {
+      *bufp++ = '0';
+    }
+    else {
+      while (decpt--) {
+        if (*nump != '\0') {
+          *bufp++ = *nump++;
+        }
+        else {
+          *bufp++ = '0';
+        }
+      }
+    }
+    if (*nump != '\0') {
+      *bufp++ = '.';
+      while (*nump != '\0') {
+        *bufp++ = *nump++;
+      }
+    }
+    *bufp++ = '\0';
+  }
+  else if (decpt < 0) {
+    *bufp++ = '0';
+    *bufp++ = '.';
+    while (decpt++) {
+      *bufp++ = '0';
+    }
+
+    while (*nump != '\0') {
+      *bufp++ = *nump++;
+    }
+    *bufp++ = '\0';
+  }
+done:
+  free(num);
+}
+
   
 
 
@@ -1075,6 +1169,135 @@ void
 nsString::AppendWithConversion( const nsACString& aData )
   {
     AppendASCIItoUTF16(aData, *this);
+  }
+
+
+  
+
+
+
+void
+nsCString::AppendInt( PRInt32 aInteger, PRInt32 aRadix )
+  {
+    char buf[20];
+    const char* fmt;
+    switch (aRadix) {
+      case 8:
+        fmt = "%o";
+        break;
+      case 10:
+        fmt = "%d";
+        break;
+      default:
+        NS_ASSERTION(aRadix == 16, "Invalid radix!");
+        fmt = "%x";
+    }
+    PR_snprintf(buf, sizeof(buf), fmt, aInteger);
+    Append(buf);
+  }
+
+void
+nsString::AppendInt( PRInt32 aInteger, PRInt32 aRadix )
+  {
+    char buf[20];
+    const char* fmt;
+    switch (aRadix) {
+      case 8:
+        fmt = "%o";
+        break;
+      case 10:
+        fmt = "%d";
+        break;
+      default:
+        NS_ASSERTION(aRadix == 16, "Invalid radix!");
+        fmt = "%x";
+    }
+    PR_snprintf(buf, sizeof(buf), fmt, aInteger);
+    AppendASCIItoUTF16(buf, *this);
+  }
+
+void
+nsCString::AppendInt( PRInt64 aInteger, PRInt32 aRadix )
+  {
+    char buf[30];
+    const char* fmt;
+    switch (aRadix) {
+      case 8:
+        fmt = "%llo";
+        break;
+      case 10:
+        fmt = "%lld";
+        break;
+      default:
+        NS_ASSERTION(aRadix == 16, "Invalid radix!");
+        fmt = "%llx";
+    }
+    PR_snprintf(buf, sizeof(buf), fmt, aInteger);
+    Append(buf);
+  }
+
+void
+nsString::AppendInt( PRInt64 aInteger, PRInt32 aRadix )
+  {
+    char buf[30];
+    const char* fmt;
+    switch (aRadix) {
+      case 8:
+        fmt = "%llo";
+        break;
+      case 10:
+        fmt = "%lld";
+        break;
+      default:
+        NS_ASSERTION(aRadix == 16, "Invalid radix!");
+        fmt = "%llx";
+    }
+    PR_snprintf(buf, sizeof(buf), fmt, aInteger);
+    AppendASCIItoUTF16(buf, *this);
+  }
+
+  
+
+
+
+void
+nsCString::AppendFloat( float aFloat )
+  {
+    char buf[40];
+    
+    
+    Modified_cnvtf(buf, sizeof(buf), 6, aFloat);
+    Append(buf);
+  }
+
+void
+nsString::AppendFloat( float aFloat )
+  {
+    char buf[40];
+    
+    
+    Modified_cnvtf(buf, sizeof(buf), 6, aFloat);
+    AppendWithConversion(buf);
+  }
+
+void
+nsCString::AppendFloat( double aFloat )
+  {
+    char buf[40];
+    
+    
+    Modified_cnvtf(buf, sizeof(buf), 15, aFloat);
+    Append(buf);
+  }
+
+void
+nsString::AppendFloat( double aFloat )
+  {
+    char buf[40];
+    
+    
+    Modified_cnvtf(buf, sizeof(buf), 15, aFloat);
+    AppendWithConversion(buf);
   }
 
 #endif 

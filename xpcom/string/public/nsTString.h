@@ -384,6 +384,34 @@ class nsTString_CharT : public nsTSubstring_CharT
       NS_COM void AppendWithConversion( const nsTAString_IncompatibleCharT& aString );
       NS_COM void AppendWithConversion( const incompatible_char_type* aData, PRInt32 aLength=-1 );
 
+      using nsTSubstring_CharT::AppendInt;
+
+        
+
+
+
+
+
+
+      NS_COM void AppendInt( PRInt32 aInteger, PRInt32 aRadix ); 
+
+        
+
+
+
+
+
+
+      NS_COM void AppendInt( PRInt64 aInteger, PRInt32 aRadix );
+
+        
+
+
+
+      NS_COM void AppendFloat( float aFloat );
+
+      NS_COM void AppendFloat( double aFloat );
+
 #endif 
 
 

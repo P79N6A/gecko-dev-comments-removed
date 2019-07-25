@@ -1234,10 +1234,17 @@ static inline PRBool ApplyPaginatedOverflowClipping(nsIFrame* aFrame,
   
   
   
+  
+  
+  
+  
   return
     aFrame->PresContext()->IsPaginated() &&
+    aDisp->IsBlockInside() &&
+    aDisp->IsScrollableOverflow() &&
+    aDisp->IsBlockOutside() &&
     aFrame->GetType() == nsGkAtoms::blockFrame &&
-    (aFrame->GetStateBits() & NS_BLOCK_CLIP_PAGINATED_OVERFLOW) != 0;
+    !aFrame->GetContent()->IsInNativeAnonymousSubtree();
 }
 
 static PRBool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,

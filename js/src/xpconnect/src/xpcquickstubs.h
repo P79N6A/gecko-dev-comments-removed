@@ -313,6 +313,33 @@ public:
         return *Ptr();
     }
 
+protected:
+    
+
+
+
+
+    void *mBuf[JS_HOWMANY(sizeof(implementation_type), sizeof(void *))];
+    JSBool mValid;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class xpc_qsDOMString : public xpc_qsBasicString<nsAString, nsDependentString>
+{
+public:
     
 
 
@@ -333,88 +360,6 @@ public:
         eDefaultUndefinedBehavior = eStringify
     };
 
-protected:
-    
-
-
-
-
-    void *mBuf[JS_HOWMANY(sizeof(implementation_type), sizeof(void *))];
-    JSBool mValid;
-
-    
-
-
-
-
-
-
-
-    template<class traits>
-    JSString* InitOrStringify(JSContext* cx, jsval v, jsval* pval,
-                              StringificationBehavior nullBehavior,
-                              StringificationBehavior undefinedBehavior) {
-        JSString *s;
-        if(JSVAL_IS_STRING(v))
-        {
-            s = JSVAL_TO_STRING(v);
-        }
-        else
-        {
-            StringificationBehavior behavior = eStringify;
-            if(JSVAL_IS_NULL(v))
-            {
-                behavior = nullBehavior;
-            }
-            else if(JSVAL_IS_VOID(v))
-            {
-                behavior = undefinedBehavior;
-            }
-
-            
-            
-            
-            if (behavior != eStringify || !pval)
-            {
-                
-                
-                (new(mBuf) implementation_type(
-                    traits::sEmptyBuffer, PRUint32(0)))->
-                    SetIsVoid(behavior != eEmpty);
-                mValid = JS_TRUE;
-                return nsnull;
-            }
-
-            s = JS_ValueToString(cx, v);
-            if(!s)
-            {
-                mValid = JS_FALSE;
-                return nsnull;
-            }
-            *pval = STRING_TO_JSVAL(s);  
-        }
-
-        return s;
-    }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class xpc_qsDOMString : public xpc_qsBasicString<nsAString, nsDependentString>
-{
-public:
     xpc_qsDOMString(JSContext *cx, jsval v, jsval *pval,
                     StringificationBehavior nullBehavior,
                     StringificationBehavior undefinedBehavior);
@@ -440,16 +385,6 @@ class xpc_qsACString : public xpc_qsBasicString<nsACString, nsCString>
 {
 public:
     xpc_qsACString(JSContext *cx, jsval v, jsval *pval);
-};
-
-
-
-
-class xpc_qsAUTF8String :
-  public xpc_qsBasicString<nsACString, NS_ConvertUTF16toUTF8>
-{
-public:
-  xpc_qsAUTF8String(JSContext* cx, jsval v, jsval *pval);
 };
 
 struct xpc_qsSelfRef
