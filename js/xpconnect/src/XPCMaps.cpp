@@ -129,7 +129,11 @@ Native2WrappedNativeMap::newMap(int size)
     Native2WrappedNativeMap* map = new Native2WrappedNativeMap(size);
     if (map && map->mTable)
         return map;
-    delete map;
+    
+    
+    
+    
+    NS_RUNTIMEABORT("Ran out of memory.");
     return nsnull;
 }
 
@@ -297,7 +301,11 @@ ClassInfo2WrappedNativeProtoMap::newMap(int size)
     ClassInfo2WrappedNativeProtoMap* map = new ClassInfo2WrappedNativeProtoMap(size);
     if (map && map->mTable)
         return map;
-    delete map;
+    
+    
+    
+    
+    NS_RUNTIMEABORT("Ran out of memory.");
     return nsnull;
 }
 
