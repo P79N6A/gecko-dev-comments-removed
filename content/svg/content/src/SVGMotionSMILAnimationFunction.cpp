@@ -383,6 +383,18 @@ SVGMotionSMILAnimationFunction::
   CheckKeyPoints();
 }
 
+PRBool
+SVGMotionSMILAnimationFunction::IsToAnimation() const
+{
+  
+  
+  
+  
+  return !GetFirstMpathChild(&mAnimationElement->AsElement()) &&
+    !HasAttr(nsGkAtoms::path) &&
+    nsSMILAnimationFunction::IsToAnimation();
+}
+
 void
 SVGMotionSMILAnimationFunction::CheckKeyPoints()
 {
@@ -483,17 +495,6 @@ SVGMotionSMILAnimationFunction::UnsetRotate()
   mRotateAngle = 0.0f; 
   mRotateType = eRotateType_Explicit;
   mHasChanged = PR_TRUE;
-}
-
-PRBool
-SVGMotionSMILAnimationFunction::TreatSingleValueAsStatic() const
-{
-  
-  
-  
-  return (mPathSourceType == ePathSourceType_ValuesAttr ||
-          mPathSourceType == ePathSourceType_PathAttr ||
-          mPathSourceType == ePathSourceType_Mpath);
 }
 
 } 
