@@ -171,6 +171,7 @@ nsJAR::Open(nsIFile* zipFile)
   if (mLock) return NS_ERROR_FAILURE; 
 
   mZipFile = zipFile;
+  mOuterZipEntry.Truncate();
 
   mLock = nsAutoLock::NewLock("nsJAR::mLock");
   NS_ENSURE_TRUE(mLock, NS_ERROR_OUT_OF_MEMORY);
@@ -237,7 +238,6 @@ nsJAR::Close()
   mManifestData.Reset();
   mGlobalStatus = JAR_MANIFEST_NOT_PARSED;
   mTotalItemsInManifest = 0;
-  mOuterZipEntry.Truncate(0);
 
 #ifdef MOZ_OMNIJAR
   if (mZip == mozilla::OmnijarReader()) {
@@ -1291,30 +1291,27 @@ nsZipReaderCache::ReleaseZip(nsJAR* zip)
 #endif
 
   
-  
-  
-  oldest->SetZipReaderCache(nsnull);
-
-  
   nsCAutoString uri;
   rv = oldest->GetJarPath(uri);
   if (NS_FAILED(rv))
     return rv;
 
-  if (zip->mOuterZipEntry.IsEmpty()) {
+  if (oldest->mOuterZipEntry.IsEmpty()) {
     uri.Insert(NS_LITERAL_CSTRING("file:"), 0);
   } else {
     uri.Insert(NS_LITERAL_CSTRING("jar:"), 0);
     uri.AppendLiteral("!/");
-    uri.Append(zip->mOuterZipEntry);
+    uri.Append(oldest->mOuterZipEntry);
   }
 
   nsCStringKey key(uri);
-#ifdef DEBUG
-  PRBool removed =
-#endif
-    mZips.Remove(&key);   
+  nsRefPtr<nsJAR> removed;
+  mZips.Remove(&key, (nsISupports **)removed.StartAssignment());
   NS_ASSERTION(removed, "botched");
+  NS_ASSERTION(oldest == removed, "removed wrong entry");
+
+  if (removed)
+    removed->SetZipReaderCache(nsnull);
 
   return NS_OK;
 }
