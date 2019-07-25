@@ -362,13 +362,12 @@ function completeTest11(request, data, ctx)
 
 
 
-test_flags[12] = CL_EXPECT_FAILURE;
 
 function handler12(metadata, response)
 {
   var body = "012345678901234567890123456789";
   response.seizePower();
-  response.write("HTTP/1.0 301 Moved\r\n");
+  response.write("HTTP/1.0 200 OK\r\n");
   response.write("Content-Type: text/plain\r\n");
   response.write("Content-Length: 30\r\n");
   response.write("Location:\r\n");
@@ -380,7 +379,8 @@ function handler12(metadata, response)
 
 function completeTest12(request, data, ctx)
 {
-  do_check_eq(request.status, Components.results.NS_ERROR_CORRUPTED_CONTENT);
+  do_check_eq(request.status, Components.results.NS_OK);
+  do_check_eq(30, data.length);
 
   run_test_number(13);
 }
@@ -567,5 +567,33 @@ function completeTest19(request, data, ctx)
   do_check_eq(request.status, Components.results.NS_OK);
   do_check_eq(30, data.length);
 
+  run_test_number(20);
+}
+
+
+
+test_flags[20] = CL_EXPECT_FAILURE;
+
+function handler20(metadata, response)
+{
+  var body = "012345678901234567890123456789";
+  response.seizePower();
+  response.write("HTTP/1.0 301 Moved\r\n");
+  response.write("Content-Type: text/plain\r\n");
+  response.write("Content-Length: 30\r\n");
+  
+  response.write("Location:\r\n");
+  response.write("Location: http://localhost:4444" + testPathBase + "4\r\n");
+  response.write("Connection: close\r\n");
+  response.write("\r\n");
+  response.write(body);
+  response.finish();
+}
+
+function completeTest20(request, data, ctx)
+{
+  do_check_eq(request.status, Components.results.NS_ERROR_CORRUPTED_CONTENT);
+
   endTests();
 }
+
