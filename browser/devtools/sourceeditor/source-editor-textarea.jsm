@@ -36,6 +36,7 @@
 
 
 
+
 "use strict";
 
 const Cu = Components.utils;
@@ -148,8 +149,7 @@ SourceEditor.prototype = {
       aConfig.undoLimit || SourceEditor.DEFAULTS.UNDO_LIMIT;
 
     
-    this._editor.transactionManager.clear();
-    this._editor.resetModificationCount();
+    this.resetUndo();
 
     
     
@@ -404,6 +404,15 @@ SourceEditor.prototype = {
     let canRedo = {};
     this._editor.canRedo(isEnabled, canRedo);
     return canRedo.value;
+  },
+
+  
+
+
+  resetUndo: function SE_resetUndo()
+  {
+    this._editor.transactionManager.clear();
+    this._editor.resetModificationCount();
   },
 
   

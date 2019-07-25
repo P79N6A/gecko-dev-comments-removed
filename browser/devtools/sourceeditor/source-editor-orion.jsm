@@ -36,6 +36,7 @@
 
 
 
+
 "use strict";
 
 const Cu = Components.utils;
@@ -551,6 +552,14 @@ SourceEditor.prototype = {
   canRedo: function SE_canRedo()
   {
     return this._undoStack.canRedo();
+  },
+
+  
+
+
+  resetUndo: function SE_resetUndo()
+  {
+    this._undoStack.reset();
   },
 
   

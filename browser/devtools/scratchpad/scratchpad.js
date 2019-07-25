@@ -48,6 +48,7 @@
 
 
 
+
 "use strict";
 
 const Cc = Components.classes;
@@ -583,6 +584,7 @@ var Scratchpad = {
         content = NetUtil.readInputStreamToString(aInputStream,
                                                   aInputStream.available());
         self.setText(content);
+        self.editor.resetUndo();
       }
       else if (!aSilentError) {
         window.alert(self.strings.GetStringFromName("openFile.failed"));
