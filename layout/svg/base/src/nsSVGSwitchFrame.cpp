@@ -184,6 +184,15 @@ nsSVGSwitchFrame::UpdateBounds()
     nsSVGEffects::UpdateEffects(this);
   }
 
+  
+  
+  
+  
+  
+  bool invalidate = (mState & NS_FRAME_IS_DIRTY) &&
+    !(GetParent()->GetStateBits() &
+       (NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY));
+
   FinishAndStoreOverflow(overflowRects, mRect.Size());
 
   
@@ -191,10 +200,7 @@ nsSVGSwitchFrame::UpdateBounds()
   mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
               NS_FRAME_HAS_DIRTY_CHILDREN);
 
-  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-    
-    
-    
+  if (invalidate) {
     
     nsSVGUtils::InvalidateBounds(this, true);
   }

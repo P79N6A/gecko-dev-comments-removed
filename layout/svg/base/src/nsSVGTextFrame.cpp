@@ -233,12 +233,18 @@ nsSVGTextFrame::UpdateBounds()
 
   
   
+  
+  
+  
+  bool invalidate = (mState & NS_FRAME_IS_DIRTY) &&
+    !(GetParent()->GetStateBits() &
+       (NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY));
+
+  
+  
   nsSVGTextFrameBase::UpdateBounds();
 
-  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-    
-    
-    
+  if (invalidate) {
     
     nsSVGUtils::InvalidateBounds(this, true);
   }
