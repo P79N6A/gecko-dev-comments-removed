@@ -9897,8 +9897,31 @@ TraceRecorder::guardPrototypeHasNoIndexedProperties(JSObject* obj, LIns* obj_ins
     if (js_PrototypeHasIndexedProperties(cx, obj))
         return RECORD_STOP;
 
-    while (guardHasPrototype(obj, obj_ins, &obj, &obj_ins, exit))
+    JS_ASSERT(obj->isDenseArray());
+
+    
+
+
+
+
+    obj = obj->getProto();
+    JS_ASSERT(obj);
+
+    obj_ins = w.immpObjGC(obj);
+
+    
+
+
+
+
+
+
+    do {
         CHECK_STATUS(guardShape(obj_ins, obj, obj->shape(), "guard(shape)", exit));
+        obj = obj->getProto();
+        obj_ins = w.ldpObjProto(obj_ins);
+    } while (obj);
+
     return RECORD_CONTINUE;
 }
 
@@ -12836,7 +12859,12 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
                                   "isHole");
         w.pauseAddingCSEValues();
         if (MaybeBranch mbr1 = w.jf(isHole_ins)) {
-            CHECK_STATUS_A(guardPrototypeHasNoIndexedProperties(obj, obj_ins, mismatchExit));
+            
+
+
+
+
+            CHECK_STATUS_A(guardPrototypeHasNoIndexedProperties(obj, obj_ins, branchExit));
             LIns* length_ins = w.lduiObjPrivate(obj_ins);
             if (MaybeBranch mbr2 = w.jt(w.ltui(idx_ins, length_ins))) {
                 LIns* newLength_ins = w.name(w.addiN(idx_ins, 1), "newLength");
