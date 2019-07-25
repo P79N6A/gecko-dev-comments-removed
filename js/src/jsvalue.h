@@ -384,7 +384,7 @@ class Value
     
 
     
-    Value() {}
+    Value() { data.asBits = 0; }
 
     Value(NullTag)                  { setNull(); }
     Value(UndefinedTag)             { setUndefined(); }
