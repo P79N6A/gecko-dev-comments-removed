@@ -585,8 +585,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         $el = iQ(a);
         item = Items.item($el);
       }
-
-      Utils.assertThrow('shouldn\'t already be in another group', !item.parent || item.parent == this);
+      Utils.assertThrow("shouldn't already be in another group", !item.parent || item.parent == this);
 
       item.removeTrenches();
 
@@ -1240,13 +1239,15 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     let newTab = gBrowser.loadOneTab(url || "about:blank", {inBackground: true});
 
     
-    
-    
-    
-    
-    Utils.timeout(function() {
-      UI.showTabView()
-    }, 1);
+
+
+
+
+
+
+
+
+
 
     var self = this;
     var doNextTab = function(tab) {
@@ -1279,7 +1280,10 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
               complete: function() {
                 iQ(tab.container).css({opacity: 1});
                 gBrowser.selectedTab = newTab;
-                UI.hideTabView()
+                
+
+
+
                 gWindow.gURLBar.focus();
                 $anim.remove();
                 
@@ -1287,7 +1291,10 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
                 
                 
                 
-                Utils.timeout(function() Groups.updateTabBarForActiveGroup(), 400);
+                Utils.timeout(function() {
+                  self._sendToSubscribers("tabAdded", { groupId: self.id });
+                  Groups.updateTabBarForActiveGroup();
+                }, 1);
               }
             });
           }
@@ -1298,7 +1305,6 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     
     
-
     self.onNextNewTab(doNextTab);
   },
 
