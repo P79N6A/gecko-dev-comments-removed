@@ -82,6 +82,7 @@ select[size="1"] xul|scrollbarbutton {
 select,
 textarea,
 button,
+xul|button,
 * > input:not([type="image"]) {
   -moz-appearance: none !important;  
   -moz-border-radius: 3px;
