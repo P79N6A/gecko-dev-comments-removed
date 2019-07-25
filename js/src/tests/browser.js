@@ -523,7 +523,7 @@ function options(aOptionName)
 
   if (aOptionName)
   {
-    if (options.currvalues[aOptionName])
+    if (options.currvalues.hasOwnProperty(aOptionName))
     {
       
       delete options.currvalues[aOptionName];
@@ -543,17 +543,18 @@ function options(aOptionName)
 function optionsInit() {
 
   
-  options.currvalues = {strict:     '',
-                        werror:     '',
-                        atline:     '',
-                        xml:        '',
-                        relimit:    '',
-                        anonfunfux: ''
-  }
+  options.currvalues = {
+    strict:     true,
+    werror:     true,
+    atline:     true,
+    xml:        true,
+    relimit:    true,
+    anonfunfix: true,
+  };
 
   
   
-  options.initvalues  = {};
+  options.initvalues = {};
 
   
   
@@ -569,7 +570,7 @@ function optionsInit() {
     }
     else
     {
-      options.initvalues[optionName] = '';
+      options.initvalues[optionName] = true;
     }
   }
 }

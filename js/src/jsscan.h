@@ -319,8 +319,8 @@ class TokenStream
 
 
 
-    bool init(JSVersion version, const jschar *base, size_t length,
-              const char *filename, uintN lineno);
+    bool init(const jschar *base, size_t length, const char *filename, uintN lineno,
+              JSVersion version);
     void close();
     ~TokenStream() {}
 
@@ -331,6 +331,12 @@ class TokenStream
     const CharBuffer &getTokenbuf() const { return tokenbuf; }
     const char *getFilename() const { return filename; }
     uintN getLineno() const { return lineno; }
+    
+    JSVersion versionNumber() const { return VersionNumber(version); }
+    JSVersion versionWithFlags() const { return version; }
+    bool hasAnonFunFix() const { return VersionHasAnonFunFix(version); }
+    bool hasXML() const { return xml || VersionShouldParseXML(versionNumber()); }
+    void setXML(bool enabled) { xml = enabled; }
 
     
     void setStrictMode(bool enabled = true) { setFlag(enabled, TSF_STRICT_MODE_CODE); }
@@ -451,8 +457,6 @@ class TokenStream
         return JS_FALSE;
     }
 
-    void setVersion(JSVersion newVersion) { version = newVersion; }
-
   private:
     typedef struct TokenBuf {
         jschar              *base;      
@@ -510,6 +514,7 @@ class TokenStream
     bool                maybeEOL[256];  
     bool                maybeStrSpecial[256];
     JSVersion           version;        
+    bool                xml;            
 };
 
 } 

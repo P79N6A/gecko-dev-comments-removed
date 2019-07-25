@@ -1043,7 +1043,7 @@ struct Parser : private js::AutoGCRooter
     JSContext           * const context; 
     JSAtomListElement   *aleFreeList;
     void                *tempFreeList[NUM_TEMP_FREELISTS];
-    js::TokenStream     tokenStream;
+    TokenStream         tokenStream;
     void                *tempPoolMark;  
     JSPrincipals        *principals;    
     JSStackFrame *const callerFrame;    
@@ -1052,7 +1052,6 @@ struct Parser : private js::AutoGCRooter
     uint32              functionCount;  
     JSObjectBox         *traceListHead; 
     JSTreeContext       *tc;            
-    JSVersion           version;        
 
     
     js::AutoKeepAtoms   keepAtoms;
@@ -1070,15 +1069,16 @@ struct Parser : private js::AutoGCRooter
 
 
 
-    bool init(const jschar *base, size_t length,
-              const char *filename, uintN lineno);
+    bool init(const jschar *base, size_t length, const char *filename, uintN lineno,
+              JSVersion version);
 
     void setPrincipals(JSPrincipals *prin);
 
-    const char *getFilename()
-    {
-        return tokenStream.getFilename();
-    }
+    const char *getFilename() const { return tokenStream.getFilename(); }
+    JSVersion versionWithFlags() const { return tokenStream.versionWithFlags(); }
+    JSVersion versionNumber() const { return tokenStream.versionNumber(); }
+    bool hasXML() const { return tokenStream.hasXML(); }
+    bool hasAnonFunFix() const { return tokenStream.hasAnonFunFix(); }
 
     
 
@@ -1217,28 +1217,25 @@ struct Compiler
 
 
     inline bool
-    init(const jschar *base, size_t length,
-         const char *filename, uintN lineno)
+    init(const jschar *base, size_t length, const char *filename, uintN lineno, JSVersion version)
     {
-        return parser.init(base, length, filename, lineno);
+        return parser.init(base, length, filename, lineno, version);
     }
 
     static bool
     compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
                         js::Bindings *bindings, const jschar *chars, size_t length,
-                        const char *filename, uintN lineno);
+                        const char *filename, uintN lineno, JSVersion version);
 
     static JSScript *
     compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
                   JSPrincipals *principals, uint32 tcflags,
                   const jschar *chars, size_t length,
-                  const char *filename, uintN lineno,
-                  JSString *source = NULL,
-                  uintN staticLevel = 0);
+                  const char *filename, uintN lineno, JSVersion version,
+                  JSString *source = NULL, uintN staticLevel = 0);
 
   private:
-    static bool
-    defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script);
+    static bool defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script);
 };
 
 } 
