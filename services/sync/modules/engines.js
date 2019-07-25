@@ -349,6 +349,38 @@ NewEngine.prototype = {
     return 0;
   },
 
+  _recordLike: function NewEngine__recordLike(a, b) {
+    
+    if (!Utils.deepEquals(a.parentid, b.parentid))
+      return false;
+    for (let key in a.cleartext) {
+      if (key == "parentGUID")
+        continue; 
+      if (!Utils.deepEquals(a.cleartext[key], b.cleartext[key]))
+        return false;
+    }
+    for (key in b.cleartext) {
+      if (key == "parentGUID")
+        continue; 
+      if (!Utils.deepEquals(a.cleartext[key], b.cleartext[key]))
+        return false;
+    }
+    return true;
+  },
+
+  _changeRecordRefs: function NewEngine__changeRecordRefs(oldID, newID) {
+    let self = yield;
+    for each (let rec in this.outgoing) {
+      if (rec.parentid == oldID)
+        rec.parentid = newID;
+    }
+  },
+
+  _changeRecordID: function NewEngine__changeRecordID(oldID, newID) {
+    let self = yield;
+    throw "_changeRecordID must be overridden in a subclass";
+  },
+
   _sync: function NewEngine__sync() {
     let self = yield;
 
@@ -421,7 +453,6 @@ NewEngine.prototype = {
 
     
     
-    
     let conflicts = [];
     for (let i = 0; i < this.incoming.length; i++) {
       for each (let out in this.outgoing) {
@@ -434,22 +465,44 @@ NewEngine.prototype = {
     }
     this._incoming = this.incoming.filter(function(i) i); 
     if (conflicts.length)
-      this._log.warn("Conflicts found.  Conflicting server changes discarded");
+      this._log.debug("Conflicts found.  Conflicting server changes discarded");
 
     
-    this._log.debug("Applying server changes");
+    
+    for (let i = 0; i < this.incoming.length; i++) {
+      for (let o = 0; o < this.outgoing.length; o++) {
+        if (this._recordLike(this.incoming[i], this.outgoing[o])) {
+          
+          yield this._changeRecordRefs.async(this, self.cb,
+                                             this.outgoing[o].id,
+                                             this.incoming[i].id);
+          
+          yield this._changeRecordID.async(this, self.cb,
+                                           this.outgoing[o].id,
+                                           this.incoming[i].id);
+          delete this.incoming[i];
+          delete this.outgoing[o];
+          break;
+        }
+      }
+      this._outgoing = this.outgoing.filter(function(i) i); 
+    }
+    this._incoming = this.incoming.filter(function(i) i); 
 
-    let inc;
-    while ((inc = this.incoming.shift())) {
-      yield this._store.applyIncoming(self.cb, inc);
-      if (inc.modified > this.lastSync)
-        this.lastSync = inc.modified;
+    
+    if (this.incoming.length) {
+      this._log.debug("Applying server changes");
+      let inc;
+      while ((inc = this.incoming.shift())) {
+        yield this._store.applyIncoming(self.cb, inc);
+        if (inc.modified > this.lastSync)
+          this.lastSync = inc.modified;
+      }
     }
 
     
-    this._log.debug("Uploading client changes");
-
     if (this.outgoing.length) {
+      this._log.debug("Uploading client changes");
       let up = new Collection(this.engineURL);
       let out;
       while ((out = this.outgoing.pop())) {
@@ -462,7 +515,6 @@ NewEngine.prototype = {
 
     
     this._log.debug("Saving snapshot for next sync");
-
     this._snapshot.data = this._store.wrap();
     this._snapshot.save();
 
