@@ -73,12 +73,6 @@ struct DOMJSClass
 
   DOMClass mClass;
 
-  
-  
-  
-  
-  const int16_t mGetWrapperCacheVTableOffset;
-
   static DOMJSClass* FromJSClass(JSClass* base) {
     MOZ_ASSERT(base->flags & JSCLASS_IS_DOMJSCLASS);
     return reinterpret_cast<DOMJSClass*>(base);
