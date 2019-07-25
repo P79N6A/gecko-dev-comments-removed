@@ -166,6 +166,22 @@ public:
     return req.forget();
   }
 
+  static already_AddRefed<nsXMLHttpRequest>
+  Constructor(JSContext* aCx,
+              nsISupports* aGlobal,
+              const nsAString& ignored,
+              ErrorResult& aRv)
+  {
+    
+    mozilla::dom::MozXMLHttpRequestParameters params;
+    if (!params.Init(aCx, JS::NullValue())) {
+      aRv.Throw(NS_ERROR_UNEXPECTED);
+      return nullptr;
+    }
+
+    return Constructor(aCx, aGlobal, params, aRv);
+  }
+
   void Construct(nsIPrincipal* aPrincipal,
                  nsPIDOMWindow* aOwnerWindow,
                  nsIURI* aBaseURI = NULL)
