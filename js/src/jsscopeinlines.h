@@ -363,6 +363,35 @@ EmptyShape::getEmptyArgumentsShape(JSContext *cx)
     return ensure(cx, &NormalArgumentsObject::jsClass, &cx->compartment->emptyArgumentsShape);
 }
 
+ inline EmptyShape *
+EmptyShape::getEmptyBlockShape(JSContext *cx)
+{
+    return ensure(cx, &js_BlockClass, &cx->compartment->emptyBlockShape);
+}
+
+ inline EmptyShape *
+EmptyShape::getEmptyCallShape(JSContext *cx)
+{
+    return ensure(cx, &js_CallClass, &cx->compartment->emptyCallShape);
+}
+
+ inline EmptyShape *
+EmptyShape::getEmptyDeclEnvShape(JSContext *cx)
+{
+    return ensure(cx, &js_DeclEnvClass, &cx->compartment->emptyDeclEnvShape);
+}
+
+ inline EmptyShape *
+EmptyShape::getEmptyEnumeratorShape(JSContext *cx)
+{
+    return ensure(cx, &js_IteratorClass, &cx->compartment->emptyEnumeratorShape);
+}
+
+ inline EmptyShape *
+EmptyShape::getEmptyWithShape(JSContext *cx)
+{
+    return ensure(cx, &js_WithClass, &cx->compartment->emptyWithShape);
+}
 
 } 
 

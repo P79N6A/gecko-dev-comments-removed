@@ -38,7 +38,6 @@
 
 
 #include "jsapi.h"
-#include "jsstr.h"
 #include "jscntxt.h"  
 #include "nsCOMPtr.h"
 #include "xpcprivate.h"
