@@ -98,6 +98,8 @@ function TabItem(tab, options) {
 
   this.bounds = $div.bounds();
 
+  this._lastTabUpdateTime = Date.now();
+
   
   this._init($div[0]);
 
@@ -687,10 +689,11 @@ let TabItems = {
   items: [],
   paintingPaused: 0,
   _tabsWaitingForUpdate: [],
-  _heartbeatOn: false,
+  _heartbeatOn: false, 
   _heartbeatTiming: 100, 
   _lastUpdateTime: Date.now(),
   _eventListeners: [],
+  tempCanvas: null,
 
   
   
@@ -698,6 +701,15 @@ let TabItems = {
   init: function TabItems_init() {
     Utils.assert(window.AllTabs, "AllTabs must be initialized first");
     var self = this;
+
+    let $canvas = iQ("<canvas>");
+    $canvas.appendTo(iQ("body"));
+    $canvas.hide();
+    this.tempCanvas = $canvas[0];
+    
+    
+    this.tempCanvas.width = 150;
+    this.tempCanvas.height = 150;
 
     
     this._eventListeners["open"] = function(tab) {
@@ -777,6 +789,7 @@ let TabItems = {
       if (shouldDefer && !isCurrentTab) {
         if (this._tabsWaitingForUpdate.indexOf(tab) == -1)
           this._tabsWaitingForUpdate.push(tab);
+        this.startHeartbeat();
       } else
         this._update(tab);
     } catch(e) {
@@ -837,6 +850,9 @@ let TabItems = {
         }
       }
 
+      this._lastUpdateTime = Date.now();
+      tabItem._lastTabUpdateTime = this._lastUpdateTime;
+
       tabItem.tabCanvas.paint();
 
       
@@ -846,8 +862,6 @@ let TabItems = {
     } catch(e) {
       Utils.log(e);
     }
-
-    this._lastUpdateTime = Date.now();
   },
 
   
@@ -906,52 +920,61 @@ let TabItems = {
   
   
   
-  heartbeat: function TabItems_heartbeat() {
-    if (!this._heartbeatOn)
+  
+  
+  
+  
+  startHeartbeat: function TabItems_startHeartbeat() {
+    if (!this._heartbeatOn) {
+      this._heartbeatOn = true;
+      let self = this;
+      setTimeout(function() {
+        self._checkHeartbeat();
+      }, this._heartbeatTiming);
+    }
+  },
+  
+  
+  
+  
+  
+  
+  _checkHeartbeat: function TabItems__checkHeartbeat() {
+    this._heartbeatOn = false;
+    
+    if (this.isPaintingPaused())
       return;
 
-    if (this._tabsWaitingForUpdate.length) {
+    if (this._tabsWaitingForUpdate.length && UI.isIdle()) {
       this._update(this._tabsWaitingForUpdate[0]);
       
     }
 
-    let self = this;
     if (this._tabsWaitingForUpdate.length) {
-      setTimeout(function() {
-        self.heartbeat();
-      }, this._heartbeatTiming);
-    } else
-      this._hearbeatOn = false;
-  },
-
-  
-  
-  
-  
-  
-  
-  pausePainting: function TabItems_pausePainting() {
-    this.paintingPaused++;
-
-    if (this.isPaintingPaused() && this._heartbeatOn)
-      this._heartbeatOn = false;
-  },
-
-  
-  
-  
-  
-  
-  resumePainting: function TabItems_resumePainting() {
-    this.paintingPaused--;
-
-    if (!this.isPaintingPaused() &&
-        this._tabsWaitingForUpdate.length &&
-        !this._heartbeatOn) {
-      this._heartbeatOn = true;
-      this.heartbeat();
+      this.startHeartbeat();
     }
   },
+
+   
+   
+   
+   
+   
+   
+   pausePainting: function TabItems_pausePainting() {
+     this.paintingPaused++;
+   },
+ 
+   
+   
+   
+   
+   
+   resumePainting: function TabItems_resumePainting() {
+     this.paintingPaused--;
+     if (!this.isPaintingPaused())
+       this.startHeartbeat();
+   },
 
   
   
@@ -1109,8 +1132,6 @@ TabCanvas.prototype = {
   
   
   paint: function TabCanvas_paint(evt) {
-    var ctx = this.canvas.getContext("2d");
-
     var w = this.canvas.width;
     var h = this.canvas.height;
     if (!w || !h)
@@ -1122,19 +1143,59 @@ TabCanvas.prototype = {
       return;
     }
 
-    var scaler = w/fromWin.innerWidth;
-
-    
-
-    ctx.save();
-    ctx.scale(scaler, scaler);
-    try{
-      ctx.drawWindow(fromWin, fromWin.scrollX, fromWin.scrollY, w/scaler, h/scaler, "#fff");
-    } catch(e) {
-      Utils.error('paint', e);
+    let tempCanvas = TabItems.tempCanvas;
+    if (w < tempCanvas.width) {
+      
+      
+      
+      
+      var tempCtx = tempCanvas.getContext("2d");
+      
+      let canvW = tempCanvas.width;
+      let canvH = (h/w) * canvW;
+      
+      var scaler = canvW/fromWin.innerWidth;
+  
+      tempCtx.save();
+      tempCtx.clearRect(0,0,tempCanvas.width,tempCanvas.height);
+      tempCtx.scale(scaler, scaler);
+      try{
+        tempCtx.drawWindow(fromWin, fromWin.scrollX, fromWin.scrollY, 
+          canvW/scaler, canvH/scaler, "#fff");
+      } catch(e) {
+        Utils.error('paint', e);
+      }  
+      tempCtx.restore();
+      
+      
+      var destCtx = this.canvas.getContext("2d");      
+      try{
+        
+        destCtx.drawImage(tempCanvas, 0, 0, w, w);
+      } catch(e) {
+        Utils.error('paint', e);
+      }  
+      
+    } else {
+      
+      
+      
+      var ctx = this.canvas.getContext("2d");
+      
+      var scaler = w/fromWin.innerWidth;
+  
+      
+  
+      ctx.save();
+      ctx.scale(scaler, scaler);
+      try{
+        ctx.drawWindow(fromWin, fromWin.scrollX, fromWin.scrollY, w/scaler, h/scaler, "#fff");
+      } catch(e) {
+        Utils.error('paint', e);
+      }
+  
+      ctx.restore();
     }
-
-    ctx.restore();
   },
 
   

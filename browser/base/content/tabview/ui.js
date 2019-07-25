@@ -92,6 +92,12 @@ let UI = {
   
   
   
+  _maxInteractiveWait: 250,
+
+  
+  
+  
+  
   
   _privateBrowsing: {
     transitionStage: 0,
@@ -321,6 +327,18 @@ let UI = {
     iQ(":focus").each(function(element) {
       element.blur();
     });
+  },
+
+  
+  
+  
+  
+  
+  
+  isIdle: function UI_isIdle() {
+    let time = Date.now();
+    let maxEvent = Math.max(drag.lastMoveTime, resize.lastMoveTime);
+    return (time - maxEvent) > this._maxInteractiveWait;
   },
 
   

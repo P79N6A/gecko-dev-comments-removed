@@ -216,7 +216,6 @@ Item.prototype = {
 
     
     var self = this;
-    var resizeInfo = null;
     this.resizeOptions = {
       aspectRatio: self.keepProportional,
       minWidth: 90,
@@ -224,16 +223,16 @@ Item.prototype = {
       start: function(e,ui) {
         if (this.isAGroupItem)
           GroupItems.setActiveGroupItem(this);
-        resizeInfo = new Drag(this, e, true); 
+        resize.info = new Drag(this, e, true); 
       },
       resize: function(e,ui) {
-        resizeInfo.snap(UI.rtl ? 'topright' : 'topleft', false, self.keepProportional);
+        resize.info.snap(UI.rtl ? 'topright' : 'topleft', false, self.keepProportional);
       },
       stop: function() {
         self.setUserSize();
         self.pushAway();
-        resizeInfo.stop();
-        resizeInfo = null;
+        resize.info.stop();
+        resize.info = null;
       }
     };
   },
@@ -600,6 +599,9 @@ Item.prototype = {
       
       var handleMouseMove = function(e) {
         
+        drag.lastMoveTime = Date.now();
+
+        
         var mouse = new Point(e.pageX, e.pageY);
         if (!startSent) {
           if(Math.abs(mouse.x - startMouse.x) > self.dragOptions.minDragDistance ||
@@ -766,6 +768,9 @@ Item.prototype = {
 
         
         var handleMouseMove = function(e) {
+          
+          resize.lastMoveTime = Date.now();
+
           var mouse = new Point(e.pageX, e.pageY);
           var box = self.getBounds();
           if (UI.rtl) {

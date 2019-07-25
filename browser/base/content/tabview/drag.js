@@ -43,9 +43,17 @@
 
 var drag = {
   info: null,
-  zIndex: 100
+  zIndex: 100,
+  lastMoveTime: 0
 };
 
+
+
+
+var resize = {
+  info: null,
+  lastMoveTime: 0
+};
 
 
 
