@@ -768,6 +768,9 @@ protected:
   nsIntPoint mCachedMousePoint;
 
   
+  PRInt8 mCachedModifiers;
+
+  
   nsMenuBarFrame* mActiveMenuBar;
 
   
