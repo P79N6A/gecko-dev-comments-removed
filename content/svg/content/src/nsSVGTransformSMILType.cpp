@@ -183,8 +183,18 @@ nsSVGTransformSMILType::SandwichAdd(nsSMILValue& aDest,
     (*static_cast<const TransformArray*>(aValueToAdd.mU.mPtr));
 
   
-  NS_ASSERTION(srcTransforms.Length() == 1,
+  NS_ASSERTION(srcTransforms.Length() < 2,
     "Trying to do sandwich add of more than one value");
+
+  
+  
+  
+  
+  
+  
+  
+  if (srcTransforms.IsEmpty())
+    return NS_OK;
 
   
   const nsSVGSMILTransform& srcTransform = srcTransforms[0];
