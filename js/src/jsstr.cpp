@@ -362,11 +362,14 @@ js_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
 
 
 
-
+    JSRopeBufferInfo *buf = NULL;
 
     if (leftRopeTop) {
+        
+        JSRopeBufferInfo *leftBuf = left->topNodeBuffer();
+
+        
         if (JS_UNLIKELY(rightRopeTop)) {
-            JSRopeBufferInfo *leftBuf = left->topNodeBuffer();
             JSRopeBufferInfo *rightBuf = right->topNodeBuffer();
 
             
@@ -376,38 +379,29 @@ js_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
                 cx->free(leftBuf);
                 leftBuf = rightBuf;
             }
-
-            JSRopeBufferInfo *buf = ObtainRopeBuffer(cx, true, true, leftBuf,
-                                                     length, left, right);
-            return FinishConcat(cx, true, true, left, right, length, buf);
-        } else {
-            
-            JSRopeBufferInfo *leftBuf = left->topNodeBuffer();
-
-            JSRopeBufferInfo *buf = ObtainRopeBuffer(cx, true, false, leftBuf,
-                                                     length, left, right);
-            return FinishConcat(cx, true, false, left, right, length, buf);
         }
+
+        buf = ObtainRopeBuffer(cx, true, rightRopeTop, leftBuf, length, left, right);
+        if (!buf)
+            return NULL;
+    } else if (JS_UNLIKELY(rightRopeTop)) {
+        
+        JSRopeBufferInfo *rightBuf = right->topNodeBuffer();
+
+        buf = ObtainRopeBuffer(cx, false, true, rightBuf, length, left, right);
+        if (!buf)
+            return NULL;
     } else {
-        if (JS_UNLIKELY(rightRopeTop)) {
-            
-            JSRopeBufferInfo *rightBuf = right->topNodeBuffer();
-
-            JSRopeBufferInfo *buf = ObtainRopeBuffer(cx, false, true, rightBuf,
-                                                     length, left, right);
-            return FinishConcat(cx, false, true, left, right, length, buf);
-        } else {
-            
-            size_t capacity;
-            size_t allocSize = RopeAllocSize(length, &capacity);
-            JSRopeBufferInfo *buf = (JSRopeBufferInfo *) cx->malloc(allocSize);
-            if (!buf)
-                return NULL;
-
-            buf->capacity = capacity;
-            return FinishConcat(cx, false, false, left, right, length, buf);
-        }
+        
+        size_t capacity;
+        size_t allocSize = RopeAllocSize(length, &capacity);
+        buf = (JSRopeBufferInfo *) cx->malloc(allocSize);
+        if (!buf)
+            return NULL;
+        buf->capacity = capacity;
     }
+
+    return FinishConcat(cx, leftRopeTop, rightRopeTop, left, right, length, buf);
 }
 
 JSString * JS_FASTCALL
