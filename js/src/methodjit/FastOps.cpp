@@ -768,9 +768,10 @@ mjit::Compiler::jsop_typeof()
                 cond = (cond == Assembler::Equal) ? Assembler::BelowOrEqual : Assembler::Above;
             }
 
-            if (type != JSVAL_TYPE_UNKNOWN) {
-                PC += JSOP_STRING_LENGTH;;
-                PC += JSOP_EQ_LENGTH;
+            jsbytecode *afterPC = PC + JSOP_STRING_LENGTH + JSOP_EQ_LENGTH;
+
+            if (type != JSVAL_TYPE_UNKNOWN && bytecodeInChunk(afterPC)) {
+                PC = afterPC;
 
                 RegisterID result = frame.allocReg(Registers::SingleByteRegs).reg();
 
@@ -1191,13 +1192,22 @@ mjit::Compiler::jsop_setelem_dense()
 
 
 
+
+
+
+
         stubcc.masm.storePtr(slotsReg, FrameAddress(offsetof(VMFrame, scratch)));
+        if (hoisted)
+            frame.pinReg(slotsReg);
         if (!key.isConstant())
-            stubcc.masm.push(key.reg());
+            frame.pinReg(key.reg());
         frame.sync(stubcc.masm, Uses(3));
         if (!key.isConstant())
-            stubcc.masm.pop(key.reg());
-        stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, scratch)), slotsReg);
+            frame.unpinReg(key.reg());
+        if (hoisted)
+            frame.unpinReg(slotsReg);
+        else
+            stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, scratch)), slotsReg);
 
         if (key.isConstant())
             stubcc.masm.lea(Address(slotsReg, key.index() * sizeof(Value)), Registers::ArgReg1);

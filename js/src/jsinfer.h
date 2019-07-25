@@ -1131,6 +1131,17 @@ typedef HashMap<ObjectTableKey,ObjectTableEntry,ObjectTableKey,SystemAllocPolicy
 struct AllocationSiteKey;
 typedef HashMap<AllocationSiteKey,ReadBarriered<TypeObject>,AllocationSiteKey,SystemAllocPolicy> AllocationSiteTable;
 
+struct RecompileInfo
+{
+    JSScript *script;
+    bool constructing:1;
+    uint32_t chunkIndex:31;
+
+    bool operator == (const RecompileInfo &o) const {
+        return script == o.script && constructing == o.constructing && chunkIndex == o.chunkIndex;
+    }
+};
+
 
 struct TypeCompartment
 {
@@ -1147,7 +1158,7 @@ struct TypeCompartment
     bool pendingNukeTypes;
 
     
-    Vector<JSScript*> *pendingRecompiles;
+    Vector<RecompileInfo> *pendingRecompiles;
 
     
 
@@ -1162,7 +1173,7 @@ struct TypeCompartment
 
 
 
-    JSScript *compiledScript;
+    RecompileInfo compiledInfo;
 
     
     AllocationSiteTable *allocationSiteTable;
@@ -1235,7 +1246,8 @@ struct TypeCompartment
     void setPendingNukeTypes(JSContext *cx);
 
     
-    void addPendingRecompile(JSContext *cx, JSScript *script);
+    void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
+    void addPendingRecompile(JSContext *cx, JSScript *script, jsbytecode *pc);
 
     
     void monitorBytecode(JSContext *cx, JSScript *script, uint32_t offset,
