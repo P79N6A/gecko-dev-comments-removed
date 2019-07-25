@@ -784,6 +784,33 @@ pref("network.ftp.control.qos", 0);
 pref("network.websocket.enabled", true);
 
 
+pref("network.websocket.max-message-size", 16000000);
+
+
+pref("network.websocket.auto-follow-http-redirects", false);
+
+
+pref("network.websocket.timeout.open", 20);
+
+
+
+pref("network.websocket.timeout.close", 20);
+
+
+
+pref("network.websocket.timeout.ping.request", 0);
+
+
+
+
+pref("network.websocket.timeout.ping.response", 10);
+
+
+
+pref("network.websocket.extensions.stream-deflate", true);
+
+
+
 
 
 
