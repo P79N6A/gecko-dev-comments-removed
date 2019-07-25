@@ -54,6 +54,7 @@ tabbrowser {
 
 .tabbrowser-tab[pinned] {
   position: fixed;
+  display: block; 
 }
 
 .tabbrowser-tab[pinned] > .tab-text {
