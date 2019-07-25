@@ -142,15 +142,6 @@ public:
 
 private:
     
-    template <class T>
-    void GetCallback(nsCOMPtr<T> &aResult)
-    {
-        NS_QueryNotificationCallbacks(mCallbacks, mLoadGroup,
-                                      NS_GET_TEMPLATE_IID(T),
-                                      getter_AddRefs(aResult));
-    }
-
-    
     
     
     nsresult AsyncCall(nsAsyncCallback funcPtr,

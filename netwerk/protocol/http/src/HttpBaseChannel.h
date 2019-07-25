@@ -157,6 +157,15 @@ public:
   NS_IMETHOD AdjustPriority(PRInt32 delta);
 
 protected:
+  
+  template <class T>
+  void GetCallback(nsCOMPtr<T> &aResult)
+  {
+    NS_QueryNotificationCallbacks(mCallbacks, mLoadGroup,
+                                  NS_GET_TEMPLATE_IID(T),
+                                  getter_AddRefs(aResult));
+  }
+
   nsCOMPtr<nsIURI>                  mURI;
   nsCOMPtr<nsIURI>                  mOriginalURI;
   nsCOMPtr<nsIURI>                  mDocumentURI;
