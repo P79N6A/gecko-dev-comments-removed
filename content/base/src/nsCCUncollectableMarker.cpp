@@ -403,4 +403,7 @@ mozilla::dom::TraceBlackJS(JSTracer* aTrc)
   if (windowsById) {
     windowsById->Enumerate(TraceActiveWindowGlobal, aTrc);
   }
+
+  
+  nsContentUtils::TraceSafeJSContext(aTrc);
 }

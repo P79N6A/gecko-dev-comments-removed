@@ -1270,36 +1270,34 @@ nsTableFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                const nsRect&           aDirtyRect,
                                const nsDisplayListSet& aLists)
 {
-  if (!IsVisibleInSelection(aBuilder))
-    return NS_OK;
-
   DO_GLOBAL_REFLOW_COUNT_DSP_COLOR("nsTableFrame", NS_RGB(255,128,255));
 
-  if (GetStyleVisibility()->IsVisible()) {
-    nsMargin deflate = GetDeflationForBackground(PresContext());
+  nsDisplayTableItem* item = nsnull;
+  if (IsVisibleInSelection(aBuilder)) {
+    if (GetStyleVisibility()->IsVisible()) {
+      nsMargin deflate = GetDeflationForBackground(PresContext());
+      
+      
+      
+      if (deflate == nsMargin(0, 0, 0, 0)) {
+        nsresult rv = DisplayBackgroundUnconditional(aBuilder, aLists, false);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+    }
     
     
     
-    if (deflate == nsMargin(0, 0, 0, 0)) {
-      nsresult rv = DisplayBackgroundUnconditional(aBuilder, aLists, false);
+    
+    
+    
+    if (aBuilder->IsForEventDelivery() ||
+        AnyTablePartHasBorderOrBackground(this, GetNextSibling()) ||
+        AnyTablePartHasBorderOrBackground(mColGroups.FirstChild(), nsnull)) {
+      item = new (aBuilder) nsDisplayTableBorderBackground(aBuilder, this);
+      nsresult rv = aLists.BorderBackground()->AppendNewToTop(item);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
-
-  nsDisplayTableItem* item = nsnull;
-  
-  
-  
-  
-  
-  if (aBuilder->IsForEventDelivery() ||
-      AnyTablePartHasBorderOrBackground(this, GetNextSibling()) ||
-      AnyTablePartHasBorderOrBackground(mColGroups.FirstChild(), nsnull)) {
-    item = new (aBuilder) nsDisplayTableBorderBackground(aBuilder, this);
-    nsresult rv = aLists.BorderBackground()->AppendNewToTop(item);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
   return DisplayGenericTablePart(aBuilder, this, aDirtyRect, aLists, item);
 }
 

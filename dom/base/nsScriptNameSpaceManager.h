@@ -97,6 +97,9 @@ struct nsGlobalNameStruct
     nsCID mCID; 
   };
 
+  
+  mozilla::dom::binding::DefineInterface mDefineDOMInterface;
+
 private:
 
   
@@ -166,7 +169,10 @@ public:
 
   nsGlobalNameStruct* GetConstructorProto(const nsGlobalNameStruct* aStruct);
 
-protected:
+  void RegisterDefineDOMInterface(const nsAString& aName,
+    mozilla::dom::binding::DefineInterface aDefineDOMInterface);
+
+private:
   
   
   

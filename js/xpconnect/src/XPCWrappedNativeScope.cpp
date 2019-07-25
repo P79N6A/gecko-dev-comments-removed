@@ -43,6 +43,10 @@
 #include "XPCWrapper.h"
 #include "jsproxy.h"
 
+#include "mozilla/dom/bindings/Utils.h"
+
+using namespace mozilla::dom;
+
 
 
 #ifdef XPC_TRACK_SCOPE_STATS
@@ -145,7 +149,8 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(XPCCallContext& ccx,
         mPrototypeJSObject(nsnull),
         mPrototypeNoHelper(nsnull),
         mScriptObjectPrincipal(nsnull),
-        mNewDOMBindingsEnabled(ccx.GetRuntime()->NewDOMBindingsEnabled())
+        mNewDOMBindingsEnabled(ccx.GetRuntime()->NewDOMBindingsEnabled()),
+        mParisBindingsEnabled(ccx.GetRuntime()->ParisBindingsEnabled())
 {
     
     {   
@@ -237,16 +242,28 @@ XPCWrappedNativeScope::SetGlobal(XPCCallContext& ccx, JSObject* aGlobal,
 
     
     
-    nsISupports* native = aNative;
-    if (!native &&
-        !(~js::GetObjectJSClass(aGlobal)->flags & (JSCLASS_HAS_PRIVATE |
-                                                   JSCLASS_PRIVATE_IS_NSISUPPORTS)))
-    {
-        
-        native = (nsISupports*)xpc_GetJSPrivate(aGlobal);
-        nsCOMPtr<nsIXPConnectWrappedNative> wn = do_QueryInterface(native);
+    nsISupports *native;
+    if (aNative) {
+        native = aNative;
+    } else {
+        const JSClass *jsClass = js::GetObjectJSClass(aGlobal);
+        nsISupports *priv;
+        if (!(~jsClass->flags & (JSCLASS_HAS_PRIVATE |
+                                 JSCLASS_PRIVATE_IS_NSISUPPORTS))) {
+            
+            
+            priv = static_cast<nsISupports*>(xpc_GetJSPrivate(aGlobal));
+        } else if ((jsClass->flags & JSCLASS_IS_DOMJSCLASS) &&
+                   bindings::DOMJSClass::FromJSClass(jsClass)->mDOMObjectIsISupports) {
+            priv = bindings::UnwrapDOMObject<nsISupports>(aGlobal, jsClass);
+        } else {
+            priv = nsnull;
+        }
+        nsCOMPtr<nsIXPConnectWrappedNative> wn = do_QueryInterface(priv);
         if (wn)
-            native = static_cast<XPCWrappedNative*>(native)->GetIdentityObject();
+            native = static_cast<XPCWrappedNative*>(wn.get())->GetIdentityObject();
+        else
+            native = priv;
     }
 
     
@@ -955,5 +972,3 @@ XPCWrappedNativeScope::SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf)
 
     return n;
 }
-
-

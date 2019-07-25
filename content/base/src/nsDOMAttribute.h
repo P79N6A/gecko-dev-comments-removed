@@ -56,15 +56,14 @@
 
 
 class nsDOMAttribute : public nsIAttribute,
-                       public nsIDOMAttr,
-                       public nsStubMutationObserver
+                       public nsIDOMAttr
 {
 public:
   nsDOMAttribute(nsDOMAttributeMap* aAttrMap,
                  already_AddRefed<nsINodeInfo> aNodeInfo,
                  const nsAString& aValue,
                  bool aNsAware);
-  virtual ~nsDOMAttribute();
+  virtual ~nsDOMAttribute() {}
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
@@ -100,8 +99,6 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsDOMAttribute,
                                                          nsIAttribute)
 
-  NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
-
   virtual nsXPCClassInfo* GetClassInfo();
 protected:
   virtual mozilla::dom::Element* GetNameSpaceElement()
@@ -113,24 +110,12 @@ protected:
 
 private:
   already_AddRefed<nsIAtom> GetNameAtom(nsIContent* aContent);
-
-  void EnsureChildState();
-
-  
-
-
-  void doRemoveChild(bool aNotify);
-
-  nsString mValue;
-  
-  
-  
-  nsIContent* mChild;
-
   mozilla::dom::Element *GetContentInternal() const
   {
     return mAttrMap ? mAttrMap->GetContent() : nsnull;
   }
+
+  nsString mValue;
 };
 
 

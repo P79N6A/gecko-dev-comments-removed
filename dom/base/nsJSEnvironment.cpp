@@ -108,6 +108,7 @@
 #include "mozilla/FunctionTimer.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/dom/bindings/Utils.h"
 
 #include "sampler.h"
 
@@ -1186,6 +1187,8 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
     return NS_OK;
   }
 
+  nsAutoMicroTask mt;
+
   
   
   
@@ -1380,6 +1383,8 @@ nsJSContext::EvaluateString(const nsAString& aScript,
     return NS_OK;
   }
 
+  nsAutoMicroTask mt;
+
   if (!aScopeObject) {
     aScopeObject = JS_GetGlobalObject(mContext);
   }
@@ -1555,6 +1560,8 @@ nsJSContext::ExecuteScript(JSScript* aScriptObject,
 
     return NS_OK;
   }
+
+  nsAutoMicroTask mt;
 
   if (!aScopeObject) {
     aScopeObject = JS_GetGlobalObject(mContext);
@@ -1814,6 +1821,7 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, JSObject* aScope,
 #endif
   SAMPLE_LABEL("JS", "CallEventHandler");
 
+  nsAutoMicroTask mt;
   JSAutoRequest ar(mContext);
   JSObject* target = nsnull;
   nsresult rv = JSObjectFromInterface(aTarget, aScope, &target);
@@ -2006,12 +2014,16 @@ nsJSContext::GetGlobalObject()
 
   JSClass *c = JS_GetClass(global);
 
-  if (!c || ((~c->flags) & (JSCLASS_HAS_PRIVATE |
-                            JSCLASS_PRIVATE_IS_NSISUPPORTS))) {
+  
+  
+  
+  MOZ_ASSERT(!(c->flags & JSCLASS_IS_DOMJSCLASS));
+  if ((~c->flags) & (JSCLASS_HAS_PRIVATE |
+                     JSCLASS_PRIVATE_IS_NSISUPPORTS)) {
     return nsnull;
   }
-
-  nsISupports *priv = (nsISupports *)js::GetObjectPrivate(global);
+  
+  nsISupports *priv = static_cast<nsISupports*>(js::GetObjectPrivate(global));
 
   nsCOMPtr<nsIXPConnectWrappedNative> wrapped_native =
     do_QueryInterface(priv);

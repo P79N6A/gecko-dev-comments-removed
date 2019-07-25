@@ -792,6 +792,7 @@ nsEventListenerManager::HandleEventSubType(nsListenerStruct* aListenerStruct,
   }
 
   if (NS_SUCCEEDED(result)) {
+    nsAutoMicroTask mt;
     
     result = aListener->HandleEvent(aDOMEvent);
   }
@@ -1046,11 +1047,6 @@ nsEventListenerManager::GetJSEventListener(nsIAtom *aEventName, jsval *vp)
   }
 
   nsIJSEventListener *listener = ls->GetJSListener();
-  if (listener->GetEventContext()->GetScriptTypeID() !=
-        nsIProgrammingLanguage::JAVASCRIPT) {
-    
-    return;
-  }
     
   if (ls->mHandlerIsString) {
     CompileEventHandlerInternal(ls, true, nsnull);

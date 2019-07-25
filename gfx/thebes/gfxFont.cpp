@@ -2130,6 +2130,12 @@ gfxFont::GetShapedWord(gfxContext *aContext,
                        PRUint32 aFlags)
 {
     
+    if (mWordCache.Count() > 10000) {
+        NS_WARNING("flushing shaped-word cache");
+        ClearCachedWords();
+    }
+
+    
     CacheHashKey key(aText, aLength, aHash,
                      aRunScript,
                      aAppUnitsPerDevUnit,
@@ -2262,6 +2268,9 @@ gfxFont::ShapeWord(gfxContext *aContext,
     return ok;
 }
 
+inline static bool IsChar8Bit(PRUint8 ) { return true; }
+inline static bool IsChar8Bit(PRUnichar aCh) { return aCh < 0x100; }
+
 template<typename T>
 bool
 gfxFont::SplitAndInitTextRun(gfxContext *aContext,
@@ -2332,7 +2341,7 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
         }
 
         if (!breakHere) {
-            if (ch >= 0x100) {
+            if (!IsChar8Bit(ch)) {
                 wordIs8Bit = false;
             }
             
@@ -2410,7 +2419,7 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
         
         hash = HashMix(0, ch);
         wordStart = i;
-        wordIs8Bit = (ch < 0x100);
+        wordIs8Bit = IsChar8Bit(ch);
     }
 
     return true;

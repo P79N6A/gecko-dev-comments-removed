@@ -338,8 +338,6 @@ nsTableOuterFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 {
   
   
-  if (!IsVisibleInSelection(aBuilder))
-    return NS_OK;
 
   
   

@@ -179,24 +179,8 @@ enum {
   NODE_HAS_RELEVANT_HOVER_RULES = 0x00080000U,
 
   
-  
-  
-  
-  NODE_SCRIPT_TYPE_OFFSET =               20,
-
-  NODE_SCRIPT_TYPE_SIZE =                  2,
-
-  NODE_SCRIPT_TYPE_MASK =  (1 << NODE_SCRIPT_TYPE_SIZE) - 1,
-
-  
-  NODE_TYPE_SPECIFIC_BITS_OFFSET =
-    NODE_SCRIPT_TYPE_OFFSET + NODE_SCRIPT_TYPE_SIZE
+  NODE_TYPE_SPECIFIC_BITS_OFFSET =        20
 };
-
-PR_STATIC_ASSERT(PRUint32(nsIProgrammingLanguage::JAVASCRIPT) <=
-                   PRUint32(NODE_SCRIPT_TYPE_MASK));
-PR_STATIC_ASSERT(PRUint32(nsIProgrammingLanguage::PYTHON) <=
-                   PRUint32(NODE_SCRIPT_TYPE_MASK));
 
 
 
@@ -291,8 +275,8 @@ private:
 
 
 #define NS_INODE_IID \
-{ 0x458300ed, 0xe418, 0x4577, \
-  { 0x89, 0xd7, 0xfe, 0xf1, 0x34, 0xf3, 0x52, 0x19 } }
+{ 0x772e7e52, 0xfadf, 0x4962, \
+  { 0x8d, 0x96, 0x58, 0xfe, 0x75, 0x68, 0xaf, 0xa8 } }
 
 
 
@@ -1043,22 +1027,6 @@ public:
 
   nsIDocument* GetOwnerDocument() const;
 
-  
-
-
-
-  virtual PRUint32 GetScriptTypeID() const
-  { return nsIProgrammingLanguage::JAVASCRIPT; }
-
-  
-
-
-  NS_IMETHOD SetScriptTypeID(PRUint32 aLang)
-  {
-    NS_NOTREACHED("SetScriptTypeID not implemented");
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
   nsresult Normalize();
 
   
@@ -1328,6 +1296,8 @@ private:
     
     ElementHasLockedStyleStates,
     
+    NodeMayHaveDOMMutationObserver,
+    
     BooleanFlagCount
   };
 
@@ -1383,7 +1353,10 @@ public:
   void SetIsPurpleRoot(bool aValue)
     { SetBoolFlag(NodeIsPurpleRoot, aValue); }
   bool IsPurpleRoot() const { return GetBoolFlag(NodeIsPurpleRoot); }
-
+  bool MayHaveDOMMutationObserver()
+    { return GetBoolFlag(NodeMayHaveDOMMutationObserver); }
+  void SetMayHaveDOMMutationObserver()
+    { SetBoolFlag(NodeMayHaveDOMMutationObserver, true); }
   bool HasListenerManager() { return HasFlag(NODE_HAS_LISTENERMANAGER); }
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
@@ -1420,6 +1393,12 @@ protected:
 public:
   
   virtual nsXPCClassInfo* GetClassInfo() = 0;
+
+  
+  void BindObject(nsISupports* aObject);
+  
+  
+  void UnbindObject(nsISupports* aObject);
 
   
 

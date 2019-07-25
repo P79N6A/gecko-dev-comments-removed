@@ -1,39 +1,39 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef nsNPAPIPlugin_h_
 #define nsNPAPIPlugin_h_
@@ -46,12 +46,12 @@
 
 #include "mozilla/PluginLibrary.h"
 
-/*
- * Use this macro before each exported function
- * (between the return address and the function
- * itself), to ensure that the function has the
- * right calling conventions on OS/2.
- */
+
+
+
+
+
+
 #ifdef XP_OS2
 #define NP_CALLBACK _System
 #else
@@ -82,28 +82,27 @@ public:
 
   NS_DECL_ISUPPORTS
 
-  // Constructs and initializes an nsNPAPIPlugin object. A NULL file path
-  // will prevent this from calling NP_Initialize.
+  
+  
   static nsresult CreatePlugin(nsPluginTag *aPluginTag, nsNPAPIPlugin** aResult);
 
   PluginLibrary* GetLibrary();
-  // PluginFuncs() can't fail but results are only valid if GetLibrary() succeeds
+  
   NPPluginFuncs* PluginFuncs();
 
 #if defined(XP_MACOSX) && !defined(__LP64__)
   void SetPluginRefNum(short aRefNum);
 #endif
 
-  // The IPC mechanism notifies the nsNPAPIPlugin if the plugin
-  // crashes and is no longer usable. pluginDumpID/browserDumpID are
-  // the IDs of respective minidumps that were written, or empty if no
-  // minidump was written.
+  
+  
+  
+  
   void PluginCrashed(const nsAString& pluginDumpID,
                      const nsAString& browserDumpID);
   
   static bool RunPluginOOP(const nsPluginTag *aPluginTag);
 
-  nsresult CreatePluginInstance(nsNPAPIPluginInstance **aResult);
   nsresult Shutdown();
 
   static nsresult RetainStream(NPStream *pstream, nsISupports **aRetainedPeer);
@@ -175,7 +174,7 @@ inline bool
 NPStringIdentifierIsPermanent(NPP npp, NPIdentifier id)
 {
   JSContext* cx = GetJSContext(npp);
-  if (!cx) // OOM?
+  if (!cx) 
     return false;
 
   JSAutoRequest ar(cx);
@@ -369,19 +368,19 @@ _useragent(NPP npp);
 void* NP_CALLBACK
 _memalloc (uint32_t size);
 
-// Deprecated entry points for the old Java plugin.
-void* NP_CALLBACK /* OJI type: JRIEnv* */
+
+void* NP_CALLBACK 
 _getJavaEnv();
 
-void* NP_CALLBACK /* OJI type: jref */
+void* NP_CALLBACK 
 _getJavaPeer(NPP npp);
 
 void NP_CALLBACK
 _urlredirectresponse(NPP instance, void* notifyData, NPBool allow);
 
-} /* namespace parent */
-} /* namespace plugins */
-} /* namespace mozilla */
+} 
+} 
+} 
 
 const char *
 PeekException();
@@ -395,10 +394,10 @@ OnPluginDestroy(NPP instance);
 void
 OnShutdown();
 
-/**
- * within a lexical scope, locks and unlocks the mutex used to
- * serialize modifications to plugin async callback state.
- */
+
+
+
+
 struct NS_STACK_CLASS AsyncCallbackAutoLock
 {
   AsyncCallbackAutoLock();
@@ -417,14 +416,14 @@ protected:
   static NPP sCurrentNPP;
 };
 
-// XXXjst: The NPPAutoPusher stack is a bit redundant now that
-// PluginDestructionGuard exists, and could thus be replaced by code
-// that uses the PluginDestructionGuard list of plugins on the
-// stack. But they're not identical, and to minimize code changes
-// we're keeping both for the moment, and making NPPAutoPusher inherit
-// the PluginDestructionGuard class to avoid having to keep two
-// separate objects on the stack since we always want a
-// PluginDestructionGuard where we use an NPPAutoPusher.
+
+
+
+
+
+
+
+
 
 class NPPAutoPusher : public NPPStack,
                       protected PluginDestructionGuard
@@ -458,4 +457,4 @@ protected:
   char *mOldException;
 };
 
-#endif // nsNPAPIPlugin_h_
+#endif 

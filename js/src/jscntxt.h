@@ -52,7 +52,6 @@
 #include "jsprvtd.h"
 #include "jsatom.h"
 #include "jsclist.h"
-#include "jsdhash.h"
 #include "jsgc.h"
 #include "jspropertycache.h"
 #include "jspropertytree.h"
@@ -108,9 +107,6 @@ class IonActivation;
 class WeakMapBase;
 class InterpreterFrames;
 
-class ScriptOpcodeCounts;
-struct ScriptOpcodeCountsPair;
-
 
 
 
@@ -139,7 +135,7 @@ struct PendingProxyOperation {
     JSObject                *object;
 };
 
-typedef Vector<ScriptOpcodeCountsPair, 0, SystemAllocPolicy> ScriptOpcodeCountsVector;
+typedef Vector<ScriptAndCounts, 0, SystemAllocPolicy> ScriptAndCountsVector;
 
 struct ConservativeGCData
 {
@@ -314,7 +310,15 @@ struct JSRuntime : js::RuntimeFriendFields
     int64_t             gcNextFullGCTime;
     int64_t             gcJitReleaseTime;
     JSGCMode            gcMode;
+
+    
+
+
+
+
     volatile uintptr_t  gcIsNeeded;
+    volatile uintptr_t  gcFullIsNeeded;
+
     js::WeakMapBase     *gcWeakMapList;
     js::gcstats::Statistics gcStats;
 
@@ -328,19 +332,13 @@ struct JSRuntime : js::RuntimeFriendFields
     js::gcreason::Reason gcTriggerReason;
 
     
-
-
-
-    JSCompartment       *gcTriggerCompartment;
-
-    
-    JSCompartment       *gcCurrentCompartment;
+    bool                gcIsFull;
 
     
 
 
 
-    JSCompartment       *gcCheckCompartment;
+    bool                gcStrictCompartmentChecking;
 
     
 
@@ -353,6 +351,9 @@ struct JSRuntime : js::RuntimeFriendFields
 
     
     bool                gcLastMarkSlice;
+
+    
+    bool                gcIncrementalIsFull;
 
     
 
@@ -369,9 +370,6 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
     bool                gcIncrementalEnabled;
-
-    
-    JSCompartment       *gcIncrementalCompartment;
 
     
 
@@ -467,7 +465,7 @@ struct JSRuntime : js::RuntimeFriendFields
     js::AutoGCRooter   *autoGCRooters;
 
     
-    js::ScriptOpcodeCountsVector *scriptPCCounters;
+    js::ScriptAndCountsVector *scriptAndCountsVector;
 
     
     js::Value           NaNValue;

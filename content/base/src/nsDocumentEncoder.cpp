@@ -83,6 +83,10 @@
 #include "nsIFrame.h"
 #include "nsStringBuffer.h"
 #include "mozilla/dom/Element.h"
+#include "nsIEditorDocShell.h"
+#include "nsIEditor.h"
+#include "nsIHTMLEditor.h"
+#include "nsIDocShell.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -349,6 +353,42 @@ nsDocumentEncoder::IncludeInContext(nsINode *aNode)
   return false;
 }
 
+static
+bool
+IsInvisibleBreak(nsINode *aNode) {
+  
+  
+  Element* elt = aNode->AsElement();
+  if (!elt->IsHTML(nsGkAtoms::br) ||
+      !aNode->IsEditable()) {
+    return false;
+  }
+
+  
+  nsIDocument *doc = aNode->GetCurrentDoc();
+  if (doc) {
+    nsPIDOMWindow *window = doc->GetWindow();
+    if (window) {
+      nsIDocShell *docShell = window->GetDocShell();
+      if (docShell) {
+        nsCOMPtr<nsIEditorDocShell> editorDocShell = do_QueryInterface(docShell);
+        if (editorDocShell) {
+          nsCOMPtr<nsIEditor> editor;
+          editorDocShell->GetEditor(getter_AddRefs(editor));
+          nsCOMPtr<nsIHTMLEditor> htmlEditor = do_QueryInterface(editor);
+          if (htmlEditor) {
+            bool isVisible = false;
+            nsCOMPtr<nsIDOMNode> domNode = do_QueryInterface(aNode);
+            htmlEditor->BreakIsVisible(domNode, &isVisible);
+            return !isVisible;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
 nsresult
 nsDocumentEncoder::SerializeNodeStart(nsINode* aNode,
                                       PRInt32 aStartOffset,
@@ -381,6 +421,11 @@ nsDocumentEncoder::SerializeNodeStart(nsINode* aNode,
     node = aNode;
   
   if (node->IsElement()) {
+    if ((mFlags & (nsIDocumentEncoder::OutputPreformatted |
+                   nsIDocumentEncoder::OutputDropInvisibleBreak)) &&
+        IsInvisibleBreak(node)) {
+      return NS_OK;
+    }
     Element* originalElement =
       aOriginalNode && aOriginalNode->IsElement() ?
         aOriginalNode->AsElement() : nsnull;
@@ -1245,7 +1290,15 @@ nsHTMLCopyEncoder::Init(nsIDOMDocument* aDocument,
   mDocument = do_QueryInterface(aDocument);
   NS_ENSURE_TRUE(mDocument, NS_ERROR_FAILURE);
 
-  mMimeType.AssignLiteral("text/html");
+  
+  
+  
+  
+  if (aMimeType.EqualsLiteral("text/plain")) {
+    mMimeType.AssignLiteral("text/plain");
+  } else {
+    mMimeType.AssignLiteral("text/html");
+  }
 
   
   

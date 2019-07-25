@@ -637,6 +637,7 @@ pref("dom.min_background_timeout_value", 1000);
 
 
 pref("dom.new_bindings", true);
+pref("dom.paris_bindings", true);
 
 
 #ifndef XP_WIN
@@ -817,7 +818,10 @@ pref("network.http.pipelining.max-optimistic-requests" , 4);
 
 pref("network.http.pipelining.aggressive", false);
 pref("network.http.pipelining.maxsize" , 300000);
-pref("network.http.pipelining.read-timeout", 10000);
+
+
+
+pref("network.http.pipelining.read-timeout", 30000);
 
 
 pref("network.http.prompt-temp-redirect", true);
@@ -3523,6 +3527,7 @@ pref("profiler.entries", 100000);
 
 pref("dom.network.enabled", true);
 pref("dom.network.metered", false);
+
 #ifdef XP_WIN
 
 
@@ -3541,3 +3546,8 @@ pref("memory.low_physical_memory_threshold_mb", 0);
 
 pref("memory.low_memory_notification_interval_ms", 10000);
 #endif
+
+
+
+
+pref("memory.ghost_window_timeout_seconds", 60);

@@ -42,11 +42,9 @@
 #include "nsIContent.h"
 #include "mozilla/dom/Element.h"
 #include "nsIMutationObserver.h"
-#include "nsIMutationObserver2.h"
 #include "nsIDocument.h"
 #include "nsIDOMUserDataHandler.h"
 #include "nsEventListenerManager.h"
-#include "nsIAttribute.h"
 #include "nsIXPConnect.h"
 #include "nsGenericElement.h"
 #include "pldhash.h"
@@ -66,17 +64,20 @@
 #include "jsgc.h"
 #include "nsWrapperCacheInlines.h"
 #include "nsObjectLoadingContent.h"
+#include "nsDOMMutationObserver.h"
 
 using namespace mozilla::dom;
 
 
 
-
-
 #define IMPL_MUTATION_NOTIFICATION(func_, content_, params_)      \
   PR_BEGIN_MACRO                                                  \
+  bool needsEnterLeave = doc->MayHaveDOMMutationObservers();      \
+  if (needsEnterLeave) {                                          \
+    nsDOMMutationObserver::EnterMutationHandling();               \
+  }                                                               \
   nsINode* node = content_;                                       \
-  NS_ASSERTION(node->OwnerDoc() == doc, "Bogus document");     \
+  NS_ASSERTION(node->OwnerDoc() == doc, "Bogus document");        \
   if (doc) {                                                      \
     static_cast<nsIMutationObserver*>(doc->BindingManager())->    \
       func_ params_;                                              \
@@ -92,6 +93,9 @@ using namespace mozilla::dom;
     }                                                             \
     node = node->GetNodeParent();                                 \
   } while (node);                                                 \
+  if (needsEnterLeave) {                                          \
+    nsDOMMutationObserver::LeaveMutationHandling();               \
+  }                                                               \
   PR_END_MACRO
 
 void
@@ -196,32 +200,6 @@ nsNodeUtils::ContentRemoved(nsINode* aContainer,
   IMPL_MUTATION_NOTIFICATION(ContentRemoved, aContainer,
                              (document, container, aChild, aIndexInContainer,
                               aPreviousSibling));
-}
-
-void
-nsNodeUtils::AttributeChildRemoved(nsINode* aAttribute,
-                                   nsIContent* aChild)
-{
-  NS_PRECONDITION(aAttribute->IsNodeOfType(nsINode::eATTRIBUTE),
-                  "container must be a nsIAttribute");
-
-  
-  do {
-    nsINode::nsSlots* slots = aAttribute->GetExistingSlots();
-    if (slots && !slots->mMutationObservers.IsEmpty()) {
-      
-      nsTObserverArray<nsIMutationObserver*>::ForwardIterator iter_ =
-        slots->mMutationObservers;
-      nsCOMPtr<nsIMutationObserver2> obs_;
-      while (iter_.HasMore()) {
-        obs_ = do_QueryInterface(iter_.GetNext());
-        if (obs_) {
-          obs_->AttributeChildRemoved(aAttribute, aChild);
-        }
-      }
-    }
-    aAttribute = aAttribute->GetNodeParent();
-  } while (aAttribute);
 }
 
 void
@@ -569,8 +547,12 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
     
     if (oldDoc != newDoc) {
       nsCOMPtr<nsIImageLoadingContent> imageContent(do_QueryInterface(aNode));
-      if (imageContent)
+      if (imageContent) {
         imageContent->NotifyOwnerDocumentChanged(oldDoc);
+      }
+      if (oldDoc->MayHaveDOMMutationObservers()) {
+        newDoc->SetMayHaveDOMMutationObservers();
+      }
     }
 
     if (elem) {
@@ -598,32 +580,11 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
   
   
 
-  
-  
-  
-  
-  
-  
-  
-  if (aClone && aNode->IsNodeOfType(nsINode::eATTRIBUTE)) {
-    nsCOMPtr<nsINode> attrChildNode = aNode->GetChildAt(0);
-    
-    
-    if (attrChildNode && attrChildNode->HasProperties()) {
-      nsCOMPtr<nsINode> clonedAttrChildNode = clone->GetChildAt(0);
-      if (clonedAttrChildNode) {
-        bool ok = aNodesWithProperties.AppendObject(attrChildNode) &&
-                    aNodesWithProperties.AppendObject(clonedAttrChildNode);
-        NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
-      }
-    }
-  }
-  
-  else if (aDeep || aNode->IsNodeOfType(nsINode::eATTRIBUTE)) {
+  if (aDeep && (!aClone || !aNode->IsNodeOfType(nsINode::eATTRIBUTE))) {
     
     for (nsIContent* cloneChild = aNode->GetFirstChild();
          cloneChild;
-       cloneChild = cloneChild->GetNextSibling()) {
+         cloneChild = cloneChild->GetNextSibling()) {
       nsCOMPtr<nsINode> child;
       rv = CloneAndAdopt(cloneChild, aClone, true, nodeInfoManager,
                          aCx, aNewScope, aNodesWithProperties, clone,

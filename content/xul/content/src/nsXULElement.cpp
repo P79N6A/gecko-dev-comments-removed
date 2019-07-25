@@ -288,10 +288,6 @@ nsXULElement::Create(nsXULPrototypeElement* aPrototype, nsINodeInfo *aNodeInfo,
             element->SetMayHaveStyle();
         }
 
-        NS_ASSERTION(aPrototype->mScriptTypeID != nsIProgrammingLanguage::UNKNOWN,
-                    "Need to know the language!");
-        element->SetScriptTypeID(aPrototype->mScriptTypeID);
-
         if (aIsScriptable) {
             
             
@@ -418,17 +414,12 @@ nsXULElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
     nsRefPtr<nsXULElement> element;
     if (mPrototype) {
         element = nsXULElement::Create(mPrototype, aNodeInfo, true);
-        NS_ASSERTION(GetScriptTypeID() == mPrototype->mScriptTypeID,
+        NS_ASSERTION(nsIProgrammingLanguage::JAVASCRIPT == mPrototype->mScriptTypeID,
                      "Didn't get the default language from proto?");
     }
     else {
         nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
         element = new nsXULElement(ni.forget());
-        if (element) {
-        	
-        	
-        	element->SetScriptTypeID(GetScriptTypeID());
-        }
     }
 
     if (!element) {
@@ -1108,7 +1099,7 @@ nsXULElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
             
             
             bool defer = mPrototype == nsnull ||
-                           mPrototype->mScriptTypeID == GetScriptTypeID();
+                           mPrototype->mScriptTypeID == nsIProgrammingLanguage::JAVASCRIPT;
             if (aValue->Type() == nsAttrValue::eString) {
                 AddScriptEventListener(aName, aValue->GetStringValue(), defer);
             } else {
@@ -2518,7 +2509,7 @@ nsXULElement::RecompileScriptEventListeners()
         
         
         
-        NS_ASSERTION(mPrototype->mScriptTypeID == GetScriptTypeID(),
+        NS_ASSERTION(mPrototype->mScriptTypeID == nsIProgrammingLanguage::JAVASCRIPT,
                      "Prototype and node confused about default language?");
 
         count = mPrototype->mNumAttributes;

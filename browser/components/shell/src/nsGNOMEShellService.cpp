@@ -382,6 +382,21 @@ nsGNOMEShellService::SetShouldCheckDefaultBrowser(bool aShouldCheck)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsGNOMEShellService::GetCanSetDesktopBackground(bool* aResult)
+{
+  
+  
+  const char* gnomeSession = getenv("GNOME_DESKTOP_SESSION_ID");
+  if (gnomeSession) {
+    *aResult = true;
+  } else {
+    *aResult = false;
+  }
+
+  return NS_OK;
+}
+
 static nsresult
 WriteImage(const nsCString& aPath, imgIContainer* aImage)
 {
