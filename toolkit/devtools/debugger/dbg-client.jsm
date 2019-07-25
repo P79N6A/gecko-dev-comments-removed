@@ -60,8 +60,8 @@ function dumpn(str)
   dump("DBG-CLIENT: " + str + "\n");
 }
 
-let loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-  .getService(Components.interfaces.mozIJSSubScriptLoader);
+let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
+  .getService(Ci.mozIJSSubScriptLoader);
 loader.loadSubScript("chrome://global/content/devtools/dbg-transport.js");
 
 
@@ -85,6 +85,10 @@ function eventSource(aProto) {
 
 
   aProto.addListener = function EV_addListener(aName, aListener) {
+    if (typeof aListener != "function") {
+      return;
+    }
+
     if (!this._listeners) {
       this._listeners = {};
     }
@@ -170,7 +174,12 @@ function eventSource(aProto) {
     }
 
     for each (let listener in listeners) {
-      listener.apply(null, arguments);
+      try {
+        listener.apply(null, arguments);
+      } catch (e) {
+        
+        Cu.reportError(e);
+      }
     }
   }
 }
@@ -233,8 +242,7 @@ DebuggerClient.prototype = {
 
 
 
-
-  ready: function DC_ready(aOnConnected) {
+  connect: function DC_connect(aOnConnected) {
     if (aOnConnected) {
       this.addOneTimeListener("connected", function(aName, aApplicationType, aTraits) {
         aOnConnected(aApplicationType, aTraits);
@@ -382,6 +390,12 @@ DebuggerClient.prototype = {
 
   
 
+  
+
+
+
+
+
   onPacket: function DC_onPacket(aPacket) {
     if (!this._connected) {
       
@@ -422,12 +436,24 @@ DebuggerClient.prototype = {
     this._sendRequests();
   },
 
-  onClosed: function DC_onClosed() {
+  
+
+
+
+
+
+
+  onClosed: function DC_onClosed(aStatus) {
     this.notify("closed");
   },
 }
 
 eventSource(DebuggerClient.prototype);
+
+
+
+
+
 
 
 
@@ -462,6 +488,11 @@ TabClient.prototype = {
 };
 
 eventSource(TabClient.prototype);
+
+
+
+
+
 
 
 
@@ -567,6 +598,8 @@ ThreadClient.prototype = {
 
 
 
+
+
   setBreakpoint: function TC_setBreakpoint(aLocation, aOnResponse) {
     this._assertPaused("setBreakpoint");
 
@@ -587,7 +620,8 @@ ThreadClient.prototype = {
 
 
 
-  scripts: function TC_scripts(aOnResponse) {
+
+  getScripts: function TC_getScripts(aOnResponse) {
     let packet = { to: this._actor, type: DebugProtocolTypes.scripts };
     this._client.request(packet, aOnResponse);
   },
@@ -608,7 +642,7 @@ ThreadClient.prototype = {
 
   fillScripts: function TC_fillScripts() {
     let self = this;
-    this.scripts(function(aResponse) {
+    this.getScripts(function(aResponse) {
       for each (let script in aResponse.scripts) {
         self._scriptCache[script.url] = script;
       }
@@ -640,7 +674,10 @@ ThreadClient.prototype = {
 
 
 
-  frames: function TC_frames(aStart, aCount, aOnResponse) {
+
+
+
+  getFrames: function TC_getFrames(aStart, aCount, aOnResponse) {
     this._assertPaused("frames");
 
     let packet = { to: this._actor, type: DebugProtocolTypes.frames,
@@ -673,6 +710,7 @@ ThreadClient.prototype = {
 
 
 
+
   fillFrames: function TC_fillFrames(aTotal) {
     this._assertPaused("fillFrames");
 
@@ -683,7 +721,7 @@ ThreadClient.prototype = {
     let numFrames = this._frameCache.length;
 
     let self = this;
-    this.frames(numFrames, aTotal - numFrames, function(aResponse) {
+    this.getFrames(numFrames, aTotal - numFrames, function(aResponse) {
       for each (let frame in aResponse.frames) {
         self._frameCache[frame.depth] = frame;
       }
@@ -712,7 +750,7 @@ ThreadClient.prototype = {
 
 
 
-  pauseGrip: function DC_pauseGrip(aGrip) {
+  pauseGrip: function TC_pauseGrip(aGrip) {
     if (!this._pauseGrips) {
       this._pauseGrips = {};
     }
@@ -754,6 +792,11 @@ eventSource(ThreadClient.prototype);
 
 
 
+
+
+
+
+
 function GripClient(aClient, aGrip)
 {
   this._grip = aGrip;
@@ -772,9 +815,10 @@ GripClient.prototype = {
 
 
 
-  nameAndParameters: function GC_nameAndParameters(aOnResponse) {
+
+  getSignature: function GC_getSignature(aOnResponse) {
     if (this._grip["class"] !== "Function") {
-      throw "nameAndParameters is only valid for function grips.";
+      throw "getSignature is only valid for function grips.";
     }
 
     let packet = { to: this.actor, type: DebugProtocolTypes.nameAndParameters };
@@ -791,7 +835,7 @@ GripClient.prototype = {
 
 
 
-  ownPropertyNames: function GC_ownPropertyNames(aOnResponse) {
+  getOwnPropertyNames: function GC_getOwnPropertyNames(aOnResponse) {
     let packet = { to: this.actor, type: DebugProtocolTypes.ownPropertyNames };
     this._client.request(packet, function (aResponse) {
                                    if (aOnResponse) {
@@ -805,7 +849,7 @@ GripClient.prototype = {
 
 
 
-  prototypeAndProperties: function GC_prototypeAndProperties(aOnResponse) {
+  getPrototypeAndProperties: function GC_getPrototypeAndProperties(aOnResponse) {
     let packet = { to: this.actor,
                    type: DebugProtocolTypes.prototypeAndProperties };
     this._client.request(packet, function (aResponse) {
@@ -821,7 +865,7 @@ GripClient.prototype = {
 
 
 
-  property: function GC_property(aName, aOnResponse) {
+  getProperty: function GC_getProperty(aName, aOnResponse) {
     let packet = { to: this.actor, type: DebugProtocolTypes.property,
                    name: aName };
     this._client.request(packet, function (aResponse) {
@@ -836,7 +880,7 @@ GripClient.prototype = {
 
 
 
-  prototype: function GC_prototype(aOnResponse) {
+  getPrototype: function GC_getPrototype(aOnResponse) {
     let packet = { to: this.actor, type: DebugProtocolTypes.prototype };
     this._client.request(packet, function (aResponse) {
                                    if (aOnResponse) {
@@ -845,6 +889,11 @@ GripClient.prototype = {
                                  });
   }
 };
+
+
+
+
+
 
 
 
@@ -873,6 +922,11 @@ BreakpointClient.prototype = {
 };
 
 eventSource(BreakpointClient.prototype);
+
+
+
+
+
 
 
 

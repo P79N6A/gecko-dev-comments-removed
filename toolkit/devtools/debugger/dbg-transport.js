@@ -96,7 +96,7 @@ DebuggerTransport.prototype = {
     }
   },
 
-  onOutputStreamReady: function DT_ready(aStream) {
+  onOutputStreamReady: function DT_onOutputStreamReady(aStream) {
     let written = aStream.write(this._outgoing, this._outgoing.length);
     this._outgoing = this._outgoing.slice(written);
     this._flushOutgoing();
@@ -125,7 +125,7 @@ DebuggerTransport.prototype = {
     try {
       this._incoming += NetUtil.readInputStreamToString(aStream,
                                                         aStream.available());
-      while (this.processIncoming()) {};
+      while (this._processIncoming()) {};
     } catch(e) {
       dumpn("Unexpected error reading from debugging connection: " + e + " - " + e.stack);
       this.close();
@@ -140,7 +140,7 @@ DebuggerTransport.prototype = {
 
 
 
-  processIncoming: function DT_processIncoming() {
+  _processIncoming: function DT__processIncoming() {
     
     let sep = this._incoming.indexOf(':');
     if (sep < 0) {

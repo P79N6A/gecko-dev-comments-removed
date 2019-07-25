@@ -48,6 +48,10 @@
 
 
 
+
+
+
+
 function ThreadActor(aHooks)
 {
   this._state = "detached";
@@ -220,9 +224,9 @@ ThreadActor.prototype = {
     let packet = this._paused(youngest);
     packet.why = { type: "clientEvaluated" };
     if ("return" in completion) {
-      packet.why.value = this.valueGrip(completion["return"]);
+      packet.why.value = this.createValueGrip(completion["return"]);
     } else if ("throw" in completion) {
-      packet.why.exception = this.valueGrip(completion["throw"]);
+      packet.why.exception = this.createValueGrip(completion["throw"]);
     } else {
       
       packet.why.terminated = true;
@@ -254,7 +258,7 @@ ThreadActor.prototype = {
     
     let frames = [];
     for (; frame && (!count || i < (start + count)); i++) {
-      let grip = this._frameActor(frame).grip();
+      let grip = this._createFrameActor(frame).grip();
       grip.depth = i;
       frames.push(grip);
       frame = frame.older;
@@ -401,7 +405,7 @@ ThreadActor.prototype = {
                    type: "paused",
                    actor: this._pauseActor.actorID };
     if (aFrame) {
-      packet.frame = this._frameActor(aFrame).grip();
+      packet.frame = this._createFrameActor(aFrame).grip();
     }
 
     if (poppedFrames) {
@@ -475,7 +479,7 @@ ThreadActor.prototype = {
     return popped;
   },
 
-  _frameActor: function TA_threadActor(aFrame) {
+  _createFrameActor: function TA_createFrameActor(aFrame) {
     if (aFrame.actor) {
       return aFrame.actor;
     }
@@ -497,7 +501,7 @@ ThreadActor.prototype = {
 
 
 
-  environmentActor: function TA_environmentActor(aObject, aPool) {
+  createEnvironmentActor: function TA_createEnvironmentActor(aObject, aPool) {
     let environment = aObject.environment;
     
     
@@ -522,7 +526,7 @@ ThreadActor.prototype = {
 
 
 
-  valueGrip: function TA_valueGrip(aValue) {
+  createValueGrip: function TA_createValueGrip(aValue) {
     let type = typeof(aValue);
     if (type === "boolean" || type === "string" || type === "number") {
       return aValue;
@@ -544,6 +548,14 @@ ThreadActor.prototype = {
     return null;
   },
 
+  
+
+
+
+
+
+
+
   objectGrip: function TA_objectGrip(aValue, aPool) {
     if (!aPool.objectActors) {
       aPool.objectActors = new WeakMap();
@@ -559,6 +571,12 @@ ThreadActor.prototype = {
     return actor.grip();
   },
 
+  
+
+
+
+
+
   pauseObjectGrip: function TA_pauseObjectGrip(aValue) {
     if (!this._pausePool) {
       throw "Object grip requested while not paused.";
@@ -567,14 +585,36 @@ ThreadActor.prototype = {
     return this.objectGrip(aValue, this._pausePool);
   },
 
+  
+
+
+
+
+
   threadObjectGrip: function TA_threadObjectGrip(aValue) {
     return this.objectGrip(aValue, this.threadLifetimePool);
   },
 
   
+
+  
+
+
+
+
+
+
+
   uncaughtExceptionHook: function TA_uncaughtExceptionHook(aException) {
     dumpn("Got an exception:" + aException);
   },
+
+  
+
+
+
+
+
 
   onDebuggerStatement: function TA_onDebuggerStatement(aFrame) {
     try {
@@ -590,6 +630,19 @@ ThreadActor.prototype = {
       return undefined;
     }
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
 
   onNewScript: function TA_onNewScript(aScript, aFunction) {
     dumpn("Got a new script:" + aScript + ", url: " + aScript.url +
@@ -642,6 +695,14 @@ PauseActor.prototype = {
 };
 
 
+
+
+
+
+
+
+
+
 function ObjectActor(aObj, aThreadActor)
 {
   this.obj = aObj;
@@ -656,11 +717,17 @@ ObjectActor.prototype = {
     message: "Object actors can only be accessed while the thread is paused."
   },
 
+  
+
+
   grip: function OA_grip() {
     return { "type": "object",
              "class": this.obj["class"],
              "actor": this.actorID };
   },
+
+  
+
 
   release: function OA_release() {
     this.registeredPool.objectActors.delete(this.obj);
@@ -668,6 +735,9 @@ ObjectActor.prototype = {
   },
 
   
+
+
+
 
 
 
@@ -681,6 +751,9 @@ ObjectActor.prototype = {
   },
 
   
+
+
+
 
 
 
@@ -702,11 +775,14 @@ ObjectActor.prototype = {
       }
     }
     return { from: this.actorID,
-             prototype: this.threadActor.valueGrip(this.obj.proto),
+             prototype: this.threadActor.createValueGrip(this.obj.proto),
              ownProperties: ownProperties };
   },
 
   
+
+
+
 
 
   onPrototype: function OA_onPrototype(aRequest) {
@@ -715,10 +791,13 @@ ObjectActor.prototype = {
     }
 
     return { from: this.actorID,
-             prototype: this.threadActor.valueGrip(this.obj.proto) };
+             prototype: this.threadActor.createValueGrip(this.obj.proto) };
   },
 
   
+
+
+
 
 
 
@@ -741,21 +820,27 @@ ObjectActor.prototype = {
 
 
 
+
+
+
   _propertyDescriptor: function OA_propertyDescriptor(aObject) {
     let descriptor = {};
     descriptor.configurable = aObject.configurable;
     descriptor.enumerable = aObject.enumerable;
     if (aObject.value) {
       descriptor.writable = aObject.writable;
-      descriptor.value = this.threadActor.valueGrip(aObject.value);
+      descriptor.value = this.threadActor.createValueGrip(aObject.value);
     } else {
-      descriptor.get = this.threadActor.valueGrip(aObject.get);
-      descriptor.set = this.threadActor.valueGrip(aObject.set);
+      descriptor.get = this.threadActor.createValueGrip(aObject.get);
+      descriptor.set = this.threadActor.createValueGrip(aObject.set);
     }
     return descriptor;
   },
 
   
+
+
+
 
 
   onDecompile: function OA_onDecompile(aRequest) {
@@ -777,6 +862,9 @@ ObjectActor.prototype = {
   
 
 
+
+
+
   onScope: function OA_onScope(aRequest) {
     if (this.threadActor.state !== "paused") {
       return this.WRONG_STATE_RESPONSE;
@@ -790,13 +878,16 @@ ObjectActor.prototype = {
     }
 
     let packet = { name: this.obj.name || null };
-    let envActor = this.threadActor.environmentActor(this.obj, this.registeredPool);
+    let envActor = this.threadActor.createEnvironmentActor(this.obj, this.registeredPool);
     packet.scope = envActor ? envActor.grip() : envActor;
 
     return packet;
   },
 
   
+
+
+
 
 
   onNameAndParameters: function OA_onNameAndParameters(aRequest) {
@@ -814,6 +905,13 @@ ObjectActor.prototype = {
              parameters: this.obj.parameterNames };
   },
 
+  
+
+
+
+
+
+
   onThreadGrip: function OA_onThreadGrip(aRequest) {
     if (this.threadActor.state !== "paused") {
       return this.WRONG_STATE_RESPONSE;
@@ -821,6 +919,12 @@ ObjectActor.prototype = {
 
     return { threadGrip: this.threadActor.threadObjectGrip(this.obj) };
   },
+
+  
+
+
+
+
 
   onRelease: function OA_onRelease(aRequest) {
     if (this.threadActor.state !== "paused") {
@@ -850,6 +954,14 @@ ObjectActor.prototype.requestTypes = {
 };
 
 
+
+
+
+
+
+
+
+
 function FrameActor(aFrame, aThreadActor)
 {
   this.frame = aFrame;
@@ -871,23 +983,32 @@ FrameActor.prototype = {
     return this._frameLifetimePool;
   },
 
+  
+
+
+
   disconnect: function FA_disconnect() {
     this.conn.removeActorPool(this._frameLifetimePool);
     this._frameLifetimePool = null;
   },
 
+  
+
+
   grip: function FA_grip() {
     let grip = { actor: this.actorID,
                  type: this.frame.type };
     if (this.frame.type === "call") {
-      grip.callee = this.threadActor.valueGrip(this.frame.callee);
+      grip.callee = this.threadActor.createValueGrip(this.frame.callee);
       grip.calleeName = this.frame.callee.name;
     }
 
-    let envActor = this.threadActor.environmentActor(this.frame, this.frameLifetimePool);
+    let envActor = this.threadActor
+                       .createEnvironmentActor(this.frame,
+                                               this.frameLifetimePool);
     grip.environment = envActor ? envActor.grip() : envActor;
-    grip["this"] = this.threadActor.valueGrip(this.frame["this"]);
-    grip.arguments = this.args();
+    grip["this"] = this.threadActor.createValueGrip(this.frame["this"]);
+    grip.arguments = this._args();
 
     if (!this.frame.older) {
       grip.oldest = true;
@@ -896,14 +1017,20 @@ FrameActor.prototype = {
     return grip;
   },
 
-  args: function FA_args() {
+  _args: function FA__args() {
     if (!this.frame["arguments"]) {
       return [];
     }
 
-    return [this.threadActor.valueGrip(arg)
+    return [this.threadActor.createValueGrip(arg)
             for each (arg in this.frame["arguments"])];
   },
+
+  
+
+
+
+
 
   onPop: function FA_onPop(aRequest) {
     return { error: "notImplemented",
@@ -925,6 +1052,7 @@ FrameActor.prototype.requestTypes = {
 
 
 
+
 function BreakpointActor(aScript, aThreadActor)
 {
   this.script = aScript;
@@ -933,6 +1061,12 @@ function BreakpointActor(aScript, aThreadActor)
 
 BreakpointActor.prototype = {
   actorPrefix: "breakpoint",
+
+  
+
+
+
+
 
   hit: function BA_hit(aFrame) {
     try {
@@ -949,6 +1083,12 @@ BreakpointActor.prototype = {
       return undefined;
     }
   },
+
+  
+
+
+
+
 
   onDelete: function BA_onDelete(aRequest) {
     this.threadActor.breakpointActorPool.removeActor(this.actorID);
@@ -973,6 +1113,7 @@ BreakpointActor.prototype.requestTypes = {
 
 
 
+
 function EnvironmentActor(aObject, aThreadActor)
 {
   this.obj = aObject;
@@ -981,6 +1122,9 @@ function EnvironmentActor(aObject, aThreadActor)
 
 EnvironmentActor.prototype = {
   actorPrefix: "environment",
+
+  
+
 
   grip: function EA_grip() {
     
@@ -991,18 +1135,20 @@ EnvironmentActor.prototype = {
 
     let parent;
     if (this.obj.environment.parent) {
-      parent = this.threadActor.environmentActor(this.obj.environment.parent, this.registeredPool);
+      parent = this.threadActor
+                   .createEnvironmentActor(this.obj.environment.parent,
+                                           this.registeredPool);
     }
     let grip = { actor: this.actorID,
                  parent: parent ? parent.grip() : parent };
 
     if (this.obj.environment.type == "object") {
       grip.type = "object"; 
-      grip.object = this.threadActor.valueGrip(this.obj.environment.object);
+      grip.object = this.threadActor.createValueGrip(this.obj.environment.object);
     } else {
       if (this.obj["class"] == "Function") {
         grip.type = "function";
-        grip["function"] = this.threadActor.valueGrip(this.obj);
+        grip["function"] = this.threadActor.createValueGrip(this.obj);
         grip.functionName = this.obj.name;
       } else {
         grip.type = "block";
@@ -1043,6 +1189,9 @@ EnvironmentActor.prototype = {
 
 
 
+
+
+
   onAssign: function EA_onAssign(aRequest) {
     let desc = this.obj.environment.getVariableDescriptor(aRequest.name);
 
@@ -1067,6 +1216,9 @@ EnvironmentActor.prototype = {
   },
 
   
+
+
+
 
 
 

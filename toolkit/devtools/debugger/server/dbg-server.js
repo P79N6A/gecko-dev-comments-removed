@@ -93,7 +93,7 @@ var DebuggerServer = {
 
   initTransport: function DH_initTransport() {
     if (this._transportInitialized) {
-        return;
+      return;
     }
 
     this._connections = {};
@@ -411,6 +411,12 @@ DebuggerServerConnection.prototype = {
 
   
 
+  
+
+
+
+
+
   onPacket: function DSC_onPacket(aPacket) {
     let actor = this.getActor(aPacket.to);
     if (!actor) {
@@ -448,7 +454,14 @@ DebuggerServerConnection.prototype = {
     this.transport.send(ret);
   },
 
-  onClosed: function DSC_onClosed() {
+  
+
+
+
+
+
+
+  onClosed: function DSC_onClosed(aStatus) {
     dumpn("Cleaning up connection.");
 
     this._actorPool.cleanup();

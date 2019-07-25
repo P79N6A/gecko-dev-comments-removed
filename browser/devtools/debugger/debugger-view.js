@@ -231,8 +231,8 @@ DebuggerView.Stackframes = {
 
 
 
-  set dirty(value) {
-    this._dirty = value;
+  set dirty(aValue) {
+    this._dirty = aValue;
   },
 
   
@@ -243,7 +243,7 @@ DebuggerView.Stackframes = {
   
 
 
-  _onFramesScroll: function DVF__onFramesScroll(e) {
+  _onFramesScroll: function DVF__onFramesScroll(aEvent) {
     
     if (this._dirty) {
       let clientHeight = this._frames.clientHeight;

@@ -62,6 +62,11 @@ function initDebugger()
 
 
 
+
+
+
+
+
 function startDebuggingTab(aClient, aTabGrip)
 {
   gClient = aClient;
@@ -182,6 +187,9 @@ var StackFrames = {
     this.activeThread.removeListener("framescleared", this.onFramesCleared);
   },
 
+  
+
+
   onPaused: function SF_onPaused() {
     this.activeThread.fillFrames(this.pageSize);
   },
@@ -216,8 +224,10 @@ var StackFrames = {
     DebuggerView.Properties.globalScope.empty();
   },
 
+  
+
+
   onClick: function SF_onClick(aEvent) {
-    
     let target = aEvent.target;
     while (target) {
       if (target.stackFrame) {
@@ -227,6 +237,13 @@ var StackFrames = {
       target = target.parentNode;
     }
   },
+
+  
+
+
+
+
+
 
   selectFrame: function SF_selectFrame(aDepth) {
     if (this.selectedFrame !== null) {
@@ -261,7 +278,7 @@ var StackFrames = {
 
       
       let objClient = this.activeThread.pauseGrip(frame.callee);
-      objClient.nameAndParameters(function SF_onNameAndParameters(aResponse) {
+      objClient.getSignature(function SF_getSignature(aResponse) {
         for (let i = 0; i < aResponse.parameters.length; i++) {
           let param = aResponse.parameters[i];
           let paramVar = localScope.addVar(param);
@@ -310,7 +327,7 @@ var StackFrames = {
     }
 
     let objClient = this.activeThread.pauseGrip(aObject);
-    objClient.prototypeAndProperties(function SF_onProtoAndProps(aResponse) {
+    objClient.getPrototypeAndProperties(function SF_onProtoAndProps(aResponse) {
       
       if (aResponse.prototype.type != "null") {
         let properties = {};
@@ -335,6 +352,12 @@ var StackFrames = {
     }.bind(this));
   },
 
+  
+
+
+
+
+
   _addFramePanel: function SF_addFramePanel(aFrame) {
     let depth = aFrame.depth;
     let idText = "#" + aFrame.depth + " ";
@@ -347,10 +370,20 @@ var StackFrames = {
     }
   },
 
-  _addMoreFrames: function SF_addMoreLink(aFrame) {
+  
+
+
+  _addMoreFrames: function SF_addMoreFrames() {
     this.activeThread.fillFrames(
       this.activeThread.cachedFrames.length + this.pageSize);
   },
+
+  
+
+
+
+
+
 
   _frameTitle: function SF_frameTitle(aFrame) {
     if (aFrame.type == "call") {
@@ -400,6 +433,9 @@ var SourceScripts = {
     this.activeThread.removeListener("scriptsadded", this.onScripts);
     this.activeThread.removeListener("scriptscleared", this.onScriptsCleared);
   },
+
+  
+
 
   onPaused: function SS_onPaused() {
     this.activeThread.fillScripts();

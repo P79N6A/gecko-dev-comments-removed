@@ -56,6 +56,9 @@ function createRootActor(aConnection)
 
 
 
+
+
+
 function BrowserRootActor(aConnection)
 {
   this.conn = aConnection;
@@ -206,12 +209,17 @@ BrowserRootActor.prototype.requestTypes = {
 
 
 
+
+
+
+
+
 function BrowserTabActor(aConnection, aBrowser)
 {
   this.conn = aConnection;
   this._browser = aBrowser;
 
-  this.onWindowCreated = this.onWindowCreated.bind(this);
+  this._onWindowCreated = this.onWindowCreated.bind(this);
 }
 
 
@@ -282,7 +290,7 @@ BrowserTabActor.prototype = {
     this._pushContext();
 
     
-    this.browser.addEventListener("DOMWindowCreated", this.onWindowCreated, true);
+    this.browser.addEventListener("DOMWindowCreated", this._onWindowCreated, true);
 
     this._attached = true;
   },
@@ -323,7 +331,7 @@ BrowserTabActor.prototype = {
       return;
     }
 
-    this.browser.removeEventListener("DOMWindowCreated", this.onWindowCreated);
+    this.browser.removeEventListener("DOMWindowCreated", this._onWindowCreated, true);
 
     this._popContext();
 
@@ -356,26 +364,26 @@ BrowserTabActor.prototype = {
     return { type: "detached" };
   },
 
-  onThreadActor: function BTA_onThreadActor(aRequest) {
-    if (!this.attached) {
-      return { error: "wrongState" };
-    }
+  
 
-    return { threadActor: this.threadActor.actorID };
-  },
+
 
   preNest: function BTA_preNest() {
     this.browser.contentWindow
-      .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIDOMWindowUtils)
-      .suppressEventHandling(true);
+        .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+        .getInterface(Ci.nsIDOMWindowUtils)
+        .suppressEventHandling(true);
   },
+
+  
+
+
 
   postNest: function BTA_postNest(aNestData) {
     this.browser.contentWindow
-      .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-      .getInterface(Ci.nsIDOMWindowUtils)
-      .suppressEventHandling(false);
+        .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+        .getInterface(Ci.nsIDOMWindowUtils)
+        .suppressEventHandling(false);
   },
 
   
@@ -400,6 +408,11 @@ BrowserTabActor.prototype.requestTypes = {
   "attach": BrowserTabActor.prototype.onAttach,
   "detach": BrowserTabActor.prototype.onDetach
 };
+
+
+
+
+
 
 
 
