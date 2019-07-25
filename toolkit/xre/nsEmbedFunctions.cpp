@@ -55,6 +55,8 @@
 #include "nsIToolkitChromeRegistry.h"
 #include "nsIToolkitProfile.h"
 
+#include "nsChromeRegistry.h"
+
 #if defined(OS_LINUX)
 #  define XP_LINUX
 #endif
@@ -90,6 +92,7 @@
 #include "mozilla/dom/ContentProcessThread.h"
 #include "mozilla/dom/ContentProcessParent.h"
 #include "mozilla/dom/ContentProcessChild.h"
+#include "mozilla/dom/TabParent.h"
 
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/ipc/XPCShellEnvironment.h"
@@ -232,6 +235,56 @@ XRE_TermEmbedding()
   delete gDirServiceProvider;
 }
 
+static nsresult
+GetChromeRegistry(nsChromeRegistry* *aResult)
+{
+  if(!nsChromeRegistry::gChromeRegistry)
+  {
+    
+    
+    nsCOMPtr<nsIChromeRegistry> reg(do_GetService(NS_CHROMEREGISTRY_CONTRACTID));
+    NS_ENSURE_TRUE(nsChromeRegistry::gChromeRegistry, NS_ERROR_FAILURE);
+  }
+  *aResult = nsChromeRegistry::gChromeRegistry;
+  return NS_OK;
+}
+
+nsresult
+XRE_SendParentChromeRegistry(mozilla::dom::TabParent* aParent)
+{
+  nsChromeRegistry* chromeRegistry = nsnull;
+  nsresult rv = GetChromeRegistry(&chromeRegistry);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  chromeRegistry->SendRegisteredPackages(aParent);
+  return NS_OK;
+}
+
+nsresult
+XRE_RegisterChromePackage(const nsString& aPackage,
+                          const nsString& aBaseURI,
+                          const PRUint32& aFlags)
+{
+  nsChromeRegistry* chromeRegistry = nsnull;
+  nsresult rv = GetChromeRegistry(&chromeRegistry);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  chromeRegistry->RegisterPackage(aPackage, aBaseURI, aFlags);
+  return NS_OK;
+}
+
+nsresult
+XRE_RegisterChromeResource(const nsString& aPackage,
+                           const nsString& aResolvedURI)
+{
+  nsChromeRegistry* chromeRegistry = nsnull;
+  nsresult rv = GetChromeRegistry(&chromeRegistry);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  chromeRegistry->RegisterResource(aPackage, aResolvedURI);
+  return NS_OK;
+}
+
 const char*
 XRE_ChildProcessTypeToString(GeckoProcessType aProcessType)
 {
@@ -266,9 +319,9 @@ static MessageLoop* sIOMessageLoop;
 
 
 PRBool
-XRE_TakeMinidumpForChild(PRUint32 aChildPid, nsIFile** aDump)
+XRE_GetMinidumpForChild(PRUint32 aChildPid, nsIFile** aDump)
 {
-  return CrashReporter::TakeMinidumpForChild(aChildPid, aDump);
+  return CrashReporter::GetMinidumpForChild(aChildPid, aDump);
 }
 
 PRBool

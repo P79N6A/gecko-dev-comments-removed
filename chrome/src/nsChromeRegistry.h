@@ -55,6 +55,7 @@
 #include "nsVoidArray.h"
 #include "nsTArray.h"
 #include "nsInterfaceHashtable.h"
+#include "ChromeTypes.h"
 
 struct PRFileDesc;
 class nsIAtom;
@@ -66,6 +67,13 @@ class nsIRDFResource;
 class nsIRDFService;
 class nsISimpleEnumerator;
 class nsIURL;
+
+namespace mozilla {
+namespace dom {
+  class TabParent;
+  class ContentProcessParent;
+}
+}
 
 
 
@@ -101,9 +109,27 @@ public:
 
   nsresult Init();
 
+  static nsChromeRegistry* GetService();
+
   static nsChromeRegistry* gChromeRegistry;
 
   static nsresult Canonify(nsIURL* aChromeURL);
+
+  void SendRegisteredChrome(mozilla::dom::ContentProcessParent* aChild);
+  void RegisterRemoteChrome(const nsTArray<ChromePackage>& aPackages,
+                            const nsTArray<ChromeResource>& aResources);
+
+  void SendRegisteredPackages(mozilla::dom::TabParent* aChild);
+  void RegisterPackage(const nsString& aPackage,
+                       const nsString& aBaseURI,
+                       const PRUint32& aFlags);
+  void RegisterResource(const nsString& aPackage,
+                        const nsString& aResolvedURI);
+  static PLDHashOperator SendAllToChildProcess(PLDHashTable *table,
+                                               PLDHashEntryHdr *entry,
+                                               PRUint32 number, void *arg);
+  static PLDHashOperator SendResourceToChildProcess(const nsACString& aKey,
+                                                    nsIURI* aURI, void* aArg);
 
 protected:
   nsresult GetDynamicInfo(nsIURI *aChromeURL, PRBool aIsOverlay, nsISimpleEnumerator **aResult);
@@ -115,10 +141,18 @@ protected:
   void FlushAllCaches();
 
 private:
-  nsresult SelectLocaleFromPref(nsIPrefBranch* prefs);
-#ifdef MOZ_OMNIJAR
-  nsresult CheckOmnijarChrome();
+#ifdef MOZ_IPC
+  void RegisterPackage(const ChromePackage& aPackage);
+  void RegisterResource(const ChromeResource& aResource);
+  static PLDHashOperator CollectPackages(PLDHashTable *table,
+                                         PLDHashEntryHdr *entry,
+                                         PRUint32 number, void *arg);
+  static PLDHashOperator CollectResources(const nsACString& aKey,
+                                          nsIURI* aURI, void* aArg);
 #endif
+  
+
+  nsresult SelectLocaleFromPref(nsIPrefBranch* prefs);
 
   static nsresult RefreshWindow(nsIDOMWindowInternal* aWindow);
   static nsresult GetProviderAndPath(nsIURL* aChromeURL,
@@ -134,7 +168,7 @@ private:
 #endif
 
   NS_HIDDEN_(nsresult) ProcessManifest(nsILocalFile* aManifest, PRBool aSkinOnly);
-  NS_HIDDEN_(nsresult) ProcessManifestBuffer(char *aBuffer, PRInt32 aLength, nsIURI* aManifest, PRBool aSkinOnly);
+  NS_HIDDEN_(nsresult) ProcessManifestBuffer(char *aBuffer, PRInt32 aLength, nsILocalFile* aManifest, PRBool aSkinOnly);
   NS_HIDDEN_(nsresult) ProcessNewChromeFile(nsILocalFile *aListFile, nsIURI* aManifest);
   NS_HIDDEN_(nsresult) ProcessNewChromeBuffer(char *aBuffer, PRInt32 aLength, nsIURI* aManifest);
 
@@ -189,7 +223,12 @@ public:
       PLATFORM_PACKAGE = 1 << 0,
 
       
-      CONTENT_ACCESSIBLE = 1 << 1
+      
+      
+      XPCNATIVEWRAPPERS = 1 << 1,
+
+      
+      CONTENT_ACCESSIBLE = 1 << 2
     };
 
     nsCString        package;

@@ -105,7 +105,11 @@ else
 ifeq ($(MOZ_WIDGET_TOOLKIT),gtk2)
 CPPSRCS += nsNativeAppSupportUnix.cpp
 else
+ifeq ($(MOZ_WIDGET_TOOLKIT),qt)
+CPPSRCS += nsNativeAppSupportQt.cpp
+else
 CPPSRCS += nsNativeAppSupportDefault.cpp
+endif
 endif
 endif
 endif
@@ -181,6 +185,7 @@ include $(topsrcdir)/config/rules.mk
 LOCAL_INCLUDES += \
   -I$(topsrcdir)/dom/ipc \
   -I$(topsrcdir)/toolkit/crashreporter \
+  -I$(topsrcdir)/chrome/src \
   $(NULL)
 
 ifdef BUILD_STATIC_LIBS

@@ -36,10 +36,6 @@
 
 
 
-#ifdef MOZ_WIDGET_QT
-#include <QApplication>
-#endif
-
 #include "ContentProcessChild.h"
 #include "TabChild.h"
 
@@ -51,13 +47,10 @@
 #include "base/message_loop.h"
 #include "base/task.h"
 
+#include "nsChromeRegistry.h"
+
 using namespace mozilla::ipc;
 using namespace mozilla::net;
-
-#ifdef MOZ_WIDGET_QT
-extern int    gArgc;
-extern char **gArgv;
-#endif
 
 namespace mozilla {
 namespace dom {
@@ -67,10 +60,6 @@ ContentProcessChild* ContentProcessChild::sSingleton;
 ContentProcessChild::ContentProcessChild()
     : mQuit(PR_FALSE)
 {
-#ifdef MOZ_WIDGET_QT
-    NS_ASSERTION(!qApp, "QApplication created too early?");
-    mQApp = new QApplication(gArgc, (char**)gArgv);
-#endif
 }
 
 ContentProcessChild::~ContentProcessChild()
@@ -138,6 +127,15 @@ bool
 ContentProcessChild::DeallocPNecko(PNeckoChild* necko)
 {
     delete necko;
+    return true;
+}
+
+bool
+ContentProcessChild::RecvregisterChrome(const nsTArray<ChromePackage>& packages,
+                                        const nsTArray<ChromeResource>& resources)
+{
+    nsChromeRegistry* chromeRegistry = nsChromeRegistry::GetService();
+    chromeRegistry->RegisterRemoteChrome(packages, resources);
     return true;
 }
 

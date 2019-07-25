@@ -44,12 +44,55 @@
 #include "prtypes.h"
 #include "nsStringGlue.h"
 #include "nsTArray.h"
+#include "gfxMatrix.h"
 
 #ifdef _MSC_VER
 #pragma warning( disable : 4800 )
 #endif
 
 namespace IPC {
+
+template<>
+struct ParamTraits<PRInt8>
+{
+  typedef PRInt8 paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    aMsg->WriteBytes(&aParam, sizeof(aParam));
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    const char* outp;
+    if (!aMsg->ReadBytes(aIter, &outp, sizeof(*aResult)))
+      return false;
+
+    *aResult = *reinterpret_cast<const paramType*>(outp);
+    return true;
+  }
+};
+
+template<>
+struct ParamTraits<PRUint8>
+{
+  typedef PRUint8 paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    aMsg->WriteBytes(&aParam, sizeof(aParam));
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    const char* outp;
+    if (!aMsg->ReadBytes(aIter, &outp, sizeof(*aResult)))
+      return false;
+
+    *aResult = *reinterpret_cast<const paramType*>(outp);
+    return true;
+  }
+};
 
 template <>
 struct ParamTraits<nsACString>
@@ -236,6 +279,46 @@ struct ParamTraits<float>
   static void Log(const paramType& aParam, std::wstring* aLog)
   {
     aLog->append(StringPrintf(L"%g", aParam));
+  }
+};
+
+template<>
+struct ParamTraits<gfxMatrix>
+{
+  typedef gfxMatrix paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, aParam.xx);
+    WriteParam(aMsg, aParam.xy);
+    WriteParam(aMsg, aParam.yx);
+    WriteParam(aMsg, aParam.yy);
+    WriteParam(aMsg, aParam.x0);
+    WriteParam(aMsg, aParam.y0);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    if (!ReadParam(aMsg, aIter, &aResult->xx))
+      return false;
+    if (!ReadParam(aMsg, aIter, &aResult->xy))
+      return false;
+    if (!ReadParam(aMsg, aIter, &aResult->yx))
+      return false;
+    if (!ReadParam(aMsg, aIter, &aResult->yy))
+      return false;
+    if (!ReadParam(aMsg, aIter, &aResult->x0))
+      return false;
+    if (!ReadParam(aMsg, aIter, &aResult->y0))
+      return false;
+
+    return true;
+  }
+
+  static void Log(const paramType& aParam, std::wstring* aLog)
+  {
+    aLog->append(StringPrintf(L"[[%g %g] [%g %g] [%g %g]]", aParam.xx, aParam.xy, aParam.yx, aParam.yy,
+	  						    aParam.x0, aParam.y0));
   }
 };
 
