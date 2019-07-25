@@ -367,12 +367,10 @@ public:
     NS_IMETHOD SetIsShmem(PRBool isShmem);
     
     NS_IMETHOD Redraw(const gfxRect &r);
-#ifdef MOZ_IPC
     
     
     NS_IMETHOD Swap(mozilla::ipc::Shmem& back, PRInt32 x, PRInt32 y, 
                     PRInt32 w, PRInt32 h);
-#endif
 
     
     NS_DECL_ISUPPORTS
@@ -1100,11 +1098,11 @@ nsCanvasRenderingContext2D::SetIsShmem(PRBool isShmem)
 #endif
 }
 
-#ifdef MOZ_IPC
 NS_IMETHODIMP
 nsCanvasRenderingContext2D::Swap(mozilla::ipc::Shmem& aBack, 
                                  PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h)
 {
+#ifdef MOZ_IPC
     
     
     
@@ -1145,8 +1143,10 @@ nsCanvasRenderingContext2D::Swap(mozilla::ipc::Shmem& aBack,
                                               PR_TRUE);
     }
     return NS_OK;
-}
+#else
+    return NS_ERROR_NOT_IMPLEMENTED;
 #endif
+}
 
 NS_IMETHODIMP
 nsCanvasRenderingContext2D::Render(gfxContext *ctx, gfxPattern::GraphicsFilter aFilter)
