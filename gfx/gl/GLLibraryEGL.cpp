@@ -48,8 +48,6 @@ static PRLibrary* LoadApitraceLibrary()
 bool
 GLLibraryEGL::EnsureInitialized()
 {
-    nsresult rv;
-
     if (mInitialized) {
         return true;
     }
@@ -62,6 +60,7 @@ GLLibraryEGL::EnsureInitialized()
         
         
 
+        nsresult rv;
         nsCOMPtr<nsIFile> libraryFile;
 
         nsCOMPtr<nsIProperties> dirService =
