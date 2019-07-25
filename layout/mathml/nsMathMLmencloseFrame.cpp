@@ -767,8 +767,7 @@ void nsDisplayNotation::Paint(nsDisplayListBuilder* aBuilder,
 {
   
   nsPresContext* presContext = mFrame->PresContext();
-  gfxRect rect = presContext->
-    AppUnitsToGfxUnits(mRect + aBuilder->ToReferenceFrame(mFrame));
+  gfxRect rect = presContext->AppUnitsToGfxUnits(mRect + ToReferenceFrame());
 
   
   aCtx->SetColor(mFrame->GetStyleColor()->mColor);

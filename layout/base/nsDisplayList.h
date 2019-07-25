@@ -501,8 +501,7 @@ public:
 
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder) {
-    nsIFrame* f = GetUnderlyingFrame();
-    return nsRect(aBuilder->ToReferenceFrame(f), f->GetSize());
+    return nsRect(ToReferenceFrame(), GetUnderlyingFrame()->GetSize());
   }
   
 
@@ -639,6 +638,9 @@ public:
 
   PRBool RecomputeVisibility(nsDisplayListBuilder* aBuilder,
                              nsRegion* aVisibleRegion);
+
+  
+
 
   const nsPoint& ToReferenceFrame() {
     NS_ASSERTION(mFrame, "No frame?");
@@ -1083,7 +1085,7 @@ public:
 #endif
   
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx) {
-    mPaint(mFrame, aCtx, mVisibleRect, aBuilder->ToReferenceFrame(mFrame));
+    mPaint(mFrame, aCtx, mVisibleRect, ToReferenceFrame());
   }
   NS_DISPLAY_DECL_NAME(mName, mType)
 protected:
@@ -1125,7 +1127,7 @@ public:
 #endif
   
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx) {
-    nsPoint pt = aBuilder->ToReferenceFrame(mFrame);
+    nsPoint pt = ToReferenceFrame();
     nsIRenderingContext::AutoPushTranslation translate(aCtx, pt.x, pt.y);
     mFrame->PresContext()->PresShell()->PaintCount(mFrameName, aCtx,
                                                       mFrame->PresContext(),
@@ -1193,7 +1195,7 @@ public:
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder) {
     
-    return mCaret->GetCaretRect() + aBuilder->ToReferenceFrame(mFrame);
+    return mCaret->GetCaretRect() + ToReferenceFrame();
   }
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("Caret", TYPE_CARET)
