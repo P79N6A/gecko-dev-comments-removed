@@ -2808,19 +2808,12 @@ nsEventStateManager::UseSystemScrollSettingFor(nsMouseScrollEvent* aMouseEvent)
   return Preferences::GetBool(prefName.get());
 }
 
-nsresult
-nsEventStateManager::DoScrollText(nsIFrame* aTargetFrame,
-                                  nsMouseScrollEvent* aMouseEvent,
-                                  nsIScrollableFrame::ScrollUnit aScrollQuantity,
-                                  bool aAllowScrollSpeedOverride,
-                                  nsQueryContentEvent* aQueryEvent,
-                                  nsIAtom *aOrigin)
+nsIScrollableFrame*
+nsEventStateManager::ComputeScrollTarget(nsIFrame* aTargetFrame,
+                                         nsMouseScrollEvent* aEvent)
 {
-  nsIScrollableFrame* frameToScroll = nullptr;
-  nsIFrame* scrollFrame = aTargetFrame;
-  PRInt32 numLines = aMouseEvent->delta;
-  bool isHorizontal = aMouseEvent->scrollFlags & nsMouseScrollEvent::kIsHorizontal;
-  aMouseEvent->scrollOverflow = 0;
+  PRInt32 numLines = aEvent->delta;
+  bool isHorizontal = aEvent->scrollFlags & nsMouseScrollEvent::kIsHorizontal;
 
   
   
@@ -2832,23 +2825,16 @@ nsEventStateManager::DoScrollText(nsIFrame* aTargetFrame,
   
   nsIFrame* lastScrollFrame = nsMouseWheelTransaction::GetTargetFrame();
   if (lastScrollFrame) {
-    frameToScroll = lastScrollFrame->GetScrollTargetFrame();
+    nsIScrollableFrame* frameToScroll = lastScrollFrame->GetScrollTargetFrame();
     if (frameToScroll) {
-      nsMouseWheelTransaction::UpdateTransaction(numLines, isHorizontal);
-      
-      
-      
-      
-      if (!nsMouseWheelTransaction::GetTargetFrame())
-        return NS_OK;
-    } else {
-      nsMouseWheelTransaction::EndTransaction();
-      lastScrollFrame = nullptr;
+      return frameToScroll;
     }
   }
-  bool passToParent = lastScrollFrame ? false : true;
 
-  for (; scrollFrame && passToParent;
+  nsIScrollableFrame* frameToScroll = nullptr;
+  bool passToParent = true;
+  for (nsIFrame* scrollFrame = aTargetFrame;
+       scrollFrame && passToParent;
        scrollFrame = GetParentFrameToScroll(scrollFrame)) {
     
     frameToScroll = scrollFrame->GetScrollTargetFrame();
@@ -2867,8 +2853,6 @@ nsEventStateManager::DoScrollText(nsIFrame* aTargetFrame,
     if (lineHeight != 0) {
       if (CanScrollOn(frameToScroll, numLines, isHorizontal)) {
         passToParent = false;
-        nsMouseWheelTransaction::BeginTransaction(scrollFrame,
-                                                  numLines, isHorizontal);
       }
 
       
@@ -2879,118 +2863,154 @@ nsEventStateManager::DoScrollText(nsIFrame* aTargetFrame,
           if (passToParent) {
             passToParent = false;
             frameToScroll = nullptr;
-            nsMouseWheelTransaction::EndTransaction();
           }
         } else {
           
-          if (!passToParent) {
-            passToParent = true;
-            nsMouseWheelTransaction::EndTransaction();
-          }
+          passToParent = true;
         }
       }
     }
   }
 
-  if (!passToParent && frameToScroll) {
-    if (aScrollQuantity == nsIScrollableFrame::LINES) {
-      
-      
-      
-      numLines =
-        nsMouseWheelTransaction::AccelerateWheelDelta(numLines, isHorizontal,
-                                                      aAllowScrollSpeedOverride,
-                                                      &aScrollQuantity,
-                                                      !aQueryEvent);
-    }
+  if (!passToParent) {
+    return frameToScroll;
+  }
+
+  nsIFrame* newFrame = nsLayoutUtils::GetCrossDocParentFrame(
+      aTargetFrame->PresContext()->FrameManager()->GetRootFrame());
+  return newFrame ? ComputeScrollTarget(newFrame, aEvent) : nullptr;
+}
+
+nsresult
+nsEventStateManager::DoScrollText(nsIFrame* aTargetFrame,
+                                  nsMouseScrollEvent* aMouseEvent,
+                                  nsIScrollableFrame::ScrollUnit aScrollQuantity,
+                                  bool aAllowScrollSpeedOverride,
+                                  nsQueryContentEvent* aQueryEvent,
+                                  nsIAtom *aOrigin)
+{
+  aMouseEvent->scrollOverflow = aMouseEvent->delta;
+
+  nsIScrollableFrame* frameToScroll =
+    ComputeScrollTarget(aTargetFrame, aMouseEvent);
+  if (!frameToScroll) {
+    nsMouseWheelTransaction::EndTransaction();
+    return NS_OK;
+  }
+
+  nsIFrame* scrollFrame = do_QueryFrame(frameToScroll);
+  MOZ_ASSERT(scrollFrame);
+  nsWeakFrame scrollFrameWeak(scrollFrame);
+
+  PRInt32 numLines = aMouseEvent->delta;
+  bool isHorizontal = aMouseEvent->scrollFlags & nsMouseScrollEvent::kIsHorizontal;
+
+  nsIFrame* lastScrollFrame = nsMouseWheelTransaction::GetTargetFrame();
+  if (!lastScrollFrame) {
+    nsMouseWheelTransaction::BeginTransaction(scrollFrame, numLines,
+                                              isHorizontal);
+  } else if (lastScrollFrame != scrollFrame) {
+    nsMouseWheelTransaction::EndTransaction();
+    nsMouseWheelTransaction::BeginTransaction(scrollFrame, numLines,
+                                              isHorizontal);
+  } else {
+    nsMouseWheelTransaction::UpdateTransaction(numLines, isHorizontal);
+  }
+
+  
+  
+  
+  
+  if (!scrollFrameWeak.IsAlive()) {
+    nsMouseWheelTransaction::EndTransaction();
+    return NS_OK;
+  }
+
+  if (aScrollQuantity == nsIScrollableFrame::LINES) {
+    
+    
+    
+    numLines =
+      nsMouseWheelTransaction::AccelerateWheelDelta(numLines, isHorizontal,
+                                                    aAllowScrollSpeedOverride,
+                                                    &aScrollQuantity,
+                                                    !aQueryEvent);
+  }
 #ifdef DEBUG
-    else {
-      NS_ASSERTION(!aAllowScrollSpeedOverride,
-        "aAllowScrollSpeedOverride is true but the quantity isn't by-line scrolling.");
-    }
+  else {
+    NS_ASSERTION(!aAllowScrollSpeedOverride,
+      "aAllowScrollSpeedOverride is true but the quantity isn't by-line scrolling.");
+  }
 #endif
 
-    if (aScrollQuantity == nsIScrollableFrame::PAGES) {
-      numLines = (numLines > 0) ? 1 : -1;
-    }
+  if (aScrollQuantity == nsIScrollableFrame::PAGES) {
+    numLines = (numLines > 0) ? 1 : -1;
+  }
 
-    if (aQueryEvent) {
-      
-      
-      if (nsMouseWheelTransaction::IsAccelerationEnabled()) {
-        return NS_OK;
-      }
-
-      nscoord appUnitsPerDevPixel =
-        aTargetFrame->PresContext()->AppUnitsPerDevPixel();
-      aQueryEvent->mReply.mLineHeight =
-        frameToScroll->GetLineScrollAmount().height / appUnitsPerDevPixel;
-      aQueryEvent->mReply.mPageHeight =
-        frameToScroll->GetPageScrollAmount().height / appUnitsPerDevPixel;
-      aQueryEvent->mReply.mPageWidth =
-        frameToScroll->GetPageScrollAmount().width / appUnitsPerDevPixel;
-
-      
-      
-      aQueryEvent->mReply.mComputedScrollAmount = numLines;
-
-      switch (aScrollQuantity) {
-        case nsIScrollableFrame::LINES:
-          aQueryEvent->mReply.mComputedScrollAction =
-            nsQueryContentEvent::SCROLL_ACTION_LINE;
-          break;
-        case nsIScrollableFrame::PAGES:
-          aQueryEvent->mReply.mComputedScrollAction =
-            nsQueryContentEvent::SCROLL_ACTION_PAGE;
-          break;
-        default:
-          aQueryEvent->mReply.mComputedScrollAction =
-            nsQueryContentEvent::SCROLL_ACTION_NONE;
-          break;
-      }
-
-      aQueryEvent->mSucceeded = true;
+  if (aQueryEvent) {
+    
+    
+    if (nsMouseWheelTransaction::IsAccelerationEnabled()) {
       return NS_OK;
     }
 
-    PRInt32 scrollX = 0;
-    PRInt32 scrollY = numLines;
-
-    if (isHorizontal) {
-      scrollX = scrollY;
-      scrollY = 0;
-    }
-
-    nsIScrollableFrame::ScrollMode mode;
-    if (aMouseEvent->scrollFlags & nsMouseScrollEvent::kNoDefer) {
-      mode = nsIScrollableFrame::INSTANT;
-    } else if (aScrollQuantity != nsIScrollableFrame::DEVICE_PIXELS ||
-               (aMouseEvent->scrollFlags &
-                  nsMouseScrollEvent::kAllowSmoothScroll) != 0) {
-      mode = nsIScrollableFrame::SMOOTH;
-    } else {
-      mode = nsIScrollableFrame::NORMAL;
-    }
+    nscoord appUnitsPerDevPixel =
+      aTargetFrame->PresContext()->AppUnitsPerDevPixel();
+    aQueryEvent->mReply.mLineHeight =
+      frameToScroll->GetLineScrollAmount().height / appUnitsPerDevPixel;
+    aQueryEvent->mReply.mPageHeight =
+      frameToScroll->GetPageScrollAmount().height / appUnitsPerDevPixel;
+    aQueryEvent->mReply.mPageWidth =
+      frameToScroll->GetPageScrollAmount().width / appUnitsPerDevPixel;
 
     
+    
+    aQueryEvent->mReply.mComputedScrollAmount = numLines;
 
-    nsIntPoint overflow;
-    frameToScroll->ScrollBy(nsIntPoint(scrollX, scrollY), aScrollQuantity,
-                            mode, &overflow, aOrigin);
-    aMouseEvent->scrollOverflow = isHorizontal ? overflow.x : overflow.y;
+    switch (aScrollQuantity) {
+      case nsIScrollableFrame::LINES:
+        aQueryEvent->mReply.mComputedScrollAction =
+          nsQueryContentEvent::SCROLL_ACTION_LINE;
+        break;
+      case nsIScrollableFrame::PAGES:
+        aQueryEvent->mReply.mComputedScrollAction =
+          nsQueryContentEvent::SCROLL_ACTION_PAGE;
+        break;
+      default:
+        aQueryEvent->mReply.mComputedScrollAction =
+          nsQueryContentEvent::SCROLL_ACTION_NONE;
+        break;
+    }
+
+    aQueryEvent->mSucceeded = true;
     return NS_OK;
   }
-  
-  if (passToParent) {
-    nsIFrame* newFrame = nsLayoutUtils::GetCrossDocParentFrame(
-        aTargetFrame->PresContext()->FrameManager()->GetRootFrame());
-    if (newFrame)
-      return DoScrollText(newFrame, aMouseEvent, aScrollQuantity,
-                          aAllowScrollSpeedOverride, aQueryEvent, aOrigin);
+
+  PRInt32 scrollX = 0;
+  PRInt32 scrollY = numLines;
+
+  if (isHorizontal) {
+    scrollX = scrollY;
+    scrollY = 0;
   }
 
-  aMouseEvent->scrollOverflow = numLines;
+  nsIScrollableFrame::ScrollMode mode;
+  if (aMouseEvent->scrollFlags & nsMouseScrollEvent::kNoDefer) {
+    mode = nsIScrollableFrame::INSTANT;
+  } else if (aScrollQuantity != nsIScrollableFrame::DEVICE_PIXELS ||
+             (aMouseEvent->scrollFlags &
+                nsMouseScrollEvent::kAllowSmoothScroll) != 0) {
+    mode = nsIScrollableFrame::SMOOTH;
+  } else {
+    mode = nsIScrollableFrame::NORMAL;
+  }
 
+  
+
+  nsIntPoint overflow;
+  frameToScroll->ScrollBy(nsIntPoint(scrollX, scrollY), aScrollQuantity,
+                          mode, &overflow, aOrigin);
+  aMouseEvent->scrollOverflow = isHorizontal ? overflow.x : overflow.y;
   return NS_OK;
 }
 

@@ -326,6 +326,18 @@ protected:
                             nsMouseScrollEvent* aEvent,
                             nsPresContext* aPresContext,
                             nsEventStatus* aStatus);
+
+  
+
+
+
+
+
+
+
+  nsIScrollableFrame* ComputeScrollTarget(nsIFrame* aTargetFrame,
+                                          nsMouseScrollEvent* aMouseEvent);
+
   
 
 
