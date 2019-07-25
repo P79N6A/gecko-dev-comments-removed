@@ -986,7 +986,6 @@ NS_NewHTML##_elementName##Element(nsINodeInfo *aNodeInfo, PRUint32 aFromParser)\
 
 
 
-
 #define NS_IMPL_STRING_ATTR(_class, _method, _atom)                  \
   NS_IMETHODIMP                                                      \
   _class::Get##_method(nsAString& aValue)                            \
@@ -1318,6 +1317,7 @@ NS_NewHTML##_elementName##Element(nsINodeInfo *aNodeInfo,         \
   return NS_NewHTMLSharedElement(aNodeInfo, aFromParser);         \
 }
 
+NS_DECLARE_NS_NEW_HTML_ELEMENT() 
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Shared)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(SharedList)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(SharedObject)
