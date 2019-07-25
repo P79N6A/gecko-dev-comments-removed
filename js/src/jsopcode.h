@@ -46,7 +46,6 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsutil.h"
-#include "jsarena.h"
 
 #ifdef __cplusplus
 # include "jsvalue.h"
@@ -384,6 +383,12 @@ js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
 
 
 
+extern uintN
+js_GetVariableBytecodeLength(jsbytecode *pc);
+
+
+
+
 
 extern uintN
 js_GetVariableStackUses(JSOp op, jsbytecode *pc);
@@ -418,6 +423,20 @@ js_GetStackDefs(JSContext *cx, const JSCodeSpec *cs, JSOp op, JSScript *script,
     return js_GetEnterBlockStackDefs(cx, script, pc);
 }
 #endif
+
+#ifdef DEBUG
+
+
+
+#include <stdio.h>
+
+extern JS_FRIEND_API(JSBool)
+js_Disassemble(JSContext *cx, JSScript *script, JSBool lines, FILE *fp);
+
+extern JS_FRIEND_API(uintN)
+js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc, uintN loc,
+                JSBool lines, FILE *fp);
+#endif 
 
 
 
@@ -461,6 +480,25 @@ extern char *
 js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
                            JSString *fallback);
 
+#define JSDVG_IGNORE_STACK      0
+#define JSDVG_SEARCH_STACK      1
+
+#ifdef __cplusplus
+namespace js {
+
+static inline char *
+DecompileValueGenerator(JSContext *cx, intN spindex, const Value &v,
+                        JSString *fallback)
+{
+    return js_DecompileValueGenerator(cx, spindex, Jsvalify(v), fallback);
+}
+
+bool
+IsCallResultUnusedOrTested(jsbytecode *pc);
+
+}
+#endif
+
 
 
 
@@ -473,99 +511,5 @@ js_ReconstructStackDepth(JSContext *cx, JSScript *script, jsbytecode *pc);
 #endif
 
 JS_END_EXTERN_C
-
-#define JSDVG_IGNORE_STACK      0
-#define JSDVG_SEARCH_STACK      1
-
-#ifdef __cplusplus
-
-
-
-extern size_t
-js_GetVariableBytecodeLength(JSOp op, jsbytecode *pc);
-
-inline size_t
-js_GetVariableBytecodeLength(jsbytecode *pc)
-{
-    JS_ASSERT(*pc != JSOP_TRAP);
-    return js_GetVariableBytecodeLength(JSOp(*pc), pc);
-}
-
-namespace js {
-
-static inline char *
-DecompileValueGenerator(JSContext *cx, intN spindex, const Value &v,
-                        JSString *fallback)
-{
-    return js_DecompileValueGenerator(cx, spindex, Jsvalify(v), fallback);
-}
-
-
-
-
-struct Sprinter {
-    JSContext       *context;       
-    JSArenaPool     *pool;          
-    char            *base;          
-    size_t          size;           
-    ptrdiff_t       offset;         
-};
-
-#define INIT_SPRINTER(cx, sp, ap, off) \
-    ((sp)->context = cx, (sp)->pool = ap, (sp)->base = NULL, (sp)->size = 0,  \
-     (sp)->offset = off)
-
-
-
-
-
-
-
-extern char *
-SprintReserveAmount(Sprinter *sp, size_t len);
-
-extern ptrdiff_t
-SprintPut(Sprinter *sp, const char *s, size_t len);
-
-extern ptrdiff_t
-SprintCString(Sprinter *sp, const char *s);
-
-extern ptrdiff_t
-SprintString(Sprinter *sp, JSString *str);
-
-extern ptrdiff_t
-Sprint(Sprinter *sp, const char *format, ...);
-
-extern bool
-CallResultEscapes(jsbytecode *pc);
-
-extern size_t
-GetBytecodeLength(JSContext *cx, JSScript *script, jsbytecode *pc);
-
-extern bool
-IsValidBytecodeOffset(JSContext *cx, JSScript *script, size_t offset);
-
-inline bool
-FlowsIntoNext(JSOp op)
-{
-    
-    return op != JSOP_STOP && op != JSOP_RETURN && op != JSOP_RETRVAL && op != JSOP_THROW &&
-           op != JSOP_GOTO && op != JSOP_GOTOX && op != JSOP_RETSUB;
-}
-
-}
-#endif
-
-#if defined(DEBUG) && defined(__cplusplus)
-
-
-
-extern JS_FRIEND_API(JSBool)
-js_Disassemble(JSContext *cx, JSScript *script, JSBool lines, js::Sprinter *sp);
-
-extern JS_FRIEND_API(uintN)
-js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc, uintN loc,
-                JSBool lines, js::Sprinter *sp);
-#endif
 
 #endif 
