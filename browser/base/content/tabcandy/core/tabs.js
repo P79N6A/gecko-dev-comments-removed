@@ -319,6 +319,8 @@ function EventListenerMixIn(options) {
     });
 }
 
+
+
 function Tabs() {
   var trackedWindows = new Dictionary();
   var trackedTabs = new Dictionary();
