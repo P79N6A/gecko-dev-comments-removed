@@ -201,7 +201,8 @@ public:
 
 
 
-    virtual TypeObject * baseSubset() { return NULL; }
+
+    virtual TypeObject * persistentObject() { return NULL; }
 };
 
 
@@ -241,19 +242,33 @@ enum {
     TYPE_FLAG_UNKNOWN   = 1 << TYPE_UNKNOWN,
 
     
-    TYPE_FLAG_INTERMEDIATE_SET    = 0x1000,
-
-    
-    TYPE_FLAG_OWN_PROPERTY        = 0x2000,
+    TYPE_FLAG_INTERMEDIATE_SET    = 0x0100,
 
     
 
-
-
-    TYPE_FLAG_CONFIGURED_PROPERTY = 0x4000,
+    
+    TYPE_FLAG_OWN_PROPERTY        = 0x0200,
 
     
-    TYPE_FLAG_BASE_MASK           = 0x7000
+
+
+
+
+    TYPE_FLAG_CONFIGURED_PROPERTY = 0x0400,
+
+    
+
+
+
+
+    TYPE_FLAG_DEFINITE_PROPERTY   = 0x0800,
+
+    
+    TYPE_FLAG_DEFINITE_MASK       = 0xf000,
+    TYPE_FLAG_DEFINITE_SHIFT      = 12,
+
+    
+    TYPE_FLAG_BASE_MASK           = 0xffffff00
 };
 
 
@@ -280,13 +295,6 @@ class TypeSet
 
     void print(JSContext *cx);
 
-    void setIntermediate() { typeFlags |= TYPE_FLAG_INTERMEDIATE_SET; }
-    void setOwnProperty(bool configurable) {
-        typeFlags |= TYPE_FLAG_OWN_PROPERTY;
-        if (configurable)
-            typeFlags |= TYPE_FLAG_CONFIGURED_PROPERTY;
-    }
-
     inline void destroy(JSContext *cx);
 
     
@@ -295,6 +303,12 @@ class TypeSet
     TypeFlags baseFlags() { return typeFlags & ~TYPE_FLAG_BASE_MASK; }
     bool hasAnyFlag(TypeFlags flags) { return typeFlags & flags; }
     bool unknown() { return typeFlags & TYPE_FLAG_UNKNOWN; }
+
+    bool isDefiniteProperty() { return typeFlags & TYPE_FLAG_DEFINITE_PROPERTY; }
+    unsigned definiteSlot() {
+        JS_ASSERT(isDefiniteProperty());
+        return typeFlags >> TYPE_FLAG_DEFINITE_SHIFT;
+    }
 
     
 
@@ -316,6 +330,17 @@ class TypeSet
     inline unsigned getObjectCount();
     inline TypeObject *getObject(unsigned i);
 
+    void setIntermediate() { typeFlags |= TYPE_FLAG_INTERMEDIATE_SET; }
+    void setOwnProperty(bool configurable) {
+        typeFlags |= TYPE_FLAG_OWN_PROPERTY;
+        if (configurable)
+            typeFlags |= TYPE_FLAG_CONFIGURED_PROPERTY;
+    }
+    void setDefinite(unsigned slot) {
+        JS_ASSERT(slot <= (TYPE_FLAG_DEFINITE_MASK >> TYPE_FLAG_DEFINITE_SHIFT));
+        typeFlags |= TYPE_FLAG_DEFINITE_PROPERTY | (slot << TYPE_FLAG_DEFINITE_SHIFT);
+    }
+
     
     inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
     void addSubset(JSContext *cx, JSScript *script, TypeSet *target);
@@ -333,6 +358,7 @@ class TypeSet
     void addMonitorRead(JSContext *cx, JSScript *script, TypeSet *target);
 
     void addBaseSubset(JSContext *cx, TypeObject *object, TypeSet *target);
+    void addBaseClearDefinite(JSContext *cx, TypeObject *object);
     void addCondensed(JSContext *cx, JSScript *script);
 
     
@@ -481,6 +507,15 @@ struct TypeObject
 
 
 
+
+    JSScript *newScript;
+     unsigned newScriptFinalizeKind;
+    Shape *newScriptShape;
+
+    
+
+
+
     bool initializerObject;
     bool initializerArray;
     uint32 initializerOffset;
@@ -564,9 +599,11 @@ struct TypeObject
     
 
     bool addProperty(JSContext *cx, jsid id, Property **pprop);
+    bool addDefiniteProperties(JSContext *cx, JSObject *obj, bool clearUnknown);
     void addPrototype(JSContext *cx, TypeObject *proto);
     void setFlags(JSContext *cx, TypeObjectFlags flags);
     void markUnknown(JSContext *cx);
+    void clearNewScript(JSContext *cx);
     void storeToInstances(JSContext *cx, Property *base);
     void getFromPrototypes(JSContext *cx, Property *base);
 

@@ -2329,7 +2329,8 @@ class AutoGCRooter {
         STRING =      -14, 
         IDVECTOR =    -15, 
         BINDINGS =    -16, 
-        SHAPEVECTOR = -17  
+        SHAPEVECTOR = -17, 
+        TYPE =        -18  
     };
 
     private:

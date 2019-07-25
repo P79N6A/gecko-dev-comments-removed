@@ -60,6 +60,7 @@
 #include "methodjit/Retcon.h"
 
 #include "jsatominlines.h"
+#include "jsgcinlines.h"
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
 #include "jsscriptinlines.h"
@@ -382,11 +383,11 @@ TypeSet::addTypeSet(JSContext *cx, ClonedTypeSet *types)
 inline void
 TypeSet::add(JSContext *cx, TypeConstraint *constraint, bool callExisting)
 {
-    JS_ASSERT_IF(!constraint->condensed() && !constraint->baseSubset(),
+    JS_ASSERT_IF(!constraint->condensed() && !constraint->persistentObject(),
                  constraint->script->compartment == cx->compartment);
     JS_ASSERT_IF(!constraint->condensed(), cx->compartment->types.inferenceDepth);
     JS_ASSERT_IF(typeFlags & TYPE_FLAG_INTERMEDIATE_SET,
-                 !constraint->baseSubset() && !constraint->condensed());
+                 !constraint->persistentObject() && !constraint->condensed());
 
     if (!constraint) {
         
@@ -431,6 +432,9 @@ TypeSet::print(JSContext *cx)
         printf(" [own]");
     if (typeFlags & TYPE_FLAG_CONFIGURED_PROPERTY)
         printf(" [configured]");
+
+    if (isDefiniteProperty())
+        printf(" [definite:%d]", definiteSlot());
 
     if (baseFlags() == 0 && !objectCount) {
         printf(" missing");
@@ -512,13 +516,35 @@ public:
 
     void newType(JSContext *cx, TypeSet *source, jstype type);
 
-    TypeObject * baseSubset() { return object; }
+    TypeObject * persistentObject() { return object; }
 };
 
 void
 TypeSet::addBaseSubset(JSContext *cx, TypeObject *obj, TypeSet *target)
 {
     add(cx, cx->new_<TypeConstraintBaseSubset>(obj, target));
+}
+
+
+class TypeConstraintBaseClearDefinite : public TypeConstraint
+{
+public:
+    TypeObject *object;
+
+    TypeConstraintBaseClearDefinite(TypeObject *object)
+        : TypeConstraint("baseClearDefinite", (JSScript *) 0x1),
+          object(object)
+    {}
+
+    void newType(JSContext *cx, TypeSet *source, jstype type);
+
+    TypeObject * persistentObject() { return object; }
+};
+
+void
+TypeSet::addBaseClearDefinite(JSContext *cx, TypeObject *object)
+{
+    add(cx, cx->new_<TypeConstraintBaseClearDefinite>(object));
 }
 
 
@@ -791,6 +817,18 @@ void
 TypeConstraintBaseSubset::newType(JSContext *cx, TypeSet *source, jstype type)
 {
     target->addType(cx, type);
+}
+
+void
+TypeConstraintBaseClearDefinite::newType(JSContext *cx, TypeSet *source, jstype type)
+{
+    
+
+
+
+
+    if (type == TYPE_UNKNOWN && object->newScript)
+        object->clearNewScript(cx);
 }
 
 
@@ -1752,6 +1790,19 @@ TypeCompartment::newInitializerTypeObject(JSContext *cx, JSScript *script,
         res->initializerObject = true;
     res->initializerOffset = offset;
 
+    if (JSOp(script->code[offset]) == JSOP_NEWOBJECT) {
+        
+
+
+
+
+        JS_ASSERT(!script->hasSharps);
+        JSObject *baseobj = script->getObject(GET_SLOTNO(script->code + offset));
+
+        if (!res->addDefiniteProperties(cx, baseobj, false))
+            return NULL;
+    }
+
     return res;
 }
 
@@ -2306,7 +2357,11 @@ TypeCompartment::fixArrayType(JSContext *cx, JSObject *obj)
     if (p) {
         obj->setType(p->value);
     } else {
-        TypeObject *objType = newTypeObject(cx, NULL, "TableArray", false, true, obj->getProto());
+        static unsigned count = 0;
+        char *name = (char *) alloca(20);
+        JS_snprintf(name, 20, "TableArray:%u", ++count);
+
+        TypeObject *objType = newTypeObject(cx, NULL, name, false, true, obj->getProto());
         if (!objType) {
             js_ReportOutOfMemory(cx);
             return false;
@@ -2335,19 +2390,23 @@ struct ObjectTableKey
 {
     jsid *ids;
     uint32 nslots;
+    uint32 nfixed;
     JSObject *proto;
 
     typedef JSObject * Lookup;
 
     static inline uint32 hash(JSObject *obj) {
         return (uint32) (JSID_BITS(obj->lastProperty()->id) ^
-                         obj->slotSpan() ^
+                         obj->slotSpan() ^ obj->numFixedSlots() ^
                          ((uint32)(size_t)obj->getProto() >> 2));
     }
 
     static inline bool match(const ObjectTableKey &v, JSObject *obj) {
-        if (obj->slotSpan() != v.nslots || obj->getProto() != v.proto)
+        if (obj->slotSpan() != v.nslots ||
+            obj->numFixedSlots() != v.nfixed ||
+            obj->getProto() != v.proto) {
             return false;
+        }
         const Shape *shape = obj->lastProperty();
         while (!JSID_IS_EMPTY(shape->id)) {
             if (shape->id != v.ids[shape->slot])
@@ -2431,7 +2490,11 @@ TypeCompartment::fixObjectType(JSContext *cx, JSObject *obj)
         }
         AutoObjectRooter xvr(cx, xobj);
 
-        TypeObject *objType = newTypeObject(cx, NULL, "TableObject", false, false, obj->getProto());
+        static unsigned count = 0;
+        char *name = (char *) alloca(20);
+        JS_snprintf(name, 20, "TableObject:%u", ++count);
+
+        TypeObject *objType = newTypeObject(cx, NULL, name, false, false, obj->getProto());
         if (!objType) {
             js_ReportOutOfMemory(cx);
             return false;
@@ -2465,9 +2528,13 @@ TypeCompartment::fixObjectType(JSContext *cx, JSObject *obj)
         JS_ASSERT(!xobj->inDictionaryMode());
         const Shape *newShape = xobj->lastProperty();
 
+        if (!objType->addDefiniteProperties(cx, xobj, false))
+            return false;
+
         ObjectTableKey key;
         key.ids = ids;
         key.nslots = obj->slotSpan();
+        key.nfixed = obj->numFixedSlots();
         key.proto = obj->getProto();
         JS_ASSERT(ObjectTableKey::match(key, obj));
 
@@ -2583,6 +2650,57 @@ TypeObject::addProperty(JSContext *cx, jsid id, Property **pprop)
     return true;
 }
 
+bool
+TypeObject::addDefiniteProperties(JSContext *cx, JSObject *obj, bool clearUnknown)
+{
+    if (unknownProperties())
+        return true;
+
+    
+
+
+
+
+    AutoEnterTypeInference enter(cx);
+
+    const Shape *shape = obj->lastProperty();
+    while (!JSID_IS_EMPTY(shape->id)) {
+        jsid id = MakeTypeId(cx, shape->id);
+        if (!JSID_IS_VOID(id) && obj->isFixedSlot(shape->slot) &&
+            shape->slot <= (TYPE_FLAG_DEFINITE_MASK >> TYPE_FLAG_DEFINITE_SHIFT)) {
+            TypeSet *types = getProperty(cx, id, true);
+            if (!types)
+                return false;
+            types->setDefinite(shape->slot);
+
+            if (clearUnknown && proto) {
+                
+
+
+
+
+
+
+
+
+                TypeSet *parentTypes = proto->getType()->getProperty(cx, id, false);
+                if (!parentTypes || parentTypes->unknown())
+                    return false;
+                parentTypes->addBaseClearDefinite(cx, this);
+            }
+        } else {
+            
+
+
+
+            JS_ASSERT(!clearUnknown);
+        }
+        shape = shape->previous();
+    }
+
+    return cx->compartment->types.checkPendingRecompiles(cx);
+}
+
 void
 TypeObject::setFlags(JSContext *cx, TypeObjectFlags flags)
 {
@@ -2632,6 +2750,34 @@ TypeObject::markUnknown(JSContext *cx)
             prop->types.setOwnProperty(cx, true);
         }
     }
+}
+
+void
+TypeObject::clearNewScript(JSContext *cx)
+{
+    JS_ASSERT(newScript);
+    newScript = NULL;
+
+    AutoEnterTypeInference enter(cx);
+
+    
+
+
+
+
+
+
+
+
+    for (unsigned i = 0; i < getPropertyCount(); i++) {
+        Property *prop = getProperty(i);
+        if (!prop)
+            continue;
+        if (prop->types.isDefiniteProperty())
+            prop->types.setOwnProperty(cx, true);
+    }
+
+    cx->compartment->types.checkPendingRecompiles(cx); 
 }
 
 void
@@ -3774,6 +3920,172 @@ AnalyzeScriptNew(JSContext *cx, JSScript *script)
     prototypeTypes->addNewObject(cx, script, funType, script->thisTypes());
 }
 
+JSObject *
+AnalyzeScriptProperties(JSContext *cx, JSScript *script)
+{
+    
+
+
+
+
+
+
+
+
+    
+    JSObject *baseobj = NewBuiltinClassInstance(cx, &js_ObjectClass, gc::FINALIZE_OBJECT16);
+    if (!baseobj)
+        return NULL;
+
+    
+    unsigned numProperties = 0;
+
+    
+    unsigned thisSlot = unsigned(-1);
+
+    unsigned offset = 0;
+    unsigned depth = 0;
+    while (offset < script->length) {
+        jsbytecode *pc = script->code + offset;
+        JSOp op = JSOp(*pc);
+
+        unsigned nuses = analyze::GetUseCount(script, offset);
+        unsigned ndefs = analyze::GetDefCount(script, offset);
+
+        bool poppedThis = false;
+        if (thisSlot != unsigned(-1) && thisSlot >= depth - nuses) {
+            if (op != JSOP_SETPROP || thisSlot != depth - 2) {
+                
+
+
+
+                return baseobj;
+            }
+            poppedThis = true;
+            thisSlot = unsigned(-1);
+        }
+
+        depth -= nuses;
+        depth += ndefs;
+
+        switch (JSOp(*pc)) {
+
+          case JSOP_THIS:
+            thisSlot = depth - 1;
+            break;
+
+          case JSOP_SETPROP: {
+            if (!poppedThis)
+                return baseobj;
+            jsid id = GetAtomId(cx, script, pc, 0);
+            if (JSID_IS_VOID(id))
+                return baseobj;
+            if (id == id_prototype(cx) || id == id___proto__(cx) || id == id_constructor(cx))
+                return baseobj;
+            if (!js_DefineNativeProperty(cx, baseobj, id, UndefinedValue(), NULL, NULL,
+                                         JSPROP_ENUMERATE, 0, 0, NULL, 0)) {
+                return NULL;
+            }
+            numProperties++;
+            if (baseobj->slotSpan() != numProperties) {
+                
+                return baseobj;
+            }
+            if (baseobj->inDictionaryMode())
+                return NULL;
+            if (numProperties >= (TYPE_FLAG_DEFINITE_MASK >> TYPE_FLAG_DEFINITE_SHIFT)) {
+                
+                return baseobj;
+            }
+            break;
+          }
+
+          
+          case JSOP_POP:
+          case JSOP_NOP:
+          case JSOP_LINENO:
+          case JSOP_POPN:
+          case JSOP_VOID:
+          case JSOP_PUSH:
+          case JSOP_ZERO:
+          case JSOP_ONE:
+          case JSOP_INT8:
+          case JSOP_INT32:
+          case JSOP_UINT16:
+          case JSOP_UINT24:
+          case JSOP_BITAND:
+          case JSOP_BITOR:
+          case JSOP_BITXOR:
+          case JSOP_BITNOT:
+          case JSOP_RSH:
+          case JSOP_LSH:
+          case JSOP_URSH:
+          case JSOP_FALSE:
+          case JSOP_TRUE:
+          case JSOP_EQ:
+          case JSOP_NE:
+          case JSOP_LT:
+          case JSOP_LE:
+          case JSOP_GT:
+          case JSOP_GE:
+          case JSOP_NOT:
+          case JSOP_STRICTEQ:
+          case JSOP_STRICTNE:
+          case JSOP_IN:
+          case JSOP_DOUBLE:
+          case JSOP_STRING:
+          case JSOP_REGEXP:
+          case JSOP_DUP:
+          case JSOP_DUP2:
+          case JSOP_GETGLOBAL:
+          case JSOP_GETGNAME:
+          case JSOP_GETARG:
+          case JSOP_SETARG:
+          case JSOP_INCARG:
+          case JSOP_DECARG:
+          case JSOP_ARGINC:
+          case JSOP_ARGDEC:
+          case JSOP_GETLOCAL:
+          case JSOP_SETLOCAL:
+          case JSOP_SETLOCALPOP:
+          case JSOP_INCLOCAL:
+          case JSOP_DECLOCAL:
+          case JSOP_LOCALINC:
+          case JSOP_LOCALDEC:
+          case JSOP_GETPROP:
+          case JSOP_GETARGPROP:
+          case JSOP_GETLOCALPROP:
+          case JSOP_GETELEM:
+          case JSOP_LENGTH:
+          case JSOP_ADD:
+          case JSOP_SUB:
+          case JSOP_MUL:
+          case JSOP_MOD:
+          case JSOP_DIV:
+          case JSOP_NEG:
+          case JSOP_POS:
+          case JSOP_NEWINIT:
+          case JSOP_NEWARRAY:
+          case JSOP_NEWOBJECT:
+          case JSOP_ENDINIT:
+          case JSOP_INITELEM:
+          case JSOP_HOLE:
+          case JSOP_INITPROP:
+          case JSOP_INITMETHOD:
+            break;
+
+          default:
+            return baseobj;
+        }
+
+        offset += analyze::GetBytecodeLength(pc);
+    }
+
+    
+    JS_NOT_REACHED("Mystery!");
+    return baseobj;
+}
+
 
 
 
@@ -4194,7 +4506,7 @@ JSScript::typeCheckBytecode(JSContext *cx, const jsbytecode *pc, const js::Value
 
 
 void
-JSObject::makeNewType(JSContext *cx)
+JSObject::makeNewType(JSContext *cx, JSScript *newScript)
 {
     JS_ASSERT(!newType);
 
@@ -4202,17 +4514,50 @@ JSObject::makeNewType(JSContext *cx)
     if (!type)
         return;
 
-    if (cx->typeInferenceEnabled() && !getType()->unknownProperties()) {
-        js::types::AutoEnterTypeInference enter(cx);
+    if (!cx->typeInferenceEnabled()) {
+        newType = type;
+        setDelegate();
+        return;
+    }
 
+    js::types::AutoEnterTypeInference enter(cx);
+
+    if (!getType()->unknownProperties()) {
         
         js::types::TypeSet *types = getType()->getProperty(cx, JSID_EMPTY, true);
         if (types)
             types->addType(cx, (js::types::jstype) type);
-
-        if (!cx->compartment->types.checkPendingRecompiles(cx))
-            return;
     }
+
+    if (newScript && !type->unknownProperties()) {
+        JSObject *baseobj = js::types::AnalyzeScriptProperties(cx, newScript);
+        if (baseobj && baseobj->slotSpan() > 0) {
+            js::gc::FinalizeKind kind = js::gc::GetGCObjectKind(baseobj->slotSpan());
+
+            
+            JS_ASSERT(js::gc::GetGCKindSlots(kind) >= baseobj->slotSpan());
+
+            
+
+
+
+
+            baseobj = NewReshapedObject(cx, type, baseobj->getParent(), kind,
+                                        (const js::Shape *) baseobj->lastProperty());
+            if (!baseobj)
+                return;
+
+            if (!type->addDefiniteProperties(cx, baseobj, true))
+                return;
+
+            type->newScript = newScript;
+            type->newScriptFinalizeKind = unsigned(kind);
+            type->newScriptShape = (js::Shape *) baseobj->lastProperty();
+        }
+    }
+
+    if (!cx->compartment->types.checkPendingRecompiles(cx))
+        return;
 
     newType = type;
     setDelegate();
@@ -4261,6 +4606,11 @@ types::TypeObject::trace(JSTracer *trc)
 
     if (singleton)
         gc::MarkObject(trc, *singleton, "type_singleton");
+
+    if (newScript) {
+        js_TraceScript(trc, newScript);
+        gc::MarkShape(trc, newScriptShape, "new_shape");
+    }
 }
 
 
@@ -4343,7 +4693,7 @@ TypeSet::CondenseSweepTypeSet(JSContext *cx, TypeCompartment *compartment,
     while (constraint) {
         TypeConstraint *next = constraint->next;
 
-        TypeObject *object = constraint->baseSubset();
+        TypeObject *object = constraint->persistentObject();
         if (object) {
             
 
