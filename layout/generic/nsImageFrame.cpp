@@ -1311,12 +1311,26 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
   }
 
+  if (ShouldDisplaySelection()) {
+    rv = DisplaySelectionOverlay(aBuilder, &replacedContent,
+                                 nsISelectionDisplay::DISPLAY_IMAGES);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  WrapReplacedContentForBorderRadius(aBuilder, &replacedContent, aLists);
+
+  return NS_OK;
+}
+
+bool
+nsImageFrame::ShouldDisplaySelection()
+{
   
   nsresult result;
   nsPresContext* presContext = PresContext();
   PRInt16 displaySelection = presContext->PresShell()->GetSelectionFlags();
   if (!(displaySelection & nsISelectionDisplay::DISPLAY_IMAGES))
-    return NS_OK;
+    return false;
 
 #if IMAGE_EDITOR_CHECK
   
@@ -1354,7 +1368,7 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                 range->GetEndContainer(getter_AddRefs(rangeNode));
                 range->GetEndOffset(&rangeOffset);
                 if ((rangeNode == parentNode) && (rangeOffset == (thisOffset +1))) 
-                  return NS_OK; 
+                  return false; 
               }
             }
           }
@@ -1363,14 +1377,7 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     }
   }
 #endif
-  
-  rv = DisplaySelectionOverlay(aBuilder, &replacedContent,
-                               nsISelectionDisplay::DISPLAY_IMAGES);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  WrapReplacedContentForBorderRadius(aBuilder, &replacedContent, aLists);
-
-  return NS_OK;
+  return true;
 }
 
 NS_IMETHODIMP
