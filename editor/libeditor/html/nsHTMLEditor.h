@@ -73,7 +73,6 @@
 #include "nsAutoPtr.h"
 #include "nsAttrName.h"
 
-#include "mozilla/Attributes.h"
 #include "mozilla/dom/Element.h"
 
 class nsIDOMKeyEvent;
@@ -326,9 +325,11 @@ public:
   
   NS_IMETHOD CollapseAdjacentTextNodes(nsIDOMRange *aInRange);
 
-  virtual bool AreNodesSameType(nsIContent* aNode1, nsIContent* aNode2)
-    MOZ_OVERRIDE;
+  virtual bool NodesSameType(nsIDOMNode *aNode1, nsIDOMNode *aNode2);
 
+  NS_IMETHOD DeleteSelectionImpl(EDirection aAction,
+                                 EStripWrappers aStripWrappers);
+  nsresult DeleteNode(nsINode* aNode);
   NS_IMETHODIMP DeleteNode(nsIDOMNode * aNode);
   NS_IMETHODIMP DeleteText(nsIDOMCharacterData *aTextNode,
                            PRUint32             aOffset,
@@ -663,8 +664,10 @@ protected:
                                          nsIDOMCharacterData *aTextNode, 
                                          PRInt32 aStartOffset,
                                          PRInt32 aEndOffset);
-  nsresult RelativeFontChangeOnNode(PRInt32 aSizeChange, nsINode* aNode);
-  nsresult RelativeFontChangeHelper(PRInt32 aSizeChange, nsINode* aNode);
+  nsresult RelativeFontChangeOnNode( PRInt32 aSizeChange, 
+                                     nsIDOMNode *aNode);
+  nsresult RelativeFontChangeHelper( PRInt32 aSizeChange, 
+                                     nsIDOMNode *aNode);
 
   
   nsresult SetInlinePropertyOnTextNode( nsIDOMCharacterData *aTextNode, 

@@ -199,9 +199,14 @@ NS_IMETHODIMP nsHTMLEditor::LoadHTML(const nsAString & aInputString)
 
   if (!handled)
   {
+    bool isCollapsed;
+    rv = selection->GetIsCollapsed(&isCollapsed);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     
-    if (!selection->Collapsed()) {
-      rv = DeleteSelection(eNone);
+    if (!isCollapsed) 
+    {
+      rv = DeleteSelection(eNone, eStrip);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -346,7 +351,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
       
       
       nsAutoTrackDOMPoint tracker(mRangeUpdater, &targetNode, &targetOffset);
-      rv = DeleteSelection(eNone);
+      rv = DeleteSelection(eNone, eStrip);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
