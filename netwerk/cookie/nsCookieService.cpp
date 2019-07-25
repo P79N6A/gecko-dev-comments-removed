@@ -1075,16 +1075,7 @@ nsCookieService::GetCookieString(nsIURI     *aHostURI,
                                  nsIChannel *aChannel,
                                  char       **aCookie)
 {
-  NS_ENSURE_ARG(aHostURI);
-  NS_ENSURE_ARG(aCookie);
-
-  nsCOMPtr<nsIURI> originatingURI;
-  GetOriginatingURI(aChannel, getter_AddRefs(originatingURI));
-
-  nsCAutoString result;
-  GetCookieInternal(aHostURI, originatingURI, PR_FALSE, result);
-  *aCookie = result.IsEmpty() ? nsnull : ToNewCString(result);
-  return NS_OK;
+  return GetCookieStringCommon(aHostURI, aChannel, false, aCookie);
 }
 
 NS_IMETHODIMP
@@ -1093,6 +1084,15 @@ nsCookieService::GetCookieStringFromHttp(nsIURI     *aHostURI,
                                          nsIChannel *aChannel,
                                          char       **aCookie)
 {
+  return GetCookieStringCommon(aHostURI, aChannel, true, aCookie);
+}
+
+nsresult
+nsCookieService::GetCookieStringCommon(nsIURI *aHostURI,
+                                       nsIChannel *aChannel,
+                                       bool aHttpBound,
+                                       char** aCookie)
+{
   NS_ENSURE_ARG(aHostURI);
   NS_ENSURE_ARG(aCookie);
 
@@ -1100,7 +1100,7 @@ nsCookieService::GetCookieStringFromHttp(nsIURI     *aHostURI,
   GetOriginatingURI(aChannel, getter_AddRefs(originatingURI));
 
   nsCAutoString result;
-  GetCookieInternal(aHostURI, originatingURI, PR_TRUE, result);
+  GetCookieStringInternal(aHostURI, originatingURI, aHttpBound, result);
   *aCookie = result.IsEmpty() ? nsnull : ToNewCString(result);
   return NS_OK;
 }
@@ -1111,16 +1111,7 @@ nsCookieService::SetCookieString(nsIURI     *aHostURI,
                                  const char *aCookieHeader,
                                  nsIChannel *aChannel)
 {
-  NS_ENSURE_ARG(aHostURI);
-  NS_ENSURE_ARG(aCookieHeader);
-
-  nsCOMPtr<nsIURI> originatingURI;
-  GetOriginatingURI(aChannel, getter_AddRefs(originatingURI));
-
-  nsDependentCString cookieString(aCookieHeader);
-  SetCookieStringInternal(aHostURI, originatingURI,
-                          cookieString, EmptyCString(), PR_FALSE);
-  return NS_OK;
+  return SetCookieStringCommon(aHostURI, aCookieHeader, NULL, aChannel, false);
 }
 
 NS_IMETHODIMP
@@ -1131,6 +1122,17 @@ nsCookieService::SetCookieStringFromHttp(nsIURI     *aHostURI,
                                          const char *aServerTime,
                                          nsIChannel *aChannel) 
 {
+  return SetCookieStringCommon(aHostURI, aCookieHeader, aServerTime, aChannel,
+                               true);
+}
+
+nsresult
+nsCookieService::SetCookieStringCommon(nsIURI *aHostURI,
+                                       const char *aCookieHeader,
+                                       const char *aServerTime,
+                                       nsIChannel *aChannel,
+                                       bool aFromHttp) 
+{
   NS_ENSURE_ARG(aHostURI);
   NS_ENSURE_ARG(aCookieHeader);
 
@@ -1140,7 +1142,7 @@ nsCookieService::SetCookieStringFromHttp(nsIURI     *aHostURI,
   nsDependentCString cookieString(aCookieHeader);
   nsDependentCString serverTime(aServerTime ? aServerTime : "");
   SetCookieStringInternal(aHostURI, originatingURI, cookieString,
-                          serverTime, PR_TRUE);
+                          serverTime, aFromHttp);
   return NS_OK;
 }
 
@@ -1151,6 +1153,8 @@ nsCookieService::SetCookieStringInternal(nsIURI          *aHostURI,
                                          const nsCString &aServerTime,
                                          PRBool           aFromHttp) 
 {
+  NS_ASSERTION(aHostURI, "null host!");
+
   
   
   
@@ -1879,15 +1883,12 @@ public:
 };
 
 void
-nsCookieService::GetCookieInternal(nsIURI      *aHostURI,
-                                   nsIURI      *aOriginatingURI,
-                                   PRBool       aHttpBound,
-                                   nsCString   &aCookieString)
+nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
+                                         nsIURI *aOriginatingURI,
+                                         PRBool aHttpBound,
+                                         nsCString &aCookieString)
 {
-  if (!aHostURI) {
-    COOKIE_LOGFAILURE(GET_COOKIE, nsnull, nsnull, "host URI is null");
-    return;
-  }
+  NS_ASSERTION(aHostURI, "null host!");
 
   
   
@@ -2073,6 +2074,8 @@ nsCookieService::SetCookieInternal(nsIURI                        *aHostURI,
                                    PRInt64                        aServerTime,
                                    PRBool                         aFromHttp)
 {
+  NS_ASSERTION(aHostURI, "null host!");
+
   
   
   nsCookieAttributes cookieAttributes;
@@ -2139,6 +2142,7 @@ nsCookieService::SetCookieInternal(nsIURI                        *aHostURI,
   
   if (mPermissionService) {
     PRBool permission;
+    
     
     
     mPermissionService->CanSetCookie(aHostURI,
