@@ -45,6 +45,15 @@
 #include "mozilla/FileUtils.h"
 #include "nsAlgorithm.h"
 #include "nsThreadUtils.h"
+#include "mozilla/Monitor.h"
+#include "mozilla/Services.h"
+#include "mozilla/FileUtils.h"
+#include "nsThreadUtils.h"
+#include "nsIRunnable.h"
+#include "nsIThread.h"
+#include "nsIObserver.h"
+#include "nsIObserverService.h"
+#include "hardware_legacy/vibrator.h"
 #include <stdio.h>
 #include <math.h>
 #include <fcntl.h>
@@ -55,13 +64,146 @@ using mozilla::hal::WindowIdentifier;
 namespace mozilla {
 namespace hal_impl {
 
-void
-Vibrate(const nsTArray<uint32>& pattern, const WindowIdentifier &)
-{}
+namespace {
+
+
+
+
+
+class VibratorRunnable
+  : public nsIRunnable
+  , public nsIObserver
+{
+public:
+  VibratorRunnable()
+    : mMonitor("VibratorRunnable")
+    , mIndex(0)
+    , mShuttingDown(false)
+  {
+    nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+    if (!os) {
+      NS_WARNING("Could not get observer service!");
+      return;
+    }
+
+    os->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID,  true);
+  } 
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIRUNNABLE
+  NS_DECL_NSIOBSERVER
+
+  
+  void Vibrate(const nsTArray<uint32> &pattern);
+  void CancelVibrate();
+
+private:
+  Monitor mMonitor;
+
+  
+  nsTArray<uint32> mPattern;
+
+  
+  
+  uint32 mIndex;
+
+  
+  
+  bool mShuttingDown;
+};
+
+NS_IMPL_ISUPPORTS2(VibratorRunnable, nsIRunnable, nsIObserver);
+
+NS_IMETHODIMP
+VibratorRunnable::Run()
+{
+  MonitorAutoLock lock(mMonitor);
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  while (!mShuttingDown) {
+    if (mIndex < mPattern.Length()) {
+      uint32 duration = mPattern[mIndex];
+      if (mIndex % 2 == 0) {
+        vibrator_on(duration);
+      }
+      mIndex++;
+      mMonitor.Wait(PR_MillisecondsToInterval(duration));
+    }
+    else {
+      mMonitor.Wait();
+    }
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+VibratorRunnable::Observe(nsISupports *subject, const char *topic,
+                          const PRUnichar *data)
+{
+  MOZ_ASSERT(strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0);
+  MonitorAutoLock lock(mMonitor);
+  mShuttingDown = true;
+  mMonitor.Notify();
+  return NS_OK;
+}
 
 void
-CancelVibrate(const WindowIdentifier &)
-{}
+VibratorRunnable::Vibrate(const nsTArray<uint32> &pattern)
+{
+  MonitorAutoLock lock(mMonitor);
+  mPattern = pattern;
+  mIndex = 0;
+  mMonitor.Notify();
+}
+
+void
+VibratorRunnable::CancelVibrate()
+{
+  MonitorAutoLock lock(mMonitor);
+  mPattern.Clear();
+  mPattern.AppendElement(0);
+  mIndex = 0;
+  mMonitor.Notify();
+}
+
+VibratorRunnable *sVibratorRunnable = NULL;
+
+void
+EnsureVibratorThreadInitialized()
+{
+  if (sVibratorRunnable) {
+    return;
+  }
+
+  nsRefPtr<VibratorRunnable> runnable = new VibratorRunnable();
+  sVibratorRunnable = runnable;
+  nsCOMPtr<nsIThread> thread;
+  NS_NewThread(getter_AddRefs(thread), sVibratorRunnable);
+}
+
+} 
+
+void
+Vibrate(const nsTArray<uint32> &pattern, const hal::WindowIdentifier &)
+{
+  EnsureVibratorThreadInitialized();
+  sVibratorRunnable->Vibrate(pattern);
+}
+
+void
+CancelVibrate(const hal::WindowIdentifier &)
+{
+  EnsureVibratorThreadInitialized();
+  sVibratorRunnable->CancelVibrate();
+}
 
 namespace {
 
@@ -143,7 +285,7 @@ DisableBatteryNotifications()
 }
 
 void
-GetCurrentBatteryInformation(hal::BatteryInformation* aBatteryInfo)
+GetCurrentBatteryInformation(hal::BatteryInformation *aBatteryInfo)
 {
   FILE *capacityFile = fopen("/sys/class/power_supply/battery/capacity", "r");
   double capacity = dom::battery::kDefaultLevel * 100;
