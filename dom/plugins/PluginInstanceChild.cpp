@@ -99,7 +99,6 @@ PluginInstanceChild::Answer__delete__(NPError* rv)
         PluginInstanceDestroyed(this, rv);
 }
 
-
 NPError
 PluginInstanceChild::NPN_GetValue(NPNVariable aVar,
                                   void* aValue)
@@ -204,6 +203,30 @@ PluginInstanceChild::NPN_GetValue(NPNVariable aVar,
         PluginModuleChild::sBrowserFuncs.retainobject(object);
         *((NPObject**)aValue) = object;
         return NPERR_NO_ERROR;
+    }
+
+    case NPNVnetscapeWindow: {
+#ifdef XP_WIN
+        if (mWindow.type == NPWindowTypeDrawable) {
+            HWND hwnd = NULL;
+            NPError result;
+            if (!CallNPN_GetValue_NPNVnetscapeWindow(&hwnd, &result)) {
+                return NPERR_GENERIC_ERROR;
+            }
+            *static_cast<HWND*>(aValue) = hwnd;
+            return result;
+        }
+        else {
+            *static_cast<HWND*>(aValue) = mPluginWindowHWND;
+            return NPERR_NO_ERROR;
+        }
+#elif defined(MOZ_X11)
+        NPError result;
+        CallNPN_GetValue_NPNVnetscapeWindow(static_cast<XID*>(aValue), &result);
+        return result;
+#else
+        return NPERR_GENERIC_ERROR;
+#endif
     }
 
     default:
@@ -922,6 +945,27 @@ PluginInstanceChild::AnswerPPluginScriptableObjectConstructor(
         static_cast<PluginScriptableObjectChild*>(aActor);
     actor->Initialize(const_cast<PluginInstanceChild*>(this), object);
 
+    return true;
+}
+
+bool
+PluginInstanceChild::AnswerPBrowserStreamConstructor(
+    PBrowserStreamChild* aActor,
+    const nsCString& url,
+    const uint32_t& length,
+    const uint32_t& lastmodified,
+    PStreamNotifyChild* notifyData,
+    const nsCString& headers,
+    const nsCString& mimeType,
+    const bool& seekable,
+    NPError* rv,
+    uint16_t* stype)
+{
+    AssertPluginThread();
+    *rv = static_cast<BrowserStreamChild*>(aActor)
+          ->StreamConstructed(url, length, lastmodified,
+                              notifyData, headers, mimeType, seekable,
+                              stype);
     return true;
 }
 

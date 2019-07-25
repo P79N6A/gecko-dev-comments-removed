@@ -109,6 +109,14 @@ struct NPRemoteWindow
 #endif
 };
 
+#ifdef XP_WIN
+typedef HWND NativeWindowHandle;
+#elif defined(MOZ_X11)
+typedef XID NativeWindowHandle;
+#else
+#error Need NativeWindowHandle for this platform
+#endif
+
 
 
 #define VARSTR(v_)  case v_: return #v_
