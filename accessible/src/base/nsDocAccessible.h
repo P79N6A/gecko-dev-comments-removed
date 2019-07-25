@@ -144,6 +144,24 @@ public:
   
 
 
+  nsDocAccessible* ParentDocument() const
+    { return mParent ? mParent->GetDocAccessible() : nsnull; }
+
+  
+
+
+  PRUint32 ChildDocumentCount() const
+    { return mChildDocuments.Length(); }
+
+  
+
+
+  nsDocAccessible* GetChildDocumentAt(PRUint32 aIndex) const
+    { return mChildDocuments.SafeElementAt(aIndex, nsnull); }
+
+  
+
+
 
 
 
@@ -192,6 +210,12 @@ public:
 
 
 
+  nsAccessible* GetCachedAccessibleInSubtree(void* aUniqueID);
+
+  
+
+
+
 
 
 
@@ -216,6 +240,24 @@ protected:
     virtual nsresult RemoveEventListeners();
     void AddScrollListener();
     void RemoveScrollListener();
+
+  
+
+
+
+  bool AppendChildDocument(nsDocAccessible* aChildDocument)
+  {
+    return mChildDocuments.AppendElement(aChildDocument);
+  }
+
+  
+
+
+
+  void RemoveChildDocument(nsDocAccessible* aChildDocument)
+  {
+    mChildDocuments.RemoveElement(aChildDocument);
+  }
 
   
 
@@ -337,6 +379,8 @@ protected:
 
     static PRUint32 gLastFocusedAccessiblesState;
     static nsIAtom *gLastFocusedFrameType;
+
+  nsTArray<nsRefPtr<nsDocAccessible> > mChildDocuments;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsDocAccessible,

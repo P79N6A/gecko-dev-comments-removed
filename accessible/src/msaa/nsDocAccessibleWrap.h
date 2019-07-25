@@ -83,10 +83,6 @@ public:
          BSTR __RPC_FAR *commaSeparatedMediaTypes);
 
     
-    
-    virtual  HRESULT STDMETHODCALLTYPE get_accChild( 
-         VARIANT varChild,
-         IDispatch __RPC_FAR *__RPC_FAR *ppdispChild);
 
     
     virtual  HRESULT STDMETHODCALLTYPE get_accValue( 
@@ -95,15 +91,6 @@ public:
 
   
   virtual nsAccessible *GetXPAccessibleFor(const VARIANT& varChild);
-
-  
-
-  
-
-
-
-
-  static nsAccessible *GetXPAccessibleForChildID(const VARIANT& aVarChild);
 };
 
 #endif

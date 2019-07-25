@@ -103,39 +103,13 @@ nsDocAccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
   
   
 
-  if (aVarChild.lVal < 0)
-    return IsDefunct() ? nsnull : GetXPAccessibleForChildID(aVarChild);
-
-  return nsAccessibleWrap::GetXPAccessibleFor(aVarChild);
-}
-
-STDMETHODIMP
-nsDocAccessibleWrap::get_accChild(VARIANT varChild,
-                                  IDispatch __RPC_FAR *__RPC_FAR *ppdispChild)
-{
-__try {
-  *ppdispChild = NULL;
-
-  if (varChild.vt == VT_I4 && varChild.lVal < 0) {
+  if (aVarChild.vt == VT_I4 && aVarChild.lVal < 0) {
     
-    
-    
-
-    nsAccessible *xpAccessible = GetXPAccessibleForChildID(varChild);
-    if (!xpAccessible)
-      return E_FAIL;
-
-    IAccessible *msaaAccessible = NULL;
-    xpAccessible->GetNativeInterface((void**)&msaaAccessible);
-    *ppdispChild = static_cast<IDispatch*>(msaaAccessible);
-
-    return S_OK;
+    void* uniqueID = reinterpret_cast<void*>(-aVarChild.lVal);
+    return GetCachedAccessibleInSubtree(uniqueID);
   }
 
-  
-  return nsAccessibleWrap::get_accChild(varChild, ppdispChild);
-} __except(FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
-  return E_FAIL;
+  return nsAccessibleWrap::GetXPAccessibleFor(aVarChild);
 }
 
 STDMETHODIMP nsDocAccessibleWrap::get_URL( BSTR __RPC_FAR *aURL)
@@ -270,15 +244,4 @@ STDMETHODIMP nsDocAccessibleWrap::get_accValue(
     return hr;
 
   return get_URL(pszValue);
-}
-
-nsAccessible*
-nsDocAccessibleWrap::GetXPAccessibleForChildID(const VARIANT& aVarChild)
-{
-  NS_PRECONDITION(aVarChild.vt == VT_I4 && aVarChild.lVal < 0,
-                  "Variant doesn't point to child ID!");
-
-  
-  void *uniqueID = reinterpret_cast<void*>(-aVarChild.lVal);
-  return GetAccService()->FindAccessibleInCache(uniqueID);
 }
