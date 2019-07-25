@@ -5,6 +5,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define PL_ARENA_CONST_ALIGN_MASK (sizeof(void*)-1)
 #include "plarena.h"
 
@@ -82,8 +120,7 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
   mTrimmableWidth = 0;
 
   mInflationMinFontSize =
-    nsLayoutUtils::InflationMinFontSizeFor(aOuterReflowState->frame,
-                                           nsLayoutUtils::eInReflow);
+    nsLayoutUtils::InflationMinFontSizeFor(aOuterReflowState->frame);
 
   
   

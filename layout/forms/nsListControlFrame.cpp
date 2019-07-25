@@ -256,8 +256,7 @@ void nsListControlFrame::PaintFocus(nsRenderingContext& aRC, nsPoint aPt)
     
     fRect.MoveBy(childframe->GetParent()->GetOffsetTo(this));
   } else {
-    float inflation = nsLayoutUtils::FontSizeInflationFor(this,
-                        nsLayoutUtils::eNotInReflow);
+    float inflation = nsLayoutUtils::FontSizeInflationFor(this);
     fRect.x = fRect.y = 0;
     fRect.width = GetScrollPortRect().width;
     fRect.height = CalcFallbackRowHeight(inflation);
@@ -284,7 +283,7 @@ void nsListControlFrame::PaintFocus(nsRenderingContext& aRC, nsPoint aPt)
 }
 
 void
-nsListControlFrame::InvalidateFocus(const nsHTMLReflowState *aReflowState)
+nsListControlFrame::InvalidateFocus()
 {
   if (mFocused != this)
     return;
@@ -294,9 +293,7 @@ nsListControlFrame::InvalidateFocus(const nsHTMLReflowState *aReflowState)
     
     
     
-    float inflation = nsLayoutUtils::FontSizeInflationFor(this,
-                        aReflowState ? nsLayoutUtils::eInReflow
-                                     : nsLayoutUtils::eNotInReflow);
+    float inflation = nsLayoutUtils::FontSizeInflationFor(this);
     nsRect invalidateArea = containerFrame->GetVisualOverflowRect();
     nsRect emptyFallbackArea(0, 0, GetScrollPortRect().width,
                              CalcFallbackRowHeight(inflation));
@@ -362,8 +359,7 @@ nsListControlFrame::CalcHeightOfARow()
   
   
   if (heightOfARow == 0 && GetNumberOfOptions() == 0) {
-    float inflation =
-      nsLayoutUtils::FontSizeInflationFor(this, nsLayoutUtils::eInReflow);
+    float inflation = nsLayoutUtils::FontSizeInflationFor(this);
     heightOfARow = CalcFallbackRowHeight(inflation);
   }
 
@@ -1154,8 +1150,7 @@ nsListControlFrame::OnContentReset()
 }
 
 void 
-nsListControlFrame::ResetList(bool aAllowScrolling,
-                              const nsHTMLReflowState *aReflowState)
+nsListControlFrame::ResetList(bool aAllowScrolling)
 {
   
   
@@ -1179,7 +1174,7 @@ nsListControlFrame::ResetList(bool aAllowScrolling,
 
   mStartSelectionIndex = kNothingSelected;
   mEndSelectionIndex = kNothingSelected;
-  InvalidateFocus(aReflowState);
+  InvalidateFocus();
   
 } 
  
@@ -1732,7 +1727,7 @@ nsListControlFrame::DidReflow(nsPresContext*           aPresContext,
     
     
     
-    ResetList(!DidHistoryRestore() || mPostChildrenLoadedReset, aReflowState);
+    ResetList(!DidHistoryRestore() || mPostChildrenLoadedReset);
   }
 
   mHasPendingInterruptAtStartOfReflow = false;

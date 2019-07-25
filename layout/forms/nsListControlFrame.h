@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsListControlFrame_h___
 #define nsListControlFrame_h___
 
@@ -207,9 +240,7 @@ public:
 
 
 
-
-
-  void InvalidateFocus(const nsHTMLReflowState* aReflowState = nsnull);
+  void InvalidateFocus();
 
   
 
@@ -302,10 +333,7 @@ protected:
 
 
 
-
-
-  virtual void ResetList(bool aAllowScrolling,
-                         const nsHTMLReflowState* aReflowState = nsnull);
+  virtual void ResetList(bool aAllowScrolling);
 
   nsListControlFrame(nsIPresShell* aShell, nsIDocument* aDocument, nsStyleContext* aContext);
   virtual ~nsListControlFrame();
