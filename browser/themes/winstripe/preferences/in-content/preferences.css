@@ -105,6 +105,18 @@ prefpane > .content-box {
 
 
 
+#applications-content {
+  padding: 15px;
+}
+
+#handlersView {
+  -moz-appearance: none;
+  border: 1px solid rgba(31,64,100,0.4);
+  overflow-y: auto;
+}
+
+
+
 description > html|a {
   cursor: pointer;
 }
