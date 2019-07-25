@@ -622,8 +622,9 @@ SyncEngine.prototype = {
       
       this._log.debug("First sync, uploading all items");
       this._modified = {};
-      for (let id in this._store.getAllIDs())
+      for (let id in this._store.getAllIDs()) {
         this._modified[id] = 0;
+      }
     }
     
     
@@ -652,7 +653,7 @@ SyncEngine.prototype = {
       batchSize = MOBILE_BATCH_SIZE;
     }
     newitems.newer = this.lastSync;
-    newitems.full = true;
+    newitems.full  = true;
     newitems.limit = batchSize;
     
     
@@ -1079,8 +1080,8 @@ SyncEngine.prototype = {
     for (let [id, when] in Iterator(this._modified)) {
       this._tracker.addChangedID(id, when);
     }
-    delete this._modified;
-    delete this._modifiedIDs;
+    this._modified    = {};
+    this._modifiedIDs = [];
   },
 
   _sync: function SyncEngine__sync() {
