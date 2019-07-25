@@ -2194,6 +2194,10 @@ bool nsHTMLMediaElement::ShouldHandleMediaType(const char* aMIMEType)
   if (IsWebMType(nsDependentCString(aMIMEType)))
     return true;
 #endif
+#ifdef MOZ_GSTREAMER
+  if (IsH264Type(nsDependentCString(aMIMEType)))
+    return true;
+#endif
   
   
   
