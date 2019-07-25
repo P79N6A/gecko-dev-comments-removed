@@ -2742,17 +2742,18 @@ IonBuilder::jsop_getelem_dense()
     id = idInt32;
 
     
-    MInitializedLength *initLength = MInitializedLength::New(obj);
+    MElements *elements = MElements::New(obj);
+    current->add(elements);
+
+    
+    MInitializedLength *initLength = MInitializedLength::New(elements);
     current->add(initLength);
 
     MBoundsCheck *check = MBoundsCheck::New(id, initLength);
     current->add(check);
 
     
-    MSlots *slots = MSlots::New(obj);
-    current->add(slots);
-
-    MLoadElement *load = MLoadElement::New(slots, id, needsHoleCheck);
+    MLoadElement *load = MLoadElement::New(elements, id, needsHoleCheck);
     current->add(load);
 
     if (knownType != JSVAL_TYPE_UNKNOWN)
@@ -2793,17 +2794,18 @@ IonBuilder::jsop_setelem_dense()
     id = idInt32;
 
     
-    MInitializedLength *initLength = MInitializedLength::New(obj);
+    MElements *elements = MElements::New(obj);
+    current->add(elements);
+
+    
+    MInitializedLength *initLength = MInitializedLength::New(elements);
     current->add(initLength);
 
     MBoundsCheck *check = MBoundsCheck::New(id, initLength);
     current->add(check);
 
     
-    MSlots *slots = MSlots::New(obj);
-    current->add(slots);
-
-    MStoreElement *store = MStoreElement::New(slots, id, value);
+    MStoreElement *store = MStoreElement::New(elements, id, value);
     current->add(store);
     current->push(value);
 
@@ -2817,7 +2819,7 @@ IonBuilder::jsop_setelem_dense()
 #endif
 
     if (elementType != MIRType_None && packed)
-        store->setSlotType(elementType);
+        store->setElementType(elementType);
 
     return resumeAfter(store);
 }

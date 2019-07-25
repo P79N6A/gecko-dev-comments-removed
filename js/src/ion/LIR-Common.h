@@ -751,11 +751,31 @@ class LSlots : public LInstructionHelper<1, 1, 0>
   public:
     LIR_HEADER(Slots);
 
-    LSlots(const LAllocation &in) {
-        setOperand(0, in);
+    LSlots(const LAllocation &object) {
+        setOperand(0, object);
     }
 
-    const LAllocation *input() {
+    const LAllocation *object() {
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
+
+
+class LElements : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(Elements);
+
+    LElements(const LAllocation &object) {
+        setOperand(0, object);
+    }
+
+    const LAllocation *object() {
         return getOperand(0);
     }
     const LDefinition *output() {
@@ -769,11 +789,11 @@ class LInitializedLength : public LInstructionHelper<1, 1, 0>
   public:
     LIR_HEADER(InitializedLength);
 
-    LInitializedLength(const LAllocation &in) {
-        setOperand(0, in);
+    LInitializedLength(const LAllocation &elements) {
+        setOperand(0, elements);
     }
 
-    const LAllocation *input() {
+    const LAllocation *elements() {
         return getOperand(0);
     }
     const LDefinition *output() {
@@ -809,14 +829,14 @@ class LLoadElementV : public LInstructionHelper<BOX_PIECES, 2, 0>
     LIR_HEADER(LoadElementV);
     BOX_OUTPUT_ACCESSORS();
 
-    LLoadElementV(const LAllocation &slots, const LAllocation &index) {
-        setOperand(0, slots);
+    LLoadElementV(const LAllocation &elements, const LAllocation &index) {
+        setOperand(0, elements);
         setOperand(1, index);
     }
     const MLoadElement *mir() const {
         return mir_->toLoadElement();
     }
-    const LAllocation *slots() {
+    const LAllocation *elements() {
         return getOperand(0);
     }
     const LAllocation *index() {
@@ -827,19 +847,20 @@ class LLoadElementV : public LInstructionHelper<BOX_PIECES, 2, 0>
 
 
 
+
 class LLoadElementT : public LInstructionHelper<1, 2, 0>
 {
   public:
     LIR_HEADER(LoadElementT);
 
-    LLoadElementT(const LAllocation &slots, const LAllocation &index) {
-        setOperand(0, slots);
+    LLoadElementT(const LAllocation &elements, const LAllocation &index) {
+        setOperand(0, elements);
         setOperand(1, index);
     }
     const MLoadElement *mir() const {
         return mir_->toLoadElement();
     }
-    const LAllocation *slots() {
+    const LAllocation *elements() {
         return getOperand(0);
     }
     const LAllocation *index() {
@@ -856,8 +877,8 @@ class LStoreElementV : public LInstructionHelper<0, 2 + BOX_PIECES, 0>
   public:
     LIR_HEADER(StoreElementV);
 
-    LStoreElementV(const LAllocation &slots, const LAllocation &index) {
-        setOperand(0, slots);
+    LStoreElementV(const LAllocation &elements, const LAllocation &index) {
+        setOperand(0, elements);
         setOperand(1, index);
     }
 
@@ -866,7 +887,7 @@ class LStoreElementV : public LInstructionHelper<0, 2 + BOX_PIECES, 0>
     const MStoreElement *mir() const {
         return mir_->toStoreElement();
     }
-    const LAllocation *slots() {
+    const LAllocation *elements() {
         return getOperand(0);
     }
     const LAllocation *index() {
@@ -877,13 +898,14 @@ class LStoreElementV : public LInstructionHelper<0, 2 + BOX_PIECES, 0>
 
 
 
+
 class LStoreElementT : public LInstructionHelper<0, 3, 0>
 {
   public:
     LIR_HEADER(StoreElementT);
 
-    LStoreElementT(const LAllocation &slots, const LAllocation &index, const LAllocation &value) {
-        setOperand(0, slots);
+    LStoreElementT(const LAllocation &elements, const LAllocation &index, const LAllocation &value) {
+        setOperand(0, elements);
         setOperand(1, index);
         setOperand(2, value);
     }
@@ -891,7 +913,7 @@ class LStoreElementT : public LInstructionHelper<0, 3, 0>
     const MStoreElement *mir() const {
         return mir_->toStoreElement();
     }
-    const LAllocation *slots() {
+    const LAllocation *elements() {
         return getOperand(0);
     }
     const LAllocation *index() {
