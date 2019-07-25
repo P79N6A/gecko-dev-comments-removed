@@ -54,7 +54,7 @@ struct hmtx
     TRACE_SANITIZE ();
     
 
-    return true;
+    return TRACE_RETURN (true);
   }
 
   private:

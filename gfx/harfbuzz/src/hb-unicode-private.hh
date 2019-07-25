@@ -115,4 +115,42 @@ _hb_unicode_is_variation_selector (hb_codepoint_t unicode)
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static inline hb_bool_t
+_hb_unicode_is_zero_width (hb_codepoint_t ch)
+{
+  return ((ch & ~0x007F) == 0x2000 && (
+	  (ch >= 0x200B && ch <= 0x200F) ||
+	  (ch >= 0x202A && ch <= 0x202E) ||
+	  (ch >= 0x2060 && ch <= 0x2063) ||
+	  (ch == 0x2028)
+	 )) || unlikely (ch == 0x00AD
+		      || ch == 0x034F
+		      || ch == 0xFEFF);
+}
+
 #endif 

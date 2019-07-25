@@ -44,7 +44,7 @@ struct hhea
 
   inline bool sanitize (hb_sanitize_context_t *c) {
     TRACE_SANITIZE ();
-    return c->check_struct (this) && likely (version.major == 1);
+    return TRACE_RETURN (c->check_struct (this) && likely (version.major == 1));
   }
 
   private:

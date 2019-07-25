@@ -24,6 +24,8 @@
 
 
 
+
+
 #ifndef HB_OT_HEAD_TABLE_HH
 #define HB_OT_HEAD_TABLE_HH
 
@@ -49,7 +51,7 @@ struct head
 
   inline bool sanitize (hb_sanitize_context_t *c) {
     TRACE_SANITIZE ();
-    return c->check_struct (this) && likely (version.major == 1);
+    return TRACE_RETURN (c->check_struct (this) && likely (version.major == 1));
   }
 
   private:

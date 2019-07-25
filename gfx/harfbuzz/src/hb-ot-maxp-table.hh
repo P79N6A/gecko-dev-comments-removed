@@ -47,9 +47,8 @@ struct maxp
 
   inline bool sanitize (hb_sanitize_context_t *c) {
     TRACE_SANITIZE ();
-    return c->check_struct (this) &&
-	   likely (version.major == 1 ||
-		   (version.major == 0 && version.minor == 0x5000));
+    return TRACE_RETURN (c->check_struct (this) &&
+			 likely (version.major == 1 || (version.major == 0 && version.minor == 0x5000)));
   }
 
   

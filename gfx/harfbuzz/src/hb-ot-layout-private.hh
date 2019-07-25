@@ -33,15 +33,13 @@
 
 #include "hb-font-private.hh"
 #include "hb-buffer-private.hh"
+#include "hb-ot-shape-complex-private.hh"
 
 
 
 
 
 
-
-
-#define props_cache() var1.u16[1] /* glyph_props cache */
 
 
 typedef enum {
