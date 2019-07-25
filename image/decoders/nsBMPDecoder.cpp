@@ -279,7 +279,6 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
         PostSize(mBIH.width, real_height);
         if (HasError()) {
           
-          
           return;
         }
 
