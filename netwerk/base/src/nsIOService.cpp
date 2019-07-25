@@ -164,6 +164,7 @@ PRInt16 gBadPortList[] = {
 
 static const char kProfileChangeNetTeardownTopic[] = "profile-change-net-teardown";
 static const char kProfileChangeNetRestoreTopic[] = "profile-change-net-restore";
+static const char kProfileDoChange[] = "profile-do-change";
 
 
 nsIMemory* nsIOService::gBufferCache = nsnull;
@@ -179,6 +180,7 @@ nsIOService::nsIOService()
     , mSettingOffline(false)
     , mSetOfflineValue(false)
     , mShutdown(false)
+    , mNetworkLinkServiceInitialized(false)
     , mChannelEventSinks(NS_CHANNEL_EVENT_SINK_CATEGORY)
     , mContentSniffers(NS_CONTENT_SNIFFER_CATEGORY)
     , mAutoDialEnabled(false)
@@ -234,6 +236,7 @@ nsIOService::Init()
     if (observerService) {
         observerService->AddObserver(this, kProfileChangeNetTeardownTopic, true);
         observerService->AddObserver(this, kProfileChangeNetRestoreTopic, true);
+        observerService->AddObserver(this, kProfileDoChange, true);
         observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, true);
         observerService->AddObserver(this, NS_NETWORK_LINK_TOPIC, true);
     }
@@ -262,20 +265,8 @@ nsIOService::Init()
 
     gIOService = this;
 
-    
-    if (XRE_GetProcessType() == GeckoProcessType_Default)
-        mNetworkLinkService = do_GetService(NS_NETWORK_LINK_SERVICE_CONTRACTID);
-
-    if (!mNetworkLinkService)
-        
-        
-        mManageOfflineStatus = false;
-
-    if (mManageOfflineStatus)
-        TrackNetworkLinkStatusForOffline();
-    else
-        SetOffline(false);
-    
+    InitializeNetworkLinkService();
+ 
     NS_TIME_FUNCTION_MARK("Set up network link service");
 
     return NS_OK;
@@ -307,6 +298,45 @@ nsIOService::InitializeSocketTransportService()
         mSocketTransportService->SetAutodialEnabled(mAutoDialEnabled);
     }
 
+    return rv;
+}
+
+nsresult
+nsIOService::InitializeNetworkLinkService()
+{
+    NS_TIME_FUNCTION;
+
+    nsresult rv = NS_OK;
+
+    if (mNetworkLinkServiceInitialized)
+        return rv;
+
+    if (!NS_IsMainThread()) {
+        NS_WARNING("Network link service should be created on main thread"); 
+        return NS_ERROR_FAILURE; 
+    }
+
+    
+    if (XRE_GetProcessType() == GeckoProcessType_Default)
+    {
+        mNetworkLinkService = do_GetService(NS_NETWORK_LINK_SERVICE_CONTRACTID, &rv);
+    }
+
+    if (mNetworkLinkService) {
+        mNetworkLinkServiceInitialized = true;
+    }
+    else {
+        
+        
+        mManageOfflineStatus = false;
+    }
+   
+
+    if (mManageOfflineStatus)
+        TrackNetworkLinkStatusForOffline();
+    else
+        SetOffline(false);
+    
     return rv;
 }
 
@@ -690,6 +720,8 @@ nsIOService::NewChannel(const nsACString &aSpec, const char *aCharset, nsIURI *a
 bool
 nsIOService::IsLinkUp()
 {
+    InitializeNetworkLinkService();
+
     if (!mNetworkLinkService) {
         
         return true;
@@ -968,6 +1000,15 @@ nsIOService::Observe(nsISupports *subject,
                 SetOffline(false);
             }
         } 
+    } 
+    else if (!strcmp(topic, kProfileDoChange)) { 
+        if (data && NS_LITERAL_STRING("startup").Equals(data)) {
+            
+            InitializeNetworkLinkService();
+            
+            
+            mNetworkLinkServiceInitialized = true;
+        }
     }
     else if (!strcmp(topic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
         
@@ -1084,11 +1125,18 @@ nsIOService::NewSimpleNestedURI(nsIURI* aURI, nsIURI** aResult)
 
 NS_IMETHODIMP
 nsIOService::SetManageOfflineStatus(bool aManage) {
+    nsresult rv = NS_OK;
+
+    InitializeNetworkLinkService();
     bool wasManaged = mManageOfflineStatus;
     mManageOfflineStatus = aManage;
-    if (mManageOfflineStatus && !wasManaged)
-        return TrackNetworkLinkStatusForOffline();
-    return NS_OK;
+
+    if (mManageOfflineStatus && !wasManaged) {
+        rv = TrackNetworkLinkStatusForOffline();
+        if (NS_FAILED(rv))
+            mManageOfflineStatus = false;
+    }
+    return rv;
 }
 
 NS_IMETHODIMP
