@@ -500,6 +500,17 @@ public:
       aType, gfxIntSize(aSize.width, aSize.height));
   }
 
+  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  {
+    if (!BasicManager()->IsRetained()) {
+      
+      
+      mEffectiveTransform = GetLocalTransform()*aTransformToSurface;
+      return;
+    }
+    ThebesLayer::ComputeEffectiveTransforms(aTransformToSurface);
+  }
+
 protected:
   BasicLayerManager* BasicManager()
   {
