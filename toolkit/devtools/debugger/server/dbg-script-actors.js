@@ -19,6 +19,7 @@
 
 
 
+
 function ThreadActor(aHooks)
 {
   this._state = "detached";
@@ -786,6 +787,11 @@ ThreadActor.prototype = {
 
   createValueGrip: function TA_createValueGrip(aValue) {
     let type = typeof(aValue);
+
+    if (type === "string" && this._stringIsLong(aValue)) {
+      return this.longStringGrip(aValue);
+    }
+
     if (type === "boolean" || type === "string" || type === "number") {
       return aValue;
     }
@@ -870,6 +876,42 @@ ThreadActor.prototype = {
 
   threadObjectGrip: function TA_threadObjectGrip(aValue) {
     return this.objectGrip(aValue, this.threadLifetimePool);
+  },
+
+  
+
+
+
+
+
+  longStringGrip: function TA_longStringGrip(aString) {
+    if (!this._pausePool) {
+      throw new Error("LongString grip requested while not paused.");
+    }
+
+    if (!this._pausePool.longStringActors) {
+      this._pausePool.longStringActors = {};
+    }
+
+    if (this._pausePool.longStringActors.hasOwnProperty(aString)) {
+      return this._pausePool.longStringActors[aString].grip();
+    }
+
+    let actor = new LongStringActor(aString, this);
+    this._pausePool.addActor(actor);
+    this._pausePool.longStringActors[aString] = actor;
+    return actor.grip();
+  },
+
+  
+
+
+
+
+
+
+  _stringIsLong: function TA__stringIsLong(aString) {
+    return aString.length >= DebuggerServer.LONG_STRING_LENGTH;
   },
 
   
@@ -1027,6 +1069,75 @@ PauseActor.prototype = {
 
 
 
+function PauseScopedActor()
+{
+}
+
+
+
+
+
+
+
+
+PauseScopedActor.withPaused = function PSA_withPaused(aMethod) {
+  return function () {
+    if (this.isPaused()) {
+      return aMethod.apply(this, arguments);
+    } else {
+      return this._wrongState();
+    }
+  };
+};
+
+PauseScopedActor.prototype = {
+
+  
+
+
+  isPaused: function PSA_isPaused() {
+    
+    
+    
+    return this.threadActor ? this.threadActor.state === "paused" : true;
+  },
+
+  
+
+
+  _wrongState: function PSA_wrongState() {
+    return {
+      error: "wrongState",
+      message: this.constructor.name +
+        " actors can only be accessed while the thread is paused."
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+function update(aTarget, aNewAttrs) {
+  for (let key in aNewAttrs) {
+    aTarget[key] = aNewAttrs[key];
+  }
+}
+
+
+
+
+
+
+
+
+
 
 function ObjectActor(aObj, aThreadActor)
 {
@@ -1034,13 +1145,11 @@ function ObjectActor(aObj, aThreadActor)
   this.threadActor = aThreadActor;
 }
 
-ObjectActor.prototype = {
-  actorPrefix: "obj",
+ObjectActor.prototype = Object.create(PauseScopedActor.prototype);
 
-  WRONG_STATE_RESPONSE: {
-    error: "wrongState",
-    message: "Object actors can only be accessed while the thread is paused."
-  },
+update(ObjectActor.prototype, {
+  constructor: ObjectActor,
+  actorPrefix: "obj",
 
   
 
@@ -1066,14 +1175,11 @@ ObjectActor.prototype = {
 
 
 
-  onOwnPropertyNames: function OA_onOwnPropertyNames(aRequest) {
-    if (this.threadActor.state !== "paused") {
-      return this.WRONG_STATE_RESPONSE;
-    }
-
+  onOwnPropertyNames:
+  PauseScopedActor.withPaused(function OA_onOwnPropertyNames(aRequest) {
     return { from: this.actorID,
              ownPropertyNames: this.obj.getOwnPropertyNames() };
-  },
+  }),
 
   
 
@@ -1082,11 +1188,8 @@ ObjectActor.prototype = {
 
 
 
-  onPrototypeAndProperties: function OA_onPrototypeAndProperties(aRequest) {
-    if (this.threadActor.state !== "paused") {
-      return this.WRONG_STATE_RESPONSE;
-    }
-
+  onPrototypeAndProperties:
+  PauseScopedActor.withPaused(function OA_onPrototypeAndProperties(aRequest) {
     let ownProperties = {};
     for each (let name in this.obj.getOwnPropertyNames()) {
       try {
@@ -1102,7 +1205,7 @@ ObjectActor.prototype = {
     return { from: this.actorID,
              prototype: this.threadActor.createValueGrip(this.obj.proto),
              ownProperties: ownProperties };
-  },
+  }),
 
   
 
@@ -1110,14 +1213,10 @@ ObjectActor.prototype = {
 
 
 
-  onPrototype: function OA_onPrototype(aRequest) {
-    if (this.threadActor.state !== "paused") {
-      return this.WRONG_STATE_RESPONSE;
-    }
-
+  onPrototype: PauseScopedActor.withPaused(function OA_onPrototype(aRequest) {
     return { from: this.actorID,
              prototype: this.threadActor.createValueGrip(this.obj.proto) };
-  },
+  }),
 
   
 
@@ -1126,10 +1225,7 @@ ObjectActor.prototype = {
 
 
 
-  onProperty: function OA_onProperty(aRequest) {
-    if (this.threadActor.state !== "paused") {
-      return this.WRONG_STATE_RESPONSE;
-    }
+  onProperty: PauseScopedActor.withPaused(function OA_onProperty(aRequest) {
     if (!aRequest.name) {
       return { error: "missingParameter",
                message: "no property name was specified" };
@@ -1138,7 +1234,7 @@ ObjectActor.prototype = {
     let desc = this.obj.getOwnPropertyDescriptor(aRequest.name);
     return { from: this.actorID,
              descriptor: this._propertyDescriptor(desc) };
-  },
+  }),
 
   
 
@@ -1167,11 +1263,7 @@ ObjectActor.prototype = {
 
 
 
-  onDecompile: function OA_onDecompile(aRequest) {
-    if (this.threadActor.state !== "paused") {
-      return this.WRONG_STATE_RESPONSE;
-    }
-
+  onDecompile: PauseScopedActor.withPaused(function OA_onDecompile(aRequest) {
     if (this.obj.class !== "Function") {
       return { error: "objectNotFunction",
                message: "decompile request is only valid for object grips " +
@@ -1180,7 +1272,7 @@ ObjectActor.prototype = {
 
     return { from: this.actorID,
              decompiledCode: this.obj.decompile(!!aRequest.pretty) };
-  },
+  }),
 
   
 
@@ -1188,11 +1280,7 @@ ObjectActor.prototype = {
 
 
 
-  onScope: function OA_onScope(aRequest) {
-    if (this.threadActor.state !== "paused") {
-      return this.WRONG_STATE_RESPONSE;
-    }
-
+  onScope: PauseScopedActor.withPaused(function OA_onScope(aRequest) {
     if (this.obj.class !== "Function") {
       return { error: "objectNotFunction",
                message: "scope request is only valid for object grips with a" +
@@ -1212,7 +1300,7 @@ ObjectActor.prototype = {
     
     return { name: this.obj.name || null,
              scope: envActor.form(this.obj) };
-  },
+  }),
 
   
 
@@ -1220,11 +1308,7 @@ ObjectActor.prototype = {
 
 
 
-  onNameAndParameters: function OA_onNameAndParameters(aRequest) {
-    if (this.threadActor.state !== "paused") {
-      return this.WRONG_STATE_RESPONSE;
-    }
-
+  onNameAndParameters: PauseScopedActor.withPaused(function OA_onNameAndParameters(aRequest) {
     if (this.obj.class !== "Function") {
       return { error: "objectNotFunction",
                message: "nameAndParameters request is only valid for object " +
@@ -1233,7 +1317,7 @@ ObjectActor.prototype = {
 
     return { name: this.obj.name || null,
              parameters: this.obj.parameterNames };
-  },
+  }),
 
   
 
@@ -1242,13 +1326,9 @@ ObjectActor.prototype = {
 
 
 
-  onThreadGrip: function OA_onThreadGrip(aRequest) {
-    if (this.threadActor.state !== "paused") {
-      return this.WRONG_STATE_RESPONSE;
-    }
-
+  onThreadGrip: PauseScopedActor.withPaused(function OA_onThreadGrip(aRequest) {
     return { threadGrip: this.threadActor.threadObjectGrip(this.obj) };
-  },
+  }),
 
   
 
@@ -1256,10 +1336,7 @@ ObjectActor.prototype = {
 
 
 
-  onRelease: function OA_onRelease(aRequest) {
-    if (this.threadActor.state !== "paused") {
-      return this.WRONG_STATE_RESPONSE;
-    }
+  onRelease: PauseScopedActor.withPaused(function OA_onRelease(aRequest) {
     if (this.registeredPool !== this.threadActor.threadLifetimePool) {
       return { error: "notReleasable",
                message: "only thread-lifetime actors can be released." };
@@ -1267,8 +1344,8 @@ ObjectActor.prototype = {
 
     this.release();
     return {};
-  },
-};
+  }),
+});
 
 ObjectActor.prototype.requestTypes = {
   "nameAndParameters": ObjectActor.prototype.onNameAndParameters,
@@ -1280,6 +1357,65 @@ ObjectActor.prototype.requestTypes = {
   "decompile": ObjectActor.prototype.onDecompile,
   "threadGrip": ObjectActor.prototype.onThreadGrip,
   "release": ObjectActor.prototype.onRelease,
+};
+
+
+
+
+
+
+
+
+
+function LongStringActor(aString)
+{
+  this.string = aString;
+  this.stringLength = aString.length;
+}
+
+LongStringActor.prototype = {
+
+  actorPrefix: "longString",
+
+  disconnect: function LSA_disconnect() {
+    
+    
+    
+    if (this.registeredPool && this.registeredPool.longStringActors) {
+      delete this.registeredPool.longStringActors[this.actorID];
+    }
+  },
+
+  
+
+
+  grip: function LSA_grip() {
+    return {
+      "type": "longString",
+      "initial": this.string.substring(
+        0, DebuggerServer.LONG_STRING_INITIAL_LENGTH),
+      "length": this.stringLength,
+      "actor": this.actorID
+    };
+  },
+
+  
+
+
+
+
+
+  onSubstring: function LSA_onSubString(aRequest) {
+    return {
+      "from": this.actorID,
+      "substring": this.string.substring(aRequest.start, aRequest.end)
+    };
+  }
+
+};
+
+LongStringActor.prototype.requestTypes = {
+  "substring": LongStringActor.prototype.onSubstring
 };
 
 

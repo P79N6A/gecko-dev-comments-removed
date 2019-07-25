@@ -208,7 +208,8 @@ const DebugProtocolTypes = {
   "prototypeAndProperties": "prototypeAndProperties",
   "resume": "resume",
   "scripts": "scripts",
-  "setBreakpoint": "setBreakpoint"
+  "setBreakpoint": "setBreakpoint",
+  "substring": "substring"
 };
 
 const ROOT_ACTOR_NAME = "root";
@@ -514,6 +515,7 @@ function ThreadClient(aClient, aActor) {
   this._actor = aActor;
   this._frameCache = [];
   this._scriptCache = {};
+  this._pauseGrips = {};
 }
 
 ThreadClient.prototype = {
@@ -878,10 +880,6 @@ ThreadClient.prototype = {
 
 
   pauseGrip: function TC_pauseGrip(aGrip) {
-    if (!this._pauseGrips) {
-      this._pauseGrips = {};
-    }
-
     if (aGrip.actor in this._pauseGrips) {
       return this._pauseGrips[aGrip.actor];
     }
@@ -895,11 +893,27 @@ ThreadClient.prototype = {
 
 
 
+
+
+  longString: function TC_longString(aGrip) {
+    if (aGrip.actor in this._pauseGrips) {
+      return this._pauseGrips[aGrip.actor];
+    }
+
+    let client = new LongStringClient(this._client, aGrip);
+    this._pauseGrips[aGrip.actor] = client;
+    return client;
+  },
+
+  
+
+
+
   _clearPauseGrips: function TC_clearPauseGrips(aPacket) {
     for each (let grip in this._pauseGrips) {
       grip.valid = false;
     }
-    this._pauseGrips = null;
+    this._pauseGrips = {};
   },
 
   
@@ -933,9 +947,7 @@ function GripClient(aClient, aGrip)
 GripClient.prototype = {
   get actor() { return this._grip.actor },
 
-  _valid: true,
-  get valid() { return this._valid; },
-  set valid(aValid) { this._valid = !!aValid; },
+  valid: true,
 
   
 
@@ -1014,6 +1026,45 @@ GripClient.prototype = {
                                      aOnResponse(aResponse);
                                    }
                                  });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+function LongStringClient(aClient, aGrip) {
+  this._grip = aGrip;
+  this._client = aClient;
+}
+
+LongStringClient.prototype = {
+  get actor() { return this._grip.actor; },
+  get length() { return this._grip.length; },
+
+  valid: true,
+
+  
+
+
+
+
+
+
+
+
+
+  substring: function LSC_substring(aStart, aEnd, aCallback) {
+    let packet = { to: this.actor,
+                   type: DebugProtocolTypes.substring,
+                   start: aStart,
+                   end: aEnd };
+    this._client.request(packet, aCallback);
   }
 };
 
