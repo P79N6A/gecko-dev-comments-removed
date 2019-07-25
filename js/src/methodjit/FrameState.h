@@ -618,7 +618,17 @@ class FrameState
 
     inline FrameEntry *peek(int32 depth);
 
+#ifdef DEBUG
     
+
+
+
+    Jump typeCheckEntry(const FrameEntry *fe, types::TypeSet *types) const;
+#endif
+
+    
+
+
 
 
 
