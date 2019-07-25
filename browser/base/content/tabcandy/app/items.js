@@ -14,18 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 window.Item = function() {
   
   
@@ -74,6 +62,15 @@ window.Item.prototype = {
   
   
   _init: function(container) {
+    Utils.assert('container must be a DOM element', Utils.isDOMElement(container));
+    Utils.assert('Subclass must provide reloadBounds', typeof(this.reloadBounds) == 'function');
+    Utils.assert('Subclass must provide setBounds', typeof(this.setBounds) == 'function');
+    Utils.assert('Subclass must provide setZ', typeof(this.setZ) == 'function');
+    Utils.assert('Subclass must provide close', typeof(this.close) == 'function');
+    Utils.assert('Subclass must provide addOnClose', typeof(this.addOnClose) == 'function');
+    Utils.assert('Subclass must provide removeOnClose', typeof(this.removeOnClose) == 'function');
+    Utils.assert('Subclass must provide defaultSize', this.defaultSize);
+    
     this.container = container;
     
     if(this.debug) {
@@ -87,6 +84,8 @@ window.Item.prototype = {
     }
     
     this.reloadBounds();        
+    Utils.assert('reloadBounds must set up this.bounds', this.bounds);
+
     $(this.container).data('item', this);
   },
   
@@ -436,7 +435,7 @@ window.Items = {
   
   getPageBounds: function() {
     var top = 20;
-    var bottom = TabItems.tabHeight + 10; 
+    var bottom = 20;
     var width = Math.max(100, window.innerWidth);
     var height = Math.max(100, window.innerHeight - (top + bottom));
     return new Rect(0, top, width, height);

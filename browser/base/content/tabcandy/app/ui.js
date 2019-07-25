@@ -348,6 +348,9 @@ function UIClass(){
   });
   
   
+
+  
+  
   this.initialized = true;
 };
 
@@ -367,7 +370,7 @@ UIClass.prototype = {
 
   
   resize: function() {
-    Groups.repositionNewTabGroup();
+
     
     var items = Items.getTopLevelItems();
     var itemBounds = new Rect(this.pageBounds);
@@ -423,6 +426,44 @@ UIClass.prototype = {
     this.pageBounds = Items.getPageBounds();
   },
   
+  
+  addDevMenu: function() {
+    var html = '<select style="position:absolute">'
+      + '<option>*</option>';
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    html += '</select>';
+    $('body')
+      .append(html)
+      .change(function () {
+
+
+
+
+
+
+
+      });
+  },
+
   
   _addArrangements: function() {
     this.grid = new ArrangeClass("Grid", function(value) {
