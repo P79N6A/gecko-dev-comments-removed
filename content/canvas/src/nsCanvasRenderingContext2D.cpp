@@ -74,7 +74,6 @@
 
 #include "nsCSSParser.h"
 #include "nsICSSStyleRule.h"
-#include "mozilla/css/Declaration.h"
 #include "nsComputedDOMStyle.h"
 #include "nsStyleSet.h"
 
@@ -2244,36 +2243,28 @@ CreateFontStyleRule(const nsAString& aFont,
     nsCSSParser parser;
     NS_ENSURE_TRUE(parser, NS_ERROR_OUT_OF_MEMORY);
 
-    nsCOMPtr<nsICSSStyleRule> rule;
-    PRBool changed;
+    
+    
+    
+    
+    
+    
+
+    nsAutoString styleAttr(NS_LITERAL_STRING("font:"));
+    styleAttr.Append(aFont);
+    styleAttr.AppendLiteral(";line-height:normal");
 
     nsIPrincipal* principal = aNode->NodePrincipal();
     nsIDocument* document = aNode->GetOwnerDoc();
-
     nsIURI* docURL = document->GetDocumentURI();
     nsIURI* baseURL = document->GetDocBaseURI();
 
-    nsresult rv = parser.ParseStyleAttribute(EmptyString(), docURL, baseURL,
-                                             principal, getter_AddRefs(rule));
+    nsresult rv = parser.ParseStyleAttribute(styleAttr, docURL, baseURL,
+                                             principal, aResult);
     if (NS_FAILED(rv))
         return rv;
 
-    rv = parser.ParseProperty(eCSSProperty_font, aFont, docURL, baseURL,
-                              principal, rule->GetDeclaration(), &changed,
-                              PR_FALSE);
-    if (NS_FAILED(rv))
-        return rv;
-
-    rv = parser.ParseProperty(eCSSProperty_line_height,
-                              NS_LITERAL_STRING("normal"), docURL, baseURL,
-                              principal, rule->GetDeclaration(), &changed,
-                              PR_FALSE);
-    if (NS_FAILED(rv))
-        return rv;
-
-    rule->RuleMatched();
-
-    rule.forget(aResult);
+    (*aResult)->RuleMatched();
     return NS_OK;
 }
 
@@ -2307,23 +2298,6 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
     rv = CreateFontStyleRule(font, document, getter_AddRefs(rule));
     if (NS_FAILED(rv))
         return rv;
-
-    css::Declaration *declaration = rule->GetDeclaration();
-    
-    
-    
-    
-    
-    
-    const nsCSSValue *fsaVal =
-      declaration->GetNormalBlock()->
-        ValueStorageFor(eCSSProperty_font_size_adjust);
-    if (!fsaVal || (fsaVal->GetUnit() != eCSSUnit_None &&
-                    fsaVal->GetUnit() != eCSSUnit_System_Font)) {
-        
-        
-        return NS_OK;
-    }
 
     rules.AppendObject(rule);
 
@@ -2393,13 +2367,7 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
                                                     &style,
                                                     presShell->GetPresContext()->GetUserFontSet());
     NS_ASSERTION(CurrentState().fontGroup, "Could not get font group");
-
-    
-    
-    
-    
-    declaration->GetValue(eCSSProperty_font, CurrentState().font);
-
+    CurrentState().font = font;
     return NS_OK;
 }
 
@@ -3519,16 +3487,11 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
         mThebes->SetPattern(pattern);
         DirtyAllStyles();
 
-        
-        if (CurrentState().globalAlpha == 1.0f && mThebes->CurrentOperator() == gfxContext::OPERATOR_OVER) {
-            mThebes->Rectangle(clip);
-            mThebes->Fill();
-        } else {
-            
-            mThebes->Clip(clip);
-            mThebes->Paint(CurrentState().globalAlpha);
-        }
+        mThebes->Clip(clip);
+
         dirty = mThebes->UserToDevice(clip);
+
+        mThebes->Paint(CurrentState().globalAlpha);
     }
 
 #if 1
@@ -3711,9 +3674,6 @@ nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, float aX, float aY
     if (flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_USE_WIDGET_LAYERS) {
         renderDocFlags |= nsIPresShell::RENDER_USE_WIDGET_LAYERS;
     }
-    if (flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_ASYNC_DECODE_IMAGES) {
-        renderDocFlags |= nsIPresShell::RENDER_ASYNC_DECODE_IMAGES;
-    }
 
     rv = presShell->RenderDocument(r, renderDocFlags, bgColor, mThebes);
 
@@ -3865,14 +3825,6 @@ nsCanvasRenderingContext2D::AsyncDrawXULElement(nsIDOMXULElement* aElem, float a
 
 
 
-extern "C" {
-#include "jstypes.h"
-JS_FRIEND_API(JSBool)
-js_CoerceArrayToCanvasImageData(JSObject *obj, jsuint offset, jsuint count,
-                                JSUint8 *dest);
-JS_FRIEND_API(JSObject *)
-js_NewArrayObjectWithCapacity(JSContext *cx, jsuint capacity, jsval **vector);
-}
 
 void
 nsCanvasRenderingContext2D::EnsureUnpremultiplyTable() {
