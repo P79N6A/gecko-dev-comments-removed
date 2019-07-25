@@ -40,7 +40,6 @@
 #include <winternl.h>
 
 #include <stdio.h>
-#include <string.h>
 
 #include "nsAutoPtr.h"
 
@@ -57,31 +56,6 @@
 
 
 #undef DEBUG_very_verbose
-
-
-
-
-class CurrentDirectoryGuard {
-public:
-  CurrentDirectoryGuard() {
-    ::GetCurrentDirectoryW(MAX_PATH, mCwd);
-
-    WCHAR appPath[MAX_PATH] = {L'\0'};
-    ::GetModuleFileNameW(NULL, appPath, MAX_PATH);
-    LPWSTR lastBackslash = wcsrchr(appPath, L'\\');
-    if (lastBackslash) {
-      *lastBackslash = L'\0';
-    }
-    ::SetCurrentDirectoryW(appPath);
-  }
-
-  ~CurrentDirectoryGuard() {
-    ::SetCurrentDirectoryW(mCwd);
-  }
-
-private:
-  WCHAR mCwd[MAX_PATH];
-};
 
 
 
@@ -234,14 +208,6 @@ continue_loading:
 #endif
 
   NS_SetHasLoadedNewDLLs();
-
-  
-  
-  
-  
-  
-  
-  CurrentDirectoryGuard cwdGuard;
 
   return stub_LdrLoadDll(filePath, flags, moduleFileName, handle);
 }
