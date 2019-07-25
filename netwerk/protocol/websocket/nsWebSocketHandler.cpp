@@ -100,7 +100,7 @@ static PRLogModuleInfo *webSocketLog = nsnull;
 #define kFinMessage (reinterpret_cast<nsCString *>(0x01))
 
 
-#define SEC_WEBSOCKET_VERSION "7"
+#define SEC_WEBSOCKET_VERSION "8"
 
 
 
