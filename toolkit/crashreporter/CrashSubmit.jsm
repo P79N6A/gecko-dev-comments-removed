@@ -349,9 +349,22 @@ let CrashSubmit = {
 
 
 
-  submit: function CrashSubmit_submit(id, submitSuccess, submitError,
-                                      noThrottle)
+
+
+  submit: function CrashSubmit_submit(id, params)
   {
+    params = params || {};
+    let submitSuccess = null;
+    let submitError = null;
+    let noThrottle = false;
+
+    if ('submitSuccess' in params)
+      submitSuccess = params.submitSuccess;
+    if ('submitError' in params)
+      submitError = params.submitError;
+    if ('noThrottle' in params)
+      noThrottle = params.noThrottle;
+
     let submitter = new Submitter(id,
                                   submitSuccess,
                                   submitError,
