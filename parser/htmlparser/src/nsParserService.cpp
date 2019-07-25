@@ -4,7 +4,7 @@
 
 
 
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsIAtom.h"
 #include "nsParserService.h"
 #include "nsHTMLEntities.h"

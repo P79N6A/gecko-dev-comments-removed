@@ -96,7 +96,7 @@
 #include "nsDocShellEditorData.h"
 
 
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsEscape.h"
 
 
@@ -179,9 +179,7 @@
 #include "nsIWebBrowserPrint.h"
 #endif
 
-#include "nsPluginError.h"
 #include "nsContentUtils.h"
-#include "nsContentErrors.h"
 #include "nsIChannelPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 
@@ -228,12 +226,6 @@ static PRUint32 gValidateOrigin = 0xffffffff;
 
 
 #define NS_EVENT_STARVATION_DELAY_HINT 2000
-
-
-
-
-
-#define NS_ERROR_DOCUMENT_IS_PRINTMODE  NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_GENERAL,2001)
 
 #ifdef PR_LOGGING
 #ifdef DEBUG

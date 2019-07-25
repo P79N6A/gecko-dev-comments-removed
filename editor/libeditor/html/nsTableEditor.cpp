@@ -33,7 +33,6 @@
 #include "nsITableCellLayout.h" 
 #include "nsITableEditor.h"
 #include "nsITableLayout.h"     
-#include "nsLayoutErrors.h"
 #include "nsLiteralString.h"
 #include "nsQueryFrame.h"
 #include "nsString.h"

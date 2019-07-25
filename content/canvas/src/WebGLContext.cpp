@@ -11,7 +11,7 @@
 #include "nsIClassInfoImpl.h"
 #include "nsContentUtils.h"
 #include "nsIXPConnect.h"
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsIGfxInfo.h"
 
 #include "nsIPropertyBag.h"
@@ -668,8 +668,8 @@ void WebGLContext::LoseOldestWebGLContextIfLimitExceeded()
 
     uint64_t oldestIndex = UINT64_MAX;
     uint64_t oldestIndexThisPrincipal = UINT64_MAX;
-    const WebGLContext *oldestContext = nullptr;
-    const WebGLContext *oldestContextThisPrincipal = nullptr;
+    const WebGLContext *oldestContext = nsnull;
+    const WebGLContext *oldestContextThisPrincipal = nsnull;
     size_t numContexts = 0;
     size_t numContextsThisPrincipal = 0;
 

@@ -3,7 +3,7 @@
 
 
 
-#include "txError.h"
+#include "nsError.h"
 #include "txExpr.h"
 #include "nsString.h"
 #include "txIXPathContext.h"

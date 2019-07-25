@@ -42,33 +42,6 @@ static const char kURI##prefix##_##name[] = ns #name
 
 
 
-
-
-
-
-
-
-#define NS_RDF_CURSOR_EMPTY       NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_RDF, 1)
-
-
-
-#define NS_RDF_NO_VALUE           NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_RDF, 2)
-
-
-
-#define NS_RDF_ASSERTION_ACCEPTED NS_OK
-
-
-
-
-#define NS_RDF_ASSERTION_REJECTED NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_RDF, 3)
-
-
-#define NS_RDF_STOP_VISIT         NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_RDF, 4)
-
-
-
-
 #define NS_RDF_CONTRACTID                           "@mozilla.org/rdf"
 #define NS_RDF_DATASOURCE_CONTRACTID                NS_RDF_CONTRACTID "/datasource;1"
 #define NS_RDF_DATASOURCE_CONTRACTID_PREFIX         NS_RDF_DATASOURCE_CONTRACTID "?name="

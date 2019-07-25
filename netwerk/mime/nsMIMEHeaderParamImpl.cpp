@@ -20,7 +20,7 @@
 #include "nsMIMEHeaderParamImpl.h"
 #include "nsReadableUtils.h"
 #include "nsNativeCharsetUtils.h"
-#include "nsNetError.h"
+#include "nsError.h"
 #include "nsIUnicodeDecoder.h"
 
 

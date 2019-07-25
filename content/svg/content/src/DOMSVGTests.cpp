@@ -5,7 +5,7 @@
 
 #include "DOMSVGTests.h"
 #include "DOMSVGStringList.h"
-#include "nsContentErrors.h" 
+#include "nsError.h" 
 #include "nsSVGFeatures.h"
 #include "nsSVGSwitchElement.h"
 #include "nsCharSeparatedTokenizer.h"

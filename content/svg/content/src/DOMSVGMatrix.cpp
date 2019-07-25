@@ -5,7 +5,7 @@
 
 
 #include "DOMSVGMatrix.h"
-#include "nsDOMError.h"
+#include "nsError.h"
 #include <math.h>
 #include "nsContentUtils.h"
 

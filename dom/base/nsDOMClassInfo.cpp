@@ -103,7 +103,7 @@
 #include "nsIDOMHTMLPropertiesCollection.h"
 
 
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsIDOMDOMException.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMNamedNodeMap.h"

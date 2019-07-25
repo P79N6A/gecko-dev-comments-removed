@@ -4,7 +4,7 @@
 
 
 #include "nscore.h"
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsIContent.h"
 #include "nsINodeInfo.h"
 #include "nsIDOMElement.h"

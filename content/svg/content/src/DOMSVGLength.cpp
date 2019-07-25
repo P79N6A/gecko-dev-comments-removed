@@ -10,7 +10,7 @@
 #include "SVGAnimatedLengthList.h"
 #include "nsSVGElement.h"
 #include "nsIDOMSVGLength.h"
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsMathUtils.h"
 
 

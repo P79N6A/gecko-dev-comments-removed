@@ -6,7 +6,7 @@
 
 #include "nsSMILMappedAttribute.h"
 #include "nsAttrValue.h"
-#include "nsContentErrors.h" 
+#include "nsError.h" 
 #include "nsSMILValue.h"
 #include "nsSMILCSSValueType.h"
 #include "nsIDocument.h"
