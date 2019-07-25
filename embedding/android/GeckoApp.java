@@ -289,7 +289,8 @@ abstract public class GeckoApp
         Log.i("GeckoApp", "destroy");
         
         
-        GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.ACTIVITY_STOPPING));
+        if (isFinishing())
+            GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.ACTIVITY_STOPPING));
 
         super.onDestroy();
     }
