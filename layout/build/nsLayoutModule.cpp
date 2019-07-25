@@ -36,6 +36,10 @@
 
 
 
+#ifdef MOZ_IPC
+#include "base/basictypes.h"
+#endif
+
 #include "xpcmodule.h"
 #include "nsLayoutStatics.h"
 #include "nsContentCID.h"
@@ -99,8 +103,6 @@
 #include "mozilla/Services.h"
 
 #include "nsIEventListenerService.h"
-#include "nsIFrameMessageManager.h"
-
 
 #include "nsXPathEvaluator.h"
 #include "txMozillaXSLTProcessor.h"
@@ -111,7 +113,6 @@
 #include "nsDOMSerializer.h"
 #include "nsXMLHttpRequest.h"
 #include "nsChannelPolicy.h"
-#include "nsWebSocket.h"
 
 
 #include "nsViewsCID.h"
@@ -151,6 +152,7 @@
 #include "nsPrincipal.h"
 #include "nsSystemPrincipal.h"
 #include "nsNullPrincipal.h"
+#include "nsPrefsCID.h"
 #include "nsNetCID.h"
 
 #define NS_EDITORCOMMANDTABLE_CID \
@@ -279,12 +281,6 @@ static void Shutdown();
 #endif
 
 #include "nsGeolocation.h"
-#if defined(XP_UNIX)    || \
-    defined(_WINDOWS)   || \
-    defined(machintosh) || \
-    defined(android)
-#include "nsAccelerometerSystem.h"
-#endif
 #include "nsCSPService.h"
 
 
@@ -307,9 +303,6 @@ NS_GENERIC_AGGREGATED_CONSTRUCTOR_INIT(nsXPathEvaluator, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(txNodeSetAdaptor, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDOMSerializer)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsXMLHttpRequest, Init)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsWebSocket)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsWSProtocolHandler)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsWSSProtocolHandler)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsDOMFileReader, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsFormData)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsFileDataProtocolHandler)
@@ -317,12 +310,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsDOMParser)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsDOMStorageManager,
                                          nsDOMStorageManager::GetInstance)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsChannelPolicy)
-#if defined(XP_UNIX)    || \
-    defined(_WINDOWS)   || \
-    defined(machintosh) || \
-    defined(android)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsAccelerometerSystem)
-#endif
 
 
 
@@ -453,7 +440,6 @@ nsresult NS_NewContentPolicy(nsIContentPolicy** aResult);
 nsresult NS_NewDOMEventGroup(nsIDOMEventGroup** aResult);
 
 nsresult NS_NewEventListenerService(nsIEventListenerService** aResult);
-nsresult NS_NewGlobalMessageManager(nsIChromeFrameMessageManager** aResult);
 
 NS_IMETHODIMP NS_NewXULControllers(nsISupports* aOuter, REFNSIID aIID, void** aResult);
 
@@ -531,11 +517,9 @@ MAKE_CTOR(CreatePlainTextSerializer,      nsIContentSerializer,        NS_NewPla
 MAKE_CTOR(CreateHTMLFragmentSink,         nsIFragmentContentSink,      NS_NewHTMLFragmentContentSink)
 MAKE_CTOR(CreateHTMLFragmentSink2,        nsIFragmentContentSink,      NS_NewHTMLFragmentContentSink2)
 MAKE_CTOR(CreateHTMLParanoidFragmentSink, nsIFragmentContentSink,      NS_NewHTMLParanoidFragmentSink)
-MAKE_CTOR(CreateHTMLParanoidFragmentSink2,nsIFragmentContentSink,      NS_NewHTMLParanoidFragmentSink2)
 MAKE_CTOR(CreateXMLFragmentSink,          nsIFragmentContentSink,      NS_NewXMLFragmentContentSink)
 MAKE_CTOR(CreateXMLFragmentSink2,         nsIFragmentContentSink,      NS_NewXMLFragmentContentSink2)
 MAKE_CTOR(CreateXHTMLParanoidFragmentSink,nsIFragmentContentSink,      NS_NewXHTMLParanoidFragmentSink)
-MAKE_CTOR(CreateXHTMLParanoidFragmentSink2,nsIFragmentContentSink,     NS_NewXHTMLParanoidFragmentSink2)
 MAKE_CTOR(CreateSanitizingHTMLSerializer, nsIContentSerializer,        NS_NewSanitizingHTMLSerializer)
 MAKE_CTOR(CreateXBLService,               nsIXBLService,               NS_NewXBLService)
 MAKE_CTOR(CreateContentPolicy,            nsIContentPolicy,            NS_NewContentPolicy)
@@ -554,7 +538,6 @@ MAKE_CTOR(CreateXMLContentBuilder,        nsIXMLContentBuilder,        NS_NewXML
 #endif
 MAKE_CTOR(CreateContentDLF,               nsIDocumentLoaderFactory,    NS_NewContentDocumentLoaderFactory)
 MAKE_CTOR(CreateEventListenerService,     nsIEventListenerService,     NS_NewEventListenerService)
-MAKE_CTOR(CreateGlobalMessageManager,     nsIChromeFrameMessageManager,NS_NewGlobalMessageManager)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsWyciwygProtocolHandler)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDataDocumentContentPolicy)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsNoDataProtocolContentPolicy)
@@ -1319,11 +1302,6 @@ static const nsModuleComponentInfo gLayoutComponents[] = {
     NS_HTMLPARANOIDFRAGMENTSINK_CONTRACTID,
     CreateHTMLParanoidFragmentSink },
 
-  { "html paranoid fragment sink 2",
-    NS_HTMLPARANOIDFRAGMENTSINK2_CID,
-    NS_HTMLPARANOIDFRAGMENTSINK2_CONTRACTID,
-    CreateHTMLParanoidFragmentSink2 },
-
   { "HTML sanitizing content serializer",
     MOZ_SANITIZINGHTMLSERIALIZER_CID,
     MOZ_SANITIZINGHTMLSERIALIZER_CONTRACTID,
@@ -1343,11 +1321,6 @@ static const nsModuleComponentInfo gLayoutComponents[] = {
     NS_XHTMLPARANOIDFRAGMENTSINK_CID,
     NS_XHTMLPARANOIDFRAGMENTSINK_CONTRACTID,
     CreateXHTMLParanoidFragmentSink },
-
-  { "xhtml paranoid fragment sink 2",
-    NS_XHTMLPARANOIDFRAGMENTSINK2_CID,
-    NS_XHTMLPARANOIDFRAGMENTSINK2_CONTRACTID,
-    CreateXHTMLParanoidFragmentSink2 },
 
   { "XBL Service",
     NS_XBLSERVICE_CID,
@@ -1425,7 +1398,7 @@ static const nsModuleComponentInfo gLayoutComponents[] = {
 
   { "Document Loader Factory",
     NS_CONTENT_DOCUMENT_LOADER_FACTORY_CID,
-    CONTENT_DLF_CONTRACTID,
+    "@mozilla.org/content/document-loader-factory;1",
     CreateContentDLF,
     nsContentDLF::RegisterDocumentFactories,
     nsContentDLF::UnregisterDocumentFactories },
@@ -1476,7 +1449,7 @@ static const nsModuleComponentInfo gLayoutComponents[] = {
 
   { "Plugin Document Loader Factory",
     NS_PLUGINDOCLOADERFACTORY_CID,
-    PLUGIN_DLF_CONTRACTID,
+    "@mozilla.org/content/plugin/document-loader-factory;1",
     CreateContentDLF },
 
   { "Plugin Document",
@@ -1542,21 +1515,6 @@ static const nsModuleComponentInfo gLayoutComponents[] = {
     NS_XMLHTTPREQUEST_CID,
     NS_XMLHTTPREQUEST_CONTRACTID,
     nsXMLHttpRequestConstructor },
-
-  { "WebSocket",
-    NS_WEBSOCKET_CID,
-    NS_WEBSOCKET_CONTRACTID,
-    nsWebSocketConstructor },
-
-  { "WS Protocol Handler",
-    NS_WSPROTOCOLHANDLER_CID,
-    NS_WSPROTOCOLHANDLER_CONTRACTID,
-    nsWSProtocolHandlerConstructor },
-
-  { "WSS Protocol Handler",
-    NS_WSSPROTOCOLHANDLER_CID,
-    NS_WSSPROTOCOLHANDLER_CONTRACTID,
-    nsWSSProtocolHandlerConstructor },
 
   { "DOM Parser",
     NS_DOMPARSER_CID,
@@ -1651,22 +1609,6 @@ static const nsModuleComponentInfo gLayoutComponents[] = {
       NS_EVENTLISTENERSERVICE_CONTRACTID,
       CreateEventListenerService },
 
-#if defined(XP_UNIX)    || \
-    defined(_WINDOWS)   || \
-    defined(machintosh) || \
-    defined(android)
-    { "Accelerometer",
-       NS_ACCELEROMETER_CID,
-       NS_ACCELEROMETER_CONTRACTID,
-       nsAccelerometerSystemConstructor
-     },
-#endif
-
-    { "Global Message Manager",
-      NS_GLOBALMESSAGEMANAGER_CID,
-      NS_GLOBALMESSAGEMANAGER_CONTRACTID,
-      CreateGlobalMessageManager },
-
     { "Channel Policy",
       NSCHANNELPOLICY_CID,
       NSCHANNELPOLICY_CONTRACTID,
@@ -1688,6 +1630,19 @@ static const nsModuleComponentInfo gXPConnectComponents[] = {
     { NS_SCRIPTSECURITYMANAGER_CLASSNAME, 
       NS_SCRIPTSECURITYMANAGER_CID, 
       NS_SCRIPTSECURITYMANAGER_CONTRACTID,
+      Construct_nsIScriptSecurityManager,
+      RegisterSecurityNameSet,
+      nsnull,
+      nsnull,
+      nsnull,
+      nsnull,
+      nsnull,
+      nsIClassInfo::MAIN_THREAD_ONLY
+    },
+
+    { NS_SCRIPTSECURITYMANAGER_CLASSNAME, 
+      NS_SCRIPTSECURITYMANAGER_CID, 
+      NS_GLOBAL_PREF_SECURITY_CHECK,
       Construct_nsIScriptSecurityManager,
       RegisterSecurityNameSet,
       nsnull,
