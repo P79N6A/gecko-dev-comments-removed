@@ -75,9 +75,7 @@ public class AwesomeBarTabs extends TabHost {
     private Context mContext;
     private OnUrlOpenListener mUrlOpenListener;
 
-    private Cursor mAllPagesCursor;
     private SimpleCursorAdapter mAllPagesAdapter;
-
     private SimpleCursorAdapter mBookmarksAdapter;
     private SimpleExpandableListAdapter mHistoryAdapter;
 
@@ -350,17 +348,14 @@ public class AwesomeBarTabs extends TabHost {
             public Cursor runQuery(CharSequence constraint) {
                 ContentResolver resolver = mContext.getContentResolver();
 
-                mAllPagesCursor =
-                    resolver.query(Browser.BOOKMARKS_URI,
-                                   null, Browser.BookmarkColumns.URL + " LIKE ? OR title LIKE ?", 
-                                   new String[] {"%" + constraint.toString() + "%", "%" + constraint.toString() + "%",},
-                                   
-                                   
-                                   
-                                   Browser.BookmarkColumns.VISITS + " * MAX(1, (" +
-                                   Browser.BookmarkColumns.DATE + " - " + new Date().getTime() + ") / 86400000 + 120) DESC");   
-
-                return mAllPagesCursor;
+                return resolver.query(Browser.BOOKMARKS_URI,
+                                      null, Browser.BookmarkColumns.URL + " LIKE ? OR title LIKE ?", 
+                                      new String[] {"%" + constraint.toString() + "%", "%" + constraint.toString() + "%",},
+                                      
+                                      
+                                      
+                                      Browser.BookmarkColumns.VISITS + " * MAX(1, (" +
+                                      Browser.BookmarkColumns.DATE + " - " + new Date().getTime() + ") / 86400000 + 120) DESC");   
             }
         });
 
@@ -419,7 +414,9 @@ public class AwesomeBarTabs extends TabHost {
     }
 
     public void destroy() {
-        if (mAllPagesCursor != null) mAllPagesCursor.close();
+        Cursor allPagesCursor = mAllPagesAdapter.getCursor();
+        if (allPagesCursor != null)
+            allPagesCursor.close();
 
         Cursor bookmarksCursor = mBookmarksAdapter.getCursor();
         if (bookmarksCursor != null)
