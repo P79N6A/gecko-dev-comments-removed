@@ -2,7 +2,7 @@
 
 
 
-#include "AccFilters.h"
+#include "Filters.h"
 
 #include "Accessible-inl.h"
 #include "nsAccUtils.h"
