@@ -182,7 +182,7 @@ let Util = {
 
   
   isURLEmpty: function isURLEmpty(aURL) {
-    return (!aURL || aURL == "about:blank" || aURL == "about:home");
+    return (!aURL || aURL == "about:blank" || aURL == "about:empty" || aURL == "about:home");
   },
 
   
