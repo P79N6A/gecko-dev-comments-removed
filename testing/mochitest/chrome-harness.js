@@ -314,7 +314,7 @@ function extractJarToTmp(jar) {
     var targetDir = buildRelativePath(dirs.getNext(), tmpdir, filepath);
     
     
-    tmpdir.createUnique(Components.interfaces.nsIFile.DIRECTORY_TYPE, parseInt("0777", 8));
+    targetDir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, parseInt("0777", 8));
   }
 
   
