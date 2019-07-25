@@ -43,6 +43,7 @@
 
 
 
+
 window.TabItem = function(container, tab) {
   Utils.assert('container', container);
   Utils.assert('tab', tab);
@@ -462,11 +463,16 @@ window.TabItem.prototype = iQ.extend(new Item(), {
       var scale = window.innerWidth/orig.width;
       
       var tab = this.tab;
-      
+
       function onZoomDone(){
-        UI.tabBar.show(false);              
         TabMirror.resumePainting();
-        tab.focus();
+        
+        if (tab.isFocused()) {
+          Page.showChrome();
+        } else {
+          tab.focus();
+        }
+
         $tabEl
           .css({
             top:   orig.pos.top,
@@ -474,9 +480,8 @@ window.TabItem.prototype = iQ.extend(new Item(), {
             width: orig.width,
             height:orig.height,
           })
-          .removeClass("front");  
-        Navbar.show();
-               
+          .removeClass("front");
+
         
         
         if( self.parent ){
@@ -613,9 +618,9 @@ window.TabItems = {
       var $div = iQ(mirror.el);
       var tab = mirror.tab;
 
-      if(tab == Utils.homeTab) 
-        $div.hide();
-      else {
+      
+      
+      
         var item = new TabItem(mirror.el, tab);
         
         item.addOnClose(self, function() {
@@ -624,7 +629,7 @@ window.TabItems = {
 
         if(!self.reconnect(item))
           Groups.newTab(item);          
-      }
+      
     });
   },
 

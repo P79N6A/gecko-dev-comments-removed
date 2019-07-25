@@ -208,8 +208,9 @@ Mirror.prototype = iQ.extend(new Subscribable(), {
 
 
 var TabMirror = function() {
-  if(window.Tabs) 
+  if(window.Tabs) {
     this.init();
+  }
   else { 
     var self = this;
     TabsManager.addSubscriber(this, 'load', function() {
@@ -224,7 +225,7 @@ TabMirror.prototype = {
   
   init: function(){
     var self = this;
-        
+
     
     Tabs.onOpen(function() { 
       var tab = this;
@@ -240,7 +241,7 @@ TabMirror.prototype = {
         self.update(tab);
       }, 1);
     });
-    
+
     
     Tabs.onClose( function(){
       var tab = this;
@@ -248,15 +249,15 @@ TabMirror.prototype = {
         self.unlink(tab);
       }, 1);
     });
-    
+
     
     Tabs.forEach(function(tab){
       self.link(tab);
-    });    
-     
+    });
+
     this.paintingPaused = 0;
     this.heartbeatIndex = 0;  
-    this._fireNextHeartbeat();    
+    this._fireNextHeartbeat();
   },
   
   _heartbeat: function() {
