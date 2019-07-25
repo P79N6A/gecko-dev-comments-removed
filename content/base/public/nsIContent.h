@@ -43,6 +43,7 @@
 #include "nsChangeHint.h"
 #include "nsINode.h"
 #include "nsIDocument.h" 
+#include "nsDOMMemoryReporter.h"
 
 
 class nsIAtom;
@@ -76,8 +77,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID       \
-{ 0x860ee35b, 0xe505, 0x438f, \
- { 0xa7, 0x7b, 0x65, 0xb9, 0xf5, 0x0b, 0xe5, 0x29 } }
+{ 0x4aad2c06, 0xd6c3, 0x4f44, \
+ { 0x94, 0xf9, 0xd5, 0xac, 0xe5, 0x04, 0x67, 0xec } }
 
 
 
@@ -99,6 +100,8 @@ public:
 #endif 
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICONTENT_IID)
+
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsIContent, nsINode);
 
   
 
@@ -945,10 +948,6 @@ public:
   virtual already_AddRefed<nsIURI> GetBaseURI() const;
 
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
-
-  PRInt64 SizeOf() const {
-    return sizeof(*this);
-  }
 
 protected:
   
