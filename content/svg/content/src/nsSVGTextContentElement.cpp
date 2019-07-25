@@ -37,6 +37,9 @@
 
 
 #include "nsSVGTextContentElement.h"
+#include "DOMSVGPoint.h"
+
+using namespace mozilla;
 
 
 NS_IMETHODIMP nsSVGTextContentElement::GetTextLength(nsIDOMSVGAnimatedLength * *aTextLength)
@@ -143,8 +146,8 @@ NS_IMETHODIMP nsSVGTextContentElement::GetRotationOfChar(PRUint32 charnum, float
 
 NS_IMETHODIMP nsSVGTextContentElement::GetCharNumAtPosition(nsIDOMSVGPoint *point, PRInt32 *_retval)
 {
-  
-  if (!point)
+  nsCOMPtr<DOMSVGPoint> p = do_QueryInterface(point);
+  if (!p)
     return NS_ERROR_DOM_SVG_WRONG_TYPE_ERR;
 
   *_retval = -1;
