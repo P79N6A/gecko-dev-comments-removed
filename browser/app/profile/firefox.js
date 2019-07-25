@@ -895,7 +895,6 @@ pref("toolbar.customization.usesheet", false);
 pref("dom.ipc.plugins.enabled.i386", false);
 pref("dom.ipc.plugins.enabled.i386.flash player.plugin", true);
 pref("dom.ipc.plugins.enabled.i386.javaplugin2_npapi.plugin", true);
-pref("dom.ipc.plugins.enabled.i386.javaappletplugin.plugin", true);
 
 pref("dom.ipc.plugins.enabled.x86_64", true);
 #else
