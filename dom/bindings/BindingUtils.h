@@ -248,10 +248,18 @@ struct ConstantSpec
 
 
 
+
+
+
+
+
+
+
 JSObject*
 CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* receiver,
                        JSObject* protoProto, JSClass* protoClass,
-                       JSClass* constructorClass, JSFunctionSpec* methods,
+                       JSClass* constructorClass, JSNative constructor,
+                       unsigned ctorNargs, JSFunctionSpec* methods,
                        JSPropertySpec* properties, ConstantSpec* constants,
                        JSFunctionSpec* staticMethods, const char* name);
 
@@ -507,6 +515,10 @@ InitIds(JSContext* cx, Spec* specs, jsid* ids)
 
 JSBool
 QueryInterface(JSContext* cx, unsigned argc, JS::Value* vp);
+JSBool
+ThrowingConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
+JSBool
+ThrowingConstructorWorkers(JSContext* cx, unsigned argc, JS::Value* vp);
 
 } 
 } 
