@@ -527,6 +527,9 @@ TabParent::RecvGetIMEEnabled(PRUint32* aValue)
 bool
 TabParent::RecvSetInputMode(const PRUint32& aValue, const nsString& aType, const nsString& aAction, const PRUint32& aReason)
 {
+  
+  
+  mIMETabParent = aValue & nsIContent::IME_STATUS_MASK_ENABLED ? this : nsnull;
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget || !AllowContentIME())
     return true;
