@@ -2898,21 +2898,16 @@ nsWindow::MakeFullScreen(PRBool aFullScreen)
 
   UpdateNonClientMargins();
 
+  PRBool visible = mIsVisible;
+  Show(PR_FALSE);
   
-  DWORD style;
-  if (nsUXThemeData::CheckForCompositor()) {
-    style = GetWindowLong(mWnd, GWL_STYLE);
-    SetWindowLong(mWnd, GWL_STYLE, style & ~WS_VISIBLE);
-  }
-
   
   
   
   nsresult rv = nsBaseWidget::MakeFullScreen(aFullScreen);
 
-  if (nsUXThemeData::CheckForCompositor()) {
-    style = GetWindowLong(mWnd, GWL_STYLE);
-    SetWindowLong(mWnd, GWL_STYLE, style | WS_VISIBLE);
+  if (visible) {
+    Show(PR_TRUE);
     Invalidate(PR_FALSE);
   }
 
