@@ -50,6 +50,7 @@
 #define MAC_OS_X_MAJOR_VERSION_MASK 0xFFFFFFF0U
 
 class gfxTextRun;
+class gfxFontFamily;
 class mozilla::gfx::DrawTarget;
 
 class THEBES_API gfxPlatformMac : public gfxPlatform {
@@ -97,6 +98,10 @@ public:
                          const nsACString& aGenericFamily,
                          nsTArray<nsString>& aListOfFonts);
     nsresult UpdateFontList();
+
+    virtual void GetCommonFallbackFonts(const PRUint32 aCh,
+                                        PRInt32 aRunScript,
+                                        nsTArray<const char*>& aFontList);
 
     
     

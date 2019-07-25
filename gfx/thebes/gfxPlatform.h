@@ -372,6 +372,15 @@ public:
     static void AppendPrefLang(eFontPrefLang aPrefLangs[], PRUint32& aLen, eFontPrefLang aAddLang);
 
     
+    
+    virtual void GetCommonFallbackFonts(const PRUint32 ,
+                                        PRInt32 ,
+                                        nsTArray<const char*>& )
+    {
+        
+    }
+
+    
     static bool UseAzureContentDrawing();
     
     
