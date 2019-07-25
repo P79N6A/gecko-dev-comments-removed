@@ -225,6 +225,16 @@ public:
   
 
 
+
+  void SetHadToIgnorePaintSuppression() { mHadToIgnoreSuppression = PR_TRUE; }
+  
+
+
+
+  PRBool GetHadToIgnorePaintSuppression() { return mHadToIgnoreSuppression; }
+  
+
+
   void SetPaintingToWindow(PRBool aToWindow) { mIsPaintingToWindow = aToWindow; }
   PRBool IsPaintingToWindow() { return mIsPaintingToWindow; }
   
@@ -395,6 +405,7 @@ private:
   PRPackedBool                   mEventDelivery;
   PRPackedBool                   mIsBackgroundOnly;
   PRPackedBool                   mIgnoreSuppression;
+  PRPackedBool                   mHadToIgnoreSuppression;
   PRPackedBool                   mIsAtRootOfPseudoStackingContext;
   PRPackedBool                   mSelectedFramesOnly;
   PRPackedBool                   mAccurateVisibleRegions;
