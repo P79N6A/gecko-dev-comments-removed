@@ -166,10 +166,14 @@ public:
 
   
   
-  
-  nsresult DoInstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
-                                       nsIPluginInstanceOwner* aOwner,
-                                       PRBool aAllowOpeningStreams);
+  nsresult InstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
+                                     nsIPluginInstanceOwner* aOwner,
+                                     PRBool aAllowOpeningStreams);
+
+  nsresult InstantiateFullPagePlugin(const char *aMimeType,
+                                     nsIURI* aURI,
+                                     nsIPluginInstanceOwner *aOwner,
+                                     nsIStreamListener **aStreamListener);
 
   
   nsPluginTag* TagForPlugin(nsNPAPIPlugin* aPlugin);

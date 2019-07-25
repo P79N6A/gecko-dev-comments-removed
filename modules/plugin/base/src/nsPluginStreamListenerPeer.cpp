@@ -658,8 +658,8 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
         
         
         
-        rv = pluginHost->DoInstantiateEmbeddedPlugin(aContentType.get(), aURL,
-                                                     mOwner, PR_FALSE);
+        rv = pluginHost->InstantiateEmbeddedPlugin(aContentType.get(), aURL,
+                                                   mOwner, PR_FALSE);
       }
       else {
         rv = pluginHost->SetUpPluginInstance(aContentType.get(), aURL, mOwner);
