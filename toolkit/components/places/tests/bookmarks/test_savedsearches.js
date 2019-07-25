@@ -69,19 +69,21 @@ try {
 var root = bmsvc.bookmarksMenuFolder;
 
 
+const searchTerm = "about";
+
+var testRoot;
+
+
 function run_test() {
   
-  var searchTerm = "about";
-
   
   
-  
-  var testRoot = bmsvc.createFolder(root, searchTerm, bmsvc.DEFAULT_INDEX);
+  testRoot = bmsvc.createFolder(root, searchTerm, bmsvc.DEFAULT_INDEX);
 
-  
+  run_next_test();
+}
 
-
-
+add_test(function test_savedsearches_bookmarks() {
   
   var bookmarkId = bmsvc.insertBookmark(root, uri("http://foo.com"), bmsvc.DEFAULT_INDEX, searchTerm);
 
@@ -172,85 +174,95 @@ function run_test() {
   
   bmsvc.removeItem(searchId);
 
-  
+  run_next_test();
+});
 
-
-
+add_test(function test_savedsearches_history() {
   
   var testURI = uri("http://" + searchTerm + ".com");
-  bhist.addPageWithDetails(testURI, searchTerm, Date.now() * 1000);
+  addVisits({ uri: testURI, title: searchTerm }, function afterAddVisits() {
 
-  
-  var searchId = bmsvc.insertBookmark(testRoot,
-                                      uri("place:terms=" + searchTerm + "&excludeQueries=1&expandQueries=1&queryType=0"),
-                                      bmsvc.DEFAULT_INDEX, searchTerm);
+    
+    var searchId = bmsvc.insertBookmark(testRoot,
+                                        uri("place:terms=" + searchTerm + "&excludeQueries=1&expandQueries=1&queryType=0"),
+                                        bmsvc.DEFAULT_INDEX, searchTerm);
 
-  
-  
-  try {
-    var options = histsvc.getNewQueryOptions();
-    options.expandQueries = 1;
-    var query = histsvc.getNewQuery();
-    query.setFolders([testRoot], 1);
-    var result = histsvc.executeQuery(query, options);
-    var rootNode = result.root;
-    rootNode.containerOpen = true;
-    var cc = rootNode.childCount;
-    do_check_eq(cc, 1);
-    for (var i = 0; i < cc; i++) {
-      var node = rootNode.getChild(i);
-      
-      do_check_eq(node.type, node.RESULT_TYPE_QUERY);
-      
-      do_check_eq(node.itemId, searchId);
-      node.QueryInterface(Ci.nsINavHistoryContainerResultNode);
-      node.containerOpen = true;
+    
+    
+    try {
+      var options = histsvc.getNewQueryOptions();
+      options.expandQueries = 1;
+      var query = histsvc.getNewQuery();
+      query.setFolders([testRoot], 1);
+      var result = histsvc.executeQuery(query, options);
+      var rootNode = result.root;
+      rootNode.containerOpen = true;
+      var cc = rootNode.childCount;
+      do_check_eq(cc, 1);
+      for (var i = 0; i < cc; i++) {
+        var node = rootNode.getChild(i);
+        
+        do_check_eq(node.type, node.RESULT_TYPE_QUERY);
+        
+        do_check_eq(node.itemId, searchId);
+        node.QueryInterface(Ci.nsINavHistoryContainerResultNode);
+        node.containerOpen = true;
+
+        
+        
+        
+        do_check_eq(node.childCount, 1);
+
+        
+        var item = node.getChild(0);
+        do_check_eq(item.type, item.RESULT_TYPE_URI);
+        do_check_eq(item.itemId, -1); 
+        do_check_eq(item.uri, testURI.spec); 
+
+        
+        PlacesUtils.history.addVisit(uri("http://foo.com"),
+                                     Date.now() * 1000,
+                                     null,
+                                     Ci.nsINavHistoryService.TRANSITION_LINK,
+                                     false,
+                                     0);
+        PlacesUtils.ghistory2.setPageTitle(uri("http://foo.com"),
+                                           searchTerm + "blah");
+        do_check_eq(node.childCount, 2);
+
+        
+        bhist.removePage(uri("http://foo.com"));
+        do_check_eq(node.childCount, 1);
+        node.containerOpen = false;
+      }
 
       
-      
-      
-      do_check_eq(node.childCount, 1);
+      var tmpFolderId = bmsvc.createFolder(testRoot, "foo", bmsvc.DEFAULT_INDEX);
+      bmsvc.moveItem(searchId, tmpFolderId, bmsvc.DEFAULT_INDEX);
+      var tmpFolderNode = rootNode.getChild(0);
+      do_check_eq(tmpFolderNode.itemId, tmpFolderId);
+      tmpFolderNode.QueryInterface(Ci.nsINavHistoryContainerResultNode);
+      tmpFolderNode.containerOpen = true;
+      do_check_eq(tmpFolderNode.childCount, 1);
 
       
-      var item = node.getChild(0);
-      do_check_eq(item.type, item.RESULT_TYPE_URI);
-      do_check_eq(item.itemId, -1); 
-      do_check_eq(item.uri, testURI.spec); 
+      bmsvc.setItemTitle(searchId, "foo");
+      do_check_eq(tmpFolderNode.title, "foo");
 
       
-      bhist.addPageWithDetails(uri("http://foo.com"), searchTerm + "blah", Date.now() * 1000);
-      do_check_eq(node.childCount, 2);
+      bmsvc.removeItem(searchId);
+      try {
+        var tmpFolderNode = root.getChild(1);
+        do_throw("query was not removed");
+      } catch(ex) {}
 
-      
-      bhist.removePage(uri("http://foo.com"));
-      do_check_eq(node.childCount, 1);
-      node.containerOpen = false;
+      tmpFolderNode.containerOpen = false;
+      rootNode.containerOpen = false;
+    }
+    catch(ex) {
+      do_throw("expandQueries=1 bookmarks query: " + ex);
     }
 
-    
-    var tmpFolderId = bmsvc.createFolder(testRoot, "foo", bmsvc.DEFAULT_INDEX); 
-    bmsvc.moveItem(searchId, tmpFolderId, bmsvc.DEFAULT_INDEX);
-    var tmpFolderNode = rootNode.getChild(0);
-    do_check_eq(tmpFolderNode.itemId, tmpFolderId);
-    tmpFolderNode.QueryInterface(Ci.nsINavHistoryContainerResultNode);
-    tmpFolderNode.containerOpen = true;
-    do_check_eq(tmpFolderNode.childCount, 1);
-
-    
-    bmsvc.setItemTitle(searchId, "foo");
-    do_check_eq(tmpFolderNode.title, "foo");
-
-    
-    bmsvc.removeItem(searchId);
-    try {
-      var tmpFolderNode = root.getChild(1);
-      do_throw("query was not removed");
-    } catch(ex) {}
-
-    tmpFolderNode.containerOpen = false;
-    rootNode.containerOpen = false;
-  }
-  catch(ex) {
-    do_throw("expandQueries=1 bookmarks query: " + ex);
-  }
-}
+    run_next_test();
+  });
+});

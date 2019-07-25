@@ -160,53 +160,54 @@ add_test(function check_history_query() {
   do_check_eq(root.uri, resultObserver.nodeChangedByHistoryDetails.uri);
 
   
-  bhist.addPageWithDetails(testURI, "baz", Date.now() * 1000);
-  do_check_eq(resultObserver.nodeChangedByTitle.title, "baz");
+  addVisits({ uri: testURI, title: "baz" }, function () {
+    do_check_eq(resultObserver.nodeChangedByTitle.title, "baz");
 
-  
-  var removedURI = uri("http://google.com");
-  add_visit(removedURI);
-  bhist.removePage(removedURI);
-  do_check_eq(removedURI.spec, resultObserver.removedNode.uri);
+    
+    var removedURI = uri("http://google.com");
+    add_visit(removedURI);
+    bhist.removePage(removedURI);
+    do_check_eq(removedURI.spec, resultObserver.removedNode.uri);
 
-  
-  
+    
+    
 
-  
-  bhist.removePagesFromHost("mozilla.com", false);
-  do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
+    
+    bhist.removePagesFromHost("mozilla.com", false);
+    do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
 
-  
-  resultObserver.invalidatedContainer = null;
-  result.sortingMode = options.SORT_BY_TITLE_ASCENDING;
-  do_check_eq(resultObserver.sortingMode, options.SORT_BY_TITLE_ASCENDING);
-  do_check_eq(resultObserver.invalidatedContainer, result.root);
+    
+    resultObserver.invalidatedContainer = null;
+    result.sortingMode = options.SORT_BY_TITLE_ASCENDING;
+    do_check_eq(resultObserver.sortingMode, options.SORT_BY_TITLE_ASCENDING);
+    do_check_eq(resultObserver.invalidatedContainer, result.root);
 
-  
-  bhist.removeAllPages();
-  do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
+    
+    bhist.removeAllPages();
+    do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
 
-  
-  do_check_false(resultObserver.inBatchMode);
-  histsvc.runInBatchMode({
-    runBatched: function (aUserData) {
-      do_check_true(resultObserver.inBatchMode);
-    }
-  }, null);
-  do_check_false(resultObserver.inBatchMode);
-  bmsvc.runInBatchMode({
-    runBatched: function (aUserData) {
-      do_check_true(resultObserver.inBatchMode);
-    }
-  }, null);
-  do_check_false(resultObserver.inBatchMode);
+    
+    do_check_false(resultObserver.inBatchMode);
+    histsvc.runInBatchMode({
+      runBatched: function (aUserData) {
+        do_check_true(resultObserver.inBatchMode);
+      }
+    }, null);
+    do_check_false(resultObserver.inBatchMode);
+    bmsvc.runInBatchMode({
+      runBatched: function (aUserData) {
+        do_check_true(resultObserver.inBatchMode);
+      }
+    }, null);
+    do_check_false(resultObserver.inBatchMode);
 
-  
-  root.containerOpen = false;
-  do_check_eq(resultObserver.closedContainer, resultObserver.openedContainer);
-  result.removeObserver(resultObserver);
-  resultObserver.reset();
-  waitForAsyncUpdates(run_next_test);
+    
+    root.containerOpen = false;
+    do_check_eq(resultObserver.closedContainer, resultObserver.openedContainer);
+    result.removeObserver(resultObserver);
+    resultObserver.reset();
+    waitForAsyncUpdates(run_next_test);
+  });
 });
 
 add_test(function check_bookmarks_query() {

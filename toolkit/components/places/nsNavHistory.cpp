@@ -2694,33 +2694,6 @@ nsNavHistory::GetHistoryDisabled(bool *_retval)
 
 
 
-NS_IMETHODIMP
-nsNavHistory::AddPageWithDetails(nsIURI *aURI, const PRUnichar *aTitle,
-                                 PRInt64 aLastVisited)
-{
-  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
-  NS_ENSURE_ARG(aURI);
-
-  
-  if (InPrivateBrowsingMode())
-    return NS_OK;
-
-  PRInt64 visitID;
-  nsresult rv = AddVisit(aURI, aLastVisited, 0, TRANSITION_LINK, false,
-                         0, &visitID);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return SetPageTitleInternal(aURI, nsString(aTitle));
-}
-
-
-
-
-
-
-
-
-
 
 nsresult
 nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
