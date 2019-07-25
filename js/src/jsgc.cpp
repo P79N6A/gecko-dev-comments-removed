@@ -141,7 +141,7 @@ FinalizeKind slotsToThingKind[] = {
 
 JS_STATIC_ASSERT(JS_ARRAY_LENGTH(slotsToThingKind) == SLOTS_TO_THING_KIND_LIMIT);
 
-JS_FRIEND_DATA(const uint8) GCThingSizeMap[] = {
+const uint8 GCThingSizeMap[] = {
     sizeof(JSObject),           
     sizeof(JSObject),           
     sizeof(JSObject_Slots2),    
