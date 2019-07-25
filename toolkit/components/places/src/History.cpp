@@ -39,16 +39,19 @@
 
 #ifdef MOZ_IPC
 #include "mozilla/dom/ContentProcessChild.h"
-#include "mozilla/dom/ContentProcessParent.h"
+#include "nsXULAppAPI.h"
 #endif
 
 #include "History.h"
 #include "nsNavHistory.h"
+#include "nsNavBookmarks.h"
+#include "Helpers.h"
 
 #include "mozilla/storage.h"
 #include "mozilla/dom/Link.h"
 #include "nsDocShellCID.h"
 #include "nsIEventStateManager.h"
+#include "mozilla/Services.h"
 
 using namespace mozilla::dom;
 
@@ -62,6 +65,87 @@ namespace places {
 #define URI_NOT_VISITED "not visited"
 #define URI_VISITED_RESOLUTION_TOPIC "visited-status-resolution"
 
+#define URI_VISIT_SAVED "uri-visit-saved"
+
+
+
+
+class Step : public AsyncStatementCallback
+{
+public:
+  
+
+
+
+
+
+  NS_IMETHOD ExecuteAsync(mozIStorageStatement* aStmt);
+
+  
+
+
+
+
+
+
+
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet);
+
+  
+
+
+
+
+
+
+  NS_IMETHOD HandleResult(mozIStorageResultSet* aResultSet);
+
+  
+
+
+
+
+
+
+  NS_IMETHOD HandleCompletion(PRUint16 aReason);
+
+private:
+  
+  nsCOMPtr<mozIStorageResultSet> mResultSet;
+};
+
+NS_IMETHODIMP
+Step::ExecuteAsync(mozIStorageStatement* aStmt)
+{
+  nsCOMPtr<mozIStoragePendingStatement> handle;
+  nsresult rv = aStmt->ExecuteAsync(this, getter_AddRefs(handle));
+  NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+Step::Callback(mozIStorageResultSet* aResultSet)
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+Step::HandleResult(mozIStorageResultSet* aResultSet)
+{
+  mResultSet = aResultSet;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+Step::HandleCompletion(PRUint16 aReason)
+{
+  nsCOMPtr<mozIStorageResultSet> resultSet = mResultSet;
+  mResultSet = NULL;
+  Callback(resultSet);
+  return NS_OK;
+}
+
 
 
 
@@ -74,20 +158,15 @@ public:
 
   static nsresult Start(nsIURI* aURI)
   {
-    NS_ASSERTION(aURI, "Don't pass a null URI!");
+    NS_PRECONDITION(aURI, "Null URI");
 
     nsNavHistory* navHist = nsNavHistory::GetHistoryService();
     NS_ENSURE_TRUE(navHist, NS_ERROR_FAILURE);
-    mozIStorageStatement* stmt = navHist->DBGetIsVisited();
+    mozIStorageStatement* stmt = navHist->GetStatementById(DB_IS_PAGE_VISITED);
     NS_ENSURE_STATE(stmt);
 
     
-    mozStorageStatementScoper scoper(stmt);
-    nsCString spec;
-    nsresult rv = aURI->GetSpec(spec);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = BindStatementURLCString(stmt, 0, spec);
+    nsresult rv = URIBinder::Bind(stmt, 0, aURI);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsRefPtr<VisitedQuery> callback = new VisitedQuery(aURI);
@@ -114,7 +193,27 @@ public:
 
   NS_IMETHOD HandleCompletion(PRUint16 aReason)
   {
-    History::GetService()->NotifyVisited(mURI, mIsVisited);
+    if (mIsVisited) {
+      History::GetService()->NotifyVisited(mURI);
+    }
+
+    
+    
+    nsCOMPtr<nsIObserverService> observerService =
+      mozilla::services::GetObserverService();
+    if (observerService) {
+      nsAutoString status;
+      if (mIsVisited) {
+        status.AssignLiteral(URI_VISITED);
+      }
+      else {
+        status.AssignLiteral(URI_NOT_VISITED);
+      }
+      (void)observerService->NotifyObservers(mURI,
+                                             URI_VISITED_RESOLUTION_TOPIC,
+                                             status.get());
+    }
+
     return NS_OK;
   }
 private:
@@ -130,6 +229,626 @@ private:
 NS_IMPL_ISUPPORTS1(
   VisitedQuery,
   mozIStorageStatementCallback
+)
+
+
+
+
+
+
+class FailSafeFinishTask
+{
+public:
+  ~FailSafeFinishTask() {
+    History::GetService()->CurrentTaskFinished();
+  }
+};
+
+
+
+
+struct VisitURIData : public FailSafeFinishTask
+{
+  PRInt64 placeId;
+  PRInt32 hidden;
+  PRInt32 typed;
+  nsCOMPtr<nsIURI> uri;
+
+  
+  nsCString lastSpec;
+  PRInt64 lastVisitId;
+  PRInt32 transitionType;
+  PRInt64 sessionId;
+  PRTime dateTime;
+};
+
+
+
+
+class UpdateFrecencyAndNotifyStep : public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  UpdateFrecencyAndNotifyStep(nsAutoPtr<VisitURIData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    
+    NS_ENSURE_STATE(aResultSet);
+
+    nsCOMPtr<mozIStorageRow> row;
+    nsresult rv = aResultSet->GetNextRow(getter_AddRefs(row));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    PRInt64 visitId;
+    rv = row->GetInt64(0, &visitId);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+
+    
+    
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    NS_WARN_IF_FALSE(history, "Could not get history service");
+    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+    NS_WARN_IF_FALSE(bookmarks, "Could not get bookmarks service");
+    if (history && bookmarks) {
+      
+      nsresult rv = history->UpdateFrecency(
+        mData->placeId,
+        bookmarks->IsRealBookmark(mData->placeId)
+      );
+      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Could not update frecency");
+
+      
+      
+      if (!mData->hidden &&
+          mData->transitionType != nsINavHistoryService::TRANSITION_EMBED &&
+          mData->transitionType != nsINavHistoryService::TRANSITION_FRAMED_LINK) {
+        history->NotifyOnVisit(mData->uri, visitId, mData->dateTime,
+                               mData->sessionId, mData->lastVisitId,
+                               mData->transitionType);
+      }
+    }
+
+    nsCOMPtr<nsIObserverService> obsService =
+      mozilla::services::GetObserverService();
+    if (obsService) {
+      nsresult rv = obsService->NotifyObservers(mData->uri, URI_VISIT_SAVED, nsnull);
+      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Could not notify observers");
+    }
+
+    History::GetService()->NotifyVisited(mData->uri);
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<VisitURIData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  UpdateFrecencyAndNotifyStep
+, mozIStorageStatementCallback
+)
+
+
+
+
+class GetVisitIDStep : public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  GetVisitIDStep(nsAutoPtr<VisitURIData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+    nsCOMPtr<mozIStorageStatement> stmt =
+      history->GetStatementById(DB_RECENT_VISIT_OF_URL);
+    NS_ENSURE_STATE(stmt);
+
+    nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mData->uri);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<Step> step = new UpdateFrecencyAndNotifyStep(mData);
+    rv = step->ExecuteAsync(stmt);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<VisitURIData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  GetVisitIDStep
+, mozIStorageStatementCallback
+)
+
+
+
+
+class AddVisitStep : public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  AddVisitStep(nsAutoPtr<VisitURIData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    nsresult rv;
+
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+
+    
+    
+
+    if (aResultSet) {
+      
+      nsCOMPtr<mozIStorageRow> row;
+      rv = aResultSet->GetNextRow(getter_AddRefs(row));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      PRInt64 possibleSessionId;
+      PRTime lastVisitOfSession;
+
+      rv = row->GetInt64(0, &mData->lastVisitId);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = row->GetInt64(1, &possibleSessionId);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = row->GetInt64(2, &lastVisitOfSession);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (mData->dateTime - lastVisitOfSession <= RECENT_EVENT_THRESHOLD) {
+        mData->sessionId = possibleSessionId;
+      }
+      else {
+        
+        mData->sessionId = history->GetNewSessionID();
+        mData->lastVisitId = 0;
+      }
+    }
+    else {
+      
+      mData->sessionId = history->GetNewSessionID();
+      mData->lastVisitId = 0;
+    }
+
+    nsCOMPtr<mozIStorageStatement> stmt =
+      history->GetStatementById(DB_INSERT_VISIT);
+    NS_ENSURE_STATE(stmt);
+
+    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("from_visit"),
+                               mData->lastVisitId);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("page_id"),
+                               mData->placeId);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("visit_date"),
+                               mData->dateTime);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("visit_type"),
+                               mData->transitionType);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("session"),
+                               mData->sessionId);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<Step> step = new GetVisitIDStep(mData);
+    rv = step->ExecuteAsync(stmt);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<VisitURIData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  AddVisitStep
+, mozIStorageStatementCallback
+)
+
+
+
+
+
+class CheckLastVisitStep : public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  CheckLastVisitStep(nsAutoPtr<VisitURIData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    nsresult rv;
+
+    if (aResultSet) {
+      
+      nsCOMPtr<mozIStorageRow> row;
+      rv = aResultSet->GetNextRow(getter_AddRefs(row));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = row->GetInt64(0, &mData->placeId);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    if (!mData->lastSpec.IsEmpty()) {
+      
+      
+      nsNavHistory* history = nsNavHistory::GetHistoryService();
+      NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+      nsCOMPtr<mozIStorageStatement> stmt =
+        history->GetStatementById(DB_RECENT_VISIT_OF_URL);
+      NS_ENSURE_STATE(stmt);
+
+      rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mData->lastSpec);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCOMPtr<Step> step = new AddVisitStep(mData);
+      rv = step->ExecuteAsync(stmt);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    else {
+      
+      
+      nsCOMPtr<Step> step = new AddVisitStep(mData);
+      rv = step->Callback(NULL);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<VisitURIData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  CheckLastVisitStep
+, mozIStorageStatementCallback
+)
+
+
+
+
+
+class FindNewIdStep : public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  FindNewIdStep(nsAutoPtr<VisitURIData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+    nsCOMPtr<mozIStorageStatement> stmt =
+      history->GetStatementById(DB_GET_PAGE_VISIT_STATS);
+    NS_ENSURE_STATE(stmt);
+
+    nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mData->uri);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<Step> step = new CheckLastVisitStep(mData);
+    rv = step->ExecuteAsync(stmt);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<VisitURIData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  FindNewIdStep
+, mozIStorageStatementCallback
+)
+
+
+
+
+
+class CheckExistingStep : public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  CheckExistingStep(nsAutoPtr<VisitURIData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    nsresult rv;
+    nsCOMPtr<mozIStorageStatement> stmt;
+
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+
+    if (aResultSet) {
+      nsCOMPtr<mozIStorageRow> row;
+      rv = aResultSet->GetNextRow(getter_AddRefs(row));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = row->GetInt64(0, &mData->placeId);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (!mData->typed) {
+        
+        
+        rv = row->GetInt32(2, &mData->typed);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+      if (mData->hidden) {
+        
+        
+        
+        rv = row->GetInt32(3, &mData->hidden);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+      stmt = history->GetStatementById(DB_UPDATE_PAGE_VISIT_STATS);
+      NS_ENSURE_STATE(stmt);
+
+      rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("typed"), mData->typed);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("hidden"), mData->hidden);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), mData->placeId);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCOMPtr<Step> step = new CheckLastVisitStep(mData);
+      rv = step->ExecuteAsync(stmt);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    else {
+      
+      stmt = history->GetStatementById(DB_ADD_NEW_PAGE);
+      NS_ENSURE_STATE(stmt);
+
+      nsAutoString revHost;
+      rv = GetReversedHostname(mData->uri, revHost);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mData->uri);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->BindStringByName(NS_LITERAL_CSTRING("rev_host"), revHost);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("typed"), mData->typed);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("hidden"), mData->hidden);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("frecency"), -1);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCOMPtr<Step> step = new FindNewIdStep(mData);
+      rv = step->ExecuteAsync(stmt);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<VisitURIData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  CheckExistingStep
+, mozIStorageStatementCallback
+)
+
+
+
+
+class StartVisitURIStep : public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  StartVisitURIStep(nsAutoPtr<VisitURIData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+
+    
+    nsCOMPtr<mozIStorageStatement> stmt =
+      history->GetStatementById(DB_GET_PAGE_VISIT_STATS);
+    NS_ENSURE_STATE(stmt);
+
+    nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mData->uri);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<Step> step = new CheckExistingStep(mData);
+    rv = step->ExecuteAsync(stmt);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<VisitURIData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  StartVisitURIStep
+, Step
+)
+
+
+
+
+struct SetTitleData : public FailSafeFinishTask
+{
+  nsCOMPtr<nsIURI> uri;
+  nsString title;
+};
+
+
+
+
+class TitleNotifyStep: public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  TitleNotifyStep(nsAutoPtr<SetTitleData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    history->NotifyTitleChange(mData->uri, mData->title);
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<SetTitleData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  TitleNotifyStep
+, mozIStorageStatementCallback
+)
+
+
+
+
+class SetTitleStep : public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  SetTitleStep(nsAutoPtr<SetTitleData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    if (!aResultSet) {
+      
+      return NS_OK;
+    }
+
+    nsCOMPtr<mozIStorageRow> row;
+    nsresult rv = aResultSet->GetNextRow(getter_AddRefs(row));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsAutoString title;
+    rv = row->GetString(2, title);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    
+    if (mData->title.Equals(title) || (mData->title.IsVoid() && title.IsVoid()))
+      return NS_OK;
+
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+
+    nsCOMPtr<mozIStorageStatement> stmt =
+      history->GetStatementById(DB_SET_PLACE_TITLE);
+    NS_ENSURE_STATE(stmt);
+
+    if (mData->title.IsVoid()) {
+      rv = stmt->BindNullByName(NS_LITERAL_CSTRING("page_title"));
+    }
+    else {
+      rv = stmt->BindStringByName(
+        NS_LITERAL_CSTRING("page_title"),
+        StringHead(mData->title, TITLE_LENGTH_MAX)
+      );
+    }
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mData->uri);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<Step> step = new TitleNotifyStep(mData);
+    rv = step->ExecuteAsync(stmt);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<SetTitleData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  SetTitleStep
+, mozIStorageStatementCallback
+)
+
+
+
+
+class StartSetURITitleStep : public Step
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  StartSetURITitleStep(nsAutoPtr<SetTitleData> aData)
+  : mData(aData)
+  {
+  }
+
+  NS_IMETHOD Callback(mozIStorageResultSet* aResultSet)
+  {
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+
+    
+    nsCOMPtr<mozIStorageStatement> stmt =
+      history->GetStatementById(DB_GET_URL_PAGE_INFO);
+    NS_ENSURE_STATE(stmt);
+
+    nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mData->uri);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<Step> step = new SetTitleStep(mData);
+    rv = step->ExecuteAsync(stmt);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+protected:
+  nsAutoPtr<SetTitleData> mData;
+};
+NS_IMPL_ISUPPORTS1(
+  StartSetURITitleStep
+, Step
 )
 
 } 
@@ -148,76 +867,75 @@ History::History()
 History::~History()
 {
   gService = NULL;
+
 #ifdef DEBUG
   if (mObservers.IsInitialized()) {
     NS_ASSERTION(mObservers.Count() == 0,
                  "Not all Links were removed before we disappear!");
   }
 #endif
+
+  NS_WARN_IF_FALSE(!mPendingVisits.PeekFront(), "Tasks were not completed :(");
+
+  
+  while (mPendingVisits.PeekFront()) {
+    nsCOMPtr<Step> deadTaskWalking =
+      dont_AddRef(static_cast<Step*>(mPendingVisits.PopFront()));
+  }
 }
 
 void
-History::NotifyVisited(nsIURI* aURI, bool aIsVisited)
+History::AppendTask(Step* aTask)
+{
+  NS_PRECONDITION(aTask, "Got NULL task.");
+
+  NS_ADDREF(aTask);
+  mPendingVisits.Push(aTask);
+
+  if (mPendingVisits.GetSize() == 1) {
+    
+    StartNextTask();
+  }
+}
+
+void
+History::CurrentTaskFinished()
+{
+  nsCOMPtr<Step> deadTaskWalking =
+    dont_AddRef(static_cast<Step*>(mPendingVisits.PopFront()));
+  StartNextTask();
+}
+
+void
+History::NotifyVisited(nsIURI* aURI)
 {
   NS_ASSERTION(aURI, "Ruh-roh!  A NULL URI was passed to us!");
 
-#ifdef MOZ_IPC
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
-    mozilla::dom::ContentProcessParent * cpp = 
-        mozilla::dom::ContentProcessParent::GetSingleton();
-    NS_ASSERTION(cpp, "Content Protocol is NULL!");
-
-    nsCString aURISpec;
-    aURI->GetSpec(aURISpec);
-    cpp->SendNotifyVisited(aURISpec, aIsVisited);
+  
+  
+  if (!mObservers.IsInitialized()) {
+    return;
   }
-#endif
 
-  if (aIsVisited) {
-    
-    
-    if (!mObservers.IsInitialized()) {
-      return;
-    }
+  
+  
+  KeyClass* key = mObservers.GetEntry(aURI);
+  if (!key) {
+    return;
+  }
 
-    
-    
-    KeyClass* key = mObservers.GetEntry(aURI);
-    if (!key) {
-      return;
-    }
-
-    
-    const ObserverArray& observers = key->array;
-    ObserverArray::index_type len = observers.Length();
-    for (ObserverArray::index_type i = 0; i < len; i++) {
-      Link* link = observers[i];
-      link->SetLinkState(eLinkState_Visited);
-      NS_ASSERTION(len == observers.Length(),
-                   "Calling SetLinkState added or removed an observer!");
-    }
+  
+  const ObserverArray& observers = key->array;
+  ObserverArray::index_type len = observers.Length();
+  for (ObserverArray::index_type i = 0; i < len; i++) {
+    Link* link = observers[i];
+    link->SetLinkState(eLinkState_Visited);
+    NS_ASSERTION(len == observers.Length(),
+                 "Calling SetLinkState added or removed an observer!");
+  }
 
   
   mObservers.RemoveEntry(aURI);
-  }
-
-  
-  
-  nsCOMPtr<nsIObserverService> observerService =
-    do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
-  if (observerService) {
-    nsAutoString status;
-    if (aIsVisited) {
-      status.AssignLiteral(URI_VISITED);
-    }
-    else {
-      status.AssignLiteral(URI_NOT_VISITED);
-    }
-    (void)observerService->NotifyObservers(aURI,
-      URI_VISITED_RESOLUTION_TOPIC,
-      status.get());
-  }
-
 }
 
 
@@ -248,22 +966,121 @@ History::GetSingleton()
   return gService;
 }
 
+void
+History::StartNextTask()
+{
+  nsCOMPtr<Step> nextTask =
+    static_cast<Step*>(mPendingVisits.PeekFront());
+  if (!nextTask) {
+    
+    return;
+  }
+  nsresult rv = nextTask->Callback(NULL);
+  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Beginning a task failed.");
+}
 
 
+
+
+NS_IMETHODIMP
+History::VisitURI(nsIURI* aURI,
+                  nsIURI* aLastVisitedURI,
+                  PRUint32 aFlags)
+{
+  NS_PRECONDITION(aURI, "URI should not be NULL.");
+
+#ifdef MOZ_IPC
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    mozilla::dom::ContentProcessChild * cpc = 
+      mozilla::dom::ContentProcessChild::GetSingleton();
+    NS_ASSERTION(cpc, "Content Protocol is NULL!");
+    (void) cpc->SendVisitURI(IPC::URI(aURI), IPC::URI(aLastVisitedURI), aFlags);
+    return NS_OK;
+  } 
+#endif 
+
+  nsNavHistory* history = nsNavHistory::GetHistoryService();
+  NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+
+  
+  PRBool canAdd;
+  nsresult rv = history->CanAddURI(aURI, &canAdd);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!canAdd) {
+    return NS_OK;
+  }
+
+  
+  nsAutoPtr<VisitURIData> data(new VisitURIData());
+
+  nsCAutoString spec;
+  rv = aURI->GetSpec(spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (aLastVisitedURI) {
+    rv = aLastVisitedURI->GetSpec(data->lastSpec);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  if (spec.Equals(data->lastSpec)) {
+    
+    return NS_OK;
+  }
+
+  
+  
+  PRUint32 recentFlags = history->GetRecentFlags(aURI);
+  bool redirected = false;
+  if (aFlags & IHistory::REDIRECT_TEMPORARY) {
+    data->transitionType = nsINavHistoryService::TRANSITION_REDIRECT_TEMPORARY;
+    redirected = true;
+  }
+  else if (aFlags & IHistory::REDIRECT_PERMANENT) {
+    data->transitionType = nsINavHistoryService::TRANSITION_REDIRECT_PERMANENT;
+    redirected = true;
+  }
+  else if (recentFlags & nsNavHistory::RECENT_TYPED) {
+    data->transitionType = nsINavHistoryService::TRANSITION_TYPED;
+  }
+  else if (recentFlags & nsNavHistory::RECENT_BOOKMARKED) {
+    data->transitionType = nsINavHistoryService::TRANSITION_BOOKMARK;
+  }
+  else if (aFlags & IHistory::TOP_LEVEL) {
+    
+    data->transitionType = nsINavHistoryService::TRANSITION_LINK;
+  }
+  else if (recentFlags & nsNavHistory::RECENT_ACTIVATED) {
+    
+    data->transitionType = nsINavHistoryService::TRANSITION_FRAMED_LINK;
+  }
+  else {
+    
+    data->transitionType = nsINavHistoryService::TRANSITION_EMBED;
+  }
+
+  data->typed = (data->transitionType == nsINavHistoryService::TRANSITION_TYPED) ? 1 : 0;
+  data->hidden = 
+    (data->transitionType == nsINavHistoryService::TRANSITION_FRAMED_LINK ||
+     data->transitionType == nsINavHistoryService::TRANSITION_EMBED ||
+     redirected) ? 1 : 0;
+  data->dateTime = PR_Now();
+  data->uri = aURI;
+
+  nsCOMPtr<Step> task(new StartVisitURIStep(data));
+  AppendTask(task);
+
+  nsCOMPtr<nsIObserverService> obsService =
+    mozilla::services::GetObserverService();
+  if (obsService) {
+    obsService->NotifyObservers(aURI, NS_LINK_VISITED_EVENT_TOPIC, nsnull);
+  }
+
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 History::RegisterVisitedCallback(nsIURI* aURI,
                                  Link* aLink)
 {
-  nsresult   rv;
-
-#ifdef MOZ_IPC
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
-      rv = VisitedQuery::Start(aURI);
-      return rv;
-  }
-#endif
-
   NS_ASSERTION(aURI, "Must pass a non-null URI!");
   NS_ASSERTION(aLink, "Must pass a non-null Link object!");
 
@@ -287,19 +1104,7 @@ History::RegisterVisitedCallback(nsIURI* aURI,
     
     
     
-#ifdef MOZ_IPC
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    mozilla::dom::ContentProcessChild * cpc = 
-        mozilla::dom::ContentProcessChild::GetSingleton();
-    NS_ASSERTION(cpc, "Content Protocol is NULL!");
-
-    nsCString aURISpec;
-    aURI->GetSpec(aURISpec);
-    cpc->SendStartVisitedQuery(aURISpec, &rv);
-  }
-#else
-    rv = VisitedQuery::Start(aURI);
-#endif
+    nsresult rv = VisitedQuery::Start(aURI);
     if (NS_FAILED(rv)) {
       
       mObservers.RemoveEntry(aURI);
@@ -349,12 +1154,42 @@ History::UnregisterVisitedCallback(nsIURI* aURI,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+History::SetURITitle(nsIURI* aURI, const nsAString& aTitle)
+{
+  NS_PRECONDITION(aURI, "Must pass a non-null URI!");
+
+  nsNavHistory* history = nsNavHistory::GetHistoryService();
+  PRBool canAdd;
+  nsresult rv = history->CanAddURI(aURI, &canAdd);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!canAdd) {
+    return NS_OK;
+  }
+
+  nsAutoPtr<SetTitleData> data(new SetTitleData());
+  data->uri = aURI;
+
+  if (aTitle.IsEmpty()) {
+    data->title.SetIsVoid(PR_TRUE);
+  }
+  else {
+    data->title.Assign(aTitle);
+  }
+
+  nsCOMPtr<Step> task(new StartSetURITitleStep(data));
+  AppendTask(task);
+
+  return NS_OK;
+}
+ 
+ 
 
 
 
 NS_IMPL_ISUPPORTS1(
-  History,
-  IHistory
+  History
+, IHistory
 )
 
 } 
