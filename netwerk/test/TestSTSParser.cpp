@@ -115,6 +115,12 @@ main(PRInt32 argc, char *argv[])
     ScopedXPCOM xpcom("STS Parser Tests");
     if (xpcom.failed())
       return -1;
+    
+    nsCOMPtr<nsIFile> profile = xpcom.GetProfileDirectory();
+    if (!profile) {
+      fail("Couldn't get the profile directory.");
+      return -1;
+    }
 
     
     nsCOMPtr<nsIStrictTransportSecurityService> stss;

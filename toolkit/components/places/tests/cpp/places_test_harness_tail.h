@@ -114,8 +114,17 @@ int
 main(int aArgc,
      char** aArgv)
 {
-  ProfileScopedXPCOM xpcom(TEST_NAME);
+  ScopedXPCOM xpcom(TEST_NAME);
+  if (xpcom.failed())
+    return -1;
+  
   nsCOMPtr<nsIFile> profile = xpcom.GetProfileDirectory();
+  if (!profile) {
+    fail("Couldn't get the profile directory.");
+    return -1;
+  }
+
+  nsRefPtr<WaitForConnectionClosed> spinClose = new WaitForConnectionClosed();
 
   
   
