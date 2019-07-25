@@ -2588,7 +2588,7 @@ Tab.prototype = {
         let target = aEvent.originalTarget;
 
         
-        if (target.defaultView != this.browser.contentWindow)
+        if (target != this.browser.contentDocument)
           return;
 
         
@@ -2634,7 +2634,7 @@ Tab.prototype = {
           return;
 
         
-        if (target.ownerDocument.defaultView != this.browser.contentWindow)
+        if (target.ownerDocument != this.browser.contentDocument)
           return;
 
         
@@ -2688,7 +2688,7 @@ Tab.prototype = {
           return;
 
         
-        if (aEvent.target.defaultView != this.browser.contentWindow)
+        if (aEvent.originalTarget != this.browser.contentDocument)
           return;
 
         sendMessageToJava({
