@@ -678,9 +678,6 @@ nsSocketTransportService::DoPollIteration(PRBool wait)
     
     
     
-    PRBool pollError = PR_FALSE;
-
-    
     
     
     
@@ -728,7 +725,6 @@ nsSocketTransportService::DoPollIteration(PRBool wait)
     PRInt32 n = Poll(wait, &pollInterval);
     if (n < 0) {
         SOCKET_LOG(("  PR_Poll error [%d]\n", PR_GetError()));
-        pollError = PR_TRUE;
     }
     else {
         
