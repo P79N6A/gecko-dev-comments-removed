@@ -394,14 +394,6 @@ public class GeckoInputConnection
         mComposingText = text != null ? text.toString() : "";
 
         if (!mComposing) {
-            if (mComposingText.length() == 0) {
-                
-                
-                
-                
-                return true;
-            }
-
             
             GeckoAppShell.sendEventToGecko(
                 new GeckoEvent(GeckoEvent.IME_GET_SELECTION, 0, 0));
@@ -411,6 +403,19 @@ public class GeckoInputConnection
                 Log.e("GeckoAppJava", "IME: setComposingText interrupted", e);
                 return false;
             }
+
+            if (mComposingText.length() == 0) {
+                
+                if (mSelectionLength > 0)
+                    GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.IME_DELETE_TEXT, 0, 0));
+
+                
+                
+                
+                
+                return true;
+            }
+
             
             GeckoAppShell.sendEventToGecko(
                 new GeckoEvent(GeckoEvent.IME_COMPOSITION_BEGIN, 0, 0));
