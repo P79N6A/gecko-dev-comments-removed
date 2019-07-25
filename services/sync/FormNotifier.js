@@ -25,6 +25,9 @@ function FormNotifier() {
     }
 
     
+    (function(){})(key);
+
+    
     this[key] = function() {
       let args = Array.slice(arguments);
       let notify = function(type) {
