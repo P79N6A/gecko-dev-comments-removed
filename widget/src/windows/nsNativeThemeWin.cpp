@@ -2243,8 +2243,13 @@ nsNativeThemeWin::GetWidgetTransparency(nsIFrame* aFrame, PRUint8 aWidgetType)
 
   HANDLE theme = GetTheme(aWidgetType);
   
-  if (!theme)
+  if (!theme) {
+    
+    if (aWidgetType == NS_THEME_MENUPOPUP) {
+      return eOpaque;
+    }
     return eUnknownTransparency;
+  }
 
   PRInt32 part, state;
   nsresult rv = GetThemePartAndState(aFrame, aWidgetType, part, state);
