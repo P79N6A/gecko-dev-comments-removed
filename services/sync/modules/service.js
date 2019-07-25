@@ -149,13 +149,13 @@ WeaveSvc.prototype = {
   _scheduleTimer: null,
 
   get username() {
-    return Utils.prefs.getCharPref("username");
+    return Svc.Prefs.get("username");
   },
   set username(value) {
     if (value)
-      Utils.prefs.setCharPref("username", value);
+      Svc.Prefs.set("username", value);
     else
-      Utils.prefs.clearUserPref("username");
+      Svc.Prefs.reset("username");
 
     
     ID.get('WeaveID').username = value;
@@ -180,14 +180,32 @@ WeaveSvc.prototype = {
   },
 
   get baseURL() {
-    let url = Utils.prefs.getCharPref("serverURL");
-    if (url && url[url.length-1] != '/')
+    let url = Svc.Prefs.get("serverURL");
+    if (!url)
+      throw "No server URL set";
+    if (url[url.length-1] != '/')
+      url += '/';
+    url += "0.3/";
+    return url;
+  },
+  set baseURL(value) {
+    Svc.Prefs.set("serverURL", value);
+  },
+
+  get clusterURL() {
+    let url = Svc.Prefs.get("clusterURL");
+    if (!url)
+      return null;
+    
+    if (url == "https://sm-weave-proxy01.services.mozilla.com/")
+      return "https://sm-weave-proxy01.services.mozilla.com/weave/0.3/";
+    if (url[url.length-1] != '/')
       url += '/';
     url += "0.3/user/";
     return url;
   },
-  set baseURL(value) {
-    Utils.prefs.setCharPref("serverURL", value);
+  set clusterURL(value) {
+    Svc.Prefs.set("clusterURL", value);
     this._genKeyURLs();
   },
 
@@ -204,15 +222,12 @@ WeaveSvc.prototype = {
   get keyGenEnabled() this._keyGenEnabled,
   set keyGenEnabled(value) { this._keyGenEnabled = value; },
 
-  get enabled() Utils.prefs.getBoolPref("enabled"),
+  get enabled() Svc.Prefs.get("enabled"),
 
   get schedule() {
     if (!this.enabled)
       return 0; 
-    return Utils.prefs.getIntPref("schedule");
-  },
-
-  onWindowOpened: function Weave__onWindowOpened() {
+    return Svc.Prefs.get("schedule");
   },
 
   get locked() this._locked,
@@ -274,9 +289,27 @@ WeaveSvc.prototype = {
   },
 
   _genKeyURLs: function WeaveSvc__genKeyURLs() {
-    let url = this.baseURL + this.username;
+    let url = this.clusterURL + this.username;
     PubKeys.defaultKeyUri = url + "/keys/pubkey";
     PrivKeys.defaultKeyUri = url + "/keys/privkey";
+  },
+
+  _checkCrypto: function WeaveSvc__checkCrypto() {
+    let ok = false;
+
+    try {
+      let svc = Cc["@labs.mozilla.com/Weave/Crypto;1"].
+	createInstance(Ci.IWeaveCrypto);
+      let iv = svc.generateRandomIV();
+      if (iv.length == 24)
+	ok = true;
+
+    } catch (e) {}
+
+    return ok;
+  },
+
+  onWindowOpened: function Weave__onWindowOpened() {
   },
 
   
@@ -285,7 +318,17 @@ WeaveSvc.prototype = {
   _onStartup: function WeaveSvc__onStartup() {
     let self = yield;
     this._initLogs();
-    this._log.info("Weave Service Initializing");
+    this._log.info("Weave " + WEAVE_VERSION + " initializing");
+
+    let ua = Cc["@mozilla.org/network/protocol;1?name=http"].
+      getService(Ci.nsIHttpProtocolHandler).userAgent;
+    this._log.info(ua);
+
+    if (!this._checkCrypto()) {
+      this.enabled = false;
+      this._log.error("Could not load the Weave crypto component. Disabling " +
+		      "Weave, since it will not work correctly.");
+    }
 
     Utils.prefs.addObserver("", this, false);
     this._os.addObserver(this, "quit-application", true);
@@ -303,12 +346,12 @@ WeaveSvc.prototype = {
 
     this._genKeyURLs();
 
-    if (Utils.prefs.getBoolPref("autoconnect") &&
-        this.username && this.username != 'nobody')
+    if (Svc.Prefs.get("autoconnect") && this.username) {
       try {
 	if (yield this.login(self.cb))
 	  yield this.sync(self.cb);
       } catch (e) {}
+    }
     self.done();
   },
   onStartup: function WeaveSvc_onStartup(callback) {
@@ -318,18 +361,18 @@ WeaveSvc.prototype = {
   _initLogs: function WeaveSvc__initLogs() {
     this._log = Log4Moz.repository.getLogger("Service.Main");
     this._log.level =
-      Log4Moz.Level[Utils.prefs.getCharPref("log.logger.service.main")];
+      Log4Moz.Level[Svc.Prefs.get("log.logger.service.main")];
 
     let formatter = new Log4Moz.BasicFormatter();
     let root = Log4Moz.repository.rootLogger;
-    root.level = Log4Moz.Level[Utils.prefs.getCharPref("log.rootLogger")];
+    root.level = Log4Moz.Level[Svc.Prefs.get("log.rootLogger")];
 
     let capp = new Log4Moz.ConsoleAppender(formatter);
-    capp.level = Log4Moz.Level[Utils.prefs.getCharPref("log.appender.console")];
+    capp.level = Log4Moz.Level[Svc.Prefs.get("log.appender.console")];
     root.addAppender(capp);
 
     let dapp = new Log4Moz.DumpAppender(formatter);
-    dapp.level = Log4Moz.Level[Utils.prefs.getCharPref("log.appender.dump")];
+    dapp.level = Log4Moz.Level[Svc.Prefs.get("log.appender.dump")];
     root.addAppender(dapp);
 
     let brief = this._dirSvc.get("ProfD", Ci.nsIFile);
@@ -346,10 +389,10 @@ WeaveSvc.prototype = {
       verbose.create(verbose.NORMAL_FILE_TYPE, PERMS_FILE);
 
     this._briefApp = new Log4Moz.RotatingFileAppender(brief, formatter);
-    this._briefApp.level = Log4Moz.Level[Utils.prefs.getCharPref("log.appender.briefLog")];
+    this._briefApp.level = Log4Moz.Level[Svc.Prefs.get("log.appender.briefLog")];
     root.addAppender(this._briefApp);
     this._debugApp = new Log4Moz.RotatingFileAppender(verbose, formatter);
-    this._debugApp.level = Log4Moz.Level[Utils.prefs.getCharPref("log.appender.debugLog")];
+    this._debugApp.level = Log4Moz.Level[Svc.Prefs.get("log.appender.debugLog")];
     root.addAppender(this._debugApp);
   },
 
@@ -380,45 +423,43 @@ WeaveSvc.prototype = {
   },
 
   _onQuitApplication: function WeaveSvc__onQuitApplication() {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   },
 
   
 
-  verifyLogin: function WeaveSvc_verifyLogin(onComplete, username, password) {
+  
+  findCluster: function WeaveSvc_findCluster(onComplete, username) {
+    let fn = function WeaveSvc__findCluster() {
+      let self = yield;
+      this._log.debug("Finding cluster for user " + username);
+      let res = new Resource(this.baseURL + "api/register/chknode/" + username);
+      yield res.get(self.cb);
+      if (res.lastChannel.responseStatus != 200) {
+	self.done(false);
+	return;
+      }
+      this.clusterURL = 'https://' + res.data + '/';
+      self.done(true);
+    };
+    fn.async(this, onComplete);
+  },
+
+  verifyLogin: function WeaveSvc_verifyLogin(onComplete, username, password, isLogin) {
     let user = username, pass = password;
 
     let fn = function WeaveSvc__verifyLogin() {
       let self = yield;
       this._log.debug("Verifying login for user " + user);
-      let res = new Resource(this.baseURL + user);
+
+      let cluster = this.clusterURL;
+      yield this.findCluster(self.cb, username);
+
+      let res = new Resource(this.clusterURL + user);
       yield res.get(self.cb);
+
+      if (!isLogin) 
+	this.clusterURL = cluster;
+
       
       self.done(true);
     };
@@ -472,7 +513,7 @@ WeaveSvc.prototype = {
 
 	this._log.debug("Logging in user " + this.username);
 
-	if (!(yield this.verifyLogin(self.cb, this.username, this.password)))
+	if (!(yield this.verifyLogin(self.cb, this.username, this.password, true)))
 	  throw "Login failed";
 	this._loggedIn = true;
 	this._setSchedule(this.schedule);
@@ -535,7 +576,8 @@ WeaveSvc.prototype = {
           ret = true;
         } catch (e) {
           this._log.error("Could not upload keys: " + Utils.exceptionStr(e));
-          this._log.error(keys.pubkey.lastRequest.responseText);
+	  
+          
         }
       } else {
         this._log.warn("Could not get encryption passphrase");
@@ -715,87 +757,5 @@ WeaveSvc.prototype = {
   wipeClient: function WeaveSvc_wipeClient(onComplete) {
     this._localLock(this._notify("wipe-client", "",
                                  this._wipeClient)).async(this, onComplete);
-  } 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  }
 };
