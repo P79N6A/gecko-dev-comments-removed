@@ -66,6 +66,17 @@ function test() {
                             
                             
                             
+
+    if (navigator.userAgent.match(/ SeaMonkey\//)) {
+      
+      
+      todo(false, "On SeaMonkey, testing OS X as generic Unix. (Bug 749872)");
+
+      
+      exe = Components.classes["@mozilla.org/file/local;1"].
+            createInstance(Components.interfaces.nsILocalFile);
+      exe.initWithPath("/bin/echo");
+    }
   } else {
     
     exe = Components.classes["@mozilla.org/file/local;1"].
