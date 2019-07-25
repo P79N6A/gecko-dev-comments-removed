@@ -91,12 +91,12 @@ gTests.push({
     is(prefsOpen.checked, false, "Preferences open button must not be depressed");
 
     
-    is(document.getElementById("panel-container").hidden,true, "Preferences panel is invisble");
+    is(BrowserUI.isPanelVisible(), false, "Preferences panel is invisble");
 
     
     var prefsClick = document.getElementById("tool-panel-open");
     prefsClick.click();
-    waitFor(gCurrentTest.onPrefsView, function() { return document.getElementById("panel-container").hidden == false; });
+    waitFor(gCurrentTest.onPrefsView, BrowserUI.isPanelVisible);
   },
 
   onPrefsView: function(){
@@ -105,8 +105,7 @@ gTests.push({
     let h = prefsList.clientHeight;
 
     
-    var prefsContainer = document.getElementById("panel-container");
-    is(prefsContainer.hidden, false, "Preferences panel must now be visble");
+    ok(BrowserUI.isPanelVisible(), "Preferences panel must now be visble");
 
     
     is(document.getElementById("panel-container").hidden, false, "Preferences panel should be visible");
