@@ -41,8 +41,8 @@
 #include <stdio.h>
 #include <stdlib.h>             
 
-#if defined(_WIN32)
-#  include <signal.h>           
+#if defined(XP_WIN)
+#  include <intrin.h>           
 #elif defined(XP_UNIX)
 #  include <unistd.h>           
 #endif
@@ -69,10 +69,10 @@ mozalloc_abort(const char* const msg)
     fputs(msg, stderr);
     fputs("\n", stderr);
 
-    
-
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
     abort();
+#elif defined(XP_WIN)
+    __debugbreak();
 #endif
     
     
