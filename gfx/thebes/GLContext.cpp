@@ -575,8 +575,20 @@ BasicTextureImage::BeginUpdate(nsIntRegion& aRegion)
     NS_ASSERTION(!mUpdateSurface, "BeginUpdate() without EndUpdate()?");
 
     
-    GetUpdateRegion(aRegion);
-    mUpdateRegion = aRegion;
+    ImageFormat format =
+        (GetContentType() == gfxASurface::CONTENT_COLOR) ?
+        gfxASurface::ImageFormatRGB24 : gfxASurface::ImageFormatARGB32;
+    if (mTextureState != Valid)
+    {
+        
+        
+        
+        mUpdateRegion = nsIntRect(nsIntPoint(0, 0), mSize);
+    } else {
+        mUpdateRegion = aRegion;
+    }
+
+    aRegion = mUpdateRegion;
 
     nsIntRect rgnSize = mUpdateRegion.GetBounds();
     if (!nsIntRect(nsIntPoint(0, 0), mSize).Contains(rgnSize)) {
@@ -584,10 +596,7 @@ BasicTextureImage::BeginUpdate(nsIntRegion& aRegion)
         return NULL;
     }
 
-    ImageFormat format =
-        (GetContentType() == gfxASurface::CONTENT_COLOR) ?
-        gfxASurface::ImageFormatRGB24 : gfxASurface::ImageFormatARGB32;
-    mUpdateSurface =
+    mUpdateSurface = 
         GetSurfaceForUpdate(gfxIntSize(rgnSize.width, rgnSize.height), format);
 
     if (!mUpdateSurface || mUpdateSurface->CairoStatus()) {
@@ -598,16 +607,6 @@ BasicTextureImage::BeginUpdate(nsIntRegion& aRegion)
     mUpdateSurface->SetDeviceOffset(gfxPoint(-rgnSize.x, -rgnSize.y));
 
     return mUpdateSurface;
-}
-
-void
-BasicTextureImage::GetUpdateRegion(nsIntRegion& aForRegion)
-{
-  
-  
-  
-  if (mTextureState != Valid)
-      aForRegion = nsIntRect(nsIntPoint(0, 0), mSize);
 }
 
 void
@@ -730,9 +729,10 @@ TiledTextureImage::~TiledTextureImage()
 bool 
 TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom )
 {
+    nsIntRect bounds = aRegion.GetBounds();
     nsIntRegion region;
     if (mTextureState != Valid) {
-        nsIntRect bounds = nsIntRect(0, 0, mSize.width, mSize.height);
+        bounds = nsIntRect(0, 0, mSize.width, mSize.height);
         region = nsIntRegion(bounds);
     } else {
         region = aRegion;
@@ -740,8 +740,8 @@ TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, 
 
     PRBool result = PR_TRUE;
     for (unsigned i = 0; i < mImages.Length(); i++) {
-        int xPos = (i % mColumns) * mTileSize;
-        int yPos = (i / mColumns) * mTileSize;
+        unsigned int xPos = (i % mColumns) * mTileSize;
+        unsigned int yPos = (i / mColumns) * mTileSize;
         nsIntRegion tileRegion;
         tileRegion.And(region, nsIntRect(nsIntPoint(xPos,yPos), mImages[i]->GetSize())); 
         if (tileRegion.IsEmpty())
@@ -757,66 +757,25 @@ TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, 
     return result;
 }
 
-void
-TiledTextureImage::GetUpdateRegion(nsIntRegion& aForRegion)
-{
-    if (mTextureState != Valid) {
-        
-        
-        
-        aForRegion = nsIntRect(nsIntPoint(0, 0), mSize);
-        return;
-    }
-
-    nsIntRegion newRegion;
-
-    
-    
-    for (unsigned i = 0; i < mImages.Length(); i++) {
-        int xPos = (i % mColumns) * mTileSize;
-        int yPos = (i / mColumns) * mTileSize;
-        nsIntRect imageRect = nsIntRect(nsIntRect(nsIntPoint(xPos,yPos), mImages[i]->GetSize()));
-
-        if (aForRegion.Intersects(imageRect)) {
-            
-            nsIntRegion subRegion;
-            subRegion.And(aForRegion, imageRect);
-            
-            subRegion.MoveBy(-xPos, -yPos);
-            
-            mImages[i]->GetUpdateRegion(subRegion);
-            
-            subRegion.MoveBy(xPos, yPos);
-            
-            newRegion.Or(newRegion, subRegion);
-        }
-    }
-
-    aForRegion = newRegion;
-}
-
 gfxASurface*
 TiledTextureImage::BeginUpdate(nsIntRegion& aRegion)
 {
     NS_ASSERTION(!mInUpdate, "nested update");
     mInUpdate = PR_TRUE;
 
-    
-    
-    
     if (mTextureState != Valid)
     {
         
         
         
-        aRegion = nsIntRect(nsIntPoint(0, 0), mSize);
+        mUpdateRegion = nsIntRect(nsIntPoint(0, 0), mSize);
+    } else {
+        mUpdateRegion = aRegion;
     }
 
-    nsIntRect bounds = aRegion.GetBounds();
-
     for (unsigned i = 0; i < mImages.Length(); i++) {
-        int xPos = (i % mColumns) * mTileSize;
-        int yPos = (i / mColumns) * mTileSize;
+        unsigned int xPos = (i % mColumns) * mTileSize;
+        unsigned int yPos = (i / mColumns) * mTileSize;
         nsIntRegion imageRegion = nsIntRegion(nsIntRect(nsIntPoint(xPos,yPos), mImages[i]->GetSize()));
 
         
@@ -828,31 +787,21 @@ TiledTextureImage::BeginUpdate(nsIntRegion& aRegion)
             
             aRegion.MoveBy(xPos, yPos);
             
-            gfxPoint offset = surface->GetDeviceOffset();
-            surface->SetDeviceOffset(gfxPoint(offset.x - xPos,
-                                              offset.y - yPos));
-            
             mUpdateSurface = nsnull;
             
             mCurrentImage = i;
             return surface.get();
         }
     }
-
-    
-    
-    GetUpdateRegion(aRegion);
-    mUpdateRegion = aRegion;
-    bounds = aRegion.GetBounds();
-
     
     gfxASurface::gfxImageFormat format =
         (GetContentType() == gfxASurface::CONTENT_COLOR) ?
         gfxASurface::ImageFormatRGB24 : gfxASurface::ImageFormatARGB32;
+
+    nsIntRect bounds = aRegion.GetBounds();
     mUpdateSurface = gfxPlatform::GetPlatform()->
         CreateOffscreenSurface(gfxIntSize(bounds.width, bounds.height), gfxASurface::ContentFromFormat(format));
     mUpdateSurface->SetDeviceOffset(gfxPoint(-bounds.x, -bounds.y));
-
     return mUpdateSurface;
 }
 
@@ -871,10 +820,9 @@ TiledTextureImage::EndUpdate()
 
     
     for (unsigned i = 0; i < mImages.Length(); i++) {
-        int xPos = (i % mColumns) * mTileSize;
-        int yPos = (i / mColumns) * mTileSize;
+        unsigned int xPos = (i % mColumns) * mTileSize;
+        unsigned int yPos = (i / mColumns) * mTileSize;
         nsIntRect imageRect = nsIntRect(nsIntPoint(xPos,yPos), mImages[i]->GetSize());
-
         nsIntRegion subregion;
         subregion.And(mUpdateRegion, imageRect);
         if (subregion.IsEmpty())
@@ -894,7 +842,6 @@ TiledTextureImage::EndUpdate()
     mInUpdate = PR_FALSE;
     mShaderType = mImages[0]->GetShaderProgramType();
     mIsRGBFormat = mImages[0]->IsRGB();
-    mTextureState = Valid;
 }
 
 void TiledTextureImage::BeginTileIteration()
@@ -952,11 +899,6 @@ void TiledTextureImage::Resize(const nsIntSize& aSize)
       }
     }
     mTextureState = Allocated;
-}
-
-PRUint32 TiledTextureImage::GetTileCount()
-{
-    return mImages.Length();
 }
 
 PRBool

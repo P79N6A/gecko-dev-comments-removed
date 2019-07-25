@@ -191,96 +191,40 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
       renderRegion = &visibleRegion;
     }
 
+    mTexImage->BeginTileIteration();
+    if (mTexImageOnWhite) {
+      mTexImageOnWhite->BeginTileIteration();
+      NS_ASSERTION(mTexImageOnWhite->GetTileRect() == mTexImage->GetTileRect(), "component alpha textures should be the same size.");
+    }
     nsIntRegion region(*renderRegion);
     nsIntPoint origin = GetOriginOffset();
     region.MoveBy(-origin);           
 
-    
-    nsIntSize texSize = mTexImage->GetSize();
-    nsIntRect textureRect = nsIntRect(0, 0, texSize.width, texSize.height);
-    textureRect.MoveBy(region.GetBounds().TopLeft());
-    nsIntRegion subregion;
-    subregion.And(region, textureRect);
-    if (subregion.IsEmpty())  
-      return;
-
-    nsIntRegion screenRects;
-    nsIntRegion regionRects;
-
-    
-    nsIntRegionRectIterator iter(subregion);
-    while (const nsIntRect* iterRect = iter.Next()) {
-        nsIntRect regionRect = *iterRect;
-        nsIntRect screenRect = regionRect;
-        screenRect.MoveBy(origin);
-
-        screenRects.Or(screenRects, screenRect);
-        regionRects.Or(regionRects, regionRect);
-    }
-
-    mTexImage->BeginTileIteration();
-    if (mTexImageOnWhite) {
-      NS_ASSERTION(mTexImage->GetTileCount() == mTexImageOnWhite->GetTileCount(),
-                   "Tile count mismatch on component alpha texture");
-      mTexImageOnWhite->BeginTileIteration();
-    }
-
-    bool usingTiles = (mTexImage->GetTileCount() > 1);
     do {
-      if (mTexImageOnWhite) {
-        NS_ASSERTION(mTexImageOnWhite->GetTileRect() == mTexImage->GetTileRect(), "component alpha textures should be the same size.");
+      nsIntRect textureRect = mTexImage->GetTileRect();
+      textureRect.MoveBy(region.GetBounds().x, region.GetBounds().y);
+      nsIntRegion subregion(region);
+      subregion.And(region, textureRect); 
+      if (subregion.IsEmpty()) {
+        continue;
       }
-
-      nsIntRect tileRect = mTexImage->GetTileRect();
-
       
       TextureImage::ScopedBindTexture texBind(mTexImage, LOCAL_GL_TEXTURE0);
       TextureImage::ScopedBindTexture texOnWhiteBind(mTexImageOnWhite, LOCAL_GL_TEXTURE1);
 
-      
-      
-      
-      
-      for (int y = 0; y < (usingTiles ? 2 : 1); y++) {
-        for (int x = 0; x < (usingTiles ? 2 : 1); x++) {
-          nsIntRect currentTileRect(tileRect);
-          currentTileRect.MoveBy(x * texSize.width, y * texSize.height);
+      nsIntRegionRectIterator iter(subregion);
+      while (const nsIntRect *iterRect = iter.Next()) {
+        nsIntRect regionRect = *iterRect;  
+        
+        nsIntRect screenRect = regionRect;
+        screenRect.MoveBy(origin);
+        program->SetLayerQuadRect(screenRect);
 
-          nsIntRegionRectIterator screenIter(screenRects);
-          nsIntRegionRectIterator regionIter(regionRects);
-
-          const nsIntRect* screenRect;
-          const nsIntRect* regionRect;
-          while ((screenRect = screenIter.Next()) &&
-                 (regionRect = regionIter.Next())) {
-              nsIntRect tileScreenRect(*screenRect);
-              nsIntRect tileRegionRect(*regionRect);
-
-              
-              
-              
-              if (usingTiles) {
-                  tileScreenRect.MoveBy(-origin);
-                  tileScreenRect = tileScreenRect.Intersect(currentTileRect);
-                  tileScreenRect.MoveBy(origin);
-
-                  if (tileScreenRect.IsEmpty())
-                    continue;
-
-                  tileRegionRect = regionRect->Intersect(currentTileRect);
-                  tileRegionRect.MoveBy(-currentTileRect.TopLeft());
-              }
-
-              program->SetLayerQuadRect(tileScreenRect);
-              aManager->BindAndDrawQuadWithTextureRect(program, tileRegionRect,
-                                                       tileRect.Size(),
-                                                       mTexImage->GetWrapMode());
-          }
-        }
+        regionRect.MoveBy(-mTexImage->GetTileRect().TopLeft()); 
+        aManager->BindAndDrawQuadWithTextureRect(program, regionRect,
+                                                 textureRect.Size(),
+                                                 mTexImage->GetWrapMode());
       }
-
-      if (mTexImageOnWhite)
-          mTexImageOnWhite->NextTile();
     } while (mTexImage->NextTile());
   }
 
@@ -846,18 +790,6 @@ ShadowBufferOGL::Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,
   
   nsIntPoint visTopLeft = mLayer->GetVisibleRegion().GetBounds().TopLeft();
   destRegion.MoveBy(-visTopLeft);
-
-  
-  destRegion.MoveBy(aRotation);
-  nsIntRect destBounds = destRegion.GetBounds();
-  destRegion.MoveBy((destBounds.x >= size.width) ? -size.width : 0,
-                    (destBounds.y >= size.height) ? -size.height : 0);
-
-  
-  
-  NS_ASSERTION(((destBounds.x % size.width) + destBounds.width <= size.width) &&
-               ((destBounds.y % size.height) + destBounds.height <= size.height),
-               "Updated region lies across rotation boundaries!");
 
   
   mTexImage->DirectUpdate(aUpdate, destRegion);
