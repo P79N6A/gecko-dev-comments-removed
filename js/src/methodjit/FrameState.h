@@ -388,6 +388,12 @@ class FrameState
 
 
 
+    inline Jump testFunObj(Assembler::Condition cond, FrameEntry *fe);
+
+    
+
+
+
 
     inline void pinReg(RegisterID reg);
 
