@@ -68,7 +68,8 @@ nsDSURIContentListener::nsDSURIContentListener(nsDocShell* aDocShell)
   if (NS_UNLIKELY(!initializedPrefCache)) {
     
     nsIPrefBranch *root = Preferences::GetRootBranch();
-    root->LockPref("b2g.ignoreXFrameOptions");
+    if (XRE_GetProcessType() != GeckoProcessType_Content)
+      root->LockPref("b2g.ignoreXFrameOptions");
 
     Preferences::AddBoolVarCache(&sIgnoreXFrameOptions, "b2g.ignoreXFrameOptions");
     initializedPrefCache = true;

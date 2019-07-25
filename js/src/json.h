@@ -54,6 +54,10 @@ js_Stringify(JSContext *cx, js::Value *vp, JSObject *replacer, js::Value space,
              js::StringBuffer &sb);
 
 
+#undef STRICT
+#undef LEGACY
+
+
 
 
 
