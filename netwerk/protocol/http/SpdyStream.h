@@ -54,7 +54,6 @@ public:
   SpdyStream(nsAHttpTransaction *,
              SpdySession *, nsISocketTransport *,
              PRUint32, z_stream *, PRInt32);
-  ~SpdyStream();
 
   PRUint32 StreamID() { return mStreamID; }
 
@@ -100,6 +99,12 @@ public:
 
 private:
 
+  
+  
+  
+  friend class nsAutoPtr<SpdyStream>;
+  ~SpdyStream();
+
   enum stateType {
     GENERATING_SYN_STREAM,
     SENDING_SYN_STREAM,
@@ -130,6 +135,9 @@ private:
   
   enum stateType mUpstreamState;
 
+  
+  
+  
   
   nsRefPtr<nsAHttpTransaction> mTransaction;
 
