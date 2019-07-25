@@ -240,6 +240,8 @@ AnimatedZoom.prototype._callback = function() {
 
 AnimatedZoom.prototype.finish = function() {
   try {
+    Elements.viewBuffer.style.display = "none";
+
     
     this.bv.resumeRendering(true);
 
