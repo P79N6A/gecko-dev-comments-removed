@@ -314,4 +314,6 @@ struct ProtectedActorTraits<PluginScriptableObjectChild>
 } 
 } 
 
+#include "PluginScriptableObjectUtils-inl.h"
+
 #endif 
