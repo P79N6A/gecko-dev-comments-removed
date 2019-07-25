@@ -89,7 +89,7 @@ DebugCheckWrapperClass(JSObject* obj)
 {
     NS_ASSERTION(IS_WRAPPER_CLASS(js::GetObjectClass(obj)),
                  "Forgot to check if this is a wrapper?");
-    return true;
+    return JS_TRUE;
 }
 
 
@@ -182,11 +182,6 @@ xpc_UnmarkGrayObject(JSObject *obj)
         xpc_UnmarkGrayObjectRecursive(obj);
 }
 
-
-
-NS_EXPORT_(void)
-xpc_ActivateDebugMode();
-
 class nsIMemoryMultiReporterCallback;
 
 namespace mozilla {
@@ -207,6 +202,7 @@ struct CompartmentStats
     PRInt64 gcHeapStrings;
     PRInt64 gcHeapShapesTree;
     PRInt64 gcHeapShapesDict;
+    PRInt64 gcHeapShapesBase;
     PRInt64 gcHeapScripts;
     PRInt64 gcHeapTypeObjects;
     PRInt64 gcHeapXML;
@@ -219,8 +215,16 @@ struct CompartmentStats
     PRInt64 scriptData;
 
 #ifdef JS_METHODJIT
-    PRInt64 mjitCode;
+    PRInt64 mjitCodeMethod;
+    PRInt64 mjitCodeRegexp;
+    PRInt64 mjitCodeUnused;
     PRInt64 mjitData;
+#endif
+#ifdef JS_TRACER
+    PRInt64 tjitCode;
+    PRInt64 tjitDataAllocatorsMain;
+    PRInt64 tjitDataAllocatorsReserve;
+    PRInt64 tjitDataNonAllocators;
 #endif
     TypeInferenceMemoryStats typeInferenceMemory;
 };
@@ -228,18 +232,12 @@ struct CompartmentStats
 struct IterateData
 {
     IterateData()
-      : runtimeObject(0),
-        runtimeAtomsTable(0),
-        runtimeContexts(0),
-        runtimeThreadsNormal(0),
-        runtimeThreadsTemporary(0),
-        runtimeThreadsRegexpCode(0),
-        runtimeThreadsStackCommitted(0),
+      : runtimeObjectSize(0),
+        atomsTableSize(0),
+        stackSize(0),
         gcHeapChunkTotal(0),
         gcHeapChunkCleanUnused(0),
         gcHeapChunkDirtyUnused(0),
-        gcHeapChunkCleanDecommitted(0),
-        gcHeapChunkDirtyDecommitted(0),
         gcHeapArenaUnused(0),
         gcHeapChunkAdmin(0),
         gcHeapUnusedPercentage(0),
@@ -255,18 +253,12 @@ struct IterateData
         compartmentStatsVector(),
         currCompartmentStats(NULL) { }
 
-    PRInt64 runtimeObject;
-    PRInt64 runtimeAtomsTable;
-    PRInt64 runtimeContexts;
-    PRInt64 runtimeThreadsNormal;
-    PRInt64 runtimeThreadsTemporary;
-    PRInt64 runtimeThreadsRegexpCode;
-    PRInt64 runtimeThreadsStackCommitted;
+    PRInt64 runtimeObjectSize;
+    PRInt64 atomsTableSize;
+    PRInt64 stackSize;
     PRInt64 gcHeapChunkTotal;
     PRInt64 gcHeapChunkCleanUnused;
     PRInt64 gcHeapChunkDirtyUnused;
-    PRInt64 gcHeapChunkCleanDecommitted;
-    PRInt64 gcHeapChunkDirtyDecommitted;
     PRInt64 gcHeapArenaUnused;
     PRInt64 gcHeapChunkAdmin;
     PRInt64 gcHeapUnusedPercentage;
