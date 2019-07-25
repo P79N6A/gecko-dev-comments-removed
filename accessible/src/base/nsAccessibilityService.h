@@ -423,7 +423,10 @@ static const char kRoleNames[][20] = {
   "embedded object",     
   "note",                
   "figure",              
-  "check rich option"    
+  "check rich option",   
+  "definitionlist",      
+  "term",                
+  "definition"           
 };
 
 

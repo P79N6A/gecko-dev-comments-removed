@@ -801,8 +801,23 @@ namespace roles {
   
 
 
+  DEFINITION_LIST = 126,
 
-  LAST_ENTRY = 126
+  
+
+
+  TERM = 127,
+
+  
+
+
+  DEFINITION = 128,
+
+  
+
+
+
+  LAST_ENTRY = 129
   };
 } 
 typedef enum mozilla::a11y::roles::Role role;
